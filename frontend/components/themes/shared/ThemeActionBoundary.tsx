@@ -1,7 +1,7 @@
 "use client"
 
 import { createContext, useContext, type ReactNode } from "react"
-import type { ThemeMenuActions } from "@/components/themes/types"
+import type { ThemeMenuActions } from "@/components/themes/shared/ThemeActionContract"
 
 const ThemeMenuActionsContext = createContext<ThemeMenuActions | null>(null)
 

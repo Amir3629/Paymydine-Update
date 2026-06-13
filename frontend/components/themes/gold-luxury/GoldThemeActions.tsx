@@ -1,7 +1,7 @@
 "use client"
 
 import type { ReactNode } from "react"
-import type { ThemeMenuActions } from "@/components/themes/types"
+import type { ThemeMenuActions } from "@/components/themes/shared/ThemeActionContract"
 import { ThemeActionButton, type ThemeActionButtonProps } from "@/components/themes/shared/ThemeActionButton"
 
 type GoldThemeActionButtonProps = {

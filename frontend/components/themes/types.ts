@@ -5,8 +5,9 @@ import type { CheckoutStep, PmdToolbarPricingSnapshot, SplitMethod, SplitPerson 
 import type { PaymentSummary } from "@/features/checkout/payment-summary-utils"
 import type { TableOrderDraft } from "@/features/table-order/types"
 import type { ValetRequestInput, ValetRequestResult } from "@/features/valet/types"
+import type { ThemeActionResult, ThemeMenuActions } from "@/components/themes/shared/ThemeActionContract"
 
-export type ThemeActionResult<T = void> = T | Promise<T>
+export type { ThemeActionResult, ThemeMenuActions } from "@/components/themes/shared/ThemeActionContract"
 
 export type ThemeActionLoadingState = {
   checkout?: boolean
@@ -42,14 +43,6 @@ export type ThemeTableContext = {
   qr?: string | null
 }
 
-export type ThemeMenuActions = {
-  onAddItem: (item: MenuItem, quantity?: number) => ThemeActionResult
-  onOpenCheckout: () => ThemeActionResult
-  onOpenTableOrder: () => ThemeActionResult
-  onCallWaiter: () => ThemeActionResult
-  onOpenNote: () => ThemeActionResult
-  onOpenValet: () => ThemeActionResult
-}
 
 export type ThemeCheckoutActions = {
   onConfirmOrder: () => ThemeActionResult

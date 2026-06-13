@@ -2,7 +2,7 @@
 
 import React from "react"
 import type { ReactNode } from "react"
-import type { ThemeMenuActions } from "@/components/themes/types"
+import type { ThemeMenuActions } from "@/components/themes/shared/ThemeActionContract"
 import { ThemeActionButton } from "@/components/themes/shared/ThemeActionButton"
 
 type OrganicThemeActionButtonProps = {

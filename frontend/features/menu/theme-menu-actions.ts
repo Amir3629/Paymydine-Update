@@ -1,4 +1,4 @@
-import type { ThemeMenuActions } from "@/components/themes/types"
+import type { ThemeMenuActions } from "@/components/themes/shared/ThemeActionContract"
 
 export type SharedMenuActionHandlers = ThemeMenuActions
 

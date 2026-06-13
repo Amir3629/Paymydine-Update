@@ -48,6 +48,10 @@ import {
   organicCheckoutPrimaryButtonStyle,
 } from "@/components/themes/organic-botanical-paper/OrganicCheckoutShell";
 import { ThemeActionBoundary, useThemeMenuActions } from "@/components/themes/shared/ThemeActionBoundary";
+import { KazenBottomDock } from "@/components/themes/kazen-japanese/KazenBottomDock";
+import { ModernGreenBottomDock } from "@/components/themes/modern-green/ModernGreenBottomDock";
+import { OrganicBottomDock } from "@/components/themes/organic-botanical-paper/OrganicBottomDock";
+import { GoldBottomDock } from "@/components/themes/gold-luxury/GoldBottomDock";
 import { CheckoutIconFrame, CheckoutStepCard, CheckoutSummaryCard, OrderStatusCard, PaymentCardFrame, PaymentMethodTile, SplitBillPanel, SplitMethodButton, ThemedButton, ThemedInput, TipCouponPanel } from "@/components/theme-ui";
 import { useTableOrderDraft } from "@/features/table-order/use-table-order-draft";
 import { useTableOrderActions } from "@/features/table-order/use-table-order-actions";
@@ -8251,6 +8255,9 @@ function ExpandingBottomToolbar({
               onCallWaiter: onWaiterClick ?? (() => undefined),
               onOpenNote: onNoteClick ?? (() => undefined),
               onOpenValet: () => undefined,
+              cartCount: totalItems,
+              tableOrderCount: orderCount || 0,
+              showTableOrder: Boolean(onOrderClick),
             }}
             as={motion.button}
             {...({ whileTap: { scale: waiterDisabled ? 1 : 0.92 }, whileHover: { scale: waiterDisabled ? 1 : 1.12 } })}
@@ -8277,6 +8284,9 @@ function ExpandingBottomToolbar({
               onCallWaiter: onWaiterClick ?? (() => undefined),
               onOpenNote: onNoteClick ?? (() => undefined),
               onOpenValet: () => undefined,
+              cartCount: totalItems,
+              tableOrderCount: orderCount || 0,
+              showTableOrder: Boolean(onOrderClick),
             }}
             as={motion.button}
             {...({ whileTap: { scale: noteDisabled ? 1 : 0.92 }, whileHover: { scale: noteDisabled ? 1 : 1.12 } })}
@@ -8304,6 +8314,9 @@ function ExpandingBottomToolbar({
               onCallWaiter: onWaiterClick ?? (() => undefined),
               onOpenNote: onNoteClick ?? (() => undefined),
               onOpenValet: () => undefined,
+              cartCount: totalItems,
+              tableOrderCount: orderCount || 0,
+              showTableOrder: Boolean(onOrderClick),
             }}
             as={motion.button}
             {...({ whileTap: { scale: 0.92 }, whileHover: { scale: 1.12 } })}
@@ -8392,6 +8405,9 @@ function ExpandingBottomToolbar({
               onCallWaiter: onWaiterClick ?? (() => undefined),
               onOpenNote: onNoteClick ?? (() => undefined),
               onOpenValet: () => undefined,
+              cartCount: totalItems,
+              tableOrderCount: orderCount || 0,
+              showTableOrder: Boolean(onOrderClick),
             }}
             as={motion.button}
             initial={{ opacity: 0, scale: 0.8, y: 8 }}
@@ -10283,6 +10299,12 @@ useEffect(() => {
         window.location.href = `/valet${currentSearch}`
       }
     },
+    cartCount: totalItems,
+    tableOrderCount: tableOrderActionCount,
+    showTableOrder: shouldShowTableOrderAction,
+    tableNumber: displayTableNumber,
+    currentLocale: language,
+    language,
   })
 
   // Phase 3C can begin moving low-risk native theme buttons (valet entry, waiter call, note,
@@ -11318,6 +11340,7 @@ useEffect(() => {
           showTableOrder={shouldShowTableOrderAction}
           tableOrderCount={tableOrderActionCount}
         >
+          <KazenBottomDock {...themeMenuActions} />
           <PaymentModal
             isOpen={isPaymentModalOpen}
             onClose={() => { setPaymentModalOpen(false); setPaymentModalPreferPersonalReview(false) }}
@@ -11510,8 +11533,8 @@ useEffect(() => {
           showTableOrder={shouldShowTableOrderAction}
           tableOrderCount={tableOrderActionCount}
         >
-          {/* Modern Green iframe already owns the cart surface; keep only the native checkout modal here. */}
-        <PaymentModal
+          <ModernGreenBottomDock {...themeMenuActions} />
+          <PaymentModal
             isOpen={isPaymentModalOpen}
             onClose={() => { setPaymentModalOpen(false); setPaymentModalPreferPersonalReview(false) }}
             items={items}
@@ -11568,29 +11591,7 @@ useEffect(() => {
             "--pmd-v2-page-bg": "#f5fff8af0",
           } as React.CSSProperties}
         >
-                <ExpandingBottomToolbar
-                  toolbarState={toolbarState}
-                  setToolbarState={setToolbarState}
-                  showBillArrow={showBillArrow}
-                  items={getDisplayItems()}
-                  totalPrice={totalPrice}
-                  subtotalPrice={toolbarSubtotalPrice}
-                  taxAmount={toolbarTaxAmount}
-                  taxPercentage={taxSettings.percentage}
-                  t={t}
-                  onCartClick={handleCartClick}
-                  onWaiterClick={handleWaiterClick}
-                  onNoteClick={handleNoteClick}
-                  waiterDisabled={false}
-                  noteDisabled={false}
-                  totalItems={totalItems}
-                  themeBackgroundColor={themeBackgroundColor}
-                  onOrderClick={shouldShowTableOrderAction ? () => {
-                    setPaymentModalInitialStep(sharedTableOrder?.status === "draft" ? 'review' : (sharedTableOrder?.status === "paid" ? 'paid' : 'submitted'))
-                    setPaymentModalOpen(true)
-                  } : undefined}
-                  orderCount={tableOrderActionCount}
-                />
+          <OrganicBottomDock {...themeMenuActions} />
         </div>
         {/* PMD_ORGANIC_USES_REAL_GOLD_TOOLBAR_FIXED_END_20260608 */}
 
@@ -11792,29 +11793,7 @@ useEffect(() => {
       `}</style>
 
       {/* Rest of the components */}
-      <ExpandingBottomToolbar
-        toolbarState={toolbarState}
-        setToolbarState={setToolbarState}
-        showBillArrow={showBillArrow}
-        items={getDisplayItems()}
-        totalPrice={totalPrice}
-        subtotalPrice={toolbarSubtotalPrice}
-        taxAmount={toolbarTaxAmount}
-        taxPercentage={taxSettings.percentage}
-        t={t}
-        onCartClick={handleCartClick}
-        onWaiterClick={handleWaiterClick}
-        onNoteClick={handleNoteClick}
-        waiterDisabled={false}
-        noteDisabled={false}
-        totalItems={totalItems}
-        themeBackgroundColor={themeBackgroundColor}
-        onOrderClick={shouldShowTableOrderAction ? () => {
-          setPaymentModalInitialStep(sharedTableOrder?.status === "draft" ? 'review' : (sharedTableOrder?.status === "paid" ? 'paid' : 'submitted'))
-          setPaymentModalOpen(true)
-        } : undefined}
-        orderCount={tableOrderActionCount}
-      />
+      <GoldBottomDock {...themeMenuActions} />
       {!shouldHideCartSheet && (
       <CartSheet />
       )}
