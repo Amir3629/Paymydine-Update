@@ -1,0 +1,1817 @@
+/* Category pills/nav */
+html body :is(
+  .category,
+  .category-pill,
+  .pmd-category,
+  .pmd-v2-category,
+  .pmd-customer-category,
+  [data-pmd-category]
+),
+html body :is(
+  .category,
+  .category-pill,
+  .pmd-category,
+  .pmd-v2-category,
+  .pmd-customer-category,
+  [data-pmd-category]
+) button {
+  font-size: 0.78rem !important;
+  line-height: 1.12 !important;
+  font-weight: 750 !important;
+}
+
+/* Valet card / form standard sizes */
+html body :is(
+  .pmd-valet-page,
+  .valet-page,
+  [data-pmd-page="valet"]
+) label,
+html body :is(
+  .pmd-valet-page,
+  .valet-page,
+  [data-pmd-page="valet"]
+) p,
+html body :is(
+  .pmd-valet-page,
+  .valet-page,
+  [data-pmd-page="valet"]
+) span {
+  font-size: 0.86rem !important;
+  line-height: 1.42 !important;
+}
+
+html body :is(
+  .pmd-valet-page,
+  .valet-page,
+  [data-pmd-page="valet"]
+) input,
+html body :is(
+  .pmd-valet-page,
+  .valet-page,
+  [data-pmd-page="valet"]
+) textarea,
+html body :is(
+  .pmd-valet-page,
+  .valet-page,
+  [data-pmd-page="valet"]
+) select {
+  font-size: 0.94rem !important;
+  line-height: 1.25 !important;
+}
+
+/* Bottom action labels: readable, but do not affect numeric badges */
+html body :is(
+  .pmd-v2-bottom-toolbar,
+  .pmd-bottom-toolbar,
+  .bottom-toolbar,
+  .bottom-actions,
+  .floating-actions,
+  .pmd-customer-menu-bottom-bar,
+  [data-pmd-bottom-toolbar="1"],
+  [data-pmd-menu-bottom-bar="1"]
+) button :is(span, p):not([data-pmd-menu-cart-badge]) {
+  font-size: 0.76rem !important;
+  line-height: 1.12 !important;
+  font-weight: 750 !important;
+}
+
+/* Do not resize numeric badges/counters */
+html body span[data-pmd-menu-cart-badge="1"],
+html body .cart-badge.pmd-v2-badge,
+html body span[class*="rounded-full"][class*="absolute"][class*="-top-"] {
+  font-size: 0.68rem !important;
+  line-height: 1 !important;
+}
+
+/* Do not resize icons inside circular buttons */
+html body button svg,
+html body button svg * {
+  flex-shrink: 0 !important;
+}
+
+
+/* PMD_REAL_BOTTOM_BAR_LABEL_FONT_FIX_20260601
+   Exact target for the real current bottom menu bar labels/tooltips:
+   Call waiter, Add note, Checkout, Table order.
+*/
+
+:root {
+  --pmd-bottom-action-label-font: 0.82rem; /* about 13px */
+  --pmd-bottom-action-label-line: 1.08;
+}
+
+/* Real tooltip label spans under .group/action-tooltip */
+html body .group\/action-tooltip > span.pointer-events-none,
+html body span.group\/action-tooltip > span.pointer-events-none,
+html body .relative.inline-flex.group\/action-tooltip > span.pointer-events-none,
+html body span.relative.inline-flex.group\/action-tooltip > span.pointer-events-none {
+  font-size: var(--pmd-bottom-action-label-font) !important;
+  line-height: var(--pmd-bottom-action-label-line) !important;
+  font-weight: 800 !important;
+  letter-spacing: -0.01em !important;
+
+  padding: 0.38rem 0.72rem !important;
+  min-height: 1.72rem !important;
+
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+
+  color: var(--theme-text-primary) !important;
+  -webkit-text-fill-color: var(--theme-text-primary) !important;
+  background: color-mix(in srgb, var(--theme-surface) 94%, #ffffff 6%) !important;
+  border: 1px solid var(--theme-border) !important;
+  box-shadow: 0 8px 18px rgba(17, 24, 39, 0.10) !important;
+}
+
+/* If the label text is rendered in any nested node */
+html body .group\/action-tooltip > span.pointer-events-none *,
+html body span.group\/action-tooltip > span.pointer-events-none *,
+html body .relative.inline-flex.group\/action-tooltip > span.pointer-events-none *,
+html body span.relative.inline-flex.group\/action-tooltip > span.pointer-events-none * {
+  font-size: var(--pmd-bottom-action-label-font) !important;
+  line-height: var(--pmd-bottom-action-label-line) !important;
+  font-weight: 800 !important;
+  color: var(--theme-text-primary) !important;
+  -webkit-text-fill-color: var(--theme-text-primary) !important;
+}
+
+/* Strong fallback for exact bottom floating bar area */
+html body div.fixed[class*="bottom-"] span.relative.inline-flex > span.pointer-events-none.absolute.left-1\/2,
+html body div.fixed[class*="bottom-"] span.relative.inline-flex > span.pointer-events-none[class*="bottom-full"],
+html body div.fixed[class*="bottom-"] span.relative.inline-flex > span.pointer-events-none[class*="whitespace-nowrap"] {
+  font-size: var(--pmd-bottom-action-label-font) !important;
+  line-height: var(--pmd-bottom-action-label-line) !important;
+  font-weight: 800 !important;
+  padding: 0.38rem 0.72rem !important;
+  min-height: 1.72rem !important;
+}
+
+/* Keep numeric counter badges separate; do not let label font CSS affect them */
+html body span[data-pmd-menu-cart-badge="1"],
+html body .cart-badge.pmd-v2-badge,
+html body span[class*="rounded-full"][class*="absolute"][class*="-top-"] {
+  font-size: 0.68rem !important;
+  line-height: 1 !important;
+  font-weight: 900 !important;
+}
+
+
+/* PMD_BOTTOM_BAR_NO_LABEL_FRAME_BILL_FONT_20260601
+   Bottom menu bar polish:
+   - No visible frame/background/shadow around Call waiter / Add note / Checkout / Table order labels.
+   - Make expanded bill item text more readable.
+*/
+
+/* Remove the capsule frame from tooltip labels, keep text readable */
+html body .group\/action-tooltip > span.pointer-events-none,
+html body span.group\/action-tooltip > span.pointer-events-none,
+html body .relative.inline-flex.group\/action-tooltip > span.pointer-events-none,
+html body span.relative.inline-flex.group\/action-tooltip > span.pointer-events-none,
+html body div.fixed[class*="bottom-"] span.relative.inline-flex > span.pointer-events-none.absolute.left-1\/2,
+html body div.fixed[class*="bottom-"] span.relative.inline-flex > span.pointer-events-none[class*="bottom-full"],
+html body div.fixed[class*="bottom-"] span.relative.inline-flex > span.pointer-events-none[class*="whitespace-nowrap"] {
+  font-size: 0.82rem !important;
+  line-height: 1.1 !important;
+  font-weight: 800 !important;
+  letter-spacing: -0.01em !important;
+
+  background: transparent !important;
+  background-color: transparent !important;
+  border: 0 !important;
+  border-color: transparent !important;
+  box-shadow: none !important;
+  ring: none !important;
+  outline: none !important;
+
+  padding: 0.12rem 0.2rem !important;
+  min-height: auto !important;
+
+  color: var(--theme-text-primary) !important;
+  -webkit-text-fill-color: var(--theme-text-primary) !important;
+  text-shadow: none !important;
+  backdrop-filter: none !important;
+}
+
+/* If tooltip label has nested text nodes */
+html body .group\/action-tooltip > span.pointer-events-none *,
+html body span.group\/action-tooltip > span.pointer-events-none *,
+html body .relative.inline-flex.group\/action-tooltip > span.pointer-events-none *,
+html body span.relative.inline-flex.group\/action-tooltip > span.pointer-events-none * {
+  font-size: 0.82rem !important;
+  line-height: 1.1 !important;
+  font-weight: 800 !important;
+  color: var(--theme-text-primary) !important;
+  -webkit-text-fill-color: var(--theme-text-primary) !important;
+}
+
+/* Expanded bill list inside bottom menu bar */
+
+/* Quantity / small line like €20.00 × 1 */
+
+/* Price on the right side of each item */
+
+/* Total box in expanded bottom bill */
+html body div.fixed[class*="bottom-"] .mt-4.rounded-2xl span.font-bold.text-paydine-elegant-gray,
+html body div.fixed[class*="bottom-"] .mt-4.rounded-2xl span.font-bold.pmd-customer-price {
+  line-height: 1.12 !important;
+}
+
+html body div.fixed[class*="bottom-"] .mt-4.rounded-2xl span.font-bold.text-paydine-elegant-gray {
+  font-size: 1.08rem !important;
+}
+
+html body div.fixed[class*="bottom-"] .mt-4.rounded-2xl span.font-bold.pmd-customer-price {
+  font-size: 1.48rem !important;
+}
+
+/* Keep numeric badges untouched */
+html body span[data-pmd-menu-cart-badge="1"],
+html body .cart-badge.pmd-v2-badge,
+html body span[class*="rounded-full"][class*="absolute"][class*="-top-"] {
+  font-size: 0.68rem !important;
+  line-height: 1 !important;
+  font-weight: 900 !important;
+}
+
+
+/* PMD_BOTTOM_BAR_FOUR_ACTIONS_AND_ETA_MINS_20260601
+   - When Table order button is visible, make bottom toolbar wider so all 4 actions stay inside.
+   - Force ETA timer secondary text like MINS to white.
+*/
+
+/* Wider bottom bar only when Table order exists */
+
+/* Inner action row: keep all four icons inside the rounded bar */
+
+/* Prevent action wrappers from pushing outside */
+
+/* On smaller screens, make it still fit cleanly */
+@media (max-width: 460px) {
+
+}
+
+/* ETA timer in Order Status: keep number and MINS white inside dark green circle */
+html body :is([role="dialog"], [data-pmd-gold-checkout-modal], .fixed.inset-0.z-50)
+  :is(.rounded-full, [class*="rounded-full"]):has(:is(span, p, div)) :is(span, p, div) {
+  text-shadow: none;
+}
+
+/* Exact-ish target for MINS / uppercase small ETA text */
+html body :is([role="dialog"], [data-pmd-gold-checkout-modal], .fixed.inset-0.z-50)
+  :is(.rounded-full, [class*="rounded-full"])
+  :is(.uppercase, .tracking-widest, [class*="tracking"], .text-xs, [class*="text-[10px]"]) {
+  color: #FFFFFF !important;
+  -webkit-text-fill-color: #FFFFFF !important;
+  text-decoration-color: #FFFFFF !important;
+}
+
+/* Strong fallback for any ETA circle using the dark green timer background */
+html body :is([role="dialog"], [data-pmd-gold-checkout-modal], .fixed.inset-0.z-50)
+  :is(div, span)[style*="062F2A"] :is(.uppercase, .tracking-widest, [class*="tracking"], .text-xs, [class*="text-[10px]"]),
+html body :is([role="dialog"], [data-pmd-gold-checkout-modal], .fixed.inset-0.z-50)
+  :is(div, span)[style*="6, 47, 42"] :is(.uppercase, .tracking-widest, [class*="tracking"], .text-xs, [class*="text-[10px]"]) {
+  color: #FFFFFF !important;
+  -webkit-text-fill-color: #FFFFFF !important;
+  text-decoration-color: #FFFFFF !important;
+}
+
+
+/* PMD_SPLIT_METHOD_UNSELECTED_GOLD_FRAME_20260601
+   Add Split bill-style champagne/gold frame to unselected split method buttons only.
+   Selected method stays dark green with white text.
+*/
+
+:root {
+  --pmd-split-method-frame: color-mix(in srgb, #B88940 48%, var(--theme-border) 52%);
+}
+
+/* Unselected split method buttons */
+html body button[data-pmd-split-method-real][data-pmd-active="0"],
+html body button[data-pmd-split-method-polished="1"][data-pmd-active="0"] {
+  border: 1.5px solid var(--pmd-split-method-frame) !important;
+  background: color-mix(in srgb, var(--theme-surface) 94%, #fffaf0 6%) !important;
+  background-color: color-mix(in srgb, var(--theme-surface) 94%, #fffaf0 6%) !important;
+  color: #0D1B1E !important;
+  -webkit-text-fill-color: #0D1B1E !important;
+
+  box-shadow: 0 8px 18px rgba(17, 24, 39, 0.04) !important;
+  outline: none !important;
+  text-decoration: none !important;
+}
+
+/* Text/icon inside unselected buttons */
+html body button[data-pmd-split-method-real][data-pmd-active="0"] *,
+html body button[data-pmd-split-method-polished="1"][data-pmd-active="0"] * {
+  color: #0D1B1E !important;
+  -webkit-text-fill-color: #0D1B1E !important;
+  text-decoration-color: #0D1B1E !important;
+}
+
+/* Selected method: keep existing strong dark green look */
+html body button[data-pmd-split-method-real][data-pmd-active="1"],
+html body button[data-pmd-split-method-polished="1"][data-pmd-active="1"] {
+  border: 1.5px solid #062F2A !important;
+  background: #062F2A !important;
+  background-color: #062F2A !important;
+  color: #FFFFFF !important;
+  -webkit-text-fill-color: #FFFFFF !important;
+  box-shadow: none !important;
+  outline: none !important;
+}
+
+/* Text/icon inside selected button */
+html body button[data-pmd-split-method-real][data-pmd-active="1"] *,
+html body button[data-pmd-split-method-polished="1"][data-pmd-active="1"] * {
+  color: #FFFFFF !important;
+  -webkit-text-fill-color: #FFFFFF !important;
+  text-decoration-color: #FFFFFF !important;
+}
+
+/* No extra hover/focus frame; only tiny smooth text scale if existing */
+html body button[data-pmd-split-method-real]:hover,
+html body button[data-pmd-split-method-real]:focus,
+html body button[data-pmd-split-method-real]:focus-visible,
+html body button[data-pmd-split-method-polished="1"]:hover,
+html body button[data-pmd-split-method-polished="1"]:focus,
+html body button[data-pmd-split-method-polished="1"]:focus-visible {
+  outline: none !important;
+  box-shadow: 0 8px 18px rgba(17, 24, 39, 0.04) !important;
+}
+
+html body button[data-pmd-split-method-real]:hover [data-pmd-split-label="1"],
+html body button[data-pmd-split-method-polished="1"]:hover [data-pmd-split-label="1"] {
+  transform: scale(1.025) !important;
+}
+
+
+/* PMD_SPLIT_METHOD_FINAL_FRAME_CSS_ONLY_20260602
+   CSS-only fix. No runtime JS.
+   Console showed unselected split methods still computed:
+   border: 1.5px solid rgba(255, 248, 220, 0.4)
+   So we target the real checkout-scroll/dialog scope with a stronger selector
+   and use a direct champagne hex instead of var()/color-mix().
+*/
+
+:root {
+  --pmd-split-method-final-frame: #D1B78F;
+  --pmd-split-method-final-text: #0D1B1E;
+  --pmd-split-method-final-active: #062F2A;
+}
+
+/* REAL unselected split buttons inside checkout modal */
+html body [data-pmd-checkout-scroll="1"] button[data-pmd-split-method-real][data-pmd-active="0"],
+html body [role="dialog"] button[data-pmd-split-method-real][data-pmd-active="0"],
+html body [data-pmd-gold-checkout-modal] button[data-pmd-split-method-real][data-pmd-active="0"],
+html body button[data-pmd-split-method-real][data-pmd-active="0"] {
+  border-width: 1.5px !important;
+  border-style: solid !important;
+  border-color: var(--pmd-split-method-final-frame) !important;
+  border: 1.5px solid var(--pmd-split-method-final-frame) !important;
+
+  background: #FFFDF8 !important;
+  background-color: #FFFDF8 !important;
+
+  color: var(--pmd-split-method-final-text) !important;
+  -webkit-text-fill-color: var(--pmd-split-method-final-text) !important;
+  text-decoration-color: var(--pmd-split-method-final-text) !important;
+
+  box-shadow: 0 8px 18px rgba(17, 24, 39, 0.04) !important;
+  outline: 0 !important;
+  filter: none !important;
+}
+
+/* Text inside unselected buttons */
+html body [data-pmd-checkout-scroll="1"] button[data-pmd-split-method-real][data-pmd-active="0"] *,
+html body [role="dialog"] button[data-pmd-split-method-real][data-pmd-active="0"] *,
+html body [data-pmd-gold-checkout-modal] button[data-pmd-split-method-real][data-pmd-active="0"] *,
+html body button[data-pmd-split-method-real][data-pmd-active="0"] * {
+  color: var(--pmd-split-method-final-text) !important;
+  -webkit-text-fill-color: var(--pmd-split-method-final-text) !important;
+  text-decoration-color: var(--pmd-split-method-final-text) !important;
+  stroke: var(--pmd-split-method-final-text) !important;
+}
+
+/* Selected button stays dark green */
+html body [data-pmd-checkout-scroll="1"] button[data-pmd-split-method-real][data-pmd-active="1"],
+html body [role="dialog"] button[data-pmd-split-method-real][data-pmd-active="1"],
+html body [data-pmd-gold-checkout-modal] button[data-pmd-split-method-real][data-pmd-active="1"],
+html body button[data-pmd-split-method-real][data-pmd-active="1"] {
+  border-width: 1.5px !important;
+  border-style: solid !important;
+  border-color: var(--pmd-split-method-final-active) !important;
+  border: 1.5px solid var(--pmd-split-method-final-active) !important;
+
+  background: var(--pmd-split-method-final-active) !important;
+  background-color: var(--pmd-split-method-final-active) !important;
+
+  color: #FFFFFF !important;
+  -webkit-text-fill-color: #FFFFFF !important;
+  text-decoration-color: #FFFFFF !important;
+}
+
+/* Text inside selected button */
+html body [data-pmd-checkout-scroll="1"] button[data-pmd-split-method-real][data-pmd-active="1"] *,
+html body [role="dialog"] button[data-pmd-split-method-real][data-pmd-active="1"] *,
+html body [data-pmd-gold-checkout-modal] button[data-pmd-split-method-real][data-pmd-active="1"] *,
+html body button[data-pmd-split-method-real][data-pmd-active="1"] * {
+  color: #FFFFFF !important;
+  -webkit-text-fill-color: #FFFFFF !important;
+  text-decoration-color: #FFFFFF !important;
+  stroke: #FFFFFF !important;
+}
+
+/* No weird hover frame. Only small text scale if existing label exists. */
+html body button[data-pmd-split-method-real]:hover,
+html body button[data-pmd-split-method-real]:focus,
+html body button[data-pmd-split-method-real]:focus-visible,
+html body button[data-pmd-split-method-real]:active {
+  outline: 0 !important;
+  filter: none !important;
+}
+
+html body button[data-pmd-split-method-real]:hover [data-pmd-split-label="1"] {
+  transform: scale(1.025) !important;
+}
+
+
+/* PMD_PAYMENT_TIP_COUPON_GOLD_FRAME_20260602
+   Match split-method unselected champagne frame for:
+   - Custom tip input
+   - Coupon code input
+   - Coupon Apply button
+   CSS-only, no runtime JS.
+*/
+
+:root {
+  --pmd-payment-field-frame: #D1B78F;
+  --pmd-payment-field-bg: #FFFDF8;
+  --pmd-payment-field-text: #0D1B1E;
+  --pmd-payment-field-green: #062F2A;
+}
+
+/* Custom tip input field */
+html body [data-pmd-payment-adjustment-shell="1"] input[data-pmd-custom-tip-shows-selected-amount="1"],
+html body [data-pmd-payment-real-panel="tip-coupon"] input[data-pmd-custom-tip-shows-selected-amount="1"],
+html body input[data-pmd-custom-tip-shows-selected-amount="1"] {
+  border-width: 1.5px !important;
+  border-style: solid !important;
+  border-color: var(--pmd-payment-field-frame) !important;
+  border: 1.5px solid var(--pmd-payment-field-frame) !important;
+
+  background: var(--pmd-payment-field-bg) !important;
+  background-color: var(--pmd-payment-field-bg) !important;
+
+  color: var(--pmd-payment-field-text) !important;
+  -webkit-text-fill-color: var(--pmd-payment-field-text) !important;
+
+  box-shadow: 0 8px 18px rgba(17, 24, 39, 0.04) !important;
+  outline: 0 !important;
+}
+
+/* € icon inside custom tip field */
+html body [data-pmd-payment-adjustment-shell="1"] input[data-pmd-custom-tip-shows-selected-amount="1"] ~ span,
+html body [data-pmd-payment-adjustment-shell="1"] span.absolute.left-3,
+html body [data-pmd-payment-real-panel="tip-coupon"] span.absolute.left-3 {
+  color: var(--pmd-payment-field-text) !important;
+  -webkit-text-fill-color: var(--pmd-payment-field-text) !important;
+  font-weight: 800 !important;
+}
+
+/* Coupon code input */
+html body [data-pmd-payment-adjustment-shell="1"] input[placeholder="Coupon code"],
+html body input[placeholder="Coupon code"] {
+  border-width: 1.5px !important;
+  border-style: solid !important;
+  border-color: var(--pmd-payment-field-frame) !important;
+  border: 1.5px solid var(--pmd-payment-field-frame) !important;
+
+  background: var(--pmd-payment-field-bg) !important;
+  background-color: var(--pmd-payment-field-bg) !important;
+
+  color: var(--pmd-payment-field-text) !important;
+  -webkit-text-fill-color: var(--pmd-payment-field-text) !important;
+
+  box-shadow: 0 8px 18px rgba(17, 24, 39, 0.04) !important;
+  outline: 0 !important;
+}
+
+/* Coupon Apply button, same framed secondary look */
+html body [data-pmd-payment-adjustment-shell="1"] input[placeholder="Coupon code"] + button,
+html body input[placeholder="Coupon code"] + button {
+  border-width: 1.5px !important;
+  border-style: solid !important;
+  border-color: var(--pmd-payment-field-frame) !important;
+  border: 1.5px solid var(--pmd-payment-field-frame) !important;
+
+  background: var(--pmd-payment-field-bg) !important;
+  background-color: var(--pmd-payment-field-bg) !important;
+
+  color: var(--pmd-payment-field-green) !important;
+  -webkit-text-fill-color: var(--pmd-payment-field-green) !important;
+
+  box-shadow: 0 8px 18px rgba(17, 24, 39, 0.04) !important;
+  outline: 0 !important;
+}
+
+/* Focus state: calm, no ugly orange/yellow glow */
+html body [data-pmd-payment-adjustment-shell="1"] input[data-pmd-custom-tip-shows-selected-amount="1"]:focus,
+html body [data-pmd-payment-adjustment-shell="1"] input[placeholder="Coupon code"]:focus,
+html body input[data-pmd-custom-tip-shows-selected-amount="1"]:focus,
+html body input[placeholder="Coupon code"]:focus {
+  border-color: var(--pmd-payment-field-frame) !important;
+  box-shadow: 0 0 0 3px rgba(209, 183, 143, 0.18) !important;
+  outline: 0 !important;
+}
+
+/* Placeholder text */
+html body input[data-pmd-custom-tip-shows-selected-amount="1"]::placeholder,
+html body input[placeholder="Coupon code"]::placeholder {
+  color: rgba(13, 27, 30, 0.55) !important;
+  -webkit-text-fill-color: rgba(13, 27, 30, 0.55) !important;
+  font-weight: 700 !important;
+}
+
+/* Keep the selected tip percent button dark green; unselected percent buttons get champagne frame too */
+html body [data-pmd-payment-real-panel="tip-coupon"] button[style*="rgb(6, 47, 42)"] {
+  border-color: #062F2A !important;
+  background: #062F2A !important;
+  background-color: #062F2A !important;
+  color: #FFFFFF !important;
+  -webkit-text-fill-color: #FFFFFF !important;
+}
+
+html body [data-pmd-payment-real-panel="tip-coupon"] button:not([style*="rgb(6, 47, 42)"]) {
+  border-width: 1.5px !important;
+  border-style: solid !important;
+  border-color: var(--pmd-payment-field-frame) !important;
+  background: var(--pmd-payment-field-bg) !important;
+  background-color: var(--pmd-payment-field-bg) !important;
+  color: var(--pmd-payment-field-text) !important;
+  -webkit-text-fill-color: var(--pmd-payment-field-text) !important;
+}
+
+
+/* PMD_RESTORE_COUPON_APPLY_BUTTON_STYLE_20260602
+   Keep custom tip + coupon input champagne framed,
+   but restore Coupon Apply button to its previous secondary style.
+*/
+
+html body [data-pmd-payment-adjustment-shell="1"] input[placeholder="Coupon code"] + button,
+html body input[placeholder="Coupon code"] + button {
+  border-width: 1px !important;
+  border-style: solid !important;
+  border-color: color-mix(in srgb, #B88940 45%, var(--theme-border) 55%) !important;
+  border-radius: 9999px !important;
+
+  background: none !important;
+  background-color: transparent !important;
+  background-image: none !important;
+
+  color: #062F2A !important;
+  -webkit-text-fill-color: #062F2A !important;
+
+  box-shadow: none !important;
+  outline: 0 !important;
+  filter: none !important;
+  text-shadow: none !important;
+
+  height: 2.25rem !important;
+  padding-left: 1rem !important;
+  padding-right: 1rem !important;
+
+  font-size: 0.75rem !important;
+  line-height: 1 !important;
+  font-weight: 700 !important;
+}
+
+html body [data-pmd-payment-adjustment-shell="1"] input[placeholder="Coupon code"] + button:disabled,
+html body input[placeholder="Coupon code"] + button:disabled {
+  opacity: 0.5 !important;
+  cursor: not-allowed !important;
+}
+
+html body [data-pmd-payment-adjustment-shell="1"] input[placeholder="Coupon code"] + button:not(:disabled):hover,
+html body input[placeholder="Coupon code"] + button:not(:disabled):hover {
+  background: color-mix(in srgb, #B88940 8%, transparent) !important;
+  background-color: color-mix(in srgb, #B88940 8%, transparent) !important;
+  border-color: color-mix(in srgb, #B88940 55%, var(--theme-border) 45%) !important;
+}
+
+
+/* PMD_CHECKOUT_CONFIRM_ANTI_BLINK_LOCK_20260602
+   Smooth My Order -> confirmed/order-status transition.
+   Prevent old gold-luxury runtime helpers from leaving a white/cornsilk text flash.
+*/
+
+html body :is(
+  [data-pmd-checkout-scroll="1"],
+  [data-pmd-gold-checkout-modal],
+  [data-pmd-checkout-modal],
+  [data-pmd-checkout-v3="1"]
+),
+html body :is(
+  [data-pmd-checkout-scroll="1"],
+  [data-pmd-gold-checkout-modal],
+  [data-pmd-checkout-modal],
+  [data-pmd-checkout-v3="1"]
+) :is(h1, h2, h3, h4, h5, h6, p, span, div, label, small, strong, input, textarea) {
+  color: #0D1B1E !important;
+  -webkit-text-fill-color: #0D1B1E !important;
+  text-decoration-color: #0D1B1E !important;
+  text-shadow: none !important;
+}
+
+/* Muted/helper text remains muted, not white */
+html body :is(
+  [data-pmd-checkout-scroll="1"],
+  [data-pmd-gold-checkout-modal],
+  [data-pmd-checkout-modal],
+  [data-pmd-checkout-v3="1"]
+) :is(.muted, .text-muted, .text-muted-foreground, [class*="text-gray"]) {
+  color: #6B7280 !important;
+  -webkit-text-fill-color: #6B7280 !important;
+}
+
+/* Prices stay champagne/gold */
+html body :is(
+  [data-pmd-checkout-scroll="1"],
+  [data-pmd-gold-checkout-modal],
+  [data-pmd-checkout-modal],
+  [data-pmd-checkout-v3="1"]
+) :is(.pmd-customer-price, .menu-item-price, [data-pmd-price]) {
+  color: #B88940 !important;
+  -webkit-text-fill-color: #B88940 !important;
+}
+
+/* Primary/dark green actions stay white text */
+html body :is(
+  [data-pmd-checkout-scroll="1"],
+  [data-pmd-gold-checkout-modal],
+  [data-pmd-checkout-modal],
+  [data-pmd-checkout-v3="1"]
+) button:is(
+  [data-pmd-active="1"],
+  [data-pmd-no-observer-action="primary"],
+  [data-pmd-render-safe-action="primary"]
+),
+html body :is(
+  [data-pmd-checkout-scroll="1"],
+  [data-pmd-gold-checkout-modal],
+  [data-pmd-checkout-modal],
+  [data-pmd-checkout-v3="1"]
+) button:is(
+  [data-pmd-active="1"],
+  [data-pmd-no-observer-action="primary"],
+  [data-pmd-render-safe-action="primary"]
+) *,
+html body :is(
+  [data-pmd-checkout-scroll="1"],
+  [data-pmd-gold-checkout-modal],
+  [data-pmd-checkout-modal],
+  [data-pmd-checkout-v3="1"]
+) button[style*="rgb(6, 47, 42)"],
+html body :is(
+  [data-pmd-checkout-scroll="1"],
+  [data-pmd-gold-checkout-modal],
+  [data-pmd-checkout-modal],
+  [data-pmd-checkout-v3="1"]
+) button[style*="rgb(6, 47, 42)"] * {
+  color: #FFFFFF !important;
+  -webkit-text-fill-color: #FFFFFF !important;
+  text-decoration-color: #FFFFFF !important;
+  stroke: #FFFFFF !important;
+}
+
+/* Stable card/surface color during step switch */
+html body :is(
+  [data-pmd-checkout-scroll="1"],
+  [data-pmd-gold-checkout-modal],
+  [data-pmd-checkout-modal],
+  [data-pmd-checkout-v3="1"]
+) :is(.surface, .surface-sub, [class*="surface"], [data-pmd-payment-adjustment-shell="1"]) {
+  background-color: #FAF9F3 !important;
+  color: #0D1B1E !important;
+  -webkit-text-fill-color: #0D1B1E !important;
+}
+
+/* Avoid sudden color animation/flicker; keep only opacity/transform smooth */
+html body :is(
+  [data-pmd-checkout-scroll="1"],
+  [data-pmd-gold-checkout-modal],
+  [data-pmd-checkout-modal],
+  [data-pmd-checkout-v3="1"]
+) *,
+html body :is(
+  [data-pmd-checkout-scroll="1"],
+  [data-pmd-gold-checkout-modal],
+  [data-pmd-checkout-modal],
+  [data-pmd-checkout-v3="1"]
+) *::before,
+html body :is(
+  [data-pmd-checkout-scroll="1"],
+  [data-pmd-gold-checkout-modal],
+  [data-pmd-checkout-modal],
+  [data-pmd-checkout-v3="1"]
+) *::after {
+  transition-property: opacity, transform, background-color, border-color, box-shadow !important;
+}
+
+/* Selected order-status ETA dark circle labels stay white */
+html body :is(
+  [data-pmd-checkout-scroll="1"],
+  [data-pmd-gold-checkout-modal],
+  [data-pmd-checkout-modal]
+) :is(.rounded-full, [class*="rounded-full"]) :is(.uppercase, .tracking-widest, [class*="tracking"], .text-xs, [class*="text-[10px]"]) {
+  color: #FFFFFF !important;
+  -webkit-text-fill-color: #FFFFFF !important;
+}
+
+
+/* PMD_CHECKOUT_STEP_NO_OPACITY_BLINK_20260602
+   Fix My Order -> Confirm / Order Status blink.
+   Console watcher showed the visible white elements were behind the modal,
+   which means checkout content/step is briefly fading/remounting transparent.
+   Keep checkout modal/card/content visible and stable during step switches.
+*/
+
+/* Main checkout scopes */
+html body :is(
+  [data-pmd-checkout-scroll="1"],
+  [data-pmd-gold-checkout-modal],
+  [data-pmd-checkout-modal],
+  [data-pmd-checkout-v3="1"]
+) {
+  opacity: 1 !important;
+  visibility: visible !important;
+}
+
+/* Keep checkout panels/cards/content visible during Framer/React step remount */
+html body :is(
+  [data-pmd-checkout-scroll="1"],
+  [data-pmd-gold-checkout-modal],
+  [data-pmd-checkout-modal],
+  [data-pmd-checkout-v3="1"]
+) :is(
+  .surface,
+  .surface-sub,
+  [class*="surface"],
+  [data-pmd-payment-adjustment-shell="1"],
+  [data-pmd-payment-real-panel],
+  [data-pmd-split-method-real],
+  [data-pmd-split-method-polished="1"]
+),
+html body :is(
+  [data-pmd-checkout-scroll="1"],
+  [data-pmd-gold-checkout-modal],
+  [data-pmd-checkout-modal],
+  [data-pmd-checkout-v3="1"]
+) :is(
+  h1, h2, h3, h4, h5, h6,
+  p, span, div, label, small, strong,
+  button, input, textarea
+) {
+  opacity: 1 !important;
+  visibility: visible !important;
+}
+
+/* If Framer Motion puts opacity: 0 inline on checkout step wrappers, override it */
+html body :is(
+  [data-pmd-checkout-scroll="1"],
+  [data-pmd-gold-checkout-modal],
+  [data-pmd-checkout-modal],
+  [data-pmd-checkout-v3="1"]
+) [style*="opacity: 0"],
+html body :is(
+  [data-pmd-checkout-scroll="1"],
+  [data-pmd-gold-checkout-modal],
+  [data-pmd-checkout-modal],
+  [data-pmd-checkout-v3="1"]
+) [style*="opacity:0"] {
+  opacity: 1 !important;
+  visibility: visible !important;
+}
+
+/* Remove sudden scale/y/x shocks inside checkout step change */
+html body :is(
+  [data-pmd-checkout-scroll="1"],
+  [data-pmd-gold-checkout-modal],
+  [data-pmd-checkout-modal],
+  [data-pmd-checkout-v3="1"]
+) [style*="transform"] {
+  transform: none !important;
+}
+
+/* Keep color stable too, but do not affect dark green buttons / gold prices */
+html body :is(
+  [data-pmd-checkout-scroll="1"],
+  [data-pmd-gold-checkout-modal],
+  [data-pmd-checkout-modal],
+  [data-pmd-checkout-v3="1"]
+) :is(h1, h2, h3, h4, h5, h6, p, span, div, label, small, strong) {
+  color: #0D1B1E !important;
+  -webkit-text-fill-color: #0D1B1E !important;
+  text-shadow: none !important;
+}
+
+/* Muted text */
+html body :is(
+  [data-pmd-checkout-scroll="1"],
+  [data-pmd-gold-checkout-modal],
+  [data-pmd-checkout-modal],
+  [data-pmd-checkout-v3="1"]
+) :is(.muted, .text-muted, .text-muted-foreground, [class*="text-gray"]) {
+  color: #6B7280 !important;
+  -webkit-text-fill-color: #6B7280 !important;
+}
+
+/* Prices stay gold */
+html body :is(
+  [data-pmd-checkout-scroll="1"],
+  [data-pmd-gold-checkout-modal],
+  [data-pmd-checkout-modal],
+  [data-pmd-checkout-v3="1"]
+) :is(.pmd-customer-price, .menu-item-price, [data-pmd-price]) {
+  color: #B88940 !important;
+  -webkit-text-fill-color: #B88940 !important;
+}
+
+/* Dark green buttons keep white text */
+html body :is(
+  [data-pmd-checkout-scroll="1"],
+  [data-pmd-gold-checkout-modal],
+  [data-pmd-checkout-modal],
+  [data-pmd-checkout-v3="1"]
+) button:is(
+  [data-pmd-active="1"],
+  [data-pmd-no-observer-action="primary"],
+  [data-pmd-render-safe-action="primary"]
+),
+html body :is(
+  [data-pmd-checkout-scroll="1"],
+  [data-pmd-gold-checkout-modal],
+  [data-pmd-checkout-modal],
+  [data-pmd-checkout-v3="1"]
+) button:is(
+  [data-pmd-active="1"],
+  [data-pmd-no-observer-action="primary"],
+  [data-pmd-render-safe-action="primary"]
+) *,
+html body :is(
+  [data-pmd-checkout-scroll="1"],
+  [data-pmd-gold-checkout-modal],
+  [data-pmd-checkout-modal],
+  [data-pmd-checkout-v3="1"]
+) button[style*="rgb(6, 47, 42)"],
+html body :is(
+  [data-pmd-checkout-scroll="1"],
+  [data-pmd-gold-checkout-modal],
+  [data-pmd-checkout-modal],
+  [data-pmd-checkout-v3="1"]
+) button[style*="rgb(6, 47, 42)"] * {
+  color: #FFFFFF !important;
+  -webkit-text-fill-color: #FFFFFF !important;
+  stroke: #FFFFFF !important;
+}
+
+/* Instead of fade-out/fade-in, make step switch stable.
+   Still allows background/border/box-shadow polish, but no opacity flicker. */
+html body :is(
+  [data-pmd-checkout-scroll="1"],
+  [data-pmd-gold-checkout-modal],
+  [data-pmd-checkout-modal],
+  [data-pmd-checkout-v3="1"]
+) *,
+html body :is(
+  [data-pmd-checkout-scroll="1"],
+  [data-pmd-gold-checkout-modal],
+  [data-pmd-checkout-modal],
+  [data-pmd-checkout-v3="1"]
+) *::before,
+html body :is(
+  [data-pmd-checkout-scroll="1"],
+  [data-pmd-gold-checkout-modal],
+  [data-pmd-checkout-modal],
+  [data-pmd-checkout-v3="1"]
+) *::after {
+  transition-property: background-color, border-color, box-shadow, color !important;
+  animation-duration: 0s !important;
+  animation-delay: 0s !important;
+}
+
+
+/* PMD_CHECKOUT_CONTINUE_ORDERING_NO_JUMP_20260602
+   Stop Continue ordering / checkout secondary actions from jumping.
+   The blink fix is good; this only removes transform/scale/translate movement
+   from checkout action buttons and their icons.
+*/
+
+html body :is(
+  [data-pmd-checkout-scroll="1"],
+  [data-pmd-gold-checkout-modal],
+  [data-pmd-checkout-modal],
+  [data-pmd-checkout-v3="1"]
+) button:is(
+  [data-pmd-no-observer-action="secondary"],
+  [data-pmd-render-safe-action="secondary"],
+  [data-pmd-no-observer-action="primary"],
+  [data-pmd-render-safe-action="primary"]
+) {
+  transform: none !important;
+  translate: none !important;
+  scale: 1 !important;
+
+  min-height: 3.5rem !important;
+  height: 3.5rem !important;
+
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+
+  transition-property: background-color, border-color, color, box-shadow !important;
+  transition-duration: 140ms !important;
+  transition-timing-function: ease-out !important;
+
+  will-change: auto !important;
+  backface-visibility: hidden !important;
+}
+
+/* Any inline style or hover class trying to move the button/icon must be ignored */
+html body :is(
+  [data-pmd-checkout-scroll="1"],
+  [data-pmd-gold-checkout-modal],
+  [data-pmd-checkout-modal],
+  [data-pmd-checkout-v3="1"]
+) button:is(
+  [data-pmd-no-observer-action="secondary"],
+  [data-pmd-render-safe-action="secondary"],
+  [data-pmd-no-observer-action="primary"],
+  [data-pmd-render-safe-action="primary"]
+):hover,
+html body :is(
+  [data-pmd-checkout-scroll="1"],
+  [data-pmd-gold-checkout-modal],
+  [data-pmd-checkout-modal],
+  [data-pmd-checkout-v3="1"]
+) button:is(
+  [data-pmd-no-observer-action="secondary"],
+  [data-pmd-render-safe-action="secondary"],
+  [data-pmd-no-observer-action="primary"],
+  [data-pmd-render-safe-action="primary"]
+):active,
+html body :is(
+  [data-pmd-checkout-scroll="1"],
+  [data-pmd-gold-checkout-modal],
+  [data-pmd-checkout-modal],
+  [data-pmd-checkout-v3="1"]
+) button:is(
+  [data-pmd-no-observer-action="secondary"],
+  [data-pmd-render-safe-action="secondary"],
+  [data-pmd-no-observer-action="primary"],
+  [data-pmd-render-safe-action="primary"]
+):focus {
+  transform: none !important;
+  translate: none !important;
+  scale: 1 !important;
+}
+
+/* Icons/spans inside Continue ordering / action buttons should not slide */
+html body :is(
+  [data-pmd-checkout-scroll="1"],
+  [data-pmd-gold-checkout-modal],
+  [data-pmd-checkout-modal],
+  [data-pmd-checkout-v3="1"]
+) button:is(
+  [data-pmd-no-observer-action="secondary"],
+  [data-pmd-render-safe-action="secondary"],
+  [data-pmd-no-observer-action="primary"],
+  [data-pmd-render-safe-action="primary"]
+) :is(svg, path, span, div) {
+  transform: none !important;
+  translate: none !important;
+  scale: 1 !important;
+  transition-property: color, stroke, opacity !important;
+  transition-duration: 120ms !important;
+  will-change: auto !important;
+}
+
+/* Tailwind/group-hover classes like group-hover:translate-x-0.5 */
+html body :is(
+  [data-pmd-checkout-scroll="1"],
+  [data-pmd-gold-checkout-modal],
+  [data-pmd-checkout-modal],
+  [data-pmd-checkout-v3="1"]
+) [class*="group-hover"],
+html body :is(
+  [data-pmd-checkout-scroll="1"],
+  [data-pmd-gold-checkout-modal],
+  [data-pmd-checkout-modal],
+  [data-pmd-checkout-v3="1"]
+) [class*="hover:translate"],
+html body :is(
+  [data-pmd-checkout-scroll="1"],
+  [data-pmd-gold-checkout-modal],
+  [data-pmd-checkout-modal],
+  [data-pmd-checkout-v3="1"]
+) [class*="hover:scale"] {
+  transform: none !important;
+  translate: none !important;
+  scale: 1 !important;
+}
+
+
+/* PMD_CENTER_MODAL_KILL_ORDER_REVEAL_ANIMATION_20260603 */
+
+html body div.fixed.inset-0.z-50.flex:has([data-pmd-checkout-scroll="1"]) {
+  align-items: center !important;
+  justify-content: center !important;
+  padding-top: 0 !important;
+  padding-bottom: 0 !important;
+}
+
+html body div.fixed.inset-0.z-50.flex:has([data-pmd-checkout-scroll="1"]) > div.surface.rounded-3xl,
+html body div.fixed.inset-0.z-50.flex:has([data-pmd-checkout-scroll="1"]) > div.w-full.max-w-md.surface.rounded-3xl {
+  height: auto !important;
+  min-height: auto !important;
+  max-height: calc(100dvh - 1.5rem) !important;
+  overflow: hidden !important;
+}
+
+/* Kill the exact jumping animation from report */
+html body [data-pmd-checkout-scroll="1"] [data-pmd-order-status-card="1"],
+html body [data-pmd-checkout-scroll="1"] [data-pmd-order-status-card="1"] *,
+html body [role="dialog"] [data-pmd-order-status-card="1"],
+html body [role="dialog"] [data-pmd-order-status-card="1"] * {
+  animation-name: none !important;
+  animation-duration: 0s !important;
+  animation-delay: 0s !important;
+  animation-fill-mode: none !important;
+  transition-property: color, background-color, border-color, box-shadow, opacity !important;
+}
+
+html body [data-pmd-order-status-card="1"] {
+  transform: none !important;
+  margin-top: 0.5rem !important;
+  padding-top: 5.85rem !important;
+  overflow: visible !important;
+}
+
+html body [data-pmd-floating-eta-circle="1"] {
+  top: 0.25rem !important;
+  transform: translateX(-50%) !important;
+}
+
+
+/* PMD_SPLIT_BILL_FIRST_PAINT_STABLE_20260603
+   Keep Split bill as the secondary/outline button from the first paint.
+   This prevents the green -> outline color flash during Order Status render.
+*/
+[data-pmd-checkout-lockdown="1"] button[data-pmd-split-bill-stable="1"],
+[data-pmd-checkout-scroll="1"] button[data-pmd-split-bill-stable="1"],
+button[data-pmd-split-bill-stable="1"] {
+  background: rgba(255, 255, 255, 0.72) !important;
+  background-color: rgba(255, 255, 255, 0.72) !important;
+  background-image: none !important;
+  border: 1.5px solid #D8B982 !important;
+  border-color: #D8B982 !important;
+  color: #10201D !important;
+  -webkit-text-fill-color: #10201D !important;
+  box-shadow: 0 8px 18px rgba(17, 24, 39, 0.04) !important;
+  text-shadow: none !important;
+  opacity: 1 !important;
+  transform: none !important;
+  translate: none !important;
+  scale: none !important;
+  transition-property: opacity, background-color, border-color, box-shadow !important;
+  transition-duration: 120ms !important;
+}
+
+[data-pmd-checkout-lockdown="1"] button[data-pmd-split-bill-stable="1"] *,
+[data-pmd-checkout-scroll="1"] button[data-pmd-split-bill-stable="1"] *,
+button[data-pmd-split-bill-stable="1"] * {
+  color: #10201D !important;
+  -webkit-text-fill-color: #10201D !important;
+  text-shadow: none !important;
+  transform: none !important;
+  translate: none !important;
+  scale: none !important;
+}
+
+[data-pmd-checkout-lockdown="1"] button[data-pmd-split-bill-stable="1"] svg,
+[data-pmd-checkout-lockdown="1"] button[data-pmd-split-bill-stable="1"] svg *,
+[data-pmd-checkout-scroll="1"] button[data-pmd-split-bill-stable="1"] svg,
+[data-pmd-checkout-scroll="1"] button[data-pmd-split-bill-stable="1"] svg *,
+button[data-pmd-split-bill-stable="1"] svg,
+button[data-pmd-split-bill-stable="1"] svg * {
+  color: #10201D !important;
+  stroke: #10201D !important;
+  -webkit-text-fill-color: #10201D !important;
+  fill: none !important;
+}
+
+
+/* PMD_SPLIT_BILL_EXACT_FIRST_PAINT_20260603
+   Exact Split bill first-paint fix.
+   Keep Split bill secondary/outline from the first render, before any delayed button styling runs.
+*/
+[data-pmd-split-bill-stable="1"] {
+  background: rgba(255, 255, 255, 0.74) !important;
+  background-color: rgba(255, 255, 255, 0.74) !important;
+  background-image: none !important;
+  border: 1.5px solid #D8B982 !important;
+  border-color: #D8B982 !important;
+  color: #10201D !important;
+  -webkit-text-fill-color: #10201D !important;
+  box-shadow: 0 8px 18px rgba(17, 24, 39, 0.04) !important;
+  text-shadow: none !important;
+  opacity: 1 !important;
+  transform: none !important;
+  translate: none !important;
+  scale: none !important;
+  transition-property: opacity, background-color, border-color, box-shadow !important;
+  transition-duration: 120ms !important;
+}
+
+[data-pmd-split-bill-stable="1"] *,
+[data-pmd-split-bill-stable="1"] span,
+[data-pmd-split-bill-stable="1"] div {
+  color: #10201D !important;
+  -webkit-text-fill-color: #10201D !important;
+  text-shadow: none !important;
+  transform: none !important;
+  translate: none !important;
+  scale: none !important;
+}
+
+[data-pmd-split-bill-stable="1"] svg,
+[data-pmd-split-bill-stable="1"] svg *,
+[data-pmd-split-bill-stable="1"] path {
+  color: #10201D !important;
+  stroke: #10201D !important;
+  -webkit-text-fill-color: #10201D !important;
+  fill: none !important;
+}
+
+
+/* PMD_PLUS_MINUS_ICON_ALWAYS_WHITE_20260603
+   Keep small quantity plus/minus icons white from first paint.
+   This prevents black -> white blinking before delayed runtime style fixes run.
+*/
+[data-pmd-checkout-lockdown="1"] button svg.lucide-plus,
+[data-pmd-checkout-lockdown="1"] button svg.lucide-minus,
+[data-pmd-checkout-lockdown="1"] button svg.lucide-plus *,
+[data-pmd-checkout-lockdown="1"] button svg.lucide-minus *,
+[data-pmd-checkout-scroll="1"] button svg.lucide-plus,
+[data-pmd-checkout-scroll="1"] button svg.lucide-minus,
+[data-pmd-checkout-scroll="1"] button svg.lucide-plus *,
+[data-pmd-checkout-scroll="1"] button svg.lucide-minus *,
+[role="dialog"] button svg.lucide-plus,
+[role="dialog"] button svg.lucide-minus,
+[role="dialog"] button svg.lucide-plus *,
+[role="dialog"] button svg.lucide-minus * {
+  color: #FFFFFF !important;
+  stroke: #FFFFFF !important;
+  -webkit-text-fill-color: #FFFFFF !important;
+  fill: none !important;
+  opacity: 1 !important;
+  filter: none !important;
+  text-shadow: none !important;
+}
+
+[data-pmd-checkout-lockdown="1"] button:has(svg.lucide-plus),
+[data-pmd-checkout-lockdown="1"] button:has(svg.lucide-minus),
+[data-pmd-checkout-scroll="1"] button:has(svg.lucide-plus),
+[data-pmd-checkout-scroll="1"] button:has(svg.lucide-minus),
+[role="dialog"] button:has(svg.lucide-plus),
+[role="dialog"] button:has(svg.lucide-minus) {
+  color: #FFFFFF !important;
+  -webkit-text-fill-color: #FFFFFF !important;
+}
+
+[data-pmd-checkout-lockdown="1"] button:has(svg.lucide-plus) *,
+[data-pmd-checkout-lockdown="1"] button:has(svg.lucide-minus) *,
+[data-pmd-checkout-scroll="1"] button:has(svg.lucide-plus) *,
+[data-pmd-checkout-scroll="1"] button:has(svg.lucide-minus) *,
+[role="dialog"] button:has(svg.lucide-plus) *,
+[role="dialog"] button:has(svg.lucide-minus) * {
+  color: #FFFFFF !important;
+  stroke: #FFFFFF !important;
+  -webkit-text-fill-color: #FFFFFF !important;
+}
+
+
+/* PMD_MENU_PLUS_ICON_REAL_WHITE_20260603
+   The menu card add/quantity plus must be white from first paint,
+   especially after navigating away and returning to /menu with items selected.
+*/
+[data-pmd-menu-plus-white="1"],
+[data-pmd-menu-plus-white="1"] *,
+[data-pmd-menu-plus-text="1"],
+.page--menu [data-pmd-menu-plus-text="1"],
+.page--menu .quantity-btn [data-pmd-force-qty-symbol="plus"],
+.page--menu .quantity-btn [data-pmd-force-qty-symbol="minus"] {
+  color: #FFFFFF !important;
+  stroke: #FFFFFF !important;
+  -webkit-text-fill-color: #FFFFFF !important;
+  text-shadow: none !important;
+  opacity: 1 !important;
+  filter: none !important;
+}
+
+[data-pmd-menu-plus-white="1"] svg,
+[data-pmd-menu-plus-white="1"] path,
+.page--menu svg[data-pmd-menu-plus-white="1"],
+.page--menu svg[data-pmd-menu-plus-white="1"] *,
+.page--menu .quantity-btn svg.lucide-plus,
+.page--menu .quantity-btn svg.lucide-plus *,
+.page--menu .quantity-btn svg.lucide-minus,
+.page--menu .quantity-btn svg.lucide-minus * {
+  color: #FFFFFF !important;
+  stroke: #FFFFFF !important;
+  -webkit-text-fill-color: #FFFFFF !important;
+  fill: none !important;
+}
+
+
+/* PMD_TINY_PLUS_VISIBLE_SIMPLE_WHITE_20260603
+   Keep the tiny selected item + visible.
+   No hiding, no ::after overlay.
+*/
+html body button[data-pmd-item-card-plus="1"],
+html body button[data-pmd-plus-force-white="1"],
+html body button[data-pmd-render-safe-plus="1"],
+html body button[aria-label="Increase quantity"][data-pmd-item-card-plus="1"] {
+  text-indent: 0 !important;
+  white-space: normal !important;
+  overflow: visible !important;
+  color: #FFFFFF !important;
+  -webkit-text-fill-color: #FFFFFF !important;
+  text-shadow: none !important;
+  opacity: 1 !important;
+  font-weight: 900 !important;
+}
+
+html body button[data-pmd-item-card-plus="1"]::before,
+html body button[data-pmd-item-card-plus="1"]::after,
+html body button[data-pmd-plus-force-white="1"]::before,
+html body button[data-pmd-plus-force-white="1"]::after,
+html body button[data-pmd-render-safe-plus="1"]::before,
+html body button[data-pmd-render-safe-plus="1"]::after {
+  content: none !important;
+  display: none !important;
+}
+
+
+/* PMD_STABLE_TINY_PLUS_BUTTON_20260603
+   Stable selected item tiny plus badge.
+   It intentionally does NOT use aria-label="Increase quantity", pmd-v2-action-circle,
+   or data-pmd-item-card-plus, so legacy runtime stylers do not mutate it.
+*/
+html body .page--menu button.pmd-item-tiny-plus-stable,
+html body button[data-pmd-stable-tiny-plus="1"] {
+  position: absolute !important;
+  top: -0.72rem !important;
+  right: -0.72rem !important;
+  width: 1.55rem !important;
+  height: 1.55rem !important;
+  min-width: 1.55rem !important;
+  min-height: 1.55rem !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  border-radius: 9999px !important;
+  border: 1px solid #062F2A !important;
+  background: #062F2A !important;
+  background-color: #062F2A !important;
+  color: #FFFFFF !important;
+  -webkit-text-fill-color: #FFFFFF !important;
+  line-height: 1 !important;
+  font-weight: 900 !important;
+  font-size: 0.95rem !important;
+  padding: 0 !important;
+  box-shadow: none !important;
+  text-shadow: none !important;
+  opacity: 1 !important;
+  transform: none !important;
+  transition: none !important;
+  animation: none !important;
+  overflow: visible !important;
+}
+
+html body .page--menu button.pmd-item-tiny-plus-stable *,
+html body button[data-pmd-stable-tiny-plus="1"] * {
+  color: #FFFFFF !important;
+  -webkit-text-fill-color: #FFFFFF !important;
+  stroke: #FFFFFF !important;
+  text-shadow: none !important;
+}
+
+
+/* PMD_SPLIT_BILL_NO_GREEN_FIRST_PAINT_20260604
+   Split bill must be secondary/outline from the first paint.
+   Prevents green primary flash before runtime checkout styling settles.
+*/
+html body button.pmd-split-bill-stable-button,
+html body button[data-pmd-split-bill-stable="1"],
+html body [data-pmd-checkout-lockdown="1"] button.pmd-split-bill-stable-button,
+html body [data-pmd-checkout-lockdown="1"] button[data-pmd-split-bill-stable="1"],
+html body [data-pmd-checkout-scroll="1"] button.pmd-split-bill-stable-button,
+html body [data-pmd-checkout-scroll="1"] button[data-pmd-split-bill-stable="1"],
+html body button[data-pmd-card-split-bill-btn="1"] {
+  background: rgba(255, 255, 255, 0.74) !important;
+  background-color: rgba(255, 255, 255, 0.74) !important;
+  background-image: none !important;
+  border: 1.5px solid #D8B982 !important;
+  border-color: #D8B982 !important;
+  color: #10201D !important;
+  -webkit-text-fill-color: #10201D !important;
+  box-shadow: 0 8px 18px rgba(17, 24, 39, 0.04) !important;
+  text-shadow: none !important;
+  opacity: 1 !important;
+  transform: none !important;
+  transition: none !important;
+  animation: none !important;
+}
+
+html body button.pmd-split-bill-stable-button *,
+html body button[data-pmd-split-bill-stable="1"] *,
+html body button[data-pmd-card-split-bill-btn="1"] * {
+  color: #10201D !important;
+  -webkit-text-fill-color: #10201D !important;
+  stroke: #10201D !important;
+  text-shadow: none !important;
+}
+
+html body button.pmd-split-bill-stable-button svg,
+html body button.pmd-split-bill-stable-button svg *,
+html body button[data-pmd-split-bill-stable="1"] svg,
+html body button[data-pmd-split-bill-stable="1"] svg *,
+html body button[data-pmd-card-split-bill-btn="1"] svg,
+html body button[data-pmd-card-split-bill-btn="1"] svg * {
+  color: #10201D !important;
+  stroke: #10201D !important;
+  -webkit-text-fill-color: #10201D !important;
+  fill: none !important;
+}
+
+
+/* PMD_CUSTOMIZE_OPTIONS_BUTTON_CLEAN_20260604
+   Customize Options inside checkout item rows must stay small, light and secondary.
+   It must never inherit split/order primary green button styles.
+*/
+html body button[data-pmd-customize-options-btn="1"],
+html body .page--menu button[data-pmd-customize-options-btn="1"],
+html body [data-pmd-checkout-scroll="1"] button[data-pmd-customize-options-btn="1"],
+html body [data-pmd-checkout-lockdown="1"] button[data-pmd-customize-options-btn="1"] {
+  min-height: 2.35rem !important;
+  height: auto !important;
+  width: 100% !important;
+  padding: 0.55rem 0.85rem !important;
+  border-radius: 0.9rem !important;
+  border: 1px solid rgba(216, 185, 130, 0.45) !important;
+  background: rgba(255, 255, 255, 0.62) !important;
+  background-color: rgba(255, 255, 255, 0.62) !important;
+  background-image: none !important;
+  color: #374151 !important;
+  -webkit-text-fill-color: #374151 !important;
+  font-size: 0.78rem !important;
+  font-weight: 700 !important;
+  line-height: 1.1 !important;
+  box-shadow: none !important;
+  text-shadow: none !important;
+  opacity: 1 !important;
+  transform: none !important;
+}
+
+html body button[data-pmd-customize-options-btn="1"] *,
+html body button[data-pmd-customize-options-btn="1"] svg,
+html body button[data-pmd-customize-options-btn="1"] svg * {
+  color: #374151 !important;
+  stroke: #374151 !important;
+  -webkit-text-fill-color: #374151 !important;
+  text-shadow: none !important;
+}
+
+
+/* PMD_HIDE_SUBMIT_REVIEW_BUTTON_20260604
+   Hide final-card Submit review action. Customer does not need this button here.
+*/
+html body button[data-pmd-submit-review="1"],
+html body [data-pmd-final-card="1"] button[data-pmd-submit-review="1"] {
+  display: none !important;
+}
+
+/* PMD_CHECKOUT_MODAL_DESIGN_SYSTEM_20260604
+   Premium modal polish for My Order / Table Order / Order Status / Payment.
+   Scoped to the checkout modal so existing menu/admin styling is not disturbed.
+*/
+html body [data-pmd-checkout-design-system="1"] {
+  --pmd-modal-text: #0B1F1D;
+  --pmd-modal-muted: #6B7280;
+  --pmd-modal-surface: #FFF9EF;
+  --pmd-modal-card: rgba(255, 252, 245, 0.92);
+  --pmd-modal-card-soft: rgba(255, 249, 239, 0.72);
+  --pmd-modal-border: rgba(216, 185, 130, 0.36);
+  --pmd-modal-emerald: #062F2A;
+  --pmd-modal-gold: #B88940;
+  color: var(--pmd-modal-text) !important;
+  background: linear-gradient(180deg, #fffaf2 0%, #fff7ea 100%) !important;
+  border: 1px solid rgba(216, 185, 130, 0.22) !important;
+  box-shadow: 0 24px 60px rgba(11, 31, 29, 0.18) !important;
+}
+
+html body [data-pmd-checkout-design-system="1"] .pmd-checkout-modal-title {
+  color: var(--pmd-modal-text) !important;
+  -webkit-text-fill-color: var(--pmd-modal-text) !important;
+  font-size: clamp(1.38rem, 5vw, 1.5rem) !important;
+  font-weight: 800 !important;
+  letter-spacing: -0.025em !important;
+  line-height: 1.08 !important;
+}
+
+html body [data-pmd-checkout-design-system="1"] .surface,
+html body [data-pmd-checkout-design-system="1"] .surface-sub {
+  color: var(--pmd-modal-text) !important;
+  background: var(--pmd-modal-card) !important;
+  border-color: var(--pmd-modal-border) !important;
+}
+
+html body [data-pmd-checkout-design-system="1"] [data-pmd-checkout-scroll="1"] > .surface-sub,
+html body [data-pmd-checkout-design-system="1"] .pmd-checkout-total-card,
+html body [data-pmd-checkout-design-system="1"] .pmd-checkout-payment-card {
+  border: 1px solid var(--pmd-modal-border) !important;
+  box-shadow: 0 10px 24px rgba(11, 31, 29, 0.055) !important;
+}
+
+html body [data-pmd-checkout-design-system="1"] .muted,
+html body [data-pmd-checkout-design-system="1"] .text-paydine-elegant-gray\/70 {
+  color: var(--pmd-modal-muted) !important;
+  -webkit-text-fill-color: var(--pmd-modal-muted) !important;
+}
+
+html body [data-pmd-checkout-design-system="1"] h3,
+html body [data-pmd-checkout-design-system="1"] .pmd-checkout-status-title {
+  color: var(--pmd-modal-text) !important;
+  -webkit-text-fill-color: var(--pmd-modal-text) !important;
+  font-size: clamp(1.05rem, 4.3vw, 1.25rem) !important;
+  font-weight: 750 !important;
+  letter-spacing: -0.015em !important;
+  line-height: 1.2 !important;
+}
+
+html body [data-pmd-checkout-design-system="1"] .pmd-checkout-helper-text {
+  color: var(--pmd-modal-muted) !important;
+  -webkit-text-fill-color: var(--pmd-modal-muted) !important;
+  font-size: 0.82rem !important;
+  font-weight: 600 !important;
+  letter-spacing: 0.01em !important;
+  margin-top: -0.15rem !important;
+}
+
+html body [data-pmd-checkout-design-system="1"] .pmd-checkout-meta-row {
+  background: rgba(255, 255, 255, 0.54) !important;
+  border-color: var(--pmd-modal-border) !important;
+  color: var(--pmd-modal-text) !important;
+  font-size: 0.86rem !important;
+  font-weight: 650 !important;
+}
+
+html body [data-pmd-checkout-design-system="1"] .pmd-checkout-item-card {
+  background: rgba(255, 255, 255, 0.48) !important;
+  border-color: var(--pmd-modal-border) !important;
+  box-shadow: 0 8px 18px rgba(11, 31, 29, 0.04) !important;
+  transition: border-color 160ms ease, box-shadow 160ms ease, background-color 160ms ease !important;
+}
+
+html body [data-pmd-checkout-design-system="1"] .pmd-checkout-item-row {
+  color: var(--pmd-modal-text) !important;
+  font-size: clamp(0.98rem, 3.8vw, 1.08rem) !important;
+  font-weight: 650 !important;
+  line-height: 1.24 !important;
+  transition: opacity 160ms ease, transform 160ms ease, color 160ms ease !important;
+}
+
+html body [data-pmd-checkout-design-system="1"] .pmd-checkout-item-row span:last-child,
+html body [data-pmd-checkout-design-system="1"] .pmd-checkout-item-price {
+  color: var(--pmd-modal-text) !important;
+  -webkit-text-fill-color: var(--pmd-modal-text) !important;
+  font-size: clamp(0.98rem, 3.8vw, 1.08rem) !important;
+  font-weight: 750 !important;
+  white-space: nowrap !important;
+}
+
+html body [data-pmd-checkout-design-system="1"] .pmd-checkout-total-card .flex.items-center.justify-between,
+html body [data-pmd-checkout-design-system="1"] .pmd-checkout-payment-card .flex.items-center.justify-between,
+html body [data-pmd-checkout-design-system="1"] .surface-sub.rounded-2xl.p-3.space-y-1 .flex.justify-between {
+  font-size: clamp(0.98rem, 3.8vw, 1.06rem) !important;
+  font-weight: 650 !important;
+  line-height: 1.35 !important;
+}
+
+html body [data-pmd-checkout-design-system="1"] .pmd-checkout-total-card .border-t span:last-child,
+html body [data-pmd-checkout-design-system="1"] .divider span:last-child {
+  color: var(--pmd-modal-gold) !important;
+  -webkit-text-fill-color: var(--pmd-modal-gold) !important;
+  font-size: clamp(1.18rem, 4.8vw, 1.35rem) !important;
+  font-weight: 850 !important;
+}
+
+html body [data-pmd-checkout-design-system="1"] [data-pmd-floating-eta-circle="1"] {
+  width: 4.45rem !important;
+  height: 4.45rem !important;
+  box-shadow: 0 12px 26px rgba(6, 47, 42, 0.22) !important;
+}
+
+html body [data-pmd-checkout-design-system="1"] [data-pmd-payment-header-copy-row="1"] {
+  background: transparent !important;
+  background-color: transparent !important;
+  border: 0 !important;
+  padding: 0.25rem 0.1rem 0.1rem !important;
+}
+
+html body [data-pmd-checkout-design-system="1"] input,
+html body [data-pmd-checkout-design-system="1"] textarea {
+  border-color: var(--pmd-modal-border) !important;
+  color: var(--pmd-modal-text) !important;
+  background: rgba(255, 255, 255, 0.58) !important;
+}
+
+html body [data-pmd-checkout-design-system="1"] button {
+  transition: transform 160ms ease, box-shadow 160ms ease, border-color 160ms ease, background-color 160ms ease, opacity 160ms ease !important;
+}
+
+html body [data-pmd-checkout-design-system="1"] button:active {
+  transform: scale(0.985);
+}
+
+/* PMD_CHECKOUT_LIST_SCROLL_SAFETY_20260604
+   Keep long item lists scrollable without clipped final rows and soften normal item-row hierarchy.
+*/
+html body [data-pmd-checkout-design-system="1"] [data-pmd-checkout-scroll="1"] {
+  overscroll-behavior: contain !important;
+  scroll-padding-block: 1rem !important;
+  -webkit-overflow-scrolling: touch !important;
+}
+
+html body [data-pmd-checkout-design-system="1"] .pmd-checkout-list-scroll {
+  max-height: none !important;
+  overflow: visible !important;
+  overscroll-behavior: contain !important;
+  scrollbar-gutter: stable !important;
+  padding-top: 0.18rem !important;
+  padding-bottom: 0.7rem !important;
+  scroll-padding-block: 0.7rem !important;
+  -webkit-overflow-scrolling: touch !important;
+}
+
+html body [data-pmd-checkout-design-system="1"] .pmd-checkout-list-scroll > *:last-child {
+  margin-bottom: 0.15rem !important;
+}
+
+html body [data-pmd-checkout-design-system="1"] .pmd-checkout-list-scroll::-webkit-scrollbar {
+  width: 0.35rem;
+}
+
+html body [data-pmd-checkout-design-system="1"] .pmd-checkout-list-scroll::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+html body [data-pmd-checkout-design-system="1"] .pmd-checkout-list-scroll::-webkit-scrollbar-thumb {
+  background: rgba(184, 137, 64, 0.24);
+  border-radius: 9999px;
+}
+
+html body [data-pmd-checkout-design-system="1"] .pmd-checkout-item-row {
+  font-weight: 600 !important;
+}
+
+html body [data-pmd-checkout-design-system="1"] .pmd-checkout-item-row span:last-child,
+html body [data-pmd-checkout-design-system="1"] .pmd-checkout-item-price,
+html body [data-pmd-checkout-design-system="1"] .pmd-customer-price {
+  color: var(--pmd-modal-text) !important;
+  -webkit-text-fill-color: var(--pmd-modal-text) !important;
+  font-weight: 650 !important;
+}
+
+html body [data-pmd-checkout-design-system="1"] .pmd-checkout-total-card .border-t span:last-child,
+html body [data-pmd-checkout-design-system="1"] .divider span:last-child,
+html body [data-pmd-checkout-design-system="1"] span[style*="#b88940"] {
+  color: var(--pmd-modal-gold) !important;
+  -webkit-text-fill-color: var(--pmd-modal-gold) !important;
+}
+
+/* PMD_CHECKOUT_ITEM_PRICE_COLOR_LOCK_20260604
+   Normal line item prices inside checkout are primary charcoal; only final/accent totals stay gold.
+*/
+html body .page--menu [data-pmd-checkout-design-system="1"] .pmd-checkout-item-card .pmd-checkout-item-price,
+html body .page--menu [data-pmd-checkout-design-system="1"] .pmd-checkout-item-row > span:last-child,
+html body .page--menu [data-pmd-checkout-design-system="1"] .pmd-checkout-item-row .font-semibold:not(.text-base):not(.text-lg):not(.text-xl):not(.text-2xl) {
+  color: var(--pmd-modal-text) !important;
+  -webkit-text-fill-color: var(--pmd-modal-text) !important;
+  font-weight: 600 !important;
+}
+
+html body .page--menu [data-pmd-checkout-design-system="1"] .pmd-checkout-item-row > span:first-child,
+html body .page--menu [data-pmd-checkout-design-system="1"] .pmd-checkout-item-row .font-medium {
+  font-weight: 500 !important;
+}
+
+/* PMD_CHECKOUT_FINAL_VISUAL_TUNE_20260604
+   Final scoped polish only: lighter Table Order rows, subtler helper text, calmer status headings.
+*/
+html body .page--menu [data-pmd-checkout-design-system="1"] .pmd-table-order-item-row {
+  font-size: 0.92rem !important;
+  font-weight: 450 !important;
+  line-height: 1.26 !important;
+  letter-spacing: -0.005em !important;
+}
+
+html body .page--menu [data-pmd-checkout-design-system="1"] .pmd-table-order-item-row > span:first-child,
+html body .page--menu [data-pmd-checkout-design-system="1"] .pmd-table-order-item-row .font-medium {
+  font-weight: 450 !important;
+}
+
+html body .page--menu [data-pmd-checkout-design-system="1"] .pmd-table-order-item-row > span:last-child,
+html body .page--menu [data-pmd-checkout-design-system="1"] .pmd-table-order-item-row .font-semibold {
+  font-size: 0.92rem !important;
+  font-weight: 550 !important;
+  color: var(--pmd-modal-text) !important;
+  -webkit-text-fill-color: var(--pmd-modal-text) !important;
+}
+
+html body .page--menu [data-pmd-checkout-design-system="1"] .pmd-checkout-helper-text {
+  font-size: 0.74rem !important;
+  font-weight: 500 !important;
+  line-height: 1.2 !important;
+  color: var(--pmd-modal-muted) !important;
+  -webkit-text-fill-color: var(--pmd-modal-muted) !important;
+  opacity: 0.78 !important;
+}
+
+html body .page--menu [data-pmd-checkout-design-system="1"] .pmd-checkout-status-title {
+  font-size: clamp(0.98rem, 3.8vw, 1.12rem) !important;
+  font-weight: 650 !important;
+  line-height: 1.18 !important;
+  letter-spacing: -0.012em !important;
+}
+
+/* PMD_CHECKOUT_BODY_SCROLL_SAFE_AREA_20260605
+   Keep modal dimensions unchanged while making the modal body the reliable scroll area.
+   Prevents expanded payment forms and complete-screen actions from being clipped at the bottom.
+*/
+html body .page--menu [data-pmd-checkout-design-system="1"] .pmd-checkout-body,
+html body [data-pmd-checkout-design-system="1"] [data-pmd-checkout-scroll="1"] {
+  flex: 1 1 auto !important;
+  min-height: 0 !important;
+  overflow-y: auto !important;
+  overflow-x: hidden !important;
+  overscroll-behavior: contain !important;
+  -webkit-overflow-scrolling: touch !important;
+  scroll-padding-top: 1rem !important;
+  scroll-padding-bottom: calc(2.25rem + env(safe-area-inset-bottom, 0px)) !important;
+  padding-bottom: calc(2.25rem + env(safe-area-inset-bottom, 0px)) !important;
+}
+
+html body .page--menu [data-pmd-checkout-design-system="1"] .pmd-checkout-payment-detail {
+  scroll-margin-bottom: calc(2.5rem + env(safe-area-inset-bottom, 0px)) !important;
+  padding-bottom: calc(1.25rem + env(safe-area-inset-bottom, 0px)) !important;
+}
+
+html body .page--menu [data-pmd-checkout-design-system="1"] .pmd-checkout-payment-detail > .overflow-hidden,
+html body .page--menu [data-pmd-checkout-design-system="1"] .pmd-checkout-payment-detail [class~="overflow-hidden"] {
+  overflow: visible !important;
+}
+
+html body .page--menu [data-pmd-checkout-design-system="1"] .pmd-checkout-body > *:last-child {
+  margin-bottom: 0.35rem !important;
+}
+
+/* PMD_ORDER_COMPLETE_BOTTOM_REACH_20260605
+   Extra bottom breathing room for complete-screen actions without changing modal size.
+*/
+html body .page--menu [data-pmd-checkout-design-system="1"] .pmd-order-complete-content {
+  padding-bottom: calc(1.1rem + env(safe-area-inset-bottom, 0px)) !important;
+  scroll-margin-bottom: calc(2.5rem + env(safe-area-inset-bottom, 0px)) !important;
+}
+
+/* =========================================================
+   PMD_CARD_PAYMENT_BRAND_FIX_20260605
+   Fix Stripe/Card form visual style inside checkout only.
+   - no purple Stripe button
+   - card field matches PayMyDine modal
+   - labels/inputs stay readable
+   ========================================================= */
+
+html body .page--menu [data-pmd-checkout-design-system="1"] [data-pmd-payment-selected-detail="1"],
+html body [data-pmd-checkout-design-system="1"] [data-pmd-payment-selected-detail="1"] {
+  color: var(--pmd-modal-text, #0B1F1D) !important;
+  -webkit-text-fill-color: var(--pmd-modal-text, #0B1F1D) !important;
+}
+
+html body .page--menu [data-pmd-checkout-design-system="1"] [data-pmd-payment-selected-detail="1"] form[data-pmd-stripe-form="1"],
+html body [data-pmd-checkout-design-system="1"] [data-pmd-payment-selected-detail="1"] form[data-pmd-stripe-form="1"] {
+  width: 100% !important;
+  background: transparent !important;
+  box-shadow: none !important;
+}
+
+html body .page--menu [data-pmd-checkout-design-system="1"] [data-pmd-payment-selected-detail="1"] form[data-pmd-stripe-form="1"] label,
+html body [data-pmd-checkout-design-system="1"] [data-pmd-payment-selected-detail="1"] form[data-pmd-stripe-form="1"] label {
+  display: block !important;
+  margin-bottom: 0.35rem !important;
+  font-size: 0.88rem !important;
+  font-weight: 650 !important;
+  line-height: 1.2 !important;
+  color: #0B1F1D !important;
+  -webkit-text-fill-color: #0B1F1D !important;
+}
+
+html body .page--menu [data-pmd-checkout-design-system="1"] [data-pmd-payment-selected-detail="1"] form[data-pmd-stripe-form="1"] input#cardholderName,
+html body .page--menu [data-pmd-checkout-design-system="1"] [data-pmd-payment-selected-detail="1"] form[data-pmd-stripe-form="1"] input#email,
+html body .page--menu [data-pmd-checkout-design-system="1"] [data-pmd-payment-selected-detail="1"] form[data-pmd-stripe-form="1"] input#phone,
+html body [data-pmd-checkout-design-system="1"] [data-pmd-payment-selected-detail="1"] form[data-pmd-stripe-form="1"] input#cardholderName,
+html body [data-pmd-checkout-design-system="1"] [data-pmd-payment-selected-detail="1"] form[data-pmd-stripe-form="1"] input#email,
+html body [data-pmd-checkout-design-system="1"] [data-pmd-payment-selected-detail="1"] form[data-pmd-stripe-form="1"] input#phone {
+  box-sizing: border-box !important;
+  width: 100% !important;
+  min-height: 44px !important;
+  height: 44px !important;
+  padding: 10px 14px !important;
+  border-radius: 16px !important;
+  border: 1px solid rgba(11, 31, 29, 0.14) !important;
+  background: rgba(255, 255, 255, 0.92) !important;
+  background-color: rgba(255, 255, 255, 0.92) !important;
+  color: #0B1F1D !important;
+  -webkit-text-fill-color: #0B1F1D !important;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.65) !important;
+  outline: none !important;
+  caret-color: #063F2F !important;
+}
+
+html body .page--menu [data-pmd-checkout-design-system="1"] [data-pmd-payment-selected-detail="1"] form[data-pmd-stripe-form="1"] input::placeholder,
+html body [data-pmd-checkout-design-system="1"] [data-pmd-payment-selected-detail="1"] form[data-pmd-stripe-form="1"] input::placeholder {
+  color: rgba(88, 99, 113, 0.78) !important;
+  -webkit-text-fill-color: rgba(88, 99, 113, 0.78) !important;
+}
+
+html body .page--menu [data-pmd-checkout-design-system="1"] [data-pmd-payment-selected-detail="1"] form[data-pmd-stripe-form="1"] input:focus,
+html body [data-pmd-checkout-design-system="1"] [data-pmd-payment-selected-detail="1"] form[data-pmd-stripe-form="1"] input:focus {
+  border-color: rgba(184, 137, 64, 0.68) !important;
+  box-shadow: 0 0 0 3px rgba(184, 137, 64, 0.14) !important;
+}
+
+html body .page--menu [data-pmd-checkout-design-system="1"] [data-pmd-payment-selected-detail="1"] form[data-pmd-stripe-form="1"] .StripeElement,
+html body [data-pmd-checkout-design-system="1"] [data-pmd-payment-selected-detail="1"] form[data-pmd-stripe-form="1"] .StripeElement {
+  min-height: 22px !important;
+  width: 100% !important;
+  color: #0B1F1D !important;
+}
+
+html body .page--menu [data-pmd-checkout-design-system="1"] [data-pmd-payment-selected-detail="1"] form[data-pmd-stripe-form="1"] .mt-1.p-3.border.rounded-2xl.w-full,
+html body [data-pmd-checkout-design-system="1"] [data-pmd-payment-selected-detail="1"] form[data-pmd-stripe-form="1"] .mt-1.p-3.border.rounded-2xl.w-full {
+  box-sizing: border-box !important;
+  width: 100% !important;
+  min-height: 46px !important;
+  padding: 12px 14px !important;
+  border-radius: 16px !important;
+  border: 1px solid rgba(11, 31, 29, 0.14) !important;
+  background: rgba(255, 255, 255, 0.92) !important;
+  background-color: rgba(255, 255, 255, 0.92) !important;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.65) !important;
+  overflow: hidden !important;
+}
+
+html body .page--menu button[data-pmd-stripe-native-button="1"],
+html body button[data-pmd-stripe-native-button="1"] {
+  all: unset !important;
+  box-sizing: border-box !important;
+  width: 100% !important;
+  min-width: 100% !important;
+  max-width: 100% !important;
+  height: 54px !important;
+  min-height: 54px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 8px !important;
+  padding: 0 18px !important;
+  margin: 12px 0 0 0 !important;
+  border: 0 !important;
+  border-radius: 16px !important;
+  outline: none !important;
+  cursor: pointer !important;
+  appearance: none !important;
+  -webkit-appearance: none !important;
+  text-decoration: none !important;
+
+  background: linear-gradient(135deg, #063F2F 0%, #062F2A 100%) !important;
+  background-color: #062F2A !important;
+  color: #FFFFFF !important;
+  -webkit-text-fill-color: #FFFFFF !important;
+  box-shadow: 0 12px 24px rgba(6, 47, 42, 0.24) !important;
+
+  font-size: 16px !important;
+  font-weight: 750 !important;
+  line-height: 1 !important;
+  text-align: center !important;
+}

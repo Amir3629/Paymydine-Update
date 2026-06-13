@@ -1,0 +1,1803 @@
+/* Modern Dark Theme */
+[data-theme="modern-dark"] button[aria-label="Show bill"],
+[data-theme="modern-dark"] button[aria-label="Hide bill"],
+[data-theme="modern-dark"] button[class*="absolute"][class*="left-1/2"][class*="-top-4"][class*="rounded-full"] {
+  background-color: #0A0E12 !important; /* Deep charcoal - theme background */
+  border-color: rgba(240, 198, 177, 0.3) !important; /* Light rose gold border */
+}
+
+[data-theme="modern-dark"] button[aria-label="Show bill"] svg,
+[data-theme="modern-dark"] button[aria-label="Hide bill"] svg,
+[data-theme="modern-dark"] button[class*="absolute"][class*="left-1/2"][class*="-top-4"][class*="rounded-full"] svg,
+[data-theme="modern-dark"] button[aria-label="Show bill"] .lucide-chevron-up,
+[data-theme="modern-dark"] button[aria-label="Show bill"] .lucide-chevron-down,
+[data-theme="modern-dark"] button[aria-label="Hide bill"] .lucide-chevron-up,
+[data-theme="modern-dark"] button[aria-label="Hide bill"] .lucide-chevron-down {
+  color: #E8B4A0 !important; /* rose gold - matches plus button/quantity-btn background */
+  fill: #E8B4A0 !important;
+  stroke: #E8B4A0 !important;
+}
+
+/* Gold Luxury Theme */
+[data-theme="gold-luxury"] button[aria-label="Show bill"],
+[data-theme="gold-luxury"] button[aria-label="Hide bill"],
+[data-theme="gold-luxury"] button[class*="absolute"][class*="left-1/2"][class*="-top-4"][class*="rounded-full"] {
+  background-color: #0F0B05 !important; /* Deep warm black - theme background */
+  border-color: rgba(255, 248, 220, 0.3) !important; /* Cornsilk #FFF8DC border */
+}
+
+[data-theme="gold-luxury"] button[aria-label="Show bill"] svg,
+[data-theme="gold-luxury"] button[aria-label="Hide bill"] svg,
+[data-theme="gold-luxury"] button[class*="absolute"][class*="left-1/2"][class*="-top-4"][class*="rounded-full"] svg,
+[data-theme="gold-luxury"] button[aria-label="Show bill"] .lucide-chevron-up,
+[data-theme="gold-luxury"] button[aria-label="Show bill"] .lucide-chevron-down,
+[data-theme="gold-luxury"] button[aria-label="Hide bill"] .lucide-chevron-up,
+[data-theme="gold-luxury"] button[aria-label="Hide bill"] .lucide-chevron-down {
+  color: #FFF8DC !important; /* cornsilk - matches plus button/quantity-btn background */
+  fill: #FFF8DC !important;
+  stroke: #FFF8DC !important;
+}
+
+/* Vibrant Colors Theme */
+[data-theme="vibrant-colors"] button[aria-label="Show bill"],
+[data-theme="vibrant-colors"] button[aria-label="Hide bill"],
+[data-theme="vibrant-colors"] button[class*="absolute"][class*="left-1/2"][class*="-top-4"][class*="rounded-full"] {
+  background-color: #e2ceb1 !important; /* Warm beige - theme background */
+  border-color: rgba(255, 107, 107, 0.3) !important; /* Light coral border */
+}
+
+[data-theme="vibrant-colors"] button[aria-label="Show bill"] svg,
+[data-theme="vibrant-colors"] button[aria-label="Hide bill"] svg,
+[data-theme="vibrant-colors"] button[class*="absolute"][class*="left-1/2"][class*="-top-4"][class*="rounded-full"] svg,
+[data-theme="vibrant-colors"] button[aria-label="Show bill"] .lucide-chevron-up,
+[data-theme="vibrant-colors"] button[aria-label="Show bill"] .lucide-chevron-down,
+[data-theme="vibrant-colors"] button[aria-label="Hide bill"] .lucide-chevron-up,
+[data-theme="vibrant-colors"] button[aria-label="Hide bill"] .lucide-chevron-down {
+  color: #efc6b1 !important; /* coral - matches plus button/quantity-btn background */
+  fill: #efc6b1 !important;
+  stroke: #efc6b1 !important;
+}
+
+/* Minimal Theme */
+[data-theme="minimal"] button[aria-label="Show bill"],
+[data-theme="minimal"] button[aria-label="Hide bill"],
+[data-theme="minimal"] button[class*="absolute"][class*="left-1/2"][class*="-top-4"][class*="rounded-full"] {
+  background-color: #CFEBF7 !important; /* Light blue - theme background */
+  border-color: rgba(74, 144, 226, 0.3) !important; /* Light blue border */
+}
+
+[data-theme="minimal"] button[aria-label="Show bill"] svg,
+[data-theme="minimal"] button[aria-label="Hide bill"] svg,
+[data-theme="minimal"] button[class*="absolute"][class*="left-1/2"][class*="-top-4"][class*="rounded-full"] svg,
+[data-theme="minimal"] button[aria-label="Show bill"] .lucide-chevron-up,
+[data-theme="minimal"] button[aria-label="Show bill"] .lucide-chevron-down,
+[data-theme="minimal"] button[aria-label="Hide bill"] .lucide-chevron-up,
+[data-theme="minimal"] button[aria-label="Hide bill"] .lucide-chevron-down {
+  color: #2d3748 !important; /* blue - matches plus button/quantity-btn background */
+  fill: #2d3748 !important;
+  stroke: #2d3748 !important;
+}
+
+/* Cart badge - MATCH QUANTITY-BTN BACKGROUND COLORS BY THEME - MAXIMUM SPECIFICITY */
+/* Clean Light Theme - Match quantity-btn background (#EFC7B1) */
+html[data-theme="clean-light"] .cart-badge,
+html[data-theme="clean-light"] span.cart-badge,
+[data-theme="clean-light"] .cart-badge,
+[data-theme="clean-light"] span.cart-badge {
+  background-color: #EFC7B1 !important; /* paydine-rose-beige - same as quantity-btn background */
+  color: #ffeee2 !important; /* paydine-soft-white */
+  opacity: 1 !important;
+  visibility: visible !important;
+  display: flex !important;
+  z-index: 9999999 !important;
+}
+
+/* Modern Dark Theme - Match quantity-btn background (#E8B4A0) */
+html[data-theme="modern-dark"] .cart-badge,
+html[data-theme="modern-dark"] span.cart-badge,
+[data-theme="modern-dark"] .cart-badge,
+[data-theme="modern-dark"] span.cart-badge {
+  background-color: #E8B4A0 !important; /* rose gold - same as quantity-btn background */
+  color: #0A0E12 !important; /* dark background */
+  opacity: 1 !important;
+  visibility: visible !important;
+  display: flex !important;
+  z-index: 9999999 !important;
+}
+
+/* Gold Luxury Theme - Match quantity-btn background (#FFF8DC) */
+html[data-theme="gold-luxury"] .cart-badge,
+html[data-theme="gold-luxury"] span.cart-badge,
+[data-theme="gold-luxury"] .cart-badge,
+[data-theme="gold-luxury"] span.cart-badge {
+  background-color: #FFF8DC !important; /* cornsilk - same as quantity-btn background */
+  color: #0F0B05 !important; /* dark background */
+  opacity: 1 !important;
+  visibility: visible !important;
+  display: flex !important;
+  z-index: 9999999 !important;
+}
+
+/* Vibrant Colors Theme - Match quantity-btn background (#efc6b1) */
+html[data-theme="vibrant-colors"] .cart-badge,
+html[data-theme="vibrant-colors"] span.cart-badge,
+[data-theme="vibrant-colors"] .cart-badge,
+[data-theme="vibrant-colors"] span.cart-badge {
+  background-color: #efc6b1 !important; /* electric coral - same as quantity-btn background */
+  color: #e2ceb1 !important; /* warm beige */
+  opacity: 1 !important;
+  visibility: visible !important;
+  display: flex !important;
+  z-index: 9999999 !important;
+}
+
+/* Minimal Theme - Match quantity-btn background (#2d3748) */
+html[data-theme="minimal"] .cart-badge,
+html[data-theme="minimal"] span.cart-badge,
+[data-theme="minimal"] .cart-badge,
+[data-theme="minimal"] span.cart-badge {
+  background-color: #2d3748 !important; /* blue - same as quantity-btn background */
+  color: #CFEBF7 !important; /* light blue */
+  opacity: 1 !important;
+  visibility: visible !important;
+  display: flex !important;
+  z-index: 9999999 !important;
+}
+
+/* Ensure the same backdrop in all themes; the card stays readable */
+html[data-theme] .radix-overlay,
+html[data-theme] [data-radix-dialog-overlay],
+html[data-theme] [data-radix-sheet-overlay] {
+  background: rgba(0,0,0,0.42);
+}
+
+/* FOOD ITEM MODAL CARD FIX - PERMANENT CSS SOLUTION */
+/* Clean Light Theme */
+html[data-theme="clean-light"] .surface.rounded-3xl.shadow-2xl,
+html[data-theme="clean-light"] [class*="surface"][class*="rounded-3xl"],
+html[data-theme="clean-light"] div[class*="relative"][class*="surface"][class*="rounded"] {
+  background-color: #ffeee2 !important;
+  color: #3B3B3B !important;
+  opacity: 1 !important;
+  visibility: visible !important;
+}
+
+/* Modern Dark Theme */
+html[data-theme="modern-dark"] .surface.rounded-3xl.shadow-2xl,
+html[data-theme="modern-dark"] [class*="surface"][class*="rounded-3xl"],
+html[data-theme="modern-dark"] div[class*="relative"][class*="surface"][class*="rounded"] {
+  background-color: #0A0E12 !important;
+  color: #F8FAFC !important;
+  opacity: 1 !important;
+  visibility: visible !important;
+}
+
+/* Gold Luxury Theme */
+html[data-theme="gold-luxury"] .surface.rounded-3xl.shadow-2xl,
+html[data-theme="gold-luxury"] [class*="surface"][class*="rounded-3xl"],
+html[data-theme="gold-luxury"] div[class*="relative"][class*="surface"][class*="rounded"] {
+  background-color: #0F0B05 !important;
+  color: #FFF8DC !important;
+  opacity: 1 !important;
+  visibility: visible !important;
+}
+
+/* Vibrant Colors Theme */
+html[data-theme="vibrant-colors"] .surface.rounded-3xl.shadow-2xl,
+html[data-theme="vibrant-colors"] [class*="surface"][class*="rounded-3xl"],
+html[data-theme="vibrant-colors"] div[class*="relative"][class*="surface"][class*="rounded"] {
+  background-color: #e2ceb1 !important;
+  color: #1E293B !important;
+  opacity: 1 !important;
+  visibility: visible !important;
+}
+
+/* Minimal Theme */
+html[data-theme="minimal"] .surface.rounded-3xl.shadow-2xl,
+html[data-theme="minimal"] [class*="surface"][class*="rounded-3xl"],
+html[data-theme="minimal"] div[class*="relative"][class*="surface"][class*="rounded"] {
+  background-color: #CFEBF7 !important;
+  color: #1A202C !important;
+  opacity: 1 !important;
+  visibility: visible !important;
+}
+
+/* Modal backdrop - keep blurry and dark */
+html[data-theme] div[class*="fixed"][class*="inset-0"][class*="z-50"][class*="flex"][class*="items-center"][class*="justify-center"] {
+  background-color: rgba(0, 0, 0, 0.6) !important;
+  backdrop-filter: blur(8px) !important;
+  opacity: 1 !important;
+}
+
+/* MODAL INFO CARDS FIX - PERMANENT CSS SOLUTION */
+/* Clean Light Theme */
+html[data-theme="clean-light"] [class*="bg-paydine-rose-beige/10"],
+html[data-theme="clean-light"] [class*="backdrop-blur-sm"][class*="rounded-2xl"],
+html[data-theme="clean-light"] div[class*="backdrop-blur-sm"][class*="rounded-2xl"][class*="p-4"],
+html[data-theme="clean-light"] div[class*="backdrop-blur"][class*="rounded-2xl"] {
+  background-color: rgba(255, 255, 255, 0.9) !important;
+  color: #3B3B3B !important;
+  border-color: #EDEDED !important;
+  opacity: 1 !important;
+  visibility: visible !important;
+  backdrop-filter: blur(8px) !important;
+  border: 1px solid #EDEDED !important;
+}
+
+/* Modern Dark Theme */
+html[data-theme="modern-dark"] [class*="bg-paydine-rose-beige/10"],
+html[data-theme="modern-dark"] [class*="backdrop-blur-sm"][class*="rounded-2xl"],
+html[data-theme="modern-dark"] div[class*="backdrop-blur-sm"][class*="rounded-2xl"][class*="p-4"],
+html[data-theme="modern-dark"] div[class*="backdrop-blur"][class*="rounded-2xl"] {
+  background-color: rgba(30, 41, 59, 0.9) !important;
+  color: #F8FAFC !important;
+  border-color: #334155 !important;
+  opacity: 1 !important;
+  visibility: visible !important;
+  backdrop-filter: blur(8px) !important;
+  border: 1px solid #334155 !important;
+}
+
+/* Gold Luxury Theme */
+html[data-theme="gold-luxury"] [class*="bg-paydine-rose-beige/10"],
+html[data-theme="gold-luxury"] [class*="backdrop-blur-sm"][class*="rounded-2xl"],
+html[data-theme="gold-luxury"] div[class*="backdrop-blur-sm"][class*="rounded-2xl"][class*="p-4"],
+html[data-theme="gold-luxury"] div[class*="backdrop-blur"][class*="rounded-2xl"] {
+  background-color: rgba(26, 22, 18, 0.9) !important;
+  color: #FFF8DC !important;
+  border-color: #FFF8DC !important; /* Changed to Cornsilk #FFF8DC */
+  opacity: 1 !important;
+  visibility: visible !important;
+  backdrop-filter: blur(8px) !important;
+  border: 1px solid #FFF8DC !important; /* Changed to Cornsilk #FFF8DC */
+}
+
+/* Vibrant Colors Theme */
+html[data-theme="vibrant-colors"] [class*="bg-paydine-rose-beige/10"],
+html[data-theme="vibrant-colors"] [class*="backdrop-blur-sm"][class*="rounded-2xl"],
+html[data-theme="vibrant-colors"] div[class*="backdrop-blur-sm"][class*="rounded-2xl"][class*="p-4"],
+html[data-theme="vibrant-colors"] div[class*="backdrop-blur"][class*="rounded-2xl"] {
+  background-color: rgba(255, 255, 255, 0.95) !important;
+  color: #1E293B !important;
+  border-color: #E8E0D5 !important;
+  opacity: 1 !important;
+  visibility: visible !important;
+  backdrop-filter: blur(8px) !important;
+  border: 1px solid #E8E0D5 !important;
+}
+
+/* Minimal Theme */
+html[data-theme="minimal"] [class*="bg-paydine-rose-beige/10"],
+html[data-theme="minimal"] [class*="backdrop-blur-sm"][class*="rounded-2xl"],
+html[data-theme="minimal"] div[class*="backdrop-blur-sm"][class*="rounded-2xl"][class*="p-4"],
+html[data-theme="minimal"] div[class*="backdrop-blur"][class*="rounded-2xl"] {
+  background-color: rgba(255, 255, 255, 0.95) !important;
+  color: #1A202C !important;
+  border-color: #E2E8F0 !important;
+  opacity: 1 !important;
+  visibility: visible !important;
+  backdrop-filter: blur(8px) !important;
+  border: 1px solid #E2E8F0 !important;
+}
+
+/* WAITER AND NOTE MODALS FIX - PERMANENT CSS SOLUTION */
+/* Clean Light Theme */
+html[data-theme="clean-light"] .rounded-3xl.shadow-2xl:not(.surface),
+html[data-theme="clean-light"] .backdrop-blur-lg.rounded-3xl.shadow-2xl:not(.surface),
+html[data-theme="clean-light"] div[class*="rounded-3xl"][class*="shadow-2xl"]:not([class*="surface"]) {
+  background-color: #ffeee2 !important;
+  color: #3B3B3B !important;
+  opacity: 1 !important;
+  visibility: visible !important;
+  backdrop-filter: blur(8px) !important;
+  border: 1px solid #EDEDED !important;
+}
+
+/* Modern Dark Theme */
+html[data-theme="modern-dark"] .rounded-3xl.shadow-2xl:not(.surface),
+html[data-theme="modern-dark"] .backdrop-blur-lg.rounded-3xl.shadow-2xl:not(.surface),
+html[data-theme="modern-dark"] div[class*="rounded-3xl"][class*="shadow-2xl"]:not([class*="surface"]) {
+  background-color: #0A0E12 !important;
+  color: #F8FAFC !important;
+  opacity: 1 !important;
+  visibility: visible !important;
+  backdrop-filter: blur(8px) !important;
+  border: 1px solid #334155 !important;
+}
+
+/* Gold Luxury Theme */
+html[data-theme="gold-luxury"] .rounded-3xl.shadow-2xl:not(.surface),
+html[data-theme="gold-luxury"] .backdrop-blur-lg.rounded-3xl.shadow-2xl:not(.surface),
+html[data-theme="gold-luxury"] div[class*="rounded-3xl"][class*="shadow-2xl"]:not([class*="surface"]) {
+  background-color: #0F0B05 !important;
+  color: #FFF8DC !important;
+  opacity: 1 !important;
+  visibility: visible !important;
+  backdrop-filter: blur(8px) !important;
+  border: 1px solid #FFF8DC !important; /* Changed to Cornsilk #FFF8DC */
+}
+
+/* Vibrant Colors Theme */
+html[data-theme="vibrant-colors"] .rounded-3xl.shadow-2xl:not(.surface),
+html[data-theme="vibrant-colors"] .backdrop-blur-lg.rounded-3xl.shadow-2xl:not(.surface),
+html[data-theme="vibrant-colors"] div[class*="rounded-3xl"][class*="shadow-2xl"]:not([class*="surface"]) {
+  background-color: #e2ceb1 !important;
+  color: #1E293B !important;
+  opacity: 1 !important;
+  visibility: visible !important;
+  backdrop-filter: blur(8px) !important;
+  border: 1px solid #E8E0D5 !important;
+}
+
+/* Minimal Theme */
+html[data-theme="minimal"] .rounded-3xl.shadow-2xl:not(.surface),
+html[data-theme="minimal"] .backdrop-blur-lg.rounded-3xl.shadow-2xl:not(.surface),
+html[data-theme="minimal"] div[class*="rounded-3xl"][class*="shadow-2xl"]:not([class*="surface"]) {
+  background-color: #CFEBF7 !important;
+  color: #1A202C !important;
+  opacity: 1 !important;
+  visibility: visible !important;
+  backdrop-filter: blur(8px) !important;
+  border: 1px solid #E2E8F0 !important;
+}
+
+/* WAITER AND NOTE MODAL ICONS - STROKE ONLY (NO FILL) */
+/* Clean Light Theme */
+html[data-theme="clean-light"] .rounded-3xl.shadow-2xl svg,
+html[data-theme="clean-light"] .rounded-3xl.shadow-2xl i,
+html[data-theme="clean-light"] .backdrop-blur-lg.rounded-3xl.shadow-2xl svg,
+html[data-theme="clean-light"] .backdrop-blur-lg.rounded-3xl.shadow-2xl i {
+  color: #E7CBA9 !important;
+  fill: none !important; /* No fill - only stroke */
+  stroke: #E7CBA9 !important;
+  background-color: transparent !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  border: none !important;
+}
+
+/* Modern Dark Theme */
+html[data-theme="modern-dark"] .rounded-3xl.shadow-2xl svg,
+html[data-theme="modern-dark"] .rounded-3xl.shadow-2xl i,
+html[data-theme="modern-dark"] .backdrop-blur-lg.rounded-3xl.shadow-2xl svg,
+html[data-theme="modern-dark"] .backdrop-blur-lg.rounded-3xl.shadow-2xl i {
+  color: #F0C6B1 !important;
+  fill: none !important; /* No fill - only stroke */
+  stroke: #F0C6B1 !important;
+  background-color: transparent !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  border: none !important;
+}
+
+/* Gold Luxury Theme */
+html[data-theme="gold-luxury"] .rounded-3xl.shadow-2xl svg,
+html[data-theme="gold-luxury"] .rounded-3xl.shadow-2xl i,
+html[data-theme="gold-luxury"] .backdrop-blur-lg.rounded-3xl.shadow-2xl svg,
+html[data-theme="gold-luxury"] .backdrop-blur-lg.rounded-3xl.shadow-2xl i {
+  color: #FFF8DC !important;
+  fill: none !important; /* No fill - only stroke */
+  stroke: #FFF8DC !important;
+  background-color: transparent !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  border: none !important;
+}
+
+/* Vibrant Colors Theme */
+html[data-theme="vibrant-colors"] .rounded-3xl.shadow-2xl svg,
+html[data-theme="vibrant-colors"] .rounded-3xl.shadow-2xl i,
+html[data-theme="vibrant-colors"] .backdrop-blur-lg.rounded-3xl.shadow-2xl svg,
+html[data-theme="vibrant-colors"] .backdrop-blur-lg.rounded-3xl.shadow-2xl i {
+  color: #efc6b1 !important;
+  fill: none !important; /* No fill - only stroke */
+  stroke: #efc6b1 !important;
+  background-color: transparent !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  border: none !important;
+}
+
+/* Minimal Theme */
+html[data-theme="minimal"] .rounded-3xl.shadow-2xl svg,
+html[data-theme="minimal"] .rounded-3xl.shadow-2xl i,
+html[data-theme="minimal"] .backdrop-blur-lg.rounded-3xl.shadow-2xl svg,
+html[data-theme="minimal"] .backdrop-blur-lg.rounded-3xl.shadow-2xl i {
+  color: #2D3748 !important;
+  fill: none !important; /* No fill - only stroke */
+  stroke: #2D3748 !important;
+  background-color: transparent !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  border: none !important;
+}
+
+/* MENU PAGE - WAITER AND NOTE ICONS IN TOOLBAR - STROKE ONLY (NO FILL) */
+/* Clean Light Theme */
+html[data-theme="clean-light"] svg.lucide-hand-platter,
+html[data-theme="clean-light"] svg.lucide-notebook-pen,
+html[data-theme="clean-light"] button svg.lucide-hand-platter,
+html[data-theme="clean-light"] button svg.lucide-notebook-pen {
+  fill: none !important; /* No fill - only stroke */
+  stroke: currentColor !important;
+}
+
+/* Modern Dark Theme */
+html[data-theme="modern-dark"] svg.lucide-hand-platter,
+html[data-theme="modern-dark"] svg.lucide-notebook-pen,
+html[data-theme="modern-dark"] button svg.lucide-hand-platter,
+html[data-theme="modern-dark"] button svg.lucide-notebook-pen {
+  fill: none !important; /* No fill - only stroke */
+  stroke: currentColor !important;
+}
+
+/* Gold Luxury Theme */
+html[data-theme="gold-luxury"] svg.lucide-hand-platter,
+html[data-theme="gold-luxury"] svg.lucide-notebook-pen,
+html[data-theme="gold-luxury"] button svg.lucide-hand-platter,
+html[data-theme="gold-luxury"] button svg.lucide-notebook-pen {
+  fill: none !important; /* No fill - only stroke */
+  stroke: currentColor !important;
+}
+
+/* Vibrant Colors Theme */
+html[data-theme="vibrant-colors"] svg.lucide-hand-platter,
+html[data-theme="vibrant-colors"] svg.lucide-notebook-pen,
+html[data-theme="vibrant-colors"] button svg.lucide-hand-platter,
+html[data-theme="vibrant-colors"] button svg.lucide-notebook-pen {
+  fill: none !important; /* No fill - only stroke */
+  stroke: currentColor !important;
+}
+
+/* Minimal Theme */
+html[data-theme="minimal"] svg.lucide-hand-platter,
+html[data-theme="minimal"] svg.lucide-notebook-pen,
+html[data-theme="minimal"] button svg.lucide-hand-platter,
+html[data-theme="minimal"] button svg.lucide-notebook-pen {
+  fill: none !important; /* No fill - only stroke */
+  stroke: currentColor !important;
+}
+
+/* WAITER AND NOTE MODAL ICON CONTAINERS - REMOVE BACKGROUNDS */
+html[data-theme] .rounded-3xl.shadow-2xl div[class*="rounded-full"],
+html[data-theme] .rounded-3xl.shadow-2xl div[class*="w-16"][class*="h-16"],
+html[data-theme] .rounded-3xl.shadow-2xl div[class*="w-20"][class*="h-20"],
+html[data-theme] .rounded-3xl.shadow-2xl div[class*="w-24"][class*="h-24"],
+html[data-theme] .backdrop-blur-lg.rounded-3xl.shadow-2xl div[class*="rounded-full"],
+html[data-theme] .backdrop-blur-lg.rounded-3xl.shadow-2xl div[class*="w-16"][class*="h-16"],
+html[data-theme] .backdrop-blur-lg.rounded-3xl.shadow-2xl div[class*="w-20"][class*="h-20"],
+html[data-theme] .backdrop-blur-lg.rounded-3xl.shadow-2xl div[class*="w-24"][class*="h-24"] {
+  background-color: transparent !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  border: none !important;
+  border-radius: 0 !important;
+}
+
+/* WAITER AND NOTE MODALS - ALL TEXT ELEMENTS - THEME-SPECIFIC COLORS */
+/* Clean Light Theme */
+html[data-theme="clean-light"] .rounded-3xl.shadow-2xl:not(.surface) h1,
+html[data-theme="clean-light"] .rounded-3xl.shadow-2xl:not(.surface) h2,
+html[data-theme="clean-light"] .rounded-3xl.shadow-2xl:not(.surface) h3,
+html[data-theme="clean-light"] .rounded-3xl.shadow-2xl:not(.surface) p,
+html[data-theme="clean-light"] .rounded-3xl.shadow-2xl:not(.surface) span,
+html[data-theme="clean-light"] .backdrop-blur-lg.rounded-3xl.shadow-2xl:not(.surface) h1,
+html[data-theme="clean-light"] .backdrop-blur-lg.rounded-3xl.shadow-2xl:not(.surface) h2,
+html[data-theme="clean-light"] .backdrop-blur-lg.rounded-3xl.shadow-2xl:not(.surface) h3,
+html[data-theme="clean-light"] .backdrop-blur-lg.rounded-3xl.shadow-2xl:not(.surface) p,
+html[data-theme="clean-light"] .backdrop-blur-lg.rounded-3xl.shadow-2xl:not(.surface) span {
+  color: #3B3B3B !important; /* paydine-elegant-gray */
+}
+
+/* Modern Dark Theme */
+html[data-theme="modern-dark"] .rounded-3xl.shadow-2xl:not(.surface) h1,
+html[data-theme="modern-dark"] .rounded-3xl.shadow-2xl:not(.surface) h2,
+html[data-theme="modern-dark"] .rounded-3xl.shadow-2xl:not(.surface) h3,
+html[data-theme="modern-dark"] .rounded-3xl.shadow-2xl:not(.surface) p,
+html[data-theme="modern-dark"] .rounded-3xl.shadow-2xl:not(.surface) span,
+html[data-theme="modern-dark"] .backdrop-blur-lg.rounded-3xl.shadow-2xl:not(.surface) h1,
+html[data-theme="modern-dark"] .backdrop-blur-lg.rounded-3xl.shadow-2xl:not(.surface) h2,
+html[data-theme="modern-dark"] .backdrop-blur-lg.rounded-3xl.shadow-2xl:not(.surface) h3,
+html[data-theme="modern-dark"] .backdrop-blur-lg.rounded-3xl.shadow-2xl:not(.surface) p,
+html[data-theme="modern-dark"] .backdrop-blur-lg.rounded-3xl.shadow-2xl:not(.surface) span {
+  color: #F8FAFC !important; /* Crisp white */
+}
+
+/* Gold Luxury Theme */
+html[data-theme="gold-luxury"] .rounded-3xl.shadow-2xl:not(.surface) h1,
+html[data-theme="gold-luxury"] .rounded-3xl.shadow-2xl:not(.surface) h2,
+html[data-theme="gold-luxury"] .rounded-3xl.shadow-2xl:not(.surface) h3,
+html[data-theme="gold-luxury"] .rounded-3xl.shadow-2xl:not(.surface) p,
+html[data-theme="gold-luxury"] .rounded-3xl.shadow-2xl:not(.surface) span,
+html[data-theme="gold-luxury"] .backdrop-blur-lg.rounded-3xl.shadow-2xl:not(.surface) h1,
+html[data-theme="gold-luxury"] .backdrop-blur-lg.rounded-3xl.shadow-2xl:not(.surface) h2,
+html[data-theme="gold-luxury"] .backdrop-blur-lg.rounded-3xl.shadow-2xl:not(.surface) h3,
+html[data-theme="gold-luxury"] .backdrop-blur-lg.rounded-3xl.shadow-2xl:not(.surface) p,
+html[data-theme="gold-luxury"] .backdrop-blur-lg.rounded-3xl.shadow-2xl:not(.surface) span {
+  color: #FFF8DC !important; /* Cornsilk */
+}
+
+/* Vibrant Colors Theme */
+html[data-theme="vibrant-colors"] .rounded-3xl.shadow-2xl:not(.surface) h1,
+html[data-theme="vibrant-colors"] .rounded-3xl.shadow-2xl:not(.surface) h2,
+html[data-theme="vibrant-colors"] .rounded-3xl.shadow-2xl:not(.surface) h3,
+html[data-theme="vibrant-colors"] .rounded-3xl.shadow-2xl:not(.surface) p,
+html[data-theme="vibrant-colors"] .rounded-3xl.shadow-2xl:not(.surface) span,
+html[data-theme="vibrant-colors"] .backdrop-blur-lg.rounded-3xl.shadow-2xl:not(.surface) h1,
+html[data-theme="vibrant-colors"] .backdrop-blur-lg.rounded-3xl.shadow-2xl:not(.surface) h2,
+html[data-theme="vibrant-colors"] .backdrop-blur-lg.rounded-3xl.shadow-2xl:not(.surface) h3,
+html[data-theme="vibrant-colors"] .backdrop-blur-lg.rounded-3xl.shadow-2xl:not(.surface) p,
+html[data-theme="vibrant-colors"] .backdrop-blur-lg.rounded-3xl.shadow-2xl:not(.surface) span {
+  color: #1E293B !important; /* Deep slate */
+}
+
+/* Minimal Theme */
+html[data-theme="minimal"] .rounded-3xl.shadow-2xl:not(.surface) h1,
+html[data-theme="minimal"] .rounded-3xl.shadow-2xl:not(.surface) h2,
+html[data-theme="minimal"] .rounded-3xl.shadow-2xl:not(.surface) h3,
+html[data-theme="minimal"] .rounded-3xl.shadow-2xl:not(.surface) p,
+html[data-theme="minimal"] .rounded-3xl.shadow-2xl:not(.surface) span,
+html[data-theme="minimal"] .backdrop-blur-lg.rounded-3xl.shadow-2xl:not(.surface) h1,
+html[data-theme="minimal"] .backdrop-blur-lg.rounded-3xl.shadow-2xl:not(.surface) h2,
+html[data-theme="minimal"] .backdrop-blur-lg.rounded-3xl.shadow-2xl:not(.surface) h3,
+html[data-theme="minimal"] .backdrop-blur-lg.rounded-3xl.shadow-2xl:not(.surface) p,
+html[data-theme="minimal"] .backdrop-blur-lg.rounded-3xl.shadow-2xl:not(.surface) span {
+  color: #1A202C !important; /* Deep charcoal */
+}
+
+/* WAITER AND NOTE MODALS - BUTTONS - THEME-SPECIFIC COLORS */
+/* Clean Light Theme */
+html[data-theme="clean-light"] .rounded-3xl.shadow-2xl:not(.surface) button.bg-paydine-champagne,
+html[data-theme="clean-light"] .backdrop-blur-lg.rounded-3xl.shadow-2xl:not(.surface) button.bg-paydine-champagne {
+  background-color: #E7CBA9 !important; /* paydine-champagne */
+  color: #3B3B3B !important; /* paydine-elegant-gray */
+}
+
+html[data-theme="clean-light"] .rounded-3xl.shadow-2xl:not(.surface) button[style*="backgroundColor"],
+html[data-theme="clean-light"] .backdrop-blur-lg.rounded-3xl.shadow-2xl:not(.surface) button[style*="backgroundColor"] {
+  color: #3B3B3B !important; /* paydine-elegant-gray */
+}
+
+/* Modern Dark Theme */
+html[data-theme="modern-dark"] .rounded-3xl.shadow-2xl:not(.surface) button.bg-paydine-champagne,
+html[data-theme="modern-dark"] .backdrop-blur-lg.rounded-3xl.shadow-2xl:not(.surface) button.bg-paydine-champagne {
+  background-color: #F0C6B1 !important; /* Light rose gold */
+  color: #0A0E12 !important; /* Dark background */
+}
+
+html[data-theme="modern-dark"] .rounded-3xl.shadow-2xl:not(.surface) button[style*="backgroundColor"],
+html[data-theme="modern-dark"] .backdrop-blur-lg.rounded-3xl.shadow-2xl:not(.surface) button[style*="backgroundColor"] {
+  color: #F8FAFC !important; /* Crisp white */
+}
+
+/* Gold Luxury Theme */
+html[data-theme="gold-luxury"] .rounded-3xl.shadow-2xl:not(.surface) button.bg-paydine-champagne,
+html[data-theme="gold-luxury"] .backdrop-blur-lg.rounded-3xl.shadow-2xl:not(.surface) button.bg-paydine-champagne {
+  background-color: #FFF8DC !important; /* Cornsilk */
+  color: #0F0B05 !important; /* Dark background */
+}
+
+html[data-theme="gold-luxury"] .rounded-3xl.shadow-2xl:not(.surface) button[style*="backgroundColor"],
+html[data-theme="gold-luxury"] .backdrop-blur-lg.rounded-3xl.shadow-2xl:not(.surface) button[style*="backgroundColor"] {
+  color: #FFF8DC !important; /* Cornsilk */
+}
+
+/* Vibrant Colors Theme */
+html[data-theme="vibrant-colors"] .rounded-3xl.shadow-2xl:not(.surface) button.bg-paydine-champagne,
+html[data-theme="vibrant-colors"] .backdrop-blur-lg.rounded-3xl.shadow-2xl:not(.surface) button.bg-paydine-champagne {
+  background-color: #efc6b1 !important; /* Electric coral */
+  color: #e2ceb1 !important; /* Warm beige */
+}
+
+html[data-theme="vibrant-colors"] .rounded-3xl.shadow-2xl:not(.surface) button[style*="backgroundColor"],
+html[data-theme="vibrant-colors"] .backdrop-blur-lg.rounded-3xl.shadow-2xl:not(.surface) button[style*="backgroundColor"] {
+  color: #1E293B !important; /* Deep slate */
+}
+
+/* Minimal Theme */
+html[data-theme="minimal"] .rounded-3xl.shadow-2xl:not(.surface) button.bg-paydine-champagne,
+html[data-theme="minimal"] .backdrop-blur-lg.rounded-3xl.shadow-2xl:not(.surface) button.bg-paydine-champagne {
+  background-color: #2D3748 !important; /* Charcoal */
+  color: #CFEBF7 !important; /* Light blue */
+}
+
+html[data-theme="minimal"] .rounded-3xl.shadow-2xl:not(.surface) button[style*="backgroundColor"],
+html[data-theme="minimal"] .backdrop-blur-lg.rounded-3xl.shadow-2xl:not(.surface) button[style*="backgroundColor"] {
+  color: #1A202C !important; /* Deep charcoal */
+}
+
+/* WAITER AND NOTE MODALS - TEXTAREA AND INPUTS - THEME-SPECIFIC COLORS */
+/* Clean Light Theme */
+html[data-theme="clean-light"] .rounded-3xl.shadow-2xl:not(.surface) textarea,
+html[data-theme="clean-light"] .rounded-3xl.shadow-2xl:not(.surface) input,
+html[data-theme="clean-light"] .backdrop-blur-lg.rounded-3xl.shadow-2xl:not(.surface) textarea,
+html[data-theme="clean-light"] .backdrop-blur-lg.rounded-3xl.shadow-2xl:not(.surface) input {
+  background-color: #FFFFFF !important; /* Bright white */
+  color: #3B3B3B !important; /* paydine-elegant-gray */
+  border-color: #EDEDED !important; /* paydine-border */
+}
+
+/* Modern Dark Theme */
+html[data-theme="modern-dark"] .rounded-3xl.shadow-2xl:not(.surface) textarea,
+html[data-theme="modern-dark"] .rounded-3xl.shadow-2xl:not(.surface) input,
+html[data-theme="modern-dark"] .backdrop-blur-lg.rounded-3xl.shadow-2xl:not(.surface) textarea,
+html[data-theme="modern-dark"] .backdrop-blur-lg.rounded-3xl.shadow-2xl:not(.surface) input {
+  background-color: #2A2E38 !important; /* Bright version of dark background */
+  color: #F8FAFC !important; /* Crisp white */
+  border-color: #334155 !important; /* Medium slate */
+}
+
+/* Gold Luxury Theme */
+html[data-theme="gold-luxury"] .rounded-3xl.shadow-2xl:not(.surface) textarea,
+html[data-theme="gold-luxury"] .rounded-3xl.shadow-2xl:not(.surface) input,
+html[data-theme="gold-luxury"] .backdrop-blur-lg.rounded-3xl.shadow-2xl:not(.surface) textarea,
+html[data-theme="gold-luxury"] .backdrop-blur-lg.rounded-3xl.shadow-2xl:not(.surface) input {
+  background-color: #2F2B25 !important; /* Bright version of dark background */
+  color: #FFF8DC !important; /* Cornsilk */
+  border-color: rgba(255, 248, 220, 0.4) !important; /* Cornsilk border */
+}
+
+/* Vibrant Colors Theme */
+html[data-theme="vibrant-colors"] .rounded-3xl.shadow-2xl:not(.surface) textarea,
+html[data-theme="vibrant-colors"] .rounded-3xl.shadow-2xl:not(.surface) input,
+html[data-theme="vibrant-colors"] .backdrop-blur-lg.rounded-3xl.shadow-2xl:not(.surface) textarea,
+html[data-theme="vibrant-colors"] .backdrop-blur-lg.rounded-3xl.shadow-2xl:not(.surface) input {
+  background-color: #F8E8D1 !important; /* Bright version of warm beige */
+  color: #1E293B !important; /* Deep slate */
+  border-color: #E8E0D5 !important; /* Light border */
+}
+
+/* Minimal Theme */
+html[data-theme="minimal"] .rounded-3xl.shadow-2xl:not(.surface) textarea,
+html[data-theme="minimal"] .rounded-3xl.shadow-2xl:not(.surface) input,
+html[data-theme="minimal"] .backdrop-blur-lg.rounded-3xl.shadow-2xl:not(.surface) textarea,
+html[data-theme="minimal"] .backdrop-blur-lg.rounded-3xl.shadow-2xl:not(.surface) input {
+  background-color: #E5F7FF !important; /* Bright version of light blue */
+  color: #1A202C !important; /* Deep charcoal */
+  border-color: #E2E8F0 !important; /* Light border */
+}
+
+
+/* CHECKOUT BILL CARD - GOLD LUXURY THEME - FORCE #FFF8DC FOR ALL COLORS */
+[data-theme="gold-luxury"] .surface-sub,
+[data-theme="gold-luxury"] .surface-sub *,
+[data-theme="gold-luxury"] .surface-sub .border,
+[data-theme="gold-luxury"] .surface-sub div[class*="border"],
+[data-theme="gold-luxury"] .surface-sub span,
+[data-theme="gold-luxury"] .surface-sub .text-xs,
+[data-theme="gold-luxury"] .surface-sub .muted,
+[data-theme="gold-luxury"] .surface-sub .divider {
+  border-color: rgba(255, 248, 220, 0.4) !important; /* Cornsilk #FFF8DC for all borders */
+  color: #FFF8DC !important; /* Cornsilk #FFF8DC for all text */
+}
+
+/* Ensure checkout bill card totals section uses #FFF8DC */
+[data-theme="gold-luxury"] .surface-sub .flex.justify-between span,
+[data-theme="gold-luxury"] .surface-sub .flex.justify-between.items-center span {
+  color: #FFF8DC !important; /* Cornsilk #FFF8DC */
+}
+
+/* Ensure checkout bill card divider uses #FFF8DC */
+[data-theme="gold-luxury"] .surface-sub .divider {
+  border-color: rgba(255, 248, 220, 0.4) !important; /* Cornsilk #FFF8DC */
+}
+/* ============================================
+   ORDER PLACED PAGE - THEME-SPECIFIC STYLING
+   ============================================ */
+
+/* Base styles for order-placed page */
+.order-placed-page {
+  background-color: var(--theme-background);
+  background-image: linear-gradient(to bottom right, var(--theme-background), var(--theme-secondary));
+  background-blend-mode: overlay;
+}
+
+.order-placed-title {
+  color: var(--theme-text-primary);
+}
+
+.order-placed-subtitle {
+  color: var(--theme-text-secondary);
+}
+
+.order-placed-card {
+  background-color: var(--theme-menu-item-bg);
+  border: 1px solid var(--theme-border);
+  color: var(--theme-text-primary);
+}
+
+.order-placed-menu-button {
+  color: var(--theme-text-primary);
+}
+
+.order-placed-menu-button:hover {
+  color: var(--theme-primary);
+}
+
+/* Status icons and text */
+.order-placed-status-active {
+  background-color: var(--theme-primary) !important;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+}
+
+.order-placed-status-inactive {
+  background-color: var(--theme-border);
+  opacity: 0.5;
+}
+
+.order-placed-icon-active {
+  color: var(--theme-text-primary) !important;
+}
+
+.order-placed-icon-inactive {
+  color: var(--theme-text-muted) !important;
+}
+
+.order-placed-text-active {
+  color: var(--theme-text-primary) !important;
+}
+
+.order-placed-text-inactive {
+  color: var(--theme-text-muted) !important;
+}
+
+/* Clean Light Theme */
+[data-theme="clean-light"] .order-placed-page {
+  background: linear-gradient(to bottom right, #ffeee2, rgba(239, 199, 177, 0.2));
+}
+
+[data-theme="clean-light"] .order-placed-card {
+  background-color: rgba(255, 255, 255, 0.5);
+  border-color: rgba(231, 203, 169, 0.2);
+}
+
+[data-theme="clean-light"] .order-placed-status-active {
+  background-color: #E7CBA9 !important; /* paydine-champagne */
+}
+
+[data-theme="clean-light"] .order-placed-status-inactive {
+  background-color: #EDEDED; /* paydine-border */
+}
+
+[data-theme="clean-light"] .order-placed-icon-active {
+  color: #3B3B3B !important; /* paydine-elegant-gray */
+}
+
+[data-theme="clean-light"] .order-placed-icon-inactive {
+  color: #7E7E7E !important; /* paydine-muted-gray */
+}
+
+[data-theme="clean-light"] .order-placed-text-active {
+  color: #3B3B3B !important; /* paydine-elegant-gray */
+}
+
+[data-theme="clean-light"] .order-placed-text-inactive {
+  color: #7E7E7E !important; /* paydine-muted-gray */
+}
+
+[data-theme="clean-light"] .order-placed-subtitle {
+  color: #7E7E7E; /* paydine-muted-gray */
+}
+
+[data-theme="clean-light"] .order-placed-menu-button {
+  color: #3B3B3B; /* paydine-elegant-gray */
+}
+
+[data-theme="clean-light"] .order-placed-menu-button:hover {
+  color: #E7CBA9; /* paydine-champagne */
+}
+
+/* Modern Dark Theme */
+[data-theme="modern-dark"] .order-placed-page {
+  background: linear-gradient(to bottom right, #0A0E12, rgba(240, 198, 177, 0.1));
+}
+
+[data-theme="modern-dark"] .order-placed-card {
+  background-color: rgba(30, 41, 59, 0.7); /* menuItemBackground with opacity */
+  border-color: rgba(240, 198, 177, 0.2);
+}
+
+[data-theme="modern-dark"] .order-placed-status-active {
+  background-color: #F0C6B1 !important; /* Light rose gold */
+}
+
+[data-theme="modern-dark"] .order-placed-status-inactive {
+  background-color: #334155; /* border color */
+}
+
+[data-theme="modern-dark"] .order-placed-icon-active {
+  color: #0A0E12 !important; /* dark background */
+}
+
+[data-theme="modern-dark"] .order-placed-icon-inactive {
+  color: #94A3B8 !important; /* textMuted */
+}
+
+[data-theme="modern-dark"] .order-placed-text-active {
+  color: #F8FAFC !important; /* textPrimary */
+}
+
+[data-theme="modern-dark"] .order-placed-text-inactive {
+  color: #94A3B8 !important; /* textMuted */
+}
+
+[data-theme="modern-dark"] .order-placed-subtitle {
+  color: #CBD5E1; /* textSecondary */
+}
+
+[data-theme="modern-dark"] .order-placed-menu-button {
+  color: #F8FAFC; /* textPrimary */
+}
+
+[data-theme="modern-dark"] .order-placed-menu-button:hover {
+  color: #F0C6B1; /* primary */
+}
+
+/* Gold Luxury Theme */
+[data-theme="gold-luxury"] .order-placed-page {
+  background: linear-gradient(to bottom right, #0F0B05, rgba(255, 248, 220, 0.1));
+}
+
+[data-theme="gold-luxury"] .order-placed-card {
+  background-color: rgba(26, 22, 18, 0.7); /* menuItemBackground with opacity */
+  border-color: rgba(255, 248, 220, 0.2);
+}
+
+[data-theme="gold-luxury"] .order-placed-status-active {
+  background-color: #FFF8DC !important; /* Cornsilk */
+}
+
+[data-theme="gold-luxury"] .order-placed-status-inactive {
+  background-color: rgba(255, 248, 220, 0.2); /* Cornsilk with low opacity */
+}
+
+[data-theme="gold-luxury"] .order-placed-icon-active {
+  color: #0F0B05 !important; /* dark background */
+}
+
+[data-theme="gold-luxury"] .order-placed-icon-inactive {
+  color: rgba(255, 248, 220, 0.5) !important; /* Cornsilk with opacity */
+}
+
+[data-theme="gold-luxury"] .order-placed-text-active {
+  color: #FFF8DC !important; /* Cornsilk */
+}
+
+[data-theme="gold-luxury"] .order-placed-text-inactive {
+  color: rgba(255, 248, 220, 0.5) !important; /* Cornsilk with opacity */
+}
+
+[data-theme="gold-luxury"] .order-placed-subtitle {
+  color: #FFF8DC; /* Cornsilk */
+}
+
+[data-theme="gold-luxury"] .order-placed-menu-button {
+  color: #FFF8DC; /* Cornsilk */
+}
+
+[data-theme="gold-luxury"] .order-placed-menu-button:hover {
+  color: #FFF8DC; /* Cornsilk */
+}
+
+/* Vibrant Colors Theme */
+[data-theme="vibrant-colors"] .order-placed-page {
+  background: linear-gradient(to bottom right, #e2ceb1, rgba(255, 107, 107, 0.15));
+}
+
+[data-theme="vibrant-colors"] .order-placed-card {
+  background-color: rgba(255, 255, 255, 0.6);
+  border-color: rgba(255, 107, 107, 0.2);
+}
+
+[data-theme="vibrant-colors"] .order-placed-status-active {
+  background-color: #efc6b1 !important; /* Electric coral */
+}
+
+[data-theme="vibrant-colors"] .order-placed-status-inactive {
+  background-color: #E2E8F0; /* border color */
+}
+
+[data-theme="vibrant-colors"] .order-placed-icon-active {
+  color: #1E293B !important; /* Deep slate */
+}
+
+[data-theme="vibrant-colors"] .order-placed-icon-inactive {
+  color: #64748B !important; /* textMuted */
+}
+
+[data-theme="vibrant-colors"] .order-placed-text-active {
+  color: #1E293B !important; /* Deep slate */
+}
+
+[data-theme="vibrant-colors"] .order-placed-text-inactive {
+  color: #64748B !important; /* textMuted */
+}
+
+[data-theme="vibrant-colors"] .order-placed-subtitle {
+  color: #475569; /* textSecondary */
+}
+
+[data-theme="vibrant-colors"] .order-placed-menu-button {
+  color: #1E293B; /* textPrimary */
+}
+
+[data-theme="vibrant-colors"] .order-placed-menu-button:hover {
+  color: #efc6b1; /* Electric coral */
+}
+
+/* Minimal Theme */
+[data-theme="minimal"] .order-placed-page {
+  background: linear-gradient(to bottom right, #CFEBF7, rgba(45, 55, 72, 0.1));
+}
+
+[data-theme="minimal"] .order-placed-card {
+  background-color: rgba(255, 255, 255, 0.6);
+  border-color: rgba(45, 55, 72, 0.2);
+}
+
+[data-theme="minimal"] .order-placed-status-active {
+  background-color: #2D3748 !important; /* Charcoal */
+}
+
+[data-theme="minimal"] .order-placed-status-inactive {
+  background-color: #E2E8F0; /* border color */
+}
+
+[data-theme="minimal"] .order-placed-icon-active {
+  color: #FFFFFF !important; /* White for contrast */
+}
+
+[data-theme="minimal"] .order-placed-icon-inactive {
+  color: #718096 !important; /* textMuted */
+}
+
+[data-theme="minimal"] .order-placed-text-active {
+  color: #1A202C !important; /* Deep charcoal */
+}
+
+[data-theme="minimal"] .order-placed-text-inactive {
+  color: #718096 !important; /* textMuted */
+}
+
+[data-theme="minimal"] .order-placed-subtitle {
+  color: #2D3748; /* Charcoal */
+}
+
+[data-theme="minimal"] .order-placed-menu-button {
+  color: #1A202C; /* Deep charcoal */
+}
+
+[data-theme="minimal"] .order-placed-menu-button:hover {
+  color: #2D3748; /* Charcoal */
+}
+
+/* ============================================
+   MENU ITEM PRICES - MATCH PLUS BUTTON COLORS
+   ============================================ */
+
+/* Clean Light Theme - Match quantity-btn background (#EFC7B1) */
+[data-theme="clean-light"] .menu-item-price,
+[data-theme="clean-light"] p.menu-item-price,
+[data-theme="clean-light"] span.menu-item-price {
+  color: #EFC7B1 !important; /* paydine-rose-beige - same as quantity-btn background */
+}
+
+/* Modern Dark Theme - Match quantity-btn background (#E8B4A0) */
+[data-theme="modern-dark"] .menu-item-price,
+[data-theme="modern-dark"] p.menu-item-price,
+[data-theme="modern-dark"] span.menu-item-price {
+  color: #E8B4A0 !important; /* rose gold - same as quantity-btn background */
+}
+
+/* Gold Luxury Theme - Match quantity-btn background (#FFF8DC) */
+[data-theme="gold-luxury"] .menu-item-price,
+[data-theme="gold-luxury"] p.menu-item-price,
+[data-theme="gold-luxury"] span.menu-item-price {
+  color: #FFF8DC !important; /* cornsilk - same as quantity-btn background */
+}
+
+/* Vibrant Colors Theme - Match quantity-btn background (#efc6b1) */
+[data-theme="vibrant-colors"] .menu-item-price,
+[data-theme="vibrant-colors"] p.menu-item-price,
+[data-theme="vibrant-colors"] span.menu-item-price {
+  color: #efc6b1 !important; /* electric coral - same as quantity-btn background */
+}
+
+/* Minimal Theme - Match quantity-btn background (#2d3748) */
+[data-theme="minimal"] .menu-item-price,
+[data-theme="minimal"] p.menu-item-price,
+[data-theme="minimal"] span.menu-item-price {
+  color: #2d3748 !important; /* blue - same as quantity-btn background */
+}
+
+/* ============================================
+   VALET REQUEST BUTTON - THEMED FRAME
+   ============================================ */
+
+/* Clean Light Theme */
+[data-theme="clean-light"] .valet-request-btn,
+[data-theme="clean-light"] button.valet-request-btn,
+[data-theme="clean-light"] .valet-request-btn * {
+  background-color: #E7CBA9 !important; /* paydine-champagne (theme-secondary) */
+  color: #1A1A1A !important; /* Dark text for contrast */
+  border: 2px solid #E7CBA9 !important;
+  border-radius: 0.75rem !important;
+  font-weight: 600 !important;
+  padding: 0.75rem 1.5rem !important;
+}
+
+[data-theme="clean-light"] .valet-request-btn:hover:not(:disabled),
+[data-theme="clean-light"] button.valet-request-btn:hover:not(:disabled) {
+  background-color: #EFC7B1 !important; /* paydine-rose-beige */
+  border-color: #EFC7B1 !important;
+  color: #1A1A1A !important;
+}
+
+[data-theme="clean-light"] .valet-request-btn:disabled {
+  opacity: 0.5 !important;
+  cursor: not-allowed !important;
+}
+
+/* Modern Dark Theme */
+[data-theme="modern-dark"] .valet-request-btn,
+[data-theme="modern-dark"] button.valet-request-btn,
+[data-theme="modern-dark"] .valet-request-btn * {
+  background-color: #F0C6B1 !important; /* Light rose gold (theme-secondary) */
+  color: #000000 !important; /* Black text for maximum contrast */
+  border: 2px solid #F0C6B1 !important;
+  border-radius: 0.75rem !important;
+  font-weight: 600 !important;
+  padding: 0.75rem 1.5rem !important;
+}
+
+[data-theme="modern-dark"] .valet-request-btn:hover:not(:disabled),
+[data-theme="modern-dark"] button.valet-request-btn:hover:not(:disabled) {
+  background-color: #E8B4A0 !important; /* Rose gold */
+  border-color: #E8B4A0 !important;
+  color: #000000 !important;
+}
+
+[data-theme="modern-dark"] .valet-request-btn:disabled {
+  opacity: 0.5 !important;
+  cursor: not-allowed !important;
+}
+
+/* Gold Luxury Theme */
+[data-theme="gold-luxury"] .valet-request-btn,
+[data-theme="gold-luxury"] button.valet-request-btn,
+[data-theme="gold-luxury"] .valet-request-btn * {
+  background-color: #FFF8DC !important; /* Cornsilk (theme-secondary) */
+  color: #000000 !important; /* Black text for maximum contrast */
+  border: 2px solid #FFF8DC !important;
+  border-radius: 0.75rem !important;
+  font-weight: 600 !important;
+  padding: 0.75rem 1.5rem !important;
+}
+
+[data-theme="gold-luxury"] .valet-request-btn:hover:not(:disabled),
+[data-theme="gold-luxury"] button.valet-request-btn:hover:not(:disabled) {
+  background-color: #FFF8DC !important; /* Cornsilk */
+  border-color: #FFF8DC !important;
+  color: #000000 !important;
+}
+
+[data-theme="gold-luxury"] .valet-request-btn:disabled {
+  opacity: 0.5 !important;
+  cursor: not-allowed !important;
+}
+
+/* Vibrant Colors Theme */
+[data-theme="vibrant-colors"] .valet-request-btn,
+[data-theme="vibrant-colors"] button.valet-request-btn,
+[data-theme="vibrant-colors"] .valet-request-btn * {
+  background-color: #efc6b1 !important; /* Electric coral (theme-secondary) */
+  color: #FFFFFF !important; /* White text for contrast on coral */
+  border: 2px solid #efc6b1 !important;
+  border-radius: 0.75rem !important;
+  font-weight: 600 !important;
+  padding: 0.75rem 1.5rem !important;
+}
+
+[data-theme="vibrant-colors"] .valet-request-btn:hover:not(:disabled),
+[data-theme="vibrant-colors"] button.valet-request-btn:hover:not(:disabled) {
+  background-color: #FF5252 !important; /* Darker coral */
+  border-color: #FF5252 !important;
+  color: #FFFFFF !important;
+}
+
+[data-theme="vibrant-colors"] .valet-request-btn:disabled {
+  opacity: 0.5 !important;
+  cursor: not-allowed !important;
+}
+
+/* Minimal Theme */
+[data-theme="minimal"] .valet-request-btn,
+[data-theme="minimal"] button.valet-request-btn,
+[data-theme="minimal"] .valet-request-btn * {
+  background-color: #2D3748 !important; /* Charcoal (theme-secondary) */
+  color: #FFFFFF !important; /* White text for contrast on charcoal */
+  border: 2px solid #2D3748 !important;
+  border-radius: 0.75rem !important;
+  font-weight: 600 !important;
+  padding: 0.75rem 1.5rem !important;
+}
+
+[data-theme="minimal"] .valet-request-btn:hover:not(:disabled),
+[data-theme="minimal"] button.valet-request-btn:hover:not(:disabled) {
+  background-color: #4A5568 !important; /* Slate */
+  border-color: #4A5568 !important;
+  color: #FFFFFF !important;
+}
+
+[data-theme="minimal"] .valet-request-btn:disabled {
+  opacity: 0.5 !important;
+  cursor: not-allowed !important;
+}
+
+/* ============================================
+   VALET PAGE ICONS - THEME-AWARE COLORS
+   ============================================ */
+
+/* Clean Light Theme */
+[data-theme="clean-light"] .valet-icon,
+[data-theme="clean-light"] svg.valet-icon,
+[data-theme="clean-light"] .valet-icon svg {
+  color: #E7CBA9 !important; /* paydine-champagne (theme-secondary) */
+  fill: none !important; /* No fill - only stroke */
+  stroke: #E7CBA9 !important;
+}
+
+/* Modern Dark Theme */
+[data-theme="modern-dark"] .valet-icon,
+[data-theme="modern-dark"] svg.valet-icon,
+[data-theme="modern-dark"] .valet-icon svg {
+  color: #F0C6B1 !important; /* Light rose gold (theme-secondary) */
+  fill: none !important; /* No fill - only stroke */
+  stroke: #F0C6B1 !important;
+}
+
+/* Gold Luxury Theme */
+[data-theme="gold-luxury"] .valet-icon,
+[data-theme="gold-luxury"] svg.valet-icon,
+[data-theme="gold-luxury"] .valet-icon svg {
+  color: #FFF8DC !important; /* Cornsilk (theme-secondary) */
+  fill: none !important; /* No fill - only stroke */
+  stroke: #FFF8DC !important;
+}
+
+/* Vibrant Colors Theme */
+[data-theme="vibrant-colors"] .valet-icon,
+[data-theme="vibrant-colors"] svg.valet-icon,
+[data-theme="vibrant-colors"] .valet-icon svg {
+  color: #efc6b1 !important; /* Electric coral (theme-secondary) */
+  fill: none !important; /* No fill - only stroke */
+  stroke: #efc6b1 !important;
+}
+
+/* Minimal Theme */
+[data-theme="minimal"] .valet-icon,
+[data-theme="minimal"] svg.valet-icon,
+[data-theme="minimal"] .valet-icon svg {
+  color: #2D3748 !important; /* Charcoal (theme-secondary) */
+  fill: none !important; /* No fill - only stroke */
+  stroke: #2D3748 !important;
+}
+
+/* Auto-invert payment icons for dark themes */
+.dark img[src*="/images/payments/"]:not([src*="card-dark.svg"]):not([src*="card-light.svg"]):not([src*="card.svg"]) {
+  filter: brightness(0) invert(1);
+}
+
+/* ========================================= */
+
+/* ========================================= */
+
+/* ========================================= */
+
+
+/* ========================================= */
+/* PAYMENT DARK ICON FIX V5 */
+/* - Invert all except PayPal in dark mode */
+/* - Enlarge Authorize.net in ALL themes */
+/* ========================================= */
+
+/* Dark theme: invert all except PayPal */
+html.theme-dark img[src*="/images/payments/"]:not([src*="paypal"]):not([src*="card-dark.svg"]):not([src*="card-light.svg"]):not([src*="card.svg"]) {
+  filter: brightness(0) invert(1) !important;
+}
+
+/* Authorize.net bigger in ALL themes */
+img[src*="authorizenetaim"] {
+  transform: scale(1.2);
+}
+
+
+/* ===== modern-dark hard fix ===== */
+:root[data-theme="modern-dark"] {
+  --page-bg: #0A0E12;
+  --theme-background: #ffeee2;
+  --theme-cart-bg: #10161D;
+  color-scheme: dark;
+}
+
+html[data-theme="modern-dark"],
+html[data-theme="modern-dark"] body,
+html[data-theme="modern-dark"] .page--home,
+html[data-theme="modern-dark"] .page--menu,
+html[data-theme="modern-dark"] .page--home .min-h-screen,
+html[data-theme="modern-dark"] .page--menu .min-h-screen,
+html[data-theme="modern-dark"] .bg-theme-background {
+  background: var(--page-bg, #0A0E12) !important;
+  background-color: var(--page-bg, #0A0E12) !important;
+}
+
+
+/* === PMD FORCE REAL STRIPE BUTTON COLOR === */
+button[data-pmd-stripe-native-button="1"] {
+  all: unset !important;
+  box-sizing: border-box !important;
+  width: 100% !important;
+  min-width: 100% !important;
+  max-width: 100% !important;
+  height: 54px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 8px !important;
+  padding: 0 18px !important;
+  margin: 12px 0 0 0 !important;
+
+  background: linear-gradient(135deg, #063F2F 0%, #062F2A 100%) !important;
+  background-color: #063F2F !important;
+  color: #FFFFFF !important;
+
+  border: 0 !important;
+  border-radius: 16px !important;
+  box-shadow: 0 8px 22px rgba(6, 47, 42, 0.24) !important;
+
+  font-size: 16px !important;
+  font-weight: 700 !important;
+  line-height: 1 !important;
+  text-align: center !important;
+  cursor: pointer !important;
+  appearance: none !important;
+  -webkit-appearance: none !important;
+  outline: none !important;
+  text-decoration: none !important;
+}
+
+button[data-pmd-stripe-native-button="1"]:hover,
+button[data-pmd-stripe-native-button="1"]:focus,
+button[data-pmd-stripe-native-button="1"]:active {
+  background: linear-gradient(135deg, #07483F 0%, #062F2A 100%) !important;
+  background-color: #07483F !important;
+  color: #FFFFFF !important;
+}
+
+button[data-pmd-stripe-native-button="1"][disabled] {
+  opacity: 0.65 !important;
+  cursor: not-allowed !important;
+}
+
+button[data-pmd-stripe-native-button="1"] *,
+button[data-pmd-stripe-native-button="1"] span,
+button[data-pmd-stripe-native-button="1"] svg {
+  color: #FFFFFF !important;
+  fill: none !important;
+  stroke: currentColor !important;
+}
+
+button[data-pmd-stripe-native-button="1"]::before,
+button[data-pmd-stripe-native-button="1"]::after {
+  display: none !important;
+  content: none !important;
+}
+/* === /PMD FORCE REAL STRIPE BUTTON COLOR === */
+
+
+/* === PMD FORCE STRIPE FIELDS === */
+form[data-pmd-stripe-form="1"] label {
+  color: #F8FAFC !important;
+}
+
+form[data-pmd-stripe-form="1"] input#cardholderName,
+form[data-pmd-stripe-form="1"] input#email,
+form[data-pmd-stripe-form="1"] input#phone {
+  box-sizing: border-box !important;
+  width: 100% !important;
+  min-height: 44px !important;
+  padding: 10px 14px !important;
+  border-radius: 16px !important;
+
+  background: rgba(255,255,255,0.06) !important;
+  background-color: rgba(255,255,255,0.06) !important;
+  color: #F8FAFC !important;
+
+  border: 1px solid rgba(255,255,255,0.14) !important;
+  box-shadow: none !important;
+  outline: none !important;
+
+  -webkit-text-fill-color: #F8FAFC !important;
+}
+
+form[data-pmd-stripe-form="1"] input#cardholderName::placeholder,
+form[data-pmd-stripe-form="1"] input#email::placeholder,
+form[data-pmd-stripe-form="1"] input#phone::placeholder {
+  color: rgba(248,250,252,0.60) !important;
+  -webkit-text-fill-color: rgba(248,250,252,0.60) !important;
+}
+
+form[data-pmd-stripe-form="1"] input#cardholderName:focus,
+form[data-pmd-stripe-form="1"] input#email:focus,
+form[data-pmd-stripe-form="1"] input#phone:focus {
+  border-color: rgba(99,91,255,0.70) !important;
+  box-shadow: 0 0 0 3px rgba(6,47,42,0.18) !important;
+  outline: none !important;
+}
+
+/* card element wrapper */
+form[data-pmd-stripe-form="1"] .StripeElement,
+form[data-pmd-stripe-form="1"] .StripeElement ~ * {
+  color: #F8FAFC !important;
+}
+
+form[data-pmd-stripe-form="1"] .mt-1.p-3.border.rounded-2xl.w-full {
+  background: rgba(255,255,255,0.06) !important;
+  background-color: rgba(255,255,255,0.06) !important;
+  border: 1px solid rgba(255,255,255,0.14) !important;
+  border-radius: 16px !important;
+}
+
+/* روشن */
+html:not(.dark) form[data-pmd-stripe-form="1"] label,
+body[data-theme="light"] form[data-pmd-stripe-form="1"] label {
+  color: #111827 !important;
+}
+
+html:not(.dark) form[data-pmd-stripe-form="1"] input#cardholderName,
+html:not(.dark) form[data-pmd-stripe-form="1"] input#email,
+html:not(.dark) form[data-pmd-stripe-form="1"] input#phone,
+body[data-theme="light"] form[data-pmd-stripe-form="1"] input#cardholderName,
+body[data-theme="light"] form[data-pmd-stripe-form="1"] input#email,
+body[data-theme="light"] form[data-pmd-stripe-form="1"] input#phone {
+  background: rgba(255,255,255,0.96) !important;
+  background-color: rgba(255,255,255,0.96) !important;
+  color: #111827 !important;
+  border: 1px solid rgba(17,24,39,0.12) !important;
+  -webkit-text-fill-color: #111827 !important;
+}
+
+html:not(.dark) form[data-pmd-stripe-form="1"] input#cardholderName::placeholder,
+html:not(.dark) form[data-pmd-stripe-form="1"] input#email::placeholder,
+html:not(.dark) form[data-pmd-stripe-form="1"] input#phone::placeholder,
+body[data-theme="light"] form[data-pmd-stripe-form="1"] input#cardholderName::placeholder,
+body[data-theme="light"] form[data-pmd-stripe-form="1"] input#email::placeholder,
+body[data-theme="light"] form[data-pmd-stripe-form="1"] input#phone::placeholder {
+  color: #6B7280 !important;
+  -webkit-text-fill-color: #6B7280 !important;
+}
+/* === /PMD FORCE STRIPE FIELDS === */
+
+/* PMD CLEAN LIGHT REAL CANONICAL FIX START */
+
+/*
+  Clean Light strategy:
+  - #ffeee2 = page background
+  - #ffeee2 / white = cards and surfaces
+  - #f0c6b1 = rose controls
+  - no random global frames
+  - only scoped customer-facing fixes
+*/
+
+html[data-theme="clean-light"],
+body[data-theme="clean-light"],
+[data-theme="clean-light"] {
+  --theme-background: #ffeee2;
+  --theme-surface: #ffeee2;
+  --pmd-rose-fill: #f0c6b1;
+  --pmd-rose-edge: #c7a798;
+}
+
+/* Page background: strong because ThemeStore injects inline theme vars later. */
+html[data-theme="clean-light"],
+html[data-theme="clean-light"] body,
+body[data-theme="clean-light"],
+[data-theme="clean-light"] body,
+html[data-theme="clean-light"] main,
+body[data-theme="clean-light"] main,
+[data-theme="clean-light"] main,
+html[data-theme="clean-light"] .bg-theme-background,
+body[data-theme="clean-light"] .bg-theme-background,
+[data-theme="clean-light"] .bg-theme-background,
+html[data-theme="clean-light"] .page--home,
+body[data-theme="clean-light"] .page--home,
+[data-theme="clean-light"] .page--home,
+html[data-theme="clean-light"] .page--menu,
+body[data-theme="clean-light"] .page--menu,
+[data-theme="clean-light"] .page--menu,
+html[data-theme="clean-light"] .page--valet,
+body[data-theme="clean-light"] .page--valet,
+[data-theme="clean-light"] .page--valet,
+html[data-theme="clean-light"] .min-h-screen,
+body[data-theme="clean-light"] .min-h-screen,
+[data-theme="clean-light"] .min-h-screen {
+  background-color: #ffeee2 !important;
+  background: #ffeee2 !important;
+}
+
+/* Homepage cards */
+[data-theme="clean-light"] .home-action-card {
+  background-color: rgba(255, 255, 255, 0.80) !important;
+  backdrop-filter: blur(8px) !important;
+  border: 1px solid rgba(240, 198, 177, 0.28) !important;
+}
+
+[data-theme="clean-light"] .home-action-card h2 {
+  color: #111827 !important;
+  -webkit-text-fill-color: #111827 !important;
+}
+
+/* Homepage icon circle and icon */
+[data-theme="clean-light"] .home-action-icon-wrap {
+  background: #f0c6b1 !important;
+  background-color: #f0c6b1 !important;
+  border: 1px solid rgba(199, 167, 152, 0.95) !important;
+  border-radius: 9999px !important;
+  box-shadow:
+    0 12px 26px rgba(17,24,39,.10),
+    inset 0 0 0 1px rgba(255,255,255,.32) !important;
+}
+
+[data-theme="clean-light"] .home-action-icon-wrap svg,
+[data-theme="clean-light"] .home-action-icon-wrap svg * {
+  color: #111827 !important;
+  stroke: #111827 !important;
+  fill: none !important;
+}
+
+/* Valet button: shadcn/default Button adds bg-primary, so this must win but only for valet CTA. */
+[data-theme="clean-light"] button.valet-request-btn,
+[data-theme="clean-light"] .valet-request-btn,
+[data-theme="clean-light"] button.valet-request-btn.bg-primary {
+  background: #f0c6b1 !important;
+  background-color: #f0c6b1 !important;
+  color: #111827 !important;
+  -webkit-text-fill-color: #111827 !important;
+  border: 1px solid rgba(199,167,152,.85) !important;
+  box-shadow: 0 10px 22px rgba(17,24,39,.08) !important;
+}
+
+[data-theme="clean-light"] button.valet-request-btn:hover:not(:disabled),
+[data-theme="clean-light"] .valet-request-btn:hover:not(:disabled) {
+  background: #efbea6 !important;
+  background-color: #efbea6 !important;
+}
+
+/* Intended rose text edge only */
+[data-theme="clean-light"] .menu-item-price,
+[data-theme="clean-light"] .category-tab.is-active > span,
+[data-theme="clean-light"] button[aria-label="Increase quantity"] {
+  color: #f0c6b1 !important;
+  -webkit-text-stroke: .45px #c7a798;
+  paint-order: stroke fill;
+  text-shadow:
+    .35px 0 0 #c7a798,
+   -.35px 0 0 #c7a798,
+    0 .35px 0 #c7a798,
+    0 -.35px 0 #c7a798;
+}
+
+/* No ugly frames */
+[data-theme="clean-light"] .menu-item-price,
+[data-theme="clean-light"] .category-tab {
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+}
+
+/* Cart badge number readable */
+[data-theme="clean-light"] .cart-badge {
+  color: #111827 !important;
+  -webkit-text-fill-color: #111827 !important;
+}
+
+/* PMD CLEAN LIGHT REAL CANONICAL FIX END */
+
+/* PMD CLEAN LIGHT RUNTIME GUARD SUPPORT START */
+
+/*
+  CSS support only.
+  The final clean-light customer page background is enforced centrally by
+  CleanLightCustomerGuard because ThemeStore/ThemeLoader can update colors after hydration.
+*/
+
+[data-theme="clean-light"] .home-action-card h2 {
+  color: #111827 !important;
+  -webkit-text-fill-color: #111827 !important;
+}
+
+[data-theme="clean-light"] .home-action-icon-wrap {
+  background: #f0c6b1 !important;
+  background-color: #f0c6b1 !important;
+  border-color: #c7a798 !important;
+}
+
+[data-theme="clean-light"] .home-action-icon-wrap svg,
+[data-theme="clean-light"] .home-action-icon-wrap svg * {
+  color: #111827 !important;
+  stroke: #111827 !important;
+}
+
+[data-theme="clean-light"] .valet-request-btn {
+  background: #f0c6b1 !important;
+  background-color: #f0c6b1 !important;
+  color: #111827 !important;
+  -webkit-text-fill-color: #111827 !important;
+}
+
+/* PMD CLEAN LIGHT RUNTIME GUARD SUPPORT END */
+
+/* PMD CLEAN LIGHT CONTROL POLISH FINAL START */
+
+/* Quantity selected numbers inside rose buttons must be black. */
+[data-theme="clean-light"] .quantity-btn,
+[data-theme="clean-light"] .quantity-btn span {
+  color: #111827 !important;
+  -webkit-text-fill-color: #111827 !important;
+  text-shadow: none !important;
+}
+
+/* Chevron-up rose icon with subtle darker outside edge. */
+[data-theme="clean-light"] svg.lucide-chevron-up,
+[data-theme="clean-light"] svg.text-paydine-champagne {
+  color: #f0c6b1 !important;
+  stroke: #f0c6b1 !important;
+  filter:
+    drop-shadow(0.35px 0 0 #c7a798)
+    drop-shadow(-0.35px 0 0 #c7a798)
+    drop-shadow(0 0.35px 0 #c7a798)
+    drop-shadow(0 -0.35px 0 #c7a798) !important;
+}
+
+/* Back button: round rose button, black arrow, hide text label. */
+@supports selector(button:has(svg)) {
+  [data-theme="clean-light"] button:has(svg.lucide-arrow-left) {
+    width: 2.25rem !important;
+    height: 2.25rem !important;
+    min-width: 2.25rem !important;
+    min-height: 2.25rem !important;
+    padding: 0 !important;
+    gap: 0 !important;
+    border-radius: 9999px !important;
+    border: 1px solid #c7a798 !important;
+    background: #f0c6b1 !important;
+    background-color: #f0c6b1 !important;
+    color: transparent !important;
+    font-size: 0 !important;
+    line-height: 0 !important;
+    box-shadow:
+      0 8px 18px rgba(17, 24, 39, 0.10),
+      inset 0 0 0 1px rgba(255,255,255,0.32) !important;
+  }
+
+  [data-theme="clean-light"] button:has(svg.lucide-arrow-left) svg {
+    width: 1.25rem !important;
+    height: 1.25rem !important;
+    margin: 0 !important;
+    color: #111827 !important;
+    stroke: #111827 !important;
+    filter: none !important;
+  }
+}
+
+/* PMD CLEAN LIGHT CONTROL POLISH FINAL END */
+
+/* PMD CLEAN LIGHT FINAL ICON POLISH START */
+
+/* Bottom menu bar buttons: no circle/frame, black icons. */
+[data-theme="clean-light"] button[aria-label="Call Waiter"],
+[data-theme="clean-light"] button[aria-label="Leave Note"],
+[data-theme="clean-light"] button[aria-label="View Cart"] {
+  background: transparent !important;
+  background-color: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+  color: #111827 !important;
+  border-radius: 0 !important;
+}
+
+[data-theme="clean-light"] button[aria-label="Call Waiter"] svg,
+[data-theme="clean-light"] button[aria-label="Call Waiter"] svg *,
+[data-theme="clean-light"] button[aria-label="Leave Note"] svg,
+[data-theme="clean-light"] button[aria-label="Leave Note"] svg *,
+[data-theme="clean-light"] button[aria-label="View Cart"] svg,
+[data-theme="clean-light"] button[aria-label="View Cart"] svg * {
+  color: #111827 !important;
+  stroke: #111827 !important;
+  filter: none !important;
+}
+
+/* Bottom menu labels: no hover tooltip; always show under each icon. */
+[data-theme="clean-light"] .group\/action-tooltip {
+  display: inline-flex !important;
+  flex-direction: column !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 0.15rem !important;
+}
+
+[data-theme="clean-light"] .group\/action-tooltip > span.pointer-events-none {
+  position: static !important;
+  left: auto !important;
+  bottom: auto !important;
+  transform: none !important;
+  opacity: 1 !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  background: transparent !important;
+  color: #111827 !important;
+  -webkit-text-fill-color: #111827 !important;
+  border: none !important;
+  box-shadow: none !important;
+  ring: none !important;
+  backdrop-filter: none !important;
+  white-space: nowrap !important;
+  font-size: 10px !important;
+  line-height: 1 !important;
+  font-weight: 600 !important;
+  pointer-events: none !important;
+}
+
+/* Minus icon black. */
+[data-theme="clean-light"] svg.lucide-minus,
+[data-theme="clean-light"] .quantity-btn svg.lucide-minus {
+  color: #111827 !important;
+  stroke: #111827 !important;
+  filter: none !important;
+}
+
+/* Homepage icon circle a bit smaller. */
+[data-theme="clean-light"] .home-action-icon-wrap {
+  padding: 1.15rem !important;
+  margin-bottom: 1.25rem !important;
+  transform: scale(1) !important;
+}
+
+[data-theme="clean-light"] .home-action-icon-wrap svg {
+  width: 2.25rem !important;
+  height: 2.25rem !important;
+}
+
+/* Valet page decorative car/key icons: rose circle, black icon. */
+[data-theme="clean-light"] .page--valet svg.lucide-car,
+[data-theme="clean-light"] .page--valet svg.lucide-car-front,
+[data-theme="clean-light"] .page--valet svg.lucide-key-round,
+[data-theme="clean-light"] .page--valet svg.lucide-concierge-bell,
+[data-theme="clean-light"] .page--valet svg.lucide-circle-parking,
+[data-theme="clean-light"] .page--valet svg.lucide-parking-circle {
+  box-sizing: content-box !important;
+  padding: 0.65rem !important;
+  border-radius: 9999px !important;
+  background: #f0c6b1 !important;
+  background-color: #f0c6b1 !important;
+  border: 1px solid #c7a798 !important;
+  color: #111827 !important;
+  stroke: #111827 !important;
+}
+
+[data-theme="clean-light"] .page--valet svg.lucide-car *,
+[data-theme="clean-light"] .page--valet svg.lucide-car-front *,
+[data-theme="clean-light"] .page--valet svg.lucide-key-round *,
+[data-theme="clean-light"] .page--valet svg.lucide-concierge-bell *,
+[data-theme="clean-light"] .page--valet svg.lucide-circle-parking *,
+[data-theme="clean-light"] .page--valet svg.lucide-parking-circle * {
+  color: #111827 !important;
+  stroke: #111827 !important;
+}
+
+/* Back buttons: rose circle, black arrow. */
+[data-theme="clean-light"] button:has(svg.lucide-arrow-left) {
+  border-radius: 9999px !important;
+  color: #111827 !important;
+}
+
+[data-theme="clean-light"] button:has(svg.lucide-arrow-left) svg,
+[data-theme="clean-light"] button:has(svg.lucide-arrow-left) svg * {
+  color: #111827 !important;
+  stroke: #111827 !important;
+  filter: none !important;
+}
+
+/* PMD CLEAN LIGHT FINAL ICON POLISH END */
+
+/* PMD CLEAN LIGHT FINAL TOOLBAR MODAL POLISH START */
+
+/* Bottom menu bar buttons: no frame, black icons. */
+[data-theme="clean-light"] button[aria-label="Call Waiter"],
+[data-theme="clean-light"] button[aria-label="Leave Note"],
+[data-theme="clean-light"] button[aria-label="View Cart"] {
+  background: transparent !important;
+  background-color: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+  color: #111827 !important;
+  border-radius: 0 !important;
+}
+
+[data-theme="clean-light"] button[aria-label="Call Waiter"] svg,
+[data-theme="clean-light"] button[aria-label="Call Waiter"] svg *,
+[data-theme="clean-light"] button[aria-label="Leave Note"] svg,
+[data-theme="clean-light"] button[aria-label="Leave Note"] svg *,
+[data-theme="clean-light"] button[aria-label="View Cart"] svg,
+[data-theme="clean-light"] button[aria-label="View Cart"] svg * {
+  color: #111827 !important;
+  stroke: #111827 !important;
+  filter: none !important;
+}
+
+/* Show labels always under icons, not as hover bubbles. */
+[data-theme="clean-light"] .group\/action-tooltip {
+  display: inline-flex !important;
+  flex-direction: column !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 0.15rem !important;
+}
+
+[data-theme="clean-light"] .group\/action-tooltip > span.pointer-events-none {
+  position: static !important;
+  left: auto !important;
+  bottom: auto !important;
+  transform: none !important;
+  opacity: 1 !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  background: transparent !important;
+  color: #111827 !important;
+  -webkit-text-fill-color: #111827 !important;
+  border: none !important;
+  box-shadow: none !important;
+  backdrop-filter: none !important;
+  white-space: nowrap !important;
+  font-size: 10px !important;
+  line-height: 1 !important;
+  font-weight: 600 !important;
+  pointer-events: none !important;
+}
+
+/* Cart badge number black, even if old inline color says white. */
+[data-theme="clean-light"] .cart-badge,
+[data-theme="clean-light"] .cart-badge * {
+  color: #111827 !important;
+  -webkit-text-fill-color: #111827 !important;
+}
+
+/* Bottom toolbar preview: remove gold/rose text edge and make totals neutral. */
+
+
+
+
+/* Review modal buttons: visible edge/frame. */
+[data-theme="clean-light"] button[data-pmd-review-submit="true"] {
+  background: #f0c6b1 !important;
+  background-color: #f0c6b1 !important;
+  color: #111827 !important;
+  -webkit-text-fill-color: #111827 !important;
+  border: 1px solid #c7a798 !important;
+  box-shadow: 0 8px 18px rgba(17, 24, 39, 0.08), inset 0 0 0 1px rgba(255,255,255,0.30) !important;
+}
+
+[data-theme="clean-light"] button[data-pmd-review-continue="true"] {
+  background: rgba(255, 255, 255, 0.72) !important;
+  background-color: rgba(255, 255, 255, 0.72) !important;
+  color: #111827 !important;
+  -webkit-text-fill-color: #111827 !important;
+  border: 1px solid #c7a798 !important;
+  box-shadow: 0 8px 18px rgba(17, 24, 39, 0.04) !important;
+}
+
+/* Back buttons: rose circle, black arrow. */
+[data-theme="clean-light"] button:has(svg.lucide-arrow-left) {
+  border-radius: 9999px !important;
+  color: #111827 !important;
+}

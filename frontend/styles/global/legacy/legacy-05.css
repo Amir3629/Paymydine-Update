@@ -1,0 +1,1806 @@
+/* Keep Clean Light action buttons/icons readable and separate */
+html[data-theme="clean-light"] .pmd-v2-action-circle,
+html[data-theme="clean-light"] .pmd-v2-action-button,
+html[data-theme="clean-light"] .pmd-v2-badge,
+html[data-theme="clean-light"] .cart-badge,
+html[data-theme="clean-light"] .quantity-btn,
+html[data-theme="clean-light"] .valet-request-btn,
+html[data-theme="clean-light"] button[aria-label="Increase quantity"]:not(.quantity-btn),
+html[data-theme="clean-light"] button[aria-label="Show bill"],
+html[data-theme="clean-light"] button[aria-label="Hide bill"] {
+  background: var(--pmd-v2-action-bg, var(--theme-button)) !important;
+  background-color: var(--pmd-v2-action-bg, var(--theme-button)) !important;
+  background-image: none !important;
+  color: var(--pmd-v2-action-text, #111827) !important;
+  -webkit-text-fill-color: var(--pmd-v2-action-text, #111827) !important;
+  border-color: var(--pmd-v2-action-border, var(--theme-border)) !important;
+}
+
+html[data-theme="clean-light"] .pmd-v2-action-circle *,
+html[data-theme="clean-light"] .pmd-v2-action-button *,
+html[data-theme="clean-light"] .pmd-v2-badge *,
+html[data-theme="clean-light"] .cart-badge *,
+html[data-theme="clean-light"] .quantity-btn *,
+html[data-theme="clean-light"] .valet-request-btn * {
+  color: var(--pmd-v2-action-text, #111827) !important;
+  -webkit-text-fill-color: var(--pmd-v2-action-text, #111827) !important;
+  stroke: var(--pmd-v2-action-text, #111827) !important;
+}
+
+/* Food detail modal cards follow each theme BACKGROUND color */
+html[data-theme] [data-pmd-food-modal-overlay="true"] .pmd-v2-card,
+html[data-theme] [data-pmd-food-modal-overlay="true"] .surface.pmd-v2-card,
+html[data-theme] [data-pmd-food-modal-overlay="true"] .overflow-y-auto,
+html[data-theme] .pmd-v2-card:has(.overflow-y-auto.overscroll-contain),
+html[data-theme] .surface.pmd-v2-card:has(.overflow-y-auto.overscroll-contain),
+html[data-theme] [role="dialog"]:has(.overflow-y-auto.overscroll-contain),
+html[data-theme] [data-radix-dialog-content]:has(.overflow-y-auto.overscroll-contain) {
+  background: var(--pmd-v2-page-bg, var(--theme-background)) !important;
+  background-color: var(--pmd-v2-page-bg, var(--theme-background)) !important;
+  background-image: none !important;
+  border-color: var(--pmd-v2-frame-border, var(--theme-border)) !important;
+}
+
+/* Food modal text readable per theme */
+html[data-theme="modern-dark"] [data-pmd-food-modal-overlay="true"] .pmd-v2-card *,
+html[data-theme="gold-luxury"] [data-pmd-food-modal-overlay="true"] .pmd-v2-card * {
+  color: #ffffff !important;
+  -webkit-text-fill-color: #ffffff !important;
+}
+
+html[data-theme="clean-light"] [data-pmd-food-modal-overlay="true"] .pmd-v2-card *,
+html[data-theme="vibrant-colors"] [data-pmd-food-modal-overlay="true"] .pmd-v2-card *,
+html[data-theme="minimal"] [data-pmd-food-modal-overlay="true"] .pmd-v2-card * {
+  color: #111827 !important;
+  -webkit-text-fill-color: #111827 !important;
+}
+
+/* But food modal back/action buttons keep action colors */
+html[data-theme] [data-pmd-food-modal-overlay="true"] .pmd-v2-action-circle,
+html[data-theme] [data-pmd-food-modal-overlay="true"] .pmd-v2-action-circle * {
+  background: var(--pmd-v2-action-bg, var(--theme-button)) !important;
+  background-color: var(--pmd-v2-action-bg, var(--theme-button)) !important;
+  color: var(--pmd-v2-action-text, #111827) !important;
+  -webkit-text-fill-color: var(--pmd-v2-action-text, #111827) !important;
+  stroke: var(--pmd-v2-action-text, #111827) !important;
+}
+
+/* PMD V2 FINAL CLEAN LIGHT CHECKOUT BG FOOD MODAL FIX END */
+
+/* PMD FINAL FLICKER BADGE MODAL OVERLAY FIX START */
+
+/* 1) Modern Dark + Gold Luxury valet action buttons: black from first paint */
+html[data-theme="modern-dark"] .page--valet .pmd-v2-action-button,
+html[data-theme="modern-dark"] .page--valet button.pmd-v2-action-button,
+html[data-theme="modern-dark"] .page--valet .valet-request-btn,
+html[data-theme="modern-dark"] .page--valet button.valet-request-btn,
+html[data-theme="gold-luxury"] .page--valet .pmd-v2-action-button,
+html[data-theme="gold-luxury"] .page--valet button.pmd-v2-action-button,
+html[data-theme="gold-luxury"] .page--valet .valet-request-btn,
+html[data-theme="gold-luxury"] .page--valet button.valet-request-btn {
+  background: var(--pmd-v2-action-bg, var(--theme-button)) !important;
+  background-color: var(--pmd-v2-action-bg, var(--theme-button)) !important;
+  color: #111827 !important;
+  -webkit-text-fill-color: #111827 !important;
+  border-color: var(--pmd-v2-action-border, var(--theme-border)) !important;
+  outline-color: var(--pmd-v2-action-border, var(--theme-border)) !important;
+}
+
+html[data-theme="modern-dark"] .page--valet .pmd-v2-action-button *,
+html[data-theme="modern-dark"] .page--valet .valet-request-btn *,
+html[data-theme="gold-luxury"] .page--valet .pmd-v2-action-button *,
+html[data-theme="gold-luxury"] .page--valet .valet-request-btn * {
+  color: #111827 !important;
+  -webkit-text-fill-color: #111827 !important;
+  stroke: #111827 !important;
+}
+
+/* 2) Vibrant cart badge: correct color from first paint, no red jump */
+html[data-theme="vibrant-colors"] .cart-badge,
+html[data-theme="vibrant-colors"] span.cart-badge,
+html[data-theme="vibrant-colors"] .pmd-v2-badge,
+html[data-theme="vibrant-colors"] span.pmd-v2-badge {
+  background: var(--pmd-v2-badge-bg, var(--pmd-v2-action-bg)) !important;
+  background-color: var(--pmd-v2-badge-bg, var(--pmd-v2-action-bg)) !important;
+  background-image: none !important;
+  color: var(--pmd-v2-badge-text, #111827) !important;
+  -webkit-text-fill-color: var(--pmd-v2-badge-text, #111827) !important;
+  border: 1px solid var(--pmd-v2-badge-border, var(--pmd-v2-action-border)) !important;
+  border-color: var(--pmd-v2-badge-border, var(--pmd-v2-action-border)) !important;
+}
+
+/* 3) Food modal overlay in all themes: only blur, no blue/black/color layer */
+[data-pmd-food-modal-overlay="true"],
+html[data-theme] [data-pmd-food-modal-overlay="true"],
+div[data-pmd-food-modal-overlay="true"],
+.fixed[data-pmd-food-modal-overlay="true"],
+[data-pmd-food-modal-overlay="true"].bg-black\/70 {
+  background: transparent !important;
+  background-color: transparent !important;
+  background-image: none !important;
+  backdrop-filter: blur(16px) saturate(110%) !important;
+  -webkit-backdrop-filter: blur(16px) saturate(110%) !important;
+}
+
+/* Do not let overlay recolor page behind modal */
+html[data-theme] body:has([data-pmd-food-modal-overlay="true"]) .pmd-v2-page,
+html[data-theme] body:has([data-pmd-food-modal-overlay="true"]) .page--menu {
+  background: var(--pmd-v2-page-bg, var(--theme-background)) !important;
+  background-color: var(--pmd-v2-page-bg, var(--theme-background)) !important;
+  background-image: none !important;
+}
+
+/* PMD FINAL FLICKER BADGE MODAL OVERLAY FIX END */
+
+/* PMD FINAL CLEAN BG + MINIMAL PLUS FIRST PAINT START */
+
+/* Clean Light: force page backgrounds on home/menu/valet */
+html[data-theme="clean-light"],
+html[data-theme="clean-light"] body,
+html[data-theme="clean-light"] main,
+html[data-theme="clean-light"] .pmd-v2-page,
+html[data-theme="clean-light"] .page--home,
+html[data-theme="clean-light"] .page--menu,
+html[data-theme="clean-light"] .page--valet,
+html[data-theme="clean-light"] [class*="page--home"],
+html[data-theme="clean-light"] [class*="page--menu"],
+html[data-theme="clean-light"] [class*="page--valet"] {
+  --pmd-v2-page-bg: #ffeee2;
+  --theme-background: #ffeee2;
+  background: #ffeee2 !important;
+  background-color: #ffeee2 !important;
+  background-image: none !important;
+}
+
+/* Minimal: small top-right plus must have circle frame from first paint */
+html[data-theme="minimal"] button[aria-label="Increase quantity"]:not(.quantity-btn),
+html[data-theme="minimal"] button.absolute.-top-2.-right-2[aria-label="Increase quantity"]:not(.quantity-btn),
+html[data-theme="minimal"] button[aria-label="Increase quantity"].pmd-v2-action-circle:not(.quantity-btn) {
+  top: -0.72rem !important;
+  right: -0.72rem !important;
+  width: 1.55rem !important;
+  height: 1.55rem !important;
+  min-width: 1.55rem !important;
+  min-height: 1.55rem !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  padding: 0 !important;
+  border-radius: 9999px !important;
+  background: #2d3748 !important;
+  background-color: #2d3748 !important;
+  background-image: none !important;
+  color: #ffffff !important;
+  -webkit-text-fill-color: #ffffff !important;
+  border: 1px solid #2d3748 !important;
+  border-color: #2d3748 !important;
+  outline: 0 !important;
+  box-shadow: none !important;
+  line-height: 1 !important;
+  font-size: 0.9rem !important;
+  font-weight: 800 !important;
+  text-decoration: none !important;
+  text-shadow: none !important;
+  opacity: 1 !important;
+  visibility: visible !important;
+}
+
+html[data-theme="minimal"] button[aria-label="Increase quantity"]:not(.quantity-btn)::before,
+html[data-theme="minimal"] button[aria-label="Increase quantity"]:not(.quantity-btn)::after {
+  content: none !important;
+  display: none !important;
+}
+
+/* PMD FINAL CLEAN BG + MINIMAL PLUS FIRST PAINT END */
+
+/* PMD ABSOLUTE FINAL CLEAN LIGHT BACKGROUND SOURCE FIX START */
+html[data-theme="clean-light"],
+html[data-theme="clean-light"] body,
+html[data-theme="clean-light"] main,
+html[data-theme="clean-light"] .pmd-v2-page,
+html[data-theme="clean-light"] .page--home,
+html[data-theme="clean-light"] .page--menu,
+html[data-theme="clean-light"] .page--valet {
+  --pmd-v2-page-bg: #ffeee2;
+  --theme-background: #ffeee2;
+  background: #ffeee2 !important;
+  background-color: #ffeee2 !important;
+  background-image: none !important;
+}
+/* PMD ABSOLUTE FINAL CLEAN LIGHT BACKGROUND SOURCE FIX END */
+
+/* PMD CLEAN LIGHT RUNTIME BG FORCE CSS START */
+html[data-theme="clean-light"],
+html[data-theme="clean-light"] body,
+html[data-theme="clean-light"] main,
+html[data-theme="clean-light"] .pmd-v2-page,
+html[data-theme="clean-light"] .page--home,
+html[data-theme="clean-light"] .page--menu,
+html[data-theme="clean-light"] .page--valet,
+html[data-theme="clean-light"] [data-pmd-clean-light-guard] {
+  --pmd-v2-page-bg: #ffeee2;
+  --theme-background: #ffeee2;
+  background: #ffeee2 !important;
+  background-color: #ffeee2 !important;
+  background-image: none !important;
+}
+/* PMD CLEAN LIGHT RUNTIME BG FORCE CSS END */
+
+/* PMD FINAL CLEAN LIGHT FAFAFA OVERRIDE FIX START */
+html[data-theme="clean-light"],
+html[data-theme="clean-light"] body,
+html[data-theme="clean-light"] main,
+html[data-theme="clean-light"] .pmd-v2-page,
+html[data-theme="clean-light"] .page--home,
+html[data-theme="clean-light"] .page--menu,
+html[data-theme="clean-light"] .page--valet {
+  --pmd-v2-page-bg: #ffeee2;
+  --theme-background: #ffeee2;
+  background: #ffeee2 !important;
+  background-color: #ffeee2 !important;
+  background-image: none !important;
+}
+/* PMD FINAL CLEAN LIGHT FAFAFA OVERRIDE FIX END */
+
+/* PMD FINAL VALET CAR ICON CIRCLE ALL THEMES START */
+/* Valet top car icon must always sit inside a proper circle frame in every theme */
+html[data-theme] .page--valet .pmd-v2-valet-car-icon-circle,
+html[data-theme] .page--valet .pmd-v2-action-circle:has(svg.lucide-car),
+html[data-theme] .page--valet span:has(svg.lucide-car) {
+  width: 2.75rem !important;
+  height: 2.75rem !important;
+  min-width: 2.75rem !important;
+  min-height: 2.75rem !important;
+  padding: 0 !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  border-radius: 9999px !important;
+  background: var(--pmd-v2-action-bg, var(--theme-button)) !important;
+  background-color: var(--pmd-v2-action-bg, var(--theme-button)) !important;
+  background-image: none !important;
+  border: 1px solid var(--pmd-v2-action-border, var(--theme-border)) !important;
+  border-color: var(--pmd-v2-action-border, var(--theme-border)) !important;
+  outline-color: var(--pmd-v2-action-border, var(--theme-border)) !important;
+  box-shadow: none !important;
+  box-sizing: border-box !important;
+  overflow: hidden !important;
+}
+
+html[data-theme] .page--valet .pmd-v2-valet-car-icon-circle svg,
+html[data-theme] .page--valet .pmd-v2-valet-car-icon-circle svg *,
+html[data-theme] .page--valet .pmd-v2-action-circle:has(svg.lucide-car) svg,
+html[data-theme] .page--valet .pmd-v2-action-circle:has(svg.lucide-car) svg *,
+html[data-theme] .page--valet span:has(svg.lucide-car) svg,
+html[data-theme] .page--valet span:has(svg.lucide-car) svg * {
+  width: 1.45rem !important;
+  height: 1.45rem !important;
+  color: var(--pmd-v2-action-text, #111827) !important;
+  stroke: var(--pmd-v2-action-text, #111827) !important;
+  -webkit-text-fill-color: var(--pmd-v2-action-text, #111827) !important;
+  background: transparent !important;
+  border: 0 !important;
+  padding: 0 !important;
+  box-shadow: none !important;
+}
+
+/* Minimal keeps white icon on dark button color */
+html[data-theme="minimal"] .page--valet .pmd-v2-valet-car-icon-circle svg,
+html[data-theme="minimal"] .page--valet .pmd-v2-valet-car-icon-circle svg *,
+html[data-theme="minimal"] .page--valet span:has(svg.lucide-car) svg,
+html[data-theme="minimal"] .page--valet span:has(svg.lucide-car) svg * {
+  color: #ffffff !important;
+  stroke: #ffffff !important;
+  -webkit-text-fill-color: #ffffff !important;
+}
+/* PMD FINAL VALET CAR ICON CIRCLE ALL THEMES END */
+
+/* Scoped customer-page normalization across home/menu/table/valet */
+[data-pmd-customer-page] .home-action-card,
+[data-pmd-customer-page] .surface-sub,
+[data-pmd-customer-page] .pmd-v2-card,
+[data-pmd-customer-page] .pmd-v2-card-sub {
+  border-color: var(--theme-border);
+  color: var(--theme-text-primary);
+}
+
+[data-pmd-customer-page] .pmd-v2-action-circle,
+[data-pmd-customer-page] .pmd-v2-action-button,
+[data-pmd-customer-page] .pmd-v2-badge {
+  background: var(--theme-secondary);
+  border-color: var(--theme-border);
+  color: var(--theme-text-primary);
+}
+
+/* PMD GOLD LUXURY WHITE JADE THEME OVERRIDE START
+   Scoped to customer theme only; keeps ordering/payment logic untouched. */
+html[data-theme="gold-luxury"],
+html[data-theme="gold-luxury"] body,
+html[data-theme="gold-luxury"] main,
+html[data-theme="gold-luxury"] .pmd-v2-page,
+html[data-theme="gold-luxury"] .page--home,
+html[data-theme="gold-luxury"] .page--menu,
+html[data-theme="gold-luxury"] .page--valet {
+  --pmd-v2-page-bg: #FAF9F4;
+  --theme-background: #FAF9F4;
+  --theme-surface: #FFFFFF;
+  background: #FAF9F4 !important;
+  background-color: #FAF9F4 !important;
+  background-image: none !important;
+  color: #0D1B1E !important;
+  -webkit-text-fill-color: #0D1B1E !important;
+}
+
+html[data-theme="gold-luxury"] [data-pmd-customer-page] .pmd-v2-card,
+html[data-theme="gold-luxury"] [data-pmd-customer-page] .pmd-v2-card-sub,
+html[data-theme="gold-luxury"] [data-pmd-customer-page] .home-action-card,
+html[data-theme="gold-luxury"] .page--menu .surface,
+html[data-theme="gold-luxury"] .page--menu .surface-sub,
+html[data-theme="gold-luxury"] .page--valet .surface,
+html[data-theme="gold-luxury"] .page--valet .surface-sub,
+html[data-theme="gold-luxury"] .page--valet .pmd-v2-card,
+html[data-theme="gold-luxury"] .page--valet .pmd-v2-card-sub,
+html[data-theme="gold-luxury"] [role="dialog"] .surface,
+html[data-theme="gold-luxury"] [role="dialog"] .surface-sub,
+html[data-theme="gold-luxury"] [data-radix-dialog-content] .surface,
+html[data-theme="gold-luxury"] [data-radix-dialog-content] .surface-sub {
+  background: #FFFFFF !important;
+  background-color: #FFFFFF !important;
+  background-image: none !important;
+  border-color: #E8E2D8 !important;
+  outline-color: #E8E2D8 !important;
+  color: #0D1B1E !important;
+  -webkit-text-fill-color: #0D1B1E !important;
+  box-shadow: 0 8px 24px rgba(6, 47, 42, 0.06) !important;
+}
+
+html[data-theme="gold-luxury"] .home-action-card:hover,
+html[data-theme="gold-luxury"] .pmd-v2-card:hover {
+  background: #FFF9EF !important;
+  background-color: #FFF9EF !important;
+  border-color: #C89B4A !important;
+}
+
+html[data-theme="gold-luxury"] .pmd-v2-text,
+html[data-theme="gold-luxury"] .page--home h1,
+html[data-theme="gold-luxury"] .page--home h2,
+html[data-theme="gold-luxury"] .page--menu h1,
+html[data-theme="gold-luxury"] .page--menu h2,
+html[data-theme="gold-luxury"] .page--menu h3,
+html[data-theme="gold-luxury"] .page--valet h1,
+html[data-theme="gold-luxury"] .page--valet h2,
+html[data-theme="gold-luxury"] .page--valet h3,
+html[data-theme="gold-luxury"] [role="dialog"] h2,
+html[data-theme="gold-luxury"] [role="dialog"] h3,
+html[data-theme="gold-luxury"] [role="dialog"] .surface-sub * {
+  color: #0D1B1E !important;
+  -webkit-text-fill-color: #0D1B1E !important;
+}
+
+html[data-theme="gold-luxury"] .pmd-v2-text-muted,
+html[data-theme="gold-luxury"] .muted,
+html[data-theme="gold-luxury"] .page--menu .text-gray-500,
+html[data-theme="gold-luxury"] .page--valet .pmd-v2-text-muted {
+  color: #6B7280 !important;
+  -webkit-text-fill-color: #6B7280 !important;
+}
+
+html[data-theme="gold-luxury"] .menu-item-price,
+html[data-theme="gold-luxury"] .pmd-v2-price,
+html[data-theme="gold-luxury"] .pmd-customer-price,
+html[data-theme="gold-luxury"] .page--menu [class*="price"],
+html[data-theme="gold-luxury"] .page--menu [class*="Price"] {
+  color: #B8893F !important;
+  -webkit-text-fill-color: #B8893F !important;
+}
+
+html[data-theme="gold-luxury"] .page--menu .category-tab {
+  background: transparent !important;
+  color: #6B7280 !important;
+  -webkit-text-fill-color: #6B7280 !important;
+  border-radius: 0 !important;
+}
+
+html[data-theme="gold-luxury"] .page--menu .category-tab.is-active,
+html[data-theme="gold-luxury"] .page--menu .category-tab:hover {
+  color: #062F2A !important;
+  -webkit-text-fill-color: #062F2A !important;
+}
+
+html[data-theme="gold-luxury"] .page--menu .category-tab [style*="--theme-category-active"],
+html[data-theme="gold-luxury"] .page--menu .category-tab .absolute.bottom-0 {
+  background-color: #C89B4A !important;
+}
+
+html[data-theme="gold-luxury"] .pmd-v2-action-circle,
+html[data-theme="gold-luxury"] button[aria-label="Increase quantity"]:not(.quantity-btn),
+html[data-theme="gold-luxury"] .quantity-btn,
+html[data-theme="gold-luxury"] .page--valet .pmd-v2-valet-car-icon-circle,
+html[data-theme="gold-luxury"] .page--valet span:has(svg.lucide-car) {
+  background: #FFFFFF !important;
+  background-color: #FFFFFF !important;
+  background-image: none !important;
+  color: #062F2A !important;
+  -webkit-text-fill-color: #062F2A !important;
+  border-color: #C89B4A !important;
+  outline-color: #C89B4A !important;
+  box-shadow: 0 8px 18px rgba(6, 47, 42, 0.06) !important;
+}
+
+html[data-theme="gold-luxury"] .pmd-v2-action-circle svg,
+html[data-theme="gold-luxury"] .pmd-v2-action-circle svg *,
+html[data-theme="gold-luxury"] button[aria-label="Increase quantity"]:not(.quantity-btn) svg,
+html[data-theme="gold-luxury"] button[aria-label="Increase quantity"]:not(.quantity-btn) svg *,
+html[data-theme="gold-luxury"] .quantity-btn svg,
+html[data-theme="gold-luxury"] .quantity-btn svg * {
+  color: #062F2A !important;
+  stroke: #062F2A !important;
+  -webkit-text-fill-color: #062F2A !important;
+}
+
+html[data-theme="gold-luxury"] .pmd-v2-action-circle:hover,
+html[data-theme="gold-luxury"] button[aria-label="Increase quantity"]:not(.quantity-btn):hover,
+html[data-theme="gold-luxury"] .quantity-btn:hover {
+  background: #062F2A !important;
+  background-color: #062F2A !important;
+  color: #FFFFFF !important;
+  -webkit-text-fill-color: #FFFFFF !important;
+  border-color: #062F2A !important;
+}
+
+html[data-theme="gold-luxury"] .pmd-v2-action-circle:hover svg,
+html[data-theme="gold-luxury"] .pmd-v2-action-circle:hover svg *,
+html[data-theme="gold-luxury"] button[aria-label="Increase quantity"]:not(.quantity-btn):hover svg,
+html[data-theme="gold-luxury"] button[aria-label="Increase quantity"]:not(.quantity-btn):hover svg *,
+html[data-theme="gold-luxury"] .quantity-btn:hover svg,
+html[data-theme="gold-luxury"] .quantity-btn:hover svg * {
+  color: #FFFFFF !important;
+  stroke: #FFFFFF !important;
+  -webkit-text-fill-color: #FFFFFF !important;
+}
+
+html[data-theme="gold-luxury"] .pmd-v2-action-button,
+html[data-theme="gold-luxury"] button.pmd-v2-action-button,
+html[data-theme="gold-luxury"] .valet-request-btn,
+html[data-theme="gold-luxury"] .page--valet button.valet-request-btn {
+  background: #062F2A !important;
+  background-color: #062F2A !important;
+  background-image: none !important;
+  color: #FFFFFF !important;
+  -webkit-text-fill-color: #FFFFFF !important;
+  border-color: #062F2A !important;
+}
+
+html[data-theme="gold-luxury"] .pmd-v2-action-button:hover,
+html[data-theme="gold-luxury"] button.pmd-v2-action-button:hover,
+html[data-theme="gold-luxury"] .valet-request-btn:hover,
+html[data-theme="gold-luxury"] .page--valet button.valet-request-btn:hover {
+  background: #021F1C !important;
+  background-color: #021F1C !important;
+  border-color: #021F1C !important;
+}
+
+html[data-theme="gold-luxury"] .pmd-v2-action-button *,
+html[data-theme="gold-luxury"] .valet-request-btn *,
+html[data-theme="gold-luxury"] .page--valet button.valet-request-btn * {
+  color: #FFFFFF !important;
+  stroke: #FFFFFF !important;
+  -webkit-text-fill-color: #FFFFFF !important;
+}
+
+html[data-theme="gold-luxury"] .pmd-v2-badge,
+html[data-theme="gold-luxury"] .cart-badge {
+  background: #C89B4A !important;
+  background-color: #C89B4A !important;
+  color: #0D1B1E !important;
+  -webkit-text-fill-color: #0D1B1E !important;
+  border-color: #C89B4A !important;
+}
+
+html[data-theme="gold-luxury"] .pmd-v2-pill,
+html[data-theme="gold-luxury"] p.pmd-v2-pill {
+  background: #F5E8D0 !important;
+  background-color: #F5E8D0 !important;
+  color: #062F2A !important;
+  -webkit-text-fill-color: #062F2A !important;
+  border-color: #E8E2D8 !important;
+}
+
+html[data-theme="gold-luxury"] .pmd-v2-input,
+html[data-theme="gold-luxury"] input,
+html[data-theme="gold-luxury"] textarea,
+html[data-theme="gold-luxury"] select {
+  background: #FFFFFF !important;
+  background-color: #FFFFFF !important;
+  color: #0D1B1E !important;
+  -webkit-text-fill-color: #0D1B1E !important;
+  border-color: #E8E2D8 !important;
+}
+
+html[data-theme="gold-luxury"] .pmd-v2-input:focus,
+html[data-theme="gold-luxury"] input:focus,
+html[data-theme="gold-luxury"] textarea:focus,
+html[data-theme="gold-luxury"] select:focus {
+  border-color: #C89B4A !important;
+  outline-color: #C89B4A !important;
+  box-shadow: 0 0 0 3px rgba(200, 155, 74, 0.18) !important;
+}
+
+html[data-theme="gold-luxury"] .fixed.inset-0.z-50.flex.items-center.justify-center.bg-black\/30 {
+  background: rgba(2, 31, 28, 0.65) !important;
+  background-color: rgba(2, 31, 28, 0.65) !important;
+}
+
+html[data-theme="gold-luxury"] [data-pmd-food-modal-overlay="true"] .pmd-v2-card,
+html[data-theme="gold-luxury"] [data-pmd-food-modal-overlay="true"] .surface.pmd-v2-card,
+html[data-theme="gold-luxury"] .pmd-v2-card:has(.overflow-y-auto.overscroll-contain),
+html[data-theme="gold-luxury"] .surface.pmd-v2-card:has(.overflow-y-auto.overscroll-contain) {
+  background: #FFFFFF !important;
+  background-color: #FFFFFF !important;
+  border-color: #E8E2D8 !important;
+  box-shadow: 0 24px 60px rgba(6, 47, 42, 0.14) !important;
+}
+
+html[data-theme="gold-luxury"] [data-pmd-food-modal-overlay="true"] .pmd-v2-card *,
+html[data-theme="gold-luxury"] .pmd-v2-card:has(.overflow-y-auto.overscroll-contain) * {
+  color: #0D1B1E !important;
+  -webkit-text-fill-color: #0D1B1E !important;
+}
+
+html[data-theme="gold-luxury"] [data-pmd-food-modal-overlay="true"] .pmd-v2-action-circle *,
+html[data-theme="gold-luxury"] .pmd-v2-card:has(.overflow-y-auto.overscroll-contain) .pmd-v2-action-circle * {
+  color: #062F2A !important;
+  stroke: #062F2A !important;
+  -webkit-text-fill-color: #062F2A !important;
+}
+/* PMD GOLD LUXURY WHITE JADE THEME OVERRIDE END */
+
+/* PMD GOLD LUXURY BRIGHT THEME HOTFIX START
+   Final scoped overrides for legacy dark Gold Luxury rules declared earlier in this file. */
+html[data-theme="gold-luxury"],
+html[data-theme="gold-luxury"] body,
+body[data-theme="gold-luxury"],
+html[data-theme="gold-luxury"] body > div,
+html[data-theme="gold-luxury"] body > div > div,
+html[data-theme="gold-luxury"] #__next,
+html[data-theme="gold-luxury"] main,
+html[data-theme="gold-luxury"] .min-h-screen,
+html[data-theme="gold-luxury"] .bg-theme-background,
+html[data-theme="gold-luxury"] .pmd-customer-page,
+html[data-theme="gold-luxury"] [data-pmd-customer-page],
+html[data-theme="gold-luxury"] .pmd-v2-page,
+html[data-theme="gold-luxury"] .page--home,
+html[data-theme="gold-luxury"] .page--home .min-h-screen,
+html[data-theme="gold-luxury"] .page--menu,
+html[data-theme="gold-luxury"] .page--menu .min-h-screen,
+html[data-theme="gold-luxury"] .page--table,
+html[data-theme="gold-luxury"] .page--table .min-h-screen,
+html[data-theme="gold-luxury"] .page--valet,
+html[data-theme="gold-luxury"] .page--valet .min-h-screen {
+  --theme-background: #FAF9F4 !important;
+  --theme-surface: #FFFFFF !important;
+  --pmd-v2-page-bg: #FAF9F4 !important;
+  background: #FAF9F4 !important;
+  background-color: #FAF9F4 !important;
+  background-image: none !important;
+}
+
+html[data-theme="gold-luxury"] [data-pmd-customer-page] .home-action-card,
+html[data-theme="gold-luxury"] [data-pmd-customer-page] .dark-surface,
+html[data-theme="gold-luxury"] [data-pmd-customer-page] .surface,
+html[data-theme="gold-luxury"] [data-pmd-customer-page] .surface-sub,
+html[data-theme="gold-luxury"] [data-pmd-customer-page] .pmd-v2-card,
+html[data-theme="gold-luxury"] [data-pmd-customer-page] .pmd-v2-card-sub,
+html[data-theme="gold-luxury"] .page--home .surface-sub,
+html[data-theme="gold-luxury"] .page--home .surface-sub.border,
+html[data-theme="gold-luxury"] .page--menu .surface,
+html[data-theme="gold-luxury"] .page--menu .surface-sub,
+html[data-theme="gold-luxury"] .page--valet .dark-surface,
+html[data-theme="gold-luxury"] .page--valet .pmd-v2-card,
+html[data-theme="gold-luxury"] .page--valet .pmd-v2-card-sub,
+html[data-theme="gold-luxury"] .page--valet form,
+html[data-theme="gold-luxury"] .fixed.inset-0.z-50 > .surface,
+html[data-theme="gold-luxury"] [role="dialog"],
+html[data-theme="gold-luxury"] [role="dialog"] .surface,
+html[data-theme="gold-luxury"] [role="dialog"] .surface-sub,
+html[data-theme="gold-luxury"] [data-radix-dialog-content],
+html[data-theme="gold-luxury"] [data-radix-dialog-content] .surface,
+html[data-theme="gold-luxury"] [data-radix-dialog-content] .surface-sub {
+  background: #FFFFFF !important;
+  background-color: #FFFFFF !important;
+  background-image: none !important;
+  border-color: #E8E2D8 !important;
+  outline-color: #E8E2D8 !important;
+  color: #0D1B1E !important;
+  -webkit-text-fill-color: #0D1B1E !important;
+  box-shadow: 0 8px 24px rgba(6, 47, 42, 0.06) !important;
+}
+
+html[data-theme="gold-luxury"] .page--valet form,
+html[data-theme="gold-luxury"] .page--valet form > div,
+html[data-theme="gold-luxury"] .page--valet .space-y-6,
+html[data-theme="gold-luxury"] .page--valet .space-y-6 > div {
+  background: transparent !important;
+  background-color: transparent !important;
+  background-image: none !important;
+  box-shadow: none !important;
+}
+
+html[data-theme="gold-luxury"] [data-pmd-customer-page] h1,
+html[data-theme="gold-luxury"] [data-pmd-customer-page] h2,
+html[data-theme="gold-luxury"] [data-pmd-customer-page] h3,
+html[data-theme="gold-luxury"] [data-pmd-customer-page] h4,
+html[data-theme="gold-luxury"] [data-pmd-customer-page] label,
+html[data-theme="gold-luxury"] [data-pmd-customer-page] .pmd-v2-text,
+html[data-theme="gold-luxury"] [data-pmd-customer-page] .text-paydine-elegant-gray,
+html[data-theme="gold-luxury"] [data-pmd-customer-page] .text-white,
+html[data-theme="gold-luxury"] [data-pmd-customer-page] .text-primary-foreground,
+html[data-theme="gold-luxury"] .page--home .surface-sub h2,
+html[data-theme="gold-luxury"] .page--home .surface-sub h3,
+html[data-theme="gold-luxury"] .page--home .surface-sub span,
+html[data-theme="gold-luxury"] .page--menu .surface-sub *,
+html[data-theme="gold-luxury"] [role="dialog"] h2,
+html[data-theme="gold-luxury"] [role="dialog"] h3,
+html[data-theme="gold-luxury"] [role="dialog"] label,
+html[data-theme="gold-luxury"] [role="dialog"] .surface-sub *,
+html[data-theme="gold-luxury"] [data-radix-dialog-content] .surface-sub * {
+  color: #0D1B1E !important;
+  -webkit-text-fill-color: #0D1B1E !important;
+  text-shadow: none !important;
+}
+
+html[data-theme="gold-luxury"] [data-pmd-customer-page] .muted,
+html[data-theme="gold-luxury"] [data-pmd-customer-page] .pmd-v2-text-muted,
+html[data-theme="gold-luxury"] [data-pmd-customer-page] .text-gray-500,
+html[data-theme="gold-luxury"] [data-pmd-customer-page] .text-gray-400,
+html[data-theme="gold-luxury"] [role="dialog"] .muted,
+html[data-theme="gold-luxury"] [data-radix-dialog-content] .muted {
+  color: #6B7280 !important;
+  -webkit-text-fill-color: #6B7280 !important;
+}
+
+html[data-theme="gold-luxury"] .fixed.inset-0.z-50.flex.items-center.justify-center.bg-black\/30,
+html[data-theme="gold-luxury"] .fixed.inset-0.z-50.bg-black\/30,
+html[data-theme="gold-luxury"] [data-radix-dialog-overlay] {
+  background: rgba(2, 31, 28, 0.58) !important;
+  background-color: rgba(2, 31, 28, 0.58) !important;
+}
+
+html[data-theme="gold-luxury"] [role="dialog"] button,
+html[data-theme="gold-luxury"] [data-radix-dialog-content] button,
+html[data-theme="gold-luxury"] .fixed.inset-0.z-50 button {
+  text-shadow: none !important;
+}
+
+html[data-theme="gold-luxury"] [role="dialog"] button[style*="--theme-secondary"],
+html[data-theme="gold-luxury"] [data-radix-dialog-content] button[style*="--theme-secondary"],
+html[data-theme="gold-luxury"] .fixed.inset-0.z-50 button[style*="--theme-secondary"],
+html[data-theme="gold-luxury"] [data-pmd-review-submit="true"],
+html[data-theme="gold-luxury"] .pmd-v2-action-button,
+html[data-theme="gold-luxury"] .valet-request-btn {
+  background: #062F2A !important;
+  background-color: #062F2A !important;
+  background-image: none !important;
+  border-color: #062F2A !important;
+  color: #FFFFFF !important;
+  -webkit-text-fill-color: #FFFFFF !important;
+}
+
+html[data-theme="gold-luxury"] [role="dialog"] button[style*="--theme-secondary"] *,
+html[data-theme="gold-luxury"] [data-radix-dialog-content] button[style*="--theme-secondary"] *,
+html[data-theme="gold-luxury"] .fixed.inset-0.z-50 button[style*="--theme-secondary"] *,
+html[data-theme="gold-luxury"] [data-pmd-review-submit="true"] *,
+html[data-theme="gold-luxury"] .pmd-v2-action-button *,
+html[data-theme="gold-luxury"] .valet-request-btn * {
+  color: #FFFFFF !important;
+  -webkit-text-fill-color: #FFFFFF !important;
+  stroke: #FFFFFF !important;
+}
+
+html[data-theme="gold-luxury"] [data-pmd-review-continue="true"],
+html[data-theme="gold-luxury"] [role="dialog"] button:not([style*="--theme-secondary"]):not(.pmd-v2-action-button),
+html[data-theme="gold-luxury"] [data-radix-dialog-content] button:not([style*="--theme-secondary"]):not(.pmd-v2-action-button) {
+  border-color: #E8E2D8 !important;
+}
+
+html[data-theme="gold-luxury"] input,
+html[data-theme="gold-luxury"] textarea,
+html[data-theme="gold-luxury"] select,
+html[data-theme="gold-luxury"] .pmd-v2-input {
+  background: #FFFFFF !important;
+  background-color: #FFFFFF !important;
+  background-image: none !important;
+  border-color: #E8E2D8 !important;
+  color: #0D1B1E !important;
+  -webkit-text-fill-color: #0D1B1E !important;
+  box-shadow: none !important;
+}
+
+html[data-theme="gold-luxury"] input:focus,
+html[data-theme="gold-luxury"] textarea:focus,
+html[data-theme="gold-luxury"] select:focus,
+html[data-theme="gold-luxury"] .pmd-v2-input:focus {
+  border-color: #C89B4A !important;
+  outline-color: #C89B4A !important;
+  box-shadow: 0 0 0 3px rgba(200, 155, 74, 0.18) !important;
+}
+
+html[data-theme="gold-luxury"] .page--menu .menu-item-price,
+html[data-theme="gold-luxury"] .page--menu .pmd-customer-price,
+html[data-theme="gold-luxury"] .page--menu .pmd-v2-price,
+html[data-theme="gold-luxury"] .page--menu [class*="price"],
+html[data-theme="gold-luxury"] .page--menu [class*="Price"] {
+  color: #B8893F !important;
+  -webkit-text-fill-color: #B8893F !important;
+}
+
+html[data-theme="gold-luxury"] .page--home .surface-sub svg,
+html[data-theme="gold-luxury"] .page--home .surface-sub svg *,
+html[data-theme="gold-luxury"] .page--valet svg.lucide-car,
+html[data-theme="gold-luxury"] .page--valet svg.lucide-car * {
+  color: #062F2A !important;
+  stroke: #062F2A !important;
+  -webkit-text-fill-color: #062F2A !important;
+}
+/* PMD GOLD LUXURY BRIGHT THEME HOTFIX END */
+
+
+/* PMD safe hotfix: remove old gold hover effects from homepage cards */
+[data-theme="gold-luxury"] .page--home .home-action-card::before,
+[data-theme="gold-luxury"] .page--home .home-action-card::after {
+  display: none !important;
+}
+
+[data-theme="gold-luxury"] .page--home .home-action-card,
+[data-theme="gold-luxury"] .page--home .home-action-card:hover {
+  background: #FFFFFF !important;
+  background-color: #FFFFFF !important;
+  border-color: #E8E2D8 !important;
+}
+
+[data-theme="gold-luxury"] .page--home .home-action-card .home-action-icon-wrap,
+[data-theme="gold-luxury"] .page--home .home-action-card:hover .home-action-icon-wrap {
+  background: #062F2A !important;
+  background-color: #062F2A !important;
+}
+
+[data-theme="gold-luxury"] .page--home .home-action-card .home-action-icon-wrap svg,
+[data-theme="gold-luxury"] .page--home .home-action-card:hover .home-action-icon-wrap svg {
+  color: #FFFFFF !important;
+  stroke: #FFFFFF !important;
+  fill: none !important;
+}
+
+
+/* PMD hotfix: stronger gold frame for Valet cards */
+[data-theme="gold-luxury"] .page--valet .surface,
+[data-theme="gold-luxury"] .page--valet .surface-sub,
+[data-theme="gold-luxury"] .page--valet [class*="rounded-3xl"][class*="border"],
+[data-theme="gold-luxury"] .page--valet [class*="rounded-2xl"][class*="border"] {
+  border-color: #d7a950 !important;
+}
+
+[data-theme="gold-luxury"] .page--valet input,
+[data-theme="gold-luxury"] .page--valet textarea,
+[data-theme="gold-luxury"] .page--valet select {
+  border-color: #d7a950 !important;
+}
+
+[data-theme="gold-luxury"] .page--valet input:focus,
+[data-theme="gold-luxury"] .page--valet textarea:focus,
+[data-theme="gold-luxury"] .page--valet select:focus {
+  border-color: #d7a950 !important;
+  box-shadow: 0 0 0 3px rgba(215, 169, 80, 0.24) !important;
+}
+
+
+/* PMD hotfix: keep language button readable on hover/active/focus */
+[data-theme="gold-luxury"] .pmd-customer-page button[aria-label*="language" i],
+[data-theme="gold-luxury"] .pmd-customer-page button[aria-label*="Language" i],
+[data-theme="gold-luxury"] .pmd-customer-page button[aria-label*="EN" i],
+[data-theme="gold-luxury"] .pmd-customer-page button[aria-label*="DE" i],
+[data-theme="gold-luxury"] .pmd-customer-page [class*="language"] button,
+[data-theme="gold-luxury"] .pmd-customer-page [class*="Language"] button {
+  background: #062F2A !important;
+  background-color: #062F2A !important;
+  border-color: rgba(255, 255, 255, 0.28) !important;
+  color: #FFFFFF !important;
+  -webkit-text-fill-color: #FFFFFF !important;
+}
+
+[data-theme="gold-luxury"] .pmd-customer-page button[aria-label*="language" i]:hover,
+[data-theme="gold-luxury"] .pmd-customer-page button[aria-label*="language" i]:focus,
+[data-theme="gold-luxury"] .pmd-customer-page button[aria-label*="language" i]:focus-visible,
+[data-theme="gold-luxury"] .pmd-customer-page button[aria-label*="language" i]:active,
+[data-theme="gold-luxury"] .pmd-customer-page button[aria-label*="Language" i]:hover,
+[data-theme="gold-luxury"] .pmd-customer-page button[aria-label*="Language" i]:focus,
+[data-theme="gold-luxury"] .pmd-customer-page button[aria-label*="Language" i]:focus-visible,
+[data-theme="gold-luxury"] .pmd-customer-page button[aria-label*="Language" i]:active,
+[data-theme="gold-luxury"] .pmd-customer-page [class*="language"] button:hover,
+[data-theme="gold-luxury"] .pmd-customer-page [class*="language"] button:focus,
+[data-theme="gold-luxury"] .pmd-customer-page [class*="language"] button:focus-visible,
+[data-theme="gold-luxury"] .pmd-customer-page [class*="language"] button:active,
+[data-theme="gold-luxury"] .pmd-customer-page [class*="Language"] button:hover,
+[data-theme="gold-luxury"] .pmd-customer-page [class*="Language"] button:focus,
+[data-theme="gold-luxury"] .pmd-customer-page [class*="Language"] button:focus-visible,
+[data-theme="gold-luxury"] .pmd-customer-page [class*="Language"] button:active {
+  background: #062F2A !important;
+  background-color: #062F2A !important;
+  color: #FFFFFF !important;
+  -webkit-text-fill-color: #FFFFFF !important;
+  box-shadow: 0 8px 24px rgba(6, 47, 42, 0.18) !important;
+}
+
+[data-theme="gold-luxury"] .pmd-customer-page button[aria-label*="language" i] *,
+[data-theme="gold-luxury"] .pmd-customer-page button[aria-label*="Language" i] *,
+[data-theme="gold-luxury"] .pmd-customer-page [class*="language"] button *,
+[data-theme="gold-luxury"] .pmd-customer-page [class*="Language"] button * {
+  color: #FFFFFF !important;
+  -webkit-text-fill-color: #FFFFFF !important;
+  stroke: #FFFFFF !important;
+}
+
+
+/* PMD force fix: exact Valet card/input frames + language button text */
+[data-theme="gold-luxury"] .page--valet .pmd-v2-card,
+[data-theme="gold-luxury"] .page--valet .pmd-v2-card-sub,
+[data-theme="gold-luxury"] [data-pmd-customer-page="valet"] .pmd-v2-card,
+[data-theme="gold-luxury"] [data-pmd-customer-page="valet"] .pmd-v2-card-sub {
+  border: 1.5px solid #d7a950 !important;
+  border-color: #d7a950 !important;
+}
+
+[data-theme="gold-luxury"] .page--valet .pmd-v2-input,
+[data-theme="gold-luxury"] [data-pmd-customer-page="valet"] .pmd-v2-input,
+[data-theme="gold-luxury"] .page--valet input,
+[data-theme="gold-luxury"] [data-pmd-customer-page="valet"] input {
+  border: 1.5px solid #d7a950 !important;
+  border-color: #d7a950 !important;
+}
+
+[data-theme="gold-luxury"] .page--valet .pmd-v2-input:focus,
+[data-theme="gold-luxury"] .page--valet .pmd-v2-input:focus-visible,
+[data-theme="gold-luxury"] [data-pmd-customer-page="valet"] .pmd-v2-input:focus,
+[data-theme="gold-luxury"] [data-pmd-customer-page="valet"] .pmd-v2-input:focus-visible,
+[data-theme="gold-luxury"] .page--valet input:focus,
+[data-theme="gold-luxury"] .page--valet input:focus-visible,
+[data-theme="gold-luxury"] [data-pmd-customer-page="valet"] input:focus,
+[data-theme="gold-luxury"] [data-pmd-customer-page="valet"] input:focus-visible {
+  border-color: #d7a950 !important;
+  box-shadow: 0 0 0 3px rgba(215, 169, 80, 0.24) !important;
+}
+
+/* PMD force fix: language button must stay white text in every click/active state */
+[data-theme="gold-luxury"] .pmd-customer-page [class*="LanguageSwitcher"],
+[data-theme="gold-luxury"] .pmd-customer-page [class*="language-switcher"],
+[data-theme="gold-luxury"] .pmd-customer-page [class*="language"] {
+  color: #FFFFFF !important;
+  -webkit-text-fill-color: #FFFFFF !important;
+}
+
+[data-theme="gold-luxury"] .pmd-customer-page [class*="language"] button,
+[data-theme="gold-luxury"] .pmd-customer-page [class*="Language"] button,
+[data-theme="gold-luxury"] .pmd-customer-page button[aria-label*="language" i],
+[data-theme="gold-luxury"] .pmd-customer-page button[title*="language" i],
+[data-theme="gold-luxury"] .pmd-customer-page button[aria-expanded],
+[data-theme="gold-luxury"] .pmd-customer-page button[aria-haspopup] {
+  color: #FFFFFF !important;
+  -webkit-text-fill-color: #FFFFFF !important;
+}
+
+[data-theme="gold-luxury"] .pmd-customer-page [class*="language"] button *,
+[data-theme="gold-luxury"] .pmd-customer-page [class*="Language"] button *,
+[data-theme="gold-luxury"] .pmd-customer-page button[aria-label*="language" i] *,
+[data-theme="gold-luxury"] .pmd-customer-page button[title*="language" i] *,
+[data-theme="gold-luxury"] .pmd-customer-page button[aria-expanded] *,
+[data-theme="gold-luxury"] .pmd-customer-page button[aria-haspopup] * {
+  color: #FFFFFF !important;
+  -webkit-text-fill-color: #FFFFFF !important;
+  stroke: #FFFFFF !important;
+}
+
+[data-theme="gold-luxury"] .pmd-customer-page [class*="language"] button:hover,
+[data-theme="gold-luxury"] .pmd-customer-page [class*="language"] button:focus,
+[data-theme="gold-luxury"] .pmd-customer-page [class*="language"] button:focus-visible,
+[data-theme="gold-luxury"] .pmd-customer-page [class*="language"] button:active,
+[data-theme="gold-luxury"] .pmd-customer-page [class*="Language"] button:hover,
+[data-theme="gold-luxury"] .pmd-customer-page [class*="Language"] button:focus,
+[data-theme="gold-luxury"] .pmd-customer-page [class*="Language"] button:focus-visible,
+[data-theme="gold-luxury"] .pmd-customer-page [class*="Language"] button:active {
+  color: #FFFFFF !important;
+  -webkit-text-fill-color: #FFFFFF !important;
+}
+
+
+/* PMD force fix: menu plus/minus/back action circles stay white */
+[data-theme="gold-luxury"] .page--menu .pmd-v2-action-circle,
+[data-theme="gold-luxury"] .page--menu .pmd-v2-action-circle:hover,
+[data-theme="gold-luxury"] .page--menu .pmd-v2-action-circle:focus,
+[data-theme="gold-luxury"] .page--menu .pmd-v2-action-circle:focus-visible,
+[data-theme="gold-luxury"] .page--menu .pmd-v2-action-circle:active,
+[data-theme="gold-luxury"] .page--menu button[aria-label="Increase quantity"],
+[data-theme="gold-luxury"] .page--menu button[aria-label="Increase quantity"]:hover,
+[data-theme="gold-luxury"] .page--menu button[aria-label="Increase quantity"]:focus,
+[data-theme="gold-luxury"] .page--menu button[aria-label="Increase quantity"]:active,
+[data-theme="gold-luxury"] .page--menu button[aria-label="Decrease quantity"],
+[data-theme="gold-luxury"] .page--menu button[aria-label="Decrease quantity"]:hover,
+[data-theme="gold-luxury"] .page--menu button[aria-label="Decrease quantity"]:focus,
+[data-theme="gold-luxury"] .page--menu button[aria-label="Decrease quantity"]:active {
+  color: #FFFFFF !important;
+  -webkit-text-fill-color: #FFFFFF !important;
+}
+
+[data-theme="gold-luxury"] .page--menu .pmd-v2-action-circle *,
+[data-theme="gold-luxury"] .page--menu .pmd-v2-action-circle:hover *,
+[data-theme="gold-luxury"] .page--menu .pmd-v2-action-circle:focus *,
+[data-theme="gold-luxury"] .page--menu .pmd-v2-action-circle:active *,
+[data-theme="gold-luxury"] .page--menu button[aria-label="Increase quantity"] *,
+[data-theme="gold-luxury"] .page--menu button[aria-label="Decrease quantity"] * {
+  color: #FFFFFF !important;
+  -webkit-text-fill-color: #FFFFFF !important;
+  stroke: #FFFFFF !important;
+}
+
+/* PMD CUSTOMER ACTION CIRCLE MOTHER CSS FINAL */
+/*
+  One source of truth for frontend action-circle buttons.
+  This kills legacy/theme/tailwind first-paint conflicts on Back, plus, language,
+  modal controls, valet/menu icon buttons, and all pmd-v2-action-circle controls.
+*/
+html body .pmd-customer-page .pmd-v2-action-circle,
+html body [data-pmd-customer-page] .pmd-v2-action-circle,
+html body .page--home .pmd-v2-action-circle,
+html body .page--menu .pmd-v2-action-circle,
+html body .page--valet .pmd-v2-action-circle,
+html body button.pmd-v2-action-circle,
+html body a.pmd-v2-action-circle {
+  opacity: 1 !important;
+  visibility: visible !important;
+  animation: none !important;
+
+  background: #062F2A !important;
+  background-color: #062F2A !important;
+  background-image: none !important;
+
+  border-color: #062F2A !important;
+  outline-color: #062F2A !important;
+
+  color: #FFFFFF !important;
+  -webkit-text-fill-color: #FFFFFF !important;
+  text-decoration: none !important;
+  text-shadow: none !important;
+
+  filter: none !important;
+  mix-blend-mode: normal !important;
+  isolation: isolate !important;
+  -webkit-tap-highlight-color: transparent !important;
+
+  transition:
+    opacity 160ms ease,
+    transform 160ms ease,
+    box-shadow 160ms ease,
+    background-color 160ms ease,
+    border-color 160ms ease !important;
+}
+
+html body .pmd-customer-page .pmd-v2-action-circle:hover,
+html body [data-pmd-customer-page] .pmd-v2-action-circle:hover,
+html body .page--home .pmd-v2-action-circle:hover,
+html body .page--menu .pmd-v2-action-circle:hover,
+html body .page--valet .pmd-v2-action-circle:hover,
+html body button.pmd-v2-action-circle:hover,
+html body a.pmd-v2-action-circle:hover {
+  background: #021F1C !important;
+  background-color: #021F1C !important;
+  background-image: none !important;
+  border-color: #021F1C !important;
+  color: #FFFFFF !important;
+  -webkit-text-fill-color: #FFFFFF !important;
+}
+
+/* Force every icon/line/path inside action buttons to be visible from first paint */
+html body .pmd-v2-action-circle svg,
+html body .pmd-v2-action-circle svg.lucide,
+html body .pmd-v2-action-circle svg *,
+html body .pmd-v2-action-circle path,
+html body .pmd-v2-action-circle circle,
+html body .pmd-v2-action-circle line,
+html body .pmd-v2-action-circle polyline,
+html body .pmd-v2-action-circle polygon,
+html body .pmd-v2-action-circle rect {
+  opacity: 1 !important;
+  visibility: visible !important;
+  display: inline-block !important;
+
+  color: #FFFFFF !important;
+  stroke: #FFFFFF !important;
+  fill: none !important;
+  -webkit-text-fill-color: #FFFFFF !important;
+
+  filter: none !important;
+  mix-blend-mode: normal !important;
+  text-shadow: none !important;
+  animation: none !important;
+}
+
+/* Keep lucide icons stable and not affected by old theme icon sizing */
+html body .pmd-v2-action-circle svg,
+html body .pmd-v2-action-circle svg.lucide {
+  width: 1rem !important;
+  height: 1rem !important;
+  min-width: 1rem !important;
+  min-height: 1rem !important;
+  flex-shrink: 0 !important;
+  transform: none !important;
+}
+
+/* Text inside action buttons must never flash black */
+html body .pmd-v2-action-circle span,
+html body .pmd-v2-action-circle strong,
+html body .pmd-v2-action-circle small,
+html body .pmd-v2-action-circle .lucide,
+html body .pmd-v2-action-circle [class*="lucide"] {
+  opacity: 1 !important;
+  visibility: visible !important;
+  color: #FFFFFF !important;
+  stroke: #FFFFFF !important;
+  -webkit-text-fill-color: #FFFFFF !important;
+}
+
+/* Prevent pseudo legacy effects */
+html body .pmd-v2-action-circle::before,
+html body .pmd-v2-action-circle::after {
+  background: transparent !important;
+  background-image: none !important;
+  box-shadow: none !important;
+  filter: none !important;
+}
+/* PMD CUSTOMER ACTION CIRCLE MOTHER CSS FINAL END */
+
+/* PMD MENU CART BADGE SINGLE OWNER START */
+/*
+  Single owner for the cart count badge on menu page.
+  Exact requested style:
+  - badge fill: #b88940
+  - number: white
+*/
+[data-pmd-menu-cart-badge="1"] {
+  background: #b88940 !important;
+  background-color: #b88940 !important;
+  background-image: none !important;
+  color: #FFFFFF !important;
+  -webkit-text-fill-color: #FFFFFF !important;
+  border: 1px solid #b88940 !important;
+  border-color: #b88940 !important;
+  outline-color: #b88940 !important;
+  opacity: 1 !important;
+  visibility: visible !important;
+  display: flex !important;
+  position: absolute !important;
+  top: -8px !important;
+  right: -8px !important;
+  width: 28px !important;
+  height: 28px !important;
+  min-width: 28px !important;
+  min-height: 28px !important;
+  border-radius: 9999px !important;
+  align-items: center !important;
+  justify-content: center !important;
+  font-size: 12px !important;
+  font-weight: 800 !important;
+  line-height: 1 !important;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15) !important;
+  text-shadow: none !important;
+  filter: none !important;
+  transform: none !important;
+  transition: none !important;
+  animation: none !important;
+}
+
+[data-pmd-menu-cart-badge="1"],
+[data-pmd-menu-cart-badge="1"] * {
+  color: #FFFFFF !important;
+  -webkit-text-fill-color: #FFFFFF !important;
+  text-shadow: none !important;
+  filter: none !important;
+}
+/* PMD MENU CART BADGE SINGLE OWNER END */
+
+/* PMD BOTTOM TOOLBAR BACKGROUND MATCH START */
+/*
+  Bottom menu/payment toolbar should blend with the page background.
+  Narrow selector: only the fixed bottom toolbar frame.
+*/
+
+
+/* PMD BOTTOM TOOLBAR BACKGROUND MATCH END */
+
+/* PMD BOTTOM TOOLBAR NO BLUR GRAY START */
+/*
+  Bottom toolbar should not be glass/gray.
+  It should use the same page background, with no blur overlay.
+*/
+
+
+/* PMD BOTTOM TOOLBAR NO BLUR GRAY END */
+
+/* PMD SHOW BILL TOGGLE BUTTON START */
+/*
+  Small top toggle button on bottom toolbar.
+  Same dark green as other action buttons.
+*/
+html body button[aria-label="Show bill"],
+
+html body button[aria-label="Show bill"] svg,
+html body button[aria-label="Show bill"] svg *,
+
+html body button[aria-label="Show bill"]:hover,
+/* PMD SHOW BILL TOGGLE BUTTON END */
+
+/* PMD SHOW BILL TOGGLE SINGLE OWNER START */
+/*
+  Single owner for the top floating Show/Hide bill button.
+  Do not rely only on aria-label because it changes between Show bill and Hide bill.
+*/
+
+
+/* PMD SHOW BILL TOGGLE SINGLE OWNER END */
+
+/* PMD ORDER RECEIVED + TABLE ORDER ICON FIX START */
+/*
+  Fix 1: order confirmation status icon should use PayMyDine green, not pink.
+  Narrow selectors only.
+*/
+
+/* Order received status icon */
+html body [data-pmd-order-received-icon="1"],
+html body .pmd-order-received-icon {
+  background: #062F2A !important;
+  background-color: #062F2A !important;
+  background-image: none !important;
+  color: #FFFFFF !important;
+  -webkit-text-fill-color: #FFFFFF !important;
+  border-color: #062F2A !important;
+  outline-color: #062F2A !important;
+}
+
+html body [data-pmd-order-received-icon="1"] svg,
+html body [data-pmd-order-received-icon="1"] svg *,
+html body .pmd-order-received-icon svg,
+html body .pmd-order-received-icon svg * {
+  color: #FFFFFF !important;
+  stroke: #FFFFFF !important;
+  -webkit-text-fill-color: #FFFFFF !important;
+  fill: none !important;
+}
+
+html body [data-pmd-table-order-action="1"],
+html body .pmd-table-order-action-button {
+  color: #0D1B1E !important;
+  -webkit-text-fill-color: #0D1B1E !important;
+}
+
+html body [data-pmd-table-order-action="1"] svg,
+html body [data-pmd-table-order-action="1"] svg *,
+html body .pmd-table-order-action-button svg,
+html body .pmd-table-order-action-button svg * {
+  color: #FFFFFF !important;
+  stroke: #FFFFFF !important;
+  -webkit-text-fill-color: #FFFFFF !important;
+  fill: none !important;
+}
+
+html body [data-pmd-table-order-action="1"] .cart-badge,
+html body [data-pmd-table-order-action="1"] .pmd-v2-badge,
+html body [data-pmd-table-order-action="1"] [data-pmd-table-order-badge="1"] {
+  background: #b88940 !important;
+  background-color: #b88940 !important;
+  background-image: none !important;
+  color: #FFFFFF !important;
+  -webkit-text-fill-color: #FFFFFF !important;
+  border: 1px solid #b88940 !important;
+  border-color: #b88940 !important;
+  outline-color: #b88940 !important;
+  opacity: 1 !important;
+  visibility: visible !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  border-radius: 9999px !important;
+  min-width: 24px !important;
+  min-height: 24px !important;
+  font-size: 12px !important;
+  font-weight: 800 !important;
+  line-height: 1 !important;
+}
+
+html body [data-pmd-table-order-action="1"] .cart-badge *,
+html body [data-pmd-table-order-action="1"] .pmd-v2-badge * {
+  color: #FFFFFF !important;
+  -webkit-text-fill-color: #FFFFFF !important;
+}
+
+
+/* PMD REAL TABLE ORDER CSS ONLY END */
+
+/* Build-safe local font fallbacks replacing next/font Google network fetches. */
+.pmd-font-fallbacks {
+  --font-inter: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --font-playfair-display: Georgia, "Times New Roman", serif;
+}
+
+/* PMD split-bill polish: gold-luxury range controls and table-order toolbar refinement. */
+html body .pmd-split-slider {
+  height: 18px;
+  cursor: pointer;
+  accent-color: #b88940;
+  background: transparent;
+}
+
+html body .pmd-split-slider::-webkit-slider-runnable-track {
+  height: 6px;
+  border-radius: 9999px;
+  background: linear-gradient(90deg, #b88940, color-mix(in srgb, #b88940 36%, var(--theme-border) 64%));
+}
+
+html body .pmd-split-slider::-webkit-slider-thumb {
+  appearance: none;
+  width: 18px;
+  height: 18px;
+  margin-top: -6px;
+  border-radius: 9999px;
+  background: #062F2A;
+  border: 3px solid #fffaf0;
+  box-shadow: 0 2px 8px rgba(6, 47, 42, 0.22);
+}
+
+html body .pmd-split-slider::-moz-range-track {
+  height: 6px;
+  border-radius: 9999px;
+  background: linear-gradient(90deg, #b88940, color-mix(in srgb, #b88940 36%, var(--theme-border) 64%));
+}
+
+html body .pmd-split-slider::-moz-range-thumb {
+  width: 18px;
+  height: 18px;
+  border-radius: 9999px;
+  background: #062F2A;
+  border: 3px solid #fffaf0;
+  box-shadow: 0 2px 8px rgba(6, 47, 42, 0.22);
+}
+
+
+/* PMD FINAL CLEAN: Table order no green frame, hover controlled by Framer source */
+
+
+
+/* PMD FINAL CLEAN END */
+
+/* PMD payment header icon visibility lock */
+div[data-pmd-payment-header-icon="1"] {
+  background: #062F2A !important;
+  background-color: #062F2A !important;
+  border: 1px solid #062F2A !important;
+  border-radius: 9999px !important;
+  box-shadow: 0 8px 18px rgba(6, 47, 42, 0.18) !important;
+  color: #ffffff !important;
+  -webkit-text-fill-color: #ffffff !important;
+}
+
+div[data-pmd-payment-header-icon="1"] svg,
+div[data-pmd-payment-header-icon="1"] svg *,
+div[data-pmd-payment-header-icon="1"] path,
+div[data-pmd-payment-header-icon="1"] rect,
+div[data-pmd-payment-header-icon="1"] line {
+  color: #ffffff !important;
+  stroke: #ffffff !important;
+  -webkit-text-fill-color: #ffffff !important;
+}
+/* PMD payment header icon visibility lock end */
+
+/* =========================================================
+   PMD payment polish
+   ========================================================= */
+
+/* payment adjustment card should blend with card background */
+[data-pmd-payment-adjustment-card="1"] {
+  background: transparent !important;
+  box-shadow: none !important;
+}
+
+[data-pmd-payment-adjustment-card="1"],
+[data-pmd-payment-adjustment-card="1"] > div,
+[data-pmd-payment-adjustment-card="1"] .surface-sub,
+[data-pmd-payment-adjustment-card="1"] .surface,
+[data-pmd-payment-adjustment-card="1"] .rounded-2xl,
+[data-pmd-payment-adjustment-card="1"] .rounded-3xl {
+  background: color-mix(in srgb, var(--theme-secondary) 7%, var(--theme-surface) 93%) !important;
+  border-color: color-mix(in srgb, var(--theme-border) 82%, transparent) !important;
+  box-shadow: none !important;
+}
+
+/* small controls inside payment adjustment area should not look stark white */
+[data-pmd-payment-adjustment-card="1"] input,
+[data-pmd-payment-adjustment-card="1"] textarea,
+[data-pmd-payment-adjustment-card="1"] select,
+[data-pmd-payment-adjustment-card="1"] button:not([type="submit"]) {
+  background: color-mix(in srgb, var(--theme-surface) 96%, #ffffff 4%) !important;
+  border-color: color-mix(in srgb, var(--theme-border) 88%, transparent) !important;
+  color: var(--theme-text-primary) !important;
+  box-shadow: none !important;
+}
+
+/* nicer spacing before payment provider detail/form */
+[data-pmd-payment-selected-detail="1"] {
+  padding-top: 1.15rem !important;
+}
+
+[data-pmd-payment-selected-detail="1"] form,
+[data-pmd-payment-selected-detail="1"] .StripeElement,
+[data-pmd-payment-selected-detail="1"] [class*="Stripe"],
+[data-pmd-payment-selected-detail="1"] [data-testid*="payment"],
+[data-pmd-payment-selected-detail="1"] [data-testid*="Payment"],
+[data-pmd-payment-selected-detail="1"] [role="tabpanel"] {
+  margin-top: 0.9rem !important;
+}
+
+/* unify pay buttons as much as possible */
+[data-pmd-payment-selected-detail="1"] button[type="submit"],
+[data-pmd-payment-selected-detail="1"] .SubmitButton,
+[data-pmd-payment-selected-detail="1"] [data-testid*="pay"]:not([data-testid*="paypal"]),
+[data-pmd-payment-selected-detail="1"] [data-testid*="Pay"]:not([data-testid*="PayPal"]) {
+  width: 100% !important;
+  min-height: 3.35rem !important;
+  margin-top: 1rem !important;
+  border-radius: 9999px !important;
+  border: 1px solid #062F2A !important;
+  background: #062F2A !important;
+  background-color: #062F2A !important;
+  color: #FFFFFF !important;
+  -webkit-text-fill-color: #FFFFFF !important;
+  box-shadow: 0 10px 24px rgba(6, 47, 42, 0.18) !important;
+  transition: transform 180ms ease, background 180ms ease, box-shadow 180ms ease !important;
+}
+
+[data-pmd-payment-selected-detail="1"] button[type="submit"]:hover,
+[data-pmd-payment-selected-detail="1"] .SubmitButton:hover,
+[data-pmd-payment-selected-detail="1"] [data-testid*="pay"]:not([data-testid*="paypal"]):hover,
+[data-pmd-payment-selected-detail="1"] [data-testid*="Pay"]:not([data-testid*="PayPal"]):hover {
+  background: #021F1C !important;
+  background-color: #021F1C !important;
+  border-color: #021F1C !important;
+  transform: translateY(-1px) !important;
+  box-shadow: 0 12px 28px rgba(6, 47, 42, 0.22) !important;
+}
+
+[data-pmd-payment-selected-detail="1"] button[type="submit"] svg,
+[data-pmd-payment-selected-detail="1"] button[type="submit"] svg *,
+[data-pmd-payment-selected-detail="1"] .SubmitButton svg,
+[data-pmd-payment-selected-detail="1"] .SubmitButton svg * {
+  color: #FFFFFF !important;
+  stroke: #FFFFFF !important;
+  -webkit-text-fill-color: #FFFFFF !important;
+}
+
+/* a bit more space between card fields and final pay button */
+[data-pmd-payment-selected-detail="1"] form > button:last-child,
+[data-pmd-payment-selected-detail="1"] form button[type="submit"]:last-child {
+  margin-top: 1.15rem !important;
+}
+
+/* softer scrolling */
+[data-pmd-checkout-scroll="1"] {
+  scroll-behavior: smooth !important;
+}
+
+/* =========================================================
+   PMD REAL FIX: remove white cards inside Payment adjustment area
+   ========================================================= */
+
+[data-pmd-payment-real-panel="summary"],
+[data-pmd-payment-real-panel="tip-coupon"] {
+  background: transparent !important;
+  background-color: transparent !important;
+  background-image: none !important;
+  border-color: transparent !important;
+  box-shadow: none !important;
+}
+
+/* remove nested white card look, but keep real inputs/buttons usable */
+[data-pmd-payment-real-panel="summary"] > div,
+[data-pmd-payment-real-panel="summary"] .surface,
+[data-pmd-payment-real-panel="summary"] .surface-sub,
+[data-pmd-payment-real-panel="summary"] [class*="rounded"],
+[data-pmd-payment-real-panel="tip-coupon"] > div,
+[data-pmd-payment-real-panel="tip-coupon"] .surface,
+[data-pmd-payment-real-panel="tip-coupon"] .surface-sub,
+[data-pmd-payment-real-panel="tip-coupon"] [class*="rounded"] {
+  background: transparent !important;
+  background-color: transparent !important;
+  background-image: none !important;
+  box-shadow: none !important;
+}
+
+/* keep coupon input and tip small controls soft, not white */
+[data-pmd-payment-real-panel="tip-coupon"] input,
+[data-pmd-payment-real-panel="tip-coupon"] textarea,
+[data-pmd-payment-real-panel="tip-coupon"] select {
+  background: color-mix(in srgb, var(--theme-background) 72%, var(--theme-surface) 28%) !important;
+  background-color: color-mix(in srgb, var(--theme-background) 72%, var(--theme-surface) 28%) !important;
+  border: 1px solid color-mix(in srgb, var(--theme-border) 88%, transparent) !important;
+  color: var(--theme-text-primary) !important;
+  -webkit-text-fill-color: var(--theme-text-primary) !important;
+  box-shadow: none !important;
+}
+
+/* tip percentage buttons / apply / remove should still be visible */
+[data-pmd-payment-real-panel="tip-coupon"] button {
+  background: color-mix(in srgb, var(--theme-background) 78%, var(--theme-surface) 22%) !important;
+  background-color: color-mix(in srgb, var(--theme-background) 78%, var(--theme-surface) 22%) !important;
+  border: 1px solid color-mix(in srgb, var(--theme-border) 88%, transparent) !important;
+  color: var(--theme-text-primary) !important;
+  -webkit-text-fill-color: var(--theme-text-primary) !important;
+  box-shadow: none !important;
+}
+
+/* selected / primary-looking buttons inside tip/coupon keep dark-green style */
+[data-pmd-payment-real-panel="tip-coupon"] button[style*="rgb(6, 47, 42)"],
+[data-pmd-payment-real-panel="tip-coupon"] button[style*="#062F2A"] {
+  background: #062F2A !important;
+  background-color: #062F2A !important;
+  border-color: #062F2A !important;
+  color: #FFFFFF !important;
+  -webkit-text-fill-color: #FFFFFF !important;
+}
+
+/* make the whole payment adjustment section feel like one clean area */
+[data-pmd-payment-adjustment-card="1"] {
+  background: transparent !important;
+  background-color: transparent !important;
+  border-color: transparent !important;
+  box-shadow: none !important;
+}
+
+/* Pay button spacing: Stripe/Card button should not stick to field above */
+[data-pmd-payment-selected-detail="1"] button[type="submit"],
+[data-pmd-payment-selected-detail="1"] .SubmitButton {
+  margin-top: 1.35rem !important;
+  border-radius: 9999px !important;
+}
+
+/* smoother modal scroll */
+[data-pmd-checkout-scroll="1"] {
+  scroll-behavior: smooth !important;
+}
+/* PMD REAL FIX end */
+
+/* =========================================================
+   PMD FINAL POLISH: Send button + ETA + Payment background
+   ========================================================= */
+
+/* ---------- 1) SEND ORDER TO KITCHEN BUTTON ---------- */
+button[data-pmd-send-kitchen-btn="1"] {
+  background: #062F2A !important;
+  background-color: #062F2A !important;
+  color: #FFFFFF !important;
+  -webkit-text-fill-color: #FFFFFF !important;
+  border: 1px solid #062F2A !important;
+  box-shadow: 0 10px 24px rgba(6, 47, 42, 0.22) !important;
+  transform: translateX(0) !important;
+  transition:
+    transform 220ms cubic-bezier(.2, 0, 0, 1),
+    box-shadow 220ms ease,
+    filter 180ms ease !important;
+}
+
+button[data-pmd-send-kitchen-btn="1"]:hover,
+button[data-pmd-send-kitchen-btn="1"]:focus-visible {
+  background: #062F2A !important;
+  background-color: #062F2A !important;
+  color: #FFFFFF !important;
+  -webkit-text-fill-color: #FFFFFF !important;
+  border-color: #062F2A !important;
+  transform: translateX(6px) !important;
+  box-shadow: 0 14px 30px rgba(6, 47, 42, 0.28) !important;
+  filter: brightness(1.03) !important;
+}
+
+button[data-pmd-send-kitchen-btn="1"]:active {
+  transform: translateX(2px) scale(0.99) !important;
+  box-shadow: 0 8px 18px rgba(6, 47, 42, 0.22) !important;
+}
+
+button[data-pmd-send-kitchen-btn="1"] [data-pmd-send-kitchen-label="1"] {
+  color: #FFFFFF !important;
+  -webkit-text-fill-color: #FFFFFF !important;
+  font-weight: 700 !important;
+}
+
+button[data-pmd-send-kitchen-btn="1"] [data-pmd-send-kitchen-arrow-wrap="1"] {
+  background: #021F1C !important;
+  background-color: #021F1C !important;
+  border: 1px solid rgba(255,255,255,0.18) !important;
+  color: #FFFFFF !important;
+  -webkit-text-fill-color: #FFFFFF !important;
+  transition: transform 220ms cubic-bezier(.2, 0, 0, 1), background 180ms ease !important;
+}
+
+button[data-pmd-send-kitchen-btn="1"]:hover [data-pmd-send-kitchen-arrow-wrap="1"],
+button[data-pmd-send-kitchen-btn="1"]:focus-visible [data-pmd-send-kitchen-arrow-wrap="1"] {
+  transform: translateX(4px) !important;
+  background: #031714 !important;
+  background-color: #031714 !important;
+}
+
+button[data-pmd-send-kitchen-btn="1"] svg,
+button[data-pmd-send-kitchen-btn="1"] svg *,
+button[data-pmd-send-kitchen-btn="1"] [data-pmd-send-kitchen-arrow="1"] {
+  color: #FFFFFF !important;
+  stroke: #FFFFFF !important;
+  -webkit-text-fill-color: #FFFFFF !important;
+}
+
+/* ---------- 2) ETA FLOATING CIRCLE LIVE EFFECT ---------- */
+@keyframes pmdEtaPulseRing {
+  0%   { transform: scale(0.94); opacity: 0.52; }
+  70%  { transform: scale(1.12); opacity: 0; }
+  100% { transform: scale(1.16); opacity: 0; }
+}
+
+@keyframes pmdEtaGlow {
+  0%, 100% { box-shadow: 0 16px 34px rgba(6, 47, 42, 0.24); }
+  50%      { box-shadow: 0 18px 40px rgba(6, 47, 42, 0.34); }
+}
+
+@keyframes pmdEtaTick {
+  0%, 100% { transform: translateX(-50%) translateY(-50%) scale(1); }
+  50%      { transform: translateX(-50%) translateY(-50%) scale(1.035); }
+}
+
+[data-pmd-floating-eta-circle="1"] {
+  position: absolute !important;
+  overflow: visible !important;
+  animation: pmdEtaGlow 1.2s ease-in-out infinite, pmdEtaTick 1s ease-in-out infinite !important;
+}
+
+[data-pmd-floating-eta-circle="1"]::before {
+  content: "";
+  position: absolute;
+  inset: -6px;
+  border-radius: 9999px;
+  border: 2px solid rgba(184, 137, 64, 0.55);
+  animation: pmdEtaPulseRing 1.4s ease-out infinite;
+  pointer-events: none;
+}
+
+[data-pmd-floating-eta-circle="1"]::after {
+  content: "";
+  position: absolute;
+  inset: -12px;
+  border-radius: 9999px;
+  border: 1px dashed rgba(184, 137, 64, 0.34);
+  animation: pmdEtaPulseRing 2.1s ease-out infinite;
+  pointer-events: none;
+}
+
+/* ---------- 3) PAYMENT ADJUSTMENT AREA MUST BE #FAF9F3 ---------- */
+[data-pmd-payment-adjustment-card="1"],
+[data-pmd-payment-real-panel="summary"],
+[data-pmd-payment-real-panel="tip-coupon"] {
+  background: #FAF9F3 !important;
+  background-color: #FAF9F3 !important;
+  background-image: none !important;
+  border-color: #E6E0D1 !important;
+  box-shadow: none !important;
+}
+
+[data-pmd-payment-adjustment-card="1"] > div,
+[data-pmd-payment-real-panel="summary"] > div,
+[data-pmd-payment-real-panel="tip-coupon"] > div,
+[data-pmd-payment-adjustment-card="1"] [class*="rounded"],
+[data-pmd-payment-real-panel="summary"] [class*="rounded"],
+[data-pmd-payment-real-panel="tip-coupon"] [class*="rounded"] {
+  background: #FAF9F3 !important;
+  background-color: #FAF9F3 !important;
+  background-image: none !important;
+  box-shadow: none !important;
+}
+
+[data-pmd-payment-adjustment-card="1"] p,
+[data-pmd-payment-adjustment-card="1"] span,
+[data-pmd-payment-adjustment-card="1"] div,
+[data-pmd-payment-real-panel="summary"] p,
+[data-pmd-payment-real-panel="summary"] span,
+[data-pmd-payment-real-panel="summary"] div,
+[data-pmd-payment-real-panel="tip-coupon"] p,
+[data-pmd-payment-real-panel="tip-coupon"] span,
+[data-pmd-payment-real-panel="tip-coupon"] div {
+  background-color: transparent !important;
+}
+
+/* tip/coupon inputs */
+[data-pmd-payment-real-panel="tip-coupon"] input,
+[data-pmd-payment-real-panel="tip-coupon"] textarea,
+[data-pmd-payment-real-panel="tip-coupon"] select {
+  background: #FAF9F3 !important;
+  background-color: #FAF9F3 !important;
+  border: 1px solid #D8D2C6 !important;
+  color: var(--theme-text-primary) !important;
+  -webkit-text-fill-color: var(--theme-text-primary) !important;
+  box-shadow: none !important;
+}
+
+/* tip small buttons */
+[data-pmd-payment-real-panel="tip-coupon"] button {
+  background: #FAF9F3 !important;
+  background-color: #FAF9F3 !important;
+  border: 1px solid #D8D2C6 !important;
+  color: var(--theme-text-primary) !important;
+  -webkit-text-fill-color: var(--theme-text-primary) !important;
+  box-shadow: none !important;
+}
+
+/* active/primary buttons inside payment area stay green */
+[data-pmd-payment-adjustment-card="1"] button[style*="rgb(6, 47, 42)"],
+[data-pmd-payment-adjustment-card="1"] button[style*="#062F2A"],
+[data-pmd-payment-real-panel="tip-coupon"] button[style*="rgb(6, 47, 42)"],
+[data-pmd-payment-real-panel="tip-coupon"] button[style*="#062F2A"] {
+  background: #062F2A !important;
+  background-color: #062F2A !important;
+  border-color: #062F2A !important;
+  color: #FFFFFF !important;
+  -webkit-text-fill-color: #FFFFFF !important;
+}
+
+/* Pay buttons more unified */
+[data-pmd-payment-selected-detail="1"] button,
+[data-pmd-payment-selected-detail="1"] a[role="button"],
+[data-pmd-payment-selected-detail="1"] .SubmitButton {
+  border-radius: 9999px !important;
+}
+
+[data-pmd-payment-selected-detail="1"] button[type="submit"],
+[data-pmd-payment-selected-detail="1"] .SubmitButton,
+[data-pmd-payment-selected-detail="1"] button:not([type="button"]) {
+  margin-top: 1.35rem !important;
+}
+
+/* keep selected payment area clean too */
+[data-pmd-payment-selected-detail="1"],
+[data-pmd-payment-selected-detail="1"] > div,
+[data-pmd-payment-selected-detail="1"] [class*="rounded"] {
+  box-shadow: none !important;
+}
+
+/* ========================================================= */
+
+/* =========================================================
+   PMD FINAL OVERRIDE: compact table order actions + soft ETA + real payment bg
+   ========================================================= */
+
+/* 1) Table Order actions: Send order + Continue ordering next to each other */
+[data-pmd-table-order-actions-row="1"] {
+  display: grid !important;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) !important;
+  gap: 0.7rem !important;
+  align-items: stretch !important;
+  width: 100% !important;
+}
+
+button[data-pmd-send-kitchen-btn="1"],
+button[data-pmd-table-order-continue-btn="1"] {
+  min-height: 2.75rem !important;
+  height: 2.75rem !important;
+  width: 100% !important;
+  padding: 0.55rem 0.85rem !important;
+  border-radius: 9999px !important;
+  font-size: 0.82rem !important;
+  line-height: 1 !important;
+  font-weight: 750 !important;
+  box-shadow: none !important;
+  transition:
+    transform 180ms cubic-bezier(.2,0,0,1),
+    background-color 180ms ease,
+    border-color 180ms ease,
+    box-shadow 180ms ease,
+    opacity 160ms ease !important;
+}
+
+button[data-pmd-send-kitchen-btn="1"] {
+  background: #062F2A !important;
+  background-color: #062F2A !important;
+  background-image: none !important;
+  color: #FFFFFF !important;
+  -webkit-text-fill-color: #FFFFFF !important;
+  border: 1px solid #062F2A !important;
+  justify-content: center !important;
+  gap: 0.45rem !important;
+}
+
+button[data-pmd-send-kitchen-btn="1"]:hover,
+button[data-pmd-send-kitchen-btn="1"]:focus-visible {
+  background: #021F1C !important;
+  background-color: #021F1C !important;
+  border-color: #021F1C !important;
+  transform: translateX(3px) translateY(-1px) !important;
+  box-shadow: 0 8px 18px rgba(6, 47, 42, 0.18) !important;
+}
+
+button[data-pmd-send-kitchen-btn="1"]:active {
+  transform: translateX(1px) scale(0.99) !important;
+}
+
+button[data-pmd-send-kitchen-btn="1"] [data-pmd-send-kitchen-label="1"] {
+  margin-left: 0 !important;
+  color: #FFFFFF !important;
+  -webkit-text-fill-color: #FFFFFF !important;
+  white-space: nowrap !important;
+}
+
+button[data-pmd-send-kitchen-btn="1"] [data-pmd-send-kitchen-arrow-wrap="1"] {
+  width: 1.9rem !important;
+  min-width: 1.9rem !important;
+  height: 1.9rem !important;
+  min-height: 1.9rem !important;
+  background: #021F1C !important;
+  background-color: #021F1C !important;
+  border: 1px solid rgba(255,255,255,0.16) !important;
+  color: #FFFFFF !important;
+  -webkit-text-fill-color: #FFFFFF !important;
+  box-shadow: none !important;
+  transition: transform 180ms cubic-bezier(.2,0,0,1) !important;
+}
+
+button[data-pmd-send-kitchen-btn="1"]:hover [data-pmd-send-kitchen-arrow-wrap="1"] {
+  transform: translateX(2px) !important;
+}
+
+button[data-pmd-send-kitchen-btn="1"] svg,
+button[data-pmd-send-kitchen-btn="1"] svg *,
+button[data-pmd-send-kitchen-btn="1"] [data-pmd-send-kitchen-arrow="1"] {
+  width: 1rem !important;
+  height: 1rem !important;
+  color: #FFFFFF !important;
+  stroke: #FFFFFF !important;
+  -webkit-text-fill-color: #FFFFFF !important;
+}
+
+button[data-pmd-table-order-continue-btn="1"] {
+  background: transparent !important;
+  background-color: transparent !important;
+  color: var(--theme-text-primary) !important;
+  -webkit-text-fill-color: var(--theme-text-primary) !important;
+  border: 1px solid var(--theme-border) !important;
+}
+
+button[data-pmd-table-order-continue-btn="1"]:hover,
+button[data-pmd-table-order-continue-btn="1"]:focus-visible {
+  background: color-mix(in srgb, #FAF9F3 78%, var(--theme-surface) 22%) !important;
+  background-color: color-mix(in srgb, #FAF9F3 78%, var(--theme-surface) 22%) !important;
+  transform: translateY(-1px) !important;
+}
+
+/* 2) ETA: smoother, less jumpy */
+@keyframes pmdEtaSoftGlowFinal {
+  0%, 100% {
+    box-shadow: 0 14px 30px rgba(6, 47, 42, 0.22);
+  }
+  50% {
+    box-shadow: 0 17px 38px rgba(6, 47, 42, 0.30);
+  }
+}
+
+@keyframes pmdEtaSoftRingFinal {
+  0% {
+    opacity: 0.24;
+    transform: scale(0.98);
+  }
+  60% {
+    opacity: 0.08;
+    transform: scale(1.08);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(1.12);
+  }
+}

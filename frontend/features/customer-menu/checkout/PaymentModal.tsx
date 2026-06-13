@@ -1,6 +1,8 @@
 "use client"
 
 import React, { useState, useEffect, useMemo } from "react"
+import { useRouter } from "next/navigation"
+import { useLanguageStore } from "@/store/language-store"
 import { PayPalScriptProvider } from "@paypal/react-paypal-js"
 import { Elements, useStripe, useElements, PaymentRequestButtonElement } from "@stripe/react-stripe-js"
 import { loadStripe } from "@stripe/stripe-js"
@@ -87,6 +89,7 @@ import {
   isStripePaymentMethodForConfig,
   mapPaymentMethodsByCode,
 } from "@/features/checkout/payment-method-utils"
+import { KAZEN_JAPANESE_THEME_KEY, ORGANIC_BOTANICAL_THEME_KEY, SPLIT_GUEST_PROFILES, type PaymentFormData, type PaymentModalProps } from "@/features/customer-menu/checkout/paymentModalShared"
 import type {
   CheckoutStep,
   PmdToolbarPricingSnapshot,
@@ -95,63 +98,6 @@ import type {
   SplitPerson,
   SplitSourceItem,
 } from "@/features/checkout/types"
-
-const ORGANIC_BOTANICAL_THEME_KEY = "organic_botanical_paper"
-const KAZEN_JAPANESE_THEME_KEY = "kazen_japanese"
-
-
-const splitMethod = "equal" as const
-
-
-/* WALLET_STRIPE_PAY_COMPONENT */
-type PayPalPublicConfig = {
-  enabled: boolean
-  clientId: string
-  currency: string
-} | null
-
-type PaymentFormData = {
-  email: string
-  phone: string
-}
-
-interface PaymentModalProps {
-  isOpen: boolean;
-  onClose: () => void;
-  items: CartItem[];
-  tableInfo?: any;
-  existingOrderId?: number | null;
-  pendingSummary?: {
-    orderTotal: number;
-    settledAmount: number;
-    remainingAmount: number;
-  } | null;
-  initialSubmittedOrder?: any | null;
-  initialCheckoutStep?: CheckoutStep;
-  preferPersonalReview?: boolean
-  onOpenOrderUpdate?: (snapshot: any | null) => void;
-  onCartPricingUpdate?: (snapshot: PmdToolbarPricingSnapshot | null) => void;
-  checkoutVisualTheme?: "gold-luxury" | "organic_botanical_paper" | "modern_green" | "kazen_japanese" | "neutral";
-}
-
-
-interface MenuItemModalProps {
-  item: MenuItem | null;
-  onClose: () => void;
-}
-
-const SPLIT_GUEST_PROFILES = [
-  { name: "Luna", avatar: "L" },
-  { name: "Milo", avatar: "M" },
-  { name: "Zara", avatar: "Z" },
-  { name: "Leo", avatar: "L" },
-  { name: "Nova", avatar: "N" },
-  { name: "Coco", avatar: "C" },
-  { name: "Rio", avatar: "R" },
-  { name: "Nala", avatar: "N" },
-  { name: "Oscar", avatar: "O" },
-  { name: "Bella", avatar: "B" },
-]
 
 export function PaymentModal({ isOpen, onClose, items: allItems, tableInfo, existingOrderId, pendingSummary, initialSubmittedOrder, initialCheckoutStep, preferPersonalReview = false, onOpenOrderUpdate, onCartPricingUpdate, checkoutVisualTheme = "neutral" }: PaymentModalProps) {
   useCheckoutVisualRepairs()
