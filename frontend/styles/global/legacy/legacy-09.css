@@ -1,0 +1,1800 @@
+html body .page--menu button[data-pmd-stripe-native-button="1"]:hover,
+html body .page--menu button[data-pmd-stripe-native-button="1"]:focus,
+html body .page--menu button[data-pmd-stripe-native-button="1"]:active,
+html body button[data-pmd-stripe-native-button="1"]:hover,
+html body button[data-pmd-stripe-native-button="1"]:focus,
+html body button[data-pmd-stripe-native-button="1"]:active {
+  background: linear-gradient(135deg, #07483F 0%, #062F2A 100%) !important;
+  background-color: #07483F !important;
+  color: #FFFFFF !important;
+  -webkit-text-fill-color: #FFFFFF !important;
+  box-shadow: 0 14px 28px rgba(6, 47, 42, 0.28) !important;
+}
+
+html body .page--menu button[data-pmd-stripe-native-button="1"][disabled],
+html body button[data-pmd-stripe-native-button="1"][disabled] {
+  opacity: 0.62 !important;
+  cursor: not-allowed !important;
+  box-shadow: none !important;
+}
+
+html body .page--menu button[data-pmd-stripe-native-button="1"] *,
+html body .page--menu button[data-pmd-stripe-native-button="1"] span,
+html body .page--menu button[data-pmd-stripe-native-button="1"] svg,
+html body button[data-pmd-stripe-native-button="1"] *,
+html body button[data-pmd-stripe-native-button="1"] span,
+html body button[data-pmd-stripe-native-button="1"] svg {
+  color: #FFFFFF !important;
+  -webkit-text-fill-color: #FFFFFF !important;
+  stroke: currentColor !important;
+}
+
+html body .page--menu button[data-pmd-stripe-native-button="1"]::before,
+html body .page--menu button[data-pmd-stripe-native-button="1"]::after,
+html body button[data-pmd-stripe-native-button="1"]::before,
+html body button[data-pmd-stripe-native-button="1"]::after {
+  display: none !important;
+  content: none !important;
+}
+
+/* PMD_STRIPE_CARD_BUTTON_FINAL_VISUAL_FIX_20260605 START */
+
+/* Add real breathing room between Stripe card field and Pay button */
+html body .page--menu [data-pmd-payment-selected-detail="1"] form[data-pmd-stripe-form="1"] div:has(> .StripeElement),
+html body [data-pmd-payment-selected-detail="1"] form[data-pmd-stripe-form="1"] div:has(> .StripeElement),
+html body .page--menu [data-pmd-payment-selected-detail="1"] form[data-pmd-stripe-form="1"] .mt-1.p-3.border.rounded-2xl.w-full,
+html body [data-pmd-payment-selected-detail="1"] form[data-pmd-stripe-form="1"] .mt-1.p-3.border.rounded-2xl.w-full {
+  margin-bottom: 14px !important;
+  min-height: 48px !important;
+}
+
+/* Stripe native Pay button: final PMD visual owner */
+html body .page--menu button[data-pmd-stripe-native-button="1"],
+html body button[data-pmd-stripe-native-button="1"] {
+  position: relative !important;
+  isolation: isolate !important;
+  overflow: hidden !important;
+  border-radius: 16px !important;
+  color: #FFFFFF !important;
+  -webkit-text-fill-color: #FFFFFF !important;
+}
+
+/* Hide old purple internal overlay */
+html body .page--menu button[data-pmd-stripe-native-button="1"] > span[aria-hidden="true"],
+html body button[data-pmd-stripe-native-button="1"] > span[aria-hidden="true"] {
+  display: none !important;
+  opacity: 0 !important;
+  visibility: hidden !important;
+}
+
+/* Green overlay wins visually even if old inline purple background remains */
+html body .page--menu button[data-pmd-stripe-native-button="1"]::before,
+html body button[data-pmd-stripe-native-button="1"]::before {
+  content: "" !important;
+  display: block !important;
+  position: absolute !important;
+  inset: 0 !important;
+  z-index: 0 !important;
+  border-radius: 16px !important;
+  background: linear-gradient(135deg, #063F2F 0%, #062F2A 100%) !important;
+  pointer-events: none !important;
+}
+
+/* Keep real Pay text/icon above overlay */
+html body .page--menu button[data-pmd-stripe-native-button="1"] > span:not([aria-hidden="true"]),
+html body button[data-pmd-stripe-native-button="1"] > span:not([aria-hidden="true"]) {
+  position: relative !important;
+  z-index: 2 !important;
+  color: #FFFFFF !important;
+  -webkit-text-fill-color: #FFFFFF !important;
+}
+
+html body .page--menu button[data-pmd-stripe-native-button="1"] *,
+html body .page--menu button[data-pmd-stripe-native-button="1"] span,
+html body .page--menu button[data-pmd-stripe-native-button="1"] svg,
+html body .page--menu button[data-pmd-stripe-native-button="1"] rect,
+html body .page--menu button[data-pmd-stripe-native-button="1"] path,
+html body button[data-pmd-stripe-native-button="1"] *,
+html body button[data-pmd-stripe-native-button="1"] span,
+html body button[data-pmd-stripe-native-button="1"] svg,
+html body button[data-pmd-stripe-native-button="1"] rect,
+html body button[data-pmd-stripe-native-button="1"] path {
+  color: #FFFFFF !important;
+  -webkit-text-fill-color: #FFFFFF !important;
+  stroke: #FFFFFF !important;
+}
+
+/* Card iframe wrapper: same premium input style */
+html body .page--menu [data-pmd-payment-selected-detail="1"] form[data-pmd-stripe-form="1"] .StripeElement,
+html body [data-pmd-payment-selected-detail="1"] form[data-pmd-stripe-form="1"] .StripeElement {
+  min-height: 22px !important;
+  width: 100% !important;
+}
+
+/* PMD_STRIPE_CARD_BUTTON_FINAL_VISUAL_FIX_20260605 END */
+
+/* PMD_STRIPE_CARD_FIELD_HEIGHT_MATCH_20260605 START */
+
+/* Make Stripe Card Information field same height as Cardholder/Email/Phone inputs */
+html body .page--menu [data-pmd-payment-selected-detail="1"] form[data-pmd-stripe-form="1"] .mt-1.p-3.border.rounded-2xl.w-full,
+html body [data-pmd-payment-selected-detail="1"] form[data-pmd-stripe-form="1"] .mt-1.p-3.border.rounded-2xl.w-full,
+html body .page--menu [data-pmd-checkout-design-system="1"] [data-pmd-payment-selected-detail="1"] form[data-pmd-stripe-form="1"] .mt-1.p-3.border.rounded-2xl.w-full,
+html body [data-pmd-checkout-design-system="1"] [data-pmd-payment-selected-detail="1"] form[data-pmd-stripe-form="1"] .mt-1.p-3.border.rounded-2xl.w-full {
+  box-sizing: border-box !important;
+  height: 44px !important;
+  min-height: 44px !important;
+  max-height: 44px !important;
+  padding: 0 14px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  overflow: hidden !important;
+}
+
+/* Keep Stripe iframe content centered inside the 44px field */
+html body .page--menu [data-pmd-payment-selected-detail="1"] form[data-pmd-stripe-form="1"] .StripeElement,
+html body [data-pmd-payment-selected-detail="1"] form[data-pmd-stripe-form="1"] .StripeElement {
+  width: 100% !important;
+  min-height: 20px !important;
+}
+
+/* Keep breathing room between card field and Pay button */
+html body .page--menu button[data-pmd-stripe-native-button="1"],
+html body button[data-pmd-stripe-native-button="1"] {
+  margin-top: 14px !important;
+}
+
+/* PMD_STRIPE_CARD_FIELD_HEIGHT_MATCH_20260605 END */
+
+/* PMD_STRIPE_INNER_TEXT_RAISE_20260605 START */
+
+/* Stripe iframe content sits visually a little low; raise only the inner Stripe content */
+html body .page--menu [data-pmd-payment-selected-detail="1"] form[data-pmd-stripe-form="1"] .StripeElement,
+html body [data-pmd-payment-selected-detail="1"] form[data-pmd-stripe-form="1"] .StripeElement,
+html body .page--menu [data-pmd-payment-selected-detail="1"] form[data-pmd-stripe-form="1"] .__PrivateStripeElement,
+html body [data-pmd-payment-selected-detail="1"] form[data-pmd-stripe-form="1"] .__PrivateStripeElement {
+  width: 100% !important;
+  transform: translateY(-2px) !important;
+  will-change: transform !important;
+}
+
+/* PMD_STRIPE_INNER_TEXT_RAISE_20260605 END */
+
+/* PMD_STRIPE_FORM_FIELD_UNIFY_20260605 START */
+[data-pmd-stripe-form="1"] {
+  width: 100% !important;
+}
+
+[data-pmd-stripe-form="1"] .space-y-3 {
+  gap: 10px !important;
+}
+
+[data-pmd-stripe-form="1"] label {
+  font-size: 13px !important;
+  line-height: 1.2 !important;
+  font-weight: 650 !important;
+  color: var(--theme-text-primary) !important;
+  -webkit-text-fill-color: var(--theme-text-primary) !important;
+  margin-bottom: 6px !important;
+  letter-spacing: -0.01em !important;
+}
+
+[data-pmd-stripe-form="1"] input:not(.__PrivateStripeElement-input) {
+  height: 44px !important;
+  min-height: 44px !important;
+  max-height: 44px !important;
+  padding: 0 14px !important;
+  border-radius: 16px !important;
+  background: var(--theme-surface) !important;
+  border: 1px solid var(--theme-border) !important;
+  box-shadow: none !important;
+  outline: none !important;
+  color: var(--theme-text-primary) !important;
+  -webkit-text-fill-color: var(--theme-text-primary) !important;
+  caret-color: var(--theme-text-primary) !important;
+  font-size: 14px !important;
+  font-weight: 600 !important;
+  letter-spacing: -0.01em !important;
+}
+
+[data-pmd-stripe-form="1"] input:not(.__PrivateStripeElement-input)::placeholder {
+  color: var(--theme-text-muted) !important;
+  -webkit-text-fill-color: var(--theme-text-muted) !important;
+  opacity: 0.72 !important;
+  font-size: 14px !important;
+  font-weight: 600 !important;
+}
+
+[data-pmd-stripe-form="1"] .mt-1.p-3.border.rounded-2xl.w-full {
+  box-sizing: border-box !important;
+  width: 100% !important;
+  height: 44px !important;
+  min-height: 44px !important;
+  max-height: 44px !important;
+  padding: 0 14px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  border-radius: 16px !important;
+  background: var(--theme-surface) !important;
+  border: 1px solid var(--theme-border) !important;
+  box-shadow: none !important;
+  overflow: hidden !important;
+}
+
+[data-pmd-stripe-form="1"] .StripeElement,
+[data-pmd-stripe-form="1"] .__PrivateStripeElement {
+  width: 100% !important;
+}
+
+[data-pmd-payment-selected-detail="1"] .text-paydine-elegant-gray {
+  font-size: 13px !important;
+  font-weight: 650 !important;
+  color: var(--theme-text-muted) !important;
+  -webkit-text-fill-color: var(--theme-text-muted) !important;
+}
+
+[data-pmd-payment-selected-detail="1"] .mb-4 {
+  margin-bottom: 10px !important;
+}
+
+[data-pmd-stripe-native-button="1"] {
+  margin-top: 12px !important;
+}
+/* PMD_STRIPE_FORM_FIELD_UNIFY_20260605 END */
+
+/* PMD_STRIPE_CARD_SURFACE_UNIFY_FINAL_20260605 START */
+[data-pmd-stripe-form="1"] {
+  background: transparent !important;
+}
+
+[data-pmd-stripe-form="1"] label {
+  color: var(--theme-text-primary) !important;
+  -webkit-text-fill-color: var(--theme-text-primary) !important;
+  font-size: 13px !important;
+  line-height: 1.2 !important;
+  font-weight: 650 !important;
+  margin-bottom: 6px !important;
+}
+
+[data-pmd-stripe-form="1"] input:not(.__PrivateStripeElement-input),
+[data-pmd-stripe-form="1"] .mt-1.p-3.border.rounded-2xl.w-full {
+  background: rgb(250, 249, 243) !important;
+  border-color: var(--theme-border) !important;
+  color: var(--theme-text-primary) !important;
+  -webkit-text-fill-color: var(--theme-text-primary) !important;
+  caret-color: var(--theme-text-primary) !important;
+  box-shadow: none !important;
+  height: 44px !important;
+  min-height: 44px !important;
+  max-height: 44px !important;
+  border-radius: 9999px !important;
+  box-sizing: border-box !important;
+}
+
+[data-pmd-stripe-form="1"] input:not(.__PrivateStripeElement-input) {
+  padding: 0 14px !important;
+}
+
+[data-pmd-stripe-form="1"] .mt-1.p-3.border.rounded-2xl.w-full {
+  padding: 0 14px !important;
+  display: flex !important;
+  align-items: center !important;
+  overflow: hidden !important;
+}
+
+[data-pmd-stripe-form="1"] .StripeElement,
+[data-pmd-stripe-form="1"] .__PrivateStripeElement {
+  background: transparent !important;
+  width: 100% !important;
+}
+
+[data-pmd-stripe-native-button="1"] {
+  margin-top: 12px !important;
+  background: rgb(6, 47, 42) !important;
+  box-shadow: rgba(6, 47, 42, 0.22) 0 12px 26px !important;
+}
+
+[data-pmd-stripe-native-button="1"] > span[aria-hidden="true"] {
+  background: rgb(6, 47, 42) !important;
+  box-shadow: rgba(6, 47, 42, 0.22) 0 12px 26px !important;
+}
+/* PMD_STRIPE_CARD_SURFACE_UNIFY_FINAL_20260605 END */
+
+/* PMD_CHECKOUT_MODAL_SURFACE_UNIFY_20260605 START */
+
+/*
+  Final checkout surface system:
+  - Modal shell: warm cream
+  - Cards, rows, inputs: same soft cream
+  - No pure white cards inside checkout
+  - Borders/shadows create separation instead of random background colors
+*/
+
+[data-pmd-checkout-design-system="1"].pmd-checkout-modal {
+  background: rgb(250, 249, 243) !important;
+  background-color: rgb(250, 249, 243) !important;
+}
+
+[data-pmd-checkout-design-system="1"] .pmd-checkout-body,
+[data-pmd-checkout-scroll="1"] {
+  background: rgb(250, 249, 243) !important;
+  background-color: rgb(250, 249, 243) !important;
+}
+
+[data-pmd-checkout-design-system="1"] .surface-sub,
+[data-pmd-checkout-design-system="1"] .pmd-checkout-total-card,
+[data-pmd-checkout-design-system="1"] .pmd-checkout-payment-card,
+[data-pmd-checkout-design-system="1"] .pmd-checkout-item-card,
+[data-pmd-checkout-design-system="1"] .pmd-checkout-meta-row,
+[data-pmd-checkout-design-system="1"] .pmd-checkout-list-scroll,
+[data-pmd-checkout-scroll="1"] .surface-sub,
+[data-pmd-checkout-scroll="1"] .pmd-checkout-total-card,
+[data-pmd-checkout-scroll="1"] .pmd-checkout-payment-card,
+[data-pmd-checkout-scroll="1"] .pmd-checkout-item-card,
+[data-pmd-checkout-scroll="1"] .pmd-checkout-meta-row,
+[data-pmd-checkout-scroll="1"] .pmd-checkout-list-scroll {
+  background: rgb(250, 249, 243) !important;
+  background-color: rgb(250, 249, 243) !important;
+  border-color: color-mix(in srgb, #b88940 22%, rgba(6, 47, 42, 0.14) 78%) !important;
+  color: var(--theme-text-primary) !important;
+  box-shadow: 0 10px 24px rgba(6, 47, 42, 0.045) !important;
+}
+
+/* Inner item rows should not become random white pills */
+[data-pmd-checkout-design-system="1"] .pmd-checkout-item-row,
+[data-pmd-checkout-scroll="1"] .pmd-checkout-item-row,
+[data-pmd-checkout-design-system="1"] .pmd-table-order-item-row,
+[data-pmd-checkout-scroll="1"] .pmd-table-order-item-row {
+  background: transparent !important;
+  background-color: transparent !important;
+  color: var(--theme-text-primary) !important;
+}
+
+/* Split bill panels, people rows, chips, and item assignment cards */
+[data-pmd-checkout-design-system="1"] [data-pmd-split-method-real],
+[data-pmd-checkout-scroll="1"] [data-pmd-split-method-real],
+[data-pmd-checkout-design-system="1"] [data-pmd-split-guest-stepper],
+[data-pmd-checkout-scroll="1"] [data-pmd-split-guest-stepper],
+[data-pmd-checkout-design-system="1"] input,
+[data-pmd-checkout-scroll="1"] input,
+[data-pmd-checkout-design-system="1"] textarea,
+[data-pmd-checkout-scroll="1"] textarea {
+  background: rgb(250, 249, 243) !important;
+  background-color: rgb(250, 249, 243) !important;
+  border-color: color-mix(in srgb, #b88940 25%, rgba(6, 47, 42, 0.14) 75%) !important;
+  color: var(--theme-text-primary) !important;
+  -webkit-text-fill-color: var(--theme-text-primary) !important;
+  box-shadow: none !important;
+}
+
+/* Keep selected / primary buttons dark green */
+[data-pmd-checkout-design-system="1"] button[data-pmd-split-method-real][data-selected="true"],
+[data-pmd-checkout-scroll="1"] button[data-pmd-split-method-real][data-selected="true"],
+[data-pmd-checkout-design-system="1"] button[style*="rgb(6, 47, 42)"],
+[data-pmd-checkout-scroll="1"] button[style*="rgb(6, 47, 42)"] {
+  background: rgb(6, 47, 42) !important;
+  background-color: rgb(6, 47, 42) !important;
+  color: rgb(255, 255, 255) !important;
+  -webkit-text-fill-color: rgb(255, 255, 255) !important;
+}
+
+/* Prevent accidental blue text selection on modal headings/buttons */
+[data-pmd-checkout-design-system="1"] h2,
+[data-pmd-checkout-design-system="1"] h3,
+[data-pmd-checkout-design-system="1"] button,
+[data-pmd-checkout-scroll="1"] h2,
+[data-pmd-checkout-scroll="1"] h3,
+[data-pmd-checkout-scroll="1"] button {
+  user-select: none;
+}
+
+/* Do not block selection inside real form fields */
+[data-pmd-checkout-design-system="1"] input,
+[data-pmd-checkout-design-system="1"] textarea,
+[data-pmd-checkout-scroll="1"] input,
+[data-pmd-checkout-scroll="1"] textarea {
+  user-select: text;
+}
+
+/* PMD_CHECKOUT_MODAL_SURFACE_UNIFY_20260605 END */
+
+/* PMD_FORCE_CHECKOUT_WARM_SURFACES_FINAL_20260605 START */
+
+/*
+  Checkout-only final surface cleanup.
+  Fixes remaining pure-white panels/fields in:
+  - Split bill
+  - Payment detail/card fields
+  - Coupon input
+  - People rows / split rows
+  - Nested rounded cards inside checkout
+*/
+
+[data-pmd-checkout-design-system="1"],
+[data-pmd-checkout-scroll="1"] {
+  --pmd-checkout-shell-final: rgb(250, 249, 243);
+  --pmd-checkout-panel-final: rgb(247, 245, 238);
+  --pmd-checkout-field-final: rgb(247, 245, 238);
+  --pmd-checkout-border-final: color-mix(in srgb, #b88940 28%, rgba(6, 47, 42, 0.14) 72%);
+  --pmd-checkout-shadow-final: 0 10px 24px rgba(6, 47, 42, 0.045);
+}
+
+[data-pmd-checkout-design-system="1"].pmd-checkout-modal,
+[data-pmd-checkout-design-system="1"] .pmd-checkout-body,
+[data-pmd-checkout-scroll="1"] {
+  background: var(--pmd-checkout-shell-final) !important;
+  background-color: var(--pmd-checkout-shell-final) !important;
+}
+
+/* Main checkout cards/panels */
+[data-pmd-checkout-scroll="1"] .surface-sub,
+[data-pmd-checkout-scroll="1"] .pmd-checkout-total-card,
+[data-pmd-checkout-scroll="1"] .pmd-checkout-payment-card,
+[data-pmd-checkout-scroll="1"] .pmd-checkout-item-card,
+[data-pmd-checkout-scroll="1"] .pmd-checkout-list-scroll,
+[data-pmd-checkout-scroll="1"] .pmd-checkout-meta-row,
+[data-pmd-checkout-scroll="1"] div[class*="rounded-2xl"][class*="border"]:not(button):not([data-pmd-payment-header-icon]),
+[data-pmd-checkout-scroll="1"] div[class*="rounded-3xl"]:not(button):not([data-pmd-payment-header-icon]) {
+  background: var(--pmd-checkout-panel-final) !important;
+  background-color: var(--pmd-checkout-panel-final) !important;
+  border-color: var(--pmd-checkout-border-final) !important;
+  box-shadow: var(--pmd-checkout-shadow-final) !important;
+  color: var(--theme-text-primary) !important;
+}
+
+/* Inner item rows should stay clean, not separate white pills */
+[data-pmd-checkout-scroll="1"] .pmd-checkout-item-row,
+[data-pmd-checkout-scroll="1"] .pmd-table-order-item-row {
+  background: transparent !important;
+  background-color: transparent !important;
+  box-shadow: none !important;
+}
+
+/* Inputs, coupon, textarea, Stripe visual wrapper */
+[data-pmd-checkout-scroll="1"] input:not(.__PrivateStripeElement-input),
+[data-pmd-checkout-scroll="1"] textarea,
+[data-pmd-checkout-scroll="1"] form[data-pmd-stripe-form="1"] input:not(.__PrivateStripeElement-input),
+[data-pmd-checkout-scroll="1"] form[data-pmd-stripe-form="1"] .mt-1.border,
+[data-pmd-checkout-scroll="1"] form[data-pmd-stripe-form="1"] .StripeElement,
+[data-pmd-checkout-scroll="1"] form[data-pmd-stripe-form="1"] .__PrivateStripeElement {
+  background: var(--pmd-checkout-field-final) !important;
+  background-color: var(--pmd-checkout-field-final) !important;
+  border-color: var(--pmd-checkout-border-final) !important;
+  color: var(--theme-text-primary) !important;
+  -webkit-text-fill-color: var(--theme-text-primary) !important;
+  box-shadow: none !important;
+}
+
+/* Catch remaining inline white backgrounds inside checkout, but do not touch green buttons/icons/images */
+[data-pmd-checkout-scroll="1"] [style*="background: rgb(255"]:not(button):not(svg):not(path):not(img):not([data-pmd-payment-header-icon]),
+[data-pmd-checkout-scroll="1"] [style*="background-color: rgb(255"]:not(button):not(svg):not(path):not(img):not([data-pmd-payment-header-icon]),
+[data-pmd-checkout-scroll="1"] [style*="background: #fff"]:not(button):not(svg):not(path):not(img):not([data-pmd-payment-header-icon]),
+[data-pmd-checkout-scroll="1"] [style*="background-color: #fff"]:not(button):not(svg):not(path):not(img):not([data-pmd-payment-header-icon]),
+[data-pmd-checkout-scroll="1"] [style*="var(--theme-surface)"]:not(button):not(svg):not(path):not(img):not([data-pmd-payment-header-icon]) {
+  background: var(--pmd-checkout-panel-final) !important;
+  background-color: var(--pmd-checkout-panel-final) !important;
+}
+
+/* Split bill method buttons: unselected should also be warm, selected stays green */
+[data-pmd-checkout-scroll="1"] button[data-pmd-split-method-real]:not([style*="rgb(6, 47, 42)"]) {
+  background: var(--pmd-checkout-field-final) !important;
+  background-color: var(--pmd-checkout-field-final) !important;
+  border-color: color-mix(in srgb, #b88940 48%, rgba(6, 47, 42, 0.12) 52%) !important;
+  color: var(--theme-text-primary) !important;
+  -webkit-text-fill-color: var(--theme-text-primary) !important;
+}
+
+/* Payment method buttons: remove pure white look */
+[data-pmd-checkout-scroll="1"] .payment-method-button,
+[data-pmd-checkout-scroll="1"] button.surface-sub,
+[data-pmd-checkout-scroll="1"] button[class*="surface-sub"]:not([style*="rgb(6, 47, 42)"]):not([data-pmd-stripe-native-button]) {
+  background: var(--pmd-checkout-field-final) !important;
+  background-color: var(--pmd-checkout-field-final) !important;
+  border-color: var(--pmd-checkout-border-final) !important;
+}
+
+/* Keep primary / selected / pay buttons dark green */
+[data-pmd-checkout-scroll="1"] button[data-pmd-stripe-native-button="1"],
+[data-pmd-checkout-scroll="1"] button[style*="rgb(6, 47, 42)"],
+[data-pmd-checkout-scroll="1"] button[style*="#062F2A"] {
+  background: rgb(6, 47, 42) !important;
+  background-color: rgb(6, 47, 42) !important;
+  color: rgb(255, 255, 255) !important;
+  -webkit-text-fill-color: rgb(255, 255, 255) !important;
+}
+
+/* Primary button children must stay white */
+[data-pmd-checkout-scroll="1"] button[data-pmd-stripe-native-button="1"] *,
+[data-pmd-checkout-scroll="1"] button[style*="rgb(6, 47, 42)"] *,
+[data-pmd-checkout-scroll="1"] button[style*="#062F2A"] * {
+  color: rgb(255, 255, 255) !important;
+  -webkit-text-fill-color: rgb(255, 255, 255) !important;
+}
+
+/* PMD_FORCE_CHECKOUT_WARM_SURFACES_FINAL_20260605 END */
+
+/* PMD_CHECKOUT_CONSISTENCY_PASS_2_20260605 START */
+
+/*
+  Final checkout consistency pass:
+  - fixed quantity controls alignment in My Order
+  - coupon field surface + border + shape
+  - Stripe/native card fields unified
+  - Pay button unified with checkout primary buttons
+  - nested white surfaces inside checkout removed
+*/
+
+[data-pmd-checkout-design-system="1"],
+[data-pmd-checkout-scroll="1"] {
+  --pmd-checkout-shell-final: rgb(250, 249, 243);
+  --pmd-checkout-panel-final: rgb(247, 245, 238);
+  --pmd-checkout-field-final: rgb(247, 245, 238);
+  --pmd-checkout-border-final: color-mix(in srgb, #b88940 24%, rgba(6, 47, 42, 0.16) 76%);
+  --pmd-checkout-shadow-soft: 0 10px 24px rgba(6, 47, 42, 0.045);
+  --pmd-checkout-primary: #062F2A;
+  --pmd-checkout-primary-2: #0B3F39;
+}
+
+/* shell + common nested surfaces */
+[data-pmd-checkout-design-system="1"].pmd-checkout-modal,
+[data-pmd-checkout-design-system="1"] .pmd-checkout-body,
+[data-pmd-checkout-scroll="1"],
+[data-pmd-checkout-scroll="1"] .surface-sub,
+[data-pmd-checkout-scroll="1"] .pmd-checkout-total-card,
+[data-pmd-checkout-scroll="1"] .pmd-checkout-payment-card,
+[data-pmd-checkout-scroll="1"] .pmd-checkout-item-card,
+[data-pmd-checkout-scroll="1"] .pmd-checkout-meta-row,
+[data-pmd-checkout-scroll="1"] .rounded-2xl.border,
+[data-pmd-checkout-scroll="1"] .rounded-3xl,
+[data-pmd-checkout-scroll="1"] .rounded-3xl.border {
+  background: var(--pmd-checkout-panel-final) !important;
+  background-color: var(--pmd-checkout-panel-final) !important;
+  border-color: var(--pmd-checkout-border-final) !important;
+  box-shadow: none !important;
+}
+
+/* generic checkout fields */
+[data-pmd-checkout-scroll="1"] input:not([type="range"]):not([type="radio"]):not([type="checkbox"]):not(.__PrivateStripeElement-input):not(.__PrivateStripeElement-input),
+[data-pmd-checkout-scroll="1"] textarea,
+[data-pmd-checkout-scroll="1"] select {
+  background: var(--pmd-checkout-field-final) !important;
+  background-color: var(--pmd-checkout-field-final) !important;
+  color: var(--theme-text-primary) !important;
+  -webkit-text-fill-color: var(--theme-text-primary) !important;
+  border: 1px solid var(--pmd-checkout-border-final) !important;
+  border-radius: 9999px !important;
+  min-height: 54px !important;
+  height: 54px !important;
+  padding: 0 18px !important;
+  box-shadow: none !important;
+  outline: none !important;
+  font-size: 16px !important;
+  font-weight: 600 !important;
+  letter-spacing: -0.01em !important;
+  caret-color: var(--theme-text-primary) !important;
+}
+
+[data-pmd-checkout-scroll="1"] input::placeholder,
+[data-pmd-checkout-scroll="1"] textarea::placeholder {
+  color: var(--theme-text-muted) !important;
+  opacity: 1 !important;
+}
+
+/* coupon specifically */
+[data-pmd-checkout-scroll="1"] input[placeholder="Coupon code"] {
+  background: var(--pmd-checkout-field-final) !important;
+  background-color: var(--pmd-checkout-field-final) !important;
+  border: 1px solid var(--pmd-checkout-border-final) !important;
+  border-radius: 9999px !important;
+  min-height: 54px !important;
+  height: 54px !important;
+  padding: 0 20px !important;
+  box-shadow: none !important;
+}
+
+[data-pmd-checkout-scroll="1"] input[placeholder="Coupon code"] + button {
+  min-width: 156px !important;
+  height: 54px !important;
+  border-radius: 9999px !important;
+  border: 1px solid var(--pmd-checkout-border-final) !important;
+  background: linear-gradient(135deg, var(--pmd-checkout-primary) 0%, var(--pmd-checkout-primary-2) 100%) !important;
+  color: #ffffff !important;
+  -webkit-text-fill-color: #ffffff !important;
+  box-shadow: none !important;
+  font-size: 16px !important;
+  font-weight: 700 !important;
+}
+
+[data-pmd-checkout-scroll="1"] input[placeholder="Coupon code"] + button[disabled] {
+  background: color-mix(in srgb, var(--pmd-checkout-primary) 35%, white 65%) !important;
+  border-color: color-mix(in srgb, var(--pmd-checkout-primary) 22%, var(--pmd-checkout-border-final) 78%) !important;
+  color: rgba(255,255,255,0.98) !important;
+  -webkit-text-fill-color: rgba(255,255,255,0.98) !important;
+  opacity: 1 !important;
+}
+
+/* custom tip input */
+[data-pmd-checkout-scroll="1"] input[placeholder="Custom"] {
+  background: var(--pmd-checkout-field-final) !important;
+  background-color: var(--pmd-checkout-field-final) !important;
+  border: 1px solid var(--pmd-checkout-border-final) !important;
+}
+
+/* Stripe / native payment form */
+[data-pmd-checkout-scroll="1"] form[data-pmd-stripe-form="1"] {
+  width: 100% !important;
+}
+
+[data-pmd-checkout-scroll="1"] form[data-pmd-stripe-form="1"] label {
+  font-size: 13px !important;
+  line-height: 1.2 !important;
+  font-weight: 650 !important;
+  color: var(--theme-text-primary) !important;
+  -webkit-text-fill-color: var(--theme-text-primary) !important;
+  margin-bottom: 6px !important;
+}
+
+[data-pmd-checkout-scroll="1"] form[data-pmd-stripe-form="1"] input:not(.__PrivateStripeElement-input),
+[data-pmd-checkout-scroll="1"] form[data-pmd-stripe-form="1"] .StripeElement,
+[data-pmd-checkout-scroll="1"] form[data-pmd-stripe-form="1"] .__PrivateStripeElement,
+[data-pmd-checkout-scroll="1"] form[data-pmd-stripe-form="1"] .mt-1.p-3.border.rounded-2xl.w-full {
+  background: var(--pmd-checkout-field-final) !important;
+  background-color: var(--pmd-checkout-field-final) !important;
+  border-color: var(--pmd-checkout-border-final) !important;
+  border-radius: 9999px !important;
+  box-shadow: none !important;
+}
+
+[data-pmd-checkout-scroll="1"] form[data-pmd-stripe-form="1"] .mt-1.p-3.border.rounded-2xl.w-full {
+  min-height: 54px !important;
+  height: 54px !important;
+  padding: 0 18px !important;
+  display: flex !important;
+  align-items: center !important;
+  overflow: hidden !important;
+}
+
+[data-pmd-checkout-scroll="1"] form[data-pmd-stripe-form="1"] [data-pmd-stripe-native-button="1"] {
+  width: 100% !important;
+  min-width: 100% !important;
+  max-width: 100% !important;
+  min-height: 56px !important;
+  height: 56px !important;
+  border-radius: 9999px !important;
+  border: 1px solid color-mix(in srgb, #062F2A 24%, var(--pmd-checkout-border-final) 76%) !important;
+  background: linear-gradient(135deg, var(--pmd-checkout-primary) 0%, var(--pmd-checkout-primary-2) 100%) !important;
+  color: #ffffff !important;
+  -webkit-text-fill-color: #ffffff !important;
+  box-shadow: 0 12px 24px rgba(6, 47, 42, 0.16) !important;
+  font-size: 16px !important;
+  font-weight: 700 !important;
+}
+
+[data-pmd-checkout-scroll="1"] form[data-pmd-stripe-form="1"] [data-pmd-stripe-native-button="1"] *,
+[data-pmd-checkout-scroll="1"] form[data-pmd-stripe-form="1"] [data-pmd-stripe-native-button="1"] svg,
+[data-pmd-checkout-scroll="1"] form[data-pmd-stripe-form="1"] [data-pmd-stripe-native-button="1"] svg * {
+  color: #ffffff !important;
+  stroke: #ffffff !important;
+  -webkit-text-fill-color: #ffffff !important;
+}
+
+/* payment method buttons */
+[data-pmd-checkout-scroll="1"] .h-14.w-20.surface-sub,
+[data-pmd-checkout-scroll="1"] button[class*="h-14"][class*="w-20"] {
+  background: var(--pmd-checkout-panel-final) !important;
+  background-color: var(--pmd-checkout-panel-final) !important;
+  border: 1px solid var(--pmd-checkout-border-final) !important;
+  border-radius: 9999px !important;
+  box-shadow: none !important;
+}
+
+/* My Order quantity cluster: keep plus/price/minus in one line */
+[data-pmd-checkout-scroll="1"] .pmd-checkout-item-row {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  gap: 14px !important;
+}
+
+[data-pmd-checkout-scroll="1"] .pmd-checkout-item-row > :first-child {
+  min-width: 0 !important;
+}
+
+[data-pmd-checkout-scroll="1"] .pmd-checkout-item-row > div:last-child {
+  display: grid !important;
+  grid-auto-flow: column !important;
+  grid-auto-columns: max-content !important;
+  align-items: center !important;
+  justify-content: end !important;
+  column-gap: 14px !important;
+  flex-shrink: 0 !important;
+  white-space: nowrap !important;
+}
+
+[data-pmd-checkout-scroll="1"] .pmd-checkout-item-row > div:last-child button {
+  width: 56px !important;
+  min-width: 56px !important;
+  height: 56px !important;
+  min-height: 56px !important;
+  border-radius: 9999px !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  flex-shrink: 0 !important;
+}
+
+[data-pmd-checkout-scroll="1"] .pmd-checkout-item-row > div:last-child span,
+[data-pmd-checkout-scroll="1"] .pmd-checkout-item-row > div:last-child p,
+[data-pmd-checkout-scroll="1"] .pmd-checkout-item-row > div:last-child strong {
+  min-width: 88px !important;
+  text-align: center !important;
+  white-space: nowrap !important;
+  flex-shrink: 0 !important;
+}
+
+/* split-bill inner chips / people rows / list rows */
+[data-pmd-checkout-scroll="1"] [data-pmd-split-method-real],
+[data-pmd-checkout-scroll="1"] [data-pmd-split-guest-stepper],
+[data-pmd-checkout-scroll="1"] [data-pmd-split-bill-stable="1"],
+[data-pmd-checkout-scroll="1"] .rounded-full.border,
+[data-pmd-checkout-scroll="1"] .rounded-2xl.border.p-3,
+[data-pmd-checkout-scroll="1"] .rounded-2xl.p-3.shadow-sm,
+[data-pmd-checkout-scroll="1"] .rounded-2xl.p-3.text-left.shadow-sm {
+  background: var(--pmd-checkout-panel-final) !important;
+  background-color: var(--pmd-checkout-panel-final) !important;
+  border-color: var(--pmd-checkout-border-final) !important;
+  box-shadow: none !important;
+}
+
+/* order type row / helper rows */
+[data-pmd-checkout-scroll="1"] .pmd-checkout-meta-row {
+  min-height: 56px !important;
+  border-radius: 9999px !important;
+  padding-left: 18px !important;
+  padding-right: 18px !important;
+}
+
+/* remove stray pure-white backgrounds inside checkout only */
+[data-pmd-checkout-scroll="1"] [style*="background: #ffffff"],
+[data-pmd-checkout-scroll="1"] [style*="background:#ffffff"],
+[data-pmd-checkout-scroll="1"] [style*="background: #fff"],
+[data-pmd-checkout-scroll="1"] [style*="background:#fff"],
+[data-pmd-checkout-scroll="1"] [style*="background-color: #ffffff"],
+[data-pmd-checkout-scroll="1"] [style*="background-color:#ffffff"],
+[data-pmd-checkout-scroll="1"] [style*="background-color: #fff"],
+[data-pmd-checkout-scroll="1"] [style*="background-color:#fff"] {
+  background: var(--pmd-checkout-panel-final) !important;
+  background-color: var(--pmd-checkout-panel-final) !important;
+}
+
+/* PMD_CHECKOUT_CONSISTENCY_PASS_2_20260605 END */
+
+
+/* PMD_SPLIT_GUEST_COUNT_BORDER_FIX_20260605 START */
+/* Visual-only frame consistency for the filled circular Split bill guest +/- controls. */
+[data-pmd-checkout-design-system="1"] [data-pmd-checkout-scroll="1"] button[data-pmd-split-guest-count-control] {
+  border: 1px solid color-mix(in srgb, #062F2A 82%, #b88940 18%) !important;
+  box-shadow: none !important;
+}
+/* PMD_SPLIT_GUEST_COUNT_BORDER_FIX_20260605 END */
+
+/* PMD_COUPON_APPLY_DISABLED_FIX_20260605 START */
+
+/* Coupon field + disabled Apply button must stay readable and match checkout frames. */
+[data-pmd-checkout-scroll="1"] input[placeholder="Coupon code"] {
+  background: var(--pmd-checkout-field-final, rgb(247, 245, 238)) !important;
+  background-color: var(--pmd-checkout-field-final, rgb(247, 245, 238)) !important;
+  border: 1px solid var(--pmd-checkout-border-final, var(--theme-border)) !important;
+  color: var(--theme-text-primary) !important;
+  -webkit-text-fill-color: var(--theme-text-primary) !important;
+  height: 54px !important;
+  min-height: 54px !important;
+  border-radius: 9999px !important;
+  padding-left: 18px !important;
+  padding-right: 18px !important;
+  font-size: 16px !important;
+  font-weight: 650 !important;
+  box-shadow: none !important;
+}
+
+[data-pmd-checkout-scroll="1"] input[placeholder="Coupon code"]::placeholder {
+  color: var(--theme-text-muted) !important;
+  opacity: 0.72 !important;
+  -webkit-text-fill-color: var(--theme-text-muted) !important;
+}
+
+[data-pmd-checkout-scroll="1"] input[placeholder="Coupon code"] + button {
+  height: 54px !important;
+  min-height: 54px !important;
+  border-radius: 9999px !important;
+  border: 1px solid var(--pmd-checkout-border-final, var(--theme-border)) !important;
+  background: var(--pmd-checkout-field-final, rgb(247, 245, 238)) !important;
+  background-color: var(--pmd-checkout-field-final, rgb(247, 245, 238)) !important;
+  color: #062F2A !important;
+  -webkit-text-fill-color: #062F2A !important;
+  font-size: 16px !important;
+  font-weight: 750 !important;
+  opacity: 1 !important;
+  box-shadow: none !important;
+}
+
+[data-pmd-checkout-scroll="1"] input[placeholder="Coupon code"] + button:disabled,
+[data-pmd-checkout-scroll="1"] input[placeholder="Coupon code"] + button[disabled] {
+  background: color-mix(in srgb, var(--pmd-checkout-field-final, rgb(247, 245, 238)) 82%, #9aa7a0 18%) !important;
+  background-color: color-mix(in srgb, var(--pmd-checkout-field-final, rgb(247, 245, 238)) 82%, #9aa7a0 18%) !important;
+  border-color: color-mix(in srgb, var(--pmd-checkout-border-final, var(--theme-border)) 75%, #9aa7a0 25%) !important;
+  color: rgba(6, 47, 42, 0.72) !important;
+  -webkit-text-fill-color: rgba(6, 47, 42, 0.72) !important;
+  opacity: 1 !important;
+  cursor: not-allowed !important;
+}
+
+/* Custom tip field should match the same frame system. */
+[data-pmd-checkout-scroll="1"] input[data-pmd-custom-tip-shows-selected-amount="1"] {
+  background: var(--pmd-checkout-field-final, rgb(247, 245, 238)) !important;
+  background-color: var(--pmd-checkout-field-final, rgb(247, 245, 238)) !important;
+  border: 1px solid var(--pmd-checkout-border-final, var(--theme-border)) !important;
+  color: var(--theme-text-primary) !important;
+  -webkit-text-fill-color: var(--theme-text-primary) !important;
+  height: 54px !important;
+  min-height: 54px !important;
+  border-radius: 9999px !important;
+  font-size: 16px !important;
+  font-weight: 750 !important;
+  box-shadow: none !important;
+}
+
+[data-pmd-checkout-scroll="1"] input[data-pmd-custom-tip-shows-selected-amount="1"]::placeholder {
+  color: var(--theme-text-muted) !important;
+  opacity: 0.72 !important;
+  -webkit-text-fill-color: var(--theme-text-muted) !important;
+}
+
+/* PMD_COUPON_APPLY_DISABLED_FIX_20260605 END */
+
+/* PMD_COUPON_APPLY_VISUAL_ONLY_FIX_20260605 START */
+
+/*
+  VISUAL ONLY.
+  Do not touch React logic.
+  Fix only the coupon input + Apply button colors.
+*/
+
+html body [data-pmd-checkout-scroll="1"] input[placeholder="Coupon code"] {
+  background: var(--pmd-checkout-field-final, rgb(247, 245, 238)) !important;
+  background-color: var(--pmd-checkout-field-final, rgb(247, 245, 238)) !important;
+  border: 1px solid var(--pmd-checkout-border-final, var(--theme-border)) !important;
+  color: var(--theme-text-primary) !important;
+  -webkit-text-fill-color: var(--theme-text-primary) !important;
+  opacity: 1 !important;
+  box-shadow: none !important;
+}
+
+html body [data-pmd-checkout-scroll="1"] input[placeholder="Coupon code"]::placeholder {
+  color: var(--theme-text-muted) !important;
+  -webkit-text-fill-color: var(--theme-text-muted) !important;
+  opacity: 0.72 !important;
+}
+
+html body [data-pmd-checkout-scroll="1"] input[placeholder="Coupon code"] + button {
+  opacity: 1 !important;
+  box-shadow: none !important;
+  border-width: 1px !important;
+  border-style: solid !important;
+}
+
+/* Disabled Apply: readable, not white text */
+html body [data-pmd-checkout-scroll="1"] input[placeholder="Coupon code"] + button:disabled {
+  background: var(--pmd-checkout-field-final, rgb(247, 245, 238)) !important;
+  background-color: var(--pmd-checkout-field-final, rgb(247, 245, 238)) !important;
+  border-color: var(--pmd-checkout-border-final, var(--theme-border)) !important;
+  color: var(--theme-text-muted) !important;
+  -webkit-text-fill-color: var(--theme-text-muted) !important;
+  opacity: 1 !important;
+}
+
+/* Enabled Apply: same dark green as main buttons */
+html body [data-pmd-checkout-scroll="1"] input[placeholder="Coupon code"] + button:not(:disabled) {
+  background: #062F2A !important;
+  background-color: #062F2A !important;
+  border-color: #062F2A !important;
+  color: #ffffff !important;
+  -webkit-text-fill-color: #ffffff !important;
+  opacity: 1 !important;
+}
+
+html body [data-pmd-checkout-scroll="1"] input[placeholder="Coupon code"] + button:not(:disabled) *,
+html body [data-pmd-checkout-scroll="1"] input[placeholder="Coupon code"] + button:not(:disabled) span {
+  color: #ffffff !important;
+  -webkit-text-fill-color: #ffffff !important;
+}
+
+/* PMD_COUPON_APPLY_VISUAL_ONLY_FIX_20260605 END */
+
+/* PMD_ADD_TIP_PANEL_BG_CSS_ONLY_20260605 START */
+
+/*
+  VISUAL ONLY.
+  Fix only the background behind Add tip / coupon section.
+  No React logic, no payment logic, no coupon logic, no cart/plus-minus logic.
+*/
+
+html body [data-pmd-checkout-scroll="1"] [data-pmd-payment-real-panel="tip-coupon"] {
+  background: transparent !important;
+  background-color: transparent !important;
+  background-image: none !important;
+  border-color: transparent !important;
+  box-shadow: none !important;
+}
+
+/* Inner label/row wrappers behind Add tip should not create a separate card color */
+html body [data-pmd-checkout-scroll="1"] [data-pmd-payment-real-panel="tip-coupon"] > div,
+html body [data-pmd-checkout-scroll="1"] [data-pmd-payment-real-panel="tip-coupon"] > div > div {
+  background: transparent !important;
+  background-color: transparent !important;
+  background-image: none !important;
+  box-shadow: none !important;
+}
+
+/* Keep actual controls styled, not transparent */
+html body [data-pmd-checkout-scroll="1"] [data-pmd-payment-real-panel="tip-coupon"] button,
+html body [data-pmd-checkout-scroll="1"] [data-pmd-payment-real-panel="tip-coupon"] input {
+  background-image: none !important;
+}
+
+/* Selected 0% / active tip button stays dark green */
+html body [data-pmd-checkout-scroll="1"] [data-pmd-payment-real-panel="tip-coupon"] button[style*="rgb(6, 47, 42)"],
+html body [data-pmd-checkout-scroll="1"] [data-pmd-payment-real-panel="tip-coupon"] button[style*="#062F2A"] {
+  background: #062F2A !important;
+  background-color: #062F2A !important;
+  border-color: #062F2A !important;
+  color: #FFFFFF !important;
+  -webkit-text-fill-color: #FFFFFF !important;
+}
+
+/* PMD_ADD_TIP_PANEL_BG_CSS_ONLY_20260605 END */
+
+/* PMD_REAL_CHECKOUT_SECTION_WRAPPERS_FLAT_20260606 START */
+
+/*
+  VISUAL ONLY.
+  These are former surface-sub section wrappers in the checkout modal.
+  They should sit on the modal background, not look like separate cards.
+  Real controls, item rows, buttons, payment logic, cart logic are untouched.
+*/
+
+html body [data-pmd-checkout-design-system="1"] [data-pmd-checkout-scroll="1"] .pmd-checkout-flat-section {
+  background: transparent !important;
+  background-color: transparent !important;
+  background-image: none !important;
+  box-shadow: none !important;
+  border-color: transparent !important;
+}
+
+/* Keep actual framed rows/controls readable */
+html body [data-pmd-checkout-design-system="1"] [data-pmd-checkout-scroll="1"] .pmd-checkout-item-card,
+html body [data-pmd-checkout-design-system="1"] [data-pmd-checkout-scroll="1"] .pmd-checkout-item-row,
+html body [data-pmd-checkout-design-system="1"] [data-pmd-checkout-scroll="1"] .pmd-checkout-meta-row {
+  background-color: rgb(250, 249, 243) !important;
+}
+
+/* PMD_REAL_CHECKOUT_SECTION_WRAPPERS_FLAT_20260606 END */
+
+/* PMD_FLATTEN_CHECKOUT_META_ROWS_ONLY_20260606 START */
+
+/*
+  VISUAL ONLY.
+  Flatten only checkout meta rows like Order type / Delivery.
+  Keeps text, border, spacing, buttons, payment/cart logic untouched.
+*/
+
+html body [data-pmd-checkout-design-system="1"] [data-pmd-checkout-scroll="1"] .pmd-checkout-meta-row {
+  background: transparent !important;
+  background-color: transparent !important;
+  background-image: none !important;
+  box-shadow: none !important;
+}
+
+/* PMD_FLATTEN_CHECKOUT_META_ROWS_ONLY_20260606 END */
+
+/* PMD_FLATTEN_EXACT_CHECKOUT_FRAMES_SAFE_20260606 START */
+
+/*
+  VISUAL ONLY.
+  Flatten exact checkout frame/card divs.
+  Buttons, inputs, Stripe fields, payment forms, and logic are not targeted.
+*/
+
+html body [data-pmd-checkout-scroll="1"] [data-pmd-payment-header-copy-row="1"],
+html body [data-pmd-checkout-scroll="1"] [data-pmd-split-guest-stepper="1"],
+html body [data-pmd-checkout-scroll="1"] .pmd-checkout-meta-row,
+html body [data-pmd-checkout-scroll="1"] .pmd-checkout-total-card,
+html body [data-pmd-checkout-scroll="1"] .pmd-checkout-flat-section,
+html body [data-pmd-checkout-scroll="1"] .pmd-checkout-list-scroll,
+html body [data-pmd-checkout-scroll="1"] .pmd-checkout-item-card,
+html body [data-pmd-checkout-scroll="1"] .surface-sub.rounded-2xl.p-4.space-y-4,
+html body [data-pmd-checkout-scroll="1"] .surface-sub.rounded-2xl.p-3.space-y-1,
+html body [data-pmd-checkout-scroll="1"] .surface-sub.rounded-2xl.p-3.space-y-2,
+html body [data-pmd-checkout-scroll="1"] .surface-sub.rounded-2xl.p-3.space-y-3,
+html body [data-pmd-checkout-scroll="1"] .surface-sub.rounded-3xl.p-3.space-y-3,
+html body [data-pmd-checkout-scroll="1"] .rounded-2xl.p-3.shadow-sm {
+  background: transparent !important;
+  background-color: transparent !important;
+  background-image: none !important;
+  border-color: transparent !important;
+  box-shadow: none !important;
+}
+
+/* Do not flatten actual payment/card input internals */
+html body [data-pmd-checkout-scroll="1"] [data-pmd-payment-selected-detail="1"],
+html body [data-pmd-checkout-scroll="1"] form[data-pmd-stripe-form="1"],
+html body [data-pmd-checkout-scroll="1"] form[data-pmd-stripe-form="1"] * {
+  box-shadow: revert-layer;
+}
+
+/* PMD_FLATTEN_EXACT_CHECKOUT_FRAMES_SAFE_20260606 END */
+
+/* PMD_HIDE_ORDER_TYPE_TABLE_NUMBER_20260606 START */
+
+/*
+  VISUAL ONLY.
+  Hide Order type / Table number / Order Number meta rows inside checkout cards.
+*/
+
+html body [data-pmd-checkout-scroll="1"] .pmd-checkout-meta-row,
+html body [data-pmd-checkout-scroll="1"] [data-pmd-order-meta-hidden="1"] {
+  display: none !important;
+}
+
+/* PMD_HIDE_ORDER_TYPE_TABLE_NUMBER_20260606 END */
+
+/* PMD_FINAL_REVIEW_SUBMIT_BUTTON_RESTORE_20260605
+   Re-enable only the final paid-card review submit button added for real review storage.
+*/
+html body [data-pmd-final-card="1"] button[data-pmd-submit-review="1"] {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+}
+html body button[data-pmd-submit-review="1"] {
+  display: inline-flex !important;
+}
+
+
+/* PMD_ORGANIC_HIDE_MANUAL_DOCK_20260608
+   Organic Botanical uses the real PayMyDine bottom toolbar now.
+   Any old manual dock copies must not show or catch clicks. */
+[data-pmd-organic-native-dock="1"],
+[data-pmd-organic-dock-action] {
+  display: none !important;
+  pointer-events: none !important;
+}
+
+
+/* PMD_ORGANIC_REAL_TOOLBAR_FORCE_FIXED_20260608
+   Organic Botanical uses the real PayMyDine/Gold toolbar.
+   Hide old manual Organic docks completely. */
+[data-pmd-organic-native-dock="1"],
+[data-pmd-organic-native-dock="1"] *,
+[data-pmd-organic-dock-action],
+[data-pmd-organic-dock-action] * {
+  display: none !important;
+  pointer-events: none !important;
+}
+
+[data-pmd-organic-real-toolbar="1"] {
+  --theme-surface: #fffaf0 !important;
+  --theme-border: #ded3bd !important;
+  --theme-text-primary: #343529 !important;
+  --theme-text-secondary: #716f5e !important;
+  --theme-primary: #b88940 !important;
+  --theme-accent: #b88940 !important;
+  --pmd-v2-page-bg: #fffaf0 !important;
+}
+
+[data-pmd-organic-real-toolbar="1"] [data-pmd-menu-cart-badge="1"] {
+  background: #b88940 !important;
+  background-color: #b88940 !important;
+  color: #ffffff !important;
+  -webkit-text-fill-color: #ffffff !important;
+  border-color: #b88940 !important;
+}
+
+
+/* PMD_MG_WHOLE_MENU_BG_20260611_START */
+:root {
+  --pmd-mg-whole-menu-bg: radial-gradient(circle at 86% 0%, rgba(5, 54, 38, .30) 0%, rgba(2, 25, 17, .16) 22%, rgba(0, 6, 4, .96) 46%, rgba(0, 0, 0, 1) 78%, #000000 100%);
+  --pmd-mg-whole-menu-black: #000000;
+}
+
+/* Host page around the Modern Green iframe */
+html:has(#pmd-modern-green-frame),
+body:has(#pmd-modern-green-frame) {
+  background: #000000 !important;
+  background-color: #000000 !important;
+}
+
+.pmd-customer-page.page--menu:has(#pmd-modern-green-frame),
+.pmd-customer-page:has(#pmd-modern-green-frame),
+.page--menu:has(#pmd-modern-green-frame) {
+  background: var(--pmd-mg-whole-menu-bg) !important;
+  background-color: #000000 !important;
+}
+
+#pmd-modern-green-frame {
+  background: #000000 !important;
+  background-color: #000000 !important;
+}
+/* PMD_MG_WHOLE_MENU_BG_20260611_END */
+
+/* PMD_KAZEN_GLOBAL_CHECKOUT_CLEANED_FOR_WAITER_COMPONENT_20260612 */
+
+/* PMD_KAZEN_FORCE_WAITER_BUTTONS_ONLY_20260612
+   Final emergency override:
+   force checkout shell buttons to exact Kazen waiter/note modal style.
+*/
+html body [data-pmd-kazen-checkout-shell="1"] button,
+html body [data-pmd-kazen-checkout-shell="1"] .kazen-primary,
+html body [data-pmd-kazen-checkout-shell="1"] .kazen-secondary,
+html body [data-pmd-kazen-checkout-shell="1"] .pmd-kazen-payment-action button,
+html body [data-pmd-kazen-checkout-shell="1"] .pmd-kazen-payment-action [data-pmd-stripe-native-button="1"] {
+  border-radius: 0 !important;
+  box-shadow: none !important;
+  background-image: none !important;
+  text-shadow: none !important;
+}
+
+html body [data-pmd-kazen-checkout-shell="1"] .kazen-primary,
+html body [data-pmd-kazen-checkout-shell="1"] button.kazen-primary,
+html body [data-pmd-kazen-checkout-shell="1"] .pmd-kazen-payment-action button,
+html body [data-pmd-kazen-checkout-shell="1"] .pmd-kazen-payment-action [data-pmd-stripe-native-button="1"] {
+  background: rgba(184, 93, 89, .08) !important;
+  background-color: rgba(184, 93, 89, .08) !important;
+  border: 1px solid rgba(184, 93, 89, .42) !important;
+  color: #b85d59 !important;
+  -webkit-text-fill-color: #b85d59 !important;
+  min-height: 3.45rem !important;
+  font-family: Georgia, "Times New Roman", serif !important;
+  font-weight: 700 !important;
+  letter-spacing: .22em !important;
+  text-transform: uppercase !important;
+}
+
+html body [data-pmd-kazen-checkout-shell="1"] .kazen-primary *,
+html body [data-pmd-kazen-checkout-shell="1"] button.kazen-primary *,
+html body [data-pmd-kazen-checkout-shell="1"] .pmd-kazen-payment-action button *,
+html body [data-pmd-kazen-checkout-shell="1"] .pmd-kazen-payment-action [data-pmd-stripe-native-button="1"] * {
+  color: #b85d59 !important;
+  -webkit-text-fill-color: #b85d59 !important;
+  stroke: #b85d59 !important;
+}
+
+html body [data-pmd-kazen-checkout-shell="1"] .kazen-secondary,
+html body [data-pmd-kazen-checkout-shell="1"] button.kazen-secondary {
+  background: rgba(255, 255, 255, .24) !important;
+  background-color: rgba(255, 255, 255, .24) !important;
+  border: 1px solid rgba(35, 34, 31, .16) !important;
+  color: #242320 !important;
+  -webkit-text-fill-color: #242320 !important;
+  min-height: 3.45rem !important;
+  font-family: Georgia, "Times New Roman", serif !important;
+  font-weight: 650 !important;
+  letter-spacing: .18em !important;
+  text-transform: uppercase !important;
+}
+
+/* Back/close button exactly like Kazen modal close, not green circle */
+html body [data-pmd-kazen-checkout-shell="1"] .kazen-solid-close {
+  background: #f7f3ec !important;
+  background-color: #f7f3ec !important;
+  border: 1px solid rgba(35,34,31,.24) !important;
+  border-radius: 0 !important;
+  color: #242320 !important;
+  -webkit-text-fill-color: #242320 !important;
+}
+
+html body [data-pmd-kazen-checkout-shell="1"] .kazen-solid-close *,
+html body [data-pmd-kazen-checkout-shell="1"] .kazen-solid-close svg,
+html body [data-pmd-kazen-checkout-shell="1"] .kazen-solid-close svg * {
+  color: #242320 !important;
+  -webkit-text-fill-color: #242320 !important;
+  stroke: #242320 !important;
+}
+
+/* Payment form: remove rounded/pill fields */
+html body [data-pmd-kazen-checkout-shell="1"] input:not(.__PrivateStripeElement-input),
+html body [data-pmd-kazen-checkout-shell="1"] textarea,
+html body [data-pmd-kazen-checkout-shell="1"] select,
+html body [data-pmd-kazen-checkout-shell="1"] .StripeElement {
+  border-radius: 0 !important;
+  background: rgba(255,255,255,.30) !important;
+  border: 1px solid rgba(35,34,31,.16) !important;
+  box-shadow: none !important;
+}
+
+/* PMD_KAZEN_FORCE_FINAL_WAITER_BUTTONS_GLOBAL_20260612
+   Highest-specificity final override.
+   Fixes checkout buttons that are still hijacked by old gold/luxury/pill styles.
+*/
+
+/* PRIMARY: confirm, send to kitchen, pay in full, review split, pay my share, provider pay button */
+html body div[data-pmd-kazen-checkout-shell="1"].pmd-kazen-checkout-waiter button.pmd-kazen-waiter-primary.pmd-kazen-waiter-primary,
+html body div[data-pmd-kazen-checkout-shell="1"].pmd-kazen-checkout-waiter .pmd-kazen-payment-action.pmd-kazen-payment-action button,
+html body div[data-pmd-kazen-checkout-shell="1"].pmd-kazen-checkout-waiter .pmd-kazen-payment-action.pmd-kazen-payment-action [data-pmd-stripe-native-button="1"],
+html body div[data-pmd-kazen-checkout-shell="1"].pmd-kazen-checkout-waiter button.kazen-primary.kazen-primary,
+html body div[data-pmd-kazen-checkout-shell="1"].pmd-kazen-checkout-waiter button.kazen-button-primary.kazen-button-primary {
+  width: 100% !important;
+  min-height: 3.65rem !important;
+  border-radius: 0 !important;
+  border: 1px solid rgba(184, 93, 89, .46) !important;
+  background: rgba(184, 93, 89, .085) !important;
+  background-color: rgba(184, 93, 89, .085) !important;
+  background-image: none !important;
+  box-shadow: none !important;
+  filter: none !important;
+  color: #b85d59 !important;
+  -webkit-text-fill-color: #b85d59 !important;
+  font-family: Georgia, "Times New Roman", serif !important;
+  font-size: .88rem !important;
+  font-weight: 760 !important;
+  letter-spacing: .22em !important;
+  line-height: 1.08 !important;
+  text-transform: uppercase !important;
+  text-align: center !important;
+  text-shadow: none !important;
+}
+
+/* SECONDARY: continue ordering, split bill, select payer, link, qr, tabs */
+html body div[data-pmd-kazen-checkout-shell="1"].pmd-kazen-checkout-waiter button.pmd-kazen-waiter-secondary.pmd-kazen-waiter-secondary,
+html body div[data-pmd-kazen-checkout-shell="1"].pmd-kazen-checkout-waiter button.kazen-secondary.kazen-secondary,
+html body div[data-pmd-kazen-checkout-shell="1"].pmd-kazen-checkout-waiter button.kazen-button-secondary.kazen-button-secondary,
+html body div[data-pmd-kazen-checkout-shell="1"].pmd-kazen-checkout-waiter .pmd-kazen-tab.pmd-kazen-tab,
+html body div[data-pmd-kazen-checkout-shell="1"].pmd-kazen-checkout-waiter .pmd-kazen-apply.pmd-kazen-apply {
+  width: 100% !important;
+  min-height: 3.65rem !important;
+  border-radius: 0 !important;
+  border: 1px solid rgba(35, 34, 31, .18) !important;
+  background: rgba(255, 255, 255, .24) !important;
+  background-color: rgba(255, 255, 255, .24) !important;
+  background-image: none !important;
+  box-shadow: none !important;
+  filter: none !important;
+  color: #242320 !important;
+  -webkit-text-fill-color: #242320 !important;
+  font-family: Georgia, "Times New Roman", serif !important;
+  font-size: .86rem !important;
+  font-weight: 700 !important;
+  letter-spacing: .18em !important;
+  line-height: 1.08 !important;
+  text-transform: uppercase !important;
+  text-align: center !important;
+  text-shadow: none !important;
+}
+
+/* ACTIVE split tabs / selected choices */
+html body div[data-pmd-kazen-checkout-shell="1"].pmd-kazen-checkout-waiter .pmd-kazen-tab-active.pmd-kazen-tab-active,
+html body div[data-pmd-kazen-checkout-shell="1"].pmd-kazen-checkout-waiter .pmd-kazen-choice-active.pmd-kazen-choice-active,
+html body div[data-pmd-kazen-checkout-shell="1"].pmd-kazen-checkout-waiter .pmd-kazen-method-active.pmd-kazen-method-active {
+  border-color: rgba(184, 93, 89, .46) !important;
+  background: rgba(184, 93, 89, .085) !important;
+  background-color: rgba(184, 93, 89, .085) !important;
+  color: #b85d59 !important;
+  -webkit-text-fill-color: #b85d59 !important;
+}
+
+/* Icons/text inside buttons */
+html body div[data-pmd-kazen-checkout-shell="1"].pmd-kazen-checkout-waiter button.pmd-kazen-waiter-primary *,
+html body div[data-pmd-kazen-checkout-shell="1"].pmd-kazen-checkout-waiter button.pmd-kazen-waiter-primary svg,
+html body div[data-pmd-kazen-checkout-shell="1"].pmd-kazen-checkout-waiter button.pmd-kazen-waiter-primary svg *,
+html body div[data-pmd-kazen-checkout-shell="1"].pmd-kazen-checkout-waiter .pmd-kazen-payment-action button *,
+html body div[data-pmd-kazen-checkout-shell="1"].pmd-kazen-checkout-waiter .pmd-kazen-payment-action [data-pmd-stripe-native-button="1"] * {
+  color: #b85d59 !important;
+  -webkit-text-fill-color: #b85d59 !important;
+  stroke: #b85d59 !important;
+  fill: none !important;
+}
+
+html body div[data-pmd-kazen-checkout-shell="1"].pmd-kazen-checkout-waiter button.pmd-kazen-waiter-secondary *,
+html body div[data-pmd-kazen-checkout-shell="1"].pmd-kazen-checkout-waiter button.pmd-kazen-waiter-secondary svg,
+html body div[data-pmd-kazen-checkout-shell="1"].pmd-kazen-checkout-waiter button.pmd-kazen-waiter-secondary svg *,
+html body div[data-pmd-kazen-checkout-shell="1"].pmd-kazen-checkout-waiter .pmd-kazen-tab *,
+html body div[data-pmd-kazen-checkout-shell="1"].pmd-kazen-checkout-waiter .pmd-kazen-tab svg,
+html body div[data-pmd-kazen-checkout-shell="1"].pmd-kazen-checkout-waiter .pmd-kazen-tab svg * {
+  color: #242320 !important;
+  -webkit-text-fill-color: #242320 !important;
+  stroke: #242320 !important;
+  fill: none !important;
+}
+
+/* Back button: same clean waiter-card button, correct arrow color */
+html body div[data-pmd-kazen-checkout-shell="1"].pmd-kazen-checkout-waiter button.pmd-kazen-waiter-back.pmd-kazen-waiter-back,
+html body div[data-pmd-kazen-checkout-shell="1"].pmd-kazen-checkout-waiter button.kazen-solid-close.kazen-solid-close {
+  width: 2.6rem !important;
+  height: 2.6rem !important;
+  min-width: 2.6rem !important;
+  min-height: 2.6rem !important;
+  padding: 0 !important;
+  border-radius: 0 !important;
+  border: 1px solid rgba(35, 34, 31, .22) !important;
+  background: rgba(255, 255, 255, .30) !important;
+  background-color: rgba(255, 255, 255, .30) !important;
+  background-image: none !important;
+  box-shadow: none !important;
+  color: #242320 !important;
+  -webkit-text-fill-color: #242320 !important;
+}
+
+html body div[data-pmd-kazen-checkout-shell="1"].pmd-kazen-checkout-waiter button.pmd-kazen-waiter-back svg,
+html body div[data-pmd-kazen-checkout-shell="1"].pmd-kazen-checkout-waiter button.pmd-kazen-waiter-back svg *,
+html body div[data-pmd-kazen-checkout-shell="1"].pmd-kazen-checkout-waiter button.kazen-solid-close svg,
+html body div[data-pmd-kazen-checkout-shell="1"].pmd-kazen-checkout-waiter button.kazen-solid-close svg * {
+  stroke: #242320 !important;
+  color: #242320 !important;
+  -webkit-text-fill-color: #242320 !important;
+  fill: none !important;
+  opacity: 1 !important;
+}
+
+/* Remove remaining pill shapes from form / Stripe area */
+html body div[data-pmd-kazen-checkout-shell="1"].pmd-kazen-checkout-waiter input:not(.__PrivateStripeElement-input),
+html body div[data-pmd-kazen-checkout-shell="1"].pmd-kazen-checkout-waiter textarea,
+html body div[data-pmd-kazen-checkout-shell="1"].pmd-kazen-checkout-waiter select,
+html body div[data-pmd-kazen-checkout-shell="1"].pmd-kazen-checkout-waiter .StripeElement {
+  border-radius: 0 !important;
+  box-shadow: none !important;
+}
+
+/* PMD_KAZEN_DATA_ATTR_BUTTON_FINAL_20260612
+   Direct data-attribute targeting. This bypasses old class/global theme conflicts.
+*/
+html body button[data-pmd-kazen-button="primary"],
+html body button[data-pmd-kazen-button="primary"][data-pmd-kazen-button="primary"] {
+  width: 100% !important;
+  min-height: 3.6rem !important;
+  border-radius: 0 !important;
+  border: 1px solid rgba(184, 93, 89, .46) !important;
+  background: rgba(184, 93, 89, .085) !important;
+  background-color: rgba(184, 93, 89, .085) !important;
+  background-image: none !important;
+  box-shadow: none !important;
+  filter: none !important;
+  color: #b85d59 !important;
+  -webkit-text-fill-color: #b85d59 !important;
+  font-family: Georgia, "Times New Roman", serif !important;
+  font-size: .88rem !important;
+  font-weight: 760 !important;
+  letter-spacing: .22em !important;
+  line-height: 1.08 !important;
+  text-transform: uppercase !important;
+  text-align: center !important;
+  text-shadow: none !important;
+}
+
+html body button[data-pmd-kazen-button="secondary"],
+html body button[data-pmd-kazen-button="secondary"][data-pmd-kazen-button="secondary"] {
+  width: 100% !important;
+  min-height: 3.6rem !important;
+  border-radius: 0 !important;
+  border: 1px solid rgba(35, 34, 31, .18) !important;
+  background: rgba(255, 255, 255, .24) !important;
+  background-color: rgba(255, 255, 255, .24) !important;
+  background-image: none !important;
+  box-shadow: none !important;
+  filter: none !important;
+  color: #242320 !important;
+  -webkit-text-fill-color: #242320 !important;
+  font-family: Georgia, "Times New Roman", serif !important;
+  font-size: .86rem !important;
+  font-weight: 700 !important;
+  letter-spacing: .18em !important;
+  line-height: 1.08 !important;
+  text-transform: uppercase !important;
+  text-align: center !important;
+  text-shadow: none !important;
+}
+
+html body button[data-pmd-kazen-button="primary"] *,
+html body button[data-pmd-kazen-button="primary"] svg,
+html body button[data-pmd-kazen-button="primary"] svg * {
+  color: #b85d59 !important;
+  -webkit-text-fill-color: #b85d59 !important;
+  stroke: #b85d59 !important;
+  fill: none !important;
+}
+
+html body button[data-pmd-kazen-button="secondary"] *,
+html body button[data-pmd-kazen-button="secondary"] svg,
+html body button[data-pmd-kazen-button="secondary"] svg * {
+  color: #242320 !important;
+  -webkit-text-fill-color: #242320 !important;
+  stroke: #242320 !important;
+  fill: none !important;
+}
+
+/* Back button: correct arrow, same waiter-card square style */
+html body button[data-pmd-kazen-back="1"],
+html body button[data-pmd-kazen-back="1"][data-pmd-kazen-back="1"] {
+  width: 2.6rem !important;
+  height: 2.6rem !important;
+  min-width: 2.6rem !important;
+  min-height: 2.6rem !important;
+  padding: 0 !important;
+  border-radius: 0 !important;
+  border: 1px solid rgba(35, 34, 31, .22) !important;
+  background: rgba(255, 255, 255, .30) !important;
+  background-color: rgba(255, 255, 255, .30) !important;
+  background-image: none !important;
+  box-shadow: none !important;
+  filter: none !important;
+  color: #242320 !important;
+  -webkit-text-fill-color: #242320 !important;
+}
+
+html body button[data-pmd-kazen-back="1"] svg,
+html body button[data-pmd-kazen-back="1"] svg *,
+html body button[data-pmd-kazen-back="1"] path,
+html body button[data-pmd-kazen-back="1"] line {
+  stroke: #242320 !important;
+  color: #242320 !important;
+  -webkit-text-fill-color: #242320 !important;
+  fill: none !important;
+  opacity: 1 !important;
+}
+
+/* PMD_KAZEN_BRUTE_FORCE_ALL_CHECKOUT_BUTTONS_20260612
+   If this does not change the buttons, then browser is not rendering this shell/CSS.
+*/
+
+/* ALL checkout buttons: remove old gold/luxury/pill style */
+html body div[data-pmd-kazen-checkout-shell="1"] button,
+html body div[data-pmd-kazen-checkout-shell="1"] a[role="button"] {
+  border-radius: 0 !important;
+  box-shadow: none !important;
+  filter: none !important;
+  text-shadow: none !important;
+  background-image: none !important;
+  appearance: none !important;
+  -webkit-appearance: none !important;
+}
+
+/* Normal checkout action buttons */
+html body div[data-pmd-kazen-checkout-shell="1"] button:not([aria-label="Back"]),
+html body div[data-pmd-kazen-checkout-shell="1"] a[role="button"]:not([aria-label="Back"]) {
+  min-height: 3.55rem !important;
+  border: 1px solid rgba(184, 93, 89, .46) !important;
+  background: rgba(184, 93, 89, .085) !important;
+  background-color: rgba(184, 93, 89, .085) !important;
+  color: #b85d59 !important;
+  -webkit-text-fill-color: #b85d59 !important;
+  font-family: Georgia, "Times New Roman", serif !important;
+  font-size: .88rem !important;
+  font-weight: 760 !important;
+  letter-spacing: .20em !important;
+  line-height: 1.08 !important;
+  text-transform: uppercase !important;
+}
+
+/* Text/icons inside action buttons */
+html body div[data-pmd-kazen-checkout-shell="1"] button:not([aria-label="Back"]) *,
+html body div[data-pmd-kazen-checkout-shell="1"] button:not([aria-label="Back"]) svg,
+html body div[data-pmd-kazen-checkout-shell="1"] button:not([aria-label="Back"]) svg *,
+html body div[data-pmd-kazen-checkout-shell="1"] a[role="button"]:not([aria-label="Back"]) * {
+  color: #b85d59 !important;
+  -webkit-text-fill-color: #b85d59 !important;
+  stroke: #b85d59 !important;
+}
+
+/* Back button: visible correct icon */
+html body div[data-pmd-kazen-checkout-shell="1"] button[aria-label="Back"] {
+  width: 2.65rem !important;
+  height: 2.65rem !important;
+  min-width: 2.65rem !important;
+  min-height: 2.65rem !important;
+  padding: 0 !important;
+  border-radius: 0 !important;
+  border: 1px solid rgba(35, 34, 31, .22) !important;
+  background: rgba(255, 255, 255, .38) !important;
+  background-color: rgba(255, 255, 255, .38) !important;
+  color: #242320 !important;
+  -webkit-text-fill-color: #242320 !important;
+}
+
+html body div[data-pmd-kazen-checkout-shell="1"] button[aria-label="Back"] *,
+html body div[data-pmd-kazen-checkout-shell="1"] button[aria-label="Back"] svg,
+html body div[data-pmd-kazen-checkout-shell="1"] button[aria-label="Back"] svg *,
+html body div[data-pmd-kazen-checkout-shell="1"] button[aria-label="Back"] path,
+html body div[data-pmd-kazen-checkout-shell="1"] button[aria-label="Back"] line {
+  color: #242320 !important;
+  -webkit-text-fill-color: #242320 !important;
+  stroke: #242320 !important;
+  fill: none !important;
+  opacity: 1 !important;
+}
+
+/* If old gold style uses pseudo elements */
+html body div[data-pmd-kazen-checkout-shell="1"] button::before,
+html body div[data-pmd-kazen-checkout-shell="1"] button::after {
+  display: none !important;
+  content: none !important;
+}
+
+/* PMD_KAZEN_FINAL_NO_DIV_SELECTOR_BUTTON_FIX_20260612
+   Previous selectors used div[data-pmd-kazen-checkout-shell].
+   Real root is not guaranteed to be div, so this targets any element.
+*/
+
+/* All checkout buttons: remove old green/gold/pill effects */
+html body [data-pmd-kazen-checkout-shell="1"][data-pmd-kazen-checkout-shell="1"] button {
+  border-radius: 0 !important;
+  box-shadow: none !important;
+  filter: none !important;
+  text-shadow: none !important;
+  background-image: none !important;
+  appearance: none !important;
+  -webkit-appearance: none !important;
+}
+
+/* Primary checkout actions */
+html body [data-pmd-kazen-checkout-shell="1"][data-pmd-kazen-checkout-shell="1"] button[data-pmd-kazen-button="primary"],
+html body [data-pmd-kazen-checkout-shell="1"][data-pmd-kazen-checkout-shell="1"] button.pmd-kazen-waiter-primary,
+html body [data-pmd-kazen-checkout-shell="1"][data-pmd-kazen-checkout-shell="1"] button.kazen-primary,
+html body [data-pmd-kazen-checkout-shell="1"][data-pmd-kazen-checkout-shell="1"] button.kazen-button-primary,
+html body [data-pmd-kazen-checkout-shell="1"][data-pmd-kazen-checkout-shell="1"] .pmd-kazen-payment-action button {
+  width: 100% !important;
+  min-height: 3.55rem !important;
+  border-radius: 0 !important;
+  border: 1px solid rgba(184, 93, 89, .46) !important;
+  background: rgba(184, 93, 89, .085) !important;
+  background-color: rgba(184, 93, 89, .085) !important;
+  background-image: none !important;
+  box-shadow: none !important;
+  color: #b85d59 !important;
+  -webkit-text-fill-color: #b85d59 !important;
+  font-family: Georgia, "Times New Roman", serif !important;
+  font-size: .88rem !important;
+  font-weight: 760 !important;
+  letter-spacing: .20em !important;
+  line-height: 1.08 !important;
+  text-transform: uppercase !important;
+  text-align: center !important;
+}
+
+/* Secondary checkout actions */
+html body [data-pmd-kazen-checkout-shell="1"][data-pmd-kazen-checkout-shell="1"] button[data-pmd-kazen-button="secondary"],
+html body [data-pmd-kazen-checkout-shell="1"][data-pmd-kazen-checkout-shell="1"] button.pmd-kazen-waiter-secondary,
+html body [data-pmd-kazen-checkout-shell="1"][data-pmd-kazen-checkout-shell="1"] button.kazen-secondary,
+html body [data-pmd-kazen-checkout-shell="1"][data-pmd-kazen-checkout-shell="1"] button.kazen-button-secondary {
+  width: 100% !important;
+  min-height: 3.55rem !important;
+  border-radius: 0 !important;
+  border: 1px solid rgba(35, 34, 31, .18) !important;
+  background: rgba(255, 255, 255, .24) !important;
+  background-color: rgba(255, 255, 255, .24) !important;
+  background-image: none !important;
+  box-shadow: none !important;
+  color: #242320 !important;
+  -webkit-text-fill-color: #242320 !important;
+  font-family: Georgia, "Times New Roman", serif !important;
+  font-size: .86rem !important;
+  font-weight: 700 !important;
+  letter-spacing: .18em !important;
+  line-height: 1.08 !important;
+  text-transform: uppercase !important;
+  text-align: center !important;
+}
+
+/* Icons/text inside primary */
+html body [data-pmd-kazen-checkout-shell="1"][data-pmd-kazen-checkout-shell="1"] button[data-pmd-kazen-button="primary"] *,
+html body [data-pmd-kazen-checkout-shell="1"][data-pmd-kazen-checkout-shell="1"] button.pmd-kazen-waiter-primary *,
+html body [data-pmd-kazen-checkout-shell="1"][data-pmd-kazen-checkout-shell="1"] .pmd-kazen-payment-action button * {
+  color: #b85d59 !important;
+  -webkit-text-fill-color: #b85d59 !important;
+  stroke: #b85d59 !important;
+  fill: none !important;
+}
+
+/* Icons/text inside secondary */
+html body [data-pmd-kazen-checkout-shell="1"][data-pmd-kazen-checkout-shell="1"] button[data-pmd-kazen-button="secondary"] *,
+html body [data-pmd-kazen-checkout-shell="1"][data-pmd-kazen-checkout-shell="1"] button.pmd-kazen-waiter-secondary * {
+  color: #242320 !important;
+  -webkit-text-fill-color: #242320 !important;
+  stroke: #242320 !important;
+  fill: none !important;
+}
+
+/* Back button */
+html body [data-pmd-kazen-checkout-shell="1"][data-pmd-kazen-checkout-shell="1"] button[aria-label="Back"],
+html body [data-pmd-kazen-checkout-shell="1"][data-pmd-kazen-checkout-shell="1"] button[data-pmd-kazen-back="1"] {
+  width: 2.65rem !important;
+  height: 2.65rem !important;
+  min-width: 2.65rem !important;
+  min-height: 2.65rem !important;
+  padding: 0 !important;
+  border-radius: 0 !important;
+  border: 1px solid rgba(35, 34, 31, .22) !important;
+  background: rgba(255, 255, 255, .34) !important;
+  background-color: rgba(255, 255, 255, .34) !important;
+  box-shadow: none !important;
+  color: #242320 !important;
+  -webkit-text-fill-color: #242320 !important;
+}
+
+html body [data-pmd-kazen-checkout-shell="1"][data-pmd-kazen-checkout-shell="1"] button[aria-label="Back"] svg,
+html body [data-pmd-kazen-checkout-shell="1"][data-pmd-kazen-checkout-shell="1"] button[aria-label="Back"] svg *,
+html body [data-pmd-kazen-checkout-shell="1"][data-pmd-kazen-checkout-shell="1"] button[data-pmd-kazen-back="1"] svg,
+html body [data-pmd-kazen-checkout-shell="1"][data-pmd-kazen-checkout-shell="1"] button[data-pmd-kazen-back="1"] svg * {
+  stroke: #242320 !important;
+  color: #242320 !important;
+  -webkit-text-fill-color: #242320 !important;
+  fill: none !important;
+  opacity: 1 !important;
+}
+
+/* No pseudo overlay */
+html body [data-pmd-kazen-checkout-shell="1"] button::before,
+html body [data-pmd-kazen-checkout-shell="1"] button::after {
+  display: none !important;
+  content: none !important;
+}
+
+/* PMD_KAZEN_NO_INLINE_BUTTON_STYLE_FINAL_20260612
+   Works after removing inline !important styles from KazenButton.
+*/
+html body [data-pmd-kazen-checkout-shell="1"] .pmd-kazen-waiter-btn,
+html body [data-pmd-kazen-checkout-shell="1"] .pmd-kazen-waiter-back {
+  border-radius: 0 !important;
+  box-shadow: none !important;
+  filter: none !important;
+  text-shadow: none !important;
+  background-image: none !important;
+  appearance: none !important;
+  -webkit-appearance: none !important;
+}
+
+html body [data-pmd-kazen-checkout-shell="1"] .pmd-kazen-waiter-btn-primary {
+  width: 100% !important;
+  min-height: 3.55rem !important;
+  border: 1px solid rgba(184, 93, 89, .46) !important;
+  background: rgba(184, 93, 89, .085) !important;
+  background-color: rgba(184, 93, 89, .085) !important;
+  color: #b85d59 !important;
+  -webkit-text-fill-color: #b85d59 !important;
+  font-family: Georgia, "Times New Roman", serif !important;
+  font-size: .88rem !important;
+  font-weight: 760 !important;
+  letter-spacing: .20em !important;
+  line-height: 1.08 !important;
+  text-transform: uppercase !important;
+  text-align: center !important;
+}
+
+html body [data-pmd-kazen-checkout-shell="1"] .pmd-kazen-waiter-btn-secondary {
+  width: 100% !important;
+  min-height: 3.55rem !important;
+  border: 1px solid rgba(35, 34, 31, .18) !important;
+  background: rgba(255, 255, 255, .24) !important;
+  background-color: rgba(255, 255, 255, .24) !important;
+  color: #242320 !important;
+  -webkit-text-fill-color: #242320 !important;
+  font-family: Georgia, "Times New Roman", serif !important;
+  font-size: .86rem !important;
+  font-weight: 700 !important;
+  letter-spacing: .18em !important;
+  line-height: 1.08 !important;
+  text-transform: uppercase !important;
+  text-align: center !important;
+}
+
+html body [data-pmd-kazen-checkout-shell="1"] .pmd-kazen-waiter-btn-primary *,
+html body [data-pmd-kazen-checkout-shell="1"] .pmd-kazen-waiter-btn-primary svg,
+html body [data-pmd-kazen-checkout-shell="1"] .pmd-kazen-waiter-btn-primary svg * {
+  color: #b85d59 !important;
+  -webkit-text-fill-color: #b85d59 !important;
+  stroke: #b85d59 !important;
+  fill: none !important;
+}
+
+html body [data-pmd-kazen-checkout-shell="1"] .pmd-kazen-waiter-btn-secondary *,
+html body [data-pmd-kazen-checkout-shell="1"] .pmd-kazen-waiter-btn-secondary svg,
+html body [data-pmd-kazen-checkout-shell="1"] .pmd-kazen-waiter-btn-secondary svg * {
+  color: #242320 !important;
+  -webkit-text-fill-color: #242320 !important;
+  stroke: #242320 !important;
+  fill: none !important;
+}
+
+html body [data-pmd-kazen-checkout-shell="1"] .pmd-kazen-waiter-back {
+  width: 2.65rem !important;
+  height: 2.65rem !important;
+  min-width: 2.65rem !important;
+  min-height: 2.65rem !important;
+  padding: 0 !important;
+  border: 1px solid rgba(35, 34, 31, .22) !important;
+  background: rgba(255, 255, 255, .34) !important;
+  background-color: rgba(255, 255, 255, .34) !important;
+  color: #242320 !important;
+  -webkit-text-fill-color: #242320 !important;
+}
+
+html body [data-pmd-kazen-checkout-shell="1"] .pmd-kazen-waiter-back svg,
+html body [data-pmd-kazen-checkout-shell="1"] .pmd-kazen-waiter-back svg *,
+html body [data-pmd-kazen-checkout-shell="1"] .pmd-kazen-back-icon,
+html body [data-pmd-kazen-checkout-shell="1"] .pmd-kazen-back-icon * {
+  stroke: #242320 !important;
+  color: #242320 !important;
+  -webkit-text-fill-color: #242320 !important;
+  fill: none !important;
+  opacity: 1 !important;
+}
+
+/* PMD_KAZEN_SAFE_STRIPE_PAY_STYLE_20260612
+   Stripe native Pay button after inline styles are removed by menu observer.
+*/
+html body [data-pmd-kazen-checkout-shell="1"] button[data-pmd-stripe-native-button="1"].pmd-kazen-stripe-pay-clean,
+html body [data-pmd-kazen-checkout-shell="1"] button[data-pmd-stripe-native-button="1"][data-pmd-kazen-button="primary"] {
+  width: 100% !important;
+  min-width: 100% !important;
+  max-width: 100% !important;
+  min-height: 3.55rem !important;
+  height: auto !important;
+  border-radius: 0 !important;
+  border: 1px solid rgba(184, 93, 89, .46) !important;
+  outline: none !important;
+  background: rgba(184, 93, 89, .085) !important;
+  background-color: rgba(184, 93, 89, .085) !important;
+  background-image: none !important;
+  box-shadow: none !important;
+  filter: none !important;
+  color: #b85d59 !important;
+  -webkit-text-fill-color: #b85d59 !important;
+  font-family: Georgia, "Times New Roman", serif !important;
+  font-size: .88rem !important;
+  font-weight: 760 !important;
+  letter-spacing: .20em !important;
+  line-height: 1.08 !important;
+  text-transform: uppercase !important;
+  text-align: center !important;
+  padding: .9rem 1rem !important;
+  margin: 0 !important;
+}
+
+html body [data-pmd-kazen-checkout-shell="1"] button.pmd-kazen-stripe-pay-clean *,
+html body [data-pmd-kazen-checkout-shell="1"] button.pmd-kazen-stripe-pay-clean svg,
+html body [data-pmd-kazen-checkout-shell="1"] button.pmd-kazen-stripe-pay-clean svg *,
+html body [data-pmd-kazen-checkout-shell="1"] button.pmd-kazen-stripe-pay-clean rect,
+html body [data-pmd-kazen-checkout-shell="1"] button.pmd-kazen-stripe-pay-clean path,
+html body [data-pmd-kazen-checkout-shell="1"] button.pmd-kazen-stripe-pay-clean span {
+  color: #b85d59 !important;
+  -webkit-text-fill-color: #b85d59 !important;
+  stroke: #b85d59 !important;
+  fill: none !important;
+  font-family: Georgia, "Times New Roman", serif !important;
+  font-weight: 760 !important;
+}
+
+html body [data-pmd-kazen-checkout-shell="1"] button.pmd-kazen-stripe-pay-clean::before,
+html body [data-pmd-kazen-checkout-shell="1"] button.pmd-kazen-stripe-pay-clean::after {
+  display: none !important;
+  content: none !important;
+}
+
+/* PMD_KAZEN_STRIPE_FIELD_AND_PAY_POLISH_20260612 */
+html body [data-pmd-kazen-checkout-shell="1"] .pmd-kazen-stripe-field-clean {
+  width: 100% !important;
+  min-height: 3.55rem !important;
+  height: auto !important;
+  max-height: none !important;
+  padding: .85rem 1rem !important;
+  margin-top: .35rem !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  overflow: hidden !important;
+  border-radius: 0 !important;
+  border: 1px solid rgba(35, 34, 31, .18) !important;
+  background: rgba(255, 255, 255, .24) !important;
+  background-color: rgba(255, 255, 255, .24) !important;
+  box-shadow: none !important;
+  box-sizing: border-box !important;
+}

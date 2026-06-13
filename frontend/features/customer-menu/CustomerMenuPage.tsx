@@ -1,5 +1,6 @@
 "use client"
 
+import "./customer-menu-page.css"
 /*
  * LEGACY_DOM_REPAIR_POLICY:
  * This file is the lifted customer-menu implementation from the former app/menu route.
@@ -150,22 +151,14 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog"
 
-
-
 // Hook to get current theme background color
 /* PMD_REMOTE_CONSOLE_INJECTED */
-
-
 
 import { clsx } from "clsx";
 import { apiClient } from '@/lib/api-client'
 import { wsClient } from '@/lib/websocket-client'
 import { getTextAlignClass, getTextDirection } from "@/lib/text-direction"
 import { TenantSetupSplash } from "@/components/tenant-setup-splash"
-
-
-
-
 
 // They avoid shared Dialog/global CSS so Gold Luxury and other themes keep their existing modal behavior.
 // Create a component that uses useSearchParams
@@ -411,7 +404,6 @@ function MenuContent() {
     }
   }, [existingOrderId])
 
-
   const MENU_CACHE_TTL_MS = 5 * 60 * 1000
   const getMenuCacheKey = () => {
     if (typeof window === "undefined") return ""
@@ -505,7 +497,6 @@ function MenuContent() {
     }
   }, [])
 
-
   const spTableNo = searchParams?.get('table_no') ?? null;
   const spTableId = searchParams?.get('table_id') ?? null;
   const isRootDeliveryMode = !spTableNo && !spTableId;
@@ -532,7 +523,6 @@ function MenuContent() {
   const displayTableNumber =
     (tableInfo?.table_no ?? spTableNo ?? tableInfo?.table_id ?? spTableId ?? null);
 
-
   // Force "All" category selection on mount
   useEffect(() => {
     // Always set "All" as default when component mounts
@@ -547,7 +537,6 @@ function MenuContent() {
   }, [apiMenuItems]);
 
   // Load VAT settings on mount
-
 
 useEffect(() => {
     loadVATSettings()
@@ -828,7 +817,6 @@ useEffect(() => {
     0
   )
 
-
   const handleOrganicAdd = (item: MenuItem, event: React.MouseEvent) => {
     event.stopPropagation()
     let itemToAdd = { ...item }
@@ -848,7 +836,6 @@ useEffect(() => {
     addToCart(itemToAdd)
     if (currentQuantity === 0) handleFirstAdd(item)
   }
-
 
   const handleItemSelect = (item: MenuItem) => {
     setSelectedItem(item)
@@ -882,7 +869,6 @@ useEffect(() => {
     displayTableNumber,
     language,
   })
-
 
   // PMD_BOTANICAL_V0_PARENT_BRIDGE_20260607
   useEffect(() => {
@@ -975,7 +961,6 @@ useEffect(() => {
         handleCartClick()
         return
       }
-
 
       if (type === "PMD_BOTANICAL_GO_VALET") {
         const incomingPath = String((msg as any).parentPath || window.location.pathname || "/menu")
@@ -1123,8 +1108,6 @@ useEffect(() => {
     } catch { setHasLocalOpenOrder(false); setLocalOpenOrder(null) }
   }, [tableInfo, searchParams, existingOrderId, hasDraftTableOrderWithoutRealOrder])
 
-
-
   // PMD_ORGANIC_SCOPED_BODY_MARKER_20260609
   useLayoutEffect(() => {
     if (typeof document === "undefined") return
@@ -1143,8 +1126,6 @@ useEffect(() => {
       document.documentElement.removeAttribute("data-pmd-organic-botanical-active")
     }
   }, [isOrganicBotanicalTheme])
-
-
 
   // PMD_ORGANIC_CHECKOUT_DOM_POLISH_20260609
   useLayoutEffect(() => {
@@ -1292,7 +1273,6 @@ useEffect(() => {
     }
   }, [isOrganicBotanicalTheme])
 
-
   // PMD_ORGANIC_CHECKOUT_TOTAL_DISPLAY_REPAIR_20260609
   useLayoutEffect(() => {
     if (typeof document === "undefined") return
@@ -1367,7 +1347,6 @@ useEffect(() => {
       observer.disconnect()
     }
   }, [isOrganicBotanicalTheme])
-
 
   // PMD_ORGANIC_BUTTON_ICON_FINAL_POLISH_20260609
   useLayoutEffect(() => {
@@ -1637,7 +1616,6 @@ useEffect(() => {
     return () => window.removeEventListener("message", handleBotanicalV0Message)
   }, [isOrganicBotanicalTheme, tableIdString])
 
-
   // PMD_ORGANIC_DOCK_DELEGATED_ACTIONS_20260608
   React.useEffect(() => {
     if (!isOrganicBotanicalTheme || typeof document === "undefined") return
@@ -1701,12 +1679,10 @@ useEffect(() => {
     }
   }, [isOrganicBotanicalTheme, sharedTableOrder?.status])
 
-
   // PMD_ORGANIC_BODY_MODAL_STYLE_MARKER_20260608
   React.useEffect(() => {
     if (typeof document === "undefined") return
 
-  
   if (isOrganicBotanicalTheme) {
       document.body.setAttribute("data-pmd-organic-botanical-active", "1")
       document.documentElement.setAttribute("data-pmd-organic-botanical-active", "1")
@@ -1740,8 +1716,6 @@ useEffect(() => {
     )
   }
 
-
-
   const normalizeModernGreenLogoUrl = (value: unknown) => {
     const raw = String(value || "").trim()
     if (!raw || raw === "undefined" || raw === "null") return ""
@@ -1763,7 +1737,6 @@ useEffect(() => {
 
     return `/${clean}`
   }
-
 
   // PMD_KAZEN_JAPANESE_THEME_RETURN_20260611
   if (isKazenJapaneseTheme) {
@@ -2168,7 +2141,6 @@ useEffect(() => {
         </div>
         {/* PMD_ORGANIC_USES_REAL_GOLD_TOOLBAR_FIXED_END_20260608 */}
 
-
         {!shouldHideCartSheet && (
           <CartSheet />
         )}
@@ -2314,49 +2286,6 @@ useEffect(() => {
       </Suspense>
 
       {/* Button Animation Styles */}
-      <style jsx global>{`
-        .pmd-organic-menu {
-          background:
-            radial-gradient(circle at 12% 8%, rgba(255,249,239,.95), transparent 28%),
-            radial-gradient(circle at 88% 12%, rgba(184,134,75,.10), transparent 24%),
-            linear-gradient(180deg, var(--organic-bg), #EFE6D5 42%, #F7F1E7 76%, var(--organic-bg));
-          color: var(--organic-text);
-        }
-        .pmd-organic-menu:before {
-          content: "";
-          position: fixed;
-          inset: 0;
-          pointer-events: none;
-          opacity: .18;
-          background-image: radial-gradient(rgba(74,65,46,.16) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,.38), transparent 35%, rgba(110,94,64,.08));
-          background-size: 13px 13px, 100% 100%;
-          z-index: 0;
-        }
-        .pmd-organic-menu > * { position: relative; z-index: 1; }
-        .pmd-organic-menu .organic-highlight-section:before,
-        .pmd-organic-menu .organic-menu-section-heading:before {
-          content: "";
-          display: block;
-          width: min(560px, 92vw);
-          height: 22px;
-          margin: 0 auto 8px;
-          border-radius: 50%;
-          background: radial-gradient(ellipse at center, rgba(115,122,85,.16), transparent 68%);
-        }
-        @keyframes btn-bounce {
-          0% { transform: scale(1); }
-          40% { transform: scale(1.2); }
-          100% { transform: scale(1); }
-        }
-
-        .btn-animate {
-          animation: btn-bounce 0.7s cubic-bezier(0.4, 2, 0.6, 1);
-        }
-
-        .btn-glow {
-          box-shadow: 0 0 0 8px rgba(255, 228, 181, 0.5), 0 0 16px 4px rgba(200, 155, 108, 0.3);
-        }
-      `}</style>
 
       {/* Rest of the components */}
       <GoldBottomDock {...themeMenuActions} />
