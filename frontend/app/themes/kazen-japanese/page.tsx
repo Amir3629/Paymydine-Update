@@ -61,18 +61,12 @@ function kazenCategoryIcon(index: number) {
 
 const ALL_CATEGORY = "ALL"
 
-const sampleItems: KazenItem[] = [
-  { id: "omakase", name: "Omakase Selection", description: "Chef’s seasonal choice.", price: 18, category: "Omakase", is_recommended: true },
-  { id: "sushi", name: "Nigiri Set", description: "Rice, fish, quiet balance.", price: 14, category: "Sushi" },
-  { id: "grill", name: "Robata Skewer", description: "Charcoal aroma.", price: 12, category: "Grill" },
-  { id: "dessert", name: "Yuzu Cream", description: "Clean citrus finish.", price: 7, category: "Desserts" },
-]
 
 const defaultState: KazenState = {
   restaurantName: "Kazen",
   tableNumber: null,
   categories: [ALL_CATEGORY],
-  items: sampleItems,
+  items: [],
   cart: { count: 0, total: 0, lines: [] },
 }
 
@@ -121,33 +115,6 @@ let pmdKazenStableCategoryCache: string[] = []
 
 function pmdKazenStableCategoryKey(value: unknown) {
   return String(value || "").trim().replace(/\s+/g, " ").toLowerCase()
-}
-
-// PMD_FIX_KAZEN_CATEGORY_ORDER_HARD_20260613
-
-function pmdKazenKnownCategoryRank(value: unknown) {
-  const order = [
-    "all",
-    "appetizer",
-    "breakfast & brunch",
-    "test",
-    "appetizers",
-    "specials",
-    "desserts",
-    "main course",
-    "drinks",
-  ]
-
-  const key = String(value || "").trim().replace(/\s+/g, " ").toLowerCase()
-  const index = order.indexOf(key)
-  return index >= 0 ? index : 1000
-}
-
-// PMD_FIX_KAZEN_FORCE_EXPECTED_CATEGORIES_20260613
-function pmdKazenExpectedCategoryLabels() {
-  // PMD_FIX_KAZEN_BACKEND_CATEGORIES_ONLY_20260613
-  // No hardcoded Kazen categories. Categories must come from backend/admin only.
-  return [] as string[]
 }
 
 function pmdKazenSortKnownCategories(categories: string[]) {
@@ -1301,7 +1268,7 @@ export default function KazenJapaneseThemePage() {
         logoUrl: resolveMediaUrl((msg as any).logoUrl || (msg as any).effectiveLogoUrl || (msg as any).restaurantLogoUrl || (msg as any).merchantLogoUrl || (msg as any).logo || (msg as any).logo_url || (msg as any).settings?.logoUrl || (msg as any).merchant?.logoUrl || "") || state.logoUrl || "",
         tableNumber: (msg as any).displayTableNumber ?? (msg as any).tableNumber ?? (msg as any).table_id ?? (msg as any).tableId ?? (msg as any).table?.number ?? null,
         categories,
-        items: items.length ? items : sampleItems,
+        items,
         cart: {
           count: Number((msg as any).cart?.count || 0),
           total: Number((msg as any).cart?.total || 0),
@@ -3250,7 +3217,6 @@ export default function KazenJapaneseThemePage() {
   )
 }
 
-// PMD_FIX_KAZEN_CATEGORY_ORDER_HARD_20260613
 
 // PMD_FIX_KAZEN_CATEGORY_NORMALIZED_KEYS_20260613
 
