@@ -67,6 +67,7 @@ import { useTableOrderActions } from "@/features/table-order/use-table-order-act
 import { useCustomerThemeActions } from "@/features/customer-menu/useCustomerThemeActions";
 import { useCustomerThemeSelection } from "@/features/customer-menu/useCustomerThemeSelection";
 import { PaymentModal } from "@/features/customer-menu/checkout/CheckoutModalHost";
+import { MenuHighlightSection, MenuRecommendationBadges } from "@/features/customer-menu/theme/MenuHighlights";
 import { pmdBuildKazenParentCategories } from "@/features/customer-menu/data/menuCategories";
 import { buildTableOrderDraftContext, createSubmittedTableOrderSnapshot, isVisibleTableOrderDraft, tableOrderItemCount } from "@/features/table-order/table-order-utils";
 import {
