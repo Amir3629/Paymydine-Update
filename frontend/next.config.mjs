@@ -54,7 +54,6 @@ const nextConfig = {
         pathname: '/**',
       },
     ],
-    domains: ['localhost', '127.0.0.1', '*.paymydine.com', 'paymydine.com'],
   },
   
   // Multi-tenant configuration
@@ -117,15 +116,7 @@ const nextConfig = {
       },
     ];
   },
-  
-  // Environment-specific configuration
-  serverRuntimeConfig: {
-    tenantDetection: true,
-  },
-  
-  publicRuntimeConfig: {
-    multiTenant: true,
-  },
+
 };
 
 export default nextConfig;

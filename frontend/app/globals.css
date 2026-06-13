@@ -1604,72 +1604,6 @@ div[class*="surface-sub"] div[class*="overflow-y-auto"],
   scrollbar-color: rgba(74, 144, 226, 0.3) transparent !important;
 }
 
-/* Bottom toolbar food item borders - thin lines matching scrollbar colors */
-/* Clean Light Theme */
-[data-theme="clean-light"] .bottom-toolbar-item-border {
-  border-bottom: 0.5px solid rgba(231, 203, 169, 0.4) !important; /* Same as scrollbar - really thin */
-  padding-left: 24px !important; /* Add left padding so line doesn't start at edge */
-  padding-right: 24px !important; /* Add right padding so line doesn't end at edge */
-  margin-left: -24px !important; /* Compensate for padding to keep content aligned */
-  margin-right: -24px !important; /* Compensate for padding to keep content aligned */
-}
-
-[data-theme="clean-light"] .bottom-toolbar-item-border:last-child {
-  border-bottom: none !important;
-}
-
-/* Modern Dark Theme */
-[data-theme="modern-dark"] .bottom-toolbar-item-border {
-  border-bottom: 0.5px solid rgba(240, 198, 177, 0.4) !important; /* Same as scrollbar - really thin */
-  padding-left: 24px !important;
-  padding-right: 24px !important;
-  margin-left: -24px !important;
-  margin-right: -24px !important;
-}
-
-[data-theme="modern-dark"] .bottom-toolbar-item-border:last-child {
-  border-bottom: none !important;
-}
-
-/* Gold Luxury Theme */
-[data-theme="gold-luxury"] .bottom-toolbar-item-border {
-  border-bottom: 0.5px solid rgba(255, 248, 220, 0.4) !important; /* Cornsilk #FFF8DC - same as scrollbar - really thin */
-  padding-left: 24px !important;
-  padding-right: 24px !important;
-  margin-left: -24px !important;
-  margin-right: -24px !important;
-}
-
-[data-theme="gold-luxury"] .bottom-toolbar-item-border:last-child {
-  border-bottom: none !important;
-}
-
-/* Vibrant Colors Theme */
-[data-theme="vibrant-colors"] .bottom-toolbar-item-border {
-  border-bottom: 0.5px solid rgba(255, 107, 107, 0.4) !important; /* Same as scrollbar - really thin */
-  padding-left: 24px !important;
-  padding-right: 24px !important;
-  margin-left: -24px !important;
-  margin-right: -24px !important;
-}
-
-[data-theme="vibrant-colors"] .bottom-toolbar-item-border:last-child {
-  border-bottom: none !important;
-}
-
-/* Minimal Theme */
-[data-theme="minimal"] .bottom-toolbar-item-border {
-  border-bottom: 0.5px solid rgba(74, 144, 226, 0.3) !important; /* Same as scrollbar - really thin */
-  padding-left: 24px !important;
-  padding-right: 24px !important;
-  margin-left: -24px !important;
-  margin-right: -24px !important;
-}
-
-[data-theme="minimal"] .bottom-toolbar-item-border:last-child {
-  border-bottom: none !important;
-}
-
 /* Quantity selector buttons - HARDCODED COLORS BY THEME */
 /* Clean Light Theme */
 [data-theme="clean-light"] button.quantity-btn,
@@ -3644,27 +3578,9 @@ body[data-theme="clean-light"] .min-h-screen,
 }
 
 /* Bottom toolbar preview: remove gold/rose text edge and make totals neutral. */
-[data-theme="clean-light"] #toolbar-inner-fixed .bottom-toolbar-item-border {
-  border-color: rgba(199, 167, 152, 0.28) !important;
-}
 
-[data-theme="clean-light"] #toolbar-inner-fixed .menu-item-price,
-[data-theme="clean-light"] #toolbar-inner-fixed .text-paydine-champagne {
-  color: #111827 !important;
-  -webkit-text-fill-color: #111827 !important;
-  -webkit-text-stroke: 0 !important;
-  text-shadow: none !important;
-  filter: none !important;
-}
 
-[data-theme="clean-light"] #toolbar-inner-fixed .border-t {
-  border-top-color: rgba(199, 167, 152, 0.35) !important;
-}
 
-[data-theme="clean-light"] #toolbar-inner-fixed .bg-paydine-rose-beige\/10 {
-  background-color: rgba(240, 198, 177, 0.10) !important;
-  border: 1px solid rgba(199, 167, 152, 0.35) !important;
-}
 
 /* Review modal buttons: visible edge/frame. */
 [data-theme="clean-light"] button[data-pmd-review-submit="true"] {
@@ -4390,19 +4306,6 @@ body:has(.page--valet) svg.lucide-circle-check.valet-icon * {
 .page--home .home-action-card,
 .page--home .surface-sub,
 .page--menu .surface-sub,
-.page--menu #toolbar-inner-fixed,
-.page--valet .surface,
-.page--valet .surface-sub,
-.page--valet form,
-.page--valet .rounded-3xl.border,
-body:has(.page--valet) .surface,
-body:has(.page--valet) .surface-sub,
-body:has(.page--valet) form.rounded-3xl,
-body:has(.page--valet) .rounded-3xl.border {
-  background: var(--pmd-soft-customer-card-bg) !important;
-  background-color: var(--pmd-soft-customer-card-bg) !important;
-  border-color: var(--pmd-soft-customer-card-border) !important;
-}
 
 /* PMD CART EN VALET CARD POLISH V1 END */
 
@@ -8431,24 +8334,8 @@ html body .pmd-v2-action-circle::after {
   Bottom menu/payment toolbar should blend with the page background.
   Narrow selector: only the fixed bottom toolbar frame.
 */
-html body #toolbar-inner-fixed {
-  background: var(--theme-background, #FAF9F4) !important;
-  background-color: var(--theme-background, #FAF9F4) !important;
-  background-image: none !important;
-  border-color: var(--theme-border, rgba(184, 137, 64, 0.22)) !important;
-  opacity: 1 !important;
-}
 
-html body #toolbar-inner-fixed > div,
-html body #toolbar-inner-fixed .bottom-toolbar-item-border {
-  background-color: transparent !important;
-}
 
-html body #toolbar-inner-fixed button[aria-label="Show bill"] {
-  background: var(--theme-background, #FAF9F4) !important;
-  background-color: var(--theme-background, #FAF9F4) !important;
-  border-color: var(--theme-border, rgba(184, 137, 64, 0.25)) !important;
-}
 /* PMD BOTTOM TOOLBAR BACKGROUND MATCH END */
 
 /* PMD BOTTOM TOOLBAR NO BLUR GRAY START */
@@ -8456,36 +8343,8 @@ html body #toolbar-inner-fixed button[aria-label="Show bill"] {
   Bottom toolbar should not be glass/gray.
   It should use the same page background, with no blur overlay.
 */
-html body #toolbar-inner-fixed,
-html body .toolbar-inner-fixed {
-  background: var(--pmd-v2-page-bg, var(--theme-background, #FAF9F4)) !important;
-  background-color: var(--pmd-v2-page-bg, var(--theme-background, #FAF9F4)) !important;
-  background-image: none !important;
-  opacity: 1 !important;
-  backdrop-filter: none !important;
-  -webkit-backdrop-filter: none !important;
-  filter: none !important;
-  box-shadow: 0 14px 34px rgba(17, 24, 39, 0.08) !important;
-}
 
-html body #toolbar-inner-fixed::before,
-html body #toolbar-inner-fixed::after,
-html body .toolbar-inner-fixed::before,
-html body .toolbar-inner-fixed::after {
-  display: none !important;
-  content: none !important;
-  background: none !important;
-  backdrop-filter: none !important;
-  -webkit-backdrop-filter: none !important;
-}
 
-html body #toolbar-inner-fixed > div,
-html body .toolbar-inner-fixed > div {
-  background: transparent !important;
-  background-color: transparent !important;
-  backdrop-filter: none !important;
-  -webkit-backdrop-filter: none !important;
-}
 /* PMD BOTTOM TOOLBAR NO BLUR GRAY END */
 
 /* PMD SHOW BILL TOGGLE BUTTON START */
@@ -8494,40 +8353,11 @@ html body .toolbar-inner-fixed > div {
   Same dark green as other action buttons.
 */
 html body button[aria-label="Show bill"],
-html body .pmd-show-bill-toggle-button {
-  width: 36px !important;
-  height: 36px !important;
-  min-width: 36px !important;
-  min-height: 36px !important;
-  background: #062F2A !important;
-  background-color: #062F2A !important;
-  background-image: none !important;
-  color: #FFFFFF !important;
-  -webkit-text-fill-color: #FFFFFF !important;
-  border: 1px solid #062F2A !important;
-  border-color: #062F2A !important;
-  outline-color: #062F2A !important;
-  box-shadow: 0 8px 18px rgba(6, 47, 42, 0.22) !important;
-  opacity: 1 !important;
-}
 
 html body button[aria-label="Show bill"] svg,
 html body button[aria-label="Show bill"] svg *,
-html body .pmd-show-bill-toggle-button svg,
-html body .pmd-show-bill-toggle-button svg * {
-  width: 16px !important;
-  height: 16px !important;
-  color: #FFFFFF !important;
-  stroke: #FFFFFF !important;
-  -webkit-text-fill-color: #FFFFFF !important;
-}
 
 html body button[aria-label="Show bill"]:hover,
-html body .pmd-show-bill-toggle-button:hover {
-  background: #021F1C !important;
-  background-color: #021F1C !important;
-  border-color: #021F1C !important;
-}
 /* PMD SHOW BILL TOGGLE BUTTON END */
 
 /* PMD SHOW BILL TOGGLE SINGLE OWNER START */
@@ -8535,46 +8365,8 @@ html body .pmd-show-bill-toggle-button:hover {
   Single owner for the top floating Show/Hide bill button.
   Do not rely only on aria-label because it changes between Show bill and Hide bill.
 */
-html body [data-pmd-show-bill-toggle="1"],
-html body button.pmd-show-bill-toggle-button,
-html body button[aria-label="Show bill"].pmd-show-bill-toggle-button,
-html body button[aria-label="Hide bill"].pmd-show-bill-toggle-button,
-html body #toolbar-inner-fixed button.pmd-show-bill-toggle-button {
-  width: 36px !important;
-  height: 36px !important;
-  min-width: 36px !important;
-  min-height: 36px !important;
-  background: #062F2A !important;
-  background-color: #062F2A !important;
-  background-image: none !important;
-  color: #FFFFFF !important;
-  -webkit-text-fill-color: #FFFFFF !important;
-  border: 1px solid #062F2A !important;
-  border-color: #062F2A !important;
-  outline-color: #062F2A !important;
-  box-shadow: 0 8px 18px rgba(6, 47, 42, 0.22) !important;
-  opacity: 1 !important;
-  filter: none !important;
-}
 
-html body [data-pmd-show-bill-toggle="1"] svg,
-html body [data-pmd-show-bill-toggle="1"] svg *,
-html body button.pmd-show-bill-toggle-button svg,
-html body button.pmd-show-bill-toggle-button svg * {
-  width: 16px !important;
-  height: 16px !important;
-  color: #FFFFFF !important;
-  stroke: #FFFFFF !important;
-  -webkit-text-fill-color: #FFFFFF !important;
-  fill: none !important;
-}
 
-html body [data-pmd-show-bill-toggle="1"]:hover,
-html body button.pmd-show-bill-toggle-button:hover {
-  background: #021F1C !important;
-  background-color: #021F1C !important;
-  border-color: #021F1C !important;
-}
 /* PMD SHOW BILL TOGGLE SINGLE OWNER END */
 
 /* PMD ORDER RECEIVED + TABLE ORDER ICON FIX START */
@@ -8702,46 +8494,9 @@ html body .pmd-split-slider::-moz-range-thumb {
 
 
 /* PMD FINAL CLEAN: Table order no green frame, hover controlled by Framer source */
-button[data-pmd-bottom-table-order="1"],
-button[data-pmd-bottom-table-order="1"]:hover,
-button[data-pmd-bottom-table-order="1"]:focus,
-button[data-pmd-bottom-table-order="1"]:focus-visible,
-button[data-pmd-bottom-table-order="1"]:active {
-  background: transparent !important;
-  background-color: transparent !important;
-  background-image: none !important;
-  border-color: transparent !important;
-  box-shadow: none !important;
-  outline: 0 !important;
-}
 
-button[data-pmd-bottom-table-order="1"]::before,
-button[data-pmd-bottom-table-order="1"]::after,
-button[data-pmd-bottom-table-order="1"] *::before,
-button[data-pmd-bottom-table-order="1"] *::after {
-  background: transparent !important;
-  background-color: transparent !important;
-  background-image: none !important;
-  border-color: transparent !important;
-  box-shadow: none !important;
-}
 
-button[data-pmd-bottom-table-order="1"] svg,
-button[data-pmd-bottom-table-order="1"] svg *,
-button[data-pmd-bottom-table-order="1"] path {
-  color: #0D1B1E !important;
-  stroke: #0D1B1E !important;
-  -webkit-text-fill-color: #0D1B1E !important;
-}
 
-button[data-pmd-bottom-table-order="1"] > span.absolute {
-  background: #b88940 !important;
-  background-color: #b88940 !important;
-  color: #ffffff !important;
-  -webkit-text-fill-color: #ffffff !important;
-  border: 1px solid #b88940 !important;
-  border-radius: 9999px !important;
-}
 /* PMD FINAL CLEAN END */
 
 /* PMD payment header icon visibility lock */
@@ -13124,36 +12879,10 @@ html body span.relative.inline-flex.group\/action-tooltip > span.pointer-events-
 }
 
 /* Expanded bill list inside bottom menu bar */
-html body .bottom-toolbar-item-border .font-medium.text-paydine-elegant-gray,
-html body div.fixed[class*="bottom-"] .bottom-toolbar-item-border .font-medium,
-html body div.fixed[class*="bottom-"] .bottom-toolbar-item-border .text-base {
-  font-size: 1.05rem !important;
-  line-height: 1.22 !important;
-  font-weight: 800 !important;
-  letter-spacing: -0.015em !important;
-  color: var(--theme-text-primary, #0D1B1E) !important;
-  -webkit-text-fill-color: var(--theme-text-primary, #0D1B1E) !important;
-}
 
 /* Quantity / small line like €20.00 × 1 */
-html body .bottom-toolbar-item-border .text-sm.text-gray-500,
-html body div.fixed[class*="bottom-"] .bottom-toolbar-item-border .text-sm,
-html body div.fixed[class*="bottom-"] .bottom-toolbar-item-border .text-gray-500 {
-  font-size: 0.92rem !important;
-  line-height: 1.2 !important;
-  font-weight: 650 !important;
-  color: var(--theme-text-secondary, #6B7280) !important;
-  -webkit-text-fill-color: var(--theme-text-secondary, #6B7280) !important;
-}
 
 /* Price on the right side of each item */
-html body .bottom-toolbar-item-border .menu-item-price,
-html body div.fixed[class*="bottom-"] .bottom-toolbar-item-border .pmd-customer-price,
-html body div.fixed[class*="bottom-"] .bottom-toolbar-item-border .font-semibold.menu-item-price {
-  font-size: 1.08rem !important;
-  line-height: 1.15 !important;
-  font-weight: 850 !important;
-}
 
 /* Total box in expanded bottom bill */
 html body div.fixed[class*="bottom-"] .mt-4.rounded-2xl span.font-bold.text-paydine-elegant-gray,
@@ -13185,42 +12914,14 @@ html body span[class*="rounded-full"][class*="absolute"][class*="-top-"] {
 */
 
 /* Wider bottom bar only when Table order exists */
-html body div.fixed[class*="bottom-"]:has(button[data-pmd-bottom-table-order="1"]) {
-  max-width: min(96vw, 29rem) !important;
-  width: 100% !important;
-  padding-left: 0.45rem !important;
-  padding-right: 0.45rem !important;
-}
 
 /* Inner action row: keep all four icons inside the rounded bar */
-html body div.fixed[class*="bottom-"]:has(button[data-pmd-bottom-table-order="1"])
-  div.flex.items-center.justify-between.gap-5 {
-  gap: clamp(0.7rem, 2.1vw, 1.15rem) !important;
-  padding-left: clamp(1rem, 3vw, 1.45rem) !important;
-  padding-right: clamp(1rem, 3vw, 1.45rem) !important;
-  justify-content: space-around !important;
-}
 
 /* Prevent action wrappers from pushing outside */
-html body div.fixed[class*="bottom-"]:has(button[data-pmd-bottom-table-order="1"])
-  span.relative.inline-flex.group\/action-tooltip {
-  flex: 0 0 auto !important;
-}
 
 /* On smaller screens, make it still fit cleanly */
 @media (max-width: 460px) {
-  html body div.fixed[class*="bottom-"]:has(button[data-pmd-bottom-table-order="1"]) {
-    max-width: calc(100vw - 0.75rem) !important;
-    padding-left: 0.25rem !important;
-    padding-right: 0.25rem !important;
-  }
 
-  html body div.fixed[class*="bottom-"]:has(button[data-pmd-bottom-table-order="1"])
-    div.flex.items-center.justify-between.gap-5 {
-    gap: 0.48rem !important;
-    padding-left: 0.85rem !important;
-    padding-right: 0.85rem !important;
-  }
 }
 
 /* ETA timer in Order Status: keep number and MINS white inside dark green circle */
