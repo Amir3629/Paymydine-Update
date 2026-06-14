@@ -1,15 +1,18 @@
 "use client"
 
 import React, { useEffect, useState } from "react"
+import { AnimatePresence, motion } from "framer-motion"
 import { CheckCircle, HandPlatter, NotebookPen } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
+import { useToast } from "@/components/ui/use-toast"
 import { useLanguageStore } from "@/store/language-store"
+import { apiClient } from "@/lib/api-client"
 
 const organicModalCardStyle = {
   // PMD_ORGANIC_MODAL_BG_LAYER_FIX_20260609
-  "--pmd-paper-soft": "#f5fff8af0",
+  "--pmd-paper-soft": "#f5f8ef",
   "--pmd-paper": "#f6efe2",
   "--pmd-line": "#ded2ba",
   "--pmd-ink": "#343529",
@@ -38,14 +41,14 @@ const organicPrimaryButtonStyle: React.CSSProperties = {
   background: "#747d55",
   backgroundColor: "#747d55",
   borderColor: "#747d55",
-  color: "#f5fff8af0",
-  WebkitTextFillColor: "#f5fff8af0",
+  color: "#f5f8ef",
+  WebkitTextFillColor: "#f5f8ef",
   boxShadow: "0 12px 24px -14px rgba(60,53,41,.72)",
 }
 
 const organicSecondaryButtonStyle: React.CSSProperties = {
-  background: "#f5fff8af0",
-  backgroundColor: "#f5fff8af0",
+  background: "#f5f8ef",
+  backgroundColor: "#f5f8ef",
   borderColor: "#ded2ba",
   color: "#343529",
   WebkitTextFillColor: "#343529",
@@ -212,7 +215,7 @@ export const OrganicBotanicalValetFeature = () => {
         }}
         className="fixed left-4 top-4 z-[85] inline-flex h-12 w-12 items-center justify-center rounded-full border shadow-lg transition active:scale-[0.98]"
         style={{
-          backgroundColor: "#f5fff8af0",
+          backgroundColor: "#f5f8ef",
           borderColor: "#ded2ba",
           color: "#747d55",
           boxShadow: "0 16px 34px -22px rgba(60,53,41,.82), inset 0 1px 0 rgba(255,255,255,.72)",
@@ -265,7 +268,7 @@ export const OrganicBotanicalValetFeature = () => {
               aria-hidden="true"
               className="pointer-events-none absolute inset-0 rounded-[2rem]"
               style={{
-                backgroundColor: "#f5fff8af0",
+                backgroundColor: "#f5f8ef",
                 backgroundImage:
                   "linear-gradient(180deg, rgba(255,255,255,.42), rgba(255,255,255,0)), radial-gradient(circle at 1px 1px, rgba(116,125,85,.085) 1px, transparent 0)",
                 backgroundSize: "100% 100%, 16px 16px",
@@ -279,7 +282,7 @@ export const OrganicBotanicalValetFeature = () => {
                 <span
                   className="inline-flex h-12 w-12 items-center justify-center rounded-full border"
                   style={{
-                    backgroundColor: "#f5fff8af0",
+                    backgroundColor: "#f5f8ef",
                     borderColor: "#ded2ba",
                     color: "#747d55",
                     boxShadow: "inset 0 1px 0 rgba(255,255,255,.72)",
@@ -320,7 +323,7 @@ export const OrganicBotanicalValetFeature = () => {
                     style={{
                       backgroundColor: "#747d55",
                       borderColor: "#747d55",
-                      color: "#f5fff8af0",
+                      color: "#f5f8ef",
                     }}
                   >
                     <svg
@@ -351,7 +354,7 @@ export const OrganicBotanicalValetFeature = () => {
                     className="min-h-11 w-full rounded-full px-4 text-sm font-semibold"
                     style={{
                       backgroundColor: "#747d55",
-                      color: "#f5fff8af0",
+                      color: "#f5f8ef",
                       border: "1px solid #747d55",
                     }}
                   >
@@ -373,7 +376,7 @@ export const OrganicBotanicalValetFeature = () => {
                       placeholder="Enter your name"
                       className="h-11 w-full rounded-2xl border px-4 text-sm outline-none"
                       style={{
-                        backgroundColor: "#f5fff8af0",
+                        backgroundColor: "#f5f8ef",
                         borderColor: "#ded2ba",
                         color: "#343529",
                       }}
@@ -393,7 +396,7 @@ export const OrganicBotanicalValetFeature = () => {
                       placeholder="Enter license plate number"
                       className="h-11 w-full rounded-2xl border px-4 text-sm outline-none"
                       style={{
-                        backgroundColor: "#f5fff8af0",
+                        backgroundColor: "#f5f8ef",
                         borderColor: "#ded2ba",
                         color: "#343529",
                       }}
@@ -415,7 +418,7 @@ export const OrganicBotanicalValetFeature = () => {
                       placeholder="Make, model, and color"
                       className="h-11 w-full rounded-2xl border px-4 text-sm outline-none"
                       style={{
-                        backgroundColor: "#f5fff8af0",
+                        backgroundColor: "#f5f8ef",
                         borderColor: "#ded2ba",
                         color: "#343529",
                       }}
@@ -428,7 +431,7 @@ export const OrganicBotanicalValetFeature = () => {
                     className="min-h-11 w-full rounded-full px-4 text-sm font-semibold transition disabled:opacity-70"
                     style={{
                       backgroundColor: "#747d55",
-                      color: "#f5fff8af0",
+                      color: "#f5f8ef",
                       border: "1px solid #747d55",
                     }}
                   >
@@ -466,7 +469,7 @@ export const OrganicBotanicalCheckoutScopedStyles = () => (
 
         html[data-pmd-organic-botanical-active="1"] [data-pmd-checkout-design-system="1"].pmd-checkout-modal,
         html[data-pmd-organic-botanical-active="1"] .pmd-checkout-modal[data-pmd-checkout-design-system="1"] {
-          background-color: #f5fff8af0 !important;
+          background-color: #f5f8ef !important;
           background-image:
             linear-gradient(180deg, rgba(255,255,255,.42), rgba(255,255,255,0)),
             radial-gradient(circle at 1px 1px, rgba(116,125,85,.085) 1px, transparent 0) !important;
@@ -490,7 +493,7 @@ export const OrganicBotanicalCheckoutScopedStyles = () => (
         html[data-pmd-organic-botanical-active="1"] [data-pmd-checkout-design-system="1"] .pmd-checkout-total-card,
         html[data-pmd-organic-botanical-active="1"] [data-pmd-checkout-design-system="1"] .pmd-checkout-payment-card,
         html[data-pmd-organic-botanical-active="1"] [data-pmd-checkout-design-system="1"] .pmd-checkout-meta-row {
-          background-color: #f5fff8af0 !important;
+          background-color: #f5f8ef !important;
           background-image: radial-gradient(circle at 1px 1px, rgba(116,125,85,.065) 1px, transparent 0) !important;
           background-size: 16px 16px !important;
           border-color: #ded2ba !important;
@@ -502,13 +505,13 @@ export const OrganicBotanicalCheckoutScopedStyles = () => (
           background: #747d55 !important;
           background-color: #747d55 !important;
           border-color: #747d55 !important;
-          color: #f5fff8af0 !important;
-          -webkit-text-fill-color: #f5fff8af0 !important;
+          color: #f5f8ef !important;
+          -webkit-text-fill-color: #f5f8ef !important;
         }
 
         html[data-pmd-organic-botanical-active="1"] button[data-pmd-organic-action="secondary"] {
-          background: #f5fff8af0 !important;
-          background-color: #f5fff8af0 !important;
+          background: #f5f8ef !important;
+          background-color: #f5f8ef !important;
           border-color: #ded2ba !important;
           color: #343529 !important;
           -webkit-text-fill-color: #343529 !important;
@@ -538,11 +541,6 @@ export const OrganicBotanicalModalShell = ({
         transition={{ duration: 0.28 }}
         className="fixed inset-0 z-[60] flex items-center justify-center px-4 py-8"
         style={{
-          background: "rgba(35, 31, 26, 0.48)",
-          backdropFilter: "blur(6px) saturate(0.92)",
-          WebkitBackdropFilter: "blur(6px) saturate(0.92)",
-        }}
-        style={{
           background: "rgba(35, 31, 26, 0.46)",
           backdropFilter: "blur(8px) saturate(0.95)",
           WebkitBackdropFilter: "blur(8px) saturate(0.95)",
@@ -561,7 +559,7 @@ export const OrganicBotanicalModalShell = ({
             data-pmd-organic-modal-bg="1"
             className="pointer-events-none absolute inset-0 rounded-[2rem]"
             style={{
-              backgroundColor: "#f5fff8af0",
+              backgroundColor: "#f5f8ef",
               backgroundImage:
                 "linear-gradient(180deg, rgba(255,255,255,0.42), rgba(255,255,255,0)), radial-gradient(circle at 1px 1px, rgba(116,125,85,0.09) 1px, transparent 0)",
               backgroundSize: "100% 100%, 16px 16px",

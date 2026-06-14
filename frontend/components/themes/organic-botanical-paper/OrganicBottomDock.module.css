@@ -1,57 +1,138 @@
 .dock {
-  position: fixed;
-  left: 50%;
-  bottom: calc(1rem + env(safe-area-inset-bottom));
-  z-index: 40;
-  display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: .5rem;
-  width: min(94vw, 28rem);
-  transform: translateX(-50%);
-  padding: .55rem;
-  border: 1px solid var(--dock-border);
-  border-radius: 1.35rem;
-  background: var(--dock-bg);
-  box-shadow: var(--dock-shadow);
-  backdrop-filter: blur(18px);
+  position: fixed !important;
+  left: 50% !important;
+  bottom: calc(18px + env(safe-area-inset-bottom, 0px)) !important;
+  transform: translateX(-50%) !important;
+  z-index: 90 !important;
+
+  width: min(430px, calc(100vw - 28px)) !important;
+  min-height: 74px !important;
+  padding: 10px 12px !important;
+
+  display: grid !important;
+  grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
+  align-items: stretch !important;
+  gap: 6px !important;
+
+  border-radius: 24px !important;
+  border: 1px solid #ded2ba !important;
+  background:
+    radial-gradient(circle at 1px 1px, rgba(116, 125, 85, 0.06) 1px, transparent 0),
+    rgba(255, 250, 240, 0.96) !important;
+  background-size: 16px 16px, auto !important;
+  box-shadow: 0 18px 46px rgba(60, 53, 41, 0.24), inset 0 1px 0 rgba(255, 255, 255, 0.8) !important;
+  backdrop-filter: blur(18px) saturate(0.98) !important;
+  -webkit-backdrop-filter: blur(18px) saturate(0.98) !important;
+
+  overflow: visible !important;
+  opacity: 1 !important;
+  visibility: visible !important;
+  pointer-events: auto !important;
 }
+
 .button {
-  position: relative;
-  min-width: 0;
-  min-height: 3.55rem;
-  display: inline-flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: .18rem;
-  border: 0;
-  border-radius: 1rem;
-  background: transparent;
-  color: var(--dock-fg);
-  font: inherit;
-  font-size: .72rem;
-  font-weight: 800;
-  line-height: 1.05;
-  cursor: pointer;
+  position: relative !important;
+  appearance: none !important;
+  border: 0 !important;
+  outline: none !important;
+
+  min-width: 0 !important;
+  min-height: 52px !important;
+  width: 100% !important;
+  height: 100% !important;
+  padding: 5px 2px !important;
+
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 4px !important;
+
+  border-radius: 18px !important;
+  background: transparent !important;
+
+  color: #343529 !important;
+  -webkit-text-fill-color: #343529 !important;
+  opacity: 1 !important;
+  visibility: visible !important;
+  pointer-events: auto !important;
+  text-shadow: none !important;
+  box-shadow: none !important;
 }
-.primary { background: var(--dock-primary-bg); color: var(--dock-primary-fg); }
-.icon { font-size: 1.18rem; line-height: 1; }
+
+.button:hover,
+.button:focus-visible {
+  background: rgba(116, 125, 85, 0.10) !important;
+}
+
+.icon {
+  display: block !important;
+  width: auto !important;
+  height: auto !important;
+  font-size: 19px !important;
+  line-height: 1 !important;
+  color: #343529 !important;
+  -webkit-text-fill-color: #343529 !important;
+  opacity: 1 !important;
+  visibility: visible !important;
+}
+
+.label {
+  display: block !important;
+  max-width: 100% !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  white-space: nowrap !important;
+
+  font-family: Georgia, "Times New Roman", serif !important;
+  font-size: 12px !important;
+  line-height: 1.05 !important;
+  font-weight: 800 !important;
+  letter-spacing: -0.02em !important;
+
+  color: #343529 !important;
+  -webkit-text-fill-color: #343529 !important;
+  opacity: 1 !important;
+  visibility: visible !important;
+}
+
 .badge {
-  position: absolute;
-  top: .28rem;
-  right: .45rem;
-  min-width: 1.1rem;
-  height: 1.1rem;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 999px;
-  background: var(--dock-badge-bg);
-  color: var(--dock-badge-fg);
-  font-size: .65rem;
-  font-weight: 900;
+  position: absolute !important;
+  top: 4px !important;
+  right: 8px !important;
+
+  min-width: 16px !important;
+  height: 16px !important;
+  padding: 0 5px !important;
+
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+
+  border-radius: 999px !important;
+  background: #747d55 !important;
+  color: #fffaf0 !important;
+  -webkit-text-fill-color: #fffaf0 !important;
+
+  font-size: 10px !important;
+  line-height: 1 !important;
+  font-weight: 900 !important;
+  opacity: 1 !important;
+  visibility: visible !important;
 }
-.dock[data-theme="kazen"] { --dock-bg: rgba(247, 243, 236, .92); --dock-border: rgba(36, 35, 32, .16); --dock-fg: #242320; --dock-primary-bg: #242320; --dock-primary-fg: #f7f3ec; --dock-badge-bg: #df685d; --dock-badge-fg: white; --dock-shadow: 0 18px 50px rgba(30, 24, 16, .18); font-family: Georgia, 'Times New Roman', serif; }
-.dock[data-theme="modernGreen"] { --dock-bg: rgba(3, 12, 8, .88); --dock-border: rgba(41, 188, 126, .28); --dock-fg: #eafff4; --dock-primary-bg: #29bc7e; --dock-primary-fg: #03110b; --dock-badge-bg: #29bc7e; --dock-badge-fg: #03110b; --dock-shadow: 0 18px 50px rgba(0, 0, 0, .38); }
-.dock[data-theme="organic"] { --dock-bg: rgba(250, 244, 232, .94); --dock-border: rgba(115, 122, 85, .22); --dock-fg: #343529; --dock-primary-bg: #b88940; --dock-primary-fg: #fffaf0; --dock-badge-bg: #737a55; --dock-badge-fg: white; --dock-shadow: 0 18px 45px rgba(66, 55, 35, .16); font-family: Georgia, 'Times New Roman', serif; }
-.dock[data-theme="gold"] { --dock-bg: rgba(18, 14, 8, .88); --dock-border: rgba(214, 172, 90, .30); --dock-fg: #f6e8c8; --dock-primary-bg: linear-gradient(135deg, #f4d58d, #b88940); --dock-primary-fg: #201509; --dock-badge-bg: #f4d58d; --dock-badge-fg: #201509; --dock-shadow: 0 18px 50px rgba(0, 0, 0, .34); font-family: Georgia, 'Times New Roman', serif; }
+
+@media (max-width: 380px) {
+  .dock {
+    width: calc(100vw - 20px) !important;
+    padding: 9px 8px !important;
+    gap: 4px !important;
+  }
+
+  .label {
+    font-size: 11px !important;
+  }
+
+  .icon {
+    font-size: 18px !important;
+  }
+}

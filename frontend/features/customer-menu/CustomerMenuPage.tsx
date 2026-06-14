@@ -74,11 +74,15 @@ import { OrganicExactV0Frame, OrganicBotanicalHero, OrganicBotanicalCategoryNav,
 import { __pmdRemoteConsoleInstallOnce, __pmdWalletDebugInstallOnce } from "@/features/customer-menu/legacy-dom-repairs/debugInstallers";
 import { useCurrentFrontendTheme } from "@/features/customer-menu/theme/useCurrentFrontendTheme";
 import { pmdInstallMenuPayMyDineFooterLogo } from "@/features/customer-menu/legacy-dom-repairs/footerLogoInstaller";
+import { useOrganicCheckoutDomPolish } from "@/features/customer-menu/legacy-dom-repairs/useOrganicCheckoutDomPolish";
+import { useMenuActionCircleColorRepair } from "@/features/customer-menu/legacy-dom-repairs/useMenuActionCircleColorRepair";
+import { useKazenMenuDomRepairs } from "@/features/customer-menu/legacy-dom-repairs/useKazenMenuDomRepairs";
 import { pmdForceKazenFrontendThemePayload } from "@/features/customer-menu/theme/kazenThemePayload";
 import { ExpandingToolbarMenuItemCard } from "@/features/customer-menu/components/ExpandingToolbarMenuItemCard";
 import { LoadingSpinner } from "@/features/customer-menu/components/LoadingSpinner";
-import { OrganicBotanicalCheckoutScopedStyles, OrganicBotanicalNoteDialog, OrganicBotanicalValetFeature, OrganicBotanicalWaiterDialog } from "@/features/customer-menu/guest-actions/OrganicGuestDialogs";
-import { EnhancedNoteDialog, EnhancedWaiterDialog } from "@/features/customer-menu/guest-actions/EnhancedGuestDialogs";
+import { OrganicBotanicalCheckoutScopedStyles, OrganicBotanicalValetFeature } from "@/features/customer-menu/guest-actions/OrganicGuestDialogs";
+import { GoldNoteDialog, GoldWaiterDialog, KazenNoteDialog, KazenWaiterDialog, ModernGreenNoteDialog, ModernGreenWaiterDialog } from "@/features/customer-menu/guest-actions/ThemeGuestDialogs";
+import { OrganicNoteCardV2, OrganicWaiterCardV2 } from "@/features/customer-menu/guest-actions/OrganicGuestCardsV2";
 import { buildTableOrderDraftContext, createSubmittedTableOrderSnapshot, isVisibleTableOrderDraft, tableOrderItemCount } from "@/features/table-order/table-order-utils";
 import {
   buildEvenSharePercents,
@@ -225,7 +229,7 @@ function MenuContent() {
   useKazenMenuDomRepairs(isKazenJapaneseTheme)
 
   const shouldHoldThemeRender = !isFrontendThemeResolved && !forceModernGreenTheme
-  const { t } = useLanguageStore()
+  const { t, language } = useLanguageStore()
   const { toast } = useToast()
   const [isNoteModalOpen, setNoteModalOpen] = useState(false)
   const [isWaiterConfirmOpen, setWaiterConfirmOpen] = useState(false)
@@ -437,14 +441,13 @@ useEffect(() => {
             const tableResult = await apiClient.getTableInfo(tableParam, qr || undefined, useTableNo)
             if (tableResult.success) {
               setTableInfoState(tableResult.data)
-              setTableInfo(prev => ({
-                ...prev,
-                table_id: tableResult.data.table_id,
-                table_name: tableResult.data.table_name,
-                location_id: tableResult.data.location_id,
-                qr_code: tableResult.data.qr_code,
-                table_no: prev?.table_no ?? tableResult.data.table_no ?? null
-              }))
+              setTableInfo({
+                table_id: String(tableResult.data.table_id ?? tableParam),
+                table_name: String(tableResult.data.table_name ?? tableResult.data.name ?? ''),
+                location_id: Number(tableResult.data.location_id ?? 0),
+                qr_code: tableResult.data.qr_code ?? qr ?? null,
+                table_no: tableResult.data.table_no ?? (table_no ? Number(table_no) : undefined),
+              })
 
               const pendingQr = await apiClient.getPendingQrOrderByTable(String(tableResult.data.table_id), { tableNo: tableResult.data?.table_no ?? table_no ?? null, qr: qr || null })
               if (pendingQr?.success && pendingQr.data?.order_id) {
@@ -668,6 +671,11 @@ useEffect(() => {
     0
   )
 
+  const handleFirstAdd = React.useCallback((item: MenuItem) => {
+    const cartItem = useCartStore.getState().items.find((entry) => entry.item.id === item.id)
+    setLastInteractedItem(cartItem || { item, quantity: 1 })
+  }, [])
+
   const handleOrganicAdd = (item: MenuItem, event: React.MouseEvent) => {
     event.stopPropagation()
     let itemToAdd = { ...item }
@@ -696,13 +704,132 @@ useEffect(() => {
 
   // Handlers for assistant buttons
   const handleWaiterClick = () => setWaiterConfirmOpen(true)
+
+
   const handleNoteClick = () => setNoteModalOpen(true)
   const handleCartClick = () => {
     if (items.length > 0) {
       setPaymentModalInitialStep('review')
+      setPaymentModalPreferPersonalReview(true)
+      setPaymentModalOpen(true)
+      return
+    }
+
+    if (sharedTableOrder?.status && sharedTableOrder.status !== "empty") {
+      setPaymentModalInitialStep(
+        sharedTableOrder.status === "draft"
+          ? "review"
+          : sharedTableOrder.status === "paid"
+            ? "paid"
+            : "submitted"
+      )
+      setPaymentModalPreferPersonalReview(false)
       setPaymentModalOpen(true)
     }
   }
+
+  // PMD_ORGANIC_FINAL_ACTION_BRIDGE_20260614
+  useEffect(() => {
+    if (!isOrganicBotanicalTheme || typeof window === "undefined") return
+
+    const openTableOrder = () => {
+      console.info("PMD_ORGANIC_FINAL_OPEN_TABLE_ORDER", {
+        status: sharedTableOrder?.status || null,
+        hasTableOrder: Boolean(sharedTableOrder),
+      })
+
+      setPaymentModalInitialStep(
+        sharedTableOrder?.status === "draft"
+          ? "review"
+          : sharedTableOrder?.status === "paid"
+            ? "paid"
+            : "submitted"
+      )
+      setPaymentModalPreferPersonalReview(false)
+      setPaymentModalOpen(true)
+    }
+
+    const openCheckout = () => {
+      console.info("PMD_ORGANIC_FINAL_OPEN_CHECKOUT", {
+        itemCount: items.length,
+        tableStatus: sharedTableOrder?.status || null,
+      })
+
+      if (items.length > 0) {
+        setPaymentModalInitialStep("review")
+        setPaymentModalPreferPersonalReview(true)
+        setPaymentModalOpen(true)
+        return
+      }
+
+      if (sharedTableOrder?.status && sharedTableOrder.status !== "empty") {
+        openTableOrder()
+        return
+      }
+
+      setPaymentModalInitialStep("review")
+      setPaymentModalPreferPersonalReview(true)
+      setPaymentModalOpen(true)
+    }
+
+    const runOrganicDockAction = (rawAction: unknown) => {
+      const action = String(rawAction || "").toLowerCase()
+      console.info("PMD_ORGANIC_FINAL_ACTION", action)
+
+      if (action === "waiter") {
+        setWaiterConfirmOpen(true)
+        return
+      }
+
+      if (action === "note") {
+        setNoteModalOpen(true)
+        return
+      }
+
+      if (action === "table" || action === "tableorder" || action === "table_order") {
+        openTableOrder()
+        return
+      }
+
+      if (action === "checkout" || action === "cart") {
+        openCheckout()
+      }
+    }
+
+    const onWaiter = () => runOrganicDockAction("waiter")
+    const onNote = () => runOrganicDockAction("note")
+    const onTable = () => runOrganicDockAction("table")
+    const onCheckout = () => runOrganicDockAction("checkout")
+
+    const onMessage = (event: MessageEvent) => {
+      const data: any = event?.data
+      if (!data) return
+
+      const type = String(data?.type || "")
+      if (
+        type === "PMD_ORGANIC_DOCK_CLICK" ||
+        type === "pmd:organic:dock-click" ||
+        type === "PMD_THEME_ACTION"
+      ) {
+        runOrganicDockAction(data.action || data.key || data.name)
+      }
+    }
+
+    window.addEventListener("pmd:organic:waiter", onWaiter)
+    window.addEventListener("pmd:organic:note", onNote)
+    window.addEventListener("pmd:organic:table", onTable)
+    window.addEventListener("pmd:organic:checkout", onCheckout)
+    window.addEventListener("message", onMessage)
+
+    return () => {
+      window.removeEventListener("pmd:organic:waiter", onWaiter)
+      window.removeEventListener("pmd:organic:note", onNote)
+      window.removeEventListener("pmd:organic:table", onTable)
+      window.removeEventListener("pmd:organic:checkout", onCheckout)
+      window.removeEventListener("message", onMessage)
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isOrganicBotanicalTheme, items.length, sharedTableOrder?.status])
 
   const themeMenuActions = useCustomerThemeActions({
     addToCart,
@@ -959,7 +1086,7 @@ useEffect(() => {
     } catch { setHasLocalOpenOrder(false); setLocalOpenOrder(null) }
   }, [tableInfo, searchParams, existingOrderId, hasDraftTableOrderWithoutRealOrder])
 
-  useOrganicCheckoutDomPolish(isOrganicBotanicalTheme)
+  useOrganicCheckoutDomPolish(false) // PMD_ORGANIC_CARDS_V2_DISABLE_OLD_DOM_POLISH_20260614
 
   // PMD_ORGANIC_V0_PARENT_MESSAGE_BRIDGE_FINAL_20260607
   React.useEffect(() => {
@@ -1123,7 +1250,7 @@ useEffect(() => {
       <div
         className="pmd-customer-page page--menu relative min-h-screen w-full"
         data-pmd-theme-loading="1"
-        style={{ background: "#f5fff8af0", color: "#343529" }}
+        style={{ background: "#f7f3ea", color: "#343529" }}
       >
         <LoadingSpinner />
       </div>
@@ -1333,6 +1460,22 @@ useEffect(() => {
               }
             }}
           />
+
+          <KazenWaiterDialog
+            isOpen={isWaiterConfirmOpen}
+            onOpenChange={setWaiterConfirmOpen}
+            tableId={tableIdString}
+            tableName={tableName}
+          />
+          <KazenNoteDialog
+            isOpen={isNoteModalOpen}
+            onOpenChange={setNoteModalOpen}
+            note={note}
+            setNote={setNote}
+            onSend={handleSendNote}
+            tableId={tableIdString}
+            tableName={tableName}
+          />
         </KazenJapaneseBridgeTheme>
       </ThemeActionBoundary>
     )
@@ -1526,6 +1669,22 @@ useEffect(() => {
               }
             }}
           />
+
+          <ModernGreenWaiterDialog
+            isOpen={isWaiterConfirmOpen}
+            onOpenChange={setWaiterConfirmOpen}
+            tableId={tableIdString}
+            tableName={tableName}
+          />
+          <ModernGreenNoteDialog
+            isOpen={isNoteModalOpen}
+            onOpenChange={setNoteModalOpen}
+            note={note}
+            setNote={setNote}
+            onSend={handleSendNote}
+            tableId={tableIdString}
+            tableName={tableName}
+          />
         </ModernGreenBridgeTheme>
       </ThemeActionBoundary>
     )
@@ -1542,16 +1701,21 @@ useEffect(() => {
         <div
           data-pmd-organic-real-toolbar="1"
           style={{
-            "--theme-surface": "#f5fff8af0",
+            "--theme-surface": "#f7f3ea",
             "--theme-border": "#ded3bd",
             "--theme-text-primary": "#343529",
             "--theme-text-secondary": "#716f5e",
             "--theme-primary": "#b88940",
             "--theme-accent": "#b88940",
-            "--pmd-v2-page-bg": "#f5fff8af0",
+            "--pmd-v2-page-bg": "#f7f3ea",
           } as React.CSSProperties}
         >
-          <OrganicBottomDock {...themeMenuActions} />
+          {/* PMD_ORGANIC_DIRECT_GUEST_ACTIONS_20260614 */}
+          <OrganicBottomDock
+            {...themeMenuActions}
+            onCallWaiter={handleWaiterClick}
+            onOpenNote={() => setNoteModalOpen(true)}
+          />
         </div>
         {/* PMD_ORGANIC_USES_REAL_GOLD_TOOLBAR_FIXED_END_20260608 */}
 
@@ -1592,18 +1756,21 @@ useEffect(() => {
           }}
         />
 
-        <OrganicBotanicalWaiterDialog
+        <OrganicWaiterCardV2
           isOpen={isWaiterConfirmOpen}
           onOpenChange={setWaiterConfirmOpen}
           tableId={tableIdString}
         />
 
-        <OrganicBotanicalNoteDialog
+        <OrganicNoteCardV2
           isOpen={isNoteModalOpen}
           onOpenChange={setNoteModalOpen}
           note={note}
           setNote={setNote}
           onSend={handleSendNote}
+          tableId={tableIdString}
+          tableName={tableName}
+          /* PMD_ORGANIC_NOTE_DIALOG_TABLE_PROPS_20260614 */
         />
       </div>
       </ThemeActionBoundary>
@@ -1636,7 +1803,7 @@ useEffect(() => {
             <OrganicBotanicalCategoryNav
               categories={allCategories}
               selectedCategory={selectedCategory || "All"}
-              onSelectCategory={(category) => {
+              onSelectCategory={(category: string) => {
                 setSelectedCategory(category || "All");
               }}
             />
@@ -1678,7 +1845,7 @@ useEffect(() => {
                     key={item.id}
                     item={item}
                     onSelect={handleItemSelect}
-                    onAdd={(event) => handleOrganicAdd(item, event)}
+                    onAdd={(event: React.MouseEvent) => handleOrganicAdd(item, event)}
                     highlightSettings={menuHighlightSettings}
                   />
                 ) : (
@@ -1739,13 +1906,13 @@ useEffect(() => {
           }
         }}
       />
-      <EnhancedWaiterDialog
+      <GoldWaiterDialog
         isOpen={isWaiterConfirmOpen}
         onOpenChange={setWaiterConfirmOpen}
         tableId={tableIdString}
         tableName={tableName}
       />
-      <EnhancedNoteDialog
+      <GoldNoteDialog
         isOpen={isNoteModalOpen}
         onOpenChange={setNoteModalOpen}
         note={note}

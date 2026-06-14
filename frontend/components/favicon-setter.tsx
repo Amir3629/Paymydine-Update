@@ -11,10 +11,12 @@ export function FaviconSetter() {
   useEffect(() => {
     const setFavicon = async () => {
       try {
-        const res = await fetch(
-          `${EnvironmentConfig.getInstance().backendBaseUrl().replace(/\/$/, '')}/api-server-multi-tenant.php/api/v1/settings`,
-          { credentials: 'omit', cache: 'no-store' }
-        )
+        const env = EnvironmentConfig.getInstance()
+        const res = await fetch(env.getApiEndpoint('/settings'), {
+          credentials: 'same-origin',
+          cache: 'no-store',
+          headers: { Accept: 'application/json' },
+        })
         
         if (!res.ok) {
           console.warn('Failed to fetch settings for favicon')
@@ -22,17 +24,27 @@ export function FaviconSetter() {
         }
         
         const json = await res.json()
-        const faviconPath = (json?.favicon_logo || json?.data?.favicon_logo);
+        const settings = json?.data && typeof json.data === 'object' ? json.data : json
+        const faviconPath = (
+          settings?.favicon_logo_url ||
+          settings?.favicon_logo ||
+          settings?.site_logo_url ||
+          settings?.site_logo
+        )
         
         if (!faviconPath) {
           // No favicon set, keep default or remove
           return
         }
         
-        // Convert relative path to full URL
-        const BASE = EnvironmentConfig.getInstance().backendBaseUrl()
-        const normalized = faviconPath.startsWith('/') ? faviconPath : `/${faviconPath}`
-        const faviconUrl = `${BASE.replace(/\/$/, '')}/assets/media/uploads${normalized}`
+        // Convert relative path to full URL. API may already return a normalized URL.
+        const BASE = env.backendBaseUrl().replace(/\/$/, '')
+        const rawFaviconPath = String(faviconPath)
+        const faviconUrl = /^https?:\/\//i.test(rawFaviconPath)
+          ? rawFaviconPath
+          : rawFaviconPath.startsWith('/assets/') || rawFaviconPath.startsWith('/storage/')
+            ? `${BASE}${rawFaviconPath}`
+            : `${BASE}/assets/media/uploads/${rawFaviconPath.replace(/^\/+/, '')}`
         
         // Remove existing favicon links
         const existingLinks = document.querySelectorAll('link[rel*="icon"]')

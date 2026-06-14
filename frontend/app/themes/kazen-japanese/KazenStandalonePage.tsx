@@ -29,16 +29,24 @@ export default function KazenStandalonePage() {
   const [valetName, setValetName] = useState("")
   const [valetPlate, setValetPlate] = useState("")
   const [valetCar, setValetCar] = useState("")
+  const [isEmbeddedMode, setIsEmbeddedMode] = useState(false)
 
   useEffect(() => {
     if (typeof document === "undefined") return
 
+    const isEmbedded = new URLSearchParams(window.location.search || "").get("embedded") === "1"
+    setIsEmbeddedMode(isEmbedded)
+
     document.documentElement.setAttribute("data-pmd-kazen-active", "1")
     document.body.setAttribute("data-pmd-kazen-active", "1")
+    document.documentElement.setAttribute("data-pmd-kazen-embedded", isEmbedded ? "1" : "0")
+    document.body.setAttribute("data-pmd-kazen-embedded", isEmbedded ? "1" : "0")
 
     return () => {
       document.documentElement.removeAttribute("data-pmd-kazen-active")
       document.body.removeAttribute("data-pmd-kazen-active")
+      document.documentElement.removeAttribute("data-pmd-kazen-embedded")
+      document.body.removeAttribute("data-pmd-kazen-embedded")
     }
   }, [])
 
@@ -399,17 +407,19 @@ export default function KazenStandalonePage() {
         </footer>
       </div>
 
-      <nav className="kazen-dock" aria-label="Menu actions">
-        <button type="button" onClick={() => setWaiterOpen(true)}>
-          <Bell className="h-5 w-5" />Waiter
-        </button>
-        <button type="button" onClick={() => setNoteOpen(true)}>
-          <MessageSquare className="h-5 w-5" />Note
-        </button>
-        <button type="button" data-primary="true" onClick={() => post("PMD_KAZEN_CHECKOUT")}>
-          <ShoppingBag className="h-5 w-5" />Checkout {state.cart.count ? `(${state.cart.count})` : ""}
-        </button>
-      </nav>
+      {!isEmbeddedMode && (
+        <nav className="kazen-dock" aria-label="Menu actions">
+          <button type="button" onClick={() => setWaiterOpen(true)}>
+            <Bell className="h-5 w-5" />Waiter
+          </button>
+          <button type="button" onClick={() => setNoteOpen(true)}>
+            <MessageSquare className="h-5 w-5" />Note
+          </button>
+          <button type="button" data-primary="true" onClick={() => post("PMD_KAZEN_CHECKOUT")}>
+            <ShoppingBag className="h-5 w-5" />Checkout {state.cart.count ? `(${state.cart.count})` : ""}
+          </button>
+        </nav>
+      )}
 
       {selectedItem && (
         <ModalCard title={selectedItem.name} eyebrow="Item detail" onClose={() => setSelectedItem(null)}>

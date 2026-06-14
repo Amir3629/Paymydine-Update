@@ -261,7 +261,7 @@ export function ModernGreenCheckoutShell(props: ModernGreenCheckoutShellProps) {
   }
 
   return (
-    <div data-pmd-checkout-theme-root="1" data-pmd-checkout-theme="modern_green" data-pmd-modern-green-checkout-shell="1" className="fixed inset-0 z-50 flex items-center justify-center p-4 backdrop-blur-md" style={{ background: "radial-gradient(circle at 82% 8%, rgba(6,62,43,.26) 0%, rgba(2,26,17,.13) 24%, rgba(0,4,3,.94) 54%, rgba(0,0,0,.98) 100%)" }}>
+    <div data-pmd-checkout-theme-root="1" data-pmd-checkout-theme="modern_green" data-pmd-modern-green-checkout-shell="1" data-pmd-mg-checkout-mode={isDarkTheme ? "dark" : "light"} className="fixed inset-0 z-50 flex items-center justify-center p-4 backdrop-blur-md" style={{ background: "radial-gradient(circle at 82% 8%, rgba(6,62,43,.26) 0%, rgba(2,26,17,.13) 24%, rgba(0,4,3,.94) 54%, rgba(0,0,0,.98) 100%)" }}>
         <style>{`
           [data-pmd-modern-green-checkout-shell="1"] {
             --mg-bg: #000000;
@@ -351,6 +351,83 @@ export function ModernGreenCheckoutShell(props: ModernGreenCheckoutShellProps) {
 
           [data-pmd-modern-green-checkout-shell="1"] .border-t {
             border-color: rgba(38,128,88,.38) !important;
+          }
+
+
+          /* PMD_MG_CHECKOUT_MATCH_GUEST_DIALOGS_20260614
+             Keep checkout card in the same Modern Green family as Waiter/Note dialogs. */
+          [data-pmd-modern-green-checkout-shell="1"] > .relative {
+            width: min(430px, calc(100vw - 32px)) !important;
+            max-width: 430px !important;
+            min-width: 0 !important;
+            max-height: calc(100vh - 96px) !important;
+          }
+
+          [data-pmd-modern-green-checkout-shell="1"][data-pmd-mg-checkout-mode="light"] {
+            --mg-surface: linear-gradient(180deg, rgba(244,255,248,.98), rgba(225,245,233,.98));
+            --mg-surface-2: linear-gradient(180deg, rgba(244,255,248,.92), rgba(225,245,233,.92));
+            --mg-border: rgba(24,95,65,.30);
+            --mg-border-soft: rgba(24,95,65,.22);
+            --mg-primary: linear-gradient(180deg, #74e0aa, #29bc7e);
+            --mg-secondary: linear-gradient(180deg, rgba(244,255,248,.96), rgba(225,245,233,.96));
+            --mg-text: #062f2a;
+            --mg-muted: #275f49;
+            --mg-accent: #087a50;
+          }
+
+          [data-pmd-modern-green-checkout-shell="1"] [data-pmd-mg-unified-card="1"] {
+            border-radius: 28px !important;
+            padding: 20px !important;
+            background: var(--mg-surface) !important;
+            border: 1px solid var(--mg-border) !important;
+            color: var(--mg-text) !important;
+            -webkit-text-fill-color: var(--mg-text) !important;
+          }
+
+          [data-pmd-modern-green-checkout-shell="1"] h2,
+          [data-pmd-modern-green-checkout-shell="1"] h3 {
+            color: var(--mg-text) !important;
+            -webkit-text-fill-color: var(--mg-text) !important;
+            font-weight: 850 !important;
+            letter-spacing: -0.035em !important;
+          }
+
+          [data-pmd-modern-green-checkout-shell="1"] p,
+          [data-pmd-modern-green-checkout-shell="1"] span,
+          [data-pmd-modern-green-checkout-shell="1"] label,
+          [data-pmd-modern-green-checkout-shell="1"] div {
+            text-shadow: none !important;
+          }
+
+          [data-pmd-modern-green-checkout-shell="1"] [class*="rounded-2xl"],
+          [data-pmd-modern-green-checkout-shell="1"] [class*="rounded-3xl"] {
+            background: var(--mg-surface-2) !important;
+            border-color: var(--mg-border-soft) !important;
+            color: var(--mg-text) !important;
+            -webkit-text-fill-color: var(--mg-text) !important;
+          }
+
+          [data-pmd-modern-green-checkout-shell="1"] [data-pmd-mg-unified-button="primary"],
+          [data-pmd-modern-green-checkout-shell="1"] [data-pmd-mg-runtime-button="primary"] {
+            min-height: 52px !important;
+            border-radius: 9999px !important;
+            background: var(--mg-primary) !important;
+            border-color: rgba(51,158,111,.42) !important;
+            font-weight: 850 !important;
+          }
+
+          [data-pmd-modern-green-checkout-shell="1"] [data-pmd-mg-unified-button="secondary"],
+          [data-pmd-modern-green-checkout-shell="1"] [data-pmd-mg-runtime-button="secondary"] {
+            min-height: 52px !important;
+            border-radius: 9999px !important;
+            background: var(--mg-secondary) !important;
+            border-color: rgba(51,158,111,.38) !important;
+            font-weight: 800 !important;
+          }
+
+          [data-pmd-modern-green-checkout-shell="1"] input,
+          [data-pmd-modern-green-checkout-shell="1"] textarea {
+            border-radius: 18px !important;
           }
 
           [data-pmd-modern-green-checkout-shell="1"] input {

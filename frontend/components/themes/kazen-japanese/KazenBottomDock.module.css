@@ -2,7 +2,7 @@
   position: fixed;
   left: 50%;
   bottom: calc(1rem + env(safe-area-inset-bottom));
-  z-index: 40;
+  z-index: 80;
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: .5rem;
