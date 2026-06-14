@@ -37,6 +37,8 @@ import { useCheckoutVisualRepairs } from "@/features/customer-menu/legacy-dom-re
 import { usePaymentModalDomRepairs } from "@/features/customer-menu/legacy-dom-repairs/usePaymentModalDomRepairs"
 import { WalletStripePay } from "@/features/customer-menu/checkout/WalletStripePay"
 import { OrderItemWithOptions } from "@/features/customer-menu/checkout/OrderItemWithOptions"
+import { PaymentMethodForm } from "@/features/customer-menu/checkout/PaymentMethodForm"
+import { PaymentActionButton } from "@/features/customer-menu/checkout/PaymentActionButton"
 import { buildTableOrderDraftContext, createSubmittedTableOrderSnapshot } from "@/features/table-order/table-order-utils"
 import {
   buildEvenSharePercents,
@@ -2015,489 +2017,40 @@ const [submittedSnapshot, setSubmittedSnapshot] = useState<any | null>(initialSu
   }, [])
 
 
-  const renderPaymentForm = () => {
-    try {
-      if (typeof window !== "undefined" && (window as any).__PMD_WALLET_POST) {
-        (window as any).__PMD_WALLET_POST({
-          level: "info",
-          message: "PMD_RENDER_PAYMENT_FORM_STATE",
-          data: {
-            selectedPaymentMethod,
-            selectedMethod: selectedMethod ? {
-              code: (selectedMethod as any).code,
-              name: (selectedMethod as any).name,
-            } : null,
-            stripePromise: !!stripePromise,
-            hasStripeConfig: !!stripeConfig,
-            stripeCurrency: stripeConfig?.currency || null,
-            stripeCountryCode: stripeConfig?.countryCode || null,
-          }
-        });
-      }
-    } catch {}
-
-    if (!selectedMethod) return null
-
-    if (checkoutStep === "payment" && hasUnsubmittedPaymentDraft()) {
-      return (
-        <div className="rounded-2xl border border-amber-400/40 bg-amber-50 p-4 text-sm text-amber-900">
-          <div className="font-semibold">Submit order first</div>
-          <div className="mt-1">Please send the table order to the kitchen first. Payment starts only after the backend creates a real order ID.</div>
-          <Button
-            type="button"
-            onClick={() => setCheckoutStep("review")}
-            className="mt-3 w-full rounded-xl bg-amber-700 text-white hover:bg-amber-800"
-          >
-            Back to order review
-          </Button>
-        </div>
-      )
-    }
-
-    switch (selectedMethod.code) {
-      case "card":
-        if (selectedProviderCode === "paypal") {
-          return (
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              className="space-y-3 overflow-hidden"
-            >
-              <div className="flex items-center gap-2 mb-4">
-                <Button variant="ghost" size="sm" onClick={handleBackToMethods} className="p-2 h-9 w-9 pmd-v2-action-circle">
-                  <ArrowLeft className="h-4 w-4" />
-                </Button>
-                <div className="flex items-center gap-2">
-                  <CreditCard className="h-5 w-5 text-paydine-elegant-gray" />
-                  <span className="font-semibold text-paydine-elegant-gray">Card (via PayPal)</span>
-                </div>
-              </div>
-
-              {paypalConfigLoading ? (
-                <div className="rounded-xl p-4 border text-sm text-gray-600">
-                  Loading PayPal...
-                </div>
-              ) : !effectivePayPalClientId ? (
-                <div className="rounded-xl p-4 border text-sm text-gray-600">
-                  PayPal card checkout is not configured for this restaurant.
-                </div>
-              ) : (
-                <PayPalScriptProvider
-                  options={{
-                    clientId: effectivePayPalClientId,
-                    currency: effectivePayPalCurrency,
-                    intent: "capture",
-                    components: "buttons",
-                    disableFunding: "sepa",
-                  }}
-                >
-                  <PayPalForm
-                    paypalFundingSource="card"
-                    paymentData={{
-                      amount: resolveSubmittedPaymentAmount(),
-                      payment_method: "card",
-                      currency: effectivePayPalCurrency.toLowerCase(),
-                      items: itemsToPay.map((item: any) => ({
-                        id: String(item.item.id),
-                        name: item.item.name,
-                        price: item.price,
-                        quantity: item.quantity || 1,
-                        restaurantId: stripeResolvedRestaurantId,
-                      })),
-                      customerInfo: {
-                        name: (paymentFormData as any)?.cardholderName || "",
-                        email: (paymentFormData as any)?.email || "",
-                        phone: (paymentFormData as any)?.phone || "",
-                      },
-                      restaurantId: stripeResolvedRestaurantId,
-                      tableNumber: stripeResolvedTableNumber,
-                    } as any}
-                    onPaymentComplete={(result: any) => {
-                      if (result?.success && result?.transactionId) {
-                        handlePayment(result.transactionId)
-                      }
-                    }}
-                    onPaymentError={(message: string) => {
-                      toast({
-                        title: "Payment Failed",
-                        description: message,
-                        variant: "destructive",
-                      })
-                    }}
-                  />
-                </PayPalScriptProvider>
-              )}
-            </motion.div>
-          )
-        }
-
-        if (selectedProviderCode && selectedProviderCode !== "stripe") {
-          if (selectedProviderCode === "worldline") {
-            return (
-              <motion.div
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                className="space-y-3 overflow-hidden"
-              >
-                <div className="mb-2">
-                  <span className="font-semibold text-paydine-elegant-gray">Worldline card payment</span>
-                </div>
-                <WorldlineInlineCardForm
-                  paymentData={{
-                    amount: resolveSubmittedPaymentAmount(),
-                    payment_method: "card",
-                    currency: (merchantSettings?.currency || "EUR"),
-                    items: itemsToPay.map((item: any) => ({
-                      id: String(item.item.id),
-                      name: item.item.name,
-                      price: item.price,
-                      quantity: item.quantity || 1,
-                      restaurantId: stripeResolvedRestaurantId,
-                    })),
-                    customerInfo: {
-                      name: (paymentFormData as any)?.cardholderName || "",
-                      email: (paymentFormData as any)?.email || "",
-                      phone: (paymentFormData as any)?.phone || "",
-                    },
-                    restaurantId: stripeResolvedRestaurantId,
-                    tableNumber: stripeResolvedTableNumber,
-                  } as any}
-                  currency={(merchantSettings?.currency || "EUR")}
-                  countryCode={(stripeConfig?.countryCode || "DE")}
-                  onPaymentComplete={(result: any) => {
-                    if (result?.success && result?.transactionId) {
-                      handlePayment(result.transactionId)
-                    }
-                  }}
-                  onPaymentError={(message: string) => {
-                    toast({
-                      title: "Worldline Payment Failed",
-                      description: message,
-                      variant: "destructive",
-                    })
-                  }}
-                />
-              </motion.div>
-            )
-          }
-          if (selectedProviderCode === "sumup") {
-            const sumupReturnUrl = typeof window !== "undefined"
-              ? `${window.location.origin}/payment/sumup/complete`
-              : "/payment/sumup/complete"
-            const sumupCancelUrl = typeof window !== "undefined" ? window.location.href : "/menu"
-            return (
-              <motion.div
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                className="space-y-3 overflow-hidden"
-              >
-                <SumUpHostedCheckout
-                  amount={payableTotal}
-                  currency={merchantSettings?.currency || "EUR"}
-                  description="PayMyDine SumUp checkout"
-                  successUrl={sumupReturnUrl}
-                  cancelUrl={sumupCancelUrl}
-                  className="w-full"
-                />
-                {providerInlineError && (
-                  <div className="rounded-xl border border-red-500/30 bg-red-900/20 p-3 text-sm text-red-200">
-                    {providerInlineError}
-                  </div>
-                )}
-              </motion.div>
-            )
-          }
-          return (
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              className="space-y-3 overflow-hidden"
-            >
-              <div className="mb-2">
-                <span className="font-semibold text-paydine-elegant-gray">{selectedMethod?.name || "Card Payment"}</span>
-              </div>
-              <div className="rounded-xl border p-3 text-sm text-paydine-elegant-gray/80">
-                {selectedProviderCode === "vr_payment"
-                  ? "You will be redirected to a secure VR Payment checkout page."
-                  : `Your card details will be completed in a secure embedded ${selectedProviderCode.toUpperCase()} frame.`}
-              </div>
-              <Button
-                type="button"
-                onClick={startHostedRedirectCheckout}
-                disabled={isLoading}
-                className="w-full bg-gradient-to-r from-paydine-champagne to-paydine-rose-beige hover:from-paydine-champagne/90 hover:to-paydine-rose-beige/90 text-paydine-elegant-gray font-bold py-3 rounded-xl shadow-lg transition-all duration-300 hover:shadow-xl"
-              >
-                {isLoading ? "Opening secure form..." : `Pay with ${selectedProviderCode === "vr_payment" ? "VR Payment" : selectedProviderCode.toUpperCase()}`}
-              </Button>
-              {providerInlineError && (
-                <div className="rounded-xl border border-red-500/30 bg-red-900/20 p-3 text-sm text-red-200">
-                  {providerInlineError}
-                </div>
-              )}
-            </motion.div>
-          )
-        }
-
-        return (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-          >
-            <StripeCardPaymentSection
-              methodName={selectedMethod?.name}
-              stripeConfigError={stripeConfigError}
-              stripePromise={stripePromise}
-              cardEnabled={stripeConfig?.methods?.card !== false}
-              paymentData={stripePaymentData}
-              onPaymentSuccess={handlePayment}
-              onPaymentError={(message: string) => {
-                toast({
-                  title: "Payment Failed",
-                  description: message,
-                  variant: "destructive",
-                })
-              }}
-            />
-          </motion.div>
-        )
-
-      case "paypal":
-        return (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="space-y-3 overflow-hidden"
-          >
-
-
-            {selectedProviderCode === "vr_payment" ? (
-              <>
-                <div className="rounded-xl border p-3 text-sm text-paydine-elegant-gray/80">
-                  You will be redirected to a secure VR Payment PayPal checkout page.
-                </div>
-                <Button
-                  type="button"
-                  onClick={startHostedRedirectCheckout}
-                  disabled={isLoading}
-                  className="w-full bg-gradient-to-r from-paydine-champagne to-paydine-rose-beige hover:from-paydine-champagne/90 hover:to-paydine-rose-beige/90 text-paydine-elegant-gray font-bold py-3 rounded-xl shadow-lg transition-all duration-300 hover:shadow-xl"
-                >
-                  {isLoading ? "Opening PayPal..." : "Pay with PayPal"}
-                </Button>
-                {providerInlineError && (
-                  <div className="rounded-xl border border-red-500/30 bg-red-900/20 p-3 text-sm text-red-200">
-                    {providerInlineError}
-                  </div>
-                )}
-              </>
-            ) : paypalConfigLoading ? (
-              <div className="rounded-xl p-4 border text-sm text-gray-600">
-                Loading PayPal...
-              </div>
-            ) : !effectivePayPalClientId ? (
-              <div className="rounded-xl p-4 border text-sm text-gray-600">
-                PayPal is not configured for this restaurant.
-              </div>
-            ) : (
-                <PayPalScriptProvider
-                  options={{
-                    clientId: effectivePayPalClientId,
-                    currency: effectivePayPalCurrency,
-                    intent: "capture",
-                    components: "buttons",
-                    disableFunding: "card,sepa",
-                  }}
-                >
-                  <PayPalForm
-                    paypalFundingSource="paypal"
-                    paymentData={{
-                      amount: resolveSubmittedPaymentAmount(),
-                      payment_method: "paypal",
-                      currency: effectivePayPalCurrency.toLowerCase(),
-                    items: itemsToPay.map((item: any) => ({
-                      id: String(item.item.id),
-                      name: item.item.name,
-                      price: item.price,
-                      quantity: item.quantity || 1,
-                      restaurantId: stripeResolvedRestaurantId,
-                    })),
-                    customerInfo: {
-                      name: (paymentFormData as any)?.cardholderName || "",
-                      email: (paymentFormData as any)?.email || "",
-                      phone: (paymentFormData as any)?.phone || "",
-                    },
-                    restaurantId: stripeResolvedRestaurantId,
-                    tableNumber: stripeResolvedTableNumber,
-                  } as any}
-                  onPaymentComplete={(result: any) => {
-                    if (result?.success && result?.transactionId) {
-                      handlePayment(result.transactionId)
-                    }
-                  }}
-                  onPaymentError={(message: string) => {
-                    toast({
-                      title: "Payment Failed",
-                      description: message,
-                      variant: "destructive",
-                    })
-                  }}
-                />
-              </PayPalScriptProvider>
-            )}
-          </motion.div>
-        )
-
-      case "apple_pay":
-      case "google_pay":
-        if (!selectedPaymentMethod) return null
-        return (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="space-y-3 overflow-hidden"
-          >
-
-
-            {selectedProviderCode === "vr_payment" ? (
-              <>
-                <div className="rounded-xl border p-3 text-sm text-paydine-elegant-gray/80">
-                  You will be redirected to a secure VR Payment checkout page.
-                </div>
-                <Button
-                  type="button"
-                  onClick={startHostedRedirectCheckout}
-                  disabled={isLoading}
-                  className="w-full bg-gradient-to-r from-paydine-champagne to-paydine-rose-beige hover:from-paydine-champagne/90 hover:to-paydine-rose-beige/90 text-paydine-elegant-gray font-bold py-3 rounded-xl shadow-lg transition-all duration-300 hover:shadow-xl"
-                >
-                  {isLoading ? "Opening wallet..." : `Pay with ${selectedPaymentMethod === "apple_pay" ? "Apple Pay" : "Google Pay"}`}
-                </Button>
-                {providerInlineError && (
-                  <div className="rounded-xl border border-red-500/30 bg-red-900/20 p-3 text-sm text-red-200">
-                    {providerInlineError}
-                  </div>
-                )}
-              </>
-            ) : stripeConfig?.methods?.[selectedPaymentMethod as "apple_pay" | "google_pay"] ? (
-              stripePromise ? (
-                <Elements stripe={stripePromise}>
-                  <WalletStripePay
-                    method={selectedPaymentMethod as "apple_pay" | "google_pay"}
-                    amount={payableTotal}
-                    currency={(stripeConfig?.currency || merchantSettings?.currency || "EUR")}
-                    countryCode={(stripeConfig?.countryCode || "DE")}
-                    restaurantId={stripeResolvedRestaurantId || "1"}
-                    cartId={(stripePaymentData as any)?.cartId || null}
-                    userId={(stripePaymentData as any)?.userId || null}
-                    items={(stripePaymentData as any)?.items || []}
-                    customerInfo={(stripePaymentData as any)?.customerInfo || {}}
-                    tableNumber={(stripePaymentData as any)?.tableNumber || null}
-                    onSuccess={(piId: string) => {
-                      handlePayment(piId)
-                    }}
-                    onError={(message: string) => {
-                      toast({
-                        title: "Payment Failed",
-                        description: message,
-                        variant: "destructive",
-                      })
-                    }}
-                  />
-                </Elements>
-              ) : (
-                <div className="rounded-xl border border-amber-400/30 bg-amber-50 p-3 text-xs text-amber-800">
-                  Stripe is still loading. Please wait a few seconds and try again.
-                </div>
-              )
-            ) : (
-              <div className="rounded-xl border border-amber-400/30 bg-amber-50 p-3 text-xs text-amber-800">
-                {selectedPaymentMethod === "apple_pay"
-                  ? "Apple Pay is not enabled for this restaurant."
-                  : "Google Pay is not enabled for this restaurant."}
-              </div>
-            )}
-          </motion.div>
-        )
-
-      case "wero":
-        return (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="space-y-3 overflow-hidden"
-          >
-
-            <div className="rounded-xl border p-3 text-sm text-paydine-elegant-gray/80">
-              {selectedProviderCode === "worldline"
-                ? "You will be redirected to a secure Wero checkout powered by Worldline."
-                : selectedProviderCode === "vr_payment"
-                  ? "You will be redirected to a secure Wero checkout powered by VR Payment."
-                  : "You will be redirected to a secure Wero checkout powered by Stripe."}
-            </div>
-            <Button
-              type="button"
-              onClick={startHostedRedirectCheckout}
-              disabled={isLoading}
-              className="w-full bg-gradient-to-r from-paydine-champagne to-paydine-rose-beige hover:from-paydine-champagne/90 hover:to-paydine-rose-beige/90 text-paydine-elegant-gray font-bold py-3 rounded-xl shadow-lg transition-all duration-300 hover:shadow-xl"
-            >
-              {isLoading ? "Opening Wero..." : "Pay with Wero"}
-            </Button>
-            {providerInlineError && (
-              <div className="rounded-xl border border-red-500/30 bg-red-900/20 p-3 text-sm text-red-200">
-                {providerInlineError}
-              </div>
-            )}
-          </motion.div>
-        )
-
-case "cod":
-        return (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="space-y-3 overflow-hidden"
-          >
-
-
-            <div className="space-y-3">
-              <div className="bg-gray-50 rounded-xl p-4">
-                <div className="text-sm font-medium text-paydine-elegant-gray mb-2">Total due</div>
-                <div className="text-lg font-bold text-paydine-elegant-gray">
-                  {formatCurrency(checkoutStep === "payment" ? payableTotal : finalTotal)}
-                </div>
-              </div>
-              <Button
-                type="button"
-                disabled={isLoading}
-                onClick={async () => {
-                  setCashCollectionConfirmed(true)
-                  await handlePayment(undefined, { method_code: "cod", provider_code: null })
-                }}
-                className="w-full"
-                style={modalPrimaryBtnStyle}
-              >
-                {isLoading ? "Submitting..." : "Confirm cash payment"}
-              </Button>
-              {cashCollectionConfirmed && (
-                <div className="rounded-xl border p-3 text-sm" style={{ borderColor: "var(--theme-border)", color: "var(--theme-text-primary)", background: "var(--theme-surface)" }}>
-                  Please have the exact amount ready when the waiter comes to collect payment.
-                </div>
-              )}
-            </div>
-          </motion.div>
-        )
-
-      default:
-        return null
-    }
-  }
+  const renderPaymentForm = () => (
+    <PaymentMethodForm
+      selectedPaymentMethod={selectedPaymentMethod}
+      selectedMethod={selectedMethod}
+      stripePromise={stripePromise}
+      stripeConfig={stripeConfig}
+      stripeConfigError={stripeConfigError}
+      hasUnsubmittedPaymentDraft={hasUnsubmittedPaymentDraft}
+      checkoutStep={checkoutStep}
+      setCheckoutStep={setCheckoutStep}
+      selectedProviderCode={selectedProviderCode}
+      handleBackToMethods={handleBackToMethods}
+      paypalConfigLoading={paypalConfigLoading}
+      effectivePayPalClientId={effectivePayPalClientId}
+      effectivePayPalCurrency={effectivePayPalCurrency}
+      resolveSubmittedPaymentAmount={resolveSubmittedPaymentAmount}
+      itemsToPay={itemsToPay}
+      stripeResolvedRestaurantId={stripeResolvedRestaurantId}
+      paymentFormData={paymentFormData}
+      stripeResolvedTableNumber={stripeResolvedTableNumber}
+      handlePayment={handlePayment}
+      toast={toast}
+      merchantSettings={merchantSettings}
+      payableTotal={payableTotal}
+      providerInlineError={providerInlineError}
+      isLoading={isLoading}
+      startHostedRedirectCheckout={startHostedRedirectCheckout}
+      stripePaymentData={stripePaymentData}
+      finalTotal={finalTotal}
+      modalPrimaryBtnStyle={modalPrimaryBtnStyle}
+      cashCollectionConfirmed={cashCollectionConfirmed}
+      setCashCollectionConfirmed={setCashCollectionConfirmed}
+    />
+  )
 
   const tableDisplayName = tableDraft?.table_name || tableInfo?.table_name || (tableDraft?.table_no || tableInfo?.table_no ? `Table ${tableDraft?.table_no || tableInfo?.table_no}` : "Delivery")
   const isTableContext = Boolean(tableInfo?.table_id || tableInfo?.table_no || tableDraft?.table_id || tableDraft?.table_no)
@@ -2702,76 +2255,18 @@ const modalTitle = checkoutStep === "review" && tableDraft?.success && tableDraf
     setCheckoutStep("split-review")
   }
 
-  const renderPaymentButton = () => {
-    if (!selectedMethod) return null
-
-    // IMPORTANT:
-    // For Stripe-like methods, do NOT allow the fixed bottom button
-    // to submit/place the order directly.
-    // Payment must happen only through StripeCardForm:
-    // create-intent -> confirmCardPayment -> onPaymentComplete -> handlePayment(transactionId)
-    if (["card", "wero", "paypal"].includes(selectedMethod.code)) {
-      return null
-    }
-
-    const isFormValid = () => {
-      switch (selectedMethod.code) {
-        case "card":
-          return true
-        case "paypal":
-          return paymentFormData.email
-        case "apple_pay":
-        case "google_pay":
-          return true
-        case "cod":
-          return true
-        default:
-          return false
-      }
-    }
-
-    const getButtonText = () => {
-      switch (selectedMethod.code) {
-        case "card":
-  return `Pay ${formatCurrency(checkoutStep === "payment" ? payableTotal : finalTotal)}`
-        case "paypal":
-          return "Pay with PayPal"
-        case "apple_pay":
-        case "google_pay":
-          return `Pay with ${selectedMethod.name}`
-        case "cod":
-          return "Confirm Cash Payment"
-        default:
-          return "Pay"
-      }
-    }
-
-    if (selectedPaymentMethod === "apple_pay" || selectedPaymentMethod === "google_pay" || selectedPaymentMethod === "wero") {
-      return null
-    }
-
-    return (
-      <ThemedButton
-        type="button"
-        onClick={handlePayment}
-        disabled={isLoading || !isFormValid()}
-        variant="primary"
-        fullWidth
-      >
-        {isLoading ? (
-          <div className="flex items-center gap-2">
-            <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-            Processing...
-          </div>
-        ) : (
-          <div className="flex items-center gap-2">
-            <Lock className="h-4 w-4" />
-            {getButtonText()}
-          </div>
-        )}
-      </ThemedButton>
-    )
-  }
+  const renderPaymentButton = () => (
+    <PaymentActionButton
+      selectedMethod={selectedMethod}
+      checkoutStep={checkoutStep}
+      payableTotal={payableTotal}
+      finalTotal={finalTotal}
+      selectedPaymentMethod={selectedPaymentMethod}
+      handlePayment={handlePayment}
+      isLoading={isLoading}
+      paymentFormData={paymentFormData}
+    />
+  )
 
   const modernGreenTableDraftItems = groupOrderDisplayItems(Array.isArray(tableDraft?.items) ? tableDraft.items : [])
   const modernGreenTableDraftTotal = Number(
