@@ -195,7 +195,8 @@ const { clearCart, addToCart, clearTableContext } = useCartStore()
   const isOrganicCheckoutVisual = checkoutVisualTheme === ORGANIC_BOTANICAL_THEME_KEY
   const isModernGreenCheckoutVisual = checkoutVisualTheme === "modern_green"
   const isKazenJapaneseCheckoutVisual = checkoutVisualTheme === KAZEN_JAPANESE_THEME_KEY
-  const isThemedCheckoutVisual = isOrganicCheckoutVisual || isModernGreenCheckoutVisual || isKazenJapaneseCheckoutVisual
+  const isGoldCheckoutVisual = checkoutVisualTheme === "gold-luxury"
+  const isThemedCheckoutVisual = isOrganicCheckoutVisual || isModernGreenCheckoutVisual || isKazenJapaneseCheckoutVisual || isGoldCheckoutVisual
 
 
   const [checkoutStep, setCheckoutStep] = useState<CheckoutStep>(
@@ -701,7 +702,7 @@ const [submittedSnapshot, setSubmittedSnapshot] = useState<any | null>(initialSu
     return { summary: "Order Summary", subtotal: "Subtotal", total: "Total", includedNote: "" }
   }, [taxSettings.enabled, taxSettings.percentage, taxSettings.menuPrice])
 
-  usePaymentModalDomRepairs({
+  usePaymentModalDomRepairs(!isThemedCheckoutVisual ? {
     isOpen,
     checkoutStep,
     selectedPaymentMethod,
@@ -714,7 +715,7 @@ const [submittedSnapshot, setSubmittedSnapshot] = useState<any | null>(initialSu
     splitMethod,
     splitGuestCount,
     submittedSnapshotOrderId: submittedSnapshot?.orderId ?? null,
-  })
+  } : ({ isOpen: false } as any))
 
   const modalPrimaryBtn = isKazenJapaneseCheckoutVisual
     ? "min-h-10 w-full rounded-none px-3 py-2 text-[12px] font-semibold uppercase tracking-[0.025em] leading-tight transition disabled:opacity-70 disabled:cursor-not-allowed inline-flex items-center justify-center gap-2 whitespace-normal break-words overflow-hidden"
