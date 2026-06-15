@@ -180,4 +180,6 @@
   'Admin\\Controllers\\categories' => 'app/admin/controllers/Categories.php',
   'Admin\\Requests\\Category' => 'app/admin/requests/Category.php',
   'Admin\\Requests\\Menu' => 'app/admin/requests/Menu.php',
+  'Admin\\Controllers\\KitchenDisplay' => 'app/admin/controllers/KitchenDisplay.php',
+  'Admin\\Models\\Kds_stations_model' => 'app/admin/models/Kds_stations_model.php',
 );
