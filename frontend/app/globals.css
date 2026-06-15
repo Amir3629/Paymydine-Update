@@ -1,2 +1,5 @@
 @import "../styles/customer/index.css";
 @import "../styles/global/paymydine-legacy-globals.css";
+
+@import "../styles/themes/modern-green-native.css";
+@import "../styles/themes/organic-botanical-native.css";

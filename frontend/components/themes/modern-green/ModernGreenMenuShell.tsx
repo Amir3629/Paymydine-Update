@@ -62,7 +62,7 @@ export function ModernGreenMenuShell({
   onToggleMode,
 }: ModernGreenMenuShellProps) {
   return (
-    <div className="modern-green-theme min-h-screen w-full" data-mode={mode}>
+    <div className="pmd-theme-modern-green modern-green-theme min-h-screen w-full" data-mode={mode}>
       <div className="mx-auto flex min-h-screen w-full max-w-md flex-col px-4 pb-28 pt-4">
         {/* Header */}
         <header className="relative flex items-center justify-between gap-2">

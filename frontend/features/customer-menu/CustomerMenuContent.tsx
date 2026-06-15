@@ -11,7 +11,7 @@ import "./customer-menu-page.css"
  * replace them from focused files such as CustomerMenuModals, checkout theme shells,
  * and a Kazen standalone controller/CSS module.
  */
-import { ModernGreenBridgeTheme } from "@/components/themes/modern-green/ModernGreenBridgeTheme"
+import { ModernGreenNativeMenu } from "@/components/themes/modern-green/menu/ModernGreenNativeMenu"
 import { ModernGreenCheckoutShell } from "@/components/themes/modern-green/ModernGreenCheckoutShell"
 import { KazenJapaneseBridgeTheme, KazenJapaneseCheckoutShell } from "@/components/themes/kazen-japanese"
 
@@ -59,8 +59,9 @@ import {
 } from "@/components/themes/organic-botanical-paper/OrganicCheckoutShell";
 import { ThemeActionBoundary } from "@/components/themes/shared/ThemeActionBoundary";
 import { KazenBottomDock } from "@/components/themes/kazen-japanese/KazenBottomDock";
-import { ModernGreenBottomDock } from "@/components/themes/modern-green/ModernGreenBottomDock";
-import { OrganicBottomDock } from "@/components/themes/organic-botanical-paper/OrganicBottomDock";
+import { ModernGreenBottomDock } from "@/components/themes/modern-green/actions/ModernGreenBottomDock";
+import { OrganicBottomDock } from "@/components/themes/organic-botanical-paper/actions/OrganicBottomDock";
+import { OrganicNativeMenu } from "@/components/themes/organic-botanical-paper/menu/OrganicNativeMenu";
 import { GoldBottomDock } from "@/components/themes/gold-luxury/GoldBottomDock";
 import { CheckoutIconFrame, CheckoutStepCard, CheckoutSummaryCard, OrderStatusCard, PaymentCardFrame, PaymentMethodTile, SplitBillPanel, SplitMethodButton, ThemedButton, ThemedInput, TipCouponPanel } from "@/components/theme-ui";
 import { useTableOrderDraft } from "@/features/table-order/use-table-order-draft";
@@ -70,7 +71,7 @@ import { useCustomerThemeSelection } from "@/features/customer-menu/useCustomerT
 import { PaymentModal } from "@/features/customer-menu/checkout/CheckoutModalHost";
 import { MenuHighlightSection, MenuRecommendationBadges } from "@/features/customer-menu/theme/MenuHighlights";
 import { pmdBuildKazenParentCategories } from "@/features/customer-menu/data/menuCategories";
-import { OrganicExactV0Frame, OrganicBotanicalHero, OrganicBotanicalCategoryNav, OrganicBotanicalMenuCard, organicBotanicalVars, hasCheckoutThemeRoot } from "@/features/customer-menu/theme/OrganicExactV0Frame";
+import { OrganicBotanicalHero, OrganicBotanicalCategoryNav, OrganicBotanicalMenuCard, organicBotanicalVars, hasCheckoutThemeRoot } from "@/features/customer-menu/theme/OrganicExactV0Frame";
 import { __pmdRemoteConsoleInstallOnce, __pmdWalletDebugInstallOnce } from "@/features/customer-menu/legacy-dom-repairs/debugInstallers";
 import { useCurrentFrontendTheme } from "@/features/customer-menu/theme/useCurrentFrontendTheme";
 import { pmdInstallMenuPayMyDineFooterLogo } from "@/features/customer-menu/legacy-dom-repairs/footerLogoInstaller";
@@ -848,136 +849,7 @@ useEffect(() => {
     language,
   })
 
-  // PMD_BOTANICAL_V0_PARENT_BRIDGE_20260607
-  useEffect(() => {
-    if (typeof window === "undefined") return
-
-    const handleBotanicalMessage = (event: MessageEvent) => {
-      if (event.origin !== window.location.origin) return
-
-      const msg = event.data
-      if (!msg || typeof msg !== "object") return
-
-      const type = String((msg as any).type || "")
-      if (!type.startsWith("PMD_BOTANICAL_")) return
-
-      if (type === "PMD_BOTANICAL_ADD_ITEM") {
-        const id = String((msg as any).itemId || "")
-        const quantity = Math.max(1, Number((msg as any).quantity || 1))
-
-        const sourceItems = apiMenuItems.length ? apiMenuItems : (menuItems.length ? menuItems : menuData)
-        const found = sourceItems.find((candidate: any) => {
-          return String(candidate?.id ?? candidate?.menu_id ?? candidate?.menuId ?? "") === id
-        })
-
-        if (!found) {
-          console.warn("[PMD botanical bridge] item not found", { id })
-          toast({
-            title: "Item not found",
-            description: "Please refresh the menu and try again.",
-            variant: "destructive",
-          })
-          return
-        }
-
-        let itemToAdd: MenuItem = { ...(found as MenuItem) }
-
-        // Keep same VAT behavior as current organic/gold logic.
-        if (taxSettings.enabled && taxSettings.percentage > 0 && taxSettings.menuPrice === 0) {
-          itemToAdd.price = Number(itemToAdd.price || 0) / (1 + taxSettings.percentage / 100)
-          if (itemToAdd.options) {
-            itemToAdd.options = itemToAdd.options.map((option: any) => ({
-              ...option,
-              values: (option.values || []).map((value: any) => ({
-                ...value,
-                price: Number(value.price || 0) / (1 + taxSettings.percentage / 100),
-              })),
-            }))
-          }
-        }
-
-        for (let i = 0; i < quantity; i++) {
-          addToCart(itemToAdd)
-        }
-
-        handleFirstAdd(found as MenuItem)
-        toast({
-          title: "Added to order",
-          description: String((found as any).name || (found as any).menu_name || "Item added"),
-        })
-        return
-      }
-
-      if (
-        type === "PMD_BOTANICAL_CALL_WAITER" ||
-        type === "pmd:call-waiter"
-      ) {
-        handleWaiterClick()
-        return
-      }
-
-      if (
-        type === "PMD_BOTANICAL_ADD_NOTE" ||
-        type === "pmd:add-note"
-      ) {
-        handleNoteClick()
-        return
-      }
-
-      if (
-        type === "PMD_BOTANICAL_CHECKOUT" ||
-        type === "pmd:checkout"
-      ) {
-        handleCartClick()
-        return
-      }
-
-      if (
-        type === "PMD_BOTANICAL_TABLE_ORDER" ||
-        type === "pmd:table-order"
-      ) {
-        handleCartClick()
-        return
-      }
-
-      if (type === "PMD_BOTANICAL_GO_VALET") {
-        const incomingPath = String((msg as any).parentPath || window.location.pathname || "/menu")
-        const incomingSearch = String((msg as any).parentSearch || window.location.search || "")
-
-        let targetPath = "/valet"
-
-        if (/\/table\/[^/]+\/menu\/?$/.test(incomingPath)) {
-          targetPath = incomingPath.replace(/\/menu\/?$/, "/valet")
-        } else if (/\/menu\/?$/.test(incomingPath)) {
-          targetPath = "/valet"
-        } else if (/\/menu\/table-[^/]+\/?$/.test(incomingPath)) {
-          targetPath = "/valet"
-        }
-
-        window.location.href = `${targetPath}${incomingSearch || ""}`
-        return
-      }
-
-      if (type === "PMD_BOTANICAL_LANGUAGE") {
-        toast({
-          title: "Language",
-          description: "Language switch is still handled by the PayMyDine shell.",
-        })
-      }
-    }
-
-    window.addEventListener("message", handleBotanicalMessage)
-    return () => window.removeEventListener("message", handleBotanicalMessage)
-  }, [
-    apiMenuItems,
-    menuItems,
-    items.length,
-    taxSettings.enabled,
-    taxSettings.percentage,
-    taxSettings.menuPrice,
-    addToCart,
-    toast,
-  ])
+  // Organic Botanical now calls PayMyDine actions directly through native component props.
   const handleSendNote = async () => {
     const trimmedNote = (note ?? '').trim();
     if (!trimmedNote) {
@@ -1088,74 +960,7 @@ useEffect(() => {
 
   useOrganicCheckoutDomPolish(false) // PMD_ORGANIC_CARDS_V2_DISABLE_OLD_DOM_POLISH_20260614
 
-  // PMD_ORGANIC_V0_PARENT_MESSAGE_BRIDGE_FINAL_20260607
-  React.useEffect(() => {
-    if (!isOrganicBotanicalTheme || typeof window === "undefined") return
-
-    function handleBotanicalV0Message(event: MessageEvent) {
-      if (event.origin !== window.location.origin) return
-
-      const data: any = event.data || {}
-      const type = String(data.type || "")
-
-      if (type === "pmd:call-waiter") {
-        handleWaiterClick()
-        return
-      }
-
-      if (type === "pmd:add-note") {
-        handleNoteClick()
-        return
-      }
-
-      if (type === "pmd:checkout") {
-        handleCartClick()
-        return
-      }
-
-      if (type === "pmd:table-order") {
-        if (!shouldShowTableOrderAction) return
-        setPaymentModalInitialStep(
-          sharedTableOrder?.status === "draft"
-            ? "review"
-            : sharedTableOrder?.status === "paid"
-              ? "paid"
-              : "submitted"
-        )
-        setPaymentModalOpen(true)
-        return
-      }
-
-      if (type === "pmd:add-item" && data.item) {
-        const itemToAdd = data.item as MenuItem
-        const quantity = Math.max(1, Number(data.quantity || 1))
-
-        for (let i = 0; i < quantity; i++) {
-          addToCart(itemToAdd)
-        }
-
-        handleFirstAdd(itemToAdd)
-        toast({
-          title: "Added to order",
-          description: String((itemToAdd as any).name || (itemToAdd as any).menu_name || "Item added"),
-        })
-        return
-      }
-
-      if (type === "pmd:open-valet") {
-        const currentSearch = window.location.search || ""
-        if (tableIdString) {
-          window.location.href = `/table/${tableIdString}/valet${currentSearch}`
-        } else {
-          window.location.href = `/valet${currentSearch}`
-        }
-        return
-      }
-    }
-
-    window.addEventListener("message", handleBotanicalV0Message)
-    return () => window.removeEventListener("message", handleBotanicalV0Message)
-  }, [isOrganicBotanicalTheme, tableIdString])
+  // Organic Botanical is rendered natively; standalone iframe message bridge removed.
 
   // PMD_ORGANIC_DOCK_DELEGATED_ACTIONS_20260608
   React.useEffect(() => {
@@ -1483,11 +1288,6 @@ useEffect(() => {
 
   // PMD_MODERN_GREEN_V0_ONLY_RETURN_FINAL_20260610
   if (isModernGreenTheme) {
-    const modernGreenSrc =
-      typeof window !== "undefined"
-        ? `/newfrontend/?embedded=1&from=pmd&${window.location.search.replace(/^\?/, "")}`
-        : "/newfrontend/?embedded=1&from=pmd"
-
     const modernGreenSourceItems = apiMenuItems.length ? apiMenuItems : (menuItems.length ? menuItems : menuData)
     const modernGreenTableNumber = tableInfo?.table_no ?? tableInfo?.table_id ?? displayTableNumber ?? tableIdString ?? null
     const modernGreenLogoUrl = normalizeModernGreenLogoUrl(
@@ -1604,8 +1404,7 @@ useEffect(() => {
 
     return (
       <ThemeActionBoundary actions={themeMenuActions}>
-        <ModernGreenBridgeTheme
-          src={modernGreenSrc}
+        <ModernGreenNativeMenu
           sourceItems={modernGreenSourceItems}
           cartItems={items}
           totalItems={totalItems}
@@ -1685,7 +1484,7 @@ useEffect(() => {
             tableId={tableIdString}
             tableName={tableName}
           />
-        </ModernGreenBridgeTheme>
+        </ModernGreenNativeMenu>
       </ThemeActionBoundary>
     )
   }
@@ -1694,8 +1493,16 @@ useEffect(() => {
   if (isOrganicBotanicalTheme) {
     return (
       <ThemeActionBoundary actions={themeMenuActions}>
-      <div className="pmd-customer-page page--menu relative min-h-screen w-full bg-[#f6efe2]">
-        <OrganicExactV0Frame />
+      <div className="pmd-customer-page page--menu pmd-theme-organic-botanical relative min-h-screen w-full bg-[#f6efe2]">
+        <OrganicNativeMenu
+          sourceItems={apiMenuItems.length ? apiMenuItems : (menuItems.length ? menuItems : menuData)}
+          categories={allCategories}
+          restaurantName={restaurantDisplayName}
+          tableNumber={tableInfo?.table_no ?? tableInfo?.table_id ?? displayTableNumber ?? tableIdString ?? null}
+          actions={themeMenuActions}
+          onAddItem={(item, quantity) => handleOrganicAdd(item as MenuItem, quantity)}
+          onOpenItem={(item) => handleItemSelect(item as MenuItem)}
+        />
 
         {/* PMD_ORGANIC_USES_REAL_GOLD_TOOLBAR_FIXED_20260608 */}
         <div

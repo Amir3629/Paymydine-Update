@@ -272,7 +272,7 @@ export function ModernGreenNativeMenu({
   }
 
   return (
-    <div className="modern-green-theme min-h-screen bg-[var(--mg-page-bg)] pb-28" data-mode={mode} data-pmd-native-modern-green="1">
+    <div className="pmd-theme-modern-green modern-green-theme min-h-screen bg-[var(--mg-page-bg)] pb-28" data-mode={mode} data-pmd-native-modern-green="1">
       <ModernGreenMenuShell
         mode={mode}
         brandName={restaurantName || "PayMyDine"}
