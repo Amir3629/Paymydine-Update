@@ -7,7 +7,6 @@
 /vendor/
 /node_modules/
 /frontend/node_modules/
-
 # builds
 /.next/
 /frontend/.next/
@@ -15,12 +14,10 @@
 /frontend/out/
 /dist/
 /frontend/dist/
-
 # runtime/cache/uploads
 /storage/
 /assets/media/
 /public/storage
-
 # backups / reports / temp
 /.deploy-backups/
 /.audit-backups/
@@ -43,3 +40,17 @@
 *pre_*
 *bridge_backup*
 *broken_before*
+# PayMyDine local/generated backups
+frontend/*.tar.gz
+frontend/backup_*.tar.gz
+frontend/_archived_phase*
+frontend/**/__MACOSX/
+frontend/**/*.bak.*
+frontend/**/*.bak
+frontend/**/*.backup
+frontend/**/.DS_Store
+_codex_theme_sources/**/node_modules/
+_codex_theme_sources/**/.next/
+_codex_theme_sources/**/.git/
+_codex_theme_sources/**/*.log
+_codex_theme_sources/**/tsconfig.tsbuildinfo
