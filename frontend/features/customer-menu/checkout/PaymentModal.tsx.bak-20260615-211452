@@ -25,7 +25,6 @@ import { PayPalForm, WorldlineInlineCardForm } from "@/components/payment/secure
 import { StripeCardPaymentSection } from "@/features/checkout/payment/StripeCardPaymentSection"
 import SumUpHostedCheckout from "@/components/payment/sumup-hosted-checkout"
 import { stickySearch } from "@/lib/sticky-query"
-import { cn } from "@/lib/utils"
 import {
   OrganicCheckoutScopedStyles,
   organicCheckoutBodyStyle,
@@ -38,8 +37,6 @@ import { KazenGoldCheckoutSkinStyles, KazenSharedCheckoutNightPolishStyles, Kaze
 import { useCheckoutVisualRepairs } from "@/features/customer-menu/legacy-dom-repairs/useCheckoutVisualRepairs"
 import { usePaymentModalDomRepairs } from "@/features/customer-menu/legacy-dom-repairs/usePaymentModalDomRepairs"
 import { WalletStripePay } from "@/features/customer-menu/checkout/WalletStripePay"
-import { ModernGreenCheckoutShell } from "@/components/themes/modern-green/ModernGreenCheckoutShell"
-import { KazenJapaneseCheckoutShell } from "@/components/themes/kazen-japanese"
 import { OrderItemWithOptions } from "@/features/customer-menu/checkout/OrderItemWithOptions"
 import { PaymentMethodForm } from "@/features/customer-menu/checkout/PaymentMethodForm"
 import { PaymentActionButton } from "@/features/customer-menu/checkout/PaymentActionButton"
