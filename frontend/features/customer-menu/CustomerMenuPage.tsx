@@ -58,10 +58,10 @@ import {
   organicCheckoutPrimaryButtonStyle,
 } from "@/components/themes/organic-botanical-paper/OrganicCheckoutShell";
 import { ThemeActionBoundary } from "@/components/themes/shared/ThemeActionBoundary";
-import { KazenBottomDock } from "@/components/themes/kazen-japanese/KazenBottomDock";
-import { ModernGreenBottomDock } from "@/components/themes/modern-green/ModernGreenBottomDock";
-import { OrganicBottomDock } from "@/components/themes/organic-botanical-paper/OrganicBottomDock";
-import { GoldBottomDock } from "@/components/themes/gold-luxury/GoldBottomDock";
+import { KazenBottomDockV2 } from "@/features/customer-menu/theme-v2/kazen/KazenBottomDockV2";
+import { ModernGreenBottomDockV2 } from "@/features/customer-menu/theme-v2/modern-green/ModernGreenBottomDockV2";
+import { OrganicBottomDockV2 } from "@/features/customer-menu/theme-v2/organic/OrganicBottomDockV2";
+import { GoldBottomDockV2 } from "@/features/customer-menu/theme-v2/gold-luxury/GoldBottomDockV2";
 import { CheckoutIconFrame, CheckoutStepCard, CheckoutSummaryCard, OrderStatusCard, PaymentCardFrame, PaymentMethodTile, SplitBillPanel, SplitMethodButton, ThemedButton, ThemedInput, TipCouponPanel } from "@/components/theme-ui";
 import { useTableOrderDraft } from "@/features/table-order/use-table-order-draft";
 import { useTableOrderActions } from "@/features/table-order/use-table-order-actions";
@@ -81,8 +81,14 @@ import { pmdForceKazenFrontendThemePayload } from "@/features/customer-menu/them
 import { ExpandingToolbarMenuItemCard } from "@/features/customer-menu/components/ExpandingToolbarMenuItemCard";
 import { LoadingSpinner } from "@/features/customer-menu/components/LoadingSpinner";
 import { OrganicBotanicalCheckoutScopedStyles, OrganicBotanicalValetFeature } from "@/features/customer-menu/guest-actions/OrganicGuestDialogs";
-import { GoldNoteDialog, GoldWaiterDialog, KazenNoteDialog, KazenWaiterDialog, ModernGreenNoteDialog, ModernGreenWaiterDialog } from "@/features/customer-menu/guest-actions/ThemeGuestDialogs";
-import { OrganicNoteCardV2, OrganicWaiterCardV2 } from "@/features/customer-menu/guest-actions/OrganicGuestCardsV2";
+import { GoldNoteCardV2 } from "@/features/customer-menu/theme-v2/gold-luxury/GoldNoteCardV2";
+import { GoldWaiterCardV2 } from "@/features/customer-menu/theme-v2/gold-luxury/GoldWaiterCardV2";
+import { KazenNoteCardV2 } from "@/features/customer-menu/theme-v2/kazen/KazenNoteCardV2";
+import { KazenWaiterCardV2 } from "@/features/customer-menu/theme-v2/kazen/KazenWaiterCardV2";
+import { ModernGreenNoteCardV2 } from "@/features/customer-menu/theme-v2/modern-green/ModernGreenNoteCardV2";
+import { ModernGreenWaiterCardV2 } from "@/features/customer-menu/theme-v2/modern-green/ModernGreenWaiterCardV2";
+import { OrganicNoteCardV2 } from "@/features/customer-menu/theme-v2/organic/OrganicNoteCardV2";
+import { OrganicWaiterCardV2 } from "@/features/customer-menu/theme-v2/organic/OrganicWaiterCardV2";
 import { buildTableOrderDraftContext, createSubmittedTableOrderSnapshot, isVisibleTableOrderDraft, tableOrderItemCount } from "@/features/table-order/table-order-utils";
 import {
   buildEvenSharePercents,
@@ -1427,7 +1433,7 @@ useEffect(() => {
           showTableOrder={shouldShowTableOrderAction}
           tableOrderCount={tableOrderActionCount}
         >
-          <KazenBottomDock {...themeMenuActions} />
+          <KazenBottomDockV2 {...themeMenuActions} />
           <PaymentModal
             isOpen={isPaymentModalOpen}
             onClose={() => { setPaymentModalOpen(false); setPaymentModalPreferPersonalReview(false) }}
@@ -1461,13 +1467,13 @@ useEffect(() => {
             }}
           />
 
-          <KazenWaiterDialog
+          <KazenWaiterCardV2
             isOpen={isWaiterConfirmOpen}
             onOpenChange={setWaiterConfirmOpen}
             tableId={tableIdString}
             tableName={tableName}
           />
-          <KazenNoteDialog
+          <KazenNoteCardV2
             isOpen={isNoteModalOpen}
             onOpenChange={setNoteModalOpen}
             note={note}
@@ -1636,7 +1642,7 @@ useEffect(() => {
           showTableOrder={shouldShowTableOrderAction}
           tableOrderCount={tableOrderActionCount}
         >
-          <ModernGreenBottomDock {...themeMenuActions} />
+          <ModernGreenBottomDockV2 {...themeMenuActions} />
           <PaymentModal
             isOpen={isPaymentModalOpen}
             onClose={() => { setPaymentModalOpen(false); setPaymentModalPreferPersonalReview(false) }}
@@ -1670,13 +1676,13 @@ useEffect(() => {
             }}
           />
 
-          <ModernGreenWaiterDialog
+          <ModernGreenWaiterCardV2
             isOpen={isWaiterConfirmOpen}
             onOpenChange={setWaiterConfirmOpen}
             tableId={tableIdString}
             tableName={tableName}
           />
-          <ModernGreenNoteDialog
+          <ModernGreenNoteCardV2
             isOpen={isNoteModalOpen}
             onOpenChange={setNoteModalOpen}
             note={note}
@@ -1711,11 +1717,7 @@ useEffect(() => {
           } as React.CSSProperties}
         >
           {/* PMD_ORGANIC_DIRECT_GUEST_ACTIONS_20260614 */}
-          <OrganicBottomDock
-            {...themeMenuActions}
-            onCallWaiter={handleWaiterClick}
-            onOpenNote={() => setNoteModalOpen(true)}
-          />
+          <OrganicBottomDockV2 {...themeMenuActions} />
         </div>
         {/* PMD_ORGANIC_USES_REAL_GOLD_TOOLBAR_FIXED_END_20260608 */}
 
@@ -1869,7 +1871,7 @@ useEffect(() => {
       {/* Button Animation Styles */}
 
       {/* Rest of the components */}
-      <GoldBottomDock {...themeMenuActions} />
+      <GoldBottomDockV2 {...themeMenuActions} />
       {!shouldHideCartSheet && (
       <CartSheet />
       )}
@@ -1906,13 +1908,13 @@ useEffect(() => {
           }
         }}
       />
-      <GoldWaiterDialog
+      <GoldWaiterCardV2
         isOpen={isWaiterConfirmOpen}
         onOpenChange={setWaiterConfirmOpen}
         tableId={tableIdString}
         tableName={tableName}
       />
-      <GoldNoteDialog
+      <GoldNoteCardV2
         isOpen={isNoteModalOpen}
         onOpenChange={setNoteModalOpen}
         note={note}

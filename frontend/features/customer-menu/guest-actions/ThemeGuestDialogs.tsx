@@ -1,6 +1,7 @@
 "use client"
 
 import React, { useMemo, useState } from "react"
+import { createPortal } from "react-dom"
 import { AnimatePresence, motion } from "framer-motion"
 import { CheckCircle2, HandPlatter, NotebookPen, X } from "lucide-react"
 import { useLanguageStore } from "@/store/language-store"
@@ -338,7 +339,7 @@ function DialogShell({
 }) {
   const skin = useSkin(variant)
 
-  return (
+  const content = (
     <AnimatePresence initial={false}>
       {isOpen && (
         <motion.div
@@ -407,6 +408,9 @@ function DialogShell({
       )}
     </AnimatePresence>
   )
+
+  if (typeof document === "undefined") return null
+  return createPortal(content, document.body)
 }
 
 function WaiterDialog({ variant, isOpen, onOpenChange, tableId }: WaiterProps & { variant: Variant }) {
