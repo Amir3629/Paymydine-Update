@@ -67,7 +67,26 @@ storage/app/r2o_*/
 !bootstrap/
 !bootstrap/cache/
 !bootstrap/cache/.gitkeep
-
 !database/
 !database/schema/
 !database/schema/*.sql
+# PayMyDine generated/local files
+frontend/node_modules/
+frontend/.next/
+frontend/.env
+frontend/.env.*
+frontend/*.tar.gz
+frontend/backup_*.tar.gz
+frontend/_archived_phase*
+frontend/**/__MACOSX/
+frontend/**/*.bak
+frontend/**/*.bak.*
+frontend/**/*.backup
+frontend/**/.DS_Store
+_codex_theme_sources/**/node_modules/
+_codex_theme_sources/**/.next/
+_codex_theme_sources/**/.git/
+_codex_theme_sources/**/.env
+_codex_theme_sources/**/.env.*
+_codex_theme_sources/**/*.log
+_codex_theme_sources/**/tsconfig.tsbuildinfo

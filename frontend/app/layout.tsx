@@ -54,7 +54,6 @@ export default function RootLayout({
         `}</style>
         <script dangerouslySetInnerHTML={{
           __html: `
-            (function () {
             // PMD cart badge force fix removed: menu badge is now single-owner.
 
               // FOOD ITEM MODAL CARD FIX - Ensures modal cards have correct theme colors
@@ -312,10 +311,9 @@ export default function RootLayout({
                 });
               }
 
-              // PMD_THEME_SPECIFIC_GUEST_DIALOGS_20260614
-
-
-              // Disabled global waiter/note DOM repaint. Each theme now owns its own guest dialog UI.
+              // Run waiter and note modals fix immediately and periodically
+              fixWaiterNoteModals();
+              setInterval(fixWaiterNoteModals, 1000); // Check every second
             })();
           `
         }} />

@@ -1,0 +1,188 @@
+"use client"
+
+import { useEffect } from "react"
+
+const VALET_ICON = `
+  <svg aria-hidden="true" viewBox="0 0 24 24" width="30" height="30" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" style="color:#747d55;stroke:#747d55;">
+    <path d="M19 17h2c.6 0 1-.4 1-1v-3c0-.9-.7-1.7-1.5-1.9C18.7 10.6 16 10 16 10s-1.3-1.4-2.2-2.3c-.5-.4-1.1-.7-1.8-.7H5c-.6 0-1.1.4-1.4.9l-1.4 2.9A3.7 3.7 0 0 0 2 12v4c0 .6.4 1 1 1h2"></path>
+    <circle cx="7" cy="17" r="2"></circle>
+    <path d="M9 17h6"></path>
+    <circle cx="17" cy="17" r="2"></circle>
+  </svg>
+`
+
+export default function OrganicValetOverride() {
+  // PMD_ORGANIC_VALET_PATCH_ORIGINAL_BUTTON_20260609
+  useEffect(() => {
+    let lockedRect: DOMRect | null = null
+
+    const sendOpenValet = () => {
+      try {
+        window.parent?.postMessage({ type: "pmd-open-organic-valet" }, "*")
+        window.parent?.postMessage("pmd-open-organic-valet", "*")
+      } catch (error) {}
+
+      try {
+        window.parent?.dispatchEvent(new CustomEvent("pmd-open-organic-valet"))
+      } catch (error) {}
+
+      try {
+        window.parent?.document?.dispatchEvent(new CustomEvent("pmd-open-organic-valet"))
+      } catch (error) {}
+    }
+
+    const getButtonScore = (button: HTMLButtonElement) => {
+      const r = button.getBoundingClientRect()
+      const text = (button.textContent || "").trim().toLowerCase()
+      const html = button.innerHTML.toLowerCase()
+      const className = String(button.className || "").toLowerCase()
+
+      if (button.dataset.pmdOrganicValetOriginalButton === "1") return 10000
+      if (text === "en" || text === "de" || text === "fa") return -9999
+      if (r.width < 38 || r.height < 38) return -9999
+      if (r.width > 150 || r.height > 150) return -9999
+      if (r.top < 10 || r.top > 170) return -9999
+      if (r.left < 0 || r.left > window.innerWidth * 0.65) return -9999
+
+      let score = 0
+      if (html.includes("svg")) score += 30
+      if (className.includes("rounded")) score += 20
+      if (r.width >= 54 && r.width <= 110) score += 25
+      if (r.height >= 54 && r.height <= 110) score += 25
+      if (r.top >= 30 && r.top <= 120) score += 20
+
+      // In the embedded centered layout, the original top-left button is not at far page-left.
+      if (r.left > 130) score += 35
+      if (r.left < 120) score -= 60
+
+      return score
+    }
+
+    const findOriginalButton = () => {
+      const already = document.querySelector('[data-pmd-organic-valet-original-button="1"]') as HTMLButtonElement | null
+      if (already) return already
+
+      const buttons = Array.from(document.querySelectorAll("button")) as HTMLButtonElement[]
+
+      const candidates = buttons
+        .map((button) => ({ button, score: getButtonScore(button) }))
+        .filter((item) => item.score > -1000)
+        .sort((a, b) => b.score - a.score)
+
+      return candidates[0]?.button || null
+    }
+
+    const hideOldDropdown = () => {
+      Array.from(document.querySelectorAll("div, nav, section, ul")).forEach((el) => {
+        const htmlEl = el as HTMLElement
+        const text = (htmlEl.textContent || "").replace(/\s+/g, " ").trim()
+        const r = htmlEl.getBoundingClientRect()
+
+        const looksLikeDropdown =
+          text.includes("Menu") &&
+          text.includes("Valet") &&
+          r.width >= 120 &&
+          r.width <= 560 &&
+          r.height >= 70 &&
+          r.height <= 380 &&
+          r.top >= 40 &&
+          r.top <= 320
+
+        if (!looksLikeDropdown) return
+
+        htmlEl.style.setProperty("display", "none", "important")
+        htmlEl.style.setProperty("visibility", "hidden", "important")
+        htmlEl.style.setProperty("pointer-events", "none", "important")
+        htmlEl.setAttribute("aria-hidden", "true")
+      })
+    }
+
+    const patch = () => {
+      const button = findOriginalButton()
+      if (!button) {
+        hideOldDropdown()
+        return
+      }
+
+      const currentRect = button.getBoundingClientRect()
+      if (!lockedRect || button.dataset.pmdOrganicValetOriginalButton !== "1") {
+        lockedRect = currentRect
+      }
+
+      button.dataset.pmdOrganicValetOriginalButton = "1"
+      button.setAttribute("aria-label", "Valet Parking Service")
+      button.setAttribute("title", "Valet Parking Service")
+      button.setAttribute("aria-expanded", "false")
+      button.setAttribute("data-pmd-menu-disabled", "1")
+
+      if (!button.dataset.pmdOrganicValetClickLocked) {
+        const handler = (event: Event) => {
+          event.preventDefault()
+          event.stopPropagation()
+          if ("stopImmediatePropagation" in event) {
+            event.stopImmediatePropagation()
+          }
+
+          hideOldDropdown()
+          sendOpenValet()
+          return false
+        }
+
+        button.addEventListener("click", handler, true)
+        button.addEventListener("click", handler, false)
+        button.dataset.pmdOrganicValetClickLocked = "1"
+      }
+
+      button.innerHTML = VALET_ICON
+
+      const r = lockedRect || currentRect
+
+      button.style.setProperty("position", "fixed", "important")
+      button.style.setProperty("left", `${r.left}px`, "important")
+      button.style.setProperty("top", `${r.top}px`, "important")
+      button.style.setProperty("width", `${r.width}px`, "important")
+      button.style.setProperty("height", `${r.height}px`, "important")
+      button.style.setProperty("z-index", "2147483647", "important")
+      button.style.setProperty("display", "inline-flex", "important")
+      button.style.setProperty("align-items", "center", "important")
+      button.style.setProperty("justify-content", "center", "important")
+      button.style.setProperty("border-radius", "9999px", "important")
+      button.style.setProperty("border", "1px solid #ded2ba", "important")
+      button.style.setProperty("background", "#fffaf0", "important")
+      button.style.setProperty("background-color", "#fffaf0", "important")
+      button.style.setProperty("color", "#747d55", "important")
+      button.style.setProperty("-webkit-text-fill-color", "#747d55", "important")
+      button.style.setProperty("box-shadow", "0 18px 42px -22px rgba(60,53,41,.82), inset 0 1px 0 rgba(255,255,255,.72)", "important")
+      button.style.setProperty("cursor", "pointer", "important")
+      button.style.setProperty("transform", "none", "important")
+
+      hideOldDropdown()
+    }
+
+    patch()
+
+    const timers = [0, 30, 80, 160, 320, 640, 1200, 2000].map((ms) =>
+      window.setTimeout(patch, ms)
+    )
+
+    const observer = new MutationObserver(patch)
+    observer.observe(document.body, {
+      childList: true,
+      subtree: true,
+      attributes: true,
+      attributeFilter: ["class", "style", "aria-expanded"],
+    })
+
+    window.addEventListener("resize", patch)
+    window.addEventListener("scroll", patch, true)
+
+    return () => {
+      timers.forEach((timer) => window.clearTimeout(timer))
+      observer.disconnect()
+      window.removeEventListener("resize", patch)
+      window.removeEventListener("scroll", patch, true)
+    }
+  }, [])
+
+  return null
+}

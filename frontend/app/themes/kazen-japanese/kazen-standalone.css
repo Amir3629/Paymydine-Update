@@ -1482,16 +1482,3 @@ html[data-pmd-kazen-active="1"] body .kazen-page .kazen-category-btn line {
     right: .55rem !important;
   }
 }
-
-
-/* PMD_HIDE_STANDALONE_DOCK_WHEN_EMBEDDED_20260614
-   In /menu the real PayMyDine parent dock is rendered outside the iframe.
-   Hide the old standalone iframe dock only when the page is opened with ?embedded=1. */
-html[data-pmd-kazen-embedded="1"] body .kazen-page {
-  padding-bottom: 0 !important;
-}
-html[data-pmd-kazen-embedded="1"] body .kazen-page .kazen-dock {
-  display: none !important;
-  visibility: hidden !important;
-  pointer-events: none !important;
-}
