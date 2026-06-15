@@ -1,5 +1,5 @@
 import { useLayoutEffect } from "react"
-import { hasCheckoutThemeRoot } from "@/features/customer-menu/theme/OrganicExactV0Frame"
+import { hasCheckoutThemeRoot } from "@/features/customer-menu/theme/OrganicThemeContract"
 
 /** Legacy Organic checkout modal DOM polish isolated from CustomerMenuPage. */
 export function useOrganicCheckoutDomPolish(isOrganicBotanicalTheme: boolean) {

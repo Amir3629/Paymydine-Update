@@ -9,22 +9,8 @@ export type BotanicalTopBarProps = {
   tagline?: string
   onMenu?: () => void
   onLanguage?: () => void
+  onOpenValet?: () => void
   className?: string
-}
-
-function sendToParent(type: string) {
-  if (typeof window === "undefined") return
-
-  const params = new URLSearchParams(window.location.search)
-
-  window.parent?.postMessage(
-    {
-      type,
-      parentPath: params.get("parentPath") || "/menu",
-      parentSearch: params.get("parentSearch") || "",
-    },
-    window.location.origin,
-  )
 }
 
 export function BotanicalTopBar({
@@ -32,6 +18,7 @@ export function BotanicalTopBar({
   tagline = "Farm to Table",
   onMenu,
   onLanguage,
+  onOpenValet,
   className,
 }: BotanicalTopBarProps) {
 
@@ -321,7 +308,7 @@ export function BotanicalTopBar({
               type="button"
               onClick={() => {
                 setOpen(false)
-                sendToParent("PMD_BOTANICAL_GO_VALET")
+                onOpenValet?.()
               }}
               className="flex w-full items-center gap-3 rounded-2xl px-3 py-3 text-left text-sm font-semibold text-[var(--pmd-ink)] transition hover:bg-[rgba(111,118,84,0.10)]"
             >
@@ -346,7 +333,6 @@ export function BotanicalTopBar({
         aria-label="Change language"
         onClick={() => {
           onLanguage?.()
-          sendToParent("PMD_BOTANICAL_LANGUAGE")
         }}
         className="absolute right-5 top-5 flex h-12 w-12 items-center justify-center rounded-full border border-[var(--pmd-line)] bg-[rgba(255,250,240,0.88)] text-[var(--pmd-ink)] shadow-[0_8px_22px_rgba(52,53,41,0.10)] backdrop-blur-md transition hover:-translate-y-0.5 hover:bg-[var(--pmd-paper-soft)]"
       >

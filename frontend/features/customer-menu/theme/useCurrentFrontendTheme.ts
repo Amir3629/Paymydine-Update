@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import { ORGANIC_BOTANICAL_THEME_KEY } from "./OrganicExactV0Frame"
+import { ORGANIC_BOTANICAL_THEME_KEY } from "./OrganicThemeContract"
 
 export type CurrentFrontendThemeState = {
   themeId: string | null

@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button"
 import { OptimizedImage } from "@/components/ui/optimized-image"
 import { defaultMenuHighlightSettings, type MenuHighlightSettings, type MenuItem } from "@/lib/data"
 import { formatCurrency } from "@/lib/currency"
-import { OrganicBotanicalMenuCard } from "@/features/customer-menu/theme/OrganicExactV0Frame"
+import { OrganicBotanicalMenuCard } from "@/features/customer-menu/theme/OrganicThemeContract"
 import { ExpandingToolbarMenuItemCard } from "@/features/customer-menu/components/ExpandingToolbarMenuItemCard"
 
 export function MenuRecommendationBadges({
