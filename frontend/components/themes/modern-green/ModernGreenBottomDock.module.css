@@ -1,41 +1,100 @@
 .dock {
+  --pmd-dock-gap: .5rem;
+  --pmd-dock-padding: .55rem;
+  --pmd-dock-radius: 1.45rem;
+  --pmd-dock-button-radius: 1rem;
+  --pmd-dock-button-height: 3.55rem;
+  --pmd-dock-blur: 18px;
+  --pmd-dock-font: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --pmd-dock-font-size: .72rem;
+  --pmd-dock-icon-size: 1.16rem;
+  --pmd-dock-bg: rgba(3, 12, 8, .92);
+  --pmd-dock-border: rgba(41, 188, 126, .34);
+  --pmd-dock-fg: #eafff4;
+  --pmd-dock-button-bg: rgba(234, 255, 244, .08);
+  --pmd-dock-button-hover-bg: rgba(41, 188, 126, .17);
+  --pmd-dock-button-hover-border: rgba(41, 188, 126, .36);
+  --pmd-dock-primary-bg: #29bc7e;
+  --pmd-dock-primary-hover-bg: #43d894;
+  --pmd-dock-primary-fg: #03110b;
+  --pmd-dock-primary-border: transparent;
+  --pmd-dock-badge-bg: #29bc7e;
+  --pmd-dock-badge-fg: #03110b;
+  --pmd-dock-shadow: 0 18px 50px rgba(0, 0, 0, .40);
+}
+
+.dock {
   position: fixed;
   left: 50%;
-  bottom: calc(1rem + env(safe-area-inset-bottom));
-  z-index: 80;
+  bottom: calc(1rem + env(safe-area-inset-bottom, 0px));
+  z-index: 1200;
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: .5rem;
+  gap: var(--pmd-dock-gap);
   width: min(94vw, 28rem);
   transform: translateX(-50%);
-  padding: .55rem;
-  border: 1px solid var(--dock-border);
-  border-radius: 1.35rem;
-  background: var(--dock-bg);
-  box-shadow: var(--dock-shadow);
-  backdrop-filter: blur(18px);
+  padding: var(--pmd-dock-padding);
+  border: 1px solid var(--pmd-dock-border);
+  border-radius: var(--pmd-dock-radius);
+  background: var(--pmd-dock-bg);
+  box-shadow: var(--pmd-dock-shadow);
+  backdrop-filter: blur(var(--pmd-dock-blur));
+  -webkit-backdrop-filter: blur(var(--pmd-dock-blur));
 }
+
 .button {
   position: relative;
   min-width: 0;
-  min-height: 3.55rem;
+  min-height: var(--pmd-dock-button-height);
   display: inline-flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
   gap: .18rem;
-  border: 0;
-  border-radius: 1rem;
-  background: transparent;
-  color: var(--dock-fg);
-  font: inherit;
-  font-size: .72rem;
+  border: 1px solid transparent;
+  border-radius: var(--pmd-dock-button-radius);
+  background: var(--pmd-dock-button-bg);
+  color: var(--pmd-dock-fg);
+  font-family: var(--pmd-dock-font);
+  font-size: var(--pmd-dock-font-size);
   font-weight: 800;
   line-height: 1.05;
   cursor: pointer;
+  transition: transform .18s ease, background .18s ease, border-color .18s ease, box-shadow .18s ease;
 }
-.primary { background: var(--dock-primary-bg); color: var(--dock-primary-fg); }
-.icon { font-size: 1.18rem; line-height: 1; }
+
+.button:hover,
+.button:focus-visible {
+  transform: translateY(-1px);
+  background: var(--pmd-dock-button-hover-bg);
+  border-color: var(--pmd-dock-button-hover-border);
+  outline: none;
+}
+
+.primary {
+  background: var(--pmd-dock-primary-bg);
+  color: var(--pmd-dock-primary-fg);
+  border-color: var(--pmd-dock-primary-border);
+}
+
+.primary:hover,
+.primary:focus-visible {
+  background: var(--pmd-dock-primary-hover-bg);
+  color: var(--pmd-dock-primary-fg);
+}
+
+.icon {
+  font-size: var(--pmd-dock-icon-size);
+  line-height: 1;
+}
+
+.label {
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .badge {
   position: absolute;
   top: .28rem;
@@ -45,13 +104,22 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
+  padding: 0 .28rem;
   border-radius: 999px;
-  background: var(--dock-badge-bg);
-  color: var(--dock-badge-fg);
+  background: var(--pmd-dock-badge-bg);
+  color: var(--pmd-dock-badge-fg);
   font-size: .65rem;
   font-weight: 900;
 }
-.dock[data-theme="kazen"] { --dock-bg: rgba(247, 243, 236, .92); --dock-border: rgba(36, 35, 32, .16); --dock-fg: #242320; --dock-primary-bg: #242320; --dock-primary-fg: #f7f3ec; --dock-badge-bg: #df685d; --dock-badge-fg: white; --dock-shadow: 0 18px 50px rgba(30, 24, 16, .18); font-family: Georgia, 'Times New Roman', serif; }
-.dock[data-theme="modernGreen"] { --dock-bg: rgba(3, 12, 8, .88); --dock-border: rgba(41, 188, 126, .28); --dock-fg: #eafff4; --dock-primary-bg: #29bc7e; --dock-primary-fg: #03110b; --dock-badge-bg: #29bc7e; --dock-badge-fg: #03110b; --dock-shadow: 0 18px 50px rgba(0, 0, 0, .38); }
-.dock[data-theme="organic"] { --dock-bg: rgba(250, 244, 232, .94); --dock-border: rgba(115, 122, 85, .22); --dock-fg: #343529; --dock-primary-bg: #b88940; --dock-primary-fg: #fffaf0; --dock-badge-bg: #737a55; --dock-badge-fg: white; --dock-shadow: 0 18px 45px rgba(66, 55, 35, .16); font-family: Georgia, 'Times New Roman', serif; }
-.dock[data-theme="gold"] { --dock-bg: rgba(18, 14, 8, .88); --dock-border: rgba(214, 172, 90, .30); --dock-fg: #f6e8c8; --dock-primary-bg: linear-gradient(135deg, #f4d58d, #b88940); --dock-primary-fg: #201509; --dock-badge-bg: #f4d58d; --dock-badge-fg: #201509; --dock-shadow: 0 18px 50px rgba(0, 0, 0, .34); font-family: Georgia, 'Times New Roman', serif; }
+
+@media (max-width: 380px) {
+  .dock {
+    width: calc(100vw - 20px);
+    padding: calc(var(--pmd-dock-padding) * .85);
+    gap: calc(var(--pmd-dock-gap) * .75);
+  }
+
+  .button {
+    font-size: calc(var(--pmd-dock-font-size) * .92);
+  }
+}

@@ -1,138 +1,128 @@
 .dock {
-  position: fixed !important;
-  left: 50% !important;
-  bottom: calc(18px + env(safe-area-inset-bottom, 0px)) !important;
-  transform: translateX(-50%) !important;
-  z-index: 90 !important;
+  --pmd-dock-gap: .42rem;
+  --pmd-dock-padding: .62rem;
+  --pmd-dock-radius: 1.5rem;
+  --pmd-dock-button-radius: 1.12rem;
+  --pmd-dock-button-height: 3.45rem;
+  --pmd-dock-blur: 18px;
+  --pmd-dock-font: Georgia, "Times New Roman", serif;
+  --pmd-dock-font-size: .72rem;
+  --pmd-dock-icon-size: 1.16rem;
+  --pmd-dock-bg:
+    radial-gradient(circle at 1px 1px, rgba(116, 125, 85, 0.055) 1px, transparent 0),
+    rgba(255, 250, 240, .97);
+  --pmd-dock-border: rgba(115, 122, 85, .26);
+  --pmd-dock-fg: #343529;
+  --pmd-dock-button-bg: rgba(255, 250, 240, .62);
+  --pmd-dock-button-hover-bg: rgba(116, 125, 85, .12);
+  --pmd-dock-button-hover-border: rgba(116, 125, 85, .22);
+  --pmd-dock-primary-bg: #747d55;
+  --pmd-dock-primary-hover-bg: #606947;
+  --pmd-dock-primary-fg: #fffaf0;
+  --pmd-dock-primary-border: transparent;
+  --pmd-dock-badge-bg: #737a55;
+  --pmd-dock-badge-fg: #fffaf0;
+  --pmd-dock-shadow: 0 18px 46px rgba(60, 53, 41, .23), inset 0 1px 0 rgba(255, 255, 255, .80);
+  background-size: 16px 16px, auto;
+}
 
-  width: min(430px, calc(100vw - 28px)) !important;
-  min-height: 74px !important;
-  padding: 10px 12px !important;
-
-  display: grid !important;
-  grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
-  align-items: stretch !important;
-  gap: 6px !important;
-
-  border-radius: 24px !important;
-  border: 1px solid #ded2ba !important;
-  background:
-    radial-gradient(circle at 1px 1px, rgba(116, 125, 85, 0.06) 1px, transparent 0),
-    rgba(255, 250, 240, 0.96) !important;
-  background-size: 16px 16px, auto !important;
-  box-shadow: 0 18px 46px rgba(60, 53, 41, 0.24), inset 0 1px 0 rgba(255, 255, 255, 0.8) !important;
-  backdrop-filter: blur(18px) saturate(0.98) !important;
-  -webkit-backdrop-filter: blur(18px) saturate(0.98) !important;
-
-  overflow: visible !important;
-  opacity: 1 !important;
-  visibility: visible !important;
-  pointer-events: auto !important;
+.dock {
+  position: fixed;
+  left: 50%;
+  bottom: calc(1rem + env(safe-area-inset-bottom, 0px));
+  z-index: 1200;
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: var(--pmd-dock-gap);
+  width: min(94vw, 28rem);
+  transform: translateX(-50%);
+  padding: var(--pmd-dock-padding);
+  border: 1px solid var(--pmd-dock-border);
+  border-radius: var(--pmd-dock-radius);
+  background: var(--pmd-dock-bg);
+  box-shadow: var(--pmd-dock-shadow);
+  backdrop-filter: blur(var(--pmd-dock-blur));
+  -webkit-backdrop-filter: blur(var(--pmd-dock-blur));
 }
 
 .button {
-  position: relative !important;
-  appearance: none !important;
-  border: 0 !important;
-  outline: none !important;
-
-  min-width: 0 !important;
-  min-height: 52px !important;
-  width: 100% !important;
-  height: 100% !important;
-  padding: 5px 2px !important;
-
-  display: flex !important;
-  flex-direction: column !important;
-  align-items: center !important;
-  justify-content: center !important;
-  gap: 4px !important;
-
-  border-radius: 18px !important;
-  background: transparent !important;
-
-  color: #343529 !important;
-  -webkit-text-fill-color: #343529 !important;
-  opacity: 1 !important;
-  visibility: visible !important;
-  pointer-events: auto !important;
-  text-shadow: none !important;
-  box-shadow: none !important;
+  position: relative;
+  min-width: 0;
+  min-height: var(--pmd-dock-button-height);
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: .18rem;
+  border: 1px solid transparent;
+  border-radius: var(--pmd-dock-button-radius);
+  background: var(--pmd-dock-button-bg);
+  color: var(--pmd-dock-fg);
+  font-family: var(--pmd-dock-font);
+  font-size: var(--pmd-dock-font-size);
+  font-weight: 800;
+  line-height: 1.05;
+  cursor: pointer;
+  transition: transform .18s ease, background .18s ease, border-color .18s ease, box-shadow .18s ease;
 }
 
 .button:hover,
 .button:focus-visible {
-  background: rgba(116, 125, 85, 0.10) !important;
+  transform: translateY(-1px);
+  background: var(--pmd-dock-button-hover-bg);
+  border-color: var(--pmd-dock-button-hover-border);
+  outline: none;
+}
+
+.primary {
+  background: var(--pmd-dock-primary-bg);
+  color: var(--pmd-dock-primary-fg);
+  border-color: var(--pmd-dock-primary-border);
+}
+
+.primary:hover,
+.primary:focus-visible {
+  background: var(--pmd-dock-primary-hover-bg);
+  color: var(--pmd-dock-primary-fg);
 }
 
 .icon {
-  display: block !important;
-  width: auto !important;
-  height: auto !important;
-  font-size: 19px !important;
-  line-height: 1 !important;
-  color: #343529 !important;
-  -webkit-text-fill-color: #343529 !important;
-  opacity: 1 !important;
-  visibility: visible !important;
+  font-size: var(--pmd-dock-icon-size);
+  line-height: 1;
 }
 
 .label {
-  display: block !important;
-  max-width: 100% !important;
-  overflow: hidden !important;
-  text-overflow: ellipsis !important;
-  white-space: nowrap !important;
-
-  font-family: Georgia, "Times New Roman", serif !important;
-  font-size: 12px !important;
-  line-height: 1.05 !important;
-  font-weight: 800 !important;
-  letter-spacing: -0.02em !important;
-
-  color: #343529 !important;
-  -webkit-text-fill-color: #343529 !important;
-  opacity: 1 !important;
-  visibility: visible !important;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .badge {
-  position: absolute !important;
-  top: 4px !important;
-  right: 8px !important;
-
-  min-width: 16px !important;
-  height: 16px !important;
-  padding: 0 5px !important;
-
-  display: inline-flex !important;
-  align-items: center !important;
-  justify-content: center !important;
-
-  border-radius: 999px !important;
-  background: #747d55 !important;
-  color: #fffaf0 !important;
-  -webkit-text-fill-color: #fffaf0 !important;
-
-  font-size: 10px !important;
-  line-height: 1 !important;
-  font-weight: 900 !important;
-  opacity: 1 !important;
-  visibility: visible !important;
+  position: absolute;
+  top: .28rem;
+  right: .45rem;
+  min-width: 1.1rem;
+  height: 1.1rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 .28rem;
+  border-radius: 999px;
+  background: var(--pmd-dock-badge-bg);
+  color: var(--pmd-dock-badge-fg);
+  font-size: .65rem;
+  font-weight: 900;
 }
 
 @media (max-width: 380px) {
   .dock {
-    width: calc(100vw - 20px) !important;
-    padding: 9px 8px !important;
-    gap: 4px !important;
+    width: calc(100vw - 20px);
+    padding: calc(var(--pmd-dock-padding) * .85);
+    gap: calc(var(--pmd-dock-gap) * .75);
   }
 
-  .label {
-    font-size: 11px !important;
-  }
-
-  .icon {
-    font-size: 18px !important;
+  .button {
+    font-size: calc(var(--pmd-dock-font-size) * .92);
   }
 }

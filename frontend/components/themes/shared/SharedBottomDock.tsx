@@ -1,5 +1,15 @@
 "use client"
 
+/**
+ * SharedBottomDock is kept only as a backwards-compatible fallback.
+ *
+ * New PayMyDine rule:
+ * - Shared files may provide contracts/actions only.
+ * - Final dock UI must live in each theme folder.
+ *
+ * Active theme wrappers now render their own TSX + CSS module and only share
+ * createBottomDockActions(), which is behavior only.
+ */
 import type { ThemeDockProps } from "./ThemeActionContract"
 import { createBottomDockActions } from "./createBottomDockActions"
 import styles from "./SharedBottomDock.module.css"
@@ -14,7 +24,7 @@ export function SharedBottomDock({ theme, ...props }: SharedBottomDockProps) {
   const actions = createBottomDockActions(props)
 
   return (
-    <nav className={styles.dock} data-theme={theme} data-pmd-shared-bottom-dock="1" aria-label="Menu actions">
+    <nav className={styles.dock} data-theme={theme} data-pmd-shared-bottom-dock="legacy-fallback" aria-label="Menu actions">
       {actions.map((action) => (
         <button
           key={action.key}
