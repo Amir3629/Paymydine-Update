@@ -4,7 +4,7 @@
  * Selectors are scoped to .modern-green-theme / .mg-*.
  */
 /* Modern Green native theme is scoped to .modern-green-theme and [data-mode]. */
-.modern-green-theme {
+.pmd-theme-modern-green.modern-green-theme {
   /* brand accent — identical across both modes */
   --mg-green: #29bc7e;
   --mg-green-strong: #22a86f;
@@ -19,8 +19,8 @@
 }
 
 /* -------- DARK MODE (default / primary) -------- */
-.modern-green-theme:not([data-mode]),
-.modern-green-theme[data-mode="dark"] {
+.pmd-theme-modern-green.modern-green-theme:not([data-mode]),
+.pmd-theme-modern-green.modern-green-theme[data-mode="dark"] {
   --mg-bg-top: #020c09;
   --mg-bg-bottom: #04130e;
 
@@ -46,7 +46,7 @@
 }
 
 /* -------- LIGHT MODE (secondary variant) -------- */
-.modern-green-theme[data-mode="light"] {
+.pmd-theme-modern-green.modern-green-theme[data-mode="light"] {
   --mg-bg-top: #f6faf7;
   --mg-bg-bottom: #eef4f0;
 
@@ -71,14 +71,14 @@
     linear-gradient(180deg, var(--mg-bg-top) 0%, var(--mg-bg-bottom) 100%);
 }
 
-.mg-glass {
+.pmd-theme-modern-green .mg-glass {
   background: var(--mg-surface);
   border: 1px solid var(--mg-border);
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
 }
 
-.mg-glass-strong {
+.pmd-theme-modern-green .pmd-theme-modern-green .mg-glass-strong {
   background: var(--mg-surface-strong);
   border: 1px solid var(--mg-border-strong);
   backdrop-filter: blur(20px);
@@ -105,34 +105,34 @@
   }
 }
 
-.mg-overlay {
+.pmd-theme-modern-green .mg-overlay {
   animation: mg-overlay-in 0.2s ease-out;
 }
 
-.mg-sheet {
+.pmd-theme-modern-green .mg-sheet {
   animation: mg-sheet-in 0.28s cubic-bezier(0.22, 1, 0.36, 1);
 }
 
-.mg-no-scrollbar::-webkit-scrollbar {
+.pmd-theme-modern-green .mg-no-scrollbar::-webkit-scrollbar {
   display: none;
 }
-.mg-no-scrollbar {
+.pmd-theme-modern-green .mg-no-scrollbar {
   -ms-overflow-style: none;
   scrollbar-width: none;
 }
 
 
-.mg-thin-scrollbar {
+.pmd-theme-modern-green .mg-thin-scrollbar {
   scrollbar-width: thin;
   scrollbar-color: var(--mg-border-strong) transparent;
 }
-.mg-thin-scrollbar::-webkit-scrollbar {
+.pmd-theme-modern-green .mg-thin-scrollbar::-webkit-scrollbar {
   width: 6px;
 }
-.mg-thin-scrollbar::-webkit-scrollbar-track {
+.pmd-theme-modern-green .mg-thin-scrollbar::-webkit-scrollbar-track {
   background: transparent;
 }
-.mg-thin-scrollbar::-webkit-scrollbar-thumb {
+.pmd-theme-modern-green .mg-thin-scrollbar::-webkit-scrollbar-thumb {
   background: var(--mg-border-strong);
   border-radius: 999px;
 }
