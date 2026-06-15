@@ -1,0 +1,1848 @@
+"use client"
+
+import "./customer-menu-page.css"
+/*
+ * LEGACY_DOM_REPAIR_POLICY:
+ * This file is the lifted customer-menu implementation from the former app/menu route.
+ * Remaining MutationObserver/querySelector/style.setProperty usage is legacy checkout,
+ * theme-resolution, footer-logo, and Kazen standalone visibility repair code; bottom dock
+ * injection is not allowed and has been removed. Those remaining repairs are kept to avoid
+ * changing checkout/payment/table-order behavior in this route move. Future cleanup should
+ * replace them from focused files such as CustomerMenuModals, checkout theme shells,
+ * and a Kazen standalone controller/CSS module.
+ */
+import { ModernGreenBridgeTheme } from "@/components/themes/modern-green/ModernGreenBridgeTheme"
+import { ModernGreenCheckoutShell } from "@/components/themes/modern-green/ModernGreenCheckoutShell"
+import { KazenJapaneseBridgeTheme, KazenJapaneseCheckoutShell } from "@/components/themes/kazen-japanese"
+
+import { PayPalScriptProvider } from "@paypal/react-paypal-js"
+import React, { useState, useEffect, useMemo, useRef, Suspense } from "react";
+import { formatCurrency } from "@/lib/currency";
+import { categories, menuData, type MenuItem, type MenuHighlightSettings, defaultMenuHighlightSettings, getMenuData, getCategories } from "@/lib/data";
+import { useLanguageStore } from "@/store/language-store";
+import { type TranslationKey } from "@/lib/translations";
+import { type PmdSocialPlatformId, useCmsStore } from "@/store/cms-store";
+import { useCartStore, type CartItem } from "@/store/cart-store";
+import { Logo } from "@/components/logo";
+import { CartSheet } from "@/components/cart-sheet";
+import { CategoryNav } from "@/components/category-nav";
+import { FoodAttributeTags } from "@/components/food-attribute-tags";
+import { FoodNutritionSummary } from "@/components/food-nutrition-summary";
+import { FoodItemColorDot } from "@/components/food-item-color-dot";
+import { MenuItemModal } from "@/components/menu-item-modal";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { useToast } from "@/components/ui/use-toast";
+import { HandPlatter, NotebookPen, ShoppingCart, ChevronDown, Plus, Wallet, Lock, Users, Check, Minus, CreditCard, ArrowLeft, CheckCircle, DollarSign, ReceiptText, ArrowRight, Star, Link2, QrCode, MessageSquare, ChefHat, Trophy } from "lucide-react";
+import { OptimizedImage } from "@/components/ui/optimized-image";
+import Link from "next/link";
+import { motion, AnimatePresence } from "framer-motion";
+import { Elements, useStripe, useElements, PaymentRequestButtonElement } from '@stripe/react-stripe-js';
+import { loadStripe } from "@stripe/stripe-js";
+import { cn, truncateText } from "@/lib/utils";
+import { useRouter, useSearchParams } from "next/navigation";
+import { Textarea } from "@/components/ui/textarea";
+import { ApiClient, type PaymentMethod, type TableOrderDraftResponse } from "@/lib/api-client";
+import { iconForPayment } from "@/lib/payment-icons";
+import { PayPalForm, WorldlineInlineCardForm } from "@/components/payment/secure-payment-form";
+import { StripeCardPaymentSection } from "@/features/checkout/payment/StripeCardPaymentSection";
+import SumUpHostedCheckout from "@/components/payment/sumup-hosted-checkout";
+import { buildTablePath } from "@/lib/table-url";
+import { stickySearch } from "@/lib/sticky-query";
+import {
+  OrganicCheckoutScopedStyles,
+  organicCheckoutBodyStyle,
+  organicCheckoutHeaderStyle,
+  organicCheckoutModalStyle,
+  organicCheckoutPrimaryButtonStyle,
+} from "@/components/themes/organic-botanical-paper/OrganicCheckoutShell";
+import { ThemeActionBoundary } from "@/components/themes/shared/ThemeActionBoundary";
+import { KazenBottomDock } from "@/components/themes/kazen-japanese/KazenBottomDock";
+import { ModernGreenBottomDock } from "@/components/themes/modern-green/ModernGreenBottomDock";
+import { OrganicBottomDock } from "@/components/themes/organic-botanical-paper/OrganicBottomDock";
+import { GoldBottomDock } from "@/components/themes/gold-luxury/GoldBottomDock";
+import { CheckoutIconFrame, CheckoutStepCard, CheckoutSummaryCard, OrderStatusCard, PaymentCardFrame, PaymentMethodTile, SplitBillPanel, SplitMethodButton, ThemedButton, ThemedInput, TipCouponPanel } from "@/components/theme-ui";
+import { useTableOrderDraft } from "@/features/table-order/use-table-order-draft";
+import { useTableOrderActions } from "@/features/table-order/use-table-order-actions";
+import { useCustomerThemeActions } from "@/features/customer-menu/useCustomerThemeActions";
+import { useCustomerThemeSelection } from "@/features/customer-menu/useCustomerThemeSelection";
+import { PaymentModal } from "@/features/customer-menu/checkout/CheckoutModalHost";
+import { MenuHighlightSection, MenuRecommendationBadges } from "@/features/customer-menu/theme/MenuHighlights";
+import { pmdBuildKazenParentCategories } from "@/features/customer-menu/data/menuCategories";
+import { OrganicExactV0Frame, OrganicBotanicalHero, OrganicBotanicalCategoryNav, OrganicBotanicalMenuCard, organicBotanicalVars, hasCheckoutThemeRoot } from "@/features/customer-menu/theme/OrganicExactV0Frame";
+import { __pmdRemoteConsoleInstallOnce, __pmdWalletDebugInstallOnce } from "@/features/customer-menu/legacy-dom-repairs/debugInstallers";
+import { useCurrentFrontendTheme } from "@/features/customer-menu/theme/useCurrentFrontendTheme";
+import { pmdInstallMenuPayMyDineFooterLogo } from "@/features/customer-menu/legacy-dom-repairs/footerLogoInstaller";
+import { useOrganicCheckoutDomPolish } from "@/features/customer-menu/legacy-dom-repairs/useOrganicCheckoutDomPolish";
+import { useMenuActionCircleColorRepair } from "@/features/customer-menu/legacy-dom-repairs/useMenuActionCircleColorRepair";
+import { useKazenMenuDomRepairs } from "@/features/customer-menu/legacy-dom-repairs/useKazenMenuDomRepairs";
+import { pmdForceKazenFrontendThemePayload } from "@/features/customer-menu/theme/kazenThemePayload";
+import { ExpandingToolbarMenuItemCard } from "@/features/customer-menu/components/ExpandingToolbarMenuItemCard";
+import { LoadingSpinner } from "@/features/customer-menu/components/LoadingSpinner";
+import { OrganicBotanicalCheckoutScopedStyles, OrganicBotanicalValetFeature } from "@/features/customer-menu/guest-actions/OrganicGuestDialogs";
+import { GoldNoteDialog, GoldWaiterDialog, KazenNoteDialog, KazenWaiterDialog, ModernGreenNoteDialog, ModernGreenWaiterDialog } from "@/features/customer-menu/guest-actions/ThemeGuestDialogs";
+import { OrganicNoteCardV2, OrganicWaiterCardV2 } from "@/features/customer-menu/guest-actions/OrganicGuestCardsV2";
+import { buildTableOrderDraftContext, createSubmittedTableOrderSnapshot, isVisibleTableOrderDraft, tableOrderItemCount } from "@/features/table-order/table-order-utils";
+import {
+  buildEvenSharePercents,
+  calculateCartPricingSummary,
+  calculateCheckoutTax,
+  calculateSplitSubtotal,
+  getOrderItemUnitAmount,
+  groupOrderDisplayItems,
+  tableOrderTotalByCode,
+  tableOrderVatPercentage,
+  toPositiveAmount,
+} from "@/features/checkout/checkout-utils";
+import {
+  getCheckoutStepAfterBack,
+  getCheckoutStepAfterDraftSubmit,
+  getCheckoutStepAfterOrderSubmit,
+  getCheckoutStepAfterPaymentSuccess,
+  getCheckoutStepForSplitMethod,
+  getCheckoutStepOnOpen,
+  getInitialCheckoutStep,
+  isSplitCheckoutStep,
+  shouldForcePersonalReview,
+} from "@/features/checkout/checkout-state-utils";
+import {
+  calculateCouponDiscount,
+  calculateFinalTotal,
+  calculateOrderStatusTotal,
+  calculatePaidSnapshotTotals,
+  calculatePayableTotal,
+  calculatePaymentSummary,
+  calculateSubmittedBaseTotal,
+  calculateTipAmount,
+} from "@/features/checkout/payment-summary-utils";
+import {
+  buildEqualSplitPeople,
+  buildItemSplitPeople,
+  buildShareSplitPeople,
+  buildSplitGuestProfiles,
+  calculateSplitConfirmationState,
+  getActiveSplitPeople,
+  getSelectedSplitPerson,
+  getSplitGuestAvatar as getSplitGuestAvatarFromProfiles,
+  normalizeSharePercentsForGuestCount,
+  pruneItemAssignmentsForGuestCount,
+} from "@/features/checkout/split-bill-utils";
+import {
+  canRenderPaymentMethodDetail,
+  findPaymentMethod,
+  getPaymentMethodProviderCode,
+  getVisiblePaymentMethods,
+  isPaymentMethodAvailable,
+  isStripePaymentMethodForConfig,
+  mapPaymentMethodsByCode,
+} from "@/features/checkout/payment-method-utils";
+import type {
+  CheckoutStep,
+  PmdToolbarPricingSnapshot,
+  SplitBillItem,
+  SplitMethod,
+  SplitPerson,
+  SplitSourceItem,
+} from "@/features/checkout/types";
+
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from "@/components/ui/dialog"
+
+// Hook to get current theme background color
+/* PMD_REMOTE_CONSOLE_INJECTED */
+
+import { clsx } from "clsx";
+import { apiClient } from '@/lib/api-client'
+import { wsClient } from '@/lib/websocket-client'
+import { getTextAlignClass, getTextDirection } from "@/lib/text-direction"
+import { TenantSetupSplash } from "@/components/tenant-setup-splash"
+
+// They avoid shared Dialog/global CSS so Gold Luxury and other themes keep their existing modal behavior.
+// Create a component that uses useSearchParams
+function MenuContent() {
+  const searchParams = useSearchParams()
+  const [isClient, setIsClient] = useState(false)
+  const [refreshKey, setRefreshKey] = useState(0)
+  const [selectedCategory, setSelectedCategory] = useState<string>("All") // Initialize with "All"
+  const [selectedItem, setSelectedItem] = useState<MenuItem | null>(null)
+  const [lastInteractedItem, setLastInteractedItem] = useState<CartItem | null>(null)
+  const [isPaymentModalOpen, setPaymentModalOpen] = useState(false)
+  const [paymentModalInitialStep, setPaymentModalInitialStep] = useState<CheckoutStep>('review')
+  const [paymentModalPreferPersonalReview, setPaymentModalPreferPersonalReview] = useState(false)
+
+  // PMD_CHECKOUT_CLICK_PREFERS_PERSONAL_REVIEW
+  useEffect(() => {
+    if (typeof document === "undefined") return
+
+    const onCheckoutIntentCapture = (event: MouseEvent) => {
+      const target = event.target as HTMLElement | null
+      const button = target?.closest?.("button") as HTMLElement | null
+      if (!button) return
+
+      const txt = (button.textContent || "").replace(/\s+/g, " ").trim().toLowerCase()
+      const aria = (button.getAttribute("aria-label") || "").toLowerCase()
+      const isTableOrderButton =
+        aria.includes("table order") ||
+        txt.includes("table order")
+
+      const isCheckoutButton =
+        !isTableOrderButton &&
+        (
+          aria.includes("checkout") ||
+          txt.includes("checkout")
+        )
+
+      if (isCheckoutButton) {
+        setPaymentModalPreferPersonalReview(true)
+        setPaymentModalInitialStep("review")
+      }
+
+      if (isTableOrderButton) {
+        setPaymentModalPreferPersonalReview(false)
+        setPaymentModalInitialStep("review")
+      }
+    }
+
+    document.addEventListener("click", onCheckoutIntentCapture, true)
+    return () => document.removeEventListener("click", onCheckoutIntentCapture, true)
+  }, [])
+
+  const [isLoading, setIsLoading] = useState(true)
+  const [isFrontendConfigured, setIsFrontendConfigured] = useState(true)
+  const [apiMenuItems, setApiMenuItems] = useState<MenuItem[]>([])
+  const [menuHighlightSettings, setMenuHighlightSettings] = useState<MenuHighlightSettings>(defaultMenuHighlightSettings)
+  const [dynamicCategories, setDynamicCategories] = useState<string[]>([])
+  const { menuItems, taxSettings, loadVATSettings, settings: cmsSettings, merchantSettings } = useCmsStore()
+
+  const { items, toggleCart, addToCart, setTableInfo, clearTableContext, clearCart } = useCartStore()
+  const { themeId: currentFrontendTheme, isResolved: isFrontendThemeResolved } = useCurrentFrontendTheme()
+  const [forceModernGreenTheme, setForceModernGreenTheme] = useState(false)
+  const { isOrganicBotanicalTheme, isModernGreenTheme, isKazenJapaneseTheme } = useCustomerThemeSelection(currentFrontendTheme, forceModernGreenTheme)
+
+  useKazenMenuDomRepairs(isKazenJapaneseTheme)
+
+  const shouldHoldThemeRender = !isFrontendThemeResolved && !forceModernGreenTheme
+  const { t, language } = useLanguageStore()
+  const { toast } = useToast()
+  const [isNoteModalOpen, setNoteModalOpen] = useState(false)
+  const [isWaiterConfirmOpen, setWaiterConfirmOpen] = useState(false)
+  const [note, setNote] = useState("")
+  const [tableInfo, setTableInfoState] = useState<any>(null)
+  const [existingOrderId, setExistingOrderId] = useState<number | null>(null)
+  const [pendingSettlementSummary, setPendingSettlementSummary] = useState<{ orderTotal: number; settledAmount: number; remainingAmount: number } | null>(null)
+  const [toolbarPricingSnapshot, setToolbarPricingSnapshot] = useState<PmdToolbarPricingSnapshot | null>(null)
+  const [hasLocalOpenOrder, setHasLocalOpenOrder] = useState(false)
+  const [localOpenOrder, setLocalOpenOrder] = useState<any | null>(null)
+  const sharedTableOrderQr = searchParams?.get("qr") || null
+  const sharedTableOrderContext = useMemo(() => buildTableOrderDraftContext(tableInfo, sharedTableOrderQr), [tableInfo?.table_id, tableInfo?.table_no, tableInfo?.qr_code, sharedTableOrderQr])
+  const { tableDraft: sharedTableOrder, setTableDraft: setSharedTableOrder } = useTableOrderDraft({
+    context: sharedTableOrderContext,
+    enabled: Boolean(tableInfo?.table_id || tableInfo?.table_no),
+    pollIntervalMs: 12000,
+  })
+  const hydratedPendingOrderRef = useRef<number | null>(null)
+  const isRecentPaidTableOrder = localOpenOrder?.paymentStatus === "paid" || localOpenOrder?.status === "paid"
+  const hasDraftTableOrderWithoutRealOrder = Boolean(
+    isVisibleTableOrderDraft(sharedTableOrder) &&
+    (sharedTableOrder as any)?.draft_id &&
+    !(sharedTableOrder as any)?.order_id &&
+    !(sharedTableOrder as any)?.orderId
+  )
+  const activeExistingOrderId = hasDraftTableOrderWithoutRealOrder
+    ? null
+    : (isRecentPaidTableOrder && paymentModalInitialStep === "review" ? null : existingOrderId)
+  const activePendingSummary = hasDraftTableOrderWithoutRealOrder
+    ? null
+    : (isRecentPaidTableOrder && paymentModalInitialStep === "review" ? null : pendingSettlementSummary)
+  const activeSubmittedOrder = hasDraftTableOrderWithoutRealOrder
+    ? null
+    : (isRecentPaidTableOrder && paymentModalInitialStep === "review" && items.length > 0 ? null : localOpenOrder)
+  const shouldHideCartSheet = !!activeExistingOrderId
+
+  useEffect(() => {
+    if (!isVisibleTableOrderDraft(sharedTableOrder)) return
+
+    if ((sharedTableOrder as any)?.draft_id && !(sharedTableOrder as any)?.order_id && !(sharedTableOrder as any)?.orderId) {
+      setExistingOrderId(null)
+      setPendingSettlementSummary(null)
+      setLocalOpenOrder(null)
+      setHasLocalOpenOrder(false)
+      return
+    }
+
+    if (!sharedTableOrder.order_id) return
+
+    setExistingOrderId(Number(sharedTableOrder.order_id))
+    setPendingSettlementSummary({
+      orderTotal: Number(sharedTableOrder.totals?.orderTotal || sharedTableOrder.totals?.total || 0),
+      settledAmount: Number(sharedTableOrder.totals?.settledAmount || 0),
+      remainingAmount: Number(sharedTableOrder.totals?.remainingAmount || sharedTableOrder.totals?.total || 0),
+    })
+    setLocalOpenOrder((prev: any) => {
+      const latestSnapshot = createSubmittedTableOrderSnapshot(sharedTableOrder, tableInfo, 0)
+      return !prev || String(prev?.orderId || "") !== String(sharedTableOrder.order_id || "") ? latestSnapshot : { ...prev, ...latestSnapshot }
+    })
+    setHasLocalOpenOrder(true)
+  }, [sharedTableOrder, tableInfo?.table_id, tableInfo?.table_no])
+
+  // close side cart for pending QR
+  useEffect(() => {
+    if (!existingOrderId) return
+    try {
+      const state = useCartStore.getState() as any
+      if (state?.isCartOpen === true) {
+        useCartStore.setState({ isCartOpen: false })
+      }
+    } catch (e) {
+      console.error('[PMD] close side cart for pending QR failed', e)
+    }
+  }, [existingOrderId])
+
+  const MENU_CACHE_TTL_MS = 5 * 60 * 1000
+  const getMenuCacheKey = () => {
+    if (typeof window === "undefined") return ""
+    return `pmd-menu-cache:${window.location.host}:${window.location.pathname}?${window.location.search}`
+  }
+
+  useEffect(() => {
+    __pmdWalletDebugInstallOnce()
+    __pmdRemoteConsoleInstallOnce()
+  }, [])
+
+  useMenuActionCircleColorRepair()
+
+  // Read raw search params (Next app router)
+
+  // PMD_FORCE_MODERN_GREEN_FROM_SIMPLE_THEME_20260610
+  useEffect(() => {
+    if (typeof window === "undefined") return
+
+    let cancelled = false
+
+    async function checkModernGreenTheme() {
+      try {
+        const res = await fetch(`/simple-theme?forceModernGreen=${Date.now()}`, {
+          headers: { Accept: "application/json" },
+          cache: "no-store",
+        })
+        const data = await res.json()
+      pmdForceKazenFrontendThemePayload(data);
+        const normalizedThemePayload = pmdForceKazenFrontendThemePayload(data)
+        const themeId = String(normalizedThemePayload?.data?.theme_id || normalizedThemePayload?.theme_id || normalizedThemePayload?.frontend_theme || normalizedThemePayload?.admin_theme || "").trim()
+
+        if (!cancelled) {
+          setForceModernGreenTheme(themeId === "modern_green")
+        }
+      } catch (error) {
+        if (!cancelled) setForceModernGreenTheme(false)
+      }
+    }
+
+    checkModernGreenTheme()
+
+    return () => {
+      cancelled = true
+    }
+  }, [])
+
+  const spTableNo = searchParams?.get('table_no') ?? null;
+  const spTableId = searchParams?.get('table_id') ?? null;
+  const isRootDeliveryMode = !spTableNo && !spTableId;
+
+  useEffect(() => {
+    // ROOT_DELIVERY_MODE_CLEANUP
+    if (isRootDeliveryMode) {
+      setTableInfoState(null)
+    }
+  }, [isRootDeliveryMode, clearTableContext]);
+  const spQr = searchParams?.get('qr') ?? null;
+
+  // After you fetch tableInfo:
+  const tableNo = (tableInfo?.table_no ?? spTableNo) ?? null;
+  const tableId = (tableInfo?.table_id ?? spTableId) ?? null;
+
+  // Use explicit cashier check
+  const isCashier = (tableNo === 0) || (tableInfo?.table_name?.toLowerCase() === 'cashier');
+
+  // Single source of truth for table id
+  const tableIdString = String(tableId ?? '').trim();
+  const tableName = tableInfo?.table_name ?? undefined;
+
+  const displayTableNumber =
+    (tableInfo?.table_no ?? spTableNo ?? tableInfo?.table_id ?? spTableId ?? null);
+
+  // Force "All" category selection on mount
+  useEffect(() => {
+    // Always set "All" as default when component mounts
+    setSelectedCategory("All");
+  }, []); // Empty dependency array - runs only once on mount
+
+  // Also force it when data loads
+  useEffect(() => {
+    if (apiMenuItems.length > 0) {
+      setSelectedCategory("All");
+    }
+  }, [apiMenuItems]);
+
+  // Load VAT settings on mount
+
+useEffect(() => {
+    loadVATSettings()
+  }, [loadVATSettings])
+
+  // Load menu data from API on component mount
+  useEffect(() => {
+    async function loadMenuData() {
+      try {
+        setIsLoading(true)
+        console.log('Loading menu data...')
+        const cacheKey = getMenuCacheKey()
+        if (cacheKey) {
+          try {
+            const rawCache = localStorage.getItem(cacheKey)
+            if (rawCache) {
+              const parsed = JSON.parse(rawCache)
+              const isFresh = parsed?.timestamp && (Date.now() - Number(parsed.timestamp) < MENU_CACHE_TTL_MS)
+              if (isFresh) {
+                setApiMenuItems(Array.isArray(parsed.items) ? parsed.items : [])
+                setDynamicCategories(Array.isArray(parsed.categories) ? parsed.categories : [])
+                if (parsed.menuHighlightSettings) setMenuHighlightSettings({ ...defaultMenuHighlightSettings, ...parsed.menuHighlightSettings })
+                console.info("PMD_MENU_CACHE_HIT")
+              } else {
+                console.info("PMD_MENU_CACHE_MISS")
+              }
+            } else {
+              console.info("PMD_MENU_CACHE_MISS")
+            }
+          } catch {
+            console.info("PMD_MENU_CACHE_MISS")
+          }
+        }
+
+        // Check if we have table parameters - prefer table_no
+        const table_id = searchParams.get("table_id")
+        const table_no = searchParams.get("table_no")
+        const qr = searchParams.get("qr")
+
+        // Use table_no if available, otherwise fall back to table_id
+        const tableParam = table_no || table_id;
+
+        if (tableParam) {
+          // Fetch table information - send as table_no if we have it, otherwise as table_id
+          try {
+            const useTableNo = !!table_no; // Use table_no if we have it from URL params
+            const tableResult = await apiClient.getTableInfo(tableParam, qr || undefined, useTableNo)
+            if (tableResult.success) {
+              setTableInfoState(tableResult.data)
+              setTableInfo({
+                table_id: String(tableResult.data.table_id ?? tableParam),
+                table_name: String(tableResult.data.table_name ?? tableResult.data.name ?? ''),
+                location_id: Number(tableResult.data.location_id ?? 0),
+                qr_code: tableResult.data.qr_code ?? qr ?? null,
+                table_no: tableResult.data.table_no ?? (table_no ? Number(table_no) : undefined),
+              })
+
+              const pendingQr = await apiClient.getPendingQrOrderByTable(String(tableResult.data.table_id), { tableNo: tableResult.data?.table_no ?? table_no ?? null, qr: qr || null })
+              if (pendingQr?.success && pendingQr.data?.order_id) {
+                const pendingId = Number(pendingQr.data.order_id)
+                setExistingOrderId(pendingId)
+                setPendingSettlementSummary({
+                  orderTotal: Number((pendingQr.data as any).order_total || 0),
+                  settledAmount: Number((pendingQr.data as any).settled_amount || 0),
+                  remainingAmount: Number((pendingQr.data as any).remaining_amount || 0),
+                })
+                setLocalOpenOrder({
+                  orderId: pendingId,
+                  status: "submitted_unpaid",
+                  paymentStatus: "unpaid",
+                  tableNumber: tableResult.data?.table_no ?? table_no ?? null,
+                  total: Number((pendingQr.data as any).order_total || 0),
+                  orderTotal: Number((pendingQr.data as any).order_total || 0),
+                  settledAmount: Number((pendingQr.data as any).settled_amount || 0),
+                  remainingAmount: Number((pendingQr.data as any).remaining_amount || 0),
+                  submittedItems: pendingQr.data.items || [],
+                  payment: "qr_pay_later",
+                })
+                setHasLocalOpenOrder(true)
+
+                if (hydratedPendingOrderRef.current !== pendingId) {
+                  hydratedPendingOrderRef.current = pendingId
+                  try {
+                    const state = useCartStore.getState() as any
+                    if (state?.isCartOpen === true) useCartStore.setState({ isCartOpen: false })
+                  } catch (e) {
+                    console.error('[PMD] close drawer after table order sync failed', e)
+                  }
+                }
+              } else {
+                const hadPendingContext =
+                  hydratedPendingOrderRef.current !== null || existingOrderId !== null
+
+                setExistingOrderId(null)
+                setPendingSettlementSummary(null)
+                hydratedPendingOrderRef.current = null
+
+                if (hadPendingContext) {
+                  console.info('[PMD QR fallback] No pending QR order, restoring normal menu flow', {
+                    table_id: tableResult?.data?.table_id ?? null,
+                    table_no: tableResult?.data?.table_no ?? null,
+                  })
+
+                  // Clear stale split-payment cart hydration from previous pending order
+                  clearCart()
+
+                  try {
+                    const state = useCartStore.getState() as any
+                    if (state?.isCartOpen === true) {
+                      useCartStore.setState({ isCartOpen: false })
+                    }
+                  } catch (e) {
+                    console.error('[PMD QR fallback] close drawer failed', e)
+                  }
+
+                  // Ensure pending payment modal is closed when falling back to normal menu flow
+                  setPaymentModalOpen(false)
+                }
+              }
+            }
+          } catch (error) {
+            console.error('Failed to fetch table info:', error)
+          }
+        }
+
+        // Load menu data
+        const menuResult = await getMenuData()
+
+        setApiMenuItems(menuResult.menuItems)
+        setDynamicCategories(menuResult.categoryNames)
+        setIsFrontendConfigured(menuResult.isFrontendConfigured ?? true)
+        setMenuHighlightSettings(menuResult.menuHighlightSettings || defaultMenuHighlightSettings)
+        if (cacheKey) {
+          localStorage.setItem(cacheKey, JSON.stringify({
+            categories: menuResult.categoryNames,
+            items: menuResult.menuItems,
+            timestamp: Date.now(),
+            menuHighlightSettings: menuResult.menuHighlightSettings,
+            menuCacheVersion: menuResult.menuCacheVersion,
+          }))
+          console.info("PMD_MENU_CACHE_REFRESHED")
+        }
+
+      } catch (error) {
+        console.error('Failed to load menu data:', error)
+        setApiMenuItems(menuData)
+        setDynamicCategories(categories)
+        setSelectedCategory("All") // Even on error, set "All"
+      } finally {
+        setIsLoading(false)
+      }
+    }
+
+    loadMenuData()
+  }, [searchParams, setTableInfo, clearCart, addToCart])
+
+  // Add "All" to categories - FIXED VERSION
+  const allCategories = useMemo(() => {
+    const categoryList = dynamicCategories;
+    return ["All", ...categoryList];
+  }, [dynamicCategories]);
+
+  // Adjust menu item prices if VAT is included in prices (vat_menu_price = 0)
+  const adjustPriceForVAT = (price: number): number => {
+    if (taxSettings.enabled && taxSettings.percentage > 0 && taxSettings.menuPrice === 0) {
+      // VAT is included in prices - increase price by VAT percentage
+      return price * (1 + taxSettings.percentage / 100)
+    }
+    return price
+  }
+
+  // Update filteredItems logic with price adjustment
+  const filteredItems = useMemo(() => {
+    // Use API data if available, otherwise fallback to CMS store or static data
+    const availableItems = apiMenuItems.length ? apiMenuItems : (menuItems.length ? menuItems : menuData);
+
+    // Adjust prices if VAT is included in menu prices
+    const itemsWithAdjustedPrices = availableItems.map(item => ({
+      ...item,
+      price: adjustPriceForVAT(item.price),
+      // Also adjust option prices if they exist
+      options: item.options?.map(option => ({
+        ...option,
+        values: option.values.map(value => ({
+          ...value,
+          price: adjustPriceForVAT(value.price)
+        }))
+      }))
+    }))
+
+    // Always default to showing all items if no category is selected
+    const currentCategory = selectedCategory || "All";
+
+    // If "All" is selected, show all items
+    if (currentCategory === "All") {
+      return itemsWithAdjustedPrices;
+    }
+
+    // Otherwise, filter by selected category
+    return itemsWithAdjustedPrices.filter((item) => item.category === currentCategory);
+  }, [apiMenuItems, menuItems, selectedCategory, taxSettings.enabled, taxSettings.percentage, taxSettings.menuPrice]);
+
+  const highlightSourceItems = useMemo(() => {
+    const availableItems = apiMenuItems.length ? apiMenuItems : (menuItems.length ? menuItems : menuData)
+    return availableItems.map(item => ({
+      ...item,
+      price: adjustPriceForVAT(item.price),
+      options: item.options?.map(option => ({
+        ...option,
+        values: option.values.map(value => ({ ...value, price: adjustPriceForVAT(value.price) }))
+      }))
+    }))
+  }, [apiMenuItems, menuItems, taxSettings.enabled, taxSettings.percentage, taxSettings.menuPrice])
+
+  const chefRecommendationItems = useMemo(() => {
+    if (!menuHighlightSettings.chef_section_enabled || menuHighlightSettings.section_placement === 'hidden') return []
+    return highlightSourceItems.filter((item) => Boolean((item as any).is_chef_recommended)).slice(0, menuHighlightSettings.max_chef_items)
+  }, [highlightSourceItems, menuHighlightSettings])
+
+  const bestsellerItems = useMemo(() => {
+    if (!menuHighlightSettings.bestseller_section_enabled || menuHighlightSettings.section_placement === 'hidden') return []
+    return highlightSourceItems.filter((item) => Boolean((item as any).is_bestseller)).slice(0, menuHighlightSettings.max_bestseller_items)
+  }, [highlightSourceItems, menuHighlightSettings])
+
+  const showVirtualHighlightSections = (selectedCategory || "All") === "All" && menuHighlightSettings.section_placement !== 'hidden'
+
+  // Initialize with "All" category when data loads
+  useEffect(() => {
+    if (apiMenuItems.length > 0 && !selectedCategory) {
+      setSelectedCategory("All");
+    }
+  }, [apiMenuItems, selectedCategory]);
+
+  // Calculate total items and price
+  const cartPricingSummary = calculateCartPricingSummary(items, taxSettings)
+  const totalItems = cartPricingSummary.totalItems
+  const rawSubtotalPrice = cartPricingSummary.subtotal
+  const rawTaxAmount = cartPricingSummary.tax
+  const totalPrice = toolbarPricingSnapshot?.total ?? (rawSubtotalPrice + rawTaxAmount)
+
+  // Show arrow if at least one item and not collapsed
+  useEffect(() => {
+    if (items.length === 0 && toolbarPricingSnapshot) setToolbarPricingSnapshot(null)
+  }, [items.length, toolbarPricingSnapshot])
+
+  // PMD_TABLE_ORDER_ACTIVE_DERIVED_STATE_20260613
+  const localOpenOrderStatusForAction = String(localOpenOrder?.status || "").toLowerCase()
+  const localOpenOrderPaymentStatusForAction = String(localOpenOrder?.paymentStatus || localOpenOrder?.payment_status || "").toLowerCase()
+  const localOpenOrderRemainingForAction = Number(
+    localOpenOrder?.remainingAmount ??
+    localOpenOrder?.remaining_amount ??
+    localOpenOrder?.totals?.remainingAmount ??
+    Number.NaN
+  )
+  const localOpenOrderTotalForAction = Number(localOpenOrder?.orderTotal ?? localOpenOrder?.total ?? localOpenOrder?.subtotal ?? 0)
+
+  const hasActiveLocalOpenOrder = Boolean(
+    hasLocalOpenOrder &&
+    localOpenOrder &&
+    !["paid", "completed", "complete", "delivered", "cancelled", "canceled"].includes(localOpenOrderStatusForAction) &&
+    !["paid", "settled"].includes(localOpenOrderPaymentStatusForAction) &&
+    (
+      (Number.isFinite(localOpenOrderRemainingForAction) && localOpenOrderRemainingForAction > 0) ||
+      (!Number.isFinite(localOpenOrderRemainingForAction) && localOpenOrderTotalForAction > 0)
+    )
+  )
+
+  const shouldShowTableOrderAction = isVisibleTableOrderDraft(sharedTableOrder) || hasActiveLocalOpenOrder
+
+  const tableOrderActionCount = Number(
+    tableOrderItemCount(sharedTableOrder) ||
+    (
+      hasActiveLocalOpenOrder
+        ? localOpenOrder?.submittedItems?.reduce?.((sum: number, item: any) => sum + Number(item?.quantity || 1), 0)
+        : 0
+    ) ||
+    0
+  )
+
+  const handleFirstAdd = React.useCallback((item: MenuItem) => {
+    const cartItem = useCartStore.getState().items.find((entry) => entry.item.id === item.id)
+    setLastInteractedItem(cartItem || { item, quantity: 1 })
+  }, [])
+
+  const handleOrganicAdd = (item: MenuItem, event: React.MouseEvent) => {
+    event.stopPropagation()
+    let itemToAdd = { ...item }
+    if (taxSettings.enabled && taxSettings.percentage > 0 && taxSettings.menuPrice === 0) {
+      itemToAdd.price = item.price / (1 + taxSettings.percentage / 100)
+      if (itemToAdd.options) {
+        itemToAdd.options = itemToAdd.options.map(option => ({
+          ...option,
+          values: option.values.map(value => ({
+            ...value,
+            price: value.price / (1 + taxSettings.percentage / 100)
+          }))
+        }))
+      }
+    }
+    const currentQuantity = items.find(cartItem => cartItem.item.id === item.id)?.quantity || 0
+    addToCart(itemToAdd)
+    if (currentQuantity === 0) handleFirstAdd(item)
+  }
+
+  const handleItemSelect = (item: MenuItem) => {
+    setSelectedItem(item)
+    const cartItem = items.find(i => i.item.id === item.id)
+    if (cartItem) setLastInteractedItem(cartItem)
+  }
+
+  // Handlers for assistant buttons
+  const handleWaiterClick = () => setWaiterConfirmOpen(true)
+
+  // PMD_ORGANIC_V2_EVENT_BRIDGE_20260614
+  useEffect(() => {
+    if (!isOrganicBotanicalTheme || typeof window === "undefined") return
+
+    const openWaiter = () => setWaiterConfirmOpen(true)
+    const openNote = () => setNoteModalOpen(true)
+
+    window.addEventListener("pmd:organic:waiter", openWaiter)
+    window.addEventListener("pmd:organic:note", openNote)
+
+    return () => {
+      window.removeEventListener("pmd:organic:waiter", openWaiter)
+      window.removeEventListener("pmd:organic:note", openNote)
+    }
+  }, [isOrganicBotanicalTheme])
+  const handleNoteClick = () => setNoteModalOpen(true)
+  const handleCartClick = () => {
+    if (items.length > 0) {
+      setPaymentModalInitialStep('review')
+      setPaymentModalOpen(true)
+    }
+  }
+
+  const themeMenuActions = useCustomerThemeActions({
+    addToCart,
+    handleFirstAdd,
+    handleCartClick,
+    setPaymentModalInitialStep,
+    setPaymentModalOpen,
+    sharedTableOrder,
+    handleWaiterClick,
+    handleNoteClick,
+    tableIdString,
+    totalItems,
+    tableOrderActionCount,
+    shouldShowTableOrderAction,
+    displayTableNumber,
+    language,
+  })
+
+  // PMD_BOTANICAL_V0_PARENT_BRIDGE_20260607
+  useEffect(() => {
+    if (typeof window === "undefined") return
+
+    const handleBotanicalMessage = (event: MessageEvent) => {
+      if (event.origin !== window.location.origin) return
+
+      const msg = event.data
+      if (!msg || typeof msg !== "object") return
+
+      const type = String((msg as any).type || "")
+      if (!type.startsWith("PMD_BOTANICAL_")) return
+
+      if (type === "PMD_BOTANICAL_ADD_ITEM") {
+        const id = String((msg as any).itemId || "")
+        const quantity = Math.max(1, Number((msg as any).quantity || 1))
+
+        const sourceItems = apiMenuItems.length ? apiMenuItems : (menuItems.length ? menuItems : menuData)
+        const found = sourceItems.find((candidate: any) => {
+          return String(candidate?.id ?? candidate?.menu_id ?? candidate?.menuId ?? "") === id
+        })
+
+        if (!found) {
+          console.warn("[PMD botanical bridge] item not found", { id })
+          toast({
+            title: "Item not found",
+            description: "Please refresh the menu and try again.",
+            variant: "destructive",
+          })
+          return
+        }
+
+        let itemToAdd: MenuItem = { ...(found as MenuItem) }
+
+        // Keep same VAT behavior as current organic/gold logic.
+        if (taxSettings.enabled && taxSettings.percentage > 0 && taxSettings.menuPrice === 0) {
+          itemToAdd.price = Number(itemToAdd.price || 0) / (1 + taxSettings.percentage / 100)
+          if (itemToAdd.options) {
+            itemToAdd.options = itemToAdd.options.map((option: any) => ({
+              ...option,
+              values: (option.values || []).map((value: any) => ({
+                ...value,
+                price: Number(value.price || 0) / (1 + taxSettings.percentage / 100),
+              })),
+            }))
+          }
+        }
+
+        for (let i = 0; i < quantity; i++) {
+          addToCart(itemToAdd)
+        }
+
+        handleFirstAdd(found as MenuItem)
+        toast({
+          title: "Added to order",
+          description: String((found as any).name || (found as any).menu_name || "Item added"),
+        })
+        return
+      }
+
+      if (
+        type === "PMD_BOTANICAL_CALL_WAITER" ||
+        type === "pmd:call-waiter"
+      ) {
+        handleWaiterClick()
+        return
+      }
+
+      if (
+        type === "PMD_BOTANICAL_ADD_NOTE" ||
+        type === "pmd:add-note"
+      ) {
+        handleNoteClick()
+        return
+      }
+
+      if (
+        type === "PMD_BOTANICAL_CHECKOUT" ||
+        type === "pmd:checkout"
+      ) {
+        handleCartClick()
+        return
+      }
+
+      if (
+        type === "PMD_BOTANICAL_TABLE_ORDER" ||
+        type === "pmd:table-order"
+      ) {
+        handleCartClick()
+        return
+      }
+
+      if (type === "PMD_BOTANICAL_GO_VALET") {
+        const incomingPath = String((msg as any).parentPath || window.location.pathname || "/menu")
+        const incomingSearch = String((msg as any).parentSearch || window.location.search || "")
+
+        let targetPath = "/valet"
+
+        if (/\/table\/[^/]+\/menu\/?$/.test(incomingPath)) {
+          targetPath = incomingPath.replace(/\/menu\/?$/, "/valet")
+        } else if (/\/menu\/?$/.test(incomingPath)) {
+          targetPath = "/valet"
+        } else if (/\/menu\/table-[^/]+\/?$/.test(incomingPath)) {
+          targetPath = "/valet"
+        }
+
+        window.location.href = `${targetPath}${incomingSearch || ""}`
+        return
+      }
+
+      if (type === "PMD_BOTANICAL_LANGUAGE") {
+        toast({
+          title: "Language",
+          description: "Language switch is still handled by the PayMyDine shell.",
+        })
+      }
+    }
+
+    window.addEventListener("message", handleBotanicalMessage)
+    return () => window.removeEventListener("message", handleBotanicalMessage)
+  }, [
+    apiMenuItems,
+    menuItems,
+    items.length,
+    taxSettings.enabled,
+    taxSettings.percentage,
+    taxSettings.menuPrice,
+    addToCart,
+    toast,
+  ])
+  const handleSendNote = async () => {
+    const trimmedNote = (note ?? '').trim();
+    if (!trimmedNote) {
+      toast({
+        title: "Error",
+        description: "Please enter a note before sending.",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    // optional: cap length if your backend enforces it (e.g., 1000 chars)
+    if (trimmedNote.length > 1000) {
+      toast({
+        title: "Error",
+        description: "Note is too long. Please keep it under 1000 characters.",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    const resolvedTableId = tableIdString || "delivery"
+    if (process.env.NODE_ENV !== "production") {
+      console.debug('[table-note] payload', { tableId: resolvedTableId, note: trimmedNote, source: tableIdString ? "table" : "delivery_menu" });
+    }
+    try {
+      await apiClient.callTableNote(String(resolvedTableId), trimmedNote, new Date().toISOString());
+      setNote("")
+      setNoteModalOpen(false)
+      toast({
+        title: "Note Sent",
+        description: "Your note has been sent to the staff!"
+      })
+    } catch (error) {
+      console.error('Failed to send note:', error)
+      toast({
+        title: "Note Failed",
+        description: `Failed to send note: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        variant: "destructive"
+      })
+    }
+  }
+
+  useEffect(() => {
+    setIsClient(true)
+  }, [])
+
+  useEffect(() => {
+    if (typeof window === "undefined") return
+    if (hasDraftTableOrderWithoutRealOrder) {
+      setExistingOrderId(null)
+      setHasLocalOpenOrder(false)
+      setLocalOpenOrder(null)
+      return
+    }
+    const tenant = window.location.host
+    const tableKey = String(tableInfo?.table_id || tableInfo?.table_no || searchParams?.get("table") || searchParams?.get("table_id") || searchParams?.get("table_no") || (window.location.pathname.match(/\/table\/(\d+)/)?.[1] ?? "delivery"))
+    const guestSessionId = localStorage.getItem('pmd_guest_session_id') || `g_${Date.now()}_${Math.random().toString(36).slice(2,10)}`
+    localStorage.setItem('pmd_guest_session_id', guestSessionId)
+    const key = `pmd_open_order:${tenant}:${tableKey}:${guestSessionId}`
+    const legacyKey = `pmd_open_order:${tenant}:${tableKey}`
+    try {
+      let raw = localStorage.getItem(key)
+      let restoredFromLegacy = false
+      if (!raw) {
+        const legacyRaw = localStorage.getItem(legacyKey)
+        if (legacyRaw) {
+          try {
+            const legacy = JSON.parse(legacyRaw)
+            const hasValidCore = Number(legacy?.orderId || 0) > 0 && Number(legacy?.total || 0) > 0
+            const isPaid = legacy?.paymentStatus === "paid" || legacy?.status === "paid"
+            const tenantConflict = legacy?.tenant != null && String(legacy.tenant) !== tenant
+            const tableConflict = legacy?.tableKey != null && String(legacy.tableKey) !== tableKey
+            if (!hasValidCore || isPaid || tenantConflict || tableConflict) {
+              localStorage.removeItem(legacyKey)
+            } else {
+              const migrated = { ...legacy, guestSessionId, tenant, tableKey }
+              localStorage.setItem(key, JSON.stringify(migrated))
+              localStorage.removeItem(legacyKey)
+              raw = JSON.stringify(migrated)
+              restoredFromLegacy = true
+            }
+          } catch {}
+        }
+      }
+      if (!raw) { setHasLocalOpenOrder(false); setLocalOpenOrder(null); return }
+      const parsed = JSON.parse(raw)
+      const hasValidCore =
+        parsed &&
+        typeof parsed === "object" &&
+        Number(parsed?.total || 0) > 0 &&
+        Number(parsed?.orderId || 0) > 0
+      const matchesContext =
+        String(parsed?.guestSessionId || "") === guestSessionId &&
+        String(parsed?.tenant || "") === tenant &&
+        String(parsed?.tableKey || "") === tableKey
+      if (!hasValidCore || (!restoredFromLegacy && !matchesContext)) {
+        localStorage.removeItem(key)
+        setHasLocalOpenOrder(false)
+        setLocalOpenOrder(null)
+        return
+      }
+      setHasLocalOpenOrder(!!parsed?.orderId)
+      setLocalOpenOrder(parsed)
+      if (!existingOrderId && parsed?.orderId) setExistingOrderId(Number(parsed.orderId))
+    } catch { setHasLocalOpenOrder(false); setLocalOpenOrder(null) }
+  }, [tableInfo, searchParams, existingOrderId, hasDraftTableOrderWithoutRealOrder])
+
+  useOrganicCheckoutDomPolish(false) // PMD_ORGANIC_CARDS_V2_DISABLE_OLD_DOM_POLISH_20260614
+
+  // PMD_ORGANIC_V0_PARENT_MESSAGE_BRIDGE_FINAL_20260607
+  React.useEffect(() => {
+    if (!isOrganicBotanicalTheme || typeof window === "undefined") return
+
+    function handleBotanicalV0Message(event: MessageEvent) {
+      if (event.origin !== window.location.origin) return
+
+      const data: any = event.data || {}
+      const type = String(data.type || "")
+
+      if (type === "pmd:call-waiter") {
+        handleWaiterClick()
+        return
+      }
+
+      if (type === "pmd:add-note") {
+        handleNoteClick()
+        return
+      }
+
+      if (type === "pmd:checkout") {
+        handleCartClick()
+        return
+      }
+
+      if (type === "pmd:table-order") {
+        if (!shouldShowTableOrderAction) return
+        setPaymentModalInitialStep(
+          sharedTableOrder?.status === "draft"
+            ? "review"
+            : sharedTableOrder?.status === "paid"
+              ? "paid"
+              : "submitted"
+        )
+        setPaymentModalOpen(true)
+        return
+      }
+
+      if (type === "pmd:add-item" && data.item) {
+        const itemToAdd = data.item as MenuItem
+        const quantity = Math.max(1, Number(data.quantity || 1))
+
+        for (let i = 0; i < quantity; i++) {
+          addToCart(itemToAdd)
+        }
+
+        handleFirstAdd(itemToAdd)
+        toast({
+          title: "Added to order",
+          description: String((itemToAdd as any).name || (itemToAdd as any).menu_name || "Item added"),
+        })
+        return
+      }
+
+      if (type === "pmd:open-valet") {
+        const currentSearch = window.location.search || ""
+        if (tableIdString) {
+          window.location.href = `/table/${tableIdString}/valet${currentSearch}`
+        } else {
+          window.location.href = `/valet${currentSearch}`
+        }
+        return
+      }
+    }
+
+    window.addEventListener("message", handleBotanicalV0Message)
+    return () => window.removeEventListener("message", handleBotanicalV0Message)
+  }, [isOrganicBotanicalTheme, tableIdString])
+
+  // PMD_ORGANIC_DOCK_DELEGATED_ACTIONS_20260608
+  React.useEffect(() => {
+    if (!isOrganicBotanicalTheme || typeof document === "undefined") return
+
+    let lastActionAt = 0
+
+    function runOrganicDockAction(action: string) {
+      if (action === "waiter") {
+        handleWaiterClick()
+        return
+      }
+
+      if (action === "note") {
+        handleNoteClick()
+        return
+      }
+
+      if (action === "checkout") {
+        handleCartClick()
+        return
+      }
+
+      if (action === "table-order") {
+        if (!shouldShowTableOrderAction) return
+        setPaymentModalInitialStep(
+          sharedTableOrder?.status === "draft"
+            ? "review"
+            : sharedTableOrder?.status === "paid"
+              ? "paid"
+              : "submitted"
+        )
+        setPaymentModalOpen(true)
+        return
+      }
+    }
+
+    function onOrganicDockPress(event: Event) {
+      const target = event.target as HTMLElement | null
+      const button = target?.closest?.("[data-pmd-organic-dock-action]") as HTMLElement | null
+      if (!button) return
+
+      const now = Date.now()
+      if (now - lastActionAt < 350) return
+      lastActionAt = now
+
+      event.preventDefault()
+      event.stopPropagation()
+      ;(event as any).stopImmediatePropagation?.()
+
+      const action = String(button.getAttribute("data-pmd-organic-dock-action") || "")
+      console.info("PMD_ORGANIC_DOCK_CLICK", action)
+      runOrganicDockAction(action)
+    }
+
+    document.addEventListener("pointerdown", onOrganicDockPress, true)
+    document.addEventListener("click", onOrganicDockPress, true)
+
+    return () => {
+      document.removeEventListener("pointerdown", onOrganicDockPress, true)
+      document.removeEventListener("click", onOrganicDockPress, true)
+    }
+  }, [isOrganicBotanicalTheme, sharedTableOrder?.status])
+
+  // PMD_ORGANIC_BODY_MODAL_STYLE_MARKER_20260608
+  React.useEffect(() => {
+    if (typeof document === "undefined") return
+
+  if (isOrganicBotanicalTheme) {
+      document.body.setAttribute("data-pmd-organic-botanical-active", "1")
+      document.documentElement.setAttribute("data-pmd-organic-botanical-active", "1")
+    } else {
+      document.body.removeAttribute("data-pmd-organic-botanical-active")
+      document.documentElement.removeAttribute("data-pmd-organic-botanical-active")
+    }
+
+    return () => {
+      document.body.removeAttribute("data-pmd-organic-botanical-active")
+      document.documentElement.removeAttribute("data-pmd-organic-botanical-active")
+    }
+  }, [isOrganicBotanicalTheme])
+
+  if (!isClient) {
+    return <LoadingSpinner />
+  }
+
+  const restaurantDisplayName = merchantSettings?.businessName || cmsSettings?.appName || 'PayMyDine'
+  const heroItem = highlightSourceItems.find((item) => item.image || (Array.isArray((item as any).images) && (item as any).images.length)) || highlightSourceItems[0] || null
+
+  if (shouldHoldThemeRender) {
+    return (
+      <div
+        className="pmd-customer-page page--menu relative min-h-screen w-full"
+        data-pmd-theme-loading="1"
+        style={{ background: "#f7f3ea", color: "#343529" }}
+      >
+        <LoadingSpinner />
+      </div>
+    )
+  }
+
+  const normalizeModernGreenLogoUrl = (value: unknown) => {
+    const raw = String(value || "").trim()
+    if (!raw || raw === "undefined" || raw === "null") return ""
+
+    if (/^https?:\/\//i.test(raw)) return raw
+
+    const clean = raw.replace(/^\/+/, "")
+    const filename = clean.split("/").filter(Boolean).pop() || clean
+
+    if (clean.startsWith("assets/media/uploads/")) return `/${clean}`
+    if (clean.startsWith("/assets/media/uploads/")) return clean
+    if (clean.startsWith("uploads/")) return `/assets/media/${clean}`
+
+    // Backend sometimes sends only the uploaded file name.
+    if (!clean.includes("/")) return `/assets/media/uploads/${filename}`
+
+    // If it was saved as /assets/media/<file>, normalize to uploads because that is where the file exists.
+    if (clean.startsWith("assets/media/")) return `/assets/media/uploads/${filename}`
+
+    return `/${clean}`
+  }
+
+  // PMD_KAZEN_JAPANESE_THEME_RETURN_20260611
+  if (isKazenJapaneseTheme) {
+    const kazenSrc =
+      typeof window !== "undefined"
+        ? `/themes/kazen-japanese/?embedded=1&from=pmd&${window.location.search.replace(/^\?/, "")}`
+        : "/themes/kazen-japanese/?embedded=1&from=pmd"
+
+    const kazenSourceItems = apiMenuItems.length ? apiMenuItems : (menuItems.length ? menuItems : menuData)
+    const kazenBridgeCategories = pmdBuildKazenParentCategories(allCategories, kazenSourceItems)
+    const kazenTableNumber = tableInfo?.table_no ?? tableInfo?.table_id ?? displayTableNumber ?? tableIdString ?? null
+    // PMD_KAZEN_ADMIN_LOGO_SAME_AS_HOMEPAGE_20260611
+    const kazenLogoCandidates = [
+      (cmsSettings as any)?.effectiveLogoUrl,
+      (cmsSettings as any)?.logoUrl,
+      (cmsSettings as any)?.logo_url,
+      (cmsSettings as any)?.logo,
+      (cmsSettings as any)?.restaurantLogoUrl,
+      (cmsSettings as any)?.restaurant_logo,
+      (cmsSettings as any)?.site_logo,
+      (cmsSettings as any)?.header_logo,
+      (cmsSettings as any)?.frontend_logo,
+      (cmsSettings as any)?.business_logo,
+      (cmsSettings as any)?.brand_logo,
+      (cmsSettings as any)?.data?.effectiveLogoUrl,
+      (cmsSettings as any)?.data?.logoUrl,
+      (cmsSettings as any)?.data?.logo_url,
+      (cmsSettings as any)?.data?.logo,
+      (cmsSettings as any)?.data?.restaurant_logo,
+      (merchantSettings as any)?.effectiveLogoUrl,
+      (merchantSettings as any)?.logoUrl,
+      (merchantSettings as any)?.logo_url,
+      (merchantSettings as any)?.logo,
+      (merchantSettings as any)?.restaurantLogoUrl,
+      (merchantSettings as any)?.restaurant_logo,
+      (merchantSettings as any)?.site_logo,
+      (merchantSettings as any)?.header_logo,
+      (merchantSettings as any)?.frontend_logo,
+      (merchantSettings as any)?.business_logo,
+      (merchantSettings as any)?.brand_logo,
+      (merchantSettings as any)?.data?.effectiveLogoUrl,
+      (merchantSettings as any)?.data?.logoUrl,
+      (merchantSettings as any)?.data?.logo_url,
+      (merchantSettings as any)?.data?.logo,
+      (merchantSettings as any)?.data?.restaurant_logo,
+    ]
+
+    const kazenLogoUrl = normalizeModernGreenLogoUrl(
+      kazenLogoCandidates.find((value) => String(value || "").trim()) || ""
+    )
+
+    const handleKazenAdd = (item: MenuItem, quantity = 1) => {
+      let itemToAdd = { ...item }
+      if (taxSettings.enabled && taxSettings.percentage > 0 && taxSettings.menuPrice === 0) {
+        itemToAdd.price = item.price / (1 + taxSettings.percentage / 100)
+        if (itemToAdd.options) {
+          itemToAdd.options = itemToAdd.options.map(option => ({
+            ...option,
+            values: option.values.map(value => ({
+              ...value,
+              price: value.price / (1 + taxSettings.percentage / 100)
+            }))
+          }))
+        }
+      }
+      const currentQuantity = items.find(cartItem => cartItem.item.id === item.id)?.quantity || 0
+      addToCart(itemToAdd, quantity)
+      if (currentQuantity === 0) handleFirstAdd(item)
+    }
+
+    const handleKazenWaiter = async () => {
+      const resolvedTableId = tableInfo?.table_id || tableInfo?.table_no || tableIdString || "delivery"
+      try {
+        await apiClient.callWaiter(String(resolvedTableId), ".")
+        toast({ title: "Waiter called", description: "The team has been notified." })
+      } catch (error: any) {
+        toast({ title: "Waiter call failed", description: error?.message || "Failed to call waiter.", variant: "destructive" })
+      }
+    }
+
+    const handleKazenNote = async (rawNote = "") => {
+      const resolvedTableId = tableInfo?.table_id || tableInfo?.table_no || tableIdString || "delivery"
+      const trimmedNote = String(rawNote || "").trim()
+      if (!trimmedNote) {
+        setNoteModalOpen(true)
+        return
+      }
+      try {
+        await apiClient.callTableNote(String(resolvedTableId), trimmedNote, new Date().toISOString())
+        toast({ title: "Note sent", description: "Your note was sent to the team." })
+      } catch (error: any) {
+        toast({ title: "Note failed", description: error?.message || "Failed to send note.", variant: "destructive" })
+      }
+    }
+
+    const handleKazenValet = async (values: any = {}) => {
+      const name = String(values?.name || "Guest").trim() || "Guest"
+      const licensePlate = String(values?.licensePlate || values?.license_plate || "Not provided").trim() || "Not provided"
+      const carModel = String(values?.carModel || values?.car_make || "Not provided").trim() || "Not provided"
+
+      try {
+        await apiClient.createValetRequest({
+          name,
+          license_plate: licensePlate,
+          car_make: carModel,
+          table_id: tableIdString || undefined,
+          table_no: kazenTableNumber ? String(kazenTableNumber) : undefined,
+          qr: tableInfo?.qr_code ? String(tableInfo.qr_code) : undefined,
+        })
+        toast({ title: "Valet requested", description: "Your valet request has been sent." })
+      } catch (error: any) {
+        toast({ title: "Valet request failed", description: error?.message || "Failed to submit valet request.", variant: "destructive" })
+      }
+    }
+
+    return (
+      <ThemeActionBoundary actions={themeMenuActions}>
+        <KazenJapaneseBridgeTheme
+          src={kazenSrc}
+          sourceItems={kazenSourceItems}
+          cartItems={items}
+          totalItems={totalItems}
+          totalPrice={totalPrice}
+          lastInteractedItem={lastInteractedItem}
+          categories={kazenBridgeCategories}
+          restaurantName={restaurantDisplayName}
+          logoUrl={kazenLogoUrl}
+          tableNumber={kazenTableNumber}
+          onAddItem={handleKazenAdd}
+          onOpenItem={(item) => handleItemSelect(item as MenuItem)}
+          onCheckout={handleCartClick}
+          onCallWaiter={handleKazenWaiter}
+          onOpenNote={handleKazenNote}
+          onOpenValet={handleKazenValet}
+          onTableOrder={() => {
+            if (!shouldShowTableOrderAction) return
+            setPaymentModalInitialStep(
+              sharedTableOrder?.status === "draft"
+                ? "review"
+                : sharedTableOrder?.status === "paid"
+                  ? "paid"
+                  : "submitted"
+            )
+            setPaymentModalPreferPersonalReview(false)
+            setPaymentModalOpen(true)
+          }}
+          showTableOrder={shouldShowTableOrderAction}
+          tableOrderCount={tableOrderActionCount}
+        >
+          <KazenBottomDock {...themeMenuActions} />
+          <PaymentModal
+            isOpen={isPaymentModalOpen}
+            onClose={() => { setPaymentModalOpen(false); setPaymentModalPreferPersonalReview(false) }}
+            items={items}
+            tableInfo={tableInfo}
+            existingOrderId={activeExistingOrderId}
+            pendingSummary={activePendingSummary}
+            initialSubmittedOrder={activeSubmittedOrder}
+            initialCheckoutStep={paymentModalInitialStep}
+            preferPersonalReview={paymentModalPreferPersonalReview}
+            checkoutVisualTheme="kazen_japanese"
+            onCartPricingUpdate={setToolbarPricingSnapshot}
+            onOpenOrderUpdate={(snapshot) => {
+              if (snapshot?.status === "draft" || snapshot?.draft_id) {
+                setSharedTableOrder(snapshot)
+                return
+              }
+              if (snapshot?.paymentStatus === "paid" || snapshot?.status === "paid") {
+                const normalizedPaid = snapshot?.orderId ? snapshot : { ...snapshot, orderId: snapshot?.order_id }
+                setLocalOpenOrder(normalizedPaid)
+                setHasLocalOpenOrder(!!normalizedPaid?.orderId)
+                setSharedTableOrder((prev) => prev?.order_id && String(prev.order_id) === String(normalizedPaid?.orderId) ? { ...prev, status: "paid", paymentStatus: "paid" } as any : prev)
+                return
+              }
+              if (snapshot?.orderId || snapshot?.order_id) {
+                const normalized = snapshot?.orderId ? snapshot : { ...snapshot, orderId: snapshot.order_id }
+                setLocalOpenOrder(normalized)
+                setHasLocalOpenOrder(true)
+                setSharedTableOrder((prev) => prev?.draft_id ? null : prev)
+              }
+            }}
+          />
+
+          <KazenWaiterDialog
+            isOpen={isWaiterConfirmOpen}
+            onOpenChange={setWaiterConfirmOpen}
+            tableId={tableIdString}
+            tableName={tableName}
+          />
+          <KazenNoteDialog
+            isOpen={isNoteModalOpen}
+            onOpenChange={setNoteModalOpen}
+            note={note}
+            setNote={setNote}
+            onSend={handleSendNote}
+            tableId={tableIdString}
+            tableName={tableName}
+          />
+        </KazenJapaneseBridgeTheme>
+      </ThemeActionBoundary>
+    )
+  }
+
+  // PMD_MODERN_GREEN_V0_ONLY_RETURN_FINAL_20260610
+  if (isModernGreenTheme) {
+    const modernGreenSrc =
+      typeof window !== "undefined"
+        ? `/newfrontend/?embedded=1&from=pmd&${window.location.search.replace(/^\?/, "")}`
+        : "/newfrontend/?embedded=1&from=pmd"
+
+    const modernGreenSourceItems = apiMenuItems.length ? apiMenuItems : (menuItems.length ? menuItems : menuData)
+    const modernGreenTableNumber = tableInfo?.table_no ?? tableInfo?.table_id ?? displayTableNumber ?? tableIdString ?? null
+    const modernGreenLogoUrl = normalizeModernGreenLogoUrl(
+      (cmsSettings as any)?.logoUrl ||
+      (cmsSettings as any)?.logo ||
+      (cmsSettings as any)?.logo_url ||
+      (cmsSettings as any)?.site_logo ||
+      (cmsSettings as any)?.restaurant_logo ||
+      (merchantSettings as any)?.logoUrl ||
+      (merchantSettings as any)?.logo ||
+      (merchantSettings as any)?.logo_url ||
+      (merchantSettings as any)?.site_logo ||
+      (merchantSettings as any)?.restaurant_logo ||
+      ""
+    )
+
+    const handleModernGreenAdd = (item: MenuItem, quantity = 1) => {
+      let itemToAdd: MenuItem = { ...item }
+
+      if (taxSettings.enabled && taxSettings.percentage > 0 && taxSettings.menuPrice === 0) {
+        itemToAdd.price = Number(itemToAdd.price || 0) / (1 + taxSettings.percentage / 100)
+        if (itemToAdd.options) {
+          itemToAdd.options = itemToAdd.options.map((option: any) => ({
+            ...option,
+            values: (option.values || []).map((value: any) => ({
+              ...value,
+              price: Number(value.price || 0) / (1 + taxSettings.percentage / 100),
+            })),
+          }))
+        }
+      }
+
+      for (let i = 0; i < Math.max(1, Number(quantity || 1)); i += 1) {
+        addToCart(itemToAdd)
+      }
+
+      handleFirstAdd(item)
+      toast({
+        title: "Added to order",
+        description: String((item as any).name || (item as any).menu_name || "Item added"),
+      })
+    }
+
+    const handleModernGreenWaiter = async () => {
+      const resolvedTableId = tableIdString || "delivery"
+      try {
+        await apiClient.callWaiter(String(resolvedTableId), ".")
+        toast({
+          title: "Waiter called",
+          description: tableIdString ? "We are on the way!" : "We received your assistance request.",
+        })
+      } catch (error: any) {
+        toast({
+          title: "Waiter call failed",
+          description: error?.message || "Failed to call waiter.",
+          variant: "destructive",
+        })
+      }
+    }
+
+    const handleModernGreenNote = async (noteText = "") => {
+      const trimmedNote = String(noteText || "").trim()
+      if (!trimmedNote) {
+        toast({
+          title: "Note is empty",
+          description: "Please write a note before sending it.",
+          variant: "destructive",
+        })
+        return
+      }
+
+      const resolvedTableId = tableIdString || "delivery"
+      try {
+        await apiClient.callTableNote(String(resolvedTableId), trimmedNote, new Date().toISOString())
+        toast({
+          title: "Note sent",
+          description: "Your note has been sent to the staff.",
+        })
+      } catch (error: any) {
+        toast({
+          title: "Note failed",
+          description: error?.message || "Failed to send note.",
+          variant: "destructive",
+        })
+      }
+    }
+
+    const handleModernGreenValet = async (values: any = {}) => {
+      const name = String(values?.name || "Guest").trim() || "Guest"
+      const licensePlate = String(values?.licensePlate || values?.license_plate || "Not provided").trim() || "Not provided"
+      const carModel = String(values?.carModel || values?.car_make || "Not provided").trim() || "Not provided"
+
+      try {
+        await apiClient.createValetRequest({
+          name,
+          license_plate: licensePlate,
+          car_make: carModel,
+          table_id: tableIdString || undefined,
+          table_no: modernGreenTableNumber ? String(modernGreenTableNumber) : undefined,
+          qr: tableInfo?.qr_code ? String(tableInfo.qr_code) : undefined,
+        })
+        toast({
+          title: "Valet requested",
+          description: "Your valet request has been sent.",
+        })
+      } catch (error: any) {
+        toast({
+          title: "Valet request failed",
+          description: error?.message || "Failed to submit valet request.",
+          variant: "destructive",
+        })
+      }
+    }
+
+    return (
+      <ThemeActionBoundary actions={themeMenuActions}>
+        <ModernGreenBridgeTheme
+          src={modernGreenSrc}
+          sourceItems={modernGreenSourceItems}
+          cartItems={items}
+          totalItems={totalItems}
+          totalPrice={totalPrice}
+          lastInteractedItem={lastInteractedItem}
+          categories={allCategories}
+          restaurantName={restaurantDisplayName}
+          logoUrl={modernGreenLogoUrl}
+          tableNumber={modernGreenTableNumber}
+          onAddItem={handleModernGreenAdd}
+          onOpenItem={(item) => handleItemSelect(item as MenuItem)}
+          onCheckout={handleCartClick}
+          onCallWaiter={handleModernGreenWaiter}
+          onOpenNote={handleModernGreenNote}
+          onOpenValet={handleModernGreenValet}
+          onTableOrder={() => {
+            if (!shouldShowTableOrderAction) return
+            setPaymentModalInitialStep(
+              sharedTableOrder?.status === "draft"
+                ? "review"
+                : sharedTableOrder?.status === "paid"
+                  ? "paid"
+                  : "submitted"
+            )
+            setPaymentModalPreferPersonalReview(false)
+            setPaymentModalOpen(true)
+          }}
+          showTableOrder={shouldShowTableOrderAction}
+          tableOrderCount={tableOrderActionCount}
+        >
+          <ModernGreenBottomDock {...themeMenuActions} />
+          <PaymentModal
+            isOpen={isPaymentModalOpen}
+            onClose={() => { setPaymentModalOpen(false); setPaymentModalPreferPersonalReview(false) }}
+            items={items}
+            tableInfo={tableInfo}
+            existingOrderId={activeExistingOrderId}
+            pendingSummary={activePendingSummary}
+            initialSubmittedOrder={activeSubmittedOrder}
+            initialCheckoutStep={paymentModalInitialStep}
+            preferPersonalReview={paymentModalPreferPersonalReview}
+            checkoutVisualTheme="modern_green"
+            onCartPricingUpdate={setToolbarPricingSnapshot}
+            onOpenOrderUpdate={(snapshot) => {
+              if (snapshot?.status === "draft" || snapshot?.draft_id) {
+                setSharedTableOrder(snapshot)
+                return
+              }
+              if (snapshot?.paymentStatus === "paid" || snapshot?.status === "paid") {
+                const normalizedPaid = snapshot?.orderId ? snapshot : { ...snapshot, orderId: snapshot?.order_id }
+                setLocalOpenOrder(normalizedPaid)
+                setHasLocalOpenOrder(!!normalizedPaid?.orderId)
+                setSharedTableOrder((prev) => prev?.order_id && String(prev.order_id) === String(normalizedPaid?.orderId) ? { ...prev, status: "paid", paymentStatus: "paid" } as any : prev)
+                return
+              }
+              if (snapshot?.orderId || snapshot?.order_id) {
+                const normalized = snapshot?.orderId ? snapshot : { ...snapshot, orderId: snapshot.order_id }
+                setLocalOpenOrder(normalized)
+                setHasLocalOpenOrder(true)
+                setSharedTableOrder((prev) => prev?.draft_id ? null : prev)
+              }
+            }}
+          />
+
+          <ModernGreenWaiterDialog
+            isOpen={isWaiterConfirmOpen}
+            onOpenChange={setWaiterConfirmOpen}
+            tableId={tableIdString}
+            tableName={tableName}
+          />
+          <ModernGreenNoteDialog
+            isOpen={isNoteModalOpen}
+            onOpenChange={setNoteModalOpen}
+            note={note}
+            setNote={setNote}
+            onSend={handleSendNote}
+            tableId={tableIdString}
+            tableName={tableName}
+          />
+        </ModernGreenBridgeTheme>
+      </ThemeActionBoundary>
+    )
+  }
+
+  // PMD_ORGANIC_V0_ONLY_RETURN_FINAL_20260607
+  if (isOrganicBotanicalTheme) {
+    return (
+      <ThemeActionBoundary actions={themeMenuActions}>
+      <div className="pmd-customer-page page--menu relative min-h-screen w-full bg-[#f6efe2]">
+        <OrganicExactV0Frame />
+
+        {/* PMD_ORGANIC_USES_REAL_GOLD_TOOLBAR_FIXED_20260608 */}
+        <div
+          data-pmd-organic-real-toolbar="1"
+          style={{
+            "--theme-surface": "#f7f3ea",
+            "--theme-border": "#ded3bd",
+            "--theme-text-primary": "#343529",
+            "--theme-text-secondary": "#716f5e",
+            "--theme-primary": "#b88940",
+            "--theme-accent": "#b88940",
+            "--pmd-v2-page-bg": "#f7f3ea",
+          } as React.CSSProperties}
+        >
+          {/* PMD_ORGANIC_DIRECT_GUEST_ACTIONS_20260614 */}
+          <OrganicBottomDock
+            {...themeMenuActions}
+            onCallWaiter={handleWaiterClick}
+            onOpenNote={() => setNoteModalOpen(true)}
+          />
+        </div>
+        {/* PMD_ORGANIC_USES_REAL_GOLD_TOOLBAR_FIXED_END_20260608 */}
+
+        {!shouldHideCartSheet && (
+          <CartSheet />
+        )}
+
+        <PaymentModal
+          isOpen={isPaymentModalOpen}
+          onClose={() => { setPaymentModalOpen(false); setPaymentModalPreferPersonalReview(false) }}
+          items={items}
+          tableInfo={tableInfo}
+          existingOrderId={activeExistingOrderId}
+          pendingSummary={activePendingSummary}
+          initialSubmittedOrder={activeSubmittedOrder}
+          initialCheckoutStep={paymentModalInitialStep}
+          preferPersonalReview={paymentModalPreferPersonalReview}
+          checkoutVisualTheme="organic_botanical_paper"
+          onCartPricingUpdate={setToolbarPricingSnapshot}
+          onOpenOrderUpdate={(snapshot) => {
+            if (snapshot?.status === "draft" || snapshot?.draft_id) {
+              setSharedTableOrder(snapshot)
+              return
+            }
+            if (snapshot?.paymentStatus === "paid" || snapshot?.status === "paid") {
+              const normalizedPaid = snapshot?.orderId ? snapshot : { ...snapshot, orderId: snapshot?.order_id }
+              setLocalOpenOrder(normalizedPaid)
+              setHasLocalOpenOrder(!!normalizedPaid?.orderId)
+              setSharedTableOrder((prev) => prev?.order_id && String(prev.order_id) === String(normalizedPaid?.orderId) ? { ...prev, status: "paid", paymentStatus: "paid" } as any : prev)
+              return
+            }
+            if (snapshot?.orderId || snapshot?.order_id) {
+              const normalized = snapshot?.orderId ? snapshot : { ...snapshot, orderId: snapshot.order_id }
+              setLocalOpenOrder(normalized)
+              setHasLocalOpenOrder(true)
+              setSharedTableOrder((prev) => prev?.draft_id ? null : prev)
+            }
+          }}
+        />
+
+        <OrganicWaiterCardV2
+          isOpen={isWaiterConfirmOpen}
+          onOpenChange={setWaiterConfirmOpen}
+          tableId={tableIdString}
+        />
+
+        <OrganicNoteCardV2
+          isOpen={isNoteModalOpen}
+          onOpenChange={setNoteModalOpen}
+          note={note}
+          setNote={setNote}
+          onSend={handleSendNote}
+          tableId={tableIdString}
+          tableName={tableName}
+          /* PMD_ORGANIC_NOTE_DIALOG_TABLE_PROPS_20260614 */
+        />
+      </div>
+      </ThemeActionBoundary>
+    )
+  }
+
+  return (
+    <ThemeActionBoundary actions={themeMenuActions}>
+        <div className={`${isOrganicBotanicalTheme ? 'pmd-organic-menu' : ''} relative min-h-screen w-full bg-theme-background pb-32`} style={isOrganicBotanicalTheme ? organicBotanicalVars() : undefined}>
+      {isOrganicBotanicalTheme ? (
+        <OrganicBotanicalHero restaurantName={restaurantDisplayName} tableNumber={displayTableNumber} heroItem={heroItem} />
+      ) : (
+        <header className="py-8">
+          <div className="max-w-4xl mx-auto px-4">
+            <Logo tableNumber={displayTableNumber} />
+          </div>
+        </header>
+      )}
+      <Suspense fallback={<LoadingSpinner />}>
+        <main className={`${isOrganicBotanicalTheme ? 'mx-auto max-w-4xl pt-5' : 'max-w-4xl mx-auto'}`}>
+          {showVirtualHighlightSections && menuHighlightSettings.section_placement === 'top' && (
+            <>
+        <OrganicBotanicalCheckoutScopedStyles />
+        <OrganicBotanicalValetFeature />
+              <MenuHighlightSection title="Chef’s Recommendations" subtitle="Hand-picked favorites from the kitchen." items={chefRecommendationItems} settings={menuHighlightSettings} onSelect={handleItemSelect} onFirstAdd={handleFirstAdd} organic={isOrganicBotanicalTheme} onOrganicAdd={handleOrganicAdd} />
+              <MenuHighlightSection title="Best Sellers" subtitle="Popular picks from recent orders." items={bestsellerItems} settings={menuHighlightSettings} onSelect={handleItemSelect} onFirstAdd={handleFirstAdd} organic={isOrganicBotanicalTheme} onOrganicAdd={handleOrganicAdd} />
+            </>
+          )}
+          {isOrganicBotanicalTheme ? (
+            <OrganicBotanicalCategoryNav
+              categories={allCategories}
+              selectedCategory={selectedCategory || "All"}
+              onSelectCategory={(category: string) => {
+                setSelectedCategory(category || "All");
+              }}
+            />
+          ) : (
+            <CategoryNav
+              categories={allCategories}
+              selectedCategory={selectedCategory || "All"} // Force "All" if no selection
+              onSelectCategory={(category) => {
+                setSelectedCategory(category);
+                // Auto-select "All" if no category is passed
+                if (!category) {
+                  setSelectedCategory("All");
+                }
+              }}
+            />
+          )}
+          {showVirtualHighlightSections && menuHighlightSettings.section_placement === 'after_categories' && (
+            <>
+              <MenuHighlightSection title="Chef’s Recommendations" subtitle="Hand-picked favorites from the kitchen." items={chefRecommendationItems} settings={menuHighlightSettings} onSelect={handleItemSelect} onFirstAdd={handleFirstAdd} organic={isOrganicBotanicalTheme} onOrganicAdd={handleOrganicAdd} />
+              <MenuHighlightSection title="Best Sellers" subtitle="Popular picks from recent orders." items={bestsellerItems} settings={menuHighlightSettings} onSelect={handleItemSelect} onFirstAdd={handleFirstAdd} organic={isOrganicBotanicalTheme} onOrganicAdd={handleOrganicAdd} />
+            </>
+          )}
+          <section className="w-full mb-12">
+            {!isFrontendConfigured && filteredItems.length === 0 ? (
+              <TenantSetupSplash />
+            ) : (
+            <>
+            {isOrganicBotanicalTheme && (
+              <div className="organic-menu-section-heading px-4 pb-5 text-center">
+                <div className="mx-auto mb-2 flex w-fit items-center gap-2 text-[var(--organic-accent)]" aria-hidden="true"><span className="h-px w-9 bg-current" /><span className="text-lg">☘</span><span className="h-px w-9 bg-current" /></div>
+                <h2 className="font-serif text-3xl uppercase tracking-[0.18em] text-[var(--organic-text)]">{selectedCategory || 'Seasonal'}</h2>
+                <p className="mt-1 font-serif text-sm text-[var(--organic-muted)]">Inspired by what’s fresh right now.</p>
+              </div>
+            )}
+            <div className={`${isOrganicBotanicalTheme ? 'grid grid-cols-1 gap-4 px-4 md:grid-cols-2' : 'grid grid-cols-1 md:grid-cols-2 gap-x-4 gap-y-8 px-4'}`}>
+              {filteredItems.map((item: MenuItem, index: number) => (
+                isOrganicBotanicalTheme ? (
+                  <OrganicBotanicalMenuCard
+                    key={item.id}
+                    item={item}
+                    onSelect={handleItemSelect}
+                    onAdd={(event: React.MouseEvent) => handleOrganicAdd(item, event)}
+                    highlightSettings={menuHighlightSettings}
+                  />
+                ) : (
+                  <ExpandingToolbarMenuItemCard
+                    key={item.id}
+                    item={item}
+                    onSelect={handleItemSelect}
+                    onFirstAdd={() => handleFirstAdd(item)}
+                    prioritizeImage={index < 4}
+                    highlightSettings={menuHighlightSettings}
+                  />
+                )
+              ))}
+            </div>
+            </>
+            )}
+          </section>
+        </main>
+      </Suspense>
+
+      {/* Button Animation Styles */}
+
+      {/* Rest of the components */}
+      <GoldBottomDock {...themeMenuActions} />
+      {!shouldHideCartSheet && (
+      <CartSheet />
+      )}
+      <MenuItemModal item={selectedItem} onClose={() => setSelectedItem(null)} highlightSettings={menuHighlightSettings} />
+      <PaymentModal
+        isOpen={isPaymentModalOpen}
+        onClose={() => { setPaymentModalOpen(false); setPaymentModalPreferPersonalReview(false) }}
+        items={items}
+        tableInfo={tableInfo}
+        existingOrderId={activeExistingOrderId}
+        pendingSummary={activePendingSummary}
+        initialSubmittedOrder={activeSubmittedOrder}
+        initialCheckoutStep={paymentModalInitialStep}
+        preferPersonalReview={paymentModalPreferPersonalReview}
+        checkoutVisualTheme={isOrganicBotanicalTheme ? "organic_botanical_paper" : "gold-luxury"}
+        onCartPricingUpdate={setToolbarPricingSnapshot}
+        onOpenOrderUpdate={(snapshot) => {
+          if (snapshot?.status === "draft" || snapshot?.draft_id) {
+            setSharedTableOrder(snapshot)
+            return
+          }
+          if (snapshot?.paymentStatus === "paid" || snapshot?.status === "paid") {
+            const normalizedPaid = snapshot?.orderId ? snapshot : { ...snapshot, orderId: snapshot?.order_id }
+            setLocalOpenOrder(normalizedPaid)
+            setHasLocalOpenOrder(!!normalizedPaid?.orderId)
+            setSharedTableOrder((prev) => prev?.order_id && String(prev.order_id) === String(normalizedPaid?.orderId) ? { ...prev, status: "paid", paymentStatus: "paid" } as any : prev)
+            return
+          }
+          if (snapshot?.orderId || snapshot?.order_id) {
+            const normalized = snapshot?.orderId ? snapshot : { ...snapshot, orderId: snapshot.order_id }
+            setLocalOpenOrder(normalized)
+            setHasLocalOpenOrder(true)
+            setSharedTableOrder((prev) => prev?.draft_id ? null : prev)
+          }
+        }}
+      />
+      <GoldWaiterDialog
+        isOpen={isWaiterConfirmOpen}
+        onOpenChange={setWaiterConfirmOpen}
+        tableId={tableIdString}
+        tableName={tableName}
+      />
+      <GoldNoteDialog
+        isOpen={isNoteModalOpen}
+        onOpenChange={setNoteModalOpen}
+        note={note}
+        setNote={setNote}
+        onSend={handleSendNote}
+        tableId={tableIdString}
+        tableName={tableName}
+      />
+    </div>
+    </ThemeActionBoundary>
+  )
+}
+
+// Main component with Suspense wrapper
+export default function PayMyDineMenuPage() {
+  // PMD_MENU_FOOTER_LOGO_RUNTIME_CALL_FINAL_20260611
+  useEffect(() => {
+    return pmdInstallMenuPayMyDineFooterLogo()
+  }, [])
+
+  return (
+    <div className="pmd-customer-page page--menu" data-pmd-customer-page="menu">
+      <Suspense fallback={<div>Loading...</div>}>
+        <MenuContent />
+      </Suspense>
+    </div>
+  )
+}
+
+// PMD_ADD_KAZEN_TABLE_ORDER_BOTTOM_BUTTON_FIXED_20260613 menu patched
+
+// PMD_FIX_KAZEN_PARENT_DEEP_CATEGORY_EXTRACT_20260613
+
+// PMD_FIX_KAZEN_CATEGORY_ORDER_HARD_20260613
+
+// PMD_FIX_KAZEN_BACKEND_CATEGORIES_ONLY_20260613

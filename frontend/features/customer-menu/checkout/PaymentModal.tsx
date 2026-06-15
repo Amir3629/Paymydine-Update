@@ -1,13 +1,13 @@
 "use client"
 
-import React, { useState, useEffect, useMemo, useLayoutEffect } from "react"
+import React, { useState, useEffect, useMemo, useLayoutEffect, useRef } from "react"
 import { useRouter } from "next/navigation"
 import { useLanguageStore } from "@/store/language-store"
 import { PayPalScriptProvider } from "@paypal/react-paypal-js"
 import { Elements, useStripe, useElements, PaymentRequestButtonElement } from "@stripe/react-stripe-js"
 import { loadStripe } from "@stripe/stripe-js"
 import { motion, AnimatePresence } from "framer-motion"
-import { Wallet, Lock, Users, Check, Minus, CreditCard, ArrowLeft, CheckCircle, DollarSign, ReceiptText, ArrowRight, Link2, QrCode } from "lucide-react"
+import { Wallet, Lock, Users, Check, Minus, Plus, CreditCard, ArrowLeft, CheckCircle, DollarSign, ReceiptText, ArrowRight, Link2, QrCode, MessageSquare, Star } from "lucide-react"
 import { formatCurrency } from "@/lib/currency"
 import type { MenuItem } from "@/lib/data"
 import { type TranslationKey } from "@/lib/translations"
@@ -24,6 +24,12 @@ import { PayPalForm, WorldlineInlineCardForm } from "@/components/payment/secure
 import { StripeCardPaymentSection } from "@/features/checkout/payment/StripeCardPaymentSection"
 import SumUpHostedCheckout from "@/components/payment/sumup-hosted-checkout"
 import { stickySearch } from "@/lib/sticky-query"
+import { cn } from "@/lib/utils"
+import { clsx } from "clsx"
+import { ModernGreenCheckoutShell } from "@/components/themes/modern-green/ModernGreenCheckoutShell"
+import { KazenJapaneseCheckoutShell } from "@/components/themes/kazen-japanese"
+import { useTableOrderActions } from "@/features/table-order/use-table-order-actions"
+import { pmdForceKazenFrontendThemePayload } from "@/features/customer-menu/theme/kazenThemePayload"
 import {
   OrganicCheckoutScopedStyles,
   organicCheckoutBodyStyle,
@@ -33,6 +39,7 @@ import {
 } from "@/components/themes/organic-botanical-paper/OrganicCheckoutShell"
 import { CheckoutIconFrame, CheckoutStepCard, CheckoutSummaryCard, OrderStatusCard, PaymentCardFrame, PaymentMethodTile, SplitBillPanel, SplitMethodButton, ThemedButton, ThemedInput, TipCouponPanel } from "@/components/theme-ui"
 import { KazenGoldCheckoutSkinStyles, KazenSharedCheckoutNightPolishStyles, KazenSharedCheckoutSkinStyles } from "@/features/customer-menu/checkout/CheckoutSkinStyles"
+import { CheckoutCardSkinsV2 } from "@/features/customer-menu/checkout/CheckoutCardSkinsV2"
 import { useCheckoutVisualRepairs } from "@/features/customer-menu/legacy-dom-repairs/useCheckoutVisualRepairs"
 import { usePaymentModalDomRepairs } from "@/features/customer-menu/legacy-dom-repairs/usePaymentModalDomRepairs"
 import { WalletStripePay } from "@/features/customer-menu/checkout/WalletStripePay"
@@ -2477,10 +2484,11 @@ const modalTitle = checkoutStep === "review" && tableDraft?.success && tableDraf
   }
 
   return (
-    <div data-pmd-kazen-checkout-overlay={isKazenJapaneseCheckoutVisual ? "1" : undefined} className={cn("fixed inset-0 z-50 flex items-center justify-center", isModernGreenCheckoutVisual ? "bg-transparent backdrop-blur-md" : "bg-black/30")}>
+    <div data-pmd-kazen-checkout-overlay={isKazenJapaneseCheckoutVisual ? "1" : undefined} className={cn("fixed inset-0 z-[140] flex items-center justify-center", isModernGreenCheckoutVisual ? "bg-transparent backdrop-blur-md" : "bg-black/30")}>
       {/* PMD_KAZEN_SKIN_GOLD_CHECKOUT_RENDER_20260612 */}
       {/* PMD_KAZEN_INLINE_CHECKOUT_SKINS_DISABLED_20260612 */}
-      {isOrganicCheckoutVisual && <OrganicCheckoutScopedStyles />}
+      {false && isOrganicCheckoutVisual && <OrganicCheckoutScopedStyles />} {/* PMD_ORGANIC_REAL_V2_DISABLE_OLD_SCOPED_STYLE_20260614 */}
+      <CheckoutCardSkinsV2 visualTheme={checkoutVisualTheme} isDarkTheme={isDarkTheme} />
       <motion.div
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}

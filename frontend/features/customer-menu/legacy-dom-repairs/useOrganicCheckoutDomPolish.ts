@@ -38,7 +38,7 @@ export function useOrganicCheckoutDomPolish(isOrganicBotanicalTheme: boolean) {
 
     const paintOrganicPanel = (el: Element) => {
       el.setAttribute("data-pmd-organic-checkout-polished", "1")
-      setImp(el, "background-color", "#f5fff8af0")
+      setImp(el, "background-color", "#f7f3ea")
       setImp(
         el,
         "background-image",
@@ -58,19 +58,19 @@ export function useOrganicCheckoutDomPolish(isOrganicBotanicalTheme: boolean) {
       setImp(btn, "background", "#747d55")
       setImp(btn, "background-color", "#747d55")
       setImp(btn, "border-color", "#747d55")
-      setImp(btn, "color", "#f5fff8af0")
-      setImp(btn, "-webkit-text-fill-color", "#f5fff8af0")
+      setImp(btn, "color", "#f7f3ea")
+      setImp(btn, "-webkit-text-fill-color", "#f7f3ea")
       setImp(btn, "box-shadow", "0 12px 24px -14px rgba(60,53,41,.72)")
       btn.querySelectorAll("svg, svg *, span").forEach((child) => {
-        setImp(child, "color", "#f5fff8af0")
-        setImp(child, "-webkit-text-fill-color", "#f5fff8af0")
-        setImp(child, "stroke", "#f5fff8af0")
+        setImp(child, "color", "#f7f3ea")
+        setImp(child, "-webkit-text-fill-color", "#f7f3ea")
+        setImp(child, "stroke", "#f7f3ea")
       })
     }
 
     const paintSecondary = (btn: Element) => {
-      setImp(btn, "background", "#f5fff8af0")
-      setImp(btn, "background-color", "#f5fff8af0")
+      setImp(btn, "background", "#f7f3ea")
+      setImp(btn, "background-color", "#f7f3ea")
       setImp(btn, "border-color", "#ded2ba")
       setImp(btn, "color", "#343529")
       setImp(btn, "-webkit-text-fill-color", "#343529")
@@ -109,7 +109,7 @@ export function useOrganicCheckoutDomPolish(isOrganicBotanicalTheme: boolean) {
             ".surface-sub, .pmd-checkout-flat-section, .pmd-checkout-item-card, .pmd-checkout-total-card, .pmd-checkout-payment-card, .pmd-checkout-meta-row, .pmd-checkout-item-row"
           )
           .forEach((el) => {
-            setImp(el, "background-color", "#f5fff8af0")
+            setImp(el, "background-color", "#f7f3ea")
             setImp(el, "background-image", "radial-gradient(circle at 1px 1px, rgba(116,125,85,.055) 1px, transparent 0)")
             setImp(el, "background-size", "16px 16px")
             setImp(el, "border-color", "#ded2ba")
@@ -251,7 +251,7 @@ export function useOrganicCheckoutDomPolish(isOrganicBotanicalTheme: boolean) {
 
     const GREEN = "#747d55"
     const GREEN_DARK = "#5f6746"
-    const PAPER = "#f5fff8af0"
+    const PAPER = "#f7f3ea"
     const PAPER_SOFT = "#f6efe2"
     const LINE = "#ded2ba"
     const INK = "#343529"

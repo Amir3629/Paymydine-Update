@@ -1,0 +1,163 @@
+.dock {
+  position: fixed;
+  left: 50%;
+  bottom: calc(1rem + env(safe-area-inset-bottom));
+  z-index: 1200;
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: .5rem;
+  width: min(94vw, 28rem);
+  transform: translateX(-50%);
+  padding: .55rem;
+  border: 1px solid var(--dock-border);
+  border-radius: 1.35rem;
+  background: var(--dock-bg);
+  box-shadow: var(--dock-shadow);
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+}
+
+.button {
+  position: relative;
+  min-width: 0;
+  min-height: 3.55rem;
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: .18rem;
+  border: 1px solid transparent;
+  border-radius: 1rem;
+  background: var(--dock-button-bg);
+  color: var(--dock-fg);
+  font: inherit;
+  font-size: .72rem;
+  font-weight: 800;
+  line-height: 1.05;
+  cursor: pointer;
+  transition: transform .18s ease, background .18s ease, border-color .18s ease, box-shadow .18s ease;
+}
+
+.button:hover,
+.button:focus-visible {
+  transform: translateY(-1px);
+  background: var(--dock-button-hover-bg);
+  border-color: var(--dock-button-hover-border);
+  outline: none;
+}
+
+.primary {
+  background: var(--dock-primary-bg);
+  color: var(--dock-primary-fg);
+  border-color: transparent;
+}
+
+.primary:hover,
+.primary:focus-visible {
+  background: var(--dock-primary-hover-bg);
+  color: var(--dock-primary-fg);
+}
+
+.icon {
+  font-size: 1.18rem;
+  line-height: 1;
+}
+
+.label {
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.badge {
+  position: absolute;
+  top: .28rem;
+  right: .45rem;
+  min-width: 1.1rem;
+  height: 1.1rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 .28rem;
+  border-radius: 999px;
+  background: var(--dock-badge-bg);
+  color: var(--dock-badge-fg);
+  font-size: .65rem;
+  font-weight: 900;
+}
+
+.dock[data-theme="kazen"] {
+  --dock-bg: rgba(247, 243, 236, .94);
+  --dock-border: rgba(36, 35, 32, .16);
+  --dock-fg: #242320;
+  --dock-button-bg: rgba(255, 255, 255, .34);
+  --dock-button-hover-bg: rgba(36, 35, 32, .08);
+  --dock-button-hover-border: rgba(36, 35, 32, .16);
+  --dock-primary-bg: #242320;
+  --dock-primary-hover-bg: #11100f;
+  --dock-primary-fg: #f7f3ec;
+  --dock-badge-bg: #df685d;
+  --dock-badge-fg: white;
+  --dock-shadow: 0 18px 50px rgba(30, 24, 16, .18);
+  font-family: Georgia, 'Times New Roman', serif;
+}
+
+.dock[data-theme="modernGreen"] {
+  --dock-bg: rgba(3, 12, 8, .90);
+  --dock-border: rgba(41, 188, 126, .30);
+  --dock-fg: #eafff4;
+  --dock-button-bg: rgba(234, 255, 244, .08);
+  --dock-button-hover-bg: rgba(41, 188, 126, .16);
+  --dock-button-hover-border: rgba(41, 188, 126, .32);
+  --dock-primary-bg: #29bc7e;
+  --dock-primary-hover-bg: #43d894;
+  --dock-primary-fg: #03110b;
+  --dock-badge-bg: #29bc7e;
+  --dock-badge-fg: #03110b;
+  --dock-shadow: 0 18px 50px rgba(0, 0, 0, .38);
+}
+
+.dock[data-theme="organic"] {
+  --dock-bg: rgba(250, 244, 232, .97);
+  --dock-border: rgba(115, 122, 85, .24);
+  --dock-fg: #343529;
+  --dock-button-bg: rgba(255, 250, 240, .70);
+  --dock-button-hover-bg: rgba(116, 125, 85, .12);
+  --dock-button-hover-border: rgba(116, 125, 85, .20);
+  --dock-primary-bg: #747d55;
+  --dock-primary-hover-bg: #606947;
+  --dock-primary-fg: #fffaf0;
+  --dock-badge-bg: #737a55;
+  --dock-badge-fg: #fffaf0;
+  --dock-shadow: 0 18px 45px rgba(66, 55, 35, .18);
+  font-family: Georgia, 'Times New Roman', serif;
+}
+
+.dock[data-theme="gold"] {
+  --dock-bg: rgba(18, 14, 8, .90);
+  --dock-border: rgba(214, 172, 90, .34);
+  --dock-fg: #f6e8c8;
+  --dock-button-bg: rgba(244, 213, 141, .09);
+  --dock-button-hover-bg: rgba(244, 213, 141, .18);
+  --dock-button-hover-border: rgba(244, 213, 141, .30);
+  --dock-primary-bg: linear-gradient(135deg, #f4d58d, #b88940);
+  --dock-primary-hover-bg: linear-gradient(135deg, #ffe2a0, #c99645);
+  --dock-primary-fg: #201509;
+  --dock-badge-bg: #f4d58d;
+  --dock-badge-fg: #201509;
+  --dock-shadow: 0 18px 50px rgba(0, 0, 0, .34);
+  font-family: Georgia, 'Times New Roman', serif;
+}
+
+@media (max-width: 380px) {
+  .dock {
+    width: calc(100vw - 20px);
+    padding: .48rem;
+    gap: .35rem;
+  }
+
+  .button {
+    font-size: .66rem;
+  }
+}

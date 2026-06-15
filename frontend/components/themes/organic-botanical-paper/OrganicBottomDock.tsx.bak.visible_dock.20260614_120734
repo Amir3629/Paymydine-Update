@@ -1,0 +1,63 @@
+"use client"
+
+import type { ThemeDockProps } from "@/components/themes/shared/ThemeActionContract"
+import styles from "./OrganicBottomDock.module.css"
+
+type OrganicDockProps = ThemeDockProps & {
+  onCheckout?: () => void
+  onTableOrder?: () => void
+}
+
+function emitOrganic(name: "waiter" | "note" | "checkout" | "table") {
+  if (typeof window === "undefined") return
+  window.dispatchEvent(new CustomEvent(`pmd:organic:${name}`))
+}
+
+export function OrganicBottomDock(props: OrganicDockProps) {
+  const actions = [
+    { key: "waiter", label: "Waiter", icon: "🛎️", count: 0 },
+    { key: "note", label: "Note", icon: "✎", count: 0 },
+    ...(props.showTableOrder ? [{ key: "table", label: "Table Order", icon: "☷", count: props.tableOrderCount || 0 }] : []),
+    { key: "checkout", label: "Checkout", icon: "🧾", count: props.cartCount || 0, primary: true },
+  ] as const
+
+  const run = (key: string) => {
+    if (key === "waiter") {
+      emitOrganic("waiter")
+      return
+    }
+    if (key === "note") {
+      emitOrganic("note")
+      return
+    }
+    if (key === "table") {
+      ;(props.onOpenTableOrder || props.onTableOrder || (() => emitOrganic("table")))()
+      return
+    }
+    if (key === "checkout") {
+      ;(props.onOpenCheckout || props.onCheckout || (() => emitOrganic("checkout")))()
+    }
+  }
+
+  return (
+    <nav className={styles.dock} data-theme="organic" data-pmd-organic-dock-v2="1" aria-label="Menu actions">
+      {actions.map((action) => (
+        <button
+          key={action.key}
+          type="button"
+          data-pmd-organic-dock-action={action.key}
+          className={`${styles.button} ${action.primary ? styles.primary : ""}`}
+          onClick={(event) => {
+            event.preventDefault()
+            event.stopPropagation()
+            run(action.key)
+          }}
+        >
+          <span className={styles.icon} aria-hidden="true">{action.icon}</span>
+          <span>{action.label}</span>
+          {Number(action.count || 0) > 0 && <span className={styles.badge}>{action.count}</span>}
+        </button>
+      ))}
+    </nav>
+  )
+}
