@@ -1,0 +1,87 @@
+"use client"
+
+import type { ThemeDockProps } from "@/components/themes/shared/ThemeActionContract"
+import styles from "./OrganicBottomDock.module.css"
+
+type OrganicDockProps = ThemeDockProps & {
+  onCheckout?: () => void
+  onTableOrder?: () => void
+}
+
+function emitOrganic(name: "waiter" | "note" | "checkout" | "table") {
+  if (typeof window === "undefined") return
+  window.dispatchEvent(new CustomEvent(`pmd:organic:${name}`))
+}
+
+export function OrganicBottomDock(props: OrganicDockProps) {
+  const tableCount = Number(props.tableOrderCount || 0)
+  const cartCount = Number(props.cartCount || 0)
+
+  const actions = [
+    {
+      key: "waiter",
+      label: "Waiter",
+      icon: "🛎️",
+      count: 0,
+      run: () => emitOrganic("waiter"),
+    },
+    {
+      key: "note",
+      label: "Note",
+      icon: "✎",
+      count: 0,
+      run: () => emitOrganic("note"),
+    },
+    ...(props.showTableOrder
+      ? [{
+          key: "table",
+          label: "Table Order",
+          icon: "☷",
+          count: tableCount,
+          run: () => {
+            if (props.onOpenTableOrder) props.onOpenTableOrder()
+            else if (props.onTableOrder) props.onTableOrder()
+            else emitOrganic("table")
+          },
+        }]
+      : []),
+    {
+      key: "checkout",
+      label: "Checkout",
+      icon: "🧾",
+      count: cartCount,
+      run: () => {
+        if (props.onOpenCheckout) props.onOpenCheckout()
+        else if (props.onCheckout) props.onCheckout()
+        else emitOrganic("checkout")
+      },
+    },
+  ]
+
+  return (
+    <nav
+      className={styles.dock}
+      data-theme="organic"
+      data-pmd-organic-dock-v2="1"
+      aria-label="Menu actions"
+    >
+      {actions.map((action) => (
+        <button
+          key={action.key}
+          type="button"
+          className={styles.button}
+          data-pmd-organic-dock-action={action.key}
+          onClick={(event) => {
+            event.preventDefault()
+            event.stopPropagation()
+            action.run()
+          }}
+        >
+          <span className={styles.icon} aria-hidden="true">{action.icon}</span>
+          <span className={styles.label}>{action.label}</span>
+          {action.count > 0 && <span className={styles.badge}>{action.count}</span>}
+        </button>
+      ))}
+    </nav>
+  )
+}

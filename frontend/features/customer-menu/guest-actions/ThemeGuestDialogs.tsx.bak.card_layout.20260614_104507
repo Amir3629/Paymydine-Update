@@ -1,0 +1,443 @@
+"use client"
+
+import React, { useMemo, useState } from "react"
+import { AnimatePresence, motion } from "framer-motion"
+import { Bell, CheckCircle2, HandPlatter, NotebookPen, X } from "lucide-react"
+import { useLanguageStore } from "@/store/language-store"
+import { apiClient } from "@/lib/api-client"
+import { useToast } from "@/components/ui/use-toast"
+
+type WaiterProps = {
+  isOpen: boolean
+  onOpenChange: (isOpen: boolean) => void
+  tableId: string
+  tableName?: string
+}
+
+type NoteProps = {
+  isOpen: boolean
+  onOpenChange: (isOpen: boolean) => void
+  note: string
+  setNote: (note: string) => void
+  onSend: () => void | Promise<void>
+  tableId: string
+  tableName?: string
+}
+
+type Variant = "kazen" | "modernGreen" | "organic" | "gold"
+
+type ThemeSkin = {
+  overlay: string
+  card: React.CSSProperties
+  eyebrow: React.CSSProperties
+  iconWrap: React.CSSProperties
+  title: React.CSSProperties
+  text: React.CSSProperties
+  secondaryButton: React.CSSProperties
+  primaryButton: React.CSSProperties
+  input: React.CSSProperties
+  fontFamily: string
+  radius: string
+  accentLabel: string
+}
+
+const skins: Record<Variant, ThemeSkin> = {
+  kazen: {
+    overlay: "rgba(28, 24, 19, .36)",
+    fontFamily: "Georgia, 'Times New Roman', serif",
+    radius: "2px",
+    accentLabel: "風 然",
+    card: {
+      background: "linear-gradient(180deg, rgba(250,249,244,.98), rgba(244,239,229,.98))",
+      border: "1px solid rgba(90, 72, 55, .18)",
+      color: "#25211c",
+      boxShadow: "0 28px 80px rgba(38,30,22,.18)",
+    },
+    eyebrow: { color: "#b75d54", letterSpacing: ".34em" },
+    iconWrap: {
+      background: "rgba(255,255,255,.55)",
+      border: "1px solid rgba(183,93,84,.22)",
+      color: "#b75d54",
+    },
+    title: { color: "#25211c", letterSpacing: ".14em", fontWeight: 500 },
+    text: { color: "rgba(37,33,28,.68)", letterSpacing: ".04em" },
+    secondaryButton: {
+      background: "rgba(250,249,244,.72)",
+      border: "1px solid rgba(90,72,55,.18)",
+      color: "#25211c",
+    },
+    primaryButton: {
+      background: "#25211c",
+      border: "1px solid #25211c",
+      color: "#faf9f4",
+    },
+    input: {
+      background: "rgba(255,255,255,.55)",
+      border: "1px solid rgba(90,72,55,.18)",
+      color: "#25211c",
+    },
+  },
+  modernGreen: {
+    overlay: "rgba(0, 8, 5, .62)",
+    fontFamily: "Inter, ui-sans-serif, system-ui, sans-serif",
+    radius: "28px",
+    accentLabel: "FRESH SERVICE",
+    card: {
+      background: "linear-gradient(160deg, rgba(4,34,25,.98), rgba(2,18,13,.98))",
+      border: "1px solid rgba(95, 212, 158, .32)",
+      color: "#f4fff8",
+      boxShadow: "0 28px 90px rgba(0,0,0,.42), inset 0 1px 0 rgba(160,255,214,.08)",
+    },
+    eyebrow: { color: "#74e0aa", letterSpacing: ".18em" },
+    iconWrap: {
+      background: "rgba(95,212,158,.12)",
+      border: "1px solid rgba(95,212,158,.30)",
+      color: "#74e0aa",
+    },
+    title: { color: "#f4fff8", letterSpacing: "-.03em", fontWeight: 850 },
+    text: { color: "rgba(244,255,248,.70)" },
+    secondaryButton: {
+      background: "rgba(255,255,255,.06)",
+      border: "1px solid rgba(95,212,158,.22)",
+      color: "#f4fff8",
+    },
+    primaryButton: {
+      background: "linear-gradient(180deg, #74e0aa, #29bc7e)",
+      border: "1px solid rgba(116,224,170,.78)",
+      color: "#03160f",
+    },
+    input: {
+      background: "rgba(255,255,255,.055)",
+      border: "1px solid rgba(95,212,158,.24)",
+      color: "#f4fff8",
+    },
+  },
+  organic: {
+    overlay: "rgba(50, 44, 35, .44)",
+    fontFamily: "Georgia, 'Times New Roman', serif",
+    radius: "32px",
+    accentLabel: "BOTANICAL SERVICE",
+    card: {
+      background: "linear-gradient(180deg, rgba(247,243,234,.98), rgba(238,229,211,.98))",
+      border: "1px solid #ded2ba",
+      color: "#343529",
+      boxShadow: "0 26px 72px rgba(60,53,41,.28), inset 0 1px 0 rgba(255,255,255,.72)",
+    },
+    eyebrow: { color: "#747d55", letterSpacing: ".22em" },
+    iconWrap: {
+      background: "rgba(116,125,85,.10)",
+      border: "1px solid rgba(116,125,85,.24)",
+      color: "#747d55",
+    },
+    title: { color: "#343529", letterSpacing: ".02em", fontWeight: 700 },
+    text: { color: "#746f61" },
+    secondaryButton: {
+      background: "#f5f8ef",
+      border: "1px solid #ded2ba",
+      color: "#343529",
+    },
+    primaryButton: {
+      background: "#747d55",
+      border: "1px solid #747d55",
+      color: "#f7f3ea",
+    },
+    input: {
+      background: "#f5f8ef",
+      border: "1px solid #ded2ba",
+      color: "#343529",
+    },
+  },
+  gold: {
+    overlay: "rgba(0, 0, 0, .68)",
+    fontFamily: "Georgia, 'Times New Roman', serif",
+    radius: "24px",
+    accentLabel: "LUXURY SERVICE",
+    card: {
+      background: "linear-gradient(160deg, rgba(24,18,10,.98), rgba(6,5,4,.98))",
+      border: "1px solid rgba(244,213,141,.36)",
+      color: "#f6e8c8",
+      boxShadow: "0 30px 90px rgba(0,0,0,.55), inset 0 1px 0 rgba(244,213,141,.08)",
+    },
+    eyebrow: { color: "#f4d58d", letterSpacing: ".24em" },
+    iconWrap: {
+      background: "rgba(244,213,141,.10)",
+      border: "1px solid rgba(244,213,141,.28)",
+      color: "#f4d58d",
+    },
+    title: { color: "#f6e8c8", letterSpacing: ".04em", fontWeight: 700 },
+    text: { color: "rgba(246,232,200,.70)" },
+    secondaryButton: {
+      background: "rgba(255,255,255,.045)",
+      border: "1px solid rgba(244,213,141,.22)",
+      color: "#f6e8c8",
+    },
+    primaryButton: {
+      background: "linear-gradient(135deg, #f4d58d, #b88940)",
+      border: "1px solid rgba(244,213,141,.55)",
+      color: "#201509",
+    },
+    input: {
+      background: "rgba(255,255,255,.055)",
+      border: "1px solid rgba(244,213,141,.24)",
+      color: "#f6e8c8",
+    },
+  },
+}
+
+function useSkin(variant: Variant) {
+  return useMemo(() => skins[variant], [variant])
+}
+
+function DialogShell({
+  variant,
+  isOpen,
+  onOpenChange,
+  icon,
+  title,
+  description,
+  successTitle,
+  children,
+  success,
+}: {
+  variant: Variant
+  isOpen: boolean
+  onOpenChange: (isOpen: boolean) => void
+  icon: React.ReactNode
+  title: string
+  description: string
+  successTitle: string
+  children: React.ReactNode
+  success: boolean
+}) {
+  const skin = useSkin(variant)
+
+  return (
+    <AnimatePresence initial={false}>
+      {isOpen && (
+        <motion.div
+          data-pmd-theme-guest-dialog={variant}
+          className="fixed inset-0 z-[130] flex items-center justify-center px-4 py-8"
+          style={{
+            background: skin.overlay,
+            backdropFilter: "blur(12px) saturate(.95)",
+            WebkitBackdropFilter: "blur(12px) saturate(.95)",
+            fontFamily: skin.fontFamily,
+          }}
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          onMouseDown={(event) => {
+            if (event.target === event.currentTarget) onOpenChange(false)
+          }}
+        >
+          <motion.div
+            className="relative w-full max-w-[25rem] overflow-hidden p-7"
+            style={{ ...skin.card, borderRadius: skin.radius }}
+            initial={{ opacity: 0, y: 18, scale: .97 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: 18, scale: .97 }}
+            transition={{ duration: .22, ease: "easeOut" }}
+          >
+            <button
+              type="button"
+              aria-label="Close"
+              onClick={() => onOpenChange(false)}
+              className="absolute right-4 top-4 inline-flex h-9 w-9 items-center justify-center rounded-full"
+              style={skin.secondaryButton}
+            >
+              <X className="h-4 w-4" />
+            </button>
+
+            <AnimatePresence mode="wait" initial={false}>
+              {success ? (
+                <motion.div
+                  key="success"
+                  className="py-8 text-center"
+                  initial={{ opacity: 0, scale: .96 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  exit={{ opacity: 0, scale: .96 }}
+                >
+                  <div className="mx-auto mb-5 flex h-16 w-16 items-center justify-center rounded-full" style={skin.iconWrap}>
+                    <CheckCircle2 className="h-8 w-8" />
+                  </div>
+                  <p className="mb-2 text-[11px] uppercase" style={skin.eyebrow}>{skin.accentLabel}</p>
+                  <h3 className="text-2xl" style={skin.title}>{successTitle}</h3>
+                </motion.div>
+              ) : (
+                <motion.div
+                  key="content"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                >
+                  <div className="mb-6 text-center">
+                    <div className="mx-auto mb-5 flex h-16 w-16 items-center justify-center rounded-full" style={skin.iconWrap}>
+                      {icon}
+                    </div>
+                    <p className="mb-2 text-[11px] uppercase" style={skin.eyebrow}>{skin.accentLabel}</p>
+                    <h3 className="text-[1.7rem] leading-tight" style={skin.title}>{title}</h3>
+                    <p className="mx-auto mt-3 max-w-[19rem] text-sm leading-6" style={skin.text}>{description}</p>
+                  </div>
+                  {children}
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </motion.div>
+        </motion.div>
+      )}
+    </AnimatePresence>
+  )
+}
+
+function WaiterDialog({ variant, isOpen, onOpenChange, tableId }: WaiterProps & { variant: Variant }) {
+  const { t } = useLanguageStore()
+  const { toast } = useToast()
+  const skin = useSkin(variant)
+  const [busy, setBusy] = useState(false)
+  const [success, setSuccess] = useState(false)
+
+  const confirm = async () => {
+    if (busy) return
+    setBusy(true)
+    try {
+      const resolvedTableId = tableId || "delivery"
+      await apiClient.callWaiter(String(resolvedTableId), ".")
+      setSuccess(true)
+      toast({
+        title: t("waiterComing") || "Waiter Called",
+        description: tableId ? "We are on the way!" : "We received your assistance request.",
+      })
+      await new Promise((resolve) => setTimeout(resolve, 1200))
+      onOpenChange(false)
+      setTimeout(() => setSuccess(false), 250)
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error?.message || "Failed to call waiter",
+        variant: "destructive",
+      })
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  return (
+    <DialogShell
+      variant={variant}
+      isOpen={isOpen}
+      onOpenChange={onOpenChange}
+      icon={<HandPlatter className="h-8 w-8" />}
+      title={t("callWaiter") || "Call Waiter"}
+      description={t("callWaiterConfirm") || "Would you like to call the waiter to your table?"}
+      successTitle={t("waiterComing") || "Waiter is coming"}
+      success={success}
+    >
+      <div className="grid grid-cols-2 gap-3">
+        <button
+          type="button"
+          onClick={() => onOpenChange(false)}
+          className="min-h-12 rounded-2xl px-5 text-sm font-bold"
+          style={skin.secondaryButton}
+        >
+          {t("no") || "No"}
+        </button>
+        <button
+          type="button"
+          disabled={busy}
+          onClick={confirm}
+          className="min-h-12 rounded-2xl px-5 text-sm font-extrabold disabled:opacity-60"
+          style={skin.primaryButton}
+        >
+          {busy ? "..." : t("yes") || "Yes"}
+        </button>
+      </div>
+    </DialogShell>
+  )
+}
+
+function NoteDialog({ variant, isOpen, onOpenChange, note, setNote, onSend }: NoteProps & { variant: Variant }) {
+  const { t } = useLanguageStore()
+  const skin = useSkin(variant)
+  const [busy, setBusy] = useState(false)
+  const [success, setSuccess] = useState(false)
+
+  const send = async () => {
+    if (!note.trim() || busy) return
+    setBusy(true)
+    setSuccess(true)
+    await Promise.resolve(onSend())
+    await new Promise((resolve) => setTimeout(resolve, 900))
+    onOpenChange(false)
+    setTimeout(() => setSuccess(false), 250)
+    setBusy(false)
+  }
+
+  return (
+    <DialogShell
+      variant={variant}
+      isOpen={isOpen}
+      onOpenChange={onOpenChange}
+      icon={<NotebookPen className="h-8 w-8" />}
+      title={t("leaveNoteTitle") || "Leave a note"}
+      description={t("leaveNoteDesc") || "Send a short message to the restaurant team."}
+      successTitle={t("messageReceived") || "Message received"}
+      success={success}
+    >
+      <textarea
+        value={note}
+        onChange={(event) => setNote(event.target.value)}
+        rows={4}
+        className="mb-4 w-full resize-none rounded-2xl p-4 text-sm leading-6 outline-none"
+        style={skin.input}
+        placeholder={t("notePlaceholder") || "Write your note..."}
+      />
+      <div className="grid grid-cols-2 gap-3">
+        <button
+          type="button"
+          onClick={() => onOpenChange(false)}
+          className="min-h-12 rounded-2xl px-5 text-sm font-bold"
+          style={skin.secondaryButton}
+        >
+          {t("cancel") || "Cancel"}
+        </button>
+        <button
+          type="button"
+          disabled={!note.trim() || busy}
+          onClick={send}
+          className="min-h-12 rounded-2xl px-5 text-sm font-extrabold disabled:opacity-60"
+          style={skin.primaryButton}
+        >
+          {busy ? "..." : t("send") || "Send"}
+        </button>
+      </div>
+    </DialogShell>
+  )
+}
+
+export function KazenWaiterDialog(props: WaiterProps) {
+  return <WaiterDialog {...props} variant="kazen" />
+}
+export function KazenNoteDialog(props: NoteProps) {
+  return <NoteDialog {...props} variant="kazen" />
+}
+
+export function ModernGreenWaiterDialog(props: WaiterProps) {
+  return <WaiterDialog {...props} variant="modernGreen" />
+}
+export function ModernGreenNoteDialog(props: NoteProps) {
+  return <NoteDialog {...props} variant="modernGreen" />
+}
+
+export function OrganicBotanicalWaiterDialog(props: WaiterProps) {
+  return <WaiterDialog {...props} variant="organic" />
+}
+export function OrganicBotanicalNoteDialog(props: NoteProps) {
+  return <NoteDialog {...props} variant="organic" />
+}
+
+export function GoldWaiterDialog(props: WaiterProps) {
+  return <WaiterDialog {...props} variant="gold" />
+}
+export function GoldNoteDialog(props: NoteProps) {
+  return <NoteDialog {...props} variant="gold" />
+}

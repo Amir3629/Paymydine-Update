@@ -1,0 +1,198 @@
+"use client"
+
+type Props = {
+  visualTheme: string
+  isDarkTheme?: boolean
+}
+
+export function CheckoutCardSkinsV2({ visualTheme, isDarkTheme = false }: Props) {
+  if (visualTheme !== "organic_botanical_paper") return null
+
+  return (
+    <style>{`
+      /* PMD_ORGANIC_CARDS_V2_LAST_OVERRIDE_20260614
+         This style MUST render after OrganicCheckoutScopedStyles.
+         It is UI-only and keeps PaymentModal logic untouched. */
+
+      [data-pmd-checkout-visual-theme="organic_botanical_paper"] {
+        --pmd-org-card-bg: linear-gradient(180deg, rgba(247,243,234,.99), rgba(238,229,211,.99));
+        --pmd-org-paper: #f7f3ea;
+        --pmd-org-paper-strong: #fffaf0;
+        --pmd-org-surface: rgba(255,250,240,.88);
+        --pmd-org-border: #ded2ba;
+        --pmd-org-border-strong: #c9b99a;
+        --pmd-org-text: #343529;
+        --pmd-org-muted: #746f61;
+        --pmd-org-green: #747d55;
+        --pmd-org-green-dark: #5f6845;
+        --pmd-org-gold: #b88940;
+        --pmd-org-shadow: 0 28px 80px rgba(60, 53, 41, .28), inset 0 1px 0 rgba(255,255,255,.72);
+      }
+
+      [data-pmd-checkout-visual-theme="organic_botanical_paper"].pmd-checkout-modal {
+        width: min(430px, calc(100vw - 28px)) !important;
+        max-width: 430px !important;
+        min-width: 0 !important;
+        max-height: calc(100vh - 86px) !important;
+        border-radius: 30px !important;
+        overflow: hidden !important;
+        background:
+          radial-gradient(circle at 1px 1px, rgba(116,125,85,.075) 1px, transparent 0),
+          var(--pmd-org-card-bg) !important;
+        background-size: 16px 16px, auto !important;
+        border: 1px solid var(--pmd-org-border) !important;
+        color: var(--pmd-org-text) !important;
+        -webkit-text-fill-color: var(--pmd-org-text) !important;
+        box-shadow: var(--pmd-org-shadow) !important;
+      }
+
+      [data-pmd-checkout-visual-theme="organic_botanical_paper"] *,
+      [data-pmd-checkout-visual-theme="organic_botanical_paper"] {
+        box-sizing: border-box !important;
+        text-shadow: none !important;
+      }
+
+      [data-pmd-checkout-visual-theme="organic_botanical_paper"] .pmd-checkout-body {
+        background: transparent !important;
+        padding: 16px !important;
+        gap: 12px !important;
+        color: var(--pmd-org-text) !important;
+        -webkit-text-fill-color: var(--pmd-org-text) !important;
+      }
+
+      [data-pmd-checkout-visual-theme="organic_botanical_paper"] > .surface-sub,
+      [data-pmd-checkout-visual-theme="organic_botanical_paper"] .pmd-checkout-modal-title {
+        background: transparent !important;
+        box-shadow: none !important;
+      }
+
+      [data-pmd-checkout-visual-theme="organic_botanical_paper"] .pmd-checkout-modal-title,
+      [data-pmd-checkout-visual-theme="organic_botanical_paper"] h1,
+      [data-pmd-checkout-visual-theme="organic_botanical_paper"] h2,
+      [data-pmd-checkout-visual-theme="organic_botanical_paper"] h3 {
+        color: var(--pmd-org-text) !important;
+        -webkit-text-fill-color: var(--pmd-org-text) !important;
+        font-weight: 850 !important;
+        letter-spacing: -0.035em !important;
+      }
+
+      [data-pmd-checkout-visual-theme="organic_botanical_paper"] p,
+      [data-pmd-checkout-visual-theme="organic_botanical_paper"] span,
+      [data-pmd-checkout-visual-theme="organic_botanical_paper"] label,
+      [data-pmd-checkout-visual-theme="organic_botanical_paper"] div {
+        color: inherit !important;
+      }
+
+      [data-pmd-checkout-visual-theme="organic_botanical_paper"] .pmd-checkout-flat-section,
+      [data-pmd-checkout-visual-theme="organic_botanical_paper"] .pmd-checkout-item-card,
+      [data-pmd-checkout-visual-theme="organic_botanical_paper"] .pmd-checkout-total-card,
+      [data-pmd-checkout-visual-theme="organic_botanical_paper"] .pmd-checkout-payment-card,
+      [data-pmd-checkout-visual-theme="organic_botanical_paper"] .pmd-checkout-payment-methods-card,
+      [data-pmd-checkout-visual-theme="organic_botanical_paper"] .pmd-checkout-meta-row,
+      [data-pmd-checkout-visual-theme="organic_botanical_paper"] .surface-sub,
+      [data-pmd-checkout-visual-theme="organic_botanical_paper"] [class*="rounded-2xl"],
+      [data-pmd-checkout-visual-theme="organic_botanical_paper"] [class*="rounded-3xl"] {
+        background: var(--pmd-org-surface) !important;
+        border: 1px solid var(--pmd-org-border) !important;
+        color: var(--pmd-org-text) !important;
+        -webkit-text-fill-color: var(--pmd-org-text) !important;
+        box-shadow: 0 10px 24px rgba(60,53,41,.055) !important;
+      }
+
+      [data-pmd-checkout-visual-theme="organic_botanical_paper"] .muted,
+      [data-pmd-checkout-visual-theme="organic_botanical_paper"] [class*="text-muted"],
+      [data-pmd-checkout-visual-theme="organic_botanical_paper"] [class*="text-xs"] {
+        color: var(--pmd-org-muted) !important;
+        -webkit-text-fill-color: var(--pmd-org-muted) !important;
+      }
+
+      [data-pmd-checkout-visual-theme="organic_botanical_paper"] button {
+        min-height: 48px !important;
+        border-radius: 999px !important;
+        font-weight: 850 !important;
+        letter-spacing: -0.02em !important;
+        text-shadow: none !important;
+        opacity: 1 !important;
+      }
+
+      [data-pmd-checkout-visual-theme="organic_botanical_paper"] button:not([data-pmd-order-status-back="1"]):not(.icon-btn--accent) {
+        background: var(--pmd-org-paper-strong) !important;
+        border: 1px solid var(--pmd-org-border) !important;
+        color: var(--pmd-org-text) !important;
+        -webkit-text-fill-color: var(--pmd-org-text) !important;
+      }
+
+      [data-pmd-checkout-visual-theme="organic_botanical_paper"] button[data-pmd-clean-send-kitchen="1"],
+      [data-pmd-checkout-visual-theme="organic_botanical_paper"] button[data-pmd-review-submit="true"],
+      [data-pmd-checkout-visual-theme="organic_botanical_paper"] button[data-pmd-submit-review="1"],
+      [data-pmd-checkout-visual-theme="organic_botanical_paper"] button[data-pmd-clean-primary="1"],
+      [data-pmd-checkout-visual-theme="organic_botanical_paper"] button[data-pmd-organic-action="primary"],
+      [data-pmd-checkout-visual-theme="organic_botanical_paper"] button[data-pmd-runtime-primary="1"],
+      [data-pmd-checkout-visual-theme="organic_botanical_paper"] button[style*="#747d55"],
+      [data-pmd-checkout-visual-theme="organic_botanical_paper"] button[style*="#062F2A"],
+      [data-pmd-checkout-visual-theme="organic_botanical_paper"] button[style*="rgb(116, 125, 85)"] {
+        background: var(--pmd-org-green) !important;
+        background-color: var(--pmd-org-green) !important;
+        border-color: var(--pmd-org-green) !important;
+        color: #fffaf0 !important;
+        -webkit-text-fill-color: #fffaf0 !important;
+        box-shadow: 0 14px 28px rgba(95,104,69,.20) !important;
+      }
+
+      [data-pmd-checkout-visual-theme="organic_botanical_paper"] button[data-pmd-order-status-back="1"],
+      [data-pmd-checkout-visual-theme="organic_botanical_paper"] .icon-btn--accent {
+        width: 40px !important;
+        height: 40px !important;
+        min-height: 40px !important;
+        border-radius: 999px !important;
+        background: rgba(116,125,85,.16) !important;
+        border: 1px solid rgba(116,125,85,.26) !important;
+        color: var(--pmd-org-green) !important;
+        -webkit-text-fill-color: var(--pmd-org-green) !important;
+        box-shadow: none !important;
+      }
+
+      [data-pmd-checkout-visual-theme="organic_botanical_paper"] svg,
+      [data-pmd-checkout-visual-theme="organic_botanical_paper"] svg * {
+        stroke: currentColor !important;
+      }
+
+      [data-pmd-checkout-visual-theme="organic_botanical_paper"] input,
+      [data-pmd-checkout-visual-theme="organic_botanical_paper"] textarea,
+      [data-pmd-checkout-visual-theme="organic_botanical_paper"] select {
+        background: #f5f8ef !important;
+        border: 1px solid var(--pmd-org-border) !important;
+        color: var(--pmd-org-text) !important;
+        -webkit-text-fill-color: var(--pmd-org-text) !important;
+        border-radius: 18px !important;
+      }
+
+      [data-pmd-checkout-visual-theme="organic_botanical_paper"] .text-white,
+      [data-pmd-checkout-visual-theme="organic_botanical_paper"] [class*="text-white"] {
+        color: var(--pmd-org-text) !important;
+        -webkit-text-fill-color: var(--pmd-org-text) !important;
+      }
+
+      [data-pmd-checkout-visual-theme="organic_botanical_paper"] button[data-pmd-clean-send-kitchen="1"] *,
+      [data-pmd-checkout-visual-theme="organic_botanical_paper"] button[data-pmd-review-submit="true"] *,
+      [data-pmd-checkout-visual-theme="organic_botanical_paper"] button[data-pmd-submit-review="1"] *,
+      [data-pmd-checkout-visual-theme="organic_botanical_paper"] button[data-pmd-clean-primary="1"] *,
+      [data-pmd-checkout-visual-theme="organic_botanical_paper"] button[data-pmd-organic-action="primary"] *,
+      [data-pmd-checkout-visual-theme="organic_botanical_paper"] button[data-pmd-runtime-primary="1"] *,
+      [data-pmd-checkout-visual-theme="organic_botanical_paper"] button[style*="#747d55"] *,
+      [data-pmd-checkout-visual-theme="organic_botanical_paper"] button[style*="#062F2A"] * {
+        color: #fffaf0 !important;
+        -webkit-text-fill-color: #fffaf0 !important;
+        stroke: #fffaf0 !important;
+      }
+
+      @media (max-width: 460px) {
+        [data-pmd-checkout-visual-theme="organic_botanical_paper"].pmd-checkout-modal {
+          width: calc(100vw - 24px) !important;
+          max-width: calc(100vw - 24px) !important;
+          border-radius: 26px !important;
+        }
+      }
+    `}</style>
+  )
+}
