@@ -6,104 +6,37 @@
 
 "use client"
 
-import React, { useState, useEffect, useMemo, useLayoutEffect, useRef } from "react"
+import React, { useState, useEffect, useLayoutEffect, useRef } from "react"
 import { useRouter } from "next/navigation"
 import { useLanguageStore } from "@/store/language-store"
-import { PayPalScriptProvider } from "@paypal/react-paypal-js"
-import { Elements, useStripe, useElements, PaymentRequestButtonElement } from "@stripe/react-stripe-js"
-import { loadStripe } from "@stripe/stripe-js"
 import { motion, AnimatePresence } from "framer-motion"
-import { Wallet, Lock, Users, Check, Minus, CreditCard, ArrowLeft, CheckCircle, DollarSign, ReceiptText, ArrowRight, Link2, QrCode, Star, MessageSquare, Plus } from "lucide-react"
+import { Users, Check, Minus, CreditCard, ArrowLeft, DollarSign, ArrowRight, Link2, QrCode, Star, MessageSquare, Plus } from "lucide-react"
 import { formatCurrency } from "@/lib/currency"
-import type { MenuItem } from "@/lib/data"
 import { type TranslationKey } from "@/lib/translations"
-import { type PmdSocialPlatformId, useCmsStore } from "@/store/cms-store"
-import { useCartStore, type CartItem } from "@/store/cart-store"
+import { useCmsStore } from "@/store/cms-store"
+import { useCartStore } from "@/store/cart-store"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
 import { useToast } from "@/components/ui/use-toast"
 import { Textarea } from "@/components/ui/textarea"
-import { apiClient } from "@/lib/api-client"
 import { iconForPayment } from "@/lib/payment-icons"
-import { PayPalForm, WorldlineInlineCardForm } from "@/components/payment/secure-payment-form"
-import { StripeCardPaymentSection } from "@/features/checkout/payment/StripeCardPaymentSection"
-import SumUpHostedCheckout from "@/components/payment/sumup-hosted-checkout"
-import { stickySearch } from "@/lib/sticky-query"
 import { cn } from "@/lib/utils"
-import {
-  OrganicCheckoutScopedStyles,
-  organicCheckoutBodyStyle,
-  organicCheckoutHeaderStyle,
-  organicCheckoutModalStyle,
-  organicCheckoutPrimaryButtonStyle,
-} from "@/components/themes/organic-botanical-paper/OrganicCheckoutShell"
+import { OrganicCheckoutScopedStyles, organicCheckoutBodyStyle, organicCheckoutHeaderStyle, organicCheckoutModalStyle, organicCheckoutPrimaryButtonStyle } from "@/components/themes/organic-botanical-paper/OrganicCheckoutShell"
 import { CheckoutIconFrame, CheckoutStepCard, CheckoutSummaryCard, OrderStatusCard, PaymentCardFrame, PaymentMethodTile, SplitBillPanel, SplitMethodButton, ThemedButton, ThemedInput, TipCouponPanel } from "@/components/theme-ui"
-import { KazenGoldCheckoutSkinStyles, KazenSharedCheckoutNightPolishStyles, KazenSharedCheckoutSkinStyles } from "@/features/customer-menu/checkout/CheckoutSkinStyles"
 import { useCheckoutVisualRepairs } from "@/features/customer-menu/legacy-dom-repairs/useCheckoutVisualRepairs"
 import { usePaymentModalDomRepairs } from "@/features/customer-menu/legacy-dom-repairs/usePaymentModalDomRepairs"
-import { WalletStripePay } from "@/features/customer-menu/checkout/WalletStripePay"
 import { ModernGreenCheckoutShell } from "@/components/themes/modern-green/ModernGreenCheckoutShell"
 import { KazenJapaneseCheckoutShell } from "@/components/themes/kazen-japanese"
 import { OrderItemWithOptions } from "@/features/customer-menu/checkout/OrderItemWithOptions"
 import { PaymentMethodForm } from "@/features/customer-menu/checkout/PaymentMethodForm"
 import { PaymentActionButton } from "@/features/customer-menu/checkout/PaymentActionButton"
 import { createSubmittedTableOrderSnapshot } from "@/features/table-order/table-order-utils"
-import {
-  buildEvenSharePercents,
-  calculateCheckoutTax,
-  calculateSplitSubtotal,
-  getOrderItemUnitAmount,
-  groupOrderDisplayItems,
-  tableOrderTotalByCode,
-  tableOrderVatPercentage,
-  toPositiveAmount,
-} from "@/features/checkout/checkout-utils"
-import {
-  getCheckoutStepAfterBack,
-  getCheckoutStepAfterDraftSubmit,
-  getCheckoutStepAfterOrderSubmit,
-  getCheckoutStepAfterPaymentSuccess,
-  getCheckoutStepForSplitMethod,
-  getCheckoutStepOnOpen,
-  getInitialCheckoutStep,
-  isSplitCheckoutStep,
-  shouldForcePersonalReview,
-} from "@/features/checkout/checkout-state-utils"
-import {
-  calculateCouponDiscount,
-  calculateFinalTotal,
-  calculateOrderStatusTotal,
-  calculatePaidSnapshotTotals,
-  calculatePayableTotal,
-  calculatePaymentSummary,
-  calculateSubmittedBaseTotal,
-  calculateTipAmount,
-} from "@/features/checkout/payment-summary-utils"
-import {
-  buildEqualSplitPeople,
-  buildItemSplitPeople,
-  buildShareSplitPeople,
-  buildSplitGuestProfiles,
-  calculateSplitConfirmationState,
-  getActiveSplitPeople,
-  getSelectedSplitPerson,
-  getSplitGuestAvatar as getSplitGuestAvatarFromProfiles,
-  normalizeSharePercentsForGuestCount,
-  pruneItemAssignmentsForGuestCount,
-} from "@/features/checkout/split-bill-utils"
-import {
-  canRenderPaymentMethodDetail,
-  findPaymentMethod,
-  getPaymentMethodProviderCode,
-  getVisiblePaymentMethods,
-  isPaymentMethodAvailable,
-  isStripePaymentMethodForConfig,
-  mapPaymentMethodsByCode,
-} from "@/features/checkout/payment-method-utils"
-import { KAZEN_JAPANESE_THEME_KEY, ORGANIC_BOTANICAL_THEME_KEY, SPLIT_GUEST_PROFILES, type PaymentFormData, type PaymentModalProps } from "@/features/customer-menu/checkout/paymentModalShared"
+import { groupOrderDisplayItems, tableOrderTotalByCode, tableOrderVatPercentage } from "@/features/checkout/checkout-utils"
+import { getCheckoutStepAfterBack, getCheckoutStepAfterDraftSubmit, getCheckoutStepOnOpen, getInitialCheckoutStep, isSplitCheckoutStep, shouldForcePersonalReview } from "@/features/checkout/checkout-state-utils"
+import { canRenderPaymentMethodDetail } from "@/features/checkout/payment-method-utils"
+import { KAZEN_JAPANESE_THEME_KEY, ORGANIC_BOTANICAL_THEME_KEY, type PaymentFormData, type PaymentModalProps } from "@/features/customer-menu/checkout/paymentModalShared"
 import { buildPaymentOpenOrderStorageKeys, ensurePaymentGuestSession, getPaymentTableKey, getPaymentTenantKey } from "@/features/customer-menu/checkout/paymentModalStorage"
-import { estimatePrepMinutes, positiveMoney, subtotalFromSubmittedPaymentRows } from "@/features/customer-menu/checkout/paymentModalMath"
+import { positiveMoney, subtotalFromSubmittedPaymentRows } from "@/features/customer-menu/checkout/paymentModalMath"
 import { startHostedRedirectCheckoutFlow } from "@/features/customer-menu/checkout/paymentModalHostedCheckout"
 import { handlePaymentFlow } from "@/features/customer-menu/checkout/paymentModalPaymentFlow"
 import { hasUnsubmittedPaymentDraftFromState, resolveSubmittedPaymentAmountFromState, resolveSubmittedPaymentOrderIdFromState } from "@/features/customer-menu/checkout/paymentModalResolution"
@@ -118,14 +51,8 @@ import { useCheckoutPaymentBase } from "@/features/customer-menu/checkout/hooks/
 import { useCheckoutPaymentSummary } from "@/features/customer-menu/checkout/hooks/useCheckoutPaymentSummary"
 import { useCheckoutPaymentContext } from "@/features/customer-menu/checkout/hooks/useCheckoutPaymentContext"
 import { useCheckoutDisplayItems } from "@/features/customer-menu/checkout/hooks/useCheckoutDisplayItems"
-import type {
-  CheckoutStep,
-  PmdToolbarPricingSnapshot,
-  SplitBillItem,
-  SplitMethod,
-  SplitPerson,
-  SplitSourceItem,
-} from "@/features/checkout/types"
+import type { CheckoutStep, SplitBillItem, SplitMethod, SplitSourceItem } from "@/features/checkout/types"
+
 
 export function PaymentModal({ isOpen, onClose, items: allItems, tableInfo, existingOrderId, pendingSummary, initialSubmittedOrder, initialCheckoutStep, preferPersonalReview = false, onOpenOrderUpdate, onCartPricingUpdate, checkoutVisualTheme = "neutral" }: PaymentModalProps) {
   useCheckoutVisualRepairs()
