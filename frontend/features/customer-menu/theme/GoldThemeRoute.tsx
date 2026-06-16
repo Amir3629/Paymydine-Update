@@ -16,9 +16,6 @@ import { TenantSetupSplash } from "@/components/tenant-setup-splash"
 import type { MenuItem } from "@/lib/data"
 import type { GoldThemeRouteProps } from "@/features/customer-menu/theme/themeRouteTypes"
 import { createOpenOrderUpdateHandler } from "@/features/customer-menu/theme/themeRouteShared"
-
-type GoldThemeRouteProps = GoldThemeRouteProps
-
 export function GoldThemeRoute(props: GoldThemeRouteProps) {
   const {
     themeMenuActions,

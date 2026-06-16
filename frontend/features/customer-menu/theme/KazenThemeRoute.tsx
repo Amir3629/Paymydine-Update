@@ -8,9 +8,6 @@ import { pmdBuildKazenParentCategories } from "@/features/customer-menu/data/men
 import type { MenuItem } from "@/lib/data"
 import type { KazenThemeRouteProps } from "@/features/customer-menu/theme/themeRouteTypes"
 import { createOpenOrderUpdateHandler } from "@/features/customer-menu/theme/themeRouteShared"
-
-type KazenThemeRouteProps = KazenThemeRouteProps
-
 export function KazenThemeRoute(props: KazenThemeRouteProps) {
   const {
     apiMenuItems,

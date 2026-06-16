@@ -7,9 +7,6 @@ import { PaymentModal } from "@/features/customer-menu/checkout/CheckoutModalHos
 import type { MenuItem } from "@/lib/data"
 import type { ModernGreenThemeRouteProps } from "@/features/customer-menu/theme/themeRouteTypes"
 import { createOpenOrderUpdateHandler } from "@/features/customer-menu/theme/themeRouteShared"
-
-type ModernGreenThemeRouteProps = ModernGreenThemeRouteProps
-
 export function ModernGreenThemeRoute(props: ModernGreenThemeRouteProps) {
   const {
     apiMenuItems,
