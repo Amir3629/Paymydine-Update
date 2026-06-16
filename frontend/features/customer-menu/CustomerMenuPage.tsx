@@ -5,7 +5,6 @@
 
 "use client"
 
-import { useKazenMenuDomRepairs } from "@/features/customer-menu/legacy-dom-repairs/useKazenMenuDomRepairs";
 import "./customer-menu-page.css"
 /*
  * LEGACY_DOM_REPAIR_POLICY:
@@ -45,7 +44,6 @@ import { buildTableOrderDraftContext, createSubmittedTableOrderSnapshot, isVisib
 import { calculateCartPricingSummary } from "@/features/checkout/checkout-utils";
 import type { CheckoutStep, PmdToolbarPricingSnapshot } from "@/features/checkout/types";
 
-
 // Hook to get current theme background color
 /* PMD_REMOTE_CONSOLE_INJECTED */
 
@@ -80,9 +78,6 @@ function MenuContent() {
   const { themeId: currentFrontendTheme, isResolved: isFrontendThemeResolved } = useCurrentFrontendTheme()
   const [forceModernGreenTheme, setForceModernGreenTheme] = useState(false)
   const { isOrganicBotanicalTheme, isModernGreenTheme, isKazenJapaneseTheme } = useCustomerThemeSelection(currentFrontendTheme, forceModernGreenTheme)
-
-  useKazenMenuDomRepairs(isKazenJapaneseTheme)
-
   const shouldHoldThemeRender = !isFrontendThemeResolved && !forceModernGreenTheme
   const { t, language } = useLanguageStore()
   const { toast } = useToast()

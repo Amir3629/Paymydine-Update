@@ -16,3 +16,4 @@ Removed safely:
 Removed safely:
 
 - useMenuActionCircleColorRepair.ts: replaced by `PMD_MENU_ACTION_CIRCLE_COLOR_REPAIR_CSS` in `styles/global/paymydine-legacy-globals.css`.
+- useKazenMenuDomRepairs.ts: replaced by `PMD_KAZEN_VISIBILITY_REPAIR_CSS` in `styles/global/paymydine-legacy-globals.css`.
