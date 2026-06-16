@@ -1,5 +1,5 @@
 import { redirect } from "next/navigation"
 
-export default function CheckoutRedirectPage() {
+export default function CheckoutPage() {
   redirect("/menu")
 }
