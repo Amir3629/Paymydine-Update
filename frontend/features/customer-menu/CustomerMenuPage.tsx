@@ -371,6 +371,7 @@ useEffect(() => {
     highlightSourceItems,
     chefRecommendationItems,
     bestsellerItems,
+    showVirtualHighlightSections,
   } = useCustomerMenuDerivedData({
     apiMenuItems,
     taxSettings,
@@ -379,8 +380,6 @@ useEffect(() => {
     dynamicCategories,
     selectedCategory,
     menuHighlightSettings,
-    currentLanguage,
-    t,
   })
 
   useEffect(() => {

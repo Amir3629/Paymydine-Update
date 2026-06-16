@@ -9,8 +9,6 @@ export function useCustomerMenuDerivedData(props: any) {
     dynamicCategories,
     selectedCategory,
     menuHighlightSettings,
-    currentLanguage,
-    t,
   } = props
 
   const allCategories = useMemo(() => {
@@ -55,7 +53,7 @@ export function useCustomerMenuDerivedData(props: any) {
     }
 
     // Otherwise, filter by selected category
-    return itemsWithAdjustedPrices.filter((item) => item.category === currentCategory);
+    return itemsWithAdjustedPrices.filter((item: any) => item.category === currentCategory);
   }, [apiMenuItems, menuItems, selectedCategory, taxSettings.enabled, taxSettings.percentage, taxSettings.menuPrice]);
 
   const highlightSourceItems = useMemo(() => {
@@ -72,12 +70,12 @@ export function useCustomerMenuDerivedData(props: any) {
 
   const chefRecommendationItems = useMemo(() => {
     if (!menuHighlightSettings.chef_section_enabled || menuHighlightSettings.section_placement === 'hidden') return []
-    return highlightSourceItems.filter((item) => Boolean((item as any).is_chef_recommended)).slice(0, menuHighlightSettings.max_chef_items)
+    return highlightSourceItems.filter((item: any) => Boolean((item as any).is_chef_recommended)).slice(0, menuHighlightSettings.max_chef_items)
   }, [highlightSourceItems, menuHighlightSettings])
 
   const bestsellerItems = useMemo(() => {
     if (!menuHighlightSettings.bestseller_section_enabled || menuHighlightSettings.section_placement === 'hidden') return []
-    return highlightSourceItems.filter((item) => Boolean((item as any).is_bestseller)).slice(0, menuHighlightSettings.max_bestseller_items)
+    return highlightSourceItems.filter((item: any) => Boolean((item as any).is_bestseller)).slice(0, menuHighlightSettings.max_bestseller_items)
   }, [highlightSourceItems, menuHighlightSettings])
 
   const showVirtualHighlightSections = (selectedCategory || "All") === "All" && menuHighlightSettings.section_placement !== 'hidden'
@@ -90,5 +88,6 @@ export function useCustomerMenuDerivedData(props: any) {
     highlightSourceItems,
     chefRecommendationItems,
     bestsellerItems,
+    showVirtualHighlightSections,
   }
 }
