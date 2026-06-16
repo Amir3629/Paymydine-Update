@@ -5,6 +5,7 @@ export function useCustomerLocalOpenOrderHydration(props: any) {
     tableInfo,
     searchParams,
     existingOrderId,
+    setExistingOrderId,
     hasDraftTableOrderWithoutRealOrder,
     setHasLocalOpenOrder,
     setLocalOpenOrder,

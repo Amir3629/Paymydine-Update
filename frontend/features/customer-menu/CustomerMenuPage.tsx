@@ -525,6 +525,7 @@ useEffect(() => {
     tableInfo,
     searchParams,
     existingOrderId,
+    setExistingOrderId,
     hasDraftTableOrderWithoutRealOrder,
     setHasLocalOpenOrder,
     setLocalOpenOrder,
