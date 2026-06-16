@@ -24,8 +24,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { useToast } from "@/components/ui/use-toast"
 import { Textarea } from "@/components/ui/textarea"
-import { useTableOrderActions } from "@/features/table-order/use-table-order-actions"
-import { ApiClient, apiClient, type PaymentMethod, type TableOrderDraftResponse } from "@/lib/api-client"
+import { apiClient } from "@/lib/api-client"
 import { iconForPayment } from "@/lib/payment-icons"
 import { PayPalForm, WorldlineInlineCardForm } from "@/components/payment/secure-payment-form"
 import { StripeCardPaymentSection } from "@/features/checkout/payment/StripeCardPaymentSection"
@@ -49,7 +48,7 @@ import { KazenJapaneseCheckoutShell } from "@/components/themes/kazen-japanese"
 import { OrderItemWithOptions } from "@/features/customer-menu/checkout/OrderItemWithOptions"
 import { PaymentMethodForm } from "@/features/customer-menu/checkout/PaymentMethodForm"
 import { PaymentActionButton } from "@/features/customer-menu/checkout/PaymentActionButton"
-import { buildTableOrderDraftContext, createSubmittedTableOrderSnapshot } from "@/features/table-order/table-order-utils"
+import { createSubmittedTableOrderSnapshot } from "@/features/table-order/table-order-utils"
 import {
   buildEvenSharePercents,
   calculateCheckoutTax,
@@ -105,7 +104,20 @@ import {
 import { KAZEN_JAPANESE_THEME_KEY, ORGANIC_BOTANICAL_THEME_KEY, SPLIT_GUEST_PROFILES, type PaymentFormData, type PaymentModalProps } from "@/features/customer-menu/checkout/paymentModalShared"
 import { buildPaymentOpenOrderStorageKeys, ensurePaymentGuestSession, getPaymentTableKey, getPaymentTenantKey } from "@/features/customer-menu/checkout/paymentModalStorage"
 import { estimatePrepMinutes, positiveMoney, subtotalFromSubmittedPaymentRows } from "@/features/customer-menu/checkout/paymentModalMath"
+import { startHostedRedirectCheckoutFlow } from "@/features/customer-menu/checkout/paymentModalHostedCheckout"
+import { handlePaymentFlow } from "@/features/customer-menu/checkout/paymentModalPaymentFlow"
+import { hasUnsubmittedPaymentDraftFromState, resolveSubmittedPaymentAmountFromState, resolveSubmittedPaymentOrderIdFromState } from "@/features/customer-menu/checkout/paymentModalResolution"
 import { usePaymentReturnVerification } from "@/features/customer-menu/checkout/usePaymentReturnVerification"
+import { usePaymentProviderConfig } from "@/features/customer-menu/checkout/hooks/usePaymentProviderConfig"
+import { useCheckoutTableDraftSync } from "@/features/customer-menu/checkout/hooks/useCheckoutTableDraftSync"
+import { useCheckoutTableActions } from "@/features/customer-menu/checkout/hooks/useCheckoutTableActions"
+import { useCheckoutReviewInvoiceActions } from "@/features/customer-menu/checkout/hooks/useCheckoutReviewInvoiceActions"
+import { useCheckoutOrderItems } from "@/features/customer-menu/checkout/hooks/useCheckoutOrderItems"
+import { useCheckoutSplitBill } from "@/features/customer-menu/checkout/hooks/useCheckoutSplitBill"
+import { useCheckoutPaymentBase } from "@/features/customer-menu/checkout/hooks/useCheckoutPaymentBase"
+import { useCheckoutPaymentSummary } from "@/features/customer-menu/checkout/hooks/useCheckoutPaymentSummary"
+import { useCheckoutPaymentContext } from "@/features/customer-menu/checkout/hooks/useCheckoutPaymentContext"
+import { useCheckoutDisplayItems } from "@/features/customer-menu/checkout/hooks/useCheckoutDisplayItems"
 import type {
   CheckoutStep,
   PmdToolbarPricingSnapshot,
@@ -124,17 +136,7 @@ export function PaymentModal({ isOpen, onClose, items: allItems, tableInfo, exis
   const { paymentOptions, tipSettings, taxSettings, merchantSettings, loadVATSettings, loadMerchantSettings, appliedCoupon, validateCoupon, removeCoupon } = useCmsStore()
 const { clearCart, addToCart, clearTableContext } = useCartStore()
   const [isLoading, setIsLoading] = useState(false)
-  const [paypalPublicConfig, setPaypalPublicConfig] = useState<{ enabled: boolean; clientId: string; currency: string } | null>(null)
-  const [paypalConfigLoading, setPaypalConfigLoading] = useState(false)
 
-  // Helper function to adjust price if VAT is included in menu prices
-  const adjustPriceForVAT = (price: number): number => {
-    if (taxSettings.enabled && taxSettings.percentage > 0 && taxSettings.menuPrice === 0) {
-      // VAT is included in prices - increase price by VAT percentage
-      return price * (1 + taxSettings.percentage / 100)
-    }
-    return price
-  }
   const [isSplitting, setIsSplitting] = useState(false)
   const [selectedItems, setSelectedItems] = useState<Record<string, SplitBillItem>>({})
   const [splitMethod, setSplitMethod] = useState<SplitMethod>("equal")
@@ -143,20 +145,43 @@ const { clearCart, addToCart, clearTableContext } = useCartStore()
   const [sharePercents, setSharePercents] = useState<number[]>([50, 50])
   const [selectedSplitPersonId, setSelectedSplitPersonId] = useState<string | null>(null)
   const [paidSplitPeople, setPaidSplitPeople] = useState<Record<string, boolean>>({})
-  const [reviewRating, setReviewRating] = useState(0)
-  const [reviewComment, setReviewComment] = useState("")
-  const [reviewSubmitStatus, setReviewSubmitStatus] = useState<"idle" | "loading" | "success" | "error">("idle")
-  const [reviewSubmitMessage, setReviewSubmitMessage] = useState("")
-  const [invoiceDownloadStatus, setInvoiceDownloadStatus] = useState<"idle" | "loading" | "error">("idle")
-  const [invoiceDownloadMessage, setInvoiceDownloadMessage] = useState("")
-  const [selectedOptions, setSelectedOptions] = useState<Record<string, Record<string, string>>>({})
-  const [tipPercentage, setTipPercentage] = useState(0)
-  const [customTip, setCustomTip] = useState("")
-  const [splitPaymentTips, setSplitPaymentTips] = useState<Record<string, { percentage: number; custom: string }>>({})
+  const {
+    selectedOptions,
+    handleOptionsChange,
+    adjustPriceForVAT,
+    personalReviewItems,
+    allItemInstances,
+    itemsToPay,
+    subtotal,
+    taxAmount,
+  } = useCheckoutOrderItems({
+    allItems,
+    taxSettings,
+    t,
+    isSplitting,
+    selectedItems,
+    onCartPricingUpdate,
+  })
+
   const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<string | null>(null)
+  const {
+    loadingPayments,
+    visiblePaymentMethods,
+    methodByCode,
+    stripeConfig,
+    stripeConfigError,
+    stripePromise,
+    paypalConfigLoading,
+    effectivePayPalClientId,
+    effectivePayPalCurrency,
+  } = usePaymentProviderConfig({
+    selectedPaymentMethod,
+    setSelectedPaymentMethod,
+    merchantCurrency: merchantSettings?.currency,
+  })
+
   const [cashCollectionConfirmed, setCashCollectionConfirmed] = useState(false)
   const [providerInlineError, setProviderInlineError] = useState<string | null>(null)
-  const [paymentMethods, setPaymentMethods] = useState<PaymentMethod[]>([])
   const [isDarkTheme, setIsDarkTheme] = useState(false)
 
   // Debug (safe): expose key settings
@@ -189,11 +214,6 @@ const { clearCart, addToCart, clearTableContext } = useCartStore()
 
     return () => observer.disconnect()
   }, [])
-
-  const [loadingPayments, setLoadingPayments] = useState(true)
-  const [couponCode, setCouponCode] = useState("")
-  const [couponLoading, setCouponLoading] = useState(false)
-  const [couponError, setCouponError] = useState<string | null>(null)
   const [paymentFormData, setPaymentFormData] = useState<PaymentFormData>({
     email: "",
     phone: "",
@@ -212,23 +232,23 @@ const { clearCart, addToCart, clearTableContext } = useCartStore()
 const [submittedSnapshot, setSubmittedSnapshot] = useState<any | null>(initialSubmittedOrder || null)
   // PMD_USE_LATEST_SUBMITTED_ORDER_ID_FOR_PAYMENT_20260612
   const pmdLatestSubmittedPaymentOrderIdRef = useRef<number | null>(null)
-  // Phase 2B: table draft/order fetching and submit handlers should move into a shared checkout feature hook.
-  const [tableDraft, setTableDraft] = useState<TableOrderDraftResponse | null>(null)
-  const hasPersonalItems = allItems.length > 0
-  const [draftLoading, setDraftLoading] = useState(false)
+  const {
+    tableDraft,
+    setTableDraft,
+    draftLoading,
+    refreshTableDraft,
+    submitDraftLoading,
+    confirmTableDraftItemsAction,
+    submitTableDraftAction,
+  } = useCheckoutTableDraftSync({
+    isOpen,
+    tableInfo,
+    taxPercentage: taxSettings?.percentage || 0,
+    getGuestSessionId: () => ensurePaymentGuestSession(),
+    setSubmittedSnapshot,
+  })
 
-  const [stripeConfig, setStripeConfig] = useState<{
-    publishableKey: string
-    mode: string
-    currency?: string
-    countryCode?: string
-    methods?: {
-      card?: boolean
-      apple_pay?: boolean
-      google_pay?: boolean
-    }
-  } | null>(null)
-  const [stripeConfigError, setStripeConfigError] = useState<string | null>(null)
+  const hasPersonalItems = allItems.length > 0
 
 
   useEffect(() => {
@@ -267,330 +287,91 @@ const [submittedSnapshot, setSubmittedSnapshot] = useState<any | null>(initialSu
 
   const buildOpenOrderStorageKeys = () => buildPaymentOpenOrderStorageKeys(tableInfo)
 
-  const effectivePayPalClientId =
-    paypalPublicConfig?.enabled && paypalPublicConfig?.clientId
-      ? paypalPublicConfig.clientId
-      : ""
-
-  const effectivePayPalCurrency =
-    String(
-      paypalPublicConfig?.currency ||
-      merchantSettings?.currency ||
-      "EUR"
-    ).toUpperCase()
-
-  const stripePromise = useMemo(
-    () => (stripeConfig?.publishableKey ? loadStripe(stripeConfig.publishableKey) : null),
-    [stripeConfig?.publishableKey]
-  )
-
-  const visiblePaymentMethods = useMemo(() => getVisiblePaymentMethods(paymentMethods), [paymentMethods])
-
-  const methodByCode = useMemo(() => mapPaymentMethodsByCode(visiblePaymentMethods), [visiblePaymentMethods])
-
-  useEffect(() => {
-    if (!selectedPaymentMethod) return
-    if (!isPaymentMethodAvailable(visiblePaymentMethods, selectedPaymentMethod)) {
-      setSelectedPaymentMethod(null)
-    }
-  }, [selectedPaymentMethod, visiblePaymentMethods])
-
-  useEffect(() => {
-    const selected = selectedPaymentMethod ? methodByCode.get(selectedPaymentMethod) : null
-
-    if (!isStripePaymentMethodForConfig(selected)) return
-
-    let cancelled = false
-    fetch("/api/v1/payments/stripe/config")
-      .then((res) => res.json())
-      .then((data) => {
-        if (cancelled) return
-        if (data?.success && data.publishableKey) {
-          setStripeConfig({
-            publishableKey: data.publishableKey,
-            mode: data.mode || "test",
-            currency: data.currency || "EUR",
-            countryCode: data.countryCode || "DE",
-            methods: {
-              card: !!data?.methods?.card,
-              apple_pay: !!data?.methods?.apple_pay,
-              google_pay: !!data?.methods?.google_pay,
-            },
-          })
-          setStripeConfigError(null)
-        } else {
-          setStripeConfig(null)
-          setStripeConfigError(data?.error || "Stripe is not configured")
-        }
-      })
-      .catch(() => {
-        if (!cancelled) setStripeConfigError("Failed to load Stripe configuration")
-      })
-
-    return () => {
-      cancelled = true
-    }
-  }, [selectedPaymentMethod, methodByCode])
-
-  // Handle option changes from OrderItemWithOptions
-  const handleOptionsChange = (itemKey: string | number, options: Record<string, string>) => {
-    setSelectedOptions(prev => ({
-      ...prev,
-      [String(itemKey)]: options
-    }))
-  }
-
-  // PMD_UNIT_OPTIONS_CHECKOUT_REVIEW_20260604_V4
-  // Option-enabled items must be configurable per unit in checkout review.
-  // Example: 4x Burger with sides becomes Burger · Item 1..4.
-  // Simple items without options stay grouped, e.g. 3x Cola.
-  const personalReviewItems = useMemo<any[]>(() => {
-    return allItems.flatMap((cartItem: CartItem, cartIndex: number): any[] => {
-      const quantity = Math.max(1, Number(cartItem.quantity || 1))
-      const hasOptions = Array.isArray((cartItem.item as any)?.options) && (cartItem.item as any).options.length > 0
-      const itemId = String((cartItem.item as any)?.id || `item-${cartIndex}`)
-      const baseName = cartItem.item.nameKey ? t(cartItem.item.nameKey as TranslationKey) : cartItem.item.name
-
-      if (!hasOptions) {
-        return [{
-          ...cartItem,
-          __pmdOptionKey: itemId,
-          __pmdUnitLabel: "",
-          __pmdSourceQuantity: quantity,
-        }]
-      }
-
-      if (quantity <= 1) {
-        return [{
-          ...cartItem,
-          quantity: 1,
-          __pmdOptionKey: `${itemId}-${cartIndex}-0`,
-          __pmdUnitLabel: "",
-          __pmdSourceQuantity: quantity,
-        }]
-      }
-
-      return Array.from({ length: quantity }, (_, unitIndex) => ({
-        ...cartItem,
-        quantity: 1,
-        __pmdOptionKey: `${itemId}-${cartIndex}-${unitIndex}`,
-        __pmdUnitLabel: `${baseName} · Item ${unitIndex + 1}`,
-        __pmdSourceQuantity: quantity,
-      }))
-    })
-  }, [allItems, t])
-
-  // Flatten allItems into individual item instances for split bill
-  const allItemInstances = allItems.flatMap((cartItem, cartIndex) =>
-    Array.from({ length: cartItem.quantity }).map((_, i) => ({
-      cartIndex,
-      item: cartItem.item,
-      price: cartItem.item.price || 0,
-      key: `${cartItem.item.id}-${cartIndex}-${i}`,
-      quantity: 1,
-      orderMenuId: Number((cartItem.item as any).__order_menu_id || 0) || undefined,
-      menuId: Number((cartItem.item as any).__menu_id || (cartItem.item as any).id || 0) || undefined,
-    }))
-  )
-
-  // For split bill, use selected individual items; otherwise, use all items
-  const itemsToPay = isSplitting
-    ? Object.values(selectedItems)
-    : personalReviewItems.map((cartItem: any) => ({
-        item: cartItem.item,
-        price: adjustPriceForVAT(cartItem.item.price || 0),
-        quantity: Number(cartItem.quantity || 1),
-        optionKey: String(cartItem.__pmdOptionKey || cartItem.item.id)
-      }))
-
-  const subtotal = useMemo(
-    () => itemsToPay.reduce((acc, inst) => {
-      let itemTotal = inst.price * (inst.quantity || 1)
-
-      // Add option prices (with VAT adjustment if needed)
-      const itemOptions = selectedOptions[String((inst as any).optionKey || inst.item.id)] || {}
-      if (Object.keys(itemOptions).length > 0) {
-        const menuItem = allItems.find(cartItem => cartItem.item.id === inst.item.id)
-        if (menuItem && menuItem.item.options) {
-          Object.values(itemOptions).forEach(optionId => {
-            menuItem.item.options!.forEach(option => {
-              const optionValue = option.values.find(val => val.id.toString() === optionId)
-              if (optionValue) {
-                itemTotal += adjustPriceForVAT(optionValue.price) * (inst.quantity || 1)
-              }
-            })
-          })
-        }
-      }
-
-      return acc + itemTotal
-    }, 0),
-    [itemsToPay, selectedOptions, allItems, taxSettings],
-  )
-  // Calculate VAT if enabled AND VAT should be applied on checkout (not already included in prices)
-  // vat_menu_price: 0 = VAT included in menu price, 1 = apply VAT on checkout
-  const taxAmount = useMemo(() => calculateCheckoutTax(subtotal, taxSettings), [subtotal, taxSettings.enabled, taxSettings.percentage, taxSettings.menuPrice])
-  useEffect(() => {
-    if (!onCartPricingUpdate) return
-    if (!Array.isArray(allItems) || allItems.length === 0) {
-      onCartPricingUpdate(null)
-      return
-    }
-
-    const displayItems = personalReviewItems.map((cartItem: any) => {
-      const optionKey = String(cartItem.__pmdOptionKey || cartItem.item.id)
-      const selectedForUnit = selectedOptions[optionKey] || {}
-      const optionDetails: Array<{ name: string; price: number }> = []
-
-      Object.entries(selectedForUnit).forEach(([optionName, optionId]) => {
-        const option = (cartItem.item.options || []).find((candidate: any) => String(candidate.name) === String(optionName))
-        const value = option?.values?.find((candidate: any) => String(candidate.id) === String(optionId))
-        if (value) optionDetails.push({ name: String(value.value || value.name || ''), price: Number(adjustPriceForVAT(Number(value.price || 0))) })
-      })
-
-      const baseName = cartItem.item.nameKey ? t(cartItem.item.nameKey as TranslationKey) : cartItem.item.name
-      const optionSummary = optionDetails.map((option) => option.name).filter(Boolean).join(', ')
-      const displayName = optionSummary ? `${baseName} — ${optionSummary}` : String(cartItem.__pmdUnitLabel || baseName)
-      const unitPrice = Number(adjustPriceForVAT(cartItem.item.price || 0)) + optionDetails.reduce((sum, option) => sum + Number(option.price || 0), 0)
-      const quantity = Number(cartItem.quantity || 1)
-
-      return {
-        ...cartItem,
-        quantity,
-        __pmdDisplayName: displayName,
-        __pmdDisplayUnitPrice: unitPrice,
-        __pmdDisplaySubtotal: unitPrice * quantity,
-      }
-    })
-
-    onCartPricingUpdate({ items: displayItems, subtotal, tax: taxAmount, total: subtotal + taxAmount })
-  }, [allItems, personalReviewItems, selectedOptions, subtotal, taxAmount, onCartPricingUpdate, t, taxSettings.enabled, taxSettings.percentage, taxSettings.menuPrice])
-
-  const submittedBaseTotal = useMemo(() => calculateSubmittedBaseTotal(submittedSnapshot, pendingSummary), [submittedSnapshot?.remainingAmount, submittedSnapshot?.total, submittedSnapshot?.orderTotal, pendingSummary?.remainingAmount])
-  const isOrderStatusFlow = submittedBaseTotal > 0 && checkoutStep !== "review"
-  const tipBaseAmount = isOrderStatusFlow ? submittedBaseTotal : subtotal
-  const tipAmount = calculateTipAmount(tipBaseAmount, tipPercentage, customTip)
-  const couponBaseAmount = isOrderStatusFlow ? submittedBaseTotal : subtotal
-
-  // Calculate coupon discount
-  const couponDiscount = useMemo(() => calculateCouponDiscount(appliedCoupon, couponBaseAmount), [appliedCoupon, couponBaseAmount])
-
-  const finalTotal = calculateFinalTotal(subtotal, taxAmount, tipAmount, couponDiscount)
-  const orderStatusTotal = calculateOrderStatusTotal(submittedBaseTotal, subtotal, taxAmount)
-
-  // Phase 2B: split bill state transitions should move behind a shared checkout hook without changing this UI.
-  const splitGuestProfiles = useMemo(() => buildSplitGuestProfiles(splitGuestCount, SPLIT_GUEST_PROFILES), [splitGuestCount])
-  const splitGuestNames = useMemo(() => splitGuestProfiles.map((profile) => profile.name), [splitGuestProfiles])
-  const getSplitGuestAvatar = (idx: number) => getSplitGuestAvatarFromProfiles(splitGuestProfiles, idx)
-
-  const suggestedSplitGuestCount = useMemo(() => {
-    const groupCount = Array.isArray(tableDraft?.groups)
-      ? tableDraft.groups.filter((group: any) => Array.isArray(group?.items) && group.items.length > 0).length
-      : 0
-    const contributorIds = new Set<string>()
-    const submittedItems = Array.isArray(submittedSnapshot?.submittedItems) ? submittedSnapshot.submittedItems : []
-    submittedItems.forEach((item: any) => {
-      const contributor = String(item?.guest_session_id || item?.guestSessionId || item?.submitted_by || "").trim()
-      if (contributor) contributorIds.add(contributor)
-    })
-    const itemContributorCount = contributorIds.size
-    return Math.max(2, Math.min(10, groupCount || itemContributorCount || 2))
-  }, [tableDraft?.groups, submittedSnapshot?.submittedItems])
-
-  const addSplitGuest = () => {
-    const nextCount = Math.min(10, splitGuestCount + 1)
-    setSplitGuestCount(nextCount)
-    setSharePercents(buildEvenSharePercents(nextCount))
-  }
-
-  const removeSplitGuest = () => {
-    const nextCount = Math.max(2, splitGuestCount - 1)
-    setSplitGuestCount(nextCount)
-    setSharePercents(buildEvenSharePercents(nextCount))
-  }
-
-  useEffect(() => {
-    setSharePercents((prev) => normalizeSharePercentsForGuestCount(prev, splitGuestCount, buildEvenSharePercents(splitGuestCount)))
-    setItemAssignments((prev) => pruneItemAssignmentsForGuestCount(prev, splitGuestCount))
-  }, [splitGuestCount])
-
-  const splitSourceItems = useMemo<SplitSourceItem[]>(() => {
-    const submittedItems = groupOrderDisplayItems(Array.isArray(submittedSnapshot?.submittedItems) ? submittedSnapshot.submittedItems : [])
-    if (submittedItems.length > 0) {
-      return submittedItems.flatMap((item: any, itemIndex: number) => {
-        const quantity = Math.max(1, Number(item?.quantity || 1))
-        const unitAmount = getOrderItemUnitAmount(item)
-        return Array.from({ length: quantity }, (_, unitIndex) => ({
-          key: `submitted-${item?.order_menu_id || item?.menu_id || item?.id || itemIndex}-${unitIndex}`,
-          name: String(item?.name || `Item ${itemIndex + 1}`),
-          amount: Number.isFinite(unitAmount) ? unitAmount : 0,
-          orderMenuId: Number(item?.order_menu_id || item?.id || 0) || undefined,
-        }))
-      })
-    }
-
-    return allItemInstances.map((instance, index) => ({
-      key: instance.key,
-      name: instance.item.nameKey ? t(instance.item.nameKey as TranslationKey) : (instance.item.name || `Item ${index + 1}`),
-      amount: Number(adjustPriceForVAT(instance.price || 0)),
-      orderMenuId: instance.orderMenuId,
-    }))
-  }, [submittedSnapshot?.submittedItems, allItemInstances, t, taxSettings.enabled, taxSettings.percentage, taxSettings.menuPrice])
-
-  const splitSubtotal = useMemo(() => calculateSplitSubtotal(splitSourceItems), [splitSourceItems])
-  const splitGrandTotal = useMemo(() => submittedBaseTotal > 0 ? orderStatusTotal : finalTotal, [submittedBaseTotal, orderStatusTotal, finalTotal])
-  const splitExtraAmount = Math.max(0, splitGrandTotal - splitSubtotal)
-
-  const equalSplitPeople = useMemo(() => buildEqualSplitPeople({
-    splitGrandTotal,
-    splitGuestCount,
-    splitGuestNames,
-    splitGuestProfiles,
-    splitSubtotal,
-    splitExtraAmount,
-    paidSplitPeople,
-    selectedSplitPersonId,
-  }), [splitGrandTotal, splitGuestCount, splitGuestNames, splitGuestProfiles, splitSubtotal, splitExtraAmount, paidSplitPeople, selectedSplitPersonId])
-
-  const itemSplitPeople = useMemo(() => buildItemSplitPeople({
-    splitGuestCount,
-    splitSourceItems,
-    itemAssignments,
-    splitSubtotal,
-    splitExtraAmount,
+  const {
+    tipPercentage,
+    setTipPercentage,
+    customTip,
+    setCustomTip,
+    splitPaymentTips,
+    setSplitPaymentTips,
+    couponCode,
+    setCouponCode,
+    couponLoading,
+    setCouponLoading,
+    couponError,
+    setCouponError,
+    submittedBaseTotal,
+    isOrderStatusFlow,
+    tipBaseAmount,
+    tipAmount,
+    couponBaseAmount,
     couponDiscount,
-    splitGuestNames,
-    splitGuestProfiles,
-    paidSplitPeople,
-    selectedSplitPersonId,
-  }), [splitGuestCount, splitSourceItems, itemAssignments, splitSubtotal, splitExtraAmount, couponDiscount, splitGuestNames, splitGuestProfiles, paidSplitPeople, selectedSplitPersonId])
-
-  const shareSplitPeople = useMemo(() => buildShareSplitPeople({
-    splitGuestCount,
-    sharePercents,
-    splitGrandTotal,
-    splitSubtotal,
-    splitExtraAmount,
-    splitGuestNames,
-    splitGuestProfiles,
-    paidSplitPeople,
-    selectedSplitPersonId,
-  }), [splitGuestCount, sharePercents, splitGrandTotal, splitSubtotal, splitExtraAmount, splitGuestNames, splitGuestProfiles, paidSplitPeople, selectedSplitPersonId])
-
-  const activeSplitPeople = getActiveSplitPeople({ splitMethod, equalSplitPeople, itemSplitPeople, shareSplitPeople })
-  const selectedSplitPerson = getSelectedSplitPerson(activeSplitPeople, selectedSplitPersonId)
-  const { unassignedSplitItems, sharePercentTotal, canConfirmSplitMethod } = calculateSplitConfirmationState({
-    splitMethod,
-    splitSourceItems,
-    itemAssignments,
-    sharePercents,
-    splitGuestCount,
+    finalTotal,
+    orderStatusTotal,
+    vatLabels,
+  } = useCheckoutPaymentBase({
+    submittedSnapshot,
+    pendingSummary,
+    checkoutStep,
+    subtotal,
+    taxAmount,
+    appliedCoupon,
+    taxSettings,
   })
 
-  const splitPaymentTip = selectedSplitPersonId ? (splitPaymentTips[selectedSplitPersonId] || { percentage: 0, custom: "" }) : { percentage: 0, custom: "" }
-  const paymentTipPercentage = selectedSplitPerson ? splitPaymentTip.percentage : tipPercentage
-  const paymentCustomTip = selectedSplitPerson ? splitPaymentTip.custom : customTip
   const {
+    splitGuestProfiles,
+    splitGuestNames,
+    getSplitGuestAvatar,
+    suggestedSplitGuestCount,
+    addSplitGuest,
+    removeSplitGuest,
+    splitSourceItems,
+    splitSubtotal,
+    splitGrandTotal,
+    splitExtraAmount,
+    equalSplitPeople,
+    itemSplitPeople,
+    shareSplitPeople,
+    activeSplitPeople,
+    selectedSplitPerson,
+    unassignedSplitItems,
+    sharePercentTotal,
+    canConfirmSplitMethod,
+    startSplitFlow,
+    chooseSplitMethod,
+    goToSplitReview,
+  } = useCheckoutSplitBill({
+    isSplitting,
+    setIsSplitting,
+    splitMethod,
+    setSplitMethod,
+    splitGuestCount,
+    setSplitGuestCount,
+    itemAssignments,
+    setItemAssignments,
+    sharePercents,
+    setSharePercents,
+    selectedSplitPersonId,
+    setSelectedSplitPersonId,
+    paidSplitPeople,
+    tableDraft,
+    submittedSnapshot,
+    allItemInstances,
+    t,
+    adjustPriceForVAT,
+    taxSettings,
+    submittedBaseTotal,
+    orderStatusTotal,
+    finalTotal,
+    couponDiscount,
+    setSelectedPaymentMethod,
+    setCheckoutStep,
+  })
+
+  const {
+    paymentTipPercentage,
+    paymentCustomTip,
     paymentBaseAmount,
     paymentTipAmount,
     paymentCouponDiscount,
@@ -598,44 +379,32 @@ const [submittedSnapshot, setSubmittedSnapshot] = useState<any | null>(initialSu
     paymentSubtotalAmount,
     paymentVatAmount,
     paymentVatPercentage,
-  } = calculatePaymentSummary({
+    paidTipAmount,
+    paidCouponDiscount,
+    paidAmountTotal,
+    updatePaymentTipPercentage,
+    updatePaymentCustomTip,
+    payableTotal,
+    estimatedMinutes,
+  } = useCheckoutPaymentSummary({
+    selectedSplitPersonId,
     selectedSplitPerson,
+    splitPaymentTips,
+    setSplitPaymentTips,
+    tipPercentage,
+    setTipPercentage,
+    customTip,
+    setCustomTip,
     submittedBaseTotal,
     finalTotal,
-    paymentCustomTip,
-    paymentTipPercentage,
     couponDiscount,
     submittedSnapshot,
-    taxPercentage: taxSettings?.percentage ?? 0,
-  })
-  const { paidTipAmount, paidCouponDiscount, paidAmountTotal } = calculatePaidSnapshotTotals({
+    taxSettings,
     checkoutStep,
-    submittedSnapshot,
-    paymentTipAmount,
     tipAmount,
-    paymentCouponDiscount,
-    couponDiscount,
     orderStatusTotal,
-    paymentPayableTotal,
+    itemsToPay,
   })
-
-  const updatePaymentTipPercentage = (percentage: number) => {
-    if (selectedSplitPersonId) {
-      setSplitPaymentTips((prev) => ({ ...prev, [selectedSplitPersonId]: { percentage, custom: "" } }))
-      return
-    }
-    setTipPercentage(percentage)
-    setCustomTip("")
-  }
-
-  const updatePaymentCustomTip = (value: string) => {
-    if (selectedSplitPersonId) {
-      setSplitPaymentTips((prev) => ({ ...prev, [selectedSplitPersonId]: { percentage: 0, custom: value } }))
-      return
-    }
-    setCustomTip(value)
-    setTipPercentage(0)
-  }
 
   const resetPaymentAdjustmentsAfterSuccess = () => {
     removeCoupon()
@@ -645,33 +414,9 @@ const [submittedSnapshot, setSubmittedSnapshot] = useState<any | null>(initialSu
     setCustomTip("")
   }
 
-  const payableTotal = useMemo(() => calculatePayableTotal({ checkoutStep, paymentPayableTotal, orderStatusTotal, finalTotal }), [checkoutStep, paymentPayableTotal, orderStatusTotal, finalTotal])
-  const estimatedMinutes = useMemo(() => {
-    const backendEta = Number(submittedSnapshot?.etaMinutes || submittedSnapshot?.estimated_prep_minutes || 0)
-    if (backendEta > 0) return backendEta
-    return estimatePrepMinutes(submittedSnapshot?.submittedItems || itemsToPay)
-  }, [submittedSnapshot?.submittedItems, submittedSnapshot?.etaMinutes, submittedSnapshot?.estimated_prep_minutes, itemsToPay])
+
+
   // NOTE: Live status-based ETA text would require backend order-status polling/endpoint.
-  const vatLabels = useMemo(() => {
-    if (!taxSettings.enabled || taxSettings.percentage <= 0) {
-      return { summary: "Order Summary", subtotal: "Subtotal", total: "Total", includedNote: "" }
-    }
-
-    if (taxSettings.menuPrice === 0) {
-      const vatPct = Number.isInteger(taxSettings.percentage)
-        ? String(taxSettings.percentage)
-        : String(Number(taxSettings.percentage.toFixed(2)))
-
-      return {
-        summary: "Order Summary",
-        subtotal: `Subtotal (incl. ${vatPct}% VAT)`,
-        total: "Total",
-        includedNote: `prices incl. ${vatPct}% VAT`,
-      }
-    }
-
-    return { summary: "Order Summary", subtotal: "Subtotal", total: "Total", includedNote: "" }
-  }, [taxSettings.enabled, taxSettings.percentage, taxSettings.menuPrice])
 
   usePaymentModalDomRepairs({
     isOpen,
@@ -680,12 +425,12 @@ const [submittedSnapshot, setSubmittedSnapshot] = useState<any | null>(initialSu
     couponDiscount,
     tipPercentage,
     customTip,
-    appliedCouponCode: appliedCoupon?.code ?? null,
+    appliedCouponCode: appliedCoupon && appliedCoupon.code ? appliedCoupon.code : null,
     isSplitting,
     selectedSplitPersonId,
     splitMethod,
     splitGuestCount,
-    submittedSnapshotOrderId: submittedSnapshot?.orderId ?? null,
+    submittedSnapshotOrderId: submittedSnapshot && submittedSnapshot.orderId ? submittedSnapshot.orderId : null,
   })
 
   const modalPrimaryBtn = isKazenJapaneseCheckoutVisual
@@ -721,266 +466,51 @@ const [submittedSnapshot, setSubmittedSnapshot] = useState<any | null>(initialSu
     boxShadow: "0 6px 16px rgba(17,24,39,0.08)",
               borderRadius: "9999px",
   }
-  const draftContext = useMemo(() => buildTableOrderDraftContext(
-    tableInfo,
-    typeof window !== "undefined" ? new URLSearchParams(window.location.search).get("qr") : null,
-  ), [tableInfo?.table_id, tableInfo?.table_no, tableInfo?.qr_code])
-
-  const getDraftContext = () => draftContext
-
-  const refreshTableDraft = async () => {
-    const context = getDraftContext()
-    if (!context.table_id && !context.table_no && !context.qr) return null
-    setDraftLoading(true)
-    try {
-      const latest = await apiClient.getTableOrderDraft(context)
-      if (latest?.success) {
-        setTableDraft(latest)
-        console.info("PMD_TABLE_DRAFT_LOADED", { status: latest.status, draft_id: latest.draft_id ?? null, order_id: latest.order_id ?? null })
-        if (latest.order_id && latest.status && latest.status !== "draft" && latest.status !== "empty") {
-          const normalizedLatestSnapshot = createSubmittedTableOrderSnapshot(latest, tableInfo, taxSettings?.percentage || 0)
-          setSubmittedSnapshot((prev: any) => {
-            const prevOrderId = Number(prev?.orderId || prev?.order_id || 0)
-            const latestOrderId = Number(normalizedLatestSnapshot.orderId || 0)
-            return !prev || prevOrderId !== latestOrderId ? normalizedLatestSnapshot : { ...prev, ...normalizedLatestSnapshot }
-          })
-          console.info("PMD_TABLE_ORDER_PAYMENT_READY", { order_id: latest.order_id, status: latest.status })
-        }
-      }
-      return latest
-    } finally {
-      setDraftLoading(false)
-    }
-  }
-
-
   const {
-    isSubmittingDraft: submitDraftLoading,
-    confirmTableDraftItems: confirmTableDraftItemsAction,
-    submitTableDraft: submitTableDraftAction,
-  } = useTableOrderActions({
-    context: draftContext,
-    getGuestSessionId: ensureGuestSession,
-    refreshDraft: refreshTableDraft,
+    buildPersonalDraftItems,
+    handleConfirmMyItems,
+    handleSubmitTableDraft,
+    markOpenOrderAsPaid,
+  } = useCheckoutTableActions({
+    tableDraft,
+    setTableDraft,
+    tableInfo,
+    taxSettings,
+    selectedOptions,
+    personalReviewItems,
+    adjustPriceForVAT,
+    toast,
+    setIsLoading,
+    confirmTableDraftItemsAction,
+    submitTableDraftAction,
+    refreshTableDraft,
+    clearCart,
+    setSubmittedSnapshot,
+    pmdLatestSubmittedPaymentOrderIdRef,
+    buildOpenOrderStorageKeys,
+    getTenantKey,
+    getTableKey,
+    ensureGuestSession,
+    setCheckoutStep,
+    onOpenOrderUpdate,
   })
-
-  useEffect(() => {
-    if (!isOpen) return
-    void refreshTableDraft()
-    const timer = window.setInterval(() => { void refreshTableDraft() }, 12000)
-    const onFocus = () => { void refreshTableDraft() }
-    window.addEventListener("focus", onFocus)
-    return () => { window.clearInterval(timer); window.removeEventListener("focus", onFocus) }
-  }, [isOpen, tableInfo?.table_id, tableInfo?.table_no, tableInfo?.qr_code])
-
-  // PMD_PRICED_OPTIONS_DRAFT_PAYLOAD_20260604
-  // Send option-enabled unit rows with priced options to backend.
-  // Backend remains source of truth for VAT/order totals, but it needs the per-line option subtotal.
-  const buildPersonalDraftItems = () => personalReviewItems.map((cartItem: any) => {
-    const menuId = Number((cartItem.item as any)?.id || (cartItem.item as any)?.menu_id || 0)
-    const baseName = String((cartItem.item as any)?.name || (cartItem.item as any)?.title || "Item")
-    const quantity = Number(cartItem.quantity || 1)
-    const optionKey = String((cartItem as any).__pmdOptionKey || (cartItem.item as any)?.id)
-    const selectedForUnit = selectedOptions[optionKey] || {}
-    const optionGroups = Array.isArray((cartItem.item as any)?.options) ? (cartItem.item as any).options : []
-
-    const optionDetails = Object.entries(selectedForUnit)
-      .map(([groupName, selectedValueId]) => {
-        const group = optionGroups.find((opt: any) =>
-          String(opt?.name || "") === String(groupName) ||
-          String(opt?.id || "") === String(groupName)
-        )
-        const value = (Array.isArray(group?.values) ? group.values : []).find((val: any) =>
-          String(val?.id) === String(selectedValueId)
-        )
-        if (!group || !value) return null
-
-        return {
-          group: String(group?.name || groupName),
-          option_id: String(group?.id || ""),
-          option_value_id: String(value?.id || selectedValueId),
-          value: String(value?.value || value?.name || selectedValueId),
-          price: Number(adjustPriceForVAT(Number(value?.price || 0))),
-        }
-      })
-      .filter(Boolean) as Array<{ group: string; option_id: string; option_value_id: string; value: string; price: number }>
-
-    const optionLabel = optionDetails.map((option) => option.value).filter(Boolean).join(", ")
-    const unitBasePrice = Number(adjustPriceForVAT(cartItem.item.price || 0))
-    const unitOptionPrice = optionDetails.reduce((sum, option) => sum + Number(option.price || 0), 0)
-    const unitPrice = Number((unitBasePrice + unitOptionPrice).toFixed(4))
-    const lineSubtotal = Number((unitPrice * quantity).toFixed(4))
-
-    return {
-      menu_id: menuId,
-      name: optionLabel ? `${baseName} — ${optionLabel}` : baseName,
-      base_name: baseName,
-      quantity,
-      price: unitPrice,
-      base_price: Number(unitBasePrice.toFixed(4)),
-      option_total: Number((unitOptionPrice * quantity).toFixed(4)),
-      subtotal: lineSubtotal,
-      options: Object.fromEntries(optionDetails.map((option) => [option.group, option.option_value_id])),
-      option_details: optionDetails,
-      option_summary: optionLabel,
-    }
-  }).filter((item) => item.menu_id > 0 && item.quantity > 0)
-
-  const handleConfirmMyItems = async () => {
-    const draftItems = buildPersonalDraftItems()
-    if (draftItems.length === 0) {
-      toast({ title: "No items selected", description: "Add items to your personal cart before confirming.", variant: "destructive" })
-      return
-    }
-    setIsLoading(true)
-    try {
-      const result = await confirmTableDraftItemsAction(draftItems)
-      setTableDraft(result)
-      setSubmittedSnapshot(null)
-      clearCart()
-      console.info("PMD_TABLE_DRAFT_CONFIRMED_ITEMS", { draft_id: result.draft_id ?? null, count: draftItems.length })
-      toast({ title: "Items confirmed", description: "Your items were added to the table order. Submit the table order when everyone is ready." })
-      await refreshTableDraft()
-      onOpenOrderUpdate?.(result)
-    } catch (error) {
-      toast({ title: "Could not confirm items", description: error instanceof Error ? error.message : "Please try again.", variant: "destructive" })
-    } finally {
-      setIsLoading(false)
-    }
-  }
-
-  const handleSubmitTableDraft = async () => {
-    if (!tableDraft?.draft_id && tableDraft?.status !== "draft") return
-    try {
-      const result = await submitTableDraftAction({ draftId: tableDraft?.draft_id ?? null, refreshOnError: true })
-      const pmdSubmittedOrderId = Number((result as any)?.order_id || (result as any)?.orderId || 0)
-      if (Number.isFinite(pmdSubmittedOrderId) && pmdSubmittedOrderId > 0) {
-        pmdLatestSubmittedPaymentOrderIdRef.current = pmdSubmittedOrderId
-        try {
-          sessionStorage.setItem("pmd:latest-submitted-payment-order-id", String(pmdSubmittedOrderId))
-          localStorage.setItem("pmd:latest-submitted-payment-order-id", String(pmdSubmittedOrderId))
-        } catch {}
-      }
-      setTableDraft(result)
-      clearCart()
-      const submittedTableSnapshot = createSubmittedTableOrderSnapshot(result, tableInfo, taxSettings?.percentage || 0)
-      try {
-        const { sessionKey, legacyKey } = buildOpenOrderStorageKeys()
-        localStorage.removeItem(legacyKey)
-        localStorage.setItem(sessionKey, JSON.stringify({ ...submittedTableSnapshot, tenant: getTenantKey(), tableKey: getTableKey(), guestSessionId: ensureGuestSession() }))
-      } catch {}
-      console.info("PMD_SUBMITTED_ORDER_SNAPSHOT_NORMALIZED", {
-        order_id: submittedTableSnapshot.orderId,
-        total: submittedTableSnapshot.total,
-        remainingAmount: submittedTableSnapshot.remainingAmount,
-        itemCount: Array.isArray(submittedTableSnapshot.submittedItems) ? submittedTableSnapshot.submittedItems.length : 0,
-      })
-      setSubmittedSnapshot(submittedTableSnapshot)
-            // PMD_NO_DOUBLE_CARD_CLEAR_SUBMIT_LOADING: action hook clears the old Sending state before showing Order Status.
-      setCheckoutStep(getCheckoutStepAfterDraftSubmit())
-      console.info("PMD_TABLE_DRAFT_SUBMITTED", { draft_id: tableDraft?.draft_id ?? null, order_id: result.order_id ?? null })
-      toast({ title: "Table order submitted", description: "The table order was sent to the kitchen. Payment is now available." })
-      onOpenOrderUpdate?.(submittedTableSnapshot)
-    } catch (error) {
-      toast({ title: "Could not submit table order", description: error instanceof Error ? error.message : "Please refresh and try again.", variant: "destructive" })
-    }
-  }
-
-  const markOpenOrderAsPaid = (orderIdLike?: string | number | null, paymentDetails?: { tipAmount?: number; couponDiscount?: number; paidTotal?: number; couponCode?: string | null }) => {
-    try {
-      const sessionKey = buildOpenOrderStorageKeys().sessionKey
-      const raw = localStorage.getItem(sessionKey)
-      if (!raw) return
-      const parsed = JSON.parse(raw)
-      if (orderIdLike && parsed?.orderId && String(parsed.orderId) !== String(orderIdLike)) return
-      parsed.paymentStatus = "paid"
-      parsed.status = "paid"
-      parsed.paidAt = Date.now()
-      if (paymentDetails) {
-        parsed.paidTipAmount = Number(paymentDetails.tipAmount || 0)
-        parsed.paidCouponDiscount = Number(paymentDetails.couponDiscount || 0)
-        parsed.paidTotal = Number(paymentDetails.paidTotal || 0)
-        parsed.paidCouponCode = paymentDetails.couponCode || null
-      }
-      setSubmittedSnapshot((prev: any) => prev ? { ...prev, paymentStatus: 'paid', status: 'paid', paidAt: parsed.paidAt, paidTipAmount: parsed.paidTipAmount, paidCouponDiscount: parsed.paidCouponDiscount, paidTotal: parsed.paidTotal, paidCouponCode: parsed.paidCouponCode } : parsed)
-      localStorage.setItem(sessionKey, JSON.stringify(parsed))
-      onOpenOrderUpdate?.(parsed)
-    } catch {}
-  }
 
 
   // PMD_BLOCK_DRAFT_ID_AS_ORDER_ID_20260612
   // PMD_IGNORE_STALE_EXISTING_ORDER_ID_20260612
-  const resolveSubmittedPaymentOrderId = (): number | null => {
-    const draftIdRaw = Number((tableDraft as any)?.draft_id || 0)
-    const draftId = Number.isFinite(draftIdRaw) && draftIdRaw > 0 ? draftIdRaw : null
+  const resolveSubmittedPaymentOrderId = (): number | null =>
+    resolveSubmittedPaymentOrderIdFromState({
+      tableDraft,
+      submittedSnapshot,
+      existingOrderId,
+      latestRefOrderId: pmdLatestSubmittedPaymentOrderIdRef.current,
+    })
 
-    const tableDraftOrderIdRaw = Number((tableDraft as any)?.order_id || (tableDraft as any)?.orderId || 0)
-    const tableDraftOrderId = Number.isFinite(tableDraftOrderIdRaw) && tableDraftOrderIdRaw > 0 ? tableDraftOrderIdRaw : null
-
-    // PMD_FIX_PAYMENT_REQUIRES_REAL_ORDER_ID_20260612
-    // A confirmed table draft is not payable until it is submitted and the backend returns a real order_id.
-    if (draftId && !tableDraftOrderId) {
-      return null
-    }
-
-    let storedLatestSubmittedOrderId: number | null = null
-    try {
-      const storedRaw =
-        (typeof window !== "undefined" && (
-          sessionStorage.getItem("pmd:latest-submitted-payment-order-id") ||
-          localStorage.getItem("pmd:latest-submitted-payment-order-id")
-        )) ||
-        ""
-      const storedValue = Number(storedRaw || 0)
-      storedLatestSubmittedOrderId =
-        Number.isFinite(storedValue) && storedValue > 0 ? storedValue : null
-    } catch {}
-
-    const snapshotOrderIdRaw = Number((submittedSnapshot as any)?.orderId || (submittedSnapshot as any)?.order_id || 0)
-    const snapshotOrderId = Number.isFinite(snapshotOrderIdRaw) && snapshotOrderIdRaw > 0 ? snapshotOrderIdRaw : null
-    const latestRefOrderId = pmdLatestSubmittedPaymentOrderIdRef.current
-    const currentSubmittedOrderId = tableDraftOrderId || snapshotOrderId || latestRefOrderId || null
-    const validatedStoredLatestOrderId =
-      storedLatestSubmittedOrderId && (!currentSubmittedOrderId || storedLatestSubmittedOrderId === currentSubmittedOrderId)
-        ? storedLatestSubmittedOrderId
-        : null
-
-    const existingOrderIdRaw = Number(existingOrderId || 0)
-    const trustedExistingOrderId =
-      Number.isFinite(existingOrderIdRaw) &&
-      existingOrderIdRaw > 0 &&
-      currentSubmittedOrderId &&
-      existingOrderIdRaw === currentSubmittedOrderId
-        ? existingOrderIdRaw
-        : null
-
-    const candidates = [
-      currentSubmittedOrderId,
-      tableDraftOrderId,
-      snapshotOrderId,
-      latestRefOrderId,
-      validatedStoredLatestOrderId,
-      trustedExistingOrderId,
-    ]
-
-    for (const raw of candidates) {
-      const value = Number(raw || 0)
-      if (!Number.isFinite(value) || value <= 0) continue
-
-      // A table draft id is not a payable order id. Only allow the same number
-      // if the backend explicitly returned it as tableDraft.order_id too.
-      if (draftId && value === draftId && tableDraftOrderId !== value) continue
-
-      return value
-    }
-
-    return null
-  }
-
-  const hasUnsubmittedPaymentDraft = (): boolean => {
-    return Boolean((tableDraft as any)?.draft_id && !resolveSubmittedPaymentOrderId())
-  }
+  const hasUnsubmittedPaymentDraft = (): boolean =>
+    hasUnsubmittedPaymentDraftFromState({
+      tableDraft,
+      submittedPaymentOrderId: resolveSubmittedPaymentOrderId(),
+    })
 
   // PMD_USE_SUBMITTED_ORDER_AMOUNT_FOR_PAYMENT_20260612
   const pmdPositiveMoney = positiveMoney
@@ -994,422 +524,77 @@ const [submittedSnapshot, setSubmittedSnapshot] = useState<any | null>(initialSu
     return subtotalFromSubmittedPaymentRows(rows)
   }
 
-  const resolveSubmittedPaymentAmount = (): number => {
-    const snapshot: any = submittedSnapshot || {}
-    const draft: any = tableDraft || {}
-    const draftTotals: any = draft?.totals || {}
-    const initial: any = initialSubmittedOrder || {}
-    const initialTotals: any = initial?.totals || {}
-
-    if (selectedSplitPersonId && selectedSplitPerson) {
-      return (
-        pmdPositiveMoney(selectedSplitPerson.total) ??
-        pmdPositiveMoney(paymentPayableTotal) ??
-        0
-      )
-    }
-
-    const candidates = [
-      snapshot.remainingAmount,
-      snapshot.orderTotal,
-      snapshot.total,
-      draftTotals.remainingAmount,
-      draftTotals.orderTotal,
-      draftTotals.total,
-      pmdSubmittedItemsSubtotal(),
-      initial.remainingAmount,
-      initial.orderTotal,
-      initial.total,
-      initialTotals.remainingAmount,
-      initialTotals.orderTotal,
-      initialTotals.total,
-      pendingSummary?.remainingAmount,
-      pendingSummary?.orderTotal,
-      (pendingSummary as any)?.total,
+  const resolveSubmittedPaymentAmount = (): number =>
+    resolveSubmittedPaymentAmountFromState({
+      selectedSplitPersonId,
+      selectedSplitPerson,
       paymentPayableTotal,
+      submittedSnapshot,
+      tableDraft,
+      initialSubmittedOrder,
+      pendingSummary,
       payableTotal,
       finalTotal,
-    ]
-
-    for (const value of candidates) {
-      const amount = pmdPositiveMoney(value)
-      if (amount !== null) return amount
-    }
-
-    return 0
-  }
+      submittedItemsSubtotal: pmdSubmittedItemsSubtotal(),
+    })
 
 
-  const handlePayment = async (
+    const handlePayment = async (
     stripePaymentIntentId?: string,
     forcedPaymentContext?: { method_code?: string | null; provider_code?: string | null }
-  ) => {
-    const effectiveMethodCode = forcedPaymentContext?.method_code || selectedPaymentMethod
-    const selectedMethodForSubmit = visiblePaymentMethods.find(method => method.code === effectiveMethodCode)
-    const selectedProviderCodeForSubmit =
-      effectiveMethodCode === "cod"
-        ? null
-        : (forcedPaymentContext?.provider_code || (selectedMethodForSubmit as any)?.provider_code || null)
-    const isStripeMethodForSubmit =
-      selectedProviderCodeForSubmit === "stripe" &&
-      (effectiveMethodCode === "card" || effectiveMethodCode === "apple_pay" || effectiveMethodCode === "google_pay" || effectiveMethodCode === "wero")
-
-    if (isStripeMethodForSubmit && !stripePaymentIntentId) {
-      toast({
-        title: "Payment Failed",
-        description: "Stripe payment confirmation is missing. Please try again.",
-        variant: "destructive",
-      })
-      return
-    }
-    setIsLoading(true)
-    try {
-      const isCashier = tableInfo?.is_codier || false
-
-      const routeTableId =
-        typeof window !== "undefined"
-          ? (window.location.pathname.match(/\/table\/(\d+)/)?.[1] ?? null)
-          : null
-
-      const queryTableId =
-        typeof window !== "undefined"
-          ? (
-              new URLSearchParams(window.location.search).get("table") ||
-              new URLSearchParams(window.location.search).get("table_id") ||
-              new URLSearchParams(window.location.search).get("table_no") ||
-              null
-            )
-          : null
-
-      const rawResolvedTableId =
-        tableInfo?.table_id ??
-        routeTableId ??
-        queryTableId ??
-        null
-
-      const numericResolvedTableId =
-        rawResolvedTableId !== null &&
-        rawResolvedTableId !== undefined &&
-        String(rawResolvedTableId).trim() !== "" &&
-        !Number.isNaN(Number(rawResolvedTableId))
-          ? Number(rawResolvedTableId)
-          : null
-
-      const resolvedTableName =
-        (tableInfo?.table_name && String(tableInfo.table_name).trim() !== "")
-          ? String(tableInfo.table_name)
-          : (numericResolvedTableId ? `Table ${numericResolvedTableId}` : "Delivery")
-
-      const resolvedLocationId = Number(tableInfo?.location_id || 1)
-
-      const normalizedItemsForOrder = itemsToPay.map((item, index) => {
-        const menuIdCandidate = Number((item as any)?.item?.id ?? (item as any)?.item?.menu_id ?? 0)
-        const quantityCandidate = Number((item as any)?.quantity || 1)
-        const priceCandidate = Number((item as any)?.price ?? (item as any)?.item?.price ?? 0)
-        const nameCandidate = String((item as any)?.item?.name ?? (item as any)?.item?.title ?? "").trim()
-
-        return {
-          menu_id: Number.isFinite(menuIdCandidate) ? menuIdCandidate : 0,
-          name: nameCandidate !== "" ? nameCandidate : `Item ${index + 1}`,
-          quantity: Number.isFinite(quantityCandidate) && quantityCandidate > 0 ? quantityCandidate : 1,
-          price: Number.isFinite(priceCandidate) && priceCandidate >= 0 ? priceCandidate : 0,
-          special_instructions: "",
-          options: Object.fromEntries(
-            Object.entries(selectedOptions[String((item as any)?.optionKey || (item as any)?.item?.id)] || {})
-              .map(([key, value]) => [String(key), String(value ?? "")])
-              .filter(([, value]) => value !== "")
-          ),
-        }
-      })
-
-      const orderData = {
-        table_id: isCashier ? "cashier" : (numericResolvedTableId != null ? String(numericResolvedTableId) : null),
-        table_name: String(isCashier ? "Cashier" : resolvedTableName),
-        location_id: resolvedLocationId,
-        is_codier: Boolean(isCashier),
-        items: normalizedItemsForOrder,
-        customer_name: String(
-          isCashier
-            ? "Cashier Customer"
-            : `${resolvedTableName} Customer`
-        ),
-        customer_phone: String(paymentFormData.phone || ""),
-        customer_email: String(paymentFormData.email || ""),
-        payment_method: (
-          effectiveMethodCode === "cod"
-            ? "cash"
-            : effectiveMethodCode === "paypal"
-              ? "paypal"
-              : "card"
-        ) as 'cash' | 'paypal' | 'card',
-        payment_method_raw: effectiveMethodCode || undefined,
-        payment_provider: selectedProviderCodeForSubmit || undefined,
-        payment_reference: stripePaymentIntentId ? String(stripePaymentIntentId) : undefined,
-        stripe_payment_intent_id: (isStripeMethodForSubmit && stripePaymentIntentId) ? String(stripePaymentIntentId) : undefined,
-        total_amount: Number(checkoutStep === "payment" ? payableTotal : finalTotal),
-        tip_amount: Number(checkoutStep === "payment" ? paymentTipAmount : tipAmount),
-        coupon_code: (checkoutStep === "payment" && selectedSplitPersonId) ? null : (appliedCoupon?.code ? String(appliedCoupon.code) : null),
-        coupon_discount: Number(checkoutStep === "payment" ? paymentCouponDiscount : couponDiscount),
-        guest_session_id: ensureGuestSession(),
-        special_instructions: "",
-      }
-
-      const existingLocalOrder = !hasUnsubmittedPaymentDraft() && initialSubmittedOrder?.paymentStatus !== "paid" ? initialSubmittedOrder : null
-      if (existingLocalOrder?.orderId) {
-        ;(orderData as any).existing_order_id = Number(existingLocalOrder.orderId)
-        ;(orderData as any).append_to_order = true
-      }
-      const paymentOrderIdCandidate = resolveSubmittedPaymentOrderId()
-      console.info("PMD_PAYMENT_ORDER_ID_RESOLVED", {
-        paymentOrderIdCandidate,
-        latestRef: pmdLatestSubmittedPaymentOrderIdRef.current,
-        submittedSnapshotOrderId: (submittedSnapshot as any)?.orderId || (submittedSnapshot as any)?.order_id || null,
-        tableDraftOrderId: (tableDraft as any)?.order_id || (tableDraft as any)?.orderId || null,
-        existingOrderId,
-      })
-      if (checkoutStep === "payment" && !paymentOrderIdCandidate) {
-        setIsLoading(false)
-        toast({
-          title: "Order not found",
-          description: "Please send the table order to the kitchen first.",
-          variant: "destructive",
-        })
-        return
-      }
-      const isQrPayLaterSubmittedOrder = String(tableDraft?.payment || submittedSnapshot?.payment || "").toLowerCase() === "qr_pay_later"
-      const shouldUsePayExisting = !!(checkoutStep === "payment" && paymentOrderIdCandidate && (pendingSummary || isQrPayLaterSubmittedOrder))
-      if (checkoutStep === "payment" && paymentOrderIdCandidate && !shouldUsePayExisting) {
-        try {
-          const started = await apiClient.startExistingOrderPayment({
-            order_id: Number(paymentOrderIdCandidate),
-            payment_method: String(effectiveMethodCode || "card"),
-            provider: selectedProviderCodeForSubmit || undefined,
-            guest_session_id: ensureGuestSession(),
-            table_id: tableInfo?.table_id ? String(tableInfo.table_id) : null,
-            table_no: tableInfo?.table_no ? String(tableInfo.table_no) : null,
-            source: "menu_existing_submitted",
-          })
-          if (String(effectiveMethodCode || "") === "cod") {
-            setIsLoading(false)
-            toast({ title: "Cash collection requested", description: started?.message || "Staff will collect payment shortly." })
-            return
-          }
-          if (isStripeMethodForSubmit) {
-            if (!stripePaymentIntentId) {
-              throw new Error("Stripe payment confirmation is missing")
-            }
-            await apiClient.finalizeExistingOrderPayment({
-              order_id: Number(paymentOrderIdCandidate),
-              payment_intent_id: String(stripePaymentIntentId),
-              payment_method: String(effectiveMethodCode || "card"),
-              provider: selectedProviderCodeForSubmit || "stripe",
-            })
-          }
-          if (selectedSplitPersonId) {
-            setPaidSplitPeople((prev) => ({ ...prev, [selectedSplitPersonId]: true }))
-          } else {
-            markOpenOrderAsPaid(paymentOrderIdCandidate, { tipAmount: paymentTipAmount, couponDiscount: paymentCouponDiscount, paidTotal: paymentPayableTotal, couponCode: appliedCoupon?.code || null })
-            resetPaymentAdjustmentsAfterSuccess()
-          }
-          setCheckoutStep(getCheckoutStepAfterPaymentSuccess())
-          setIsLoading(false)
-          toast({
-            title: t("paymentSuccessful"),
-            description: `Order #${paymentOrderIdCandidate} paid successfully!`,
-          })
-          return
-        } catch (e) {
-          setIsLoading(false)
-          toast({
-            title: "Payment unavailable",
-            description: "Payment could not be started. Please ask staff or try again.",
-            variant: "destructive",
-          })
-          return
-        }
-      }
-      if (shouldUsePayExisting && paymentOrderIdCandidate) {
-        const paidMethod = orderData.payment_method
-        const selectedItemsPayload = selectedSplitPersonId && splitMethod === "items"
-          ? splitSourceItems.reduce<Array<{ order_menu_id: number; quantity: number }>>((acc, item) => {
-              const guestIndex = Number(String(selectedSplitPersonId).replace("guest-", ""))
-              if (itemAssignments[item.key] !== guestIndex) return acc
-              const orderMenuId = Number(item.orderMenuId || 0)
-              if (!orderMenuId) return acc
-              const existing = acc.find((row) => row.order_menu_id === orderMenuId)
-              if (existing) existing.quantity += 1
-              else acc.push({ order_menu_id: orderMenuId, quantity: 1 })
-              return acc
-            }, [])
-          : undefined
-
-        const existingOrderAmount = checkoutStep === "payment"
-          ? resolveSubmittedPaymentAmount()
-          : (selectedSplitPerson?.total
-            ? Number(selectedSplitPerson.total.toFixed(2))
-            : (isSplitting
-              ? null
-              : (toPositiveAmount(pendingSummary?.remainingAmount) ?? toPositiveAmount(submittedSnapshot?.total) ?? null)))
-
-        console.info("PMD_PAYMENT_AMOUNT_RESOLVED", {
-          order_id: paymentOrderIdCandidate,
-          amount: existingOrderAmount,
-          payableTotal,
-          paymentPayableTotal,
-          submittedSnapshotTotal: (submittedSnapshot as any)?.total ?? null,
-          submittedSnapshotRemaining: (submittedSnapshot as any)?.remainingAmount ?? null,
-          tableDraftTotal: (tableDraft as any)?.totals?.total ?? null,
-          submittedItemsSubtotal: pmdSubmittedItemsSubtotal(),
-        })
-
-        const payExistingPayload = {
-          payment_method: String(paidMethod),
-          payment_reference: stripePaymentIntentId ? String(stripePaymentIntentId) : null,
-          amount: existingOrderAmount,
-          tip_amount: checkoutStep === "payment" ? Number(paymentTipAmount.toFixed(2)) : 0,
-          coupon_discount: checkoutStep === "payment" ? Number(paymentCouponDiscount.toFixed(2)) : 0,
-          coupon_code: checkoutStep === "payment" && appliedCoupon?.code ? String(appliedCoupon.code) : null,
-          selected_items: selectedItemsPayload,
-          table_id: tableInfo?.table_id ? String(tableInfo.table_id) : null,
-          table_no: tableInfo?.table_no ? String(tableInfo.table_no) : null,
-          qr: tableInfo?.qr_code ? String(tableInfo.qr_code) : null,
-        }
-        console.info("PMD_PAY_EXISTING_PAYLOAD", { order_id: paymentOrderIdCandidate, ...payExistingPayload })
-        const paidResponse = await apiClient.payExistingQrOrder(paymentOrderIdCandidate, payExistingPayload)
-
-        if (paidResponse?.success) {
-          setIsLoading(false)
-          toast({
-            title: t("paymentSuccessful"),
-            description: `Order #${paymentOrderIdCandidate} paid successfully!`
-          })
-
-          const orderId = String(paymentOrderIdCandidate)
-          localStorage.setItem("lastOrderId", orderId)
-
-          const returnUrl =
-            typeof window !== "undefined"
-              ? `${window.location.pathname}${window.location.search}`
-              : "/menu"
-
-          const params = new URLSearchParams()
-          params.set("order_id", orderId)
-          params.set("return_url", returnUrl)
-
-          if (selectedSplitPersonId) {
-            setPaidSplitPeople((prev) => ({ ...prev, [selectedSplitPersonId]: true }))
-          } else {
-            markOpenOrderAsPaid(paymentOrderIdCandidate, { tipAmount: paymentTipAmount, couponDiscount: paymentCouponDiscount, paidTotal: paymentPayableTotal, couponCode: appliedCoupon?.code || null })
-            resetPaymentAdjustmentsAfterSuccess()
-          }
-          setCheckoutStep(getCheckoutStepAfterPaymentSuccess())
-          return
-        }
-      }
-
-      const response = await apiClient.submitOrder(orderData)
-
-      if (response.success) {
-        setIsLoading(false)
-        toast({
-          title: t("paymentSuccessful"),
-          description: `Order #${response.order_id} submitted successfully!`
-        })
-
-        const orderId = response.order_id ? String(response.order_id) : ""
-
-        // Save order ID for status tracking
-        if (orderId) {
-          localStorage.setItem("lastOrderId", orderId)
-        }
-
-        const returnUrl =
-          typeof window !== "undefined"
-            ? `${window.location.pathname}${window.location.search}`
-            : "/menu"
-
-        const params = new URLSearchParams()
-        if (orderId) params.set("order_id", orderId)
-        params.set("return_url", returnUrl)
-
-        try {
-          const guestSessionId = ensureGuestSession()
-          const tenant = getTenantKey()
-          const tableKey = getTableKey()
-          const sessionKey = buildOpenOrderStorageKeys().sessionKey
-          const orderIdVal = response.order_id ? String(response.order_id) : ''
-          const responseTotals = Array.isArray((response as any)?.order_totals) ? (response as any).order_totals : []
-          const getTotalByCode = (code: string) => {
-            const found = responseTotals.find((row: any) => String(row?.code || '') === code)
-            const amount = Number(found?.value ?? 0)
-            return Number.isFinite(amount) ? amount : 0
-          }
-          const responseItems = Array.isArray((response as any)?.items) ? (response as any).items : []
-          const combinedSubmittedItems = responseItems.length > 0
-            ? responseItems.map((item: any) => ({
-                id: Number(item?.menu_id || item?.id || 0),
-                name: String(item?.name || 'Item'),
-                quantity: Number(item?.quantity || 0),
-                price: Number(item?.price || 0),
-                subtotal: Number(item?.subtotal || (Number(item?.quantity || 0) * Number(item?.price || 0))),
-              }))
-            : normalizedItemsForOrder
-          const settlement = (response as any)?.settlement || {}
-          const serverOrderTotal = Number((response as any)?.order_total ?? (response as any)?.total ?? 0)
-          const snapshot = {
-            guestSessionId, tenant, tableKey,
-            tableNumber: tableInfo?.table_no || tableInfo?.table_id || null,
-            orderId: orderIdVal || null,
-            status: 'submitted',
-            paymentStatus: 'unpaid',
-            subtotal: Number(getTotalByCode('subtotal') || subtotal || 0),
-            vatAmount: Number(getTotalByCode('tax') || taxAmount || 0),
-            vatPercentage: Number(taxSettings?.percentage || 0),
-            total: Number(serverOrderTotal > 0 ? serverOrderTotal : (finalTotal || 0)),
-            orderTotal: Number(serverOrderTotal > 0 ? serverOrderTotal : (finalTotal || 0)),
-            settledAmount: Number(settlement?.settledAmount || 0),
-            remainingAmount: Number(settlement?.remainingAmount ?? (serverOrderTotal > 0 ? serverOrderTotal : (finalTotal || 0))),
-            settlementStatus: String(settlement?.settlementStatus || 'unpaid'),
-            etaMinutes: Number((response as any)?.eta_minutes ?? (response as any)?.estimated_prep_minutes ?? estimatedMinutes),
-            showCustomerEta: Boolean((response as any)?.show_customer_eta ?? true),
-            currency: String(merchantSettings?.currency || 'EUR'),
-            submittedItems: combinedSubmittedItems,
-            createdAt: Date.now()
-          }
-          localStorage.setItem(sessionKey, JSON.stringify(snapshot))
-          setSubmittedSnapshot(snapshot)
-          onOpenOrderUpdate?.(snapshot)
-        } catch {}
-        clearCart()
-        if (checkoutStep === "payment") {
-          markOpenOrderAsPaid(orderId || submittedSnapshot?.orderId || null, { tipAmount: paymentTipAmount, couponDiscount: paymentCouponDiscount, paidTotal: paymentPayableTotal, couponCode: appliedCoupon?.code || null })
-          resetPaymentAdjustmentsAfterSuccess()
-          setCheckoutStep(getCheckoutStepAfterOrderSubmit(checkoutStep))
-        } else {
-          setCheckoutStep(getCheckoutStepAfterOrderSubmit(checkoutStep))
-        }
-        return
-      } else {
-        throw new Error('Order submission failed')
-      }
-    } catch (error) {
-    setIsLoading(false)
-      console.error('Order submission error:', error)
-      const normalizedMessage =
-        error instanceof Error && /given data was invalid|unprocessable|amount|selected items amount mismatch/i.test(error.message)
-          ? "Payment could not be started. Please ask staff or try again."
-          : null
-      const validationDetails = (error as any)?.details as Record<string, string[]> | undefined
-      const firstValidationMessage = validationDetails
-        ? Object.values(validationDetails).flat().find(Boolean)
-        : null
-      toast({
-        title: "Order Failed",
-        description: normalizedMessage || firstValidationMessage || (error instanceof Error ? error.message : "Failed to submit order. Please try again."),
-        variant: "destructive"
-      })
-    }
-  }
+  ) => handlePaymentFlow({
+    stripePaymentIntentId,
+    forcedPaymentContext,
+    selectedPaymentMethod,
+    visiblePaymentMethods,
+    toast,
+    setIsLoading,
+    tableInfo,
+    itemsToPay,
+    paymentFormData,
+    tableDraft,
+    selectedOptions,
+    checkoutStep,
+    payableTotal,
+    finalTotal,
+    paymentTipAmount,
+    tipAmount,
+    selectedSplitPersonId,
+    appliedCoupon,
+    paymentCouponDiscount,
+    couponDiscount,
+    ensureGuestSession,
+    hasUnsubmittedPaymentDraft,
+    initialSubmittedOrder,
+    resolveSubmittedPaymentOrderId,
+    pmdLatestSubmittedPaymentOrderIdRef,
+    submittedSnapshot,
+    existingOrderId,
+    pendingSummary,
+    resetPaymentAdjustmentsAfterSuccess,
+    setCheckoutStep,
+    t,
+    selectedSplitPerson,
+    isSplitting,
+    splitMethod,
+    splitSourceItems,
+    itemAssignments,
+    pmdSubmittedItemsSubtotal,
+    paymentPayableTotal,
+    markOpenOrderAsPaid,
+    setPaidSplitPeople,
+    taxSettings,
+    subtotal,
+    taxAmount,
+    merchantSettings,
+    estimatedMinutes,
+    onOpenOrderUpdate,
+    clearCart,
+    setSubmittedSnapshot,
+    getTenantKey,
+    getTableKey,
+    buildOpenOrderStorageKeys,
+  })
 
   // Toggle selection for individual item instance
   const toggleItemSelection = (instance: SplitBillItem) => {
@@ -1468,388 +653,49 @@ const [submittedSnapshot, setSubmittedSnapshot] = useState<any | null>(initialSu
     }
     return v
   }
-
-  useEffect(() => {
-    const api = new ApiClient();
-    api.getPaymentMethods()
-      .then(setPaymentMethods)
-      .finally(() => setLoadingPayments(false));
-  }, [])
-
-  useEffect(() => {
-    let cancelled = false
-    setPaypalConfigLoading(true)
-
-    fetch('/api/v1/payments/config-public')
-      .then((res) => res.json())
-      .then((data) => {
-        if (cancelled) return
-        setPaypalPublicConfig({
-          enabled: !!data?.paypalEnabled,
-          clientId: data?.paypalClientId || "",
-          currency: data?.currency || "EUR",
-        })
-      })
-      .catch(() => {
-        if (!cancelled) {
-          setPaypalPublicConfig({
-            enabled: false,
-            clientId: "",
-            currency: "EUR",
-          })
-        }
-      })
-      .finally(() => {
-        if (!cancelled) setPaypalConfigLoading(false)
-      })
-
-    return () => {
-      cancelled = true
-    }
-  }, [])
   useEffect(() => {
     // Load VAT settings from backend on mount
     loadVATSettings()
   }, [loadVATSettings])
 
-  const stripeUrlParams =
-    typeof window !== "undefined" ? new URLSearchParams(window.location.search) : null
+  const {
+    stripeResolvedTableIdRaw,
+    stripeResolvedTableNumber,
+    stripeResolvedTableName,
+    stripeResolvedLocationId,
+    stripeResolvedRestaurantId,
+    selectedMethod,
+    selectedProviderCode,
+    stripePaymentData,
+  } = useCheckoutPaymentContext({
+    tableInfo,
+    merchantSettings,
+    stripeConfig,
+    visiblePaymentMethods,
+    selectedPaymentMethod,
+    itemsToPay,
+    paymentFormData,
+    resolveSubmittedPaymentAmount,
+  })
 
-  const stripePathTableId =
-    typeof window !== "undefined"
-      ? (window.location.pathname.match(/\/table\/(\d+)/)?.[1] ?? null)
-      : null
 
-  const stripeResolvedTableIdRaw =
-    tableInfo?.table_id ??
-    stripeUrlParams?.get("table") ??
-    stripeUrlParams?.get("table_id") ??
-    stripeUrlParams?.get("table_no") ??
-    stripePathTableId ??
-    null
-
-  const stripeResolvedDisplayTableRaw =
-    (tableInfo as any)?.table_no ??
-    stripeUrlParams?.get("table_no") ??
-    stripeUrlParams?.get("table") ??
-    stripeUrlParams?.get("table_id") ??
-    tableInfo?.table_id ??
-    stripePathTableId ??
-    null
-
-  const stripeResolvedTableNumber =
-    stripeResolvedDisplayTableRaw !== null &&
-    stripeResolvedDisplayTableRaw !== undefined &&
-    String(stripeResolvedDisplayTableRaw).trim() !== "" &&
-    !Number.isNaN(Number(stripeResolvedDisplayTableRaw))
-      ? Number(stripeResolvedDisplayTableRaw)
-      : null
-
-  const stripeResolvedTableName =
-    tableInfo?.table_name && String(tableInfo.table_name).trim() !== ""
-      ? String(tableInfo.table_name)
-      : (stripeResolvedTableNumber ? `Table ${stripeResolvedTableNumber}` : "Delivery")
-
-  const stripeResolvedLocationId = Number(tableInfo?.location_id || 1)
-
-  const stripeResolvedRestaurantId = String(
-    tableInfo?.location_id ??
-    (tableInfo as any)?.merchant_id ??
-    merchantSettings?.accountId ??
-    "default"
-  )
-
-  const selectedMethod = findPaymentMethod(visiblePaymentMethods, selectedPaymentMethod)
-  const selectedProviderCode = getPaymentMethodProviderCode(selectedMethod)
-
-  const stripePaymentData = {
-    amount: resolveSubmittedPaymentAmount(),
-    currency: (stripeConfig?.currency || merchantSettings?.currency || "EUR"),
-    items: itemsToPay.map((item: any) => ({
-      id: String(item.item.id),
-      name: item.item.name,
-      price: item.price,
-      quantity: item.quantity || 1,
-      restaurantId: stripeResolvedRestaurantId,
-    })),
-    customerInfo: {
-      name: paymentFormData.cardholderName || "",
-      email: paymentFormData.email || "",
-      phone: paymentFormData.phone || "",
-    },
-    restaurantId: stripeResolvedRestaurantId,
-    tableNumber: stripeResolvedTableNumber || 0,
-  }
-
-  const startHostedRedirectCheckout = async () => {
-    if (!selectedMethod || !["card", "wero", "paypal", "apple_pay", "google_pay"].includes(selectedMethod.code)) return
-    if (!(resolveSubmittedPaymentAmount() > 0)) {
-      setProviderInlineError("Order total is still updating. Please reopen My Order.")
-      toast({
-        title: "Order total unavailable",
-        description: "Order total is still updating. Please reopen My Order.",
-        variant: "destructive",
-      })
-      return
-    }
-    const existingSubmittedOrderIdForGuard =
-      checkoutStep === "payment" && !pendingSummary
-        ? resolveSubmittedPaymentOrderId()
-        : null
-
-    if (checkoutStep === "payment" && !pendingSummary && !existingSubmittedOrderIdForGuard && hasUnsubmittedPaymentDraft()) {
-      setProviderInlineError("Please submit the table order first, then start payment.")
-      toast({
-        title: "Submit order first",
-        description: "Please submit the table order first, then start payment.",
-        variant: "destructive",
-      })
-      return
-    }
-
-    setProviderInlineError(null)
-    setIsLoading(true)
-    let shouldFallbackFromWero = false
-    try {
-      let existingOrderStart: any = null
-      const existingSubmittedOrderId =
-        checkoutStep === "payment" && !pendingSummary
-          ? resolveSubmittedPaymentOrderId()
-          : null
-      if (existingSubmittedOrderId) {
-        existingOrderStart = await apiClient.startExistingOrderPayment({
-          order_id: Number(existingSubmittedOrderId),
-          payment_method: String(selectedMethod.code),
-          provider: String((selectedMethod as any)?.provider_code || ""),
-          guest_session_id: ensureGuestSession(),
-          table_id: tableInfo?.table_id ? String(tableInfo.table_id) : null,
-          table_no: tableInfo?.table_no ? String(tableInfo.table_no) : null,
-          source: "menu_existing_submitted",
-        })
-      }
-      const selectedProviderCodeForCheckout = String((selectedMethod as any)?.provider_code || "").toLowerCase()
-      const providerCode = selectedMethod.code === "wero"
-        ? (selectedProviderCodeForCheckout === "worldline" ? "worldline" : (selectedProviderCodeForCheckout === "vr_payment" ? "vr_payment" : "stripe"))
-        : (selectedProviderCodeForCheckout || "unknown")
-      const providerReturnCode = providerCode === "worldline" ? "worldline" : (providerCode === "vr_payment" ? "vr_payment" : "wero")
-      const merchantReference = `PMD-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`
-      const returnUrl =
-        typeof window !== "undefined"
-          ? `${window.location.origin}${window.location.pathname}${window.location.search ? `${window.location.search}&` : "?"}payment_return_provider=${encodeURIComponent(providerReturnCode)}`
-          : "/menu"
-      const cancelUrl =
-        typeof window !== "undefined"
-          ? window.location.href
-          : "/menu"
-
-      const vrEndpointByMethod: Record<string, string> = {
-        card: "/api/v1/payments/vr-payment/card/create-session",
-        paypal: "/api/v1/payments/vr-payment/paypal/create-session",
-        wero: "/api/v1/payments/vr-payment/wero/create-session",
-        apple_pay: "/api/v1/payments/vr-payment/apple-pay/create-session",
-        google_pay: "/api/v1/payments/vr-payment/google-pay/create-session",
-      }
-      const checkoutEndpoint = providerCode === "vr_payment"
-        ? (vrEndpointByMethod[selectedMethod.code] || "/api/v1/payments/vr-payment/card/create-session")
-        : selectedMethod.code === "wero"
-          ? (selectedProviderCodeForCheckout === "worldline"
-            ? "/api/v1/payments/worldline/wero/create-session"
-            : "/api/v1/payments/wero/create-session")
-          : "/api/v1/payments/card/create-session"
-      console.info("[PMD_CHECKOUT_FLOW_TRACE]", {
-        selected_method: selectedMethod.code,
-        backend_selected_provider: providerCode,
-        endpoint: checkoutEndpoint,
-        flow_mode: "primary",
-      })
-      const res = await fetch(checkoutEndpoint, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          amount: Number(existingOrderStart?.amount || resolveSubmittedPaymentAmount()),
-          currency: String(existingOrderStart?.currency || merchantSettings?.currency || "EUR"),
-          return_url: returnUrl,
-          cancel_url: cancelUrl,
-          customer_email: paymentFormData.email || "",
-          merchant_reference: merchantReference,
-          order_id: existingSubmittedOrderId ? Number(existingSubmittedOrderId) : undefined,
-          items: itemsToPay.map((item: any) => ({
-            id: String(item.item.id),
-            name: item.item.name,
-            quantity: Number(item.quantity || 1),
-            price: Number(item.price || 0),
-          })),
-        }),
-      })
-
-      const rawBody = await res.text()
-      let json: any = null
-      try {
-        json = rawBody ? JSON.parse(rawBody) : null
-      } catch {
-        json = null
-      }
-
-      if (!res.ok || !json?.success || !json?.redirect_url) {
-        const providerLabel = providerCode === "worldline"
-          ? "Worldline"
-          : providerCode === "vr_payment"
-            ? "VR Payment"
-            : providerCode === "sumup"
-              ? "SumUp"
-              : providerCode === "square"
-                ? "Square"
-                : "Stripe"
-        const resolvedErrorCode = String(json?.resolved_error_code || json?.error_code || "").toLowerCase()
-        const fallbackAllowedByCode = [
-          "worldline_invalid_credentials_or_entitlement",
-          "worldline_session_unavailable",
-        ].includes(resolvedErrorCode)
-        const fallbackAllowed = Boolean(json?.allow_fallback) || fallbackAllowedByCode
-        const normalizedErrorMessage = json?.error
-          || (rawBody && rawBody.length < 1000 ? rawBody : "")
-          || `${providerLabel} checkout failed with HTTP ${res.status}`
-
-        if (
-          selectedMethod.code === "wero" &&
-          (json?.error_code === "wero_not_supported" || json?.error_code === "wero_unavailable")
-        ) {
-          shouldFallbackFromWero = true
-          throw new Error("Wero is currently unavailable. Please choose another payment method.")
-        }
-        if (selectedMethod.code === "wero") {
-          if (providerCode === "worldline" && fallbackAllowed) {
-            const fallbackReturnUrl = returnUrl.includes("payment_return_provider=")
-              ? returnUrl.replace(/payment_return_provider=[^&]*/i, "payment_return_provider=wero")
-              : `${returnUrl}${returnUrl.includes("?") ? "&" : "?"}payment_return_provider=wero`
-            const fallbackRes = await fetch("/api/v1/payments/wero/create-session", {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({
-                amount: resolveSubmittedPaymentAmount(),
-                currency: (merchantSettings?.currency || "EUR"),
-                return_url: fallbackReturnUrl,
-                cancel_url: cancelUrl,
-                customer_email: paymentFormData.email || "",
-                fallback_method: "ideal",
-                fallback_from_worldline: true,
-                items: itemsToPay.map((item: any) => ({
-                  id: String(item.item.id),
-                  name: item.item.name,
-                  quantity: Number(item.quantity || 1),
-                  price: Number(item.price || 0),
-                })),
-              }),
-            })
-            const fallbackRawBody = await fallbackRes.text()
-            let fallbackJson: any = null
-            try {
-              fallbackJson = fallbackRawBody ? JSON.parse(fallbackRawBody) : null
-            } catch {
-              fallbackJson = null
-            }
-
-            if (fallbackRes.ok && fallbackJson?.success && fallbackJson?.redirect_url) {
-              console.info("[PMD_CHECKOUT_FLOW_TRACE]", {
-                selected_method: "wero",
-                original_provider: "worldline",
-                backend_selected_provider: String(fallbackJson?.provider || "stripe"),
-                fallback_provider: String(fallbackJson?.fallback_provider || "stripe"),
-                fallback_method: String(fallbackJson?.fallback_method || "ideal"),
-                resolved_error_code: resolvedErrorCode,
-                endpoint: "/api/v1/payments/wero/create-session",
-                flow_mode: "fallback",
-                redirect_url_type: typeof fallbackJson?.redirect_url,
-                has_session_id: Boolean(fallbackJson?.session_id),
-              })
-              if (typeof window !== "undefined" && fallbackJson?.session_id) {
-                localStorage.setItem("pmd_wero_pending_checkout", JSON.stringify({
-                  session_id: String(fallbackJson.session_id),
-                  method_code: "wero",
-                  provider_code: "stripe",
-                  created_at: Date.now(),
-                }))
-              }
-              if (typeof window !== "undefined") {
-                window.location.href = String(fallbackJson.redirect_url)
-              }
-              return
-            }
-          }
-
-          throw new Error(
-            `${providerLabel} Wero error${resolvedErrorCode ? ` (${resolvedErrorCode})` : ""}: ${normalizedErrorMessage}`
-          )
-        }
-        throw new Error(normalizedErrorMessage || "Unable to start hosted checkout")
-      }
-
-      if (typeof window !== "undefined") {
-        if (providerCode === "worldline" && json?.hosted_checkout_id) {
-          localStorage.setItem("pmd_worldline_pending_checkout", JSON.stringify({
-            hosted_checkout_id: String(json.hosted_checkout_id),
-            method_code: selectedMethod.code,
-            provider_code: providerCode,
-            created_at: Date.now(),
-          }))
-        }
-        if (providerCode === "sumup" && json?.checkout_id) {
-          localStorage.setItem("pmd_sumup_pending_checkout", JSON.stringify({
-            checkout_id: String(json.checkout_id),
-            created_at: Date.now(),
-          }))
-        }
-        if (providerCode === "square" && json?.payment_link_id) {
-          localStorage.setItem("pmd_square_pending_checkout", JSON.stringify({
-            payment_link_id: String(json.payment_link_id),
-            order_id: json?.order_id ? String(json.order_id) : null,
-            created_at: Date.now(),
-          }))
-        }
-        if (providerCode === "stripe" && json?.session_id) {
-          localStorage.setItem("pmd_wero_pending_checkout", JSON.stringify({
-            session_id: String(json.session_id),
-            method_code: selectedMethod.code,
-            provider_code: providerCode,
-            created_at: Date.now(),
-          }))
-        }
-        if (providerCode === "vr_payment" && json?.session_id) {
-          localStorage.setItem("pmd_vr_payment_pending_checkout", JSON.stringify({
-            session_id: String(json.session_id),
-            merchant_reference: merchantReference,
-            method_code: selectedMethod.code,
-            provider_code: "vr_payment",
-            created_at: Date.now(),
-          }))
-        }
-      }
-
-      if (typeof window !== "undefined") {
-        console.info("[PMD_CHECKOUT_FLOW_TRACE]", {
-          selected_method: selectedMethod.code,
-          backend_selected_provider: String(json?.provider || providerCode),
-          endpoint: checkoutEndpoint,
-          flow_mode: Boolean(json?.fallback) ? "fallback" : "primary",
-          redirect_url_type: typeof json?.redirect_url,
-          has_session_id: Boolean(json?.session_id),
-          has_hosted_checkout_id: Boolean(json?.hosted_checkout_id),
-        })
-        window.location.href = json.redirect_url
-      }
-    } catch (error) {
-      if (shouldFallbackFromWero) {
-        setSelectedPaymentMethod(null)
-      }
-      setIsLoading(false)
-      setProviderInlineError(error instanceof Error ? error.message : "Unable to start checkout")
-      toast({
-        title: "Payment Failed",
-        description: error instanceof Error ? error.message : "Unable to start checkout",
-        variant: "destructive",
-      })
-    }
-  }
+  const startHostedRedirectCheckout = () => startHostedRedirectCheckoutFlow({
+    selectedMethod,
+    resolveSubmittedPaymentAmount,
+    setProviderInlineError,
+    toast,
+    checkoutStep,
+    pendingSummary,
+    resolveSubmittedPaymentOrderId,
+    hasUnsubmittedPaymentDraft,
+    setSelectedPaymentMethod,
+    setIsLoading,
+    ensureGuestSession,
+    tableInfo,
+    merchantSettings,
+    paymentFormData,
+    itemsToPay,
+  })
 
   usePaymentReturnVerification({
     handlePayment,
@@ -1900,64 +746,26 @@ const [submittedSnapshot, setSubmittedSnapshot] = useState<any | null>(initialSu
   const submittedContextLabel = submittedSnapshot?.tableNumber || isTableContext ? "Table" : "Order type"
   const submittedContextValue = submittedSnapshot?.tableNumber ? `Table ${submittedSnapshot.tableNumber}` : orderContextValue
 
-  // PMD_FINAL_REVIEW_INVOICE_ACTIONS_20260605
-  const activeReviewSharePlatforms = useMemo(() => {
-    const platformMeta: Array<{ id: PmdSocialPlatformId; label: string; icon: typeof Star }> = [
-      { id: "trustpilot", label: "Trustpilot", icon: Star },
-      { id: "instagram", label: "Instagram", icon: Link2 },
-      { id: "google", label: "Google Reviews", icon: QrCode },
-      { id: "website", label: "Website", icon: Link2 },
-      { id: "reviews", label: "Reviews page", icon: MessageSquare },
-    ]
-
-    return platformMeta.filter(({ id }) => {
-      const platform = merchantSettings.reviewSocial?.platforms?.[id]
-      return Boolean(platform?.enabled && platform?.url)
-    })
-  }, [merchantSettings.reviewSocial])
-
-  const canSubmitReview = reviewRating > 0 || reviewComment.trim().length > 0
-
-  const handleSubmitReview = async () => {
-    if (!canSubmitReview || reviewSubmitStatus === "loading") return
-    setReviewSubmitStatus("loading")
-    setReviewSubmitMessage("")
-    try {
-      const orderId = submittedSnapshot?.orderId || submittedSnapshot?.order_id || initialSubmittedOrder?.orderId || existingOrderId || null
-      await apiClient.submitReview({ order_id: orderId, rating: reviewRating, review: reviewComment.trim(), public_share_consent: null })
-      setReviewSubmitStatus("success")
-      setReviewSubmitMessage("Thank you — your review was sent to the restaurant.")
-    } catch (error) {
-      setReviewSubmitStatus("error")
-      setReviewSubmitMessage(error instanceof Error ? error.message : "Could not submit your review. Please try again.")
-    }
-  }
-
-  const handleDownloadBusinessInvoice = async () => {
-    const orderId = submittedSnapshot?.orderId || submittedSnapshot?.order_id || initialSubmittedOrder?.orderId || existingOrderId || null
-    if (!orderId || invoiceDownloadStatus === "loading") {
-      setInvoiceDownloadStatus("error")
-      setInvoiceDownloadMessage("Order number is not available yet.")
-      return
-    }
-    setInvoiceDownloadStatus("loading")
-    setInvoiceDownloadMessage("")
-    try {
-      const blob = await apiClient.downloadBusinessInvoice(orderId)
-      const objectUrl = URL.createObjectURL(blob)
-      const link = document.createElement("a")
-      link.href = objectUrl
-      link.download = `business-invoice-${orderId}.pdf`
-      document.body.appendChild(link)
-      link.click()
-      link.remove()
-      window.setTimeout(() => URL.revokeObjectURL(objectUrl), 1000)
-      setInvoiceDownloadStatus("idle")
-    } catch (error) {
-      setInvoiceDownloadStatus("error")
-      setInvoiceDownloadMessage(error instanceof Error ? error.message : "Could not download the business invoice.")
-    }
-  }
+  const {
+    reviewRating,
+    setReviewRating,
+    reviewComment,
+    setReviewComment,
+    reviewSubmitStatus,
+    setReviewSubmitStatus,
+    reviewSubmitMessage,
+    invoiceDownloadStatus,
+    invoiceDownloadMessage,
+    activeReviewSharePlatforms,
+    canSubmitReview,
+    handleSubmitReview,
+    handleDownloadBusinessInvoice,
+  } = useCheckoutReviewInvoiceActions({
+    merchantSettings,
+    submittedSnapshot,
+    initialSubmittedOrder,
+    existingOrderId,
+  })
 
 
   const checkoutTitle: Record<CheckoutStep, string> = {
@@ -2071,31 +879,6 @@ const modalTitle = checkoutStep === "review" && tableDraft?.success && tableDraf
     ? "Table Order"
     : checkoutTitle[checkoutStep]
 
-  const startSplitFlow = (method: SplitMethod = splitMethod) => {
-    const isStartingSplit = !isSplitting && !selectedSplitPersonId
-    if (isStartingSplit) {
-      setSplitGuestCount(suggestedSplitGuestCount)
-      setSharePercents(buildEvenSharePercents(suggestedSplitGuestCount))
-    }
-    setIsSplitting(true)
-    setSplitMethod(method)
-    setSelectedPaymentMethod(null)
-    setSelectedSplitPersonId(null)
-    setCheckoutStep(getCheckoutStepForSplitMethod(method))
-  }
-
-  const chooseSplitMethod = (method: SplitMethod) => {
-    setSplitMethod(method)
-    startSplitFlow(method)
-  }
-
-  const goToSplitReview = () => {
-    if (!canConfirmSplitMethod) return
-    setIsSplitting(true)
-    setSelectedSplitPersonId((current) => current || activeSplitPeople[0]?.id || null)
-    setCheckoutStep("split-review")
-  }
-
   const renderPaymentButton = () => (
     <PaymentActionButton
       selectedMethod={selectedMethod}
@@ -2109,39 +892,18 @@ const modalTitle = checkoutStep === "review" && tableDraft?.success && tableDraf
     />
   )
 
-  const modernGreenTableDraftItems = groupOrderDisplayItems(Array.isArray(tableDraft?.items) ? tableDraft.items : [])
-  const modernGreenTableDraftTotal = Number(
-    tableDraft?.totals?.total ??
-    tableDraft?.totals?.orderTotal ??
-    tableDraft?.total ??
-    tableOrderTotalByCode(tableDraft, "total") ??
-    tableOrderTotalByCode(tableDraft, "subtotal") ??
-    0
-  )
-  const modernGreenSubmittedItems = groupOrderDisplayItems(Array.isArray(submittedSnapshot?.submittedItems) ? submittedSnapshot.submittedItems : [])
-  const modernGreenPersonalItems = personalReviewItems.map((cartItem: any) => {
-    const optionKey = String(cartItem.__pmdOptionKey || cartItem.item.id)
-    const selectedForUnit = selectedOptions[optionKey] || {}
-    const optionDetails: Array<{ name: string; price: number }> = []
-
-    Object.entries(selectedForUnit).forEach(([optionName, optionId]) => {
-      const option = (cartItem.item.options || []).find((candidate: any) => String(candidate.name) === String(optionName))
-      const value = option?.values?.find((candidate: any) => String(candidate.id) === String(optionId))
-      if (value) optionDetails.push({ name: String(value.value || value.name || ''), price: Number(adjustPriceForVAT(Number(value.price || 0))) })
-    })
-
-    const baseName = cartItem.item.nameKey ? t(cartItem.item.nameKey as TranslationKey) : cartItem.item.name
-    const optionSummary = optionDetails.map((option) => option.name).filter(Boolean).join(', ')
-    const displayName = optionSummary ? `${baseName} — ${optionSummary}` : String(cartItem.__pmdUnitLabel || baseName)
-    const unitPrice = Number(adjustPriceForVAT(cartItem.item.price || 0)) + optionDetails.reduce((sum, option) => sum + Number(option.price || 0), 0)
-    const quantity = Number(cartItem.quantity || 1)
-
-    return {
-      ...cartItem,
-      quantity,
-      __pmdDisplayName: displayName,
-      __pmdDisplaySubtotal: unitPrice * quantity,
-    }
+  const {
+    modernGreenTableDraftItems,
+    modernGreenTableDraftTotal,
+    modernGreenSubmittedItems,
+    modernGreenPersonalItems,
+  } = useCheckoutDisplayItems({
+    tableDraft,
+    submittedSnapshot,
+    personalReviewItems,
+    selectedOptions,
+    adjustPriceForVAT,
+    t,
   })
 
   const handleModernGreenApplyCoupon = async () => {
