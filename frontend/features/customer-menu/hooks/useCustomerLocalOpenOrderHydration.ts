@@ -1,6 +1,24 @@
+import type { Dispatch, SetStateAction } from "react"
 import { useEffect } from "react"
 
-export function useCustomerLocalOpenOrderHydration(props: any) {
+type SearchParamsLike = {
+  get: (name: string) => string | null
+}
+
+type LocalOpenOrder = Record<string, any> | null
+
+interface UseCustomerLocalOpenOrderHydrationProps {
+  tableInfo?: any
+  searchParams?: SearchParamsLike | null
+  existingOrderId: number | null
+  setExistingOrderId: (value: number | null) => void
+  hasDraftTableOrderWithoutRealOrder: boolean
+  setHasLocalOpenOrder: (value: boolean) => void
+  setLocalOpenOrder: Dispatch<SetStateAction<LocalOpenOrder>>
+}
+
+
+export function useCustomerLocalOpenOrderHydration(props: UseCustomerLocalOpenOrderHydrationProps) {
   const {
     tableInfo,
     searchParams,

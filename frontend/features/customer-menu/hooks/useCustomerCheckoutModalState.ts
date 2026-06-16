@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react"
 import type { CheckoutStep } from "@/features/checkout/types"
 
-export function useCustomerCheckoutModalState(searchParams: any) {
+export function useCustomerCheckoutModalState() {
   const [isPaymentModalOpen, setPaymentModalOpen] = useState(false)
   const [paymentModalInitialStep, setPaymentModalInitialStep] = useState<CheckoutStep>('review')
   const [paymentModalPreferPersonalReview, setPaymentModalPreferPersonalReview] = useState(false)

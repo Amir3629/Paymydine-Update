@@ -67,7 +67,7 @@ function MenuContent() {
     setPaymentModalInitialStep,
     paymentModalPreferPersonalReview,
     setPaymentModalPreferPersonalReview,
-  } = useCustomerCheckoutModalState(searchParams)
+  } = useCustomerCheckoutModalState()
 
   const [isLoading, setIsLoading] = useState(true)
   const [isFrontendConfigured, setIsFrontendConfigured] = useState(true)
