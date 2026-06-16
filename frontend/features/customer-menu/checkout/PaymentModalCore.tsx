@@ -112,6 +112,8 @@ import { usePaymentProviderConfig } from "@/features/customer-menu/checkout/hook
 import { useCheckoutTableDraftSync } from "@/features/customer-menu/checkout/hooks/useCheckoutTableDraftSync"
 import { useCheckoutOrderItems } from "@/features/customer-menu/checkout/hooks/useCheckoutOrderItems"
 import { useCheckoutSplitBill } from "@/features/customer-menu/checkout/hooks/useCheckoutSplitBill"
+import { useCheckoutPaymentBase } from "@/features/customer-menu/checkout/hooks/useCheckoutPaymentBase"
+import { useCheckoutPaymentSummary } from "@/features/customer-menu/checkout/hooks/useCheckoutPaymentSummary"
 import type {
   CheckoutStep,
   PmdToolbarPricingSnapshot,
@@ -145,9 +147,6 @@ const { clearCart, addToCart, clearTableContext } = useCartStore()
   const [reviewSubmitMessage, setReviewSubmitMessage] = useState("")
   const [invoiceDownloadStatus, setInvoiceDownloadStatus] = useState<"idle" | "loading" | "error">("idle")
   const [invoiceDownloadMessage, setInvoiceDownloadMessage] = useState("")
-  const [tipPercentage, setTipPercentage] = useState(0)
-  const [customTip, setCustomTip] = useState("")
-  const [splitPaymentTips, setSplitPaymentTips] = useState<Record<string, { percentage: number; custom: string }>>({})
   const {
     selectedOptions,
     handleOptionsChange,
@@ -217,9 +216,6 @@ const { clearCart, addToCart, clearTableContext } = useCartStore()
 
     return () => observer.disconnect()
   }, [])
-  const [couponCode, setCouponCode] = useState("")
-  const [couponLoading, setCouponLoading] = useState(false)
-  const [couponError, setCouponError] = useState<string | null>(null)
   const [paymentFormData, setPaymentFormData] = useState<PaymentFormData>({
     email: "",
     phone: "",
@@ -293,17 +289,37 @@ const [submittedSnapshot, setSubmittedSnapshot] = useState<any | null>(initialSu
 
   const buildOpenOrderStorageKeys = () => buildPaymentOpenOrderStorageKeys(tableInfo)
 
-  const submittedBaseTotal = useMemo(() => calculateSubmittedBaseTotal(submittedSnapshot, pendingSummary), [submittedSnapshot?.remainingAmount, submittedSnapshot?.total, submittedSnapshot?.orderTotal, pendingSummary?.remainingAmount])
-  const isOrderStatusFlow = submittedBaseTotal > 0 && checkoutStep !== "review"
-  const tipBaseAmount = isOrderStatusFlow ? submittedBaseTotal : subtotal
-  const tipAmount = calculateTipAmount(tipBaseAmount, tipPercentage, customTip)
-  const couponBaseAmount = isOrderStatusFlow ? submittedBaseTotal : subtotal
-
-  // Calculate coupon discount
-  const couponDiscount = useMemo(() => calculateCouponDiscount(appliedCoupon, couponBaseAmount), [appliedCoupon, couponBaseAmount])
-
-  const finalTotal = calculateFinalTotal(subtotal, taxAmount, tipAmount, couponDiscount)
-  const orderStatusTotal = calculateOrderStatusTotal(submittedBaseTotal, subtotal, taxAmount)
+  const {
+    tipPercentage,
+    setTipPercentage,
+    customTip,
+    setCustomTip,
+    splitPaymentTips,
+    setSplitPaymentTips,
+    couponCode,
+    setCouponCode,
+    couponLoading,
+    setCouponLoading,
+    couponError,
+    setCouponError,
+    submittedBaseTotal,
+    isOrderStatusFlow,
+    tipBaseAmount,
+    tipAmount,
+    couponBaseAmount,
+    couponDiscount,
+    finalTotal,
+    orderStatusTotal,
+    vatLabels,
+  } = useCheckoutPaymentBase({
+    submittedSnapshot,
+    pendingSummary,
+    checkoutStep,
+    subtotal,
+    taxAmount,
+    appliedCoupon,
+    taxSettings,
+  })
 
   const {
     splitGuestProfiles,
@@ -355,10 +371,9 @@ const [submittedSnapshot, setSubmittedSnapshot] = useState<any | null>(initialSu
     setCheckoutStep,
   })
 
-  const splitPaymentTip = selectedSplitPersonId ? (splitPaymentTips[selectedSplitPersonId] || { percentage: 0, custom: "" }) : { percentage: 0, custom: "" }
-  const paymentTipPercentage = selectedSplitPerson ? splitPaymentTip.percentage : tipPercentage
-  const paymentCustomTip = selectedSplitPerson ? splitPaymentTip.custom : customTip
   const {
+    paymentTipPercentage,
+    paymentCustomTip,
     paymentBaseAmount,
     paymentTipAmount,
     paymentCouponDiscount,
@@ -366,44 +381,32 @@ const [submittedSnapshot, setSubmittedSnapshot] = useState<any | null>(initialSu
     paymentSubtotalAmount,
     paymentVatAmount,
     paymentVatPercentage,
-  } = calculatePaymentSummary({
+    paidTipAmount,
+    paidCouponDiscount,
+    paidAmountTotal,
+    updatePaymentTipPercentage,
+    updatePaymentCustomTip,
+    payableTotal,
+    estimatedMinutes,
+  } = useCheckoutPaymentSummary({
+    selectedSplitPersonId,
     selectedSplitPerson,
+    splitPaymentTips,
+    setSplitPaymentTips,
+    tipPercentage,
+    setTipPercentage,
+    customTip,
+    setCustomTip,
     submittedBaseTotal,
     finalTotal,
-    paymentCustomTip,
-    paymentTipPercentage,
     couponDiscount,
     submittedSnapshot,
-    taxPercentage: taxSettings?.percentage ?? 0,
-  })
-  const { paidTipAmount, paidCouponDiscount, paidAmountTotal } = calculatePaidSnapshotTotals({
+    taxSettings,
     checkoutStep,
-    submittedSnapshot,
-    paymentTipAmount,
     tipAmount,
-    paymentCouponDiscount,
-    couponDiscount,
     orderStatusTotal,
-    paymentPayableTotal,
+    itemsToPay,
   })
-
-  const updatePaymentTipPercentage = (percentage: number) => {
-    if (selectedSplitPersonId) {
-      setSplitPaymentTips((prev) => ({ ...prev, [selectedSplitPersonId]: { percentage, custom: "" } }))
-      return
-    }
-    setTipPercentage(percentage)
-    setCustomTip("")
-  }
-
-  const updatePaymentCustomTip = (value: string) => {
-    if (selectedSplitPersonId) {
-      setSplitPaymentTips((prev) => ({ ...prev, [selectedSplitPersonId]: { percentage: 0, custom: value } }))
-      return
-    }
-    setCustomTip(value)
-    setTipPercentage(0)
-  }
 
   const resetPaymentAdjustmentsAfterSuccess = () => {
     removeCoupon()
@@ -413,33 +416,9 @@ const [submittedSnapshot, setSubmittedSnapshot] = useState<any | null>(initialSu
     setCustomTip("")
   }
 
-  const payableTotal = useMemo(() => calculatePayableTotal({ checkoutStep, paymentPayableTotal, orderStatusTotal, finalTotal }), [checkoutStep, paymentPayableTotal, orderStatusTotal, finalTotal])
-  const estimatedMinutes = useMemo(() => {
-    const backendEta = Number(submittedSnapshot?.etaMinutes || submittedSnapshot?.estimated_prep_minutes || 0)
-    if (backendEta > 0) return backendEta
-    return estimatePrepMinutes(submittedSnapshot?.submittedItems || itemsToPay)
-  }, [submittedSnapshot?.submittedItems, submittedSnapshot?.etaMinutes, submittedSnapshot?.estimated_prep_minutes, itemsToPay])
+
+
   // NOTE: Live status-based ETA text would require backend order-status polling/endpoint.
-  const vatLabels = useMemo(() => {
-    if (!taxSettings.enabled || taxSettings.percentage <= 0) {
-      return { summary: "Order Summary", subtotal: "Subtotal", total: "Total", includedNote: "" }
-    }
-
-    if (taxSettings.menuPrice === 0) {
-      const vatPct = Number.isInteger(taxSettings.percentage)
-        ? String(taxSettings.percentage)
-        : String(Number(taxSettings.percentage.toFixed(2)))
-
-      return {
-        summary: "Order Summary",
-        subtotal: `Subtotal (incl. ${vatPct}% VAT)`,
-        total: "Total",
-        includedNote: `prices incl. ${vatPct}% VAT`,
-      }
-    }
-
-    return { summary: "Order Summary", subtotal: "Subtotal", total: "Total", includedNote: "" }
-  }, [taxSettings.enabled, taxSettings.percentage, taxSettings.menuPrice])
 
   usePaymentModalDomRepairs({
     isOpen,
@@ -448,12 +427,12 @@ const [submittedSnapshot, setSubmittedSnapshot] = useState<any | null>(initialSu
     couponDiscount,
     tipPercentage,
     customTip,
-    appliedCouponCode: appliedCoupon?.code ?? null,
+    appliedCouponCode: appliedCoupon && appliedCoupon.code ? appliedCoupon.code : null,
     isSplitting,
     selectedSplitPersonId,
     splitMethod,
     splitGuestCount,
-    submittedSnapshotOrderId: submittedSnapshot?.orderId ?? null,
+    submittedSnapshotOrderId: submittedSnapshot && submittedSnapshot.orderId ? submittedSnapshot.orderId : null,
   })
 
   const modalPrimaryBtn = isKazenJapaneseCheckoutVisual
