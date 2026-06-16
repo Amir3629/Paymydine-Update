@@ -2,14 +2,11 @@
 
 import React from "react"
 import { useMenuActionCircleColorRepair } from "@/features/customer-menu/legacy-dom-repairs/useMenuActionCircleColorRepair"
-import { __pmdRemoteConsoleInstallOnce, __pmdWalletDebugInstallOnce } from "@/features/customer-menu/legacy-dom-repairs/debugInstallers"
 import { normalizeThemeId } from "@/lib/theme-registry"
 import { pmdForceKazenFrontendThemePayload } from "@/features/customer-menu/theme/kazenThemePayload"
 
 export function useCustomerMenuThemeBootstrap(setForceModernGreenTheme: (enabled: boolean) => void) {
   React.useEffect(() => {
-    __pmdWalletDebugInstallOnce()
-    __pmdRemoteConsoleInstallOnce()
   }, [])
 
   useMenuActionCircleColorRepair()
