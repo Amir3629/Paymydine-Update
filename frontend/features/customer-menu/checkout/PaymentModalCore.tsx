@@ -7,7 +7,6 @@
 "use client"
 
 import React, { useState, useRef } from "react"
-import { useRouter } from "next/navigation"
 import { useLanguageStore } from "@/store/language-store"
 import { useCmsStore } from "@/store/cms-store"
 import { useCartStore } from "@/store/cart-store"
@@ -21,7 +20,7 @@ import { PaymentActionButton } from "@/features/customer-menu/checkout/PaymentAc
 import { getInitialCheckoutStep } from "@/features/checkout/checkout-state-utils"
 import { KAZEN_JAPANESE_THEME_KEY, ORGANIC_BOTANICAL_THEME_KEY, type PaymentFormData, type PaymentModalProps } from "@/features/customer-menu/checkout/paymentModalShared"
 import { buildPaymentOpenOrderStorageKeys, ensurePaymentGuestSession, getPaymentTableKey, getPaymentTenantKey } from "@/features/customer-menu/checkout/paymentModalStorage"
-import { positiveMoney, subtotalFromSubmittedPaymentRows } from "@/features/customer-menu/checkout/paymentModalMath"
+import { subtotalFromSubmittedPaymentRows } from "@/features/customer-menu/checkout/paymentModalMath"
 import { startHostedRedirectCheckoutFlow } from "@/features/customer-menu/checkout/paymentModalHostedCheckout"
 import { handlePaymentFlow } from "@/features/customer-menu/checkout/paymentModalPaymentFlow"
 import { hasUnsubmittedPaymentDraftFromState, resolveSubmittedPaymentAmountFromState, resolveSubmittedPaymentOrderIdFromState } from "@/features/customer-menu/checkout/paymentModalResolution"
@@ -44,14 +43,14 @@ import type { CheckoutStep, SplitBillItem, SplitMethod } from "@/features/checko
 
 
 
+
 export function PaymentModal({ isOpen, onClose, items: allItems, tableInfo, existingOrderId, pendingSummary, initialSubmittedOrder, initialCheckoutStep, preferPersonalReview = false, onOpenOrderUpdate, onCartPricingUpdate, checkoutVisualTheme = "neutral" }: PaymentModalProps) {
   useCheckoutVisualRepairs()
 
-  const router = useRouter()
   const { toast } = useToast()
   const { t } = useLanguageStore()
   const { tipSettings, taxSettings, merchantSettings, loadVATSettings, appliedCoupon, validateCoupon, removeCoupon } = useCmsStore()
-const { clearCart, addToCart } = useCartStore()
+  const { clearCart, addToCart } = useCartStore()
   const [isLoading, setIsLoading] = useState(false)
 
   const [isSplitting, setIsSplitting] = useState(false)
@@ -107,7 +106,6 @@ const { clearCart, addToCart } = useCartStore()
   const isOrganicCheckoutVisual = checkoutVisualTheme === ORGANIC_BOTANICAL_THEME_KEY
   const isModernGreenCheckoutVisual = checkoutVisualTheme === "modern_green"
   const isKazenJapaneseCheckoutVisual = checkoutVisualTheme === KAZEN_JAPANESE_THEME_KEY
-  const isThemedCheckoutVisual = isOrganicCheckoutVisual || isModernGreenCheckoutVisual || isKazenJapaneseCheckoutVisual
 
 
   const [checkoutStep, setCheckoutStep] = useState<CheckoutStep>(
@@ -115,7 +113,7 @@ const { clearCart, addToCart } = useCartStore()
   )
 
 
-const [submittedSnapshot, setSubmittedSnapshot] = useState<any | null>(initialSubmittedOrder || null)
+  const [submittedSnapshot, setSubmittedSnapshot] = useState<any | null>(initialSubmittedOrder || null)
   // PMD_USE_LATEST_SUBMITTED_ORDER_ID_FOR_PAYMENT_20260612
   const pmdLatestSubmittedPaymentOrderIdRef = useRef<number | null>(null)
   const {
@@ -157,10 +155,7 @@ const [submittedSnapshot, setSubmittedSnapshot] = useState<any | null>(initialSu
     couponError,
     setCouponError,
     submittedBaseTotal,
-    isOrderStatusFlow,
-    tipBaseAmount,
     tipAmount,
-    couponBaseAmount,
     couponDiscount,
     finalTotal,
     orderStatusTotal,
@@ -183,12 +178,8 @@ const [submittedSnapshot, setSubmittedSnapshot] = useState<any | null>(initialSu
     addSplitGuest,
     removeSplitGuest,
     splitSourceItems,
-    splitSubtotal,
     splitGrandTotal,
-    splitExtraAmount,
     equalSplitPeople,
-    itemSplitPeople,
-    shareSplitPeople,
     activeSplitPeople,
     selectedSplitPerson,
     unassignedSplitItems,
@@ -315,13 +306,6 @@ const [submittedSnapshot, setSubmittedSnapshot] = useState<any | null>(initialSu
     ? "min-h-10 w-full rounded-none px-3 py-2 text-[12px] font-semibold uppercase tracking-[0.025em] leading-tight transition border border-[rgba(125,92,48,.68)] text-[#17120e] bg-[#fbf7ee] inline-flex items-center justify-center gap-2 whitespace-normal break-words overflow-hidden"
     : "min-h-10 w-full rounded-full px-4 py-2 text-sm font-semibold transition hover:bg-[color:var(--theme-surface)] active:scale-[0.99] border border-[color:var(--theme-border)] text-[color:var(--theme-text-primary)] bg-transparent inline-flex items-center justify-center gap-2"
   const iconBackBtn = "h-9 w-9 rounded-full border border-[#062F2A] bg-[#062F2A] text-white hover:bg-[#021F1C] hover:text-white pmd-v2-action-circle hover:opacity-90"
-  const toolbarIconBtnStyle: React.CSSProperties = {
-    background: "color-mix(in srgb, var(--theme-surface) 92%, #f5fff8 8%)",
-    border: "1px solid var(--theme-border)",
-    color: "var(--theme-text-primary)",
-    boxShadow: "0 6px 16px rgba(17,24,39,0.08)",
-              borderRadius: "9999px",
-  }
   const {
     handleConfirmMyItems,
     handleSubmitTableDraft,
@@ -368,8 +352,6 @@ const [submittedSnapshot, setSubmittedSnapshot] = useState<any | null>(initialSu
     })
 
   // PMD_USE_SUBMITTED_ORDER_AMOUNT_FOR_PAYMENT_20260612
-  const pmdPositiveMoney = positiveMoney
-
   const pmdSubmittedItemsSubtotal = (): number | null => {
     const rows =
       Array.isArray((submittedSnapshot as any)?.submittedItems) && (submittedSnapshot as any).submittedItems.length > 0
@@ -469,10 +451,7 @@ const [submittedSnapshot, setSubmittedSnapshot] = useState<any | null>(initialSu
     setCashCollectionConfirmed(false)
   }
   const {
-    stripeResolvedTableIdRaw,
     stripeResolvedTableNumber,
-    stripeResolvedTableName,
-    stripeResolvedLocationId,
     stripeResolvedRestaurantId,
     selectedMethod,
     selectedProviderCode,
@@ -588,7 +567,7 @@ const [submittedSnapshot, setSubmittedSnapshot] = useState<any | null>(initialSu
     payment: "Payment",
     paid: "Order complete",
   }
-  // PMD_SUBMITTED_TABLE_DRAFT_SHOULD_SHOW_STATUS  // PMD_SUBMITTED_TABLE_DRAFT_SHOULD_SHOW_STATUS
+  // PMD_SUBMITTED_TABLE_DRAFT_SHOULD_SHOW_STATUS
   const isSubmittedTableDraftForStatus = Boolean(
     tableDraft?.order_id ||
     tableDraft?.orderId ||
@@ -616,7 +595,7 @@ const [submittedSnapshot, setSubmittedSnapshot] = useState<any | null>(initialSu
     taxSettings,
   })
 
-const modalTitle = checkoutStep === "review" && tableDraft?.success && tableDraft.status && tableDraft.status !== "empty" && !hasPersonalItems && !preferPersonalReview
+  const modalTitle = checkoutStep === "review" && tableDraft?.success && tableDraft.status && tableDraft.status !== "empty" && !hasPersonalItems && !preferPersonalReview
     ? "Table Order"
     : checkoutTitle[checkoutStep]
 
