@@ -5,8 +5,10 @@ import { ModernGreenNativeMenu } from "@/components/themes/modern-green/ModernGr
 import { ModernGreenBottomDock } from "@/components/themes/modern-green/ModernGreenBottomDock"
 import { PaymentModal } from "@/features/customer-menu/checkout/CheckoutModalHost"
 import type { MenuItem } from "@/lib/data"
+import type { CustomerMenuThemeRouteProps } from "@/features/customer-menu/theme/themeRouteTypes"
+import { createOpenOrderUpdateHandler } from "@/features/customer-menu/theme/themeRouteShared"
 
-type ModernGreenThemeRouteProps = Record<string, any>
+type ModernGreenThemeRouteProps = CustomerMenuThemeRouteProps
 
 export function ModernGreenThemeRoute(props: ModernGreenThemeRouteProps) {
   const {
@@ -50,6 +52,12 @@ export function ModernGreenThemeRoute(props: ModernGreenThemeRouteProps) {
     setHasLocalOpenOrder,
     normalizeModernGreenLogoUrl,
   } = props
+
+  const handleOpenOrderUpdate = createOpenOrderUpdateHandler({
+    setSharedTableOrder,
+    setLocalOpenOrder,
+    setHasLocalOpenOrder,
+  })
 
   const modernGreenSourceItems = apiMenuItems.length ? apiMenuItems : (menuItems.length ? menuItems : menuData)
   const modernGreenTableNumber = tableInfo?.table_no ?? tableInfo?.table_id ?? displayTableNumber ?? tableIdString ?? null
@@ -211,25 +219,7 @@ export function ModernGreenThemeRoute(props: ModernGreenThemeRouteProps) {
           preferPersonalReview={paymentModalPreferPersonalReview}
           checkoutVisualTheme="modern_green"
           onCartPricingUpdate={setToolbarPricingSnapshot}
-          onOpenOrderUpdate={(snapshot) => {
-            if (snapshot?.status === "draft" || snapshot?.draft_id) {
-              setSharedTableOrder(snapshot)
-              return
-            }
-            if (snapshot?.paymentStatus === "paid" || snapshot?.status === "paid") {
-              const normalizedPaid = snapshot?.orderId ? snapshot : { ...snapshot, orderId: snapshot?.order_id }
-              setLocalOpenOrder(normalizedPaid)
-              setHasLocalOpenOrder(!!normalizedPaid?.orderId)
-              setSharedTableOrder((prev: any) => prev?.order_id && String(prev.order_id) === String(normalizedPaid?.orderId) ? { ...prev, status: "paid", paymentStatus: "paid" } as any : prev)
-              return
-            }
-            if (snapshot?.orderId || snapshot?.order_id) {
-              const normalized = snapshot?.orderId ? snapshot : { ...snapshot, orderId: snapshot.order_id }
-              setLocalOpenOrder(normalized)
-              setHasLocalOpenOrder(true)
-              setSharedTableOrder((prev: any) => prev?.draft_id ? null : prev)
-            }
-          }}
+          onOpenOrderUpdate={handleOpenOrderUpdate}
         />
       </ModernGreenNativeMenu>
     </ThemeActionBoundary>

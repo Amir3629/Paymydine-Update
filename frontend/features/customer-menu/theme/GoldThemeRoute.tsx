@@ -14,8 +14,10 @@ import { LoadingSpinner } from "@/features/customer-menu/components/LoadingSpinn
 import { EnhancedNoteDialog, EnhancedWaiterDialog } from "@/features/customer-menu/guest-actions/EnhancedGuestDialogs"
 import { TenantSetupSplash } from "@/components/tenant-setup-splash"
 import type { MenuItem } from "@/lib/data"
+import type { CustomerMenuThemeRouteProps } from "@/features/customer-menu/theme/themeRouteTypes"
+import { createOpenOrderUpdateHandler } from "@/features/customer-menu/theme/themeRouteShared"
 
-type GoldThemeRouteProps = Record<string, any>
+type GoldThemeRouteProps = CustomerMenuThemeRouteProps
 
 export function GoldThemeRoute(props: GoldThemeRouteProps) {
   const {
@@ -59,6 +61,12 @@ export function GoldThemeRoute(props: GoldThemeRouteProps) {
     setNote,
     handleSendNote,
   } = props
+
+  const handleOpenOrderUpdate = createOpenOrderUpdateHandler({
+    setSharedTableOrder,
+    setLocalOpenOrder,
+    setHasLocalOpenOrder,
+  })
 
   return (
     <ThemeActionBoundary actions={themeMenuActions}>
@@ -167,31 +175,7 @@ export function GoldThemeRoute(props: GoldThemeRouteProps) {
           preferPersonalReview={paymentModalPreferPersonalReview}
           checkoutVisualTheme="gold-luxury"
           onCartPricingUpdate={setToolbarPricingSnapshot}
-          onOpenOrderUpdate={(snapshot: any) => {
-            if (snapshot?.status === "draft" || snapshot?.draft_id) {
-              setSharedTableOrder(snapshot)
-              return
-            }
-
-            if (snapshot?.paymentStatus === "paid" || snapshot?.status === "paid") {
-              const normalizedPaid = snapshot?.orderId ? snapshot : { ...snapshot, orderId: snapshot?.order_id }
-              setLocalOpenOrder(normalizedPaid)
-              setHasLocalOpenOrder(!!normalizedPaid?.orderId)
-              setSharedTableOrder((prev: any) =>
-                prev?.order_id && String(prev.order_id) === String(normalizedPaid?.orderId)
-                  ? ({ ...prev, status: "paid", paymentStatus: "paid" } as any)
-                  : prev
-              )
-              return
-            }
-
-            if (snapshot?.orderId || snapshot?.order_id) {
-              const normalized = snapshot?.orderId ? snapshot : { ...snapshot, orderId: snapshot.order_id }
-              setLocalOpenOrder(normalized)
-              setHasLocalOpenOrder(true)
-              setSharedTableOrder((prev: any) => prev?.draft_id ? null : prev)
-            }
-          }}
+          onOpenOrderUpdate={handleOpenOrderUpdate}
         />
 
         <EnhancedWaiterDialog

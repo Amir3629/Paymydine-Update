@@ -1,7 +1,6 @@
 "use client"
 
 import { useKazenMenuDomRepairs } from "@/features/customer-menu/legacy-dom-repairs/useKazenMenuDomRepairs";
-import { useMenuActionCircleColorRepair } from "@/features/customer-menu/legacy-dom-repairs/useMenuActionCircleColorRepair";
 import "./customer-menu-page.css"
 /*
  * LEGACY_DOM_REPAIR_POLICY:
@@ -14,128 +13,35 @@ import "./customer-menu-page.css"
  * and a Kazen standalone controller/CSS module.
  */
 
-import { PayPalScriptProvider } from "@paypal/react-paypal-js"
 import React, { useState, useEffect, useMemo, useRef, Suspense } from "react";
-import { formatCurrency } from "@/lib/currency";
-import { categories, menuData, type MenuItem, type MenuHighlightSettings, defaultMenuHighlightSettings, getMenuData, getCategories } from "@/lib/data";
+import { categories, menuData, type MenuItem, type MenuHighlightSettings, defaultMenuHighlightSettings, getMenuData } from "@/lib/data";
 import { useLanguageStore } from "@/store/language-store";
-import { type TranslationKey } from "@/lib/translations";
-import { type PmdSocialPlatformId, useCmsStore } from "@/store/cms-store";
+import { useCmsStore } from "@/store/cms-store";
 import { useCartStore, type CartItem } from "@/store/cart-store";
-import { FoodAttributeTags } from "@/components/food-attribute-tags";
-import { FoodNutritionSummary } from "@/components/food-nutrition-summary";
-import { FoodItemColorDot } from "@/components/food-item-color-dot";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { useToast } from "@/components/ui/use-toast";
-import { HandPlatter, NotebookPen, ShoppingCart, ChevronDown, Plus, Wallet, Lock, Users, Check, Minus, CreditCard, ArrowLeft, CheckCircle, DollarSign, ReceiptText, ArrowRight, Star, Link2, QrCode, MessageSquare, ChefHat, Trophy } from "lucide-react";
-import { OptimizedImage } from "@/components/ui/optimized-image";
-import Link from "next/link";
-import { motion, AnimatePresence } from "framer-motion";
-import { Elements, useStripe, useElements, PaymentRequestButtonElement } from '@stripe/react-stripe-js';
-import { loadStripe } from "@stripe/stripe-js";
-import { cn, truncateText } from "@/lib/utils";
-import { normalizeThemeId } from "@/lib/theme-registry";
-import { useRouter, useSearchParams } from "next/navigation";
-import { Textarea } from "@/components/ui/textarea";
-import { ApiClient, type PaymentMethod, type TableOrderDraftResponse } from "@/lib/api-client";
-import { iconForPayment } from "@/lib/payment-icons";
-import { buildTablePath } from "@/lib/table-url";
-import { stickySearch } from "@/lib/sticky-query";
+import { useSearchParams } from "next/navigation";
 import { useTableOrderDraft } from "@/features/table-order/use-table-order-draft";
-import { useTableOrderActions } from "@/features/table-order/use-table-order-actions";
 import { useCustomerThemeActions } from "@/features/customer-menu/useCustomerThemeActions";
 import { useCustomerThemeSelection } from "@/features/customer-menu/useCustomerThemeSelection";
-import { __pmdRemoteConsoleInstallOnce, __pmdWalletDebugInstallOnce } from "@/features/customer-menu/legacy-dom-repairs/debugInstallers";
 import { useCurrentFrontendTheme } from "@/features/customer-menu/theme/useCurrentFrontendTheme";
 import { ModernGreenThemeRoute } from "@/features/customer-menu/theme/ModernGreenThemeRoute";
 import { OrganicThemeRoute } from "@/features/customer-menu/theme/OrganicThemeRoute";
 import { KazenThemeRoute } from "@/features/customer-menu/theme/KazenThemeRoute";
 import { GoldThemeRoute } from "@/features/customer-menu/theme/GoldThemeRoute";
 import { useOrganicThemeEffects } from "@/features/customer-menu/theme/useOrganicThemeEffects";
+import { useCustomerMenuThemeBootstrap } from "@/features/customer-menu/theme/useCustomerMenuThemeBootstrap";
+import { normalizeMenuLogoUrl } from "@/features/customer-menu/theme/themeRouteShared";
 import { pmdInstallMenuPayMyDineFooterLogo } from "@/features/customer-menu/legacy-dom-repairs/footerLogoInstaller";
-import { pmdForceKazenFrontendThemePayload } from "@/features/customer-menu/theme/kazenThemePayload";
 import { LoadingSpinner } from "@/features/customer-menu/components/LoadingSpinner";
 import { buildTableOrderDraftContext, createSubmittedTableOrderSnapshot, isVisibleTableOrderDraft, tableOrderItemCount } from "@/features/table-order/table-order-utils";
-import {
-  buildEvenSharePercents,
-  calculateCartPricingSummary,
-  calculateCheckoutTax,
-  calculateSplitSubtotal,
-  getOrderItemUnitAmount,
-  groupOrderDisplayItems,
-  tableOrderTotalByCode,
-  tableOrderVatPercentage,
-  toPositiveAmount,
-} from "@/features/checkout/checkout-utils";
-import {
-  getCheckoutStepAfterBack,
-  getCheckoutStepAfterDraftSubmit,
-  getCheckoutStepAfterOrderSubmit,
-  getCheckoutStepAfterPaymentSuccess,
-  getCheckoutStepForSplitMethod,
-  getCheckoutStepOnOpen,
-  getInitialCheckoutStep,
-  isSplitCheckoutStep,
-  shouldForcePersonalReview,
-} from "@/features/checkout/checkout-state-utils";
-import {
-  calculateCouponDiscount,
-  calculateFinalTotal,
-  calculateOrderStatusTotal,
-  calculatePaidSnapshotTotals,
-  calculatePayableTotal,
-  calculatePaymentSummary,
-  calculateSubmittedBaseTotal,
-  calculateTipAmount,
-} from "@/features/checkout/payment-summary-utils";
-import {
-  buildEqualSplitPeople,
-  buildItemSplitPeople,
-  buildShareSplitPeople,
-  buildSplitGuestProfiles,
-  calculateSplitConfirmationState,
-  getActiveSplitPeople,
-  getSelectedSplitPerson,
-  getSplitGuestAvatar as getSplitGuestAvatarFromProfiles,
-  normalizeSharePercentsForGuestCount,
-  pruneItemAssignmentsForGuestCount,
-} from "@/features/checkout/split-bill-utils";
-import {
-  canRenderPaymentMethodDetail,
-  findPaymentMethod,
-  getPaymentMethodProviderCode,
-  getVisiblePaymentMethods,
-  isPaymentMethodAvailable,
-  isStripePaymentMethodForConfig,
-  mapPaymentMethodsByCode,
-} from "@/features/checkout/payment-method-utils";
-import type {
-  CheckoutStep,
-  PmdToolbarPricingSnapshot,
-  SplitBillItem,
-  SplitMethod,
-  SplitPerson,
-  SplitSourceItem,
-} from "@/features/checkout/types";
+import { calculateCartPricingSummary } from "@/features/checkout/checkout-utils";
+import type { CheckoutStep, PmdToolbarPricingSnapshot } from "@/features/checkout/types";
 
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-  DialogFooter,
-} from "@/components/ui/dialog"
 
 // Hook to get current theme background color
 /* PMD_REMOTE_CONSOLE_INJECTED */
 
-import { clsx } from "clsx";
 import { apiClient } from '@/lib/api-client'
-import { wsClient } from '@/lib/websocket-client'
-import { getTextAlignClass, getTextDirection } from "@/lib/text-direction"
 
 // They avoid shared Dialog/global CSS so Gold Luxury and other themes keep their existing modal behavior.
 // Create a component that uses useSearchParams
@@ -284,46 +190,7 @@ function MenuContent() {
     return `pmd-menu-cache:${window.location.host}:${window.location.pathname}?${window.location.search}`
   }
 
-  useEffect(() => {
-    __pmdWalletDebugInstallOnce()
-    __pmdRemoteConsoleInstallOnce()
-  }, [])
-
-  useMenuActionCircleColorRepair()
-
-  // Read raw search params (Next app router)
-
-  // PMD_FORCE_MODERN_GREEN_FROM_SIMPLE_THEME_20260610
-  useEffect(() => {
-    if (typeof window === "undefined") return
-
-    let cancelled = false
-
-    async function checkModernGreenTheme() {
-      try {
-        const res = await fetch(`/simple-theme?forceModernGreen=${Date.now()}`, {
-          headers: { Accept: "application/json" },
-          cache: "no-store",
-        })
-        const data = await res.json()
-      pmdForceKazenFrontendThemePayload(data);
-        const normalizedThemePayload = pmdForceKazenFrontendThemePayload(data)
-        const themeId = normalizeThemeId(normalizedThemePayload?.data?.theme_id || normalizedThemePayload?.theme_id || normalizedThemePayload?.frontend_theme || normalizedThemePayload?.admin_theme || "")
-
-        if (!cancelled) {
-          setForceModernGreenTheme(themeId === "modern_green")
-        }
-      } catch (error) {
-        if (!cancelled) setForceModernGreenTheme(false)
-      }
-    }
-
-    checkModernGreenTheme()
-
-    return () => {
-      cancelled = true
-    }
-  }, [])
+  useCustomerMenuThemeBootstrap(setForceModernGreenTheme)
 
   const spTableNo = searchParams?.get('table_no') ?? null;
   const spTableId = searchParams?.get('table_id') ?? null;
@@ -650,26 +517,6 @@ useEffect(() => {
     setLastInteractedItem(cartItem || { item, quantity: 1 })
   }, [])
 
-  const handleOrganicAdd = (item: MenuItem, event: React.MouseEvent) => {
-    event.stopPropagation()
-    let itemToAdd = { ...item }
-    if (taxSettings.enabled && taxSettings.percentage > 0 && taxSettings.menuPrice === 0) {
-      itemToAdd.price = item.price / (1 + taxSettings.percentage / 100)
-      if (itemToAdd.options) {
-        itemToAdd.options = itemToAdd.options.map(option => ({
-          ...option,
-          values: option.values.map(value => ({
-            ...value,
-            price: value.price / (1 + taxSettings.percentage / 100)
-          }))
-        }))
-      }
-    }
-    const currentQuantity = items.find(cartItem => cartItem.item.id === item.id)?.quantity || 0
-    addToCart(itemToAdd)
-    if (currentQuantity === 0) handleFirstAdd(item)
-  }
-
   const handleItemSelect = (item: MenuItem) => {
     setSelectedItem(item)
     const cartItem = items.find(i => i.item.id === item.id)
@@ -832,7 +679,6 @@ useEffect(() => {
   }
 
   const restaurantDisplayName = merchantSettings?.businessName || cmsSettings?.appName || 'PayMyDine'
-  const heroItem = highlightSourceItems.find((item) => item.image || (Array.isArray((item as any).images) && (item as any).images.length)) || highlightSourceItems[0] || null
 
   if (shouldHoldThemeRender) {
     return (
@@ -844,28 +690,6 @@ useEffect(() => {
         <LoadingSpinner />
       </div>
     )
-  }
-
-  const normalizeModernGreenLogoUrl = (value: unknown) => {
-    const raw = String(value || "").trim()
-    if (!raw || raw === "undefined" || raw === "null") return ""
-
-    if (/^https?:\/\//i.test(raw)) return raw
-
-    const clean = raw.replace(/^\/+/, "")
-    const filename = clean.split("/").filter(Boolean).pop() || clean
-
-    if (clean.startsWith("assets/media/uploads/")) return `/${clean}`
-    if (clean.startsWith("/assets/media/uploads/")) return clean
-    if (clean.startsWith("uploads/")) return `/assets/media/${clean}`
-
-    // Backend sometimes sends only the uploaded file name.
-    if (!clean.includes("/")) return `/assets/media/uploads/${filename}`
-
-    // If it was saved as /assets/media/<file>, normalize to uploads because that is where the file exists.
-    if (clean.startsWith("assets/media/")) return `/assets/media/uploads/${filename}`
-
-    return `/${clean}`
   }
 
   // PMD_KAZEN_JAPANESE_THEME_RETURN_20260611
@@ -910,7 +734,7 @@ useEffect(() => {
         setSharedTableOrder={setSharedTableOrder}
         setLocalOpenOrder={setLocalOpenOrder}
         setHasLocalOpenOrder={setHasLocalOpenOrder}
-        normalizeModernGreenLogoUrl={normalizeModernGreenLogoUrl}
+        normalizeModernGreenLogoUrl={normalizeMenuLogoUrl}
         setNoteModalOpen={setNoteModalOpen}
       />
     )
@@ -958,7 +782,7 @@ useEffect(() => {
         setSharedTableOrder={setSharedTableOrder}
         setLocalOpenOrder={setLocalOpenOrder}
         setHasLocalOpenOrder={setHasLocalOpenOrder}
-        normalizeModernGreenLogoUrl={normalizeModernGreenLogoUrl}
+        normalizeModernGreenLogoUrl={normalizeMenuLogoUrl}
       />
     )
   }

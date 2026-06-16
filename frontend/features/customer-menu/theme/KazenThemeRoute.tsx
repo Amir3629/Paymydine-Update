@@ -6,8 +6,10 @@ import { KazenBottomDock } from "@/components/themes/kazen-japanese/KazenBottomD
 import { PaymentModal } from "@/features/customer-menu/checkout/CheckoutModalHost"
 import { pmdBuildKazenParentCategories } from "@/features/customer-menu/data/menuCategories"
 import type { MenuItem } from "@/lib/data"
+import type { CustomerMenuThemeRouteProps } from "@/features/customer-menu/theme/themeRouteTypes"
+import { createOpenOrderUpdateHandler } from "@/features/customer-menu/theme/themeRouteShared"
 
-type KazenThemeRouteProps = Record<string, any>
+type KazenThemeRouteProps = CustomerMenuThemeRouteProps
 
 export function KazenThemeRoute(props: KazenThemeRouteProps) {
   const {
@@ -51,6 +53,12 @@ export function KazenThemeRoute(props: KazenThemeRouteProps) {
     setHasLocalOpenOrder,
     normalizeModernGreenLogoUrl,
   } = props
+
+  const handleOpenOrderUpdate = createOpenOrderUpdateHandler({
+    setSharedTableOrder,
+    setLocalOpenOrder,
+    setHasLocalOpenOrder,
+  })
 
   const kazenSrc =
     typeof window !== "undefined"
@@ -236,31 +244,7 @@ export function KazenThemeRoute(props: KazenThemeRouteProps) {
           preferPersonalReview={paymentModalPreferPersonalReview}
           checkoutVisualTheme="kazen_japanese"
           onCartPricingUpdate={setToolbarPricingSnapshot}
-          onOpenOrderUpdate={(snapshot: any) => {
-            if (snapshot?.status === "draft" || snapshot?.draft_id) {
-              setSharedTableOrder(snapshot)
-              return
-            }
-
-            if (snapshot?.paymentStatus === "paid" || snapshot?.status === "paid") {
-              const normalizedPaid = snapshot?.orderId ? snapshot : { ...snapshot, orderId: snapshot?.order_id }
-              setLocalOpenOrder(normalizedPaid)
-              setHasLocalOpenOrder(!!normalizedPaid?.orderId)
-              setSharedTableOrder((prev: any) =>
-                prev?.order_id && String(prev.order_id) === String(normalizedPaid?.orderId)
-                  ? ({ ...prev, status: "paid", paymentStatus: "paid" } as any)
-                  : prev
-              )
-              return
-            }
-
-            if (snapshot?.orderId || snapshot?.order_id) {
-              const normalized = snapshot?.orderId ? snapshot : { ...snapshot, orderId: snapshot.order_id }
-              setLocalOpenOrder(normalized)
-              setHasLocalOpenOrder(true)
-              setSharedTableOrder((prev: any) => prev?.draft_id ? null : prev)
-            }
-          }}
+          onOpenOrderUpdate={handleOpenOrderUpdate}
         />
       </KazenJapaneseBridgeTheme>
     </ThemeActionBoundary>
