@@ -2,7 +2,7 @@
 
 import React, { useState } from "react"
 import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
+import { Textarea } from "@/components/ui/textarea"
 import { Label } from "@/components/ui/label"
 import { motion, AnimatePresence } from "framer-motion"
 import { Bell, X } from "lucide-react"
@@ -108,7 +108,7 @@ export function WaiterCallButton({ tableId }: WaiterCallButtonProps) {
                 <form onSubmit={handleSubmit} className="space-y-4">
                   <div>
                     <Label htmlFor="message">Message (Optional)</Label>
-                    <Input
+                    <Textarea
                       id="message"
                       value={message}
                       onChange={(e) => setMessage(e.target.value)}

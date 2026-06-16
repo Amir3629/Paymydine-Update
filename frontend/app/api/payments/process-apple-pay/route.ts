@@ -5,7 +5,7 @@ import Stripe from 'stripe'
 let stripe: Stripe | null = null
 if (process.env.STRIPE_SECRET_KEY) {
   stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
-    apiVersion: '2023-10-16',
+    apiVersion: '2025-08-27.basil',
   })
 }
 
@@ -41,7 +41,7 @@ export async function POST(request: NextRequest) {
     // Get restaurant's Stripe account
     const restaurantAccount = await getRestaurantStripeAccount(restaurantId)
     
-    if (!restaurantAccount) {
+    if (!restaurantAccount?.stripeAccountId) {
       return NextResponse.json({
         success: false,
         error: 'Restaurant payment account not configured'
@@ -75,8 +75,8 @@ export async function POST(request: NextRequest) {
       metadata: {
         restaurantId,
         tableNumber: tableNumber?.toString() || '',
-        customerEmail: customerInfo.email,
-        customerName: customerInfo.name,
+        customerEmail: customerInfo?.email || "",
+        customerName: customerInfo?.name || "",
         paymentMethod: 'applepay',
         items: JSON.stringify(items.map((item: any) => ({
           id: item.id,

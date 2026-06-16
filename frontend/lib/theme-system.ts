@@ -1,3 +1,4 @@
+import { normalizeThemeId } from "@/lib/theme-registry";
 import { normalizeThemeForCustomerPages, enforceCustomerPageTheme, PMD_CLEAN_LIGHT_PAGE_BG } from "@/lib/theme-normalizer"
  // Theme System for PayMyDine
 
@@ -432,7 +433,8 @@ export interface ThemeColors {
   
   // Apply theme to document
   export function applyTheme(themeId: string, overrides?: Partial<ThemeColors>): void {
-    const theme = themes[themeId];
+    const canonicalThemeId = normalizeThemeId(themeId);
+    const theme = themes[canonicalThemeId];
     if (!theme) {
       console.warn(`Theme ${themeId} not found, falling back to gold-luxury`);
       applyTheme('gold-luxury', overrides);
@@ -440,7 +442,7 @@ export interface ThemeColors {
     }
     
     // Always set the HTML data attribute for CSS targeting
-    document.documentElement.setAttribute('data-theme', themeId);
+    document.documentElement.setAttribute('data-theme', canonicalThemeId);
     
     // Set CSS variables
     const cssVars = themeToCSSVariables(theme, overrides);
@@ -449,7 +451,7 @@ export interface ThemeColors {
     });
     
     // Toggle dark class to allow global overrides for dark designs
-    const isDark = themeId === 'modern-dark';
+    const isDark = String(canonicalThemeId) === 'modern-dark';
     document.documentElement.classList.toggle('theme-dark', isDark);
     
     // NUCLEAR OPTION: Force background colors if overrides provided
@@ -465,7 +467,7 @@ export interface ThemeColors {
     
     // Store current theme in localStorage (only on client side)
     if (typeof window !== 'undefined') {
-      localStorage.setItem('paymydine-theme', themeId);
+      localStorage.setItem('paymydine-theme', canonicalThemeId);
     }
   }
   

@@ -48,7 +48,7 @@ function TableMenuContent({ table_id }: { table_id: string }) {
   )
 }
 
-export default function TenantTableMenu({ params }: { params: Promise<{ table_id: string }> }) {
+export default function TenantTableMenu({ params }: { params: { table_id: string } }) {
   const { table_id } = params
   
   return (

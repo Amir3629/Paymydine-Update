@@ -54,7 +54,9 @@ export default function RootLayout({
         `}</style>
         <script dangerouslySetInnerHTML={{
           __html: `
-            // PMD cart badge force fix removed: menu badge is now single-owner.
+            (function () {
+              try {
+                // PMD cart badge force fix removed: menu badge is now single-owner.
 
               // FOOD ITEM MODAL CARD FIX - Ensures modal cards have correct theme colors
 
@@ -314,6 +316,9 @@ export default function RootLayout({
               // Run waiter and note modals fix immediately and periodically
               fixWaiterNoteModals();
               setInterval(fixWaiterNoteModals, 1000); // Check every second
+              } catch (error) {
+                console.warn("PMD layout modal runtime repair failed", error);
+              }
             })();
           `
         }} />

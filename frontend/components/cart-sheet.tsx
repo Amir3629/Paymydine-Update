@@ -99,7 +99,7 @@ export function CartSheet() {
                         size="icon"
                         variant="ghost"
                         className="text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-full h-7 w-7"
-                        onClick={() => removeFromCart(item.id)}
+                        onClick={() => removeFromCart(item)}
                       >
                         <Trash2 className="h-3 w-3" />
                       </Button>

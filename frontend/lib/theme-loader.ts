@@ -1,4 +1,5 @@
 import { apiClient } from "@/lib/api-client";
+import { normalizeThemeId } from "@/lib/theme-registry";
 import { applyTheme } from "@/lib/theme-system";
 import { themes } from "@/lib/theme-system";
 
@@ -58,7 +59,8 @@ export async function initThemeFromAdmin(): Promise<{themeId?: string, overrides
     const data = res?.data || {};
     const normalizedThemePayload = pmdForceKazenFrontendThemePayload(res)
     const normalizedThemeData = pmdForceKazenFrontendThemePayload(data)
-    const themeId: string = normalizedThemeData?.theme_id || normalizedThemePayload?.theme_id || normalizedThemePayload?.frontend_theme || normalizedThemePayload?.admin_theme || "gold-luxury";
+    const rawThemeId: string = normalizedThemeData?.theme_id || normalizedThemePayload?.theme_id || normalizedThemePayload?.frontend_theme || normalizedThemePayload?.admin_theme || "gold-luxury";
+    const themeId = normalizeThemeId(rawThemeId);
 
     const overrides = buildSafeThemeOverrides(themeId, data);
 

@@ -521,8 +521,9 @@ export function WorldlineInlineCardForm({
           encryptError: null,
         }
 
+        let paymentRequest: any = null
         try {
-          const paymentRequest = candidate.build()
+          paymentRequest = candidate.build()
           if (!paymentRequest) {
             attempt.encryptError = "builder returned null"
             constructorAttempts.push(attempt)
@@ -619,13 +620,16 @@ export function WorldlineInlineCardForm({
       if (!encryptedCustomerInput || typeof encryptedCustomerInput !== "string") {
         throw new Error("Worldline encryption failed: encrypted customer payload is missing")
       }
+      console.info("[WorldlineInlineCardForm] CREATE PAYMENT PAYLOAD", {
+        url: "/api/v1/payments/worldline/inline/create-payment",
+        amount: Number(paymentData?.amount || 0),
+        currency: String(currency || "EUR").toUpperCase(),
+        paymentProductId: Number(paymentProduct?.id || 1),
+        encryptedCustomerInputPreview: encryptedCustomerInput ? String(encryptedCustomerInput).slice(0, 16) + "…" : null,
+        hasEncodedClientMetaInfo: Boolean(encodedClientMetaInfo),
+      })
 
-      console.info('PMD FRONT CREATE PAYMENT PAYLOAD', {
-  url: "/api/v1/payments/worldline/inline/create-payment",
-  payloadPreview: (typeof payload !== 'undefined' ? payload : (typeof requestBody !== 'undefined' ? requestBody : (typeof body !== 'undefined' ? body : null))),
-  encryptedRequestPreview: (typeof encryptedRequest !== 'undefined' ? encryptedRequest : null)
-});
-const payRes = await fetch("/api/v1/payments/worldline/inline/create-payment", {
+      const payRes = await fetch("/api/v1/payments/worldline/inline/create-payment", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({

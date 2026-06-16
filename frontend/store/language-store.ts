@@ -13,7 +13,11 @@ export const useLanguageStore = create<LanguageState>()(
     (set, get) => ({
       language: "en",
       setLanguage: (language) => set({ language }),
-      t: (key) => translations[get().language][key] || translations.en[key],
+      t: (key) => {
+        const current = translations[get().language] as Record<string, string>
+        const fallback = translations.en as Record<string, string>
+        return current[key] || fallback[key] || String(key)
+      },
     }),
     {
       name: "paymydine-language-storage",

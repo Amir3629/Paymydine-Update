@@ -1,5 +1,8 @@
 "use client"
 
+import { useKazenMenuDomRepairs } from "@/features/customer-menu/legacy-dom-repairs/useKazenMenuDomRepairs";
+import { useMenuActionCircleColorRepair } from "@/features/customer-menu/legacy-dom-repairs/useMenuActionCircleColorRepair";
+import { useOrganicCheckoutDomPolish } from "@/features/customer-menu/legacy-dom-repairs/useOrganicCheckoutDomPolish";
 import "./customer-menu-page.css"
 /*
  * LEGACY_DOM_REPAIR_POLICY:
@@ -11,7 +14,8 @@ import "./customer-menu-page.css"
  * replace them from focused files such as CustomerMenuModals, checkout theme shells,
  * and a Kazen standalone controller/CSS module.
  */
-import { ModernGreenBridgeTheme } from "@/components/themes/modern-green/ModernGreenBridgeTheme"
+import { ModernGreenNativeMenu } from "@/components/themes/modern-green/ModernGreenNativeMenu"
+import { OrganicNativeMenu } from "@/components/themes/organic-botanical-paper/OrganicNativeMenu"
 import { ModernGreenCheckoutShell } from "@/components/themes/modern-green/ModernGreenCheckoutShell"
 import { KazenJapaneseBridgeTheme, KazenJapaneseCheckoutShell } from "@/components/themes/kazen-japanese"
 
@@ -41,6 +45,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Elements, useStripe, useElements, PaymentRequestButtonElement } from '@stripe/react-stripe-js';
 import { loadStripe } from "@stripe/stripe-js";
 import { cn, truncateText } from "@/lib/utils";
+import { normalizeThemeId } from "@/lib/theme-registry";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Textarea } from "@/components/ui/textarea";
 import { ApiClient, type PaymentMethod, type TableOrderDraftResponse } from "@/lib/api-client";
@@ -70,7 +75,7 @@ import { useCustomerThemeSelection } from "@/features/customer-menu/useCustomerT
 import { PaymentModal } from "@/features/customer-menu/checkout/CheckoutModalHost";
 import { MenuHighlightSection, MenuRecommendationBadges } from "@/features/customer-menu/theme/MenuHighlights";
 import { pmdBuildKazenParentCategories } from "@/features/customer-menu/data/menuCategories";
-import { OrganicExactV0Frame, OrganicBotanicalHero, OrganicBotanicalCategoryNav, OrganicBotanicalMenuCard, organicBotanicalVars, hasCheckoutThemeRoot } from "@/features/customer-menu/theme/OrganicExactV0Frame";
+import { OrganicBotanicalHero, OrganicBotanicalCategoryNav, OrganicBotanicalMenuCard, organicBotanicalVars, hasCheckoutThemeRoot } from "@/features/customer-menu/theme/OrganicThemeContract";
 import { __pmdRemoteConsoleInstallOnce, __pmdWalletDebugInstallOnce } from "@/features/customer-menu/legacy-dom-repairs/debugInstallers";
 import { useCurrentFrontendTheme } from "@/features/customer-menu/theme/useCurrentFrontendTheme";
 import { pmdInstallMenuPayMyDineFooterLogo } from "@/features/customer-menu/legacy-dom-repairs/footerLogoInstaller";
@@ -225,7 +230,7 @@ function MenuContent() {
   useKazenMenuDomRepairs(isKazenJapaneseTheme)
 
   const shouldHoldThemeRender = !isFrontendThemeResolved && !forceModernGreenTheme
-  const { t } = useLanguageStore()
+  const { t, language } = useLanguageStore()
   const { toast } = useToast()
   const [isNoteModalOpen, setNoteModalOpen] = useState(false)
   const [isWaiterConfirmOpen, setWaiterConfirmOpen] = useState(false)
@@ -331,7 +336,7 @@ function MenuContent() {
         const data = await res.json()
       pmdForceKazenFrontendThemePayload(data);
         const normalizedThemePayload = pmdForceKazenFrontendThemePayload(data)
-        const themeId = String(normalizedThemePayload?.data?.theme_id || normalizedThemePayload?.theme_id || normalizedThemePayload?.frontend_theme || normalizedThemePayload?.admin_theme || "").trim()
+        const themeId = normalizeThemeId(normalizedThemePayload?.data?.theme_id || normalizedThemePayload?.theme_id || normalizedThemePayload?.frontend_theme || normalizedThemePayload?.admin_theme || "")
 
         if (!cancelled) {
           setForceModernGreenTheme(themeId === "modern_green")
@@ -436,15 +441,15 @@ useEffect(() => {
             const useTableNo = !!table_no; // Use table_no if we have it from URL params
             const tableResult = await apiClient.getTableInfo(tableParam, qr || undefined, useTableNo)
             if (tableResult.success) {
-              setTableInfoState(tableResult.data)
-              setTableInfo(prev => ({
-                ...prev,
-                table_id: tableResult.data.table_id,
-                table_name: tableResult.data.table_name,
-                location_id: tableResult.data.location_id,
-                qr_code: tableResult.data.qr_code,
-                table_no: prev?.table_no ?? tableResult.data.table_no ?? null
-              }))
+              const normalizedTableInfo = {
+                table_id: String(tableResult.data.table_id ?? tableParam),
+                table_name: String(tableResult.data.table_name ?? ""),
+                location_id: Number(tableResult.data.location_id ?? 1),
+                qr_code: tableResult.data.qr_code ?? null,
+                table_no: tableResult.data.table_no != null ? Number(tableResult.data.table_no) : undefined,
+              }
+              setTableInfoState(normalizedTableInfo)
+              setTableInfo(normalizedTableInfo)
 
               const pendingQr = await apiClient.getPendingQrOrderByTable(String(tableResult.data.table_id), { tableNo: tableResult.data?.table_no ?? table_no ?? null, qr: qr || null })
               if (pendingQr?.success && pendingQr.data?.order_id) {
@@ -668,6 +673,11 @@ useEffect(() => {
     0
   )
 
+  const handleFirstAdd = React.useCallback((item: MenuItem) => {
+    const cartItem = useCartStore.getState().items.find((entry) => entry.item.id === item.id)
+    setLastInteractedItem(cartItem || { item, quantity: 1 })
+  }, [])
+
   const handleOrganicAdd = (item: MenuItem, event: React.MouseEvent) => {
     event.stopPropagation()
     let itemToAdd = { ...item }
@@ -721,136 +731,7 @@ useEffect(() => {
     language,
   })
 
-  // PMD_BOTANICAL_V0_PARENT_BRIDGE_20260607
-  useEffect(() => {
-    if (typeof window === "undefined") return
-
-    const handleBotanicalMessage = (event: MessageEvent) => {
-      if (event.origin !== window.location.origin) return
-
-      const msg = event.data
-      if (!msg || typeof msg !== "object") return
-
-      const type = String((msg as any).type || "")
-      if (!type.startsWith("PMD_BOTANICAL_")) return
-
-      if (type === "PMD_BOTANICAL_ADD_ITEM") {
-        const id = String((msg as any).itemId || "")
-        const quantity = Math.max(1, Number((msg as any).quantity || 1))
-
-        const sourceItems = apiMenuItems.length ? apiMenuItems : (menuItems.length ? menuItems : menuData)
-        const found = sourceItems.find((candidate: any) => {
-          return String(candidate?.id ?? candidate?.menu_id ?? candidate?.menuId ?? "") === id
-        })
-
-        if (!found) {
-          console.warn("[PMD botanical bridge] item not found", { id })
-          toast({
-            title: "Item not found",
-            description: "Please refresh the menu and try again.",
-            variant: "destructive",
-          })
-          return
-        }
-
-        let itemToAdd: MenuItem = { ...(found as MenuItem) }
-
-        // Keep same VAT behavior as current organic/gold logic.
-        if (taxSettings.enabled && taxSettings.percentage > 0 && taxSettings.menuPrice === 0) {
-          itemToAdd.price = Number(itemToAdd.price || 0) / (1 + taxSettings.percentage / 100)
-          if (itemToAdd.options) {
-            itemToAdd.options = itemToAdd.options.map((option: any) => ({
-              ...option,
-              values: (option.values || []).map((value: any) => ({
-                ...value,
-                price: Number(value.price || 0) / (1 + taxSettings.percentage / 100),
-              })),
-            }))
-          }
-        }
-
-        for (let i = 0; i < quantity; i++) {
-          addToCart(itemToAdd)
-        }
-
-        handleFirstAdd(found as MenuItem)
-        toast({
-          title: "Added to order",
-          description: String((found as any).name || (found as any).menu_name || "Item added"),
-        })
-        return
-      }
-
-      if (
-        type === "PMD_BOTANICAL_CALL_WAITER" ||
-        type === "pmd:call-waiter"
-      ) {
-        handleWaiterClick()
-        return
-      }
-
-      if (
-        type === "PMD_BOTANICAL_ADD_NOTE" ||
-        type === "pmd:add-note"
-      ) {
-        handleNoteClick()
-        return
-      }
-
-      if (
-        type === "PMD_BOTANICAL_CHECKOUT" ||
-        type === "pmd:checkout"
-      ) {
-        handleCartClick()
-        return
-      }
-
-      if (
-        type === "PMD_BOTANICAL_TABLE_ORDER" ||
-        type === "pmd:table-order"
-      ) {
-        handleCartClick()
-        return
-      }
-
-      if (type === "PMD_BOTANICAL_GO_VALET") {
-        const incomingPath = String((msg as any).parentPath || window.location.pathname || "/menu")
-        const incomingSearch = String((msg as any).parentSearch || window.location.search || "")
-
-        let targetPath = "/valet"
-
-        if (/\/table\/[^/]+\/menu\/?$/.test(incomingPath)) {
-          targetPath = incomingPath.replace(/\/menu\/?$/, "/valet")
-        } else if (/\/menu\/?$/.test(incomingPath)) {
-          targetPath = "/valet"
-        } else if (/\/menu\/table-[^/]+\/?$/.test(incomingPath)) {
-          targetPath = "/valet"
-        }
-
-        window.location.href = `${targetPath}${incomingSearch || ""}`
-        return
-      }
-
-      if (type === "PMD_BOTANICAL_LANGUAGE") {
-        toast({
-          title: "Language",
-          description: "Language switch is still handled by the PayMyDine shell.",
-        })
-      }
-    }
-
-    window.addEventListener("message", handleBotanicalMessage)
-    return () => window.removeEventListener("message", handleBotanicalMessage)
-  }, [
-    apiMenuItems,
-    menuItems,
-    items.length,
-    taxSettings.enabled,
-    taxSettings.percentage,
-    taxSettings.menuPrice,
-    addToCart,
-    toast,
-  ])
+  // Native Organic Botanical handles menu actions directly; no parent frame bridge is installed.
   const handleSendNote = async () => {
     const trimmedNote = (note ?? '').trim();
     if (!trimmedNote) {
@@ -1338,12 +1219,8 @@ useEffect(() => {
     )
   }
 
-  // PMD_MODERN_GREEN_V0_ONLY_RETURN_FINAL_20260610
+  // Native Modern Green renders inside the main frontend with live PayMyDine data.
   if (isModernGreenTheme) {
-    const modernGreenSrc =
-      typeof window !== "undefined"
-        ? `/newfrontend/?embedded=1&from=pmd&${window.location.search.replace(/^\?/, "")}`
-        : "/newfrontend/?embedded=1&from=pmd"
 
     const modernGreenSourceItems = apiMenuItems.length ? apiMenuItems : (menuItems.length ? menuItems : menuData)
     const modernGreenTableNumber = tableInfo?.table_no ?? tableInfo?.table_id ?? displayTableNumber ?? tableIdString ?? null
@@ -1461,8 +1338,7 @@ useEffect(() => {
 
     return (
       <ThemeActionBoundary actions={themeMenuActions}>
-        <ModernGreenBridgeTheme
-          src={modernGreenSrc}
+        <ModernGreenNativeMenu
           sourceItems={modernGreenSourceItems}
           cartItems={items}
           totalItems={totalItems}
@@ -1526,7 +1402,7 @@ useEffect(() => {
               }
             }}
           />
-        </ModernGreenBridgeTheme>
+        </ModernGreenNativeMenu>
       </ThemeActionBoundary>
     )
   }
@@ -1536,7 +1412,32 @@ useEffect(() => {
     return (
       <ThemeActionBoundary actions={themeMenuActions}>
       <div className="pmd-customer-page page--menu relative min-h-screen w-full bg-[#f6efe2]">
-        <OrganicExactV0Frame />
+        <OrganicNativeMenu
+          sourceItems={apiMenuItems.length ? apiMenuItems : (menuItems.length ? menuItems : menuData)}
+          categories={allCategories}
+          restaurantName={restaurantDisplayName}
+          tableNumber={displayTableNumber}
+          actions={themeMenuActions}
+          onAddItem={(item, quantity = 1) => {
+            let itemToAdd: MenuItem = { ...(item as MenuItem) }
+            if (taxSettings.enabled && taxSettings.percentage > 0 && taxSettings.menuPrice === 0) {
+              itemToAdd.price = Number(itemToAdd.price || 0) / (1 + taxSettings.percentage / 100)
+              if (itemToAdd.options) {
+                itemToAdd.options = itemToAdd.options.map((option: any) => ({
+                  ...option,
+                  values: (option.values || []).map((value: any) => ({
+                    ...value,
+                    price: Number(value.price || 0) / (1 + taxSettings.percentage / 100),
+                  })),
+                }))
+              }
+            }
+            for (let i = 0; i < Math.max(1, Number(quantity || 1)); i += 1) addToCart(itemToAdd)
+            handleFirstAdd(item as MenuItem)
+            toast({ title: "Added to order", description: String((item as any).name || (item as any).menu_name || "Item added") })
+          }}
+          onOpenItem={(item) => handleItemSelect(item as MenuItem)}
+        />
 
         {/* PMD_ORGANIC_USES_REAL_GOLD_TOOLBAR_FIXED_20260608 */}
         <div
@@ -1636,7 +1537,7 @@ useEffect(() => {
             <OrganicBotanicalCategoryNav
               categories={allCategories}
               selectedCategory={selectedCategory || "All"}
-              onSelectCategory={(category) => {
+              onSelectCategory={(category: string) => {
                 setSelectedCategory(category || "All");
               }}
             />
@@ -1644,7 +1545,7 @@ useEffect(() => {
             <CategoryNav
               categories={allCategories}
               selectedCategory={selectedCategory || "All"} // Force "All" if no selection
-              onSelectCategory={(category) => {
+              onSelectCategory={(category: string) => {
                 setSelectedCategory(category);
                 // Auto-select "All" if no category is passed
                 if (!category) {
@@ -1678,7 +1579,7 @@ useEffect(() => {
                     key={item.id}
                     item={item}
                     onSelect={handleItemSelect}
-                    onAdd={(event) => handleOrganicAdd(item, event)}
+                    onAdd={(event: React.MouseEvent) => handleOrganicAdd(item, event)}
                     highlightSettings={menuHighlightSettings}
                   />
                 ) : (

@@ -11,10 +11,11 @@ export function FaviconSetter() {
   useEffect(() => {
     const setFavicon = async () => {
       try {
-        const res = await fetch(
-          `${EnvironmentConfig.getInstance().backendBaseUrl().replace(/\/$/, '')}/api-server-multi-tenant.php/api/v1/settings`,
-          { credentials: 'omit', cache: 'no-store' }
-        )
+        const res = await fetch(`/settings?ts=${Date.now()}`, {
+          credentials: 'omit',
+          cache: 'no-store',
+          headers: { Accept: 'application/json' },
+        })
         
         if (!res.ok) {
           console.warn('Failed to fetch settings for favicon')
@@ -22,17 +23,18 @@ export function FaviconSetter() {
         }
         
         const json = await res.json()
-        const faviconPath = (json?.favicon_logo || json?.data?.favicon_logo);
+        const faviconPath = (json?.favicon_logo_url || json?.favicon_logo || json?.data?.favicon_logo_url || json?.data?.favicon_logo);
         
         if (!faviconPath) {
           // No favicon set, keep default or remove
           return
         }
         
-        // Convert relative path to full URL
-        const BASE = EnvironmentConfig.getInstance().backendBaseUrl()
-        const normalized = faviconPath.startsWith('/') ? faviconPath : `/${faviconPath}`
-        const faviconUrl = `${BASE.replace(/\/$/, '')}/assets/media/uploads${normalized}`
+        // /settings already normalizes favicon_logo_url/favicon_logo when available.
+        const BASE = typeof window !== 'undefined' ? window.location.origin : EnvironmentConfig.getInstance().backendBaseUrl()
+        const faviconUrl = /^https?:\/\//i.test(faviconPath)
+          ? faviconPath
+          : `${BASE.replace(/\/$/, '')}${faviconPath.startsWith('/') ? faviconPath : `/assets/media/uploads/${faviconPath}`}`
         
         // Remove existing favicon links
         const existingLinks = document.querySelectorAll('link[rel*="icon"]')

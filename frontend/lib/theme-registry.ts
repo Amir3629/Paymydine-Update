@@ -99,7 +99,11 @@ export function normalizeThemeId(input: string | null | undefined): ThemeCanonic
 }
 
 export function getThemeConfig(input: string | null | undefined): ThemeConfig {
-  const normalizedInput = String(input || "").trim()
+  const normalizedInput = String(input || "")
+    .trim()
+    .toLowerCase()
+    .replace(/\s+/g, "_")
+
   return themeAliasMap.get(normalizedInput) || goldLuxuryThemeConfig
 }
 

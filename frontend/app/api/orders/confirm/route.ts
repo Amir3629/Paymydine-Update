@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import Stripe from 'stripe'
 
 const stripe = process.env.STRIPE_SECRET_KEY
-  ? new Stripe(process.env.STRIPE_SECRET_KEY, { apiVersion: '2023-10-16' })
+  ? new Stripe(process.env.STRIPE_SECRET_KEY, { apiVersion: '2025-08-27.basil' })
   : null
 
 export async function POST(request: NextRequest) {
@@ -39,7 +39,7 @@ export async function POST(request: NextRequest) {
       special_instructions: [orderPayload.special_instructions, `Stripe PaymentIntent: ${paymentIntentId}`].filter(Boolean).join(' | '),
     }
 
-    const ordersUrl = `${new URL('/api/v1/orders', req.nextUrl.origin).toString()}`
+    const ordersUrl = `${new URL('/api/v1/orders', request.nextUrl.origin).toString()}`
     const res = await fetch(ordersUrl, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', Accept: 'application/json' },

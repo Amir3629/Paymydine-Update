@@ -1,7 +1,7 @@
 "use client"
 
 import type React from "react"
-import { motion } from "framer-motion"
+import { motion, type Variants } from "framer-motion"
 import { Plus } from "lucide-react"
 import type { MenuItem } from "@/lib/data"
 import { useCartStore } from "@/store/cart-store"
@@ -24,13 +24,13 @@ interface MenuItemCardProps {
  onSelect: (item: MenuItem) => void
 }
 
-const cardVariants = {
+const cardVariants: Variants = {
  hidden: { y: 20, opacity: 0 },
  visible: {
  y: 0,
  opacity: 1,
  transition: {
- type: "spring",
+ type: "spring" as const,
  stiffness: 100,
  },
  },

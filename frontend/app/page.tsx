@@ -109,8 +109,7 @@ function HomePageContent() {
           >
             <motion.div
               className={iconContainerStyles}
-              style={iconCircleStyle}
-              style={{ backgroundColor: "var(--theme-primary)" }}
+              style={{ ...iconCircleStyle, backgroundColor: "var(--theme-primary)" }}
               variants={{
                 hover: {
                   scale: 1.1,
@@ -156,8 +155,7 @@ function HomePageContent() {
           >
             <motion.div
               className={iconContainerStyles}
-              style={iconCircleStyle}
-              style={{ backgroundColor: "var(--theme-primary)" }}
+              style={{ ...iconCircleStyle, backgroundColor: "var(--theme-primary)" }}
               variants={{
                 hover: {
                   scale: 1.1,

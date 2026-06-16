@@ -5,7 +5,7 @@ import Stripe from 'stripe'
 let stripe: Stripe | null = null
 if (process.env.STRIPE_SECRET_KEY) {
   stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
-    apiVersion: '2023-10-16',
+    apiVersion: '2025-08-27.basil',
   })
 }
 
@@ -56,7 +56,7 @@ export async function POST(request: NextRequest) {
       .slice(0, 500)
 
     // Build PaymentIntent params (no Connect if no destination)
-    const createParams: Record<string, unknown> = {
+    const createParams: Stripe.PaymentIntentCreateParams = {
       amount: amountCents,
       currency: currency.toLowerCase(),
       automatic_payment_methods: {
@@ -82,7 +82,7 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    const paymentIntent = await stripe.paymentIntents.create(createParams as Stripe.PaymentIntentCreateParams)
+    const paymentIntent = await stripe.paymentIntents.create(createParams)
 
     return NextResponse.json({
       clientSecret: paymentIntent.client_secret,

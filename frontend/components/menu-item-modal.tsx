@@ -155,7 +155,7 @@ export function MenuItemModal({ item, onClose, highlightSettings = defaultMenuHi
  useEffect(() => {
  return () => {
  if (closeTimerRef.current) {
- clearTimeout(closeTimerRef.current)
+ window.clearTimeout(closeTimerRef.current)
  }
  }
  }, [])
@@ -190,17 +190,17 @@ const handleModalClose = (event?: any) => {
  setIsLocallyClosed(true)
 
  if (closeTimerRef.current) {
- clearTimeout(closeTimerRef.current)
+ window.clearTimeout(closeTimerRef.current)
  }
 
  // Delay parent teardown so the exit animation can actually be seen.
- closeTimerRef.current = setTimeout(() => {
+ closeTimerRef.current = window.setTimeout(() => {
  onClose()
  }, 320)
  }
  // PMD_MODAL_CLOSE_LOCAL_STATE_FIX_END
 
- if (!isPortalMounted) return null
+ if (!isPortalMounted || !renderedItem) return null
 
  return createPortal(
  <AnimatePresence>
@@ -267,7 +267,6 @@ const handleModalClose = (event?: any) => {
  alt={itemName}
  fill
  className="object-contain max-h-full max-w-full w-auto h-auto rounded-2xl"
- style={{ objectPosition: "center" }}
  />
  </motion.div>
  </AnimatePresence>

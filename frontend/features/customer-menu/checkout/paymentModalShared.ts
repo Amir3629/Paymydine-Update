@@ -14,6 +14,7 @@ export type PayPalPublicConfig = {
 export type PaymentFormData = {
   email: string
   phone: string
+  cardholderName?: string
 }
 
 export interface PaymentModalProps {
