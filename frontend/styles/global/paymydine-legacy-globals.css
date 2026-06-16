@@ -8,3 +8,25 @@
 @import "./legacy/legacy-08.css";
 @import "./legacy/legacy-09.css";
 @import "./legacy/legacy-10.css";
+
+/* PMD_MENU_ACTION_CIRCLE_COLOR_REPAIR_CSS
+   Replaces legacy DOM hook useMenuActionCircleColorRepair.ts.
+   Keeps menu action circles/icons white without runtime querySelector/style mutation. */
+.page--menu .pmd-v2-action-circle,
+.page--menu button[aria-label='Increase quantity'],
+.page--menu button[aria-label='Decrease quantity'],
+.page--menu button[aria-label*='Back' i],
+.page--menu button[aria-label*='back' i] {
+  color: #ffffff !important;
+  -webkit-text-fill-color: #ffffff !important;
+}
+
+.page--menu .pmd-v2-action-circle *,
+.page--menu button[aria-label='Increase quantity'] *,
+.page--menu button[aria-label='Decrease quantity'] *,
+.page--menu button[aria-label*='Back' i] *,
+.page--menu button[aria-label*='back' i] * {
+  color: #ffffff !important;
+  -webkit-text-fill-color: #ffffff !important;
+  stroke: #ffffff !important;
+}

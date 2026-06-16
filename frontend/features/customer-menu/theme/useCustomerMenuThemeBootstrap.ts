@@ -1,16 +1,10 @@
 "use client"
 
 import React from "react"
-import { useMenuActionCircleColorRepair } from "@/features/customer-menu/legacy-dom-repairs/useMenuActionCircleColorRepair"
 import { normalizeThemeId } from "@/lib/theme-registry"
 import { pmdForceKazenFrontendThemePayload } from "@/features/customer-menu/theme/kazenThemePayload"
 
 export function useCustomerMenuThemeBootstrap(setForceModernGreenTheme: (enabled: boolean) => void) {
-  React.useEffect(() => {
-  }, [])
-
-  useMenuActionCircleColorRepair()
-
   React.useEffect(() => {
     if (typeof window === "undefined") return
 

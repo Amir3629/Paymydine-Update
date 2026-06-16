@@ -12,3 +12,7 @@ High-risk file:
 
 Removed safely:
 - debugInstallers.ts: removed because it only installed debug/remote-console helpers and had zero DOM repair operations.
+
+Removed safely:
+
+- useMenuActionCircleColorRepair.ts: replaced by `PMD_MENU_ACTION_CIRCLE_COLOR_REPAIR_CSS` in `styles/global/paymydine-legacy-globals.css`.
