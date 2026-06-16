@@ -6,7 +6,7 @@
 
 "use client"
 
-import React, { useState, useEffect, useLayoutEffect, useRef } from "react"
+import React, { useState, useRef } from "react"
 import { useRouter } from "next/navigation"
 import { useLanguageStore } from "@/store/language-store"
 import { useCmsStore } from "@/store/cms-store"
@@ -18,8 +18,7 @@ import { usePaymentModalDomRepairs } from "@/features/customer-menu/legacy-dom-r
 import { CheckoutShellRouter } from "@/features/customer-menu/checkout/CheckoutShellRouter"
 import { PaymentMethodForm } from "@/features/customer-menu/checkout/PaymentMethodForm"
 import { PaymentActionButton } from "@/features/customer-menu/checkout/PaymentActionButton"
-import { createSubmittedTableOrderSnapshot } from "@/features/table-order/table-order-utils"
-import { getCheckoutStepAfterDraftSubmit, getCheckoutStepOnOpen, getInitialCheckoutStep, shouldForcePersonalReview } from "@/features/checkout/checkout-state-utils"
+import { getInitialCheckoutStep } from "@/features/checkout/checkout-state-utils"
 import { KAZEN_JAPANESE_THEME_KEY, ORGANIC_BOTANICAL_THEME_KEY, type PaymentFormData, type PaymentModalProps } from "@/features/customer-menu/checkout/paymentModalShared"
 import { buildPaymentOpenOrderStorageKeys, ensurePaymentGuestSession, getPaymentTableKey, getPaymentTenantKey } from "@/features/customer-menu/checkout/paymentModalStorage"
 import { positiveMoney, subtotalFromSubmittedPaymentRows } from "@/features/customer-menu/checkout/paymentModalMath"
@@ -37,7 +36,9 @@ import { useCheckoutPaymentBase } from "@/features/customer-menu/checkout/hooks/
 import { useCheckoutPaymentSummary } from "@/features/customer-menu/checkout/hooks/useCheckoutPaymentSummary"
 import { useCheckoutPaymentContext } from "@/features/customer-menu/checkout/hooks/useCheckoutPaymentContext"
 import { useCheckoutDisplayItems } from "@/features/customer-menu/checkout/hooks/useCheckoutDisplayItems"
+import { useCheckoutModalLifecycleEffects } from "@/features/customer-menu/checkout/hooks/useCheckoutModalLifecycleEffects"
 import type { CheckoutStep, SplitBillItem, SplitMethod } from "@/features/checkout/types"
+
 
 
 
@@ -99,36 +100,6 @@ const { clearCart, addToCart } = useCartStore()
   const [providerInlineError, setProviderInlineError] = useState<string | null>(null)
   const [isDarkTheme, setIsDarkTheme] = useState(false)
 
-  // Debug (safe): expose key settings
-  useEffect(() => {
-    if (typeof window !== 'undefined') {
-      (window as any).__CMS_STORE__ = { merchantSettings }
-    }
-  }, [merchantSettings])
-
-  useEffect(() => {
-    const detectDarkTheme = () => {
-      const themeName = document.documentElement.getAttribute('data-theme') || 'clean-light'
-      setIsDarkTheme(themeName === 'modern-dark')
-    }
-
-    detectDarkTheme()
-
-    const observer = new MutationObserver((mutations) => {
-      mutations.forEach((mutation) => {
-        if (mutation.type === 'attributes' && mutation.attributeName === 'data-theme') {
-          detectDarkTheme()
-        }
-      })
-    })
-
-    observer.observe(document.documentElement, {
-      attributes: true,
-      attributeFilter: ['data-theme'],
-    })
-
-    return () => observer.disconnect()
-  }, [])
   const [paymentFormData, setPaymentFormData] = useState<PaymentFormData>({
     email: "",
     phone: "",
@@ -165,36 +136,6 @@ const [submittedSnapshot, setSubmittedSnapshot] = useState<any | null>(initialSu
 
   const hasPersonalItems = allItems.length > 0
 
-
-  useEffect(() => {
-    if (!isOpen) return
-    setCheckoutStep((current) => getCheckoutStepOnOpen({
-      initialCheckoutStep,
-      existingOrderId,
-      hasPersonalItems,
-      preferPersonalReview,
-      currentStep: current,
-    }))
-  }, [isOpen, existingOrderId, initialCheckoutStep, hasPersonalItems, preferPersonalReview])
-
-  useEffect(() => {
-    if (!initialSubmittedOrder) return
-    if ((tableDraft as any)?.draft_id && !(tableDraft as any)?.order_id && !(tableDraft as any)?.orderId) return
-    const tableDraftOrderId = Number((tableDraft as any)?.order_id || (tableDraft as any)?.orderId || 0)
-    const initialOrderId = Number((initialSubmittedOrder as any)?.orderId || (initialSubmittedOrder as any)?.order_id || 0)
-    if (tableDraftOrderId > 0 && initialOrderId > 0 && tableDraftOrderId !== initialOrderId) return
-    setSubmittedSnapshot((prev: any) => {
-      const prevOrderId = Number(prev?.orderId || prev?.order_id || 0)
-      if (prevOrderId > 0 && tableDraftOrderId > 0 && prevOrderId === tableDraftOrderId && initialOrderId !== tableDraftOrderId) return prev
-      return initialSubmittedOrder
-    })
-  }, [initialSubmittedOrder, (tableDraft as any)?.draft_id, (tableDraft as any)?.order_id, (tableDraft as any)?.orderId])
-
-  useEffect(() => {
-    if (!(tableDraft as any)?.draft_id) return
-    if ((tableDraft as any)?.order_id || (tableDraft as any)?.orderId) return
-    setSubmittedSnapshot(null)
-  }, [(tableDraft as any)?.draft_id, (tableDraft as any)?.order_id, (tableDraft as any)?.orderId])
 
   const getTenantKey = () => getPaymentTenantKey()
   const getTableKey = () => getPaymentTableKey(tableInfo)
@@ -527,11 +468,6 @@ const [submittedSnapshot, setSubmittedSnapshot] = useState<any | null>(initialSu
     setSelectedPaymentMethod(null)
     setCashCollectionConfirmed(false)
   }
-  useEffect(() => {
-    // Load VAT settings from backend on mount
-    loadVATSettings()
-  }, [loadVATSettings])
-
   const {
     stripeResolvedTableIdRaw,
     stripeResolvedTableNumber,
@@ -652,51 +588,7 @@ const [submittedSnapshot, setSubmittedSnapshot] = useState<any | null>(initialSu
     payment: "Payment",
     paid: "Order complete",
   }
-    // PMD_FORCE_PERSONAL_CART_REVIEW_WHEN_CHECKOUT_HAS_ITEMS
-  useEffect(() => {
-    if (!isOpen) return
-
-    // If the customer has just added new items and pressed Checkout,
-    // the modal must show the personal review card first.
-    // Existing table/order status must not steal this flow.
-    if (shouldForcePersonalReview({ hasPersonalItems, initialCheckoutStep, currentStep: checkoutStep })) {
-      setCheckoutStep("review")
-    }
-  }, [isOpen, hasPersonalItems, initialCheckoutStep, checkoutStep])
-
-// PMD_FREEZE_MODAL_TEXT_BUTTONS_FIRST_PAINT
-useLayoutEffect(() => {
-  if (!isOpen || typeof document === "undefined") return
-
-  let cleanupTimer: number | undefined
-  let retryTimer: number | undefined
-
-  const applyFreeze = () => {
-    const root = document.querySelector('[data-pmd-checkout-scroll="1"]') as HTMLElement | null
-    if (!root) return false
-
-    root.setAttribute("data-pmd-step-freeze", "1")
-
-    cleanupTimer = window.setTimeout(() => {
-      root.setAttribute("data-pmd-step-freeze", "0")
-      root.removeAttribute("data-pmd-step-freeze")
-    }, 850)
-
-    return true
-  }
-
-  if (!applyFreeze()) {
-    retryTimer = window.setTimeout(applyFreeze, 16)
-  }
-
-  return () => {
-    if (cleanupTimer) window.clearTimeout(cleanupTimer)
-    if (retryTimer) window.clearTimeout(retryTimer)
-  }
-}, [isOpen, checkoutStep])
-
-
-  // PMD_SUBMITTED_TABLE_DRAFT_SHOULD_SHOW_STATUS
+  // PMD_SUBMITTED_TABLE_DRAFT_SHOULD_SHOW_STATUS  // PMD_SUBMITTED_TABLE_DRAFT_SHOULD_SHOW_STATUS
   const isSubmittedTableDraftForStatus = Boolean(
     tableDraft?.order_id ||
     tableDraft?.orderId ||
@@ -704,50 +596,25 @@ useLayoutEffect(() => {
   )
   const checkoutListViewKey = `${checkoutStep}:${hasPersonalItems ? "personal" : "shared"}:${isSubmittedTableDraftForStatus ? "status" : "draft"}`
 
-  useLayoutEffect(() => {
-    if (!isOpen || typeof window === "undefined" || typeof document === "undefined") return
-
-    const resetCheckoutScrollPositions = () => {
-      const root = document.querySelector('[data-pmd-checkout-scroll="1"]') as HTMLElement | null
-      if (root) root.scrollTop = 0
-      document.querySelectorAll<HTMLElement>('.pmd-checkout-list-scroll').forEach((list) => {
-        list.scrollTop = 0
-      })
-    }
-
-    resetCheckoutScrollPositions()
-    const raf = window.requestAnimationFrame(resetCheckoutScrollPositions)
-    return () => window.cancelAnimationFrame(raf)
-  }, [isOpen, checkoutListViewKey])
-
-
-  // PMD_DIRECT_ORDER_STATUS_AFTER_SEND_20260603
-  useEffect(() => {
-    if (!isOpen) return
-    if (checkoutStep !== "review") return
-    if (hasPersonalItems || preferPersonalReview) return
-    if (!isSubmittedTableDraftForStatus) return
-
-    if (tableDraft) {
-      const normalizedTableDraftSnapshot = createSubmittedTableOrderSnapshot(tableDraft, tableInfo, taxSettings?.percentage || 0)
-      setSubmittedSnapshot((prev: any) => {
-        const prevOrderId = Number(prev?.orderId || prev?.order_id || 0)
-        const nextOrderId = Number(normalizedTableDraftSnapshot.orderId || 0)
-        return !prev || prevOrderId !== nextOrderId ? normalizedTableDraftSnapshot : { ...prev, ...normalizedTableDraftSnapshot }
-      })
-    }
-
-    setCheckoutStep(getCheckoutStepAfterDraftSubmit())
-  }, [
+  useCheckoutModalLifecycleEffects({
     isOpen,
-    checkoutStep,
+    merchantSettings,
+    setIsDarkTheme,
+    paymentLoadVATSettings: loadVATSettings,
+    initialCheckoutStep,
+    existingOrderId,
     hasPersonalItems,
     preferPersonalReview,
-    isSubmittedTableDraftForStatus,
+    setCheckoutStep,
+    initialSubmittedOrder,
     tableDraft,
-    tableInfo?.table_no,
-    tableInfo?.table_id,
-  ])
+    setSubmittedSnapshot,
+    checkoutStep,
+    checkoutListViewKey,
+    isSubmittedTableDraftForStatus,
+    tableInfo,
+    taxSettings,
+  })
 
 const modalTitle = checkoutStep === "review" && tableDraft?.success && tableDraft.status && tableDraft.status !== "empty" && !hasPersonalItems && !preferPersonalReview
     ? "Table Order"
