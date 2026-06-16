@@ -10,9 +10,8 @@ import React, { useState, useEffect, useLayoutEffect, useRef } from "react"
 import { useRouter } from "next/navigation"
 import { useLanguageStore } from "@/store/language-store"
 import { motion, AnimatePresence } from "framer-motion"
-import { Users, Check, Minus, CreditCard, ArrowLeft, DollarSign, ArrowRight, Link2, QrCode, Star, MessageSquare, Plus } from "lucide-react"
+import { Users, Check, Minus, CreditCard, ArrowLeft, ArrowRight, Link2, QrCode, Star, MessageSquare, Plus } from "lucide-react"
 import { formatCurrency } from "@/lib/currency"
-import { type TranslationKey } from "@/lib/translations"
 import { useCmsStore } from "@/store/cms-store"
 import { useCartStore } from "@/store/cart-store"
 import { Button } from "@/components/ui/button"
@@ -54,18 +53,19 @@ import { useCheckoutDisplayItems } from "@/features/customer-menu/checkout/hooks
 import type { CheckoutStep, SplitBillItem, SplitMethod, SplitSourceItem } from "@/features/checkout/types"
 
 
+
 export function PaymentModal({ isOpen, onClose, items: allItems, tableInfo, existingOrderId, pendingSummary, initialSubmittedOrder, initialCheckoutStep, preferPersonalReview = false, onOpenOrderUpdate, onCartPricingUpdate, checkoutVisualTheme = "neutral" }: PaymentModalProps) {
   useCheckoutVisualRepairs()
 
   const router = useRouter()
   const { toast } = useToast()
   const { t } = useLanguageStore()
-  const { paymentOptions, tipSettings, taxSettings, merchantSettings, loadVATSettings, loadMerchantSettings, appliedCoupon, validateCoupon, removeCoupon } = useCmsStore()
-const { clearCart, addToCart, clearTableContext } = useCartStore()
+  const { tipSettings, taxSettings, merchantSettings, loadVATSettings, appliedCoupon, validateCoupon, removeCoupon } = useCmsStore()
+const { clearCart, addToCart } = useCartStore()
   const [isLoading, setIsLoading] = useState(false)
 
   const [isSplitting, setIsSplitting] = useState(false)
-  const [selectedItems, setSelectedItems] = useState<Record<string, SplitBillItem>>({})
+  const selectedItems = useRef<Record<string, SplitBillItem>>({}).current
   const [splitMethod, setSplitMethod] = useState<SplitMethod>("equal")
   const [splitGuestCount, setSplitGuestCount] = useState(2)
   const [itemAssignments, setItemAssignments] = useState<Record<string, number | null>>({})
@@ -94,7 +94,6 @@ const { clearCart, addToCart, clearTableContext } = useCartStore()
   const {
     loadingPayments,
     visiblePaymentMethods,
-    methodByCode,
     stripeConfig,
     stripeConfigError,
     stripePromise,
@@ -394,7 +393,6 @@ const [submittedSnapshot, setSubmittedSnapshot] = useState<any | null>(initialSu
               borderRadius: "9999px",
   }
   const {
-    buildPersonalDraftItems,
     handleConfirmMyItems,
     handleSubmitTableDraft,
     markOpenOrderAsPaid,
@@ -523,19 +521,6 @@ const [submittedSnapshot, setSubmittedSnapshot] = useState<any | null>(initialSu
     buildOpenOrderStorageKeys,
   })
 
-  // Toggle selection for individual item instance
-  const toggleItemSelection = (instance: SplitBillItem) => {
-    setSelectedItems((prev) => {
-      const newSelection = { ...prev }
-      if (newSelection[instance.key]) {
-        delete newSelection[instance.key]
-      } else {
-        newSelection[instance.key] = instance
-      }
-      return newSelection
-    })
-  }
-
   const handlePaymentMethodSelect = (methodId: string) => {
     setProviderInlineError(null)
 
@@ -552,33 +537,6 @@ const [submittedSnapshot, setSubmittedSnapshot] = useState<any | null>(initialSu
     setProviderInlineError(null)
     setSelectedPaymentMethod(null)
     setCashCollectionConfirmed(false)
-  }
-
-  const handleFormChange = (field: keyof PaymentFormData, value: string) => {
-    setPaymentFormData(prev => ({ ...prev, [field]: value }))
-  }
-
-  const formatCardNumber = (value: string) => {
-    const v = value.replace(/\s+/g, '').replace(/[^0-9]/gi, '')
-    const matches = v.match(/\d{4,16}/g)
-    const match = matches && matches[0] || ''
-    const parts = []
-    for (let i = 0, len = match.length; i < len; i += 4) {
-      parts.push(match.substring(i, i + 4))
-    }
-    if (parts.length) {
-      return parts.join(' ')
-    } else {
-      return v
-    }
-  }
-
-  const formatExpiryDate = (value: string) => {
-    const v = value.replace(/\s+/g, '').replace(/[^0-9]/gi, '')
-    if (v.length >= 2) {
-      return v.substring(0, 2) + ' / ' + v.substring(2, 4)
-    }
-    return v
   }
   useEffect(() => {
     // Load VAT settings from backend on mount
@@ -1054,225 +1012,18 @@ const modalTitle = checkoutStep === "review" && tableDraft?.success && tableDraf
 
         {/* Order Summary (prices incl. VAT) & Payment - Scrollable Content */}
         <div data-pmd-checkout-scroll="1" className="pmd-checkout-body p-4 pb-8 space-y-4 overflow-y-auto flex-1" style={isOrganicCheckoutVisual ? organicCheckoutBodyStyle : undefined}>
-          {false && checkoutStep === "payment" && pendingSummary && (
-            <div className="pmd-checkout-flat-section rounded-2xl p-3 text-xs">
-              <div className="flex justify-between">
-                <span className="muted">Total</span>
-                <span className="font-semibold">{formatCurrency(pendingSummary?.orderTotal || 0)}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="muted">Already paid</span>
-                <span className="font-semibold">{formatCurrency(pendingSummary?.settledAmount || 0)}</span>
-              </div>
-              <div className="flex justify-between mt-1">
-                <span className="muted">Remaining</span>
-                <span className="font-semibold">{formatCurrency(pendingSummary?.remainingAmount || 0)}</span>
-              </div>
-            </div>
-          )}
+          
           {/* Split Bill Toggle */}
-          {false && checkoutStep === "payment" && <div className="flex items-center justify-between p-3 surface-sub rounded-2xl">
-            <div className="flex items-center space-x-2">
-              <Users className="h-4 w-4" style={{ color: 'var(--theme-secondary)' }} />
-              <span className="text-xs muted">{t("splitBill")}</span>
-            </div>
-            <Button
-              variant={isSplitting ? "default" : "outline"}
-              size="sm"
-              onClick={() => setIsSplitting(!isSplitting)}
-              className={cn(
-                "text-xs",
-                isSplitting
-                  ? "icon-btn--accent"
-                  : "icon-btn"
-              )}
-            >
-              {isSplitting ? "ON" : "OFF"}
-            </Button>
-          </div>}
+          
 
           {/* Items List */}
-          {false && (checkoutStep === "review" || checkoutStep === "payment") && (isSplitting && checkoutStep === "payment" ? (
-            <div className="pmd-checkout-flat-section rounded-2xl p-3 overflow-hidden">
-              <h3 className="mb-2 text-xs">{t("selectItemsToPay")}</h3>
-              <div className="space-y-2 max-h-48 overflow-y-auto">
-                {allItemInstances.map((instance) => (
-                  <div
-                    key={instance.key}
-                    className="flex justify-between items-center text-xs p-2 rounded-lg cursor-pointer hover:opacity-90"
-                    onClick={() => toggleItemSelection(instance)}
-                  >
-                    <div className="flex items-center gap-2">
-                      <div
-                        className={cn(
-                          "w-4 h-4 rounded-md border-2 flex items-center justify-center transition-all",
-                          selectedItems[instance.key] ? "icon-btn--accent" : "icon-btn",
-                        )}
-                      >
-                        {selectedItems[instance.key] && <Check className="w-3 h-3" />}
-                      </div>
-                      <span>
-                        {instance.item.nameKey ? t(instance.item.nameKey as TranslationKey) : instance.item.name}
-                      </span>
-                    </div>
-                    <span className="font-semibold">
-            {formatCurrency(instance.price ?? 0)}
-                    </span>
-                  </div>
-                ))}
-              </div>
-            </div>
-          ) : (
-            <div className="pmd-checkout-flat-section rounded-2xl p-3">
-              <div className="mb-2"><h3 className="text-xs font-semibold">{vatLabels.summary}</h3>{vatLabels.includedNote && <p className="mt-0.5 text-[11px] font-medium opacity-70">{vatLabels.includedNote}</p>}</div>
-              <div className="space-y-2 max-h-64 overflow-y-auto">
-                {allItems.map((cartItem) => (
-                  <OrderItemWithOptions
-                    key={cartItem.item.id}
-                    cartItem={cartItem}
-                    addToCart={addToCart}
-                    t={t}
-                    onOptionsChange={handleOptionsChange}
-                  />
-                ))}
-              </div>
-            </div>
-          ))}
+          
 
           {/* Tip Section */}
-          {false && checkoutStep === "payment" && tipSettings.enabled && (
-            <div className="pmd-checkout-flat-section rounded-2xl p-3">
-              <div className="flex items-center gap-2 mb-2">
-                <div className="relative h-4 w-4 flex items-center justify-center">
-                  <svg
-                    className="absolute h-4 w-4"
-                    style={{ color: 'var(--theme-secondary)' }}
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2.5"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  >
-                    <circle cx="12" cy="12" r="10" />
-                  </svg>
-                  <DollarSign className="h-2.5 w-2.5 absolute" style={{ color: 'var(--theme-background)' }} strokeWidth="3" />
-                </div>
-                <h3 className="text-xs">{t("addTip")}</h3>
-              </div>
-              <div className="flex gap-2">
-                {tipSettings.percentages.map((p) => (
-                  <Button
-                    key={p}
-                    variant={tipPercentage === p && !customTip ? "default" : "outline"}
-                    size="sm"
-                    onClick={() => {
-                      setTipPercentage(p)
-                      setCustomTip("")
-                    }}
-                    className={cn(
-                      "text-xs",
-                      tipPercentage === p && !customTip
-                        ? "tip-pill--active"
-                        : "tip-pill"
-                    )}
-                  >
-                    {p}%
-                  </Button>
-                ))}
-                <div className="relative flex-grow">
-                  <Input
-                    type="number"
-                    placeholder={t("custom")}
-                    value={customTip}
-                    onChange={(e) => {
-                      setCustomTip(e.target.value)
-                      setTipPercentage(0)
-                    }}
-                    className="pl-6 text-xs h-8"
-                    style={{ borderColor: 'var(--theme-border)' }}
-                  />
-                  <span className="absolute left-2 top-1/2 -translate-y-1/2 muted text-xs">€</span>
-                </div>
-              </div>
-            </div>
-          )}
+          
 
           {/* Coupon Code Input */}
-          {false && checkoutStep === "payment" && <div className="pmd-checkout-flat-section rounded-2xl p-3 space-y-2">
-            {!appliedCoupon ? (
-              <div className="flex gap-2">
-                <input
-                  type="text"
-                  value={couponCode}
-                  onChange={(e) => {
-                    setCouponCode(e.target.value.toUpperCase())
-                    setCouponError(null)
-                  }}
-                  placeholder={t("couponCode") || "Coupon Code"}
-                  className="flex-1 px-3 py-2 border rounded-lg text-xs"
-                  style={{ borderColor: 'var(--theme-border)' }}
-                  disabled={couponLoading}
-                />
-                <Button
-                  onClick={async () => {
-                    if (!couponCode.trim()) {
-                      setCouponError("Please enter a coupon code")
-                      return
-                    }
-                    setCouponLoading(true)
-                    setCouponError(null)
-                    const result = await validateCoupon(couponCode.trim(), subtotal)
-                    if (!result.success) {
-                      setCouponError(result.message || "Invalid coupon code")
-                    } else {
-                      setCouponCode("")
-                      // Wait a bit for state to update, then show toast
-                      setTimeout(() => {
-                        const { appliedCoupon: currentCoupon } = useCmsStore.getState()
-                        toast({
-                          title: "Coupon Applied",
-                          description: `${currentCoupon?.name || 'Coupon'} applied successfully!`,
-                        })
-                      }, 100)
-                    }
-                    setCouponLoading(false)
-                  }}
-                  disabled={couponLoading || !couponCode.trim()}
-                  size="sm"
-                  className="icon-btn--accent text-xs"
-                >
-                  {couponLoading ? "..." : t("apply") || "Apply"}
-                </Button>
-              </div>
-            ) : (
-              <div className="flex items-center justify-between p-2 bg-green-50 dark:bg-green-900/20 rounded-lg">
-                <div className="flex items-center gap-2">
-                  <span className="text-xs font-medium text-green-700 dark:text-green-400">
-                    {appliedCoupon?.name} ({appliedCoupon?.code})
-                  </span>
-                  <span className="text-xs text-green-600 dark:text-green-500">
-                    -{formatCurrency(couponDiscount)}
-                  </span>
-                </div>
-                <Button
-                  onClick={() => {
-                    removeCoupon()
-                    setCouponCode("")
-                    setCouponError(null)
-                  }}
-                  size="sm"
-                  variant="ghost"
-                  className="h-8 w-8 p-0 text-base font-bold"
-                >
-                  ✕
-                </Button>
-              </div>
-            )}
-            {couponError && (
-              <p className="text-xs text-red-600 dark:text-red-400">{couponError}</p>
-            )}
-          </div>}
+          
 
 
           <AnimatePresence mode="wait" initial={false}>
