@@ -134,7 +134,6 @@ export function ModernGreenNativeMenu(props: Props) {
                     src={nativeItemImage(item)}
                     alt={nativeItemName(item)}
                     fill
-                    sizes="280px"
                   />
                 ) : null}
               </button>

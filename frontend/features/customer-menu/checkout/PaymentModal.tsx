@@ -7,7 +7,7 @@ import { PayPalScriptProvider } from "@paypal/react-paypal-js"
 import { Elements, useStripe, useElements, PaymentRequestButtonElement } from "@stripe/react-stripe-js"
 import { loadStripe } from "@stripe/stripe-js"
 import { motion, AnimatePresence } from "framer-motion"
-import { Wallet, Lock, Users, Check, Minus, CreditCard, ArrowLeft, CheckCircle, DollarSign, ReceiptText, ArrowRight, Link2, QrCode, Star, MessageSquare } from "lucide-react"
+import { Wallet, Lock, Users, Check, Minus, CreditCard, ArrowLeft, CheckCircle, DollarSign, ReceiptText, ArrowRight, Link2, QrCode, Star, MessageSquare, Plus } from "lucide-react"
 import { formatCurrency } from "@/lib/currency"
 import type { MenuItem } from "@/lib/data"
 import { type TranslationKey } from "@/lib/translations"
@@ -97,6 +97,7 @@ import {
   mapPaymentMethodsByCode,
 } from "@/features/checkout/payment-method-utils"
 import { KAZEN_JAPANESE_THEME_KEY, ORGANIC_BOTANICAL_THEME_KEY, SPLIT_GUEST_PROFILES, type PaymentFormData, type PaymentModalProps } from "@/features/customer-menu/checkout/paymentModalShared"
+import { pmdForceKazenFrontendThemePayload } from "@/features/customer-menu/theme/kazenThemePayload"
 import type {
   CheckoutStep,
   PmdToolbarPricingSnapshot,
@@ -360,8 +361,8 @@ const [submittedSnapshot, setSubmittedSnapshot] = useState<any | null>(initialSu
   // Option-enabled items must be configurable per unit in checkout review.
   // Example: 4x Burger with sides becomes Burger · Item 1..4.
   // Simple items without options stay grouped, e.g. 3x Cola.
-  const personalReviewItems = useMemo(() => {
-    return allItems.flatMap((cartItem, cartIndex) => {
+  const personalReviewItems = useMemo<any[]>(() => {
+    return allItems.flatMap((cartItem: CartItem, cartIndex: number): any[] => {
       const quantity = Math.max(1, Number(cartItem.quantity || 1))
       const hasOptions = Array.isArray((cartItem.item as any)?.options) && (cartItem.item as any).options.length > 0
       const itemId = String((cartItem.item as any)?.id || `item-${cartIndex}`)
@@ -371,7 +372,8 @@ const [submittedSnapshot, setSubmittedSnapshot] = useState<any | null>(initialSu
         return [{
           ...cartItem,
           __pmdOptionKey: itemId,
-          __pmdUnitLabel: undefined,
+          __pmdUnitLabel: "",
+          __pmdSourceQuantity: quantity,
         }]
       }
 
@@ -380,7 +382,7 @@ const [submittedSnapshot, setSubmittedSnapshot] = useState<any | null>(initialSu
           ...cartItem,
           quantity: 1,
           __pmdOptionKey: `${itemId}-${cartIndex}-0`,
-          __pmdUnitLabel: undefined,
+          __pmdUnitLabel: "",
           __pmdSourceQuantity: quantity,
         }]
       }
@@ -1074,7 +1076,7 @@ const [submittedSnapshot, setSubmittedSnapshot] = useState<any | null>(initialSu
       initialTotals.total,
       pendingSummary?.remainingAmount,
       pendingSummary?.orderTotal,
-      pendingSummary?.total,
+      (pendingSummary as any)?.total,
       paymentPayableTotal,
       payableTotal,
       finalTotal,
@@ -2532,15 +2534,15 @@ const modalTitle = checkoutStep === "review" && tableDraft?.success && tableDraf
             <div className="pmd-checkout-flat-section rounded-2xl p-3 text-xs">
               <div className="flex justify-between">
                 <span className="muted">Total</span>
-                <span className="font-semibold">{formatCurrency(pendingSummary.orderTotal || 0)}</span>
+                <span className="font-semibold">{formatCurrency(pendingSummary?.orderTotal || 0)}</span>
               </div>
               <div className="flex justify-between">
                 <span className="muted">Already paid</span>
-                <span className="font-semibold">{formatCurrency(pendingSummary.settledAmount || 0)}</span>
+                <span className="font-semibold">{formatCurrency(pendingSummary?.settledAmount || 0)}</span>
               </div>
               <div className="flex justify-between mt-1">
                 <span className="muted">Remaining</span>
-                <span className="font-semibold">{formatCurrency(pendingSummary.remainingAmount || 0)}</span>
+                <span className="font-semibold">{formatCurrency(pendingSummary?.remainingAmount || 0)}</span>
               </div>
             </div>
           )}
@@ -2554,7 +2556,7 @@ const modalTitle = checkoutStep === "review" && tableDraft?.success && tableDraf
               variant={isSplitting ? "default" : "outline"}
               size="sm"
               onClick={() => setIsSplitting(!isSplitting)}
-              className={clsx(
+              className={cn(
                 "text-xs",
                 isSplitting
                   ? "icon-btn--accent"
@@ -2644,7 +2646,7 @@ const modalTitle = checkoutStep === "review" && tableDraft?.success && tableDraf
                       setTipPercentage(p)
                       setCustomTip("")
                     }}
-                    className={clsx(
+                    className={cn(
                       "text-xs",
                       tipPercentage === p && !customTip
                         ? "tip-pill--active"
@@ -2723,7 +2725,7 @@ const modalTitle = checkoutStep === "review" && tableDraft?.success && tableDraf
               <div className="flex items-center justify-between p-2 bg-green-50 dark:bg-green-900/20 rounded-lg">
                 <div className="flex items-center gap-2">
                   <span className="text-xs font-medium text-green-700 dark:text-green-400">
-                    {appliedCoupon.name} ({appliedCoupon.code})
+                    {appliedCoupon?.name} ({appliedCoupon?.code})
                   </span>
                   <span className="text-xs text-green-600 dark:text-green-500">
                     -{formatCurrency(couponDiscount)}
@@ -2880,7 +2882,7 @@ const modalTitle = checkoutStep === "review" && tableDraft?.success && tableDraf
             )}
             <div className="flex justify-between items-center divider pt-2 mt-2">
               <span className="text-base">{vatLabels.total}</span>
-          <span className="text-base font-bold">{formatCurrency(checkoutStep === "payment" ? payableTotal : finalTotal)}</span>
+          <span className="text-base font-bold">{formatCurrency(finalTotal)}</span>
             </div>
           </div>}
 
@@ -3426,9 +3428,9 @@ const modalTitle = checkoutStep === "review" && tableDraft?.success && tableDraf
               </motion.div>
               {pendingSummary && (
                 <div className="pmd-checkout-flat-section rounded-2xl p-3 text-xs">
-                  <div className="flex justify-between"><span className="muted">Total</span><span className="font-semibold">{formatCurrency(pendingSummary.orderTotal || 0)}</span></div>
-                  <div className="flex justify-between"><span className="muted">Already paid</span><span className="font-semibold">{formatCurrency(pendingSummary.settledAmount || 0)}</span></div>
-                  <div className="flex justify-between mt-1"><span className="muted">Remaining</span><span className="font-semibold">{formatCurrency(pendingSummary.remainingAmount || 0)}</span></div>
+                  <div className="flex justify-between"><span className="muted">Total</span><span className="font-semibold">{formatCurrency(pendingSummary?.orderTotal || 0)}</span></div>
+                  <div className="flex justify-between"><span className="muted">Already paid</span><span className="font-semibold">{formatCurrency(pendingSummary?.settledAmount || 0)}</span></div>
+                  <div className="flex justify-between mt-1"><span className="muted">Remaining</span><span className="font-semibold">{formatCurrency(pendingSummary?.remainingAmount || 0)}</span></div>
                 </div>
               )}
               <motion.div className="space-y-3">

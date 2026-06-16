@@ -3,6 +3,7 @@
 import React from "react"
 import { Check, CreditCard, Link2, QrCode, Users } from "lucide-react"
 import { canRenderPaymentMethodDetail } from "@/features/checkout/payment-method-utils"
+import type { SplitPerson } from "@/features/checkout/types"
 import {
   money,
   getAmount,

@@ -97,7 +97,8 @@ export default function TableHomePage({ params }: { params: { table_id: string }
             success: pending?.success ?? false,
           })
           if (!cancelled && pending?.success && pending?.data?.order_id) {
-            setActiveTableOrder((current: any) => current || { status: "submitted_unpaid", order_id: pending.data.order_id })
+            const pendingOrderId = pending.data.order_id
+            setActiveTableOrder((current: any) => current || { status: "submitted_unpaid", order_id: pendingOrderId })
           }
 
           // Always keep QR entry on the table home page; guests choose whether to open menu/order.

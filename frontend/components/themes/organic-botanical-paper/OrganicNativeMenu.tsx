@@ -111,7 +111,6 @@ export function OrganicNativeMenu({
                     src={organicItemImage(item)}
                     alt={organicItemName(item)}
                     fill
-                    sizes="280px"
                   />
                 ) : null}
               </button>

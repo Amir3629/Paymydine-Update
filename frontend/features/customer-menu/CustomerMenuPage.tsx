@@ -2,7 +2,6 @@
 
 import { useKazenMenuDomRepairs } from "@/features/customer-menu/legacy-dom-repairs/useKazenMenuDomRepairs";
 import { useMenuActionCircleColorRepair } from "@/features/customer-menu/legacy-dom-repairs/useMenuActionCircleColorRepair";
-import { useOrganicCheckoutDomPolish } from "@/features/customer-menu/legacy-dom-repairs/useOrganicCheckoutDomPolish";
 import "./customer-menu-page.css"
 /*
  * LEGACY_DOM_REPAIR_POLICY:
@@ -14,10 +13,6 @@ import "./customer-menu-page.css"
  * replace them from focused files such as CustomerMenuModals, checkout theme shells,
  * and a Kazen standalone controller/CSS module.
  */
-import { ModernGreenNativeMenu } from "@/components/themes/modern-green/ModernGreenNativeMenu"
-import { OrganicNativeMenu } from "@/components/themes/organic-botanical-paper/OrganicNativeMenu"
-import { ModernGreenCheckoutShell } from "@/components/themes/modern-green/ModernGreenCheckoutShell"
-import { KazenJapaneseBridgeTheme, KazenJapaneseCheckoutShell } from "@/components/themes/kazen-japanese"
 
 import { PayPalScriptProvider } from "@paypal/react-paypal-js"
 import React, { useState, useEffect, useMemo, useRef, Suspense } from "react";
@@ -27,13 +22,9 @@ import { useLanguageStore } from "@/store/language-store";
 import { type TranslationKey } from "@/lib/translations";
 import { type PmdSocialPlatformId, useCmsStore } from "@/store/cms-store";
 import { useCartStore, type CartItem } from "@/store/cart-store";
-import { Logo } from "@/components/logo";
-import { CartSheet } from "@/components/cart-sheet";
-import { CategoryNav } from "@/components/category-nav";
 import { FoodAttributeTags } from "@/components/food-attribute-tags";
 import { FoodNutritionSummary } from "@/components/food-nutrition-summary";
 import { FoodItemColorDot } from "@/components/food-item-color-dot";
-import { MenuItemModal } from "@/components/menu-item-modal";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -45,44 +36,27 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Elements, useStripe, useElements, PaymentRequestButtonElement } from '@stripe/react-stripe-js';
 import { loadStripe } from "@stripe/stripe-js";
 import { cn, truncateText } from "@/lib/utils";
+import { normalizeThemeId } from "@/lib/theme-registry";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Textarea } from "@/components/ui/textarea";
 import { ApiClient, type PaymentMethod, type TableOrderDraftResponse } from "@/lib/api-client";
 import { iconForPayment } from "@/lib/payment-icons";
-import { PayPalForm, WorldlineInlineCardForm } from "@/components/payment/secure-payment-form";
-import { StripeCardPaymentSection } from "@/features/checkout/payment/StripeCardPaymentSection";
-import SumUpHostedCheckout from "@/components/payment/sumup-hosted-checkout";
 import { buildTablePath } from "@/lib/table-url";
 import { stickySearch } from "@/lib/sticky-query";
-import {
-  OrganicCheckoutScopedStyles,
-  organicCheckoutBodyStyle,
-  organicCheckoutHeaderStyle,
-  organicCheckoutModalStyle,
-  organicCheckoutPrimaryButtonStyle,
-} from "@/components/themes/organic-botanical-paper/OrganicCheckoutShell";
-import { ThemeActionBoundary } from "@/components/themes/shared/ThemeActionBoundary";
-import { KazenBottomDock } from "@/components/themes/kazen-japanese/KazenBottomDock";
-import { ModernGreenBottomDock } from "@/components/themes/modern-green/ModernGreenBottomDock";
-import { OrganicBottomDock } from "@/components/themes/organic-botanical-paper/OrganicBottomDock";
-import { GoldBottomDock } from "@/components/themes/gold-luxury/GoldBottomDock";
-import { CheckoutIconFrame, CheckoutStepCard, CheckoutSummaryCard, OrderStatusCard, PaymentCardFrame, PaymentMethodTile, SplitBillPanel, SplitMethodButton, ThemedButton, ThemedInput, TipCouponPanel } from "@/components/theme-ui";
 import { useTableOrderDraft } from "@/features/table-order/use-table-order-draft";
 import { useTableOrderActions } from "@/features/table-order/use-table-order-actions";
 import { useCustomerThemeActions } from "@/features/customer-menu/useCustomerThemeActions";
 import { useCustomerThemeSelection } from "@/features/customer-menu/useCustomerThemeSelection";
-import { PaymentModal } from "@/features/customer-menu/checkout/CheckoutModalHost";
-import { MenuHighlightSection, MenuRecommendationBadges } from "@/features/customer-menu/theme/MenuHighlights";
-import { pmdBuildKazenParentCategories } from "@/features/customer-menu/data/menuCategories";
-import { OrganicBotanicalHero, OrganicBotanicalCategoryNav, OrganicBotanicalMenuCard, organicBotanicalVars, hasCheckoutThemeRoot } from "@/features/customer-menu/theme/OrganicThemeContract";
 import { __pmdRemoteConsoleInstallOnce, __pmdWalletDebugInstallOnce } from "@/features/customer-menu/legacy-dom-repairs/debugInstallers";
 import { useCurrentFrontendTheme } from "@/features/customer-menu/theme/useCurrentFrontendTheme";
+import { ModernGreenThemeRoute } from "@/features/customer-menu/theme/ModernGreenThemeRoute";
+import { OrganicThemeRoute } from "@/features/customer-menu/theme/OrganicThemeRoute";
+import { KazenThemeRoute } from "@/features/customer-menu/theme/KazenThemeRoute";
+import { GoldThemeRoute } from "@/features/customer-menu/theme/GoldThemeRoute";
+import { useOrganicThemeEffects } from "@/features/customer-menu/theme/useOrganicThemeEffects";
 import { pmdInstallMenuPayMyDineFooterLogo } from "@/features/customer-menu/legacy-dom-repairs/footerLogoInstaller";
 import { pmdForceKazenFrontendThemePayload } from "@/features/customer-menu/theme/kazenThemePayload";
-import { ExpandingToolbarMenuItemCard } from "@/features/customer-menu/components/ExpandingToolbarMenuItemCard";
 import { LoadingSpinner } from "@/features/customer-menu/components/LoadingSpinner";
-import { OrganicBotanicalCheckoutScopedStyles, OrganicBotanicalNoteDialog, OrganicBotanicalValetFeature, OrganicBotanicalWaiterDialog } from "@/features/customer-menu/guest-actions/OrganicGuestDialogs";
-import { EnhancedNoteDialog, EnhancedWaiterDialog } from "@/features/customer-menu/guest-actions/EnhancedGuestDialogs";
 import { buildTableOrderDraftContext, createSubmittedTableOrderSnapshot, isVisibleTableOrderDraft, tableOrderItemCount } from "@/features/table-order/table-order-utils";
 import {
   buildEvenSharePercents,
@@ -162,7 +136,6 @@ import { clsx } from "clsx";
 import { apiClient } from '@/lib/api-client'
 import { wsClient } from '@/lib/websocket-client'
 import { getTextAlignClass, getTextDirection } from "@/lib/text-direction"
-import { TenantSetupSplash } from "@/components/tenant-setup-splash"
 
 // They avoid shared Dialog/global CSS so Gold Luxury and other themes keep their existing modal behavior.
 // Create a component that uses useSearchParams
@@ -335,7 +308,7 @@ function MenuContent() {
         const data = await res.json()
       pmdForceKazenFrontendThemePayload(data);
         const normalizedThemePayload = pmdForceKazenFrontendThemePayload(data)
-        const themeId = String(normalizedThemePayload?.data?.theme_id || normalizedThemePayload?.theme_id || normalizedThemePayload?.frontend_theme || normalizedThemePayload?.admin_theme || "").trim()
+        const themeId = normalizeThemeId(normalizedThemePayload?.data?.theme_id || normalizedThemePayload?.theme_id || normalizedThemePayload?.frontend_theme || normalizedThemePayload?.admin_theme || "")
 
         if (!cancelled) {
           setForceModernGreenTheme(themeId === "modern_green")
@@ -440,15 +413,15 @@ useEffect(() => {
             const useTableNo = !!table_no; // Use table_no if we have it from URL params
             const tableResult = await apiClient.getTableInfo(tableParam, qr || undefined, useTableNo)
             if (tableResult.success) {
-              setTableInfoState(tableResult.data)
-              setTableInfo(prev => ({
-                ...prev,
-                table_id: tableResult.data.table_id,
-                table_name: tableResult.data.table_name,
-                location_id: tableResult.data.location_id,
-                qr_code: tableResult.data.qr_code,
-                table_no: prev?.table_no ?? tableResult.data.table_no ?? null
-              }))
+              const normalizedTableInfo = {
+                table_id: String(tableResult.data.table_id ?? tableParam),
+                table_name: String(tableResult.data.table_name ?? ""),
+                location_id: Number(tableResult.data.location_id ?? 1),
+                qr_code: tableResult.data.qr_code ?? null,
+                table_no: tableResult.data.table_no != null ? Number(tableResult.data.table_no) : undefined,
+              }
+              setTableInfoState(normalizedTableInfo)
+              setTableInfo(normalizedTableInfo)
 
               const pendingQr = await apiClient.getPendingQrOrderByTable(String(tableResult.data.table_id), { tableNo: tableResult.data?.table_no ?? table_no ?? null, qr: qr || null })
               if (pendingQr?.success && pendingQr.data?.order_id) {
@@ -839,157 +812,20 @@ useEffect(() => {
     } catch { setHasLocalOpenOrder(false); setLocalOpenOrder(null) }
   }, [tableInfo, searchParams, existingOrderId, hasDraftTableOrderWithoutRealOrder])
 
-  useOrganicCheckoutDomPolish(isOrganicBotanicalTheme)
-
-  // PMD_ORGANIC_V0_PARENT_MESSAGE_BRIDGE_FINAL_20260607
-  React.useEffect(() => {
-    if (!isOrganicBotanicalTheme || typeof window === "undefined") return
-
-    function handleBotanicalV0Message(event: MessageEvent) {
-      if (event.origin !== window.location.origin) return
-
-      const data: any = event.data || {}
-      const type = String(data.type || "")
-
-      if (type === "pmd:call-waiter") {
-        handleWaiterClick()
-        return
-      }
-
-      if (type === "pmd:add-note") {
-        handleNoteClick()
-        return
-      }
-
-      if (type === "pmd:checkout") {
-        handleCartClick()
-        return
-      }
-
-      if (type === "pmd:table-order") {
-        if (!shouldShowTableOrderAction) return
-        setPaymentModalInitialStep(
-          sharedTableOrder?.status === "draft"
-            ? "review"
-            : sharedTableOrder?.status === "paid"
-              ? "paid"
-              : "submitted"
-        )
-        setPaymentModalOpen(true)
-        return
-      }
-
-      if (type === "pmd:add-item" && data.item) {
-        const itemToAdd = data.item as MenuItem
-        const quantity = Math.max(1, Number(data.quantity || 1))
-
-        for (let i = 0; i < quantity; i++) {
-          addToCart(itemToAdd)
-        }
-
-        handleFirstAdd(itemToAdd)
-        toast({
-          title: "Added to order",
-          description: String((itemToAdd as any).name || (itemToAdd as any).menu_name || "Item added"),
-        })
-        return
-      }
-
-      if (type === "pmd:open-valet") {
-        const currentSearch = window.location.search || ""
-        if (tableIdString) {
-          window.location.href = `/table/${tableIdString}/valet${currentSearch}`
-        } else {
-          window.location.href = `/valet${currentSearch}`
-        }
-        return
-      }
-    }
-
-    window.addEventListener("message", handleBotanicalV0Message)
-    return () => window.removeEventListener("message", handleBotanicalV0Message)
-  }, [isOrganicBotanicalTheme, tableIdString])
-
-  // PMD_ORGANIC_DOCK_DELEGATED_ACTIONS_20260608
-  React.useEffect(() => {
-    if (!isOrganicBotanicalTheme || typeof document === "undefined") return
-
-    let lastActionAt = 0
-
-    function runOrganicDockAction(action: string) {
-      if (action === "waiter") {
-        handleWaiterClick()
-        return
-      }
-
-      if (action === "note") {
-        handleNoteClick()
-        return
-      }
-
-      if (action === "checkout") {
-        handleCartClick()
-        return
-      }
-
-      if (action === "table-order") {
-        if (!shouldShowTableOrderAction) return
-        setPaymentModalInitialStep(
-          sharedTableOrder?.status === "draft"
-            ? "review"
-            : sharedTableOrder?.status === "paid"
-              ? "paid"
-              : "submitted"
-        )
-        setPaymentModalOpen(true)
-        return
-      }
-    }
-
-    function onOrganicDockPress(event: Event) {
-      const target = event.target as HTMLElement | null
-      const button = target?.closest?.("[data-pmd-organic-dock-action]") as HTMLElement | null
-      if (!button) return
-
-      const now = Date.now()
-      if (now - lastActionAt < 350) return
-      lastActionAt = now
-
-      event.preventDefault()
-      event.stopPropagation()
-      ;(event as any).stopImmediatePropagation?.()
-
-      const action = String(button.getAttribute("data-pmd-organic-dock-action") || "")
-      console.info("PMD_ORGANIC_DOCK_CLICK", action)
-      runOrganicDockAction(action)
-    }
-
-    document.addEventListener("pointerdown", onOrganicDockPress, true)
-    document.addEventListener("click", onOrganicDockPress, true)
-
-    return () => {
-      document.removeEventListener("pointerdown", onOrganicDockPress, true)
-      document.removeEventListener("click", onOrganicDockPress, true)
-    }
-  }, [isOrganicBotanicalTheme, sharedTableOrder?.status])
-
-  // PMD_ORGANIC_BODY_MODAL_STYLE_MARKER_20260608
-  React.useEffect(() => {
-    if (typeof document === "undefined") return
-
-  if (isOrganicBotanicalTheme) {
-      document.body.setAttribute("data-pmd-organic-botanical-active", "1")
-      document.documentElement.setAttribute("data-pmd-organic-botanical-active", "1")
-    } else {
-      document.body.removeAttribute("data-pmd-organic-botanical-active")
-      document.documentElement.removeAttribute("data-pmd-organic-botanical-active")
-    }
-
-    return () => {
-      document.body.removeAttribute("data-pmd-organic-botanical-active")
-      document.documentElement.removeAttribute("data-pmd-organic-botanical-active")
-    }
-  }, [isOrganicBotanicalTheme])
+  useOrganicThemeEffects({
+    enabled: isOrganicBotanicalTheme,
+    tableIdString,
+    shouldShowTableOrderAction,
+    sharedTableOrder,
+    handleWaiterClick,
+    handleNoteClick,
+    handleCartClick,
+    setPaymentModalInitialStep,
+    setPaymentModalOpen,
+    addToCart,
+    handleFirstAdd,
+    toast,
+  })
 
   if (!isClient) {
     return <LoadingSpinner />
@@ -1034,628 +870,176 @@ useEffect(() => {
 
   // PMD_KAZEN_JAPANESE_THEME_RETURN_20260611
   if (isKazenJapaneseTheme) {
-    const kazenSrc =
-      typeof window !== "undefined"
-        ? `/themes/kazen-japanese/?embedded=1&from=pmd&${window.location.search.replace(/^\?/, "")}`
-        : "/themes/kazen-japanese/?embedded=1&from=pmd"
-
-    const kazenSourceItems = apiMenuItems.length ? apiMenuItems : (menuItems.length ? menuItems : menuData)
-    const kazenBridgeCategories = pmdBuildKazenParentCategories(allCategories, kazenSourceItems)
-    const kazenTableNumber = tableInfo?.table_no ?? tableInfo?.table_id ?? displayTableNumber ?? tableIdString ?? null
-    // PMD_KAZEN_ADMIN_LOGO_SAME_AS_HOMEPAGE_20260611
-    const kazenLogoCandidates = [
-      (cmsSettings as any)?.effectiveLogoUrl,
-      (cmsSettings as any)?.logoUrl,
-      (cmsSettings as any)?.logo_url,
-      (cmsSettings as any)?.logo,
-      (cmsSettings as any)?.restaurantLogoUrl,
-      (cmsSettings as any)?.restaurant_logo,
-      (cmsSettings as any)?.site_logo,
-      (cmsSettings as any)?.header_logo,
-      (cmsSettings as any)?.frontend_logo,
-      (cmsSettings as any)?.business_logo,
-      (cmsSettings as any)?.brand_logo,
-      (cmsSettings as any)?.data?.effectiveLogoUrl,
-      (cmsSettings as any)?.data?.logoUrl,
-      (cmsSettings as any)?.data?.logo_url,
-      (cmsSettings as any)?.data?.logo,
-      (cmsSettings as any)?.data?.restaurant_logo,
-      (merchantSettings as any)?.effectiveLogoUrl,
-      (merchantSettings as any)?.logoUrl,
-      (merchantSettings as any)?.logo_url,
-      (merchantSettings as any)?.logo,
-      (merchantSettings as any)?.restaurantLogoUrl,
-      (merchantSettings as any)?.restaurant_logo,
-      (merchantSettings as any)?.site_logo,
-      (merchantSettings as any)?.header_logo,
-      (merchantSettings as any)?.frontend_logo,
-      (merchantSettings as any)?.business_logo,
-      (merchantSettings as any)?.brand_logo,
-      (merchantSettings as any)?.data?.effectiveLogoUrl,
-      (merchantSettings as any)?.data?.logoUrl,
-      (merchantSettings as any)?.data?.logo_url,
-      (merchantSettings as any)?.data?.logo,
-      (merchantSettings as any)?.data?.restaurant_logo,
-    ]
-
-    const kazenLogoUrl = normalizeModernGreenLogoUrl(
-      kazenLogoCandidates.find((value) => String(value || "").trim()) || ""
-    )
-
-    const handleKazenAdd = (item: MenuItem, quantity = 1) => {
-      let itemToAdd = { ...item }
-      if (taxSettings.enabled && taxSettings.percentage > 0 && taxSettings.menuPrice === 0) {
-        itemToAdd.price = item.price / (1 + taxSettings.percentage / 100)
-        if (itemToAdd.options) {
-          itemToAdd.options = itemToAdd.options.map(option => ({
-            ...option,
-            values: option.values.map(value => ({
-              ...value,
-              price: value.price / (1 + taxSettings.percentage / 100)
-            }))
-          }))
-        }
-      }
-      const currentQuantity = items.find(cartItem => cartItem.item.id === item.id)?.quantity || 0
-      addToCart(itemToAdd, quantity)
-      if (currentQuantity === 0) handleFirstAdd(item)
-    }
-
-    const handleKazenWaiter = async () => {
-      const resolvedTableId = tableInfo?.table_id || tableInfo?.table_no || tableIdString || "delivery"
-      try {
-        await apiClient.callWaiter(String(resolvedTableId), ".")
-        toast({ title: "Waiter called", description: "The team has been notified." })
-      } catch (error: any) {
-        toast({ title: "Waiter call failed", description: error?.message || "Failed to call waiter.", variant: "destructive" })
-      }
-    }
-
-    const handleKazenNote = async (rawNote = "") => {
-      const resolvedTableId = tableInfo?.table_id || tableInfo?.table_no || tableIdString || "delivery"
-      const trimmedNote = String(rawNote || "").trim()
-      if (!trimmedNote) {
-        setNoteModalOpen(true)
-        return
-      }
-      try {
-        await apiClient.callTableNote(String(resolvedTableId), trimmedNote, new Date().toISOString())
-        toast({ title: "Note sent", description: "Your note was sent to the team." })
-      } catch (error: any) {
-        toast({ title: "Note failed", description: error?.message || "Failed to send note.", variant: "destructive" })
-      }
-    }
-
-    const handleKazenValet = async (values: any = {}) => {
-      const name = String(values?.name || "Guest").trim() || "Guest"
-      const licensePlate = String(values?.licensePlate || values?.license_plate || "Not provided").trim() || "Not provided"
-      const carModel = String(values?.carModel || values?.car_make || "Not provided").trim() || "Not provided"
-
-      try {
-        await apiClient.createValetRequest({
-          name,
-          license_plate: licensePlate,
-          car_make: carModel,
-          table_id: tableIdString || undefined,
-          table_no: kazenTableNumber ? String(kazenTableNumber) : undefined,
-          qr: tableInfo?.qr_code ? String(tableInfo.qr_code) : undefined,
-        })
-        toast({ title: "Valet requested", description: "Your valet request has been sent." })
-      } catch (error: any) {
-        toast({ title: "Valet request failed", description: error?.message || "Failed to submit valet request.", variant: "destructive" })
-      }
-    }
-
     return (
-      <ThemeActionBoundary actions={themeMenuActions}>
-        <KazenJapaneseBridgeTheme
-          src={kazenSrc}
-          sourceItems={kazenSourceItems}
-          cartItems={items}
-          totalItems={totalItems}
-          totalPrice={totalPrice}
-          lastInteractedItem={lastInteractedItem}
-          categories={kazenBridgeCategories}
-          restaurantName={restaurantDisplayName}
-          logoUrl={kazenLogoUrl}
-          tableNumber={kazenTableNumber}
-          onAddItem={handleKazenAdd}
-          onOpenItem={(item) => handleItemSelect(item as MenuItem)}
-          onCheckout={handleCartClick}
-          onCallWaiter={handleKazenWaiter}
-          onOpenNote={handleKazenNote}
-          onOpenValet={handleKazenValet}
-          onTableOrder={() => {
-            if (!shouldShowTableOrderAction) return
-            setPaymentModalInitialStep(
-              sharedTableOrder?.status === "draft"
-                ? "review"
-                : sharedTableOrder?.status === "paid"
-                  ? "paid"
-                  : "submitted"
-            )
-            setPaymentModalPreferPersonalReview(false)
-            setPaymentModalOpen(true)
-          }}
-          showTableOrder={shouldShowTableOrderAction}
-          tableOrderCount={tableOrderActionCount}
-        >
-          <KazenBottomDock {...themeMenuActions} />
-          <PaymentModal
-            isOpen={isPaymentModalOpen}
-            onClose={() => { setPaymentModalOpen(false); setPaymentModalPreferPersonalReview(false) }}
-            items={items}
-            tableInfo={tableInfo}
-            existingOrderId={activeExistingOrderId}
-            pendingSummary={activePendingSummary}
-            initialSubmittedOrder={activeSubmittedOrder}
-            initialCheckoutStep={paymentModalInitialStep}
-            preferPersonalReview={paymentModalPreferPersonalReview}
-            checkoutVisualTheme="kazen_japanese"
-            onCartPricingUpdate={setToolbarPricingSnapshot}
-            onOpenOrderUpdate={(snapshot) => {
-              if (snapshot?.status === "draft" || snapshot?.draft_id) {
-                setSharedTableOrder(snapshot)
-                return
-              }
-              if (snapshot?.paymentStatus === "paid" || snapshot?.status === "paid") {
-                const normalizedPaid = snapshot?.orderId ? snapshot : { ...snapshot, orderId: snapshot?.order_id }
-                setLocalOpenOrder(normalizedPaid)
-                setHasLocalOpenOrder(!!normalizedPaid?.orderId)
-                setSharedTableOrder((prev) => prev?.order_id && String(prev.order_id) === String(normalizedPaid?.orderId) ? { ...prev, status: "paid", paymentStatus: "paid" } as any : prev)
-                return
-              }
-              if (snapshot?.orderId || snapshot?.order_id) {
-                const normalized = snapshot?.orderId ? snapshot : { ...snapshot, orderId: snapshot.order_id }
-                setLocalOpenOrder(normalized)
-                setHasLocalOpenOrder(true)
-                setSharedTableOrder((prev) => prev?.draft_id ? null : prev)
-              }
-            }}
-          />
-        </KazenJapaneseBridgeTheme>
-      </ThemeActionBoundary>
+      <KazenThemeRoute
+        apiMenuItems={apiMenuItems}
+        menuItems={menuItems}
+        menuData={menuData}
+        allCategories={allCategories}
+        tableInfo={tableInfo}
+        displayTableNumber={displayTableNumber}
+        tableIdString={tableIdString}
+        cmsSettings={cmsSettings}
+        merchantSettings={merchantSettings}
+        taxSettings={taxSettings}
+        items={items}
+        totalItems={totalItems}
+        totalPrice={totalPrice}
+        lastInteractedItem={lastInteractedItem}
+        restaurantDisplayName={restaurantDisplayName}
+        themeMenuActions={themeMenuActions}
+        addToCart={addToCart}
+        handleFirstAdd={handleFirstAdd}
+        toast={toast}
+        apiClient={apiClient}
+        handleItemSelect={handleItemSelect}
+        handleCartClick={handleCartClick}
+        shouldShowTableOrderAction={shouldShowTableOrderAction}
+        setPaymentModalInitialStep={setPaymentModalInitialStep}
+        sharedTableOrder={sharedTableOrder}
+        setPaymentModalPreferPersonalReview={setPaymentModalPreferPersonalReview}
+        setPaymentModalOpen={setPaymentModalOpen}
+        tableOrderActionCount={tableOrderActionCount}
+        isPaymentModalOpen={isPaymentModalOpen}
+        activeExistingOrderId={activeExistingOrderId}
+        activePendingSummary={activePendingSummary}
+        activeSubmittedOrder={activeSubmittedOrder}
+        paymentModalInitialStep={paymentModalInitialStep}
+        paymentModalPreferPersonalReview={paymentModalPreferPersonalReview}
+        setToolbarPricingSnapshot={setToolbarPricingSnapshot}
+        setSharedTableOrder={setSharedTableOrder}
+        setLocalOpenOrder={setLocalOpenOrder}
+        setHasLocalOpenOrder={setHasLocalOpenOrder}
+        normalizeModernGreenLogoUrl={normalizeModernGreenLogoUrl}
+        setNoteModalOpen={setNoteModalOpen}
+      />
     )
   }
 
   // Native Modern Green renders inside the main frontend with live PayMyDine data.
   if (isModernGreenTheme) {
-
-    const modernGreenSourceItems = apiMenuItems.length ? apiMenuItems : (menuItems.length ? menuItems : menuData)
-    const modernGreenTableNumber = tableInfo?.table_no ?? tableInfo?.table_id ?? displayTableNumber ?? tableIdString ?? null
-    const modernGreenLogoUrl = normalizeModernGreenLogoUrl(
-      (cmsSettings as any)?.logoUrl ||
-      (cmsSettings as any)?.logo ||
-      (cmsSettings as any)?.logo_url ||
-      (cmsSettings as any)?.site_logo ||
-      (cmsSettings as any)?.restaurant_logo ||
-      (merchantSettings as any)?.logoUrl ||
-      (merchantSettings as any)?.logo ||
-      (merchantSettings as any)?.logo_url ||
-      (merchantSettings as any)?.site_logo ||
-      (merchantSettings as any)?.restaurant_logo ||
-      ""
-    )
-
-    const handleModernGreenAdd = (item: MenuItem, quantity = 1) => {
-      let itemToAdd: MenuItem = { ...item }
-
-      if (taxSettings.enabled && taxSettings.percentage > 0 && taxSettings.menuPrice === 0) {
-        itemToAdd.price = Number(itemToAdd.price || 0) / (1 + taxSettings.percentage / 100)
-        if (itemToAdd.options) {
-          itemToAdd.options = itemToAdd.options.map((option: any) => ({
-            ...option,
-            values: (option.values || []).map((value: any) => ({
-              ...value,
-              price: Number(value.price || 0) / (1 + taxSettings.percentage / 100),
-            })),
-          }))
-        }
-      }
-
-      for (let i = 0; i < Math.max(1, Number(quantity || 1)); i += 1) {
-        addToCart(itemToAdd)
-      }
-
-      handleFirstAdd(item)
-      toast({
-        title: "Added to order",
-        description: String((item as any).name || (item as any).menu_name || "Item added"),
-      })
-    }
-
-    const handleModernGreenWaiter = async () => {
-      const resolvedTableId = tableIdString || "delivery"
-      try {
-        await apiClient.callWaiter(String(resolvedTableId), ".")
-        toast({
-          title: "Waiter called",
-          description: tableIdString ? "We are on the way!" : "We received your assistance request.",
-        })
-      } catch (error: any) {
-        toast({
-          title: "Waiter call failed",
-          description: error?.message || "Failed to call waiter.",
-          variant: "destructive",
-        })
-      }
-    }
-
-    const handleModernGreenNote = async (noteText = "") => {
-      const trimmedNote = String(noteText || "").trim()
-      if (!trimmedNote) {
-        toast({
-          title: "Note is empty",
-          description: "Please write a note before sending it.",
-          variant: "destructive",
-        })
-        return
-      }
-
-      const resolvedTableId = tableIdString || "delivery"
-      try {
-        await apiClient.callTableNote(String(resolvedTableId), trimmedNote, new Date().toISOString())
-        toast({
-          title: "Note sent",
-          description: "Your note has been sent to the staff.",
-        })
-      } catch (error: any) {
-        toast({
-          title: "Note failed",
-          description: error?.message || "Failed to send note.",
-          variant: "destructive",
-        })
-      }
-    }
-
-    const handleModernGreenValet = async (values: any = {}) => {
-      const name = String(values?.name || "Guest").trim() || "Guest"
-      const licensePlate = String(values?.licensePlate || values?.license_plate || "Not provided").trim() || "Not provided"
-      const carModel = String(values?.carModel || values?.car_make || "Not provided").trim() || "Not provided"
-
-      try {
-        await apiClient.createValetRequest({
-          name,
-          license_plate: licensePlate,
-          car_make: carModel,
-          table_id: tableIdString || undefined,
-          table_no: modernGreenTableNumber ? String(modernGreenTableNumber) : undefined,
-          qr: tableInfo?.qr_code ? String(tableInfo.qr_code) : undefined,
-        })
-        toast({
-          title: "Valet requested",
-          description: "Your valet request has been sent.",
-        })
-      } catch (error: any) {
-        toast({
-          title: "Valet request failed",
-          description: error?.message || "Failed to submit valet request.",
-          variant: "destructive",
-        })
-      }
-    }
-
     return (
-      <ThemeActionBoundary actions={themeMenuActions}>
-        <ModernGreenNativeMenu
-          sourceItems={modernGreenSourceItems}
-          cartItems={items}
-          totalItems={totalItems}
-          totalPrice={totalPrice}
-          lastInteractedItem={lastInteractedItem}
-          categories={allCategories}
-          restaurantName={restaurantDisplayName}
-          logoUrl={modernGreenLogoUrl}
-          tableNumber={modernGreenTableNumber}
-          onAddItem={handleModernGreenAdd}
-          onOpenItem={(item) => handleItemSelect(item as MenuItem)}
-          onCheckout={handleCartClick}
-          onCallWaiter={handleModernGreenWaiter}
-          onOpenNote={handleModernGreenNote}
-          onOpenValet={handleModernGreenValet}
-          onTableOrder={() => {
-            if (!shouldShowTableOrderAction) return
-            setPaymentModalInitialStep(
-              sharedTableOrder?.status === "draft"
-                ? "review"
-                : sharedTableOrder?.status === "paid"
-                  ? "paid"
-                  : "submitted"
-            )
-            setPaymentModalPreferPersonalReview(false)
-            setPaymentModalOpen(true)
-          }}
-          showTableOrder={shouldShowTableOrderAction}
-          tableOrderCount={tableOrderActionCount}
-        >
-          <ModernGreenBottomDock {...themeMenuActions} />
-          <PaymentModal
-            isOpen={isPaymentModalOpen}
-            onClose={() => { setPaymentModalOpen(false); setPaymentModalPreferPersonalReview(false) }}
-            items={items}
-            tableInfo={tableInfo}
-            existingOrderId={activeExistingOrderId}
-            pendingSummary={activePendingSummary}
-            initialSubmittedOrder={activeSubmittedOrder}
-            initialCheckoutStep={paymentModalInitialStep}
-            preferPersonalReview={paymentModalPreferPersonalReview}
-            checkoutVisualTheme="modern_green"
-            onCartPricingUpdate={setToolbarPricingSnapshot}
-            onOpenOrderUpdate={(snapshot) => {
-              if (snapshot?.status === "draft" || snapshot?.draft_id) {
-                setSharedTableOrder(snapshot)
-                return
-              }
-              if (snapshot?.paymentStatus === "paid" || snapshot?.status === "paid") {
-                const normalizedPaid = snapshot?.orderId ? snapshot : { ...snapshot, orderId: snapshot?.order_id }
-                setLocalOpenOrder(normalizedPaid)
-                setHasLocalOpenOrder(!!normalizedPaid?.orderId)
-                setSharedTableOrder((prev) => prev?.order_id && String(prev.order_id) === String(normalizedPaid?.orderId) ? { ...prev, status: "paid", paymentStatus: "paid" } as any : prev)
-                return
-              }
-              if (snapshot?.orderId || snapshot?.order_id) {
-                const normalized = snapshot?.orderId ? snapshot : { ...snapshot, orderId: snapshot.order_id }
-                setLocalOpenOrder(normalized)
-                setHasLocalOpenOrder(true)
-                setSharedTableOrder((prev) => prev?.draft_id ? null : prev)
-              }
-            }}
-          />
-        </ModernGreenNativeMenu>
-      </ThemeActionBoundary>
+      <ModernGreenThemeRoute
+        apiMenuItems={apiMenuItems}
+        menuItems={menuItems}
+        menuData={menuData}
+        allCategories={allCategories}
+        tableInfo={tableInfo}
+        displayTableNumber={displayTableNumber}
+        tableIdString={tableIdString}
+        cmsSettings={cmsSettings}
+        merchantSettings={merchantSettings}
+        taxSettings={taxSettings}
+        items={items}
+        totalItems={totalItems}
+        totalPrice={totalPrice}
+        lastInteractedItem={lastInteractedItem}
+        restaurantDisplayName={restaurantDisplayName}
+        themeMenuActions={themeMenuActions}
+        addToCart={addToCart}
+        handleFirstAdd={handleFirstAdd}
+        toast={toast}
+        apiClient={apiClient}
+        handleItemSelect={handleItemSelect}
+        handleCartClick={handleCartClick}
+        shouldShowTableOrderAction={shouldShowTableOrderAction}
+        setPaymentModalInitialStep={setPaymentModalInitialStep}
+        sharedTableOrder={sharedTableOrder}
+        setPaymentModalPreferPersonalReview={setPaymentModalPreferPersonalReview}
+        setPaymentModalOpen={setPaymentModalOpen}
+        tableOrderActionCount={tableOrderActionCount}
+        isPaymentModalOpen={isPaymentModalOpen}
+        activeExistingOrderId={activeExistingOrderId}
+        activePendingSummary={activePendingSummary}
+        activeSubmittedOrder={activeSubmittedOrder}
+        paymentModalInitialStep={paymentModalInitialStep}
+        paymentModalPreferPersonalReview={paymentModalPreferPersonalReview}
+        setToolbarPricingSnapshot={setToolbarPricingSnapshot}
+        setSharedTableOrder={setSharedTableOrder}
+        setLocalOpenOrder={setLocalOpenOrder}
+        setHasLocalOpenOrder={setHasLocalOpenOrder}
+        normalizeModernGreenLogoUrl={normalizeModernGreenLogoUrl}
+      />
     )
   }
 
   // PMD_ORGANIC_V0_ONLY_RETURN_FINAL_20260607
   if (isOrganicBotanicalTheme) {
     return (
-      <ThemeActionBoundary actions={themeMenuActions}>
-      <div className="pmd-customer-page page--menu relative min-h-screen w-full bg-[#f6efe2]">
-        <OrganicNativeMenu
-          sourceItems={apiMenuItems.length ? apiMenuItems : (menuItems.length ? menuItems : menuData)}
-          categories={allCategories}
-          restaurantName={restaurantDisplayName}
-          tableNumber={displayTableNumber}
-          actions={themeMenuActions}
-          onAddItem={(item, quantity = 1) => {
-            let itemToAdd: MenuItem = { ...(item as MenuItem) }
-            if (taxSettings.enabled && taxSettings.percentage > 0 && taxSettings.menuPrice === 0) {
-              itemToAdd.price = Number(itemToAdd.price || 0) / (1 + taxSettings.percentage / 100)
-              if (itemToAdd.options) {
-                itemToAdd.options = itemToAdd.options.map((option: any) => ({
-                  ...option,
-                  values: (option.values || []).map((value: any) => ({
-                    ...value,
-                    price: Number(value.price || 0) / (1 + taxSettings.percentage / 100),
-                  })),
-                }))
-              }
-            }
-            for (let i = 0; i < Math.max(1, Number(quantity || 1)); i += 1) addToCart(itemToAdd)
-            handleFirstAdd(item as MenuItem)
-            toast({ title: "Added to order", description: String((item as any).name || (item as any).menu_name || "Item added") })
-          }}
-          onOpenItem={(item) => handleItemSelect(item as MenuItem)}
-        />
-
-        {/* PMD_ORGANIC_USES_REAL_GOLD_TOOLBAR_FIXED_20260608 */}
-        <div
-          data-pmd-organic-real-toolbar="1"
-          style={{
-            "--theme-surface": "#f5fff8af0",
-            "--theme-border": "#ded3bd",
-            "--theme-text-primary": "#343529",
-            "--theme-text-secondary": "#716f5e",
-            "--theme-primary": "#b88940",
-            "--theme-accent": "#b88940",
-            "--pmd-v2-page-bg": "#f5fff8af0",
-          } as React.CSSProperties}
-        >
-          <OrganicBottomDock {...themeMenuActions} />
-        </div>
-        {/* PMD_ORGANIC_USES_REAL_GOLD_TOOLBAR_FIXED_END_20260608 */}
-
-        {!shouldHideCartSheet && (
-          <CartSheet />
-        )}
-
-        <PaymentModal
-          isOpen={isPaymentModalOpen}
-          onClose={() => { setPaymentModalOpen(false); setPaymentModalPreferPersonalReview(false) }}
-          items={items}
-          tableInfo={tableInfo}
-          existingOrderId={activeExistingOrderId}
-          pendingSummary={activePendingSummary}
-          initialSubmittedOrder={activeSubmittedOrder}
-          initialCheckoutStep={paymentModalInitialStep}
-          preferPersonalReview={paymentModalPreferPersonalReview}
-          checkoutVisualTheme="organic_botanical_paper"
-          onCartPricingUpdate={setToolbarPricingSnapshot}
-          onOpenOrderUpdate={(snapshot) => {
-            if (snapshot?.status === "draft" || snapshot?.draft_id) {
-              setSharedTableOrder(snapshot)
-              return
-            }
-            if (snapshot?.paymentStatus === "paid" || snapshot?.status === "paid") {
-              const normalizedPaid = snapshot?.orderId ? snapshot : { ...snapshot, orderId: snapshot?.order_id }
-              setLocalOpenOrder(normalizedPaid)
-              setHasLocalOpenOrder(!!normalizedPaid?.orderId)
-              setSharedTableOrder((prev) => prev?.order_id && String(prev.order_id) === String(normalizedPaid?.orderId) ? { ...prev, status: "paid", paymentStatus: "paid" } as any : prev)
-              return
-            }
-            if (snapshot?.orderId || snapshot?.order_id) {
-              const normalized = snapshot?.orderId ? snapshot : { ...snapshot, orderId: snapshot.order_id }
-              setLocalOpenOrder(normalized)
-              setHasLocalOpenOrder(true)
-              setSharedTableOrder((prev) => prev?.draft_id ? null : prev)
-            }
-          }}
-        />
-
-        <OrganicBotanicalWaiterDialog
-          isOpen={isWaiterConfirmOpen}
-          onOpenChange={setWaiterConfirmOpen}
-          tableId={tableIdString}
-        />
-
-        <OrganicBotanicalNoteDialog
-          isOpen={isNoteModalOpen}
-          onOpenChange={setNoteModalOpen}
-          note={note}
-          setNote={setNote}
-          onSend={handleSendNote}
-        />
-      </div>
-      </ThemeActionBoundary>
+      <OrganicThemeRoute
+        apiMenuItems={apiMenuItems}
+        menuItems={menuItems}
+        menuData={menuData}
+        allCategories={allCategories}
+        restaurantDisplayName={restaurantDisplayName}
+        displayTableNumber={displayTableNumber}
+        themeMenuActions={themeMenuActions}
+        taxSettings={taxSettings}
+        addToCart={addToCart}
+        handleFirstAdd={handleFirstAdd}
+        toast={toast}
+        handleItemSelect={handleItemSelect}
+        shouldHideCartSheet={shouldHideCartSheet}
+        isPaymentModalOpen={isPaymentModalOpen}
+        setPaymentModalOpen={setPaymentModalOpen}
+        setPaymentModalPreferPersonalReview={setPaymentModalPreferPersonalReview}
+        items={items}
+        tableInfo={tableInfo}
+        activeExistingOrderId={activeExistingOrderId}
+        activePendingSummary={activePendingSummary}
+        activeSubmittedOrder={activeSubmittedOrder}
+        paymentModalInitialStep={paymentModalInitialStep}
+        paymentModalPreferPersonalReview={paymentModalPreferPersonalReview}
+        setToolbarPricingSnapshot={setToolbarPricingSnapshot}
+        setSharedTableOrder={setSharedTableOrder}
+        setLocalOpenOrder={setLocalOpenOrder}
+        setHasLocalOpenOrder={setHasLocalOpenOrder}
+      />
     )
   }
 
   return (
-    <ThemeActionBoundary actions={themeMenuActions}>
-        <div className={`${isOrganicBotanicalTheme ? 'pmd-organic-menu' : ''} relative min-h-screen w-full bg-theme-background pb-32`} style={isOrganicBotanicalTheme ? organicBotanicalVars() : undefined}>
-      {isOrganicBotanicalTheme ? (
-        <OrganicBotanicalHero restaurantName={restaurantDisplayName} tableNumber={displayTableNumber} heroItem={heroItem} />
-      ) : (
-        <header className="py-8">
-          <div className="max-w-4xl mx-auto px-4">
-            <Logo tableNumber={displayTableNumber} />
-          </div>
-        </header>
-      )}
-      <Suspense fallback={<LoadingSpinner />}>
-        <main className={`${isOrganicBotanicalTheme ? 'mx-auto max-w-4xl pt-5' : 'max-w-4xl mx-auto'}`}>
-          {showVirtualHighlightSections && menuHighlightSettings.section_placement === 'top' && (
-            <>
-        <OrganicBotanicalCheckoutScopedStyles />
-        <OrganicBotanicalValetFeature />
-              <MenuHighlightSection title="Chef’s Recommendations" subtitle="Hand-picked favorites from the kitchen." items={chefRecommendationItems} settings={menuHighlightSettings} onSelect={handleItemSelect} onFirstAdd={handleFirstAdd} organic={isOrganicBotanicalTheme} onOrganicAdd={handleOrganicAdd} />
-              <MenuHighlightSection title="Best Sellers" subtitle="Popular picks from recent orders." items={bestsellerItems} settings={menuHighlightSettings} onSelect={handleItemSelect} onFirstAdd={handleFirstAdd} organic={isOrganicBotanicalTheme} onOrganicAdd={handleOrganicAdd} />
-            </>
-          )}
-          {isOrganicBotanicalTheme ? (
-            <OrganicBotanicalCategoryNav
-              categories={allCategories}
-              selectedCategory={selectedCategory || "All"}
-              onSelectCategory={(category) => {
-                setSelectedCategory(category || "All");
-              }}
-            />
-          ) : (
-            <CategoryNav
-              categories={allCategories}
-              selectedCategory={selectedCategory || "All"} // Force "All" if no selection
-              onSelectCategory={(category) => {
-                setSelectedCategory(category);
-                // Auto-select "All" if no category is passed
-                if (!category) {
-                  setSelectedCategory("All");
-                }
-              }}
-            />
-          )}
-          {showVirtualHighlightSections && menuHighlightSettings.section_placement === 'after_categories' && (
-            <>
-              <MenuHighlightSection title="Chef’s Recommendations" subtitle="Hand-picked favorites from the kitchen." items={chefRecommendationItems} settings={menuHighlightSettings} onSelect={handleItemSelect} onFirstAdd={handleFirstAdd} organic={isOrganicBotanicalTheme} onOrganicAdd={handleOrganicAdd} />
-              <MenuHighlightSection title="Best Sellers" subtitle="Popular picks from recent orders." items={bestsellerItems} settings={menuHighlightSettings} onSelect={handleItemSelect} onFirstAdd={handleFirstAdd} organic={isOrganicBotanicalTheme} onOrganicAdd={handleOrganicAdd} />
-            </>
-          )}
-          <section className="w-full mb-12">
-            {!isFrontendConfigured && filteredItems.length === 0 ? (
-              <TenantSetupSplash />
-            ) : (
-            <>
-            {isOrganicBotanicalTheme && (
-              <div className="organic-menu-section-heading px-4 pb-5 text-center">
-                <div className="mx-auto mb-2 flex w-fit items-center gap-2 text-[var(--organic-accent)]" aria-hidden="true"><span className="h-px w-9 bg-current" /><span className="text-lg">☘</span><span className="h-px w-9 bg-current" /></div>
-                <h2 className="font-serif text-3xl uppercase tracking-[0.18em] text-[var(--organic-text)]">{selectedCategory || 'Seasonal'}</h2>
-                <p className="mt-1 font-serif text-sm text-[var(--organic-muted)]">Inspired by what’s fresh right now.</p>
-              </div>
-            )}
-            <div className={`${isOrganicBotanicalTheme ? 'grid grid-cols-1 gap-4 px-4 md:grid-cols-2' : 'grid grid-cols-1 md:grid-cols-2 gap-x-4 gap-y-8 px-4'}`}>
-              {filteredItems.map((item: MenuItem, index: number) => (
-                isOrganicBotanicalTheme ? (
-                  <OrganicBotanicalMenuCard
-                    key={item.id}
-                    item={item}
-                    onSelect={handleItemSelect}
-                    onAdd={(event) => handleOrganicAdd(item, event)}
-                    highlightSettings={menuHighlightSettings}
-                  />
-                ) : (
-                  <ExpandingToolbarMenuItemCard
-                    key={item.id}
-                    item={item}
-                    onSelect={handleItemSelect}
-                    onFirstAdd={() => handleFirstAdd(item)}
-                    prioritizeImage={index < 4}
-                    highlightSettings={menuHighlightSettings}
-                  />
-                )
-              ))}
-            </div>
-            </>
-            )}
-          </section>
-        </main>
-      </Suspense>
-
-      {/* Button Animation Styles */}
-
-      {/* Rest of the components */}
-      <GoldBottomDock {...themeMenuActions} />
-      {!shouldHideCartSheet && (
-      <CartSheet />
-      )}
-      <MenuItemModal item={selectedItem} onClose={() => setSelectedItem(null)} highlightSettings={menuHighlightSettings} />
-      <PaymentModal
-        isOpen={isPaymentModalOpen}
-        onClose={() => { setPaymentModalOpen(false); setPaymentModalPreferPersonalReview(false) }}
-        items={items}
-        tableInfo={tableInfo}
-        existingOrderId={activeExistingOrderId}
-        pendingSummary={activePendingSummary}
-        initialSubmittedOrder={activeSubmittedOrder}
-        initialCheckoutStep={paymentModalInitialStep}
-        preferPersonalReview={paymentModalPreferPersonalReview}
-        checkoutVisualTheme={isOrganicBotanicalTheme ? "organic_botanical_paper" : "gold-luxury"}
-        onCartPricingUpdate={setToolbarPricingSnapshot}
-        onOpenOrderUpdate={(snapshot) => {
-          if (snapshot?.status === "draft" || snapshot?.draft_id) {
-            setSharedTableOrder(snapshot)
-            return
-          }
-          if (snapshot?.paymentStatus === "paid" || snapshot?.status === "paid") {
-            const normalizedPaid = snapshot?.orderId ? snapshot : { ...snapshot, orderId: snapshot?.order_id }
-            setLocalOpenOrder(normalizedPaid)
-            setHasLocalOpenOrder(!!normalizedPaid?.orderId)
-            setSharedTableOrder((prev) => prev?.order_id && String(prev.order_id) === String(normalizedPaid?.orderId) ? { ...prev, status: "paid", paymentStatus: "paid" } as any : prev)
-            return
-          }
-          if (snapshot?.orderId || snapshot?.order_id) {
-            const normalized = snapshot?.orderId ? snapshot : { ...snapshot, orderId: snapshot.order_id }
-            setLocalOpenOrder(normalized)
-            setHasLocalOpenOrder(true)
-            setSharedTableOrder((prev) => prev?.draft_id ? null : prev)
-          }
-        }}
-      />
-      <EnhancedWaiterDialog
-        isOpen={isWaiterConfirmOpen}
-        onOpenChange={setWaiterConfirmOpen}
-        tableId={tableIdString}
-        tableName={tableName}
-      />
-      <EnhancedNoteDialog
-        isOpen={isNoteModalOpen}
-        onOpenChange={setNoteModalOpen}
-        note={note}
-        setNote={setNote}
-        onSend={handleSendNote}
-        tableId={tableIdString}
-        tableName={tableName}
-      />
-    </div>
-    </ThemeActionBoundary>
+    <GoldThemeRoute
+      themeMenuActions={themeMenuActions}
+      displayTableNumber={displayTableNumber}
+      showVirtualHighlightSections={showVirtualHighlightSections}
+      menuHighlightSettings={menuHighlightSettings}
+      chefRecommendationItems={chefRecommendationItems}
+      bestsellerItems={bestsellerItems}
+      handleItemSelect={handleItemSelect}
+      handleFirstAdd={handleFirstAdd}
+      allCategories={allCategories}
+      selectedCategory={selectedCategory}
+      setSelectedCategory={setSelectedCategory}
+      isFrontendConfigured={isFrontendConfigured}
+      filteredItems={filteredItems}
+      selectedItem={selectedItem}
+      setSelectedItem={setSelectedItem}
+      shouldHideCartSheet={shouldHideCartSheet}
+      isPaymentModalOpen={isPaymentModalOpen}
+      setPaymentModalOpen={setPaymentModalOpen}
+      setPaymentModalPreferPersonalReview={setPaymentModalPreferPersonalReview}
+      items={items}
+      tableInfo={tableInfo}
+      activeExistingOrderId={activeExistingOrderId}
+      activePendingSummary={activePendingSummary}
+      activeSubmittedOrder={activeSubmittedOrder}
+      paymentModalInitialStep={paymentModalInitialStep}
+      paymentModalPreferPersonalReview={paymentModalPreferPersonalReview}
+      setToolbarPricingSnapshot={setToolbarPricingSnapshot}
+      setSharedTableOrder={setSharedTableOrder}
+      setLocalOpenOrder={setLocalOpenOrder}
+      setHasLocalOpenOrder={setHasLocalOpenOrder}
+      isWaiterConfirmOpen={isWaiterConfirmOpen}
+      setWaiterConfirmOpen={setWaiterConfirmOpen}
+      tableIdString={tableIdString}
+      tableName={tableName}
+      isNoteModalOpen={isNoteModalOpen}
+      setNoteModalOpen={setNoteModalOpen}
+      note={note}
+      setNote={setNote}
+      handleSendNote={handleSendNote}
+    />
   )
 }
 

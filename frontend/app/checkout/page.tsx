@@ -24,7 +24,6 @@ import type { PaymentData } from "@/lib/payment-service"
 // Add type declarations for PayPal and ApplePay
 declare global {
   interface Window {
-    paypal?: any;
     ApplePaySession?: any;
   }
 }
@@ -366,8 +365,8 @@ const handlePayment = async () => {
       
       case "paypal":
         // PayPal integration
-        if (window.paypal) {
-          window.paypal.Buttons({
+        if ((window as any).paypal) {
+          (window as any).paypal.Buttons({
             createOrder: (data: any, actions: any) => {
               return actions.order.create({
                 purchase_units: [{

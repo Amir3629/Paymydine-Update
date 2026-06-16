@@ -541,11 +541,6 @@ export const OrganicBotanicalModalShell = ({
         transition={{ duration: 0.28 }}
         className="fixed inset-0 z-[60] flex items-center justify-center px-4 py-8"
         style={{
-          background: "rgba(35, 31, 26, 0.48)",
-          backdropFilter: "blur(6px) saturate(0.92)",
-          WebkitBackdropFilter: "blur(6px) saturate(0.92)",
-        }}
-        style={{
           background: "rgba(35, 31, 26, 0.46)",
           backdropFilter: "blur(8px) saturate(0.95)",
           WebkitBackdropFilter: "blur(8px) saturate(0.95)",

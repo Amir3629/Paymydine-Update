@@ -42,6 +42,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Elements, useStripe, useElements, PaymentRequestButtonElement } from '@stripe/react-stripe-js';
 import { loadStripe } from "@stripe/stripe-js";
 import { cn, truncateText } from "@/lib/utils";
+import { normalizeThemeId } from "@/lib/theme-registry";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Textarea } from "@/components/ui/textarea";
 import { ApiClient, type PaymentMethod, type TableOrderDraftResponse } from "@/lib/api-client";
@@ -336,7 +337,7 @@ export function MenuContent() {
         const data = await res.json()
       pmdForceKazenFrontendThemePayload(data);
         const normalizedThemePayload = pmdForceKazenFrontendThemePayload(data)
-        const themeId = String(normalizedThemePayload?.data?.theme_id || normalizedThemePayload?.theme_id || normalizedThemePayload?.frontend_theme || normalizedThemePayload?.admin_theme || "").trim()
+        const themeId = normalizeThemeId(normalizedThemePayload?.data?.theme_id || normalizedThemePayload?.theme_id || normalizedThemePayload?.frontend_theme || normalizedThemePayload?.admin_theme || "")
 
         if (!cancelled) {
           setForceModernGreenTheme(themeId === "modern_green")

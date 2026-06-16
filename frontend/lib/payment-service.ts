@@ -3,6 +3,15 @@ import { Elements, CardElement, useStripe, useElements } from '@stripe/react-str
 import { PayPalScriptProvider, PayPalButtons, usePayPalScriptReducer } from '@paypal/react-paypal-js'
 import CryptoJS from 'crypto-js'
 
+declare global {
+  interface Window {
+    ApplePaySession?: any
+    google?: any
+  }
+}
+
+declare const ApplePaySession: any
+
 // Payment gateway configuration
 export interface PaymentConfig {
   stripePublishableKey: string
@@ -27,7 +36,7 @@ export interface PaymentData {
     phone?: string
   }
   restaurantId: string
-  tableNumber: number
+  tableNumber: number | null
 }
 
 export interface PaymentResult {
@@ -137,7 +146,7 @@ export class StripePaymentProcessor {
       const { error, paymentIntent } = await this.stripe.confirmCardPayment(clientSecret, {
         payment_method: {
           card: {
-            number: '', // This will be handled by Stripe Elements
+            number: '', // Legacy processor only; real card flow uses Stripe Elements.
             exp_month: 0,
             exp_year: 0,
             cvc: '',
@@ -147,7 +156,7 @@ export class StripePaymentProcessor {
             email: paymentData.customerInfo.email,
           },
         },
-      })
+      } as any)
       
       if (error) {
         return {
@@ -230,7 +239,7 @@ export class ApplePayProcessor {
       const session = new ApplePaySession(3, paymentRequest)
       
       return new Promise((resolve) => {
-        session.onvalidatemerchant = async (event) => {
+        session.onvalidatemerchant = async (event: any) => {
           try {
             const response = await fetch('/api/payments/validate-apple-pay', {
               method: 'POST',
@@ -250,7 +259,7 @@ export class ApplePayProcessor {
           }
         }
         
-        session.onpaymentauthorized = async (event) => {
+        session.onpaymentauthorized = async (event: any) => {
           try {
             const response = await fetch('/api/payments/process-apple-pay', {
               method: 'POST',

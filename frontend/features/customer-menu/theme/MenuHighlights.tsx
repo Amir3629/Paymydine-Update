@@ -108,7 +108,7 @@ export function MenuHighlightSection({
               <OrganicBotanicalMenuCard
                 item={item}
                 onSelect={onSelect}
-                onAdd={(event) => onOrganicAdd ? onOrganicAdd(item, event) : onFirstAdd(item)}
+                onAdd={(event: React.MouseEvent) => onOrganicAdd ? onOrganicAdd(item, event) : onFirstAdd(item)}
                 highlightSettings={settings}
               />
             ) : (

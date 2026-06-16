@@ -396,11 +396,13 @@ export class ApiClient {
   async getMenuItems(categoryId?: number): Promise<{ success: boolean; data: MenuItem[] }> {
     try {
       const menuResponse = await this.getMenu();
-      let items = (menuResponse?.data?.items ?? menuResponse?.data ?? []);
-      if (!Array.isArray(items)) items = [];
+      const rawMenuData = menuResponse?.data;
+      let items: MenuItem[] = Array.isArray(rawMenuData)
+        ? rawMenuData
+        : (Array.isArray(rawMenuData?.items) ? rawMenuData.items : []);
 
       if (categoryId) {
-        items = items.filter(item => item.category_id === categoryId);
+        items = items.filter((item: MenuItem) => item.category_id === categoryId);
       }
 
       return {
@@ -409,9 +411,12 @@ export class ApiClient {
       };
     } catch (error) {
       console.log('Using fallback menu items due to API error:', error);
+      const fallbackData = fallbackMenuData?.data;
       return {
         success: true,
-        data: (fallbackMenuData?.data?.items ?? fallbackMenuData?.data ?? [])
+        data: Array.isArray(fallbackData)
+          ? fallbackData
+          : (Array.isArray(fallbackData?.items) ? fallbackData.items : [])
       };
     }
   }
@@ -446,7 +451,7 @@ export class ApiClient {
         } as PaymentMethod;
       });
 
-      return normalized.sort((a, b) => Number(a.priority || 0) - Number(b.priority || 0));
+      return normalized.sort((a: PaymentMethod, b: PaymentMethod) => Number(a.priority || 0) - Number(b.priority || 0));
     } catch (error) {
       console.error('Failed to fetch payment methods:', error);
       return [];
