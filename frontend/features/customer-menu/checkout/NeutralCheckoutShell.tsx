@@ -83,6 +83,7 @@ export function NeutralCheckoutShell(props: any) {
     isLoading,
     allItems,
     handleConfirmMyItems,
+    setIsSplitting,
     splitGrandTotal,
     splitMethod,
     startSplitFlow,

@@ -997,6 +997,7 @@ const modalTitle = checkoutStep === "review" && tableDraft?.success && tableDraf
         isLoading,
         allItems,
         handleConfirmMyItems,
+        setIsSplitting,
         splitGrandTotal,
         splitMethod,
         startSplitFlow,
