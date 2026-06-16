@@ -33,6 +33,7 @@ import { ModernGreenThemeRoute } from "@/features/customer-menu/theme/ModernGree
 import { OrganicThemeRoute } from "@/features/customer-menu/theme/OrganicThemeRoute";
 import { KazenThemeRoute } from "@/features/customer-menu/theme/KazenThemeRoute";
 import { GoldThemeRoute } from "@/features/customer-menu/theme/GoldThemeRoute";
+import { useCustomerCheckoutModalState } from "@/features/customer-menu/hooks/useCustomerCheckoutModalState";
 import { useOrganicThemeEffects } from "@/features/customer-menu/theme/useOrganicThemeEffects";
 import { useCustomerMenuThemeBootstrap } from "@/features/customer-menu/theme/useCustomerMenuThemeBootstrap";
 import { normalizeMenuLogoUrl } from "@/features/customer-menu/theme/themeRouteShared";
@@ -57,46 +58,14 @@ function MenuContent() {
   const [selectedCategory, setSelectedCategory] = useState<string>("All") // Initialize with "All"
   const [selectedItem, setSelectedItem] = useState<MenuItem | null>(null)
   const [lastInteractedItem, setLastInteractedItem] = useState<CartItem | null>(null)
-  const [isPaymentModalOpen, setPaymentModalOpen] = useState(false)
-  const [paymentModalInitialStep, setPaymentModalInitialStep] = useState<CheckoutStep>('review')
-  const [paymentModalPreferPersonalReview, setPaymentModalPreferPersonalReview] = useState(false)
-
-  // PMD_CHECKOUT_CLICK_PREFERS_PERSONAL_REVIEW
-  useEffect(() => {
-    if (typeof document === "undefined") return
-
-    const onCheckoutIntentCapture = (event: MouseEvent) => {
-      const target = event.target as HTMLElement | null
-      const button = target?.closest?.("button") as HTMLElement | null
-      if (!button) return
-
-      const txt = (button.textContent || "").replace(/\s+/g, " ").trim().toLowerCase()
-      const aria = (button.getAttribute("aria-label") || "").toLowerCase()
-      const isTableOrderButton =
-        aria.includes("table order") ||
-        txt.includes("table order")
-
-      const isCheckoutButton =
-        !isTableOrderButton &&
-        (
-          aria.includes("checkout") ||
-          txt.includes("checkout")
-        )
-
-      if (isCheckoutButton) {
-        setPaymentModalPreferPersonalReview(true)
-        setPaymentModalInitialStep("review")
-      }
-
-      if (isTableOrderButton) {
-        setPaymentModalPreferPersonalReview(false)
-        setPaymentModalInitialStep("review")
-      }
-    }
-
-    document.addEventListener("click", onCheckoutIntentCapture, true)
-    return () => document.removeEventListener("click", onCheckoutIntentCapture, true)
-  }, [])
+  const {
+    isPaymentModalOpen,
+    setPaymentModalOpen,
+    paymentModalInitialStep,
+    setPaymentModalInitialStep,
+    paymentModalPreferPersonalReview,
+    setPaymentModalPreferPersonalReview,
+  } = useCustomerCheckoutModalState(searchParams)
 
   const [isLoading, setIsLoading] = useState(true)
   const [isFrontendConfigured, setIsFrontendConfigured] = useState(true)
