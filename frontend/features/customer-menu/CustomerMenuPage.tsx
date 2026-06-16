@@ -34,6 +34,7 @@ import { OrganicThemeRoute } from "@/features/customer-menu/theme/OrganicThemeRo
 import { KazenThemeRoute } from "@/features/customer-menu/theme/KazenThemeRoute";
 import { GoldThemeRoute } from "@/features/customer-menu/theme/GoldThemeRoute";
 import { useCustomerCheckoutModalState } from "@/features/customer-menu/hooks/useCustomerCheckoutModalState";
+import { useCustomerMenuDerivedData } from "@/features/customer-menu/hooks/useCustomerMenuDerivedData";
 import { useOrganicThemeEffects } from "@/features/customer-menu/theme/useOrganicThemeEffects";
 import { useCustomerMenuThemeBootstrap } from "@/features/customer-menu/theme/useCustomerMenuThemeBootstrap";
 import { normalizeMenuLogoUrl } from "@/features/customer-menu/theme/themeRouteShared";
@@ -364,76 +365,24 @@ useEffect(() => {
   }, [searchParams, setTableInfo, clearCart, addToCart])
 
   // Add "All" to categories - FIXED VERSION
-  const allCategories = useMemo(() => {
-    const categoryList = dynamicCategories;
-    return ["All", ...categoryList];
-  }, [dynamicCategories]);
+  const {
+    allCategories,
+    filteredItems,
+    highlightSourceItems,
+    chefRecommendationItems,
+    bestsellerItems,
+  } = useCustomerMenuDerivedData({
+    apiMenuItems,
+    taxSettings,
+    menuData,
+    menuItems,
+    dynamicCategories,
+    selectedCategory,
+    menuHighlightSettings,
+    currentLanguage,
+    t,
+  })
 
-  // Adjust menu item prices if VAT is included in prices (vat_menu_price = 0)
-  const adjustPriceForVAT = (price: number): number => {
-    if (taxSettings.enabled && taxSettings.percentage > 0 && taxSettings.menuPrice === 0) {
-      // VAT is included in prices - increase price by VAT percentage
-      return price * (1 + taxSettings.percentage / 100)
-    }
-    return price
-  }
-
-  // Update filteredItems logic with price adjustment
-  const filteredItems = useMemo(() => {
-    // Use API data if available, otherwise fallback to CMS store or static data
-    const availableItems = apiMenuItems.length ? apiMenuItems : (menuItems.length ? menuItems : menuData);
-
-    // Adjust prices if VAT is included in menu prices
-    const itemsWithAdjustedPrices = availableItems.map(item => ({
-      ...item,
-      price: adjustPriceForVAT(item.price),
-      // Also adjust option prices if they exist
-      options: item.options?.map(option => ({
-        ...option,
-        values: option.values.map(value => ({
-          ...value,
-          price: adjustPriceForVAT(value.price)
-        }))
-      }))
-    }))
-
-    // Always default to showing all items if no category is selected
-    const currentCategory = selectedCategory || "All";
-
-    // If "All" is selected, show all items
-    if (currentCategory === "All") {
-      return itemsWithAdjustedPrices;
-    }
-
-    // Otherwise, filter by selected category
-    return itemsWithAdjustedPrices.filter((item) => item.category === currentCategory);
-  }, [apiMenuItems, menuItems, selectedCategory, taxSettings.enabled, taxSettings.percentage, taxSettings.menuPrice]);
-
-  const highlightSourceItems = useMemo(() => {
-    const availableItems = apiMenuItems.length ? apiMenuItems : (menuItems.length ? menuItems : menuData)
-    return availableItems.map(item => ({
-      ...item,
-      price: adjustPriceForVAT(item.price),
-      options: item.options?.map(option => ({
-        ...option,
-        values: option.values.map(value => ({ ...value, price: adjustPriceForVAT(value.price) }))
-      }))
-    }))
-  }, [apiMenuItems, menuItems, taxSettings.enabled, taxSettings.percentage, taxSettings.menuPrice])
-
-  const chefRecommendationItems = useMemo(() => {
-    if (!menuHighlightSettings.chef_section_enabled || menuHighlightSettings.section_placement === 'hidden') return []
-    return highlightSourceItems.filter((item) => Boolean((item as any).is_chef_recommended)).slice(0, menuHighlightSettings.max_chef_items)
-  }, [highlightSourceItems, menuHighlightSettings])
-
-  const bestsellerItems = useMemo(() => {
-    if (!menuHighlightSettings.bestseller_section_enabled || menuHighlightSettings.section_placement === 'hidden') return []
-    return highlightSourceItems.filter((item) => Boolean((item as any).is_bestseller)).slice(0, menuHighlightSettings.max_bestseller_items)
-  }, [highlightSourceItems, menuHighlightSettings])
-
-  const showVirtualHighlightSections = (selectedCategory || "All") === "All" && menuHighlightSettings.section_placement !== 'hidden'
-
-  // Initialize with "All" category when data loads
   useEffect(() => {
     if (apiMenuItems.length > 0 && !selectedCategory) {
       setSelectedCategory("All");
