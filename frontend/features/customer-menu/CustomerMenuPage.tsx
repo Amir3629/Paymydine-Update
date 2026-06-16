@@ -1,3 +1,8 @@
+// PMD_SAFETY_NOTE:
+// CustomerMenuPage is currently the customer-menu controller/orchestrator.
+// Theme UI has been extracted into theme route files.
+// Future cleanup should extract table context, menu loading, checkout state, and guest session into hooks.
+
 "use client"
 
 import { useKazenMenuDomRepairs } from "@/features/customer-menu/legacy-dom-repairs/useKazenMenuDomRepairs";

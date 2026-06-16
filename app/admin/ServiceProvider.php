@@ -527,6 +527,15 @@ class ServiceProvider extends AppServiceProvider
                         ],
                     ],
                 ],
+                // PMD_ADMIN_QUICK_MODE_MENU_ITEM_20260616
+                'quick_mode' => [
+                    'priority' => 998,
+                    'class' => 'tools',
+                    'href' => admin_url('quick-mode?preview=pmdquick2026'),
+                    'title' => '⚡ Quick Mode',
+                    'permission' => 'Admin.Orders',
+                ],
+
                 'system' => [
                     'priority' => 999,
                     'class' => 'system',
