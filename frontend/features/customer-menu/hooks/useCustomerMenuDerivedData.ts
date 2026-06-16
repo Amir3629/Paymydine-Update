@@ -31,13 +31,13 @@ export function useCustomerMenuDerivedData(props: any) {
     const availableItems = apiMenuItems.length ? apiMenuItems : (menuItems.length ? menuItems : menuData);
 
     // Adjust prices if VAT is included in menu prices
-    const itemsWithAdjustedPrices = availableItems.map(item => ({
+    const itemsWithAdjustedPrices = availableItems.map((item: any) => ({
       ...item,
       price: adjustPriceForVAT(item.price),
       // Also adjust option prices if they exist
-      options: item.options?.map(option => ({
+      options: item.options?.map((option: any) => ({
         ...option,
-        values: option.values.map(value => ({
+        values: option.values.map((value: any) => ({
           ...value,
           price: adjustPriceForVAT(value.price)
         }))
@@ -58,12 +58,12 @@ export function useCustomerMenuDerivedData(props: any) {
 
   const highlightSourceItems = useMemo(() => {
     const availableItems = apiMenuItems.length ? apiMenuItems : (menuItems.length ? menuItems : menuData)
-    return availableItems.map(item => ({
+    return availableItems.map((item: any) => ({
       ...item,
       price: adjustPriceForVAT(item.price),
-      options: item.options?.map(option => ({
+      options: item.options?.map((option: any) => ({
         ...option,
-        values: option.values.map(value => ({ ...value, price: adjustPriceForVAT(value.price) }))
+        values: option.values.map((value: any) => ({ ...value, price: adjustPriceForVAT(value.price) }))
       }))
     }))
   }, [apiMenuItems, menuItems, taxSettings.enabled, taxSettings.percentage, taxSettings.menuPrice])
