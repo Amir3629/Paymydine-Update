@@ -21,6 +21,125 @@ export default function KazenStandalonePage() {
   const [openCategory, setOpenCategory] = useState<string>("")
   const [selectedItem, setSelectedItem] = useState<KazenItem | null>(null)
   const [itemQty, setItemQty] = useState(1)
+
+  // PMD_KAZEN_QTY_DOM_STYLE_FINAL_20260618
+  // PMD_KAZEN_QTY_TEXT_SYMBOL_FINAL_20260618
+  // Final runtime override for modal quantity controls. This wins over late injected Kazen button CSS.
+  useEffect(() => {
+    if (!selectedItem || typeof document === "undefined") return
+
+    let cancelled = false
+
+    const applyQtyPolish = () => {
+      if (cancelled) return
+
+      const root = document.querySelector<HTMLElement>(
+        '.kazen-solid-modal-overlay .kazen-qty[data-pmd-kazen-qty-polished="1"]'
+      )
+      if (!root) return
+
+      root.style.setProperty("display", "grid", "important")
+      root.style.setProperty("grid-template-columns", "58px minmax(0, 1fr) 58px", "important")
+      root.style.setProperty("align-items", "stretch", "important")
+      root.style.setProperty("height", "58px", "important")
+      root.style.setProperty("min-height", "58px", "important")
+      root.style.setProperty("margin-top", "26px", "important")
+      root.style.setProperty("border", "1px solid rgba(36, 35, 32, .18)", "important")
+      root.style.setProperty("background", "rgba(255, 252, 246, .64)", "important")
+      root.style.setProperty("box-shadow", "inset 0 1px 0 rgba(255,255,255,.82)", "important")
+      root.style.setProperty("overflow", "hidden", "important")
+
+      const buttons = Array.from(root.querySelectorAll<HTMLElement>("button.kazen-qty-btn"))
+
+      buttons.forEach((button, index) => {
+        button.style.setProperty("all", "unset", "important")
+        button.style.setProperty("box-sizing", "border-box", "important")
+        button.style.setProperty("width", "58px", "important")
+        button.style.setProperty("height", "58px", "important")
+        button.style.setProperty("min-width", "58px", "important")
+        button.style.setProperty("min-height", "58px", "important")
+        button.style.setProperty("display", "flex", "important")
+        button.style.setProperty("align-items", "center", "important")
+        button.style.setProperty("justify-content", "center", "important")
+        button.style.setProperty("cursor", "pointer", "important")
+        button.style.setProperty("background", "transparent", "important")
+        button.style.setProperty("background-color", "transparent", "important")
+        button.style.setProperty("color", "#242320", "important")
+        button.style.setProperty("border-radius", "0", "important")
+        button.style.setProperty("box-shadow", "none", "important")
+        button.style.setProperty("overflow", "visible", "important")
+        button.style.setProperty("appearance", "none", "important")
+        button.style.setProperty("-webkit-appearance", "none", "important")
+        button.style.setProperty("touch-action", "manipulation", "important")
+
+        if (index === 0) {
+          button.style.setProperty("border-right", "1px solid rgba(36, 35, 32, .14)", "important")
+        }
+
+        if (index === 1) {
+          button.style.setProperty("border-left", "1px solid rgba(36, 35, 32, .14)", "important")
+        }
+
+        const svg = button.querySelector<SVGElement>("svg")
+        if (svg) {
+          svg.style.setProperty("width", "22px", "important")
+          svg.style.setProperty("height", "22px", "important")
+          svg.style.setProperty("color", "currentColor", "important")
+          svg.style.setProperty("stroke", "currentColor", "important")
+          svg.style.setProperty("fill", "none", "important")
+        }
+
+        button.querySelectorAll<SVGElement>("svg *").forEach((part) => {
+          part.style.setProperty("stroke", "currentColor", "important")
+          part.style.setProperty("fill", "none", "important")
+        })
+
+        const symbol = button.querySelector<HTMLElement>(".kazen-qty-symbol")
+        if (symbol) {
+          symbol.style.setProperty("display", "inline-flex", "important")
+          symbol.style.setProperty("align-items", "center", "important")
+          symbol.style.setProperty("justify-content", "center", "important")
+          symbol.style.setProperty("width", "100%", "important")
+          symbol.style.setProperty("height", "100%", "important")
+          symbol.style.setProperty("font-family", "Georgia, 'Times New Roman', serif", "important")
+          symbol.style.setProperty("font-size", "2rem", "important")
+          symbol.style.setProperty("font-weight", "600", "important")
+          symbol.style.setProperty("line-height", "1", "important")
+          symbol.style.setProperty("color", "#242320", "important")
+          symbol.style.setProperty("transform", "translateY(-1px)", "important")
+        }
+      })
+
+      const value = root.querySelector<HTMLElement>(".kazen-qty-value")
+      if (value) {
+        value.style.setProperty("display", "flex", "important")
+        value.style.setProperty("align-items", "center", "important")
+        value.style.setProperty("justify-content", "center", "important")
+        value.style.setProperty("height", "58px", "important")
+        value.style.setProperty("min-height", "58px", "important")
+        value.style.setProperty("background", "rgba(255, 255, 255, .22)", "important")
+        value.style.setProperty("color", "#242320", "important")
+        value.style.setProperty("font-size", "1.25rem", "important")
+        value.style.setProperty("font-weight", "700", "important")
+        value.style.setProperty("letter-spacing", ".08em", "important")
+      }
+    }
+
+    applyQtyPolish()
+    const raf = window.requestAnimationFrame(applyQtyPolish)
+    const timers = [
+      window.setTimeout(applyQtyPolish, 50),
+      window.setTimeout(applyQtyPolish, 250),
+      window.setTimeout(applyQtyPolish, 700),
+    ]
+
+    return () => {
+      cancelled = true
+      window.cancelAnimationFrame(raf)
+      timers.forEach((timer) => window.clearTimeout(timer))
+    }
+  }, [selectedItem, itemQty])
+
   const [checkoutOpen, setCheckoutOpen] = useState(false)
   const [waiterOpen, setWaiterOpen] = useState(false)
   const [noteOpen, setNoteOpen] = useState(false)
@@ -352,8 +471,20 @@ export default function KazenStandalonePage() {
                       const image = itemImage(item)
 
                       return (
-                        <div key={item.id} className="kazen-item">
-                          <button type="button" className="min-w-0 text-left" onClick={() => openItem(item)} style={{ display: "contents" }}>
+                        <div
+                          key={item.id}
+                          className="kazen-item"
+                          role="button"
+                          tabIndex={0}
+                          onClick={() => openItem(item)}
+                          onKeyDown={(event) => {
+                            if (event.key === "Enter" || event.key === " ") {
+                              event.preventDefault()
+                              openItem(item)
+                            }
+                          }}
+                        >
+                          <button type="button" className="kazen-item-main min-w-0 text-left" onClick={() => openItem(item)}>
                             {image ? (
                               <img src={image} alt={item.name} className="kazen-item-image" />
                             ) : (
@@ -367,7 +498,10 @@ export default function KazenStandalonePage() {
                             </span>
                           </button>
 
-                          <button type="button" className="kazen-add" aria-label={`Add ${item.name}`} onClick={() => addItem(item, 1)}>
+                          <button type="button" className="kazen-add" aria-label={`Add ${item.name}`} onClick={(event) => {
+                              event.stopPropagation()
+                              addItem(item, 1)
+                            }}>
                             <Plus className="h-5 w-5" style={{ color: "#242320", stroke: "#242320", fill: "none" }} />
                           </button>
                         </div>
@@ -422,13 +556,23 @@ export default function KazenStandalonePage() {
             <strong style={{ color: "var(--kazen-ink)" }}>{money(selectedItem.price)}</strong>
           </div>
 
-          <div className="kazen-qty">
-            <button type="button" onClick={() => setItemQty((v) => Math.max(1, v - 1))}>
-              <Minus className="h-5 w-5" />
+          <div className="kazen-qty" data-pmd-kazen-qty-polished="1">
+            <button
+              type="button"
+              className="kazen-qty-btn kazen-qty-btn-minus"
+              aria-label="Decrease quantity"
+              onClick={() => setItemQty((v) => Math.max(1, v - 1))}
+            >
+              <span className="kazen-qty-symbol" aria-hidden="true">−</span>
             </button>
-            <strong>{itemQty}</strong>
-            <button type="button" onClick={() => setItemQty((v) => v + 1)}>
-              <Plus className="h-5 w-5" />
+            <strong className="kazen-qty-value">{itemQty}</strong>
+            <button
+              type="button"
+              className="kazen-qty-btn kazen-qty-btn-plus"
+              aria-label="Increase quantity"
+              onClick={() => setItemQty((v) => v + 1)}
+            >
+              <span className="kazen-qty-symbol" aria-hidden="true">＋</span>
             </button>
           </div>
 

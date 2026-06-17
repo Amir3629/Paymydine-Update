@@ -30,3 +30,7 @@ next-env.d.ts
 # Playwright generated artifacts
 /playwright-report/
 /test-results/
+
+# PayMyDine local UI audit outputs
+pmd-ui-audit-artifacts/
+test-results/

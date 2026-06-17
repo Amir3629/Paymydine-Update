@@ -1482,3 +1482,242 @@ html[data-pmd-kazen-active="1"] body .kazen-page .kazen-category-btn line {
     right: .55rem !important;
   }
 }
+
+/* PMD_KAZEN_DOCK_CENTER_AND_CARD_CLICK_FIX_20260617
+   Center embedded Kazen dock and make food cards clickable.
+*/
+.kazen-page .kazen-dock {
+  position: fixed !important;
+  left: 50% !important;
+  right: auto !important;
+  bottom: max(18px, env(safe-area-inset-bottom)) !important;
+  transform: translateX(-50%) !important;
+  width: min(92vw, 440px) !important;
+  max-width: calc(100vw - 24px) !important;
+  z-index: 9999 !important;
+  display: grid !important;
+  grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+  align-items: center !important;
+  justify-content: center !important;
+  margin: 0 auto !important;
+}
+
+.kazen-page .kazen-dock button {
+  min-height: 56px !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 8px !important;
+  text-align: center !important;
+}
+
+.kazen-page .kazen-item {
+  position: relative !important;
+  display: grid !important;
+  grid-template-columns: 1fr auto !important;
+  gap: 12px !important;
+  align-items: stretch !important;
+}
+
+.kazen-page .kazen-item-main {
+  display: grid !important;
+  grid-template-columns: 74px minmax(0, 1fr) !important;
+  gap: 14px !important;
+  align-items: center !important;
+  width: 100% !important;
+  min-width: 0 !important;
+  border: 0 !important;
+  background: transparent !important;
+  color: inherit !important;
+  cursor: pointer !important;
+  padding: 0 !important;
+}
+
+.kazen-page .kazen-item-main * {
+  pointer-events: none !important;
+}
+
+.kazen-page .kazen-add {
+  position: relative !important;
+  z-index: 2 !important;
+}
+
+/* PMD_KAZEN_WHOLE_CARD_CLICK_FIX_20260617 */
+.kazen-page .kazen-item {
+  cursor: pointer !important;
+}
+
+.kazen-page .kazen-item:focus-visible {
+  outline: 2px solid var(--kazen-red, #bf5d55) !important;
+  outline-offset: 3px !important;
+}
+
+.kazen-page .kazen-item-main {
+  pointer-events: none !important;
+}
+
+.kazen-page .kazen-add {
+  pointer-events: auto !important;
+}
+
+/* PMD_KAZEN_MODAL_QTY_POLISH_20260617
+   Make item detail quantity controls match Kazen Japanese luxury style.
+*/
+.kazen-page .kazen-qty {
+  display: grid !important;
+  grid-template-columns: 64px 1fr 64px !important;
+  align-items: center !important;
+  gap: 0 !important;
+  min-height: 64px !important;
+  margin-top: 28px !important;
+  border: 1px solid rgba(36, 35, 32, .16) !important;
+  background:
+    linear-gradient(180deg, rgba(255,255,255,.72), rgba(247,243,236,.74)) !important;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.75) !important;
+}
+
+.kazen-page .kazen-qty button {
+  width: 64px !important;
+  height: 64px !important;
+  min-width: 64px !important;
+  min-height: 64px !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  color: #242320 !important;
+  box-shadow: none !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+}
+
+.kazen-page .kazen-qty button:first-child {
+  border-right: 1px solid rgba(36, 35, 32, .12) !important;
+}
+
+.kazen-page .kazen-qty button:last-child {
+  border-left: 1px solid rgba(36, 35, 32, .12) !important;
+}
+
+.kazen-page .kazen-qty button:hover {
+  background: rgba(190, 92, 84, .07) !important;
+  color: #b95b54 !important;
+}
+
+.kazen-page .kazen-qty button:active {
+  background: rgba(190, 92, 84, .12) !important;
+  transform: none !important;
+}
+
+.kazen-page .kazen-qty button svg,
+.kazen-page .kazen-qty button svg *,
+.kazen-page .kazen-qty button path,
+.kazen-page .kazen-qty button line {
+  width: 24px !important;
+  height: 24px !important;
+  stroke: currentColor !important;
+  stroke-width: 2.2 !important;
+  color: currentColor !important;
+}
+
+.kazen-page .kazen-qty strong {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  min-height: 64px !important;
+  font-family: Georgia, "Times New Roman", serif !important;
+  font-size: 1.35rem !important;
+  font-weight: 700 !important;
+  letter-spacing: .18em !important;
+  color: #242320 !important;
+  background: rgba(255, 252, 246, .42) !important;
+}
+
+html[data-pmd-kazen-mode="dark"] .kazen-page .kazen-qty {
+  border-color: rgba(230, 203, 147, .24) !important;
+  background: linear-gradient(180deg, rgba(27,17,12,.86), rgba(10,7,5,.9)) !important;
+}
+
+html[data-pmd-kazen-mode="dark"] .kazen-page .kazen-qty button,
+html[data-pmd-kazen-mode="dark"] .kazen-page .kazen-qty strong {
+  color: #f2dfb6 !important;
+  background: transparent !important;
+}
+
+html[data-pmd-kazen-mode="dark"] .kazen-page .kazen-qty button:first-child {
+  border-right-color: rgba(230, 203, 147, .18) !important;
+}
+
+html[data-pmd-kazen-mode="dark"] .kazen-page .kazen-qty button:last-child {
+  border-left-color: rgba(230, 203, 147, .18) !important;
+}
+
+/* PMD_KAZEN_QTY_FINAL_POLISH_20260617
+   Strong override for item detail quantity stepper.
+   Removes old green circular buttons and gives Kazen a thin Japanese outline style.
+*/
+html body .kazen-page .kazen-qty[data-pmd-kazen-qty-polished="1"] {
+  display: grid !important;
+  grid-template-columns: 68px 1fr 68px !important;
+  align-items: center !important;
+  min-height: 64px !important;
+  margin-top: 28px !important;
+  border: 1px solid rgba(36, 35, 32, .18) !important;
+  background: rgba(255, 252, 246, .58) !important;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.8) !important;
+}
+
+html body .kazen-page .kazen-qty[data-pmd-kazen-qty-polished="1"] > button.kazen-qty-btn {
+  all: unset !important;
+  box-sizing: border-box !important;
+  width: 68px !important;
+  height: 64px !important;
+  min-width: 68px !important;
+  min-height: 64px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  cursor: pointer !important;
+  color: #242320 !important;
+  background: transparent !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+}
+
+html body .kazen-page .kazen-qty[data-pmd-kazen-qty-polished="1"] > button.kazen-qty-btn-minus {
+  border-right: 1px solid rgba(36, 35, 32, .14) !important;
+}
+
+html body .kazen-page .kazen-qty[data-pmd-kazen-qty-polished="1"] > button.kazen-qty-btn-plus {
+  border-left: 1px solid rgba(36, 35, 32, .14) !important;
+}
+
+html body .kazen-page .kazen-qty[data-pmd-kazen-qty-polished="1"] > button.kazen-qty-btn:hover {
+  color: #b95b54 !important;
+  background: rgba(190, 92, 84, .07) !important;
+}
+
+html body .kazen-page .kazen-qty[data-pmd-kazen-qty-polished="1"] > button.kazen-qty-btn svg,
+html body .kazen-page .kazen-qty[data-pmd-kazen-qty-polished="1"] > button.kazen-qty-btn svg *,
+html body .kazen-page .kazen-qty[data-pmd-kazen-qty-polished="1"] > button.kazen-qty-btn path,
+html body .kazen-page .kazen-qty[data-pmd-kazen-qty-polished="1"] > button.kazen-qty-btn line {
+  width: 24px !important;
+  height: 24px !important;
+  stroke: currentColor !important;
+  stroke-width: 2 !important;
+  color: currentColor !important;
+  fill: none !important;
+}
+
+html body .kazen-page .kazen-qty[data-pmd-kazen-qty-polished="1"] > strong.kazen-qty-value {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  min-height: 64px !important;
+  font-family: Georgia, "Times New Roman", serif !important;
+  font-size: 1.28rem !important;
+  font-weight: 700 !important;
+  letter-spacing: .16em !important;
+  color: #242320 !important;
+  background: rgba(255,255,255,.24) !important;
+}

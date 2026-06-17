@@ -227,7 +227,10 @@ export function KazenThemeRoute(props: KazenThemeRouteProps) {
         showTableOrder={shouldShowTableOrderAction}
         tableOrderCount={tableOrderActionCount}
       >
-        <KazenBottomDock {...themeMenuActions} />
+        {/* PMD_KAZEN_HIDE_PARENT_DOCK_USE_INNER_DOCK_20260617
+            The embedded Kazen iframe has the working Japanese dock.
+            Parent dock is hidden to avoid duplicate/blocked action bars. */}
+        {false && <KazenBottomDock {...themeMenuActions} />}
 
         <PaymentModal
           isOpen={isPaymentModalOpen}
