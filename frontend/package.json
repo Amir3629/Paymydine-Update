@@ -11,7 +11,8 @@
     "start:3001": "next start -p 3001",
     "preview": "next start -p 3001",
     "smoke:prod": "bash scripts/pmd-frontend-smoke.sh",
-    "roadmap:status": "bash scripts/pmd-claude-roadmap-status.sh"
+    "roadmap:status": "bash scripts/pmd-claude-roadmap-status.sh",
+    "checkout:safety": "bash scripts/pmd-checkout-safety-audit.sh"
   },
   "dependencies": {
     "@emotion/is-prop-valid": "latest",
