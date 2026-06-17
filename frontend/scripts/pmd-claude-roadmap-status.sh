@@ -50,7 +50,7 @@ fi
 echo ""
 
 echo "=== Submitted payment amount resolver guard ==="
-python - <<'PY'
+python3 - <<'PY'
 from pathlib import Path
 core = Path('features/customer-menu/checkout/PaymentModalCore.tsx').read_text()
 flow = Path('features/customer-menu/checkout/paymentModalPaymentFlow.ts').read_text()
