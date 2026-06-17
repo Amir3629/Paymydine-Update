@@ -10,7 +10,7 @@ import "./customer-menu-page.css"
  * LEGACY_DOM_REPAIR_POLICY:
  * This file is the lifted customer-menu implementation from the former app/menu route.
  * Remaining MutationObserver/querySelector/style.setProperty usage is legacy checkout,
- * theme-resolution, footer-logo, and Kazen standalone visibility repair code; bottom dock
+ * theme-resolution, and Kazen standalone visibility repair code; bottom dock
  * injection is not allowed and has been removed. Those remaining repairs are kept to avoid
  * changing checkout/payment/table-order behavior in this route move. Future cleanup should
  * replace them from focused files such as CustomerMenuModals, checkout theme shells,
@@ -28,17 +28,13 @@ import { useTableOrderDraft } from "@/features/table-order/use-table-order-draft
 import { useCustomerThemeActions } from "@/features/customer-menu/useCustomerThemeActions";
 import { useCustomerThemeSelection } from "@/features/customer-menu/useCustomerThemeSelection";
 import { useCurrentFrontendTheme } from "@/features/customer-menu/theme/useCurrentFrontendTheme";
-import { ModernGreenThemeRoute } from "@/features/customer-menu/theme/ModernGreenThemeRoute";
-import { OrganicThemeRoute } from "@/features/customer-menu/theme/OrganicThemeRoute";
-import { KazenThemeRoute } from "@/features/customer-menu/theme/KazenThemeRoute";
-import { GoldThemeRoute } from "@/features/customer-menu/theme/GoldThemeRoute";
+import { CustomerMenuThemeRoutes } from "@/features/customer-menu/CustomerMenuThemeRoutes";
 import { useCustomerCheckoutModalState } from "@/features/customer-menu/hooks/useCustomerCheckoutModalState";
 import { useCustomerMenuDerivedData } from "@/features/customer-menu/hooks/useCustomerMenuDerivedData";
 import { useCustomerLocalOpenOrderHydration } from "@/features/customer-menu/hooks/useCustomerLocalOpenOrderHydration";
+import { useCustomerMenuFooterLogoVisibility } from "@/features/customer-menu/hooks/useCustomerMenuFooterLogoVisibility";
 import { useOrganicThemeEffects } from "@/features/customer-menu/theme/useOrganicThemeEffects";
 import { useCustomerMenuThemeBootstrap } from "@/features/customer-menu/theme/useCustomerMenuThemeBootstrap";
-import { normalizeMenuLogoUrl } from "@/features/customer-menu/theme/themeRouteShared";
-import { pmdInstallMenuPayMyDineFooterLogo } from "@/features/customer-menu/legacy-dom-repairs/footerLogoInstaller";
 import { LoadingSpinner } from "@/features/customer-menu/components/LoadingSpinner";
 import { buildTableOrderDraftContext, createSubmittedTableOrderSnapshot, isVisibleTableOrderDraft, tableOrderItemCount } from "@/features/table-order/table-order-utils";
 import { calculateCartPricingSummary } from "@/features/checkout/checkout-utils";
@@ -116,6 +112,7 @@ function MenuContent() {
     : (isRecentPaidTableOrder && paymentModalInitialStep === "review" && items.length > 0 ? null : localOpenOrder)
   const shouldHideCartSheet = !!activeExistingOrderId
 
+  const shouldShowPayMyDineFooterLogo = useCustomerMenuFooterLogoVisibility({ isModernGreenTheme, isOrganicBotanicalTheme })
   useEffect(() => {
     if (!isVisibleTableOrderDraft(sharedTableOrder)) return
 
@@ -559,188 +556,78 @@ useEffect(() => {
     )
   }
 
-  // PMD_KAZEN_JAPANESE_THEME_RETURN_20260611
-  if (isKazenJapaneseTheme) {
-    return (
-      <KazenThemeRoute
-        apiMenuItems={apiMenuItems}
-        menuItems={menuItems}
-        menuData={menuData}
-        allCategories={allCategories}
-        tableInfo={tableInfo}
-        displayTableNumber={displayTableNumber}
-        tableIdString={tableIdString}
-        cmsSettings={cmsSettings}
-        merchantSettings={merchantSettings}
-        taxSettings={taxSettings}
-        items={items}
-        totalItems={totalItems}
-        totalPrice={totalPrice}
-        lastInteractedItem={lastInteractedItem}
-        restaurantDisplayName={restaurantDisplayName}
-        themeMenuActions={themeMenuActions}
-        addToCart={addToCart}
-        handleFirstAdd={handleFirstAdd}
-        toast={toast}
-        apiClient={apiClient}
-        handleItemSelect={handleItemSelect}
-        handleCartClick={handleCartClick}
-        shouldShowTableOrderAction={shouldShowTableOrderAction}
-        setPaymentModalInitialStep={setPaymentModalInitialStep}
-        sharedTableOrder={sharedTableOrder}
-        setPaymentModalPreferPersonalReview={setPaymentModalPreferPersonalReview}
-        setPaymentModalOpen={setPaymentModalOpen}
-        tableOrderActionCount={tableOrderActionCount}
-        isPaymentModalOpen={isPaymentModalOpen}
-        activeExistingOrderId={activeExistingOrderId}
-        activePendingSummary={activePendingSummary}
-        activeSubmittedOrder={activeSubmittedOrder}
-        paymentModalInitialStep={paymentModalInitialStep}
-        paymentModalPreferPersonalReview={paymentModalPreferPersonalReview}
-        setToolbarPricingSnapshot={setToolbarPricingSnapshot}
-        setSharedTableOrder={setSharedTableOrder}
-        setLocalOpenOrder={setLocalOpenOrder}
-        setHasLocalOpenOrder={setHasLocalOpenOrder}
-        normalizeModernGreenLogoUrl={normalizeMenuLogoUrl}
-        setNoteModalOpen={setNoteModalOpen}
-      />
-    )
-  }
-
-  // Native Modern Green renders inside the main frontend with live PayMyDine data.
-  if (isModernGreenTheme) {
-    return (
-      <ModernGreenThemeRoute
-        apiMenuItems={apiMenuItems}
-        menuItems={menuItems}
-        menuData={menuData}
-        allCategories={allCategories}
-        tableInfo={tableInfo}
-        displayTableNumber={displayTableNumber}
-        tableIdString={tableIdString}
-        cmsSettings={cmsSettings}
-        merchantSettings={merchantSettings}
-        taxSettings={taxSettings}
-        items={items}
-        totalItems={totalItems}
-        totalPrice={totalPrice}
-        lastInteractedItem={lastInteractedItem}
-        restaurantDisplayName={restaurantDisplayName}
-        themeMenuActions={themeMenuActions}
-        addToCart={addToCart}
-        handleFirstAdd={handleFirstAdd}
-        toast={toast}
-        apiClient={apiClient}
-        handleItemSelect={handleItemSelect}
-        handleCartClick={handleCartClick}
-        shouldShowTableOrderAction={shouldShowTableOrderAction}
-        setPaymentModalInitialStep={setPaymentModalInitialStep}
-        sharedTableOrder={sharedTableOrder}
-        setPaymentModalPreferPersonalReview={setPaymentModalPreferPersonalReview}
-        setPaymentModalOpen={setPaymentModalOpen}
-        tableOrderActionCount={tableOrderActionCount}
-        isPaymentModalOpen={isPaymentModalOpen}
-        activeExistingOrderId={activeExistingOrderId}
-        activePendingSummary={activePendingSummary}
-        activeSubmittedOrder={activeSubmittedOrder}
-        paymentModalInitialStep={paymentModalInitialStep}
-        paymentModalPreferPersonalReview={paymentModalPreferPersonalReview}
-        setToolbarPricingSnapshot={setToolbarPricingSnapshot}
-        setSharedTableOrder={setSharedTableOrder}
-        setLocalOpenOrder={setLocalOpenOrder}
-        setHasLocalOpenOrder={setHasLocalOpenOrder}
-        normalizeModernGreenLogoUrl={normalizeMenuLogoUrl}
-      />
-    )
-  }
-
-  // PMD_ORGANIC_V0_ONLY_RETURN_FINAL_20260607
-  if (isOrganicBotanicalTheme) {
-    return (
-      <OrganicThemeRoute
-        apiMenuItems={apiMenuItems}
-        menuItems={menuItems}
-        menuData={menuData}
-        allCategories={allCategories}
-        restaurantDisplayName={restaurantDisplayName}
-        displayTableNumber={displayTableNumber}
-        themeMenuActions={themeMenuActions}
-        taxSettings={taxSettings}
-        addToCart={addToCart}
-        handleFirstAdd={handleFirstAdd}
-        toast={toast}
-        handleItemSelect={handleItemSelect}
-        shouldHideCartSheet={shouldHideCartSheet}
-        isPaymentModalOpen={isPaymentModalOpen}
-        setPaymentModalOpen={setPaymentModalOpen}
-        setPaymentModalPreferPersonalReview={setPaymentModalPreferPersonalReview}
-        items={items}
-        tableInfo={tableInfo}
-        activeExistingOrderId={activeExistingOrderId}
-        activePendingSummary={activePendingSummary}
-        activeSubmittedOrder={activeSubmittedOrder}
-        paymentModalInitialStep={paymentModalInitialStep}
-        paymentModalPreferPersonalReview={paymentModalPreferPersonalReview}
-        setToolbarPricingSnapshot={setToolbarPricingSnapshot}
-        setSharedTableOrder={setSharedTableOrder}
-        setLocalOpenOrder={setLocalOpenOrder}
-        setHasLocalOpenOrder={setHasLocalOpenOrder}
-      />
-    )
-  }
-
   return (
-    <GoldThemeRoute
-      themeMenuActions={themeMenuActions}
-      displayTableNumber={displayTableNumber}
-      showVirtualHighlightSections={showVirtualHighlightSections}
-      menuHighlightSettings={menuHighlightSettings}
-      chefRecommendationItems={chefRecommendationItems}
-      bestsellerItems={bestsellerItems}
-      handleItemSelect={handleItemSelect}
-      handleFirstAdd={handleFirstAdd}
-      allCategories={allCategories}
-      selectedCategory={selectedCategory}
-      setSelectedCategory={setSelectedCategory}
-      isFrontendConfigured={isFrontendConfigured}
-      filteredItems={filteredItems}
-      selectedItem={selectedItem}
-      setSelectedItem={setSelectedItem}
-      shouldHideCartSheet={shouldHideCartSheet}
-      isPaymentModalOpen={isPaymentModalOpen}
-      setPaymentModalOpen={setPaymentModalOpen}
-      setPaymentModalPreferPersonalReview={setPaymentModalPreferPersonalReview}
-      items={items}
-      tableInfo={tableInfo}
-      activeExistingOrderId={activeExistingOrderId}
-      activePendingSummary={activePendingSummary}
-      activeSubmittedOrder={activeSubmittedOrder}
-      paymentModalInitialStep={paymentModalInitialStep}
-      paymentModalPreferPersonalReview={paymentModalPreferPersonalReview}
-      setToolbarPricingSnapshot={setToolbarPricingSnapshot}
-      setSharedTableOrder={setSharedTableOrder}
-      setLocalOpenOrder={setLocalOpenOrder}
-      setHasLocalOpenOrder={setHasLocalOpenOrder}
-      isWaiterConfirmOpen={isWaiterConfirmOpen}
-      setWaiterConfirmOpen={setWaiterConfirmOpen}
-      tableIdString={tableIdString}
-      tableName={tableName}
-      isNoteModalOpen={isNoteModalOpen}
-      setNoteModalOpen={setNoteModalOpen}
-      note={note}
-      setNote={setNote}
-      handleSendNote={handleSendNote}
+    <CustomerMenuThemeRoutes
+      {...{
+        isKazenJapaneseTheme,
+        isModernGreenTheme,
+        isOrganicBotanicalTheme,
+        shouldShowPayMyDineFooterLogo,
+        apiMenuItems,
+        menuItems,
+        menuData,
+        allCategories,
+        tableInfo,
+        displayTableNumber,
+        tableIdString,
+        cmsSettings,
+        merchantSettings,
+        taxSettings,
+        items,
+        totalItems,
+        totalPrice,
+        lastInteractedItem,
+        restaurantDisplayName,
+        themeMenuActions,
+        addToCart,
+        handleFirstAdd,
+        toast,
+        apiClient,
+        handleItemSelect,
+        handleCartClick,
+        shouldShowTableOrderAction,
+        setPaymentModalInitialStep,
+        sharedTableOrder,
+        setPaymentModalPreferPersonalReview,
+        setPaymentModalOpen,
+        tableOrderActionCount,
+        isPaymentModalOpen,
+        activeExistingOrderId,
+        activePendingSummary,
+        activeSubmittedOrder,
+        paymentModalInitialStep,
+        paymentModalPreferPersonalReview,
+        setToolbarPricingSnapshot,
+        setSharedTableOrder,
+        setLocalOpenOrder,
+        setHasLocalOpenOrder,
+        setNoteModalOpen,
+        showVirtualHighlightSections,
+        menuHighlightSettings,
+        chefRecommendationItems,
+        bestsellerItems,
+        selectedCategory,
+        setSelectedCategory,
+        isFrontendConfigured,
+        filteredItems,
+        selectedItem,
+        setSelectedItem,
+        shouldHideCartSheet,
+        isWaiterConfirmOpen,
+        setWaiterConfirmOpen,
+        tableName,
+        isNoteModalOpen,
+        note,
+        setNote,
+        handleSendNote,
+
+      }}
     />
   )
 }
 
 // Main component with Suspense wrapper
 export default function PayMyDineMenuPage() {
-  // PMD_MENU_FOOTER_LOGO_RUNTIME_CALL_FINAL_20260611
-  useEffect(() => {
-    return pmdInstallMenuPayMyDineFooterLogo()
-  }, [])
-
   return (
     <div className="pmd-customer-page page--menu" data-pmd-customer-page="menu">
       <Suspense fallback={<div>Loading...</div>}>

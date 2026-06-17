@@ -1,4 +1,6 @@
-export type PmdStateSetter<T = any> = (value: T | ((prev: T) => T)) => void
+import type { ThemeLooseBridge } from "@/features/customer-menu/theme/themeRouteTypes"
+
+export type PmdStateSetter<T = ThemeLooseBridge> = (value: T | ((prev: T) => T)) => void
 
 export function normalizeMenuLogoUrl(value: unknown): string {
   const raw = String(value || "").trim()
@@ -20,13 +22,13 @@ export function normalizeMenuLogoUrl(value: unknown): string {
 }
 
 export function createOpenOrderUpdateHandler(params: {
-  setSharedTableOrder: PmdStateSetter<any>
-  setLocalOpenOrder: PmdStateSetter<any>
+  setSharedTableOrder: PmdStateSetter<ThemeLooseBridge>
+  setLocalOpenOrder: PmdStateSetter<ThemeLooseBridge>
   setHasLocalOpenOrder: (value: boolean) => void
 }) {
   const { setSharedTableOrder, setLocalOpenOrder, setHasLocalOpenOrder } = params
 
-  return function handleOpenOrderUpdate(snapshot: any) {
+  return function handleOpenOrderUpdate(snapshot: ThemeLooseBridge) {
     if (snapshot?.status === "draft" || snapshot?.draft_id) {
       setSharedTableOrder(snapshot)
       return
@@ -36,9 +38,9 @@ export function createOpenOrderUpdateHandler(params: {
       const normalizedPaid = snapshot?.orderId ? snapshot : { ...snapshot, orderId: snapshot?.order_id }
       setLocalOpenOrder(normalizedPaid)
       setHasLocalOpenOrder(!!normalizedPaid?.orderId)
-      setSharedTableOrder((prev: any) =>
+      setSharedTableOrder((prev: ThemeLooseBridge) =>
         prev?.order_id && String(prev.order_id) === String(normalizedPaid?.orderId)
-          ? ({ ...prev, status: "paid", paymentStatus: "paid" } as any)
+          ? ({ ...prev, status: "paid", paymentStatus: "paid" } as ThemeLooseBridge)
           : prev
       )
       return
@@ -48,7 +50,7 @@ export function createOpenOrderUpdateHandler(params: {
       const normalized = snapshot?.orderId ? snapshot : { ...snapshot, orderId: snapshot.order_id }
       setLocalOpenOrder(normalized)
       setHasLocalOpenOrder(true)
-      setSharedTableOrder((prev: any) => prev?.draft_id ? null : prev)
+      setSharedTableOrder((prev: ThemeLooseBridge) => prev?.draft_id ? null : prev)
     }
   }
 }

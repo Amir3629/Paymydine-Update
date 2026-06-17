@@ -12,7 +12,6 @@ import { useCmsStore } from "@/store/cms-store"
 import { useCartStore } from "@/store/cart-store"
 import { useToast } from "@/components/ui/use-toast"
 import { organicCheckoutPrimaryButtonStyle } from "@/components/themes/organic-botanical-paper/OrganicCheckoutShell"
-import { useCheckoutVisualRepairs } from "@/features/customer-menu/legacy-dom-repairs/useCheckoutVisualRepairs"
 import { usePaymentModalDomRepairs } from "@/features/customer-menu/legacy-dom-repairs/usePaymentModalDomRepairs"
 import { CheckoutShellRouter } from "@/features/customer-menu/checkout/CheckoutShellRouter"
 import { PaymentMethodForm } from "@/features/customer-menu/checkout/PaymentMethodForm"
@@ -45,7 +44,6 @@ import type { CheckoutStep, SplitBillItem, SplitMethod } from "@/features/checko
 
 
 export function PaymentModal({ isOpen, onClose, items: allItems, tableInfo, existingOrderId, pendingSummary, initialSubmittedOrder, initialCheckoutStep, preferPersonalReview = false, onOpenOrderUpdate, onCartPricingUpdate, checkoutVisualTheme = "neutral" }: PaymentModalProps) {
-  useCheckoutVisualRepairs()
 
   const { toast } = useToast()
   const { t } = useLanguageStore()

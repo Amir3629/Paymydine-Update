@@ -62,9 +62,9 @@ export function OrganicThemeRoute(props: OrganicThemeRouteProps) {
               itemToAdd.price = Number(itemToAdd.price || 0) / (1 + taxSettings.percentage / 100)
 
               if (itemToAdd.options) {
-                itemToAdd.options = itemToAdd.options.map((option: any) => ({
+                itemToAdd.options = itemToAdd.options.map((option: NonNullable<MenuItem["options"]>[number]) => ({
                   ...option,
-                  values: (option.values || []).map((value: any) => ({
+                  values: (option.values || []).map((value: NonNullable<NonNullable<MenuItem["options"]>[number]["values"]>[number]) => ({
                     ...value,
                     price: Number(value.price || 0) / (1 + taxSettings.percentage / 100),
                   })),
@@ -79,7 +79,7 @@ export function OrganicThemeRoute(props: OrganicThemeRouteProps) {
             handleFirstAdd(item as MenuItem)
             toast({
               title: "Added to order",
-              description: String((item as any).name || (item as any).menu_name || "Item added"),
+              description: String(item.name || "Item added"),
             })
           }}
           onOpenItem={(item: MenuItem) => handleItemSelect(item as MenuItem)}
