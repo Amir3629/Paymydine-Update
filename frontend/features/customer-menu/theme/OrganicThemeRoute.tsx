@@ -7,11 +7,8 @@ import { OrganicBottomDock } from "@/components/themes/organic-botanical-paper/O
 import { CartSheet } from "@/components/cart-sheet"
 import { PaymentModal } from "@/features/customer-menu/checkout/CheckoutModalHost"
 import type { MenuItem } from "@/lib/data"
-import type { CustomerMenuThemeRouteProps } from "@/features/customer-menu/theme/themeRouteTypes"
+import type { OrganicThemeRouteProps } from "@/features/customer-menu/theme/themeRouteTypes"
 import { createOpenOrderUpdateHandler } from "@/features/customer-menu/theme/themeRouteShared"
-
-type OrganicThemeRouteProps = CustomerMenuThemeRouteProps
-
 export function OrganicThemeRoute(props: OrganicThemeRouteProps) {
   const {
     apiMenuItems,

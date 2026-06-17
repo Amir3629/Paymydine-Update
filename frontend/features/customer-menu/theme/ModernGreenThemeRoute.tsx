@@ -5,11 +5,8 @@ import { ModernGreenNativeMenu } from "@/components/themes/modern-green/ModernGr
 import { ModernGreenBottomDock } from "@/components/themes/modern-green/ModernGreenBottomDock"
 import { PaymentModal } from "@/features/customer-menu/checkout/CheckoutModalHost"
 import type { MenuItem } from "@/lib/data"
-import type { CustomerMenuThemeRouteProps } from "@/features/customer-menu/theme/themeRouteTypes"
+import type { ModernGreenThemeRouteProps } from "@/features/customer-menu/theme/themeRouteTypes"
 import { createOpenOrderUpdateHandler } from "@/features/customer-menu/theme/themeRouteShared"
-
-type ModernGreenThemeRouteProps = CustomerMenuThemeRouteProps
-
 export function ModernGreenThemeRoute(props: ModernGreenThemeRouteProps) {
   const {
     apiMenuItems,

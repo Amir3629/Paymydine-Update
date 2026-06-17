@@ -1,7 +1,224 @@
-export type PmdSetter<T = any> = (value: T | ((prev: T) => T)) => void
-export type PmdToast = (options: any) => void
+// PMD_PHASE2B_PER_THEME_ROUTE_PROPS_20260616
+// Per-theme prop interfaces generated from each active ThemeRoute.
+// Values are still intentionally permissive (`any`) while CustomerMenuPage is being split,
+// but prop names are now scoped by theme instead of one giant Record<string, any> bridge.
 
-// Phase 4 route boundary type.
-// Keep broad for now because all route props are passed from CustomerMenuPage.
-// Later we can split this into strict per-theme prop interfaces after visual QA.
-export type CustomerMenuThemeRouteProps = Record<string, any>
+export interface CustomerMenuThemeRouteBaseProps {
+  activeExistingOrderId?: any
+  activePendingSummary?: any
+  activeSubmittedOrder?: any
+  addToCart?: any
+  allCategories?: any
+  apiClient?: any
+  apiMenuItems?: any
+  bestsellerItems?: any
+  chefRecommendationItems?: any
+  cmsSettings?: any
+  displayTableNumber?: any
+  filteredItems?: any
+  handleCartClick?: any
+  handleFirstAdd?: any
+  handleItemSelect?: any
+  handleSendNote?: any
+  isFrontendConfigured?: any
+  isNoteModalOpen?: any
+  isPaymentModalOpen?: any
+  isWaiterConfirmOpen?: any
+  items?: any
+  lastInteractedItem?: any
+  menuData?: any
+  menuHighlightSettings?: any
+  menuItems?: any
+  merchantSettings?: any
+  normalizeModernGreenLogoUrl?: any
+  note?: any
+  paymentModalInitialStep?: any
+  paymentModalPreferPersonalReview?: any
+  restaurantDisplayName?: any
+  selectedCategory?: any
+  selectedItem?: any
+  setHasLocalOpenOrder?: any
+  setLocalOpenOrder?: any
+  setNote?: any
+  setNoteModalOpen?: any
+  setPaymentModalInitialStep?: any
+  setPaymentModalOpen?: any
+  setPaymentModalPreferPersonalReview?: any
+  setSelectedCategory?: any
+  setSelectedItem?: any
+  setSharedTableOrder?: any
+  setToolbarPricingSnapshot?: any
+  setWaiterConfirmOpen?: any
+  sharedTableOrder?: any
+  shouldHideCartSheet?: any
+  shouldShowTableOrderAction?: any
+  showVirtualHighlightSections?: any
+  tableIdString?: any
+  tableInfo?: any
+  tableName?: any
+  tableOrderActionCount?: any
+  taxSettings?: any
+  themeMenuActions?: any
+  toast?: any
+  totalItems?: any
+  totalPrice?: any
+}
+
+export interface GoldThemeRouteProps extends CustomerMenuThemeRouteBaseProps {
+  activeExistingOrderId?: any
+  activePendingSummary?: any
+  activeSubmittedOrder?: any
+  allCategories?: any
+  bestsellerItems?: any
+  chefRecommendationItems?: any
+  displayTableNumber?: any
+  filteredItems?: any
+  handleFirstAdd?: any
+  handleItemSelect?: any
+  handleSendNote?: any
+  isFrontendConfigured?: any
+  isNoteModalOpen?: any
+  isPaymentModalOpen?: any
+  isWaiterConfirmOpen?: any
+  items?: any
+  menuHighlightSettings?: any
+  note?: any
+  paymentModalInitialStep?: any
+  paymentModalPreferPersonalReview?: any
+  selectedCategory?: any
+  selectedItem?: any
+  setHasLocalOpenOrder?: any
+  setLocalOpenOrder?: any
+  setNote?: any
+  setNoteModalOpen?: any
+  setPaymentModalOpen?: any
+  setPaymentModalPreferPersonalReview?: any
+  setSelectedCategory?: any
+  setSelectedItem?: any
+  setSharedTableOrder?: any
+  setToolbarPricingSnapshot?: any
+  setWaiterConfirmOpen?: any
+  shouldHideCartSheet?: any
+  showVirtualHighlightSections?: any
+  tableIdString?: any
+  tableInfo?: any
+  tableName?: any
+  themeMenuActions?: any
+}
+
+export interface ModernGreenThemeRouteProps extends CustomerMenuThemeRouteBaseProps {
+  activeExistingOrderId?: any
+  activePendingSummary?: any
+  activeSubmittedOrder?: any
+  addToCart?: any
+  allCategories?: any
+  apiClient?: any
+  apiMenuItems?: any
+  cmsSettings?: any
+  displayTableNumber?: any
+  handleCartClick?: any
+  handleFirstAdd?: any
+  handleItemSelect?: any
+  isPaymentModalOpen?: any
+  items?: any
+  lastInteractedItem?: any
+  menuData?: any
+  menuItems?: any
+  merchantSettings?: any
+  normalizeModernGreenLogoUrl?: any
+  paymentModalInitialStep?: any
+  paymentModalPreferPersonalReview?: any
+  restaurantDisplayName?: any
+  setHasLocalOpenOrder?: any
+  setLocalOpenOrder?: any
+  setPaymentModalInitialStep?: any
+  setPaymentModalOpen?: any
+  setPaymentModalPreferPersonalReview?: any
+  setSharedTableOrder?: any
+  setToolbarPricingSnapshot?: any
+  sharedTableOrder?: any
+  shouldShowTableOrderAction?: any
+  tableIdString?: any
+  tableInfo?: any
+  tableOrderActionCount?: any
+  taxSettings?: any
+  themeMenuActions?: any
+  toast?: any
+  totalItems?: any
+  totalPrice?: any
+}
+
+export interface OrganicThemeRouteProps extends CustomerMenuThemeRouteBaseProps {
+  activeExistingOrderId?: any
+  activePendingSummary?: any
+  activeSubmittedOrder?: any
+  addToCart?: any
+  allCategories?: any
+  apiMenuItems?: any
+  displayTableNumber?: any
+  handleFirstAdd?: any
+  handleItemSelect?: any
+  isPaymentModalOpen?: any
+  items?: any
+  menuData?: any
+  menuItems?: any
+  paymentModalInitialStep?: any
+  paymentModalPreferPersonalReview?: any
+  restaurantDisplayName?: any
+  setHasLocalOpenOrder?: any
+  setLocalOpenOrder?: any
+  setPaymentModalOpen?: any
+  setPaymentModalPreferPersonalReview?: any
+  setSharedTableOrder?: any
+  setToolbarPricingSnapshot?: any
+  shouldHideCartSheet?: any
+  tableInfo?: any
+  taxSettings?: any
+  themeMenuActions?: any
+  toast?: any
+}
+
+export interface KazenThemeRouteProps extends CustomerMenuThemeRouteBaseProps {
+  activeExistingOrderId?: any
+  activePendingSummary?: any
+  activeSubmittedOrder?: any
+  addToCart?: any
+  allCategories?: any
+  apiClient?: any
+  apiMenuItems?: any
+  cmsSettings?: any
+  displayTableNumber?: any
+  handleCartClick?: any
+  handleFirstAdd?: any
+  handleItemSelect?: any
+  isPaymentModalOpen?: any
+  items?: any
+  lastInteractedItem?: any
+  menuData?: any
+  menuItems?: any
+  merchantSettings?: any
+  normalizeModernGreenLogoUrl?: any
+  paymentModalInitialStep?: any
+  paymentModalPreferPersonalReview?: any
+  restaurantDisplayName?: any
+  setHasLocalOpenOrder?: any
+  setLocalOpenOrder?: any
+  setNoteModalOpen?: any
+  setPaymentModalInitialStep?: any
+  setPaymentModalOpen?: any
+  setPaymentModalPreferPersonalReview?: any
+  setSharedTableOrder?: any
+  setToolbarPricingSnapshot?: any
+  sharedTableOrder?: any
+  shouldShowTableOrderAction?: any
+  tableIdString?: any
+  tableInfo?: any
+  tableOrderActionCount?: any
+  taxSettings?: any
+  themeMenuActions?: any
+  toast?: any
+  totalItems?: any
+  totalPrice?: any
+}
+
+export type CustomerMenuThemeRouteProps = CustomerMenuThemeRouteBaseProps

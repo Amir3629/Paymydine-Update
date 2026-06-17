@@ -14,11 +14,8 @@ import { LoadingSpinner } from "@/features/customer-menu/components/LoadingSpinn
 import { EnhancedNoteDialog, EnhancedWaiterDialog } from "@/features/customer-menu/guest-actions/EnhancedGuestDialogs"
 import { TenantSetupSplash } from "@/components/tenant-setup-splash"
 import type { MenuItem } from "@/lib/data"
-import type { CustomerMenuThemeRouteProps } from "@/features/customer-menu/theme/themeRouteTypes"
+import type { GoldThemeRouteProps } from "@/features/customer-menu/theme/themeRouteTypes"
 import { createOpenOrderUpdateHandler } from "@/features/customer-menu/theme/themeRouteShared"
-
-type GoldThemeRouteProps = CustomerMenuThemeRouteProps
-
 export function GoldThemeRoute(props: GoldThemeRouteProps) {
   const {
     themeMenuActions,

@@ -9,7 +9,9 @@
     "dev:3001": "next dev -p 3001",
     "start": "next start",
     "start:3001": "next start -p 3001",
-    "preview": "next start -p 3001"
+    "preview": "next start -p 3001",
+    "smoke:prod": "bash scripts/pmd-frontend-smoke.sh",
+    "roadmap:status": "bash scripts/pmd-claude-roadmap-status.sh"
   },
   "dependencies": {
     "@emotion/is-prop-valid": "latest",

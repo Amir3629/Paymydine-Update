@@ -6,11 +6,8 @@ import { KazenBottomDock } from "@/components/themes/kazen-japanese/KazenBottomD
 import { PaymentModal } from "@/features/customer-menu/checkout/CheckoutModalHost"
 import { pmdBuildKazenParentCategories } from "@/features/customer-menu/data/menuCategories"
 import type { MenuItem } from "@/lib/data"
-import type { CustomerMenuThemeRouteProps } from "@/features/customer-menu/theme/themeRouteTypes"
+import type { KazenThemeRouteProps } from "@/features/customer-menu/theme/themeRouteTypes"
 import { createOpenOrderUpdateHandler } from "@/features/customer-menu/theme/themeRouteShared"
-
-type KazenThemeRouteProps = CustomerMenuThemeRouteProps
-
 export function KazenThemeRoute(props: KazenThemeRouteProps) {
   const {
     apiMenuItems,

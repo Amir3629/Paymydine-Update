@@ -8,3 +8,91 @@
 @import "./legacy/legacy-08.css";
 @import "./legacy/legacy-09.css";
 @import "./legacy/legacy-10.css";
+
+/* PMD_MENU_ACTION_CIRCLE_COLOR_REPAIR_CSS
+   Replaces legacy DOM hook useMenuActionCircleColorRepair.ts.
+   Keeps menu action circles/icons white without runtime querySelector/style mutation. */
+.page--menu .pmd-v2-action-circle,
+.page--menu button[aria-label='Increase quantity'],
+.page--menu button[aria-label='Decrease quantity'],
+.page--menu button[aria-label*='Back' i],
+.page--menu button[aria-label*='back' i] {
+  color: #ffffff !important;
+  -webkit-text-fill-color: #ffffff !important;
+}
+
+.page--menu .pmd-v2-action-circle *,
+.page--menu button[aria-label='Increase quantity'] *,
+.page--menu button[aria-label='Decrease quantity'] *,
+.page--menu button[aria-label*='Back' i] *,
+.page--menu button[aria-label*='back' i] * {
+  color: #ffffff !important;
+  -webkit-text-fill-color: #ffffff !important;
+  stroke: #ffffff !important;
+}
+
+/* PMD_KAZEN_VISIBILITY_REPAIR_CSS
+   Replaces legacy DOM hook useKazenMenuDomRepairs.ts.
+   Keeps Kazen menu item lists expanded/visible without runtime querySelector/setInterval repairs. */
+.page--menu .kazen-item [data-pmd-kazen-old-header-control="1"] {
+  opacity: 1 !important;
+  visibility: visible !important;
+}
+
+.page--menu .kazen-items,
+.page--menu .kazen-menu-list,
+.page--menu .kazen-category-content,
+.page--menu .kazen-category-items,
+.page--menu .kazen-section-content {
+  overflow: visible !important;
+  max-height: none !important;
+  height: auto !important;
+}
+
+.page--menu .kazen-item {
+  overflow: visible !important;
+  max-height: none !important;
+  height: auto !important;
+  contain: none !important;
+}
+
+.page--menu .kazen-item,
+.page--menu .kazen-item > *,
+.page--menu .kazen-items,
+.page--menu .kazen-menu-list,
+.page--menu .kazen-category-content,
+.page--menu .kazen-category-items,
+.page--menu .kazen-section-content {
+  contain: none !important;
+}
+
+/* PMD_CHECKOUT_VISUAL_REPAIR_CSS
+   Replaces two runtime parts from useCheckoutVisualRepairs.ts:
+   - plus/minus checkout quantity icon color
+   - split method active/inactive text color */
+[role="dialog"] button svg.lucide-plus,
+[role="dialog"] button svg.lucide-minus,
+[data-pmd-gold-checkout-modal] button svg.lucide-plus,
+[data-pmd-gold-checkout-modal] button svg.lucide-minus,
+[role="dialog"] button svg.lucide-plus *,
+[role="dialog"] button svg.lucide-minus *,
+[data-pmd-gold-checkout-modal] button svg.lucide-plus *,
+[data-pmd-gold-checkout-modal] button svg.lucide-minus * {
+  color: #ffffff !important;
+  stroke: #ffffff !important;
+  -webkit-text-fill-color: #ffffff !important;
+}
+
+button[data-pmd-split-method-real][data-pmd-active="1"],
+button[data-pmd-split-method-real][data-pmd-active="1"] * {
+  color: #ffffff !important;
+  -webkit-text-fill-color: #ffffff !important;
+  text-decoration-color: #ffffff !important;
+}
+
+button[data-pmd-split-method-real]:not([data-pmd-active="1"]),
+button[data-pmd-split-method-real]:not([data-pmd-active="1"]) * {
+  color: #10201d !important;
+  -webkit-text-fill-color: #10201d !important;
+  text-decoration-color: #10201d !important;
+}

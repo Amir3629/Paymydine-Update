@@ -5,7 +5,6 @@
 
 "use client"
 
-import { useKazenMenuDomRepairs } from "@/features/customer-menu/legacy-dom-repairs/useKazenMenuDomRepairs";
 import "./customer-menu-page.css"
 /*
  * LEGACY_DOM_REPAIR_POLICY:
@@ -33,6 +32,9 @@ import { ModernGreenThemeRoute } from "@/features/customer-menu/theme/ModernGree
 import { OrganicThemeRoute } from "@/features/customer-menu/theme/OrganicThemeRoute";
 import { KazenThemeRoute } from "@/features/customer-menu/theme/KazenThemeRoute";
 import { GoldThemeRoute } from "@/features/customer-menu/theme/GoldThemeRoute";
+import { useCustomerCheckoutModalState } from "@/features/customer-menu/hooks/useCustomerCheckoutModalState";
+import { useCustomerMenuDerivedData } from "@/features/customer-menu/hooks/useCustomerMenuDerivedData";
+import { useCustomerLocalOpenOrderHydration } from "@/features/customer-menu/hooks/useCustomerLocalOpenOrderHydration";
 import { useOrganicThemeEffects } from "@/features/customer-menu/theme/useOrganicThemeEffects";
 import { useCustomerMenuThemeBootstrap } from "@/features/customer-menu/theme/useCustomerMenuThemeBootstrap";
 import { normalizeMenuLogoUrl } from "@/features/customer-menu/theme/themeRouteShared";
@@ -41,7 +43,6 @@ import { LoadingSpinner } from "@/features/customer-menu/components/LoadingSpinn
 import { buildTableOrderDraftContext, createSubmittedTableOrderSnapshot, isVisibleTableOrderDraft, tableOrderItemCount } from "@/features/table-order/table-order-utils";
 import { calculateCartPricingSummary } from "@/features/checkout/checkout-utils";
 import type { CheckoutStep, PmdToolbarPricingSnapshot } from "@/features/checkout/types";
-
 
 // Hook to get current theme background color
 /* PMD_REMOTE_CONSOLE_INJECTED */
@@ -57,46 +58,14 @@ function MenuContent() {
   const [selectedCategory, setSelectedCategory] = useState<string>("All") // Initialize with "All"
   const [selectedItem, setSelectedItem] = useState<MenuItem | null>(null)
   const [lastInteractedItem, setLastInteractedItem] = useState<CartItem | null>(null)
-  const [isPaymentModalOpen, setPaymentModalOpen] = useState(false)
-  const [paymentModalInitialStep, setPaymentModalInitialStep] = useState<CheckoutStep>('review')
-  const [paymentModalPreferPersonalReview, setPaymentModalPreferPersonalReview] = useState(false)
-
-  // PMD_CHECKOUT_CLICK_PREFERS_PERSONAL_REVIEW
-  useEffect(() => {
-    if (typeof document === "undefined") return
-
-    const onCheckoutIntentCapture = (event: MouseEvent) => {
-      const target = event.target as HTMLElement | null
-      const button = target?.closest?.("button") as HTMLElement | null
-      if (!button) return
-
-      const txt = (button.textContent || "").replace(/\s+/g, " ").trim().toLowerCase()
-      const aria = (button.getAttribute("aria-label") || "").toLowerCase()
-      const isTableOrderButton =
-        aria.includes("table order") ||
-        txt.includes("table order")
-
-      const isCheckoutButton =
-        !isTableOrderButton &&
-        (
-          aria.includes("checkout") ||
-          txt.includes("checkout")
-        )
-
-      if (isCheckoutButton) {
-        setPaymentModalPreferPersonalReview(true)
-        setPaymentModalInitialStep("review")
-      }
-
-      if (isTableOrderButton) {
-        setPaymentModalPreferPersonalReview(false)
-        setPaymentModalInitialStep("review")
-      }
-    }
-
-    document.addEventListener("click", onCheckoutIntentCapture, true)
-    return () => document.removeEventListener("click", onCheckoutIntentCapture, true)
-  }, [])
+  const {
+    isPaymentModalOpen,
+    setPaymentModalOpen,
+    paymentModalInitialStep,
+    setPaymentModalInitialStep,
+    paymentModalPreferPersonalReview,
+    setPaymentModalPreferPersonalReview,
+  } = useCustomerCheckoutModalState()
 
   const [isLoading, setIsLoading] = useState(true)
   const [isFrontendConfigured, setIsFrontendConfigured] = useState(true)
@@ -109,9 +78,6 @@ function MenuContent() {
   const { themeId: currentFrontendTheme, isResolved: isFrontendThemeResolved } = useCurrentFrontendTheme()
   const [forceModernGreenTheme, setForceModernGreenTheme] = useState(false)
   const { isOrganicBotanicalTheme, isModernGreenTheme, isKazenJapaneseTheme } = useCustomerThemeSelection(currentFrontendTheme, forceModernGreenTheme)
-
-  useKazenMenuDomRepairs(isKazenJapaneseTheme)
-
   const shouldHoldThemeRender = !isFrontendThemeResolved && !forceModernGreenTheme
   const { t, language } = useLanguageStore()
   const { toast } = useToast()
@@ -395,76 +361,23 @@ useEffect(() => {
   }, [searchParams, setTableInfo, clearCart, addToCart])
 
   // Add "All" to categories - FIXED VERSION
-  const allCategories = useMemo(() => {
-    const categoryList = dynamicCategories;
-    return ["All", ...categoryList];
-  }, [dynamicCategories]);
+  const {
+    allCategories,
+    filteredItems,
+    highlightSourceItems,
+    chefRecommendationItems,
+    bestsellerItems,
+    showVirtualHighlightSections,
+  } = useCustomerMenuDerivedData({
+    apiMenuItems,
+    taxSettings,
+    menuData,
+    menuItems,
+    dynamicCategories,
+    selectedCategory,
+    menuHighlightSettings,
+  })
 
-  // Adjust menu item prices if VAT is included in prices (vat_menu_price = 0)
-  const adjustPriceForVAT = (price: number): number => {
-    if (taxSettings.enabled && taxSettings.percentage > 0 && taxSettings.menuPrice === 0) {
-      // VAT is included in prices - increase price by VAT percentage
-      return price * (1 + taxSettings.percentage / 100)
-    }
-    return price
-  }
-
-  // Update filteredItems logic with price adjustment
-  const filteredItems = useMemo(() => {
-    // Use API data if available, otherwise fallback to CMS store or static data
-    const availableItems = apiMenuItems.length ? apiMenuItems : (menuItems.length ? menuItems : menuData);
-
-    // Adjust prices if VAT is included in menu prices
-    const itemsWithAdjustedPrices = availableItems.map(item => ({
-      ...item,
-      price: adjustPriceForVAT(item.price),
-      // Also adjust option prices if they exist
-      options: item.options?.map(option => ({
-        ...option,
-        values: option.values.map(value => ({
-          ...value,
-          price: adjustPriceForVAT(value.price)
-        }))
-      }))
-    }))
-
-    // Always default to showing all items if no category is selected
-    const currentCategory = selectedCategory || "All";
-
-    // If "All" is selected, show all items
-    if (currentCategory === "All") {
-      return itemsWithAdjustedPrices;
-    }
-
-    // Otherwise, filter by selected category
-    return itemsWithAdjustedPrices.filter((item) => item.category === currentCategory);
-  }, [apiMenuItems, menuItems, selectedCategory, taxSettings.enabled, taxSettings.percentage, taxSettings.menuPrice]);
-
-  const highlightSourceItems = useMemo(() => {
-    const availableItems = apiMenuItems.length ? apiMenuItems : (menuItems.length ? menuItems : menuData)
-    return availableItems.map(item => ({
-      ...item,
-      price: adjustPriceForVAT(item.price),
-      options: item.options?.map(option => ({
-        ...option,
-        values: option.values.map(value => ({ ...value, price: adjustPriceForVAT(value.price) }))
-      }))
-    }))
-  }, [apiMenuItems, menuItems, taxSettings.enabled, taxSettings.percentage, taxSettings.menuPrice])
-
-  const chefRecommendationItems = useMemo(() => {
-    if (!menuHighlightSettings.chef_section_enabled || menuHighlightSettings.section_placement === 'hidden') return []
-    return highlightSourceItems.filter((item) => Boolean((item as any).is_chef_recommended)).slice(0, menuHighlightSettings.max_chef_items)
-  }, [highlightSourceItems, menuHighlightSettings])
-
-  const bestsellerItems = useMemo(() => {
-    if (!menuHighlightSettings.bestseller_section_enabled || menuHighlightSettings.section_placement === 'hidden') return []
-    return highlightSourceItems.filter((item) => Boolean((item as any).is_bestseller)).slice(0, menuHighlightSettings.max_bestseller_items)
-  }, [highlightSourceItems, menuHighlightSettings])
-
-  const showVirtualHighlightSections = (selectedCategory || "All") === "All" && menuHighlightSettings.section_placement !== 'hidden'
-
-  // Initialize with "All" category when data loads
   useEffect(() => {
     if (apiMenuItems.length > 0 && !selectedCategory) {
       setSelectedCategory("All");
@@ -603,66 +516,15 @@ useEffect(() => {
     setIsClient(true)
   }, [])
 
-  useEffect(() => {
-    if (typeof window === "undefined") return
-    if (hasDraftTableOrderWithoutRealOrder) {
-      setExistingOrderId(null)
-      setHasLocalOpenOrder(false)
-      setLocalOpenOrder(null)
-      return
-    }
-    const tenant = window.location.host
-    const tableKey = String(tableInfo?.table_id || tableInfo?.table_no || searchParams?.get("table") || searchParams?.get("table_id") || searchParams?.get("table_no") || (window.location.pathname.match(/\/table\/(\d+)/)?.[1] ?? "delivery"))
-    const guestSessionId = localStorage.getItem('pmd_guest_session_id') || `g_${Date.now()}_${Math.random().toString(36).slice(2,10)}`
-    localStorage.setItem('pmd_guest_session_id', guestSessionId)
-    const key = `pmd_open_order:${tenant}:${tableKey}:${guestSessionId}`
-    const legacyKey = `pmd_open_order:${tenant}:${tableKey}`
-    try {
-      let raw = localStorage.getItem(key)
-      let restoredFromLegacy = false
-      if (!raw) {
-        const legacyRaw = localStorage.getItem(legacyKey)
-        if (legacyRaw) {
-          try {
-            const legacy = JSON.parse(legacyRaw)
-            const hasValidCore = Number(legacy?.orderId || 0) > 0 && Number(legacy?.total || 0) > 0
-            const isPaid = legacy?.paymentStatus === "paid" || legacy?.status === "paid"
-            const tenantConflict = legacy?.tenant != null && String(legacy.tenant) !== tenant
-            const tableConflict = legacy?.tableKey != null && String(legacy.tableKey) !== tableKey
-            if (!hasValidCore || isPaid || tenantConflict || tableConflict) {
-              localStorage.removeItem(legacyKey)
-            } else {
-              const migrated = { ...legacy, guestSessionId, tenant, tableKey }
-              localStorage.setItem(key, JSON.stringify(migrated))
-              localStorage.removeItem(legacyKey)
-              raw = JSON.stringify(migrated)
-              restoredFromLegacy = true
-            }
-          } catch {}
-        }
-      }
-      if (!raw) { setHasLocalOpenOrder(false); setLocalOpenOrder(null); return }
-      const parsed = JSON.parse(raw)
-      const hasValidCore =
-        parsed &&
-        typeof parsed === "object" &&
-        Number(parsed?.total || 0) > 0 &&
-        Number(parsed?.orderId || 0) > 0
-      const matchesContext =
-        String(parsed?.guestSessionId || "") === guestSessionId &&
-        String(parsed?.tenant || "") === tenant &&
-        String(parsed?.tableKey || "") === tableKey
-      if (!hasValidCore || (!restoredFromLegacy && !matchesContext)) {
-        localStorage.removeItem(key)
-        setHasLocalOpenOrder(false)
-        setLocalOpenOrder(null)
-        return
-      }
-      setHasLocalOpenOrder(!!parsed?.orderId)
-      setLocalOpenOrder(parsed)
-      if (!existingOrderId && parsed?.orderId) setExistingOrderId(Number(parsed.orderId))
-    } catch { setHasLocalOpenOrder(false); setLocalOpenOrder(null) }
-  }, [tableInfo, searchParams, existingOrderId, hasDraftTableOrderWithoutRealOrder])
+  useCustomerLocalOpenOrderHydration({
+    tableInfo,
+    searchParams,
+    existingOrderId,
+    setExistingOrderId,
+    hasDraftTableOrderWithoutRealOrder,
+    setHasLocalOpenOrder,
+    setLocalOpenOrder,
+  })
 
   useOrganicThemeEffects({
     enabled: isOrganicBotanicalTheme,
