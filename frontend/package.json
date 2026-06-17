@@ -13,6 +13,8 @@
     "smoke:prod": "bash scripts/pmd-frontend-smoke.sh",
     "roadmap:status": "bash scripts/pmd-claude-roadmap-status.sh",
     "checkout:safety": "bash scripts/pmd-checkout-safety-audit.sh",
+    "legacy-css:audit": "bash scripts/pmd-legacy-css-audit.sh",
+    "legacy-css:guard": "bash scripts/pmd-legacy-css-guard.sh",
     "frontend:acceptance": "bash scripts/pmd-final-frontend-acceptance.sh"
   },
   "dependencies": {
