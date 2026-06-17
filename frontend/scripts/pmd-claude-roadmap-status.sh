@@ -106,6 +106,7 @@ echo ""
 
 echo "=== Current frontend git commits ==="
 git -C "$REPO_DIR" log --oneline -18 -- frontend | sed -n '1,40p'
+<<<<<<< HEAD
 
 
 echo ""
@@ -143,3 +144,5 @@ find features/customer-menu/legacy-dom-repairs -maxdepth 1 -type f -name "*.ts" 
 echo ""
 echo "Theme any count:"
 grep -RIn "\bany\b" features/customer-menu/theme --include="*.ts" --include="*.tsx" | wc -l
+=======
+>>>>>>> 1f673822 (refactor: extract customer menu page helper hook)
