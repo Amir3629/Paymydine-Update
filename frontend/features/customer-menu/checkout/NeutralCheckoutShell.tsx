@@ -153,6 +153,7 @@ export function NeutralCheckoutShell(props: any) {
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
+        data-testid="pmd-checkout-modal"
         data-pmd-checkout-theme-root="1"
         data-pmd-checkout-theme={checkoutVisualTheme}
         data-pmd-checkout-design-system="1"
@@ -191,7 +192,7 @@ export function NeutralCheckoutShell(props: any) {
         </div>
 
         {/* Order Summary (prices incl. VAT) & Payment - Scrollable Content */}
-        <div data-pmd-checkout-scroll="1" className="pmd-checkout-body p-4 pb-8 space-y-4 overflow-y-auto flex-1" style={isOrganicCheckoutVisual ? organicCheckoutBodyStyle : undefined}>
+        <div data-testid="pmd-checkout-scroll" data-pmd-checkout-scroll="1" className="pmd-checkout-body p-4 pb-8 space-y-4 overflow-y-auto flex-1" style={isOrganicCheckoutVisual ? organicCheckoutBodyStyle : undefined}>
           
           {/* Split Bill Toggle */}
           

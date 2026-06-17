@@ -128,6 +128,7 @@ export function ExpandingToolbarMenuItemCard({ item, onSelect, onFirstAdd, prior
               className="quantity-btn pmd-v2-action-circle w-12 h-12 font-bold text-lg"
               onClick={handleAdd}
               aria-label="Add to cart"
+              data-testid="pmd-menu-add-to-cart"
             >
               {quantity > 0 ? (
                 <span className="text-lg font-bold">{quantity}</span>
