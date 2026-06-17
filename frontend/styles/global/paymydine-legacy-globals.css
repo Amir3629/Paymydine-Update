@@ -25,7 +25,7 @@
  *   legacy-07.css  Action/button/icon compatibility rules and theme scoped overrides.
  *   legacy-08.css  Modal/card/menu/bottom-action compatibility overrides.
  *   legacy-09.css  Later global compatibility layer, checkout/payment/menu visual fixes.
- *   legacy-10.css  Smaller scoped late-stage rules, including Kazen/menu visibility/layout fixes.
+ *   legacy-10.css  Phase 6B migration marker; former scoped rules moved to customer/checkout and Kazen CSS.
  *
  * Guardrail:
  *   Run `npm run legacy-css:guard` before/after CSS cleanup work.
@@ -59,8 +59,14 @@
 /* Late global checkout/payment/menu visual fixes. */
 @import "./legacy/legacy-09.css";
 
-/* Smaller scoped late-stage rules, especially Kazen/menu visibility/layout fixes. */
+/* Phase 6B migration marker: former legacy-10 scoped rules moved below. */
 @import "./legacy/legacy-10.css";
+
+/* Extracted checkout/payment theme compatibility rules from legacy-10.css. */
+@import "../customer/checkout/checkout-theme-compat.css";
+
+/* Extracted Kazen menu visibility/layout compatibility rules from legacy-10.css. */
+@import "../customer/themes/kazen-menu-compat.css";
 
 /* PMD_MENU_ACTION_CIRCLE_COLOR_REPAIR_CSS
    Replaces legacy DOM hook useMenuActionCircleColorRepair.ts.

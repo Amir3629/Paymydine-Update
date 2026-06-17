@@ -20,3 +20,12 @@ For the full cleanup strategy, read:
 ```text
 docs/LEGACY_CSS_COMPATIBILITY_LAYER.md
 ```
+
+## Phase 6B migration note
+
+`legacy-10.css` is now only a placeholder/migration marker. Its former rules moved to:
+
+- `styles/customer/checkout/checkout-theme-compat.css`
+- `styles/customer/themes/kazen-menu-compat.css`
+
+The imports are still wired through `styles/global/paymydine-legacy-globals.css` so the live UI keeps the same compatibility behavior while the broad legacy folder is reduced step by step.

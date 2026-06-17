@@ -40,6 +40,37 @@ for n in 01 02 03 04 05 06 07 08 09 10; do
   fi
 done
 
+for file in \
+  styles/customer/checkout/checkout-theme-compat.css \
+  styles/customer/themes/kazen-menu-compat.css
+do
+  if [ -f "$file" ]; then
+    pass "present: extracted scoped compat file: $file"
+  else
+    fail "missing extracted scoped compat file: $file"
+  fi
+done
+
+if grep -q '../customer/checkout/checkout-theme-compat.css' styles/global/paymydine-legacy-globals.css 2>/dev/null; then
+  pass "imported: checkout-theme-compat.css"
+else
+  fail "checkout-theme-compat.css not imported by paymydine-legacy-globals.css"
+fi
+
+if grep -q '../customer/themes/kazen-menu-compat.css' styles/global/paymydine-legacy-globals.css 2>/dev/null; then
+  pass "imported: kazen-menu-compat.css"
+else
+  fail "kazen-menu-compat.css not imported by paymydine-legacy-globals.css"
+fi
+
+legacy10_lines=$(wc -l < styles/global/legacy/legacy-10.css 2>/dev/null | tr -d ' ' || echo 0)
+echo "legacy-10.css lines after Phase 6B extraction: ${legacy10_lines:-0}"
+if [ "${legacy10_lines:-0}" -gt 120 ]; then
+  fail "legacy-10.css still contains too many rules; Phase 6B extraction may have been reverted"
+else
+  pass "legacy-10.css reduced to migration marker"
+fi
+
 if [ -f docs/LEGACY_CSS_COMPATIBILITY_LAYER.md ]; then
   pass "legacy CSS cleanup documentation exists"
 else
@@ -62,9 +93,9 @@ legacy_lines=$(find styles/global/legacy -type f -name '*.css' -exec cat {} + 2>
 echo "legacy CSS total lines: ${legacy_lines:-0}"
 
 if [ "${legacy_lines:-0}" -lt 10000 ]; then
-  fail "legacy CSS line count unexpectedly low; remove blocks only after scoped migration and visual QA"
+  fail "legacy CSS line count unexpectedly low; keep broad compatibility until migrated block-by-block"
 else
-  pass "legacy CSS compatibility layer still present for current live visuals"
+  pass "broad legacy CSS compatibility layer still present while Phase 6B extracted scoped rules"
 fi
 
 if [ "$failures" -ne 0 ]; then

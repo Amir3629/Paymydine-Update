@@ -109,3 +109,14 @@ Check at least:
 - split bill panel
 - Kazen theme if the migrated block touches Kazen
 - Organic theme if the migrated block touches organic/botanical selectors
+
+## Phase 6B update: legacy-10 extracted
+
+`legacy-10.css` has now been reduced to a migration marker. Its previous scoped rules were moved to smaller owner-adjacent compatibility files:
+
+```text
+frontend/styles/customer/checkout/checkout-theme-compat.css
+frontend/styles/customer/themes/kazen-menu-compat.css
+```
+
+This is not full deletion yet. The rules remain active through `paymydine-legacy-globals.css`, but the legacy folder line count is reduced and the Kazen/checkout rules now live closer to their owning areas. The next migrations should follow the same pattern: extract one scoped block, preserve behavior, run all gates, then remove only the migrated legacy block.

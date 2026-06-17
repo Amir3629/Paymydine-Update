@@ -100,6 +100,8 @@ wc -l \
   app/globals.css \
   app/nuclear-fix.css \
   styles/global/paymydine-legacy-globals.css \
+  styles/customer/checkout/checkout-theme-compat.css \
+  styles/customer/themes/kazen-menu-compat.css \
   app/globals-clean.css \
   styles/globals.css \
   styles/global/legacy/*.css 2>/dev/null | sort -n || true

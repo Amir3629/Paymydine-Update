@@ -37,6 +37,19 @@ else
 fi
 
 echo ""
+echo "=== Phase 6B extracted scoped compatibility files ==="
+for file in \
+  styles/customer/checkout/checkout-theme-compat.css \
+  styles/customer/themes/kazen-menu-compat.css
+do
+  if [ -f "$file" ]; then
+    printf "%7s  %s\n" "$(wc -l < "$file" | tr -d ' ')" "$file"
+  else
+    echo "missing $file"
+  fi
+done
+
+echo ""
 echo "=== Legacy import status ==="
 if grep -q '../styles/global/paymydine-legacy-globals.css' app/globals.css; then
   echo "✅ app/globals.css imports legacy compatibility layer"
@@ -68,4 +81,5 @@ echo "=== Scoped migration candidate samples ==="
 
 echo ""
 echo "=== Recommended next action ==="
-echo "Keep the legacy import active. Migrate one scoped selector group at a time, then remove only that migrated block."
+echo "Phase 6B extracted legacy-10.css into scoped checkout/Kazen compatibility files."
+echo "Keep the legacy import active. Next, migrate another small scoped selector group, validate visually, and remove only that block."
