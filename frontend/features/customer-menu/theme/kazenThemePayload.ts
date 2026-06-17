@@ -1,9 +1,11 @@
 "use client"
 
-export function pmdForceKazenFrontendThemePayload(payload: any) {
+type KazenThemePayloadBridge = Record<string, unknown> & { data?: Record<string, unknown> }
+
+export function pmdForceKazenFrontendThemePayload(payload: KazenThemePayloadBridge) {
   if (!payload || typeof payload !== "object") return payload
 
-  const normalize = (value: any) => String(value || "").trim().replace(/-/g, "_").toLowerCase()
+  const normalize = (value: unknown) => String(value || "").trim().replace(/-/g, "_").toLowerCase()
   const topAdmin = normalize(payload.admin_theme)
   const nestedAdmin = normalize(payload.data?.admin_theme)
   const topFrontend = normalize(payload.frontend_theme)

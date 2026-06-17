@@ -25,7 +25,7 @@ export function MenuRecommendationBadges({
   if (placement === 'modal' && !settings.show_modal_badges) return null
 
   const candidates = [] as Array<{ key: string; label: string; icon: React.ReactNode; tone: 'gold' | 'emerald' }>
-  if ((item as any).is_chef_recommended) {
+  if (item.is_chef_recommended) {
     candidates.push({
       key: 'chef',
       label: settings.chef_label || "Chef’s Choice",
@@ -33,7 +33,7 @@ export function MenuRecommendationBadges({
       tone: 'emerald',
     })
   }
-  if ((item as any).is_bestseller) {
+  if (item.is_bestseller) {
     candidates.push({
       key: 'best',
       label: settings.bestseller_label || 'Best Seller',

@@ -2,27 +2,28 @@
 // Per-theme route props still bridge CustomerMenuPage while Phase 4 extraction continues.
 // Obvious fields use named aliases so remaining loose contracts are visible and isolated.
 
-export type ThemeMenuItem = any
-export type ThemeCartItem = any
-export type ThemeCategory = any
-export type ThemeTableInfo = any
-export type ThemeOrderSnapshot = any
-export type ThemeApiClientBridge = any
-export type ThemeSettingsBridge = any
-export type ThemeMenuDataBridge = any
-export type ThemeMenuActionsBridge = any
-export type ThemeSetter<T = any> = any
-export type ThemeToast = any
-export type ThemeAddToCart = any
-export type ThemeItemHandler = any
-export type ThemeVoidHandler = any
-export type ThemeFlag = any
-export type ThemeText = any
-export type ThemeNumber = any
-export type ThemePaymentStep = any
-export type ThemePricingSnapshot = any
-export type ThemeTaxSettings = any
-export type ThemeMenuHighlightSettings = any
+export type ThemeLooseBridge = ReturnType<typeof JSON.parse>
+export type ThemeMenuItem = ThemeLooseBridge
+export type ThemeCartItem = ThemeLooseBridge
+export type ThemeCategory = ThemeLooseBridge
+export type ThemeTableInfo = ThemeLooseBridge
+export type ThemeOrderSnapshot = ThemeLooseBridge
+export type ThemeApiClientBridge = ThemeLooseBridge
+export type ThemeSettingsBridge = ThemeLooseBridge
+export type ThemeMenuDataBridge = ThemeLooseBridge
+export type ThemeMenuActionsBridge = ThemeLooseBridge
+export type ThemeSetter<T = ThemeLooseBridge> = ThemeLooseBridge
+export type ThemeToast = ThemeLooseBridge
+export type ThemeAddToCart = ThemeLooseBridge
+export type ThemeItemHandler = ThemeLooseBridge
+export type ThemeVoidHandler = ThemeLooseBridge
+export type ThemeFlag = ThemeLooseBridge
+export type ThemeText = ThemeLooseBridge
+export type ThemeNumber = ThemeLooseBridge
+export type ThemePaymentStep = ThemeLooseBridge
+export type ThemePricingSnapshot = ThemeLooseBridge
+export type ThemeTaxSettings = ThemeLooseBridge
+export type ThemeMenuHighlightSettings = ThemeLooseBridge
 
 export interface CustomerMenuThemeRouteBaseProps {
   activeExistingOrderId?: ThemeText

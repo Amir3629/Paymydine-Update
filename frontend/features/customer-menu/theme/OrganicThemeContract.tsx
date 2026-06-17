@@ -2,6 +2,7 @@
 
 import React from "react";
 import { formatCurrency } from "@/lib/currency";
+import type { MenuItem } from "@/lib/data";
 
 export const ORGANIC_BOTANICAL_THEME_KEY = "organic_botanical_paper";
 
@@ -25,7 +26,6 @@ export function OrganicBotanicalHero({
 }: {
   restaurantName?: string;
   tableNumber?: string | number | null;
-  heroItem?: any;
 }) {
   return (
     <section className="rounded-[2rem] border border-[#ded3bd] bg-[#fffaf0] p-6 text-[#343529]">
@@ -43,7 +43,7 @@ export function OrganicBotanicalCategoryNav({
   categories = [],
   activeCategory,
   onSelectCategory,
-}: any) {
+}: { categories?: string[]; activeCategory?: string; onSelectCategory?: (category: string) => void }) {
   return (
     <nav className="flex gap-2 overflow-auto px-4 py-3">
       {categories.map((category: string) => (
@@ -60,7 +60,7 @@ export function OrganicBotanicalCategoryNav({
   );
 }
 
-export function OrganicBotanicalMenuCard({ item, onSelect, onAdd }: any) {
+export function OrganicBotanicalMenuCard({ item, onSelect, onAdd }: { item: MenuItem; onSelect?: (item: MenuItem) => void; onAdd?: React.MouseEventHandler<HTMLButtonElement>; highlightSettings?: unknown }) {
   return (
     <article className="rounded-3xl border border-[#ded3bd] bg-[#fffaf0] p-4 text-[#343529]">
       <button
@@ -69,11 +69,10 @@ export function OrganicBotanicalMenuCard({ item, onSelect, onAdd }: any) {
         onClick={() => onSelect?.(item)}
       >
         <h3 className="text-lg font-semibold">
-          {item?.name || item?.menu_name || "Menu item"}
+          {item?.name || "Menu item"}
         </h3>
         <p className="mt-1 text-sm text-[#716f5e]">
           {item?.description ||
-            item?.menu_description ||
             item?.category ||
             "Freshly prepared."}
         </p>
