@@ -15,7 +15,10 @@
     "checkout:safety": "bash scripts/pmd-checkout-safety-audit.sh",
     "legacy-css:audit": "bash scripts/pmd-legacy-css-audit.sh",
     "legacy-css:guard": "bash scripts/pmd-legacy-css-guard.sh",
-    "frontend:acceptance": "bash scripts/pmd-final-frontend-acceptance.sh"
+    "frontend:acceptance": "bash scripts/pmd-final-frontend-acceptance.sh",
+    "checkout:architecture": "bash scripts/pmd-payment-modal-architecture-guard.sh",
+    "dom-compat:guard": "bash scripts/pmd-dom-compat-guard.sh",
+    "cms-store:guard": "bash scripts/pmd-cms-store-architecture-guard.sh"
   },
   "dependencies": {
     "@emotion/is-prop-valid": "latest",

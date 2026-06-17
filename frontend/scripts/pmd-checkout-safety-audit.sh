@@ -31,7 +31,7 @@ check_file "features/customer-menu/checkout/PaymentModalCore.tsx"
 check_file "features/customer-menu/checkout/paymentModalPaymentFlow.ts"
 check_file "features/customer-menu/checkout/PaymentMethodForm.tsx"
 check_file "features/customer-menu/checkout/CheckoutModalHost.tsx"
-check_file "features/customer-menu/legacy-dom-repairs/usePaymentModalDomRepairs.ts"
+check_file "features/customer-menu/checkout/dom-compat/useCheckoutDomCompatibilityEffects.ts"
 check_file "app/checkout/page.tsx"
 
 if [[ -f "features/customer-menu/legacy-dom-repairs/useCheckoutVisualRepairs.ts" ]]; then

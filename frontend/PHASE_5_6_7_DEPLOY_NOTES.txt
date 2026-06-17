@@ -1,0 +1,14 @@
+PayMyDine frontend Phase 5/6/7 architecture cleanup delta.
+
+Before copying these files on VPS, remove the old ownerless DOM repair folder:
+  rm -rf /var/www/paymydine/frontend/features/customer-menu/legacy-dom-repairs
+
+Then copy this zip into /var/www/paymydine/frontend and run:
+  npm run checkout:architecture
+  npm run dom-compat:guard
+  npm run cms-store:guard
+  npm run build
+  node node_modules/typescript/bin/tsc --noEmit --pretty false
+  npm run smoke:prod
+  npm run checkout:safety
+  npm run frontend:acceptance

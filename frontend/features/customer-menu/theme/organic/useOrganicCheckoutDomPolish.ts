@@ -1,7 +1,7 @@
 import { useLayoutEffect } from "react"
 import { hasCheckoutThemeRoot } from "@/features/customer-menu/theme/OrganicExactV0Frame"
 
-/** Legacy Organic checkout modal DOM polish isolated from CustomerMenuPage. */
+/** Organic checkout modal DOM polish kept owner-adjacent to the Organic theme. */
 export function useOrganicCheckoutDomPolish(isOrganicBotanicalTheme: boolean) {
   // PMD_ORGANIC_SCOPED_BODY_MARKER_20260609
   useLayoutEffect(() => {

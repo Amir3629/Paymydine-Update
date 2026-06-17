@@ -1,146 +1,19 @@
 import { create } from "zustand"
 import { persist, createJSONStorage } from "zustand/middleware"
-import { type MenuItem } from "@/lib/data"
 import { apiClient } from "@/lib/api-client"
+import {
+  initialMerchantSettings,
+  initialPaymentOptions,
+  initialSettings,
+  initialTipSettings,
+  initialVATSettings,
+} from "@/store/cms/defaults"
+import { buildAppliedCouponFromApiData } from "@/store/cms/coupon-settings"
+import { buildMerchantSettingsFromSettingsPayload } from "@/store/cms/merchant-settings"
+import { buildVATSettingsFromApiData } from "@/store/cms/vat-settings"
+import type { CmsState, PmdSocialPlatformId } from "@/store/cms/types"
 
-type CmsSettings = {
-  appName: string
-  logoUrl: string
-  tableNumber: number
-}
-
-type PaymentOption = {
-  id: "visa" | "mastercard" | "paypal" | "cash" | "applepay" | "googlepay"
-  enabled: boolean
-}
-
-export type PmdSocialPlatformId = "trustpilot" | "instagram" | "google" | "website" | "reviews"
-
-export type PmdSocialPlatformSettings = {
-  enabled: boolean
-  url: string
-}
-
-export type PmdReviewSocialSettings = {
-  sharePromptEnabled: boolean
-  homepageSocialIconsEnabled: boolean
-  platforms: Record<PmdSocialPlatformId, PmdSocialPlatformSettings>
-}
-
-type MerchantSettings = {
-  businessName: string
-  accountId: string
-  stripeSecretKey: string
-  stripePublishableKey: string
-  paypalClientId: string
-  paypalClientSecret: string
-  bankAccountNumber: string
-  bankRoutingNumber: string
-  bankName: string
-  currency: string
-  countryCode: string
-  reviewSocial: PmdReviewSocialSettings
-}
-
-type TipSettings = {
-  enabled: boolean
-  percentages: number[]
-  defaultPercentage: number
-}
-
-type VATSettings = {
-  enabled: boolean
-  percentage: number
-  menuPrice: number // 0 = include VAT in menu price, 1 = apply VAT on menu price
-}
-
-type AppliedCoupon = {
-  coupon_id: number
-  code: string
-  name: string
-  type: 'F' | 'P' // F = Fixed, P = Percentage
-  discount: number // Calculated discount amount
-  discount_value: number // Original discount value from coupon
-  min_total: number
-} | null
-
-type CmsState = {
-  settings: CmsSettings
-  menuItems: MenuItem[]
-  paymentOptions: PaymentOption[]
-  tipSettings: TipSettings
-  taxSettings: VATSettings
-  appliedCoupon: AppliedCoupon
-  merchantSettings: MerchantSettings
-  updateSettings: (newSettings: Partial<CmsSettings>) => void
-  updateMenuItem: (updatedItem: MenuItem) => void
-  setMenuItems: (items: MenuItem[]) => void
-  togglePaymentOption: (id: PaymentOption["id"]) => void
-  updateTipSettings: (newSettings: Partial<TipSettings>) => void
-  updateVATSettings: (newSettings: Partial<VATSettings>) => void
-  updateTaxSettings: (newSettings: Partial<VATSettings>) => void
-  loadVATSettings: () => Promise<void>
-  loadTaxSettings: () => Promise<void>
-  loadMerchantSettings: () => Promise<void>
-  validateCoupon: (code: string, subtotal: number) => Promise<{ success: boolean; message?: string }>
-  removeCoupon: () => void
-  updateMerchantSettings: (newSettings: Partial<MerchantSettings>) => void
-  isInitialized: boolean
-}
-
-const initialSettings: CmsSettings = {
-  appName: "PayMyDine",
-  logoUrl: "",
-  tableNumber: 7,
-}
-
-const initialPaymentOptions: PaymentOption[] = [
-  { id: "visa", enabled: true },
-  { id: "mastercard", enabled: true },
-  { id: "paypal", enabled: true },
-  { id: "cash", enabled: true },
-  { id: "applepay", enabled: true },
-  { id: "googlepay", enabled: true },
-]
-
-const initialTipSettings: TipSettings = {
-  enabled: true,
-  percentages: [0, 5, 10],
-  defaultPercentage: 10,
-}
-
-const initialVATSettings: VATSettings = {
-  enabled: false,
-  percentage: 0,
-  menuPrice: 1, // Default: apply VAT on menu price
-}
-
-const initialReviewSocialSettings: PmdReviewSocialSettings = {
-  sharePromptEnabled: true,
-  homepageSocialIconsEnabled: true,
-  platforms: {
-    trustpilot: { enabled: false, url: "" },
-    instagram: { enabled: false, url: "" },
-    google: { enabled: false, url: "" },
-    website: { enabled: false, url: "" },
-    reviews: { enabled: false, url: "" },
-  },
-}
-
-const initialMerchantSettings: MerchantSettings = {
-  businessName: "PayMyDine Restaurant",
-  accountId: "",
-  stripeSecretKey: "",
-  stripePublishableKey: "",
-  paypalClientId: "",
-  paypalClientSecret: "",
-  bankAccountNumber: "",
-  bankRoutingNumber: "",
-  bankName: "",
-  currency: "EUR",
-  countryCode: "US",
-  reviewSocial: initialReviewSocialSettings,
-}
+export type { PmdSocialPlatformId }
 
 export const useCmsStore = create<CmsState>()(
   persist(
@@ -183,56 +56,10 @@ export const useCmsStore = create<CmsState>()(
 
       loadMerchantSettings: async () => {
         try {
-          console.log('🔄 CMS Store: Loading merchant settings from backend...')
+          console.log("🔄 CMS Store: Loading merchant settings from backend...")
           const res: any = await apiClient.getSettings()
           const payload: any = res?.data ?? res
-          const data: any = payload?.data ?? payload
-
-          const get = (...keys: string[]) => {
-            for (const k of keys) {
-              const v = data?.[k]
-              if (v !== undefined && v !== null && v !== "") return v
-            }
-            return undefined
-          }
-
-          // PMD_REVIEW_SOCIAL_SETTINGS_CLIENT_20260605
-          const parseBool = (value: any, fallback = false): boolean => {
-            if (value === undefined || value === null || value === "") return fallback
-            const normalized = String(value).trim().toLowerCase()
-            if (["1", "true", "yes", "on", "enabled"].includes(normalized)) return true
-            if (["0", "false", "no", "off", "disabled"].includes(normalized)) return false
-            return fallback
-          }
-
-          const platformIds: PmdSocialPlatformId[] = ["trustpilot", "instagram", "google", "website", "reviews"]
-          const reviewSocial: PmdReviewSocialSettings = {
-            sharePromptEnabled: parseBool(get("pmd_review_share_prompt_enabled"), initialReviewSocialSettings.sharePromptEnabled),
-            homepageSocialIconsEnabled: parseBool(get("pmd_homepage_social_icons_enabled"), initialReviewSocialSettings.homepageSocialIconsEnabled),
-            platforms: { ...initialReviewSocialSettings.platforms },
-          }
-
-          platformIds.forEach((platformId) => {
-            reviewSocial.platforms[platformId] = {
-              enabled: parseBool(get(`pmd_social_${platformId}_enabled`), initialReviewSocialSettings.platforms[platformId].enabled),
-              url: String(get(`pmd_social_${platformId}_url`) || "").trim(),
-            }
-          })
-
-          const newMs = {
-            businessName: get("businessName", "business_name", "restaurant_name", "name") || "PayMyDine Restaurant",
-            accountId: get("accountId", "account_id", "restaurant_id", "tenant", "slug") || "",
-            stripeSecretKey: get("stripeSecretKey", "stripe_secret_key") || "",
-            stripePublishableKey: get("stripePublishableKey", "stripe_publishable_key", "stripe_key") || "",
-            paypalClientId: get("paypalClientId", "paypal_client_id", "paypal_clientid") || "",
-            paypalClientSecret: get("paypalClientSecret", "paypal_client_secret", "paypal_secret") || "",
-            bankAccountNumber: get("bankAccountNumber", "bank_account_number") || "",
-            bankRoutingNumber: get("bankRoutingNumber", "bank_routing_number") || "",
-            bankName: get("bankName", "bank_name") || "",
-            currency: get("currency", "currency_code") || "EUR",
-            countryCode: get("countryCode", "country_code") || "US",
-            reviewSocial,
-          }
+          const newMs = buildMerchantSettingsFromSettingsPayload(payload)
 
           console.log("✅ CMS Store: Merchant settings loaded:", {
             paypalClientIdPresent: !!newMs.paypalClientId,
@@ -245,46 +72,25 @@ export const useCmsStore = create<CmsState>()(
             isInitialized: true,
           }))
         } catch (error) {
-          console.error('❌ CMS Store: Failed to load merchant settings:', error)
+          console.error("❌ CMS Store: Failed to load merchant settings:", error)
         }
       },
 
       loadVATSettings: async () => {
         try {
-          console.log('🔄 CMS Store: Loading VAT settings from backend...')
+          console.log("🔄 CMS Store: Loading VAT settings from backend...")
           const response = await apiClient.getVATSettings()
-          console.log('📡 CMS Store: VAT settings API response:', response)
+          console.log("📡 CMS Store: VAT settings API response:", response)
 
           if (response.success && response.data) {
-            const parseModeEnabled = (raw: any): boolean => {
-              const normalized = String(raw ?? '').trim().toLowerCase()
-              if (['1', 'true', 'enabled', 'on'].includes(normalized)) return true
-              if (['0', 'false', 'disabled', 'off', ''].includes(normalized)) return false
-              return Number(normalized) === 1
-            }
-            // Backend returns vat_* fields, with tax_* accepted for legacy tenants.
-            const taxModeRaw = response.data.vat_mode ?? response.data.tax_mode ?? '0'
-            const taxPercentage = parseFloat(response.data.vat_percentage || response.data.tax_percentage || '0')
-            const taxMenuPrice = parseInt(response.data.vat_menu_price || response.data.tax_menu_price || '1', 10)
-
-            console.log('✅ CMS Store: Parsed VAT settings:', {
-              enabled: parseModeEnabled(taxModeRaw),
-              percentage: taxPercentage,
-              menuPrice: taxMenuPrice,
-            })
-
-            set({
-              taxSettings: {
-                enabled: parseModeEnabled(taxModeRaw),
-                percentage: taxPercentage,
-                menuPrice: taxMenuPrice,
-              },
-            })
+            const taxSettings = buildVATSettingsFromApiData(response.data)
+            console.log("✅ CMS Store: Parsed VAT settings:", taxSettings)
+            set({ taxSettings })
           } else {
-            console.warn('⚠️ CMS Store: No VAT data in response')
+            console.warn("⚠️ CMS Store: No VAT data in response")
           }
         } catch (error) {
-          console.error('❌ CMS Store: Failed to load VAT settings:', error)
+          console.error("❌ CMS Store: Failed to load VAT settings:", error)
         }
       },
       loadTaxSettings: async () => get().loadVATSettings(),
@@ -296,15 +102,7 @@ export const useCmsStore = create<CmsState>()(
 
           if (response.success && response.data) {
             set({
-              appliedCoupon: {
-                coupon_id: response.data.coupon_id,
-                code: response.data.code,
-                name: response.data.name,
-                type: response.data.type,
-                discount: response.data.discount,
-                discount_value: response.data.discount_value,
-                min_total: response.data.min_total,
-              },
+              appliedCoupon: buildAppliedCouponFromApiData(response.data),
             })
             console.log('✅ CMS Store: Coupon applied successfully')
             return { success: true }

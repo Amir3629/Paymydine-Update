@@ -17,11 +17,12 @@ type UsePaymentModalDomRepairsArgs = {
 }
 
 /**
- * Legacy checkout DOM repair effects isolated away from PaymentModal.
- * These are visual compatibility guards for old checkout markup and should be
- * replaced by proper component/CSS ownership during a future checkout rewrite.
+ * Checkout DOM compatibility effects isolated away from PaymentModalCore.
+ * These are compatibility guards for checkout markup that is still being
+ * componentized. Keep them owner-adjacent to checkout and replace one effect at a
+ * time with React-owned markup or CSS-backed data attributes.
  */
-export function usePaymentModalDomRepairs({
+export function useCheckoutDomCompatibilityEffects({
   isOpen,
   checkoutStep,
   selectedPaymentMethod,
