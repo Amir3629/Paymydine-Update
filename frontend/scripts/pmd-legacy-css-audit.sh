@@ -4,49 +4,39 @@ set -euo pipefail
 cd "$(dirname "$0")/.."
 
 echo "=== PMD legacy CSS audit ==="
-date -u
+date
 pwd
 
 echo ""
 echo "=== Active import chain ==="
 echo "app/globals.css:"
-sed -n '1,40p' app/globals.css 2>/dev/null || true
+cat app/globals.css
 
 echo ""
 echo "styles/global/paymydine-legacy-globals.css imports:"
-grep -n '^@import' styles/global/paymydine-legacy-globals.css 2>/dev/null || true
+grep -n "@import" styles/global/paymydine-legacy-globals.css || true
 
 echo ""
 echo "=== CSS line inventory ==="
-find app styles components features \
+find app components features styles \
   -path '*/node_modules' -prune -o \
   -path '*/.next' -prune -o \
-  -type f -name '*.css' -print 2>/dev/null \
-  | sort \
-  | while read -r file; do
-      printf "%7s  %s\n" "$(wc -l < "$file" | tr -d ' ')" "$file"
-    done \
+  -type f -name '*.css' -print \
+  | while read -r f; do printf "%7s  %s\n" "$(wc -l < "$f" | tr -d ' ')" "$f"; done \
   | sort -nr
 
 echo ""
 echo "=== Legacy folder total ==="
-if [ -d styles/global/legacy ]; then
-  wc -l styles/global/legacy/*.css 2>/dev/null | sort -n || true
-else
-  echo "missing styles/global/legacy"
-fi
+wc -l styles/global/legacy/*.css | sort -n
 
 echo ""
-echo "=== Phase 6B extracted scoped compatibility files ==="
-for file in \
+echo "=== Phase 6B/6C extracted scoped compatibility files ==="
+for f in \
+  styles/customer/actions/action-controls-compat.css \
   styles/customer/checkout/checkout-theme-compat.css \
   styles/customer/themes/kazen-menu-compat.css
 do
-  if [ -f "$file" ]; then
-    printf "%7s  %s\n" "$(wc -l < "$file" | tr -d ' ')" "$file"
-  else
-    echo "missing $file"
-  fi
+  [ -f "$f" ] && printf "%7s  %s\n" "$(wc -l < "$f" | tr -d ' ')" "$f"
 done
 
 echo ""
@@ -54,32 +44,18 @@ echo "=== Legacy import status ==="
 if grep -q '../styles/global/paymydine-legacy-globals.css' app/globals.css; then
   echo "✅ app/globals.css imports legacy compatibility layer"
 else
-  echo "⚠️ app/globals.css does not import legacy compatibility layer"
+  echo "❌ app/globals.css does not import legacy compatibility layer"
 fi
-
 for n in 01 02 03 04 05 06 07 08 09 10; do
   file="styles/global/legacy/legacy-${n}.css"
-  if [ -f "$file" ]; then
-    echo "✅ present: $file"
-  else
-    echo "❌ missing: $file"
-  fi
-  if grep -q "./legacy/legacy-${n}.css" styles/global/paymydine-legacy-globals.css 2>/dev/null; then
-    echo "✅ imported: legacy-${n}.css"
-  else
-    echo "❌ not imported: legacy-${n}.css"
-  fi
+  [ -f "$file" ] && echo "✅ present: $file" || echo "❌ missing: $file"
+  grep -q "./legacy/legacy-${n}.css" styles/global/paymydine-legacy-globals.css && echo "✅ imported: legacy-${n}.css" || echo "❌ not imported: legacy-${n}.css"
 done
 
 echo ""
 echo "=== Risky broad selector samples ==="
-{ grep -RInE '^\s*(\*|html|body|button|div|span|\.surface|\.card|\[data-theme\]|html\[data-theme)' styles/global/legacy 2>/dev/null || true; } | sed -n '1,120p'
+grep -RInE '^\s*(html|body|\*|button|div|span|p|a|img|input|select|textarea|\[data-theme\]|body:has|html\[data-theme)' styles/global/legacy styles/customer/actions styles/customer/checkout styles/customer/themes 2>/dev/null | head -160 || true
 
 echo ""
-echo "=== Scoped migration candidate samples ==="
-{ grep -RInE 'data-pmd|kazen|checkout|payment|cart-badge|pmd-v2-action|PMD_' styles/global/paymydine-legacy-globals.css styles/global/legacy 2>/dev/null || true; } | sed -n '1,160p'
-
-echo ""
-echo "=== Recommended next action ==="
-echo "Phase 6B extracted legacy-10.css into scoped checkout/Kazen compatibility files."
-echo "Keep the legacy import active. Next, migrate another small scoped selector group, validate visually, and remove only that block."
+echo "=== Next migration candidates ==="
+grep -RInE 'button\[aria-label|body:has|\[class\*=|data-pmd|checkout|payment|kazen|cart|modal|surface|home-action|valet' styles/global/legacy 2>/dev/null | head -180 || true

@@ -260,3 +260,38 @@
   visibility: hidden !important;
   pointer-events: none !important;
 }
+
+/* PMD_KAZEN_VISIBILITY_REPAIR_CSS
+   Replaces legacy DOM hook useKazenMenuDomRepairs.ts.
+   Keeps Kazen menu item lists expanded/visible without runtime querySelector/setInterval repairs. */
+.page--menu .kazen-item [data-pmd-kazen-old-header-control="1"] {
+  opacity: 1 !important;
+  visibility: visible !important;
+}
+
+.page--menu .kazen-items,
+.page--menu .kazen-menu-list,
+.page--menu .kazen-category-content,
+.page--menu .kazen-category-items,
+.page--menu .kazen-section-content {
+  overflow: visible !important;
+  max-height: none !important;
+  height: auto !important;
+}
+
+.page--menu .kazen-item {
+  overflow: visible !important;
+  max-height: none !important;
+  height: auto !important;
+  contain: none !important;
+}
+
+.page--menu .kazen-item,
+.page--menu .kazen-item > *,
+.page--menu .kazen-items,
+.page--menu .kazen-menu-list,
+.page--menu .kazen-category-content,
+.page--menu .kazen-category-items,
+.page--menu .kazen-section-content {
+  contain: none !important;
+}

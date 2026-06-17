@@ -18,7 +18,7 @@
  * Current legacy file map:
  *   legacy-01.css  Base theme variables, page backgrounds, broad surface/text utilities.
  *   legacy-02.css  Bill toggle, cart badge, modal/card/dialog compatibility rules.
- *   legacy-03.css  Home/menu action cards, v2 pill/action styling, quantity icon fixes.
+ *   legacy-03.css  Phase 6C migration marker; former customer action/control rules moved to customer/actions CSS.
  *   legacy-04.css  Extended theme/page/card/action compatibility overrides.
  *   legacy-05.css  Additional modal, surface, category, and theme-specific visual overrides.
  *   legacy-06.css  Checkout/menu visual compatibility and older theme repair rules.
@@ -38,8 +38,11 @@
 /* Modal, bill toggle, cart badge, and card compatibility. */
 @import "./legacy/legacy-02.css";
 
-/* Home/menu action card and quantity icon compatibility. */
+/* Phase 6C migration marker; former rules moved below. */
 @import "./legacy/legacy-03.css";
+
+/* Extracted customer home/menu/action/quantity controls compatibility rules from legacy-03.css. */
+@import "../customer/actions/action-controls-compat.css";
 
 /* Extended page/theme compatibility overrides. */
 @import "./legacy/legacy-04.css";
@@ -62,96 +65,8 @@
 /* Phase 6B migration marker: former legacy-10 scoped rules moved below. */
 @import "./legacy/legacy-10.css";
 
-/* Extracted checkout/payment theme compatibility rules from legacy-10.css. */
+/* Extracted checkout/payment theme compatibility rules from legacy-10.css and inline checkout repairs. */
 @import "../customer/checkout/checkout-theme-compat.css";
 
-/* Extracted Kazen menu visibility/layout compatibility rules from legacy-10.css. */
+/* Extracted Kazen menu visibility/layout compatibility rules from legacy-10.css and inline Kazen repairs. */
 @import "../customer/themes/kazen-menu-compat.css";
-
-/* PMD_MENU_ACTION_CIRCLE_COLOR_REPAIR_CSS
-   Replaces legacy DOM hook useMenuActionCircleColorRepair.ts.
-   Keeps menu action circles/icons white without runtime querySelector/style mutation. */
-.page--menu .pmd-v2-action-circle,
-.page--menu button[aria-label='Increase quantity'],
-.page--menu button[aria-label='Decrease quantity'],
-.page--menu button[aria-label*='Back' i],
-.page--menu button[aria-label*='back' i] {
-  color: #ffffff !important;
-  -webkit-text-fill-color: #ffffff !important;
-}
-
-.page--menu .pmd-v2-action-circle *,
-.page--menu button[aria-label='Increase quantity'] *,
-.page--menu button[aria-label='Decrease quantity'] *,
-.page--menu button[aria-label*='Back' i] *,
-.page--menu button[aria-label*='back' i] * {
-  color: #ffffff !important;
-  -webkit-text-fill-color: #ffffff !important;
-  stroke: #ffffff !important;
-}
-
-/* PMD_KAZEN_VISIBILITY_REPAIR_CSS
-   Replaces legacy DOM hook useKazenMenuDomRepairs.ts.
-   Keeps Kazen menu item lists expanded/visible without runtime querySelector/setInterval repairs. */
-.page--menu .kazen-item [data-pmd-kazen-old-header-control="1"] {
-  opacity: 1 !important;
-  visibility: visible !important;
-}
-
-.page--menu .kazen-items,
-.page--menu .kazen-menu-list,
-.page--menu .kazen-category-content,
-.page--menu .kazen-category-items,
-.page--menu .kazen-section-content {
-  overflow: visible !important;
-  max-height: none !important;
-  height: auto !important;
-}
-
-.page--menu .kazen-item {
-  overflow: visible !important;
-  max-height: none !important;
-  height: auto !important;
-  contain: none !important;
-}
-
-.page--menu .kazen-item,
-.page--menu .kazen-item > *,
-.page--menu .kazen-items,
-.page--menu .kazen-menu-list,
-.page--menu .kazen-category-content,
-.page--menu .kazen-category-items,
-.page--menu .kazen-section-content {
-  contain: none !important;
-}
-
-/* PMD_CHECKOUT_VISUAL_REPAIR_CSS
-   Replaces two runtime parts from useCheckoutVisualRepairs.ts:
-   - plus/minus checkout quantity icon color
-   - split method active/inactive text color */
-[role="dialog"] button svg.lucide-plus,
-[role="dialog"] button svg.lucide-minus,
-[data-pmd-gold-checkout-modal] button svg.lucide-plus,
-[data-pmd-gold-checkout-modal] button svg.lucide-minus,
-[role="dialog"] button svg.lucide-plus *,
-[role="dialog"] button svg.lucide-minus *,
-[data-pmd-gold-checkout-modal] button svg.lucide-plus *,
-[data-pmd-gold-checkout-modal] button svg.lucide-minus * {
-  color: #ffffff !important;
-  stroke: #ffffff !important;
-  -webkit-text-fill-color: #ffffff !important;
-}
-
-button[data-pmd-split-method-real][data-pmd-active="1"],
-button[data-pmd-split-method-real][data-pmd-active="1"] * {
-  color: #ffffff !important;
-  -webkit-text-fill-color: #ffffff !important;
-  text-decoration-color: #ffffff !important;
-}
-
-button[data-pmd-split-method-real]:not([data-pmd-active="1"]),
-button[data-pmd-split-method-real]:not([data-pmd-active="1"]) * {
-  color: #10201d !important;
-  -webkit-text-fill-color: #10201d !important;
-  text-decoration-color: #10201d !important;
-}

@@ -157,3 +157,16 @@ echo ""
 echo "=== Current frontend git commits ==="
 cd "$REPO_DIR"
 git log --oneline -18 -- frontend | sed -n '1,80p'
+
+
+echo ""
+echo "=== Legacy CSS Phase 6C status ==="
+if [ -f styles/customer/actions/action-controls-compat.css ]; then
+  echo "✅ action-controls-compat.css extracted"
+else
+  echo "❌ action-controls-compat.css missing"
+fi
+if [ -f styles/global/legacy/legacy-03.css ]; then
+  LEGACY03_LINES="$(wc -l < styles/global/legacy/legacy-03.css | tr -d ' ')"
+  echo "legacy-03.css lines: $LEGACY03_LINES"
+fi
