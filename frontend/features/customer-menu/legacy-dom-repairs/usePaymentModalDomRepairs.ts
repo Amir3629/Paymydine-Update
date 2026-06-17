@@ -223,54 +223,6 @@ export function usePaymentModalDomRepairs({
   }, [checkoutStep, couponDiscount, tipPercentage, customTip, appliedCoupon?.code, selectedPaymentMethod])
 
 
-  // PMD_SEND_KITCHEN_BUTTON_MARKER_EFFECT
-  useEffect(() => {
-    if (hasCheckoutThemeRoot()) return
-
-    const apply = () => {
-      const root = document.querySelector('[data-pmd-checkout-scroll="1"]') || document
-      const buttons = Array.from(root.querySelectorAll('button')) as HTMLElement[]
-
-      buttons.forEach((btn) => {
-        if (btn.closest('[data-pmd-kazen-checkout-shell="1"]')) {
-          return // PMD_SKIP_OLD_BUTTON_EFFECTS_FOR_KAZEN_SHELL_20260612 + PMD_KAZEN_SAFE_STRIPE_PAY_CLEAN_20260612
-        }
-        const txt = (btn.textContent || "").replace(/\s+/g, " ").trim()
-        if (txt.includes("Send order to kitchen")) {
-          btn.setAttribute("data-pmd-send-kitchen-btn", "1")
-
-          const spans = btn.querySelectorAll("span")
-          if (spans[0]) spans[0].setAttribute("data-pmd-send-kitchen-label", "1")
-          if (spans[1]) spans[1].setAttribute("data-pmd-send-kitchen-arrow-wrap", "1")
-
-          const svg = btn.querySelector("svg")
-          if (svg) svg.setAttribute("data-pmd-send-kitchen-arrow", "1")
-        }
-      })
-    }
-
-    apply()
-
-    const t1 = window.setTimeout(apply, 40)
-    const t2 = window.setTimeout(apply, 180)
-    const t3 = window.setTimeout(apply, 700)
-
-    const root = document.querySelector('[data-pmd-checkout-scroll="1"]') || document.body
-    const observer = new MutationObserver(() => {
-      window.requestAnimationFrame(apply)
-    })
-
-    void observer; // PMD_PERF_SAFE: observer disabled to prevent Payment freeze
-
-    return () => {
-      window.clearTimeout(t1)
-      window.clearTimeout(t2)
-      window.clearTimeout(t3)
-      observer.disconnect()
-    }
-  }, [checkoutStep, selectedPaymentMethod, isSplitting, selectedSplitPersonId, couponDiscount, tipPercentage, customTip])
-
-
   // PMD_MARK_REAL_PAYMENT_PANELS_BG_EFFECT
   useEffect(() => {
     if (hasCheckoutThemeRoot()) return

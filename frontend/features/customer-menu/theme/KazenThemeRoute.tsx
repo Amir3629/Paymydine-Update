@@ -8,6 +8,9 @@ import { pmdBuildKazenParentCategories } from "@/features/customer-menu/data/men
 import type { MenuItem } from "@/lib/data"
 import type { KazenThemeRouteProps } from "@/features/customer-menu/theme/themeRouteTypes"
 import { createOpenOrderUpdateHandler } from "@/features/customer-menu/theme/themeRouteShared"
+type KazenValetValues = { name?: string; licensePlate?: string; license_plate?: string; carModel?: string; car_make?: string }
+const getKazenErrorMessage = (error: unknown, fallback: string) => error instanceof Error ? error.message : fallback
+
 export function KazenThemeRoute(props: KazenThemeRouteProps) {
   const {
     apiMenuItems,
@@ -102,7 +105,7 @@ export function KazenThemeRoute(props: KazenThemeRouteProps) {
   ]
 
   const kazenLogoUrl = normalizeModernGreenLogoUrl(
-    kazenLogoCandidates.find((value: any) => String(value || "").trim()) || ""
+    kazenLogoCandidates.find((value: unknown) => String(value || "").trim()) || ""
   )
 
   const handleKazenAdd = (item: MenuItem, quantity = 1) => {
@@ -112,9 +115,9 @@ export function KazenThemeRoute(props: KazenThemeRouteProps) {
       itemToAdd.price = Number(item.price || 0) / (1 + taxSettings.percentage / 100)
 
       if (itemToAdd.options) {
-        itemToAdd.options = itemToAdd.options.map((option: any) => ({
+        itemToAdd.options = itemToAdd.options.map((option: NonNullable<MenuItem["options"]>[number]) => ({
           ...option,
-          values: (option.values || []).map((value: any) => ({
+          values: (option.values || []).map((value: NonNullable<NonNullable<MenuItem["options"]>[number]["values"]>[number]) => ({
             ...value,
             price: Number(value.price || 0) / (1 + taxSettings.percentage / 100),
           })),
@@ -122,7 +125,7 @@ export function KazenThemeRoute(props: KazenThemeRouteProps) {
       }
     }
 
-    const currentQuantity = items.find((cartItem: any) => cartItem.item.id === item.id)?.quantity || 0
+    const currentQuantity = items.find((cartItem: { item: MenuItem }) => cartItem.item.id === item.id)?.quantity || 0
     addToCart(itemToAdd, quantity)
     if (currentQuantity === 0) handleFirstAdd(item)
   }
@@ -133,10 +136,10 @@ export function KazenThemeRoute(props: KazenThemeRouteProps) {
     try {
       await apiClient.callWaiter(String(resolvedTableId), ".")
       toast({ title: "Waiter called", description: "The team has been notified." })
-    } catch (error: any) {
+    } catch (error: unknown) {
       toast({
         title: "Waiter call failed",
-        description: error?.message || "Failed to call waiter.",
+        description: getKazenErrorMessage(error, "Failed to call waiter."),
         variant: "destructive",
       })
     }
@@ -154,16 +157,16 @@ export function KazenThemeRoute(props: KazenThemeRouteProps) {
     try {
       await apiClient.callTableNote(String(resolvedTableId), trimmedNote, new Date().toISOString())
       toast({ title: "Note sent", description: "Your note was sent to the team." })
-    } catch (error: any) {
+    } catch (error: unknown) {
       toast({
         title: "Note failed",
-        description: error?.message || "Failed to send note.",
+        description: getKazenErrorMessage(error, "Failed to send note."),
         variant: "destructive",
       })
     }
   }
 
-  const handleKazenValet = async (values: any = {}) => {
+  const handleKazenValet = async (values: KazenValetValues = {}) => {
     const name = String(values?.name || "Guest").trim() || "Guest"
     const licensePlate = String(values?.licensePlate || values?.license_plate || "Not provided").trim() || "Not provided"
     const carModel = String(values?.carModel || values?.car_make || "Not provided").trim() || "Not provided"
@@ -179,10 +182,10 @@ export function KazenThemeRoute(props: KazenThemeRouteProps) {
       })
 
       toast({ title: "Valet requested", description: "Your valet request has been sent." })
-    } catch (error: any) {
+    } catch (error: unknown) {
       toast({
         title: "Valet request failed",
-        description: error?.message || "Failed to submit valet request.",
+        description: getKazenErrorMessage(error, "Failed to submit valet request."),
         variant: "destructive",
       })
     }
@@ -202,7 +205,7 @@ export function KazenThemeRoute(props: KazenThemeRouteProps) {
         logoUrl={kazenLogoUrl}
         tableNumber={kazenTableNumber}
         onAddItem={handleKazenAdd}
-        onOpenItem={(item: any) => handleItemSelect(item as MenuItem)}
+        onOpenItem={(item: MenuItem) => handleItemSelect(item)}
         onCheckout={handleCartClick}
         onCallWaiter={handleKazenWaiter}
         onOpenNote={handleKazenNote}
