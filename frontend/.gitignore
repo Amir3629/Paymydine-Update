@@ -26,3 +26,7 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 .vercel
+
+# Playwright generated artifacts
+/playwright-report/
+/test-results/

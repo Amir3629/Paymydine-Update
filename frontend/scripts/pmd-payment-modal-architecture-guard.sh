@@ -34,6 +34,8 @@ for f in \
   features/customer-menu/checkout/NeutralSplitBillPanel.tsx \
   features/customer-menu/checkout/NeutralOrderStatusPanel.tsx \
   features/customer-menu/checkout/paymentModalVisualStyles.ts \
+  features/customer-menu/checkout/hooks/useCheckoutSplitState.ts \
+  features/customer-menu/checkout/hooks/usePaymentModalRuntimeState.ts \
   features/customer-menu/checkout/paymentModalContextLabels.ts
 do
   [[ -f "$f" ]] || fail "missing checkout panel/helper file: $f"
@@ -48,6 +50,10 @@ pass "PaymentModalCore uses extracted visual style helper"
 
 grep -q 'getPaymentModalContextLabels' features/customer-menu/checkout/PaymentModalCore.tsx || fail "PaymentModalCore does not use extracted context label helper"
 pass "PaymentModalCore uses extracted context label helper"
+
+grep -q 'useCheckoutSplitState' features/customer-menu/checkout/PaymentModalCore.tsx || fail "PaymentModalCore does not use extracted split state hook"
+grep -q 'usePaymentModalRuntimeState' features/customer-menu/checkout/PaymentModalCore.tsx || fail "PaymentModalCore does not use extracted runtime state hook"
+pass "PaymentModalCore uses extracted split/runtime state hooks"
 
 grep -q 'renderThemedCheckoutShellRoute' features/customer-menu/checkout/CheckoutShellRouter.tsx || fail "CheckoutShellRouter does not delegate themed shell routes"
 grep -q 'ModernGreenCheckoutShell' features/customer-menu/checkout/ThemedCheckoutShellRoutes.tsx || fail "ThemedCheckoutShellRoutes missing ModernGreenCheckoutShell"

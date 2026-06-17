@@ -9,6 +9,7 @@ npm run smoke:prod
 npm run checkout:safety
 npm run checkout:architecture
 npm run e2e:checkout:guard
+npm run theme:smoke:guard
 npm run legacy-css:guard
 npm run dom-compat:guard
 npm run cms-store:guard

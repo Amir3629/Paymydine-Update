@@ -6,7 +6,7 @@
 
 "use client"
 
-import React, { useState, useRef } from "react"
+import React, { useState } from "react"
 import { useLanguageStore } from "@/store/language-store"
 import { usePaymentSettingsStore } from "@/store/cms/payment-settings-store"
 import { useTaxSettingsStore } from "@/store/cms/tax-settings-store"
@@ -18,8 +18,7 @@ import { useCheckoutDomCompatibilityEffects } from "@/features/customer-menu/che
 import { CheckoutShellRouter } from "@/features/customer-menu/checkout/CheckoutShellRouter"
 import { PaymentMethodForm } from "@/features/customer-menu/checkout/PaymentMethodForm"
 import { PaymentActionButton } from "@/features/customer-menu/checkout/PaymentActionButton"
-import { getInitialCheckoutStep } from "@/features/checkout/checkout-state-utils"
-import { KAZEN_JAPANESE_THEME_KEY, ORGANIC_BOTANICAL_THEME_KEY, type PaymentFormData, type PaymentModalProps } from "@/features/customer-menu/checkout/paymentModalShared"
+import { KAZEN_JAPANESE_THEME_KEY, ORGANIC_BOTANICAL_THEME_KEY, type PaymentModalProps } from "@/features/customer-menu/checkout/paymentModalShared"
 import { buildPaymentOpenOrderStorageKeys, ensurePaymentGuestSession, getPaymentTableKey, getPaymentTenantKey } from "@/features/customer-menu/checkout/paymentModalStorage"
 import { subtotalFromSubmittedPaymentRows } from "@/features/customer-menu/checkout/paymentModalMath"
 import { startHostedRedirectCheckoutFlow } from "@/features/customer-menu/checkout/paymentModalHostedCheckout"
@@ -37,9 +36,11 @@ import { useCheckoutPaymentSummary } from "@/features/customer-menu/checkout/hoo
 import { useCheckoutPaymentContext } from "@/features/customer-menu/checkout/hooks/useCheckoutPaymentContext"
 import { useCheckoutDisplayItems } from "@/features/customer-menu/checkout/hooks/useCheckoutDisplayItems"
 import { useCheckoutModalLifecycleEffects } from "@/features/customer-menu/checkout/hooks/useCheckoutModalLifecycleEffects"
+import { useCheckoutSplitState } from "@/features/customer-menu/checkout/hooks/useCheckoutSplitState"
+import { usePaymentModalRuntimeState } from "@/features/customer-menu/checkout/hooks/usePaymentModalRuntimeState"
 import { createPaymentModalVisualStyles } from "@/features/customer-menu/checkout/paymentModalVisualStyles"
 import { getPaymentModalContextLabels } from "@/features/customer-menu/checkout/paymentModalContextLabels"
-import type { CheckoutStep, SplitBillItem, SplitMethod } from "@/features/checkout/types"
+import type { CheckoutStep } from "@/features/checkout/types"
 
 
 
@@ -58,14 +59,23 @@ export function PaymentModal({ isOpen, onClose, items: allItems, tableInfo, exis
   const { clearCart, addToCart } = useCartStore()
   const [isLoading, setIsLoading] = useState(false)
 
-  const [isSplitting, setIsSplitting] = useState(false)
-  const selectedItems = useRef<Record<string, SplitBillItem>>({}).current
-  const [splitMethod, setSplitMethod] = useState<SplitMethod>("equal")
-  const [splitGuestCount, setSplitGuestCount] = useState(2)
-  const [itemAssignments, setItemAssignments] = useState<Record<string, number | null>>({})
-  const [sharePercents, setSharePercents] = useState<number[]>([50, 50])
-  const [selectedSplitPersonId, setSelectedSplitPersonId] = useState<string | null>(null)
-  const [paidSplitPeople, setPaidSplitPeople] = useState<Record<string, boolean>>({})
+  const {
+    isSplitting,
+    setIsSplitting,
+    selectedItems,
+    splitMethod,
+    setSplitMethod,
+    splitGuestCount,
+    setSplitGuestCount,
+    itemAssignments,
+    setItemAssignments,
+    sharePercents,
+    setSharePercents,
+    selectedSplitPersonId,
+    setSelectedSplitPersonId,
+    paidSplitPeople,
+    setPaidSplitPeople,
+  } = useCheckoutSplitState()
   const {
     selectedOptions,
     handleOptionsChange,
@@ -100,27 +110,30 @@ export function PaymentModal({ isOpen, onClose, items: allItems, tableInfo, exis
     merchantCurrency: merchantSettings?.currency,
   })
 
-  const [cashCollectionConfirmed, setCashCollectionConfirmed] = useState(false)
-  const [providerInlineError, setProviderInlineError] = useState<string | null>(null)
-  const [isDarkTheme, setIsDarkTheme] = useState(false)
-
-  const [paymentFormData, setPaymentFormData] = useState<PaymentFormData>({
-    email: "",
-    phone: "",
+  const {
+    cashCollectionConfirmed,
+    setCashCollectionConfirmed,
+    providerInlineError,
+    setProviderInlineError,
+    isDarkTheme,
+    setIsDarkTheme,
+    paymentFormData,
+    setPaymentFormData,
+    checkoutStep,
+    setCheckoutStep,
+    submittedSnapshot,
+    setSubmittedSnapshot,
+    pmdLatestSubmittedPaymentOrderIdRef,
+  } = usePaymentModalRuntimeState({
+    existingOrderId,
+    initialCheckoutStep,
+    initialSubmittedOrder,
   })
   const isOrganicCheckoutVisual = checkoutVisualTheme === ORGANIC_BOTANICAL_THEME_KEY
   const isModernGreenCheckoutVisual = checkoutVisualTheme === "modern_green"
   const isKazenJapaneseCheckoutVisual = checkoutVisualTheme === KAZEN_JAPANESE_THEME_KEY
 
 
-  const [checkoutStep, setCheckoutStep] = useState<CheckoutStep>(
-    getInitialCheckoutStep(initialCheckoutStep, existingOrderId)
-  )
-
-
-  const [submittedSnapshot, setSubmittedSnapshot] = useState<any | null>(initialSubmittedOrder || null)
-  // PMD_USE_LATEST_SUBMITTED_ORDER_ID_FOR_PAYMENT_20260612
-  const pmdLatestSubmittedPaymentOrderIdRef = useRef<number | null>(null)
   const {
     tableDraft,
     setTableDraft,
