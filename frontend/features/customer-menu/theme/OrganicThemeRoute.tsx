@@ -6,6 +6,7 @@ import { OrganicNativeMenu } from "@/components/themes/organic-botanical-paper/O
 import { OrganicBottomDock } from "@/components/themes/organic-botanical-paper/OrganicBottomDock"
 import { CartSheet } from "@/components/cart-sheet"
 import { PaymentModal } from "@/features/customer-menu/checkout/CheckoutModalHost"
+import { MenuItemModal } from "@/components/menu-item-modal"
 import type { MenuItem } from "@/lib/data"
 import type { OrganicThemeRouteProps } from "@/features/customer-menu/theme/themeRouteTypes"
 import { createOpenOrderUpdateHandler } from "@/features/customer-menu/theme/themeRouteShared"
@@ -23,6 +24,8 @@ export function OrganicThemeRoute(props: OrganicThemeRouteProps) {
     handleFirstAdd,
     toast,
     handleItemSelect,
+    selectedItem,
+    setSelectedItem,
     shouldHideCartSheet,
     isPaymentModalOpen,
     setPaymentModalOpen,
@@ -101,6 +104,8 @@ export function OrganicThemeRoute(props: OrganicThemeRouteProps) {
         </div>
 
         {!shouldHideCartSheet && <CartSheet />}
+
+        <MenuItemModal item={selectedItem || null} onClose={() => setSelectedItem?.(null)} />
 
         <PaymentModal
           isOpen={isPaymentModalOpen}

@@ -1721,3 +1721,912 @@ html body .kazen-page .kazen-qty[data-pmd-kazen-qty-polished="1"] > strong.kazen
   color: #242320 !important;
   background: rgba(255,255,255,.24) !important;
 }
+
+/* PMD_KAZEN_ITEM_DETAIL_REWRITE_20260618_V2_SHARP
+   Rebuilt Kazen item detail modal: sharp Japanese geometry, image frame follows the image,
+   compact quantity control beside the price, smooth multi-image gallery.
+*/
+html body .pmd-kazen-detail-overlay {
+  position: fixed !important;
+  inset: 0 !important;
+  z-index: 10000000 !important;
+  display: grid !important;
+  place-items: center !important;
+  padding: max(12px, env(safe-area-inset-top)) 12px max(16px, env(safe-area-inset-bottom)) !important;
+  background: rgba(24, 22, 20, .56) !important;
+  -webkit-backdrop-filter: blur(10px) saturate(1.03) !important;
+  backdrop-filter: blur(10px) saturate(1.03) !important;
+  animation: pmdKazenDetailOverlayIn .2s ease-out both !important;
+}
+
+html body .pmd-kazen-detail-card {
+  width: min(94vw, 470px) !important;
+  max-height: min(92dvh, 780px) !important;
+  overflow: auto !important;
+  overscroll-behavior: contain !important;
+  border: 1px solid rgba(36, 35, 32, .22) !important;
+  border-radius: 0 !important;
+  background: linear-gradient(180deg, #fffdf8 0%, #f8f2e8 100%) !important;
+  color: #242320 !important;
+  box-shadow: 0 30px 86px rgba(15, 12, 8, .36), 0 1px 0 rgba(255,255,255,.74) inset !important;
+  font-family: Georgia, "Times New Roman", serif !important;
+  animation: pmdKazenDetailCardIn .28s cubic-bezier(.22, 1, .36, 1) both !important;
+}
+
+html body .pmd-kazen-detail-card * {
+  box-sizing: border-box !important;
+}
+
+html body .pmd-kazen-detail-header {
+  display: grid !important;
+  grid-template-columns: minmax(0, 1fr) 48px !important;
+  align-items: start !important;
+  gap: 18px !important;
+  padding: 24px 24px 16px !important;
+}
+
+html body .pmd-kazen-detail-title-block {
+  min-width: 0 !important;
+}
+
+html body .pmd-kazen-detail-eyebrow {
+  display: block !important;
+  margin-bottom: 8px !important;
+  color: #b85d59 !important;
+  font-family: Inter, ui-sans-serif, system-ui, sans-serif !important;
+  font-size: .72rem !important;
+  font-weight: 850 !important;
+  letter-spacing: .26em !important;
+  text-transform: uppercase !important;
+}
+
+html body .pmd-kazen-detail-header h2 {
+  margin: 0 !important;
+  color: #242320 !important;
+  font-family: Georgia, "Times New Roman", serif !important;
+  font-size: clamp(2.05rem, 8.2vw, 3.15rem) !important;
+  line-height: .98 !important;
+  letter-spacing: .1em !important;
+  text-transform: uppercase !important;
+  overflow-wrap: anywhere !important;
+}
+
+html body .pmd-kazen-detail-close {
+  all: unset !important;
+  box-sizing: border-box !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  width: 48px !important;
+  height: 48px !important;
+  min-width: 48px !important;
+  min-height: 48px !important;
+  border: 1px solid rgba(36, 35, 32, .22) !important;
+  border-radius: 0 !important;
+  background: rgba(255, 255, 255, .46) !important;
+  color: #242320 !important;
+  cursor: pointer !important;
+  transition: transform .16s ease, background .16s ease, border-color .16s ease !important;
+}
+
+html body .pmd-kazen-detail-close:hover {
+  transform: translateY(-1px) !important;
+  background: rgba(255,255,255,.82) !important;
+  border-color: rgba(184, 93, 89, .42) !important;
+}
+
+html body .pmd-kazen-detail-close svg {
+  width: 24px !important;
+  height: 24px !important;
+  stroke: currentColor !important;
+}
+
+html body .pmd-kazen-detail-media {
+  position: relative !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  width: auto !important;
+  max-width: calc(100% - 48px) !important;
+  margin: 4px auto 0 !important;
+  padding: 0 !important;
+  overflow: visible !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  line-height: 0 !important;
+}
+
+html body .pmd-kazen-detail-image {
+  display: block !important;
+  width: auto !important;
+  max-width: 100% !important;
+  height: auto !important;
+  max-height: min(36dvh, 330px) !important;
+  object-fit: contain !important;
+  object-position: center !important;
+  border: 1px solid rgba(36, 35, 32, .16) !important;
+  border-radius: 0 !important;
+  background: #f8f2e8 !important;
+  box-shadow: 0 12px 32px rgba(36, 30, 24, .08) !important;
+  animation: pmdKazenDetailImageIn .42s ease both !important;
+}
+
+html body .pmd-kazen-detail-dots {
+  position: absolute !important;
+  left: 50% !important;
+  bottom: 10px !important;
+  transform: translateX(-50%) !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 6px !important;
+  padding: 6px 8px !important;
+  border: 1px solid rgba(36, 35, 32, .16) !important;
+  border-radius: 0 !important;
+  background: rgba(255, 253, 248, .78) !important;
+  -webkit-backdrop-filter: blur(8px) !important;
+  backdrop-filter: blur(8px) !important;
+  box-shadow: 0 8px 22px rgba(18, 14, 10, .14) !important;
+}
+
+html body .pmd-kazen-detail-dots button {
+  all: unset !important;
+  display: block !important;
+  width: 7px !important;
+  height: 7px !important;
+  border-radius: 0 !important;
+  background: rgba(36, 35, 32, .32) !important;
+  cursor: pointer !important;
+  transition: width .22s ease, background .22s ease !important;
+}
+
+html body .pmd-kazen-detail-dots button.is-active {
+  width: 24px !important;
+  background: #b85d59 !important;
+}
+
+html body .pmd-kazen-detail-body {
+  padding: 18px 24px 24px !important;
+}
+
+html body .pmd-kazen-detail-description {
+  margin: 0 !important;
+  color: rgba(36, 35, 32, .78) !important;
+  font-family: Inter, ui-sans-serif, system-ui, sans-serif !important;
+  font-size: .98rem !important;
+  line-height: 1.6 !important;
+}
+
+html body .pmd-kazen-detail-purchase-row {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  gap: 14px !important;
+  margin-top: 18px !important;
+  padding: 14px 0 !important;
+  border-top: 1px solid rgba(36, 35, 32, .14) !important;
+  border-bottom: 1px solid rgba(36, 35, 32, .14) !important;
+}
+
+html body .pmd-kazen-detail-price {
+  min-width: 0 !important;
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 5px !important;
+}
+
+html body .pmd-kazen-detail-price span {
+  color: rgba(36, 35, 32, .58) !important;
+  font-family: Inter, ui-sans-serif, system-ui, sans-serif !important;
+  font-size: .68rem !important;
+  font-weight: 850 !important;
+  letter-spacing: .2em !important;
+  text-transform: uppercase !important;
+}
+
+html body .pmd-kazen-detail-price strong {
+  color: #242320 !important;
+  font-family: Georgia, "Times New Roman", serif !important;
+  font-size: 1.5rem !important;
+  font-weight: 800 !important;
+  line-height: 1 !important;
+}
+
+html body .pmd-kazen-detail-stepper {
+  flex: 0 0 auto !important;
+  display: inline-grid !important;
+  grid-template-columns: 38px 42px 38px !important;
+  align-items: stretch !important;
+  height: 40px !important;
+  overflow: hidden !important;
+  border: 1px solid rgba(36, 35, 32, .18) !important;
+  border-radius: 0 !important;
+  background: rgba(255, 252, 246, .66) !important;
+}
+
+html body .pmd-kazen-detail-stepper button {
+  all: unset !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  min-width: 38px !important;
+  min-height: 40px !important;
+  color: #242320 !important;
+  background: transparent !important;
+  cursor: pointer !important;
+  touch-action: manipulation !important;
+  transition: background .16s ease, color .16s ease !important;
+}
+
+html body .pmd-kazen-detail-stepper button:first-child {
+  border-right: 1px solid rgba(36, 35, 32, .14) !important;
+}
+
+html body .pmd-kazen-detail-stepper button:last-child {
+  border-left: 1px solid rgba(36, 35, 32, .14) !important;
+}
+
+html body .pmd-kazen-detail-stepper button:hover {
+  color: #b85d59 !important;
+  background: rgba(184, 93, 89, .07) !important;
+}
+
+html body .pmd-kazen-detail-stepper button span {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  width: 100% !important;
+  height: 100% !important;
+  color: currentColor !important;
+  font-family: Inter, ui-sans-serif, system-ui, sans-serif !important;
+  font-size: 1.32rem !important;
+  font-weight: 800 !important;
+  line-height: 1 !important;
+}
+
+html body .pmd-kazen-detail-stepper strong {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  min-height: 40px !important;
+  color: #242320 !important;
+  font-family: Inter, ui-sans-serif, system-ui, sans-serif !important;
+  font-size: .95rem !important;
+  font-weight: 850 !important;
+  letter-spacing: .05em !important;
+  background: rgba(255,255,255,.42) !important;
+}
+
+html body .pmd-kazen-detail-actions {
+  display: grid !important;
+  grid-template-columns: .92fr 1.08fr !important;
+  gap: 10px !important;
+  margin-top: 16px !important;
+}
+
+html body .pmd-kazen-detail-actions button {
+  min-height: 48px !important;
+  border-radius: 0 !important;
+  font-family: Inter, ui-sans-serif, system-ui, sans-serif !important;
+  font-size: .82rem !important;
+  font-weight: 850 !important;
+  letter-spacing: .12em !important;
+  text-transform: uppercase !important;
+  cursor: pointer !important;
+  transition: transform .16s ease, box-shadow .16s ease, background .16s ease !important;
+}
+
+html body .pmd-kazen-detail-actions button:hover {
+  transform: translateY(-1px) !important;
+}
+
+html body .pmd-kazen-detail-cancel {
+  border: 1px solid rgba(36, 35, 32, .18) !important;
+  background: rgba(255,255,255,.48) !important;
+  color: #242320 !important;
+}
+
+html body .pmd-kazen-detail-add {
+  border: 1px solid rgba(184, 93, 89, .42) !important;
+  background: #b85d59 !important;
+  color: #fffaf3 !important;
+  box-shadow: 0 12px 28px rgba(184, 93, 89, .16) !important;
+}
+
+@keyframes pmdKazenDetailOverlayIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes pmdKazenDetailCardIn {
+  from { opacity: 0; transform: translateY(12px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes pmdKazenDetailImageIn {
+  from { opacity: 0; transform: scale(1.01); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+@media (max-width: 540px) {
+  html body .pmd-kazen-detail-card {
+    width: min(94vw, 430px) !important;
+    border-radius: 0 !important;
+  }
+
+  html body .pmd-kazen-detail-header {
+    grid-template-columns: minmax(0, 1fr) 46px !important;
+    padding: 18px 18px 12px !important;
+  }
+
+  html body .pmd-kazen-detail-header h2 {
+    font-size: clamp(1.9rem, 10vw, 2.65rem) !important;
+    letter-spacing: .08em !important;
+  }
+
+  html body .pmd-kazen-detail-close {
+    width: 46px !important;
+    height: 46px !important;
+    min-width: 46px !important;
+    min-height: 46px !important;
+  }
+
+  html body .pmd-kazen-detail-media {
+    max-width: calc(100% - 36px) !important;
+    margin-top: 2px !important;
+  }
+
+  html body .pmd-kazen-detail-image {
+    max-height: 34dvh !important;
+  }
+
+  html body .pmd-kazen-detail-body {
+    padding: 16px 18px 18px !important;
+  }
+
+  html body .pmd-kazen-detail-purchase-row {
+    gap: 10px !important;
+  }
+
+  html body .pmd-kazen-detail-stepper {
+    grid-template-columns: 36px 38px 36px !important;
+  }
+
+  html body .pmd-kazen-detail-actions {
+    grid-template-columns: 1fr 1fr !important;
+  }
+}
+
+
+/* PMD_KAZEN_ITEM_DETAIL_REWRITE_20260618_V3_FINAL
+   Sharp Kazen item detail modal: no rounded corners, smaller title, no-crop image,
+   compact quantity stepper beside price. Stepper uses role buttons to avoid old button CSS.
+*/
+html body .pmd-kazen-detail-overlay {
+  position: fixed !important;
+  inset: 0 !important;
+  z-index: 10000000 !important;
+  display: grid !important;
+  place-items: center !important;
+  padding: max(12px, env(safe-area-inset-top)) 12px max(14px, env(safe-area-inset-bottom)) !important;
+  background: rgba(24, 22, 20, .56) !important;
+  -webkit-backdrop-filter: blur(10px) saturate(1.03) !important;
+  backdrop-filter: blur(10px) saturate(1.03) !important;
+}
+
+html body .pmd-kazen-detail-card {
+  width: min(92vw, 460px) !important;
+  max-height: min(92dvh, 760px) !important;
+  overflow: auto !important;
+  border: 1px solid rgba(36, 35, 32, .24) !important;
+  border-radius: 0 !important;
+  background: linear-gradient(180deg, #fffdf8 0%, #f8f2e8 100%) !important;
+  color: #242320 !important;
+  box-shadow: 0 30px 86px rgba(15, 12, 8, .36), 0 1px 0 rgba(255,255,255,.74) inset !important;
+  font-family: Georgia, "Times New Roman", serif !important;
+  animation: pmdKazenDetailCardIn .24s cubic-bezier(.22, 1, .36, 1) both !important;
+}
+
+html body .pmd-kazen-detail-card,
+html body .pmd-kazen-detail-card * {
+  box-sizing: border-box !important;
+}
+
+html body .pmd-kazen-detail-header {
+  display: grid !important;
+  grid-template-columns: minmax(0, 1fr) 46px !important;
+  align-items: start !important;
+  gap: 16px !important;
+  padding: 22px 22px 14px !important;
+}
+
+html body .pmd-kazen-detail-eyebrow {
+  display: block !important;
+  margin-bottom: 8px !important;
+  color: #b85d59 !important;
+  font-family: Inter, ui-sans-serif, system-ui, sans-serif !important;
+  font-size: .7rem !important;
+  font-weight: 850 !important;
+  letter-spacing: .25em !important;
+  text-transform: uppercase !important;
+}
+
+html body .pmd-kazen-detail-header h2 {
+  margin: 0 !important;
+  color: #242320 !important;
+  font-family: Georgia, "Times New Roman", serif !important;
+  font-size: clamp(1.75rem, 5.8vw, 2.55rem) !important;
+  line-height: 1 !important;
+  letter-spacing: .075em !important;
+  text-transform: uppercase !important;
+  overflow-wrap: normal !important;
+  word-break: normal !important;
+}
+
+html body .pmd-kazen-detail-close {
+  all: unset !important;
+  box-sizing: border-box !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  width: 46px !important;
+  height: 46px !important;
+  min-width: 46px !important;
+  min-height: 46px !important;
+  border: 1px solid rgba(36, 35, 32, .22) !important;
+  border-radius: 0 !important;
+  background: rgba(255, 255, 255, .46) !important;
+  color: #242320 !important;
+  cursor: pointer !important;
+}
+
+html body .pmd-kazen-detail-close svg {
+  width: 23px !important;
+  height: 23px !important;
+  stroke: currentColor !important;
+}
+
+html body .pmd-kazen-detail-media {
+  position: relative !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  width: fit-content !important;
+  max-width: calc(100% - 44px) !important;
+  margin: 4px auto 0 !important;
+  padding: 0 !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  line-height: 0 !important;
+}
+
+html body .pmd-kazen-detail-image {
+  display: block !important;
+  width: auto !important;
+  max-width: 100% !important;
+  height: auto !important;
+  max-height: min(35dvh, 310px) !important;
+  object-fit: contain !important;
+  object-position: center !important;
+  border: 1px solid rgba(36, 35, 32, .16) !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  box-shadow: 0 12px 32px rgba(36, 30, 24, .08) !important;
+}
+
+html body .pmd-kazen-detail-dots {
+  border-radius: 0 !important;
+}
+
+html body .pmd-kazen-detail-body {
+  padding: 18px 22px 22px !important;
+}
+
+html body .pmd-kazen-detail-description {
+  margin: 0 !important;
+  color: rgba(36, 35, 32, .74) !important;
+  font-family: Inter, ui-sans-serif, system-ui, sans-serif !important;
+  font-size: .96rem !important;
+  line-height: 1.6 !important;
+}
+
+html body .pmd-kazen-detail-purchase-row {
+  display: grid !important;
+  grid-template-columns: minmax(0, 1fr) auto !important;
+  align-items: center !important;
+  gap: 14px !important;
+  margin-top: 18px !important;
+  padding: 13px 0 !important;
+  border-top: 1px solid rgba(36, 35, 32, .14) !important;
+  border-bottom: 1px solid rgba(36, 35, 32, .14) !important;
+}
+
+html body .pmd-kazen-detail-price {
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 4px !important;
+  min-width: 0 !important;
+}
+
+html body .pmd-kazen-detail-price span {
+  color: rgba(36, 35, 32, .58) !important;
+  font-family: Inter, ui-sans-serif, system-ui, sans-serif !important;
+  font-size: .66rem !important;
+  font-weight: 850 !important;
+  letter-spacing: .2em !important;
+  text-transform: uppercase !important;
+}
+
+html body .pmd-kazen-detail-price strong {
+  color: #242320 !important;
+  font-family: Georgia, "Times New Roman", serif !important;
+  font-size: 1.5rem !important;
+  font-weight: 800 !important;
+  line-height: 1 !important;
+}
+
+html body .pmd-kazen-detail-stepper {
+  display: inline-grid !important;
+  grid-template-columns: 34px 38px 34px !important;
+  align-items: stretch !important;
+  width: 106px !important;
+  height: 36px !important;
+  min-height: 36px !important;
+  overflow: hidden !important;
+  border: 1px solid rgba(36, 35, 32, .18) !important;
+  border-radius: 0 !important;
+  background: rgba(255, 252, 246, .68) !important;
+  box-shadow: none !important;
+}
+
+html body .pmd-kazen-detail-stepper-action {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  width: 34px !important;
+  height: 34px !important;
+  min-width: 34px !important;
+  min-height: 34px !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  background-color: transparent !important;
+  color: #242320 !important;
+  box-shadow: none !important;
+  font-family: Inter, ui-sans-serif, system-ui, sans-serif !important;
+  font-size: 1.38rem !important;
+  font-weight: 800 !important;
+  line-height: 1 !important;
+  cursor: pointer !important;
+  user-select: none !important;
+  touch-action: manipulation !important;
+}
+
+html body .pmd-kazen-detail-stepper-minus {
+  border-right: 1px solid rgba(36, 35, 32, .16) !important;
+}
+
+html body .pmd-kazen-detail-stepper-plus {
+  border-left: 1px solid rgba(36, 35, 32, .16) !important;
+}
+
+html body .pmd-kazen-detail-stepper-action:hover,
+html body .pmd-kazen-detail-stepper-action:focus-visible {
+  color: #b85d59 !important;
+  background: rgba(184, 93, 89, .07) !important;
+  outline: none !important;
+}
+
+html body .pmd-kazen-detail-stepper strong {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  height: 34px !important;
+  min-height: 34px !important;
+  color: #242320 !important;
+  font-family: Inter, ui-sans-serif, system-ui, sans-serif !important;
+  font-size: .95rem !important;
+  font-weight: 850 !important;
+  background: rgba(255,255,255,.32) !important;
+}
+
+html body .pmd-kazen-detail-actions {
+  display: grid !important;
+  grid-template-columns: .92fr 1.08fr !important;
+  gap: 10px !important;
+  margin-top: 16px !important;
+}
+
+html body .pmd-kazen-detail-actions button {
+  min-height: 48px !important;
+  border-radius: 0 !important;
+  font-family: Inter, ui-sans-serif, system-ui, sans-serif !important;
+  font-size: .8rem !important;
+  font-weight: 850 !important;
+  letter-spacing: .12em !important;
+  text-transform: uppercase !important;
+  cursor: pointer !important;
+}
+
+html body .pmd-kazen-detail-cancel {
+  border: 1px solid rgba(36, 35, 32, .18) !important;
+  background: rgba(255,255,255,.5) !important;
+  color: #242320 !important;
+}
+
+html body .pmd-kazen-detail-add {
+  border: 1px solid rgba(184, 93, 89, .62) !important;
+  background: #b85d59 !important;
+  color: #fffaf3 !important;
+  box-shadow: 0 12px 28px rgba(184, 93, 89, .16) !important;
+}
+
+@media (max-width: 540px) {
+  html body .pmd-kazen-detail-card {
+    width: min(94vw, 430px) !important;
+  }
+
+  html body .pmd-kazen-detail-header {
+    grid-template-columns: minmax(0, 1fr) 44px !important;
+    gap: 12px !important;
+    padding: 18px 18px 12px !important;
+  }
+
+  html body .pmd-kazen-detail-header h2 {
+    font-size: clamp(1.7rem, 8.2vw, 2.28rem) !important;
+    letter-spacing: .06em !important;
+  }
+
+  html body .pmd-kazen-detail-close {
+    width: 44px !important;
+    height: 44px !important;
+    min-width: 44px !important;
+    min-height: 44px !important;
+  }
+
+  html body .pmd-kazen-detail-media {
+    max-width: calc(100% - 36px) !important;
+  }
+
+  html body .pmd-kazen-detail-image {
+    max-height: 32dvh !important;
+  }
+
+  html body .pmd-kazen-detail-body {
+    padding: 16px 18px 18px !important;
+  }
+
+  html body .pmd-kazen-detail-purchase-row {
+    gap: 10px !important;
+  }
+}
+
+
+/* PMD_KAZEN_ACTION_CARDS_MATCH_ITEM_DETAIL_V4_20260618
+   Waiter, note, and valet cards now match the new item detail modal style.
+   Sharp Kazen geometry, same typography, same buttons, same smooth motion.
+*/
+html body .pmd-kazen-action-overlay {
+  position: fixed !important;
+  inset: 0 !important;
+  z-index: 10000000 !important;
+  display: grid !important;
+  place-items: center !important;
+  padding: max(12px, env(safe-area-inset-top)) 12px max(16px, env(safe-area-inset-bottom)) !important;
+  background: rgba(24, 22, 20, .56) !important;
+  -webkit-backdrop-filter: blur(10px) saturate(1.03) !important;
+  backdrop-filter: blur(10px) saturate(1.03) !important;
+  animation: pmdKazenDetailOverlayIn .2s ease-out both !important;
+}
+
+html body .pmd-kazen-action-card {
+  position: relative !important;
+  width: min(92vw, 460px) !important;
+  max-height: min(92dvh, 760px) !important;
+  overflow: auto !important;
+  padding: 0 !important;
+  border: 1px solid rgba(36, 35, 32, .22) !important;
+  border-radius: 0 !important;
+  background: linear-gradient(180deg, #fffdf8 0%, #f8f2e8 100%) !important;
+  color: #242320 !important;
+  -webkit-text-fill-color: #242320 !important;
+  box-shadow: 0 30px 86px rgba(15, 12, 8, .36), 0 1px 0 rgba(255,255,255,.74) inset !important;
+  font-family: Georgia, "Times New Roman", serif !important;
+  animation: pmdKazenDetailCardIn .28s cubic-bezier(.22, 1, .36, 1) both !important;
+}
+
+html body .pmd-kazen-action-sheet {
+  background:
+    radial-gradient(circle at 92% 0%, rgba(184, 93, 89, .045), transparent 30%),
+    linear-gradient(180deg, #fffdf8 0%, #f8f2e8 100%) !important;
+}
+
+html body .pmd-kazen-action-content {
+  position: relative !important;
+  z-index: 2 !important;
+  padding: 0 !important;
+  background: transparent !important;
+  color: #242320 !important;
+  -webkit-text-fill-color: #242320 !important;
+}
+
+html body .pmd-kazen-action-card *,
+html body .pmd-kazen-action-content * {
+  box-sizing: border-box !important;
+  text-shadow: none !important;
+}
+
+html body .pmd-kazen-action-head {
+  display: grid !important;
+  grid-template-columns: minmax(0, 1fr) 48px !important;
+  align-items: start !important;
+  gap: 18px !important;
+  padding: 24px 24px 16px !important;
+  margin: 0 !important;
+  border-bottom: 1px solid rgba(36, 35, 32, .14) !important;
+  background: transparent !important;
+}
+
+html body .pmd-kazen-action-title-block { min-width: 0 !important; }
+
+html body .pmd-kazen-action-eyebrow,
+html body .pmd-kazen-action-card .kazen-solid-eyebrow {
+  display: block !important;
+  margin-bottom: 8px !important;
+  color: #b85d59 !important;
+  -webkit-text-fill-color: #b85d59 !important;
+  font-family: Inter, ui-sans-serif, system-ui, sans-serif !important;
+  font-size: .72rem !important;
+  font-weight: 850 !important;
+  letter-spacing: .26em !important;
+  text-transform: uppercase !important;
+}
+
+html body .pmd-kazen-action-head h2 {
+  margin: 0 !important;
+  color: #242320 !important;
+  -webkit-text-fill-color: #242320 !important;
+  font-family: Georgia, "Times New Roman", serif !important;
+  font-size: clamp(1.75rem, 5.8vw, 2.55rem) !important;
+  line-height: 1 !important;
+  letter-spacing: .075em !important;
+  text-transform: uppercase !important;
+  overflow-wrap: anywhere !important;
+}
+
+html body .pmd-kazen-action-close {
+  all: unset !important;
+  box-sizing: border-box !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  width: 48px !important;
+  height: 48px !important;
+  min-width: 48px !important;
+  min-height: 48px !important;
+  border: 1px solid rgba(36, 35, 32, .22) !important;
+  border-radius: 0 !important;
+  background: rgba(255, 255, 255, .46) !important;
+  color: #242320 !important;
+  -webkit-text-fill-color: #242320 !important;
+  cursor: pointer !important;
+  transition: transform .16s ease, background .16s ease, border-color .16s ease !important;
+}
+
+html body .pmd-kazen-action-close:hover {
+  transform: translateY(-1px) !important;
+  background: rgba(255,255,255,.82) !important;
+  border-color: rgba(184, 93, 89, .42) !important;
+}
+
+html body .pmd-kazen-action-close svg,
+html body .pmd-kazen-action-close svg * {
+  width: 24px !important;
+  height: 24px !important;
+  color: #242320 !important;
+  stroke: #242320 !important;
+  fill: none !important;
+}
+
+html body .pmd-kazen-action-body {
+  padding: 18px 24px 24px !important;
+}
+
+html body .pmd-kazen-action-body p {
+  margin: 0 !important;
+  color: rgba(36, 35, 32, .78) !important;
+  -webkit-text-fill-color: rgba(36, 35, 32, .78) !important;
+  font-family: Inter, ui-sans-serif, system-ui, sans-serif !important;
+  font-size: .98rem !important;
+  line-height: 1.6 !important;
+}
+
+html body .pmd-kazen-action-card .kazen-field,
+html body .pmd-kazen-action-card textarea,
+html body .pmd-kazen-action-card input {
+  width: 100% !important;
+  border: 1px solid rgba(36, 35, 32, .16) !important;
+  border-radius: 0 !important;
+  background: rgba(255, 252, 246, .62) !important;
+  color: #242320 !important;
+  -webkit-text-fill-color: #242320 !important;
+  font-family: Inter, ui-sans-serif, system-ui, sans-serif !important;
+  font-size: .95rem !important;
+  line-height: 1.55 !important;
+  box-shadow: none !important;
+  outline: none !important;
+}
+
+html body .pmd-kazen-action-card textarea.kazen-field {
+  min-height: 136px !important;
+  padding: 14px 16px !important;
+}
+
+html body .pmd-kazen-action-card .kazen-field::placeholder,
+html body .pmd-kazen-action-card textarea::placeholder,
+html body .pmd-kazen-action-card input::placeholder {
+  color: rgba(36, 35, 32, .38) !important;
+  -webkit-text-fill-color: rgba(36, 35, 32, .38) !important;
+}
+
+html body .pmd-kazen-action-card .grid.grid-cols-2,
+html body .pmd-kazen-action-card .pmd-kazen-action-buttons {
+  display: grid !important;
+  grid-template-columns: .92fr 1.08fr !important;
+  gap: 10px !important;
+  margin-top: 16px !important;
+}
+
+html body .pmd-kazen-action-card .kazen-primary,
+html body .pmd-kazen-action-card .kazen-secondary {
+  min-height: 48px !important;
+  border-radius: 0 !important;
+  font-family: Inter, ui-sans-serif, system-ui, sans-serif !important;
+  font-size: .8rem !important;
+  font-weight: 850 !important;
+  letter-spacing: .12em !important;
+  text-transform: uppercase !important;
+  cursor: pointer !important;
+  transition: transform .16s ease, box-shadow .16s ease, background .16s ease !important;
+}
+
+html body .pmd-kazen-action-card .kazen-primary:hover,
+html body .pmd-kazen-action-card .kazen-secondary:hover {
+  transform: translateY(-1px) !important;
+}
+
+html body .pmd-kazen-action-card .kazen-secondary {
+  border: 1px solid rgba(36, 35, 32, .18) !important;
+  background: rgba(255,255,255,.5) !important;
+  color: #242320 !important;
+  -webkit-text-fill-color: #242320 !important;
+}
+
+html body .pmd-kazen-action-card .kazen-primary {
+  border: 1px solid rgba(184, 93, 89, .62) !important;
+  background: #b85d59 !important;
+  background-color: #b85d59 !important;
+  color: #fffaf3 !important;
+  -webkit-text-fill-color: #fffaf3 !important;
+  box-shadow: 0 12px 28px rgba(184, 93, 89, .16) !important;
+}
+
+@media (max-width: 540px) {
+  html body .pmd-kazen-action-card { width: min(94vw, 430px) !important; }
+  html body .pmd-kazen-action-head {
+    grid-template-columns: minmax(0, 1fr) 44px !important;
+    gap: 12px !important;
+    padding: 18px 18px 12px !important;
+  }
+  html body .pmd-kazen-action-head h2 {
+    font-size: clamp(1.7rem, 8.2vw, 2.28rem) !important;
+    letter-spacing: .06em !important;
+  }
+  html body .pmd-kazen-action-close {
+    width: 44px !important;
+    height: 44px !important;
+    min-width: 44px !important;
+    min-height: 44px !important;
+  }
+  html body .pmd-kazen-action-body { padding: 16px 18px 18px !important; }
+}

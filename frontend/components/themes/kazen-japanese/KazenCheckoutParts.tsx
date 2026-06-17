@@ -1,7 +1,7 @@
 "use client"
 
 import React from "react"
-import { ArrowLeft, Check, CreditCard, Link2, Minus, Plus, QrCode, Users } from "lucide-react"
+import { Check, CreditCard, Link2, Minus, Plus, QrCode, Users, X } from "lucide-react"
 
 import { formatCurrency } from "@/lib/currency"
 import { iconForPayment } from "@/lib/payment-icons"
@@ -71,8 +71,8 @@ export function ModalHead({ title, eyebrow, onBack }: { title: string; eyebrow?:
         {eyebrow ? <div className="kazen-solid-eyebrow">{eyebrow}</div> : null}
         <h2>{title}</h2>
       </div>
-      <button type="button" data-pmd-kazen-back="1" className="pmd-kazen-waiter-back" onClick={onBack} aria-label="Back">
-        <ArrowLeft className="h-5 w-5 pmd-kazen-back-icon" strokeWidth={1.9} />
+      <button type="button" data-pmd-kazen-back="1" className="pmd-kazen-waiter-back" onClick={onBack} aria-label="Close">
+        <X className="h-5 w-5 pmd-kazen-back-icon" strokeWidth={1.9} />
       </button>
     </div>
   )

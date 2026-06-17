@@ -37,21 +37,44 @@ function itemDescription(item: any): string {
   return String(item?.description ?? item?.menu_description ?? "")
 }
 
-function itemImage(item: any): string {
-  const images = Array.isArray(item?.images) ? item.images : []
-  const firstImage = images[0]
-  const fromImages = firstImage
-    ? String(firstImage?.url ?? firstImage?.path ?? firstImage?.image_path ?? firstImage)
-    : ""
+function rawImageValue(value: any): string {
+  if (!value) return ""
+  if (typeof value === "string") return value
+  return String(value?.url ?? value?.path ?? value?.image_path ?? value?.image ?? value?.src ?? value?.thumb ?? value?.thumbnail ?? "")
+}
 
-  return String(
-    item?.image ??
-    item?.image_url ??
-    item?.thumb ??
-    item?.thumbnail ??
-    fromImages ??
-    ""
-  )
+function itemImageList(item: any): string[] {
+  const values: any[] = []
+  const push = (value: any) => {
+    if (!value) return
+    if (Array.isArray(value)) {
+      value.forEach(push)
+      return
+    }
+    const raw = rawImageValue(value).trim()
+    if (raw) values.push(raw)
+  }
+
+  push(item?.image)
+  push(item?.image_url)
+  push(item?.imageUrl)
+  push(item?.image_path)
+  push(item?.imagePath)
+  push(item?.thumb)
+  push(item?.thumbnail)
+  push(item?.primary_image)
+  push(item?.primaryImage)
+  push(item?.images)
+  push(item?.gallery)
+  push(item?.additional_images)
+  push(item?.additionalImages)
+  push(item?.media)
+
+  return Array.from(new Set(values))
+}
+
+function itemImage(item: any): string {
+  return itemImageList(item)[0] || ""
 }
 
 function cartLineFrom(cartItem: any) {
@@ -275,7 +298,9 @@ export function KazenJapaneseBridgeTheme({
           price: Number(item?.price || 0),
           category: String(item?.category || item?.category_name || "Menu"),
           image: itemImage(item),
-          images: Array.isArray(item?.images) ? item.images : [],
+          images: itemImageList(item),
+          gallery: Array.isArray(item?.gallery) ? item.gallery : [],
+          additional_images: Array.isArray(item?.additional_images) ? item.additional_images : [],
           is_bestseller: Boolean(item?.is_bestseller),
           is_recommended: Boolean(item?.is_recommended || item?.is_featured || item?.is_popular || item?.is_chef_recommended),
         })),

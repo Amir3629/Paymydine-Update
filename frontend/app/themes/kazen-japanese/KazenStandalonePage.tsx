@@ -4,8 +4,42 @@ import "./kazen-standalone.css"
 import React, { useEffect, useMemo, useState } from "react"
 import { Bell, Car, Languages, Menu, MessageSquare, Minus, Plus, ShoppingBag } from "lucide-react"
 import { ModalCard } from "./KazenStandaloneModalCard"
+import { KazenItemDetailModal } from "./KazenItemDetailModal"
 import { pmdInstallKazenCleanHeaderButtons, pmdInstallKazenFinalDarkMode, pmdInstallKazenPremiumMotion } from "./kazenStandaloneDomRepairs"
 import { ALL_CATEGORY, defaultState, itemImage, kazenCategoryIcon, money, normalizeCategories, pmdKazenStableCategoryKey, post, resolveMediaUrl, type KazenItem, type KazenState } from "./kazenStandaloneData"
+
+function kazenItemGallery(item?: KazenItem | null): string[] {
+  if (!item) return []
+
+  const rawValues: unknown[] = []
+  const push = (value: unknown) => {
+    if (!value) return
+    if (Array.isArray(value)) {
+      value.forEach(push)
+      return
+    }
+    rawValues.push(value)
+  }
+
+  push(item.image)
+  push(item.image_url)
+  push(item.thumb)
+  push(item.thumbnail)
+  push(item.images)
+  push((item as any).gallery)
+  push((item as any).additional_images)
+  push((item as any).additionalImages)
+  push((item as any).media)
+
+  const seen = new Set<string>()
+  return rawValues
+    .map((value) => resolveMediaUrl(value))
+    .filter((value) => {
+      if (!value || seen.has(value)) return false
+      seen.add(value)
+      return true
+    })
+}
 
 export default function KazenStandalonePage() {
   // PMD_KAZEN_PREMIUM_MOTION_CALL_20260611
@@ -178,7 +212,15 @@ export default function KazenStandalonePage() {
         price: Number(item?.price ?? item?.menu_price ?? 0),
         category: String(item?.category ?? item?.category_name ?? "Menu"),
         image: item?.image ?? item?.image_url ?? item?.imageUrl ?? item?.image_path ?? item?.imagePath ?? item?.thumb ?? item?.thumbnail ?? item?.media_url ?? item?.mediaUrl ?? item?.photo_url ?? item?.photoUrl ?? item?.photo ?? item?.primary_image ?? item?.primaryImage ?? item?.images ?? item?.additional_images ?? item?.gallery ?? "",
-        images: Array.isArray(item?.images) ? item.images : [],
+        images: [
+          ...(Array.isArray(item?.images) ? item.images : []),
+          ...(Array.isArray(item?.gallery) ? item.gallery : []),
+          ...(Array.isArray(item?.additional_images) ? item.additional_images : []),
+          ...(Array.isArray(item?.additionalImages) ? item.additionalImages : []),
+          ...(Array.isArray(item?.media) ? item.media : []),
+        ],
+        gallery: Array.isArray(item?.gallery) ? item.gallery : [],
+        additional_images: Array.isArray(item?.additional_images) ? item.additional_images : [],
       }))
 
       const categories = normalizeCategories(items, Array.isArray((msg as any).categories) ? (msg as any).categories : [])
@@ -546,41 +588,16 @@ export default function KazenStandalonePage() {
       </nav>
 
       {selectedItem && (
-        <ModalCard title={selectedItem.name} eyebrow="Item detail" onClose={() => setSelectedItem(null)}>
-          {itemImage(selectedItem) ? <img src={itemImage(selectedItem)} alt={selectedItem.name} className="kazen-modal-image" /> : null}
-          <p className="mt-4 text-[.98rem] leading-7" style={{ color: "var(--kazen-muted)" }}>
-            {selectedItem.description || "Prepared with seasonal intention."}
-          </p>
-          <div className="mt-4 flex items-center justify-between border-y py-3" style={{ borderColor: "var(--kazen-line)" }}>
-            <span className="text-sm uppercase tracking-[.18em]" style={{ color: "var(--kazen-muted)" }}>Price</span>
-            <strong style={{ color: "var(--kazen-ink)" }}>{money(selectedItem.price)}</strong>
-          </div>
-
-          <div className="kazen-qty" data-pmd-kazen-qty-polished="1">
-            <button
-              type="button"
-              className="kazen-qty-btn kazen-qty-btn-minus"
-              aria-label="Decrease quantity"
-              onClick={() => setItemQty((v) => Math.max(1, v - 1))}
-            >
-              <span className="kazen-qty-symbol" aria-hidden="true">−</span>
-            </button>
-            <strong className="kazen-qty-value">{itemQty}</strong>
-            <button
-              type="button"
-              className="kazen-qty-btn kazen-qty-btn-plus"
-              aria-label="Increase quantity"
-              onClick={() => setItemQty((v) => v + 1)}
-            >
-              <span className="kazen-qty-symbol" aria-hidden="true">＋</span>
-            </button>
-          </div>
-
-          <div className="mt-4 grid grid-cols-2 gap-3">
-            <button type="button" className="kazen-secondary" onClick={() => setSelectedItem(null)}>Close</button>
-            <button type="button" className="kazen-primary" onClick={submitSelectedItem}>Add</button>
-          </div>
-        </ModalCard>
+        <KazenItemDetailModal
+          item={selectedItem}
+          images={kazenItemGallery(selectedItem)}
+          price={money(selectedItem.price)}
+          quantity={itemQty}
+          onClose={() => setSelectedItem(null)}
+          onDecrease={() => setItemQty((value) => Math.max(1, value - 1))}
+          onIncrease={() => setItemQty((value) => value + 1)}
+          onAdd={submitSelectedItem}
+        />
       )}
 
       {false && checkoutOpen && (

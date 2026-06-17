@@ -9,6 +9,10 @@ export type KazenItem = {
   thumb?: string
   thumbnail?: string
   images?: any[]
+  gallery?: any[]
+  additional_images?: any[]
+  additionalImages?: any[]
+  media?: any[]
   is_bestseller?: boolean
   is_recommended?: boolean
 }

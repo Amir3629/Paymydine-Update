@@ -1,6 +1,5 @@
 "use client"
 
-import { OptimizedImage } from "@/components/ui/optimized-image"
 import { AnimatePresence, motion } from "framer-motion"
 import { useEffect, useMemo, useRef, useState } from "react"
 import { ArrowLeft, Leaf } from "lucide-react"
@@ -113,14 +112,18 @@ export function MenuItemModal({ item, onClose, highlightSettings = defaultMenuHi
  const itemDescription = renderedItem ? t(renderedItem.descriptionKey as TranslationKey) || renderedItem.description : ""
  const itemImages = useMemo(() => {
  if (!renderedItem) return []
- const fromArray = (value: unknown): string[] => Array.isArray(value) ? value.filter((v): v is string => typeof v === "string" && v.trim().length > 0) : []
- const mediaUrls = Array.isArray((renderedItem as any).media)
- ? (renderedItem as any).media.map((m: any) => m?.url || m?.image || m?.src).filter(Boolean)
+ const fromArray = (value: unknown): string[] => Array.isArray(value)
+ ? value
+   .map((entry: any) => typeof entry === "string" ? entry : entry?.url || entry?.image || entry?.src || entry?.image_path || entry?.path || "")
+   .filter((v): v is string => typeof v === "string" && v.trim().length > 0)
  : []
+ const mediaUrls = fromArray((renderedItem as any).media)
  const merged = [
  renderedItem.image,
  ...fromArray((renderedItem as any).images),
  ...fromArray((renderedItem as any).gallery),
+ ...fromArray((renderedItem as any).additional_images),
+ ...fromArray((renderedItem as any).additionalImages),
  ...fromArray(mediaUrls),
  ].filter(Boolean) as string[]
  return Array.from(new Set(merged))
@@ -252,24 +255,37 @@ const handleModalClose = (event?: any) => {
  </Button>
 
  <div className={`relative z-10 overflow-y-auto overscroll-contain max-h-[90dvh] ${currentTheme === 'organic_botanical_paper' ? 'bg-transparent p-5 sm:p-6' : 'p-6'}`}>
- <div className={`relative w-full h-[180px] md:h-[230px] mb-6 overflow-hidden flex items-center justify-center ${currentTheme === 'organic_botanical_paper' ? 'border border-[#E1D4B9] bg-[#F3EBDD] shadow-inner' : 'rounded-2xl'}`} style={currentTheme === 'organic_botanical_paper' ? { borderRadius: '38% 62% 44% 56% / 55% 42% 58% 45%' } : undefined}>
- <AnimatePresence mode="wait">
- <motion.div
- key={`${renderedItem?.id}-${activeImageIndex}`}
- initial={{ opacity: 0, scale: 0.985 }}
- animate={{ opacity: 1, scale: 1 }}
- exit={{ opacity: 0, scale: 1.015 }}
- transition={{ duration: 1.15, ease: "easeInOut" }}
- className="absolute inset-0 p-2 md:p-3 flex items-center justify-center"
+ <div
+   className={`relative mb-6 mx-auto flex max-w-full items-center justify-center overflow-visible ${currentTheme === 'organic_botanical_paper' ? 'border border-[#E1D4B9] bg-[#F3EBDD] shadow-inner' : 'bg-black/5'}`}
+   style={currentTheme === 'organic_botanical_paper' ? { borderRadius: '0px' } : { borderRadius: '0px' }}
+   data-pmd-shared-item-gallery="true"
  >
- <OptimizedImage
+ <AnimatePresence mode="wait">
+ <motion.img
+ key={`${renderedItem?.id}-${activeImageIndex}`}
  src={getMenuImageUrl(itemImages[activeImageIndex] || renderedItem.image) || "/placeholder.svg"}
  alt={itemName}
- fill
- className="object-contain max-h-full max-w-full w-auto h-auto rounded-2xl"
+ initial={{ opacity: 0, scale: 0.99 }}
+ animate={{ opacity: 1, scale: 1 }}
+ exit={{ opacity: 0, scale: 1.01 }}
+ transition={{ duration: 0.55, ease: "easeInOut" }}
+ className="block max-w-full max-h-[42dvh] object-contain"
+ style={{ width: "auto", height: "auto", borderRadius: 0 }}
  />
- </motion.div>
  </AnimatePresence>
+ {itemImages.length > 1 && (
+   <div className="absolute bottom-3 left-1/2 flex -translate-x-1/2 items-center gap-1.5 rounded-full bg-white/75 px-2.5 py-1.5 shadow-lg backdrop-blur">
+     {itemImages.map((image, index) => (
+       <button
+         key={`${image}-${index}`}
+         type="button"
+         aria-label={`Show image ${index + 1}`}
+         onClick={() => setActiveImageIndex(index)}
+         className={`h-1.5 rounded-full transition-all ${index === activeImageIndex ? 'w-5 bg-[#0F4D43]' : 'w-1.5 bg-black/25'}`}
+       />
+     ))}
+   </div>
+ )}
  </div>
 
  {/* Content */}

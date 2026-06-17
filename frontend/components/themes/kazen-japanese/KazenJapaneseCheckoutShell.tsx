@@ -382,7 +382,7 @@ export function KazenJapaneseCheckoutShell(props: KazenJapaneseCheckoutShellProp
         <div className="kazen-solid-modal-sheet" aria-hidden="true" />
         <div className="kazen-solid-modal-content pmd-kazen-checkout-content">
           <ModalHead title={title} eyebrow={eyebrow} onBack={goBack} />
-          <div className="pmd-kazen-checkout-body">
+          <div key={checkoutStep} className="pmd-kazen-checkout-body" data-pmd-kazen-step={checkoutStep}>
             {content}
           </div>
         </div>
@@ -1541,6 +1541,506 @@ export function KazenJapaneseCheckoutShell(props: KazenJapaneseCheckoutShellProp
         html body .pmd-kazen-checkout-waiter[data-pmd-kazen-checkout-mode="dark"] .pmd-kazen-tip-grid .pmd-kazen-choice-active {
           color: #f6e8c8 !important;
           -webkit-text-fill-color: #f6e8c8 !important;
+        }
+
+
+
+        /* PMD_KAZEN_CHECKOUT_MATCH_ITEM_DETAIL_V4_20260618
+           Make Kazen checkout/order cards match the new item detail modal visual language.
+           Sharp Japanese geometry, same typography, same action buttons, same smooth entrance.
+        */
+        html body .pmd-kazen-checkout-waiter {
+          padding: max(12px, env(safe-area-inset-top)) 12px max(16px, env(safe-area-inset-bottom)) !important;
+          background: rgba(24, 22, 20, .56) !important;
+          -webkit-backdrop-filter: blur(10px) saturate(1.03) !important;
+          backdrop-filter: blur(10px) saturate(1.03) !important;
+          animation: pmdKazenDetailOverlayIn .2s ease-out both !important;
+        }
+
+        html body .pmd-kazen-checkout-panel {
+          width: min(92vw, 460px) !important;
+          max-height: min(92dvh, 760px) !important;
+          padding: 0 !important;
+          overflow: auto !important;
+          border: 1px solid rgba(36, 35, 32, .22) !important;
+          border-radius: 0 !important;
+          background: linear-gradient(180deg, #fffdf8 0%, #f8f2e8 100%) !important;
+          color: #242320 !important;
+          -webkit-text-fill-color: #242320 !important;
+          box-shadow: 0 30px 86px rgba(15, 12, 8, .36), 0 1px 0 rgba(255,255,255,.74) inset !important;
+          animation: pmdKazenDetailCardIn .28s cubic-bezier(.22, 1, .36, 1) both !important;
+        }
+
+        html body .pmd-kazen-checkout-panel .kazen-solid-modal-sheet {
+          background:
+            radial-gradient(circle at 92% 0%, rgba(184, 93, 89, .045), transparent 30%),
+            linear-gradient(180deg, #fffdf8 0%, #f8f2e8 100%) !important;
+        }
+
+        html body .pmd-kazen-checkout-content {
+          padding: 0 !important;
+        }
+
+        html body .pmd-kazen-checkout-waiter .kazen-solid-modal-head,
+        html body .pmd-kazen-checkout-waiter .pmd-kazen-checkout-head {
+          display: grid !important;
+          grid-template-columns: minmax(0, 1fr) 48px !important;
+          align-items: start !important;
+          gap: 18px !important;
+          padding: 24px 24px 16px !important;
+          margin: 0 !important;
+          border-bottom: 1px solid rgba(36, 35, 32, .14) !important;
+          background: transparent !important;
+        }
+
+        html body .pmd-kazen-checkout-waiter .kazen-solid-modal-head h2,
+        html body .pmd-kazen-checkout-waiter .pmd-kazen-checkout-head h2 {
+          margin: 0 !important;
+          color: #242320 !important;
+          -webkit-text-fill-color: #242320 !important;
+          font-family: Georgia, "Times New Roman", serif !important;
+          font-size: clamp(1.75rem, 5.8vw, 2.55rem) !important;
+          line-height: 1 !important;
+          letter-spacing: .075em !important;
+          text-transform: uppercase !important;
+          overflow-wrap: anywhere !important;
+        }
+
+        html body .pmd-kazen-checkout-waiter .kazen-solid-eyebrow {
+          color: #b85d59 !important;
+          -webkit-text-fill-color: #b85d59 !important;
+          font-family: Inter, ui-sans-serif, system-ui, sans-serif !important;
+          font-size: .72rem !important;
+          font-weight: 850 !important;
+          letter-spacing: .26em !important;
+          text-transform: uppercase !important;
+          margin-bottom: 8px !important;
+        }
+
+        html body .pmd-kazen-checkout-waiter .pmd-kazen-waiter-back,
+        html body .pmd-kazen-checkout-waiter .kazen-solid-close {
+          all: unset !important;
+          box-sizing: border-box !important;
+          display: inline-flex !important;
+          align-items: center !important;
+          justify-content: center !important;
+          width: 48px !important;
+          height: 48px !important;
+          min-width: 48px !important;
+          min-height: 48px !important;
+          border: 1px solid rgba(36, 35, 32, .22) !important;
+          border-radius: 0 !important;
+          background: rgba(255, 255, 255, .46) !important;
+          color: #242320 !important;
+          -webkit-text-fill-color: #242320 !important;
+          cursor: pointer !important;
+          transition: transform .16s ease, background .16s ease, border-color .16s ease !important;
+        }
+
+        html body .pmd-kazen-checkout-waiter .pmd-kazen-waiter-back:hover,
+        html body .pmd-kazen-checkout-waiter .kazen-solid-close:hover {
+          transform: translateY(-1px) !important;
+          background: rgba(255,255,255,.82) !important;
+          border-color: rgba(184, 93, 89, .42) !important;
+        }
+
+        html body .pmd-kazen-checkout-waiter .pmd-kazen-back-icon,
+        html body .pmd-kazen-checkout-waiter .pmd-kazen-back-icon *,
+        html body .pmd-kazen-checkout-waiter .pmd-kazen-waiter-back svg,
+        html body .pmd-kazen-checkout-waiter .pmd-kazen-waiter-back svg * {
+          color: #242320 !important;
+          -webkit-text-fill-color: #242320 !important;
+          stroke: #242320 !important;
+          fill: none !important;
+        }
+
+        html body .pmd-kazen-checkout-body {
+          display: grid !important;
+          gap: 16px !important;
+          padding: 18px 24px 24px !important;
+        }
+
+        html body .pmd-kazen-checkout-card {
+          border: 1px solid rgba(36, 35, 32, .16) !important;
+          border-radius: 0 !important;
+          background: rgba(255, 252, 246, .55) !important;
+          padding: 16px 18px !important;
+          box-shadow: none !important;
+        }
+
+        html body .pmd-kazen-cart-line {
+          padding: 12px 0 !important;
+          border: 0 !important;
+          border-bottom: 1px solid rgba(36, 35, 32, .12) !important;
+          background: transparent !important;
+          box-shadow: none !important;
+        }
+
+        html body .pmd-kazen-cart-line:last-child { border-bottom: 0 !important; }
+
+        html body .pmd-kazen-cart-line span,
+        html body .pmd-kazen-cart-line strong,
+        html body .pmd-kazen-line span,
+        html body .pmd-kazen-line strong {
+          font-family: Inter, ui-sans-serif, system-ui, sans-serif !important;
+        }
+
+        html body .pmd-kazen-cart-line span,
+        html body .pmd-kazen-line span {
+          color: #242320 !important;
+          -webkit-text-fill-color: #242320 !important;
+          font-weight: 760 !important;
+        }
+
+        html body .pmd-kazen-cart-line strong,
+        html body .pmd-kazen-line strong,
+        html body .pmd-kazen-line-strong strong {
+          color: #b85d59 !important;
+          -webkit-text-fill-color: #b85d59 !important;
+          font-weight: 850 !important;
+        }
+
+        html body .pmd-kazen-total-plain {
+          padding: 0 !important;
+          background: transparent !important;
+        }
+
+        html body .pmd-kazen-actions {
+          display: grid !important;
+          gap: 10px !important;
+          margin-top: 2px !important;
+        }
+
+        html body .pmd-kazen-actions-two {
+          grid-template-columns: .92fr 1.08fr !important;
+        }
+
+        html body .pmd-kazen-checkout-waiter .pmd-kazen-waiter-btn,
+        html body .pmd-kazen-checkout-waiter .kazen-primary,
+        html body .pmd-kazen-checkout-waiter .kazen-secondary,
+        html body .pmd-kazen-payment-action button,
+        html body .pmd-kazen-payment-action [data-pmd-stripe-native-button="1"] {
+          min-height: 48px !important;
+          border-radius: 0 !important;
+          font-family: Inter, ui-sans-serif, system-ui, sans-serif !important;
+          font-size: .8rem !important;
+          font-weight: 850 !important;
+          letter-spacing: .12em !important;
+          text-transform: uppercase !important;
+          cursor: pointer !important;
+          box-shadow: none !important;
+          transition: transform .16s ease, box-shadow .16s ease, background .16s ease !important;
+        }
+
+        html body .pmd-kazen-checkout-waiter .pmd-kazen-waiter-btn:hover,
+        html body .pmd-kazen-payment-action button:hover {
+          transform: translateY(-1px) !important;
+        }
+
+        html body .pmd-kazen-checkout-waiter .pmd-kazen-waiter-primary,
+        html body .pmd-kazen-checkout-waiter .kazen-primary,
+        html body .pmd-kazen-payment-action button,
+        html body .pmd-kazen-payment-action [data-pmd-stripe-native-button="1"] {
+          border: 1px solid rgba(184, 93, 89, .62) !important;
+          background: #b85d59 !important;
+          background-color: #b85d59 !important;
+          color: #fffaf3 !important;
+          -webkit-text-fill-color: #fffaf3 !important;
+          box-shadow: 0 12px 28px rgba(184, 93, 89, .16) !important;
+        }
+
+        html body .pmd-kazen-checkout-waiter .pmd-kazen-waiter-secondary,
+        html body .pmd-kazen-checkout-waiter .kazen-secondary {
+          border: 1px solid rgba(36, 35, 32, .18) !important;
+          background: rgba(255,255,255,.5) !important;
+          color: #242320 !important;
+          -webkit-text-fill-color: #242320 !important;
+        }
+
+        html body .pmd-kazen-checkout-waiter .pmd-kazen-waiter-primary *,
+        html body .pmd-kazen-checkout-waiter .kazen-primary *,
+        html body .pmd-kazen-payment-action button * {
+          color: #fffaf3 !important;
+          -webkit-text-fill-color: #fffaf3 !important;
+          stroke: #fffaf3 !important;
+        }
+
+        @media (max-width: 540px) {
+          html body .pmd-kazen-checkout-panel { width: min(94vw, 430px) !important; }
+          html body .pmd-kazen-checkout-waiter .kazen-solid-modal-head,
+          html body .pmd-kazen-checkout-waiter .pmd-kazen-checkout-head {
+            grid-template-columns: minmax(0, 1fr) 44px !important;
+            gap: 12px !important;
+            padding: 18px 18px 12px !important;
+          }
+          html body .pmd-kazen-checkout-waiter .kazen-solid-modal-head h2,
+          html body .pmd-kazen-checkout-waiter .pmd-kazen-checkout-head h2 {
+            font-size: clamp(1.7rem, 8.2vw, 2.28rem) !important;
+            letter-spacing: .06em !important;
+          }
+          html body .pmd-kazen-checkout-body { padding: 16px 18px 18px !important; }
+        }
+
+
+        /* PMD_KAZEN_CHECKOUT_STEP_BUTTON_MOTION_V5_20260618
+           Polish every Kazen checkout step: close icon, consistent buttons, smooth step motion.
+        */
+        html body .pmd-kazen-checkout-waiter .pmd-kazen-checkout-body {
+          animation: pmdKazenCheckoutStepIn .24s cubic-bezier(.22, 1, .36, 1) both !important;
+          transform-origin: 50% 22% !important;
+          will-change: transform, opacity !important;
+        }
+
+        html body .pmd-kazen-checkout-waiter .pmd-kazen-checkout-card,
+        html body .pmd-kazen-checkout-waiter .pmd-kazen-items-frame,
+        html body .pmd-kazen-checkout-waiter .pmd-kazen-method-grid,
+        html body .pmd-kazen-checkout-waiter .pmd-kazen-tabs,
+        html body .pmd-kazen-checkout-waiter .pmd-kazen-actions,
+        html body .pmd-kazen-checkout-waiter .pmd-kazen-payment-action,
+        html body .pmd-kazen-checkout-waiter .pmd-kazen-list {
+          animation: pmdKazenCheckoutBlockIn .28s cubic-bezier(.22, 1, .36, 1) both !important;
+        }
+
+        html body .pmd-kazen-checkout-waiter .pmd-kazen-waiter-back {
+          position: relative !important;
+          border-radius: 0 !important;
+          overflow: hidden !important;
+        }
+
+        html body .pmd-kazen-checkout-waiter .pmd-kazen-waiter-back .pmd-kazen-back-icon,
+        html body .pmd-kazen-checkout-waiter .pmd-kazen-waiter-back .pmd-kazen-back-icon *,
+        html body .pmd-kazen-checkout-waiter .pmd-kazen-waiter-back svg,
+        html body .pmd-kazen-checkout-waiter .pmd-kazen-waiter-back svg * {
+          width: 22px !important;
+          height: 22px !important;
+          stroke: #242320 !important;
+          color: #242320 !important;
+          fill: none !important;
+          opacity: 1 !important;
+        }
+
+        html body .pmd-kazen-checkout-waiter .pmd-kazen-waiter-back:active,
+        html body .pmd-kazen-checkout-waiter button:active,
+        html body .pmd-kazen-checkout-waiter [role="button"]:active {
+          transform: translateY(0) scale(.985) !important;
+        }
+
+        html body .pmd-kazen-checkout-waiter button:not(.pmd-kazen-waiter-back),
+        html body .pmd-kazen-checkout-waiter .pmd-kazen-waiter-btn,
+        html body .pmd-kazen-checkout-waiter .kazen-primary,
+        html body .pmd-kazen-checkout-waiter .kazen-secondary,
+        html body .pmd-kazen-checkout-waiter .pmd-kazen-tab,
+        html body .pmd-kazen-checkout-waiter .pmd-kazen-method,
+        html body .pmd-kazen-checkout-waiter .pmd-payment-method-tile,
+        html body .pmd-kazen-checkout-waiter .pmd-kazen-assign-row,
+        html body .pmd-kazen-checkout-waiter .pmd-kazen-apply,
+        html body .pmd-kazen-checkout-waiter .pmd-kazen-payment-action button {
+          border-radius: 0 !important;
+          box-shadow: none !important;
+          background-image: none !important;
+          transition:
+            transform .16s cubic-bezier(.22, 1, .36, 1),
+            border-color .16s ease,
+            background-color .16s ease,
+            box-shadow .16s ease,
+            opacity .16s ease !important;
+          touch-action: manipulation !important;
+          -webkit-tap-highlight-color: transparent !important;
+        }
+
+        html body .pmd-kazen-checkout-waiter button:not(:disabled):not(.pmd-kazen-waiter-back):hover,
+        html body .pmd-kazen-checkout-waiter .pmd-payment-method-tile:hover,
+        html body .pmd-kazen-checkout-waiter .pmd-kazen-assign-row:hover,
+        html body .pmd-kazen-checkout-waiter .pmd-kazen-method:hover,
+        html body .pmd-kazen-checkout-waiter .pmd-kazen-tab:hover {
+          transform: translateY(-1px) !important;
+          border-color: rgba(184, 93, 89, .44) !important;
+          box-shadow: 0 10px 24px rgba(36, 30, 24, .07) !important;
+        }
+
+        html body .pmd-kazen-checkout-waiter button:not(.pmd-kazen-waiter-back):focus-visible,
+        html body .pmd-kazen-checkout-waiter .pmd-payment-method-tile:focus-visible,
+        html body .pmd-kazen-checkout-waiter [role="button"]:focus-visible {
+          outline: 2px solid rgba(184, 93, 89, .34) !important;
+          outline-offset: 2px !important;
+        }
+
+        html body .pmd-kazen-checkout-waiter .pmd-kazen-actions .pmd-kazen-waiter-primary,
+        html body .pmd-kazen-checkout-waiter .pmd-kazen-actions .kazen-primary,
+        html body .pmd-kazen-checkout-waiter .pmd-kazen-payment-action button,
+        html body .pmd-kazen-checkout-waiter .pmd-kazen-payment-action [data-pmd-stripe-native-button="1"] {
+          min-height: 54px !important;
+          display: inline-flex !important;
+          align-items: center !important;
+          justify-content: center !important;
+          padding: 13px 16px !important;
+          border: 1px solid rgba(184, 93, 89, .66) !important;
+          background: #b85d59 !important;
+          background-color: #b85d59 !important;
+          color: #fffaf3 !important;
+          -webkit-text-fill-color: #fffaf3 !important;
+          font-family: Inter, ui-sans-serif, system-ui, sans-serif !important;
+          font-size: .8rem !important;
+          font-weight: 900 !important;
+          letter-spacing: .13em !important;
+          text-transform: uppercase !important;
+          line-height: 1.1 !important;
+          text-align: center !important;
+        }
+
+        html body .pmd-kazen-checkout-waiter .pmd-kazen-actions .pmd-kazen-waiter-secondary,
+        html body .pmd-kazen-checkout-waiter .pmd-kazen-actions .kazen-secondary,
+        html body .pmd-kazen-checkout-waiter .pmd-kazen-tab,
+        html body .pmd-kazen-checkout-waiter .pmd-kazen-method,
+        html body .pmd-kazen-checkout-waiter .pmd-payment-method-tile,
+        html body .pmd-kazen-checkout-waiter .pmd-kazen-apply,
+        html body .pmd-kazen-checkout-waiter .pmd-kazen-tip-grid button,
+        html body .pmd-kazen-checkout-waiter .pmd-kazen-assign-row {
+          min-height: 48px !important;
+          display: inline-flex !important;
+          align-items: center !important;
+          justify-content: center !important;
+          gap: 8px !important;
+          padding: 12px 14px !important;
+          border: 1px solid rgba(36, 35, 32, .18) !important;
+          background: rgba(255,255,255,.48) !important;
+          background-color: rgba(255,255,255,.48) !important;
+          color: #242320 !important;
+          -webkit-text-fill-color: #242320 !important;
+          font-family: Inter, ui-sans-serif, system-ui, sans-serif !important;
+          font-size: .78rem !important;
+          font-weight: 850 !important;
+          letter-spacing: .11em !important;
+          text-transform: uppercase !important;
+          line-height: 1.1 !important;
+          text-align: center !important;
+        }
+
+        html body .pmd-kazen-checkout-waiter .pmd-kazen-tab-active,
+        html body .pmd-kazen-checkout-waiter .pmd-kazen-method-active,
+        html body .pmd-kazen-checkout-waiter .pmd-kazen-choice-active,
+        html body .pmd-kazen-checkout-waiter [data-pmd-selected="1"] {
+          border-color: rgba(184, 93, 89, .58) !important;
+          background: rgba(184, 93, 89, .10) !important;
+          background-color: rgba(184, 93, 89, .10) !important;
+          color: #b85d59 !important;
+          -webkit-text-fill-color: #b85d59 !important;
+          box-shadow: inset 0 0 0 1px rgba(184, 93, 89, .08) !important;
+        }
+
+        html body .pmd-kazen-checkout-waiter button:disabled,
+        html body .pmd-kazen-checkout-waiter button[disabled],
+        html body .pmd-kazen-checkout-waiter .pmd-kazen-payment-action button:disabled,
+        html body .pmd-kazen-checkout-waiter .pmd-kazen-payment-action [disabled] {
+          opacity: .46 !important;
+          cursor: not-allowed !important;
+          transform: none !important;
+          box-shadow: none !important;
+          background: rgba(255,255,255,.28) !important;
+          background-color: rgba(255,255,255,.28) !important;
+          border-color: rgba(36,35,32,.13) !important;
+          color: rgba(36,35,32,.52) !important;
+          -webkit-text-fill-color: rgba(36,35,32,.52) !important;
+        }
+
+        html body .pmd-kazen-checkout-waiter button *,
+        html body .pmd-kazen-checkout-waiter .pmd-payment-method-tile *,
+        html body .pmd-kazen-checkout-waiter .pmd-kazen-method *,
+        html body .pmd-kazen-checkout-waiter .pmd-kazen-tab * {
+          color: inherit !important;
+          -webkit-text-fill-color: inherit !important;
+          stroke: currentColor !important;
+        }
+
+        html body .pmd-kazen-checkout-waiter .pmd-kazen-method-grid,
+        html body .pmd-kazen-checkout-waiter .pmd-kazen-tabs,
+        html body .pmd-kazen-checkout-waiter .pmd-kazen-tip-grid {
+          gap: 10px !important;
+        }
+
+        html body .pmd-kazen-checkout-waiter .pmd-kazen-method,
+        html body .pmd-kazen-checkout-waiter .pmd-payment-method-tile {
+          min-height: 68px !important;
+          flex-direction: column !important;
+        }
+
+        html body .pmd-kazen-checkout-waiter .pmd-kazen-coupon-row {
+          align-items: stretch !important;
+        }
+
+        html body .pmd-kazen-checkout-waiter .pmd-kazen-apply {
+          min-width: 96px !important;
+        }
+
+        html body .pmd-kazen-checkout-waiter .pmd-kazen-share-row,
+        html body .pmd-kazen-checkout-waiter .pmd-kazen-person-head,
+        html body .pmd-kazen-checkout-waiter .pmd-kazen-share-total,
+        html body .pmd-kazen-checkout-waiter .pmd-kazen-chip {
+          border-radius: 0 !important;
+          transition: border-color .16s ease, background-color .16s ease, transform .16s ease !important;
+        }
+
+        html body .pmd-kazen-checkout-waiter[data-pmd-kazen-checkout-mode="dark"] .pmd-kazen-waiter-back .pmd-kazen-back-icon,
+        html body .pmd-kazen-checkout-waiter[data-pmd-kazen-checkout-mode="dark"] .pmd-kazen-waiter-back .pmd-kazen-back-icon *,
+        html body .pmd-kazen-checkout-waiter[data-pmd-kazen-checkout-mode="dark"] .pmd-kazen-waiter-back svg,
+        html body .pmd-kazen-checkout-waiter[data-pmd-kazen-checkout-mode="dark"] .pmd-kazen-waiter-back svg * {
+          stroke: #f6e8c8 !important;
+          color: #f6e8c8 !important;
+        }
+
+        html body .pmd-kazen-checkout-waiter[data-pmd-kazen-checkout-mode="dark"] .pmd-kazen-actions .pmd-kazen-waiter-primary,
+        html body .pmd-kazen-checkout-waiter[data-pmd-kazen-checkout-mode="dark"] .pmd-kazen-actions .kazen-primary,
+        html body .pmd-kazen-checkout-waiter[data-pmd-kazen-checkout-mode="dark"] .pmd-kazen-payment-action button,
+        html body .pmd-kazen-checkout-waiter[data-pmd-kazen-checkout-mode="dark"] .pmd-kazen-payment-action [data-pmd-stripe-native-button="1"] {
+          background: linear-gradient(180deg, rgba(61, 18, 14, .88), rgba(32, 10, 8, .92)) !important;
+          border-color: rgba(223,104,93,.66) !important;
+          color: #f6e8c8 !important;
+          -webkit-text-fill-color: #f6e8c8 !important;
+        }
+
+        html body .pmd-kazen-checkout-waiter[data-pmd-kazen-checkout-mode="dark"] .pmd-kazen-actions .pmd-kazen-waiter-secondary,
+        html body .pmd-kazen-checkout-waiter[data-pmd-kazen-checkout-mode="dark"] .pmd-kazen-actions .kazen-secondary,
+        html body .pmd-kazen-checkout-waiter[data-pmd-kazen-checkout-mode="dark"] .pmd-kazen-tab,
+        html body .pmd-kazen-checkout-waiter[data-pmd-kazen-checkout-mode="dark"] .pmd-kazen-method,
+        html body .pmd-kazen-checkout-waiter[data-pmd-kazen-checkout-mode="dark"] .pmd-payment-method-tile,
+        html body .pmd-kazen-checkout-waiter[data-pmd-kazen-checkout-mode="dark"] .pmd-kazen-apply,
+        html body .pmd-kazen-checkout-waiter[data-pmd-kazen-checkout-mode="dark"] .pmd-kazen-tip-grid button,
+        html body .pmd-kazen-checkout-waiter[data-pmd-kazen-checkout-mode="dark"] .pmd-kazen-assign-row {
+          background: rgba(12, 9, 6, .86) !important;
+          border-color: rgba(198,164,93,.36) !important;
+          color: #f6e8c8 !important;
+          -webkit-text-fill-color: #f6e8c8 !important;
+        }
+
+        html body .pmd-kazen-checkout-waiter[data-pmd-kazen-checkout-mode="dark"] .pmd-kazen-tab-active,
+        html body .pmd-kazen-checkout-waiter[data-pmd-kazen-checkout-mode="dark"] .pmd-kazen-method-active,
+        html body .pmd-kazen-checkout-waiter[data-pmd-kazen-checkout-mode="dark"] .pmd-kazen-choice-active,
+        html body .pmd-kazen-checkout-waiter[data-pmd-kazen-checkout-mode="dark"] [data-pmd-selected="1"] {
+          background: rgba(61, 18, 14, .68) !important;
+          border-color: rgba(223,104,93,.55) !important;
+          color: #f6e8c8 !important;
+          -webkit-text-fill-color: #f6e8c8 !important;
+        }
+
+        @keyframes pmdKazenCheckoutStepIn {
+          from { opacity: 0; transform: translateY(10px) scale(.992); }
+          to { opacity: 1; transform: translateY(0) scale(1); }
+        }
+
+        @keyframes pmdKazenCheckoutBlockIn {
+          from { opacity: 0; transform: translateY(7px); }
+          to { opacity: 1; transform: translateY(0); }
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+          html body .pmd-kazen-checkout-waiter,
+          html body .pmd-kazen-checkout-panel,
+          html body .pmd-kazen-checkout-body,
+          html body .pmd-kazen-checkout-card,
+          html body .pmd-kazen-checkout-waiter * {
+            animation: none !important;
+            transition: none !important;
+          }
         }
 
       `}</style>
