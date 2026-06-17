@@ -7,7 +7,12 @@ npm run build
 node node_modules/typescript/bin/tsc --noEmit --pretty false
 npm run smoke:prod
 npm run checkout:safety
+npm run checkout:architecture
+npm run e2e:checkout:guard
 npm run legacy-css:guard
+npm run dom-compat:guard
+npm run cms-store:guard
+npm run customer-menu:controller-guard
 
 theme_any_count=$({ grep -R '\bany\b' features/customer-menu/theme --include='*.ts' --include='*.tsx' 2>/dev/null || true; } | wc -l | awk '{print $1}')
 if [[ "$theme_any_count" -gt 5 ]]; then
@@ -63,12 +68,10 @@ if grep -q "Base amount" features/customer-menu/checkout/NeutralPaymentPanel.tsx
 fi
 echo "✅ NeutralPaymentPanel does not render legacy Base amount label"
 
-if [[ ! -f features/customer-menu/legacy-dom-repairs/usePaymentModalDomRepairs.ts ]]; then
-  if [[ ! -f tests/payment-modal-e2e-visual.md && ! -f scripts/pmd-payment-modal-e2e.sh ]]; then
-    echo "❌ usePaymentModalDomRepairs.ts removed without explicit E2E/visual coverage marker"
-    exit 1
-  fi
+if [[ -d features/customer-menu/legacy-dom-repairs ]]; then
+  echo "❌ legacy-dom-repairs folder still exists; DOM compatibility effects should be owner-adjacent"
+  exit 1
 fi
-echo "✅ usePaymentModalDomRepairs.ts retained or covered"
+echo "✅ legacy-dom-repairs folder removed"
 
 echo "✅ final frontend acceptance passed"

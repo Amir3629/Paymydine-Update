@@ -7,7 +7,7 @@ import type { MenuItem, MenuHighlightSettings } from "@/lib/data"
 import { defaultMenuHighlightSettings } from "@/lib/data"
 import { useLanguageStore } from "@/store/language-store"
 import { useCartStore } from "@/store/cart-store"
-import { useCmsStore } from "@/store/cms-store"
+import { getTaxSettingsSnapshot } from "@/store/cms/tax-settings-store"
 import type { TranslationKey } from "@/lib/translations"
 import { truncateText } from "@/lib/utils"
 import { OptimizedImage } from "@/components/ui/optimized-image"
@@ -32,7 +32,7 @@ export function ExpandingToolbarMenuItemCard({ item, onSelect, onFirstAdd, prior
     e.stopPropagation()
     // IMPORTANT: item from filteredItems has adjusted price, but cart needs ORIGINAL price
     // So we need to revert the price adjustment before adding to cart
-    const { taxSettings } = useCmsStore.getState()
+    const taxSettings = getTaxSettingsSnapshot()
     let itemToAdd = { ...item }
 
     if (taxSettings.enabled && taxSettings.percentage > 0 && taxSettings.menuPrice === 0) {
@@ -128,6 +128,7 @@ export function ExpandingToolbarMenuItemCard({ item, onSelect, onFirstAdd, prior
               className="quantity-btn pmd-v2-action-circle w-12 h-12 font-bold text-lg"
               onClick={handleAdd}
               aria-label="Add to cart"
+              data-testid="pmd-menu-add-to-cart"
             >
               {quantity > 0 ? (
                 <span className="text-lg font-bold">{quantity}</span>

@@ -1,5 +1,5 @@
 -- PayMyDine schema-only dump
--- Generated UTC: Wed Jun 17 15:51:50 UTC 2026
+-- Generated UTC: Wed Jun 17 17:43:45 UTC 2026
 -- Source server: vps-252f1bc4
 -- Data rows are NOT included
 
@@ -3406,7 +3406,7 @@ CREATE TABLE `ti_working_hours` (
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2026-06-17 15:51:50
+-- Dump completed on 2026-06-17 17:43:45
 
 -- ============================================================
 -- DATABASE: mimoza
@@ -5553,7 +5553,7 @@ CREATE TABLE `ti_pmd_table_order_drafts` (
   KEY `ti_pmd_table_order_drafts_qr_index` (`qr`),
   KEY `ti_pmd_table_order_drafts_status_index` (`status`),
   KEY `ti_pmd_table_order_drafts_order_id_index` (`order_id`)
-) ENGINE=InnoDB AUTO_INCREMENT=521 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=522 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -6411,7 +6411,7 @@ CREATE TABLE `ti_working_hours` (
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2026-06-17 15:51:51
+-- Dump completed on 2026-06-17 17:43:45
 
 -- ============================================================
 -- DATABASE: rosana
@@ -8746,7 +8746,7 @@ CREATE TABLE `ti_working_hours` (
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2026-06-17 15:51:51
+-- Dump completed on 2026-06-17 17:43:46
 
 -- ============================================================
 -- DATABASE: persian
@@ -10676,7 +10676,7 @@ CREATE TABLE `ti_working_hours` (
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2026-06-17 15:51:51
+-- Dump completed on 2026-06-17 17:43:46
 
 -- ============================================================
 -- DATABASE: newtenantdb
@@ -12603,4 +12603,4 @@ CREATE TABLE `ti_working_hours` (
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2026-06-17 15:51:52
+-- Dump completed on 2026-06-17 17:43:46

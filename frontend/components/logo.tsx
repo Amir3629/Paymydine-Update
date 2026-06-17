@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import { cn } from "@/lib/utils"
 import { useLanguageStore } from "@/store/language-store"
 import { LanguageSwitcher } from "./language-switcher"
-import { useCmsStore } from "@/store/cms-store"
+import { useCmsConfigStore } from "@/store/cms/cms-config-store"
 import { useThemeStore } from "@/store/theme-store"
 import { useCartStore } from "@/store/cart-store"
 import { ArrowLeft } from "lucide-react"
@@ -59,7 +59,7 @@ const toBackendAssetUrl = (rel?: string | null) => {
 // FIXED: Create a component that uses useSearchParams
 function LogoContent({ className, tableNumber }: { className?: string, tableNumber?: string }) {
   const { t } = useLanguageStore()
-  const { settings: cmsSettings } = useCmsStore()
+  const { settings: cmsSettings } = useCmsConfigStore()
   const { settings: themeSettings } = useThemeStore()
   const { tableInfo } = useCartStore()
   const pathname = usePathname()

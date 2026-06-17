@@ -2,14 +2,14 @@
 
 import type React from "react"
 
-import { useCmsStore } from "@/store/cms-store"
+import { useCmsConfigStore } from "@/store/cms/cms-config-store"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { useToast } from "@/components/ui/use-toast"
 
 export default function GeneralSettingsPage() {
-  const { settings, updateSettings } = useCmsStore()
+  const { settings, updateSettings } = useCmsConfigStore()
   const { toast } = useToast()
 
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {

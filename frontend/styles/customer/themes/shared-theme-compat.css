@@ -45,3 +45,75 @@ html[data-theme="clean-light"] .pmd-v2-pill * {
   -webkit-text-fill-color: #111827 !important;
   stroke: #111827 !important;
 }
+
+/* PMD_ORGANIC_DOM_POLISH_REAL_CSS_FIXES_20260617
+   Replaces Organic DOM polish hook styling with marker-scoped CSS. */
+html[data-pmd-organic-botanical-active="1"] .pmd-checkout-modal[data-pmd-checkout-design-system="1"],
+body[data-pmd-organic-botanical-active="1"] .pmd-checkout-modal[data-pmd-checkout-design-system="1"] {
+  background-color: #f5f8f0;
+  background-image:
+    linear-gradient(180deg, rgba(255, 255, 255, .42), rgba(255, 255, 255, 0)),
+    radial-gradient(circle at 1px 1px, rgba(116, 125, 85, .085) 1px, transparent 0);
+  background-size: 100% 100%, 16px 16px;
+  background-repeat: no-repeat, repeat;
+  border-color: #ded2ba;
+  color: #343529;
+  box-shadow: 0 24px 70px -20px rgba(60, 53, 41, .52), inset 0 1px 0 rgba(255, 255, 255, .72);
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+}
+
+html[data-pmd-organic-botanical-active="1"] .pmd-checkout-modal[data-pmd-checkout-design-system="1"] .pmd-checkout-body,
+body[data-pmd-organic-botanical-active="1"] .pmd-checkout-modal[data-pmd-checkout-design-system="1"] .pmd-checkout-body,
+html[data-pmd-organic-botanical-active="1"] .pmd-checkout-modal[data-pmd-checkout-design-system="1"] [data-pmd-checkout-scroll="1"],
+body[data-pmd-organic-botanical-active="1"] .pmd-checkout-modal[data-pmd-checkout-design-system="1"] [data-pmd-checkout-scroll="1"] {
+  background-color: #f6efe2;
+  background-image: radial-gradient(circle at 1px 1px, rgba(116, 125, 85, .075) 1px, transparent 0);
+  background-size: 16px 16px;
+  color: #343529;
+}
+
+html[data-pmd-organic-botanical-active="1"] .pmd-checkout-modal[data-pmd-checkout-design-system="1"] .surface-sub,
+html[data-pmd-organic-botanical-active="1"] .pmd-checkout-modal[data-pmd-checkout-design-system="1"] .pmd-checkout-flat-section,
+html[data-pmd-organic-botanical-active="1"] .pmd-checkout-modal[data-pmd-checkout-design-system="1"] .pmd-checkout-item-card,
+html[data-pmd-organic-botanical-active="1"] .pmd-checkout-modal[data-pmd-checkout-design-system="1"] .pmd-checkout-total-card,
+html[data-pmd-organic-botanical-active="1"] .pmd-checkout-modal[data-pmd-checkout-design-system="1"] .pmd-checkout-payment-card,
+html[data-pmd-organic-botanical-active="1"] .pmd-checkout-modal[data-pmd-checkout-design-system="1"] .pmd-checkout-meta-row,
+html[data-pmd-organic-botanical-active="1"] .pmd-checkout-modal[data-pmd-checkout-design-system="1"] .pmd-checkout-item-row,
+body[data-pmd-organic-botanical-active="1"] .pmd-checkout-modal[data-pmd-checkout-design-system="1"] .surface-sub,
+body[data-pmd-organic-botanical-active="1"] .pmd-checkout-modal[data-pmd-checkout-design-system="1"] .pmd-checkout-flat-section,
+body[data-pmd-organic-botanical-active="1"] .pmd-checkout-modal[data-pmd-checkout-design-system="1"] .pmd-checkout-item-card,
+body[data-pmd-organic-botanical-active="1"] .pmd-checkout-modal[data-pmd-checkout-design-system="1"] .pmd-checkout-total-card,
+body[data-pmd-organic-botanical-active="1"] .pmd-checkout-modal[data-pmd-checkout-design-system="1"] .pmd-checkout-payment-card,
+body[data-pmd-organic-botanical-active="1"] .pmd-checkout-modal[data-pmd-checkout-design-system="1"] .pmd-checkout-meta-row,
+body[data-pmd-organic-botanical-active="1"] .pmd-checkout-modal[data-pmd-checkout-design-system="1"] .pmd-checkout-item-row {
+  background-color: #f5f8f0;
+  background-image: radial-gradient(circle at 1px 1px, rgba(116, 125, 85, .055) 1px, transparent 0);
+  background-size: 16px 16px;
+  border-color: #ded2ba;
+  color: #343529;
+}
+
+html[data-pmd-organic-botanical-active="1"] button[data-pmd-organic-action="primary"],
+body[data-pmd-organic-botanical-active="1"] button[data-pmd-organic-action="primary"],
+html[data-pmd-organic-botanical-active="1"] .pmd-checkout-modal button[data-pmd-clean-send-kitchen="1"],
+body[data-pmd-organic-botanical-active="1"] .pmd-checkout-modal button[data-pmd-clean-send-kitchen="1"],
+html[data-pmd-organic-botanical-active="1"] .pmd-checkout-modal button[data-pmd-review-submit="true"],
+body[data-pmd-organic-botanical-active="1"] .pmd-checkout-modal button[data-pmd-review-submit="true"] {
+  background: #747d55;
+  border-color: #747d55;
+  color: #f5f8f0;
+  box-shadow: 0 12px 24px -14px rgba(60, 53, 41, .72);
+}
+
+html[data-pmd-organic-botanical-active="1"] button[data-pmd-organic-action="secondary"],
+body[data-pmd-organic-botanical-active="1"] button[data-pmd-organic-action="secondary"],
+html[data-pmd-organic-botanical-active="1"] .pmd-checkout-modal button[data-pmd-clean-continue-ordering="1"],
+body[data-pmd-organic-botanical-active="1"] .pmd-checkout-modal button[data-pmd-clean-continue-ordering="1"],
+html[data-pmd-organic-botanical-active="1"] .pmd-checkout-modal button[data-pmd-review-continue="true"],
+body[data-pmd-organic-botanical-active="1"] .pmd-checkout-modal button[data-pmd-review-continue="true"] {
+  background: #f5f8f0;
+  border-color: #ded2ba;
+  color: #343529;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .72);
+}

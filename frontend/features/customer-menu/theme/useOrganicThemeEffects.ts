@@ -3,7 +3,7 @@
 import React from "react"
 import type { MenuItem } from "@/lib/data"
 import type { CheckoutStep } from "@/features/checkout/types"
-import { useOrganicCheckoutDomPolish } from "@/features/customer-menu/legacy-dom-repairs/useOrganicCheckoutDomPolish"
+import { useOrganicCheckoutDomPolish } from "@/features/customer-menu/theme/organic/useOrganicCheckoutDomPolish"
 
 type OrganicMessageData = { type?: string; item?: MenuItem; quantity?: number }
 type OrganicToastOptions = { title?: string; description?: string; variant?: "default" | "destructive" | null }

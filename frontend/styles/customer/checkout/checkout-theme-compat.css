@@ -7948,3 +7948,46 @@ html body [data-pmd-checkout-scroll="1"] .pmd-checkout-meta-row,
 html body [data-pmd-checkout-scroll="1"] [data-pmd-order-meta-hidden="1"] {
   display: none !important;
 }
+
+/* PMD_DOM_COMPAT_REAL_CSS_FIXES_20260617
+   Replaces checkout DOM repair effects with CSS/data-attribute owned rules. */
+[data-pmd-checkout-scroll="1"] {
+  scroll-behavior: auto;
+  overflow-anchor: none;
+  align-items: stretch;
+  justify-content: flex-start;
+}
+
+[data-pmd-order-status-card="1"],
+[data-pmd-floating-eta-circle="1"] {
+  overflow-anchor: none;
+}
+
+[data-pmd-payment-real-panel],
+[data-pmd-split-method-real-panel],
+.pmd-checkout-total-card,
+.pmd-checkout-payment-card,
+.pmd-checkout-flat-section,
+.pmd-checkout-meta-row,
+.pmd-checkout-item-row {
+  background-color: transparent;
+  box-shadow: none;
+}
+
+[data-pmd-payment-real-panel] *,
+[data-pmd-split-method-real-panel] * {
+  box-shadow: none;
+}
+
+[data-pmd-payment-selected-detail="1"] {
+  scroll-margin-bottom: 32px;
+  scroll-margin-top: 24px;
+}
+
+.pmd-checkout-modal[data-pmd-checkout-design-system="1"] {
+  isolation: isolate;
+}
+
+.pmd-checkout-modal[data-pmd-checkout-design-system="1"] .pmd-checkout-body {
+  overflow-anchor: none;
+}

@@ -6,10 +6,10 @@ import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
 import { OrganicCheckoutScopedStyles, organicCheckoutBodyStyle, organicCheckoutHeaderStyle, organicCheckoutModalStyle } from "@/components/themes/organic-botanical-paper/OrganicCheckoutShell"
 import { getCheckoutStepAfterBack } from "@/features/checkout/checkout-state-utils"
-import { NeutralReviewPanels } from "@/features/customer-menu/checkout/NeutralReviewPanels"
-import { NeutralSplitBillPanel } from "@/features/customer-menu/checkout/NeutralSplitBillPanel"
-import { NeutralOrderStatusPanel } from "@/features/customer-menu/checkout/NeutralOrderStatusPanel"
-import { NeutralPaymentPanel } from "@/features/customer-menu/checkout/NeutralPaymentPanel"
+import { CheckoutReviewPanel } from "@/features/customer-menu/checkout/CheckoutReviewPanel"
+import { CheckoutSplitPanel } from "@/features/customer-menu/checkout/CheckoutSplitPanel"
+import { CheckoutReceiptPanel } from "@/features/customer-menu/checkout/CheckoutReceiptPanel"
+import { CheckoutPaymentPanel } from "@/features/customer-menu/checkout/CheckoutPaymentPanel"
 
 
 
@@ -153,6 +153,7 @@ export function NeutralCheckoutShell(props: any) {
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
+        data-testid="pmd-checkout-modal"
         data-pmd-checkout-theme-root="1"
         data-pmd-checkout-theme={checkoutVisualTheme}
         data-pmd-checkout-design-system="1"
@@ -191,7 +192,7 @@ export function NeutralCheckoutShell(props: any) {
         </div>
 
         {/* Order Summary (prices incl. VAT) & Payment - Scrollable Content */}
-        <div data-pmd-checkout-scroll="1" className="pmd-checkout-body p-4 pb-8 space-y-4 overflow-y-auto flex-1" style={isOrganicCheckoutVisual ? organicCheckoutBodyStyle : undefined}>
+        <div data-testid="pmd-checkout-scroll" data-pmd-checkout-scroll="1" className="pmd-checkout-body p-4 pb-8 space-y-4 overflow-y-auto flex-1" style={isOrganicCheckoutVisual ? organicCheckoutBodyStyle : undefined}>
           
           {/* Split Bill Toggle */}
           
@@ -206,7 +207,7 @@ export function NeutralCheckoutShell(props: any) {
           
 
 
-          <NeutralReviewPanels
+          <CheckoutReviewPanel
             {...{
               checkoutStep,
               tableDraft,
@@ -244,7 +245,7 @@ export function NeutralCheckoutShell(props: any) {
             }}
           />
 
-          <NeutralSplitBillPanel
+          <CheckoutSplitPanel
             {...{
               checkoutStep,
               splitGrandTotal,
@@ -276,7 +277,7 @@ export function NeutralCheckoutShell(props: any) {
             }}
           />
 
-          <NeutralOrderStatusPanel
+          <CheckoutReceiptPanel
             {...{
               checkoutStep,
               submittedSnapshot,
@@ -317,7 +318,7 @@ export function NeutralCheckoutShell(props: any) {
             }}
           />
 
-          <NeutralPaymentPanel
+          <CheckoutPaymentPanel
             {...{
               checkoutStep,
               selectedSplitPerson,

@@ -6,7 +6,7 @@ import { ChevronDown } from "lucide-react"
 import { formatCurrency } from "@/lib/currency"
 import type { MenuItem } from "@/lib/data"
 import type { TranslationKey } from "@/lib/translations"
-import { useCmsStore } from "@/store/cms-store"
+import { getTaxSettingsSnapshot } from "@/store/cms/tax-settings-store"
 import type { CartItem } from "@/store/cart-store"
 
 export function OrderItemWithOptions({
@@ -48,7 +48,7 @@ export function OrderItemWithOptions({
 
   const getTotalPrice = () => {
     // Get adjusted price helper from parent scope (need to pass it or get from store)
-    const { taxSettings } = useCmsStore.getState()
+    const taxSettings = getTaxSettingsSnapshot()
     const adjustPrice = (price: number): number => {
       if (taxSettings.enabled && taxSettings.percentage > 0 && taxSettings.menuPrice === 0) {
         return price * (1 + taxSettings.percentage / 100)
@@ -163,7 +163,7 @@ export function OrderItemWithOptions({
                           />
                           <span className="text-paydine-elegant-gray">{value.value}</span>
                           {value.price > 0 && (() => {
-                            const { taxSettings } = useCmsStore.getState()
+                            const taxSettings = getTaxSettingsSnapshot()
                             const adjustPrice = (price: number): number => {
                               if (taxSettings.enabled && taxSettings.percentage > 0 && taxSettings.menuPrice === 0) {
                                 return price * (1 + taxSettings.percentage / 100)

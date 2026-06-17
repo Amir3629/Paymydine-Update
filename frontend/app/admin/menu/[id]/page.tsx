@@ -2,7 +2,7 @@
 
 import { use } from "react"
 import { useRouter } from "next/navigation"
-import { useCmsStore } from "@/store/cms-store"
+import { useCmsConfigStore } from "@/store/cms/cms-config-store"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -12,7 +12,7 @@ import { useToast } from "@/components/ui/use-toast"
 export default function EditMenuItemPage({ params }: { params: Promise<{ id: string }> }) {
   const resolvedParams = use(params)
   const router = useRouter()
-  const { menuItems, updateMenuItem } = useCmsStore()
+  const { menuItems, updateMenuItem } = useCmsConfigStore()
   const { toast } = useToast()
   const item = menuItems.find((i) => i.id === Number(resolvedParams.id))
 

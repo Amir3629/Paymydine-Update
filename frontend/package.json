@@ -15,7 +15,15 @@
     "checkout:safety": "bash scripts/pmd-checkout-safety-audit.sh",
     "legacy-css:audit": "bash scripts/pmd-legacy-css-audit.sh",
     "legacy-css:guard": "bash scripts/pmd-legacy-css-guard.sh",
-    "frontend:acceptance": "bash scripts/pmd-final-frontend-acceptance.sh"
+    "frontend:acceptance": "bash scripts/pmd-final-frontend-acceptance.sh",
+    "checkout:architecture": "bash scripts/pmd-payment-modal-architecture-guard.sh",
+    "dom-compat:guard": "bash scripts/pmd-dom-compat-guard.sh",
+    "cms-store:guard": "bash scripts/pmd-cms-store-architecture-guard.sh",
+    "customer-menu:controller-guard": "bash scripts/pmd-customer-menu-controller-guard.sh",
+    "e2e:checkout": "playwright test e2e/checkout-full.spec.ts",
+    "e2e:checkout:headed": "playwright test e2e/checkout-full.spec.ts --headed",
+    "e2e:checkout:report": "playwright show-report",
+    "e2e:checkout:guard": "bash scripts/pmd-playwright-e2e-guard.sh"
   },
   "dependencies": {
     "@emotion/is-prop-valid": "latest",
@@ -84,6 +92,7 @@
     "zustand": "latest"
   },
   "devDependencies": {
+    "@playwright/test": "^1.61.0",
     "@types/node": "22.16.5",
     "@types/react": "18.3.23",
     "@types/react-dom": "^18",
