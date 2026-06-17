@@ -19,13 +19,12 @@ export function useCustomerMenuThemeBootstrap(setForceModernGreenTheme: (enabled
 
         const data = await res.json()
         const normalizedThemePayload = pmdForceKazenFrontendThemePayload(data)
-        const themeId = normalizeThemeId(
-          normalizedThemePayload?.data?.theme_id ||
+        const rawThemeId = normalizedThemePayload?.data?.theme_id ||
           normalizedThemePayload?.theme_id ||
           normalizedThemePayload?.frontend_theme ||
           normalizedThemePayload?.admin_theme ||
           ""
-        )
+        const themeId = normalizeThemeId(String(rawThemeId || ""))
 
         if (!cancelled) setForceModernGreenTheme(themeId === "modern_green")
       } catch {

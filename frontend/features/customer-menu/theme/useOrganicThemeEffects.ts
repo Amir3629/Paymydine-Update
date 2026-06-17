@@ -2,21 +2,26 @@
 
 import React from "react"
 import type { MenuItem } from "@/lib/data"
+import type { CheckoutStep } from "@/features/checkout/types"
 import { useOrganicCheckoutDomPolish } from "@/features/customer-menu/legacy-dom-repairs/useOrganicCheckoutDomPolish"
+
+type OrganicMessageData = { type?: string; item?: MenuItem; quantity?: number }
+type OrganicToastOptions = { title?: string; description?: string; variant?: "default" | "destructive" | null }
+type OrganicSharedOrder = { status?: string } | null
 
 type UseOrganicThemeEffectsProps = {
   enabled: boolean
   tableIdString: string
   shouldShowTableOrderAction: boolean
-  sharedTableOrder: any
+  sharedTableOrder: OrganicSharedOrder
   handleWaiterClick: () => void
   handleNoteClick: () => void
   handleCartClick: () => void
-  setPaymentModalInitialStep: (step: any) => void
+  setPaymentModalInitialStep: (step: CheckoutStep) => void
   setPaymentModalOpen: (open: boolean) => void
-  addToCart: (item: any) => void
+  addToCart: (item: MenuItem) => void
   handleFirstAdd: (item: MenuItem) => void
-  toast: (options: any) => void
+  toast: (options: OrganicToastOptions) => void
 }
 
 export function useOrganicThemeEffects(props: UseOrganicThemeEffectsProps) {
@@ -44,7 +49,7 @@ export function useOrganicThemeEffects(props: UseOrganicThemeEffectsProps) {
     function handleBotanicalV0Message(event: MessageEvent) {
       if (event.origin !== window.location.origin) return
 
-      const data: any = event.data || {}
+      const data = (event.data || {}) as OrganicMessageData
       const type = String(data.type || "")
 
       if (type === "pmd:call-waiter") {
@@ -88,7 +93,7 @@ export function useOrganicThemeEffects(props: UseOrganicThemeEffectsProps) {
         handleFirstAdd(itemToAdd)
         toast({
           title: "Added to order",
-          description: String((itemToAdd as any).name || (itemToAdd as any).menu_name || "Item added"),
+          description: String(itemToAdd.name || "Item added"),
         })
         return
       }
@@ -169,7 +174,7 @@ export function useOrganicThemeEffects(props: UseOrganicThemeEffectsProps) {
 
       event.preventDefault()
       event.stopPropagation()
-      ;(event as any).stopImmediatePropagation?.()
+      ;(event as Event & { stopImmediatePropagation?: () => void }).stopImmediatePropagation?.()
 
       const action = String(button.getAttribute("data-pmd-organic-dock-action") || "")
       console.info("PMD_ORGANIC_DOCK_CLICK", action)
