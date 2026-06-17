@@ -11,6 +11,7 @@ npm run checkout:architecture
 npm run legacy-css:guard
 npm run dom-compat:guard
 npm run cms-store:guard
+npm run customer-menu:controller-guard
 
 theme_any_count=$({ grep -R '\bany\b' features/customer-menu/theme --include='*.ts' --include='*.tsx' 2>/dev/null || true; } | wc -l | awk '{print $1}')
 if [[ "$theme_any_count" -gt 5 ]]; then
