@@ -23,7 +23,9 @@
     "e2e:checkout": "playwright test e2e/checkout-full.spec.ts",
     "e2e:checkout:headed": "playwright test e2e/checkout-full.spec.ts --headed",
     "e2e:checkout:report": "playwright show-report",
-    "e2e:checkout:guard": "bash scripts/pmd-playwright-e2e-guard.sh"
+    "e2e:checkout:guard": "bash scripts/pmd-playwright-e2e-guard.sh",
+    "theme:smoke:guard": "bash scripts/pmd-theme-smoke-guard.sh",
+    "e2e:themes": "playwright test e2e/theme-smoke.spec.ts"
   },
   "dependencies": {
     "@emotion/is-prop-valid": "latest",
