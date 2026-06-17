@@ -106,3 +106,40 @@ echo ""
 
 echo "=== Current frontend git commits ==="
 git -C "$REPO_DIR" log --oneline -18 -- frontend | sed -n '1,40p'
+
+
+echo ""
+echo "=== Final frontend sprint guards ==="
+echo "PMD_FINAL_FRONTEND_SPRINT_AUDIT_20260617"
+
+echo ""
+echo "Checkout safety script:"
+if [ -f scripts/pmd-checkout-safety-audit.sh ]; then
+  echo "✅ scripts/pmd-checkout-safety-audit.sh exists"
+else
+  echo "❌ scripts/pmd-checkout-safety-audit.sh missing"
+fi
+
+echo ""
+echo "Payment amount resolver guard:"
+if grep -q "resolveSubmittedPaymentAmount" features/customer-menu/checkout/PaymentModalCore.tsx && grep -q "resolveSubmittedPaymentAmount" features/customer-menu/checkout/paymentModalPaymentFlow.ts; then
+  echo "✅ resolveSubmittedPaymentAmount is wired into checkout payment flow"
+else
+  echo "❌ resolveSubmittedPaymentAmount guard failed"
+fi
+
+echo ""
+echo "Footer logo installer removal:"
+if [ ! -f features/customer-menu/legacy-dom-repairs/footerLogoInstaller.ts ] && [ -f features/customer-menu/components/MenuPayMyDineFooterLogo.tsx ]; then
+  echo "✅ footerLogoInstaller removed and React footer logo exists"
+else
+  echo "❌ footer logo React replacement incomplete"
+fi
+
+echo ""
+echo "Remaining protected DOM repairs:"
+find features/customer-menu/legacy-dom-repairs -maxdepth 1 -type f -name "*.ts" -print | sort
+
+echo ""
+echo "Theme any count:"
+grep -RIn "\bany\b" features/customer-menu/theme --include="*.ts" --include="*.tsx" | wc -l
