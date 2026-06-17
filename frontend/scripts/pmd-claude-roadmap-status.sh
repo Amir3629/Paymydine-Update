@@ -86,12 +86,12 @@ echo ""
 echo "=== Legacy DOM repairs inventory ==="
 wc -l features/customer-menu/legacy-dom-repairs/* 2>/dev/null | sort -n
 for file in \
-  features/customer-menu/legacy-dom-repairs/useCheckoutVisualRepairs.ts \
   features/customer-menu/legacy-dom-repairs/useOrganicCheckoutDomPolish.ts \
   features/customer-menu/legacy-dom-repairs/usePaymentModalDomRepairs.ts; do
   [[ -f "$file" ]] && echo "✅ remaining repair kept: $file" || echo "❌ missing protected repair: $file"
 done
 [[ ! -f features/customer-menu/legacy-dom-repairs/footerLogoInstaller.ts ]] && echo "✅ footerLogoInstaller removed" || echo "⚠️ footerLogoInstaller still present"
+[[ ! -f features/customer-menu/legacy-dom-repairs/useCheckoutVisualRepairs.ts ]] && echo "✅ useCheckoutVisualRepairs removed" || echo "⚠️ useCheckoutVisualRepairs still present"
 grep -R "new MutationObserver\|style.setProperty\|querySelector" features/customer-menu/legacy-dom-repairs --include='*.ts' | wc -l | awk '{print "legacy repair DOM operations:", $1}'
 echo ""
 

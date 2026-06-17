@@ -34,6 +34,13 @@ check_file "features/customer-menu/checkout/CheckoutModalHost.tsx"
 check_file "features/customer-menu/legacy-dom-repairs/usePaymentModalDomRepairs.ts"
 check_file "app/checkout/page.tsx"
 
+if [[ -f "features/customer-menu/legacy-dom-repairs/useCheckoutVisualRepairs.ts" ]]; then
+  echo "❌ useCheckoutVisualRepairs.ts should remain removed after Base amount source fix"
+  failures=$((failures + 1))
+else
+  echo "✅ useCheckoutVisualRepairs.ts removed"
+fi
+
 check_grep 'resolveSubmittedPaymentAmount' "features/customer-menu/checkout/paymentModalPaymentFlow.ts" "payment flow accepts/uses resolveSubmittedPaymentAmount"
 check_grep 'resolveSubmittedPaymentAmount' "features/customer-menu/checkout/PaymentModalCore.tsx" "PaymentModalCore defines/passes resolveSubmittedPaymentAmount"
 check_grep 'handlePaymentFlow\(\{' "features/customer-menu/checkout/PaymentModalCore.tsx" "PaymentModalCore calls handlePaymentFlow with object args"
@@ -53,6 +60,12 @@ smoke = Path('scripts/pmd-frontend-smoke.sh').read_text()
 if 'check_status "/checkout" "307"' not in smoke:
     raise SystemExit('❌ production smoke does not assert /checkout -> 307')
 print('✅ production smoke keeps /checkout -> 307 expected')
+panel = Path('features/customer-menu/checkout/NeutralPaymentPanel.tsx').read_text()
+if 'Base amount' in panel:
+    raise SystemExit('❌ NeutralPaymentPanel still renders legacy Base amount label')
+if 'Items total' not in panel or 'Share amount' not in panel:
+    raise SystemExit('❌ NeutralPaymentPanel missing replacement payment amount labels')
+print('✅ checkout payment panel uses source-owned payment amount labels')
 PY
 
 if [[ "$failures" -ne 0 ]]; then

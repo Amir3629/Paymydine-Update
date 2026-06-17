@@ -34,6 +34,12 @@ if [[ -f features/customer-menu/legacy-dom-repairs/footerLogoInstaller.ts ]]; th
 fi
 echo "✅ footerLogoInstaller.ts removed"
 
+if [[ -f features/customer-menu/legacy-dom-repairs/useCheckoutVisualRepairs.ts ]]; then
+  echo "❌ useCheckoutVisualRepairs.ts still exists"
+  exit 1
+fi
+echo "✅ useCheckoutVisualRepairs.ts removed"
+
 python - <<'PY'
 from pathlib import Path
 core = Path('features/customer-menu/checkout/PaymentModalCore.tsx').read_text()
@@ -49,6 +55,12 @@ if ! grep -q 'check_status "/checkout" "307"' scripts/pmd-frontend-smoke.sh; the
   exit 1
 fi
 echo "✅ /checkout -> 307 expectation present"
+
+if grep -q "Base amount" features/customer-menu/checkout/NeutralPaymentPanel.tsx; then
+  echo "❌ NeutralPaymentPanel still renders legacy Base amount label"
+  exit 1
+fi
+echo "✅ NeutralPaymentPanel does not render legacy Base amount label"
 
 if [[ ! -f features/customer-menu/legacy-dom-repairs/usePaymentModalDomRepairs.ts ]]; then
   if [[ ! -f tests/payment-modal-e2e-visual.md && ! -f scripts/pmd-payment-modal-e2e.sh ]]; then
