@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState } from "react"
 import { useLanguageStore } from "@/store/language-store"
-import { useCmsStore } from "@/store/cms-store"
+import { useCmsConfigStore } from "@/store/cms/cms-config-store"
 import { useCartStore } from "@/store/cart-store"
 import { Logo } from "@/components/logo"
 import { Car, ReceiptText, Utensils } from "lucide-react"
@@ -18,7 +18,7 @@ const MotionLink = motion.create(Link)
 
 export default function TableHomePage({ params }: { params: { table_id: string } }) {
   const { t } = useLanguageStore()
-  const { settings } = useCmsStore()
+  const { settings } = useCmsConfigStore()
   const { setTableInfo, clearCart } = useCartStore()
   const searchParams = useSearchParams()
 

@@ -1,14 +1,14 @@
 "use client"
 
 import Link from "next/link"
-import { useCmsStore } from "@/store/cms-store"
+import { useCmsConfigStore } from "@/store/cms/cms-config-store"
 import { motion } from "framer-motion"
 import { useState } from "react"
 import { useTranslation } from "react-i18next"
 import { Button } from "@/components/ui/button"
 
 export default function AdminDashboard() {
-  const { settings, menuItems } = useCmsStore()
+  const { settings, menuItems } = useCmsConfigStore()
   const { t } = useTranslation()
 
   const [waiterConfirmOpen, setWaiterConfirmOpen] = useState(false)

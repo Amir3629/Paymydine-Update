@@ -2,7 +2,9 @@
 
 import React, { Suspense, useEffect, useState } from "react"
 import { useLanguageStore } from "@/store/language-store"
-import { type PmdSocialPlatformId, useCmsStore } from "@/store/cms-store"
+import type { PmdSocialPlatformId } from "@/store/cms/types"
+import { useCmsConfigStore } from "@/store/cms/cms-config-store"
+import { usePaymentSettingsStore } from "@/store/cms/payment-settings-store"
 import { Logo } from "@/components/logo"
 import { Car, Utensils, Instagram, MapPin, Star, MessageCircle, Globe2 } from "lucide-react"
 import Link from "next/link"
@@ -15,7 +17,8 @@ const MotionLink = motion.create(Link)
 // FIXED: Create a component that uses client-side hooks
 function HomePageContent() {
   const { t } = useLanguageStore()
-  const { settings, merchantSettings, loadMerchantSettings } = useCmsStore()
+  const { settings } = useCmsConfigStore()
+  const { merchantSettings, loadMerchantSettings } = usePaymentSettingsStore()
   const [platformLogoPosition, setPlatformLogoPosition] = useState<'top-left' | 'bottom-center'>('top-left')
 
   useEffect(() => {

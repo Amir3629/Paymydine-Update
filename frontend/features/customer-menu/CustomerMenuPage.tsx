@@ -20,7 +20,9 @@ import "./customer-menu-page.css"
 import React, { useState, useEffect, useMemo, useRef, Suspense } from "react";
 import { categories, menuData, type MenuItem, type MenuHighlightSettings, defaultMenuHighlightSettings, getMenuData } from "@/lib/data";
 import { useLanguageStore } from "@/store/language-store";
-import { useCmsStore } from "@/store/cms-store";
+import { useCmsConfigStore } from "@/store/cms/cms-config-store";
+import { usePaymentSettingsStore } from "@/store/cms/payment-settings-store";
+import { useTaxSettingsStore } from "@/store/cms/tax-settings-store";
 import { useCartStore, type CartItem } from "@/store/cart-store";
 import { useToast } from "@/components/ui/use-toast";
 import { useSearchParams } from "next/navigation";
@@ -68,7 +70,9 @@ function MenuContent() {
   const [apiMenuItems, setApiMenuItems] = useState<MenuItem[]>([])
   const [menuHighlightSettings, setMenuHighlightSettings] = useState<MenuHighlightSettings>(defaultMenuHighlightSettings)
   const [dynamicCategories, setDynamicCategories] = useState<string[]>([])
-  const { menuItems, taxSettings, loadVATSettings, settings: cmsSettings, merchantSettings } = useCmsStore()
+  const { menuItems, settings: cmsSettings } = useCmsConfigStore()
+  const { taxSettings, loadVATSettings } = useTaxSettingsStore()
+  const { merchantSettings } = usePaymentSettingsStore()
 
   const { items, toggleCart, addToCart, setTableInfo, clearTableContext, clearCart } = useCartStore()
   const { themeId: currentFrontendTheme, isResolved: isFrontendThemeResolved } = useCurrentFrontendTheme()

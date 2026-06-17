@@ -3,7 +3,7 @@
 import { useMemo, useState } from "react"
 import { Link2, MessageSquare, QrCode, Star } from "lucide-react"
 import { apiClient } from "@/lib/api-client"
-import type { PmdSocialPlatformId } from "@/store/cms-store"
+import type { PmdSocialPlatformId } from "@/store/cms/types"
 
 export function useCheckoutReviewInvoiceActions({
   merchantSettings,

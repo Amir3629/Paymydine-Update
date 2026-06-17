@@ -6,7 +6,7 @@ import { motion } from "framer-motion"
 import { CheckCircle, ChefHat, CookingPot } from "lucide-react"
 import { Logo } from "@/components/logo"
 import { useLanguageStore } from "@/store/language-store"
-import { useCmsStore } from "@/store/cms-store"
+import { useCmsConfigStore } from "@/store/cms/cms-config-store"
 import { useCartStore } from "@/store/cart-store"
 import { apiClient } from "@/lib/api-client"
 import { buildTablePath } from "@/lib/table-url"
@@ -18,7 +18,7 @@ function OrderPlacedContent() {
   const router = useRouter()
   const searchParams = useSearchParams() // This hook requires Suspense
   const { t } = useLanguageStore()
-  const { settings } = useCmsStore()
+  const { settings } = useCmsConfigStore()
   const { tableInfo } = useCartStore()
   const [currentStatus, setCurrentStatus] = useState(0)
   const [orderId, setOrderId] = useState<number | null>(null)

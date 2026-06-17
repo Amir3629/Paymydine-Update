@@ -21,3 +21,18 @@ Run:
 ```bash
 npm run cms-store:guard
 ```
+
+## Consumer migration update
+
+Active frontend consumers should no longer import the broad `@/store/cms-store` facade directly.
+They should import focused hooks instead:
+
+- `useCmsConfigStore()` for app settings and menu item admin/mock state.
+- `usePaymentSettingsStore()` for merchant/payment settings.
+- `useTaxSettingsStore()` / `getTaxSettingsSnapshot()` for VAT/tax settings.
+- `useTipSettingsStore()` for tip settings.
+- `useCouponStore()` for coupon validation/removal/runtime coupon state.
+
+`useCmsStore()` remains as a compatibility backing store for this migration step. It should not be used by active UI components directly.
+
+The old `/app/admin/*` frontend CMS screens are local/mock Next screens. They are not the Laravel admin panel, but they still need to compile while present in the frontend route tree.

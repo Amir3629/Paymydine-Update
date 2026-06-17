@@ -8,7 +8,10 @@
 
 import React, { useState, useRef } from "react"
 import { useLanguageStore } from "@/store/language-store"
-import { useCmsStore } from "@/store/cms-store"
+import { usePaymentSettingsStore } from "@/store/cms/payment-settings-store"
+import { useTaxSettingsStore } from "@/store/cms/tax-settings-store"
+import { useTipSettingsStore } from "@/store/cms/tip-settings-store"
+import { useCouponStore } from "@/store/cms/coupon-store"
 import { useCartStore } from "@/store/cart-store"
 import { useToast } from "@/components/ui/use-toast"
 import { useCheckoutDomCompatibilityEffects } from "@/features/customer-menu/checkout/dom-compat/useCheckoutDomCompatibilityEffects"
@@ -48,7 +51,10 @@ export function PaymentModal({ isOpen, onClose, items: allItems, tableInfo, exis
 
   const { toast } = useToast()
   const { t } = useLanguageStore()
-  const { tipSettings, taxSettings, merchantSettings, loadVATSettings, appliedCoupon, validateCoupon, removeCoupon } = useCmsStore()
+  const { tipSettings } = useTipSettingsStore()
+  const { taxSettings, loadVATSettings } = useTaxSettingsStore()
+  const { merchantSettings } = usePaymentSettingsStore()
+  const { appliedCoupon, validateCoupon, removeCoupon } = useCouponStore()
   const { clearCart, addToCart } = useCartStore()
   const [isLoading, setIsLoading] = useState(false)
 

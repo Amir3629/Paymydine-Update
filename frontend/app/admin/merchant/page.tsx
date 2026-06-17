@@ -2,7 +2,7 @@
 
 import type React from "react"
 import { useState } from "react"
-import { useCmsStore } from "@/store/cms-store"
+import { usePaymentSettingsStore } from "@/store/cms/payment-settings-store"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Button } from "@/components/ui/button"
@@ -13,7 +13,7 @@ import { Eye, EyeOff, AlertCircle, CheckCircle, CreditCard, Banknote } from "luc
 import { Alert, AlertDescription } from "@/components/ui/alert"
 
 export default function MerchantSettingsPage() {
-  const { merchantSettings, updateMerchantSettings } = useCmsStore()
+  const { merchantSettings, updateMerchantSettings } = usePaymentSettingsStore()
   const { toast } = useToast()
   const [showSecrets, setShowSecrets] = useState(false)
   const [formData, setFormData] = useState(merchantSettings)

@@ -2,11 +2,11 @@
 
 import Link from "next/link"
 import { OptimizedImage } from "@/components/ui/optimized-image"
-import { useCmsStore } from "@/store/cms-store"
+import { useCmsConfigStore } from "@/store/cms/cms-config-store"
 import { Button } from "@/components/ui/button"
 
 export default function MenuManagementPage() {
-  const { menuItems } = useCmsStore()
+  const { menuItems } = useCmsConfigStore()
 
   return (
     <div>
