@@ -7,8 +7,9 @@ npm run build
 node node_modules/typescript/bin/tsc --noEmit --pretty false
 npm run smoke:prod
 npm run checkout:safety
+npm run legacy-css:guard
 
-theme_any_count=$(grep -R "\bany\b" features/customer-menu/theme --include='*.ts' --include='*.tsx' | wc -l | awk '{print $1}')
+theme_any_count=$({ grep -R '\bany\b' features/customer-menu/theme --include='*.ts' --include='*.tsx' 2>/dev/null || true; } | wc -l | awk '{print $1}')
 if [[ "$theme_any_count" -gt 5 ]]; then
   echo "❌ theme folder any count is $theme_any_count; expected <= 5"
   exit 1

@@ -1,98 +1,72 @@
+/*
+ * PayMyDine legacy CSS compatibility layer.
+ *
+ * IMPORTANT:
+ * This file is intentionally still imported by app/globals.css.
+ * A live test showed that replacing this import with globals-clean.css alone
+ * breaks active visual styling. So this is NOT dead CSS yet.
+ *
+ * Active import chain:
+ *   app/layout.tsx -> app/globals.css -> styles/global/paymydine-legacy-globals.css
+ *
+ * Safe cleanup rule:
+ *   Do not remove the whole legacy folder at once.
+ *   Move one scoped visual fix at a time into component/theme-owned CSS,
+ *   validate all gates, manually check the affected theme, then remove only
+ *   that migrated block from the legacy layer.
+ *
+ * Current legacy file map:
+ *   legacy-01.css  Base theme variables, page backgrounds, broad surface/text utilities.
+ *   legacy-02.css  Bill toggle, cart badge, modal/card/dialog compatibility rules.
+ *   legacy-03.css  Phase 6C migration marker; former customer action/control rules moved to customer/actions CSS.
+ *   legacy-04.css  Extended theme/page/card/action compatibility overrides.
+ *   legacy-05.css  Additional modal, surface, category, and theme-specific visual overrides.
+ *   legacy-06.css  Checkout/menu visual compatibility and older theme repair rules.
+ *   legacy-07.css  Action/button/icon compatibility rules and theme scoped overrides.
+ *   legacy-08.css  Modal/card/menu/bottom-action compatibility overrides.
+ *   legacy-09.css  Later global compatibility layer, checkout/payment/menu visual fixes.
+ *   legacy-10.css  Phase 6B migration marker; former scoped rules moved to customer/checkout and Kazen CSS.
+ *
+ * Guardrail:
+ *   Run `npm run legacy-css:guard` before/after CSS cleanup work.
+ *   Run `npm run frontend:acceptance` before deploy.
+ */
+
+/* Base legacy theme/background/surface compatibility. */
 @import "./legacy/legacy-01.css";
+
+/* Modal, bill toggle, cart badge, and card compatibility. */
 @import "./legacy/legacy-02.css";
+
+/* Phase 6C migration marker; former rules moved below. */
 @import "./legacy/legacy-03.css";
+
+/* Extracted customer home/menu/action/quantity controls compatibility rules from legacy-03.css. */
+@import "../customer/actions/action-controls-compat.css";
+
+/* Extended page/theme compatibility overrides. */
 @import "./legacy/legacy-04.css";
+
+/* Additional modal/surface/category compatibility overrides. */
 @import "./legacy/legacy-05.css";
+
+/* Checkout/menu compatibility and older theme repair rules. */
 @import "./legacy/legacy-06.css";
+
+/* Action/button/icon compatibility rules. */
 @import "./legacy/legacy-07.css";
+
+/* Modal/card/menu/bottom-action compatibility overrides. */
 @import "./legacy/legacy-08.css";
+
+/* Late global checkout/payment/menu visual fixes. */
 @import "./legacy/legacy-09.css";
+
+/* Phase 6B migration marker: former legacy-10 scoped rules moved below. */
 @import "./legacy/legacy-10.css";
 
-/* PMD_MENU_ACTION_CIRCLE_COLOR_REPAIR_CSS
-   Replaces legacy DOM hook useMenuActionCircleColorRepair.ts.
-   Keeps menu action circles/icons white without runtime querySelector/style mutation. */
-.page--menu .pmd-v2-action-circle,
-.page--menu button[aria-label='Increase quantity'],
-.page--menu button[aria-label='Decrease quantity'],
-.page--menu button[aria-label*='Back' i],
-.page--menu button[aria-label*='back' i] {
-  color: #ffffff !important;
-  -webkit-text-fill-color: #ffffff !important;
-}
+/* Extracted checkout/payment theme compatibility rules from legacy-10.css and inline checkout repairs. */
+@import "../customer/checkout/checkout-theme-compat.css";
 
-.page--menu .pmd-v2-action-circle *,
-.page--menu button[aria-label='Increase quantity'] *,
-.page--menu button[aria-label='Decrease quantity'] *,
-.page--menu button[aria-label*='Back' i] *,
-.page--menu button[aria-label*='back' i] * {
-  color: #ffffff !important;
-  -webkit-text-fill-color: #ffffff !important;
-  stroke: #ffffff !important;
-}
-
-/* PMD_KAZEN_VISIBILITY_REPAIR_CSS
-   Replaces legacy DOM hook useKazenMenuDomRepairs.ts.
-   Keeps Kazen menu item lists expanded/visible without runtime querySelector/setInterval repairs. */
-.page--menu .kazen-item [data-pmd-kazen-old-header-control="1"] {
-  opacity: 1 !important;
-  visibility: visible !important;
-}
-
-.page--menu .kazen-items,
-.page--menu .kazen-menu-list,
-.page--menu .kazen-category-content,
-.page--menu .kazen-category-items,
-.page--menu .kazen-section-content {
-  overflow: visible !important;
-  max-height: none !important;
-  height: auto !important;
-}
-
-.page--menu .kazen-item {
-  overflow: visible !important;
-  max-height: none !important;
-  height: auto !important;
-  contain: none !important;
-}
-
-.page--menu .kazen-item,
-.page--menu .kazen-item > *,
-.page--menu .kazen-items,
-.page--menu .kazen-menu-list,
-.page--menu .kazen-category-content,
-.page--menu .kazen-category-items,
-.page--menu .kazen-section-content {
-  contain: none !important;
-}
-
-/* PMD_CHECKOUT_VISUAL_REPAIR_CSS
-   Replaces two runtime parts from useCheckoutVisualRepairs.ts:
-   - plus/minus checkout quantity icon color
-   - split method active/inactive text color */
-[role="dialog"] button svg.lucide-plus,
-[role="dialog"] button svg.lucide-minus,
-[data-pmd-gold-checkout-modal] button svg.lucide-plus,
-[data-pmd-gold-checkout-modal] button svg.lucide-minus,
-[role="dialog"] button svg.lucide-plus *,
-[role="dialog"] button svg.lucide-minus *,
-[data-pmd-gold-checkout-modal] button svg.lucide-plus *,
-[data-pmd-gold-checkout-modal] button svg.lucide-minus * {
-  color: #ffffff !important;
-  stroke: #ffffff !important;
-  -webkit-text-fill-color: #ffffff !important;
-}
-
-button[data-pmd-split-method-real][data-pmd-active="1"],
-button[data-pmd-split-method-real][data-pmd-active="1"] * {
-  color: #ffffff !important;
-  -webkit-text-fill-color: #ffffff !important;
-  text-decoration-color: #ffffff !important;
-}
-
-button[data-pmd-split-method-real]:not([data-pmd-active="1"]),
-button[data-pmd-split-method-real]:not([data-pmd-active="1"]) * {
-  color: #10201d !important;
-  -webkit-text-fill-color: #10201d !important;
-  text-decoration-color: #10201d !important;
-}
+/* Extracted Kazen menu visibility/layout compatibility rules from legacy-10.css and inline Kazen repairs. */
+@import "../customer/themes/kazen-menu-compat.css";

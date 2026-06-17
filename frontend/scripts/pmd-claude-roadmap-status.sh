@@ -81,7 +81,7 @@ wc -l \
   features/customer-menu/theme/themeRouteTypes.ts \
   features/customer-menu/theme/KazenThemeRoute.tsx 2>/dev/null || true
 
-THEME_ANY_COUNT="$(grep -RIn --include='*.ts' --include='*.tsx' '\bany\b' features/customer-menu/theme 2>/dev/null | wc -l | tr -d ' ')"
+THEME_ANY_COUNT="$({ grep -RIn --include='*.ts' --include='*.tsx' '\bany\b' features/customer-menu/theme 2>/dev/null || true; } | wc -l | tr -d ' ')"
 echo "remaining theme any count: ${THEME_ANY_COUNT}"
 
 if grep -RIn --include='*.ts' --include='*.tsx' 'Record<string, any>' features/customer-menu/theme >/dev/null 2>&1; then
@@ -92,7 +92,7 @@ fi
 
 echo ""
 echo "=== Remaining any in theme folder sample ==="
-grep -RIn --include='*.ts' --include='*.tsx' '\bany\b' features/customer-menu/theme 2>/dev/null | sed -n '1,60p' || true
+{ grep -RIn --include='*.ts' --include='*.tsx' '\bany\b' features/customer-menu/theme 2>/dev/null || true; } | sed -n '1,60p'
 
 echo ""
 echo "=== Legacy CSS inventory ==="
@@ -100,23 +100,36 @@ wc -l \
   app/globals.css \
   app/nuclear-fix.css \
   styles/global/paymydine-legacy-globals.css \
+  styles/customer/checkout/checkout-theme-compat.css \
+  styles/customer/themes/kazen-menu-compat.css \
   app/globals-clean.css \
   styles/globals.css \
   styles/global/legacy/*.css 2>/dev/null | sort -n || true
+
+if [ -f scripts/pmd-legacy-css-guard.sh ]; then
+  echo ""
+  echo "=== Legacy CSS guard ==="
+  bash scripts/pmd-legacy-css-guard.sh || true
+fi
 
 echo ""
 echo "=== Legacy DOM repairs inventory ==="
 wc -l features/customer-menu/legacy-dom-repairs/* 2>/dev/null || true
 
+if [ -f features/customer-menu/legacy-dom-repairs/useCheckoutVisualRepairs.ts ]; then
+  echo "❌ useCheckoutVisualRepairs.ts returned; it should stay removed"
+else
+  echo "✅ useCheckoutVisualRepairs.ts removed"
+fi
+
 for file in \
-  features/customer-menu/legacy-dom-repairs/useCheckoutVisualRepairs.ts \
   features/customer-menu/legacy-dom-repairs/useOrganicCheckoutDomPolish.ts \
   features/customer-menu/legacy-dom-repairs/usePaymentModalDomRepairs.ts
 do
   if [ -f "$file" ]; then
-    echo "✅ remaining repair kept: $file"
+    echo "✅ remaining high-risk repair kept: $file"
   else
-    echo "❌ expected remaining repair missing: $file"
+    echo "❌ expected high-risk repair missing: $file"
   fi
 done
 
@@ -144,3 +157,16 @@ echo ""
 echo "=== Current frontend git commits ==="
 cd "$REPO_DIR"
 git log --oneline -18 -- frontend | sed -n '1,80p'
+
+
+echo ""
+echo "=== Legacy CSS Phase 6C status ==="
+if [ -f styles/customer/actions/action-controls-compat.css ]; then
+  echo "✅ action-controls-compat.css extracted"
+else
+  echo "❌ action-controls-compat.css missing"
+fi
+if [ -f styles/global/legacy/legacy-03.css ]; then
+  LEGACY03_LINES="$(wc -l < styles/global/legacy/legacy-03.css | tr -d ' ')"
+  echo "legacy-03.css lines: $LEGACY03_LINES"
+fi
