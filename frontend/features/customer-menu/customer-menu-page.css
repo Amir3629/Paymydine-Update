@@ -39,3 +39,69 @@
 .btn-glow {
   box-shadow: 0 0 0 8px rgba(255, 228, 181, 0.5), 0 0 16px 4px rgba(200, 155, 108, 0.3);
 }
+
+/* React-owned replacement for legacy footerLogoInstaller.ts. */
+.pmd-menu-theme-footer-logo {
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin: 72px auto 132px;
+  padding: 0 16px;
+  opacity: 1;
+  filter: none;
+  pointer-events: none;
+  position: relative;
+  z-index: 1;
+}
+
+.pmd-menu-theme-footer-logo picture,
+.pmd-menu-theme-footer-logo img {
+  display: block;
+}
+
+.pmd-menu-theme-footer-logo img {
+  width: 82px;
+  max-width: 82px;
+  min-width: 82px;
+  height: auto;
+  object-fit: contain;
+  opacity: 1;
+  filter: none;
+  mix-blend-mode: normal;
+}
+
+.pmd-menu-theme-footer-logo-dark {
+  display: none !important;
+}
+
+html.dark .pmd-menu-theme-footer-logo picture,
+body.dark .pmd-menu-theme-footer-logo picture,
+html[data-mode="dark"] .pmd-menu-theme-footer-logo picture,
+body[data-mode="dark"] .pmd-menu-theme-footer-logo picture,
+html[data-color-mode="dark"] .pmd-menu-theme-footer-logo picture,
+body[data-color-mode="dark"] .pmd-menu-theme-footer-logo picture {
+  display: none;
+}
+
+html.dark .pmd-menu-theme-footer-logo-dark,
+body.dark .pmd-menu-theme-footer-logo-dark,
+html[data-mode="dark"] .pmd-menu-theme-footer-logo-dark,
+body[data-mode="dark"] .pmd-menu-theme-footer-logo-dark,
+html[data-color-mode="dark"] .pmd-menu-theme-footer-logo-dark,
+body[data-color-mode="dark"] .pmd-menu-theme-footer-logo-dark {
+  display: block !important;
+}
+
+@media (max-width: 640px) {
+  .pmd-menu-theme-footer-logo {
+    margin-top: 64px;
+    margin-bottom: 126px;
+  }
+
+  .pmd-menu-theme-footer-logo img {
+    width: 74px;
+    max-width: 74px;
+    min-width: 74px;
+  }
+}

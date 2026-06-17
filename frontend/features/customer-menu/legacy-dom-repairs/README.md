@@ -19,7 +19,6 @@ This folder contains production DOM repair hooks that are still active in the li
 
 - `usePaymentModalDomRepairs.ts`: high-risk checkout/payment visual repairs. Keep until payment modal E2E coverage can verify review, split-bill, hosted checkout, and paid states.
 - `useOrganicCheckoutDomPolish.ts`: organic-theme checkout polish. Keep until the same polish is represented in React/CSS and all active themes are visually checked.
-- `footerLogoInstaller.ts`: footer branding installer. Keep until route/theme ownership is confirmed and screenshots prove the replacement across themes.
 - `useCheckoutVisualRepairs.ts`: intentionally reduced to the old text-based `Base amount` hiding only. Keep until checkout markup no longer emits that legacy row.
 
 ## Removed safely
@@ -28,6 +27,7 @@ This folder contains production DOM repair hooks that are still active in the li
 - `useMenuActionCircleColorRepair.ts`: replaced by `PMD_MENU_ACTION_CIRCLE_COLOR_REPAIR_CSS` in `styles/global/paymydine-legacy-globals.css`.
 - `useKazenMenuDomRepairs.ts`: replaced by `PMD_KAZEN_VISIBILITY_REPAIR_CSS` in `styles/global/paymydine-legacy-globals.css`.
 - Most of `useCheckoutVisualRepairs.ts`: quantity icon and split-method text repairs moved to `PMD_CHECKOUT_VISUAL_REPAIR_CSS` in `styles/global/paymydine-legacy-globals.css`.
+- `footerLogoInstaller.ts`: replaced by `MenuPayMyDineFooterLogo`, rendered from `CustomerMenuPage.tsx` for Modern Green and Organic/Botanical without MutationObserver or DOM append/query repair logic.
 
 ## Safe cleanup rule
 
