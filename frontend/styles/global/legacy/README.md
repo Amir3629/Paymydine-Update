@@ -1,20 +1,14 @@
 # PayMyDine legacy CSS folder
 
-This folder is an active compatibility layer, not dead CSS.
+Phase 6D moved the active CSS rules out of this broad legacy folder into structured files under `styles/customer/`.
 
-Current status:
+The files in this folder are now migration markers only. They intentionally remain imported by `styles/global/paymydine-legacy-globals.css` until a final removal step updates guards and documentation.
 
-- `legacy-01.css`: still broad legacy compatibility.
-- `legacy-02.css`: still broad legacy compatibility.
-- `legacy-03.css`: Phase 6C marker only. Former rules moved to `styles/customer/actions/action-controls-compat.css`.
-- `legacy-04.css`: still broad legacy compatibility.
-- `legacy-05.css`: still broad legacy compatibility.
-- `legacy-06.css`: still broad legacy compatibility.
-- `legacy-07.css`: still broad legacy compatibility.
-- `legacy-08.css`: still broad legacy compatibility.
-- `legacy-09.css`: still broad legacy compatibility.
-- `legacy-10.css`: Phase 6B marker only. Former rules moved to `styles/customer/checkout/checkout-theme-compat.css` and `styles/customer/themes/kazen-menu-compat.css`.
+Do not put new CSS here. New visual work must go into owner-adjacent files:
 
-Do not remove the whole folder at once. A live test showed that removing the active legacy import breaks current visuals even though build/smoke can still pass.
-
-Cleanup rule: migrate one scoped block/file at a time, validate, manually check affected pages/themes, then reduce only that block/file.
+- `styles/customer/themes/*-compat.css` for theme-isolated rules
+- `styles/customer/checkout/checkout-theme-compat.css` for checkout/payment rules
+- `styles/customer/actions/action-controls-compat.css` for action/quantity/cart/category rules
+- `styles/customer/modals/modal-compat.css` for food/product modal rules
+- `styles/customer/valet/valet-compat.css` for valet rules
+- `styles/customer/core/*-compat.css` for unavoidable shared/base compatibility

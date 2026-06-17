@@ -170,3 +170,20 @@ if [ -f styles/global/legacy/legacy-03.css ]; then
   LEGACY03_LINES="$(wc -l < styles/global/legacy/legacy-03.css | tr -d ' ')"
   echo "legacy-03.css lines: $LEGACY03_LINES"
 fi
+
+
+echo ""
+echo "=== Legacy CSS Phase 6D status ==="
+if [ -f styles/customer/core/base-theme-tokens-compat.css ]; then
+  echo "✅ structured core/theme token CSS extracted"
+else
+  echo "❌ structured core/theme token CSS missing"
+fi
+if [ -d styles/customer/themes ]; then
+  echo "theme compat files:"
+  find styles/customer/themes -maxdepth 1 -type f -name '*-compat.css' -print | sort
+fi
+if [ -d styles/global/legacy ]; then
+  echo "legacy marker total:"
+  wc -l styles/global/legacy/*.css 2>/dev/null | sort -n || true
+fi
