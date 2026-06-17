@@ -7,6 +7,10 @@ import { PaymentModal } from "@/features/customer-menu/checkout/CheckoutModalHos
 import type { MenuItem } from "@/lib/data"
 import type { ModernGreenThemeRouteProps } from "@/features/customer-menu/theme/themeRouteTypes"
 import { createOpenOrderUpdateHandler } from "@/features/customer-menu/theme/themeRouteShared"
+type ModernGreenValetValues = { name?: string; licensePlate?: string; license_plate?: string; carModel?: string; car_make?: string }
+
+const getErrorMessage = (error: unknown, fallback: string) => error instanceof Error ? error.message : fallback
+
 export function ModernGreenThemeRoute(props: ModernGreenThemeRouteProps) {
   const {
     apiMenuItems,
@@ -78,9 +82,9 @@ export function ModernGreenThemeRoute(props: ModernGreenThemeRouteProps) {
     if (taxSettings.enabled && taxSettings.percentage > 0 && taxSettings.menuPrice === 0) {
       itemToAdd.price = Number(itemToAdd.price || 0) / (1 + taxSettings.percentage / 100)
       if (itemToAdd.options) {
-        itemToAdd.options = itemToAdd.options.map((option: any) => ({
+        itemToAdd.options = itemToAdd.options.map((option: NonNullable<MenuItem["options"]>[number]) => ({
           ...option,
-          values: (option.values || []).map((value: any) => ({
+          values: (option.values || []).map((value: NonNullable<NonNullable<MenuItem["options"]>[number]["values"]>[number]) => ({
             ...value,
             price: Number(value.price || 0) / (1 + taxSettings.percentage / 100),
           })),
@@ -95,7 +99,7 @@ export function ModernGreenThemeRoute(props: ModernGreenThemeRouteProps) {
     handleFirstAdd(item)
     toast({
       title: "Added to order",
-      description: String((item as any).name || (item as any).menu_name || "Item added"),
+      description: String(item.name || "Item added"),
     })
   }
 
@@ -107,10 +111,10 @@ export function ModernGreenThemeRoute(props: ModernGreenThemeRouteProps) {
         title: "Waiter called",
         description: tableIdString ? "We are on the way!" : "We received your assistance request.",
       })
-    } catch (error: any) {
+    } catch (error: unknown) {
       toast({
         title: "Waiter call failed",
-        description: error?.message || "Failed to call waiter.",
+        description: getErrorMessage(error, "Failed to call waiter."),
         variant: "destructive",
       })
     }
@@ -134,16 +138,16 @@ export function ModernGreenThemeRoute(props: ModernGreenThemeRouteProps) {
         title: "Note sent",
         description: "Your note has been sent to the staff.",
       })
-    } catch (error: any) {
+    } catch (error: unknown) {
       toast({
         title: "Note failed",
-        description: error?.message || "Failed to send note.",
+        description: getErrorMessage(error, "Failed to send note."),
         variant: "destructive",
       })
     }
   }
 
-  const handleModernGreenValet = async (values: any = {}) => {
+  const handleModernGreenValet = async (values: ModernGreenValetValues = {}) => {
     const name = String(values?.name || "Guest").trim() || "Guest"
     const licensePlate = String(values?.licensePlate || values?.license_plate || "Not provided").trim() || "Not provided"
     const carModel = String(values?.carModel || values?.car_make || "Not provided").trim() || "Not provided"
@@ -161,10 +165,10 @@ export function ModernGreenThemeRoute(props: ModernGreenThemeRouteProps) {
         title: "Valet requested",
         description: "Your valet request has been sent.",
       })
-    } catch (error: any) {
+    } catch (error: unknown) {
       toast({
         title: "Valet request failed",
-        description: error?.message || "Failed to submit valet request.",
+        description: getErrorMessage(error, "Failed to submit valet request."),
         variant: "destructive",
       })
     }

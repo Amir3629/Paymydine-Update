@@ -35,6 +35,7 @@ import { GoldThemeRoute } from "@/features/customer-menu/theme/GoldThemeRoute";
 import { useCustomerCheckoutModalState } from "@/features/customer-menu/hooks/useCustomerCheckoutModalState";
 import { useCustomerMenuDerivedData } from "@/features/customer-menu/hooks/useCustomerMenuDerivedData";
 import { useCustomerLocalOpenOrderHydration } from "@/features/customer-menu/hooks/useCustomerLocalOpenOrderHydration";
+import { useCustomerMenuFooterLogoVisibility } from "@/features/customer-menu/hooks/useCustomerMenuFooterLogoVisibility";
 import { useOrganicThemeEffects } from "@/features/customer-menu/theme/useOrganicThemeEffects";
 import { useCustomerMenuThemeBootstrap } from "@/features/customer-menu/theme/useCustomerMenuThemeBootstrap";
 import { normalizeMenuLogoUrl } from "@/features/customer-menu/theme/themeRouteShared";
@@ -116,7 +117,7 @@ function MenuContent() {
     : (isRecentPaidTableOrder && paymentModalInitialStep === "review" && items.length > 0 ? null : localOpenOrder)
   const shouldHideCartSheet = !!activeExistingOrderId
 
-  const shouldShowPayMyDineFooterLogo = isModernGreenTheme || isOrganicBotanicalTheme
+  const shouldShowPayMyDineFooterLogo = useCustomerMenuFooterLogoVisibility({ isModernGreenTheme, isOrganicBotanicalTheme })
   const renderWithFooterLogo = (content: React.ReactNode) => (
     <>
       {content}
