@@ -10,7 +10,7 @@ import "./customer-menu-page.css"
  * LEGACY_DOM_REPAIR_POLICY:
  * This file is the lifted customer-menu implementation from the former app/menu route.
  * Remaining MutationObserver/querySelector/style.setProperty usage is legacy checkout,
- * theme-resolution, footer-logo, and Kazen standalone visibility repair code; bottom dock
+ * theme-resolution, and Kazen standalone visibility repair code; bottom dock
  * injection is not allowed and has been removed. Those remaining repairs are kept to avoid
  * changing checkout/payment/table-order behavior in this route move. Future cleanup should
  * replace them from focused files such as CustomerMenuModals, checkout theme shells,
@@ -38,7 +38,7 @@ import { useCustomerLocalOpenOrderHydration } from "@/features/customer-menu/hoo
 import { useOrganicThemeEffects } from "@/features/customer-menu/theme/useOrganicThemeEffects";
 import { useCustomerMenuThemeBootstrap } from "@/features/customer-menu/theme/useCustomerMenuThemeBootstrap";
 import { normalizeMenuLogoUrl } from "@/features/customer-menu/theme/themeRouteShared";
-import { pmdInstallMenuPayMyDineFooterLogo } from "@/features/customer-menu/legacy-dom-repairs/footerLogoInstaller";
+import { MenuPayMyDineFooterLogo } from "@/features/customer-menu/components/MenuPayMyDineFooterLogo";
 import { LoadingSpinner } from "@/features/customer-menu/components/LoadingSpinner";
 import { buildTableOrderDraftContext, createSubmittedTableOrderSnapshot, isVisibleTableOrderDraft, tableOrderItemCount } from "@/features/table-order/table-order-utils";
 import { calculateCartPricingSummary } from "@/features/checkout/checkout-utils";
@@ -115,6 +115,14 @@ function MenuContent() {
     ? null
     : (isRecentPaidTableOrder && paymentModalInitialStep === "review" && items.length > 0 ? null : localOpenOrder)
   const shouldHideCartSheet = !!activeExistingOrderId
+
+  const shouldShowPayMyDineFooterLogo = isModernGreenTheme || isOrganicBotanicalTheme
+  const renderWithFooterLogo = (content: React.ReactNode) => (
+    <>
+      {content}
+      <MenuPayMyDineFooterLogo visible={shouldShowPayMyDineFooterLogo} />
+    </>
+  )
 
   useEffect(() => {
     if (!isVisibleTableOrderDraft(sharedTableOrder)) return
@@ -561,7 +569,7 @@ useEffect(() => {
 
   // PMD_KAZEN_JAPANESE_THEME_RETURN_20260611
   if (isKazenJapaneseTheme) {
-    return (
+    return renderWithFooterLogo(
       <KazenThemeRoute
         apiMenuItems={apiMenuItems}
         menuItems={menuItems}
@@ -609,7 +617,7 @@ useEffect(() => {
 
   // Native Modern Green renders inside the main frontend with live PayMyDine data.
   if (isModernGreenTheme) {
-    return (
+    return renderWithFooterLogo(
       <ModernGreenThemeRoute
         apiMenuItems={apiMenuItems}
         menuItems={menuItems}
@@ -656,7 +664,7 @@ useEffect(() => {
 
   // PMD_ORGANIC_V0_ONLY_RETURN_FINAL_20260607
   if (isOrganicBotanicalTheme) {
-    return (
+    return renderWithFooterLogo(
       <OrganicThemeRoute
         apiMenuItems={apiMenuItems}
         menuItems={menuItems}
@@ -689,7 +697,7 @@ useEffect(() => {
     )
   }
 
-  return (
+  return renderWithFooterLogo(
     <GoldThemeRoute
       themeMenuActions={themeMenuActions}
       displayTableNumber={displayTableNumber}
@@ -736,11 +744,6 @@ useEffect(() => {
 
 // Main component with Suspense wrapper
 export default function PayMyDineMenuPage() {
-  // PMD_MENU_FOOTER_LOGO_RUNTIME_CALL_FINAL_20260611
-  useEffect(() => {
-    return pmdInstallMenuPayMyDineFooterLogo()
-  }, [])
-
   return (
     <div className="pmd-customer-page page--menu" data-pmd-customer-page="menu">
       <Suspense fallback={<div>Loading...</div>}>
