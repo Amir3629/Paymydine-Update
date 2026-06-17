@@ -17,3 +17,4 @@ Removed safely:
 
 - useMenuActionCircleColorRepair.ts: replaced by `PMD_MENU_ACTION_CIRCLE_COLOR_REPAIR_CSS` in `styles/global/paymydine-legacy-globals.css`.
 - useKazenMenuDomRepairs.ts: replaced by `PMD_KAZEN_VISIBILITY_REPAIR_CSS` in `styles/global/paymydine-legacy-globals.css`.
+- useCheckoutVisualRepairs.ts: reduced; quantity icon and split-method text repairs moved to `PMD_CHECKOUT_VISUAL_REPAIR_CSS`. Remaining hook only hides old text-based `Base amount` rows.
