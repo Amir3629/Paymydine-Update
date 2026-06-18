@@ -3587,3 +3587,57 @@ html body :is(.kazen-primary, .kazen-secondary, .pmd-kazen-detail-add, .pmd-kaze
   stroke: currentColor !important;
 }
 
+
+
+/* PMD_KAZEN_V38_DOCK_FOUR_INLINE_20260618
+   Keep Waiter / Note / Table / Checkout in one smooth row.
+   When Table disappears, dock returns to normal 3 columns.
+*/
+.kazen-dock[data-pmd-kazen-v38-dock="1"] {
+  display: grid !important;
+  grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+  gap: .62rem !important;
+  transition: grid-template-columns .22s ease, gap .22s ease, padding .22s ease !important;
+}
+
+.kazen-dock[data-pmd-kazen-v38-dock="1"][data-kazen-table-order-active="1"] {
+  grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
+  gap: .44rem !important;
+}
+
+.kazen-dock[data-pmd-kazen-v38-dock="1"] > button {
+  min-width: 0 !important;
+  width: 100% !important;
+  max-width: 100% !important;
+  padding: .52rem .28rem !important;
+  overflow: hidden !important;
+  white-space: normal !important;
+  text-align: center !important;
+  transition: padding .22s ease, font-size .22s ease, border-color .18s ease, color .18s ease, background-color .18s ease !important;
+}
+
+.kazen-dock[data-pmd-kazen-v38-dock="1"][data-kazen-table-order-active="1"] > button {
+  min-height: 3rem !important;
+  font-size: .58rem !important;
+  letter-spacing: .13em !important;
+  line-height: 1.12 !important;
+  padding-inline: .18rem !important;
+}
+
+.kazen-dock[data-pmd-kazen-v38-dock="1"][data-kazen-table-order-active="1"] > button svg {
+  width: 1.05rem !important;
+  height: 1.05rem !important;
+  flex: 0 0 auto !important;
+}
+
+@media (max-width: 390px) {
+  .kazen-dock[data-pmd-kazen-v38-dock="1"][data-kazen-table-order-active="1"] {
+    gap: .34rem !important;
+    padding: .52rem !important;
+  }
+
+  .kazen-dock[data-pmd-kazen-v38-dock="1"][data-kazen-table-order-active="1"] > button {
+    font-size: .52rem !important;
+    letter-spacing: .105em !important;
+  }
+}

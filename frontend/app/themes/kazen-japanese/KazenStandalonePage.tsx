@@ -2,7 +2,7 @@
 
 import "./kazen-standalone.css"
 import React, { useEffect, useMemo, useState } from "react"
-import { Bell, Car, Languages, Menu, MessageSquare, Minus, Plus, ShoppingBag } from "lucide-react"
+import { Bell, Car, ClipboardList, Languages, Menu, MessageSquare, Minus, Plus, ShoppingBag } from "lucide-react"
 import { ModalCard } from "./KazenStandaloneModalCard"
 import { KazenItemDetailModal } from "./KazenItemDetailModal"
 import { pmdInstallKazenCleanHeaderButtons, pmdInstallKazenFinalDarkMode, pmdInstallKazenPremiumMotion } from "./kazenStandaloneDomRepairs"
@@ -179,6 +179,8 @@ export default function KazenStandalonePage() {
   const [noteOpen, setNoteOpen] = useState(false)
   const [valetOpen, setValetOpen] = useState(false)
   const [note, setNote] = useState("")
+  // PMD_KAZEN_V34_TABLE_ORDER_DOCK_20260618
+  const [tableOrderDock, setTableOrderDock] = useState({ showTableOrder: false, tableOrderCount: 0 })
   const [valetName, setValetName] = useState("")
   const [valetPlate, setValetPlate] = useState("")
   const [valetCar, setValetCar] = useState("")
@@ -202,6 +204,11 @@ export default function KazenStandalonePage() {
       const msg = event.data
       if (!msg || typeof msg !== "object") return
       if (String((msg as any).type || "") !== "PMD_KAZEN_SYNC") return
+
+      setTableOrderDock({
+        showTableOrder: Boolean((msg as any).showTableOrder),
+        tableOrderCount: Number((msg as any).tableOrderCount || 0),
+      })
 
       const rawItems = Array.isArray((msg as any).items) ? (msg as any).items : []
       const items: KazenItem[] = rawItems.map((item: any) => ({
@@ -411,6 +418,10 @@ export default function KazenStandalonePage() {
     setSelectedItem(null)
   }
 
+  const openTableOrder = () => {
+    post("PMD_KAZEN_TABLE_ORDER")
+  }
+
   const submitWaiter = () => {
     post("PMD_KAZEN_CALL_WAITER")
     setWaiterOpen(false)
@@ -575,13 +586,24 @@ export default function KazenStandalonePage() {
         </footer>
       </div>
 
-      <nav className="kazen-dock" aria-label="Menu actions">
+      <nav
+        className="kazen-dock"
+        aria-label="Menu actions"
+        data-kazen-table-order-active={tableOrderDock.showTableOrder ? "1" : "0"}
+        data-pmd-kazen-v38-dock="1"
+        style={{ gridTemplateColumns: tableOrderDock.showTableOrder ? "repeat(4, minmax(0, 1fr))" : "repeat(3, minmax(0, 1fr))" }}
+      >
         <button type="button" onClick={() => setWaiterOpen(true)}>
           <Bell className="h-5 w-5" />Waiter
         </button>
         <button type="button" onClick={() => setNoteOpen(true)}>
           <MessageSquare className="h-5 w-5" />Note
         </button>
+        {tableOrderDock.showTableOrder && (
+          <button type="button" aria-label="Table Order" onClick={openTableOrder}>
+            <ClipboardList className="h-5 w-5" />Table {tableOrderDock.tableOrderCount ? `(${tableOrderDock.tableOrderCount})` : ""}
+          </button>
+        )}
         <button type="button" data-primary="true" onClick={() => post("PMD_KAZEN_CHECKOUT")}>
           <ShoppingBag className="h-5 w-5" />Checkout {state.cart.count ? `(${state.cart.count})` : ""}
         </button>
@@ -697,3 +719,5 @@ export default function KazenStandalonePage() {
 // PMD_FIX_KAZEN_BACKEND_CATEGORIES_ONLY_20260613
 
 // PMD_FIX_KAZEN_MOBILE_DOCK_SAFE_AREA_20260613
+
+// PMD_KAZEN_V38_DOCK_FOUR_INLINE_20260618

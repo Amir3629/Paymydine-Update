@@ -194,4 +194,5 @@
   'Admin\\Models\\Menu_combos_model' => 'app/admin/models/Menu_combos_model.php',
   'Admin\\Models\\Menu_combo_items_model' => 'app/admin/models/Menu_combo_items_model.php',
   'Admin\\Controllers\\staffs' => 'app/admin/controllers/Staffs.php',
+  'Admin\\Requests\\TaxSettings' => 'app/admin/requests/TaxSettings.php',
 );
