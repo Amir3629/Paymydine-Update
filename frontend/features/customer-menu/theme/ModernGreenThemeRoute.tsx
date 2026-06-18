@@ -4,6 +4,7 @@ import { ThemeActionBoundary } from "@/components/themes/shared/ThemeActionBound
 import { ModernGreenNativeMenu } from "@/components/themes/modern-green/ModernGreenNativeMenu"
 import { ModernGreenBottomDock } from "@/components/themes/modern-green/ModernGreenBottomDock"
 import { PaymentModal } from "@/features/customer-menu/checkout/CheckoutModalHost"
+import { MenuItemModal } from "@/components/menu-item-modal"
 import type { MenuItem } from "@/lib/data"
 import type { ModernGreenThemeRouteProps } from "@/features/customer-menu/theme/themeRouteTypes"
 import { createOpenOrderUpdateHandler } from "@/features/customer-menu/theme/themeRouteShared"
@@ -34,6 +35,8 @@ export function ModernGreenThemeRoute(props: ModernGreenThemeRouteProps) {
     toast,
     apiClient,
     handleItemSelect,
+    selectedItem,
+    setSelectedItem,
     handleCartClick,
     shouldShowTableOrderAction,
     setPaymentModalInitialStep,
@@ -208,6 +211,7 @@ export function ModernGreenThemeRoute(props: ModernGreenThemeRouteProps) {
         tableOrderCount={tableOrderActionCount}
       >
         <ModernGreenBottomDock {...themeMenuActions} />
+        <MenuItemModal item={selectedItem || null} onClose={() => setSelectedItem?.(null)} />
         <PaymentModal
           isOpen={isPaymentModalOpen}
           onClose={() => { setPaymentModalOpen(false); setPaymentModalPreferPersonalReview(false) }}

@@ -15,34 +15,26 @@ export function ModalCard({
   children: React.ReactNode
 }) {
   return (
-    <div className="kazen-solid-modal-overlay" role="dialog" aria-modal="true">
-      <div
-        className="kazen-solid-modal-panel"
+    <div className="kazen-solid-modal-overlay pmd-kazen-action-overlay" role="dialog" aria-modal="true" aria-label={title} onClick={onClose}>
+      <article
+        className="kazen-solid-modal-panel pmd-kazen-action-card"
         data-kazen-solid-panel="1"
-        style={{
-          background: "#fbf8f2",
-          backgroundColor: "#fbf8f2",
-          opacity: 1,
-          filter: "none",
-          backdropFilter: "none",
-          WebkitBackdropFilter: "none",
-          mixBlendMode: "normal",
-        }}
+        onClick={(event) => event.stopPropagation()}
       >
-        <div className="kazen-solid-modal-sheet" aria-hidden="true" />
-        <div className="kazen-solid-modal-content">
-          <div className="kazen-solid-modal-head">
-            <div>
-              {eyebrow ? <div className="kazen-solid-eyebrow">{eyebrow}</div> : null}
+        <div className="kazen-solid-modal-sheet pmd-kazen-action-sheet" aria-hidden="true" />
+        <div className="kazen-solid-modal-content pmd-kazen-action-content">
+          <header className="kazen-solid-modal-head pmd-kazen-action-head">
+            <div className="pmd-kazen-action-title-block">
+              {eyebrow ? <div className="kazen-solid-eyebrow pmd-kazen-action-eyebrow">{eyebrow}</div> : null}
               <h2>{title}</h2>
             </div>
-            <button type="button" className="kazen-solid-close" onClick={onClose} aria-label="Close">
-              <X className="h-5 w-5" />
+            <button type="button" className="kazen-solid-close pmd-kazen-action-close" onClick={onClose} aria-label="Close">
+              <X aria-hidden="true" />
             </button>
-          </div>
-          {children}
+          </header>
+          <div className="pmd-kazen-action-body">{children}</div>
         </div>
-      </div>
+      </article>
     </div>
   )
 }

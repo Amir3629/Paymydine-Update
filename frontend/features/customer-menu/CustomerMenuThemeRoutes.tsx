@@ -108,6 +108,8 @@ export function CustomerMenuThemeRoutes(props: CustomerMenuThemeRoutesProps) {
         toast={toast}
         apiClient={apiClient}
         handleItemSelect={handleItemSelect}
+        selectedItem={selectedItem}
+        setSelectedItem={setSelectedItem}
         handleCartClick={handleCartClick}
         shouldShowTableOrderAction={shouldShowTableOrderAction}
         setPaymentModalInitialStep={setPaymentModalInitialStep}
@@ -156,6 +158,8 @@ export function CustomerMenuThemeRoutes(props: CustomerMenuThemeRoutesProps) {
         toast={toast}
         apiClient={apiClient}
         handleItemSelect={handleItemSelect}
+        selectedItem={selectedItem}
+        setSelectedItem={setSelectedItem}
         handleCartClick={handleCartClick}
         shouldShowTableOrderAction={shouldShowTableOrderAction}
         setPaymentModalInitialStep={setPaymentModalInitialStep}
@@ -194,6 +198,8 @@ export function CustomerMenuThemeRoutes(props: CustomerMenuThemeRoutesProps) {
         handleFirstAdd={handleFirstAdd}
         toast={toast}
         handleItemSelect={handleItemSelect}
+        selectedItem={selectedItem}
+        setSelectedItem={setSelectedItem}
         shouldHideCartSheet={shouldHideCartSheet}
         isPaymentModalOpen={isPaymentModalOpen}
         setPaymentModalOpen={setPaymentModalOpen}
