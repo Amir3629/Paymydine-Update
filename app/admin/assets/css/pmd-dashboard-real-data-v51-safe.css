@@ -1,0 +1,53 @@
+/* PMD Dashboard Real Data v5.1 SAFE
+   - move dashboard slightly down
+   - keep KPI bar clean
+*/
+
+html body.page.pmd-admin-theme-v1 .pmd-dashboard-modern {
+  margin-top: -12px !important;
+  margin-bottom: 22px !important;
+}
+
+html body.page.pmd-admin-theme-v1 [data-control="dashboard-container"] {
+  padding-top: 0 !important;
+}
+
+html body.page.pmd-admin-theme-v1 .pmd-dashboard-kpi-bar {
+  margin-bottom: 18px !important;
+  border-radius: 19px !important;
+}
+
+html body.page.pmd-admin-theme-v1 .pmd-dashboard-kpi {
+  padding: 20px 68px 18px 22px !important;
+  min-height: 112px !important;
+}
+
+html body.page.pmd-admin-theme-v1 .pmd-dashboard-kpi-label {
+  font-size: .75rem !important;
+  white-space: nowrap !important;
+}
+
+html body.page.pmd-admin-theme-v1 .pmd-dashboard-kpi-value {
+  font-size: 1.9rem !important;
+  margin-bottom: 10px !important;
+}
+
+html body.page.pmd-admin-theme-v1 .pmd-dashboard-kpi-sub {
+  max-width: 100% !important;
+  font-size: .72rem !important;
+  line-height: 1.15 !important;
+  white-space: nowrap !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+}
+
+html body.page.pmd-admin-theme-v1 .pmd-dashboard-kpi-icon {
+  right: 16px !important;
+  bottom: 17px !important;
+  width: 42px !important;
+  height: 42px !important;
+}
+
+html body.page.pmd-admin-theme-v1 .pmd-real-loaded {
+  animation: none !important;
+}

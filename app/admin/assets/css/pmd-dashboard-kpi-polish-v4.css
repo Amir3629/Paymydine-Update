@@ -1,0 +1,108 @@
+/* PMD Dashboard KPI Polish v4
+   - move dashboard higher
+   - fix black KPI bar spacing
+   - prevent green text/icon overlap
+*/
+
+html body.page.pmd-admin-theme-v1 [data-control="dashboard-container"] {
+  padding-top: 0 !important;
+}
+
+/* Move whole modern dashboard closer to the top header */
+html body.page.pmd-admin-theme-v1 .pmd-dashboard-modern {
+  margin-top: -34px !important;
+  margin-bottom: 22px !important;
+}
+
+/* Black KPI bar: cleaner, closer to reference */
+html body.page.pmd-admin-theme-v1 .pmd-dashboard-kpi-bar {
+  margin-top: 0 !important;
+  margin-bottom: 18px !important;
+  border-radius: 19px !important;
+  overflow: hidden !important;
+  min-height: 112px !important;
+  background:
+    radial-gradient(circle at 4% 0%, rgba(200,155,74,.14), transparent 28%),
+    linear-gradient(135deg, #050604 0%, #020706 46%, #000000 100%) !important;
+  box-shadow:
+    0 20px 46px rgba(2,31,28,.16),
+    inset 0 1px 0 rgba(255,255,255,.055) !important;
+}
+
+/* Each KPI gets enough right padding for icon */
+html body.page.pmd-admin-theme-v1 .pmd-dashboard-kpi {
+  min-height: 112px !important;
+  padding: 20px 74px 18px 22px !important;
+  position: relative !important;
+  overflow: hidden !important;
+}
+
+/* Label: less cramped */
+html body.page.pmd-admin-theme-v1 .pmd-dashboard-kpi-label {
+  margin-bottom: 13px !important;
+  color: rgba(255,255,255,.76) !important;
+  font-size: .76rem !important;
+  font-weight: 950 !important;
+  letter-spacing: .045em !important;
+  line-height: 1.1 !important;
+  white-space: nowrap !important;
+}
+
+/* Value dash / number */
+html body.page.pmd-admin-theme-v1 .pmd-dashboard-kpi-value {
+  font-size: 1.85rem !important;
+  font-weight: 950 !important;
+  line-height: .95 !important;
+  margin-bottom: 11px !important;
+  color: #FFFFFF !important;
+}
+
+/* Green subtitle: never goes under icon */
+html body.page.pmd-admin-theme-v1 .pmd-dashboard-kpi-sub {
+  max-width: 100% !important;
+  margin-top: 0 !important;
+  padding-right: 0 !important;
+  color: #4ADE80 !important;
+  font-size: .76rem !important;
+  font-weight: 850 !important;
+  line-height: 1.15 !important;
+  white-space: nowrap !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+}
+
+/* Icon: fixed right, no overlap with text */
+html body.page.pmd-admin-theme-v1 .pmd-dashboard-kpi-icon {
+  right: 18px !important;
+  bottom: 18px !important;
+  width: 44px !important;
+  height: 44px !important;
+  border-radius: 16px !important;
+  background: rgba(200,155,74,.13) !important;
+  box-shadow:
+    inset 0 0 0 1px rgba(200,155,74,.18),
+    0 8px 18px rgba(0,0,0,.22) !important;
+  color: #F5E8D0 !important;
+  z-index: 2 !important;
+}
+
+/* Make last KPI safer because its text is long */
+html body.page.pmd-admin-theme-v1 .pmd-dashboard-kpi:last-child .pmd-dashboard-kpi-sub {
+  font-size: .70rem !important;
+}
+
+/* Cards start a little higher too */
+html body.page.pmd-admin-theme-v1 .pmd-dashboard-grid {
+  margin-top: 0 !important;
+}
+
+/* On smaller screens don't use negative top margin */
+@media (max-width: 1200px) {
+  html body.page.pmd-admin-theme-v1 .pmd-dashboard-modern {
+    margin-top: 0 !important;
+  }
+
+  html body.page.pmd-admin-theme-v1 .pmd-dashboard-kpi {
+    padding-right: 72px !important;
+  }
+}

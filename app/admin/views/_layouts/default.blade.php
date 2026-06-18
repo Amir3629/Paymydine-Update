@@ -797,6 +797,17 @@ body .media-manager .media-sidebar .sidebar-preview-toolbar button.btn-outline-d
 </style>
     <!-- PayMyDine Admin Theme v1 - centralized final general visual layer (intentionally last CSS include) -->
 <link rel="stylesheet" href="{{ asset('app/admin/assets/css/pmd-admin-theme-v1.css') }}?v={{ time() }}">
+<link rel="stylesheet" href="{{ asset('app/admin/assets/css/pmd-admin-sidebar-clean-v4.css') }}?v={{ time() }}">
+<link rel="stylesheet" href="{{ asset('app/admin/assets/css/pmd-sidebar-svg-mask-icons.css') }}?v={{ time() }}">
+<link rel="stylesheet" href="{{ asset('app/admin/assets/css/pmd-sidebar-ref-icons.css') }}?v={{ time() }}">
+<link rel="stylesheet" href="{{ asset('app/admin/assets/css/pmd-sidebar-active-state-fix.css') }}?v={{ time() }}">
+<link rel="stylesheet" href="{{ asset('app/admin/assets/css/pmd-sidebar-parent-open-v5.css') }}?v={{ time() }}">
+<link rel="stylesheet" href="{{ asset('app/admin/assets/css/pmd-sidebar-button-size-v6.css') }}?v={{ time() }}">
+<link rel="stylesheet" href="{{ asset('app/admin/assets/css/pmd-sidebar-system-lock-v7.css') }}?v={{ time() }}">
+<link rel="stylesheet" href="{{ asset('app/admin/assets/css/pmd-sidebar-column-flow-v8.css') }}?v={{ time() }}">
+<link rel="stylesheet" href="{{ asset('app/admin/assets/css/pmd-sidebar-submenu-active-v9.css') }}?v={{ time() }}">
+<link rel="stylesheet" href="{{ asset('app/admin/assets/css/pmd-sidebar-child-icons-v10.css') }}?v={{ time() }}">
+<link rel="stylesheet" href="{{ asset('app/admin/assets/css/pmd-dashboard-modern-v1.css') }}?v={{ time() }}">
 
     {{-- PMD all-pages toolbar guard: hide only legacy buttons, never the header/proxy containers --}}
     <script>
@@ -922,6 +933,9 @@ body .media-manager .media-sidebar .sidebar-preview-toolbar button.btn-outline-d
         }
     </style>
 
+    <link rel="stylesheet" href="{{ asset('app/admin/assets/css/pmd-dashboard-remove-hero-v3.css') }}?v={{ time() }}">
+<link rel="stylesheet" href="{{ asset('app/admin/assets/css/pmd-dashboard-kpi-polish-v4.css') }}?v={{ time() }}">
+<link rel="stylesheet" href="{{ asset('app/admin/assets/css/pmd-dashboard-real-data-v52.css') }}?v={{ time() }}">
 </head>
 <script>
     // SMART FIX: Force dropdown alignment WITHOUT breaking Bootstrap animations
@@ -1442,5 +1456,8 @@ body .media-manager .media-sidebar .sidebar-preview-toolbar button.btn-outline-d
  document.addEventListener('change',on,true); document.addEventListener('input',on,true); setTimeout(on,300);
 })();
 </script>
+    <script src="{{ asset('app/admin/assets/js/pmd-sidebar-system-lock-v7.js') }}?v={{ time() }}"></script>
+    <script src="{{ asset('app/admin/assets/js/pmd-dashboard-modern-v1.js') }}?v={{ time() }}"></script>
+    <script src="{{ asset('app/admin/assets/js/pmd-dashboard-real-data-v52.js') }}?v={{ time() }}"></script>
 </body>
 </html>

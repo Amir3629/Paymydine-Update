@@ -1,0 +1,84 @@
+/* PMD Sidebar Submenu Active v9
+   Fix active child pills like Mail Templates overflowing right.
+*/
+
+html body.page.pmd-admin-theme-v1 #side-nav-menu {
+  box-sizing: border-box !important;
+  overflow-x: hidden !important;
+}
+
+/* Submenu container must NOT be width:100% + padding, because that overflows */
+html body.page.pmd-admin-theme-v1 #side-nav-menu > .nav-item > ul.nav,
+html body.page.pmd-admin-theme-v1 #side-nav-menu > .nav-item > ul.nav.collapse,
+html body.page.pmd-admin-theme-v1 #side-nav-menu > .nav-item > ul.nav.collapse.show,
+html body.page.pmd-admin-theme-v1 #side-nav-menu > .nav-item > ul.nav.collapsing {
+  width: auto !important;
+  max-width: none !important;
+  margin-left: 0 !important;
+  margin-right: 0 !important;
+  padding-left: 25px !important;
+  padding-right: 0 !important;
+  box-sizing: border-box !important;
+  overflow-x: hidden !important;
+}
+
+/* Child item stays inside submenu width */
+html body.page.pmd-admin-theme-v1 #side-nav-menu > .nav-item > ul.nav > .nav-item {
+  width: auto !important;
+  max-width: 100% !important;
+  margin-left: 0 !important;
+  margin-right: 0 !important;
+  box-sizing: border-box !important;
+  overflow: hidden !important;
+}
+
+/* Child link normal state */
+html body.page.pmd-admin-theme-v1 #side-nav-menu > .nav-item > ul.nav > .nav-item > .nav-link {
+  width: auto !important;
+  max-width: 100% !important;
+  min-width: 0 !important;
+  margin-left: 0 !important;
+  margin-right: 0 !important;
+  padding-left: 7px !important;
+  padding-right: 7px !important;
+  box-sizing: border-box !important;
+  overflow: hidden !important;
+  border-radius: 13px !important;
+}
+
+/* Active child page: cream pill, but fully inside sidebar */
+html body.page.pmd-admin-theme-v1 #side-nav-menu > .nav-item > ul.nav > .nav-item.active > .nav-link,
+html body.page.pmd-admin-theme-v1 #side-nav-menu > .nav-item > ul.nav > .nav-item > .nav-link.active {
+  width: auto !important;
+  max-width: 100% !important;
+  background: linear-gradient(135deg, #FFF9EF 0%, #F5E8D0 100%) !important;
+  color: #062F2A !important;
+  box-shadow:
+    0 8px 16px rgba(0,0,0,0.12),
+    inset 0 0 0 1px rgba(200,155,74,0.22) !important;
+  overflow: hidden !important;
+}
+
+/* Active child icon must be jade, not white */
+html body.page.pmd-admin-theme-v1 #side-nav-menu > .nav-item > ul.nav > .nav-item.active > .nav-link > i.fa,
+html body.page.pmd-admin-theme-v1 #side-nav-menu > .nav-item > ul.nav > .nav-item > .nav-link.active > i.fa {
+  color: #062F2A !important;
+}
+
+/* Active child text must be jade and clipped nicely if long */
+html body.page.pmd-admin-theme-v1 #side-nav-menu > .nav-item > ul.nav > .nav-item.active > .nav-link > .content,
+html body.page.pmd-admin-theme-v1 #side-nav-menu > .nav-item > ul.nav > .nav-item > .nav-link.active > .content {
+  color: #062F2A !important;
+  min-width: 0 !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  white-space: nowrap !important;
+}
+
+/* Parent open state remains dark, not cream */
+html body.page.pmd-admin-theme-v1 #side-nav-menu > .nav-item.open > .nav-link[data-toggle="collapse"],
+html body.page.pmd-admin-theme-v1 #side-nav-menu > .nav-item.active > .nav-link[data-toggle="collapse"] {
+  background: rgba(255,255,255,0.045) !important;
+  color: #FFFFFF !important;
+  box-shadow: inset 0 0 0 1px rgba(255,255,255,0.035) !important;
+}

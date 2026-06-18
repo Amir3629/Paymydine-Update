@@ -1,0 +1,62 @@
+
+/* PMD sidebar reference icon override */
+html body.page.pmd-admin-theme-v1 #side-nav-menu .nav-link > i.fa {
+  width: 21px !important;
+  min-width: 21px !important;
+  height: 21px !important;
+  color: rgba(229,237,245,.96) !important;
+  background-color: currentColor !important;
+  -webkit-mask-repeat: no-repeat !important;
+  mask-repeat: no-repeat !important;
+  -webkit-mask-position: center !important;
+  mask-position: center !important;
+  -webkit-mask-size: contain !important;
+  mask-size: contain !important;
+}
+
+html body.page.pmd-admin-theme-v1 #side-nav-menu > .nav-item.active > .nav-link > i.fa {
+  color: #062F2A !important;
+}
+
+html body.page.pmd-admin-theme-v1 #side-nav-menu .fa-home { -webkit-mask-image: url("../icons/dashboard.svg") !important; mask-image: url("../icons/dashboard.svg") !important; }
+html body.page.pmd-admin-theme-v1 #side-nav-menu .fa-shopping-cart,
+html body.page.pmd-admin-theme-v1 #side-nav-menu .fa-shopping-bag { -webkit-mask-image: url("../icons/orders.svg") !important; mask-image: url("../icons/orders.svg") !important; }
+html body.page.pmd-admin-theme-v1 #side-nav-menu .fa-calendar-check-o,
+html body.page.pmd-admin-theme-v1 #side-nav-menu .fa-calendar { -webkit-mask-image: url("../icons/reservations.svg") !important; mask-image: url("../icons/reservations.svg") !important; }
+html body.page.pmd-admin-theme-v1 #side-nav-menu .fa-gift,
+html body.page.pmd-admin-theme-v1 #side-nav-menu .fa-tags,
+html body.page.pmd-admin-theme-v1 #side-nav-menu .fa-tag { -webkit-mask-image: url("../icons/coupons.svg") !important; mask-image: url("../icons/coupons.svg") !important; }
+html body.page.pmd-admin-theme-v1 #side-nav-menu .fa-cutlery { -webkit-mask-image: url("../icons/restaurant.svg") !important; mask-image: url("../icons/restaurant.svg") !important; }
+html body.page.pmd-admin-theme-v1 #side-nav-menu .fa-map-marker { -webkit-mask-image: url("../icons/locations.svg") !important; mask-image: url("../icons/locations.svg") !important; }
+html body.page.pmd-admin-theme-v1 #side-nav-menu .fa-book { -webkit-mask-image: url("../icons/menu.svg") !important; mask-image: url("../icons/menu.svg") !important; }
+html body.page.pmd-admin-theme-v1 #side-nav-menu .fa-list-ul,
+html body.page.pmd-admin-theme-v1 #side-nav-menu .fa-list { -webkit-mask-image: url("../icons/categories.svg") !important; mask-image: url("../icons/categories.svg") !important; }
+html body.page.pmd-admin-theme-v1 #side-nav-menu .fa-clock-o { -webkit-mask-image: url("../icons/mealtimes.svg") !important; mask-image: url("../icons/mealtimes.svg") !important; }
+html body.page.pmd-admin-theme-v1 #side-nav-menu .fa-th-large { -webkit-mask-image: url("../icons/tables.svg") !important; mask-image: url("../icons/tables.svg") !important; }
+html body.page.pmd-admin-theme-v1 #side-nav-menu .fa-television,
+html body.page.pmd-admin-theme-v1 #side-nav-menu .fa-desktop { -webkit-mask-image: url("../icons/kds.svg") !important; mask-image: url("../icons/kds.svg") !important; }
+html body.page.pmd-admin-theme-v1 #side-nav-menu .fa-credit-card { -webkit-mask-image: url("../icons/payments.svg") !important; mask-image: url("../icons/payments.svg") !important; }
+html body.page.pmd-admin-theme-v1 #side-nav-menu .fa-percent { -webkit-mask-image: url("../icons/tips.svg") !important; mask-image: url("../icons/tips.svg") !important; }
+html body.page.pmd-admin-theme-v1 #side-nav-menu .fa-bullhorn { -webkit-mask-image: url("../icons/marketing.svg") !important; mask-image: url("../icons/marketing.svg") !important; }
+html body.page.pmd-admin-theme-v1 #side-nav-menu .fa-paint-brush,
+html body.page.pmd-admin-theme-v1 #side-nav-menu .fa-magic { -webkit-mask-image: url("../icons/design.svg") !important; mask-image: url("../icons/design.svg") !important; }
+html body.page.pmd-admin-theme-v1 #side-nav-menu .fa-globe,
+html body.page.pmd-admin-theme-v1 #side-nav-menu .fa-language,
+html body.page.pmd-admin-theme-v1 #side-nav-menu .fa-money,
+html body.page.pmd-admin-theme-v1 #side-nav-menu .fa-flag-o { -webkit-mask-image: url("../icons/localisation.svg") !important; mask-image: url("../icons/localisation.svg") !important; }
+html body.page.pmd-admin-theme-v1 #side-nav-menu .fa-wrench { -webkit-mask-image: url("../icons/tools.svg") !important; mask-image: url("../icons/tools.svg") !important; }
+html body.page.pmd-admin-theme-v1 #side-nav-menu .fa-bolt { -webkit-mask-image: url("../icons/quick-mode.svg") !important; mask-image: url("../icons/quick-mode.svg") !important; }
+html body.page.pmd-admin-theme-v1 #side-nav-menu .fa-user-circle,
+html body.page.pmd-admin-theme-v1 #side-nav-menu .fa-user { -webkit-mask-image: url("../icons/staff.svg") !important; mask-image: url("../icons/staff.svg") !important; }
+html body.page.pmd-admin-theme-v1 #side-nav-menu .fa-users { -webkit-mask-image: url("../icons/customers.svg") !important; mask-image: url("../icons/customers.svg") !important; }
+html body.page.pmd-admin-theme-v1 #side-nav-menu .fa-line-chart { -webkit-mask-image: url("../icons/reports.svg") !important; mask-image: url("../icons/reports.svg") !important; }
+html body.page.pmd-admin-theme-v1 #side-nav-menu .fa-file-text-o { -webkit-mask-image: url("../icons/system-logs.svg") !important; mask-image: url("../icons/system-logs.svg") !important; }
+html body.page.pmd-admin-theme-v1 #side-nav-menu .fa-cogs { -webkit-mask-image: url("../icons/pos-sync.svg") !important; mask-image: url("../icons/pos-sync.svg") !important; }
+html body.page.pmd-admin-theme-v1 #side-nav-menu .fa-cog { -webkit-mask-image: url("../icons/settings.svg") !important; mask-image: url("../icons/settings.svg") !important; }
+html body.page.pmd-admin-theme-v1 #side-nav-menu .fa-tasks { -webkit-mask-image: url("../icons/status.svg") !important; mask-image: url("../icons/status.svg") !important; }
+
+/* no more dot fallback */
+html body.page.pmd-admin-theme-v1 #side-nav-menu .fa-circle-o {
+  -webkit-mask-image: url("../icons/menu.svg") !important;
+  mask-image: url("../icons/menu.svg") !important;
+}

@@ -1,0 +1,117 @@
+/* PMD Sidebar Child Icons + Bigger Submenus v10
+   Fix fa-envelope-o grey block and make submenu buttons bigger.
+   Sidebar width stays unchanged.
+*/
+
+/* Keep current sidebar width */
+html body.page.pmd-admin-theme-v1 {
+  --pmd-sidebar-width: 188px !important;
+}
+
+/* Prevent unmapped FA icons from becoming square blocks */
+html body.page.pmd-admin-theme-v1 #side-nav-menu .nav-link > i.fa {
+  background-color: currentColor !important;
+  -webkit-mask-repeat: no-repeat !important;
+  mask-repeat: no-repeat !important;
+  -webkit-mask-position: center !important;
+  mask-position: center !important;
+  -webkit-mask-size: contain !important;
+  mask-size: contain !important;
+}
+
+/* Missing mapping: Mail Templates */
+html body.page.pmd-admin-theme-v1 #side-nav-menu .fa-envelope-o,
+html body.page.pmd-admin-theme-v1 #side-nav-menu .fa-envelope {
+  -webkit-mask-image: url("../icons/mail-templates.svg") !important;
+  mask-image: url("../icons/mail-templates.svg") !important;
+}
+
+/* Extra safe mappings for possible submenu icons */
+html body.page.pmd-admin-theme-v1 #side-nav-menu .fa-pencil,
+html body.page.pmd-admin-theme-v1 #side-nav-menu .fa-pencil-alt {
+  -webkit-mask-image: url("../icons/design.svg") !important;
+  mask-image: url("../icons/design.svg") !important;
+}
+
+html body.page.pmd-admin-theme-v1 #side-nav-menu .fa-map-marker,
+html body.page.pmd-admin-theme-v1 #side-nav-menu .fa-location-dot {
+  -webkit-mask-image: url("../icons/locations.svg") !important;
+  mask-image: url("../icons/locations.svg") !important;
+}
+
+html body.page.pmd-admin-theme-v1 #side-nav-menu .fa-clock,
+html body.page.pmd-admin-theme-v1 #side-nav-menu .fa-clock-o {
+  -webkit-mask-image: url("../icons/mealtimes.svg") !important;
+  mask-image: url("../icons/mealtimes.svg") !important;
+}
+
+/* Submenu container: balanced indent, no overflow */
+html body.page.pmd-admin-theme-v1 #side-nav-menu > .nav-item > ul.nav,
+html body.page.pmd-admin-theme-v1 #side-nav-menu > .nav-item > ul.nav.collapse,
+html body.page.pmd-admin-theme-v1 #side-nav-menu > .nav-item > ul.nav.collapse.show,
+html body.page.pmd-admin-theme-v1 #side-nav-menu > .nav-item > ul.nav.collapsing {
+  padding-left: 23px !important;
+  padding-right: 4px !important;
+  margin-top: 8px !important;
+  margin-bottom: 12px !important;
+  width: auto !important;
+  max-width: 100% !important;
+  box-sizing: border-box !important;
+  overflow-x: hidden !important;
+}
+
+/* Bigger submenu buttons */
+html body.page.pmd-admin-theme-v1 #side-nav-menu > .nav-item > ul.nav > .nav-item > .nav-link {
+  height: 38px !important;
+  min-height: 38px !important;
+  padding-left: 8px !important;
+  padding-right: 8px !important;
+  gap: 9px !important;
+  font-size: 0.88rem !important;
+  font-weight: 700 !important;
+  border-radius: 13px !important;
+  width: 100% !important;
+  max-width: 100% !important;
+  box-sizing: border-box !important;
+  overflow: hidden !important;
+}
+
+/* Bigger submenu icons */
+html body.page.pmd-admin-theme-v1 #side-nav-menu > .nav-item > ul.nav > .nav-item > .nav-link > i.fa {
+  width: 20px !important;
+  min-width: 20px !important;
+  height: 20px !important;
+  color: rgba(229,237,245,.92) !important;
+}
+
+/* Submenu text */
+html body.page.pmd-admin-theme-v1 #side-nav-menu > .nav-item > ul.nav > .nav-item > .nav-link > .content {
+  min-width: 0 !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  white-space: nowrap !important;
+}
+
+/* Active submenu: cream pill but still inside sidebar */
+html body.page.pmd-admin-theme-v1 #side-nav-menu > .nav-item > ul.nav > .nav-item.active > .nav-link,
+html body.page.pmd-admin-theme-v1 #side-nav-menu > .nav-item > ul.nav > .nav-item > .nav-link.active {
+  background: linear-gradient(135deg, #FFF9EF 0%, #F5E8D0 100%) !important;
+  color: #062F2A !important;
+  box-shadow:
+    0 8px 16px rgba(0,0,0,0.12),
+    inset 0 0 0 1px rgba(200,155,74,0.22) !important;
+}
+
+/* Active submenu icon/text color */
+html body.page.pmd-admin-theme-v1 #side-nav-menu > .nav-item > ul.nav > .nav-item.active > .nav-link > i.fa,
+html body.page.pmd-admin-theme-v1 #side-nav-menu > .nav-item > ul.nav > .nav-item > .nav-link.active > i.fa,
+html body.page.pmd-admin-theme-v1 #side-nav-menu > .nav-item > ul.nav > .nav-item.active > .nav-link > .content,
+html body.page.pmd-admin-theme-v1 #side-nav-menu > .nav-item > ul.nav > .nav-item > .nav-link.active > .content {
+  color: #062F2A !important;
+}
+
+/* Normal submenu hover */
+html body.page.pmd-admin-theme-v1 #side-nav-menu > .nav-item > ul.nav > .nav-item:not(.active) > .nav-link:hover {
+  background: rgba(255,255,255,0.065) !important;
+  color: #fff !important;
+}
