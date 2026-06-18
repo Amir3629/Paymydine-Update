@@ -3469,3 +3469,121 @@ html body .kazen-page .kazen-shell .kazen-item > button.kazen-add.pmd-kazen-adde
   opacity: 1 !important;
 }
 
+
+/* PMD_KAZEN_V29_STANDALONE_PRIMARY_SECONDARY_BUTTON_CONTRACT_20260618
+   Same button contract for Kazen iframe cards:
+   waiter/note modal buttons and item detail Add/Close.
+*/
+
+html body .kazen-page,
+html body .kazen-solid-modal-overlay,
+html body .pmd-kazen-item-detail-modal,
+html body .kazen-standalone {
+  --pmd-kz-action-height: 48px;
+  --pmd-kz-action-radius: 0px;
+  --pmd-kz-action-font: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --pmd-kz-action-size: .82rem;
+  --pmd-kz-action-weight: 850;
+  --pmd-kz-action-spacing: .12em;
+
+  --pmd-kz-primary-bg: #b85d59;
+  --pmd-kz-primary-bg-hover: #c86460;
+  --pmd-kz-primary-text: #fffaf3;
+  --pmd-kz-primary-border: rgba(143, 55, 51, .56);
+  --pmd-kz-primary-border-hover: rgba(143, 55, 51, .72);
+
+  --pmd-kz-secondary-bg: rgba(255, 255, 255, .44);
+  --pmd-kz-secondary-bg-hover: rgba(255, 255, 255, .64);
+  --pmd-kz-secondary-text: #242320;
+  --pmd-kz-secondary-border: rgba(36, 35, 32, .22);
+  --pmd-kz-secondary-border-hover: rgba(36, 35, 32, .36);
+}
+
+html[data-pmd-kazen-mode="dark"] body .kazen-page,
+html[data-pmd-kazen-mode="dark"] body .kazen-solid-modal-overlay,
+html[data-pmd-kazen-mode="dark"] body .pmd-kazen-item-detail-modal,
+html[data-pmd-kazen-mode="dark"] body .kazen-standalone,
+body[data-pmd-kazen-mode="dark"] .kazen-page,
+body[data-pmd-kazen-mode="dark"] .kazen-solid-modal-overlay,
+body[data-pmd-kazen-mode="dark"] .pmd-kazen-item-detail-modal,
+body[data-pmd-kazen-mode="dark"] .kazen-standalone {
+  --pmd-kz-secondary-bg: rgba(8, 6, 4, .88);
+  --pmd-kz-secondary-bg-hover: rgba(246, 232, 200, .08);
+  --pmd-kz-secondary-text: #f6e8c8;
+  --pmd-kz-secondary-border: rgba(198, 164, 93, .36);
+  --pmd-kz-secondary-border-hover: rgba(198, 164, 93, .54);
+
+  --pmd-kz-primary-bg: #b85d59;
+  --pmd-kz-primary-bg-hover: #c86460;
+  --pmd-kz-primary-text: #fffaf3;
+  --pmd-kz-primary-border: rgba(223, 104, 93, .72);
+  --pmd-kz-primary-border-hover: rgba(223, 104, 93, .88);
+}
+
+html body :is(.kazen-primary, .pmd-kazen-detail-add, button.pmd-kazen-detail-add),
+html body :is(.kazen-secondary, .pmd-kazen-detail-cancel, button.pmd-kazen-detail-cancel) {
+  min-height: var(--pmd-kz-action-height) !important;
+  height: var(--pmd-kz-action-height) !important;
+  border-radius: var(--pmd-kz-action-radius) !important;
+  box-shadow: none !important;
+  filter: none !important;
+  appearance: none !important;
+  -webkit-appearance: none !important;
+  background-image: none !important;
+  font-family: var(--pmd-kz-action-font) !important;
+  font-size: var(--pmd-kz-action-size) !important;
+  font-weight: var(--pmd-kz-action-weight) !important;
+  letter-spacing: var(--pmd-kz-action-spacing) !important;
+  line-height: 1.08 !important;
+  text-transform: uppercase !important;
+  text-align: center !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: .55rem !important;
+  padding: .82rem 1rem !important;
+  opacity: 1 !important;
+  transform: none !important;
+  transition: background-color .18s ease, border-color .18s ease, color .18s ease, transform .18s ease !important;
+}
+
+/* TYPE 1: red */
+html body :is(.kazen-primary, .pmd-kazen-detail-add, button.pmd-kazen-detail-add) {
+  background: var(--pmd-kz-primary-bg) !important;
+  background-color: var(--pmd-kz-primary-bg) !important;
+  color: var(--pmd-kz-primary-text) !important;
+  -webkit-text-fill-color: var(--pmd-kz-primary-text) !important;
+  border: 1px solid var(--pmd-kz-primary-border) !important;
+}
+
+html body :is(.kazen-primary, .pmd-kazen-detail-add, button.pmd-kazen-detail-add):not(:disabled):hover {
+  background: var(--pmd-kz-primary-bg-hover) !important;
+  background-color: var(--pmd-kz-primary-bg-hover) !important;
+  border-color: var(--pmd-kz-primary-border-hover) !important;
+  transform: translateY(-1px) !important;
+}
+
+/* TYPE 2: secondary */
+html body :is(.kazen-secondary, .pmd-kazen-detail-cancel, button.pmd-kazen-detail-cancel) {
+  background: var(--pmd-kz-secondary-bg) !important;
+  background-color: var(--pmd-kz-secondary-bg) !important;
+  color: var(--pmd-kz-secondary-text) !important;
+  -webkit-text-fill-color: var(--pmd-kz-secondary-text) !important;
+  border: 1px solid var(--pmd-kz-secondary-border) !important;
+}
+
+html body :is(.kazen-secondary, .pmd-kazen-detail-cancel, button.pmd-kazen-detail-cancel):not(:disabled):hover {
+  background: var(--pmd-kz-secondary-bg-hover) !important;
+  background-color: var(--pmd-kz-secondary-bg-hover) !important;
+  color: var(--pmd-kz-secondary-text) !important;
+  -webkit-text-fill-color: var(--pmd-kz-secondary-text) !important;
+  border-color: var(--pmd-kz-secondary-border-hover) !important;
+  transform: translateY(-1px) !important;
+}
+
+html body :is(.kazen-primary, .kazen-secondary, .pmd-kazen-detail-add, .pmd-kazen-detail-cancel) :is(svg, svg *, span) {
+  color: currentColor !important;
+  -webkit-text-fill-color: currentColor !important;
+  stroke: currentColor !important;
+}
+

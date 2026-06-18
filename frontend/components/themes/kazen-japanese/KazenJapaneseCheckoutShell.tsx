@@ -34,7 +34,28 @@ function CheckoutModalHeadClean({ title, eyebrow, onBack }: any) {
       </div>
       <button
         type="button"
-        className="kazen-solid-close pmd-kazen-action-close pmd-kazen-checkout-close-clean"
+        className="pmd-kzui-btn-square pmd-kzui-btn-close kazen-solid-close pmd-kazen-action-close pmd-kazen-checkout-close-clean"
+        style={{
+          width: "3rem",
+          height: "3rem",
+          minWidth: "3rem",
+          minHeight: "3rem",
+          maxWidth: "3rem",
+          maxHeight: "3rem",
+          padding: 0,
+          borderRadius: 0,
+          display: "inline-flex",
+          alignItems: "center",
+          justifyContent: "center",
+          background: "var(--pmd-kz-clean-close-bg)",
+          color: "var(--pmd-kz-clean-close-color)",
+          WebkitTextFillColor: "var(--pmd-kz-clean-close-color)",
+          border: "1px solid var(--pmd-kz-clean-close-border)",
+          boxShadow: "none",
+          opacity: 1,
+          filter: "none",
+          transform: "none",
+        }}
         aria-label="Close"
         onClick={onBack}
       >
@@ -70,15 +91,55 @@ function CheckoutActionsClean({ children, two }: any) {
 function CheckoutActionButtonClean({ variant = "secondary", className = "", children, type = "button", ...rest }: any) {
   const cleanVariant = variant === "primary" ? "primary" : "secondary"
 
+  // PMD_KAZEN_V25_CHECKOUT_NORMAL_STATE_INLINE_VARS_20260618
+  // Normal state is controlled here so it is correct immediately, not only after hover.
+  const baseStyle = {
+    width: "100%",
+    minHeight: "3rem",
+    display: "inline-flex",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: ".55rem",
+    padding: ".82rem 1rem",
+    borderRadius: 0,
+    boxShadow: "none",
+    fontFamily: 'Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
+    fontSize: ".82rem",
+    fontWeight: 850,
+    letterSpacing: ".12em",
+    lineHeight: 1.08,
+    textTransform: "uppercase" as const,
+    textAlign: "center" as const,
+    opacity: 1,
+    filter: "none",
+    transform: "none",
+    transition: "background-color .18s ease, border-color .18s ease, color .18s ease, transform .18s ease",
+  }
+
+  const variantStyle =
+    cleanVariant === "primary"
+      ? {
+          background: "var(--pmd-kz-clean-primary-bg)",
+          color: "var(--pmd-kz-clean-primary-color)",
+          WebkitTextFillColor: "var(--pmd-kz-clean-primary-color)",
+          border: "1px solid var(--pmd-kz-clean-primary-border)",
+        }
+      : {
+          background: "var(--pmd-kz-clean-secondary-bg)",
+          color: "var(--pmd-kz-clean-secondary-color)",
+          WebkitTextFillColor: "var(--pmd-kz-clean-secondary-color)",
+          border: "1px solid var(--pmd-kz-clean-secondary-border)",
+        }
+
   return (
     <button
       {...rest}
       type={type}
       data-pmd-kazen-button={cleanVariant}
+      style={rest.style || undefined}
       className={[
-        cleanVariant === "primary" ? "kazen-primary" : "kazen-secondary",
-        "pmd-kazen-checkout-action-button-clean",
-        cleanVariant === "primary" ? "pmd-kazen-checkout-action-primary-clean" : "pmd-kazen-checkout-action-secondary-clean",
+        "pmd-kzui-btn-action pmd-kazen-checkout-action-button-clean",
+        cleanVariant === "primary" ? "pmd-kzui-btn-primary pmd-kazen-checkout-action-primary-clean" : "pmd-kzui-btn-secondary pmd-kazen-checkout-action-secondary-clean",
         className,
       ].filter(Boolean).join(" ")}
     >
@@ -433,7 +494,7 @@ export function KazenJapaneseCheckoutShell(props: KazenJapaneseCheckoutShellProp
                   <button
                     key={item.key || index}
                     type="button"
-                    className="pmd-kazen-assign-row"
+                    className="pmd-kzui-btn-list pmd-kazen-assign-row"
                     onClick={() => setItemAssignments?.((prev: Record<string, number | null | undefined>) => {
                       const current = prev?.[item.key]
                       const next = current === undefined || current === null ? 0 : current >= splitGuestCount - 1 ? null : Number(current) + 1
@@ -891,14 +952,14 @@ export function KazenJapaneseCheckoutShell(props: KazenJapaneseCheckoutShellProp
           opacity: 1 !important;
         }
 
-        html body .pmd-kazen-method-grid,
+        html body .pmd-kzui-btn-tile pmd-kazen-method-grid,
         html body .pmd-kazen-tabs {
           display: grid !important;
           grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
           gap: .65rem !important;
         }
 
-        html body .pmd-kazen-method,
+        html body .pmd-kzui-btn-tile pmd-kazen-method,
         html body .pmd-kazen-tab {
           min-height: 4rem !important;
           display: grid !important;
@@ -910,7 +971,7 @@ export function KazenJapaneseCheckoutShell(props: KazenJapaneseCheckoutShellProp
           -webkit-text-fill-color: #242320 !important;
         }
 
-        html body .pmd-kazen-method-active,
+        html body .pmd-kzui-btn-tile pmd-kazen-method-active,
         html body .pmd-kazen-tab-active,
         html body .pmd-kazen-choice-active {
           border-color: rgba(184,93,89,.42) !important;
@@ -949,7 +1010,7 @@ export function KazenJapaneseCheckoutShell(props: KazenJapaneseCheckoutShellProp
 
         html body .pmd-kazen-chip,
         html body .pmd-kazen-person-head,
-        html body .pmd-kazen-assign-row,
+        html body .pmd-kzui-btn-list pmd-kazen-assign-row,
         html body .pmd-kazen-share-row,
         html body .pmd-kazen-share-total {
           border: 1px solid rgba(35,34,31,.14) !important;
@@ -985,7 +1046,7 @@ export function KazenJapaneseCheckoutShell(props: KazenJapaneseCheckoutShellProp
           background: rgba(184,93,89,.04) !important;
         }
 
-        html body .pmd-kazen-assign-row {
+        html body .pmd-kzui-btn-list pmd-kazen-assign-row {
           display: grid !important;
           grid-template-columns: 1fr auto !important;
           gap: .25rem .75rem !important;
@@ -993,7 +1054,7 @@ export function KazenJapaneseCheckoutShell(props: KazenJapaneseCheckoutShellProp
           width: 100% !important;
         }
 
-        html body .pmd-kazen-assign-row em {
+        html body .pmd-kzui-btn-list pmd-kazen-assign-row em {
           grid-column: 1 / -1 !important;
           color: #b85d59 !important;
           font-style: normal !important;
@@ -1031,7 +1092,7 @@ export function KazenJapaneseCheckoutShell(props: KazenJapaneseCheckoutShellProp
             grid-template-columns: 1fr !important;
           }
 
-          html body .pmd-kazen-method-grid,
+          html body .pmd-kzui-btn-tile pmd-kazen-method-grid,
           html body .pmd-kazen-tabs {
             grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
           }
@@ -1159,7 +1220,7 @@ export function KazenJapaneseCheckoutShell(props: KazenJapaneseCheckoutShellProp
         }
 
         /* Back button / icon: waiter-card style, correct visible arrow */
-        html body .pmd-kazen-checkout-waiter .pmd-kazen-waiter-back {
+        html body .pmd-kazen-checkout-waiter .pmd-kzui-btn-square pmd-kzui-btn-close pmd-kazen-waiter-back {
           width: 2.65rem !important;
           height: 2.65rem !important;
           min-width: 2.65rem !important;
@@ -1180,8 +1241,8 @@ export function KazenJapaneseCheckoutShell(props: KazenJapaneseCheckoutShellProp
 
         html body .pmd-kazen-checkout-waiter .pmd-kazen-back-icon,
         html body .pmd-kazen-checkout-waiter .pmd-kazen-back-icon *,
-        html body .pmd-kazen-checkout-waiter .pmd-kazen-waiter-back svg,
-        html body .pmd-kazen-checkout-waiter .pmd-kazen-waiter-back svg * {
+        html body .pmd-kazen-checkout-waiter .pmd-kzui-btn-square pmd-kzui-btn-close pmd-kazen-waiter-back svg,
+        html body .pmd-kazen-checkout-waiter .pmd-kzui-btn-square pmd-kzui-btn-close pmd-kazen-waiter-back svg * {
           color: #242320 !important;
           -webkit-text-fill-color: #242320 !important;
           stroke: #242320 !important;
@@ -1321,15 +1382,15 @@ export function KazenJapaneseCheckoutShell(props: KazenJapaneseCheckoutShellProp
           -webkit-text-fill-color: #df685d !important;
         }
 
-        html body .pmd-kazen-checkout-waiter[data-pmd-kazen-checkout-mode="dark"] .pmd-kazen-waiter-back {
+        html body .pmd-kazen-checkout-waiter[data-pmd-kazen-checkout-mode="dark"] .pmd-kzui-btn-square pmd-kzui-btn-close pmd-kazen-waiter-back {
           background: rgba(8, 6, 4, .92) !important;
           border: 1px solid rgba(198,164,93,.46) !important;
           color: #f6e8c8 !important;
           -webkit-text-fill-color: #f6e8c8 !important;
         }
 
-        html body .pmd-kazen-checkout-waiter[data-pmd-kazen-checkout-mode="dark"] .pmd-kazen-waiter-back svg,
-        html body .pmd-kazen-checkout-waiter[data-pmd-kazen-checkout-mode="dark"] .pmd-kazen-waiter-back svg * {
+        html body .pmd-kazen-checkout-waiter[data-pmd-kazen-checkout-mode="dark"] .pmd-kzui-btn-square pmd-kzui-btn-close pmd-kazen-waiter-back svg,
+        html body .pmd-kazen-checkout-waiter[data-pmd-kazen-checkout-mode="dark"] .pmd-kzui-btn-square pmd-kzui-btn-close pmd-kazen-waiter-back svg * {
           stroke: #f6e8c8 !important;
           color: #f6e8c8 !important;
         }
@@ -1347,7 +1408,7 @@ export function KazenJapaneseCheckoutShell(props: KazenJapaneseCheckoutShellProp
         html body .pmd-kazen-checkout-waiter[data-pmd-kazen-checkout-mode="dark"] .kazen-secondary,
         html body .pmd-kazen-checkout-waiter[data-pmd-kazen-checkout-mode="dark"] .pmd-kazen-waiter-secondary,
         html body .pmd-kazen-checkout-waiter[data-pmd-kazen-checkout-mode="dark"] .pmd-kazen-tab,
-        html body .pmd-kazen-checkout-waiter[data-pmd-kazen-checkout-mode="dark"] .pmd-kazen-method,
+        html body .pmd-kazen-checkout-waiter[data-pmd-kazen-checkout-mode="dark"] .pmd-kzui-btn-tile pmd-kazen-method,
         html body .pmd-kazen-checkout-waiter[data-pmd-kazen-checkout-mode="dark"] .pmd-kazen-apply {
           background: rgba(12, 9, 6, .86) !important;
           border: 1px solid rgba(198,164,93,.36) !important;
@@ -1356,7 +1417,7 @@ export function KazenJapaneseCheckoutShell(props: KazenJapaneseCheckoutShellProp
         }
 
         html body .pmd-kazen-checkout-waiter[data-pmd-kazen-checkout-mode="dark"] .pmd-kazen-choice-active,
-        html body .pmd-kazen-checkout-waiter[data-pmd-kazen-checkout-mode="dark"] .pmd-kazen-method-active,
+        html body .pmd-kazen-checkout-waiter[data-pmd-kazen-checkout-mode="dark"] .pmd-kzui-btn-tile pmd-kazen-method-active,
         html body .pmd-kazen-checkout-waiter[data-pmd-kazen-checkout-mode="dark"] .pmd-kazen-tab-active,
         html body .pmd-kazen-checkout-waiter[data-pmd-kazen-checkout-mode="dark"] [data-pmd-selected="1"] {
           background: rgba(62, 19, 15, .72) !important;
@@ -1395,14 +1456,14 @@ export function KazenJapaneseCheckoutShell(props: KazenJapaneseCheckoutShellProp
           opacity: 1 !important;
         }
 
-        html body .pmd-kazen-checkout-waiter[data-pmd-kazen-checkout-mode="dark"] .pmd-payment-method-tile {
+        html body .pmd-kazen-checkout-waiter[data-pmd-kazen-checkout-mode="dark"] .pmd-kzui-btn-tile pmd-payment-method-tile {
           background: rgba(28, 14, 10, .64) !important;
           border-color: rgba(223,104,93,.40) !important;
         }
 
-        html body .pmd-kazen-checkout-waiter[data-pmd-kazen-checkout-mode="dark"] .pmd-payment-method-tile[aria-label="Apple Pay"] img,
-        html body .pmd-kazen-checkout-waiter[data-pmd-kazen-checkout-mode="dark"] .pmd-payment-method-tile[aria-label="Wero"] img,
-        html body .pmd-kazen-checkout-waiter[data-pmd-kazen-checkout-mode="dark"] .pmd-payment-method-tile[aria-label="Cash"] img {
+        html body .pmd-kazen-checkout-waiter[data-pmd-kazen-checkout-mode="dark"] .pmd-kzui-btn-tile pmd-payment-method-tile[aria-label="Apple Pay"] img,
+        html body .pmd-kazen-checkout-waiter[data-pmd-kazen-checkout-mode="dark"] .pmd-kzui-btn-tile pmd-payment-method-tile[aria-label="Wero"] img,
+        html body .pmd-kazen-checkout-waiter[data-pmd-kazen-checkout-mode="dark"] .pmd-kzui-btn-tile pmd-payment-method-tile[aria-label="Cash"] img {
           filter: invert(1) sepia(.18) saturate(.55) brightness(1.16) !important;
           opacity: .94 !important;
         }
@@ -1470,7 +1531,7 @@ export function KazenJapaneseCheckoutShell(props: KazenJapaneseCheckoutShellProp
 
         html body .pmd-kazen-checkout-waiter[data-pmd-kazen-checkout-mode="dark"] .pmd-kazen-tip-grid,
         html body .pmd-kazen-checkout-waiter[data-pmd-kazen-checkout-mode="dark"] .pmd-kazen-coupon-row,
-        html body .pmd-kazen-checkout-waiter[data-pmd-kazen-checkout-mode="dark"] .pmd-kazen-method-grid {
+        html body .pmd-kazen-checkout-waiter[data-pmd-kazen-checkout-mode="dark"] .pmd-kzui-btn-tile pmd-kazen-method-grid {
           background: transparent !important;
           border: 0 !important;
           padding: 0 !important;
@@ -1528,8 +1589,8 @@ export function KazenJapaneseCheckoutShell(props: KazenJapaneseCheckoutShellProp
           border-color: rgba(198,164,93,.18) !important;
         }
 
-        html body .pmd-kazen-checkout-waiter[data-pmd-kazen-checkout-mode="dark"] .pmd-payment-method-tile,
-        html body .pmd-kazen-checkout-waiter[data-pmd-kazen-checkout-mode="dark"] .pmd-kazen-method {
+        html body .pmd-kazen-checkout-waiter[data-pmd-kazen-checkout-mode="dark"] .pmd-kzui-btn-tile pmd-payment-method-tile,
+        html body .pmd-kazen-checkout-waiter[data-pmd-kazen-checkout-mode="dark"] .pmd-kzui-btn-tile pmd-kazen-method {
           background:
             linear-gradient(180deg, rgba(31, 15, 11, .72), rgba(11, 7, 5, .86)) !important;
           border: 1px solid rgba(223,104,93,.40) !important;
@@ -1752,7 +1813,7 @@ export function KazenJapaneseCheckoutShell(props: KazenJapaneseCheckoutShellProp
           margin-bottom: 8px !important;
         }
 
-        html body .pmd-kazen-checkout-waiter .pmd-kazen-waiter-back,
+        html body .pmd-kazen-checkout-waiter .pmd-kzui-btn-square pmd-kzui-btn-close pmd-kazen-waiter-back,
         html body .pmd-kazen-checkout-waiter .kazen-solid-close {
           all: unset !important;
           box-sizing: border-box !important;
@@ -1772,7 +1833,7 @@ export function KazenJapaneseCheckoutShell(props: KazenJapaneseCheckoutShellProp
           transition: transform .16s ease, background .16s ease, border-color .16s ease !important;
         }
 
-        html body .pmd-kazen-checkout-waiter .pmd-kazen-waiter-back:hover,
+        html body .pmd-kazen-checkout-waiter .pmd-kzui-btn-square pmd-kzui-btn-close pmd-kazen-waiter-back:hover,
         html body .pmd-kazen-checkout-waiter .kazen-solid-close:hover {
           transform: translateY(-1px) !important;
           background: rgba(255,255,255,.82) !important;
@@ -1781,8 +1842,8 @@ export function KazenJapaneseCheckoutShell(props: KazenJapaneseCheckoutShellProp
 
         html body .pmd-kazen-checkout-waiter .pmd-kazen-back-icon,
         html body .pmd-kazen-checkout-waiter .pmd-kazen-back-icon *,
-        html body .pmd-kazen-checkout-waiter .pmd-kazen-waiter-back svg,
-        html body .pmd-kazen-checkout-waiter .pmd-kazen-waiter-back svg * {
+        html body .pmd-kazen-checkout-waiter .pmd-kzui-btn-square pmd-kzui-btn-close pmd-kazen-waiter-back svg,
+        html body .pmd-kazen-checkout-waiter .pmd-kzui-btn-square pmd-kzui-btn-close pmd-kazen-waiter-back svg * {
           color: #242320 !important;
           -webkit-text-fill-color: #242320 !important;
           stroke: #242320 !important;
@@ -1928,7 +1989,7 @@ export function KazenJapaneseCheckoutShell(props: KazenJapaneseCheckoutShellProp
 
         html body .pmd-kazen-checkout-waiter .pmd-kazen-checkout-card,
         html body .pmd-kazen-checkout-waiter .pmd-kazen-items-frame,
-        html body .pmd-kazen-checkout-waiter .pmd-kazen-method-grid,
+        html body .pmd-kazen-checkout-waiter .pmd-kzui-btn-tile pmd-kazen-method-grid,
         html body .pmd-kazen-checkout-waiter .pmd-kazen-tabs,
         html body .pmd-kazen-checkout-waiter .pmd-kazen-actions,
         html body .pmd-kazen-checkout-waiter .pmd-kazen-payment-action,
@@ -1936,16 +1997,16 @@ export function KazenJapaneseCheckoutShell(props: KazenJapaneseCheckoutShellProp
           animation: pmdKazenCheckoutBlockIn .28s cubic-bezier(.22, 1, .36, 1) both !important;
         }
 
-        html body .pmd-kazen-checkout-waiter .pmd-kazen-waiter-back {
+        html body .pmd-kazen-checkout-waiter .pmd-kzui-btn-square pmd-kzui-btn-close pmd-kazen-waiter-back {
           position: relative !important;
           border-radius: 0 !important;
           overflow: hidden !important;
         }
 
-        html body .pmd-kazen-checkout-waiter .pmd-kazen-waiter-back .pmd-kazen-back-icon,
-        html body .pmd-kazen-checkout-waiter .pmd-kazen-waiter-back .pmd-kazen-back-icon *,
-        html body .pmd-kazen-checkout-waiter .pmd-kazen-waiter-back svg,
-        html body .pmd-kazen-checkout-waiter .pmd-kazen-waiter-back svg * {
+        html body .pmd-kazen-checkout-waiter .pmd-kzui-btn-square pmd-kzui-btn-close pmd-kazen-waiter-back .pmd-kazen-back-icon,
+        html body .pmd-kazen-checkout-waiter .pmd-kzui-btn-square pmd-kzui-btn-close pmd-kazen-waiter-back .pmd-kazen-back-icon *,
+        html body .pmd-kazen-checkout-waiter .pmd-kzui-btn-square pmd-kzui-btn-close pmd-kazen-waiter-back svg,
+        html body .pmd-kazen-checkout-waiter .pmd-kzui-btn-square pmd-kzui-btn-close pmd-kazen-waiter-back svg * {
           width: 22px !important;
           height: 22px !important;
           stroke: #242320 !important;
@@ -1954,20 +2015,20 @@ export function KazenJapaneseCheckoutShell(props: KazenJapaneseCheckoutShellProp
           opacity: 1 !important;
         }
 
-        html body .pmd-kazen-checkout-waiter .pmd-kazen-waiter-back:active,
+        html body .pmd-kazen-checkout-waiter .pmd-kzui-btn-square pmd-kzui-btn-close pmd-kazen-waiter-back:active,
         html body .pmd-kazen-checkout-waiter button:active,
         html body .pmd-kazen-checkout-waiter [role="button"]:active {
           transform: translateY(0) scale(.985) !important;
         }
 
-        html body .pmd-kazen-checkout-waiter button:not(.pmd-kazen-waiter-back),
+        html body .pmd-kazen-checkout-waiter button:not(.pmd-kzui-btn-square pmd-kzui-btn-close pmd-kazen-waiter-back),
         html body .pmd-kazen-checkout-waiter .pmd-kazen-waiter-btn,
         html body .pmd-kazen-checkout-waiter .kazen-primary,
         html body .pmd-kazen-checkout-waiter .kazen-secondary,
         html body .pmd-kazen-checkout-waiter .pmd-kazen-tab,
-        html body .pmd-kazen-checkout-waiter .pmd-kazen-method,
-        html body .pmd-kazen-checkout-waiter .pmd-payment-method-tile,
-        html body .pmd-kazen-checkout-waiter .pmd-kazen-assign-row,
+        html body .pmd-kazen-checkout-waiter .pmd-kzui-btn-tile pmd-kazen-method,
+        html body .pmd-kazen-checkout-waiter .pmd-kzui-btn-tile pmd-payment-method-tile,
+        html body .pmd-kazen-checkout-waiter .pmd-kzui-btn-list pmd-kazen-assign-row,
         html body .pmd-kazen-checkout-waiter .pmd-kazen-apply,
         html body .pmd-kazen-checkout-waiter .pmd-kazen-payment-action button {
           border-radius: 0 !important;
@@ -1983,18 +2044,18 @@ export function KazenJapaneseCheckoutShell(props: KazenJapaneseCheckoutShellProp
           -webkit-tap-highlight-color: transparent !important;
         }
 
-        html body .pmd-kazen-checkout-waiter button:not(:disabled):not(.pmd-kazen-waiter-back):hover,
-        html body .pmd-kazen-checkout-waiter .pmd-payment-method-tile:hover,
-        html body .pmd-kazen-checkout-waiter .pmd-kazen-assign-row:hover,
-        html body .pmd-kazen-checkout-waiter .pmd-kazen-method:hover,
+        html body .pmd-kazen-checkout-waiter button:not(:disabled):not(.pmd-kzui-btn-square pmd-kzui-btn-close pmd-kazen-waiter-back):hover,
+        html body .pmd-kazen-checkout-waiter .pmd-kzui-btn-tile pmd-payment-method-tile:hover,
+        html body .pmd-kazen-checkout-waiter .pmd-kzui-btn-list pmd-kazen-assign-row:hover,
+        html body .pmd-kazen-checkout-waiter .pmd-kzui-btn-tile pmd-kazen-method:hover,
         html body .pmd-kazen-checkout-waiter .pmd-kazen-tab:hover {
           transform: translateY(-1px) !important;
           border-color: rgba(184, 93, 89, .44) !important;
           box-shadow: 0 10px 24px rgba(36, 30, 24, .07) !important;
         }
 
-        html body .pmd-kazen-checkout-waiter button:not(.pmd-kazen-waiter-back):focus-visible,
-        html body .pmd-kazen-checkout-waiter .pmd-payment-method-tile:focus-visible,
+        html body .pmd-kazen-checkout-waiter button:not(.pmd-kzui-btn-square pmd-kzui-btn-close pmd-kazen-waiter-back):focus-visible,
+        html body .pmd-kazen-checkout-waiter .pmd-kzui-btn-tile pmd-payment-method-tile:focus-visible,
         html body .pmd-kazen-checkout-waiter [role="button"]:focus-visible {
           outline: 2px solid rgba(184, 93, 89, .34) !important;
           outline-offset: 2px !important;
@@ -2026,11 +2087,11 @@ export function KazenJapaneseCheckoutShell(props: KazenJapaneseCheckoutShellProp
         html body .pmd-kazen-checkout-waiter .pmd-kazen-actions .pmd-kazen-waiter-secondary,
         html body .pmd-kazen-checkout-waiter .pmd-kazen-actions .kazen-secondary,
         html body .pmd-kazen-checkout-waiter .pmd-kazen-tab,
-        html body .pmd-kazen-checkout-waiter .pmd-kazen-method,
-        html body .pmd-kazen-checkout-waiter .pmd-payment-method-tile,
+        html body .pmd-kazen-checkout-waiter .pmd-kzui-btn-tile pmd-kazen-method,
+        html body .pmd-kazen-checkout-waiter .pmd-kzui-btn-tile pmd-payment-method-tile,
         html body .pmd-kazen-checkout-waiter .pmd-kazen-apply,
         html body .pmd-kazen-checkout-waiter .pmd-kazen-tip-grid button,
-        html body .pmd-kazen-checkout-waiter .pmd-kazen-assign-row {
+        html body .pmd-kazen-checkout-waiter .pmd-kzui-btn-list pmd-kazen-assign-row {
           min-height: 48px !important;
           display: inline-flex !important;
           align-items: center !important;
@@ -2052,7 +2113,7 @@ export function KazenJapaneseCheckoutShell(props: KazenJapaneseCheckoutShellProp
         }
 
         html body .pmd-kazen-checkout-waiter .pmd-kazen-tab-active,
-        html body .pmd-kazen-checkout-waiter .pmd-kazen-method-active,
+        html body .pmd-kazen-checkout-waiter .pmd-kzui-btn-tile pmd-kazen-method-active,
         html body .pmd-kazen-checkout-waiter .pmd-kazen-choice-active,
         html body .pmd-kazen-checkout-waiter [data-pmd-selected="1"] {
           border-color: rgba(184, 93, 89, .58) !important;
@@ -2079,22 +2140,22 @@ export function KazenJapaneseCheckoutShell(props: KazenJapaneseCheckoutShellProp
         }
 
         html body .pmd-kazen-checkout-waiter button *,
-        html body .pmd-kazen-checkout-waiter .pmd-payment-method-tile *,
-        html body .pmd-kazen-checkout-waiter .pmd-kazen-method *,
+        html body .pmd-kazen-checkout-waiter .pmd-kzui-btn-tile pmd-payment-method-tile *,
+        html body .pmd-kazen-checkout-waiter .pmd-kzui-btn-tile pmd-kazen-method *,
         html body .pmd-kazen-checkout-waiter .pmd-kazen-tab * {
           color: inherit !important;
           -webkit-text-fill-color: inherit !important;
           stroke: currentColor !important;
         }
 
-        html body .pmd-kazen-checkout-waiter .pmd-kazen-method-grid,
+        html body .pmd-kazen-checkout-waiter .pmd-kzui-btn-tile pmd-kazen-method-grid,
         html body .pmd-kazen-checkout-waiter .pmd-kazen-tabs,
         html body .pmd-kazen-checkout-waiter .pmd-kazen-tip-grid {
           gap: 10px !important;
         }
 
-        html body .pmd-kazen-checkout-waiter .pmd-kazen-method,
-        html body .pmd-kazen-checkout-waiter .pmd-payment-method-tile {
+        html body .pmd-kazen-checkout-waiter .pmd-kzui-btn-tile pmd-kazen-method,
+        html body .pmd-kazen-checkout-waiter .pmd-kzui-btn-tile pmd-payment-method-tile {
           min-height: 68px !important;
           flex-direction: column !important;
         }
@@ -2115,10 +2176,10 @@ export function KazenJapaneseCheckoutShell(props: KazenJapaneseCheckoutShellProp
           transition: border-color .16s ease, background-color .16s ease, transform .16s ease !important;
         }
 
-        html body .pmd-kazen-checkout-waiter[data-pmd-kazen-checkout-mode="dark"] .pmd-kazen-waiter-back .pmd-kazen-back-icon,
-        html body .pmd-kazen-checkout-waiter[data-pmd-kazen-checkout-mode="dark"] .pmd-kazen-waiter-back .pmd-kazen-back-icon *,
-        html body .pmd-kazen-checkout-waiter[data-pmd-kazen-checkout-mode="dark"] .pmd-kazen-waiter-back svg,
-        html body .pmd-kazen-checkout-waiter[data-pmd-kazen-checkout-mode="dark"] .pmd-kazen-waiter-back svg * {
+        html body .pmd-kazen-checkout-waiter[data-pmd-kazen-checkout-mode="dark"] .pmd-kzui-btn-square pmd-kzui-btn-close pmd-kazen-waiter-back .pmd-kazen-back-icon,
+        html body .pmd-kazen-checkout-waiter[data-pmd-kazen-checkout-mode="dark"] .pmd-kzui-btn-square pmd-kzui-btn-close pmd-kazen-waiter-back .pmd-kazen-back-icon *,
+        html body .pmd-kazen-checkout-waiter[data-pmd-kazen-checkout-mode="dark"] .pmd-kzui-btn-square pmd-kzui-btn-close pmd-kazen-waiter-back svg,
+        html body .pmd-kazen-checkout-waiter[data-pmd-kazen-checkout-mode="dark"] .pmd-kzui-btn-square pmd-kzui-btn-close pmd-kazen-waiter-back svg * {
           stroke: #f6e8c8 !important;
           color: #f6e8c8 !important;
         }
@@ -2136,11 +2197,11 @@ export function KazenJapaneseCheckoutShell(props: KazenJapaneseCheckoutShellProp
         html body .pmd-kazen-checkout-waiter[data-pmd-kazen-checkout-mode="dark"] .pmd-kazen-actions .pmd-kazen-waiter-secondary,
         html body .pmd-kazen-checkout-waiter[data-pmd-kazen-checkout-mode="dark"] .pmd-kazen-actions .kazen-secondary,
         html body .pmd-kazen-checkout-waiter[data-pmd-kazen-checkout-mode="dark"] .pmd-kazen-tab,
-        html body .pmd-kazen-checkout-waiter[data-pmd-kazen-checkout-mode="dark"] .pmd-kazen-method,
-        html body .pmd-kazen-checkout-waiter[data-pmd-kazen-checkout-mode="dark"] .pmd-payment-method-tile,
+        html body .pmd-kazen-checkout-waiter[data-pmd-kazen-checkout-mode="dark"] .pmd-kzui-btn-tile pmd-kazen-method,
+        html body .pmd-kazen-checkout-waiter[data-pmd-kazen-checkout-mode="dark"] .pmd-kzui-btn-tile pmd-payment-method-tile,
         html body .pmd-kazen-checkout-waiter[data-pmd-kazen-checkout-mode="dark"] .pmd-kazen-apply,
         html body .pmd-kazen-checkout-waiter[data-pmd-kazen-checkout-mode="dark"] .pmd-kazen-tip-grid button,
-        html body .pmd-kazen-checkout-waiter[data-pmd-kazen-checkout-mode="dark"] .pmd-kazen-assign-row {
+        html body .pmd-kazen-checkout-waiter[data-pmd-kazen-checkout-mode="dark"] .pmd-kzui-btn-list pmd-kazen-assign-row {
           background: rgba(12, 9, 6, .86) !important;
           border-color: rgba(198,164,93,.36) !important;
           color: #f6e8c8 !important;
@@ -2148,7 +2209,7 @@ export function KazenJapaneseCheckoutShell(props: KazenJapaneseCheckoutShellProp
         }
 
         html body .pmd-kazen-checkout-waiter[data-pmd-kazen-checkout-mode="dark"] .pmd-kazen-tab-active,
-        html body .pmd-kazen-checkout-waiter[data-pmd-kazen-checkout-mode="dark"] .pmd-kazen-method-active,
+        html body .pmd-kazen-checkout-waiter[data-pmd-kazen-checkout-mode="dark"] .pmd-kzui-btn-tile pmd-kazen-method-active,
         html body .pmd-kazen-checkout-waiter[data-pmd-kazen-checkout-mode="dark"] .pmd-kazen-choice-active,
         html body .pmd-kazen-checkout-waiter[data-pmd-kazen-checkout-mode="dark"] [data-pmd-selected="1"] {
           background: rgba(61, 18, 14, .68) !important;
@@ -2245,7 +2306,7 @@ export function KazenJapaneseCheckoutShell(props: KazenJapaneseCheckoutShellProp
         }
 
         html body .pmd-kazen-split-stepper button,
-        html body .pmd-kazen-split-stepper .pmd-kazen-split-stepper-btn {
+        html body .pmd-kazen-split-stepper .pmd-kzui-btn-square pmd-kazen-split-stepper-btn {
           width: 3.15rem !important;
           min-width: 3.15rem !important;
           height: 3.2rem !important;
@@ -2438,7 +2499,7 @@ export function KazenJapaneseCheckoutShell(props: KazenJapaneseCheckoutShellProp
         }
 
         html body .pmd-kazen-checkout-waiter .pmd-kazen-payment-section .pmd-kazen-section-title,
-        html body .pmd-kazen-checkout-waiter .pmd-kazen-methods-section .pmd-kazen-section-title {
+        html body .pmd-kazen-checkout-waiter .pmd-kzui-btn-tile pmd-kazen-methods-section .pmd-kazen-section-title {
           margin: 0 !important;
           color: #b85d59 !important;
           -webkit-text-fill-color: #b85d59 !important;
@@ -2467,7 +2528,7 @@ export function KazenJapaneseCheckoutShell(props: KazenJapaneseCheckoutShellProp
           font-weight: 800 !important;
         }
 
-        html body .pmd-kazen-checkout-waiter .pmd-kazen-methods-section,
+        html body .pmd-kazen-checkout-waiter .pmd-kzui-btn-tile pmd-kazen-methods-section,
         html body .pmd-kazen-checkout-waiter .pmd-kazen-payment-methods {
           border: 0 !important;
           background: transparent !important;
@@ -2475,7 +2536,7 @@ export function KazenJapaneseCheckoutShell(props: KazenJapaneseCheckoutShellProp
           box-shadow: none !important;
         }
 
-        html body .pmd-kazen-checkout-waiter .pmd-kazen-method-grid {
+        html body .pmd-kazen-checkout-waiter .pmd-kzui-btn-tile pmd-kazen-method-grid {
           display: grid !important;
           grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
           gap: .7rem !important;
@@ -2484,8 +2545,8 @@ export function KazenJapaneseCheckoutShell(props: KazenJapaneseCheckoutShellProp
           padding: 0 !important;
         }
 
-        html body .pmd-kazen-checkout-waiter .pmd-kazen-method,
-        html body .pmd-kazen-checkout-waiter .pmd-payment-method-tile {
+        html body .pmd-kazen-checkout-waiter .pmd-kzui-btn-tile pmd-kazen-method,
+        html body .pmd-kazen-checkout-waiter .pmd-kzui-btn-tile pmd-payment-method-tile {
           min-height: 4.35rem !important;
           border-radius: 0 !important;
           background: rgba(255,255,255,.22) !important;
@@ -2495,9 +2556,9 @@ export function KazenJapaneseCheckoutShell(props: KazenJapaneseCheckoutShellProp
           overflow: hidden !important;
         }
 
-        html body .pmd-kazen-checkout-waiter .pmd-kazen-method-active,
-        html body .pmd-kazen-checkout-waiter .pmd-payment-method-tile[data-selected="true"],
-        html body .pmd-kazen-checkout-waiter .pmd-payment-method-tile[aria-pressed="true"] {
+        html body .pmd-kazen-checkout-waiter .pmd-kzui-btn-tile pmd-kazen-method-active,
+        html body .pmd-kazen-checkout-waiter .pmd-kzui-btn-tile pmd-payment-method-tile[data-selected="true"],
+        html body .pmd-kazen-checkout-waiter .pmd-kzui-btn-tile pmd-payment-method-tile[aria-pressed="true"] {
           background: rgba(184,93,89,.08) !important;
           background-color: rgba(184,93,89,.08) !important;
           border-color: rgba(184,93,89,.42) !important;
@@ -2572,7 +2633,7 @@ export function KazenJapaneseCheckoutShell(props: KazenJapaneseCheckoutShellProp
 
         html body .pmd-kazen-checkout-waiter[data-pmd-kazen-checkout-mode="dark"] [data-pmd-kazen-payment-plain="1"],
         html body .pmd-kazen-checkout-waiter[data-pmd-kazen-checkout-mode="dark"] .pmd-kazen-payment-section,
-        html body .pmd-kazen-checkout-waiter[data-pmd-kazen-checkout-mode="dark"] .pmd-kazen-methods-section,
+        html body .pmd-kazen-checkout-waiter[data-pmd-kazen-checkout-mode="dark"] .pmd-kzui-btn-tile pmd-kazen-methods-section,
         html body .pmd-kazen-checkout-waiter[data-pmd-kazen-checkout-mode="dark"] .pmd-kazen-payment-methods {
           border: 0 !important;
           background: transparent !important;
@@ -2605,28 +2666,28 @@ export function KazenJapaneseCheckoutShell(props: KazenJapaneseCheckoutShellProp
         }
 
         html body .pmd-kazen-checkout-waiter[data-pmd-kazen-checkout-mode="dark"] .pmd-kazen-payment-section .pmd-kazen-section-title,
-        html body .pmd-kazen-checkout-waiter[data-pmd-kazen-checkout-mode="dark"] .pmd-kazen-methods-section .pmd-kazen-section-title {
+        html body .pmd-kazen-checkout-waiter[data-pmd-kazen-checkout-mode="dark"] .pmd-kzui-btn-tile pmd-kazen-methods-section .pmd-kazen-section-title {
           color: #df685d !important;
           -webkit-text-fill-color: #df685d !important;
         }
 
-        html body .pmd-kazen-checkout-waiter[data-pmd-kazen-checkout-mode="dark"] .pmd-kazen-method-grid {
+        html body .pmd-kazen-checkout-waiter[data-pmd-kazen-checkout-mode="dark"] .pmd-kzui-btn-tile pmd-kazen-method-grid {
           border: 0 !important;
           background: transparent !important;
           padding: 0 !important;
         }
 
-        html body .pmd-kazen-checkout-waiter[data-pmd-kazen-checkout-mode="dark"] .pmd-kazen-method,
-        html body .pmd-kazen-checkout-waiter[data-pmd-kazen-checkout-mode="dark"] .pmd-payment-method-tile {
+        html body .pmd-kazen-checkout-waiter[data-pmd-kazen-checkout-mode="dark"] .pmd-kzui-btn-tile pmd-kazen-method,
+        html body .pmd-kazen-checkout-waiter[data-pmd-kazen-checkout-mode="dark"] .pmd-kzui-btn-tile pmd-payment-method-tile {
           background: rgba(12,9,6,.72) !important;
           background-color: rgba(12,9,6,.72) !important;
           border-color: rgba(198,164,93,.32) !important;
           box-shadow: none !important;
         }
 
-        html body .pmd-kazen-checkout-waiter[data-pmd-kazen-checkout-mode="dark"] .pmd-kazen-method-active,
-        html body .pmd-kazen-checkout-waiter[data-pmd-kazen-checkout-mode="dark"] .pmd-payment-method-tile[data-selected="true"],
-        html body .pmd-kazen-checkout-waiter[data-pmd-kazen-checkout-mode="dark"] .pmd-payment-method-tile[aria-pressed="true"] {
+        html body .pmd-kazen-checkout-waiter[data-pmd-kazen-checkout-mode="dark"] .pmd-kzui-btn-tile pmd-kazen-method-active,
+        html body .pmd-kazen-checkout-waiter[data-pmd-kazen-checkout-mode="dark"] .pmd-kzui-btn-tile pmd-payment-method-tile[data-selected="true"],
+        html body .pmd-kazen-checkout-waiter[data-pmd-kazen-checkout-mode="dark"] .pmd-kzui-btn-tile pmd-payment-method-tile[aria-pressed="true"] {
           background: rgba(61,18,14,.60) !important;
           background-color: rgba(61,18,14,.60) !important;
           border-color: rgba(223,104,93,.56) !important;
@@ -2676,7 +2737,7 @@ export function KazenJapaneseCheckoutShell(props: KazenJapaneseCheckoutShellProp
         }
 
         @media (max-width: 560px) {
-          html body .pmd-kazen-checkout-waiter .pmd-kazen-method-grid {
+          html body .pmd-kazen-checkout-waiter .pmd-kzui-btn-tile pmd-kazen-method-grid {
             grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
           }
         }
@@ -2743,7 +2804,7 @@ export function KazenJapaneseCheckoutShell(props: KazenJapaneseCheckoutShellProp
           stroke: #fffaf3 !important;
         }
 
-        html body .pmd-kazen-checkout-waiter[data-pmd-kazen-checkout-mode="dark"] .pmd-kazen-method-grid,
+        html body .pmd-kazen-checkout-waiter[data-pmd-kazen-checkout-mode="dark"] .pmd-kzui-btn-tile pmd-kazen-method-grid,
         html body .pmd-kazen-checkout-waiter[data-pmd-kazen-checkout-mode="dark"] .pmd-kazen-tip-grid,
         html body .pmd-kazen-checkout-waiter[data-pmd-kazen-checkout-mode="dark"] .pmd-kazen-coupon-row,
         html body .pmd-kazen-checkout-waiter[data-pmd-kazen-checkout-mode="dark"] .pmd-kazen-tabs {
@@ -2822,7 +2883,7 @@ export function KazenJapaneseCheckoutShell(props: KazenJapaneseCheckoutShellProp
           box-shadow: inset 0 1px 0 rgba(255,255,255,.05) !important;
         }
 
-        html body .pmd-kazen-checkout-waiter[data-pmd-kazen-checkout-mode="dark"] .pmd-kazen-waiter-back,
+        html body .pmd-kazen-checkout-waiter[data-pmd-kazen-checkout-mode="dark"] .pmd-kzui-btn-square pmd-kzui-btn-close pmd-kazen-waiter-back,
         html body .pmd-kazen-checkout-waiter[data-pmd-kazen-checkout-mode="dark"] button[data-pmd-kazen-back="1"] {
           background: rgba(246, 232, 200, .055) !important;
           background-color: rgba(246, 232, 200, .055) !important;
@@ -2834,14 +2895,14 @@ export function KazenJapaneseCheckoutShell(props: KazenJapaneseCheckoutShellProp
           box-shadow: none !important;
         }
 
-        html body .pmd-kazen-checkout-waiter[data-pmd-kazen-checkout-mode="dark"] .pmd-kazen-waiter-back *,
+        html body .pmd-kazen-checkout-waiter[data-pmd-kazen-checkout-mode="dark"] .pmd-kzui-btn-square pmd-kzui-btn-close pmd-kazen-waiter-back *,
         html body .pmd-kazen-checkout-waiter[data-pmd-kazen-checkout-mode="dark"] button[data-pmd-kazen-back="1"] * {
           color: var(--pmd-kazen-dark-text) !important;
           stroke: currentColor !important;
           -webkit-text-fill-color: var(--pmd-kazen-dark-text) !important;
         }
 
-        html body .pmd-kazen-checkout-waiter[data-pmd-kazen-checkout-mode="dark"] .pmd-kazen-waiter-back:hover,
+        html body .pmd-kazen-checkout-waiter[data-pmd-kazen-checkout-mode="dark"] .pmd-kzui-btn-square pmd-kzui-btn-close pmd-kazen-waiter-back:hover,
         html body .pmd-kazen-checkout-waiter[data-pmd-kazen-checkout-mode="dark"] button[data-pmd-kazen-back="1"]:hover {
           background: rgba(198, 164, 93, .12) !important;
           border-color: rgba(246, 232, 200, .60) !important;
@@ -2933,7 +2994,7 @@ export function KazenJapaneseCheckoutShell(props: KazenJapaneseCheckoutShellProp
         }
 
         html body .pmd-kazen-checkout-waiter[data-pmd-kazen-checkout-mode="dark"] .pmd-kazen-cart-line strong,
-        html body .pmd-kazen-checkout-waiter[data-pmd-kazen-checkout-mode="dark"] .pmd-kazen-assign-row strong {
+        html body .pmd-kazen-checkout-waiter[data-pmd-kazen-checkout-mode="dark"] .pmd-kzui-btn-list pmd-kazen-assign-row strong {
           color: var(--pmd-kazen-dark-red-hot) !important;
           -webkit-text-fill-color: var(--pmd-kazen-dark-red-hot) !important;
         }
@@ -3013,7 +3074,7 @@ export function KazenJapaneseCheckoutShell(props: KazenJapaneseCheckoutShellProp
           -webkit-text-fill-color: var(--pmd-kazen-dark-text) !important;
         }
 
-        html body .pmd-kazen-checkout-waiter[data-pmd-kazen-checkout-mode="dark"] .pmd-kazen-split-stepper .pmd-kazen-split-stepper-btn,
+        html body .pmd-kazen-checkout-waiter[data-pmd-kazen-checkout-mode="dark"] .pmd-kazen-split-stepper .pmd-kzui-btn-square pmd-kazen-split-stepper-btn,
         html body .pmd-kazen-checkout-waiter[data-pmd-kazen-checkout-mode="dark"] .pmd-kazen-split-stepper button {
           width: 3.2rem !important;
           min-width: 3.2rem !important;
@@ -3027,7 +3088,7 @@ export function KazenJapaneseCheckoutShell(props: KazenJapaneseCheckoutShellProp
           opacity: 1 !important;
         }
 
-        html body .pmd-kazen-checkout-waiter[data-pmd-kazen-checkout-mode="dark"] .pmd-kazen-split-stepper .pmd-kazen-split-stepper-btn:last-child:not(:disabled),
+        html body .pmd-kazen-checkout-waiter[data-pmd-kazen-checkout-mode="dark"] .pmd-kazen-split-stepper .pmd-kzui-btn-square pmd-kazen-split-stepper-btn:last-child:not(:disabled),
         html body .pmd-kazen-checkout-waiter[data-pmd-kazen-checkout-mode="dark"] .pmd-kazen-split-stepper button:last-child:not(:disabled) {
           background: #bd5f5b !important;
           background-color: #bd5f5b !important;
@@ -3100,7 +3161,7 @@ export function KazenJapaneseCheckoutShell(props: KazenJapaneseCheckoutShellProp
           border-radius: 0 !important;
         }
 
-        html body .pmd-kazen-checkout-waiter[data-pmd-kazen-checkout-mode="dark"] .pmd-kazen-method-grid {
+        html body .pmd-kazen-checkout-waiter[data-pmd-kazen-checkout-mode="dark"] .pmd-kzui-btn-tile pmd-kazen-method-grid {
           display: grid !important;
           grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
           gap: .75rem !important;
@@ -3108,8 +3169,8 @@ export function KazenJapaneseCheckoutShell(props: KazenJapaneseCheckoutShellProp
           border: 0 !important;
         }
 
-        html body .pmd-kazen-checkout-waiter[data-pmd-kazen-checkout-mode="dark"] .pmd-payment-method-tile,
-        html body .pmd-kazen-checkout-waiter[data-pmd-kazen-checkout-mode="dark"] .pmd-kazen-method {
+        html body .pmd-kazen-checkout-waiter[data-pmd-kazen-checkout-mode="dark"] .pmd-kzui-btn-tile pmd-payment-method-tile,
+        html body .pmd-kazen-checkout-waiter[data-pmd-kazen-checkout-mode="dark"] .pmd-kzui-btn-tile pmd-kazen-method {
           min-height: 4.6rem !important;
           background: rgba(5, 3, 2, .74) !important;
           background-color: rgba(5, 3, 2, .74) !important;
@@ -3120,14 +3181,14 @@ export function KazenJapaneseCheckoutShell(props: KazenJapaneseCheckoutShellProp
           filter: none !important;
         }
 
-        html body .pmd-kazen-checkout-waiter[data-pmd-kazen-checkout-mode="dark"] .pmd-payment-method-tile[aria-pressed="true"],
-        html body .pmd-kazen-checkout-waiter[data-pmd-kazen-checkout-mode="dark"] .pmd-kazen-method-active {
+        html body .pmd-kazen-checkout-waiter[data-pmd-kazen-checkout-mode="dark"] .pmd-kzui-btn-tile pmd-payment-method-tile[aria-pressed="true"],
+        html body .pmd-kazen-checkout-waiter[data-pmd-kazen-checkout-mode="dark"] .pmd-kzui-btn-tile pmd-kazen-method-active {
           background: rgba(196, 98, 92, .16) !important;
           border-color: rgba(236, 113, 102, .72) !important;
         }
 
-        html body .pmd-kazen-checkout-waiter[data-pmd-kazen-checkout-mode="dark"] .pmd-payment-method-tile img,
-        html body .pmd-kazen-checkout-waiter[data-pmd-kazen-checkout-mode="dark"] .pmd-kazen-method img {
+        html body .pmd-kazen-checkout-waiter[data-pmd-kazen-checkout-mode="dark"] .pmd-kzui-btn-tile pmd-payment-method-tile img,
+        html body .pmd-kazen-checkout-waiter[data-pmd-kazen-checkout-mode="dark"] .pmd-kzui-btn-tile pmd-kazen-method img {
           opacity: 1 !important;
           filter: none !important;
         }
@@ -3414,8 +3475,8 @@ export function KazenJapaneseCheckoutShell(props: KazenJapaneseCheckoutShellProp
            These buttons must match waiter/note modal buttons.
         */
 
-        html body .pmd-kazen-checkout-waiter .pmd-kazen-waiter-back,
-        html body [data-pmd-checkout-theme-root="1"][data-pmd-checkout-theme="kazen_japanese"] .pmd-kazen-waiter-back {
+        html body .pmd-kazen-checkout-waiter .pmd-kzui-btn-square pmd-kzui-btn-close pmd-kazen-waiter-back,
+        html body [data-pmd-checkout-theme-root="1"][data-pmd-checkout-theme="kazen_japanese"] .pmd-kzui-btn-square pmd-kzui-btn-close pmd-kazen-waiter-back {
           width: 3rem !important;
           height: 3rem !important;
           min-width: 3rem !important;
@@ -3437,17 +3498,17 @@ export function KazenJapaneseCheckoutShell(props: KazenJapaneseCheckoutShellProp
           filter: none !important;
         }
 
-        html body .pmd-kazen-checkout-waiter .pmd-kazen-waiter-back svg,
-        html body .pmd-kazen-checkout-waiter .pmd-kazen-waiter-back svg *,
-        html body [data-pmd-checkout-theme-root="1"][data-pmd-checkout-theme="kazen_japanese"] .pmd-kazen-waiter-back svg,
-        html body [data-pmd-checkout-theme-root="1"][data-pmd-checkout-theme="kazen_japanese"] .pmd-kazen-waiter-back svg * {
+        html body .pmd-kazen-checkout-waiter .pmd-kzui-btn-square pmd-kzui-btn-close pmd-kazen-waiter-back svg,
+        html body .pmd-kazen-checkout-waiter .pmd-kzui-btn-square pmd-kzui-btn-close pmd-kazen-waiter-back svg *,
+        html body [data-pmd-checkout-theme-root="1"][data-pmd-checkout-theme="kazen_japanese"] .pmd-kzui-btn-square pmd-kzui-btn-close pmd-kazen-waiter-back svg,
+        html body [data-pmd-checkout-theme-root="1"][data-pmd-checkout-theme="kazen_japanese"] .pmd-kzui-btn-square pmd-kzui-btn-close pmd-kazen-waiter-back svg * {
           color: currentColor !important;
           stroke: currentColor !important;
           fill: none !important;
         }
 
-        html body .pmd-kazen-checkout-waiter .pmd-kazen-waiter-back:hover,
-        html body [data-pmd-checkout-theme-root="1"][data-pmd-checkout-theme="kazen_japanese"] .pmd-kazen-waiter-back:hover {
+        html body .pmd-kazen-checkout-waiter .pmd-kzui-btn-square pmd-kzui-btn-close pmd-kazen-waiter-back:hover,
+        html body [data-pmd-checkout-theme-root="1"][data-pmd-checkout-theme="kazen_japanese"] .pmd-kzui-btn-square pmd-kzui-btn-close pmd-kazen-waiter-back:hover {
           background: rgba(255, 255, 255, .62) !important;
           background-color: rgba(255, 255, 255, .62) !important;
           color: rgb(36, 35, 32) !important;
@@ -3534,8 +3595,8 @@ export function KazenJapaneseCheckoutShell(props: KazenJapaneseCheckoutShellProp
           transform: translateY(-1px) !important;
         }
 
-        html body .pmd-kazen-checkout-waiter[data-pmd-kazen-checkout-mode="dark"] .pmd-kazen-waiter-back,
-        html body [data-pmd-checkout-theme-root="1"][data-pmd-checkout-theme="kazen_japanese"][data-pmd-kazen-checkout-mode="dark"] .pmd-kazen-waiter-back {
+        html body .pmd-kazen-checkout-waiter[data-pmd-kazen-checkout-mode="dark"] .pmd-kzui-btn-square pmd-kzui-btn-close pmd-kazen-waiter-back,
+        html body [data-pmd-checkout-theme-root="1"][data-pmd-checkout-theme="kazen_japanese"][data-pmd-kazen-checkout-mode="dark"] .pmd-kzui-btn-square pmd-kzui-btn-close pmd-kazen-waiter-back {
           background: rgba(246, 232, 200, .055) !important;
           background-color: rgba(246, 232, 200, .055) !important;
           color: rgb(246, 232, 200) !important;
@@ -3543,8 +3604,8 @@ export function KazenJapaneseCheckoutShell(props: KazenJapaneseCheckoutShellProp
           border-color: rgba(198, 164, 93, .30) !important;
         }
 
-        html body .pmd-kazen-checkout-waiter[data-pmd-kazen-checkout-mode="dark"] .pmd-kazen-waiter-back:hover,
-        html body [data-pmd-checkout-theme-root="1"][data-pmd-checkout-theme="kazen_japanese"][data-pmd-kazen-checkout-mode="dark"] .pmd-kazen-waiter-back:hover {
+        html body .pmd-kazen-checkout-waiter[data-pmd-kazen-checkout-mode="dark"] .pmd-kzui-btn-square pmd-kzui-btn-close pmd-kazen-waiter-back:hover,
+        html body [data-pmd-checkout-theme-root="1"][data-pmd-checkout-theme="kazen_japanese"][data-pmd-kazen-checkout-mode="dark"] .pmd-kzui-btn-square pmd-kzui-btn-close pmd-kazen-waiter-back:hover {
           background: rgba(246, 232, 200, .09) !important;
           background-color: rgba(246, 232, 200, .09) !important;
           color: rgb(255, 244, 214) !important;
@@ -3647,7 +3708,7 @@ export function KazenJapaneseCheckoutShell(props: KazenJapaneseCheckoutShellProp
           grid-template-columns: 1fr 1fr !important;
         }
 
-        html body .pmd-kazen-checkout-waiter button.pmd-kazen-checkout-action-button-clean {
+        html body .pmd-kazen-checkout-waiter button.pmd-kzui-btn-action pmd-kazen-checkout-action-button-clean {
           width: 100% !important;
           min-height: 3rem !important;
           display: inline-flex !important;
@@ -3674,7 +3735,7 @@ export function KazenJapaneseCheckoutShell(props: KazenJapaneseCheckoutShellProp
             transform .18s ease !important;
         }
 
-        html body .pmd-kazen-checkout-waiter button.pmd-kazen-checkout-action-secondary-clean {
+        html body .pmd-kazen-checkout-waiter button.pmd-kzui-btn-secondary pmd-kazen-checkout-action-secondary-clean {
           background: rgba(255, 255, 255, .42) !important;
           background-color: rgba(255, 255, 255, .42) !important;
           color: #242320 !important;
@@ -3682,7 +3743,7 @@ export function KazenJapaneseCheckoutShell(props: KazenJapaneseCheckoutShellProp
           border: 1px solid rgba(36, 35, 32, .20) !important;
         }
 
-        html body .pmd-kazen-checkout-waiter button.pmd-kazen-checkout-action-secondary-clean:hover:not(:disabled):not([aria-disabled="true"]) {
+        html body .pmd-kazen-checkout-waiter button.pmd-kzui-btn-secondary pmd-kazen-checkout-action-secondary-clean:hover:not(:disabled):not([aria-disabled="true"]) {
           background: rgba(255, 255, 255, .62) !important;
           background-color: rgba(255, 255, 255, .62) !important;
           color: #242320 !important;
@@ -3691,7 +3752,7 @@ export function KazenJapaneseCheckoutShell(props: KazenJapaneseCheckoutShellProp
           transform: translateY(-1px) !important;
         }
 
-        html body .pmd-kazen-checkout-waiter button.pmd-kazen-checkout-action-primary-clean {
+        html body .pmd-kazen-checkout-waiter button.pmd-kzui-btn-primary pmd-kazen-checkout-action-primary-clean {
           background: #b85d59 !important;
           background-color: #b85d59 !important;
           background-image: none !important;
@@ -3701,7 +3762,7 @@ export function KazenJapaneseCheckoutShell(props: KazenJapaneseCheckoutShellProp
           box-shadow: 0 16px 36px rgba(184, 93, 89, .18) !important;
         }
 
-        html body .pmd-kazen-checkout-waiter button.pmd-kazen-checkout-action-primary-clean:hover:not(:disabled):not([aria-disabled="true"]) {
+        html body .pmd-kazen-checkout-waiter button.pmd-kzui-btn-primary pmd-kazen-checkout-action-primary-clean:hover:not(:disabled):not([aria-disabled="true"]) {
           background: #c86460 !important;
           background-color: #c86460 !important;
           color: #fffaf3 !important;
@@ -3710,8 +3771,8 @@ export function KazenJapaneseCheckoutShell(props: KazenJapaneseCheckoutShellProp
           transform: translateY(-1px) !important;
         }
 
-        html body .pmd-kazen-checkout-waiter button.pmd-kazen-checkout-action-button-clean svg,
-        html body .pmd-kazen-checkout-waiter button.pmd-kazen-checkout-action-button-clean svg * {
+        html body .pmd-kazen-checkout-waiter button.pmd-kzui-btn-action pmd-kazen-checkout-action-button-clean svg,
+        html body .pmd-kazen-checkout-waiter button.pmd-kzui-btn-action pmd-kazen-checkout-action-button-clean svg * {
           color: currentColor !important;
           stroke: currentColor !important;
           fill: none !important;
@@ -3733,7 +3794,7 @@ export function KazenJapaneseCheckoutShell(props: KazenJapaneseCheckoutShellProp
           -webkit-text-fill-color: #fff4d6 !important;
         }
 
-        html body .pmd-kazen-checkout-waiter[data-pmd-kazen-checkout-mode="dark"] button.pmd-kazen-checkout-action-secondary-clean {
+        html body .pmd-kazen-checkout-waiter[data-pmd-kazen-checkout-mode="dark"] button.pmd-kzui-btn-secondary pmd-kazen-checkout-action-secondary-clean {
           background: rgba(8, 6, 4, .88) !important;
           background-color: rgba(8, 6, 4, .88) !important;
           color: #f6e8c8 !important;
@@ -3741,7 +3802,7 @@ export function KazenJapaneseCheckoutShell(props: KazenJapaneseCheckoutShellProp
           border: 1px solid rgba(198, 164, 93, .36) !important;
         }
 
-        html body .pmd-kazen-checkout-waiter[data-pmd-kazen-checkout-mode="dark"] button.pmd-kazen-checkout-action-secondary-clean:hover:not(:disabled):not([aria-disabled="true"]) {
+        html body .pmd-kazen-checkout-waiter[data-pmd-kazen-checkout-mode="dark"] button.pmd-kzui-btn-secondary pmd-kazen-checkout-action-secondary-clean:hover:not(:disabled):not([aria-disabled="true"]) {
           background: rgba(246, 232, 200, .08) !important;
           background-color: rgba(246, 232, 200, .08) !important;
           color: #fff4d6 !important;
@@ -3750,7 +3811,7 @@ export function KazenJapaneseCheckoutShell(props: KazenJapaneseCheckoutShellProp
           transform: translateY(-1px) !important;
         }
 
-        html body .pmd-kazen-checkout-waiter[data-pmd-kazen-checkout-mode="dark"] button.pmd-kazen-checkout-action-primary-clean {
+        html body .pmd-kazen-checkout-waiter[data-pmd-kazen-checkout-mode="dark"] button.pmd-kzui-btn-primary pmd-kazen-checkout-action-primary-clean {
           background: #b85d59 !important;
           background-color: #b85d59 !important;
           background-image: none !important;
@@ -3760,8 +3821,8 @@ export function KazenJapaneseCheckoutShell(props: KazenJapaneseCheckoutShellProp
           box-shadow: 0 16px 36px rgba(184, 93, 89, .24) !important;
         }
 
-        html body .pmd-kazen-checkout-waiter button.pmd-kazen-checkout-action-button-clean:disabled,
-        html body .pmd-kazen-checkout-waiter button.pmd-kazen-checkout-action-button-clean[aria-disabled="true"] {
+        html body .pmd-kazen-checkout-waiter button.pmd-kzui-btn-action pmd-kazen-checkout-action-button-clean:disabled,
+        html body .pmd-kazen-checkout-waiter button.pmd-kzui-btn-action pmd-kazen-checkout-action-button-clean[aria-disabled="true"] {
           opacity: .58 !important;
           cursor: not-allowed !important;
           transform: none !important;
@@ -3773,7 +3834,936 @@ export function KazenJapaneseCheckoutShell(props: KazenJapaneseCheckoutShellProp
             grid-template-columns: 1fr !important;
           }
         }
+
+
+        /* PMD_KAZEN_V25_CHECKOUT_NORMAL_STATE_VARS_20260618
+           Normal state variables for rebuilt checkout controls.
+           Fixes Safari/old CSS issue where buttons looked correct only after hover.
+        */
+
+        html body .pmd-kazen-checkout-waiter,
+        html body .kazen-solid-modal-overlay.pmd-kazen-checkout-waiter,
+        html body [data-pmd-checkout-theme-root="1"][data-pmd-checkout-theme="kazen_japanese"] {
+          --pmd-kz-clean-close-bg: rgba(255, 255, 255, .44);
+          --pmd-kz-clean-close-color: #242320;
+          --pmd-kz-clean-close-border: rgba(36, 35, 32, .22);
+
+          --pmd-kz-clean-secondary-bg: rgba(255, 255, 255, .42);
+          --pmd-kz-clean-secondary-color: #242320;
+          --pmd-kz-clean-secondary-border: rgba(36, 35, 32, .20);
+
+          --pmd-kz-clean-primary-bg: #b85d59;
+          --pmd-kz-clean-primary-color: #fffaf3;
+          --pmd-kz-clean-primary-border: rgba(143, 55, 51, .56);
+        }
+
+        html body .pmd-kazen-checkout-waiter[data-pmd-kazen-checkout-mode="dark"],
+        html body [data-pmd-checkout-theme-root="1"][data-pmd-checkout-theme="kazen_japanese"][data-pmd-kazen-checkout-mode="dark"] {
+          --pmd-kz-clean-close-bg: rgba(246, 232, 200, .055);
+          --pmd-kz-clean-close-color: #f6e8c8;
+          --pmd-kz-clean-close-border: rgba(198, 164, 93, .30);
+
+          --pmd-kz-clean-secondary-bg: rgba(8, 6, 4, .88);
+          --pmd-kz-clean-secondary-color: #f6e8c8;
+          --pmd-kz-clean-secondary-border: rgba(198, 164, 93, .36);
+
+          --pmd-kz-clean-primary-bg: #b85d59;
+          --pmd-kz-clean-primary-color: #fffaf3;
+          --pmd-kz-clean-primary-border: rgba(223, 104, 93, .72);
+        }
+
+        html body .pmd-kazen-checkout-waiter button.pmd-kzui-btn-action pmd-kazen-checkout-action-button-clean,
+        html body .pmd-kazen-checkout-waiter .pmd-kazen-checkout-close-clean {
+          -webkit-appearance: none !important;
+          appearance: none !important;
+          background-image: none !important;
+          box-shadow: none !important;
+        }
+
+        html body .pmd-kazen-checkout-waiter .pmd-kazen-checkout-close-clean:hover {
+          background: rgba(255, 255, 255, .62) !important;
+          background-color: rgba(255, 255, 255, .62) !important;
+          color: #242320 !important;
+          -webkit-text-fill-color: #242320 !important;
+          border-color: rgba(36, 35, 32, .34) !important;
+          transform: translateY(-1px) !important;
+        }
+
+        html body .pmd-kazen-checkout-waiter[data-pmd-kazen-checkout-mode="dark"] .pmd-kazen-checkout-close-clean:hover {
+          background: rgba(246, 232, 200, .09) !important;
+          background-color: rgba(246, 232, 200, .09) !important;
+          color: #fff4d6 !important;
+          -webkit-text-fill-color: #fff4d6 !important;
+          border-color: rgba(198, 164, 93, .48) !important;
+        }
+
+        html body .pmd-kazen-checkout-waiter button.pmd-kzui-btn-secondary pmd-kazen-checkout-action-secondary-clean:hover:not(:disabled):not([aria-disabled="true"]) {
+          background: rgba(255, 255, 255, .62) !important;
+          background-color: rgba(255, 255, 255, .62) !important;
+          color: #242320 !important;
+          -webkit-text-fill-color: #242320 !important;
+          border-color: rgba(36, 35, 32, .34) !important;
+          transform: translateY(-1px) !important;
+        }
+
+        html body .pmd-kazen-checkout-waiter[data-pmd-kazen-checkout-mode="dark"] button.pmd-kzui-btn-secondary pmd-kazen-checkout-action-secondary-clean:hover:not(:disabled):not([aria-disabled="true"]) {
+          background: rgba(246, 232, 200, .08) !important;
+          background-color: rgba(246, 232, 200, .08) !important;
+          color: #fff4d6 !important;
+          -webkit-text-fill-color: #fff4d6 !important;
+          border-color: rgba(198, 164, 93, .52) !important;
+          transform: translateY(-1px) !important;
+        }
+
+        html body .pmd-kazen-checkout-waiter button.pmd-kzui-btn-primary pmd-kazen-checkout-action-primary-clean:hover:not(:disabled):not([aria-disabled="true"]) {
+          background: #c86460 !important;
+          background-color: #c86460 !important;
+          color: #fffaf3 !important;
+          -webkit-text-fill-color: #fffaf3 !important;
+          border-color: rgba(223, 104, 93, .74) !important;
+          transform: translateY(-1px) !important;
+        }
+
+        html body .pmd-kazen-checkout-waiter button.pmd-kzui-btn-action pmd-kazen-checkout-action-button-clean:disabled,
+        html body .pmd-kazen-checkout-waiter button.pmd-kzui-btn-action pmd-kazen-checkout-action-button-clean[aria-disabled="true"] {
+          opacity: .56 !important;
+          cursor: not-allowed !important;
+          transform: none !important;
+          box-shadow: none !important;
+        }
+
+
+        /* PMD_KAZEN_V26_UNIFY_ALL_CHECKOUT_CONTROLS_20260618
+           One visual system for every checkout card control:
+           - action buttons
+           - split tabs
+           - split stepper
+           - assign rows
+           - payment method tiles
+           - discount/apply buttons
+           Works in light and dark mode.
+        */
+
+        html body .pmd-kazen-checkout-waiter,
+        html body .kazen-solid-modal-overlay.pmd-kazen-checkout-waiter,
+        html body [data-pmd-checkout-theme-root="1"][data-pmd-checkout-theme="kazen_japanese"] {
+          --pmd-kz-btn-secondary-bg: rgba(255, 255, 255, .42);
+          --pmd-kz-btn-secondary-bg-hover: rgba(255, 255, 255, .62);
+          --pmd-kz-btn-secondary-color: #242320;
+          --pmd-kz-btn-secondary-color-hover: #242320;
+          --pmd-kz-btn-secondary-border: rgba(36, 35, 32, .20);
+          --pmd-kz-btn-secondary-border-hover: rgba(36, 35, 32, .34);
+
+          --pmd-kz-btn-primary-bg: #b85d59;
+          --pmd-kz-btn-primary-bg-hover: #c86460;
+          --pmd-kz-btn-primary-color: #fffaf3;
+          --pmd-kz-btn-primary-border: rgba(143, 55, 51, .56);
+          --pmd-kz-btn-primary-border-hover: rgba(143, 55, 51, .72);
+
+          --pmd-kz-btn-close-bg: rgba(255, 255, 255, .44);
+          --pmd-kz-btn-close-bg-hover: rgba(255, 255, 255, .62);
+          --pmd-kz-btn-close-color: #242320;
+          --pmd-kz-btn-close-border: rgba(36, 35, 32, .22);
+          --pmd-kz-btn-close-border-hover: rgba(36, 35, 32, .34);
+        }
+
+        html body .pmd-kazen-checkout-waiter[data-pmd-kazen-checkout-mode="dark"],
+        html body [data-pmd-checkout-theme-root="1"][data-pmd-checkout-theme="kazen_japanese"][data-pmd-kazen-checkout-mode="dark"] {
+          --pmd-kz-btn-secondary-bg: rgba(8, 6, 4, .88);
+          --pmd-kz-btn-secondary-bg-hover: rgba(246, 232, 200, .08);
+          --pmd-kz-btn-secondary-color: #f6e8c8;
+          --pmd-kz-btn-secondary-color-hover: #fff4d6;
+          --pmd-kz-btn-secondary-border: rgba(198, 164, 93, .36);
+          --pmd-kz-btn-secondary-border-hover: rgba(198, 164, 93, .52);
+
+          --pmd-kz-btn-primary-bg: #b85d59;
+          --pmd-kz-btn-primary-bg-hover: #c86460;
+          --pmd-kz-btn-primary-color: #fffaf3;
+          --pmd-kz-btn-primary-border: rgba(223, 104, 93, .72);
+          --pmd-kz-btn-primary-border-hover: rgba(223, 104, 93, .88);
+
+          --pmd-kz-btn-close-bg: rgba(246, 232, 200, .055);
+          --pmd-kz-btn-close-bg-hover: rgba(246, 232, 200, .09);
+          --pmd-kz-btn-close-color: #f6e8c8;
+          --pmd-kz-btn-close-border: rgba(198, 164, 93, .30);
+          --pmd-kz-btn-close-border-hover: rgba(198, 164, 93, .52);
+        }
+
+        /* Shared base for every clickable control inside checkout */
+        html body .pmd-kazen-checkout-waiter button,
+        html body .pmd-kazen-checkout-waiter [role="button"] {
+          border-radius: 0 !important;
+          box-shadow: none !important;
+          filter: none !important;
+          -webkit-appearance: none !important;
+          appearance: none !important;
+          background-image: none !important;
+          transition:
+            background-color .18s ease,
+            border-color .18s ease,
+            color .18s ease,
+            transform .18s ease !important;
+        }
+
+        /* Close/back button */
+        html body .pmd-kazen-checkout-waiter .pmd-kzui-btn-square pmd-kzui-btn-close pmd-kazen-waiter-back,
+        html body .pmd-kazen-checkout-waiter .pmd-kazen-action-close,
+        html body .pmd-kazen-checkout-waiter .kazen-solid-close,
+        html body .pmd-kazen-checkout-waiter .pmd-kazen-checkout-close-clean {
+          width: 3rem !important;
+          height: 3rem !important;
+          min-width: 3rem !important;
+          min-height: 3rem !important;
+          max-width: 3rem !important;
+          max-height: 3rem !important;
+          padding: 0 !important;
+          display: inline-flex !important;
+          align-items: center !important;
+          justify-content: center !important;
+          background: var(--pmd-kz-btn-close-bg) !important;
+          background-color: var(--pmd-kz-btn-close-bg) !important;
+          color: var(--pmd-kz-btn-close-color) !important;
+          -webkit-text-fill-color: var(--pmd-kz-btn-close-color) !important;
+          border: 1px solid var(--pmd-kz-btn-close-border) !important;
+        }
+
+        html body .pmd-kazen-checkout-waiter .pmd-kzui-btn-square pmd-kzui-btn-close pmd-kazen-waiter-back:hover,
+        html body .pmd-kazen-checkout-waiter .pmd-kazen-action-close:hover,
+        html body .pmd-kazen-checkout-waiter .kazen-solid-close:hover,
+        html body .pmd-kazen-checkout-waiter .pmd-kazen-checkout-close-clean:hover {
+          background: var(--pmd-kz-btn-close-bg-hover) !important;
+          background-color: var(--pmd-kz-btn-close-bg-hover) !important;
+          color: var(--pmd-kz-btn-close-color) !important;
+          -webkit-text-fill-color: var(--pmd-kz-btn-close-color) !important;
+          border-color: var(--pmd-kz-btn-close-border-hover) !important;
+          transform: translateY(-1px) !important;
+        }
+
+        /* All secondary checkout controls */
+        html body .pmd-kazen-checkout-waiter .pmd-kazen-tab,
+        html body .pmd-kazen-checkout-waiter .pmd-kazen-choice-active,
+        html body .pmd-kazen-checkout-waiter .pmd-kazen-waiter-secondary,
+        html body .pmd-kazen-checkout-waiter .pmd-kazen-waiter-btn-secondary,
+        html body .pmd-kazen-checkout-waiter .pmd-kzui-btn-secondary pmd-kazen-checkout-action-secondary-clean,
+        html body .pmd-kazen-checkout-waiter .kazen-secondary,
+        html body .pmd-kazen-checkout-waiter .pmd-kazen-apply,
+        html body .pmd-kazen-checkout-waiter .pmd-kzui-btn-square pmd-kazen-split-stepper-btn,
+        html body .pmd-kazen-checkout-waiter .pmd-kzui-btn-list pmd-kazen-assign-row,
+        html body .pmd-kazen-checkout-waiter .pmd-kzui-btn-tile pmd-kazen-method,
+        html body .pmd-kazen-checkout-waiter .pmd-kzui-btn-tile pmd-payment-method-tile {
+          background: var(--pmd-kz-btn-secondary-bg) !important;
+          background-color: var(--pmd-kz-btn-secondary-bg) !important;
+          color: var(--pmd-kz-btn-secondary-color) !important;
+          -webkit-text-fill-color: var(--pmd-kz-btn-secondary-color) !important;
+          border: 1px solid var(--pmd-kz-btn-secondary-border) !important;
+          box-shadow: none !important;
+          opacity: 1 !important;
+          filter: none !important;
+        }
+
+        html body .pmd-kazen-checkout-waiter .pmd-kazen-tab:hover,
+        html body .pmd-kazen-checkout-waiter .pmd-kazen-choice-active:hover,
+        html body .pmd-kazen-checkout-waiter .pmd-kazen-waiter-secondary:hover,
+        html body .pmd-kazen-checkout-waiter .pmd-kazen-waiter-btn-secondary:hover,
+        html body .pmd-kazen-checkout-waiter .pmd-kzui-btn-secondary pmd-kazen-checkout-action-secondary-clean:hover,
+        html body .pmd-kazen-checkout-waiter .kazen-secondary:hover,
+        html body .pmd-kazen-checkout-waiter .pmd-kazen-apply:hover,
+        html body .pmd-kazen-checkout-waiter .pmd-kzui-btn-square pmd-kazen-split-stepper-btn:hover,
+        html body .pmd-kazen-checkout-waiter .pmd-kzui-btn-list pmd-kazen-assign-row:hover,
+        html body .pmd-kazen-checkout-waiter .pmd-kzui-btn-tile pmd-kazen-method:hover,
+        html body .pmd-kazen-checkout-waiter .pmd-kzui-btn-tile pmd-payment-method-tile:hover {
+          background: var(--pmd-kz-btn-secondary-bg-hover) !important;
+          background-color: var(--pmd-kz-btn-secondary-bg-hover) !important;
+          color: var(--pmd-kz-btn-secondary-color-hover) !important;
+          -webkit-text-fill-color: var(--pmd-kz-btn-secondary-color-hover) !important;
+          border-color: var(--pmd-kz-btn-secondary-border-hover) !important;
+          transform: translateY(-1px) !important;
+        }
+
+        /* Active tabs: same system, only stronger border/inner highlight */
+        html body .pmd-kazen-checkout-waiter .pmd-kazen-tab-active,
+        html body .pmd-kazen-checkout-waiter .pmd-kazen-choice-active {
+          border-color: var(--pmd-kz-btn-secondary-border-hover) !important;
+          box-shadow: inset 0 0 0 1px var(--pmd-kz-btn-secondary-border) !important;
+        }
+
+        /* Primary checkout controls */
+        html body .pmd-kazen-checkout-waiter .pmd-kazen-waiter-primary,
+        html body .pmd-kazen-checkout-waiter .pmd-kazen-waiter-btn-primary,
+        html body .pmd-kazen-checkout-waiter .pmd-kzui-btn-primary pmd-kazen-checkout-action-primary-clean,
+        html body .pmd-kazen-checkout-waiter .kazen-primary,
+        html body .pmd-kazen-checkout-waiter button[data-pmd-kazen-button="primary"] {
+          background: var(--pmd-kz-btn-primary-bg) !important;
+          background-color: var(--pmd-kz-btn-primary-bg) !important;
+          color: var(--pmd-kz-btn-primary-color) !important;
+          -webkit-text-fill-color: var(--pmd-kz-btn-primary-color) !important;
+          border: 1px solid var(--pmd-kz-btn-primary-border) !important;
+          box-shadow: none !important;
+          opacity: 1 !important;
+          filter: none !important;
+        }
+
+        html body .pmd-kazen-checkout-waiter .pmd-kazen-waiter-primary:hover,
+        html body .pmd-kazen-checkout-waiter .pmd-kazen-waiter-btn-primary:hover,
+        html body .pmd-kazen-checkout-waiter .pmd-kzui-btn-primary pmd-kazen-checkout-action-primary-clean:hover,
+        html body .pmd-kazen-checkout-waiter .kazen-primary:hover,
+        html body .pmd-kazen-checkout-waiter button[data-pmd-kazen-button="primary"]:hover {
+          background: var(--pmd-kz-btn-primary-bg-hover) !important;
+          background-color: var(--pmd-kz-btn-primary-bg-hover) !important;
+          color: var(--pmd-kz-btn-primary-color) !important;
+          -webkit-text-fill-color: var(--pmd-kz-btn-primary-color) !important;
+          border-color: var(--pmd-kz-btn-primary-border-hover) !important;
+          transform: translateY(-1px) !important;
+        }
+
+        /* Plus inside split stepper should be primary, minus stays secondary */
+        html body .pmd-kazen-checkout-waiter .pmd-kzui-btn-square pmd-kazen-split-stepper-btn[aria-label="Add guest"] {
+          background: var(--pmd-kz-btn-primary-bg) !important;
+          background-color: var(--pmd-kz-btn-primary-bg) !important;
+          color: var(--pmd-kz-btn-primary-color) !important;
+          -webkit-text-fill-color: var(--pmd-kz-btn-primary-color) !important;
+          border-color: var(--pmd-kz-btn-primary-border) !important;
+        }
+
+        html body .pmd-kazen-checkout-waiter .pmd-kzui-btn-square pmd-kazen-split-stepper-btn[aria-label="Add guest"]:hover {
+          background: var(--pmd-kz-btn-primary-bg-hover) !important;
+          background-color: var(--pmd-kz-btn-primary-bg-hover) !important;
+          border-color: var(--pmd-kz-btn-primary-border-hover) !important;
+        }
+
+        /* Icons inherit button color */
+        html body .pmd-kazen-checkout-waiter button svg,
+        html body .pmd-kazen-checkout-waiter button svg *,
+        html body .pmd-kazen-checkout-waiter [role="button"] svg,
+        html body .pmd-kazen-checkout-waiter [role="button"] svg * {
+          color: currentColor !important;
+          stroke: currentColor !important;
+          fill: none !important;
+        }
+
+        html body .pmd-kazen-checkout-waiter button:disabled,
+        html body .pmd-kazen-checkout-waiter button[aria-disabled="true"],
+        html body .pmd-kazen-checkout-waiter [role="button"][aria-disabled="true"] {
+          opacity: .54 !important;
+          cursor: not-allowed !important;
+          transform: none !important;
+          box-shadow: none !important;
+        }
 `}</style>
+      <style jsx global>{`
+
+        /* PMD_KAZEN_V27_FINAL_CHECKOUT_CONTROL_CASCADE_20260618
+           This style tag is intentionally inserted AFTER the old checkout style tag.
+           It wins against old Kazen checkout card rules and unifies every control.
+        */
+
+        html body .pmd-kazen-checkout-waiter[data-pmd-checkout-theme="kazen_japanese"],
+        html body .kazen-solid-modal-overlay.pmd-kazen-checkout-waiter[data-pmd-checkout-theme="kazen_japanese"],
+        html body [data-pmd-checkout-theme-root="1"][data-pmd-checkout-theme="kazen_japanese"] {
+          --pmd-kz-btn-secondary-bg: rgba(255, 255, 255, .42);
+          --pmd-kz-btn-secondary-bg-hover: rgba(255, 255, 255, .62);
+          --pmd-kz-btn-secondary-color: #242320;
+          --pmd-kz-btn-secondary-color-hover: #242320;
+          --pmd-kz-btn-secondary-border: rgba(36, 35, 32, .20);
+          --pmd-kz-btn-secondary-border-hover: rgba(36, 35, 32, .34);
+
+          --pmd-kz-btn-primary-bg: #b85d59;
+          --pmd-kz-btn-primary-bg-hover: #c86460;
+          --pmd-kz-btn-primary-color: #fffaf3;
+          --pmd-kz-btn-primary-border: rgba(143, 55, 51, .56);
+          --pmd-kz-btn-primary-border-hover: rgba(143, 55, 51, .72);
+
+          --pmd-kz-btn-close-bg: rgba(255, 255, 255, .44);
+          --pmd-kz-btn-close-bg-hover: rgba(255, 255, 255, .62);
+          --pmd-kz-btn-close-color: #242320;
+          --pmd-kz-btn-close-border: rgba(36, 35, 32, .22);
+          --pmd-kz-btn-close-border-hover: rgba(36, 35, 32, .34);
+
+          /* Alias old V25 clean vars to the new final button system */
+          --pmd-kz-clean-secondary-bg: var(--pmd-kz-btn-secondary-bg);
+          --pmd-kz-clean-secondary-bg-hover: var(--pmd-kz-btn-secondary-bg-hover);
+          --pmd-kz-clean-secondary-color: var(--pmd-kz-btn-secondary-color);
+          --pmd-kz-clean-secondary-color-hover: var(--pmd-kz-btn-secondary-color-hover);
+          --pmd-kz-clean-secondary-border: var(--pmd-kz-btn-secondary-border);
+          --pmd-kz-clean-secondary-border-hover: var(--pmd-kz-btn-secondary-border-hover);
+
+          --pmd-kz-clean-primary-bg: var(--pmd-kz-btn-primary-bg);
+          --pmd-kz-clean-primary-bg-hover: var(--pmd-kz-btn-primary-bg-hover);
+          --pmd-kz-clean-primary-color: var(--pmd-kz-btn-primary-color);
+          --pmd-kz-clean-primary-border: var(--pmd-kz-btn-primary-border);
+          --pmd-kz-clean-primary-border-hover: var(--pmd-kz-btn-primary-border-hover);
+
+          --pmd-kz-clean-close-bg: var(--pmd-kz-btn-close-bg);
+          --pmd-kz-clean-close-bg-hover: var(--pmd-kz-btn-close-bg-hover);
+          --pmd-kz-clean-close-color: var(--pmd-kz-btn-close-color);
+          --pmd-kz-clean-close-border: var(--pmd-kz-btn-close-border);
+          --pmd-kz-clean-close-border-hover: var(--pmd-kz-btn-close-border-hover);
+        }
+
+        html body .pmd-kazen-checkout-waiter[data-pmd-kazen-checkout-mode="dark"][data-pmd-checkout-theme="kazen_japanese"],
+        html body .kazen-solid-modal-overlay.pmd-kazen-checkout-waiter[data-pmd-kazen-checkout-mode="dark"][data-pmd-checkout-theme="kazen_japanese"],
+        html body [data-pmd-checkout-theme-root="1"][data-pmd-checkout-theme="kazen_japanese"][data-pmd-kazen-checkout-mode="dark"] {
+          --pmd-kz-btn-secondary-bg: rgba(8, 6, 4, .88);
+          --pmd-kz-btn-secondary-bg-hover: rgba(246, 232, 200, .08);
+          --pmd-kz-btn-secondary-color: #f6e8c8;
+          --pmd-kz-btn-secondary-color-hover: #fff4d6;
+          --pmd-kz-btn-secondary-border: rgba(198, 164, 93, .36);
+          --pmd-kz-btn-secondary-border-hover: rgba(198, 164, 93, .52);
+
+          --pmd-kz-btn-primary-bg: #b85d59;
+          --pmd-kz-btn-primary-bg-hover: #c86460;
+          --pmd-kz-btn-primary-color: #fffaf3;
+          --pmd-kz-btn-primary-border: rgba(223, 104, 93, .72);
+          --pmd-kz-btn-primary-border-hover: rgba(223, 104, 93, .88);
+
+          --pmd-kz-btn-close-bg: rgba(246, 232, 200, .055);
+          --pmd-kz-btn-close-bg-hover: rgba(246, 232, 200, .09);
+          --pmd-kz-btn-close-color: #f6e8c8;
+          --pmd-kz-btn-close-border: rgba(198, 164, 93, .30);
+          --pmd-kz-btn-close-border-hover: rgba(198, 164, 93, .52);
+        }
+
+        html body .pmd-kazen-checkout-waiter[data-pmd-checkout-theme="kazen_japanese"] button,
+        html body .pmd-kazen-checkout-waiter[data-pmd-checkout-theme="kazen_japanese"] [role="button"] {
+          border-radius: 0 !important;
+          box-shadow: none !important;
+          filter: none !important;
+          -webkit-appearance: none !important;
+          appearance: none !important;
+          background-image: none !important;
+          transition: background-color .18s ease, border-color .18s ease, color .18s ease, transform .18s ease !important;
+        }
+
+        /* Close */
+        html body .pmd-kazen-checkout-waiter[data-pmd-checkout-theme="kazen_japanese"] button.pmd-kzui-btn-square pmd-kzui-btn-close pmd-kazen-waiter-back,
+        html body .pmd-kazen-checkout-waiter[data-pmd-checkout-theme="kazen_japanese"] button.pmd-kazen-action-close,
+        html body .pmd-kazen-checkout-waiter[data-pmd-checkout-theme="kazen_japanese"] button.kazen-solid-close,
+        html body .pmd-kazen-checkout-waiter[data-pmd-checkout-theme="kazen_japanese"] button.pmd-kazen-checkout-close-clean {
+          width: 48px !important;
+          height: 48px !important;
+          min-width: 48px !important;
+          min-height: 48px !important;
+          max-width: 48px !important;
+          max-height: 48px !important;
+          padding: 0 !important;
+          display: inline-flex !important;
+          align-items: center !important;
+          justify-content: center !important;
+          background: var(--pmd-kz-btn-close-bg) !important;
+          background-color: var(--pmd-kz-btn-close-bg) !important;
+          color: var(--pmd-kz-btn-close-color) !important;
+          -webkit-text-fill-color: var(--pmd-kz-btn-close-color) !important;
+          border: 1px solid var(--pmd-kz-btn-close-border) !important;
+        }
+
+        html body .pmd-kazen-checkout-waiter[data-pmd-checkout-theme="kazen_japanese"] button.pmd-kzui-btn-square pmd-kzui-btn-close pmd-kazen-waiter-back:hover,
+        html body .pmd-kazen-checkout-waiter[data-pmd-checkout-theme="kazen_japanese"] button.pmd-kazen-action-close:hover,
+        html body .pmd-kazen-checkout-waiter[data-pmd-checkout-theme="kazen_japanese"] button.kazen-solid-close:hover,
+        html body .pmd-kazen-checkout-waiter[data-pmd-checkout-theme="kazen_japanese"] button.pmd-kazen-checkout-close-clean:hover {
+          background: var(--pmd-kz-btn-close-bg-hover) !important;
+          background-color: var(--pmd-kz-btn-close-bg-hover) !important;
+          border-color: var(--pmd-kz-btn-close-border-hover) !important;
+          transform: translateY(-1px) !important;
+        }
+
+        /* Secondary controls: inactive tabs, split bill, assign rows, method tiles */
+        html body .pmd-kazen-checkout-waiter[data-pmd-checkout-theme="kazen_japanese"] button[data-pmd-kazen-button="secondary"],
+        html body .pmd-kazen-checkout-waiter[data-pmd-checkout-theme="kazen_japanese"] button.pmd-kazen-waiter-secondary,
+        html body .pmd-kazen-checkout-waiter[data-pmd-checkout-theme="kazen_japanese"] button.pmd-kazen-tab:not(.pmd-kazen-tab-active),
+        html body .pmd-kazen-checkout-waiter[data-pmd-checkout-theme="kazen_japanese"] button.pmd-kazen-choice-active:not([data-pmd-kazen-button="primary"]),
+        html body .pmd-kazen-checkout-waiter[data-pmd-checkout-theme="kazen_japanese"] button.pmd-kazen-apply,
+        html body .pmd-kazen-checkout-waiter[data-pmd-checkout-theme="kazen_japanese"] button.pmd-kzui-btn-square pmd-kazen-split-stepper-btn:not([aria-label="Add guest"]),
+        html body .pmd-kazen-checkout-waiter[data-pmd-checkout-theme="kazen_japanese"] button.pmd-kzui-btn-list pmd-kazen-assign-row,
+        html body .pmd-kazen-checkout-waiter[data-pmd-checkout-theme="kazen_japanese"] button.pmd-kzui-btn-tile pmd-kazen-method,
+        html body .pmd-kazen-checkout-waiter[data-pmd-checkout-theme="kazen_japanese"] button.pmd-kzui-btn-tile pmd-payment-method-tile,
+        html body .pmd-kazen-checkout-waiter[data-pmd-checkout-theme="kazen_japanese"] .pmd-kzui-btn-tile pmd-payment-method-tile[role="button"] {
+          background: var(--pmd-kz-btn-secondary-bg) !important;
+          background-color: var(--pmd-kz-btn-secondary-bg) !important;
+          color: var(--pmd-kz-btn-secondary-color) !important;
+          -webkit-text-fill-color: var(--pmd-kz-btn-secondary-color) !important;
+          border: 1px solid var(--pmd-kz-btn-secondary-border) !important;
+          box-shadow: none !important;
+          filter: none !important;
+        }
+
+        html body .pmd-kazen-checkout-waiter[data-pmd-checkout-theme="kazen_japanese"] button[data-pmd-kazen-button="secondary"]:hover,
+        html body .pmd-kazen-checkout-waiter[data-pmd-checkout-theme="kazen_japanese"] button.pmd-kazen-waiter-secondary:hover,
+        html body .pmd-kazen-checkout-waiter[data-pmd-checkout-theme="kazen_japanese"] button.pmd-kazen-tab:not(.pmd-kazen-tab-active):hover,
+        html body .pmd-kazen-checkout-waiter[data-pmd-checkout-theme="kazen_japanese"] button.pmd-kazen-choice-active:not([data-pmd-kazen-button="primary"]):hover,
+        html body .pmd-kazen-checkout-waiter[data-pmd-checkout-theme="kazen_japanese"] button.pmd-kazen-apply:hover,
+        html body .pmd-kazen-checkout-waiter[data-pmd-checkout-theme="kazen_japanese"] button.pmd-kzui-btn-square pmd-kazen-split-stepper-btn:not([aria-label="Add guest"]):hover,
+        html body .pmd-kazen-checkout-waiter[data-pmd-checkout-theme="kazen_japanese"] button.pmd-kzui-btn-list pmd-kazen-assign-row:hover,
+        html body .pmd-kazen-checkout-waiter[data-pmd-checkout-theme="kazen_japanese"] button.pmd-kzui-btn-tile pmd-kazen-method:hover,
+        html body .pmd-kazen-checkout-waiter[data-pmd-checkout-theme="kazen_japanese"] button.pmd-kzui-btn-tile pmd-payment-method-tile:hover,
+        html body .pmd-kazen-checkout-waiter[data-pmd-checkout-theme="kazen_japanese"] .pmd-kzui-btn-tile pmd-payment-method-tile[role="button"]:hover {
+          background: var(--pmd-kz-btn-secondary-bg-hover) !important;
+          background-color: var(--pmd-kz-btn-secondary-bg-hover) !important;
+          color: var(--pmd-kz-btn-secondary-color-hover) !important;
+          -webkit-text-fill-color: var(--pmd-kz-btn-secondary-color-hover) !important;
+          border-color: var(--pmd-kz-btn-secondary-border-hover) !important;
+          transform: translateY(-1px) !important;
+        }
+
+        /* Primary controls: active tabs + main actions + plus */
+        html body .pmd-kazen-checkout-waiter[data-pmd-checkout-theme="kazen_japanese"] button[data-pmd-kazen-button="primary"],
+        html body .pmd-kazen-checkout-waiter[data-pmd-checkout-theme="kazen_japanese"] button.pmd-kazen-tab-active,
+        html body .pmd-kazen-checkout-waiter[data-pmd-checkout-theme="kazen_japanese"] button.pmd-kazen-waiter-primary,
+        html body .pmd-kazen-checkout-waiter[data-pmd-checkout-theme="kazen_japanese"] button.pmd-kzui-btn-primary pmd-kazen-checkout-action-primary-clean,
+        html body .pmd-kazen-checkout-waiter[data-pmd-checkout-theme="kazen_japanese"] button.kazen-primary,
+        html body .pmd-kazen-checkout-waiter[data-pmd-checkout-theme="kazen_japanese"] button.pmd-kzui-btn-square pmd-kazen-split-stepper-btn[aria-label="Add guest"] {
+          background: var(--pmd-kz-btn-primary-bg) !important;
+          background-color: var(--pmd-kz-btn-primary-bg) !important;
+          color: var(--pmd-kz-btn-primary-color) !important;
+          -webkit-text-fill-color: var(--pmd-kz-btn-primary-color) !important;
+          border: 1px solid var(--pmd-kz-btn-primary-border) !important;
+          box-shadow: none !important;
+          filter: none !important;
+        }
+
+        html body .pmd-kazen-checkout-waiter[data-pmd-checkout-theme="kazen_japanese"] button[data-pmd-kazen-button="primary"]:hover,
+        html body .pmd-kazen-checkout-waiter[data-pmd-checkout-theme="kazen_japanese"] button.pmd-kazen-tab-active:hover,
+        html body .pmd-kazen-checkout-waiter[data-pmd-checkout-theme="kazen_japanese"] button.pmd-kazen-waiter-primary:hover,
+        html body .pmd-kazen-checkout-waiter[data-pmd-checkout-theme="kazen_japanese"] button.pmd-kzui-btn-primary pmd-kazen-checkout-action-primary-clean:hover,
+        html body .pmd-kazen-checkout-waiter[data-pmd-checkout-theme="kazen_japanese"] button.kazen-primary:hover,
+        html body .pmd-kazen-checkout-waiter[data-pmd-checkout-theme="kazen_japanese"] button.pmd-kzui-btn-square pmd-kazen-split-stepper-btn[aria-label="Add guest"]:hover {
+          background: var(--pmd-kz-btn-primary-bg-hover) !important;
+          background-color: var(--pmd-kz-btn-primary-bg-hover) !important;
+          border-color: var(--pmd-kz-btn-primary-border-hover) !important;
+          transform: translateY(-1px) !important;
+        }
+
+        html body .pmd-kazen-checkout-waiter[data-pmd-checkout-theme="kazen_japanese"] button svg,
+        html body .pmd-kazen-checkout-waiter[data-pmd-checkout-theme="kazen_japanese"] button svg *,
+        html body .pmd-kazen-checkout-waiter[data-pmd-checkout-theme="kazen_japanese"] [role="button"] svg,
+        html body .pmd-kazen-checkout-waiter[data-pmd-checkout-theme="kazen_japanese"] [role="button"] svg * {
+          color: currentColor !important;
+          stroke: currentColor !important;
+          fill: none !important;
+        }
+
+        html body .pmd-kazen-checkout-waiter[data-pmd-checkout-theme="kazen_japanese"] button:disabled,
+        html body .pmd-kazen-checkout-waiter[data-pmd-checkout-theme="kazen_japanese"] button[aria-disabled="true"],
+        html body .pmd-kazen-checkout-waiter[data-pmd-checkout-theme="kazen_japanese"] [role="button"][aria-disabled="true"] {
+          opacity: .56 !important;
+          cursor: not-allowed !important;
+          transform: none !important;
+          box-shadow: none !important;
+        }
+
+      `}</style>
+
+      <style jsx global>{`
+        /* PMD_KAZEN_V28_CANONICAL_CHECKOUT_BUTTON_SYSTEM_20260618
+           Canonical isolated checkout button system.
+           Every checkout control belongs to ONE of these types:
+           - pmd-kzui-btn-square
+           - pmd-kzui-btn-action
+           - pmd-kzui-btn-segment
+           - pmd-kzui-btn-list
+           - pmd-kzui-btn-tile
+           and ONE color role:
+           - pmd-kzui-btn-primary
+           - pmd-kzui-btn-secondary
+        */
+
+        html body .pmd-kazen-checkout-waiter[data-pmd-checkout-theme="kazen_japanese"],
+        html body [data-pmd-checkout-theme-root="1"][data-pmd-checkout-theme="kazen_japanese"] {
+          --pmd-kzui-secondary-bg: rgba(255, 255, 255, .44);
+          --pmd-kzui-secondary-bg-hover: rgba(255, 255, 255, .64);
+          --pmd-kzui-secondary-text: #242320;
+          --pmd-kzui-secondary-border: rgba(36, 35, 32, .22);
+          --pmd-kzui-secondary-border-hover: rgba(36, 35, 32, .36);
+
+          --pmd-kzui-primary-bg: #b85d59;
+          --pmd-kzui-primary-bg-hover: #c86460;
+          --pmd-kzui-primary-text: #fffaf3;
+          --pmd-kzui-primary-border: rgba(143, 55, 51, .56);
+          --pmd-kzui-primary-border-hover: rgba(143, 55, 51, .72);
+
+          --pmd-kzui-close-bg: rgba(255, 255, 255, .44);
+          --pmd-kzui-close-bg-hover: rgba(255, 255, 255, .64);
+          --pmd-kzui-close-text: #242320;
+          --pmd-kzui-close-border: rgba(36, 35, 32, .22);
+          --pmd-kzui-close-border-hover: rgba(36, 35, 32, .36);
+        }
+
+        html body .pmd-kazen-checkout-waiter[data-pmd-checkout-theme="kazen_japanese"][data-pmd-kazen-checkout-mode="dark"],
+        html body [data-pmd-checkout-theme-root="1"][data-pmd-checkout-theme="kazen_japanese"][data-pmd-kazen-checkout-mode="dark"] {
+          --pmd-kzui-secondary-bg: rgba(8, 6, 4, .88);
+          --pmd-kzui-secondary-bg-hover: rgba(246, 232, 200, .08);
+          --pmd-kzui-secondary-text: #f6e8c8;
+          --pmd-kzui-secondary-border: rgba(198, 164, 93, .36);
+          --pmd-kzui-secondary-border-hover: rgba(198, 164, 93, .54);
+
+          --pmd-kzui-primary-bg: #b85d59;
+          --pmd-kzui-primary-bg-hover: #c86460;
+          --pmd-kzui-primary-text: #fffaf3;
+          --pmd-kzui-primary-border: rgba(223, 104, 93, .72);
+          --pmd-kzui-primary-border-hover: rgba(223, 104, 93, .88);
+
+          --pmd-kzui-close-bg: rgba(246, 232, 200, .055);
+          --pmd-kzui-close-bg-hover: rgba(246, 232, 200, .09);
+          --pmd-kzui-close-text: #f6e8c8;
+          --pmd-kzui-close-border: rgba(198, 164, 93, .30);
+          --pmd-kzui-close-border-hover: rgba(198, 164, 93, .52);
+        }
+
+        html body .pmd-kazen-checkout-waiter[data-pmd-checkout-theme="kazen_japanese"] .pmd-kzui-btn {
+          border-radius: 0 !important;
+          box-shadow: none !important;
+          filter: none !important;
+          appearance: none !important;
+          -webkit-appearance: none !important;
+          background-image: none !important;
+          text-transform: uppercase !important;
+          text-align: center !important;
+          line-height: 1.08 !important;
+          font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif !important;
+          font-size: .82rem !important;
+          font-weight: 850 !important;
+          letter-spacing: .12em !important;
+          display: inline-flex !important;
+          align-items: center !important;
+          justify-content: center !important;
+          gap: .55rem !important;
+          transition: background-color .18s ease, border-color .18s ease, color .18s ease, transform .18s ease !important;
+        }
+
+        html body .pmd-kazen-checkout-waiter[data-pmd-checkout-theme="kazen_japanese"] .pmd-kzui-btn-secondary,
+        html body .pmd-kazen-checkout-waiter[data-pmd-checkout-theme="kazen_japanese"] .pmd-kzui-btn[data-pmd-kazen-button="secondary"],
+        html body .pmd-kazen-checkout-waiter[data-pmd-checkout-theme="kazen_japanese"] .pmd-kzui-btn-list,
+        html body .pmd-kazen-checkout-waiter[data-pmd-checkout-theme="kazen_japanese"] .pmd-kzui-btn-tile,
+        html body .pmd-kazen-checkout-waiter[data-pmd-checkout-theme="kazen_japanese"] .pmd-kzui-btn-square:not([aria-label="Add guest"]):not(.pmd-kzui-btn-close) {
+          background: var(--pmd-kzui-secondary-bg) !important;
+          background-color: var(--pmd-kzui-secondary-bg) !important;
+          color: var(--pmd-kzui-secondary-text) !important;
+          -webkit-text-fill-color: var(--pmd-kzui-secondary-text) !important;
+          border: 1px solid var(--pmd-kzui-secondary-border) !important;
+        }
+
+        html body .pmd-kazen-checkout-waiter[data-pmd-checkout-theme="kazen_japanese"] .pmd-kzui-btn-primary,
+        html body .pmd-kazen-checkout-waiter[data-pmd-checkout-theme="kazen_japanese"] .pmd-kzui-btn[data-pmd-kazen-button="primary"],
+        html body .pmd-kazen-checkout-waiter[data-pmd-checkout-theme="kazen_japanese"] .pmd-kazen-tab-active,
+        html body .pmd-kazen-checkout-waiter[data-pmd-checkout-theme="kazen_japanese"] .pmd-kzui-btn-square[aria-label="Add guest"] {
+          background: var(--pmd-kzui-primary-bg) !important;
+          background-color: var(--pmd-kzui-primary-bg) !important;
+          color: var(--pmd-kzui-primary-text) !important;
+          -webkit-text-fill-color: var(--pmd-kzui-primary-text) !important;
+          border: 1px solid var(--pmd-kzui-primary-border) !important;
+        }
+
+        html body .pmd-kazen-checkout-waiter[data-pmd-checkout-theme="kazen_japanese"] .pmd-kzui-btn-close {
+          width: 48px !important;
+          height: 48px !important;
+          min-width: 48px !important;
+          min-height: 48px !important;
+          max-width: 48px !important;
+          max-height: 48px !important;
+          padding: 0 !important;
+          background: var(--pmd-kzui-close-bg) !important;
+          background-color: var(--pmd-kzui-close-bg) !important;
+          color: var(--pmd-kzui-close-text) !important;
+          -webkit-text-fill-color: var(--pmd-kzui-close-text) !important;
+          border: 1px solid var(--pmd-kzui-close-border) !important;
+        }
+
+        html body .pmd-kazen-checkout-waiter[data-pmd-checkout-theme="kazen_japanese"] .pmd-kzui-btn-action {
+          width: 100% !important;
+          min-height: 54px !important;
+          padding: .95rem 1rem !important;
+        }
+
+        html body .pmd-kazen-checkout-waiter[data-pmd-checkout-theme="kazen_japanese"] .pmd-kzui-btn-segment {
+          min-height: 58px !important;
+          padding: .85rem .8rem !important;
+        }
+
+        html body .pmd-kazen-checkout-waiter[data-pmd-checkout-theme="kazen_japanese"] .pmd-kzui-btn-square {
+          width: 52px !important;
+          min-width: 52px !important;
+          height: 52px !important;
+          min-height: 52px !important;
+          padding: 0 !important;
+          font-size: 1.25rem !important;
+        }
+
+        html body .pmd-kazen-checkout-waiter[data-pmd-checkout-theme="kazen_japanese"] .pmd-kzui-btn-list {
+          width: 100% !important;
+          min-height: 57px !important;
+          padding: .95rem 1.05rem !important;
+          justify-content: space-between !important;
+        }
+
+        html body .pmd-kazen-checkout-waiter[data-pmd-checkout-theme="kazen_japanese"] .pmd-kzui-btn-tile {
+          min-width: 84px !important;
+          min-height: 60px !important;
+          padding: .6rem !important;
+        }
+
+        html body .pmd-kazen-checkout-waiter[data-pmd-checkout-theme="kazen_japanese"] .pmd-kzui-btn-secondary:hover,
+        html body .pmd-kazen-checkout-waiter[data-pmd-checkout-theme="kazen_japanese"] .pmd-kzui-btn[data-pmd-kazen-button="secondary"]:hover,
+        html body .pmd-kazen-checkout-waiter[data-pmd-checkout-theme="kazen_japanese"] .pmd-kzui-btn-list:hover,
+        html body .pmd-kazen-checkout-waiter[data-pmd-checkout-theme="kazen_japanese"] .pmd-kzui-btn-tile:hover,
+        html body .pmd-kazen-checkout-waiter[data-pmd-checkout-theme="kazen_japanese"] .pmd-kzui-btn-square:not([aria-label="Add guest"]):not(.pmd-kzui-btn-close):hover {
+          background: var(--pmd-kzui-secondary-bg-hover) !important;
+          background-color: var(--pmd-kzui-secondary-bg-hover) !important;
+          border-color: var(--pmd-kzui-secondary-border-hover) !important;
+          transform: translateY(-1px) !important;
+        }
+
+        html body .pmd-kazen-checkout-waiter[data-pmd-checkout-theme="kazen_japanese"] .pmd-kzui-btn-primary:hover,
+        html body .pmd-kazen-checkout-waiter[data-pmd-checkout-theme="kazen_japanese"] .pmd-kzui-btn[data-pmd-kazen-button="primary"]:hover,
+        html body .pmd-kazen-checkout-waiter[data-pmd-checkout-theme="kazen_japanese"] .pmd-kazen-tab-active:hover,
+        html body .pmd-kazen-checkout-waiter[data-pmd-checkout-theme="kazen_japanese"] .pmd-kzui-btn-square[aria-label="Add guest"]:hover {
+          background: var(--pmd-kzui-primary-bg-hover) !important;
+          background-color: var(--pmd-kzui-primary-bg-hover) !important;
+          border-color: var(--pmd-kzui-primary-border-hover) !important;
+          transform: translateY(-1px) !important;
+        }
+
+        html body .pmd-kazen-checkout-waiter[data-pmd-checkout-theme="kazen_japanese"] .pmd-kzui-btn-close:hover {
+          background: var(--pmd-kzui-close-bg-hover) !important;
+          background-color: var(--pmd-kzui-close-bg-hover) !important;
+          border-color: var(--pmd-kzui-close-border-hover) !important;
+          transform: translateY(-1px) !important;
+        }
+
+        html body .pmd-kazen-checkout-waiter[data-pmd-checkout-theme="kazen_japanese"] .pmd-kzui-btn svg,
+        html body .pmd-kazen-checkout-waiter[data-pmd-checkout-theme="kazen_japanese"] .pmd-kzui-btn svg *,
+        html body .pmd-kazen-checkout-waiter[data-pmd-checkout-theme="kazen_japanese"] .pmd-kzui-btn span {
+          color: currentColor !important;
+          -webkit-text-fill-color: currentColor !important;
+          stroke: currentColor !important;
+        }
+
+        html body .pmd-kazen-checkout-waiter[data-pmd-checkout-theme="kazen_japanese"] .pmd-kzui-btn:disabled,
+        html body .pmd-kazen-checkout-waiter[data-pmd-checkout-theme="kazen_japanese"] .pmd-kzui-btn[aria-disabled="true"] {
+          opacity: .56 !important;
+          cursor: not-allowed !important;
+          transform: none !important;
+        }
+      `}</style>
+
+      <style jsx global>{`
+        /* PMD_KAZEN_V29_FINAL_PRIMARY_SECONDARY_BUTTON_CONTRACT_20260618
+
+           Final button contract for Kazen checkout cards.
+
+           TYPE 1 / PRIMARY / RED:
+           Confirm, Send to kitchen, Pay in full, Pay, Confirm cash payment,
+           Review split, Pay my share.
+
+           TYPE 2 / SECONDARY:
+           Continue ordering, Split bill, Select payer, Link, QR,
+           Cancel/Close text buttons, and split tabs:
+           SPLIT EQUALLY / BY ORDER ITEMS / BY SHARES.
+
+           Important:
+           Tabs are secondary buttons, even when active.
+        */
+
+        html body .pmd-kazen-checkout-waiter[data-pmd-checkout-theme="kazen_japanese"],
+        html body [data-pmd-checkout-theme-root="1"][data-pmd-checkout-theme="kazen_japanese"],
+        html[data-theme="kazen_japanese"] body {
+          --pmd-kz-action-height: 48px;
+          --pmd-kz-action-radius: 0px;
+          --pmd-kz-action-font: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+          --pmd-kz-action-size: .82rem;
+          --pmd-kz-action-weight: 850;
+          --pmd-kz-action-spacing: .12em;
+
+          --pmd-kz-primary-bg: #b85d59;
+          --pmd-kz-primary-bg-hover: #c86460;
+          --pmd-kz-primary-text: #fffaf3;
+          --pmd-kz-primary-border: rgba(143, 55, 51, .56);
+          --pmd-kz-primary-border-hover: rgba(143, 55, 51, .72);
+
+          --pmd-kz-secondary-bg: rgba(255, 255, 255, .44);
+          --pmd-kz-secondary-bg-hover: rgba(255, 255, 255, .64);
+          --pmd-kz-secondary-text: #242320;
+          --pmd-kz-secondary-border: rgba(36, 35, 32, .22);
+          --pmd-kz-secondary-border-hover: rgba(36, 35, 32, .36);
+        }
+
+        html body .pmd-kazen-checkout-waiter[data-pmd-checkout-theme="kazen_japanese"][data-pmd-kazen-checkout-mode="dark"],
+        html body [data-pmd-checkout-theme-root="1"][data-pmd-checkout-theme="kazen_japanese"][data-pmd-kazen-checkout-mode="dark"] {
+          --pmd-kz-secondary-bg: rgba(8, 6, 4, .88);
+          --pmd-kz-secondary-bg-hover: rgba(246, 232, 200, .08);
+          --pmd-kz-secondary-text: #f6e8c8;
+          --pmd-kz-secondary-border: rgba(198, 164, 93, .36);
+          --pmd-kz-secondary-border-hover: rgba(198, 164, 93, .54);
+
+          --pmd-kz-primary-bg: #b85d59;
+          --pmd-kz-primary-bg-hover: #c86460;
+          --pmd-kz-primary-text: #fffaf3;
+          --pmd-kz-primary-border: rgba(223, 104, 93, .72);
+          --pmd-kz-primary-border-hover: rgba(223, 104, 93, .88);
+        }
+
+        /* Shared action button base: same size, same edge, same typography, same hover system */
+        html body .pmd-kazen-checkout-waiter[data-pmd-checkout-theme="kazen_japanese"] :is(
+          button[data-pmd-kazen-button],
+          .pmd-kzui-btn-action,
+          .pmd-kazen-checkout-action-button-clean,
+          .pmd-kazen-tab,
+          .pmd-kazen-tabs > button,
+          .pmd-themed-button,
+          [data-pmd-themed-button],
+          [data-pmd-stripe-native-button],
+          button[class*="bg-primary"][class*="w-full"],
+          button[style*="rgb(23, 18, 14)"],
+          button[style*="rgb(248, 240, 223)"]
+        ) {
+          min-height: var(--pmd-kz-action-height) !important;
+          height: var(--pmd-kz-action-height) !important;
+          border-radius: var(--pmd-kz-action-radius) !important;
+          box-shadow: none !important;
+          filter: none !important;
+          appearance: none !important;
+          -webkit-appearance: none !important;
+          background-image: none !important;
+          font-family: var(--pmd-kz-action-font) !important;
+          font-size: var(--pmd-kz-action-size) !important;
+          font-weight: var(--pmd-kz-action-weight) !important;
+          letter-spacing: var(--pmd-kz-action-spacing) !important;
+          line-height: 1.08 !important;
+          text-transform: uppercase !important;
+          text-align: center !important;
+          display: inline-flex !important;
+          align-items: center !important;
+          justify-content: center !important;
+          gap: .55rem !important;
+          padding: .82rem 1rem !important;
+          opacity: 1 !important;
+          transform: none !important;
+          transition: background-color .18s ease, border-color .18s ease, color .18s ease, transform .18s ease !important;
+        }
+
+        /* TYPE 1: PRIMARY RED */
+        html body .pmd-kazen-checkout-waiter[data-pmd-checkout-theme="kazen_japanese"] :is(
+          button[data-pmd-kazen-button="primary"]:not(.pmd-kazen-tab),
+          .pmd-kzui-btn-primary:not(.pmd-kazen-tab),
+          .pmd-kazen-checkout-action-primary-clean,
+          .pmd-themed-button[data-pmd-themed-button="primary"],
+          [data-pmd-themed-button="primary"],
+          [data-pmd-stripe-native-button="1"],
+          button[class*="bg-primary"][class*="w-full"],
+          button[style*="rgb(23, 18, 14)"],
+          button[style*="rgb(248, 240, 223)"]
+        ) {
+          background: var(--pmd-kz-primary-bg) !important;
+          background-color: var(--pmd-kz-primary-bg) !important;
+          color: var(--pmd-kz-primary-text) !important;
+          -webkit-text-fill-color: var(--pmd-kz-primary-text) !important;
+          border: 1px solid var(--pmd-kz-primary-border) !important;
+        }
+
+        html body .pmd-kazen-checkout-waiter[data-pmd-checkout-theme="kazen_japanese"] :is(
+          button[data-pmd-kazen-button="primary"]:not(.pmd-kazen-tab),
+          .pmd-kzui-btn-primary:not(.pmd-kazen-tab),
+          .pmd-kazen-checkout-action-primary-clean,
+          .pmd-themed-button[data-pmd-themed-button="primary"],
+          [data-pmd-themed-button="primary"],
+          [data-pmd-stripe-native-button="1"],
+          button[class*="bg-primary"][class*="w-full"],
+          button[style*="rgb(23, 18, 14)"],
+          button[style*="rgb(248, 240, 223)"]
+        ):not(:disabled):not([aria-disabled="true"]):hover {
+          background: var(--pmd-kz-primary-bg-hover) !important;
+          background-color: var(--pmd-kz-primary-bg-hover) !important;
+          border-color: var(--pmd-kz-primary-border-hover) !important;
+          transform: translateY(-1px) !important;
+        }
+
+        /* TYPE 2: SECONDARY. Includes split tabs, even active tab. */
+        html body .pmd-kazen-checkout-waiter[data-pmd-checkout-theme="kazen_japanese"] :is(
+          button[data-pmd-kazen-button="secondary"],
+          .pmd-kzui-btn-secondary,
+          .pmd-kazen-checkout-action-secondary-clean,
+          .pmd-kazen-tab,
+          .pmd-kazen-tabs > button
+        ) {
+          background: var(--pmd-kz-secondary-bg) !important;
+          background-color: var(--pmd-kz-secondary-bg) !important;
+          color: var(--pmd-kz-secondary-text) !important;
+          -webkit-text-fill-color: var(--pmd-kz-secondary-text) !important;
+          border: 1px solid var(--pmd-kz-secondary-border) !important;
+        }
+
+        html body .pmd-kazen-checkout-waiter[data-pmd-checkout-theme="kazen_japanese"] :is(
+          button[data-pmd-kazen-button="secondary"],
+          .pmd-kzui-btn-secondary,
+          .pmd-kazen-checkout-action-secondary-clean,
+          .pmd-kazen-tab,
+          .pmd-kazen-tabs > button
+        ):not(:disabled):not([aria-disabled="true"]):hover {
+          background: var(--pmd-kz-secondary-bg-hover) !important;
+          background-color: var(--pmd-kz-secondary-bg-hover) !important;
+          color: var(--pmd-kz-secondary-text) !important;
+          -webkit-text-fill-color: var(--pmd-kz-secondary-text) !important;
+          border-color: var(--pmd-kz-secondary-border-hover) !important;
+          transform: translateY(-1px) !important;
+        }
+
+        /* Active tab is still Type 2, only stronger border. No red. */
+        html body .pmd-kazen-checkout-waiter[data-pmd-checkout-theme="kazen_japanese"] .pmd-kazen-tab-active {
+          background: var(--pmd-kz-secondary-bg-hover) !important;
+          background-color: var(--pmd-kz-secondary-bg-hover) !important;
+          color: var(--pmd-kz-secondary-text) !important;
+          -webkit-text-fill-color: var(--pmd-kz-secondary-text) !important;
+          border-color: var(--pmd-kz-secondary-border-hover) !important;
+          outline: 1px solid var(--pmd-kz-secondary-border-hover) !important;
+          outline-offset: -2px !important;
+        }
+
+        /* Make all action buttons same visual height in rows/grids */
+        html body .pmd-kazen-checkout-waiter[data-pmd-checkout-theme="kazen_japanese"] .pmd-kazen-actions :is(button, [role="button"]),
+        html body .pmd-kazen-checkout-waiter[data-pmd-checkout-theme="kazen_japanese"] .pmd-kazen-checkout-actions-clean :is(button, [role="button"]),
+        html body .pmd-kazen-checkout-waiter[data-pmd-checkout-theme="kazen_japanese"] .pmd-kazen-tabs > button {
+          min-height: var(--pmd-kz-action-height) !important;
+          height: var(--pmd-kz-action-height) !important;
+        }
+
+        /* Icons inside all buttons must inherit button color */
+        html body .pmd-kazen-checkout-waiter[data-pmd-checkout-theme="kazen_japanese"] :is(
+          button[data-pmd-kazen-button],
+          .pmd-kzui-btn-action,
+          .pmd-kazen-checkout-action-button-clean,
+          .pmd-themed-button,
+          [data-pmd-themed-button],
+          [data-pmd-stripe-native-button]
+        ) :is(svg, svg *, span) {
+          color: currentColor !important;
+          -webkit-text-fill-color: currentColor !important;
+          stroke: currentColor !important;
+        }
+
+        html body .pmd-kazen-checkout-waiter[data-pmd-checkout-theme="kazen_japanese"] :is(
+          button[data-pmd-kazen-button],
+          .pmd-kzui-btn-action,
+          .pmd-kazen-checkout-action-button-clean,
+          .pmd-themed-button,
+          [data-pmd-themed-button],
+          [data-pmd-stripe-native-button]
+        ):disabled,
+        html body .pmd-kazen-checkout-waiter[data-pmd-checkout-theme="kazen_japanese"] :is(
+          button[data-pmd-kazen-button],
+          .pmd-kzui-btn-action,
+          .pmd-kazen-checkout-action-button-clean,
+          .pmd-themed-button,
+          [data-pmd-themed-button],
+          [data-pmd-stripe-native-button]
+        )[aria-disabled="true"] {
+          opacity: .56 !important;
+          cursor: not-allowed !important;
+          transform: none !important;
+        }
+      `}</style>
+
+
+
+
+
     </div>
   )
 }
