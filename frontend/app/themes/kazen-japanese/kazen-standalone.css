@@ -2630,3 +2630,267 @@ html body .pmd-kazen-action-card .kazen-primary {
   }
   html body .pmd-kazen-action-body { padding: 16px 18px 18px !important; }
 }
+
+
+/* PMD_KAZEN_DARK_MODAL_SYSTEM_V8_20260618
+   Dark mode for the rewritten Kazen item, waiter, note, and checkout-style cards.
+   Same sharp geometry; only palette changes to dark paper + gold lines + red primary action.
+*/
+html[data-pmd-kazen-mode="dark"] body .pmd-kazen-detail-overlay,
+html[data-pmd-kazen-mode="dark"] body .pmd-kazen-action-overlay {
+  background: rgba(0, 0, 0, .78) !important;
+  -webkit-backdrop-filter: blur(12px) saturate(1.02) !important;
+  backdrop-filter: blur(12px) saturate(1.02) !important;
+}
+
+html[data-pmd-kazen-mode="dark"] body .pmd-kazen-detail-card,
+html[data-pmd-kazen-mode="dark"] body .pmd-kazen-action-card {
+  background: linear-gradient(180deg, #17120d 0%, #090705 100%) !important;
+  background-color: #090705 !important;
+  border-color: rgba(198, 164, 93, .50) !important;
+  color: #f6e8c8 !important;
+  -webkit-text-fill-color: #f6e8c8 !important;
+  box-shadow: 0 34px 90px rgba(0,0,0,.82), inset 0 1px 0 rgba(255,238,196,.08) !important;
+}
+
+html[data-pmd-kazen-mode="dark"] body .pmd-kazen-action-sheet {
+  background: radial-gradient(circle at 92% 0%, rgba(223,104,93,.12), transparent 30%), linear-gradient(180deg, #17120d 0%, #090705 100%) !important;
+  background-color: #090705 !important;
+}
+
+html[data-pmd-kazen-mode="dark"] body .pmd-kazen-detail-header,
+html[data-pmd-kazen-mode="dark"] body .pmd-kazen-action-head,
+html[data-pmd-kazen-mode="dark"] body .pmd-kazen-detail-purchase-row {
+  border-color: rgba(198, 164, 93, .26) !important;
+}
+
+html[data-pmd-kazen-mode="dark"] body .pmd-kazen-detail-header h2,
+html[data-pmd-kazen-mode="dark"] body .pmd-kazen-action-head h2,
+html[data-pmd-kazen-mode="dark"] body .pmd-kazen-detail-price strong {
+  color: #f6e8c8 !important;
+  -webkit-text-fill-color: #f6e8c8 !important;
+}
+
+html[data-pmd-kazen-mode="dark"] body .pmd-kazen-detail-eyebrow,
+html[data-pmd-kazen-mode="dark"] body .pmd-kazen-action-eyebrow,
+html[data-pmd-kazen-mode="dark"] body .pmd-kazen-action-card .kazen-solid-eyebrow {
+  color: #df685d !important;
+  -webkit-text-fill-color: #df685d !important;
+}
+
+html[data-pmd-kazen-mode="dark"] body .pmd-kazen-detail-close,
+html[data-pmd-kazen-mode="dark"] body .pmd-kazen-action-close,
+html[data-pmd-kazen-mode="dark"] body .pmd-kazen-detail-cancel,
+html[data-pmd-kazen-mode="dark"] body .pmd-kazen-action-card .kazen-secondary {
+  background: rgba(246, 232, 200, .055) !important;
+  background-color: rgba(246, 232, 200, .055) !important;
+  border-color: rgba(198, 164, 93, .30) !important;
+  color: #f6e8c8 !important;
+  -webkit-text-fill-color: #f6e8c8 !important;
+}
+
+html[data-pmd-kazen-mode="dark"] body .pmd-kazen-detail-close svg,
+html[data-pmd-kazen-mode="dark"] body .pmd-kazen-detail-close svg *,
+html[data-pmd-kazen-mode="dark"] body .pmd-kazen-action-close svg,
+html[data-pmd-kazen-mode="dark"] body .pmd-kazen-action-close svg * {
+  color: #f6e8c8 !important;
+  stroke: #f6e8c8 !important;
+  fill: none !important;
+}
+
+html[data-pmd-kazen-mode="dark"] body .pmd-kazen-detail-description,
+html[data-pmd-kazen-mode="dark"] body .pmd-kazen-action-body p {
+  color: rgba(246, 232, 200, .78) !important;
+  -webkit-text-fill-color: rgba(246, 232, 200, .78) !important;
+}
+
+html[data-pmd-kazen-mode="dark"] body .pmd-kazen-detail-price span {
+  color: rgba(246, 232, 200, .58) !important;
+  -webkit-text-fill-color: rgba(246, 232, 200, .58) !important;
+}
+
+html[data-pmd-kazen-mode="dark"] body .pmd-kazen-detail-image {
+  border-color: rgba(198, 164, 93, .28) !important;
+  background: #11100d !important;
+  box-shadow: 0 16px 38px rgba(0,0,0,.36) !important;
+}
+
+html[data-pmd-kazen-mode="dark"] body .pmd-kazen-detail-stepper,
+html[data-pmd-kazen-mode="dark"] body .pmd-kazen-action-card .kazen-field,
+html[data-pmd-kazen-mode="dark"] body .pmd-kazen-action-card textarea,
+html[data-pmd-kazen-mode="dark"] body .pmd-kazen-action-card input {
+  background: rgba(246, 232, 200, .055) !important;
+  background-color: rgba(246, 232, 200, .055) !important;
+  border-color: rgba(198, 164, 93, .30) !important;
+  color: #f6e8c8 !important;
+  -webkit-text-fill-color: #f6e8c8 !important;
+}
+
+html[data-pmd-kazen-mode="dark"] body .pmd-kazen-detail-stepper-action,
+html[data-pmd-kazen-mode="dark"] body .pmd-kazen-detail-stepper strong {
+  color: #f6e8c8 !important;
+  -webkit-text-fill-color: #f6e8c8 !important;
+  background: transparent !important;
+  background-color: transparent !important;
+}
+
+html[data-pmd-kazen-mode="dark"] body .pmd-kazen-detail-stepper strong {
+  background: rgba(255,255,255,.035) !important;
+  background-color: rgba(255,255,255,.035) !important;
+}
+
+html[data-pmd-kazen-mode="dark"] body .pmd-kazen-detail-stepper-minus,
+html[data-pmd-kazen-mode="dark"] body .pmd-kazen-detail-stepper-plus {
+  border-color: rgba(198, 164, 93, .28) !important;
+}
+
+html[data-pmd-kazen-mode="dark"] body .pmd-kazen-detail-add,
+html[data-pmd-kazen-mode="dark"] body .pmd-kazen-action-card .kazen-primary {
+  background: #b85d59 !important;
+  background-color: #b85d59 !important;
+  border-color: rgba(223, 104, 93, .74) !important;
+  color: #fffaf3 !important;
+  -webkit-text-fill-color: #fffaf3 !important;
+  box-shadow: 0 14px 34px rgba(184, 93, 89, .24) !important;
+}
+
+html[data-pmd-kazen-mode="dark"] body .pmd-kazen-action-card .kazen-field::placeholder,
+html[data-pmd-kazen-mode="dark"] body .pmd-kazen-action-card textarea::placeholder,
+html[data-pmd-kazen-mode="dark"] body .pmd-kazen-action-card input::placeholder {
+  color: rgba(246, 232, 200, .38) !important;
+  -webkit-text-fill-color: rgba(246, 232, 200, .38) !important;
+}
+
+
+/* PMD_KAZEN_ACTION_CLOSE_MATCH_CHECKOUT_V9_20260618
+   Waiter and note modal close button: exactly the same sharp square close style as checkout cards. */
+html body .pmd-kazen-action-card .kazen-solid-close.pmd-kazen-action-close,
+html body .pmd-kazen-action-close {
+  all: unset !important;
+  box-sizing: border-box !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  width: 48px !important;
+  height: 48px !important;
+  min-width: 48px !important;
+  min-height: 48px !important;
+  border: 1px solid rgba(36, 35, 32, .22) !important;
+  border-radius: 0 !important;
+  background: rgba(255, 255, 255, .46) !important;
+  color: #242320 !important;
+  -webkit-text-fill-color: #242320 !important;
+  cursor: pointer !important;
+  box-shadow: none !important;
+  transition: transform .16s cubic-bezier(.22, 1, .36, 1), background .16s ease, border-color .16s ease !important;
+}
+
+html body .pmd-kazen-action-card .kazen-solid-close.pmd-kazen-action-close svg,
+html body .pmd-kazen-action-card .kazen-solid-close.pmd-kazen-action-close svg *,
+html body .pmd-kazen-action-close svg,
+html body .pmd-kazen-action-close svg * {
+  width: 24px !important;
+  height: 24px !important;
+  color: #242320 !important;
+  stroke: #242320 !important;
+  fill: none !important;
+  opacity: 1 !important;
+}
+
+html[data-pmd-kazen-mode="dark"] body .pmd-kazen-action-card .kazen-solid-close.pmd-kazen-action-close,
+html[data-pmd-kazen-mode="dark"] body .pmd-kazen-action-close {
+  background: rgba(246, 232, 200, .055) !important;
+  background-color: rgba(246, 232, 200, .055) !important;
+  border-color: rgba(198, 164, 93, .30) !important;
+  color: #f6e8c8 !important;
+  -webkit-text-fill-color: #f6e8c8 !important;
+}
+
+html[data-pmd-kazen-mode="dark"] body .pmd-kazen-action-card .kazen-solid-close.pmd-kazen-action-close svg,
+html[data-pmd-kazen-mode="dark"] body .pmd-kazen-action-card .kazen-solid-close.pmd-kazen-action-close svg *,
+html[data-pmd-kazen-mode="dark"] body .pmd-kazen-action-close svg,
+html[data-pmd-kazen-mode="dark"] body .pmd-kazen-action-close svg * {
+  color: #f6e8c8 !important;
+  stroke: #f6e8c8 !important;
+  fill: none !important;
+}
+
+
+/* PMD_KAZEN_ACTION_DARK_FINAL_V11_20260618
+   Final dark action modal polish: waiter / note / valet match checkout close and button system. */
+html[data-pmd-kazen-mode="dark"] body .pmd-kazen-action-overlay {
+  background: rgba(0,0,0,.78) !important;
+  -webkit-backdrop-filter: blur(12px) saturate(1.04) !important;
+  backdrop-filter: blur(12px) saturate(1.04) !important;
+}
+
+html[data-pmd-kazen-mode="dark"] body .pmd-kazen-action-card {
+  background: radial-gradient(circle at 92% 0%, rgba(92, 31, 22, .20), transparent 32%), linear-gradient(180deg, #17120d 0%, #080604 100%) !important;
+  background-color: #080604 !important;
+  border: 1px solid rgba(198, 164, 93, .46) !important;
+  border-radius: 0 !important;
+  color: #f6e8c8 !important;
+  -webkit-text-fill-color: initial !important;
+  box-shadow: 0 34px 90px rgba(0,0,0,.84), inset 0 1px 0 rgba(255,238,196,.07) !important;
+}
+
+html[data-pmd-kazen-mode="dark"] body .pmd-kazen-action-head {
+  border-bottom: 1px solid rgba(198, 164, 93, .26) !important;
+}
+
+html[data-pmd-kazen-mode="dark"] body .pmd-kazen-action-head h2 {
+  color: #f6e8c8 !important;
+  -webkit-text-fill-color: #f6e8c8 !important;
+}
+
+html[data-pmd-kazen-mode="dark"] body .pmd-kazen-action-close {
+  width: 48px !important;
+  height: 48px !important;
+  min-width: 48px !important;
+  min-height: 48px !important;
+  background: rgba(246, 232, 200, .055) !important;
+  background-color: rgba(246, 232, 200, .055) !important;
+  border: 1px solid rgba(198, 164, 93, .36) !important;
+  color: #f6e8c8 !important;
+  -webkit-text-fill-color: #f6e8c8 !important;
+}
+
+html[data-pmd-kazen-mode="dark"] body .pmd-kazen-action-close svg,
+html[data-pmd-kazen-mode="dark"] body .pmd-kazen-action-close svg * {
+  color: #f6e8c8 !important;
+  stroke: #f6e8c8 !important;
+  fill: none !important;
+}
+
+html[data-pmd-kazen-mode="dark"] body .pmd-kazen-action-body p {
+  color: rgba(246,232,200,.80) !important;
+  -webkit-text-fill-color: rgba(246,232,200,.80) !important;
+}
+
+html[data-pmd-kazen-mode="dark"] body .pmd-kazen-action-card .kazen-primary {
+  background: #b85d59 !important;
+  background-color: #b85d59 !important;
+  border-color: rgba(223,104,93,.72) !important;
+  color: #fffaf3 !important;
+  -webkit-text-fill-color: #fffaf3 !important;
+  box-shadow: 0 16px 36px rgba(184,93,89,.24) !important;
+}
+
+html[data-pmd-kazen-mode="dark"] body .pmd-kazen-action-card .kazen-secondary,
+html[data-pmd-kazen-mode="dark"] body .pmd-kazen-action-card .kazen-field,
+html[data-pmd-kazen-mode="dark"] body .pmd-kazen-action-card textarea,
+html[data-pmd-kazen-mode="dark"] body .pmd-kazen-action-card input {
+  background: linear-gradient(180deg, rgba(16,12,8,.90), rgba(4,3,2,.88)) !important;
+  background-color: rgba(8,6,4,.88) !important;
+  border: 1px solid rgba(198,164,93,.36) !important;
+  color: #f6e8c8 !important;
+  -webkit-text-fill-color: #f6e8c8 !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+}
+
+html[data-pmd-kazen-mode="dark"] body .pmd-kazen-action-card textarea::placeholder,
+html[data-pmd-kazen-mode="dark"] body .pmd-kazen-action-card input::placeholder {
+  color: rgba(246,232,200,.42) !important;
+  -webkit-text-fill-color: rgba(246,232,200,.42) !important;
+}

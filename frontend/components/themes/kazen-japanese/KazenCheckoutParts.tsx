@@ -64,6 +64,96 @@ export const getPaymentIconSize = (code: string) => {
   return { width: 48, height: 34 }
 }
 
+
+// PMD_KAZEN_V7_INLINE_BUTTON_STYLES_20260618
+// Inline styles are intentional here because the live checkout sits in the parent /menu page
+// and old theme/global button rules were overriding the normal Kazen CSS until hover.
+const kazenCheckoutBaseButtonStyle: React.CSSProperties = {
+  width: "100%",
+  minHeight: "3.55rem",
+  display: "inline-flex",
+  alignItems: "center",
+  justifyContent: "center",
+  gap: ".55rem",
+  padding: ".9rem 1rem",
+  borderRadius: 0,
+  boxShadow: "none",
+  fontFamily: 'Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
+  fontSize: ".82rem",
+  fontWeight: 850,
+  letterSpacing: ".12em",
+  lineHeight: 1.08,
+  textTransform: "uppercase",
+  textAlign: "center",
+}
+
+const kazenCheckoutPrimaryButtonStyle: React.CSSProperties = {
+  ...kazenCheckoutBaseButtonStyle,
+  background: "#b85d59",
+  backgroundColor: "#b85d59",
+  color: "#fffaf3",
+  WebkitTextFillColor: "#fffaf3",
+  border: "1px solid rgba(143, 55, 51, .56)",
+}
+
+const kazenCheckoutSecondaryButtonStyle: React.CSSProperties = {
+  ...kazenCheckoutBaseButtonStyle,
+  background: "rgba(255, 255, 255, .46)",
+  backgroundColor: "rgba(255, 255, 255, .46)",
+  color: "#242320",
+  WebkitTextFillColor: "#242320",
+  border: "1px solid rgba(36, 35, 32, .18)",
+}
+
+const kazenSplitStepperStyle: React.CSSProperties = {
+  display: "grid",
+  gridTemplateColumns: "3.05rem 1fr 3.05rem",
+  alignItems: "center",
+  width: "100%",
+  minHeight: "3.05rem",
+  border: "1px solid rgba(36, 35, 32, .16)",
+  background: "rgba(255, 255, 255, .30)",
+  borderRadius: 0,
+  overflow: "hidden",
+  boxShadow: "none",
+}
+
+const kazenSplitStepperButtonStyle: React.CSSProperties = {
+  width: "3.05rem",
+  minWidth: "3.05rem",
+  height: "3.05rem",
+  minHeight: "3.05rem",
+  display: "inline-flex",
+  alignItems: "center",
+  justifyContent: "center",
+  padding: 0,
+  margin: 0,
+  background: "transparent",
+  backgroundColor: "transparent",
+  color: "#242320",
+  WebkitTextFillColor: "#242320",
+  border: 0,
+  borderRadius: 0,
+  boxShadow: "none",
+  fontFamily: 'Georgia, "Times New Roman", serif',
+  fontSize: "1.45rem",
+  fontWeight: 760,
+  lineHeight: 1,
+}
+
+const kazenSplitStepperValueStyle: React.CSSProperties = {
+  minHeight: "3.05rem",
+  display: "inline-flex",
+  alignItems: "center",
+  justifyContent: "center",
+  background: "rgba(255, 255, 255, .20)",
+  color: "#242320",
+  WebkitTextFillColor: "#242320",
+  fontFamily: 'Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
+  fontSize: ".96rem",
+  fontWeight: 780,
+}
+
 export function ModalHead({ title, eyebrow, onBack }: { title: string; eyebrow?: string; onBack: () => void }) {
   return (
     <div className="kazen-solid-modal-head pmd-kazen-checkout-head">
@@ -96,14 +186,14 @@ export function ItemRows({ items }: { items: DisplayItem[] }) {
 
   if (safeItems.length === 0) {
     return (
-      <Card>
+      <div className="pmd-kazen-empty-list" data-pmd-kazen-plain-summary="1">
         <span className="pmd-kazen-muted">No items yet</span>
-      </Card>
+      </div>
     )
   }
 
   return (
-    <Card className="pmd-kazen-items-frame">
+    <section className="pmd-kazen-items-plain" data-pmd-kazen-plain-summary="1" aria-label="Order items">
       <div className="pmd-kazen-list pmd-kazen-items-list">
         {safeItems.map((item, index) => (
           <div className="pmd-kazen-cart-line" key={`${getItemName(item)}-${index}`}>
@@ -112,7 +202,7 @@ export function ItemRows({ items }: { items: DisplayItem[] }) {
           </div>
         ))}
       </div>
-    </Card>
+    </section>
   )
 }
 
@@ -124,13 +214,17 @@ export function KazenButton({
   variant = "secondary",
   children,
   className = "",
+  style,
   ...props
 }: React.ButtonHTMLAttributes<HTMLButtonElement> & { variant?: "primary" | "secondary" }) {
+  const variantStyle = variant === "primary" ? kazenCheckoutPrimaryButtonStyle : kazenCheckoutSecondaryButtonStyle
+
   return (
     <button
       {...props}
       data-pmd-kazen-button={variant}
       className={`pmd-kazen-waiter-btn pmd-kazen-waiter-btn-${variant} ${variant === "primary" ? "pmd-kazen-waiter-primary" : "pmd-kazen-waiter-secondary"} ${className}`.trim()}
+      style={{ ...variantStyle, ...(style || {}) }}
     >
       {children}
     </button>
@@ -163,13 +257,27 @@ export function SplitTabs({ splitMethod, chooseSplitMethod }: any) {
 
 export function PeopleControls({ splitGuestCount = 2, addSplitGuest, removeSplitGuest }: any) {
   return (
-    <div className="pmd-kazen-qty kazen-qty">
-      <button type="button" aria-label="Remove guest" disabled={splitGuestCount <= 2} onClick={removeSplitGuest}>
-        <Minus className="h-4 w-4" />
+    <div className="pmd-kazen-split-stepper" data-pmd-kazen-split-stepper="1" style={kazenSplitStepperStyle}>
+      <button
+        type="button"
+        aria-label="Remove guest"
+        disabled={splitGuestCount <= 2}
+        onClick={removeSplitGuest}
+        className="pmd-kazen-split-stepper-btn"
+        style={{ ...kazenSplitStepperButtonStyle, borderRight: "1px solid rgba(36, 35, 32, .14)" }}
+      >
+        <span aria-hidden="true" style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", color: "#242320", WebkitTextFillColor: "#242320" }}>−</span>
       </button>
-      <strong>{splitGuestCount} people</strong>
-      <button type="button" aria-label="Add guest" disabled={splitGuestCount >= 10} onClick={addSplitGuest}>
-        <Plus className="h-4 w-4" />
+      <strong style={kazenSplitStepperValueStyle}>{splitGuestCount} people</strong>
+      <button
+        type="button"
+        aria-label="Add guest"
+        disabled={splitGuestCount >= 10}
+        onClick={addSplitGuest}
+        className="pmd-kazen-split-stepper-btn"
+        style={{ ...kazenSplitStepperButtonStyle, borderLeft: "1px solid rgba(36, 35, 32, .14)" }}
+      >
+        <span aria-hidden="true" style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", color: "#242320", WebkitTextFillColor: "#242320" }}>＋</span>
       </button>
     </div>
   )
@@ -194,7 +302,7 @@ export function PaymentMethods({ loadingPayments, visiblePaymentMethods, selecte
   const methods = Array.isArray(visiblePaymentMethods) ? visiblePaymentMethods : []
 
   return (
-    <Card>
+    <section className="pmd-kazen-payment-section pmd-kazen-methods-section pmd-kazen-payment-methods" data-pmd-kazen-payment-section="methods">
       <h3 className="pmd-kazen-section-title">Payment Methods</h3>
       {loadingPayments ? (
         <p className="pmd-kazen-muted">Loading payment methods...</p>
@@ -229,7 +337,7 @@ export function PaymentMethods({ loadingPayments, visiblePaymentMethods, selecte
           })}
         </div>
       )}
-    </Card>
+    </section>
   )
 }
 

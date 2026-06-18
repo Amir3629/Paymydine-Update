@@ -169,6 +169,142 @@ export function KazenItemDetailModal({
     }
   }, [item.id, quantity, activeImage])
 
+
+
+  // PMD_KAZEN_ITEM_DETAIL_DARK_RUNTIME_V8_20260618
+  // Dark mode must keep the same sharp Kazen modal system, but with dark paper, gold lines, and readable controls.
+  useEffect(() => {
+    if (typeof document === "undefined") return
+
+    const mode = document.documentElement.getAttribute("data-pmd-kazen-mode") || document.body?.getAttribute("data-pmd-kazen-mode")
+    if (mode !== "dark") return
+
+    let cancelled = false
+
+    const important = (el: HTMLElement | null, styles: Record<string, string>) => {
+      if (!el) return
+      Object.entries(styles).forEach(([key, value]) => el.style.setProperty(key, value, "important"))
+    }
+
+    const applyDark = () => {
+      if (cancelled) return
+
+      important(document.querySelector<HTMLElement>(".pmd-kazen-detail-overlay"), {
+        "background": "rgba(0, 0, 0, .78)",
+        "backdrop-filter": "blur(12px) saturate(1.02)",
+        "-webkit-backdrop-filter": "blur(12px) saturate(1.02)",
+      })
+
+      important(document.querySelector<HTMLElement>(".pmd-kazen-detail-card"), {
+        "background": "linear-gradient(180deg, #17120d 0%, #090705 100%)",
+        "background-color": "#090705",
+        "color": "#f6e8c8",
+        "border": "1px solid rgba(198, 164, 93, .50)",
+        "box-shadow": "0 34px 90px rgba(0,0,0,.82), inset 0 1px 0 rgba(255,238,196,.08)",
+      })
+
+      important(document.querySelector<HTMLElement>(".pmd-kazen-detail-eyebrow"), {
+        "color": "#df685d",
+        "-webkit-text-fill-color": "#df685d",
+      })
+
+      important(document.querySelector<HTMLElement>(".pmd-kazen-detail-header h2"), {
+        "color": "#f6e8c8",
+        "-webkit-text-fill-color": "#f6e8c8",
+      })
+
+      important(document.querySelector<HTMLElement>(".pmd-kazen-detail-close"), {
+        "background": "rgba(246, 232, 200, .06)",
+        "background-color": "rgba(246, 232, 200, .06)",
+        "border": "1px solid rgba(198, 164, 93, .38)",
+        "color": "#f6e8c8",
+        "-webkit-text-fill-color": "#f6e8c8",
+      })
+      document.querySelectorAll<HTMLElement>(".pmd-kazen-detail-close svg, .pmd-kazen-detail-close svg *").forEach((el) => {
+        important(el, { "color": "#f6e8c8", "stroke": "#f6e8c8", "fill": "none" })
+      })
+
+      important(document.querySelector<HTMLElement>(".pmd-kazen-detail-image"), {
+        "border": "1px solid rgba(198, 164, 93, .28)",
+        "box-shadow": "0 16px 38px rgba(0,0,0,.36)",
+        "background": "#11100d",
+      })
+
+      important(document.querySelector<HTMLElement>(".pmd-kazen-detail-description"), {
+        "color": "rgba(246, 232, 200, .78)",
+        "-webkit-text-fill-color": "rgba(246, 232, 200, .78)",
+      })
+
+      important(document.querySelector<HTMLElement>(".pmd-kazen-detail-purchase-row"), {
+        "border-top": "1px solid rgba(198, 164, 93, .24)",
+        "border-bottom": "1px solid rgba(198, 164, 93, .24)",
+      })
+
+      important(document.querySelector<HTMLElement>(".pmd-kazen-detail-price span"), {
+        "color": "rgba(246, 232, 200, .58)",
+        "-webkit-text-fill-color": "rgba(246, 232, 200, .58)",
+      })
+
+      important(document.querySelector<HTMLElement>(".pmd-kazen-detail-price strong"), {
+        "color": "#f6e8c8",
+        "-webkit-text-fill-color": "#f6e8c8",
+      })
+
+      important(document.querySelector<HTMLElement>(".pmd-kazen-detail-stepper"), {
+        "background": "rgba(246, 232, 200, .055)",
+        "background-color": "rgba(246, 232, 200, .055)",
+        "border": "1px solid rgba(198, 164, 93, .34)",
+      })
+
+      document.querySelectorAll<HTMLElement>(".pmd-kazen-detail-stepper-action").forEach((el, index) => {
+        important(el, {
+          "background": "transparent",
+          "background-color": "transparent",
+          "color": "#f6e8c8",
+          "-webkit-text-fill-color": "#f6e8c8",
+        })
+        important(el, index === 0
+          ? { "border-right": "1px solid rgba(198, 164, 93, .28)", "border-left": "0", "border-top": "0", "border-bottom": "0" }
+          : { "border-left": "1px solid rgba(198, 164, 93, .28)", "border-right": "0", "border-top": "0", "border-bottom": "0" }
+        )
+      })
+
+      important(document.querySelector<HTMLElement>(".pmd-kazen-detail-stepper strong"), {
+        "background": "rgba(255,255,255,.035)",
+        "background-color": "rgba(255,255,255,.035)",
+        "color": "#f6e8c8",
+        "-webkit-text-fill-color": "#f6e8c8",
+      })
+
+      important(document.querySelector<HTMLElement>(".pmd-kazen-detail-cancel"), {
+        "background": "rgba(246, 232, 200, .055)",
+        "background-color": "rgba(246, 232, 200, .055)",
+        "border": "1px solid rgba(198, 164, 93, .30)",
+        "color": "#f6e8c8",
+        "-webkit-text-fill-color": "#f6e8c8",
+      })
+
+      important(document.querySelector<HTMLElement>(".pmd-kazen-detail-add"), {
+        "background": "#b85d59",
+        "background-color": "#b85d59",
+        "border": "1px solid rgba(223, 104, 93, .74)",
+        "color": "#fffaf3",
+        "-webkit-text-fill-color": "#fffaf3",
+        "box-shadow": "0 14px 34px rgba(184, 93, 89, .24)",
+      })
+    }
+
+    applyDark()
+    const raf = window.requestAnimationFrame(applyDark)
+    const timers = [window.setTimeout(applyDark, 80), window.setTimeout(applyDark, 300), window.setTimeout(applyDark, 900)]
+
+    return () => {
+      cancelled = true
+      window.cancelAnimationFrame(raf)
+      timers.forEach((timer) => window.clearTimeout(timer))
+    }
+  }, [item.id, quantity, activeImage])
+
   const runByKeyboard = (event: React.KeyboardEvent, action: () => void) => {
     if (event.key === "Enter" || event.key === " ") {
       event.preventDefault()

@@ -98,7 +98,13 @@ export function useCheckoutSplitBill({
       : 0
 
     const contributorIds = new Set<string>()
-    const submittedItems = Array.isArray(submittedSnapshot?.submittedItems) ? submittedSnapshot.submittedItems : []
+    const submittedItems = Array.isArray(submittedSnapshot?.submittedItems)
+      ? submittedSnapshot.submittedItems
+      : Array.isArray(submittedSnapshot?.items)
+        ? submittedSnapshot.items
+        : Array.isArray(submittedSnapshot?.orderItems)
+          ? submittedSnapshot.orderItems
+          : []
 
     submittedItems.forEach((item: any) => {
       const contributor = String(item?.guest_session_id || item?.guestSessionId || item?.submitted_by || "").trim()
@@ -108,7 +114,7 @@ export function useCheckoutSplitBill({
     const itemContributorCount = contributorIds.size
 
     return Math.max(2, Math.min(10, groupCount || itemContributorCount || 2))
-  }, [tableDraft?.groups, submittedSnapshot?.submittedItems])
+  }, [tableDraft?.groups, submittedSnapshot?.submittedItems, submittedSnapshot?.items, submittedSnapshot?.orderItems])
 
   const addSplitGuest = () => {
     const nextCount = Math.min(10, splitGuestCount + 1)
@@ -134,7 +140,13 @@ export function useCheckoutSplitBill({
 
   const splitSourceItems = useMemo<SplitSourceItem[]>(() => {
     const submittedItems = groupOrderDisplayItems(
-      Array.isArray(submittedSnapshot?.submittedItems) ? submittedSnapshot.submittedItems : []
+      Array.isArray(submittedSnapshot?.submittedItems)
+        ? submittedSnapshot.submittedItems
+        : Array.isArray(submittedSnapshot?.items)
+          ? submittedSnapshot.items
+          : Array.isArray(submittedSnapshot?.orderItems)
+            ? submittedSnapshot.orderItems
+            : []
     )
 
     if (submittedItems.length > 0) {
@@ -161,6 +173,8 @@ export function useCheckoutSplitBill({
     }))
   }, [
     submittedSnapshot?.submittedItems,
+    submittedSnapshot?.items,
+    submittedSnapshot?.orderItems,
     allItemInstances,
     t,
     adjustPriceForVAT,
@@ -174,10 +188,24 @@ export function useCheckoutSplitBill({
     [splitSourceItems]
   )
 
-  const splitGrandTotal = useMemo(
-    () => (submittedBaseTotal > 0 ? orderStatusTotal : finalTotal),
-    [submittedBaseTotal, orderStatusTotal, finalTotal]
-  )
+  const splitGrandTotal = useMemo(() => {
+    const submittedTotal = Number(
+      submittedSnapshot?.remainingAmount ?? submittedSnapshot?.orderTotal ?? submittedSnapshot?.total ?? 0
+    )
+
+    if (submittedBaseTotal > 0 && Number(orderStatusTotal) > 0) return Number(orderStatusTotal)
+    if (Number(finalTotal) > 0) return Number(finalTotal)
+    if (submittedTotal > 0) return submittedTotal
+    return splitSubtotal
+  }, [
+    submittedBaseTotal,
+    orderStatusTotal,
+    finalTotal,
+    splitSubtotal,
+    submittedSnapshot?.remainingAmount,
+    submittedSnapshot?.orderTotal,
+    submittedSnapshot?.total,
+  ])
 
   const splitExtraAmount = Math.max(0, splitGrandTotal - splitSubtotal)
 
