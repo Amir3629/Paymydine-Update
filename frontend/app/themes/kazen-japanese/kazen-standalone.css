@@ -2894,3 +2894,578 @@ html[data-pmd-kazen-mode="dark"] body .pmd-kazen-action-card input::placeholder 
   color: rgba(246,232,200,.42) !important;
   -webkit-text-fill-color: rgba(246,232,200,.42) !important;
 }
+
+
+/* PMD_KAZEN_V15_DARK_MENU_PLUS_FINAL_20260618
+   Keep dark-mode food-card add buttons dark and elegant; override old inline black icon style. */
+html[data-pmd-kazen-mode="dark"] body .kazen-page .kazen-add,
+html[data-pmd-kazen-mode="dark"] body .kazen-page button.kazen-add,
+body[data-pmd-kazen-mode="dark"] .kazen-page .kazen-add,
+.kazen-page[data-pmd-kazen-mode="dark"] .kazen-add,
+.kazen-page.kazen-dark .kazen-add,
+.kazen-page.is-dark .kazen-add {
+  background: rgba(5, 3, 2, .92) !important;
+  background-color: rgba(5, 3, 2, .92) !important;
+  border: 1px solid rgba(198, 164, 93, .48) !important;
+  color: #f6e8c8 !important;
+  -webkit-text-fill-color: #f6e8c8 !important;
+  opacity: 1 !important;
+  filter: none !important;
+  box-shadow: 0 10px 22px rgba(0,0,0,.32) !important;
+}
+
+html[data-pmd-kazen-mode="dark"] body .kazen-page .kazen-add:hover,
+html[data-pmd-kazen-mode="dark"] body .kazen-page button.kazen-add:hover,
+body[data-pmd-kazen-mode="dark"] .kazen-page .kazen-add:hover,
+.kazen-page[data-pmd-kazen-mode="dark"] .kazen-add:hover,
+.kazen-page.kazen-dark .kazen-add:hover,
+.kazen-page.is-dark .kazen-add:hover {
+  background: #bd5f5b !important;
+  background-color: #bd5f5b !important;
+  border-color: rgba(236, 113, 102, .78) !important;
+  color: #fffaf2 !important;
+  -webkit-text-fill-color: #fffaf2 !important;
+  transform: translateY(-1px) !important;
+}
+
+html[data-pmd-kazen-mode="dark"] body .kazen-page .kazen-add svg,
+html[data-pmd-kazen-mode="dark"] body .kazen-page .kazen-add svg *,
+html[data-pmd-kazen-mode="dark"] body .kazen-page .kazen-add path,
+html[data-pmd-kazen-mode="dark"] body .kazen-page .kazen-add line,
+body[data-pmd-kazen-mode="dark"] .kazen-page .kazen-add svg,
+body[data-pmd-kazen-mode="dark"] .kazen-page .kazen-add svg *,
+body[data-pmd-kazen-mode="dark"] .kazen-page .kazen-add path,
+body[data-pmd-kazen-mode="dark"] .kazen-page .kazen-add line,
+.kazen-page[data-pmd-kazen-mode="dark"] .kazen-add svg,
+.kazen-page[data-pmd-kazen-mode="dark"] .kazen-add svg *,
+.kazen-page[data-pmd-kazen-mode="dark"] .kazen-add path,
+.kazen-page[data-pmd-kazen-mode="dark"] .kazen-add line,
+.kazen-page.kazen-dark .kazen-add svg,
+.kazen-page.kazen-dark .kazen-add svg *,
+.kazen-page.kazen-dark .kazen-add path,
+.kazen-page.kazen-dark .kazen-add line,
+.kazen-page.is-dark .kazen-add svg,
+.kazen-page.is-dark .kazen-add svg *,
+.kazen-page.is-dark .kazen-add path,
+.kazen-page.is-dark .kazen-add line {
+  color: currentColor !important;
+  stroke: currentColor !important;
+  fill: none !important;
+  -webkit-text-fill-color: currentColor !important;
+  opacity: 1 !important;
+  filter: none !important;
+}
+
+
+/* PMD_KAZEN_V16_DARK_MENU_PLUS_FORCE_20260618
+   Dark mode food-card + icon must never be black or red-on-hover.
+*/
+html body .kazen-standalone[data-kazen-mode="dark"] button:has(svg.lucide-plus),
+html body .kazen-shell[data-kazen-mode="dark"] button:has(svg.lucide-plus),
+html body [data-kazen-mode="dark"] button:has(svg.lucide-plus),
+html body [data-theme="dark"] button:has(svg.lucide-plus),
+html body .dark button:has(svg.lucide-plus) {
+  background: rgba(8, 5, 3, .96) !important;
+  background-color: rgba(8, 5, 3, .96) !important;
+  color: #f6e8c8 !important;
+  -webkit-text-fill-color: #f6e8c8 !important;
+  border-color: rgba(198, 164, 93, .58) !important;
+  box-shadow:
+    0 16px 30px rgba(0,0,0,.28),
+    inset 0 1px 0 rgba(246,232,200,.08) !important;
+}
+
+html body .kazen-standalone[data-kazen-mode="dark"] button:has(svg.lucide-plus):hover,
+html body .kazen-shell[data-kazen-mode="dark"] button:has(svg.lucide-plus):hover,
+html body [data-kazen-mode="dark"] button:has(svg.lucide-plus):hover,
+html body [data-theme="dark"] button:has(svg.lucide-plus):hover,
+html body .dark button:has(svg.lucide-plus):hover {
+  background: rgba(246, 232, 200, .08) !important;
+  background-color: rgba(246, 232, 200, .08) !important;
+  color: #fff4d6 !important;
+  -webkit-text-fill-color: #fff4d6 !important;
+  border-color: rgba(246, 232, 200, .75) !important;
+  transform: translateY(-1px) !important;
+}
+
+html body .kazen-standalone[data-kazen-mode="dark"] button:has(svg.lucide-plus) svg,
+html body .kazen-standalone[data-kazen-mode="dark"] button:has(svg.lucide-plus) svg *,
+html body .kazen-shell[data-kazen-mode="dark"] button:has(svg.lucide-plus) svg,
+html body .kazen-shell[data-kazen-mode="dark"] button:has(svg.lucide-plus) svg *,
+html body [data-kazen-mode="dark"] button:has(svg.lucide-plus) svg,
+html body [data-kazen-mode="dark"] button:has(svg.lucide-plus) svg *,
+html body [data-theme="dark"] button:has(svg.lucide-plus) svg,
+html body [data-theme="dark"] button:has(svg.lucide-plus) svg *,
+html body .dark button:has(svg.lucide-plus) svg,
+html body .dark button:has(svg.lucide-plus) svg * {
+  color: #f6e8c8 !important;
+  stroke: #f6e8c8 !important;
+  fill: none !important;
+}
+
+/* PMD_KAZEN_V18_EXACT_FOOD_ADD_MATCH_HEADER_20260618
+   Exact fix only for food item add buttons.
+   Do NOT target category buttons, checkout buttons, or generic plus icons.
+*/
+html body .kazen-shell .kazen-item > .kazen-add,
+html body .kazen-standalone .kazen-item > .kazen-add {
+  width: 42px !important;
+  height: 42px !important;
+  min-width: 42px !important;
+  min-height: 42px !important;
+  max-width: 42px !important;
+  max-height: 42px !important;
+  flex: 0 0 42px !important;
+  padding: 0 !important;
+  border-radius: 0 !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  line-height: 1 !important;
+  box-shadow: none !important;
+  font-size: 13.12px !important;
+  font-family: inherit !important;
+  position: relative !important;
+  z-index: 2 !important;
+  transition:
+    background-color .22s ease,
+    border-color .22s ease,
+    color .22s ease,
+    transform .22s ease !important;
+}
+
+html body .kazen-shell[data-kazen-mode="dark"] .kazen-item > .kazen-add,
+html body .kazen-standalone[data-kazen-mode="dark"] .kazen-item > .kazen-add {
+  background: rgba(8, 7, 5, .62) !important;
+  background-color: rgba(8, 7, 5, .62) !important;
+  color: rgb(244, 231, 200) !important;
+  -webkit-text-fill-color: rgb(244, 231, 200) !important;
+  border: 1px solid rgba(198, 164, 93, .52) !important;
+}
+
+html body .kazen-shell:not([data-kazen-mode="dark"]) .kazen-item > .kazen-add,
+html body .kazen-standalone:not([data-kazen-mode="dark"]) .kazen-item > .kazen-add {
+  background: rgba(255, 250, 242, .78) !important;
+  background-color: rgba(255, 250, 242, .78) !important;
+  color: rgb(36, 35, 32) !important;
+  -webkit-text-fill-color: rgb(36, 35, 32) !important;
+  border: 1px solid rgba(36, 35, 32, .18) !important;
+}
+
+html body .kazen-shell[data-kazen-mode="dark"] .kazen-item > .kazen-add:hover,
+html body .kazen-standalone[data-kazen-mode="dark"] .kazen-item > .kazen-add:hover {
+  background: rgba(246, 232, 200, .10) !important;
+  background-color: rgba(246, 232, 200, .10) !important;
+  border-color: rgba(244, 231, 200, .72) !important;
+  color: rgb(244, 231, 200) !important;
+  -webkit-text-fill-color: rgb(244, 231, 200) !important;
+  transform: translateY(-1px) !important;
+}
+
+html body .kazen-shell:not([data-kazen-mode="dark"]) .kazen-item > .kazen-add:hover,
+html body .kazen-standalone:not([data-kazen-mode="dark"]) .kazen-item > .kazen-add:hover {
+  background: rgba(255, 255, 255, .92) !important;
+  background-color: rgba(255, 255, 255, .92) !important;
+  border-color: rgba(189, 95, 91, .42) !important;
+  color: rgb(36, 35, 32) !important;
+  -webkit-text-fill-color: rgb(36, 35, 32) !important;
+  transform: translateY(-1px) !important;
+}
+
+/* Override the black inline SVG style from Lucide/React output */
+html body .kazen-shell .kazen-item > .kazen-add svg,
+html body .kazen-standalone .kazen-item > .kazen-add svg {
+  width: 19px !important;
+  height: 19px !important;
+  color: currentColor !important;
+  stroke: currentColor !important;
+  fill: none !important;
+}
+
+html body .kazen-shell .kazen-item > .kazen-add svg *,
+html body .kazen-standalone .kazen-item > .kazen-add svg * {
+  stroke: currentColor !important;
+  color: currentColor !important;
+}
+
+/* PMD_KAZEN_V19_PLUS_TRUE_HEADER_BUTTON_20260618
+   Real fix from browser debug:
+   dark mode flag is on html/body[data-pmd-kazen-mode="dark"], NOT on .kazen-shell.
+   Food .kazen-add must visually match .kazen-clean-header-button in both modes.
+*/
+
+/* Base shape/size: same as kazen-clean-header-button */
+html body .kazen-page .kazen-shell .kazen-item > button.kazen-add,
+html body .kazen-page .kazen-item > button.kazen-add {
+  width: 2.62rem !important;
+  height: 2.62rem !important;
+  min-width: 2.62rem !important;
+  min-height: 2.62rem !important;
+  max-width: 2.62rem !important;
+  max-height: 2.62rem !important;
+  flex: 0 0 2.62rem !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  border-radius: 0 !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  box-shadow: none !important;
+  opacity: 1 !important;
+  filter: none !important;
+  mix-blend-mode: normal !important;
+  line-height: 1 !important;
+  cursor: pointer !important;
+  transition:
+    background-color .22s ease,
+    border-color .22s ease,
+    color .22s ease,
+    transform .22s ease !important;
+}
+
+/* Light mode = same visual language as header buttons */
+html:not([data-pmd-kazen-mode="dark"]) body .kazen-page .kazen-shell .kazen-item > button.kazen-add,
+html:not([data-pmd-kazen-mode="dark"]) body .kazen-page .kazen-item > button.kazen-add {
+  background: rgba(255, 255, 255, .26) !important;
+  background-color: rgba(255, 255, 255, .26) !important;
+  border: 1px solid rgba(35, 34, 31, .22) !important;
+  color: var(--kazen-ink, #242320) !important;
+  -webkit-text-fill-color: var(--kazen-ink, #242320) !important;
+}
+
+html:not([data-pmd-kazen-mode="dark"]) body .kazen-page .kazen-shell .kazen-item > button.kazen-add:hover,
+html:not([data-pmd-kazen-mode="dark"]) body .kazen-page .kazen-item > button.kazen-add:hover {
+  background: rgba(255, 255, 255, .42) !important;
+  background-color: rgba(255, 255, 255, .42) !important;
+  border-color: rgba(35, 34, 31, .34) !important;
+  color: var(--kazen-ink, #242320) !important;
+  -webkit-text-fill-color: var(--kazen-ink, #242320) !important;
+  transform: translateY(-1px) !important;
+}
+
+/* Dark mode = exact header button colors */
+html[data-pmd-kazen-mode="dark"][data-pmd-kazen-active="1"] body .kazen-page .kazen-shell .kazen-item > button.kazen-add,
+html[data-pmd-kazen-mode="dark"][data-pmd-kazen-active="1"] body .kazen-page .kazen-item > button.kazen-add,
+body[data-pmd-kazen-mode="dark"][data-pmd-kazen-active="1"] .kazen-page .kazen-shell .kazen-item > button.kazen-add,
+body[data-pmd-kazen-mode="dark"][data-pmd-kazen-active="1"] .kazen-page .kazen-item > button.kazen-add {
+  background: rgba(8, 7, 5, .62) !important;
+  background-color: rgba(8, 7, 5, .62) !important;
+  border: 1px solid rgba(198, 164, 93, .52) !important;
+  color: rgb(244, 231, 200) !important;
+  -webkit-text-fill-color: rgb(244, 231, 200) !important;
+}
+
+html[data-pmd-kazen-mode="dark"][data-pmd-kazen-active="1"] body .kazen-page .kazen-shell .kazen-item > button.kazen-add:hover,
+html[data-pmd-kazen-mode="dark"][data-pmd-kazen-active="1"] body .kazen-page .kazen-item > button.kazen-add:hover,
+body[data-pmd-kazen-mode="dark"][data-pmd-kazen-active="1"] .kazen-page .kazen-shell .kazen-item > button.kazen-add:hover,
+body[data-pmd-kazen-mode="dark"][data-pmd-kazen-active="1"] .kazen-page .kazen-item > button.kazen-add:hover {
+  background: rgba(8, 7, 5, .76) !important;
+  background-color: rgba(8, 7, 5, .76) !important;
+  border-color: rgba(198, 164, 93, .72) !important;
+  color: rgb(255, 244, 214) !important;
+  -webkit-text-fill-color: rgb(255, 244, 214) !important;
+  transform: translateY(-1px) !important;
+}
+
+/* Override SVG inline black style */
+html body .kazen-page .kazen-item > button.kazen-add svg,
+html body .kazen-page .kazen-item > button.kazen-add svg *,
+html body .kazen-page .kazen-item > button.kazen-add path,
+html body .kazen-page .kazen-item > button.kazen-add line {
+  width: 19px !important;
+  height: 19px !important;
+  color: currentColor !important;
+  stroke: currentColor !important;
+  fill: none !important;
+  -webkit-text-fill-color: currentColor !important;
+  opacity: 1 !important;
+}
+
+/* PMD_KAZEN_V20_ITEM_CARD_AND_MODAL_CLEANUP_20260618
+   Fixes:
+   1) remove top/bottom lines from item detail purchase row
+   2) food plus button + added state hover = same language as header buttons
+   3) food item cards blend with page background in light/dark mode
+*/
+
+/* 1) Remove ugly horizontal lines around price/quantity row in detail modal */
+html body .pmd-kazen-detail-purchase-row,
+html body .pmd-kazen-item-detail-modal .pmd-kazen-detail-purchase-row,
+html body [data-pmd-kazen-mode="dark"] .pmd-kazen-detail-purchase-row,
+html[data-pmd-kazen-mode="dark"] body .pmd-kazen-detail-purchase-row {
+  border-top: 0 !important;
+  border-bottom: 0 !important;
+  border-color: transparent !important;
+}
+
+/* 2) Food card background: less contrast, closer to page background */
+html body .kazen-page .kazen-item {
+  background: rgba(250, 249, 244, .58) !important;
+  background-color: rgba(250, 249, 244, .58) !important;
+  border-color: rgba(36, 35, 32, .13) !important;
+  box-shadow: none !important;
+}
+
+html body .kazen-page .kazen-item:hover {
+  background: rgba(250, 249, 244, .78) !important;
+  background-color: rgba(250, 249, 244, .78) !important;
+  border-color: rgba(36, 35, 32, .20) !important;
+}
+
+html body .kazen-page .kazen-item-main {
+  background: transparent !important;
+  background-color: transparent !important;
+  border: 0 !important;
+  box-shadow: none !important;
+}
+
+/* Dark mode item card: blend with dark page, not a bright block */
+html[data-pmd-kazen-mode="dark"][data-pmd-kazen-active="1"] body .kazen-page .kazen-item,
+body[data-pmd-kazen-mode="dark"][data-pmd-kazen-active="1"] .kazen-page .kazen-item {
+  background: rgba(8, 5, 3, .52) !important;
+  background-color: rgba(8, 5, 3, .52) !important;
+  border-color: rgba(198, 164, 93, .24) !important;
+  box-shadow: none !important;
+}
+
+html[data-pmd-kazen-mode="dark"][data-pmd-kazen-active="1"] body .kazen-page .kazen-item:hover,
+body[data-pmd-kazen-mode="dark"][data-pmd-kazen-active="1"] .kazen-page .kazen-item:hover {
+  background: rgba(13, 8, 5, .68) !important;
+  background-color: rgba(13, 8, 5, .68) !important;
+  border-color: rgba(198, 164, 93, .36) !important;
+}
+
+/* 3) Plus button: same base as header buttons, including pmd-kazen-added state */
+html body .kazen-page .kazen-item > button.kazen-add,
+html body .kazen-page .kazen-item > button.kazen-add.pmd-kazen-added {
+  width: 2.62rem !important;
+  height: 2.62rem !important;
+  min-width: 2.62rem !important;
+  min-height: 2.62rem !important;
+  max-width: 2.62rem !important;
+  max-height: 2.62rem !important;
+  flex: 0 0 2.62rem !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  border-radius: 0 !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  box-shadow: none !important;
+  opacity: 1 !important;
+  filter: none !important;
+  mix-blend-mode: normal !important;
+  line-height: 1 !important;
+  transform: none !important;
+}
+
+/* Light mode plus = header button */
+html:not([data-pmd-kazen-mode="dark"]) body .kazen-page .kazen-item > button.kazen-add,
+html:not([data-pmd-kazen-mode="dark"]) body .kazen-page .kazen-item > button.kazen-add.pmd-kazen-added {
+  background: rgba(255, 255, 255, .26) !important;
+  background-color: rgba(255, 255, 255, .26) !important;
+  border: 1px solid rgba(35, 34, 31, .22) !important;
+  color: var(--kazen-ink, #242320) !important;
+  -webkit-text-fill-color: var(--kazen-ink, #242320) !important;
+}
+
+html:not([data-pmd-kazen-mode="dark"]) body .kazen-page .kazen-item > button.kazen-add:hover,
+html:not([data-pmd-kazen-mode="dark"]) body .kazen-page .kazen-item > button.kazen-add.pmd-kazen-added:hover {
+  background: rgba(255, 255, 255, .42) !important;
+  background-color: rgba(255, 255, 255, .42) !important;
+  border-color: rgba(35, 34, 31, .34) !important;
+  color: var(--kazen-ink, #242320) !important;
+  -webkit-text-fill-color: var(--kazen-ink, #242320) !important;
+  transform: translateY(-1px) !important;
+}
+
+/* Dark mode plus = header button, no red hover, no black icon */
+html[data-pmd-kazen-mode="dark"][data-pmd-kazen-active="1"] body .kazen-page .kazen-item > button.kazen-add,
+html[data-pmd-kazen-mode="dark"][data-pmd-kazen-active="1"] body .kazen-page .kazen-item > button.kazen-add.pmd-kazen-added,
+body[data-pmd-kazen-mode="dark"][data-pmd-kazen-active="1"] .kazen-page .kazen-item > button.kazen-add,
+body[data-pmd-kazen-mode="dark"][data-pmd-kazen-active="1"] .kazen-page .kazen-item > button.kazen-add.pmd-kazen-added {
+  background: rgba(8, 7, 5, .62) !important;
+  background-color: rgba(8, 7, 5, .62) !important;
+  border: 1px solid rgba(198, 164, 93, .52) !important;
+  color: rgb(244, 231, 200) !important;
+  -webkit-text-fill-color: rgb(244, 231, 200) !important;
+}
+
+html[data-pmd-kazen-mode="dark"][data-pmd-kazen-active="1"] body .kazen-page .kazen-item > button.kazen-add:hover,
+html[data-pmd-kazen-mode="dark"][data-pmd-kazen-active="1"] body .kazen-page .kazen-item > button.kazen-add.pmd-kazen-added:hover,
+body[data-pmd-kazen-mode="dark"][data-pmd-kazen-active="1"] .kazen-page .kazen-item > button.kazen-add:hover,
+body[data-pmd-kazen-mode="dark"][data-pmd-kazen-active="1"] .kazen-page .kazen-item > button.kazen-add.pmd-kazen-added:hover {
+  background: rgba(8, 7, 5, .76) !important;
+  background-color: rgba(8, 7, 5, .76) !important;
+  border-color: rgba(198, 164, 93, .72) !important;
+  color: rgb(255, 244, 214) !important;
+  -webkit-text-fill-color: rgb(255, 244, 214) !important;
+  transform: translateY(-1px) !important;
+}
+
+/* Force SVG to follow button color, overriding inline style="color: black; stroke:black" */
+html body .kazen-page .kazen-item > button.kazen-add svg,
+html body .kazen-page .kazen-item > button.kazen-add svg *,
+html body .kazen-page .kazen-item > button.kazen-add path,
+html body .kazen-page .kazen-item > button.kazen-add line,
+html body .kazen-page .kazen-item > button.kazen-add.pmd-kazen-added svg,
+html body .kazen-page .kazen-item > button.kazen-add.pmd-kazen-added svg *,
+html body .kazen-page .kazen-item > button.kazen-add.pmd-kazen-added path,
+html body .kazen-page .kazen-item > button.kazen-add.pmd-kazen-added line {
+  width: 19px !important;
+  height: 19px !important;
+  color: currentColor !important;
+  stroke: currentColor !important;
+  fill: none !important;
+  -webkit-text-fill-color: currentColor !important;
+  opacity: 1 !important;
+}
+
+/* PMD_KAZEN_V21_SOURCE_CLEANUP_FINAL_20260618
+   Source-level cleanup support:
+   - plus button follows header button exactly
+   - plus svg can never stay black
+   - detail purchase row has no top/bottom frame
+   - item cards blend better with page background
+*/
+
+/* Detail modal: remove top/bottom lines around Price + Quantity row */
+html body .pmd-kazen-detail-purchase-row,
+html body .pmd-kazen-item-detail-modal .pmd-kazen-detail-purchase-row,
+html[data-pmd-kazen-mode="dark"][data-pmd-kazen-active="1"] body .pmd-kazen-detail-purchase-row,
+body[data-pmd-kazen-mode="dark"][data-pmd-kazen-active="1"] .pmd-kazen-detail-purchase-row {
+  border-top-width: 0 !important;
+  border-top-style: none !important;
+  border-top-color: transparent !important;
+  border-bottom-width: 0 !important;
+  border-bottom-style: none !important;
+  border-bottom-color: transparent !important;
+  border-color: transparent !important;
+}
+
+/* Food cards: closer to background, less boxed/heavy */
+html body .kazen-page .kazen-shell .kazen-item {
+  background: rgba(250, 249, 244, .40) !important;
+  background-color: rgba(250, 249, 244, .40) !important;
+  border-color: rgba(36, 35, 32, .12) !important;
+  box-shadow: none !important;
+}
+
+html body .kazen-page .kazen-shell .kazen-item:hover {
+  background: rgba(250, 249, 244, .55) !important;
+  background-color: rgba(250, 249, 244, .55) !important;
+  border-color: rgba(36, 35, 32, .20) !important;
+}
+
+html[data-pmd-kazen-mode="dark"][data-pmd-kazen-active="1"] body .kazen-page .kazen-shell .kazen-item,
+body[data-pmd-kazen-mode="dark"][data-pmd-kazen-active="1"] .kazen-page .kazen-shell .kazen-item {
+  background: rgba(8, 5, 3, .28) !important;
+  background-color: rgba(8, 5, 3, .28) !important;
+  border-color: rgba(198, 164, 93, .20) !important;
+  box-shadow: none !important;
+}
+
+html[data-pmd-kazen-mode="dark"][data-pmd-kazen-active="1"] body .kazen-page .kazen-shell .kazen-item:hover,
+body[data-pmd-kazen-mode="dark"][data-pmd-kazen-active="1"] .kazen-page .kazen-shell .kazen-item:hover {
+  background: rgba(12, 8, 5, .38) !important;
+  background-color: rgba(12, 8, 5, .38) !important;
+  border-color: rgba(198, 164, 93, .32) !important;
+}
+
+html body .kazen-page .kazen-shell .kazen-item-main {
+  background: transparent !important;
+  background-color: transparent !important;
+  box-shadow: none !important;
+  border: 0 !important;
+}
+
+/* Food add button: same dimensions/language as header buttons */
+html body .kazen-page .kazen-shell .kazen-item > button.kazen-add,
+html body .kazen-page .kazen-shell .kazen-item > button.kazen-add.pmd-kazen-added {
+  width: 2.62rem !important;
+  height: 2.62rem !important;
+  min-width: 2.62rem !important;
+  min-height: 2.62rem !important;
+  max-width: 2.62rem !important;
+  max-height: 2.62rem !important;
+  flex: 0 0 2.62rem !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  border-radius: 0 !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  box-shadow: none !important;
+  filter: none !important;
+  opacity: 1 !important;
+  line-height: 1 !important;
+  transform: none !important;
+  transition:
+    background-color .22s ease,
+    border-color .22s ease,
+    color .22s ease,
+    transform .22s ease !important;
+}
+
+/* Light plus */
+html:not([data-pmd-kazen-mode="dark"]) body .kazen-page .kazen-shell .kazen-item > button.kazen-add,
+html:not([data-pmd-kazen-mode="dark"]) body .kazen-page .kazen-shell .kazen-item > button.kazen-add.pmd-kazen-added {
+  background: rgba(255, 255, 255, .26) !important;
+  background-color: rgba(255, 255, 255, .26) !important;
+  color: #242320 !important;
+  -webkit-text-fill-color: #242320 !important;
+  border: 1px solid rgba(36, 35, 32, .22) !important;
+}
+
+html:not([data-pmd-kazen-mode="dark"]) body .kazen-page .kazen-shell .kazen-item > button.kazen-add:hover,
+html:not([data-pmd-kazen-mode="dark"]) body .kazen-page .kazen-shell .kazen-item > button.kazen-add.pmd-kazen-added:hover {
+  background: rgba(255, 255, 255, .42) !important;
+  background-color: rgba(255, 255, 255, .42) !important;
+  color: #242320 !important;
+  -webkit-text-fill-color: #242320 !important;
+  border-color: rgba(36, 35, 32, .34) !important;
+  transform: translateY(-1px) !important;
+}
+
+/* Dark plus */
+html[data-pmd-kazen-mode="dark"][data-pmd-kazen-active="1"] body .kazen-page .kazen-shell .kazen-item > button.kazen-add,
+html[data-pmd-kazen-mode="dark"][data-pmd-kazen-active="1"] body .kazen-page .kazen-shell .kazen-item > button.kazen-add.pmd-kazen-added,
+body[data-pmd-kazen-mode="dark"][data-pmd-kazen-active="1"] .kazen-page .kazen-shell .kazen-item > button.kazen-add,
+body[data-pmd-kazen-mode="dark"][data-pmd-kazen-active="1"] .kazen-page .kazen-shell .kazen-item > button.kazen-add.pmd-kazen-added {
+  background: rgba(8, 7, 5, .62) !important;
+  background-color: rgba(8, 7, 5, .62) !important;
+  color: rgb(244, 231, 200) !important;
+  -webkit-text-fill-color: rgb(244, 231, 200) !important;
+  border: 1px solid rgba(198, 164, 93, .52) !important;
+}
+
+html[data-pmd-kazen-mode="dark"][data-pmd-kazen-active="1"] body .kazen-page .kazen-shell .kazen-item > button.kazen-add:hover,
+html[data-pmd-kazen-mode="dark"][data-pmd-kazen-active="1"] body .kazen-page .kazen-shell .kazen-item > button.kazen-add.pmd-kazen-added:hover,
+body[data-pmd-kazen-mode="dark"][data-pmd-kazen-active="1"] .kazen-page .kazen-shell .kazen-item > button.kazen-add:hover,
+body[data-pmd-kazen-mode="dark"][data-pmd-kazen-active="1"] .kazen-page .kazen-shell .kazen-item > button.kazen-add.pmd-kazen-added:hover {
+  background: rgba(246, 232, 200, .08) !important;
+  background-color: rgba(246, 232, 200, .08) !important;
+  color: rgb(255, 244, 214) !important;
+  -webkit-text-fill-color: rgb(255, 244, 214) !important;
+  border-color: rgba(198, 164, 93, .72) !important;
+  transform: translateY(-1px) !important;
+}
+
+/* Plus SVG: never black, always currentColor */
+html body .kazen-page .kazen-shell .kazen-item > button.kazen-add svg,
+html body .kazen-page .kazen-shell .kazen-item > button.kazen-add svg *,
+html body .kazen-page .kazen-shell .kazen-item > button.kazen-add path,
+html body .kazen-page .kazen-shell .kazen-item > button.kazen-add line,
+html body .kazen-page .kazen-shell .kazen-item > button.kazen-add.pmd-kazen-added svg,
+html body .kazen-page .kazen-shell .kazen-item > button.kazen-add.pmd-kazen-added svg *,
+html body .kazen-page .kazen-shell .kazen-item > button.kazen-add.pmd-kazen-added path,
+html body .kazen-page .kazen-shell .kazen-item > button.kazen-add.pmd-kazen-added line {
+  width: 19px !important;
+  height: 19px !important;
+  color: currentColor !important;
+  stroke: currentColor !important;
+  fill: none !important;
+  -webkit-text-fill-color: currentColor !important;
+  opacity: 1 !important;
+}
+

@@ -499,7 +499,7 @@ export default function KazenStandalonePage() {
                   {open ? (
                     <Minus className="h-7 w-7" style={{ color: "#242320", stroke: "#242320", fill: "none" }} />
                   ) : (
-                    <Plus className="h-7 w-7" style={{ color: "#242320", stroke: "#242320", fill: "none" }} />
+                    <Plus className="h-7 w-7" />
                   )}
                 </button>
 
@@ -544,7 +544,7 @@ export default function KazenStandalonePage() {
                               event.stopPropagation()
                               addItem(item, 1)
                             }}>
-                            <Plus className="h-5 w-5" style={{ color: "#242320", stroke: "#242320", fill: "none" }} />
+                            <Plus className="h-5 w-5" />
                           </button>
                         </div>
                       )
