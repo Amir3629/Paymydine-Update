@@ -3112,6 +3112,54 @@ export function KazenJapaneseCheckoutShell(props: KazenJapaneseCheckoutShellProp
           transform: translateY(-1px) !important;
         }
 
+
+
+        /* PMD_KAZEN_V54_CLOSE_ALWAYS_RIGHT_20260619
+           Lock the close button to the right side on every checkout card,
+           even when the title is hidden or empty.
+        */
+
+        html body .kzco-overlay[data-kzco-root="1"] .kzco-head {
+          direction: ltr !important;
+          display: grid !important;
+          grid-template-columns: minmax(0, 1fr) 48px !important;
+          grid-template-areas: "title close" !important;
+          align-items: start !important;
+          gap: 1rem !important;
+        }
+
+        html body .kzco-overlay[data-kzco-root="1"] .kzco-title-wrap {
+          grid-area: title !important;
+          grid-column: 1 !important;
+          min-width: 0 !important;
+          justify-self: start !important;
+          text-align: left !important;
+        }
+
+        html body .kzco-overlay[data-kzco-root="1"] .kzco-close {
+          grid-area: close !important;
+          grid-column: 2 !important;
+          justify-self: end !important;
+          align-self: start !important;
+          margin-left: auto !important;
+          margin-right: 0 !important;
+          inset-inline-start: auto !important;
+          inset-inline-end: 0 !important;
+          order: 99 !important;
+        }
+
+        html body .kzco-overlay[data-kzco-root="1"] .kzco-head > .kzco-close:first-child {
+          grid-column: 2 !important;
+          justify-self: end !important;
+          margin-left: auto !important;
+        }
+
+        html body .kzco-overlay[data-kzco-root="1"] .kzco-head > .kzco-title-wrap:empty,
+        html body .kzco-overlay[data-kzco-root="1"] .kzco-title-wrap h2:empty {
+          display: block !important;
+          min-height: 1px !important;
+        }
+
       `}</style>
 
 

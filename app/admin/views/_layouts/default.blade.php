@@ -935,7 +935,7 @@ body .media-manager .media-sidebar .sidebar-preview-toolbar button.btn-outline-d
 
     <link rel="stylesheet" href="{{ asset('app/admin/assets/css/pmd-dashboard-remove-hero-v3.css') }}?v={{ time() }}">
 <link rel="stylesheet" href="{{ asset('app/admin/assets/css/pmd-dashboard-kpi-polish-v4.css') }}?v={{ time() }}">
-<link rel="stylesheet" href="{{ asset('app/admin/assets/css/pmd-dashboard-real-data-v52.css') }}?v={{ time() }}">
+<link rel="stylesheet" href="{{ asset('app/admin/assets/css/pmd-dashboard-real-data-v53.css') }}?v={{ time() }}">
 </head>
 <script>
     // SMART FIX: Force dropdown alignment WITHOUT breaking Bootstrap animations
@@ -1458,6 +1458,6 @@ body .media-manager .media-sidebar .sidebar-preview-toolbar button.btn-outline-d
 </script>
     <script src="{{ asset('app/admin/assets/js/pmd-sidebar-system-lock-v7.js') }}?v={{ time() }}"></script>
     <script src="{{ asset('app/admin/assets/js/pmd-dashboard-modern-v1.js') }}?v={{ time() }}"></script>
-    <script src="{{ asset('app/admin/assets/js/pmd-dashboard-real-data-v52.js') }}?v={{ time() }}"></script>
+    <script src="{{ asset('app/admin/assets/js/pmd-dashboard-real-data-v53.js') }}?v={{ time() }}"></script>
 </body>
 </html>
