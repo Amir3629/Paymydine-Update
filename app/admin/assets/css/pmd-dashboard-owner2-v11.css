@@ -1,0 +1,383 @@
+/* PMD Dashboard Owner 2 v11
+   A separate modern 2027-style owner command center.
+   Keeps v9 Owner/Manager/Waiter/Kitchen untouched.
+*/
+
+html body.page.pmd-admin-theme-v1 .pmd-role-switcher {
+  gap: 3px !important;
+  height: 31px !important;
+}
+
+html body.page.pmd-admin-theme-v1 .pmd-role-btn {
+  min-width: 38px !important;
+  padding: 0 7px !important;
+}
+
+html body.page.pmd-admin-theme-v1 .pmd-role-btn[data-pmd-role-btn="owner2"] {
+  min-width: 44px !important;
+}
+
+/* Owner2 replaces the default owner grid only when O2 is selected */
+html body.page.pmd-admin-theme-v1 .pmd-dashboard-modern[data-pmd-role="owner2"] .pmd-dashboard-kpi-bar,
+html body.page.pmd-admin-theme-v1 .pmd-dashboard-modern[data-pmd-role="owner2"] .pmd-dashboard-grid,
+html body.page.pmd-admin-theme-v1 .pmd-dashboard-modern[data-pmd-role="owner2"] .pmd-owner-insights {
+  display: none !important;
+}
+
+html body.page.pmd-admin-theme-v1 .pmd-dashboard-modern[data-pmd-role="owner2"] .pmd-role-panel {
+  display: block !important;
+}
+
+/* Main shell */
+html body.page.pmd-admin-theme-v1 .pmd-o2 {
+  display: grid;
+  gap: 18px;
+}
+
+/* Top command panel */
+html body.page.pmd-admin-theme-v1 .pmd-o2-hero {
+  border-radius: 30px;
+  padding: 22px;
+  color: #fff;
+  position: relative;
+  overflow: hidden;
+  background:
+    radial-gradient(circle at 14% 0%, rgba(200,155,74,.22), transparent 30%),
+    radial-gradient(circle at 90% 12%, rgba(41,188,126,.18), transparent 30%),
+    linear-gradient(135deg, #000403 0%, #00110F 34%, #002B26 68%, #064A40 100%);
+  box-shadow:
+    0 28px 70px rgba(2,31,28,.22),
+    inset 0 1px 0 rgba(255,255,255,.08);
+}
+
+html body.page.pmd-admin-theme-v1 .pmd-o2-hero-top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 18px;
+  margin-bottom: 20px;
+}
+
+html body.page.pmd-admin-theme-v1 .pmd-o2-badge {
+  height: 30px;
+  padding: 0 12px;
+  border-radius: 999px;
+  background: rgba(255,255,255,.09);
+  border: 1px solid rgba(255,255,255,.10);
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: #F5E8D0;
+  font-weight: 950;
+  font-size: .74rem;
+  margin-bottom: 12px;
+}
+
+html body.page.pmd-admin-theme-v1 .pmd-o2-title {
+  font-size: 2rem;
+  line-height: .96;
+  letter-spacing: -.06em;
+  font-weight: 950;
+  margin-bottom: 8px;
+}
+
+html body.page.pmd-admin-theme-v1 .pmd-o2-subtitle {
+  color: rgba(255,255,255,.70);
+  font-weight: 760;
+  font-size: .92rem;
+  max-width: 620px;
+}
+
+html body.page.pmd-admin-theme-v1 .pmd-o2-live {
+  min-width: 164px;
+  height: 42px;
+  padding: 0 14px;
+  border-radius: 999px;
+  background: rgba(34,197,94,.13);
+  color: #4ADE80;
+  border: 1px solid rgba(34,197,94,.16);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 9px;
+  font-weight: 950;
+}
+
+html body.page.pmd-admin-theme-v1 .pmd-o2-live:before {
+  content: "";
+  width: 9px;
+  height: 9px;
+  border-radius: 999px;
+  background: #4ADE80;
+  box-shadow: 0 0 0 6px rgba(74,222,128,.10);
+}
+
+/* 8 required owner signals */
+html body.page.pmd-admin-theme-v1 .pmd-o2-signal-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 11px;
+}
+
+html body.page.pmd-admin-theme-v1 .pmd-o2-signal {
+  min-height: 116px;
+  border-radius: 22px;
+  padding: 15px;
+  background: rgba(255,255,255,.075);
+  border: 1px solid rgba(255,255,255,.10);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.06);
+  cursor: pointer;
+  position: relative;
+  overflow: hidden;
+  transition: .18s ease;
+}
+
+html body.page.pmd-admin-theme-v1 .pmd-o2-signal:hover {
+  transform: translateY(-2px);
+  background: rgba(255,255,255,.11);
+}
+
+html body.page.pmd-admin-theme-v1 .pmd-o2-signal-label {
+  color: rgba(255,255,255,.64);
+  font-size: .70rem;
+  text-transform: uppercase;
+  letter-spacing: .055em;
+  font-weight: 950;
+  margin-bottom: 10px;
+  white-space: nowrap;
+}
+
+html body.page.pmd-admin-theme-v1 .pmd-o2-signal-value {
+  color: #fff;
+  font-size: 1.55rem;
+  line-height: 1;
+  font-weight: 950;
+  letter-spacing: -.045em;
+  margin-bottom: 8px;
+}
+
+html body.page.pmd-admin-theme-v1 .pmd-o2-signal-sub {
+  color: #4ADE80;
+  font-size: .72rem;
+  font-weight: 900;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+html body.page.pmd-admin-theme-v1 .pmd-o2-signal-icon {
+  position: absolute;
+  right: 13px;
+  bottom: 13px;
+  width: 38px;
+  height: 38px;
+  border-radius: 15px;
+  color: #F5E8D0;
+  background: rgba(200,155,74,.13);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Lower practical board */
+html body.page.pmd-admin-theme-v1 .pmd-o2-board {
+  display: grid;
+  grid-template-columns: 1.05fr .95fr;
+  gap: 18px;
+}
+
+html body.page.pmd-admin-theme-v1 .pmd-o2-panel {
+  background: #fff;
+  border: 1px solid rgba(15,23,42,.065);
+  border-radius: 24px;
+  padding: 20px;
+  box-shadow:
+    0 16px 34px rgba(15,23,42,.055),
+    inset 0 1px 0 rgba(255,255,255,.75);
+}
+
+html body.page.pmd-admin-theme-v1 .pmd-o2-panel-title {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: #111827;
+  font-size: .82rem;
+  text-transform: uppercase;
+  letter-spacing: .04em;
+  font-weight: 950;
+  margin-bottom: 15px;
+}
+
+html body.page.pmd-admin-theme-v1 .pmd-o2-panel-title i {
+  width: 34px;
+  height: 34px;
+  border-radius: 12px;
+  background: rgba(6,47,42,.08);
+  color: #062F2A;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Priority list */
+html body.page.pmd-admin-theme-v1 .pmd-o2-priority-list {
+  display: grid;
+  gap: 10px;
+}
+
+html body.page.pmd-admin-theme-v1 .pmd-o2-priority {
+  min-height: 64px;
+  border-radius: 17px;
+  background: #FAFAFA;
+  border: 1px solid rgba(15,23,42,.06);
+  display: grid;
+  grid-template-columns: 42px 1fr auto;
+  align-items: center;
+  gap: 12px;
+  padding: 12px;
+  cursor: pointer;
+  transition: .16s ease;
+}
+
+html body.page.pmd-admin-theme-v1 .pmd-o2-priority:hover {
+  background: #F5E8D0;
+  transform: translateY(-1px);
+}
+
+html body.page.pmd-admin-theme-v1 .pmd-o2-priority-icon {
+  width: 42px;
+  height: 42px;
+  border-radius: 14px;
+  background: rgba(200,155,74,.13);
+  color: #B88732;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+html body.page.pmd-admin-theme-v1 .pmd-o2-priority-main {
+  color: #111827;
+  font-weight: 950;
+}
+
+html body.page.pmd-admin-theme-v1 .pmd-o2-priority-sub {
+  color: #6B7280;
+  font-weight: 760;
+  font-size: .78rem;
+  margin-top: 2px;
+}
+
+html body.page.pmd-admin-theme-v1 .pmd-o2-priority-value {
+  color: #062F2A;
+  font-weight: 950;
+  text-align: right;
+}
+
+/* Actions */
+html body.page.pmd-admin-theme-v1 .pmd-o2-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+html body.page.pmd-admin-theme-v1 .pmd-o2-action {
+  min-height: 88px;
+  padding: 14px;
+  border-radius: 18px;
+  border: 1px solid rgba(15,23,42,.06);
+  background: #FAFAFA;
+  color: #111827 !important;
+  text-decoration: none !important;
+  font-weight: 950;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  transition: .16s ease;
+}
+
+html body.page.pmd-admin-theme-v1 .pmd-o2-action:hover {
+  background: #F5E8D0;
+  transform: translateY(-1px);
+}
+
+html body.page.pmd-admin-theme-v1 .pmd-o2-action i {
+  width: 34px;
+  height: 34px;
+  border-radius: 12px;
+  background: rgba(6,47,42,.08);
+  color: #062F2A;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 12px;
+}
+
+html body.page.pmd-admin-theme-v1 .pmd-o2-action small {
+  display: block;
+  color: #6B7280;
+  font-weight: 760;
+  margin-top: 3px;
+}
+
+/* Intelligence strip */
+html body.page.pmd-admin-theme-v1 .pmd-o2-strip {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+}
+
+html body.page.pmd-admin-theme-v1 .pmd-o2-mini {
+  min-height: 116px;
+  padding: 17px;
+  border-radius: 21px;
+  background: #fff;
+  border: 1px solid rgba(15,23,42,.065);
+  box-shadow: 0 16px 34px rgba(15,23,42,.045);
+  cursor: pointer;
+}
+
+html body.page.pmd-admin-theme-v1 .pmd-o2-mini-label {
+  color: #6B7280;
+  font-size: .74rem;
+  font-weight: 950;
+  text-transform: uppercase;
+  letter-spacing: .04em;
+  margin-bottom: 10px;
+}
+
+html body.page.pmd-admin-theme-v1 .pmd-o2-mini-value {
+  color: #111827;
+  font-size: 1.35rem;
+  font-weight: 950;
+  letter-spacing: -.04em;
+}
+
+html body.page.pmd-admin-theme-v1 .pmd-o2-mini-sub {
+  color: #062F2A;
+  font-weight: 850;
+  font-size: .78rem;
+  margin-top: 7px;
+}
+
+@media (max-width: 1320px) {
+  html body.page.pmd-admin-theme-v1 .pmd-o2-signal-grid,
+  html body.page.pmd-admin-theme-v1 .pmd-o2-strip {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  html body.page.pmd-admin-theme-v1 .pmd-o2-board {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 900px) {
+  html body.page.pmd-admin-theme-v1 .pmd-o2-signal-grid,
+  html body.page.pmd-admin-theme-v1 .pmd-o2-strip,
+  html body.page.pmd-admin-theme-v1 .pmd-o2-actions {
+    grid-template-columns: 1fr;
+  }
+
+  html body.page.pmd-admin-theme-v1 .pmd-o2-hero-top {
+    flex-direction: column;
+  }
+}

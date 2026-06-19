@@ -205,4 +205,6 @@
   'Admin\\Controllers\\locations' => 'app/admin/controllers/Locations.php',
   'Admin\\Models\\Pos_configs_model' => 'app/admin/models/Pos_configs_model.php',
   'Admin\\Models\\Pos_devices_model' => 'app/admin/models/Pos_devices_model.php',
+  'Admin\\Controllers\\PmdDashboardDataV2' => 'app/admin/controllers/PmdDashboardDataV2.php',
+  'Admin\\Controllers\\PmdDashboardDataV3' => 'app/admin/controllers/PmdDashboardDataV3.php',
 );

@@ -1,0 +1,332 @@
+/* PMD Dashboard Role Preview v8
+   Role dashboards now use KPI-bar style headers instead of big text hero.
+   Dark jade/black gradient, same practical feeling as owner KPI bar.
+*/
+
+html body.page.pmd-admin-theme-v1 .pmd-role-switcher {
+  position: fixed !important;
+  top: 15px !important;
+  left: calc(50% + 48px) !important;
+  transform: translateX(-50%) !important;
+  z-index: 1085 !important;
+
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 3px !important;
+
+  height: 31px !important;
+  margin: 0 !important;
+  padding: 3px !important;
+  border-radius: 14px !important;
+
+  background: rgba(255,255,255,.90) !important;
+  border: 1px solid rgba(15,23,42,.08) !important;
+  box-shadow: 0 8px 20px rgba(15,23,42,.08) !important;
+  backdrop-filter: blur(10px) !important;
+  overflow: hidden !important;
+}
+
+html body.page.pmd-admin-theme-v1 .pmd-role-btn {
+  height: 25px !important;
+  min-width: 40px !important;
+  padding: 0 8px !important;
+  border-radius: 11px !important;
+  border: 0 !important;
+  background: transparent !important;
+  color: #111827 !important;
+  font-weight: 950 !important;
+  font-size: .68rem !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 4px !important;
+  cursor: pointer !important;
+  white-space: nowrap !important;
+}
+
+html body.page.pmd-admin-theme-v1 .pmd-role-btn i {
+  font-size: .68rem !important;
+  opacity: .9 !important;
+}
+
+html body.page.pmd-admin-theme-v1 .pmd-role-btn:hover {
+  background: rgba(6,47,42,.06) !important;
+}
+
+html body.page.pmd-admin-theme-v1 .pmd-role-btn.active {
+  background: linear-gradient(135deg, #050604 0%, #001B17 100%) !important;
+  color: #fff !important;
+  box-shadow: 0 6px 14px rgba(2,31,28,.16) !important;
+}
+
+html body.page.pmd-admin-theme-v1 .pmd-role-btn.active i {
+  color: #F5E8D0 !important;
+}
+
+/* Owner shows normal dashboard. Other roles hide owner KPI/grid and show role panel. */
+html body.page.pmd-admin-theme-v1 .pmd-role-panel {
+  display: none;
+  margin-bottom: 20px;
+}
+
+html body.page.pmd-admin-theme-v1 .pmd-dashboard-modern[data-pmd-role]:not([data-pmd-role="owner"]) .pmd-dashboard-kpi-bar,
+html body.page.pmd-admin-theme-v1 .pmd-dashboard-modern[data-pmd-role]:not([data-pmd-role="owner"]) .pmd-dashboard-grid {
+  display: none !important;
+}
+
+html body.page.pmd-admin-theme-v1 .pmd-dashboard-modern[data-pmd-role]:not([data-pmd-role="owner"]) .pmd-role-panel {
+  display: block !important;
+}
+
+html body.page.pmd-admin-theme-v1 .pmd-dashboard-modern[data-pmd-role]:not([data-pmd-role="owner"]) ~ .dashboard-widgets {
+  display: none !important;
+}
+
+/* Role KPI header: practical, same size feeling as default black KPI bar */
+html body.page.pmd-admin-theme-v1 .pmd-role-kpi-bar {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  overflow: hidden;
+  border-radius: 20px;
+  min-height: 112px;
+  margin-bottom: 18px;
+
+  background:
+    radial-gradient(circle at 5% 0%, rgba(200,155,74,.14), transparent 28%),
+    linear-gradient(135deg, #000403 0%, #00110F 32%, #001F1B 64%, #063A33 100%) !important;
+
+  box-shadow:
+    0 20px 46px rgba(2,31,28,.18),
+    inset 0 1px 0 rgba(255,255,255,.055);
+}
+
+html body.page.pmd-admin-theme-v1 .pmd-role-kpi {
+  min-height: 112px;
+  padding: 20px 68px 18px 22px;
+  position: relative;
+  border-right: 1px solid rgba(255,255,255,.10);
+  cursor: pointer;
+  overflow: hidden;
+}
+
+html body.page.pmd-admin-theme-v1 .pmd-role-kpi:last-child {
+  border-right: 0;
+}
+
+html body.page.pmd-admin-theme-v1 .pmd-role-kpi:hover {
+  background: rgba(255,255,255,.035);
+}
+
+html body.page.pmd-admin-theme-v1 .pmd-role-kpi-label {
+  color: rgba(255,255,255,.76);
+  font-size: .74rem;
+  font-weight: 950;
+  text-transform: uppercase;
+  letter-spacing: .045em;
+  line-height: 1.1;
+  white-space: nowrap;
+  margin-bottom: 13px;
+}
+
+html body.page.pmd-admin-theme-v1 .pmd-role-kpi-value {
+  color: #FFFFFF;
+  font-size: 1.9rem;
+  font-weight: 950;
+  line-height: .95;
+  letter-spacing: -.045em;
+  margin-bottom: 10px;
+}
+
+html body.page.pmd-admin-theme-v1 .pmd-role-kpi-sub {
+  color: #4ADE80;
+  font-size: .72rem;
+  font-weight: 850;
+  line-height: 1.15;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+html body.page.pmd-admin-theme-v1 .pmd-role-kpi-icon {
+  position: absolute;
+  right: 16px;
+  bottom: 17px;
+  width: 42px;
+  height: 42px;
+  border-radius: 16px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: #F5E8D0;
+  background: rgba(200,155,74,.13);
+  box-shadow:
+    inset 0 0 0 1px rgba(200,155,74,.18),
+    0 8px 18px rgba(0,0,0,.22);
+}
+
+/* Small action row under KPI bar */
+html body.page.pmd-admin-theme-v1 .pmd-role-action-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: -4px 0 18px;
+}
+
+html body.page.pmd-admin-theme-v1 .pmd-role-chip {
+  height: 34px;
+  min-width: 126px;
+  padding: 0 12px;
+  border-radius: 12px;
+  background: rgba(255,255,255,.86);
+  color: #111827 !important;
+  border: 1px solid rgba(15,23,42,.08);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  font-weight: 900;
+  text-decoration: none !important;
+  cursor: pointer;
+  box-shadow: 0 8px 18px rgba(15,23,42,.04);
+}
+
+html body.page.pmd-admin-theme-v1 .pmd-role-chip:hover {
+  background: #F5E8D0;
+  color: #062F2A !important;
+}
+
+/* Role cards */
+html body.page.pmd-admin-theme-v1 .pmd-role-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 14px;
+}
+
+html body.page.pmd-admin-theme-v1 .pmd-role-card {
+  background: #fff;
+  border: 1px solid rgba(15,23,42,.065);
+  border-radius: 18px;
+  padding: 16px;
+  min-height: 154px;
+  box-shadow:
+    0 16px 34px rgba(15,23,42,.055),
+    inset 0 1px 0 rgba(255,255,255,.75);
+  cursor: pointer;
+  transition: .16s ease;
+}
+
+html body.page.pmd-admin-theme-v1 .pmd-role-card:hover {
+  transform: translateY(-2px);
+  box-shadow:
+    0 20px 42px rgba(15,23,42,.075),
+    inset 0 1px 0 rgba(255,255,255,.75);
+}
+
+html body.page.pmd-admin-theme-v1 .pmd-role-card-head {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  margin-bottom: 13px;
+}
+
+html body.page.pmd-admin-theme-v1 .pmd-role-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 14px;
+  background: rgba(6,47,42,.08);
+  color: #062F2A;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1rem;
+}
+
+html body.page.pmd-admin-theme-v1 .pmd-role-icon.gold {
+  color: #B88732;
+  background: rgba(200,155,74,.12);
+}
+
+html body.page.pmd-admin-theme-v1 .pmd-role-icon.red {
+  color: #DC2626;
+  background: rgba(220,38,38,.09);
+}
+
+html body.page.pmd-admin-theme-v1 .pmd-role-card-title {
+  font-size: .76rem;
+  text-transform: uppercase;
+  letter-spacing: .035em;
+  font-weight: 950;
+  color: #111827;
+}
+
+html body.page.pmd-admin-theme-v1 .pmd-role-card-value {
+  font-size: 1.55rem;
+  line-height: 1;
+  font-weight: 950;
+  color: #111827;
+  letter-spacing: -.045em;
+  margin-top: 4px;
+}
+
+html body.page.pmd-admin-theme-v1 .pmd-role-lines {
+  display: grid;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+html body.page.pmd-admin-theme-v1 .pmd-role-line {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  padding-top: 8px;
+  border-top: 1px solid rgba(15,23,42,.07);
+  color: #111827;
+  font-weight: 800;
+  font-size: .80rem;
+}
+
+html body.page.pmd-admin-theme-v1 .pmd-role-line span:last-child {
+  color: #062F2A;
+  font-weight: 950;
+  text-align: right;
+}
+
+html body.page.pmd-admin-theme-v1 .pmd-role-demo {
+  display: inline-flex;
+  align-items: center;
+  height: 22px;
+  padding: 0 8px;
+  border-radius: 999px;
+  background: rgba(200,155,74,.12);
+  color: #6B4B16;
+  font-weight: 950;
+  font-size: .68rem;
+  margin-top: 10px;
+}
+
+@media (max-width: 1320px) {
+  html body.page.pmd-admin-theme-v1 .pmd-role-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  html body.page.pmd-admin-theme-v1 .pmd-role-kpi-bar {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 1000px) {
+  html body.page.pmd-admin-theme-v1 .pmd-role-switcher {
+    position: static !important;
+    transform: none !important;
+    max-width: 100% !important;
+    margin-bottom: 12px !important;
+  }
+
+  html body.page.pmd-admin-theme-v1 .pmd-role-grid {
+    grid-template-columns: 1fr;
+  }
+
+  html body.page.pmd-admin-theme-v1 .pmd-role-kpi-bar {
+    grid-template-columns: 1fr;
+  }
+}
