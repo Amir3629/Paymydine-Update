@@ -1,0 +1,73 @@
+/* PMD Waiter 3 v14 compact
+   Remove W3 badge + Service Live, make black header clean and not crowded.
+*/
+
+/* Hide top badge row completely */
+html body.page.pmd-admin-theme-v1 .pmd-dashboard-modern[data-pmd-role="waiter3"] .pmd-w3-hero-top {
+  display: none !important;
+}
+
+/* Black header: only KPI cards */
+html body.page.pmd-admin-theme-v1 .pmd-dashboard-modern[data-pmd-role="waiter3"] .pmd-w3-hero {
+  padding: 18px 20px !important;
+  border-radius: 28px !important;
+  min-height: 0 !important;
+}
+
+/* Make metric row clean */
+html body.page.pmd-admin-theme-v1 .pmd-dashboard-modern[data-pmd-role="waiter3"] .pmd-w3-signal-grid {
+  grid-template-columns: repeat(6, minmax(0, 1fr)) !important;
+  gap: 12px !important;
+}
+
+/* Smaller KPI cards, no crowd */
+html body.page.pmd-admin-theme-v1 .pmd-dashboard-modern[data-pmd-role="waiter3"] .pmd-w3-signal {
+  min-height: 92px !important;
+  padding: 14px 14px !important;
+  border-radius: 20px !important;
+}
+
+/* Remove icons inside top black header cards */
+html body.page.pmd-admin-theme-v1 .pmd-dashboard-modern[data-pmd-role="waiter3"] .pmd-w3-signal-icon {
+  display: none !important;
+}
+
+/* Text cleaner */
+html body.page.pmd-admin-theme-v1 .pmd-dashboard-modern[data-pmd-role="waiter3"] .pmd-w3-signal-label {
+  font-size: .68rem !important;
+  margin-bottom: 8px !important;
+  white-space: nowrap !important;
+}
+
+html body.page.pmd-admin-theme-v1 .pmd-dashboard-modern[data-pmd-role="waiter3"] .pmd-w3-signal-value {
+  font-size: 1.45rem !important;
+  margin-bottom: 7px !important;
+  white-space: nowrap !important;
+}
+
+html body.page.pmd-admin-theme-v1 .pmd-dashboard-modern[data-pmd-role="waiter3"] .pmd-w3-signal-sub {
+  font-size: .72rem !important;
+  line-height: 1.1 !important;
+  max-width: 100% !important;
+  white-space: nowrap !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+}
+
+/* Keep Quick Mode section strong and visible */
+html body.page.pmd-admin-theme-v1 .pmd-dashboard-modern[data-pmd-role="waiter3"] .pmd-w3-quick-shell {
+  margin-top: 0 !important;
+}
+
+/* Desktop: keep six metrics in one clean row */
+@media (max-width: 1450px) {
+  html body.page.pmd-admin-theme-v1 .pmd-dashboard-modern[data-pmd-role="waiter3"] .pmd-w3-signal-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+  }
+}
+
+@media (max-width: 900px) {
+  html body.page.pmd-admin-theme-v1 .pmd-dashboard-modern[data-pmd-role="waiter3"] .pmd-w3-signal-grid {
+    grid-template-columns: 1fr !important;
+  }
+}

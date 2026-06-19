@@ -207,4 +207,5 @@
   'Admin\\Models\\Pos_devices_model' => 'app/admin/models/Pos_devices_model.php',
   'Admin\\Controllers\\PmdDashboardDataV2' => 'app/admin/controllers/PmdDashboardDataV2.php',
   'Admin\\Controllers\\PmdDashboardDataV3' => 'app/admin/controllers/PmdDashboardDataV3.php',
+  'Admin\\Controllers\\logout' => 'app/admin/controllers/Logout.php',
 );

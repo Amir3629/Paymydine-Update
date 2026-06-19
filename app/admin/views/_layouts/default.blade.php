@@ -939,7 +939,21 @@ body .media-manager .media-sidebar .sidebar-preview-toolbar button.btn-outline-d
 <link rel="stylesheet" href="{{ asset('app/admin/assets/css/pmd-dashboard-role-preview-v9.css') }}?v={{ time() }}">
 <link rel="stylesheet" href="{{ asset('app/admin/assets/css/pmd-dashboard-owner2-v11.css') }}?v={{ time() }}">
 <link rel="stylesheet" href="{{ asset('app/admin/assets/css/pmd-dashboard-waiter3-v12.css') }}?v={{ time() }}">
+<link rel="stylesheet" href="{{ asset('app/admin/assets/css/pmd-dashboard-waiter3-v13-polish.css') }}?v={{ time() }}">
+<link rel="stylesheet" href="{{ asset('app/admin/assets/css/pmd-dashboard-waiter3-v14-compact.css') }}?v={{ time() }}">
+<link rel="stylesheet" href="{{ asset('app/admin/assets/css/pmd-dashboard-waiter3-v15-rolebar.css') }}?v={{ time() }}">
+<link rel="stylesheet" href="{{ asset('app/admin/assets/css/pmd-dashboard-w3-quick-icons-v16.css') }}?v={{ time() }}">
     <link rel="stylesheet" href="{{ asset('app/admin/assets/css/pmd-sidebar-icons-only-v15.css') }}?v={{ time() }}">
+<!-- PMD_DASHBOARD_NO_JUMP_V17_START -->
+<script>
+(function () {
+  try {
+    document.documentElement.classList.add('pmd-dashboard-booting');
+  } catch (e) {}
+})();
+</script>
+<link rel="stylesheet" href="{{ asset('app/admin/assets/css/pmd-dashboard-no-jump-v17.css') }}?v={{ time() }}">
+<!-- PMD_DASHBOARD_NO_JUMP_V17_END -->
 </head>
 <script>
     // SMART FIX: Force dropdown alignment WITHOUT breaking Bootstrap animations
@@ -1466,6 +1480,11 @@ body .media-manager .media-sidebar .sidebar-preview-toolbar button.btn-outline-d
     <script src="{{ asset('app/admin/assets/js/pmd-dashboard-role-preview-v9.js') }}?v={{ time() }}"></script>
 <script src="{{ asset('app/admin/assets/js/pmd-dashboard-owner2-v11.js') }}?v={{ time() }}"></script>
 <script src="{{ asset('app/admin/assets/js/pmd-dashboard-waiter3-v12.js') }}?v={{ time() }}"></script>
+<script src="{{ asset('app/admin/assets/js/pmd-dashboard-waiter3-v13-polish.js') }}?v={{ time() }}"></script>
+<script src="{{ asset('app/admin/assets/js/pmd-dashboard-waiter3-v14-compact.js') }}?v={{ time() }}"></script>
+<script src="{{ asset('app/admin/assets/js/pmd-dashboard-waiter3-v15-rolebar.js') }}?v={{ time() }}"></script>
+<script src="{{ asset('app/admin/assets/js/pmd-dashboard-w3-quick-icons-v16.js') }}?v={{ time() }}"></script>
     <script src="{{ asset('app/admin/assets/js/pmd-sidebar-icons-only-v15.js') }}?v={{ time() }}"></script>
+    <script src="{{ asset('app/admin/assets/js/pmd-dashboard-no-jump-v17.js') }}?v={{ time() }}"></script>
 </body>
 </html>
