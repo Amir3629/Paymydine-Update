@@ -1,0 +1,94 @@
+/* PMD Sidebar Logo/Toggle v28
+   - Move the sidebar collapse/close button to the end of the side menu.
+   - Reduce top/bottom empty gap when logo candidate 3 is selected.
+   Scope: admin sidebar only. Does not touch dashboard cards/header. */
+
+/* Candidate 3 has a smaller visual logo, so remove the ugly empty vertical gap around it. */
+html.pmd-logo-candidate-3-v27 body.page.pmd-admin-theme-v1 .pmd-platform-logo-slot-v26 {
+  min-height: 82px !important;
+  padding-top: 8px !important;
+  padding-bottom: 4px !important;
+  margin-bottom: 0 !important;
+}
+
+html.pmd-logo-candidate-3-v27 body.page.pmd-admin-theme-v1 .pmd-platform-logo-link-v26 {
+  min-height: 66px !important;
+}
+
+html.pmd-logo-candidate-3-v27 body.page.pmd-admin-theme-v1 img.pmd-platform-logo-img-v26[data-logo-index="2"] {
+  max-width: 154px !important;
+  max-height: 66px !important;
+}
+
+/* When candidate 3 is active, the side menu should start closer to the logo. */
+html.pmd-logo-candidate-3-v27 body.page.pmd-admin-theme-v1 #side-nav-menu,
+html.pmd-logo-candidate-3-v27 body.page.pmd-admin-theme-v1 .side-nav-menu,
+html.pmd-logo-candidate-3-v27 body.page.pmd-admin-theme-v1 .sidebar-menu,
+html.pmd-logo-candidate-3-v27 body.page.pmd-admin-theme-v1 .nav-sidebar {
+  margin-top: 6px !important;
+  padding-top: 2px !important;
+}
+
+/* Container inserted at the end of the menu for the sidebar toggle button. */
+html body.page.pmd-admin-theme-v1 .pmd-sidebar-toggle-end-v28 {
+  list-style: none !important;
+  margin: 16px 12px 10px !important;
+  padding: 0 !important;
+  display: flex !important;
+  justify-content: flex-end !important;
+  align-items: center !important;
+}
+
+/* The original button is kept, only moved and restyled so JS behavior remains intact. */
+html body.page.pmd-admin-theme-v1 .pmd-sidebar-toggle-end-v28 > .pmd-sidebar-icons-toggle,
+html body.page.pmd-admin-theme-v1 .pmd-sidebar-icons-toggle.pmd-sidebar-icons-toggle-at-end-v28 {
+  position: static !important;
+  inset: auto !important;
+  transform: none !important;
+  margin: 0 !important;
+  width: 42px !important;
+  height: 42px !important;
+  min-width: 42px !important;
+  border-radius: 14px !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  border: 1px solid rgba(255,241,208,.24) !important;
+  background: rgba(255,248,226,.14) !important;
+  color: #fff4d2 !important;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.06), 0 8px 18px rgba(0,0,0,.18) !important;
+  z-index: 6 !important;
+}
+
+html body.page.pmd-admin-theme-v1 .pmd-sidebar-toggle-end-v28 > .pmd-sidebar-icons-toggle:hover,
+html body.page.pmd-admin-theme-v1 .pmd-sidebar-icons-toggle.pmd-sidebar-icons-toggle-at-end-v28:hover {
+  background: rgba(255,248,226,.21) !important;
+  border-color: rgba(255,241,208,.36) !important;
+}
+
+html body.page.pmd-admin-theme-v1 .pmd-sidebar-toggle-end-v28 > .pmd-sidebar-icons-toggle i,
+html body.page.pmd-admin-theme-v1 .pmd-sidebar-icons-toggle.pmd-sidebar-icons-toggle-at-end-v28 i {
+  font-size: 18px !important;
+  line-height: 1 !important;
+  color: currentColor !important;
+}
+
+/* Avoid old absolute-position slot leaving visual artifacts. */
+html body.page.pmd-admin-theme-v1 .pmd-sidebar-icons-toggle:not(.pmd-sidebar-icons-toggle-at-end-v28) {
+  z-index: 6 !important;
+}
+
+/* Collapsed/sidebar-icons mode: keep toggle centered at menu end. */
+html body.page.pmd-admin-theme-v1.pmd-sidebar-icons-only .pmd-sidebar-toggle-end-v28,
+html body.page.pmd-admin-theme-v1.pmd-sidebar-collapsed .pmd-sidebar-toggle-end-v28 {
+  justify-content: center !important;
+  margin: 12px 6px 10px !important;
+}
+
+html body.page.pmd-admin-theme-v1.pmd-sidebar-icons-only .pmd-sidebar-icons-toggle.pmd-sidebar-icons-toggle-at-end-v28,
+html body.page.pmd-admin-theme-v1.pmd-sidebar-collapsed .pmd-sidebar-icons-toggle.pmd-sidebar-icons-toggle-at-end-v28 {
+  width: 40px !important;
+  height: 40px !important;
+  min-width: 40px !important;
+  border-radius: 13px !important;
+}

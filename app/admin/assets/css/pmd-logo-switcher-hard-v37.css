@@ -1,0 +1,107 @@
+/* PMD Logo Switcher HARD v37
+   Replaces old 3-logo switchers completely.
+   Shows 6 candidates with one stable LOGO button. */
+
+html body.page.pmd-admin-theme-v1 .pmd-platform-logo-slot-v37,
+html body.page.pmd-admin-theme-v1 .pmd-platform-logo-slot-v26 {
+  min-height: 112px !important;
+  padding: 15px 10px 10px !important;
+  margin: 0 auto 4px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  width: 100% !important;
+}
+
+html body.page.pmd-admin-theme-v1 .pmd-platform-logo-link-v37,
+html body.page.pmd-admin-theme-v1 .pmd-platform-logo-link-v26 {
+  min-height: 82px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  width: 100% !important;
+}
+
+html body.page.pmd-admin-theme-v1 img.pmd-platform-logo-img-v37 {
+  display: block !important;
+  width: auto !important;
+  height: auto !important;
+  object-fit: contain !important;
+  object-position: center center !important;
+  margin: 0 auto !important;
+}
+
+/* Hard hide the old image tags from v25/v26, but keep our v37 image. */
+html body.page.pmd-admin-theme-v1 img.pmd-platform-logo-img-v25,
+html body.page.pmd-admin-theme-v1 img.pmd-platform-logo-img-v26:not(.pmd-platform-logo-img-v37),
+html body.page.pmd-admin-theme-v1 .pmd-dashboard-logo-img:not(.pmd-platform-logo-img-v37) {
+  display: none !important;
+  visibility: hidden !important;
+}
+
+/* Per-candidate sizes */
+html body.page.pmd-admin-theme-v1 img.pmd-platform-logo-img-v37[data-logo-index="0"] { max-width: 178px !important; max-height: 86px !important; }
+html body.page.pmd-admin-theme-v1 img.pmd-platform-logo-img-v37[data-logo-index="1"] { max-width: 194px !important; max-height: 92px !important; }
+html body.page.pmd-admin-theme-v1 img.pmd-platform-logo-img-v37[data-logo-index="2"] { max-width: 154px !important; max-height: 66px !important; }
+html body.page.pmd-admin-theme-v1 img.pmd-platform-logo-img-v37[data-logo-index="3"] { max-width: 188px !important; max-height: 88px !important; }
+html body.page.pmd-admin-theme-v1 img.pmd-platform-logo-img-v37[data-logo-index="4"] { max-width: 188px !important; max-height: 88px !important; }
+html body.page.pmd-admin-theme-v1 img.pmd-platform-logo-img-v37[data-logo-index="5"] { max-width: 180px !important; max-height: 86px !important; }
+
+/* Candidate 3 has less visual height, so reduce empty gap. */
+html.pmd-logo-candidate-3-v37 body.page.pmd-admin-theme-v1 .pmd-platform-logo-slot-v37,
+html.pmd-logo-candidate-3-v37 body.page.pmd-admin-theme-v1 .pmd-platform-logo-slot-v26 {
+  min-height: 82px !important;
+  padding-top: 8px !important;
+  padding-bottom: 4px !important;
+  margin-bottom: 0 !important;
+}
+html.pmd-logo-candidate-3-v37 body.page.pmd-admin-theme-v1 .pmd-platform-logo-link-v37,
+html.pmd-logo-candidate-3-v37 body.page.pmd-admin-theme-v1 .pmd-platform-logo-link-v26 {
+  min-height: 66px !important;
+}
+
+/* Stable LOGO button */
+html body.page.pmd-admin-theme-v1 .pmd-logo-cycle-nav-item-v37 {
+  list-style: none !important;
+  margin: 0 13px 16px !important;
+  padding: 2px 0 0 !important;
+}
+
+html body.page.pmd-admin-theme-v1 .pmd-logo-cycle-btn-v37 {
+  width: 100% !important;
+  min-height: 40px !important;
+  border-radius: 12px !important;
+  border: 1px solid rgba(255,241,208,.18) !important;
+  background: rgba(255,248,226,.10) !important;
+  color: #fff7dd !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 10px !important;
+  font-size: 12px !important;
+  font-weight: 900 !important;
+  letter-spacing: .04em !important;
+  cursor: pointer !important;
+}
+
+html body.page.pmd-admin-theme-v1 .pmd-logo-cycle-btn-v37:hover {
+  background: rgba(255,248,226,.16) !important;
+  border-color: rgba(255,241,208,.30) !important;
+}
+
+html body.page.pmd-admin-theme-v1 .pmd-logo-cycle-btn-v37 small {
+  color: #c89b4a !important;
+  font-size: 11px !important;
+  font-weight: 900 !important;
+  min-width: 26px !important;
+  text-align: right !important;
+}
+
+/* Hide old LOGO button items from previous switchers */
+html body.page.pmd-admin-theme-v1 .pmd-logo-cycle-nav-item-v25,
+html body.page.pmd-admin-theme-v1 .pmd-logo-cycle-nav-item-v26,
+html body.page.pmd-admin-theme-v1 .pmd-logo-cycle-nav-item-v36 {
+  display: none !important;
+  visibility: hidden !important;
+  pointer-events: none !important;
+}

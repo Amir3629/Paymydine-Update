@@ -178,6 +178,8 @@ export default function KazenStandalonePage() {
   const [waiterOpen, setWaiterOpen] = useState(false)
   const [noteOpen, setNoteOpen] = useState(false)
   const [valetOpen, setValetOpen] = useState(false)
+  const [waiterConfirmed, setWaiterConfirmed] = useState(false)
+  const [noteConfirmed, setNoteConfirmed] = useState(false)
   const [note, setNote] = useState("")
   // PMD_KAZEN_V34_TABLE_ORDER_DOCK_20260618
   const [tableOrderDock, setTableOrderDock] = useState({ showTableOrder: false, tableOrderCount: 0 })
@@ -422,9 +424,29 @@ export default function KazenStandalonePage() {
     post("PMD_KAZEN_TABLE_ORDER")
   }
 
+  const closeWaiterCard = () => {
+    setWaiterOpen(false)
+    setWaiterConfirmed(false)
+  }
+
+  const openWaiterCard = () => {
+    setWaiterConfirmed(false)
+    setWaiterOpen(true)
+  }
+
+  const closeNoteCard = () => {
+    setNoteOpen(false)
+    setNoteConfirmed(false)
+  }
+
+  const openNoteCard = () => {
+    setNoteConfirmed(false)
+    setNoteOpen(true)
+  }
+
   const submitWaiter = () => {
     post("PMD_KAZEN_CALL_WAITER")
-    setWaiterOpen(false)
+    setWaiterConfirmed(true)
   }
 
   const submitNote = () => {
@@ -432,8 +454,20 @@ export default function KazenStandalonePage() {
     if (!trimmed) return
     post("PMD_KAZEN_ADD_NOTE", { note: trimmed })
     setNote("")
-    setNoteOpen(false)
+    setNoteConfirmed(true)
   }
+
+  useEffect(() => {
+    if (!waiterOpen || !waiterConfirmed) return
+    const timer = window.setTimeout(closeWaiterCard, 2200)
+    return () => window.clearTimeout(timer)
+  }, [waiterOpen, waiterConfirmed])
+
+  useEffect(() => {
+    if (!noteOpen || !noteConfirmed) return
+    const timer = window.setTimeout(closeNoteCard, 2200)
+    return () => window.clearTimeout(timer)
+  }, [noteOpen, noteConfirmed])
 
   const submitValet = () => {
     post("PMD_KAZEN_GO_VALET", {
@@ -593,10 +627,10 @@ export default function KazenStandalonePage() {
         data-pmd-kazen-v38-dock="1"
         style={{ gridTemplateColumns: tableOrderDock.showTableOrder ? "repeat(4, minmax(0, 1fr))" : "repeat(3, minmax(0, 1fr))" }}
       >
-        <button type="button" onClick={() => setWaiterOpen(true)}>
+        <button type="button" onClick={openWaiterCard}>
           <Bell className="h-5 w-5" />Waiter
         </button>
-        <button type="button" onClick={() => setNoteOpen(true)}>
+        <button type="button" onClick={openNoteCard}>
           <MessageSquare className="h-5 w-5" />Note
         </button>
         {tableOrderDock.showTableOrder && (
@@ -665,35 +699,73 @@ export default function KazenStandalonePage() {
         </ModalCard>
       )}
 
-      {waiterOpen && (
-        <ModalCard title="Call waiter" eyebrow={tableLabel} onClose={() => setWaiterOpen(false)}>
-          <p className="mt-4 leading-7" style={{ color: "var(--kazen-muted)" }}>
-            Send a quiet request to the team for this table.
-          </p>
-          <div className="mt-5 grid grid-cols-2 gap-3">
-            <button type="button" className="kazen-secondary" onClick={() => setWaiterOpen(false)}>Cancel</button>
-            <button type="button" className="kazen-primary" onClick={submitWaiter}>Call</button>
+      {waiterOpen && waiterConfirmed ? (
+        <div
+          className="kazen-solid-modal-overlay pmd-kazen-action-overlay pmd-kazen-action-toast-overlay"
+          role="status"
+          aria-live="polite"
+          aria-label="Waiter request sent"
+          onClick={closeWaiterCard}
+        >
+          <article className="pmd-kazen-action-toast" onClick={(event) => event.stopPropagation()}>
+            <span className="pmd-kazen-action-toast-mark" aria-hidden="true">✓</span>
+            <span>Request sent</span>
+          </article>
+        </div>
+      ) : waiterOpen ? (
+        <ModalCard
+          title="Call waiter"
+          eyebrow={tableLabel}
+          onClose={closeWaiterCard}
+        >
+          <div className="pmd-kazen-action-form">
+            <p className="mt-4 leading-7" style={{ color: "var(--kazen-muted)" }}>
+              Send a quiet request to the team for this table.
+            </p>
+            <div className="mt-5 grid grid-cols-2 gap-3">
+              <button type="button" className="kazen-secondary" onClick={closeWaiterCard}>Cancel</button>
+              <button type="button" className="kazen-primary" onClick={submitWaiter}>Call</button>
+            </div>
           </div>
         </ModalCard>
-      )}
+      ) : null}
 
-      {noteOpen && (
-        <ModalCard title="Guest note" eyebrow={tableLabel} onClose={() => setNoteOpen(false)}>
-          <p className="mt-4 text-sm" style={{ color: "var(--kazen-muted)" }}>
-            Allergy, special request, timing, or anything the team should know.
-          </p>
-          <textarea
-            value={note}
-            onChange={(event) => setNote(event.target.value)}
-            className="kazen-field mt-5 min-h-32 resize-none"
-            placeholder="Write your note..."
-          />
-          <div className="mt-5 grid grid-cols-2 gap-3">
-            <button type="button" className="kazen-secondary" onClick={() => setNoteOpen(false)}>Close</button>
-            <button type="button" className="kazen-primary" onClick={submitNote}>Send</button>
+      {noteOpen && noteConfirmed ? (
+        <div
+          className="kazen-solid-modal-overlay pmd-kazen-action-overlay pmd-kazen-action-toast-overlay"
+          role="status"
+          aria-live="polite"
+          aria-label="Note sent"
+          onClick={closeNoteCard}
+        >
+          <article className="pmd-kazen-action-toast" onClick={(event) => event.stopPropagation()}>
+            <span className="pmd-kazen-action-toast-mark" aria-hidden="true">✓</span>
+            <span>Note sent</span>
+          </article>
+        </div>
+      ) : noteOpen ? (
+        <ModalCard
+          title="Guest note"
+          eyebrow={tableLabel}
+          onClose={closeNoteCard}
+        >
+          <div className="pmd-kazen-action-form">
+            <p className="mt-4 text-sm" style={{ color: "var(--kazen-muted)" }}>
+              Allergy, special request, timing, or anything the team should know.
+            </p>
+            <textarea
+              value={note}
+              onChange={(event) => setNote(event.target.value)}
+              className="kazen-field mt-5 min-h-32 resize-none"
+              placeholder="Write your note..."
+            />
+            <div className="mt-5 grid grid-cols-2 gap-3">
+              <button type="button" className="kazen-secondary" onClick={closeNoteCard}>Close</button>
+              <button type="button" className="kazen-primary" onClick={submitNote}>Send</button>
+            </div>
           </div>
         </ModalCard>
-      )}
+      ) : null}
 
       {valetOpen && (
         <ModalCard title="Valet" eyebrow={tableLabel} onClose={() => setValetOpen(false)}>

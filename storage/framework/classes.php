@@ -208,4 +208,6 @@
   'Admin\\Controllers\\PmdDashboardDataV2' => 'app/admin/controllers/PmdDashboardDataV2.php',
   'Admin\\Controllers\\PmdDashboardDataV3' => 'app/admin/controllers/PmdDashboardDataV3.php',
   'Admin\\Controllers\\logout' => 'app/admin/controllers/Logout.php',
+  'System\\Requests\\GeneralSettings' => 'app/system/requests/GeneralSettings.php',
+  'Main\\Classes\\MediaItem' => 'app/main/classes/MediaItem.php',
 );

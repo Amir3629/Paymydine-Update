@@ -954,6 +954,36 @@ body .media-manager .media-sidebar .sidebar-preview-toolbar button.btn-outline-d
 </script>
 <link rel="stylesheet" href="{{ asset('app/admin/assets/css/pmd-dashboard-no-jump-v17.css') }}?v={{ time() }}">
 <!-- PMD_DASHBOARD_NO_JUMP_V17_END -->
+<!-- PMD_OWNER_DASHBOARD_MATCH_V13_CSS_START -->
+<link rel="stylesheet" href="{{ asset('app/admin/assets/css/pmd-dashboard-owner-match-v13.css') }}?v={{ time() }}">
+<!-- PMD_OWNER_DASHBOARD_MATCH_V13_CSS_END -->
+<!-- PMD_OWNER_BLACK_HEADER_V24_CSS_START -->
+<link rel="stylesheet" href="{{ asset('app/admin/assets/css/pmd-dashboard-owner-black-header-v24.css') }}?v={{ time() }}">
+<!-- PMD_OWNER_BLACK_HEADER_V24_CSS_END -->
+<!-- PMD_UNIVERSAL_LAYOUT_EDITOR_V35_CSS_START -->
+<link rel="stylesheet" href="{{ asset('app/admin/assets/css/pmd-universal-layout-editor-v35.css') }}?v={{ time() }}">
+<!-- PMD_UNIVERSAL_LAYOUT_EDITOR_V35_CSS_END -->
+<!-- PMD_LOGO_SWITCHER_FINAL_V38_CSS_START -->
+<link rel="stylesheet" href="{{ asset('app/admin/assets/css/pmd-logo-switcher-final-v38.css') }}?v={{ time() }}">
+<!-- PMD_LOGO_SWITCHER_FINAL_V38_CSS_END -->
+<!-- PMD_MANAGER_OPS_DASHBOARD_V29_CSS_START -->
+<link rel="stylesheet" href="{{ asset('app/admin/assets/css/pmd-manager-ops-dashboard-v29.css') }}?v={{ time() }}">
+<!-- PMD_MANAGER_OPS_DASHBOARD_V29_CSS_END -->
+<!-- PMD_SIDEBAR_STABILITY_V40_CSS_START -->
+<link rel="stylesheet" href="{{ asset('app/admin/assets/css/pmd-sidebar-stability-v40.css') }}?v={{ time() }}">
+<!-- PMD_SIDEBAR_STABILITY_V40_CSS_END -->
+<!-- PMD_SIDEBAR_COLLAPSED_NATIVE_V49_EARLY_START -->
+<script>
+(function(){try{
+  ['pmdSidebarCollapsedV48','pmdSidebarCollapsedV47','pmdSidebarCollapsedV46','pmdSidebarCollapsedV45','pmdSidebarCollapsedV44','pmdSidebarCollapsedV43','pmdSidebarCollapsedV42','pmdSidebarCollapsedV41'].forEach(function(k){localStorage.setItem(k,'0');});
+  if(localStorage.getItem('pmdSidebarCollapsedV49')==='1'){document.documentElement.classList.add('pmd-sidebar-persist-collapsed-v49');}
+  document.documentElement.classList.remove('pmd-sidebar-persist-collapsed-v48','pmd-sidebar-persist-collapsed-v47','pmd-sidebar-persist-collapsed-v46','pmd-sidebar-persist-collapsed-v45','pmd-sidebar-persist-collapsed-v44','pmd-sidebar-persist-collapsed-v43','pmd-sidebar-persist-collapsed-v42','pmd-sidebar-persist-collapsed-v41');
+}catch(e){}})();
+</script>
+<!-- PMD_SIDEBAR_COLLAPSED_NATIVE_V49_EARLY_END -->
+<!-- PMD_SIDEBAR_COLLAPSED_NATIVE_V49_CSS_START -->
+<link rel="stylesheet" href="{{ asset('app/admin/assets/css/pmd-sidebar-collapsed-native-v49.css') }}?v={{ time() }}">
+<!-- PMD_SIDEBAR_COLLAPSED_NATIVE_V49_CSS_END -->
 </head>
 <script>
     // SMART FIX: Force dropdown alignment WITHOUT breaking Bootstrap animations
@@ -1486,5 +1516,20 @@ body .media-manager .media-sidebar .sidebar-preview-toolbar button.btn-outline-d
 <script src="{{ asset('app/admin/assets/js/pmd-dashboard-w3-quick-icons-v16.js') }}?v={{ time() }}"></script>
     <script src="{{ asset('app/admin/assets/js/pmd-sidebar-icons-only-v15.js') }}?v={{ time() }}"></script>
     <script src="{{ asset('app/admin/assets/js/pmd-dashboard-no-jump-v17.js') }}?v={{ time() }}"></script>
+<!-- PMD_OWNER_DASHBOARD_MATCH_V13_JS_START -->
+<script src="{{ asset('app/admin/assets/js/pmd-dashboard-owner-match-v13.js') }}?v={{ time() }}"></script>
+<!-- PMD_OWNER_DASHBOARD_MATCH_V13_JS_END -->
+<!-- PMD_UNIVERSAL_LAYOUT_EDITOR_V35_JS_START -->
+<script src="{{ asset('app/admin/assets/js/pmd-universal-layout-editor-v35.js') }}?v={{ time() }}"></script>
+<!-- PMD_UNIVERSAL_LAYOUT_EDITOR_V35_JS_END -->
+<!-- PMD_LOGO_SWITCHER_FINAL_V38_JS_START -->
+<script src="{{ asset('app/admin/assets/js/pmd-logo-switcher-final-v38.js') }}?v={{ time() }}"></script>
+<!-- PMD_LOGO_SWITCHER_FINAL_V38_JS_END -->
+<!-- PMD_SIDEBAR_STABILITY_V40_JS_START -->
+<script src="{{ asset('app/admin/assets/js/pmd-sidebar-stability-v40.js') }}?v={{ time() }}"></script>
+<!-- PMD_SIDEBAR_STABILITY_V40_JS_END -->
+<!-- PMD_SIDEBAR_COLLAPSED_NATIVE_V49_JS_START -->
+<script src="{{ asset('app/admin/assets/js/pmd-sidebar-collapsed-native-v49.js') }}?v={{ time() }}"></script>
+<!-- PMD_SIDEBAR_COLLAPSED_NATIVE_V49_JS_END -->
 </body>
 </html>

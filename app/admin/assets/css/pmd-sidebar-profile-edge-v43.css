@@ -1,0 +1,214 @@
+/* PMD Sidebar Profile + Edge Final v43
+   Fixes the screenshots:
+   - one visible arrow button only
+   - arrow icon visually centered inside circle
+   - handle sits in the gap above Dashboard and stays visible when collapsed
+   - collapsed profile box becomes clean power-only, no avatar/power overlap
+   - collapsed state persists across pages without open/close flicker
+   - no MutationObserver */
+
+html body.page.pmd-admin-theme-v1 #pmd-sidebar-edge-toggle-v40,
+html body.page.pmd-admin-theme-v1 #pmd-sidebar-edge-toggle-v41,
+html body.page.pmd-admin-theme-v1 #pmd-sidebar-edge-toggle-v42,
+html body.page.pmd-admin-theme-v1 .pmd-sidebar-toggle-safe-slot-v33,
+html body.page.pmd-admin-theme-v1 .pmd-sidebar-toggle-stable-v31,
+html body.page.pmd-admin-theme-v1 .pmd-sidebar-toggle-end-v28 {
+  display: none !important;
+  visibility: hidden !important;
+  pointer-events: none !important;
+}
+
+html body.page.pmd-admin-theme-v1 .pmd-sidebar-icons-toggle:not(#pmd-sidebar-edge-toggle-v43) {
+  display: none !important;
+  visibility: hidden !important;
+  pointer-events: none !important;
+}
+
+/* Stable visible handle */
+html body.page.pmd-admin-theme-v1 #pmd-sidebar-edge-toggle-v43 {
+  position: fixed !important;
+  top: var(--pmd-sidebar-edge-top-v43, 164px) !important;
+  left: var(--pmd-sidebar-edge-left-v43, 250px) !important;
+  width: 32px !important;
+  height: 32px !important;
+  min-width: 32px !important;
+  min-height: 32px !important;
+  max-width: 32px !important;
+  max-height: 32px !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  border-radius: 999px !important;
+  border: 1px solid rgba(200,155,74,.74) !important;
+  background: #fff4dc !important;
+  color: #063b34 !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  box-shadow: 0 10px 22px rgba(0,0,0,.16), inset 0 1px 0 rgba(255,255,255,.70) !important;
+  z-index: 2147482700 !important;
+  cursor: pointer !important;
+  opacity: 1 !important;
+  visibility: visible !important;
+  transform: translateZ(0) !important;
+}
+html body.page.pmd-admin-theme-v1 #pmd-sidebar-edge-toggle-v43:hover {
+  background: #fff9ea !important;
+  border-color: rgba(200,155,74,.94) !important;
+}
+html body.page.pmd-admin-theme-v1 #pmd-sidebar-edge-toggle-v43 i {
+  display: block !important;
+  width: 18px !important;
+  height: 18px !important;
+  font-size: 18px !important;
+  line-height: 18px !important;
+  color: currentColor !important;
+  margin: 0 !important;
+  text-align: center !important;
+  transform: translateY(2px) !important;
+}
+
+/* Prevent clipping */
+html body.page.pmd-admin-theme-v1 #sidebar,
+html body.page.pmd-admin-theme-v1 .sidebar,
+html body.page.pmd-admin-theme-v1 aside,
+html body.page.pmd-admin-theme-v1 .pmd-sidebar,
+html body.page.pmd-admin-theme-v1 .pmd-admin-sidebar {
+  overflow: visible !important;
+}
+
+/* Logo: keep it premium, high, and stable */
+html body.page.pmd-admin-theme-v1 .pmd-platform-logo-slot-v38,
+html body.page.pmd-admin-theme-v1 .pmd-platform-logo-slot-v37,
+html body.page.pmd-admin-theme-v1 .pmd-platform-logo-slot-v26 {
+  min-height: 92px !important;
+  height: 92px !important;
+  padding: 0 8px 2px !important;
+  margin: -24px auto 2px !important;
+  transform: none !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+}
+html body.page.pmd-admin-theme-v1 .pmd-platform-logo-link-v38,
+html body.page.pmd-admin-theme-v1 .pmd-platform-logo-link-v37,
+html body.page.pmd-admin-theme-v1 .pmd-platform-logo-link-v26 {
+  min-height: 86px !important;
+  height: 86px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+}
+html body.page.pmd-admin-theme-v1 img.pmd-platform-logo-img-v38 {
+  max-height: 82px !important;
+}
+html body.page.pmd-admin-theme-v1 img.pmd-platform-logo-img-v38[data-logo-index="0"],
+html body.page.pmd-admin-theme-v1 img.pmd-platform-logo-img-v38[data-logo-index="1"],
+html body.page.pmd-admin-theme-v1 img.pmd-platform-logo-img-v38[data-logo-index="3"],
+html body.page.pmd-admin-theme-v1 img.pmd-platform-logo-img-v38[data-logo-index="4"],
+html body.page.pmd-admin-theme-v1 img.pmd-platform-logo-img-v38[data-logo-index="5"] {
+  max-width: 198px !important;
+  max-height: 84px !important;
+}
+html body.page.pmd-admin-theme-v1 img.pmd-platform-logo-img-v38[data-logo-index="2"] {
+  max-width: 164px !important;
+  max-height: 68px !important;
+}
+
+/* Button/menu */
+html body.page.pmd-admin-theme-v1 .pmd-logo-cycle-nav-item-v38 { margin: 0 13px 9px !important; }
+html body.page.pmd-admin-theme-v1 .pmd-logo-cycle-btn-v38 { min-height: 35px !important; height: 35px !important; }
+html body.page.pmd-admin-theme-v1 #side-nav-menu,
+html body.page.pmd-admin-theme-v1 .side-nav-menu,
+html body.page.pmd-admin-theme-v1 .sidebar-menu,
+html body.page.pmd-admin-theme-v1 .nav-sidebar {
+  margin-top: 0 !important;
+  padding-top: 0 !important;
+}
+
+/* Persist collapsed state early to prevent open-then-close blink */
+html.pmd-sidebar-persist-collapsed-v43 body.page.pmd-admin-theme-v1 #sidebar,
+html.pmd-sidebar-persist-collapsed-v43 body.page.pmd-admin-theme-v1 .sidebar,
+html.pmd-sidebar-persist-collapsed-v43 body.page.pmd-admin-theme-v1 .pmd-sidebar,
+html.pmd-sidebar-persist-collapsed-v43 body.page.pmd-admin-theme-v1 .pmd-admin-sidebar {
+  max-width: 86px !important;
+}
+
+/* Collapsed logo */
+html body.page.pmd-admin-theme-v1.pmd-sidebar-icons-only .pmd-platform-logo-slot-v38,
+html body.page.pmd-admin-theme-v1.pmd-sidebar-collapsed .pmd-platform-logo-slot-v38,
+html.pmd-sidebar-persist-collapsed-v43 body.page.pmd-admin-theme-v1 .pmd-platform-logo-slot-v38 {
+  min-height: 86px !important;
+  height: 86px !important;
+  padding: 8px 4px 4px !important;
+  margin: 0 auto 16px !important;
+}
+html body.page.pmd-admin-theme-v1.pmd-sidebar-icons-only img.pmd-platform-logo-img-v38,
+html body.page.pmd-admin-theme-v1.pmd-sidebar-collapsed img.pmd-platform-logo-img-v38,
+html.pmd-sidebar-persist-collapsed-v43 body.page.pmd-admin-theme-v1 img.pmd-platform-logo-img-v38 {
+  max-width: 64px !important;
+  max-height: 64px !important;
+}
+
+/* Power-only profile card in collapsed mode */
+html body.page.pmd-admin-theme-v1 .pmd-profile-power-only-v43 {
+  width: 56px !important;
+  min-width: 56px !important;
+  max-width: 56px !important;
+  height: 56px !important;
+  min-height: 56px !important;
+  max-height: 56px !important;
+  padding: 0 !important;
+  margin-left: auto !important;
+  margin-right: auto !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  overflow: visible !important;
+}
+
+html body.page.pmd-admin-theme-v1 .pmd-profile-power-only-v43 .pmd-profile-hidden-v43 {
+  display: none !important;
+  visibility: hidden !important;
+  pointer-events: none !important;
+}
+
+html body.page.pmd-admin-theme-v1 .pmd-profile-power-only-v43 .pmd-profile-power-visible-v43,
+html body.page.pmd-admin-theme-v1 .pmd-profile-power-only-v43 a.pmd-profile-power-visible-v43,
+html body.page.pmd-admin-theme-v1 .pmd-profile-power-only-v43 button.pmd-profile-power-visible-v43 {
+  position: static !important;
+  width: 42px !important;
+  height: 42px !important;
+  min-width: 42px !important;
+  min-height: 42px !important;
+  border-radius: 999px !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  transform: none !important;
+}
+
+/* Generic collapsed profile fallback */
+html body.page.pmd-admin-theme-v1.pmd-sidebar-icons-only .sidebar-footer img,
+html body.page.pmd-admin-theme-v1.pmd-sidebar-collapsed .sidebar-footer img,
+html body.page.pmd-admin-theme-v1.pmd-sidebar-icons-only .pmd-sidebar-footer img,
+html body.page.pmd-admin-theme-v1.pmd-sidebar-collapsed .pmd-sidebar-footer img,
+html.pmd-sidebar-persist-collapsed-v43 body.page.pmd-admin-theme-v1 .sidebar-footer img,
+html.pmd-sidebar-persist-collapsed-v43 body.page.pmd-admin-theme-v1 .pmd-sidebar-footer img,
+html body.page.pmd-admin-theme-v1.pmd-sidebar-icons-only .sidebar-footer .media-body,
+html body.page.pmd-admin-theme-v1.pmd-sidebar-collapsed .sidebar-footer .media-body,
+html.pmd-sidebar-persist-collapsed-v43 body.page.pmd-admin-theme-v1 .sidebar-footer .media-body {
+  display: none !important;
+}
+
+/* Reduce transition blinking */
+html body.page.pmd-admin-theme-v1 #sidebar,
+html body.page.pmd-admin-theme-v1 .sidebar,
+html body.page.pmd-admin-theme-v1 .pmd-sidebar,
+html body.page.pmd-admin-theme-v1 .pmd-admin-sidebar,
+html body.page.pmd-admin-theme-v1 #side-nav-menu,
+html body.page.pmd-admin-theme-v1 .side-nav-menu {
+  transition-property: background-color, color, border-color, box-shadow !important;
+  transition-duration: .12s !important;
+}

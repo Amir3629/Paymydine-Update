@@ -405,6 +405,7 @@ export function PaymentModal({ isOpen, onClose, items: allItems, tableInfo, exis
     hasUnsubmittedPaymentDraft,
     initialSubmittedOrder,
     resolveSubmittedPaymentOrderId,
+    resolveSubmittedPaymentAmount,
     pmdLatestSubmittedPaymentOrderIdRef,
     submittedSnapshot,
     existingOrderId,

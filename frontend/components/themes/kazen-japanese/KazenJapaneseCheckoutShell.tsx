@@ -1,7 +1,7 @@
 "use client"
 
 import React from "react"
-import { Check, CreditCard, Link2, QrCode, Users } from "lucide-react"
+import { Check, Clock3, CreditCard, Globe2, Instagram, Link2, MessageSquare, QrCode, Star, Users } from "lucide-react"
 
 import { canRenderPaymentMethodDetail } from "@/features/checkout/payment-method-utils"
 import type { SplitPerson } from "@/features/checkout/types"
@@ -282,6 +282,81 @@ function GuestChips({ guests = [] }: { guests?: SplitPerson[] }) {
   )
 }
 
+
+function KazenPaymentMethodMark({ code, label }: { code?: string; label?: string }) {
+  const normalized = String(code || "").toLowerCase()
+  const safeLabel = String(label || code || "Payment").replace(/[_-]+/g, " ")
+
+  if (normalized === "card" || normalized === "stripe" || normalized === "credit_card") {
+    return (
+      <span className="kzco-paymark kzco-paymark-card" aria-hidden="true">
+        <svg viewBox="0 0 72 44" role="img" focusable="false">
+          <rect x="7" y="8" width="58" height="38" rx="4" />
+          <path d="M7 18h58" />
+          <path d="M15 32h16" />
+          <path d="M37 32h10" />
+        </svg>
+      </span>
+    )
+  }
+
+  if (normalized === "apple_pay" || normalized === "applepay") {
+    return (
+      <span className="kzco-paymark kzco-paymark-apple" aria-hidden="true">
+        <span className="kzco-paymark-apple-symbol"></span>
+        <span>Pay</span>
+      </span>
+    )
+  }
+
+  if (normalized === "google_pay" || normalized === "googlepay" || normalized === "gpay") {
+    return (
+      <span className="kzco-paymark kzco-paymark-google" aria-hidden="true">
+        <span className="kzco-paymark-google-g">
+          <i>G</i>
+        </span>
+        <span>Pay</span>
+      </span>
+    )
+  }
+
+  if (normalized === "wero") {
+    return (
+      <span className="kzco-paymark kzco-paymark-wero" aria-hidden="true">
+        <b>we</b><b>ro</b>
+      </span>
+    )
+  }
+
+  if (normalized === "paypal" || normalized === "pay_pal") {
+    return (
+      <span className="kzco-paymark kzco-paymark-paypal" aria-hidden="true">
+        <span>P</span><strong>PayPal</strong>
+      </span>
+    )
+  }
+
+  if (normalized === "cod" || normalized === "cash" || normalized === "cash_on_delivery") {
+    return (
+      <span className="kzco-paymark kzco-paymark-cash" aria-hidden="true">
+        <svg viewBox="0 0 72 44" role="img" focusable="false">
+          <path d="M18 14h38l-3 18H15z" />
+          <path d="M23 10h38l-3 18" />
+          <circle cx="36" cy="23" r="6" />
+          <path d="M24 23h4M44 23h4" />
+        </svg>
+      </span>
+    )
+  }
+
+  return (
+    <span className="kzco-paymark kzco-paymark-text" aria-hidden="true">
+      {safeLabel}
+    </span>
+  )
+}
+
+
 function PaymentMethods({ loadingPayments, visiblePaymentMethods, selectedPaymentMethod, onPaymentMethodSelect, canShowPaymentMethods = true, onBackToReview }: any) {
   const methods = Array.isArray(visiblePaymentMethods) ? visiblePaymentMethods : []
 
@@ -307,16 +382,7 @@ function PaymentMethods({ loadingPayments, visiblePaymentMethods, selectedPaymen
         <div className="kzco-method-grid">
           {methods.map((method: any) => {
             const code = String(method.code || "")
-            const size = getPaymentIconSize(code)
             const active = selectedPaymentMethod === method.code
-            const src =
-              code === "card"
-                ? "/images/payments/card-light.svg"
-                : code === "paypal"
-                  ? "/images/payments/paypal.png"
-                  : code === "google_pay"
-                    ? "/images/payments/google_pay.png"
-                    : iconForPayment(code)
 
             return (
               <button
@@ -328,7 +394,7 @@ function PaymentMethods({ loadingPayments, visiblePaymentMethods, selectedPaymen
                 className="kzco-btn kzco-btn-tile kzco-btn-secondary kzco-method-tile"
                 onClick={() => onPaymentMethodSelect?.(code)}
               >
-                <img src={src} alt={method.name || code} width={size.width} height={size.height} />
+                <KazenPaymentMethodMark code={code} label={method.name || code} />
               </button>
             )
           })}
@@ -408,6 +474,9 @@ export function KazenJapaneseCheckoutShell(props: KazenJapaneseCheckoutShellProp
     appliedCoupon,
     couponError,
     couponLoading,
+    setCouponError,
+    setCouponLoading,
+    validateCoupon,
     onApplyCoupon,
     onRemoveCoupon,
     visiblePaymentMethods = [],
@@ -444,6 +513,20 @@ export function KazenJapaneseCheckoutShell(props: KazenJapaneseCheckoutShellProp
     updatePaymentCustomTip,
     onPaymentLinks,
     onQrShare,
+    reviewRating = 0,
+    setReviewRating,
+    reviewComment = "",
+    setReviewComment,
+    reviewSubmitStatus = "idle",
+    setReviewSubmitStatus,
+    reviewSubmitMessage,
+    canSubmitReview = false,
+    handleSubmitReview,
+    merchantSettings,
+    activeReviewSharePlatforms = [],
+    handleDownloadBusinessInvoice,
+    invoiceDownloadStatus,
+    invoiceDownloadMessage,
     isDarkTheme,
   } = props
 
@@ -526,6 +609,79 @@ export function KazenJapaneseCheckoutShell(props: KazenJapaneseCheckoutShellProp
 
   const pmdKazenCanShowPaymentMethods = Boolean(pmdKazenRealOrderId)
 
+  // PMD_KAZEN_V62_SUBMITTED_PREP_TIMER_REVEAL_20260620
+  // Keep the submitted-state header calm: show a quick confirmation check,
+  // then reveal the prep time as real text instead of relying on overlapping CSS animations.
+  const [showSubmittedPrepTime, setShowSubmittedPrepTime] = React.useState(false)
+
+  React.useEffect(() => {
+    if (checkoutStep !== "submitted") {
+      setShowSubmittedPrepTime(false)
+      return
+    }
+
+    setShowSubmittedPrepTime(false)
+    const revealTimer = window.setTimeout(() => {
+      setShowSubmittedPrepTime(true)
+    }, 650)
+
+    return () => window.clearTimeout(revealTimer)
+  }, [checkoutStep, estimatedMinutes, pmdKazenRealOrderId])
+
+  const handleKazenApplyCoupon = async () => {
+    const code = String(couponCode || "").trim().toUpperCase()
+
+    console.info("PMD_KAZEN_COUPON_APPLY_CLICK", {
+      code,
+      paymentBaseAmount,
+      pmdKazenPaymentGross,
+      pmdKazenPayableTotal,
+      hasValidateCoupon: typeof validateCoupon === "function",
+      hasOnApplyCoupon: typeof onApplyCoupon === "function",
+      selectedSplitPersonId: selectedSplitPersonId || null,
+    })
+
+    if (!code) return
+
+    if (selectedSplitPerson) {
+      setCouponError?.("Coupon validation for split payments is coming soon.")
+      return
+    }
+
+    if (typeof validateCoupon === "function") {
+      setCouponLoading?.(true)
+      setCouponError?.(null)
+
+      try {
+        const baseAmount = Number(paymentBaseAmount || pmdKazenPaymentGross || pmdKazenPayableTotal || orderTotal || finalTotal || 0)
+        const result = await validateCoupon(code, baseAmount)
+
+        console.info("PMD_KAZEN_COUPON_RESULT", result)
+
+        if (!result?.success) {
+          setCouponError?.(result?.message || "Invalid coupon code.")
+          return
+        }
+
+        setCouponCode?.("")
+      } catch (error) {
+        console.error("PMD_KAZEN_COUPON_ERROR", error)
+        setCouponError?.("Coupon validation failed.")
+      } finally {
+        setCouponLoading?.(false)
+      }
+
+      return
+    }
+
+    if (typeof onApplyCoupon === "function") {
+      await onApplyCoupon()
+      return
+    }
+
+    setCouponError?.("Coupon validation is unavailable.")
+  }
+
   const goBack = () => {
     if (checkoutStep === "payment") {
       setCheckoutStep?.(selectedSplitPerson ? "split-review" : "submitted")
@@ -579,16 +735,26 @@ export function KazenJapaneseCheckoutShell(props: KazenJapaneseCheckoutShellProp
       </>
     )
   } else if (checkoutStep === "submitted") {
-    title = ""
+    title = "We received your order."
     eyebrow = undefined
     content = (
       <>
-        <div className="kzco-status-copy kzco-status-copy-hero">
-          <span className="kzco-status-pulse"><Check className="h-5 w-5" /></span>
-          <div className="kzco-status-text-block">
-            <em className="kzco-status-time">{estimatedMinutes} min</em>
-            <p>We received your order.</p>
-          </div>
+        <div className="kzco-status-copy kzco-status-copy-hero" aria-live="polite">
+          <span
+            className="kzco-status-pulse"
+            data-kzco-show-time={showSubmittedPrepTime ? "1" : "0"}
+            aria-label={showSubmittedPrepTime ? `Estimated preparation time ${estimatedMinutes} minutes` : "Order confirmed"}
+          >
+            {showSubmittedPrepTime ? (
+              <em className="kzco-status-time" key="prep-time">
+                <Clock3 className="kzco-status-clock h-4 w-4" aria-hidden="true" />
+                <strong>{estimatedMinutes}</strong>
+                <span>min</span>
+              </em>
+            ) : (
+              <Check className="kzco-status-check h-5 w-5" key="check" aria-hidden="true" />
+            )}
+          </span>
         </div>
         <div className="kzco-total-box">
           <Line label="Order total" value={orderTotal} strong />
@@ -601,6 +767,131 @@ export function KazenJapaneseCheckoutShell(props: KazenJapaneseCheckoutShellProp
           <CheckoutButton variant="primary" onClick={() => setCheckoutStep?.("payment")}>Pay in full</CheckoutButton>
           <CheckoutButton variant="secondary" onClick={() => startSplitFlow?.("equal")}><Users className="h-4 w-4" /> Split bill</CheckoutButton>
           <CheckoutButton variant="secondary" onClick={onClose}>Continue ordering</CheckoutButton>
+        </ButtonRow>
+      </>
+    )
+  } else if (checkoutStep === "paid") {
+    title = "Payment confirmed."
+    eyebrow = undefined
+
+    const paidOrderId = Number(submittedSnapshot?.orderId ?? submittedSnapshot?.order_id ?? submittedSnapshot?.id ?? 0)
+    const paidAmount = Number(submittedSnapshot?.paidTotal ?? submittedSnapshot?.paid_total ?? paymentPayableTotal ?? orderTotal ?? finalTotal ?? 0)
+    const showPaidEta = Number(estimatedMinutes || 0) > 0 && (submittedSnapshot?.showCustomerEta ?? true) !== false
+
+    content = (
+      <>
+        <div className="kzco-paid-time-wrap" aria-label={showPaidEta ? `Estimated preparation time ${estimatedMinutes} minutes` : "Paid"}>
+          {showPaidEta ? (
+            <em className="kzco-status-time kzco-paid-time">
+              <Clock3 className="kzco-status-clock h-4 w-4" aria-hidden="true" />
+              <strong>{estimatedMinutes}</strong>
+              <span>min</span>
+            </em>
+          ) : (
+            <em className="kzco-status-time kzco-paid-time">
+              <Check className="kzco-status-clock h-4 w-4" aria-hidden="true" />
+              <strong>Paid</strong>
+            </em>
+          )}
+        </div>
+        <div className="kzco-total-box kzco-paid-total-box">
+          {paidOrderId > 0 ? (
+            <div className="kzco-line">
+              <span>Order number</span>
+              <strong>#{paidOrderId}</strong>
+            </div>
+          ) : null}
+          <Line label="Amount paid" value={paidAmount} strong />
+        </div>
+        <section className="kzco-summary">
+          <h3 className="kzco-section-title">Order Summary</h3>
+          <ItemRows items={submittedDisplayItems} />
+        </section>
+        <section className="kzco-card kzco-review-card" aria-label="Visit feedback">
+          <div className="kzco-review-head">
+            <span><MessageSquare className="h-4 w-4" /></span>
+            <div>
+              <h3>How was your visit?</h3>
+              <p>A quick note helps the restaurant improve.</p>
+            </div>
+          </div>
+          <div className="kzco-stars" aria-label="Restaurant rating">
+            {[1, 2, 3, 4, 5].map((star) => {
+              const active = Number(reviewRating || 0) >= star
+              return (
+                <button
+                  key={star}
+                  type="button"
+                  aria-label={`${star} star${star > 1 ? "s" : ""}`}
+                  data-kzco-active={active ? "1" : "0"}
+                  onClick={() => {
+                    setReviewRating?.(star)
+                    if (reviewSubmitStatus !== "loading") setReviewSubmitStatus?.("idle")
+                  }}
+                >
+                  <Star className="h-5 w-5" />
+                </button>
+              )
+            })}
+          </div>
+          <textarea
+            value={String(reviewComment || "")}
+            onChange={(event) => {
+              setReviewComment?.(event.target.value)
+              if (reviewSubmitStatus !== "loading") setReviewSubmitStatus?.("idle")
+            }}
+            placeholder="Optional comment for the restaurant"
+            className="kzco-field kzco-review-textarea"
+          />
+          <CheckoutButton
+            variant="primary"
+            disabled={!canSubmitReview || reviewSubmitStatus === "loading" || reviewSubmitStatus === "success"}
+            onClick={handleSubmitReview}
+            className="kzco-review-submit"
+          >
+            {reviewSubmitStatus === "loading" ? "Submitting" : reviewSubmitStatus === "success" ? "Review submitted" : "Submit feedback"}
+          </CheckoutButton>
+          {reviewSubmitMessage ? <p className={reviewSubmitStatus === "error" ? "kzco-review-message kzco-review-error" : "kzco-review-message"}>{reviewSubmitMessage}</p> : null}
+          {reviewSubmitStatus === "success" && merchantSettings?.reviewSocial?.sharePromptEnabled && Array.isArray(activeReviewSharePlatforms) && activeReviewSharePlatforms.length > 0 ? (
+            <div className="kzco-review-share">
+              <p>Share publicly?</p>
+              <div>
+                {activeReviewSharePlatforms.map(({ id, label, icon: Icon }: any) => {
+                  const shareId = String(id || "").toLowerCase()
+                  const ShareIcon = shareId === "instagram"
+                    ? Instagram
+                    : shareId === "website"
+                      ? Globe2
+                      : shareId === "reviews"
+                        ? MessageSquare
+                        : shareId === "trustpilot" || shareId === "google"
+                          ? Star
+                          : Icon || Link2
+
+                  return (
+                    <a
+                      key={id}
+                      href={merchantSettings.reviewSocial.platforms[id].url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      aria-label={label}
+                      title={label}
+                    >
+                      <ShareIcon className="h-4 w-4" />
+                      <span>{label}</span>
+                    </a>
+                  )
+                })}
+              </div>
+            </div>
+          ) : null}
+        </section>
+        <div className="kzco-powered-by" aria-label="Powered by PayMyDine">
+          <span>Powered by</span>
+          <img src="/assets/media/uploads/Paymydinelogo.png" alt="PayMyDine" loading="lazy" />
+        </div>
+        <ButtonRow>
+          <CheckoutButton variant="secondary" onClick={onClose}>Back to menu</CheckoutButton>
         </ButtonRow>
       </>
     )
@@ -670,7 +961,16 @@ export function KazenJapaneseCheckoutShell(props: KazenJapaneseCheckoutShellProp
                 disabled={couponLoading}
                 className="kzco-field"
               />
-              <CheckoutButton variant="secondary" disabled={couponLoading || !String(couponCode || "").trim()} onClick={onApplyCoupon} className="kzco-apply">
+              <CheckoutButton
+                variant="secondary"
+                disabled={couponLoading || !String(couponCode || "").trim()}
+                onClick={(event) => {
+                  event.preventDefault()
+                  event.stopPropagation()
+                  void handleKazenApplyCoupon()
+                }}
+                className="kzco-apply"
+              >
                 {couponLoading ? "Checking" : "Apply"}
               </CheckoutButton>
             </div>
@@ -2023,79 +2323,158 @@ export function KazenJapaneseCheckoutShell(props: KazenJapaneseCheckoutShellProp
           letter-spacing: .055em !important;
         }
 
-        html body .kzco-overlay[data-kzco-root="1"][data-kzco-step="submitted"] .kzco-title-wrap,
+        html body .kzco-overlay[data-kzco-root="1"][data-kzco-step="submitted"] .kzco-title-wrap {
+          display: block !important;
+          max-width: calc(100% - 4.5rem) !important;
+        }
+
         html body .kzco-overlay[data-kzco-root="1"][data-kzco-step="submitted"] .kzco-title-wrap h2 {
-          display: none !important;
+          display: block !important;
+          font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif !important;
+          font-size: clamp(1.35rem, 5.2vw, 1.95rem) !important;
+          line-height: 1.08 !important;
+          letter-spacing: -.025em !important;
+          text-transform: none !important;
+          overflow-wrap: normal !important;
         }
 
         html body .kzco-overlay[data-kzco-root="1"][data-kzco-step="submitted"] .kzco-head {
-          grid-template-columns: 1fr 48px !important;
+          grid-template-columns: minmax(0, 1fr) 48px !important;
           min-height: 4.25rem !important;
           padding-top: 1.15rem !important;
-          padding-bottom: .75rem !important;
+          padding-bottom: 1rem !important;
         }
 
         html body .kzco-overlay[data-kzco-root="1"] .kzco-status-copy-hero {
-          display: grid !important;
-          grid-template-columns: 58px minmax(0, 1fr) !important;
+          display: flex !important;
+          justify-content: center !important;
           align-items: center !important;
-          gap: 1rem !important;
-          margin-top: .35rem !important;
-          margin-bottom: 1.6rem !important;
+          margin-top: .45rem !important;
+          margin-bottom: 1.15rem !important;
+          min-height: 2.95rem !important;
+          text-align: center !important;
         }
 
         html body .kzco-overlay[data-kzco-root="1"] .kzco-status-pulse {
-          width: 58px !important;
-          height: 58px !important;
-          min-width: 58px !important;
-          min-height: 58px !important;
+          position: relative !important;
+          width: auto !important;
+          min-width: 3.25rem !important;
+          height: 2.6rem !important;
+          min-height: 2.6rem !important;
+          padding: 0 .35rem !important;
           display: inline-flex !important;
           align-items: center !important;
           justify-content: center !important;
-          border: 1px solid rgba(184, 93, 89, .55) !important;
+          border: 0 !important;
+          background: transparent !important;
           color: #b85d59 !important;
-          animation: kzco-status-soft-pop 1.7s ease-out 1 both !important;
           transform-origin: center !important;
+          overflow: visible !important;
+          transition: min-width .42s cubic-bezier(.2, .9, .2, 1), color .36s ease !important;
         }
 
-        html body .kzco-overlay[data-kzco-root="1"] .kzco-status-pulse svg {
-          width: 1.35rem !important;
-          height: 1.35rem !important;
+        html body .kzco-overlay[data-kzco-root="1"] .kzco-status-pulse[data-kzco-show-time="1"] {
+          min-width: 5.45rem !important;
+          color: rgba(36, 35, 32, .9) !important;
+        }
+
+        html body .kzco-overlay[data-kzco-root="1"] .kzco-status-check {
+          width: 1.45rem !important;
+          height: 1.45rem !important;
           stroke: currentColor !important;
-        }
-
-        html body .kzco-overlay[data-kzco-root="1"] .kzco-status-text-block {
-          display: grid !important;
-          gap: .22rem !important;
+          animation: kzco-status-check-in .46s cubic-bezier(.2, .9, .2, 1) 1 both !important;
         }
 
         html body .kzco-overlay[data-kzco-root="1"] .kzco-status-time {
-          font-style: normal !important;
-          font-size: .92rem !important;
-          font-weight: 800 !important;
-          letter-spacing: .06em !important;
-          color: rgba(36, 35, 32, .72) !important;
-          -webkit-text-fill-color: rgba(36, 35, 32, .72) !important;
-        }
-
-        html body .kzco-overlay[data-kzco-root="1"][data-kzco-mode="dark"] .kzco-status-time {
-          color: rgba(246, 232, 200, .72) !important;
-          -webkit-text-fill-color: rgba(246, 232, 200, .72) !important;
-        }
-
-        html body .kzco-overlay[data-kzco-root="1"] .kzco-status-copy-hero p {
+          display: inline-flex !important;
+          align-items: baseline !important;
+          justify-content: center !important;
+          gap: .34rem !important;
+          min-width: 0 !important;
+          height: auto !important;
           margin: 0 !important;
-          font-size: 1.03rem !important;
-          font-weight: 850 !important;
+          padding: .12rem .2rem .22rem !important;
+          border: 0 !important;
+          background: transparent !important;
+          box-shadow: none !important;
+          font-style: normal !important;
+          line-height: 1 !important;
+          color: #242320 !important;
+          -webkit-text-fill-color: #242320 !important;
+          animation: kzco-status-time-reveal .5s cubic-bezier(.2, .9, .2, 1) 1 both !important;
+        }
+
+        html body .kzco-overlay[data-kzco-root="1"] .kzco-status-clock {
+          width: .9rem !important;
+          height: .9rem !important;
+          flex: 0 0 auto !important;
+          color: #b85d59 !important;
+          stroke: currentColor !important;
+          stroke-width: 2.25 !important;
+          -webkit-text-fill-color: #b85d59 !important;
+          transform: translateY(.05rem) !important;
+          opacity: .9 !important;
+          animation: none !important;
+        }
+
+        html body .kzco-overlay[data-kzco-root="1"] .kzco-status-time strong {
+          display: inline-block !important;
+          font-size: 1.7rem !important;
+          font-weight: 950 !important;
+          letter-spacing: -.025em !important;
+          line-height: .9 !important;
           color: #242320 !important;
           -webkit-text-fill-color: #242320 !important;
         }
 
-        @keyframes kzco-status-soft-pop {
-          0% { transform: scale(.88); opacity: .72; }
-          45% { transform: scale(1.12); opacity: 1; }
-          72% { transform: scale(.97); opacity: 1; }
-          100% { transform: scale(1); opacity: 1; }
+        html body .kzco-overlay[data-kzco-root="1"] .kzco-status-time span {
+          display: inline-block !important;
+          transform: translateY(-.02rem) !important;
+          font-size: .72rem !important;
+          font-weight: 900 !important;
+          letter-spacing: .105em !important;
+          line-height: 1 !important;
+          text-transform: uppercase !important;
+          color: #b85d59 !important;
+          -webkit-text-fill-color: #b85d59 !important;
+        }
+
+        html body .kzco-overlay[data-kzco-root="1"][data-kzco-mode="dark"] .kzco-status-pulse {
+          color: #ec8a82 !important;
+        }
+
+        html body .kzco-overlay[data-kzco-root="1"][data-kzco-mode="dark"] .kzco-status-pulse[data-kzco-show-time="1"] {
+          color: rgba(246, 232, 200, .95) !important;
+        }
+
+        html body .kzco-overlay[data-kzco-root="1"][data-kzco-mode="dark"] .kzco-status-time {
+          border: 0 !important;
+          background: transparent !important;
+          box-shadow: none !important;
+          color: rgba(246, 232, 200, .95) !important;
+          -webkit-text-fill-color: rgba(246, 232, 200, .95) !important;
+        }
+
+        html body .kzco-overlay[data-kzco-root="1"][data-kzco-mode="dark"] .kzco-status-time strong {
+          color: rgba(246, 232, 200, .98) !important;
+          -webkit-text-fill-color: rgba(246, 232, 200, .98) !important;
+        }
+
+        html body .kzco-overlay[data-kzco-root="1"][data-kzco-mode="dark"] .kzco-status-clock,
+        html body .kzco-overlay[data-kzco-root="1"][data-kzco-mode="dark"] .kzco-status-time span {
+          color: #ec8a82 !important;
+          -webkit-text-fill-color: #ec8a82 !important;
+        }
+
+        @keyframes kzco-status-check-in {
+          0% { opacity: 0; transform: scale(.82); }
+          58% { opacity: 1; transform: scale(1.08); }
+          100% { opacity: 1; transform: scale(1); }
+        }
+
+        @keyframes kzco-status-time-reveal {
+          0% { opacity: 0; transform: translateY(5px); filter: blur(1px); }
+          100% { opacity: 1; transform: translateY(0); filter: blur(0); }
         }
 
         /* Split steps: hide empty h2 and make Share amount the visual title */
@@ -3584,6 +3963,847 @@ export function KazenJapaneseCheckoutShell(props: KazenJapaneseCheckoutShellProp
           border: 1px solid var(--kzco-disabled-border) !important;
           filter: none !important;
         }
+      `}</style>
+
+      <style data-pmd-kazen-stripe-form-final-polish="1">{`
+        /* PMD_KAZEN_STRIPE_FORM_FINAL_POLISH_20260620
+           This style is rendered only by the Kazen checkout shell. Keep it broad
+           inside the shell so it wins over shared Stripe/ThemedInput styles. */
+        html body form[data-pmd-stripe-form="1"] input.pmd-themed-input,
+        html body form[data-pmd-stripe-form="1"] input[data-pmd-themed-input] {
+          height: 54px !important;
+          min-height: 54px !important;
+          width: 100% !important;
+          border-radius: 0 !important;
+          background: rgba(255, 251, 243, .74) !important;
+          background-color: rgba(255, 251, 243, .74) !important;
+          border: 1px solid rgba(36, 35, 32, .22) !important;
+          box-shadow: none !important;
+          outline: none !important;
+          color: #242320 !important;
+          -webkit-text-fill-color: #242320 !important;
+          font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif !important;
+          font-size: 1rem !important;
+          font-weight: 720 !important;
+          letter-spacing: -.015em !important;
+          padding: 0 16px !important;
+          appearance: none !important;
+          -webkit-appearance: none !important;
+          transition: border-color .16s ease, background-color .16s ease, box-shadow .16s ease !important;
+        }
+
+        html body form[data-pmd-stripe-form="1"] input.pmd-themed-input::placeholder,
+        html body form[data-pmd-stripe-form="1"] input[data-pmd-themed-input]::placeholder {
+          color: rgba(36, 35, 32, .52) !important;
+          -webkit-text-fill-color: rgba(36, 35, 32, .52) !important;
+        }
+
+        html body form[data-pmd-stripe-form="1"] input.pmd-themed-input:focus,
+        html body form[data-pmd-stripe-form="1"] input[data-pmd-themed-input]:focus {
+          border-color: rgba(184, 93, 89, .72) !important;
+          background: rgba(255, 250, 242, .92) !important;
+          box-shadow: inset 0 -2px 0 rgba(184, 93, 89, .72) !important;
+        }
+
+        html body form[data-pmd-stripe-form="1"] .pmd-stripe-card-frame {
+          height: 54px !important;
+          min-height: 54px !important;
+          border-radius: 0 !important;
+          background: rgba(255, 251, 243, .74) !important;
+          background-color: rgba(255, 251, 243, .74) !important;
+          border: 1px solid rgba(36, 35, 32, .22) !important;
+          box-shadow: none !important;
+          padding: 0 14px !important;
+          display: flex !important;
+          align-items: center !important;
+          transition: border-color .16s ease, background-color .16s ease, box-shadow .16s ease !important;
+        }
+
+        html body form[data-pmd-stripe-form="1"] .pmd-stripe-card-frame:focus-within {
+          border-color: rgba(184, 93, 89, .72) !important;
+          background: rgba(255, 250, 242, .92) !important;
+          box-shadow: inset 0 -2px 0 rgba(184, 93, 89, .72) !important;
+        }
+
+        html body form[data-pmd-stripe-form="1"] .pmd-stripe-card-frame .StripeElement,
+        html body form[data-pmd-stripe-form="1"] .pmd-stripe-card-frame .__PrivateStripeElement {
+          width: 100% !important;
+          border: 0 !important;
+          border-radius: 0 !important;
+          background: transparent !important;
+          box-shadow: none !important;
+        }
+
+        html body form[data-pmd-stripe-form="1"] button[data-pmd-stripe-native-button="1"],
+        html body form[data-pmd-stripe-form="1"] button.pmd-themed-button[data-pmd-themed-button="primary"],
+        html body form[data-pmd-stripe-form="1"] button[type="submit"] {
+          width: 100% !important;
+          height: 54px !important;
+          min-height: 54px !important;
+          border-radius: 0 !important;
+          background: #b85d59 !important;
+          background-color: #b85d59 !important;
+          background-image: linear-gradient(#b85d59, #b85d59) !important;
+          border: 1px solid rgba(143, 55, 51, .68) !important;
+          color: #fffaf3 !important;
+          -webkit-text-fill-color: #fffaf3 !important;
+          box-shadow: none !important;
+          filter: none !important;
+          opacity: 1 !important;
+          font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif !important;
+          font-size: .82rem !important;
+          font-weight: 850 !important;
+          letter-spacing: .14em !important;
+          line-height: 1 !important;
+          text-transform: uppercase !important;
+          padding: .86rem 1rem !important;
+          appearance: none !important;
+          -webkit-appearance: none !important;
+          display: inline-flex !important;
+          align-items: center !important;
+          justify-content: center !important;
+          gap: .55rem !important;
+          transition: background-color .16s ease, border-color .16s ease, transform .16s ease !important;
+        }
+
+        html body form[data-pmd-stripe-form="1"] button[data-pmd-stripe-native-button="1"] *,
+        html body form[data-pmd-stripe-form="1"] button.pmd-themed-button[data-pmd-themed-button="primary"] *,
+        html body form[data-pmd-stripe-form="1"] button[type="submit"] * {
+          color: #fffaf3 !important;
+          -webkit-text-fill-color: #fffaf3 !important;
+          stroke: currentColor !important;
+        }
+
+        html body form[data-pmd-stripe-form="1"] button[data-pmd-stripe-native-button="1"]:not(:disabled):hover,
+        html body form[data-pmd-stripe-form="1"] button.pmd-themed-button[data-pmd-themed-button="primary"]:not(:disabled):hover,
+        html body form[data-pmd-stripe-form="1"] button[type="submit"]:not(:disabled):hover {
+          background: #c86460 !important;
+          background-color: #c86460 !important;
+          background-image: linear-gradient(#c86460, #c86460) !important;
+          border-color: rgba(143, 55, 51, .78) !important;
+          transform: translateY(-1px) !important;
+        }
+
+        html body form[data-pmd-stripe-form="1"] button[data-pmd-stripe-native-button="1"]:disabled,
+        html body form[data-pmd-stripe-form="1"] button.pmd-themed-button[data-pmd-themed-button="primary"]:disabled,
+        html body form[data-pmd-stripe-form="1"] button[type="submit"]:disabled {
+          background: #b85d59 !important;
+          background-color: #b85d59 !important;
+          background-image: linear-gradient(#b85d59, #b85d59) !important;
+          border-color: rgba(143, 55, 51, .68) !important;
+          color: #fffaf3 !important;
+          -webkit-text-fill-color: #fffaf3 !important;
+          opacity: .58 !important;
+          cursor: not-allowed !important;
+          pointer-events: none !important;
+          transform: none !important;
+        }
+
+        html body .kzco-overlay[data-kzco-root="1"][data-kzco-mode="dark"] form[data-pmd-stripe-form="1"] input.pmd-themed-input,
+        html body .kzco-overlay[data-kzco-root="1"][data-kzco-mode="dark"] form[data-pmd-stripe-form="1"] input[data-pmd-themed-input],
+        html body .kzco-overlay[data-kzco-root="1"][data-kzco-mode="dark"] form[data-pmd-stripe-form="1"] .pmd-stripe-card-frame {
+          background: rgba(246, 232, 200, .055) !important;
+          background-color: rgba(246, 232, 200, .055) !important;
+          border-color: rgba(198, 164, 93, .36) !important;
+          color: #f4e7c8 !important;
+          -webkit-text-fill-color: #f4e7c8 !important;
+        }
+
+        html body .kzco-overlay[data-kzco-root="1"][data-kzco-mode="dark"] form[data-pmd-stripe-form="1"] input.pmd-themed-input::placeholder,
+        html body .kzco-overlay[data-kzco-root="1"][data-kzco-mode="dark"] form[data-pmd-stripe-form="1"] input[data-pmd-themed-input]::placeholder {
+          color: rgba(244, 231, 200, .60) !important;
+          -webkit-text-fill-color: rgba(244, 231, 200, .60) !important;
+        }
+
+        /* PMD_KAZEN_PAID_CONFIRMATION_CARD_V3
+           Real post-payment confirmation card for Kazen checkout.
+           Keeps the same sharp Japanese visual language and supports dark mode.
+        */
+        html body .kzco-overlay[data-kzco-root="1"][data-kzco-step="paid"] .kzco-title-wrap,
+        html body .kzco-overlay[data-kzco-root="1"][data-kzco-step="paid"] .kzco-title-wrap h2 {
+          display: none !important;
+        }
+
+        html body .kzco-overlay[data-kzco-root="1"][data-kzco-step="paid"] .kzco-head {
+          grid-template-columns: 1fr 48px !important;
+          min-height: 4.25rem !important;
+          padding-top: 1.15rem !important;
+          padding-bottom: .75rem !important;
+        }
+
+        html body .kzco-overlay[data-kzco-root="1"][data-kzco-step="paid"] .kzco-body {
+          gap: .95rem !important;
+        }
+
+        html body .kzco-overlay[data-kzco-root="1"] .kzco-paid-hero {
+          margin-bottom: .55rem !important;
+        }
+
+        html body .kzco-overlay[data-kzco-root="1"] .kzco-paid-note {
+          margin: -.35rem 0 .1rem !important;
+          font-size: .92rem !important;
+          line-height: 1.45 !important;
+          color: rgba(36, 35, 32, .72) !important;
+          -webkit-text-fill-color: rgba(36, 35, 32, .72) !important;
+        }
+
+        html body .kzco-overlay[data-kzco-root="1"][data-kzco-mode="dark"] .kzco-paid-note {
+          color: rgba(246, 232, 200, .76) !important;
+          -webkit-text-fill-color: rgba(246, 232, 200, .76) !important;
+        }
+
+        html body .kzco-overlay[data-kzco-root="1"] .kzco-paid-total-box {
+          margin-top: .05rem !important;
+        }
+
+        html body .kzco-overlay[data-kzco-root="1"] .kzco-powered-by {
+          display: flex !important;
+          align-items: center !important;
+          justify-content: center !important;
+          gap: .5rem !important;
+          padding-top: .2rem !important;
+        }
+
+        html body .kzco-overlay[data-kzco-root="1"] .kzco-powered-by span {
+          font-size: .68rem !important;
+          font-weight: 700 !important;
+          letter-spacing: .10em !important;
+          text-transform: uppercase !important;
+          color: rgba(36, 35, 32, .56) !important;
+          -webkit-text-fill-color: rgba(36, 35, 32, .56) !important;
+        }
+
+        html body .kzco-overlay[data-kzco-root="1"][data-kzco-mode="dark"] .kzco-powered-by span {
+          color: rgba(246, 232, 200, .54) !important;
+          -webkit-text-fill-color: rgba(246, 232, 200, .54) !important;
+        }
+
+        html body .kzco-overlay[data-kzco-root="1"] .kzco-powered-by img {
+          display: block !important;
+          max-width: 118px !important;
+          max-height: 22px !important;
+          object-fit: contain !important;
+          opacity: .78 !important;
+        }
+
+
+
+        /* PMD_KAZEN_PAID_FEEDBACK_V4
+           Paid-state feedback card aligned with the Kazen sharp premium style.
+        */
+        html body .kzco-overlay[data-kzco-root="1"] .kzco-review-card {
+          display: grid !important;
+          gap: .85rem !important;
+          padding: 1rem !important;
+          background: rgba(255, 255, 255, .34) !important;
+          border: 1px solid rgba(36, 35, 32, .14) !important;
+          border-radius: 0 !important;
+        }
+
+        html body .kzco-overlay[data-kzco-root="1"] .kzco-review-head {
+          display: flex !important;
+          align-items: flex-start !important;
+          gap: .75rem !important;
+        }
+
+        html body .kzco-overlay[data-kzco-root="1"] .kzco-review-head > span {
+          width: 34px !important;
+          height: 34px !important;
+          display: inline-flex !important;
+          align-items: center !important;
+          justify-content: center !important;
+          border: 1px solid rgba(184, 93, 89, .38) !important;
+          color: #b85d59 !important;
+          flex: none !important;
+        }
+
+        html body .kzco-overlay[data-kzco-root="1"] .kzco-review-head h3 {
+          margin: 0 !important;
+          color: var(--kzco-panel-text) !important;
+          font-size: .98rem !important;
+          font-weight: 850 !important;
+          letter-spacing: .02em !important;
+          line-height: 1.1 !important;
+        }
+
+        html body .kzco-overlay[data-kzco-root="1"] .kzco-review-head p {
+          margin: .2rem 0 0 !important;
+          color: var(--kzco-panel-muted) !important;
+          font-size: .78rem !important;
+          line-height: 1.35 !important;
+        }
+
+        html body .kzco-overlay[data-kzco-root="1"] .kzco-stars {
+          display: grid !important;
+          grid-template-columns: repeat(5, minmax(0, 1fr)) !important;
+          gap: .45rem !important;
+        }
+
+        html body .kzco-overlay[data-kzco-root="1"] .kzco-stars button {
+          height: 42px !important;
+          border-radius: 0 !important;
+          border: 1px solid rgba(36, 35, 32, .18) !important;
+          background: rgba(255, 255, 255, .44) !important;
+          color: rgba(36, 35, 32, .42) !important;
+          display: inline-flex !important;
+          align-items: center !important;
+          justify-content: center !important;
+          appearance: none !important;
+          -webkit-appearance: none !important;
+          transition: border-color .18s ease, background .18s ease, color .18s ease !important;
+        }
+
+        html body .kzco-overlay[data-kzco-root="1"] .kzco-stars button[data-kzco-active="1"] {
+          border-color: rgba(184, 93, 89, .50) !important;
+          background: rgba(184, 93, 89, .10) !important;
+          color: #b85d59 !important;
+        }
+
+        html body .kzco-overlay[data-kzco-root="1"] .kzco-stars button[data-kzco-active="1"] svg {
+          fill: currentColor !important;
+        }
+
+        html body .kzco-overlay[data-kzco-root="1"] .kzco-review-textarea {
+          width: 100% !important;
+          min-height: 82px !important;
+          resize: vertical !important;
+          border-radius: 0 !important;
+        }
+
+        html body .kzco-overlay[data-kzco-root="1"] .kzco-review-submit {
+          min-height: 44px !important;
+        }
+
+        html body .kzco-overlay[data-kzco-root="1"] .kzco-review-message {
+          margin: 0 !important;
+          font-size: .76rem !important;
+          font-weight: 650 !important;
+          color: #166534 !important;
+        }
+
+        html body .kzco-overlay[data-kzco-root="1"] .kzco-review-error {
+          color: #b42318 !important;
+        }
+
+        html body .kzco-overlay[data-kzco-root="1"] .kzco-review-share {
+          border: 1px solid rgba(184, 93, 89, .18) !important;
+          padding: .75rem !important;
+          display: grid !important;
+          gap: .5rem !important;
+          background: rgba(255, 255, 255, .28) !important;
+        }
+
+        html body .kzco-overlay[data-kzco-root="1"] .kzco-review-share p {
+          margin: 0 !important;
+          font-size: .76rem !important;
+          font-weight: 800 !important;
+        }
+
+        html body .kzco-overlay[data-kzco-root="1"] .kzco-review-share div {
+          display: flex !important;
+          flex-wrap: wrap !important;
+          gap: .45rem !important;
+        }
+
+        html body .kzco-overlay[data-kzco-root="1"] .kzco-review-share a {
+          display: inline-flex !important;
+          align-items: center !important;
+          gap: .35rem !important;
+          border: 1px solid rgba(36, 35, 32, .16) !important;
+          padding: .42rem .62rem !important;
+          color: var(--kzco-panel-text) !important;
+          text-decoration: none !important;
+          font-size: .72rem !important;
+          font-weight: 800 !important;
+        }
+
+        html body .kzco-overlay[data-kzco-root="1"][data-kzco-mode="dark"] .kzco-review-card,
+        html body .kzco-overlay[data-kzco-root="1"][data-kzco-mode="dark"] .kzco-review-share {
+          background: rgba(8, 6, 4, .54) !important;
+          border-color: rgba(198, 164, 93, .26) !important;
+        }
+
+        html body .kzco-overlay[data-kzco-root="1"][data-kzco-mode="dark"] .kzco-stars button {
+          background: rgba(8, 6, 4, .58) !important;
+          border-color: rgba(198, 164, 93, .24) !important;
+          color: rgba(246, 232, 200, .38) !important;
+        }
+
+        html body .kzco-overlay[data-kzco-root="1"][data-kzco-mode="dark"] .kzco-stars button[data-kzco-active="1"] {
+          border-color: rgba(236, 138, 130, .56) !important;
+          background: rgba(184, 93, 89, .18) !important;
+          color: #ec8a82 !important;
+        }
+
+
+
+        /* PMD_KAZEN_PAID_FEEDBACK_POLISH_V5
+           Remove heavy frames from paid feedback and use compact icon-only public share links.
+        */
+        html body .kzco-overlay[data-kzco-root="1"] .kzco-review-card {
+          padding: .85rem 0 .1rem !important;
+          background: transparent !important;
+          border: 0 !important;
+          box-shadow: none !important;
+          gap: .78rem !important;
+        }
+
+        html body .kzco-overlay[data-kzco-root="1"] .kzco-review-head {
+          gap: .62rem !important;
+          align-items: center !important;
+        }
+
+        html body .kzco-overlay[data-kzco-root="1"] .kzco-review-head > span {
+          width: 28px !important;
+          height: 28px !important;
+          border: 0 !important;
+          background: transparent !important;
+          color: #b85d59 !important;
+        }
+
+        html body .kzco-overlay[data-kzco-root="1"] .kzco-review-head h3 {
+          font-size: .98rem !important;
+          letter-spacing: .01em !important;
+        }
+
+        html body .kzco-overlay[data-kzco-root="1"] .kzco-review-head p {
+          font-size: .76rem !important;
+          margin-top: .15rem !important;
+        }
+
+        html body .kzco-overlay[data-kzco-root="1"] .kzco-stars {
+          display: flex !important;
+          justify-content: center !important;
+          gap: .36rem !important;
+          padding: .1rem 0 !important;
+        }
+
+        html body .kzco-overlay[data-kzco-root="1"] .kzco-stars button {
+          width: 42px !important;
+          height: 42px !important;
+          border: 0 !important;
+          background: transparent !important;
+          box-shadow: none !important;
+          color: rgba(36, 35, 32, .42) !important;
+          padding: 0 !important;
+        }
+
+        html body .kzco-overlay[data-kzco-root="1"] .kzco-stars button svg {
+          width: 24px !important;
+          height: 24px !important;
+          transition: transform .18s ease, color .18s ease, fill .18s ease !important;
+        }
+
+        html body .kzco-overlay[data-kzco-root="1"] .kzco-stars button[data-kzco-active="1"] {
+          color: #b85d59 !important;
+          background: transparent !important;
+        }
+
+        html body .kzco-overlay[data-kzco-root="1"] .kzco-stars button[data-kzco-active="1"] svg {
+          fill: currentColor !important;
+          transform: translateY(-1px) scale(1.04) !important;
+        }
+
+        html body .kzco-overlay[data-kzco-root="1"] .kzco-review-textarea {
+          min-height: 76px !important;
+          padding: .85rem .95rem !important;
+          border-radius: 0 !important;
+          border: 1px solid rgba(36, 35, 32, .22) !important;
+          background: rgba(255, 255, 255, .28) !important;
+          box-shadow: none !important;
+          font-size: .9rem !important;
+          line-height: 1.35 !important;
+        }
+
+        html body .kzco-overlay[data-kzco-root="1"] .kzco-review-submit {
+          min-height: 44px !important;
+          margin-top: .05rem !important;
+        }
+
+        html body .kzco-overlay[data-kzco-root="1"] .kzco-review-share {
+          border: 0 !important;
+          background: transparent !important;
+          padding: .2rem 0 0 !important;
+          gap: .52rem !important;
+        }
+
+        html body .kzco-overlay[data-kzco-root="1"] .kzco-review-share p {
+          text-align: center !important;
+          color: var(--kzco-panel-muted) !important;
+          letter-spacing: .06em !important;
+          text-transform: uppercase !important;
+          font-size: .64rem !important;
+        }
+
+        html body .kzco-overlay[data-kzco-root="1"] .kzco-review-share div {
+          justify-content: center !important;
+          gap: .5rem !important;
+        }
+
+        html body .kzco-overlay[data-kzco-root="1"] .kzco-review-share a {
+          width: 42px !important;
+          height: 42px !important;
+          padding: 0 !important;
+          display: inline-flex !important;
+          align-items: center !important;
+          justify-content: center !important;
+          border: 1px solid rgba(36, 35, 32, .18) !important;
+          background: rgba(255, 255, 255, .32) !important;
+          color: var(--kzco-panel-text) !important;
+          font-size: 0 !important;
+          line-height: 0 !important;
+          text-decoration: none !important;
+        }
+
+        html body .kzco-overlay[data-kzco-root="1"] .kzco-review-share a svg {
+          width: 19px !important;
+          height: 19px !important;
+          stroke: currentColor !important;
+        }
+
+        html body .kzco-overlay[data-kzco-root="1"] .kzco-review-share a span {
+          position: absolute !important;
+          width: 1px !important;
+          height: 1px !important;
+          padding: 0 !important;
+          margin: -1px !important;
+          overflow: hidden !important;
+          clip: rect(0, 0, 0, 0) !important;
+          white-space: nowrap !important;
+          border: 0 !important;
+        }
+
+        html body .kzco-overlay[data-kzco-root="1"][data-kzco-mode="dark"] .kzco-review-card {
+          background: transparent !important;
+          border: 0 !important;
+        }
+
+        html body .kzco-overlay[data-kzco-root="1"][data-kzco-mode="dark"] .kzco-review-head > span,
+        html body .kzco-overlay[data-kzco-root="1"][data-kzco-mode="dark"] .kzco-stars button[data-kzco-active="1"] {
+          color: #ec8a82 !important;
+        }
+
+        html body .kzco-overlay[data-kzco-root="1"][data-kzco-mode="dark"] .kzco-stars button {
+          color: rgba(246, 232, 200, .40) !important;
+          background: transparent !important;
+          border: 0 !important;
+        }
+
+        html body .kzco-overlay[data-kzco-root="1"][data-kzco-mode="dark"] .kzco-review-textarea {
+          border-color: rgba(198, 164, 93, .30) !important;
+          background: rgba(8, 6, 4, .46) !important;
+          color: #f6e8c8 !important;
+          -webkit-text-fill-color: #f6e8c8 !important;
+        }
+
+        html body .kzco-overlay[data-kzco-root="1"][data-kzco-mode="dark"] .kzco-review-share a {
+          border-color: rgba(198, 164, 93, .30) !important;
+          background: rgba(8, 6, 4, .48) !important;
+          color: #f6e8c8 !important;
+        }
+
+
+
+        /* PMD_KAZEN_PAID_HEADER_TIMER_V6
+           Paid card: title belongs in header; ETA timer matches the order-received timer style.
+        */
+        html body .kzco-overlay[data-kzco-root="1"][data-kzco-step="paid"] .kzco-title-wrap,
+        html body .kzco-overlay[data-kzco-root="1"][data-kzco-step="paid"] .kzco-title-wrap h2 {
+          display: block !important;
+        }
+
+        html body .kzco-overlay[data-kzco-root="1"][data-kzco-step="paid"] .kzco-head {
+          min-height: auto !important;
+          padding: 1.35rem 1.45rem 1.15rem !important;
+          align-items: flex-start !important;
+        }
+
+        html body .kzco-overlay[data-kzco-root="1"][data-kzco-step="paid"] .kzco-head h2 {
+          font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif !important;
+          font-size: clamp(2.05rem, 7.2vw, 3.15rem) !important;
+          font-weight: 900 !important;
+          line-height: .94 !important;
+          letter-spacing: -.055em !important;
+          text-transform: none !important;
+          max-width: 12rem !important;
+        }
+
+        html body .kzco-overlay[data-kzco-root="1"][data-kzco-step="paid"] .kzco-body {
+          padding-top: 1.05rem !important;
+          gap: .92rem !important;
+        }
+
+        html body .kzco-overlay[data-kzco-root="1"] .kzco-paid-time-wrap {
+          display: flex !important;
+          justify-content: center !important;
+          align-items: center !important;
+          margin: .25rem 0 .55rem !important;
+        }
+
+        html body .kzco-overlay[data-kzco-root="1"] .kzco-paid-time {
+          display: inline-flex !important;
+          align-items: center !important;
+          justify-content: center !important;
+          gap: .42rem !important;
+          font-style: normal !important;
+          color: rgba(36, 35, 32, .86) !important;
+          -webkit-text-fill-color: rgba(36, 35, 32, .86) !important;
+        }
+
+        html body .kzco-overlay[data-kzco-root="1"] .kzco-paid-time svg {
+          width: 1.05rem !important;
+          height: 1.05rem !important;
+          stroke: currentColor !important;
+          opacity: .82 !important;
+          flex: none !important;
+        }
+
+        html body .kzco-overlay[data-kzco-root="1"] .kzco-paid-time strong {
+          font-size: 1.72rem !important;
+          font-weight: 900 !important;
+          line-height: .92 !important;
+          letter-spacing: -.04em !important;
+          color: #242320 !important;
+          -webkit-text-fill-color: #242320 !important;
+        }
+
+        html body .kzco-overlay[data-kzco-root="1"] .kzco-paid-time span {
+          font-size: .82rem !important;
+          font-weight: 900 !important;
+          line-height: 1 !important;
+          letter-spacing: .13em !important;
+          text-transform: uppercase !important;
+          color: #b85d59 !important;
+          -webkit-text-fill-color: #b85d59 !important;
+          transform: translateY(.08rem) !important;
+        }
+
+        html body .kzco-overlay[data-kzco-root="1"] .kzco-paid-note {
+          margin-top: -.15rem !important;
+        }
+
+        html body .kzco-overlay[data-kzco-root="1"][data-kzco-mode="dark"] .kzco-paid-time {
+          color: rgba(246, 232, 200, .82) !important;
+          -webkit-text-fill-color: rgba(246, 232, 200, .82) !important;
+        }
+
+        html body .kzco-overlay[data-kzco-root="1"][data-kzco-mode="dark"] .kzco-paid-time strong {
+          color: #f6e8c8 !important;
+          -webkit-text-fill-color: #f6e8c8 !important;
+        }
+
+        html body .kzco-overlay[data-kzco-root="1"][data-kzco-mode="dark"] .kzco-paid-time span {
+          color: #ec8a82 !important;
+          -webkit-text-fill-color: #ec8a82 !important;
+        }
+
+
+
+        /* PMD_KAZEN_PAID_COMPACT_ROBOTO_V7
+           Compact paid confirmation and Roboto typography in isolated Kazen checkout.
+        */
+        html body .kzco-overlay[data-kzco-root="1"],
+        html body .kzco-overlay[data-kzco-root="1"] *:not(svg):not(path):not(circle):not(polyline):not(line):not(rect):not(polygon) {
+          font-family: "Roboto", Arial, Helvetica, sans-serif !important;
+        }
+
+        html body .kzco-overlay[data-kzco-root="1"] .kzco-paid-note {
+          display: none !important;
+        }
+
+        html body .kzco-overlay[data-kzco-root="1"][data-kzco-step="paid"] .kzco-head {
+          padding: 1.12rem 1.35rem .95rem !important;
+          min-height: auto !important;
+        }
+
+        html body .kzco-overlay[data-kzco-root="1"][data-kzco-step="paid"] .kzco-head h2 {
+          font-size: clamp(1.95rem, 6.3vw, 2.72rem) !important;
+          line-height: .98 !important;
+          letter-spacing: -.045em !important;
+          max-width: 13.8rem !important;
+        }
+
+        html body .kzco-overlay[data-kzco-root="1"][data-kzco-step="paid"] .kzco-body {
+          padding-top: .82rem !important;
+          gap: .78rem !important;
+        }
+
+        html body .kzco-overlay[data-kzco-root="1"] .kzco-paid-time-wrap {
+          margin: .08rem 0 .32rem !important;
+        }
+
+        html body .kzco-overlay[data-kzco-root="1"] .kzco-paid-total-box {
+          margin-top: .05rem !important;
+        }
+
+        html body .kzco-overlay[data-kzco-root="1"] .kzco-review-card {
+          padding-top: .45rem !important;
+        }
+
+        html body .kzco-overlay[data-kzco-root="1"] .kzco-powered-by {
+          padding-top: .05rem !important;
+        }
+
+
+        /* PMD_KAZEN_INLINE_PAYMENT_ICONS_V1
+           Fast, no-network payment method marks. Replaces PNG/SVG image requests.
+           Light/dark mode is handled by currentColor and theme variables.
+        */
+        html body .kzco-overlay[data-kzco-root="1"] .kzco-method-tile {
+          overflow: hidden !important;
+        }
+
+        html body .kzco-overlay[data-kzco-root="1"] .kzco-paymark {
+          display: inline-flex !important;
+          align-items: center !important;
+          justify-content: center !important;
+          min-width: 2.75rem !important;
+          height: 2rem !important;
+          color: #242320 !important;
+          -webkit-text-fill-color: currentColor !important;
+          line-height: 1 !important;
+          user-select: none !important;
+        }
+
+        html body .kzco-overlay[data-kzco-root="1"] .kzco-paymark svg {
+          display: block !important;
+          width: 4.2rem !important;
+          height: 2.55rem !important;
+          fill: none !important;
+          stroke: currentColor !important;
+          stroke-width: 3.2 !important;
+          stroke-linecap: round !important;
+          stroke-linejoin: round !important;
+        }
+
+        html body .kzco-overlay[data-kzco-root="1"] .kzco-paymark-card svg {
+          color: #32445f !important;
+        }
+
+        html body .kzco-overlay[data-kzco-root="1"] .kzco-paymark-apple {
+          gap: .18rem !important;
+          font-size: 2.05rem !important;
+          font-weight: 800 !important;
+          letter-spacing: -.07em !important;
+          color: #050505 !important;
+        }
+
+        html body .kzco-overlay[data-kzco-root="1"] .kzco-paymark-apple-symbol {
+          font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI Symbol", sans-serif !important;
+          font-size: 2.18rem !important;
+          transform: translateY(-.02rem) !important;
+        }
+
+        html body .kzco-overlay[data-kzco-root="1"] .kzco-paymark-google {
+          gap: .25rem !important;
+          font-size: 1.92rem !important;
+          font-weight: 600 !important;
+          letter-spacing: -.04em !important;
+          color: #69707d !important;
+        }
+
+        html body .kzco-overlay[data-kzco-root="1"] .kzco-paymark-google-g {
+          width: 1.85rem !important;
+          height: 1.85rem !important;
+          display: inline-flex !important;
+          align-items: center !important;
+          justify-content: center !important;
+          border-radius: 999px !important;
+          background:
+            conic-gradient(from -35deg, #4285f4 0 25%, #34a853 0 45%, #fbbc05 0 68%, #ea4335 0 83%, #4285f4 0 100%) !important;
+          color: #ffffff !important;
+          font-weight: 900 !important;
+          font-size: 1.32rem !important;
+          letter-spacing: -.12em !important;
+        }
+
+        html body .kzco-overlay[data-kzco-root="1"] .kzco-paymark-google-g i {
+          font-style: normal !important;
+          -webkit-text-fill-color: #fff !important;
+        }
+
+        html body .kzco-overlay[data-kzco-root="1"] .kzco-paymark-wero {
+          font-size: 1.88rem !important;
+          font-weight: 950 !important;
+          letter-spacing: -.12em !important;
+          color: #141414 !important;
+        }
+
+        html body .kzco-overlay[data-kzco-root="1"] .kzco-paymark-wero b {
+          font-weight: 950 !important;
+        }
+
+        html body .kzco-overlay[data-kzco-root="1"] .kzco-paymark-wero b:first-child {
+          color: #111111 !important;
+        }
+
+        html body .kzco-overlay[data-kzco-root="1"] .kzco-paymark-wero b:last-child {
+          color: #202020 !important;
+        }
+
+        html body .kzco-overlay[data-kzco-root="1"] .kzco-paymark-paypal {
+          gap: .35rem !important;
+          color: #173a87 !important;
+          font-size: 1.25rem !important;
+          font-weight: 850 !important;
+          letter-spacing: -.05em !important;
+        }
+
+        html body .kzco-overlay[data-kzco-root="1"] .kzco-paymark-paypal span {
+          width: 1.95rem !important;
+          height: 1.95rem !important;
+          display: inline-flex !important;
+          align-items: center !important;
+          justify-content: center !important;
+          background: linear-gradient(135deg, #1f4aa8, #179bd7) !important;
+          color: #ffffff !important;
+          -webkit-text-fill-color: #ffffff !important;
+          font-weight: 950 !important;
+          border-radius: .18rem !important;
+          transform: skew(-7deg) !important;
+        }
+
+        html body .kzco-overlay[data-kzco-root="1"] .kzco-paymark-cash svg {
+          color: #1b1b1b !important;
+          width: 4rem !important;
+        }
+
+        html body .kzco-overlay[data-kzco-root="1"] .kzco-paymark-text {
+          max-width: 100% !important;
+          font-size: .88rem !important;
+          font-weight: 900 !important;
+          letter-spacing: .06em !important;
+          text-transform: uppercase !important;
+          color: #242320 !important;
+          text-align: center !important;
+        }
+
+        html body .kzco-overlay[data-kzco-root="1"][data-kzco-mode="dark"] .kzco-paymark {
+          color: #f6e8c8 !important;
+          -webkit-text-fill-color: currentColor !important;
+        }
+
+        html body .kzco-overlay[data-kzco-root="1"][data-kzco-mode="dark"] .kzco-paymark-card svg,
+        html body .kzco-overlay[data-kzco-root="1"][data-kzco-mode="dark"] .kzco-paymark-cash svg,
+        html body .kzco-overlay[data-kzco-root="1"][data-kzco-mode="dark"] .kzco-paymark-wero,
+        html body .kzco-overlay[data-kzco-root="1"][data-kzco-mode="dark"] .kzco-paymark-wero b,
+        html body .kzco-overlay[data-kzco-root="1"][data-kzco-mode="dark"] .kzco-paymark-text {
+          color: #f6e8c8 !important;
+        }
+
+        html body .kzco-overlay[data-kzco-root="1"][data-kzco-mode="dark"] .kzco-paymark-apple {
+          color: #ffffff !important;
+        }
+
+        html body .kzco-overlay[data-kzco-root="1"][data-kzco-mode="dark"] .kzco-paymark-google {
+          color: rgba(246, 232, 200, .74) !important;
+        }
+
+        html body .kzco-overlay[data-kzco-root="1"][data-kzco-mode="dark"] .kzco-paymark-paypal {
+          color: #8fc6ff !important;
+        }
+
+
       `}</style>
 
 

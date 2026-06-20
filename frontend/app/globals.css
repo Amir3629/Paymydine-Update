@@ -1,2 +1,46 @@
+@import url("https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700;900&display=swap");
 @import "../styles/customer/index.css";
 @import "../styles/global/paymydine-legacy-globals.css";
+
+
+/* PMD_GLOBAL_ROBOTO_FRONTEND_V7
+   Frontend-wide font standardization requested for PayMyDine.
+   Keep icons/SVG geometry untouched while forcing text UI to Roboto.
+*/
+:root {
+  --pmd-font-sans: "Roboto", Arial, Helvetica, sans-serif;
+}
+html,
+body,
+button,
+input,
+textarea,
+select,
+option,
+label,
+p,
+span,
+a,
+div,
+section,
+article,
+aside,
+header,
+footer,
+main,
+nav,
+h1,
+h2,
+h3,
+h4,
+h5,
+h6,
+small,
+strong,
+em {
+  font-family: var(--pmd-font-sans) !important;
+}
+body *:not(svg):not(path):not(circle):not(polyline):not(line):not(rect):not(polygon) {
+  font-family: var(--pmd-font-sans) !important;
+}
+

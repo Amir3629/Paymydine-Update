@@ -1,3 +1,4 @@
+@import url("https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700;900&display=swap");
 /* PMD_KAZEN_FULL_THEME_PAGE_20260611 */
 :root {
   --kazen-paper: #f7f3ec;
@@ -2632,6 +2633,183 @@ html body .pmd-kazen-action-card .kazen-primary {
 }
 
 
+/* PMD_KAZEN_ACTION_CONFIRMATION_CARD_20260619
+   Compact success state for waiter and guest note cards. No extra framed check box,
+   no duplicate success title, and a restrained action width on large screens. */
+html body .pmd-kazen-action-form,
+html body .pmd-kazen-action-confirmation {
+  animation: pmdKazenActionContentIn .20s cubic-bezier(.22, 1, .36, 1) both !important;
+}
+
+@keyframes pmdKazenActionContentIn {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+html body .pmd-kazen-action-confirmation {
+  display: grid !important;
+  justify-items: center !important;
+  gap: 10px !important;
+  padding: 12px 0 2px !important;
+  text-align: center !important;
+}
+
+html body .pmd-kazen-action-confirmation-line {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 10px !important;
+  color: #b85d59 !important;
+  -webkit-text-fill-color: #b85d59 !important;
+  font-family: Inter, ui-sans-serif, system-ui, sans-serif !important;
+  font-size: .86rem !important;
+  font-weight: 850 !important;
+  letter-spacing: .18em !important;
+  line-height: 1.2 !important;
+  text-transform: uppercase !important;
+}
+
+html body .pmd-kazen-action-confirmation-mark {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  width: auto !important;
+  height: auto !important;
+  border: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  color: inherit !important;
+  -webkit-text-fill-color: inherit !important;
+  font-size: 1.35rem !important;
+  font-weight: 850 !important;
+  line-height: 1 !important;
+}
+
+html body .pmd-kazen-action-confirmation p {
+  max-width: 28ch !important;
+  margin: 0 auto !important;
+  color: rgba(36, 35, 32, .72) !important;
+  -webkit-text-fill-color: rgba(36, 35, 32, .72) !important;
+  line-height: 1.55 !important;
+}
+
+html body .pmd-kazen-action-confirmation-actions {
+  width: min(100%, 280px) !important;
+  display: grid !important;
+  grid-template-columns: 1fr !important;
+  margin-top: 8px !important;
+}
+
+html body .pmd-kazen-action-confirmation-actions .kazen-primary {
+  width: 100% !important;
+  min-height: 46px !important;
+}
+
+html[data-pmd-kazen-mode="dark"] body .pmd-kazen-action-confirmation-line {
+  color: #f3b0a8 !important;
+  -webkit-text-fill-color: #f3b0a8 !important;
+}
+
+html[data-pmd-kazen-mode="dark"] body .pmd-kazen-action-confirmation p {
+  color: rgba(246, 232, 200, .74) !important;
+  -webkit-text-fill-color: rgba(246, 232, 200, .74) !important;
+}
+
+@media (max-width: 540px) {
+  html body .pmd-kazen-action-confirmation {
+    gap: 9px !important;
+  }
+
+  html body .pmd-kazen-action-confirmation-actions {
+    width: 100% !important;
+  }
+}
+
+
+
+/* PMD_KAZEN_ACTION_TOAST_CONFIRM_V1_20260619
+   Compact success state for waiter/note actions: no header, no button, auto-dismissed by React.
+*/
+html body .pmd-kazen-action-toast-overlay {
+  animation: pmdKazenToastOverlayOut 2.2s cubic-bezier(.22, 1, .36, 1) both !important;
+}
+
+html body .pmd-kazen-action-toast {
+  width: min(calc(100vw - 48px), 320px) !important;
+  min-height: 74px !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 12px !important;
+  padding: 22px 26px !important;
+  border: 1px solid rgba(36, 35, 32, .18) !important;
+  border-radius: 0 !important;
+  background: rgba(255, 252, 245, .98) !important;
+  color: #b85d59 !important;
+  -webkit-text-fill-color: #b85d59 !important;
+  box-shadow: 0 24px 70px rgba(0, 0, 0, .22) !important;
+  font-family: Inter, ui-sans-serif, system-ui, sans-serif !important;
+  font-size: .86rem !important;
+  font-weight: 850 !important;
+  letter-spacing: .16em !important;
+  line-height: 1.15 !important;
+  text-align: center !important;
+  text-transform: uppercase !important;
+  animation: pmdKazenToastInOut 2.2s cubic-bezier(.22, 1, .36, 1) both !important;
+}
+
+html body .pmd-kazen-action-toast-mark {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  color: inherit !important;
+  -webkit-text-fill-color: inherit !important;
+  font-size: 1.35rem !important;
+  font-weight: 900 !important;
+  line-height: 1 !important;
+}
+
+@keyframes pmdKazenToastInOut {
+  0% {
+    opacity: 0;
+    transform: translateY(12px) scale(.965);
+  }
+  12%, 80% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(-6px) scale(.985);
+  }
+}
+
+@keyframes pmdKazenToastOverlayOut {
+  0% {
+    opacity: 0;
+  }
+  12%, 84% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
+html[data-pmd-kazen-mode="dark"] body .pmd-kazen-action-toast {
+  border-color: rgba(198, 164, 93, .36) !important;
+  background: linear-gradient(180deg, rgba(28, 21, 15, .98), rgba(10, 7, 5, .98)) !important;
+  color: #f3b0a8 !important;
+  -webkit-text-fill-color: #f3b0a8 !important;
+  box-shadow: 0 26px 78px rgba(0, 0, 0, .74), inset 0 1px 0 rgba(255,238,196,.08) !important;
+}
+
 /* PMD_KAZEN_DARK_MODAL_SYSTEM_V8_20260618
    Dark mode for the rewritten Kazen item, waiter, note, and checkout-style cards.
    Same sharp geometry; only palette changes to dark paper + gold lines + red primary action.
@@ -3641,3 +3819,12 @@ html body :is(.kazen-primary, .kazen-secondary, .pmd-kazen-detail-add, .pmd-kaze
     letter-spacing: .105em !important;
   }
 }
+
+/* PMD_KAZEN_STANDALONE_ROBOTO_V7 */
+html body,
+html body *:not(svg):not(path):not(circle):not(polyline):not(line):not(rect):not(polygon),
+.kazen-page,
+.kazen-page *:not(svg):not(path):not(circle):not(polyline):not(line):not(rect):not(polygon) {
+  font-family: "Roboto", Arial, Helvetica, sans-serif !important;
+}
+
