@@ -37,6 +37,7 @@ export function renderThemedCheckoutShellRoute(props: any) {
     couponLoading,
     setCouponLoading,
     validateCoupon,
+    removeCoupon,
     handleModernGreenApplyCoupon,
     handleModernGreenRemoveCoupon,
     visiblePaymentMethods,
@@ -126,6 +127,7 @@ export function renderThemedCheckoutShellRoute(props: any) {
         validateCoupon={validateCoupon}
         onApplyCoupon={handleModernGreenApplyCoupon}
         onRemoveCoupon={handleModernGreenRemoveCoupon}
+        removeCoupon={removeCoupon}
         visiblePaymentMethods={visiblePaymentMethods}
         loadingPayments={loadingPayments}
         selectedPaymentMethod={selectedPaymentMethod}

@@ -1,0 +1,109 @@
+/* PMD UI Jank Stability v57
+   Built from the Playwright audit.
+   Fix targets:
+   1) Sidebar first-load jump caused by PayMyDine logo slot being injected after the menu.
+   2) Header-right toolbar width jump.
+   3) Dashboard KPI bar 12px late vertical jump while dashboard booting class is removed.
+   4) KPI number/text width changes after real API values load.
+   5) Reduce first-second visible animation flicker.
+   This does not touch data, routes, role dashboards, or sidebar final design. */
+
+/* First 1.8s: keep transitions off so late class changes do not visibly slide/flicker */
+html.pmd-ui-jank-preboot-v57 body.page.pmd-admin-theme-v1 .sidebar,
+html.pmd-ui-jank-preboot-v57 body.page.pmd-admin-theme-v1 #navSidebar,
+html.pmd-ui-jank-preboot-v57 body.page.pmd-admin-theme-v1 #side-nav-menu,
+html.pmd-ui-jank-preboot-v57 body.page.pmd-admin-theme-v1 .navbar-top,
+html.pmd-ui-jank-preboot-v57 body.page.pmd-admin-theme-v1 .navbar-right,
+html.pmd-ui-jank-preboot-v57 body.page.pmd-admin-theme-v1 .page-wrapper,
+html.pmd-ui-jank-preboot-v57 body.page.pmd-admin-theme-v1 .pmd-dashboard-modern,
+html.pmd-ui-jank-preboot-v57 body.page.pmd-admin-theme-v1 .pmd-dashboard-kpi-bar,
+html.pmd-ui-jank-preboot-v57 body.page.pmd-admin-theme-v1 .pmd-dashboard-kpi,
+html.pmd-ui-jank-preboot-v57 body.page.pmd-admin-theme-v1 .pmd-dashboard-card {
+  transition: none !important;
+  animation: none !important;
+}
+
+/* Reserve the exact vertical space that appears when the PMD logo is injected.
+   Audit showed Dashboard text moved down by 40px after logo insertion. */
+@supports selector(:has(*)) {
+  html.pmd-ui-jank-preboot-v57 body.page.pmd-admin-theme-v1:not(.pmd-sidebar-icons-only) #navSidebar:not(:has(.pmd-platform-logo-slot-v38)) #side-nav-menu {
+    margin-top: 66px !important; /* v56 final 26px + 40px reserve */
+  }
+
+  html.pmd-ui-jank-preboot-v57 body.page.pmd-admin-theme-v1.pmd-sidebar-icons-only #navSidebar:not(:has(.pmd-platform-logo-slot-v38)) #side-nav-menu {
+    margin-top: 64px !important; /* v56 final 24px + 40px reserve */
+  }
+}
+
+/* Header right icons reserve: audit showed navbar-right growing 100 → 200 → 250px. */
+html body.page.pmd-admin-theme-v1 .navbar-top .navbar-right,
+html body.page.pmd-admin-theme-v1 .navbar-top #menu-mainmenu,
+html body.page.pmd-admin-theme-v1 .navbar-fixed-top .navbar-right,
+html body.page.pmd-admin-theme-v1 .navbar-fixed-top #menu-mainmenu {
+  min-width: 250px !important;
+  flex: 0 0 auto !important;
+  justify-content: flex-end !important;
+}
+
+html body.page.pmd-admin-theme-v1 #notification-count,
+html body.page.pmd-admin-theme-v1 .badge#notification-count,
+html body.page.pmd-admin-theme-v1 #notifDropdown .badge {
+  min-width: 22px !important;
+  height: 16px !important;
+  line-height: 16px !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+}
+
+/* Dashboard booting: audit showed KPI bar top 78 → 90 when pmd-dashboard-booting was removed.
+   Give booting state the final 12px offset immediately. */
+html.pmd-dashboard-booting body.page.pmd-admin-theme-v1 .pmd-dashboard-modern.pmd-owner-match-v13,
+html.pmd-dashboard-booting body.page.pmd-admin-theme-v1 .pmd-dashboard-modern.pmd-manager-ops-v29,
+html.pmd-dashboard-booting body.page.pmd-admin-theme-v1 .pmd-dashboard-modern[class*="pmd-"] {
+  margin-top: 12px !important;
+}
+
+/* Dashboard numeric/text reservation: avoid width jumps when real data replaces placeholders. */
+html body.page.pmd-admin-theme-v1 .pmd-dashboard-kpi-value,
+html body.page.pmd-admin-theme-v1 .pmd-dashboard-kpi .pmd-dashboard-kpi-value,
+html body.page.pmd-admin-theme-v1 .pmd-dashboard-card-value,
+html body.page.pmd-admin-theme-v1 [class*="kpi-value"],
+html body.page.pmd-admin-theme-v1 [class*="metric-value"] {
+  min-width: 122px !important;
+  font-variant-numeric: tabular-nums !important;
+  white-space: nowrap !important;
+}
+
+html body.page.pmd-admin-theme-v1 .pmd-dashboard-kpi-sub,
+html body.page.pmd-admin-theme-v1 .pmd-dashboard-kpi .pmd-dashboard-kpi-sub,
+html body.page.pmd-admin-theme-v1 [class*="kpi-sub"],
+html body.page.pmd-admin-theme-v1 [class*="metric-sub"] {
+  min-width: 190px !important;
+  white-space: nowrap !important;
+}
+
+html body.page.pmd-admin-theme-v1 .pmd-dashboard-line > span:last-child,
+html body.page.pmd-admin-theme-v1 .pmd-dashboard-lines .pmd-dashboard-line > span:last-child,
+html body.page.pmd-admin-theme-v1 .pmd-manager-line > span:last-child {
+  min-width: 58px !important;
+  text-align: right !important;
+  font-variant-numeric: tabular-nums !important;
+}
+
+/* Prevent image/logo flicker if a logo candidate image has not decoded yet */
+html body.page.pmd-admin-theme-v1 .pmd-platform-logo-slot-v38,
+html body.page.pmd-admin-theme-v1 .pmd-platform-logo-link-v38,
+html body.page.pmd-admin-theme-v1 img.pmd-platform-logo-img-v38 {
+  contain: layout paint !important;
+}
+
+/* Stable placeholder dimensions for broken/missing old media image references */
+img[src*="Gemini_Generated_Image_kzcmghkzcmghkzcm-removebg-preview"] {
+  width: 1px !important;
+  height: 1px !important;
+  min-width: 1px !important;
+  min-height: 1px !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
+}

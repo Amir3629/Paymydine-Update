@@ -1314,3 +1314,214 @@ html body [data-pmd-checkout-theme="kazen_japanese"] *:not(svg):not(path):not(ci
   font-family: "Roboto", Arial, Helvetica, sans-serif !important;
 }
 
+
+/* PMD_KAZEN_TYPOGRAPHY_SCALE_V1
+   Kazen customer menu typography hierarchy:
+   - Main titles: strong, editorial, not every word uppercase
+   - Section titles/buttons/labels: uppercase, letter-spaced
+   - Food names/prices: readable and consistent
+   - Body/details: calm, smaller, premium
+*/
+.kazen-page,
+.kazen-page * {
+  font-family: var(--pmd-font-sans, "Roboto", Inter, ui-sans-serif, system-ui, sans-serif) !important;
+}
+
+.kazen-page {
+  font-size: 16px !important;
+  line-height: 1.42 !important;
+}
+
+.kazen-brand,
+.kazen-page h1 {
+  font-size: clamp(1.55rem, 5.6vw, 2.15rem) !important;
+  line-height: .98 !important;
+  font-weight: 900 !important;
+  letter-spacing: .16em !important;
+  text-transform: uppercase !important;
+}
+
+.kazen-page h2,
+.kazen-page [class*="section"][class*="title"],
+.kazen-page [class*="category"][class*="title"] {
+  font-size: var(--pmd-text-section-title, .94rem) !important;
+  line-height: 1.12 !important;
+  font-weight: 900 !important;
+  letter-spacing: .045em !important;
+  text-transform: uppercase !important;
+}
+
+.kazen-subtitle,
+.kazen-pill,
+.kazen-stamp,
+.kazen-page [class*="eyebrow"],
+.kazen-page [class*="meta"],
+.kazen-page [class*="label"] {
+  font-size: var(--pmd-text-caption, .76rem) !important;
+  line-height: 1.12 !important;
+  font-weight: 800 !important;
+  letter-spacing: .13em !important;
+  text-transform: uppercase !important;
+}
+
+.kazen-page [class*="item"][class*="name"],
+.kazen-page [class*="food"][class*="name"],
+.kazen-page [class*="product"][class*="name"],
+.kazen-page h3 {
+  font-size: var(--pmd-text-card-title, 1rem) !important;
+  line-height: 1.18 !important;
+  font-weight: 850 !important;
+  letter-spacing: -.012em !important;
+  text-transform: none !important;
+}
+
+.kazen-page p,
+.kazen-page [class*="description"],
+.kazen-page [class*="detail"],
+.kazen-page [class*="muted"] {
+  font-size: var(--pmd-text-body, .94rem) !important;
+  line-height: 1.46 !important;
+  font-weight: 450 !important;
+  letter-spacing: -.01em !important;
+  text-transform: none !important;
+}
+
+.kazen-page [class*="price"],
+.kazen-page [class*="total"],
+.kazen-page [class*="amount"],
+.kazen-page [class*="number"] {
+  font-size: var(--pmd-text-price, 1rem) !important;
+  line-height: 1.1 !important;
+  font-weight: 850 !important;
+  letter-spacing: -.02em !important;
+  font-variant-numeric: tabular-nums !important;
+  font-feature-settings: "tnum" 1, "kern" 1 !important;
+}
+
+.kazen-page button,
+.kazen-page [role="button"],
+.kazen-page .kazen-btn,
+.kazen-page .kazen-button {
+  font-size: var(--pmd-text-button, .80rem) !important;
+  line-height: 1.12 !important;
+  font-weight: 850 !important;
+  letter-spacing: .13em !important;
+  text-transform: uppercase !important;
+}
+
+.kazen-dock,
+.kazen-dock *,
+.kazen-bottom,
+.kazen-bottom * {
+  font-size: .70rem !important;
+  letter-spacing: .12em !important;
+  text-transform: uppercase !important;
+  font-weight: 800 !important;
+}
+
+/* PMD_KAZEN_MENU_TYPOGRAPHY_DOWNSCALE_V3
+   Downscale menu/waiter/note/item typography while keeping the same hierarchy.
+*/
+.kazen-page {
+  --kazen-title-size-soft: clamp(1.42rem, 4.9vw, 1.92rem);
+  --kazen-modal-title-size-soft: clamp(1.58rem, 5.8vw, 2.15rem);
+  --kazen-section-size-soft: .88rem;
+  --kazen-card-title-size-soft: .94rem;
+  --kazen-body-size-soft: .88rem;
+  --kazen-label-size-soft: .74rem;
+  --kazen-button-size-soft: .74rem;
+  --kazen-price-size-soft: .94rem;
+}
+
+.kazen-brand,
+.kazen-page h1 {
+  font-size: var(--kazen-title-size-soft) !important;
+  line-height: .98 !important;
+  letter-spacing: .14em !important;
+}
+
+.kazen-page h2,
+.kazen-page [class*="section"][class*="title"],
+.kazen-page [class*="category"][class*="title"] {
+  font-size: var(--kazen-section-size-soft) !important;
+  line-height: 1.12 !important;
+  letter-spacing: .035em !important;
+}
+
+.kazen-page [class*="modal"] h2,
+.kazen-page [class*="dialog"] h2,
+.kazen-page [class*="sheet"] h2,
+.kazen-page [class*="drawer"] h2,
+.kazen-page [class*="modal"][class*="title"],
+.kazen-page [class*="dialog"][class*="title"],
+.kazen-page [class*="sheet"][class*="title"],
+.kazen-page [class*="drawer"][class*="title"] {
+  font-size: var(--kazen-modal-title-size-soft) !important;
+  line-height: .98 !important;
+  letter-spacing: -.035em !important;
+  text-transform: uppercase !important;
+}
+
+.kazen-subtitle,
+.kazen-pill,
+.kazen-stamp,
+.kazen-page [class*="eyebrow"],
+.kazen-page [class*="meta"],
+.kazen-page [class*="label"] {
+  font-size: var(--kazen-label-size-soft) !important;
+  line-height: 1.1 !important;
+  letter-spacing: .12em !important;
+}
+
+.kazen-page [class*="item"][class*="name"],
+.kazen-page [class*="food"][class*="name"],
+.kazen-page [class*="product"][class*="name"],
+.kazen-page [class*="card"][class*="title"],
+.kazen-page h3 {
+  font-size: var(--kazen-card-title-size-soft) !important;
+  line-height: 1.17 !important;
+  letter-spacing: -.012em !important;
+}
+
+.kazen-page p,
+.kazen-page [class*="description"],
+.kazen-page [class*="detail"],
+.kazen-page [class*="muted"] {
+  font-size: var(--kazen-body-size-soft) !important;
+  line-height: 1.42 !important;
+}
+
+.kazen-page [class*="price"],
+.kazen-page [class*="total"],
+.kazen-page [class*="amount"],
+.kazen-page [class*="number"] {
+  font-size: var(--kazen-price-size-soft) !important;
+}
+
+.kazen-page button,
+.kazen-page [role="button"],
+.kazen-page .kazen-btn,
+.kazen-page .kazen-button {
+  font-size: var(--kazen-button-size-soft) !important;
+  letter-spacing: .12em !important;
+}
+
+.kazen-dock,
+.kazen-dock *,
+.kazen-bottom,
+.kazen-bottom * {
+  font-size: .66rem !important;
+  letter-spacing: .11em !important;
+}
+
+@media (max-width: 390px) {
+  .kazen-page {
+    --kazen-title-size-soft: clamp(1.32rem, 5.5vw, 1.72rem);
+    --kazen-modal-title-size-soft: clamp(1.45rem, 6.4vw, 1.95rem);
+    --kazen-section-size-soft: .84rem;
+    --kazen-card-title-size-soft: .90rem;
+    --kazen-body-size-soft: .84rem;
+    --kazen-button-size-soft: .70rem;
+    --kazen-price-size-soft: .90rem;
+  }
+}

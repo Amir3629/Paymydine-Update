@@ -2,6 +2,14 @@
     <div class="login-container">
         <div class="card">
             <div class="card-body">
+                <!-- PMD_LOGIN_SIMPLE_LOGO_V58_START -->
+                <div class="brand-logo pmd-login-simple-logo-v58">
+                    <a href="{{ admin_url('login') }}" class="logo-link">
+                        <img class="pmd-login-main-logo-v58" src="{{ asset('app/admin/assets/images/pmd-logo-candidates/pmd-logo-5.png') }}?v={{ filemtime(base_path('app/admin/assets/images/pmd-logo-candidates/pmd-logo-5.png')) }}" alt="PayMyDine logo">
+                    </a>
+                </div>
+                <!-- PMD_LOGIN_SIMPLE_LOGO_V58_END -->
+
                 {!! form_open([
                     'id' => 'edit-form',
                     'role' => 'form',

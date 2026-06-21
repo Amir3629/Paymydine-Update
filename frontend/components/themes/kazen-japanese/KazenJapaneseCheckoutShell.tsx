@@ -283,6 +283,8 @@ function GuestChips({ guests = [] }: { guests?: SplitPerson[] }) {
 }
 
 
+
+
 function KazenPaymentMethodMark({ code, label }: { code?: string; label?: string }) {
   const normalized = String(code || "").toLowerCase()
   const safeLabel = String(label || code || "Payment").replace(/[_-]+/g, " ")
@@ -290,12 +292,12 @@ function KazenPaymentMethodMark({ code, label }: { code?: string; label?: string
   if (normalized === "card" || normalized === "stripe" || normalized === "credit_card") {
     return (
       <span className="kzco-paymark kzco-paymark-card" aria-hidden="true">
-        <svg viewBox="0 0 72 44" role="img" focusable="false">
-          <rect x="7" y="8" width="58" height="38" rx="4" />
-          <path d="M7 18h58" />
-          <path d="M15 32h16" />
-          <path d="M37 32h10" />
+        <svg viewBox="0 0 24 24" role="img" focusable="false">
+          <rect x="3.5" y="5.5" width="17" height="13" rx="1.5" />
+          <path d="M3.5 9h17" />
+          <path d="M7 15h4.2" />
         </svg>
+        <span className="kzco-paymark-label">Card</span>
       </span>
     )
   }
@@ -303,8 +305,8 @@ function KazenPaymentMethodMark({ code, label }: { code?: string; label?: string
   if (normalized === "apple_pay" || normalized === "applepay") {
     return (
       <span className="kzco-paymark kzco-paymark-apple" aria-hidden="true">
-        <span className="kzco-paymark-apple-symbol"></span>
-        <span>Pay</span>
+        <span className="kzco-paymark-symbol"></span>
+        <span className="kzco-paymark-label">Pay</span>
       </span>
     )
   }
@@ -312,10 +314,8 @@ function KazenPaymentMethodMark({ code, label }: { code?: string; label?: string
   if (normalized === "google_pay" || normalized === "googlepay" || normalized === "gpay") {
     return (
       <span className="kzco-paymark kzco-paymark-google" aria-hidden="true">
-        <span className="kzco-paymark-google-g">
-          <i>G</i>
-        </span>
-        <span>Pay</span>
+        <span className="kzco-paymark-g">G</span>
+        <span className="kzco-paymark-label">Pay</span>
       </span>
     )
   }
@@ -323,7 +323,7 @@ function KazenPaymentMethodMark({ code, label }: { code?: string; label?: string
   if (normalized === "wero") {
     return (
       <span className="kzco-paymark kzco-paymark-wero" aria-hidden="true">
-        <b>we</b><b>ro</b>
+        <span className="kzco-paymark-label">wero</span>
       </span>
     )
   }
@@ -331,7 +331,8 @@ function KazenPaymentMethodMark({ code, label }: { code?: string; label?: string
   if (normalized === "paypal" || normalized === "pay_pal") {
     return (
       <span className="kzco-paymark kzco-paymark-paypal" aria-hidden="true">
-        <span>P</span><strong>PayPal</strong>
+        <span className="kzco-paymark-p">P</span>
+        <span className="kzco-paymark-label">PayPal</span>
       </span>
     )
   }
@@ -339,11 +340,11 @@ function KazenPaymentMethodMark({ code, label }: { code?: string; label?: string
   if (normalized === "cod" || normalized === "cash" || normalized === "cash_on_delivery") {
     return (
       <span className="kzco-paymark kzco-paymark-cash" aria-hidden="true">
-        <svg viewBox="0 0 72 44" role="img" focusable="false">
-          <path d="M18 14h38l-3 18H15z" />
-          <path d="M23 10h38l-3 18" />
-          <circle cx="36" cy="23" r="6" />
-          <path d="M24 23h4M44 23h4" />
+        <svg viewBox="0 0 24 24" role="img" focusable="false">
+          <path d="M4 8.5h16v9H4z" />
+          <circle cx="12" cy="13" r="2.2" />
+          <path d="M7 13h1.2M15.8 13H17" />
+          <path d="M6.5 6.5h15v8" />
         </svg>
       </span>
     )
@@ -351,7 +352,7 @@ function KazenPaymentMethodMark({ code, label }: { code?: string; label?: string
 
   return (
     <span className="kzco-paymark kzco-paymark-text" aria-hidden="true">
-      {safeLabel}
+      <span className="kzco-paymark-label">{safeLabel}</span>
     </span>
   )
 }
@@ -439,6 +440,21 @@ function handleKzcoNumberInputCapture(event: React.FormEvent<HTMLDivElement>) {
   }
 }
 
+function formatKazenTipPresetAmount(baseAmount: number, percentage: number) {
+  const base = Math.max(0, Number(baseAmount || 0))
+  const percent = Math.max(0, Number(percentage || 0))
+  return ((base * percent) / 100).toFixed(2)
+}
+
+function normalizeKazenCustomTipValue(value: string) {
+  const cleaned = String(value || "")
+    .replace(",", ".")
+    .replace(/[^0-9.]/g, "")
+  const firstDot = cleaned.indexOf(".")
+  if (firstDot === -1) return cleaned
+  return cleaned.slice(0, firstDot + 1) + cleaned.slice(firstDot + 1).replace(/\./g, "")
+}
+
 function getItemAssignmentKey(item: DisplayItem, index: number) {
   return String(item?.key ?? item?.id ?? `${getItemName(item)}-${index}`)
 }
@@ -479,6 +495,7 @@ export function KazenJapaneseCheckoutShell(props: KazenJapaneseCheckoutShellProp
     validateCoupon,
     onApplyCoupon,
     onRemoveCoupon,
+    removeCoupon,
     visiblePaymentMethods = [],
     loadingPayments,
     selectedPaymentMethod,
@@ -627,6 +644,26 @@ export function KazenJapaneseCheckoutShell(props: KazenJapaneseCheckoutShellProp
 
     return () => window.clearTimeout(revealTimer)
   }, [checkoutStep, estimatedMinutes, pmdKazenRealOrderId])
+
+  const handleKazenRemoveCoupon = () => {
+    console.info("PMD_KAZEN_COUPON_REMOVE_CLICK", {
+      hasRemoveCoupon: typeof removeCoupon === "function",
+      hasOnRemoveCoupon: typeof onRemoveCoupon === "function",
+      appliedCouponCode: appliedCoupon?.code || null,
+    })
+
+    try {
+      if (typeof removeCoupon === "function") {
+        removeCoupon()
+      } else if (typeof onRemoveCoupon === "function") {
+        onRemoveCoupon()
+      }
+    } finally {
+      setCouponCode?.("")
+      setCouponError?.(null)
+      setCouponLoading?.(false)
+    }
+  }
 
   const handleKazenApplyCoupon = async () => {
     const code = String(couponCode || "").trim().toUpperCase()
@@ -928,25 +965,54 @@ export function KazenJapaneseCheckoutShell(props: KazenJapaneseCheckoutShellProp
           <section className="kzco-section">
             <h3 className="kzco-section-title">Add tip</h3>
             <div className="kzco-tip-grid">
-              {[0, ...tipPercentages.filter((percentage: number) => Number(percentage) !== 0)].map((percentage: number) => (
-                <CheckoutButton
-                  key={percentage}
-                  variant="secondary"
-                  data-kzco-active={paymentTipPercentage === percentage && !paymentCustomTip ? "1" : "0"}
-                  onClick={() => updatePaymentTipPercentage?.(percentage)}
-                >
-                  {percentage}%
-                </CheckoutButton>
-              ))}
-              <input
-                type="number"
-                min="0"
-                step="0.01"
-                value={paymentCustomTip ?? ""}
-                onChange={(event) => updatePaymentCustomTip?.(event.target.value)}
-                placeholder="Custom"
-                className="kzco-field"
-              />
+              {Array.from(
+                new Set([0, 5, 10, ...(Array.isArray(tipPercentages) ? tipPercentages : [])].map((value) => Number(value || 0)))
+              )
+                .filter((value) => Number.isFinite(value) && value >= 0)
+                .sort((a, b) => a - b)
+                .map((percentage: number) => {
+                  const expectedAmount = Number(formatKazenTipPresetAmount(pmdKazenPaymentGross, percentage))
+                  const currentCustomTip = Number(paymentCustomTip || 0)
+                  const active =
+                    Number(paymentTipPercentage || 0) === percentage ||
+                    (Number.isFinite(currentCustomTip) && Math.abs(currentCustomTip - expectedAmount) < 0.005)
+
+                  return (
+                    <CheckoutButton
+                      key={percentage}
+                      variant="secondary"
+                      data-kzco-active={active ? "1" : "0"}
+                      onClick={() => {
+                        const nextTipAmount = formatKazenTipPresetAmount(pmdKazenPaymentGross, percentage)
+                        console.info("PMD_KAZEN_TIP_PRESET_CLICK", {
+                          percentage,
+                          baseAmount: pmdKazenPaymentGross,
+                          tipAmount: nextTipAmount,
+                        })
+                        updatePaymentTipPercentage?.(percentage)
+                        updatePaymentCustomTip?.(nextTipAmount)
+                      }}
+                      className="kzco-tip-preset"
+                    >
+                      {percentage}%
+                    </CheckoutButton>
+                  )
+                })}
+              <div className="kzco-tip-custom-wrap">
+                <span aria-hidden="true">€</span>
+                <input
+                  type="text"
+                  inputMode="decimal"
+                  value={paymentCustomTip ?? ""}
+                  onChange={(event) => {
+                    updatePaymentTipPercentage?.(undefined)
+                    updatePaymentCustomTip?.(normalizeKazenCustomTipValue(event.target.value))
+                  }}
+                  placeholder="Custom"
+                  className="kzco-field"
+                  aria-label="Custom tip amount in euro"
+                />
+              </div>
             </div>
           </section>
         )}
@@ -977,7 +1043,16 @@ export function KazenJapaneseCheckoutShell(props: KazenJapaneseCheckoutShellProp
           ) : (
             <div className="kzco-applied-coupon">
               <span>{appliedCoupon.name || "Coupon"} {appliedCoupon.code ? `(${appliedCoupon.code})` : ""}</span>
-              <CheckoutButton variant="secondary" onClick={onRemoveCoupon}>Remove</CheckoutButton>
+              <CheckoutButton
+                variant="secondary"
+                onClick={(event) => {
+                  event.preventDefault()
+                  event.stopPropagation()
+                  handleKazenRemoveCoupon()
+                }}
+              >
+                Remove
+              </CheckoutButton>
             </div>
           )}
           {couponError && <p className="kzco-error">{couponError}</p>}
@@ -4803,6 +4878,1093 @@ export function KazenJapaneseCheckoutShell(props: KazenJapaneseCheckoutShellProp
           color: #8fc6ff !important;
         }
 
+
+
+        /* PMD_KAZEN_INLINE_PAYMENT_ICONS_V3
+           Compact premium payment method marks. Overrides the earlier oversized v1 safely.
+        */
+        html body .kzco-overlay[data-kzco-root="1"] .kzco-method-grid {
+          grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+          gap: .55rem !important;
+        }
+
+        html body .kzco-overlay[data-kzco-root="1"] .kzco-method-tile {
+          min-height: 3.25rem !important;
+          height: 3.25rem !important;
+          padding: .35rem .45rem !important;
+          overflow: hidden !important;
+          background: rgba(255, 255, 255, .38) !important;
+          border-color: rgba(36, 35, 32, .20) !important;
+        }
+
+        html body .kzco-overlay[data-kzco-root="1"] .kzco-method-tile[data-kzco-active="1"] {
+          border-color: rgba(184, 93, 89, .78) !important;
+          background: rgba(184, 93, 89, .065) !important;
+          box-shadow: inset 0 -2px 0 rgba(184, 93, 89, .70) !important;
+        }
+
+        html body .kzco-overlay[data-kzco-root="1"] .kzco-method-tile .kzco-paymark {
+          width: 100% !important;
+          max-width: 100% !important;
+          min-width: 0 !important;
+          height: auto !important;
+          min-height: 1.45rem !important;
+          display: inline-flex !important;
+          align-items: center !important;
+          justify-content: center !important;
+          gap: .34rem !important;
+          color: #242320 !important;
+          -webkit-text-fill-color: currentColor !important;
+          line-height: 1 !important;
+          transform: none !important;
+        }
+
+        html body .kzco-overlay[data-kzco-root="1"] .kzco-method-tile .kzco-paymark svg {
+          width: 1.34rem !important;
+          height: 1.34rem !important;
+          display: block !important;
+          fill: none !important;
+          stroke: currentColor !important;
+          stroke-width: 1.75 !important;
+          stroke-linecap: round !important;
+          stroke-linejoin: round !important;
+          flex: none !important;
+        }
+
+        html body .kzco-overlay[data-kzco-root="1"] .kzco-method-tile .kzco-paymark-label {
+          display: inline-block !important;
+          color: currentColor !important;
+          -webkit-text-fill-color: currentColor !important;
+          font-size: .82rem !important;
+          font-weight: 850 !important;
+          letter-spacing: -.025em !important;
+          text-transform: none !important;
+          white-space: nowrap !important;
+        }
+
+        html body .kzco-overlay[data-kzco-root="1"] .kzco-paymark-symbol {
+          font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI Symbol", sans-serif !important;
+          font-size: 1.06rem !important;
+          font-weight: 800 !important;
+          line-height: .9 !important;
+          color: #050505 !important;
+          -webkit-text-fill-color: #050505 !important;
+          transform: translateY(-.035rem) !important;
+        }
+
+        html body .kzco-overlay[data-kzco-root="1"] .kzco-paymark-apple .kzco-paymark-label {
+          font-size: .96rem !important;
+          font-weight: 900 !important;
+          letter-spacing: -.04em !important;
+        }
+
+        html body .kzco-overlay[data-kzco-root="1"] .kzco-paymark-g {
+          width: 1.08rem !important;
+          height: 1.08rem !important;
+          border-radius: 50% !important;
+          display: inline-flex !important;
+          align-items: center !important;
+          justify-content: center !important;
+          flex: none !important;
+          background:
+            conic-gradient(from -35deg, #4285f4 0 25%, #34a853 0 45%, #fbbc05 0 68%, #ea4335 0 83%, #4285f4 0 100%) !important;
+          color: #fff !important;
+          -webkit-text-fill-color: #fff !important;
+          font-size: .72rem !important;
+          font-weight: 950 !important;
+          letter-spacing: -.12em !important;
+          padding-right: .05rem !important;
+        }
+
+        html body .kzco-overlay[data-kzco-root="1"] .kzco-paymark-google .kzco-paymark-label {
+          color: #69707d !important;
+          -webkit-text-fill-color: #69707d !important;
+          font-size: .95rem !important;
+          font-weight: 800 !important;
+        }
+
+        html body .kzco-overlay[data-kzco-root="1"] .kzco-paymark-card {
+          color: #2f3d52 !important;
+        }
+
+        html body .kzco-overlay[data-kzco-root="1"] .kzco-paymark-wero .kzco-paymark-label {
+          font-size: .98rem !important;
+          font-weight: 950 !important;
+          letter-spacing: -.07em !important;
+          text-transform: lowercase !important;
+        }
+
+        html body .kzco-overlay[data-kzco-root="1"] .kzco-paymark-p {
+          width: 1.08rem !important;
+          height: 1.34rem !important;
+          display: inline-flex !important;
+          align-items: center !important;
+          justify-content: center !important;
+          border-radius: .14rem !important;
+          background: linear-gradient(135deg, #1f4aa8, #179bd7) !important;
+          color: #fff !important;
+          -webkit-text-fill-color: #fff !important;
+          font-weight: 950 !important;
+          font-size: .82rem !important;
+          transform: skew(-6deg) !important;
+          flex: none !important;
+        }
+
+        html body .kzco-overlay[data-kzco-root="1"] .kzco-paymark-paypal .kzco-paymark-label {
+          color: #173a87 !important;
+          -webkit-text-fill-color: #173a87 !important;
+          font-size: .82rem !important;
+          font-weight: 900 !important;
+          letter-spacing: -.045em !important;
+        }
+
+        html body .kzco-overlay[data-kzco-root="1"] .kzco-paymark-cash {
+          color: #242320 !important;
+        }
+
+        html body .kzco-overlay[data-kzco-root="1"] .kzco-paymark-cash svg {
+          width: 1.62rem !important;
+          height: 1.62rem !important;
+        }
+
+        html body .kzco-overlay[data-kzco-root="1"] .kzco-paymark-text .kzco-paymark-label {
+          font-size: .70rem !important;
+          font-weight: 900 !important;
+          letter-spacing: .05em !important;
+          text-transform: uppercase !important;
+        }
+
+        html body .kzco-overlay[data-kzco-root="1"][data-kzco-mode="dark"] .kzco-method-tile {
+          background: rgba(8, 6, 4, .44) !important;
+          border-color: rgba(198, 164, 93, .28) !important;
+        }
+
+        html body .kzco-overlay[data-kzco-root="1"][data-kzco-mode="dark"] .kzco-method-tile[data-kzco-active="1"] {
+          border-color: rgba(236, 138, 130, .78) !important;
+          background: rgba(184, 93, 89, .14) !important;
+          box-shadow: inset 0 -2px 0 rgba(236, 138, 130, .72) !important;
+        }
+
+        html body .kzco-overlay[data-kzco-root="1"][data-kzco-mode="dark"] .kzco-method-tile .kzco-paymark,
+        html body .kzco-overlay[data-kzco-root="1"][data-kzco-mode="dark"] .kzco-paymark-card,
+        html body .kzco-overlay[data-kzco-root="1"][data-kzco-mode="dark"] .kzco-paymark-cash,
+        html body .kzco-overlay[data-kzco-root="1"][data-kzco-mode="dark"] .kzco-paymark-wero .kzco-paymark-label,
+        html body .kzco-overlay[data-kzco-root="1"][data-kzco-mode="dark"] .kzco-paymark-text .kzco-paymark-label {
+          color: #f6e8c8 !important;
+          -webkit-text-fill-color: #f6e8c8 !important;
+        }
+
+        html body .kzco-overlay[data-kzco-root="1"][data-kzco-mode="dark"] .kzco-paymark-symbol,
+        html body .kzco-overlay[data-kzco-root="1"][data-kzco-mode="dark"] .kzco-paymark-apple .kzco-paymark-label {
+          color: #fff !important;
+          -webkit-text-fill-color: #fff !important;
+        }
+
+        html body .kzco-overlay[data-kzco-root="1"][data-kzco-mode="dark"] .kzco-paymark-google .kzco-paymark-label {
+          color: rgba(246, 232, 200, .74) !important;
+          -webkit-text-fill-color: rgba(246, 232, 200, .74) !important;
+        }
+
+        html body .kzco-overlay[data-kzco-root="1"][data-kzco-mode="dark"] .kzco-paymark-paypal .kzco-paymark-label {
+          color: #8fc6ff !important;
+          -webkit-text-fill-color: #8fc6ff !important;
+        }
+
+
+
+        /* PMD_KAZEN_PAYMENT_ICONS_PREMIUM_V4_FINAL
+           Final compact premium payment marks. Fixes old v1 PayPal span override.
+           No image requests. Works in light and dark mode.
+        */
+        html body .kzco-overlay[data-kzco-root="1"] .kzco-method-grid {
+          grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+          gap: .55rem !important;
+        }
+
+        html body .kzco-overlay[data-kzco-root="1"] .kzco-method-tile {
+          height: 3.05rem !important;
+          min-height: 3.05rem !important;
+          padding: .25rem .4rem !important;
+          background: rgba(255, 255, 255, .34) !important;
+          border: 1px solid rgba(36, 35, 32, .18) !important;
+          box-shadow: none !important;
+        }
+
+        html body .kzco-overlay[data-kzco-root="1"] .kzco-method-tile[data-kzco-active="1"] {
+          border-color: rgba(184, 93, 89, .82) !important;
+          background: rgba(184, 93, 89, .055) !important;
+          box-shadow: inset 0 -2px 0 rgba(184, 93, 89, .78) !important;
+        }
+
+        html body .kzco-overlay[data-kzco-root="1"] .kzco-method-tile .kzco-paymark {
+          width: 100% !important;
+          height: 100% !important;
+          min-width: 0 !important;
+          min-height: 0 !important;
+          max-width: 100% !important;
+          display: inline-flex !important;
+          align-items: center !important;
+          justify-content: center !important;
+          gap: .32rem !important;
+          color: #252321 !important;
+          -webkit-text-fill-color: currentColor !important;
+          line-height: 1 !important;
+          transform: none !important;
+          overflow: hidden !important;
+        }
+
+        html body .kzco-overlay[data-kzco-root="1"] .kzco-method-tile .kzco-paymark svg {
+          width: 1.18rem !important;
+          height: 1.18rem !important;
+          min-width: 1.18rem !important;
+          display: block !important;
+          fill: none !important;
+          stroke: currentColor !important;
+          stroke-width: 1.75 !important;
+          stroke-linecap: round !important;
+          stroke-linejoin: round !important;
+          flex: 0 0 auto !important;
+        }
+
+        html body .kzco-overlay[data-kzco-root="1"] .kzco-method-tile .kzco-paymark-label {
+          display: inline !important;
+          width: auto !important;
+          height: auto !important;
+          min-width: 0 !important;
+          max-width: calc(100% - 1.45rem) !important;
+          padding: 0 !important;
+          margin: 0 !important;
+          border: 0 !important;
+          border-radius: 0 !important;
+          background: transparent !important;
+          box-shadow: none !important;
+          transform: none !important;
+          color: currentColor !important;
+          -webkit-text-fill-color: currentColor !important;
+          font-size: .78rem !important;
+          font-weight: 850 !important;
+          letter-spacing: -.025em !important;
+          text-transform: none !important;
+          white-space: nowrap !important;
+          overflow: hidden !important;
+          text-overflow: ellipsis !important;
+          line-height: 1 !important;
+        }
+
+        html body .kzco-overlay[data-kzco-root="1"] .kzco-paymark-symbol {
+          width: auto !important;
+          height: auto !important;
+          background: transparent !important;
+          border-radius: 0 !important;
+          transform: translateY(-.03rem) !important;
+          font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI Symbol", sans-serif !important;
+          font-size: 1.05rem !important;
+          font-weight: 800 !important;
+          color: #050505 !important;
+          -webkit-text-fill-color: #050505 !important;
+          line-height: 1 !important;
+        }
+
+        html body .kzco-overlay[data-kzco-root="1"] .kzco-paymark-apple .kzco-paymark-label {
+          font-size: .88rem !important;
+          font-weight: 900 !important;
+          letter-spacing: -.04em !important;
+        }
+
+        html body .kzco-overlay[data-kzco-root="1"] .kzco-paymark-g {
+          width: 1.02rem !important;
+          height: 1.02rem !important;
+          min-width: 1.02rem !important;
+          padding: 0 !important;
+          border-radius: 50% !important;
+          display: inline-flex !important;
+          align-items: center !important;
+          justify-content: center !important;
+          flex: 0 0 auto !important;
+          background:
+            conic-gradient(from -35deg, #4285f4 0 25%, #34a853 0 45%, #fbbc05 0 68%, #ea4335 0 83%, #4285f4 0 100%) !important;
+          color: #fff !important;
+          -webkit-text-fill-color: #fff !important;
+          font-size: .68rem !important;
+          font-weight: 950 !important;
+          letter-spacing: -.12em !important;
+          line-height: 1 !important;
+          transform: none !important;
+        }
+
+        html body .kzco-overlay[data-kzco-root="1"] .kzco-paymark-google .kzco-paymark-label {
+          color: #69707d !important;
+          -webkit-text-fill-color: #69707d !important;
+          font-size: .86rem !important;
+          font-weight: 800 !important;
+        }
+
+        html body .kzco-overlay[data-kzco-root="1"] .kzco-paymark-card {
+          color: #2f3d52 !important;
+        }
+
+        html body .kzco-overlay[data-kzco-root="1"] .kzco-paymark-card .kzco-paymark-label {
+          font-size: .78rem !important;
+        }
+
+        html body .kzco-overlay[data-kzco-root="1"] .kzco-paymark-wero .kzco-paymark-label {
+          max-width: 100% !important;
+          font-size: .9rem !important;
+          font-weight: 950 !important;
+          letter-spacing: -.065em !important;
+          text-transform: lowercase !important;
+        }
+
+        html body .kzco-overlay[data-kzco-root="1"] .kzco-method-tile .kzco-paymark-paypal {
+          gap: .28rem !important;
+        }
+
+        html body .kzco-overlay[data-kzco-root="1"] .kzco-method-tile .kzco-paymark-paypal .kzco-paymark-p {
+          width: 1.02rem !important;
+          height: 1.25rem !important;
+          min-width: 1.02rem !important;
+          padding: 0 !important;
+          margin: 0 !important;
+          display: inline-flex !important;
+          align-items: center !important;
+          justify-content: center !important;
+          border: 0 !important;
+          border-radius: .13rem !important;
+          background: linear-gradient(135deg, #1f4aa8, #179bd7) !important;
+          box-shadow: none !important;
+          color: #ffffff !important;
+          -webkit-text-fill-color: #ffffff !important;
+          font-weight: 950 !important;
+          font-size: .78rem !important;
+          line-height: 1 !important;
+          letter-spacing: -.05em !important;
+          transform: skew(-6deg) !important;
+          flex: 0 0 auto !important;
+        }
+
+        html body .kzco-overlay[data-kzco-root="1"] .kzco-method-tile .kzco-paymark-paypal .kzco-paymark-label {
+          width: auto !important;
+          height: auto !important;
+          min-width: 0 !important;
+          max-width: 3.2rem !important;
+          padding: 0 !important;
+          margin: 0 !important;
+          border-radius: 0 !important;
+          background: transparent !important;
+          box-shadow: none !important;
+          transform: none !important;
+          color: #173a87 !important;
+          -webkit-text-fill-color: #173a87 !important;
+          font-size: .78rem !important;
+          font-weight: 900 !important;
+          letter-spacing: -.045em !important;
+        }
+
+        html body .kzco-overlay[data-kzco-root="1"] .kzco-paymark-cash {
+          color: #242320 !important;
+        }
+
+        html body .kzco-overlay[data-kzco-root="1"] .kzco-paymark-cash svg {
+          width: 1.35rem !important;
+          height: 1.35rem !important;
+        }
+
+        html body .kzco-overlay[data-kzco-root="1"] .kzco-paymark-text .kzco-paymark-label {
+          max-width: 100% !important;
+          font-size: .66rem !important;
+          font-weight: 900 !important;
+          letter-spacing: .045em !important;
+          text-transform: uppercase !important;
+        }
+
+        html body .kzco-overlay[data-kzco-root="1"][data-kzco-mode="dark"] .kzco-method-tile {
+          background: rgba(8, 6, 4, .44) !important;
+          border-color: rgba(198, 164, 93, .28) !important;
+        }
+
+        html body .kzco-overlay[data-kzco-root="1"][data-kzco-mode="dark"] .kzco-method-tile[data-kzco-active="1"] {
+          border-color: rgba(236, 138, 130, .78) !important;
+          background: rgba(184, 93, 89, .14) !important;
+          box-shadow: inset 0 -2px 0 rgba(236, 138, 130, .72) !important;
+        }
+
+        html body .kzco-overlay[data-kzco-root="1"][data-kzco-mode="dark"] .kzco-method-tile .kzco-paymark,
+        html body .kzco-overlay[data-kzco-root="1"][data-kzco-mode="dark"] .kzco-paymark-card,
+        html body .kzco-overlay[data-kzco-root="1"][data-kzco-mode="dark"] .kzco-paymark-cash,
+        html body .kzco-overlay[data-kzco-root="1"][data-kzco-mode="dark"] .kzco-paymark-wero .kzco-paymark-label,
+        html body .kzco-overlay[data-kzco-root="1"][data-kzco-mode="dark"] .kzco-paymark-text .kzco-paymark-label {
+          color: #f6e8c8 !important;
+          -webkit-text-fill-color: #f6e8c8 !important;
+        }
+
+        html body .kzco-overlay[data-kzco-root="1"][data-kzco-mode="dark"] .kzco-paymark-symbol,
+        html body .kzco-overlay[data-kzco-root="1"][data-kzco-mode="dark"] .kzco-paymark-apple .kzco-paymark-label {
+          color: #fff !important;
+          -webkit-text-fill-color: #fff !important;
+        }
+
+        html body .kzco-overlay[data-kzco-root="1"][data-kzco-mode="dark"] .kzco-paymark-google .kzco-paymark-label {
+          color: rgba(246, 232, 200, .74) !important;
+          -webkit-text-fill-color: rgba(246, 232, 200, .74) !important;
+        }
+
+        html body .kzco-overlay[data-kzco-root="1"][data-kzco-mode="dark"] .kzco-paymark-paypal .kzco-paymark-label {
+          color: #8fc6ff !important;
+          -webkit-text-fill-color: #8fc6ff !important;
+        }
+
+
+
+        /* PMD_KAZEN_CHECKOUT_TYPOGRAPHY_SYSTEM_V1
+           Checkout typography scale. Keeps every checkout card consistent.
+           Main modal title = large; section titles/buttons = uppercase;
+           labels/body/details = readable; numbers/prices = tabular.
+        */
+        html body .kzco-overlay[data-kzco-root="1"],
+        html body .kzco-overlay[data-kzco-root="1"] * {
+          font-family: var(--pmd-font-sans, "Roboto", Inter, ui-sans-serif, system-ui, sans-serif) !important;
+        }
+
+        html body .kzco-overlay[data-kzco-root="1"] .kzco-head h2 {
+          font-size: var(--pmd-text-modal-title, clamp(2rem, 6.6vw, 3rem)) !important;
+          line-height: .96 !important;
+          font-weight: 900 !important;
+          letter-spacing: -.055em !important;
+          text-transform: none !important;
+        }
+
+        html body .kzco-overlay[data-kzco-root="1"] .kzco-eyebrow,
+        html body .kzco-overlay[data-kzco-root="1"] .kzco-pill,
+        html body .kzco-overlay[data-kzco-root="1"] .kzco-chip,
+        html body .kzco-overlay[data-kzco-root="1"] .kzco-meta {
+          font-size: var(--pmd-text-caption, .76rem) !important;
+          line-height: 1.1 !important;
+          font-weight: 800 !important;
+          letter-spacing: .13em !important;
+          text-transform: uppercase !important;
+        }
+
+        html body .kzco-overlay[data-kzco-root="1"] .kzco-section-title,
+        html body .kzco-overlay[data-kzco-root="1"] .kzco-summary h3,
+        html body .kzco-overlay[data-kzco-root="1"] .kzco-payment-methods h3,
+        html body .kzco-overlay[data-kzco-root="1"] h3.kzco-section-title {
+          font-size: var(--pmd-text-section-title, .94rem) !important;
+          line-height: 1.12 !important;
+          font-weight: 900 !important;
+          letter-spacing: .035em !important;
+          text-transform: uppercase !important;
+        }
+
+        html body .kzco-overlay[data-kzco-root="1"] .kzco-line span,
+        html body .kzco-overlay[data-kzco-root="1"] .kzco-total-box span,
+        html body .kzco-overlay[data-kzco-root="1"] label,
+        html body .kzco-overlay[data-kzco-root="1"] .kzco-label {
+          font-size: var(--pmd-text-label, .88rem) !important;
+          line-height: 1.25 !important;
+          font-weight: 800 !important;
+          letter-spacing: -.012em !important;
+          text-transform: none !important;
+        }
+
+        html body .kzco-overlay[data-kzco-root="1"] .kzco-line strong,
+        html body .kzco-overlay[data-kzco-root="1"] .kzco-total-box strong,
+        html body .kzco-overlay[data-kzco-root="1"] .kzco-item-price,
+        html body .kzco-overlay[data-kzco-root="1"] .kzco-price,
+        html body .kzco-overlay[data-kzco-root="1"] [data-kzco-money] {
+          font-size: var(--pmd-text-price, 1rem) !important;
+          line-height: 1.1 !important;
+          font-weight: 850 !important;
+          letter-spacing: -.02em !important;
+          font-variant-numeric: tabular-nums !important;
+          font-feature-settings: "tnum" 1, "kern" 1 !important;
+        }
+
+        html body .kzco-overlay[data-kzco-root="1"] .kzco-item-name,
+        html body .kzco-overlay[data-kzco-root="1"] .kzco-review-head h3,
+        html body .kzco-overlay[data-kzco-root="1"] .kzco-status-copy-hero p {
+          font-size: var(--pmd-text-card-title, 1rem) !important;
+          line-height: 1.18 !important;
+          font-weight: 850 !important;
+          letter-spacing: -.018em !important;
+          text-transform: none !important;
+        }
+
+        html body .kzco-overlay[data-kzco-root="1"] p,
+        html body .kzco-overlay[data-kzco-root="1"] .kzco-muted,
+        html body .kzco-overlay[data-kzco-root="1"] .kzco-copy,
+        html body .kzco-overlay[data-kzco-root="1"] .kzco-review-head p,
+        html body .kzco-overlay[data-kzco-root="1"] .kzco-paid-note {
+          font-size: var(--pmd-text-body, .94rem) !important;
+          line-height: 1.46 !important;
+          font-weight: 450 !important;
+          letter-spacing: -.01em !important;
+          text-transform: none !important;
+        }
+
+        html body .kzco-overlay[data-kzco-root="1"] .kzco-btn,
+        html body .kzco-overlay[data-kzco-root="1"] button[data-kzco-button],
+        html body .kzco-overlay[data-kzco-root="1"] .kzco-apply,
+        html body .kzco-overlay[data-kzco-root="1"] .kzco-review-submit {
+          font-size: var(--pmd-text-button, .80rem) !important;
+          line-height: 1.12 !important;
+          font-weight: 850 !important;
+          letter-spacing: .13em !important;
+          text-transform: uppercase !important;
+        }
+
+        html body .kzco-overlay[data-kzco-root="1"] .kzco-field,
+        html body .kzco-overlay[data-kzco-root="1"] input,
+        html body .kzco-overlay[data-kzco-root="1"] textarea,
+        html body .kzco-overlay[data-kzco-root="1"] select {
+          font-size: .94rem !important;
+          line-height: 1.35 !important;
+          font-weight: 550 !important;
+          letter-spacing: -.012em !important;
+          text-transform: none !important;
+        }
+
+        html body .kzco-overlay[data-kzco-root="1"] .kzco-status-time,
+        html body .kzco-overlay[data-kzco-root="1"] .kzco-paid-time {
+          font-variant-numeric: tabular-nums !important;
+          font-feature-settings: "tnum" 1, "kern" 1 !important;
+        }
+
+        html body .kzco-overlay[data-kzco-root="1"] .kzco-status-time strong,
+        html body .kzco-overlay[data-kzco-root="1"] .kzco-paid-time strong {
+          font-size: 1.72rem !important;
+          line-height: .92 !important;
+          font-weight: 900 !important;
+          letter-spacing: -.04em !important;
+        }
+
+        html body .kzco-overlay[data-kzco-root="1"] .kzco-status-time span,
+        html body .kzco-overlay[data-kzco-root="1"] .kzco-paid-time span {
+          font-size: .82rem !important;
+          font-weight: 900 !important;
+          line-height: 1 !important;
+          letter-spacing: .13em !important;
+          text-transform: uppercase !important;
+        }
+
+        html body .kzco-overlay[data-kzco-root="1"] .kzco-paymark-label {
+          font-size: .78rem !important;
+          font-weight: 850 !important;
+          letter-spacing: -.025em !important;
+          text-transform: none !important;
+        }
+
+
+        /* PMD_KAZEN_CHECKOUT_TITLE_SYSTEM_V2
+           Final checkout title hierarchy across every Kazen checkout step.
+
+           Rules:
+           1. Modal/card header titles are the only BIG typography.
+              They are uppercase, same weight, same tracking, same scale.
+           2. Section titles are uppercase but small and consistent.
+           3. Body labels are sentence case and readable.
+           4. Prices/order numbers use tabular numbers and the same size.
+           5. Buttons are uppercase with the same letter spacing everywhere.
+        */
+
+        html body .kzco-overlay[data-kzco-root="1"] {
+          --kzco-title-size: clamp(2.05rem, 6.2vw, 2.72rem);
+          --kzco-section-size: .94rem;
+          --kzco-card-title-size: 1rem;
+          --kzco-body-size: .92rem;
+          --kzco-label-size: .88rem;
+          --kzco-button-size: .80rem;
+          --kzco-number-size: 1rem;
+        }
+
+        html body .kzco-overlay[data-kzco-root="1"] .kzco-head {
+          min-height: auto !important;
+          align-items: flex-start !important;
+          padding-top: 1.28rem !important;
+          padding-bottom: 1.02rem !important;
+        }
+
+        html body .kzco-overlay[data-kzco-root="1"] .kzco-title-wrap {
+          display: block !important;
+          min-width: 0 !important;
+        }
+
+        html body .kzco-overlay[data-kzco-root="1"] .kzco-head h2,
+        html body .kzco-overlay[data-kzco-root="1"] .kzco-title-wrap h2 {
+          font-family: var(--pmd-font-sans, "Roboto", Inter, ui-sans-serif, system-ui, sans-serif) !important;
+          font-size: var(--kzco-title-size) !important;
+          line-height: .94 !important;
+          font-weight: 900 !important;
+          letter-spacing: -.055em !important;
+          text-transform: uppercase !important;
+          max-width: 15.5rem !important;
+          margin: 0 !important;
+          color: var(--kzco-panel-text) !important;
+          -webkit-text-fill-color: var(--kzco-panel-text) !important;
+        }
+
+        html body .kzco-overlay[data-kzco-root="1"] .kzco-eyebrow {
+          font-family: var(--pmd-font-sans, "Roboto", Inter, ui-sans-serif, system-ui, sans-serif) !important;
+          font-size: .70rem !important;
+          line-height: 1 !important;
+          font-weight: 850 !important;
+          letter-spacing: .16em !important;
+          text-transform: uppercase !important;
+          margin: 0 0 .34rem !important;
+          color: #b85d59 !important;
+          -webkit-text-fill-color: #b85d59 !important;
+        }
+
+        /* Submitted card intentionally uses its body success layout, so keep its header minimal. */
+        html body .kzco-overlay[data-kzco-root="1"][data-kzco-step="submitted"] .kzco-title-wrap,
+        html body .kzco-overlay[data-kzco-root="1"][data-kzco-step="submitted"] .kzco-title-wrap h2 {
+          display: none !important;
+        }
+
+        html body .kzco-overlay[data-kzco-root="1"][data-kzco-step="submitted"] .kzco-head {
+          grid-template-columns: 1fr 48px !important;
+          min-height: 4.25rem !important;
+          padding-top: 1.15rem !important;
+          padding-bottom: .75rem !important;
+        }
+
+        /* Paid card keeps the same header title scale, but a little wider for two words. */
+        html body .kzco-overlay[data-kzco-root="1"][data-kzco-step="paid"] .kzco-head h2 {
+          max-width: 17rem !important;
+        }
+
+        /* Section titles: every mini-heading across review/payment/split/feedback. */
+        html body .kzco-overlay[data-kzco-root="1"] .kzco-section-title,
+        html body .kzco-overlay[data-kzco-root="1"] .kzco-summary h3,
+        html body .kzco-overlay[data-kzco-root="1"] .kzco-payment-methods h3,
+        html body .kzco-overlay[data-kzco-root="1"] .kzco-review-card h3,
+        html body .kzco-overlay[data-kzco-root="1"] .kzco-review-head h3,
+        html body .kzco-overlay[data-kzco-root="1"] h3 {
+          font-family: var(--pmd-font-sans, "Roboto", Inter, ui-sans-serif, system-ui, sans-serif) !important;
+          font-size: var(--kzco-section-size) !important;
+          line-height: 1.12 !important;
+          font-weight: 900 !important;
+          letter-spacing: .035em !important;
+          text-transform: uppercase !important;
+          margin-top: 0 !important;
+          color: var(--kzco-panel-text) !important;
+          -webkit-text-fill-color: var(--kzco-panel-text) !important;
+        }
+
+        /* Review/feedback question is a card title, not a section label. */
+        html body .kzco-overlay[data-kzco-root="1"] .kzco-review-head h3 {
+          font-size: var(--kzco-card-title-size) !important;
+          line-height: 1.15 !important;
+          letter-spacing: -.018em !important;
+          text-transform: none !important;
+        }
+
+        /* Food/item names and status titles. */
+        html body .kzco-overlay[data-kzco-root="1"] .kzco-item-name,
+        html body .kzco-overlay[data-kzco-root="1"] .kzco-status-copy-hero p,
+        html body .kzco-overlay[data-kzco-root="1"] .kzco-status-text-block p {
+          font-family: var(--pmd-font-sans, "Roboto", Inter, ui-sans-serif, system-ui, sans-serif) !important;
+          font-size: var(--kzco-card-title-size) !important;
+          line-height: 1.16 !important;
+          font-weight: 850 !important;
+          letter-spacing: -.018em !important;
+          text-transform: none !important;
+          color: var(--kzco-panel-text) !important;
+          -webkit-text-fill-color: var(--kzco-panel-text) !important;
+        }
+
+        /* Normal copy/details: never uppercase. */
+        html body .kzco-overlay[data-kzco-root="1"] p,
+        html body .kzco-overlay[data-kzco-root="1"] .kzco-muted,
+        html body .kzco-overlay[data-kzco-root="1"] .kzco-copy,
+        html body .kzco-overlay[data-kzco-root="1"] .kzco-review-head p,
+        html body .kzco-overlay[data-kzco-root="1"] .kzco-paid-note,
+        html body .kzco-overlay[data-kzco-root="1"] .kzco-helper,
+        html body .kzco-overlay[data-kzco-root="1"] .kzco-note {
+          font-family: var(--pmd-font-sans, "Roboto", Inter, ui-sans-serif, system-ui, sans-serif) !important;
+          font-size: var(--kzco-body-size) !important;
+          line-height: 1.44 !important;
+          font-weight: 450 !important;
+          letter-spacing: -.01em !important;
+          text-transform: none !important;
+        }
+
+        /* Row labels, totals labels, form labels. */
+        html body .kzco-overlay[data-kzco-root="1"] .kzco-line span,
+        html body .kzco-overlay[data-kzco-root="1"] .kzco-total-box span,
+        html body .kzco-overlay[data-kzco-root="1"] label,
+        html body .kzco-overlay[data-kzco-root="1"] .kzco-label {
+          font-family: var(--pmd-font-sans, "Roboto", Inter, ui-sans-serif, system-ui, sans-serif) !important;
+          font-size: var(--kzco-label-size) !important;
+          line-height: 1.18 !important;
+          font-weight: 800 !important;
+          letter-spacing: -.012em !important;
+          text-transform: none !important;
+          color: var(--kzco-panel-text) !important;
+          -webkit-text-fill-color: var(--kzco-panel-text) !important;
+        }
+
+        /* Numbers/prices/order IDs. */
+        html body .kzco-overlay[data-kzco-root="1"] .kzco-line strong,
+        html body .kzco-overlay[data-kzco-root="1"] .kzco-total-box strong,
+        html body .kzco-overlay[data-kzco-root="1"] .kzco-item-price,
+        html body .kzco-overlay[data-kzco-root="1"] .kzco-price,
+        html body .kzco-overlay[data-kzco-root="1"] [data-kzco-money] {
+          font-family: var(--pmd-font-sans, "Roboto", Inter, ui-sans-serif, system-ui, sans-serif) !important;
+          font-size: var(--kzco-number-size) !important;
+          line-height: 1.1 !important;
+          font-weight: 850 !important;
+          letter-spacing: -.02em !important;
+          font-variant-numeric: tabular-nums !important;
+          font-feature-settings: "tnum" 1, "kern" 1 !important;
+          color: var(--kzco-panel-text) !important;
+          -webkit-text-fill-color: var(--kzco-panel-text) !important;
+        }
+
+        /* Buttons/tabs/chips: always uppercase and same visual rhythm. */
+        html body .kzco-overlay[data-kzco-root="1"] .kzco-btn,
+        html body .kzco-overlay[data-kzco-root="1"] button[data-kzco-button],
+        html body .kzco-overlay[data-kzco-root="1"] .kzco-apply,
+        html body .kzco-overlay[data-kzco-root="1"] .kzco-review-submit,
+        html body .kzco-overlay[data-kzco-root="1"] .kzco-tab,
+        html body .kzco-overlay[data-kzco-root="1"] .kzco-chip {
+          font-family: var(--pmd-font-sans, "Roboto", Inter, ui-sans-serif, system-ui, sans-serif) !important;
+          font-size: var(--kzco-button-size) !important;
+          line-height: 1.08 !important;
+          font-weight: 850 !important;
+          letter-spacing: .13em !important;
+          text-transform: uppercase !important;
+        }
+
+        /* Inputs stay readable, never uppercase. */
+        html body .kzco-overlay[data-kzco-root="1"] .kzco-field,
+        html body .kzco-overlay[data-kzco-root="1"] input,
+        html body .kzco-overlay[data-kzco-root="1"] textarea,
+        html body .kzco-overlay[data-kzco-root="1"] select {
+          font-family: var(--pmd-font-sans, "Roboto", Inter, ui-sans-serif, system-ui, sans-serif) !important;
+          font-size: .94rem !important;
+          line-height: 1.35 !important;
+          font-weight: 550 !important;
+          letter-spacing: -.012em !important;
+          text-transform: none !important;
+        }
+
+        /* ETA timer is special and must match every state that uses it. */
+        html body .kzco-overlay[data-kzco-root="1"] .kzco-status-time,
+        html body .kzco-overlay[data-kzco-root="1"] .kzco-paid-time {
+          font-family: var(--pmd-font-sans, "Roboto", Inter, ui-sans-serif, system-ui, sans-serif) !important;
+          display: inline-flex !important;
+          align-items: center !important;
+          justify-content: center !important;
+          gap: .42rem !important;
+          font-style: normal !important;
+          font-variant-numeric: tabular-nums !important;
+          font-feature-settings: "tnum" 1, "kern" 1 !important;
+        }
+
+        html body .kzco-overlay[data-kzco-root="1"] .kzco-status-time strong,
+        html body .kzco-overlay[data-kzco-root="1"] .kzco-paid-time strong {
+          font-size: 1.72rem !important;
+          line-height: .92 !important;
+          font-weight: 900 !important;
+          letter-spacing: -.04em !important;
+        }
+
+        html body .kzco-overlay[data-kzco-root="1"] .kzco-status-time span,
+        html body .kzco-overlay[data-kzco-root="1"] .kzco-paid-time span {
+          font-size: .82rem !important;
+          font-weight: 900 !important;
+          line-height: 1 !important;
+          letter-spacing: .13em !important;
+          text-transform: uppercase !important;
+        }
+
+        html body .kzco-overlay[data-kzco-root="1"] .kzco-paymark-label {
+          font-size: .78rem !important;
+          font-weight: 850 !important;
+          letter-spacing: -.025em !important;
+          text-transform: none !important;
+        }
+
+        /* Mobile tightening: prevent huge header titles from feeling different per card. */
+        @media (max-width: 390px) {
+          html body .kzco-overlay[data-kzco-root="1"] {
+            --kzco-title-size: clamp(1.92rem, 7.4vw, 2.35rem);
+            --kzco-section-size: .90rem;
+            --kzco-card-title-size: .96rem;
+            --kzco-body-size: .88rem;
+            --kzco-label-size: .84rem;
+            --kzco-button-size: .76rem;
+          }
+
+          html body .kzco-overlay[data-kzco-root="1"] .kzco-head h2,
+          html body .kzco-overlay[data-kzco-root="1"] .kzco-title-wrap h2 {
+            max-width: 13.7rem !important;
+          }
+
+          html body .kzco-overlay[data-kzco-root="1"][data-kzco-step="paid"] .kzco-head h2 {
+            max-width: 14.8rem !important;
+          }
+        }
+
+
+        /* PMD_KAZEN_CHECKOUT_TYPOGRAPHY_DOWNSCALE_V3
+           Downscale Kazen checkout typography after v2.
+           Goal: same hierarchy, less oversized on waiter/note/checkout/payment/split cards.
+        */
+        html body .kzco-overlay[data-kzco-root="1"] {
+          --kzco-title-size: clamp(1.68rem, 5.15vw, 2.22rem);
+          --kzco-section-size: .88rem;
+          --kzco-card-title-size: .94rem;
+          --kzco-body-size: .88rem;
+          --kzco-label-size: .84rem;
+          --kzco-button-size: .75rem;
+          --kzco-number-size: .94rem;
+        }
+
+        html body .kzco-overlay[data-kzco-root="1"] .kzco-head {
+          padding-top: 1.12rem !important;
+          padding-bottom: .88rem !important;
+        }
+
+        html body .kzco-overlay[data-kzco-root="1"] .kzco-head h2,
+        html body .kzco-overlay[data-kzco-root="1"] .kzco-title-wrap h2 {
+          font-size: var(--kzco-title-size) !important;
+          line-height: .96 !important;
+          letter-spacing: -.045em !important;
+          max-width: 14.2rem !important;
+        }
+
+        html body .kzco-overlay[data-kzco-root="1"][data-kzco-step="paid"] .kzco-head h2 {
+          max-width: 15.1rem !important;
+        }
+
+        html body .kzco-overlay[data-kzco-root="1"] .kzco-eyebrow {
+          font-size: .66rem !important;
+          letter-spacing: .15em !important;
+          margin-bottom: .28rem !important;
+        }
+
+        html body .kzco-overlay[data-kzco-root="1"] .kzco-section-title,
+        html body .kzco-overlay[data-kzco-root="1"] .kzco-summary h3,
+        html body .kzco-overlay[data-kzco-root="1"] .kzco-payment-methods h3,
+        html body .kzco-overlay[data-kzco-root="1"] h3 {
+          font-size: var(--kzco-section-size) !important;
+          line-height: 1.12 !important;
+          letter-spacing: .032em !important;
+        }
+
+        html body .kzco-overlay[data-kzco-root="1"] .kzco-review-head h3,
+        html body .kzco-overlay[data-kzco-root="1"] .kzco-item-name,
+        html body .kzco-overlay[data-kzco-root="1"] .kzco-status-copy-hero p,
+        html body .kzco-overlay[data-kzco-root="1"] .kzco-status-text-block p {
+          font-size: var(--kzco-card-title-size) !important;
+          line-height: 1.16 !important;
+        }
+
+        html body .kzco-overlay[data-kzco-root="1"] p,
+        html body .kzco-overlay[data-kzco-root="1"] .kzco-muted,
+        html body .kzco-overlay[data-kzco-root="1"] .kzco-copy,
+        html body .kzco-overlay[data-kzco-root="1"] .kzco-review-head p,
+        html body .kzco-overlay[data-kzco-root="1"] .kzco-helper,
+        html body .kzco-overlay[data-kzco-root="1"] .kzco-note {
+          font-size: var(--kzco-body-size) !important;
+          line-height: 1.42 !important;
+        }
+
+        html body .kzco-overlay[data-kzco-root="1"] .kzco-line span,
+        html body .kzco-overlay[data-kzco-root="1"] .kzco-total-box span,
+        html body .kzco-overlay[data-kzco-root="1"] label,
+        html body .kzco-overlay[data-kzco-root="1"] .kzco-label {
+          font-size: var(--kzco-label-size) !important;
+        }
+
+        html body .kzco-overlay[data-kzco-root="1"] .kzco-line strong,
+        html body .kzco-overlay[data-kzco-root="1"] .kzco-total-box strong,
+        html body .kzco-overlay[data-kzco-root="1"] .kzco-item-price,
+        html body .kzco-overlay[data-kzco-root="1"] .kzco-price,
+        html body .kzco-overlay[data-kzco-root="1"] [data-kzco-money] {
+          font-size: var(--kzco-number-size) !important;
+        }
+
+        html body .kzco-overlay[data-kzco-root="1"] .kzco-btn,
+        html body .kzco-overlay[data-kzco-root="1"] button[data-kzco-button],
+        html body .kzco-overlay[data-kzco-root="1"] .kzco-apply,
+        html body .kzco-overlay[data-kzco-root="1"] .kzco-review-submit,
+        html body .kzco-overlay[data-kzco-root="1"] .kzco-tab,
+        html body .kzco-overlay[data-kzco-root="1"] .kzco-chip {
+          font-size: var(--kzco-button-size) !important;
+          letter-spacing: .12em !important;
+        }
+
+        html body .kzco-overlay[data-kzco-root="1"] .kzco-field,
+        html body .kzco-overlay[data-kzco-root="1"] input,
+        html body .kzco-overlay[data-kzco-root="1"] textarea,
+        html body .kzco-overlay[data-kzco-root="1"] select {
+          font-size: .88rem !important;
+        }
+
+        html body .kzco-overlay[data-kzco-root="1"] .kzco-status-time strong,
+        html body .kzco-overlay[data-kzco-root="1"] .kzco-paid-time strong {
+          font-size: 1.48rem !important;
+          letter-spacing: -.035em !important;
+        }
+
+        html body .kzco-overlay[data-kzco-root="1"] .kzco-status-time span,
+        html body .kzco-overlay[data-kzco-root="1"] .kzco-paid-time span {
+          font-size: .74rem !important;
+          letter-spacing: .12em !important;
+        }
+
+        @media (max-width: 390px) {
+          html body .kzco-overlay[data-kzco-root="1"] {
+            --kzco-title-size: clamp(1.58rem, 6.25vw, 2rem);
+            --kzco-section-size: .84rem;
+            --kzco-card-title-size: .90rem;
+            --kzco-body-size: .84rem;
+            --kzco-label-size: .80rem;
+            --kzco-button-size: .72rem;
+            --kzco-number-size: .90rem;
+          }
+
+          html body .kzco-overlay[data-kzco-root="1"] .kzco-head h2,
+          html body .kzco-overlay[data-kzco-root="1"] .kzco-title-wrap h2 {
+            max-width: 12.7rem !important;
+          }
+        }
+
+
+        /* PMD_KAZEN_SUBMITTED_TITLE_VISIBLE_V4
+           Fix submitted/order-received card title being hidden by previous title-system CSS.
+           Header should show: "We received your order." and timer stays below the divider.
+        */
+        html body .kzco-overlay[data-kzco-root="1"][data-kzco-step="submitted"] .kzco-title-wrap,
+        html body .kzco-overlay[data-kzco-root="1"][data-kzco-step="submitted"] .kzco-title-wrap h2,
+        html body .kzco-overlay[data-kzco-root="1"] .kzco-panel:has(main[data-kzco-step="submitted"]) .kzco-title-wrap,
+        html body .kzco-overlay[data-kzco-root="1"] .kzco-panel:has(main[data-kzco-step="submitted"]) .kzco-title-wrap h2,
+        html body .kzco-overlay[data-kzco-root="1"] .kzco-content:has(main[data-kzco-step="submitted"]) .kzco-title-wrap,
+        html body .kzco-overlay[data-kzco-root="1"] .kzco-content:has(main[data-kzco-step="submitted"]) .kzco-title-wrap h2 {
+          display: block !important;
+          visibility: visible !important;
+          opacity: 1 !important;
+        }
+
+        html body .kzco-overlay[data-kzco-root="1"][data-kzco-step="submitted"] .kzco-head,
+        html body .kzco-overlay[data-kzco-root="1"] .kzco-panel:has(main[data-kzco-step="submitted"]) .kzco-head,
+        html body .kzco-overlay[data-kzco-root="1"] .kzco-content:has(main[data-kzco-step="submitted"]) .kzco-head {
+          min-height: auto !important;
+          grid-template-columns: minmax(0, 1fr) 48px !important;
+          align-items: flex-start !important;
+          padding: 1.12rem 1.32rem .92rem !important;
+        }
+
+        html body .kzco-overlay[data-kzco-root="1"][data-kzco-step="submitted"] .kzco-head h2,
+        html body .kzco-overlay[data-kzco-root="1"] .kzco-panel:has(main[data-kzco-step="submitted"]) .kzco-head h2,
+        html body .kzco-overlay[data-kzco-root="1"] .kzco-content:has(main[data-kzco-step="submitted"]) .kzco-head h2 {
+          font-size: clamp(1.62rem, 5vw, 2.08rem) !important;
+          line-height: .98 !important;
+          font-weight: 900 !important;
+          letter-spacing: -.045em !important;
+          text-transform: none !important;
+          max-width: 13.4rem !important;
+          margin: 0 !important;
+        }
+
+        html body .kzco-overlay[data-kzco-root="1"] main[data-kzco-step="submitted"].kzco-body {
+          padding-top: 1.18rem !important;
+        }
+
+        html body .kzco-overlay[data-kzco-root="1"] main[data-kzco-step="submitted"] .kzco-status-copy-hero {
+          margin-top: .15rem !important;
+          margin-bottom: 1.05rem !important;
+        }
+
+        @media (max-width: 390px) {
+          html body .kzco-overlay[data-kzco-root="1"][data-kzco-step="submitted"] .kzco-head h2,
+          html body .kzco-overlay[data-kzco-root="1"] .kzco-panel:has(main[data-kzco-step="submitted"]) .kzco-head h2,
+          html body .kzco-overlay[data-kzco-root="1"] .kzco-content:has(main[data-kzco-step="submitted"]) .kzco-head h2 {
+            font-size: clamp(1.48rem, 6vw, 1.9rem) !important;
+            max-width: 12rem !important;
+          }
+        }
+
+
+        /* PMD_KAZEN_TIP_BUTTONS_EURO_V2
+           Tip buttons must always be visible: 0%, 5%, 10%.
+           Clicking a preset writes the calculated EUR amount into the custom field.
+        */
+        html body .kzco-overlay[data-kzco-root="1"] .kzco-tip-grid {
+          display: grid !important;
+          grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+          gap: .55rem !important;
+        }
+
+        html body .kzco-overlay[data-kzco-root="1"] .kzco-tip-grid .kzco-tip-preset {
+          display: inline-flex !important;
+          align-items: center !important;
+          justify-content: center !important;
+          min-height: 3rem !important;
+          height: 3rem !important;
+          width: 100% !important;
+          opacity: 1 !important;
+          visibility: visible !important;
+          pointer-events: auto !important;
+          color: var(--kzco-panel-text) !important;
+          -webkit-text-fill-color: var(--kzco-panel-text) !important;
+        }
+
+        html body .kzco-overlay[data-kzco-root="1"] .kzco-tip-grid .kzco-tip-preset[data-kzco-active="1"] {
+          border-color: rgba(184, 93, 89, .84) !important;
+          background: rgba(184, 93, 89, .075) !important;
+          box-shadow: inset 0 -2px 0 rgba(184, 93, 89, .76) !important;
+        }
+
+        html body .kzco-overlay[data-kzco-root="1"] .kzco-tip-custom-wrap {
+          grid-column: 1 / -1 !important;
+          display: grid !important;
+          grid-template-columns: 2.35rem minmax(0, 1fr) !important;
+          align-items: stretch !important;
+          min-height: 3rem !important;
+          border: 1px solid rgba(36, 35, 32, .20) !important;
+          background: rgba(255, 255, 255, .30) !important;
+        }
+
+        html body .kzco-overlay[data-kzco-root="1"] .kzco-tip-custom-wrap > span {
+          display: inline-flex !important;
+          align-items: center !important;
+          justify-content: center !important;
+          border-right: 1px solid rgba(36, 35, 32, .16) !important;
+          color: rgba(36, 35, 32, .58) !important;
+          -webkit-text-fill-color: rgba(36, 35, 32, .58) !important;
+          font-weight: 850 !important;
+          font-size: .88rem !important;
+          font-variant-numeric: tabular-nums !important;
+        }
+
+        html body .kzco-overlay[data-kzco-root="1"] .kzco-tip-custom-wrap input.kzco-field {
+          border: 0 !important;
+          height: 100% !important;
+          min-height: 3rem !important;
+          padding-left: .85rem !important;
+          background: transparent !important;
+          border-radius: 0 !important;
+        }
+
+        html body .kzco-overlay[data-kzco-root="1"][data-kzco-mode="dark"] .kzco-tip-custom-wrap {
+          border-color: rgba(198, 164, 93, .28) !important;
+          background: rgba(8, 6, 4, .38) !important;
+        }
+
+        html body .kzco-overlay[data-kzco-root="1"][data-kzco-mode="dark"] .kzco-tip-custom-wrap > span {
+          border-right-color: rgba(198, 164, 93, .22) !important;
+          color: rgba(246, 232, 200, .64) !important;
+          -webkit-text-fill-color: rgba(246, 232, 200, .64) !important;
+        }
+
+        html body .kzco-overlay[data-kzco-root="1"][data-kzco-mode="dark"] .kzco-tip-grid .kzco-tip-preset[data-kzco-active="1"] {
+          border-color: rgba(236, 138, 130, .78) !important;
+          background: rgba(184, 93, 89, .16) !important;
+          box-shadow: inset 0 -2px 0 rgba(236, 138, 130, .72) !important;
+        }
 
       `}</style>
 

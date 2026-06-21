@@ -7,6 +7,14 @@
         : (file_exists($pmdLoginLogoOriginalPath)
             ? asset('assets/media/uploads/Paymydinelogo.png')
             : asset('images/logo.png'));
+
+    // PMD_LOGIN_LOGO_V58_START
+    $pmdLoginLogoCandidateV58Path = base_path('app/admin/assets/images/pmd-logo-candidates/pmd-logo-5.png');
+    if (file_exists($pmdLoginLogoCandidateV58Path)) {
+        $pmdLoginLogoUrl = asset('app/admin/assets/images/pmd-logo-candidates/pmd-logo-5.png');
+        $pmdLoginLogoVersion = filemtime($pmdLoginLogoCandidateV58Path);
+    }
+    // PMD_LOGIN_LOGO_V58_END
 @endphp
 <!DOCTYPE html>
 <html lang="zxx" class="js">
@@ -1130,6 +1138,9 @@
          }
 
      </style>
+<!-- PMD_LOGIN_LOGO_V58_CSS_START -->
+<link rel="stylesheet" href="{{ asset('app/admin/assets/css/pmd-login-fouc-v58.css') }}?v={{ time() }}">
+<!-- PMD_LOGIN_LOGO_V58_CSS_END -->
 </head>
 
 <body class="nk-body bg-white npc-general pg-auth">
@@ -1145,7 +1156,7 @@
                             <div class="nk-block nk-block-middle nk-auth-body">
                                 <div class="brand-logo pb-5">
                                     <a href="{{ admin_url('dashboard') }}" class="logo-link">
-                                    <img class="pmd-login-main-logo" src="{{ $pmdLoginLogoUrl }}?v={{ file_exists($pmdLoginLogoTrimmedPath) ? filemtime($pmdLoginLogoTrimmedPath) : time() }}" alt="PayMyDine logo">
+                                    <img class="pmd-login-main-logo pmd-login-main-logo-v58" src="{{ $pmdLoginLogoUrl }}?v={{ $pmdLoginLogoVersion ?? time() }}" alt="PayMyDine logo">
                                     </a>
                                 </div>
                                 <div class="nk-block-head">

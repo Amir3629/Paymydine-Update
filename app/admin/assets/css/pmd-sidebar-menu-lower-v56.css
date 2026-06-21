@@ -1,0 +1,26 @@
+/* PMD Sidebar Menu Lower v56
+   Tiny CSS-only patch.
+   Keeps the logo exactly where it is.
+   Moves the menu buttons lower so Dashboard is not touching the logo.
+   Keeps LOGO switcher as the last compact button from v55.
+   Does not touch dashboards, roles, routes, data, or logo image position. */
+
+/* OPEN SIDEBAR ONLY: lower Dashboard / Orders / Reservations / etc. */
+html body.page.pmd-admin-theme-v1:not(.pmd-sidebar-icons-only) #side-nav-menu {
+  margin-top: 26px !important;
+}
+
+/* Keep the compact LOGO switcher at the end, with a little breathing room */
+html body.page.pmd-admin-theme-v1:not(.pmd-sidebar-icons-only) .pmd-logo-cycle-nav-item-v38 {
+  margin-top: 18px !important;
+}
+
+/* Let the round edge arrow follow the lowered menu */
+html body.page.pmd-admin-theme-v1:not(.pmd-sidebar-icons-only) .pmd-sidebar-icons-toggle {
+  top: var(--pmd-sidebar-toggle-top-v55, 160px) !important;
+}
+
+/* CLOSED SIDEBAR: keep existing good closed logo, only add a touch more gap below it */
+html body.page.pmd-admin-theme-v1.pmd-sidebar-icons-only #side-nav-menu {
+  margin-top: 24px !important;
+}

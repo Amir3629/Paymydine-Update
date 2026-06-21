@@ -1,6 +1,129 @@
 <!DOCTYPE html>
 <html xmlns="http://www.w3.org/1999/xhtml" lang="en">
 <head>
+<!-- PMD_DASHBOARD_JANK_LOCK_V59_EARLY_START -->
+<script>
+(function(){try{if(/\/admin\/dashboard\/?$/.test(location.pathname)){document.documentElement.classList.add('pmd-dashboard-jank-lock-v59');document.documentElement.classList.remove('pmd-dashboard-jank-ready-v59');}}catch(e){}})();
+</script>
+<!-- PMD_DASHBOARD_JANK_LOCK_V59_EARLY_END -->
+<!-- PMD_LOGIN_FOUC_V58_EARLY_START -->
+<script>
+(function(){try{document.documentElement.classList.add('pmd-ui-fouc-shield-v58');setTimeout(function(){document.documentElement.classList.remove('pmd-ui-fouc-shield-v58');},2300);}catch(e){}})();
+</script>
+<style>
+html.pmd-ui-fouc-shield-v58 body.page.pmd-admin-theme-v1 {
+  background: #FAF9F4 !important;
+}
+html.pmd-ui-fouc-shield-v58 body.page.pmd-admin-theme-v1 .sidebar,
+html.pmd-ui-fouc-shield-v58 body.page.pmd-admin-theme-v1 .navbar-top,
+html.pmd-ui-fouc-shield-v58 body.page.pmd-admin-theme-v1 .page-wrapper {
+  visibility: hidden !important;
+}
+html.pmd-ui-fouc-shield-v58 body.page.pmd-admin-theme-v1::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: 2147483400;
+  background:
+    radial-gradient(circle at 14% 10%, rgba(200,155,74,.14), transparent 24%),
+    linear-gradient(135deg, #FAF9F4 0%, #F5F1E8 100%);
+}
+html.pmd-ui-fouc-shield-v58 body.page.pmd-admin-theme-v1::after {
+  content: "PayMyDine";
+  position: fixed;
+  z-index: 2147483401;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  width: 170px;
+  min-height: 56px;
+  border-radius: 20px;
+  background: #062F2A;
+  color: #F7E7C3;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 900;
+  letter-spacing: .02em;
+  box-shadow: 0 18px 42px rgba(6,47,42,.18);
+}
+</style>
+<!-- PMD_LOGIN_FOUC_V58_EARLY_END -->
+<!-- PMD_SIDEBAR_VISUAL_PERSIST_V62_EARLY_START -->
+<script>
+(function(){
+  try {
+    if (/^\/admin(\/|$)/.test(location.pathname) && !/\/admin\/login/.test(location.pathname)) {
+      var keys=['pmdAdminPlatformLogoCandidateV38','pmdAdminPlatformLogoCandidateV37','pmdAdminPlatformLogoCandidateV25'];
+      var c=5;
+      for(var i=0;i<keys.length;i++){
+        var raw=localStorage.getItem(keys[i]);
+        var n=parseInt(raw,10);
+        if(n>=1 && n<=6){ c=n; break; }
+      }
+      window.__PMD_LOGO_CANDIDATE_V62=c;
+      document.documentElement.style.setProperty('--pmd-active-sidebar-logo-v62','url("/app/admin/assets/images/pmd-logo-candidates/pmd-logo-'+c+'.png")');
+      for(var j=1;j<=6;j++) document.documentElement.classList.remove('pmd-logo-candidate-'+j+'-v38');
+      document.documentElement.classList.add('pmd-logo-candidate-'+c+'-v38');
+    }
+  } catch(e) {}
+})();
+</script>
+<style>
+@supports selector(:has(*)) {
+  body.page.pmd-admin-theme-v1 #navSidebar:not(:has(.pmd-platform-logo-slot-v38))::before {
+    content:"" !important;
+    display:flex !important;
+    flex:0 0 auto !important;
+    width:186px !important;
+    height:84px !important;
+    min-height:84px !important;
+    margin:-42px auto -2px !important;
+    padding:0 8px !important;
+    background-image:var(--pmd-active-sidebar-logo-v62, url("/app/admin/assets/images/pmd-logo-candidates/pmd-logo-5.png")) !important;
+    background-repeat:no-repeat !important;
+    background-position:center center !important;
+    background-size:contain !important;
+    box-sizing:border-box !important;
+  }
+  body.page.pmd-admin-theme-v1.pmd-sidebar-icons-only #navSidebar:not(:has(.pmd-platform-logo-slot-v38))::before {
+    width:80px !important;
+    height:54px !important;
+    min-height:54px !important;
+    margin:-64px auto 4px !important;
+    padding:0 4px !important;
+  }
+}
+html.pmd-ui-fouc-shield-v58 body.page.pmd-admin-theme-v1 .sidebar,
+html.pmd-ui-fouc-shield-v58 body.page.pmd-admin-theme-v1 #navSidebar,
+html.pmd-ui-fouc-shield-v58 body.page.pmd-admin-theme-v1 #side-nav-menu {
+  visibility:visible !important;
+  opacity:1 !important;
+}
+html.pmd-ui-fouc-shield-v58 body.page.pmd-admin-theme-v1::before {
+  left:212px !important;
+  inset:0 0 0 212px !important;
+  width:auto !important;
+}
+html.pmd-ui-fouc-shield-v58 body.page.pmd-admin-theme-v1.pmd-sidebar-icons-only::before {
+  left:96px !important;
+  inset:0 0 0 96px !important;
+}
+</style>
+<!-- PMD_SIDEBAR_VISUAL_PERSIST_V62_EARLY_END -->
+<!-- PMD_SIDEBAR_VISUAL_PERSIST_V62_PRELOAD_START -->
+<link rel="preload" as="image" href="{{ asset('app/admin/assets/images/pmd-logo-candidates/pmd-logo-1.png') }}">
+<link rel="preload" as="image" href="{{ asset('app/admin/assets/images/pmd-logo-candidates/pmd-logo-2.png') }}">
+<link rel="preload" as="image" href="{{ asset('app/admin/assets/images/pmd-logo-candidates/pmd-logo-3.png') }}">
+<link rel="preload" as="image" href="{{ asset('app/admin/assets/images/pmd-logo-candidates/pmd-logo-4.png') }}">
+<link rel="preload" as="image" href="{{ asset('app/admin/assets/images/pmd-logo-candidates/pmd-logo-5.png') }}">
+<link rel="preload" as="image" href="{{ asset('app/admin/assets/images/pmd-logo-candidates/pmd-logo-6.png') }}">
+<!-- PMD_SIDEBAR_VISUAL_PERSIST_V62_PRELOAD_END -->
+<!-- PMD_UI_JANK_STABILITY_V57_EARLY_START -->
+<script>
+(function(){try{document.documentElement.classList.add('pmd-ui-jank-preboot-v57');setTimeout(function(){document.documentElement.classList.remove('pmd-ui-jank-preboot-v57');},2200);}catch(e){}})();
+</script>
+<!-- PMD_UI_JANK_STABILITY_V57_EARLY_END -->
 @php
     $pmdIsNativeMediaContext = request()->is('admin/settings*') || request()->is('admin/media_manager*');
 @endphp
@@ -969,21 +1092,50 @@ body .media-manager .media-sidebar .sidebar-preview-toolbar button.btn-outline-d
 <!-- PMD_MANAGER_OPS_DASHBOARD_V29_CSS_START -->
 <link rel="stylesheet" href="{{ asset('app/admin/assets/css/pmd-manager-ops-dashboard-v29.css') }}?v={{ time() }}">
 <!-- PMD_MANAGER_OPS_DASHBOARD_V29_CSS_END -->
-<!-- PMD_SIDEBAR_STABILITY_V40_CSS_START -->
-<link rel="stylesheet" href="{{ asset('app/admin/assets/css/pmd-sidebar-stability-v40.css') }}?v={{ time() }}">
-<!-- PMD_SIDEBAR_STABILITY_V40_CSS_END -->
-<!-- PMD_SIDEBAR_COLLAPSED_NATIVE_V49_EARLY_START -->
+<!-- PMD_SIDEBAR_RECOVER_NATIVE_V50_EARLY_START -->
 <script>
 (function(){try{
-  ['pmdSidebarCollapsedV48','pmdSidebarCollapsedV47','pmdSidebarCollapsedV46','pmdSidebarCollapsedV45','pmdSidebarCollapsedV44','pmdSidebarCollapsedV43','pmdSidebarCollapsedV42','pmdSidebarCollapsedV41'].forEach(function(k){localStorage.setItem(k,'0');});
-  if(localStorage.getItem('pmdSidebarCollapsedV49')==='1'){document.documentElement.classList.add('pmd-sidebar-persist-collapsed-v49');}
-  document.documentElement.classList.remove('pmd-sidebar-persist-collapsed-v48','pmd-sidebar-persist-collapsed-v47','pmd-sidebar-persist-collapsed-v46','pmd-sidebar-persist-collapsed-v45','pmd-sidebar-persist-collapsed-v44','pmd-sidebar-persist-collapsed-v43','pmd-sidebar-persist-collapsed-v42','pmd-sidebar-persist-collapsed-v41');
+  ['pmdSidebarCollapsedV49','pmdSidebarCollapsedV48','pmdSidebarCollapsedV47','pmdSidebarCollapsedV46','pmdSidebarCollapsedV45','pmdSidebarCollapsedV44','pmdSidebarCollapsedV43','pmdSidebarCollapsedV42','pmdSidebarCollapsedV41'].forEach(function(k){localStorage.setItem(k,'0');});
+  document.documentElement.classList.remove('pmd-sidebar-persist-collapsed-v49','pmd-sidebar-persist-collapsed-v48','pmd-sidebar-persist-collapsed-v47','pmd-sidebar-persist-collapsed-v46','pmd-sidebar-persist-collapsed-v45','pmd-sidebar-persist-collapsed-v44','pmd-sidebar-persist-collapsed-v43','pmd-sidebar-persist-collapsed-v42','pmd-sidebar-persist-collapsed-v41');
 }catch(e){}})();
 </script>
-<!-- PMD_SIDEBAR_COLLAPSED_NATIVE_V49_EARLY_END -->
-<!-- PMD_SIDEBAR_COLLAPSED_NATIVE_V49_CSS_START -->
-<link rel="stylesheet" href="{{ asset('app/admin/assets/css/pmd-sidebar-collapsed-native-v49.css') }}?v={{ time() }}">
-<!-- PMD_SIDEBAR_COLLAPSED_NATIVE_V49_CSS_END -->
+<!-- PMD_SIDEBAR_RECOVER_NATIVE_V50_EARLY_END -->
+<!-- PMD_SIDEBAR_RECOVER_NATIVE_V50_CSS_START -->
+<link rel="stylesheet" href="{{ asset('app/admin/assets/css/pmd-sidebar-recover-native-v50.css') }}?v={{ time() }}">
+<!-- PMD_SIDEBAR_RECOVER_NATIVE_V50_CSS_END -->
+<!-- PMD_SIDEBAR_CLOSED_LOGO_TUNE_V51_CSS_START -->
+<link rel="stylesheet" href="{{ asset('app/admin/assets/css/pmd-sidebar-closed-logo-tune-v51.css') }}?v={{ time() }}">
+<!-- PMD_SIDEBAR_CLOSED_LOGO_TUNE_V51_CSS_END -->
+<!-- PMD_SIDEBAR_CLOSED_RAISE_V52_CSS_START -->
+<link rel="stylesheet" href="{{ asset('app/admin/assets/css/pmd-sidebar-closed-raise-v52.css') }}?v={{ time() }}">
+<!-- PMD_SIDEBAR_CLOSED_RAISE_V52_CSS_END -->
+<!-- PMD_SIDEBAR_RAISE_ALL_V53_CSS_START -->
+<link rel="stylesheet" href="{{ asset('app/admin/assets/css/pmd-sidebar-raise-all-v53.css') }}?v={{ time() }}">
+<!-- PMD_SIDEBAR_RAISE_ALL_V53_CSS_END -->
+<!-- PMD_SIDEBAR_CLOSED_ICONS_LOWER_V54_CSS_START -->
+<link rel="stylesheet" href="{{ asset('app/admin/assets/css/pmd-sidebar-closed-icons-lower-v54.css') }}?v={{ time() }}">
+<!-- PMD_SIDEBAR_CLOSED_ICONS_LOWER_V54_CSS_END -->
+<!-- PMD_SIDEBAR_LOGO_LAST_TOGGLE_V55_CSS_START -->
+<link rel="stylesheet" href="{{ asset('app/admin/assets/css/pmd-sidebar-logo-last-toggle-v55.css') }}?v={{ time() }}">
+<!-- PMD_SIDEBAR_LOGO_LAST_TOGGLE_V55_CSS_END -->
+<!-- PMD_SIDEBAR_MENU_LOWER_V56_CSS_START -->
+<link rel="stylesheet" href="{{ asset('app/admin/assets/css/pmd-sidebar-menu-lower-v56.css') }}?v={{ time() }}">
+<!-- PMD_SIDEBAR_MENU_LOWER_V56_CSS_END -->
+<!-- PMD_UI_JANK_STABILITY_V57_CSS_START -->
+<link rel="stylesheet" href="{{ asset('app/admin/assets/css/pmd-ui-jank-stability-v57.css') }}?v={{ time() }}">
+<!-- PMD_UI_JANK_STABILITY_V57_CSS_END -->
+<!-- PMD_LOGIN_FOUC_V58_CSS_START -->
+<link rel="stylesheet" href="{{ asset('app/admin/assets/css/pmd-login-fouc-v58.css') }}?v={{ time() }}">
+<!-- PMD_LOGIN_FOUC_V58_CSS_END -->
+<!-- PMD_DASHBOARD_JANK_LOCK_V59_CSS_START -->
+<link rel="stylesheet" href="{{ asset('app/admin/assets/css/pmd-dashboard-jank-lock-v59.css') }}?v={{ time() }}">
+<!-- PMD_DASHBOARD_JANK_LOCK_V59_CSS_END -->
+<!-- PMD_EMERGENCY_UNFREEZE_V61_CSS_START -->
+<link rel="stylesheet" href="{{ asset('app/admin/assets/css/pmd-emergency-unfreeze-v61.css') }}?v={{ time() }}">
+<!-- PMD_EMERGENCY_UNFREEZE_V61_CSS_END -->
+<!-- PMD_SIDEBAR_VISUAL_PERSIST_V62_CSS_START -->
+<link rel="stylesheet" href="{{ asset('app/admin/assets/css/pmd-sidebar-visual-persist-v62.css') }}?v={{ time() }}">
+<!-- PMD_SIDEBAR_VISUAL_PERSIST_V62_CSS_END -->
 </head>
 <script>
     // SMART FIX: Force dropdown alignment WITHOUT breaking Bootstrap animations
@@ -1525,11 +1677,29 @@ body .media-manager .media-sidebar .sidebar-preview-toolbar button.btn-outline-d
 <!-- PMD_LOGO_SWITCHER_FINAL_V38_JS_START -->
 <script src="{{ asset('app/admin/assets/js/pmd-logo-switcher-final-v38.js') }}?v={{ time() }}"></script>
 <!-- PMD_LOGO_SWITCHER_FINAL_V38_JS_END -->
-<!-- PMD_SIDEBAR_STABILITY_V40_JS_START -->
-<script src="{{ asset('app/admin/assets/js/pmd-sidebar-stability-v40.js') }}?v={{ time() }}"></script>
-<!-- PMD_SIDEBAR_STABILITY_V40_JS_END -->
-<!-- PMD_SIDEBAR_COLLAPSED_NATIVE_V49_JS_START -->
-<script src="{{ asset('app/admin/assets/js/pmd-sidebar-collapsed-native-v49.js') }}?v={{ time() }}"></script>
-<!-- PMD_SIDEBAR_COLLAPSED_NATIVE_V49_JS_END -->
+<!-- PMD_SIDEBAR_RECOVER_NATIVE_V50_JS_START -->
+<script src="{{ asset('app/admin/assets/js/pmd-sidebar-recover-native-v50.js') }}?v={{ time() }}"></script>
+<!-- PMD_SIDEBAR_RECOVER_NATIVE_V50_JS_END -->
+<!-- PMD_MANAGER_OPS_DASHBOARD_V29_JS_START -->
+<script src="{{ asset('app/admin/assets/js/pmd-manager-ops-dashboard-v29.js') }}?v={{ time() }}"></script>
+<!-- PMD_MANAGER_OPS_DASHBOARD_V29_JS_END -->
+<!-- PMD_SIDEBAR_LOGO_LAST_TOGGLE_V55_JS_START -->
+<script src="{{ asset('app/admin/assets/js/pmd-sidebar-logo-last-toggle-v55.js') }}?v={{ time() }}"></script>
+<!-- PMD_SIDEBAR_LOGO_LAST_TOGGLE_V55_JS_END -->
+<!-- PMD_UI_JANK_STABILITY_V57_JS_START -->
+<script src="{{ asset('app/admin/assets/js/pmd-ui-jank-stability-v57.js') }}?v={{ time() }}"></script>
+<!-- PMD_UI_JANK_STABILITY_V57_JS_END -->
+<!-- PMD_LOGIN_FOUC_V58_JS_START -->
+<script src="{{ asset('app/admin/assets/js/pmd-login-fouc-v58.js') }}?v={{ time() }}"></script>
+<!-- PMD_LOGIN_FOUC_V58_JS_END -->
+<!-- PMD_DASHBOARD_JANK_LOCK_V59_JS_START -->
+<script src="{{ asset('app/admin/assets/js/pmd-dashboard-jank-lock-v59.js') }}?v={{ time() }}"></script>
+<!-- PMD_DASHBOARD_JANK_LOCK_V59_JS_END -->
+<!-- PMD_EMERGENCY_UNFREEZE_V61_JS_START -->
+<script src="{{ asset('app/admin/assets/js/pmd-emergency-unfreeze-v61.js') }}?v={{ time() }}"></script>
+<!-- PMD_EMERGENCY_UNFREEZE_V61_JS_END -->
+<!-- PMD_SIDEBAR_VISUAL_PERSIST_V62_JS_START -->
+<script src="{{ asset('app/admin/assets/js/pmd-sidebar-visual-persist-v62.js') }}?v={{ time() }}"></script>
+<!-- PMD_SIDEBAR_VISUAL_PERSIST_V62_JS_END -->
 </body>
 </html>
