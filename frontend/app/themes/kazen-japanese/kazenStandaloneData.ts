@@ -29,6 +29,7 @@ export type KazenState = {
   restaurantName: string
   logoUrl?: string
   tableNumber?: string | number | null
+  menuLayout?: "accordion" | "tabs"
   categories: string[]
   items: KazenItem[]
   cart: {
@@ -63,6 +64,7 @@ export const ALL_CATEGORY = "ALL"
 export const defaultState: KazenState = {
   restaurantName: "Kazen",
   tableNumber: null,
+  menuLayout: "accordion",
   categories: [ALL_CATEGORY],
   items: [],
   cart: { count: 0, total: 0, lines: [] },

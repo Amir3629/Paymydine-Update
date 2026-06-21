@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, type ReactNode, useRef } from "react"
+import { useEffect, type ReactNode, useRef, useState } from "react"
 
 type KazenJapaneseBridgeThemeProps = {
   src: string
@@ -13,6 +13,7 @@ type KazenJapaneseBridgeThemeProps = {
   restaurantName: string
   logoUrl?: string
   tableNumber?: string | number | null
+  menuLayout?: "accordion" | "tabs"
   onAddItem: (item: any, quantity?: number) => void
   onOpenItem: (item: any) => void
   onCheckout: () => void
@@ -89,6 +90,69 @@ function cartLineFrom(cartItem: any) {
   }
 }
 
+function pmdKazenNormalizeMenuLayoutFromAdmin(value: unknown): "accordion" | "tabs" | "" {
+  const raw = String(value || "").trim().toLowerCase().replace(/[_\s-]+/g, "-")
+
+  if ([
+    "tabs",
+    "tab",
+    "tabbed",
+    "classic",
+    "normal",
+    "list",
+    "flat",
+    "category-tabs",
+    "categories-top",
+    "top-categories",
+    "category-tabs-full-item-list",
+  ].includes(raw)) {
+    return "tabs"
+  }
+
+  if (["accordion", "accordions", "collapsed", "expandable", "category-accordion"].includes(raw)) {
+    return "accordion"
+  }
+
+  return ""
+}
+
+function pmdKazenReadMenuLayoutFromPayload(payload: any): "accordion" | "tabs" | "" {
+  const keys = [
+    "kazen_menu_layout",
+    "kazenMenuLayout",
+    "menu_layout",
+    "menuLayout",
+    "food_display_style",
+    "foodDisplayStyle",
+    "category_display",
+    "categoryDisplay",
+  ]
+
+  const sources = [
+    payload,
+    payload?.data,
+    payload?.settings,
+    payload?.theme,
+    payload?.theme?.data,
+    payload?.theme?.settings,
+    payload?.frontend_theme,
+    payload?.frontendTheme,
+    payload?.attributes,
+    payload?.values,
+  ]
+
+  for (const source of sources) {
+    if (!source || typeof source !== "object") continue
+
+    for (const key of keys) {
+      const normalized = pmdKazenNormalizeMenuLayoutFromAdmin(source?.[key])
+      if (normalized) return normalized
+    }
+  }
+
+  return ""
+}
+
 export function KazenJapaneseBridgeTheme({
   src,
   sourceItems,
@@ -100,6 +164,7 @@ export function KazenJapaneseBridgeTheme({
   restaurantName,
   logoUrl,
   tableNumber,
+  menuLayout = "accordion",
   onAddItem,
   onOpenItem,
   onCheckout,
@@ -114,6 +179,69 @@ export function KazenJapaneseBridgeTheme({
 
   // PMD_KAZEN_FETCH_ADMIN_LOGO_LIKE_HOMEPAGE_20260611
   const pmdKazenBridgeLogoRef = useRef("")
+  const [pmdKazenResolvedMenuLayout, setPmdKazenResolvedMenuLayout] = useState<"accordion" | "tabs">(
+    pmdKazenNormalizeMenuLayoutFromAdmin(menuLayout) || "accordion"
+  )
+
+  useEffect(() => {
+    const fromProp = pmdKazenNormalizeMenuLayoutFromAdmin(menuLayout)
+    if (fromProp) setPmdKazenResolvedMenuLayout(fromProp)
+  }, [menuLayout])
+
+  useEffect(() => {
+    if (typeof window === "undefined") return
+
+    let cancelled = false
+
+    const readMenuLayout = async () => {
+      // PMD_KAZEN_BRIDGE_SIMPLE_THEME_ONLY_V5
+      const endpoints = [
+        `/simple-theme?ts=${Date.now()}`,
+      ]
+
+      for (const endpoint of endpoints) {
+        try {
+          const res = await fetch(endpoint, {
+            credentials: "same-origin",
+            cache: "no-store",
+            headers: { Accept: "application/json" },
+          })
+
+          if (!res.ok) continue
+
+          const payload = await res.json()
+          const nextLayout = pmdKazenReadMenuLayoutFromPayload(payload)
+          console.info("PMD_KAZEN_MENU_LAYOUT_VALUE", nextLayout || null, endpoint)
+
+          console.info("PMD_KAZEN_MENU_LAYOUT_FROM_API", {
+            endpoint,
+            nextLayout: nextLayout || null,
+            hasKazenMenuLayout: Boolean(
+              payload?.kazen_menu_layout ||
+              payload?.data?.kazen_menu_layout ||
+              payload?.settings?.kazen_menu_layout ||
+              payload?.theme?.settings?.kazen_menu_layout
+            ),
+          })
+
+          if (nextLayout && !cancelled) {
+            setPmdKazenResolvedMenuLayout(nextLayout)
+            ;(window as any).__PMD_KAZEN_MENU_LAYOUT = nextLayout
+            window.dispatchEvent(new Event("PMD_KAZEN_FORCE_SYNC"))
+            return
+          }
+        } catch {
+          // try next endpoint
+        }
+      }
+    }
+
+    void readMenuLayout()
+
+    return () => {
+      cancelled = true
+    }
+  }, [])
 
   useEffect(() => {
     if (typeof window === "undefined") return
@@ -290,6 +418,8 @@ export function KazenJapaneseBridgeTheme({
         effectiveLogoUrl: bridgeLogoUrl,
         tableNumber: bridgeTableNumber,
         displayTableNumber: bridgeTableNumber,
+        menuLayout: pmdKazenResolvedMenuLayout,
+        kazen_menu_layout: pmdKazenResolvedMenuLayout,
         categories,
         items: sourceItems.map((item) => ({
           id: itemId(item),
@@ -397,6 +527,7 @@ export function KazenJapaneseBridgeTheme({
     restaurantName,
     logoUrl,
     tableNumber,
+    pmdKazenResolvedMenuLayout,
     onAddItem,
     onOpenItem,
     onCheckout,

@@ -8,6 +8,28 @@ import { KazenItemDetailModal } from "./KazenItemDetailModal"
 import { pmdInstallKazenCleanHeaderButtons, pmdInstallKazenFinalDarkMode, pmdInstallKazenPremiumMotion } from "./kazenStandaloneDomRepairs"
 import { ALL_CATEGORY, defaultState, itemImage, kazenCategoryIcon, money, normalizeCategories, pmdKazenStableCategoryKey, post, resolveMediaUrl, type KazenItem, type KazenState } from "./kazenStandaloneData"
 
+function normalizeKazenStandaloneMenuLayout(value: unknown): "accordion" | "tabs" {
+  const raw = String(value || "").trim().toLowerCase().replace(/[_\s-]+/g, "-")
+
+  if ([
+    "tabs",
+    "tab",
+    "tabbed",
+    "classic",
+    "normal",
+    "list",
+    "flat",
+    "category-tabs",
+    "categories-top",
+    "top-categories",
+    "category-tabs-full-item-list",
+  ].includes(raw)) {
+    return "tabs"
+  }
+
+  return "accordion"
+}
+
 function kazenItemGallery(item?: KazenItem | null): string[] {
   if (!item) return []
 
@@ -238,6 +260,7 @@ export default function KazenStandalonePage() {
         restaurantName: String((msg as any).restaurantName || (msg as any).businessName || (msg as any).merchantName || (msg as any).restaurant?.name || (msg as any).merchant?.businessName || "Kazen"),
         logoUrl: resolveMediaUrl((msg as any).logoUrl || (msg as any).effectiveLogoUrl || (msg as any).restaurantLogoUrl || (msg as any).merchantLogoUrl || (msg as any).logo || (msg as any).logo_url || (msg as any).settings?.logoUrl || (msg as any).merchant?.logoUrl || "") || state.logoUrl || "",
         tableNumber: (msg as any).displayTableNumber ?? (msg as any).tableNumber ?? (msg as any).table_id ?? (msg as any).tableId ?? (msg as any).table?.number ?? null,
+        menuLayout: normalizeKazenStandaloneMenuLayout((msg as any).menuLayout ?? (msg as any).kazen_menu_layout ?? (msg as any).settings?.kazen_menu_layout ?? (msg as any).data?.kazen_menu_layout),
         categories,
         items,
         cart: {
@@ -285,6 +308,15 @@ export default function KazenStandalonePage() {
     map.set(pmdKazenStableCategoryKey(ALL_CATEGORY), state.items)
     return map
   }, [categories, state.items])
+
+  const kazenMenuLayout = state.menuLayout === "tabs" ? "tabs" : "accordion"
+  const kazenActiveCategoryKey = pmdKazenStableCategoryKey(
+    kazenMenuLayout === "tabs" ? (openCategory || ALL_CATEGORY) : openCategory
+  )
+  const kazenActiveCategoryItems = useMemo(() => {
+    if (kazenActiveCategoryKey === pmdKazenStableCategoryKey(ALL_CATEGORY)) return state.items
+    return itemsByCategory.get(kazenActiveCategoryKey) || []
+  }, [itemsByCategory, kazenActiveCategoryKey, state.items])
 
   const tableLabel = state.tableNumber && /\d/.test(String(state.tableNumber)) ? `Table ${String(state.tableNumber).match(/\d+/)?.[0]}` : "Table"
   const cartLines = Array.isArray(state.cart.lines) ? state.cart.lines : []
@@ -526,85 +558,164 @@ export default function KazenStandalonePage() {
           Call to order <span aria-hidden="true">→</span>
         </button>
 
-        <section className="mt-9" aria-label="Menu categories">
-          {categories.map((category, index) => {
-            const categoryKey = pmdKazenStableCategoryKey(category)
-            const open = pmdKazenStableCategoryKey(openCategory) === categoryKey
-            const categoryItems = categoryKey === pmdKazenStableCategoryKey(ALL_CATEGORY) ? state.items : itemsByCategory.get(categoryKey) || []
+        <section
+          className={`mt-9 kazen-menu-layout kazen-menu-layout-${kazenMenuLayout}`}
+          data-kazen-menu-layout={kazenMenuLayout}
+          aria-label="Menu categories"
+        >
+          {kazenMenuLayout === "tabs" ? (
+            <>
+              <div className="kazen-category-tabs" role="tablist" aria-label="Food categories">
+                {categories.map((category) => {
+                  const categoryKey = pmdKazenStableCategoryKey(category)
+                  const active = kazenActiveCategoryKey === categoryKey || (!openCategory && categoryKey === pmdKazenStableCategoryKey(ALL_CATEGORY))
 
-            return (
-              <article key={categoryKey || category} className={`kazen-category ${open ? "is-open" : "is-closed"}`}>
-                <button type="button" className="kazen-category-btn" aria-expanded={open} onClick={() => setOpenCategory(open ? "" : categoryKey)}>
-                  <span className="kazen-category-label">
-                    <span className="kazen-category-icon-shell" aria-hidden="true">
-                      <img src={kazenCategoryIcon(index)} alt="" className="kazen-category-icon" />
-                    </span>
-                    <span className="kazen-category-title">{category}</span>
-                  </span>
-                  {open ? (
-                    <Minus className="h-7 w-7" style={{ color: "#242320", stroke: "#242320", fill: "none" }} />
-                  ) : (
-                    <Plus className="h-7 w-7" />
-                  )}
-                </button>
+                  return (
+                    <button
+                      key={categoryKey || category}
+                      type="button"
+                      role="tab"
+                      aria-selected={active}
+                      className={`kazen-category-tab ${active ? "is-active" : ""}`}
+                      onClick={() => setOpenCategory(categoryKey)}
+                    >
+                      {category === ALL_CATEGORY ? "All" : category}
+                    </button>
+                  )
+                })}
+              </div>
 
-                <div
-                  className={`kazen-accordion ${open ? "is-open" : "is-closed"}`}
-                  aria-hidden={!open}
-                  style={{ "--kazen-item-count": Math.min(categoryItems.length || 1, 8) } as React.CSSProperties}
-                >
-                  <div className="kazen-items">
-                    {categoryItems.length ? categoryItems.map((item) => {
-                      const image = itemImage(item)
+              <div
+                className="kazen-flat-items"
+                style={{ "--kazen-item-count": Math.min(kazenActiveCategoryItems.length || 1, 8) } as React.CSSProperties}
+              >
+                <div className="kazen-items kazen-items-flat">
+                  {kazenActiveCategoryItems.length ? kazenActiveCategoryItems.map((item) => {
+                    const image = itemImage(item)
 
-                      return (
-                        <div
-                          key={item.id}
-                          className="kazen-item"
-                          role="button"
-                          tabIndex={0}
-                          onClick={() => openItem(item)}
-                          onKeyDown={(event) => {
-                            if (event.key === "Enter" || event.key === " ") {
-                              event.preventDefault()
-                              openItem(item)
-                            }
-                          }}
-                        >
-                          <button type="button" className="kazen-item-main min-w-0 text-left" onClick={() => openItem(item)}>
-                            {image ? (
-                              <img src={image} alt={item.name} className="kazen-item-image" />
-                            ) : (
-                              <span className="kazen-item-image-empty">No image</span>
-                            )}
+                    return (
+                      <div
+                        key={item.id}
+                        className="kazen-item"
+                        role="button"
+                        tabIndex={0}
+                        onClick={() => openItem(item)}
+                        onKeyDown={(event) => {
+                          if (event.key === "Enter" || event.key === " ") {
+                            event.preventDefault()
+                            openItem(item)
+                          }
+                        }}
+                      >
+                        <button type="button" className="kazen-item-main min-w-0 text-left" onClick={() => openItem(item)}>
+                          {image ? (
+                            <img src={image} alt={item.name} className="kazen-item-image" />
+                          ) : (
+                            <span className="kazen-item-image-empty">No image</span>
+                          )}
 
-                            <span className="min-w-0">
-                              <span className="kazen-item-name block truncate">{item.name}</span>
-                              <span className="kazen-item-description block line-clamp-2">{item.description || "Prepared with seasonal intention."}</span>
-                              <span className="kazen-item-price block">{money(item.price)}</span>
-                            </span>
-                          </button>
+                          <span className="min-w-0">
+                            <span className="kazen-item-name block truncate">{item.name}</span>
+                            <span className="kazen-item-description block line-clamp-2">{item.description || "Prepared with seasonal intention."}</span>
+                            <span className="kazen-item-price block">{money(item.price)}</span>
+                          </span>
+                        </button>
 
-                          <button type="button" className="kazen-add" aria-label={`Add ${item.name}`} onClick={(event) => {
-                              event.stopPropagation()
-                              addItem(item, 1)
-                            }}>
-                            <Plus className="h-5 w-5" />
-                          </button>
-                        </div>
-                      )
-                    }) : (
-                      <div className="py-5 text-center text-sm" style={{ color: "var(--kazen-muted)" }}>
-                        No visible items in this category.
+                        <button type="button" className="kazen-add" aria-label={`Add ${item.name}`} onClick={(event) => {
+                            event.stopPropagation()
+                            addItem(item, 1)
+                          }}>
+                          <Plus className="h-5 w-5" />
+                        </button>
                       </div>
-                    )}
-                  </div>
+                    )
+                  }) : (
+                    <div className="py-5 text-center text-sm" style={{ color: "var(--kazen-muted)" }}>
+                      No visible items in this category.
+                    </div>
+                  )}
                 </div>
-              </article>
-            )
-          })}
-        </section>
+              </div>
+            </>
+          ) : (
+            categories.map((category, index) => {
+              const categoryKey = pmdKazenStableCategoryKey(category)
+              const open = pmdKazenStableCategoryKey(openCategory) === categoryKey
+              const categoryItems = categoryKey === pmdKazenStableCategoryKey(ALL_CATEGORY) ? state.items : itemsByCategory.get(categoryKey) || []
 
+              return (
+                <article key={categoryKey || category} className={`kazen-category ${open ? "is-open" : "is-closed"}`}>
+                  <button type="button" className="kazen-category-btn" aria-expanded={open} onClick={() => setOpenCategory(open ? "" : categoryKey)}>
+                    <span className="kazen-category-label">
+                      <span className="kazen-category-icon-shell" aria-hidden="true">
+                        <img src={kazenCategoryIcon(index)} alt="" className="kazen-category-icon" />
+                      </span>
+                      <span className="kazen-category-title">{category}</span>
+                    </span>
+                    {open ? (
+                      <Minus className="h-7 w-7" style={{ color: "#242320", stroke: "#242320", fill: "none" }} />
+                    ) : (
+                      <Plus className="h-7 w-7" />
+                    )}
+                  </button>
+
+                  <div
+                    className={`kazen-accordion ${open ? "is-open" : "is-closed"}`}
+                    aria-hidden={!open}
+                    style={{ "--kazen-item-count": Math.min(categoryItems.length || 1, 8) } as React.CSSProperties}
+                  >
+                    <div className="kazen-items">
+                      {categoryItems.length ? categoryItems.map((item) => {
+                        const image = itemImage(item)
+
+                        return (
+                          <div
+                            key={item.id}
+                            className="kazen-item"
+                            role="button"
+                            tabIndex={0}
+                            onClick={() => openItem(item)}
+                            onKeyDown={(event) => {
+                              if (event.key === "Enter" || event.key === " ") {
+                                event.preventDefault()
+                                openItem(item)
+                              }
+                            }}
+                          >
+                            <button type="button" className="kazen-item-main min-w-0 text-left" onClick={() => openItem(item)}>
+                              {image ? (
+                                <img src={image} alt={item.name} className="kazen-item-image" />
+                              ) : (
+                                <span className="kazen-item-image-empty">No image</span>
+                              )}
+
+                              <span className="min-w-0">
+                                <span className="kazen-item-name block truncate">{item.name}</span>
+                                <span className="kazen-item-description block line-clamp-2">{item.description || "Prepared with seasonal intention."}</span>
+                                <span className="kazen-item-price block">{money(item.price)}</span>
+                              </span>
+                            </button>
+
+                            <button type="button" className="kazen-add" aria-label={`Add ${item.name}`} onClick={(event) => {
+                                event.stopPropagation()
+                                addItem(item, 1)
+                              }}>
+                              <Plus className="h-5 w-5" />
+                            </button>
+                          </div>
+                        )
+                      }) : (
+                        <div className="py-5 text-center text-sm" style={{ color: "var(--kazen-muted)" }}>
+                          No visible items in this category.
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </article>
+              )
+            })
+          )}
+        </section>
         <footer className="pb-6 pt-14 text-center">
           <div style={{ color: "var(--kazen-red)", fontSize: "1.7rem" }}>✽</div>
           <div className="mt-3 text-[.64rem] uppercase tracking-[.34em]" style={{ color: "var(--kazen-muted)" }}>Thank you for dining with us</div>

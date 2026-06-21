@@ -11,6 +11,67 @@ import { createOpenOrderUpdateHandler } from "@/features/customer-menu/theme/the
 type KazenValetValues = { name?: string; licensePlate?: string; license_plate?: string; carModel?: string; car_make?: string }
 const getKazenErrorMessage = (error: unknown, fallback: string) => error instanceof Error ? error.message : fallback
 
+type KazenMenuLayoutMode = "accordion" | "tabs"
+
+function normalizeKazenMenuLayoutMode(value: unknown): KazenMenuLayoutMode {
+  const raw = String(value || "").trim().toLowerCase().replace(/[_\s-]+/g, "-")
+
+  if ([
+    "tabs",
+    "tab",
+    "tabbed",
+    "classic",
+    "normal",
+    "list",
+    "flat",
+    "category-tabs",
+    "categories-top",
+    "top-categories",
+    "category-tabs-full-item-list",
+  ].includes(raw)) {
+    return "tabs"
+  }
+
+  return "accordion"
+}
+
+function readKazenMenuLayoutMode(...sources: any[]): KazenMenuLayoutMode {
+  const keys = [
+    "kazen_menu_layout",
+    "kazenMenuLayout",
+    "menu_layout",
+    "menuLayout",
+    "food_display_style",
+    "foodDisplayStyle",
+    "category_display",
+    "categoryDisplay",
+  ]
+
+  for (const source of sources) {
+    if (!source || typeof source !== "object") continue
+
+    for (const key of keys) {
+      const direct = source?.[key]
+      if (direct !== undefined && direct !== null && String(direct).trim()) {
+        return normalizeKazenMenuLayoutMode(direct)
+      }
+
+      const data = source?.data?.[key]
+      if (data !== undefined && data !== null && String(data).trim()) {
+        return normalizeKazenMenuLayoutMode(data)
+      }
+
+      const settings = source?.settings?.[key]
+      if (settings !== undefined && settings !== null && String(settings).trim()) {
+        return normalizeKazenMenuLayoutMode(settings)
+      }
+    }
+  }
+
+  return "accordion"
+}
+
+
 export function KazenThemeRoute(props: KazenThemeRouteProps) {
   const {
     apiMenuItems,
@@ -108,6 +169,14 @@ export function KazenThemeRoute(props: KazenThemeRouteProps) {
     kazenLogoCandidates.find((value: unknown) => String(value || "").trim()) || ""
   )
 
+  const kazenMenuLayout = readKazenMenuLayoutMode(
+    cmsSettings,
+    merchantSettings,
+    typeof window !== "undefined" ? (window as any).__PMD_THEME_SETTINGS : null,
+    typeof window !== "undefined" ? (window as any).__PMD_ADMIN_THEME_SETTINGS : null
+  )
+
+
   const handleKazenAdd = (item: MenuItem, quantity = 1) => {
     let itemToAdd: MenuItem = { ...item }
 
@@ -204,6 +273,7 @@ export function KazenThemeRoute(props: KazenThemeRouteProps) {
         restaurantName={restaurantDisplayName}
         logoUrl={kazenLogoUrl}
         tableNumber={kazenTableNumber}
+        menuLayout={kazenMenuLayout}
         onAddItem={handleKazenAdd}
         onOpenItem={(item: MenuItem) => handleItemSelect(item)}
         onCheckout={handleCartClick}

@@ -1,0 +1,150 @@
+/* PMD Sidebar Edge Tab + 5 Logos v68
+   Replaces the old circle with a visible gold edge tab.
+   Removes logo #6 visually from switcher. */
+
+/* Hide any old circular style residue by fully restyling the actual button */
+body.page.pmd-admin-theme-v1 .sidebar .pmd-sidebar-icons-toggle,
+body.page.pmd-admin-theme-v1 .pmd-sidebar-icons-toggle {
+  position: absolute !important;
+  left: auto !important;
+  right: -1px !important;
+
+  width: 38px !important;
+  height: 54px !important;
+  min-width: 38px !important;
+  min-height: 54px !important;
+  max-width: 38px !important;
+  max-height: 54px !important;
+
+  padding: 0 !important;
+  margin: 0 !important;
+
+  border-radius: 22px 0 0 22px !important;
+  border: 1px solid rgba(218, 178, 88, .92) !important;
+  border-right: 0 !important;
+
+  background:
+    radial-gradient(circle at 32% 28%, rgba(255,255,255,.88) 0 12%, transparent 13%),
+    linear-gradient(180deg, #fff4d2 0%, #f0bf58 55%, #d89e35 100%) !important;
+  color: #063b34 !important;
+
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+
+  box-shadow:
+    -8px 10px 24px rgba(0,0,0,.18),
+    0 0 0 1px rgba(255,244,220,.16),
+    inset 0 1px 0 rgba(255,255,255,.88),
+    inset -1px 0 0 rgba(5,42,35,.24) !important;
+
+  z-index: 2147483000 !important;
+  cursor: pointer !important;
+  opacity: 1 !important;
+  visibility: visible !important;
+  pointer-events: auto !important;
+  overflow: visible !important;
+
+  transform: none !important;
+  transition:
+    background .14s ease,
+    color .14s ease,
+    box-shadow .14s ease,
+    border-color .14s ease,
+    transform .14s ease !important;
+}
+
+/* Better vertical placement for the new tab */
+body.page.pmd-admin-theme-v1:not(.pmd-sidebar-icons-only) .sidebar .pmd-sidebar-icons-toggle,
+body.page.pmd-admin-theme-v1:not(.pmd-sidebar-icons-only) .pmd-sidebar-icons-toggle {
+  top: 238px !important;
+}
+
+body.page.pmd-admin-theme-v1.pmd-sidebar-icons-only .sidebar .pmd-sidebar-icons-toggle,
+body.page.pmd-admin-theme-v1.pmd-sidebar-icons-only .pmd-sidebar-icons-toggle {
+  top: 128px !important;
+}
+
+/* Real icon size. Previous global rules made it 44x44. */
+body.page.pmd-admin-theme-v1 .pmd-sidebar-icons-toggle > i,
+body.page.pmd-admin-theme-v1 .pmd-sidebar-icons-toggle > i.fa,
+body.page.pmd-admin-theme-v1 .pmd-sidebar-icons-toggle > .fa,
+body.page.pmd-admin-theme-v1 .sidebar .pmd-sidebar-icons-toggle > i,
+body.page.pmd-admin-theme-v1 .sidebar .pmd-sidebar-icons-toggle > i.fa,
+body.page.pmd-admin-theme-v1 .sidebar .pmd-sidebar-icons-toggle > .fa {
+  width: 18px !important;
+  min-width: 18px !important;
+  max-width: 18px !important;
+  height: 18px !important;
+  min-height: 18px !important;
+  max-height: 18px !important;
+
+  font-size: 20px !important;
+  line-height: 18px !important;
+
+  margin: 0 !important;
+  padding: 0 !important;
+
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+
+  color: currentColor !important;
+  text-align: center !important;
+  transform: translateX(-1px) translateY(.5px) !important;
+  overflow: visible !important;
+}
+
+body.page.pmd-admin-theme-v1 .pmd-sidebar-icons-toggle > i::before,
+body.page.pmd-admin-theme-v1 .pmd-sidebar-icons-toggle > .fa::before {
+  width: 18px !important;
+  height: 18px !important;
+  line-height: 18px !important;
+  display: inline-block !important;
+  text-align: center !important;
+}
+
+/* Closed mode arrow points right, so visually center it a bit differently */
+body.page.pmd-admin-theme-v1.pmd-sidebar-icons-only .pmd-sidebar-icons-toggle > i,
+body.page.pmd-admin-theme-v1.pmd-sidebar-icons-only .pmd-sidebar-icons-toggle > .fa {
+  transform: translateX(-.5px) translateY(.5px) !important;
+}
+
+body.page.pmd-admin-theme-v1 .pmd-sidebar-icons-toggle:hover {
+  background:
+    radial-gradient(circle at 32% 28%, rgba(255,255,255,.92) 0 13%, transparent 14%),
+    linear-gradient(180deg, #fff8e5 0%, #ffd166 55%, #e1a33c 100%) !important;
+  color: #032f29 !important;
+  border-color: rgba(235, 195, 92, 1) !important;
+  box-shadow:
+    -10px 12px 28px rgba(0,0,0,.22),
+    0 0 0 4px rgba(255,225,156,.18),
+    inset 0 1px 0 rgba(255,255,255,.94),
+    inset -1px 0 0 rgba(5,42,35,.22) !important;
+  transform: translateX(-1px) !important;
+}
+
+body.page.pmd-admin-theme-v1 .pmd-sidebar-icons-toggle:active {
+  transform: translateX(0) scale(.98) !important;
+  box-shadow:
+    -6px 8px 18px rgba(0,0,0,.18),
+    0 0 0 2px rgba(255,225,156,.14),
+    inset 0 1px 2px rgba(0,0,0,.16) !important;
+}
+
+/* Open: LOGO switcher visible and now 1/5...5/5 */
+body.page.pmd-admin-theme-v1:not(.pmd-sidebar-icons-only) .pmd-logo-cycle-nav-item-v38 {
+  display: flex !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+  pointer-events: auto !important;
+}
+
+/* Closed: no LOGO switcher */
+body.page.pmd-admin-theme-v1.pmd-sidebar-icons-only .pmd-logo-cycle-nav-item-v38,
+body.page.pmd-admin-theme-v1.pmd-sidebar-icons-only .pmd-logo-cycle-btn-v38 {
+  display: none !important;
+  visibility: hidden !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
+}
