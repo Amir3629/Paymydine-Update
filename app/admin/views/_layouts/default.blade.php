@@ -1037,6 +1037,56 @@ body .media-manager .media-sidebar .sidebar-preview-toolbar button.btn-outline-d
 <!-- PMD_SIDEBAR_TOGGLE_TOP_GAP_V70_CSS_START -->
 <link rel="stylesheet" href="{{ asset('app/admin/assets/css/pmd-sidebar-toggle-top-gap-v70.css') }}?v={{ time() }}">
 <!-- PMD_SIDEBAR_TOGGLE_TOP_GAP_V70_CSS_END -->
+<!-- PMD_ROLE_DASHBOARD_LOCK_V72_CONTEXT_START -->
+@php
+    $__pmdRoleDash = [
+        'logged_in' => false,
+        'username' => null,
+        'staff_id' => null,
+        'staff_name' => null,
+        'role_code' => null,
+        'role_name' => null,
+    ];
+
+    try {
+        $__pmdUser = null;
+
+        if (class_exists('\Admin\Facades\AdminAuth')) {
+            $__pmdUser = \Admin\Facades\AdminAuth::getUser();
+        } elseif (class_exists('AdminAuth')) {
+            $__pmdUser = \AdminAuth::getUser();
+        }
+
+        if ($__pmdUser) {
+            $__pmdRoleDash['logged_in'] = true;
+            $__pmdRoleDash['username'] = $__pmdUser->username ?? null;
+            $__pmdRoleDash['staff_id'] = $__pmdUser->staff_id ?? null;
+
+            if (!empty($__pmdRoleDash['staff_id'])) {
+                $__pmdStaffRole = \Illuminate\Support\Facades\DB::table('staffs as s')
+                    ->leftJoin('staff_roles as r', 'r.staff_role_id', '=', 's.staff_role_id')
+                    ->where('s.staff_id', $__pmdRoleDash['staff_id'])
+                    ->select('s.staff_name', 'r.code as role_code', 'r.name as role_name')
+                    ->first();
+
+                if ($__pmdStaffRole) {
+                    $__pmdRoleDash['staff_name'] = $__pmdStaffRole->staff_name ?? null;
+                    $__pmdRoleDash['role_code'] = $__pmdStaffRole->role_code ?? null;
+                    $__pmdRoleDash['role_name'] = $__pmdStaffRole->role_name ?? null;
+                }
+            }
+        }
+    } catch (\Throwable $e) {
+        $__pmdRoleDash['error'] = $e->getMessage();
+    }
+@endphp
+<script>
+window.PMD_ROLE_DASHBOARD_CONTEXT_V72 = @json($__pmdRoleDash);
+</script>
+<!-- PMD_ROLE_DASHBOARD_LOCK_V72_CONTEXT_END -->
+<!-- PMD_ROLE_DASHBOARD_LOCK_V72_CSS_START -->
+<link rel="stylesheet" href="{{ asset('app/admin/assets/css/pmd-role-dashboard-lock-v72.css') }}?v={{ time() }}">
+<!-- PMD_ROLE_DASHBOARD_LOCK_V72_CSS_END -->
 </head>
 <script>
     // SMART FIX: Force dropdown alignment WITHOUT breaking Bootstrap animations
@@ -1593,5 +1643,8 @@ body .media-manager .media-sidebar .sidebar-preview-toolbar button.btn-outline-d
 <!-- PMD_SIDEBAR_TOGGLE_TOP_GAP_V70_JS_START -->
 <script src="{{ asset('app/admin/assets/js/pmd-sidebar-toggle-top-gap-v70.js') }}?v={{ time() }}"></script>
 <!-- PMD_SIDEBAR_TOGGLE_TOP_GAP_V70_JS_END -->
+<!-- PMD_ROLE_DASHBOARD_LOCK_V72_JS_START -->
+<script src="{{ asset('app/admin/assets/js/pmd-role-dashboard-lock-v72.js') }}?v={{ time() }}"></script>
+<!-- PMD_ROLE_DASHBOARD_LOCK_V72_JS_END -->
 </body>
 </html>

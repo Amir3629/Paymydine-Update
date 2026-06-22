@@ -1,0 +1,14 @@
+/* PMD Role Dashboard Lock v72 */
+body.pmd-role-dashboard-locked-v72 .pmd-dashboard-role-switcher-hidden-v72 {
+  display: none !important;
+  visibility: hidden !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
+}
+
+body.pmd-role-dashboard-locked-v72 [data-pmd-role-dashboard-extra-button-v72="1"] {
+  display: none !important;
+  visibility: hidden !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
+}

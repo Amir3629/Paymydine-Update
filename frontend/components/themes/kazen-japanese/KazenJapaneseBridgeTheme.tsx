@@ -179,6 +179,189 @@ export function KazenJapaneseBridgeTheme({
 
   // PMD_KAZEN_FETCH_ADMIN_LOGO_LIKE_HOMEPAGE_20260611
   const pmdKazenBridgeLogoRef = useRef("")
+
+  // PMD_KAZEN_HEADER_LINKS_PARENT_BRIDGE_V6
+  // Parent-side permanent version of the browser-console fix.
+  // The Kazen menu lives in a same-origin iframe; this scans that iframe and fixes the two new buttons there.
+  useEffect(() => {
+    if (typeof window === "undefined") return
+
+    let cancelled = false
+    let frame = 0
+    const timers: number[] = []
+    let observer: MutationObserver | null = null
+
+    const fixDocument = (doc: Document, documentIndex: number) => {
+      const links =
+        doc.querySelector<HTMLElement>(".pmd-kazen-header-links-v4") ||
+        doc.querySelector<HTMLElement>(".pmd-kazen-header-links")
+
+      const header =
+        doc.querySelector<HTMLElement>("header") ||
+        links?.closest<HTMLElement>("section") ||
+        links?.parentElement
+
+      if (!links || !header) return false
+
+      header.style.setProperty("position", "relative", "important")
+
+      if (!header.contains(links)) {
+        header.appendChild(links)
+      }
+
+      const topButtons = Array.from(header.querySelectorAll<HTMLElement>("a,button"))
+        .filter((el) => !links.contains(el))
+        .map((el) => ({ el, rect: el.getBoundingClientRect() }))
+        .filter(({ rect }) => rect.width >= 40 && rect.height >= 40)
+        .sort((a, b) => a.rect.top - b.rect.top)
+        .slice(0, 3)
+
+      const headerRect = header.getBoundingClientRect()
+      const measuredSize = topButtons[0]?.rect?.width ? Math.round(topButtons[0].rect.width) : 82
+      const finalSize = Math.max(72, Math.min(86, measuredSize))
+
+      const rowRight = topButtons.length
+        ? Math.max(...topButtons.map(({ rect }) => rect.right))
+        : headerRect.right
+
+      const rowBottom = topButtons.length
+        ? Math.max(...topButtons.map(({ rect }) => rect.bottom))
+        : headerRect.top + finalSize
+
+      const right = Math.max(0, Math.round(headerRect.right - rowRight))
+      const top = Math.round(rowBottom - headerRect.top + 12)
+
+      links.classList.add("pmd-kazen-bridge-fixed-links-v6")
+      links.style.setProperty("position", "absolute", "important")
+      links.style.setProperty("top", `${top}px`, "important")
+      links.style.setProperty("right", `${right}px`, "important")
+      links.style.setProperty("display", "flex", "important")
+      links.style.setProperty("flex-direction", "row", "important")
+      links.style.setProperty("gap", "12px", "important")
+      links.style.setProperty("align-items", "center", "important")
+      links.style.setProperty("justify-content", "flex-end", "important")
+      links.style.setProperty("margin", "0", "important")
+      links.style.setProperty("padding", "0", "important")
+      links.style.setProperty("width", "auto", "important")
+      links.style.setProperty("height", "auto", "important")
+      links.style.setProperty("z-index", "999999", "important")
+
+      const linkButtons = Array.from(links.querySelectorAll<HTMLElement>("a,button"))
+      linkButtons.forEach((btn) => {
+        btn.className = "pmd-kazen-bridge-fixed-header-link-v6"
+
+        btn.style.setProperty("all", "unset", "important")
+        btn.style.setProperty("box-sizing", "border-box", "important")
+        btn.style.setProperty("width", `${finalSize}px`, "important")
+        btn.style.setProperty("height", `${finalSize}px`, "important")
+        btn.style.setProperty("min-width", `${finalSize}px`, "important")
+        btn.style.setProperty("min-height", `${finalSize}px`, "important")
+        btn.style.setProperty("max-width", `${finalSize}px`, "important")
+        btn.style.setProperty("max-height", `${finalSize}px`, "important")
+        btn.style.setProperty("flex", `0 0 ${finalSize}px`, "important")
+        btn.style.setProperty("display", "inline-flex", "important")
+        btn.style.setProperty("align-items", "center", "important")
+        btn.style.setProperty("justify-content", "center", "important")
+        btn.style.setProperty("border", "1px solid rgba(36,35,32,.22)", "important")
+        btn.style.setProperty("border-radius", "0", "important")
+        btn.style.setProperty("background", "transparent", "important")
+        btn.style.setProperty("box-shadow", "none", "important")
+        btn.style.setProperty("cursor", "pointer", "important")
+        btn.style.setProperty("color", "#242320", "important")
+        btn.style.setProperty("-webkit-text-fill-color", "#242320", "important")
+        btn.style.setProperty("text-decoration", "none", "important")
+        btn.style.setProperty("overflow", "hidden", "important")
+
+        btn.querySelectorAll<SVGElement>("svg").forEach((svg) => {
+          svg.style.setProperty("width", "24px", "important")
+          svg.style.setProperty("height", "24px", "important")
+          svg.style.setProperty("min-width", "24px", "important")
+          svg.style.setProperty("min-height", "24px", "important")
+          svg.style.setProperty("max-width", "24px", "important")
+          svg.style.setProperty("max-height", "24px", "important")
+          svg.style.setProperty("stroke-width", "2", "important")
+        })
+
+        btn.querySelectorAll<HTMLElement>("span").forEach((span) => {
+          span.style.setProperty("position", "absolute", "important")
+          span.style.setProperty("width", "1px", "important")
+          span.style.setProperty("height", "1px", "important")
+          span.style.setProperty("overflow", "hidden", "important")
+          span.style.setProperty("clip", "rect(0 0 0 0)", "important")
+          span.style.setProperty("white-space", "nowrap", "important")
+        })
+      })
+
+      ;(window as any).__PMD_KAZEN_HEADER_LINKS_PARENT_BRIDGE_V6 = {
+        documentIndex,
+        finalSize,
+        top,
+        right,
+        buttons: linkButtons.length,
+      }
+
+      return true
+    }
+
+    const fixAll = () => {
+      if (cancelled) return
+      if (frame) window.cancelAnimationFrame(frame)
+
+      frame = window.requestAnimationFrame(() => {
+        let fixed = false
+
+        try {
+          fixed = fixDocument(document, 0) || fixed
+        } catch {
+          // ignore
+        }
+
+        Array.from(document.querySelectorAll<HTMLIFrameElement>("iframe")).forEach((iframe, index) => {
+          try {
+            if (iframe.contentDocument) {
+              fixed = fixDocument(iframe.contentDocument, index + 1) || fixed
+            }
+          } catch {
+            // Cross-origin iframes like Stripe are expected and ignored.
+          }
+        })
+
+        if (fixed) {
+          ;(window as any).__PMD_KAZEN_HEADER_LINKS_PARENT_BRIDGE_V6_LAST_RUN = Date.now()
+        }
+      })
+    }
+
+    fixAll()
+    timers.push(window.setTimeout(fixAll, 120))
+    timers.push(window.setTimeout(fixAll, 450))
+    timers.push(window.setTimeout(fixAll, 1100))
+    timers.push(window.setTimeout(fixAll, 2200))
+    timers.push(window.setInterval(fixAll, 800))
+
+    window.addEventListener("resize", fixAll)
+    window.addEventListener("orientationchange", fixAll)
+
+    if (document.body) {
+      observer = new MutationObserver(fixAll)
+      observer.observe(document.body, {
+        childList: true,
+        subtree: true,
+        attributes: true,
+        attributeFilter: ["class", "style", "src"],
+      })
+    }
+
+    return () => {
+      cancelled = true
+      if (frame) window.cancelAnimationFrame(frame)
+      timers.forEach((timer) => window.clearTimeout(timer))
+      observer?.disconnect()
+      window.removeEventListener("resize", fixAll)
+      window.removeEventListener("orientationchange", fixAll)
+    }
+  }, [])
+
   const [pmdKazenResolvedMenuLayout, setPmdKazenResolvedMenuLayout] = useState<"accordion" | "tabs">(
     pmdKazenNormalizeMenuLayoutFromAdmin(menuLayout) || "accordion"
   )

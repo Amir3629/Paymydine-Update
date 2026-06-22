@@ -2,7 +2,7 @@
 
 import "./kazen-standalone.css"
 import React, { useEffect, useMemo, useState } from "react"
-import { Bell, Car, ClipboardList, Languages, Menu, MessageSquare, Minus, Plus, ShoppingBag } from "lucide-react"
+import {Bell, Car, ClipboardList, Languages, Menu, MessageSquare, Minus, Plus, ShoppingBag, ExternalLink, Share2} from "lucide-react"
 import { ModalCard } from "./KazenStandaloneModalCard"
 import { KazenItemDetailModal } from "./KazenItemDetailModal"
 import { pmdInstallKazenCleanHeaderButtons, pmdInstallKazenFinalDarkMode, pmdInstallKazenPremiumMotion } from "./kazenStandaloneDomRepairs"
@@ -28,6 +28,85 @@ function normalizeKazenStandaloneMenuLayout(value: unknown): "accordion" | "tabs
   }
 
   return "accordion"
+}
+
+
+type KazenHeaderLinksV1 = {
+  website: { enabled: boolean; url: string }
+  social: { enabled: boolean; platform: string; url: string }
+}
+
+const PMD_KAZEN_HEADER_LINKS_DEFAULT_V1: KazenHeaderLinksV1 = {
+  website: { enabled: false, url: "" },
+  social: { enabled: false, platform: "instagram", url: "" },
+}
+
+function pmdKazenBoolV1(value: unknown): boolean {
+  if (typeof value === "boolean") return value
+  return ["1", "true", "yes", "on", "enabled"].includes(String(value || "").trim().toLowerCase())
+}
+
+function pmdKazenUrlV1(value: unknown): string {
+  const raw = String(value || "").trim()
+  if (!raw) return ""
+  return /^https?:\/\//i.test(raw) ? raw : `https://${raw.replace(/^\/+/, "")}`
+}
+
+function pmdKazenReadHeaderLinksV1(payload: any): KazenHeaderLinksV1 {
+  const data = payload?.data && typeof payload.data === "object" ? payload.data : {}
+  const links = payload?.kazen_header_links || payload?.headerLinks || data?.kazen_header_links || data?.headerLinks || {}
+
+  const websiteUrl = pmdKazenUrlV1(
+    links?.website?.url ||
+    payload?.pmd_kazen_website_url ||
+    data?.pmd_kazen_website_url ||
+    payload?.website_url ||
+    data?.website_url
+  )
+
+  const socialUrl = pmdKazenUrlV1(
+    links?.social?.url ||
+    payload?.pmd_kazen_social_url ||
+    data?.pmd_kazen_social_url ||
+    payload?.pmd_social_url ||
+    data?.pmd_social_url
+  )
+
+  const socialPlatform = String(
+    links?.social?.platform ||
+    payload?.pmd_kazen_social_platform ||
+    data?.pmd_kazen_social_platform ||
+    "instagram"
+  ).trim().toLowerCase() || "instagram"
+
+  return {
+    website: {
+      enabled: Boolean(websiteUrl) && pmdKazenBoolV1(
+        links?.website?.enabled ??
+        payload?.pmd_kazen_website_enabled ??
+        data?.pmd_kazen_website_enabled
+      ),
+      url: websiteUrl,
+    },
+    social: {
+      enabled: Boolean(socialUrl) && pmdKazenBoolV1(
+        links?.social?.enabled ??
+        payload?.pmd_kazen_social_enabled ??
+        data?.pmd_kazen_social_enabled
+      ),
+      platform: socialPlatform,
+      url: socialUrl,
+    },
+  }
+}
+
+function pmdKazenSocialLabelV1(platform: string): string {
+  const normalized = String(platform || "").trim().toLowerCase()
+  if (normalized === "facebook") return "Facebook"
+  if (normalized === "trustpilot") return "Trustpilot"
+  if (normalized === "reviews") return "Reviews"
+  if (normalized === "website") return "Social"
+  return "Instagram"
 }
 
 function kazenItemGallery(item?: KazenItem | null): string[] {
@@ -200,6 +279,174 @@ export default function KazenStandalonePage() {
   const [waiterOpen, setWaiterOpen] = useState(false)
   const [noteOpen, setNoteOpen] = useState(false)
   const [valetOpen, setValetOpen] = useState(false)
+  const [kazenHeaderLinksV1, setKazenHeaderLinksV1] = useState<KazenHeaderLinksV1>(PMD_KAZEN_HEADER_LINKS_DEFAULT_V1)
+
+  // PMD_KAZEN_HEADER_BUTTONS_RUNTIME_V5
+  // Permanent version of the console fix that worked in Safari.
+  useEffect(() => {
+    if (typeof window === "undefined") return
+
+    let frame = 0
+    const timers: number[] = []
+
+    const fixKazenHeaderLinks = () => {
+      if (frame) window.cancelAnimationFrame(frame)
+
+      frame = window.requestAnimationFrame(() => {
+        const links = document.querySelector<HTMLElement>(".pmd-kazen-header-links-v4, .pmd-kazen-header-links")
+        const header = document.querySelector<HTMLElement>("header")
+
+        if (!links || !header) return
+
+        header.style.setProperty("position", "relative", "important")
+
+        if (!header.contains(links)) {
+          header.appendChild(links)
+        }
+
+        const linkButtons = Array.from(links.querySelectorAll<HTMLElement>("a,button"))
+        const topButtons = Array.from(header.querySelectorAll<HTMLElement>("a,button"))
+          .filter((el) => !links.contains(el))
+          .map((el) => ({ el, rect: el.getBoundingClientRect() }))
+          .filter(({ rect }) => rect.width >= 40 && rect.height >= 40)
+          .sort((a, b) => a.rect.top - b.rect.top)
+
+        const headerRect = header.getBoundingClientRect()
+        const rowTop = topButtons.slice(0, 3)
+
+        const measuredSize = rowTop[0]?.rect?.width ? Math.round(rowTop[0].rect.width) : 82
+        const size = Math.max(64, Math.min(86, measuredSize))
+        const rowRight = rowTop.length ? Math.max(...rowTop.map(({ rect }) => rect.right)) : headerRect.right
+        const rowBottom = rowTop.length ? Math.max(...rowTop.map(({ rect }) => rect.bottom)) : headerRect.top + size
+
+        const right = Math.max(0, Math.round(headerRect.right - rowRight))
+        const top = Math.round(rowBottom - headerRect.top + 12)
+
+        links.classList.add("pmd-kazen-header-links-runtime-v5")
+        links.style.setProperty("position", "absolute", "important")
+        links.style.setProperty("top", `${top}px`, "important")
+        links.style.setProperty("right", `${right}px`, "important")
+        links.style.setProperty("display", "flex", "important")
+        links.style.setProperty("flex-direction", "row", "important")
+        links.style.setProperty("align-items", "center", "important")
+        links.style.setProperty("justify-content", "flex-end", "important")
+        links.style.setProperty("gap", "12px", "important")
+        links.style.setProperty("margin", "0", "important")
+        links.style.setProperty("padding", "0", "important")
+        links.style.setProperty("width", "auto", "important")
+        links.style.setProperty("height", "auto", "important")
+        links.style.setProperty("z-index", "9999", "important")
+
+        linkButtons.forEach((btn) => {
+          btn.classList.add("pmd-kazen-header-link-button-runtime-v5")
+
+          btn.style.setProperty("all", "unset", "important")
+          btn.style.setProperty("box-sizing", "border-box", "important")
+          btn.style.setProperty("width", `${size}px`, "important")
+          btn.style.setProperty("height", `${size}px`, "important")
+          btn.style.setProperty("min-width", `${size}px`, "important")
+          btn.style.setProperty("min-height", `${size}px`, "important")
+          btn.style.setProperty("max-width", `${size}px`, "important")
+          btn.style.setProperty("max-height", `${size}px`, "important")
+          btn.style.setProperty("flex", `0 0 ${size}px`, "important")
+          btn.style.setProperty("aspect-ratio", "1 / 1", "important")
+          btn.style.setProperty("display", "inline-flex", "important")
+          btn.style.setProperty("align-items", "center", "important")
+          btn.style.setProperty("justify-content", "center", "important")
+          btn.style.setProperty("border", "1px solid rgba(36,35,32,.22)", "important")
+          btn.style.setProperty("border-radius", "0", "important")
+          btn.style.setProperty("background", "transparent", "important")
+          btn.style.setProperty("box-shadow", "none", "important")
+          btn.style.setProperty("text-decoration", "none", "important")
+          btn.style.setProperty("cursor", "pointer", "important")
+          btn.style.setProperty("color", "#242320", "important")
+          btn.style.setProperty("-webkit-text-fill-color", "#242320", "important")
+          btn.style.setProperty("overflow", "hidden", "important")
+
+          btn.querySelectorAll<SVGElement>("svg").forEach((svg) => {
+            svg.style.setProperty("width", "24px", "important")
+            svg.style.setProperty("height", "24px", "important")
+            svg.style.setProperty("min-width", "24px", "important")
+            svg.style.setProperty("min-height", "24px", "important")
+            svg.style.setProperty("max-width", "24px", "important")
+            svg.style.setProperty("max-height", "24px", "important")
+            svg.style.setProperty("stroke-width", "2", "important")
+          })
+
+          btn.querySelectorAll<HTMLElement>("span").forEach((span) => {
+            span.style.setProperty("position", "absolute", "important")
+            span.style.setProperty("width", "1px", "important")
+            span.style.setProperty("height", "1px", "important")
+            span.style.setProperty("overflow", "hidden", "important")
+            span.style.setProperty("clip", "rect(0 0 0 0)", "important")
+            span.style.setProperty("white-space", "nowrap", "important")
+          })
+        })
+
+        ;(window as any).__PMD_KAZEN_HEADER_BUTTONS_RUNTIME_V5 = {
+          size,
+          top,
+          right,
+          buttons: linkButtons.length,
+        }
+      })
+    }
+
+    fixKazenHeaderLinks()
+    timers.push(window.setTimeout(fixKazenHeaderLinks, 120))
+    timers.push(window.setTimeout(fixKazenHeaderLinks, 450))
+    timers.push(window.setTimeout(fixKazenHeaderLinks, 1100))
+
+    window.addEventListener("resize", fixKazenHeaderLinks)
+    window.addEventListener("orientationchange", fixKazenHeaderLinks)
+
+    const observer = new MutationObserver(fixKazenHeaderLinks)
+    observer.observe(document.body, {
+      childList: true,
+      subtree: true,
+      attributes: true,
+      attributeFilter: ["class", "style"],
+    })
+
+    return () => {
+      if (frame) window.cancelAnimationFrame(frame)
+      timers.forEach((timer) => window.clearTimeout(timer))
+      observer.disconnect()
+      window.removeEventListener("resize", fixKazenHeaderLinks)
+      window.removeEventListener("orientationchange", fixKazenHeaderLinks)
+    }
+  }, [kazenHeaderLinksV1.website.enabled, kazenHeaderLinksV1.website.url, kazenHeaderLinksV1.social.enabled, kazenHeaderLinksV1.social.url])
+
+
+  useEffect(() => {
+    let cancelled = false
+
+    const loadKazenHeaderLinks = async () => {
+      try {
+        const response = await fetch(`/simple-theme?ts=${Date.now()}`, {
+          cache: "no-store",
+          headers: { Accept: "application/json" },
+        })
+
+        if (!response.ok) return
+
+        const payload = await response.json()
+        const nextLinks = pmdKazenReadHeaderLinksV1(payload)
+        console.info("PMD_KAZEN_HEADER_LINKS_V1", nextLinks)
+
+        if (!cancelled) setKazenHeaderLinksV1(nextLinks)
+      } catch {
+        // Header links are optional.
+      }
+    }
+
+    void loadKazenHeaderLinks()
+
+    return () => {
+      cancelled = true
+    }
+  }, [])
+
   const [waiterConfirmed, setWaiterConfirmed] = useState(false)
   const [noteConfirmed, setNoteConfirmed] = useState(false)
   const [note, setNote] = useState("")
@@ -542,6 +789,40 @@ export default function KazenStandalonePage() {
               <Car className="mr-1 inline h-3.5 w-3.5" /> Valet
             </button>
           </div>
+
+          {/* PMD_KAZEN_HEADER_LINKS_INSIDE_HEADER_V2 */}
+
+        {(kazenHeaderLinksV1.website.enabled || kazenHeaderLinksV1.social.enabled) ? (
+          <div className="pmd-kazen-header-links pmd-kazen-header-links-v4" aria-label="Restaurant quick links">
+            {kazenHeaderLinksV1.website.enabled && kazenHeaderLinksV1.website.url ? (
+              <a
+                className="pmd-kazen-header-link-button-v4"
+                href={kazenHeaderLinksV1.website.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                aria-label="Open restaurant website"
+                title="Website"
+              >
+                <ExternalLink className="h-4 w-4" />
+                <span>Website</span>
+              </a>
+            ) : null}
+
+            {kazenHeaderLinksV1.social.enabled && kazenHeaderLinksV1.social.url ? (
+              <a
+                className="pmd-kazen-header-link-button-v4"
+                href={kazenHeaderLinksV1.social.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                aria-label={`Open ${pmdKazenSocialLabelV1(kazenHeaderLinksV1.social.platform)}`}
+                title={pmdKazenSocialLabelV1(kazenHeaderLinksV1.social.platform)}
+              >
+                <Share2 className="h-4 w-4" />
+                <span>{pmdKazenSocialLabelV1(kazenHeaderLinksV1.social.platform)}</span>
+              </a>
+            ) : null}
+          </div>
+        ) : null}
         </header>
 
         <section className="kazen-hero" aria-label="Kazen seasonal atmosphere">

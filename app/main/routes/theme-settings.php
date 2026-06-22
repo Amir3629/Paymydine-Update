@@ -62,6 +62,84 @@
             if ($row && !empty($row->data)) {
                 $data = json_decode($row->data, true) ?: [];
                 $pmdKazenMenuLayoutV5 = $pmdKazenNormalizeMenuLayoutV5($data['kazen_menu_layout'] ?? $data['menuLayout'] ?? $data['food_display_style'] ?? null) ?: 'accordion';
+
+                // PMD_KAZEN_HEADER_LINKS_SIMPLE_THEME_V1
+                $pmdKazenBoolV1 = function ($value) {
+                    if (is_bool($value)) return $value;
+                    $raw = strtolower(trim((string)($value ?? '')));
+                    return in_array($raw, ['1', 'true', 'yes', 'on', 'enabled'], true);
+                };
+
+                $pmdKazenUrlV1 = function ($value) {
+                    $url = trim((string)($value ?? ''));
+                    if ($url === '') return '';
+                    if (!preg_match('#^https?://#i', $url)) {
+                        $url = 'https://' . ltrim($url, '/');
+                    }
+
+                    // PMD_KAZEN_HEADER_LINKS_REJECT_ADMIN_URLS_V2
+                    // Never expose admin/settings URLs as customer-facing social links.
+                    $path = parse_url($url, PHP_URL_PATH) ?: '';
+                    if (preg_match('#/(admin|app/admin)(/|$)#i', $path)) return '';
+                    if (stripos($url, 'settings/edit/review_social') !== false) return '';
+
+                    return $url;
+                };
+
+                $pmdKazenSettingV1 = function ($key, $fallback = '') use ($data) {
+                    if (is_array($data) && array_key_exists($key, $data)) {
+                        return $data[$key];
+                    }
+
+                    try {
+                        $value = \Illuminate\Support\Facades\DB::table('settings')->where('item', $key)->value('value');
+                        if ($value !== null) return $value;
+                    } catch (\Throwable $e) {}
+
+                    return $fallback;
+                };
+
+                $pmdKazenPickSocialV1 = function () use ($pmdKazenSettingV1, $pmdKazenBoolV1, $pmdKazenUrlV1) {
+                    foreach ([
+                        ['instagram', 'pmd_social_instagram_enabled', 'pmd_social_instagram_url'],
+                        ['facebook', 'pmd_social_facebook_enabled', 'pmd_social_facebook_url'],
+                        ['trustpilot', 'pmd_social_trustpilot_enabled', 'pmd_social_trustpilot_url'],
+                        ['reviews', 'pmd_social_reviews_enabled', 'pmd_social_reviews_url'],
+                    ] as $candidate) {
+                        [$platform, $enabledKey, $urlKey] = $candidate;
+                        $url = $pmdKazenUrlV1($pmdKazenSettingV1($urlKey, ''));
+                        if ($url !== '' && $pmdKazenBoolV1($pmdKazenSettingV1($enabledKey, '0'))) {
+                            return [$platform, $url];
+                        }
+                    }
+
+                    return ['instagram', ''];
+                };
+
+                [$pmdKazenLegacySocialPlatformV1, $pmdKazenLegacySocialUrlV1] = $pmdKazenPickSocialV1();
+
+                $pmdKazenWebsiteUrlV1 = $pmdKazenUrlV1($pmdKazenSettingV1('pmd_kazen_website_url', ''));
+                $pmdKazenWebsiteEnabledV1 = $pmdKazenBoolV1($pmdKazenSettingV1('pmd_kazen_website_enabled', $pmdKazenWebsiteUrlV1 !== '' ? '1' : '0')) && $pmdKazenWebsiteUrlV1 !== '';
+
+                $pmdKazenSocialPlatformV1 = strtolower(trim((string)$pmdKazenSettingV1('pmd_kazen_social_platform', $pmdKazenLegacySocialPlatformV1 ?: 'instagram')));
+                if (!in_array($pmdKazenSocialPlatformV1, ['instagram', 'facebook', 'trustpilot', 'reviews', 'website'], true)) {
+                    $pmdKazenSocialPlatformV1 = 'instagram';
+                }
+
+                $pmdKazenSocialUrlV1 = $pmdKazenUrlV1($pmdKazenSettingV1('pmd_kazen_social_url', $pmdKazenLegacySocialUrlV1));
+                $pmdKazenSocialEnabledV1 = $pmdKazenBoolV1($pmdKazenSettingV1('pmd_kazen_social_enabled', $pmdKazenSocialUrlV1 !== '' ? '1' : '0')) && $pmdKazenSocialUrlV1 !== '';
+
+                $pmdKazenHeaderLinksV1 = [
+                    'website' => [
+                        'enabled' => $pmdKazenWebsiteEnabledV1,
+                        'url' => $pmdKazenWebsiteUrlV1,
+                    ],
+                    'social' => [
+                        'enabled' => $pmdKazenSocialEnabledV1,
+                        'platform' => $pmdKazenSocialPlatformV1,
+                        'url' => $pmdKazenSocialUrlV1,
+                    ],
+                ];
                 $adminTheme = $data['theme_configuration'] ?? 'gold_luxury';
                 $map = [
                     'gold_luxury' => 'gold-luxury',
@@ -82,9 +160,21 @@
                     'frontend_theme' => $frontend,
                     'kazen_menu_layout' => $pmdKazenMenuLayoutV5,
                     'menuLayout' => $pmdKazenMenuLayoutV5,
+                    'kazen_header_links' => $pmdKazenHeaderLinksV1,
+                    'pmd_kazen_website_enabled' => $pmdKazenWebsiteEnabledV1 ? '1' : '0',
+                    'pmd_kazen_website_url' => $pmdKazenWebsiteUrlV1,
+                    'pmd_kazen_social_enabled' => $pmdKazenSocialEnabledV1 ? '1' : '0',
+                    'pmd_kazen_social_platform' => $pmdKazenSocialPlatformV1,
+                    'pmd_kazen_social_url' => $pmdKazenSocialUrlV1,
                     'data' => [
                         'kazen_menu_layout' => $pmdKazenMenuLayoutV5,
                         'menuLayout' => $pmdKazenMenuLayoutV5,
+                        'kazen_header_links' => $pmdKazenHeaderLinksV1,
+                        'pmd_kazen_website_enabled' => $pmdKazenWebsiteEnabledV1 ? '1' : '0',
+                        'pmd_kazen_website_url' => $pmdKazenWebsiteUrlV1,
+                        'pmd_kazen_social_enabled' => $pmdKazenSocialEnabledV1 ? '1' : '0',
+                        'pmd_kazen_social_platform' => $pmdKazenSocialPlatformV1,
+                        'pmd_kazen_social_url' => $pmdKazenSocialUrlV1,
                         'theme_id' => $frontend,
                         'primary_color' => $isModernGreen ? '#29BC7E' : ($isOrganic ? ($data['primary_color'] ?? '#737A55') : '#062F2A'),
                         'secondary_color' => $isModernGreen ? '#07110D' : ($isOrganic ? '#FFF9EF' : '#062F2A'),

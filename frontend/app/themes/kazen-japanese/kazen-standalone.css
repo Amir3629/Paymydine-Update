@@ -4121,3 +4121,520 @@ body[data-pmd-kazen-mode="dark"] .kazen-category-tab[aria-selected="true"],
   .kazen-category-tab { min-height: 2.45rem !important; padding: 0 .82rem !important; font-size: .68rem !important; }
   .kazen-menu-layout-tabs { margin-top: 1.72rem !important; }
 }
+/* PMD_KAZEN_HEADER_LINKS_V1
+   Square website/social shortcuts under the existing Kazen header controls. */
+html body .kazen-page .pmd-kazen-header-links,
+html body .kazen-standalone .pmd-kazen-header-links {
+  display: flex !important;
+  justify-content: flex-end !important;
+  align-items: center !important;
+  gap: .5rem !important;
+  margin: .62rem 0 0 !important;
+  padding: 0 !important;
+}
+
+html body .kazen-page .pmd-kazen-header-link-button,
+html body .kazen-standalone .pmd-kazen-header-link-button {
+  position: relative !important;
+  width: 2.65rem !important;
+  height: 2.65rem !important;
+  min-width: 2.65rem !important;
+  min-height: 2.65rem !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  border-radius: 0 !important;
+  border: 1px solid rgba(36, 35, 32, .18) !important;
+  background: rgba(255, 252, 246, .56) !important;
+  color: var(--kazen-ink, #242320) !important;
+  -webkit-text-fill-color: var(--kazen-ink, #242320) !important;
+  box-shadow: none !important;
+  text-decoration: none !important;
+  transition: transform .16s ease, border-color .16s ease, background .16s ease !important;
+}
+
+html body .kazen-page .pmd-kazen-header-link-button:hover,
+html body .kazen-standalone .pmd-kazen-header-link-button:hover {
+  transform: translateY(-1px) !important;
+  border-color: rgba(184, 93, 89, .48) !important;
+  background: rgba(184, 93, 89, .075) !important;
+}
+
+html body .kazen-page .pmd-kazen-header-link-button svg,
+html body .kazen-standalone .pmd-kazen-header-link-button svg,
+html body .kazen-page .pmd-kazen-header-link-button svg *,
+html body .kazen-standalone .pmd-kazen-header-link-button svg * {
+  color: currentColor !important;
+  stroke: currentColor !important;
+  fill: none !important;
+}
+
+html body .kazen-page .pmd-kazen-header-link-button span,
+html body .kazen-standalone .pmd-kazen-header-link-button span {
+  position: absolute !important;
+  width: 1px !important;
+  height: 1px !important;
+  overflow: hidden !important;
+  clip: rect(0 0 0 0) !important;
+  white-space: nowrap !important;
+}
+
+html[data-pmd-kazen-mode="dark"] body .kazen-page .pmd-kazen-header-link-button,
+body[data-pmd-kazen-mode="dark"] .kazen-page .pmd-kazen-header-link-button,
+.kazen-page[data-pmd-kazen-mode="dark"] .pmd-kazen-header-link-button {
+  border-color: rgba(198, 164, 93, .24) !important;
+  background: rgba(8, 6, 4, .34) !important;
+  color: rgba(255, 246, 222, .9) !important;
+  -webkit-text-fill-color: rgba(255, 246, 222, .9) !important;
+}
+
+html[data-pmd-kazen-mode="dark"] body .kazen-page .pmd-kazen-header-link-button:hover,
+body[data-pmd-kazen-mode="dark"] .kazen-page .pmd-kazen-header-link-button:hover,
+.kazen-page[data-pmd-kazen-mode="dark"] .pmd-kazen-header-link-button:hover {
+  border-color: rgba(236, 138, 130, .58) !important;
+  background: rgba(184, 93, 89, .16) !important;
+}
+
+@media (max-width: 390px) {
+  html body .kazen-page .pmd-kazen-header-link-button,
+  html body .kazen-standalone .pmd-kazen-header-link-button {
+    width: 2.46rem !important;
+    height: 2.46rem !important;
+    min-width: 2.46rem !important;
+    min-height: 2.46rem !important;
+  }
+}
+
+/* PMD HEADER ACTION FIX V1 */
+.kazen-header-actions{
+  position:absolute;
+  top:48px;
+  right:48px;
+  display:flex;
+  flex-direction:column;
+  gap:12px;
+  align-items:flex-end;
+  z-index:50;
+}
+
+.kazen-header-actions-row{
+  display:flex;
+  gap:12px;
+  justify-content:flex-end;
+}
+
+.kazen-header-actions-row .kazen-action-btn{
+  width:88px;
+  height:88px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  border:1px solid rgba(0,0,0,0.15);
+  background:transparent;
+}
+/* PMD_KAZEN_HEADER_BUTTONS_ALIGN_V2
+   Keep Website/Social as a tight second row under the top-right Kazen header controls. */
+html body .kazen-page header,
+html body .kazen-standalone header {
+  position: relative !important;
+}
+
+/* Primary rule when the links are inside the header. */
+html body .kazen-page header .pmd-kazen-header-links,
+html body .kazen-standalone header .pmd-kazen-header-links {
+  position: absolute !important;
+  top: calc(5.15rem + 12px) !important;
+  right: 0 !important;
+  display: flex !important;
+  flex-direction: row !important;
+  justify-content: flex-end !important;
+  align-items: center !important;
+  gap: 12px !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  z-index: 25 !important;
+}
+
+/* Fallback if any older build leaves the links outside the header. */
+html body .kazen-page > .pmd-kazen-header-links,
+html body .kazen-standalone > .pmd-kazen-header-links,
+html body .kazen-page .kazen-shell > .pmd-kazen-header-links {
+  position: absolute !important;
+  top: 148px !important;
+  right: clamp(36px, 7.25vw, 76px) !important;
+  display: flex !important;
+  justify-content: flex-end !important;
+  align-items: center !important;
+  gap: 12px !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  z-index: 25 !important;
+}
+
+/* Match the exact square language/mode/valet button system. */
+html body .kazen-page .pmd-kazen-header-link-button,
+html body .kazen-standalone .pmd-kazen-header-link-button {
+  width: 5.15rem !important;
+  height: 5.15rem !important;
+  min-width: 5.15rem !important;
+  min-height: 5.15rem !important;
+  padding: 0 !important;
+  border-radius: 0 !important;
+  border: 1px solid rgba(36, 35, 32, .22) !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  text-decoration: none !important;
+  color: var(--kazen-ink, #242320) !important;
+  -webkit-text-fill-color: var(--kazen-ink, #242320) !important;
+}
+
+html body .kazen-page .pmd-kazen-header-link-button:hover,
+html body .kazen-standalone .pmd-kazen-header-link-button:hover {
+  transform: translateY(-1px) !important;
+  border-color: rgba(184, 93, 89, .55) !important;
+  background: rgba(184, 93, 89, .06) !important;
+}
+
+html body .kazen-page .pmd-kazen-header-link-button svg,
+html body .kazen-standalone .pmd-kazen-header-link-button svg {
+  width: 1.42rem !important;
+  height: 1.42rem !important;
+  stroke-width: 1.9 !important;
+}
+
+html body .kazen-page .pmd-kazen-header-link-button svg,
+html body .kazen-page .pmd-kazen-header-link-button svg *,
+html body .kazen-standalone .pmd-kazen-header-link-button svg,
+html body .kazen-standalone .pmd-kazen-header-link-button svg * {
+  color: currentColor !important;
+  stroke: currentColor !important;
+  fill: none !important;
+}
+
+/* Keep labels accessible but visually icon-only. */
+html body .kazen-page .pmd-kazen-header-link-button span,
+html body .kazen-standalone .pmd-kazen-header-link-button span {
+  position: absolute !important;
+  width: 1px !important;
+  height: 1px !important;
+  overflow: hidden !important;
+  clip: rect(0 0 0 0) !important;
+  white-space: nowrap !important;
+}
+
+html[data-pmd-kazen-mode="dark"] body .kazen-page .pmd-kazen-header-link-button,
+body[data-pmd-kazen-mode="dark"] .kazen-page .pmd-kazen-header-link-button,
+.kazen-page[data-pmd-kazen-mode="dark"] .pmd-kazen-header-link-button {
+  border-color: rgba(198, 164, 93, .24) !important;
+  background: transparent !important;
+  color: rgba(255, 246, 222, .92) !important;
+  -webkit-text-fill-color: rgba(255, 246, 222, .92) !important;
+}
+
+html[data-pmd-kazen-mode="dark"] body .kazen-page .pmd-kazen-header-link-button:hover,
+body[data-pmd-kazen-mode="dark"] .kazen-page .pmd-kazen-header-link-button:hover,
+.kazen-page[data-pmd-kazen-mode="dark"] .pmd-kazen-header-link-button:hover {
+  border-color: rgba(236, 138, 130, .58) !important;
+  background: rgba(184, 93, 89, .13) !important;
+}
+
+@media (max-width: 680px) {
+  html body .kazen-page header .pmd-kazen-header-links,
+  html body .kazen-standalone header .pmd-kazen-header-links {
+    top: calc(4.62rem + 10px) !important;
+    gap: 10px !important;
+  }
+
+  html body .kazen-page .pmd-kazen-header-link-button,
+  html body .kazen-standalone .pmd-kazen-header-link-button {
+    width: 4.62rem !important;
+    height: 4.62rem !important;
+    min-width: 4.62rem !important;
+    min-height: 4.62rem !important;
+  }
+}
+
+/* PMD_KAZEN_HEADER_BUTTONS_COMPACT_V3
+   Final compact alignment for website/social buttons:
+   - exact square pixel size, not rem-based
+   - directly under the top-right header controls
+   - no oversized second row */
+html body .kazen-page header .pmd-kazen-header-links,
+html body .kazen-standalone header .pmd-kazen-header-links {
+  position: absolute !important;
+  top: 92px !important;
+  right: 0 !important;
+  display: flex !important;
+  flex-direction: row !important;
+  justify-content: flex-end !important;
+  align-items: center !important;
+  gap: 12px !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  z-index: 40 !important;
+}
+
+/* Fallback if old DOM leaves the links just outside header */
+html body .kazen-page > .pmd-kazen-header-links,
+html body .kazen-standalone > .pmd-kazen-header-links,
+html body .kazen-page .kazen-shell > .pmd-kazen-header-links {
+  position: absolute !important;
+  top: 142px !important;
+  right: 46px !important;
+  display: flex !important;
+  flex-direction: row !important;
+  justify-content: flex-end !important;
+  align-items: center !important;
+  gap: 12px !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  z-index: 40 !important;
+}
+
+/* Force website/social buttons to match the top header buttons visually */
+html body .kazen-page .pmd-kazen-header-links .pmd-kazen-header-link-button,
+html body .kazen-standalone .pmd-kazen-header-links .pmd-kazen-header-link-button,
+html body .kazen-page a.kazen-clean-header-button.pmd-kazen-header-link-button,
+html body .kazen-standalone a.kazen-clean-header-button.pmd-kazen-header-link-button {
+  width: 82px !important;
+  height: 82px !important;
+  min-width: 82px !important;
+  min-height: 82px !important;
+  max-width: 82px !important;
+  max-height: 82px !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  border-radius: 0 !important;
+  border: 1px solid rgba(36, 35, 32, .22) !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  text-decoration: none !important;
+  transform: none !important;
+  color: var(--kazen-ink, #242320) !important;
+  -webkit-text-fill-color: var(--kazen-ink, #242320) !important;
+}
+
+html body .kazen-page .pmd-kazen-header-links .pmd-kazen-header-link-button:hover,
+html body .kazen-standalone .pmd-kazen-header-links .pmd-kazen-header-link-button:hover {
+  transform: translateY(-1px) !important;
+  border-color: rgba(184, 93, 89, .55) !important;
+  background: rgba(184, 93, 89, .06) !important;
+}
+
+html body .kazen-page .pmd-kazen-header-links .pmd-kazen-header-link-button svg,
+html body .kazen-standalone .pmd-kazen-header-links .pmd-kazen-header-link-button svg {
+  width: 24px !important;
+  height: 24px !important;
+  stroke-width: 2 !important;
+}
+
+html body .kazen-page .pmd-kazen-header-links .pmd-kazen-header-link-button svg,
+html body .kazen-page .pmd-kazen-header-links .pmd-kazen-header-link-button svg *,
+html body .kazen-standalone .pmd-kazen-header-links .pmd-kazen-header-link-button svg,
+html body .kazen-standalone .pmd-kazen-header-links .pmd-kazen-header-link-button svg * {
+  color: currentColor !important;
+  stroke: currentColor !important;
+  fill: none !important;
+}
+
+html body .kazen-page .pmd-kazen-header-links .pmd-kazen-header-link-button span,
+html body .kazen-standalone .pmd-kazen-header-links .pmd-kazen-header-link-button span {
+  position: absolute !important;
+  width: 1px !important;
+  height: 1px !important;
+  overflow: hidden !important;
+  clip: rect(0 0 0 0) !important;
+  white-space: nowrap !important;
+}
+
+html[data-pmd-kazen-mode="dark"] body .kazen-page .pmd-kazen-header-links .pmd-kazen-header-link-button,
+body[data-pmd-kazen-mode="dark"] .kazen-page .pmd-kazen-header-links .pmd-kazen-header-link-button,
+.kazen-page[data-pmd-kazen-mode="dark"] .pmd-kazen-header-links .pmd-kazen-header-link-button {
+  border-color: rgba(198, 164, 93, .24) !important;
+  background: transparent !important;
+  color: rgba(255, 246, 222, .92) !important;
+  -webkit-text-fill-color: rgba(255, 246, 222, .92) !important;
+}
+
+@media (max-width: 680px) {
+  html body .kazen-page header .pmd-kazen-header-links,
+  html body .kazen-standalone header .pmd-kazen-header-links {
+    top: 82px !important;
+    gap: 10px !important;
+  }
+
+  html body .kazen-page .pmd-kazen-header-links .pmd-kazen-header-link-button,
+  html body .kazen-standalone .pmd-kazen-header-links .pmd-kazen-header-link-button {
+    width: 72px !important;
+    height: 72px !important;
+    min-width: 72px !important;
+    min-height: 72px !important;
+    max-width: 72px !important;
+    max-height: 72px !important;
+  }
+}
+/* PMD_KAZEN_HEADER_BUTTONS_EXACT_V4
+   Website/Social header shortcuts:
+   isolated classes, exact size, exact right alignment, no old rem scaling. */
+
+html body .kazen-page header,
+html body .kazen-standalone header {
+  position: relative !important;
+}
+
+html body .kazen-page header .pmd-kazen-header-links-v4,
+html body .kazen-standalone header .pmd-kazen-header-links-v4 {
+  position: absolute !important;
+  top: 92px !important;
+  right: 0 !important;
+  display: flex !important;
+  flex-direction: row !important;
+  align-items: center !important;
+  justify-content: flex-end !important;
+  gap: 12px !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  width: auto !important;
+  height: auto !important;
+  z-index: 60 !important;
+}
+
+/* Fallback for any cached/older DOM placement. */
+html body .kazen-page > .pmd-kazen-header-links-v4,
+html body .kazen-standalone > .pmd-kazen-header-links-v4,
+html body .kazen-page .kazen-shell > .pmd-kazen-header-links-v4 {
+  position: absolute !important;
+  top: 148px !important;
+  right: clamp(42px, 7vw, 78px) !important;
+  display: flex !important;
+  flex-direction: row !important;
+  align-items: center !important;
+  justify-content: flex-end !important;
+  gap: 12px !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  width: auto !important;
+  height: auto !important;
+  z-index: 60 !important;
+}
+
+html body .kazen-page .pmd-kazen-header-links-v4 .pmd-kazen-header-link-button-v4,
+html body .kazen-standalone .pmd-kazen-header-links-v4 .pmd-kazen-header-link-button-v4,
+html body a.pmd-kazen-header-link-button-v4 {
+  all: unset !important;
+  box-sizing: border-box !important;
+  width: 82px !important;
+  height: 82px !important;
+  min-width: 82px !important;
+  min-height: 82px !important;
+  max-width: 82px !important;
+  max-height: 82px !important;
+  flex: 0 0 82px !important;
+  aspect-ratio: 1 / 1 !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  border-radius: 0 !important;
+  border: 1px solid rgba(36, 35, 32, .22) !important;
+  background: transparent !important;
+  color: #242320 !important;
+  -webkit-text-fill-color: #242320 !important;
+  box-shadow: none !important;
+  cursor: pointer !important;
+  text-decoration: none !important;
+  overflow: hidden !important;
+}
+
+html body .kazen-page .pmd-kazen-header-links-v4 .pmd-kazen-header-link-button-v4:hover,
+html body .kazen-standalone .pmd-kazen-header-links-v4 .pmd-kazen-header-link-button-v4:hover {
+  transform: translateY(-1px) !important;
+  border-color: rgba(184, 93, 89, .55) !important;
+  background: rgba(184, 93, 89, .06) !important;
+}
+
+html body .kazen-page .pmd-kazen-header-links-v4 .pmd-kazen-header-link-button-v4 svg,
+html body .kazen-standalone .pmd-kazen-header-links-v4 .pmd-kazen-header-link-button-v4 svg,
+html body a.pmd-kazen-header-link-button-v4 svg {
+  width: 24px !important;
+  height: 24px !important;
+  min-width: 24px !important;
+  min-height: 24px !important;
+  max-width: 24px !important;
+  max-height: 24px !important;
+  stroke-width: 2 !important;
+}
+
+html body .kazen-page .pmd-kazen-header-links-v4 .pmd-kazen-header-link-button-v4 svg,
+html body .kazen-page .pmd-kazen-header-links-v4 .pmd-kazen-header-link-button-v4 svg *,
+html body .kazen-standalone .pmd-kazen-header-links-v4 .pmd-kazen-header-link-button-v4 svg,
+html body .kazen-standalone .pmd-kazen-header-links-v4 .pmd-kazen-header-link-button-v4 svg *,
+html body a.pmd-kazen-header-link-button-v4 svg,
+html body a.pmd-kazen-header-link-button-v4 svg * {
+  color: currentColor !important;
+  stroke: currentColor !important;
+  fill: none !important;
+}
+
+html body .kazen-page .pmd-kazen-header-links-v4 .pmd-kazen-header-link-button-v4 span,
+html body .kazen-standalone .pmd-kazen-header-links-v4 .pmd-kazen-header-link-button-v4 span,
+html body a.pmd-kazen-header-link-button-v4 span {
+  position: absolute !important;
+  width: 1px !important;
+  height: 1px !important;
+  overflow: hidden !important;
+  clip: rect(0 0 0 0) !important;
+  white-space: nowrap !important;
+}
+
+html[data-pmd-kazen-mode="dark"] body .kazen-page .pmd-kazen-header-links-v4 .pmd-kazen-header-link-button-v4,
+body[data-pmd-kazen-mode="dark"] .kazen-page .pmd-kazen-header-links-v4 .pmd-kazen-header-link-button-v4,
+.kazen-page[data-pmd-kazen-mode="dark"] .pmd-kazen-header-links-v4 .pmd-kazen-header-link-button-v4 {
+  border-color: rgba(198, 164, 93, .24) !important;
+  background: transparent !important;
+  color: rgba(255, 246, 222, .92) !important;
+  -webkit-text-fill-color: rgba(255, 246, 222, .92) !important;
+}
+
+@media (max-width: 680px) {
+  html body .kazen-page header .pmd-kazen-header-links-v4,
+  html body .kazen-standalone header .pmd-kazen-header-links-v4 {
+    top: 82px !important;
+    gap: 10px !important;
+  }
+
+  html body .kazen-page .pmd-kazen-header-links-v4 .pmd-kazen-header-link-button-v4,
+  html body .kazen-standalone .pmd-kazen-header-links-v4 .pmd-kazen-header-link-button-v4,
+  html body a.pmd-kazen-header-link-button-v4 {
+    width: 72px !important;
+    height: 72px !important;
+    min-width: 72px !important;
+    min-height: 72px !important;
+    max-width: 72px !important;
+    max-height: 72px !important;
+    flex-basis: 72px !important;
+  }
+}
+/* PMD_KAZEN_HEADER_BUTTONS_RUNTIME_V5_CSS
+   Baseline CSS only; inline runtime effect is the source of truth. */
+html body .kazen-page .pmd-kazen-header-links-runtime-v5,
+html body .kazen-standalone .pmd-kazen-header-links-runtime-v5 {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: flex-end !important;
+  gap: 12px !important;
+  width: auto !important;
+  height: auto !important;
+}
+
+html body .kazen-page .pmd-kazen-header-link-button-runtime-v5,
+html body .kazen-standalone .pmd-kazen-header-link-button-runtime-v5 {
+  border-radius: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+}
