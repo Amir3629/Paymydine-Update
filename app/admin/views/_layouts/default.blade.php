@@ -1087,6 +1087,12 @@ window.PMD_ROLE_DASHBOARD_CONTEXT_V72 = @json($__pmdRoleDash);
 <!-- PMD_ROLE_DASHBOARD_LOCK_V72_CSS_START -->
 <link rel="stylesheet" href="{{ asset('app/admin/assets/css/pmd-role-dashboard-lock-v72.css') }}?v={{ time() }}">
 <!-- PMD_ROLE_DASHBOARD_LOCK_V72_CSS_END -->
+<!-- PMD_ROLE_NO_SIDEBAR_LOCK_V73_CSS_START -->
+<link rel="stylesheet" href="{{ asset('app/admin/assets/css/pmd-role-no-sidebar-v73.css') }}?v={{ time() }}">
+<!-- PMD_ROLE_NO_SIDEBAR_LOCK_V73_CSS_END -->
+<!-- PMD_KDS_DASHBOARD_EMBED_V75_CSS_START -->
+<link rel="stylesheet" href="{{ asset('app/admin/assets/css/pmd-kds-dashboard-embed-v75.css') }}?v={{ time() }}">
+<!-- PMD_KDS_DASHBOARD_EMBED_V75_CSS_END -->
 </head>
 <script>
     // SMART FIX: Force dropdown alignment WITHOUT breaking Bootstrap animations
@@ -1646,5 +1652,11 @@ window.PMD_ROLE_DASHBOARD_CONTEXT_V72 = @json($__pmdRoleDash);
 <!-- PMD_ROLE_DASHBOARD_LOCK_V72_JS_START -->
 <script src="{{ asset('app/admin/assets/js/pmd-role-dashboard-lock-v72.js') }}?v={{ time() }}"></script>
 <!-- PMD_ROLE_DASHBOARD_LOCK_V72_JS_END -->
+<!-- PMD_ROLE_NO_SIDEBAR_LOCK_V73_JS_START -->
+<script src="{{ asset('app/admin/assets/js/pmd-role-no-sidebar-v73.js') }}?v={{ time() }}"></script>
+<!-- PMD_ROLE_NO_SIDEBAR_LOCK_V73_JS_END -->
+<!-- PMD_KDS_DASHBOARD_EMBED_V75_JS_START -->
+<script src="{{ asset('app/admin/assets/js/pmd-kds-dashboard-embed-v75.js') }}?v={{ time() }}"></script>
+<!-- PMD_KDS_DASHBOARD_EMBED_V75_JS_END -->
 </body>
 </html>

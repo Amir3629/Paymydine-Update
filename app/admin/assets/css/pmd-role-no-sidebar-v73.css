@@ -1,0 +1,41 @@
+html.pmd-no-sidebar-role-v73 .sidebar,
+html.pmd-no-sidebar-role-v73 #navSidebar,
+html.pmd-no-sidebar-role-v73 .navbar-side,
+html.pmd-no-sidebar-role-v73 .sidebar-left,
+html.pmd-no-sidebar-role-v73 .pmd-sidebar-icons-toggle,
+body.pmd-no-sidebar-role-v73 .sidebar,
+body.pmd-no-sidebar-role-v73 #navSidebar,
+body.pmd-no-sidebar-role-v73 .navbar-side,
+body.pmd-no-sidebar-role-v73 .sidebar-left,
+body.pmd-no-sidebar-role-v73 .pmd-sidebar-icons-toggle {
+  display:none!important;
+  visibility:hidden!important;
+  opacity:0!important;
+  pointer-events:none!important;
+}
+
+html.pmd-no-sidebar-role-v73 .page-wrapper,
+html.pmd-no-sidebar-role-v73 #page-wrapper,
+html.pmd-no-sidebar-role-v73 .content-wrapper,
+html.pmd-no-sidebar-role-v73 .main-content,
+html.pmd-no-sidebar-role-v73 .layout-content,
+html.pmd-no-sidebar-role-v73 .page-content,
+body.pmd-no-sidebar-role-v73 .page-wrapper,
+body.pmd-no-sidebar-role-v73 #page-wrapper,
+body.pmd-no-sidebar-role-v73 .content-wrapper,
+body.pmd-no-sidebar-role-v73 .main-content,
+body.pmd-no-sidebar-role-v73 .layout-content,
+body.pmd-no-sidebar-role-v73 .page-content {
+  margin-left:0!important;
+  left:0!important;
+  width:100%!important;
+  max-width:none!important;
+}
+
+body.pmd-role-dashboard-locked-v73 .pmd-dashboard-switcher-hide-v73,
+body.pmd-role-dashboard-locked-v73 [data-pmd-hide-dash-btn-v73="1"] {
+  display:none!important;
+  visibility:hidden!important;
+  opacity:0!important;
+  pointer-events:none!important;
+}

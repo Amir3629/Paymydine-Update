@@ -225,7 +225,7 @@ body[data-pmd-kazen-active="1"] {
 
 .kazen-dotline::before,
 .kazen-dotline::after {
-  display: none !important;
+  display: revert !important;
   content: none !important;
 }
 
@@ -685,7 +685,7 @@ html[data-pmd-kazen-mode="dark"] .kazen-category-icon {
 
 .kazen-modal-card::before,
 .kazen-modal-card::after {
-  display: none !important;
+  display: revert !important;
 }
 
 .kazen-modal-head {
@@ -985,9 +985,9 @@ html[data-pmd-kazen-mode="dark"] .kazen-category-icon {
 }
 
 .kazen-enso {
-  display: none !important;
-  visibility: hidden !important;
-  opacity: 0 !important;
+  display: revert !important;
+  visibility: visible !important;
+  opacity: 1 !important;
 }
 
 .kazen-logo {
@@ -1046,7 +1046,7 @@ html[data-pmd-kazen-mode="dark"] .kazen-category-icon {
 }
 
 .kazen-enso {
-  display: none !important;
+  display: revert !important;
 }
 
 .kazen-logo {
@@ -1104,7 +1104,7 @@ html[data-pmd-kazen-mode="dark"] .kazen-category-icon {
 }
 
 .kazen-enso {
-  display: none !important;
+  display: revert !important;
 }
 
 .kazen-logo {
@@ -1169,7 +1169,7 @@ html body .kazen-solid-modal-sheet {
     radial-gradient(circle at 92% 0%, rgba(184,93,89,.035), transparent 30%),
     linear-gradient(180deg, #fbf8f2 0%, #f7f3ec 100%) !important;
   opacity: 1 !important;
-  pointer-events: none !important;
+  pointer-events: auto !important;
   filter: none !important;
   backdrop-filter: none !important;
   -webkit-backdrop-filter: none !important;
@@ -1357,13 +1357,13 @@ html[data-pmd-kazen-active="1"] body .kazen-page .kazen-category-btn line {
 
 /* PMD_KAZEN_HIDE_LOGO_FALLBACK_FRAME_20260611 */
 .kazen-logo-fallback {
-  display: none !important;
+  display: revert !important;
   width: 0 !important;
   height: 0 !important;
   border: 0 !important;
   background: transparent !important;
   color: transparent !important;
-  opacity: 0 !important;
+  opacity: 1 !important;
   overflow: hidden !important;
 }
 
@@ -1388,7 +1388,7 @@ html[data-pmd-kazen-active="1"] body .kazen-page .kazen-category-btn line {
   padding: 0 16px !important;
   opacity: 1 !important;
   filter: none !important;
-  pointer-events: none !important;
+  pointer-events: auto !important;
 }
 
 .kazen-paymydine-footer-logo picture,
@@ -1408,7 +1408,7 @@ html[data-pmd-kazen-active="1"] body .kazen-page .kazen-category-btn line {
 }
 
 .kazen-paymydine-footer-logo-text {
-  display: none !important;
+  display: revert !important;
 }
 
 
@@ -1535,7 +1535,7 @@ html[data-pmd-kazen-active="1"] body .kazen-page .kazen-category-btn line {
 }
 
 .kazen-page .kazen-item-main * {
-  pointer-events: none !important;
+  pointer-events: auto !important;
 }
 
 .kazen-page .kazen-add {
@@ -1554,7 +1554,7 @@ html[data-pmd-kazen-active="1"] body .kazen-page .kazen-category-btn line {
 }
 
 .kazen-page .kazen-item-main {
-  pointer-events: none !important;
+  pointer-events: auto !important;
 }
 
 .kazen-page .kazen-add {
@@ -4052,7 +4052,7 @@ html body *:not(svg):not(path):not(circle):not(polyline):not(line):not(rect):not
   margin: 0 0 .95rem !important;
   border-bottom: 1px solid rgba(36, 35, 32, .14) !important;
 }
-.kazen-category-tabs::-webkit-scrollbar { display: none !important; }
+.kazen-category-tabs::-webkit-scrollbar { display: revert !important; }
 .kazen-category-tab {
   flex: 0 0 auto !important;
   display: inline-flex !important;
@@ -4637,4 +4637,97 @@ html body .kazen-standalone .pmd-kazen-header-link-button-runtime-v5 {
   border-radius: 0 !important;
   background: transparent !important;
   box-shadow: none !important;
+}
+
+
+/* PMD_KAZEN_REMOVE_HEADER_LINKS_V8_DISABLED_BY_V10
+   Permanent kill switch: Website/Social header shortcuts are removed completely. */
+html body .kazen-page .pmd-kazen-header-links,
+html body .kazen-page .pmd-kazen-header-links-v4,
+html body .kazen-page .pmd-kazen-header-links-runtime-v5,
+html body .kazen-page .pmd-kazen-target-fixed-links-v7,
+html body .kazen-page .pmd-kazen-bridge-fixed-links-v6,
+html body .kazen-standalone .pmd-kazen-header-links,
+html body .kazen-standalone .pmd-kazen-header-links-v4,
+html body .kazen-standalone .pmd-kazen-header-links-runtime-v5,
+html body .kazen-standalone .pmd-kazen-target-fixed-links-v7,
+html body .kazen-standalone .pmd-kazen-bridge-fixed-links-v6 {
+  display: revert !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+  pointer-events: auto !important;
+  width: 0 !important;
+  height: 0 !important;
+  min-width: 0 !important;
+  min-height: 0 !important;
+  max-width: 0 !important;
+  max-height: 0 !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  overflow: hidden !important;
+}
+
+
+/* PMD_KAZEN_DOM_CLEAN_HEADER_LINKS_V10_CSS
+   Website/Social are injected into the original [data-pmd-kazen-clean-header-actions="1"] group.
+   They inherit .kazen-clean-header-button exactly. */
+html body .kazen-page [data-pmd-kazen-clean-header-actions="1"],
+html body .kazen-standalone [data-pmd-kazen-clean-header-actions="1"] {
+  display: grid !important;
+  grid-template-columns: repeat(3, auto) !important;
+  grid-auto-rows: auto !important;
+  align-items: center !important;
+  justify-content: end !important;
+  justify-items: end !important;
+  gap: 12px !important;
+}
+
+html body .kazen-page [data-pmd-kazen-clean-action="language"],
+html body .kazen-standalone [data-pmd-kazen-clean-action="language"] {
+  grid-column: 1 !important;
+  grid-row: 1 !important;
+}
+
+html body .kazen-page [data-pmd-kazen-clean-action="mode"],
+html body .kazen-standalone [data-pmd-kazen-clean-action="mode"] {
+  grid-column: 2 !important;
+  grid-row: 1 !important;
+}
+
+html body .kazen-page [data-pmd-kazen-clean-action="valet"],
+html body .kazen-standalone [data-pmd-kazen-clean-action="valet"] {
+  grid-column: 3 !important;
+  grid-row: 1 !important;
+}
+
+html body .kazen-page [data-pmd-kazen-clean-action="website"],
+html body .kazen-standalone [data-pmd-kazen-clean-action="website"] {
+  grid-column: 2 !important;
+  grid-row: 2 !important;
+}
+
+html body .kazen-page [data-pmd-kazen-clean-action="social"],
+html body .kazen-standalone [data-pmd-kazen-clean-action="social"] {
+  grid-column: 3 !important;
+  grid-row: 2 !important;
+}
+
+html body .kazen-page [data-pmd-kazen-clean-action="website"]:last-child,
+html body .kazen-standalone [data-pmd-kazen-clean-action="website"]:last-child {
+  grid-column: 3 !important;
+}
+
+html body .kazen-page a.kazen-clean-header-button,
+html body .kazen-standalone a.kazen-clean-header-button {
+  text-decoration: none !important;
+  box-sizing: border-box !important;
+}
+
+html body .kazen-page a.kazen-clean-header-button svg,
+html body .kazen-page a.kazen-clean-header-button svg *,
+html body .kazen-standalone a.kazen-clean-header-button svg,
+html body .kazen-standalone a.kazen-clean-header-button svg * {
+  color: currentColor !important;
+  stroke: currentColor !important;
+  fill: none !important;
 }
