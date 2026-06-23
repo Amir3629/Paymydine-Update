@@ -1,0 +1,153 @@
+/* PMD KDS Dashboard Inline v76
+   Goal: KDS user keeps normal admin/dashboard header visible, sidebar hidden,
+   and the real KDS page appears inline inside dashboard content only. */
+
+html.pmd-kds-dashboard-inline-role-v76,
+body.pmd-kds-dashboard-inline-role-v76 {
+  overflow-x: hidden !important;
+}
+
+html.pmd-kds-dashboard-inline-role-v76 body,
+body.pmd-kds-dashboard-inline-role-v76 {
+  overflow-y: auto !important;
+}
+
+/* Hide only the backend side menu/side toggles for KDS, not the top header. */
+html.pmd-kds-dashboard-inline-role-v76 .sidebar,
+html.pmd-kds-dashboard-inline-role-v76 #navSidebar,
+html.pmd-kds-dashboard-inline-role-v76 #side-nav-menu,
+html.pmd-kds-dashboard-inline-role-v76 .navbar-side,
+html.pmd-kds-dashboard-inline-role-v76 .sidebar-left,
+html.pmd-kds-dashboard-inline-role-v76 .pmd-sidebar-icons-toggle,
+html.pmd-kds-dashboard-inline-role-v76 .pmd-logo-cycle-nav-item-v38,
+html.pmd-kds-dashboard-inline-role-v76 .pmd-logo-cycle-btn-v38,
+body.pmd-kds-dashboard-inline-role-v76 .sidebar,
+body.pmd-kds-dashboard-inline-role-v76 #navSidebar,
+body.pmd-kds-dashboard-inline-role-v76 #side-nav-menu,
+body.pmd-kds-dashboard-inline-role-v76 .navbar-side,
+body.pmd-kds-dashboard-inline-role-v76 .sidebar-left,
+body.pmd-kds-dashboard-inline-role-v76 .pmd-sidebar-icons-toggle,
+body.pmd-kds-dashboard-inline-role-v76 .pmd-logo-cycle-nav-item-v38,
+body.pmd-kds-dashboard-inline-role-v76 .pmd-logo-cycle-btn-v38 {
+  display: none !important;
+  visibility: hidden !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
+}
+
+/* Make dashboard content use the freed sidebar space. */
+html.pmd-kds-dashboard-inline-role-v76 .page-wrapper,
+html.pmd-kds-dashboard-inline-role-v76 #page-wrapper,
+html.pmd-kds-dashboard-inline-role-v76 .content-wrapper,
+html.pmd-kds-dashboard-inline-role-v76 .main-content,
+html.pmd-kds-dashboard-inline-role-v76 .layout-content,
+html.pmd-kds-dashboard-inline-role-v76 .page-content,
+body.pmd-kds-dashboard-inline-role-v76 .page-wrapper,
+body.pmd-kds-dashboard-inline-role-v76 #page-wrapper,
+body.pmd-kds-dashboard-inline-role-v76 .content-wrapper,
+body.pmd-kds-dashboard-inline-role-v76 .main-content,
+body.pmd-kds-dashboard-inline-role-v76 .layout-content,
+body.pmd-kds-dashboard-inline-role-v76 .page-content {
+  margin-left: 0 !important;
+  left: 0 !important;
+  width: 100% !important;
+  max-width: none !important;
+}
+
+/* Keep normal backend/admin top header above dashboard content. */
+html.pmd-kds-dashboard-inline-role-v76 .navbar-top,
+body.pmd-kds-dashboard-inline-role-v76 .navbar-top {
+  display: flex !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+  pointer-events: auto !important;
+  z-index: 1100 !important;
+}
+
+/* If old v75 is still present from browser/cache, kill the fullscreen overlay. */
+html.pmd-kds-dashboard-inline-role-v76 .pmd-kds-dashboard-host-v75,
+body.pmd-kds-dashboard-inline-role-v76 .pmd-kds-dashboard-host-v75 {
+  display: none !important;
+  visibility: hidden !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
+  position: static !important;
+  inset: auto !important;
+  width: 0 !important;
+  height: 0 !important;
+  overflow: hidden !important;
+  z-index: -1 !important;
+}
+
+/* Hide compare switcher and old preview cards only after the inline KDS is mounted. */
+html.pmd-kds-dashboard-inline-mounted-v76 .pmd-role-switcher,
+html.pmd-kds-dashboard-inline-mounted-v76 .pmd-dashboard-switcher-hide-v73,
+html.pmd-kds-dashboard-inline-mounted-v76 [data-pmd-hide-dash-btn-v73="1"],
+html.pmd-kds-dashboard-inline-mounted-v76 .pmd-dashboard-role-switcher-hidden-v72,
+html.pmd-kds-dashboard-inline-mounted-v76 [data-pmd-role-dashboard-extra-button-v72="1"],
+body.pmd-kds-dashboard-inline-mounted-v76 .pmd-role-switcher,
+body.pmd-kds-dashboard-inline-mounted-v76 .pmd-dashboard-switcher-hide-v73,
+body.pmd-kds-dashboard-inline-mounted-v76 [data-pmd-hide-dash-btn-v73="1"],
+body.pmd-kds-dashboard-inline-mounted-v76 .pmd-dashboard-role-switcher-hidden-v72,
+body.pmd-kds-dashboard-inline-mounted-v76 [data-pmd-role-dashboard-extra-button-v72="1"] {
+  display: none !important;
+  visibility: hidden !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
+}
+
+/* Replace the K preview dashboard with the real KDS embed. Top admin header remains untouched. */
+html.pmd-kds-dashboard-inline-mounted-v76 .pmd-dashboard-modern > .pmd-dashboard-kpi-bar,
+html.pmd-kds-dashboard-inline-mounted-v76 .pmd-dashboard-modern > .pmd-role-panel,
+html.pmd-kds-dashboard-inline-mounted-v76 .pmd-dashboard-modern > .pmd-dashboard-grid,
+html.pmd-kds-dashboard-inline-mounted-v76 .pmd-dashboard-modern > .pmd-owner-insights,
+body.pmd-kds-dashboard-inline-mounted-v76 .pmd-dashboard-modern > .pmd-dashboard-kpi-bar,
+body.pmd-kds-dashboard-inline-mounted-v76 .pmd-dashboard-modern > .pmd-role-panel,
+body.pmd-kds-dashboard-inline-mounted-v76 .pmd-dashboard-modern > .pmd-dashboard-grid,
+body.pmd-kds-dashboard-inline-mounted-v76 .pmd-dashboard-modern > .pmd-owner-insights {
+  display: none !important;
+}
+
+.pmd-kds-dashboard-host-v76 {
+  position: relative !important;
+  display: block !important;
+  width: 100% !important;
+  max-width: none !important;
+  min-height: calc(100vh - 145px) !important;
+  margin: 18px 0 28px !important;
+  border: 0 !important;
+  border-radius: 18px !important;
+  background: #ffffff !important;
+  box-shadow: 0 18px 50px rgba(15, 23, 42, 0.10) !important;
+  overflow: hidden !important;
+}
+
+.pmd-kds-dashboard-iframe-v76 {
+  display: block !important;
+  width: 100% !important;
+  height: calc(100vh - 145px) !important;
+  min-height: 720px !important;
+  border: 0 !important;
+  background: #ffffff !important;
+}
+
+/* Fallback mount when the custom dashboard shell has not appeared yet. */
+[data-control="dashboard-container"] > .pmd-kds-dashboard-host-v76,
+.page-content > .pmd-kds-dashboard-host-v76 {
+  margin-left: 18px !important;
+  margin-right: 18px !important;
+  width: calc(100% - 36px) !important;
+}
+
+@media (max-width: 767px) {
+  .pmd-kds-dashboard-host-v76 {
+    margin: 10px 0 20px !important;
+    border-radius: 12px !important;
+    min-height: calc(100vh - 105px) !important;
+  }
+
+  .pmd-kds-dashboard-iframe-v76 {
+    height: calc(100vh - 105px) !important;
+    min-height: 620px !important;
+  }
+}

@@ -14,5 +14,6 @@
     <p class="lead">We're sorry, but an unhandled error occurred. Please see the details below.</p>
     <p>{!! $exception->getMessage() !!}</p>
 </article>
+<script src="/app/admin/assets/js/pmd-waiter-v98-single-source.js?v=98"></script>
 </body>
 </html>

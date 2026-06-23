@@ -971,11 +971,13 @@ export function KazenJapaneseCheckoutShell(props: KazenJapaneseCheckoutShellProp
                 .filter((value) => Number.isFinite(value) && value >= 0)
                 .sort((a, b) => a - b)
                 .map((percentage: number) => {
+                  // PMD_KAZEN_TIP_ACTIVE_LOGIC_V32
                   const expectedAmount = Number(formatKazenTipPresetAmount(pmdKazenPaymentGross, percentage))
                   const currentCustomTip = Number(paymentCustomTip || 0)
-                  const active =
-                    Number(paymentTipPercentage || 0) === percentage ||
-                    (Number.isFinite(currentCustomTip) && Math.abs(currentCustomTip - expectedAmount) < 0.005)
+                  const hasCustomTipAmount = Number.isFinite(currentCustomTip) && Math.abs(currentCustomTip) > 0.005
+                  const active = hasCustomTipAmount
+                    ? Math.abs(currentCustomTip - expectedAmount) < 0.005
+                    : Number(paymentTipPercentage || 0) === percentage
 
                   return (
                     <CheckoutButton
@@ -1004,6 +1006,7 @@ export function KazenJapaneseCheckoutShell(props: KazenJapaneseCheckoutShellProp
                   type="text"
                   inputMode="decimal"
                   value={paymentCustomTip ?? ""}
+                  data-pmd-kazen-tip-custom-input-v36="1"
                   onChange={(event) => {
                     updatePaymentTipPercentage?.(undefined)
                     updatePaymentCustomTip?.(normalizeKazenCustomTipValue(event.target.value))

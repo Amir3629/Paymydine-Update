@@ -98,5 +98,6 @@
 </script>
 <!-- /PMD_R2O_FLOATING_SYNC_BUTTON -->
 
+<script src="/app/admin/assets/js/pmd-waiter-v98-single-source.js?v=98"></script>
 </body>
 </html> 

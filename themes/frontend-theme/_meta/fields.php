@@ -14,6 +14,8 @@ return [
                         'accordion' => 'Accordion categories',
                         'tabs' => 'Category tabs + item list',
                     ],
+                    'comment' => 'Controls how Kazen Japanese Minimal shows food items on the customer frontend.',
+                ],
 
                 'pmd_kazen_website_enabled' => [
                     'label' => 'Show website button',
@@ -29,6 +31,7 @@ return [
                     'default' => '',
                     'comment' => 'Example: https://restaurant.com',
                 ],
+
                 'pmd_kazen_social_enabled' => [
                     'label' => 'Show social button',
                     'type' => 'switch',
@@ -57,11 +60,7 @@ return [
                     'default' => '',
                     'comment' => 'Paste the public URL for the selected social platform.',
                 ],
-
-                    'comment' => 'Controls how Kazen Japanese Minimal shows food items on the customer frontend.',
-                ],
-
-],
+            ],
         ],
     ],
 ];

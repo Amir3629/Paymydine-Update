@@ -203,7 +203,7 @@
       var r = routes();
       var key = JSON.stringify(data) + '|' + window.location.pathname;
       var ok = rt.classList.contains('pmd-owner-match-v13-rendered') && expectedLabelsOk(rt) && rt.querySelector('.pmd-owner-match-footer-v13') && rt.querySelector('.pmd-sales-period');
-      if (!force && ok && key === lastKey) return;
+      if (!force && ok) return;
 
       rt.classList.add('pmd-owner-match-v13');
       rt.classList.remove('pmd-owner-match-v12');
@@ -245,15 +245,15 @@
   }
   function schedule(delay, force) { clearTimeout(renderTimer); renderTimer = setTimeout(function () { render(!!force); }, delay || 80); }
   function boot() {
-    [80, 220, 500, 950, 1600, 2600, 4200, 6500, 9000, 12500].forEach(function (delay) { setTimeout(function () { render(true); }, delay); });
+    [80, 220, 500, 950, 1600, 2600, 4200].forEach(function (delay) { setTimeout(function () { render(false); }, delay); });
     var interval = setInterval(function () {
       enforcedTicks += 1;
-      render(enforcedTicks < 28);
+      render(false);
       if (enforcedTicks > 90) clearInterval(interval);
     }, 1000);
-    document.addEventListener('pmd:dashboard-real-data-v3', function () { schedule(30, true); });
-    window.addEventListener('ajaxUpdateComplete', function () { schedule(120, true); });
-    window.addEventListener('load', function () { schedule(100, true); });
+    document.addEventListener('pmd:dashboard-real-data-v3', function () { schedule(30, false); });
+    window.addEventListener('ajaxUpdateComplete', function () { schedule(120, false); });
+    window.addEventListener('load', function () { schedule(100, false); });
     document.addEventListener('click', function (event) { if (event.target.closest('.pmd-role-btn')) setTimeout(function () { render(true); }, 180); }, true);
     var target = document.querySelector('[data-control="dashboard-container"]') || document.body;
     if (target && window.MutationObserver) {

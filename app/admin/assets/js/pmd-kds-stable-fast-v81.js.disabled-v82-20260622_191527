@@ -1,0 +1,254 @@
+(function () {
+  'use strict';
+
+  var ctx = window.PMD_ROLE_DASHBOARD_CONTEXT_V72 || window.PMD_ROLE_DASHBOARD_CONTEXT_V73 || {};
+  var username = String(ctx.username || '').toLowerCase();
+  var roleCode = String(ctx.role_code || '').toLowerCase();
+  var roleName = String(ctx.role_name || '').toLowerCase();
+  var isKds = username === 'kds' || roleCode === 'kds' || roleName === 'kds' || roleName.indexOf('kitchen') !== -1;
+  var path = (window.location.pathname || '').replace(/\/+$/, '') || '/';
+  var isDashboard = path === '/admin' || path === '/admin/dashboard';
+  var isKdsPage = path.indexOf('/admin/kitchendisplay') === 0;
+  var kdsUrl = '/admin/kitchendisplay/main-kitchen?embedded=dashboard-v81';
+  var mounted = false;
+  var loaded = false;
+  var patched = false;
+
+  function addClasses() {
+    document.documentElement.classList.add(
+      'pmd-kds-stable-fast-v81',
+      'pmd-kds-dashboard-inline-role-v76',
+      'pmd-no-sidebar-role-v73',
+      'pmd-kds-only-role-v73'
+    );
+    document.documentElement.classList.remove(
+      'pmd-kds-dashboard-is-embedded-v75',
+      'pmd-kds-fast-boot-v79',
+      'pmd-kds-fast-visible-v79',
+      'pmd-kds-fast-loaded-v79'
+    );
+
+    if (document.body) {
+      document.body.classList.add(
+        'pmd-kds-stable-fast-v81',
+        'pmd-kds-dashboard-inline-role-v76',
+        'pmd-no-sidebar-role-v73',
+        'pmd-kds-only-role-v73'
+      );
+      document.body.classList.remove(
+        'pmd-kds-dashboard-is-embedded-v75',
+        'pmd-kds-fast-boot-v79',
+        'pmd-kds-fast-visible-v79',
+        'pmd-kds-fast-loaded-v79'
+      );
+    }
+  }
+
+  function markLoaded() {
+    loaded = true;
+    document.documentElement.classList.add('pmd-kds-stable-loaded-v81');
+    if (document.body) document.body.classList.add('pmd-kds-stable-loaded-v81');
+  }
+
+  function fakeThenable(response) {
+    var api = {
+      done: function (fn) { if (typeof fn === 'function') setTimeout(function () { fn(response, 'success', api); }, 0); return api; },
+      fail: function () { return api; },
+      always: function (fn) { if (typeof fn === 'function') setTimeout(function () { fn(response, 'success', api); }, 0); return api; },
+      abort: function () { return api; },
+      status: 204,
+      statusText: 'PMD KDS v81 skipped'
+    };
+    return api;
+  }
+
+  function isDashboardWidgetHandler(handler, options) {
+    var s = String(handler || '') + ' ' + String((options && options.handler) || '') + ' ' + String((options && options.url) || '');
+    return /dashboardContainer::onRenderWidgets|onRenderWidgets|dashboardcontainer/i.test(s);
+  }
+
+  function patchJQuery($) {
+    if (!$ || $.__pmdKdsStablePatchedV81) return;
+    $.__pmdKdsStablePatchedV81 = true;
+
+    if (typeof $.request === 'function') {
+      var originalRequest = $.request;
+      $.request = function (handler, options) {
+        if (isKds && isDashboard && isDashboardWidgetHandler(handler, options)) {
+          var response = {'#dashboardcontainer-container': '<div data-pmd-kds-dashboard-skipped-v81="1"></div>'};
+          console.log('⏭️ PMD KDS v81: skipped normal DashboardContainer widget request');
+          if (options && typeof options.success === 'function') {
+            setTimeout(function () { options.success(response, 'success', fakeThenable(response)); }, 0);
+          }
+          if (options && typeof options.complete === 'function') {
+            setTimeout(function () { options.complete(fakeThenable(response), 'success'); }, 0);
+          }
+          return fakeThenable(response);
+        }
+        return originalRequest.apply(this, arguments);
+      };
+    }
+
+    if ($.fn && typeof $.fn.request === 'function') {
+      var originalFnRequest = $.fn.request;
+      $.fn.request = function (handler, options) {
+        if (isKds && isDashboard && isDashboardWidgetHandler(handler, options)) {
+          var response = {'#dashboardcontainer-container': '<div data-pmd-kds-dashboard-skipped-v81="1"></div>'};
+          console.log('⏭️ PMD KDS v81: skipped normal DashboardContainer widget request via $.fn');
+          if (options && typeof options.success === 'function') {
+            setTimeout(function () { options.success(response, 'success', fakeThenable(response)); }, 0);
+          }
+          return fakeThenable(response);
+        }
+        return originalFnRequest.apply(this, arguments);
+      };
+    }
+  }
+
+  function patchFetch() {
+    if (patched || !window.fetch) return;
+    patched = true;
+    var originalFetch = window.fetch;
+    window.fetch = function (input, init) {
+      try {
+        var url = typeof input === 'string' ? input : (input && input.url) || '';
+        if (isKds && isDashboard && /\/admin\/pmd-dashboard-data-v3(?:\?|$)/.test(url)) {
+          console.log('⏭️ PMD KDS v81: skipped normal dashboard real API request');
+          return Promise.resolve(new Response(JSON.stringify({ok: false, skipped: 'kds-v81'}), {
+            status: 200,
+            headers: {'Content-Type': 'application/json'}
+          }));
+        }
+      } catch (e) {}
+      return originalFetch.apply(this, arguments);
+    };
+  }
+
+  function installJQueryPatch() {
+    patchJQuery(window.jQuery || window.$);
+    var attempts = 0;
+    var tick = setInterval(function () {
+      attempts++;
+      patchJQuery(window.jQuery || window.$);
+      if (attempts > 80 || ((window.jQuery || window.$) && (window.jQuery || window.$).__pmdKdsStablePatchedV81)) {
+        clearInterval(tick);
+      }
+    }, 25);
+  }
+
+  function killOldHosts() {
+    document.querySelectorAll('.pmd-kds-dashboard-host-v75, .pmd-kds-dashboard-host-v76.pmd-kds-fast-preloading-v79').forEach(function (el) {
+      try { el.remove(); } catch (e) { el.style.display = 'none'; }
+    });
+  }
+
+  function findMount() {
+    var selectors = ['.page-content', '.content-wrapper', '.main-content', '.layout-content', '#page-wrapper', '.page-wrapper', 'main'];
+    for (var i = 0; i < selectors.length; i++) {
+      var el = document.querySelector(selectors[i]);
+      if (el && el !== document.body && el !== document.documentElement) return el;
+    }
+    return document.body || null;
+  }
+
+  function ensureHost() {
+    if (!isKds || !isDashboard || isKdsPage) return;
+    addClasses();
+    killOldHosts();
+
+    var mount = findMount();
+    if (!mount) return;
+
+    var host = document.querySelector('.pmd-kds-stable-host-v81');
+    if (!host) {
+      host = document.createElement('section');
+      host.className = 'pmd-kds-stable-host-v81';
+      host.setAttribute('role', 'region');
+      host.setAttribute('aria-label', 'Kitchen Display Dashboard');
+      host.setAttribute('data-pmd-kds-stable-fast-v81', '1');
+
+      var loader = document.createElement('div');
+      loader.className = 'pmd-kds-stable-loading-v81';
+      loader.innerHTML = '<div>Loading Kitchen Display…</div><small>Skipping normal dashboard widgets for KDS</small>';
+
+      var iframe = document.createElement('iframe');
+      iframe.className = 'pmd-kds-stable-iframe-v81';
+      iframe.title = 'Kitchen Display - Main Kitchen';
+      iframe.src = kdsUrl;
+      iframe.setAttribute('loading', 'eager');
+      iframe.setAttribute('fetchpriority', 'high');
+      iframe.setAttribute('allowfullscreen', 'allowfullscreen');
+
+      iframe.addEventListener('load', function () {
+        markLoaded();
+        cleanupInnerFrame(iframe);
+        setTimeout(function () { cleanupInnerFrame(iframe); }, 300);
+        setTimeout(function () { cleanupInnerFrame(iframe); }, 1200);
+      });
+
+      host.appendChild(loader);
+      host.appendChild(iframe);
+    }
+
+    if (!host.parentElement) {
+      if (mount.firstChild) mount.insertBefore(host, mount.firstChild);
+      else mount.appendChild(host);
+    }
+
+    mounted = true;
+
+    setTimeout(function () {
+      if (!loaded) {
+        var loader = host.querySelector('.pmd-kds-stable-loading-v81');
+        if (loader && loader.innerHTML.indexOf('Open KDS directly') === -1) {
+          loader.innerHTML = '<div>Kitchen Display is still loading…</div><small>The direct KDS page is heavy on this server.</small><a class="pmd-kds-direct-link-v81" href="/admin/kitchendisplay/main-kitchen">Open KDS directly</a>';
+        }
+      }
+    }, 6500);
+  }
+
+  function cleanupInnerFrame(frame) {
+    try {
+      var doc = frame.contentDocument || (frame.contentWindow && frame.contentWindow.document);
+      if (!doc || !doc.documentElement) return;
+      doc.documentElement.classList.add('pmd-kds-iframe-inner-v81');
+      if (!doc.getElementById('pmd-kds-iframe-inner-style-v81')) {
+        var style = doc.createElement('style');
+        style.id = 'pmd-kds-iframe-inner-style-v81';
+        style.textContent = [
+          'html,body{margin:0!important;background:#fff!important;overflow:auto!important;}',
+          '.kds-container{padding:18px!important;}',
+          '.kds-header{margin-top:0!important;}'
+        ].join('\n');
+        (doc.head || doc.documentElement).appendChild(style);
+      }
+    } catch (e) {}
+  }
+
+  window.PMDKdsStableFastV81 = {
+    active: !!(isKds && isDashboard),
+    context: ctx,
+    path: path,
+    kdsUrl: kdsUrl,
+    mount: ensureHost,
+    mounted: function () { return mounted; },
+    loaded: function () { return loaded; }
+  };
+
+  if (!isKds || !isDashboard || isKdsPage) return;
+
+  window.PMD_KDS_DASHBOARD_BYPASS_V81 = true;
+  addClasses();
+  patchFetch();
+  installJQueryPatch();
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', ensureHost, {once: true});
+  } else {
+    ensureHost();
+  }
+
+  [20, 80, 180, 400, 900, 1600].forEach(function (ms) {
+    setTimeout(ensureHost, ms);
+  });
+})();

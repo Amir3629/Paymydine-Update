@@ -279,6 +279,7 @@ export default function KazenStandalonePage() {
   const [waiterOpen, setWaiterOpen] = useState(false)
   const [noteOpen, setNoteOpen] = useState(false)
   const [valetOpen, setValetOpen] = useState(false)
+  const [valetConfirmed, setValetConfirmed] = useState(false)
   const [kazenHeaderLinksV1, setKazenHeaderLinksV1] = useState<KazenHeaderLinksV1>(PMD_KAZEN_HEADER_LINKS_DEFAULT_V1)
 
 
@@ -311,95 +312,134 @@ export default function KazenStandalonePage() {
     }
   }, [])
 
-  // PMD_KAZEN_DOM_CLEAN_HEADER_LINKS_V10
-  // Adds Website/Social as direct children of the existing clean header actions group.
-  // They inherit the same .kazen-clean-header-button frame, size, and hover as Language/Mode/Valet.
+
+  // PMD_KAZEN_HEADER_LINKS_NO_BLINK_V21
+  // Directly creates Website/Social in the original clean header group with final thin icons.
+  // This replaces the older v10/v17 post-replacement flow so old icons cannot blink first.
   useEffect(() => {
     if (typeof window === "undefined") return
 
     let frame = 0
     const timers: number[] = []
 
-    const upsertLink = (
+    const iconWebsite =
+      '<svg class="pmd-kazen-header-link-svg" width="19" height="19" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8.25"></circle><path d="M3.75 12h16.5"></path><path d="M12 3.75c2 2.25 3.05 5.05 3.05 8.25S14 18 12 20.25"></path><path d="M12 3.75C10 6 8.95 8.8 8.95 12S10 18 12 20.25"></path></svg>'
+
+    const iconInstagram =
+      '<svg class="pmd-kazen-header-link-svg" width="19" height="19" viewBox="0 0 24 24" aria-hidden="true"><rect x="5.1" y="5.1" width="13.8" height="13.8" rx="3.5"></rect><circle cx="12" cy="12" r="2.95"></circle><path d="M16.45 7.65h.01"></path></svg>'
+
+    const iconFacebook =
+      '<svg class="pmd-kazen-header-link-svg" width="19" height="19" viewBox="0 0 24 24" aria-hidden="true"><path d="M14.35 5.2h-1.9c-2.15 0-3.45 1.35-3.45 3.7v2.15H6.8v3H9V20h3.05v-5.95h2.35l.38-3h-2.73V9.15c0-.72.28-1.08 1.08-1.08h1.22V5.2Z"></path></svg>'
+
+    const iconTrust =
+      '<svg class="pmd-kazen-header-link-svg" width="19" height="19" viewBox="0 0 24 24" aria-hidden="true"><path d="m12 4.75 2.2 4.45 4.9.72-3.55 3.45.84 4.88L12 15.95l-4.39 2.3.84-4.88L4.9 9.92l4.9-.72L12 4.75Z"></path></svg>'
+
+    const iconReviews =
+      '<svg class="pmd-kazen-header-link-svg" width="19" height="19" viewBox="0 0 24 24" aria-hidden="true"><path d="M5.7 5.9h12.6a2 2 0 0 1 2 2v7.05a2 2 0 0 1-2 2H9.35L5 20.1v-3.15h-.6a2 2 0 0 1-2-2V7.9a2 2 0 0 1 2-2h1.3Z"></path><path d="m12 8.95.82 1.65 1.82.26-1.32 1.28.31 1.82L12 13.1l-1.63.86.31-1.82-1.32-1.28 1.82-.26L12 8.95Z"></path></svg>'
+
+    const iconLink =
+      '<svg class="pmd-kazen-header-link-svg" width="19" height="19" viewBox="0 0 24 24" aria-hidden="true"><path d="M10.1 13.25a4.45 4.45 0 0 0 6.3 0l2-2a4.45 4.45 0 0 0-6.3-6.3L11 6.05"></path><path d="M13.9 10.75a4.45 4.45 0 0 0-6.3 0l-2 2a4.45 4.45 0 0 0 6.3 6.3L13 17.95"></path></svg>'
+
+    const socialIcon = () => {
+      const platform = String(kazenHeaderLinksV1.social.platform || "").trim().toLowerCase()
+      if (platform === "facebook") return iconFacebook
+      if (platform === "trustpilot") return iconTrust
+      if (platform === "reviews") return iconReviews
+      if (platform === "website") return iconLink
+      return iconInstagram
+    }
+
+    const upsertHeaderLink = (
       group: HTMLElement,
       action: "website" | "social",
+      enabled: boolean,
       url: string,
       label: string,
-      icon: "website" | "social"
+      icon: string
     ) => {
       let link = group.querySelector<HTMLAnchorElement>(`a[data-pmd-kazen-clean-action="${action}"]`)
 
-      if (!url) {
+      if (!enabled || !url) {
         link?.remove()
         return
       }
 
       if (!link) {
         link = document.createElement("a")
-        link.className = "kazen-clean-header-button"
-        link.setAttribute("data-pmd-kazen-clean-action", action)
         group.appendChild(link)
       }
 
+      link.className = "kazen-clean-header-button"
+      link.setAttribute("data-pmd-kazen-clean-action", action)
       link.href = url
       link.target = "_blank"
       link.rel = "noopener noreferrer"
       link.title = label
       link.setAttribute("aria-label", action === "website" ? "Open restaurant website" : `Open ${label}`)
 
-      link.innerHTML = icon === "website"
-        ? '<svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><path d="M15 3h6v6"></path><path d="M10 14 21 3"></path><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path></svg>'
-        : '<svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><circle cx="18" cy="5" r="3"></circle><circle cx="6" cy="12" r="3"></circle><circle cx="18" cy="19" r="3"></circle><path d="M8.6 13.5 15.4 17.5"></path><path d="M15.4 6.5 8.6 10.5"></path></svg>'
+      if (link.innerHTML !== icon) {
+        link.innerHTML = icon
+      }
     }
 
-    const syncCleanHeaderLinks = () => {
+    const syncHeaderLinks = () => {
       if (frame) window.cancelAnimationFrame(frame)
 
       frame = window.requestAnimationFrame(() => {
         const group = document.querySelector<HTMLElement>('[data-pmd-kazen-clean-header-actions="1"]')
         if (!group) return
 
-        upsertLink(
+        upsertHeaderLink(
           group,
           "website",
-          kazenHeaderLinksV1.website.enabled ? kazenHeaderLinksV1.website.url : "",
+          kazenHeaderLinksV1.website.enabled,
+          kazenHeaderLinksV1.website.url,
           "Website",
-          "website"
+          iconWebsite
         )
 
-        upsertLink(
+        const socialLabel = pmdKazenSocialLabelV1(kazenHeaderLinksV1.social.platform)
+        upsertHeaderLink(
           group,
           "social",
-          kazenHeaderLinksV1.social.enabled ? kazenHeaderLinksV1.social.url : "",
-          pmdKazenSocialLabelV1(kazenHeaderLinksV1.social.platform),
-          "social"
+          kazenHeaderLinksV1.social.enabled,
+          kazenHeaderLinksV1.social.url,
+          socialLabel,
+          socialIcon()
         )
 
-        group.setAttribute("data-pmd-kazen-clean-header-links-v10", "1")
-        ;(window as any).__PMD_KAZEN_DOM_CLEAN_HEADER_LINKS_V10 = {
-          website: kazenHeaderLinksV1.website.enabled,
-          social: kazenHeaderLinksV1.social.enabled,
+        group.setAttribute("data-pmd-kazen-clean-header-links-v21", "1")
+        ;(window as any).__PMD_KAZEN_HEADER_LINKS_V21 = {
+          website: !!group.querySelector('[data-pmd-kazen-clean-action="website"]'),
+          social: !!group.querySelector('[data-pmd-kazen-clean-action="social"]'),
+          platform: kazenHeaderLinksV1.social.platform,
           childCount: group.children.length,
         }
       })
     }
 
-    syncCleanHeaderLinks()
-    timers.push(window.setTimeout(syncCleanHeaderLinks, 120))
-    timers.push(window.setTimeout(syncCleanHeaderLinks, 450))
-    timers.push(window.setTimeout(syncCleanHeaderLinks, 1000))
+    syncHeaderLinks()
+    timers.push(window.setTimeout(syncHeaderLinks, 50))
+    timers.push(window.setTimeout(syncHeaderLinks, 160))
+    timers.push(window.setTimeout(syncHeaderLinks, 420))
+    timers.push(window.setInterval(syncHeaderLinks, 2400))
 
-    window.addEventListener("resize", syncCleanHeaderLinks)
+    window.addEventListener("resize", syncHeaderLinks)
 
     return () => {
       if (frame) window.cancelAnimationFrame(frame)
       timers.forEach((timer) => window.clearTimeout(timer))
-      window.removeEventListener("resize", syncCleanHeaderLinks)
+      window.removeEventListener("resize", syncHeaderLinks)
     }
-  }, [kazenHeaderLinksV1.website.enabled, kazenHeaderLinksV1.website.url, kazenHeaderLinksV1.social.enabled, kazenHeaderLinksV1.social.url, kazenHeaderLinksV1.social.platform])
+  }, [
+    kazenHeaderLinksV1.website.enabled,
+    kazenHeaderLinksV1.website.url,
+    kazenHeaderLinksV1.social.enabled,
+    kazenHeaderLinksV1.social.url,
+    kazenHeaderLinksV1.social.platform,
+  ])
 
-
-  const [waiterConfirmed, setWaiterConfirmed] = useState(false)
+const [waiterConfirmed, setWaiterConfirmed] = useState(false)
   const [noteConfirmed, setNoteConfirmed] = useState(false)
   const [note, setNote] = useState("")
   // PMD_KAZEN_V34_TABLE_ORDER_DOCK_20260618
@@ -700,6 +740,25 @@ export default function KazenStandalonePage() {
     return () => window.clearTimeout(timer)
   }, [noteOpen, noteConfirmed])
 
+
+  const closeValetCard = () => {
+    setValetOpen(false)
+    setValetConfirmed(false)
+  }
+
+  const openValetCard = () => {
+    setValetConfirmed(false)
+    setValetOpen(true)
+  }
+
+
+  // PMD_KAZEN_VALET_TOAST_AUTO_CLOSE_V26
+  useEffect(() => {
+    if (!valetOpen || !valetConfirmed) return
+    const timer = window.setTimeout(closeValetCard, 2200)
+    return () => window.clearTimeout(timer)
+  }, [valetOpen, valetConfirmed])
+
   const submitValet = () => {
     post("PMD_KAZEN_GO_VALET", {
       values: {
@@ -708,10 +767,12 @@ export default function KazenStandalonePage() {
         carModel: valetCar.trim() || "Not provided",
       },
     })
-    setValetOpen(false)
+    setValetConfirmed(true)
   }
 
-  return (
+
+
+return (
     <main className="kazen-page">
 
       <div className="kazen-shell">
@@ -737,7 +798,7 @@ export default function KazenStandalonePage() {
                 <Languages className="mr-1 inline h-3.5 w-3.5" /> EN
               </button>
             </div>
-            <button className="kazen-pill" type="button" onClick={() => setValetOpen(true)}>
+            <button className="kazen-pill" type="button" onClick={openValetCard}>
               <Car className="mr-1 inline h-3.5 w-3.5" /> Valet
             </button>
           </div>
@@ -1078,19 +1139,33 @@ export default function KazenStandalonePage() {
         </ModalCard>
       ) : null}
 
-      {valetOpen && (
-        <ModalCard title="Valet" eyebrow={tableLabel} onClose={() => setValetOpen(false)}>
+      {/* PMD_KAZEN_VALET_CONFIRMATION_RENDER_V26 */}
+      {valetOpen && valetConfirmed ? (
+        <div
+          className="kazen-solid-modal-overlay pmd-kazen-action-overlay pmd-kazen-action-toast-overlay"
+          role="status"
+          aria-live="polite"
+          aria-label="Valet request sent"
+          onClick={closeValetCard}
+        >
+          <article className="pmd-kazen-action-toast" onClick={(event) => event.stopPropagation()}>
+            <span className="pmd-kazen-action-toast-mark" aria-hidden="true">✓</span>
+            <span>Valet request sent</span>
+          </article>
+        </div>
+      ) : valetOpen ? (
+        <ModalCard title="Valet" eyebrow={tableLabel} onClose={closeValetCard}>
           <div className="mt-5 space-y-3">
             <input className="kazen-field" value={valetName} onChange={(e) => setValetName(e.target.value)} placeholder="Name" />
             <input className="kazen-field" value={valetPlate} onChange={(e) => setValetPlate(e.target.value)} placeholder="License plate" />
             <input className="kazen-field" value={valetCar} onChange={(e) => setValetCar(e.target.value)} placeholder="Car model / color" />
           </div>
           <div className="mt-5 grid grid-cols-2 gap-3">
-            <button type="button" className="kazen-secondary" onClick={() => setValetOpen(false)}>Close</button>
+            <button type="button" className="kazen-secondary" onClick={closeValetCard}>Close</button>
             <button type="button" className="kazen-primary" onClick={submitValet}>Request</button>
           </div>
         </ModalCard>
-      )}
+      ) : null}
     </main>
   )
 }

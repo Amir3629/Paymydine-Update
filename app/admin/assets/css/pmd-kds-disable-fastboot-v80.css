@@ -1,0 +1,38 @@
+/* PMD KDS Disable Fast Boot v80
+   Neutralizes v79 fast-boot skeleton/hidden iframe behavior. */
+html.pmd-kds-disable-fastboot-v80,
+body.pmd-kds-disable-fastboot-v80 {
+  overflow-x: hidden !important;
+}
+
+/* If a stale v79 class exists in the current tab, do not hide the real v76 iframe. */
+html.pmd-kds-disable-fastboot-v80 .pmd-kds-dashboard-host-v76.pmd-kds-fast-preloading-v79,
+body.pmd-kds-disable-fastboot-v80 .pmd-kds-dashboard-host-v76.pmd-kds-fast-preloading-v79 {
+  position: relative !important;
+  left: auto !important;
+  top: auto !important;
+  width: 100% !important;
+  height: auto !important;
+  min-height: calc(100vh - 145px) !important;
+  margin: 18px 0 28px !important;
+  opacity: 1 !important;
+  overflow: hidden !important;
+  pointer-events: auto !important;
+  border-radius: 18px !important;
+}
+
+html.pmd-kds-disable-fastboot-v80 .pmd-kds-dashboard-host-v76::before,
+body.pmd-kds-disable-fastboot-v80 .pmd-kds-dashboard-host-v76::before {
+  display: none !important;
+  content: none !important;
+}
+
+html.pmd-kds-disable-fastboot-v80 .pmd-kds-dashboard-iframe-v76,
+body.pmd-kds-disable-fastboot-v80 .pmd-kds-dashboard-iframe-v76 {
+  display: block !important;
+  width: 100% !important;
+  height: calc(100vh - 145px) !important;
+  min-height: 720px !important;
+  border: 0 !important;
+  background: #fff !important;
+}

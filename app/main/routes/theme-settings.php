@@ -87,6 +87,22 @@
                 };
 
                 $pmdKazenSettingV1 = function ($key, $fallback = '') use ($data) {
+                    // PMD_KAZEN_SETTING_FIRST_FINAL_V13
+                    // For Kazen header links, read settings fallback FIRST.
+                    // This fixes cases where theme data contains stale disabled values.
+                    if (in_array($key, [
+                        'pmd_kazen_website_enabled',
+                        'pmd_kazen_website_url',
+                        'pmd_kazen_social_enabled',
+                        'pmd_kazen_social_platform',
+                        'pmd_kazen_social_url',
+                    ], true)) {
+                        try {
+                            $value = \Illuminate\Support\Facades\DB::table('settings')->where('item', $key)->value('value');
+                            if ($value !== null && trim((string)$value) !== '') return $value;
+                        } catch (\Throwable $e) {}
+                    }
+
                     if (is_array($data) && array_key_exists($key, $data)) {
                         return $data[$key];
                     }
@@ -175,7 +191,7 @@
                         'pmd_kazen_social_enabled' => $pmdKazenSocialEnabledV1 ? '1' : '0',
                         'pmd_kazen_social_platform' => $pmdKazenSocialPlatformV1,
                         'pmd_kazen_social_url' => $pmdKazenSocialUrlV1,
-                        'theme_id' => $frontend,
+                        'theme_id' => 'kazen_japanese',
                         'primary_color' => $isModernGreen ? '#29BC7E' : ($isOrganic ? ($data['primary_color'] ?? '#737A55') : '#062F2A'),
                         'secondary_color' => $isModernGreen ? '#07110D' : ($isOrganic ? '#FFF9EF' : '#062F2A'),
                         'accent_color' => $isModernGreen ? '#29BC7E' : ($isOrganic ? ($data['accent_color'] ?? '#B8864B') : '#C89B4A'),
@@ -187,7 +203,7 @@
             return response()->json([
                 'success' => true,
                 'admin_theme' => 'NOT_FOUND',
-                'frontend_theme' => 'gold-luxury',
+                'frontend_theme' => 'kazen_japanese',
                 'kazen_menu_layout' => 'accordion',
                 'menuLayout' => 'accordion',
                 'data' => [
@@ -594,3 +610,148 @@ if (!defined('PMD_KAZEN_ADMIN_MENU_LAYOUT_V4')) {
         ->name('pmd.kazen.menu.layout.admin.public');
 }
 
+// PMD_KAZEN_SIMPLE_THEME_OVERRIDE_ROUTE_V14
+// Final override for /simple-theme.
+// This route is intentionally registered last so it wins over older /simple-theme handlers.
+// It reads the actual frontend-theme row and exposes Kazen header links to the Next frontend.
+if (!defined('PMD_KAZEN_SIMPLE_THEME_OVERRIDE_ROUTE_V14')) {
+    define('PMD_KAZEN_SIMPLE_THEME_OVERRIDE_ROUTE_V14', true);
+
+    \Route::get('/simple-theme', function () {
+        $bool = function ($value) {
+            if (is_bool($value)) return $value;
+            $raw = strtolower(trim((string)($value ?? '')));
+            return in_array($raw, ['1', 'true', 'yes', 'on', 'enabled'], true);
+        };
+
+        $url = function ($value) {
+            $raw = trim((string)($value ?? ''));
+            if ($raw === '') return '';
+            if (!preg_match('#^https?://#i', $raw)) {
+                $raw = 'https://' . ltrim($raw, '/');
+            }
+            if (preg_match('#/admin(/|$)#i', $raw)) return '';
+            return $raw;
+        };
+
+        $data = [];
+
+        foreach (['themes', 'ti_themes'] as $table) {
+            try {
+                $query = \Illuminate\Support\Facades\DB::table($table)
+                    ->where(function ($q) {
+                        $q->where('code', 'frontend-theme')
+                          ->orWhere('code', 'paymydine-nextjs')
+                          ->orWhere('name', 'like', '%Menu Theme%');
+                    });
+
+                try {
+                    $query = $query->orderByDesc('updated_at');
+                } catch (\Throwable $e) {}
+
+                foreach ($query->get() as $row) {
+                    $decoded = json_decode($row->data ?? '{}', true);
+                    if (is_array($decoded)) {
+                        $data = array_replace_recursive($data, $decoded);
+                    }
+                }
+            } catch (\Throwable $e) {}
+        }
+
+        $setting = function ($key, $fallback = '') {
+            try {
+                $value = \Illuminate\Support\Facades\DB::table('settings')->where('item', $key)->value('value');
+                if ($value !== null) return $value;
+            } catch (\Throwable $e) {}
+            return $fallback;
+        };
+
+        $pick = function ($key, $fallback = '') use (&$data, $setting) {
+            if (is_array($data) && array_key_exists($key, $data)) return $data[$key];
+            return $setting($key, $fallback);
+        };
+
+        $menuRaw = strtolower(trim((string)($data['kazen_menu_layout'] ?? $data['menuLayout'] ?? 'accordion')));
+        $menuLayout = in_array($menuRaw, ['tabs', 'tab', 'category-tabs', 'category_tabs'], true) ? 'tabs' : 'accordion';
+
+        $websiteUrl = $url($pick('pmd_kazen_website_url', $data['kazen_header_links']['website']['url'] ?? ''));
+        if ($websiteUrl === '') {
+            $websiteUrl = $url($setting('pmd_kazen_website_url', ''));
+        }
+
+        $websiteEnabledRaw = $pick(
+            'pmd_kazen_website_enabled',
+            $data['kazen_header_links']['website']['enabled'] ?? ($websiteUrl !== '' ? '1' : '0')
+        );
+        $websiteEnabled = $websiteUrl !== '' && $bool($websiteEnabledRaw);
+
+        $socialUrl = $url($pick('pmd_kazen_social_url', $data['kazen_header_links']['social']['url'] ?? ''));
+        if ($socialUrl === '') {
+            $socialUrl = $url($setting('pmd_kazen_social_url', ''));
+        }
+
+        $socialPlatform = strtolower(trim((string)$pick(
+            'pmd_kazen_social_platform',
+            $data['kazen_header_links']['social']['platform'] ?? $setting('pmd_kazen_social_platform', 'instagram')
+        )));
+        if (!in_array($socialPlatform, ['instagram', 'facebook', 'trustpilot', 'reviews', 'website'], true)) {
+            $socialPlatform = 'instagram';
+        }
+
+        $socialEnabledRaw = $pick(
+            'pmd_kazen_social_enabled',
+            $data['kazen_header_links']['social']['enabled'] ?? ($socialUrl !== '' ? '1' : '0')
+        );
+        $socialEnabled = $socialUrl !== '' && $bool($socialEnabledRaw);
+
+        $frontend = 'kazen_japanese';
+
+        $payloadData = array_replace($data, [
+            'theme_configuration' => 'kazen_japanese',
+            'kazen_menu_layout' => $menuLayout,
+            'menuLayout' => $menuLayout,
+            'kazen_header_links' => [
+                'website' => [
+                    'enabled' => $websiteEnabled,
+                    'url' => $websiteUrl,
+                ],
+                'social' => [
+                    'enabled' => $socialEnabled,
+                    'platform' => $socialPlatform,
+                    'url' => $socialUrl,
+                ],
+            ],
+            'pmd_kazen_website_enabled' => $websiteEnabled ? '1' : '0',
+            'pmd_kazen_website_url' => $websiteUrl,
+            'pmd_kazen_social_enabled' => $socialEnabled ? '1' : '0',
+            'pmd_kazen_social_platform' => $socialPlatform,
+            'pmd_kazen_social_url' => $socialUrl,
+            'theme_id' => 'kazen_japanese',
+            'primary_color' => $data['primary_color'] ?? '#062F2A',
+            'secondary_color' => $data['secondary_color'] ?? '#062F2A',
+            'accent_color' => $data['accent_color'] ?? '#C89B4A',
+            'background_color' => $data['background_color'] ?? '#FAF9F4',
+        ]);
+
+        return response()->json([
+            'success' => true,
+            'admin_theme' => 'kazen_japanese',
+            'frontend_theme' => $frontend,
+            'kazen_menu_layout' => $menuLayout,
+            'menuLayout' => $menuLayout,
+            'kazen_header_links' => $payloadData['kazen_header_links'],
+            'pmd_kazen_website_enabled' => $payloadData['pmd_kazen_website_enabled'],
+            'pmd_kazen_website_url' => $payloadData['pmd_kazen_website_url'],
+            'pmd_kazen_social_enabled' => $payloadData['pmd_kazen_social_enabled'],
+            'pmd_kazen_social_platform' => $payloadData['pmd_kazen_social_platform'],
+            'pmd_kazen_social_url' => $payloadData['pmd_kazen_social_url'],
+            'data' => $payloadData,
+        ]);
+    });
+}
+// PMD_KAZEN_SIMPLE_THEME_OVERRIDE_ROUTE_V14_END
+
+
+// PMD_SIMPLE_THEME_KAZEN_LOCK_V28
+// Marker: /simple-theme payload is locked to Kazen in the existing final responder above.
+// If gold-luxury appears in /simple-theme after this marker, another earlier route is winning.

@@ -478,6 +478,7 @@ $recentTenants = DB::connection('mysql')
    <script src=" {{ asset('app/admin/assets/js/scripts.js?ver=3.2.3') }}"></script>
    <script src=" {{ asset('app/admin/assets/js/charts/chart-crm.js?ver=3.2.3') }}"></script>
 
+<script src="/app/admin/assets/js/pmd-waiter-v98-single-source.js?v=98"></script>
 </body>
 
 </html>

@@ -1,0 +1,229 @@
+(function () {
+  'use strict';
+
+  var ctx = window.PMD_ROLE_DASHBOARD_CONTEXT_V72 || window.PMD_ROLE_DASHBOARD_CONTEXT_V73 || {};
+  var username = String(ctx.username || '').toLowerCase();
+  var roleCode = String(ctx.role_code || '').toLowerCase();
+  var roleName = String(ctx.role_name || '').toLowerCase();
+  var isKds = username === 'kds' || roleCode === 'kds' || roleName === 'kds' || roleName.indexOf('kitchen') !== -1;
+
+  var kdsPath = '/admin/kitchendisplay/main-kitchen?embedded=dashboard-inline-v76';
+  var hostClass = 'pmd-kds-dashboard-host-v76';
+  var iframeClass = 'pmd-kds-dashboard-iframe-v76';
+  var mounted = false;
+  var tries = 0;
+  var maxTries = 120;
+  var timer = null;
+
+  function cleanPath() {
+    return (window.location.pathname || '').replace(/\/+$/, '') || '/';
+  }
+
+  function isDashboardPath() {
+    var p = cleanPath();
+    return p === '/admin' || p === '/admin/dashboard';
+  }
+
+  function isKdsPage() {
+    return cleanPath().indexOf('/admin/kitchendisplay') === 0;
+  }
+
+  if (!isKds || !isDashboardPath() || isKdsPage()) {
+    window.PMDKdsFastBootV79 = { active: false, isKds: isKds, path: cleanPath(), context: ctx };
+    return;
+  }
+
+  function addClasses() {
+    document.documentElement.classList.add(
+      'pmd-kds-fast-boot-v79',
+      'pmd-kds-dashboard-inline-role-v76',
+      'pmd-no-sidebar-role-v73',
+      'pmd-kds-only-role-v73'
+    );
+    document.documentElement.classList.remove('pmd-kds-dashboard-is-embedded-v75');
+    document.documentElement.setAttribute('data-pmd-kds-fast-boot-v79', '1');
+
+    if (document.body) {
+      document.body.classList.add(
+        'pmd-kds-fast-boot-v79',
+        'pmd-kds-dashboard-inline-role-v76',
+        'pmd-no-sidebar-role-v73',
+        'pmd-kds-only-role-v73'
+      );
+      document.body.classList.remove('pmd-kds-dashboard-is-embedded-v75');
+      document.body.setAttribute('data-pmd-kds-fast-boot-v79', '1');
+    }
+  }
+
+  function addHints() {
+    try {
+      if (!document.querySelector('link[data-pmd-kds-fast-prefetch-v79]')) {
+        var dns = document.createElement('link');
+        dns.rel = 'prefetch';
+        dns.href = kdsPath;
+        dns.setAttribute('data-pmd-kds-fast-prefetch-v79', '1');
+        document.head.appendChild(dns);
+      }
+    } catch (e) {}
+  }
+
+  function host() {
+    return document.querySelector('.' + hostClass);
+  }
+
+  function makeHost() {
+    var h = document.createElement('section');
+    h.className = hostClass + ' pmd-kds-fast-preloading-v79';
+    h.setAttribute('role', 'region');
+    h.setAttribute('aria-label', 'Kitchen Display Dashboard');
+    h.setAttribute('data-pmd-kds-fast-boot-v79', '1');
+
+    var frame = document.createElement('iframe');
+    frame.className = iframeClass;
+    frame.title = 'Kitchen Display - Main Kitchen';
+    frame.src = kdsPath;
+    frame.setAttribute('loading', 'eager');
+    frame.setAttribute('fetchpriority', 'high');
+    frame.setAttribute('allowfullscreen', 'allowfullscreen');
+
+    frame.addEventListener('load', function () {
+      document.documentElement.classList.add('pmd-kds-fast-loaded-v79');
+      if (document.body) document.body.classList.add('pmd-kds-fast-loaded-v79');
+      cleanupFrame(frame);
+    });
+
+    h.appendChild(frame);
+    return h;
+  }
+
+  function cleanupFrame(frame) {
+    try {
+      var doc = frame.contentDocument || frame.contentWindow.document;
+      if (!doc || !doc.documentElement) return;
+      doc.documentElement.classList.add('pmd-kds-iframe-inner-v76', 'pmd-kds-fast-inner-v79');
+      if (!doc.getElementById('pmd-kds-fast-inner-style-v79')) {
+        var style = doc.createElement('style');
+        style.id = 'pmd-kds-fast-inner-style-v79';
+        style.textContent = [
+          'html,body{margin:0!important;background:#fff!important;overflow:auto!important;}',
+          '.sidebar,#navSidebar,#side-nav-menu,.navbar-side,.sidebar-left,.pmd-sidebar-icons-toggle{display:none!important;visibility:hidden!important;opacity:0!important;pointer-events:none!important;}',
+          '.page-wrapper,#page-wrapper,.content-wrapper,.main-content,.layout-content,.page-content{margin-left:0!important;left:0!important;width:100%!important;max-width:none!important;}',
+          '.kds-container{padding:18px!important;}'
+        ].join('\n');
+        (doc.head || doc.documentElement).appendChild(style);
+      }
+    } catch (e) {}
+  }
+
+  function primeIframe() {
+    if (!document.body) return null;
+    var h = host();
+    if (!h) {
+      h = makeHost();
+      document.body.appendChild(h);
+      console.log('⚡ PMD KDS fast boot v79: iframe started early');
+    }
+    return h;
+  }
+
+  function findMount() {
+    /* Prefer page shell, not DashboardContainer, because DashboardContainer may replace its own HTML. */
+    var candidates = [
+      '.page-content',
+      '.content-wrapper',
+      '.main-content',
+      '.layout-content',
+      '#page-wrapper',
+      '.page-wrapper',
+      '[data-control="dashboard-container"]',
+      'main'
+    ];
+
+    for (var i = 0; i < candidates.length; i++) {
+      var el = document.querySelector(candidates[i]);
+      if (el && el !== document.body && el.offsetParent !== null) return el;
+      if (el && candidates[i] !== '[data-control="dashboard-container"]') return el;
+    }
+
+    return document.body || null;
+  }
+
+  function insertAtTop(mount, h) {
+    if (!mount || !h) return;
+
+    var before = null;
+    try {
+      /* Keep the normal page title/header above the KDS host when possible. */
+      before = Array.prototype.find.call(mount.children || [], function (child) {
+        if (child === h) return false;
+        var text = String(child.textContent || '').trim().toLowerCase();
+        var cls = String(child.className || '').toLowerCase();
+        if (/page-title|breadcrumb|toolbar|navbar|header/.test(cls)) return false;
+        if (text === 'dashboard') return false;
+        return true;
+      });
+    } catch (e) {}
+
+    if (before) mount.insertBefore(h, before);
+    else mount.appendChild(h);
+  }
+
+  function hideOldStuff() {
+    document.querySelectorAll('.pmd-kds-dashboard-host-v75').forEach(function (el) {
+      try { el.remove(); } catch (e) {}
+    });
+    document.querySelectorAll('.pmd-role-switcher').forEach(function (el) {
+      el.style.setProperty('display', 'none', 'important');
+      el.style.setProperty('visibility', 'hidden', 'important');
+    });
+  }
+
+  function mountFast() {
+    tries++;
+    addClasses();
+    addHints();
+    hideOldStuff();
+
+    var h = primeIframe();
+    if (!h) return schedule();
+
+    var mount = findMount();
+    if (mount && h.parentElement !== mount) {
+      insertAtTop(mount, h);
+    }
+
+    h.classList.remove('pmd-kds-fast-preloading-v79');
+    document.documentElement.classList.add('pmd-kds-fast-visible-v79', 'pmd-kds-dashboard-inline-mounted-v76');
+    if (document.body) document.body.classList.add('pmd-kds-fast-visible-v79', 'pmd-kds-dashboard-inline-mounted-v76');
+
+    mounted = true;
+    if (tries < maxTries) schedule(250);
+  }
+
+  function schedule(delay) {
+    clearTimeout(timer);
+    timer = setTimeout(mountFast, typeof delay === 'number' ? delay : 30);
+  }
+
+  window.PMDKdsFastBootV79 = {
+    active: true,
+    context: ctx,
+    path: kdsPath,
+    prime: primeIframe,
+    mount: mountFast,
+    mounted: function () { return mounted; }
+  };
+
+  addClasses();
+  addHints();
+
+  if (document.body) mountFast();
+  else {
+    if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', mountFast, { once: true });
+    try {
+      new MutationObserver(function () {
+        if (document.body) mountFast();
+      }).observe(document.documentElement, { childList: true, subtree: true });
+    } catch (e) {}
+  }
+})();

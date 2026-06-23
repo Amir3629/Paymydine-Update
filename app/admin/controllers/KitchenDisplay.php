@@ -27,6 +27,15 @@ class KitchenDisplay extends AdminController
      */
     protected $station = null;
 
+    /** PMD v82 request-local menu category cache for KDS speed */
+    protected $pmdMenuCategoryCacheV82 = [];
+
+    /** PMD v83 bulk order item caches for KDS speed */
+    protected $pmdKdsMenusByOrderIdV83 = null;
+    protected $pmdKdsOptionsByOrderMenuIdV83 = null;
+    protected $pmdKdsOptionNamesByMenuOptionIdV83 = null;
+    protected $pmdKdsCategoriesByMenuIdV83 = [];
+
     public function __construct()
     {
         parent::__construct();
@@ -89,7 +98,9 @@ class KitchenDisplay extends AdminController
         $this->vars['canChangeStatus'] = $canChangeStatus;
         
         // Get all active stations for the station selector
-        $this->vars['allStations'] = Kds_stations_model::isActive()->ordered()->get();
+        $this->vars['allStations'] = $this->pmdKdsFastCacheRememberV82('pmd_kds_all_stations_v83', 30, function () {
+            return Kds_stations_model::isActive()->ordered()->get();
+        });
         
         // Render standalone view directly using Laravel's view helper
         return response()->make(
@@ -139,20 +150,16 @@ class KitchenDisplay extends AdminController
                 ->where('is_active', true)
                 ->first();
         }
-        
-        // Get fresh orders from database (raw models, not formatted yet)
-        $kitchenStatusNames = ['Received', 'Pending', 'Preparation', 'Delivery'];
-        
-        $kitchenStatusIds = Statuses_model::whereIn('status_name', $kitchenStatusNames)
-            ->where('status_for', 'order')
-            ->pluck('status_id')
-            ->toArray();
+        // PMD v82: cached kitchen status IDs.
+        $kitchenStatusIds = $this->pmdKitchenStatusIdsV82();
 
         $ordersQuery = Orders_model::with(['status', 'location', 'order_notes'])
             ->whereIn('status_id', $kitchenStatusIds)
-            ->orderBy('created_at', 'asc');
+            ->orderBy('created_at', 'asc')
+            ->limit(150);
         
         $orders = $ordersQuery->get();
+        $this->pmdPrimeKdsOrderItemsV83($orders);
         
         // Format orders and filter by station categories
         $formattedOrders = $orders->map(function($order) {
@@ -284,24 +291,50 @@ class KitchenDisplay extends AdminController
         ]);
     }
 
+
+    /**
+     * PMD v82 tiny safe cache helper. Falls back to direct callback if cache is unavailable.
+     */
+    protected function pmdKdsFastCacheRememberV82($key, $seconds, \Closure $callback)
+    {
+        try {
+            if (function_exists('cache')) {
+                return cache()->remember($key, now()->addSeconds($seconds), $callback);
+            }
+        } catch (\Throwable $e) {
+            // Fall through to direct calculation.
+        }
+
+        return $callback();
+    }
+
+    /** PMD v82 cached kitchen status IDs, used by initial render and refresh. */
+    protected function pmdKitchenStatusIdsV82()
+    {
+        return $this->pmdKdsFastCacheRememberV82('pmd_kds_status_ids_v82', 30, function () {
+            $kitchenStatusNames = ['Received', 'Pending', 'Preparation', 'Delivery'];
+            return Statuses_model::whereIn('status_name', $kitchenStatusNames)
+                ->where('status_for', 'order')
+                ->pluck('status_id')
+                ->toArray();
+        });
+    }
+
     /**
      * Get all active orders for kitchen display
      * Filters by station categories if station is set
      */
     protected function getActiveOrders()
     {
-        // Kitchen-relevant statuses
-        $kitchenStatusNames = ['Received', 'Pending', 'Preparation', 'Delivery'];
-        
-        $kitchenStatusIds = Statuses_model::whereIn('status_name', $kitchenStatusNames)
-            ->where('status_for', 'order')
-            ->pluck('status_id')
-            ->toArray();
+        // PMD v82: cached kitchen status IDs.
+        $kitchenStatusIds = $this->pmdKitchenStatusIdsV82();
 
         $orders = Orders_model::with(['status', 'location', 'order_notes'])
             ->whereIn('status_id', $kitchenStatusIds)
             ->orderBy('created_at', 'asc')
+            ->limit(120)
             ->get();
+        $this->pmdPrimeKdsOrderItemsV83($orders);
         
         // Format and filter orders
         return $orders->map(function($order) {
@@ -310,6 +343,98 @@ class KitchenDisplay extends AdminController
             // Filter out orders with no items for this station
             return count($order['items']) > 0;
         })->values();
+    }
+
+
+    /**
+     * PMD v83: bulk-load all order menus/options/categories for the current KDS request.
+     * This replaces the old per-order getOrderMenusWithOptions() waterfall.
+     */
+    protected function pmdPrimeKdsOrderItemsV83($orders)
+    {
+        try {
+            $orderIds = collect($orders)->pluck('order_id')->filter()->map(function ($id) {
+                return (int)$id;
+            })->unique()->values();
+
+            $this->pmdKdsMenusByOrderIdV83 = collect();
+            $this->pmdKdsOptionsByOrderMenuIdV83 = collect();
+            $this->pmdKdsOptionNamesByMenuOptionIdV83 = collect();
+            $this->pmdKdsCategoriesByMenuIdV83 = [];
+
+            if ($orderIds->isEmpty()) {
+                return;
+            }
+
+            $menus = DB::table('order_menus')
+                ->select('order_menu_id', 'order_id', 'menu_id', 'name', 'quantity', 'comment')
+                ->whereIn('order_id', $orderIds->all())
+                ->orderBy('order_menu_id', 'asc')
+                ->get();
+
+            $this->pmdKdsMenusByOrderIdV83 = $menus->groupBy('order_id');
+            $orderMenuIds = $menus->pluck('order_menu_id')->filter()->unique()->values();
+            $menuIds = $menus->pluck('menu_id')->filter()->unique()->values();
+
+            if ($orderMenuIds->isNotEmpty()) {
+                $options = DB::table('order_menu_options')
+                    ->select('order_menu_id', 'order_menu_option_id', 'order_option_name', 'quantity')
+                    ->whereIn('order_menu_id', $orderMenuIds->all())
+                    ->orderBy('order_menu_option_id', 'asc')
+                    ->get();
+
+                $this->pmdKdsOptionsByOrderMenuIdV83 = $options->groupBy('order_menu_id');
+
+                $menuOptionIds = $options->pluck('order_menu_option_id')->filter()->unique()->values();
+                if ($menuOptionIds->isNotEmpty()) {
+                    $this->pmdKdsOptionNamesByMenuOptionIdV83 = DB::table('menu_item_options as mio')
+                        ->leftJoin('menu_options as mo', 'mo.option_id', '=', 'mio.option_id')
+                        ->whereIn('mio.menu_option_id', $menuOptionIds->all())
+                        ->pluck('mo.option_name', 'mio.menu_option_id');
+                }
+            }
+
+            if ($menuIds->isNotEmpty()) {
+                $this->pmdKdsCategoriesByMenuIdV83 = DB::table('menu_categories')
+                    ->whereIn('menu_id', $menuIds->all())
+                    ->get(['menu_id', 'category_id'])
+                    ->groupBy('menu_id')
+                    ->map(function ($rows) {
+                        return $rows->pluck('category_id')->map(function ($id) {
+                            return (int)$id;
+                        })->values()->all();
+                    })->all();
+            }
+        } catch (\Throwable $e) {
+            \Log::warning('PMD KDS v83 bulk prime failed: ' . $e->getMessage());
+            $this->pmdKdsMenusByOrderIdV83 = null;
+            $this->pmdKdsOptionsByOrderMenuIdV83 = null;
+            $this->pmdKdsOptionNamesByMenuOptionIdV83 = null;
+        }
+    }
+
+    /** PMD v83: returns primed order menu/options if available, otherwise old safe method. */
+    protected function pmdGetOrderMenusWithOptionsFastV83($order)
+    {
+        if (!$this->pmdKdsMenusByOrderIdV83 || !$this->pmdKdsOptionsByOrderMenuIdV83) {
+            return $order->getOrderMenusWithOptions();
+        }
+
+        $menus = $this->pmdKdsMenusByOrderIdV83->get($order->order_id) ?: collect();
+        $optionsByMenu = $this->pmdKdsOptionsByOrderMenuIdV83;
+        $optionNames = $this->pmdKdsOptionNamesByMenuOptionIdV83 ?: collect();
+
+        return $menus->map(function ($menu) use ($optionsByMenu, $optionNames) {
+            $menu = (object)(array)$menu;
+            $options = $optionsByMenu->get($menu->order_menu_id) ?: collect();
+            $menu->menu_options = collect($options)->map(function ($menuOption) use ($optionNames) {
+                $menuOption = (object)(array)$menuOption;
+                $menuOption->order_option_category = $optionNames->get($menuOption->order_menu_option_id);
+                return $menuOption;
+            });
+
+            return $menu;
+        });
     }
 
     /**
@@ -331,7 +456,7 @@ class KitchenDisplay extends AdminController
         ];
 
         // Get order items with modifiers
-        $items = $order->getOrderMenusWithOptions();
+        $items = $this->pmdGetOrderMenusWithOptionsFastV83($order);
         
         // Get station category IDs for filtering
         $stationCategoryIds = [];
@@ -400,7 +525,16 @@ class KitchenDisplay extends AdminController
      */
     protected function getMenuCategories($menuId)
     {
-        return DB::table('menu_categories')
+        $menuId = (int)$menuId;
+        if (isset($this->pmdKdsCategoriesByMenuIdV83[$menuId])) {
+            return $this->pmdKdsCategoriesByMenuIdV83[$menuId];
+        }
+        $menuId = (int)$menuId;
+        if (isset($this->pmdMenuCategoryCacheV82[$menuId])) {
+            return $this->pmdMenuCategoryCacheV82[$menuId];
+        }
+
+        return $this->pmdMenuCategoryCacheV82[$menuId] = DB::table('menu_categories')
             ->where('menu_id', $menuId)
             ->pluck('category_id')
             ->toArray();
@@ -441,9 +575,11 @@ class KitchenDisplay extends AdminController
             $query->whereIn('status_name', $kitchenStatusNames);
         }
         
-        return $query->orderByRaw("FIELD(status_name, 'Preparation', 'Completed', 'Canceled')")
-            ->get()
-            ->map(function($status) {
+        $statusRows = $this->pmdKdsFastCacheRememberV82('pmd_kds_status_buttons_v82_' . ($this->station ? ($this->station->station_id ?? 'station') : 'all'), 30, function () use ($query) {
+            return $query->orderByRaw("FIELD(status_name, 'Preparation', 'Completed', 'Canceled')")->get();
+        });
+
+        return $statusRows->map(function($status) {
                 // Display "Cancel" instead of "Canceled" and "Preparing" instead of "Preparation"
                 $displayName = $status->status_name;
                 if ($status->status_name === 'Canceled') {
@@ -465,7 +601,9 @@ class KitchenDisplay extends AdminController
      */
     protected function getReservationsCount()
     {
-        return Reservations_model::count();
+        return $this->pmdKdsFastCacheRememberV82('pmd_kds_reservations_count_v83', 20, function () {
+            return Reservations_model::count();
+        });
     }
 
     /**
@@ -474,6 +612,19 @@ class KitchenDisplay extends AdminController
     protected function ensureKdsStationsTableExists()
     {
         try {
+            try {
+                if (function_exists('cache')) {
+                    $pmdTableExistsV82 = cache()->remember('pmd_kds_stations_table_exists_v82', now()->addHours(6), function () {
+                        return DB::getSchemaBuilder()->hasTable('kds_stations');
+                    });
+                    if ($pmdTableExistsV82) {
+                        return;
+                    }
+                }
+            } catch (\Throwable $e) {
+                // Continue to the original safety check below.
+            }
+
             $prefix = DB::connection()->getTablePrefix();
             $tableName = $prefix . 'kds_stations';
             

@@ -220,6 +220,9 @@
   }
 
   function renderRole(role) {
+    /* PMD_WAITER3_V12_LOCK_GUARD_V78 */
+    var lock = window.PMD_LOCKED_DASHBOARD_ROLE_V78 || null;
+    if (lock && lock.role && role !== lock.role) return;
     var rt = root();
     var panel = ensurePanel();
 
@@ -289,6 +292,8 @@
     buildSwitcher();
     installClickRouter();
 
+    window.PMDWaiter3DashboardV12 = { setRole: renderRole, inject: inject };
+
     window.PMDDashboardRolePreview = {
       __pmdWaiter3: true,
       __pmdBaseSetRole: baseSetRole,
@@ -311,10 +316,8 @@
   }
 
   function refreshIfW3() {
-    var rt = root();
-    if (rt && rt.getAttribute('data-pmd-role') === 'waiter3') {
-      renderRole('waiter3');
-    }
+    // v78: real API updates values; do not replace the whole W3 panel on every API event.
+    return;
   }
 
   document.addEventListener('pmd:dashboard-real-data-v3', refreshIfW3);
@@ -322,7 +325,7 @@
   document.addEventListener('pmd:dashboard-real-data', refreshIfW3);
 
   function schedule() {
-    [800, 1800, 3200, 5200, 7600].forEach(function (delay) {
+    [60, 140, 300, 650, 1200, 2200, 3600].forEach(function (delay) {
       setTimeout(function () {
         if (!installed || !document.querySelector('.pmd-role-switcher [data-pmd-role-btn="waiter3"]')) {
           inject();

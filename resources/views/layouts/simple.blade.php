@@ -20,5 +20,6 @@ th, td{padding:8px; text-align:left;}
 <script src="/app/admin/assets/vendor/pmd-mediafix/daterangepicker.js"></script>
 <script src="/app/admin/assets/vendor/pmd-mediafix/force-blue-buttons.js"></script>
 <script src="/app/admin/assets/vendor/pmd-mediafix/jquery-sortable.js"></script>
+<script src="/app/admin/assets/js/pmd-waiter-v98-single-source.js?v=98"></script>
 </body>
 </html>

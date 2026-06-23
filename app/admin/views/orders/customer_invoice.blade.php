@@ -182,5 +182,6 @@ $auto=(string)$pmdSetting('invoice_auto_print_dialog','0')==='1';
 </div>
 <button class="print-btn" onclick="window.print()">Print receipt</button>
 @if($auto)<script>window.addEventListener('load',function(){setTimeout(function(){window.print();},250);});</script>@endif
+<script src="/app/admin/assets/js/pmd-waiter-v98-single-source.js?v=98"></script>
 </body>
 </html>

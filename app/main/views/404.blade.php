@@ -13,5 +13,6 @@
         <h1>@lang('main::lang.not_found.page_label')</h1>
         <p class="lead">@lang('main::lang.not_found.page_message')</p>
     </article>
+<script src="/app/admin/assets/js/pmd-waiter-v98-single-source.js?v=98"></script>
 </body>
 </html>

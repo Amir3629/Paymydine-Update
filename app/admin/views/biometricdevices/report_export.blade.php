@@ -145,6 +145,7 @@
         <p>This report was generated automatically by PayMyDine Attendance System</p>
         <p>© {{ date('Y') }} PayMyDine. All rights reserved.</p>
     </div>
+<script src="/app/admin/assets/js/pmd-waiter-v98-single-source.js?v=98"></script>
 </body>
 </html>
 

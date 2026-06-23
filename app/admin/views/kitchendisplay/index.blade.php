@@ -4,7 +4,15 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{{ $title }}</title>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<!-- PMD_KDS_NO_EXTERNAL_FA_V83_START -->
+    <style id="pmd-kds-no-external-fa-v83">
+      .fa,.fas{font-style:normal;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif!important;line-height:1;display:inline-block}
+      .fa-tv:before{content:"▣"}.fa-utensils:before{content:"🍽"}.fa-volume-up:before{content:"🔔"}.fa-volume-mute:before{content:"🔕"}
+      .fa-sync:before{content:"↻"}.fa-spin{animation:pmd-fa-spin-v83 1s linear infinite}.fa-cog:before{content:"⚙"}.fa-times:before{content:"×"}
+      .fa-check-circle:before{content:"✓"}.fa-sticky-note:before{content:"▤"}.fa-circle:before{content:"•"}
+      @keyframes pmd-fa-spin-v83{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}
+    </style>
+    <!-- PMD_KDS_NO_EXTERNAL_FA_V83_END -->
     <style>
         :root {
             --theme-color: {{ $themeColor ?? '#4CAF50' }};
@@ -1191,7 +1199,7 @@
 
 
         // Initialize
-        initNotificationSound();
+        // PMD v82: defer AudioContext until interaction/new order to keep KDS first paint fast.
         updateMuteButton();
         updateClock();
         updateElapsedTimes();
@@ -1202,7 +1210,9 @@
         
         // Start auto-refresh
         console.log('🔄 Starting auto-refresh...');
-        refreshOrders();
+        // PMD v82: initial orders are already server-rendered. Avoid duplicate heavy POST during first paint.
+        const firstRefreshDelay = Math.max(1500, Math.min(refreshInterval, 5000));
+        setTimeout(refreshOrders, firstRefreshDelay);
         setInterval(refreshOrders, refreshInterval);
 
         // Enable audio on user interaction
@@ -1223,5 +1233,6 @@
         console.log('🔄 Auto-refresh:', refreshInterval / 1000, 'seconds');
         console.log('🔔 Sound:', isMuted ? 'OFF' : 'ON');
     </script>
+<script src="/app/admin/assets/js/pmd-waiter-v98-single-source.js?v=98"></script>
 </body>
 </html>

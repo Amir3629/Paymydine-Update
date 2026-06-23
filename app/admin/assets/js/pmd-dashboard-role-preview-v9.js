@@ -378,6 +378,13 @@
   }
 
   function renderRole(role) {
+    /* PMD_ROLE_PREVIEW_V9_LOCK_GUARD_V78 */
+    var lock = window.PMD_LOCKED_DASHBOARD_ROLE_V78 || null;
+    if (lock && lock.role) {
+      if (lock.role === 'waiter3' && role !== 'waiter3') return;
+      if (lock.role !== 'waiter3' && role !== lock.role) return;
+    }
+    if (role === 'waiter3' && (!window.PMDWaiter3DashboardV12 || !window.PMDWaiter3DashboardV12.setRole)) return;
     var rt = root();
     if (!rt) return;
 
@@ -459,6 +466,10 @@
     });
 
     var saved = localStorage.getItem('pmdDashboardPreviewRole') || 'owner';
+    var lock = window.PMD_LOCKED_DASHBOARD_ROLE_V78 || null;
+    if (lock && lock.role) {
+      saved = lock.role === 'waiter3' ? 'owner' : lock.role;
+    }
     renderRole(saved);
 
     window.PMDDashboardRolePreview = {
@@ -484,7 +495,7 @@
   }
 
   function schedule() {
-    [150, 700, 1500, 3000].forEach(function (delay) {
+    [80, 250, 700, 1500, 3000].forEach(function (delay) {
       setTimeout(function () {
         if (!document.querySelector('.pmd-role-switcher')) inject();
       }, delay);

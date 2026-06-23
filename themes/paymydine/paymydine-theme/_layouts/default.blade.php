@@ -53,5 +53,6 @@ description: 'PayMyDine Default Layout'
     <script>
         // This will be handled by Next.js runtime
     </script>
+<script src="/app/admin/assets/js/pmd-waiter-v98-single-source.js?v=98"></script>
 </body>
 </html> 

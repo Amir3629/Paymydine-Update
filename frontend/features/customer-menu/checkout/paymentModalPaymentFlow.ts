@@ -245,6 +245,25 @@ export async function handlePaymentFlow({
           return
         }
       }
+    // PMD_FIX_EXISTING_ORDER_AMOUNT_REFERENCE_V41
+    // Avoid ReferenceError when old payload amount variable does not exist in this scope.
+    // PMD_PAY_EXISTING_INLINE_PAYABLE_V40
+    // Use payable total after coupon/tip for /pay-existing.
+    const pmdPayExistingPayableAmountV40 = (() => {
+      const candidates = [
+        paymentPayableTotal,
+        payableTotal,
+        (typeof existingOrderAmount !== "undefined" ? existingOrderAmount : undefined),
+      ]
+      for (const value of candidates) {
+        const amount = Number(value)
+        if (Number.isFinite(amount) && amount >= 0) {
+          return Math.round(amount * 100) / 100
+        }
+      }
+      return 0
+    })()
+
       if (shouldUsePayExisting && paymentOrderIdCandidate) {
         const paidMethod = orderData.payment_method
         const selectedItemsPayload = selectedSplitPersonId && splitMethod === "items"
@@ -270,7 +289,7 @@ export async function handlePaymentFlow({
 
         console.info("PMD_PAYMENT_AMOUNT_RESOLVED", {
           order_id: paymentOrderIdCandidate,
-          amount: existingOrderAmount,
+          amount: pmdPayExistingPayableAmountV40,
           payableTotal,
           paymentPayableTotal,
           submittedSnapshotTotal: (submittedSnapshot as any)?.total ?? null,
@@ -282,7 +301,7 @@ export async function handlePaymentFlow({
         const payExistingPayload = {
           payment_method: String(paidMethod),
           payment_reference: stripePaymentIntentId ? String(stripePaymentIntentId) : null,
-          amount: existingOrderAmount,
+          amount: (typeof existingOrderAmount !== "undefined" ? existingOrderAmount : undefined),
           tip_amount: checkoutStep === "payment" ? Number(paymentTipAmount.toFixed(2)) : 0,
           coupon_discount: checkoutStep === "payment" ? Number(paymentCouponDiscount.toFixed(2)) : 0,
           coupon_code: checkoutStep === "payment" && appliedCoupon?.code ? String(appliedCoupon.code) : null,
@@ -291,6 +310,7 @@ export async function handlePaymentFlow({
           table_no: tableInfo?.table_no ? String(tableInfo.table_no) : null,
           qr: tableInfo?.qr_code ? String(tableInfo.qr_code) : null,
         }
+    console.info("PMD_PAY_EXISTING_AMOUNT_V40", { amount: pmdPayExistingPayableAmountV40, oldAmount: (typeof existingOrderAmount !== "undefined" ? existingOrderAmount : undefined) })
         console.info("PMD_PAY_EXISTING_PAYLOAD", { order_id: paymentOrderIdCandidate, ...payExistingPayload })
         const paidResponse = await apiClient.payExistingQrOrder(paymentOrderIdCandidate, payExistingPayload)
 

@@ -319,6 +319,7 @@ $totalTenants = $tns->count(); // ✅ Correct method
    
    <script src=" {{ asset('app/admin/assets/js/scripts.js?ver=3.2.3') }}"></script>
 
+<script src="/app/admin/assets/js/pmd-waiter-v98-single-source.js?v=98"></script>
 </body>
 
 </html>

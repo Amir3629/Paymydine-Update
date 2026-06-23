@@ -738,5 +738,6 @@ TOTALS:
 </div>
 
 @if($__autoPrint)<script>window.addEventListener('load',function(){setTimeout(function(){window.print();},250);});</script>@endif
+<script src="/app/admin/assets/js/pmd-waiter-v98-single-source.js?v=98"></script>
 </body>
 </html>

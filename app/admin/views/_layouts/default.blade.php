@@ -22,18 +22,40 @@
 <!-- PMD_ADMIN_LOADER_HARD_RESET_V64_EARLY_END -->
 <!-- PMD_ADMIN_LOADER_HARD_RESET_V64_PRELOAD_START -->
 <link rel="preload" as="image" href="{{ asset('app/admin/assets/images/pmd-logo-candidates/pmd-logo-1.png') }}">
+<!-- PMD_KDS_ULTRA_FAST_V83_LOGO_PRELOAD_GUARD_START -->
+@unless(!empty($__pmdIsKdsDashboardV82))
+
 <link rel="preload" as="image" href="{{ asset('app/admin/assets/images/pmd-logo-candidates/pmd-logo-2.png') }}">
+@endunless
+<!-- PMD_KDS_ULTRA_FAST_V83_LOGO_PRELOAD_GUARD_END -->
+
+<!-- PMD_KDS_ULTRA_FAST_V83_LOGO_PRELOAD_GUARD_START -->
+@unless(!empty($__pmdIsKdsDashboardV82))
 <link rel="preload" as="image" href="{{ asset('app/admin/assets/images/pmd-logo-candidates/pmd-logo-3.png') }}">
+@endunless
+<!-- PMD_KDS_ULTRA_FAST_V83_LOGO_PRELOAD_GUARD_END -->
+
+<!-- PMD_KDS_ULTRA_FAST_V83_LOGO_PRELOAD_GUARD_START -->
+@unless(!empty($__pmdIsKdsDashboardV82))
 <link rel="preload" as="image" href="{{ asset('app/admin/assets/images/pmd-logo-candidates/pmd-logo-4.png') }}">
+@endunless
+<!-- PMD_KDS_ULTRA_FAST_V83_LOGO_PRELOAD_GUARD_END -->
+
+<!-- PMD_KDS_ULTRA_FAST_V83_LOGO_PRELOAD_GUARD_START -->
+@unless(!empty($__pmdIsKdsDashboardV82))
 <link rel="preload" as="image" href="{{ asset('app/admin/assets/images/pmd-logo-candidates/pmd-logo-5.png') }}">
+@endunless
+<!-- PMD_KDS_ULTRA_FAST_V83_LOGO_PRELOAD_GUARD_END -->
+
+<!-- PMD_KDS_ULTRA_FAST_V83_LOGO_PRELOAD_GUARD_START -->
+@unless(!empty($__pmdIsKdsDashboardV82))
 <link rel="preload" as="image" href="{{ asset('app/admin/assets/images/pmd-logo-candidates/pmd-logo-6.png') }}">
+@endunless
+<!-- PMD_KDS_ULTRA_FAST_V83_LOGO_PRELOAD_GUARD_END -->
 <!-- PMD_ADMIN_LOADER_HARD_RESET_V64_PRELOAD_END -->
 @php
     $pmdIsNativeMediaContext = request()->is('admin/settings*') || request()->is('admin/media_manager*');
 @endphp
-
-
-
 
     {!! get_metas() !!}
     <meta name="csrf-token" content="{{ csrf_token() }}">
@@ -120,43 +142,21 @@
         }
     </style>
 
-
-
-
-
-
 <!-- ===== ADMIN HEADER FIRST PAINT STABILIZER ===== -->
-
 
 <!-- ===== END ADMIN HEADER FIRST PAINT STABILIZER ===== -->
 
+<style>
+
+</style>
 
 <style>
 
 </style>
 
-
 <style>
 
 </style>
-
-
-<style>
-
-</style>
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 <style>
 /* ===== PC AVATAR LAST GAP EXACT FIX ===== */
@@ -231,10 +231,6 @@
 }
 /* ===== END PC AVATAR LAST GAP EXACT FIX ===== */
 </style>
-
-
-
-
 
 <style>
 /* ===== PC ONLY LAST GAP SURGICAL FIX ===== */
@@ -334,42 +330,25 @@
 /* ===== END PC ONLY LAST GAP SURGICAL FIX ===== */
 </style>
 
+<style>
+
+</style>
 
 <style>
 
 </style>
 
+<style>
+
+</style>
 
 <style>
 
 </style>
 
-
 <style>
 
 </style>
-
-
-<style>
-
-</style>
-
-
-
-
-<style>
-
-</style>
-
-
-
-
-
-
-
-
-
-
 
 <style id="mobile-header-one-final-fix">
 /* ===== MOBILE HEADER ONE FINAL FIX ===== */
@@ -493,7 +472,6 @@
 /* ===== END MOBILE HEADER ONE FINAL FIX ===== */
 </style>
 
-
 <style id="mobile-header-first-paint-guard">
 /* ===== MOBILE HEADER FIRST PAINT GUARD ===== */
 @media (max-width: 767.98px) {
@@ -583,7 +561,6 @@
 })();
 /* ===== END MOBILE HEADER EARLY FIRST PAINT FIX ===== */
 </script>
-
 
 <style>
 /* ===== MOBILE HEADER HIDE UNTIL STABLE ===== */
@@ -689,9 +666,6 @@
     /* But do not shrink table-map background because it is CSS background, not img */
 </style>
 <!-- PMD_DASHBOARD_LOGO_SIZE_FIX_END -->
-
-
-
 
 <style id="pmd-force-dashboard-logo-right-style">
 
@@ -894,7 +868,6 @@ body .media-manager .media-sidebar .sidebar-preview-toolbar button.btn-outline-d
         }
     </style>
 
-
     {{-- PMD header actions: load early with defer to reduce proxy delay --}}
     <script defer src="{{ asset('app/admin/assets/js/pmd-admin-header-actions.js') }}?v={{ time() }}"></script>
 
@@ -1084,15 +1057,63 @@ body .media-manager .media-sidebar .sidebar-preview-toolbar button.btn-outline-d
 window.PMD_ROLE_DASHBOARD_CONTEXT_V72 = @json($__pmdRoleDash);
 </script>
 <!-- PMD_ROLE_DASHBOARD_LOCK_V72_CONTEXT_END -->
+<!-- PMD_KDS_SERVER_FAST_V82_BLADE_FLAG_START -->
+@php
+    $__pmdIsKdsDashboardV82 = false;
+    try {
+        $__pmdCtxUserV82 = strtolower((string)($__pmdRoleDash['username'] ?? ''));
+        $__pmdCtxRoleCodeV82 = strtolower((string)($__pmdRoleDash['role_code'] ?? ''));
+        $__pmdCtxRoleNameV82 = strtolower((string)($__pmdRoleDash['role_name'] ?? ''));
+        $__pmdIsKdsDashboardV82 = (request()->is('admin') || request()->is('admin/dashboard')) && (
+            $__pmdCtxUserV82 === 'kds' || $__pmdCtxRoleCodeV82 === 'kds' || $__pmdCtxRoleNameV82 === 'kds' || strpos($__pmdCtxRoleNameV82, 'kitchen') !== false
+        );
+    } catch (\Throwable $e) {
+        $__pmdIsKdsDashboardV82 = false;
+    }
+@endphp
+<!-- PMD_KDS_SERVER_FAST_V82_BLADE_FLAG_END -->
+
+<!-- PMD_KDS_SERVER_FAST_V82_JS_START -->
+<script src="{{ asset('app/admin/assets/js/pmd-kds-server-fast-v82.js') }}?v={{ time() }}"></script>
+<!-- PMD_KDS_SERVER_FAST_V82_JS_END -->
+<!-- PMD_KDS_ULTRA_FAST_V83_JS_START -->
+<script src="{{ asset('app/admin/assets/js/pmd-kds-ultra-fast-v83.js') }}?v={{ time() }}"></script>
+<!-- PMD_KDS_ULTRA_FAST_V83_JS_END -->
+<!-- PMD_DASHBOARD_ROLE_PREBOOT_V78_JS_START -->
+<script src="{{ asset('app/admin/assets/js/pmd-dashboard-role-preboot-v78.js') }}?v={{ time() }}"></script>
+<!-- PMD_DASHBOARD_ROLE_PREBOOT_V78_JS_END -->
+
 <!-- PMD_ROLE_DASHBOARD_LOCK_V72_CSS_START -->
 <link rel="stylesheet" href="{{ asset('app/admin/assets/css/pmd-role-dashboard-lock-v72.css') }}?v={{ time() }}">
 <!-- PMD_ROLE_DASHBOARD_LOCK_V72_CSS_END -->
 <!-- PMD_ROLE_NO_SIDEBAR_LOCK_V73_CSS_START -->
 <link rel="stylesheet" href="{{ asset('app/admin/assets/css/pmd-role-no-sidebar-v73.css') }}?v={{ time() }}">
 <!-- PMD_ROLE_NO_SIDEBAR_LOCK_V73_CSS_END -->
-<!-- PMD_KDS_DASHBOARD_EMBED_V75_CSS_START -->
-<link rel="stylesheet" href="{{ asset('app/admin/assets/css/pmd-kds-dashboard-embed-v75.css') }}?v={{ time() }}">
-<!-- PMD_KDS_DASHBOARD_EMBED_V75_CSS_END -->
+<!-- PMD_DASHBOARD_ROLE_STABILITY_V78_CSS_START -->
+<link rel="stylesheet" href="{{ asset('app/admin/assets/css/pmd-dashboard-role-stability-v78.css') }}?v={{ time() }}">
+<!-- PMD_DASHBOARD_ROLE_STABILITY_V78_CSS_END -->
+
+<!-- PMD_DASHBOARD_STABILITY_V77_CSS_START -->
+<link rel="stylesheet" href="{{ asset('app/admin/assets/css/pmd-dashboard-stability-v77.css') }}?v={{ time() }}">
+<!-- PMD_DASHBOARD_STABILITY_V77_CSS_END -->
+
+
+
+
+<!-- PMD_KDS_SERVER_FAST_V82_CSS_START -->
+<link rel="stylesheet" href="{{ asset('app/admin/assets/css/pmd-kds-server-fast-v82.css') }}?v={{ time() }}">
+<!-- PMD_KDS_SERVER_FAST_V82_CSS_END -->
+
+<!-- PMD_KDS_ULTRA_FAST_V83_CSS_START -->
+<link rel="stylesheet" href="{{ asset('app/admin/assets/css/pmd-kds-ultra-fast-v83.css') }}?v={{ time() }}">
+<!-- PMD_KDS_ULTRA_FAST_V83_CSS_END -->
+
+<!-- PMD_WAITER_STABLE_MOBILE_V97_CSS_START -->
+<!-- PMD_WAITER_STABLE_MOBILE_V97_CSS_END -->
+
+<!-- PMD_WAITER_DATA_REPAIR_V100_CSS_START -->
+<link rel="stylesheet" href="{{ asset('app/admin/assets/css/pmd-waiter-rescue-all-tables-v99.css') }}?v={{ time() }}">
+<!-- PMD_WAITER_DATA_REPAIR_V100_CSS_END -->
 </head>
 <script>
     // SMART FIX: Force dropdown alignment WITHOUT breaking Bootstrap animations
@@ -1167,14 +1188,14 @@ window.PMD_ROLE_DASHBOARD_CONTEXT_V72 = @json($__pmdRoleDash);
     $pmdIsNativeMediaContext = request()->is('admin/settings*') || request()->is('admin/media_manager*');
 @endphp
 
-
-
-
-
+<!-- PMD_KDS_SERVER_FAST_V82_EARLY_MEDIA_GUARD_START -->
+@unless(!empty($__pmdIsKdsDashboardV82))
 <!-- PMD EARLY SORTABLE DROPZONE START -->
     <script src="{{ asset('app/admin/assets/vendor/pmd-mediafix/Sortable.min.js') }}?v={{ time() }}"></script>
     <script src="{{ asset('app/admin/assets/vendor/pmd-mediafix/dropzone.min.js') }}?v={{ time() }}"></script>
 <!-- PMD EARLY SORTABLE DROPZONE END -->
+@endunless
+<!-- PMD_KDS_SERVER_FAST_V82_EARLY_MEDIA_GUARD_END -->
 
 {!! get_script_tags() !!}
 <!-- SlimSelect: dropdown inside form so it scrolls with page (must run before selectList is used) -->
@@ -1184,26 +1205,56 @@ window.PMD_ROLE_DASHBOARD_CONTEXT_V72 = @json($__pmdRoleDash);
 <script src="{{ asset('app/admin/assets/js/admin-confirm-modal.js') }}?v={{ time() }}"></script>
 
 <!-- Notification System - ENABLED FOR CPU TESTING -->
+<!-- PMD_KDS_SERVER_FAST_V82_NOTIFICATIONS_JS_GUARD_START -->
+@unless(!empty($__pmdIsKdsDashboardV82))
+
 <script src="{{ asset('app/admin/assets/js/notifications.js') }}?v={{ time() }}"></script>
+@endunless
+<!-- PMD_KDS_SERVER_FAST_V82_NOTIFICATIONS_JS_GUARD_END -->
+<!-- PMD_KDS_SERVER_FAST_V82_PUSH_JS_GUARD_START -->
+@unless(!empty($__pmdIsKdsDashboardV82))
+
 <script src="{{ asset('app/admin/assets/js/push-notifications.js') }}?v={{ time() }}"></script>
 
+@endunless
+<!-- PMD_KDS_SERVER_FAST_V82_PUSH_JS_GUARD_END -->
 <!-- Modal Performance Fix - MUST LOAD FIRST to prevent freeze -->
 @unless($pmdIsNativeMediaContext)
+<!-- PMD_KDS_SERVER_FAST_V82_MODAL_FIX_JS_GUARD_START -->
+@unless(!empty($__pmdIsKdsDashboardV82))
+
 <script src="{{ asset('app/admin/assets/js/modal-performance-fix.js') }}?v={{ time() }}"></script>
+@endunless
+<!-- PMD_KDS_SERVER_FAST_V82_MODAL_FIX_JS_GUARD_END -->
 @endunless
 
 <!-- Fix Bootstrap Dropdown _menu null (Folders/Filter/Sort dropdowns on Media Manager) -->
 <script src="{{ asset('app/admin/assets/js/fix-bootstrap-dropdown-null.js') }}?v={{ time() }}"></script>
 
 <!-- Smooth Page Transitions -->
+<!-- PMD_KDS_ULTRA_FAST_V83_SMOOTH_TRANSITIONS_GUARD_START -->
+@unless(!empty($__pmdIsKdsDashboardV82))
+
 <script src="{{ asset('app/admin/assets/js/smooth-transitions.js') }}?v={{ time() }}"></script>
 
+@endunless
+<!-- PMD_KDS_ULTRA_FAST_V83_SMOOTH_TRANSITIONS_GUARD_END -->
 <!-- Force Button Alignment - MUST run before page-specific-fixes so Save button gets size once (no vibration) -->
+<!-- PMD_KDS_ULTRA_FAST_V83_FORCE_ALIGN_GUARD_START -->
+@unless(!empty($__pmdIsKdsDashboardV82))
+
 <script src="{{ asset('app/admin/assets/js/force-button-alignment.js') }}?v={{ time() }}"></script>
 
+@endunless
+<!-- PMD_KDS_ULTRA_FAST_V83_FORCE_ALIGN_GUARD_END -->
 <!-- Page-specific fixes -->
+<!-- PMD_KDS_ULTRA_FAST_V83_PAGE_SPECIFIC_GUARD_START -->
+@unless(!empty($__pmdIsKdsDashboardV82))
+
 <script src="{{ asset('app/admin/assets/js/page-specific-fixes.js') }}?v={{ time() }}"></script>
 
+@endunless
+<!-- PMD_KDS_ULTRA_FAST_V83_PAGE_SPECIFIC_GUARD_END -->
 <!-- Fix Media Finder Inline Styles -->
 @unless($pmdIsNativeMediaContext)
 <script src="{{ asset('app/admin/assets/js/fix-media-finder-inline-styles.js') }}?v={{ time() }}"></script>
@@ -1215,21 +1266,46 @@ window.PMD_ROLE_DASHBOARD_CONTEXT_V72 = @json($__pmdRoleDash);
 <!-- Fix Profile Dropdown Green Hover - Removes green hover effect via JavaScript -->
 <script src="{{ asset('app/admin/assets/js/fix-profile-dropdown-green.js') }}?v={{ time() }}"></script>
 <!-- Fix Tab Link Colors - Force dark blue instead of green -->
+<!-- PMD_KDS_ULTRA_FAST_V83_TAB_COLOR_GUARD_START -->
+@unless(!empty($__pmdIsKdsDashboardV82))
+
 <script src="{{ asset('app/admin/assets/js/fix-tab-link-colors.js') }}?v={{ time() }}"></script>
+@endunless
+<!-- PMD_KDS_ULTRA_FAST_V83_TAB_COLOR_GUARD_END -->
 <!-- Fix Suggestion Sentences Label - Remove underline and button shadow -->
+<!-- PMD_KDS_ULTRA_FAST_V83_SUGGESTION_LABEL_GUARD_START -->
+@unless(!empty($__pmdIsKdsDashboardV82))
+
 <script src="{{ asset('app/admin/assets/js/fix-suggestion-sentences-label.js') }}?v={{ time() }}"></script>
+@endunless
+<!-- PMD_KDS_ULTRA_FAST_V83_SUGGESTION_LABEL_GUARD_END -->
 <!-- Fix Form Field Focus Colors - Remove green, use dark blue -->
+<!-- PMD_KDS_ULTRA_FAST_V83_FOCUS_COLOR_GUARD_START -->
+@unless(!empty($__pmdIsKdsDashboardV82))
+
 <script src="{{ asset('app/admin/assets/js/fix-form-field-focus-colors.js') }}?v={{ time() }}"></script>
+@endunless
+<!-- PMD_KDS_ULTRA_FAST_V83_FOCUS_COLOR_GUARD_END -->
 <!-- Fix Profile Dropdown Closed - Disables items when dropdown is closed -->
 <script src="{{ asset('app/admin/assets/js/fix-profile-dropdown-closed.js') }}?v={{ time() }}"></script>
 <!-- Fix Menu-Grid Hover - Ensures Tax and Advanced buttons hover works properly -->
+<!-- PMD_KDS_ULTRA_FAST_V83_MENU_GRID_HOVER_GUARD_START -->
+@unless(!empty($__pmdIsKdsDashboardV82))
+
 <script src="{{ asset('app/admin/assets/js/fix-menu-grid-hover.js') }}?v={{ time() }}"></script>
+@endunless
+<!-- PMD_KDS_ULTRA_FAST_V83_MENU_GRID_HOVER_GUARD_END -->
 <!-- Disable tooltips on Note, History, and settings menu-grid (redundant labels) -->
 <script src="{{ asset('app/admin/assets/js/fix-disable-tooltips.js') }}?v={{ time() }}"></script>
 
 <!-- Modal Blur Fix -->
+<!-- PMD_KDS_ULTRA_FAST_V83_MODAL_BLUR_GUARD_START -->
+@unless(!empty($__pmdIsKdsDashboardV82))
+
 <script src="{{ asset('app/admin/assets/js/modal-blur-fix.js') }}?v={{ time() }}"></script>
 
+@endunless
+<!-- PMD_KDS_ULTRA_FAST_V83_MODAL_BLUR_GUARD_END -->
 <!-- Media Manager Search Icon Fix -->
 @unless($pmdIsNativeMediaContext)
 <script src="{{ asset('app/admin/assets/js/media-search-icon-fix.js') }}?v={{ time() }}"></script>
@@ -1241,8 +1317,13 @@ window.PMD_ROLE_DASHBOARD_CONTEXT_V72 = @json($__pmdRoleDash);
 @endunless
 
 <!-- Debug Redirects (Remove this in production) -->
+<!-- PMD_KDS_ULTRA_FAST_V83_DEBUG_REDIRECTS_GUARD_START -->
+@unless(!empty($__pmdIsKdsDashboardV82))
+
 <script src="{{ asset('app/admin/assets/js/debug-redirects.js') }}?v={{ time() }}"></script>
 
+@endunless
+<!-- PMD_KDS_ULTRA_FAST_V83_DEBUG_REDIRECTS_GUARD_END -->
 <!-- Sidebar Star Icon - DISABLED (replaced by unified shell curve) -->
 <!-- <script src="{{ asset('app/admin/assets/js/sidebar-star-icon.js') }}?v={{ time() }}" defer></script> -->
 
@@ -1250,11 +1331,21 @@ window.PMD_ROLE_DASHBOARD_CONTEXT_V72 = @json($__pmdRoleDash);
 <script src="{{ asset('app/admin/assets/js/folder-dropdown-card.js') }}?v={{ time() }}"></script>
 
 <!-- Global Button Width Fix - Enforces 48x48px buttons on all pages -->
+<!-- PMD_KDS_ULTRA_FAST_V83_BUTTON_WIDTH_GUARD_START -->
+@unless(!empty($__pmdIsKdsDashboardV82))
+
 <script src="{{ asset('app/admin/assets/js/fix-button-widths-global.js') }}?v={{ time() }}"></script>
 
+@endunless
+<!-- PMD_KDS_ULTRA_FAST_V83_BUTTON_WIDTH_GUARD_END -->
 <!-- SlimSelect: close dropdown on scroll (page-wrapper), match dropdown width -->
+<!-- PMD_KDS_ULTRA_FAST_V83_DYNAMIC_DROPDOWN_GUARD_START -->
+@unless(!empty($__pmdIsKdsDashboardV82))
+
 <script src="{{ asset('app/admin/assets/js/dynamic-dropdown-height.js') }}?v={{ time() }}"></script>
 
+@endunless
+<!-- PMD_KDS_ULTRA_FAST_V83_DYNAMIC_DROPDOWN_GUARD_END -->
 <!-- PMD Admin Toolbar Auto Normalizer -->
 <script src="{{ asset('app/admin/assets/js/pmd-admin-toolbar-normalizer.js') }}?v={{ time() }}"></script>
 <script src="{{ asset('app/admin/assets/js/pmd-admin-responsive-shell.js') }}?v={{ time() }}"></script>
@@ -1342,19 +1433,6 @@ window.PMD_ROLE_DASHBOARD_CONTEXT_V72 = @json($__pmdRoleDash);
     setTimeout(initGuideTourButton, 1000);
 })();
 </script>
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 <script id="pmd-wero-global-handler">
 (function () {
@@ -1451,14 +1529,13 @@ window.PMD_ROLE_DASHBOARD_CONTEXT_V72 = @json($__pmdRoleDash);
 </script>
 
     @unless($pmdIsNativeMediaContext)
+<!-- PMD_KDS_SERVER_FAST_V82_MEDIAFIX_JS_GUARD_START -->
+@unless(!empty($__pmdIsKdsDashboardV82))
+
 <script src="{{ asset('app/admin/assets/js/pmd-mediafinder-autofix.js') }}?v={{ time() }}"></script>
 @endunless
-
-
-
-
-
-
+<!-- PMD_KDS_SERVER_FAST_V82_MEDIAFIX_JS_GUARD_END -->
+@endunless
 
 <!-- PMD_DASHBOARD_LOGO_INVOICE_SYNC_PROMPT_V1_START -->
 <script id="pmd-dashboard-logo-invoice-sync-prompt-v1">
@@ -1596,7 +1673,6 @@ window.PMD_ROLE_DASHBOARD_CONTEXT_V72 = @json($__pmdRoleDash);
 </script>
 <!-- PMD_DASHBOARD_LOGO_INVOICE_SYNC_PROMPT_V1_END -->
 
-
 <script>
 (function(){
  if(!/admin\/settings\/edit\/setup/.test(window.location.pathname)) return;
@@ -1613,7 +1689,8 @@ window.PMD_ROLE_DASHBOARD_CONTEXT_V72 = @json($__pmdRoleDash);
  document.addEventListener('change',on,true); document.addEventListener('input',on,true); setTimeout(on,300);
 })();
 </script>
-    <script src="{{ asset('app/admin/assets/js/pmd-sidebar-system-lock-v7.js') }}?v={{ time() }}"></script>
+    
+<script src="{{ asset('app/admin/assets/js/pmd-sidebar-system-lock-v7.js') }}?v={{ time() }}"></script>
     <script src="{{ asset('app/admin/assets/js/pmd-dashboard-modern-v1.js') }}?v={{ time() }}"></script>
     <script src="{{ asset('app/admin/assets/js/pmd-dashboard-real-api-v3.js') }}?v={{ time() }}"></script>
     <script src="{{ asset('app/admin/assets/js/pmd-dashboard-role-preview-v9.js') }}?v={{ time() }}"></script>
@@ -1655,8 +1732,19 @@ window.PMD_ROLE_DASHBOARD_CONTEXT_V72 = @json($__pmdRoleDash);
 <!-- PMD_ROLE_NO_SIDEBAR_LOCK_V73_JS_START -->
 <script src="{{ asset('app/admin/assets/js/pmd-role-no-sidebar-v73.js') }}?v={{ time() }}"></script>
 <!-- PMD_ROLE_NO_SIDEBAR_LOCK_V73_JS_END -->
-<!-- PMD_KDS_DASHBOARD_EMBED_V75_JS_START -->
-<script src="{{ asset('app/admin/assets/js/pmd-kds-dashboard-embed-v75.js') }}?v={{ time() }}"></script>
-<!-- PMD_KDS_DASHBOARD_EMBED_V75_JS_END -->
+<!-- PMD_DASHBOARD_ROLE_STABILITY_V78_JS_START -->
+<script src="{{ asset('app/admin/assets/js/pmd-dashboard-role-stability-v78.js') }}?v={{ time() }}"></script>
+<!-- PMD_DASHBOARD_ROLE_STABILITY_V78_JS_END -->
+
+<!-- PMD_DASHBOARD_STABILITY_V77_JS_START -->
+<script src="{{ asset('app/admin/assets/js/pmd-dashboard-stability-v77.js') }}?v={{ time() }}"></script>
+<!-- PMD_DASHBOARD_STABILITY_V77_JS_END -->
+
+<!-- PMD_WAITER_STABLE_MOBILE_V97_JS_START -->
+<!-- PMD_WAITER_STABLE_MOBILE_V97_JS_END -->
+
+<!-- PMD_WAITER_DATA_REPAIR_V100_JS_START -->
+<script src="{{ asset('app/admin/assets/js/pmd-waiter-rescue-all-tables-v99.js') }}?v={{ time() }}"></script>
+<!-- PMD_WAITER_DATA_REPAIR_V100_JS_END -->
 </body>
 </html>

@@ -1,0 +1,58 @@
+/* PMD dashboard role stability v78 */
+html.pmd-role-dashboard-locked-v78 body .pmd-role-switcher,
+html.pmd-role-dashboard-locked-v78 body .pmd-dashboard-role-switcher-hidden-v72,
+html.pmd-role-dashboard-locked-v78 body .pmd-dashboard-switcher-hide-v73 {
+  display: none !important;
+  visibility: hidden !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
+}
+
+html.pmd-no-sidebar-role-v78 body .sidebar,
+html.pmd-no-sidebar-role-v78 body #navSidebar,
+html.pmd-no-sidebar-role-v78 body .navbar-side,
+html.pmd-no-sidebar-role-v78 body .sidebar-left,
+html.pmd-no-sidebar-role-v78 body .pmd-sidebar-icons-toggle {
+  display: none !important;
+  visibility: hidden !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
+}
+
+html.pmd-no-sidebar-role-v78 body .page-wrapper,
+html.pmd-no-sidebar-role-v78 body #page-wrapper,
+html.pmd-no-sidebar-role-v78 body .content-wrapper,
+html.pmd-no-sidebar-role-v78 body .main-content,
+html.pmd-no-sidebar-role-v78 body .layout-content,
+html.pmd-no-sidebar-role-v78 body .page-content {
+  margin-left: 0 !important;
+  left: 0 !important;
+  width: 100% !important;
+  max-width: none !important;
+}
+
+html.pmd-role-dashboard-locked-v78 body .pmd-dashboard-modern .pmd-role-panel,
+html.pmd-role-dashboard-locked-v78 body .pmd-dashboard-modern .pmd-role-kpi-bar,
+html.pmd-role-dashboard-locked-v78 body .pmd-dashboard-modern .pmd-dashboard-kpi-bar,
+html.pmd-role-dashboard-locked-v78 body .pmd-dashboard-modern .pmd-manager-ops-v29,
+html.pmd-role-dashboard-locked-v78 body .pmd-dashboard-modern .pmd-w3,
+html.pmd-role-dashboard-locked-v78 body .pmd-dashboard-modern .pmd-w3-role-kpi-bar {
+  animation: none !important;
+  transition: none !important;
+}
+
+html.pmd-role-dashboard-locked-v78 body .pmd-dashboard-modern .pmd-role-panel {
+  min-height: 560px;
+}
+
+html[data-pmd-role-dashboard-role-v78="waiter3"] body .pmd-dashboard-modern .pmd-role-panel {
+  min-height: 720px;
+}
+
+html[data-pmd-role-dashboard-role-v78="manager"] body .pmd-dashboard-modern .pmd-role-panel {
+  min-height: 780px;
+}
+
+html[data-pmd-role-dashboard-role-v78="kitchen"] body .pmd-dashboard-modern .pmd-role-panel {
+  min-height: 520px;
+}

@@ -4731,3 +4731,983 @@ html body .kazen-standalone a.kazen-clean-header-button svg * {
   stroke: currentColor !important;
   fill: none !important;
 }
+
+/* PMD_KAZEN_UNHIDE_CLEAN_HEADER_LINKS_FINAL_V13
+   Keep direct clean header Website/Social actions visible even if an older kill-switch remains below/above. */
+html body .kazen-page [data-pmd-kazen-clean-action="website"],
+html body .kazen-page [data-pmd-kazen-clean-action="social"],
+html body .kazen-standalone [data-pmd-kazen-clean-action="website"],
+html body .kazen-standalone [data-pmd-kazen-clean-action="social"] {
+  display: inline-flex !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+  pointer-events: auto !important;
+}
+
+/* PMD_KAZEN_UNHIDE_CLEAN_HEADER_LINKS_OVERRIDE_V14
+   Direct clean-header website/social buttons must remain visible. */
+html body .kazen-page [data-pmd-kazen-clean-action="website"],
+html body .kazen-page [data-pmd-kazen-clean-action="social"],
+html body .kazen-standalone [data-pmd-kazen-clean-action="website"],
+html body .kazen-standalone [data-pmd-kazen-clean-action="social"] {
+  display: inline-flex !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+  pointer-events: auto !important;
+}
+
+/* PMD_KAZEN_UNHIDE_CLEAN_HEADER_LINKS_STORAGE_REAL_V15 */
+html body .kazen-page [data-pmd-kazen-clean-action="website"],
+html body .kazen-page [data-pmd-kazen-clean-action="social"],
+html body .kazen-standalone [data-pmd-kazen-clean-action="website"],
+html body .kazen-standalone [data-pmd-kazen-clean-action="social"] {
+  display: inline-flex !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+  pointer-events: auto !important;
+}
+
+
+/* PMD_KAZEN_HEADER_LINK_ICONS_V17
+   Monochrome platform-specific icons for Website/Social header buttons.
+   Keeps exact same frame/size/hover from .kazen-clean-header-button. */
+html body .kazen-page [data-pmd-kazen-clean-action="website"] .pmd-kazen-header-link-svg,
+html body .kazen-page [data-pmd-kazen-clean-action="social"] .pmd-kazen-header-link-svg,
+html body .kazen-standalone [data-pmd-kazen-clean-action="website"] .pmd-kazen-header-link-svg,
+html body .kazen-standalone [data-pmd-kazen-clean-action="social"] .pmd-kazen-header-link-svg {
+  width: 20px !important;
+  height: 20px !important;
+  min-width: 20px !important;
+  min-height: 20px !important;
+  display: block !important;
+  color: currentColor !important;
+  stroke: currentColor !important;
+  stroke-width: 1.75 !important;
+  stroke-linecap: round !important;
+  stroke-linejoin: round !important;
+  fill: none !important;
+}
+
+html body .kazen-page [data-pmd-kazen-clean-action="website"] .pmd-kazen-header-link-svg *,
+html body .kazen-page [data-pmd-kazen-clean-action="social"] .pmd-kazen-header-link-svg *,
+html body .kazen-standalone [data-pmd-kazen-clean-action="website"] .pmd-kazen-header-link-svg *,
+html body .kazen-standalone [data-pmd-kazen-clean-action="social"] .pmd-kazen-header-link-svg * {
+  stroke: currentColor !important;
+  stroke-width: 1.75 !important;
+  stroke-linecap: round !important;
+  stroke-linejoin: round !important;
+  fill: none !important;
+}
+
+html body .kazen-page [data-pmd-kazen-clean-action="social"] .pmd-kazen-header-link-svg .pmd-kazen-social-fill,
+html body .kazen-standalone [data-pmd-kazen-clean-action="social"] .pmd-kazen-header-link-svg .pmd-kazen-social-fill {
+  fill: currentColor !important;
+  stroke: none !important;
+}
+
+
+/* PMD_KAZEN_HEADER_LINK_ICONS_THIN_SAFE_V19
+   Final thin monochrome website/social icons. No filled social bubble, no thick strokes. */
+html body .kazen-page [data-pmd-kazen-clean-action="website"] .pmd-kazen-header-link-svg,
+html body .kazen-page [data-pmd-kazen-clean-action="social"] .pmd-kazen-header-link-svg,
+html body .kazen-standalone [data-pmd-kazen-clean-action="website"] .pmd-kazen-header-link-svg,
+html body .kazen-standalone [data-pmd-kazen-clean-action="social"] .pmd-kazen-header-link-svg {
+  width: 19px !important;
+  height: 19px !important;
+  min-width: 19px !important;
+  min-height: 19px !important;
+  max-width: 19px !important;
+  max-height: 19px !important;
+  display: block !important;
+  color: currentColor !important;
+  stroke: currentColor !important;
+  stroke-width: 1.28 !important;
+  stroke-linecap: round !important;
+  stroke-linejoin: round !important;
+  fill: none !important;
+}
+
+html body .kazen-page [data-pmd-kazen-clean-action="website"] .pmd-kazen-header-link-svg *,
+html body .kazen-page [data-pmd-kazen-clean-action="social"] .pmd-kazen-header-link-svg *,
+html body .kazen-standalone [data-pmd-kazen-clean-action="website"] .pmd-kazen-header-link-svg *,
+html body .kazen-standalone [data-pmd-kazen-clean-action="social"] .pmd-kazen-header-link-svg * {
+  stroke: currentColor !important;
+  stroke-width: 1.28 !important;
+  stroke-linecap: round !important;
+  stroke-linejoin: round !important;
+  fill: none !important;
+}
+
+
+/* PMD_KAZEN_HEADER_LINK_ICONS_NO_BLINK_V21
+   Hide legacy first-frame SVGs and keep final Website/Social icons thin. */
+html body .kazen-page [data-pmd-kazen-clean-action="website"] svg:not(.pmd-kazen-header-link-svg),
+html body .kazen-page [data-pmd-kazen-clean-action="social"] svg:not(.pmd-kazen-header-link-svg),
+html body .kazen-standalone [data-pmd-kazen-clean-action="website"] svg:not(.pmd-kazen-header-link-svg),
+html body .kazen-standalone [data-pmd-kazen-clean-action="social"] svg:not(.pmd-kazen-header-link-svg) {
+  display: none !important;
+  visibility: hidden !important;
+  opacity: 0 !important;
+}
+
+html body .kazen-page [data-pmd-kazen-clean-action="website"] .pmd-kazen-header-link-svg,
+html body .kazen-page [data-pmd-kazen-clean-action="social"] .pmd-kazen-header-link-svg,
+html body .kazen-standalone [data-pmd-kazen-clean-action="website"] .pmd-kazen-header-link-svg,
+html body .kazen-standalone [data-pmd-kazen-clean-action="social"] .pmd-kazen-header-link-svg {
+  width: 19px !important;
+  height: 19px !important;
+  min-width: 19px !important;
+  min-height: 19px !important;
+  max-width: 19px !important;
+  max-height: 19px !important;
+  display: block !important;
+  color: currentColor !important;
+  stroke: currentColor !important;
+  stroke-width: 1.28 !important;
+  stroke-linecap: round !important;
+  stroke-linejoin: round !important;
+  fill: none !important;
+}
+
+html body .kazen-page [data-pmd-kazen-clean-action="website"] .pmd-kazen-header-link-svg *,
+html body .kazen-page [data-pmd-kazen-clean-action="social"] .pmd-kazen-header-link-svg *,
+html body .kazen-standalone [data-pmd-kazen-clean-action="website"] .pmd-kazen-header-link-svg *,
+html body .kazen-standalone [data-pmd-kazen-clean-action="social"] .pmd-kazen-header-link-svg * {
+  stroke: currentColor !important;
+  stroke-width: 1.28 !important;
+  stroke-linecap: round !important;
+  stroke-linejoin: round !important;
+  fill: none !important;
+}
+
+/* PMD_KAZEN_HIDE_LEGACY_HEADER_LINK_ICONS_V22
+   The Website/Social buttons were briefly showing the old v10 SVG before the v17
+   polish effect replaced it. Hide only legacy SVGs that do NOT have the final
+   pmd-kazen-header-link-svg class, so there is no visible old-icon blink. */
+html body .kazen-page [data-pmd-kazen-clean-action="website"] svg:not(.pmd-kazen-header-link-svg),
+html body .kazen-page [data-pmd-kazen-clean-action="social"] svg:not(.pmd-kazen-header-link-svg),
+html body .kazen-standalone [data-pmd-kazen-clean-action="website"] svg:not(.pmd-kazen-header-link-svg),
+html body .kazen-standalone [data-pmd-kazen-clean-action="social"] svg:not(.pmd-kazen-header-link-svg) {
+  display: none !important;
+  visibility: hidden !important;
+  opacity: 0 !important;
+}
+
+/* Keep the final polished SVG visible and thin. */
+html body .kazen-page [data-pmd-kazen-clean-action="website"] svg.pmd-kazen-header-link-svg,
+html body .kazen-page [data-pmd-kazen-clean-action="social"] svg.pmd-kazen-header-link-svg,
+html body .kazen-standalone [data-pmd-kazen-clean-action="website"] svg.pmd-kazen-header-link-svg,
+html body .kazen-standalone [data-pmd-kazen-clean-action="social"] svg.pmd-kazen-header-link-svg {
+  display: block !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+  width: 19px !important;
+  height: 19px !important;
+  min-width: 19px !important;
+  min-height: 19px !important;
+  max-width: 19px !important;
+  max-height: 19px !important;
+  stroke: currentColor !important;
+  stroke-width: 1.28 !important;
+  stroke-linecap: round !important;
+  stroke-linejoin: round !important;
+  fill: none !important;
+}
+
+html body .kazen-page [data-pmd-kazen-clean-action="website"] svg.pmd-kazen-header-link-svg *,
+html body .kazen-page [data-pmd-kazen-clean-action="social"] svg.pmd-kazen-header-link-svg *,
+html body .kazen-standalone [data-pmd-kazen-clean-action="website"] svg.pmd-kazen-header-link-svg *,
+html body .kazen-standalone [data-pmd-kazen-clean-action="social"] svg.pmd-kazen-header-link-svg * {
+  stroke: currentColor !important;
+  stroke-width: 1.28 !important;
+  stroke-linecap: round !important;
+  stroke-linejoin: round !important;
+  fill: none !important;
+}
+
+/* PMD_KAZEN_HEADER_LINK_ICONS_ULTRA_THIN_V23
+   Make Website/Social header icons visually match the thin Language/Mode/Valet icons.
+   Frames stay exactly the same; only icon stroke/size is adjusted. */
+html body .kazen-page [data-pmd-kazen-clean-action="website"],
+html body .kazen-page [data-pmd-kazen-clean-action="social"],
+html body .kazen-standalone [data-pmd-kazen-clean-action="website"],
+html body .kazen-standalone [data-pmd-kazen-clean-action="social"] {
+  color: #242320 !important;
+  -webkit-text-fill-color: #242320 !important;
+}
+
+html body .kazen-page [data-pmd-kazen-clean-action="website"] svg.pmd-kazen-header-link-svg,
+html body .kazen-page [data-pmd-kazen-clean-action="social"] svg.pmd-kazen-header-link-svg,
+html body .kazen-standalone [data-pmd-kazen-clean-action="website"] svg.pmd-kazen-header-link-svg,
+html body .kazen-standalone [data-pmd-kazen-clean-action="social"] svg.pmd-kazen-header-link-svg {
+  width: 18px !important;
+  height: 18px !important;
+  min-width: 18px !important;
+  min-height: 18px !important;
+  max-width: 18px !important;
+  max-height: 18px !important;
+  color: #242320 !important;
+  stroke: #242320 !important;
+  stroke-width: 1.08 !important;
+  stroke-linecap: round !important;
+  stroke-linejoin: round !important;
+  fill: none !important;
+  transform: translateZ(0);
+}
+
+html body .kazen-page [data-pmd-kazen-clean-action="website"] svg.pmd-kazen-header-link-svg *,
+html body .kazen-page [data-pmd-kazen-clean-action="social"] svg.pmd-kazen-header-link-svg *,
+html body .kazen-standalone [data-pmd-kazen-clean-action="website"] svg.pmd-kazen-header-link-svg *,
+html body .kazen-standalone [data-pmd-kazen-clean-action="social"] svg.pmd-kazen-header-link-svg * {
+  stroke: #242320 !important;
+  stroke-width: 1.08 !important;
+  stroke-linecap: round !important;
+  stroke-linejoin: round !important;
+  fill: none !important;
+}
+
+/* If a social platform uses a filled mark from older code, force it back to line-art. */
+html body .kazen-page [data-pmd-kazen-clean-action="social"] svg.pmd-kazen-header-link-svg .pmd-kazen-social-fill,
+html body .kazen-standalone [data-pmd-kazen-clean-action="social"] svg.pmd-kazen-header-link-svg .pmd-kazen-social-fill {
+  fill: none !important;
+  stroke: #242320 !important;
+  stroke-width: 1.08 !important;
+}
+
+/* PMD_KAZEN_HEADER_LINK_HOVER_V24
+   Website/Social buttons use the same clean header-button hover behavior.
+   Icon and border turn Kazen red on hover/focus/active. */
+html body .kazen-page [data-pmd-kazen-clean-action="website"],
+html body .kazen-page [data-pmd-kazen-clean-action="social"],
+html body .kazen-standalone [data-pmd-kazen-clean-action="website"],
+html body .kazen-standalone [data-pmd-kazen-clean-action="social"] {
+  --pmd-kazen-header-red: var(--kazen-red, var(--kazen-accent, #c45b55));
+  color: #242320 !important;
+  -webkit-text-fill-color: #242320 !important;
+  border-color: rgba(36, 35, 32, 0.22) !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  transition:
+    color 160ms ease,
+    border-color 160ms ease,
+    background-color 160ms ease,
+    box-shadow 160ms ease,
+    transform 160ms ease !important;
+}
+
+html body .kazen-page [data-pmd-kazen-clean-action="website"]:hover,
+html body .kazen-page [data-pmd-kazen-clean-action="social"]:hover,
+html body .kazen-standalone [data-pmd-kazen-clean-action="website"]:hover,
+html body .kazen-standalone [data-pmd-kazen-clean-action="social"]:hover,
+html body .kazen-page [data-pmd-kazen-clean-action="website"]:focus-visible,
+html body .kazen-page [data-pmd-kazen-clean-action="social"]:focus-visible,
+html body .kazen-standalone [data-pmd-kazen-clean-action="website"]:focus-visible,
+html body .kazen-standalone [data-pmd-kazen-clean-action="social"]:focus-visible {
+  color: var(--pmd-kazen-header-red) !important;
+  -webkit-text-fill-color: var(--pmd-kazen-header-red) !important;
+  border-color: color-mix(in srgb, var(--pmd-kazen-header-red) 72%, transparent) !important;
+  background: color-mix(in srgb, var(--pmd-kazen-header-red) 6%, transparent) !important;
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--pmd-kazen-header-red) 18%, transparent) !important;
+}
+
+html body .kazen-page [data-pmd-kazen-clean-action="website"]:active,
+html body .kazen-page [data-pmd-kazen-clean-action="social"]:active,
+html body .kazen-standalone [data-pmd-kazen-clean-action="website"]:active,
+html body .kazen-standalone [data-pmd-kazen-clean-action="social"]:active {
+  color: var(--pmd-kazen-header-red) !important;
+  -webkit-text-fill-color: var(--pmd-kazen-header-red) !important;
+  border-color: var(--pmd-kazen-header-red) !important;
+  background: color-mix(in srgb, var(--pmd-kazen-header-red) 9%, transparent) !important;
+}
+
+html body .kazen-page [data-pmd-kazen-clean-action="website"]:hover svg.pmd-kazen-header-link-svg,
+html body .kazen-page [data-pmd-kazen-clean-action="social"]:hover svg.pmd-kazen-header-link-svg,
+html body .kazen-standalone [data-pmd-kazen-clean-action="website"]:hover svg.pmd-kazen-header-link-svg,
+html body .kazen-standalone [data-pmd-kazen-clean-action="social"]:hover svg.pmd-kazen-header-link-svg,
+html body .kazen-page [data-pmd-kazen-clean-action="website"]:focus-visible svg.pmd-kazen-header-link-svg,
+html body .kazen-page [data-pmd-kazen-clean-action="social"]:focus-visible svg.pmd-kazen-header-link-svg,
+html body .kazen-standalone [data-pmd-kazen-clean-action="website"]:focus-visible svg.pmd-kazen-header-link-svg,
+html body .kazen-standalone [data-pmd-kazen-clean-action="social"]:focus-visible svg.pmd-kazen-header-link-svg,
+html body .kazen-page [data-pmd-kazen-clean-action="website"]:active svg.pmd-kazen-header-link-svg,
+html body .kazen-page [data-pmd-kazen-clean-action="social"]:active svg.pmd-kazen-header-link-svg,
+html body .kazen-standalone [data-pmd-kazen-clean-action="website"]:active svg.pmd-kazen-header-link-svg,
+html body .kazen-standalone [data-pmd-kazen-clean-action="social"]:active svg.pmd-kazen-header-link-svg {
+  color: var(--pmd-kazen-header-red) !important;
+  stroke: var(--pmd-kazen-header-red) !important;
+}
+
+html body .kazen-page [data-pmd-kazen-clean-action="website"]:hover svg.pmd-kazen-header-link-svg *,
+html body .kazen-page [data-pmd-kazen-clean-action="social"]:hover svg.pmd-kazen-header-link-svg *,
+html body .kazen-standalone [data-pmd-kazen-clean-action="website"]:hover svg.pmd-kazen-header-link-svg *,
+html body .kazen-standalone [data-pmd-kazen-clean-action="social"]:hover svg.pmd-kazen-header-link-svg *,
+html body .kazen-page [data-pmd-kazen-clean-action="website"]:focus-visible svg.pmd-kazen-header-link-svg *,
+html body .kazen-page [data-pmd-kazen-clean-action="social"]:focus-visible svg.pmd-kazen-header-link-svg *,
+html body .kazen-standalone [data-pmd-kazen-clean-action="website"]:focus-visible svg.pmd-kazen-header-link-svg *,
+html body .kazen-standalone [data-pmd-kazen-clean-action="social"]:focus-visible svg.pmd-kazen-header-link-svg *,
+html body .kazen-page [data-pmd-kazen-clean-action="website"]:active svg.pmd-kazen-header-link-svg *,
+html body .kazen-page [data-pmd-kazen-clean-action="social"]:active svg.pmd-kazen-header-link-svg *,
+html body .kazen-standalone [data-pmd-kazen-clean-action="website"]:active svg.pmd-kazen-header-link-svg *,
+html body .kazen-standalone [data-pmd-kazen-clean-action="social"]:active svg.pmd-kazen-header-link-svg * {
+  stroke: var(--pmd-kazen-header-red) !important;
+}
+
+/* PMD_KAZEN_ALL_HEADER_BUTTONS_HOVER_V25
+   One identical hover/focus/active system for all 5 Kazen clean header buttons:
+   Language, Mode, Valet, Website, Social. No special behavior per button. */
+html body .kazen-page [data-pmd-kazen-clean-header-actions="1"] .kazen-clean-header-button,
+html body .kazen-standalone [data-pmd-kazen-clean-header-actions="1"] .kazen-clean-header-button,
+html body [data-pmd-kazen-clean-header-actions="1"] .kazen-clean-header-button {
+  --pmd-kazen-header-hover-red: var(--kazen-red, var(--kazen-accent-red, #c45b55));
+  color: #242320 !important;
+  -webkit-text-fill-color: #242320 !important;
+  border-color: rgba(36, 35, 32, 0.22) !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  text-decoration: none !important;
+  transition:
+    color 160ms ease,
+    border-color 160ms ease,
+    background-color 160ms ease,
+    box-shadow 160ms ease,
+    transform 160ms ease !important;
+}
+
+html body .kazen-page [data-pmd-kazen-clean-header-actions="1"] .kazen-clean-header-button svg,
+html body .kazen-standalone [data-pmd-kazen-clean-header-actions="1"] .kazen-clean-header-button svg,
+html body [data-pmd-kazen-clean-header-actions="1"] .kazen-clean-header-button svg {
+  color: currentColor !important;
+  stroke: currentColor !important;
+  fill: none !important;
+  transition:
+    color 160ms ease,
+    stroke 160ms ease,
+    fill 160ms ease,
+    opacity 160ms ease !important;
+}
+
+html body .kazen-page [data-pmd-kazen-clean-header-actions="1"] .kazen-clean-header-button svg *,
+html body .kazen-standalone [data-pmd-kazen-clean-header-actions="1"] .kazen-clean-header-button svg *,
+html body [data-pmd-kazen-clean-header-actions="1"] .kazen-clean-header-button svg * {
+  stroke: currentColor !important;
+  fill: none !important;
+  transition:
+    stroke 160ms ease,
+    fill 160ms ease,
+    opacity 160ms ease !important;
+}
+
+html body .kazen-page [data-pmd-kazen-clean-header-actions="1"] .kazen-clean-header-button:hover,
+html body .kazen-standalone [data-pmd-kazen-clean-header-actions="1"] .kazen-clean-header-button:hover,
+html body [data-pmd-kazen-clean-header-actions="1"] .kazen-clean-header-button:hover,
+html body .kazen-page [data-pmd-kazen-clean-header-actions="1"] .kazen-clean-header-button:focus-visible,
+html body .kazen-standalone [data-pmd-kazen-clean-header-actions="1"] .kazen-clean-header-button:focus-visible,
+html body [data-pmd-kazen-clean-header-actions="1"] .kazen-clean-header-button:focus-visible {
+  color: var(--pmd-kazen-header-hover-red) !important;
+  -webkit-text-fill-color: var(--pmd-kazen-header-hover-red) !important;
+  border-color: color-mix(in srgb, var(--pmd-kazen-header-hover-red) 72%, transparent) !important;
+  background: color-mix(in srgb, var(--pmd-kazen-header-hover-red) 6%, transparent) !important;
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--pmd-kazen-header-hover-red) 18%, transparent) !important;
+}
+
+html body .kazen-page [data-pmd-kazen-clean-header-actions="1"] .kazen-clean-header-button:active,
+html body .kazen-standalone [data-pmd-kazen-clean-header-actions="1"] .kazen-clean-header-button:active,
+html body [data-pmd-kazen-clean-header-actions="1"] .kazen-clean-header-button:active {
+  color: var(--pmd-kazen-header-hover-red) !important;
+  -webkit-text-fill-color: var(--pmd-kazen-header-hover-red) !important;
+  border-color: var(--pmd-kazen-header-hover-red) !important;
+  background: color-mix(in srgb, var(--pmd-kazen-header-hover-red) 9%, transparent) !important;
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--pmd-kazen-header-hover-red) 24%, transparent) !important;
+}
+
+html body .kazen-page [data-pmd-kazen-clean-header-actions="1"] .kazen-clean-header-button:hover svg,
+html body .kazen-standalone [data-pmd-kazen-clean-header-actions="1"] .kazen-clean-header-button:hover svg,
+html body [data-pmd-kazen-clean-header-actions="1"] .kazen-clean-header-button:hover svg,
+html body .kazen-page [data-pmd-kazen-clean-header-actions="1"] .kazen-clean-header-button:focus-visible svg,
+html body .kazen-standalone [data-pmd-kazen-clean-header-actions="1"] .kazen-clean-header-button:focus-visible svg,
+html body [data-pmd-kazen-clean-header-actions="1"] .kazen-clean-header-button:focus-visible svg,
+html body .kazen-page [data-pmd-kazen-clean-header-actions="1"] .kazen-clean-header-button:active svg,
+html body .kazen-standalone [data-pmd-kazen-clean-header-actions="1"] .kazen-clean-header-button:active svg,
+html body [data-pmd-kazen-clean-header-actions="1"] .kazen-clean-header-button:active svg {
+  color: var(--pmd-kazen-header-hover-red) !important;
+  stroke: var(--pmd-kazen-header-hover-red) !important;
+}
+
+html body .kazen-page [data-pmd-kazen-clean-header-actions="1"] .kazen-clean-header-button:hover svg *,
+html body .kazen-standalone [data-pmd-kazen-clean-header-actions="1"] .kazen-clean-header-button:hover svg *,
+html body [data-pmd-kazen-clean-header-actions="1"] .kazen-clean-header-button:hover svg *,
+html body .kazen-page [data-pmd-kazen-clean-header-actions="1"] .kazen-clean-header-button:focus-visible svg *,
+html body .kazen-standalone [data-pmd-kazen-clean-header-actions="1"] .kazen-clean-header-button:focus-visible svg *,
+html body [data-pmd-kazen-clean-header-actions="1"] .kazen-clean-header-button:focus-visible svg *,
+html body .kazen-page [data-pmd-kazen-clean-header-actions="1"] .kazen-clean-header-button:active svg *,
+html body .kazen-standalone [data-pmd-kazen-clean-header-actions="1"] .kazen-clean-header-button:active svg *,
+html body [data-pmd-kazen-clean-header-actions="1"] .kazen-clean-header-button:active svg * {
+  stroke: var(--pmd-kazen-header-hover-red) !important;
+  fill: none !important;
+}
+
+
+/* PMD_KAZEN_ACTION_TOAST_CONFIRM_V26_FALLBACK
+   Shared compact toast confirmation for Waiter / Note / Valet. */
+html body .pmd-kazen-action-toast-overlay {
+  animation: pmdKazenToastOverlayOutV26 2.2s cubic-bezier(.22, 1, .36, 1) both !important;
+}
+
+html body .pmd-kazen-action-toast {
+  width: min(calc(100vw - 48px), 320px) !important;
+  min-height: 74px !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 12px !important;
+  padding: 22px 26px !important;
+  border: 1px solid rgba(36, 35, 32, .18) !important;
+  border-radius: 0 !important;
+  background: rgba(255, 252, 245, .98) !important;
+  color: #b85d59 !important;
+  -webkit-text-fill-color: #b85d59 !important;
+  box-shadow: 0 24px 70px rgba(0, 0, 0, .22) !important;
+  font-family: Roboto, Inter, ui-sans-serif, system-ui, sans-serif !important;
+  font-size: .86rem !important;
+  font-weight: 850 !important;
+  letter-spacing: .16em !important;
+  line-height: 1.15 !important;
+  text-align: center !important;
+  text-transform: uppercase !important;
+  animation: pmdKazenToastInOutV26 2.2s cubic-bezier(.22, 1, .36, 1) both !important;
+}
+
+html body .pmd-kazen-action-toast-mark {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  color: inherit !important;
+  -webkit-text-fill-color: inherit !important;
+  font-size: 1.35rem !important;
+  font-weight: 900 !important;
+  line-height: 1 !important;
+}
+
+@keyframes pmdKazenToastInOutV26 {
+  0% {
+    opacity: 0;
+    transform: translateY(8px) scale(.98);
+  }
+  10%, 82% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(-4px) scale(.985);
+  }
+}
+
+@keyframes pmdKazenToastOverlayOutV26 {
+  0%, 86% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
+html[data-pmd-kazen-mode="dark"] body .pmd-kazen-action-toast {
+  background: rgba(12, 9, 6, .98) !important;
+  border-color: rgba(198, 164, 93, .34) !important;
+  color: #f3b0a8 !important;
+  -webkit-text-fill-color: #f3b0a8 !important;
+  box-shadow: 0 28px 80px rgba(0, 0, 0, .58) !important;
+}
+
+
+/* PMD_KAZEN_REAL_PHONE_DOCK_SAFE_AREA_V26
+   Real-device fix: keep the bottom action bar above iOS Safari bottom chrome,
+   Android navigation bars, and safe-area cutoffs. Also adds enough page padding
+   so the last menu item is not hidden behind the fixed dock. */
+html body .kazen-page {
+  min-height: 100svh !important;
+  padding-bottom: max(11rem, calc(11rem + env(safe-area-inset-bottom, 0px))) !important;
+}
+
+@supports (height: 100dvh) {
+  html body .kazen-page {
+    min-height: 100dvh !important;
+  }
+}
+
+html body .kazen-dock {
+  box-sizing: border-box !important;
+  bottom: max(22px, calc(env(safe-area-inset-bottom, 0px) + 22px)) !important;
+  width: min(calc(100vw - 24px), 440px) !important;
+  max-width: calc(100vw - 24px) !important;
+  z-index: 2147483000 !important;
+}
+
+@media (hover: none) and (pointer: coarse) {
+  html body .kazen-page {
+    padding-bottom: max(12.25rem, calc(12.25rem + env(safe-area-inset-bottom, 0px))) !important;
+  }
+
+  html body .kazen-dock {
+    left: 12px !important;
+    right: 12px !important;
+    transform: none !important;
+    width: auto !important;
+    max-width: none !important;
+    bottom: calc(max(24px, env(safe-area-inset-bottom, 0px)) + 12px) !important;
+    padding: .56rem !important;
+  }
+
+  html body .kazen-dock > button {
+    min-height: 3.05rem !important;
+  }
+}
+
+@media (max-width: 430px) {
+  html body .kazen-page {
+    padding-bottom: max(12.75rem, calc(12.75rem + env(safe-area-inset-bottom, 0px))) !important;
+  }
+
+  html body .kazen-dock {
+    left: 10px !important;
+    right: 10px !important;
+    bottom: calc(max(28px, env(safe-area-inset-bottom, 0px)) + 10px) !important;
+    padding: .52rem !important;
+    gap: .42rem !important;
+  }
+
+  html body .kazen-dock > button {
+    min-height: 2.95rem !important;
+    padding-top: .46rem !important;
+    padding-bottom: .46rem !important;
+  }
+}
+
+@media (max-width: 360px) {
+  html body .kazen-dock {
+    left: 8px !important;
+    right: 8px !important;
+    bottom: calc(max(30px, env(safe-area-inset-bottom, 0px)) + 8px) !important;
+    gap: .34rem !important;
+  }
+
+  html body .kazen-dock > button {
+    min-height: 2.85rem !important;
+    font-size: .52rem !important;
+    letter-spacing: .105em !important;
+  }
+}
+
+@media (display-mode: standalone) {
+  html body .kazen-dock {
+    bottom: calc(env(safe-area-inset-bottom, 0px) + 16px) !important;
+  }
+}
+
+/* PMD_KAZEN_TIP_VISUAL_SINGLE_ACTIVE_V31
+   Checkout tip preset visual fix:
+   Prevent stale preset buttons like 0% from staying red after clicking 5% / 10%.
+   Preset buttons keep only a clean neutral hover/focus style. The actual custom euro
+   tip field remains the source of truth for the selected amount. */
+html body .kazen-payment-modal button[aria-label*="tip" i],
+html body .kazen-payment-modal button[aria-label*="Tip" i],
+html body .kazen-payment-modal button[data-tip],
+html body .kazen-payment-modal button[data-tip-percent],
+html body .kazen-payment-modal button[data-pmd-kazen-tip],
+html body .kazen-checkout-shell button[aria-label*="tip" i],
+html body .kazen-checkout-shell button[data-tip],
+html body .kazen-checkout-shell button[data-tip-percent],
+html body .kazen-checkout-shell button[data-pmd-kazen-tip] {
+  border-color: rgba(36, 35, 32, .22) !important;
+  background: transparent !important;
+  color: #242320 !important;
+  -webkit-text-fill-color: #242320 !important;
+  box-shadow: none !important;
+}
+
+html body .kazen-payment-modal button[aria-label*="tip" i]:hover,
+html body .kazen-payment-modal button[data-tip]:hover,
+html body .kazen-payment-modal button[data-tip-percent]:hover,
+html body .kazen-payment-modal button[data-pmd-kazen-tip]:hover,
+html body .kazen-checkout-shell button[aria-label*="tip" i]:hover,
+html body .kazen-checkout-shell button[data-tip]:hover,
+html body .kazen-checkout-shell button[data-tip-percent]:hover,
+html body .kazen-checkout-shell button[data-pmd-kazen-tip]:hover {
+  border-color: #c45b55 !important;
+  background: color-mix(in srgb, #c45b55 6%, transparent) !important;
+  color: #242320 !important;
+  -webkit-text-fill-color: #242320 !important;
+  box-shadow: none !important;
+}
+
+html body .kazen-payment-modal button[aria-label*="tip" i]:focus,
+html body .kazen-payment-modal button[aria-label*="tip" i]:focus-visible,
+html body .kazen-payment-modal button[aria-label*="tip" i]:active,
+html body .kazen-payment-modal button[aria-label*="tip" i][aria-pressed="true"],
+html body .kazen-payment-modal button[data-tip]:focus,
+html body .kazen-payment-modal button[data-tip]:focus-visible,
+html body .kazen-payment-modal button[data-tip]:active,
+html body .kazen-payment-modal button[data-tip][aria-pressed="true"],
+html body .kazen-payment-modal button[data-tip-percent]:focus,
+html body .kazen-payment-modal button[data-tip-percent]:focus-visible,
+html body .kazen-payment-modal button[data-tip-percent]:active,
+html body .kazen-payment-modal button[data-tip-percent][aria-pressed="true"],
+html body .kazen-payment-modal button[data-pmd-kazen-tip]:focus,
+html body .kazen-payment-modal button[data-pmd-kazen-tip]:focus-visible,
+html body .kazen-payment-modal button[data-pmd-kazen-tip]:active,
+html body .kazen-payment-modal button[data-pmd-kazen-tip][aria-pressed="true"],
+html body .kazen-checkout-shell button[aria-label*="tip" i]:focus,
+html body .kazen-checkout-shell button[aria-label*="tip" i]:focus-visible,
+html body .kazen-checkout-shell button[aria-label*="tip" i]:active,
+html body .kazen-checkout-shell button[aria-label*="tip" i][aria-pressed="true"],
+html body .kazen-checkout-shell button[data-tip]:focus,
+html body .kazen-checkout-shell button[data-tip]:focus-visible,
+html body .kazen-checkout-shell button[data-tip]:active,
+html body .kazen-checkout-shell button[data-tip][aria-pressed="true"],
+html body .kazen-checkout-shell button[data-tip-percent]:focus,
+html body .kazen-checkout-shell button[data-tip-percent]:focus-visible,
+html body .kazen-checkout-shell button[data-tip-percent]:active,
+html body .kazen-checkout-shell button[data-tip-percent][aria-pressed="true"],
+html body .kazen-checkout-shell button[data-pmd-kazen-tip]:focus,
+html body .kazen-checkout-shell button[data-pmd-kazen-tip]:focus-visible,
+html body .kazen-checkout-shell button[data-pmd-kazen-tip]:active,
+html body .kazen-checkout-shell button[data-pmd-kazen-tip][aria-pressed="true"] {
+  border-color: rgba(36, 35, 32, .22) !important;
+  background: transparent !important;
+  color: #242320 !important;
+  -webkit-text-fill-color: #242320 !important;
+  box-shadow: none !important;
+}
+
+/* Extra fallback for the current Kazen tip grid: reset preset-looking buttons in the Add Tip area.
+   This targets the small row of percentage buttons without touching payment method buttons. */
+html body .kazen-payment-modal h3,
+html body .kazen-payment-modal h4,
+html body .kazen-payment-modal .kazen-section-title {
+  scroll-margin-top: 120px;
+}
+
+html[data-pmd-kazen-mode="dark"] body .kazen-payment-modal button[aria-label*="tip" i],
+html[data-pmd-kazen-mode="dark"] body .kazen-payment-modal button[data-tip],
+html[data-pmd-kazen-mode="dark"] body .kazen-payment-modal button[data-tip-percent],
+html[data-pmd-kazen-mode="dark"] body .kazen-payment-modal button[data-pmd-kazen-tip],
+html[data-pmd-kazen-mode="dark"] body .kazen-checkout-shell button[aria-label*="tip" i],
+html[data-pmd-kazen-mode="dark"] body .kazen-checkout-shell button[data-tip],
+html[data-pmd-kazen-mode="dark"] body .kazen-checkout-shell button[data-tip-percent],
+html[data-pmd-kazen-mode="dark"] body .kazen-checkout-shell button[data-pmd-kazen-tip] {
+  border-color: rgba(244, 236, 221, .22) !important;
+  background: transparent !important;
+  color: #f7efe4 !important;
+  -webkit-text-fill-color: #f7efe4 !important;
+  box-shadow: none !important;
+}
+
+/* PMD_KAZEN_TIP_INPUT_MATCH_COUPON_CSS_V34
+   Custom tip euro field should match the coupon field below it.
+   CSS-only safe patch: targets the ADD TIP euro input row by the € prefix cell. */
+
+/* The whole € + amount row */
+html body .kazen-payment-modal *:has(> span:first-child):has(> input):has(> span:first-child:not(:empty)),
+html body .kazen-checkout-shell *:has(> span:first-child):has(> input):has(> span:first-child:not(:empty)) {
+  background: rgba(255, 252, 245, .78) !important;
+  border-color: rgba(36, 35, 32, .20) !important;
+  box-shadow: none !important;
+}
+
+/* Only make rows with euro prefix look like the coupon input. */
+html body .kazen-payment-modal *:has(> span:first-child):has(> input) > span:first-child,
+html body .kazen-checkout-shell *:has(> span:first-child):has(> input) > span:first-child {
+  background: rgba(255, 252, 245, .78) !important;
+  border-color: rgba(36, 35, 32, .20) !important;
+  color: rgba(36, 35, 32, .55) !important;
+  -webkit-text-fill-color: rgba(36, 35, 32, .55) !important;
+  box-shadow: none !important;
+}
+
+/* The custom tip amount input itself */
+html body .kazen-payment-modal *:has(> span:first-child):has(> input) > input,
+html body .kazen-checkout-shell *:has(> span:first-child):has(> input) > input {
+  background: rgba(255, 252, 245, .78) !important;
+  border-color: rgba(36, 35, 32, .20) !important;
+  color: #242320 !important;
+  -webkit-text-fill-color: #242320 !important;
+  box-shadow: none !important;
+}
+
+/* If the euro prefix is implemented as any element, not specifically span */
+html body .kazen-payment-modal *:has(> input[type="number"]) > input[type="number"],
+html body .kazen-payment-modal *:has(> input[inputmode="decimal"]) > input[inputmode="decimal"],
+html body .kazen-checkout-shell *:has(> input[type="number"]) > input[type="number"],
+html body .kazen-checkout-shell *:has(> input[inputmode="decimal"]) > input[inputmode="decimal"] {
+  background: rgba(255, 252, 245, .78) !important;
+  border-color: rgba(36, 35, 32, .20) !important;
+  color: #242320 !important;
+  -webkit-text-fill-color: #242320 !important;
+  box-shadow: none !important;
+}
+
+/* Focus should be the same calm coupon-field focus, not red/selected. */
+html body .kazen-payment-modal *:has(> span:first-child):has(> input) > input:focus,
+html body .kazen-payment-modal *:has(> span:first-child):has(> input) > input:focus-visible,
+html body .kazen-checkout-shell *:has(> span:first-child):has(> input) > input:focus,
+html body .kazen-checkout-shell *:has(> span:first-child):has(> input) > input:focus-visible,
+html body .kazen-payment-modal input[type="number"]:focus,
+html body .kazen-payment-modal input[type="number"]:focus-visible,
+html body .kazen-payment-modal input[inputmode="decimal"]:focus,
+html body .kazen-payment-modal input[inputmode="decimal"]:focus-visible {
+  outline: none !important;
+  background: rgba(255, 252, 245, .88) !important;
+  border-color: rgba(36, 35, 32, .28) !important;
+  box-shadow: inset 0 0 0 1px rgba(36, 35, 32, .05) !important;
+}
+
+/* Dark mode equivalent */
+html[data-pmd-kazen-mode="dark"] body .kazen-payment-modal *:has(> span:first-child):has(> input),
+html[data-pmd-kazen-mode="dark"] body .kazen-checkout-shell *:has(> span:first-child):has(> input),
+html[data-pmd-kazen-mode="dark"] body .kazen-payment-modal *:has(> span:first-child):has(> input) > span:first-child,
+html[data-pmd-kazen-mode="dark"] body .kazen-checkout-shell *:has(> span:first-child):has(> input) > span:first-child,
+html[data-pmd-kazen-mode="dark"] body .kazen-payment-modal *:has(> span:first-child):has(> input) > input,
+html[data-pmd-kazen-mode="dark"] body .kazen-checkout-shell *:has(> span:first-child):has(> input) > input {
+  background: rgba(18, 14, 10, .78) !important;
+  border-color: rgba(244, 236, 221, .22) !important;
+  color: #f7efe4 !important;
+  -webkit-text-fill-color: #f7efe4 !important;
+  box-shadow: none !important;
+}
+
+
+
+/* PMD_KAZEN_TIP_INPUT_EXACT_SAFE_V36
+   Exact safe styling for the real custom tip input:
+   <input value={paymentCustomTip ?? ""} ...>
+   Match coupon field background/border. */
+html body input[data-pmd-kazen-tip-custom-input-v36="1"] {
+  background: rgba(255, 252, 245, .78) !important;
+  border-color: rgba(36, 35, 32, .20) !important;
+  color: #242320 !important;
+  -webkit-text-fill-color: #242320 !important;
+  box-shadow: none !important;
+}
+
+html body *:has(> input[data-pmd-kazen-tip-custom-input-v36="1"]) {
+  background: rgba(255, 252, 245, .78) !important;
+  border-color: rgba(36, 35, 32, .20) !important;
+  box-shadow: none !important;
+}
+
+html body *:has(+ input[data-pmd-kazen-tip-custom-input-v36="1"]) {
+  background: rgba(255, 252, 245, .78) !important;
+  border-color: rgba(36, 35, 32, .20) !important;
+  color: rgba(36, 35, 32, .55) !important;
+  -webkit-text-fill-color: rgba(36, 35, 32, .55) !important;
+  box-shadow: none !important;
+}
+
+html body input[data-pmd-kazen-tip-custom-input-v36="1"]:focus,
+html body input[data-pmd-kazen-tip-custom-input-v36="1"]:focus-visible {
+  outline: none !important;
+  background: rgba(255, 252, 245, .88) !important;
+  border-color: rgba(36, 35, 32, .28) !important;
+  box-shadow: inset 0 0 0 1px rgba(36, 35, 32, .05) !important;
+}
+
+html[data-pmd-kazen-mode="dark"] body input[data-pmd-kazen-tip-custom-input-v36="1"],
+html[data-pmd-kazen-mode="dark"] body *:has(> input[data-pmd-kazen-tip-custom-input-v36="1"]),
+html[data-pmd-kazen-mode="dark"] body *:has(+ input[data-pmd-kazen-tip-custom-input-v36="1"]) {
+  background: rgba(18, 14, 10, .78) !important;
+  border-color: rgba(244, 236, 221, .22) !important;
+  color: #f7efe4 !important;
+  -webkit-text-fill-color: #f7efe4 !important;
+  box-shadow: none !important;
+}
+
+
+/* PMD_KAZEN_TIP_FIELD_EXACT_COLOR_V37
+   Force the custom tip field to the exact same color as the coupon field.
+   Coupon correct color from visual check: #FBF8F2. */
+html body input[data-pmd-kazen-tip-custom-input-v36="1"],
+html body .kazen-payment-modal input[data-pmd-kazen-tip-custom-input-v36="1"],
+html body .kazen-checkout-shell input[data-pmd-kazen-tip-custom-input-v36="1"] {
+  background-color: #fbf8f2 !important;
+  background: #fbf8f2 !important;
+  border-color: rgba(36, 35, 32, .20) !important;
+  color: #242320 !important;
+  -webkit-text-fill-color: #242320 !important;
+  box-shadow: none !important;
+}
+
+/* Row wrapper around € + input */
+html body *:has(> input[data-pmd-kazen-tip-custom-input-v36="1"]),
+html body .kazen-payment-modal *:has(> input[data-pmd-kazen-tip-custom-input-v36="1"]),
+html body .kazen-checkout-shell *:has(> input[data-pmd-kazen-tip-custom-input-v36="1"]) {
+  background-color: #fbf8f2 !important;
+  background: #fbf8f2 !important;
+  border-color: rgba(36, 35, 32, .20) !important;
+  box-shadow: none !important;
+}
+
+/* € prefix cell before the tip input */
+html body *:has(+ input[data-pmd-kazen-tip-custom-input-v36="1"]),
+html body .kazen-payment-modal *:has(+ input[data-pmd-kazen-tip-custom-input-v36="1"]),
+html body .kazen-checkout-shell *:has(+ input[data-pmd-kazen-tip-custom-input-v36="1"]) {
+  background-color: #fbf8f2 !important;
+  background: #fbf8f2 !important;
+  border-color: rgba(36, 35, 32, .20) !important;
+  color: rgba(36, 35, 32, .55) !important;
+  -webkit-text-fill-color: rgba(36, 35, 32, .55) !important;
+  box-shadow: none !important;
+}
+
+/* Focus remains the same color, only a tiny border change like coupon */
+html body input[data-pmd-kazen-tip-custom-input-v36="1"]:focus,
+html body input[data-pmd-kazen-tip-custom-input-v36="1"]:focus-visible {
+  outline: none !important;
+  background-color: #fbf8f2 !important;
+  background: #fbf8f2 !important;
+  border-color: rgba(36, 35, 32, .28) !important;
+  box-shadow: inset 0 0 0 1px rgba(36, 35, 32, .04) !important;
+}
+
+/* Placeholder and empty state must visually match coupon input */
+html body input[data-pmd-kazen-tip-custom-input-v36="1"]::placeholder {
+  color: rgba(36, 35, 32, .40) !important;
+  -webkit-text-fill-color: rgba(36, 35, 32, .40) !important;
+}
+
+/* Dark mode equivalent */
+html[data-pmd-kazen-mode="dark"] body input[data-pmd-kazen-tip-custom-input-v36="1"],
+html[data-pmd-kazen-mode="dark"] body *:has(> input[data-pmd-kazen-tip-custom-input-v36="1"]),
+html[data-pmd-kazen-mode="dark"] body *:has(+ input[data-pmd-kazen-tip-custom-input-v36="1"]) {
+  background-color: rgba(18, 14, 10, .78) !important;
+  background: rgba(18, 14, 10, .78) !important;
+  border-color: rgba(244, 236, 221, .22) !important;
+  color: #f7efe4 !important;
+  -webkit-text-fill-color: #f7efe4 !important;
+  box-shadow: none !important;
+}
+
+
+
+/* PMD_KAZEN_ALL_CHECKOUT_FIELDS_SAME_COLOR_V38
+   Final field-color normalization:
+   Every checkout/customer input field uses the SAME exact background as coupon: #fbf8f2.
+   This is intentionally broad inside Kazen/customer modals because previous targeted selectors
+   were being overridden by checkout skin wrappers. */
+html body .kazen-page input:not([type="checkbox"]):not([type="radio"]),
+html body .kazen-page textarea,
+html body .kazen-page select,
+html body .kazen-standalone input:not([type="checkbox"]):not([type="radio"]),
+html body .kazen-standalone textarea,
+html body .kazen-standalone select,
+html body .kazen-solid-modal-overlay input:not([type="checkbox"]):not([type="radio"]),
+html body .kazen-solid-modal-overlay textarea,
+html body .kazen-solid-modal-overlay select,
+html body .kazen-payment-modal input:not([type="checkbox"]):not([type="radio"]),
+html body .kazen-payment-modal textarea,
+html body .kazen-payment-modal select,
+html body .kazen-checkout-shell input:not([type="checkbox"]):not([type="radio"]),
+html body .kazen-checkout-shell textarea,
+html body .kazen-checkout-shell select,
+html body [role="dialog"] input:not([type="checkbox"]):not([type="radio"]),
+html body [role="dialog"] textarea,
+html body [role="dialog"] select {
+  background-color: #fbf8f2 !important;
+  background-image: none !important;
+  background: #fbf8f2 !important;
+  border-color: rgba(36, 35, 32, .20) !important;
+  color: #242320 !important;
+  -webkit-text-fill-color: #242320 !important;
+  box-shadow: none !important;
+}
+
+/* Prefix cells and wrappers around input rows, including the euro cell beside custom tip. */
+html body .kazen-page *:has(> input:not([type="checkbox"]):not([type="radio"])),
+html body .kazen-standalone *:has(> input:not([type="checkbox"]):not([type="radio"])),
+html body .kazen-solid-modal-overlay *:has(> input:not([type="checkbox"]):not([type="radio"])),
+html body .kazen-payment-modal *:has(> input:not([type="checkbox"]):not([type="radio"])),
+html body .kazen-checkout-shell *:has(> input:not([type="checkbox"]):not([type="radio"])),
+html body [role="dialog"] *:has(> input:not([type="checkbox"]):not([type="radio"])) {
+  background-color: #fbf8f2 !important;
+  background-image: none !important;
+  background: #fbf8f2 !important;
+  border-color: rgba(36, 35, 32, .20) !important;
+  box-shadow: none !important;
+}
+
+/* Sibling prefix cell before inputs. */
+html body .kazen-page *:has(+ input:not([type="checkbox"]):not([type="radio"])),
+html body .kazen-standalone *:has(+ input:not([type="checkbox"]):not([type="radio"])),
+html body .kazen-solid-modal-overlay *:has(+ input:not([type="checkbox"]):not([type="radio"])),
+html body .kazen-payment-modal *:has(+ input:not([type="checkbox"]):not([type="radio"])),
+html body .kazen-checkout-shell *:has(+ input:not([type="checkbox"]):not([type="radio"])),
+html body [role="dialog"] *:has(+ input:not([type="checkbox"]):not([type="radio"])) {
+  background-color: #fbf8f2 !important;
+  background-image: none !important;
+  background: #fbf8f2 !important;
+  border-color: rgba(36, 35, 32, .20) !important;
+  color: rgba(36, 35, 32, .55) !important;
+  -webkit-text-fill-color: rgba(36, 35, 32, .55) !important;
+  box-shadow: none !important;
+}
+
+/* Focus stays the same base color, only border becomes a little stronger. */
+html body .kazen-page input:not([type="checkbox"]):not([type="radio"]):focus,
+html body .kazen-page textarea:focus,
+html body .kazen-page select:focus,
+html body .kazen-standalone input:not([type="checkbox"]):not([type="radio"]):focus,
+html body .kazen-standalone textarea:focus,
+html body .kazen-standalone select:focus,
+html body .kazen-solid-modal-overlay input:not([type="checkbox"]):not([type="radio"]):focus,
+html body .kazen-solid-modal-overlay textarea:focus,
+html body .kazen-solid-modal-overlay select:focus,
+html body .kazen-payment-modal input:not([type="checkbox"]):not([type="radio"]):focus,
+html body .kazen-payment-modal textarea:focus,
+html body .kazen-payment-modal select:focus,
+html body .kazen-checkout-shell input:not([type="checkbox"]):not([type="radio"]):focus,
+html body .kazen-checkout-shell textarea:focus,
+html body .kazen-checkout-shell select:focus,
+html body [role="dialog"] input:not([type="checkbox"]):not([type="radio"]):focus,
+html body [role="dialog"] textarea:focus,
+html body [role="dialog"] select:focus {
+  outline: none !important;
+  background-color: #fbf8f2 !important;
+  background-image: none !important;
+  background: #fbf8f2 !important;
+  border-color: rgba(36, 35, 32, .28) !important;
+  box-shadow: inset 0 0 0 1px rgba(36, 35, 32, .04) !important;
+}
+
+html body .kazen-page input::placeholder,
+html body .kazen-standalone input::placeholder,
+html body .kazen-solid-modal-overlay input::placeholder,
+html body .kazen-payment-modal input::placeholder,
+html body .kazen-checkout-shell input::placeholder,
+html body [role="dialog"] input::placeholder {
+  color: rgba(36, 35, 32, .40) !important;
+  -webkit-text-fill-color: rgba(36, 35, 32, .40) !important;
+}
+
+/* Dark mode: all fields normalized too. */
+html[data-pmd-kazen-mode="dark"] body .kazen-page input:not([type="checkbox"]):not([type="radio"]),
+html[data-pmd-kazen-mode="dark"] body .kazen-page textarea,
+html[data-pmd-kazen-mode="dark"] body .kazen-page select,
+html[data-pmd-kazen-mode="dark"] body .kazen-standalone input:not([type="checkbox"]):not([type="radio"]),
+html[data-pmd-kazen-mode="dark"] body .kazen-standalone textarea,
+html[data-pmd-kazen-mode="dark"] body .kazen-standalone select,
+html[data-pmd-kazen-mode="dark"] body .kazen-solid-modal-overlay input:not([type="checkbox"]):not([type="radio"]),
+html[data-pmd-kazen-mode="dark"] body .kazen-solid-modal-overlay textarea,
+html[data-pmd-kazen-mode="dark"] body .kazen-solid-modal-overlay select,
+html[data-pmd-kazen-mode="dark"] body [role="dialog"] input:not([type="checkbox"]):not([type="radio"]),
+html[data-pmd-kazen-mode="dark"] body [role="dialog"] textarea,
+html[data-pmd-kazen-mode="dark"] body [role="dialog"] select,
+html[data-pmd-kazen-mode="dark"] body *:has(> input:not([type="checkbox"]):not([type="radio"])),
+html[data-pmd-kazen-mode="dark"] body *:has(+ input:not([type="checkbox"]):not([type="radio"])) {
+  background-color: rgba(18, 14, 10, .78) !important;
+  background-image: none !important;
+  background: rgba(18, 14, 10, .78) !important;
+  border-color: rgba(244, 236, 221, .22) !important;
+  color: #f7efe4 !important;
+  -webkit-text-fill-color: #f7efe4 !important;
+  box-shadow: none !important;
+}
+

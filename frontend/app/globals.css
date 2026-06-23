@@ -94,3 +94,240 @@ select {
   font-variant-numeric: tabular-nums !important;
   font-feature-settings: "tnum" 1, "kern" 1 !important;
 }
+
+
+
+/* PMD_KAZEN_TIP_INPUT_EXACT_SAFE_V36
+   Exact safe styling for the real custom tip input:
+   <input value={paymentCustomTip ?? ""} ...>
+   Match coupon field background/border. */
+html body input[data-pmd-kazen-tip-custom-input-v36="1"] {
+  background: rgba(255, 252, 245, .78) !important;
+  border-color: rgba(36, 35, 32, .20) !important;
+  color: #242320 !important;
+  -webkit-text-fill-color: #242320 !important;
+  box-shadow: none !important;
+}
+
+html body *:has(> input[data-pmd-kazen-tip-custom-input-v36="1"]) {
+  background: rgba(255, 252, 245, .78) !important;
+  border-color: rgba(36, 35, 32, .20) !important;
+  box-shadow: none !important;
+}
+
+html body *:has(+ input[data-pmd-kazen-tip-custom-input-v36="1"]) {
+  background: rgba(255, 252, 245, .78) !important;
+  border-color: rgba(36, 35, 32, .20) !important;
+  color: rgba(36, 35, 32, .55) !important;
+  -webkit-text-fill-color: rgba(36, 35, 32, .55) !important;
+  box-shadow: none !important;
+}
+
+html body input[data-pmd-kazen-tip-custom-input-v36="1"]:focus,
+html body input[data-pmd-kazen-tip-custom-input-v36="1"]:focus-visible {
+  outline: none !important;
+  background: rgba(255, 252, 245, .88) !important;
+  border-color: rgba(36, 35, 32, .28) !important;
+  box-shadow: inset 0 0 0 1px rgba(36, 35, 32, .05) !important;
+}
+
+html[data-pmd-kazen-mode="dark"] body input[data-pmd-kazen-tip-custom-input-v36="1"],
+html[data-pmd-kazen-mode="dark"] body *:has(> input[data-pmd-kazen-tip-custom-input-v36="1"]),
+html[data-pmd-kazen-mode="dark"] body *:has(+ input[data-pmd-kazen-tip-custom-input-v36="1"]) {
+  background: rgba(18, 14, 10, .78) !important;
+  border-color: rgba(244, 236, 221, .22) !important;
+  color: #f7efe4 !important;
+  -webkit-text-fill-color: #f7efe4 !important;
+  box-shadow: none !important;
+}
+
+
+/* PMD_KAZEN_TIP_FIELD_EXACT_COLOR_V37
+   Force the custom tip field to the exact same color as the coupon field.
+   Coupon correct color from visual check: #FBF8F2. */
+html body input[data-pmd-kazen-tip-custom-input-v36="1"],
+html body .kazen-payment-modal input[data-pmd-kazen-tip-custom-input-v36="1"],
+html body .kazen-checkout-shell input[data-pmd-kazen-tip-custom-input-v36="1"] {
+  background-color: #fbf8f2 !important;
+  background: #fbf8f2 !important;
+  border-color: rgba(36, 35, 32, .20) !important;
+  color: #242320 !important;
+  -webkit-text-fill-color: #242320 !important;
+  box-shadow: none !important;
+}
+
+/* Row wrapper around € + input */
+html body *:has(> input[data-pmd-kazen-tip-custom-input-v36="1"]),
+html body .kazen-payment-modal *:has(> input[data-pmd-kazen-tip-custom-input-v36="1"]),
+html body .kazen-checkout-shell *:has(> input[data-pmd-kazen-tip-custom-input-v36="1"]) {
+  background-color: #fbf8f2 !important;
+  background: #fbf8f2 !important;
+  border-color: rgba(36, 35, 32, .20) !important;
+  box-shadow: none !important;
+}
+
+/* € prefix cell before the tip input */
+html body *:has(+ input[data-pmd-kazen-tip-custom-input-v36="1"]),
+html body .kazen-payment-modal *:has(+ input[data-pmd-kazen-tip-custom-input-v36="1"]),
+html body .kazen-checkout-shell *:has(+ input[data-pmd-kazen-tip-custom-input-v36="1"]) {
+  background-color: #fbf8f2 !important;
+  background: #fbf8f2 !important;
+  border-color: rgba(36, 35, 32, .20) !important;
+  color: rgba(36, 35, 32, .55) !important;
+  -webkit-text-fill-color: rgba(36, 35, 32, .55) !important;
+  box-shadow: none !important;
+}
+
+/* Focus remains the same color, only a tiny border change like coupon */
+html body input[data-pmd-kazen-tip-custom-input-v36="1"]:focus,
+html body input[data-pmd-kazen-tip-custom-input-v36="1"]:focus-visible {
+  outline: none !important;
+  background-color: #fbf8f2 !important;
+  background: #fbf8f2 !important;
+  border-color: rgba(36, 35, 32, .28) !important;
+  box-shadow: inset 0 0 0 1px rgba(36, 35, 32, .04) !important;
+}
+
+/* Placeholder and empty state must visually match coupon input */
+html body input[data-pmd-kazen-tip-custom-input-v36="1"]::placeholder {
+  color: rgba(36, 35, 32, .40) !important;
+  -webkit-text-fill-color: rgba(36, 35, 32, .40) !important;
+}
+
+/* Dark mode equivalent */
+html[data-pmd-kazen-mode="dark"] body input[data-pmd-kazen-tip-custom-input-v36="1"],
+html[data-pmd-kazen-mode="dark"] body *:has(> input[data-pmd-kazen-tip-custom-input-v36="1"]),
+html[data-pmd-kazen-mode="dark"] body *:has(+ input[data-pmd-kazen-tip-custom-input-v36="1"]) {
+  background-color: rgba(18, 14, 10, .78) !important;
+  background: rgba(18, 14, 10, .78) !important;
+  border-color: rgba(244, 236, 221, .22) !important;
+  color: #f7efe4 !important;
+  -webkit-text-fill-color: #f7efe4 !important;
+  box-shadow: none !important;
+}
+
+
+
+/* PMD_KAZEN_ALL_CHECKOUT_FIELDS_SAME_COLOR_V38
+   Final field-color normalization:
+   Every checkout/customer input field uses the SAME exact background as coupon: #fbf8f2.
+   This is intentionally broad inside Kazen/customer modals because previous targeted selectors
+   were being overridden by checkout skin wrappers. */
+html body .kazen-page input:not([type="checkbox"]):not([type="radio"]),
+html body .kazen-page textarea,
+html body .kazen-page select,
+html body .kazen-standalone input:not([type="checkbox"]):not([type="radio"]),
+html body .kazen-standalone textarea,
+html body .kazen-standalone select,
+html body .kazen-solid-modal-overlay input:not([type="checkbox"]):not([type="radio"]),
+html body .kazen-solid-modal-overlay textarea,
+html body .kazen-solid-modal-overlay select,
+html body .kazen-payment-modal input:not([type="checkbox"]):not([type="radio"]),
+html body .kazen-payment-modal textarea,
+html body .kazen-payment-modal select,
+html body .kazen-checkout-shell input:not([type="checkbox"]):not([type="radio"]),
+html body .kazen-checkout-shell textarea,
+html body .kazen-checkout-shell select,
+html body [role="dialog"] input:not([type="checkbox"]):not([type="radio"]),
+html body [role="dialog"] textarea,
+html body [role="dialog"] select {
+  background-color: #fbf8f2 !important;
+  background-image: none !important;
+  background: #fbf8f2 !important;
+  border-color: rgba(36, 35, 32, .20) !important;
+  color: #242320 !important;
+  -webkit-text-fill-color: #242320 !important;
+  box-shadow: none !important;
+}
+
+/* Prefix cells and wrappers around input rows, including the euro cell beside custom tip. */
+html body .kazen-page *:has(> input:not([type="checkbox"]):not([type="radio"])),
+html body .kazen-standalone *:has(> input:not([type="checkbox"]):not([type="radio"])),
+html body .kazen-solid-modal-overlay *:has(> input:not([type="checkbox"]):not([type="radio"])),
+html body .kazen-payment-modal *:has(> input:not([type="checkbox"]):not([type="radio"])),
+html body .kazen-checkout-shell *:has(> input:not([type="checkbox"]):not([type="radio"])),
+html body [role="dialog"] *:has(> input:not([type="checkbox"]):not([type="radio"])) {
+  background-color: #fbf8f2 !important;
+  background-image: none !important;
+  background: #fbf8f2 !important;
+  border-color: rgba(36, 35, 32, .20) !important;
+  box-shadow: none !important;
+}
+
+/* Sibling prefix cell before inputs. */
+html body .kazen-page *:has(+ input:not([type="checkbox"]):not([type="radio"])),
+html body .kazen-standalone *:has(+ input:not([type="checkbox"]):not([type="radio"])),
+html body .kazen-solid-modal-overlay *:has(+ input:not([type="checkbox"]):not([type="radio"])),
+html body .kazen-payment-modal *:has(+ input:not([type="checkbox"]):not([type="radio"])),
+html body .kazen-checkout-shell *:has(+ input:not([type="checkbox"]):not([type="radio"])),
+html body [role="dialog"] *:has(+ input:not([type="checkbox"]):not([type="radio"])) {
+  background-color: #fbf8f2 !important;
+  background-image: none !important;
+  background: #fbf8f2 !important;
+  border-color: rgba(36, 35, 32, .20) !important;
+  color: rgba(36, 35, 32, .55) !important;
+  -webkit-text-fill-color: rgba(36, 35, 32, .55) !important;
+  box-shadow: none !important;
+}
+
+/* Focus stays the same base color, only border becomes a little stronger. */
+html body .kazen-page input:not([type="checkbox"]):not([type="radio"]):focus,
+html body .kazen-page textarea:focus,
+html body .kazen-page select:focus,
+html body .kazen-standalone input:not([type="checkbox"]):not([type="radio"]):focus,
+html body .kazen-standalone textarea:focus,
+html body .kazen-standalone select:focus,
+html body .kazen-solid-modal-overlay input:not([type="checkbox"]):not([type="radio"]):focus,
+html body .kazen-solid-modal-overlay textarea:focus,
+html body .kazen-solid-modal-overlay select:focus,
+html body .kazen-payment-modal input:not([type="checkbox"]):not([type="radio"]):focus,
+html body .kazen-payment-modal textarea:focus,
+html body .kazen-payment-modal select:focus,
+html body .kazen-checkout-shell input:not([type="checkbox"]):not([type="radio"]):focus,
+html body .kazen-checkout-shell textarea:focus,
+html body .kazen-checkout-shell select:focus,
+html body [role="dialog"] input:not([type="checkbox"]):not([type="radio"]):focus,
+html body [role="dialog"] textarea:focus,
+html body [role="dialog"] select:focus {
+  outline: none !important;
+  background-color: #fbf8f2 !important;
+  background-image: none !important;
+  background: #fbf8f2 !important;
+  border-color: rgba(36, 35, 32, .28) !important;
+  box-shadow: inset 0 0 0 1px rgba(36, 35, 32, .04) !important;
+}
+
+html body .kazen-page input::placeholder,
+html body .kazen-standalone input::placeholder,
+html body .kazen-solid-modal-overlay input::placeholder,
+html body .kazen-payment-modal input::placeholder,
+html body .kazen-checkout-shell input::placeholder,
+html body [role="dialog"] input::placeholder {
+  color: rgba(36, 35, 32, .40) !important;
+  -webkit-text-fill-color: rgba(36, 35, 32, .40) !important;
+}
+
+/* Dark mode: all fields normalized too. */
+html[data-pmd-kazen-mode="dark"] body .kazen-page input:not([type="checkbox"]):not([type="radio"]),
+html[data-pmd-kazen-mode="dark"] body .kazen-page textarea,
+html[data-pmd-kazen-mode="dark"] body .kazen-page select,
+html[data-pmd-kazen-mode="dark"] body .kazen-standalone input:not([type="checkbox"]):not([type="radio"]),
+html[data-pmd-kazen-mode="dark"] body .kazen-standalone textarea,
+html[data-pmd-kazen-mode="dark"] body .kazen-standalone select,
+html[data-pmd-kazen-mode="dark"] body .kazen-solid-modal-overlay input:not([type="checkbox"]):not([type="radio"]),
+html[data-pmd-kazen-mode="dark"] body .kazen-solid-modal-overlay textarea,
+html[data-pmd-kazen-mode="dark"] body .kazen-solid-modal-overlay select,
+html[data-pmd-kazen-mode="dark"] body [role="dialog"] input:not([type="checkbox"]):not([type="radio"]),
+html[data-pmd-kazen-mode="dark"] body [role="dialog"] textarea,
+html[data-pmd-kazen-mode="dark"] body [role="dialog"] select,
+html[data-pmd-kazen-mode="dark"] body *:has(> input:not([type="checkbox"]):not([type="radio"])),
+html[data-pmd-kazen-mode="dark"] body *:has(+ input:not([type="checkbox"]):not([type="radio"])) {
+  background-color: rgba(18, 14, 10, .78) !important;
+  background-image: none !important;
+  background: rgba(18, 14, 10, .78) !important;
+  border-color: rgba(244, 236, 221, .22) !important;
+  color: #f7efe4 !important;
+  -webkit-text-fill-color: #f7efe4 !important;
+  box-shadow: none !important;
+}
+

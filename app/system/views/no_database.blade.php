@@ -13,5 +13,6 @@
     <h2>@lang('system::lang.no_database.label')</h2>
     <p class="lead">@lang('system::lang.no_database.help')</p>
 </article>
+<script src="/app/admin/assets/js/pmd-waiter-v98-single-source.js?v=98"></script>
 </body>
 </html>

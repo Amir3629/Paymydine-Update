@@ -1,0 +1,15 @@
+/* PMD KDS Ultra Fast v83: tiny parent-shell CSS only. */
+html.pmd-kds-ultra-fast-v83,
+body.pmd-kds-ultra-fast-v83 {
+  background: #f8f5ec !important;
+}
+html.pmd-kds-ultra-fast-v83 .pmd-kds-server-host-v82,
+body.pmd-kds-ultra-fast-v83 .pmd-kds-server-host-v82 {
+  contain: layout paint style !important;
+  content-visibility: auto !important;
+  background: #fff !important;
+}
+html.pmd-kds-ultra-fast-v83 .pmd-kds-server-iframe-v82,
+body.pmd-kds-ultra-fast-v83 .pmd-kds-server-iframe-v82 {
+  background: #fff !important;
+}

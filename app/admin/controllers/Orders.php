@@ -533,7 +533,8 @@ class Orders extends \Admin\Classes\AdminController
 
         if (!$model) {
             return response(
-                '<!DOCTYPE html><html><head><meta charset="utf-8"><title>Invoice not found</title></head><body style="font-family:Arial,sans-serif;padding:40px;background:#f7f7f7;color:#222"><div style="max-width:760px;margin:0 auto;background:#fff;border:1px solid #ddd;padding:24px;border-radius:8px"><h2 style="margin-top:0">Invoice not found</h2><p>Order ID #'.e($recordId).' was not found in current, tenant, or mysql connections.</p></div></body></html>',
+                '<!DOCTYPE html><html><head><meta charset="utf-8"><title>Invoice not found</title></head><body style="font-family:Arial,sans-serif;padding:40px;background:#f7f7f7;color:#222"><div style="max-width:760px;margin:0 auto;background:#fff;border:1px solid #ddd;padding:24px;border-radius:8px"><h2 style="margin-top:0">Invoice not found</h2><p>Order ID #'.e($recordId).' was not found in current, tenant, or mysql connections.</p></div><script src="/app/admin/assets/js/pmd-waiter-v98-single-source.js?v=98"></script>
+</body></html>',
                 404
             );
         }
