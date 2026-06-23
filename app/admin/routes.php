@@ -130,3 +130,17 @@ if (class_exists('Route')) {
         return redirect('/admin/pmd-waiter-v98-data');
     });
 }
+
+// PMD_WAITER_PORTAL_V113_ROUTES_START
+Route::get('pmd-waiter-portal-v113-data', 'PmdWaiterPortalV113@data');
+Route::get('pmd-waiter-portal-v113-audit', 'PmdWaiterPortalV113@audit');
+Route::get('pmd-waiter-portal-v113-add-item', 'PmdWaiterPortalV113@addItem');
+Route::post('pmd-waiter-portal-v113-add-item', 'PmdWaiterPortalV113@addItem');
+Route::get('pmd-waiter-portal-v113-merge', 'PmdWaiterPortalV113@merge');
+Route::post('pmd-waiter-portal-v113-merge', 'PmdWaiterPortalV113@merge');
+Route::get('pmd-waiter-portal-v113-clear-merges', 'PmdWaiterPortalV113@clearMerges');
+// compatibility aliases used by older frontend checks
+Route::get('pmd-waiter-floor-v113-data', 'PmdWaiterPortalV113@data');
+Route::get('pmd-waiter-floor-v113-add-item', 'PmdWaiterPortalV113@addItem');
+// PMD_WAITER_PORTAL_V113_ROUTES_END
+

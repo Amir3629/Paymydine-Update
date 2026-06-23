@@ -231,4 +231,6 @@
   'Admin\\Controllers\\PmdWaiterRealFoodV103' => 'app/admin/controllers/PmdWaiterRealFoodV103.php',
   'Admin\\Controllers\\PmdWaiterRealDataOnlyV104' => 'app/admin/controllers/PmdWaiterRealDataOnlyV104.php',
   'Admin\\Controllers\\PmdWaiterMenuBridgeV105' => 'app/admin/controllers/PmdWaiterMenuBridgeV105.php',
+  'Admin\\Controllers\\PmdWaiterFloorLiveV106' => 'app/admin/controllers/PmdWaiterFloorLiveV106.php',
+  'Admin\\Controllers\\PmdWaiterMobileActionV107' => 'app/admin/controllers/PmdWaiterMobileActionV107.php',
 );

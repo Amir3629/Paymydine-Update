@@ -1,5 +1,5 @@
 -- PayMyDine schema-only dump
--- Generated UTC: Tue Jun 23 17:31:02 UTC 2026
+-- Generated UTC: Tue Jun 23 19:48:54 UTC 2026
 -- Source server: vps-252f1bc4
 -- Data rows are NOT included
 
@@ -2262,6 +2262,30 @@ CREATE TABLE `ti_payments` (
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
+-- Table structure for table `ti_pmd_table_merges`
+--
+
+DROP TABLE IF EXISTS `ti_pmd_table_merges`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8mb4 */;
+CREATE TABLE `ti_pmd_table_merges` (
+  `id` int(10) unsigned NOT NULL AUTO_INCREMENT,
+  `primary_table_id` int(11) NOT NULL,
+  `secondary_table_id` int(11) NOT NULL,
+  `status` varchar(128) NOT NULL DEFAULT 'active',
+  `staff_id` int(11) DEFAULT NULL,
+  `notes` text DEFAULT NULL,
+  `created_at` timestamp NULL DEFAULT NULL,
+  `updated_at` timestamp NULL DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  KEY `ti_pmd_table_merges_primary_table_id_index` (`primary_table_id`),
+  KEY `ti_pmd_table_merges_secondary_table_id_index` (`secondary_table_id`),
+  KEY `ti_pmd_table_merges_status_index` (`status`),
+  KEY `ti_pmd_table_merges_staff_id_index` (`staff_id`)
+) ENGINE=InnoDB AUTO_INCREMENT=3 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
 -- Table structure for table `ti_pmd_waiter_seed_log`
 --
 
@@ -3469,7 +3493,7 @@ CREATE TABLE `ti_working_hours` (
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2026-06-23 17:31:02
+-- Dump completed on 2026-06-23 19:48:55
 
 -- ============================================================
 -- DATABASE: mimoza
@@ -5885,7 +5909,7 @@ CREATE TABLE `ti_request_logs` (
   `created_at` timestamp NULL DEFAULT NULL,
   `updated_at` timestamp NULL DEFAULT NULL,
   PRIMARY KEY (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=672 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=675 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -6474,7 +6498,7 @@ CREATE TABLE `ti_working_hours` (
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2026-06-23 17:31:03
+-- Dump completed on 2026-06-23 19:48:55
 
 -- ============================================================
 -- DATABASE: rosana
@@ -8809,7 +8833,7 @@ CREATE TABLE `ti_working_hours` (
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2026-06-23 17:31:03
+-- Dump completed on 2026-06-23 19:48:55
 
 -- ============================================================
 -- DATABASE: persian
@@ -10739,7 +10763,7 @@ CREATE TABLE `ti_working_hours` (
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2026-06-23 17:31:03
+-- Dump completed on 2026-06-23 19:48:56
 
 -- ============================================================
 -- DATABASE: newtenantdb
@@ -12666,4 +12690,4 @@ CREATE TABLE `ti_working_hours` (
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2026-06-23 17:31:04
+-- Dump completed on 2026-06-23 19:48:56
