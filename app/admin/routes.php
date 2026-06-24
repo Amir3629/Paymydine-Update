@@ -131,6 +131,14 @@ if (class_exists('Route')) {
     });
 }
 
+
+// PMD_STABLE_FLOOR_PLAN_ROUTES_START
+Route::get('pmd-floor-plan-data', 'PmdFloorPlanStable@data');
+Route::get('pmd-floor-plan-audit', 'PmdFloorPlanStable@audit');
+Route::match(['GET','POST'], 'pmd-floor-plan-add-item', 'PmdFloorPlanStable@addItem');
+Route::match(['GET','POST'], 'pmd-floor-plan-merge', 'PmdFloorPlanStable@merge');
+// PMD_STABLE_FLOOR_PLAN_ROUTES_END
+
 // PMD_WAITER_PORTAL_V113_ROUTES_START
 Route::get('pmd-waiter-portal-v113-data', 'PmdWaiterPortalV113@data');
 Route::get('pmd-waiter-portal-v113-audit', 'PmdWaiterPortalV113@audit');
