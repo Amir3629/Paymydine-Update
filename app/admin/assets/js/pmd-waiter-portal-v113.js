@@ -1,1 +1,1 @@
-(function(){ window.PMDWaiterPortalV113={disabled:true,by:'v114'}; })();
+/* disabled by v127 real reset: pmd-waiter-portal-v113.js */

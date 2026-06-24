@@ -5,6 +5,8 @@ return [
         'general' => [
             'title' => '',
             'fields' => [
+            
+
                 'kazen_menu_layout' => [
                     'label' => 'Food display style',
                     'type' => 'select',
@@ -15,6 +17,7 @@ return [
                         'tabs' => 'Category tabs + item list',
                     ],
                     'comment' => 'Controls how Kazen Japanese Minimal shows food items on the customer frontend.',
+                    'velvet_terracotta' => 'Velvet Terracotta',
                 ],
 
                 'pmd_kazen_website_enabled' => [

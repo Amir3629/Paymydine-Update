@@ -201,7 +201,7 @@
         '</div>' +
       '</div>';
 
-    document.body.appendChild(panel);
+    (document.body||document.documentElement).appendChild(panel);
 
     panel.addEventListener('click', function (e) {
       var btn = e.target.closest('button');
@@ -251,7 +251,7 @@
 
   function toggleOwnerLayoutEditor() {
     createLayoutPanel();
-    var on = !document.body.classList.contains('pmd-owner-layout-editing-v25');
+    var on = !(document.body||document.documentElement).classList.contains('pmd-owner-layout-editing-v25');
     setEditMode(on);
   }
 

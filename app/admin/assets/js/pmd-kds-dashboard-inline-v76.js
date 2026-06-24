@@ -44,12 +44,12 @@
     document.documentElement.classList.remove('pmd-kds-dashboard-is-embedded-v75');
 
     if (document.body) {
-      document.body.classList.add(
+      (document.body||document.documentElement).classList.add(
         'pmd-kds-dashboard-inline-role-v76',
         'pmd-no-sidebar-role-v73',
         'pmd-kds-only-role-v73'
       );
-      document.body.classList.remove('pmd-kds-dashboard-is-embedded-v75');
+      (document.body||document.documentElement).classList.remove('pmd-kds-dashboard-is-embedded-v75');
       document.body.style.setProperty('overflow-y', 'auto', 'important');
       document.body.style.setProperty('overflow-x', 'hidden', 'important');
     }
@@ -57,7 +57,7 @@
 
   function killV75Overlay() {
     document.documentElement.classList.remove('pmd-kds-dashboard-is-embedded-v75');
-    if (document.body) document.body.classList.remove('pmd-kds-dashboard-is-embedded-v75');
+    if (document.body) (document.body||document.documentElement).classList.remove('pmd-kds-dashboard-is-embedded-v75');
 
     document.querySelectorAll('.pmd-kds-dashboard-host-v75').forEach(function (el) {
       try { el.remove(); }
@@ -209,7 +209,7 @@
 
     if (isInsideKdsPage()) {
       document.documentElement.classList.remove('pmd-kds-dashboard-inline-mounted-v76');
-      if (document.body) document.body.classList.remove('pmd-kds-dashboard-inline-mounted-v76');
+      if (document.body) (document.body||document.documentElement).classList.remove('pmd-kds-dashboard-inline-mounted-v76');
       return;
     }
 
@@ -229,7 +229,7 @@
     }
 
     document.documentElement.classList.add('pmd-kds-dashboard-inline-mounted-v76');
-    if (document.body) document.body.classList.add('pmd-kds-dashboard-inline-mounted-v76');
+    if (document.body) (document.body||document.documentElement).classList.add('pmd-kds-dashboard-inline-mounted-v76');
 
     hidePreviewDashboardBehindKds();
   }

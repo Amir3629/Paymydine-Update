@@ -224,7 +224,7 @@
 
       lastMarkupKey = key;
       rt.classList.add('pmd-owner-match-v12-rendered');
-      document.body.classList.add('pmd-dashboard-owner-match-v12-ready');
+      (document.body||document.documentElement).classList.add('pmd-dashboard-owner-match-v12-ready');
     } finally {
       busy = false;
     }

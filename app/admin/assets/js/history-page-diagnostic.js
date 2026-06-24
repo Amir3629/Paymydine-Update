@@ -325,7 +325,7 @@
             white-space: nowrap;
         `;
         overlay.appendChild(labelEl);
-        document.body.appendChild(overlay);
+        (document.body||document.documentElement).appendChild(overlay);
         
         return overlay;
     }

@@ -22,10 +22,10 @@
   }
 
   function isCollapsed() {
-    return document.body.classList.contains('pmd-sidebar-icons-only') ||
-      document.body.classList.contains('pmd-sidebar-collapsed') ||
-      document.body.classList.contains('sidebar-collapsed') ||
-      document.body.classList.contains('sidebar-xs');
+    return (document.body||document.documentElement).classList.contains('pmd-sidebar-icons-only') ||
+      (document.body||document.documentElement).classList.contains('pmd-sidebar-collapsed') ||
+      (document.body||document.documentElement).classList.contains('sidebar-collapsed') ||
+      (document.body||document.documentElement).classList.contains('sidebar-xs');
   }
 
   function logoItem() {

@@ -1,1 +1,1 @@
-(function(){ window.PMDWaiterFixedPortalV111={disabled:true,by:'v114'}; })();
+/* disabled by v127 real reset: pmd-waiter-fixed-portal-v111.js */

@@ -19,7 +19,7 @@
   }
 
   function collapsed() {
-    return !!(document.body && document.body.classList.contains('pmd-sidebar-icons-only'));
+    return !!(document.body && (document.body||document.documentElement).classList.contains('pmd-sidebar-icons-only'));
   }
 
   function idx() {

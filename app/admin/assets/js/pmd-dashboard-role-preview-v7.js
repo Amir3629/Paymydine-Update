@@ -258,7 +258,7 @@
     var panel = document.createElement('div');
     panel.className = 'pmd-role-panel';
 
-    document.body.appendChild(switcher);
+    (document.body||document.documentElement).appendChild(switcher);
     kpi.parentNode.insertBefore(panel, kpi.nextSibling);
 
     switcher.addEventListener('click', function (event) {

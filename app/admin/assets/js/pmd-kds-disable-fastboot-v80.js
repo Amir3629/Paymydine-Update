@@ -25,11 +25,11 @@
     ];
     classes.forEach(function (c) {
       document.documentElement.classList.remove(c);
-      if (document.body) document.body.classList.remove(c);
+      if (document.body) (document.body||document.documentElement).classList.remove(c);
     });
 
     document.documentElement.classList.add('pmd-kds-disable-fastboot-v80');
-    if (document.body) document.body.classList.add('pmd-kds-disable-fastboot-v80');
+    if (document.body) (document.body||document.documentElement).classList.add('pmd-kds-disable-fastboot-v80');
 
     document.querySelectorAll('.pmd-kds-fast-preloading-v79').forEach(function (el) {
       el.classList.remove('pmd-kds-fast-preloading-v79');

@@ -96,7 +96,7 @@
                                 clone.id = 'history-bulk-actions-fixed';
                             }
                             
-                            document.body.appendChild(clone);
+                            (document.body||document.documentElement).appendChild(clone);
                         }
                         
                         // Force position with setProperty for maximum specificity

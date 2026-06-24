@@ -99,7 +99,7 @@
             if (sidebar) {
                 sidebar.classList.add('show');
                 sidebar.classList.add('nk-sidebar-active');
-                document.body.classList.add('sidebar-open');
+                (document.body||document.documentElement).classList.add('sidebar-open');
                 
                 // NO OVERLAY - don't darken the page
                 // Hide toggle buttons when sidebar is open
@@ -120,7 +120,7 @@
             if (sidebar) {
                 sidebar.classList.remove('show');
                 sidebar.classList.remove('nk-sidebar-active');
-                document.body.classList.remove('sidebar-open');
+                (document.body||document.documentElement).classList.remove('sidebar-open');
                 
                 // Show toggle buttons again when sidebar is closed
                 const allToggles = document.querySelectorAll('.nk-header .nk-menu-trigger, .nk-sidebar .nk-menu-trigger, .nk-header .nk-nav-toggle, .nk-sidebar .nk-nav-toggle');

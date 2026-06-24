@@ -18,7 +18,7 @@ import { useCheckoutDomCompatibilityEffects } from "@/features/customer-menu/che
 import { CheckoutShellRouter } from "@/features/customer-menu/checkout/CheckoutShellRouter"
 import { PaymentMethodForm } from "@/features/customer-menu/checkout/PaymentMethodForm"
 import { PaymentActionButton } from "@/features/customer-menu/checkout/PaymentActionButton"
-import { KAZEN_JAPANESE_THEME_KEY, ORGANIC_BOTANICAL_THEME_KEY, type PaymentModalProps } from "@/features/customer-menu/checkout/paymentModalShared"
+import { KAZEN_JAPANESE_THEME_KEY, VELVET_TERRACOTTA_THEME_KEY, ORGANIC_BOTANICAL_THEME_KEY, type PaymentModalProps } from "@/features/customer-menu/checkout/paymentModalShared"
 import { buildPaymentOpenOrderStorageKeys, ensurePaymentGuestSession, getPaymentTableKey, getPaymentTenantKey } from "@/features/customer-menu/checkout/paymentModalStorage"
 import { subtotalFromSubmittedPaymentRows } from "@/features/customer-menu/checkout/paymentModalMath"
 import { startHostedRedirectCheckoutFlow } from "@/features/customer-menu/checkout/paymentModalHostedCheckout"
@@ -132,6 +132,7 @@ export function PaymentModal({ isOpen, onClose, items: allItems, tableInfo, exis
   const isOrganicCheckoutVisual = checkoutVisualTheme === ORGANIC_BOTANICAL_THEME_KEY
   const isModernGreenCheckoutVisual = checkoutVisualTheme === "modern_green"
   const isKazenJapaneseCheckoutVisual = checkoutVisualTheme === KAZEN_JAPANESE_THEME_KEY
+  const isVelvetTerracottaCheckoutVisual = checkoutVisualTheme === VELVET_TERRACOTTA_THEME_KEY
 
 
   const {
@@ -662,6 +663,7 @@ export function PaymentModal({ isOpen, onClose, items: allItems, tableInfo, exis
       {...{
         isOpen,
         isKazenJapaneseCheckoutVisual,
+        isVelvetTerracottaCheckoutVisual,
         isModernGreenCheckoutVisual,
         isOrganicCheckoutVisual,
         checkoutVisualTheme,

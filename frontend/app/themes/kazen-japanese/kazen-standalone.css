@@ -5711,3 +5711,80 @@ html[data-pmd-kazen-mode="dark"] body *:has(+ input:not([type="checkbox"]):not([
   box-shadow: none !important;
 }
 
+
+/* PMD_KAZEN_DARK_HEADER_BUTTONS_VISIBLE_V43
+   Fix dark-mode Kazen header buttons before hover.
+   Keeps light mode unchanged. Makes all 5 clean header buttons visible in dark mode
+   while preserving the same red hover/focus/active effect. */
+html[data-pmd-kazen-mode="dark"] body .kazen-page [data-pmd-kazen-clean-header-actions="1"] .kazen-clean-header-button,
+body[data-pmd-kazen-mode="dark"] .kazen-page [data-pmd-kazen-clean-header-actions="1"] .kazen-clean-header-button,
+.kazen-page[data-pmd-kazen-mode="dark"] [data-pmd-kazen-clean-header-actions="1"] .kazen-clean-header-button,
+.kazen-page.kazen-dark [data-pmd-kazen-clean-header-actions="1"] .kazen-clean-header-button,
+.kazen-page.is-dark [data-pmd-kazen-clean-header-actions="1"] .kazen-clean-header-button,
+html body .kazen-page[data-kazen-mode="dark"] [data-pmd-kazen-clean-header-actions="1"] .kazen-clean-header-button,
+html body [data-kazen-mode="dark"] [data-pmd-kazen-clean-header-actions="1"] .kazen-clean-header-button,
+html body [data-theme="dark"] .kazen-page [data-pmd-kazen-clean-header-actions="1"] .kazen-clean-header-button {
+  --pmd-kazen-header-hover-red: var(--kazen-red, var(--kazen-accent-red, #c45b55)) !important;
+  color: rgba(255, 246, 222, .68) !important;
+  -webkit-text-fill-color: rgba(255, 246, 222, .68) !important;
+  border-color: rgba(255, 246, 222, .16) !important;
+  background: rgba(255, 246, 222, .015) !important;
+  box-shadow: none !important;
+  opacity: 1 !important;
+}
+
+html[data-pmd-kazen-mode="dark"] body .kazen-page [data-pmd-kazen-clean-header-actions="1"] .kazen-clean-header-button svg,
+html[data-pmd-kazen-mode="dark"] body .kazen-page [data-pmd-kazen-clean-header-actions="1"] .kazen-clean-header-button svg *,
+body[data-pmd-kazen-mode="dark"] .kazen-page [data-pmd-kazen-clean-header-actions="1"] .kazen-clean-header-button svg,
+body[data-pmd-kazen-mode="dark"] .kazen-page [data-pmd-kazen-clean-header-actions="1"] .kazen-clean-header-button svg *,
+.kazen-page[data-pmd-kazen-mode="dark"] [data-pmd-kazen-clean-header-actions="1"] .kazen-clean-header-button svg,
+.kazen-page[data-pmd-kazen-mode="dark"] [data-pmd-kazen-clean-header-actions="1"] .kazen-clean-header-button svg *,
+.kazen-page.kazen-dark [data-pmd-kazen-clean-header-actions="1"] .kazen-clean-header-button svg,
+.kazen-page.kazen-dark [data-pmd-kazen-clean-header-actions="1"] .kazen-clean-header-button svg *,
+.kazen-page.is-dark [data-pmd-kazen-clean-header-actions="1"] .kazen-clean-header-button svg,
+.kazen-page.is-dark [data-pmd-kazen-clean-header-actions="1"] .kazen-clean-header-button svg *,
+html body [data-kazen-mode="dark"] [data-pmd-kazen-clean-header-actions="1"] .kazen-clean-header-button svg,
+html body [data-kazen-mode="dark"] [data-pmd-kazen-clean-header-actions="1"] .kazen-clean-header-button svg *,
+html body [data-theme="dark"] .kazen-page [data-pmd-kazen-clean-header-actions="1"] .kazen-clean-header-button svg,
+html body [data-theme="dark"] .kazen-page [data-pmd-kazen-clean-header-actions="1"] .kazen-clean-header-button svg * {
+  color: currentColor !important;
+  stroke: currentColor !important;
+  fill: none !important;
+  opacity: 1 !important;
+}
+
+html[data-pmd-kazen-mode="dark"] body .kazen-page [data-pmd-kazen-clean-header-actions="1"] .kazen-clean-header-button:hover,
+html[data-pmd-kazen-mode="dark"] body .kazen-page [data-pmd-kazen-clean-header-actions="1"] .kazen-clean-header-button:focus-visible,
+body[data-pmd-kazen-mode="dark"] .kazen-page [data-pmd-kazen-clean-header-actions="1"] .kazen-clean-header-button:hover,
+body[data-pmd-kazen-mode="dark"] .kazen-page [data-pmd-kazen-clean-header-actions="1"] .kazen-clean-header-button:focus-visible,
+.kazen-page[data-pmd-kazen-mode="dark"] [data-pmd-kazen-clean-header-actions="1"] .kazen-clean-header-button:hover,
+.kazen-page[data-pmd-kazen-mode="dark"] [data-pmd-kazen-clean-header-actions="1"] .kazen-clean-header-button:focus-visible,
+.kazen-page.kazen-dark [data-pmd-kazen-clean-header-actions="1"] .kazen-clean-header-button:hover,
+.kazen-page.kazen-dark [data-pmd-kazen-clean-header-actions="1"] .kazen-clean-header-button:focus-visible,
+.kazen-page.is-dark [data-pmd-kazen-clean-header-actions="1"] .kazen-clean-header-button:hover,
+.kazen-page.is-dark [data-pmd-kazen-clean-header-actions="1"] .kazen-clean-header-button:focus-visible,
+html body [data-kazen-mode="dark"] [data-pmd-kazen-clean-header-actions="1"] .kazen-clean-header-button:hover,
+html body [data-kazen-mode="dark"] [data-pmd-kazen-clean-header-actions="1"] .kazen-clean-header-button:focus-visible,
+html body [data-theme="dark"] .kazen-page [data-pmd-kazen-clean-header-actions="1"] .kazen-clean-header-button:hover,
+html body [data-theme="dark"] .kazen-page [data-pmd-kazen-clean-header-actions="1"] .kazen-clean-header-button:focus-visible {
+  color: var(--pmd-kazen-header-hover-red) !important;
+  -webkit-text-fill-color: var(--pmd-kazen-header-hover-red) !important;
+  border-color: color-mix(in srgb, var(--pmd-kazen-header-hover-red) 72%, transparent) !important;
+  background: color-mix(in srgb, var(--pmd-kazen-header-hover-red) 7%, transparent) !important;
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--pmd-kazen-header-hover-red) 18%, transparent) !important;
+}
+
+html[data-pmd-kazen-mode="dark"] body .kazen-page [data-pmd-kazen-clean-header-actions="1"] .kazen-clean-header-button:hover svg,
+html[data-pmd-kazen-mode="dark"] body .kazen-page [data-pmd-kazen-clean-header-actions="1"] .kazen-clean-header-button:hover svg *,
+html[data-pmd-kazen-mode="dark"] body .kazen-page [data-pmd-kazen-clean-header-actions="1"] .kazen-clean-header-button:focus-visible svg,
+html[data-pmd-kazen-mode="dark"] body .kazen-page [data-pmd-kazen-clean-header-actions="1"] .kazen-clean-header-button:focus-visible svg *,
+body[data-pmd-kazen-mode="dark"] .kazen-page [data-pmd-kazen-clean-header-actions="1"] .kazen-clean-header-button:hover svg,
+body[data-pmd-kazen-mode="dark"] .kazen-page [data-pmd-kazen-clean-header-actions="1"] .kazen-clean-header-button:hover svg *,
+.kazen-page[data-pmd-kazen-mode="dark"] [data-pmd-kazen-clean-header-actions="1"] .kazen-clean-header-button:hover svg,
+.kazen-page[data-pmd-kazen-mode="dark"] [data-pmd-kazen-clean-header-actions="1"] .kazen-clean-header-button:hover svg *,
+html body [data-kazen-mode="dark"] [data-pmd-kazen-clean-header-actions="1"] .kazen-clean-header-button:hover svg,
+html body [data-kazen-mode="dark"] [data-pmd-kazen-clean-header-actions="1"] .kazen-clean-header-button:hover svg * {
+  color: var(--pmd-kazen-header-hover-red) !important;
+  stroke: var(--pmd-kazen-header-hover-red) !important;
+  fill: none !important;
+}

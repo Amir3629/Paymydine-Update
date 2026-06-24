@@ -4,6 +4,7 @@ import type { CheckoutStep, PmdToolbarPricingSnapshot } from "@/features/checkou
 
 export const ORGANIC_BOTANICAL_THEME_KEY = "organic_botanical_paper"
 export const KAZEN_JAPANESE_THEME_KEY = "kazen_japanese"
+export const VELVET_TERRACOTTA_THEME_KEY = "velvet_terracotta"
 
 export type PayPalPublicConfig = {
   enabled: boolean
@@ -33,7 +34,7 @@ export interface PaymentModalProps {
   preferPersonalReview?: boolean
   onOpenOrderUpdate?: (snapshot: any | null) => void;
   onCartPricingUpdate?: (snapshot: PmdToolbarPricingSnapshot | null) => void;
-  checkoutVisualTheme?: "gold-luxury" | "organic_botanical_paper" | "modern_green" | "kazen_japanese" | "neutral";
+  checkoutVisualTheme?: "gold-luxury" | "organic_botanical_paper" | "modern_green" | "kazen_japanese" | "velvet_terracotta" | "neutral";
 }
 
 export interface MenuItemModalProps {

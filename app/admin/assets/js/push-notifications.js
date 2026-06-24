@@ -27,7 +27,7 @@ class PushNotificationManager {
         if (!document.querySelector('.notification-toast-container')) {
             this.container = document.createElement('div');
             this.container.className = 'notification-toast-container';
-            document.body.appendChild(this.container);
+            (document.body||document.documentElement).appendChild(this.container);
         } else {
             this.container = document.querySelector('.notification-toast-container');
         }

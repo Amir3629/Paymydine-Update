@@ -133,7 +133,7 @@
   }
 
   function applySidebarIcons() {
-    if (!document.body || !document.body.classList.contains('pmd-admin-theme-v1')) return;
+    if (!document.body || !(document.body||document.documentElement).classList.contains('pmd-admin-theme-v1')) return;
 
     var links = document.querySelectorAll('#side-nav-menu a.nav-link');
     links.forEach(rebuildLink);

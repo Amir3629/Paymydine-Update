@@ -215,7 +215,7 @@ class SmoothPageTransitions {
             if (oldScript.parentNode) {
                 oldScript.parentNode.replaceChild(newScript, oldScript);
             } else {
-                document.body.appendChild(newScript);
+                (document.body||document.documentElement).appendChild(newScript);
             }
         });
     }

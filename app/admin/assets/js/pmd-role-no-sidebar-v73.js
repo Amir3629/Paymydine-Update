@@ -29,9 +29,9 @@
     if (noSide) document.documentElement.classList.add('pmd-no-sidebar-role-v73', 'pmd-no-sidebar-role-v78');
 
     if (document.body) {
-      document.body.classList.add('pmd-role-dashboard-locked-v73', 'pmd-role-dashboard-locked-v78');
+      (document.body||document.documentElement).classList.add('pmd-role-dashboard-locked-v73', 'pmd-role-dashboard-locked-v78');
       document.body.setAttribute('data-pmd-role-dashboard-target-v73', target);
-      if (noSide) document.body.classList.add('pmd-no-sidebar-role-v73', 'pmd-no-sidebar-role-v78');
+      if (noSide) (document.body||document.documentElement).classList.add('pmd-no-sidebar-role-v73', 'pmd-no-sidebar-role-v78');
     }
   }
 

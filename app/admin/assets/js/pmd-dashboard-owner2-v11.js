@@ -218,7 +218,7 @@
       '<button type="button" class="pmd-role-btn" data-pmd-role-btn="kitchen" title="Kitchen"><i class="fa fa-desktop"></i>K</button>'
     ].join('');
 
-    document.body.appendChild(switcher);
+    (document.body||document.documentElement).appendChild(switcher);
 
     switcher.addEventListener('click', function (event) {
       var btn = event.target.closest('[data-pmd-role-btn]');

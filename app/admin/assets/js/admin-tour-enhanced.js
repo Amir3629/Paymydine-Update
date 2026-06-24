@@ -11,7 +11,7 @@
         init: function() {
             // Don't show welcome screen on login page
             const path = window.location.pathname;
-            const isLoginPage = path.includes('/login') || path.includes('/auth/login') || document.body.classList.contains('page-login');
+            const isLoginPage = path.includes('/login') || path.includes('/auth/login') || (document.body||document.documentElement).classList.contains('page-login');
             
             if (isLoginPage) {
                 return; // Don't initialize tour on login page
@@ -80,7 +80,7 @@
                 el.classList.remove('introjs-showElement', 'introjs-relativePosition');
                 props.forEach(function(p) { el.style.removeProperty(p); });
             });
-            document.body.classList.remove('introjs-fixParent');
+            (document.body||document.documentElement).classList.remove('introjs-fixParent');
             ['overflow', 'position', 'overflow-x', 'overflow-y'].forEach(function(p) {
                 document.body.style.removeProperty(p);
             });
@@ -113,13 +113,13 @@
                     el.classList.remove('introjs-showElement', 'introjs-relativePosition');
                     props.forEach(function(p) { el.style.removeProperty(p); });
                 });
-                document.body.classList.remove('introjs-fixParent');
+                (document.body||document.documentElement).classList.remove('introjs-fixParent');
                 document.body.style.removeProperty('overflow');
             }, 250);
         },
 
         stopFixParentStripper: function() {
-            document.body.classList.remove('introjs-fixParent');
+            (document.body||document.documentElement).classList.remove('introjs-fixParent');
             document.body.style.removeProperty('overflow');
         },
 
@@ -174,7 +174,7 @@
             `;
 
             // Add to body
-            document.body.insertAdjacentHTML('beforeend', welcomeHTML);
+            (document.body||document.documentElement).insertAdjacentHTML('beforeend', welcomeHTML);
 
             // Add event listeners
             const welcomeScreen = document.getElementById('pymd-welcome-screen');

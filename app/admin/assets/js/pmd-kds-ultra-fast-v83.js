@@ -16,13 +16,13 @@
   };
   if (!active) return;
   document.documentElement.classList.add('pmd-kds-ultra-fast-v83');
-  if (document.body) document.body.classList.add('pmd-kds-ultra-fast-v83');
+  if (document.body) (document.body||document.documentElement).classList.add('pmd-kds-ultra-fast-v83');
   var f = document.querySelector('.pmd-kds-server-iframe-v82');
   if (f && !f.__pmdKdsV83Bound) {
     f.__pmdKdsV83Bound = true;
     f.addEventListener('load', function () {
       document.documentElement.classList.add('pmd-kds-ultra-loaded-v83');
-      if (document.body) document.body.classList.add('pmd-kds-ultra-loaded-v83');
+      if (document.body) (document.body||document.documentElement).classList.add('pmd-kds-ultra-loaded-v83');
       console.log('⚡ PMD KDS ultra fast v83: iframe loaded in', Date.now() - window.PMDKdsUltraFastV83.startedAt, 'ms');
     });
   }

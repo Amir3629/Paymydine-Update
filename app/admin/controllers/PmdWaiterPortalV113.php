@@ -3,7 +3,7 @@
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 
-class PmdWaiterPortalV113 extends AdminController
+class PmdWaiterPortalV113 extends \Admin\Classes\AdminController
 {
     private function json($data, $code = 200)
     {

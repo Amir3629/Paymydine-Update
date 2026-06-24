@@ -15,8 +15,8 @@
     document.documentElement.classList.add('pmd-kds-server-fast-v82', 'pmd-no-sidebar-role-v73', 'pmd-kds-only-role-v73');
     document.documentElement.classList.remove('pmd-kds-stable-fast-v81', 'pmd-kds-fast-boot-v79', 'pmd-kds-dashboard-is-embedded-v75');
     if (document.body) {
-      document.body.classList.add('pmd-kds-server-fast-v82', 'pmd-no-sidebar-role-v73', 'pmd-kds-only-role-v73');
-      document.body.classList.remove('pmd-kds-stable-fast-v81', 'pmd-kds-fast-boot-v79', 'pmd-kds-dashboard-is-embedded-v75');
+      (document.body||document.documentElement).classList.add('pmd-kds-server-fast-v82', 'pmd-no-sidebar-role-v73', 'pmd-kds-only-role-v73');
+      (document.body||document.documentElement).classList.remove('pmd-kds-stable-fast-v81', 'pmd-kds-fast-boot-v79', 'pmd-kds-dashboard-is-embedded-v75');
     }
   }
 
@@ -31,7 +31,7 @@
 
   function markLoaded() {
     document.documentElement.classList.add('pmd-kds-server-loaded-v82');
-    if (document.body) document.body.classList.add('pmd-kds-server-loaded-v82');
+    if (document.body) (document.body||document.documentElement).classList.add('pmd-kds-server-loaded-v82');
   }
 
   function bindFrame() {

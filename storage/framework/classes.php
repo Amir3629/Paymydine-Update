@@ -233,4 +233,6 @@
   'Admin\\Controllers\\PmdWaiterMenuBridgeV105' => 'app/admin/controllers/PmdWaiterMenuBridgeV105.php',
   'Admin\\Controllers\\PmdWaiterFloorLiveV106' => 'app/admin/controllers/PmdWaiterFloorLiveV106.php',
   'Admin\\Controllers\\PmdWaiterMobileActionV107' => 'app/admin/controllers/PmdWaiterMobileActionV107.php',
+  'Admin\\Requests\\Table' => 'app/admin/requests/Table.php',
+  'Admin\\Models\\Assignable_logs_model' => 'app/admin/models/Assignable_logs_model.php',
 );

@@ -144,7 +144,7 @@
         '</div>' +
       '</div>';
 
-    document.body.appendChild(panel);
+    (document.body||document.documentElement).appendChild(panel);
 
     panel.addEventListener('click', function (e) {
       var btn = e.target.closest('button');
@@ -196,7 +196,7 @@
   }
 
   function setEditing(on) {
-    document.body.classList.toggle('pmd-universal-layout-editing-v35', !!on);
+    (document.body||document.documentElement).classList.toggle('pmd-universal-layout-editing-v35', !!on);
 
     var btn = document.querySelector('.pmd-universal-layout-trigger-v35');
     if (btn) {
@@ -216,7 +216,7 @@
     if (!root()) return;
     ensurePanel();
     applyState();
-    setEditing(!document.body.classList.contains('pmd-universal-layout-editing-v35'));
+    setEditing(!(document.body||document.documentElement).classList.contains('pmd-universal-layout-editing-v35'));
   }
 
   function hookButton(btn) {
@@ -254,7 +254,7 @@
 
   function ensureButton() {
     var r = root();
-    document.body.classList.toggle('pmd-universal-layout-available-v35', !!r);
+    (document.body||document.documentElement).classList.toggle('pmd-universal-layout-available-v35', !!r);
 
     var native = document.getElementById('edit-layout-toggle');
     if (native) {

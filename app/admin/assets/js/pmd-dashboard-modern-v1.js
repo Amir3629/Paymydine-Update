@@ -269,7 +269,7 @@
       if (widget) widget.classList.add('pmd-modern-source-hidden');
     });
 
-    document.body.classList.add('pmd-dashboard-modern-ready');
+    (document.body||document.documentElement).classList.add('pmd-dashboard-modern-ready');
   }
 
   function scheduleUpdate() {

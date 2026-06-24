@@ -1,1 +1,1 @@
-(function(){ window.PMDWaiterFloorRescueV110={disabled:true,by:'v114'}; })();
+/* disabled by v127 real reset: pmd-waiter-floor-rescue-v110.js */

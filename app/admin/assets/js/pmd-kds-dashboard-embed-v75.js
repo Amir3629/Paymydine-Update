@@ -22,7 +22,7 @@
     );
 
     if (document.body) {
-      document.body.classList.add(
+      (document.body||document.documentElement).classList.add(
         'pmd-kds-dashboard-embed-role-v75',
         'pmd-no-sidebar-role-v73',
         'pmd-kds-only-role-v73'
@@ -133,7 +133,7 @@
     });
 
     host.appendChild(iframe);
-    document.body.appendChild(host);
+    (document.body||document.documentElement).appendChild(host);
   }
 
   window.PMDKdsDashboardEmbedV75 = {

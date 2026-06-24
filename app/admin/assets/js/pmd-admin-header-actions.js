@@ -57,11 +57,11 @@
          * The layout fallback removes preboot after a short safe delay.
          */
         document.documentElement.classList.add('pmd-admin-toolbar-ready');
-        if (document.body) document.body.classList.add('pmd-admin-toolbar-ready');
+        if (document.body) (document.body||document.documentElement).classList.add('pmd-admin-toolbar-ready');
       } catch (e) {}
     }
 
-    if (!document.body || !document.body.classList.contains('pmd-admin-theme-v1')) return;
+    if (!document.body || !(document.body||document.documentElement).classList.contains('pmd-admin-theme-v1')) return;
 
     const mainMenu = document.querySelector('#menu-mainmenu');
     if (!mainMenu) return;
@@ -350,7 +350,7 @@
       if (!label && !icon) return false;
       if (label.length > 90) return false;
 
-      if (el.closest('.edit-mode-only') && !document.body.classList.contains('edit-mode-active')) return false;
+      if (el.closest('.edit-mode-only') && !(document.body||document.documentElement).classList.contains('edit-mode-active')) return false;
 
       return true;
     }
@@ -644,7 +644,7 @@
         pmdRevealToolbarPreboot('sync-complete');
         normalizeHeaderIconTooltips();
 
-        document.body.classList.toggle('pmd-has-header-actions', originals.length > 0);
+        (document.body||document.documentElement).classList.toggle('pmd-has-header-actions', originals.length > 0);
 
         requestAnimationFrame(() => playHeaderFlip(beforeRects));
       } finally {

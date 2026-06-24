@@ -164,7 +164,7 @@
   function shellReady() {
     document.documentElement.classList.remove('pmd-shell-loading-v60');
     document.documentElement.classList.add('pmd-shell-ready-v60');
-    if (document.body) document.body.classList.remove('pmd-page-leaving-v60');
+    if (document.body) (document.body||document.documentElement).classList.remove('pmd-page-leaving-v60');
   }
 
   function ready(fn) {
@@ -187,7 +187,7 @@
       if (!/^\/admin(\/|$)/.test(url.pathname)) return;
       if (url.pathname === location.pathname && url.search === location.search) return;
 
-      document.body.classList.add('pmd-page-leaving-v60');
+      (document.body||document.documentElement).classList.add('pmd-page-leaving-v60');
       try { sessionStorage.setItem('pmdPageTransitionV60', '1'); } catch (e) {}
     }, true);
   }
@@ -223,7 +223,7 @@
     });
 
     window.addEventListener('pageshow', function () {
-      if (document.body) document.body.classList.remove('pmd-page-leaving-v60');
+      if (document.body) (document.body||document.documentElement).classList.remove('pmd-page-leaving-v60');
       shellReady();
       applyAll();
     });

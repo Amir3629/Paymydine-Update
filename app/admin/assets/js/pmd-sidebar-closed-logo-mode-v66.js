@@ -19,7 +19,7 @@
   }
 
   function collapsed() {
-    return document.body && document.body.classList.contains('pmd-sidebar-icons-only');
+    return document.body && (document.body||document.documentElement).classList.contains('pmd-sidebar-icons-only');
   }
 
   function idx() {
@@ -83,7 +83,7 @@
   }
 
   function apply() {
-    if (!document.body || !document.body.classList.contains('pmd-admin-theme-v1')) return;
+    if (!document.body || !(document.body||document.documentElement).classList.contains('pmd-admin-theme-v1')) return;
 
     if (collapsed()) {
       setLogo(CLOSED_LOGO, 'PayMyDine compact logo');

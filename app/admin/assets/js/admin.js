@@ -2190,3 +2190,23 @@ if (window.jQuery.request !== undefined)
 
     console.log('ℹ️ Calendar single-view enforcement active');
 }(window.jQuery);
+
+
+/* PMD HEADER BULK DELETE V132 START */
+(function(){
+  if(!/^\/admin(\/|$)/.test(location.pathname)) return;
+  if(window.__PMD_HEADER_BULK_DELETE_V132_LOADER__) return;
+  window.__PMD_HEADER_BULK_DELETE_V132_LOADER__ = true;
+
+  function load(){
+    if(!document.head) return setTimeout(load, 50);
+    var s = document.createElement('script');
+    s.src = '/app/admin/assets/js/pmd-header-bulk-delete-v132.js?v=' + Date.now();
+    s.async = false;
+    document.head.appendChild(s);
+  }
+
+  load();
+})();
+/* PMD HEADER BULK DELETE V132 END */
+

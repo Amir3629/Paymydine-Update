@@ -76,13 +76,13 @@
     if (!wantedCollapsed()) return;
     document.documentElement.classList.add('pmd-sidebar-persist-collapsed-v48');
     if (document.body) {
-      document.body.classList.add('pmd-sidebar-collapsed','pmd-sidebar-icons-only');
+      (document.body||document.documentElement).classList.add('pmd-sidebar-collapsed','pmd-sidebar-icons-only');
     }
   }
 
   function removeCollapsedClass() {
     document.documentElement.classList.remove('pmd-sidebar-persist-collapsed-v48');
-    if (document.body) document.body.classList.remove('pmd-sidebar-collapsed','pmd-sidebar-icons-only');
+    if (document.body) (document.body||document.documentElement).classList.remove('pmd-sidebar-collapsed','pmd-sidebar-icons-only');
   }
 
   function ensureButton() {
@@ -93,7 +93,7 @@
       btn.id = 'pmd-sidebar-edge-toggle-v48';
       btn.setAttribute('aria-label','Toggle sidebar');
       btn.innerHTML = chevronSvg();
-      document.body.appendChild(btn);
+      (document.body||document.documentElement).appendChild(btn);
 
       btn.addEventListener('click', function(e){
         e.preventDefault();
@@ -104,8 +104,8 @@
 
         if (rt) rt.click();
         else {
-          document.body.classList.toggle('pmd-sidebar-collapsed');
-          document.body.classList.toggle('pmd-sidebar-icons-only');
+          (document.body||document.documentElement).classList.toggle('pmd-sidebar-collapsed');
+          (document.body||document.documentElement).classList.toggle('pmd-sidebar-icons-only');
         }
 
         setWanted(!before);

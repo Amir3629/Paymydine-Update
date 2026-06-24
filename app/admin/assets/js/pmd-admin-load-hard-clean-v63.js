@@ -20,7 +20,7 @@
     );
 
     if (document.body) {
-      document.body.classList.remove('pmd-page-leaving-v60');
+      (document.body||document.documentElement).classList.remove('pmd-page-leaving-v60');
     }
   }
 

@@ -72,8 +72,8 @@
       btn.addEventListener('click', function (e) {
         e.preventDefault();
         e.stopPropagation();
-        var closed = document.body.classList.toggle('pmd-sidebar-icons-only');
-        document.body.classList.remove('pmd-sidebar-collapsed');
+        var closed = (document.body||document.documentElement).classList.toggle('pmd-sidebar-icons-only');
+        (document.body||document.documentElement).classList.remove('pmd-sidebar-collapsed');
         try { localStorage.setItem('pmdAdminSidebarIconsOnlyV15', closed ? '1' : '0'); } catch(e) {}
         updateNativeToggle();
         if (closed) closeSubmenus();
@@ -97,7 +97,7 @@
   function updateNativeToggle() {
     var btn = document.querySelector('.sidebar .pmd-sidebar-icons-toggle');
     if (!btn) return;
-    var closed = document.body.classList.contains('pmd-sidebar-icons-only');
+    var closed = (document.body||document.documentElement).classList.contains('pmd-sidebar-icons-only');
     btn.innerHTML = closed
       ? '<i class="fa fa-angle-right" aria-hidden="true"></i>'
       : '<i class="fa fa-angle-left" aria-hidden="true"></i>';
@@ -111,7 +111,7 @@
       a.setAttribute('data-pmd-v50-persist', '1');
       a.addEventListener('click', function(){
         try {
-          localStorage.setItem('pmdAdminSidebarIconsOnlyV15', document.body.classList.contains('pmd-sidebar-icons-only') ? '1' : '0');
+          localStorage.setItem('pmdAdminSidebarIconsOnlyV15', (document.body||document.documentElement).classList.contains('pmd-sidebar-icons-only') ? '1' : '0');
         } catch(e) {}
       }, true);
     });
@@ -134,18 +134,18 @@
     window.PMDSidebarRecoverNativeV50 = {
       apply: apply,
       collapse: function(){
-        document.body.classList.add('pmd-sidebar-icons-only');
-        document.body.classList.remove('pmd-sidebar-collapsed');
+        (document.body||document.documentElement).classList.add('pmd-sidebar-icons-only');
+        (document.body||document.documentElement).classList.remove('pmd-sidebar-collapsed');
         localStorage.setItem('pmdAdminSidebarIconsOnlyV15','1');
         closeSubmenus();
         apply();
       },
       expand: function(){
-        document.body.classList.remove('pmd-sidebar-icons-only','pmd-sidebar-collapsed');
+        (document.body||document.documentElement).classList.remove('pmd-sidebar-icons-only','pmd-sidebar-collapsed');
         localStorage.setItem('pmdAdminSidebarIconsOnlyV15','0');
         apply();
       },
-      status: function(){ return document.body.classList.contains('pmd-sidebar-icons-only') ? 'icons-only' : 'expanded'; }
+      status: function(){ return (document.body||document.documentElement).classList.contains('pmd-sidebar-icons-only') ? 'icons-only' : 'expanded'; }
     };
   });
 })();

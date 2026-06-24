@@ -7,7 +7,7 @@ const AUTO_PAGE_SPECIFIC_BUTTON_TEXT_FIXES = false;
 
 document.addEventListener('DOMContentLoaded', function() {
     // Only run on the statuses page
-    if (document.body.classList.contains('statuses') && 
+    if ((document.body||document.documentElement).classList.contains('statuses') && 
         (window.location.href.includes('/admin/statuses') || 
          window.location.pathname.endsWith('/statuses'))) {
         
@@ -97,7 +97,7 @@ document.addEventListener('DOMContentLoaded', function() {
         // Use a MutationObserver to catch any elements added dynamically
         const observer = new MutationObserver(function(mutations) {
             // Skip processing when modal is open to prevent freeze
-            if (window.SKIP_EXPENSIVE_OBSERVERS || document.body.classList.contains('modal-open')) {
+            if (window.SKIP_EXPENSIVE_OBSERVERS || (document.body||document.documentElement).classList.contains('modal-open')) {
                 return;
             }
             // Skip if any mutation is inside a modal
@@ -322,7 +322,7 @@ document.addEventListener('DOMContentLoaded', function() {
         // Watch for changes (e.g., when radio buttons are checked/unchecked)
         const observer = new MutationObserver(function(mutations) {
             // Skip processing when modal is open to prevent freeze
-            if (window.SKIP_EXPENSIVE_OBSERVERS || document.body.classList.contains('modal-open')) {
+            if (window.SKIP_EXPENSIVE_OBSERVERS || (document.body||document.documentElement).classList.contains('modal-open')) {
                 return;
             }
             // Skip if any mutation is inside a modal
@@ -444,7 +444,7 @@ document.addEventListener('DOMContentLoaded', function() {
     // Watch for new image upload fields
     const imageFieldObserver = new MutationObserver(function(mutations) {
         // Skip processing when modal is open to prevent freeze
-        if (window.SKIP_EXPENSIVE_OBSERVERS || document.body.classList.contains('modal-open')) {
+        if (window.SKIP_EXPENSIVE_OBSERVERS || (document.body||document.documentElement).classList.contains('modal-open')) {
             return;
         }
         // Skip if any mutation is inside a modal
@@ -636,7 +636,7 @@ document.addEventListener('DOMContentLoaded', function() {
     // Watch for style changes AND new elements being added
     const greenColorObserver = new MutationObserver(function(mutations) {
         // Skip processing when modal is open to prevent freeze
-        if (window.SKIP_EXPENSIVE_OBSERVERS || document.body.classList.contains('modal-open')) {
+        if (window.SKIP_EXPENSIVE_OBSERVERS || (document.body||document.documentElement).classList.contains('modal-open')) {
             return;
         }
         // Skip if any mutation is inside a modal
@@ -715,7 +715,7 @@ document.addEventListener('DOMContentLoaded', function() {
     // Watch for new progress indicators being added
     const progressObserver = new MutationObserver(function(mutations) {
         // Skip processing when modal is open to prevent freeze
-        if (window.SKIP_EXPENSIVE_OBSERVERS || document.body.classList.contains('modal-open')) {
+        if (window.SKIP_EXPENSIVE_OBSERVERS || (document.body||document.documentElement).classList.contains('modal-open')) {
             return;
         }
         // Skip if any mutation is inside a modal
@@ -912,7 +912,7 @@ document.addEventListener('DOMContentLoaded', function() {
         });
         
         // Only skip if it's NOT a modal button we care about
-        if (document.body.classList.contains('modal-open') && !isModalMutation) {
+        if ((document.body||document.documentElement).classList.contains('modal-open') && !isModalMutation) {
             // Check if mutation is for a button we care about
             let isImportantButton = false;
             for (const mutation of mutations) {

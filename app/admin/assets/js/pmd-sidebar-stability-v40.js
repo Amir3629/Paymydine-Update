@@ -36,7 +36,7 @@
       btn.id = 'pmd-sidebar-edge-toggle-v40';
       btn.setAttribute('aria-label', 'Toggle sidebar');
       btn.innerHTML = '<i class="fa fa-angle-left" aria-hidden="true"></i>';
-      document.body.appendChild(btn);
+      (document.body||document.documentElement).appendChild(btn);
 
       btn.addEventListener('click', function (e) {
         e.preventDefault();
@@ -46,7 +46,7 @@
         if (real) {
           real.click();
         } else {
-          document.body.classList.toggle('pmd-sidebar-collapsed');
+          (document.body||document.documentElement).classList.toggle('pmd-sidebar-collapsed');
         }
 
         [30, 120, 280, 600].forEach(function (ms) { setTimeout(positionProxy, ms); });

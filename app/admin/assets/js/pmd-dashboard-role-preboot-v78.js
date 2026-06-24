@@ -54,10 +54,10 @@
     if (lock.noSidebar) h.classList.add('pmd-no-sidebar-role-v78', 'pmd-no-sidebar-role-v73');
 
     if (document.body) {
-      document.body.classList.add('pmd-role-dashboard-locked-v78', 'pmd-role-dashboard-locked-v73', 'pmd-role-dashboard-locked-v72');
+      (document.body||document.documentElement).classList.add('pmd-role-dashboard-locked-v78', 'pmd-role-dashboard-locked-v73', 'pmd-role-dashboard-locked-v72');
       document.body.setAttribute('data-pmd-role-dashboard-target-v78', lock.target);
       document.body.setAttribute('data-pmd-role-dashboard-role-v78', lock.role || '');
-      if (lock.noSidebar) document.body.classList.add('pmd-no-sidebar-role-v78', 'pmd-no-sidebar-role-v73');
+      if (lock.noSidebar) (document.body||document.documentElement).classList.add('pmd-no-sidebar-role-v78', 'pmd-no-sidebar-role-v73');
     }
   }
 

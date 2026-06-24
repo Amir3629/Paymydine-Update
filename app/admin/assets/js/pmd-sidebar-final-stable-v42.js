@@ -35,8 +35,8 @@
     document.documentElement.classList.add('pmd-sidebar-persist-collapsed-v42');
     document.documentElement.classList.remove('pmd-sidebar-persist-collapsed-v41');
     if (document.body) {
-      document.body.classList.add('pmd-sidebar-collapsed');
-      document.body.classList.add('pmd-sidebar-icons-only');
+      (document.body||document.documentElement).classList.add('pmd-sidebar-collapsed');
+      (document.body||document.documentElement).classList.add('pmd-sidebar-icons-only');
     }
   }
 
@@ -81,7 +81,7 @@
       btn.id = 'pmd-sidebar-edge-toggle-v42';
       btn.setAttribute('aria-label', 'Toggle sidebar');
       btn.innerHTML = '<i class="fa fa-angle-left" aria-hidden="true"></i>';
-      document.body.appendChild(btn);
+      (document.body||document.documentElement).appendChild(btn);
 
       btn.addEventListener('click', function (e) {
         e.preventDefault();
@@ -92,8 +92,8 @@
 
         if (rt) rt.click();
         else {
-          document.body.classList.toggle('pmd-sidebar-collapsed');
-          document.body.classList.toggle('pmd-sidebar-icons-only');
+          (document.body||document.documentElement).classList.toggle('pmd-sidebar-collapsed');
+          (document.body||document.documentElement).classList.toggle('pmd-sidebar-icons-only');
         }
 
         var after = !before;

@@ -34,12 +34,12 @@
     if (!wantedCollapsed()) return;
     document.documentElement.classList.add('pmd-sidebar-persist-collapsed-v46');
     document.documentElement.classList.remove('pmd-sidebar-persist-collapsed-v45','pmd-sidebar-persist-collapsed-v44','pmd-sidebar-persist-collapsed-v43','pmd-sidebar-persist-collapsed-v42','pmd-sidebar-persist-collapsed-v41');
-    if (document.body) document.body.classList.add('pmd-sidebar-collapsed','pmd-sidebar-icons-only');
+    if (document.body) (document.body||document.documentElement).classList.add('pmd-sidebar-collapsed','pmd-sidebar-icons-only');
   }
 
   function removeCollapsedClass() {
     document.documentElement.classList.remove('pmd-sidebar-persist-collapsed-v46');
-    if (document.body) document.body.classList.remove('pmd-sidebar-collapsed','pmd-sidebar-icons-only');
+    if (document.body) (document.body||document.documentElement).classList.remove('pmd-sidebar-collapsed','pmd-sidebar-icons-only');
   }
 
   function side() {
@@ -192,7 +192,7 @@
       btn.id = 'pmd-sidebar-edge-toggle-v46';
       btn.setAttribute('aria-label','Toggle sidebar');
       btn.innerHTML = chevronSvg();
-      document.body.appendChild(btn);
+      (document.body||document.documentElement).appendChild(btn);
 
       btn.addEventListener('click', function(e){
         e.preventDefault();

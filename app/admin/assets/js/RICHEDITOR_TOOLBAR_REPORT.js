@@ -61,7 +61,7 @@
   const overlay = document.createElement('div');
   overlay.id = 'toolbar-report-overlay';
   overlay.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;pointer-events:none;z-index:99999;';
-  document.body.appendChild(overlay);
+  (document.body||document.documentElement).appendChild(overlay);
 
   rects.forEach(r => {
     const div = document.createElement('div');

@@ -13,7 +13,7 @@
   }
 
   function readyEnough() {
-    var bodyReady = document.body && document.body.classList.contains('pmd-admin-theme-v1');
+    var bodyReady = document.body && (document.body||document.documentElement).classList.contains('pmd-admin-theme-v1');
     var sidebar = document.querySelector('.sidebar #navSidebar, .sidebar');
     var topbar = document.querySelector('.navbar-top, .navbar-fixed-top');
     var page = document.querySelector('.page-wrapper, .page-content');

@@ -2,7 +2,7 @@
   'use strict';
   function ready(fn){ if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',fn,{once:true}); else fn(); }
   ready(function(){
-    if(!document.body.classList.contains('pmd-admin-theme-v1')) return;
+    if(!(document.body||document.documentElement).classList.contains('pmd-admin-theme-v1')) return;
     var body=document.body;
     var sidebar=document.querySelector('.sidebar');
     if(!sidebar) return;

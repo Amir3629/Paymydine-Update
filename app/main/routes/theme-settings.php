@@ -755,3 +755,64 @@ if (!defined('PMD_KAZEN_SIMPLE_THEME_OVERRIDE_ROUTE_V14')) {
 // PMD_SIMPLE_THEME_KAZEN_LOCK_V28
 // Marker: /simple-theme payload is locked to Kazen in the existing final responder above.
 // If gold-luxury appears in /simple-theme after this marker, another earlier route is winning.
+
+// PMD_VELVET_TERRACOTTA_THEME_KEY_V2 velvet_terracotta
+
+// PMD_FORCE_SIMPLE_THEME_VELVET_V3
+// Temporary strong override so the new isolated frontend theme can be tested from `/`.
+// Remove this block later when the backend theme-settings route is made fully dynamic.
+\Illuminate\Support\Facades\Route::get('/simple-theme', function () {
+    $theme = 'velvet_terracotta';
+
+    return response()->json([
+        'success' => true,
+        'admin_theme' => $theme,
+        'frontend_theme' => $theme,
+        'kazen_menu_layout' => 'tabs',
+        'menuLayout' => 'tabs',
+        'kazen_header_links' => [
+            'website' => [
+                'enabled' => true,
+                'url' => 'https://www.instagram.com/adidas/',
+            ],
+            'social' => [
+                'enabled' => true,
+                'platform' => 'reviews',
+                'url' => 'https://www.instagram.com/adidas/',
+            ],
+        ],
+        'pmd_kazen_website_enabled' => '1',
+        'pmd_kazen_website_url' => 'https://www.instagram.com/adidas/',
+        'pmd_kazen_social_enabled' => '1',
+        'pmd_kazen_social_platform' => 'reviews',
+        'pmd_kazen_social_url' => 'https://www.instagram.com/adidas/',
+        'data' => [
+            'theme_configuration' => $theme,
+            'theme_id' => $theme,
+            'frontend_theme' => $theme,
+            'admin_theme' => $theme,
+            'primary_color' => '#B86750',
+            'accent_color' => '#8F4739',
+            'secondary_color' => '#5D6F55',
+            'background_color' => '#FBF0E3',
+            'kazen_menu_layout' => 'tabs',
+            'menuLayout' => 'tabs',
+            'kazen_header_links' => [
+                'website' => [
+                    'enabled' => true,
+                    'url' => 'https://www.instagram.com/adidas/',
+                ],
+                'social' => [
+                    'enabled' => true,
+                    'platform' => 'reviews',
+                    'url' => 'https://www.instagram.com/adidas/',
+                ],
+            ],
+            'pmd_kazen_website_enabled' => '1',
+            'pmd_kazen_website_url' => 'https://www.instagram.com/adidas/',
+            'pmd_kazen_social_enabled' => '1',
+            'pmd_kazen_social_platform' => 'reviews',
+            'pmd_kazen_social_url' => 'https://www.instagram.com/adidas/',
+        ],
+    ]);
+});

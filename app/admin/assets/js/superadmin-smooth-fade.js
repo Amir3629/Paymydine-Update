@@ -10,7 +10,7 @@
     function addLoadedClass() {
         // Small delay to ensure page is fully rendered
         setTimeout(() => {
-            document.body.classList.add('page-loaded');
+            (document.body||document.documentElement).classList.add('page-loaded');
         }, 50);
     }
     
@@ -43,8 +43,8 @@
                 e.preventDefault();
                 
                 // Add leaving class for fade-out
-                document.body.classList.add('page-leaving');
-                document.body.classList.remove('page-loaded');
+                (document.body||document.documentElement).classList.add('page-leaving');
+                (document.body||document.documentElement).classList.remove('page-loaded');
                 
                 // Navigate after fade-out
                 setTimeout(() => {

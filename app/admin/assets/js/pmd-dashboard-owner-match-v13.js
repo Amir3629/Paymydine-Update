@@ -207,8 +207,8 @@
 
       rt.classList.add('pmd-owner-match-v13');
       rt.classList.remove('pmd-owner-match-v12');
-      document.body.classList.add('pmd-dashboard-owner-match-v13-ready');
-      document.body.classList.remove('pmd-dashboard-owner-match-v12-ready');
+      (document.body||document.documentElement).classList.add('pmd-dashboard-owner-match-v13-ready');
+      (document.body||document.documentElement).classList.remove('pmd-dashboard-owner-match-v12-ready');
       document.querySelectorAll('.pmd-owner-insights').forEach(function (el) { el.remove(); });
 
       var kpiBar = rt.querySelector('.pmd-dashboard-kpi-bar');

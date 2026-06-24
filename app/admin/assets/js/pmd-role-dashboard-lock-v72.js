@@ -40,7 +40,7 @@
     document.documentElement.setAttribute('data-pmd-role-dashboard-role-v72', role);
     document.documentElement.classList.add('pmd-role-dashboard-locked-v72', 'pmd-role-dashboard-locked-v78');
     if (document.body) {
-      document.body.classList.add('pmd-role-dashboard-locked-v72', 'pmd-role-dashboard-locked-v78');
+      (document.body||document.documentElement).classList.add('pmd-role-dashboard-locked-v72', 'pmd-role-dashboard-locked-v78');
       document.body.setAttribute('data-pmd-role-dashboard-target-v72', target);
       document.body.setAttribute('data-pmd-role-dashboard-role-v72', role);
     }
