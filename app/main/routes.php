@@ -1,5 +1,15 @@
 <?php
 
+/* PMD_WAITER_DASHBOARD_V149_ROUTES_START */
+\Illuminate\Support\Facades\Route::get('admin/pmd-waiter-dashboard-v149-data', [\Admin\Controllers\PmdWaiterDashboardV149::class, 'data']);
+\Illuminate\Support\Facades\Route::get('admin/pmd-waiter-dashboard-v149-audit', [\Admin\Controllers\PmdWaiterDashboardV149::class, 'audit']);
+\Illuminate\Support\Facades\Route::match(['GET','POST'], 'admin/pmd-waiter-dashboard-v149-update-layout', [\Admin\Controllers\PmdWaiterDashboardV149::class, 'updateLayout']);
+\Illuminate\Support\Facades\Route::match(['GET','POST'], 'admin/pmd-waiter-dashboard-v149-merge', [\Admin\Controllers\PmdWaiterDashboardV149::class, 'merge']);
+\Illuminate\Support\Facades\Route::match(['GET','POST'], 'admin/pmd-waiter-dashboard-v149-add-item', [\Admin\Controllers\PmdWaiterDashboardV149::class, 'addItem']);
+/* PMD_WAITER_DASHBOARD_V149_ROUTES_END */
+
+
+
 /* PMD FLOOR PLAN V141 ROUTES START */
 \Route::get('admin/pmd-floor-plan-data', 'Admin\Controllers\PmdFloorPlanCleanV141@data');
 \Route::get('admin/pmd-floor-plan-audit', 'Admin\Controllers\PmdFloorPlanCleanV141@audit');

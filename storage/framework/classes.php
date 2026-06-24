@@ -237,4 +237,5 @@
   'Admin\\Models\\Assignable_logs_model' => 'app/admin/models/Assignable_logs_model.php',
   'Admin\\Controllers\\PmdFloorPlanCleanV139' => 'app/admin/controllers/PmdFloorPlanCleanV139.php',
   'Admin\\Controllers\\PmdFloorPlanCleanV141' => 'app/admin/controllers/PmdFloorPlanCleanV141.php',
+  'Admin\\Controllers\\PmdWaiterDashboardV149' => 'app/admin/controllers/PmdWaiterDashboardV149.php',
 );

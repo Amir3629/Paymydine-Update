@@ -1,0 +1,37 @@
+#pmd-floor-v146-root .pmd146-map [class*="free"],
+#pmd-floor-v146-root .pmd146-map [class*="status"] {
+  font-size: 0 !important;
+}
+
+#pmd-floor-v146-root .pmd146-map [class*="table"] {
+  transition: transform .16s ease, box-shadow .16s ease;
+}
+
+#pmd-floor-v146-root .pmd146-map [class*="table"]:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 18px 40px rgba(8,36,31,.16);
+}
+
+#pmd-floor-v146-root .pmd148-status-help {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 10px 0 0;
+  color: #667085;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+#pmd-floor-v146-root .pmd148-status-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 999px;
+  display: inline-block;
+  margin-right: 5px;
+  vertical-align: -1px;
+}
+
+#pmd-floor-v146-root .pmd148-dot-free { background: #27c774; }
+#pmd-floor-v146-root .pmd148-dot-busy { background: #2563eb; }
+#pmd-floor-v146-root .pmd148-dot-kitchen { background: #f59e0b; }
+#pmd-floor-v146-root .pmd148-dot-call { background: #ef4444; }

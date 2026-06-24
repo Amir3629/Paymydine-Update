@@ -2,6 +2,7 @@
 
 import React from "react"
 import { KazenThemeRoute } from "@/features/customer-menu/theme/KazenThemeRoute"
+import { VelvetTerracottaThemeRoute } from "@/features/customer-menu/theme/VelvetTerracottaThemeRoute"
 import { ModernGreenThemeRoute } from "@/features/customer-menu/theme/ModernGreenThemeRoute"
 import { OrganicThemeRoute } from "@/features/customer-menu/theme/OrganicThemeRoute"
 import { GoldThemeRoute } from "@/features/customer-menu/theme/GoldThemeRoute"
@@ -82,6 +83,13 @@ export function CustomerMenuThemeRoutes(props: CustomerMenuThemeRoutesProps) {
       <MenuPayMyDineFooterLogo visible={shouldShowPayMyDineFooterLogo} />
     </>
   )
+
+  // PMD_VELVET_TERRACOTTA_ROUTE_CLEAN_V14
+  const pmdVelvetThemeKeyV14 = String((props as any)?.cmsSettings?.theme_configuration || (props as any)?.cmsSettings?.theme_id || (props as any)?.cmsSettings?.frontend_theme || (props as any)?.merchantSettings?.theme_configuration || (props as any)?.merchantSettings?.theme_id || (props as any)?.merchantSettings?.frontend_theme || "").trim().toLowerCase().replace(/[\s-]+/g, "_")
+
+  if ((props as any)?.isVelvetTerracottaTheme || pmdVelvetThemeKeyV14 === "velvet_terracotta") {
+    return renderWithFooterLogo(<VelvetTerracottaThemeRoute {...props} />)
+  }
 
   // PMD_KAZEN_JAPANESE_THEME_RETURN_20260611
   if (isKazenJapaneseTheme) {

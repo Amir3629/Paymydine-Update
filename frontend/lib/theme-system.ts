@@ -250,6 +250,13 @@ export interface ThemeColors {
     },
 
 
+    'velvet_terracotta': {
+      id: 'velvet_terracotta',
+      name: 'Velvet Terracotta',
+      description: 'Warm terracotta, ivory, and sage restaurant theme using the complete Kazen flow',
+      colors: { primary: '#B86750', secondary: '#5D6F55', accent: '#8F4739', background: '#FBF0E3', textPrimary: '#2E241F', textSecondary: '#735F55', textMuted: '#9A8176', border: '#E7D5C7', input: '#FFF7EE', button: '#B86750', buttonHover: '#9F523F', menuItemBackground: '#FFF7EE', menuItemBorder: '#E7D5C7', categoryActive: '#B86750', categoryInactive: '#7D6B61', priceColor: '#8F4739', cartBackground: '#FFF7EE', cartBorder: '#E7D5C7', paymentButton: '#8F4739', paymentButtonHover: '#73362B', success: '#5D6F55', warning: '#C58B4A', error: '#B86750', info: '#5D6F55' }
+    },
+
     'kazen_japanese': {
       id: 'kazen_japanese',
       name: 'Kazen Japanese Minimal',

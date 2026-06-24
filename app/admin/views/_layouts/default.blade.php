@@ -1113,6 +1113,8 @@ window.PMD_ROLE_DASHBOARD_CONTEXT_V72 = @json($__pmdRoleDash);
 
 <!-- PMD_WAITER_DATA_REPAIR_V100_CSS_START -->
 <!-- PMD_WAITER_DATA_REPAIR_V100_CSS_END -->
+    <link rel="stylesheet" href="/app/admin/assets/css/pmd-waiter-dashboard-v149.css?v={{ time() }}">
+<link rel="stylesheet" href="/app/admin/assets/css/pmd-waiter-dashboard-v151-complete-reset.css?v={{ time() }}">
 </head>
 <script>
     // SMART FIX: Force dropdown alignment WITHOUT breaking Bootstrap animations
@@ -1754,13 +1756,10 @@ window.PMD_ROLE_DASHBOARD_CONTEXT_V72 = @json($__pmdRoleDash);
 <link rel="stylesheet" href="{{ asset('app/admin/assets/css/pmd-floor-plan-stable.css') }}?v={{ time() }}">
 <script defer src="{{ asset('app/admin/assets/js/pmd-floor-plan-stable.js') }}?v={{ time() }}"></script>
 <!-- PMD_STABLE_FLOOR_PLAN_ASSETS_END -->
-
-<script defer src="{{ asset('app/admin/assets/js/pmd-floor-dashboard-clean-v140.js') }}?v={{ time() }}"></script>
-
 <!-- PMD_FLOOR_V146_SAFE_VISUAL_STATUS_START -->
-<link rel="stylesheet" href="/app/admin/assets/css/pmd-floor-plan-v146-safe-visual-status.css?v={{ time() }}">
-<script defer src="/app/admin/assets/js/pmd-floor-plan-v146-safe-visual-status.js?v={{ time() }}"></script>
 <!-- PMD_FLOOR_V146_SAFE_VISUAL_STATUS_END -->
 
+    <script src="/app/admin/assets/js/pmd-waiter-dashboard-v149.js?v={{ time() }}" defer></script>
+<script src="/app/admin/assets/js/pmd-waiter-dashboard-v151-complete-reset.js?v={{ time() }}" defer></script>
 </body>
 </html>
