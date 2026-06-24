@@ -210,29 +210,30 @@ $config['form']['fields'] = [
         'span'     => 'left',
         'nameFrom' => 'location_name',
     ],
-    'extra_capacity' => [
-        'label' => 'lang:admin::lang.tables.label_extra_capacity',
-        'type' => 'number',
-        'comment' => 'lang:admin::lang.tables.help_extra_capacity',
-    ],
 
-    'table_section' => [
-        'label' => 'Dining Area / Section',
-        'type' => 'select',
-        'span' => 'left',
-        'options' => [
-            'indoor' => 'Indoor',
-            'outdoor' => 'Outdoor',
-            'terrace' => 'Terrace',
-            'vip' => 'VIP',
-            'bar' => 'Bar',
-            'window' => 'Window',
-        ],
-    ],
     'preferred_capacity' => [
-        'label' => 'Preferred / Normal Capacity',
+        'label' => 'Capacity (normal seats)',
+        'type' => 'number',
+        'span' => 'left',
+        'comment' => 'Primary chair count shown on the floor plan. Extra capacity is only temporary extra chairs.',
+    ],
+    'extra_capacity' => [
+        'label' => 'Extra Capacity (temporary chairs)',
         'type' => 'number',
         'span' => 'right',
+        'comment' => 'Optional temporary chairs. Not included in normal floor-map chair dots.',
+    ],
+    'floor_name' => [
+        'label' => 'Floor name',
+        'type' => 'text',
+        'span' => 'left',
+        'default' => 'Main Floor',
+    ],
+    'table_section' => [
+        'label' => 'Section / Zone',
+        'type' => 'text',
+        'span' => 'right',
+        'default' => 'Main',
     ],
     'floor_x' => [
         'label' => 'Floor X',
@@ -257,7 +258,7 @@ $config['form']['fields'] = [
         'default' => 90,
     ],
     'floor_shape' => [
-        'label' => 'Floor Shape',
+        'label' => 'Table shape / type',
         'type' => 'select',
         'span' => 'left',
         'default' => 'rectangle',
@@ -299,7 +300,7 @@ $config['form']['fields'] = [
         'span' => 'right',
     ],
     'visible_on_floor_plan' => [
-        'label' => 'Visible on Floor Plan',
+        'label' => 'Visible on floor plan',
         'type' => 'switch',
         'span' => 'left',
         'default' => 1,

@@ -1113,8 +1113,8 @@ window.PMD_ROLE_DASHBOARD_CONTEXT_V72 = @json($__pmdRoleDash);
 
 <!-- PMD_WAITER_DATA_REPAIR_V100_CSS_START -->
 <!-- PMD_WAITER_DATA_REPAIR_V100_CSS_END -->
-    <link rel="stylesheet" href="/app/admin/assets/css/pmd-waiter-dashboard-v149.css?v={{ time() }}">
-<link rel="stylesheet" href="/app/admin/assets/css/pmd-waiter-dashboard-v151-complete-reset.css?v={{ time() }}">
+    {{-- PMD waiter rebuild: old dashboard asset disabled --}}
+{{-- PMD waiter rebuild: old dashboard asset disabled --}}
 </head>
 <script>
     // SMART FIX: Force dropdown alignment WITHOUT breaking Bootstrap animations
@@ -1747,19 +1747,19 @@ window.PMD_ROLE_DASHBOARD_CONTEXT_V72 = @json($__pmdRoleDash);
 <!-- PMD_WAITER_DATA_REPAIR_V100_JS_START -->
 <!-- PMD_WAITER_DATA_REPAIR_V100_JS_END -->
 <!-- PMD_WAITER_PORTAL_V114_ASSETS_START -->
-<link rel="stylesheet" href="{{ asset('app/admin/assets/css/pmd-waiter-portal-v114.css') }}?v={{ time() }}">
-<script defer src="{{ asset('app/admin/assets/js/pmd-waiter-portal-v114.js') }}?v={{ time() }}"></script>
+{{-- PMD waiter rebuild: old dashboard asset disabled --}}
+{{-- PMD waiter rebuild: old dashboard asset disabled --}}
 <!-- PMD_WAITER_PORTAL_V114_ASSETS_END -->
 
 
 <!-- PMD_STABLE_FLOOR_PLAN_ASSETS_START -->
-<link rel="stylesheet" href="{{ asset('app/admin/assets/css/pmd-floor-plan-stable.css') }}?v={{ time() }}">
-<script defer src="{{ asset('app/admin/assets/js/pmd-floor-plan-stable.js') }}?v={{ time() }}"></script>
+{{-- PMD waiter rebuild: old dashboard asset disabled --}}
+{{-- PMD waiter rebuild: old dashboard asset disabled --}}
 <!-- PMD_STABLE_FLOOR_PLAN_ASSETS_END -->
 <!-- PMD_FLOOR_V146_SAFE_VISUAL_STATUS_START -->
 <!-- PMD_FLOOR_V146_SAFE_VISUAL_STATUS_END -->
 
-    <script src="/app/admin/assets/js/pmd-waiter-dashboard-v149.js?v={{ time() }}" defer></script>
-<script src="/app/admin/assets/js/pmd-waiter-dashboard-v151-complete-reset.js?v={{ time() }}" defer></script>
+    {{-- PMD waiter rebuild: old dashboard asset disabled --}}
+{{-- PMD waiter rebuild: old dashboard asset disabled --}}
 </body>
 </html>
