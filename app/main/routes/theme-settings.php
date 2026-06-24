@@ -756,63 +756,352 @@ if (!defined('PMD_KAZEN_SIMPLE_THEME_OVERRIDE_ROUTE_V14')) {
 // Marker: /simple-theme payload is locked to Kazen in the existing final responder above.
 // If gold-luxury appears in /simple-theme after this marker, another earlier route is winning.
 
-// PMD_VELVET_TERRACOTTA_THEME_KEY_V2 velvet_terracotta
+// PMD_SIMPLE_THEME_DYNAMIC_ALL_EXISTING_THEMES_V8
+// Final /simple-theme override: restores admin theme switching.
+// This intentionally does NOT add Velvet. It only restores existing stable themes.
+if (!defined('PMD_SIMPLE_THEME_DYNAMIC_ALL_EXISTING_THEMES_V8')) {
+    define('PMD_SIMPLE_THEME_DYNAMIC_ALL_EXISTING_THEMES_V8', true);
 
-// PMD_FORCE_SIMPLE_THEME_VELVET_V3
-// Temporary strong override so the new isolated frontend theme can be tested from `/`.
-// Remove this block later when the backend theme-settings route is made fully dynamic.
-\Illuminate\Support\Facades\Route::get('/simple-theme', function () {
-    $theme = 'velvet_terracotta';
+    \Illuminate\Support\Facades\Route::get('/simple-theme', function () {
+        $bool = function ($value) {
+            if (is_bool($value)) return $value;
+            $raw = strtolower(trim((string)($value ?? '')));
+            return in_array($raw, ['1', 'true', 'yes', 'on', 'enabled'], true);
+        };
 
-    return response()->json([
-        'success' => true,
-        'admin_theme' => $theme,
-        'frontend_theme' => $theme,
-        'kazen_menu_layout' => 'tabs',
-        'menuLayout' => 'tabs',
-        'kazen_header_links' => [
-            'website' => [
-                'enabled' => true,
-                'url' => 'https://www.instagram.com/adidas/',
+        $url = function ($value) {
+            $raw = trim((string)($value ?? ''));
+            if ($raw === '') return '';
+            if (!preg_match('#^https?://#i', $raw)) {
+                $raw = 'https://' . ltrim($raw, '/');
+            }
+            if (preg_match('#/(admin|app/admin)(/|$)#i', parse_url($raw, PHP_URL_PATH) ?: '')) return '';
+            if (stripos($raw, 'settings/edit/review_social') !== false) return '';
+            return $raw;
+        };
+
+        $decode = function ($raw) {
+            if (is_array($raw)) return $raw;
+            if (is_object($raw)) return json_decode(json_encode($raw), true) ?: [];
+            if (!is_string($raw) || trim($raw) === '') return [];
+            $json = json_decode($raw, true);
+            if (json_last_error() === JSON_ERROR_NONE && is_array($json)) return $json;
+            $unserialized = @unserialize($raw);
+            if (($unserialized !== false || $raw === 'b:0;')) {
+                return json_decode(json_encode($unserialized), true) ?: [];
+            }
+            return [];
+        };
+
+        $data = [];
+
+        foreach (['themes', 'ti_themes'] as $table) {
+            try {
+                if (!\Illuminate\Support\Facades\Schema::hasTable($table)) continue;
+
+                $query = \Illuminate\Support\Facades\DB::table($table)
+                    ->where(function ($q) {
+                        $q->where('code', 'frontend-theme')
+                          ->orWhere('code', 'paymydine-nextjs')
+                          ->orWhere('name', 'like', '%Menu Theme%');
+                    });
+
+                try {
+                    $query = $query->orderByDesc('updated_at');
+                } catch (\Throwable $e) {}
+
+                foreach ($query->get() as $row) {
+                    foreach (['data', 'settings', 'config', 'value'] as $column) {
+                        if (isset($row->{$column}) && $row->{$column} !== '') {
+                            $decoded = $decode($row->{$column});
+                            if (is_array($decoded)) {
+                                $data = array_replace_recursive($data, $decoded);
+                            }
+                        }
+                    }
+                }
+            } catch (\Throwable $e) {}
+        }
+
+        $setting = function ($key, $fallback = '') {
+            try {
+                $value = \Illuminate\Support\Facades\DB::table('settings')->where('item', $key)->value('value');
+                if ($value !== null) return $value;
+            } catch (\Throwable $e) {}
+            return $fallback;
+        };
+
+        $pick = function ($key, $fallback = '') use (&$data, $setting) {
+            if (is_array($data) && array_key_exists($key, $data)) return $data[$key];
+            return $setting($key, $fallback);
+        };
+
+        $normalizeTheme = function ($value) {
+            $raw = strtolower(trim((string)($value ?? '')));
+            $raw = preg_replace('/[\s-]+/', '_', $raw);
+
+            $map = [
+                'gold_luxury' => 'gold-luxury',
+                'gold' => 'gold-luxury',
+                'light' => 'gold-luxury',
+                'dark' => 'gold-luxury',
+                'colorful' => 'gold-luxury',
+                'minimal' => 'gold-luxury',
+
+                'organic_botanical_paper' => 'organic_botanical_paper',
+                'organic' => 'organic_botanical_paper',
+
+                'modern_green' => 'modern_green',
+
+                'kazen_japanese' => 'kazen_japanese',
+                'kazen' => 'kazen_japanese',
+            ];
+
+            return $map[$raw] ?? 'gold-luxury';
+        };
+
+        $adminThemeRaw =
+            $data['theme_configuration']
+            ?? $data['theme_id']
+            ?? $data['frontend_theme']
+            ?? $setting('theme_configuration', 'gold_luxury');
+
+        $frontend = $normalizeTheme($adminThemeRaw);
+
+        $menuRaw = strtolower(trim((string)($data['kazen_menu_layout'] ?? $data['menuLayout'] ?? $data['food_display_style'] ?? 'accordion')));
+        $menuRaw = preg_replace('/[_\s-]+/', '-', $menuRaw);
+        $menuLayout = in_array($menuRaw, ['tabs', 'tab', 'category-tabs', 'category-tabs-full-item-list'], true) ? 'tabs' : 'accordion';
+
+        $websiteUrl = $url($pick('pmd_kazen_website_url', $data['kazen_header_links']['website']['url'] ?? ''));
+        $websiteEnabled = $websiteUrl !== '' && $bool($pick('pmd_kazen_website_enabled', $data['kazen_header_links']['website']['enabled'] ?? '1'));
+
+        $socialUrl = $url($pick('pmd_kazen_social_url', $data['kazen_header_links']['social']['url'] ?? ''));
+        $socialPlatform = strtolower(trim((string)$pick('pmd_kazen_social_platform', $data['kazen_header_links']['social']['platform'] ?? 'instagram')));
+        if (!in_array($socialPlatform, ['instagram', 'facebook', 'trustpilot', 'reviews', 'website'], true)) {
+            $socialPlatform = 'instagram';
+        }
+        $socialEnabled = $socialUrl !== '' && $bool($pick('pmd_kazen_social_enabled', $data['kazen_header_links']['social']['enabled'] ?? '1'));
+
+        $colorsByTheme = [
+            'gold-luxury' => [
+                'primary_color' => '#062F2A',
+                'secondary_color' => '#062F2A',
+                'accent_color' => '#C89B4A',
+                'background_color' => '#FAF9F4',
             ],
-            'social' => [
-                'enabled' => true,
-                'platform' => 'reviews',
-                'url' => 'https://www.instagram.com/adidas/',
+            'organic_botanical_paper' => [
+                'primary_color' => $data['primary_color'] ?? '#737A55',
+                'secondary_color' => '#FFF9EF',
+                'accent_color' => $data['accent_color'] ?? '#B8864B',
+                'background_color' => '#F3EBDD',
             ],
-        ],
-        'pmd_kazen_website_enabled' => '1',
-        'pmd_kazen_website_url' => 'https://www.instagram.com/adidas/',
-        'pmd_kazen_social_enabled' => '1',
-        'pmd_kazen_social_platform' => 'reviews',
-        'pmd_kazen_social_url' => 'https://www.instagram.com/adidas/',
-        'data' => [
-            'theme_configuration' => $theme,
-            'theme_id' => $theme,
-            'frontend_theme' => $theme,
-            'admin_theme' => $theme,
-            'primary_color' => '#B86750',
-            'accent_color' => '#8F4739',
-            'secondary_color' => '#5D6F55',
-            'background_color' => '#FBF0E3',
-            'kazen_menu_layout' => 'tabs',
-            'menuLayout' => 'tabs',
+            'modern_green' => [
+                'primary_color' => '#29BC7E',
+                'secondary_color' => '#07110D',
+                'accent_color' => '#29BC7E',
+                'background_color' => '#030504',
+            ],
+            'kazen_japanese' => [
+                'primary_color' => '#062F2A',
+                'secondary_color' => '#062F2A',
+                'accent_color' => '#C89B4A',
+                'background_color' => '#FAF9F4',
+            ],
+        ];
+
+        $themeColors = $colorsByTheme[$frontend] ?? $colorsByTheme['gold-luxury'];
+
+        $payloadData = array_replace($data, [
+            'theme_configuration' => $adminThemeRaw,
+            'theme_id' => $frontend,
+            'frontend_theme' => $frontend,
+            'admin_theme' => $adminThemeRaw,
+
+            'kazen_menu_layout' => $menuLayout,
+            'menuLayout' => $menuLayout,
+
             'kazen_header_links' => [
                 'website' => [
-                    'enabled' => true,
-                    'url' => 'https://www.instagram.com/adidas/',
+                    'enabled' => $websiteEnabled,
+                    'url' => $websiteUrl,
                 ],
                 'social' => [
-                    'enabled' => true,
-                    'platform' => 'reviews',
-                    'url' => 'https://www.instagram.com/adidas/',
+                    'enabled' => $socialEnabled,
+                    'platform' => $socialPlatform,
+                    'url' => $socialUrl,
                 ],
             ],
-            'pmd_kazen_website_enabled' => '1',
-            'pmd_kazen_website_url' => 'https://www.instagram.com/adidas/',
-            'pmd_kazen_social_enabled' => '1',
-            'pmd_kazen_social_platform' => 'reviews',
-            'pmd_kazen_social_url' => 'https://www.instagram.com/adidas/',
-        ],
-    ]);
-});
+
+            'pmd_kazen_website_enabled' => $websiteEnabled ? '1' : '0',
+            'pmd_kazen_website_url' => $websiteUrl,
+            'pmd_kazen_social_enabled' => $socialEnabled ? '1' : '0',
+            'pmd_kazen_social_platform' => $socialPlatform,
+            'pmd_kazen_social_url' => $socialUrl,
+        ], $themeColors);
+
+        return response()->json([
+            'success' => true,
+            'admin_theme' => $adminThemeRaw,
+            'frontend_theme' => $frontend,
+            'kazen_menu_layout' => $menuLayout,
+            'menuLayout' => $menuLayout,
+            'kazen_header_links' => $payloadData['kazen_header_links'],
+            'pmd_kazen_website_enabled' => $payloadData['pmd_kazen_website_enabled'],
+            'pmd_kazen_website_url' => $payloadData['pmd_kazen_website_url'],
+            'pmd_kazen_social_enabled' => $payloadData['pmd_kazen_social_enabled'],
+            'pmd_kazen_social_platform' => $payloadData['pmd_kazen_social_platform'],
+            'pmd_kazen_social_url' => $payloadData['pmd_kazen_social_url'],
+            'data' => $payloadData,
+        ], 200, [
+            'Cache-Control' => 'no-store, no-cache, must-revalidate, max-age=0',
+            'Pragma' => 'no-cache',
+        ]);
+    });
+}
+
+// PMD_EXISTING_THEMES_KAZEN_ENGINE_SAFE_V10
+// Safe final override:
+// Admin may save Gold / Organic / Modern / Kazen.
+// Public frontend always receives kazen_japanese engine, plus pmd_visual_theme_selection for skin.
+// This preserves the full working Kazen feature set for all existing themes.
+if (!defined('PMD_EXISTING_THEMES_KAZEN_ENGINE_SAFE_V10')) {
+    define('PMD_EXISTING_THEMES_KAZEN_ENGINE_SAFE_V10', true);
+
+    \Illuminate\Support\Facades\Route::get('/simple-theme', function () {
+        $decode = function ($raw) {
+            if (is_array($raw)) return $raw;
+            if (is_object($raw)) return json_decode(json_encode($raw), true) ?: [];
+            if (!is_string($raw) || trim($raw) === '') return [];
+            $json = json_decode($raw, true);
+            if (json_last_error() === JSON_ERROR_NONE && is_array($json)) return $json;
+            $unserialized = @unserialize($raw);
+            if (($unserialized !== false || $raw === 'b:0;')) {
+                return json_decode(json_encode($unserialized), true) ?: [];
+            }
+            return [];
+        };
+
+        $data = [];
+
+        foreach (['themes', 'ti_themes'] as $table) {
+            try {
+                if (!\Illuminate\Support\Facades\Schema::hasTable($table)) continue;
+
+                $query = \Illuminate\Support\Facades\DB::table($table)
+                    ->where(function ($q) {
+                        $q->where('code', 'frontend-theme')
+                          ->orWhere('code', 'paymydine-nextjs')
+                          ->orWhere('name', 'like', '%Menu Theme%');
+                    });
+
+                try {
+                    $query = $query->orderByDesc('updated_at');
+                } catch (\Throwable $e) {}
+
+                foreach ($query->get() as $row) {
+                    foreach (['data', 'settings', 'config', 'value'] as $column) {
+                        if (isset($row->{$column}) && $row->{$column} !== '') {
+                            $decoded = $decode($row->{$column});
+                            if (is_array($decoded)) {
+                                $data = array_replace_recursive($data, $decoded);
+                            }
+                        }
+                    }
+                }
+            } catch (\Throwable $e) {}
+        }
+
+        $setting = function ($key, $fallback = '') {
+            try {
+                $value = \Illuminate\Support\Facades\DB::table('settings')->where('item', $key)->value('value');
+                if ($value !== null) return $value;
+            } catch (\Throwable $e) {}
+            return $fallback;
+        };
+
+        $selectedRaw =
+            $data['theme_configuration']
+            ?? $data['theme_id']
+            ?? $data['frontend_theme']
+            ?? $setting('theme_configuration', 'kazen_japanese');
+
+        $normalizeSkin = function ($value) {
+            $raw = strtolower(trim((string)($value ?? '')));
+            $raw = preg_replace('/[\s-]+/', '_', $raw);
+
+            $map = [
+                'gold_luxury' => 'gold-luxury',
+                'gold' => 'gold-luxury',
+                'organic_botanical_paper' => 'organic-botanical-paper',
+                'organic' => 'organic-botanical-paper',
+                'modern_green' => 'modern-green',
+                'kazen_japanese' => 'kazen-japanese',
+                'kazen' => 'kazen-japanese',
+            ];
+
+            return $map[$raw] ?? 'kazen-japanese';
+        };
+
+        $visualSkin = $normalizeSkin($selectedRaw);
+
+        $menuRaw = strtolower(trim((string)($data['kazen_menu_layout'] ?? $data['menuLayout'] ?? $data['food_display_style'] ?? 'tabs')));
+        $menuRaw = preg_replace('/[_\s-]+/', '-', $menuRaw);
+        $menuLayout = in_array($menuRaw, ['tabs', 'tab', 'category-tabs', 'category-tabs-full-item-list'], true) ? 'tabs' : 'accordion';
+
+        $colorsBySkin = [
+            'kazen-japanese' => [
+                'primary_color' => '#062F2A',
+                'secondary_color' => '#062F2A',
+                'accent_color' => '#C89B4A',
+                'background_color' => '#FAF9F4',
+            ],
+            'gold-luxury' => [
+                'primary_color' => '#8C6A2F',
+                'secondary_color' => '#251C10',
+                'accent_color' => '#C89B4A',
+                'background_color' => '#FAF3E3',
+            ],
+            'organic-botanical-paper' => [
+                'primary_color' => '#737A55',
+                'secondary_color' => '#FFF9EF',
+                'accent_color' => '#B8864B',
+                'background_color' => '#F3EBDD',
+            ],
+            'modern-green' => [
+                'primary_color' => '#29BC7E',
+                'secondary_color' => '#07110D',
+                'accent_color' => '#29BC7E',
+                'background_color' => '#030504',
+            ],
+        ];
+
+        $themeColors = $colorsBySkin[$visualSkin] ?? $colorsBySkin['kazen-japanese'];
+
+        $payloadData = array_replace($data, [
+            'theme_configuration' => 'kazen_japanese',
+            'theme_id' => 'kazen_japanese',
+            'frontend_theme' => 'kazen_japanese',
+            'admin_theme' => 'kazen_japanese',
+
+            'pmd_visual_theme_selection' => $visualSkin,
+            'pmd_admin_selected_theme' => $selectedRaw,
+
+            'kazen_menu_layout' => $menuLayout,
+            'menuLayout' => $menuLayout,
+        ], $themeColors);
+
+        return response()->json([
+            'success' => true,
+            'admin_theme' => 'kazen_japanese',
+            'frontend_theme' => 'kazen_japanese',
+            'kazen_menu_layout' => $menuLayout,
+            'menuLayout' => $menuLayout,
+            'pmd_visual_theme_selection' => $visualSkin,
+            'pmd_admin_selected_theme' => $selectedRaw,
+            'data' => $payloadData,
+        ], 200, [
+            'Cache-Control' => 'no-store, no-cache, must-revalidate, max-age=0',
+            'Pragma' => 'no-cache',
+        ]);
+    });
+}

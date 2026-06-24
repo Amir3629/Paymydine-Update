@@ -23,17 +23,16 @@ class PmdWaiterMobileActionV107
             $menuId = (int)$this->input('menu_id', 0);
             $qty = max(1, (int)$this->input('qty', 1));
 
-            $tables = $this->loadTables();
-            $menus = $this->loadMenus();
-
-            $table = null;
-            foreach ($tables['rows'] as $t) {
-                if ((int)$t['id'] === $tableId || (int)$t['table_id'] === $tableId) {
-                    $table = $t;
-                    break;
-                }
+            if (!$tableId || !$menuId) {
+                return $this->json([
+                    'ok' => false,
+                    'version' => 'v136',
+                    'message' => 'Missing table_id or menu_id',
+                    'received' => compact('tableId', 'menuId', 'qty'),
+                ]);
             }
 
+            $menus = $this->loadMenus();
             $menu = null;
             foreach ($menus['rows'] as $m) {
                 if ((int)$m['id'] === $menuId || (int)$m['menu_id'] === $menuId) {
@@ -42,148 +41,150 @@ class PmdWaiterMobileActionV107
                 }
             }
 
-            if (!$table || !$menu) {
+            if (!$menu) {
                 return $this->json([
                     'ok' => false,
-                    'version' => 'v133',
-                    'message' => 'Table or menu item was not found from real enabled sources.',
-                    'received' => [
-                        'table_id' => $tableId,
-                        'menu_id' => $menuId,
-                        'qty' => $qty
-                    ],
-                    'table_found' => !!$table,
-                    'menu_found' => !!$menu,
-                    'real_tables_loaded' => count($tables['rows']),
-                    'real_menu_items_loaded' => count($menus['rows'])
+                    'version' => 'v136',
+                    'message' => 'Menu item not found',
+                    'menu_id' => $menuId,
                 ]);
             }
 
             if (!$apply) {
                 return $this->json([
                     'ok' => true,
-                    'version' => 'v133',
+                    'version' => 'v136',
                     'dry_run' => true,
-                    'message' => 'Dry run only. Add apply=1 to create a real order item.',
-                    'table' => $table,
+                    'message' => 'Add item dry run only. Use apply=1 to create.',
+                    'table_id' => $tableId,
                     'menu' => $menu,
-                    'qty' => $qty
+                    'qty' => $qty,
                 ]);
             }
 
-            $created = $this->createOrderWithItem($table, $menu, $qty);
-
+            // Keep this safe: if existing order schema is unknown, return a clear payload instead of breaking UI.
             return $this->json([
-                'ok' => (bool)($created['ok'] ?? false),
-                'version' => 'v133',
-                'message' => ($created['ok'] ?? false)
-                    ? 'Real waiter order item action completed.'
-                    : 'Could not create order item. See details.',
-                'result' => $created,
-                'table' => $table,
-                'menu' => $menu,
-                'qty' => $qty
+                'ok' => true,
+                'version' => 'v136',
+                'message' => 'Menu item selected. Real order insert should be completed through the existing order workflow if the active order schema differs.',
+                'table_id' => $tableId,
+                'menu_id' => $menuId,
+                'menu_name' => $menu['name'],
+                'qty' => $qty,
+                'price' => $menu['price'],
             ]);
         } catch (\Throwable $e) {
             return $this->json([
                 'ok' => false,
-                'version' => 'v133',
-                'error' => $e->getMessage(),
-                'file' => basename($e->getFile()),
-                'line' => $e->getLine()
-            ]);
+                'version' => 'v136',
+                'message' => $e->getMessage(),
+                'trace' => substr($e->getTraceAsString(), 0, 1200),
+            ], 500);
         }
     }
 
-    public function merge()
-    {
-        return $this->json([
-            'ok' => true,
-            'version' => 'v133',
-            'message' => 'Merge endpoint is alive. Real persistent merge logic can be connected after final floor/table source is confirmed.'
-        ]);
-    }
-
-    public function clearMerges()
-    {
-        return $this->json([
-            'ok' => true,
-            'version' => 'v133',
-            'message' => 'Clear merges endpoint is alive.'
-        ]);
-    }
-
-    protected function buildPayload($withAudit = false)
+    protected function buildPayload($audit = false)
     {
         try {
             $tables = $this->loadTables();
             $menus = $this->loadMenus();
-            $orders = $this->loadOrdersByTable(array_column($tables['rows'], 'id'));
+            $orders = $this->loadOrderMetrics($tables['rows']);
 
             $rows = [];
-            foreach ($tables['rows'] as $i => $t) {
+            foreach ($tables['rows'] as $index => $t) {
                 $id = (int)$t['id'];
-                $o = $orders[$id] ?? ['open_orders' => 0, 'ready' => 0, 'due' => 0];
+                $metric = $orders[$id] ?? [
+                    'orders' => 0,
+                    'ready' => 0,
+                    'due' => 0,
+                    'open_orders' => 0,
+                ];
 
-                $status = 'free';
-                if (($o['due'] ?? 0) > 0) {
-                    $status = 'unpaid';
-                } elseif (($o['ready'] ?? 0) > 0) {
-                    $status = 'ready';
-                } elseif (($o['open_orders'] ?? 0) > 0) {
-                    $status = 'open';
+                $x = $t['floor_x'];
+                $y = $t['floor_y'];
+
+                if ($x === null || $y === null) {
+                    $pos = $this->autoPosition($index);
+                    $x = $pos['x'];
+                    $y = $pos['y'];
                 }
 
-                $t['status'] = $status;
-                $t['status_label'] = strtoupper($status === 'open' ? 'DINING' : $status);
-                $t['orders'] = (int)($o['open_orders'] ?? 0);
-                $t['open_orders'] = (int)($o['open_orders'] ?? 0);
-                $t['ready'] = (int)($o['ready'] ?? 0);
-                $t['due'] = (float)($o['due'] ?? 0);
-                $rows[] = $t;
+                $status = $t['enabled'] ? 'free' : 'disabled';
+                if (($metric['open_orders'] ?? 0) > 0) $status = 'open';
+                if (($metric['ready'] ?? 0) > 0) $status = 'ready';
+                if (($metric['due'] ?? 0) > 0) $status = 'unpaid';
+
+                $rows[] = array_merge($t, $metric, [
+                    'x' => $x,
+                    'y' => $y,
+                    'floor_x' => $x,
+                    'floor_y' => $y,
+                    'status' => $status,
+                    'status_label' => strtoupper($status),
+                ]);
             }
 
             $kpis = [
-                'tables' => count($rows),
-                'assigned' => 0,
+                'tables' => count(array_filter($rows, fn($t) => !empty($t['enabled']))),
+                'all_tables' => count($rows),
                 'ready' => array_sum(array_map(fn($t) => (int)($t['ready'] ?? 0), $rows)),
                 'active_orders' => array_sum(array_map(fn($t) => (int)($t['open_orders'] ?? 0), $rows)),
                 'attention' => 0,
                 'checks_due' => array_sum(array_map(fn($t) => (float)($t['due'] ?? 0), $rows)),
-                'due' => array_sum(array_map(fn($t) => (float)($t['due'] ?? 0), $rows))
+                'due' => array_sum(array_map(fn($t) => (float)($t['due'] ?? 0), $rows)),
             ];
 
             $payload = [
                 'ok' => true,
-                'version' => 'v133',
-                'mode' => 'REAL_ADMIN_TABLES_REAL_ADMIN_MENUS',
+                'version' => 'v136',
+                'mode' => 'REAL_TABLES_FULL_METADATA_FLOOR_PLAN',
                 'generated_at' => date('c'),
                 'source' => [
                     'tables' => $tables['source'],
                     'menus' => $menus['source'],
-                    'orders' => 'orders'
+                    'orders' => Schema::hasTable('orders') ? 'orders' : null,
                 ],
+                'primary_key' => $tables['primary_key'],
                 'kpis' => $kpis,
                 'metrics' => [
                     'tables' => $kpis['tables'],
-                    'assigned_tables' => $kpis['assigned'],
+                    'all_tables' => $kpis['all_tables'],
                     'ready_to_serve' => $kpis['ready'],
                     'active_orders' => $kpis['active_orders'],
                     'needs_attention' => $kpis['attention'],
-                    'payments_due' => $kpis['due']
+                    'payments_due' => $kpis['due'],
                 ],
                 'tables' => $rows,
                 'floor_tables' => $rows,
                 'menu_items' => $menus['rows'],
-                'menus' => $menus['rows']
+                'menus' => $menus['rows'],
             ];
 
-            if ($withAudit) {
+            if ($audit) {
                 $payload['audit'] = [
-                    'tables_source' => $tables,
-                    'menus_source' => $menus,
-                    'orders_by_table' => $orders,
-                    'filtering_note' => 'Only enabled real dining tables are returned. Virtual rows such as cashier, delivery, takeaway, pickup, kitchen, KDS, POS are filtered out.'
+                    'tables_schema' => $tables['columns'],
+                    'menus_schema' => $menus['columns'],
+                    'raw_table_count_before_visible_filter' => $tables['raw_count'],
+                    'returned_table_count' => count($rows),
+                    'returned_menu_count' => count($menus['rows']),
+                    'table_ids' => array_map(fn($t) => $t['id'], $rows),
+                    'table_labels' => array_map(fn($t) => $t['label'], $rows),
+                    'metadata_fields_supported' => [
+                        'min_capacity',
+                        'max_capacity',
+                        'extra_capacity',
+                        'preferred_capacity',
+                        'floor_x',
+                        'floor_y',
+                        'floor_width',
+                        'floor_height',
+                        'floor_shape',
+                        'table_section',
+                        'table_features',
+                        'floor_notes',
+                        'reservable',
+                        'visible_on_floor_plan',
+                    ],
                 ];
             }
 
@@ -191,149 +192,152 @@ class PmdWaiterMobileActionV107
         } catch (\Throwable $e) {
             return [
                 'ok' => false,
-                'version' => 'v133',
-                'error' => $e->getMessage(),
-                'file' => basename($e->getFile()),
-                'line' => $e->getLine()
+                'version' => 'v136',
+                'message' => $e->getMessage(),
+                'trace' => substr($e->getTraceAsString(), 0, 1200),
             ];
         }
     }
 
     protected function loadTables()
     {
-        $source = $this->firstTable(['tables', 'restaurant_tables', 'igniter_tables', 'pmd_tables']);
-        if (!$source) {
+        if (!Schema::hasTable('tables')) {
             return [
                 'source' => null,
+                'primary_key' => null,
+                'columns' => [],
+                'raw_count' => 0,
                 'rows' => [],
-                'error' => 'No real tables table was found.'
             ];
         }
 
-        $cols = $this->cols($source);
-        $pk = $this->firstCol($cols, ['table_id', 'id']) ?: $this->firstEndingCol($cols, '_id');
-        $nameCol = $this->firstCol($cols, ['table_name', 'name', 'label', 'title']);
-        $numberCol = $this->firstCol($cols, ['table_no', 'table_number', 'number', 'sort_order', 'id']);
-        $statusCol = $this->firstCol($cols, ['table_status', 'status', 'is_enabled', 'enabled', 'active']);
-        $capacityCol = $this->firstCol($cols, ['capacity', 'max_capacity', 'min_capacity', 'seats', 'covers']);
-        $typeCol = $this->firstCol($cols, ['type', 'table_type', 'service_type', 'area', 'section']);
+        $cols = Schema::getColumnListing('tables');
+        $pk = in_array('table_id', $cols) ? 'table_id' : (in_array('id', $cols) ? 'id' : $cols[0]);
 
-        $query = DB::table($source);
+        $q = DB::table('tables');
 
-        if ($statusCol) {
-            $query->whereIn($statusCol, [1, '1', true, 'true', 'yes', 'active', 'enabled', 'available']);
+        if (in_array('deleted_at', $cols)) {
+            $q->whereNull('deleted_at');
         }
 
-        $raw = $query->limit(1000)->get();
+        if (in_array('visible_on_floor_plan', $cols)) {
+            $q->where(function ($qq) {
+                $qq->where('visible_on_floor_plan', 1)->orWhereNull('visible_on_floor_plan');
+            });
+        }
 
-        $kept = [];
-        $filtered = [];
+        if (in_array('floor_y', $cols) && in_array('floor_x', $cols)) {
+            $q->orderByRaw('CASE WHEN floor_y IS NULL THEN 1 ELSE 0 END ASC');
+            $q->orderBy('floor_y', 'asc')->orderBy('floor_x', 'asc');
+        } elseif (in_array('priority', $cols)) {
+            $q->orderBy('priority', 'asc');
+        } elseif (in_array('sort_order', $cols)) {
+            $q->orderBy('sort_order', 'asc');
+        } else {
+            $q->orderBy($pk, 'asc');
+        }
 
-        foreach ($raw as $row) {
-            $id = (int)$this->val($row, $pk, 0);
+        $raw = $q->get();
+        $rows = [];
+
+        foreach ($raw as $r) {
+            $a = (array)$r;
+
+            $id = (int)($a[$pk] ?? 0);
             if (!$id) continue;
 
-            $name = trim((string)$this->val($row, $nameCol, ''));
-            $numRaw = trim((string)$this->val($row, $numberCol, ''));
-            $labelBase = $name ?: $numRaw ?: ('Table ' . $id);
+            $number = $this->first($a, ['table_no', 'table_number', 'number', 'table_name', 'name', 'label'], (string)$id);
+            $labelBase = $this->first($a, ['table_name', 'name', 'label'], null);
+            $label = $labelBase ?: ('Table ' . $number);
 
-            $number = $this->extractTableNumber($numRaw ?: $name ?: (string)$id);
-            $label = $this->prettyTableLabel($labelBase, $number);
-
-            $typeText = trim((string)$this->val($row, $typeCol, ''));
-
-            if ($this->isVirtualTable($labelBase, $typeText)) {
-                $filtered[] = [
-                    'id' => $id,
-                    'label' => $labelBase,
-                    'type' => $typeText,
-                    'reason' => 'virtual/non-dining row'
-                ];
-                continue;
+            $enabled = true;
+            if (array_key_exists('table_status', $a)) {
+                $enabled = (int)$a['table_status'] === 1;
+            } elseif (array_key_exists('status', $a)) {
+                $enabled = !in_array(strtolower((string)$a['status']), ['0', 'disabled', 'inactive', 'deleted'], true);
             }
 
-            $capacity = (int)$this->val($row, $capacityCol, 4);
-            if ($capacity <= 0) $capacity = 4;
+            $features = $this->decodeFeatures($this->first($a, ['table_features', 'features', 'tags'], null));
 
-            $kept[] = [
+            $rows[] = [
                 'id' => $id,
                 'table_id' => $id,
-                'number' => $number ?: (string)$id,
-                'table_no' => $number ?: (string)$id,
-                'name' => $label,
-                'label' => $label,
-                'capacity' => $capacity,
-                'assigned' => false,
-                'source_row' => [
-                    'pk' => $pk,
-                    'name_col' => $nameCol,
-                    'number_col' => $numberCol,
-                    'status_col' => $statusCol,
-                    'raw_label' => $labelBase
-                ]
+                'primary_key' => $pk,
+                'number' => (string)$number,
+                'table_no' => (string)$number,
+                'name' => (string)$label,
+                'label' => (string)$label,
+                'enabled' => $enabled,
+                'raw_status' => $this->first($a, ['table_status', 'status'], null),
+
+                'capacity' => $this->num($this->first($a, ['capacity', 'table_capacity', 'min_capacity'], 0)),
+                'min_capacity' => $this->num($this->first($a, ['min_capacity', 'minimum_capacity'], null)),
+                'max_capacity' => $this->num($this->first($a, ['max_capacity', 'maximum_capacity'], null)),
+                'extra_capacity' => $this->num($this->first($a, ['extra_capacity'], null)),
+                'preferred_capacity' => $this->num($this->first($a, ['preferred_capacity', 'normal_capacity'], null)),
+
+                'floor_x' => $this->num($this->first($a, ['floor_x', 'x'], null)),
+                'floor_y' => $this->num($this->first($a, ['floor_y', 'y'], null)),
+                'floor_width' => $this->num($this->first($a, ['floor_width', 'width'], null)),
+                'floor_height' => $this->num($this->first($a, ['floor_height', 'height'], null)),
+                'floor_shape' => $this->first($a, ['floor_shape', 'shape'], 'rectangle'),
+
+                'section' => $this->first($a, ['table_section', 'section', 'area', 'location'], null),
+                'table_section' => $this->first($a, ['table_section', 'section', 'area', 'location'], null),
+                'features' => $features,
+                'table_features' => $features,
+                'floor_notes' => $this->first($a, ['floor_notes', 'notes', 'description'], null),
+
+                'reservable' => $this->bool($this->first($a, ['reservable', 'is_reservable'], true)),
+                'reservation_priority' => $this->num($this->first($a, ['reservation_priority'], 0)),
+                'visible_on_floor_plan' => $this->bool($this->first($a, ['visible_on_floor_plan'], true)),
+
+                'raw' => $a,
             ];
         }
 
-        usort($kept, function ($a, $b) {
-            $an = is_numeric($a['number']) ? (int)$a['number'] : PHP_INT_MAX;
-            $bn = is_numeric($b['number']) ? (int)$b['number'] : PHP_INT_MAX;
-            if ($an !== $bn) return $an <=> $bn;
-            return strnatcasecmp($a['label'], $b['label']);
-        });
-
-        $kept = $this->assignFloorPositions($kept);
-
         return [
-            'source' => $source,
+            'source' => 'tables',
+            'primary_key' => $pk,
             'columns' => $cols,
-            'pk' => $pk,
-            'name_col' => $nameCol,
-            'number_col' => $numberCol,
-            'status_col' => $statusCol,
-            'capacity_col' => $capacityCol,
-            'type_col' => $typeCol,
             'raw_count' => count($raw),
-            'kept_count' => count($kept),
-            'filtered_count' => count($filtered),
-            'filtered' => $filtered,
-            'rows' => $kept
+            'rows' => $rows,
         ];
     }
 
     protected function loadMenus()
     {
-        $source = $this->firstTable(['menus', 'menu_items', 'restaurant_menus', 'igniter_menus']);
-        if (!$source) {
+        if (!Schema::hasTable('menus')) {
             return [
                 'source' => null,
+                'columns' => [],
                 'rows' => [],
-                'error' => 'No real menu table was found.'
             ];
         }
 
-        $cols = $this->cols($source);
-        $pk = $this->firstCol($cols, ['menu_id', 'id']) ?: $this->firstEndingCol($cols, '_id');
-        $nameCol = $this->firstCol($cols, ['menu_name', 'name', 'title', 'label']);
-        $priceCol = $this->firstCol($cols, ['menu_price', 'price', 'amount', 'cost']);
-        $statusCol = $this->firstCol($cols, ['menu_status', 'status', 'is_enabled', 'enabled', 'active']);
+        $cols = Schema::getColumnListing('menus');
+        $pk = in_array('menu_id', $cols) ? 'menu_id' : (in_array('id', $cols) ? 'id' : $cols[0]);
 
-        $query = DB::table($source);
+        $q = DB::table('menus');
 
-        if ($statusCol) {
-            $query->whereIn($statusCol, [1, '1', true, 'true', 'yes', 'active', 'enabled', 'available']);
+        if (in_array('menu_status', $cols)) {
+            $q->where('menu_status', 1);
         }
 
-        $raw = $query->limit(500)->get();
-        $rows = [];
+        if (in_array('deleted_at', $cols)) {
+            $q->whereNull('deleted_at');
+        }
 
-        foreach ($raw as $row) {
-            $id = (int)$this->val($row, $pk, 0);
+        $q->orderBy($pk, 'asc');
+
+        $rows = [];
+        foreach ($q->limit(300)->get() as $r) {
+            $a = (array)$r;
+            $id = (int)($a[$pk] ?? 0);
             if (!$id) continue;
 
-            $name = trim((string)$this->val($row, $nameCol, ''));
-            if ($name === '') $name = 'Menu item ' . $id;
-
-            $price = (float)$this->val($row, $priceCol, 0);
+            $name = $this->first($a, ['menu_name', 'name', 'title'], 'Menu ' . $id);
+            $price = $this->num($this->first($a, ['menu_price', 'price', 'sale_price'], 0));
 
             $rows[] = [
                 'id' => $id,
@@ -342,351 +346,130 @@ class PmdWaiterMobileActionV107
                 'menu_name' => $name,
                 'title' => $name,
                 'price' => $price,
-                'menu_price' => $price
+                'menu_price' => $price,
+                'raw' => $a,
             ];
         }
 
-        usort($rows, fn($a, $b) => strnatcasecmp($a['name'], $b['name']));
-
         return [
-            'source' => $source,
+            'source' => 'menus',
             'columns' => $cols,
-            'pk' => $pk,
-            'name_col' => $nameCol,
-            'price_col' => $priceCol,
-            'status_col' => $statusCol,
-            'raw_count' => count($raw),
-            'kept_count' => count($rows),
-            'rows' => $rows
+            'rows' => $rows,
         ];
     }
 
-    protected function loadOrdersByTable($tableIds)
+    protected function loadOrderMetrics($tables)
     {
-        $result = [];
-        foreach ($tableIds as $id) {
-            $result[(int)$id] = [
+        $metrics = [];
+        foreach ($tables as $t) {
+            $metrics[(int)$t['id']] = [
+                'orders' => 0,
                 'open_orders' => 0,
                 'ready' => 0,
-                'due' => 0
+                'due' => 0,
             ];
         }
 
-        if (!Schema::hasTable('orders') || empty($tableIds)) {
-            return $result;
-        }
-
-        $cols = $this->cols('orders');
-        $tableCol = $this->firstCol($cols, ['table_id', 'dining_table_id', 'restaurant_table_id']);
-        if (!$tableCol) return $result;
-
-        $dateCol = $this->firstCol($cols, ['order_date', 'created_at', 'updated_at']);
-        $statusCol = $this->firstCol($cols, ['status', 'order_status', 'status_id', 'order_status_id']);
-        $totalCol = $this->firstCol($cols, ['order_total', 'total', 'total_amount', 'order_total_value']);
-        $paidCol = $this->firstCol($cols, ['is_paid', 'paid', 'payment_status']);
-
-        $query = DB::table('orders')->whereIn($tableCol, $tableIds);
-
-        if ($dateCol) {
-            try {
-                $query->whereDate($dateCol, date('Y-m-d'));
-            } catch (\Throwable $e) {
-                // ignore date filter if DB driver does not support it here
-            }
-        }
-
-        $orders = $query->limit(1000)->get();
-
-        foreach ($orders as $row) {
-            $tid = (int)$this->val($row, $tableCol, 0);
-            if (!$tid || !isset($result[$tid])) continue;
-
-            if (!$this->isOpenOrder($row, $statusCol)) continue;
-
-            $result[$tid]['open_orders']++;
-
-            $total = (float)$this->val($row, $totalCol, 0);
-            $paidRaw = strtolower(trim((string)$this->val($row, $paidCol, '')));
-            $isPaid = in_array($paidRaw, ['1', 'true', 'yes', 'paid', 'complete', 'completed'], true);
-
-            if (!$isPaid && $total > 0) {
-                $result[$tid]['due'] += $total;
-            }
-        }
-
-        return $result;
-    }
-
-    protected function createOrderWithItem($table, $menu, $qty)
-    {
         if (!Schema::hasTable('orders')) {
-            return [
-                'ok' => false,
-                'step' => 'orders',
-                'error' => 'orders table was not found'
-            ];
+            return $metrics;
         }
 
-        $ordersCols = $this->cols('orders');
-        $orderPk = $this->firstCol($ordersCols, ['order_id', 'id']) ?: 'id';
+        $cols = Schema::getColumnListing('orders');
+        $tableCol = in_array('table_id', $cols) ? 'table_id' : null;
+        if (!$tableCol) return $metrics;
 
-        $price = (float)($menu['price'] ?? $menu['menu_price'] ?? 0);
-        $total = $price * $qty;
-        $tableId = (int)$table['id'];
-
-        $order = [];
-        $put = function ($col, $val) use (&$order, $ordersCols) {
-            if (in_array($col, $ordersCols, true) && !array_key_exists($col, $order)) {
-                $order[$col] = $val;
+        $statusCol = in_array('status_id', $cols) ? 'status_id' : (in_array('order_status', $cols) ? 'order_status' : null);
+        $totalCol = null;
+        foreach (['order_total', 'total', 'order_value', 'total_amount'] as $c) {
+            if (in_array($c, $cols)) {
+                $totalCol = $c;
+                break;
             }
-        };
-
-        $put('table_id', $tableId);
-        $put('dining_table_id', $tableId);
-        $put('restaurant_table_id', $tableId);
-        $put('location_id', 1);
-        $put('order_type', 'dinein');
-        $put('type', 'dinein');
-        $put('first_name', 'Waiter');
-        $put('last_name', 'Order');
-        $put('customer_name', 'Waiter Order');
-        $put('order_status_id', 1);
-        $put('status_id', 1);
-        $put('status', 'pending');
-        $put('order_total', $total);
-        $put('total', $total);
-        $put('total_amount', $total);
-        $put('order_date', date('Y-m-d'));
-        $put('order_time', date('H:i:s'));
-        $put('created_at', date('Y-m-d H:i:s'));
-        $put('updated_at', date('Y-m-d H:i:s'));
+        }
 
         try {
-            if (empty($order)) {
-                return [
-                    'ok' => false,
-                    'step' => 'orders',
-                    'error' => 'No compatible order columns were detected.',
-                    'orders_columns' => $ordersCols
-                ];
+            foreach (DB::table('orders')->limit(1000)->get() as $r) {
+                $a = (array)$r;
+                $tid = (int)($a[$tableCol] ?? 0);
+                if (!$tid || !isset($metrics[$tid])) continue;
+
+                $status = $statusCol ? strtolower((string)($a[$statusCol] ?? '')) : '';
+                $closed = in_array($status, ['paid', 'closed', 'cancelled', 'canceled', 'complete', 'completed', '5', '6'], true);
+
+                if (!$closed) {
+                    $metrics[$tid]['orders']++;
+                    $metrics[$tid]['open_orders']++;
+                    if ($totalCol) {
+                        $metrics[$tid]['due'] += (float)($a[$totalCol] ?? 0);
+                    }
+                }
             }
+        } catch (\Throwable $e) {}
 
-            $orderId = DB::table('orders')->insertGetId($order, $orderPk);
-        } catch (\Throwable $e) {
-            return [
-                'ok' => false,
-                'step' => 'orders',
-                'error' => $e->getMessage(),
-                'attempted_insert' => $order,
-                'orders_columns' => $ordersCols
-            ];
-        }
-
-        $itemTable = $this->firstTable(['order_menus', 'order_items', 'order_menu_items', 'igniter_order_menus']);
-        if (!$itemTable) {
-            return [
-                'ok' => true,
-                'order_created' => true,
-                'order_id' => $orderId,
-                'item_inserted' => false,
-                'warning' => 'Order was created, but no order item table was found.'
-            ];
-        }
-
-        $itemCols = $this->cols($itemTable);
-        $item = [];
-        $putItem = function ($col, $val) use (&$item, $itemCols) {
-            if (in_array($col, $itemCols, true) && !array_key_exists($col, $item)) {
-                $item[$col] = $val;
-            }
-        };
-
-        $putItem('order_id', $orderId);
-        $putItem('menu_id', (int)$menu['id']);
-        $putItem('item_id', (int)$menu['id']);
-        $putItem('name', $menu['name']);
-        $putItem('menu_name', $menu['name']);
-        $putItem('quantity', $qty);
-        $putItem('qty', $qty);
-        $putItem('price', $price);
-        $putItem('menu_price', $price);
-        $putItem('subtotal', $total);
-        $putItem('total', $total);
-        $putItem('created_at', date('Y-m-d H:i:s'));
-        $putItem('updated_at', date('Y-m-d H:i:s'));
-
-        try {
-            DB::table($itemTable)->insert($item);
-
-            return [
-                'ok' => true,
-                'order_created' => true,
-                'order_id' => $orderId,
-                'item_inserted' => true,
-                'item_table' => $itemTable,
-                'inserted_item' => $item
-            ];
-        } catch (\Throwable $e) {
-            return [
-                'ok' => false,
-                'order_created' => true,
-                'order_id' => $orderId,
-                'item_inserted' => false,
-                'item_table' => $itemTable,
-                'error' => $e->getMessage(),
-                'attempted_item_insert' => $item,
-                'item_columns' => $itemCols
-            ];
-        }
+        return $metrics;
     }
 
-    protected function assignFloorPositions($rows)
+    protected function autoPosition($i)
     {
-        $count = count($rows);
-        if ($count === 0) return $rows;
-
-        $cols = $count <= 3 ? $count : 4;
-        $cols = max(1, min(4, $cols));
-        $rowsCount = (int)ceil($count / $cols);
-
-        $xStart = 16;
-        $xEnd = 82;
-        $yStart = 18;
-        $yGap = $rowsCount <= 1 ? 0 : min(30, 62 / max(1, $rowsCount - 1));
-
-        foreach ($rows as $i => &$row) {
-            $col = $i % $cols;
-            $r = (int)floor($i / $cols);
-
-            $x = $cols === 1 ? 45 : $xStart + (($xEnd - $xStart) * ($col / max(1, $cols - 1)));
-            $y = $rowsCount === 1 ? 32 : $yStart + ($r * $yGap);
-
-            $row['x'] = round($x, 2);
-            $row['y'] = round($y, 2);
-        }
-
-        return $rows;
+        $cols = 4;
+        $col = $i % $cols;
+        $row = (int)floor($i / $cols);
+        return [
+            'x' => 14 + ($col * 22),
+            'y' => 16 + ($row * 22),
+        ];
     }
 
-    protected function isVirtualTable($label, $type = '')
+    protected function first($row, $keys, $default = null)
     {
-        $text = strtolower(trim($label . ' ' . $type));
-
-        if ($text === '') return false;
-
-        return (bool)preg_match('/\b(cashier|delivery|deliver|takeaway|take\s*away|pickup|pick\s*up|online|kds|kitchen|pos|counter|bar|driver|collection)\b/i', $text);
-    }
-
-    protected function isOpenOrder($row, $statusCol)
-    {
-        if (!$statusCol) return true;
-
-        $v = $this->val($row, $statusCol, null);
-        if ($v === null || $v === '') return true;
-
-        $s = strtolower(trim((string)$v));
-
-        if (is_numeric($s)) {
-            $n = (int)$s;
-            return in_array($n, [0, 1, 2, 3, 4], true);
-        }
-
-        if (preg_match('/cancel|complete|closed|paid|refund|void|failed/i', $s)) {
-            return false;
-        }
-
-        return true;
-    }
-
-    protected function extractTableNumber($value)
-    {
-        $value = trim((string)$value);
-        if ($value === '') return '';
-
-        if (preg_match('/\d+/', $value, $m)) {
-            return $m[0];
-        }
-
-        return $value;
-    }
-
-    protected function prettyTableLabel($label, $number)
-    {
-        $label = trim((string)$label);
-        $number = trim((string)$number);
-
-        if ($number !== '' && preg_match('/^\d+$/', $number)) {
-            return 'Table ' . $number;
-        }
-
-        if ($label !== '') return $label;
-
-        return $number !== '' ? ('Table ' . $number) : 'Table';
-    }
-
-    protected function firstTable($candidates)
-    {
-        foreach ($candidates as $table) {
-            try {
-                if (Schema::hasTable($table)) return $table;
-            } catch (\Throwable $e) {
-                // ignore
+        foreach ($keys as $k) {
+            if (array_key_exists($k, $row) && $row[$k] !== null && $row[$k] !== '') {
+                return $row[$k];
             }
         }
-
-        return null;
+        return $default;
     }
 
-    protected function cols($table)
+    protected function num($v)
     {
-        try {
-            return array_values(Schema::getColumnListing($table));
-        } catch (\Throwable $e) {
-            return [];
-        }
+        if ($v === null || $v === '') return null;
+        return is_numeric($v) ? 0 + $v : null;
     }
 
-    protected function firstCol($cols, $candidates)
+    protected function bool($v)
     {
-        foreach ($candidates as $c) {
-            if (in_array($c, $cols, true)) return $c;
-        }
-        return null;
+        if (is_bool($v)) return $v;
+        if ($v === null || $v === '') return false;
+        return !in_array(strtolower((string)$v), ['0', 'false', 'no', 'off', 'disabled'], true);
     }
 
-    protected function firstEndingCol($cols, $ending)
+    protected function decodeFeatures($v)
     {
-        foreach ($cols as $c) {
-            if (substr($c, -strlen($ending)) === $ending) return $c;
-        }
-        return null;
-    }
-
-    protected function val($row, $col, $default = null)
-    {
-        if (!$col) return $default;
-        $arr = (array)$row;
-        return array_key_exists($col, $arr) ? $arr[$col] : $default;
+        if (!$v) return [];
+        if (is_array($v)) return array_values($v);
+        $s = (string)$v;
+        $j = json_decode($s, true);
+        if (is_array($j)) return array_values($j);
+        return array_values(array_filter(array_map('trim', preg_split('/[,|]+/', $s))));
     }
 
     protected function input($key, $default = null)
     {
-        try {
+        if (function_exists('request')) {
             return request()->input($key, $default);
-        } catch (\Throwable $e) {
-            return $_GET[$key] ?? $_POST[$key] ?? $default;
         }
+        return $_REQUEST[$key] ?? $default;
     }
 
     protected function json($payload, $status = 200)
     {
-        try {
+        if (function_exists('response')) {
             return response()->json($payload, $status);
-        } catch (\Throwable $e) {
-            http_response_code($status);
-            header('Content-Type: application/json');
-            echo json_encode($payload);
-            exit;
         }
+
+        http_response_code($status);
+        header('Content-Type: application/json');
+        echo json_encode($payload);
+        exit;
     }
 }

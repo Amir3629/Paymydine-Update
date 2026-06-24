@@ -1,0 +1,392 @@
+#pmd-floor-plan-stable,
+#pmd-floor-plan-stable * {
+  box-sizing: border-box;
+}
+
+#pmd-floor-plan-stable {
+  --ink: #08241f;
+  --muted: #657083;
+  --paper: #ffffff;
+  --soft: #f5f1e8;
+  --line: rgba(8,36,31,.12);
+  width: calc(100% - 64px);
+  max-width: 1500px;
+  margin: 30px auto 34px;
+  color: var(--ink);
+  font-family: inherit;
+  position: relative;
+  z-index: 4;
+}
+
+#pmd-floor-plan-stable .pmd-floor-shell {
+  background: #fff;
+  border: 1px solid rgba(8,36,31,.10);
+  border-radius: 24px;
+  padding: 28px;
+  box-shadow: 0 18px 42px rgba(8,36,31,.06);
+}
+
+#pmd-floor-plan-stable .pmd-floor-top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 18px;
+  margin-bottom: 16px;
+}
+
+#pmd-floor-plan-stable .pmd-floor-title {
+  font-size: 32px;
+  font-weight: 950;
+  letter-spacing: -0.04em;
+  line-height: 1;
+}
+
+#pmd-floor-plan-stable .pmd-floor-sub {
+  margin-top: 10px;
+  font-size: 14px;
+  color: var(--muted);
+  font-weight: 800;
+}
+
+#pmd-floor-plan-stable .pmd-floor-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+#pmd-floor-plan-stable .pmd-floor-btn,
+#pmd-floor-plan-stable .pmd-floor-tab {
+  border: 0;
+  background: var(--soft);
+  color: var(--ink);
+  min-height: 44px;
+  padding: 0 18px;
+  border-radius: 14px;
+  font-weight: 950;
+  font-size: 14px;
+  cursor: pointer;
+}
+
+#pmd-floor-plan-stable .pmd-floor-btn.primary,
+#pmd-floor-plan-stable .pmd-floor-tab.active {
+  background: #00543f;
+  color: #fff;
+}
+
+#pmd-floor-plan-stable .pmd-floor-btn.danger {
+  background: #b42318;
+  color: #fff;
+}
+
+#pmd-floor-plan-stable .pmd-floor-tabs {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin: 14px 0;
+}
+
+#pmd-floor-plan-stable .pmd-floor-legend {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin: 10px 0 16px;
+}
+
+#pmd-floor-plan-stable .pmd-floor-legend span {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 12px;
+  font-weight: 950;
+  color: #4f5f70;
+}
+
+#pmd-floor-plan-stable .pmd-floor-legend span:before {
+  content: "";
+  width: 11px;
+  height: 11px;
+  border-radius: 50%;
+  display: inline-block;
+  background: #80df9a;
+}
+
+#pmd-floor-plan-stable .pmd-floor-legend .order:before { background: #fbbf24; }
+#pmd-floor-plan-stable .pmd-floor-legend .kitchen:before { background: #60a5fa; }
+#pmd-floor-plan-stable .pmd-floor-legend .ready:before { background: #8b5cf6; }
+#pmd-floor-plan-stable .pmd-floor-legend .partial:before { background: #f97316; }
+#pmd-floor-plan-stable .pmd-floor-legend .call:before { background: #ef4444; }
+#pmd-floor-plan-stable .pmd-floor-legend .paid:before { background: #94a3b8; }
+
+#pmd-floor-plan-stable .pmd-floor-map-wrap {
+  width: 100%;
+  min-height: 430px;
+  border: 4px solid rgba(8,36,31,.28);
+  border-radius: 24px;
+  overflow: hidden;
+  background: #fbf4e8;
+}
+
+#pmd-floor-plan-stable .pmd-floor-svg {
+  display: block;
+  width: 100%;
+  height: 430px;
+}
+
+#pmd-floor-plan-stable .pmd-floor-table {
+  cursor: pointer;
+  outline: none;
+}
+
+#pmd-floor-plan-stable .pmd-floor-table.editing {
+  cursor: grab;
+}
+
+#pmd-floor-plan-stable .pmd-floor-table.editing:active {
+  cursor: grabbing;
+}
+
+#pmd-floor-plan-stable .pmd-chair {
+  fill: #65d985;
+  stroke: #28c46b;
+  stroke-width: 2;
+}
+
+#pmd-floor-plan-stable .pmd-chair.extra {
+  opacity: .48;
+  stroke-dasharray: 4 3;
+}
+
+#pmd-floor-plan-stable .pmd-table-main {
+  fill: #80df9a;
+  stroke: #28c46b;
+  stroke-width: 4;
+}
+
+#pmd-floor-plan-stable .status-free .pmd-table-main,
+#pmd-floor-plan-stable .status-free .pmd-chair {
+  fill: #80df9a;
+  stroke: #28c46b;
+}
+
+#pmd-floor-plan-stable .status-order .pmd-table-main,
+#pmd-floor-plan-stable .status-order .pmd-chair {
+  fill: #fcd34d;
+  stroke: #d97706;
+}
+
+#pmd-floor-plan-stable .status-kitchen .pmd-table-main,
+#pmd-floor-plan-stable .status-kitchen .pmd-chair {
+  fill: #93c5fd;
+  stroke: #2563eb;
+}
+
+#pmd-floor-plan-stable .status-ready .pmd-table-main,
+#pmd-floor-plan-stable .status-ready .pmd-chair {
+  fill: #c4b5fd;
+  stroke: #7c3aed;
+}
+
+#pmd-floor-plan-stable .status-partial .pmd-table-main,
+#pmd-floor-plan-stable .status-partial .pmd-chair,
+#pmd-floor-plan-stable .status-unpaid .pmd-table-main,
+#pmd-floor-plan-stable .status-unpaid .pmd-chair {
+  fill: #fdba74;
+  stroke: #ea580c;
+}
+
+#pmd-floor-plan-stable .status-call .pmd-table-main,
+#pmd-floor-plan-stable .status-call .pmd-chair,
+#pmd-floor-plan-stable .status-note .pmd-table-main,
+#pmd-floor-plan-stable .status-note .pmd-chair {
+  fill: #fca5a5;
+  stroke: #dc2626;
+}
+
+#pmd-floor-plan-stable .status-paid .pmd-table-main,
+#pmd-floor-plan-stable .status-paid .pmd-chair {
+  fill: #cbd5e1;
+  stroke: #64748b;
+}
+
+#pmd-floor-plan-stable .status-reserved .pmd-table-main,
+#pmd-floor-plan-stable .status-reserved .pmd-chair {
+  fill: #fde68a;
+  stroke: #ca8a04;
+}
+
+#pmd-floor-plan-stable .pmd-floor-table.selected .pmd-table-main,
+#pmd-floor-plan-stable .pmd-floor-table.merge-selected .pmd-table-main {
+  stroke: #062b24 !important;
+  stroke-width: 7 !important;
+}
+
+#pmd-floor-plan-stable .pmd-table-text-main {
+  fill: #08241f;
+  font-size: 28px;
+  font-weight: 950;
+  text-anchor: middle;
+  dominant-baseline: middle;
+}
+
+#pmd-floor-plan-stable .pmd-table-text-status {
+  fill: #08241f;
+  font-size: 10px;
+  font-weight: 950;
+  letter-spacing: 3px;
+  text-anchor: middle;
+  dominant-baseline: middle;
+}
+
+#pmd-floor-plan-stable .pmd-floor-edit-note {
+  margin: 12px 0 0;
+  color: #657083;
+  font-size: 13px;
+  font-weight: 800;
+}
+
+#pmd-floor-plan-stable .pmd-floor-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 16px;
+  margin-top: 20px;
+}
+
+#pmd-floor-plan-stable .pmd-floor-card {
+  background: #fff;
+  border: 1px solid rgba(8,36,31,.12);
+  border-radius: 18px;
+  padding: 18px;
+  box-shadow: 0 12px 24px rgba(8,36,31,.04);
+}
+
+#pmd-floor-plan-stable .pmd-floor-card-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: flex-start;
+}
+
+#pmd-floor-plan-stable .pmd-floor-card-title {
+  font-size: 22px;
+  line-height: 1;
+  font-weight: 950;
+  letter-spacing: -0.03em;
+}
+
+#pmd-floor-plan-stable .pmd-floor-pill {
+  border-radius: 999px;
+  padding: 7px 10px;
+  background: #e9fff2;
+  color: #00543f;
+  font-size: 11px;
+  font-weight: 950;
+  white-space: nowrap;
+}
+
+#pmd-floor-plan-stable .pmd-floor-mini {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 9px;
+  margin-top: 16px;
+}
+
+#pmd-floor-plan-stable .pmd-floor-mini div {
+  background: #f4efe7;
+  border-radius: 12px;
+  padding: 10px;
+  font-size: 15px;
+  font-weight: 950;
+}
+
+#pmd-floor-plan-stable .pmd-floor-mini span {
+  display: block;
+  margin-top: 6px;
+  color: #6b7890;
+  font-size: 9px;
+  letter-spacing: 4px;
+  text-transform: uppercase;
+}
+
+#pmd-floor-plan-stable .pmd-floor-meta {
+  margin-top: 12px;
+  color: #657083;
+  font-size: 13px;
+  line-height: 1.5;
+  font-weight: 800;
+}
+
+#pmd-floor-plan-stable .pmd-floor-card-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 14px;
+  flex-wrap: wrap;
+}
+
+#pmd-floor-plan-stable .pmd-floor-card-actions a {
+  text-decoration: none;
+  border-radius: 12px;
+  min-height: 40px;
+  padding: 0 14px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: #f4efe7;
+  color: #08241f;
+  font-weight: 950;
+  font-size: 13px;
+}
+
+#pmd-floor-plan-stable .pmd-floor-card-actions a.primary {
+  background: #00543f;
+  color: #fff;
+}
+
+@media (max-width: 900px) {
+  #pmd-floor-plan-stable {
+    width: calc(100% - 24px);
+    margin: 18px auto 26px;
+  }
+
+  #pmd-floor-plan-stable .pmd-floor-shell {
+    padding: 18px;
+    border-radius: 20px;
+  }
+
+  #pmd-floor-plan-stable .pmd-floor-top {
+    flex-direction: column;
+  }
+
+  #pmd-floor-plan-stable .pmd-floor-title {
+    font-size: 28px;
+  }
+
+  #pmd-floor-plan-stable .pmd-floor-svg {
+    height: 560px;
+  }
+
+  #pmd-floor-plan-stable .pmd-floor-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* PMD v144 clean circular seat icons */
+#pmd-floor-plan-stable .pmd-chair {
+  stroke-width: 3 !important;
+  opacity: 1 !important;
+  stroke-dasharray: none !important;
+}
+
+#pmd-floor-plan-stable .pmd-chair.extra {
+  opacity: 1 !important;
+  stroke-dasharray: none !important;
+}
+
+#pmd-floor-plan-stable .pmd-table-text-status:empty {
+  display: none !important;
+}
+
+#pmd-floor-plan-stable .status-free .pmd-table-text-status {
+  display: none !important;
+}

@@ -235,4 +235,6 @@
   'Admin\\Controllers\\PmdWaiterMobileActionV107' => 'app/admin/controllers/PmdWaiterMobileActionV107.php',
   'Admin\\Requests\\Table' => 'app/admin/requests/Table.php',
   'Admin\\Models\\Assignable_logs_model' => 'app/admin/models/Assignable_logs_model.php',
+  'Admin\\Controllers\\PmdFloorPlanCleanV139' => 'app/admin/controllers/PmdFloorPlanCleanV139.php',
+  'Admin\\Controllers\\PmdFloorPlanCleanV141' => 'app/admin/controllers/PmdFloorPlanCleanV141.php',
 );

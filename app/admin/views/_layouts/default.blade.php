@@ -1749,5 +1749,18 @@ window.PMD_ROLE_DASHBOARD_CONTEXT_V72 = @json($__pmdRoleDash);
 <script defer src="{{ asset('app/admin/assets/js/pmd-waiter-portal-v114.js') }}?v={{ time() }}"></script>
 <!-- PMD_WAITER_PORTAL_V114_ASSETS_END -->
 
+
+<!-- PMD_STABLE_FLOOR_PLAN_ASSETS_START -->
+<link rel="stylesheet" href="{{ asset('app/admin/assets/css/pmd-floor-plan-stable.css') }}?v={{ time() }}">
+<script defer src="{{ asset('app/admin/assets/js/pmd-floor-plan-stable.js') }}?v={{ time() }}"></script>
+<!-- PMD_STABLE_FLOOR_PLAN_ASSETS_END -->
+
+<script defer src="{{ asset('app/admin/assets/js/pmd-floor-dashboard-clean-v140.js') }}?v={{ time() }}"></script>
+
+<!-- PMD_FLOOR_V146_SAFE_VISUAL_STATUS_START -->
+<link rel="stylesheet" href="/app/admin/assets/css/pmd-floor-plan-v146-safe-visual-status.css?v={{ time() }}">
+<script defer src="/app/admin/assets/js/pmd-floor-plan-v146-safe-visual-status.js?v={{ time() }}"></script>
+<!-- PMD_FLOOR_V146_SAFE_VISUAL_STATUS_END -->
+
 </body>
 </html>

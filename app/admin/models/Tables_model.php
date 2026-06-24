@@ -38,6 +38,15 @@ class Tables_model extends Model
         'priority' => 'integer',
         'is_joinable' => 'boolean',
         'table_status' => 'boolean',
+        'floor_x' => 'float',
+        'floor_y' => 'float',
+        'floor_width' => 'float',
+        'floor_height' => 'float',
+        'preferred_capacity' => 'integer',
+        'table_features' => 'array',
+        'reservable' => 'boolean',
+        'reservation_priority' => 'integer',
+        'visible_on_floor_plan' => 'boolean',
     ];
 
     protected $fillable = [
@@ -51,6 +60,18 @@ class Tables_model extends Model
         'is_joinable',
         'table_status',
         'qr_code',
+        'floor_x',
+        'floor_y',
+        'floor_width',
+        'floor_height',
+        'floor_shape',
+        'table_section',
+        'preferred_capacity',
+        'table_features',
+        'floor_notes',
+        'reservable',
+        'reservation_priority',
+        'visible_on_floor_plan',
     ];
 
     public $relation = [

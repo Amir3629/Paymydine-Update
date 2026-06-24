@@ -79,7 +79,7 @@ function MenuContent() {
   } = useCheckoutState({ items, taxSettings })
   const { themeId: currentFrontendTheme, isResolved: isFrontendThemeResolved } = useCurrentFrontendTheme()
   const [forceModernGreenTheme, setForceModernGreenTheme] = useState(false)
-  const { isOrganicBotanicalTheme, isModernGreenTheme, isKazenJapaneseTheme, isVelvetTerracottaTheme } = useCustomerThemeSelection(currentFrontendTheme, forceModernGreenTheme)
+  const { isOrganicBotanicalTheme, isModernGreenTheme, isKazenJapaneseTheme } = useCustomerThemeSelection(currentFrontendTheme, forceModernGreenTheme)
   const shouldHoldThemeRender = !isFrontendThemeResolved && !forceModernGreenTheme
   const { t, language } = useLanguageStore()
   const { toast } = useToast()
@@ -309,7 +309,6 @@ function MenuContent() {
     <CustomerMenuThemeRoutes
       {...{
         isKazenJapaneseTheme,
-        isVelvetTerracottaTheme,
         isModernGreenTheme,
         isOrganicBotanicalTheme,
         shouldShowPayMyDineFooterLogo,

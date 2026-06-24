@@ -1,5 +1,23 @@
 <?php
 
+/* PMD FLOOR PLAN V141 ROUTES START */
+\Route::get('admin/pmd-floor-plan-data', 'Admin\Controllers\PmdFloorPlanCleanV141@data');
+\Route::get('admin/pmd-floor-plan-audit', 'Admin\Controllers\PmdFloorPlanCleanV141@audit');
+\Route::get('admin/pmd-floor-plan-update', 'Admin\Controllers\PmdFloorPlanCleanV141@update');
+\Route::post('admin/pmd-floor-plan-update', 'Admin\Controllers\PmdFloorPlanCleanV141@update');
+/* PMD FLOOR PLAN V141 ROUTES END */
+
+
+
+// PMD FLOOR PLAN v139 CLEAN STABLE ROUTES START
+\Illuminate\Support\Facades\Route::get('admin/pmd-floor-plan-data', [\Admin\Controllers\PmdFloorPlanCleanV139::class, 'data']);
+\Illuminate\Support\Facades\Route::get('admin/pmd-floor-plan-audit', [\Admin\Controllers\PmdFloorPlanCleanV139::class, 'audit']);
+\Illuminate\Support\Facades\Route::get('admin/pmd-waiter-floor-v139-data', [\Admin\Controllers\PmdFloorPlanCleanV139::class, 'data']);
+\Illuminate\Support\Facades\Route::get('admin/pmd-waiter-floor-v139-audit', [\Admin\Controllers\PmdFloorPlanCleanV139::class, 'audit']);
+\Illuminate\Support\Facades\Route::match(['GET','POST'], 'admin/pmd-floor-plan-add-item', [\Admin\Controllers\PmdWaiterMobileActionV107::class, 'addItem']);
+// PMD FLOOR PLAN v139 CLEAN STABLE ROUTES END
+
+
 /*
  * Main route orchestrator. Helpers and route definitions live in focused modules under app/main/routes/.
  */
@@ -32,6 +50,9 @@ require_once __DIR__.'/routes/worldline-public.php';
 \Illuminate\Support\Facades\Route::get('admin/pmd-waiter-floor-v106-data', [\Admin\Controllers\PmdWaiterMobileActionV107::class, 'data']);
 \Illuminate\Support\Facades\Route::get('admin/pmd-waiter-floor-v106-audit', [\Admin\Controllers\PmdWaiterMobileActionV107::class, 'audit']);
 \Illuminate\Support\Facades\Route::get('admin/pmd-waiter-floor-v107-data', [\Admin\Controllers\PmdWaiterMobileActionV107::class, 'data']);
+
+
+
 \Illuminate\Support\Facades\Route::get('admin/pmd-waiter-floor-v107-audit', [\Admin\Controllers\PmdWaiterMobileActionV107::class, 'audit']);
 \Illuminate\Support\Facades\Route::get('admin/pmd-waiter-floor-v107-assign', [\Admin\Controllers\PmdWaiterMobileActionV107::class, 'assign']);
 \Illuminate\Support\Facades\Route::get('admin/pmd-waiter-floor-v107-merge', [\Admin\Controllers\PmdWaiterMobileActionV107::class, 'merge']);
@@ -40,3 +61,8 @@ require_once __DIR__.'/routes/worldline-public.php';
 \Illuminate\Support\Facades\Route::get('admin/pmd-waiter-floor-v107-reset-tables', [\Admin\Controllers\PmdWaiterMobileActionV107::class, 'resetTables']);
 // PMD_WAITER_MOBILE_ACTION_V107_ROUTE_END
 
+
+// PMD_FLOOR_PLAN_V136_ROUTES_START
+Route::get('admin/pmd-waiter-floor-v136-data', [\Admin\Controllers\PmdWaiterMobileActionV107::class, 'data']);
+Route::get('admin/pmd-waiter-floor-v136-audit', [\Admin\Controllers\PmdWaiterMobileActionV107::class, 'audit']);
+// PMD_FLOOR_PLAN_V136_ROUTES_END
