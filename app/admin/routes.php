@@ -1,5 +1,10 @@
 <?php
 
+// PMD_WAITER_DASHBOARD_REBUILD_20260624
+\Illuminate\Support\Facades\Route::get('pmd-waiter-dashboard-data', [\Admin\Controllers\PmdWaiterDashboardV149::class, 'data']);
+\Illuminate\Support\Facades\Route::get('pmd-waiter-dashboard-audit', [\Admin\Controllers\PmdWaiterDashboardV149::class, 'audit']);
+// PMD_WAITER_DASHBOARD_REBUILD_20260624_END
+
 /*
  * Admin route orchestrator. Helper functions and route definitions live in focused modules under routes/.
  */
