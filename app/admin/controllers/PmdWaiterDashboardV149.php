@@ -118,6 +118,17 @@ class PmdWaiterDashboardV149
                 $rows[] = $t;
             }
 
+            $floorMap = [];
+            foreach ($rows as $t) {
+                $floorLabel = (string)($t['floor_name'] ?? 'Main Floor');
+                if (!isset($floorMap[$floorLabel])) {
+                    $floorMap[$floorLabel] = ['id' => $this->slug($floorLabel), 'label' => $floorLabel, 'tables' => 0, 'sort' => (int)($t['floor_sort'] ?? 0)];
+                }
+                $floorMap[$floorLabel]['tables']++;
+            }
+            $floors = array_values($floorMap);
+            usort($floors, fn($a, $b) => ($a['sort'] <=> $b['sort']) ?: strcmp($a['label'], $b['label']));
+
             $mine = array_values(array_filter($rows, fn($t) => !empty($t['assigned'])));
             $base = $user['is_waiter'] ? $mine : $rows;
             if ($user['is_waiter'] && count($mine) === 0) $base = [];
@@ -135,11 +146,16 @@ class PmdWaiterDashboardV149
 
             $payload = [
                 'ok' => true,
-                'version' => 'v149-clean-waiter-dashboard',
+                'version' => '20260624-waiter-dashboard-rebuild',
                 'generated_at' => date('c'),
+                'role' => $user['is_waiter'] ? 'waiter' : ($user['is_kds'] ? 'kds' : $user['role']),
                 'user' => $user,
                 'kpis' => $kpis,
                 'tables' => $rows,
+                'orders' => $orders,
+                'floors' => $floors,
+                'assignments' => ['source' => 'pmd_waiter_table_assignments when present; managers/admins see all tables'],
+                'warnings' => [],
                 'my_tables' => $mine,
                 'menu_items' => $menus,
                 'current_orders' => $orders,
@@ -154,8 +170,8 @@ class PmdWaiterDashboardV149
                     ['key' => 'unassigned', 'label' => 'Not my table', 'color' => '#cbd5e1'],
                 ],
                 'endpoints' => [
-                    'data' => '/admin/pmd-waiter-dashboard-v149-data',
-                    'audit' => '/admin/pmd-waiter-dashboard-v149-audit',
+                    'data' => '/admin/pmd-waiter-dashboard-data',
+                    'audit' => '/admin/pmd-waiter-dashboard-audit',
                     'layout' => '/admin/pmd-waiter-dashboard-v149-update-layout',
                     'merge' => '/admin/pmd-waiter-dashboard-v149-merge',
                     'add_item' => '/admin/pmd-waiter-dashboard-v149-add-item',
@@ -178,7 +194,7 @@ class PmdWaiterDashboardV149
 
             return $payload;
         } catch (\Throwable $e) {
-            return ['ok' => false, 'version' => 'v149-clean-waiter-dashboard', 'message' => $e->getMessage(), 'trace' => substr($e->getTraceAsString(), 0, 1200)];
+            return ['ok' => false, 'version' => '20260624-waiter-dashboard-rebuild', 'message' => $e->getMessage(), 'trace' => substr($e->getTraceAsString(), 0, 1200)];
         }
     }
 
@@ -392,10 +408,10 @@ class PmdWaiterDashboardV149
     protected function statusFor($t, $m, $r, $user)
     {
         if ($user['is_waiter'] && empty($t['assigned'])) return ['key' => 'unassigned', 'label' => 'Not my table', 'color' => '#cbd5e1'];
-        if ((float)$m['due'] > 0) return ['key' => 'payment', 'label' => 'Payment due', 'color' => '#ef4444'];
         if ((int)$m['ready'] > 0) return ['key' => 'ready', 'label' => 'Ready', 'color' => '#7c3aed'];
         if ((int)$m['kitchen'] > 0) return ['key' => 'kitchen', 'label' => 'Sent to kitchen', 'color' => '#f59e0b'];
-        if ((int)$m['open_orders'] > 0) return ['key' => 'active', 'label' => 'Active order', 'color' => '#2563eb'];
+        if ((int)$m['open_orders'] > 0) return ['key' => 'active', 'label' => ((float)$m['due'] > 0 ? 'Active order · payment due' : 'Active order'), 'color' => '#2563eb'];
+        if ((float)$m['due'] > 0) return ['key' => 'payment', 'label' => 'Payment due', 'color' => '#2563eb'];
         if ((int)$r['today'] > 0) return ['key' => 'reserved', 'label' => 'Reserved', 'color' => '#8b5cf6'];
         return ['key' => 'free', 'label' => 'Free', 'color' => '#27c774'];
     }
@@ -467,6 +483,12 @@ class PmdWaiterDashboardV149
         $j = json_decode($s, true);
         if (is_array($j)) return $j;
         return array_map('trim', preg_split('/[,|]/', $s));
+    }
+
+    protected function slug($v)
+    {
+        $s = strtolower(preg_replace('/[^a-z0-9]+/i', '-', (string)$v));
+        return trim($s, '-') ?: 'main-floor';
     }
 
     protected function cleanName($v)

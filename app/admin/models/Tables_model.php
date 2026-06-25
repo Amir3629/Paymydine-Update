@@ -65,6 +65,8 @@ class Tables_model extends Model
         'floor_width',
         'floor_height',
         'floor_shape',
+        'floor_name',
+        'floor_sort',
         'table_section',
         'preferred_capacity',
         'table_features',

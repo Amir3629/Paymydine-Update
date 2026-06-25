@@ -1,2 +1,2 @@
-/* disabled by v151 complete reset: pmd-waiter-dashboard-v150-force-visible.js */
-(function(){ console.info('PMD v151 disabled old renderer: pmd-waiter-dashboard-v150-force-visible.js'); })();
+/* disabled by PMD v161 direct renderer: pmd-waiter-dashboard-v150-force-visible.js */
+(function(){ console.info('PMD v161 disabled old renderer: pmd-waiter-dashboard-v150-force-visible.js'); })();

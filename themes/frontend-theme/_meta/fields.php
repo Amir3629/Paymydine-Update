@@ -5,7 +5,22 @@ return [
         'general' => [
             'title' => '',
             'fields' => [
-                'kazen_menu_layout' => [
+                'theme_configuration' => [
+                    'label' => 'Theme Configuration',
+                    'type' => 'select',
+                    'span' => 'left',
+                    'default' => 'kazen_japanese',
+                    'options' => [
+                        'gold-luxury' => 'Gold Luxury',
+                        'organic_botanical_paper' => 'Organic Botanical Paper',
+                        'modern_green' => 'Modern Green',
+                        'kazen_japanese' => 'Kazen Japanese Minimal',
+                        'velvet_terracotta' => 'Velvet Terracotta',
+                    ],
+                    'comment' => 'Choose the customer frontend theme.',
+                ],
+
+'kazen_menu_layout' => [
                     'label' => 'Food display style',
                     'type' => 'select',
                     'span' => 'left',
@@ -15,7 +30,6 @@ return [
                         'tabs' => 'Category tabs + item list',
                     ],
                     'comment' => 'Controls how Kazen Japanese Minimal shows food items on the customer frontend.',
-                    'velvet_terracotta' => 'Velvet Terracotta',
                 ],
 
                 'pmd_kazen_website_enabled' => [

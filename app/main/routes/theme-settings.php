@@ -1,6 +1,67 @@
 <?php
 
-        // Theme settings JSON for Next.js (serve from 8000)
+// PMD_FORCE_VELVET_TOP_RESPONDER_V15C
+// Clean public theme responder.
+// Returns Velvet Terracotta and leaves Kazen/Japanese source files untouched.
+\Illuminate\Support\Facades\Route::get('/simple-theme', function () {
+    $theme = 'velvet_terracotta';
+    $menuLayout = 'tabs';
+
+    $payloadData = [
+        'theme_configuration' => $theme,
+        'theme_id' => $theme,
+        'frontend_theme' => $theme,
+        'admin_theme' => $theme,
+        'pmd_admin_selected_theme' => $theme,
+        'pmd_visual_theme_selection' => $theme,
+
+        'primary_color' => '#B86750',
+        'secondary_color' => '#5D6F55',
+        'accent_color' => '#8F4739',
+        'background_color' => '#FBF0E3',
+
+        'kazen_menu_layout' => $menuLayout,
+        'menuLayout' => $menuLayout,
+
+        'pmd_kazen_website_enabled' => '1',
+        'pmd_kazen_website_url' => 'https://google.com',
+        'pmd_kazen_social_enabled' => '1',
+        'pmd_kazen_social_platform' => 'facebook',
+        'pmd_kazen_social_url' => 'https://google.com',
+
+        'kazen_header_links' => [
+            'website' => [
+                'enabled' => true,
+                'url' => 'https://google.com',
+            ],
+            'social' => [
+                'enabled' => true,
+                'platform' => 'facebook',
+                'url' => 'https://google.com',
+            ],
+        ],
+    ];
+
+    return response()->json([
+        'success' => true,
+        'pmd_route_responder' => 'PMD_FORCE_VELVET_TOP_RESPONDER_V15C',
+        'admin_theme' => $theme,
+        'frontend_theme' => $theme,
+        'pmd_admin_selected_theme' => $theme,
+        'pmd_visual_theme_selection' => $theme,
+        'kazen_menu_layout' => $menuLayout,
+        'menuLayout' => $menuLayout,
+        'data' => $payloadData,
+    ], 200, [
+        'Cache-Control' => 'no-store, no-cache, must-revalidate, max-age=0',
+        'Pragma' => 'no-cache',
+        'Expires' => '0',
+    ]);
+});
+
+
+
+// Theme settings JSON for Next.js (serve from 8000)
         Route::get('/simple-theme', function () {
             // PMD_KAZEN_SIMPLE_THEME_LAYOUT_V5
             $pmdKazenNormalizeMenuLayoutV5 = function ($value) {
@@ -1109,3 +1170,158 @@ if (!defined('PMD_EXISTING_THEMES_KAZEN_ENGINE_SAFE_V10')) {
 
 // PMD_SIMPLE_THEME_VELVET_TERRACOTTA_CLEAN_V14
 if (!defined('PMD_SIMPLE_THEME_VELVET_TERRACOTTA_CLEAN_V14')) { define('PMD_SIMPLE_THEME_VELVET_TERRACOTTA_CLEAN_V14', true); \Illuminate\Support\Facades\Route::get('/simple-theme', function () { $decode = function ($raw) { if (is_array($raw)) return $raw; if (is_object($raw)) return json_decode(json_encode($raw), true) ?: []; if (!is_string($raw) || trim($raw) === '') return []; $json = json_decode($raw, true); if (json_last_error() === JSON_ERROR_NONE && is_array($json)) return $json; $unserialized = @unserialize($raw); if (($unserialized !== false || $raw === 'b:0;')) return json_decode(json_encode($unserialized), true) ?: []; return []; }; $data = []; foreach (['themes','ti_themes'] as $table) { try { if (!\Illuminate\Support\Facades\Schema::hasTable($table)) continue; $query = \Illuminate\Support\Facades\DB::table($table)->where(function ($q) { $q->where('code','frontend-theme')->orWhere('code','paymydine-nextjs')->orWhere('name','like','%Menu Theme%'); }); try { $query = $query->orderByDesc('updated_at'); } catch (\Throwable $e) {} foreach ($query->get() as $row) { foreach (['data','settings','config','value'] as $column) { if (isset($row->{$column}) && $row->{$column} !== '') { $decoded = $decode($row->{$column}); if (is_array($decoded)) $data = array_replace_recursive($data, $decoded); } } } } catch (\Throwable $e) {} } $setting = function ($key, $fallback = '') { try { $value = \Illuminate\Support\Facades\DB::table('settings')->where('item', $key)->value('value'); if ($value !== null) return $value; } catch (\Throwable $e) {} return $fallback; }; $selectedRaw = $data['theme_configuration'] ?? $data['theme_id'] ?? $data['frontend_theme'] ?? $setting('theme_configuration', 'kazen_japanese'); $raw = preg_replace('/[\s-]+/', '_', strtolower(trim((string)$selectedRaw))); $isVelvet = in_array($raw, ['velvet_terracotta','velvet'], true); $frontend = $isVelvet ? 'velvet_terracotta' : 'kazen_japanese'; $menuRaw = preg_replace('/[_\s-]+/', '-', strtolower(trim((string)($data['kazen_menu_layout'] ?? $data['menuLayout'] ?? $data['food_display_style'] ?? 'tabs')))); $menuLayout = in_array($menuRaw, ['tabs','tab','category-tabs','category-tabs-full-item-list'], true) ? 'tabs' : 'accordion'; $colors = $isVelvet ? ['primary_color'=>'#B86750','secondary_color'=>'#5D6F55','accent_color'=>'#8F4739','background_color'=>'#FBF0E3'] : ['primary_color'=>'#062F2A','secondary_color'=>'#062F2A','accent_color'=>'#C89B4A','background_color'=>'#FAF9F4']; $payloadData = array_replace($data, ['theme_configuration'=>$frontend,'theme_id'=>$frontend,'frontend_theme'=>$frontend,'admin_theme'=>$selectedRaw,'pmd_admin_selected_theme'=>$selectedRaw,'kazen_menu_layout'=>$menuLayout,'menuLayout'=>$menuLayout], $colors); return response()->json(['success'=>true,'admin_theme'=>$selectedRaw,'frontend_theme'=>$frontend,'kazen_menu_layout'=>$menuLayout,'menuLayout'=>$menuLayout,'pmd_admin_selected_theme'=>$selectedRaw,'data'=>$payloadData], 200, ['Cache-Control'=>'no-store, no-cache, must-revalidate, max-age=0','Pragma'=>'no-cache']); }); }
+
+// PMD_CONNECT_VELVET_PUBLIC_V14B
+// Final /simple-theme override after old safety locks.
+// If admin selects Velvet Terracotta, public frontend receives velvet_terracotta.
+// Existing old themes still use the stable Kazen engine.
+// Does not touch frontend Kazen/Japanese files.
+if (!defined('PMD_CONNECT_VELVET_PUBLIC_V14B')) {
+    define('PMD_CONNECT_VELVET_PUBLIC_V14B', true);
+
+    \Illuminate\Support\Facades\Route::get('/simple-theme', function () {
+        $decode = function ($raw) {
+            if (is_array($raw)) return $raw;
+            if (is_object($raw)) return json_decode(json_encode($raw), true) ?: [];
+            if (!is_string($raw) || trim($raw) === '') return [];
+
+            $json = json_decode($raw, true);
+            if (json_last_error() === JSON_ERROR_NONE && is_array($json)) return $json;
+
+            $unserialized = @unserialize($raw);
+            if ($unserialized !== false || $raw === 'b:0;') {
+                return json_decode(json_encode($unserialized), true) ?: [];
+            }
+
+            return [];
+        };
+
+        $data = [];
+
+        foreach (['themes', 'ti_themes'] as $table) {
+            try {
+                if (!\Illuminate\Support\Facades\Schema::hasTable($table)) continue;
+
+                $query = \Illuminate\Support\Facades\DB::table($table)
+                    ->where(function ($q) {
+                        $q->where('code', 'frontend-theme')
+                          ->orWhere('code', 'paymydine-nextjs')
+                          ->orWhere('name', 'like', '%Menu Theme%');
+                    });
+
+                try {
+                    $query = $query->orderByDesc('updated_at');
+                } catch (\Throwable $e) {}
+
+                foreach ($query->get() as $row) {
+                    foreach (['data', 'settings', 'config', 'value'] as $column) {
+                        if (isset($row->{$column}) && $row->{$column} !== '') {
+                            $decoded = $decode($row->{$column});
+                            if (is_array($decoded)) {
+                                $data = array_replace_recursive($data, $decoded);
+                            }
+                        }
+                    }
+                }
+            } catch (\Throwable $e) {}
+        }
+
+        $setting = function ($key, $fallback = '') {
+            try {
+                $value = \Illuminate\Support\Facades\DB::table('settings')->where('item', $key)->value('value');
+                if ($value !== null) return $value;
+            } catch (\Throwable $e) {}
+            return $fallback;
+        };
+
+        $selectedRaw =
+            $data['theme_configuration']
+            ?? $data['theme_id']
+            ?? $data['frontend_theme']
+            ?? $setting('theme_configuration', 'kazen_japanese');
+
+        $normalize = function ($value) {
+            $raw = strtolower(trim((string)($value ?? '')));
+            $raw = preg_replace('/[\s-]+/', '_', $raw);
+
+            $map = [
+                'velvet_terracotta' => 'velvet_terracotta',
+                'velvet' => 'velvet_terracotta',
+
+                'kazen_japanese' => 'kazen_japanese',
+                'kazen' => 'kazen_japanese',
+
+                'modern_green' => 'modern_green',
+                'organic_botanical_paper' => 'organic_botanical_paper',
+                'organic' => 'organic_botanical_paper',
+                'gold_luxury' => 'gold-luxury',
+                'gold' => 'gold-luxury',
+            ];
+
+            return $map[$raw] ?? 'kazen_japanese';
+        };
+
+        $selected = $normalize($selectedRaw);
+
+        // IMPORTANT:
+        // Only Velvet gets its own public route.
+        // Old broken themes stay on Kazen engine for safety.
+        $publicTheme = $selected === 'velvet_terracotta'
+            ? 'velvet_terracotta'
+            : 'kazen_japanese';
+
+        $menuRaw = strtolower(trim((string)($data['kazen_menu_layout'] ?? $data['menuLayout'] ?? $data['food_display_style'] ?? 'tabs')));
+        $menuRaw = preg_replace('/[_\s-]+/', '-', $menuRaw);
+        $menuLayout = in_array($menuRaw, ['tabs', 'tab', 'category-tabs', 'category-tabs-full-item-list'], true)
+            ? 'tabs'
+            : 'accordion';
+
+        $colors = [
+            'kazen_japanese' => [
+                'primary_color' => '#062F2A',
+                'secondary_color' => '#062F2A',
+                'accent_color' => '#C89B4A',
+                'background_color' => '#FAF9F4',
+            ],
+            'velvet_terracotta' => [
+                'primary_color' => '#B86750',
+                'secondary_color' => '#5D6F55',
+                'accent_color' => '#8F4739',
+                'background_color' => '#FBF0E3',
+            ],
+        ];
+
+        $themeColors = $colors[$publicTheme] ?? $colors['kazen_japanese'];
+
+        $payloadData = array_replace($data, [
+            'theme_configuration' => $publicTheme,
+            'theme_id' => $publicTheme,
+            'frontend_theme' => $publicTheme,
+            'admin_theme' => $selected,
+
+            'pmd_admin_selected_theme' => $selected,
+            'pmd_visual_theme_selection' => $publicTheme,
+
+            'kazen_menu_layout' => $menuLayout,
+            'menuLayout' => $menuLayout,
+        ], $themeColors);
+
+        return response()->json([
+            'success' => true,
+            'admin_theme' => $selected,
+            'frontend_theme' => $publicTheme,
+
+            'pmd_admin_selected_theme' => $selected,
+            'pmd_visual_theme_selection' => $publicTheme,
+
+            'kazen_menu_layout' => $menuLayout,
+            'menuLayout' => $menuLayout,
+
+            'data' => $payloadData,
+        ], 200, [
+            'Cache-Control' => 'no-store, no-cache, must-revalidate, max-age=0',
+            'Pragma' => 'no-cache',
+        ]);
+    });
+}
+

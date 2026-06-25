@@ -57,8 +57,16 @@
     </section>
 </div>
 @else
+@php
+    $__pmdDashboardRoleText = strtolower(trim(($__pmdDashRoleCodeV82 ?? '').' '.($__pmdDashRoleNameV82 ?? '').' '.($__pmdDashUsernameV82 ?? '')));
+    $__pmdUseWaiterDashboard = preg_match('/waiter|server|service|manager|owner|admin|super/', $__pmdDashboardRoleText);
+@endphp
+@if($__pmdUseWaiterDashboard)
+    <div id="pmd-waiter-dashboard-root" data-version="20260624-rebuild"></div>
+@else
 <div class="row-fluid">
     {!! $this->widgets['dashboardContainer']->render() !!}
 </div>
+@endif
 @endif
 <!-- PMD_KDS_SERVER_DASHBOARD_V82_END -->
