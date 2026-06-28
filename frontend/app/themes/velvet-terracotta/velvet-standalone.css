@@ -5858,3 +5858,274 @@ html[data-pmd-kazen-mode="dark"] .velvet-page, body[data-pmd-kazen-mode="dark"] 
 }
 html[data-pmd-kazen-mode="dark"] .velvet-page .kazen-brand, html[data-pmd-kazen-mode="dark"] .velvet-page .kazen-subtitle, html[data-pmd-kazen-mode="dark"] .velvet-page .kazen-card, html[data-pmd-kazen-mode="dark"] .velvet-page .kazen-card strong, html[data-pmd-kazen-mode="dark"] .velvet-page .kazen-card p, body[data-pmd-kazen-mode="dark"] .velvet-page .kazen-brand, body[data-pmd-kazen-mode="dark"] .velvet-page .kazen-subtitle, body[data-pmd-kazen-mode="dark"] .velvet-page .kazen-card, body[data-pmd-kazen-mode="dark"] .velvet-page .kazen-card strong, body[data-pmd-kazen-mode="dark"] .velvet-page .kazen-card p { color: #fff4ec !important; }
 html[data-pmd-kazen-mode="dark"] .velvet-page .kazen-card, body[data-pmd-kazen-mode="dark"] .velvet-page .kazen-card, html[data-pmd-kazen-mode="dark"] .velvet-page .kazen-dock, body[data-pmd-kazen-mode="dark"] .velvet-page .kazen-dock { background: rgba(45, 23, 25, .88) !important; border-color: rgba(184, 103, 80, .34) !important; box-shadow: 0 24px 80px rgba(0, 0, 0, .30) !important; }
+
+
+/* PMD_VELVET_REAL_CARD_MARKERS_V17_START
+   Velvet-only final visual polish.
+   Uses data markers added only inside app/themes/velvet-terracotta/KazenStandalonePage.tsx.
+   Kazen/Japanese CSS and TSX remain untouched.
+*/
+
+/* -------------------------------
+   Velvet base
+-------------------------------- */
+
+.velvet-page {
+  --vt-paper: #fff8ef;
+  --vt-paper-2: #fff2e8;
+  --vt-peach: #f7d5c4;
+  --vt-peach-2: #f2c4ae;
+  --vt-clay: #b86750;
+  --vt-clay-dark: #8f4739;
+  --vt-olive: #5d6f55;
+  --vt-ink: #28211d;
+  --vt-muted: rgba(40, 33, 29, 0.64);
+  --vt-line: rgba(184, 103, 80, 0.28);
+  --vt-line-strong: rgba(184, 103, 80, 0.46);
+  --vt-shadow: 0 22px 55px rgba(143, 71, 57, 0.14);
+  --vt-soft-shadow: 0 12px 34px rgba(143, 71, 57, 0.10);
+  background:
+    radial-gradient(circle at 52% 8%, rgba(255, 255, 255, 0.78), transparent 26rem),
+    radial-gradient(circle at 78% 18%, rgba(247, 213, 196, 0.52), transparent 35rem),
+    linear-gradient(135deg, #fffaf2 0%, #ffe7d9 48%, #fff8ef 100%) !important;
+  color: var(--vt-ink) !important;
+}
+
+/* -------------------------------
+   Real marked food cards
+-------------------------------- */
+
+.velvet-page [data-pmd-velvet-food-card="1"] {
+  position: relative !important;
+  isolation: isolate !important;
+  display: grid !important;
+  grid-template-columns: 88px minmax(0, 1fr) 48px !important;
+  align-items: center !important;
+  gap: 17px !important;
+  min-height: 124px !important;
+  width: min(100%, 430px) !important;
+  margin: 14px auto !important;
+  padding: 16px 14px 16px 22px !important;
+  border-radius: 30px !important;
+  border: 1px solid rgba(184, 103, 80, 0.22) !important;
+  background:
+    linear-gradient(135deg, rgba(255, 255, 255, 0.82), rgba(255, 243, 233, 0.86)),
+    radial-gradient(circle at 12% 8%, rgba(255, 255, 255, 0.95), transparent 9rem) !important;
+  box-shadow:
+    0 20px 44px rgba(143, 71, 57, 0.08),
+    inset 0 1px 0 rgba(255, 255, 255, 0.94) !important;
+  overflow: hidden !important;
+  transform: translateZ(0) !important;
+}
+
+.velvet-page [data-pmd-velvet-food-card="1"]::before {
+  content: "" !important;
+  position: absolute !important;
+  left: 0 !important;
+  top: 16px !important;
+  bottom: 16px !important;
+  width: 5px !important;
+  border-radius: 999px !important;
+  background: linear-gradient(180deg, var(--vt-clay), var(--vt-peach-2)) !important;
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.5) !important;
+}
+
+.velvet-page [data-pmd-velvet-food-card="1"]::after {
+  content: "VELVET" !important;
+  position: absolute !important;
+  right: 68px !important;
+  top: 13px !important;
+  font-size: 8px !important;
+  line-height: 1 !important;
+  letter-spacing: 0.22em !important;
+  font-weight: 800 !important;
+  color: rgba(184, 103, 80, 0.46) !important;
+  pointer-events: none !important;
+}
+
+.velvet-page [data-pmd-velvet-food-card="1"] img {
+  width: 74px !important;
+  height: 74px !important;
+  min-width: 74px !important;
+  object-fit: cover !important;
+  border-radius: 22px !important;
+  border: 1px solid rgba(184, 103, 80, 0.18) !important;
+  box-shadow:
+    0 14px 24px rgba(143, 71, 57, 0.12),
+    inset 0 1px 0 rgba(255,255,255,0.8) !important;
+}
+
+.velvet-page [data-pmd-velvet-food-card="1"] :where(h1, h2, h3, h4, h5, strong, b) {
+  color: var(--vt-ink) !important;
+  font-weight: 850 !important;
+  letter-spacing: -0.025em !important;
+  line-height: 1.08 !important;
+  margin-bottom: 5px !important;
+}
+
+.velvet-page [data-pmd-velvet-food-card="1"] :where(p, span, div) {
+  color: var(--vt-muted);
+}
+
+.velvet-page [data-pmd-velvet-food-card="1"] :where(p) {
+  line-height: 1.38 !important;
+}
+
+.velvet-page [data-pmd-velvet-food-card="1"] :where(button) {
+  justify-self: end !important;
+}
+
+.velvet-page [data-pmd-velvet-food-card="1"] button {
+  width: 42px !important;
+  height: 42px !important;
+  min-width: 42px !important;
+  border-radius: 50% !important;
+  border: 1px solid rgba(184, 103, 80, 0.34) !important;
+  background:
+    linear-gradient(145deg, rgba(255, 255, 255, 0.88), rgba(255, 239, 229, 0.82)) !important;
+  color: var(--vt-ink) !important;
+  box-shadow: 0 12px 20px rgba(143, 71, 57, 0.10) !important;
+  font-size: 24px !important;
+  font-weight: 500 !important;
+  line-height: 1 !important;
+}
+
+.velvet-page [data-pmd-velvet-food-card="1"] button:hover,
+.velvet-page [data-pmd-velvet-food-card="1"] button:focus-visible {
+  border-color: rgba(184, 103, 80, 0.72) !important;
+  color: var(--vt-clay-dark) !important;
+  transform: translateY(-1px) !important;
+}
+
+/* Desktop: keep the Velvet customer menu like a boutique receipt column. */
+@media (min-width: 860px) {
+  .velvet-page [data-pmd-velvet-food-card="1"] {
+    width: 440px !important;
+  }
+}
+
+/* Mobile: more compact, not cramped. */
+@media (max-width: 520px) {
+  .velvet-page [data-pmd-velvet-food-card="1"] {
+    grid-template-columns: 76px minmax(0, 1fr) 44px !important;
+    min-height: 112px !important;
+    padding: 14px 12px 14px 18px !important;
+    border-radius: 26px !important;
+  }
+
+  .velvet-page [data-pmd-velvet-food-card="1"] img {
+    width: 66px !important;
+    height: 66px !important;
+    min-width: 66px !important;
+    border-radius: 19px !important;
+  }
+
+  .velvet-page [data-pmd-velvet-food-card="1"]::after {
+    display: none !important;
+  }
+}
+
+/* -------------------------------
+   Category pills / header buttons
+-------------------------------- */
+
+.velvet-page :where(button, a)[class*="category"],
+.velvet-page :where(button, a)[class*="tab"] {
+  border-radius: 999px !important;
+  border-color: rgba(184, 103, 80, 0.28) !important;
+  background: rgba(255, 250, 242, 0.64) !important;
+  box-shadow: 0 10px 20px rgba(143, 71, 57, 0.06) !important;
+}
+
+.velvet-page :where(button, a)[class*="category"]:hover,
+.velvet-page :where(button, a)[class*="tab"]:hover {
+  border-color: rgba(184, 103, 80, 0.58) !important;
+  color: var(--vt-clay-dark) !important;
+}
+
+.velvet-page :where(header, [class*="header"]) :where(button, a) {
+  border-radius: 999px !important;
+}
+
+/* -------------------------------
+   Real marked modal panels
+-------------------------------- */
+
+.velvet-page [data-pmd-velvet-modal-panel="1"] {
+  position: relative !important;
+  overflow: hidden !important;
+  border-radius: 34px !important;
+  border: 1px solid rgba(184, 103, 80, 0.28) !important;
+  background:
+    linear-gradient(145deg, rgba(255, 252, 245, 0.97), rgba(255, 239, 229, 0.96)),
+    radial-gradient(circle at 0% 0%, rgba(255,255,255,0.9), transparent 14rem) !important;
+  box-shadow:
+    0 35px 90px rgba(40, 33, 29, 0.24),
+    0 16px 50px rgba(143, 71, 57, 0.12) !important;
+}
+
+.velvet-page [data-pmd-velvet-modal-panel="1"]::before {
+  content: "" !important;
+  position: absolute !important;
+  left: 0 !important;
+  top: 28px !important;
+  bottom: 28px !important;
+  width: 5px !important;
+  border-radius: 999px !important;
+  background: linear-gradient(180deg, var(--vt-clay), rgba(184, 103, 80, 0.20)) !important;
+}
+
+.velvet-page [data-pmd-velvet-modal-panel="1"] :where(h1, h2, h3) {
+  letter-spacing: -0.055em !important;
+  line-height: 0.94 !important;
+  color: var(--vt-ink) !important;
+}
+
+.velvet-page [data-pmd-velvet-modal-panel="1"] :where(input, textarea, select) {
+  border-radius: 18px !important;
+  border: 1px solid rgba(184, 103, 80, 0.24) !important;
+  background: rgba(255, 252, 245, 0.72) !important;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.8) !important;
+}
+
+.velvet-page [data-pmd-velvet-modal-panel="1"] :where(button) {
+  border-radius: 999px !important;
+}
+
+.velvet-page [data-pmd-velvet-modal-panel="1"] :where(button):last-child {
+  background: linear-gradient(135deg, #c76359, #b85d4e) !important;
+  border-color: rgba(184, 93, 78, 0.82) !important;
+  color: #fffaf5 !important;
+  box-shadow: 0 16px 28px rgba(184, 93, 78, 0.20) !important;
+}
+
+/* Fallback for modal classes if a modal is rendered before JS marker lands. */
+.velvet-page :where([role="dialog"], [aria-modal="true"], [class*="Modal"], [class*="modal"]) {
+  --vt-modal-fallback-border: rgba(184, 103, 80, 0.26);
+}
+
+/* -------------------------------
+   Bottom dock
+-------------------------------- */
+
+.velvet-page :where(nav, footer, div)[class*="dock"],
+.velvet-page :where(nav, footer, div)[class*="Dock"] {
+  border-radius: 34px !important;
+  border: 1px solid rgba(184, 103, 80, 0.24) !important;
+  background: rgba(255, 250, 242, 0.82) !important;
+  backdrop-filter: blur(18px) saturate(1.1) !important;
+  box-shadow: 0 22px 52px rgba(143, 71, 57, 0.12) !important;
+}
+
+.velvet-page :where(nav, footer, div)[class*="dock"] button,
+.velvet-page :where(nav, footer, div)[class*="Dock"] button {
+  border-radius: 999px !important;
+}
+
+/* -------------------------------
+   Keep Stripe/payment iframe CSP noise harmless:
+   no inline style injection here, only compiled CSS.
+-------------------------------- */
+
+/* PMD_VELVET_REAL_CARD_MARKERS_V17_END */
+

@@ -238,4 +238,12 @@
   'Admin\\Controllers\\PmdFloorPlanCleanV139' => 'app/admin/controllers/PmdFloorPlanCleanV139.php',
   'Admin\\Controllers\\PmdFloorPlanCleanV141' => 'app/admin/controllers/PmdFloorPlanCleanV141.php',
   'Admin\\Controllers\\PmdWaiterDashboardV149' => 'app/admin/controllers/PmdWaiterDashboardV149.php',
+  'Admin\\Controllers\\PmdOwnerDashboardCleanV1' => 'app/admin/controllers/PmdOwnerDashboardCleanV1.php',
+  'Admin\\Models\\LocationOption' => 'app/admin/models/LocationOption.php',
+  'Admin\\FormWidgets\\RichEditor' => 'app/admin/formwidgets/RichEditor.php',
+  'Admin\\FormWidgets\\ScheduleEditor' => 'app/admin/formwidgets/ScheduleEditor.php',
+  'Admin\\FormWidgets\\MapArea' => 'app/admin/formwidgets/MapArea.php',
+  'Admin\\Models\\Location_areas_model' => 'app/admin/models/Location_areas_model.php',
+  'System\\Models\\Countries_model' => 'app/system/models/Countries_model.php',
+  'Admin\\Requests\\Location' => 'app/admin/requests/Location.php',
 );

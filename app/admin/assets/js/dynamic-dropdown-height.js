@@ -1,3 +1,12 @@
+/* PMD_KDS_SETTINGS_NOISE_GUARD_V54_dynamic-dropdown-height_START */
+if (/^\/admin\/kds_stations(?:\/|$)/.test(window.location.pathname)) {
+  window.PMD_KDS_SETTINGS_NOISE_GUARD_V54 = window.PMD_KDS_SETTINGS_NOISE_GUARD_V54 || [];
+  window.PMD_KDS_SETTINGS_NOISE_GUARD_V54.push("dynamic-dropdown-height");
+  console.info("[PMD] skipped dynamic-dropdown-height on KDS settings page", {
+    path: window.location.pathname
+  });
+} else {
+/* PMD_KDS_SETTINGS_NOISE_GUARD_V54_dynamic-dropdown-height_BODY_START */
 /**
  * Dynamic Dropdown Height Controller
  * Makes dropdown height adjust based on number of options
@@ -251,3 +260,6 @@ document.addEventListener('DOMContentLoaded', function() {
     `;
     document.head.appendChild(style);
 });
+
+/* PMD_KDS_SETTINGS_NOISE_GUARD_V54_dynamic-dropdown-height_END */
+}

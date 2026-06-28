@@ -1,3 +1,12 @@
+/* PMD_KDS_SETTINGS_NOISE_GUARD_V54_push-notifications_START */
+if (/^\/admin\/kds_stations(?:\/|$)/.test(window.location.pathname)) {
+  window.PMD_KDS_SETTINGS_NOISE_GUARD_V54 = window.PMD_KDS_SETTINGS_NOISE_GUARD_V54 || [];
+  window.PMD_KDS_SETTINGS_NOISE_GUARD_V54.push("push-notifications");
+  console.info("[PMD] skipped push-notifications on KDS settings page", {
+    path: window.location.pathname
+  });
+} else {
+/* PMD_KDS_SETTINGS_NOISE_GUARD_V54_push-notifications_BODY_START */
 /**
  * Push Notification Toast System
  * Shows beautiful toast notifications that fly into the bell icon
@@ -532,3 +541,6 @@ if (window.PushNotificationManagerInitialized === 'claiming' ||
 //     time: '01:15 PM'
 // });
 
+
+/* PMD_KDS_SETTINGS_NOISE_GUARD_V54_push-notifications_END */
+}

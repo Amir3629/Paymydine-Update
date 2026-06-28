@@ -54,7 +54,7 @@ html.pmd-ui-fouc-shield-v58 body.page.pmd-admin-theme-v1.pmd-sidebar-icons-only:
     height: 84px !important;
     margin: -42px auto -2px !important;
     padding: 0 8px !important;
-    background-image: var(--pmd-active-sidebar-logo-v62, url("/app/admin/assets/images/pmd-logo-candidates/pmd-logo-5.png")) !important;
+    background-image: var(--pmd-active-sidebar-logo-v62, url("/app/admin/assets/images/pmd-logo-final.png")) !important;
     background-repeat: no-repeat !important;
     background-position: center center !important;
     background-size: contain !important;

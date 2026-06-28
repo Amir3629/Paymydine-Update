@@ -1,5 +1,11 @@
 <?php
 
+/* PMD_OWNER_DASHBOARD_CLEAN_V1_ROUTES_START */
+\Illuminate\Support\Facades\Route::get('pmd-owner-dashboard-clean-v1-data', [\Admin\Controllers\PmdOwnerDashboardCleanV1::class, 'index']);
+\Illuminate\Support\Facades\Route::get('pmd-owner-dashboard-clean-v1-audit', [\Admin\Controllers\PmdOwnerDashboardCleanV1::class, 'audit']);
+/* PMD_OWNER_DASHBOARD_CLEAN_V1_ROUTES_END */
+
+
 // PMD_WAITER_DASHBOARD_REBUILD_20260624
 \Illuminate\Support\Facades\Route::get('pmd-waiter-dashboard-data', [\Admin\Controllers\PmdWaiterDashboardV149::class, 'data']);
 \Illuminate\Support\Facades\Route::get('pmd-waiter-dashboard-audit', [\Admin\Controllers\PmdWaiterDashboardV149::class, 'audit']);

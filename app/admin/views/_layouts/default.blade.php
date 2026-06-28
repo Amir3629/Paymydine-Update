@@ -21,35 +21,31 @@
 </script>
 <!-- PMD_ADMIN_LOADER_HARD_RESET_V64_EARLY_END -->
 <!-- PMD_ADMIN_LOADER_HARD_RESET_V64_PRELOAD_START -->
-<link rel="preload" as="image" href="{{ asset('app/admin/assets/images/pmd-logo-candidates/pmd-logo-1.png') }}">
+<link rel="preload" as="image" href="{{ asset('app/admin/assets/images/pmd-logo-final.png') }}">
 <!-- PMD_KDS_ULTRA_FAST_V83_LOGO_PRELOAD_GUARD_START -->
 @unless(!empty($__pmdIsKdsDashboardV82))
 
-<link rel="preload" as="image" href="{{ asset('app/admin/assets/images/pmd-logo-candidates/pmd-logo-2.png') }}">
+<link rel="preload" as="image" href="{{ asset('app/admin/assets/images/pmd-logo-final.png') }}">
 @endunless
 <!-- PMD_KDS_ULTRA_FAST_V83_LOGO_PRELOAD_GUARD_END -->
 
 <!-- PMD_KDS_ULTRA_FAST_V83_LOGO_PRELOAD_GUARD_START -->
 @unless(!empty($__pmdIsKdsDashboardV82))
-<link rel="preload" as="image" href="{{ asset('app/admin/assets/images/pmd-logo-candidates/pmd-logo-3.png') }}">
 @endunless
 <!-- PMD_KDS_ULTRA_FAST_V83_LOGO_PRELOAD_GUARD_END -->
 
 <!-- PMD_KDS_ULTRA_FAST_V83_LOGO_PRELOAD_GUARD_START -->
 @unless(!empty($__pmdIsKdsDashboardV82))
-<link rel="preload" as="image" href="{{ asset('app/admin/assets/images/pmd-logo-candidates/pmd-logo-4.png') }}">
 @endunless
 <!-- PMD_KDS_ULTRA_FAST_V83_LOGO_PRELOAD_GUARD_END -->
 
 <!-- PMD_KDS_ULTRA_FAST_V83_LOGO_PRELOAD_GUARD_START -->
 @unless(!empty($__pmdIsKdsDashboardV82))
-<link rel="preload" as="image" href="{{ asset('app/admin/assets/images/pmd-logo-candidates/pmd-logo-5.png') }}">
 @endunless
 <!-- PMD_KDS_ULTRA_FAST_V83_LOGO_PRELOAD_GUARD_END -->
 
 <!-- PMD_KDS_ULTRA_FAST_V83_LOGO_PRELOAD_GUARD_START -->
 @unless(!empty($__pmdIsKdsDashboardV82))
-<link rel="preload" as="image" href="{{ asset('app/admin/assets/images/pmd-logo-candidates/pmd-logo-6.png') }}">
 @endunless
 <!-- PMD_KDS_ULTRA_FAST_V83_LOGO_PRELOAD_GUARD_END -->
 <!-- PMD_ADMIN_LOADER_HARD_RESET_V64_PRELOAD_END -->
@@ -808,7 +804,7 @@ body .media-manager .media-sidebar .sidebar-preview-toolbar button.btn-outline-d
 <link rel="stylesheet" href="{{ asset('app/admin/assets/css/pmd-sidebar-column-flow-v8.css') }}?v={{ time() }}">
 <link rel="stylesheet" href="{{ asset('app/admin/assets/css/pmd-sidebar-submenu-active-v9.css') }}?v={{ time() }}">
 <link rel="stylesheet" href="{{ asset('app/admin/assets/css/pmd-sidebar-child-icons-v10.css') }}?v={{ time() }}">
-<link rel="stylesheet" href="{{ asset('app/admin/assets/css/pmd-dashboard-modern-v1.css') }}?v={{ time() }}">
+{{-- PMD owner clean v1 disabled legacy dashboard asset: <link rel="stylesheet" href="{{ asset('app/admin/assets/css/pmd-dashboard-modern-v1.css') }}?v={{ time() }}"> --}}
 
     {{-- PMD all-pages toolbar guard: hide only legacy buttons, never the header/proxy containers --}}
     <script>
@@ -933,16 +929,16 @@ body .media-manager .media-sidebar .sidebar-preview-toolbar button.btn-outline-d
         }
     </style>
 
-    <link rel="stylesheet" href="{{ asset('app/admin/assets/css/pmd-dashboard-remove-hero-v3.css') }}?v={{ time() }}">
-<link rel="stylesheet" href="{{ asset('app/admin/assets/css/pmd-dashboard-kpi-polish-v4.css') }}?v={{ time() }}">
-<link rel="stylesheet" href="{{ asset('app/admin/assets/css/pmd-dashboard-real-data-v53.css') }}?v={{ time() }}">
-<link rel="stylesheet" href="{{ asset('app/admin/assets/css/pmd-dashboard-role-preview-v9.css') }}?v={{ time() }}">
-<link rel="stylesheet" href="{{ asset('app/admin/assets/css/pmd-dashboard-owner2-v11.css') }}?v={{ time() }}">
-<link rel="stylesheet" href="{{ asset('app/admin/assets/css/pmd-dashboard-waiter3-v12.css') }}?v={{ time() }}">
-<link rel="stylesheet" href="{{ asset('app/admin/assets/css/pmd-dashboard-waiter3-v13-polish.css') }}?v={{ time() }}">
-<link rel="stylesheet" href="{{ asset('app/admin/assets/css/pmd-dashboard-waiter3-v14-compact.css') }}?v={{ time() }}">
-<link rel="stylesheet" href="{{ asset('app/admin/assets/css/pmd-dashboard-waiter3-v15-rolebar.css') }}?v={{ time() }}">
-<link rel="stylesheet" href="{{ asset('app/admin/assets/css/pmd-dashboard-w3-quick-icons-v16.css') }}?v={{ time() }}">
+{{-- PMD owner clean v1 disabled legacy dashboard asset: <link rel="stylesheet" href="{{ asset('app/admin/assets/css/pmd-dashboard-remove-hero-v3.css') }}?v={{ time() }}"> --}}
+{{-- PMD owner clean v1 disabled legacy dashboard asset: <link rel="stylesheet" href="{{ asset('app/admin/assets/css/pmd-dashboard-kpi-polish-v4.css') }}?v={{ time() }}"> --}}
+{{-- PMD owner clean v1 disabled legacy dashboard asset: <link rel="stylesheet" href="{{ asset('app/admin/assets/css/pmd-dashboard-real-data-v53.css') }}?v={{ time() }}"> --}}
+{{-- PMD owner clean v1 disabled legacy dashboard asset: <link rel="stylesheet" href="{{ asset('app/admin/assets/css/pmd-dashboard-role-preview-v9.css') }}?v={{ time() }}"> --}}
+{{-- PMD owner clean v1 disabled legacy dashboard asset: <link rel="stylesheet" href="{{ asset('app/admin/assets/css/pmd-dashboard-owner2-v11.css') }}?v={{ time() }}"> --}}
+{{-- PMD owner clean v1 disabled legacy dashboard asset: <link rel="stylesheet" href="{{ asset('app/admin/assets/css/pmd-dashboard-waiter3-v12.css') }}?v={{ time() }}"> --}}
+{{-- PMD owner clean v1 disabled legacy dashboard asset: <link rel="stylesheet" href="{{ asset('app/admin/assets/css/pmd-dashboard-waiter3-v13-polish.css') }}?v={{ time() }}"> --}}
+{{-- PMD owner clean v1 disabled legacy dashboard asset: <link rel="stylesheet" href="{{ asset('app/admin/assets/css/pmd-dashboard-waiter3-v14-compact.css') }}?v={{ time() }}"> --}}
+{{-- PMD owner clean v1 disabled legacy dashboard asset: <link rel="stylesheet" href="{{ asset('app/admin/assets/css/pmd-dashboard-waiter3-v15-rolebar.css') }}?v={{ time() }}"> --}}
+{{-- PMD owner clean v1 disabled legacy dashboard asset: <link rel="stylesheet" href="{{ asset('app/admin/assets/css/pmd-dashboard-w3-quick-icons-v16.css') }}?v={{ time() }}"> --}}
     <link rel="stylesheet" href="{{ asset('app/admin/assets/css/pmd-sidebar-icons-only-v15.css') }}?v={{ time() }}">
 <!-- PMD_DASHBOARD_NO_JUMP_V17_START -->
 <script>
@@ -952,13 +948,13 @@ body .media-manager .media-sidebar .sidebar-preview-toolbar button.btn-outline-d
   } catch (e) {}
 })();
 </script>
-<link rel="stylesheet" href="{{ asset('app/admin/assets/css/pmd-dashboard-no-jump-v17.css') }}?v={{ time() }}">
+{{-- PMD owner clean v1 disabled legacy dashboard asset: <link rel="stylesheet" href="{{ asset('app/admin/assets/css/pmd-dashboard-no-jump-v17.css') }}?v={{ time() }}"> --}}
 <!-- PMD_DASHBOARD_NO_JUMP_V17_END -->
 <!-- PMD_OWNER_DASHBOARD_MATCH_V13_CSS_START -->
-<link rel="stylesheet" href="{{ asset('app/admin/assets/css/pmd-dashboard-owner-match-v13.css') }}?v={{ time() }}">
+{{-- PMD owner clean v1 disabled legacy dashboard asset: <link rel="stylesheet" href="{{ asset('app/admin/assets/css/pmd-dashboard-owner-match-v13.css') }}?v={{ time() }}"> --}}
 <!-- PMD_OWNER_DASHBOARD_MATCH_V13_CSS_END -->
 <!-- PMD_OWNER_BLACK_HEADER_V24_CSS_START -->
-<link rel="stylesheet" href="{{ asset('app/admin/assets/css/pmd-dashboard-owner-black-header-v24.css') }}?v={{ time() }}">
+{{-- PMD owner clean v1 disabled legacy dashboard asset: <link rel="stylesheet" href="{{ asset('app/admin/assets/css/pmd-dashboard-owner-black-header-v24.css') }}?v={{ time() }}"> --}}
 <!-- PMD_OWNER_BLACK_HEADER_V24_CSS_END -->
 <!-- PMD_UNIVERSAL_LAYOUT_EDITOR_V35_CSS_START -->
 <link rel="stylesheet" href="{{ asset('app/admin/assets/css/pmd-universal-layout-editor-v35.css') }}?v={{ time() }}">
@@ -967,7 +963,7 @@ body .media-manager .media-sidebar .sidebar-preview-toolbar button.btn-outline-d
 <link rel="stylesheet" href="{{ asset('app/admin/assets/css/pmd-logo-switcher-final-v38.css') }}?v={{ time() }}">
 <!-- PMD_LOGO_SWITCHER_FINAL_V38_CSS_END -->
 <!-- PMD_MANAGER_OPS_DASHBOARD_V29_CSS_START -->
-<link rel="stylesheet" href="{{ asset('app/admin/assets/css/pmd-manager-ops-dashboard-v29.css') }}?v={{ time() }}">
+{{-- PMD owner clean v1 disabled legacy dashboard asset: <link rel="stylesheet" href="{{ asset('app/admin/assets/css/pmd-manager-ops-dashboard-v29.css') }}?v={{ time() }}"> --}}
 <!-- PMD_MANAGER_OPS_DASHBOARD_V29_CSS_END -->
 <!-- PMD_SIDEBAR_RECOVER_NATIVE_V50_EARLY_START -->
 <script>
@@ -1074,38 +1070,38 @@ window.PMD_ROLE_DASHBOARD_CONTEXT_V72 = @json($__pmdRoleDash);
 <!-- PMD_KDS_SERVER_FAST_V82_BLADE_FLAG_END -->
 
 <!-- PMD_KDS_SERVER_FAST_V82_JS_START -->
-<script src="{{ asset('app/admin/assets/js/pmd-kds-server-fast-v82.js') }}?v={{ time() }}"></script>
+{{-- PMD owner clean v1 disabled legacy dashboard asset: <script src="{{ asset('app/admin/assets/js/pmd-kds-server-fast-v82.js') }}?v={{ time() }}"></script> --}}
 <!-- PMD_KDS_SERVER_FAST_V82_JS_END -->
 <!-- PMD_KDS_ULTRA_FAST_V83_JS_START -->
-<script src="{{ asset('app/admin/assets/js/pmd-kds-ultra-fast-v83.js') }}?v={{ time() }}"></script>
+{{-- PMD owner clean v1 disabled legacy dashboard asset: <script src="{{ asset('app/admin/assets/js/pmd-kds-ultra-fast-v83.js') }}?v={{ time() }}"></script> --}}
 <!-- PMD_KDS_ULTRA_FAST_V83_JS_END -->
 <!-- PMD_DASHBOARD_ROLE_PREBOOT_V78_JS_START -->
-<script src="{{ asset('app/admin/assets/js/pmd-dashboard-role-preboot-v78.js') }}?v={{ time() }}"></script>
+{{-- PMD owner clean v1 disabled legacy dashboard asset: <script src="{{ asset('app/admin/assets/js/pmd-dashboard-role-preboot-v78.js') }}?v={{ time() }}"></script> --}}
 <!-- PMD_DASHBOARD_ROLE_PREBOOT_V78_JS_END -->
 
 <!-- PMD_ROLE_DASHBOARD_LOCK_V72_CSS_START -->
-<link rel="stylesheet" href="{{ asset('app/admin/assets/css/pmd-role-dashboard-lock-v72.css') }}?v={{ time() }}">
+{{-- PMD owner clean v1 disabled legacy dashboard asset: <link rel="stylesheet" href="{{ asset('app/admin/assets/css/pmd-role-dashboard-lock-v72.css') }}?v={{ time() }}"> --}}
 <!-- PMD_ROLE_DASHBOARD_LOCK_V72_CSS_END -->
 <!-- PMD_ROLE_NO_SIDEBAR_LOCK_V73_CSS_START -->
-<link rel="stylesheet" href="{{ asset('app/admin/assets/css/pmd-role-no-sidebar-v73.css') }}?v={{ time() }}">
+{{-- PMD owner clean v1 disabled legacy dashboard asset: <link rel="stylesheet" href="{{ asset('app/admin/assets/css/pmd-role-no-sidebar-v73.css') }}?v={{ time() }}"> --}}
 <!-- PMD_ROLE_NO_SIDEBAR_LOCK_V73_CSS_END -->
 <!-- PMD_DASHBOARD_ROLE_STABILITY_V78_CSS_START -->
-<link rel="stylesheet" href="{{ asset('app/admin/assets/css/pmd-dashboard-role-stability-v78.css') }}?v={{ time() }}">
+{{-- PMD owner clean v1 disabled legacy dashboard asset: <link rel="stylesheet" href="{{ asset('app/admin/assets/css/pmd-dashboard-role-stability-v78.css') }}?v={{ time() }}"> --}}
 <!-- PMD_DASHBOARD_ROLE_STABILITY_V78_CSS_END -->
 
 <!-- PMD_DASHBOARD_STABILITY_V77_CSS_START -->
-<link rel="stylesheet" href="{{ asset('app/admin/assets/css/pmd-dashboard-stability-v77.css') }}?v={{ time() }}">
+{{-- PMD owner clean v1 disabled legacy dashboard asset: <link rel="stylesheet" href="{{ asset('app/admin/assets/css/pmd-dashboard-stability-v77.css') }}?v={{ time() }}"> --}}
 <!-- PMD_DASHBOARD_STABILITY_V77_CSS_END -->
 
 
 
 
 <!-- PMD_KDS_SERVER_FAST_V82_CSS_START -->
-<link rel="stylesheet" href="{{ asset('app/admin/assets/css/pmd-kds-server-fast-v82.css') }}?v={{ time() }}">
+{{-- PMD owner clean v1 disabled legacy dashboard asset: <link rel="stylesheet" href="{{ asset('app/admin/assets/css/pmd-kds-server-fast-v82.css') }}?v={{ time() }}"> --}}
 <!-- PMD_KDS_SERVER_FAST_V82_CSS_END -->
 
 <!-- PMD_KDS_ULTRA_FAST_V83_CSS_START -->
-<link rel="stylesheet" href="{{ asset('app/admin/assets/css/pmd-kds-ultra-fast-v83.css') }}?v={{ time() }}">
+{{-- PMD owner clean v1 disabled legacy dashboard asset: <link rel="stylesheet" href="{{ asset('app/admin/assets/css/pmd-kds-ultra-fast-v83.css') }}?v={{ time() }}"> --}}
 <!-- PMD_KDS_ULTRA_FAST_V83_CSS_END -->
 
 <!-- PMD_WAITER_STABLE_MOBILE_V97_CSS_START -->
@@ -1115,8 +1111,11 @@ window.PMD_ROLE_DASHBOARD_CONTEXT_V72 = @json($__pmdRoleDash);
 <!-- PMD_WAITER_DATA_REPAIR_V100_CSS_END -->
     {{-- PMD waiter rebuild: old dashboard asset disabled --}}
 {{-- PMD waiter rebuild: old dashboard asset disabled --}}
-<link rel="stylesheet" href="{{ asset('app/admin/assets/css/pmd-waiter-dashboard-v161-direct-renderer.css') }}?v={{ time() }}">
-<link rel="stylesheet" href="{{ asset('app/admin/assets/css/pmd-waiter-dashboard-v162-fix-mount-position.css') }}?v={{ time() }}">
+{{-- PMD owner clean v1 disabled legacy dashboard asset: <link rel="stylesheet" href="{{ asset('app/admin/assets/css/pmd-waiter-dashboard-v161-direct-renderer.css') }}?v={{ time() }}"> --}}
+{{-- PMD owner clean v1 disabled legacy dashboard asset: <link rel="stylesheet" href="{{ asset('app/admin/assets/css/pmd-waiter-dashboard-v162-fix-mount-position.css') }}?v={{ time() }}"> --}}
+<!-- PMD_OWNER_DASHBOARD_CLEAN_V23_CSS_START -->
+<link rel="stylesheet" href="{{ asset('app/admin/assets/css/pmd-owner-dashboard-clean-v23.css') }}?v={{ time() }}">
+<!-- PMD_OWNER_DASHBOARD_CLEAN_V23_CSS_END -->
 </head>
 <script>
     // SMART FIX: Force dropdown alignment WITHOUT breaking Bootstrap animations
@@ -1694,19 +1693,19 @@ window.PMD_ROLE_DASHBOARD_CONTEXT_V72 = @json($__pmdRoleDash);
 </script>
     
 <script src="{{ asset('app/admin/assets/js/pmd-sidebar-system-lock-v7.js') }}?v={{ time() }}"></script>
-    <script src="{{ asset('app/admin/assets/js/pmd-dashboard-modern-v1.js') }}?v={{ time() }}"></script>
-    <script src="{{ asset('app/admin/assets/js/pmd-dashboard-real-api-v3.js') }}?v={{ time() }}"></script>
-    <script src="{{ asset('app/admin/assets/js/pmd-dashboard-role-preview-v9.js') }}?v={{ time() }}"></script>
-<script src="{{ asset('app/admin/assets/js/pmd-dashboard-owner2-v11.js') }}?v={{ time() }}"></script>
-<script src="{{ asset('app/admin/assets/js/pmd-dashboard-waiter3-v12.js') }}?v={{ time() }}"></script>
-<script src="{{ asset('app/admin/assets/js/pmd-dashboard-waiter3-v13-polish.js') }}?v={{ time() }}"></script>
-<script src="{{ asset('app/admin/assets/js/pmd-dashboard-waiter3-v14-compact.js') }}?v={{ time() }}"></script>
-<script src="{{ asset('app/admin/assets/js/pmd-dashboard-waiter3-v15-rolebar.js') }}?v={{ time() }}"></script>
-<script src="{{ asset('app/admin/assets/js/pmd-dashboard-w3-quick-icons-v16.js') }}?v={{ time() }}"></script>
+{{-- PMD owner clean v1 disabled legacy dashboard asset: <script src="{{ asset('app/admin/assets/js/pmd-dashboard-modern-v1.js') }}?v={{ time() }}"></script> --}}
+{{-- PMD owner clean v1 disabled legacy dashboard asset: <script src="{{ asset('app/admin/assets/js/pmd-dashboard-real-api-v3.js') }}?v={{ time() }}"></script> --}}
+{{-- PMD owner clean v1 disabled legacy dashboard asset: <script src="{{ asset('app/admin/assets/js/pmd-dashboard-role-preview-v9.js') }}?v={{ time() }}"></script> --}}
+{{-- PMD owner clean v1 disabled legacy dashboard asset: <script src="{{ asset('app/admin/assets/js/pmd-dashboard-owner2-v11.js') }}?v={{ time() }}"></script> --}}
+{{-- PMD owner clean v1 disabled legacy dashboard asset: <script src="{{ asset('app/admin/assets/js/pmd-dashboard-waiter3-v12.js') }}?v={{ time() }}"></script> --}}
+{{-- PMD owner clean v1 disabled legacy dashboard asset: <script src="{{ asset('app/admin/assets/js/pmd-dashboard-waiter3-v13-polish.js') }}?v={{ time() }}"></script> --}}
+{{-- PMD owner clean v1 disabled legacy dashboard asset: <script src="{{ asset('app/admin/assets/js/pmd-dashboard-waiter3-v14-compact.js') }}?v={{ time() }}"></script> --}}
+{{-- PMD owner clean v1 disabled legacy dashboard asset: <script src="{{ asset('app/admin/assets/js/pmd-dashboard-waiter3-v15-rolebar.js') }}?v={{ time() }}"></script> --}}
+{{-- PMD owner clean v1 disabled legacy dashboard asset: <script src="{{ asset('app/admin/assets/js/pmd-dashboard-w3-quick-icons-v16.js') }}?v={{ time() }}"></script> --}}
     <script src="{{ asset('app/admin/assets/js/pmd-sidebar-icons-only-v15.js') }}?v={{ time() }}"></script>
-    <script src="{{ asset('app/admin/assets/js/pmd-dashboard-no-jump-v17.js') }}?v={{ time() }}"></script>
+{{-- PMD owner clean v1 disabled legacy dashboard asset: <script src="{{ asset('app/admin/assets/js/pmd-dashboard-no-jump-v17.js') }}?v={{ time() }}"></script> --}}
 <!-- PMD_OWNER_DASHBOARD_MATCH_V13_JS_START -->
-<script src="{{ asset('app/admin/assets/js/pmd-dashboard-owner-match-v13.js') }}?v={{ time() }}"></script>
+{{-- PMD owner clean v1 disabled legacy dashboard asset: <script src="{{ asset('app/admin/assets/js/pmd-dashboard-owner-match-v13.js') }}?v={{ time() }}"></script> --}}
 <!-- PMD_OWNER_DASHBOARD_MATCH_V13_JS_END -->
 <!-- PMD_UNIVERSAL_LAYOUT_EDITOR_V35_JS_START -->
 <script src="{{ asset('app/admin/assets/js/pmd-universal-layout-editor-v35.js') }}?v={{ time() }}"></script>
@@ -1715,7 +1714,7 @@ window.PMD_ROLE_DASHBOARD_CONTEXT_V72 = @json($__pmdRoleDash);
 <script src="{{ asset('app/admin/assets/js/pmd-sidebar-recover-native-v50.js') }}?v={{ time() }}"></script>
 <!-- PMD_SIDEBAR_RECOVER_NATIVE_V50_JS_END -->
 <!-- PMD_MANAGER_OPS_DASHBOARD_V29_JS_START -->
-<script src="{{ asset('app/admin/assets/js/pmd-manager-ops-dashboard-v29.js') }}?v={{ time() }}"></script>
+{{-- PMD owner clean v1 disabled legacy dashboard asset: <script src="{{ asset('app/admin/assets/js/pmd-manager-ops-dashboard-v29.js') }}?v={{ time() }}"></script> --}}
 <!-- PMD_MANAGER_OPS_DASHBOARD_V29_JS_END -->
 <!-- PMD_SIDEBAR_LOGO_LAST_TOGGLE_V55_JS_START -->
 <script src="{{ asset('app/admin/assets/js/pmd-sidebar-logo-last-toggle-v55.js') }}?v={{ time() }}"></script>
@@ -1730,17 +1729,17 @@ window.PMD_ROLE_DASHBOARD_CONTEXT_V72 = @json($__pmdRoleDash);
 <script src="{{ asset('app/admin/assets/js/pmd-sidebar-toggle-top-gap-v70.js') }}?v={{ time() }}"></script>
 <!-- PMD_SIDEBAR_TOGGLE_TOP_GAP_V70_JS_END -->
 <!-- PMD_ROLE_DASHBOARD_LOCK_V72_JS_START -->
-<script src="{{ asset('app/admin/assets/js/pmd-role-dashboard-lock-v72.js') }}?v={{ time() }}"></script>
+{{-- PMD owner clean v1 disabled legacy dashboard asset: <script src="{{ asset('app/admin/assets/js/pmd-role-dashboard-lock-v72.js') }}?v={{ time() }}"></script> --}}
 <!-- PMD_ROLE_DASHBOARD_LOCK_V72_JS_END -->
 <!-- PMD_ROLE_NO_SIDEBAR_LOCK_V73_JS_START -->
-<script src="{{ asset('app/admin/assets/js/pmd-role-no-sidebar-v73.js') }}?v={{ time() }}"></script>
+{{-- PMD owner clean v1 disabled legacy dashboard asset: <script src="{{ asset('app/admin/assets/js/pmd-role-no-sidebar-v73.js') }}?v={{ time() }}"></script> --}}
 <!-- PMD_ROLE_NO_SIDEBAR_LOCK_V73_JS_END -->
 <!-- PMD_DASHBOARD_ROLE_STABILITY_V78_JS_START -->
-<script src="{{ asset('app/admin/assets/js/pmd-dashboard-role-stability-v78.js') }}?v={{ time() }}"></script>
+{{-- PMD owner clean v1 disabled legacy dashboard asset: <script src="{{ asset('app/admin/assets/js/pmd-dashboard-role-stability-v78.js') }}?v={{ time() }}"></script> --}}
 <!-- PMD_DASHBOARD_ROLE_STABILITY_V78_JS_END -->
 
 <!-- PMD_DASHBOARD_STABILITY_V77_JS_START -->
-<script src="{{ asset('app/admin/assets/js/pmd-dashboard-stability-v77.js') }}?v={{ time() }}"></script>
+{{-- PMD owner clean v1 disabled legacy dashboard asset: <script src="{{ asset('app/admin/assets/js/pmd-dashboard-stability-v77.js') }}?v={{ time() }}"></script> --}}
 <!-- PMD_DASHBOARD_STABILITY_V77_JS_END -->
 
 <!-- PMD_WAITER_STABLE_MOBILE_V97_JS_START -->
@@ -1763,7 +1762,22 @@ window.PMD_ROLE_DASHBOARD_CONTEXT_V72 = @json($__pmdRoleDash);
 
     {{-- PMD waiter rebuild: old dashboard asset disabled --}}
 {{-- PMD waiter rebuild: old dashboard asset disabled --}}
-<script src="{{ asset('app/admin/assets/js/pmd-waiter-dashboard-v161-direct-renderer.js') }}?v={{ time() }}" defer></script>
-<script src="{{ asset('app/admin/assets/js/pmd-waiter-dashboard-v162-fix-mount-position.js') }}?v={{ time() }}" defer></script>
+{{-- PMD owner clean v1 disabled legacy dashboard asset: <script src="{{ asset('app/admin/assets/js/pmd-waiter-dashboard-v161-direct-renderer.js') }}?v={{ time() }}" defer></script> --}}
+{{-- PMD owner clean v1 disabled legacy dashboard asset: <script src="{{ asset('app/admin/assets/js/pmd-waiter-dashboard-v162-fix-mount-position.js') }}?v={{ time() }}" defer></script> --}}
+
+
+
+
+
+
+
+<!-- PMD_ADMIN_FINAL_SINGLE_LOGO_V20 -->
+<link rel="stylesheet" href="/app/admin/assets/css/pmd-admin-final-single-logo-v20.css?v=20260625_154925">
+<script defer src="/app/admin/assets/js/pmd-admin-final-single-logo-v20.js?v=20260625_154925"></script>
+<!-- /PMD_ADMIN_FINAL_SINGLE_LOGO_V20 -->
+
+<!-- PMD_OWNER_DASHBOARD_CLEAN_V23_JS_START -->
+<script src="{{ asset('app/admin/assets/js/pmd-owner-dashboard-clean-v23.js') }}?v={{ time() }}" defer></script>
+<!-- PMD_OWNER_DASHBOARD_CLEAN_V23_JS_END -->
 </body>
 </html>

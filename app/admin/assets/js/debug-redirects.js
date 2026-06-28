@@ -1,3 +1,12 @@
+/* PMD_KDS_SETTINGS_NOISE_GUARD_V54_debug-redirects_START */
+if (/^\/admin\/kds_stations(?:\/|$)/.test(window.location.pathname)) {
+  window.PMD_KDS_SETTINGS_NOISE_GUARD_V54 = window.PMD_KDS_SETTINGS_NOISE_GUARD_V54 || [];
+  window.PMD_KDS_SETTINGS_NOISE_GUARD_V54.push("debug-redirects");
+  console.info("[PMD] skipped debug-redirects on KDS settings page", {
+    path: window.location.pathname
+  });
+} else {
+/* PMD_KDS_SETTINGS_NOISE_GUARD_V54_debug-redirects_BODY_START */
 /**
  * DEBUG REDIRECT ISSUES - Diagnostic Script
  * Add this to your admin panel to track redirect causes
@@ -145,3 +154,6 @@
     }
     
 })();
+
+/* PMD_KDS_SETTINGS_NOISE_GUARD_V54_debug-redirects_END */
+}

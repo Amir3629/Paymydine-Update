@@ -32,7 +32,7 @@
                             <div class="nk-block nk-block-middle nk-auth-body">
                                 <div class="brand-logo pb-5">
                                     <a href="html/index.html" class="logo-link">
-                                    <img class="logo-light logo-img pmd-login-main-logo-v58" src="{{ asset('app/admin/assets/images/pmd-logo-candidates/pmd-logo-5.png') }}?v={{ filemtime(base_path('app/admin/assets/images/pmd-logo-candidates/pmd-logo-5.png')) }}" srcset="{{ asset('app/admin/assets/images/pmd-logo-candidates/pmd-logo-5.png') }}?v={{ filemtime(base_path('app/admin/assets/images/pmd-logo-candidates/pmd-logo-5.png')) }}" alt="PayMyDine logo"><img class="logo-dark logo-img" src="{{ asset('app/admin/assets/images/pmd-logo-candidates/pmd-logo-5.png') }}?v={{ filemtime(base_path('app/admin/assets/images/pmd-logo-candidates/pmd-logo-5.png')) }}" srcset="{{ asset('app/admin/assets/images/pmd-logo-candidates/pmd-logo-5.png') }}?v={{ filemtime(base_path('app/admin/assets/images/pmd-logo-candidates/pmd-logo-5.png')) }}" alt="" aria-hidden="true">       </a>
+<img class="logo-dark logo-img" src="{{ asset('app/admin/assets/images/pmd-logo-final.png') }}?v={{ filemtime(base_path('app/admin/assets/images/pmd-logo-final.png')) }}" srcset="{{ asset('app/admin/assets/images/pmd-logo-final.png') }}?v={{ filemtime(base_path('app/admin/assets/images/pmd-logo-final.png')) }}" alt="" aria-hidden="true">       </a>
                                 </div>
                                 <div class="nk-block-head">
                                     <div class="nk-block-head-content">
@@ -213,3 +213,9 @@
     </div><!-- .modal -->
 
 </html>
+
+<!-- PMD_ADMIN_FINAL_SINGLE_LOGO_V20 -->
+<link rel="stylesheet" href="/app/admin/assets/css/pmd-admin-final-single-logo-v20.css?v=20260625_154925">
+<script defer src="/app/admin/assets/js/pmd-admin-final-single-logo-v20.js?v=20260625_154925"></script>
+<!-- /PMD_ADMIN_FINAL_SINGLE_LOGO_V20 -->
+

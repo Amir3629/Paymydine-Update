@@ -312,7 +312,7 @@ class KitchenDisplay extends AdminController
     protected function pmdKitchenStatusIdsV82()
     {
         return $this->pmdKdsFastCacheRememberV82('pmd_kds_status_ids_v82', 30, function () {
-            $kitchenStatusNames = ['Received', 'Pending', 'Preparation', 'Delivery'];
+            $kitchenStatusNames = ['Received', 'Preparation', 'Delivery'];
             return Statuses_model::whereIn('status_name', $kitchenStatusNames)
                 ->where('status_for', 'order')
                 ->pluck('status_id')
@@ -564,7 +564,7 @@ class KitchenDisplay extends AdminController
     protected function getKitchenStatuses()
     {
         // Default kitchen statuses
-        $kitchenStatusNames = ['Canceled', 'Preparation', 'Completed'];
+        $kitchenStatusNames = ['Preparation', 'Delivery'];
         
         $query = Statuses_model::where('status_for', 'order');
         
@@ -576,7 +576,7 @@ class KitchenDisplay extends AdminController
         }
         
         $statusRows = $this->pmdKdsFastCacheRememberV82('pmd_kds_status_buttons_v82_' . ($this->station ? ($this->station->station_id ?? 'station') : 'all'), 30, function () use ($query) {
-            return $query->orderByRaw("FIELD(status_name, 'Preparation', 'Completed', 'Canceled')")->get();
+            return $query->orderByRaw("FIELD(status_name, 'Preparation', 'Delivery', 'Completed', 'Canceled')")->get();
         });
 
         return $statusRows->map(function($status) {
@@ -586,6 +586,8 @@ class KitchenDisplay extends AdminController
                     $displayName = 'Cancel';
                 } elseif ($status->status_name === 'Preparation') {
                     $displayName = 'Preparing';
+                } elseif ($status->status_name === 'Delivery') {
+                    $displayName = 'Ready';
                 }
                 
                 return [

@@ -772,6 +772,146 @@ const [waiterConfirmed, setWaiterConfirmed] = useState(false)
 
 
 
+
+  // PMD_VELVET_DOM_MARKERS_V17_START
+  // Velvet-only DOM markers.
+  // This marks exact rendered food cards/modals so Velvet CSS can style them without touching Kazen/Japanese.
+  useEffect(() => {
+    const root = document.querySelector(".velvet-page") as HTMLElement | null
+    if (!root) return
+
+    const moneyPattern = /€\s*\d|EUR|\$\s*\d|\d+[,.]\d{2}/i
+    const modalWords = [
+      "ITEM DETAIL",
+      "CALL WAITER",
+      "GUEST NOTE",
+      "MY ORDER",
+      "PAYMENT",
+      "READY TO PAY",
+      "ADD TIP",
+      "PAYMENT METHODS",
+    ]
+
+    const isVisible = (el: Element) => {
+      const rect = (el as HTMLElement).getBoundingClientRect()
+      return rect.width > 20 && rect.height > 20
+    }
+
+    const markFoodCards = () => {
+      root.querySelectorAll('[data-pmd-velvet-food-card="1"]').forEach((el) => {
+        el.removeAttribute("data-pmd-velvet-food-card")
+      })
+
+      const buttons = Array.from(root.querySelectorAll("button")) as HTMLElement[]
+
+      buttons.forEach((button) => {
+        const btnText = (button.textContent || "").trim().toLowerCase()
+        const isAddButton =
+          btnText === "+" ||
+          btnText === "add" ||
+          btnText.includes("add") ||
+          button.getAttribute("aria-label")?.toLowerCase().includes("add")
+
+        if (!isAddButton) return
+
+        let current = button.parentElement as HTMLElement | null
+        let best: HTMLElement | null = null
+
+        for (let i = 0; current && i < 8; i += 1) {
+          if (current === root) break
+
+          const rect = current.getBoundingClientRect()
+          const text = current.textContent || ""
+          const hasImage = !!current.querySelector("img")
+          const hasMoney = moneyPattern.test(text)
+
+          // Real row card: has image + price + add button, but is not a huge list wrapper or modal.
+          if (
+            hasImage &&
+            hasMoney &&
+            rect.width >= 240 &&
+            rect.width <= 760 &&
+            rect.height >= 60 &&
+            rect.height <= 240
+          ) {
+            best = current
+            break
+          }
+
+          current = current.parentElement
+        }
+
+        if (best) {
+          best.setAttribute("data-pmd-velvet-food-card", "1")
+        }
+      })
+    }
+
+    const markModals = () => {
+      root.querySelectorAll('[data-pmd-velvet-modal-panel="1"]').forEach((el) => {
+        el.removeAttribute("data-pmd-velvet-modal-panel")
+      })
+
+      const candidates = Array.from(root.querySelectorAll("div, section, article")) as HTMLElement[]
+
+      const scored = candidates
+        .filter((el) => isVisible(el))
+        .map((el) => {
+          const rect = el.getBoundingClientRect()
+          const text = (el.textContent || "").toUpperCase().slice(0, 900)
+          const hit = modalWords.some((word) => text.includes(word))
+          const hasClose = Array.from(el.querySelectorAll("button")).some((btn) => {
+            const t = (btn.textContent || "").trim().toLowerCase()
+            const aria = (btn.getAttribute("aria-label") || "").toLowerCase()
+            return t === "×" || t === "x" || aria.includes("close")
+          })
+
+          const sizeOk =
+            rect.width >= 280 &&
+            rect.width <= 760 &&
+            rect.height >= 120 &&
+            rect.height <= 900
+
+          return {
+            el,
+            area: rect.width * rect.height,
+            ok: hit && hasClose && sizeOk,
+          }
+        })
+        .filter((x) => x.ok)
+        .sort((a, b) => a.area - b.area)
+
+      if (scored[0]?.el) {
+        scored[0].el.setAttribute("data-pmd-velvet-modal-panel", "1")
+      }
+    }
+
+    const run = () => {
+      markFoodCards()
+      markModals()
+    }
+
+    run()
+
+    const observer = new MutationObserver(() => {
+      window.requestAnimationFrame(run)
+    })
+
+    observer.observe(root, {
+      childList: true,
+      subtree: true,
+      attributes: false,
+    })
+
+    window.addEventListener("resize", run)
+
+    return () => {
+      observer.disconnect()
+      window.removeEventListener("resize", run)
+    }
+  }, [])
+  // PMD_VELVET_DOM_MARKERS_V17_END
+
 return (
     <main className="kazen-page velvet-page" data-pmd-theme-page="velvet-terracotta">
 

@@ -20,6 +20,14 @@ class KdsStation extends FormRequest
             'refresh_interval' => 'Refresh Interval',
             'theme_color' => 'Theme Color',
             'priority' => 'Priority',
+            'order_limit' => 'Max Orders On Screen',
+            'auto_hide_completed_minutes' => 'Hide Completed After Minutes',
+            'ready_pickup_timeout_minutes' => 'Ready Pickup Warning Minutes',
+            'reservation_window_minutes' => 'Reservation Window Minutes',
+            'show_reservations' => 'Show Reservations',
+            'display_density' => 'Display Density',
+            'sound_enabled' => 'Sound Enabled',
+            'station_type' => 'Station Type',
         ];
     }
 
@@ -27,7 +35,7 @@ class KdsStation extends FormRequest
     {
         return [
             'name' => ['required', 'min:2', 'max:128'],
-            'slug' => ['sometimes', 'max:128'],
+            'slug' => ['nullable', 'max:128', 'regex:/^[a-z0-9]+(?:-[a-z0-9]+)*$/'], // PMD_KDS_SLUG_RULE_V53
             'description' => ['sometimes', 'max:500'],
             'category_ids' => ['sometimes', 'array'],
             'status_ids' => ['sometimes', 'array'],
@@ -40,4 +48,7 @@ class KdsStation extends FormRequest
         ];
     }
 }
+
+
+
 

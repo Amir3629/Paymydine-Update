@@ -1,3 +1,24 @@
+/* PMD_MEDIAFIX_ROUTE_GUARD_V51_START */
+(function () {
+
+  var __pmdPath = String((window.location && window.location.pathname) || '');
+  var __pmdSkip =
+    __pmdPath === '/admin/kds_stations' ||
+    __pmdPath.indexOf('/admin/kds_stations/') === 0 ||
+    __pmdPath === '/admin/kds_stations/create' ||
+    __pmdPath.indexOf('/admin/kds_stations/edit') === 0;
+
+  window.PMD_MEDIAFIX_ROUTE_GUARD_V51 = {
+    path: __pmdPath,
+    skipped: __pmdSkip
+  };
+
+  if (__pmdSkip) {
+    console.info('[PMD Native MediaFix] skipped on KDS settings page', window.PMD_MEDIAFIX_ROUTE_GUARD_V51);
+    return;
+  }
+
+
 /* PMD_DISABLE_CUSTOM_MEDIA_ON_SETTINGS_START */
 if (!(/\/admin\/settings(?:\/|$)|\/admin\/media_manager(?:\/|$)/.test(window.location.pathname || ""))) {
 (function () {
@@ -267,3 +288,7 @@ if (!(/\/admin\/settings(?:\/|$)|\/admin\/media_manager(?:\/|$)/.test(window.loc
 
 }
 /* PMD_DISABLE_CUSTOM_MEDIA_ON_SETTINGS_END */
+
+
+})();
+/* PMD_MEDIAFIX_ROUTE_GUARD_V51_END */

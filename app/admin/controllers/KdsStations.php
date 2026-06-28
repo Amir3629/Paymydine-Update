@@ -96,6 +96,18 @@ class KdsStations extends AdminController
      */
     public function edit($context = null, $recordId = null)
     {
+
+        /* PMD_KDS_EDIT_BINDING_FIX_V53_START */
+        if ($recordId === null && is_numeric($context)) {
+            $recordId = (int)$context;
+            $context = null;
+        }
+
+        if (!empty($recordId) && !\Admin\Models\Kds_stations_model::where('station_id', $recordId)->exists()) {
+            return redirect(admin_url('kds_stations'));
+        }
+        /* PMD_KDS_EDIT_BINDING_FIX_V53_END */
+
         $this->ensureTableExists();
         
         $this->vars['title'] = 'Edit KDS Station';
@@ -109,64 +121,64 @@ class KdsStations extends AdminController
     /**
      * Extend form fields
      */
-    public function formExtendFields($form)
+    
+public function formExtendFields($form)
     {
-        // Add category options
-        $categories = Categories_model::where('status', 1)
-            ->orderBy('priority', 'asc')
-            ->orderBy('name', 'asc')
-            ->get();
-        
-        $categoryOptions = [];
-        foreach ($categories as $category) {
-            $categoryOptions[$category->category_id] = $category->name;
+        $this->pmdSetFormFieldOptionsV46($form, 'category_ids', Kds_stations_model::pmdKdsCategoryOptionsV46());
+        $this->pmdSetFormFieldOptionsV46($form, 'status_ids', Kds_stations_model::pmdKdsStatusOptionsV46());
+        $this->pmdSetFormFieldOptionsV46($form, 'location_id', Kds_stations_model::pmdKdsLocationOptionsV46());
+        $this->pmdSetFormFieldOptionsV46($form, 'notification_sound', Kds_stations_model::$notificationSounds);
+        $this->pmdSetFormFieldOptionsV46($form, 'theme_color', Kds_stations_model::$themeColors);
+    }
+
+    /* PMD_KDS_SETTINGS_BACKEND_V46_CONTROLLER_START */
+    protected function pmdSetFormFieldOptionsV46($form, $fieldName, array $options)
+    {
+        if (isset($form->fields[$fieldName])) {
+            if (is_array($form->fields[$fieldName])) {
+                $form->fields[$fieldName]['options'] = $options;
+            } elseif (is_object($form->fields[$fieldName])) {
+                $form->fields[$fieldName]->options = $options;
+            }
         }
-        
-        if (isset($form->fields['category_ids'])) {
-            $form->fields['category_ids']['options'] = $categoryOptions;
+
+        if (isset($form->tabs) && is_array($form->tabs) && isset($form->tabs['fields'][$fieldName])) {
+            if (is_array($form->tabs['fields'][$fieldName])) {
+                $form->tabs['fields'][$fieldName]['options'] = $options;
+            } elseif (is_object($form->tabs['fields'][$fieldName])) {
+                $form->tabs['fields'][$fieldName]->options = $options;
+            }
         }
-        
-        // Add status options
-        $statuses = Statuses_model::where('status_for', 'order')
-            ->orderBy('status_id', 'asc')
-            ->get();
-        
-        $statusOptions = [];
-        foreach ($statuses as $status) {
-            $statusOptions[$status->status_id] = $status->status_name;
-        }
-        
-        if (isset($form->fields['status_ids'])) {
-            $form->fields['status_ids']['options'] = $statusOptions;
-        }
-        
-        // Add notification sound options
-        if (isset($form->fields['notification_sound'])) {
-            $form->fields['notification_sound']['options'] = Kds_stations_model::$notificationSounds;
-        }
-        
-        // Add theme color options
-        if (isset($form->fields['theme_color'])) {
-            $form->fields['theme_color']['options'] = Kds_stations_model::$themeColors;
-        }
-        
-        // Add location options
-        $locations = Locations_model::where('location_status', 1)->get();
-        $locationOptions = ['' => '-- All Locations --'];
-        foreach ($locations as $location) {
-            $locationOptions[$location->location_id] = $location->location_name;
-        }
-        
-        if (isset($form->fields['location_id'])) {
-            $form->fields['location_id']['options'] = $locationOptions;
+
+        if (isset($form->tabs) && is_object($form->tabs) && isset($form->tabs->fields[$fieldName])) {
+            if (is_array($form->tabs->fields[$fieldName])) {
+                $form->tabs->fields[$fieldName]['options'] = $options;
+            } elseif (is_object($form->tabs->fields[$fieldName])) {
+                $form->tabs->fields[$fieldName]->options = $options;
+            }
         }
     }
+    /* PMD_KDS_SETTINGS_BACKEND_V46_CONTROLLER_END */
+
 
     /**
      * Before save - generate slug if needed
      */
     public function formBeforeSave($model)
     {
+
+        /* PMD_KDS_SLUG_SANITIZE_V53_START */
+        $model->slug = trim((string)($model->slug ?? ''));
+
+        if (in_array($model->slug, ['-1', '0'], true)) {
+            $model->slug = '';
+        }
+
+        if (!empty($model->slug)) {
+            $model->slug = Str::slug($model->slug);
+        }
+        /* PMD_KDS_SLUG_SANITIZE_V53_END */
+
         if (empty($model->slug) && !empty($model->name)) {
             $model->slug = Str::slug($model->name);
             
@@ -240,4 +252,7 @@ class KdsStations extends AdminController
         }
     }
 }
+
+
+
 

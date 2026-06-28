@@ -4,6 +4,7 @@ namespace Admin\Models;
 
 use Igniter\Flame\Database\Model;
 use Illuminate\Support\Str;
+use Illuminate\Support\Facades\DB;
 
 /**
  * KDS Stations Model Class
@@ -36,6 +37,15 @@ class Kds_stations_model extends Model
         'theme_color',
         'location_id',
         'priority',
+        'station_type',
+        'sound_enabled',
+        'display_density',
+        'show_reservations',
+        'reservation_window_minutes',
+        'ready_pickup_timeout_minutes',
+        'auto_hide_completed_minutes',
+        'order_limit',
+        'sort_order',
     ];
 
     protected $casts = [
@@ -46,6 +56,13 @@ class Kds_stations_model extends Model
         'refresh_interval' => 'integer',
         'location_id' => 'integer',
         'priority' => 'integer',
+        'sound_enabled' => 'boolean',
+        'show_reservations' => 'boolean',
+        'reservation_window_minutes' => 'integer',
+        'ready_pickup_timeout_minutes' => 'integer',
+        'auto_hide_completed_minutes' => 'integer',
+        'order_limit' => 'integer',
+        'sort_order' => 'integer',
     ];
 
     public $relation = [
@@ -257,5 +274,109 @@ class Kds_stations_model extends Model
     {
         return self::$themeColors;
     }
+
+    /* PMD_KDS_SETTINGS_BACKEND_V46_MODEL_START */
+    public function getStationTypeOptions()
+    {
+        return [
+            'kitchen' => 'Kitchen / Hot Food',
+            'bar' => 'Bar / Drinks',
+            'grill' => 'Grill Station',
+            'dessert' => 'Dessert / Cold Station',
+            'pass' => 'Pass / Expo',
+            'custom' => 'Custom Station',
+        ];
+    }
+
+    public function getDisplayDensityOptions()
+    {
+        return [
+            'compact' => 'Compact',
+            'normal' => 'Normal',
+            'large' => 'Large / TV Display',
+        ];
+    }
+
+    public function getCategoryIdsOptions()
+    {
+        return static::pmdKdsCategoryOptionsV46();
+    }
+
+    public function getStatusIdsOptions()
+    {
+        return static::pmdKdsStatusOptionsV46();
+    }
+
+    public function getLocationIdOptions()
+    {
+        return static::pmdKdsLocationOptionsV46();
+    }
+
+    public static function pmdKdsCategoryOptionsV46()
+    {
+        try {
+            if (!DB::getSchemaBuilder()->hasTable('categories')) return [];
+            $cols = DB::getSchemaBuilder()->getColumnListing('categories');
+            $idCol = in_array('category_id', $cols) ? 'category_id' : (in_array('id', $cols) ? 'id' : null);
+            $nameCol = in_array('name', $cols) ? 'name' : (in_array('category_name', $cols) ? 'category_name' : null);
+            if (!$idCol || !$nameCol) return [];
+
+            $query = DB::table('categories')->select($idCol.' as id', $nameCol.' as label');
+            if (in_array('status', $cols)) $query->where('status', 1);
+            if (in_array('category_status', $cols)) $query->where('category_status', 1);
+            if (in_array('priority', $cols)) $query->orderBy('priority', 'asc');
+            elseif (in_array('category_priority', $cols)) $query->orderBy('category_priority', 'asc');
+            $query->orderBy($nameCol, 'asc');
+
+            return $query->get()->pluck('label', 'id')->toArray();
+        } catch (\Throwable $e) {
+            \Log::warning('PMD KDS v46 category options failed: '.$e->getMessage());
+            return [];
+        }
+    }
+
+    public static function pmdKdsStatusOptionsV46()
+    {
+        try {
+            if (!DB::getSchemaBuilder()->hasTable('statuses')) return [];
+            return DB::table('statuses')
+                ->where('status_for', 'order')
+                ->orderByRaw("FIELD(status_name, 'Received', 'Preparation', 'Delivery', 'Completed', 'Canceled')")
+                ->orderBy('status_id', 'asc')
+                ->get()
+                ->mapWithKeys(function ($row) {
+                    $label = $row->status_name;
+                    if ($label === 'Preparation') $label = 'Preparing';
+                    if ($label === 'Delivery') $label = 'Ready / Delivery';
+                    if ($label === 'Canceled') $label = 'Cancel';
+                    return [$row->status_id => $label];
+                })
+                ->toArray();
+        } catch (\Throwable $e) {
+            \Log::warning('PMD KDS v46 status options failed: '.$e->getMessage());
+            return [];
+        }
+    }
+
+    public static function pmdKdsLocationOptionsV46()
+    {
+        try {
+            $options = ['' => '-- All Locations --'];
+            if (!DB::getSchemaBuilder()->hasTable('locations')) return $options;
+            $cols = DB::getSchemaBuilder()->getColumnListing('locations');
+            $idCol = in_array('location_id', $cols) ? 'location_id' : 'id';
+            $nameCol = in_array('location_name', $cols) ? 'location_name' : (in_array('name', $cols) ? 'name' : null);
+            if (!$nameCol) return $options;
+            $q = DB::table('locations')->select($idCol.' as id', $nameCol.' as label');
+            if (in_array('location_status', $cols)) $q->where('location_status', 1);
+            foreach ($q->orderBy($nameCol)->get() as $row) $options[$row->id] = $row->label;
+            return $options;
+        } catch (\Throwable $e) {
+            \Log::warning('PMD KDS v46 location options failed: '.$e->getMessage());
+            return ['' => '-- All Locations --'];
+        }
+    }
+    /* PMD_KDS_SETTINGS_BACKEND_V46_MODEL_END */
+
 }
 

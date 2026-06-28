@@ -1,3 +1,12 @@
+/* PMD_KDS_SETTINGS_NOISE_GUARD_V54_header-bulk-delete_START */
+if (/^\/admin\/kds_stations(?:\/|$)/.test(window.location.pathname)) {
+  window.PMD_KDS_SETTINGS_NOISE_GUARD_V54 = window.PMD_KDS_SETTINGS_NOISE_GUARD_V54 || [];
+  window.PMD_KDS_SETTINGS_NOISE_GUARD_V54.push("header-bulk-delete");
+  console.info("[PMD] skipped header-bulk-delete on KDS settings page", {
+    path: window.location.pathname
+  });
+} else {
+/* PMD_KDS_SETTINGS_NOISE_GUARD_V54_header-bulk-delete_BODY_START */
 (function () {
   'use strict';
 
@@ -352,3 +361,6 @@
     console.log('✅ PMD header bulk delete v132 global active');
   });
 })();
+
+/* PMD_KDS_SETTINGS_NOISE_GUARD_V54_header-bulk-delete_END */
+}
