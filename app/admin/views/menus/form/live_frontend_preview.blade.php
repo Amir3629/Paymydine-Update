@@ -1,5 +1,6 @@
 @php
-    $fallbackImage = url('/app/admin/assets/images/default-image.png');
+    $fallbackSvg = '<svg xmlns="http://www.w3.org/2000/svg" width="640" height="420" viewBox="0 0 640 420"><rect width="640" height="420" rx="34" fill="#f8fcfb"/><circle cx="320" cy="185" r="58" fill="#dff7ee"/><text x="320" y="196" text-anchor="middle" font-size="46" font-family="Arial">🍽️</text><text x="320" y="285" text-anchor="middle" font-size="24" font-family="Arial" fill="#64748b">Menu image preview</text></svg>';
+    $fallbackImage = 'data:image/svg+xml;utf8,'.rawurlencode($fallbackSvg);
     $initialImage = $fallbackImage;
     try {
         if (isset($formModel) && $formModel && method_exists($formModel, 'getThumb')) {
