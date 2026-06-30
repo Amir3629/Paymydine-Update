@@ -1,0 +1,57 @@
+/* PMD_KDS_INDEX_V126_SERVER_CSS_FOUC_GUARD
+   Loaded from KdsStations controller before first paint.
+   Purpose: prevent old server-rendered list/table flash on /admin/kds_stations.
+*/
+
+.pmd962-hero,
+section.pmd962-hero,
+.pmd962-advanced,
+.pmd962-advanced-table,
+.pmd962-table-panel,
+.pmd962-table-toggle,
+.pmd962-original-table-wrap {
+  display: none !important;
+  visibility: hidden !important;
+  height: 0 !important;
+  min-height: 0 !important;
+  max-height: 0 !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  overflow: hidden !important;
+}
+
+/* Hide original TastyIgniter list/table immediately.
+   Keep it in DOM so v96 JS can still read rows and build modern cards. */
+.table-responsive,
+.control-list,
+.list-widget,
+.list-table,
+.list-footer,
+.pagination,
+.pagination-bar,
+table {
+  visibility: hidden !important;
+  opacity: 0 !important;
+  height: 0 !important;
+  min-height: 0 !important;
+  max-height: 0 !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  overflow: hidden !important;
+  pointer-events: none !important;
+}
+
+/* Modern KDS cards/stats must stay visible after JS builds them. */
+.pmd962-card,
+.pmd962-station-card,
+[class*="station-card"],
+.pmd962-stats,
+.pmd962-stats-grid,
+.pmd962-grid,
+.pmd962-cards,
+.pmd962-shell {
+  visibility: visible !important;
+  opacity: 1 !important;
+  max-height: none !important;
+  pointer-events: auto !important;
+}

@@ -69,6 +69,7 @@ class KdsStations extends AdminController
      */
     public function index()
     {
+
         // Ensure the table exists
         $this->ensureTableExists();
         
@@ -82,6 +83,18 @@ class KdsStations extends AdminController
      */
     public function create()
     {
+        /* PMD_KDS_V114_IGNORE_STATUS_ONLY_CREATE */
+        if (request()->isMethod('post') && !request()->has('Kds_station') && (request()->has('status') || request()->has('message') || request()->has('clear_after'))) {
+            if (request()->ajax() || request()->wantsJson()) {
+                return response('', 204);
+            }
+            return redirect()->back();
+        }
+
+        if (request()->isMethod('post') && request()->has('Kds_station')) {
+            return $this->pmdKdsBackendSaveV108(null);
+        }
+
         $this->ensureTableExists();
         
         $this->vars['title'] = 'Create KDS Station';
@@ -96,6 +109,18 @@ class KdsStations extends AdminController
      */
     public function edit($context = null, $recordId = null)
     {
+        /* PMD_KDS_V114_IGNORE_STATUS_ONLY_EDIT */
+        if (request()->isMethod('post') && !request()->has('Kds_station') && (request()->has('status') || request()->has('message') || request()->has('clear_after'))) {
+            if (request()->ajax() || request()->wantsJson()) {
+                return response('', 204);
+            }
+            return redirect()->back();
+        }
+
+        if (request()->isMethod('post') && request()->has('Kds_station')) {
+            return $this->pmdKdsBackendSaveV108($this->pmdKdsCurrentRecordIdV108());
+        }
+
 
         /* PMD_KDS_EDIT_BINDING_FIX_V53_START */
         if ($recordId === null && is_numeric($context)) {
@@ -251,6 +276,201 @@ public function formExtendFields($form)
             \Log::error('Failed to create KDS stations table: ' . $e->getMessage());
         }
     }
+
+    /* PMD_KDS_BACKEND_SAVE_V108_START */
+    protected function pmdKdsCurrentRecordIdV108()
+    {
+        $path = request()->path();
+
+        if (preg_match('~/kds_stations/edit/([0-9]+)~', $path, $m)) {
+            return (int)$m[1];
+        }
+
+        foreach (['station_id', 'id', 'recordId'] as $key) {
+            $value = request()->route($key) ?: request()->input($key);
+            if (!empty($value)) {
+                return (int)$value;
+            }
+        }
+
+        return null;
+    }
+
+    protected function pmdKdsLastValueV108($value, $default = null)
+    {
+        if (is_array($value)) {
+            $value = array_values($value);
+            return count($value) ? end($value) : $default;
+        }
+
+        return $value !== null ? $value : $default;
+    }
+
+    protected function pmdKdsBoolV108($value, $default = 0)
+    {
+        $value = $this->pmdKdsLastValueV108($value, $default);
+        return in_array((string)$value, ['1', 'true', 'on', 'yes'], true) ? 1 : 0;
+    }
+
+    protected function pmdKdsIntV108($value, $default = 0)
+    {
+        $value = $this->pmdKdsLastValueV108($value, $default);
+        return is_numeric($value) ? (int)$value : (int)$default;
+    }
+
+    protected function pmdKdsNullableIntV108($value)
+    {
+        $value = $this->pmdKdsLastValueV108($value, null);
+        if ($value === '' || $value === null || $value === '0') {
+            return null;
+        }
+
+        return is_numeric($value) ? (int)$value : null;
+    }
+
+    protected function pmdKdsArrayIdsV108($value)
+    {
+        if ($value === null) {
+            return [];
+        }
+
+        if (!is_array($value)) {
+            $value = [$value];
+        }
+
+        $ids = [];
+
+        foreach ($value as $item) {
+            if (is_array($item)) {
+                foreach ($item as $sub) {
+                    if (is_numeric($sub) && (int)$sub > 0) {
+                        $ids[] = (int)$sub;
+                    }
+                }
+                continue;
+            }
+
+            if (is_numeric($item) && (int)$item > 0) {
+                $ids[] = (int)$item;
+            }
+        }
+
+        return array_values(array_unique($ids));
+    }
+
+    protected function pmdKdsSlugV108($name, $recordId = null)
+    {
+        $base = \Illuminate\Support\Str::slug($name ?: 'kds-station');
+
+        if ($base === '') {
+            $base = 'kds-station';
+        }
+
+        $slug = $base;
+        $i = 2;
+
+        while (true) {
+            $q = \Illuminate\Support\Facades\DB::table('kds_stations')->where('slug', $slug);
+
+            if (!empty($recordId)) {
+                $q->where('station_id', '!=', $recordId);
+            }
+
+            if (!$q->exists()) {
+                return $slug;
+            }
+
+            $slug = $base . '-' . $i;
+            $i++;
+        }
+    }
+
+
+    protected function pmdKdsFilterColumnsV108(array $data)
+    {
+        try {
+            $cols = \Illuminate\Support\Facades\Schema::getColumnListing('kds_stations');
+            if (!empty($cols)) {
+                return array_intersect_key($data, array_flip($cols));
+            }
+        } catch (\Throwable $e) {}
+
+        return $data;
+    }
+
+    protected function pmdKdsBackendSaveV108($recordId = null)
+    {
+        if (!\Illuminate\Support\Facades\Schema::hasTable('kds_stations')) {
+            return redirect()->back()->with('error', 'KDS stations table does not exist.');
+        }
+
+        $payload = request()->input('Kds_station', []);
+
+        if (!is_array($payload)) {
+            $payload = [];
+        }
+
+        $name = trim((string)$this->pmdKdsLastValueV108($payload['name'] ?? '', ''));
+
+        if ($name === '') {
+            return redirect()->back()->withInput()->with('error', 'Station name is required.');
+        }
+
+        $categoryIds = $this->pmdKdsArrayIdsV108($payload['category_ids'] ?? []);
+        $statusIds = $this->pmdKdsArrayIdsV108($payload['status_ids'] ?? []);
+
+        $now = now();
+
+        $data = [
+            'name' => $name,
+            'description' => (string)$this->pmdKdsLastValueV108($payload['description'] ?? '', ''),
+            'station_type' => (string)$this->pmdKdsLastValueV108($payload['station_type'] ?? 'kitchen', 'kitchen'),
+            'category_ids' => json_encode($categoryIds),
+            'status_ids' => json_encode($statusIds),
+            'can_change_status' => $this->pmdKdsBoolV108($payload['can_change_status'] ?? 1, 1),
+            'location_id' => $this->pmdKdsNullableIntV108($payload['location_id'] ?? null),
+            'priority' => $this->pmdKdsIntV108($payload['priority'] ?? 0, 0),
+            'is_active' => $this->pmdKdsBoolV108($payload['is_active'] ?? 1, 1),
+            'notification_sound' => (string)$this->pmdKdsLastValueV108($payload['notification_sound'] ?? 'doorbell', 'doorbell'),
+            'sound_enabled' => $this->pmdKdsBoolV108($payload['sound_enabled'] ?? 1, 1),
+            'refresh_interval' => $this->pmdKdsIntV108($payload['refresh_interval'] ?? 5, 5),
+            'theme_color' => (string)$this->pmdKdsLastValueV108($payload['theme_color'] ?? '#4CAF50', '#4CAF50'),
+            'display_density' => (string)$this->pmdKdsLastValueV108($payload['display_density'] ?? 'normal', 'normal'),
+            'show_reservations' => $this->pmdKdsBoolV108($payload['show_reservations'] ?? 1, 1),
+            'reservation_window_minutes' => $this->pmdKdsIntV108($payload['reservation_window_minutes'] ?? 90, 90),
+            'ready_pickup_timeout_minutes' => $this->pmdKdsIntV108($payload['ready_pickup_timeout_minutes'] ?? 8, 8),
+            'auto_hide_completed_minutes' => $this->pmdKdsIntV108($payload['auto_hide_completed_minutes'] ?? 5, 5),
+            'order_limit' => $this->pmdKdsIntV108($payload['order_limit'] ?? 50, 50),
+            'sort_order' => $this->pmdKdsIntV108($payload['priority'] ?? 0, 0),
+            'updated_at' => $now,
+        ];
+
+        if (!empty($recordId) && \Illuminate\Support\Facades\DB::table('kds_stations')->where('station_id', $recordId)->exists()) {
+            if (empty($payload['slug'])) {
+                $existing = \Illuminate\Support\Facades\DB::table('kds_stations')->where('station_id', $recordId)->first();
+                $data['slug'] = $existing && !empty($existing->slug) ? $existing->slug : $this->pmdKdsSlugV108($name, $recordId);
+            } else {
+                $data['slug'] = $this->pmdKdsSlugV108((string)$payload['slug'], $recordId);
+            }
+
+            $safe = $this->pmdKdsFilterColumnsV108($data);
+
+            \Illuminate\Support\Facades\DB::table('kds_stations')->where('station_id', $recordId)->update($safe);
+
+            return redirect(admin_url('kds_stations'))->with('success', 'KDS station saved.');
+        }
+
+        $data['slug'] = $this->pmdKdsSlugV108((string)($payload['slug'] ?? $name));
+        $data['created_at'] = $now;
+
+        $safe = $this->pmdKdsFilterColumnsV108($data);
+
+        $newId = \Illuminate\Support\Facades\DB::table('kds_stations')->insertGetId($safe);
+
+        return redirect(admin_url('kds_stations'))->with('success', 'KDS station created.');
+    }
+    /* PMD_KDS_BACKEND_SAVE_V108_END */
+
 }
 
 

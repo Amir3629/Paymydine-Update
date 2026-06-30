@@ -246,4 +246,8 @@
   'Admin\\Models\\Location_areas_model' => 'app/admin/models/Location_areas_model.php',
   'System\\Models\\Countries_model' => 'app/system/models/Countries_model.php',
   'Admin\\Requests\\Location' => 'app/admin/requests/Location.php',
+  'System\\Controllers\\activities' => 'app/system/controllers/Activities.php',
+  'Admin\\Models\\Cash_drawers_model' => 'app/admin/models/Cash_drawers_model.php',
+  'Admin\\Controllers\\history' => 'app/admin/controllers/History.php',
+  'Admin\\Models\\History_model' => 'app/admin/models/History_model.php',
 );
