@@ -6,6 +6,7 @@
   "scripts": {
     "visual": "playwright test --project=chromium",
     "visual:headed": "playwright test --project=chromium --headed",
+    "visual:clean": "rm -rf pmd-qa-results && npm run visual",
     "install:chromium": "playwright install chromium"
   },
   "devDependencies": {

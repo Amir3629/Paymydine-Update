@@ -13,7 +13,7 @@ export default defineConfig({
   reporter: [['list'], ['html', { outputFolder: './pmd-qa-results/playwright-html', open: 'never' }]],
   use: {
     baseURL: process.env.PMD_BASE_URL || 'http://localhost',
-    trace: 'retain-on-failure',
+    trace: 'on',
     screenshot: 'only-on-failure',
     video: 'retain-on-failure',
     ignoreHTTPSErrors: true

@@ -15,8 +15,24 @@ type Finding = {
   computedStyles: Record<string, unknown>;
 };
 
-const resultsRoot = path.resolve(__dirname, '../pmd-qa-results');
+const pmdQaRoot = path.resolve(__dirname, '..');
+const resultsRoot = path.resolve(pmdQaRoot, 'pmd-qa-results');
 const reportPath = path.join(resultsRoot, 'pmd-admin-visual-report.md');
+
+function removeInsideResults(relativePath: string) {
+  const target = path.resolve(resultsRoot, relativePath);
+  if (!target.startsWith(resultsRoot + path.sep)) {
+    throw new Error(`Refusing to clean path outside pmd-qa-results: ${target}`);
+  }
+  fs.rmSync(target, { recursive: true, force: true });
+}
+
+function cleanResultsForRun() {
+  fs.mkdirSync(resultsRoot, { recursive: true });
+  removeInsideResults('pmd-admin-visual-report.md');
+  removeInsideResults('screenshots');
+  removeInsideResults('test-output');
+}
 const selectors = ['header', '.navbar', '.page-header', '.toolbar', '.btn', 'button', 'input', 'select', 'textarea', '.card', 'form', '[type="submit"]', '.form-control', '.dropdown-menu', '[data-control]', '.media-manager', '.field-mediafinder', 'img'];
 const viewports = [
   { width: 1600, height: 1000 },
@@ -69,6 +85,10 @@ function safeName(value: string) {
 }
 
 test.describe('PMD admin visual QA foundation', () => {
+  test.beforeAll(() => {
+    cleanResultsForRun();
+  });
+
   for (const target of pageTargets()) {
     for (const viewport of viewports) {
       test(`${target.name} ${viewport.width}x${viewport.height}`, async ({ page }, testInfo) => {
