@@ -6,6 +6,7 @@ use Admin\Facades\AdminMenu;
 use Admin\Facades\AdminAuth;
 use App\Helpers\SettingsHelper;
 use Illuminate\Support\Facades\Request;
+use Admin\Models\Statuses_model;
 
 class Statuses extends \Admin\Classes\AdminController
 {
@@ -67,11 +68,38 @@ class Statuses extends \Admin\Classes\AdminController
         parent::__construct();
 
         AdminMenu::setContext('statuses', 'sales');
+        $this->addCss('assets/css/pmd-admin-universal-list-v1.css', 'pmd-admin-universal-list-v1');
     }
 
     public function index()
     {
+        $this->vars['pmdUniversalList'] = $this->pmdBuildUniversalListData();
+
         $this->asExtension('ListController')->index();
+    }
+
+    protected function pmdBuildUniversalListData(): array
+    {
+        try {
+            $total = Statuses_model::query()->count();
+            $orderStatuses = Statuses_model::query()->where('status_for', 'order')->count();
+            $reservationStatuses = Statuses_model::query()->where('status_for', 'reserve')->count();
+            $notificationsEnabled = Statuses_model::query()->where('notify_customer', 1)->count();
+        } catch (\Throwable $exception) {
+            $total = $orderStatuses = $reservationStatuses = $notificationsEnabled = 0;
+        }
+
+        return [
+            'pageKey' => 'statuses',
+            'title' => 'Statuses',
+            'description' => 'Read-only workflow status summary and existing status list.',
+            'kpis' => [
+                ['label' => 'Total statuses', 'value' => $total, 'icon' => 'fa-tags', 'meaning' => 'Workflow states'],
+                ['label' => 'Order statuses', 'value' => $orderStatuses, 'icon' => 'fa-receipt', 'meaning' => 'Order workflow coverage'],
+                ['label' => 'Reservation statuses', 'value' => $reservationStatuses, 'icon' => 'fa-calendar-check', 'meaning' => 'Reservation workflow coverage'],
+                ['label' => 'Notifications enabled', 'value' => $notificationsEnabled, 'icon' => 'fa-bell', 'meaning' => 'Customer/staff notification footprint'],
+            ],
+        ];
     }
 
     /**

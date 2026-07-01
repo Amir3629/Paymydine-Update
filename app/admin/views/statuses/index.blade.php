@@ -1,4 +1,3 @@
-<div class="row-fluid">
+@component('admin::_partials.pmd_universal_list_shell', ['pmdUniversalList' => $pmdUniversalList ?? []])
     {!! $this->renderList() !!}
-    
-</div>
+@endcomponent
