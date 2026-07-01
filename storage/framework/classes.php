@@ -250,4 +250,9 @@
   'Admin\\Models\\Cash_drawers_model' => 'app/admin/models/Cash_drawers_model.php',
   'Admin\\Controllers\\history' => 'app/admin/controllers/History.php',
   'Admin\\Models\\History_model' => 'app/admin/models/History_model.php',
+  'Admin\\Controllers\\combos' => 'app/admin/controllers/Combos.php',
+  'System\\Controllers\\languages' => 'app/system/controllers/Languages.php',
+  'System\\Models\\Translations_model' => 'app/system/models/Translations_model.php',
+  'System\\Classes\\LanguageManager' => 'app/system/classes/LanguageManager.php',
+  'System\\Requests\\Language' => 'app/system/requests/Language.php',
 );
