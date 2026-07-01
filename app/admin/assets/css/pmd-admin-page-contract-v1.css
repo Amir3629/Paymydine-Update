@@ -1,0 +1,320 @@
+/*
+ * PMD Admin Page Contract v1
+ * Purpose:
+ * - Establish one shared desktop/tablet rhythm for PMD admin pages.
+ * - KDS Stations list/create is the visual reference.
+ * - First migration target: Menu create/edit only.
+ *
+ * Scope:
+ * - body.page.pmd-admin-theme-v1
+ * - desktop/tablet only: min-width 641px
+ *
+ * Reason for !important:
+ * - Menu create/edit currently define heavy inline page CSS inside Blade.
+ * - Existing PMD admin CSS uses high specificity and !important in several layers.
+ * - This contract is intentionally loaded last and scoped narrowly.
+ */
+
+body.page.pmd-admin-theme-v1 {
+  --pmd-admin-contract-header-h: 64px;
+  --pmd-admin-contract-top-gap: 44px;
+  --pmd-admin-contract-gutter-x: 28px;
+  --pmd-admin-contract-gutter-x-tablet: 22px;
+  --pmd-admin-contract-inner-x: 8px;
+  --pmd-admin-contract-inner-top: 20px;
+  --pmd-admin-contract-card-gap: 20px;
+  --pmd-admin-contract-side-gap: 24px;
+  --pmd-admin-contract-side-width: 360px;
+  --pmd-admin-contract-card-radius: 18px;
+  --pmd-admin-contract-card-border: 1px solid rgba(181, 218, 239, .85);
+  --pmd-admin-contract-card-bg: rgba(255, 255, 255, .78);
+  --pmd-admin-contract-card-shadow: 0 18px 45px rgba(12, 39, 58, .055);
+}
+
+@media (min-width: 641px) {
+  /*
+   * Menu create/edit outer form should align with KDS content:
+   * KDS desktop starts at page-wrapper + 28px and y=108.
+   * Menu was page-wrapper + 50px and y=112.
+   */
+  html body.page.pmd-admin-theme-v1 form:has(.pmd-menu-form-v170) {
+    width: calc(100% - (var(--pmd-admin-contract-gutter-x) * 2)) !important;
+    max-width: none !important;
+    margin-top: var(--pmd-admin-contract-top-gap) !important;
+    margin-right: var(--pmd-admin-contract-gutter-x) !important;
+    margin-bottom: 72px !important;
+    margin-left: var(--pmd-admin-contract-gutter-x) !important;
+    padding: 0 !important;
+    box-sizing: border-box !important;
+  }
+
+  html body.page.pmd-admin-theme-v1 .pmd-menu-form-v170 {
+    width: 100% !important;
+    max-width: none !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    box-sizing: border-box !important;
+  }
+
+  html body.page.pmd-admin-theme-v1 .pmd-menu-form-v170,
+  html body.page.pmd-admin-theme-v1 .pmd-menu-form-v170 * {
+    box-sizing: border-box !important;
+  }
+
+  /*
+   * Match KDS card rhythm:
+   * KDS form starts x=240, top card starts x=248, y=128 on desktop.
+   * So shell uses 8px horizontal inner offset and 20px top offset.
+   */
+  html body.page.pmd-admin-theme-v1 .pmd-menu-form-v170-shell {
+    width: 100% !important;
+    max-width: none !important;
+    margin: 0 !important;
+    padding: var(--pmd-admin-contract-inner-top) var(--pmd-admin-contract-inner-x) 0 !important;
+    gap: var(--pmd-admin-contract-side-gap) !important;
+    align-items: start !important;
+  }
+
+  html body.page.pmd-admin-theme-v1 .pmd-menu-form-v170-main {
+    gap: var(--pmd-admin-contract-card-gap) !important;
+    min-width: 0 !important;
+  }
+
+  html body.page.pmd-admin-theme-v1 .pmd-menu-form-v170-side {
+    width: var(--pmd-admin-contract-side-width) !important;
+    max-width: var(--pmd-admin-contract-side-width) !important;
+    min-width: var(--pmd-admin-contract-side-width) !important;
+  }
+
+  html body.page.pmd-admin-theme-v1 .pmd-menu-form-v170-card {
+    border-radius: var(--pmd-admin-contract-card-radius) !important;
+    border: var(--pmd-admin-contract-card-border) !important;
+    background: var(--pmd-admin-contract-card-bg) !important;
+    box-shadow: var(--pmd-admin-contract-card-shadow) !important;
+  }
+
+  html body.page.pmd-admin-theme-v1 .pmd-menu-form-v170-card.sticky {
+    top: calc(var(--pmd-admin-contract-header-h) + var(--pmd-admin-contract-inner-top)) !important;
+  }
+
+  /*
+   * Wide desktop: keep preview column like current design, but allow main column
+   * to use the extra KDS-aligned width.
+   */
+  @media (min-width: 1200px) {
+    html body.page.pmd-admin-theme-v1 .pmd-menu-form-v170-shell {
+      display: grid !important;
+      grid-template-columns: minmax(0, 1fr) var(--pmd-admin-contract-side-width) !important;
+    }
+  }
+
+  /*
+   * Tablet: KDS uses page-wrapper + 22px gutter.
+   * Keep menu stacked/compact, but align outer page rhythm.
+   */
+  @media (max-width: 1199.98px) {
+    html body.page.pmd-admin-theme-v1 form:has(.pmd-menu-form-v170) {
+      width: calc(100% - (var(--pmd-admin-contract-gutter-x-tablet) * 2)) !important;
+      margin-left: var(--pmd-admin-contract-gutter-x-tablet) !important;
+      margin-right: var(--pmd-admin-contract-gutter-x-tablet) !important;
+    }
+
+    html body.page.pmd-admin-theme-v1 .pmd-menu-form-v170-shell {
+      display: block !important;
+    }
+
+    html body.page.pmd-admin-theme-v1 .pmd-menu-form-v170-side {
+      width: 100% !important;
+      max-width: 100% !important;
+      min-width: 0 !important;
+      margin-top: var(--pmd-admin-contract-card-gap) !important;
+    }
+
+    html body.page.pmd-admin-theme-v1 .pmd-menu-form-v170-card.sticky {
+      position: relative !important;
+      top: auto !important;
+    }
+  }
+}
+
+/*
+ * PMD Admin Page Contract v1.2
+ * Purpose:
+ * - Make Menus index follow the same page logic as KDS Stations.
+ * - Remove duplicated in-page hero/title/actions.
+ * - Top header remains the source for page title and actions.
+ * - Content starts directly with stats cards, like KDS.
+ * - Desktop/tablet only. Mobile is deferred.
+ */
+
+@media (min-width: 641px) {
+  /*
+   * Menu create/edit vertical tune:
+   * v1 aligned x/right correctly but content started at y=84.
+   * KDS target starts around y=108.
+   */
+  html body.page.pmd-admin-theme-v1 form:has(.pmd-menu-form-v170) {
+    margin-top: 68px !important;
+  }
+
+  /*
+   * Menus index page: remove internal hero.
+   * The top admin header already carries the page title/actions.
+   */
+  html body.page.pmd-admin-theme-v1 .pmd-menu-v160 .pmd-menu-v160-hero {
+    display: none !important;
+    visibility: hidden !important;
+    opacity: 0 !important;
+    height: 0 !important;
+    min-height: 0 !important;
+    max-height: 0 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    overflow: hidden !important;
+    pointer-events: none !important;
+  }
+
+  /*
+   * Menus index outer rhythm should match KDS list:
+   * KDS content starts page-wrapper + 28px, y about 108.
+   */
+  html body.page.pmd-admin-theme-v1 .pmd-menu-v160 {
+    width: calc(100% - (var(--pmd-admin-contract-gutter-x) * 2)) !important;
+    max-width: none !important;
+    margin-top: var(--pmd-admin-contract-top-gap) !important;
+    margin-right: var(--pmd-admin-contract-gutter-x) !important;
+    margin-bottom: 72px !important;
+    margin-left: var(--pmd-admin-contract-gutter-x) !important;
+    padding: var(--pmd-admin-contract-inner-top) var(--pmd-admin-contract-inner-x) 0 !important;
+    box-sizing: border-box !important;
+  }
+
+  html body.page.pmd-admin-theme-v1 .pmd-menu-v160,
+  html body.page.pmd-admin-theme-v1 .pmd-menu-v160 * {
+    box-sizing: border-box !important;
+  }
+
+  /*
+   * Shared stats rhythm: KDS stats and Menu stats should feel identical.
+   */
+  html body.page.pmd-admin-theme-v1 .pmd-menu-v160-stats,
+  html body.page.pmd-admin-theme-v1 .pmd962-stats {
+    gap: var(--pmd-admin-contract-card-gap) !important;
+    margin-top: 0 !important;
+    margin-bottom: var(--pmd-admin-contract-card-gap) !important;
+  }
+
+  html body.page.pmd-admin-theme-v1 .pmd-menu-v160-stat,
+  html body.page.pmd-admin-theme-v1 .pmd962-stat {
+    border-radius: var(--pmd-admin-contract-card-radius) !important;
+    border: var(--pmd-admin-contract-card-border) !important;
+    background: var(--pmd-admin-contract-card-bg) !important;
+    box-shadow: var(--pmd-admin-contract-card-shadow) !important;
+  }
+
+  /*
+   * Shared content card rhythm.
+   */
+  html body.page.pmd-admin-theme-v1 .pmd-menu-v160-panel,
+  html body.page.pmd-admin-theme-v1 .pmd-menu-v160-card,
+  html body.page.pmd-admin-theme-v1 .pmd962-card,
+  html body.page.pmd-admin-theme-v1 .pmd962-detail,
+  html body.page.pmd-admin-theme-v1 .pmd-menu-form-v170-card {
+    border-radius: var(--pmd-admin-contract-card-radius) !important;
+    border: var(--pmd-admin-contract-card-border) !important;
+  }
+
+  html body.page.pmd-admin-theme-v1 .pmd-menu-v160-panel,
+  html body.page.pmd-admin-theme-v1 .pmd962-grid {
+    margin-top: 0 !important;
+  }
+
+  /*
+   * Keep Menu index toolbar inside the main panel, but normalize spacing
+   * so it follows the KDS card-grid rhythm.
+   */
+  html body.page.pmd-admin-theme-v1 .pmd-menu-v160-toolbar {
+    gap: var(--pmd-admin-contract-card-gap) !important;
+    margin-bottom: var(--pmd-admin-contract-card-gap) !important;
+  }
+
+  html body.page.pmd-admin-theme-v1 .pmd-menu-v160-categories {
+    gap: 10px !important;
+    margin-bottom: var(--pmd-admin-contract-card-gap) !important;
+  }
+
+  html body.page.pmd-admin-theme-v1 .pmd-menu-v160-grid {
+    gap: var(--pmd-admin-contract-card-gap) !important;
+  }
+
+  @media (max-width: 1199.98px) {
+    html body.page.pmd-admin-theme-v1 .pmd-menu-v160 {
+      width: calc(100% - (var(--pmd-admin-contract-gutter-x-tablet) * 2)) !important;
+      margin-left: var(--pmd-admin-contract-gutter-x-tablet) !important;
+      margin-right: var(--pmd-admin-contract-gutter-x-tablet) !important;
+    }
+  }
+}
+
+/*
+ * PMD Admin Universal List Contract v1
+ * Purpose:
+ * - Make legacy admin list/index pages follow the KDS Stations rhythm.
+ * - Desktop/tablet only. Mobile comes later.
+ * - KDS and Menu custom pages are excluded.
+ */
+
+@media (min-width: 641px) {
+  html body.page.pmd-admin-theme-v1 .page-wrapper > form:not(:has(.pmd962-shell)):not(:has(.pmd-menu-v160)):not(:has(.pmd-menu-form-v170)) {
+    width: calc(100% - (var(--pmd-admin-contract-gutter-x) * 2)) !important;
+    max-width: none !important;
+    margin: var(--pmd-admin-contract-top-gap) var(--pmd-admin-contract-gutter-x) 72px !important;
+    padding: var(--pmd-admin-contract-inner-top) var(--pmd-admin-contract-inner-x) !important;
+    box-sizing: border-box !important;
+    border-radius: var(--pmd-admin-contract-card-radius) !important;
+    border: var(--pmd-admin-contract-card-border) !important;
+    background: var(--pmd-admin-contract-card-bg) !important;
+    box-shadow: var(--pmd-admin-contract-card-shadow) !important;
+  }
+
+  html body.page.pmd-admin-theme-v1 .page-wrapper > form:not(:has(.pmd962-shell)):not(:has(.pmd-menu-v160)):not(:has(.pmd-menu-form-v170)) .table-responsive,
+  html body.page.pmd-admin-theme-v1 .page-wrapper > form:not(:has(.pmd962-shell)):not(:has(.pmd-menu-v160)):not(:has(.pmd-menu-form-v170)) .list-table,
+  html body.page.pmd-admin-theme-v1 .page-wrapper > form:not(:has(.pmd962-shell)):not(:has(.pmd-menu-v160)):not(:has(.pmd-menu-form-v170)) table {
+    border-radius: calc(var(--pmd-admin-contract-card-radius) - 2px) !important;
+    overflow: hidden !important;
+    border-color: rgba(181, 218, 239, .75) !important;
+  }
+
+  html body.page.pmd-admin-theme-v1 .page-wrapper > form:not(:has(.pmd962-shell)):not(:has(.pmd-menu-v160)):not(:has(.pmd-menu-form-v170)) table {
+    margin-bottom: 0 !important;
+    background: rgba(255,255,255,.86) !important;
+  }
+
+  html body.page.pmd-admin-theme-v1 .page-wrapper > form:not(:has(.pmd962-shell)):not(:has(.pmd-menu-v160)):not(:has(.pmd-menu-form-v170)) thead th {
+    background: rgba(248, 252, 252, .95) !important;
+    color: #4b6078 !important;
+    font-size: 12px !important;
+    letter-spacing: .08em !important;
+    text-transform: uppercase !important;
+    border-bottom: 1px solid rgba(181, 218, 239, .75) !important;
+  }
+
+  html body.page.pmd-admin-theme-v1 .page-wrapper > form:not(:has(.pmd962-shell)):not(:has(.pmd-menu-v160)):not(:has(.pmd-menu-form-v170)) tbody td {
+    border-color: rgba(216, 234, 244, .75) !important;
+    vertical-align: middle !important;
+  }
+
+  html body.page.pmd-admin-theme-v1 .pagination-bar {
+    width: calc(100% - (var(--pmd-admin-contract-gutter-x) * 2)) !important;
+    margin-left: var(--pmd-admin-contract-gutter-x) !important;
+    margin-right: var(--pmd-admin-contract-gutter-x) !important;
+  }
+
+  @media (max-width: 1199.98px) {
+    html body.page.pmd-admin-theme-v1 .page-wrapper > form:not(:has(.pmd962-shell)):not(:has(.pmd-menu-v160)):not(:has(.pmd-menu-form-v170)) {
+      width: calc(100% - (var(--pmd-admin-contract-gutter-x-tablet) * 2)) !important;
+      margin-left: var(--pmd-admin-contract-gutter-x-tablet) !important;
+      margin-right: var(--pmd-admin-contract-gutter-x-tablet) !important;
+    }
+  }
+}

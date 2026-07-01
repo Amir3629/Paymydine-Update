@@ -1485,6 +1485,8 @@ section.pmd962-hero,
 
 
 
+    <link rel="stylesheet" href="/app/admin/assets/css/pmd-admin-mobile-shell-v1.css?v=1">
+    <link rel="stylesheet" href="/app/admin/assets/css/pmd-admin-page-contract-v1.css?v=1">
 </head>
 <script>
     // SMART FIX: Force dropdown alignment WITHOUT breaking Bootstrap animations
