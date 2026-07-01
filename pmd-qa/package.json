@@ -1,0 +1,15 @@
+{
+  "name": "pmd-admin-visual-qa",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Isolated Playwright visual QA workspace for PayMyDine admin panel.",
+  "scripts": {
+    "visual": "playwright test --project=chromium",
+    "visual:headed": "playwright test --project=chromium --headed",
+    "install:chromium": "playwright install chromium"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.53.2",
+    "dotenv": "^16.4.7"
+  }
+}
