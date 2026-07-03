@@ -255,4 +255,10 @@
   'System\\Models\\Translations_model' => 'app/system/models/Translations_model.php',
   'System\\Classes\\LanguageManager' => 'app/system/classes/LanguageManager.php',
   'System\\Requests\\Language' => 'app/system/requests/Language.php',
+  'Admin\\Models\\Terminal_devices_model' => 'app/admin/models/Terminal_devices_model.php',
+  'System\\Controllers\\countries' => 'app/system/controllers/Countries.php',
+  'System\\Controllers\\currencies' => 'app/system/controllers/Currencies.php',
+  'Admin\\Controllers\\tips' => 'app/admin/controllers/Tips.php',
+  'Admin\\Models\\Tips_shifts_model' => 'app/admin/models/Tips_shifts_model.php',
+  'Admin\\FormWidgets\\CodeEditor' => 'app/admin/formwidgets/CodeEditor.php',
 );

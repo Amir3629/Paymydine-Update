@@ -1487,6 +1487,68 @@ section.pmd962-hero,
 
     <link rel="stylesheet" href="/app/admin/assets/css/pmd-admin-mobile-shell-v1.css?v=1">
     <link rel="stylesheet" href="/app/admin/assets/css/pmd-admin-page-contract-v1.css?v=1">
+    <link rel="stylesheet" href="/app/admin/assets/css/pmd-admin-universal-client-list-v1.css?v=50">
+
+
+
+
+
+<!-- PMD New Pages Anti-Flash Opacity v40 -->
+<script>
+(function () {
+  try {
+    var supported = [
+      '/admin/menus',
+      '/admin/mail_templates',
+      '/admin/reviews',
+      '/admin/countries',
+      '/admin/currencies',
+      '/admin/languages',
+      '/admin/tips',
+      '/admin/payments'
+    ];
+
+    var path = window.location.pathname.replace(/\/+$/, '');
+
+    if (supported.indexOf(path) !== -1) {
+      document.documentElement.classList.add('pmd-new-pages-antiflash-v40');
+      document.documentElement.setAttribute('data-pmd-new-page-path-v40', path);
+
+      window.PMDNewPagesAntiFlashV40Start = Date.now();
+
+      setTimeout(function () {
+        document.documentElement.classList.add('pmd-new-pages-antiflash-timeout-v40');
+      }, 2600);
+    }
+  } catch (e) {}
+})();
+</script>
+<style>
+/*
+ * v40 IMPORTANT:
+ * Do NOT use visibility:hidden or display:none here.
+ * v30 renderer must still be able to find the table.
+ */
+html.pmd-new-pages-antiflash-v40:not(.pmd-new-pages-antiflash-rendered-v40):not(.pmd-new-pages-antiflash-timeout-v40) .table-responsive,
+html.pmd-new-pages-antiflash-v40:not(.pmd-new-pages-antiflash-rendered-v40):not(.pmd-new-pages-antiflash-timeout-v40) table,
+html.pmd-new-pages-antiflash-v40:not(.pmd-new-pages-antiflash-rendered-v40):not(.pmd-new-pages-antiflash-timeout-v40) .control-list,
+html.pmd-new-pages-antiflash-v40:not(.pmd-new-pages-antiflash-rendered-v40):not(.pmd-new-pages-antiflash-timeout-v40) .list-widget,
+html.pmd-new-pages-antiflash-v40:not(.pmd-new-pages-antiflash-rendered-v40):not(.pmd-new-pages-antiflash-timeout-v40) .list-table,
+html.pmd-new-pages-antiflash-v40:not(.pmd-new-pages-antiflash-rendered-v40):not(.pmd-new-pages-antiflash-timeout-v40) .list-footer,
+html.pmd-new-pages-antiflash-v40:not(.pmd-new-pages-antiflash-rendered-v40):not(.pmd-new-pages-antiflash-timeout-v40) .pagination,
+html.pmd-new-pages-antiflash-v40:not(.pmd-new-pages-antiflash-rendered-v40):not(.pmd-new-pages-antiflash-timeout-v40) .pagination-bar {
+  opacity: 0 !important;
+  pointer-events: none !important;
+}
+</style>
+<!-- /PMD New Pages Anti-Flash Opacity v40 -->
+
+
+<!-- PMD Universal Admin Forms v1 -->
+<link rel="stylesheet" href="/app/admin/assets/css/pmd-admin-universal-forms-v1.css?v=10">
+<script defer src="/app/admin/assets/js/pmd-admin-universal-forms-v1.js?v=10"></script>
+<!-- /PMD Universal Admin Forms v1 -->
+
 </head>
 <script>
     // SMART FIX: Force dropdown alignment WITHOUT breaking Bootstrap animations
@@ -2150,5 +2212,6 @@ section.pmd962-hero,
 <!-- PMD_OWNER_DASHBOARD_CLEAN_V23_JS_START -->
 <script src="{{ asset('app/admin/assets/js/pmd-owner-dashboard-clean-v23.js') }}?v={{ time() }}" defer></script>
 <!-- PMD_OWNER_DASHBOARD_CLEAN_V23_JS_END -->
+    <script src="/app/admin/assets/js/pmd-admin-universal-client-list-v1.js?v=50" defer></script>
 </body>
 </html>
