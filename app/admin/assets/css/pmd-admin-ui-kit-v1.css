@@ -511,3 +511,303 @@ body.pmd-ui-kit-page {
   .pmd-ui-topbar { margin: -18px -18px 18px; padding: 12px 18px; align-items: flex-start; }
   .pmd-ui-two, .pmd-ui-three { grid-template-columns: 1fr; }
 }
+
+/* PMD UI Kit v2 — complete admin controls START */
+
+/* Native select fix: Mac/Chrome/Safari default select was visually too tiny */
+.pmd-ui-select,
+.pmd-ui-input[type="date"],
+.pmd-ui-input[type="time"],
+.pmd-ui-input[type="datetime-local"] {
+  height: var(--pmd-ui-control-h) !important;
+  min-height: var(--pmd-ui-control-h) !important;
+  line-height: calc(var(--pmd-ui-control-h) - 2px) !important;
+}
+
+.pmd-ui-select {
+  -webkit-appearance: none !important;
+  appearance: none !important;
+  padding: 0 46px 0 14px !important;
+  background-color: #fff !important;
+  background-image:
+    linear-gradient(45deg, transparent 50%, #10283d 50%),
+    linear-gradient(135deg, #10283d 50%, transparent 50%) !important;
+  background-position:
+    calc(100% - 20px) calc(50% - 3px),
+    calc(100% - 14px) calc(50% - 3px) !important;
+  background-size: 6px 6px, 6px 6px !important;
+  background-repeat: no-repeat !important;
+}
+
+.pmd-ui-select::-ms-expand {
+  display: none;
+}
+
+.pmd-ui-control-row {
+  display: flex;
+  align-items: stretch;
+  width: 100%;
+}
+
+.pmd-ui-addon {
+  min-width: 54px;
+  min-height: var(--pmd-ui-control-h);
+  border: 1px solid var(--pmd-ui-line);
+  background: #fff;
+  color: var(--pmd-ui-text);
+  display: grid;
+  place-items: center;
+  font-weight: 950;
+}
+
+.pmd-ui-addon:first-child {
+  border-radius: 15px 0 0 15px;
+  border-right: 0;
+}
+
+.pmd-ui-addon:last-child {
+  border-radius: 0 15px 15px 0;
+  border-left: 0;
+}
+
+.pmd-ui-control-row .pmd-ui-input {
+  border-radius: 0;
+}
+
+.pmd-ui-control-row .pmd-ui-input:first-child {
+  border-radius: 15px 0 0 15px;
+}
+
+.pmd-ui-control-row .pmd-ui-input:last-child {
+  border-radius: 0 15px 15px 0;
+}
+
+.pmd-ui-mock-select {
+  min-height: var(--pmd-ui-control-h);
+  border-radius: 15px;
+  border: 1px solid var(--pmd-ui-line);
+  background: #fff;
+  color: var(--pmd-ui-text);
+  font-size: 14px;
+  font-weight: 850;
+  padding: 0 14px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  box-shadow: 0 8px 18px rgba(12,39,58,.018);
+}
+
+.pmd-ui-mock-select span {
+  color: var(--pmd-ui-muted);
+  font-size: 12px;
+  font-weight: 950;
+  letter-spacing: .08em;
+}
+
+.pmd-ui-segmented {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 10px;
+}
+
+.pmd-ui-segment {
+  min-height: 50px;
+  border-radius: 15px;
+  border: 1px solid var(--pmd-ui-line);
+  background: #fff;
+  color: var(--pmd-ui-text);
+  font-weight: 950;
+  font-size: 13px;
+  letter-spacing: .10em;
+  text-transform: uppercase;
+  display: grid;
+  place-items: center;
+  box-shadow: 0 8px 18px rgba(12,39,58,.024);
+}
+
+.pmd-ui-segment.is-active {
+  background: linear-gradient(180deg, var(--pmd-ui-mint), #fff);
+  color: var(--pmd-ui-green);
+  border-color: rgba(8,119,98,.42);
+  box-shadow: 0 12px 26px rgba(8,119,98,.10);
+}
+
+.pmd-ui-mini-card-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(190px,1fr));
+  gap: 12px;
+}
+
+.pmd-ui-mini-card {
+  border: 1px solid var(--pmd-ui-line);
+  border-radius: 18px;
+  background: #fff;
+  padding: 16px;
+  box-shadow: 0 10px 24px rgba(12,39,58,.025);
+}
+
+.pmd-ui-mini-card strong {
+  display: block;
+  color: var(--pmd-ui-ink);
+  font-size: 15px;
+  font-weight: 950;
+}
+
+.pmd-ui-mini-card small {
+  display: block;
+  margin-top: 5px;
+  color: var(--pmd-ui-muted);
+  font-weight: 750;
+}
+
+.pmd-ui-color-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.pmd-ui-color-swatch {
+  width: 50px;
+  height: 50px;
+  border-radius: 15px;
+  border: 1px solid var(--pmd-ui-line);
+  background: var(--pmd-ui-green);
+  box-shadow: 0 8px 18px rgba(12,39,58,.05);
+}
+
+.pmd-ui-editor {
+  border: 1px solid var(--pmd-ui-line);
+  border-radius: 18px;
+  background: #fff;
+  overflow: hidden;
+  box-shadow: 0 10px 24px rgba(12,39,58,.025);
+}
+
+.pmd-ui-editor-toolbar {
+  min-height: 46px;
+  border-bottom: 1px solid var(--pmd-ui-line-soft);
+  background: linear-gradient(180deg, #fbfeff, #fff);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 10px;
+}
+
+.pmd-ui-editor-body {
+  min-height: 150px;
+  padding: 15px;
+  color: var(--pmd-ui-text);
+  font-weight: 750;
+}
+
+.pmd-ui-code {
+  border: 1px solid var(--pmd-ui-line);
+  border-radius: 18px;
+  background: #071b1a;
+  color: #d7fff2;
+  padding: 16px;
+  min-height: 150px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 13px;
+  line-height: 1.6;
+  overflow: auto;
+}
+
+.pmd-ui-map {
+  min-height: 190px;
+  border-radius: 20px;
+  border: 1px solid var(--pmd-ui-line);
+  background:
+    linear-gradient(90deg, rgba(96,190,232,.12) 1px, transparent 1px),
+    linear-gradient(rgba(96,190,232,.12) 1px, transparent 1px),
+    #fff;
+  background-size: 28px 28px;
+  display: grid;
+  place-items: center;
+  color: var(--pmd-ui-muted);
+  font-weight: 900;
+}
+
+.pmd-ui-accordion {
+  display: grid;
+  gap: 10px;
+}
+
+.pmd-ui-accordion-item {
+  border: 1px solid var(--pmd-ui-line);
+  border-radius: 18px;
+  background: #fff;
+  overflow: hidden;
+}
+
+.pmd-ui-accordion-head {
+  min-height: 54px;
+  padding: 0 16px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  color: var(--pmd-ui-ink);
+  font-weight: 950;
+}
+
+.pmd-ui-accordion-body {
+  border-top: 1px solid var(--pmd-ui-line-soft);
+  padding: 16px;
+  color: var(--pmd-ui-muted);
+  font-weight: 750;
+}
+
+.pmd-ui-alert {
+  border: 1px solid rgba(8,119,98,.18);
+  border-radius: 18px;
+  background: var(--pmd-ui-mint);
+  color: var(--pmd-ui-green);
+  padding: 14px 16px;
+  font-weight: 850;
+}
+
+.pmd-ui-empty {
+  min-height: 160px;
+  border-radius: 20px;
+  border: 1px dashed rgba(96,190,232,.75);
+  background: #fff;
+  display: grid;
+  place-items: center;
+  text-align: center;
+  color: var(--pmd-ui-muted);
+  font-weight: 850;
+}
+
+.pmd-ui-status-row {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.pmd-ui-kpi {
+  border: 1px solid var(--pmd-ui-line);
+  border-radius: 20px;
+  background: #fff;
+  padding: 18px;
+  box-shadow: 0 10px 24px rgba(12,39,58,.025);
+}
+
+.pmd-ui-kpi small {
+  color: var(--pmd-ui-muted);
+  font-size: 11px;
+  letter-spacing: .16em;
+  text-transform: uppercase;
+  font-weight: 950;
+}
+
+.pmd-ui-kpi strong {
+  display: block;
+  margin-top: 8px;
+  color: var(--pmd-ui-ink);
+  font-size: 28px;
+  line-height: 1;
+  font-weight: 950;
+}
+
+/* PMD UI Kit v2 — complete admin controls END */
+

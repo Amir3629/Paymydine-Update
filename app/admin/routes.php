@@ -1,5 +1,48 @@
 <?php
 
+// PMD_COUNTER_DASHBOARD_V1_START
+// Counter / Reception dashboard for reservations. Must stay before admin catch-all routes.
+$__pmdCounterDashboardV1 = function () {
+    $path = base_path('app/admin/views/pmd-counter-dashboard.blade.php');
+
+    if (!file_exists($path)) {
+        return response('PMD Counter Dashboard view not found: '.$path, 404)
+            ->header('Content-Type', 'text/plain; charset=UTF-8');
+    }
+
+    return response(file_get_contents($path), 200)
+        ->header('Content-Type', 'text/html; charset=UTF-8')
+        ->header('Cache-Control', 'no-store, no-cache, must-revalidate, max-age=0');
+};
+
+\Illuminate\Support\Facades\Route::get('/admin/pmd-counter-dashboard', $__pmdCounterDashboardV1);
+\Illuminate\Support\Facades\Route::get('pmd-counter-dashboard', $__pmdCounterDashboardV1);
+// PMD_COUNTER_DASHBOARD_V1_END
+
+
+
+// PMD_ADMIN_UI_KIT_PRIORITY_ROUTE_V2_START
+// Must stay near the TOP of app/admin/routes.php, before admin catch-all routes.
+$__pmdUiKitHandler = function () {
+    $path = base_path('app/admin/views/pmd-ui-kit.blade.php');
+
+    if (!file_exists($path)) {
+        return response('PMD UI Kit view not found: '.$path, 404)
+            ->header('Content-Type', 'text/plain; charset=UTF-8');
+    }
+
+    return response(file_get_contents($path), 200)
+        ->header('Content-Type', 'text/html; charset=UTF-8')
+        ->header('Cache-Control', 'no-store, no-cache, must-revalidate, max-age=0');
+};
+
+// Register both forms because this project mixes admin-prefixed and non-prefixed routes.
+\Illuminate\Support\Facades\Route::get('/admin/pmd-ui-kit', $__pmdUiKitHandler);
+\Illuminate\Support\Facades\Route::get('pmd-ui-kit', $__pmdUiKitHandler);
+// PMD_ADMIN_UI_KIT_PRIORITY_ROUTE_V2_END
+
+
+
 /* PMD_OWNER_DASHBOARD_CLEAN_V1_ROUTES_START */
 \Illuminate\Support\Facades\Route::get('pmd-owner-dashboard-clean-v1-data', [\Admin\Controllers\PmdOwnerDashboardCleanV1::class, 'index']);
 \Illuminate\Support\Facades\Route::get('pmd-owner-dashboard-clean-v1-audit', [\Admin\Controllers\PmdOwnerDashboardCleanV1::class, 'audit']);
@@ -166,4 +209,5 @@ Route::get('pmd-waiter-portal-v113-clear-merges', 'PmdWaiterPortalV113@clearMerg
 Route::get('pmd-waiter-floor-v113-data', 'PmdWaiterPortalV113@data');
 Route::get('pmd-waiter-floor-v113-add-item', 'PmdWaiterPortalV113@addItem');
 // PMD_WAITER_PORTAL_V113_ROUTES_END
+
 
