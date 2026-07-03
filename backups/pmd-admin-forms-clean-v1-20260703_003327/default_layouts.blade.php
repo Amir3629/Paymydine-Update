@@ -432,10 +432,10 @@ html.pmd-new-pages-antiflash-v40:not(.pmd-new-pages-antiflash-rendered-v40):not(
 <!-- /PMD New Pages Anti-Flash Opacity v40 -->
 
 
-<!-- PMD Admin Forms Clean v1 -->
-<link rel="stylesheet" href="/app/admin/assets/css/pmd-admin-universal-forms-v1.css?v=clean1">
-<script defer src="/app/admin/assets/js/pmd-admin-universal-forms-v1.js?v=clean1"></script>
-<!-- /PMD Admin Forms Clean v1 -->
+<!-- PMD Universal Admin Forms v1 -->
+<link rel="stylesheet" href="/app/admin/assets/css/pmd-admin-universal-forms-v1.css?v=10">
+<script defer src="/app/admin/assets/js/pmd-admin-universal-forms-v1.js?v=10"></script>
+<!-- /PMD Universal Admin Forms v1 -->
 
 </head>
 <body class="admin">
