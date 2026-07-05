@@ -28,8 +28,6 @@ $__pmdUiKitHandler = function () {
 /* PMD_OWNER_DASHBOARD_CLEAN_V1_ROUTES_START */
 \Illuminate\Support\Facades\Route::get('pmd-owner-dashboard-clean-v1-data', [\Admin\Controllers\PmdOwnerDashboardCleanV1::class, 'index']);
 \Illuminate\Support\Facades\Route::get('pmd-owner-dashboard-clean-v1-audit', [\Admin\Controllers\PmdOwnerDashboardCleanV1::class, 'audit']);
-\Illuminate\Support\Facades\Route::get('pmd-owner-dashboard-floor-layout', [\Admin\Controllers\PmdOwnerDashboardCleanV1::class, 'floorLayout']);
-\Illuminate\Support\Facades\Route::post('pmd-owner-dashboard-floor-layout', [\Admin\Controllers\PmdOwnerDashboardCleanV1::class, 'saveFloorLayout']);
 /* PMD_OWNER_DASHBOARD_CLEAN_V1_ROUTES_END */
 
 
