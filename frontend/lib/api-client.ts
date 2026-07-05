@@ -592,6 +592,20 @@ export class ApiClient {
       const safeMessage = (message ?? '').trim();
       if (!safeTableId) throw new Error('Missing table_id');
 
+      if (typeof window !== 'undefined') {
+        const cooldownMs = 3 * 60 * 1000;
+        const cooldownKey = `pmd-waiter-call-cooldown:${safeTableId}`;
+        const lastCallAt = Number(window.localStorage.getItem(cooldownKey) || 0);
+        const remainingMs = cooldownMs - (Date.now() - lastCallAt);
+        if (lastCallAt && remainingMs > 0) {
+          const remainingSeconds = Math.ceil(remainingMs / 1000);
+          const minutes = Math.floor(remainingSeconds / 60);
+          const seconds = String(remainingSeconds % 60).padStart(2, '0');
+          throw new Error(`Waiter already notified. You can call again in ${minutes}:${seconds}.`);
+        }
+        window.localStorage.setItem(cooldownKey, String(Date.now()));
+      }
+
       const response = await fetch(endpoint, {
         method: 'POST',
         headers: {
@@ -602,6 +616,11 @@ export class ApiClient {
       });
 
       if (!response.ok) {
+        if (typeof window !== 'undefined') {
+          try {
+            window.localStorage.removeItem(`pmd-waiter-call-cooldown:${safeTableId}`);
+          } catch {}
+        }
         // Try to read API validation message
         let errMsg = `HTTP ${response.status}`;
         try { const j = await response.json(); if (j?.message) errMsg = j.message; } catch {}

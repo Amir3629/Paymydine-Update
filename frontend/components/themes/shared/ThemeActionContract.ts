@@ -12,6 +12,7 @@ export type ThemeMenuActions = {
   cartCount: number
   tableOrderCount: number
   showTableOrder: boolean
+  showValet?: boolean
   tableNumber?: string | number | null
   language?: string
   currentLocale?: string

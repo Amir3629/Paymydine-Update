@@ -41,6 +41,7 @@ import { useTableQrContext } from "@/features/customer-menu/hooks/useTableQrCont
 import { useOrganicThemeEffects } from "@/features/customer-menu/theme/useOrganicThemeEffects";
 import { useCustomerMenuThemeBootstrap } from "@/features/customer-menu/theme/useCustomerMenuThemeBootstrap";
 import { LoadingSpinner } from "@/features/customer-menu/components/LoadingSpinner";
+import { isValetFeatureEnabled } from "@/features/valet/valet-config";
 
 // Hook to get current theme background color
 /* PMD_REMOTE_CONSOLE_INJECTED */
@@ -132,6 +133,7 @@ function MenuContent() {
   })
 
   const shouldShowPayMyDineFooterLogo = useCustomerMenuFooterLogoVisibility({ isModernGreenTheme, isOrganicBotanicalTheme })
+  const showValet = isValetFeatureEnabled(cmsSettings, merchantSettings, tableInfo)
 
   useCustomerMenuThemeBootstrap(setForceModernGreenTheme)
 
@@ -212,6 +214,7 @@ function MenuContent() {
     shouldShowTableOrderAction,
     displayTableNumber,
     language,
+    showValet,
   })
 
   // Native Organic Botanical handles menu actions directly; no parent frame bridge is installed.
@@ -293,14 +296,31 @@ function MenuContent() {
 
   const restaurantDisplayName = merchantSettings?.businessName || cmsSettings?.appName || 'PayMyDine'
 
-  if (shouldHoldThemeRender) {
+  if (shouldHoldThemeRender || (isLoading && apiMenuItems.length === 0 && menuItems.length === 0)) {
     return (
       <div
         className="pmd-customer-page page--menu relative min-h-screen w-full"
         data-pmd-theme-loading="1"
-        style={{ background: "#f5fff8af0", color: "#343529" }}
+        data-pmd-menu-loading-skeleton="1"
+        style={{ background: "#fbf8f2", color: "#343529" }}
       >
-        <LoadingSpinner />
+        <div className="mx-auto flex min-h-screen w-full max-w-5xl flex-col gap-5 px-5 py-6 sm:px-8">
+          <div className="flex items-center justify-between">
+            <div className="h-10 w-32 animate-pulse rounded-full bg-black/10" />
+            <div className="h-9 w-24 animate-pulse rounded-full bg-black/10" />
+          </div>
+          <div className="h-44 animate-pulse rounded-[2rem] bg-black/10" />
+          <div className="flex gap-3 overflow-hidden">
+            {[0, 1, 2, 3].map((idx) => (
+              <div key={idx} className="h-10 min-w-28 animate-pulse rounded-full bg-black/10" />
+            ))}
+          </div>
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {[0, 1, 2, 3, 4, 5].map((idx) => (
+              <div key={idx} className="h-48 animate-pulse rounded-[1.6rem] bg-black/10" />
+            ))}
+          </div>
+        </div>
       </div>
     )
   }
@@ -370,6 +390,7 @@ function MenuContent() {
         note,
         setNote,
         handleSendNote,
+        showValet,
 
       }}
     />

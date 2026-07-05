@@ -11,7 +11,12 @@ class PmdOwnerDashboardCleanV1 extends \Admin\Classes\AdminController
 
     public function index()
     {
-        try {
+        /* PMD_FLOOR_DIRECT_SAVE_GET_V19_BRANCH */
+        if (request()->input('pmd_floor_save_v19') === '1') {
+            return $this->pmdFloorDirectSaveGetV19();
+        }
+
+try {
             return Response::json($this->build());
         } catch (\Throwable $e) {
             return Response::json([
@@ -204,7 +209,7 @@ class PmdOwnerDashboardCleanV1 extends \Admin\Classes\AdminController
                     ['role' => 'Waiter', 'status' => 'active now', 'focus' => 'Service-only dashboard: tables, open checks, waiter calls, clickable table/order workspace. No sidebar/header.'],
                     ['role' => 'KDS', 'status' => 'active now', 'focus' => 'Kitchen dashboard: queue, delays, ready rows, top open items, KDS station health.'],
                     ['role' => 'Cashier', 'status' => 'active now', 'focus' => 'Checkout dashboard: open checks, payment breakdown, split bill, cash drawer.'],
-                    ['role' => 'Reception', 'status' => 'active now', 'focus' => 'Booking dashboard: reservations, walk-ins, calls/messages, table availability.'],
+                    ['role' => 'Counter', 'status' => 'active now', 'focus' => 'Counter desk: reservations, walk-ins, calls/messages, table availability, delays and pre-order notes.'],
                 ],
             ],
         ];
@@ -1552,4 +1557,119 @@ class PmdOwnerDashboardCleanV1 extends \Admin\Classes\AdminController
     {
         return '€'.number_format((float)$value, 2, '.', ',');
     }
+
+
+    /* PMD_FLOOR_DIRECT_SAVE_GET_V19_START */
+    private function pmdFloorDirectSaveGetV19()
+    {
+        try {
+            if (!\Illuminate\Support\Facades\Schema::hasTable('tables')) {
+                return response()->json(['ok' => false, 'message' => 'tables table not found'], 500);
+            }
+
+            $b64 = (string) request()->input('tables_b64', '');
+            $json = '';
+
+            if ($b64 !== '') {
+                $decoded = base64_decode($b64, true);
+                if ($decoded !== false) {
+                    $json = $decoded;
+                }
+            }
+
+            if ($json === '') {
+                $json = (string) request()->input('tables', '');
+            }
+
+            $items = json_decode($json, true);
+
+            if (!is_array($items) || !count($items)) {
+                return response()->json([
+                    'ok' => false,
+                    'version' => 'pmd-floor-direct-save-get-v19',
+                    'message' => 'No valid table layout items received',
+                ], 422);
+            }
+
+            $colsList = \Illuminate\Support\Facades\Schema::getColumnListing('tables');
+            $cols = array_flip($colsList);
+            $pk = isset($cols['table_id']) ? 'table_id' : (isset($cols['id']) ? 'id' : null);
+
+            if (!$pk || !isset($cols['floor_x']) || !isset($cols['floor_y'])) {
+                return response()->json([
+                    'ok' => false,
+                    'version' => 'pmd-floor-direct-save-get-v19',
+                    'message' => 'Missing table id/floor columns',
+                    'columns' => $colsList,
+                ], 422);
+            }
+
+            $updated = 0;
+            $skipped = [];
+
+            \Illuminate\Support\Facades\DB::beginTransaction();
+
+            foreach ($items as $item) {
+                if (!is_array($item)) {
+                    $skipped[] = ['reason' => 'invalid item'];
+                    continue;
+                }
+
+                $id = isset($item['id']) ? (int) $item['id'] : 0;
+                if ($id <= 0) {
+                    $skipped[] = ['reason' => 'invalid id'];
+                    continue;
+                }
+
+                $update = [];
+
+                foreach (['floor_x', 'floor_y', 'floor_width', 'floor_height'] as $key) {
+                    if (!isset($cols[$key]) || !array_key_exists($key, $item)) continue;
+                    if (!is_numeric($item[$key])) continue;
+
+                    $value = (float) $item[$key];
+
+                    if ($key === 'floor_x') $value = max(0, min(3000, $value));
+                    if ($key === 'floor_y') $value = max(0, min(1800, $value));
+                    if ($key === 'floor_width') $value = max(40, min(900, $value));
+                    if ($key === 'floor_height') $value = max(30, min(700, $value));
+
+                    $update[$key] = $value;
+                }
+
+                if (isset($cols['visible_on_floor_plan'])) {
+                    $update['visible_on_floor_plan'] = 1;
+                }
+
+                if (!$update) {
+                    $skipped[] = ['id' => $id, 'reason' => 'no allowed fields'];
+                    continue;
+                }
+
+                $count = \Illuminate\Support\Facades\DB::table('tables')->where($pk, $id)->update($update);
+                if ($count > 0) $updated++;
+            }
+
+            \Illuminate\Support\Facades\DB::commit();
+
+            return response()->json([
+                'ok' => true,
+                'version' => 'pmd-floor-direct-save-get-v19',
+                'updated' => $updated,
+                'received' => count($items),
+                'skipped' => $skipped,
+            ]);
+        } catch (\Throwable $e) {
+            try { \Illuminate\Support\Facades\DB::rollBack(); } catch (\Throwable $ignore) {}
+
+            return response()->json([
+                'ok' => false,
+                'version' => 'pmd-floor-direct-save-get-v19',
+                'message' => $e->getMessage(),
+                'type' => get_class($e),
+            ], 500);
+        }
+    }
+    /* PMD_FLOOR_DIRECT_SAVE_GET_V19_END */
+
 }

@@ -68,6 +68,25 @@ export function getOrderItemOptionsKey(item: any): string {
   return String(rawOptions)
 }
 
+export function isCancelledOrderItem(item: any): boolean {
+  const status = String(
+    item?.status ??
+      item?.order_status ??
+      item?.item_status ??
+      item?.state ??
+      item?.void_status ??
+      ""
+  ).trim().toLowerCase()
+
+  return ["cancelled", "canceled", "void", "voided", "refunded", "removed"].includes(status) ||
+    item?.cancelled === true ||
+    item?.canceled === true ||
+    item?.is_cancelled === true ||
+    item?.is_canceled === true ||
+    item?.is_void === true ||
+    item?.voided === true
+}
+
 export function getOrderItemUnitAmount(item: any): number {
   const quantity = Math.max(1, Number(item?.quantity || 1))
   const explicitPrice = Number(item?.price ?? item?.unit_price)
@@ -79,6 +98,8 @@ export function getOrderItemUnitAmount(item: any): number {
 export function groupOrderDisplayItems<T extends Record<string, any>>(items: T[] = []): Array<T & { name: string; quantity: number; price: number; subtotal: number; optionsKey: string }> {
   const grouped = new Map<string, T & { name: string; quantity: number; price: number; subtotal: number; optionsKey: string }>()
   items.forEach((item, index) => {
+    if (isCancelledOrderItem(item)) return
+
     const quantity = Math.max(1, Number(item?.quantity || 1))
     const unitAmount = getOrderItemUnitAmount(item)
     const name = String(item?.name || `Item ${index + 1}`)

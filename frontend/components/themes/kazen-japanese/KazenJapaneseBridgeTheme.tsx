@@ -22,6 +22,7 @@ type KazenJapaneseBridgeThemeProps = {
   onOpenValet: (values?: { name?: string; licensePlate?: string; carModel?: string }) => void | Promise<void>
   onTableOrder?: () => void | Promise<void>
   showTableOrder?: boolean
+  showValet?: boolean
   tableOrderCount?: number
   children?: ReactNode
 }
@@ -173,6 +174,7 @@ export function KazenJapaneseBridgeTheme({
   onOpenValet,
   onTableOrder,
   showTableOrder = false,
+  showValet = true,
   tableOrderCount = 0,
   children,
 }: KazenJapaneseBridgeThemeProps) {
@@ -418,6 +420,7 @@ export function KazenJapaneseBridgeTheme({
       frame.contentWindow.postMessage({
         type: "PMD_KAZEN_SYNC",
         showTableOrder: Boolean(showTableOrder),
+        showValet: Boolean(showValet),
         tableOrderCount: Number(tableOrderCount || 0),
         restaurantName: bridgeRestaurantName,
         logoUrl: bridgeLogoUrl,
@@ -503,6 +506,7 @@ export function KazenJapaneseBridgeTheme({
       }
 
       if (type === "PMD_KAZEN_GO_VALET") {
+        if (!showValet) return
         void onOpenValet((msg as any).values || {})
         return
       }
@@ -542,6 +546,7 @@ export function KazenJapaneseBridgeTheme({
     onOpenValet,
     onTableOrder,
     showTableOrder,
+    showValet,
     tableOrderCount,
   ])
 

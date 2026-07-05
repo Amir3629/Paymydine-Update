@@ -447,6 +447,7 @@ const [waiterConfirmed, setWaiterConfirmed] = useState(false)
   const [valetName, setValetName] = useState("")
   const [valetPlate, setValetPlate] = useState("")
   const [valetCar, setValetCar] = useState("")
+  const [valetEnabled, setValetEnabled] = useState(true)
 
   useEffect(() => {
     if (typeof document === "undefined") return
@@ -472,6 +473,7 @@ const [waiterConfirmed, setWaiterConfirmed] = useState(false)
         showTableOrder: Boolean((msg as any).showTableOrder),
         tableOrderCount: Number((msg as any).tableOrderCount || 0),
       })
+      setValetEnabled((msg as any).showValet !== false)
 
       const rawItems = Array.isArray((msg as any).items) ? (msg as any).items : []
       const items: KazenItem[] = rawItems.map((item: any) => ({
@@ -747,6 +749,7 @@ const [waiterConfirmed, setWaiterConfirmed] = useState(false)
   }
 
   const openValetCard = () => {
+    if (!valetEnabled) return
     setValetConfirmed(false)
     setValetOpen(true)
   }
@@ -798,9 +801,11 @@ return (
                 <Languages className="mr-1 inline h-3.5 w-3.5" /> EN
               </button>
             </div>
-            <button className="kazen-pill" type="button" onClick={openValetCard}>
-              <Car className="mr-1 inline h-3.5 w-3.5" /> Valet
-            </button>
+            {valetEnabled && (
+              <button className="kazen-pill" type="button" onClick={openValetCard}>
+                <Car className="mr-1 inline h-3.5 w-3.5" /> Valet
+              </button>
+            )}
           </div>
 
         </header>

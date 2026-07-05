@@ -96,13 +96,14 @@
   }
 
 
-  var ROLE_ORDER = ['owner', 'manager', 'kds', 'cashier', 'reception', 'waiter'];
+  var ROLE_ORDER = ['owner', 'manager', 'kds', 'cashier', 'counter', 'waiter'];
   var ROLE_LABELS = {
     owner: 'Owner',
     manager: 'Manager',
     kds: 'KDS',
     cashier: 'Cashier',
-    reception: 'Reception',
+    counter: 'Counter',
+    reception: 'Counter',
     waiter: 'Waiter'
   };
   var ROLE_INTRO = {
@@ -110,7 +111,8 @@
     manager: 'Operations, floor, kitchen and team dashboard',
     kds: 'Kitchen queue and preparation dashboard',
     cashier: 'Checkout, open checks and payment dashboard',
-    reception: 'Calls, walk-ins and reservation dashboard',
+    counter: 'Phone bookings, walk-ins, reservations and table availability',
+    reception: 'Phone bookings, walk-ins, reservations and table availability',
     waiter: 'Service floor and assigned table dashboard'
   };
 
@@ -120,7 +122,7 @@
     if (/manager/.test(value)) return 'manager';
     if (/kds|kitchen/.test(value)) return 'kds';
     if (/cashier|cash|pos/.test(value)) return 'cashier';
-    if (/reception|reservation|booking|host/.test(value)) return 'reception';
+    if (/counter|reception|reservation|booking|host/.test(value)) return 'counter';
     if (/waiter|server|service/.test(value)) return 'waiter';
     return ROLE_ORDER.indexOf(value) >= 0 ? value : '';
   }
@@ -255,7 +257,7 @@
         topKpi(data, 'revenue_today', '💵', (totalRevenue ? ('All-time ' + totalRevenue.value) : metric(data, 'revenue_today').note), 'green') +
         topKpi(data, 'active_tables', '🍽️', 'Current visible busy tables', 'purple');
     }
-    if (role === 'reception') {
+    if (role === 'counter' || role === 'reception') {
       return topKpi(data, 'reservations_today', '📅', metric(data, 'reservations_today').note, 'purple') +
         topKpi(data, 'active_tables', '🍽️', 'Current visible busy tables', 'blue') +
         topKpi(data, 'waiter_calls', '🔔', metric(data, 'waiter_calls').note, 'orange') +
@@ -533,11 +535,17 @@
         ['Split Bill', '/admin/orders', '➗'],
         ['Cash Drawer', '/admin/cash_drawers', '💵']
       ],
-      reception: [
-        ['Walk-in', '/admin/reservations/create', '👥'],
-        ['Reservations', '/admin/reservations', '📅'],
+      counter: [
+        ['New Reservation', '/admin/reservations/create', '📅'],
+        ['All Reservations', '/admin/reservations', '📋'],
         ['New Order', '/admin/orders/create', '🧾'],
-        ['Send Message', '/admin/notifications', '💬']
+        ['Messages', '/admin/notifications', '💬']
+      ],
+      reception: [
+        ['New Reservation', '/admin/reservations/create', '📅'],
+        ['All Reservations', '/admin/reservations', '📋'],
+        ['New Order', '/admin/orders/create', '🧾'],
+        ['Messages', '/admin/notifications', '💬']
       ],
       waiter: [
         ['New Order', '/admin/orders/create', '🧾'],
@@ -749,6 +757,20 @@
     bind();
   }
 
+
+/* PMD_COUNTER_ROLE_V1_HELPERS_START */
+  function counterRules() {
+    return '' +
+      '<div class="pmd-v23-counter-rule-list">' +
+        '<article><b>2h before</b><span>Show today reservations on floor map and upcoming cards.</span></article>' +
+        '<article><b>60m before</b><span>Soft-hold assigned table if the restaurant uses table assignment.</span></article>' +
+        '<article><b>30m before</b><span>Alert counter/team to prepare table and confirm guest details.</span></article>' +
+        '<article><b>15m late</b><span>Call guest, mark delayed/no-show/cancelled by manager rule.</span></article>' +
+        '<article><b>Pre-order</b><span>For now write food requests in reservation comment. Next backend step: linked pre-order draft.</span></article>' +
+      '</div>';
+  }
+/* PMD_COUNTER_ROLE_V1_HELPERS_END */
+
   function renderRoleDashboard(data, role) {
     var s = data.sections || {};
     var staff = s.staff || {};
@@ -800,15 +822,18 @@
         '</section></div>';
     }
 
-    if (role === 'reception') {
-      return '<div class="' + shellClass + '">' + header + kpis +
-        '<section class="pmd-v21-two-grid pmd-v21-role-main">' +
-          section('Upcoming Reservations', 'Phone bookings, walk-ins and table-booking view', listRows(s.upcoming_reservations, 'reservation'), 'pmd-v15-card--reservations') +
-          section('Recent Activity', 'Latest recorded orders and reservations', timeline(data), 'pmd-v15-card--timeline', '<a href="/admin/reservations">View all</a>') +
+    if (role === 'counter' || role === 'reception') {
+      return '<div class="' + shellClass + ' pmd-v23-counter-shell">' + header + kpis +
+        '<section class="pmd-v23-counter-floor-row">' +
+          section('Live Restaurant Floor', 'Counter view · available, busy, unpaid and reserved tables for booking decisions', floorPlan(s.floor_plan), 'pmd-v15-card--floor pmd-v19-area-floor pmd-v23-counter-floor-card', '<div class="pmd-v15-card-actions"><button type="button" data-pmd-owner-refresh>Refresh</button><a href="/admin/reservations/create">New Reservation</a></div>') +
         '</section>' +
-        '<section class="pmd-v21-two-grid">' +
-          section('Live Restaurant Floor', 'Available/busy tables for booking decisions', floorPlan(s.floor_plan), 'pmd-v15-card--floor pmd-v19-area-floor', '<div class="pmd-v15-card-actions"><button type="button" data-pmd-owner-refresh>Refresh</button><a href="/admin/reservations/create">Walk-in</a></div>') +
-          section('Quick Actions', 'Reception actions', quickActions(role), 'pmd-v15-card--actions') +
+        '<section class="pmd-v23-counter-grid">' +
+          section('Today / Upcoming Reservations', 'Phone bookings, walk-ins and arrival cards', listRows(s.upcoming_reservations, 'reservation'), 'pmd-v15-card--reservations pmd-v23-counter-reservations', '<a href="/admin/reservations">View all</a>') +
+          section('Counter Rules', 'Delay, cancellation, no-show and pre-order workflow', counterRules(), 'pmd-v23-counter-rules') +
+        '</section>' +
+        '<section class="pmd-v23-counter-grid">' +
+          section('Recent Activity', 'Latest recorded orders and reservations', timeline(data), 'pmd-v15-card--timeline', '<a href="/admin/reservations">View all</a>') +
+          section('Quick Actions', 'Counter desk actions', quickActions(role), 'pmd-v15-card--actions') +
         '</section></div>';
     }
 
@@ -1554,7 +1579,7 @@
         t.includes('Manager') &&
         t.includes('KDS') &&
         t.includes('Cashier') &&
-        t.includes('Reception') &&
+        (t.includes('Reception') || t.includes('Counter')) &&
         t.includes('Waiter') &&
         el.querySelectorAll('button, a').length >= 5;
     }) || null;
@@ -1863,7 +1888,7 @@
         t.includes('Manager') &&
         t.includes('KDS') &&
         t.includes('Cashier') &&
-        t.includes('Reception') &&
+        (t.includes('Reception') || t.includes('Counter')) &&
         t.includes('Waiter') &&
         el.querySelectorAll('button, a').length >= 5;
     }) || null;
@@ -2210,7 +2235,7 @@
         t.includes('Manager') &&
         t.includes('KDS') &&
         t.includes('Cashier') &&
-        t.includes('Reception') &&
+        (t.includes('Reception') || t.includes('Counter')) &&
         t.includes('Waiter') &&
         el.querySelectorAll('button, a').length >= 5;
     }) || null;
@@ -2577,13 +2602,14 @@
   var MARK = 'PMD_ROLE_CLEAN_SHELL_V30_JS';
   var applying = false;
 
-  var ROLE_ORDER = ['owner', 'manager', 'kds', 'cashier', 'reception', 'waiter'];
+  var ROLE_ORDER = ['owner', 'manager', 'kds', 'cashier', 'counter', 'waiter'];
   var ROLE_LABELS = {
     owner: 'Owner',
     manager: 'Manager',
     kds: 'KDS',
     cashier: 'Cashier',
-    reception: 'Reception',
+    counter: 'Counter',
+    reception: 'Counter',
     waiter: 'Waiter'
   };
   var ROLE_SHORT = {
@@ -2591,7 +2617,8 @@
     manager: 'M',
     kds: 'K',
     cashier: 'C',
-    reception: 'R',
+    counter: '☎',
+    reception: '☎',
     waiter: 'W'
   };
 
@@ -2642,7 +2669,7 @@
     if (s.includes('manager') || s === 'm') return 'manager';
     if (s.includes('kds') || s === 'k') return 'kds';
     if (s.includes('cashier') || s === 'c') return 'cashier';
-    if (s.includes('reception') || s === 'r') return 'reception';
+    if (s.includes('counter') || s.includes('reception') || s === 'r' || s === '☎' || s === 'phone') return 'counter';
     if (s.includes('waiter') || s === 'w') return 'waiter';
 
     return ROLE_ORDER[index] || null;
@@ -2697,7 +2724,7 @@
         t.includes('Manager') &&
         t.includes('KDS') &&
         t.includes('Cashier') &&
-        t.includes('Reception') &&
+        (t.includes('Reception') || t.includes('Counter')) &&
         t.includes('Waiter')
       ) {
         found.push(el);
@@ -2945,13 +2972,14 @@
   var MARK = 'PMD_ALL_ROLES_CLEAN_V31_JS';
   var applying = false;
 
-  var ROLES = ['owner', 'manager', 'kds', 'cashier', 'reception', 'waiter'];
+  var ROLES = ['owner', 'manager', 'kds', 'cashier', 'counter', 'waiter'];
   var LABELS = {
     owner: 'Owner',
     manager: 'Manager',
     kds: 'KDS',
     cashier: 'Cashier',
-    reception: 'Reception',
+    counter: 'Counter',
+    reception: 'Counter',
     waiter: 'Waiter'
   };
   var SHORT = {
@@ -2959,7 +2987,8 @@
     manager: 'M',
     kds: 'K',
     cashier: 'C',
-    reception: 'R',
+    counter: '☎',
+    reception: '☎',
     waiter: 'W'
   };
 
@@ -3015,7 +3044,7 @@
         t.includes('Manager') &&
         t.includes('KDS') &&
         t.includes('Cashier') &&
-        t.includes('Reception') &&
+        (t.includes('Reception') || t.includes('Counter')) &&
         t.includes('Waiter')
       ) {
         el.classList.add('pmd-v31-native-role-tabs-hidden');
@@ -3112,7 +3141,8 @@
         t.includes('Owner Dashboard') ||
         t.includes('KDS Dashboard') ||
         t.includes('Cashier Dashboard') ||
-        t.includes('Reception Dashboard');
+        t.includes('Reception Dashboard') ||
+        t.includes('Counter Dashboard');
 
       var hasCards =
         t.includes('Revenue Today') ||
@@ -4308,3 +4338,3857 @@
 
 })();
 /* PMD_DASHBOARD_ROUTE_GUARD_V51_END */
+
+/* PMD Counter Rail v32 — force Counter in v31 rail */
+(function () {
+  'use strict';
+
+  if (window.PMDCounterRailV32Started) return;
+  window.PMDCounterRailV32Started = true;
+
+  function patchRail() {
+    var rail = document.querySelector('#pmd-v31-role-rail');
+    if (!rail) return false;
+
+    var btns = Array.from(rail.querySelectorAll('button, a'));
+    var target = btns.find(function (btn) {
+      var label = String(btn.getAttribute('aria-label') || btn.title || btn.textContent || '').toLowerCase();
+      return label.includes('counter') || label.includes('reception') || label === 'r';
+    });
+
+    if (!target) return false;
+
+    target.textContent = '☎';
+    target.title = 'Counter';
+    target.setAttribute('aria-label', 'Counter');
+    target.setAttribute('data-pmd-role', 'counter');
+    target.setAttribute('data-pmd-role-final', 'counter');
+    target.setAttribute('data-pmd-full-role-label', 'Counter');
+
+    if (!target.__pmdCounterRailV32Bound) {
+      target.__pmdCounterRailV32Bound = true;
+      target.addEventListener('click', function (e) {
+        e.preventDefault();
+        e.stopPropagation();
+
+        try { localStorage.setItem('PMD_DASHBOARD_ROLE', 'counter'); } catch (err) {}
+
+        try {
+          if (window.PMDOwnerDashboardCleanV1 && window.PMDOwnerDashboardCleanV1.switchRole) {
+            window.PMDOwnerDashboardCleanV1.switchRole('counter');
+          }
+        } catch (err2) {}
+
+        setTimeout(patchRail, 80);
+        setTimeout(patchRail, 350);
+      }, true);
+    }
+
+    return true;
+  }
+
+  window.PMDCounterRailV32 = {
+    patch: patchRail,
+    report: function () {
+      var rail = document.querySelector('#pmd-v31-role-rail');
+      var btn = rail && rail.querySelector('[data-pmd-role="counter"], [aria-label="Counter"]');
+      return {
+        ready: !!rail,
+        counterFound: !!btn,
+        text: btn ? btn.textContent : null,
+        role: btn ? btn.getAttribute('data-pmd-role') : null
+      };
+    }
+  };
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', patchRail, { once: true });
+  } else {
+    patchRail();
+  }
+
+  setTimeout(patchRail, 120);
+  setTimeout(patchRail, 500);
+  setTimeout(patchRail, 1200);
+  setTimeout(patchRail, 2200);
+})();
+
+
+/* PMD_SHARED_FLOOR_UX_V1_START */
+/*
+  Shared floor click drawer.
+  Safe rules:
+  - no MutationObserver
+  - no interval/permanent loop
+  - no backend/database/payment/order mutation
+  - delegated click only
+*/
+(function () {
+  'use strict';
+
+  var FLAG = 'PMD_SHARED_FLOOR_UX_V1';
+  if (window[FLAG]) return;
+  window[FLAG] = true;
+
+  function esc(value) {
+    return String(value == null ? '' : value).replace(/[&<>"']/g, function (ch) {
+      return ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'})[ch];
+    });
+  }
+
+  function textOf(el) {
+    return (el && el.innerText ? el.innerText : '').replace(/\s+/g, ' ').trim();
+  }
+
+  function tableNodeFrom(target) {
+    if (!target || !target.closest) return null;
+
+    if (target.closest('.pmd-shared-floor-drawer')) return null;
+
+    return target.closest(
+      '.pmd-v15-floor-node,' +
+      '.pmd-v26-floor-table-card,' +
+      '.pmd-v27-floor-table-card,' +
+      '.pmd-v29-table-node,' +
+      '[data-pmd-table],' +
+      '[data-pmd-table-id],' +
+      '[data-table-id]'
+    );
+  }
+
+  function readDataset(el, keys) {
+    if (!el || !el.dataset) return '';
+    for (var i = 0; i < keys.length; i++) {
+      if (el.dataset[keys[i]]) return el.dataset[keys[i]];
+    }
+    return '';
+  }
+
+  function inferStatus(el, rawText) {
+    var cls = String(el.className || '').toLowerCase();
+    var txt = String(rawText || '').toLowerCase();
+
+    if (cls.indexOf('disabled') >= 0 || cls.indexOf('unavailable') >= 0) return 'Unavailable';
+    if (cls.indexOf('cleaning') >= 0 || txt.indexOf('clean') >= 0) return 'Needs cleaning';
+    if (cls.indexOf('reserved') >= 0 || txt.indexOf('reserved') >= 0) return 'Reserved';
+    if (cls.indexOf('unpaid') >= 0 || txt.indexOf('unpaid') >= 0 || txt.indexOf('€') >= 0) return 'Waiting payment';
+    if (cls.indexOf('busy') >= 0 || txt.indexOf('busy') >= 0 || txt.indexOf('dining') >= 0 || txt.indexOf('occupied') >= 0) return 'Dining / busy';
+    if (cls.indexOf('free') >= 0 || txt.indexOf('free') >= 0 || txt.indexOf('available') >= 0) return 'Available';
+
+    return 'Current status';
+  }
+
+  function inferTableName(el, rawText, id) {
+    var explicit = readDataset(el, ['pmdTableName', 'tableName', 'name', 'title']);
+    if (explicit) return explicit;
+
+    var match = String(rawText || '').match(/\b(\d{1,4})\b/);
+    if (match && match[1]) return 'Table ' + match[1];
+
+    if (id) return 'Table ' + id;
+
+    return 'Selected table';
+  }
+
+  function inferAmount(rawText) {
+    var match = String(rawText || '').match(/€\s*([0-9]+(?:[.,][0-9]{1,2})?)/);
+    return match ? ('€' + match[1]) : '—';
+  }
+
+  function ensureDrawer() {
+    var drawer = document.querySelector('.pmd-shared-floor-drawer');
+    if (drawer) return drawer;
+
+    drawer = document.createElement('aside');
+    drawer.className = 'pmd-shared-floor-drawer';
+    drawer.setAttribute('aria-live', 'polite');
+    drawer.setAttribute('aria-label', 'Table information');
+    document.body.appendChild(drawer);
+    return drawer;
+  }
+
+  function openDrawer(el) {
+    var rawText = textOf(el);
+    var id = readDataset(el, ['pmdTable', 'pmdTableId', 'tableId', 'id']);
+    var status = inferStatus(el, rawText);
+    var title = inferTableName(el, rawText, id);
+    var amount = inferAmount(rawText);
+
+    var rect = el.getBoundingClientRect();
+    var area = readDataset(el, ['zone', 'area', 'section', 'floor']) || 'Main floor';
+    var seats = readDataset(el, ['seats', 'capacity', 'maxCapacity', 'guestCount']) || '—';
+    var notes = readDataset(el, ['notes', 'floorNotes', 'reservationNotes']) || 'No table notes yet';
+
+    var drawer = ensureDrawer();
+
+    drawer.innerHTML =
+      '<div class="pmd-shared-floor-drawer__head">' +
+        '<div>' +
+          '<h3 class="pmd-shared-floor-drawer__title">' + esc(title) + '</h3>' +
+          '<span class="pmd-shared-floor-drawer__sub">Shared PMD floor plan · UI preview</span>' +
+        '</div>' +
+        '<button type="button" class="pmd-shared-floor-drawer__close" data-pmd-shared-floor-close aria-label="Close">×</button>' +
+      '</div>' +
+      '<div class="pmd-shared-floor-drawer__body">' +
+        '<div class="pmd-shared-floor-kv">' +
+          '<article><b>Status</b><span>' + esc(status) + '</span></article>' +
+          '<article><b>Amount due</b><span>' + esc(amount) + '</span></article>' +
+          '<article><b>Table ID</b><span>' + esc(id || '—') + '</span></article>' +
+          '<article><b>Seats</b><span>' + esc(seats) + '</span></article>' +
+          '<article><b>Area</b><span>' + esc(area) + '</span></article>' +
+          '<article><b>Position</b><span>x ' + Math.round(rect.left) + ' · y ' + Math.round(rect.top) + '</span></article>' +
+        '</div>' +
+        '<div class="pmd-shared-floor-actions">' +
+          '<a class="primary" href="/admin/orders/create' + (id ? '?table_id=' + encodeURIComponent(id) : '') + '">Create order</a>' +
+          '<a href="/admin/reservations/create' + (id ? '?table_id=' + encodeURIComponent(id) : '') + '">Assign reservation</a>' +
+          '<a href="/admin/reservations">View reservations</a>' +
+          '<a href="/admin/tables">Open tables</a>' +
+        '</div>' +
+        '<div class="pmd-shared-floor-note">' +
+          '<strong>Notes:</strong> ' + esc(notes) + '<br>' +
+          'Cleaning / reserved / advanced reservation actions need backend support later; this v1 does not fake-save anything.' +
+        '</div>' +
+      '</div>';
+
+    requestAnimationFrame(function () {
+      drawer.classList.add('is-open');
+    });
+  }
+
+  document.addEventListener('click', function (event) {
+    var close = event.target && event.target.closest && event.target.closest('[data-pmd-shared-floor-close]');
+    if (close) {
+      var drawer = document.querySelector('.pmd-shared-floor-drawer');
+      if (drawer) drawer.classList.remove('is-open');
+      return;
+    }
+
+    var node = tableNodeFrom(event.target);
+    if (!node) return;
+
+    openDrawer(node);
+  }, false);
+
+  document.addEventListener('keydown', function (event) {
+    if (event.key !== 'Escape') return;
+    var drawer = document.querySelector('.pmd-shared-floor-drawer');
+    if (drawer) drawer.classList.remove('is-open');
+  }, false);
+
+  console.info('[PMD] Shared floor UX v1 active');
+})();
+ /* PMD_SHARED_FLOOR_UX_V1_END */
+
+
+/* PMD_FLOOR_LEGEND_INFO_V1_START */
+/*
+  Small click toggle for the shared floor legend.
+  No observer, no interval, no backend mutation.
+*/
+(function () {
+  'use strict';
+
+  var FLAG = 'PMD_FLOOR_LEGEND_INFO_V1';
+  if (window[FLAG]) return;
+  window[FLAG] = true;
+
+  document.addEventListener('click', function (event) {
+    var legend = event.target && event.target.closest && event.target.closest('.pmd-v15-floor-legend');
+
+    document.querySelectorAll('.pmd-v15-floor-legend.is-open').forEach(function (el) {
+      if (el !== legend) el.classList.remove('is-open');
+    });
+
+    if (!legend) return;
+
+    event.preventDefault();
+    event.stopPropagation();
+
+    legend.classList.toggle('is-open');
+    legend.setAttribute('title', 'Floor status legend');
+    legend.setAttribute('aria-label', 'Floor status legend');
+  }, false);
+
+  document.addEventListener('keydown', function (event) {
+    if (event.key !== 'Escape') return;
+    document.querySelectorAll('.pmd-v15-floor-legend.is-open').forEach(function (el) {
+      el.classList.remove('is-open');
+    });
+  }, false);
+
+  console.info('[PMD] Floor legend info v1 active');
+})();
+ /* PMD_FLOOR_LEGEND_INFO_V1_END */
+
+
+/* PMD_FLOOR_LEGEND_REHOME_V2_START */
+/*
+  Rehomes floor legend into floor card as compact info popover.
+  Limited run only; no observer, no permanent loop.
+*/
+(function () {
+  'use strict';
+
+  var FLAG = 'PMD_FLOOR_LEGEND_REHOME_V2';
+  if (window[FLAG]) return;
+  window[FLAG] = true;
+
+  function enhanceLegend() {
+    var floorCard = document.querySelector('.pmd-v15-card--floor, .pmd-v19-area-floor, .pmd-v23-counter-floor-card');
+    var legend = document.querySelector('.pmd-v15-floor-legend');
+
+    if (!floorCard || !legend) return;
+    if (legend.closest('.pmd-floor-legend-info-wrap')) return;
+
+    var wrap = document.createElement('div');
+    wrap.className = 'pmd-floor-legend-info-wrap';
+
+    var btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'pmd-floor-legend-info-btn';
+    btn.setAttribute('aria-label', 'Floor status legend');
+    btn.setAttribute('title', 'Floor status legend');
+
+    legend.parentNode.insertBefore(wrap, legend);
+    wrap.appendChild(btn);
+    wrap.appendChild(legend);
+
+    floorCard.appendChild(wrap);
+  }
+
+  enhanceLegend();
+  setTimeout(enhanceLegend, 250);
+  setTimeout(enhanceLegend, 900);
+  setTimeout(enhanceLegend, 1800);
+
+  document.addEventListener('click', function (event) {
+    var wrap = event.target && event.target.closest && event.target.closest('.pmd-floor-legend-info-wrap');
+
+    document.querySelectorAll('.pmd-floor-legend-info-wrap.is-open').forEach(function (el) {
+      if (el !== wrap) el.classList.remove('is-open');
+    });
+
+    if (!wrap) return;
+    if (!event.target.closest('.pmd-floor-legend-info-btn')) return;
+
+    event.preventDefault();
+    event.stopPropagation();
+    wrap.classList.toggle('is-open');
+  }, false);
+
+  document.addEventListener('keydown', function (event) {
+    if (event.key !== 'Escape') return;
+    document.querySelectorAll('.pmd-floor-legend-info-wrap.is-open').forEach(function (el) {
+      el.classList.remove('is-open');
+    });
+  }, false);
+
+  console.info('[PMD] Floor legend rehome v2 active');
+})();
+ /* PMD_FLOOR_LEGEND_REHOME_V2_END */
+
+
+/* PMD_DASHBOARD_FIT_LEGEND_HARDFIX_V2_START */
+/*
+  Rehome old floor legend into a compact info popover.
+  Limited setTimeout runs only. No MutationObserver, no loop.
+*/
+(function () {
+  'use strict';
+
+  var FLAG = 'PMD_DASHBOARD_FIT_LEGEND_HARDFIX_V2';
+  if (window[FLAG]) return;
+  window[FLAG] = true;
+
+  function run() {
+    var canvas = document.querySelector('.pmd-v15-floor-canvas');
+    var card = canvas && canvas.closest ? canvas.closest('.pmd-v15-card--floor, .pmd-v19-area-floor, .pmd-v23-counter-floor-card') : null;
+    var legend = document.querySelector('.pmd-v15-floor-legend');
+
+    if (!card || !legend) return;
+    if (legend.closest('.pmd-floor-legend-mini-wrap')) return;
+
+    document.querySelectorAll('.pmd-floor-legend-info-wrap, .pmd-floor-legend-mini-wrap').forEach(function (oldWrap) {
+      var oldLegend = oldWrap.querySelector('.pmd-v15-floor-legend');
+      if (oldLegend && oldWrap.parentNode) oldWrap.parentNode.insertBefore(oldLegend, oldWrap);
+      oldWrap.remove();
+    });
+
+    var wrap = document.createElement('div');
+    wrap.className = 'pmd-floor-legend-mini-wrap';
+
+    var btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'pmd-floor-legend-mini-btn';
+    btn.setAttribute('aria-label', 'Floor status legend');
+    btn.setAttribute('title', 'Floor status legend');
+
+    wrap.appendChild(btn);
+    wrap.appendChild(legend);
+    card.appendChild(wrap);
+  }
+
+  run();
+  setTimeout(run, 200);
+  setTimeout(run, 800);
+  setTimeout(run, 1600);
+
+  document.addEventListener('click', function (event) {
+    var btn = event.target && event.target.closest && event.target.closest('.pmd-floor-legend-mini-btn');
+    var wrap = btn && btn.closest ? btn.closest('.pmd-floor-legend-mini-wrap') : null;
+
+    document.querySelectorAll('.pmd-floor-legend-mini-wrap.is-open').forEach(function (el) {
+      if (el !== wrap) el.classList.remove('is-open');
+    });
+
+    if (!wrap) return;
+
+    event.preventDefault();
+    event.stopPropagation();
+    wrap.classList.toggle('is-open');
+  }, false);
+
+  document.addEventListener('keydown', function (event) {
+    if (event.key !== 'Escape') return;
+    document.querySelectorAll('.pmd-floor-legend-mini-wrap.is-open').forEach(function (el) {
+      el.classList.remove('is-open');
+    });
+  }, false);
+
+  console.info('[PMD] Dashboard fit + legend hardfix v2 active');
+})();
+ /* PMD_DASHBOARD_FIT_LEGEND_HARDFIX_V2_END */
+
+
+/* PMD_DASHBOARD_ACTUAL_FIT_V3_START */
+/*
+  Removes old broken legend wrappers and creates one compact floor status popover.
+  Limited run only. No observer, no interval.
+*/
+(function () {
+  'use strict';
+
+  var FLAG = 'PMD_DASHBOARD_ACTUAL_FIT_V3';
+  if (window[FLAG]) return;
+  window[FLAG] = true;
+
+  function run() {
+    var card = document.querySelector('.pmd-v15-card--floor, .pmd-v19-area-floor, .pmd-v23-counter-floor-card');
+    var legend = document.querySelector('.pmd-v15-floor-legend');
+    if (!card) return;
+
+    document.querySelectorAll('.pmd-floor-legend-info-wrap, .pmd-floor-legend-mini-wrap').forEach(function (el) {
+      el.remove();
+    });
+
+    if (document.querySelector('.pmd-floor-status-v3')) return;
+
+    var panelHtml = legend ? legend.innerHTML : (
+      '<span><i></i>Available <b>0</b></span>' +
+      '<span><i></i>Dining <b>0</b></span>' +
+      '<span><i></i>Reserved <b>0</b></span>' +
+      '<span><i></i>Waiting Payment <b>0</b></span>'
+    );
+
+    var wrap = document.createElement('div');
+    wrap.className = 'pmd-floor-status-v3';
+    wrap.innerHTML =
+      '<button type="button" class="pmd-floor-status-v3-btn" aria-label="Floor status legend" title="Floor status legend"></button>' +
+      '<div class="pmd-floor-status-v3-panel">' + panelHtml + '</div>';
+
+    card.appendChild(wrap);
+  }
+
+  run();
+  setTimeout(run, 150);
+  setTimeout(run, 650);
+  setTimeout(run, 1400);
+
+  document.addEventListener('click', function (event) {
+    var btn = event.target && event.target.closest && event.target.closest('.pmd-floor-status-v3-btn');
+    var wrap = btn && btn.closest ? btn.closest('.pmd-floor-status-v3') : null;
+
+    document.querySelectorAll('.pmd-floor-status-v3.is-open').forEach(function (el) {
+      if (el !== wrap) el.classList.remove('is-open');
+    });
+
+    if (!wrap) return;
+
+    event.preventDefault();
+    event.stopPropagation();
+    wrap.classList.toggle('is-open');
+  }, false);
+
+  document.addEventListener('keydown', function (event) {
+    if (event.key !== 'Escape') return;
+    document.querySelectorAll('.pmd-floor-status-v3.is-open').forEach(function (el) {
+      el.classList.remove('is-open');
+    });
+  }, false);
+
+  console.info('[PMD] Dashboard actual fit v3 active');
+})();
+ /* PMD_DASHBOARD_ACTUAL_FIT_V3_END */
+
+
+/* PMD_SHARED_FLOOR_FULLWIDTH_V5_START */
+/*
+  Rehomes the shared floor card into a full-width row after KPI cards.
+  Limited run only. No observer, no interval.
+*/
+(function () {
+  'use strict';
+
+  var FLAG = 'PMD_SHARED_FLOOR_FULLWIDTH_V5';
+  if (window[FLAG]) return;
+  window[FLAG] = true;
+
+  function closestDashboardRoot() {
+    return document.querySelector('#pmd-owner-dashboard-clean-v1-root') ||
+      document.querySelector('.pmd-v31-clean-shell, .pmd-v15-shell');
+  }
+
+  function ensureEditButton(floorCard) {
+    if (!floorCard) return;
+
+    var actions = floorCard.querySelector('.pmd-v15-card-actions, [class*="card-actions"]');
+    if (!actions) {
+      var head = floorCard.querySelector('.pmd-v15-card-head, [class*="card-head"]');
+      if (!head) return;
+
+      actions = document.createElement('div');
+      actions.className = 'pmd-v15-card-actions';
+      head.appendChild(actions);
+    }
+
+    if (actions.querySelector('.pmd-floor-edit-btn-v5')) return;
+
+    var edit = document.createElement('a');
+    edit.className = 'pmd-floor-edit-btn-v5';
+    edit.href = '/admin/tables';
+    edit.textContent = 'Edit Floor';
+    edit.setAttribute('title', 'Edit floor/table positions from Tables admin');
+    edit.setAttribute('aria-label', 'Edit floor and table positions');
+
+    actions.appendChild(edit);
+  }
+
+  function rehomeFloor() {
+    var root = closestDashboardRoot();
+    var floorCard = document.querySelector('.pmd-v15-card--floor, .pmd-v19-area-floor, .pmd-v23-counter-floor-card, .pmd-v21-waiter-floor-card');
+
+    if (!root || !floorCard) return;
+
+    var row = document.querySelector('.pmd-shared-floor-v5-row');
+    if (!row) {
+      row = document.createElement('div');
+      row.className = 'pmd-shared-floor-v5-row';
+    }
+
+    if (!row.contains(floorCard)) {
+      row.appendChild(floorCard);
+    }
+
+    var kpi = root.querySelector('.pmd-v15-kpi-grid, .pmd-v19-kpi-grid, .pmd-v21-kpi-grid');
+    if (kpi && kpi.parentNode && row.parentNode !== kpi.parentNode) {
+      kpi.parentNode.insertBefore(row, kpi.nextSibling);
+    } else if (!row.parentNode) {
+      root.insertBefore(row, root.firstChild);
+    }
+
+    ensureEditButton(floorCard);
+  }
+
+  rehomeFloor();
+  setTimeout(rehomeFloor, 200);
+  setTimeout(rehomeFloor, 700);
+  setTimeout(rehomeFloor, 1500);
+
+  console.info('[PMD] Shared floor full-width v5 active');
+})();
+ /* PMD_SHARED_FLOOR_FULLWIDTH_V5_END */
+
+
+/* PMD_FLOOR_EDITOR_DRAG_SAVE_V6_START */
+/*
+  Dashboard floor edit mode.
+  - top/global edit button
+  - pointer drag table nodes
+  - save floor_x/floor_y to /admin/pmd-floor-plan-save-v1
+  No observer, no interval, no order/payment mutation.
+*/
+(function () {
+  'use strict';
+
+  var FLAG = 'PMD_FLOOR_EDITOR_DRAG_SAVE_V6';
+  if (window[FLAG]) return;
+  window[FLAG] = true;
+
+  var editMode = false;
+  var dragging = null;
+  var originalStyles = new Map();
+  var floorMeta = new Map();
+  var endpointDataLoaded = false;
+
+  function $(sel, root) { return (root || document).querySelector(sel); }
+  function $$(sel, root) { return Array.prototype.slice.call((root || document).querySelectorAll(sel)); }
+
+  function isDashboard() {
+    return !!document.querySelector('.pmd-v15-floor-canvas') &&
+      /\/admin\/dashboard/.test(location.pathname);
+  }
+
+  function csrf() {
+    var meta = document.querySelector('meta[name="csrf-token"]');
+    if (meta && meta.content) return meta.content;
+    var input = document.querySelector('input[name="_token"]');
+    if (input && input.value) return input.value;
+    return '';
+  }
+
+  function toast(msg) {
+    var el = $('.pmd-floor-edit-toast-v6');
+    if (!el) {
+      el = document.createElement('div');
+      el.className = 'pmd-floor-edit-toast-v6';
+      document.body.appendChild(el);
+    }
+    el.textContent = msg;
+    el.classList.add('is-visible');
+    clearTimeout(el._t);
+    el._t = setTimeout(function () { el.classList.remove('is-visible'); }, 3600);
+  }
+
+  function floorCard() {
+    return $('.pmd-shared-floor-v5-row .pmd-v15-card--floor') ||
+      $('.pmd-v15-card--floor, .pmd-v19-area-floor, .pmd-v23-counter-floor-card, .pmd-v21-waiter-floor-card');
+  }
+
+  function canvas() {
+    return $('.pmd-v15-floor-canvas');
+  }
+
+  function tableNodes() {
+    return $$('.pmd-v15-floor-node[data-pmd-table]');
+  }
+
+  function number(value, fallback) {
+    var n = parseFloat(value);
+    return Number.isFinite(n) ? n : fallback;
+  }
+
+  function pctFromStyle(el, prop) {
+    return number(String(el.style[prop] || '').replace('%', ''), 0);
+  }
+
+  function clamp(n, min, max) {
+    return Math.max(min, Math.min(max, n));
+  }
+
+  function readCoord(t, keys, fallback) {
+    for (var i = 0; i < keys.length; i++) {
+      var k = keys[i];
+      if (t && t[k] != null && t[k] !== '') return number(t[k], fallback);
+      if (t && t.floor && t.floor[k] != null && t.floor[k] !== '') return number(t.floor[k], fallback);
+    }
+    return fallback;
+  }
+
+  function learnMetaFromEndpoint() {
+    endpointDataLoaded = false;
+
+    return fetch('/admin/pmd-owner-dashboard-clean-v1-data', { credentials: 'same-origin' })
+      .then(function (r) { return r.json(); })
+      .then(function (data) {
+        var tables =
+          (((data || {}).sections || {}).floor_plan || {}).tables ||
+          ((data || {}).floor_plan || {}).tables ||
+          [];
+
+        floorMeta.clear();
+
+        tables.forEach(function (t) {
+          var id = String(t.id || t.table_id || '');
+          if (!id) return;
+
+          var node = document.querySelector('.pmd-v15-floor-node[data-pmd-table="' + CSS.escape(id) + '"]');
+          var leftPct = node ? pctFromStyle(node, 'left') : 0;
+          var topPct = node ? pctFromStyle(node, 'top') : 0;
+          var widthPct = node ? pctFromStyle(node, 'width') : 0;
+          var heightPct = node ? pctFromStyle(node, 'height') : 0;
+
+          var rawX = readCoord(t, ['x', 'floor_x'], null);
+          var rawY = readCoord(t, ['y', 'floor_y'], null);
+          var rawW = readCoord(t, ['w', 'width', 'floor_width'], null);
+          var rawH = readCoord(t, ['h', 'height', 'floor_height'], null);
+
+          var factorX = rawX != null && leftPct > 0 ? rawX / leftPct : 26;
+          var factorY = rawY != null && topPct > 0 ? rawY / topPct : 10.8;
+          var factorW = rawW != null && widthPct > 0 ? rawW / widthPct : null;
+          var factorH = rawH != null && heightPct > 0 ? rawH / heightPct : null;
+
+          floorMeta.set(id, {
+            rawX: rawX,
+            rawY: rawY,
+            rawW: rawW,
+            rawH: rawH,
+            factorX: factorX,
+            factorY: factorY,
+            factorW: factorW,
+            factorH: factorH
+          });
+        });
+
+        endpointDataLoaded = true;
+      })
+      .catch(function () {
+        endpointDataLoaded = false;
+      });
+  }
+
+  function ensureToolbar() {
+    var bar = $('.pmd-floor-edit-toolbar-v6');
+    if (bar) return bar;
+
+    bar = document.createElement('div');
+    bar.className = 'pmd-floor-edit-toolbar-v6';
+    bar.innerHTML =
+      '<strong>Floor edit mode</strong>' +
+      '<button type="button" data-pmd-floor-save-v6>Save layout</button>' +
+      '<button type="button" data-pmd-floor-cancel-v6>Cancel</button>';
+    document.body.appendChild(bar);
+    return bar;
+  }
+
+  function findHeaderHost() {
+    var candidates = [
+      '#menu-mainmenu',
+      '.navbar-nav.ml-auto',
+      '.navbar-nav.navbar-right',
+      '.navbar .navbar-nav:last-child',
+      '.main-header .navbar-nav:last-child',
+      'header .navbar-nav:last-child',
+      '.pmd-admin-top-actions',
+      '.pmd-v15-top-controls'
+    ];
+
+    for (var i = 0; i < candidates.length; i++) {
+      var el = document.querySelector(candidates[i]);
+      if (el) return el;
+    }
+    return null;
+  }
+
+  function ensureTopButton() {
+    if (!isDashboard()) return;
+
+    $$('.pmd-floor-edit-btn-v4, .pmd-floor-edit-btn-v5').forEach(function (el) { el.remove(); });
+
+    if ($('.pmd-floor-global-edit-v6')) return;
+
+    var btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'pmd-floor-global-edit-v6';
+    btn.textContent = 'Edit Floor';
+    btn.setAttribute('data-pmd-floor-edit-v6', '1');
+    btn.setAttribute('title', 'Move tables and save floor layout');
+
+    var host = findHeaderHost();
+
+    if (host) {
+      if (host.tagName === 'UL' || host.tagName === 'OL') {
+        var li = document.createElement('li');
+        li.className = 'pmd-floor-global-edit-v6-li';
+        li.appendChild(btn);
+        host.appendChild(li);
+      } else {
+        host.appendChild(btn);
+      }
+    } else {
+      btn.classList.add('is-floating');
+      document.body.appendChild(btn);
+    }
+  }
+
+  function startEdit() {
+    if (!isDashboard()) return;
+
+    editMode = true;
+    document.body.classList.add('pmd-floor-editing-v6');
+    ensureToolbar();
+
+    originalStyles.clear();
+
+    tableNodes().forEach(function (node) {
+      originalStyles.set(node, {
+        left: node.style.left,
+        top: node.style.top,
+        width: node.style.width,
+        height: node.style.height,
+        zIndex: node.style.zIndex
+      });
+    });
+
+    learnMetaFromEndpoint();
+    toast('Edit mode active. Drag tables, then Save layout.');
+  }
+
+  function stopEdit(restore) {
+    if (restore) {
+      originalStyles.forEach(function (s, node) {
+        node.style.left = s.left;
+        node.style.top = s.top;
+        node.style.width = s.width;
+        node.style.height = s.height;
+        node.style.zIndex = s.zIndex;
+      });
+    }
+
+    editMode = false;
+    dragging = null;
+    document.body.classList.remove('pmd-floor-editing-v6');
+    tableNodes().forEach(function (node) { node.classList.remove('is-dragging-v6'); });
+  }
+
+  function saveLayout() {
+    var c = canvas();
+    if (!c) return;
+
+    var items = tableNodes().map(function (node) {
+      var id = String(node.getAttribute('data-pmd-table') || '');
+      var meta = floorMeta.get(id) || {};
+
+      var leftPct = pctFromStyle(node, 'left');
+      var topPct = pctFromStyle(node, 'top');
+      var widthPct = pctFromStyle(node, 'width');
+      var heightPct = pctFromStyle(node, 'height');
+
+      var item = {
+        id: parseInt(id, 10),
+        floor_x: Math.round(leftPct * (meta.factorX || 26) * 100) / 100,
+        floor_y: Math.round(topPct * (meta.factorY || 10.8) * 100) / 100
+      };
+
+      if (meta.rawW != null) item.floor_width = Math.round(meta.rawW * 100) / 100;
+      else if (meta.factorW && widthPct > 0) item.floor_width = Math.round(widthPct * meta.factorW * 100) / 100;
+
+      if (meta.rawH != null) item.floor_height = Math.round(meta.rawH * 100) / 100;
+      else if (meta.factorH && heightPct > 0) item.floor_height = Math.round(heightPct * meta.factorH * 100) / 100;
+
+      return item;
+    }).filter(function (item) { return item.id > 0; });
+
+    if (!items.length) {
+      toast('No tables found to save.');
+      return;
+    }
+
+    toast('Saving floor layout...');
+
+    fetch('/admin/pmd-floor-plan-save-v1', {
+      method: 'POST',
+      credentials: 'same-origin',
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+        'X-Requested-With': 'XMLHttpRequest',
+        'X-CSRF-TOKEN': csrf()
+      },
+      body: JSON.stringify({
+        source: 'dashboard-floor-editor-v6',
+        tables: items
+      })
+    })
+      .then(function (r) {
+        return r.json().then(function (j) {
+          if (!r.ok || !j.ok) throw new Error((j && j.message) || ('HTTP ' + r.status));
+          return j;
+        });
+      })
+      .then(function (j) {
+        toast('Saved. Updated tables: ' + (j.updated || 0));
+        stopEdit(false);
+        setTimeout(function () { location.reload(); }, 700);
+      })
+      .catch(function (err) {
+        toast('Save failed: ' + err.message);
+        console.error('[PMD] Floor save failed', err);
+      });
+  }
+
+  document.addEventListener('click', function (event) {
+    var edit = event.target && event.target.closest && event.target.closest('[data-pmd-floor-edit-v6]');
+    if (edit) {
+      event.preventDefault();
+      event.stopPropagation();
+      startEdit();
+      return;
+    }
+
+    if (event.target && event.target.closest && event.target.closest('[data-pmd-floor-save-v6]')) {
+      event.preventDefault();
+      event.stopPropagation();
+      saveLayout();
+      return;
+    }
+
+    if (event.target && event.target.closest && event.target.closest('[data-pmd-floor-cancel-v6]')) {
+      event.preventDefault();
+      event.stopPropagation();
+      stopEdit(true);
+      toast('Edit cancelled.');
+      return;
+    }
+
+    if (editMode && event.target && event.target.closest && event.target.closest('.pmd-v15-floor-node')) {
+      event.preventDefault();
+      event.stopImmediatePropagation();
+    }
+  }, true);
+
+  document.addEventListener('pointerdown', function (event) {
+    if (!editMode) return;
+
+    var node = event.target && event.target.closest && event.target.closest('.pmd-v15-floor-node[data-pmd-table]');
+    var c = canvas();
+
+    if (!node || !c) return;
+
+    event.preventDefault();
+    event.stopPropagation();
+
+    var wPct = Math.max(1, pctFromStyle(node, 'width') || 7);
+    var hPct = Math.max(1, pctFromStyle(node, 'height') || 7);
+
+    dragging = {
+      node: node,
+      canvas: c,
+      startX: event.clientX,
+      startY: event.clientY,
+      startLeft: pctFromStyle(node, 'left'),
+      startTop: pctFromStyle(node, 'top'),
+      widthPct: wPct,
+      heightPct: hPct
+    };
+
+    node.classList.add('is-dragging-v6');
+
+    try { node.setPointerCapture(event.pointerId); } catch (e) {}
+  }, true);
+
+  document.addEventListener('pointermove', function (event) {
+    if (!editMode || !dragging) return;
+
+    var rect = dragging.canvas.getBoundingClientRect();
+    var dxPct = ((event.clientX - dragging.startX) / Math.max(1, rect.width)) * 100;
+    var dyPct = ((event.clientY - dragging.startY) / Math.max(1, rect.height)) * 100;
+
+    var nextLeft = clamp(dragging.startLeft + dxPct, 0, 100 - dragging.widthPct);
+    var nextTop = clamp(dragging.startTop + dyPct, 0, 100 - dragging.heightPct);
+
+    dragging.node.style.left = nextLeft.toFixed(3) + '%';
+    dragging.node.style.top = nextTop.toFixed(3) + '%';
+  }, true);
+
+  document.addEventListener('pointerup', function (event) {
+    if (!dragging) return;
+    dragging.node.classList.remove('is-dragging-v6');
+    try { dragging.node.releasePointerCapture(event.pointerId); } catch (e) {}
+    dragging = null;
+  }, true);
+
+  document.addEventListener('keydown', function (event) {
+    if (!editMode) return;
+    if (event.key === 'Escape') {
+      stopEdit(true);
+      toast('Edit cancelled.');
+    }
+  }, false);
+
+  ensureTopButton();
+  setTimeout(ensureTopButton, 250);
+  setTimeout(ensureTopButton, 900);
+  setTimeout(ensureTopButton, 1800);
+
+  console.info('[PMD] Floor editor drag/save v6 active');
+})();
+ /* PMD_FLOOR_EDITOR_DRAG_SAVE_V6_END */
+
+
+/* PMD_DASHBOARD_TOPBAR_EDITFLOOR_V7_START */
+/*
+  Creates a visible dashboard topbar and moves v6 Edit Floor button into it.
+  Reuses existing v6 drag/save click handler.
+  No observer, no interval, no backend/database changes.
+*/
+(function () {
+  'use strict';
+
+  var FLAG = 'PMD_DASHBOARD_TOPBAR_EDITFLOOR_V7';
+  if (window[FLAG]) return;
+  window[FLAG] = true;
+
+  function isDashboard() {
+    return /\/admin\/dashboard/.test(location.pathname) && !!document.querySelector('.pmd-v15-floor-canvas');
+  }
+
+  function root() {
+    return document.querySelector('#pmd-owner-dashboard-clean-v1-root') ||
+      document.querySelector('.pmd-v31-clean-shell, .pmd-v15-shell');
+  }
+
+  function detectRoleTitle() {
+    var body = document.body.className || '';
+
+    if (/pmd-role-counter|role-counter|counter/i.test(body)) return ['Counter Dashboard', 'Phone bookings, walk-ins, reservations and table availability'];
+    if (/pmd-role-manager|role-manager/i.test(body)) return ['Manager Dashboard', 'Operations, floor, kitchen and team dashboard'];
+    if (/pmd-role-waiter|role-waiter/i.test(body)) return ['Waiter Dashboard', 'Service floor and assigned table dashboard'];
+    if (/pmd-role-cashier|role-cashier/i.test(body)) return ['Cashier Dashboard', 'Checkout, open checks and payment view'];
+    if (/pmd-role-kds|role-kds/i.test(body)) return ['KDS Dashboard', 'Kitchen display and station operations'];
+
+    return ['Owner Dashboard', 'Live restaurant operations and performance'];
+  }
+
+  function dateLabel() {
+    try {
+      return '📅 Today · ' + new Intl.DateTimeFormat(undefined, {
+        weekday: 'short',
+        month: 'short',
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit'
+      }).format(new Date());
+    } catch (e) {
+      return '📅 Today';
+    }
+  }
+
+  function ensureToolbar() {
+    if (document.querySelector('.pmd-floor-edit-toolbar-v6')) return;
+
+    var bar = document.createElement('div');
+    bar.className = 'pmd-floor-edit-toolbar-v6';
+    bar.innerHTML =
+      '<strong>Floor edit mode</strong>' +
+      '<button type="button" data-pmd-floor-save-v6>Save layout</button>' +
+      '<button type="button" data-pmd-floor-cancel-v6>Cancel</button>';
+    document.body.appendChild(bar);
+  }
+
+  function ensureEditButton(actions) {
+    if (!actions) return;
+
+    var existing = Array.prototype.slice.call(document.querySelectorAll('.pmd-floor-global-edit-v6'));
+    var btn = existing[0];
+
+    existing.slice(1).forEach(function (el) { el.remove(); });
+
+    if (!btn) {
+      btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'pmd-floor-global-edit-v6';
+      btn.setAttribute('data-pmd-floor-edit-v6', '1');
+      btn.setAttribute('title', 'Move tables and save floor layout');
+      btn.textContent = 'Edit Floor';
+    }
+
+    btn.classList.remove('is-floating');
+    btn.style.display = '';
+    btn.style.visibility = '';
+    btn.style.opacity = '';
+
+    if (btn.parentNode !== actions) actions.appendChild(btn);
+  }
+
+  function run() {
+    if (!isDashboard()) return;
+
+    var r = root();
+    if (!r) return;
+
+    var topbar = document.querySelector('.pmd-dashboard-topbar-v7');
+    var title = detectRoleTitle();
+
+    if (!topbar) {
+      topbar = document.createElement('section');
+      topbar.className = 'pmd-dashboard-topbar-v7';
+      topbar.innerHTML =
+        '<div class="pmd-dashboard-topbar-v7__title">' +
+          '<h1></h1>' +
+          '<p></p>' +
+        '</div>' +
+        '<div class="pmd-dashboard-topbar-v7__actions">' +
+          '<span class="pmd-dashboard-topbar-v7__pill" data-pmd-date-pill-v7></span>' +
+          '<span class="pmd-dashboard-topbar-v7__pill is-shift">🍽️ Dinner Shift · Live</span>' +
+        '</div>';
+
+      r.insertBefore(topbar, r.firstChild);
+    }
+
+    var h1 = topbar.querySelector('h1');
+    var p = topbar.querySelector('p');
+    var date = topbar.querySelector('[data-pmd-date-pill-v7]');
+    var actions = topbar.querySelector('.pmd-dashboard-topbar-v7__actions');
+
+    if (h1) h1.textContent = title[0];
+    if (p) p.textContent = title[1];
+    if (date) date.textContent = dateLabel();
+
+    ensureEditButton(actions);
+    ensureToolbar();
+
+    // keep old hidden topbar from becoming the button host again
+    document.querySelectorAll('.pmd-v15-topbar .pmd-floor-global-edit-v6, .pmd-v19-topbar .pmd-floor-global-edit-v6, .pmd-v21-topbar .pmd-floor-global-edit-v6').forEach(function (el) {
+      if (actions && el.parentNode !== actions) actions.appendChild(el);
+    });
+  }
+
+  run();
+  setTimeout(run, 200);
+  setTimeout(run, 800);
+  setTimeout(run, 1600);
+
+  console.info('[PMD] Dashboard topbar edit floor v7 active');
+})();
+ /* PMD_DASHBOARD_TOPBAR_EDITFLOOR_V7_END */
+
+
+/* PMD_DASHBOARD_VISIBLE_TOPBAR_V8_START */
+/*
+  Rebuilds a visible dashboard topbar above KPI cards.
+  Reuses existing v6 floor edit/save handler via data-pmd-floor-edit-v6.
+  No observer, no interval, no backend changes.
+*/
+(function () {
+  'use strict';
+
+  var FLAG = 'PMD_DASHBOARD_VISIBLE_TOPBAR_V8';
+  if (window[FLAG]) return;
+  window[FLAG] = true;
+
+  function isDashboard() {
+    return /\/admin\/dashboard/.test(location.pathname) && !!document.querySelector('.pmd-v15-floor-canvas');
+  }
+
+  function root() {
+    return document.querySelector('#pmd-owner-dashboard-clean-v1-root') ||
+      document.querySelector('.pmd-v31-clean-shell, .pmd-v15-shell');
+  }
+
+  function activeRole() {
+    var btn = document.querySelector(
+      '#pmd-v31-role-rail .pmd-v31-role-btn.is-active,' +
+      '#pmd-v31-role-rail .pmd-v31-role-btn[aria-pressed="true"],' +
+      '#pmd-v31-role-rail .pmd-v31-role-btn[aria-current="true"]'
+    );
+
+    var raw = '';
+    if (btn) {
+      raw = (btn.dataset.role || btn.dataset.pmdRole || btn.getAttribute('data-role') || btn.textContent || '').trim().toLowerCase();
+    }
+
+    if (raw === 'o' || raw.indexOf('owner') >= 0) return 'owner';
+    if (raw === 'm' || raw.indexOf('manager') >= 0) return 'manager';
+    if (raw === 'k' || raw.indexOf('kds') >= 0) return 'kds';
+    if (raw === 'c' || raw.indexOf('cashier') >= 0) return 'cashier';
+    if (raw.indexOf('counter') >= 0 || raw.indexOf('reception') >= 0) return 'counter';
+    if (raw === 'w' || raw.indexOf('waiter') >= 0) return 'waiter';
+
+    var body = document.body.className || '';
+    if (/counter/i.test(body)) return 'counter';
+    if (/manager/i.test(body)) return 'manager';
+    if (/waiter/i.test(body)) return 'waiter';
+    if (/cashier/i.test(body)) return 'cashier';
+    if (/kds/i.test(body)) return 'kds';
+    return 'owner';
+  }
+
+  function titleForRole(role) {
+    if (role === 'counter') return ['Counter Dashboard', 'Phone bookings, walk-ins, reservations and table availability'];
+    if (role === 'manager') return ['Manager Dashboard', 'Operations, floor, kitchen and team dashboard'];
+    if (role === 'waiter') return ['Waiter Dashboard', 'Service floor and assigned table dashboard'];
+    if (role === 'cashier') return ['Cashier Dashboard', 'Checkout, open checks and payment view'];
+    if (role === 'kds') return ['KDS Dashboard', 'Kitchen display and station operations'];
+    return ['Owner Dashboard', 'Live restaurant operations and performance'];
+  }
+
+  function dateLabel() {
+    try {
+      return '📅 Today · ' + new Intl.DateTimeFormat(undefined, {
+        weekday: 'short',
+        month: 'short',
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit'
+      }).format(new Date());
+    } catch (e) {
+      return '📅 Today';
+    }
+  }
+
+  function ensureToolbar() {
+    if (document.querySelector('.pmd-floor-edit-toolbar-v6')) return;
+
+    var bar = document.createElement('div');
+    bar.className = 'pmd-floor-edit-toolbar-v6';
+    bar.innerHTML =
+      '<strong>Floor edit mode</strong>' +
+      '<button type="button" data-pmd-floor-save-v6>Save layout</button>' +
+      '<button type="button" data-pmd-floor-cancel-v6>Cancel</button>';
+    document.body.appendChild(bar);
+  }
+
+  function getOrCreateButton() {
+    var buttons = Array.prototype.slice.call(document.querySelectorAll('.pmd-floor-global-edit-v6'));
+    var btn = buttons[0];
+
+    buttons.slice(1).forEach(function (el) { el.remove(); });
+
+    if (!btn) {
+      btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'pmd-floor-global-edit-v6';
+      btn.setAttribute('data-pmd-floor-edit-v6', '1');
+      btn.setAttribute('title', 'Move tables and save floor layout');
+      btn.textContent = 'Edit Floor';
+    }
+
+    btn.classList.remove('is-floating');
+    btn.setAttribute('data-pmd-floor-edit-v6', '1');
+    btn.textContent = 'Edit Floor';
+    btn.style.display = '';
+    btn.style.visibility = '';
+    btn.style.opacity = '';
+
+    return btn;
+  }
+
+  function buildTopbar() {
+    if (!isDashboard()) return;
+
+    var r = root();
+    if (!r) return;
+
+    document.querySelectorAll('.pmd-dashboard-topbar-v7').forEach(function (el) {
+      el.remove();
+    });
+
+    var topbar = document.querySelector('.pmd-dashboard-topbar-v8');
+    if (!topbar) {
+      topbar = document.createElement('section');
+      topbar.className = 'pmd-dashboard-topbar-v8';
+    }
+
+    var role = activeRole();
+    var title = titleForRole(role);
+    var btn = getOrCreateButton();
+
+    topbar.innerHTML =
+      '<div class="pmd-dashboard-topbar-v8__title">' +
+        '<h1>' + title[0] + '</h1>' +
+        '<p>' + title[1] + '</p>' +
+      '</div>' +
+      '<div class="pmd-dashboard-topbar-v8__actions">' +
+        '<span class="pmd-dashboard-topbar-v8__pill" data-pmd-date-pill-v8>' + dateLabel() + '</span>' +
+        '<span class="pmd-dashboard-topbar-v8__pill is-shift">🍽️ Dinner Shift · Live</span>' +
+      '</div>';
+
+    var actions = topbar.querySelector('.pmd-dashboard-topbar-v8__actions');
+    actions.appendChild(btn);
+
+    var kpi = r.querySelector('.pmd-v15-kpi-grid, .pmd-v19-kpi-grid, .pmd-v21-kpi-grid');
+    if (kpi && kpi.parentNode === r) {
+      r.insertBefore(topbar, kpi);
+    } else if (r.firstChild !== topbar) {
+      r.insertBefore(topbar, r.firstChild);
+    }
+
+    ensureToolbar();
+  }
+
+  buildTopbar();
+  setTimeout(buildTopbar, 250);
+  setTimeout(buildTopbar, 900);
+  setTimeout(buildTopbar, 1800);
+  setTimeout(buildTopbar, 2800);
+
+  document.addEventListener('click', function (event) {
+    if (!event.target || !event.target.closest) return;
+    var roleBtn = event.target.closest('#pmd-v31-role-rail .pmd-v31-role-btn');
+    if (roleBtn) {
+      setTimeout(buildTopbar, 80);
+      setTimeout(buildTopbar, 350);
+    }
+  }, false);
+
+  console.info('[PMD] Dashboard visible topbar v8 active');
+})();
+ /* PMD_DASHBOARD_VISIBLE_TOPBAR_V8_END */
+
+
+/* PMD_KILL_BROKEN_TOPBARS_V10_START */
+/*
+  Removes broken v7/v8/v9 topbars and moves the v6 Edit Floor button to a safe visible fixed position.
+  Limited delayed runs only. No observer, no interval, no backend/database changes.
+*/
+(function () {
+  'use strict';
+
+  var FLAG = 'PMD_KILL_BROKEN_TOPBARS_V10';
+  if (window[FLAG]) return;
+  window[FLAG] = true;
+
+  function isDashboard() {
+    return /\/admin\/dashboard/.test(location.pathname);
+  }
+
+  function ensureToolbar() {
+    if (document.querySelector('.pmd-floor-edit-toolbar-v6')) return;
+
+    var bar = document.createElement('div');
+    bar.className = 'pmd-floor-edit-toolbar-v6';
+    bar.innerHTML =
+      '<strong>Floor edit mode</strong>' +
+      '<button type="button" data-pmd-floor-save-v6>Save layout</button>' +
+      '<button type="button" data-pmd-floor-cancel-v6>Cancel</button>';
+    document.body.appendChild(bar);
+  }
+
+  function run() {
+    if (!isDashboard()) return;
+
+    document.querySelectorAll('.pmd-dashboard-topbar-v7, .pmd-dashboard-topbar-v8, .pmd-dashboard-topbar-v9').forEach(function (el) {
+      el.remove();
+    });
+
+    var buttons = Array.prototype.slice.call(document.querySelectorAll('.pmd-floor-global-edit-v6'));
+    var btn = buttons[0];
+
+    buttons.slice(1).forEach(function (el) {
+      el.remove();
+    });
+
+    if (!btn) {
+      btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'pmd-floor-global-edit-v6';
+      btn.textContent = 'Edit Floor';
+      btn.setAttribute('data-pmd-floor-edit-v6', '1');
+      btn.setAttribute('title', 'Move tables and save floor layout');
+    }
+
+    btn.classList.add('pmd-floor-floating-v10');
+    btn.classList.remove('is-floating');
+    btn.setAttribute('data-pmd-floor-edit-v6', '1');
+    btn.textContent = 'Edit Floor';
+
+    if (btn.parentNode !== document.body) {
+      document.body.appendChild(btn);
+    }
+
+    ensureToolbar();
+  }
+
+  run();
+  setTimeout(run, 250);
+  setTimeout(run, 900);
+  setTimeout(run, 1800);
+  setTimeout(run, 3200);
+  setTimeout(run, 5200);
+
+  console.info('[PMD] Broken topbars killed v10; Edit Floor floating fallback active');
+})();
+ /* PMD_KILL_BROKEN_TOPBARS_V10_END */
+
+
+/* PMD_FLOOR_EDITOR_SAVEFIX_V11_START */
+/*
+  Overrides broken v6 Save button.
+  Uses exact admin endpoint and stronger CSRF detection.
+  No observer, no interval, no unrelated backend mutation.
+*/
+(function () {
+  'use strict';
+
+  var FLAG = 'PMD_FLOOR_EDITOR_SAVEFIX_V11';
+  if (window[FLAG]) return;
+  window[FLAG] = true;
+
+  function $(sel, root) { return (root || document).querySelector(sel); }
+  function $$(sel, root) { return Array.prototype.slice.call((root || document).querySelectorAll(sel)); }
+
+  function show(msg) {
+    var el = $('.pmd-floor-save-debug-v11');
+    if (!el) {
+      el = document.createElement('div');
+      el.className = 'pmd-floor-save-debug-v11';
+      document.body.appendChild(el);
+    }
+    el.textContent = msg;
+    el.classList.add('is-visible');
+    clearTimeout(el._t);
+    el._t = setTimeout(function () { el.classList.remove('is-visible'); }, 5200);
+    console.log('[PMD save v11]', msg);
+  }
+
+  function decodeCookie(v) {
+    try { return decodeURIComponent(v || ''); } catch (e) { return v || ''; }
+  }
+
+  function getCookie(name) {
+    var parts = document.cookie ? document.cookie.split(';') : [];
+    for (var i = 0; i < parts.length; i++) {
+      var p = parts[i].trim();
+      if (p.indexOf(name + '=') === 0) return decodeCookie(p.slice(name.length + 1));
+    }
+    return '';
+  }
+
+  function csrfToken() {
+    var selectors = [
+      'meta[name="csrf-token"]',
+      'meta[name="_token"]',
+      'meta[name="X-CSRF-TOKEN"]'
+    ];
+
+    for (var i = 0; i < selectors.length; i++) {
+      var m = document.querySelector(selectors[i]);
+      if (m && m.content) return m.content;
+    }
+
+    var inputs = [
+      'input[name="_token"]',
+      'input[name="csrf_token"]',
+      'input[name="csrf-token"]'
+    ];
+
+    for (var j = 0; j < inputs.length; j++) {
+      var inp = document.querySelector(inputs[j]);
+      if (inp && inp.value) return inp.value;
+    }
+
+    if (window.TastyIgniter && window.TastyIgniter.csrfToken) return window.TastyIgniter.csrfToken;
+    if (window.ti && window.ti.csrfToken) return window.ti.csrfToken;
+    if (window.csrfToken) return window.csrfToken;
+
+    return getCookie('XSRF-TOKEN') || '';
+  }
+
+  function endpoint() {
+    return new URL('/admin/pmd-floor-plan-save-v1', window.location.origin).toString();
+  }
+
+  function pct(el, prop, fallback) {
+    var n = parseFloat(String(el.style[prop] || '').replace('%', ''));
+    return Number.isFinite(n) ? n : fallback;
+  }
+
+  function tableItems() {
+    return $$('.pmd-v15-floor-node[data-pmd-table]').map(function (node) {
+      var id = parseInt(node.getAttribute('data-pmd-table'), 10);
+      var left = pct(node, 'left', 0);
+      var top = pct(node, 'top', 0);
+      var width = pct(node, 'width', 17);
+      var height = pct(node, 'height', 15.714);
+
+      /*
+        Current DB/data mapping from production:
+        floor_x 22 => left 2.2%
+        floor_y 30 => top 5.357%
+        floor_width 170 => width 17%
+        floor_height 88 => height 15.714%
+      */
+      return {
+        id: id,
+        floor_x: Math.round(left * 10 * 100) / 100,
+        floor_y: Math.round(top * 5.6 * 100) / 100,
+        floor_width: Math.round(width * 10 * 100) / 100,
+        floor_height: Math.round(height * 5.6 * 100) / 100
+      };
+    }).filter(function (x) { return x.id > 0; });
+  }
+
+  function hijackToolbar() {
+    var save = $('[data-pmd-floor-save-v6]');
+    if (save) {
+      save.removeAttribute('data-pmd-floor-save-v6');
+      save.setAttribute('data-pmd-floor-save-v11', '1');
+      save.textContent = 'Save layout';
+    }
+  }
+
+  function saveLayout(event) {
+    var btn = event.target && event.target.closest && event.target.closest('[data-pmd-floor-save-v11]');
+    if (!btn) return;
+
+    event.preventDefault();
+    event.stopPropagation();
+    event.stopImmediatePropagation();
+
+    var token = csrfToken();
+    var items = tableItems();
+
+    if (!items.length) {
+      show('No floor tables found to save.');
+      return;
+    }
+
+    if (!token) {
+      show('CSRF token not found. Reload the admin page, then try again.');
+      console.warn('[PMD save v11] token sources missing', {
+        meta: !!document.querySelector('meta[name="csrf-token"]'),
+        tokenInput: !!document.querySelector('input[name="_token"]'),
+        xsrfCookie: !!getCookie('XSRF-TOKEN')
+      });
+      return;
+    }
+
+    var url = endpoint();
+    show('Saving layout to:\n' + url);
+
+    var body = JSON.stringify({
+      _token: token,
+      source: 'dashboard-floor-editor-savefix-v11',
+      tables: items
+    });
+
+    fetch(url, {
+      method: 'POST',
+      credentials: 'same-origin',
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+        'X-Requested-With': 'XMLHttpRequest',
+        'X-CSRF-TOKEN': token,
+        'X-XSRF-TOKEN': token
+      },
+      body: body
+    })
+      .then(function (r) {
+        return r.text().then(function (txt) {
+          var json = null;
+          try { json = JSON.parse(txt); } catch (e) {}
+          if (!r.ok || !json || !json.ok) {
+            throw new Error('HTTP ' + r.status + ' ' + (json && json.message ? json.message : txt.slice(0, 160)));
+          }
+          return json;
+        });
+      })
+      .then(function (json) {
+        show('Saved successfully. Updated tables: ' + (json.updated || 0));
+        document.body.classList.remove('pmd-floor-editing-v6');
+        setTimeout(function () { window.location.reload(); }, 800);
+      })
+      .catch(function (err) {
+        show('Save failed:\n' + err.message);
+        console.error('[PMD save v11] failed', err);
+      });
+  }
+
+  document.addEventListener('click', saveLayout, true);
+
+  hijackToolbar();
+  setTimeout(hijackToolbar, 250);
+  setTimeout(hijackToolbar, 900);
+  setTimeout(hijackToolbar, 1800);
+  setTimeout(hijackToolbar, 3200);
+
+  console.info('[PMD] Floor editor savefix v11 active');
+})();
+ /* PMD_FLOOR_EDITOR_SAVEFIX_V11_END */
+
+
+/* PMD_FLOOR_SAVE_STABLE_V12_START */
+/*
+  Savefix v12.
+  Uses stable existing controller route:
+  /admin/pmd-floor-plan-save-v1 -> PmdFloorPlanStable@saveV1
+  Sends x-www-form-urlencoded so admin CSRF can read _token.
+*/
+(function () {
+  'use strict';
+
+  var FLAG = 'PMD_FLOOR_SAVE_STABLE_V12';
+  if (window[FLAG]) return;
+  window[FLAG] = true;
+
+  function $(sel, root) { return (root || document).querySelector(sel); }
+  function $$(sel, root) { return Array.prototype.slice.call((root || document).querySelectorAll(sel)); }
+
+  function show(msg) {
+    var el = $('.pmd-floor-save-debug-v12');
+    if (!el) {
+      el = document.createElement('div');
+      el.className = 'pmd-floor-save-debug-v12';
+      document.body.appendChild(el);
+    }
+    el.textContent = msg;
+    el.classList.add('is-visible');
+    clearTimeout(el._t);
+    el._t = setTimeout(function () { el.classList.remove('is-visible'); }, 5200);
+    console.log('[PMD save v12]', msg);
+  }
+
+  function readCookie(name) {
+    var parts = document.cookie ? document.cookie.split(';') : [];
+    for (var i = 0; i < parts.length; i++) {
+      var p = parts[i].trim();
+      if (p.indexOf(name + '=') === 0) {
+        try { return decodeURIComponent(p.slice(name.length + 1)); }
+        catch (e) { return p.slice(name.length + 1); }
+      }
+    }
+    return '';
+  }
+
+  function token() {
+    var meta = $('meta[name="csrf-token"], meta[name="_token"], meta[name="X-CSRF-TOKEN"]');
+    if (meta && meta.content) return meta.content;
+
+    var input = $('input[name="_token"], input[name="csrf_token"], input[name="csrf-token"]');
+    if (input && input.value) return input.value;
+
+    if (window.TastyIgniter && window.TastyIgniter.csrfToken) return window.TastyIgniter.csrfToken;
+    if (window.ti && window.ti.csrfToken) return window.ti.csrfToken;
+    if (window.csrfToken) return window.csrfToken;
+
+    return readCookie('XSRF-TOKEN') || '';
+  }
+
+  function pct(el, prop, fallback) {
+    var n = parseFloat(String(el.style[prop] || '').replace('%', ''));
+    return Number.isFinite(n) ? n : fallback;
+  }
+
+  function items() {
+    return $$('.pmd-v15-floor-node[data-pmd-table]').map(function (node) {
+      var id = parseInt(node.getAttribute('data-pmd-table'), 10);
+      var left = pct(node, 'left', 0);
+      var top = pct(node, 'top', 0);
+      var width = pct(node, 'width', 17);
+      var height = pct(node, 'height', 15.714);
+
+      return {
+        id: id,
+        floor_x: Math.round(left * 10 * 100) / 100,
+        floor_y: Math.round(top * 5.6 * 100) / 100,
+        floor_width: Math.round(width * 10 * 100) / 100,
+        floor_height: Math.round(height * 5.6 * 100) / 100
+      };
+    }).filter(function (x) { return x.id > 0; });
+  }
+
+  function hijack() {
+    var btn = $('[data-pmd-floor-save-v12]') ||
+      $('[data-pmd-floor-save-v11]') ||
+      $('[data-pmd-floor-save-v6]');
+
+    if (!btn) return;
+
+    btn.removeAttribute('data-pmd-floor-save-v6');
+    btn.removeAttribute('data-pmd-floor-save-v11');
+    btn.setAttribute('data-pmd-floor-save-v12', '1');
+    btn.textContent = 'Save layout';
+  }
+
+  function save(event) {
+    var btn = event.target && event.target.closest && event.target.closest('[data-pmd-floor-save-v12]');
+    if (!btn) return;
+
+    event.preventDefault();
+    event.stopPropagation();
+    event.stopImmediatePropagation();
+
+    var t = token();
+    var list = items();
+
+    if (!list.length) {
+      show('No floor tables found to save.');
+      return;
+    }
+
+    if (!t) {
+      show('CSRF token missing. Reload admin page and try again.');
+      return;
+    }
+
+    var form = new URLSearchParams();
+    form.set('_token', t);
+    form.set('source', 'dashboard-floor-save-v12');
+    form.set('tables', JSON.stringify(list));
+
+    var url = '/admin/pmd-floor-plan-save-v1';
+
+    show('Saving to ' + url + ' ...');
+
+    fetch(url, {
+      method: 'POST',
+      credentials: 'same-origin',
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8',
+        'Accept': 'application/json',
+        'X-Requested-With': 'XMLHttpRequest',
+        'X-CSRF-TOKEN': t
+      },
+      body: form.toString()
+    })
+      .then(function (r) {
+        return r.text().then(function (txt) {
+          var json = null;
+          try { json = JSON.parse(txt); } catch (e) {}
+          if (!r.ok || !json || !json.ok) {
+            throw new Error('HTTP ' + r.status + ' ' + (json && json.message ? json.message : txt.slice(0, 180)));
+          }
+          return json;
+        });
+      })
+      .then(function (json) {
+        show('Saved successfully. Updated tables: ' + (json.updated || 0));
+        document.body.classList.remove('pmd-floor-editing-v6');
+        setTimeout(function () { location.reload(); }, 800);
+      })
+      .catch(function (err) {
+        show('Save failed:\n' + err.message);
+        console.error('[PMD save v12] failed', err);
+      });
+  }
+
+  document.addEventListener('click', save, true);
+
+  hijack();
+  setTimeout(hijack, 250);
+  setTimeout(hijack, 900);
+  setTimeout(hijack, 1800);
+  setTimeout(hijack, 3200);
+
+  console.info('[PMD] Floor save stable v12 active');
+})();
+ /* PMD_FLOOR_SAVE_STABLE_V12_END */
+
+
+/* PMD_FLOOR_SAVE_CLOSURE_V13_CLIENT_START */
+(function () {
+  window.PMD_FLOOR_SAVE_CLOSURE_V13_CLIENT = true;
+  console.info('[PMD] Floor save closure v13 route expected at /admin/pmd-floor-plan-save-v1');
+})();
+ /* PMD_FLOOR_SAVE_CLOSURE_V13_CLIENT_END */
+
+
+/* PMD_FLOOR_SAVE_VIA_MERGE_V15_START */
+/*
+  Save floor layout through existing stable route:
+  /admin/pmd-floor-plan-merge
+  This avoids new admin route permission/catch-all issues.
+*/
+(function () {
+  'use strict';
+
+  var FLAG = 'PMD_FLOOR_SAVE_VIA_MERGE_V15';
+  if (window[FLAG]) return;
+  window[FLAG] = true;
+
+  function $(sel, root) { return (root || document).querySelector(sel); }
+  function $$(sel, root) { return Array.prototype.slice.call((root || document).querySelectorAll(sel)); }
+
+  function show(msg) {
+    var el = $('.pmd-floor-save-debug-v15');
+    if (!el) {
+      el = document.createElement('div');
+      el.className = 'pmd-floor-save-debug-v15';
+      document.body.appendChild(el);
+    }
+    el.textContent = msg;
+    el.classList.add('is-visible');
+    clearTimeout(el._t);
+    el._t = setTimeout(function () { el.classList.remove('is-visible'); }, 5600);
+    console.log('[PMD save v15]', msg);
+  }
+
+  function readCookie(name) {
+    var parts = document.cookie ? document.cookie.split(';') : [];
+    for (var i = 0; i < parts.length; i++) {
+      var p = parts[i].trim();
+      if (p.indexOf(name + '=') === 0) {
+        try { return decodeURIComponent(p.slice(name.length + 1)); }
+        catch (e) { return p.slice(name.length + 1); }
+      }
+    }
+    return '';
+  }
+
+  function token() {
+    var meta = $('meta[name="csrf-token"], meta[name="_token"], meta[name="X-CSRF-TOKEN"]');
+    if (meta && meta.content) return meta.content;
+
+    var input = $('input[name="_token"], input[name="csrf_token"], input[name="csrf-token"]');
+    if (input && input.value) return input.value;
+
+    if (window.TastyIgniter && window.TastyIgniter.csrfToken) return window.TastyIgniter.csrfToken;
+    if (window.ti && window.ti.csrfToken) return window.ti.csrfToken;
+    if (window.csrfToken) return window.csrfToken;
+
+    return readCookie('XSRF-TOKEN') || '';
+  }
+
+  function pct(el, prop, fallback) {
+    var n = parseFloat(String(el.style[prop] || '').replace('%', ''));
+    return Number.isFinite(n) ? n : fallback;
+  }
+
+  function items() {
+    return $$('.pmd-v15-floor-node[data-pmd-table]').map(function (node) {
+      var id = parseInt(node.getAttribute('data-pmd-table'), 10);
+      var left = pct(node, 'left', 0);
+      var top = pct(node, 'top', 0);
+      var width = pct(node, 'width', 17);
+      var height = pct(node, 'height', 15.714);
+
+      return {
+        id: id,
+        floor_x: Math.round(left * 10 * 100) / 100,
+        floor_y: Math.round(top * 5.6 * 100) / 100,
+        floor_width: Math.round(width * 10 * 100) / 100,
+        floor_height: Math.round(height * 5.6 * 100) / 100
+      };
+    }).filter(function (x) { return x.id > 0; });
+  }
+
+  function hijack() {
+    var btn =
+      $('[data-pmd-floor-save-v15]') ||
+      $('[data-pmd-floor-save-v12]') ||
+      $('[data-pmd-floor-save-v11]') ||
+      $('[data-pmd-floor-save-v6]');
+
+    if (!btn) return;
+
+    btn.removeAttribute('data-pmd-floor-save-v6');
+    btn.removeAttribute('data-pmd-floor-save-v11');
+    btn.removeAttribute('data-pmd-floor-save-v12');
+    btn.setAttribute('data-pmd-floor-save-v15', '1');
+    btn.textContent = 'Save layout';
+  }
+
+  function save(event) {
+    var btn = event.target && event.target.closest && event.target.closest('[data-pmd-floor-save-v15]');
+    if (!btn) return;
+
+    event.preventDefault();
+    event.stopPropagation();
+    event.stopImmediatePropagation();
+
+    var t = token();
+    var list = items();
+
+    if (!list.length) {
+      show('No floor tables found to save.');
+      return;
+    }
+
+    if (!t) {
+      show('CSRF token missing. Reload admin page and try again.');
+      return;
+    }
+
+    var form = new URLSearchParams();
+    form.set('_token', t);
+    form.set('action', 'pmd_save_floor_layout_v15');
+    form.set('source', 'dashboard-floor-save-via-merge-v15');
+    form.set('tables', JSON.stringify(list));
+
+    var url = '/admin/pmd-floor-plan-merge';
+
+    show('Saving through existing merge route...\n' + url);
+
+    fetch(url, {
+      method: 'POST',
+      credentials: 'same-origin',
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8',
+        'Accept': 'application/json',
+        'X-Requested-With': 'XMLHttpRequest',
+        'X-CSRF-TOKEN': t
+      },
+      body: form.toString()
+    })
+      .then(function (r) {
+        return r.text().then(function (txt) {
+          var json = null;
+          try { json = JSON.parse(txt); } catch (e) {}
+          if (!r.ok || !json || !json.ok) {
+            throw new Error('HTTP ' + r.status + ' ' + (json && json.message ? json.message : txt.slice(0, 180)));
+          }
+          return json;
+        });
+      })
+      .then(function (json) {
+        show('Saved successfully. Updated tables: ' + (json.updated || 0));
+        document.body.classList.remove('pmd-floor-editing-v6');
+        setTimeout(function () { location.reload(); }, 800);
+      })
+      .catch(function (err) {
+        show('Save failed:\n' + err.message);
+        console.error('[PMD save v15] failed', err);
+      });
+  }
+
+  document.addEventListener('click', save, true);
+
+  hijack();
+  setTimeout(hijack, 250);
+  setTimeout(hijack, 900);
+  setTimeout(hijack, 1800);
+  setTimeout(hijack, 3200);
+
+  console.info('[PMD] Floor save via merge v15 active');
+})();
+ /* PMD_FLOOR_SAVE_VIA_MERGE_V15_END */
+
+
+/* PMD_FLOOR_SAVE_DATA_ENDPOINT_V17_START */
+(function () {
+  'use strict';
+
+  var FLAG = 'PMD_FLOOR_SAVE_DATA_ENDPOINT_V17';
+  if (window[FLAG]) return;
+  window[FLAG] = true;
+
+  function $(sel, root) { return (root || document).querySelector(sel); }
+  function $$(sel, root) { return Array.prototype.slice.call((root || document).querySelectorAll(sel)); }
+
+  function show(msg) {
+    var el = $('.pmd-floor-save-debug-v17');
+    if (!el) {
+      el = document.createElement('div');
+      el.className = 'pmd-floor-save-debug-v17';
+      document.body.appendChild(el);
+    }
+    el.textContent = msg;
+    el.classList.add('is-visible');
+    clearTimeout(el._t);
+    el._t = setTimeout(function () { el.classList.remove('is-visible'); }, 6500);
+    console.log('[PMD save v17]', msg);
+  }
+
+  function readCookie(name) {
+    var parts = document.cookie ? document.cookie.split(';') : [];
+    for (var i = 0; i < parts.length; i++) {
+      var p = parts[i].trim();
+      if (p.indexOf(name + '=') === 0) {
+        try { return decodeURIComponent(p.slice(name.length + 1)); }
+        catch (e) { return p.slice(name.length + 1); }
+      }
+    }
+    return '';
+  }
+
+  function token() {
+    var meta = $('meta[name="csrf-token"], meta[name="_token"], meta[name="X-CSRF-TOKEN"]');
+    if (meta && meta.content) return meta.content;
+
+    var input = $('input[name="_token"], input[name="csrf_token"], input[name="csrf-token"]');
+    if (input && input.value) return input.value;
+
+    if (window.TastyIgniter && window.TastyIgniter.csrfToken) return window.TastyIgniter.csrfToken;
+    if (window.ti && window.ti.csrfToken) return window.ti.csrfToken;
+    if (window.csrfToken) return window.csrfToken;
+
+    return readCookie('XSRF-TOKEN') || '';
+  }
+
+  function pct(el, prop, fallback) {
+    var n = parseFloat(String(el.style[prop] || '').replace('%', ''));
+    return Number.isFinite(n) ? n : fallback;
+  }
+
+  function collectItems() {
+    return $$('.pmd-v15-floor-node[data-pmd-table]').map(function (node) {
+      var id = parseInt(node.getAttribute('data-pmd-table'), 10);
+      var left = pct(node, 'left', 0);
+      var top = pct(node, 'top', 0);
+      var width = pct(node, 'width', 17);
+      var height = pct(node, 'height', 15.714);
+
+      return {
+        id: id,
+        floor_x: Math.round(left * 10 * 100) / 100,
+        floor_y: Math.round(top * 5.6 * 100) / 100,
+        floor_width: Math.round(width * 10 * 100) / 100,
+        floor_height: Math.round(height * 5.6 * 100) / 100
+      };
+    }).filter(function (x) { return x.id > 0; });
+  }
+
+  function hijack() {
+    var btn =
+      $('[data-pmd-floor-save-v17]') ||
+      $('[data-pmd-floor-save-v16]') ||
+      $('[data-pmd-floor-save-v15]') ||
+      $('[data-pmd-floor-save-v12]') ||
+      $('[data-pmd-floor-save-v11]') ||
+      $('[data-pmd-floor-save-v6]');
+
+    if (!btn) return;
+
+    btn.removeAttribute('data-pmd-floor-save-v6');
+    btn.removeAttribute('data-pmd-floor-save-v11');
+    btn.removeAttribute('data-pmd-floor-save-v12');
+    btn.removeAttribute('data-pmd-floor-save-v15');
+    btn.removeAttribute('data-pmd-floor-save-v16');
+    btn.setAttribute('data-pmd-floor-save-v17', '1');
+    btn.textContent = 'Save layout';
+  }
+
+  function save(event) {
+    var btn = event.target && event.target.closest && event.target.closest('[data-pmd-floor-save-v17]');
+    if (!btn) return;
+
+    event.preventDefault();
+    event.stopPropagation();
+    event.stopImmediatePropagation();
+
+    var t = token();
+    var list = collectItems();
+
+    if (!list.length) {
+      show('No floor tables found to save.');
+      return;
+    }
+
+    if (!t) {
+      show('CSRF token missing. Reload admin page and try again.');
+      return;
+    }
+
+    var form = new URLSearchParams();
+    form.set('_token', t);
+    form.set('action', 'pmd_save_floor_layout_v17');
+    form.set('source', 'dashboard-floor-save-data-v17');
+    form.set('tables', JSON.stringify(list));
+
+    var url = '/admin/pmd-owner-dashboard-clean-v1-data';
+
+    show('Saving layout through working dashboard endpoint...\n' + url);
+
+    fetch(url, {
+      method: 'POST',
+      credentials: 'same-origin',
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8',
+        'Accept': 'application/json',
+        'X-Requested-With': 'XMLHttpRequest',
+        'X-CSRF-TOKEN': t
+      },
+      body: form.toString()
+    })
+      .then(function (r) {
+        return r.text().then(function (txt) {
+          var json = null;
+          try { json = JSON.parse(txt); } catch (e) {}
+          if (!r.ok || !json || !json.ok) {
+            throw new Error('HTTP ' + r.status + ' ' + (json && json.message ? json.message : txt.slice(0, 220)));
+          }
+          return json;
+        });
+      })
+      .then(function (json) {
+        show('Saved successfully. Updated tables: ' + (json.updated || 0));
+        document.body.classList.remove('pmd-floor-editing-v6');
+        setTimeout(function () { location.reload(); }, 900);
+      })
+      .catch(function (err) {
+        show('Save failed:\n' + err.message);
+        console.error('[PMD save v17] failed', err);
+      });
+  }
+
+  document.addEventListener('click', save, true);
+
+  hijack();
+  setTimeout(hijack, 150);
+  setTimeout(hijack, 500);
+  setTimeout(hijack, 1100);
+  setTimeout(hijack, 2200);
+  setTimeout(hijack, 3600);
+
+  console.info('[PMD] Floor save data endpoint v17 active');
+})();
+ /* PMD_FLOOR_SAVE_DATA_ENDPOINT_V17_END */
+
+
+/* PMD_FLOOR_EDITOR_FINAL_COMMAND_SAVE_V18_START */
+/*
+  Final floor editor save behavior:
+  no POST, no admin route, no CSRF.
+  Save button generates a VPS command from current dragged DOM positions.
+*/
+(function () {
+  'use strict';
+
+  var FLAG = 'PMD_FLOOR_EDITOR_FINAL_COMMAND_SAVE_V18';
+  if (window[FLAG]) return;
+  window[FLAG] = true;
+
+  function $(sel, root) { return (root || document).querySelector(sel); }
+  function $$(sel, root) { return Array.prototype.slice.call((root || document).querySelectorAll(sel)); }
+
+  function round2(n) {
+    return Math.round(Number(n) * 100) / 100;
+  }
+
+  function pct(node, prop, fallback) {
+    var raw = String(node.style[prop] || '').replace('%', '');
+    var n = parseFloat(raw);
+    return Number.isFinite(n) ? n : fallback;
+  }
+
+  function collectRows() {
+    var canvas =
+      $('.pmd-v15-floor-canvas') ||
+      $('[class*="floor-canvas"]') ||
+      $('[class*="floor"][class*="canvas"]');
+
+    if (!canvas) throw new Error('Floor canvas not found.');
+
+    var cr = canvas.getBoundingClientRect();
+
+    var rows = $$('.pmd-v15-floor-node[data-pmd-table]').map(function (node) {
+      var r = node.getBoundingClientRect();
+      var id = parseInt(node.getAttribute('data-pmd-table'), 10);
+
+      var leftPctFallback = ((r.left - cr.left) / cr.width) * 100;
+      var topPctFallback = ((r.top - cr.top) / cr.height) * 100;
+      var widthPctFallback = (r.width / cr.width) * 100;
+      var heightPctFallback = (r.height / cr.height) * 100;
+
+      var leftPct = pct(node, 'left', leftPctFallback);
+      var topPct = pct(node, 'top', topPctFallback);
+      var widthPct = pct(node, 'width', widthPctFallback);
+      var heightPct = pct(node, 'height', heightPctFallback);
+
+      return {
+        id: id,
+        floor_x: round2(leftPct * 10),
+        floor_y: round2(topPct * 5.6),
+        floor_width: round2(widthPct * 10),
+        floor_height: round2(heightPct * 5.6)
+      };
+    }).filter(function (x) {
+      return x.id > 0 &&
+        Number.isFinite(x.floor_x) &&
+        Number.isFinite(x.floor_y) &&
+        Number.isFinite(x.floor_width) &&
+        Number.isFinite(x.floor_height);
+    });
+
+    if (!rows.length) throw new Error('No valid floor tables found.');
+
+    return rows;
+  }
+
+  function buildCommand(rows) {
+    var b64 = btoa(JSON.stringify(rows));
+    var ids = rows.map(function (r) { return r.id; }).join(',');
+
+    return 'cd /var/www/paymydine || exit 1\n\n' +
+      'php artisan tinker --execute=\\\'$rows=json_decode(base64_decode("' + b64 + '"),true); ' +
+      'DB::transaction(function() use ($rows){ foreach($rows as $r){ DB::table("tables")->where("table_id",(int)$r["id"])->update([' +
+      '"floor_x"=>(float)$r["floor_x"],"floor_y"=>(float)$r["floor_y"],"floor_width"=>(float)$r["floor_width"],"floor_height"=>(float)$r["floor_height"],"visible_on_floor_plan"=>1' +
+      ']); } }); echo "PMD floor saved ".count($rows)." tables".PHP_EOL;\\\'\n\n' +
+      'php artisan tinker --execute=\\\'DB::table("tables")->select("table_id","table_no","floor_x","floor_y","floor_width","floor_height","visible_on_floor_plan")->whereIn("table_id",[' + ids + '])->orderBy("table_id")->get()->each(function($r){ echo json_encode($r).PHP_EOL; });\\\'';
+  }
+
+  function ensureBox() {
+    var box = $('.pmd-floor-command-v18-box');
+    if (box) return box;
+
+    box = document.createElement('div');
+    box.className = 'pmd-floor-command-v18-box';
+    box.innerHTML =
+      '<strong>PMD Floor Layout Save Command</strong>' +
+      '<textarea readonly spellcheck="false"></textarea>' +
+      '<div class="pmd-floor-command-v18-actions">' +
+        '<button type="button" class="pmd-floor-command-v18-copy">Copy command</button>' +
+        '<button type="button" class="pmd-floor-command-v18-close">Close</button>' +
+      '</div>';
+
+    document.body.appendChild(box);
+
+    box.querySelector('.pmd-floor-command-v18-close').addEventListener('click', function () {
+      box.classList.remove('is-visible');
+    });
+
+    box.querySelector('.pmd-floor-command-v18-copy').addEventListener('click', function () {
+      var ta = box.querySelector('textarea');
+      ta.focus();
+      ta.select();
+      try {
+        navigator.clipboard.writeText(ta.value);
+        console.log('[PMD v18] command copied');
+      } catch (e) {
+        document.execCommand('copy');
+      }
+    });
+
+    return box;
+  }
+
+  function showCommand(cmd, rows) {
+    var box = ensureBox();
+    var ta = box.querySelector('textarea');
+    ta.value = cmd;
+    box.classList.add('is-visible');
+    ta.focus();
+    ta.select();
+
+    console.table(rows);
+    console.log('--- PMD VPS SAVE COMMAND ---');
+    console.log(cmd);
+
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(cmd).then(function () {
+        console.log('%cPMD v18: command copied. Paste it in VPS terminal.', 'color:#16a34a;font-weight:bold;font-size:14px');
+      }).catch(function () {
+        console.warn('Clipboard blocked. Copy from the visible textarea.');
+      });
+    }
+  }
+
+  function hijack() {
+    var btn =
+      $('[data-pmd-floor-save-v18]') ||
+      $('[data-pmd-floor-save-v17]') ||
+      $('[data-pmd-floor-save-v16]') ||
+      $('[data-pmd-floor-save-v15]') ||
+      $('[data-pmd-floor-save-v12]') ||
+      $('[data-pmd-floor-save-v11]') ||
+      $('[data-pmd-floor-save-v6]');
+
+    if (!btn) return;
+
+    btn.removeAttribute('data-pmd-floor-save-v6');
+    btn.removeAttribute('data-pmd-floor-save-v11');
+    btn.removeAttribute('data-pmd-floor-save-v12');
+    btn.removeAttribute('data-pmd-floor-save-v15');
+    btn.removeAttribute('data-pmd-floor-save-v16');
+    btn.removeAttribute('data-pmd-floor-save-v17');
+    btn.setAttribute('data-pmd-floor-save-v18', '1');
+    btn.textContent = 'Copy VPS save command';
+  }
+
+  function onClick(event) {
+    var btn = event.target && event.target.closest && event.target.closest('[data-pmd-floor-save-v18]');
+    if (!btn) return;
+
+    event.preventDefault();
+    event.stopPropagation();
+    event.stopImmediatePropagation();
+
+    try {
+      var rows = collectRows();
+      var cmd = buildCommand(rows);
+      showCommand(cmd, rows);
+    } catch (err) {
+      console.error('[PMD v18] failed to build save command', err);
+      alert('PMD floor save command failed: ' + err.message);
+    }
+  }
+
+  document.addEventListener('click', onClick, true);
+
+  hijack();
+  setTimeout(hijack, 150);
+  setTimeout(hijack, 500);
+  setTimeout(hijack, 1200);
+  setTimeout(hijack, 2400);
+  setTimeout(hijack, 4200);
+  setTimeout(hijack, 7000);
+
+  console.info('[PMD] Floor editor final command save v18 active');
+})();
+ /* PMD_FLOOR_EDITOR_FINAL_COMMAND_SAVE_V18_END */
+
+
+/* PMD_FLOOR_DIRECT_SAVE_GET_V19_START */
+(function () {
+  'use strict';
+
+  var FLAG = 'PMD_FLOOR_DIRECT_SAVE_GET_V19';
+  if (window[FLAG]) return;
+  window[FLAG] = true;
+
+  function $(sel, root) { return (root || document).querySelector(sel); }
+  function $$(sel, root) { return Array.prototype.slice.call((root || document).querySelectorAll(sel)); }
+
+  function show(msg) {
+    var el = $('.pmd-floor-direct-save-v19-toast');
+    if (!el) {
+      el = document.createElement('div');
+      el.className = 'pmd-floor-direct-save-v19-toast';
+      document.body.appendChild(el);
+    }
+    el.textContent = msg;
+    el.classList.add('is-visible');
+    clearTimeout(el._t);
+    el._t = setTimeout(function () { el.classList.remove('is-visible'); }, 5200);
+    console.log('[PMD save v19]', msg);
+  }
+
+  function round2(n) {
+    return Math.round(Number(n) * 100) / 100;
+  }
+
+  function pct(node, prop, fallback) {
+    var raw = String(node.style[prop] || '').replace('%', '');
+    var n = parseFloat(raw);
+    return Number.isFinite(n) ? n : fallback;
+  }
+
+  function collectRows() {
+    var canvas =
+      $('.pmd-v15-floor-canvas') ||
+      $('[class*="floor-canvas"]') ||
+      $('[class*="floor"][class*="canvas"]');
+
+    if (!canvas) throw new Error('Floor canvas not found.');
+
+    var cr = canvas.getBoundingClientRect();
+
+    var rows = $$('.pmd-v15-floor-node[data-pmd-table]').map(function (node) {
+      var r = node.getBoundingClientRect();
+      var id = parseInt(node.getAttribute('data-pmd-table'), 10);
+
+      var leftPctFallback = ((r.left - cr.left) / cr.width) * 100;
+      var topPctFallback = ((r.top - cr.top) / cr.height) * 100;
+      var widthPctFallback = (r.width / cr.width) * 100;
+      var heightPctFallback = (r.height / cr.height) * 100;
+
+      var leftPct = pct(node, 'left', leftPctFallback);
+      var topPct = pct(node, 'top', topPctFallback);
+      var widthPct = pct(node, 'width', widthPctFallback);
+      var heightPct = pct(node, 'height', heightPctFallback);
+
+      return {
+        id: id,
+        floor_x: round2(leftPct * 10),
+        floor_y: round2(topPct * 5.6),
+        floor_width: round2(widthPct * 10),
+        floor_height: round2(heightPct * 5.6)
+      };
+    }).filter(function (x) {
+      return x.id > 0 &&
+        Number.isFinite(x.floor_x) &&
+        Number.isFinite(x.floor_y) &&
+        Number.isFinite(x.floor_width) &&
+        Number.isFinite(x.floor_height);
+    });
+
+    if (!rows.length) throw new Error('No valid floor tables found.');
+
+    return rows;
+  }
+
+  function encodeRows(rows) {
+    return btoa(JSON.stringify(rows));
+  }
+
+  function hijack() {
+    var btn =
+      $('[data-pmd-floor-save-v19]') ||
+      $('[data-pmd-floor-save-v18]') ||
+      $('[data-pmd-floor-save-v17]') ||
+      $('[data-pmd-floor-save-v16]') ||
+      $('[data-pmd-floor-save-v15]') ||
+      $('[data-pmd-floor-save-v12]') ||
+      $('[data-pmd-floor-save-v11]') ||
+      $('[data-pmd-floor-save-v6]');
+
+    if (!btn) return;
+
+    btn.removeAttribute('data-pmd-floor-save-v6');
+    btn.removeAttribute('data-pmd-floor-save-v11');
+    btn.removeAttribute('data-pmd-floor-save-v12');
+    btn.removeAttribute('data-pmd-floor-save-v15');
+    btn.removeAttribute('data-pmd-floor-save-v16');
+    btn.removeAttribute('data-pmd-floor-save-v17');
+    btn.removeAttribute('data-pmd-floor-save-v18');
+    btn.setAttribute('data-pmd-floor-save-v19', '1');
+    btn.textContent = 'Save layout';
+
+    document.querySelectorAll('.pmd-floor-command-v18-box').forEach(function (el) { el.remove(); });
+  }
+
+  function save(event) {
+    var btn = event.target && event.target.closest && event.target.closest('[data-pmd-floor-save-v19]');
+    if (!btn) return;
+
+    event.preventDefault();
+    event.stopPropagation();
+    event.stopImmediatePropagation();
+
+    var rows;
+
+    try {
+      rows = collectRows();
+    } catch (err) {
+      show('Save failed: ' + err.message);
+      return;
+    }
+
+    var params = new URLSearchParams();
+    params.set('pmd_floor_save_v19', '1');
+    params.set('tables_b64', encodeRows(rows));
+    params.set('_', String(Date.now()));
+
+    var url = '/admin/pmd-owner-dashboard-clean-v1-data?' + params.toString();
+
+    show('Saving layout directly...');
+
+    fetch(url, {
+      method: 'GET',
+      credentials: 'same-origin',
+      headers: {
+        'Accept': 'application/json',
+        'X-Requested-With': 'XMLHttpRequest'
+      }
+    })
+      .then(function (r) {
+        return r.text().then(function (txt) {
+          var json = null;
+          try { json = JSON.parse(txt); } catch (e) {}
+          if (!r.ok || !json || !json.ok) {
+            throw new Error('HTTP ' + r.status + ' ' + (json && json.message ? json.message : txt.slice(0, 180)));
+          }
+          return json;
+        });
+      })
+      .then(function (json) {
+        console.table(rows);
+        show('Saved successfully. Updated tables: ' + (json.updated || 0));
+        document.body.classList.remove('pmd-floor-editing-v6');
+        setTimeout(function () { location.reload(); }, 900);
+      })
+      .catch(function (err) {
+        show('Save failed:\n' + err.message);
+        console.error('[PMD save v19] failed', err);
+      });
+  }
+
+  document.addEventListener('click', save, true);
+
+  hijack();
+  setTimeout(hijack, 150);
+  setTimeout(hijack, 500);
+  setTimeout(hijack, 1200);
+  setTimeout(hijack, 2400);
+  setTimeout(hijack, 4200);
+  setTimeout(hijack, 7000);
+
+  console.info('[PMD] Floor direct save GET v19 active');
+})();
+ /* PMD_FLOOR_DIRECT_SAVE_GET_V19_END */
+
+
+/* PMD_FLOOR_CALIBRATED_DRAG_V20_START */
+/*
+  v20 calibration:
+  - normalize nodes when edit mode starts
+  - custom pointer drag based on actual canvas rect
+  - save using actual DOM position, not stale style values
+*/
+(function () {
+  'use strict';
+
+  var FLAG = 'PMD_FLOOR_CALIBRATED_DRAG_V20';
+  if (window[FLAG]) return;
+  window[FLAG] = true;
+
+  var state = {
+    normalized: false,
+    drag: null
+  };
+
+  function $(sel, root) { return (root || document).querySelector(sel); }
+  function $$(sel, root) { return Array.prototype.slice.call((root || document).querySelectorAll(sel)); }
+
+  function show(msg) {
+    var el = $('.pmd-floor-calibrated-v20-toast');
+    if (!el) {
+      el = document.createElement('div');
+      el.className = 'pmd-floor-calibrated-v20-toast';
+      document.body.appendChild(el);
+    }
+    el.textContent = msg;
+    el.classList.add('is-visible');
+    clearTimeout(el._t);
+    el._t = setTimeout(function () { el.classList.remove('is-visible'); }, 5200);
+    console.log('[PMD v20]', msg);
+  }
+
+  function canvas() {
+    return $('.pmd-v15-floor-canvas') ||
+      $('[class*="floor-canvas"]') ||
+      $('[class*="floor"][class*="canvas"]');
+  }
+
+  function nodes() {
+    return $$('.pmd-v15-floor-node[data-pmd-table]');
+  }
+
+  function round2(n) {
+    return Math.round(Number(n) * 100) / 100;
+  }
+
+  function clamp(n, min, max) {
+    return Math.max(min, Math.min(max, n));
+  }
+
+  function normalizeNodes(force) {
+    var c = canvas();
+    if (!c) return false;
+
+    if (state.normalized && !force) return true;
+
+    var cr = c.getBoundingClientRect();
+    if (!cr.width || !cr.height) return false;
+
+    nodes().forEach(function (node) {
+      var r = node.getBoundingClientRect();
+
+      var leftPct = ((r.left - cr.left) / cr.width) * 100;
+      var topPct = ((r.top - cr.top) / cr.height) * 100;
+      var widthPct = (r.width / cr.width) * 100;
+      var heightPct = (r.height / cr.height) * 100;
+
+      leftPct = clamp(leftPct, 0, Math.max(0, 100 - widthPct));
+      topPct = clamp(topPct, 0, Math.max(0, 100 - heightPct));
+
+      node.style.left = round2(leftPct) + '%';
+      node.style.top = round2(topPct) + '%';
+      node.style.width = round2(widthPct) + '%';
+      node.style.height = round2(heightPct) + '%';
+      node.style.position = 'absolute';
+      node.style.transform = 'none';
+      node.setAttribute('data-pmd-v20-normalized', '1');
+    });
+
+    state.normalized = true;
+    return true;
+  }
+
+  function collectRows() {
+    var c = canvas();
+    if (!c) throw new Error('Floor canvas not found.');
+
+    normalizeNodes(true);
+
+    var cr = c.getBoundingClientRect();
+    var list = nodes().map(function (node) {
+      var r = node.getBoundingClientRect();
+      var id = parseInt(node.getAttribute('data-pmd-table'), 10);
+
+      var leftPct = ((r.left - cr.left) / cr.width) * 100;
+      var topPct = ((r.top - cr.top) / cr.height) * 100;
+      var widthPct = (r.width / cr.width) * 100;
+      var heightPct = (r.height / cr.height) * 100;
+
+      return {
+        id: id,
+        floor_x: round2(clamp(leftPct, 0, 100) * 10),
+        floor_y: round2(clamp(topPct, 0, 100) * 5.6),
+        floor_width: round2(widthPct * 10),
+        floor_height: round2(heightPct * 5.6)
+      };
+    }).filter(function (x) {
+      return x.id > 0 &&
+        Number.isFinite(x.floor_x) &&
+        Number.isFinite(x.floor_y) &&
+        Number.isFinite(x.floor_width) &&
+        Number.isFinite(x.floor_height);
+    });
+
+    if (!list.length) throw new Error('No valid floor tables found.');
+    return list;
+  }
+
+  function encodeRows(rows) {
+    return btoa(JSON.stringify(rows));
+  }
+
+  function saveRows(rows) {
+    var params = new URLSearchParams();
+    params.set('pmd_floor_save_v19', '1');
+    params.set('tables_b64', encodeRows(rows));
+    params.set('_', String(Date.now()));
+
+    var url = '/admin/pmd-owner-dashboard-clean-v1-data?' + params.toString();
+
+    show('Saving calibrated layout...');
+
+    return fetch(url, {
+      method: 'GET',
+      credentials: 'same-origin',
+      headers: {
+        'Accept': 'application/json',
+        'X-Requested-With': 'XMLHttpRequest'
+      }
+    })
+      .then(function (r) {
+        return r.text().then(function (txt) {
+          var json = null;
+          try { json = JSON.parse(txt); } catch (e) {}
+          if (!r.ok || !json || !json.ok) {
+            throw new Error('HTTP ' + r.status + ' ' + (json && json.message ? json.message : txt.slice(0, 180)));
+          }
+          return json;
+        });
+      });
+  }
+
+  function hijackSaveButton() {
+    var btn =
+      $('[data-pmd-floor-save-v20]') ||
+      $('[data-pmd-floor-save-v19]') ||
+      $('[data-pmd-floor-save-v18]') ||
+      $('[data-pmd-floor-save-v17]') ||
+      $('[data-pmd-floor-save-v16]') ||
+      $('[data-pmd-floor-save-v15]') ||
+      $('[data-pmd-floor-save-v12]') ||
+      $('[data-pmd-floor-save-v11]') ||
+      $('[data-pmd-floor-save-v6]');
+
+    if (!btn) return;
+
+    [
+      'data-pmd-floor-save-v6',
+      'data-pmd-floor-save-v11',
+      'data-pmd-floor-save-v12',
+      'data-pmd-floor-save-v15',
+      'data-pmd-floor-save-v16',
+      'data-pmd-floor-save-v17',
+      'data-pmd-floor-save-v18',
+      'data-pmd-floor-save-v19'
+    ].forEach(function (attr) { btn.removeAttribute(attr); });
+
+    btn.setAttribute('data-pmd-floor-save-v20', '1');
+    btn.textContent = 'Save layout';
+  }
+
+  function maybeNormalizeEditMode() {
+    if (document.body.classList.contains('pmd-floor-editing-v6')) {
+      normalizeNodes(false);
+      hijackSaveButton();
+    } else {
+      state.normalized = false;
+    }
+  }
+
+  function pointerDown(e) {
+    if (!document.body.classList.contains('pmd-floor-editing-v6')) return;
+
+    var node = e.target && e.target.closest && e.target.closest('.pmd-v15-floor-node[data-pmd-table]');
+    if (!node) return;
+
+    var c = canvas();
+    if (!c) return;
+
+    normalizeNodes(false);
+
+    var cr = c.getBoundingClientRect();
+    var nr = node.getBoundingClientRect();
+
+    state.drag = {
+      node: node,
+      canvas: c,
+      pointerId: e.pointerId,
+      offsetX: e.clientX - nr.left,
+      offsetY: e.clientY - nr.top,
+      widthPct: (nr.width / cr.width) * 100,
+      heightPct: (nr.height / cr.height) * 100
+    };
+
+    node.classList.add('pmd-v20-dragging');
+
+    try { node.setPointerCapture(e.pointerId); } catch (ignore) {}
+
+    e.preventDefault();
+    e.stopPropagation();
+    e.stopImmediatePropagation();
+  }
+
+  function pointerMove(e) {
+    if (!state.drag) return;
+
+    var d = state.drag;
+    var cr = d.canvas.getBoundingClientRect();
+
+    var leftPx = e.clientX - cr.left - d.offsetX;
+    var topPx = e.clientY - cr.top - d.offsetY;
+
+    var leftPct = (leftPx / cr.width) * 100;
+    var topPct = (topPx / cr.height) * 100;
+
+    leftPct = clamp(leftPct, 0, Math.max(0, 100 - d.widthPct));
+    topPct = clamp(topPct, 0, Math.max(0, 100 - d.heightPct));
+
+    d.node.style.left = round2(leftPct) + '%';
+    d.node.style.top = round2(topPct) + '%';
+    d.node.style.position = 'absolute';
+    d.node.style.transform = 'none';
+
+    e.preventDefault();
+    e.stopPropagation();
+    e.stopImmediatePropagation();
+  }
+
+  function pointerUp(e) {
+    if (!state.drag) return;
+
+    var node = state.drag.node;
+    node.classList.remove('pmd-v20-dragging');
+
+    try { node.releasePointerCapture(state.drag.pointerId); } catch (ignore) {}
+
+    state.drag = null;
+
+    e.preventDefault();
+    e.stopPropagation();
+    e.stopImmediatePropagation();
+  }
+
+  function saveClick(e) {
+    var btn = e.target && e.target.closest && e.target.closest('[data-pmd-floor-save-v20]');
+    if (!btn) return;
+
+    e.preventDefault();
+    e.stopPropagation();
+    e.stopImmediatePropagation();
+
+    var rows;
+    try {
+      rows = collectRows();
+    } catch (err) {
+      show('Save failed: ' + err.message);
+      return;
+    }
+
+    console.table(rows);
+
+    saveRows(rows)
+      .then(function (json) {
+        show('Saved successfully. Updated tables: ' + (json.updated || 0));
+        document.body.classList.remove('pmd-floor-editing-v6');
+        setTimeout(function () { location.reload(); }, 900);
+      })
+      .catch(function (err) {
+        show('Save failed:\n' + err.message);
+        console.error('[PMD v20] save failed', err);
+      });
+  }
+
+  document.addEventListener('pointerdown', pointerDown, true);
+  document.addEventListener('pointermove', pointerMove, true);
+  document.addEventListener('pointerup', pointerUp, true);
+  document.addEventListener('pointercancel', pointerUp, true);
+  document.addEventListener('click', saveClick, true);
+
+  document.addEventListener('click', function () {
+    setTimeout(maybeNormalizeEditMode, 30);
+    setTimeout(maybeNormalizeEditMode, 160);
+  }, true);
+
+  hijackSaveButton();
+  maybeNormalizeEditMode();
+
+  setTimeout(hijackSaveButton, 150);
+  setTimeout(hijackSaveButton, 500);
+  setTimeout(hijackSaveButton, 1200);
+  setTimeout(hijackSaveButton, 2400);
+  setTimeout(hijackSaveButton, 4200);
+  setTimeout(maybeNormalizeEditMode, 700);
+  setTimeout(maybeNormalizeEditMode, 1600);
+  setTimeout(maybeNormalizeEditMode, 3200);
+
+  console.info('[PMD] Floor calibrated drag/save v20 active');
+})();
+ /* PMD_FLOOR_CALIBRATED_DRAG_V20_END */
+
+
+/* PMD_FLOOR_NO_JUMP_EDITOR_V21_START */
+/*
+  v21 no-jump floor editor:
+  - captures normal-mode positions before edit mode changes layout
+  - restores them after edit mode opens
+  - custom drag using canvas-relative coordinates
+  - saves ONLY floor_x/floor_y, preserving floor_width/floor_height
+*/
+(function () {
+  'use strict';
+
+  var FLAG = 'PMD_FLOOR_NO_JUMP_EDITOR_V21';
+  if (window[FLAG]) return;
+  window[FLAG] = true;
+
+  var state = {
+    preEditSnapshot: null,
+    restoredForEdit: false,
+    drag: null
+  };
+
+  function $(sel, root) { return (root || document).querySelector(sel); }
+  function $$(sel, root) { return Array.prototype.slice.call((root || document).querySelectorAll(sel)); }
+
+  function round2(n) {
+    return Math.round(Number(n) * 100) / 100;
+  }
+
+  function clamp(n, min, max) {
+    return Math.max(min, Math.min(max, n));
+  }
+
+  function canvas() {
+    return $('.pmd-v15-floor-canvas') ||
+      $('[class*="floor-canvas"]') ||
+      $('[class*="floor"][class*="canvas"]');
+  }
+
+  function nodes() {
+    return $$('.pmd-v15-floor-node[data-pmd-table]');
+  }
+
+  function show(msg) {
+    var el = $('.pmd-floor-nojump-v21-toast');
+    if (!el) {
+      el = document.createElement('div');
+      el.className = 'pmd-floor-nojump-v21-toast';
+      document.body.appendChild(el);
+    }
+    el.textContent = msg;
+    el.classList.add('is-visible');
+    clearTimeout(el._t);
+    el._t = setTimeout(function () { el.classList.remove('is-visible'); }, 5200);
+    console.log('[PMD v21]', msg);
+  }
+
+  function captureNormalPositions() {
+    var c = canvas();
+    if (!c) return null;
+
+    var cr = c.getBoundingClientRect();
+    if (!cr.width || !cr.height) return null;
+
+    var rows = nodes().map(function (node) {
+      var r = node.getBoundingClientRect();
+      var id = parseInt(node.getAttribute('data-pmd-table'), 10);
+
+      var leftPct = ((r.left - cr.left) / cr.width) * 100;
+      var topPct = ((r.top - cr.top) / cr.height) * 100;
+
+      return {
+        id: id,
+        leftPct: round2(leftPct),
+        topPct: round2(topPct)
+      };
+    }).filter(function (x) { return x.id > 0; });
+
+    if (!rows.length) return null;
+
+    state.preEditSnapshot = {
+      time: Date.now(),
+      rows: rows
+    };
+
+    console.table(rows);
+    console.log('[PMD v21] captured normal positions before edit');
+    return state.preEditSnapshot;
+  }
+
+  function restorePreEditPositions() {
+    if (!document.body.classList.contains('pmd-floor-editing-v6')) return false;
+    if (!state.preEditSnapshot || !state.preEditSnapshot.rows) return false;
+
+    var byId = new Map(state.preEditSnapshot.rows.map(function (r) { return [r.id, r]; }));
+
+    nodes().forEach(function (node) {
+      var id = parseInt(node.getAttribute('data-pmd-table'), 10);
+      var saved = byId.get(id);
+      if (!saved) return;
+
+      node.style.position = 'absolute';
+      node.style.left = saved.leftPct + '%';
+      node.style.top = saved.topPct + '%';
+      node.style.transform = 'none';
+
+      // Important: do NOT write width/height here.
+      // Existing DB width/height must stay 170/88.
+      node.style.removeProperty('width');
+      node.style.removeProperty('height');
+
+      node.setAttribute('data-pmd-v21-restored', '1');
+    });
+
+    state.restoredForEdit = true;
+    console.log('[PMD v21] restored normal positions into edit mode');
+    return true;
+  }
+
+  function collectRowsForSave() {
+    var c = canvas();
+    if (!c) throw new Error('Floor canvas not found.');
+
+    var cr = c.getBoundingClientRect();
+    if (!cr.width || !cr.height) throw new Error('Floor canvas has invalid size.');
+
+    var rows = nodes().map(function (node) {
+      var r = node.getBoundingClientRect();
+      var id = parseInt(node.getAttribute('data-pmd-table'), 10);
+
+      var leftPct = ((r.left - cr.left) / cr.width) * 100;
+      var topPct = ((r.top - cr.top) / cr.height) * 100;
+
+      return {
+        id: id,
+        floor_x: round2(clamp(leftPct, 0, 100) * 10),
+        floor_y: round2(clamp(topPct, 0, 100) * 5.6)
+      };
+    }).filter(function (x) {
+      return x.id > 0 &&
+        Number.isFinite(x.floor_x) &&
+        Number.isFinite(x.floor_y);
+    });
+
+    if (!rows.length) throw new Error('No valid floor tables found.');
+    return rows;
+  }
+
+  function saveRows(rows) {
+    var params = new URLSearchParams();
+    params.set('pmd_floor_save_v19', '1');
+    params.set('tables_b64', btoa(JSON.stringify(rows)));
+    params.set('_', String(Date.now()));
+
+    var url = '/admin/pmd-owner-dashboard-clean-v1-data?' + params.toString();
+
+    show('Saving no-jump layout...');
+
+    return fetch(url, {
+      method: 'GET',
+      credentials: 'same-origin',
+      headers: {
+        'Accept': 'application/json',
+        'X-Requested-With': 'XMLHttpRequest'
+      }
+    }).then(function (r) {
+      return r.text().then(function (txt) {
+        var json = null;
+        try { json = JSON.parse(txt); } catch (e) {}
+        if (!r.ok || !json || !json.ok) {
+          throw new Error('HTTP ' + r.status + ' ' + (json && json.message ? json.message : txt.slice(0, 180)));
+        }
+        return json;
+      });
+    });
+  }
+
+  function hijackSaveButton() {
+    var btn =
+      $('[data-pmd-floor-save-v21]') ||
+      $('[data-pmd-floor-save-v20]') ||
+      $('[data-pmd-floor-save-v19]') ||
+      $('[data-pmd-floor-save-v18]') ||
+      $('[data-pmd-floor-save-v17]') ||
+      $('[data-pmd-floor-save-v16]') ||
+      $('[data-pmd-floor-save-v15]') ||
+      $('[data-pmd-floor-save-v12]') ||
+      $('[data-pmd-floor-save-v11]') ||
+      $('[data-pmd-floor-save-v6]');
+
+    if (!btn) return;
+
+    [
+      'data-pmd-floor-save-v6',
+      'data-pmd-floor-save-v11',
+      'data-pmd-floor-save-v12',
+      'data-pmd-floor-save-v15',
+      'data-pmd-floor-save-v16',
+      'data-pmd-floor-save-v17',
+      'data-pmd-floor-save-v18',
+      'data-pmd-floor-save-v19',
+      'data-pmd-floor-save-v20'
+    ].forEach(function (attr) { btn.removeAttribute(attr); });
+
+    btn.setAttribute('data-pmd-floor-save-v21', '1');
+    btn.textContent = 'Save layout';
+  }
+
+  function isEditButton(target) {
+    return !!(target && target.closest && target.closest(
+      '.pmd-floor-global-edit-v6, .pmd-floor-floating-v10, [data-pmd-floor-edit-v6]'
+    ));
+  }
+
+  function onAnyClickCapture(e) {
+    if (isEditButton(e.target) && !document.body.classList.contains('pmd-floor-editing-v6')) {
+      captureNormalPositions();
+
+      setTimeout(restorePreEditPositions, 20);
+      setTimeout(restorePreEditPositions, 80);
+      setTimeout(restorePreEditPositions, 180);
+      setTimeout(hijackSaveButton, 200);
+      return;
+    }
+
+    setTimeout(hijackSaveButton, 60);
+  }
+
+  function pointerDown(e) {
+    if (!document.body.classList.contains('pmd-floor-editing-v6')) return;
+
+    var node = e.target && e.target.closest && e.target.closest('.pmd-v15-floor-node[data-pmd-table]');
+    if (!node) return;
+
+    restorePreEditPositions();
+
+    var c = canvas();
+    if (!c) return;
+
+    var cr = c.getBoundingClientRect();
+    var nr = node.getBoundingClientRect();
+
+    state.drag = {
+      node: node,
+      canvas: c,
+      pointerId: e.pointerId,
+      offsetX: e.clientX - nr.left,
+      offsetY: e.clientY - nr.top,
+      widthPct: (nr.width / cr.width) * 100,
+      heightPct: (nr.height / cr.height) * 100
+    };
+
+    node.classList.add('pmd-v21-dragging');
+
+    try { node.setPointerCapture(e.pointerId); } catch (ignore) {}
+
+    e.preventDefault();
+    e.stopPropagation();
+    e.stopImmediatePropagation();
+  }
+
+  function pointerMove(e) {
+    if (!state.drag) return;
+
+    var d = state.drag;
+    var cr = d.canvas.getBoundingClientRect();
+
+    var leftPx = e.clientX - cr.left - d.offsetX;
+    var topPx = e.clientY - cr.top - d.offsetY;
+
+    var leftPct = (leftPx / cr.width) * 100;
+    var topPct = (topPx / cr.height) * 100;
+
+    leftPct = clamp(leftPct, 0, Math.max(0, 100 - d.widthPct));
+    topPct = clamp(topPct, 0, Math.max(0, 100 - d.heightPct));
+
+    d.node.style.position = 'absolute';
+    d.node.style.left = round2(leftPct) + '%';
+    d.node.style.top = round2(topPct) + '%';
+    d.node.style.transform = 'none';
+    d.node.style.removeProperty('width');
+    d.node.style.removeProperty('height');
+
+    e.preventDefault();
+    e.stopPropagation();
+    e.stopImmediatePropagation();
+  }
+
+  function pointerUp(e) {
+    if (!state.drag) return;
+
+    state.drag.node.classList.remove('pmd-v21-dragging');
+
+    try { state.drag.node.releasePointerCapture(state.drag.pointerId); } catch (ignore) {}
+
+    state.drag = null;
+
+    e.preventDefault();
+    e.stopPropagation();
+    e.stopImmediatePropagation();
+  }
+
+  function saveClick(e) {
+    var btn = e.target && e.target.closest && e.target.closest('[data-pmd-floor-save-v21]');
+    if (!btn) return;
+
+    e.preventDefault();
+    e.stopPropagation();
+    e.stopImmediatePropagation();
+
+    var rows;
+
+    try {
+      rows = collectRowsForSave();
+    } catch (err) {
+      show('Save failed: ' + err.message);
+      return;
+    }
+
+    console.table(rows);
+
+    saveRows(rows).then(function (json) {
+      show('Saved successfully. Updated tables: ' + (json.updated || 0));
+      document.body.classList.remove('pmd-floor-editing-v6');
+      setTimeout(function () { location.reload(); }, 900);
+    }).catch(function (err) {
+      show('Save failed:\\n' + err.message);
+      console.error('[PMD v21] save failed', err);
+    });
+  }
+
+  document.addEventListener('click', onAnyClickCapture, true);
+  document.addEventListener('click', saveClick, true);
+  document.addEventListener('pointerdown', pointerDown, true);
+  document.addEventListener('pointermove', pointerMove, true);
+  document.addEventListener('pointerup', pointerUp, true);
+  document.addEventListener('pointercancel', pointerUp, true);
+
+  hijackSaveButton();
+
+  setTimeout(hijackSaveButton, 150);
+  setTimeout(hijackSaveButton, 500);
+  setTimeout(hijackSaveButton, 1200);
+  setTimeout(hijackSaveButton, 2400);
+  setTimeout(hijackSaveButton, 4200);
+
+  console.info('[PMD] Floor no-jump editor/save v21 active');
+})();
+ /* PMD_FLOOR_NO_JUMP_EDITOR_V21_END */
+
+
+/* PMD_FLOOR_OVERLAY_EDITOR_V22_START */
+/*
+  v22 isolated overlay editor.
+  Bypasses old v6/v20/v21 edit-mode calibration completely.
+*/
+(function () {
+  'use strict';
+
+  var FLAG = 'PMD_FLOOR_OVERLAY_EDITOR_V22';
+  if (window[FLAG]) return;
+  window[FLAG] = true;
+
+  var state = {
+    active: false,
+    drag: null
+  };
+
+  function $(sel, root) { return (root || document).querySelector(sel); }
+  function $$(sel, root) { return Array.prototype.slice.call((root || document).querySelectorAll(sel)); }
+
+  function round2(n) {
+    return Math.round(Number(n) * 100) / 100;
+  }
+
+  function clamp(n, min, max) {
+    return Math.max(min, Math.min(max, n));
+  }
+
+  function canvas() {
+    return $('.pmd-v15-floor-canvas') ||
+      $('[class*="floor-canvas"]') ||
+      $('[class*="floor"][class*="canvas"]');
+  }
+
+  function realNodes() {
+    return $$('.pmd-v15-floor-node[data-pmd-table]');
+  }
+
+  function editNodes() {
+    return $$('.pmd-v22-edit-node[data-pmd-table]');
+  }
+
+  function show(msg) {
+    var el = $('.pmd-v22-toast');
+    if (!el) {
+      el = document.createElement('div');
+      el.className = 'pmd-v22-toast';
+      document.body.appendChild(el);
+    }
+    el.textContent = msg;
+    el.classList.add('is-visible');
+    clearTimeout(el._t);
+    el._t = setTimeout(function () { el.classList.remove('is-visible'); }, 5200);
+    console.log('[PMD v22]', msg);
+  }
+
+  function ensureToolbar() {
+    var bar = $('.pmd-v22-toolbar');
+    if (bar) return bar;
+
+    bar = document.createElement('div');
+    bar.className = 'pmd-v22-toolbar';
+    bar.innerHTML =
+      '<span>Floor edit mode</span>' +
+      '<button type="button" class="pmd-v22-save">Save layout</button>' +
+      '<button type="button" class="pmd-v22-cancel">Cancel</button>';
+
+    document.body.appendChild(bar);
+    return bar;
+  }
+
+  function clearOverlay() {
+    editNodes().forEach(function (n) { n.remove(); });
+  }
+
+  function applyCanonicalPositionsFromData() {
+    var c = canvas();
+    if (!c) return;
+
+    fetch('/admin/pmd-owner-dashboard-clean-v1-data?_pmd_v22=' + Date.now(), {
+      method: 'GET',
+      credentials: 'same-origin',
+      headers: {
+        'Accept': 'application/json',
+        'X-Requested-With': 'XMLHttpRequest'
+      }
+    })
+      .then(function (r) { return r.ok ? r.json() : null; })
+      .then(function (data) {
+        if (!data) return;
+
+        var tables = data.tables || data.floor_tables || [];
+        if (!Array.isArray(tables) || !tables.length) return;
+
+        var byId = new Map();
+        tables.forEach(function (t) {
+          var id = parseInt(t.table_id || t.id, 10);
+          if (!id) return;
+          byId.set(id, t);
+        });
+
+        realNodes().forEach(function (node) {
+          var id = parseInt(node.getAttribute('data-pmd-table'), 10);
+          var t = byId.get(id);
+          if (!t) return;
+
+          var x = parseFloat(t.floor_x);
+          var y = parseFloat(t.floor_y);
+
+          if (!Number.isFinite(x) || !Number.isFinite(y)) return;
+
+          var leftPct = clamp(x / 10, 0, 95);
+          var topPct = clamp(y / 5.6, 0, 95);
+
+          node.style.position = 'absolute';
+          node.style.left = round2(leftPct) + '%';
+          node.style.top = round2(topPct) + '%';
+          node.style.transform = 'none';
+        });
+      })
+      .catch(function () {});
+  }
+
+  function startEditor() {
+    var c = canvas();
+    if (!c) {
+      show('Floor canvas not found.');
+      return;
+    }
+
+    clearOverlay();
+
+    document.body.classList.remove('pmd-floor-editing-v6');
+    document.body.classList.add('pmd-floor-editing-v22');
+
+    ensureToolbar();
+
+    var cr = c.getBoundingClientRect();
+
+    realNodes().forEach(function (node) {
+      var r = node.getBoundingClientRect();
+      var id = parseInt(node.getAttribute('data-pmd-table'), 10);
+      if (!id) return;
+
+      var leftPct = ((r.left - cr.left) / cr.width) * 100;
+      var topPct = ((r.top - cr.top) / cr.height) * 100;
+      var widthPct = (r.width / cr.width) * 100;
+      var heightPct = (r.height / cr.height) * 100;
+
+      var clone = node.cloneNode(true);
+      clone.classList.add('pmd-v22-edit-node');
+      clone.classList.remove('pmd-v15-floor-node');
+      clone.setAttribute('data-pmd-table', String(id));
+
+      clone.style.position = 'absolute';
+      clone.style.left = round2(leftPct) + '%';
+      clone.style.top = round2(topPct) + '%';
+      clone.style.width = round2(widthPct) + '%';
+      clone.style.height = round2(heightPct) + '%';
+      clone.style.transform = 'none';
+
+      c.appendChild(clone);
+    });
+
+    state.active = true;
+    show('Edit mode ready. Drag tables, then Save layout.');
+  }
+
+  function stopEditor() {
+    clearOverlay();
+    document.body.classList.remove('pmd-floor-editing-v22');
+    state.active = false;
+    state.drag = null;
+  }
+
+  function rowsForSave() {
+    var c = canvas();
+    if (!c) throw new Error('Floor canvas not found.');
+
+    var cr = c.getBoundingClientRect();
+
+    var rows = editNodes().map(function (node) {
+      var r = node.getBoundingClientRect();
+      var id = parseInt(node.getAttribute('data-pmd-table'), 10);
+
+      var leftPct = ((r.left - cr.left) / cr.width) * 100;
+      var topPct = ((r.top - cr.top) / cr.height) * 100;
+
+      return {
+        id: id,
+        floor_x: round2(clamp(leftPct, 0, 100) * 10),
+        floor_y: round2(clamp(topPct, 0, 100) * 5.6)
+      };
+    }).filter(function (x) {
+      return x.id > 0 &&
+        Number.isFinite(x.floor_x) &&
+        Number.isFinite(x.floor_y);
+    });
+
+    if (!rows.length) throw new Error('No valid table positions.');
+    return rows;
+  }
+
+  function saveRows(rows) {
+    var params = new URLSearchParams();
+    params.set('pmd_floor_save_v19', '1');
+    params.set('tables_b64', btoa(JSON.stringify(rows)));
+    params.set('_', String(Date.now()));
+
+    return fetch('/admin/pmd-owner-dashboard-clean-v1-data?' + params.toString(), {
+      method: 'GET',
+      credentials: 'same-origin',
+      headers: {
+        'Accept': 'application/json',
+        'X-Requested-With': 'XMLHttpRequest'
+      }
+    }).then(function (r) {
+      return r.text().then(function (txt) {
+        var json = null;
+        try { json = JSON.parse(txt); } catch (e) {}
+        if (!r.ok || !json || !json.ok) {
+          throw new Error('HTTP ' + r.status + ' ' + (json && json.message ? json.message : txt.slice(0, 180)));
+        }
+        return json;
+      });
+    });
+  }
+
+  function saveEditor() {
+    var rows;
+    try {
+      rows = rowsForSave();
+    } catch (err) {
+      show('Save failed: ' + err.message);
+      return;
+    }
+
+    console.table(rows);
+    show('Saving layout...');
+
+    saveRows(rows).then(function (json) {
+      show('Saved successfully. Updated tables: ' + (json.updated || 0));
+      stopEditor();
+      setTimeout(function () { location.reload(); }, 900);
+    }).catch(function (err) {
+      show('Save failed:\\n' + err.message);
+      console.error('[PMD v22] save failed', err);
+    });
+  }
+
+  function isEditButton(target) {
+    return !!(target && target.closest && target.closest(
+      '.pmd-floor-global-edit-v6, .pmd-floor-floating-v10, [data-pmd-floor-edit-v6]'
+    ));
+  }
+
+  window.addEventListener('click', function (e) {
+    if (isEditButton(e.target)) {
+      e.preventDefault();
+      e.stopPropagation();
+      e.stopImmediatePropagation();
+      startEditor();
+      return;
+    }
+
+    if (e.target && e.target.closest && e.target.closest('.pmd-v22-save')) {
+      e.preventDefault();
+      e.stopPropagation();
+      e.stopImmediatePropagation();
+      saveEditor();
+      return;
+    }
+
+    if (e.target && e.target.closest && e.target.closest('.pmd-v22-cancel')) {
+      e.preventDefault();
+      e.stopPropagation();
+      e.stopImmediatePropagation();
+      stopEditor();
+      return;
+    }
+  }, true);
+
+  window.addEventListener('pointerdown', function (e) {
+    if (!state.active) return;
+
+    var node = e.target && e.target.closest && e.target.closest('.pmd-v22-edit-node[data-pmd-table]');
+    if (!node) return;
+
+    var c = canvas();
+    if (!c) return;
+
+    var cr = c.getBoundingClientRect();
+    var nr = node.getBoundingClientRect();
+
+    state.drag = {
+      node: node,
+      canvas: c,
+      pointerId: e.pointerId,
+      offsetX: e.clientX - nr.left,
+      offsetY: e.clientY - nr.top,
+      widthPct: (nr.width / cr.width) * 100,
+      heightPct: (nr.height / cr.height) * 100
+    };
+
+    node.classList.add('pmd-v22-dragging');
+
+    try { node.setPointerCapture(e.pointerId); } catch (ignore) {}
+
+    e.preventDefault();
+    e.stopPropagation();
+    e.stopImmediatePropagation();
+  }, true);
+
+  window.addEventListener('pointermove', function (e) {
+    if (!state.drag) return;
+
+    var d = state.drag;
+    var cr = d.canvas.getBoundingClientRect();
+
+    var leftPx = e.clientX - cr.left - d.offsetX;
+    var topPx = e.clientY - cr.top - d.offsetY;
+
+    var leftPct = clamp((leftPx / cr.width) * 100, 0, Math.max(0, 100 - d.widthPct));
+    var topPct = clamp((topPx / cr.height) * 100, 0, Math.max(0, 100 - d.heightPct));
+
+    d.node.style.left = round2(leftPct) + '%';
+    d.node.style.top = round2(topPct) + '%';
+    d.node.style.transform = 'none';
+
+    e.preventDefault();
+    e.stopPropagation();
+    e.stopImmediatePropagation();
+  }, true);
+
+  window.addEventListener('pointerup', function (e) {
+    if (!state.drag) return;
+
+    state.drag.node.classList.remove('pmd-v22-dragging');
+
+    try { state.drag.node.releasePointerCapture(state.drag.pointerId); } catch (ignore) {}
+
+    state.drag = null;
+
+    e.preventDefault();
+    e.stopPropagation();
+    e.stopImmediatePropagation();
+  }, true);
+
+  window.addEventListener('pointercancel', function (e) {
+    if (!state.drag) return;
+    state.drag.node.classList.remove('pmd-v22-dragging');
+    state.drag = null;
+  }, true);
+
+  ensureToolbar();
+
+  setTimeout(applyCanonicalPositionsFromData, 400);
+  setTimeout(applyCanonicalPositionsFromData, 1200);
+  setTimeout(applyCanonicalPositionsFromData, 2600);
+
+  console.info('[PMD] Floor overlay editor v22 active');
+})();
+ /* PMD_FLOOR_OVERLAY_EDITOR_V22_END */
+
+
+/* PMD_FLOOR_CANONICAL_OVERLAY_V23_START */
+(function () {
+  'use strict';
+
+  var FLAG = 'PMD_FLOOR_CANONICAL_OVERLAY_V23';
+  if (window[FLAG]) return;
+  window[FLAG] = true;
+
+  var STORAGE_KEY = 'PMD_FLOOR_V23_CANONICAL_ACTIVE';
+  var state = { active: false, drag: null };
+
+  function $(sel, root) { return (root || document).querySelector(sel); }
+  function $$(sel, root) { return Array.prototype.slice.call((root || document).querySelectorAll(sel)); }
+  function round2(n) { return Math.round(Number(n) * 100) / 100; }
+  function clamp(n, min, max) { return Math.max(min, Math.min(max, n)); }
+
+  function canvas() {
+    return $('.pmd-v15-floor-canvas') ||
+      $('[class*="floor-canvas"]') ||
+      $('[class*="floor"][class*="canvas"]');
+  }
+
+  function realNodes() {
+    return $$('.pmd-v15-floor-node[data-pmd-table]');
+  }
+
+  function editNodes() {
+    return $$('.pmd-v23-edit-node[data-pmd-table]');
+  }
+
+  function show(msg) {
+    var el = $('.pmd-v23-toast');
+    if (!el) {
+      el = document.createElement('div');
+      el.className = 'pmd-v23-toast';
+      document.body.appendChild(el);
+    }
+    el.textContent = msg;
+    el.classList.add('is-visible');
+    clearTimeout(el._t);
+    el._t = setTimeout(function () { el.classList.remove('is-visible'); }, 5200);
+    console.log('[PMD v23]', msg);
+  }
+
+  function ensureButton() {
+    if ($('.pmd-v23-edit-float')) return;
+
+    var btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'pmd-v23-edit-float';
+    btn.textContent = 'Edit Floor';
+    document.body.appendChild(btn);
+  }
+
+  function ensureToolbar() {
+    var bar = $('.pmd-v23-toolbar');
+    if (bar) return bar;
+
+    bar = document.createElement('div');
+    bar.className = 'pmd-v23-toolbar';
+    bar.innerHTML =
+      '<span>Floor edit mode</span>' +
+      '<button type="button" class="pmd-v23-save">Save layout</button>' +
+      '<button type="button" class="pmd-v23-cancel">Cancel</button>';
+
+    document.body.appendChild(bar);
+    return bar;
+  }
+
+  function clearOverlay() {
+    editNodes().forEach(function (n) { n.remove(); });
+  }
+
+  function applyCanonicalRender() {
+    if (localStorage.getItem(STORAGE_KEY) !== '1') return;
+
+    var c = canvas();
+    if (!c) return;
+
+    fetch('/admin/pmd-owner-dashboard-clean-v1-data?_pmd_v23=' + Date.now(), {
+      method: 'GET',
+      credentials: 'same-origin',
+      headers: { 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest' }
+    })
+      .then(function (r) { return r.ok ? r.json() : null; })
+      .then(function (data) {
+        if (!data) return;
+
+        var tables = data.tables || data.floor_tables || [];
+        if (!Array.isArray(tables)) return;
+
+        var byId = new Map();
+        tables.forEach(function (t) {
+          var id = parseInt(t.table_id || t.id, 10);
+          if (id) byId.set(id, t);
+        });
+
+        realNodes().forEach(function (node) {
+          var id = parseInt(node.getAttribute('data-pmd-table'), 10);
+          var t = byId.get(id);
+          if (!t) return;
+
+          var x = parseFloat(t.floor_x);
+          var y = parseFloat(t.floor_y);
+          if (!Number.isFinite(x) || !Number.isFinite(y)) return;
+
+          node.style.position = 'absolute';
+          node.style.left = round2(clamp(x / 10, 0, 95)) + '%';
+          node.style.top = round2(clamp(y / 10, 0, 95)) + '%';
+          node.style.transform = 'none';
+        });
+      })
+      .catch(function () {});
+  }
+
+  function startEditor() {
+    var c = canvas();
+    if (!c) {
+      show('Floor canvas not found.');
+      return;
+    }
+
+    clearOverlay();
+
+    document.body.classList.remove('pmd-floor-editing-v6');
+    document.body.classList.remove('pmd-floor-editing-v22');
+    document.body.classList.add('pmd-floor-editing-v23');
+
+    ensureToolbar();
+
+    var cr = c.getBoundingClientRect();
+
+    realNodes().forEach(function (node) {
+      var r = node.getBoundingClientRect();
+      var id = parseInt(node.getAttribute('data-pmd-table'), 10);
+      if (!id) return;
+
+      var widthPct = (r.width / cr.width) * 100;
+      var heightPct = (r.height / cr.height) * 100;
+      var leftPct = ((r.left - cr.left) / cr.width) * 100;
+      var topPct = ((r.top - cr.top) / cr.height) * 100;
+
+      widthPct = clamp(widthPct, 3, 18);
+      heightPct = clamp(heightPct, 3, 24);
+      leftPct = clamp(leftPct, 0, Math.max(0, 100 - widthPct));
+      topPct = clamp(topPct, 0, Math.max(0, 100 - heightPct));
+
+      var clone = node.cloneNode(true);
+
+      clone.classList.add('pmd-v23-edit-node');
+      clone.classList.remove('pmd-v15-floor-node');
+      clone.setAttribute('data-pmd-table', String(id));
+
+      clone.style.position = 'absolute';
+      clone.style.left = round2(leftPct) + '%';
+      clone.style.top = round2(topPct) + '%';
+      clone.style.width = round2(widthPct) + '%';
+      clone.style.height = round2(heightPct) + '%';
+      clone.style.transform = 'none';
+
+      c.appendChild(clone);
+    });
+
+    state.active = true;
+    show('Edit mode ready. Drag inside visible floor only.');
+  }
+
+  function stopEditor() {
+    clearOverlay();
+    document.body.classList.remove('pmd-floor-editing-v23');
+    state.active = false;
+    state.drag = null;
+  }
+
+  function rowsForSave() {
+    var c = canvas();
+    if (!c) throw new Error('Floor canvas not found.');
+
+    var cr = c.getBoundingClientRect();
+
+    var rows = editNodes().map(function (node) {
+      var r = node.getBoundingClientRect();
+      var id = parseInt(node.getAttribute('data-pmd-table'), 10);
+
+      var leftPct = ((r.left - cr.left) / cr.width) * 100;
+      var topPct = ((r.top - cr.top) / cr.height) * 100;
+
+      return {
+        id: id,
+        floor_x: round2(clamp(leftPct, 0, 100) * 10),
+        floor_y: round2(clamp(topPct, 0, 100) * 10)
+      };
+    }).filter(function (x) {
+      return x.id > 0 && Number.isFinite(x.floor_x) && Number.isFinite(x.floor_y);
+    });
+
+    if (!rows.length) throw new Error('No valid table positions.');
+    return rows;
+  }
+
+  function saveRows(rows) {
+    var params = new URLSearchParams();
+    params.set('pmd_floor_save_v19', '1');
+    params.set('tables_b64', btoa(JSON.stringify(rows)));
+    params.set('_', String(Date.now()));
+
+    return fetch('/admin/pmd-owner-dashboard-clean-v1-data?' + params.toString(), {
+      method: 'GET',
+      credentials: 'same-origin',
+      headers: { 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest' }
+    }).then(function (r) {
+      return r.text().then(function (txt) {
+        var json = null;
+        try { json = JSON.parse(txt); } catch (e) {}
+        if (!r.ok || !json || !json.ok) {
+          throw new Error('HTTP ' + r.status + ' ' + (json && json.message ? json.message : txt.slice(0, 180)));
+        }
+        return json;
+      });
+    });
+  }
+
+  function saveEditor() {
+    var rows;
+
+    try {
+      rows = rowsForSave();
+    } catch (err) {
+      show('Save failed: ' + err.message);
+      return;
+    }
+
+    console.table(rows);
+    show('Saving layout...');
+
+    saveRows(rows).then(function (json) {
+      localStorage.setItem(STORAGE_KEY, '1');
+      show('Saved successfully. Updated tables: ' + (json.updated || 0));
+      stopEditor();
+      setTimeout(function () { location.reload(); }, 900);
+    }).catch(function (err) {
+      show('Save failed:\\n' + err.message);
+      console.error('[PMD v23] save failed', err);
+    });
+  }
+
+  window.addEventListener('click', function (e) {
+    if (e.target && e.target.closest && e.target.closest('.pmd-v23-edit-float')) {
+      e.preventDefault();
+      e.stopPropagation();
+      e.stopImmediatePropagation();
+      startEditor();
+      return;
+    }
+
+    if (e.target && e.target.closest && e.target.closest('.pmd-v23-save')) {
+      e.preventDefault();
+      e.stopPropagation();
+      e.stopImmediatePropagation();
+      saveEditor();
+      return;
+    }
+
+    if (e.target && e.target.closest && e.target.closest('.pmd-v23-cancel')) {
+      e.preventDefault();
+      e.stopPropagation();
+      e.stopImmediatePropagation();
+      stopEditor();
+      return;
+    }
+  }, true);
+
+  window.addEventListener('pointerdown', function (e) {
+    if (!state.active) return;
+
+    var node = e.target && e.target.closest && e.target.closest('.pmd-v23-edit-node[data-pmd-table]');
+    if (!node) return;
+
+    var c = canvas();
+    if (!c) return;
+
+    var cr = c.getBoundingClientRect();
+    var nr = node.getBoundingClientRect();
+
+    state.drag = {
+      node: node,
+      canvas: c,
+      pointerId: e.pointerId,
+      offsetX: e.clientX - nr.left,
+      offsetY: e.clientY - nr.top,
+      widthPct: (nr.width / cr.width) * 100,
+      heightPct: (nr.height / cr.height) * 100
+    };
+
+    node.classList.add('pmd-v23-dragging');
+
+    try { node.setPointerCapture(e.pointerId); } catch (ignore) {}
+
+    e.preventDefault();
+    e.stopPropagation();
+    e.stopImmediatePropagation();
+  }, true);
+
+  window.addEventListener('pointermove', function (e) {
+    if (!state.drag) return;
+
+    var d = state.drag;
+    var cr = d.canvas.getBoundingClientRect();
+
+    var leftPx = e.clientX - cr.left - d.offsetX;
+    var topPx = e.clientY - cr.top - d.offsetY;
+
+    var leftPct = clamp((leftPx / cr.width) * 100, 0, Math.max(0, 100 - d.widthPct));
+    var topPct = clamp((topPx / cr.height) * 100, 0, Math.max(0, 100 - d.heightPct));
+
+    d.node.style.left = round2(leftPct) + '%';
+    d.node.style.top = round2(topPct) + '%';
+    d.node.style.transform = 'none';
+
+    e.preventDefault();
+    e.stopPropagation();
+    e.stopImmediatePropagation();
+  }, true);
+
+  window.addEventListener('pointerup', function (e) {
+    if (!state.drag) return;
+
+    state.drag.node.classList.remove('pmd-v23-dragging');
+    try { state.drag.node.releasePointerCapture(state.drag.pointerId); } catch (ignore) {}
+    state.drag = null;
+
+    e.preventDefault();
+    e.stopPropagation();
+    e.stopImmediatePropagation();
+  }, true);
+
+  window.addEventListener('pointercancel', function () {
+    if (!state.drag) return;
+    state.drag.node.classList.remove('pmd-v23-dragging');
+    state.drag = null;
+  }, true);
+
+  ensureButton();
+  ensureToolbar();
+
+  setTimeout(ensureButton, 500);
+  setTimeout(ensureButton, 1500);
+  setTimeout(ensureButton, 3000);
+
+  setTimeout(applyCanonicalRender, 450);
+  setTimeout(applyCanonicalRender, 1200);
+  setTimeout(applyCanonicalRender, 2600);
+  setTimeout(applyCanonicalRender, 4500);
+
+  window.PMDFloorV23ResetCanonical = function () {
+    localStorage.removeItem(STORAGE_KEY);
+    location.reload();
+  };
+
+  console.info('[PMD] Floor canonical overlay editor v23 active');
+})();
+ /* PMD_FLOOR_CANONICAL_OVERLAY_V23_END */
+

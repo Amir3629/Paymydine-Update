@@ -3263,3 +3263,3002 @@ body.pmd-kds-no-double-header-v44 #pmd-kds-livefix-v34-section {
     grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
   }
 }
+
+/* PMD Counter Role v1 — dashboard integrated reception/counter view */
+html.pmd-v21-role-counter,
+body.pmd-v21-role-counter {
+  background:
+    radial-gradient(circle at 18% 8%, rgba(96,190,232,.12), transparent 30%),
+    radial-gradient(circle at 88% 12%, rgba(8,119,98,.08), transparent 30%),
+    #fbfaf5 !important;
+}
+
+.pmd-v23-counter-shell .pmd-v15-kpi-grid,
+.pmd-v23-counter-shell .pmd-v19-kpi-grid,
+.pmd-v23-counter-shell .pmd-v21-kpi-grid {
+  margin-bottom: 20px !important;
+}
+
+.pmd-v23-counter-floor-row {
+  display: grid !important;
+  grid-template-columns: 1fr !important;
+  gap: 18px !important;
+  margin-bottom: 18px !important;
+}
+
+.pmd-v23-counter-floor-card .pmd-v15-floor-canvas {
+  min-height: 560px !important;
+}
+
+.pmd-v23-counter-grid {
+  display: grid !important;
+  grid-template-columns: minmax(0, 1.45fr) minmax(320px, .55fr) !important;
+  gap: 18px !important;
+  margin-bottom: 18px !important;
+}
+
+.pmd-v23-counter-reservations .pmd-v15-list {
+  display: grid !important;
+  gap: 12px !important;
+}
+
+.pmd-v23-counter-reservations .pmd-v15-list-row {
+  min-height: 76px !important;
+  border-radius: 18px !important;
+  border: 1px solid rgba(96,190,232,.26) !important;
+  background: #fff !important;
+  box-shadow: 0 8px 18px rgba(12,39,58,.018) !important;
+}
+
+.pmd-v23-counter-rule-list {
+  display: grid !important;
+  gap: 10px !important;
+}
+
+.pmd-v23-counter-rule-list article {
+  border: 1px solid rgba(96,190,232,.26) !important;
+  border-radius: 16px !important;
+  background: #fff !important;
+  padding: 13px 14px !important;
+}
+
+.pmd-v23-counter-rule-list b {
+  display: block !important;
+  color: #087762 !important;
+  font-size: 13px !important;
+  font-weight: 950 !important;
+}
+
+.pmd-v23-counter-rule-list span {
+  display: block !important;
+  margin-top: 4px !important;
+  color: #5f7893 !important;
+  font-size: 12px !important;
+  line-height: 1.4 !important;
+  font-weight: 750 !important;
+}
+
+/* Make role tabs behave like icon/action buttons when Counter exists */
+.pmd-v21-role-tabs button[data-pmd-role-tab="counter"] {
+  border-color: rgba(8,119,98,.30) !important;
+}
+
+.pmd-v21-role-tabs button[data-pmd-role-tab="counter"]::before {
+  content: "📞";
+  margin-right: 6px;
+}
+
+@media (max-width: 1100px) {
+  .pmd-v23-counter-grid {
+    grid-template-columns: 1fr !important;
+  }
+
+  .pmd-v23-counter-floor-card .pmd-v15-floor-canvas {
+    min-height: 420px !important;
+  }
+}
+
+/* PMD Counter Rail Fix v2 */
+#pmd-v31-role-rail .pmd-v31-role-btn[data-pmd-role="counter"],
+#pmd-v31-role-rail .pmd-v31-role-btn[title="Counter"] {
+  font-size: 18px !important;
+  color: #0a362f !important;
+}
+
+#pmd-v31-role-rail .pmd-v31-role-btn[data-pmd-role="counter"].is-active,
+#pmd-v31-role-rail .pmd-v31-role-btn[title="Counter"].is-active {
+  background: #087762 !important;
+  color: #fff !important;
+}
+
+/* PMD Counter Rail v32 */
+#pmd-v31-role-rail .pmd-v31-role-btn[data-pmd-role="counter"],
+#pmd-v31-role-rail .pmd-v31-role-btn[aria-label="Counter"],
+#pmd-v31-role-rail .pmd-v31-role-btn[title="Counter"] {
+  font-size: 18px !important;
+  font-weight: 950 !important;
+}
+
+
+/* PMD_SHARED_FLOOR_UX_V1_START */
+/*
+  Shared floor plan polish for Owner / Manager / Waiter / Counter dashboard.
+  UI only. No backend, no database, no order/payment logic.
+*/
+.pmd-v15-card--floor,
+.pmd-v19-area-floor,
+.pmd-v23-counter-floor-card {
+  overflow: visible;
+}
+
+.pmd-v15-card--floor .pmd-v15-floor-canvas,
+.pmd-v15-floor-canvas {
+  position: relative;
+  min-height: clamp(360px, 42vw, 620px);
+  border-radius: 22px;
+  border: 1px solid rgba(15, 23, 42, .10);
+  background:
+    radial-gradient(circle at 8% 88%, rgba(34, 197, 94, .08), transparent 18%),
+    radial-gradient(circle at 90% 12%, rgba(245, 158, 11, .07), transparent 18%),
+    linear-gradient(90deg, rgba(15,23,42,.035) 1px, transparent 1px),
+    linear-gradient(180deg, rgba(15,23,42,.035) 1px, transparent 1px),
+    #fff7ed;
+  background-size: auto, auto, 34px 34px, 34px 34px, auto;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.82), 0 18px 46px rgba(15, 23, 42, .055);
+}
+
+.pmd-v15-floor-bg {
+  pointer-events: none;
+  opacity: .72;
+}
+
+.pmd-v15-floor-node,
+.pmd-v26-floor-table-card,
+.pmd-v27-floor-table-card,
+.pmd-v29-table-node {
+  cursor: pointer;
+  isolation: isolate;
+  border-radius: 14px;
+  transition: transform .16s ease, box-shadow .16s ease, border-color .16s ease, background .16s ease;
+  box-shadow: 0 10px 24px rgba(15, 23, 42, .075);
+  outline: none;
+}
+
+.pmd-v15-floor-node:hover,
+.pmd-v26-floor-table-card:hover,
+.pmd-v27-floor-table-card:hover,
+.pmd-v29-table-node:hover,
+.pmd-v15-floor-node:focus-visible,
+.pmd-v26-floor-table-card:focus-visible,
+.pmd-v27-floor-table-card:focus-visible,
+.pmd-v29-table-node:focus-visible {
+  transform: translateY(-2px) scale(1.015);
+  box-shadow: 0 18px 38px rgba(15, 23, 42, .14);
+  z-index: 8;
+}
+
+.pmd-v15-floor-node--free,
+.pmd-v26-floor-table-free,
+.pmd-v27-floor-table-free,
+.pmd-v29-table-free {
+  background: linear-gradient(180deg, #ecfdf5 0%, #ffffff 100%);
+  border-color: rgba(34, 197, 94, .72);
+}
+
+.pmd-v15-floor-node--unpaid,
+.pmd-v26-floor-table-busy,
+.pmd-v27-floor-table-busy,
+.pmd-v29-table-busy {
+  background: linear-gradient(180deg, #fff7ed 0%, #ffffff 100%);
+  border-color: rgba(239, 68, 68, .76);
+}
+
+.pmd-v15-floor-node--reserved,
+.pmd-v29-table-reserved {
+  background: linear-gradient(180deg, #eff6ff 0%, #ffffff 100%);
+  border-color: rgba(59, 130, 246, .70);
+}
+
+.pmd-v15-floor-node--cleaning,
+.pmd-v29-table-cleaning {
+  background: linear-gradient(180deg, #f5f3ff 0%, #ffffff 100%);
+  border-color: rgba(139, 92, 246, .72);
+}
+
+.pmd-v15-floor-node--disabled,
+.pmd-v29-table-disabled {
+  opacity: .62;
+  filter: grayscale(.24);
+  background: linear-gradient(180deg, #f8fafc 0%, #ffffff 100%);
+  border-color: rgba(100, 116, 139, .42);
+}
+
+.pmd-shared-floor-drawer {
+  position: fixed;
+  right: 22px;
+  bottom: 22px;
+  z-index: 9998;
+  width: min(430px, calc(100vw - 28px));
+  max-height: min(680px, calc(100vh - 44px));
+  overflow: auto;
+  border-radius: 24px;
+  border: 1px solid rgba(148, 163, 184, .32);
+  background: rgba(255, 255, 255, .96);
+  color: #0f172a;
+  box-shadow: 0 28px 90px rgba(15, 23, 42, .22);
+  backdrop-filter: blur(18px);
+  transform: translateY(12px);
+  opacity: 0;
+  pointer-events: none;
+  transition: transform .18s ease, opacity .18s ease;
+}
+
+.pmd-shared-floor-drawer.is-open {
+  transform: translateY(0);
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.pmd-shared-floor-drawer__head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 14px;
+  padding: 18px 18px 12px;
+  border-bottom: 1px solid rgba(148, 163, 184, .22);
+}
+
+.pmd-shared-floor-drawer__title {
+  margin: 0;
+  font-size: 19px;
+  line-height: 1.15;
+  font-weight: 950;
+  letter-spacing: -.03em;
+}
+
+.pmd-shared-floor-drawer__sub {
+  display: block;
+  margin-top: 5px;
+  color: #64748b;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.pmd-shared-floor-drawer__close {
+  width: 38px;
+  height: 38px;
+  min-width: 38px;
+  border: 0;
+  border-radius: 14px;
+  background: #f1f5f9;
+  color: #0f172a;
+  font-size: 22px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.pmd-shared-floor-drawer__body {
+  padding: 14px 18px 18px;
+}
+
+.pmd-shared-floor-kv {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.pmd-shared-floor-kv article {
+  min-height: 72px;
+  border: 1px solid rgba(148, 163, 184, .24);
+  border-radius: 17px;
+  background: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);
+  padding: 12px;
+}
+
+.pmd-shared-floor-kv b {
+  display: block;
+  color: #64748b;
+  font-size: 11px;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  font-weight: 950;
+}
+
+.pmd-shared-floor-kv span {
+  display: block;
+  margin-top: 7px;
+  color: #0f172a;
+  font-size: 14px;
+  font-weight: 900;
+  word-break: break-word;
+}
+
+.pmd-shared-floor-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin-top: 14px;
+}
+
+.pmd-shared-floor-actions a,
+.pmd-shared-floor-actions button {
+  min-height: 42px;
+  border-radius: 14px;
+  border: 1px solid rgba(8, 119, 98, .24);
+  background: #fff;
+  color: #075f50;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 12px;
+  text-decoration: none;
+  font-size: 12px;
+  font-weight: 950;
+  cursor: pointer;
+}
+
+.pmd-shared-floor-actions a.primary {
+  background: #087762;
+  border-color: #087762;
+  color: #fff;
+}
+
+.pmd-shared-floor-note {
+  margin-top: 12px;
+  padding: 11px 12px;
+  border-radius: 15px;
+  background: #f8fafc;
+  color: #64748b;
+  font-size: 12px;
+  font-weight: 750;
+  line-height: 1.45;
+}
+
+@media (max-width: 760px) {
+  .pmd-v15-card--floor .pmd-v15-floor-canvas,
+  .pmd-v15-floor-canvas {
+    min-height: 430px;
+  }
+
+  .pmd-shared-floor-drawer {
+    left: 10px;
+    right: 10px;
+    bottom: 10px;
+    width: auto;
+    border-radius: 22px;
+  }
+
+  .pmd-shared-floor-kv,
+  .pmd-shared-floor-actions {
+    grid-template-columns: 1fr;
+  }
+}
+/* PMD_SHARED_FLOOR_UX_V1_END */
+
+
+/* PMD_SHARED_FLOOR_MAP_SKIN_V2_START */
+/*
+  Shared dashboard floor map skin v2.
+  Goal: replace the ugly empty grid with the existing restaurant map visual style.
+  CSS only. Keeps the existing table drawer/click functionality untouched.
+*/
+.pmd-v15-card--floor .pmd-v15-card-body,
+.pmd-v23-counter-floor-card .pmd-v15-card-body {
+  padding-top: 10px;
+}
+
+.pmd-v15-floor-wrap {
+  grid-template-columns: 1fr !important;
+  gap: 14px !important;
+}
+
+.pmd-v15-floor-tools {
+  align-items: flex-start !important;
+  margin-bottom: 14px !important;
+}
+
+.pmd-v15-floor-legend {
+  position: absolute !important;
+  right: 22px !important;
+  top: 18px !important;
+  z-index: 9 !important;
+  display: grid !important;
+  grid-template-columns: repeat(2, auto) !important;
+  gap: 9px 14px !important;
+  padding: 13px 15px !important;
+  border-radius: 18px !important;
+  border: 1px solid rgba(148, 163, 184, .24) !important;
+  background: rgba(255, 255, 255, .88) !important;
+  box-shadow: 0 18px 42px rgba(15, 23, 42, .10) !important;
+  backdrop-filter: blur(14px) !important;
+}
+
+.pmd-v15-floor-tabs {
+  position: relative !important;
+  z-index: 10 !important;
+}
+
+.pmd-v15-floor-tabs button {
+  min-height: 44px !important;
+  padding: 0 16px !important;
+  border-radius: 999px !important;
+  background: #071827 !important;
+  color: #fff !important;
+  border: 1px solid rgba(255,255,255,.18) !important;
+  box-shadow: 0 12px 28px rgba(15, 23, 42, .14) !important;
+}
+
+.pmd-v15-floor-tabs button b {
+  background: #facc15 !important;
+  color: #111827 !important;
+}
+
+.pmd-v15-card--floor .pmd-v15-floor-canvas,
+.pmd-v15-floor-canvas {
+  position: relative !important;
+  min-height: clamp(440px, 45vw, 650px) !important;
+  overflow: hidden !important;
+  border-radius: 24px !important;
+  border: 1px solid rgba(15, 23, 42, .12) !important;
+  background-color: #f8fafc !important;
+  background-image:
+    linear-gradient(rgba(255,255,255,.12), rgba(255,255,255,.12)),
+    url("/assets/media/uploads/restraurant.png") !important;
+  background-repeat: no-repeat !important;
+  background-position: center center !important;
+  background-size: 100% 100% !important;
+  box-shadow:
+    inset 0 0 0 1px rgba(255,255,255,.78),
+    0 22px 58px rgba(15, 23, 42, .10) !important;
+}
+
+.pmd-v15-floor-canvas::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(circle at 16% 16%, rgba(255, 255, 255, .58), transparent 24%),
+    radial-gradient(circle at 90% 12%, rgba(8, 119, 98, .10), transparent 24%),
+    linear-gradient(180deg, rgba(255,255,255,.06), rgba(255,255,255,.18));
+}
+
+.pmd-v15-floor-bg {
+  display: none !important;
+}
+
+.pmd-v15-floor-node {
+  z-index: 3 !important;
+  width: 82px !important;
+  height: 82px !important;
+  min-width: 82px !important;
+  min-height: 82px !important;
+  max-width: 96px !important;
+  max-height: 96px !important;
+  border-radius: 999px !important;
+  border-width: 3px !important;
+  background: rgba(255,255,255,.96) !important;
+  box-shadow:
+    0 14px 34px rgba(15, 23, 42, .20),
+    inset 0 0 0 1px rgba(255,255,255,.88) !important;
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 1px !important;
+  padding: 8px !important;
+}
+
+.pmd-v15-floor-node strong {
+  font-size: 21px !important;
+  font-weight: 950 !important;
+  line-height: 1 !important;
+  letter-spacing: -.04em !important;
+}
+
+.pmd-v15-floor-node small {
+  font-size: 9px !important;
+  font-weight: 950 !important;
+  letter-spacing: .12em !important;
+  text-transform: uppercase !important;
+}
+
+.pmd-v15-floor-node em,
+.pmd-v15-floor-node .pmd-v15-floor-node-amount,
+.pmd-v15-floor-node [class*="amount"] {
+  position: absolute !important;
+  right: -14px !important;
+  top: 8px !important;
+  min-height: 24px !important;
+  padding: 0 8px !important;
+  border-radius: 999px !important;
+  background: #0f172a !important;
+  color: #fff !important;
+  font-size: 10px !important;
+  font-style: normal !important;
+  font-weight: 950 !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  box-shadow: 0 8px 18px rgba(15, 23, 42, .22) !important;
+}
+
+.pmd-v15-floor-node--free {
+  border-color: #22c55e !important;
+  color: #0f172a !important;
+}
+
+.pmd-v15-floor-node--free::after {
+  content: "Available";
+  position: absolute;
+  left: 50%;
+  top: calc(100% + 7px);
+  transform: translateX(-50%);
+  padding: 4px 8px;
+  border-radius: 999px;
+  background: rgba(236, 253, 245, .94);
+  color: #047857;
+  border: 1px solid rgba(34,197,94,.35);
+  font-size: 10px;
+  font-weight: 950;
+  white-space: nowrap;
+}
+
+.pmd-v15-floor-node--unpaid {
+  border-color: #ef4444 !important;
+  color: #0f172a !important;
+}
+
+.pmd-v15-floor-node--unpaid::after {
+  content: "Payment";
+  position: absolute;
+  left: 50%;
+  top: calc(100% + 7px);
+  transform: translateX(-50%);
+  padding: 4px 8px;
+  border-radius: 999px;
+  background: rgba(254, 242, 242, .96);
+  color: #b91c1c;
+  border: 1px solid rgba(239,68,68,.35);
+  font-size: 10px;
+  font-weight: 950;
+  white-space: nowrap;
+}
+
+.pmd-v15-floor-node--busy {
+  border-color: #f59e0b !important;
+}
+
+.pmd-v15-floor-node--reserved {
+  border-color: #3b82f6 !important;
+}
+
+.pmd-v15-floor-node--reserved::after {
+  content: "Reserved";
+  position: absolute;
+  left: 50%;
+  top: calc(100% + 7px);
+  transform: translateX(-50%);
+  padding: 4px 8px;
+  border-radius: 999px;
+  background: rgba(239, 246, 255, .96);
+  color: #1d4ed8;
+  border: 1px solid rgba(59,130,246,.35);
+  font-size: 10px;
+  font-weight: 950;
+  white-space: nowrap;
+}
+
+.pmd-v15-floor-node:hover,
+.pmd-v15-floor-node:focus-visible {
+  transform: translateY(-4px) scale(1.045) !important;
+  box-shadow:
+    0 24px 54px rgba(15, 23, 42, .26),
+    inset 0 0 0 1px rgba(255,255,255,.92) !important;
+}
+
+@media (max-width: 900px) {
+  .pmd-v15-floor-legend {
+    position: relative !important;
+    top: auto !important;
+    right: auto !important;
+    margin-bottom: 12px !important;
+  }
+
+  .pmd-v15-card--floor .pmd-v15-floor-canvas,
+  .pmd-v15-floor-canvas {
+    min-height: 520px !important;
+    background-size: cover !important;
+  }
+
+  .pmd-v15-floor-node {
+    width: 74px !important;
+    height: 74px !important;
+    min-width: 74px !important;
+    min-height: 74px !important;
+  }
+}
+/* PMD_SHARED_FLOOR_MAP_SKIN_V2_END */
+
+
+/* PMD_SHARED_FLOOR_MAP_SKIN_V3_START */
+/*
+  Shared floor map v3:
+  - removes photo background
+  - keeps professional clean floor surface
+  - makes table circles larger
+  - keeps drawer/click JS untouched
+*/
+.pmd-v15-card--floor .pmd-v15-floor-canvas,
+.pmd-v15-floor-canvas {
+  min-height: clamp(470px, 46vw, 680px) !important;
+  background-color: #fff8ec !important;
+  background-image:
+    radial-gradient(circle at 12% 82%, rgba(34, 197, 94, .075), transparent 22%),
+    radial-gradient(circle at 86% 16%, rgba(8, 119, 98, .07), transparent 24%),
+    radial-gradient(circle at 52% 48%, rgba(255, 255, 255, .78), transparent 35%),
+    linear-gradient(90deg, rgba(15,23,42,.038) 1px, transparent 1px),
+    linear-gradient(180deg, rgba(15,23,42,.038) 1px, transparent 1px),
+    linear-gradient(180deg, #fffaf1 0%, #fff3df 100%) !important;
+  background-repeat: no-repeat, no-repeat, no-repeat, repeat, repeat, no-repeat !important;
+  background-position: center center !important;
+  background-size: auto, auto, auto, 38px 38px, 38px 38px, auto !important;
+}
+
+.pmd-v15-floor-canvas::before {
+  background:
+    radial-gradient(circle at 18% 18%, rgba(255,255,255,.65), transparent 24%),
+    radial-gradient(circle at 92% 10%, rgba(8,119,98,.075), transparent 24%),
+    linear-gradient(180deg, rgba(255,255,255,.10), rgba(255,255,255,.22)) !important;
+}
+
+.pmd-v15-floor-node {
+  width: 106px !important;
+  height: 106px !important;
+  min-width: 106px !important;
+  min-height: 106px !important;
+  max-width: 112px !important;
+  max-height: 112px !important;
+  border-radius: 999px !important;
+  border-width: 3px !important;
+  padding: 10px !important;
+  gap: 3px !important;
+}
+
+.pmd-v15-floor-node strong {
+  font-size: 27px !important;
+  line-height: .95 !important;
+}
+
+.pmd-v15-floor-node small {
+  font-size: 10.5px !important;
+  line-height: 1.05 !important;
+}
+
+.pmd-v15-floor-node em,
+.pmd-v15-floor-node .pmd-v15-floor-node-amount,
+.pmd-v15-floor-node [class*="amount"] {
+  right: -12px !important;
+  top: 12px !important;
+  min-height: 26px !important;
+  padding: 0 9px !important;
+  font-size: 10.5px !important;
+}
+
+.pmd-v15-floor-node--free::after,
+.pmd-v15-floor-node--unpaid::after,
+.pmd-v15-floor-node--reserved::after {
+  top: calc(100% + 8px) !important;
+  font-size: 10.5px !important;
+  padding: 5px 10px !important;
+}
+
+@media (max-width: 900px) {
+  .pmd-v15-card--floor .pmd-v15-floor-canvas,
+  .pmd-v15-floor-canvas {
+    min-height: 540px !important;
+  }
+
+  .pmd-v15-floor-node {
+    width: 92px !important;
+    height: 92px !important;
+    min-width: 92px !important;
+    min-height: 92px !important;
+  }
+
+  .pmd-v15-floor-node strong {
+    font-size: 24px !important;
+  }
+}
+/* PMD_SHARED_FLOOR_MAP_SKIN_V3_END */
+
+
+/* PMD_ROLE_DASHBOARD_DEZOOM_V1_START */
+/*
+  PMD role dashboard density/dezoom v1.
+  CSS only. No backend, no database, no JS loop, no observer.
+  Scope: only admin dashboard pages that contain the v31 role rail.
+*/
+body.admin:has(#pmd-v31-role-rail) {
+  overflow-x: hidden !important;
+}
+
+body.admin:has(#pmd-v31-role-rail) .main-container {
+  overflow-x: hidden !important;
+  padding-right: 68px !important; /* reserve space for fixed role rail */
+}
+
+/* Main role dashboard shell: reduce the "zoomed-in" feeling */
+body.admin:has(#pmd-v31-role-rail) .main-container [class*="pmd-v30"],
+body.admin:has(#pmd-v31-role-rail) .main-container [class*="pmd-v31"],
+body.admin:has(#pmd-v31-role-rail) .main-container [class*="pmd-v23"],
+body.admin:has(#pmd-v31-role-rail) .main-container [class*="pmd-v21"] {
+  box-sizing: border-box;
+}
+
+/* Page title area */
+body.admin:has(#pmd-v31-role-rail) .main-container h1 {
+  font-size: clamp(26px, 2vw, 34px) !important;
+  line-height: 1.05 !important;
+  letter-spacing: -.045em !important;
+  margin-bottom: 6px !important;
+}
+
+body.admin:has(#pmd-v31-role-rail) .main-container h2 {
+  font-size: clamp(18px, 1.35vw, 23px) !important;
+  line-height: 1.1 !important;
+}
+
+body.admin:has(#pmd-v31-role-rail) .main-container p,
+body.admin:has(#pmd-v31-role-rail) .main-container small {
+  line-height: 1.35 !important;
+}
+
+/* General cards inside role dashboards */
+body.admin:has(#pmd-v31-role-rail) .main-container [class*="pmd-v15-card"],
+body.admin:has(#pmd-v31-role-rail) .main-container [class*="pmd-v21-card"],
+body.admin:has(#pmd-v31-role-rail) .main-container [class*="pmd-v23-card"],
+body.admin:has(#pmd-v31-role-rail) .main-container [class*="pmd-v31-card"] {
+  padding: clamp(14px, 1.15vw, 20px) !important;
+  border-radius: 20px !important;
+}
+
+/* KPI cards: smaller and more dashboard-like */
+body.admin:has(#pmd-v31-role-rail) .main-container [class*="kpi"],
+body.admin:has(#pmd-v31-role-rail) .main-container [class*="metric"],
+body.admin:has(#pmd-v31-role-rail) .main-container [class*="stat"] {
+  min-height: 96px !important;
+}
+
+body.admin:has(#pmd-v31-role-rail) .main-container [class*="kpi"] strong,
+body.admin:has(#pmd-v31-role-rail) .main-container [class*="metric"] strong,
+body.admin:has(#pmd-v31-role-rail) .main-container [class*="stat"] strong {
+  font-size: clamp(28px, 2.5vw, 42px) !important;
+  line-height: .95 !important;
+}
+
+/* Grids/gaps: less huge spacing */
+body.admin:has(#pmd-v31-role-rail) .main-container [class*="grid"],
+body.admin:has(#pmd-v31-role-rail) .main-container [class*="cards"] {
+  gap: clamp(12px, 1vw, 18px) !important;
+}
+
+/* Buttons in dashboard cards */
+body.admin:has(#pmd-v31-role-rail) .main-container button,
+body.admin:has(#pmd-v31-role-rail) .main-container a[class*="btn"],
+body.admin:has(#pmd-v31-role-rail) .main-container .pmd-v15-card-actions a,
+body.admin:has(#pmd-v31-role-rail) .main-container .pmd-v15-card-actions button {
+  min-height: 38px !important;
+  border-radius: 13px !important;
+  padding-left: 14px !important;
+  padding-right: 14px !important;
+  font-size: 12px !important;
+}
+
+/* Floor card: keep professional but not massive */
+body.admin:has(#pmd-v31-role-rail) .pmd-v15-card--floor {
+  padding: clamp(16px, 1.2vw, 22px) !important;
+}
+
+body.admin:has(#pmd-v31-role-rail) .pmd-v15-card--floor .pmd-v15-floor-canvas,
+body.admin:has(#pmd-v31-role-rail) .pmd-v15-floor-canvas {
+  min-height: clamp(390px, 38vw, 590px) !important;
+}
+
+/* Keep the enlarged table icons, but stop them feeling too oversized on laptop */
+@media (max-width: 1500px) {
+  body.admin:has(#pmd-v31-role-rail) .pmd-v15-floor-node {
+    width: 94px !important;
+    height: 94px !important;
+    min-width: 94px !important;
+    min-height: 94px !important;
+  }
+
+  body.admin:has(#pmd-v31-role-rail) .pmd-v15-floor-node strong {
+    font-size: 24px !important;
+  }
+}
+
+/* Right role rail: smaller, less intrusive */
+body.admin #pmd-v31-role-rail {
+  right: 10px !important;
+  width: 46px !important;
+  padding: 8px 5px !important;
+  border-radius: 24px !important;
+}
+
+body.admin #pmd-v31-role-rail .pmd-v31-role-btn {
+  width: 36px !important;
+  min-width: 36px !important;
+  height: 36px !important;
+  min-height: 36px !important;
+  border-radius: 15px !important;
+  font-size: 10.5px !important;
+  line-height: 1 !important;
+}
+
+/* Floor legend: keep it inside frame and smaller */
+body.admin:has(#pmd-v31-role-rail) .pmd-v15-floor-legend {
+  right: 14px !important;
+  top: 12px !important;
+  padding: 10px 12px !important;
+  gap: 7px 11px !important;
+  font-size: 11px !important;
+  max-width: min(420px, calc(100% - 28px)) !important;
+}
+
+/* Drawer should not look huge after density fix */
+body.admin:has(#pmd-v31-role-rail) .pmd-shared-floor-drawer {
+  width: min(390px, calc(100vw - 28px)) !important;
+  right: 18px !important;
+  bottom: 18px !important;
+}
+
+body.admin:has(#pmd-v31-role-rail) .pmd-shared-floor-drawer__title {
+  font-size: 17px !important;
+}
+
+body.admin:has(#pmd-v31-role-rail) .pmd-shared-floor-kv article {
+  min-height: 64px !important;
+  padding: 10px !important;
+}
+
+/* Laptop/tablet safety */
+@media (max-width: 1280px) {
+  body.admin:has(#pmd-v31-role-rail) .main-container {
+    padding-right: 58px !important;
+  }
+
+  body.admin:has(#pmd-v31-role-rail) .main-container h1 {
+    font-size: 26px !important;
+  }
+
+  body.admin:has(#pmd-v31-role-rail) .pmd-v15-floor-legend {
+    position: relative !important;
+    right: auto !important;
+    top: auto !important;
+    margin: 0 0 12px 0 !important;
+  }
+
+  body.admin #pmd-v31-role-rail {
+    right: 6px !important;
+  }
+}
+/* PMD_ROLE_DASHBOARD_DEZOOM_V1_END */
+
+
+/* PMD_FLOOR_LEGEND_INFO_V1_START */
+/*
+  Turns the noisy floor legend into a compact info button.
+  Shared dashboard CSS only. Keeps the actual legend data available on hover/click.
+*/
+body.admin:has(#pmd-v31-role-rail) .pmd-v15-card--floor,
+body.admin:has(#pmd-v31-role-rail) .pmd-v19-area-floor,
+body.admin:has(#pmd-v31-role-rail) .pmd-v23-counter-floor-card {
+  position: relative !important;
+}
+
+/* collapsed state: tiny info button */
+body.admin:has(#pmd-v31-role-rail) .pmd-v15-floor-legend {
+  position: absolute !important;
+  right: 16px !important;
+  top: 66px !important;
+  z-index: 35 !important;
+
+  width: 38px !important;
+  height: 38px !important;
+  max-width: 38px !important;
+  min-width: 38px !important;
+  overflow: hidden !important;
+
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+
+  padding: 0 !important;
+  border-radius: 999px !important;
+  border: 1px solid rgba(8, 119, 98, .20) !important;
+  background: rgba(255, 255, 255, .94) !important;
+  box-shadow: 0 14px 34px rgba(15, 23, 42, .14) !important;
+  backdrop-filter: blur(16px) !important;
+
+  cursor: pointer !important;
+  color: transparent !important;
+  font-size: 0 !important;
+  line-height: 0 !important;
+  transition: width .18s ease, height .18s ease, max-width .18s ease, border-radius .18s ease, padding .18s ease, box-shadow .18s ease;
+}
+
+body.admin:has(#pmd-v31-role-rail) .pmd-v15-floor-legend::before {
+  content: "i";
+  width: 22px;
+  height: 22px;
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: #087762;
+  color: #fff;
+  font-size: 14px;
+  line-height: 1;
+  font-weight: 950;
+  font-family: ui-serif, Georgia, serif;
+  box-shadow: 0 8px 18px rgba(8,119,98,.22);
+}
+
+/* hide rows while collapsed */
+body.admin:has(#pmd-v31-role-rail) .pmd-v15-floor-legend span {
+  opacity: 0 !important;
+  visibility: hidden !important;
+  transform: translateY(-2px) !important;
+  white-space: nowrap !important;
+}
+
+/* expanded state on hover or click */
+body.admin:has(#pmd-v31-role-rail) .pmd-v15-floor-legend:hover,
+body.admin:has(#pmd-v31-role-rail) .pmd-v15-floor-legend.is-open {
+  width: auto !important;
+  height: auto !important;
+  min-width: 260px !important;
+  max-width: min(390px, calc(100% - 32px)) !important;
+  padding: 12px 14px !important;
+  border-radius: 18px !important;
+  display: grid !important;
+  grid-template-columns: repeat(2, max-content) !important;
+  gap: 9px 14px !important;
+  justify-content: start !important;
+  align-items: center !important;
+  color: #475569 !important;
+  font-size: 11px !important;
+  line-height: 1.1 !important;
+  box-shadow: 0 22px 56px rgba(15, 23, 42, .18) !important;
+}
+
+body.admin:has(#pmd-v31-role-rail) .pmd-v15-floor-legend:hover::before,
+body.admin:has(#pmd-v31-role-rail) .pmd-v15-floor-legend.is-open::before {
+  content: "Status";
+  width: auto;
+  height: auto;
+  grid-column: 1 / -1;
+  justify-content: flex-start;
+  background: transparent;
+  color: #0f172a;
+  box-shadow: none;
+  font-family: inherit;
+  font-size: 11px;
+  font-weight: 950;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+}
+
+body.admin:has(#pmd-v31-role-rail) .pmd-v15-floor-legend:hover span,
+body.admin:has(#pmd-v31-role-rail) .pmd-v15-floor-legend.is-open span {
+  opacity: 1 !important;
+  visibility: visible !important;
+  transform: none !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 6px !important;
+  color: #475569 !important;
+  font-size: 11px !important;
+  font-weight: 850 !important;
+  line-height: 1.1 !important;
+}
+
+body.admin:has(#pmd-v31-role-rail) .pmd-v15-floor-legend span i {
+  width: 9px !important;
+  height: 9px !important;
+  min-width: 9px !important;
+  border-radius: 999px !important;
+}
+
+body.admin:has(#pmd-v31-role-rail) .pmd-v15-floor-legend span b {
+  min-width: 18px !important;
+  height: 18px !important;
+  padding: 0 5px !important;
+  border-radius: 999px !important;
+  background: #eef2ff !important;
+  color: #334155 !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  font-size: 10px !important;
+  font-weight: 950 !important;
+}
+
+/* keep it out of the way on smaller screens */
+@media (max-width: 900px) {
+  body.admin:has(#pmd-v31-role-rail) .pmd-v15-floor-legend {
+    top: 58px !important;
+    right: 12px !important;
+  }
+
+  body.admin:has(#pmd-v31-role-rail) .pmd-v15-floor-legend:hover,
+  body.admin:has(#pmd-v31-role-rail) .pmd-v15-floor-legend.is-open {
+    grid-template-columns: 1fr !important;
+    min-width: 220px !important;
+  }
+}
+/* PMD_FLOOR_LEGEND_INFO_V1_END */
+
+
+/* PMD_FLOOR_LEGEND_REHOME_V2_START */
+/*
+  Hard fix: remove the status legend from dashboard top space.
+  Rehome it into the floor card as a compact info popover.
+*/
+body.admin:has(#pmd-v31-role-rail) .pmd-v15-floor-legend {
+  display: none !important;
+}
+
+body.admin:has(#pmd-v31-role-rail) .pmd-v15-card--floor,
+body.admin:has(#pmd-v31-role-rail) .pmd-v19-area-floor,
+body.admin:has(#pmd-v31-role-rail) .pmd-v23-counter-floor-card {
+  position: relative !important;
+}
+
+.pmd-floor-legend-info-wrap {
+  position: absolute !important;
+  right: 18px !important;
+  top: 86px !important;
+  z-index: 60 !important;
+  width: 40px;
+  height: 40px;
+}
+
+.pmd-floor-legend-info-btn {
+  width: 40px !important;
+  height: 40px !important;
+  min-width: 40px !important;
+  min-height: 40px !important;
+  border-radius: 999px !important;
+  border: 1px solid rgba(8, 119, 98, .20) !important;
+  background: rgba(255, 255, 255, .96) !important;
+  color: #087762 !important;
+  box-shadow: 0 14px 34px rgba(15, 23, 42, .14) !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  font-size: 16px !important;
+  font-weight: 950 !important;
+  font-family: ui-serif, Georgia, serif !important;
+  cursor: pointer !important;
+  padding: 0 !important;
+}
+
+.pmd-floor-legend-info-btn::before {
+  content: "i";
+  width: 22px;
+  height: 22px;
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: #087762;
+  color: #fff;
+  line-height: 1;
+}
+
+.pmd-floor-legend-info-wrap .pmd-v15-floor-legend {
+  display: none !important;
+  position: absolute !important;
+  right: 0 !important;
+  top: 48px !important;
+  width: max-content !important;
+  min-width: 280px !important;
+  max-width: min(390px, calc(100vw - 120px)) !important;
+  height: auto !important;
+  max-height: none !important;
+  overflow: visible !important;
+
+  padding: 14px 16px !important;
+  border-radius: 20px !important;
+  border: 1px solid rgba(148, 163, 184, .28) !important;
+  background: rgba(255, 255, 255, .97) !important;
+  box-shadow: 0 24px 70px rgba(15, 23, 42, .20) !important;
+  backdrop-filter: blur(16px) !important;
+
+  grid-template-columns: repeat(2, max-content) !important;
+  gap: 10px 16px !important;
+  color: #475569 !important;
+  font-size: 12px !important;
+  line-height: 1.15 !important;
+}
+
+.pmd-floor-legend-info-wrap:hover .pmd-v15-floor-legend,
+.pmd-floor-legend-info-wrap.is-open .pmd-v15-floor-legend {
+  display: grid !important;
+}
+
+.pmd-floor-legend-info-wrap .pmd-v15-floor-legend::before {
+  content: "Floor status";
+  grid-column: 1 / -1;
+  color: #0f172a;
+  font-size: 11px;
+  font-weight: 950;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+  margin-bottom: 2px;
+}
+
+.pmd-floor-legend-info-wrap .pmd-v15-floor-legend span {
+  opacity: 1 !important;
+  visibility: visible !important;
+  transform: none !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 7px !important;
+  color: #475569 !important;
+  font-size: 12px !important;
+  font-weight: 850 !important;
+  white-space: nowrap !important;
+}
+
+.pmd-floor-legend-info-wrap .pmd-v15-floor-legend span i {
+  width: 10px !important;
+  height: 10px !important;
+  min-width: 10px !important;
+  border-radius: 999px !important;
+}
+
+.pmd-floor-legend-info-wrap .pmd-v15-floor-legend span b {
+  min-width: 20px !important;
+  height: 20px !important;
+  padding: 0 6px !important;
+  border-radius: 999px !important;
+  background: #eef2ff !important;
+  color: #334155 !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  font-size: 11px !important;
+  font-weight: 950 !important;
+}
+
+@media (max-width: 900px) {
+  .pmd-floor-legend-info-wrap {
+    top: 76px !important;
+    right: 12px !important;
+  }
+
+  .pmd-floor-legend-info-wrap .pmd-v15-floor-legend {
+    right: 0 !important;
+    min-width: 230px !important;
+    max-width: calc(100vw - 90px) !important;
+    grid-template-columns: 1fr !important;
+  }
+}
+/* PMD_FLOOR_LEGEND_REHOME_V2_END */
+
+
+/* PMD_DASHBOARD_FIT_LEGEND_HARDFIX_V2_START */
+/*
+  Dashboard fit + floor legend hardfix v2.
+  Fixes zoomed-in role dashboards and removes the noisy legend from top/right space.
+  CSS only for layout density; small JS below only rehomes legend.
+*/
+
+/* Page should not feel browser-zoomed */
+body.admin {
+  overflow-x: hidden !important;
+}
+
+body.admin:has(#pmd-v31-role-rail) .main-container {
+  padding-top: 22px !important;
+  padding-right: 54px !important;
+  overflow-x: hidden !important;
+}
+
+/* Title/header: avoid top clipping */
+body.admin:has(#pmd-v31-role-rail) .main-container h1 {
+  font-size: clamp(25px, 1.8vw, 32px) !important;
+  line-height: 1.08 !important;
+  margin-top: 0 !important;
+  margin-bottom: 6px !important;
+  letter-spacing: -.045em !important;
+}
+
+body.admin:has(#pmd-v31-role-rail) .main-container h2 {
+  font-size: clamp(17px, 1.2vw, 21px) !important;
+  line-height: 1.12 !important;
+}
+
+/* KPI area compact */
+body.admin:has(#pmd-v31-role-rail) [class*="kpi"],
+body.admin:has(#pmd-v31-role-rail) [class*="metric"],
+body.admin:has(#pmd-v31-role-rail) [class*="stat"] {
+  min-height: 82px !important;
+}
+
+body.admin:has(#pmd-v31-role-rail) [class*="kpi-card"],
+body.admin:has(#pmd-v31-role-rail) [class*="metric-card"],
+body.admin:has(#pmd-v31-role-rail) [class*="stat-card"],
+body.admin:has(#pmd-v31-role-rail) [class*="pmd-v31-kpi"],
+body.admin:has(#pmd-v31-role-rail) [class*="pmd-v23-kpi"] {
+  padding: 13px 16px !important;
+  min-height: 88px !important;
+  border-radius: 18px !important;
+}
+
+body.admin:has(#pmd-v31-role-rail) [class*="kpi"] strong,
+body.admin:has(#pmd-v31-role-rail) [class*="metric"] strong,
+body.admin:has(#pmd-v31-role-rail) [class*="stat"] strong {
+  font-size: clamp(26px, 2.1vw, 36px) !important;
+  line-height: .95 !important;
+}
+
+/* Reduce giant gaps */
+body.admin:has(#pmd-v31-role-rail) [class*="grid"],
+body.admin:has(#pmd-v31-role-rail) [class*="cards"] {
+  gap: clamp(10px, .9vw, 15px) !important;
+}
+
+/* Action buttons should not fight the role rail */
+body.admin:has(#pmd-v31-role-rail) .pmd-v15-card-actions,
+body.admin:has(#pmd-v31-role-rail) [class*="card-actions"] {
+  margin-right: 46px !important;
+}
+
+body.admin:has(#pmd-v31-role-rail) .main-container button,
+body.admin:has(#pmd-v31-role-rail) .main-container a[class*="btn"],
+body.admin:has(#pmd-v31-role-rail) .pmd-v15-card-actions a,
+body.admin:has(#pmd-v31-role-rail) .pmd-v15-card-actions button {
+  min-height: 36px !important;
+  border-radius: 12px !important;
+  padding-left: 13px !important;
+  padding-right: 13px !important;
+  font-size: 12px !important;
+}
+
+/* Floor card fit */
+body.admin:has(#pmd-v31-role-rail) .pmd-v15-card--floor,
+body.admin:has(#pmd-v31-role-rail) .pmd-v19-area-floor,
+body.admin:has(#pmd-v31-role-rail) .pmd-v23-counter-floor-card {
+  padding: 16px 18px !important;
+  border-radius: 20px !important;
+  position: relative !important;
+}
+
+body.admin:has(#pmd-v31-role-rail) .pmd-v15-card--floor .pmd-v15-floor-canvas,
+body.admin:has(#pmd-v31-role-rail) .pmd-v15-floor-canvas {
+  min-height: clamp(350px, 32vw, 500px) !important;
+  border-radius: 20px !important;
+}
+
+/* Table nodes: bigger than original, smaller than over-zoomed 106px */
+body.admin:has(#pmd-v31-role-rail) .pmd-v15-floor-node {
+  width: 88px !important;
+  height: 88px !important;
+  min-width: 88px !important;
+  min-height: 88px !important;
+  max-width: 92px !important;
+  max-height: 92px !important;
+  padding: 8px !important;
+  border-radius: 18px !important;
+}
+
+body.admin:has(#pmd-v31-role-rail) .pmd-v15-floor-node strong {
+  font-size: 23px !important;
+  line-height: .95 !important;
+}
+
+body.admin:has(#pmd-v31-role-rail) .pmd-v15-floor-node small {
+  font-size: 9.5px !important;
+}
+
+body.admin:has(#pmd-v31-role-rail) .pmd-v15-floor-node em,
+body.admin:has(#pmd-v31-role-rail) .pmd-v15-floor-node .pmd-v15-floor-node-amount,
+body.admin:has(#pmd-v31-role-rail) .pmd-v15-floor-node [class*="amount"] {
+  right: -10px !important;
+  top: 8px !important;
+  min-height: 23px !important;
+  font-size: 10px !important;
+}
+
+/* Status labels below tables should not create giant visual clutter */
+body.admin:has(#pmd-v31-role-rail) .pmd-v15-floor-node--free::after,
+body.admin:has(#pmd-v31-role-rail) .pmd-v15-floor-node--unpaid::after,
+body.admin:has(#pmd-v31-role-rail) .pmd-v15-floor-node--reserved::after {
+  top: calc(100% + 6px) !important;
+  font-size: 10px !important;
+  padding: 4px 8px !important;
+}
+
+/* Role rail smaller and less intrusive */
+body.admin #pmd-v31-role-rail {
+  right: 8px !important;
+  width: 42px !important;
+  padding: 7px 4px !important;
+  border-radius: 23px !important;
+}
+
+body.admin #pmd-v31-role-rail .pmd-v31-role-btn {
+  width: 34px !important;
+  min-width: 34px !important;
+  height: 34px !important;
+  min-height: 34px !important;
+  border-radius: 14px !important;
+  font-size: 10px !important;
+}
+
+/* HARD: old legend must never take dashboard top space */
+body.admin .pmd-v15-floor-legend {
+  display: none !important;
+}
+
+/* New compact legend info inside floor card */
+.pmd-floor-legend-mini-wrap {
+  position: absolute !important;
+  right: 18px !important;
+  top: 76px !important;
+  z-index: 80 !important;
+  width: 38px !important;
+  height: 38px !important;
+}
+
+.pmd-floor-legend-mini-btn {
+  width: 38px !important;
+  height: 38px !important;
+  min-width: 38px !important;
+  min-height: 38px !important;
+  border-radius: 999px !important;
+  border: 1px solid rgba(8,119,98,.22) !important;
+  background: rgba(255,255,255,.96) !important;
+  color: #087762 !important;
+  box-shadow: 0 12px 28px rgba(15,23,42,.14) !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  cursor: pointer !important;
+  padding: 0 !important;
+}
+
+.pmd-floor-legend-mini-btn::before {
+  content: "i";
+  width: 21px;
+  height: 21px;
+  border-radius: 999px;
+  background: #087762;
+  color: #fff;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-family: ui-serif, Georgia, serif;
+  font-size: 14px;
+  font-weight: 950;
+  line-height: 1;
+}
+
+.pmd-floor-legend-mini-wrap .pmd-v15-floor-legend {
+  display: none !important;
+  position: absolute !important;
+  right: 0 !important;
+  top: 46px !important;
+  width: max-content !important;
+  min-width: 260px !important;
+  max-width: min(360px, calc(100vw - 110px)) !important;
+  height: auto !important;
+  padding: 13px 15px !important;
+  border-radius: 18px !important;
+  border: 1px solid rgba(148,163,184,.28) !important;
+  background: rgba(255,255,255,.97) !important;
+  box-shadow: 0 22px 62px rgba(15,23,42,.20) !important;
+  backdrop-filter: blur(16px) !important;
+  grid-template-columns: repeat(2, max-content) !important;
+  gap: 9px 14px !important;
+  color: #475569 !important;
+  font-size: 11px !important;
+  line-height: 1.1 !important;
+}
+
+.pmd-floor-legend-mini-wrap:hover .pmd-v15-floor-legend,
+.pmd-floor-legend-mini-wrap.is-open .pmd-v15-floor-legend {
+  display: grid !important;
+}
+
+.pmd-floor-legend-mini-wrap .pmd-v15-floor-legend::before {
+  content: "Floor status";
+  grid-column: 1 / -1;
+  color: #0f172a;
+  font-size: 11px;
+  font-weight: 950;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+}
+
+.pmd-floor-legend-mini-wrap .pmd-v15-floor-legend span {
+  opacity: 1 !important;
+  visibility: visible !important;
+  transform: none !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 7px !important;
+  color: #475569 !important;
+  font-size: 11px !important;
+  font-weight: 850 !important;
+  white-space: nowrap !important;
+}
+
+/* Drawer should fit, not dominate */
+body.admin:has(#pmd-v31-role-rail) .pmd-shared-floor-drawer {
+  width: min(360px, calc(100vw - 28px)) !important;
+  right: 14px !important;
+  bottom: 14px !important;
+}
+
+@media (max-width: 900px) {
+  body.admin:has(#pmd-v31-role-rail) .main-container {
+    padding-top: 16px !important;
+    padding-right: 48px !important;
+  }
+
+  body.admin:has(#pmd-v31-role-rail) .pmd-v15-floor-canvas {
+    min-height: 430px !important;
+  }
+
+  body.admin:has(#pmd-v31-role-rail) .pmd-v15-floor-node {
+    width: 76px !important;
+    height: 76px !important;
+    min-width: 76px !important;
+    min-height: 76px !important;
+  }
+
+  .pmd-floor-legend-mini-wrap {
+    top: 68px !important;
+    right: 12px !important;
+  }
+
+  .pmd-floor-legend-mini-wrap .pmd-v15-floor-legend {
+    min-width: 220px !important;
+    grid-template-columns: 1fr !important;
+  }
+}
+/* PMD_DASHBOARD_FIT_LEGEND_HARDFIX_V2_END */
+
+
+/* PMD_DASHBOARD_ACTUAL_FIT_V3_START */
+/*
+  Actual dashboard fit v3.
+  Important: body is NOT body.admin on this dashboard.
+  Scope uses real dashboard classes from runtime:
+  body.pmd-all-roles-clean-v31 / body.pmd-owner-dashboard-clean-v1-active.
+  CSS only for layout density. No backend/db/order/payment logic.
+*/
+
+html.pmd-all-roles-clean-v31,
+body.pmd-all-roles-clean-v31,
+body.pmd-owner-dashboard-clean-v1-active {
+  overflow-x: hidden !important;
+}
+
+/* Real wrappers from runtime audit */
+body.pmd-all-roles-clean-v31 .page-content.pmd-v31-clean-main,
+body.pmd-all-roles-clean-v31 .page-wrapper.pmd-v31-clean-main,
+body.pmd-owner-dashboard-clean-v1-active .page-content.pmd-v31-clean-main,
+body.pmd-owner-dashboard-clean-v1-active .page-wrapper.pmd-v31-clean-main {
+  left: 106px !important;
+  right: auto !important;
+  width: calc(100vw - 106px) !important;
+  max-width: calc(100vw - 106px) !important;
+  min-width: 0 !important;
+  overflow-x: hidden !important;
+}
+
+/* Root was 1470px wide while shifted right; this caused overflow */
+body.pmd-all-roles-clean-v31 #pmd-owner-dashboard-clean-v1-root,
+body.pmd-owner-dashboard-clean-v1-active #pmd-owner-dashboard-clean-v1-root {
+  width: calc(100% - 96px) !important;
+  max-width: calc(100% - 96px) !important;
+  min-width: 0 !important;
+  margin: 16px 64px 32px 28px !important;
+  overflow-x: hidden !important;
+}
+
+/* Main dashboard shell */
+body.pmd-all-roles-clean-v31 .pmd-v31-clean-shell,
+body.pmd-all-roles-clean-v31 .pmd-v15-shell,
+body.pmd-owner-dashboard-clean-v1-active .pmd-v31-clean-shell,
+body.pmd-owner-dashboard-clean-v1-active .pmd-v15-shell {
+  width: 100% !important;
+  max-width: 100% !important;
+  min-width: 0 !important;
+  margin: 0 !important;
+  overflow-x: visible !important;
+}
+
+/* Title: visible and compact */
+body.pmd-all-roles-clean-v31 h1,
+body.pmd-owner-dashboard-clean-v1-active h1 {
+  font-size: clamp(24px, 1.65vw, 30px) !important;
+  line-height: 1.08 !important;
+  margin: 0 0 6px !important;
+  letter-spacing: -.045em !important;
+}
+
+body.pmd-all-roles-clean-v31 h2,
+body.pmd-owner-dashboard-clean-v1-active h2 {
+  font-size: clamp(17px, 1.1vw, 20px) !important;
+  line-height: 1.12 !important;
+}
+
+/* KPI cards compact */
+body.pmd-all-roles-clean-v31 .pmd-v15-kpi-grid,
+body.pmd-all-roles-clean-v31 .pmd-v19-kpi-grid,
+body.pmd-all-roles-clean-v31 .pmd-v21-kpi-grid,
+body.pmd-owner-dashboard-clean-v1-active .pmd-v15-kpi-grid,
+body.pmd-owner-dashboard-clean-v1-active .pmd-v19-kpi-grid,
+body.pmd-owner-dashboard-clean-v1-active .pmd-v21-kpi-grid {
+  width: 100% !important;
+  max-width: 100% !important;
+  gap: 12px !important;
+  margin-bottom: 14px !important;
+}
+
+body.pmd-all-roles-clean-v31 .pmd-v15-kpi,
+body.pmd-owner-dashboard-clean-v1-active .pmd-v15-kpi {
+  min-height: 90px !important;
+  padding: 14px 16px !important;
+  border-radius: 18px !important;
+}
+
+body.pmd-all-roles-clean-v31 .pmd-v15-kpi strong,
+body.pmd-owner-dashboard-clean-v1-active .pmd-v15-kpi strong {
+  font-size: clamp(28px, 2vw, 36px) !important;
+  line-height: .95 !important;
+}
+
+/* Floor row/card no overflow */
+body.pmd-all-roles-clean-v31 .pmd-v23-counter-floor-row,
+body.pmd-owner-dashboard-clean-v1-active .pmd-v23-counter-floor-row,
+body.pmd-all-roles-clean-v31 .pmd-v15-card--floor,
+body.pmd-owner-dashboard-clean-v1-active .pmd-v15-card--floor {
+  width: 100% !important;
+  max-width: 100% !important;
+  min-width: 0 !important;
+  overflow: visible !important;
+}
+
+body.pmd-all-roles-clean-v31 .pmd-v15-card--floor,
+body.pmd-all-roles-clean-v31 .pmd-v19-area-floor,
+body.pmd-all-roles-clean-v31 .pmd-v23-counter-floor-card,
+body.pmd-owner-dashboard-clean-v1-active .pmd-v15-card--floor,
+body.pmd-owner-dashboard-clean-v1-active .pmd-v19-area-floor,
+body.pmd-owner-dashboard-clean-v1-active .pmd-v23-counter-floor-card {
+  padding: 16px 18px !important;
+  border-radius: 20px !important;
+  min-height: 0 !important;
+  position: relative !important;
+}
+
+body.pmd-all-roles-clean-v31 .pmd-v15-card-body,
+body.pmd-owner-dashboard-clean-v1-active .pmd-v15-card-body {
+  width: 100% !important;
+  max-width: 100% !important;
+  min-width: 0 !important;
+  overflow: visible !important;
+}
+
+/* The actual zoom problem: previous v3 set min-height: clamp(470px,46vw,680px) */
+body.pmd-all-roles-clean-v31 .pmd-v15-floor-canvas,
+body.pmd-owner-dashboard-clean-v1-active .pmd-v15-floor-canvas,
+body.pmd-all-roles-clean-v31 .pmd-v15-card--floor .pmd-v15-floor-canvas,
+body.pmd-owner-dashboard-clean-v1-active .pmd-v15-card--floor .pmd-v15-floor-canvas {
+  height: clamp(350px, 28vw, 420px) !important;
+  min-height: clamp(350px, 28vw, 420px) !important;
+  max-height: 420px !important;
+  width: 100% !important;
+  max-width: 100% !important;
+  border-radius: 20px !important;
+}
+
+/* Table nodes: override old 106px v3 */
+body.pmd-all-roles-clean-v31 .pmd-v15-floor-node,
+body.pmd-owner-dashboard-clean-v1-active .pmd-v15-floor-node {
+  width: 86px !important;
+  height: 86px !important;
+  min-width: 86px !important;
+  min-height: 86px !important;
+  max-width: 90px !important;
+  max-height: 90px !important;
+  padding: 7px 8px !important;
+  border-radius: 18px !important;
+}
+
+body.pmd-all-roles-clean-v31 .pmd-v15-floor-node strong,
+body.pmd-owner-dashboard-clean-v1-active .pmd-v15-floor-node strong {
+  font-size: 22px !important;
+  line-height: .95 !important;
+}
+
+body.pmd-all-roles-clean-v31 .pmd-v15-floor-node small,
+body.pmd-owner-dashboard-clean-v1-active .pmd-v15-floor-node small {
+  font-size: 9px !important;
+}
+
+body.pmd-all-roles-clean-v31 .pmd-v15-floor-node em,
+body.pmd-all-roles-clean-v31 .pmd-v15-floor-node .pmd-v15-floor-node-amount,
+body.pmd-all-roles-clean-v31 .pmd-v15-floor-node [class*="amount"],
+body.pmd-owner-dashboard-clean-v1-active .pmd-v15-floor-node em,
+body.pmd-owner-dashboard-clean-v1-active .pmd-v15-floor-node .pmd-v15-floor-node-amount,
+body.pmd-owner-dashboard-clean-v1-active .pmd-v15-floor-node [class*="amount"] {
+  right: -9px !important;
+  top: 7px !important;
+  min-height: 22px !important;
+  padding: 0 8px !important;
+  font-size: 9.5px !important;
+}
+
+/* Status label below table */
+body.pmd-all-roles-clean-v31 .pmd-v15-floor-node--free::after,
+body.pmd-all-roles-clean-v31 .pmd-v15-floor-node--unpaid::after,
+body.pmd-all-roles-clean-v31 .pmd-v15-floor-node--reserved::after,
+body.pmd-owner-dashboard-clean-v1-active .pmd-v15-floor-node--free::after,
+body.pmd-owner-dashboard-clean-v1-active .pmd-v15-floor-node--unpaid::after,
+body.pmd-owner-dashboard-clean-v1-active .pmd-v15-floor-node--reserved::after {
+  top: calc(100% + 5px) !important;
+  font-size: 9.5px !important;
+  padding: 4px 8px !important;
+}
+
+/* Kill old broken/offscreen legend wrappers */
+body.pmd-all-roles-clean-v31 .pmd-floor-legend-info-wrap,
+body.pmd-all-roles-clean-v31 .pmd-floor-legend-mini-wrap,
+body.pmd-owner-dashboard-clean-v1-active .pmd-floor-legend-info-wrap,
+body.pmd-owner-dashboard-clean-v1-active .pmd-floor-legend-mini-wrap {
+  display: none !important;
+  pointer-events: none !important;
+}
+
+/* Hide original noisy legend unless inside the new fixed v3 popover */
+body.pmd-all-roles-clean-v31 .pmd-v15-floor-legend,
+body.pmd-owner-dashboard-clean-v1-active .pmd-v15-floor-legend {
+  display: none !important;
+}
+
+/* New v3 info popover */
+.pmd-floor-status-v3 {
+  position: absolute !important;
+  right: 14px !important;
+  top: 76px !important;
+  z-index: 90 !important;
+}
+
+.pmd-floor-status-v3-btn {
+  width: 36px !important;
+  height: 36px !important;
+  min-width: 36px !important;
+  min-height: 36px !important;
+  border-radius: 999px !important;
+  border: 1px solid rgba(8,119,98,.22) !important;
+  background: rgba(255,255,255,.96) !important;
+  color: #087762 !important;
+  box-shadow: 0 12px 28px rgba(15,23,42,.14) !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  padding: 0 !important;
+  cursor: pointer !important;
+}
+
+.pmd-floor-status-v3-btn::before {
+  content: "i";
+  width: 20px;
+  height: 20px;
+  border-radius: 999px;
+  background: #087762;
+  color: #fff;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-family: ui-serif, Georgia, serif;
+  font-size: 13px;
+  font-weight: 950;
+}
+
+.pmd-floor-status-v3-panel {
+  display: none;
+  position: absolute;
+  right: 0;
+  top: 44px;
+  min-width: 250px;
+  max-width: min(340px, calc(100vw - 110px));
+  padding: 13px 15px;
+  border-radius: 18px;
+  border: 1px solid rgba(148,163,184,.28);
+  background: rgba(255,255,255,.97);
+  box-shadow: 0 22px 62px rgba(15,23,42,.20);
+  backdrop-filter: blur(16px);
+}
+
+.pmd-floor-status-v3:hover .pmd-floor-status-v3-panel,
+.pmd-floor-status-v3.is-open .pmd-floor-status-v3-panel {
+  display: grid;
+  grid-template-columns: repeat(2, max-content);
+  gap: 9px 14px;
+}
+
+.pmd-floor-status-v3-panel::before {
+  content: "Floor status";
+  grid-column: 1 / -1;
+  color: #0f172a;
+  font-size: 11px;
+  font-weight: 950;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+}
+
+.pmd-floor-status-v3-panel span {
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 7px !important;
+  color: #475569 !important;
+  font-size: 11px !important;
+  font-weight: 850 !important;
+  white-space: nowrap !important;
+}
+
+.pmd-floor-status-v3-panel span i {
+  width: 9px !important;
+  height: 9px !important;
+  min-width: 9px !important;
+  border-radius: 999px !important;
+}
+
+.pmd-floor-status-v3-panel span b {
+  min-width: 18px !important;
+  height: 18px !important;
+  padding: 0 5px !important;
+  border-radius: 999px !important;
+  background: #eef2ff !important;
+  color: #334155 !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  font-size: 10px !important;
+  font-weight: 950 !important;
+}
+
+/* Role rail compact */
+body.pmd-all-roles-clean-v31 #pmd-v31-role-rail,
+body.pmd-owner-dashboard-clean-v1-active #pmd-v31-role-rail {
+  right: 8px !important;
+  width: 42px !important;
+  padding: 7px 4px !important;
+  border-radius: 23px !important;
+}
+
+body.pmd-all-roles-clean-v31 #pmd-v31-role-rail .pmd-v31-role-btn,
+body.pmd-owner-dashboard-clean-v1-active #pmd-v31-role-rail .pmd-v31-role-btn {
+  width: 34px !important;
+  min-width: 34px !important;
+  height: 34px !important;
+  min-height: 34px !important;
+  border-radius: 14px !important;
+  font-size: 10px !important;
+}
+
+@media (max-width: 900px) {
+  body.pmd-all-roles-clean-v31 .page-content.pmd-v31-clean-main,
+  body.pmd-all-roles-clean-v31 .page-wrapper.pmd-v31-clean-main,
+  body.pmd-owner-dashboard-clean-v1-active .page-content.pmd-v31-clean-main,
+  body.pmd-owner-dashboard-clean-v1-active .page-wrapper.pmd-v31-clean-main {
+    left: 88px !important;
+    width: calc(100vw - 88px) !important;
+    max-width: calc(100vw - 88px) !important;
+  }
+
+  body.pmd-all-roles-clean-v31 #pmd-owner-dashboard-clean-v1-root,
+  body.pmd-owner-dashboard-clean-v1-active #pmd-owner-dashboard-clean-v1-root {
+    width: calc(100% - 58px) !important;
+    max-width: calc(100% - 58px) !important;
+    margin: 12px 48px 24px 10px !important;
+  }
+
+  body.pmd-all-roles-clean-v31 .pmd-v15-floor-canvas,
+  body.pmd-owner-dashboard-clean-v1-active .pmd-v15-floor-canvas {
+    height: 390px !important;
+    min-height: 390px !important;
+    max-height: 390px !important;
+  }
+
+  body.pmd-all-roles-clean-v31 .pmd-v15-floor-node,
+  body.pmd-owner-dashboard-clean-v1-active .pmd-v15-floor-node {
+    width: 74px !important;
+    height: 74px !important;
+    min-width: 74px !important;
+    min-height: 74px !important;
+  }
+}
+/* PMD_DASHBOARD_ACTUAL_FIT_V3_END */
+
+
+/* PMD_SHARED_FLOOR_FULLWIDTH_V5_START */
+/*
+  Shared floor full-width v5.
+  Forces the same large floor plan row across Owner / Manager / Counter / Waiter.
+  UI only. No backend/database/order/payment logic.
+*/
+
+body.pmd-all-roles-clean-v31 .pmd-shared-floor-v5-row,
+body.pmd-owner-dashboard-clean-v1-active .pmd-shared-floor-v5-row {
+  width: 100% !important;
+  max-width: 100% !important;
+  min-width: 0 !important;
+  display: block !important;
+  grid-column: 1 / -1 !important;
+  margin: 14px 0 16px !important;
+  overflow: visible !important;
+}
+
+body.pmd-all-roles-clean-v31 .pmd-shared-floor-v5-row .pmd-v15-card--floor,
+body.pmd-owner-dashboard-clean-v1-active .pmd-shared-floor-v5-row .pmd-v15-card--floor,
+body.pmd-all-roles-clean-v31 .pmd-shared-floor-v5-row .pmd-v19-area-floor,
+body.pmd-owner-dashboard-clean-v1-active .pmd-shared-floor-v5-row .pmd-v19-area-floor,
+body.pmd-all-roles-clean-v31 .pmd-shared-floor-v5-row .pmd-v23-counter-floor-card,
+body.pmd-owner-dashboard-clean-v1-active .pmd-shared-floor-v5-row .pmd-v23-counter-floor-card {
+  width: 100% !important;
+  max-width: 100% !important;
+  min-width: 0 !important;
+  margin: 0 !important;
+  padding: 18px 22px !important;
+  border-radius: 22px !important;
+  overflow: visible !important;
+  position: relative !important;
+}
+
+/* same floor size for all roles */
+body.pmd-all-roles-clean-v31 .pmd-shared-floor-v5-row .pmd-v15-floor-canvas,
+body.pmd-owner-dashboard-clean-v1-active .pmd-shared-floor-v5-row .pmd-v15-floor-canvas {
+  width: 100% !important;
+  max-width: 100% !important;
+  height: clamp(460px, 36vw, 590px) !important;
+  min-height: clamp(460px, 36vw, 590px) !important;
+  max-height: 590px !important;
+  border-radius: 22px !important;
+}
+
+/* keep tables readable but not huge */
+body.pmd-all-roles-clean-v31 .pmd-shared-floor-v5-row .pmd-v15-floor-node,
+body.pmd-owner-dashboard-clean-v1-active .pmd-shared-floor-v5-row .pmd-v15-floor-node {
+  width: 92px !important;
+  height: 92px !important;
+  min-width: 92px !important;
+  min-height: 92px !important;
+  max-width: 96px !important;
+  max-height: 96px !important;
+  border-radius: 18px !important;
+  padding: 8px !important;
+}
+
+body.pmd-all-roles-clean-v31 .pmd-shared-floor-v5-row .pmd-v15-floor-node .pmd-v15-node-number,
+body.pmd-owner-dashboard-clean-v1-active .pmd-shared-floor-v5-row .pmd-v15-floor-node .pmd-v15-node-number,
+body.pmd-all-roles-clean-v31 .pmd-shared-floor-v5-row .pmd-v15-floor-node strong,
+body.pmd-owner-dashboard-clean-v1-active .pmd-shared-floor-v5-row .pmd-v15-floor-node strong {
+  font-size: 24px !important;
+  line-height: .95 !important;
+  font-weight: 950 !important;
+}
+
+body.pmd-all-roles-clean-v31 .pmd-shared-floor-v5-row .pmd-v15-floor-node .pmd-v15-node-pill,
+body.pmd-owner-dashboard-clean-v1-active .pmd-shared-floor-v5-row .pmd-v15-floor-node .pmd-v15-node-pill,
+body.pmd-all-roles-clean-v31 .pmd-shared-floor-v5-row .pmd-v15-floor-node small,
+body.pmd-owner-dashboard-clean-v1-active .pmd-shared-floor-v5-row .pmd-v15-floor-node small {
+  font-size: 9.5px !important;
+  font-weight: 950 !important;
+}
+
+/* Floor header actions */
+body.pmd-all-roles-clean-v31 .pmd-shared-floor-v5-row .pmd-v15-card-actions,
+body.pmd-owner-dashboard-clean-v1-active .pmd-shared-floor-v5-row .pmd-v15-card-actions {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: flex-end !important;
+  gap: 10px !important;
+  flex-wrap: wrap !important;
+  padding-right: 48px !important;
+  margin-right: 0 !important;
+}
+
+.pmd-floor-edit-btn-v5 {
+  min-height: 38px !important;
+  border-radius: 13px !important;
+  border: 1px solid rgba(8,119,98,.24) !important;
+  background: #087762 !important;
+  color: #fff !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 7px !important;
+  padding: 0 14px !important;
+  font-size: 12px !important;
+  font-weight: 950 !important;
+  text-decoration: none !important;
+  box-shadow: 0 12px 28px rgba(8,119,98,.16) !important;
+}
+
+.pmd-floor-edit-btn-v5:hover {
+  color: #fff !important;
+  transform: translateY(-1px);
+}
+
+/* Hide broken older info wrappers */
+body.pmd-all-roles-clean-v31 .pmd-floor-legend-info-wrap,
+body.pmd-all-roles-clean-v31 .pmd-floor-legend-mini-wrap,
+body.pmd-owner-dashboard-clean-v1-active .pmd-floor-legend-info-wrap,
+body.pmd-owner-dashboard-clean-v1-active .pmd-floor-legend-mini-wrap {
+  display: none !important;
+  pointer-events: none !important;
+}
+
+body.pmd-all-roles-clean-v31 .pmd-shared-floor-v5-row .pmd-floor-status-v3,
+body.pmd-owner-dashboard-clean-v1-active .pmd-shared-floor-v5-row .pmd-floor-status-v3 {
+  right: 18px !important;
+  top: 86px !important;
+}
+
+@media (max-width: 900px) {
+  body.pmd-all-roles-clean-v31 .pmd-shared-floor-v5-row .pmd-v15-floor-canvas,
+  body.pmd-owner-dashboard-clean-v1-active .pmd-shared-floor-v5-row .pmd-v15-floor-canvas {
+    height: 430px !important;
+    min-height: 430px !important;
+    max-height: 430px !important;
+  }
+
+  body.pmd-all-roles-clean-v31 .pmd-shared-floor-v5-row .pmd-v15-floor-node,
+  body.pmd-owner-dashboard-clean-v1-active .pmd-shared-floor-v5-row .pmd-v15-floor-node {
+    width: 78px !important;
+    height: 78px !important;
+    min-width: 78px !important;
+    min-height: 78px !important;
+  }
+
+  body.pmd-all-roles-clean-v31 .pmd-shared-floor-v5-row .pmd-v15-card-actions,
+  body.pmd-owner-dashboard-clean-v1-active .pmd-shared-floor-v5-row .pmd-v15-card-actions {
+    padding-right: 0 !important;
+  }
+}
+/* PMD_SHARED_FLOOR_FULLWIDTH_V5_END */
+
+
+/* PMD_FLOOR_EDITOR_DRAG_SAVE_V6_START */
+/*
+  Floor editor v6.
+  Dashboard-only UI. Drag + save table floor_x/floor_y.
+  No order/payment/reservation logic touched.
+*/
+body.pmd-floor-editing-v6 {
+  cursor: default !important;
+}
+
+body.pmd-floor-editing-v6 .pmd-shared-floor-v5-row .pmd-v15-floor-canvas,
+body.pmd-floor-editing-v6 .pmd-v15-floor-canvas {
+  outline: 2px dashed rgba(8,119,98,.38) !important;
+  outline-offset: 6px !important;
+  overflow: hidden !important;
+  position: relative !important;
+}
+
+body.pmd-floor-editing-v6 .pmd-v15-floor-node {
+  position: absolute !important;
+  cursor: grab !important;
+  user-select: none !important;
+  touch-action: none !important;
+  box-shadow: 0 18px 44px rgba(8,119,98,.18), inset 0 0 0 1px rgba(255,255,255,.95) !important;
+}
+
+body.pmd-floor-editing-v6 .pmd-v15-floor-node::before {
+  content: "↕";
+  position: absolute;
+  left: -10px;
+  top: -10px;
+  width: 24px;
+  height: 24px;
+  border-radius: 999px;
+  background: #087762;
+  color: #fff;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+  font-weight: 950;
+  box-shadow: 0 10px 22px rgba(8,119,98,.22);
+  z-index: 3;
+}
+
+body.pmd-floor-editing-v6 .pmd-v15-floor-node.is-dragging-v6 {
+  cursor: grabbing !important;
+  transform: scale(1.035) !important;
+  z-index: 120 !important;
+}
+
+.pmd-floor-global-edit-v6 {
+  min-height: 38px !important;
+  border-radius: 14px !important;
+  border: 1px solid rgba(8,119,98,.24) !important;
+  background: #087762 !important;
+  color: #fff !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 7px !important;
+  padding: 0 14px !important;
+  font-size: 12px !important;
+  font-weight: 950 !important;
+  text-decoration: none !important;
+  box-shadow: 0 12px 28px rgba(8,119,98,.16) !important;
+  cursor: pointer !important;
+  white-space: nowrap !important;
+}
+
+.pmd-floor-global-edit-v6:hover {
+  color: #fff !important;
+  transform: translateY(-1px);
+}
+
+.pmd-floor-global-edit-v6.is-floating {
+  position: fixed !important;
+  top: 12px !important;
+  right: 220px !important;
+  z-index: 1000001 !important;
+}
+
+.pmd-floor-edit-toolbar-v6 {
+  position: fixed;
+  left: 50%;
+  bottom: 22px;
+  transform: translateX(-50%);
+  z-index: 1000002;
+  display: none;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  border-radius: 18px;
+  background: rgba(15,23,42,.92);
+  color: #fff;
+  box-shadow: 0 24px 70px rgba(15,23,42,.28);
+  backdrop-filter: blur(16px);
+}
+
+body.pmd-floor-editing-v6 .pmd-floor-edit-toolbar-v6 {
+  display: inline-flex;
+}
+
+.pmd-floor-edit-toolbar-v6 strong {
+  font-size: 13px;
+  font-weight: 950;
+  margin-right: 8px;
+}
+
+.pmd-floor-edit-toolbar-v6 button {
+  min-height: 36px !important;
+  border: 0 !important;
+  border-radius: 12px !important;
+  padding: 0 13px !important;
+  font-size: 12px !important;
+  font-weight: 950 !important;
+  cursor: pointer !important;
+}
+
+.pmd-floor-edit-toolbar-v6 [data-pmd-floor-save-v6] {
+  background: #22c55e !important;
+  color: #052e16 !important;
+}
+
+.pmd-floor-edit-toolbar-v6 [data-pmd-floor-cancel-v6] {
+  background: rgba(255,255,255,.14) !important;
+  color: #fff !important;
+}
+
+.pmd-floor-edit-toast-v6 {
+  position: fixed;
+  right: 22px;
+  bottom: 88px;
+  z-index: 1000003;
+  max-width: 360px;
+  padding: 12px 14px;
+  border-radius: 16px;
+  background: rgba(15,23,42,.94);
+  color: #fff;
+  box-shadow: 0 18px 46px rgba(15,23,42,.26);
+  font-size: 12px;
+  font-weight: 850;
+  display: none;
+}
+
+.pmd-floor-edit-toast-v6.is-visible {
+  display: block;
+}
+
+.pmd-floor-edit-btn-v4,
+.pmd-floor-edit-btn-v5 {
+  display: none !important;
+}
+
+@media (max-width: 900px) {
+  .pmd-floor-global-edit-v6.is-floating {
+    top: 10px !important;
+    right: 68px !important;
+    padding: 0 10px !important;
+  }
+
+  .pmd-floor-edit-toolbar-v6 {
+    left: 10px;
+    right: 10px;
+    bottom: 12px;
+    transform: none;
+    justify-content: center;
+    flex-wrap: wrap;
+  }
+}
+/* PMD_FLOOR_EDITOR_DRAG_SAVE_V6_END */
+
+
+/* PMD_DASHBOARD_TOPBAR_EDITFLOOR_V7_START */
+/*
+  Visible dashboard top header v7.
+  Moves Edit Floor out of hidden legacy topbar into a real visible dashboard header.
+  UI only. Reuses existing v6 edit/save logic.
+*/
+body.pmd-all-roles-clean-v31 .pmd-dashboard-topbar-v7,
+body.pmd-owner-dashboard-clean-v1-active .pmd-dashboard-topbar-v7 {
+  width: 100% !important;
+  max-width: 100% !important;
+  min-width: 0 !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  gap: 18px !important;
+  margin: 0 0 16px !important;
+  padding: 0 !important;
+  overflow: visible !important;
+}
+
+.pmd-dashboard-topbar-v7__title {
+  min-width: 0 !important;
+}
+
+.pmd-dashboard-topbar-v7__title h1 {
+  margin: 0 0 5px !important;
+  font-size: clamp(26px, 2vw, 36px) !important;
+  line-height: 1.04 !important;
+  letter-spacing: -.055em !important;
+  font-weight: 950 !important;
+  color: #10201f !important;
+}
+
+.pmd-dashboard-topbar-v7__title p {
+  margin: 0 !important;
+  color: #64748b !important;
+  font-size: 14px !important;
+  font-weight: 800 !important;
+  line-height: 1.25 !important;
+}
+
+.pmd-dashboard-topbar-v7__actions {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: flex-end !important;
+  gap: 10px !important;
+  flex-wrap: wrap !important;
+  padding-right: 54px !important; /* role rail safe space */
+}
+
+.pmd-dashboard-topbar-v7__pill {
+  min-height: 42px !important;
+  border-radius: 16px !important;
+  border: 1px solid rgba(148,163,184,.24) !important;
+  background: rgba(255,255,255,.92) !important;
+  color: #334155 !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 8px !important;
+  padding: 0 14px !important;
+  font-size: 13px !important;
+  font-weight: 900 !important;
+  box-shadow: 0 12px 32px rgba(15,23,42,.06) !important;
+  white-space: nowrap !important;
+}
+
+.pmd-dashboard-topbar-v7__pill.is-shift {
+  color: #7c3aed !important;
+  border-color: rgba(124,58,237,.18) !important;
+  background: rgba(250,245,255,.92) !important;
+}
+
+/* Make v6 edit button visible and header-native */
+.pmd-dashboard-topbar-v7 .pmd-floor-global-edit-v6 {
+  position: static !important;
+  top: auto !important;
+  right: auto !important;
+  z-index: auto !important;
+  min-height: 42px !important;
+  border-radius: 16px !important;
+  padding: 0 16px !important;
+  background: #087762 !important;
+  color: #fff !important;
+  box-shadow: 0 14px 34px rgba(8,119,98,.18) !important;
+  display: inline-flex !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+}
+
+/* Hide duplicate floor-card edit buttons; topbar is the source of truth */
+.pmd-floor-edit-btn-v4,
+.pmd-floor-edit-btn-v5 {
+  display: none !important;
+}
+
+/* Toolbar exists hidden until edit mode, so console checks do not crash */
+.pmd-floor-edit-toolbar-v6 {
+  display: none;
+}
+
+body.pmd-floor-editing-v6 .pmd-floor-edit-toolbar-v6 {
+  display: inline-flex !important;
+}
+
+@media (max-width: 1050px) {
+  body.pmd-all-roles-clean-v31 .pmd-dashboard-topbar-v7,
+  body.pmd-owner-dashboard-clean-v1-active .pmd-dashboard-topbar-v7 {
+    align-items: flex-start !important;
+    flex-direction: column !important;
+  }
+
+  .pmd-dashboard-topbar-v7__actions {
+    width: 100% !important;
+    justify-content: flex-start !important;
+    padding-right: 48px !important;
+  }
+}
+
+@media (max-width: 620px) {
+  .pmd-dashboard-topbar-v7__pill {
+    min-height: 38px !important;
+    font-size: 12px !important;
+    padding: 0 11px !important;
+  }
+
+  .pmd-dashboard-topbar-v7 .pmd-floor-global-edit-v6 {
+    min-height: 38px !important;
+    padding: 0 12px !important;
+  }
+}
+/* PMD_DASHBOARD_TOPBAR_EDITFLOOR_V7_END */
+
+
+/* PMD_DASHBOARD_VISIBLE_TOPBAR_V8_START */
+/*
+  Visible dashboard topbar v8.
+  Rebuilds the broken v7 topbar and places it above KPI cards.
+  UI only. Reuses v6 Edit Floor logic.
+*/
+.pmd-dashboard-topbar-v7 {
+  display: none !important;
+}
+
+body.pmd-all-roles-clean-v31 .pmd-dashboard-topbar-v8,
+body.pmd-owner-dashboard-clean-v1-active .pmd-dashboard-topbar-v8 {
+  width: 100% !important;
+  max-width: 100% !important;
+  min-width: 0 !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  gap: 18px !important;
+  margin: 0 0 16px !important;
+  padding: 0 !important;
+  overflow: visible !important;
+  position: relative !important;
+  z-index: 25 !important;
+}
+
+.pmd-dashboard-topbar-v8__title {
+  min-width: 0 !important;
+  flex: 1 1 auto !important;
+}
+
+.pmd-dashboard-topbar-v8__title h1 {
+  margin: 0 0 6px !important;
+  font-size: clamp(28px, 2.2vw, 38px) !important;
+  line-height: 1.02 !important;
+  letter-spacing: -.055em !important;
+  font-weight: 950 !important;
+  color: #10201f !important;
+}
+
+.pmd-dashboard-topbar-v8__title p {
+  margin: 0 !important;
+  color: #64748b !important;
+  font-size: 14px !important;
+  font-weight: 800 !important;
+  line-height: 1.25 !important;
+}
+
+.pmd-dashboard-topbar-v8__actions {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: flex-end !important;
+  gap: 10px !important;
+  flex-wrap: wrap !important;
+  padding-right: 54px !important;
+  flex: 0 0 auto !important;
+}
+
+.pmd-dashboard-topbar-v8__pill {
+  min-height: 42px !important;
+  border-radius: 16px !important;
+  border: 1px solid rgba(148,163,184,.24) !important;
+  background: rgba(255,255,255,.94) !important;
+  color: #334155 !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 8px !important;
+  padding: 0 14px !important;
+  font-size: 13px !important;
+  font-weight: 900 !important;
+  box-shadow: 0 12px 32px rgba(15,23,42,.06) !important;
+  white-space: nowrap !important;
+}
+
+.pmd-dashboard-topbar-v8__pill.is-shift {
+  color: #7c3aed !important;
+  border-color: rgba(124,58,237,.18) !important;
+  background: rgba(250,245,255,.94) !important;
+}
+
+/* Edit Floor button lives in visible topbar */
+.pmd-dashboard-topbar-v8 .pmd-floor-global-edit-v6 {
+  position: static !important;
+  top: auto !important;
+  right: auto !important;
+  z-index: auto !important;
+  min-height: 42px !important;
+  border-radius: 16px !important;
+  padding: 0 16px !important;
+  background: #087762 !important;
+  color: #fff !important;
+  box-shadow: 0 14px 34px rgba(8,119,98,.18) !important;
+  display: inline-flex !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+  white-space: nowrap !important;
+}
+
+/* Hide duplicates from floor-card/header experiments */
+.pmd-floor-edit-btn-v4,
+.pmd-floor-edit-btn-v5,
+.pmd-v15-card--floor .pmd-floor-global-edit-v6:not(.pmd-dashboard-topbar-v8 .pmd-floor-global-edit-v6),
+.pmd-v19-area-floor .pmd-floor-global-edit-v6:not(.pmd-dashboard-topbar-v8 .pmd-floor-global-edit-v6),
+.pmd-v23-counter-floor-card .pmd-floor-global-edit-v6:not(.pmd-dashboard-topbar-v8 .pmd-floor-global-edit-v6) {
+  display: none !important;
+}
+
+@media (max-width: 1050px) {
+  body.pmd-all-roles-clean-v31 .pmd-dashboard-topbar-v8,
+  body.pmd-owner-dashboard-clean-v1-active .pmd-dashboard-topbar-v8 {
+    align-items: flex-start !important;
+    flex-direction: column !important;
+  }
+
+  .pmd-dashboard-topbar-v8__actions {
+    width: 100% !important;
+    justify-content: flex-start !important;
+    padding-right: 48px !important;
+  }
+}
+/* PMD_DASHBOARD_VISIBLE_TOPBAR_V8_END */
+
+
+/* PMD_KILL_BROKEN_TOPBARS_V10_START */
+/*
+  Stop broken dashboard topbar experiments v7/v8/v9 from blinking/removing dashboard content.
+  Keep floor editor v6 alive with a visible fixed fallback button.
+*/
+.pmd-dashboard-topbar-v7,
+.pmd-dashboard-topbar-v8,
+.pmd-dashboard-topbar-v9 {
+  display: none !important;
+  visibility: hidden !important;
+  pointer-events: none !important;
+  height: 0 !important;
+  min-height: 0 !important;
+  max-height: 0 !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  overflow: hidden !important;
+}
+
+.pmd-floor-edit-btn-v4,
+.pmd-floor-edit-btn-v5 {
+  display: none !important;
+}
+
+.pmd-floor-global-edit-v6.pmd-floor-floating-v10 {
+  position: fixed !important;
+  top: 14px !important;
+  right: 150px !important;
+  z-index: 1000005 !important;
+  min-height: 40px !important;
+  border-radius: 15px !important;
+  border: 1px solid rgba(8,119,98,.24) !important;
+  background: #087762 !important;
+  color: #fff !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  padding: 0 15px !important;
+  font-size: 12px !important;
+  font-weight: 950 !important;
+  box-shadow: 0 16px 40px rgba(8,119,98,.20) !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+  pointer-events: auto !important;
+  cursor: pointer !important;
+  white-space: nowrap !important;
+}
+
+body.pmd-floor-editing-v6 .pmd-floor-global-edit-v6.pmd-floor-floating-v10 {
+  background: #0f172a !important;
+}
+
+body.pmd-floor-editing-v6 .pmd-floor-edit-toolbar-v6 {
+  display: inline-flex !important;
+}
+
+@media (max-width: 900px) {
+  .pmd-floor-global-edit-v6.pmd-floor-floating-v10 {
+    right: 66px !important;
+    top: 10px !important;
+    min-height: 38px !important;
+    padding: 0 11px !important;
+  }
+}
+/* PMD_KILL_BROKEN_TOPBARS_V10_END */
+
+
+/* PMD_FLOOR_EDITOR_SAVEFIX_V11_START */
+/*
+  Save button fix v11.
+  Keeps v6 drag/edit mode, replaces only save action.
+*/
+.pmd-floor-edit-toolbar-v6 [data-pmd-floor-save-v11] {
+  background: #22c55e !important;
+  color: #052e16 !important;
+}
+
+.pmd-floor-save-debug-v11 {
+  position: fixed;
+  right: 22px;
+  bottom: 138px;
+  z-index: 1000004;
+  max-width: 420px;
+  padding: 12px 14px;
+  border-radius: 16px;
+  background: rgba(15,23,42,.94);
+  color: #fff;
+  box-shadow: 0 18px 46px rgba(15,23,42,.26);
+  font-size: 12px;
+  font-weight: 850;
+  display: none;
+  white-space: pre-wrap;
+}
+
+.pmd-floor-save-debug-v11.is-visible {
+  display: block;
+}
+/* PMD_FLOOR_EDITOR_SAVEFIX_V11_END */
+
+
+/* PMD_FLOOR_SAVE_STABLE_V12_START */
+.pmd-floor-save-debug-v12 {
+  position: fixed;
+  right: 22px;
+  bottom: 138px;
+  z-index: 1000006;
+  max-width: 420px;
+  padding: 12px 14px;
+  border-radius: 16px;
+  background: rgba(15,23,42,.94);
+  color: #fff;
+  box-shadow: 0 18px 46px rgba(15,23,42,.26);
+  font-size: 12px;
+  font-weight: 850;
+  display: none;
+  white-space: pre-wrap;
+}
+.pmd-floor-save-debug-v12.is-visible { display: block; }
+.pmd-floor-edit-toolbar-v6 [data-pmd-floor-save-v12] {
+  background: #22c55e !important;
+  color: #052e16 !important;
+}
+/* PMD_FLOOR_SAVE_STABLE_V12_END */
+
+
+/* PMD_FLOOR_SAVE_CLOSURE_V13_START */
+/* marker only: route save is handled by routes.php closure v13 */
+/* PMD_FLOOR_SAVE_CLOSURE_V13_END */
+
+
+/* PMD_FLOOR_SAVE_VIA_MERGE_V15_START */
+.pmd-floor-save-debug-v15 {
+  position: fixed;
+  right: 22px;
+  bottom: 138px;
+  z-index: 1000007;
+  max-width: 430px;
+  padding: 12px 14px;
+  border-radius: 16px;
+  background: rgba(15,23,42,.94);
+  color: #fff;
+  box-shadow: 0 18px 46px rgba(15,23,42,.26);
+  font-size: 12px;
+  font-weight: 850;
+  display: none;
+  white-space: pre-wrap;
+}
+.pmd-floor-save-debug-v15.is-visible { display: block; }
+.pmd-floor-edit-toolbar-v6 [data-pmd-floor-save-v15] {
+  background: #22c55e !important;
+  color: #052e16 !important;
+}
+/* PMD_FLOOR_SAVE_VIA_MERGE_V15_END */
+
+
+/* PMD_FLOOR_SAVE_DATA_ENDPOINT_V17_START */
+.pmd-floor-save-debug-v17 {
+  position: fixed;
+  right: 22px;
+  bottom: 138px;
+  z-index: 1000009;
+  max-width: 460px;
+  padding: 12px 14px;
+  border-radius: 16px;
+  background: rgba(15,23,42,.94);
+  color: #fff;
+  box-shadow: 0 18px 46px rgba(15,23,42,.26);
+  font-size: 12px;
+  font-weight: 850;
+  display: none;
+  white-space: pre-wrap;
+}
+.pmd-floor-save-debug-v17.is-visible { display: block; }
+.pmd-floor-edit-toolbar-v6 [data-pmd-floor-save-v17] {
+  background: #22c55e !important;
+  color: #052e16 !important;
+}
+/* PMD_FLOOR_SAVE_DATA_ENDPOINT_V17_END */
+
+
+/* PMD_FLOOR_EDITOR_FINAL_COMMAND_SAVE_V18_START */
+.pmd-floor-command-v18-box {
+  position: fixed;
+  right: 22px;
+  bottom: 138px;
+  z-index: 1000010;
+  width: min(760px, calc(100vw - 44px));
+  max-height: 64vh;
+  padding: 14px;
+  border-radius: 18px;
+  background: rgba(15,23,42,.97);
+  color: #fff;
+  box-shadow: 0 24px 70px rgba(15,23,42,.34);
+  display: none;
+  border: 1px solid rgba(255,255,255,.14);
+}
+
+.pmd-floor-command-v18-box.is-visible {
+  display: block;
+}
+
+.pmd-floor-command-v18-box strong {
+  display: block;
+  margin-bottom: 8px;
+  font-size: 13px;
+}
+
+.pmd-floor-command-v18-box textarea {
+  width: 100%;
+  height: 260px;
+  resize: vertical;
+  border: 1px solid rgba(255,255,255,.18);
+  border-radius: 12px;
+  background: rgba(2,6,23,.82);
+  color: #e5e7eb;
+  padding: 10px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 11px;
+  line-height: 1.45;
+}
+
+.pmd-floor-command-v18-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 10px;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+}
+
+.pmd-floor-command-v18-actions button,
+.pmd-floor-edit-toolbar-v6 [data-pmd-floor-save-v18] {
+  border: 0 !important;
+  border-radius: 12px !important;
+  padding: 9px 12px !important;
+  font-weight: 900 !important;
+}
+
+.pmd-floor-edit-toolbar-v6 [data-pmd-floor-save-v18],
+.pmd-floor-command-v18-copy {
+  background: #22c55e !important;
+  color: #052e16 !important;
+}
+
+.pmd-floor-command-v18-close {
+  background: rgba(255,255,255,.12) !important;
+  color: #fff !important;
+}
+/* PMD_FLOOR_EDITOR_FINAL_COMMAND_SAVE_V18_END */
+
+
+/* PMD_FLOOR_DIRECT_SAVE_GET_V19_START */
+.pmd-floor-direct-save-v19-toast {
+  position: fixed;
+  right: 22px;
+  bottom: 138px;
+  z-index: 1000011;
+  max-width: 430px;
+  padding: 13px 15px;
+  border-radius: 16px;
+  background: rgba(15,23,42,.96);
+  color: #fff;
+  box-shadow: 0 24px 70px rgba(15,23,42,.34);
+  display: none;
+  font-size: 12px;
+  font-weight: 900;
+  white-space: pre-wrap;
+}
+.pmd-floor-direct-save-v19-toast.is-visible { display: block; }
+
+.pmd-floor-edit-toolbar-v6 [data-pmd-floor-save-v19] {
+  background: #22c55e !important;
+  color: #052e16 !important;
+}
+/* PMD_FLOOR_DIRECT_SAVE_GET_V19_END */
+
+
+/* PMD_FLOOR_CALIBRATED_DRAG_V20_START */
+body.pmd-floor-editing-v6 .pmd-v15-floor-canvas {
+  position: relative !important;
+}
+
+body.pmd-floor-editing-v6 .pmd-v15-floor-node[data-pmd-table] {
+  position: absolute !important;
+  cursor: grab !important;
+  touch-action: none !important;
+  user-select: none !important;
+  will-change: left, top !important;
+}
+
+body.pmd-floor-editing-v6 .pmd-v15-floor-node[data-pmd-table].pmd-v20-dragging {
+  cursor: grabbing !important;
+  z-index: 60 !important;
+  box-shadow: 0 22px 54px rgba(15,23,42,.22) !important;
+}
+
+.pmd-floor-edit-toolbar-v6 [data-pmd-floor-save-v20] {
+  background: #22c55e !important;
+  color: #052e16 !important;
+}
+
+.pmd-floor-calibrated-v20-toast {
+  position: fixed;
+  right: 22px;
+  bottom: 138px;
+  z-index: 1000012;
+  max-width: 460px;
+  padding: 13px 15px;
+  border-radius: 16px;
+  background: rgba(15,23,42,.96);
+  color: #fff;
+  box-shadow: 0 24px 70px rgba(15,23,42,.34);
+  display: none;
+  font-size: 12px;
+  font-weight: 900;
+  white-space: pre-wrap;
+}
+
+.pmd-floor-calibrated-v20-toast.is-visible {
+  display: block;
+}
+/* PMD_FLOOR_CALIBRATED_DRAG_V20_END */
+
+
+/* PMD_FLOOR_NO_JUMP_EDITOR_V21_START */
+body.pmd-floor-editing-v6 .pmd-v15-floor-canvas {
+  position: relative !important;
+}
+
+body.pmd-floor-editing-v6 .pmd-v15-floor-node[data-pmd-table] {
+  position: absolute !important;
+  cursor: grab !important;
+  touch-action: none !important;
+  user-select: none !important;
+  transform: none !important;
+}
+
+body.pmd-floor-editing-v6 .pmd-v15-floor-node[data-pmd-table].pmd-v21-dragging {
+  cursor: grabbing !important;
+  z-index: 80 !important;
+  box-shadow: 0 22px 54px rgba(15,23,42,.24) !important;
+}
+
+.pmd-floor-edit-toolbar-v6 [data-pmd-floor-save-v21] {
+  background: #22c55e !important;
+  color: #052e16 !important;
+}
+
+.pmd-floor-nojump-v21-toast {
+  position: fixed;
+  right: 22px;
+  bottom: 138px;
+  z-index: 1000013;
+  max-width: 460px;
+  padding: 13px 15px;
+  border-radius: 16px;
+  background: rgba(15,23,42,.96);
+  color: #fff;
+  box-shadow: 0 24px 70px rgba(15,23,42,.34);
+  display: none;
+  font-size: 12px;
+  font-weight: 900;
+  white-space: pre-wrap;
+}
+
+.pmd-floor-nojump-v21-toast.is-visible {
+  display: block;
+}
+/* PMD_FLOOR_NO_JUMP_EDITOR_V21_END */
+
+
+/* PMD_FLOOR_OVERLAY_EDITOR_V22_START */
+body.pmd-floor-editing-v22 .pmd-v15-floor-canvas {
+  position: relative !important;
+}
+
+body.pmd-floor-editing-v22 .pmd-v15-floor-node[data-pmd-table] {
+  opacity: .18 !important;
+  pointer-events: none !important;
+}
+
+body.pmd-floor-editing-v22 .pmd-floor-edit-toolbar-v6 {
+  display: none !important;
+}
+
+.pmd-v22-edit-node {
+  position: absolute !important;
+  z-index: 90 !important;
+  cursor: grab !important;
+  touch-action: none !important;
+  user-select: none !important;
+  transform: none !important;
+  box-sizing: border-box !important;
+}
+
+.pmd-v22-edit-node.pmd-v22-dragging {
+  cursor: grabbing !important;
+  z-index: 120 !important;
+  box-shadow: 0 24px 60px rgba(15,23,42,.28) !important;
+}
+
+.pmd-v22-toolbar {
+  position: fixed;
+  left: 50%;
+  bottom: 24px;
+  transform: translateX(-50%);
+  z-index: 1000014;
+  display: none;
+  align-items: center;
+  gap: 10px;
+  padding: 11px;
+  border-radius: 18px;
+  background: rgba(15,23,42,.96);
+  box-shadow: 0 24px 70px rgba(15,23,42,.34);
+  color: #fff;
+  font-weight: 900;
+}
+
+body.pmd-floor-editing-v22 .pmd-v22-toolbar {
+  display: flex;
+}
+
+.pmd-v22-toolbar button {
+  border: 0 !important;
+  border-radius: 13px !important;
+  padding: 10px 14px !important;
+  font-weight: 900 !important;
+}
+
+.pmd-v22-save {
+  background: #22c55e !important;
+  color: #052e16 !important;
+}
+
+.pmd-v22-cancel {
+  background: rgba(255,255,255,.14) !important;
+  color: #fff !important;
+}
+
+.pmd-v22-toast {
+  position: fixed;
+  right: 22px;
+  bottom: 138px;
+  z-index: 1000015;
+  max-width: 460px;
+  padding: 13px 15px;
+  border-radius: 16px;
+  background: rgba(15,23,42,.96);
+  color: #fff;
+  box-shadow: 0 24px 70px rgba(15,23,42,.34);
+  display: none;
+  font-size: 12px;
+  font-weight: 900;
+  white-space: pre-wrap;
+}
+
+.pmd-v22-toast.is-visible {
+  display: block;
+}
+/* PMD_FLOOR_OVERLAY_EDITOR_V22_END */
+
+
+/* PMD_FLOOR_CANONICAL_OVERLAY_V23_START */
+.pmd-floor-global-edit-v6,
+.pmd-floor-floating-v10,
+.pmd-dashboard-topbar-v7,
+.pmd-dashboard-topbar-v8,
+.pmd-dashboard-topbar-v9 {
+  display: none !important;
+  pointer-events: none !important;
+}
+
+.pmd-v23-edit-float {
+  position: fixed !important;
+  top: 14px !important;
+  right: 150px !important;
+  z-index: 1000020 !important;
+  min-height: 40px !important;
+  border-radius: 15px !important;
+  border: 0 !important;
+  background: #087762 !important;
+  color: #fff !important;
+  padding: 0 18px !important;
+  font-weight: 900 !important;
+  box-shadow: 0 16px 36px rgba(8,119,98,.24) !important;
+  cursor: pointer !important;
+}
+
+.pmd-v15-floor-canvas {
+  position: relative !important;
+  overflow: hidden !important;
+}
+
+body.pmd-floor-editing-v23 .pmd-v15-floor-node[data-pmd-table] {
+  opacity: .16 !important;
+  pointer-events: none !important;
+}
+
+body.pmd-floor-editing-v23 .pmd-floor-edit-toolbar-v6 {
+  display: none !important;
+}
+
+.pmd-v23-edit-node {
+  position: absolute !important;
+  z-index: 100 !important;
+  cursor: grab !important;
+  touch-action: none !important;
+  user-select: none !important;
+  transform: none !important;
+  box-sizing: border-box !important;
+  border-radius: 18px !important;
+  background: #fff !important;
+  display: grid !important;
+  place-items: center !important;
+  text-align: center !important;
+  color: #0f172a !important;
+  font-weight: 900 !important;
+  box-shadow: 0 16px 42px rgba(15,23,42,.14) !important;
+}
+
+.pmd-v23-edit-node.pmd-v15-floor-node--free {
+  border: 3px solid #22c55e !important;
+}
+
+.pmd-v23-edit-node.pmd-v15-floor-node--unpaid {
+  border: 3px solid #ef4444 !important;
+}
+
+.pmd-v23-edit-node.pmd-v23-dragging {
+  cursor: grabbing !important;
+  z-index: 140 !important;
+  box-shadow: 0 24px 64px rgba(15,23,42,.30) !important;
+}
+
+.pmd-v23-toolbar {
+  position: fixed;
+  left: 50%;
+  bottom: 24px;
+  transform: translateX(-50%);
+  z-index: 1000021;
+  display: none;
+  align-items: center;
+  gap: 10px;
+  padding: 11px;
+  border-radius: 18px;
+  background: rgba(15,23,42,.96);
+  box-shadow: 0 24px 70px rgba(15,23,42,.34);
+  color: #fff;
+  font-weight: 900;
+}
+
+body.pmd-floor-editing-v23 .pmd-v23-toolbar {
+  display: flex;
+}
+
+.pmd-v23-toolbar button {
+  border: 0 !important;
+  border-radius: 13px !important;
+  padding: 10px 14px !important;
+  font-weight: 900 !important;
+}
+
+.pmd-v23-save {
+  background: #22c55e !important;
+  color: #052e16 !important;
+}
+
+.pmd-v23-cancel {
+  background: rgba(255,255,255,.14) !important;
+  color: #fff !important;
+}
+
+.pmd-v23-toast {
+  position: fixed;
+  right: 22px;
+  bottom: 138px;
+  z-index: 1000022;
+  max-width: 460px;
+  padding: 13px 15px;
+  border-radius: 16px;
+  background: rgba(15,23,42,.96);
+  color: #fff;
+  box-shadow: 0 24px 70px rgba(15,23,42,.34);
+  display: none;
+  font-size: 12px;
+  font-weight: 900;
+  white-space: pre-wrap;
+}
+
+.pmd-v23-toast.is-visible {
+  display: block;
+}
+/* PMD_FLOOR_CANONICAL_OVERLAY_V23_END */
+

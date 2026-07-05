@@ -8,6 +8,7 @@ import { pmdBuildKazenParentCategories } from "@/features/customer-menu/data/men
 import type { MenuItem } from "@/lib/data"
 import type { KazenThemeRouteProps } from "@/features/customer-menu/theme/themeRouteTypes"
 import { createOpenOrderUpdateHandler } from "@/features/customer-menu/theme/themeRouteShared"
+import { isValetFeatureEnabled } from "@/features/valet/valet-config"
 type KazenValetValues = { name?: string; licensePlate?: string; license_plate?: string; carModel?: string; car_make?: string }
 const getKazenErrorMessage = (error: unknown, fallback: string) => error instanceof Error ? error.message : fallback
 
@@ -175,6 +176,7 @@ export function KazenThemeRoute(props: KazenThemeRouteProps) {
     typeof window !== "undefined" ? (window as any).__PMD_THEME_SETTINGS : null,
     typeof window !== "undefined" ? (window as any).__PMD_ADMIN_THEME_SETTINGS : null
   )
+  const showValet = isValetFeatureEnabled(cmsSettings, merchantSettings, tableInfo)
 
 
   const handleKazenAdd = (item: MenuItem, quantity = 1) => {
@@ -273,7 +275,7 @@ export function KazenThemeRoute(props: KazenThemeRouteProps) {
         restaurantName={restaurantDisplayName}
         logoUrl={kazenLogoUrl}
         tableNumber={kazenTableNumber}
-        menuLayout={kazenMenuLayout}
+        menuLayout={kazenMenuLayout} showValet={showValet}
         onAddItem={handleKazenAdd}
         onOpenItem={(item: MenuItem) => handleItemSelect(item)}
         onCheckout={handleCartClick}

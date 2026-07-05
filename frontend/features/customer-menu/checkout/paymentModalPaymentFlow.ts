@@ -139,6 +139,10 @@ export async function handlePaymentFlow({
         }
       })
 
+      const isSplitPersonPayment = checkoutStep === "payment" && Boolean(selectedSplitPersonId)
+      const safePaymentCouponDiscount = isSplitPersonPayment ? 0 : Number(paymentCouponDiscount || 0)
+      const safePaymentCouponCode = isSplitPersonPayment ? null : (appliedCoupon?.code ? String(appliedCoupon.code) : null)
+
       const orderData = {
         table_id: isCashier ? "cashier" : (numericResolvedTableId != null ? String(numericResolvedTableId) : null),
         table_name: String(isCashier ? "Cashier" : resolvedTableName),
@@ -165,8 +169,8 @@ export async function handlePaymentFlow({
         stripe_payment_intent_id: (isStripeMethodForSubmit && stripePaymentIntentId) ? String(stripePaymentIntentId) : undefined,
         total_amount: Number(checkoutStep === "payment" ? payableTotal : finalTotal),
         tip_amount: Number(checkoutStep === "payment" ? paymentTipAmount : tipAmount),
-        coupon_code: (checkoutStep === "payment" && selectedSplitPersonId) ? null : (appliedCoupon?.code ? String(appliedCoupon.code) : null),
-        coupon_discount: Number(checkoutStep === "payment" ? paymentCouponDiscount : couponDiscount),
+        coupon_code: checkoutStep === "payment" ? safePaymentCouponCode : (appliedCoupon?.code ? String(appliedCoupon.code) : null),
+        coupon_discount: Number(checkoutStep === "payment" ? safePaymentCouponDiscount : couponDiscount),
         guest_session_id: ensureGuestSession(),
         special_instructions: "",
       }
@@ -225,7 +229,7 @@ export async function handlePaymentFlow({
           if (selectedSplitPersonId) {
             setPaidSplitPeople((prev: any) => ({ ...prev, [selectedSplitPersonId]: true }))
           } else {
-            markOpenOrderAsPaid(paymentOrderIdCandidate, { tipAmount: paymentTipAmount, couponDiscount: paymentCouponDiscount, paidTotal: paymentPayableTotal, couponCode: appliedCoupon?.code || null })
+            markOpenOrderAsPaid(paymentOrderIdCandidate, { tipAmount: paymentTipAmount, couponDiscount: safePaymentCouponDiscount, paidTotal: paymentPayableTotal, couponCode: safePaymentCouponCode })
             resetPaymentAdjustmentsAfterSuccess()
           }
           setCheckoutStep(getCheckoutStepAfterPaymentSuccess())
@@ -253,7 +257,6 @@ export async function handlePaymentFlow({
       const candidates = [
         paymentPayableTotal,
         payableTotal,
-        (typeof existingOrderAmount !== "undefined" ? existingOrderAmount : undefined),
       ]
       for (const value of candidates) {
         const amount = Number(value)
@@ -303,8 +306,8 @@ export async function handlePaymentFlow({
           payment_reference: stripePaymentIntentId ? String(stripePaymentIntentId) : null,
           amount: (typeof existingOrderAmount !== "undefined" ? existingOrderAmount : undefined),
           tip_amount: checkoutStep === "payment" ? Number(paymentTipAmount.toFixed(2)) : 0,
-          coupon_discount: checkoutStep === "payment" ? Number(paymentCouponDiscount.toFixed(2)) : 0,
-          coupon_code: checkoutStep === "payment" && appliedCoupon?.code ? String(appliedCoupon.code) : null,
+          coupon_discount: checkoutStep === "payment" ? Number(safePaymentCouponDiscount.toFixed(2)) : 0,
+          coupon_code: checkoutStep === "payment" ? safePaymentCouponCode : null,
           selected_items: selectedItemsPayload,
           table_id: tableInfo?.table_id ? String(tableInfo.table_id) : null,
           table_no: tableInfo?.table_no ? String(tableInfo.table_no) : null,
@@ -336,7 +339,7 @@ export async function handlePaymentFlow({
           if (selectedSplitPersonId) {
             setPaidSplitPeople((prev: any) => ({ ...prev, [selectedSplitPersonId]: true }))
           } else {
-            markOpenOrderAsPaid(paymentOrderIdCandidate, { tipAmount: paymentTipAmount, couponDiscount: paymentCouponDiscount, paidTotal: paymentPayableTotal, couponCode: appliedCoupon?.code || null })
+            markOpenOrderAsPaid(paymentOrderIdCandidate, { tipAmount: paymentTipAmount, couponDiscount: safePaymentCouponDiscount, paidTotal: paymentPayableTotal, couponCode: safePaymentCouponCode })
             resetPaymentAdjustmentsAfterSuccess()
           }
           setCheckoutStep(getCheckoutStepAfterPaymentSuccess())
@@ -419,7 +422,7 @@ export async function handlePaymentFlow({
         } catch {}
         clearCart()
         if (checkoutStep === "payment") {
-          markOpenOrderAsPaid(orderId || submittedSnapshot?.orderId || null, { tipAmount: paymentTipAmount, couponDiscount: paymentCouponDiscount, paidTotal: paymentPayableTotal, couponCode: appliedCoupon?.code || null })
+          markOpenOrderAsPaid(orderId || submittedSnapshot?.orderId || null, { tipAmount: paymentTipAmount, couponDiscount: safePaymentCouponDiscount, paidTotal: paymentPayableTotal, couponCode: safePaymentCouponCode })
           resetPaymentAdjustmentsAfterSuccess()
           setCheckoutStep(getCheckoutStepAfterOrderSubmit(checkoutStep))
         } else {

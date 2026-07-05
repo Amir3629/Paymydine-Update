@@ -1,5 +1,7 @@
+import { isCancelledOrderItem } from "@/features/checkout/checkout-utils"
+
 export function estimatePrepMinutes(items: Array<any>): number {
-  const normalized = (items || []).map((item) => ({
+  const normalized = (items || []).filter((item) => !isCancelledOrderItem(item)).map((item) => ({
     quantity: Math.max(1, Number(item?.quantity || 1)),
     prep: Math.max(0, Number(item?.prep_time_minutes ?? item?.item?.prep_time_minutes ?? 15) || 15),
   }))
@@ -18,7 +20,7 @@ export function positiveMoney(value: any): number | null {
 }
 
 export function subtotalFromSubmittedPaymentRows(rows: Array<any>): number | null {
-  const total = (rows || []).reduce((sum: number, row: any) => {
+  const total = (rows || []).filter((row: any) => !isCancelledOrderItem(row)).reduce((sum: number, row: any) => {
     const qty = Number(row?.quantity || row?.qty || 1)
 
     const direct =

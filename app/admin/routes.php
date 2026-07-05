@@ -1,23 +1,5 @@
 <?php
 
-// PMD_COUNTER_DASHBOARD_V1_START
-// Counter / Reception dashboard for reservations. Must stay before admin catch-all routes.
-$__pmdCounterDashboardV1 = function () {
-    $path = base_path('app/admin/views/pmd-counter-dashboard.blade.php');
-
-    if (!file_exists($path)) {
-        return response('PMD Counter Dashboard view not found: '.$path, 404)
-            ->header('Content-Type', 'text/plain; charset=UTF-8');
-    }
-
-    return response(file_get_contents($path), 200)
-        ->header('Content-Type', 'text/html; charset=UTF-8')
-        ->header('Cache-Control', 'no-store, no-cache, must-revalidate, max-age=0');
-};
-
-\Illuminate\Support\Facades\Route::get('/admin/pmd-counter-dashboard', $__pmdCounterDashboardV1);
-\Illuminate\Support\Facades\Route::get('pmd-counter-dashboard', $__pmdCounterDashboardV1);
-// PMD_COUNTER_DASHBOARD_V1_END
 
 
 
@@ -187,10 +169,14 @@ if (class_exists('Route')) {
 
 
 // PMD_STABLE_FLOOR_PLAN_ROUTES_START
+
+
 Route::get('pmd-floor-plan-data', 'PmdFloorPlanStable@data');
 Route::get('pmd-floor-plan-audit', 'PmdFloorPlanStable@audit');
 Route::match(['GET','POST'], 'pmd-floor-plan-add-item', 'PmdFloorPlanStable@addItem');
 Route::match(['GET','POST'], 'pmd-floor-plan-merge', 'PmdFloorPlanStable@merge');
+
+
 // compatibility aliases for current waiter checks
 Route::get('pmd-waiter-floor-v134-data', 'PmdFloorPlanStable@data');
 Route::get('pmd-waiter-floor-v134-audit', 'PmdFloorPlanStable@audit');

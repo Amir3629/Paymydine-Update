@@ -13,6 +13,7 @@ import { EnvironmentConfig } from "@/lib/environment-config"
 import { setSavedHome } from "@/lib/table-home"
 import { stickySearch } from "@/lib/sticky-query"
 import { ApiClient } from "@/lib/api-client"
+import { isValetFeatureEnabled } from "@/features/valet/valet-config"
 
 const MotionLink = motion.create(Link)
 
@@ -153,6 +154,7 @@ export default function TableHomePage({ params }: { params: { table_id: string }
     stroke: "#FFFFFF",
     WebkitTextFillColor: "#FFFFFF",
   }
+  const showValet = isValetFeatureEnabled(settings, table)
   const menuHref = `/table/${pathParam}/menu?qr=${qr || ''}`
   const tableOrderHref = `/menu?table_no=${encodeURIComponent(String(table?.table_no || pathParam))}&table_id=${encodeURIComponent(String(table?.table_id || pathParam))}&table=${encodeURIComponent(String(table?.table_no || pathParam))}${qr ? `&qr=${encodeURIComponent(qr)}` : ''}${activeTableOrder?.order_id ? `&pending_order_id=${encodeURIComponent(String(activeTableOrder.order_id))}` : ''}`
 
@@ -217,6 +219,7 @@ export default function TableHomePage({ params }: { params: { table_id: string }
         </MotionLink>
         {/* PMD: View table order card hidden. Homepage keeps only Menu and Valet Parking. */}
 
+        {showValet && (
         <MotionLink
           href={`/table/${pathParam}/valet?qr=${qr || ''}`}
           className="relative group"
@@ -262,6 +265,7 @@ export default function TableHomePage({ params }: { params: { table_id: string }
             </h2>
           </motion.div>
         </MotionLink>
+        )}
       </div>
 
     </div>
