@@ -2,6 +2,689 @@
 <html xmlns="http://www.w3.org/1999/xhtml" lang="en">
 <head>
 
+<!-- PMD_OWNER_V110_EXPAND_BRIDGE_START -->
+<script id="pmd-owner-v110-expand-bridge">
+(function () {
+  'use strict';
+
+  if (window.PMD_OWNER_V110_EXPAND_BRIDGE) return;
+  window.PMD_OWNER_V110_EXPAND_BRIDGE = true;
+
+  if (!/\/admin\/dashboard(?:$|[?#])|\/admin\/?$/.test(location.pathname + location.search + location.hash)) return;
+
+  var state = {
+    expanded: false,
+    attempts: 0,
+    writes: 0,
+    last: null
+  };
+
+  function textOf(el) {
+    try {
+      return (
+        (el && el.querySelector && el.querySelector('h1,h2,h3,h4,.card-title') && el.querySelector('h1,h2,h3,h4,.card-title').innerText) ||
+        (el && el.innerText) ||
+        ''
+      ).replace(/\s+/g, ' ').trim();
+    } catch (e) {
+      return '';
+    }
+  }
+
+  function important(el, prop, value) {
+    if (!el) return false;
+    if (el.style.getPropertyValue(prop) === value && el.style.getPropertyPriority(prop) === 'important') return false;
+    el.style.setProperty(prop, value, 'important');
+    state.writes += 1;
+    return true;
+  }
+
+  function addClass(el, cls) {
+    if (!el || el.classList.contains(cls)) return false;
+    el.classList.add(cls);
+    state.writes += 1;
+    return true;
+  }
+
+  function removeClass(el, cls) {
+    if (!el || !el.classList.contains(cls)) return false;
+    el.classList.remove(cls);
+    state.writes += 1;
+    return true;
+  }
+
+  function floorCandidates() {
+    return Array.prototype.slice.call(document.querySelectorAll(
+      '.pmd-owner-v108-floor,' +
+      '.pmd-owner-floor-v60,' +
+      '.pmd-shared-role-floor-v32,' +
+      '.pmd-v15-card--floor,' +
+      '[class*="owner-floor"],' +
+      '[class*="floor-v"],' +
+      '[class*="floor-card"]'
+    ));
+  }
+
+  function findFloor() {
+    var list = floorCandidates().filter(function (el) {
+      var c = String(el.className || '');
+      return c.indexOf('hidden-duplicate') === -1 &&
+        c.indexOf('pmd-owner-v108-hidden-flow') === -1 &&
+        c.indexOf('pmd-owner-v109-hidden-flow') === -1;
+    });
+
+    list.sort(function (a, b) {
+      function score(el) {
+        var r = el.getBoundingClientRect();
+        var c = String(el.className || '');
+        var s = 0;
+        if (c.indexOf('pmd-owner-v108-floor') !== -1) s += 1200;
+        if (c.indexOf('pmd-owner-floor-v60') !== -1) s += 1000;
+        if (textOf(el).indexOf('Restaurant Floor') !== -1) s += 700;
+        if (r.width > 700) s += 250;
+        if (r.height > 50) s += 100;
+        return s;
+      }
+      return score(b) - score(a);
+    });
+
+    return list[0] || null;
+  }
+
+  function findSurface(floor) {
+    if (!floor) return null;
+    return floor.querySelector('.pmd-owner-v108-surface') ||
+      floor.querySelector('.pmd-owner-floor-v60__surface') ||
+      floor.querySelector('[class*="floor-surface"]') ||
+      floor.querySelector('[class*="floorSurface"]');
+  }
+
+  function apply(reason) {
+    state.attempts += 1;
+
+    var floor = findFloor();
+    if (!floor) {
+      state.last = { ok: false, reason: reason || 'no-floor' };
+      return false;
+    }
+
+    var surface = findSurface(floor);
+
+    addClass(floor, 'pmd-owner-v110-floor');
+    if (state.expanded) addClass(floor, 'is-expanded');
+    else removeClass(floor, 'is-expanded');
+
+    var floorH = state.expanded ? '660px' : '213px';
+    var surfaceH = state.expanded ? '550px' : '108px';
+
+    important(floor, 'display', 'block');
+    important(floor, 'visibility', 'visible');
+    important(floor, 'opacity', '1');
+    important(floor, 'width', '100%');
+    important(floor, 'max-width', '100%');
+    important(floor, 'min-height', floorH);
+    important(floor, 'height', floorH);
+    important(floor, 'max-height', floorH);
+    important(floor, 'overflow', 'hidden');
+    important(floor, 'grid-column', '1 / -1');
+    important(floor, 'transform', 'none');
+
+    if (surface) {
+      addClass(surface, 'pmd-owner-v110-surface');
+      important(surface, 'display', 'block');
+      important(surface, 'visibility', 'visible');
+      important(surface, 'opacity', '1');
+      important(surface, 'width', '100%');
+      important(surface, 'max-width', '100%');
+      important(surface, 'min-height', surfaceH);
+      important(surface, 'height', surfaceH);
+      important(surface, 'max-height', surfaceH);
+      important(surface, 'overflow', 'hidden');
+      important(surface, 'transform', 'none');
+    }
+
+    var r = floor.getBoundingClientRect();
+    state.last = {
+      ok: true,
+      reason: reason || 'apply',
+      expanded: state.expanded,
+      floor: {
+        x: Math.round(r.x),
+        y: Math.round(r.y),
+        w: Math.round(r.width),
+        h: Math.round(r.height)
+      }
+    };
+
+    return true;
+  }
+
+  function pulse(reason) {
+    apply(reason);
+    [40, 90, 160, 260, 420, 700, 1100, 1700].forEach(function (ms) {
+      setTimeout(function () { apply(reason + '-' + ms); }, ms);
+    });
+  }
+
+  document.addEventListener('click', function (e) {
+    var floor = findFloor();
+    if (!floor || !floor.contains(e.target)) return;
+
+    var btn = e.target.closest && e.target.closest('button,a');
+    if (!btn) return;
+
+    var label = textOf(btn).toLowerCase();
+    if (label.indexOf('edit') !== -1) return;
+
+    e.preventDefault();
+    e.stopPropagation();
+
+    state.expanded = !state.expanded;
+    pulse('click-toggle');
+  }, true);
+
+  window.PMDOwnerV110ExpandBridge = {
+    expand: function () {
+      state.expanded = true;
+      pulse('manual-expand');
+      return state.last;
+    },
+    collapse: function () {
+      state.expanded = false;
+      pulse('manual-collapse');
+      return state.last;
+    },
+    toggle: function () {
+      state.expanded = !state.expanded;
+      pulse('manual-toggle');
+      return state.last;
+    },
+    debug: function () {
+      apply('debug');
+      return {
+        active: true,
+        expanded: state.expanded,
+        attempts: state.attempts,
+        writes: state.writes,
+        last: state.last
+      };
+    }
+  };
+
+  [0, 80, 180, 360, 700, 1200, 2400, 4200, 6500, 9000].forEach(function (ms) {
+    setTimeout(function () { apply('boot-' + ms); }, ms);
+  });
+
+  console.info('[PMD] Owner v110 expand bridge active');
+})();
+</script>
+<!-- PMD_OWNER_V110_EXPAND_BRIDGE_END -->
+
+
+
+<!-- PMD_OWNER_V108_FINAL_DASHBOARD_LOCK_START -->
+<style id="pmd-owner-v108-final-dashboard-lock-style">
+html.pmd-owner-v69-no-loader .pmd-owner-v108-floor,
+.pmd-owner-v108-floor {
+  display: block !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+  width: 100% !important;
+  max-width: 100% !important;
+  min-height: 213px !important;
+  height: 213px !important;
+  max-height: 213px !important;
+  overflow: hidden !important;
+  grid-column: 1 / -1 !important;
+  transform: none !important;
+  transition: none !important;
+  animation: none !important;
+  margin: 0 0 18px 0 !important;
+}
+
+html.pmd-owner-v69-no-loader .pmd-owner-v108-surface,
+.pmd-owner-v108-surface {
+  display: block !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+  width: 100% !important;
+  max-width: 100% !important;
+  min-height: 108px !important;
+  height: 108px !important;
+  max-height: 108px !important;
+  overflow: hidden !important;
+  transform: none !important;
+  transition: none !important;
+  animation: none !important;
+}
+
+html.pmd-owner-v69-no-loader .pmd-owner-v108-master-grid,
+.pmd-owner-v108-master-grid {
+  display: grid !important;
+  grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
+  gap: 18px !important;
+  align-items: stretch !important;
+  width: 100% !important;
+  max-width: 100% !important;
+  margin-top: 18px !important;
+}
+
+html.pmd-owner-v69-no-loader .pmd-owner-v108-master-grid > .pmd-v15-card,
+.pmd-owner-v108-master-grid > .pmd-v15-card {
+  grid-column: span 1 !important;
+  width: auto !important;
+  max-width: 100% !important;
+  min-width: 0 !important;
+  transform: none !important;
+}
+
+.pmd-owner-v108-hidden-flow {
+  display: none !important;
+  visibility: hidden !important;
+  width: 0 !important;
+  height: 0 !important;
+  min-height: 0 !important;
+  max-height: 0 !important;
+  overflow: hidden !important;
+  opacity: 0 !important;
+  margin: 0 !important;
+  padding: 0 !important;
+}
+
+@media (max-width: 760px) {
+  .pmd-owner-v108-master-grid {
+    grid-template-columns: 1fr !important;
+  }
+}
+</style>
+
+<script id="pmd-owner-v108-final-dashboard-lock">
+(function () {
+  'use strict';
+
+  if (window.PMD_OWNER_V108_FINAL_DASHBOARD_LOCK) return;
+  window.PMD_OWNER_V108_FINAL_DASHBOARD_LOCK = true;
+
+  if (!/\/admin\/dashboard(?:$|[?#])|\/admin\/?$/.test(location.pathname + location.search + location.hash)) return;
+
+  var state = { attempts: 0, writes: 0, ok: false, last: null, interval: null };
+
+  function q(sel) { return document.querySelector(sel); }
+
+  function textOf(el) {
+    try {
+      return (
+        (el && el.querySelector && el.querySelector('h1,h2,h3,h4,.card-title') && el.querySelector('h1,h2,h3,h4,.card-title').innerText) ||
+        (el && el.innerText) ||
+        ''
+      ).replace(/\s+/g, ' ').trim();
+    } catch (e) {
+      return '';
+    }
+  }
+
+  function addClass(el, cls) {
+    if (!el || el.classList.contains(cls)) return false;
+    el.classList.add(cls);
+    state.writes++;
+    return true;
+  }
+
+  function removeClass(el, cls) {
+    if (!el || !el.classList.contains(cls)) return false;
+    el.classList.remove(cls);
+    state.writes++;
+    return true;
+  }
+
+  function important(el, prop, value) {
+    if (!el) return false;
+    if (el.style.getPropertyValue(prop) === value && el.style.getPropertyPriority(prop) === 'important') return false;
+    el.style.setProperty(prop, value, 'important');
+    state.writes++;
+    return true;
+  }
+
+  function removeStyle(el, prop) {
+    if (!el || !el.style.getPropertyValue(prop)) return false;
+    el.style.removeProperty(prop);
+    state.writes++;
+    return true;
+  }
+
+  function findByText(patterns) {
+    var list = Array.prototype.slice.call(document.querySelectorAll('.pmd-v15-card, div'));
+    for (var i = 0; i < list.length; i++) {
+      var txt = textOf(list[i]);
+      if (patterns.some(function (p) { return txt.indexOf(p) !== -1; })) {
+        return list[i].closest('.pmd-v15-card') || list[i];
+      }
+    }
+    return null;
+  }
+
+  function findCard(sel, patterns) {
+    return q(sel) || findByText(patterns || []);
+  }
+
+  function cards() {
+    return [
+      findCard('.pmd-v15-card--alerts', ['Needs Attention', 'Open check value', 'Old table references']),
+      findCard('.pmd-v15-card--timeline', ['Recent Activity', 'Order #203', 'Latest restaurant activity']),
+      findCard('.pmd-v15-card--chart', ['Sales Trend']),
+      findCard('.pmd-v15-card--payment', ['Payments', 'Payment methods']),
+      findCard('.pmd-v15-card--small', ['Average Guest Spend']),
+      findCard('.pmd-v15-card--lost', ['Lost Revenue']),
+      findCard('.pmd-v15-card--servers', ['Next Reservation']),
+      findCard('.pmd-v15-card--kitchen', ['Kitchen Status']),
+      findCard('.pmd-v15-card--items', ['Top Selling Items']),
+      findCard('.pmd-v15-card--actions', ['Quick Actions'])
+    ];
+  }
+
+  function findKpiRow() {
+    if (state.kpi && document.contains(state.kpi)) return state.kpi;
+
+    var labels = ['Revenue Today', 'Pending Value', 'Table Occupancy', 'Orders Today'];
+    var all = Array.prototype.slice.call(document.querySelectorAll('div, section, main'));
+    var hits = all.filter(function (el) {
+      var txt = textOf(el);
+      if (!labels.every(function (x) { return txt.indexOf(x) !== -1; })) return false;
+      var r = el.getBoundingClientRect();
+      return r.width > 700 && r.height > 70 && r.height < 350;
+    });
+
+    hits.sort(function (a, b) {
+      var ar = a.getBoundingClientRect();
+      var br = b.getBoundingClientRect();
+      return (ar.width * ar.height) - (br.width * br.height);
+    });
+
+    state.kpi = hits[0] || null;
+    return state.kpi;
+  }
+
+  function floorCandidates() {
+    return Array.prototype.slice.call(document.querySelectorAll(
+      '.pmd-owner-floor-v89-host,' +
+      '.pmd-owner-floor-v60,' +
+      '.pmd-shared-role-floor-v32,' +
+      '.pmd-v15-card--floor,' +
+      '[class*="owner-floor"],' +
+      '[class*="floor-v"],' +
+      '[class*="floor-card"]'
+    ));
+  }
+
+  function findFloor() {
+    if (state.floor && document.contains(state.floor)) return state.floor;
+
+    var list = floorCandidates().filter(function (el) {
+      var c = String(el.className || '');
+      return c.indexOf('hidden-duplicate') === -1 &&
+        c.indexOf('pmd-owner-v108-hidden-flow') === -1;
+    });
+
+    list.sort(function (a, b) {
+      function score(el) {
+        var r = el.getBoundingClientRect();
+        var c = String(el.className || '');
+        var s = 0;
+        if (c.indexOf('pmd-owner-floor-v89-host') !== -1) s += 1000;
+        if (c.indexOf('pmd-owner-floor-v60') !== -1) s += 900;
+        if (textOf(el).indexOf('Restaurant Floor') !== -1) s += 600;
+        if (r.width > 800) s += 200;
+        if (r.height > 50) s += 100;
+        return s;
+      }
+      return score(b) - score(a);
+    });
+
+    state.floor = list[0] || null;
+    return state.floor;
+  }
+
+  function findSurface(floor) {
+    if (!floor) return null;
+    return floor.querySelector('.pmd-owner-floor-v60__surface') ||
+      floor.querySelector('[class*="floor-surface"]') ||
+      floor.querySelector('[class*="floorSurface"]');
+  }
+
+  function getMaster(floor) {
+    var master = q('.pmd-owner-v108-master-grid');
+    if (master) return master;
+
+    master = document.createElement('div');
+    master.className = 'pmd-owner-v108-master-grid';
+    master.setAttribute('data-pmd-owner-v108', 'master-grid');
+
+    if (floor && floor.parentElement) {
+      floor.parentElement.insertBefore(master, floor.nextSibling);
+    } else {
+      (q('.content') || document.body).appendChild(master);
+    }
+
+    state.writes++;
+    return master;
+  }
+
+  function prepFloor(floor) {
+    addClass(floor, 'pmd-owner-v108-floor');
+
+    important(floor, 'display', 'block');
+    important(floor, 'visibility', 'visible');
+    important(floor, 'opacity', '1');
+    important(floor, 'width', '100%');
+    important(floor, 'max-width', '100%');
+    important(floor, 'min-height', '213px');
+    important(floor, 'height', '213px');
+    important(floor, 'max-height', '213px');
+    important(floor, 'overflow', 'hidden');
+    important(floor, 'grid-column', '1 / -1');
+    important(floor, 'transform', 'none');
+
+    var surface = findSurface(floor);
+    if (surface) {
+      addClass(surface, 'pmd-owner-v108-surface');
+      important(surface, 'display', 'block');
+      important(surface, 'visibility', 'visible');
+      important(surface, 'opacity', '1');
+      important(surface, 'width', '100%');
+      important(surface, 'max-width', '100%');
+      important(surface, 'min-height', '108px');
+      important(surface, 'height', '108px');
+      important(surface, 'max-height', '108px');
+      important(surface, 'overflow', 'hidden');
+      important(surface, 'transform', 'none');
+    }
+  }
+
+  function prepCard(card, index) {
+    addClass(card, 'pmd-owner-v108-card');
+    removeClass(card, 'pmd-v36-span-2');
+    addClass(card, 'pmd-v36-span-1');
+
+    removeStyle(card, 'grid-column-start');
+    removeStyle(card, 'grid-column-end');
+    removeStyle(card, 'width');
+    removeStyle(card, 'max-width');
+    removeStyle(card, 'transform');
+
+    important(card, 'grid-column', 'span 1');
+    important(card, 'width', 'auto');
+    important(card, 'max-width', '100%');
+    important(card, 'min-width', '0');
+    important(card, 'order', String(index + 1));
+
+    if (index <= 3) important(card, 'min-height', '350px');
+    else if (index <= 7) important(card, 'min-height', '364px');
+    else important(card, 'min-height', '390px');
+  }
+
+  function hide(el) {
+    if (!el) return;
+    addClass(el, 'pmd-owner-v108-hidden-flow');
+    important(el, 'display', 'none');
+    important(el, 'visibility', 'hidden');
+    important(el, 'width', '0px');
+    important(el, 'height', '0px');
+    important(el, 'min-height', '0px');
+    important(el, 'max-height', '0px');
+    important(el, 'overflow', 'hidden');
+  }
+
+  function hideEmptyOldGrids(master) {
+    var grids = Array.prototype.slice.call(document.querySelectorAll(
+      '.pmd-v19-reference-grid,.pmd-v21-reference-grid,.pmd-v71-after-floor-row,' +
+      '.pmd-v73-top-analytics-row,.pmd-v19-analytics-grid,.pmd-v21-analytics-grid,' +
+      '.pmd-v74-lower-equal-row,.pmd-v19-bottom-grid,.pmd-v21-bottom-grid'
+    ));
+
+    grids.forEach(function (grid) {
+      if (!grid || grid === master || grid.contains(master)) return;
+      var visible = Array.prototype.slice.call(grid.querySelectorAll('.pmd-v15-card')).filter(function (card) {
+        return getComputedStyle(card).display !== 'none';
+      });
+      if (visible.length === 0) hide(grid);
+    });
+  }
+
+  function stabilize(reason) {
+    state.attempts++;
+
+    var kpi = findKpiRow();
+    var floor = findFloor();
+    var list = cards();
+
+    if (!floor || list.some(function (x) { return !x; })) {
+      state.last = {
+        ok: false,
+        reason: reason || 'missing',
+        hasKpi: !!kpi,
+        hasFloor: !!floor,
+        cards: list.map(Boolean)
+      };
+      return false;
+    }
+
+    prepFloor(floor);
+
+    if (kpi && kpi.parentElement) {
+      if (floor.parentElement !== kpi.parentElement || kpi.nextElementSibling !== floor) {
+        kpi.parentElement.insertBefore(floor, kpi.nextSibling);
+        state.writes++;
+      }
+    }
+
+    var master = getMaster(floor);
+
+    if (master.parentElement !== floor.parentElement || floor.nextElementSibling !== master) {
+      floor.parentElement.insertBefore(master, floor.nextSibling);
+      state.writes++;
+    }
+
+    important(master, 'display', 'grid');
+    important(master, 'grid-template-columns', 'repeat(4, minmax(0, 1fr))');
+    important(master, 'gap', '18px');
+    important(master, 'align-items', 'stretch');
+    important(master, 'width', '100%');
+    important(master, 'max-width', '100%');
+
+    list.forEach(function (card, index) {
+      prepCard(card, index);
+      if (card.parentElement !== master || master.children[index] !== card) {
+        master.insertBefore(card, master.children[index] || null);
+        state.writes++;
+      }
+    });
+
+    hide(q('.pmd-v15-card--floor.pmd-v85-hidden-duplicate-floor'));
+    hide(q('.pmd-v15-card--reservations.pmd-v74-hidden-upcoming'));
+    hideEmptyOldGrids(master);
+
+    document.documentElement.classList.add('pmd-owner-v108-ready');
+
+    var fr = floor.getBoundingClientRect();
+
+    state.ok = true;
+    state.last = {
+      ok: true,
+      reason: reason || 'stabilize',
+      attempts: state.attempts,
+      writes: state.writes,
+      floor: {
+        x: Math.round(fr.x),
+        y: Math.round(fr.y),
+        w: Math.round(fr.width),
+        h: Math.round(fr.height)
+      },
+      cards: list.map(function (card) {
+        var r = card.getBoundingClientRect();
+        return {
+          title: textOf(card).slice(0, 35),
+          x: Math.round(r.x),
+          y: Math.round(r.y),
+          w: Math.round(r.width),
+          h: Math.round(r.height),
+          order: getComputedStyle(card).order
+        };
+      })
+    };
+
+    return true;
+  }
+
+  function start() {
+    var ticks = 0;
+
+    function tick() {
+      ticks++;
+      stabilize('tick-' + ticks);
+      if (ticks >= 300) {
+        clearInterval(state.interval);
+        state.interval = null;
+        stabilize('final');
+      }
+    }
+
+    tick();
+    state.interval = setInterval(tick, 40);
+
+    window.addEventListener('load', function () { stabilize('window-load'); }, { once: true });
+
+    [800, 1600, 2600, 4200, 6500, 9000, 12000].forEach(function (ms) {
+      setTimeout(function () { stabilize('timer-' + ms); }, ms);
+    });
+  }
+
+  window.PMDOwnerV108FinalDashboard = {
+    fix: function () { return stabilize('manual-fix'); },
+    debug: function () {
+      stabilize('debug');
+      return {
+        active: true,
+        ok: state.ok,
+        attempts: state.attempts,
+        writes: state.writes,
+        last: state.last
+      };
+    }
+  };
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', start, { once: true });
+  } else {
+    start();
+  }
+
+  console.info('[PMD] Owner v108 final dashboard lock active');
+})();
+</script>
+<!-- PMD_OWNER_V108_FINAL_DASHBOARD_LOCK_END -->
+
+
+
 <!-- PMD_OWNER_DASHBOARD_V69_NO_LOADER_GEOMETRY_FIRST_START -->
 <script>
 (function () {
@@ -1667,6 +2350,7 @@ html.pmd-new-pages-antiflash-v40:not(.pmd-new-pages-antiflash-rendered-v40):not(
 <link rel="stylesheet" href="/app/admin/assets/css/pmd-admin-universal-forms-v1.css?v=10">
 <script defer src="/app/admin/assets/js/pmd-admin-universal-forms-v1.js?v=10"></script>
 <!-- /PMD Universal Admin Forms v1 -->
+
 
 </head>
 <script>

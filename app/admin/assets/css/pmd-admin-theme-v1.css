@@ -2437,3 +2437,181 @@ html body.page.pmd-admin-theme-v1 .navbar-top .pmd-header-action-btn.pmd-header-
 }
 
 /* PMD HEADER ACTION FLIP SMOOTH END */
+
+
+/* PMD_ADMIN_GLOBAL_ROBOTO_V1_START */
+/*
+  Global admin typography layer.
+  Scope: all admin panel pages.
+  Goal: Roboto everywhere, readable numbers, stronger hierarchy.
+  Guard: preserve icon fonts, editors and code fields.
+*/
+html,
+body,
+.main-container,
+.page-content,
+.content,
+.navbar,
+.navbar-top,
+.sidebar,
+.side-nav,
+.main-menu,
+.card,
+.panel,
+.form-group,
+.field,
+.toolbar-action,
+.table,
+.dropdown-menu,
+.modal,
+.select2-container,
+.select2-results,
+.select2-selection,
+.swal2-container {
+  font-family: "Roboto", Arial, Helvetica, sans-serif !important;
+  -webkit-font-smoothing: antialiased !important;
+  -moz-osx-font-smoothing: grayscale !important;
+  text-rendering: optimizeLegibility !important;
+  font-variant-numeric: tabular-nums !important;
+  font-feature-settings: "tnum" 1, "lnum" 1 !important;
+}
+
+body,
+.main-container,
+.page-content,
+.content {
+  color: #0f172a !important;
+  font-size: 14px !important;
+  line-height: 1.38 !important;
+  letter-spacing: -0.006em !important;
+}
+
+h1, h2, h3, h4,
+.page-title,
+.card-title,
+.panel-title,
+.form-heading,
+.toolbar-title {
+  font-family: "Roboto", Arial, Helvetica, sans-serif !important;
+  font-weight: 900 !important;
+  letter-spacing: -0.032em !important;
+  line-height: 1.1 !important;
+  color: #07111f !important;
+}
+
+h1, .page-title {
+  font-size: clamp(24px, 1.65vw, 32px) !important;
+}
+
+h2 {
+  font-size: clamp(21px, 1.35vw, 26px) !important;
+}
+
+h3, .card-title, .panel-title {
+  font-size: clamp(18px, 1.1vw, 22px) !important;
+}
+
+label,
+.control-label,
+.form-label,
+.text-muted,
+small,
+.help-block,
+.form-text {
+  font-family: "Roboto", Arial, Helvetica, sans-serif !important;
+  font-size: 13px !important;
+  font-weight: 600 !important;
+  letter-spacing: -0.006em !important;
+  line-height: 1.35 !important;
+}
+
+input,
+textarea,
+select,
+.form-control,
+.select2-selection__rendered {
+  font-family: "Roboto", Arial, Helvetica, sans-serif !important;
+  font-size: 14px !important;
+  font-weight: 500 !important;
+  letter-spacing: -0.006em !important;
+  font-variant-numeric: tabular-nums !important;
+}
+
+button,
+.btn,
+a.btn,
+.toolbar-action .btn,
+.dropdown-item {
+  font-family: "Roboto", Arial, Helvetica, sans-serif !important;
+  font-weight: 800 !important;
+  letter-spacing: -0.01em !important;
+}
+
+table,
+.table,
+.list-table,
+.table td,
+.table th {
+  font-family: "Roboto", Arial, Helvetica, sans-serif !important;
+  font-size: 13.5px !important;
+  font-variant-numeric: tabular-nums !important;
+  font-feature-settings: "tnum" 1, "lnum" 1 !important;
+}
+
+.table th,
+table th {
+  font-weight: 800 !important;
+  color: #334155 !important;
+}
+
+.table td,
+table td {
+  font-weight: 500 !important;
+  color: #0f172a !important;
+}
+
+.badge,
+.label,
+.status,
+.amount,
+.price,
+.total,
+.value,
+[class*="amount"],
+[class*="price"],
+[class*="total"],
+[class*="value"] {
+  font-family: "Roboto", Arial, Helvetica, sans-serif !important;
+  font-weight: 800 !important;
+  font-variant-numeric: tabular-nums !important;
+  font-feature-settings: "tnum" 1, "lnum" 1 !important;
+}
+
+/* Preserve icon fonts */
+.fa, .fas, .far, .fal, .fad {
+  font-family: "Font Awesome 5 Free" !important;
+}
+
+.fab {
+  font-family: "Font Awesome 5 Brands" !important;
+}
+
+.ti, [class^="ti-"], [class*=" ti-"] {
+  font-family: "themify" !important;
+}
+
+.material-icons {
+  font-family: "Material Icons" !important;
+}
+
+/* Preserve editors/code */
+code, pre, kbd, samp,
+.CodeMirror,
+.ace_editor,
+.tox, .tox *,
+.mce-content-body {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace !important;
+  font-variant-numeric: normal !important;
+}
+/* PMD_ADMIN_GLOBAL_ROBOTO_V1_END */
+

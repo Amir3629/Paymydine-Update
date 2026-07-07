@@ -11651,20 +11651,25 @@
       }
 
       hard(floor, 'display', 'block');
+      hard(floor, 'position', 'relative');
+      floor.style.removeProperty('inset');
+      floor.style.removeProperty('z-index');
       hard(floor, 'visibility', 'visible');
       hard(floor, 'opacity', '1');
       hard(floor, 'width', '100%');
-      hard(floor, 'height', '500px');
-      hard(floor, 'min-height', '500px');
-      hard(floor, 'max-height', '500px');
+      hard(floor, 'height', '660px');
+      hard(floor, 'min-height', '660px');
+      hard(floor, 'max-height', '660px');
       hard(floor, 'padding', '18px');
       hard(floor, 'overflow', 'hidden');
+      hard(floor, 'transition', 'height .26s ease, min-height .26s ease, max-height .26s ease, margin .26s ease'); // PMD_V95_INLINE_TRANSITION_PATCH
 
       if (surface) {
-        hard(surface, 'height', '390px');
-        hard(surface, 'min-height', '390px');
-        hard(surface, 'max-height', '390px');
+        hard(surface, 'height', '550px');
+        hard(surface, 'min-height', '550px');
+        hard(surface, 'max-height', '550px');
         hard(surface, 'overflow', 'auto');
+        hard(surface, 'transition', 'height .26s ease, min-height .26s ease, max-height .26s ease');
       }
     } else {
       if (host) {
@@ -11940,3 +11945,115 @@
   };
 })();
  /* PMD_OWNER_DASHBOARD_V95_SAFE_FLOOR_EXPAND_KPI_CARDS_END */
+
+
+
+/* PMD_OWNER_V95_INLINE_EXPAND_REPLACE_V1: removed fullscreen append; original v95 now expands inline to 660px / 550px surface. */
+
+
+/* PMD_OWNER_V96_TOGGLE_CLICK_BRIDGE_START */
+/*
+  Owner floor v96 click bridge.
+  Fixes real mouse click on the v60 expand button after v95 inline expand patch.
+  Scope: Owner dashboard only. No backend/database/order/payment logic.
+*/
+(function () {
+  'use strict';
+
+  if (window.PMD_OWNER_V96_TOGGLE_CLICK_BRIDGE) return;
+  window.PMD_OWNER_V96_TOGGLE_CLICK_BRIDGE = true;
+
+  if (!/\/admin\/dashboard(?:$|[?#])|\/admin\/?$/.test(location.pathname + location.search + location.hash)) return;
+
+  function $(s, r) {
+    return (r || document).querySelector(s);
+  }
+
+  function currentRole() {
+    var active = $('#pmd-v31-role-rail .pmd-v31-role-btn.is-active');
+    return active && active.dataset ? active.dataset.pmdRole : null;
+  }
+
+  function ownerFloor() {
+    return $('.pmd-owner-floor-v89-host .pmd-owner-floor-v60') ||
+      $('.pmd-owner-floor-v60.pmd-owner-floor-v89-rescued') ||
+      $('.pmd-owner-floor-v60:not(#pmd-v76-role-floor)');
+  }
+
+  document.addEventListener('click', function (e) {
+    var btn = e.target.closest('.pmd-owner-floor-v60__toggle');
+    if (!btn) return;
+    if (currentRole() !== 'owner') return;
+
+    var floor = ownerFloor();
+    if (!floor || !floor.contains(btn)) return;
+
+    e.preventDefault();
+    e.stopPropagation();
+    if (e.stopImmediatePropagation) e.stopImmediatePropagation();
+
+    if (window.PMDOwnerDashboardV95 && typeof window.PMDOwnerDashboardV95.toggle === 'function') {
+      window.PMDOwnerDashboardV95.toggle();
+
+      [80, 220, 520].forEach(function (ms) {
+        setTimeout(function () {
+          var expanded =
+            floor.classList.contains('pmd-v95-expanded-floor') ||
+            floor.classList.contains('is-expanded');
+
+          if (expanded && window.PMDOwnerDashboardV95.expand) {
+            window.PMDOwnerDashboardV95.expand();
+          }
+        }, ms);
+      });
+    }
+  }, true);
+
+  window.PMDOwnerV96ToggleBridge = {
+    debug: function () {
+      var floor = ownerFloor();
+      var btn = floor ? floor.querySelector('.pmd-owner-floor-v60__toggle') : null;
+      return {
+        active: true,
+        role: currentRole(),
+        floor: !!floor,
+        button: !!btn,
+        buttonText: btn ? btn.textContent : null,
+        floorClass: floor ? floor.className : null,
+        floorRect: floor ? floor.getBoundingClientRect().toJSON() : null,
+        floorStyle: floor ? floor.getAttribute('style') : null
+      };
+    }
+  };
+
+  console.info('[PMD] Owner v96 toggle click bridge active');
+})();
+ /* PMD_OWNER_V96_TOGGLE_CLICK_BRIDGE_END */
+
+
+/* PMD_DASHBOARD_ROBOTO_FONT_LOADER_V2_START */
+/*
+  Load Roboto for PMD dashboard typography.
+  Safe idempotent loader. No backend/database/order/payment logic.
+*/
+(function () {
+  'use strict';
+
+  if (window.PMD_DASHBOARD_ROBOTO_FONT_LOADER_V2) return;
+  window.PMD_DASHBOARD_ROBOTO_FONT_LOADER_V2 = true;
+
+  if (!/\/admin\/dashboard(?:$|[?#])|\/admin\/?$/.test(location.pathname + location.search + location.hash)) return;
+
+  if (!document.getElementById('pmd-dashboard-roboto-font-v2')) {
+    var link = document.createElement('link');
+    link.id = 'pmd-dashboard-roboto-font-v2';
+    link.rel = 'stylesheet';
+    link.href = 'https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700;800;900&display=swap';
+    document.head.appendChild(link);
+  }
+
+  console.info('[PMD] Dashboard Roboto font loader v2 active');
+})();
+ /* PMD_DASHBOARD_ROBOTO_FONT_LOADER_V2_END */
+
+

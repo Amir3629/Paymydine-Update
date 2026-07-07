@@ -6317,3 +6317,179 @@ html body:has(#pmd-v31-role-rail) .pmd-v95-restored-card {
 }
 
 /* PMD_OWNER_DASHBOARD_V95_SAFE_FLOOR_EXPAND_KPI_CARDS_END */
+
+
+/* PMD_DASHBOARD_ROBOTO_TYPOGRAPHY_V2_START */
+/*
+  PMD dashboard typography v2.
+  Scope: role dashboard / owner dashboard only.
+  Goal: Roboto, readable numbers, stronger hierarchy, no icon font damage.
+*/
+#pmd-owner-dashboard-clean-v1-root,
+#pmd-owner-dashboard-clean-v1-root *,
+.pmd-v15-shell,
+.pmd-v15-shell *,
+#pmd-v31-role-rail,
+#pmd-v31-role-rail * {
+  font-family: "Roboto", Arial, Helvetica, sans-serif !important;
+  -webkit-font-smoothing: antialiased !important;
+  -moz-osx-font-smoothing: grayscale !important;
+  text-rendering: optimizeLegibility !important;
+  font-variant-numeric: tabular-nums !important;
+  font-feature-settings: "tnum" 1, "lnum" 1 !important;
+}
+
+.fa, .fas, .far, .fal, .fad,
+#pmd-owner-dashboard-clean-v1-root .fa,
+#pmd-owner-dashboard-clean-v1-root .fas,
+#pmd-owner-dashboard-clean-v1-root .far {
+  font-family: "Font Awesome 5 Free" !important;
+}
+
+.fab,
+#pmd-owner-dashboard-clean-v1-root .fab {
+  font-family: "Font Awesome 5 Brands" !important;
+}
+
+#pmd-owner-dashboard-clean-v1-root,
+.pmd-v15-shell {
+  color: #0f172a !important;
+  font-size: 14px !important;
+  line-height: 1.36 !important;
+  letter-spacing: -0.01em !important;
+}
+
+#pmd-owner-dashboard-clean-v1-root h1,
+#pmd-owner-dashboard-clean-v1-root h2,
+#pmd-owner-dashboard-clean-v1-root h3,
+#pmd-owner-dashboard-clean-v1-root h4,
+.pmd-v15-shell h1,
+.pmd-v15-shell h2,
+.pmd-v15-shell h3,
+.pmd-v15-shell h4 {
+  font-weight: 900 !important;
+  letter-spacing: -0.035em !important;
+  line-height: 1.08 !important;
+  color: #07111f !important;
+}
+
+.pmd-v15-card h2,
+.pmd-v15-card h3,
+.pmd-v15-card h4 {
+  font-size: clamp(20px, 1.18vw, 23px) !important;
+  font-weight: 900 !important;
+  margin-bottom: 5px !important;
+}
+
+.pmd-v15-card-head h2,
+.pmd-v15-card-head h3,
+.pmd-v15-card-head h4,
+.pmd-owner-floor-v60__title,
+.pmd-owner-floor-v60__title span {
+  font-size: 21px !important;
+  font-weight: 900 !important;
+  letter-spacing: -0.035em !important;
+  color: #07111f !important;
+}
+
+.pmd-v15-kpi h3,
+.pmd-v15-kpi h4,
+.pmd-v15-kpi-copy > :first-child {
+  font-size: 13.5px !important;
+  font-weight: 900 !important;
+  letter-spacing: -0.012em !important;
+  line-height: 1.15 !important;
+  color: #101827 !important;
+}
+
+.pmd-v15-kpi strong,
+.pmd-v15-kpi b,
+.pmd-v15-kpi-copy > :nth-child(2) {
+  font-size: clamp(36px, 2.55vw, 44px) !important;
+  font-weight: 900 !important;
+  line-height: .95 !important;
+  letter-spacing: -0.055em !important;
+  color: #07111f !important;
+  font-variant-numeric: tabular-nums !important;
+}
+
+.pmd-v15-kpi small,
+.pmd-v15-kpi-copy > :last-child {
+  font-size: 12.5px !important;
+  font-weight: 800 !important;
+  line-height: 1.25 !important;
+  color: #64748b !important;
+  letter-spacing: -0.012em !important;
+}
+
+.pmd-v15-card p,
+.pmd-v15-card small,
+.pmd-v15-card li,
+.pmd-v15-card [class*="subtitle"],
+.pmd-v15-card [class*="label"] {
+  font-size: 13.5px !important;
+  font-weight: 600 !important;
+  line-height: 1.36 !important;
+  color: #64748b !important;
+  letter-spacing: -0.01em !important;
+}
+
+.pmd-v15-card strong,
+.pmd-v15-card b,
+.pmd-v15-alert strong,
+.pmd-v15-alert b {
+  font-weight: 900 !important;
+  color: #0f172a !important;
+  letter-spacing: -0.025em !important;
+  font-variant-numeric: tabular-nums !important;
+}
+
+.pmd-v15-timeline strong,
+.pmd-v15-timeline b,
+.pmd-v15-alert strong,
+.pmd-v15-alert b,
+.pmd-v15-card [class*="amount"],
+.pmd-v15-card [class*="value"],
+.pmd-v15-card [class*="price"],
+.pmd-v15-card [class*="total"] {
+  font-weight: 900 !important;
+  color: #07111f !important;
+  font-variant-numeric: tabular-nums !important;
+  font-feature-settings: "tnum" 1, "lnum" 1 !important;
+}
+
+.pmd-v15-timeline time,
+.pmd-v15-timeline small,
+.pmd-v15-card time {
+  font-size: 12.5px !important;
+  font-weight: 800 !important;
+  line-height: 1.15 !important;
+  color: #64748b !important;
+  font-variant-numeric: tabular-nums !important;
+}
+
+.pmd-owner-floor-v60__table,
+.pmd-owner-floor-v60__table strong,
+.pmd-owner-floor-v60__table b {
+  font-size: 21px !important;
+  font-weight: 900 !important;
+  letter-spacing: -0.035em !important;
+  font-variant-numeric: tabular-nums !important;
+}
+
+#pmd-owner-dashboard-clean-v1-root button,
+#pmd-owner-dashboard-clean-v1-root a,
+.pmd-v15-shell button,
+.pmd-v15-shell a {
+  font-weight: 800 !important;
+  letter-spacing: -0.012em !important;
+}
+
+#pmd-v31-role-rail .pmd-v31-role-btn {
+  font-size: 13px !important;
+  font-weight: 900 !important;
+  letter-spacing: .02em !important;
+}
+/* PMD_DASHBOARD_ROBOTO_TYPOGRAPHY_V2_END */
+
+

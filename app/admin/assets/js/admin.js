@@ -4221,4 +4221,28 @@ if (window.jQuery.request !== undefined)
 /* PMD_KDS_V120_CSRF_NATIVE_SUBMIT_END */
 
 
+/* PMD_ADMIN_GLOBAL_ROBOTO_LOADER_V1_START */
+/*
+  Global Roboto loader for admin panel.
+  Idempotent. No backend/database/order/payment logic.
+*/
+(function () {
+  'use strict';
+
+  if (window.PMD_ADMIN_GLOBAL_ROBOTO_LOADER_V1) return;
+  window.PMD_ADMIN_GLOBAL_ROBOTO_LOADER_V1 = true;
+
+  if (!/^\/admin(?:\/|$)/.test(location.pathname || '')) return;
+
+  if (!document.getElementById('pmd-admin-global-roboto-v1')) {
+    var link = document.createElement('link');
+    link.id = 'pmd-admin-global-roboto-v1';
+    link.rel = 'stylesheet';
+    link.href = 'https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700;800;900&display=swap';
+    document.head.appendChild(link);
+  }
+
+  console.info('[PMD] Admin global Roboto loader v1 active');
+})();
+ /* PMD_ADMIN_GLOBAL_ROBOTO_LOADER_V1_END */
 
