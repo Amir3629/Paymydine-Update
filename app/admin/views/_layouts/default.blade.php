@@ -1,6 +1,125 @@
 <!DOCTYPE html>
 <html xmlns="http://www.w3.org/1999/xhtml" lang="en">
 <head>
+
+<!-- PMD_OWNER_DASHBOARD_V69_NO_LOADER_GEOMETRY_FIRST_START -->
+<script>
+(function () {
+  try {
+    var p = String(location.pathname || '').replace(/\/+$/, '');
+    if (p === '/admin/dashboard' || p.indexOf('/admin/dashboard/') === 0) {
+      var h = document.documentElement;
+      h.classList.add(
+        'pmd-owner-v69-no-loader',
+        'pmd-admin-toolbar-ready',
+        'pmd-role-owner-v30',
+        'pmd-role-owner-v31',
+        'pmd-v21-role-owner',
+        'pmd-sidebar-icons-only'
+      );
+      window.PMD_OWNER_DASHBOARD_V69_NO_LOADER_GEOMETRY_FIRST = true;
+    }
+  } catch (e) {}
+})();
+</script>
+<style id="pmd-owner-dashboard-v69-no-loader-critical">
+/*
+  V69: no loader, no hide.
+  Lock final geometry before dashboard JS paints cards.
+*/
+
+html.pmd-owner-v69-no-loader,
+html.pmd-owner-v69-no-loader * {
+  box-sizing: border-box !important;
+}
+
+html.pmd-owner-v69-no-loader .content,
+html.pmd-owner-v69-no-loader .main-container,
+html.pmd-owner-v69-no-loader .page-content,
+html.pmd-owner-v69-no-loader [class*="pmd-v15"],
+html.pmd-owner-v69-no-loader [class*="pmd-v19"],
+html.pmd-owner-v69-no-loader [class*="pmd-v21"],
+html.pmd-owner-v69-no-loader [class*="pmd-v36"],
+html.pmd-owner-v69-no-loader .pmd-owner-floor-v60 {
+  transition: none !important;
+  animation: none !important;
+  scroll-behavior: auto !important;
+}
+
+html.pmd-owner-v69-no-loader .pmd-v15-kpi-grid,
+html.pmd-owner-v69-no-loader .pmd-v19-kpi-grid,
+html.pmd-owner-v69-no-loader .pmd-v21-kpi-grid,
+html.pmd-owner-v69-no-loader .pmd-v36-kpi-grid {
+  display: grid !important;
+  grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
+  gap: 18px !important;
+  width: 100% !important;
+  max-width: 100% !important;
+  min-height: 118px !important;
+}
+
+html.pmd-owner-v69-no-loader .pmd-v19-reference-grid,
+html.pmd-owner-v69-no-loader .pmd-v21-reference-grid,
+html.pmd-owner-v69-no-loader .pmd-v36-card-grid {
+  display: grid !important;
+  grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
+  gap: 18px !important;
+  align-items: stretch !important;
+  width: 100% !important;
+  max-width: 100% !important;
+}
+
+html.pmd-owner-v69-no-loader .pmd-owner-floor-v60,
+html.pmd-owner-v69-no-loader .pmd-owner-floor-v60.pmd-v62-after-kpi {
+  grid-column: 1 / -1 !important;
+  width: 100% !important;
+  max-width: 100% !important;
+  min-height: 213px !important;
+}
+
+html.pmd-owner-v69-no-loader .pmd-v15-card--alerts,
+html.pmd-owner-v69-no-loader .pmd-v15-card--timeline,
+html.pmd-owner-v69-no-loader .pmd-v19-area-alerts,
+html.pmd-owner-v69-no-loader .pmd-v19-area-timeline,
+html.pmd-owner-v69-no-loader .pmd-v36-span-2 {
+  grid-column: span 2 !important;
+  min-height: 396px !important;
+}
+
+@media (max-width: 1180px) {
+  html.pmd-owner-v69-no-loader .pmd-v15-kpi-grid,
+  html.pmd-owner-v69-no-loader .pmd-v19-kpi-grid,
+  html.pmd-owner-v69-no-loader .pmd-v21-kpi-grid,
+  html.pmd-owner-v69-no-loader .pmd-v36-kpi-grid,
+  html.pmd-owner-v69-no-loader .pmd-v19-reference-grid,
+  html.pmd-owner-v69-no-loader .pmd-v21-reference-grid,
+  html.pmd-owner-v69-no-loader .pmd-v36-card-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  }
+
+  html.pmd-owner-v69-no-loader .pmd-v15-card--alerts,
+  html.pmd-owner-v69-no-loader .pmd-v15-card--timeline,
+  html.pmd-owner-v69-no-loader .pmd-v19-area-alerts,
+  html.pmd-owner-v69-no-loader .pmd-v19-area-timeline,
+  html.pmd-owner-v69-no-loader .pmd-v36-span-2 {
+    grid-column: 1 / -1 !important;
+  }
+}
+
+@media (max-width: 720px) {
+  html.pmd-owner-v69-no-loader .pmd-v15-kpi-grid,
+  html.pmd-owner-v69-no-loader .pmd-v19-kpi-grid,
+  html.pmd-owner-v69-no-loader .pmd-v21-kpi-grid,
+  html.pmd-owner-v69-no-loader .pmd-v36-kpi-grid,
+  html.pmd-owner-v69-no-loader .pmd-v19-reference-grid,
+  html.pmd-owner-v69-no-loader .pmd-v21-reference-grid,
+  html.pmd-owner-v69-no-loader .pmd-v36-card-grid {
+    grid-template-columns: 1fr !important;
+  }
+}
+</style>
+<!-- PMD_OWNER_DASHBOARD_V69_NO_LOADER_GEOMETRY_FIRST_END -->
+
 <!-- PMD_ADMIN_LOADER_HARD_RESET_V64_EARLY_START -->
 <script>
 (function(){
@@ -21,11 +140,11 @@
 </script>
 <!-- PMD_ADMIN_LOADER_HARD_RESET_V64_EARLY_END -->
 <!-- PMD_ADMIN_LOADER_HARD_RESET_V64_PRELOAD_START -->
-<link rel="preload" as="image" href="{{ asset('app/admin/assets/images/pmd-logo-final.png') }}">
+<link rel="prefetch" as="image" href="{{ asset('app/admin/assets/images/pmd-logo-final.png') }}">
 <!-- PMD_KDS_ULTRA_FAST_V83_LOGO_PRELOAD_GUARD_START -->
 @unless(!empty($__pmdIsKdsDashboardV82))
 
-<link rel="preload" as="image" href="{{ asset('app/admin/assets/images/pmd-logo-final.png') }}">
+<link rel="prefetch" as="image" href="{{ asset('app/admin/assets/images/pmd-logo-final.png') }}">
 @endunless
 <!-- PMD_KDS_ULTRA_FAST_V83_LOGO_PRELOAD_GUARD_END -->
 

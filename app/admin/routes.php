@@ -3,6 +3,11 @@
 
 
 
+
+
+
+
+
 // PMD_ADMIN_UI_KIT_PRIORITY_ROUTE_V2_START
 // Must stay near the TOP of app/admin/routes.php, before admin catch-all routes.
 $__pmdUiKitHandler = function () {
@@ -25,9 +30,181 @@ $__pmdUiKitHandler = function () {
 
 
 
+
+
+// PMD_CODEX_FLOOR_ENDPOINT_V28_START
+if (!defined('PMD_CODEX_FLOOR_ENDPOINT_V28')) {
+    define('PMD_CODEX_FLOOR_ENDPOINT_V28', true);
+
+    $__pmdCodexOwnerFloorV28 = function () {
+        try {
+            $schema = \Illuminate\Support\Facades\Schema::getFacadeRoot();
+            $db = \Illuminate\Support\Facades\DB::getFacadeRoot();
+
+            if (!$schema->hasTable('tables')) {
+                return response()->json(['ok' => false, 'message' => 'tables table not found'], 500);
+            }
+
+            $colsList = $schema->getColumnListing('tables');
+            $cols = array_flip($colsList);
+
+            $pk = isset($cols['table_id']) ? 'table_id' : (isset($cols['id']) ? 'id' : null);
+            if (!$pk) {
+                return response()->json(['ok' => false, 'message' => 'table primary key not found', 'columns' => $colsList], 422);
+            }
+
+            $noCol = isset($cols['table_no']) ? 'table_no' : (isset($cols['table_number']) ? 'table_number' : (isset($cols['number']) ? 'number' : null));
+
+            $isSave = request()->isMethod('post') || request()->has('tables') || request()->has('tables_b64');
+
+            if ($isSave) {
+                $payload = request()->all();
+                $raw = request()->getContent();
+
+                if ($raw) {
+                    $json = json_decode($raw, true);
+                    if (is_array($json)) $payload = array_merge($payload, $json);
+                }
+
+                if (isset($payload['tables_b64'])) {
+                    $decoded = json_decode(base64_decode($payload['tables_b64']), true);
+                    if (is_array($decoded)) $payload['tables'] = $decoded;
+                }
+
+                $items = isset($payload['tables']) ? $payload['tables'] : [];
+                if (is_string($items)) {
+                    $decoded = json_decode($items, true);
+                    $items = is_array($decoded) ? $decoded : [];
+                }
+
+                if (!is_array($items)) $items = [];
+
+                $updated = 0;
+
+                foreach ($items as $r) {
+                    if (!is_array($r)) continue;
+
+                    $id = isset($r['id']) ? (int)$r['id'] : (isset($r['table_id']) ? (int)$r['table_id'] : 0);
+                    if ($id <= 0) continue;
+
+                    $update = [];
+
+                    if (isset($cols['floor_x'])) {
+                        $x = isset($r['floor_x']) ? (float)$r['floor_x'] : 0;
+                        $update['floor_x'] = max(0, min(1000, $x));
+                    }
+
+                    if (isset($cols['floor_y'])) {
+                        $y = isset($r['floor_y']) ? (float)$r['floor_y'] : 0;
+                        $update['floor_y'] = max(0, min(560, $y));
+                    }
+
+                    if (isset($cols['floor_width'])) {
+                        $w = isset($r['floor_width']) ? (float)$r['floor_width'] : (isset($r['width']) ? (float)$r['width'] : 150);
+                        $update['floor_width'] = max(60, min(260, $w));
+                    } elseif (isset($cols['width'])) {
+                        $w = isset($r['floor_width']) ? (float)$r['floor_width'] : (isset($r['width']) ? (float)$r['width'] : 150);
+                        $update['width'] = max(60, min(260, $w));
+                    }
+
+                    if (isset($cols['floor_height'])) {
+                        $h = isset($r['floor_height']) ? (float)$r['floor_height'] : (isset($r['height']) ? (float)$r['height'] : 78);
+                        $update['floor_height'] = max(50, min(180, $h));
+                    } elseif (isset($cols['height'])) {
+                        $h = isset($r['floor_height']) ? (float)$r['floor_height'] : (isset($r['height']) ? (float)$r['height'] : 78);
+                        $update['height'] = max(50, min(180, $h));
+                    }
+
+                    if (isset($cols['visible_on_floor_plan'])) {
+                        $update['visible_on_floor_plan'] = 1;
+                    }
+
+                    if (!$update) continue;
+
+                    $ok = $db->table('tables')->where($pk, $id)->update($update);
+                    if ($ok !== false) $updated++;
+                }
+
+                return response()->json([
+                    'ok' => true,
+                    'version' => 'pmd-codex-floor-endpoint-v28',
+                    'updated' => $updated,
+                ]);
+            }
+
+            $select = [$pk . ' as id'];
+
+            if ($noCol) $select[] = $noCol . ' as table_no';
+            if (isset($cols['floor_x'])) $select[] = 'floor_x';
+            if (isset($cols['floor_y'])) $select[] = 'floor_y';
+            if (isset($cols['floor_width'])) $select[] = 'floor_width';
+            if (isset($cols['floor_height'])) $select[] = 'floor_height';
+            if (isset($cols['width'])) $select[] = 'width';
+            if (isset($cols['height'])) $select[] = 'height';
+            if (isset($cols['visible_on_floor_plan'])) $select[] = 'visible_on_floor_plan';
+
+            $q = $db->table('tables')->selectRaw(implode(',', $select));
+
+            if (isset($cols['visible_on_floor_plan'])) {
+                $q->where(function ($qq) {
+                    $qq->where('visible_on_floor_plan', 1)->orWhereNull('visible_on_floor_plan');
+                });
+            }
+
+            if ($noCol) {
+                $q->orderByRaw("CAST(".$noCol." AS UNSIGNED) ASC");
+            } else {
+                $q->orderBy($pk);
+            }
+
+            $rows = $q->get()->map(function ($r, $i) {
+                $fw = isset($r->floor_width) ? $r->floor_width : (isset($r->width) ? $r->width : 150);
+                $fh = isset($r->floor_height) ? $r->floor_height : (isset($r->height) ? $r->height : 78);
+
+                return [
+                    'id' => isset($r->id) ? (int)$r->id : null,
+                    'table_no' => isset($r->table_no) && $r->table_no !== null ? (string)$r->table_no : (string)(isset($r->id) ? $r->id : ($i + 1)),
+                    'floor_x' => isset($r->floor_x) && is_numeric($r->floor_x) ? (float)$r->floor_x : (32 + (($i % 4) * 180)),
+                    'floor_y' => isset($r->floor_y) && is_numeric($r->floor_y) ? (float)$r->floor_y : (34 + (floor($i / 4) * 130)),
+                    'floor_width' => is_numeric($fw) ? (float)$fw : 150,
+                    'floor_height' => is_numeric($fh) ? (float)$fh : 78,
+                    'visible_on_floor_plan' => isset($r->visible_on_floor_plan) ? (int)$r->visible_on_floor_plan : 1,
+                    'status' => 'free',
+                    'open_orders' => 0,
+                    'open_check_value' => 0,
+                    'due_label' => '',
+                ];
+            })->filter(function ($r) {
+                return !empty($r['id']);
+            })->values();
+
+            return response()->json([
+                'ok' => true,
+                'version' => 'pmd-codex-floor-endpoint-v28',
+                'tables' => $rows,
+                'count' => $rows->count(),
+            ]);
+        } catch (\Throwable $e) {
+            return response()->json([
+                'ok' => false,
+                'version' => 'pmd-codex-floor-endpoint-v28',
+                'message' => $e->getMessage(),
+                'type' => get_class($e),
+            ], 500);
+        }
+    };
+
+    \Illuminate\Support\Facades\Route::match(['GET','POST'], 'pmd-owner-dashboard-floor-layout', $__pmdCodexOwnerFloorV28);
+    \Illuminate\Support\Facades\Route::match(['GET','POST'], '/pmd-owner-dashboard-floor-layout', $__pmdCodexOwnerFloorV28);
+    \Illuminate\Support\Facades\Route::match(['GET','POST'], '/admin/pmd-owner-dashboard-floor-layout', $__pmdCodexOwnerFloorV28);
+}
+// PMD_CODEX_FLOOR_ENDPOINT_V28_END
+
 /* PMD_OWNER_DASHBOARD_CLEAN_V1_ROUTES_START */
 \Illuminate\Support\Facades\Route::get('pmd-owner-dashboard-clean-v1-data', [\Admin\Controllers\PmdOwnerDashboardCleanV1::class, 'index']);
 \Illuminate\Support\Facades\Route::get('pmd-owner-dashboard-clean-v1-audit', [\Admin\Controllers\PmdOwnerDashboardCleanV1::class, 'audit']);
+\Illuminate\Support\Facades\Route::get('pmd-owner-dashboard-floor-layout', [\Admin\Controllers\PmdOwnerDashboardCleanV1::class, 'floorLayout']);
+\Illuminate\Support\Facades\Route::post('pmd-owner-dashboard-floor-layout', [\Admin\Controllers\PmdOwnerDashboardCleanV1::class, 'saveFloorLayout']);
 /* PMD_OWNER_DASHBOARD_CLEAN_V1_ROUTES_END */
 
 

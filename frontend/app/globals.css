@@ -331,3 +331,123 @@ html[data-pmd-kazen-mode="dark"] body *:has(+ input:not([type="checkbox"]):not([
   box-shadow: none !important;
 }
 
+/* PMD_AUDIT_PHASE2_JAPANESE_UI_HARDENING
+   Frontend-only QA hardening for the Claude Japanese-theme audit:
+   - dark note/input readability
+   - dark status/allergen chip contrast
+   - mobile Stripe iframe containment
+   - subtle clipped-description affordance
+   - wide-screen max readability guard
+*/
+html[data-pmd-kazen-mode="dark"] body .kazen-page textarea,
+html[data-pmd-kazen-mode="dark"] body .kazen-standalone textarea,
+html[data-pmd-kazen-mode="dark"] body .kazen-payment-modal textarea,
+html[data-pmd-kazen-mode="dark"] body .kazen-checkout-shell textarea,
+html[data-pmd-kazen-mode="dark"] body [role="dialog"] textarea {
+  background: rgba(18, 14, 10, .86) !important;
+  background-color: rgba(18, 14, 10, .86) !important;
+  color: #f7efe4 !important;
+  -webkit-text-fill-color: #f7efe4 !important;
+  border-color: rgba(244, 236, 221, .28) !important;
+  caret-color: #f7efe4 !important;
+}
+
+html[data-pmd-kazen-mode="dark"] body .kazen-page [class*="badge"],
+html[data-pmd-kazen-mode="dark"] body .kazen-page [class*="chip"],
+html[data-pmd-kazen-mode="dark"] body .kazen-page [class*="allergen"],
+html[data-pmd-kazen-mode="dark"] body .kazen-standalone [class*="badge"],
+html[data-pmd-kazen-mode="dark"] body .kazen-standalone [class*="chip"],
+html[data-pmd-kazen-mode="dark"] body .kazen-standalone [class*="allergen"] {
+  color: #fffaf3 !important;
+  -webkit-text-fill-color: #fffaf3 !important;
+  border-color: rgba(255, 250, 243, .32) !important;
+  text-shadow: 0 1px 1px rgba(0, 0, 0, .38) !important;
+}
+
+html[data-pmd-kazen-mode="dark"] body .pmd-checkout-status-title,
+html[data-pmd-kazen-mode="dark"] body [data-pmd-order-status-card="1"] [class*="status"],
+html[data-pmd-kazen-mode="dark"] body [data-pmd-order-status-card="1"] [class*="badge"] {
+  color: #f7efe4 !important;
+  -webkit-text-fill-color: #f7efe4 !important;
+}
+
+@media (max-width: 390px) {
+  html body form[data-pmd-stripe-form="1"],
+  html body .pmd-stripe-card-frame,
+  html body .pmd-stripe-card-frame .StripeElement,
+  html body .pmd-stripe-card-frame .__PrivateStripeElement,
+  html body .pmd-stripe-card-frame iframe {
+    max-width: 100% !important;
+    width: 100% !important;
+    min-width: 0 !important;
+    overflow: hidden !important;
+  }
+
+  html body .pmd-stripe-card-frame {
+    padding-left: 10px !important;
+    padding-right: 10px !important;
+  }
+}
+
+@media (max-width: 390px) {
+  html body .kazen-page [class*="description"],
+  html body .kazen-standalone [class*="description"] {
+    position: relative !important;
+  }
+
+  html body .kazen-page [class*="description"]::after,
+  html body .kazen-standalone [class*="description"]::after {
+    content: "Tap for details";
+    display: inline-block;
+    margin-inline-start: .35rem;
+    font-size: .72rem;
+    font-weight: 700;
+    opacity: .72;
+  }
+}
+
+@media (min-width: 1800px) {
+  html body .kazen-page,
+  html body .kazen-standalone,
+  html body .kazen-checkout-shell {
+    max-width: 1500px !important;
+    margin-left: auto !important;
+    margin-right: auto !important;
+  }
+}
+/* /PMD_AUDIT_PHASE2_JAPANESE_UI_HARDENING */
+
+
+
+/* PMD_AUDIT_PHASE3_FINAL_POLISH
+   Final frontend-only audit polish: split progress, compact order refs,
+   narrow mobile payment containment, and readable dark-mode helper cards. */
+html body [data-pmd-split-progress="1"] {
+  max-width: 100%;
+}
+
+html body [data-pmd-split-progress="1"] * {
+  box-sizing: border-box;
+}
+
+html[data-pmd-kazen-mode="dark"] body [data-pmd-split-progress="1"],
+body[data-pmd-kazen-mode="dark"] [data-pmd-split-progress="1"] {
+  background: rgba(18, 14, 10, .86) !important;
+  border-color: rgba(244, 231, 200, .22) !important;
+  color: #f7efe4 !important;
+}
+
+@media (max-width: 390px) {
+  html body .kazen-payment-modal,
+  html body .kazen-checkout-shell,
+  html body [data-pmd-stripe-form="1"],
+  html body [data-pmd-stripe-form="1"] * {
+    max-width: 100% !important;
+  }
+
+  html body [data-pmd-stripe-form="1"] input,
+  html body [data-pmd-stripe-form="1"] .pmd-stripe-card-frame {
+    min-width: 0 !important;
+  }
+}
+/* /PMD_AUDIT_PHASE3_FINAL_POLISH */

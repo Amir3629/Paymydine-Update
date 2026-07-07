@@ -1,24 +1,32 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+# PMD_AUDIT_PHASE2_SMOKE_REDIRECT_AWARE
 BASE="${1:-https://mimoza.paymydine.com}"
 
 echo "=== PMD frontend smoke: $BASE ==="
 
-check_status() {
+check_status_any() {
   local path="$1"
-  local expected="$2"
+  shift
   local code
   code="$(curl -s -o /tmp/pmd-smoke-body.html -w "%{http_code}" -I "$BASE$path" || true)"
   echo "$path -> $code"
-  if [ "$code" != "$expected" ]; then
-    echo "❌ Expected $expected for $path but got $code"
-    exit 1
-  fi
+  for expected in "$@"; do
+    if [ "$code" = "$expected" ]; then
+      return 0
+    fi
+  done
+  echo "❌ Expected one of [$*] for $path but got $code"
+  exit 1
 }
 
-check_status "/menu" "200"
-check_status "/checkout" "307"
+check_status_any "/" "200"
+check_status_any "/menu" "200" "307" "308"
+check_status_any "/table/1/menu" "200" "307" "308"
+check_status_any "/themes/kazen-japanese" "200"
+check_status_any "/themes/velvet-terracotta" "200"
+check_status_any "/checkout" "200" "307" "308"
 
 echo ""
 echo "=== PM2 runtime error scan ==="

@@ -11,11 +11,6 @@ class PmdOwnerDashboardCleanV1 extends \Admin\Classes\AdminController
 
     public function index()
     {
-        /* PMD_FLOOR_DIRECT_SAVE_GET_V19_BRANCH */
-        if (request()->input('pmd_floor_save_v19') === '1') {
-            return $this->pmdFloorDirectSaveGetV19();
-        }
-
 try {
             return Response::json($this->build());
         } catch (\Throwable $e) {
@@ -26,6 +21,70 @@ try {
                 'file' => $e->getFile(),
                 'line' => $e->getLine(),
             ], 500);
+        }
+    }
+
+
+    public function floorLayout()
+    {
+        try {
+            $tables = $this->find($this->tables(), ['tables', 'restaurant_tables', 'location_tables']);
+            $orders = $this->find($this->tables(), ['orders', 'restaurant_orders']);
+            $reservations = $this->find($this->tables(), ['reservations']);
+            $waiterCalls = $this->find($this->tables(), ['waiter_calls']);
+            $payments = $this->find($this->tables(), ['order_payment_transactions', 'payment_transactions', 'payments', 'payment_logs', 'payment_attempts']);
+            $floor = $this->floorPlan($tables, $orders, $reservations, $waiterCalls, $payments);
+            return Response::json(['ok' => true, 'tables' => $floor['tables'] ?? [], 'floor' => ['width' => 1000, 'height' => 560], 'summary' => $floor['summary'] ?? []]);
+        } catch (\Throwable $e) {
+            return Response::json(['ok' => false, 'message' => $e->getMessage(), 'type' => get_class($e)], 500);
+        }
+    }
+
+    public function saveFloorLayout()
+    {
+        try {
+            if (!\Illuminate\Support\Facades\Schema::hasTable('tables')) {
+                return Response::json(['ok' => false, 'message' => 'tables table not found'], 500);
+            }
+            $colsList = \Illuminate\Support\Facades\Schema::getColumnListing('tables');
+            $cols = array_flip($colsList);
+            $pk = isset($cols['table_id']) ? 'table_id' : (isset($cols['id']) ? 'id' : null);
+            if (!$pk || !isset($cols['floor_x']) || !isset($cols['floor_y'])) {
+                return Response::json(['ok' => false, 'message' => 'Missing table primary key or floor_x/floor_y columns', 'columns' => $colsList], 422);
+            }
+            $payload = json_decode((string)request()->getContent(), true);
+            if (!is_array($payload)) $payload = request()->all();
+            $items = $payload['tables'] ?? [];
+            if (!is_array($items) || !count($items)) {
+                return Response::json(['ok' => false, 'message' => 'No table layout items received'], 422);
+            }
+            $validIds = [];
+            foreach (DB::table('tables')->whereIn($pk, array_map(function($i){ return (int)($i['id'] ?? 0); }, array_filter($items, 'is_array')))->pluck($pk) as $id) {
+                $validIds[(int)$id] = true;
+            }
+            $updated = 0; $skipped = [];
+            DB::beginTransaction();
+            foreach ($items as $item) {
+                if (!is_array($item)) { $skipped[] = ['reason' => 'invalid item']; continue; }
+                $id = (int)($item['id'] ?? 0);
+                if ($id <= 0 || !isset($validIds[$id])) { $skipped[] = ['id' => $id, 'reason' => 'invalid id']; continue; }
+                $w = isset($item['floor_width']) && is_numeric($item['floor_width']) ? max(72, min(260, (float)$item['floor_width'])) : 150;
+                $h = isset($item['floor_height']) && is_numeric($item['floor_height']) ? max(58, min(180, (float)$item['floor_height'])) : 78;
+                $x = isset($item['floor_x']) && is_numeric($item['floor_x']) ? (float)$item['floor_x'] : 0;
+                $y = isset($item['floor_y']) && is_numeric($item['floor_y']) ? (float)$item['floor_y'] : 0;
+                $update = [];
+                if (isset($cols['floor_width'])) $update['floor_width'] = $w;
+                if (isset($cols['floor_height'])) $update['floor_height'] = $h;
+                $update['floor_x'] = max(0, min(1000 - $w, $x));
+                $update['floor_y'] = max(0, min(560 - $h, $y));
+                if (isset($cols['visible_on_floor_plan'])) $update['visible_on_floor_plan'] = 1;
+                $updated += DB::table('tables')->where($pk, $id)->update($update) >= 0 ? 1 : 0;
+            }
+            DB::commit();
+            return Response::json(['ok' => true, 'updated' => $updated, 'received' => count($items), 'skipped' => $skipped]);
+        } catch (\Throwable $e) {
+            try { DB::rollBack(); } catch (\Throwable $ignore) {}
+            return Response::json(['ok' => false, 'message' => $e->getMessage(), 'type' => get_class($e)], 500);
         }
     }
 
@@ -888,8 +947,13 @@ try {
                 'shape' => $shape,
                 'x' => $x,
                 'y' => $y,
+                'floor_x' => $x,
+                'floor_y' => $y,
                 'width' => $w,
                 'height' => $h,
+                'floor_width' => $w,
+                'floor_height' => $h,
+                'visible_on_floor_plan' => isset($visibleCol) ? (int)($a[$visibleCol] ?? 1) : 1,
                 'min_capacity' => $min,
                 'max_capacity' => $max,
                 'extra_capacity' => $extra,

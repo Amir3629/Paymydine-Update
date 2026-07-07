@@ -10,6 +10,15 @@ import {
   OrderStatusCard,
 } from "@/components/theme-ui"
 
+// PMD_AUDIT_PHASE3_SHORT_ORDER_REF
+function pmdHumanOrderRef(orderId: unknown): string {
+  const raw = String(orderId ?? "").trim()
+  if (!raw) return "----"
+  const digits = raw.replace(/\D+/g, "")
+  const source = digits || raw.replace(/[^a-zA-Z0-9]+/g, "")
+  return (source.slice(-4) || raw.slice(-4)).padStart(4, "0").toUpperCase()
+}
+
 export function NeutralOrderStatusPanel(props: any) {
   const {
     checkoutStep,
@@ -119,7 +128,10 @@ export function NeutralOrderStatusPanel(props: any) {
                 {submittedSnapshot?.orderId && (
                   <div className="flex items-center justify-between">
                     <span className="muted font-medium">Order Number:</span>
-                    <span className="font-semibold text-[15px]">{submittedSnapshot.orderId}</span>
+                    <span className="text-right font-semibold text-[15px]">
+                      M-{pmdHumanOrderRef(submittedSnapshot.orderId)}
+                      <span className="block text-[10px] font-medium opacity-60">ref {String(submittedSnapshot.orderId)}</span>
+                    </span>
                   </div>
                 )}
                 {Number(submittedSnapshot?.vatAmount ?? 0) > 0 && (

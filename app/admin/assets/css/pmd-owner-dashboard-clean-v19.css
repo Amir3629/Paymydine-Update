@@ -1033,3 +1033,26 @@ body.pmd-owner-dashboard-clean-v1-active { background:#f8fafc !important; }
   }
   .pmd-v15-floor-wrap--reference .pmd-v15-floor-canvas{height:420px !important;}
 }
+
+/* PMD owner dashboard clean floor rebuild 2026-07-05 */
+#pmd-owner-dashboard-clean-v1-root .pmd-admin-floor{background:#fff;border:1px solid #e5e7eb;border-radius:20px;box-shadow:0 18px 45px rgba(15,23,42,.08);padding:16px;max-width:100%;overflow:hidden}
+#pmd-owner-dashboard-clean-v1-root .pmd-admin-floor-toolbar{display:flex;align-items:flex-start;justify-content:space-between;gap:14px;flex-wrap:wrap;margin-bottom:12px}
+#pmd-owner-dashboard-clean-v1-root .pmd-admin-floor-toolbar strong{display:block;color:#0f172a;font-size:16px}
+#pmd-owner-dashboard-clean-v1-root .pmd-admin-floor-toolbar small{display:block;color:#64748b;margin-top:3px}
+#pmd-owner-dashboard-clean-v1-root .pmd-admin-floor-actions{display:flex;gap:8px;flex-wrap:wrap}
+#pmd-owner-dashboard-clean-v1-root .pmd-admin-floor-actions button,#pmd-owner-dashboard-clean-v1-root .pmd-admin-floor-actions a,#pmd-owner-dashboard-clean-v1-root .pmd-admin-floor-detail a{border:1px solid #dbe3ef;background:#fff;color:#0f172a;border-radius:999px;padding:8px 12px;font-weight:700;text-decoration:none;cursor:pointer}
+#pmd-owner-dashboard-clean-v1-root .pmd-admin-floor-actions [data-pmd-floor-save]{background:#16a34a;color:#fff;border-color:#16a34a}
+#pmd-owner-dashboard-clean-v1-root .pmd-admin-floor-status{color:#64748b;font-size:12px;margin-bottom:10px}
+#pmd-owner-dashboard-clean-v1-root .pmd-admin-floor-surface{position:relative;width:100%;max-width:1000px;aspect-ratio:1000/560;max-height:560px;margin:0 auto;overflow:hidden;border:1px solid #dbe3ef;border-radius:18px;background-color:#f8fafc;background-image:linear-gradient(rgba(148,163,184,.16) 1px,transparent 1px),linear-gradient(90deg,rgba(148,163,184,.16) 1px,transparent 1px);background-size:40px 40px;touch-action:none}
+#pmd-owner-dashboard-clean-v1-root .pmd-admin-floor-table{position:absolute;display:flex;flex-direction:column;align-items:flex-start;justify-content:center;gap:2px;border:2px solid #22c55e;border-radius:16px;background:rgba(255,255,255,.96);box-shadow:0 10px 24px rgba(15,23,42,.1);padding:8px 10px;color:#0f172a;text-align:left;overflow:hidden;touch-action:none;user-select:none}
+#pmd-owner-dashboard-clean-v1-root .pmd-admin-floor-table strong{font-size:15px;line-height:1}
+#pmd-owner-dashboard-clean-v1-root .pmd-admin-floor-table span{font-size:11px;font-weight:800;color:#15803d;text-transform:uppercase}
+#pmd-owner-dashboard-clean-v1-root .pmd-admin-floor-table small{font-size:10px;color:#64748b;white-space:nowrap}
+#pmd-owner-dashboard-clean-v1-root .pmd-admin-floor-table--active,#pmd-owner-dashboard-clean-v1-root .pmd-admin-floor-table--unpaid{border-color:#f97316}
+#pmd-owner-dashboard-clean-v1-root .pmd-admin-floor-table--active span,#pmd-owner-dashboard-clean-v1-root .pmd-admin-floor-table--unpaid span{color:#c2410c}
+#pmd-owner-dashboard-clean-v1-root .pmd-admin-floor-table--attention{border-color:#ef4444}
+#pmd-owner-dashboard-clean-v1-root .pmd-admin-floor.is-editing .pmd-admin-floor-table{cursor:grab}
+#pmd-owner-dashboard-clean-v1-root .pmd-admin-floor-detail{margin-top:12px;border:1px solid #e5e7eb;border-radius:16px;padding:14px;background:#fff}
+#pmd-owner-dashboard-clean-v1-root .pmd-admin-floor-detail div{display:flex;gap:8px;flex-wrap:wrap}
+#pmd-owner-dashboard-clean-v1-root .pmd-admin-floor-detail [data-pmd-floor-detail-close]{float:right;border:0;background:#f1f5f9;border-radius:999px;width:28px;height:28px;cursor:pointer}
+@media (max-width: 720px){#pmd-owner-dashboard-clean-v1-root .pmd-admin-floor{padding:12px}#pmd-owner-dashboard-clean-v1-root .pmd-admin-floor-table{padding:6px}#pmd-owner-dashboard-clean-v1-root .pmd-admin-floor-table small{display:none}}

@@ -1,6 +1,62 @@
 <?php
 
-                Route::get('/table-order-draft', function (\Illuminate\Http\Request $request) use ($ensureTableOrderDraftTable, $resolveTableDraftContext, $formatTableOrderResponse, $findActiveSubmittedTableOrder) {
+// PMD_AUDIT_PHASE6_ACTIVE_TABLE_ORDER_MERGE
+// Active API source for table-order-draft is app/main/routes/api-v1-table-order.php.
+// The older patch in routes/qr-pay.php was not hit by the live route.
+// This helper resolves the open table order more defensively, including the human
+// table label in order comments, so table_id/table_no alias mismatches still find
+// the same active QR-pay-later order.
+$pmdFindOpenTableOrderForContext = function (array $context, $fallbackFinder = null) {
+    try {
+        if (is_callable($fallbackFinder)) {
+            $found = $fallbackFinder($context);
+            if ($found && (int)($found->order_id ?? 0) > 0) return $found;
+        }
+    } catch (\Throwable $ignored) {}
+
+    $candidates = array_values(array_unique(array_filter([
+        $context['table_id'] ?? null,
+        $context['table_no'] ?? null,
+        $context['table_name'] ?? null,
+        isset($context['table']->table_id) ? (string)$context['table']->table_id : null,
+        isset($context['table']->table_no) ? (string)$context['table']->table_no : null,
+        isset($context['table']->table_name) ? (string)$context['table']->table_name : null,
+    ], fn($value) => $value !== null && trim((string)$value) !== '')));
+
+    if (empty($candidates)) return null;
+
+    $query = DB::table('orders')
+        ->leftJoin('statuses', 'orders.status_id', '=', 'statuses.status_id')
+        ->where('orders.payment', 'qr_pay_later')
+        ->where(function ($status) {
+            $status->whereNull('orders.settlement_status')
+                ->orWhereNotIn('orders.settlement_status', ['paid', 'settled', 'cancelled', 'canceled', 'failed']);
+        })
+        ->where(function ($amount) {
+            $amount->whereNull('orders.settled_amount')
+                ->orWhereColumn('orders.settled_amount', '<', 'orders.order_total');
+        })
+        ->where(function ($q) use ($candidates) {
+            $q->whereIn('orders.order_type', $candidates);
+
+            foreach ($candidates as $candidate) {
+                $candidate = trim((string)$candidate);
+                if ($candidate === '') continue;
+
+                // Avoid partial "Table ID: 1" matching "Table ID: 151".
+                if (!ctype_digit($candidate)) {
+                    $q->orWhere('orders.comment', 'like', '%Table: '.$candidate.'%');
+                }
+            }
+        })
+        ->orderByDesc('orders.order_id');
+
+    return $query->first(['orders.*', 'statuses.status_name']);
+};
+
+
+
+                Route::get('/table-order-draft', function (\Illuminate\Http\Request $request) use ($ensureTableOrderDraftTable, $resolveTableDraftContext, $formatTableOrderResponse, $findActiveSubmittedTableOrder, $pmdFindOpenTableOrderForContext) {
                     $ensureTableOrderDraftTable();
                     $context = $resolveTableDraftContext($request);
                     if (($context['table_id'] ?? '') === '' && ($context['table_no'] ?? '') === '' && ($context['qr'] ?? '') === '') {
@@ -16,7 +72,7 @@
                         ->orderByDesc('id')
                         ->first();
                     if ($draft) return $formatTableOrderResponse($draft, null, $context);
-                    $order = $findActiveSubmittedTableOrder($context);
+                    $order = $pmdFindOpenTableOrderForContext($context, $findActiveSubmittedTableOrder);
                     return $formatTableOrderResponse(null, $order, $context);
                 });
 
@@ -56,13 +112,13 @@
                     return $formatTableOrderResponse($draft, null, $context);
                 });
 
-                Route::post('/table-order-draft/submit', function (\Illuminate\Http\Request $request) use ($ensureTableOrderDraftTable, $resolveTableDraftContext, $formatTableOrderResponse, $findActiveSubmittedTableOrder) {
+                Route::post('/table-order-draft/submit', function (\Illuminate\Http\Request $request) use ($ensureTableOrderDraftTable, $resolveTableDraftContext, $formatTableOrderResponse, $findActiveSubmittedTableOrder, $pmdFindOpenTableOrderForContext) {
                     $ensureTableOrderDraftTable();
                     $context = $resolveTableDraftContext($request);
                     $draftId = (int)$request->input('draft_id', 0);
                     $orderId = null;
                     $draft = null;
-                    DB::transaction(function () use (&$draft, &$orderId, $draftId, $context, $request) {
+                    DB::transaction(function () use (&$draft, &$orderId, $draftId, $context, $request, $findActiveSubmittedTableOrder, $pmdFindOpenTableOrderForContext) {
                         $query = DB::table('pmd_table_order_drafts')->where('status', 'draft');
                         if ($draftId > 0) $query->where('id', $draftId); else $query->where(function ($q) use ($context) {
                             if (($context['table_id'] ?? '') !== '') $q->orWhere('table_id', $context['table_id']);
@@ -82,6 +138,87 @@
                         $itemsSubtotal = (float)$resolvedTotals['subtotal'];
                         $taxAmount = (float)$resolvedTotals['tax'];
                         $total = (float)$resolvedTotals['total'];
+
+                        // PMD_AUDIT_PHASE6_ACTIVE_TABLE_ORDER_MERGE_SUBMIT
+                        // Merge additional guest submissions into the active open table order,
+                        // instead of creating a second unpaid order for the same physical table.
+                        $existingOpenOrder = $pmdFindOpenTableOrderForContext($context, $findActiveSubmittedTableOrder);
+                        if ($existingOpenOrder && (int)($existingOpenOrder->order_id ?? 0) > 0) {
+                            $orderId = (int)$existingOpenOrder->order_id;
+
+                            foreach ($items as $item) {
+                                DB::table('order_menus')->insert([
+                                    'order_id' => $orderId,
+                                    'menu_id' => (int)($item['menu_id'] ?? 0),
+                                    'name' => (string)($item['name'] ?? 'Item'),
+                                    'quantity' => max(1, (int)($item['quantity'] ?? 1)),
+                                    'price' => (float)($item['price'] ?? 0),
+                                    'subtotal' => (float)($item['subtotal'] ?? 0),
+                                    'comment' => '[guest_session:'.(string)($item['guest_session_id'] ?? '').']',
+                                    'option_values' => !empty($item['options']) ? json_encode($item['options'], JSON_UNESCAPED_UNICODE|JSON_UNESCAPED_SLASHES) : null,
+                                ]);
+                            }
+
+                            $allItems = DB::table('order_menus')
+                                ->where('order_id', $orderId)
+                                ->get(['price', 'quantity', 'subtotal'])
+                                ->map(fn($row) => [
+                                    'price' => (float)($row->price ?? 0),
+                                    'quantity' => (float)($row->quantity ?? 0),
+                                    'subtotal' => (float)($row->subtotal ?? 0),
+                                ])
+                                ->values()
+                                ->all();
+
+                            $mergedTotals = pmd_table_order_calculate_totals($allItems);
+                            $mergedRows = array_map(function ($row) use ($orderId) {
+                                return array_merge(['order_id' => $orderId], $row);
+                            }, $mergedTotals['rows']);
+
+                            DB::table('order_totals')->where('order_id', $orderId)->delete();
+                            DB::table('order_totals')->insert($mergedRows);
+
+                            $update = [
+                                'order_total' => round((float)$mergedTotals['total'], 4),
+                                'total_items' => (int)round((float)DB::table('order_menus')->where('order_id', $orderId)->sum('quantity')),
+                                'updated_at' => now(),
+                            ];
+                            if (\Illuminate\Support\Facades\Schema::hasColumn('orders', 'settlement_status')) {
+                                $update['settlement_status'] = 'unpaid';
+                            }
+                            if (\Illuminate\Support\Facades\Schema::hasColumn('orders', 'settled_amount')) {
+                                $update['settled_amount'] = (float)($existingOpenOrder->settled_amount ?? 0);
+                            }
+
+                            DB::table('orders')->where('order_id', $orderId)->update($update);
+                            DB::table('pmd_table_order_drafts')->where('id', $draft->id)->update([
+                                'status' => 'submitted',
+                                'order_id' => $orderId,
+                                'updated_at' => now(),
+                            ]);
+
+                            try {
+                                DB::table('notifications')->insert([
+                                    'type' => 'order',
+                                    'title' => 'Updated table order #'.$orderId,
+                                    'table_id' => (int)($context['table_id'] ?: 0),
+                                    'table_name' => (string)(($context['table_name'] ?? '') ?: ($context['table_no'] ?? '')),
+                                    'payload' => json_encode(['order_id' => $orderId, 'draft_id' => (int)$draft->id, 'merged' => true]),
+                                    'status' => 'new',
+                                    'created_at' => now(),
+                                    'updated_at' => now(),
+                                ]);
+                            } catch (\Throwable $ignored) {}
+
+                            \Log::info('PMD_ACTIVE_TABLE_DRAFT_MERGED_INTO_OPEN_ORDER', [
+                                'draft_id' => (int)$draft->id,
+                                'order_id' => $orderId,
+                                'item_count' => count($items),
+                                'merged_total' => round((float)$mergedTotals['total'], 4),
+                            ]);
+
+                            return;
+                        }
                         $orderNumber = (int)DB::table('orders')->max('order_id') + 1;
                         $comment = trim('Table Draft Basket | Table ID: '.($context['table_id'] ?? '').' | Table: '.(($context['table_name'] ?? '') ?: ($context['table_no'] ?? '')).' | [table_draft_id:'.$draft->id.']'.($request->input('guest_session_id') ? ' | [submitted_by:'.$request->input('guest_session_id').']' : ''), ' |');
                         $insert = [

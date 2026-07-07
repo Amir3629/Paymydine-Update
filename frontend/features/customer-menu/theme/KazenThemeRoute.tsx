@@ -238,9 +238,19 @@ export function KazenThemeRoute(props: KazenThemeRouteProps) {
   }
 
   const handleKazenValet = async (values: KazenValetValues = {}) => {
+    // PMD_AUDIT_PHASE2_VALET_CLIENT_GUARD
     const name = String(values?.name || "Guest").trim() || "Guest"
-    const licensePlate = String(values?.licensePlate || values?.license_plate || "Not provided").trim() || "Not provided"
+    const licensePlate = String(values?.licensePlate || values?.license_plate || "").trim()
     const carModel = String(values?.carModel || values?.car_make || "Not provided").trim() || "Not provided"
+
+    if (!licensePlate) {
+      toast({
+        title: "Valet ticket required",
+        description: "Please enter your valet ticket number or license plate before requesting your car.",
+        variant: "destructive",
+      })
+      return
+    }
 
     try {
       await apiClient.createValetRequest({
@@ -304,6 +314,7 @@ export function KazenThemeRoute(props: KazenThemeRouteProps) {
             Parent dock is hidden to avoid duplicate/blocked action bars. */}
         {false && <KazenBottomDock {...themeMenuActions} />}
 
+        {/* PMD_AUDIT_PHASE4_V3_MODAL_SYNC_PROPS */}
         <PaymentModal
           isOpen={isPaymentModalOpen}
           onClose={() => {

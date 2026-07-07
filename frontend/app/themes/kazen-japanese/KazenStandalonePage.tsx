@@ -41,6 +41,22 @@ const PMD_KAZEN_HEADER_LINKS_DEFAULT_V1: KazenHeaderLinksV1 = {
   social: { enabled: false, platform: "instagram", url: "" },
 }
 
+
+// PMD_AUDIT_PHASE4_V2_WAITER_COOLDOWN
+const PMD_KAZEN_WAITER_COOLDOWN_MS = 3 * 60 * 1000
+
+function pmdKazenWaiterCooldownKey(tableLabel: unknown): string {
+  const normalized = String(tableLabel || "table").trim().replace(/[^a-zA-Z0-9_-]+/g, "-") || "table"
+  return `pmd-kazen-waiter-cooldown:${normalized}`
+}
+
+function pmdKazenFormatRemaining(ms: number): string {
+  const totalSeconds = Math.max(1, Math.ceil(ms / 1000))
+  const minutes = Math.floor(totalSeconds / 60)
+  const seconds = String(totalSeconds % 60).padStart(2, "0")
+  return `${minutes}:${seconds}`
+}
+
 function pmdKazenBoolV1(value: unknown): boolean {
   if (typeof value === "boolean") return value
   return ["1", "true", "yes", "on", "enabled"].includes(String(value || "").trim().toLowerCase())
@@ -156,6 +172,7 @@ export default function KazenStandalonePage() {
   const [openCategory, setOpenCategory] = useState<string>("")
   const [selectedItem, setSelectedItem] = useState<KazenItem | null>(null)
   const [itemQty, setItemQty] = useState(1)
+  const [waiterFeedback, setWaiterFeedback] = useState("Request sent")
 
   // PMD_KAZEN_QTY_DOM_STYLE_FINAL_20260618
   // PMD_KAZEN_QTY_TEXT_SYMBOL_FINAL_20260618
@@ -703,6 +720,7 @@ const [waiterConfirmed, setWaiterConfirmed] = useState(false)
   }
 
   const openWaiterCard = () => {
+    setWaiterFeedback("Request sent")
     setWaiterConfirmed(false)
     setWaiterOpen(true)
   }
@@ -718,6 +736,25 @@ const [waiterConfirmed, setWaiterConfirmed] = useState(false)
   }
 
   const submitWaiter = () => {
+    const cooldownKey = pmdKazenWaiterCooldownKey(state.tableNumber || tableLabel)
+    const now = Date.now()
+
+    try {
+      const lastCallAt = Number(window.localStorage.getItem(cooldownKey) || 0)
+      const remainingMs = PMD_KAZEN_WAITER_COOLDOWN_MS - (now - lastCallAt)
+
+      if (lastCallAt && remainingMs > 0) {
+        setWaiterFeedback(`Waiter already notified. You can call again in ${pmdKazenFormatRemaining(remainingMs)}.`)
+        setWaiterConfirmed(true)
+        return
+      }
+
+      window.localStorage.setItem(cooldownKey, String(now))
+    } catch {
+      // If storage is unavailable, still allow the single request.
+    }
+
+    setWaiterFeedback("Request sent")
     post("PMD_KAZEN_CALL_WAITER")
     setWaiterConfirmed(true)
   }
@@ -1086,7 +1123,7 @@ return (
         >
           <article className="pmd-kazen-action-toast" onClick={(event) => event.stopPropagation()}>
             <span className="pmd-kazen-action-toast-mark" aria-hidden="true">✓</span>
-            <span>Request sent</span>
+            <span>{waiterFeedback}</span>
           </article>
         </div>
       ) : waiterOpen ? (

@@ -6,7 +6,7 @@
 
 "use client"
 
-import React, { useState } from "react"
+import React, { useEffect, useState } from "react"
 import { useLanguageStore } from "@/store/language-store"
 import { usePaymentSettingsStore } from "@/store/cms/payment-settings-store"
 import { useTaxSettingsStore } from "@/store/cms/tax-settings-store"
@@ -132,6 +132,82 @@ export function PaymentModal({ isOpen, onClose, items: allItems, tableInfo, exis
   const isOrganicCheckoutVisual = checkoutVisualTheme === ORGANIC_BOTANICAL_THEME_KEY
   const isModernGreenCheckoutVisual = checkoutVisualTheme === "modern_green"
   const isKazenJapaneseCheckoutVisual = checkoutVisualTheme === KAZEN_JAPANESE_THEME_KEY
+
+  // PMD_AUDIT_PHASE4_V3_MODAL_LIVE_SYNC
+  // Parent polling updates initialSubmittedOrder, but this modal keeps its own
+  // submittedSnapshot state. Sync open table-order status/split screens so
+  // another guest's submitted items appear without a manual browser refresh.
+  useEffect(() => {
+    if (!isOpen || !initialSubmittedOrder) return
+    if (!["submitted", "split", "split-items", "split-shares", "split-review", "payment"].includes(checkoutStep)) return
+
+    const nextOrderId = String(
+      initialSubmittedOrder?.orderId ??
+      initialSubmittedOrder?.order_id ??
+      ""
+    )
+    const currentOrderId = String(
+      submittedSnapshot?.orderId ??
+      submittedSnapshot?.order_id ??
+      ""
+    )
+
+    const nextItems = Array.isArray(initialSubmittedOrder?.submittedItems)
+      ? initialSubmittedOrder.submittedItems
+      : Array.isArray(initialSubmittedOrder?.items)
+        ? initialSubmittedOrder.items
+        : []
+    const currentItems = Array.isArray(submittedSnapshot?.submittedItems)
+      ? submittedSnapshot.submittedItems
+      : Array.isArray(submittedSnapshot?.items)
+        ? submittedSnapshot.items
+        : []
+
+    const nextItemSignature = nextItems
+      .map((item: any) => `${item?.order_menu_id || item?.menu_id || item?.id || item?.name}:${item?.quantity || 1}:${item?.subtotal ?? item?.price ?? 0}`)
+      .join("|")
+    const currentItemSignature = currentItems
+      .map((item: any) => `${item?.order_menu_id || item?.menu_id || item?.id || item?.name}:${item?.quantity || 1}:${item?.subtotal ?? item?.price ?? 0}`)
+      .join("|")
+
+    const nextTotal = Number(
+      initialSubmittedOrder?.remainingAmount ??
+      initialSubmittedOrder?.orderTotal ??
+      initialSubmittedOrder?.total ??
+      0
+    )
+    const currentTotal = Number(
+      submittedSnapshot?.remainingAmount ??
+      submittedSnapshot?.orderTotal ??
+      submittedSnapshot?.total ??
+      0
+    )
+
+    if (
+      nextOrderId !== currentOrderId ||
+      nextItemSignature !== currentItemSignature ||
+      Math.abs(nextTotal - currentTotal) > 0.004
+    ) {
+      setSubmittedSnapshot((previous: any | null) => ({
+        ...(previous || {}),
+        ...initialSubmittedOrder,
+        submittedItems: nextItems,
+        updatedAt: initialSubmittedOrder?.updatedAt || new Date().toISOString(),
+      }))
+    }
+  }, [
+    isOpen,
+    initialSubmittedOrder,
+    checkoutStep,
+    submittedSnapshot?.orderId,
+    submittedSnapshot?.order_id,
+    submittedSnapshot?.submittedItems,
+    submittedSnapshot?.items,
+    submittedSnapshot?.remainingAmount,
+    submittedSnapshot?.orderTotal,
+    submittedSnapshot?.total,
+    setSubmittedSnapshot,
+  ])
 
 
   const {

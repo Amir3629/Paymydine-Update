@@ -103,6 +103,29 @@ function MenuContent() {
     tableInfo,
     setTableInfoState,
   })
+
+  // PMD_AUDIT_PHASE2_NOTE_PERSISTENCE
+  const noteDraftStorageKey = React.useMemo(() => {
+    const tableKey = String(tableIdString || displayTableNumber || tableInfo?.table_id || tableInfo?.table_no || "delivery").trim() || "delivery"
+    return `pmd-note-draft:${tableKey}`
+  }, [tableIdString, displayTableNumber, tableInfo?.table_id, tableInfo?.table_no])
+
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem(noteDraftStorageKey)
+      if (saved && !note) setNote(saved)
+    } catch {}
+    // Only hydrate when the table-specific key changes.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [noteDraftStorageKey])
+
+  useEffect(() => {
+    try {
+      const value = String(note || "")
+      if (value.trim()) localStorage.setItem(noteDraftStorageKey, value)
+      else localStorage.removeItem(noteDraftStorageKey)
+    } catch {}
+  }, [note, noteDraftStorageKey])
   const { tableDraft: sharedTableOrder, setTableDraft: setSharedTableOrder } = useTableOrderDraft({
     context: sharedTableOrderContext,
     enabled: Boolean(tableInfo?.table_id || tableInfo?.table_no),
@@ -245,6 +268,7 @@ function MenuContent() {
     }
     try {
       await apiClient.callTableNote(String(resolvedTableId), trimmedNote, new Date().toISOString());
+      try { localStorage.removeItem(noteDraftStorageKey) } catch {}
       setNote("")
       setNoteModalOpen(false)
       toast({
@@ -274,6 +298,82 @@ function MenuContent() {
     setHasLocalOpenOrder,
     setLocalOpenOrder,
   })
+
+
+  // PMD_AUDIT_PHASE4_V2_TABLE_ORDER_POLLING
+  // Keep checkout/order status fresh when another guest/session adds to the same table.
+  useEffect(() => {
+    const resolvedTableId = String(tableInfo?.table_id || "").trim()
+    if (!resolvedTableId) return
+
+    let cancelled = false
+
+    const refreshPendingTableOrder = async () => {
+      try {
+        const pendingQr = await apiClient.getPendingQrOrderByTable(
+          resolvedTableId,
+          {
+            tableNo: tableInfo?.table_no ?? tableInfo?.tableNo ?? null,
+            qr: tableInfo?.qr_code ?? sharedTableOrderQr ?? null,
+          },
+        )
+
+        if (cancelled || !pendingQr?.success || !pendingQr.data?.order_id) return
+
+        const pendingId = Number(pendingQr.data.order_id)
+        const nextOrderTotal = Number((pendingQr.data as any).order_total || 0)
+        const nextSettledAmount = Number((pendingQr.data as any).settled_amount || 0)
+        const nextRemainingAmount = Number((pendingQr.data as any).remaining_amount || nextOrderTotal || 0)
+        const submittedItems = Array.isArray((pendingQr.data as any).items) ? (pendingQr.data as any).items : []
+
+        setExistingOrderId(pendingId)
+        setPendingSettlementSummary({
+          orderTotal: nextOrderTotal,
+          settledAmount: nextSettledAmount,
+          remainingAmount: nextRemainingAmount,
+        })
+        setLocalOpenOrder((previous: any | null) => ({
+          ...(previous || {}),
+          orderId: pendingId,
+          status: "submitted_unpaid",
+          paymentStatus: nextRemainingAmount <= 0 ? "paid" : nextSettledAmount > 0 ? "partial" : "unpaid",
+          tableNumber: tableInfo?.table_no ?? null,
+          total: nextOrderTotal,
+          orderTotal: nextOrderTotal,
+          settledAmount: nextSettledAmount,
+          remainingAmount: nextRemainingAmount,
+          submittedItems,
+          payment: "qr_pay_later",
+          updatedAt: new Date().toISOString(),
+        }))
+        setHasLocalOpenOrder(true)
+      } catch (error) {
+        if (process.env.NODE_ENV !== "production") {
+          console.debug("[PMD table polling] refresh failed", error)
+        }
+      }
+    }
+
+    void refreshPendingTableOrder()
+    const interval = window.setInterval(refreshPendingTableOrder, 5000)
+    const onFocus = () => { void refreshPendingTableOrder() }
+    window.addEventListener("focus", onFocus)
+
+    return () => {
+      cancelled = true
+      window.clearInterval(interval)
+      window.removeEventListener("focus", onFocus)
+    }
+  }, [
+    tableInfo?.table_id,
+    tableInfo?.table_no,
+    tableInfo?.qr_code,
+    sharedTableOrderQr,
+    setExistingOrderId,
+    setHasLocalOpenOrder,
+    setLocalOpenOrder,
+    setPendingSettlementSummary,
+  ])
 
   useOrganicThemeEffects({
     enabled: isOrganicBotanicalTheme,
@@ -320,6 +420,35 @@ function MenuContent() {
               <div key={idx} className="h-48 animate-pulse rounded-[1.6rem] bg-black/10" />
             ))}
           </div>
+        </div>
+      </div>
+    )
+  }
+
+  // PMD_AUDIT_PHASE2_MISSING_TABLE_FALLBACK
+  const hasTableLookupHint = Boolean(
+    tableIdString ||
+    displayTableNumber ||
+    tableInfo?.table_id ||
+    tableInfo?.table_no ||
+    searchParams.get("table") ||
+    searchParams.get("table_id") ||
+    searchParams.get("table_no") ||
+    searchParams.get("qr")
+  )
+
+  const shouldShowMissingTableFallback =
+    !isLoading &&
+    !hasTableLookupHint &&
+    typeof window !== "undefined" &&
+    window.location.pathname.replace(/\/+$/, "") === "/menu"
+
+  if (shouldShowMissingTableFallback) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-[#fbf8f2] px-6 text-center text-[#242320]">
+        <div className="max-w-md rounded-3xl border border-[#d8b982] bg-white/85 p-6 shadow-sm">
+          <h1 className="text-xl font-bold">Oops, we could not find your table.</h1>
+          <p className="mt-3 text-sm leading-6 text-[#6b6258]">Please scan the QR code on your table again, or ask a member of staff for help.</p>
         </div>
       </div>
     )

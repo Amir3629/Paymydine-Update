@@ -7,11 +7,8 @@
 </script>
 <div id="pmd-owner-dashboard-clean-v1-root" data-version="20260626-owner-clean-v23-waiter-interactive">
     <div class="pmd-owner-clean-loading">
-        <div class="pmd-owner-clean-spinner"></div>
         <div>
-            <strong>Loading PayMyDine Role Dashboard…</strong>
-            <small>Preparing live restaurant floor, alerts, timeline and connected operational widgets</small>
-        </div>
+            </div>
     </div>
 </div>
 <noscript>

@@ -66,6 +66,22 @@ export function PaymentMethodForm(props: any) {
       }
     } catch {}
 
+    // PMD_AUDIT_PHASE3_PAYMENT_ERROR_DEDUPE
+    const pmdLastPaymentErrorToastRef = React.useRef<{ key: string; at: number } | null>(null)
+    const notifyPaymentError = React.useCallback((title: string, message: string) => {
+      const normalizedMessage = String(message || "Payment failed. Please try again.").trim()
+      const key = `${title}:${normalizedMessage}`
+      const now = Date.now()
+      const previous = pmdLastPaymentErrorToastRef.current
+      if (previous && previous.key === key && now - previous.at < 3500) return
+      pmdLastPaymentErrorToastRef.current = { key, at: now }
+      toast({
+        title,
+        description: normalizedMessage,
+        variant: "destructive",
+      })
+    }, [toast])
+
     if (!selectedMethod) return null
 
     if (checkoutStep === "payment" && hasUnsubmittedPaymentDraft()) {
@@ -149,11 +165,7 @@ export function PaymentMethodForm(props: any) {
                       }
                     }}
                     onPaymentError={(message: string) => {
-                      toast({
-                        title: "Payment Failed",
-                        description: message,
-                        variant: "destructive",
-                      })
+                      notifyPaymentError("Payment Failed", message)
                     }}
                   />
                 </PayPalScriptProvider>
@@ -202,11 +214,7 @@ export function PaymentMethodForm(props: any) {
                     }
                   }}
                   onPaymentError={(message: string) => {
-                    toast({
-                      title: "Worldline Payment Failed",
-                      description: message,
-                      variant: "destructive",
-                    })
+                    notifyPaymentError("Worldline Payment Failed", message)
                   }}
                 />
               </motion.div>
@@ -286,11 +294,7 @@ export function PaymentMethodForm(props: any) {
               paymentData={stripePaymentData}
               onPaymentSuccess={handlePayment}
               onPaymentError={(message: string) => {
-                toast({
-                  title: "Payment Failed",
-                  description: message,
-                  variant: "destructive",
-                })
+                notifyPaymentError("Payment Failed", message)
               }}
             />
           </motion.div>

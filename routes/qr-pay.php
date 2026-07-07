@@ -342,7 +342,7 @@ Route::group([
         $draftId = (int)$request->input('draft_id', 0);
         $orderId = null;
         $draft = null;
-        \Illuminate\Support\Facades\DB::transaction(function () use (&$draft, &$orderId, $draftId, $context, $request) {
+        \Illuminate\Support\Facades\DB::transaction(function () use (&$draft, &$orderId, $draftId, $context, $request, $findActiveSubmittedTableOrder) {
             $query = \Illuminate\Support\Facades\DB::table('pmd_table_order_drafts')->where('status', 'draft');
             if ($draftId > 0) $query->where('id', $draftId); else $query->where(function ($q) use ($context) {
                 if (($context['table_id'] ?? '') !== '') $q->orWhere('table_id', $context['table_id']);
@@ -362,6 +362,91 @@ Route::group([
             $itemsSubtotal = (float)$resolvedTotals['subtotal'];
             $taxAmount = (float)$resolvedTotals['tax'];
             $total = (float)$resolvedTotals['total'];
+
+            // PMD_AUDIT_PHASE5_MERGE_OPEN_TABLE_ORDER
+            // If this table already has an unpaid qr_pay_later order, append the new
+            // submitted draft items to that same order instead of creating another
+            // open order. This fixes cross-device checkout polling because all guests
+            // now observe one active table order that grows over time.
+            $existingOpenOrder = $findActiveSubmittedTableOrder($context);
+            if ($existingOpenOrder && (int)($existingOpenOrder->order_id ?? 0) > 0) {
+                $orderId = (int)$existingOpenOrder->order_id;
+
+                foreach ($items as $item) {
+                    \Illuminate\Support\Facades\DB::table('order_menus')->insert([
+                        'order_id' => $orderId,
+                        'menu_id' => (int)($item['menu_id'] ?? 0),
+                        'name' => (string)($item['name'] ?? 'Item'),
+                        'quantity' => max(1, (int)($item['quantity'] ?? 1)),
+                        'price' => (float)($item['price'] ?? 0),
+                        'subtotal' => (float)($item['subtotal'] ?? 0),
+                        'comment' => '[guest_session:'.(string)($item['guest_session_id'] ?? '').']',
+                        'option_values' => !empty($item['options']) ? json_encode($item['options'], JSON_UNESCAPED_UNICODE|JSON_UNESCAPED_SLASHES) : null,
+                    ]);
+                }
+
+                $allItems = \Illuminate\Support\Facades\DB::table('order_menus')
+                    ->where('order_id', $orderId)
+                    ->get(['price', 'quantity', 'subtotal'])
+                    ->map(fn($row) => [
+                        'price' => (float)($row->price ?? 0),
+                        'quantity' => (float)($row->quantity ?? 0),
+                        'subtotal' => (float)($row->subtotal ?? 0),
+                    ])
+                    ->values()
+                    ->all();
+
+                $mergedTotals = pmd_table_order_calculate_totals($allItems);
+                $mergedRows = array_map(function ($row) use ($orderId) {
+                    return array_merge(['order_id' => $orderId], $row);
+                }, $mergedTotals['rows']);
+
+                if (\Illuminate\Support\Facades\Schema::hasTable('order_totals')) {
+                    \Illuminate\Support\Facades\DB::table('order_totals')->where('order_id', $orderId)->delete();
+                    \Illuminate\Support\Facades\DB::table('order_totals')->insert($mergedRows);
+                }
+
+                $update = [
+                    'order_total' => round((float)$mergedTotals['total'], 4),
+                    'total_items' => (int)round((float)\Illuminate\Support\Facades\DB::table('order_menus')->where('order_id', $orderId)->sum('quantity')),
+                    'updated_at' => now(),
+                ];
+                if (\Illuminate\Support\Facades\Schema::hasColumn('orders', 'settlement_status')) {
+                    $update['settlement_status'] = 'unpaid';
+                }
+                if (\Illuminate\Support\Facades\Schema::hasColumn('orders', 'settled_amount')) {
+                    $update['settled_amount'] = (float)($existingOpenOrder->settled_amount ?? 0);
+                }
+
+                \Illuminate\Support\Facades\DB::table('orders')->where('order_id', $orderId)->update($update);
+                \Illuminate\Support\Facades\DB::table('pmd_table_order_drafts')->where('id', $draft->id)->update([
+                    'status' => 'submitted',
+                    'order_id' => $orderId,
+                    'updated_at' => now(),
+                ]);
+
+                try {
+                    \Illuminate\Support\Facades\DB::table('notifications')->insert([
+                        'type' => 'order',
+                        'title' => 'Updated table order #'.$orderId,
+                        'table_id' => (int)($context['table_id'] ?: 0),
+                        'table_name' => (string)(($context['table_name'] ?? '') ?: ($context['table_no'] ?? '')),
+                        'payload' => json_encode(['order_id' => $orderId, 'draft_id' => (int)$draft->id, 'merged' => true]),
+                        'status' => 'new',
+                        'created_at' => now(),
+                        'updated_at' => now(),
+                    ]);
+                } catch (\Throwable $ignored) {}
+
+                \Log::info('PMD_TABLE_DRAFT_MERGED_INTO_OPEN_ORDER', [
+                    'draft_id' => (int)$draft->id,
+                    'order_id' => $orderId,
+                    'item_count' => count($items),
+                    'merged_total' => round((float)$mergedTotals['total'], 4),
+                ]);
+
+                return;
+            }
             $orderNumber = (int)\Illuminate\Support\Facades\DB::table('orders')->max('order_id') + 1;
             $comment = trim('Table Draft Basket | Table ID: '.($context['table_id'] ?? '').' | Table: '.(($context['table_name'] ?? '') ?: ($context['table_no'] ?? '')).' | [table_draft_id:'.$draft->id.']'.($request->input('guest_session_id') ? ' | [submitted_by:'.$request->input('guest_session_id').']' : ''), ' |');
             $insert = [
