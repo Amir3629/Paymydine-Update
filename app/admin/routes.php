@@ -2460,6 +2460,308 @@ if (!defined('PMD_WAITER_DASHBOARD_V10_FLOOR_EDIT_MERGE')) {
 // PMD_WAITER_DASHBOARD_V10_FLOOR_EDIT_MERGE_END
 
 
+// PMD_WAITER_DASHBOARD_V18_UNMERGE_TABLES_START
+if (!defined('PMD_WAITER_DASHBOARD_V18_UNMERGE_TABLES')) {
+    define('PMD_WAITER_DASHBOARD_V18_UNMERGE_TABLES', true);
+
+    $__pmdWaiterV18TenantDb = function () {
+        $db = \Illuminate\Support\Facades\DB::getFacadeRoot();
+        $host = request()->getHost();
+        $sub = strtolower(trim(explode('.', $host)[0] ?? ''));
+
+        $exists = function ($tenantDb, $tableName) use ($db) {
+            try {
+                $row = $db->selectOne("
+                    SELECT COUNT(*) AS c
+                    FROM information_schema.TABLES
+                    WHERE TABLE_SCHEMA = ?
+                      AND TABLE_NAME = ?
+                ", [$tenantDb, $tableName]);
+
+                return $row && (int)($row->c ?? 0) > 0;
+            } catch (\Throwable $e) {
+                return false;
+            }
+        };
+
+        $current = null;
+        try {
+            $row = $db->selectOne('select database() as db');
+            $current = $row->db ?? null;
+        } catch (\Throwable $e) {}
+
+        $candidates = [];
+        if (getenv('PMD_TENANT_DB')) $candidates[] = getenv('PMD_TENANT_DB');
+        if ($sub && !in_array($sub, ['www', 'admin', 'app', 'paymydine'], true)) $candidates[] = $sub;
+        if (strpos($host, 'mimoza') !== false) $candidates[] = 'mimoza';
+        if ($current) $candidates[] = $current;
+
+        $candidates = array_values(array_unique(array_filter($candidates)));
+
+        foreach ($candidates as $cand) {
+            if ($exists($cand, 'ti_tables')) return $cand;
+        }
+
+        throw new \RuntimeException('Could not resolve tenant DB for unmerge.');
+    };
+
+    $__pmdWaiterV18Qi = function ($name) {
+        return '`' . str_replace('`', '``', (string)$name) . '`';
+    };
+
+    $__pmdWaiterV18Unmerge = function (\Illuminate\Http\Request $request) use ($__pmdWaiterV18TenantDb, $__pmdWaiterV18Qi) {
+        try {
+            $db = \Illuminate\Support\Facades\DB::getFacadeRoot();
+            $tenantDb = $__pmdWaiterV18TenantDb();
+
+            $mergeKey = trim((string)$request->input('merge_key', ''));
+            $id = (int)$request->input('id', 0);
+
+            if ($mergeKey === '' && $id <= 0) {
+                return response()->json([
+                    'ok' => false,
+                    'error' => 'Missing merge_key or id',
+                ], 422);
+            }
+
+            $full = $__pmdWaiterV18Qi($tenantDb) . '.`ti_pmd_table_merges`';
+
+            if ($mergeKey !== '') {
+                $affected = $db->update("
+                    UPDATE {$full}
+                    SET status = 'inactive',
+                        updated_at = ?
+                    WHERE merge_key = ?
+                    LIMIT 1
+                ", [date('Y-m-d H:i:s'), $mergeKey]);
+            } else {
+                $affected = $db->update("
+                    UPDATE {$full}
+                    SET status = 'inactive',
+                        updated_at = ?
+                    WHERE id = ?
+                    LIMIT 1
+                ", [date('Y-m-d H:i:s'), $id]);
+            }
+
+            return response()->json([
+                'ok' => true,
+                'version' => 'waiter-dashboard-v18-unmerge',
+                'tenant_db' => $tenantDb,
+                'affected' => $affected,
+            ]);
+        } catch (\Throwable $e) {
+            return response()->json([
+                'ok' => false,
+                'version' => 'waiter-dashboard-v18-unmerge',
+                'error' => $e->getMessage(),
+                'file' => basename($e->getFile()),
+                'line' => $e->getLine(),
+            ], 500);
+        }
+    };
+
+    \Illuminate\Support\Facades\Route::post('pmd-waiter-dashboard-v18-unmerge-tables', $__pmdWaiterV18Unmerge);
+    \Illuminate\Support\Facades\Route::post('/pmd-waiter-dashboard-v18-unmerge-tables', $__pmdWaiterV18Unmerge);
+    \Illuminate\Support\Facades\Route::post('/admin/pmd-waiter-dashboard-v18-unmerge-tables', $__pmdWaiterV18Unmerge);
+}
+// PMD_WAITER_DASHBOARD_V18_UNMERGE_TABLES_END
+
+
+// PMD_WAITER_DASHBOARD_V19_ROBUST_UNMERGE_START
+if (!defined('PMD_WAITER_DASHBOARD_V19_ROBUST_UNMERGE')) {
+    define('PMD_WAITER_DASHBOARD_V19_ROBUST_UNMERGE', true);
+
+    $__pmdWaiterV19Qi = function ($name) {
+        return '`' . str_replace('`', '``', (string)$name) . '`';
+    };
+
+    $__pmdWaiterV19TableExists = function ($tenantDb, $tableName) {
+        try {
+            $db = \Illuminate\Support\Facades\DB::getFacadeRoot();
+            $row = $db->selectOne("
+                SELECT COUNT(*) AS c
+                FROM information_schema.TABLES
+                WHERE TABLE_SCHEMA = ?
+                  AND TABLE_NAME = ?
+            ", [$tenantDb, $tableName]);
+
+            return $row && (int)($row->c ?? 0) > 0;
+        } catch (\Throwable $e) {
+            return false;
+        }
+    };
+
+    $__pmdWaiterV19Columns = function ($tenantDb, $tableName) {
+        try {
+            $db = \Illuminate\Support\Facades\DB::getFacadeRoot();
+            $rows = $db->select("
+                SELECT COLUMN_NAME
+                FROM information_schema.COLUMNS
+                WHERE TABLE_SCHEMA = ?
+                  AND TABLE_NAME = ?
+            ", [$tenantDb, $tableName]);
+
+            return array_map(function ($r) {
+                return $r->COLUMN_NAME;
+            }, $rows);
+        } catch (\Throwable $e) {
+            return [];
+        }
+    };
+
+    $__pmdWaiterV19TenantDb = function () use ($__pmdWaiterV19TableExists) {
+        $db = \Illuminate\Support\Facades\DB::getFacadeRoot();
+        $host = request()->getHost();
+        $sub = strtolower(trim(explode('.', $host)[0] ?? ''));
+
+        $current = null;
+        try {
+            $row = $db->selectOne('select database() as db');
+            $current = $row->db ?? null;
+        } catch (\Throwable $e) {}
+
+        $candidates = [];
+        if (getenv('PMD_TENANT_DB')) $candidates[] = getenv('PMD_TENANT_DB');
+        if ($sub && !in_array($sub, ['www', 'admin', 'app', 'paymydine'], true)) $candidates[] = $sub;
+        if (strpos($host, 'mimoza') !== false) $candidates[] = 'mimoza';
+        if ($current) $candidates[] = $current;
+
+        $candidates = array_values(array_unique(array_filter($candidates)));
+
+        foreach ($candidates as $cand) {
+            if ($__pmdWaiterV19TableExists($cand, 'ti_pmd_table_merges')) return $cand;
+        }
+
+        foreach ($candidates as $cand) {
+            if ($__pmdWaiterV19TableExists($cand, 'ti_tables')) return $cand;
+        }
+
+        throw new \RuntimeException('Could not resolve tenant DB.');
+    };
+
+    $__pmdWaiterV19CanonicalTables = function ($value) {
+        if (is_string($value)) {
+            $decoded = json_decode($value, true);
+            if (is_array($decoded)) $value = $decoded;
+            else $value = preg_split('/\s*,\s*/', $value);
+        }
+
+        if (!is_array($value)) $value = [];
+
+        $out = [];
+        foreach ($value as $v) {
+            $v = trim((string)$v);
+            if ($v !== '') $out[] = $v;
+        }
+
+        $out = array_values(array_unique($out));
+
+        usort($out, function ($a, $b) {
+            $na = is_numeric($a);
+            $nb = is_numeric($b);
+
+            if ($na && $nb) return ((int)$a) <=> ((int)$b);
+            return strcmp($a, $b);
+        });
+
+        return json_encode($out);
+    };
+
+    $__pmdWaiterV19Unmerge = function (\Illuminate\Http\Request $request) use (
+        $__pmdWaiterV19Qi,
+        $__pmdWaiterV19TableExists,
+        $__pmdWaiterV19Columns,
+        $__pmdWaiterV19TenantDb,
+        $__pmdWaiterV19CanonicalTables
+    ) {
+        try {
+            $db = \Illuminate\Support\Facades\DB::getFacadeRoot();
+            $tenantDb = $__pmdWaiterV19TenantDb();
+
+            if (!$__pmdWaiterV19TableExists($tenantDb, 'ti_pmd_table_merges')) {
+                return response()->json([
+                    'ok' => false,
+                    'error' => 'ti_pmd_table_merges not found',
+                    'tenant_db' => $tenantDb,
+                ], 404);
+            }
+
+            $full = $__pmdWaiterV19Qi($tenantDb) . '.`ti_pmd_table_merges`';
+            $cols = $__pmdWaiterV19Columns($tenantDb, 'ti_pmd_table_merges');
+
+            $id = (int)$request->input('id', 0);
+            $mergeKey = trim((string)$request->input('merge_key', ''));
+            $tableNumbers = $request->input('table_numbers', []);
+
+            if (is_string($tableNumbers)) {
+                $decoded = json_decode($tableNumbers, true);
+                $tableNumbers = is_array($decoded) ? $decoded : preg_split('/\s*,\s*/', $tableNumbers);
+            }
+
+            $wantedCanon = $__pmdWaiterV19CanonicalTables($tableNumbers);
+            $affected = 0;
+
+            $deleteBy = function ($where, $params) use ($db, $full, &$affected) {
+                $affected += (int)$db->delete("DELETE FROM {$full} WHERE {$where}", $params);
+            };
+
+            if ($id > 0 && in_array('id', $cols, true)) {
+                $deleteBy('`id` = ?', [$id]);
+            }
+
+            if ($affected < 1 && $mergeKey !== '' && in_array('merge_key', $cols, true)) {
+                $deleteBy('`merge_key` = ?', [$mergeKey]);
+            }
+
+            if ($affected < 1 && $wantedCanon !== '[]' && in_array('table_numbers', $cols, true)) {
+                $rows = $db->select("SELECT * FROM {$full}");
+
+                foreach ($rows as $row) {
+                    $a = (array)$row;
+                    $raw = $a['table_numbers'] ?? '';
+                    $rowCanon = $__pmdWaiterV19CanonicalTables($raw);
+
+                    if ($rowCanon === $wantedCanon) {
+                        if (in_array('id', $cols, true) && isset($a['id'])) {
+                            $deleteBy('`id` = ?', [$a['id']]);
+                        } elseif (in_array('merge_key', $cols, true) && isset($a['merge_key'])) {
+                            $deleteBy('`merge_key` = ?', [$a['merge_key']]);
+                        } else {
+                            $deleteBy('`table_numbers` = ?', [$raw]);
+                        }
+                    }
+                }
+            }
+
+            return response()->json([
+                'ok' => true,
+                'version' => 'waiter-dashboard-v19-robust-unmerge',
+                'tenant_db' => $tenantDb,
+                'affected' => $affected,
+            ]);
+        } catch (\Throwable $e) {
+            return response()->json([
+                'ok' => false,
+                'version' => 'waiter-dashboard-v19-robust-unmerge',
+                'error' => $e->getMessage(),
+                'file' => basename($e->getFile()),
+                'line' => $e->getLine(),
+            ], 500);
+        }
+    };
+
+    \Illuminate\Support\Facades\Route::post('pmd-waiter-dashboard-v19-unmerge-tables', $__pmdWaiterV19Unmerge);
+    \Illuminate\Support\Facades\Route::post('/pmd-waiter-dashboard-v19-unmerge-tables', $__pmdWaiterV19Unmerge);
+    \Illuminate\Support\Facades\Route::post('/admin/pmd-waiter-dashboard-v19-unmerge-tables', $__pmdWaiterV19Unmerge);
+}
+// PMD_WAITER_DASHBOARD_V19_ROBUST_UNMERGE_END
+
+
+
+
+
+
 
 
 
@@ -2612,4 +2914,531 @@ Route::get('pmd-waiter-floor-v113-data', 'PmdWaiterPortalV113@data');
 Route::get('pmd-waiter-floor-v113-add-item', 'PmdWaiterPortalV113@addItem');
 // PMD_WAITER_PORTAL_V113_ROUTES_END
 
+
+
+
+
+// PMD_WAITER_DASHBOARD_V20_REAL_MERGE_API_START
+if (!defined('PMD_WAITER_DASHBOARD_V20_REAL_MERGE_API')) {
+    define('PMD_WAITER_DASHBOARD_V20_REAL_MERGE_API', true);
+
+    $__pmdW20Qi = function ($name) {
+        return '`' . str_replace('`', '``', (string)$name) . '`';
+    };
+
+    $__pmdW20TableExists = function ($tenantDb, $tableName) {
+        try {
+            $db = \Illuminate\Support\Facades\DB::getFacadeRoot();
+            $row = $db->selectOne("
+                SELECT COUNT(*) AS c
+                FROM information_schema.TABLES
+                WHERE TABLE_SCHEMA = ?
+                  AND TABLE_NAME = ?
+            ", [$tenantDb, $tableName]);
+
+            return $row && (int)($row->c ?? 0) > 0;
+        } catch (\Throwable $e) {
+            return false;
+        }
+    };
+
+    $__pmdW20Columns = function ($tenantDb, $tableName) {
+        try {
+            $db = \Illuminate\Support\Facades\DB::getFacadeRoot();
+            $rows = $db->select("
+                SELECT COLUMN_NAME
+                FROM information_schema.COLUMNS
+                WHERE TABLE_SCHEMA = ?
+                  AND TABLE_NAME = ?
+            ", [$tenantDb, $tableName]);
+
+            return array_map(function ($r) {
+                return $r->COLUMN_NAME;
+            }, $rows);
+        } catch (\Throwable $e) {
+            return [];
+        }
+    };
+
+    $__pmdW20TenantDb = function () use ($__pmdW20TableExists) {
+        $db = \Illuminate\Support\Facades\DB::getFacadeRoot();
+        $host = request()->getHost();
+        $sub = strtolower(trim(explode('.', $host)[0] ?? ''));
+
+        $current = null;
+        try {
+            $row = $db->selectOne('select database() as db');
+            $current = $row->db ?? null;
+        } catch (\Throwable $e) {}
+
+        $candidates = [];
+        if (getenv('PMD_TENANT_DB')) $candidates[] = getenv('PMD_TENANT_DB');
+        if ($sub && !in_array($sub, ['www', 'admin', 'app', 'paymydine'], true)) $candidates[] = $sub;
+        if (strpos($host, 'mimoza') !== false) $candidates[] = 'mimoza';
+        if ($current) $candidates[] = $current;
+
+        $candidates = array_values(array_unique(array_filter($candidates)));
+
+        foreach ($candidates as $cand) {
+            if ($__pmdW20TableExists($cand, 'ti_pmd_table_merges')) return $cand;
+        }
+
+        foreach ($candidates as $cand) {
+            if ($__pmdW20TableExists($cand, 'ti_tables')) return $cand;
+        }
+
+        throw new \RuntimeException('Could not resolve tenant DB.');
+    };
+
+    $__pmdW20EnsureTable = function ($tenantDb) use ($__pmdW20Qi, $__pmdW20TableExists) {
+        if ($__pmdW20TableExists($tenantDb, 'ti_pmd_table_merges')) return;
+
+        $db = \Illuminate\Support\Facades\DB::getFacadeRoot();
+        $full = $__pmdW20Qi($tenantDb) . '.`ti_pmd_table_merges`';
+
+        $db->statement("
+            CREATE TABLE {$full} (
+                `id` INT UNSIGNED NOT NULL AUTO_INCREMENT,
+                `merge_key` VARCHAR(191) NULL,
+                `table_numbers` TEXT NULL,
+                `status` VARCHAR(32) NULL DEFAULT 'active',
+                `notes` TEXT NULL,
+                `created_at` DATETIME NULL,
+                `updated_at` DATETIME NULL,
+                PRIMARY KEY (`id`),
+                INDEX `idx_merge_key` (`merge_key`),
+                INDEX `idx_status` (`status`)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+        ");
+    };
+
+    $__pmdW20Canonical = function ($value) {
+        if (is_string($value)) {
+            $decoded = json_decode($value, true);
+            if (is_array($decoded)) {
+                $value = $decoded;
+            } else {
+                $value = preg_split('/\s*,\s*/', $value);
+            }
+        }
+
+        if (!is_array($value)) $value = [];
+
+        $out = [];
+        foreach ($value as $v) {
+            $v = trim((string)$v);
+            if ($v !== '') $out[] = $v;
+        }
+
+        $out = array_values(array_unique($out));
+
+        usort($out, function ($a, $b) {
+            $na = is_numeric($a);
+            $nb = is_numeric($b);
+
+            if ($na && $nb) return ((int)$a) <=> ((int)$b);
+            return strcmp($a, $b);
+        });
+
+        return $out;
+    };
+
+    $__pmdW20ParseRowTables = function ($row) use ($__pmdW20Canonical) {
+        $a = (array)$row;
+
+        $raw = $a['table_numbers'] ?? null;
+        $nums = $__pmdW20Canonical($raw);
+
+        if (!$nums && !empty($a['merge_key'])) {
+            $key = (string)$a['merge_key'];
+
+            if (preg_match('/^merge-(.+)-[a-z0-9]{6,}$/i', $key, $m)) {
+                $middle = $m[1] ?? '';
+                $nums = $__pmdW20Canonical(str_replace('-', ',', $middle));
+            }
+        }
+
+        return $nums;
+    };
+
+    $__pmdW20Rows = function ($tenantDb) use ($__pmdW20Qi, $__pmdW20EnsureTable, $__pmdW20Columns) {
+        $__pmdW20EnsureTable($tenantDb);
+
+        $db = \Illuminate\Support\Facades\DB::getFacadeRoot();
+        $full = $__pmdW20Qi($tenantDb) . '.`ti_pmd_table_merges`';
+        $cols = $__pmdW20Columns($tenantDb, 'ti_pmd_table_merges');
+
+        $where = in_array('status', $cols, true) ? "WHERE (`status` IS NULL OR `status` = '' OR `status` = 'active')" : "";
+
+        return $db->select("SELECT * FROM {$full} {$where} ORDER BY id DESC");
+    };
+
+    $__pmdW20List = function () use ($__pmdW20TenantDb, $__pmdW20Rows, $__pmdW20ParseRowTables) {
+        try {
+            $tenantDb = $__pmdW20TenantDb();
+
+            $merges = [];
+            foreach ($__pmdW20Rows($tenantDb) as $row) {
+                $a = (array)$row;
+                $nums = $__pmdW20ParseRowTables($row);
+
+                if (count($nums) < 2) continue;
+
+                $merges[] = [
+                    'id' => $a['id'] ?? null,
+                    'merge_id' => $a['id'] ?? null,
+                    'merge_key' => $a['merge_key'] ?? null,
+                    'table_numbers' => $nums,
+                    'status' => $a['status'] ?? 'active',
+                    'notes' => $a['notes'] ?? null,
+                    'created_at' => $a['created_at'] ?? null,
+                ];
+            }
+
+            return response()->json([
+                'ok' => true,
+                'version' => 'waiter-dashboard-v20-table-merges',
+                'tenant_db' => $tenantDb,
+                'count' => count($merges),
+                'merges' => $merges,
+            ]);
+        } catch (\Throwable $e) {
+            return response()->json([
+                'ok' => false,
+                'version' => 'waiter-dashboard-v20-table-merges',
+                'error' => $e->getMessage(),
+                'file' => basename($e->getFile()),
+                'line' => $e->getLine(),
+            ], 500);
+        }
+    };
+
+    $__pmdW20Unmerge = function (\Illuminate\Http\Request $request) use (
+        $__pmdW20TenantDb,
+        $__pmdW20Qi,
+        $__pmdW20Rows,
+        $__pmdW20ParseRowTables,
+        $__pmdW20Canonical
+    ) {
+        try {
+            $db = \Illuminate\Support\Facades\DB::getFacadeRoot();
+            $tenantDb = $__pmdW20TenantDb();
+            $full = $__pmdW20Qi($tenantDb) . '.`ti_pmd_table_merges`';
+
+            $id = (int)$request->input('id', 0);
+            $mergeKey = trim((string)$request->input('merge_key', ''));
+            $wanted = $__pmdW20Canonical($request->input('table_numbers', []));
+
+            $affected = 0;
+
+            if ($id > 0) {
+                $affected += (int)$db->delete("DELETE FROM {$full} WHERE `id` = ?", [$id]);
+            }
+
+            if ($affected < 1 && $mergeKey !== '') {
+                $affected += (int)$db->delete("DELETE FROM {$full} WHERE `merge_key` = ?", [$mergeKey]);
+            }
+
+            if ($affected < 1 && count($wanted) >= 2) {
+                $wantedKey = implode(',', $wanted);
+
+                foreach ($__pmdW20Rows($tenantDb) as $row) {
+                    $a = (array)$row;
+                    $rowNums = $__pmdW20ParseRowTables($row);
+                    $rowKey = implode(',', $rowNums);
+
+                    if ($rowKey === $wantedKey) {
+                        if (!empty($a['id'])) {
+                            $affected += (int)$db->delete("DELETE FROM {$full} WHERE `id` = ?", [$a['id']]);
+                        } elseif (!empty($a['merge_key'])) {
+                            $affected += (int)$db->delete("DELETE FROM {$full} WHERE `merge_key` = ?", [$a['merge_key']]);
+                        }
+                    }
+                }
+            }
+
+            return response()->json([
+                'ok' => true,
+                'version' => 'waiter-dashboard-v20-unmerge',
+                'tenant_db' => $tenantDb,
+                'affected' => $affected,
+            ]);
+        } catch (\Throwable $e) {
+            return response()->json([
+                'ok' => false,
+                'version' => 'waiter-dashboard-v20-unmerge',
+                'error' => $e->getMessage(),
+                'file' => basename($e->getFile()),
+                'line' => $e->getLine(),
+            ], 500);
+        }
+    };
+
+    $__pmdW20Merge = function (\Illuminate\Http\Request $request) use (
+        $__pmdW20TenantDb,
+        $__pmdW20Qi,
+        $__pmdW20EnsureTable,
+        $__pmdW20Rows,
+        $__pmdW20ParseRowTables,
+        $__pmdW20Canonical
+    ) {
+        try {
+            $db = \Illuminate\Support\Facades\DB::getFacadeRoot();
+            $tenantDb = $__pmdW20TenantDb();
+            $__pmdW20EnsureTable($tenantDb);
+
+            $full = $__pmdW20Qi($tenantDb) . '.`ti_pmd_table_merges`';
+            $nums = $__pmdW20Canonical($request->input('table_numbers', []));
+
+            if (count($nums) < 2) {
+                return response()->json([
+                    'ok' => false,
+                    'error' => 'Select at least 2 tables.',
+                ], 422);
+            }
+
+            // Remove any old overlapping merge first.
+            foreach ($__pmdW20Rows($tenantDb) as $row) {
+                $a = (array)$row;
+                $rowNums = $__pmdW20ParseRowTables($row);
+                $overlap = array_intersect($nums, $rowNums);
+
+                if ($overlap && !empty($a['id'])) {
+                    $db->delete("DELETE FROM {$full} WHERE `id` = ?", [$a['id']]);
+                }
+            }
+
+            $mergeKey = 'merge-' . implode('-', $nums) . '-' . substr(md5(implode('|', $nums) . microtime(true)), 0, 8);
+
+            $db->insert("
+                INSERT INTO {$full}
+                    (`merge_key`, `table_numbers`, `status`, `notes`, `created_at`, `updated_at`)
+                VALUES
+                    (?, ?, 'active', 'Created from waiter floor map V20', ?, ?)
+            ", [
+                $mergeKey,
+                json_encode($nums),
+                date('Y-m-d H:i:s'),
+                date('Y-m-d H:i:s')
+            ]);
+
+            return response()->json([
+                'ok' => true,
+                'version' => 'waiter-dashboard-v20-merge',
+                'tenant_db' => $tenantDb,
+                'merge_key' => $mergeKey,
+                'table_numbers' => $nums,
+            ]);
+        } catch (\Throwable $e) {
+            return response()->json([
+                'ok' => false,
+                'version' => 'waiter-dashboard-v20-merge',
+                'error' => $e->getMessage(),
+                'file' => basename($e->getFile()),
+                'line' => $e->getLine(),
+            ], 500);
+        }
+    };
+
+    \Illuminate\Support\Facades\Route::get('pmd-waiter-dashboard-v20-table-merges', $__pmdW20List);
+    \Illuminate\Support\Facades\Route::get('/pmd-waiter-dashboard-v20-table-merges', $__pmdW20List);
+    \Illuminate\Support\Facades\Route::get('/admin/pmd-waiter-dashboard-v20-table-merges', $__pmdW20List);
+
+    \Illuminate\Support\Facades\Route::post('pmd-waiter-dashboard-v20-merge-tables', $__pmdW20Merge);
+    \Illuminate\Support\Facades\Route::post('/pmd-waiter-dashboard-v20-merge-tables', $__pmdW20Merge);
+    \Illuminate\Support\Facades\Route::post('/admin/pmd-waiter-dashboard-v20-merge-tables', $__pmdW20Merge);
+
+    \Illuminate\Support\Facades\Route::post('pmd-waiter-dashboard-v20-unmerge-tables', $__pmdW20Unmerge);
+    \Illuminate\Support\Facades\Route::post('/pmd-waiter-dashboard-v20-unmerge-tables', $__pmdW20Unmerge);
+    \Illuminate\Support\Facades\Route::post('/admin/pmd-waiter-dashboard-v20-unmerge-tables', $__pmdW20Unmerge);
+}
+// PMD_WAITER_DASHBOARD_V20_REAL_MERGE_API_END
+
+
+
+
+// PMD_WAITER_DASHBOARD_V21_MERGE_CLEANUP_START
+if (!defined('PMD_WAITER_DASHBOARD_V21_MERGE_CLEANUP')) {
+    define('PMD_WAITER_DASHBOARD_V21_MERGE_CLEANUP', true);
+
+    $__pmdW21Qi = function ($name) {
+        return '`' . str_replace('`', '``', (string)$name) . '`';
+    };
+
+    $__pmdW21TableExists = function ($tenantDb, $tableName) {
+        try {
+            $db = \Illuminate\Support\Facades\DB::getFacadeRoot();
+            $row = $db->selectOne("
+                SELECT COUNT(*) AS c
+                FROM information_schema.TABLES
+                WHERE TABLE_SCHEMA = ?
+                  AND TABLE_NAME = ?
+            ", [$tenantDb, $tableName]);
+
+            return $row && (int)($row->c ?? 0) > 0;
+        } catch (\Throwable $e) {
+            return false;
+        }
+    };
+
+    $__pmdW21TenantDb = function () use ($__pmdW21TableExists) {
+        $db = \Illuminate\Support\Facades\DB::getFacadeRoot();
+        $host = request()->getHost();
+        $sub = strtolower(trim(explode('.', $host)[0] ?? ''));
+
+        $current = null;
+        try {
+            $row = $db->selectOne('select database() as db');
+            $current = $row->db ?? null;
+        } catch (\Throwable $e) {}
+
+        $candidates = [];
+        if (getenv('PMD_TENANT_DB')) $candidates[] = getenv('PMD_TENANT_DB');
+        if ($sub && !in_array($sub, ['www', 'admin', 'app', 'paymydine'], true)) $candidates[] = $sub;
+        if (strpos($host, 'mimoza') !== false) $candidates[] = 'mimoza';
+        if ($current) $candidates[] = $current;
+
+        $candidates = array_values(array_unique(array_filter($candidates)));
+
+        foreach ($candidates as $cand) {
+            if ($__pmdW21TableExists($cand, 'ti_pmd_table_merges')) return $cand;
+        }
+
+        throw new \RuntimeException('Could not resolve tenant merge table.');
+    };
+
+    $__pmdW21Canonical = function ($value) {
+        if (is_string($value)) {
+            $decoded = json_decode($value, true);
+            if (is_array($decoded)) {
+                $value = $decoded;
+            } else {
+                $value = preg_split('/\s*,\s*/', $value);
+            }
+        }
+
+        if (!is_array($value)) $value = [];
+
+        $out = [];
+        foreach ($value as $v) {
+            $v = trim((string)$v);
+            if ($v !== '') $out[] = $v;
+        }
+
+        $out = array_values(array_unique($out));
+
+        usort($out, function ($a, $b) {
+            $na = is_numeric($a);
+            $nb = is_numeric($b);
+
+            if ($na && $nb) return ((int)$a) <=> ((int)$b);
+            return strcmp($a, $b);
+        });
+
+        return $out;
+    };
+
+    $__pmdW21ParseTables = function ($row) use ($__pmdW21Canonical) {
+        $a = (array)$row;
+        $nums = $__pmdW21Canonical($a['table_numbers'] ?? '');
+
+        if (!$nums && !empty($a['merge_key'])) {
+            $key = (string)$a['merge_key'];
+
+            if (preg_match('/^merge-(.+)-[a-z0-9]{6,}$/i', $key, $m)) {
+                $nums = $__pmdW21Canonical(str_replace('-', ',', $m[1] ?? ''));
+            }
+        }
+
+        return $nums;
+    };
+
+    $__pmdW21Cleanup = function () use ($__pmdW21TenantDb, $__pmdW21Qi, $__pmdW21ParseTables) {
+        try {
+            $db = \Illuminate\Support\Facades\DB::getFacadeRoot();
+            $tenantDb = $__pmdW21TenantDb();
+            $full = $__pmdW21Qi($tenantDb) . '.`ti_pmd_table_merges`';
+
+            $rows = $db->select("
+                SELECT *
+                FROM {$full}
+                WHERE (`status` IS NULL OR `status` = '' OR `status` = 'active')
+                ORDER BY id DESC
+            ");
+
+            $usedTables = [];
+            $kept = [];
+            $deleted = [];
+
+            foreach ($rows as $row) {
+                $a = (array)$row;
+                $id = (int)($a['id'] ?? 0);
+                $nums = $__pmdW21ParseTables($row);
+
+                if (count($nums) < 2) {
+                    if ($id > 0) {
+                        $db->delete("DELETE FROM {$full} WHERE `id` = ?", [$id]);
+                        $deleted[] = [
+                            'id' => $id,
+                            'reason' => 'invalid_less_than_two_tables',
+                            'tables' => $nums,
+                        ];
+                    }
+                    continue;
+                }
+
+                $overlap = [];
+                foreach ($nums as $n) {
+                    if (isset($usedTables[$n])) $overlap[] = $n;
+                }
+
+                if ($overlap) {
+                    if ($id > 0) {
+                        $db->delete("DELETE FROM {$full} WHERE `id` = ?", [$id]);
+                        $deleted[] = [
+                            'id' => $id,
+                            'reason' => 'overlap',
+                            'overlap' => $overlap,
+                            'tables' => $nums,
+                        ];
+                    }
+                    continue;
+                }
+
+                foreach ($nums as $n) {
+                    $usedTables[$n] = true;
+                }
+
+                $kept[] = [
+                    'id' => $id,
+                    'merge_key' => $a['merge_key'] ?? null,
+                    'table_numbers' => $nums,
+                ];
+            }
+
+            return response()->json([
+                'ok' => true,
+                'version' => 'waiter-dashboard-v21-merge-cleanup',
+                'tenant_db' => $tenantDb,
+                'kept_count' => count($kept),
+                'deleted_count' => count($deleted),
+                'kept' => $kept,
+                'deleted' => $deleted,
+            ]);
+        } catch (\Throwable $e) {
+            return response()->json([
+                'ok' => false,
+                'version' => 'waiter-dashboard-v21-merge-cleanup',
+                'error' => $e->getMessage(),
+                'file' => basename($e->getFile()),
+                'line' => $e->getLine(),
+            ], 500);
+        }
+    };
+
+    \Illuminate\Support\Facades\Route::post('pmd-waiter-dashboard-v21-clean-merge-overlaps', $__pmdW21Cleanup);
+    \Illuminate\Support\Facades\Route::post('/pmd-waiter-dashboard-v21-clean-merge-overlaps', $__pmdW21Cleanup);
+    \Illuminate\Support\Facades\Route::post('/admin/pmd-waiter-dashboard-v21-clean-merge-overlaps', $__pmdW21Cleanup);
+}
+// PMD_WAITER_DASHBOARD_V21_MERGE_CLEANUP_END
 
