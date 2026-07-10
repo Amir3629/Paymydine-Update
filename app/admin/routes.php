@@ -11,6 +11,9 @@
 
 
 
+
+
+
 // PMD_ADMIN_UI_KIT_PRIORITY_ROUTE_V2_START
 // Must stay near the TOP of app/admin/routes.php, before admin catch-all routes.
 $__pmdUiKitHandler = function () {
@@ -2213,6 +2216,374 @@ if (!defined('PMD_WAITER_DASHBOARD_V9_TENANT_DATA')) {
     \Illuminate\Support\Facades\Route::get('pmd-waiter-dashboard-v9-floor-tables', $__pmdWaiterDashboardV9FloorTables);
     \Illuminate\Support\Facades\Route::get('/pmd-waiter-dashboard-v9-floor-tables', $__pmdWaiterDashboardV9FloorTables);
     \Illuminate\Support\Facades\Route::get('/admin/pmd-waiter-dashboard-v9-floor-tables', $__pmdWaiterDashboardV9FloorTables);
+
+
+// PMD_DASHBOARD_RESERVATION_V6_RAW_RESERVATION_TABLES_START
+/*
+|--------------------------------------------------------------------------
+| PMD Reservation Dashboard V6 Raw Reservation Tables
+|--------------------------------------------------------------------------
+| Uses raw SHOW TABLES / SHOW COLUMNS / SELECT so Laravel table prefixes do not
+| accidentally turn ti_reservations into ti_ti_reservations.
+*/
+try {
+    $__pmdDashboardReservationV6Data = function () {
+        try {
+            $db = \Illuminate\Support\Facades\DB::connection();
+
+            $quote = function ($name) {
+                return '`' . str_replace('`', '``', $name) . '`';
+            };
+
+            $tableRows = $db->select('SHOW TABLES');
+            $tables = [];
+
+            foreach ($tableRows as $row) {
+                $arr = (array)$row;
+                $name = array_values($arr)[0] ?? null;
+                if ($name) $tables[] = $name;
+            }
+
+            $columnsFor = function ($table) use ($db, $quote) {
+                try {
+                    $rows = $db->select('SHOW COLUMNS FROM ' . $quote($table));
+                    $cols = [];
+                    foreach ($rows as $r) {
+                        $a = (array)$r;
+                        $cols[] = $a['Field'] ?? array_values($a)[0] ?? null;
+                    }
+                    return array_values(array_filter($cols));
+                } catch (\Throwable $e) {
+                    return [];
+                }
+            };
+
+            $pick = function (array $cols, array $names) {
+                $lowerMap = [];
+                foreach ($cols as $c) {
+                    $lowerMap[strtolower($c)] = $c;
+                }
+
+                foreach ($names as $name) {
+                    $key = strtolower($name);
+                    if (isset($lowerMap[$key])) return $lowerMap[$key];
+                }
+
+                foreach ($names as $name) {
+                    foreach ($cols as $col) {
+                        if (stripos($col, $name) !== false) return $col;
+                    }
+                }
+
+                return null;
+            };
+
+            $bestTable = null;
+            $bestCols = [];
+            $bestScore = -999;
+            $scores = [];
+
+            foreach ($tables as $table) {
+                $lowerTable = strtolower($table);
+                $cols = $columnsFor($table);
+                $joined = ' ' . strtolower($table . ' ' . implode(' ', $cols)) . ' ';
+
+                // Hard exclude the floor/table master list. This was the wrong detected source.
+                if ($lowerTable === 'tables' || $lowerTable === 'ti_tables') {
+                    $scores[] = ['table' => $table, 'score' => -999, 'columns' => $cols, 'reason' => 'floor table excluded'];
+                    continue;
+                }
+
+                // Pivot table is useful later, but it is not the main reservation table.
+                if (preg_match('/reservation.*table|reserve.*table/i', $lowerTable)) {
+                    $scores[] = ['table' => $table, 'score' => 10, 'columns' => $cols, 'reason' => 'pivot table'];
+                    continue;
+                }
+
+                $score = 0;
+
+                if (preg_match('/(^|_)reservations$/i', $lowerTable)) $score += 200;
+                if (strpos($lowerTable, 'reservation') !== false) $score += 120;
+                if (strpos($lowerTable, 'reserve') !== false) $score += 80;
+                if (strpos($lowerTable, 'booking') !== false) $score += 60;
+
+                if (preg_match('/reservation|reserve|booking/', $joined)) $score += 60;
+                if (preg_match('/reserve_date|reservation_date|booking_date|date/', $joined)) $score += 40;
+                if (preg_match('/reserve_time|reservation_time|booking_time|time/', $joined)) $score += 35;
+                if (preg_match('/guest_num|guest|people|person|party|cover|pax|covers/', $joined)) $score += 35;
+                if (preg_match('/customer|first_name|last_name|email|phone|telephone|mobile/', $joined)) $score += 30;
+
+                $scores[] = [
+                    'table' => $table,
+                    'score' => $score,
+                    'columns' => $cols,
+                ];
+
+                if ($score > $bestScore) {
+                    $bestScore = $score;
+                    $bestTable = $table;
+                    $bestCols = $cols;
+                }
+            }
+
+            usort($scores, function ($a, $b) {
+                return ($b['score'] ?? 0) <=> ($a['score'] ?? 0);
+            });
+
+            if (!$bestTable || $bestScore < 35) {
+                return response()->json([
+                    'ok' => false,
+                    'message' => 'No real reservation table detected',
+                    'table' => $bestTable,
+                    'score' => $bestScore,
+                    'top_candidates' => array_slice($scores, 0, 12),
+                    'reservations' => [],
+                    'kpis' => [
+                        'reserved_tables' => 0,
+                        'today_reservations' => 0,
+                        'notes_changes' => 0,
+                        'arriving_soon' => 0,
+                    ],
+                ]);
+            }
+
+            $idCol = $pick($bestCols, ['reservation_id', 'booking_id', 'reserve_id', 'id']);
+            $dateCol = $pick($bestCols, ['reserve_date', 'reservation_date', 'booking_date', 'date', 'start_date', 'created_at']);
+            $timeCol = $pick($bestCols, ['reserve_time', 'reservation_time', 'booking_time', 'time', 'slot_time', 'start_time', 'created_at']);
+            $guestCol = $pick($bestCols, ['guest_num', 'guest_count', 'guests', 'party_size', 'people', 'persons', 'covers', 'pax']);
+            $tableCol = $pick($bestCols, ['table_number', 'table_no', 'table_name', 'table_id', 'restaurant_table_id', 'table']);
+            $statusCol = $pick($bestCols, ['status_name', 'reservation_status', 'booking_status', 'status', 'state', 'status_id']);
+            $noteCol = $pick($bestCols, ['notes', 'note', 'comments', 'comment', 'special_request', 'special_requests', 'description']);
+            $firstCol = $pick($bestCols, ['first_name', 'firstname', 'customer_first_name']);
+            $lastCol = $pick($bestCols, ['last_name', 'lastname', 'customer_last_name']);
+            $nameCol = $pick($bestCols, ['customer_name', 'full_name', 'name']);
+            $phoneCol = $pick($bestCols, ['telephone', 'phone', 'mobile', 'customer_phone', 'customer_telephone']);
+            $emailCol = $pick($bestCols, ['email', 'customer_email']);
+
+            $orderCol = $dateCol ?: $idCol;
+            $sql = 'SELECT * FROM ' . $quote($bestTable);
+            if ($orderCol) {
+                $sql .= ' ORDER BY ' . $quote($orderCol) . ' DESC';
+            }
+            $sql .= ' LIMIT 100';
+
+            $rows = $db->select($sql);
+
+            $get = function ($row, $col) {
+                if (!$col) return null;
+                return isset($row->{$col}) ? $row->{$col} : null;
+            };
+
+            // Optional pivot: ti_reservation_tables maps reservation_id -> table_id.
+            $pivotTable = null;
+            $pivotCols = [];
+
+            foreach ($tables as $t) {
+                if (preg_match('/reservation.*table|reserve.*table/i', $t)) {
+                    $pivotTable = $t;
+                    $pivotCols = $columnsFor($t);
+                    break;
+                }
+            }
+
+            $tableMaster = null;
+            $tableMasterCols = [];
+
+            foreach ($tables as $t) {
+                if (strtolower($t) === 'tables' || strtolower($t) === 'ti_tables') {
+                    $tableMaster = $t;
+                    $tableMasterCols = $columnsFor($t);
+                    break;
+                }
+            }
+
+            $tableIdToNo = [];
+
+            if ($tableMaster) {
+                $tmIdCol = $pick($tableMasterCols, ['table_id', 'id']);
+                $tmNoCol = $pick($tableMasterCols, ['table_no', 'table_number', 'table_name', 'pos_table_label', 'name']);
+
+                try {
+                    $tmRows = $db->select('SELECT * FROM ' . $quote($tableMaster) . ' LIMIT 300');
+                    foreach ($tmRows as $tr) {
+                        $tid = $get($tr, $tmIdCol);
+                        $tno = $get($tr, $tmNoCol);
+                        if ($tid !== null && $tno !== null) {
+                            $tableIdToNo[(string)$tid] = (string)$tno;
+                        }
+                    }
+                } catch (\Throwable $e) {}
+            }
+
+            $reservationIdToTables = [];
+
+            if ($pivotTable) {
+                $pResCol = $pick($pivotCols, ['reservation_id', 'reserve_id', 'booking_id']);
+                $pTableCol = $pick($pivotCols, ['table_id', 'restaurant_table_id']);
+
+                if ($pResCol && $pTableCol) {
+                    try {
+                        $pRows = $db->select('SELECT * FROM ' . $quote($pivotTable) . ' LIMIT 500');
+                        foreach ($pRows as $pr) {
+                            $rid = $get($pr, $pResCol);
+                            $tid = $get($pr, $pTableCol);
+                            if ($rid === null || $tid === null) continue;
+
+                            $tableLabel = $tableIdToNo[(string)$tid] ?? (string)$tid;
+                            if (!isset($reservationIdToTables[(string)$rid])) {
+                                $reservationIdToTables[(string)$rid] = [];
+                            }
+                            $reservationIdToTables[(string)$rid][] = $tableLabel;
+                        }
+                    } catch (\Throwable $e) {}
+                }
+            }
+
+            $items = [];
+
+            foreach ($rows as $row) {
+                $id = $get($row, $idCol);
+
+                $first = trim((string)$get($row, $firstCol));
+                $last = trim((string)$get($row, $lastCol));
+                $name = trim($first . ' ' . $last);
+
+                if (!$name) $name = trim((string)$get($row, $nameCol));
+                if (!$name) $name = 'Guest';
+
+                $dateRaw = $get($row, $dateCol);
+                $timeRaw = $get($row, $timeCol);
+
+                $date = '';
+                $time = '';
+
+                try {
+                    if ($dateRaw) $date = \Carbon\Carbon::parse($dateRaw)->toDateString();
+                } catch (\Throwable $e) {
+                    $date = (string)$dateRaw;
+                }
+
+                try {
+                    if ($timeRaw) $time = \Carbon\Carbon::parse($timeRaw)->format('H:i');
+                } catch (\Throwable $e) {
+                    $time = (string)$timeRaw;
+                }
+
+                $tableValue = (string)($get($row, $tableCol) ?? '');
+
+                if (!$tableValue && $id !== null && isset($reservationIdToTables[(string)$id])) {
+                    $tableValue = implode(', ', array_unique($reservationIdToTables[(string)$id]));
+                }
+
+                if ($tableCol && stripos($tableCol, 'table_id') !== false && isset($tableIdToNo[$tableValue])) {
+                    $tableValue = $tableIdToNo[$tableValue];
+                }
+
+                $items[] = [
+                    'id' => $id,
+                    'name' => $name,
+                    'phone' => (string)($get($row, $phoneCol) ?? ''),
+                    'email' => (string)($get($row, $emailCol) ?? ''),
+                    'guests' => (int)($get($row, $guestCol) ?: 0),
+                    'table' => $tableValue,
+                    'date' => $date,
+                    'time' => $time,
+                    'status' => (string)($get($row, $statusCol) ?? 'Reserved'),
+                    'notes' => (string)($get($row, $noteCol) ?? ''),
+                ];
+            }
+
+            $today = \Carbon\Carbon::now()->toDateString();
+
+            $todayItems = array_values(array_filter($items, function ($x) use ($today) {
+                return ($x['date'] ?? '') === $today;
+            }));
+
+            $reservedTables = [];
+
+            foreach ($items as $x) {
+                $raw = trim((string)($x['table'] ?? ''));
+                if ($raw === '') continue;
+
+                foreach (preg_split('/\s*,\s*/', $raw) as $t) {
+                    if ($t !== '') $reservedTables[$t] = true;
+                }
+            }
+
+            $notesCount = count(array_filter($items, function ($x) {
+                return trim((string)($x['notes'] ?? '')) !== '';
+            }));
+
+            $soon = 0;
+
+            foreach ($todayItems as $x) {
+                try {
+                    if (!$x['time']) continue;
+                    $dt = \Carbon\Carbon::parse(($x['date'] ?: now()->toDateString()) . ' ' . $x['time']);
+
+                    if ($dt->greaterThanOrEqualTo(now()) && $dt->lessThanOrEqualTo(now()->addHours(2))) {
+                        $soon++;
+                    }
+                } catch (\Throwable $e) {}
+            }
+
+            return response()->json([
+                'ok' => true,
+                'version' => 'reservation-v6-raw-tables',
+                'table' => $bestTable,
+                'score' => $bestScore,
+                'pivot_table' => $pivotTable,
+                'table_master' => $tableMaster,
+                'columns' => [
+                    'id' => $idCol,
+                    'date' => $dateCol,
+                    'time' => $timeCol,
+                    'guests' => $guestCol,
+                    'table' => $tableCol,
+                    'status' => $statusCol,
+                    'notes' => $noteCol,
+                    'name' => $nameCol,
+                    'first' => $firstCol,
+                    'last' => $lastCol,
+                    'phone' => $phoneCol,
+                    'email' => $emailCol,
+                ],
+                'reservations' => $items,
+                'kpis' => [
+                    'reserved_tables' => count($reservedTables),
+                    'today_reservations' => count($todayItems),
+                    'notes_changes' => $notesCount,
+                    'arriving_soon' => $soon,
+                ],
+                'top_candidates' => array_slice($scores, 0, 8),
+            ]);
+        } catch (\Throwable $e) {
+            return response()->json([
+                'ok' => false,
+                'version' => 'reservation-v6-raw-tables',
+                'message' => $e->getMessage(),
+                'reservations' => [],
+                'kpis' => [
+                    'reserved_tables' => 0,
+                    'today_reservations' => 0,
+                    'notes_changes' => 0,
+                    'arriving_soon' => 0,
+                ],
+            ]);
+        }
+    };
+
+    \Illuminate\Support\Facades\Route::get('pmd-dashboardreservation-v4-data', $__pmdDashboardReservationV6Data);
+    \Illuminate\Support\Facades\Route::get('/pmd-dashboardreservation-v4-data', $__pmdDashboardReservationV6Data);
+    \Illuminate\Support\Facades\Route::get('/admin/pmd-dashboardreservation-v4-data', $__pmdDashboardReservationV6Data);
+} catch (\Throwable $e) {
+    // keep admin routes safe
+}
+// PMD_DASHBOARD_RESERVATION_V6_RAW_RESERVATION_TABLES_END
+
+
+
+
 }
 // PMD_WAITER_DASHBOARD_V9_TENANT_DATA_END
 
@@ -3441,4 +3812,6 @@ if (!defined('PMD_WAITER_DASHBOARD_V21_MERGE_CLEANUP')) {
     \Illuminate\Support\Facades\Route::post('/admin/pmd-waiter-dashboard-v21-clean-merge-overlaps', $__pmdW21Cleanup);
 }
 // PMD_WAITER_DASHBOARD_V21_MERGE_CLEANUP_END
+
+
 
