@@ -4,6 +4,17 @@ use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 
+// PMD Waiter POS v1 — authenticated admin workspace for free and occupied tables.
+Route::middleware(['web'])->group(function () {
+    Route::get('/admin/waiter-pos/{tableId}', [\Admin\Controllers\PmdWaiterPosV1::class, 'index'])
+        ->where('tableId', '[0-9]+')
+        ->name('pmd.waiter-pos');
+    Route::get('/admin/pmd-waiter-pos-v1/data/{tableId}', [\Admin\Controllers\PmdWaiterPosV1::class, 'data'])
+        ->where('tableId', '[0-9]+');
+    Route::post('/admin/pmd-waiter-pos-v1/save/{tableId}', [\Admin\Controllers\PmdWaiterPosV1::class, 'save'])
+        ->where('tableId', '[0-9]+');
+});
+
 Route::middleware(['web'])->get('/admin/quick-mode', function () {
     // Temporary preview protection for meeting/demo.
     // Open with: /admin/quick-mode?preview=pmdquick2026
