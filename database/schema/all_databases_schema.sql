@@ -1,5 +1,5 @@
 -- PayMyDine schema-only dump
--- Generated UTC: Fri Jul 10 18:23:14 UTC 2026
+-- Generated UTC: Sat Jul 11 11:33:06 UTC 2026
 -- Source server: vps-252f1bc4
 -- Data rows are NOT included
 
@@ -3525,7 +3525,7 @@ CREATE TABLE `ti_working_hours` (
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2026-07-10 18:23:14
+-- Dump completed on 2026-07-11 11:33:06
 
 -- ============================================================
 -- DATABASE: mimoza
@@ -5674,7 +5674,7 @@ CREATE TABLE `ti_pmd_table_merges` (
   `updated_at` datetime DEFAULT NULL,
   PRIMARY KEY (`id`),
   KEY `idx_status` (`status`)
-) ENGINE=InnoDB AUTO_INCREMENT=27 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=121 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -6572,7 +6572,7 @@ CREATE TABLE `ti_working_hours` (
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2026-07-10 18:23:14
+-- Dump completed on 2026-07-11 11:33:07
 
 -- ============================================================
 -- DATABASE: rosana
@@ -8916,7 +8916,7 @@ CREATE TABLE `ti_working_hours` (
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2026-07-10 18:23:15
+-- Dump completed on 2026-07-11 11:33:07
 
 -- ============================================================
 -- DATABASE: persian
@@ -10846,7 +10846,7 @@ CREATE TABLE `ti_working_hours` (
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2026-07-10 18:23:15
+-- Dump completed on 2026-07-11 11:33:07
 
 -- ============================================================
 -- DATABASE: newtenantdb
@@ -12773,4 +12773,4 @@ CREATE TABLE `ti_working_hours` (
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2026-07-10 18:23:15
+-- Dump completed on 2026-07-11 11:33:07

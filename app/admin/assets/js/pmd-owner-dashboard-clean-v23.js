@@ -1,7 +1,16 @@
+// PMD_OWNER_DASHBOARD_CLEAN_V23_DASHBOARDFLOOR_WRAP_V1_START
+if (/\/admin\/dashboardfloor(?:$|[?#])/.test(location.pathname + location.search + location.hash)) {
+  console.info('[PMD] Owner dashboard clean v23 skipped on dashboardfloor route');
+} else {
+// PMD_OWNER_DASHBOARD_CLEAN_V23_DASHBOARDFLOOR_WRAP_V1_BODY_START
+// PMD_OWNER_DASHBOARD_CLEAN_V23_FULL_KIOSK_WRAP_V84_START
+if (/\/admin\/dashboard(?:waiter|reservation)(?:$|[?#])/.test(location.pathname + location.search + location.hash)) {
+  console.info('[PMD] Owner dashboard clean v23 FULLY skipped on kiosk route', { path: location.pathname });
+} else {
+// PMD_OWNER_DASHBOARD_CLEAN_V23_FULL_KIOSK_WRAP_V84_BODY_START
 /* PMD_DASHBOARD_ROUTE_GUARD_V51_START */
 (function () {
-
-  var __pmdPath = String((window.location && window.location.pathname) || '');
+var __pmdPath = String((window.location && window.location.pathname) || '');
   var __pmdAllowed =
     __pmdPath === '/admin/dashboard' ||
     __pmdPath.indexOf('/admin/dashboard/') === 0;
@@ -12055,5 +12064,10 @@
   console.info('[PMD] Dashboard Roboto font loader v2 active');
 })();
  /* PMD_DASHBOARD_ROBOTO_FONT_LOADER_V2_END */
+// PMD_OWNER_DASHBOARD_CLEAN_V23_FULL_KIOSK_WRAP_V84_BODY_END
+}
+// PMD_OWNER_DASHBOARD_CLEAN_V23_FULL_KIOSK_WRAP_V84_END
 
-
+// PMD_OWNER_DASHBOARD_CLEAN_V23_DASHBOARDFLOOR_WRAP_V1_BODY_END
+}
+// PMD_OWNER_DASHBOARD_CLEAN_V23_DASHBOARDFLOOR_WRAP_V1_END

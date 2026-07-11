@@ -918,9 +918,6 @@ html.pmd-dashboardwaiter-kiosk-page #pmd-waiter-dashboard-root {
 
     var selector = [
       '#pmd-waiter-dashboard-root .pmd-w5-floor-map-real .pmd-w5-table[data-table]',
-      '#pmd-waiter-dashboard-root .pmd-w5-floor-map-real .pmd-v40-merged-table',
-      '#pmd-waiter-dashboard-root .pmd-w5-floor-map-real .pmd-w19-merged-table',
-      '#pmd-waiter-dashboard-root .pmd-w5-floor-map-real .pmd-v18-merged-table'
     ].join(',');
 
     return Array.from(document.querySelectorAll(selector)).filter(function (el) {
@@ -9570,6 +9567,7 @@ html.pmd-waiter-dashboard-active .pmd-v18-unmerge {
 
 
 
+
 </head>
 <script>
     // SMART FIX: Force dropdown alignment WITHOUT breaking Bootstrap animations
@@ -10234,6 +10232,12 @@ html.pmd-waiter-dashboard-active .pmd-v18-unmerge {
 <script src="{{ asset('app/admin/assets/js/pmd-owner-dashboard-clean-v23.js') }}?v={{ time() }}" defer></script>
 <!-- PMD_OWNER_DASHBOARD_CLEAN_V23_JS_END -->
     <script src="/app/admin/assets/js/pmd-admin-universal-client-list-v1.js?v=50" defer></script>
+
+
+
+
+
+
 
 </body>
 </html>
@@ -13411,4 +13415,778 @@ html.pmd-dashboard2-active .pmd-d2-live-pill {
 })();
 </script>
 <!-- PMD_WAITER_DASHBOARD_V48_TITLE_CLEANUP_ICONS_END -->
+
+
+<!-- PMD_WAITER_DASHBOARD_V89_FLOOR_POSITION_LOCK_START -->
+<style id="pmd-waiter-dashboard-v89-floor-position-lock-style">
+/*
+  V89:
+  Final floor position lock.
+  Root cause: old pmd-w19-compact / V40/V47 CSS keeps forcing table icons to left:16/18px.
+  Fix: own the compact button AND re-apply real inline left/top with !important after every V5 refresh.
+*/
+
+html.pmd-dashboardwaiter-kiosk-page #pmd-waiter-dashboard-root .pmd-w5-floor-map-real {
+  transition: height .24s ease, min-height .24s ease, max-height .24s ease !important;
+}
+
+/* Expanded state */
+html.pmd-dashboardwaiter-kiosk-page #pmd-waiter-dashboard-root:not(.pmd-w89-compact) .pmd-w5-floor-map-real {
+  height: 430px !important;
+  min-height: 430px !important;
+  max-height: 430px !important;
+  display: block !important;
+  position: relative !important;
+  overflow: hidden !important;
+}
+
+/* Compact state */
+html.pmd-dashboardwaiter-kiosk-page #pmd-waiter-dashboard-root.pmd-w89-compact .pmd-w5-floor-map-real {
+  height: 132px !important;
+  min-height: 132px !important;
+  max-height: 132px !important;
+
+  display: flex !important;
+  align-items: center !important;
+  justify-content: flex-start !important;
+  gap: 28px !important;
+
+  overflow-x: auto !important;
+  overflow-y: hidden !important;
+  padding: 24px 28px !important;
+  white-space: nowrap !important;
+  position: relative !important;
+  scroll-behavior: smooth !important;
+  -webkit-overflow-scrolling: touch !important;
+}
+
+html.pmd-dashboardwaiter-kiosk-page #pmd-waiter-dashboard-root.pmd-w89-compact .pmd-w5-floor-map-real .pmd-w5-table[data-table] {
+  position: relative !important;
+  left: auto !important;
+  top: auto !important;
+  right: auto !important;
+  bottom: auto !important;
+  transform: none !important;
+
+  width: 82px !important;
+  min-width: 82px !important;
+  max-width: 82px !important;
+  height: 64px !important;
+  min-height: 64px !important;
+  max-height: 64px !important;
+
+  flex: 0 0 82px !important;
+  margin: 0 !important;
+  display: grid !important;
+  opacity: 1 !important;
+  visibility: visible !important;
+}
+
+html.pmd-dashboardwaiter-kiosk-page #pmd-waiter-dashboard-root.pmd-w89-compact [data-pmd-w89-compact] {
+  background: #061126 !important;
+  color: #fff !important;
+}
+
+html.pmd-dashboardwaiter-kiosk-page #pmd-waiter-dashboard-root.pmd-w89-compact .pmd-w5-floor-map-real::-webkit-scrollbar {
+  height: 8px !important;
+}
+html.pmd-dashboardwaiter-kiosk-page #pmd-waiter-dashboard-root.pmd-w89-compact .pmd-w5-floor-map-real::-webkit-scrollbar-thumb {
+  background: rgba(15, 23, 42, .24) !important;
+  border-radius: 999px !important;
+}
+</style>
+
+<script id="pmd-waiter-dashboard-v89-floor-position-lock-script">
+(function () {
+  if (!/\/admin\/dashboardwaiter(?:$|[?#])/.test(location.pathname + location.search + location.hash)) return;
+  if (window.PMD_WAITER_DASHBOARD_V89_FLOOR_POSITION_LOCK) return;
+  window.PMD_WAITER_DASHBOARD_V89_FLOOR_POSITION_LOCK = true;
+
+  var KEY = 'PMD_WAITER_FLOOR_COMPACT_V89';
+  var scheduled = false;
+  var booted = false;
+
+  function root() {
+    return document.querySelector('#pmd-waiter-dashboard-root');
+  }
+
+  function map() {
+    return document.querySelector('#pmd-waiter-dashboard-root .pmd-w5-floor-map-real');
+  }
+
+  function tables() {
+    return Array.from(document.querySelectorAll('#pmd-waiter-dashboard-root .pmd-w5-floor-map-real .pmd-w5-table[data-table]'));
+  }
+
+  function compactButton() {
+    return document.querySelector('#pmd-waiter-dashboard-root [data-pmd-w89-compact]') ||
+           document.querySelector('#pmd-waiter-dashboard-root [data-w19-compact]');
+  }
+
+  function saved() {
+    try { return localStorage.getItem(KEY) === '1'; } catch (e) { return false; }
+  }
+
+  function save(v) {
+    try {
+      localStorage.setItem(KEY, v ? '1' : '0');
+      [
+        'PMD_WAITER_FLOOR_COMPACT_V88',
+        'PMD_WAITER_FLOOR_COMPACT_V87',
+        'PMD_WAITER_FLOOR_COMPACT_V86',
+        'PMD_WAITER_FLOOR_COMPACT_V85',
+        'PMD_WAITER_FLOOR_COMPACT_V82',
+        'PMD_WAITER_FLOOR_COMPACT_V81',
+        'PMD_WAITER_FLOOR_COMPACT_V80',
+        'PMD_WAITER_FLOOR_COMPACT_V79',
+        'pmd_waiter_floor_compact'
+      ].forEach(function (k) { localStorage.removeItem(k); });
+    } catch (e) {}
+  }
+
+  function isBadPos(v) {
+    v = String(v || '').trim();
+    return !v || v === 'auto' || v === '0px' || v === '16px' || v === '18px' || v === '27px';
+  }
+
+  function rememberPositions() {
+    tables().forEach(function (el) {
+      var l = String(el.style.left || '').trim();
+      var t = String(el.style.top || '').trim();
+
+      if (l.indexOf('%') > -1) el.dataset.pmdW89Left = l;
+      if (t.indexOf('%') > -1) el.dataset.pmdW89Top = t;
+    });
+  }
+
+  function stripOldStates() {
+    var r = root();
+    var m = map();
+
+    if (r) {
+      r.classList.remove('pmd-w19-compact');
+      r.classList.remove('pmd-v85-compact-row');
+      r.classList.remove('pmd-w86-compact');
+      r.classList.remove('pmd-w86-ready');
+      r.classList.remove('pmd-w88-compact');
+    }
+
+    if (m) {
+      m.classList.remove('pmd-v40-compact-authority');
+    }
+  }
+
+  function forceExpandedPositions() {
+    var m = map();
+    if (!m) return;
+
+    rememberPositions();
+
+    m.style.setProperty('height', '430px', 'important');
+    m.style.setProperty('min-height', '430px', 'important');
+    m.style.setProperty('max-height', '430px', 'important');
+    m.style.setProperty('display', 'block', 'important');
+    m.style.setProperty('position', 'relative', 'important');
+    m.style.setProperty('overflow', 'hidden', 'important');
+
+    tables().forEach(function (el) {
+      var l = el.dataset.pmdW89Left || el.style.left;
+      var t = el.dataset.pmdW89Top || el.style.top;
+
+      if (isBadPos(l)) l = '50%';
+      if (isBadPos(t)) t = '50%';
+
+      el.style.setProperty('position', 'absolute', 'important');
+      el.style.setProperty('left', l, 'important');
+      el.style.setProperty('top', t, 'important');
+      el.style.setProperty('right', 'auto', 'important');
+      el.style.setProperty('bottom', 'auto', 'important');
+      el.style.setProperty('transform', 'translate(-50%, -50%)', 'important');
+      el.style.setProperty('float', 'none', 'important');
+      el.style.setProperty('flex', 'none', 'important');
+      el.style.setProperty('margin', '0', 'important');
+      el.style.removeProperty('width');
+      el.style.removeProperty('min-width');
+      el.style.removeProperty('max-width');
+      el.style.removeProperty('height');
+      el.style.removeProperty('min-height');
+      el.style.removeProperty('max-height');
+    });
+  }
+
+  function forceCompactPositions() {
+    var m = map();
+    if (!m) return;
+
+    rememberPositions();
+
+    m.style.setProperty('height', '132px', 'important');
+    m.style.setProperty('min-height', '132px', 'important');
+    m.style.setProperty('max-height', '132px', 'important');
+    m.style.setProperty('display', 'flex', 'important');
+    m.style.setProperty('align-items', 'center', 'important');
+    m.style.setProperty('justify-content', 'flex-start', 'important');
+    m.style.setProperty('gap', '28px', 'important');
+    m.style.setProperty('overflow-x', 'auto', 'important');
+    m.style.setProperty('overflow-y', 'hidden', 'important');
+    m.style.setProperty('padding', '24px 28px', 'important');
+    m.style.setProperty('position', 'relative', 'important');
+
+    var sorted = tables().sort(function (a, b) {
+      var ao = parseInt(getComputedStyle(a).order || a.style.order || '0', 10);
+      var bo = parseInt(getComputedStyle(b).order || b.style.order || '0', 10);
+      if (isNaN(ao)) ao = 0;
+      if (isNaN(bo)) bo = 0;
+      if (ao !== bo) return ao - bo;
+      return Number(a.dataset.table || 0) - Number(b.dataset.table || 0);
+    });
+
+    sorted.forEach(function (el) {
+      el.style.setProperty('position', 'relative', 'important');
+      el.style.setProperty('left', 'auto', 'important');
+      el.style.setProperty('top', 'auto', 'important');
+      el.style.setProperty('right', 'auto', 'important');
+      el.style.setProperty('bottom', 'auto', 'important');
+      el.style.setProperty('transform', 'none', 'important');
+      el.style.setProperty('float', 'none', 'important');
+      el.style.setProperty('flex', '0 0 82px', 'important');
+      el.style.setProperty('width', '82px', 'important');
+      el.style.setProperty('min-width', '82px', 'important');
+      el.style.setProperty('max-width', '82px', 'important');
+      el.style.setProperty('height', '64px', 'important');
+      el.style.setProperty('min-height', '64px', 'important');
+      el.style.setProperty('max-height', '64px', 'important');
+      el.style.setProperty('margin', '0', 'important');
+      el.style.setProperty('display', 'grid', 'important');
+    });
+  }
+
+  function setButtonState(compact) {
+    var b = compactButton();
+    if (!b) return;
+
+    b.classList.toggle('is-active', !!compact);
+    b.classList.toggle('primary', true);
+    b.setAttribute('title', compact ? 'Expand floor' : 'Compact floor');
+    b.setAttribute('aria-pressed', compact ? 'true' : 'false');
+  }
+
+  function apply(compact, reason) {
+    var r = root();
+    var m = map();
+    if (!r || !m) return false;
+
+    stripOldStates();
+
+    if (compact) {
+      r.classList.add('pmd-w89-compact');
+      forceCompactPositions();
+      save(true);
+    } else {
+      r.classList.remove('pmd-w89-compact');
+      forceExpandedPositions();
+      save(false);
+    }
+
+    setButtonState(compact);
+    return true;
+  }
+
+  function installButton() {
+    var old = compactButton();
+    if (!old) return;
+
+    if (old.hasAttribute('data-pmd-w89-compact') && old.__pmdW89Owned) return;
+
+    var clean = old.cloneNode(true);
+    clean.__pmdW89Owned = true;
+
+    clean.removeAttribute('data-w19-compact');
+    clean.setAttribute('data-pmd-w89-compact', '');
+    clean.setAttribute('type', 'button');
+    clean.setAttribute('title', saved() ? 'Expand floor' : 'Compact floor');
+
+    old.parentNode.replaceChild(clean, old);
+
+    clean.addEventListener('click', function (e) {
+      e.preventDefault();
+      e.stopPropagation();
+      if (e.stopImmediatePropagation) e.stopImmediatePropagation();
+
+      var r = root();
+      var next = !(r && r.classList.contains('pmd-w89-compact'));
+      apply(next, 'button');
+    }, true);
+  }
+
+  function ensure(reason) {
+    installButton();
+
+    var r = root();
+    if (!r) return;
+
+    /*
+      Important:
+      Old V5/V19/V40 may re-add pmd-w19-compact or inline left:18px.
+      We always re-apply the selected V89 mode after DOM refresh.
+    */
+    if (r.classList.contains('pmd-w89-compact')) {
+      stripOldStates();
+      r.classList.add('pmd-w89-compact');
+      forceCompactPositions();
+      setButtonState(true);
+    } else {
+      stripOldStates();
+      forceExpandedPositions();
+      setButtonState(false);
+    }
+  }
+
+  function scheduleEnsure(reason) {
+    if (scheduled) return;
+    scheduled = true;
+    requestAnimationFrame(function () {
+      scheduled = false;
+      ensure(reason);
+    });
+  }
+
+  function boot() {
+    installButton();
+    apply(saved(), 'boot');
+
+    [50, 150, 350, 700, 1200, 2000, 3500].forEach(function (ms) {
+      setTimeout(function () { ensure('boot-' + ms); }, ms);
+    });
+
+    if (!booted) {
+      booted = true;
+      setInterval(function () { ensure('interval'); }, 2500);
+    }
+  }
+
+  var observer = new MutationObserver(function () {
+    scheduleEnsure('observer');
+  });
+
+  function startObserver() {
+    var r = root();
+    if (!r || observer.__started) return;
+
+    observer.__started = true;
+    observer.observe(r, {
+      subtree: true,
+      childList: true,
+      attributes: true,
+      attributeFilter: ['class', 'style']
+    });
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', function () {
+      boot();
+      startObserver();
+    });
+  } else {
+    boot();
+    startObserver();
+  }
+
+  window.PMDWaiterV89Floor = {
+    compact: function () { return apply(true, 'manual'); },
+    expand: function () { return apply(false, 'manual'); },
+    toggle: function () {
+      var r = root();
+      return apply(!(r && r.classList.contains('pmd-w89-compact')), 'manual');
+    },
+    repair: function () { return ensure('manual repair'); },
+    debug: function () {
+      var r = root();
+      var m = map();
+      var mr = m ? m.getBoundingClientRect() : {left:0, top:0};
+
+      var rows = tables().map(function (el) {
+        var cs = getComputedStyle(el);
+        var rect = el.getBoundingClientRect();
+        return {
+          table: el.dataset.table,
+          position: cs.position,
+          cssLeft: cs.left,
+          cssTop: cs.top,
+          inlineLeft: el.style.left,
+          inlineTop: el.style.top,
+          savedLeft: el.dataset.pmdW89Left || '',
+          savedTop: el.dataset.pmdW89Top || '',
+          relLeft: Math.round(rect.left - mr.left),
+          relTop: Math.round(rect.top - mr.top)
+        };
+      });
+
+      return {
+        root: !!r,
+        map: !!m,
+        compact: !!(r && r.classList.contains('pmd-w89-compact')),
+        oldRootCompact: !!(r && r.classList.contains('pmd-w19-compact')),
+        mapV40: !!(m && m.classList.contains('pmd-v40-compact-authority')),
+        tableCount: rows.length,
+        badLeftCount: rows.filter(function (x) {
+          return x.cssLeft === '16px' || x.cssLeft === '18px' || x.cssTop === '16px' || x.cssTop === '27px' || x.relLeft < 0;
+        }).length,
+        absoluteCount: rows.filter(function (x) { return x.position === 'absolute'; }).length,
+        relativeCount: rows.filter(function (x) { return x.position === 'relative'; }).length,
+        mapHeight: m ? Math.round(m.getBoundingClientRect().height) : null,
+        scrollWidth: m ? m.scrollWidth : null,
+        clientWidth: m ? m.clientWidth : null,
+        sample: rows.slice(0, 10)
+      };
+    }
+  };
+
+  console.info('[PMD] Waiter Dashboard V89 floor position lock active');
+})();
+</script>
+<!-- PMD_WAITER_DASHBOARD_V89_FLOOR_POSITION_LOCK_END -->
+
+
+<!-- PMD_WAITER_DASHBOARD_V105_REMOVE_MERGE_FEATURE_START -->
+<style id="pmd-waiter-dashboard-v105-remove-merge-feature-style">
+/*
+  V105:
+  Remove/disable merge-table feature completely on waiter floor.
+  - Keeps V89 floor/compact fix.
+  - Hides merge button.
+  - Hides merge-save button.
+  - Hides unmerge X controls.
+  - Existing backend merge groups are cleaned once by JS.
+  - No movement, no snap, no bottom row, no merge mode.
+*/
+
+html.pmd-dashboardwaiter-kiosk-page #pmd-waiter-dashboard-root [data-w19-merge],
+html.pmd-dashboardwaiter-kiosk-page #pmd-waiter-dashboard-root [data-pmd-v100-merge],
+html.pmd-dashboardwaiter-kiosk-page #pmd-waiter-dashboard-root [data-pmd-v101-merge-save],
+html.pmd-dashboardwaiter-kiosk-page #pmd-waiter-dashboard-root .pmd-w19-unmerge,
+html.pmd-dashboardwaiter-kiosk-page #pmd-waiter-dashboard-root .pmd-v40-unmerge,
+html.pmd-dashboardwaiter-kiosk-page #pmd-waiter-dashboard-root .pmd-v18-unmerge,
+html.pmd-dashboardwaiter-kiosk-page #pmd-waiter-dashboard-root .pmd-v102-unmerge-x {
+  display: none !important;
+  visibility: hidden !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
+}
+
+/* Hide existing merged cards while cleanup runs. After cleanup/reload, normal tables show. */
+html.pmd-dashboardwaiter-kiosk-page #pmd-waiter-dashboard-root .pmd-v40-merged-table,
+html.pmd-dashboardwaiter-kiosk-page #pmd-waiter-dashboard-root .pmd-w19-merged-table,
+html.pmd-dashboardwaiter-kiosk-page #pmd-waiter-dashboard-root .pmd-v18-merged-table {
+  display: none !important;
+  visibility: hidden !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
+}
+</style>
+
+<script id="pmd-waiter-dashboard-v105-remove-merge-feature-script">
+(function () {
+  if (!/\/admin\/dashboardwaiter(?:$|[?#])/.test(location.pathname + location.search + location.hash)) return;
+  if (window.PMD_WAITER_DASHBOARD_V105_REMOVE_MERGE_FEATURE) return;
+  window.PMD_WAITER_DASHBOARD_V105_REMOVE_MERGE_FEATURE = true;
+
+  var API_LIST = '/admin/pmd-waiter-dashboard-v20-table-merges';
+  var API_UNMERGE = '/admin/pmd-waiter-dashboard-v20-unmerge-tables';
+  var RELOAD_KEY = 'PMD_V105_MERGE_CLEANUP_RELOADED';
+
+  function root() {
+    return document.querySelector('#pmd-waiter-dashboard-root');
+  }
+
+  function csrf() {
+    return (
+      document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') ||
+      document.querySelector('input[name="_token"]')?.value ||
+      window.csrfToken ||
+      ''
+    );
+  }
+
+  function cleanNo(v) {
+    var m = String(v == null ? '' : v).match(/\d+/);
+    return m ? String(parseInt(m[0], 10)) : '';
+  }
+
+  function validIds() {
+    var ids = {};
+    Array.from(document.querySelectorAll('#pmd-waiter-dashboard-root .pmd-w5-table[data-table]')).forEach(function (el) {
+      var n = cleanNo(el.getAttribute('data-table'));
+      if (n) ids[n] = true;
+    });
+    return ids;
+  }
+
+  function uniqueValid(list) {
+    var ids = validIds();
+    var out = [];
+    var seen = {};
+
+    (list || []).forEach(function (x) {
+      var n = cleanNo(x);
+      if (!n || seen[n] || !ids[n]) return;
+      seen[n] = true;
+      out.push(n);
+    });
+
+    out.sort(function (a, b) { return Number(a) - Number(b); });
+    return out;
+  }
+
+  function parseList(raw) {
+    if (Array.isArray(raw)) return uniqueValid(raw);
+    if (raw && typeof raw === 'object') return uniqueValid(Object.values(raw));
+
+    raw = String(raw == null ? '' : raw).trim();
+    if (!raw) return [];
+
+    try {
+      var json = JSON.parse(raw);
+      if (Array.isArray(json)) return uniqueValid(json);
+      if (json && typeof json === 'object') return uniqueValid(Object.values(json));
+    } catch (e) {}
+
+    return uniqueValid(raw.match(/\d+/g) || []);
+  }
+
+  function tablesFromMerge(m) {
+    if (!m) return [];
+
+    return uniqueValid(
+      []
+        .concat(parseList(m.table_numbers))
+        .concat(parseList(m.tables))
+        .concat(parseList(m.table_ids))
+        .concat(parseList(m.numbers))
+        .concat(parseList(m.table_names))
+        .concat(parseList(m.table_numbers_json))
+    );
+  }
+
+  function keyFromMerge(m, tables) {
+    return String(m && (m.merge_key || m.group_key || m.merge_id || m.id) || (tables || []).join('-') || '');
+  }
+
+  async function fetchJson(url, options) {
+    var res = await fetch(url, Object.assign({
+      credentials: 'same-origin',
+      headers: {
+        'Accept': 'application/json',
+        'Content-Type': 'application/json',
+        'X-CSRF-TOKEN': csrf(),
+        'X-Requested-With': 'XMLHttpRequest'
+      }
+    }, options || {}));
+
+    var text = await res.text();
+    var json = null;
+
+    try { json = text ? JSON.parse(text) : {}; } catch (e) {
+      json = { ok: false, raw: text };
+    }
+
+    if (!res.ok || json.ok === false) {
+      throw new Error((json && (json.error || json.message)) || ('HTTP ' + res.status));
+    }
+
+    return json;
+  }
+
+  function killMergeUi() {
+    var r = root();
+    if (r) {
+      r.classList.remove(
+        'pmd-w19-merging',
+        'pmd-v99-merging',
+        'pmd-v100-merging',
+        'pmd-v90-merging',
+        'pmd-v91-merging'
+      );
+    }
+
+    Array.from(document.querySelectorAll([
+      '#pmd-waiter-dashboard-root [data-w19-merge]',
+      '#pmd-waiter-dashboard-root [data-pmd-v100-merge]',
+      '#pmd-waiter-dashboard-root [data-pmd-v101-merge-save]'
+    ].join(','))).forEach(function (btn) {
+      btn.disabled = true;
+      btn.setAttribute('aria-disabled', 'true');
+      btn.setAttribute('data-pmd-v105-disabled', 'merge-feature-removed');
+      btn.style.setProperty('display', 'none', 'important');
+      btn.style.setProperty('visibility', 'hidden', 'important');
+      btn.style.setProperty('pointer-events', 'none', 'important');
+    });
+
+    Array.from(document.querySelectorAll([
+      '#pmd-waiter-dashboard-root .pmd-v99-selected',
+      '#pmd-waiter-dashboard-root .pmd-v99-group-selected',
+      '#pmd-waiter-dashboard-root .pmd-v100-selected',
+      '#pmd-waiter-dashboard-root .pmd-v100-group-selected'
+    ].join(','))).forEach(function (el) {
+      el.classList.remove(
+        'pmd-v99-selected',
+        'pmd-v99-group-selected',
+        'pmd-v100-selected',
+        'pmd-v100-group-selected'
+      );
+    });
+  }
+
+  async function listMerges() {
+    var json = await fetchJson(API_LIST + '?v105=' + Date.now(), { method: 'GET' });
+    var arr = Array.isArray(json.merges) ? json.merges : [];
+
+    return arr.map(function (m) {
+      var tables = tablesFromMerge(m);
+      return {
+        key: keyFromMerge(m, tables),
+        tables: tables,
+        raw: m
+      };
+    }).filter(function (g) {
+      return g.tables.length >= 2;
+    });
+  }
+
+  async function unmergeGroup(g) {
+    return fetchJson(API_UNMERGE, {
+      method: 'POST',
+      body: JSON.stringify({
+        merge_key: g.key,
+        key: g.key,
+        group_key: g.key,
+        tables: g.tables,
+        table_numbers: g.tables,
+        table_numbers_json: JSON.stringify(g.tables),
+        source: 'v105-remove-merge-feature'
+      })
+    });
+  }
+
+  async function cleanupExistingMerges() {
+    killMergeUi();
+
+    var merges = [];
+
+    try {
+      merges = await listMerges();
+    } catch (e) {
+      console.warn('[PMD] V105 could not list merges:', e);
+      return { ok: false, error: String(e), merges: [] };
+    }
+
+    if (!merges.length) {
+      sessionStorage.removeItem(RELOAD_KEY);
+      console.info('[PMD] V105 merge feature removed. No active merges found.');
+      return { ok: true, cleaned: 0, merges: [] };
+    }
+
+    console.warn('[PMD] V105 removing existing merged table groups:', merges);
+
+    var cleaned = 0;
+    var failed = [];
+
+    for (var i = 0; i < merges.length; i++) {
+      try {
+        await unmergeGroup(merges[i]);
+        cleaned++;
+      } catch (e) {
+        failed.push({
+          group: merges[i],
+          error: String(e && e.message || e)
+        });
+      }
+    }
+
+    console.warn('[PMD] V105 merge cleanup result:', {
+      cleaned: cleaned,
+      failed: failed
+    });
+
+    if (cleaned > 0 && sessionStorage.getItem(RELOAD_KEY) !== '1') {
+      sessionStorage.setItem(RELOAD_KEY, '1');
+      setTimeout(function () {
+        location.reload();
+      }, 900);
+    }
+
+    return {
+      ok: failed.length === 0,
+      cleaned: cleaned,
+      failed: failed,
+      merges: merges
+    };
+  }
+
+  document.addEventListener('click', function (e) {
+    var t = e.target && e.target.nodeType === 1 ? e.target : null;
+    if (!t) return;
+
+    if (t.closest(
+      '#pmd-waiter-dashboard-root [data-w19-merge], ' +
+      '#pmd-waiter-dashboard-root [data-pmd-v100-merge], ' +
+      '#pmd-waiter-dashboard-root [data-pmd-v101-merge-save], ' +
+      '#pmd-waiter-dashboard-root .pmd-w19-unmerge, ' +
+      '#pmd-waiter-dashboard-root .pmd-v40-unmerge, ' +
+      '#pmd-waiter-dashboard-root .pmd-v18-unmerge'
+    )) {
+      e.preventDefault();
+      e.stopPropagation();
+      if (e.stopImmediatePropagation) e.stopImmediatePropagation();
+      killMergeUi();
+      console.info('[PMD] V105 blocked merge/unmerge click because merge feature is removed.');
+    }
+  }, true);
+
+  function boot() {
+    killMergeUi();
+
+    [100, 400, 1000, 2500].forEach(function (ms) {
+      setTimeout(killMergeUi, ms);
+    });
+
+    cleanupExistingMerges();
+
+    setInterval(killMergeUi, 2500);
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', boot);
+  } else {
+    boot();
+  }
+
+  window.PMDWaiterV105RemoveMergeFeature = {
+    cleanup: cleanupExistingMerges,
+    killUi: killMergeUi,
+    debug: async function () {
+      var merges = [];
+      try { merges = await listMerges(); } catch (e) {}
+
+      return {
+        active: true,
+        activeMerges: merges,
+        activeMergeCount: merges.length,
+        mergeButtons: document.querySelectorAll('#pmd-waiter-dashboard-root [data-w19-merge], #pmd-waiter-dashboard-root [data-pmd-v100-merge], #pmd-waiter-dashboard-root [data-pmd-v101-merge-save]').length,
+        mergedCards: document.querySelectorAll('#pmd-waiter-dashboard-root .pmd-v40-merged-table, #pmd-waiter-dashboard-root .pmd-w19-merged-table, #pmd-waiter-dashboard-root .pmd-v18-merged-table').length,
+        rootClass: String(root() && root().className || ''),
+        v89: !!window.PMDWaiterV89Floor,
+        v95: typeof window.PMDWaiterV95StopMergedIconSnap,
+        v100: typeof window.PMDWaiterV100SafeFlexMerge,
+        v101: typeof window.PMDWaiterV101MergeSaveButton,
+        v102: typeof window.PMDWaiterV102ShowMergedUnmergeX,
+        v104: typeof window.PMDWaiterV104InstantMergeRedraw
+      };
+    }
+  };
+
+  console.info('[PMD] Waiter Dashboard V105 merge feature removed active');
+})();
+</script>
+<!-- PMD_WAITER_DASHBOARD_V105_REMOVE_MERGE_FEATURE_END -->
 

@@ -2214,7 +2214,8 @@ if (!defined('PMD_WAITER_DASHBOARD_V9_TENANT_DATA')) {
     \Illuminate\Support\Facades\Route::get('/admin/pmd-waiter-dashboard-v9-tenant-data', $__pmdWaiterDashboardV9TenantData);
 
     \Illuminate\Support\Facades\Route::get('pmd-waiter-dashboard-v9-floor-tables', $__pmdWaiterDashboardV9FloorTables);
-    \Illuminate\Support\Facades\Route::get('/pmd-waiter-dashboard-v9-floor-tables', $__pmdWaiterDashboardV9FloorTables);
+
+\Illuminate\Support\Facades\Route::get('/pmd-waiter-dashboard-v9-floor-tables', $__pmdWaiterDashboardV9FloorTables);
     \Illuminate\Support\Facades\Route::get('/admin/pmd-waiter-dashboard-v9-floor-tables', $__pmdWaiterDashboardV9FloorTables);
 
 
@@ -3812,6 +3813,8 @@ if (!defined('PMD_WAITER_DASHBOARD_V21_MERGE_CLEANUP')) {
     \Illuminate\Support\Facades\Route::post('/admin/pmd-waiter-dashboard-v21-clean-merge-overlaps', $__pmdW21Cleanup);
 }
 // PMD_WAITER_DASHBOARD_V21_MERGE_CLEANUP_END
+
+
 
 
 
