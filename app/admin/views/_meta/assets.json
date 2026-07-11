@@ -36,6 +36,10 @@
     {
       "path": "js/admin.js",
       "name": "admin-js"
+    },
+    {
+      "path": "js/pmd-waiter-pos-dashboard-bridge-v1.js",
+      "name": "pmd-waiter-pos-dashboard-bridge-v1-js"
     }
   ]
 }
