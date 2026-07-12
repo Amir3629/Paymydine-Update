@@ -7,7 +7,7 @@ on:
       - 'app/admin/controllers/concerns/PmdWaiterPos*.php'
       - 'app/admin/assets/js/pmd-waiter-pos*.js'
       - 'app/admin/views/waiter_pos*.blade.php'
-      - 'app/admin/assets/css/pmd-waiter-pos-v1.css'
+      - 'app/admin/assets/css/pmd-waiter-pos*.css'
       - 'app/admin/views/_meta/assets.json'
       - 'app/admin/database/migrations/2026_07_12_000100_extend_waiter_pos_payment_transactions.php'
       - 'routes/admin-quick-mode.php'
@@ -56,6 +56,7 @@ jobs:
           - app/admin/assets/js/pmd-waiter-pos-payment-v2.js
           - app/admin/assets/js/pmd-waiter-pos-payment-policy-v2.js
           - app/admin/assets/js/pmd-waiter-pos-dashboard-bridge-v2.js
+          - app/admin/assets/js/pmd-waiter-pos-product-details-v3.js
     steps:
       - uses: actions/checkout@v4
         with:
@@ -77,7 +78,18 @@ jobs:
           bash -n scripts/deploy-pmd-waiter-pos-v2-selective.sh
           grep -q 'php artisan igniter:up' scripts/deploy-pmd-waiter-pos-v2-selective.sh
           ! grep -q 'php artisan migrate' scripts/deploy-pmd-waiter-pos-v2-selective.sh
+          ! grep -q 'Waiter POS routes are not registered after cache clear' scripts/deploy-pmd-waiter-pos-v2-selective.sh
+          grep -q 'route:list does not expose' scripts/deploy-pmd-waiter-pos-v2-selective.sh
           grep -q 'pmd-waiter-pos-dashboard-bridge-v2.js' app/admin/views/_meta/assets.json
           grep -q '/admin/pmd-waiter-pos-v1/payment-settle/' routes/admin-quick-mode.php
           grep -q 'idempotency_key' app/admin/controllers/concerns/PmdWaiterPosSettleEndpoint.php
+          grep -q 'pmd-waiter-pos-product-details-v3.js' app/admin/views/waiter_pos.blade.php
+          grep -q 'pmd-waiter-pos-product-details-v3.css' app/admin/views/waiter_pos.blade.php
+          grep -q 'pmd-waiter-pos-product-details-v3.js' scripts/deploy-pmd-waiter-pos-v2-selective.sh
+          grep -q 'pmd-waiter-pos-product-details-v3.css' scripts/deploy-pmd-waiter-pos-v2-selective.sh
+          grep -q 'PMDWaiterPOSProductDetailsV3' app/admin/assets/js/pmd-waiter-pos-dashboard-bridge-v2.js
+          grep -q 'calories' app/admin/controllers/concerns/PmdWaiterPosBootstrapConcern.php
+          grep -q 'allergens' app/admin/controllers/concerns/PmdWaiterPosBootstrapConcern.php
+          grep -q 'menu_images' app/admin/controllers/concerns/PmdWaiterPosBootstrapConcern.php
+          grep -q 'pmd-pos-plus' app/admin/assets/css/pmd-waiter-pos-product-details-v3.css
           ! grep -q 'pmd-waiter-pos-dashboard-bridge-v1.js' app/admin/views/_meta/assets.json
