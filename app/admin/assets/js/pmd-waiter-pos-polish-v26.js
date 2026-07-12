@@ -35,6 +35,11 @@
     }) || null;
   }
 
+  function itemMoney(api, item) {
+    var symbol = api && api.state && api.state.settings && api.state.settings.currency || '€';
+    return symbol + Number(item && item.price || 0).toFixed(2);
+  }
+
   function showToast(root, message, isError) {
     var toast = root && root.querySelector('[data-pos-toast]');
     if (!toast) return;
@@ -86,8 +91,8 @@
     button.setAttribute('aria-disabled', orderable ? 'false' : 'true');
 
     var price = button.querySelector('.pmd-pos-price');
-    if (price && !orderable) {
-      price.textContent = 'Price required';
+    if (price) {
+      price.textContent = orderable ? itemMoney(api, item) : 'Price required';
     }
 
     if (!orderable && !button.querySelector('.pmd-pos-price-required-badge')) {
@@ -157,6 +162,8 @@
     button.disabled = !orderable;
     button.textContent = orderable ? (item.has_options ? 'Choose options' : 'Add to order') : 'Price required';
     button.title = orderable ? '' : 'Configure a valid menu price before ordering this item.';
+    var price = root.querySelector('.pmd-pos-detail-price');
+    if (price) price.textContent = orderable ? itemMoney(api, item) : 'Price required';
   }
 
   function install(root, api) {
@@ -254,6 +261,12 @@
     return note;
   }
 
+  function cleanOrderNote(value) {
+    var note = cleanLineNote(value);
+    if (!note) return '';
+    return note.replace(/^\[Waiter POS\]\s*/i, '').trim();
+  }
+
   async function decorateDashboardNotes() {
     if (location.pathname.replace(/\/+$/, '') !== '/admin/dashboardwaiter') return;
     var now = Date.now();
@@ -283,16 +296,24 @@
             note: note
           });
         });
-        if (rows.length) byOrder[id] = rows;
+        byOrder[id] = {
+          rows: rows,
+          orderNote: cleanOrderNote(order.note || order.order_note || order.comment || '')
+        };
       });
 
       document.querySelectorAll('#pmd-waiter-dashboard-root .pmd-w5-card[data-order]').forEach(function (card) {
         card.querySelectorAll('.pmd-v26-item-notes').forEach(function (node) { node.remove(); });
-        var rows = byOrder[String(card.getAttribute('data-order') || '')] || [];
-        if (!rows.length) return;
+        var data = byOrder[String(card.getAttribute('data-order') || '')] || {rows: [], orderNote: ''};
+        var existingOrderNote = card.querySelector('.pmd-w5-note');
+        if (existingOrderNote) {
+          if (data.orderNote) existingOrderNote.innerHTML = '<b>Order note</b><br>' + esc(data.orderNote);
+          else existingOrderNote.remove();
+        }
+        if (!data.rows.length) return;
         var wrap = document.createElement('div');
         wrap.className = 'pmd-v26-item-notes';
-        wrap.innerHTML = rows.slice(0, 6).map(function (row) {
+        wrap.innerHTML = data.rows.slice(0, 6).map(function (row) {
           return '<div class="pmd-v26-item-note"><b>' + esc(row.name) + ' ×' + esc(row.qty) + '</b>' + esc(row.note) + '</div>';
         }).join('');
         var actions = card.querySelector('.pmd-w5-card-actions');
