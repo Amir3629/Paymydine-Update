@@ -34,6 +34,7 @@ RUNTIME_FILES=(
   "app/admin/assets/js/pmd-waiter-pos-payment-v2.js"
   "app/admin/assets/js/pmd-waiter-pos-payment-policy-v2.js"
   "app/admin/assets/js/pmd-waiter-pos-dashboard-bridge-v2.js"
+  "app/admin/assets/js/pmd-waiter-pos-dashboard-shadow-bridge-v24.js"
   "app/admin/assets/js/pmd-waiter-pos-dashboard-direct-guard-v23.js"
   "app/admin/assets/js/pmd-waiter-pos-product-details-v3.js"
   "app/admin/assets/js/pmd-waiter-pos-dashboard-bridge-v1.js"
@@ -63,6 +64,7 @@ JS_FILES=(
   "app/admin/assets/js/pmd-waiter-pos-payment-v2.js"
   "app/admin/assets/js/pmd-waiter-pos-payment-policy-v2.js"
   "app/admin/assets/js/pmd-waiter-pos-dashboard-bridge-v2.js"
+  "app/admin/assets/js/pmd-waiter-pos-dashboard-shadow-bridge-v24.js"
   "app/admin/assets/js/pmd-waiter-pos-dashboard-direct-guard-v23.js"
   "app/admin/assets/js/pmd-waiter-pos-product-details-v3.js"
 )
@@ -97,7 +99,7 @@ on_exit() {
 trap on_exit EXIT
 
 printf '\n================================================\n'
-printf ' PayMyDine Waiter POS V2.3 selective deployment\n'
+printf ' PayMyDine Waiter POS V2.4 selective deployment\n'
 printf '================================================\n'
 printf 'Repository: %s\n' "$REPO"
 printf 'Branch:     %s\n' "$BRANCH"
@@ -133,15 +135,15 @@ TARGET="$(git rev-parse "origin/$BRANCH")"
 echo "Target commit: $TARGET"
 
 git diff --binary "$V1_BASE" "$TARGET" -- "${RUNTIME_FILES[@]}" > "$PATCH"
-[ -s "$PATCH" ] || { echo "❌ Generated V2.3 patch is empty"; exit 1; }
-cp -a "$PATCH" "$BACKUP/waiter-pos-v2.3.patch"
+[ -s "$PATCH" ] || { echo "❌ Generated V2.4 patch is empty"; exit 1; }
+cp -a "$PATCH" "$BACKUP/waiter-pos-v2.4.patch"
 
 echo "Runtime files in patch:"
 git diff --name-status "$V1_BASE" "$TARGET" -- "${RUNTIME_FILES[@]}"
 
 git apply --check "$PATCH"
 git apply --whitespace=nowarn "$PATCH"
-echo "✅ V2.3 runtime patch applied"
+echo "✅ V2.4 runtime patch applied"
 
 for file in "${PHP_FILES[@]}"; do
   php -l "$file"
@@ -151,31 +153,28 @@ for file in "${JS_FILES[@]}"; do
 done
 python3 -m json.tool app/admin/views/_meta/assets.json >/dev/null
 
-# Static registration and asset guards. TastyIgniter loads this route module from
-# app/admin/routes.php, but those dynamically included routes are not reliably
-# displayed by Laravel's generic `route:list` command in this application.
 grep -q 'admin-quick-mode\.php' app/admin/routes.php
 grep -q '/admin/waiter-pos/{tableId}' routes/admin-quick-mode.php
 grep -q '/admin/pmd-waiter-pos-v1/payment-settle/' routes/admin-quick-mode.php
-grep -q 'pmd-waiter-pos-dashboard-bridge-v2.js' app/admin/views/_meta/assets.json
+grep -q 'pmd-waiter-pos-dashboard-shadow-bridge-v24.js' app/admin/views/_meta/assets.json
 grep -q 'pmd-waiter-pos-dashboard-direct-guard-v23.js' app/admin/views/_meta/assets.json
+! grep -q 'pmd-waiter-pos-dashboard-bridge-v2.js' app/admin/views/_meta/assets.json
 grep -q 'pmd-waiter-pos-product-details-v3.js' app/admin/views/waiter_pos.blade.php
 grep -q 'pmd-waiter-pos-product-details-v3.css' app/admin/views/waiter_pos.blade.php
-grep -q 'PMDWaiterPOSProductDetailsV3' app/admin/assets/js/pmd-waiter-pos-dashboard-bridge-v2.js
-grep -q 'PMDWaiterPOSDashboardDirectGuardV23' app/admin/assets/js/pmd-waiter-pos-dashboard-direct-guard-v23.js
+grep -q 'attachShadow' app/admin/assets/js/pmd-waiter-pos-dashboard-shadow-bridge-v24.js
+grep -q 'PMDWaiterPOSProductDetailsV3' app/admin/assets/js/pmd-waiter-pos-dashboard-shadow-bridge-v24.js
 ! grep -q 'pmd-waiter-pos-dashboard-bridge-v1.js' app/admin/views/_meta/assets.json
-[ -s app/admin/assets/js/pmd-waiter-pos-product-details-v3.js ]
+[ -s app/admin/assets/js/pmd-waiter-pos-dashboard-shadow-bridge-v24.js ]
 [ -s app/admin/assets/js/pmd-waiter-pos-dashboard-direct-guard-v23.js ]
+[ -s app/admin/assets/js/pmd-waiter-pos-product-details-v3.js ]
 [ -s app/admin/assets/css/pmd-waiter-pos-product-details-v3.css ]
 
-echo "✅ PHP, JavaScript, JSON, route-module and asset guards passed"
+echo "✅ PHP, JavaScript, JSON, route-module and isolated-overlay guards passed"
 
 if command -v composer >/dev/null 2>&1; then
   composer dump-autoload -o
 fi
 
-# TastyIgniter does not register Laravel's generic `migrate` command.
-# Its UpdateManager-backed command discovers application/extension migrations.
 if ! php artisan list --raw 2>/dev/null | grep -q '^igniter:up'; then
   echo "❌ TastyIgniter migration command igniter:up is not registered"
   exit 1
@@ -200,8 +199,6 @@ chmod 0644 \
   app/admin/views/_meta/assets.json \
   routes/admin-quick-mode.php
 
-# Informational only. The definitive route test is the authenticated browser
-# preflight against the real URLs after deployment.
 ROUTES="$(php artisan route:list 2>/dev/null | grep -E 'waiter-pos|pmd-waiter-pos-v1' || true)"
 if [ -n "$ROUTES" ]; then
   printf '%s\n' "$ROUTES"
@@ -216,11 +213,12 @@ SUCCESS=1
 trap - EXIT
 
 printf '\n================================================\n'
-printf ' ✅ Waiter POS V2.3 deployment completed\n'
+printf ' ✅ Waiter POS V2.4 deployment completed\n'
 printf '================================================\n'
 printf 'Backup: %s\n' "$BACKUP"
 printf 'Target: %s\n' "$TARGET"
 printf '\nNo PM2 or Next.js restart is required.\n'
 printf 'Hard-refresh /admin/dashboardwaiter before browser QA.\n'
+printf 'The dashboard POS now renders inside an isolated Shadow DOM workspace.\n'
 printf 'Tap a food card to add; press and hold for full product details.\n'
 printf 'Do not collect real card/provider payments until sandbox mode is confirmed.\n'
