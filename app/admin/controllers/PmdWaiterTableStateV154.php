@@ -361,7 +361,10 @@ class PmdWaiterTableStateV154 extends PmdWaiterDashboardV151
 
         foreach ($orders as $order) {
             $orderTime = strtotime((string)($order['created_at'] ?? $order['order_date'] ?? '')) ?: 0;
-            if ($orderTime >= $updatedAt) {
+            // The database timestamps are second-precision. Equality must keep
+            // the explicit waiter release authoritative; Waiter POS writes the
+            // Occupied state directly when a genuinely new order is placed.
+            if ($orderTime > $updatedAt) {
                 return true;
             }
         }
