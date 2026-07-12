@@ -42,6 +42,10 @@
     {
       "path": "css/pmd-waiter-pos-simple-v27.css",
       "name": "pmd-waiter-pos-simple-v27-css"
+    },
+    {
+      "path": "css/pmd-waiter-floor-stability-v153.css",
+      "name": "pmd-waiter-floor-stability-v153-css"
     }
   ],
   "script": [
@@ -60,6 +64,10 @@
     {
       "path": "js/pmd-waiter-pos-simple-v27.js",
       "name": "pmd-waiter-pos-simple-v27-js"
+    },
+    {
+      "path": "js/pmd-waiter-floor-stability-v153.js",
+      "name": "pmd-waiter-floor-stability-v153-js"
     }
   ]
 }
