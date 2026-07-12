@@ -5,7 +5,7 @@
 html.pmd-dashboardwaiter-kiosk-page
 #pmd-waiter-dashboard-root:not(.pmd-w19-editing):not(.pmd-v21-editing)
 .pmd-w5-floor-map-real:not(.pmd-v40-compact-authority)
-.pmd-w5-table[data-table][data-pmd-v155-ready="1"] {
+.pmd-w5-table[data-table] {
   width: 104px !important;
   height: 86px !important;
   min-width: 104px !important;
@@ -18,11 +18,11 @@ html.pmd-dashboardwaiter-kiosk-page
 html.pmd-dashboardwaiter-kiosk-page
 #pmd-waiter-dashboard-root.pmd-w89-compact
 .pmd-w5-floor-map-real
-.pmd-w5-table[data-table][data-pmd-v155-ready="1"],
+.pmd-w5-table[data-table],
 html.pmd-dashboardwaiter-kiosk-page
 #pmd-waiter-dashboard-root
 .pmd-w5-floor-map-real.pmd-v40-compact-authority
-.pmd-w5-table[data-table][data-pmd-v155-ready="1"] {
+.pmd-w5-table[data-table] {
   width: 88px !important;
   height: 74px !important;
   min-width: 88px !important;
@@ -31,13 +31,15 @@ html.pmd-dashboardwaiter-kiosk-page
 }
 
 /* Uniform shape in both view and edit modes; saved coordinates stay untouched. */
-#pmd-waiter-dashboard-root .pmd-w5-floor-map-real .pmd-w5-table[data-table][data-pmd-v155-ready="1"] {
+#pmd-waiter-dashboard-root .pmd-w5-floor-map-real .pmd-w5-table[data-table] {
   border-radius: 19px !important;
+  background-image: none !important;
+  transition: transform .12s ease, box-shadow .12s ease !important;
 }
 
 #pmd-waiter-dashboard-root
 .pmd-w5-floor-map-real
-.pmd-w5-table[data-pmd-v155-ready="1"] > span {
+.pmd-w5-table[data-table] > span {
   position: relative !important;
   z-index: 3 !important;
   display: block !important;
@@ -52,13 +54,13 @@ html.pmd-dashboardwaiter-kiosk-page
 /* Capacity is available in the tooltip; it no longer collides with the number. */
 #pmd-waiter-dashboard-root
 .pmd-w5-floor-map-real
-.pmd-w5-table[data-pmd-v155-ready="1"] > em {
+.pmd-w5-table[data-table] > em {
   display: none !important;
 }
 
 #pmd-waiter-dashboard-root
 .pmd-w5-floor-map-real
-.pmd-w5-table[data-pmd-v155-ready="1"] > small {
+.pmd-w5-table[data-table] > small {
   top: -10px !important;
   right: -10px !important;
   z-index: 12 !important;
@@ -72,6 +74,95 @@ html.pmd-dashboardwaiter-kiosk-page
   box-shadow: 0 8px 18px rgba(7,18,37,.24) !important;
 }
 
+/*
+ * First-paint palette. These selectors use the legacy V5 classes immediately,
+ * before the V154 API response adds the canonical operational-state attribute.
+ * This prevents the old small/orange cards from flashing during reload.
+ */
+html.pmd-dashboardwaiter-kiosk-page
+#pmd-waiter-dashboard-root
+.pmd-w5-floor-map-real
+.pmd-w5-table[data-table] {
+  background: #22c55e !important;
+  border: 3px solid #087a3d !important;
+  color: #062b18 !important;
+  box-shadow: 0 9px 0 rgba(8,122,61,.16), 0 14px 25px rgba(34,197,94,.20) !important;
+}
+
+html.pmd-dashboardwaiter-kiosk-page
+#pmd-waiter-dashboard-root
+.pmd-w5-floor-map-real
+.pmd-w5-table[data-table].is-active,
+html.pmd-dashboardwaiter-kiosk-page
+#pmd-waiter-dashboard-root
+.pmd-w5-floor-map-real
+.pmd-w5-table[data-table].has-orders,
+html.pmd-dashboardwaiter-kiosk-page
+#pmd-waiter-dashboard-root
+.pmd-w5-floor-map-real
+.pmd-w5-table[data-table].busy,
+html.pmd-dashboardwaiter-kiosk-page
+#pmd-waiter-dashboard-root
+.pmd-w5-floor-map-real
+.pmd-w5-table[data-table].is-payment,
+html.pmd-dashboardwaiter-kiosk-page
+#pmd-waiter-dashboard-root
+.pmd-w5-floor-map-real
+.pmd-w5-table[data-table].is-urgent {
+  background: #ef3340 !important;
+  border-color: #a8121d !important;
+  color: #fff !important;
+  box-shadow: 0 9px 0 rgba(168,18,29,.16), 0 14px 25px rgba(239,51,64,.22) !important;
+}
+
+/* Canonical operational colors: the same strong green/orange/blue/red family as the KPI row. */
+html.pmd-dashboardwaiter-kiosk-page
+#pmd-waiter-dashboard-root
+.pmd-w5-floor-map-real
+.pmd-w5-table[data-pmd-v154-table-state="available"] {
+  background: #22c55e !important;
+  border: 3px solid #087a3d !important;
+  color: #062b18 !important;
+  box-shadow: 0 9px 0 rgba(8,122,61,.16), 0 14px 25px rgba(34,197,94,.20) !important;
+}
+
+html.pmd-dashboardwaiter-kiosk-page
+#pmd-waiter-dashboard-root
+.pmd-w5-floor-map-real
+.pmd-w5-table[data-pmd-v154-table-state="occupied"] {
+  background: #ef3340 !important;
+  border: 3px solid #a8121d !important;
+  color: #fff !important;
+  box-shadow: 0 9px 0 rgba(168,18,29,.16), 0 14px 25px rgba(239,51,64,.22) !important;
+}
+
+html.pmd-dashboardwaiter-kiosk-page
+#pmd-waiter-dashboard-root
+.pmd-w5-floor-map-real
+.pmd-w5-table[data-pmd-v154-table-state="cleaning"] {
+  background: #ff7a00 !important;
+  border: 3px solid #bd4e00 !important;
+  color: #251300 !important;
+  box-shadow: 0 9px 0 rgba(189,78,0,.16), 0 14px 25px rgba(255,122,0,.22) !important;
+}
+
+html.pmd-dashboardwaiter-kiosk-page
+#pmd-waiter-dashboard-root
+.pmd-w5-floor-map-real
+.pmd-w5-table[data-pmd-v154-table-state="reserved"] {
+  background: #26b7d9 !important;
+  border: 3px solid #087da0 !important;
+  color: #062331 !important;
+  box-shadow: 0 9px 0 rgba(8,125,160,.16), 0 14px 25px rgba(38,183,217,.22) !important;
+}
+
+#pmd-waiter-dashboard-root .pmd-w5-floor-map-real .pmd-w5-table.is-selected,
+#pmd-waiter-dashboard-root .pmd-w5-floor-map-real .pmd-w5-table.pmd-w12-selected,
+#pmd-waiter-dashboard-root .pmd-w5-floor-map-real .pmd-w5-table.pmd-w19-selected {
+  outline: 4px solid #071225 !important;
+  outline-offset: 3px !important;
+}
+
 /* Status color is the table status. Repeated text chips are removed. */
 #pmd-waiter-dashboard-root .pmd-v154-table-chip {
   display: none !important;
@@ -79,9 +170,14 @@ html.pmd-dashboardwaiter-kiosk-page
 }
 
 #pmd-waiter-dashboard-root .pmd-v154-payment-chip[data-payment-state="none"],
-#pmd-waiter-dashboard-root .pmd-v154-payment-chip[data-payment-state="unpaid"],
-#pmd-waiter-dashboard-root .pmd-v154-order-chip[data-order-state="none"] {
+#pmd-waiter-dashboard-root .pmd-v154-payment-chip[data-payment-state="unpaid"] {
   display: none !important;
+}
+
+/* Order status labels (NEW / READY / etc.) do not belong on the floor icon. */
+#pmd-waiter-dashboard-root .pmd-v154-order-chip {
+  display: none !important;
+  visibility: hidden !important;
 }
 
 #pmd-waiter-dashboard-root .pmd-v154-payment-chip[data-payment-state="paid"],
@@ -112,27 +208,6 @@ html.pmd-dashboardwaiter-kiosk-page
 
 #pmd-waiter-dashboard-root .pmd-v154-payment-chip[data-payment-state="partial"] {
   background: #b45309 !important;
-}
-
-#pmd-waiter-dashboard-root .pmd-v154-order-chip:not([data-order-state="none"]) {
-  left: 8px !important;
-  right: auto !important;
-  bottom: 7px !important;
-  z-index: 8 !important;
-  display: inline-flex !important;
-  width: auto !important;
-  max-width: calc(100% - 34px) !important;
-  height: 19px !important;
-  min-height: 19px !important;
-  padding: 0 7px !important;
-  border: 0 !important;
-  border-radius: 7px !important;
-  background: rgba(255,255,255,.88) !important;
-  color: #0f172a !important;
-  font-size: 8px !important;
-  font-weight: 1000 !important;
-  letter-spacing: .04em !important;
-  box-shadow: 0 4px 10px rgba(15,23,42,.12) !important;
 }
 
 /* Old large modal is retired. */
@@ -318,7 +393,7 @@ html.pmd-dashboardwaiter-kiosk-page
   html.pmd-dashboardwaiter-kiosk-page
   #pmd-waiter-dashboard-root:not(.pmd-w19-editing):not(.pmd-v21-editing)
   .pmd-w5-floor-map-real:not(.pmd-v40-compact-authority)
-  .pmd-w5-table[data-table][data-pmd-v155-ready="1"] {
+  .pmd-w5-table[data-table] {
     width: 92px !important;
     height: 76px !important;
     min-width: 92px !important;
