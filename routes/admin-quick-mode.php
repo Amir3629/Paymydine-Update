@@ -4,15 +4,26 @@ use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 
-// PMD Waiter POS v1 — authenticated admin workspace for free and occupied tables.
+// PMD Waiter POS V2 — standalone fallback, lazy dashboard overlay and payment center.
 Route::middleware(['web'])->group(function () {
     Route::get('/admin/waiter-pos/{tableId}', [\Admin\Controllers\PmdWaiterPosV1::class, 'index'])
         ->where('tableId', '[0-9]+')
         ->name('pmd.waiter-pos');
+    Route::get('/admin/pmd-waiter-pos-v1/overlay/{tableId}', [\Admin\Controllers\PmdWaiterPosV1::class, 'overlay'])
+        ->where('tableId', '[0-9]+');
     Route::get('/admin/pmd-waiter-pos-v1/data/{tableId}', [\Admin\Controllers\PmdWaiterPosV1::class, 'data'])
         ->where('tableId', '[0-9]+');
     Route::post('/admin/pmd-waiter-pos-v1/save/{tableId}', [\Admin\Controllers\PmdWaiterPosV1::class, 'save'])
         ->where('tableId', '[0-9]+');
+
+    Route::get('/admin/pmd-waiter-pos-v1/payment-summary/{orderId}', [\Admin\Controllers\PmdWaiterPosV1::class, 'paymentSummary'])
+        ->where('orderId', '[0-9]+');
+    Route::post('/admin/pmd-waiter-pos-v1/payment-coupon/{orderId}', [\Admin\Controllers\PmdWaiterPosV1::class, 'validatePaymentCoupon'])
+        ->where('orderId', '[0-9]+');
+    Route::post('/admin/pmd-waiter-pos-v1/payment-settle/{orderId}', [\Admin\Controllers\PmdWaiterPosV1::class, 'settlePayment'])
+        ->where('orderId', '[0-9]+');
+    Route::post('/admin/pmd-waiter-pos-v1/terminal-payment/{orderId}', [\Admin\Controllers\PmdWaiterPosV1::class, 'terminalPayment'])
+        ->where('orderId', '[0-9]+');
 });
 
 Route::middleware(['web'])->get('/admin/quick-mode', function () {
