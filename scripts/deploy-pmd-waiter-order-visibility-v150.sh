@@ -9,6 +9,8 @@ SUCCESS=0
 
 FILES=(
   "app/admin/controllers/PmdWaiterDashboardV150.php"
+  "app/admin/controllers/PmdWaiterPosV1.php"
+  "app/admin/controllers/concerns/PmdWaiterPosCanonicalTableReferenceV150Concern.php"
   "routes/admin-quick-mode.php"
 )
 
@@ -36,7 +38,7 @@ on_exit() {
 trap on_exit EXIT
 
 printf '\n================================================\n'
-printf ' PMD waiter order visibility V150\n'
+printf ' PMD waiter order visibility + canonical table ref V150\n'
 printf '================================================\n'
 printf 'Repository: %s\n' "$REPO"
 printf 'Branch:     %s\n' "$BRANCH"
@@ -69,12 +71,18 @@ for file in "${FILES[@]}"; do
 done
 
 php -l app/admin/controllers/PmdWaiterDashboardV150.php
+php -l app/admin/controllers/PmdWaiterPosV1.php
+php -l app/admin/controllers/concerns/PmdWaiterPosCanonicalTableReferenceV150Concern.php
 php -l routes/admin-quick-mode.php
 
 grep -q "class PmdWaiterDashboardV150 extends PmdWaiterDashboardV149" app/admin/controllers/PmdWaiterDashboardV150.php
 grep -q "'order_type'" app/admin/controllers/PmdWaiterDashboardV150.php
 grep -q "tableReferenceMaps" app/admin/controllers/PmdWaiterDashboardV150.php
 grep -q "resolveOrderTable" app/admin/controllers/PmdWaiterDashboardV150.php
+grep -q "attachOrderItems" app/admin/controllers/PmdWaiterDashboardV150.php
+grep -q "PmdWaiterPosCanonicalTableReferenceV150Concern" app/admin/controllers/PmdWaiterPosV1.php
+grep -q "fillNewOrder insteadof" app/admin/controllers/PmdWaiterPosV1.php
+grep -q "'order_type' => (string)(int)\$table\['id'\]" app/admin/controllers/concerns/PmdWaiterPosCanonicalTableReferenceV150Concern.php
 grep -q "PmdWaiterDashboardV150::class, 'data'" routes/admin-quick-mode.php
 grep -q "PmdWaiterDashboardV150::class, 'audit'" routes/admin-quick-mode.php
 
@@ -91,5 +99,6 @@ printf ' ✅ Waiter order visibility V150 installed\n'
 printf '================================================\n'
 printf 'Target commit: %s\n' "$TARGET"
 printf 'Backup: %s\n' "$BACKUP"
-printf '\nNo migration, database write, PM2, PHP-FPM or Next.js restart was performed.\n'
+printf '\nNo migration, historical-order rewrite, PM2, PHP-FPM or Next.js restart was performed.\n'
+printf 'Existing Table N orders are resolved in place; new POS orders use canonical table IDs.\n'
 printf 'Hard-refresh /admin/dashboardwaiter and verify order #1882 / Table 12.\n'
