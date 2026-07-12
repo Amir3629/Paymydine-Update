@@ -79,6 +79,13 @@
       function () { return !!window.PMDWaiterPOSPaymentV2; }
     ).then(function () {
       return loadScriptOnce(
+        'script[data-pmd-waiter-pos-payment-policy-v2-js]',
+        '/app/admin/assets/js/pmd-waiter-pos-payment-policy-v2.js?v=2',
+        'pmdWaiterPosPaymentPolicyV2Js',
+        function () { return !!(window.PMDWaiterPOSPaymentV2 && window.PMDWaiterPOSPaymentV2.__pmdPolicyWrapped); }
+      );
+    }).then(function () {
+      return loadScriptOnce(
         'script[data-pmd-waiter-pos-v2-js]',
         '/app/admin/assets/js/pmd-waiter-pos-v1.js?v=2',
         'pmdWaiterPosV2Js',
