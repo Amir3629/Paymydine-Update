@@ -5,6 +5,7 @@ on:
     paths:
       - 'app/admin/controllers/PmdWaiterPosV1.php'
       - 'app/admin/controllers/PmdWaiterDashboardV150.php'
+      - 'app/admin/controllers/PmdWaiterDashboardV151.php'
       - 'app/admin/controllers/concerns/PmdWaiterPos*.php'
       - 'app/admin/assets/js/pmd-waiter-pos*.js'
       - 'app/admin/views/waiter_pos*.blade.php'
@@ -20,6 +21,7 @@ on:
       - 'scripts/deploy-pmd-waiter-pos-polish-v26.sh'
       - 'scripts/deploy-pmd-waiter-pos-stability-v27.sh'
       - 'scripts/deploy-pmd-waiter-order-visibility-v150.sh'
+      - 'scripts/deploy-pmd-waiter-card-table-number-v151.sh'
       - 'scripts/diagnose-pmd-order-flow-readonly.sh'
       - '.github/workflows/waiter-pos-v2-lint.yml'
   workflow_dispatch:
@@ -35,6 +37,7 @@ jobs:
         file:
           - app/admin/controllers/PmdWaiterPosV1.php
           - app/admin/controllers/PmdWaiterDashboardV150.php
+          - app/admin/controllers/PmdWaiterDashboardV151.php
           - app/admin/controllers/concerns/PmdWaiterPosRenderEndpoints.php
           - app/admin/controllers/concerns/PmdWaiterPosSaveEndpoint.php
           - app/admin/controllers/concerns/PmdWaiterPosPaymentBasicEndpoints.php
@@ -100,6 +103,7 @@ jobs:
           bash -n scripts/deploy-pmd-waiter-pos-polish-v26.sh
           bash -n scripts/deploy-pmd-waiter-pos-stability-v27.sh
           bash -n scripts/deploy-pmd-waiter-order-visibility-v150.sh
+          bash -n scripts/deploy-pmd-waiter-card-table-number-v151.sh
           bash -n scripts/diagnose-pmd-order-flow-readonly.sh
           grep -q 'READ-ONLY ORDER FLOW INVESTIGATION' scripts/diagnose-pmd-order-flow-readonly.sh
           grep -q 'No INSERT, UPDATE, DELETE' scripts/diagnose-pmd-order-flow-readonly.sh
@@ -119,15 +123,22 @@ jobs:
           grep -q '/admin/pmd-waiter-pos-v1/payment-settle/' routes/admin-quick-mode.php
           grep -q "PmdWaiterDashboardV150::class, 'data'" routes/admin-quick-mode.php
           grep -q "PmdWaiterDashboardV150::class, 'audit'" routes/admin-quick-mode.php
+          grep -q "PmdWaiterDashboardV151::class, 'data'" routes/admin-quick-mode.php
+          grep -q "PmdWaiterDashboardV151::class, 'floorTables'" routes/admin-quick-mode.php
           grep -q 'class PmdWaiterDashboardV150 extends PmdWaiterDashboardV149' app/admin/controllers/PmdWaiterDashboardV150.php
+          grep -q 'class PmdWaiterDashboardV151 extends PmdWaiterDashboardV150' app/admin/controllers/PmdWaiterDashboardV151.php
           grep -q "'order_type'" app/admin/controllers/PmdWaiterDashboardV150.php
           grep -q 'tableReferenceMaps' app/admin/controllers/PmdWaiterDashboardV150.php
           grep -q 'resolveOrderTable' app/admin/controllers/PmdWaiterDashboardV150.php
           grep -q 'attachOrderItems' app/admin/controllers/PmdWaiterDashboardV150.php
+          grep -q "'table_number'" app/admin/controllers/PmdWaiterDashboardV151.php
+          grep -q "'active_orders' => \$orders" app/admin/controllers/PmdWaiterDashboardV151.php
+          grep -q 'waiter-dashboard-v151-v9-compatible-table-numbers' app/admin/controllers/PmdWaiterDashboardV151.php
           grep -q 'PmdWaiterPosCanonicalTableReferenceV150Concern' app/admin/controllers/PmdWaiterPosV1.php
           grep -q 'fillNewOrder insteadof' app/admin/controllers/PmdWaiterPosV1.php
           grep -q "'order_type' => (string)(int)\$table\['id'\]" app/admin/controllers/concerns/PmdWaiterPosCanonicalTableReferenceV150Concern.php
           grep -q 'Waiter order visibility V150 installed' scripts/deploy-pmd-waiter-order-visibility-v150.sh
+          grep -q 'Waiter card table-number V151 installed' scripts/deploy-pmd-waiter-card-table-number-v151.sh
           grep -q 'idempotency_key' app/admin/controllers/concerns/PmdWaiterPosSettleEndpoint.php
           grep -q 'PmdWaiterPosMenuCatalogV26Concern' app/admin/controllers/PmdWaiterPosV1.php
           grep -q 'menuPayload insteadof' app/admin/controllers/PmdWaiterPosV1.php
