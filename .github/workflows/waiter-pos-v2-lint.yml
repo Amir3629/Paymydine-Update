@@ -18,6 +18,7 @@ on:
       - 'scripts/deploy-pmd-waiter-pos-opaque-shadow-v25.sh'
       - 'scripts/deploy-pmd-waiter-pos-polish-v26.sh'
       - 'scripts/deploy-pmd-waiter-pos-stability-v27.sh'
+      - 'scripts/diagnose-pmd-order-flow-readonly.sh'
       - '.github/workflows/waiter-pos-v2-lint.yml'
   workflow_dispatch:
 
@@ -94,6 +95,10 @@ jobs:
           bash -n scripts/deploy-pmd-waiter-pos-opaque-shadow-v25.sh
           bash -n scripts/deploy-pmd-waiter-pos-polish-v26.sh
           bash -n scripts/deploy-pmd-waiter-pos-stability-v27.sh
+          bash -n scripts/diagnose-pmd-order-flow-readonly.sh
+          grep -q 'READ-ONLY ORDER FLOW INVESTIGATION' scripts/diagnose-pmd-order-flow-readonly.sh
+          grep -q 'No INSERT, UPDATE, DELETE' scripts/diagnose-pmd-order-flow-readonly.sh
+          grep -q 'information_schema.SCHEMATA' scripts/diagnose-pmd-order-flow-readonly.sh
           grep -q 'php artisan igniter:up' scripts/deploy-pmd-waiter-pos-v2-selective.sh
           ! grep -q 'php artisan migrate' scripts/deploy-pmd-waiter-pos-v2-selective.sh
           ! grep -q 'Waiter POS routes are not registered after cache clear' scripts/deploy-pmd-waiter-pos-v2-selective.sh
