@@ -10,7 +10,7 @@
     {
       "name": "X-UA-Compatible",
       "content": "IE=edge",
-      "type": "equiv"
+      "type": "name"
     },
     {
       "name": "viewport",
@@ -38,8 +38,8 @@
       "name": "admin-js"
     },
     {
-      "path": "js/pmd-waiter-pos-dashboard-bridge-v2.js",
-      "name": "pmd-waiter-pos-dashboard-bridge-v2-js"
+      "path": "js/pmd-waiter-pos-dashboard-shadow-bridge-v24.js",
+      "name": "pmd-waiter-pos-dashboard-shadow-bridge-v24-js"
     },
     {
       "path": "js/pmd-waiter-pos-dashboard-direct-guard-v23.js",
