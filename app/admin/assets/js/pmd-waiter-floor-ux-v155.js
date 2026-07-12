@@ -66,16 +66,6 @@
     });
   }
 
-  function shortOrder(value) {
-    var text = clean(value || '');
-    if (!text || /no active order|no order/i.test(text)) return '';
-    if (/received|new/i.test(text)) return 'NEW';
-    if (/prepar|cook|kitchen/i.test(text)) return 'PREPARING';
-    if (/ready/i.test(text)) return 'READY';
-    if (/served/i.test(text)) return 'SERVED';
-    return text.toUpperCase().slice(0, 12);
-  }
-
   function decorateTable(table, info) {
     if (!table || !info) return;
 
@@ -109,9 +99,9 @@
     }
 
     if (orderChip) {
-      var label = shortOrder(info.order_status_label);
-      orderChip.textContent = label;
-      orderChip.hidden = !label;
+      orderChip.textContent = '';
+      orderChip.hidden = true;
+      orderChip.setAttribute('aria-hidden', 'true');
     }
   }
 
@@ -362,6 +352,9 @@
         lastError: state.lastError,
         modalCount: document.querySelectorAll('.pmd-v154-modal').length,
         quickActionBars: document.querySelectorAll('.pmd-v155-table-actions').length,
+        visibleOrderStatusChips: Array.from(document.querySelectorAll('.pmd-v154-order-chip')).filter(function (el) {
+          return getComputedStyle(el).display !== 'none';
+        }).length,
         visibleUnpaidChips: Array.from(document.querySelectorAll('.pmd-v154-payment-chip[data-payment-state="unpaid"]')).filter(function (el) {
           return getComputedStyle(el).display !== 'none';
         }).length
