@@ -21,7 +21,7 @@ trait PmdWaiterPosSaveEndpoint
         }
 
         $payload = $this->requestPayload();
-        $mode = strtolower(trim((string)($payload['mode'] ?? 'send'));
+        $mode = strtolower(trim((string)($payload['mode'] ?? 'send')));
         if (!in_array($mode, ['hold', 'send'], true)) {
             $mode = 'send';
         }
