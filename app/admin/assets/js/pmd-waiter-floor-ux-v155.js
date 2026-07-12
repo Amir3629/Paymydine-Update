@@ -1,7 +1,7 @@
 (function () {
   'use strict';
 
-  if (!/\/admin\/dashboardwaiter(?:$|[?#])/.test(location.pathname + location.search + location.hash)) return;
+  if (!/\/admin\/dashboardwaiter\/?$/.test(location.pathname)) return;
   if (window.PMD_WAITER_FLOOR_UX_V155) return;
   window.PMD_WAITER_FLOOR_UX_V155 = true;
 
@@ -12,7 +12,9 @@
     lastError: null,
     tables: [],
     byNumber: new Map(),
-    confirmTimer: null
+    confirmTimer: null,
+    legendObserver: null,
+    legendTarget: null
   };
 
   function root() {
@@ -134,7 +136,18 @@
       button.textContent = 'i';
       button.title = 'Floor status guide';
     }
-    if (!legend || legend.getAttribute('data-pmd-v155-legend') === '1') return;
+    if (!legend) return;
+
+    if (state.legendTarget !== legend) {
+      if (state.legendObserver) state.legendObserver.disconnect();
+      state.legendTarget = legend;
+      state.legendObserver = new MutationObserver(function () {
+        if (!legend.querySelector('.pmd-v155-legend-ribbon')) decorateLegend();
+      });
+      state.legendObserver.observe(legend, {childList:true});
+    }
+
+    if (legend.querySelector('.pmd-v155-legend-ribbon')) return;
 
     legend.setAttribute('data-pmd-v155-legend', '1');
     legend.innerHTML = [
@@ -315,6 +328,17 @@
     event.stopImmediatePropagation();
     var table = target.closest('.pmd-w5-table[data-table]');
     if (table) table.click();
+  }, true);
+
+  // Selection belongs to the stable V5 floor. Render the inline operations
+  // immediately after its click handler has updated the selected-table class.
+  document.addEventListener('click', function (event) {
+    var target = event.target && event.target.nodeType === 1 ? event.target : null;
+    if (!target || !target.closest(
+      '#pmd-waiter-dashboard-root .pmd-w5-floor-map-real .pmd-w5-table[data-table],' +
+      '#pmd-waiter-dashboard-root .pmd-w5-tabs button'
+    )) return;
+    setTimeout(renderQuickActions, 30);
   }, true);
 
   document.addEventListener('pmd-waiter-dashboard-rendered', function () {
