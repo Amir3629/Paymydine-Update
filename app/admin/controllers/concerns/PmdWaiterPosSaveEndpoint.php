@@ -64,7 +64,12 @@ trait PmdWaiterPosSaveEndpoint
                 if ($note !== '' && Schema::hasColumn('orders', 'comment')) {
                     $existing = trim((string)($order->comment ?? ''));
                     $entry = '[Waiter POS] '.$note;
-                    $order->comment = $existing === '' ? $entry : ($existing."\n".$entry);
+                    $alreadyPresent = $existing === $note
+                        || strpos($existing, $entry) !== false
+                        || strpos($existing, $note) !== false;
+                    if (!$alreadyPresent) {
+                        $order->comment = $existing === '' ? $entry : ($existing."\n".$entry);
+                    }
                 }
 
                 if (Schema::hasColumn('orders', 'guest_count')) {
@@ -91,6 +96,7 @@ trait PmdWaiterPosSaveEndpoint
                 $order->save();
 
                 $this->recalculateOrder($order);
+                $this->recordWaiterPosNoteHistoryV26($order, $cart, $note, $mode);
 
                 if ($statusId && method_exists($order, 'addStatusHistory')) {
                     try {
@@ -108,7 +114,7 @@ trait PmdWaiterPosSaveEndpoint
 
                 return [
                     'ok' => true,
-                    'version' => 'pmd-waiter-pos-v2',
+                    'version' => 'pmd-waiter-pos-v2.6',
                     'mode' => $mode,
                     'created' => $isNew,
                     'order_id' => (int)$order->getKey(),
@@ -126,7 +132,7 @@ trait PmdWaiterPosSaveEndpoint
         } catch (ValidationException $e) {
             return response()->json([
                 'ok' => false,
-                'version' => 'pmd-waiter-pos-v2',
+                'version' => 'pmd-waiter-pos-v2.6',
                 'message' => collect($e->errors())->flatten()->first() ?: 'The order could not be saved.',
                 'errors' => $e->errors(),
             ], 422);
@@ -134,10 +140,9 @@ trait PmdWaiterPosSaveEndpoint
             report($e);
             return response()->json([
                 'ok' => false,
-                'version' => 'pmd-waiter-pos-v2',
+                'version' => 'pmd-waiter-pos-v2.6',
                 'message' => 'The order could not be saved. '.$e->getMessage(),
             ], 500);
         }
     }
-
 }
