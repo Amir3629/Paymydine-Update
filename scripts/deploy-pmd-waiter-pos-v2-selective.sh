@@ -29,10 +29,12 @@ RUNTIME_FILES=(
   "app/admin/views/waiter_pos.blade.php"
   "app/admin/views/waiter_pos_shell.blade.php"
   "app/admin/assets/css/pmd-waiter-pos-v1.css"
+  "app/admin/assets/css/pmd-waiter-pos-product-details-v3.css"
   "app/admin/assets/js/pmd-waiter-pos-v1.js"
   "app/admin/assets/js/pmd-waiter-pos-payment-v2.js"
   "app/admin/assets/js/pmd-waiter-pos-payment-policy-v2.js"
   "app/admin/assets/js/pmd-waiter-pos-dashboard-bridge-v2.js"
+  "app/admin/assets/js/pmd-waiter-pos-product-details-v3.js"
   "app/admin/assets/js/pmd-waiter-pos-dashboard-bridge-v1.js"
   "app/admin/views/_meta/assets.json"
   "routes/admin-quick-mode.php"
@@ -60,6 +62,12 @@ JS_FILES=(
   "app/admin/assets/js/pmd-waiter-pos-payment-v2.js"
   "app/admin/assets/js/pmd-waiter-pos-payment-policy-v2.js"
   "app/admin/assets/js/pmd-waiter-pos-dashboard-bridge-v2.js"
+  "app/admin/assets/js/pmd-waiter-pos-product-details-v3.js"
+)
+
+CSS_FILES=(
+  "app/admin/assets/css/pmd-waiter-pos-v1.css"
+  "app/admin/assets/css/pmd-waiter-pos-product-details-v3.css"
 )
 
 restore_files() {
@@ -87,7 +95,7 @@ on_exit() {
 trap on_exit EXIT
 
 printf '\n================================================\n'
-printf ' PayMyDine Waiter POS V2 selective deployment\n'
+printf ' PayMyDine Waiter POS V2.1 selective deployment\n'
 printf '================================================\n'
 printf 'Repository: %s\n' "$REPO"
 printf 'Branch:     %s\n' "$BRANCH"
@@ -123,15 +131,15 @@ TARGET="$(git rev-parse "origin/$BRANCH")"
 echo "Target commit: $TARGET"
 
 git diff --binary "$V1_BASE" "$TARGET" -- "${RUNTIME_FILES[@]}" > "$PATCH"
-[ -s "$PATCH" ] || { echo "❌ Generated V2 patch is empty"; exit 1; }
-cp -a "$PATCH" "$BACKUP/waiter-pos-v2.patch"
+[ -s "$PATCH" ] || { echo "❌ Generated V2.1 patch is empty"; exit 1; }
+cp -a "$PATCH" "$BACKUP/waiter-pos-v2.1.patch"
 
 echo "Runtime files in patch:"
 git diff --name-status "$V1_BASE" "$TARGET" -- "${RUNTIME_FILES[@]}"
 
 git apply --check "$PATCH"
 git apply --whitespace=nowarn "$PATCH"
-echo "✅ V2 runtime patch applied"
+echo "✅ V2.1 runtime patch applied"
 
 for file in "${PHP_FILES[@]}"; do
   php -l "$file"
@@ -141,11 +149,21 @@ for file in "${JS_FILES[@]}"; do
 done
 python3 -m json.tool app/admin/views/_meta/assets.json >/dev/null
 
-grep -q 'pmd-waiter-pos-dashboard-bridge-v2.js' app/admin/views/_meta/assets.json
+# Static registration and asset guards. TastyIgniter loads this route module from
+# app/admin/routes.php, but those dynamically included routes are not reliably
+# displayed by Laravel's generic `route:list` command in this application.
+grep -q 'admin-quick-mode\.php' app/admin/routes.php
+grep -q '/admin/waiter-pos/{tableId}' routes/admin-quick-mode.php
 grep -q '/admin/pmd-waiter-pos-v1/payment-settle/' routes/admin-quick-mode.php
+grep -q 'pmd-waiter-pos-dashboard-bridge-v2.js' app/admin/views/_meta/assets.json
+grep -q 'pmd-waiter-pos-product-details-v3.js' app/admin/views/waiter_pos.blade.php
+grep -q 'pmd-waiter-pos-product-details-v3.css' app/admin/views/waiter_pos.blade.php
+grep -q 'PMDWaiterPOSProductDetailsV3' app/admin/assets/js/pmd-waiter-pos-dashboard-bridge-v2.js
 ! grep -q 'pmd-waiter-pos-dashboard-bridge-v1.js' app/admin/views/_meta/assets.json
+[ -s app/admin/assets/js/pmd-waiter-pos-product-details-v3.js ]
+[ -s app/admin/assets/css/pmd-waiter-pos-product-details-v3.css ]
 
-echo "✅ PHP, JavaScript, JSON and route guards passed"
+echo "✅ PHP, JavaScript, JSON, route-module and asset guards passed"
 
 if command -v composer >/dev/null 2>&1; then
   composer dump-autoload -o
@@ -172,17 +190,19 @@ chmod 0644 \
   "$MIGRATION" \
   app/admin/views/waiter_pos.blade.php \
   app/admin/views/waiter_pos_shell.blade.php \
-  app/admin/assets/css/pmd-waiter-pos-v1.css \
+  "${CSS_FILES[@]}" \
   "${JS_FILES[@]}" \
   app/admin/views/_meta/assets.json \
   routes/admin-quick-mode.php
 
+# Informational only. The definitive route test is the authenticated browser
+# preflight against the real URLs after deployment.
 ROUTES="$(php artisan route:list 2>/dev/null | grep -E 'waiter-pos|pmd-waiter-pos-v1' || true)"
-if [ -z "$ROUTES" ]; then
-  echo "❌ Waiter POS routes are not registered after cache clear"
-  exit 1
+if [ -n "$ROUTES" ]; then
+  printf '%s\n' "$ROUTES"
+else
+  echo "ℹ️ route:list does not expose the dynamically included TastyIgniter POS routes; static registration passed. Browser preflight is required."
 fi
-printf '%s\n' "$ROUTES"
 
 grep -q 'PmdWaiterPosPayment' app/admin/controllers/PmdWaiterPosV1.php
 [ ! -e app/admin/assets/js/pmd-waiter-pos-dashboard-bridge-v1.js ]
@@ -191,10 +211,11 @@ SUCCESS=1
 trap - EXIT
 
 printf '\n================================================\n'
-printf ' ✅ Waiter POS V2 deployment completed\n'
+printf ' ✅ Waiter POS V2.1 deployment completed\n'
 printf '================================================\n'
 printf 'Backup: %s\n' "$BACKUP"
 printf 'Target: %s\n' "$TARGET"
 printf '\nNo PM2 or Next.js restart is required.\n'
 printf 'Hard-refresh /admin/dashboardwaiter before browser QA.\n'
+printf 'Tap a food card to add; press and hold for full product details.\n'
 printf 'Do not collect real card/provider payments until sandbox mode is confirmed.\n'
