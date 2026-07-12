@@ -1,22 +1,22 @@
-/* PayMyDine Waiter POS V2.5 — opaque Shadow DOM host theme */
+/* PayMyDine Waiter POS V2.6 — opaque owner-theme Shadow DOM host */
 
 [data-pmd-pos-viewport-host] {
-  --pmd-pos-navy: #061126;
-  --pmd-pos-navy-2: #0d1b34;
-  --pmd-pos-orange: #ff7a00;
-  --pmd-pos-orange-soft: #fff1e6;
-  --pmd-pos-blue: #1cb7e8;
-  --pmd-pos-green: #16a34a;
-  --pmd-pos-green-soft: #eaf8ef;
-  --pmd-pos-amber: #d97706;
-  --pmd-pos-red: #ef3340;
-  --pmd-pos-bg: #eef3f8;
+  --pmd-pos-navy: #062f2a;
+  --pmd-pos-navy-2: #001c18;
+  --pmd-pos-orange: #c89b4a;
+  --pmd-pos-orange-soft: #fff8ec;
+  --pmd-pos-blue: #0f766e;
+  --pmd-pos-green: #087f5b;
+  --pmd-pos-green-soft: #e8f4ee;
+  --pmd-pos-amber: #c88924;
+  --pmd-pos-red: #d64545;
+  --pmd-pos-bg: #f1f4f2;
   --pmd-pos-card: #ffffff;
-  --pmd-pos-line: #d7e0ea;
-  --pmd-pos-muted: #64748b;
-  --pmd-pos-shadow: 0 18px 50px rgba(6, 17, 38, 0.12);
+  --pmd-pos-line: #d9e3df;
+  --pmd-pos-muted: #63736e;
+  --pmd-pos-shadow: 0 18px 50px rgba(0, 28, 24, 0.12);
 
-  color: #061126 !important;
+  color: #062f2a !important;
   opacity: 1 !important;
   visibility: visible !important;
   isolation: isolate !important;
@@ -26,8 +26,8 @@
 }
 
 [data-pmd-pos-viewport-host="overlay"] {
-  background: #eef3f8 !important;
-  background-color: #eef3f8 !important;
+  background: #f1f4f2 !important;
+  background-color: #f1f4f2 !important;
 }
 
 /* The table picker intentionally dims the dashboard. The POS workspace itself never does. */
