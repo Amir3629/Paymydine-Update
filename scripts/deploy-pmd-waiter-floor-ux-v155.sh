@@ -48,6 +48,8 @@ python3 -m json.tool "$STAGE/app/admin/views/_meta/assets.json" >/dev/null
 grep -q "shouldDeriveOccupied" "$STAGE/app/admin/controllers/PmdWaiterTableStateV154.php"
 grep -q "PMD_WAITER_FLOOR_UX_V155" "$STAGE/app/admin/assets/js/pmd-waiter-floor-ux-v155.js"
 grep -q "pmd-v155-table-actions" "$STAGE/app/admin/assets/css/pmd-waiter-floor-ux-v155.css"
+grep -q "First-paint palette" "$STAGE/app/admin/assets/css/pmd-waiter-floor-ux-v155.css"
+grep -q "visibleOrderStatusChips" "$STAGE/app/admin/assets/js/pmd-waiter-floor-ux-v155.js"
 grep -q "pmd-waiter-floor-ux-v155.js" "$STAGE/app/admin/views/_meta/assets.json"
 grep -q "pmd-waiter-floor-ux-v155.css" "$STAGE/app/admin/views/_meta/assets.json"
 echo "✅ Branch files staged and validated"
