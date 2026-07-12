@@ -13,6 +13,7 @@ require_once __DIR__.'/concerns/PmdWaiterPosBootstrapConcern.php';
 require_once __DIR__.'/concerns/PmdWaiterPosMenuCatalogV26Concern.php';
 require_once __DIR__.'/concerns/PmdWaiterPosNoteHistoryV26Concern.php';
 require_once __DIR__.'/concerns/PmdWaiterPosOrderPersistenceConcern.php';
+require_once __DIR__.'/concerns/PmdWaiterPosCanonicalTableReferenceV150Concern.php';
 require_once __DIR__.'/concerns/PmdWaiterPosOrderScopeConcern.php';
 require_once __DIR__.'/concerns/PmdWaiterPosPaymentSummaryConcern.php';
 require_once __DIR__.'/concerns/PmdWaiterPosPaymentAllocationConcern.php';
@@ -38,7 +39,11 @@ class PmdWaiterPosV1 extends AdminController
             \Admin\Controllers\Concerns\PmdWaiterPosBootstrapConcern;
     }
     use \Admin\Controllers\Concerns\PmdWaiterPosNoteHistoryV26Concern;
-    use \Admin\Controllers\Concerns\PmdWaiterPosOrderPersistenceConcern;
+    use \Admin\Controllers\Concerns\PmdWaiterPosOrderPersistenceConcern,
+        \Admin\Controllers\Concerns\PmdWaiterPosCanonicalTableReferenceV150Concern {
+        \Admin\Controllers\Concerns\PmdWaiterPosCanonicalTableReferenceV150Concern::fillNewOrder insteadof
+            \Admin\Controllers\Concerns\PmdWaiterPosOrderPersistenceConcern;
+    }
     use \Admin\Controllers\Concerns\PmdWaiterPosOrderScopeConcern;
     use \Admin\Controllers\Concerns\PmdWaiterPosPaymentSummaryConcern;
     use \Admin\Controllers\Concerns\PmdWaiterPosPaymentAllocationConcern;
