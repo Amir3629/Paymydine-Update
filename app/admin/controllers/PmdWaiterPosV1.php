@@ -10,6 +10,8 @@ require_once __DIR__.'/concerns/PmdWaiterPosPaymentBasicEndpoints.php';
 require_once __DIR__.'/concerns/PmdWaiterPosSettleEndpoint.php';
 require_once __DIR__.'/concerns/PmdWaiterPosTerminalEndpoint.php';
 require_once __DIR__.'/concerns/PmdWaiterPosBootstrapConcern.php';
+require_once __DIR__.'/concerns/PmdWaiterPosMenuCatalogV26Concern.php';
+require_once __DIR__.'/concerns/PmdWaiterPosNoteHistoryV26Concern.php';
 require_once __DIR__.'/concerns/PmdWaiterPosOrderPersistenceConcern.php';
 require_once __DIR__.'/concerns/PmdWaiterPosOrderScopeConcern.php';
 require_once __DIR__.'/concerns/PmdWaiterPosPaymentSummaryConcern.php';
@@ -30,7 +32,12 @@ class PmdWaiterPosV1 extends AdminController
     use \Admin\Controllers\Concerns\PmdWaiterPosPaymentBasicEndpoints;
     use \Admin\Controllers\Concerns\PmdWaiterPosSettleEndpoint;
     use \Admin\Controllers\Concerns\PmdWaiterPosTerminalEndpoint;
-    use \Admin\Controllers\Concerns\PmdWaiterPosBootstrapConcern;
+    use \Admin\Controllers\Concerns\PmdWaiterPosBootstrapConcern,
+        \Admin\Controllers\Concerns\PmdWaiterPosMenuCatalogV26Concern {
+        \Admin\Controllers\Concerns\PmdWaiterPosMenuCatalogV26Concern::menuPayload insteadof
+            \Admin\Controllers\Concerns\PmdWaiterPosBootstrapConcern;
+    }
+    use \Admin\Controllers\Concerns\PmdWaiterPosNoteHistoryV26Concern;
     use \Admin\Controllers\Concerns\PmdWaiterPosOrderPersistenceConcern;
     use \Admin\Controllers\Concerns\PmdWaiterPosOrderScopeConcern;
     use \Admin\Controllers\Concerns\PmdWaiterPosPaymentSummaryConcern;
