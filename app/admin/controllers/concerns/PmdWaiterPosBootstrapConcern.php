@@ -4,12 +4,9 @@ namespace Admin\Controllers\Concerns;
 
 use Admin\Facades\AdminAuth;
 use Admin\Models\Menus_model;
-use Admin\Models\Orders_model;
-use Admin\Models\Payments_model;
-use App\Services\TerminalPayments\TerminalPaymentService;
+use App\Services\MenuPopularityService;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
-use Illuminate\Validation\ValidationException;
 
 trait PmdWaiterPosBootstrapConcern
 {
@@ -22,7 +19,7 @@ trait PmdWaiterPosBootstrapConcern
 
         return [
             'ok' => true,
-            'version' => 'pmd-waiter-pos-v2',
+            'version' => 'pmd-waiter-pos-v2.1',
             'table' => $table,
             'user' => $user,
             'permissions' => [
@@ -157,7 +154,26 @@ trait PmdWaiterPosBootstrapConcern
 
     protected function menuPayload(int $locationId): array
     {
-        $query = Menus_model::with(['categories', 'menu_options.menu_option_values.option_value'])
+        $with = [
+            'categories',
+            'menu_options.menu_option_values.option_value',
+        ];
+
+        if (Schema::hasTable('allergens') && Schema::hasTable('allergenables')) {
+            $with[] = 'allergens';
+        }
+        if (Schema::hasTable('menu_images')) {
+            $with['menu_images'] = function ($query) {
+                if (Schema::hasColumn('menu_images', 'sort_order')) {
+                    $query->orderBy('sort_order');
+                }
+                if (Schema::hasColumn('menu_images', 'id')) {
+                    $query->orderBy('id');
+                }
+            };
+        }
+
+        $query = Menus_model::with($with)
             ->where('menu_status', 1)
             ->orderBy('menu_priority')
             ->orderBy('menu_name');
@@ -172,6 +188,7 @@ trait PmdWaiterPosBootstrapConcern
         $categories = [];
         $items = [];
         $hiddenZeroPrice = 0;
+        $bestsellerIds = $this->waiterPosBestsellerIds();
 
         foreach ($rows as $menu) {
             $price = (float)$menu->menu_price;
@@ -181,6 +198,7 @@ trait PmdWaiterPosBootstrapConcern
             }
 
             $menuCategories = [];
+            $categoryNames = [];
             foreach (($menu->categories ?: collect()) as $category) {
                 $categoryId = (int)($category->category_id ?? $category->getKey());
                 $categoryName = trim((string)($category->name ?? $category->category_name ?? 'Menu'));
@@ -189,6 +207,9 @@ trait PmdWaiterPosBootstrapConcern
                 }
                 $categories[$categoryId] = ['id' => $categoryId, 'name' => $categoryName ?: 'Menu'];
                 $menuCategories[] = $categoryId;
+                if ($categoryName !== '') {
+                    $categoryNames[] = $categoryName;
+                }
             }
 
             $options = [];
@@ -219,15 +240,56 @@ trait PmdWaiterPosBootstrapConcern
                 }
             }
 
+            $allergens = [];
+            if (isset($menu->allergens)) {
+                foreach (($menu->allergens ?: collect()) as $allergen) {
+                    if (isset($allergen->status) && !(bool)$allergen->status) {
+                        continue;
+                    }
+                    $name = trim((string)($allergen->name ?? $allergen->allergen_name ?? ''));
+                    if ($name === '') {
+                        continue;
+                    }
+                    $allergens[] = [
+                        'id' => (int)($allergen->allergen_id ?? $allergen->getKey()),
+                        'name' => $name,
+                        'description' => trim((string)($allergen->description ?? '')),
+                    ];
+                }
+            }
+
+            $images = $this->waiterPosMenuImages($menu);
+            $override = strtolower(trim((string)($menu->bestseller_override_mode ?? 'auto')));
+            $isBestseller = $override === 'force_on'
+                || ($override !== 'force_off' && isset($bestsellerIds[(int)$menu->getKey()]));
+
             $items[] = [
                 'id' => (int)$menu->getKey(),
                 'name' => (string)$menu->menu_name,
                 'description' => trim(strip_tags((string)($menu->menu_description ?? ''))),
                 'price' => $price,
                 'category_ids' => $menuCategories,
+                'category_names' => array_values(array_unique($categoryNames)),
                 'options' => $options,
                 'has_options' => count($options) > 0,
                 'prep_minutes' => (int)($menu->prep_time_minutes ?? 0),
+                'minimum_qty' => max(1, (int)($menu->minimum_qty ?? 1)),
+                'image' => $images[0] ?? null,
+                'images' => $images,
+                'halal' => (bool)($menu->is_halal ?? false),
+                'vegetarian' => (bool)($menu->is_vegetarian ?? false),
+                'vegan' => (bool)($menu->is_vegan ?? false),
+                'allergens' => $allergens,
+                'calories' => $this->nullableNumber($menu->calories ?? null, true),
+                'protein' => $this->nullableNumber($menu->protein ?? null),
+                'carbs' => $this->nullableNumber($menu->carbs ?? null),
+                'fat' => $this->nullableNumber($menu->fat ?? null),
+                'sugar' => $this->nullableNumber($menu->sugar ?? null),
+                'serving_size' => trim((string)($menu->serving_size ?? '')) ?: null,
+                'color' => trim((string)($menu->color ?? '')) ?: null,
+                'is_chef_recommended' => (bool)($menu->is_chef_recommended ?? false),
+                'is_bestseller' => $isBestseller,
+                'bestseller_source' => $override === 'force_on' ? 'manual' : ($isBestseller ? 'sales' : null),
             ];
         }
 
@@ -242,4 +304,77 @@ trait PmdWaiterPosBootstrapConcern
         ];
     }
 
+    protected function nullableNumber($value, bool $integer = false)
+    {
+        if ($value === null || $value === '') {
+            return null;
+        }
+        return $integer ? (int)$value : round((float)$value, 2);
+    }
+
+    protected function waiterPosBestsellerIds(): array
+    {
+        try {
+            if (!class_exists(MenuPopularityService::class)) {
+                return [];
+            }
+            $stats = app(MenuPopularityService::class)->bestsellerStats();
+            return array_flip(array_map('intval', (array)($stats['ids'] ?? [])));
+        } catch (\Throwable $ignored) {
+            return [];
+        }
+    }
+
+    protected function waiterPosMenuImages(Menus_model $menu): array
+    {
+        $images = [];
+
+        try {
+            if (method_exists($menu, 'getThumb')) {
+                $thumb = $menu->getThumb();
+                if (is_string($thumb) && trim($thumb) !== '') {
+                    $images[] = $this->normalizeWaiterPosImageUrl($thumb, true);
+                }
+            }
+        } catch (\Throwable $ignored) {
+        }
+
+        if (isset($menu->menu_images)) {
+            foreach (($menu->menu_images ?: collect()) as $row) {
+                $path = trim((string)($row->image_path ?? $row->path ?? ''));
+                if ($path !== '') {
+                    $images[] = $this->normalizeWaiterPosImageUrl($path, false);
+                }
+            }
+        }
+
+        return array_values(array_unique(array_filter($images)));
+    }
+
+    protected function normalizeWaiterPosImageUrl(string $url, bool $attachment = false): string
+    {
+        $url = trim($url);
+        if ($url === '' || preg_match('#^https?://#i', $url)) {
+            return $url;
+        }
+
+        if (strpos($url, '/') === 0) {
+            return $url;
+        }
+
+        $url = ltrim($url, '/');
+        if (strpos($url, 'api/media/') === 0 || strpos($url, 'assets/media/') === 0) {
+            return '/'.$url;
+        }
+        if (strpos($url, 'attachments/public/') === 0) {
+            return '/assets/media/'.$url;
+        }
+        if (strpos($url, 'uploads/') === 0) {
+            return '/assets/media/'.$url;
+        }
+
+        return $attachment
+            ? '/assets/media/attachments/public/'.$url
+            : '/assets/media/uploads/'.$url;
+    }
 }
