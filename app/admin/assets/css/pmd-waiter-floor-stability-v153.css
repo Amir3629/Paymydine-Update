@@ -1,0 +1,77 @@
+/* PMD Waiter floor stability V153
+ * Simple operational colors:
+ * - green = free table
+ * - red = table with a new/active order
+ */
+
+html.pmd-dashboardwaiter-kiosk-page
+#pmd-waiter-dashboard-root
+.pmd-w5-floor-map-real
+.pmd-w5-table[data-table][data-pmd-v153-state="free"] {
+  background: linear-gradient(180deg, #ecfdf3 0%, #dcfce7 100%) !important;
+  background-color: #dcfce7 !important;
+  background-image: linear-gradient(180deg, #ecfdf3 0%, #dcfce7 100%) !important;
+  border: 2px solid #16a34a !important;
+  color: #14532d !important;
+  box-shadow:
+    0 0 0 4px rgba(34, 197, 94, .10),
+    0 10px 22px rgba(22, 163, 74, .16) !important;
+}
+
+html.pmd-dashboardwaiter-kiosk-page
+#pmd-waiter-dashboard-root
+.pmd-w5-floor-map-real
+.pmd-w5-table[data-table][data-pmd-v153-state="order"] {
+  background: linear-gradient(180deg, #fff1f2 0%, #fee2e2 100%) !important;
+  background-color: #fee2e2 !important;
+  background-image: linear-gradient(180deg, #fff1f2 0%, #fee2e2 100%) !important;
+  border: 2px solid #dc2626 !important;
+  color: #7f1d1d !important;
+  box-shadow:
+    0 0 0 4px rgba(220, 38, 38, .11),
+    0 10px 24px rgba(220, 38, 38, .18) !important;
+}
+
+html.pmd-dashboardwaiter-kiosk-page
+#pmd-waiter-dashboard-root
+.pmd-w5-floor-map-real
+.pmd-w5-table[data-table][data-pmd-v153-state="free"] > span,
+html.pmd-dashboardwaiter-kiosk-page
+#pmd-waiter-dashboard-root
+.pmd-w5-floor-map-real
+.pmd-w5-table[data-table][data-pmd-v153-state="free"] > em {
+  color: #14532d !important;
+}
+
+html.pmd-dashboardwaiter-kiosk-page
+#pmd-waiter-dashboard-root
+.pmd-w5-floor-map-real
+.pmd-w5-table[data-table][data-pmd-v153-state="order"] > span,
+html.pmd-dashboardwaiter-kiosk-page
+#pmd-waiter-dashboard-root
+.pmd-w5-floor-map-real
+.pmd-w5-table[data-table][data-pmd-v153-state="order"] > em {
+  color: #7f1d1d !important;
+}
+
+html.pmd-dashboardwaiter-kiosk-page
+#pmd-waiter-dashboard-root
+.pmd-w5-floor-map-real
+.pmd-w5-table[data-table][data-pmd-v153-state="order"] > small {
+  background: #b91c1c !important;
+  border-color: #ffffff !important;
+  color: #ffffff !important;
+  box-shadow: 0 4px 12px rgba(127, 29, 29, .26) !important;
+}
+
+/* The temporary save shield exists only during document capture. Never let it
+ * visually collapse the expanded map if a browser paints in that tiny window.
+ */
+#pmd-waiter-dashboard-root
+.pmd-w5-floor-map-real[data-pmd-v153-save-shield="1"] {
+  height: 430px !important;
+  min-height: 430px !important;
+  max-height: 430px !important;
+  display: block !important;
+  overflow: hidden !important;
+}
