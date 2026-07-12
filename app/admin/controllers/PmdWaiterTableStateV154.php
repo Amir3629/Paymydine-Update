@@ -75,8 +75,19 @@ class PmdWaiterTableStateV154 extends PmdWaiterDashboardV151
                     abort(404, 'Table not found.');
                 }
 
-                $old = $this->normalizeTableState($row->operational_status ?? 'available');
-                if ($old === $next) {
+                $storedOld = $this->normalizeTableState($row->operational_status ?? 'available');
+                $effectiveOld = $storedOld;
+                $derivedOccupied = false;
+
+                // Existing tables receive the migration default "available".
+                // During compatibility rollout, an active order still means the
+                // effective state is occupied, without coupling it to payment.
+                if ($storedOld === 'available' && $this->tableHasActiveOrders($tableId)) {
+                    $effectiveOld = 'occupied';
+                    $derivedOccupied = true;
+                }
+
+                if ($storedOld === $next) {
                     return [
                         'ok' => true,
                         'changed' => false,
@@ -86,17 +97,17 @@ class PmdWaiterTableStateV154 extends PmdWaiterDashboardV151
                     ];
                 }
 
-                $allowed = self::TRANSITIONS[$old] ?? [];
-                if (!in_array($next, $allowed, true)) {
+                $allowed = self::TRANSITIONS[$effectiveOld] ?? [];
+                if ($effectiveOld !== $next && !in_array($next, $allowed, true)) {
                     return [
                         'ok' => false,
                         'http_status' => 409,
-                        'message' => 'Invalid table transition: '.$old.' → '.$next,
+                        'message' => 'Invalid table transition: '.$effectiveOld.' → '.$next,
                         'allowed' => $allowed,
                     ];
                 }
 
-                if ($old === 'occupied' && $next === 'available' && !$skipCleaning) {
+                if ($effectiveOld === 'occupied' && $next === 'available' && !$skipCleaning) {
                     return [
                         'ok' => false,
                         'http_status' => 409,
@@ -116,8 +127,10 @@ class PmdWaiterTableStateV154 extends PmdWaiterDashboardV151
                 }
 
                 DB::table('tables')->where($pk, $tableId)->update($updates);
-                $this->writeHistory($tableId, $old, $next, $reason, null, [
+                $this->writeHistory($tableId, $effectiveOld, $next, $reason, null, [
                     'source' => 'waiter_floor_v154',
+                    'stored_old_status' => $storedOld,
+                    'derived_occupied' => $derivedOccupied,
                     'skip_cleaning' => $skipCleaning,
                 ]);
 
@@ -125,7 +138,7 @@ class PmdWaiterTableStateV154 extends PmdWaiterDashboardV151
                     'ok' => true,
                     'changed' => true,
                     'table_id' => $tableId,
-                    'old_status' => $old,
+                    'old_status' => $effectiveOld,
                     'status' => $next,
                     'status_label' => self::TABLE_STATES[$next]['label'],
                 ];
@@ -147,7 +160,8 @@ class PmdWaiterTableStateV154 extends PmdWaiterDashboardV151
     {
         $dashboard = $this->v9CompatiblePayload();
         $tables = array_values((array)($dashboard['sections']['floor_plan']['tables'] ?? $dashboard['tables'] ?? []));
-        $orders = array_values((array)($dashboard['sections']['active_orders'] ?? $dashboard['orders'] ?? []));
+        $activeOrders = array_values((array)($dashboard['sections']['active_orders'] ?? $dashboard['orders'] ?? []));
+        $recentOrdersByTable = $this->loadRecentOrdersIncludingPaid($tables);
 
         $tableRows = [];
         if (Schema::hasTable('tables')) {
@@ -161,12 +175,12 @@ class PmdWaiterTableStateV154 extends PmdWaiterDashboardV151
             }
         }
 
-        $ordersByTable = [];
-        foreach ($orders as $order) {
+        $activeByTable = [];
+        foreach ($activeOrders as $order) {
             $tableId = (int)($order['table_id'] ?? 0);
             $tableNumber = trim((string)($order['table_number'] ?? $order['table_no'] ?? $order['table'] ?? ''));
             $key = $tableId > 0 ? 'id:'.$tableId : 'no:'.strtolower($tableNumber);
-            $ordersByTable[$key][] = $order;
+            $activeByTable[$key][] = $order;
         }
 
         $out = [];
@@ -174,22 +188,38 @@ class PmdWaiterTableStateV154 extends PmdWaiterDashboardV151
             $tableId = (int)($table['id'] ?? $table['table_id'] ?? 0);
             $tableNumber = trim((string)($table['number'] ?? $table['table_number'] ?? $table['table_no'] ?? ''));
             $key = $tableId > 0 ? 'id:'.$tableId : 'no:'.strtolower($tableNumber);
-            $tableOrders = array_values($ordersByTable[$key] ?? []);
+            $tableActiveOrders = array_values($activeByTable[$key] ?? []);
             $row = $tableRows[$tableId] ?? [];
 
             $stored = $this->normalizeTableState($row['operational_status'] ?? 'available');
             $effective = $stored;
             $derived = false;
 
-            // Safe compatibility for tables that existed before the migration:
-            // an open order means occupied, but payment still cannot free it.
-            if ($stored === 'available' && count($tableOrders) > 0) {
+            if ($stored === 'available' && count($tableActiveOrders) > 0) {
                 $effective = 'occupied';
                 $derived = true;
             }
 
-            $payment = $this->paymentSummary($tableOrders);
-            $orderState = $this->orderSummary($tableOrders);
+            $displayOrders = $tableActiveOrders;
+            if (!$displayOrders && in_array($effective, ['occupied', 'cleaning'], true)) {
+                $recent = array_values($recentOrdersByTable[$tableId] ?? []);
+                $since = trim((string)($row['operational_status_updated_at'] ?? ''));
+
+                if ($since !== '') {
+                    $sinceTs = strtotime($since) ?: 0;
+                    $recent = array_values(array_filter($recent, function ($order) use ($sinceTs) {
+                        $ts = strtotime((string)($order['created_at'] ?? '')) ?: 0;
+                        return $ts >= $sinceTs;
+                    }));
+                } elseif ($recent) {
+                    $recent = [reset($recent)];
+                }
+
+                $displayOrders = $recent;
+            }
+
+            $payment = $this->paymentSummary($displayOrders);
+            $orderState = $this->orderSummary($displayOrders);
 
             $out[] = [
                 'table_id' => $tableId,
@@ -203,7 +233,7 @@ class PmdWaiterTableStateV154 extends PmdWaiterDashboardV151
                 'order_status' => $orderState['status'],
                 'order_status_label' => $orderState['label'],
                 'latest_order_id' => $orderState['latest_order_id'],
-                'open_order_count' => count($tableOrders),
+                'open_order_count' => count($tableActiveOrders),
                 'payment_status' => $payment['status'],
                 'payment_status_label' => $payment['label'],
                 'order_total' => $payment['total'],
@@ -229,6 +259,85 @@ class PmdWaiterTableStateV154 extends PmdWaiterDashboardV151
             'states' => self::TABLE_STATES,
             'tables' => $out,
         ];
+    }
+
+    protected function loadRecentOrdersIncludingPaid(array $tables): array
+    {
+        if (!Schema::hasTable('orders') || !$tables) {
+            return [];
+        }
+
+        $columns = Schema::getColumnListing('orders');
+        $primaryKey = $this->firstCol($columns, ['order_id', 'id']);
+        $tableColumn = $this->firstCol($columns, [
+            'table_id',
+            'dining_table_id',
+            'location_table_id',
+            'table_no',
+            'table_name',
+            'order_type',
+        ]);
+
+        if (!$primaryKey || !$tableColumn) {
+            return [];
+        }
+
+        $statusColumn = $this->firstCol($columns, ['status', 'order_status', 'status_name', 'status_id']);
+        $totalColumn = $this->firstCol($columns, ['order_total', 'total', 'total_amount', 'grand_total']);
+        $dateColumn = $this->firstCol($columns, ['created_at', 'order_date', 'updated_at']);
+        $maps = $this->tableReferenceMaps($tables);
+        $statusMap = $this->orderStatusMap();
+
+        $query = DB::table('orders');
+        if (in_array('deleted_at', $columns, true)) {
+            $query->whereNull('deleted_at');
+        }
+        $query->orderByDesc($dateColumn ?: $primaryKey);
+
+        $grouped = [];
+        foreach ($query->limit(400)->get() as $order) {
+            $row = (array)$order;
+            $table = $this->resolveOrderTable($row, $tableColumn, $maps);
+            if (!$table) {
+                continue;
+            }
+
+            $tableId = (int)$table['id'];
+            $orderId = (int)($row[$primaryKey] ?? 0);
+            if ($tableId < 1 || $orderId < 1) {
+                continue;
+            }
+
+            $grouped[$tableId][] = [
+                'id' => $orderId,
+                'order_id' => $orderId,
+                'table_id' => $tableId,
+                'table_number' => (string)$table['number'],
+                'status' => $this->resolvedOrderStatus($row, $statusColumn, $statusMap) ?: 'open',
+                'payment' => (string)($row['payment'] ?? ''),
+                'payment_status' => (string)($row['payment_status'] ?? ''),
+                'settlement_status' => strtolower(trim((string)($row['settlement_status'] ?? ''))),
+                'settled_amount' => (float)($row['settled_amount'] ?? 0),
+                'total' => (float)($totalColumn ? ($row[$totalColumn] ?? 0) : 0),
+                'created_at' => (string)($dateColumn ? ($row[$dateColumn] ?? '') : ''),
+            ];
+        }
+
+        return $grouped;
+    }
+
+    protected function tableHasActiveOrders(int $tableId): bool
+    {
+        $dashboard = $this->v9CompatiblePayload();
+        $orders = array_values((array)($dashboard['sections']['active_orders'] ?? $dashboard['orders'] ?? []));
+
+        foreach ($orders as $order) {
+            if ((int)($order['table_id'] ?? 0) === $tableId) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     protected function normalizeTableState($status): string
@@ -272,16 +381,28 @@ class PmdWaiterTableStateV154 extends PmdWaiterDashboardV151
         foreach ($orders as $order) {
             $orderTotal = max(0, (float)($order['total'] ?? $order['order_total'] ?? 0));
             $orderSettled = max(0, (float)($order['settled_amount'] ?? 0));
-            $raw = strtolower(trim((string)($order['settlement_status'] ?? $order['payment_status'] ?? '')));
+            $raw = strtolower(trim(implode(' ', [
+                (string)($order['settlement_status'] ?? ''),
+                (string)($order['payment_status'] ?? ''),
+                (string)($order['payment'] ?? ''),
+                (string)($order['status'] ?? ''),
+            ])));
+
+            $isRefunded = (bool)preg_match('/refund|reversed|chargeback/', $raw);
+            $isPaid = !$isRefunded && (bool)preg_match('/\bpaid\b|settled|payment complete|fully paid|completed/', $raw);
+
+            if ($isPaid && $orderTotal > 0 && $orderSettled + 0.005 < $orderTotal) {
+                $orderSettled = $orderTotal;
+            }
 
             $total += $orderTotal;
             $settled += min($orderSettled, $orderTotal > 0 ? $orderTotal : $orderSettled);
 
-            if (preg_match('/refund|reversed|chargeback/', $raw)) {
+            if ($isRefunded) {
                 $hasRefunded = true;
-            } elseif (preg_match('/partial|part_paid/', $raw) || ($orderSettled > 0 && $orderSettled + 0.005 < $orderTotal)) {
+            } elseif (preg_match('/partial|part_paid|partially/', $raw) || ($orderSettled > 0 && $orderSettled + 0.005 < $orderTotal)) {
                 $hasPartial = true;
-            } elseif (!preg_match('/paid|settled|closed/', $raw) && $orderSettled + 0.005 < $orderTotal) {
+            } elseif (!$isPaid && $orderSettled + 0.005 < $orderTotal) {
                 $hasUnpaid = true;
             }
         }
