@@ -21,7 +21,7 @@ trait PmdWaiterPosSaveEndpoint
         }
 
         $payload = $this->requestPayload();
-        $mode = strtolower(trim((string)($payload['mode'] ?? 'send')));
+        $mode = strtolower(trim((string)($payload['mode'] ?? 'send'));
         if (!in_array($mode, ['hold', 'send'], true)) {
             $mode = 'send';
         }
@@ -97,6 +97,11 @@ trait PmdWaiterPosSaveEndpoint
 
                 $this->recalculateOrder($order);
                 $this->recordWaiterPosNoteHistoryV26($order, $cart, $note, $mode);
+
+                // Order lifecycle, payment lifecycle and table lifecycle are
+                // independent. Creating/appending an order occupies the table;
+                // payment completion deliberately does not release it.
+                $this->markTableOccupiedForWaiterOrderV154($table, $order);
 
                 if ($statusId && method_exists($order, 'addStatusHistory')) {
                     try {
