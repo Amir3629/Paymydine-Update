@@ -51,23 +51,39 @@
     });
   }
 
-  function ensureScript() {
-    if (window.PMDWaiterPOSApp) return Promise.resolve();
-    var existing = document.querySelector('script[data-pmd-waiter-pos-v2-js]');
+  function loadScriptOnce(selector, src, datasetKey, ready) {
+    if (ready()) return Promise.resolve();
+    var existing = document.querySelector(selector);
     if (existing) {
       return new Promise(function (resolve, reject) {
-        if (window.PMDWaiterPOSApp) return resolve();
+        if (ready()) return resolve();
         existing.addEventListener('load', resolve, {once:true});
         existing.addEventListener('error', reject, {once:true});
       });
     }
     return new Promise(function (resolve, reject) {
       var script = document.createElement('script');
-      script.src = '/app/admin/assets/js/pmd-waiter-pos-v1.js?v=2';
-      script.dataset.pmdWaiterPosV2Js = '1';
+      script.src = src;
+      script.dataset[datasetKey] = '1';
       script.onload = resolve;
       script.onerror = reject;
       document.head.appendChild(script);
+    });
+  }
+
+  function ensureScripts() {
+    return loadScriptOnce(
+      'script[data-pmd-waiter-pos-payment-v2-js]',
+      '/app/admin/assets/js/pmd-waiter-pos-payment-v2.js?v=2',
+      'pmdWaiterPosPaymentV2Js',
+      function () { return !!window.PMDWaiterPOSPaymentV2; }
+    ).then(function () {
+      return loadScriptOnce(
+        'script[data-pmd-waiter-pos-v2-js]',
+        '/app/admin/assets/js/pmd-waiter-pos-v1.js?v=2',
+        'pmdWaiterPosV2Js',
+        function () { return !!window.PMDWaiterPOSApp; }
+      );
     });
   }
 
@@ -114,7 +130,7 @@
     showLoading(tableNo);
 
     try {
-      var assets = Promise.all([ensureCss(), ensureScript()]);
+      var assets = Promise.all([ensureCss(), ensureScripts()]);
       var response = await fetch(overlayUrl(tableNo) + '?_=' + Date.now(), {
         credentials: 'same-origin',
         cache: 'no-store',
@@ -173,7 +189,8 @@
   }, true);
 
   window.addEventListener('pmd:waiter-pos-order-updated', function () {
-    // Existing dashboard polling will reconcile cards without reloading the floor.
+    // Existing dashboard polling will reconcile cards. This event is intentionally
+    // non-destructive and only exposes a hook for later real-time refresh work.
   });
 
   window.PMDWaiterPOSBridge = {
