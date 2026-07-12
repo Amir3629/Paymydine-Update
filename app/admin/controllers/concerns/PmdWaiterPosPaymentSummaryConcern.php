@@ -78,7 +78,7 @@ trait PmdWaiterPosPaymentSummaryConcern
             ? max(0, round((float)($order->settled_amount ?? 0), 4))
             : 0.0;
         $remaining = max(0, round($orderTotal - $settledAmount, 4));
-        $settlementStatus = strtolower(trim((string)($order->settlement_status ?? ''));
+        $settlementStatus = strtolower(trim((string)($order->settlement_status ?? '')));
         if (!in_array($settlementStatus, ['unpaid', 'partial', 'paid'], true)) {
             $settlementStatus = $remaining <= 0.0001 ? 'paid' : ($settledAmount > 0 ? 'partial' : 'unpaid');
         }
@@ -91,9 +91,13 @@ trait PmdWaiterPosPaymentSummaryConcern
         $guestUrl = null;
         if ($table) {
             $guestUrl = url('/table/'.rawurlencode((string)$table['number']).'/menu').'?'.http_build_query([
-                'open_payment' => 1,
+                'source' => 'waiter_pos',
                 'order_id' => $orderId,
                 'table' => $table['number'],
+                'table_id' => $table['id'],
+                'table_no' => $table['number'],
+                'location' => $table['location_id'] ?: null,
+                'qr' => $table['qr_code'] ?: null,
             ]);
         }
 
