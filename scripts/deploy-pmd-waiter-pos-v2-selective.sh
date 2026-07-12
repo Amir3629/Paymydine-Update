@@ -151,7 +151,14 @@ if command -v composer >/dev/null 2>&1; then
   composer dump-autoload -o
 fi
 
-php artisan migrate --path="$MIGRATION" --force
+# TastyIgniter does not register Laravel's generic `migrate` command.
+# Its UpdateManager-backed command discovers application/extension migrations.
+if ! php artisan list --raw 2>/dev/null | grep -q '^igniter:up'; then
+  echo "❌ TastyIgniter migration command igniter:up is not registered"
+  exit 1
+fi
+php artisan igniter:up
+
 php artisan optimize:clear || {
   php artisan route:clear || true
   php artisan view:clear || true
