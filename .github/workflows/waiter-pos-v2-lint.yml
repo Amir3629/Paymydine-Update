@@ -20,24 +20,47 @@ jobs:
     timeout-minutes: 5
     steps:
       - uses: actions/checkout@v4
+        with:
+          show-progress: false
 
       - name: PHP syntax
         shell: bash
         run: |
           set -euo pipefail
-          php -l app/admin/controllers/PmdWaiterPosV1.php
-          find app/admin/controllers/concerns -maxdepth 1 -type f -name 'PmdWaiterPos*.php' -print0 | sort -z | xargs -0 -n1 php -l
-          php -l app/admin/database/migrations/2026_07_12_000100_extend_waiter_pos_payment_transactions.php
-          php -l routes/admin-quick-mode.php
+          files=(
+            app/admin/controllers/PmdWaiterPosV1.php
+            app/admin/controllers/concerns/PmdWaiterPosRenderEndpoints.php
+            app/admin/controllers/concerns/PmdWaiterPosSaveEndpoint.php
+            app/admin/controllers/concerns/PmdWaiterPosPaymentBasicEndpoints.php
+            app/admin/controllers/concerns/PmdWaiterPosSettleEndpoint.php
+            app/admin/controllers/concerns/PmdWaiterPosTerminalEndpoint.php
+            app/admin/controllers/concerns/PmdWaiterPosBootstrapConcern.php
+            app/admin/controllers/concerns/PmdWaiterPosOrderPersistenceConcern.php
+            app/admin/controllers/concerns/PmdWaiterPosOrderScopeConcern.php
+            app/admin/controllers/concerns/PmdWaiterPosPaymentSummaryConcern.php
+            app/admin/controllers/concerns/PmdWaiterPosPaymentAllocationConcern.php
+            app/admin/controllers/concerns/PmdWaiterPosPaymentTransactionConcern.php
+            app/admin/database/migrations/2026_07_12_000100_extend_waiter_pos_payment_transactions.php
+            routes/admin-quick-mode.php
+          )
+          for file in "${files[@]}"; do
+            echo "--- php -l $file"
+            php -l "$file"
+          done
 
       - name: JavaScript syntax
         shell: bash
         run: |
           set -euo pipefail
-          node --check app/admin/assets/js/pmd-waiter-pos-v1.js
-          node --check app/admin/assets/js/pmd-waiter-pos-payment-v2.js
-          node --check app/admin/assets/js/pmd-waiter-pos-payment-policy-v2.js
-          node --check app/admin/assets/js/pmd-waiter-pos-dashboard-bridge-v2.js
+          for file in \
+            app/admin/assets/js/pmd-waiter-pos-v1.js \
+            app/admin/assets/js/pmd-waiter-pos-payment-v2.js \
+            app/admin/assets/js/pmd-waiter-pos-payment-policy-v2.js \
+            app/admin/assets/js/pmd-waiter-pos-dashboard-bridge-v2.js
+          do
+            echo "--- node --check $file"
+            node --check "$file"
+          done
 
       - name: JSON and route guards
         shell: bash
