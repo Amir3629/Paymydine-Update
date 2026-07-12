@@ -1,0 +1,396 @@
+/* PayMyDine Waiter Floor UX V155
+ * Clean operational table cards and inline status actions.
+ */
+
+#pmd-waiter-dashboard-root:not(.pmd-w19-editing):not(.pmd-v21-editing)
+.pmd-w5-floor-map-real:not(.pmd-v40-compact-authority)
+.pmd-w5-table[data-table] {
+  width: 104px !important;
+  height: 86px !important;
+  min-width: 104px !important;
+  min-height: 86px !important;
+  border-radius: 19px !important;
+  padding: 12px !important;
+  overflow: visible !important;
+}
+
+#pmd-waiter-dashboard-root.pmd-w89-compact
+.pmd-w5-floor-map-real
+.pmd-w5-table[data-table],
+#pmd-waiter-dashboard-root
+.pmd-w5-floor-map-real.pmd-v40-compact-authority
+.pmd-w5-table[data-table] {
+  width: 88px !important;
+  height: 74px !important;
+  min-width: 88px !important;
+  min-height: 74px !important;
+  border-radius: 17px !important;
+}
+
+/* Uniform shape in both view and edit modes; saved coordinates stay untouched. */
+#pmd-waiter-dashboard-root .pmd-w5-floor-map-real .pmd-w5-table[data-table] {
+  border-radius: 19px !important;
+  background-image: none !important;
+  transition: transform .12s ease, box-shadow .12s ease !important;
+}
+
+#pmd-waiter-dashboard-root
+.pmd-w5-floor-map-real
+.pmd-w5-table[data-table] > span {
+  position: relative !important;
+  z-index: 3 !important;
+  display: block !important;
+  margin: 0 !important;
+  font-size: 31px !important;
+  line-height: 1 !important;
+  font-weight: 1000 !important;
+  letter-spacing: -.05em !important;
+  color: inherit !important;
+}
+
+/* Capacity is available in the tooltip; it no longer collides with the number. */
+#pmd-waiter-dashboard-root
+.pmd-w5-floor-map-real
+.pmd-w5-table[data-table] > em {
+  display: none !important;
+}
+
+#pmd-waiter-dashboard-root
+.pmd-w5-floor-map-real
+.pmd-w5-table[data-table] > small {
+  top: -10px !important;
+  right: -10px !important;
+  z-index: 12 !important;
+  width: 28px !important;
+  height: 28px !important;
+  min-width: 28px !important;
+  border: 3px solid #fff !important;
+  background: #071225 !important;
+  color: #fff !important;
+  font-size: 13px !important;
+  box-shadow: 0 8px 18px rgba(7,18,37,.24) !important;
+}
+
+/*
+ * First-paint palette. These selectors use the legacy V5 classes immediately,
+ * before the V154 API response adds the canonical operational-state attribute.
+ * This prevents the old small/orange cards from flashing during reload.
+ */
+#pmd-waiter-dashboard-root
+.pmd-w5-floor-map-real
+.pmd-w5-table[data-table] {
+  background: #22c55e !important;
+  border: 3px solid #087a3d !important;
+  color: #062b18 !important;
+  box-shadow: 0 9px 0 rgba(8,122,61,.16), 0 14px 25px rgba(34,197,94,.20) !important;
+}
+
+#pmd-waiter-dashboard-root
+.pmd-w5-floor-map-real
+.pmd-w5-table[data-table].is-active,
+#pmd-waiter-dashboard-root
+.pmd-w5-floor-map-real
+.pmd-w5-table[data-table].has-orders,
+#pmd-waiter-dashboard-root
+.pmd-w5-floor-map-real
+.pmd-w5-table[data-table].busy,
+#pmd-waiter-dashboard-root
+.pmd-w5-floor-map-real
+.pmd-w5-table[data-table].is-payment,
+#pmd-waiter-dashboard-root
+.pmd-w5-floor-map-real
+.pmd-w5-table[data-table].is-urgent {
+  background: #ef3340 !important;
+  border-color: #a8121d !important;
+  color: #fff !important;
+  box-shadow: 0 9px 0 rgba(168,18,29,.16), 0 14px 25px rgba(239,51,64,.22) !important;
+}
+
+/* Canonical operational colors: the same strong green/orange/blue/red family as the KPI row. */
+#pmd-waiter-dashboard-root
+.pmd-w5-floor-map-real
+.pmd-w5-table[data-pmd-v154-table-state="available"] {
+  background: #22c55e !important;
+  border: 3px solid #087a3d !important;
+  color: #062b18 !important;
+  box-shadow: 0 9px 0 rgba(8,122,61,.16), 0 14px 25px rgba(34,197,94,.20) !important;
+}
+
+#pmd-waiter-dashboard-root
+.pmd-w5-floor-map-real
+.pmd-w5-table[data-pmd-v154-table-state="occupied"] {
+  background: #ef3340 !important;
+  border: 3px solid #a8121d !important;
+  color: #fff !important;
+  box-shadow: 0 9px 0 rgba(168,18,29,.16), 0 14px 25px rgba(239,51,64,.22) !important;
+}
+
+#pmd-waiter-dashboard-root
+.pmd-w5-floor-map-real
+.pmd-w5-table[data-pmd-v154-table-state="cleaning"] {
+  background: #ff7a00 !important;
+  border: 3px solid #bd4e00 !important;
+  color: #251300 !important;
+  box-shadow: 0 9px 0 rgba(189,78,0,.16), 0 14px 25px rgba(255,122,0,.22) !important;
+}
+
+#pmd-waiter-dashboard-root
+.pmd-w5-floor-map-real
+.pmd-w5-table[data-pmd-v154-table-state="reserved"] {
+  background: #26b7d9 !important;
+  border: 3px solid #087da0 !important;
+  color: #062331 !important;
+  box-shadow: 0 9px 0 rgba(8,125,160,.16), 0 14px 25px rgba(38,183,217,.22) !important;
+}
+
+#pmd-waiter-dashboard-root .pmd-w5-floor-map-real .pmd-w5-table.is-selected,
+#pmd-waiter-dashboard-root .pmd-w5-floor-map-real .pmd-w5-table.pmd-w12-selected,
+#pmd-waiter-dashboard-root .pmd-w5-floor-map-real .pmd-w5-table.pmd-w19-selected {
+  outline: 4px solid #071225 !important;
+  outline-offset: 3px !important;
+}
+
+/* Status color is the table status. Repeated text chips are removed. */
+#pmd-waiter-dashboard-root .pmd-v154-table-chip {
+  display: none !important;
+  pointer-events: none !important;
+}
+
+#pmd-waiter-dashboard-root .pmd-v154-payment-chip[data-payment-state="none"],
+#pmd-waiter-dashboard-root .pmd-v154-payment-chip[data-payment-state="unpaid"] {
+  display: none !important;
+}
+
+/* Order status labels (NEW / READY / etc.) do not belong on the floor icon. */
+#pmd-waiter-dashboard-root .pmd-v154-order-chip {
+  display: none !important;
+  visibility: hidden !important;
+}
+
+#pmd-waiter-dashboard-root .pmd-v154-payment-chip[data-payment-state="paid"],
+#pmd-waiter-dashboard-root .pmd-v154-payment-chip[data-payment-state="partial"] {
+  position: absolute !important;
+  top: -7px !important;
+  left: -8px !important;
+  bottom: auto !important;
+  z-index: 11 !important;
+  display: inline-flex !important;
+  width: auto !important;
+  max-width: 72px !important;
+  height: 22px !important;
+  min-height: 22px !important;
+  padding: 0 9px !important;
+  border: 2px solid #fff !important;
+  border-radius: 8px 8px 8px 2px !important;
+  color: #fff !important;
+  font-size: 9px !important;
+  font-weight: 1000 !important;
+  letter-spacing: .07em !important;
+  box-shadow: 0 7px 16px rgba(15,23,42,.22) !important;
+}
+
+#pmd-waiter-dashboard-root .pmd-v154-payment-chip[data-payment-state="paid"] {
+  background: #15803d !important;
+}
+
+#pmd-waiter-dashboard-root .pmd-v154-payment-chip[data-payment-state="partial"] {
+  background: #b45309 !important;
+}
+
+/* Old large modal is retired. */
+.pmd-v154-modal {
+  display: none !important;
+  visibility: hidden !important;
+  pointer-events: none !important;
+}
+
+/* Inline quick operations share the existing filter row. */
+#pmd-waiter-dashboard-root .pmd-w5-tabs {
+  display: flex !important;
+  align-items: center !important;
+  flex-wrap: wrap !important;
+  gap: 10px !important;
+}
+
+#pmd-waiter-dashboard-root .pmd-v155-table-actions {
+  display: inline-flex !important;
+  align-items: center !important;
+  flex-wrap: wrap !important;
+  gap: 8px !important;
+  margin-left: auto !important;
+  padding-left: 10px !important;
+  border-left: 1px solid #dbe4ee !important;
+}
+
+#pmd-waiter-dashboard-root .pmd-v155-selected-status {
+  min-height: 42px !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 8px !important;
+  padding: 6px 12px !important;
+  border: 1px solid #dbe4ee !important;
+  border-radius: 13px !important;
+  background: #fff !important;
+  color: #0f172a !important;
+  box-shadow: 0 6px 16px rgba(15,23,42,.07) !important;
+}
+
+#pmd-waiter-dashboard-root .pmd-v155-selected-status::before {
+  content: "";
+  width: 9px !important;
+  height: 9px !important;
+  border-radius: 999px !important;
+  background: #22c55e !important;
+}
+
+#pmd-waiter-dashboard-root .pmd-v155-selected-status.is-occupied::before { background: #ef4444 !important; }
+#pmd-waiter-dashboard-root .pmd-v155-selected-status.is-cleaning::before { background: #f97316 !important; }
+#pmd-waiter-dashboard-root .pmd-v155-selected-status.is-reserved::before { background: #3b82f6 !important; }
+
+#pmd-waiter-dashboard-root .pmd-v155-selected-status b {
+  font-size: 13px !important;
+  font-weight: 1000 !important;
+}
+
+#pmd-waiter-dashboard-root .pmd-v155-selected-status small {
+  position: static !important;
+  width: auto !important;
+  height: auto !important;
+  min-width: 0 !important;
+  border: 0 !important;
+  background: transparent !important;
+  color: #64748b !important;
+  font-size: 10px !important;
+  font-weight: 900 !important;
+  box-shadow: none !important;
+}
+
+#pmd-waiter-dashboard-root .pmd-v155-status-action {
+  min-height: 42px !important;
+  padding: 0 14px !important;
+  border: 1px solid #cfdbe7 !important;
+  border-radius: 13px !important;
+  background: linear-gradient(180deg,#fff,#f8fafc) !important;
+  color: #0f172a !important;
+  font-size: 12px !important;
+  font-weight: 950 !important;
+  cursor: pointer !important;
+  box-shadow: 0 5px 14px rgba(15,23,42,.07) !important;
+}
+
+#pmd-waiter-dashboard-root .pmd-v155-status-action:hover {
+  border-color: #0f766e !important;
+  color: #0f766e !important;
+  transform: translateY(-1px) !important;
+}
+
+#pmd-waiter-dashboard-root .pmd-v155-status-action[data-confirm-ready="1"] {
+  border-color: #dc2626 !important;
+  background: #fff1f2 !important;
+  color: #991b1b !important;
+}
+
+#pmd-waiter-dashboard-root .pmd-v155-status-action:disabled {
+  opacity: .55 !important;
+  cursor: wait !important;
+}
+
+#pmd-waiter-dashboard-root .pmd-v155-action-message {
+  max-width: 220px !important;
+  color: #64748b !important;
+  font-size: 10px !important;
+  font-weight: 900 !important;
+}
+
+#pmd-waiter-dashboard-root .pmd-v155-action-message.is-success { color: #15803d !important; }
+#pmd-waiter-dashboard-root .pmd-v155-action-message.is-error { color: #b91c1c !important; }
+
+/* Payment Waiting is operationally urgent. */
+#pmd-waiter-dashboard-root .pmd-w5-kpis > .pmd-w5-kpi:nth-child(4) {
+  background: linear-gradient(135deg,#ef4444 0%,#dc2626 58%,#b91c1c 100%) !important;
+  border-color: #991b1b !important;
+  color: #fff !important;
+  box-shadow: 0 18px 36px rgba(185,28,28,.22) !important;
+}
+
+#pmd-waiter-dashboard-root .pmd-w5-kpis > .pmd-w5-kpi:nth-child(4) h3,
+#pmd-waiter-dashboard-root .pmd-w5-kpis > .pmd-w5-kpi:nth-child(4) strong,
+#pmd-waiter-dashboard-root .pmd-w5-kpis > .pmd-w5-kpi:nth-child(4) p {
+  color: #fff !important;
+}
+
+#pmd-waiter-dashboard-root .pmd-w5-kpis > .pmd-w5-kpi:nth-child(4) .pmd-w5-ico {
+  background: rgba(255,255,255,.94) !important;
+}
+
+#pmd-waiter-dashboard-root .pmd-v61-map-info-btn {
+  width: 40px !important;
+  height: 40px !important;
+  right: 18px !important;
+  bottom: 18px !important;
+  border: 2px solid #0f172a !important;
+  font-family: Georgia, serif !important;
+  font-size: 18px !important;
+  font-style: italic !important;
+}
+
+#pmd-waiter-dashboard-root .pmd-v61-map-legend {
+  right: 18px !important;
+  bottom: 66px !important;
+  width: 285px !important;
+}
+
+#pmd-waiter-dashboard-root .pmd-v155-legend-ribbon {
+  margin-top: 10px !important;
+  padding: 10px !important;
+  border-radius: 12px !important;
+  background: #f8fafc !important;
+  color: #475569 !important;
+  font-size: 10px !important;
+  line-height: 1.4 !important;
+  font-weight: 800 !important;
+}
+
+#pmd-waiter-dashboard-root .pmd-v155-legend-ribbon span {
+  display: inline-flex !important;
+  margin-right: 5px !important;
+  padding: 2px 5px !important;
+  border-radius: 5px !important;
+  background: #15803d !important;
+  color: #fff !important;
+  font-size: 8px !important;
+  font-weight: 1000 !important;
+}
+
+#pmd-waiter-dashboard-root .pmd-v155-legend-ribbon span:nth-child(2) {
+  background: #b45309 !important;
+}
+
+@media (max-width: 900px) {
+  #pmd-waiter-dashboard-root .pmd-v155-table-actions {
+    width: 100% !important;
+    margin-left: 0 !important;
+    padding: 10px 0 0 !important;
+    border-left: 0 !important;
+    border-top: 1px solid #e2e8f0 !important;
+  }
+}
+
+@media (max-width: 640px) {
+  #pmd-waiter-dashboard-root:not(.pmd-w19-editing):not(.pmd-v21-editing)
+  .pmd-w5-floor-map-real:not(.pmd-v40-compact-authority)
+  .pmd-w5-table[data-table] {
+    width: 92px !important;
+    height: 76px !important;
+    min-width: 92px !important;
+    min-height: 76px !important;
+  }
+
+  #pmd-waiter-dashboard-root .pmd-v155-status-action {
+    flex: 1 1 132px !important;
+  }
+
+  #pmd-waiter-dashboard-root .pmd-v155-selected-status {
+    flex: 1 1 100% !important;
+  }
+}

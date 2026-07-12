@@ -78,16 +78,19 @@ class PmdWaiterTableStateV154 extends PmdWaiterDashboardV151
                 $storedOld = $this->normalizeTableState($row->operational_status ?? 'available');
                 $effectiveOld = $storedOld;
                 $derivedOccupied = false;
+                $activeOrders = $this->activeOrdersForTable($tableId);
 
                 // Existing tables receive the migration default "available".
-                // During compatibility rollout, an active order still means the
-                // effective state is occupied, without coupling it to payment.
-                if ($storedOld === 'available' && $this->tableHasActiveOrders($tableId)) {
+                // During compatibility rollout, an order created after the last
+                // explicit table update still means the effective state is occupied.
+                // An explicit waiter release remains authoritative for older open
+                // bills, so payment collection never re-occupies a released table.
+                if ($storedOld === 'available' && $this->shouldDeriveOccupied($row, $activeOrders)) {
                     $effectiveOld = 'occupied';
                     $derivedOccupied = true;
                 }
 
-                if ($storedOld === $next) {
+                if ($effectiveOld === $next) {
                     return [
                         'ok' => true,
                         'changed' => false,
@@ -195,7 +198,7 @@ class PmdWaiterTableStateV154 extends PmdWaiterDashboardV151
             $effective = $stored;
             $derived = false;
 
-            if ($stored === 'available' && count($tableActiveOrders) > 0) {
+            if ($stored === 'available' && $this->shouldDeriveOccupied((object)$row, $tableActiveOrders)) {
                 $effective = 'occupied';
                 $derived = true;
             }
@@ -326,13 +329,42 @@ class PmdWaiterTableStateV154 extends PmdWaiterDashboardV151
         return $grouped;
     }
 
-    protected function tableHasActiveOrders(int $tableId): bool
+    protected function activeOrdersForTable(int $tableId): array
     {
         $dashboard = $this->v9CompatiblePayload();
         $orders = array_values((array)($dashboard['sections']['active_orders'] ?? $dashboard['orders'] ?? []));
 
+        return array_values(array_filter($orders, function ($order) use ($tableId) {
+            return (int)($order['table_id'] ?? 0) === $tableId;
+        }));
+    }
+
+    /**
+     * Compatibility rule for tables that received the migration default.
+     *
+     * With no manual operational timestamp, an open order derives Occupied.
+     * Once a waiter explicitly releases the table, only an order created after
+     * that release may derive Occupied again. Waiter POS also writes Occupied
+     * directly for every new/updated order when the migration is installed.
+     */
+    protected function shouldDeriveOccupied($tableRow, array $orders): bool
+    {
+        if (!$orders) {
+            return false;
+        }
+
+        $row = (array)$tableRow;
+        $updatedAt = strtotime((string)($row['operational_status_updated_at'] ?? '')) ?: 0;
+        if ($updatedAt < 1) {
+            return true;
+        }
+
         foreach ($orders as $order) {
-            if ((int)($order['table_id'] ?? 0) === $tableId) {
+            $orderTime = strtotime((string)($order['created_at'] ?? $order['order_date'] ?? '')) ?: 0;
+            // The database timestamps are second-precision. Equality must keep
+            // the explicit waiter release authoritative; Waiter POS writes the
+            // Occupied state directly when a genuinely new order is placed.
+            if ($orderTime > $updatedAt) {
                 return true;
             }
         }
