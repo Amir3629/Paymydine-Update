@@ -25,11 +25,15 @@ Route::middleware(['web'])->group(function () {
     Route::post('/admin/pmd-waiter-pos-v1/terminal-payment/{orderId}', [\Admin\Controllers\PmdWaiterPosV1::class, 'terminalPayment'])
         ->where('orderId', '[0-9]+');
 
-    // Registered after the legacy V149 routes on purpose. Laravel keeps the
-    // last matching route, so the existing dashboard URL now uses V150 while
-    // the page and frontend contract remain unchanged.
+    // Registered after the legacy routes on purpose. Laravel keeps the last
+    // matching route, so existing dashboard URLs use the resolved payloads.
     Route::get('/admin/pmd-waiter-dashboard-data', [\Admin\Controllers\PmdWaiterDashboardV150::class, 'data']);
     Route::get('/admin/pmd-waiter-dashboard-audit', [\Admin\Controllers\PmdWaiterDashboardV150::class, 'audit']);
+
+    // The visible V5 waiter UI still requests these V9 URLs. V151 returns the
+    // V9-compatible sections/metrics contract with V150-resolved table numbers.
+    Route::get('/admin/pmd-waiter-dashboard-v9-tenant-data', [\Admin\Controllers\PmdWaiterDashboardV151::class, 'data']);
+    Route::get('/admin/pmd-waiter-dashboard-v9-floor-tables', [\Admin\Controllers\PmdWaiterDashboardV151::class, 'floorTables']);
 });
 
 Route::middleware(['web'])->get('/admin/quick-mode', function () {
