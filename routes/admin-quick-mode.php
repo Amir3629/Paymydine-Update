@@ -4,6 +4,47 @@ use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 
+// PMD Waiter POS V2 — standalone fallback, lazy dashboard overlay and payment center.
+Route::middleware(['web'])->group(function () {
+    Route::get('/admin/waiter-pos/{tableId}', [\Admin\Controllers\PmdWaiterPosV1::class, 'index'])
+        ->where('tableId', '[0-9]+')
+        ->name('pmd.waiter-pos');
+    Route::get('/admin/pmd-waiter-pos-v1/overlay/{tableId}', [\Admin\Controllers\PmdWaiterPosV1::class, 'overlay'])
+        ->where('tableId', '[0-9]+');
+    Route::get('/admin/pmd-waiter-pos-v1/data/{tableId}', [\Admin\Controllers\PmdWaiterPosV1::class, 'data'])
+        ->where('tableId', '[0-9]+');
+    Route::post('/admin/pmd-waiter-pos-v1/save/{tableId}', [\Admin\Controllers\PmdWaiterPosV1::class, 'save'])
+        ->where('tableId', '[0-9]+');
+
+    Route::get('/admin/pmd-waiter-pos-v1/payment-summary/{orderId}', [\Admin\Controllers\PmdWaiterPosV1::class, 'paymentSummary'])
+        ->where('orderId', '[0-9]+');
+    Route::post('/admin/pmd-waiter-pos-v1/payment-coupon/{orderId}', [\Admin\Controllers\PmdWaiterPosV1::class, 'validatePaymentCoupon'])
+        ->where('orderId', '[0-9]+');
+    Route::post('/admin/pmd-waiter-pos-v1/payment-settle/{orderId}', [\Admin\Controllers\PmdWaiterPosV1::class, 'settlePayment'])
+        ->where('orderId', '[0-9]+');
+    Route::post('/admin/pmd-waiter-pos-v1/terminal-payment/{orderId}', [\Admin\Controllers\PmdWaiterPosV1::class, 'terminalPayment'])
+        ->where('orderId', '[0-9]+');
+
+    // Registered after the legacy routes on purpose. Laravel keeps the last
+    // matching route, so existing dashboard URLs use the resolved payloads.
+    Route::get('/admin/pmd-waiter-dashboard-data', [\Admin\Controllers\PmdWaiterDashboardV150::class, 'data']);
+    Route::get('/admin/pmd-waiter-dashboard-audit', [\Admin\Controllers\PmdWaiterDashboardV150::class, 'audit']);
+
+    // The visible V5 waiter UI reads this route for order cards. V151 keeps the
+    // legacy V9 response contract while resolving canonical table references.
+    Route::get('/admin/pmd-waiter-dashboard-v9-tenant-data', [\Admin\Controllers\PmdWaiterDashboardV151::class, 'data']);
+
+    // Independent physical-table lifecycle. Payment completion never changes
+    // operational status. Only explicit waiter/host transitions release tables.
+    Route::get('/admin/pmd-waiter-table-states-v154', [\Admin\Controllers\PmdWaiterTableStateV154::class, 'index']);
+    Route::post('/admin/pmd-waiter-table-states-v154/{tableId}', [\Admin\Controllers\PmdWaiterTableStateV154::class, 'update'])
+        ->where('tableId', '[0-9]+');
+
+    // IMPORTANT: do not override /admin/pmd-waiter-dashboard-v9-floor-tables.
+    // The original floor endpoint supplies the exact floor_x/floor_y/size shape
+    // required by the production edit, drag, resize and save scripts.
+});
+
 Route::middleware(['web'])->get('/admin/quick-mode', function () {
     // Temporary preview protection for meeting/demo.
     // Open with: /admin/quick-mode?preview=pmdquick2026

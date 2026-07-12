@@ -1,0 +1,15 @@
+/* PMD Waiter floor stability V153
+ * Layout-only protection. Operational colors are owned by V154.
+ */
+
+/* The temporary save shield exists only during document capture. Never let it
+ * visually collapse the expanded map if a browser paints in that tiny window.
+ */
+#pmd-waiter-dashboard-root
+.pmd-w5-floor-map-real[data-pmd-v153-save-shield="1"] {
+  height: 430px !important;
+  min-height: 430px !important;
+  max-height: 430px !important;
+  display: block !important;
+  overflow: hidden !important;
+}

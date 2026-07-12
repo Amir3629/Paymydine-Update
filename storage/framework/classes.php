@@ -261,4 +261,8 @@
   'Admin\\Controllers\\tips' => 'app/admin/controllers/Tips.php',
   'Admin\\Models\\Tips_shifts_model' => 'app/admin/models/Tips_shifts_model.php',
   'Admin\\FormWidgets\\CodeEditor' => 'app/admin/formwidgets/CodeEditor.php',
+  'Admin\\Controllers\\PmdWaiterPosV1' => 'app/admin/controllers/PmdWaiterPosV1.php',
+  'Admin\\Controllers\\PmdWaiterDashboardV150' => 'app/admin/controllers/PmdWaiterDashboardV150.php',
+  'Admin\\Controllers\\PmdWaiterDashboardV151' => 'app/admin/controllers/PmdWaiterDashboardV151.php',
+  'Admin\\Controllers\\PmdWaiterTableStateV154' => 'app/admin/controllers/PmdWaiterTableStateV154.php',
 );
