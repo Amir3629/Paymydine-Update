@@ -10,7 +10,7 @@
     {
       "name": "X-UA-Compatible",
       "content": "IE=edge",
-      "type": "equiv"
+      "type": "name"
     },
     {
       "name": "viewport",
@@ -30,12 +30,52 @@
     {
       "path": "css/pmd-admin/components/cards.css",
       "name": "pmd-admin-cards-css"
+    },
+    {
+      "path": "css/pmd-waiter-pos-shadow-host-v25.css",
+      "name": "pmd-waiter-pos-shadow-host-v25-css"
+    },
+    {
+      "path": "css/pmd-waiter-pos-polish-v26.css",
+      "name": "pmd-waiter-pos-polish-v26-css"
+    },
+    {
+      "path": "css/pmd-waiter-pos-simple-v27.css",
+      "name": "pmd-waiter-pos-simple-v27-css"
+    },
+    {
+      "path": "css/pmd-waiter-floor-stability-v153.css",
+      "name": "pmd-waiter-floor-stability-v153-css"
+    },
+    {
+      "path": "css/pmd-waiter-table-state-v154.css",
+      "name": "pmd-waiter-table-state-v154-css"
     }
   ],
   "script": [
     {
       "path": "js/admin.js",
       "name": "admin-js"
+    },
+    {
+      "path": "js/pmd-waiter-pos-dashboard-shadow-bridge-v24.js",
+      "name": "pmd-waiter-pos-dashboard-shadow-bridge-v24-js"
+    },
+    {
+      "path": "js/pmd-waiter-pos-dashboard-direct-guard-v23.js",
+      "name": "pmd-waiter-pos-dashboard-direct-guard-v23-js"
+    },
+    {
+      "path": "js/pmd-waiter-pos-simple-v27.js",
+      "name": "pmd-waiter-pos-simple-v27-js"
+    },
+    {
+      "path": "js/pmd-waiter-floor-stability-v153.js",
+      "name": "pmd-waiter-floor-stability-v153-js"
+    },
+    {
+      "path": "js/pmd-waiter-table-state-v154.js",
+      "name": "pmd-waiter-table-state-v154-js"
     }
   ]
 }
