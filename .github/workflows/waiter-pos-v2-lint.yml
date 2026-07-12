@@ -11,6 +11,7 @@ on:
       - 'app/admin/views/_meta/assets.json'
       - 'app/admin/database/migrations/2026_07_12_000100_extend_waiter_pos_payment_transactions.php'
       - 'routes/admin-quick-mode.php'
+      - 'scripts/deploy-pmd-waiter-pos-v2-selective.sh'
       - '.github/workflows/waiter-pos-v2-lint.yml'
   workflow_dispatch:
 
@@ -62,7 +63,7 @@ jobs:
       - run: node --check "${{ matrix.file }}"
 
   guards:
-    name: JSON and route guards
+    name: JSON, route and deployment guards
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
@@ -73,6 +74,7 @@ jobs:
         run: |
           set -euo pipefail
           python -m json.tool app/admin/views/_meta/assets.json >/dev/null
+          bash -n scripts/deploy-pmd-waiter-pos-v2-selective.sh
           grep -q 'pmd-waiter-pos-dashboard-bridge-v2.js' app/admin/views/_meta/assets.json
           grep -q '/admin/pmd-waiter-pos-v1/payment-settle/' routes/admin-quick-mode.php
           grep -q 'idempotency_key' app/admin/controllers/concerns/PmdWaiterPosSettleEndpoint.php
