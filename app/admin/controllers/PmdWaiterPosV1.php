@@ -4,6 +4,18 @@ namespace Admin\Controllers;
 
 use Admin\Classes\AdminController;
 
+require_once __DIR__.'/concerns/PmdWaiterPosRenderEndpoints.php';
+require_once __DIR__.'/concerns/PmdWaiterPosSaveEndpoint.php';
+require_once __DIR__.'/concerns/PmdWaiterPosPaymentBasicEndpoints.php';
+require_once __DIR__.'/concerns/PmdWaiterPosSettleEndpoint.php';
+require_once __DIR__.'/concerns/PmdWaiterPosTerminalEndpoint.php';
+require_once __DIR__.'/concerns/PmdWaiterPosBootstrapConcern.php';
+require_once __DIR__.'/concerns/PmdWaiterPosOrderPersistenceConcern.php';
+require_once __DIR__.'/concerns/PmdWaiterPosOrderScopeConcern.php';
+require_once __DIR__.'/concerns/PmdWaiterPosPaymentSummaryConcern.php';
+require_once __DIR__.'/concerns/PmdWaiterPosPaymentAllocationConcern.php';
+require_once __DIR__.'/concerns/PmdWaiterPosPaymentTransactionConcern.php';
+
 /**
  * PayMyDine Waiter POS V2.
  *
