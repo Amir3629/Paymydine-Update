@@ -34,6 +34,10 @@
     {
       "path": "css/pmd-waiter-pos-shadow-host-v25.css",
       "name": "pmd-waiter-pos-shadow-host-v25-css"
+    },
+    {
+      "path": "css/pmd-waiter-pos-polish-v26.css",
+      "name": "pmd-waiter-pos-polish-v26-css"
     }
   ],
   "script": [
@@ -48,6 +52,10 @@
     {
       "path": "js/pmd-waiter-pos-dashboard-direct-guard-v23.js",
       "name": "pmd-waiter-pos-dashboard-direct-guard-v23-js"
+    },
+    {
+      "path": "js/pmd-waiter-pos-polish-v26.js",
+      "name": "pmd-waiter-pos-polish-v26-js"
     }
   ]
 }
