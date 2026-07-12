@@ -1,0 +1,50 @@
+name: Waiter POS V2 lint
+
+on:
+  pull_request:
+    paths:
+      - 'app/admin/controllers/PmdWaiterPosV1.php'
+      - 'app/admin/controllers/concerns/PmdWaiterPos*.php'
+      - 'app/admin/assets/js/pmd-waiter-pos*.js'
+      - 'app/admin/views/waiter_pos*.blade.php'
+      - 'app/admin/assets/css/pmd-waiter-pos-v1.css'
+      - 'app/admin/views/_meta/assets.json'
+      - 'app/admin/database/migrations/2026_07_12_000100_extend_waiter_pos_payment_transactions.php'
+      - 'routes/admin-quick-mode.php'
+      - '.github/workflows/waiter-pos-v2-lint.yml'
+  workflow_dispatch:
+
+jobs:
+  syntax:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: PHP syntax
+        shell: bash
+        run: |
+          set -euo pipefail
+          php -l app/admin/controllers/PmdWaiterPosV1.php
+          find app/admin/controllers/concerns -maxdepth 1 -type f -name 'PmdWaiterPos*.php' -print0 | sort -z | xargs -0 -n1 php -l
+          php -l app/admin/database/migrations/2026_07_12_000100_extend_waiter_pos_payment_transactions.php
+          php -l routes/admin-quick-mode.php
+
+      - name: JavaScript syntax
+        shell: bash
+        run: |
+          set -euo pipefail
+          node --check app/admin/assets/js/pmd-waiter-pos-v1.js
+          node --check app/admin/assets/js/pmd-waiter-pos-payment-v2.js
+          node --check app/admin/assets/js/pmd-waiter-pos-payment-policy-v2.js
+          node --check app/admin/assets/js/pmd-waiter-pos-dashboard-bridge-v2.js
+
+      - name: JSON and route guards
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m json.tool app/admin/views/_meta/assets.json >/dev/null
+          grep -q 'pmd-waiter-pos-dashboard-bridge-v2.js' app/admin/views/_meta/assets.json
+          grep -q '/admin/pmd-waiter-pos-v1/payment-settle/' routes/admin-quick-mode.php
+          grep -q 'idempotency_key' app/admin/controllers/concerns/PmdWaiterPosSettleEndpoint.php
+          ! grep -q 'pmd-waiter-pos-dashboard-bridge-v1.js' app/admin/views/_meta/assets.json
