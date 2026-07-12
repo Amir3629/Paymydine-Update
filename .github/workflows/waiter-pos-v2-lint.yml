@@ -44,6 +44,7 @@ jobs:
           - app/admin/controllers/concerns/PmdWaiterPosMenuCatalogV26Concern.php
           - app/admin/controllers/concerns/PmdWaiterPosNoteHistoryV26Concern.php
           - app/admin/controllers/concerns/PmdWaiterPosOrderPersistenceConcern.php
+          - app/admin/controllers/concerns/PmdWaiterPosCanonicalTableReferenceV150Concern.php
           - app/admin/controllers/concerns/PmdWaiterPosOrderScopeConcern.php
           - app/admin/controllers/concerns/PmdWaiterPosPaymentSummaryConcern.php
           - app/admin/controllers/concerns/PmdWaiterPosPaymentAllocationConcern.php
@@ -123,6 +124,9 @@ jobs:
           grep -q 'tableReferenceMaps' app/admin/controllers/PmdWaiterDashboardV150.php
           grep -q 'resolveOrderTable' app/admin/controllers/PmdWaiterDashboardV150.php
           grep -q 'attachOrderItems' app/admin/controllers/PmdWaiterDashboardV150.php
+          grep -q 'PmdWaiterPosCanonicalTableReferenceV150Concern' app/admin/controllers/PmdWaiterPosV1.php
+          grep -q 'fillNewOrder insteadof' app/admin/controllers/PmdWaiterPosV1.php
+          grep -q "'order_type' => (string)(int)\$table\['id'\]" app/admin/controllers/concerns/PmdWaiterPosCanonicalTableReferenceV150Concern.php
           grep -q 'Waiter order visibility V150 installed' scripts/deploy-pmd-waiter-order-visibility-v150.sh
           grep -q 'idempotency_key' app/admin/controllers/concerns/PmdWaiterPosSettleEndpoint.php
           grep -q 'PmdWaiterPosMenuCatalogV26Concern' app/admin/controllers/PmdWaiterPosV1.php
