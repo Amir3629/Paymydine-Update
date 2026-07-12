@@ -30,10 +30,13 @@ Route::middleware(['web'])->group(function () {
     Route::get('/admin/pmd-waiter-dashboard-data', [\Admin\Controllers\PmdWaiterDashboardV150::class, 'data']);
     Route::get('/admin/pmd-waiter-dashboard-audit', [\Admin\Controllers\PmdWaiterDashboardV150::class, 'audit']);
 
-    // The visible V5 waiter UI still requests these V9 URLs. V151 returns the
-    // V9-compatible sections/metrics contract with V150-resolved table numbers.
+    // The visible V5 waiter UI reads this route for order cards. V151 keeps the
+    // legacy V9 response contract while resolving canonical table references.
     Route::get('/admin/pmd-waiter-dashboard-v9-tenant-data', [\Admin\Controllers\PmdWaiterDashboardV151::class, 'data']);
-    Route::get('/admin/pmd-waiter-dashboard-v9-floor-tables', [\Admin\Controllers\PmdWaiterDashboardV151::class, 'floorTables']);
+
+    // IMPORTANT: do not override /admin/pmd-waiter-dashboard-v9-floor-tables.
+    // The original floor endpoint supplies the exact floor_x/floor_y/size shape
+    // required by the production edit, drag, resize and save scripts.
 });
 
 Route::middleware(['web'])->get('/admin/quick-mode', function () {
