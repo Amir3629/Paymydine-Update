@@ -10,7 +10,7 @@
     {
       "name": "X-UA-Compatible",
       "content": "IE=edge",
-      "type": "name"
+      "type": "equiv"
     },
     {
       "name": "viewport",
