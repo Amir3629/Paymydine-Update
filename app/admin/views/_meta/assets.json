@@ -38,8 +38,8 @@
       "name": "admin-js"
     },
     {
-      "path": "js/pmd-waiter-pos-dashboard-bridge-v1.js",
-      "name": "pmd-waiter-pos-dashboard-bridge-v1-js"
+      "path": "js/pmd-waiter-pos-dashboard-bridge-v2.js",
+      "name": "pmd-waiter-pos-dashboard-bridge-v2-js"
     }
   ]
 }
