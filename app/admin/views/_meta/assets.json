@@ -50,6 +50,10 @@
     {
       "path": "css/pmd-waiter-table-state-v154.css",
       "name": "pmd-waiter-table-state-v154-css"
+    },
+    {
+      "path": "css/pmd-waiter-floor-ux-v155.css",
+      "name": "pmd-waiter-floor-ux-v155-css"
     }
   ],
   "script": [
@@ -76,6 +80,10 @@
     {
       "path": "js/pmd-waiter-table-state-v154.js",
       "name": "pmd-waiter-table-state-v154-js"
+    },
+    {
+      "path": "js/pmd-waiter-floor-ux-v155.js",
+      "name": "pmd-waiter-floor-ux-v155-js"
     }
   ]
 }
