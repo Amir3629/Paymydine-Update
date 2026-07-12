@@ -38,17 +38,32 @@
     return '/admin/pmd-waiter-pos-v1/overlay/' + encodeURIComponent(String(tableNo || '').trim());
   }
 
-  function ensureCss() {
-    if (document.querySelector('link[data-pmd-waiter-pos-v2-css]')) return Promise.resolve();
+  function loadCssOnce(selector, href, datasetKey) {
+    if (document.querySelector(selector)) return Promise.resolve();
     return new Promise(function (resolve, reject) {
       var link = document.createElement('link');
       link.rel = 'stylesheet';
-      link.href = '/app/admin/assets/css/pmd-waiter-pos-v1.css?v=2';
-      link.dataset.pmdWaiterPosV2Css = '1';
+      link.href = href;
+      link.dataset[datasetKey] = '1';
       link.onload = resolve;
       link.onerror = reject;
       document.head.appendChild(link);
     });
+  }
+
+  function ensureCss() {
+    return Promise.all([
+      loadCssOnce(
+        'link[data-pmd-waiter-pos-v2-css]',
+        '/app/admin/assets/css/pmd-waiter-pos-v1.css?v=3',
+        'pmdWaiterPosV2Css'
+      ),
+      loadCssOnce(
+        'link[data-pmd-waiter-pos-product-details-v3-css]',
+        '/app/admin/assets/css/pmd-waiter-pos-product-details-v3.css?v=3',
+        'pmdWaiterPosProductDetailsV3Css'
+      )
+    ]);
   }
 
   function loadScriptOnce(selector, src, datasetKey, ready) {
@@ -74,22 +89,29 @@
   function ensureScripts() {
     return loadScriptOnce(
       'script[data-pmd-waiter-pos-payment-v2-js]',
-      '/app/admin/assets/js/pmd-waiter-pos-payment-v2.js?v=2',
+      '/app/admin/assets/js/pmd-waiter-pos-payment-v2.js?v=3',
       'pmdWaiterPosPaymentV2Js',
       function () { return !!window.PMDWaiterPOSPaymentV2; }
     ).then(function () {
       return loadScriptOnce(
         'script[data-pmd-waiter-pos-payment-policy-v2-js]',
-        '/app/admin/assets/js/pmd-waiter-pos-payment-policy-v2.js?v=2',
+        '/app/admin/assets/js/pmd-waiter-pos-payment-policy-v2.js?v=3',
         'pmdWaiterPosPaymentPolicyV2Js',
         function () { return !!(window.PMDWaiterPOSPaymentV2 && window.PMDWaiterPOSPaymentV2.__pmdPolicyWrapped); }
       );
     }).then(function () {
       return loadScriptOnce(
         'script[data-pmd-waiter-pos-v2-js]',
-        '/app/admin/assets/js/pmd-waiter-pos-v1.js?v=2',
+        '/app/admin/assets/js/pmd-waiter-pos-v1.js?v=3',
         'pmdWaiterPosV2Js',
         function () { return !!window.PMDWaiterPOSApp; }
+      );
+    }).then(function () {
+      return loadScriptOnce(
+        'script[data-pmd-waiter-pos-product-details-v3-js]',
+        '/app/admin/assets/js/pmd-waiter-pos-product-details-v3.js?v=3',
+        'pmdWaiterPosProductDetailsV3Js',
+        function () { return !!window.PMDWaiterPOSProductDetailsV3; }
       );
     });
   }
@@ -159,6 +181,9 @@
         embedded: true,
         onClose: function () { closeOverlay(false); }
       });
+      if (window.PMDWaiterPOSProductDetailsV3) {
+        window.PMDWaiterPOSProductDetailsV3.install(root, posInstance);
+      }
       loadingTable = null;
     } catch (error) {
       console.error('[PMD] Waiter POS overlay failed', error);
@@ -201,7 +226,7 @@
   });
 
   window.PMDWaiterPOSBridge = {
-    version: 'pmd-waiter-pos-dashboard-bridge-v2',
+    version: 'pmd-waiter-pos-dashboard-bridge-v2.1',
     urlForTable: posUrl,
     overlayUrlForTable: overlayUrl,
     tableHasOrders: tableHasOrders,
@@ -210,11 +235,12 @@
     debug: function () {
       var tables = Array.prototype.slice.call(document.querySelectorAll('#pmd-waiter-dashboard-root .pmd-w5-floor-map-real .pmd-w5-table[data-table]'));
       return {
-        version: 'pmd-waiter-pos-dashboard-bridge-v2',
+        version: 'pmd-waiter-pos-dashboard-bridge-v2.1',
         active: true,
         route: location.pathname,
         overlayOpen: !!overlay,
         loadingTable: loadingTable,
+        productDetailsModule: !!window.PMDWaiterPOSProductDetailsV3,
         tableCount: tables.length,
         freeTables: tables.filter(function (table) { return !tableHasOrders(table); }).map(function (table) { return table.dataset.table; }),
         occupiedTables: tables.filter(tableHasOrders).map(function (table) { return table.dataset.table; })
@@ -222,5 +248,5 @@
     }
   };
 
-  console.info('[PMD] Waiter POS dashboard bridge v2 active');
+  console.info('[PMD] Waiter POS dashboard bridge v2.1 active');
 })();
