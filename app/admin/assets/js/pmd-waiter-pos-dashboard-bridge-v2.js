@@ -10,6 +10,9 @@
   var posInstance = null;
   var loadingTable = null;
   var lastFocused = null;
+  var tablePicker = null;
+  var tablePickerLastFocused = null;
+  var tablePickerKeyHandler = null;
 
   function rootIsEditing() {
     var root = document.querySelector('#pmd-waiter-dashboard-root');
@@ -28,6 +31,28 @@
       'is-ready', 'ready', 'is-payment', 'payment', 'waiting',
       'is-urgent', 'urgent', 'needs', 'attention'
     ].some(function (name) { return button.classList.contains(name); });
+  }
+
+  function floorTableButtons() {
+    return Array.prototype.slice.call(document.querySelectorAll(
+      '#pmd-waiter-dashboard-root .pmd-w5-floor-map-real .pmd-w5-table[data-table]'
+    ));
+  }
+
+  function selectedDashboardTable() {
+    try {
+      if (window.PMDWaiterDashboard && typeof window.PMDWaiterDashboard.debug === 'function') {
+        var debug = window.PMDWaiterDashboard.debug();
+        if (debug && debug.selectedTable != null && String(debug.selectedTable).trim()) {
+          return String(debug.selectedTable).trim();
+        }
+      }
+    } catch (e) {}
+
+    var selected = document.querySelector(
+      '#pmd-waiter-dashboard-root .pmd-w5-floor-map-real .pmd-w5-table.is-selected[data-table]'
+    );
+    return selected ? String(selected.getAttribute('data-table') || '').trim() : '';
   }
 
   function posUrl(tableNo) {
@@ -116,7 +141,116 @@
     });
   }
 
+  function ensureTablePickerStyles() {
+    if (document.getElementById('pmd-waiter-pos-table-picker-v22-style')) return;
+    var style = document.createElement('style');
+    style.id = 'pmd-waiter-pos-table-picker-v22-style';
+    style.textContent = '' +
+      '.pmd-pos-table-picker{position:fixed;inset:0;z-index:2147482999;background:rgba(6,17,38,.58);backdrop-filter:blur(8px);display:grid;place-items:center;padding:20px;font-family:Inter,Roboto,system-ui,sans-serif}' +
+      '.pmd-pos-table-picker-card{width:min(760px,100%);max-height:min(760px,90dvh);overflow:hidden;background:#fff;border:1px solid #d7e0ea;border-radius:24px;box-shadow:0 28px 80px rgba(6,17,38,.28);display:grid;grid-template-rows:auto minmax(0,1fr)}' +
+      '.pmd-pos-table-picker-head{padding:20px 22px 16px;display:flex;align-items:flex-start;justify-content:space-between;gap:16px;border-bottom:1px solid #d7e0ea}' +
+      '.pmd-pos-table-picker-head h2{margin:0;color:#061126;font-size:24px;letter-spacing:-.03em}' +
+      '.pmd-pos-table-picker-head p{margin:6px 0 0;color:#64748b;font-weight:700;font-size:13px}' +
+      '.pmd-pos-table-picker-close{width:42px;height:42px;border:1px solid #d7e0ea;border-radius:12px;background:#f8fafc;color:#061126;font-size:22px;font-weight:900;cursor:pointer}' +
+      '.pmd-pos-table-picker-body{overflow:auto;padding:18px 22px 24px}' +
+      '.pmd-pos-table-picker-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(112px,1fr));gap:12px}' +
+      '.pmd-pos-table-choice{min-height:84px;border:1px solid #d7e0ea;border-radius:16px;background:linear-gradient(180deg,#fff,#f8fafc);color:#061126;cursor:pointer;display:grid;place-items:center;padding:12px;transition:.14s ease}' +
+      '.pmd-pos-table-choice:hover,.pmd-pos-table-choice:focus-visible{border-color:#ff7a00;box-shadow:0 10px 24px rgba(255,122,0,.14);transform:translateY(-1px);outline:none}' +
+      '.pmd-pos-table-choice strong{display:block;font-size:22px;line-height:1}' +
+      '.pmd-pos-table-choice small{display:block;margin-top:6px;color:#16a34a;font-size:11px;font-weight:900;text-transform:uppercase;letter-spacing:.05em}' +
+      '.pmd-pos-table-picker-empty{padding:32px 12px;text-align:center;color:#64748b;font-weight:800}' +
+      '@media(max-width:640px){.pmd-pos-table-picker{padding:0;align-items:end}.pmd-pos-table-picker-card{width:100%;max-height:88dvh;border-radius:24px 24px 0 0}.pmd-pos-table-picker-grid{grid-template-columns:repeat(3,minmax(0,1fr))}.pmd-pos-table-picker-head{padding:18px}.pmd-pos-table-picker-body{padding:16px 18px calc(22px + env(safe-area-inset-bottom))}}';
+    document.head.appendChild(style);
+  }
+
+  function closeTablePicker() {
+    if (!tablePicker) return;
+    var current = tablePicker;
+    tablePicker = null;
+    document.documentElement.classList.remove('pmd-pos-table-picker-open');
+    document.body.classList.remove('pmd-pos-table-picker-open');
+    if (tablePickerKeyHandler) {
+      window.removeEventListener('keydown', tablePickerKeyHandler, true);
+      tablePickerKeyHandler = null;
+    }
+    current.remove();
+    if (tablePickerLastFocused && typeof tablePickerLastFocused.focus === 'function') {
+      try { tablePickerLastFocused.focus({preventScroll:true}); } catch (e) { try { tablePickerLastFocused.focus(); } catch (_) {} }
+    }
+    tablePickerLastFocused = null;
+  }
+
+  function openTablePicker() {
+    if (overlay || loadingTable || tablePicker) return;
+    ensureTablePickerStyles();
+
+    var freeTables = floorTableButtons().filter(function (button) {
+      return !tableHasOrders(button);
+    });
+
+    tablePickerLastFocused = document.activeElement;
+    tablePicker = document.createElement('div');
+    tablePicker.className = 'pmd-pos-table-picker';
+    tablePicker.dataset.pmdPosTablePicker = '1';
+    tablePicker.setAttribute('role', 'dialog');
+    tablePicker.setAttribute('aria-modal', 'true');
+    tablePicker.setAttribute('aria-labelledby', 'pmd-pos-table-picker-title');
+
+    var choices = freeTables.map(function (button) {
+      var tableNo = String(button.getAttribute('data-table') || '').trim();
+      if (!tableNo) return '';
+      return '<button type="button" class="pmd-pos-table-choice" data-pos-pick-table="' + tableNo.replace(/[^0-9A-Za-z_-]/g, '') + '">' +
+        '<span><strong>Table ' + tableNo.replace(/[<>&"']/g, '') + '</strong><small>Available</small></span>' +
+      '</button>';
+    }).join('');
+
+    tablePicker.innerHTML = '' +
+      '<section class="pmd-pos-table-picker-card">' +
+        '<header class="pmd-pos-table-picker-head">' +
+          '<div><h2 id="pmd-pos-table-picker-title">Start a new order</h2><p>Choose an available table. Occupied tables stay on the floor for order management.</p></div>' +
+          '<button type="button" class="pmd-pos-table-picker-close" data-pos-close-table-picker aria-label="Close">×</button>' +
+        '</header>' +
+        '<div class="pmd-pos-table-picker-body">' +
+          (choices ? '<div class="pmd-pos-table-picker-grid">' + choices + '</div>' : '<div class="pmd-pos-table-picker-empty">No free tables are currently available.</div>') +
+        '</div>' +
+      '</section>';
+
+    document.body.appendChild(tablePicker);
+    document.documentElement.classList.add('pmd-pos-table-picker-open');
+    document.body.classList.add('pmd-pos-table-picker-open');
+
+    tablePicker.addEventListener('click', function (event) {
+      var target = event.target && event.target.nodeType === 1 ? event.target : null;
+      if (!target) return;
+      if (target === tablePicker || target.closest('[data-pos-close-table-picker]')) {
+        closeTablePicker();
+        return;
+      }
+      var choice = target.closest('[data-pos-pick-table]');
+      if (!choice) return;
+      var tableNo = String(choice.getAttribute('data-pos-pick-table') || '').trim();
+      closeTablePicker();
+      openOverlay(tableNo);
+    });
+
+    tablePickerKeyHandler = function (event) {
+      if (event.key === 'Escape') {
+        event.preventDefault();
+        event.stopPropagation();
+        closeTablePicker();
+      }
+    };
+    window.addEventListener('keydown', tablePickerKeyHandler, true);
+
+    var firstChoice = tablePicker.querySelector('[data-pos-pick-table]');
+    var closeButton = tablePicker.querySelector('[data-pos-close-table-picker]');
+    setTimeout(function () {
+      try { (firstChoice || closeButton).focus({preventScroll:true}); } catch (e) {}
+    }, 0);
+  }
+
   function showLoading(tableNo) {
+    closeTablePicker();
     closeOverlay(true);
     lastFocused = document.activeElement;
     overlay = document.createElement('div');
@@ -194,31 +328,54 @@
     }
   }
 
-  document.addEventListener('click', function (event) {
+  function swallowDashboardClick(event) {
+    event.preventDefault();
+    event.stopPropagation();
+    if (event.stopImmediatePropagation) event.stopImmediatePropagation();
+  }
+
+  function openNewOrder() {
+    var selected = selectedDashboardTable();
+    if (selected) {
+      openOverlay(selected);
+      return;
+    }
+    openTablePicker();
+  }
+
+  function interceptDashboardClick(event) {
     var target = event.target && event.target.nodeType === 1 ? event.target : null;
-    if (!target || rootIsEditing() || overlay) return;
+    if (!target || rootIsEditing() || overlay || tablePicker) return;
+    if (!target.closest('#pmd-waiter-dashboard-root')) return;
 
     var addButton = target.closest('#pmd-waiter-dashboard-root [data-add-table]');
     if (addButton) {
-      var addTable = addButton.getAttribute('data-add-table');
+      var addTable = String(addButton.getAttribute('data-add-table') || '').trim();
       if (!addTable) return;
-      event.preventDefault();
-      event.stopPropagation();
-      if (event.stopImmediatePropagation) event.stopImmediatePropagation();
+      swallowDashboardClick(event);
       openOverlay(addTable);
+      return;
+    }
+
+    var newOrderButton = target.closest('#pmd-waiter-dashboard-root [data-new-order]');
+    if (newOrderButton) {
+      swallowDashboardClick(event);
+      openNewOrder();
       return;
     }
 
     var tableButton = target.closest('#pmd-waiter-dashboard-root .pmd-w5-floor-map-real .pmd-w5-table[data-table]');
     if (!tableButton || tableHasOrders(tableButton)) return;
 
-    var tableNo = tableButton.getAttribute('data-table');
+    var tableNo = String(tableButton.getAttribute('data-table') || '').trim();
     if (!tableNo) return;
-    event.preventDefault();
-    event.stopPropagation();
-    if (event.stopImmediatePropagation) event.stopImmediatePropagation();
+    swallowDashboardClick(event);
     openOverlay(tableNo);
-  }, true);
+  }
+
+  // Window capture runs before the legacy target listeners installed by the V5 dashboard.
+  // This prevents the old /table/{id}/menu redirect from being scheduled before the POS bridge.
+  window.addEventListener('click', interceptDashboardClick, true);
 
   window.addEventListener('pmd:waiter-pos-order-updated', function () {
     // Existing dashboard polling will reconcile cards. This event is intentionally
@@ -226,20 +383,27 @@
   });
 
   window.PMDWaiterPOSBridge = {
-    version: 'pmd-waiter-pos-dashboard-bridge-v2.1',
+    version: 'pmd-waiter-pos-dashboard-bridge-v2.2',
     urlForTable: posUrl,
     overlayUrlForTable: overlayUrl,
     tableHasOrders: tableHasOrders,
+    selectedTable: selectedDashboardTable,
     open: openOverlay,
+    openNewOrder: openNewOrder,
+    openTablePicker: openTablePicker,
+    closeTablePicker: closeTablePicker,
     close: closeOverlay,
     debug: function () {
-      var tables = Array.prototype.slice.call(document.querySelectorAll('#pmd-waiter-dashboard-root .pmd-w5-floor-map-real .pmd-w5-table[data-table]'));
+      var tables = floorTableButtons();
       return {
-        version: 'pmd-waiter-pos-dashboard-bridge-v2.1',
+        version: 'pmd-waiter-pos-dashboard-bridge-v2.2',
         active: true,
         route: location.pathname,
+        interceptor: 'window-capture',
         overlayOpen: !!overlay,
+        tablePickerOpen: !!tablePicker,
         loadingTable: loadingTable,
+        selectedTable: selectedDashboardTable() || null,
         productDetailsModule: !!window.PMDWaiterPOSProductDetailsV3,
         tableCount: tables.length,
         freeTables: tables.filter(function (table) { return !tableHasOrders(table); }).map(function (table) { return table.dataset.table; }),
@@ -248,5 +412,5 @@
     }
   };
 
-  console.info('[PMD] Waiter POS dashboard bridge v2.1 active');
+  console.info('[PMD] Waiter POS dashboard bridge v2.2 active');
 })();
