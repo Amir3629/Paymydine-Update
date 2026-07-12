@@ -10,6 +10,7 @@
 <body class="pmd-waiter-pos-page">
 {!! $shell !!}
 <script>window.PMD_WAITER_POS_BOOTSTRAP = @json($bootstrap);</script>
+<script src="{{ asset('app/admin/assets/js/pmd-waiter-pos-payment-v2.js') }}?v=2"></script>
 <script src="{{ asset('app/admin/assets/js/pmd-waiter-pos-v1.js') }}?v=2"></script>
 <script>
 (function () {
