@@ -5,6 +5,12 @@ REPO="${PMD_REPO:-/var/www/paymydine}"
 BRANCH="${PMD_BRANCH:-agent/waiter-floor-ux-v155}"
 STAMP="$(date +%Y%m%d_%H%M%S)"
 BACKUP="${HOME}/pmd-backups/waiter-floor-ux-v155-${STAMP}"
+STAGE="$(mktemp -d /tmp/pmd-waiter-floor-ux-v155.XXXXXX)"
+
+cleanup() {
+  rm -rf "$STAGE"
+}
+trap cleanup EXIT
 
 FILES=(
   "app/admin/controllers/PmdWaiterTableStateV154.php"
@@ -25,6 +31,27 @@ printf 'Backup:     %s\n' "$BACKUP"
 [ -d .git ] || { echo "❌ Git repository not found"; exit 1; }
 [ -f artisan ] || { echo "❌ artisan not found"; exit 1; }
 
+git fetch --no-tags origin "$BRANCH:refs/remotes/origin/$BRANCH"
+TARGET="$(git rev-parse "origin/$BRANCH")"
+
+for file in "${FILES[@]}"; do
+  staged="$STAGE/$file"
+  mkdir -p "$(dirname "$staged")"
+  git show "origin/$BRANCH:$file" > "$staged"
+  [ -s "$staged" ] || { echo "❌ Empty branch file: $file"; exit 1; }
+done
+
+php -l "$STAGE/app/admin/controllers/PmdWaiterTableStateV154.php"
+node --check "$STAGE/app/admin/assets/js/pmd-waiter-floor-ux-v155.js"
+python3 -m json.tool "$STAGE/app/admin/views/_meta/assets.json" >/dev/null
+
+grep -q "shouldDeriveOccupied" "$STAGE/app/admin/controllers/PmdWaiterTableStateV154.php"
+grep -q "PMD_WAITER_FLOOR_UX_V155" "$STAGE/app/admin/assets/js/pmd-waiter-floor-ux-v155.js"
+grep -q "pmd-v155-table-actions" "$STAGE/app/admin/assets/css/pmd-waiter-floor-ux-v155.css"
+grep -q "pmd-waiter-floor-ux-v155.js" "$STAGE/app/admin/views/_meta/assets.json"
+grep -q "pmd-waiter-floor-ux-v155.css" "$STAGE/app/admin/views/_meta/assets.json"
+echo "✅ Branch files staged and validated"
+
 mkdir -p "$BACKUP"
 for file in "${FILES[@]}"; do
   if [ -f "$file" ]; then
@@ -34,26 +61,11 @@ for file in "${FILES[@]}"; do
 done
 echo "✅ Existing files backed up"
 
-git fetch --no-tags origin "$BRANCH:refs/remotes/origin/$BRANCH"
-TARGET="$(git rev-parse "origin/$BRANCH")"
-
 for file in "${FILES[@]}"; do
-  tmp="/tmp/pmd-v155-$(basename "$file")-${STAMP}"
-  git show "origin/$BRANCH:$file" > "$tmp"
-  [ -s "$tmp" ] || { echo "❌ Empty branch file: $file"; exit 1; }
   mkdir -p "$(dirname "$file")"
-  install -m 0644 "$tmp" "$file"
+  install -m 0644 "$STAGE/$file" "$file"
 done
-
-php -l app/admin/controllers/PmdWaiterTableStateV154.php
-node --check app/admin/assets/js/pmd-waiter-floor-ux-v155.js
-python3 -m json.tool app/admin/views/_meta/assets.json >/dev/null
-
-grep -q "shouldDeriveOccupied" app/admin/controllers/PmdWaiterTableStateV154.php
-grep -q "PMD_WAITER_FLOOR_UX_V155" app/admin/assets/js/pmd-waiter-floor-ux-v155.js
-grep -q "pmd-v155-table-actions" app/admin/assets/css/pmd-waiter-floor-ux-v155.css
-grep -q "pmd-waiter-floor-ux-v155.js" app/admin/views/_meta/assets.json
-grep -q "pmd-waiter-floor-ux-v155.css" app/admin/views/_meta/assets.json
+echo "✅ Validated files installed"
 
 php artisan optimize:clear >/dev/null 2>&1 || true
 
