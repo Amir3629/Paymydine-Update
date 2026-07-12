@@ -34,6 +34,12 @@ Route::middleware(['web'])->group(function () {
     // legacy V9 response contract while resolving canonical table references.
     Route::get('/admin/pmd-waiter-dashboard-v9-tenant-data', [\Admin\Controllers\PmdWaiterDashboardV151::class, 'data']);
 
+    // Independent physical-table lifecycle. Payment completion never changes
+    // operational status. Only explicit waiter/host transitions release tables.
+    Route::get('/admin/pmd-waiter-table-states-v154', [\Admin\Controllers\PmdWaiterTableStateV154::class, 'index']);
+    Route::post('/admin/pmd-waiter-table-states-v154/{tableId}', [\Admin\Controllers\PmdWaiterTableStateV154::class, 'update'])
+        ->where('tableId', '[0-9]+');
+
     // IMPORTANT: do not override /admin/pmd-waiter-dashboard-v9-floor-tables.
     // The original floor endpoint supplies the exact floor_x/floor_y/size shape
     // required by the production edit, drag, resize and save scripts.
