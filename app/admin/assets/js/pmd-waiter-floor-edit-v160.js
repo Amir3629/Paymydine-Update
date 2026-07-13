@@ -302,6 +302,16 @@
     writeRatio(table, center.x / mapRect.width, center.y / mapRect.height);
   }
 
+  /* The visual drag proxy lives outside the waiter dashboard and uses viewport
+   * pixels. It deliberately has no translate transform, so no floor authority
+   * can create a half-width / half-height jump. */
+  function writeProxyCenter(proxy, center, mapRect, width, height) {
+    if (!proxy || !mapRect) return;
+    setImportant(proxy, 'left', (mapRect.left + center.x - width / 2).toFixed(2) + 'px');
+    setImportant(proxy, 'top', (mapRect.top + center.y - height / 2).toFixed(2) + 'px');
+    setImportant(proxy, 'transform', 'none');
+  }
+
   function stripProxyIdentity(proxy) {
     if (!proxy) return;
     [proxy].concat(Array.prototype.slice.call(proxy.querySelectorAll('[id], [name]'))).forEach(function (node) {
@@ -311,24 +321,24 @@
   }
 
   function createDragProxy(table, map, mapRect, tableRect, startCenter) {
-    if (!table || !map) return null;
+    if (!table || !map || !document.body) return null;
 
+    var visual = getComputedStyle(table);
     var proxy = table.cloneNode(true);
     stripProxyIdentity(proxy);
+
     proxy.setAttribute('data-pmd-v160-proxy-table', table.getAttribute('data-table') || '');
     proxy.removeAttribute('data-table');
-    proxy.classList.remove('pmd-v160-drag-source', 'pmd-v160-settling-table', 'pmd-v160-collision-blocked');
-    proxy.classList.add('pmd-v160-drag-proxy', 'pmd-v160-dragging-table');
+
+    /* Critical isolation: V175c/V183 search globally for the real floor-table
+     * classes. Keep none of those classes on the proxy. */
+    proxy.className = 'pmd-v160-drag-proxy pmd-v160-dragging-table';
     proxy.setAttribute('data-pmd-v160-proxy', '1');
     proxy.setAttribute('aria-hidden', 'true');
     proxy.setAttribute('tabindex', '-1');
 
     setImportant(proxy, 'pointer-events', 'none');
-    setImportant(proxy, 'display', 'flex');
-    setImportant(proxy, 'align-items', 'center');
-    setImportant(proxy, 'justify-content', 'center');
-    setImportant(proxy, 'box-sizing', 'border-box');
-    setImportant(proxy, 'position', 'absolute');
+    setImportant(proxy, 'position', 'fixed');
     setImportant(proxy, 'right', 'auto');
     setImportant(proxy, 'bottom', 'auto');
     setImportant(proxy, 'margin', '0');
@@ -338,15 +348,41 @@
     setImportant(proxy, 'min-height', tableRect.height + 'px');
     setImportant(proxy, 'max-width', tableRect.width + 'px');
     setImportant(proxy, 'max-height', tableRect.height + 'px');
-    setImportant(proxy, 'transform', 'translate(-50%, -50%)');
+    setImportant(proxy, 'box-sizing', 'border-box');
+    setImportant(proxy, 'display', 'flex');
+    setImportant(proxy, 'align-items', 'center');
+    setImportant(proxy, 'justify-content', 'center');
+    setImportant(proxy, 'appearance', 'none');
+    setImportant(proxy, '-webkit-appearance', 'none');
+
+    setImportant(proxy, 'background', visual.background);
+    setImportant(proxy, 'border', visual.border);
+    setImportant(proxy, 'border-radius', visual.borderRadius);
+    setImportant(proxy, 'box-shadow', visual.boxShadow);
+    setImportant(proxy, 'color', visual.color);
+    setImportant(proxy, '-webkit-text-fill-color', visual.webkitTextFillColor || visual.color);
+    setImportant(proxy, 'font-family', visual.fontFamily);
+    setImportant(proxy, 'font-size', visual.fontSize);
+    setImportant(proxy, 'font-weight', visual.fontWeight);
+    setImportant(proxy, 'line-height', visual.lineHeight);
+    setImportant(proxy, 'letter-spacing', visual.letterSpacing);
+    setImportant(proxy, 'text-align', visual.textAlign);
+    setImportant(proxy, 'padding', visual.padding);
+    setImportant(proxy, 'overflow', 'visible');
+
+    setImportant(proxy, 'transform', 'none');
     setImportant(proxy, 'transition', 'none');
     setImportant(proxy, 'animation', 'none');
     setImportant(proxy, 'visibility', 'visible');
     setImportant(proxy, 'opacity', '1');
-    setImportant(proxy, 'z-index', '10030');
+    setImportant(proxy, 'z-index', '2147483000');
+    setImportant(proxy, 'contain', 'layout paint style');
+    setImportant(proxy, 'isolation', 'isolate');
+    setImportant(proxy, 'will-change', 'left, top');
+    setImportant(proxy, 'user-select', 'none');
 
-    map.appendChild(proxy);
-    writeCenter(proxy, startCenter, mapRect);
+    document.body.appendChild(proxy);
+    writeProxyCenter(proxy, startCenter, mapRect, tableRect.width, tableRect.height);
     return proxy;
   }
 
@@ -393,7 +429,7 @@
     if (!mapRect.width || !mapRect.height) return;
 
     var desired = desiredCenterFromPoint(pendingPoint, drag, mapRect);
-    writeCenter(drag.proxy, desired, mapRect);
+    writeProxyCenter(drag.proxy, desired, mapRect, drag.width, drag.height);
     drag.currentCenter = desired;
     drag.moved = drag.moved || distanceSquared(desired, drag.startCenter) > 4;
     proxyMoves++;
@@ -540,7 +576,7 @@
       );
       requestAnimationFrame(function () {
         requestAnimationFrame(function () {
-          writeCenter(finished.proxy, settled, mapRect);
+          writeProxyCenter(finished.proxy, settled, mapRect, finished.width, finished.height);
         });
       });
       setTimeout(revealRealTable, 220);
@@ -861,7 +897,7 @@
       var tableNodes = map ? map.querySelectorAll('.pmd-w5-table[data-table]') : [];
       var api = window.PMDWaiterV61StableKioskNoJump || window.PMDWaiterV60No404SmartSnap;
       var out = {
-        version: 'pmd-waiter-floor-edit-v160.5',
+        version: 'pmd-waiter-floor-edit-v160.6',
         active: true,
         editing: isEditing(),
         toolbarEdit: !!(toolbarState() && toolbarState().edit),
@@ -869,7 +905,7 @@
         compact: isCompact(),
         dragging: !!drag,
         collisionMode: 'drop-only-nearest-free',
-        dragVisual: 'isolated-proxy',
+        dragVisual: 'body-fixed-classless-proxy',
         tableGap: TABLE_GAP,
         dropAdjustments: dropAdjustments,
         proxyMoves: proxyMoves,
@@ -901,5 +937,5 @@
     }
   };
 
-  console.info('[PMD] Waiter floor edit V160.5 isolated-proxy drop authority active');
+  console.info('[PMD] Waiter floor edit V160.6 body-fixed classless proxy authority active');
 })();
