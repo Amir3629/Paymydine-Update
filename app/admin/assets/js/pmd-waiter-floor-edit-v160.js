@@ -315,6 +315,8 @@
 
     var proxy = table.cloneNode(true);
     stripProxyIdentity(proxy);
+    proxy.setAttribute('data-pmd-v160-proxy-table', table.getAttribute('data-table') || '');
+    proxy.removeAttribute('data-table');
     proxy.classList.remove('pmd-v160-drag-source', 'pmd-v160-settling-table', 'pmd-v160-collision-blocked');
     proxy.classList.add('pmd-v160-drag-proxy', 'pmd-v160-dragging-table');
     proxy.setAttribute('data-pmd-v160-proxy', '1');
@@ -322,6 +324,10 @@
     proxy.setAttribute('tabindex', '-1');
 
     setImportant(proxy, 'pointer-events', 'none');
+    setImportant(proxy, 'display', 'flex');
+    setImportant(proxy, 'align-items', 'center');
+    setImportant(proxy, 'justify-content', 'center');
+    setImportant(proxy, 'box-sizing', 'border-box');
     setImportant(proxy, 'position', 'absolute');
     setImportant(proxy, 'right', 'auto');
     setImportant(proxy, 'bottom', 'auto');
