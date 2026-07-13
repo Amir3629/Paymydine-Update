@@ -8364,38 +8364,20 @@ html.pmd-waiter-dashboard-active .pmd-w19-unmerge {
   box-shadow: 0 8px 18px rgba(239,51,64,.34) !important;
 }
 
-/* Compact mode */
-html.pmd-waiter-dashboard-active .pmd-w19-compact .pmd-w5-floor-map-real {
-  min-height: 118px !important;
-  height: 118px !important;
-  display: flex !important;
-  align-items: center !important;
-  gap: 12px !important;
-  padding: 16px 18px !important;
-  overflow-x: auto !important;
-  overflow-y: hidden !important;
-}
-
-html.pmd-waiter-dashboard-active .pmd-w19-compact .pmd-w5-floor-map-real .pmd-w5-table {
+/* Compact mode changes only the floor viewport. The real table nodes keep
+ * their saved absolute coordinates, dimensions, colors, numbers and badges. */
+html.pmd-waiter-dashboard-active
+#pmd-waiter-dashboard-root.pmd-w19-compact
+.pmd-w5-floor-map-real {
+  height: var(--pmd-v190-floor-height) !important;
+  min-height: var(--pmd-v190-floor-height) !important;
+  max-height: var(--pmd-v190-floor-height) !important;
+  display: block !important;
   position: relative !important;
-  left: auto !important;
-  top: auto !important;
-  transform: none !important;
-  width: 78px !important;
-  height: 62px !important;
-  min-width: 78px !important;
-  min-height: 62px !important;
-  flex: 0 0 78px !important;
-}
-
-html.pmd-waiter-dashboard-active .pmd-w19-compact .pmd-w19-merged-table {
-  position: relative !important;
-  left: auto !important;
-  top: auto !important;
-  transform: none !important;
-  min-width: 112px !important;
-  min-height: 68px !important;
-  flex: 0 0 112px !important;
+  padding: 0 !important;
+  overflow: var(--pmd-v190-floor-overflow) !important;
+  overscroll-behavior: contain !important;
+  scrollbar-gutter: stable !important;
 }
 
 /* Order cards must stay clean, not yellow */
@@ -8461,7 +8443,7 @@ html.pmd-waiter-dashboard-active .pmd-w5-btn.active {
   var state = {
     edit: false,
     merge: false,
-    compact: localStorage.getItem('pmd_waiter_floor_compact') === '1',
+    compact: false,
     selected: new Set(),
     merges: []
   };
@@ -8543,7 +8525,7 @@ html.pmd-waiter-dashboard-active .pmd-w5-btn.active {
       '<button class="pmd-w19-btn primary pmd-w19-save-hidden" data-w19-save title="Save">✓</button>' +
       '<button class="pmd-w19-btn" data-w19-edit title="Edit layout">✎</button>' +
       '<button class="pmd-w19-btn" data-w19-merge title="Merge tables">↔<small></small></button>' +
-      '<button class="pmd-w19-btn" data-w19-compact title="Compact / expand floor">▤</button>';
+      '<button type="button" class="pmd-w19-btn" data-w19-compact title="Compact floor" aria-label="Compact floor" aria-pressed="false">▤</button>';
 
     head.appendChild(tools);
     sync();
@@ -8564,13 +8546,18 @@ html.pmd-waiter-dashboard-active .pmd-w5-btn.active {
     var save = document.querySelector('[data-w19-save]');
     var edit = document.querySelector('[data-w19-edit]');
     var merge = document.querySelector('[data-w19-merge]');
-    var compact = document.querySelector('[data-w19-compact]');
+    var compact = document.querySelector('#pmd-waiter-dashboard-root .pmd-w19-tools button[data-w19-compact]');
     var badge = merge && merge.querySelector('small');
 
     if (save) save.classList.toggle('pmd-w19-save-hidden', !hasPendingSave());
     if (edit) edit.classList.toggle('primary', state.edit);
     if (merge) merge.classList.toggle('warn', state.merge);
-    if (compact) compact.classList.toggle('primary', state.compact);
+    if (compact) {
+      compact.classList.toggle('primary', state.compact);
+      compact.setAttribute('title', state.compact ? 'Expand floor' : 'Compact floor');
+      compact.setAttribute('aria-label', state.compact ? 'Expand floor' : 'Compact floor');
+      compact.setAttribute('aria-pressed', state.compact ? 'true' : 'false');
+    }
 
     if (badge) {
       badge.textContent = state.selected.size;
@@ -8855,7 +8842,8 @@ html.pmd-waiter-dashboard-active .pmd-w5-btn.active {
   function toggleCompact() {
     state.compact = !state.compact;
     state.edit = false;
-    localStorage.setItem('pmd_waiter_floor_compact', state.compact ? '1' : '0');
+    state.merge = false;
+    state.selected.clear();
     sync();
   }
 
@@ -8907,7 +8895,7 @@ html.pmd-waiter-dashboard-active .pmd-w5-btn.active {
       return;
     }
 
-    var compact = e.target.closest('[data-w19-compact]');
+    var compact = e.target.closest('#pmd-waiter-dashboard-root .pmd-w19-tools button[data-w19-compact]');
     if (compact) {
       e.preventDefault();
       e.stopPropagation();
@@ -10286,17 +10274,32 @@ html.pmd-waiter-dashboard-active .pmd-v155-floor-map * {
   animation: none !important;
 }
 
+html.pmd-waiter-dashboard-active #pmd-waiter-dashboard-root {
+  --pmd-v190-floor-height: clamp(560px, calc(100vh - 220px), 820px);
+  --pmd-v190-floor-overflow: visible;
+  --pmd-v190-floor-transition: none;
+}
+
+html.pmd-waiter-dashboard-active #pmd-waiter-dashboard-root.pmd-w19-compact {
+  --pmd-v190-floor-height: clamp(300px, 38vh, 360px);
+  --pmd-v190-floor-overflow: auto;
+}
+
+html.pmd-waiter-dashboard-active #pmd-waiter-dashboard-root.pmd-v190-floor-ready {
+  --pmd-v190-floor-transition: height 220ms cubic-bezier(.2,.8,.2,1), min-height 220ms cubic-bezier(.2,.8,.2,1), max-height 220ms cubic-bezier(.2,.8,.2,1);
+}
+
 html.pmd-waiter-dashboard-active .pmd-w5-floor-map,
 html.pmd-waiter-dashboard-active .pmd-w5-floor-map-real,
 html.pmd-waiter-dashboard-active .pmd-v155-floor-map,
 html.pmd-waiter-dashboard-active [class*="floor-map"] {
-  height: 430px !important;
-  min-height: 430px !important;
-  max-height: 430px !important;
-  overflow: visible !important;
+  height: var(--pmd-v190-floor-height) !important;
+  min-height: var(--pmd-v190-floor-height) !important;
+  max-height: var(--pmd-v190-floor-height) !important;
+  overflow: var(--pmd-v190-floor-overflow) !important;
   background: #ffffff !important;
   transform: none !important;
-  transition: none !important;
+  transition: var(--pmd-v190-floor-transition) !important;
   animation: none !important;
 }
 
@@ -10848,13 +10851,13 @@ html.pmd-waiter-dashboard-active .pmd-v175c-attention-badge[data-pmd-kind="note"
 
   function repairFloor() {
     floorElements().forEach(function (floor) {
-      setImportant(floor, 'height', (window.PMDFloorSizeV184 && window.PMDFloorSizeV184.floorHeight ? window.PMDFloorSizeV184.floorHeight() : '430px'));
-      setImportant(floor, 'min-height', (window.PMDFloorSizeV184 && window.PMDFloorSizeV184.floorHeight ? window.PMDFloorSizeV184.floorHeight() : '430px'));
-      setImportant(floor, 'max-height', (window.PMDFloorSizeV184 && window.PMDFloorSizeV184.floorHeight ? window.PMDFloorSizeV184.floorHeight() : '430px'));
-      setImportant(floor, 'overflow', 'visible');
+      setImportant(floor, 'height', 'var(--pmd-v190-floor-height)');
+      setImportant(floor, 'min-height', 'var(--pmd-v190-floor-height)');
+      setImportant(floor, 'max-height', 'var(--pmd-v190-floor-height)');
+      setImportant(floor, 'overflow', 'var(--pmd-v190-floor-overflow)');
       setImportant(floor, 'background', '#ffffff');
       setImportant(floor, 'transform', 'none');
-      setImportant(floor, 'transition', 'none');
+      setImportant(floor, 'transition', 'var(--pmd-v190-floor-transition)');
       setImportant(floor, 'animation', 'none');
     });
   }
@@ -11397,402 +11400,135 @@ html.pmd-waiter-dashboard-active .pmd-v183-order-count-badge {
 
 
 
-<!-- PMD_V191_COMPACT_STRIP_AUTHORITY_START -->
-<style id="pmd-v191-compact-strip-authority-style">
-/*
-  V191: real compact/expand fix.
-  Compact means compact strip, not scale, not position lock.
-  Expanded means original stable floor map.
-*/
-
-html.pmd-waiter-dashboard-active.pmd-v191-compact-active .pmd-w5-floor-map,
-html.pmd-waiter-dashboard-active.pmd-v191-compact-active .pmd-w5-floor-map-real,
-html.pmd-waiter-dashboard-active.pmd-v191-compact-active .pmd-v155-floor-map {
-  position: relative !important;
-  height: 128px !important;
-  min-height: 128px !important;
-  max-height: 128px !important;
-  overflow: hidden !important;
-  background: #ffffff !important;
-  transform: none !important;
-  transition: height 180ms ease, min-height 180ms ease, max-height 180ms ease !important;
-}
-
-html.pmd-waiter-dashboard-active.pmd-v191-compact-active .pmd-w5-floor-map-real > .pmd-w5-table,
-html.pmd-waiter-dashboard-active.pmd-v191-compact-active .pmd-w5-floor-map-real > .pmd-v155-table,
-html.pmd-waiter-dashboard-active.pmd-v191-compact-active .pmd-w5-floor-map-real > .pmd-floor-table,
-html.pmd-waiter-dashboard-active.pmd-v191-compact-active .pmd-w5-floor-map-real > .pmd-waiter-floor-table,
-html.pmd-waiter-dashboard-active.pmd-v191-compact-active .pmd-w5-floor-map-real > .pmd-v175c-floor-tile {
-  visibility: hidden !important;
-  opacity: 0 !important;
-  pointer-events: none !important;
-}
-
-html.pmd-waiter-dashboard-active .pmd-v191-compact-strip {
-  position: absolute !important;
-  inset: 0 !important;
-  z-index: 9999 !important;
-  display: flex !important;
-  align-items: center !important;
-  gap: 12px !important;
-  padding: 16px 18px !important;
-  overflow-x: auto !important;
-  overflow-y: hidden !important;
-  background: #ffffff !important;
-  box-sizing: border-box !important;
-}
-
-html.pmd-waiter-dashboard-active .pmd-v191-mini-table {
-  position: relative !important;
-  width: 78px !important;
-  height: 62px !important;
-  min-width: 78px !important;
-  min-height: 62px !important;
-  flex: 0 0 78px !important;
-  border-radius: 12px !important;
-  border: 3px solid #061225 !important;
-  display: grid !important;
-  place-items: center !important;
-  font-size: 24px !important;
-  line-height: 1 !important;
-  font-weight: 950 !important;
-  color: #05070d !important;
-  -webkit-text-fill-color: #05070d !important;
-  box-shadow: none !important;
-  transform: none !important;
-  transition: none !important;
-  animation: none !important;
-  cursor: pointer !important;
-  overflow: visible !important;
-}
-
-html.pmd-waiter-dashboard-active .pmd-v191-mini-number {
-  pointer-events: none !important;
-  position: relative !important;
-  z-index: 2 !important;
-}
-
-html.pmd-waiter-dashboard-active .pmd-v191-mini-badge {
-  position: absolute !important;
-  top: -12px !important;
-  right: -12px !important;
-  width: 30px !important;
-  height: 30px !important;
-  min-width: 30px !important;
-  min-height: 30px !important;
-  max-width: 30px !important;
-  max-height: 30px !important;
-  z-index: 5 !important;
-  transform: none !important;
-  animation: none !important;
-}
-
-html.pmd-waiter-dashboard-active .pmd-v191-mini-badge img {
-  width: 20px !important;
-  height: 20px !important;
-  max-width: 20px !important;
-  max-height: 20px !important;
-}
-</style>
-
-<script id="pmd-v191-compact-strip-authority-script">
+<!-- PMD_V190_CONTAINER_ONLY_FLOOR_COMPACT_START -->
+<script id="pmd-v190-container-only-floor-compact-script">
 (function () {
   'use strict';
-
   if (!/\/admin\/dashboardwaiter(?:$|[?#\/])/.test(location.pathname + location.search + location.hash)) return;
-  if (window.PMDWaiterCompactStripV191 && window.PMDWaiterCompactStripV191.active) return;
+  if (window.PMDFloorDeterministicV190 && window.PMDFloorDeterministicV190.active) return;
 
-  var raf = 0;
+  var ROOT = '#pmd-waiter-dashboard-root';
+  var BUTTON = ROOT + ' .pmd-w19-tools button[data-w19-compact]';
   var observer = null;
-  var FLOOR_SEL = '.pmd-w5-floor-map, .pmd-w5-floor-map-real, .pmd-v155-floor-map';
-  var TILE_SEL = '.pmd-w5-table, .pmd-v155-table, .pmd-floor-table, .pmd-waiter-floor-table, .pmd-v175c-floor-tile';
-  var BTN_SEL = '.pmd-w19-btn[data-w19-compact], button[data-w19-compact], [data-w19-compact]';
+  var raf = 0;
 
-  function clean(v) {
-    return String(v == null ? '' : v).replace(/\s+/g, ' ').trim();
-  }
+  function root() { return document.querySelector(ROOT); }
+  function floor() { var r = root(); return r ? r.querySelector('.pmd-w5-floor-map-real') : null; }
+  function button() { return document.querySelector(BUTTON); }
+  function compact() { var r = root(); return !!(r && r.classList.contains('pmd-w19-compact')); }
 
-  function qsa(sel, base) {
-    try { return Array.prototype.slice.call((base || document).querySelectorAll(sel)); }
-    catch (e) { return []; }
-  }
-
-  function imp(el, prop, val) {
-    if (!el || !el.style) return;
-    if (el.style.getPropertyValue(prop) === String(val) && el.style.getPropertyPriority(prop) === 'important') return;
-    el.style.setProperty(prop, String(val), 'important');
-  }
-
-  function root() {
-    return document.querySelector('#pmd-waiter-dashboard-root') || document.documentElement;
-  }
-
-  function floor() {
-    return document.querySelector('.pmd-w5-floor-map-real') || document.querySelector(FLOOR_SEL);
-  }
-
-  function isCompact() {
-    var r = root();
-    return !!(r && r.classList.contains('pmd-w19-compact'));
-  }
-
-  function tableNo(tile) {
-    if (!tile) return '';
-
-    var attrs = ['data-table-number', 'data-table-no', 'data-table', 'data-pmd-table-number', 'data-pmd-table-no'];
-    for (var i = 0; i < attrs.length; i++) {
-      var v = clean(tile.getAttribute(attrs[i]));
-      if (/^(20|1[0-9]|[1-9])$/.test(v)) return v;
-    }
-
-    var n = null;
-    try { n = tile.querySelector(':scope > .pmd-v175c-table-number'); }
-    catch (e) { n = tile.querySelector('.pmd-v175c-table-number'); }
-
-    if (n) {
-      var nt = clean(n.textContent);
-      if (/^(20|1[0-9]|[1-9])$/.test(nt)) return nt;
-    }
-
-    var txt = clean(tile.textContent || '');
-    var m = txt.match(/\b(20|1[0-9]|[1-9])\b/);
-    return m ? m[1] : '';
-  }
-
-  function realTiles() {
-    var f = floor();
-    if (!f) return [];
-    return qsa(TILE_SEL, f).filter(function (tile) {
-      return tile.closest(FLOOR_SEL) === f;
+  function cleanup() {
+    document.documentElement.classList.remove(
+      'pmd-v184-floor-small', 'pmd-v184-floor-large',
+      'pmd-v185-floor-small', 'pmd-v185-floor-large', 'pmd-v185-sizing',
+      'pmd-v187-floor-small', 'pmd-v187-floor-large', 'pmd-v187-sizing',
+      'pmd-v188-floor-compact', 'pmd-v188-floor-expanded',
+      'pmd-v189-floor-compact', 'pmd-v189-floor-expanded'
+    );
+    document.querySelectorAll('.pmd-v185-floor-scaler, .pmd-v187-floor-scaler').forEach(function (node) {
+      var parent = node.parentElement;
+      if (!parent) return;
+      while (node.firstChild) parent.insertBefore(node.firstChild, node);
+      node.remove();
     });
-  }
-
-  function setButton() {
-    qsa(BTN_SEL).forEach(function (btn) {
-      btn.setAttribute('title', isCompact() ? 'Expand floor' : 'Compact floor');
-      btn.setAttribute('aria-label', isCompact() ? 'Expand floor' : 'Compact floor');
-      btn.setAttribute('data-pmd-v191-mode', isCompact() ? 'compact' : 'expanded');
-      btn.classList.toggle('primary', isCompact());
-    });
-  }
-
-  function cloneBadge(tile, mini) {
-    var badge =
-      tile.querySelector(':scope > .pmd-v175c-attention-badge') ||
-      tile.querySelector(':scope > .pmd-v183-order-count-badge') ||
-      tile.querySelector('.pmd-v175c-attention-badge') ||
-      tile.querySelector('.pmd-v183-order-count-badge');
-
-    if (!badge) return;
-
-    var c = badge.cloneNode(true);
-    c.classList.add('pmd-v191-mini-badge');
-    c.removeAttribute('style');
-    mini.appendChild(c);
-  }
-
-  function buildMini(tile) {
-    var no = tableNo(tile);
-    if (!no) return null;
-
-    var cs = getComputedStyle(tile);
-    var mini = document.createElement('button');
-    mini.type = 'button';
-    mini.className = 'pmd-v191-mini-table';
-    mini.setAttribute('data-pmd-v191-table', no);
-    mini.setAttribute('aria-label', 'Table ' + no);
-
-    imp(mini, 'background', cs.backgroundColor || '#ff3347');
-    imp(mini, 'border-color', cs.borderTopColor || '#b4081b');
-    imp(mini, 'color', '#05070d');
-
-    mini.innerHTML = '<span class="pmd-v191-mini-number">' + no + '</span>';
-    cloneBadge(tile, mini);
-
-    mini.addEventListener('click', function (e) {
-      e.preventDefault();
-      e.stopPropagation();
-      if (tile && typeof tile.click === 'function') tile.click();
-    }, true);
-
-    return mini;
-  }
-
-  function enterCompact() {
-    var f = floor();
-    if (!f) return;
-
-    document.documentElement.classList.add('pmd-v191-compact-active');
-
-    imp(f, 'position', 'relative');
-    imp(f, 'height', '128px');
-    imp(f, 'min-height', '128px');
-    imp(f, 'max-height', '128px');
-    imp(f, 'overflow', 'hidden');
-    imp(f, 'background', '#ffffff');
-    imp(f, 'transform', 'none');
-
-    realTiles().forEach(function (tile) {
-      imp(tile, 'visibility', 'hidden');
-      imp(tile, 'opacity', '0');
-      imp(tile, 'pointer-events', 'none');
-    });
-
-    var strip = f.querySelector(':scope > .pmd-v191-compact-strip');
-    if (!strip) {
-      strip = document.createElement('div');
-      strip.className = 'pmd-v191-compact-strip';
-      f.appendChild(strip);
-    }
-
-    strip.innerHTML = '';
-    realTiles().forEach(function (tile) {
-      var mini = buildMini(tile);
-      if (mini) strip.appendChild(mini);
-    });
-
-    setButton();
-  }
-
-  function exitCompact() {
-    var f = floor();
-
-    document.documentElement.classList.remove('pmd-v191-compact-active');
-
-    qsa('.pmd-v191-compact-strip').forEach(function (strip) {
-      strip.remove();
-    });
-
-    if (f) {
-      imp(f, 'height', '430px');
-      imp(f, 'min-height', '430px');
-      imp(f, 'max-height', '430px');
-      imp(f, 'overflow', 'visible');
-      imp(f, 'background', '#ffffff');
-      imp(f, 'transform', 'none');
-    }
-
-    realTiles().forEach(function (tile) {
-      imp(tile, 'visibility', 'visible');
-      imp(tile, 'opacity', '1');
-      imp(tile, 'pointer-events', 'auto');
-      imp(tile, 'display', 'block');
-      imp(tile, 'transform', 'none');
-      imp(tile, 'transition', 'none');
-      imp(tile, 'animation', 'none');
-    });
-
-    setButton();
-
-    if (window.PMDWaiterFloorStableV175c && typeof window.PMDWaiterFloorStableV175c.apply === 'function') {
-      try { window.PMDWaiterFloorStableV175c.apply(); } catch (e) {}
-    }
   }
 
   function apply() {
-    [
-      'pmd_waiter_floor_size_v184',
-      'pmd_waiter_floor_scale_v185',
-      'pmd_waiter_floor_scale_v187',
-      'pmd_waiter_floor_compact_v188',
-      'pmd_waiter_floor_compact_v189',
-      'pmd_waiter_floor_positions_v189',
-      'pmd_waiter_floor_compact_v190'
-    ].forEach(function (k) {
-      try { localStorage.removeItem(k); } catch (e) {}
-    });
-
-    if (isCompact()) enterCompact();
-    else exitCompact();
+    var r = root();
+    if (!r) return;
+    cleanup();
+    r.classList.toggle('pmd-v190-floor-compact', compact());
+    r.classList.toggle('pmd-v190-floor-expanded', !compact());
+    var f = floor();
+    if (f && compact()) f.removeAttribute('data-pmd-v159-full-floor');
+    var b = button();
+    if (b) {
+      b.setAttribute('title', compact() ? 'Expand floor' : 'Compact floor');
+      b.setAttribute('aria-label', compact() ? 'Expand floor' : 'Compact floor');
+      b.setAttribute('aria-pressed', compact() ? 'true' : 'false');
+      b.setAttribute('data-pmd-v190-mode', compact() ? 'compact' : 'expanded');
+    }
   }
 
   function schedule() {
     if (raf) return;
-    raf = requestAnimationFrame(function () {
-      raf = 0;
-      apply();
-    });
+    raf = requestAnimationFrame(function () { raf = 0; apply(); });
   }
 
-  function debug(print) {
-    var f = floor();
-    var fr = f ? f.getBoundingClientRect() : null;
-    var strip = f ? f.querySelector(':scope > .pmd-v191-compact-strip') : null;
+  function clickButton() { var b = button(); if (b) b.click(); }
 
-    var out = {
-      active: true,
-      compact: isCompact(),
-      floor: fr ? {
-        x: Math.round(fr.x),
-        y: Math.round(fr.y),
-        w: Math.round(fr.width),
-        h: Math.round(fr.height)
-      } : null,
-      realTiles: realTiles().length,
-      miniTiles: strip ? qsa('.pmd-v191-mini-table', strip).length : 0,
-      stripExists: !!strip,
-      badOldObjects: {
-        v184: typeof window.PMDFloorSizeV184,
-        v185: typeof window.PMDFloorScaleWrapperV185,
-        v186: typeof window.PMDFloorToggleDebounceV186,
-        v187: typeof window.PMDFloorScaleSafeV187,
-        v188: typeof window.PMDFloorCompactExpandV188,
-        v189: typeof window.PMDFloorPositionLockV189,
-        v190: typeof window.PMDFloorDeterministicV190
-      }
-    };
-
-    if (print !== false) console.log(out);
-    return out;
-  }
-
-  document.addEventListener('click', function (e) {
-    var btn = e.target && e.target.closest ? e.target.closest(BTN_SEL) : null;
-    if (!btn) return;
+  document.addEventListener('click', function (event) {
+    var target = event.target && event.target.nodeType === 1 ? event.target : null;
+    if (!target || !target.closest(BUTTON)) return;
     setTimeout(apply, 0);
-    setTimeout(apply, 80);
-    setTimeout(apply, 220);
+    setTimeout(apply, 90);
+    setTimeout(apply, 240);
   }, true);
 
-  observer = new MutationObserver(schedule);
-  observer.observe(document.querySelector('#pmd-waiter-dashboard-root') || document.body, {
-    subtree: true,
-    childList: true,
-    attributes: true,
-    attributeFilter: ['class']
+  document.addEventListener('pmd-waiter-dashboard-rendered', function () {
+    setTimeout(apply, 0);
+    setTimeout(apply, 120);
+  }, true);
+
+  ['pmd_waiter_floor_compact', 'PMD_WAITER_FLOOR_COMPACT_V89',
+   'pmd_waiter_floor_size_v184', 'pmd_waiter_floor_scale_v185',
+   'pmd_waiter_floor_scale_v187', 'pmd_waiter_floor_compact_v188',
+   'pmd_waiter_floor_compact_v189', 'pmd_waiter_floor_positions_v189',
+   'pmd_waiter_floor_compact_v190'].forEach(function (key) {
+    try { localStorage.removeItem(key); } catch (error) {}
   });
 
   apply();
-  setTimeout(apply, 250);
-  setTimeout(apply, 1000);
+  var r = root();
+  if (r) {
+    observer = new MutationObserver(schedule);
+    observer.observe(r, {attributes:true, attributeFilter:['class'], childList:true});
+  }
+  requestAnimationFrame(function () {
+    requestAnimationFrame(function () {
+      var current = root();
+      if (current) current.classList.add('pmd-v190-floor-ready');
+      apply();
+    });
+  });
 
-  window.PMDWaiterCompactStripV191 = {
+  window.PMDFloorDeterministicV190 = {
     active: true,
     apply: apply,
-    compact: function () {
-      var r = root();
-      if (r) r.classList.add('pmd-w19-compact');
-      apply();
+    toggle: clickButton,
+    compact: function () { if (!compact()) clickButton(); },
+    expand: function () { if (compact()) clickButton(); },
+    expanded: function () { if (compact()) clickButton(); },
+    debug: function () {
+      var f = floor();
+      var tiles = f ? Array.prototype.slice.call(f.querySelectorAll('.pmd-w5-table[data-table]')) : [];
+      var points = {};
+      tiles.forEach(function (tile) {
+        var rect = tile.getBoundingClientRect();
+        points[Math.round(rect.x) + ',' + Math.round(rect.y)] = true;
+      });
+      var out = {
+        active: true,
+        mode: compact() ? 'compact' : 'expanded',
+        floorHeight: f ? Math.round(f.getBoundingClientRect().height) : 0,
+        tableCount: tiles.length,
+        uniqueTablePositions: Object.keys(points).length,
+        scalerCount: document.querySelectorAll('.pmd-v185-floor-scaler, .pmd-v187-floor-scaler').length
+      };
+      console.log(out);
+      return out;
     },
-    expand: function () {
-      var r = root();
-      if (r) r.classList.remove('pmd-w19-compact');
-      apply();
-    },
-    debug: function () { return debug(true); },
     stop: function () {
       if (observer) observer.disconnect();
       if (raf) cancelAnimationFrame(raf);
       observer = null;
       raf = 0;
-      console.info('[PMD] V191 compact strip stopped');
     }
   };
-
-  console.info('[PMD] V191 compact strip authority active');
+  console.info('[PMD] V190 container-only floor compact active');
 })();
 </script>
-<!-- PMD_V191_COMPACT_STRIP_AUTHORITY_END -->
+<!-- PMD_V190_CONTAINER_ONLY_FLOOR_COMPACT_END -->
 
 </body>
 </html>
