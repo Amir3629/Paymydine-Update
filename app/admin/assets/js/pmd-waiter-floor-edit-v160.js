@@ -13,7 +13,8 @@
   var COMPACT_SELECTOR = ROOT_SELECTOR + ' .pmd-w19-tools button[data-w19-compact]';
   var MAP_PAD = 14;
   var TABLE_GAP = 10;
-  var MOVE_STEP = 3;
+  var DROP_SEARCH_STEP = 8;
+  var DROP_SEARCH_ANGLES = 96;
 
   var drag = null;
   var pendingPoint = null;
@@ -25,6 +26,7 @@
   var editSnapshot = null;
   var recoveryRuns = 0;
   var recoveredColumnLayouts = 0;
+  var dropAdjustments = 0;
 
   function root() {
     return document.querySelector(ROOT_SELECTOR);
@@ -240,51 +242,75 @@
     });
   }
 
-  function walkUntilBlocked(start, target, width, height, occupied) {
-    var dx = target.x - start.x;
-    var dy = target.y - start.y;
-    var distance = Math.sqrt(dx * dx + dy * dy);
-    if (distance < 0.5) return {x:start.x, y:start.y};
 
-    var steps = Math.max(1, Math.ceil(distance / MOVE_STEP));
-    var last = {x:start.x, y:start.y};
-
-    for (var index = 1; index <= steps; index++) {
-      var ratio = index / steps;
-      var point = {
-        x: start.x + dx * ratio,
-        y: start.y + dy * ratio
-      };
-      if (!centerIsClear(point, width, height, occupied)) break;
-      last = point;
-    }
-
-    return last;
+  function clampCenterToMap(center, width, height, mapRect) {
+    return {
+      x: clamp(center.x, width / 2 + MAP_PAD, mapRect.width - width / 2 - MAP_PAD),
+      y: clamp(center.y, height / 2 + MAP_PAD, mapRect.height - height / 2 - MAP_PAD)
+    };
   }
 
-  function resolveCenter(desired, state, occupied) {
-    if (centerIsClear(desired, state.width, state.height, occupied)) {
-      return desired;
+  /* Collision is intentionally resolved only after pointer release. Search in
+   * expanding rings around the exact drop point and use the first clear ring,
+   * which gives the closest practical free position with TABLE_GAP spacing. */
+  function nearestFreeCenter(desired, state, occupied, mapRect) {
+    desired = clampCenterToMap(desired, state.width, state.height, mapRect);
+    if (centerIsClear(desired, state.width, state.height, occupied)) return desired;
+
+    var maxRadius = Math.ceil(Math.sqrt(
+      mapRect.width * mapRect.width + mapRect.height * mapRect.height
+    ));
+
+    for (var radius = DROP_SEARCH_STEP; radius <= maxRadius; radius += DROP_SEARCH_STEP) {
+      var samples = Math.min(
+        DROP_SEARCH_ANGLES,
+        Math.max(24, Math.ceil((Math.PI * 2 * radius) / 12))
+      );
+      var clear = [];
+      var seen = new Set();
+
+      for (var index = 0; index < samples; index++) {
+        var angle = (Math.PI * 2 * index) / samples;
+        var point = clampCenterToMap({
+          x: desired.x + Math.cos(angle) * radius,
+          y: desired.y + Math.sin(angle) * radius
+        }, state.width, state.height, mapRect);
+        var key = Math.round(point.x * 2) + ':' + Math.round(point.y * 2);
+        if (seen.has(key)) continue;
+        seen.add(key);
+
+        if (centerIsClear(point, state.width, state.height, occupied)) {
+          clear.push(point);
+        }
+      }
+
+      if (clear.length) {
+        clear.sort(function (a, b) {
+          return distanceSquared(a, desired) - distanceSquared(b, desired);
+        });
+        return clear[0];
+      }
     }
 
-    var line = walkUntilBlocked(state.lastValid, desired, state.width, state.height, occupied);
-    var horizontal = walkUntilBlocked(line, {x:desired.x, y:line.y}, state.width, state.height, occupied);
-    var vertical = walkUntilBlocked(line, {x:line.x, y:desired.y}, state.width, state.height, occupied);
-    var candidates = [line, horizontal, vertical].filter(function (point) {
-      return centerIsClear(point, state.width, state.height, occupied);
-    });
-
-    if (!candidates.length) return state.lastValid;
-    candidates.sort(function (a, b) {
-      return distanceSquared(a, desired) - distanceSquared(b, desired);
-    });
-    return candidates[0];
+    var start = clampCenterToMap(state.startCenter, state.width, state.height, mapRect);
+    if (centerIsClear(start, state.width, state.height, occupied)) return start;
+    return desired;
   }
 
   function writeCenter(table, center, mapRect) {
     writeRatio(table, center.x / mapRect.width, center.y / mapRect.height);
   }
 
+
+  function desiredCenterFromPoint(point, state, mapRect) {
+    return clampCenterToMap({
+      x: point.x - mapRect.left - state.offsetX + state.width / 2,
+      y: point.y - mapRect.top - state.offsetY + state.height / 2
+    }, state.width, state.height, mapRect);
+  }
+
+  /* During drag, follow the pointer exactly. Overlap is allowed here by design;
+   * the nearest non-overlapping position is calculated only on pointer release. */
   function applyPendingMove() {
     if (moveRaf) {
       cancelAnimationFrame(moveRaf);
@@ -298,22 +324,11 @@
     var mapRect = map.getBoundingClientRect();
     if (!mapRect.width || !mapRect.height) return;
 
-    var desired = {
-      x: pendingPoint.x - mapRect.left - drag.offsetX + drag.width / 2,
-      y: pendingPoint.y - mapRect.top - drag.offsetY + drag.height / 2
-    };
-
-    desired.x = clamp(desired.x, drag.width / 2 + MAP_PAD, mapRect.width - drag.width / 2 - MAP_PAD);
-    desired.y = clamp(desired.y, drag.height / 2 + MAP_PAD, mapRect.height - drag.height / 2 - MAP_PAD);
-
-    var occupied = occupiedRects(drag.table, mapRect);
-    var resolved = resolveCenter(desired, drag, occupied);
-    var blocked = distanceSquared(resolved, desired) > 3;
-
-    writeCenter(drag.table, resolved, mapRect);
-    drag.lastValid = resolved;
-    drag.moved = drag.moved || distanceSquared(resolved, drag.startCenter) > 4;
-    drag.table.classList.toggle('pmd-v160-collision-blocked', blocked);
+    var desired = desiredCenterFromPoint(pendingPoint, drag, mapRect);
+    writeCenter(drag.table, desired, mapRect);
+    drag.currentCenter = desired;
+    drag.moved = drag.moved || distanceSquared(desired, drag.startCenter) > 4;
+    drag.table.classList.remove('pmd-v160-collision-blocked');
   }
 
   function queueMove(event) {
@@ -366,7 +381,7 @@
       width: tableRect.width,
       height: tableRect.height,
       startCenter: startCenter,
-      lastValid: startCenter,
+      currentCenter: startCenter,
       moved: false
     };
     pendingPoint = {x:event.clientX, y:event.clientY};
@@ -399,6 +414,7 @@
     queueMove(event);
   }
 
+
   function finishDrag(event) {
     if (!drag) return;
     if (event && drag.pointerId !== undefined && event.pointerId !== undefined && drag.pointerId !== event.pointerId) return;
@@ -409,6 +425,17 @@
     }
 
     var finished = drag;
+    var map = floorMap();
+    var mapRect = map && map.getBoundingClientRect();
+    var desired = finished.currentCenter || finished.startCenter;
+    var settled = desired;
+
+    if (mapRect && mapRect.width && mapRect.height && finished.table && finished.table.isConnected) {
+      var occupied = occupiedRects(finished.table, mapRect);
+      settled = nearestFreeCenter(desired, finished, occupied, mapRect);
+    }
+
+    var adjusted = distanceSquared(settled, desired) > 1;
     drag = null;
     pendingPoint = null;
 
@@ -426,6 +453,28 @@
     if (finished.table) {
       finished.table.classList.remove('pmd-v160-dragging-table', 'pmd-v160-collision-blocked');
       finished.table.removeAttribute('data-pmd-v160-dragging');
+
+      if (adjusted && mapRect) {
+        dropAdjustments++;
+        finished.table.classList.add('pmd-v160-settling-table');
+        setImportant(
+          finished.table,
+          'transition',
+          'left 170ms cubic-bezier(.2,.8,.2,1), top 170ms cubic-bezier(.2,.8,.2,1)'
+        );
+        requestAnimationFrame(function () {
+          requestAnimationFrame(function () {
+            writeCenter(finished.table, settled, mapRect);
+          });
+        });
+        setTimeout(function () {
+          if (!finished.table) return;
+          finished.table.classList.remove('pmd-v160-settling-table');
+          finished.table.style.removeProperty('transition');
+        }, 230);
+      } else if (mapRect) {
+        writeCenter(finished.table, settled, mapRect);
+      }
     }
 
     var r = root();
@@ -741,13 +790,16 @@
       var tableNodes = map ? map.querySelectorAll('.pmd-w5-table[data-table]') : [];
       var api = window.PMDWaiterV61StableKioskNoJump || window.PMDWaiterV60No404SmartSnap;
       var out = {
-        version: 'pmd-waiter-floor-edit-v160.3',
+        version: 'pmd-waiter-floor-edit-v160.4',
         active: true,
         editing: isEditing(),
         toolbarEdit: !!(toolbarState() && toolbarState().edit),
         tableTag: tableNodes.length ? tableNodes[0].tagName : null,
         compact: isCompact(),
         dragging: !!drag,
+        collisionMode: 'drop-only-nearest-free',
+        tableGap: TABLE_GAP,
+        dropAdjustments: dropAdjustments,
         tableCount: tableNodes.length,
         overlapPairs: overlapPairs(),
         legacyPostDropSnapDisabled: !!(api && api.__pmdV160NoPostDropSnap),
@@ -770,5 +822,5 @@
     }
   };
 
-  console.info('[PMD] Waiter floor edit V160.3 button-safe drag authority active');
+  console.info('[PMD] Waiter floor edit V160.4 drop-only nearest-free authority active');
 })();
