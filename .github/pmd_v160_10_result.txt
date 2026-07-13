@@ -1,0 +1,7 @@
+PMD_V160_10_PATCH_OK
+        version: 'pmd-waiter-floor-edit-v160.10',
+        floorDomMode: 'stable-section-reconcile',
+    stableReconcile('dashboard-rendered');
+        multipleVisibleBadgeTables: Array.prototype.slice.call(tableNodes).filter(function (table) {
+  console.info('[PMD] Waiter floor edit V160.10 stable floor DOM + single badge authority active');
+RESULT_CODE=0
