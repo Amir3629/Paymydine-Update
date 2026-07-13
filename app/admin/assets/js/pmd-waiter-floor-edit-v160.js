@@ -40,7 +40,7 @@
 
   function tables() {
     var map = floorMap();
-    return map ? Array.prototype.slice.call(map.querySelectorAll('.pmd-w5-table[data-table]')) : [];
+    return map ? Array.prototype.slice.call(map.querySelectorAll('.pmd-w5-table[data-table]:not(.pmd-v160-drag-proxy)')) : [];
   }
 
   function toolbarState() {
