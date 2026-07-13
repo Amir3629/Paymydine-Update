@@ -378,6 +378,8 @@
 
     var tableNumber = String(table.getAttribute('data-table') || '').trim();
     var visual = getComputedStyle(table);
+    var borderLeftWidth = parseFloat(visual.borderLeftWidth) || 0;
+    var borderTopWidth = parseFloat(visual.borderTopWidth) || 0;
     var proxy = document.createElement('div');
 
     proxy.className = 'pmd-v160-drag-proxy pmd-v160-dragging-table';
@@ -526,8 +528,8 @@
 
       badge.className = 'pmd-v160-proxy-corner-badge pmd-v160-proxy-corner-badge-' + index;
       setImportant(badge, 'position', 'absolute');
-      setImportant(badge, 'left', (badgeRect.left - tableRect.left).toFixed(2) + 'px');
-      setImportant(badge, 'top', (badgeRect.top - tableRect.top).toFixed(2) + 'px');
+      setImportant(badge, 'left', (badgeRect.left - tableRect.left - borderLeftWidth).toFixed(2) + 'px');
+      setImportant(badge, 'top', (badgeRect.top - tableRect.top - borderTopWidth).toFixed(2) + 'px');
       setImportant(badge, 'right', 'auto');
       setImportant(badge, 'bottom', 'auto');
       setImportant(badge, 'width', badgeRect.width + 'px');
@@ -1066,7 +1068,7 @@
       var tableNodes = map ? map.querySelectorAll('.pmd-w5-table[data-table]') : [];
       var api = window.PMDWaiterV61StableKioskNoJump || window.PMDWaiterV60No404SmartSnap;
       var out = {
-        version: 'pmd-waiter-floor-edit-v160.8',
+        version: 'pmd-waiter-floor-edit-v160.9',
         active: true,
         editing: isEditing(),
         toolbarEdit: !!(toolbarState() && toolbarState().edit),
@@ -1076,6 +1078,7 @@
         collisionMode: 'drop-only-nearest-free',
         dragVisual: 'body-fixed-clean-shell',
         proxyContent: 'one-number-visible-corner-badges-only',
+        badgeOrigin: 'border-box-corrected',
         tableGap: TABLE_GAP,
         dropAdjustments: dropAdjustments,
         proxyMoves: proxyMoves,
@@ -1113,5 +1116,5 @@
     }
   };
 
-  console.info('[PMD] Waiter floor edit V160.8 clean number-badge proxy authority active');
+  console.info('[PMD] Waiter floor edit V160.9 border-corrected number-badge proxy authority active');
 })();
