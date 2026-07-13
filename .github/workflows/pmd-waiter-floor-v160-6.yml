@@ -1,0 +1,42 @@
+name: PMD waiter floor V160.6 body fixed proxy
+
+on:
+  push:
+    branches:
+      - agent/waiter-floor-edit-layout-smooth-final
+    paths:
+      - .github/workflows/pmd-waiter-floor-v160-6.yml
+      - .github/pmd_v160_6_patch.py
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: agent/waiter-floor-edit-layout-smooth-final
+          fetch-depth: 0
+
+      - name: Patch V160.6
+        run: |
+          python3 .github/pmd_v160_6_patch.py app/admin/assets/js/pmd-waiter-floor-edit-v160.js
+          node --check app/admin/assets/js/pmd-waiter-floor-edit-v160.js
+          grep -Fq "pmd-waiter-floor-edit-v160.6" app/admin/assets/js/pmd-waiter-floor-edit-v160.js
+          grep -Fq "body-fixed-classless-proxy" app/admin/assets/js/pmd-waiter-floor-edit-v160.js
+          grep -Fq "document.body.appendChild(proxy)" app/admin/assets/js/pmd-waiter-floor-edit-v160.js
+          grep -Fq "proxy.className = 'pmd-v160-drag-proxy pmd-v160-dragging-table'" app/admin/assets/js/pmd-waiter-floor-edit-v160.js
+          grep -Fq "setImportant(proxy, 'position', 'fixed')" app/admin/assets/js/pmd-waiter-floor-edit-v160.js
+          ! grep -Fq "map.appendChild(proxy)" app/admin/assets/js/pmd-waiter-floor-edit-v160.js
+          ! grep -Fq "writeCenter(drag.proxy, desired, mapRect)" app/admin/assets/js/pmd-waiter-floor-edit-v160.js
+
+      - name: Commit patch and remove temporary workflow
+        run: |
+          rm -f .github/workflows/pmd-waiter-floor-v160-6.yml .github/pmd_v160_6_patch.py
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add app/admin/assets/js/pmd-waiter-floor-edit-v160.js .github
+          git commit -m "Fix waiter floor drag proxy isolation V160.6 [skip ci]"
+          git push origin HEAD:agent/waiter-floor-edit-layout-smooth-final
