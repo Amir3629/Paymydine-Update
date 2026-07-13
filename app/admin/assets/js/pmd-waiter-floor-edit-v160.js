@@ -11,18 +11,20 @@
   var EDIT_SELECTOR = ROOT_SELECTOR + ' [data-w19-edit]';
   var SAVE_SELECTOR = ROOT_SELECTOR + ' [data-w19-save]';
   var COMPACT_SELECTOR = ROOT_SELECTOR + ' .pmd-w19-tools button[data-w19-compact]';
-  var MAP_PAD = 12;
-  var TABLE_GAP = 8;
-  var MOVE_STEP = 4;
+  var MAP_PAD = 14;
+  var TABLE_GAP = 10;
+  var MOVE_STEP = 3;
 
   var drag = null;
   var pendingPoint = null;
   var moveRaf = 0;
   var suppressClickUntil = 0;
-  var legendCreated = false;
   var observer = null;
   var observedRoot = null;
   var applyTimer = 0;
+  var editSnapshot = null;
+  var recoveryRuns = 0;
+  var recoveredColumnLayouts = 0;
 
   function root() {
     return document.querySelector(ROOT_SELECTOR);
@@ -33,6 +35,11 @@
     return r ? r.querySelector('.pmd-w5-floor-map-real') : null;
   }
 
+  function tables() {
+    var map = floorMap();
+    return map ? Array.prototype.slice.call(map.querySelectorAll('.pmd-w5-table[data-table]')) : [];
+  }
+
   function isEditing() {
     var r = root();
     return !!(r && r.classList.contains('pmd-w19-editing'));
@@ -40,7 +47,11 @@
 
   function isCompact() {
     var r = root();
-    return !!(r && r.classList.contains('pmd-w19-compact'));
+    var map = floorMap();
+    return !!(
+      (r && (r.classList.contains('pmd-w19-compact') || r.classList.contains('pmd-w89-compact'))) ||
+      (map && map.classList.contains('pmd-v40-compact-authority') && !map.hasAttribute('data-pmd-v153-save-shield'))
+    );
   }
 
   function clamp(value, min, max) {
@@ -51,10 +62,27 @@
     return (Math.round(value * 100) / 100).toFixed(2) + '%';
   }
 
+  function parsePercent(value) {
+    var parsed = parseFloat(String(value == null ? '' : value).replace('%', ''));
+    return Number.isFinite(parsed) ? parsed : null;
+  }
+
   function distanceSquared(a, b) {
     var dx = a.x - b.x;
     var dy = a.y - b.y;
     return dx * dx + dy * dy;
+  }
+
+  function setImportant(element, property, value) {
+    if (!element || !element.style) return;
+    element.style.setProperty(property, value, 'important');
+  }
+
+  function markAuthority() {
+    var r = root();
+    var map = floorMap();
+    if (r) r.classList.add('pmd-v160-layout-authority');
+    if (map) map.setAttribute('data-pmd-v160-layout-authority', '1');
   }
 
   function tableFromEvent(event) {
@@ -62,6 +90,94 @@
     if (!target) return null;
     if (target.closest('button, a, input, textarea, select, [role="button"], .pmd-w19-unmerge, .pmd-v40-unmerge')) return null;
     return target.closest(TABLE_SELECTOR);
+  }
+
+  function tableKey(table, index) {
+    return String(table && table.getAttribute('data-table') || ('index-' + index));
+  }
+
+  function captureLayout() {
+    var map = floorMap();
+    if (!map) return null;
+    var mapRect = map.getBoundingClientRect();
+    if (!mapRect.width || !mapRect.height) return null;
+
+    return tables().map(function (table, index) {
+      var rect = table.getBoundingClientRect();
+      var leftPercent = parsePercent(table.style.left);
+      var topPercent = parsePercent(table.style.top);
+      var xRatio = leftPercent === null
+        ? (rect.left - mapRect.left + rect.width / 2) / mapRect.width
+        : leftPercent / 100;
+      var yRatio = topPercent === null
+        ? (rect.top - mapRect.top + rect.height / 2) / mapRect.height
+        : topPercent / 100;
+
+      return {
+        key: tableKey(table, index),
+        table: table,
+        xRatio: xRatio,
+        yRatio: yRatio
+      };
+    });
+  }
+
+  function writeRatio(table, xRatio, yRatio) {
+    if (!table) return;
+    setImportant(table, 'left', percent(xRatio * 100));
+    setImportant(table, 'top', percent(yRatio * 100));
+    setImportant(table, 'position', 'absolute');
+    setImportant(table, 'right', 'auto');
+    setImportant(table, 'bottom', 'auto');
+    setImportant(table, 'margin', '0');
+    setImportant(table, 'transform', 'translate(-50%, -50%)');
+  }
+
+  function restoreLayout(snapshot) {
+    if (!snapshot || !snapshot.length) return false;
+    var current = tables();
+    var byKey = new Map();
+    current.forEach(function (table, index) {
+      byKey.set(tableKey(table, index), table);
+    });
+
+    snapshot.forEach(function (item) {
+      var table = item.table && item.table.isConnected ? item.table : byKey.get(item.key);
+      if (table) writeRatio(table, item.xRatio, item.yRatio);
+    });
+    return true;
+  }
+
+  function forceExpanded() {
+    if (!isCompact()) return;
+    if (window.PMDFloorDeterministicV190 && typeof window.PMDFloorDeterministicV190.expand === 'function') {
+      window.PMDFloorDeterministicV190.expand();
+      return;
+    }
+    var button = document.querySelector(COMPACT_SELECTOR);
+    if (button) button.click();
+  }
+
+  function freezeEditGeometry(snapshot) {
+    var r = root();
+    if (!r) return;
+    r.classList.add('pmd-v160-edit-freeze');
+    restoreLayout(snapshot);
+
+    requestAnimationFrame(function () {
+      markAuthority();
+      restoreLayout(snapshot);
+    });
+    setTimeout(function () {
+      markAuthority();
+      restoreLayout(snapshot);
+    }, 40);
+    setTimeout(function () {
+      markAuthority();
+      restoreLayout(snapshot);
+      repairBrokenColumnLayout();
+      r.classList.remove('pmd-v160-edit-freeze');
+    }, 180);
   }
 
   function tableRectAt(center, width, height) {
@@ -73,12 +189,13 @@
     };
   }
 
-  function rectanglesOverlap(a, b) {
+  function rectanglesOverlap(a, b, gap) {
+    gap = typeof gap === 'number' ? gap : TABLE_GAP;
     return !(
-      a.right + TABLE_GAP <= b.left ||
-      a.left >= b.right + TABLE_GAP ||
-      a.bottom + TABLE_GAP <= b.top ||
-      a.top >= b.bottom + TABLE_GAP
+      a.right + gap <= b.left ||
+      a.left >= b.right + gap ||
+      a.bottom + gap <= b.top ||
+      a.top >= b.bottom + gap
     );
   }
 
@@ -86,7 +203,7 @@
     var map = floorMap();
     if (!map) return [];
 
-    return Array.prototype.slice.call(map.querySelectorAll('.pmd-w5-table[data-table]')).filter(function (table) {
+    return tables().filter(function (table) {
       if (!table || table === ignoreTable) return false;
       var style = getComputedStyle(table);
       return style.display !== 'none' && style.visibility !== 'hidden' && Number(style.opacity) !== 0;
@@ -105,7 +222,7 @@
   function centerIsClear(center, width, height, occupied) {
     var candidate = tableRectAt(center, width, height);
     return !occupied.some(function (rect) {
-      return rectanglesOverlap(candidate, rect);
+      return rectanglesOverlap(candidate, rect, TABLE_GAP);
     });
   }
 
@@ -132,26 +249,26 @@
   }
 
   function resolveCenter(desired, state, occupied) {
-    var line = walkUntilBlocked(state.lastValid, desired, state.width, state.height, occupied);
-    if (distanceSquared(line, desired) < 1 && centerIsClear(desired, state.width, state.height, occupied)) {
+    if (centerIsClear(desired, state.width, state.height, occupied)) {
       return desired;
     }
+
+    var line = walkUntilBlocked(state.lastValid, desired, state.width, state.height, occupied);
     var horizontal = walkUntilBlocked(line, {x:desired.x, y:line.y}, state.width, state.height, occupied);
     var vertical = walkUntilBlocked(line, {x:line.x, y:desired.y}, state.width, state.height, occupied);
-    var candidates = [line, horizontal, vertical];
+    var candidates = [line, horizontal, vertical].filter(function (point) {
+      return centerIsClear(point, state.width, state.height, occupied);
+    });
 
+    if (!candidates.length) return state.lastValid;
     candidates.sort(function (a, b) {
       return distanceSquared(a, desired) - distanceSquared(b, desired);
     });
-
-    return candidates[0] || state.lastValid;
+    return candidates[0];
   }
 
   function writeCenter(table, center, mapRect) {
-    table.style.left = percent((center.x / mapRect.width) * 100);
-    table.style.top = percent((center.y / mapRect.height) * 100);
-    table.style.position = 'absolute';
-    table.style.transform = 'translate(-50%, -50%)';
+    writeRatio(table, center.x / mapRect.width, center.y / mapRect.height);
   }
 
   function applyPendingMove() {
@@ -177,7 +294,7 @@
 
     var occupied = occupiedRects(drag.table, mapRect);
     var resolved = resolveCenter(desired, drag, occupied);
-    var blocked = distanceSquared(resolved, desired) > 2;
+    var blocked = distanceSquared(resolved, desired) > 3;
 
     writeCenter(drag.table, resolved, mapRect);
     drag.lastValid = resolved;
@@ -206,23 +323,21 @@
     });
   }
 
-  function startDrag(event) {
-    if (!isEditing() || isCompact()) return;
-    if (event.pointerType === 'mouse' && event.button !== 0) return;
-    if (event.isPrimary === false) return;
-
-    var table = tableFromEvent(event);
-    if (!table) return;
-    if (table.classList.contains('pmd-w19-in-merge') || table.classList.contains('pmd-v40-in-merge')) return;
+  function startDrag(event, table) {
+    if (!isEditing() || isCompact() || !table) return false;
+    if (event.pointerType === 'mouse' && event.button !== 0) return false;
+    if (event.isPrimary === false) return false;
+    if (table.classList.contains('pmd-w19-in-merge') || table.classList.contains('pmd-v40-in-merge')) return false;
 
     var map = floorMap();
-    if (!map) return;
+    if (!map) return false;
+
+    markAuthority();
+    disableLegacyPostDropSnap();
 
     var mapRect = map.getBoundingClientRect();
     var tableRect = table.getBoundingClientRect();
-    if (!mapRect.width || !mapRect.height || !tableRect.width || !tableRect.height) return;
-
-    disableLegacyPostDropSnap();
+    if (!mapRect.width || !mapRect.height || !tableRect.width || !tableRect.height) return false;
 
     var startCenter = {
       x: tableRect.left - mapRect.left + tableRect.width / 2,
@@ -257,6 +372,7 @@
     event.preventDefault();
     event.stopPropagation();
     event.stopImmediatePropagation();
+    return true;
   }
 
   function moveDrag(event) {
@@ -300,7 +416,6 @@
 
     var r = root();
     if (r) r.classList.remove('pmd-v160-floor-dragging');
-
     if (finished.moved) suppressClickUntil = Date.now() + 700;
 
     if (event) {
@@ -308,6 +423,118 @@
       event.stopPropagation();
       event.stopImmediatePropagation();
     }
+  }
+
+  function visibleRows() {
+    var map = floorMap();
+    if (!map) return [];
+    var mapRect = map.getBoundingClientRect();
+    return tables().filter(function (table) {
+      var style = getComputedStyle(table);
+      return style.display !== 'none' && style.visibility !== 'hidden' && Number(style.opacity) !== 0;
+    }).map(function (table) {
+      var rect = table.getBoundingClientRect();
+      return {
+        table: table,
+        rect: rect,
+        centerX: rect.left - mapRect.left + rect.width / 2,
+        centerY: rect.top - mapRect.top + rect.height / 2
+      };
+    });
+  }
+
+  function sortTablesForGrid(rows) {
+    return rows.slice().sort(function (a, b) {
+      var aNumber = parseFloat(String(a.table.getAttribute('data-table') || '').replace(/[^0-9.\-]/g, ''));
+      var bNumber = parseFloat(String(b.table.getAttribute('data-table') || '').replace(/[^0-9.\-]/g, ''));
+      if (Number.isFinite(aNumber) && Number.isFinite(bNumber) && aNumber !== bNumber) return aNumber - bNumber;
+      return String(a.table.getAttribute('data-table') || '').localeCompare(String(b.table.getAttribute('data-table') || ''));
+    });
+  }
+
+  function showRecoveryNotice() {
+    var map = floorMap();
+    if (!map || map.querySelector('.pmd-v160-recovery-notice')) return;
+    var notice = document.createElement('div');
+    notice.className = 'pmd-v160-recovery-notice';
+    notice.setAttribute('role', 'status');
+    notice.innerHTML = '<strong>Floor layout recovered</strong><span>The broken single-column layout was safely arranged. Open Edit Layout and press Save once to keep it.</span>';
+    map.appendChild(notice);
+    setTimeout(function () { notice.classList.add('is-visible'); }, 20);
+  }
+
+  function arrangeGrid(rows, mapRect) {
+    if (!rows.length || !mapRect.width || !mapRect.height) return false;
+    rows = sortTablesForGrid(rows);
+
+    var maxWidth = Math.max.apply(Math, rows.map(function (row) { return row.rect.width; }));
+    var maxHeight = Math.max.apply(Math, rows.map(function (row) { return row.rect.height; }));
+    var usableWidth = Math.max(maxWidth, mapRect.width - MAP_PAD * 2);
+    var usableHeight = Math.max(maxHeight, mapRect.height - MAP_PAD * 2);
+    var aspect = usableWidth / Math.max(1, usableHeight);
+    var shape = maxHeight / Math.max(1, maxWidth);
+    var columns = Math.ceil(Math.sqrt(rows.length * aspect * shape));
+    columns = clamp(columns, 2, rows.length);
+
+    while (columns > 2 && usableWidth / columns < maxWidth + TABLE_GAP) columns--;
+    var gridRows = Math.ceil(rows.length / columns);
+    while (gridRows * (maxHeight + TABLE_GAP) > usableHeight && columns < rows.length) {
+      columns++;
+      gridRows = Math.ceil(rows.length / columns);
+    }
+
+    var cellWidth = usableWidth / columns;
+    var cellHeight = usableHeight / gridRows;
+
+    rows.forEach(function (row, index) {
+      var column = index % columns;
+      var rowIndex = Math.floor(index / columns);
+      var center = {
+        x: MAP_PAD + cellWidth * (column + 0.5),
+        y: MAP_PAD + cellHeight * (rowIndex + 0.5)
+      };
+      writeCenter(row.table, center, mapRect);
+    });
+
+    return true;
+  }
+
+  function repairBrokenColumnLayout() {
+    recoveryRuns++;
+    var r = root();
+    var map = floorMap();
+    if (!r || !map || r.getAttribute('data-pmd-v160-column-recovered') === '1') return false;
+    if (drag) return false;
+
+    var mapRect = map.getBoundingClientRect();
+    var rows = visibleRows();
+    if (rows.length < 6 || !mapRect.width || !mapRect.height) return false;
+
+    var centersX = rows.map(function (row) { return row.centerX; });
+    var centersY = rows.map(function (row) { return row.centerY; });
+    var maxTableWidth = Math.max.apply(Math, rows.map(function (row) { return row.rect.width; }));
+    var maxTableHeight = Math.max.apply(Math, rows.map(function (row) { return row.rect.height; }));
+    var xSpan = Math.max.apply(Math, centersX) - Math.min.apply(Math, centersX);
+    var ySpan = Math.max.apply(Math, centersY) - Math.min.apply(Math, centersY);
+    var overflowCount = rows.filter(function (row) {
+      return row.rect.left < mapRect.left - 3 || row.rect.right > mapRect.right + 3 || row.rect.top < mapRect.top - 3 || row.rect.bottom > mapRect.bottom + 3;
+    }).length;
+
+    var clearlyOneColumn = xSpan <= Math.max(maxTableWidth * 1.35, mapRect.width * 0.10);
+    var cannotFitVertically = ySpan + maxTableHeight > mapRect.height - MAP_PAD * 2;
+    if (!clearlyOneColumn || (!cannotFitVertically && overflowCount === 0)) return false;
+
+    if (!arrangeGrid(rows, mapRect)) return false;
+    r.setAttribute('data-pmd-v160-column-recovered', '1');
+    recoveredColumnLayouts++;
+    showRecoveryNotice();
+    console.info('[PMD] V160 repaired invalid single-column waiter floor layout', {
+      tables: rows.length,
+      overflowCount: overflowCount,
+      xSpan: Math.round(xSpan),
+      ySpan: Math.round(ySpan)
+    });
+    return true;
   }
 
   function overlapPairs() {
@@ -319,7 +546,7 @@
 
     for (var i = 0; i < rows.length; i++) {
       for (var j = i + 1; j < rows.length; j++) {
-        if (rectanglesOverlap(rows[i], rows[j])) {
+        if (rectanglesOverlap(rows[i], rows[j], 0)) {
           pairs.push([
             rows[i].table.getAttribute('data-table') || '',
             rows[j].table.getAttribute('data-table') || ''
@@ -330,25 +557,12 @@
     return pairs;
   }
 
-  function ensureExpandedForEdit() {
-    setTimeout(function () {
-      if (!isEditing() || !isCompact()) return;
-      if (window.PMDFloorDeterministicV190 && typeof window.PMDFloorDeterministicV190.expand === 'function') {
-        window.PMDFloorDeterministicV190.expand();
-        return;
-      }
-      var button = document.querySelector(COMPACT_SELECTOR);
-      if (button) button.click();
-    }, 40);
-  }
-
   function ensureLegend() {
     var map = floorMap();
     if (!map) return;
 
     var button = map.querySelector(':scope > .pmd-v61-map-info-btn');
     var card = map.querySelector(':scope > .pmd-v61-map-legend');
-    var createdButton = false;
 
     if (!button) {
       button = document.createElement('button');
@@ -356,15 +570,12 @@
       button.className = 'pmd-v61-map-info-btn';
       button.textContent = 'i';
       map.appendChild(button);
-      createdButton = true;
-      legendCreated = true;
     }
 
     if (!card) {
       card = document.createElement('div');
       card.className = 'pmd-v61-map-legend';
       map.appendChild(card);
-      legendCreated = true;
     }
 
     button.id = 'pmd-v160-floor-info-button';
@@ -386,7 +597,7 @@
       ].join('');
     }
 
-    if (createdButton && button.getAttribute('data-pmd-v160-click-bound') !== '1') {
+    if (button.getAttribute('data-pmd-v160-click-bound') !== '1') {
       button.setAttribute('data-pmd-v160-click-bound', '1');
       button.addEventListener('click', function (event) {
         event.preventDefault();
@@ -400,43 +611,81 @@
     clearTimeout(applyTimer);
     applyTimer = setTimeout(function () {
       bindObserver();
+      markAuthority();
       disableLegacyPostDropSnap();
       ensureLegend();
-    }, 40);
+      repairBrokenColumnLayout();
+    }, 60);
   }
 
-  window.addEventListener('pointerdown', startDrag, true);
-  window.addEventListener('pointermove', moveDrag, true);
-  window.addEventListener('pointerup', finishDrag, true);
-  window.addEventListener('pointercancel', finishDrag, true);
-  window.addEventListener('blur', finishDrag, true);
+  function onPointerDown(event) {
+    var target = event && event.target && event.target.nodeType === 1 ? event.target : null;
+    if (!target) return;
 
-  window.addEventListener('click', function (event) {
+    if (target.closest(EDIT_SELECTOR)) {
+      markAuthority();
+      forceExpanded();
+      editSnapshot = captureLayout();
+      return;
+    }
+
+    var table = tableFromEvent(event);
+    if (table) startDrag(event, table);
+  }
+
+  function onClickCapture(event) {
     var target = event.target && event.target.nodeType === 1 ? event.target : null;
+    if (!target) return;
 
-    if (Date.now() < suppressClickUntil && target && target.closest(TABLE_SELECTOR)) {
+    if (Date.now() < suppressClickUntil && target.closest(TABLE_SELECTOR)) {
       event.preventDefault();
       event.stopPropagation();
       event.stopImmediatePropagation();
       return;
     }
 
-    if (target && target.closest(EDIT_SELECTOR)) {
-      ensureExpandedForEdit();
-      setTimeout(disableLegacyPostDropSnap, 0);
-      setTimeout(disableLegacyPostDropSnap, 260);
+    if (target.closest(EDIT_SELECTOR)) {
+      markAuthority();
+      forceExpanded();
+      var snapshot = editSnapshot || captureLayout();
+      editSnapshot = null;
+      setTimeout(function () { freezeEditGeometry(snapshot); }, 0);
+      setTimeout(disableLegacyPostDropSnap, 220);
+      return;
     }
 
-    if (target && target.closest(SAVE_SELECTOR)) {
-      setTimeout(disableLegacyPostDropSnap, 0);
-      setTimeout(disableLegacyPostDropSnap, 260);
+    if (target.closest(SAVE_SELECTOR)) {
+      var r = root();
+      var snapshotBeforeSave = captureLayout();
+      if (r) r.classList.add('pmd-v160-saving');
+      markAuthority();
+      restoreLayout(snapshotBeforeSave);
+      disableLegacyPostDropSnap();
+      requestAnimationFrame(function () { restoreLayout(snapshotBeforeSave); });
+      setTimeout(function () {
+        restoreLayout(snapshotBeforeSave);
+        disableLegacyPostDropSnap();
+      }, 80);
+      setTimeout(function () {
+        if (r) r.classList.remove('pmd-v160-saving');
+      }, 2600);
     }
-  }, true);
+  }
+
+  window.addEventListener('pointerdown', onPointerDown, true);
+  window.addEventListener('pointermove', moveDrag, true);
+  window.addEventListener('pointerup', finishDrag, true);
+  window.addEventListener('pointercancel', finishDrag, true);
+  window.addEventListener('blur', finishDrag, true);
+  window.addEventListener('click', onClickCapture, true);
 
   document.addEventListener('pmd-waiter-dashboard-rendered', function () {
     scheduleApply();
-    setTimeout(disableLegacyPostDropSnap, 180);
-    setTimeout(ensureLegend, 220);
+    setTimeout(function () {
+      markAuthority();
+      disableLegacyPostDropSnap();
+      repairBrokenColumnLayout();
+    }, 220);
   }, true);
 
   function bindObserver() {
@@ -449,34 +698,49 @@
   }
 
   bindObserver();
+  markAuthority();
   disableLegacyPostDropSnap();
   ensureLegend();
-  setTimeout(disableLegacyPostDropSnap, 220);
-  setTimeout(ensureLegend, 260);
+  setTimeout(function () {
+    markAuthority();
+    disableLegacyPostDropSnap();
+    repairBrokenColumnLayout();
+  }, 260);
+  setTimeout(repairBrokenColumnLayout, 900);
 
   window.PMDWaiterFloorEditV160 = {
     active: true,
     apply: function () {
+      markAuthority();
       disableLegacyPostDropSnap();
       ensureLegend();
+      repairBrokenColumnLayout();
+    },
+    recoverColumn: function () {
+      var r = root();
+      if (r) r.removeAttribute('data-pmd-v160-column-recovered');
+      return repairBrokenColumnLayout();
     },
     overlaps: overlapPairs,
     debug: function () {
       var map = floorMap();
-      var tables = map ? map.querySelectorAll('.pmd-w5-table[data-table]') : [];
+      var tableNodes = map ? map.querySelectorAll('.pmd-w5-table[data-table]') : [];
       var api = window.PMDWaiterV61StableKioskNoJump || window.PMDWaiterV60No404SmartSnap;
       var out = {
-        version: 'pmd-waiter-floor-edit-v160',
+        version: 'pmd-waiter-floor-edit-v160.2',
         active: true,
         editing: isEditing(),
         compact: isCompact(),
         dragging: !!drag,
-        tableCount: tables.length,
+        tableCount: tableNodes.length,
         overlapPairs: overlapPairs(),
         legacyPostDropSnapDisabled: !!(api && api.__pmdV160NoPostDropSnap),
+        authorityClass: !!(root() && root().classList.contains('pmd-v160-layout-authority')),
+        recoveryRuns: recoveryRuns,
+        recoveredColumnLayouts: recoveredColumnLayouts,
+        columnRecovered: !!(root() && root().getAttribute('data-pmd-v160-column-recovered') === '1'),
         legendButton: !!document.querySelector(MAP_SELECTOR + ' .pmd-v61-map-info-btn'),
-        legendCard: !!document.querySelector(MAP_SELECTOR + ' .pmd-v61-map-legend'),
-        legendCreatedByV160: legendCreated
+        legendCard: !!document.querySelector(MAP_SELECTOR + ' .pmd-v61-map-legend')
       };
       console.log(out);
       return out;
@@ -490,5 +754,5 @@
     }
   };
 
-  console.info('[PMD] Waiter floor edit V160 smooth no-overlap authority active');
+  console.info('[PMD] Waiter floor edit V160.2 stable absolute drag authority active');
 })();
