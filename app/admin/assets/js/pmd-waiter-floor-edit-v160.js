@@ -95,11 +95,64 @@
     element.style.setProperty(property, value, 'important');
   }
 
+  /* V175c globally writes transform:none to anything it identifies as a floor
+   * tile. Expanded waiter-floor coordinates are stored as CENTER percentages,
+   * so removing translate(-50%, -50%) shifts a table by half its own size.
+   * Block only that invalid write, and only for registered real floor tables. */
+  var transformStyleOwners = window.PMD_V160_TRANSFORM_STYLE_OWNERS || new WeakMap();
+  window.PMD_V160_TRANSFORM_STYLE_OWNERS = transformStyleOwners;
+
+  function installRealTableTransformGuard() {
+    if (window.PMD_V160_REAL_TABLE_TRANSFORM_GUARD) return;
+
+    var originalSetProperty = CSSStyleDeclaration.prototype.setProperty;
+    window.PMD_V160_ORIGINAL_STYLE_SET_PROPERTY = originalSetProperty;
+
+    CSSStyleDeclaration.prototype.setProperty = function (property, value, priority) {
+      var owner = transformStyleOwners.get(this);
+      var prop = String(property == null ? '' : property).toLowerCase();
+      var val = String(value == null ? '' : value).replace(/\s+/g, ' ').trim().toLowerCase();
+
+      if (
+        owner &&
+        owner.isConnected &&
+        prop === 'transform' &&
+        val === 'none' &&
+        !isCompact()
+      ) {
+        var map = floorMap();
+        if (map && map.contains(owner)) {
+          return originalSetProperty.call(
+            this,
+            property,
+            'translate(-50%, -50%)',
+            'important'
+          );
+        }
+      }
+
+      return originalSetProperty.apply(this, arguments);
+    };
+
+    window.PMD_V160_REAL_TABLE_TRANSFORM_GUARD = true;
+  }
+
+  function registerRealTableTransforms() {
+    installRealTableTransformGuard();
+
+    tables().forEach(function (table) {
+      if (!table || !table.style) return;
+      transformStyleOwners.set(table.style, table);
+      setImportant(table, 'transform', 'translate(-50%, -50%)');
+    });
+  }
+
   function markAuthority() {
     var r = root();
     var map = floorMap();
     if (r) r.classList.add('pmd-v160-layout-authority');
     if (map) map.setAttribute('data-pmd-v160-layout-authority', '1');
+    registerRealTableTransforms();
   }
 
   /* The floor tile itself is a button. Resolve the tile first and reject only
@@ -328,11 +381,30 @@
     stripProxyIdentity(proxy);
 
     proxy.setAttribute('data-pmd-v160-proxy-table', table.getAttribute('data-table') || '');
-    proxy.removeAttribute('data-table');
 
-    /* Critical isolation: V175c/V183 search globally for the real floor-table
-     * classes. Keep none of those classes on the proxy. */
-    proxy.className = 'pmd-v160-drag-proxy pmd-v160-dragging-table';
+    [
+      'data-table',
+      'data-table-number',
+      'data-table-no',
+      'data-pmd-table-number',
+      'data-pmd-table-no'
+    ].forEach(function (attribute) {
+      proxy.removeAttribute(attribute);
+    });
+
+    /* Keep visual/status classes needed by the number and top-right badges, but
+     * remove every selector used by V175c/V183 to identify a live floor tile. */
+    var unsafeProxyClasses = new Set([
+      'pmd-w5-table',
+      'pmd-v155-table',
+      'pmd-floor-table',
+      'pmd-waiter-floor-table'
+    ]);
+    var safeProxyClasses = Array.prototype.slice.call(table.classList).filter(function (className) {
+      return !unsafeProxyClasses.has(className) && className.indexOf('pmd-v160-') !== 0;
+    });
+    safeProxyClasses.push('pmd-v160-drag-proxy', 'pmd-v160-dragging-table');
+    proxy.className = safeProxyClasses.join(' ');
     proxy.setAttribute('data-pmd-v160-proxy', '1');
     proxy.setAttribute('aria-hidden', 'true');
     proxy.setAttribute('tabindex', '-1');
@@ -376,7 +448,7 @@
     setImportant(proxy, 'visibility', 'visible');
     setImportant(proxy, 'opacity', '1');
     setImportant(proxy, 'z-index', '2147483000');
-    setImportant(proxy, 'contain', 'layout paint style');
+    setImportant(proxy, 'contain', 'none');
     setImportant(proxy, 'isolation', 'isolate');
     setImportant(proxy, 'will-change', 'left, top');
     setImportant(proxy, 'user-select', 'none');
@@ -540,7 +612,9 @@
     if (mapRect && mapRect.width && mapRect.height && finished.table && finished.table.isConnected) {
       var occupied = occupiedRects(finished.table, mapRect);
       settled = nearestFreeCenter(desired, finished, occupied, mapRect);
+      transformStyleOwners.set(finished.table.style, finished.table);
       writeCenter(finished.table, settled, mapRect);
+      setImportant(finished.table, 'transform', 'translate(-50%, -50%)');
     }
 
     var adjusted = distanceSquared(settled, desired) > 1;
@@ -897,7 +971,7 @@
       var tableNodes = map ? map.querySelectorAll('.pmd-w5-table[data-table]') : [];
       var api = window.PMDWaiterV61StableKioskNoJump || window.PMDWaiterV60No404SmartSnap;
       var out = {
-        version: 'pmd-waiter-floor-edit-v160.6',
+        version: 'pmd-waiter-floor-edit-v160.7',
         active: true,
         editing: isEditing(),
         toolbarEdit: !!(toolbarState() && toolbarState().edit),
@@ -905,11 +979,17 @@
         compact: isCompact(),
         dragging: !!drag,
         collisionMode: 'drop-only-nearest-free',
-        dragVisual: 'body-fixed-classless-proxy',
+        dragVisual: 'body-fixed-safe-visual-proxy',
         tableGap: TABLE_GAP,
         dropAdjustments: dropAdjustments,
         proxyMoves: proxyMoves,
         proxyActive: !!(drag && drag.proxy && drag.proxy.isConnected),
+        transformGuardActive: !!window.PMD_V160_REAL_TABLE_TRANSFORM_GUARD,
+        transformMismatchTables: Array.prototype.slice.call(tableNodes).filter(function (table) {
+          return table.style.getPropertyValue('transform') !== 'translate(-50%, -50%)';
+        }).map(function (table) {
+          return table.getAttribute('data-table') || '';
+        }),
         tableCount: tableNodes.length,
         overlapPairs: overlapPairs(),
         legacyPostDropSnapDisabled: !!(api && api.__pmdV160NoPostDropSnap),
@@ -937,5 +1017,5 @@
     }
   };
 
-  console.info('[PMD] Waiter floor edit V160.6 body-fixed classless proxy authority active');
+  console.info('[PMD] Waiter floor edit V160.7 transform-guard badge-attached authority active');
 })();
