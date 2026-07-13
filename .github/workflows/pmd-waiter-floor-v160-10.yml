@@ -1,0 +1,517 @@
+name: PMD Waiter Floor V160.10
+
+on:
+  push:
+    branches:
+      - agent/waiter-floor-edit-layout-smooth-final
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: agent/waiter-floor-edit-layout-smooth-final
+          fetch-depth: 0
+
+      - name: Patch V160.10 stable floor reconciliation
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+
+          path = Path('app/admin/assets/js/pmd-waiter-floor-edit-v160.js')
+          text = path.read_text(encoding='utf-8')
+
+          if 'pmd-waiter-floor-edit-v160.10' in text:
+              raise SystemExit('V160.10 is already present')
+
+          old_vars = """  var dropAdjustments = 0;
+  var proxyMoves = 0;
+"""
+          new_vars = """  var dropAdjustments = 0;
+  var proxyMoves = 0;
+
+  var stableFloorSection = null;
+  var stableFloorMap = null;
+  var stableFloorObserver = null;
+  var stableFloorInstallTimer = 0;
+  var stableFloorReconciling = false;
+  var stableFloorLastScrollTop = 0;
+  var stableFloorReplacementsBlocked = 0;
+  var stableFloorAdoptions = 0;
+  var stableFloorTablesAdded = 0;
+  var stableFloorTablesRemoved = 0;
+  var stableFloorStatusSyncs = 0;
+  var stableFloorNumberRepairs = 0;
+  var stableFloorBadgeSuppressions = 0;
+"""
+          if old_vars not in text:
+              raise SystemExit('Variable anchor not found')
+          text = text.replace(old_vars, new_vars, 1)
+
+          anchor = """  function scheduleApply() {
+"""
+
+          stable_code = r'''  function stableFloorSectionFromRoot(currentRoot) {
+    if (!currentRoot) return null;
+    var sections = Array.prototype.slice.call(currentRoot.querySelectorAll('section.pmd-w5-floor'));
+    for (var index = 0; index < sections.length; index++) {
+      if (sections[index].querySelector('.pmd-w5-floor-map-real')) return sections[index];
+    }
+    return null;
+  }
+
+  function stableFloorTables(map) {
+    return map
+      ? Array.prototype.slice.call(map.querySelectorAll('.pmd-w5-table[data-table]:not(.pmd-v160-drag-proxy)'))
+      : [];
+  }
+
+  function stableFloorTableNo(table) {
+    return String(table && table.getAttribute('data-table') || '').trim();
+  }
+
+  function stableFloorCleanText(value) {
+    return String(value == null ? '' : value).replace(/\s+/g, ' ').trim();
+  }
+
+  function stableFloorTableMap(map) {
+    var out = new Map();
+    stableFloorTables(map).forEach(function (table) {
+      var number = stableFloorTableNo(table);
+      if (number && !out.has(number)) out.set(number, table);
+    });
+    return out;
+  }
+
+  function stableFloorOrderCountChildren(table) {
+    if (!table) return [];
+    return Array.prototype.slice.call(table.children).filter(function (child) {
+      if (!child || child.nodeType !== 1) return false;
+      if (child.classList.contains('pmd-v175c-table-number')) return false;
+      if (child.classList.contains('pmd-v175c-attention-badge')) return false;
+      var className = String(child.className || '');
+      return child.tagName === 'SMALL' || /order[-_ ]?count|pmd-v183-order-count-badge/i.test(className);
+    });
+  }
+
+  function stableFloorEnsureNumber(table) {
+    if (!table) return null;
+    var number = stableFloorTableNo(table);
+    if (!number) return null;
+
+    var label = table.querySelector(':scope > .pmd-v175c-table-number');
+    if (!label) {
+      var children = Array.prototype.slice.call(table.children);
+      label = children.find(function (child) {
+        if (!child || child.tagName !== 'SPAN') return false;
+        if (child.classList.contains('pmd-v175c-attention-badge')) return false;
+        return stableFloorCleanText(child.textContent) === number;
+      }) || null;
+
+      if (!label) {
+        label = document.createElement('span');
+        table.appendChild(label);
+      }
+
+      label.classList.add('pmd-v175c-table-number');
+      stableFloorNumberRepairs++;
+    }
+
+    if (label.textContent !== number) {
+      label.textContent = number;
+      stableFloorNumberRepairs++;
+    }
+
+    label.classList.remove('pmd-v175c-hide-dupe-number');
+    label.removeAttribute('aria-hidden');
+    if (label.style.getPropertyValue('display') === 'none') label.style.removeProperty('display');
+
+    Array.prototype.slice.call(table.childNodes).forEach(function (node) {
+      if (node === label) return;
+
+      if (node.nodeType === 3) {
+        if (stableFloorCleanText(node.nodeValue) === number) node.nodeValue = '';
+        return;
+      }
+
+      if (node.nodeType !== 1) return;
+      var child = node;
+      if (child.classList.contains('pmd-v175c-attention-badge')) return;
+      if (stableFloorOrderCountChildren(table).indexOf(child) !== -1) return;
+      if (stableFloorCleanText(child.textContent) !== number) return;
+
+      child.classList.add('pmd-v175c-hide-dupe-number');
+      child.setAttribute('aria-hidden', 'true');
+      setImportant(child, 'display', 'none');
+    });
+
+    return label;
+  }
+
+  function stableFloorStabilizeBadges(table) {
+    if (!table) return;
+
+    var attentionBadges = Array.prototype.slice.call(
+      table.querySelectorAll(':scope > .pmd-v175c-attention-badge')
+    );
+
+    attentionBadges.forEach(function (badge, index) {
+      if (index > 0 && badge.parentNode) badge.parentNode.removeChild(badge);
+    });
+
+    var attention = attentionBadges.length ? attentionBadges[0] : null;
+    var counts = stableFloorOrderCountChildren(table);
+
+    counts.forEach(function (count, index) {
+      count.classList.add('pmd-v183-order-count-badge');
+
+      if (attention || index > 0) {
+        if (!count.classList.contains('pmd-v160-suppressed-order-count')) {
+          count.classList.add('pmd-v160-suppressed-order-count');
+          stableFloorBadgeSuppressions++;
+        }
+        setImportant(count, 'display', 'none');
+        count.setAttribute('aria-hidden', 'true');
+      } else {
+        count.classList.remove('pmd-v160-suppressed-order-count');
+        count.removeAttribute('aria-hidden');
+        if (count.style.getPropertyValue('display') === 'none') count.style.removeProperty('display');
+      }
+    });
+  }
+
+  function stableFloorNormalizeTable(table) {
+    if (!table) return;
+
+    table.classList.add('pmd-v175c-floor-tile');
+    transformStyleOwners.set(table.style, table);
+
+    setImportant(table, 'position', 'absolute');
+    setImportant(table, 'right', 'auto');
+    setImportant(table, 'bottom', 'auto');
+    setImportant(table, 'margin', '0');
+    setImportant(table, 'width', '104px');
+    setImportant(table, 'height', '86px');
+    setImportant(table, 'min-width', '104px');
+    setImportant(table, 'min-height', '86px');
+    setImportant(table, 'max-width', '104px');
+    setImportant(table, 'max-height', '86px');
+    setImportant(table, 'transform', 'translate(-50%, -50%)');
+    setImportant(table, 'transition', 'none');
+    setImportant(table, 'animation', 'none');
+    setImportant(table, 'overflow', 'visible');
+
+    stableFloorEnsureNumber(table);
+    stableFloorStabilizeBadges(table);
+  }
+
+  function stableFloorNormalizeAll() {
+    if (!stableFloorMap) return;
+    stableFloorTables(stableFloorMap).forEach(stableFloorNormalizeTable);
+  }
+
+  function stableFloorDataClasses() {
+    return [
+      'is-active', 'is-ready', 'is-payment', 'is-urgent', 'is-selected',
+      'has-orders', 'busy', 'available', 'free', 'payment', 'waiting',
+      'note', 'call', 'needs', 'attention'
+    ];
+  }
+
+  function stableFloorSyncOrderCount(stableTable, freshTable) {
+    var freshCounts = stableFloorOrderCountChildren(freshTable);
+    var stableCounts = stableFloorOrderCountChildren(stableTable);
+
+    if (!freshCounts.length) {
+      stableCounts.forEach(function (count) {
+        if (count.parentNode) count.parentNode.removeChild(count);
+      });
+      return;
+    }
+
+    var stableCount = stableCounts.length ? stableCounts[0] : null;
+    if (!stableCount) {
+      stableCount = freshCounts[0].cloneNode(true);
+      stableTable.appendChild(stableCount);
+    }
+
+    var nextText = stableFloorCleanText(freshCounts[0].textContent);
+    if (stableFloorCleanText(stableCount.textContent) !== nextText) stableCount.textContent = nextText;
+
+    stableCounts.slice(1).forEach(function (count) {
+      if (count.parentNode) count.parentNode.removeChild(count);
+    });
+  }
+
+  function stableFloorSyncTable(stableTable, freshTable) {
+    if (!stableTable || !freshTable) return;
+
+    stableFloorDataClasses().forEach(function (className) {
+      stableTable.classList.toggle(className, freshTable.classList.contains(className));
+    });
+
+    ['title', 'aria-label', 'aria-pressed'].forEach(function (attribute) {
+      var value = freshTable.getAttribute(attribute);
+      if (value == null) stableTable.removeAttribute(attribute);
+      else stableTable.setAttribute(attribute, value);
+    });
+
+    stableFloorSyncOrderCount(stableTable, freshTable);
+    stableFloorNormalizeTable(stableTable);
+    stableFloorStatusSyncs++;
+  }
+
+  function stableFloorInsertBeforeUi(table) {
+    if (!stableFloorMap || !table) return;
+    var anchor = stableFloorMap.querySelector(
+      ':scope > .pmd-v61-map-info-btn, :scope > .pmd-v61-map-legend, :scope > .pmd-v160-recovery-notice'
+    );
+    stableFloorMap.insertBefore(table, anchor || null);
+  }
+
+  function stableFloorAdopt(section) {
+    if (!section) return false;
+    var map = section.querySelector('.pmd-w5-floor-map-real');
+    if (!map) return false;
+
+    stableFloorSection = section;
+    stableFloorMap = map;
+    stableFloorAdoptions++;
+    stableFloorNormalizeAll();
+    return true;
+  }
+
+  function reconcileStableFloor(reason) {
+    var currentRoot = root();
+    if (!currentRoot || stableFloorReconciling) return false;
+
+    var freshSection = stableFloorSectionFromRoot(currentRoot);
+    if (!freshSection) return false;
+
+    if (!stableFloorSection || !stableFloorMap) {
+      return stableFloorAdopt(freshSection);
+    }
+
+    if (freshSection === stableFloorSection) {
+      stableFloorNormalizeAll();
+      return false;
+    }
+
+    var freshMap = freshSection.querySelector('.pmd-w5-floor-map-real');
+    if (!freshMap) return false;
+
+    stableFloorReconciling = true;
+
+    try {
+      var freshByNo = stableFloorTableMap(freshMap);
+      var stableByNo = stableFloorTableMap(stableFloorMap);
+
+      freshByNo.forEach(function (freshTable, number) {
+        var stableTable = stableByNo.get(number);
+        if (stableTable) {
+          stableFloorSyncTable(stableTable, freshTable);
+        } else {
+          stableFloorNormalizeTable(freshTable);
+          stableFloorInsertBeforeUi(freshTable);
+          stableFloorTablesAdded++;
+        }
+      });
+
+      if (freshByNo.size > 0) {
+        stableByNo.forEach(function (stableTable, number) {
+          if (!freshByNo.has(number)) {
+            if (stableTable.parentNode) stableTable.parentNode.removeChild(stableTable);
+            stableFloorTablesRemoved++;
+          }
+        });
+      }
+
+      freshSection.parentNode.replaceChild(stableFloorSection, freshSection);
+      stableFloorReplacementsBlocked++;
+      stableFloorNormalizeAll();
+      markAuthority();
+      ensureLegend();
+
+      currentRoot.scrollTop = stableFloorLastScrollTop;
+      return true;
+    } finally {
+      stableFloorReconciling = false;
+    }
+  }
+
+  function stableFloorMutationTouchesFloor(mutations) {
+    if (!stableFloorSection) return false;
+    return mutations.some(function (mutation) {
+      var target = mutation.target && mutation.target.nodeType === 1 ? mutation.target : null;
+      if (target && (target === stableFloorSection || stableFloorSection.contains(target))) return true;
+      return Array.prototype.slice.call(mutation.addedNodes || []).some(function (node) {
+        return node && node.nodeType === 1 && (
+          node === stableFloorSection ||
+          stableFloorSection.contains(node) ||
+          (node.contains && node.contains(stableFloorSection))
+        );
+      });
+    });
+  }
+
+  function installStableFloorReconciler() {
+    var currentRoot = root();
+
+    if (!currentRoot) {
+      clearTimeout(stableFloorInstallTimer);
+      stableFloorInstallTimer = setTimeout(installStableFloorReconciler, 40);
+      return;
+    }
+
+    if (!stableFloorSection) stableFloorAdopt(stableFloorSectionFromRoot(currentRoot));
+    if (stableFloorObserver) return;
+
+    stableFloorLastScrollTop = currentRoot.scrollTop || 0;
+    currentRoot.addEventListener('scroll', function () {
+      stableFloorLastScrollTop = currentRoot.scrollTop || 0;
+    }, {passive:true});
+
+    stableFloorObserver = new MutationObserver(function (mutations) {
+      if (stableFloorReconciling) return;
+
+      var currentSection = stableFloorSectionFromRoot(currentRoot);
+      if (currentSection && currentSection !== stableFloorSection) {
+        reconcileStableFloor('mutation-root-replacement');
+        return;
+      }
+
+      if (stableFloorMutationTouchesFloor(mutations)) stableFloorNormalizeAll();
+    });
+
+    stableFloorObserver.observe(currentRoot, {childList:true, subtree:true});
+  }
+
+  function stableFloorVisibleBadgeCount(table) {
+    if (!table) return 0;
+    var nodes = Array.prototype.slice.call(table.children).filter(function (child) {
+      return child.classList && (
+        child.classList.contains('pmd-v175c-attention-badge') ||
+        child.classList.contains('pmd-v183-order-count-badge') ||
+        child.tagName === 'SMALL'
+      );
+    });
+
+    return nodes.filter(function (node) {
+      var style = getComputedStyle(node);
+      return style.display !== 'none' && style.visibility !== 'hidden' && Number(style.opacity) !== 0;
+    }).length;
+  }
+
+'''
+
+          if anchor not in text:
+              raise SystemExit('scheduleApply anchor not found')
+          text = text.replace(anchor, stable_code + anchor, 1)
+
+          old_render_listener = """  document.addEventListener('pmd-waiter-dashboard-rendered', function () {
+    scheduleApply();
+"""
+          new_render_listener = """  document.addEventListener('pmd-waiter-dashboard-rendered', function () {
+    installStableFloorReconciler();
+    reconcileStableFloor('dashboard-rendered');
+    scheduleApply();
+"""
+          if old_render_listener not in text:
+              raise SystemExit('Rendered listener anchor not found')
+          text = text.replace(old_render_listener, new_render_listener, 1)
+
+          old_boot = """  bindObserver();
+  markAuthority();
+"""
+          new_boot = """  bindObserver();
+  installStableFloorReconciler();
+  reconcileStableFloor('v160-boot');
+  markAuthority();
+"""
+          if old_boot not in text:
+              raise SystemExit('Boot anchor not found')
+          text = text.replace(old_boot, new_boot, 1)
+
+          old_apply = """    apply: function () {
+      markAuthority();
+"""
+          new_apply = """    apply: function () {
+      installStableFloorReconciler();
+      reconcileStableFloor('manual-apply');
+      markAuthority();
+"""
+          if old_apply not in text:
+              raise SystemExit('API apply anchor not found')
+          text = text.replace(old_apply, new_apply, 1)
+
+          old_debug = """        badgeOrigin: 'border-box-corrected',
+        tableGap: TABLE_GAP,
+"""
+          new_debug = """        badgeOrigin: 'border-box-corrected',
+        floorDomMode: 'stable-section-reconcile',
+        stableFloorConnected: !!(stableFloorSection && stableFloorSection.isConnected),
+        stableFloorNodePreserved: stableFloorSectionFromRoot(root()) === stableFloorSection,
+        v5FloorReplacementsBlocked: stableFloorReplacementsBlocked,
+        stableFloorAdoptions: stableFloorAdoptions,
+        stableFloorTablesAdded: stableFloorTablesAdded,
+        stableFloorTablesRemoved: stableFloorTablesRemoved,
+        stableFloorStatusSyncs: stableFloorStatusSyncs,
+        canonicalNumberRepairs: stableFloorNumberRepairs,
+        suppressedSecondaryBadges: stableFloorBadgeSuppressions,
+        numberMismatchTables: Array.prototype.slice.call(tableNodes).filter(function (table) {
+          var number = table.getAttribute('data-table') || '';
+          var labels = table.querySelectorAll(':scope > .pmd-v175c-table-number');
+          return labels.length !== 1 || stableFloorCleanText(labels[0].textContent) !== number;
+        }).map(function (table) { return table.getAttribute('data-table') || ''; }),
+        multipleVisibleBadgeTables: Array.prototype.slice.call(tableNodes).filter(function (table) {
+          return stableFloorVisibleBadgeCount(table) > 1;
+        }).map(function (table) { return table.getAttribute('data-table') || ''; }),
+        tableGap: TABLE_GAP,
+"""
+          if old_debug not in text:
+              raise SystemExit('Debug anchor not found')
+          text = text.replace(old_debug, new_debug, 1)
+
+          old_stop = """    stop: function () {
+      if (observer) observer.disconnect();
+"""
+          new_stop = """    stop: function () {
+      if (observer) observer.disconnect();
+      if (stableFloorObserver) stableFloorObserver.disconnect();
+      clearTimeout(stableFloorInstallTimer);
+"""
+          if old_stop not in text:
+              raise SystemExit('Stop anchor not found')
+          text = text.replace(old_stop, new_stop, 1)
+
+          text = text.replace("version: 'pmd-waiter-floor-edit-v160.9'", "version: 'pmd-waiter-floor-edit-v160.10'", 1)
+          text = text.replace(
+              "console.info('[PMD] Waiter floor edit V160.9 border-corrected number-badge proxy authority active');",
+              "console.info('[PMD] Waiter floor edit V160.10 stable floor DOM + single badge authority active');",
+              1
+          )
+
+          path.write_text(text, encoding='utf-8')
+          PY
+
+          node --check app/admin/assets/js/pmd-waiter-floor-edit-v160.js
+          grep -Fq "pmd-waiter-floor-edit-v160.10" app/admin/assets/js/pmd-waiter-floor-edit-v160.js
+          grep -Fq "floorDomMode: 'stable-section-reconcile'" app/admin/assets/js/pmd-waiter-floor-edit-v160.js
+          grep -Fq "reconcileStableFloor('dashboard-rendered')" app/admin/assets/js/pmd-waiter-floor-edit-v160.js
+          grep -Fq "multipleVisibleBadgeTables" app/admin/assets/js/pmd-waiter-floor-edit-v160.js
+          grep -Fq "stableFloorReplacementsBlocked" app/admin/assets/js/pmd-waiter-floor-edit-v160.js
+
+      - name: Commit validated V160.10 and remove temporary files
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add app/admin/assets/js/pmd-waiter-floor-edit-v160.js
+          git rm -f .github/workflows/pmd-waiter-floor-v160-10.yml
+          git rm -f .github/pmd_floor_v175_v183_extract.txt || true
+          git commit -m "Fix waiter floor polling jumps with stable DOM reconciliation"
+          git push origin HEAD:agent/waiter-floor-edit-layout-smooth-final
