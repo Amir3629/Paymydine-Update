@@ -1,0 +1,41 @@
+name: PMD Waiter Floor V160.4
+
+on:
+  push:
+    branches:
+      - agent/waiter-floor-edit-layout-smooth-final
+    paths:
+      - .github/workflows/pmd-waiter-floor-v160-4.yml
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: agent/waiter-floor-edit-layout-smooth-final
+          fetch-depth: 0
+
+      - name: Apply V160.4 patch
+        run: python3 .github/pmd_waiter_floor_v160_4_patch.py
+
+      - name: Validate JavaScript
+        run: |
+          node --check app/admin/assets/js/pmd-waiter-floor-edit-v160.js
+          grep -Fq "pmd-waiter-floor-edit-v160.4" app/admin/assets/js/pmd-waiter-floor-edit-v160.js
+          grep -Fq "collisionMode: 'drop-only-nearest-free'" app/admin/assets/js/pmd-waiter-floor-edit-v160.js
+          ! grep -Fq "function walkUntilBlocked" app/admin/assets/js/pmd-waiter-floor-edit-v160.js
+          ! grep -Fq "function resolveCenter" app/admin/assets/js/pmd-waiter-floor-edit-v160.js
+
+      - name: Commit clean result
+        run: |
+          rm -f .github/pmd_waiter_floor_v160_4_patch.py
+          rm -f .github/workflows/pmd-waiter-floor-v160-4.yml
+          git config user.name "PMD GitHub Agent"
+          git config user.email "actions@github.com"
+          git add -A
+          git commit -m "Use drop-only collision resolution for waiter floor"
+          git push origin HEAD:agent/waiter-floor-edit-layout-smooth-final
