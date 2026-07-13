@@ -1,0 +1,74 @@
+name: PMD Inspect V175 V183
+
+on:
+  push:
+    branches:
+      - agent/waiter-floor-edit-layout-smooth-final
+
+permissions:
+  contents: write
+
+jobs:
+  inspect:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: agent/waiter-floor-edit-layout-smooth-final
+          fetch-depth: 0
+
+      - name: Extract relevant waiter floor authorities
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+
+          path = Path('app/admin/views/_layouts/default.blade.php')
+          lines = path.read_text(encoding='utf-8').splitlines()
+          needles = [
+              'V175c',
+              'v175c',
+              'pmd-v175c-table-number',
+              'V183',
+              'v183',
+              'single badge authority',
+              'no-dupe no-blink',
+          ]
+
+          hits = []
+          for i, line in enumerate(lines):
+              if any(n in line for n in needles):
+                  hits.append(i)
+
+          ranges = []
+          for i in hits:
+              start = max(0, i - 90)
+              end = min(len(lines), i + 180)
+              if ranges and start <= ranges[-1][1] + 20:
+                  ranges[-1] = (ranges[-1][0], max(ranges[-1][1], end))
+              else:
+                  ranges.append((start, end))
+
+          out = []
+          out.append(f'FILE={path}')
+          out.append(f'TOTAL_LINES={len(lines)}')
+          out.append(f'HITS={len(hits)}')
+          out.append('')
+
+          for start, end in ranges:
+              out.append(f'===== LINES {start+1}-{end} =====')
+              for idx in range(start, end):
+                  out.append(f'{idx+1:05d}: {lines[idx]}')
+              out.append('')
+
+          Path('.github/pmd_floor_v175_v183_extract.txt').write_text('\n'.join(out) + '\n', encoding='utf-8')
+          PY
+
+      - name: Commit inspection report and remove workflow
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add .github/pmd_floor_v175_v183_extract.txt
+          git rm .github/workflows/pmd-inspect-v175-v183.yml
+          git commit -m "Add temporary V175 V183 inspection report"
+          git push origin HEAD:agent/waiter-floor-edit-layout-smooth-final
