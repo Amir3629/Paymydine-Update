@@ -99,5 +99,8 @@ jobs:
           git add app/admin/assets/js/pmd-waiter-floor-edit-v160.js
           git rm -f .github/workflows/pmd-v16010-final-polish.yml
           git rm -f .github/pmd_v160_10_result.txt || true
+          git rm -f .github/pmd_v16010_final_trigger.txt || true
           git commit -m "Lock waiter floor first-paint number and single badge"
           git push origin HEAD:agent/waiter-floor-edit-layout-smooth-final
+
+# retrigger: 2026-07-13-final
