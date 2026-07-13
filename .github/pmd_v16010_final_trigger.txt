@@ -1,1 +1,0 @@
-Trigger PMD V160.10 final first-paint and single-badge validation.
