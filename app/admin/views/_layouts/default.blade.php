@@ -3364,6 +3364,21 @@ html.pmd-dashboardreservation-page #pmd-reservation-dashboard-root .pmd-res-toas
 <html xmlns="http://www.w3.org/1999/xhtml" lang="en">
 <head>
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 <!-- PMD_OWNER_V114_ISOLATED_DASHBOARD2_START -->
 <style id="pmd-owner-v114-isolated-dashboard2-style">
 /* Dashboard2 isolated page. Does not use old pmd-v15-card / owner dashboard classes. */
@@ -10239,6 +10254,1618 @@ html.pmd-waiter-dashboard-active .pmd-v18-unmerge {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+<!-- PMD_V180_FINAL_FLOOR_LAST_WRAPPER_START -->
+<!--
+  V180: V175c/V175e moved here intentionally.
+  They must run AFTER old V36/V40/V44/V46/V47/V89/V105 floor scripts.
+-->
+<!-- PMD_V175C_NO_DUPE_NO_BLINK_START -->
+<style id="pmd-v175c-no-dupe-no-blink-style">
+html.pmd-waiter-dashboard-active,
+html.pmd-waiter-dashboard-active body {
+  scroll-behavior: auto !important;
+}
+
+html.pmd-waiter-dashboard-active #pmd-waiter-dashboard-root *,
+html.pmd-waiter-dashboard-active .pmd-w5-floor-map *,
+html.pmd-waiter-dashboard-active .pmd-w5-floor-map-real *,
+html.pmd-waiter-dashboard-active .pmd-v155-floor-map * {
+  transition: none !important;
+  animation: none !important;
+}
+
+html.pmd-waiter-dashboard-active .pmd-w5-floor-map,
+html.pmd-waiter-dashboard-active .pmd-w5-floor-map-real,
+html.pmd-waiter-dashboard-active .pmd-v155-floor-map,
+html.pmd-waiter-dashboard-active [class*="floor-map"] {
+  height: 430px !important;
+  min-height: 430px !important;
+  max-height: 430px !important;
+  overflow: visible !important;
+  background: #ffffff !important;
+  transform: none !important;
+  transition: none !important;
+  animation: none !important;
+}
+
+html.pmd-waiter-dashboard-active .pmd-v175c-floor-tile {
+  width: 104px !important;
+  height: 86px !important;
+  min-width: 104px !important;
+  min-height: 86px !important;
+  max-width: 104px !important;
+  max-height: 86px !important;
+  border-radius: 18px !important;
+  box-sizing: border-box !important;
+  transform: none !important;
+  filter: none !important;
+  text-shadow: none !important;
+  transition: none !important;
+  animation: none !important;
+  color: #05070d !important;
+  -webkit-text-fill-color: #05070d !important;
+}
+
+html.pmd-waiter-dashboard-active .pmd-v175c-hide-dupe-number {
+  display: none !important;
+  visibility: hidden !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
+}
+
+html.pmd-waiter-dashboard-active .pmd-v175c-floor-tile.pmd-v175c-table-red {
+  background: #ff3347 !important;
+  border: 4px solid #b70821 !important;
+}
+
+html.pmd-waiter-dashboard-active .pmd-v175c-floor-tile.pmd-v175c-table-green {
+  background: #16c65b !important;
+  border: 4px solid #047a36 !important;
+}
+
+html.pmd-waiter-dashboard-active .pmd-v175c-table-number {
+  position: absolute !important;
+  inset: 0 !important;
+  left: 0 !important;
+  top: 0 !important;
+  right: 0 !important;
+  bottom: 0 !important;
+  width: 100% !important;
+  height: 100% !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  transform: none !important;
+  font-size: var(--pmd-v184-number-size, 30px) !important;
+  line-height: 1 !important;
+  font-weight: 950 !important;
+  color: #05070d !important;
+  -webkit-text-fill-color: #05070d !important;
+  text-shadow: none !important;
+  z-index: 20 !important;
+  pointer-events: none !important;
+}
+
+html.pmd-waiter-dashboard-active .pmd-v175c-attention-badge {
+  position: absolute !important;
+  top: -13px !important;
+  right: -13px !important;
+  width: 36px !important;
+  height: 36px !important;
+  min-width: 36px !important;
+  min-height: 36px !important;
+  border-radius: 999px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  background: #ffffff !important;
+  color: #061225 !important;
+  -webkit-text-fill-color: #061225 !important;
+  border: 2px solid #061225 !important;
+  box-shadow: 0 3px 9px rgba(6, 18, 37, .16) !important;
+  font-size: 21px !important;
+  line-height: 1 !important;
+  z-index: 80 !important;
+  pointer-events: none !important;
+  transform: none !important;
+  transition: none !important;
+  animation: none !important;
+}
+
+html.pmd-waiter-dashboard-active .pmd-v175c-attention-badge img {
+  width: 25px !important;
+  height: 25px !important;
+  display: block !important;
+  object-fit: contain !important;
+  transform: none !important;
+  transition: none !important;
+  animation: none !important;
+}
+
+html.pmd-waiter-dashboard-active .pmd-v175c-attention-badge[data-pmd-kind="waiter"] {
+  background: #fff4bf !important;
+}
+
+html.pmd-waiter-dashboard-active .pmd-v175c-attention-badge[data-pmd-kind="note"] {
+  background: #e8f3ff !important;
+}
+</style>
+
+<script id="pmd-v175c-no-dupe-no-blink-script">
+(function () {
+  'use strict';
+
+  if (window.PMDWaiterFloorStableV175b && window.PMDWaiterFloorStableV175b.stop) {
+    try { window.PMDWaiterFloorStableV175b.stop(); } catch (e) {}
+  }
+
+  if (window.PMDWaiterFloorStableV175c && window.PMDWaiterFloorStableV175c.active) return;
+  if (!/\/admin\/dashboardwaiter(?:$|[?#\/])/.test(location.pathname + location.search + location.hash)) return;
+
+  document.documentElement.classList.add('pmd-waiter-dashboard-active');
+
+  var CLEANING_IMG = '/app/admin/assets/images/pmd/Cleaning.png';
+  var TABLE_ENDPOINT = '/admin/pmd-waiter-table-states-v154';
+  var NOTIF_ENDPOINT = '/admin/notifications-api';
+
+  var POLL_MS = 10000;
+  var TILE_CLASS = 'pmd-v175c-floor-tile';
+  var NUMBER_CLASS = 'pmd-v175c-table-number';
+  var BADGE_CLASS = 'pmd-v175c-attention-badge';
+  var HIDE_CLASS = 'pmd-v175c-hide-dupe-number';
+
+  var OLD_BADGE_SELECTORS = [
+    '[data-pmd-v170f-slot-badge]',
+    '[data-pmd-v170c-attention-badge]',
+    '[data-pmd-v170b-attention-badge]',
+    '.pmd-v170g-pinned-badge',
+    '.pmd-v174-attention-badge',
+    '.pmd-v175b-attention-badge'
+  ].join(',');
+
+  var OLD_NUMBER_SELECTORS = [
+    '.pmd-v175b-table-number'
+  ].join(',');
+
+  var TILE_SELECTORS = [
+    '.pmd-w5-table',
+    '.pmd-v155-table',
+    '.pmd-floor-table',
+    '.pmd-waiter-floor-table',
+    '[data-table]',
+    '[data-table-number]',
+    '[data-table-no]'
+  ].join(',');
+
+  var state = {
+    tableMap: {},
+    attentionMap: {},
+    timer: null,
+    observer: null,
+    raf: 0,
+    updates: 0
+  };
+
+  function clean(v) {
+    return String(v == null ? '' : v).replace(/\s+/g, ' ').trim();
+  }
+
+  function setImportant(el, prop, value) {
+    if (!el || !el.style) return;
+    if (el.style.getPropertyValue(prop) === value && el.style.getPropertyPriority(prop) === 'important') return;
+    el.style.setProperty(prop, value, 'important');
+  }
+
+  function parsePayload(n) {
+    try {
+      if (!n || !n.payload) return {};
+      return typeof n.payload === 'string' ? JSON.parse(n.payload) : n.payload;
+    } catch (e) {
+      return {};
+    }
+  }
+
+  function isHandled(n) {
+    if (!n) return true;
+    if (n.read === true || n.seen === true || n.is_read === true || n.is_seen === true) return true;
+    if (n.status && /read|seen|dismiss|archiv|closed|done/i.test(String(n.status))) return true;
+
+    return [
+      n.read_at,
+      n.seen_at,
+      n.dismissed_at,
+      n.archived_at,
+      n.deleted_at,
+      n.recipient_read_at,
+      n.recipient_seen_at
+    ].some(Boolean);
+  }
+
+  function tableNoFromNotification(n) {
+    var p = parsePayload(n);
+    var candidates = [
+      n && n.table_name,
+      p.table_name,
+      p.table_label,
+      p.table,
+      p.table_no,
+      p.table_number,
+      n && n.message,
+      n && n.title
+    ].map(clean).filter(Boolean);
+
+    for (var i = 0; i < candidates.length; i++) {
+      var s = candidates[i];
+
+      var m = s.match(/\bTable\s*#?\s*(\d+)\b/i);
+      if (m) return m[1];
+
+      m = s.match(/\bT\s*#?\s*(\d+)\b/i);
+      if (m) return m[1];
+
+      if (/^\d+$/.test(s)) return s;
+    }
+
+    return '';
+  }
+
+  function removeKnownOldBadges(root) {
+    (root || document).querySelectorAll(OLD_BADGE_SELECTORS).forEach(function (el) {
+      if (el && el.parentNode) el.parentNode.removeChild(el);
+    });
+
+    (root || document).querySelectorAll(OLD_NUMBER_SELECTORS).forEach(function (el) {
+      if (el && el.parentNode) el.parentNode.removeChild(el);
+    });
+
+    (root || document).querySelectorAll('.pmd-v170g-pinned-tile').forEach(function (el) {
+      el.classList.remove('pmd-v170g-pinned-tile');
+    });
+  }
+
+  function tableNoFromElement(el) {
+    if (!el || el.nodeType !== 1) return '';
+
+    var attrs = [
+      'data-table-number',
+      'data-table-no',
+      'data-table',
+      'data-pmd-table-number',
+      'data-pmd-table-no'
+    ];
+
+    for (var i = 0; i < attrs.length; i++) {
+      var v = clean(el.getAttribute(attrs[i]));
+      if (/^\d+$/.test(v)) return v;
+    }
+
+    var clone = el.cloneNode(true);
+    clone.querySelectorAll('.' + BADGE_CLASS + ', .' + NUMBER_CLASS + ', ' + OLD_BADGE_SELECTORS + ', ' + OLD_NUMBER_SELECTORS).forEach(function (x) {
+      x.remove();
+    });
+
+    var txt = clean(clone.textContent || '');
+    var m = txt.match(/\b(\d{1,3})\b/);
+    return m ? m[1] : '';
+  }
+
+  function floorElements() {
+    return Array.from(document.querySelectorAll([
+      '.pmd-w5-floor-map',
+      '.pmd-w5-floor-map-real',
+      '.pmd-v155-floor-map',
+      '[class*="floor-map"]'
+    ].join(','))).filter(function (el) {
+      var r = el.getBoundingClientRect();
+      return r.width > 300 && r.height > 80;
+    });
+  }
+
+  function activeCardsTopY() {
+    var nodes = Array.from(document.querySelectorAll('h1,h2,h3,h4,h5,div,span,strong'));
+    var header = nodes.find(function (el) {
+      var t = clean(el.textContent);
+      if (!/Active Order Cards/i.test(t)) return false;
+      if (t.length > 40) return false;
+      var r = el.getBoundingClientRect();
+      return r.width > 20 && r.height > 10;
+    });
+
+    return header ? header.getBoundingClientRect().top : window.innerHeight;
+  }
+
+  function findTiles() {
+    var floorBottom = activeCardsTopY();
+    var all = Array.from(document.querySelectorAll(TILE_SELECTORS));
+    var byNo = new Map();
+
+    all.forEach(function (el) {
+      if (!el || el.closest('.pmd-v35-card, .pmd-order-card, [class*="order-card"]')) return;
+
+      var r = el.getBoundingClientRect();
+      if (r.top >= floorBottom) return;
+      if (r.width < 50 || r.width > 230) return;
+      if (r.height < 40 || r.height > 190) return;
+
+      var no = tableNoFromElement(el);
+      if (!no) return;
+
+      var area = r.width * r.height;
+      var prev = byNo.get(no);
+
+      if (!prev || area > prev.area) {
+        byNo.set(no, { el: el, area: area });
+      }
+    });
+
+    return Array.from(byNo.entries()).map(function (entry) {
+      return { tableNo: entry[0], el: entry[1].el };
+    });
+  }
+
+  function cleaningFromTable(t) {
+    if (!t) return false;
+
+    var s = [
+      t.table_status,
+      t.table_status_label,
+      t.operational_status,
+      t.operational_status_label,
+      t.status,
+      t.status_label
+    ].map(clean).join(' ').toLowerCase();
+
+    return /clean|cleaning|needs\s*cleaning|dirty|customer\s*left/.test(s);
+  }
+
+  function shouldBeGreen(tile, no) {
+    var t = state.tableMap[no];
+    if (cleaningFromTable(t)) return false;
+
+    var cls = clean(tile.el.className).toLowerCase();
+
+    if (cls.indexOf('is-payment') !== -1) return false;
+    if (cls.indexOf('is-urgent') !== -1) return false;
+    if (cls.indexOf('ready') !== -1) return true;
+
+    var s = [
+      t && t.table_status,
+      t && t.table_status_label,
+      t && t.operational_status,
+      t && t.operational_status_label
+    ].map(clean).join(' ').toLowerCase();
+
+    if (/occupied|payment|unpaid|clean|dirty|urgent/.test(s)) return false;
+    if (/ready|available|free/.test(s)) return true;
+
+    return false;
+  }
+
+  async function fetchTables() {
+    try {
+      var r = await fetch(TABLE_ENDPOINT + '?_=' + Date.now(), {
+        credentials: 'same-origin',
+        cache: 'no-store',
+        headers: {
+          'Accept': 'application/json',
+          'X-Requested-With': 'XMLHttpRequest',
+          'Cache-Control': 'no-cache',
+          'Pragma': 'no-cache'
+        }
+      });
+
+      var j = await r.json().catch(function () { return null; });
+      var arr = j && Array.isArray(j.tables) ? j.tables : [];
+      var map = {};
+
+      arr.forEach(function (t) {
+        var raw = clean(t.table_number || t.table_no || t.number || t.table_label || '');
+        var m = raw.match(/\d+/);
+        if (!m) return;
+        map[m[0]] = t;
+      });
+
+      return map;
+    } catch (e) {
+      return {};
+    }
+  }
+
+  async function fetchAttention() {
+    try {
+      var r = await fetch(NOTIF_ENDPOINT + '?limit=50&_=' + Date.now(), {
+        credentials: 'same-origin',
+        cache: 'no-store',
+        headers: {
+          'Accept': 'application/json',
+          'X-Requested-With': 'XMLHttpRequest',
+          'Cache-Control': 'no-cache',
+          'Pragma': 'no-cache'
+        }
+      });
+
+      var j = await r.json().catch(function () { return null; });
+      var items = j && j.ok && Array.isArray(j.items) ? j.items : [];
+      var map = {};
+
+      items.forEach(function (n) {
+        if (!n || !['waiter_call', 'table_note', 'staff_note'].includes(n.type)) return;
+        if (isHandled(n)) return;
+
+        var no = tableNoFromNotification(n);
+        if (!no) return;
+
+        var old = map[no];
+
+        if (!old || n.type === 'waiter_call') {
+          map[no] = {
+            type: n.type,
+            id: n.id || '',
+            label: n.type === 'waiter_call' ? 'Waiter Call' : 'Note'
+          };
+        }
+      });
+
+      return map;
+    } catch (e) {
+      return {};
+    }
+  }
+
+  function desiredBadge(no) {
+    var att = state.attentionMap[no];
+
+    if (att && att.type === 'waiter_call') {
+      return { kind: 'waiter', icon: '🔔', key: 'waiter:' + att.id, label: 'Waiter Call' };
+    }
+
+    if (att && (att.type === 'table_note' || att.type === 'staff_note')) {
+      return { kind: 'note', icon: '📝', key: 'note:' + att.id, label: 'Note' };
+    }
+
+    if (cleaningFromTable(state.tableMap[no])) {
+      return { kind: 'cleaning', icon: '', key: 'cleaning', label: 'Needs Cleaning' };
+    }
+
+    return null;
+  }
+
+  function isCornerSmallBadge(parent, child) {
+    var pr = parent.getBoundingClientRect();
+    var cr = child.getBoundingClientRect();
+
+    if (cr.width > 46 || cr.height > 46) return false;
+
+    var nearRight = cr.left > pr.right - 55;
+    var nearTop = cr.top < pr.top + 30;
+
+    return nearRight && nearTop;
+  }
+
+  function hideDuplicateNumbers(tile) {
+    var el = tile.el;
+    var no = tile.tableNo;
+
+    Array.from(el.childNodes).forEach(function (node) {
+      if (node.nodeType === 3) {
+        if (clean(node.nodeValue) === no) node.nodeValue = '';
+        return;
+      }
+
+      if (node.nodeType !== 1) return;
+
+      var child = node;
+
+      if (child.classList.contains(NUMBER_CLASS)) return;
+      if (child.classList.contains(BADGE_CLASS)) return;
+
+      if (child.matches && child.matches(OLD_BADGE_SELECTORS + ', ' + OLD_NUMBER_SELECTORS)) {
+        child.remove();
+        return;
+      }
+
+      var text = clean(child.textContent || '');
+      if (text !== no) return;
+
+      if (isCornerSmallBadge(el, child)) return;
+
+      var fs = parseFloat(getComputedStyle(child).fontSize || '0') || 0;
+      var cr = child.getBoundingClientRect();
+
+      if (fs >= 18 || cr.width > 32 || cr.height > 32) {
+        child.classList.add(HIDE_CLASS);
+        child.setAttribute('aria-hidden', 'true');
+        setImportant(child, 'display', 'none');
+      }
+    });
+  }
+
+  function ensureNumber(tile) {
+    var el = tile.el;
+    var no = tile.tableNo;
+    var label = el.querySelector(':scope > .' + NUMBER_CLASS);
+
+    if (!label) {
+      label = document.createElement('span');
+      label.className = NUMBER_CLASS;
+      el.appendChild(label);
+    }
+
+    if (label.textContent !== no) label.textContent = no;
+  }
+
+  function setTileVisual(tile) {
+    var el = tile.el;
+    var no = tile.tableNo;
+
+    el.classList.add(TILE_CLASS);
+
+    if (getComputedStyle(el).position === 'static') {
+      setImportant(el, 'position', 'absolute');
+    }
+
+    setImportant(el, 'width', (window.PMDFloorSizeV184 && window.PMDFloorSizeV184.tileW ? window.PMDFloorSizeV184.tileW() : '104px'));
+    setImportant(el, 'height', (window.PMDFloorSizeV184 && window.PMDFloorSizeV184.tileH ? window.PMDFloorSizeV184.tileH() : '86px'));
+    setImportant(el, 'min-width', (window.PMDFloorSizeV184 && window.PMDFloorSizeV184.tileW ? window.PMDFloorSizeV184.tileW() : '104px'));
+    setImportant(el, 'min-height', (window.PMDFloorSizeV184 && window.PMDFloorSizeV184.tileH ? window.PMDFloorSizeV184.tileH() : '86px'));
+    setImportant(el, 'max-width', (window.PMDFloorSizeV184 && window.PMDFloorSizeV184.tileW ? window.PMDFloorSizeV184.tileW() : '104px'));
+    setImportant(el, 'max-height', (window.PMDFloorSizeV184 && window.PMDFloorSizeV184.tileH ? window.PMDFloorSizeV184.tileH() : '86px'));
+    setImportant(el, 'transform', 'none');
+    setImportant(el, 'filter', 'none');
+    setImportant(el, 'transition', 'none');
+    setImportant(el, 'animation', 'none');
+    setImportant(el, 'text-shadow', 'none');
+    setImportant(el, 'color', '#05070d');
+    setImportant(el, '-webkit-text-fill-color', '#05070d');
+
+    if (shouldBeGreen(tile, no)) {
+      el.classList.add('pmd-v175c-table-green');
+      el.classList.remove('pmd-v175c-table-red');
+      setImportant(el, 'background', '#16c65b');
+      setImportant(el, 'border', '4px solid #047a36');
+    } else {
+      el.classList.add('pmd-v175c-table-red');
+      el.classList.remove('pmd-v175c-table-green');
+      setImportant(el, 'background', '#ff3347');
+      setImportant(el, 'border', '4px solid #b70821');
+    }
+
+    hideDuplicateNumbers(tile);
+    ensureNumber(tile);
+  }
+
+  function repairFloor() {
+    floorElements().forEach(function (floor) {
+      setImportant(floor, 'height', (window.PMDFloorSizeV184 && window.PMDFloorSizeV184.floorHeight ? window.PMDFloorSizeV184.floorHeight() : '430px'));
+      setImportant(floor, 'min-height', (window.PMDFloorSizeV184 && window.PMDFloorSizeV184.floorHeight ? window.PMDFloorSizeV184.floorHeight() : '430px'));
+      setImportant(floor, 'max-height', (window.PMDFloorSizeV184 && window.PMDFloorSizeV184.floorHeight ? window.PMDFloorSizeV184.floorHeight() : '430px'));
+      setImportant(floor, 'overflow', 'visible');
+      setImportant(floor, 'background', '#ffffff');
+      setImportant(floor, 'transform', 'none');
+      setImportant(floor, 'transition', 'none');
+      setImportant(floor, 'animation', 'none');
+    });
+  }
+
+  function renderBadgeContent(badge, desired) {
+    if (desired.kind === 'cleaning') {
+      if (!badge.querySelector('img')) {
+        badge.textContent = '';
+        var img = document.createElement('img');
+        img.src = CLEANING_IMG;
+        img.alt = 'Cleaning';
+        badge.appendChild(img);
+      }
+      return;
+    }
+
+    if (badge.querySelector('img') || badge.textContent !== desired.icon) {
+      badge.textContent = desired.icon;
+    }
+  }
+
+  function applyAll() {
+    removeKnownOldBadges(document);
+    repairFloor();
+
+    var tiles = findTiles();
+
+    tiles.forEach(function (tile) {
+      setTileVisual(tile);
+
+      var desired = desiredBadge(tile.tableNo);
+      var badges = tile.el.querySelectorAll(':scope > .' + BADGE_CLASS);
+
+      badges.forEach(function (b, index) {
+        if (index > 0) b.remove();
+      });
+
+      var badge = tile.el.querySelector(':scope > .' + BADGE_CLASS);
+
+      if (!desired) {
+        if (badge) badge.remove();
+        return;
+      }
+
+      if (!badge) {
+        badge = document.createElement('span');
+        badge.className = BADGE_CLASS;
+        tile.el.appendChild(badge);
+      }
+
+      badge.setAttribute('data-pmd-kind', desired.kind);
+      badge.setAttribute('data-pmd-key', desired.key);
+      badge.setAttribute('title', desired.label + ' · Table ' + tile.tableNo);
+      renderBadgeContent(badge, desired);
+    });
+
+    state.updates += 1;
+  }
+
+  async function refresh() {
+    var both = await Promise.all([fetchTables(), fetchAttention()]);
+    state.tableMap = both[0] || {};
+    state.attentionMap = both[1] || {};
+    applyAll();
+    return debug(false);
+  }
+
+  function scheduleApply() {
+    if (state.raf) return;
+
+    state.raf = requestAnimationFrame(function () {
+      state.raf = 0;
+      applyAll();
+    });
+  }
+
+  function observe() {
+    var root = document.querySelector('#pmd-waiter-dashboard-root') || document.body;
+
+    if (state.observer) state.observer.disconnect();
+
+    state.observer = new MutationObserver(function () {
+      scheduleApply();
+    });
+
+    state.observer.observe(root, {
+      subtree: true,
+      childList: true
+    });
+  }
+
+  function debug(printTable) {
+    var tiles = findTiles().map(function (tile) {
+      var r = tile.el.getBoundingClientRect();
+      var badge = tile.el.querySelector(':scope > .' + BADGE_CLASS);
+      var numbers = tile.el.querySelectorAll(':scope > .' + NUMBER_CLASS).length;
+      var hiddenDupes = tile.el.querySelectorAll(':scope > .' + HIDE_CLASS).length;
+
+      return {
+        table: tile.tableNo,
+        badge: badge ? badge.getAttribute('data-pmd-kind') : '',
+        numbers: numbers,
+        hiddenDupes: hiddenDupes,
+        x: Math.round(r.x),
+        y: Math.round(r.y),
+        w: Math.round(r.width),
+        h: Math.round(r.height),
+        bg: getComputedStyle(tile.el).backgroundColor
+      };
+    });
+
+    if (printTable !== false) console.table(tiles);
+
+    return {
+      active: true,
+      updates: state.updates,
+      tiles: tiles,
+      floors: floorElements().map(function (f) {
+        var r = f.getBoundingClientRect();
+        return { w: Math.round(r.width), h: Math.round(r.height), cls: clean(f.className).slice(0, 100) };
+      }),
+      oldBadges: document.querySelectorAll(OLD_BADGE_SELECTORS).length,
+      oldNumbers: document.querySelectorAll(OLD_NUMBER_SELECTORS).length
+    };
+  }
+
+  function stop() {
+    if (state.timer) clearInterval(state.timer);
+    if (state.observer) state.observer.disconnect();
+    if (state.raf) cancelAnimationFrame(state.raf);
+    state.timer = null;
+    state.observer = null;
+    state.raf = 0;
+    console.info('[PMD] V175c no-dupe no-blink stopped');
+  }
+
+  removeKnownOldBadges(document);
+  repairFloor();
+  observe();
+
+  setTimeout(function () { refresh(); }, 100);
+  setTimeout(function () { refresh(); }, 700);
+  setTimeout(function () { refresh(); }, 1500);
+
+  state.timer = setInterval(function () {
+    refresh();
+  }, POLL_MS);
+
+  window.PMDWaiterFloorStableV175c = {
+    active: true,
+    refresh: refresh,
+    debug: function () { return debug(true); },
+    stop: stop
+  };
+
+  console.info('[PMD] V175c no-dupe no-blink active');
+})();
+</script>
+<!-- PMD_V175C_NO_DUPE_NO_BLINK_END -->
+
+
+<script id="pmd-v180-final-floor-last-debug">
+(function () {
+  'use strict';
+  if (!/\/admin\/dashboardwaiter(?:$|[?#\/])/.test(location.pathname + location.search + location.hash)) return;
+
+  window.PMDFinalFloorLastV180 = {
+    active: true,
+    debug: function () {
+      var rows = Array.prototype.slice.call(document.querySelectorAll('.pmd-w5-table, .pmd-v155-table, .pmd-floor-table, .pmd-waiter-floor-table')).map(function (el) {
+        var r = el.getBoundingClientRect();
+        var cs = getComputedStyle(el);
+        return {
+          text: String(el.textContent || '').replace(/\s+/g, ' ').trim().slice(0, 20),
+          x: Math.round(r.x),
+          y: Math.round(r.y),
+          w: Math.round(r.width),
+          h: Math.round(r.height),
+          bg: cs.backgroundColor,
+          cls: String(el.className || '').slice(0, 120)
+        };
+      });
+      console.table(rows);
+      return {
+        active: true,
+        v175c: typeof window.PMDWaiterFloorStableV175c,
+        v175e: typeof window.PMDWaiterBadgeCornerSnapV175e,
+        tiles: rows.length,
+        oldBadges: document.querySelectorAll('[data-pmd-v170f-slot-badge], .pmd-v170g-pinned-badge, .pmd-v174-attention-badge, .pmd-v175b-attention-badge').length,
+        rows: rows
+      };
+    }
+  };
+
+  console.info('[PMD] V180 final floor authority runs last active');
+})();
+</script>
+<!-- PMD_V180_FINAL_FLOOR_LAST_WRAPPER_END -->
+
+
+
+
+
+
+<!-- PMD_V183_SINGLE_BADGE_AUTHORITY_START -->
+<style id="pmd-v183-single-badge-authority-style">
+/*
+  V183: one badge visual authority only.
+  V175e and V182 are removed. This only styles existing top-right badges.
+*/
+
+html.pmd-waiter-dashboard-active .pmd-v175c-attention-badge,
+html.pmd-waiter-dashboard-active .pmd-v183-order-count-badge {
+  position: absolute !important;
+  top: -13px !important;
+  right: -13px !important;
+  left: auto !important;
+  bottom: auto !important;
+
+  width: 36px !important;
+  height: 36px !important;
+  min-width: 36px !important;
+  min-height: 36px !important;
+  max-width: 36px !important;
+  max-height: 36px !important;
+
+  border-radius: 999px !important;
+  border: 2px solid #061225 !important;
+  box-shadow: 0 3px 9px rgba(6, 18, 37, .16) !important;
+
+  background: #ffffff !important;
+  color: #061225 !important;
+  -webkit-text-fill-color: #061225 !important;
+
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+
+  margin: 0 !important;
+  padding: 0 !important;
+  box-sizing: border-box !important;
+
+  transform: none !important;
+  translate: none !important;
+  transition: none !important;
+  animation: none !important;
+
+  z-index: 150 !important;
+  pointer-events: none !important;
+  overflow: hidden !important;
+  opacity: 1 !important;
+  visibility: visible !important;
+}
+
+html.pmd-waiter-dashboard-active .pmd-v175c-attention-badge[data-pmd-kind="waiter"] {
+  background: #fff3b8 !important;
+  font-size: 22px !important;
+  line-height: 1 !important;
+}
+
+html.pmd-waiter-dashboard-active .pmd-v175c-attention-badge[data-pmd-kind="cleaning"] {
+  background: #ffffff !important;
+}
+
+html.pmd-waiter-dashboard-active .pmd-v175c-attention-badge img {
+  width: 25px !important;
+  height: 25px !important;
+  min-width: 25px !important;
+  min-height: 25px !important;
+  max-width: 25px !important;
+  max-height: 25px !important;
+  object-fit: contain !important;
+  display: block !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  transform: none !important;
+  transition: none !important;
+  animation: none !important;
+}
+
+html.pmd-waiter-dashboard-active .pmd-v183-order-count-badge {
+  background: #ffffff !important;
+  color: #061225 !important;
+  -webkit-text-fill-color: #061225 !important;
+  font-size: 18px !important;
+  line-height: 1 !important;
+  font-weight: 950 !important;
+  font-family: inherit !important;
+}
+</style>
+
+<script id="pmd-v183-single-badge-authority-script">
+(function () {
+  'use strict';
+
+  if (!/\/admin\/dashboardwaiter(?:$|[?#\/])/.test(location.pathname + location.search + location.hash)) return;
+  if (window.PMDSingleBadgeAuthorityV183 && window.PMDSingleBadgeAuthorityV183.active) return;
+
+  var raf = 0;
+  var observer = null;
+
+  var TILE_SEL = '.pmd-w5-table, .pmd-v155-table, .pmd-floor-table, .pmd-waiter-floor-table';
+  var ATTENTION_SEL = '.pmd-v175c-attention-badge';
+  var NUMBER_SEL = '.pmd-v175c-table-number';
+
+  function clean(v) {
+    return String(v == null ? '' : v).replace(/\s+/g, ' ').trim();
+  }
+
+  function imp(el, prop, val) {
+    if (!el || !el.style) return;
+    if (el.style.getPropertyValue(prop) === val && el.style.getPropertyPriority(prop) === 'important') return;
+    el.style.setProperty(prop, val, 'important');
+  }
+
+  function lockCircle(el, type) {
+    if (!el) return;
+
+    imp(el, 'position', 'absolute');
+    imp(el, 'top', '-13px');
+    imp(el, 'right', '-13px');
+    imp(el, 'left', 'auto');
+    imp(el, 'bottom', 'auto');
+
+    imp(el, 'width', '36px');
+    imp(el, 'height', '36px');
+    imp(el, 'min-width', '36px');
+    imp(el, 'min-height', '36px');
+    imp(el, 'max-width', '36px');
+    imp(el, 'max-height', '36px');
+
+    imp(el, 'border-radius', '999px');
+    imp(el, 'border', '2px solid #061225');
+    imp(el, 'box-shadow', '0 3px 9px rgba(6, 18, 37, .16)');
+
+    imp(el, 'background', '#ffffff');
+    imp(el, 'color', '#061225');
+    imp(el, '-webkit-text-fill-color', '#061225');
+
+    imp(el, 'display', 'flex');
+    imp(el, 'align-items', 'center');
+    imp(el, 'justify-content', 'center');
+
+    imp(el, 'margin', '0');
+    imp(el, 'padding', '0');
+    imp(el, 'box-sizing', 'border-box');
+
+    imp(el, 'transform', 'none');
+    imp(el, 'translate', 'none');
+    imp(el, 'transition', 'none');
+    imp(el, 'animation', 'none');
+
+    imp(el, 'z-index', '150');
+    imp(el, 'pointer-events', 'none');
+    imp(el, 'overflow', 'hidden');
+    imp(el, 'opacity', '1');
+    imp(el, 'visibility', 'visible');
+
+    if (type === 'order') {
+      el.classList.add('pmd-v183-order-count-badge');
+      imp(el, 'font-size', '18px');
+      imp(el, 'font-weight', '950');
+      imp(el, 'line-height', '1');
+    }
+
+    var kind = el.getAttribute('data-pmd-kind') || '';
+
+    if (kind === 'waiter') {
+      imp(el, 'background', '#fff3b8');
+      imp(el, 'font-size', '22px');
+      imp(el, 'line-height', '1');
+    }
+
+    if (kind === 'cleaning') {
+      imp(el, 'background', '#ffffff');
+    }
+
+    if (kind === 'note') {
+      imp(el, 'background', '#e8f3ff');
+      imp(el, 'font-size', '20px');
+      imp(el, 'line-height', '1');
+    }
+
+    var img = el.querySelector('img');
+    if (img) {
+      imp(img, 'width', '25px');
+      imp(img, 'height', '25px');
+      imp(img, 'min-width', '25px');
+      imp(img, 'min-height', '25px');
+      imp(img, 'max-width', '25px');
+      imp(img, 'max-height', '25px');
+      imp(img, 'object-fit', 'contain');
+      imp(img, 'display', 'block');
+      imp(img, 'margin', '0');
+      imp(img, 'padding', '0');
+      imp(img, 'transform', 'none');
+      imp(img, 'transition', 'none');
+      imp(img, 'animation', 'none');
+    }
+  }
+
+  function looksLikeOrderCount(tile, el) {
+    if (!tile || !el || el.nodeType !== 1) return false;
+    if (el.matches(ATTENTION_SEL + ',' + NUMBER_SEL)) return false;
+    if (el.closest(ATTENTION_SEL)) return false;
+
+    var txt = clean(el.textContent || '');
+    if (!/^[1-9][0-9]?$/.test(txt)) return false;
+
+    var tr = tile.getBoundingClientRect();
+    var r = el.getBoundingClientRect();
+
+    if (r.width > 52 || r.height > 52) return false;
+
+    var nearTop = r.top <= tr.top + 32;
+    var nearRight = r.left >= tr.right - 56;
+
+    return nearTop && nearRight;
+  }
+
+  function polishTile(tile) {
+    if (!tile) return;
+
+    imp(tile, 'overflow', 'visible');
+
+    var attention = tile.querySelector(':scope > ' + ATTENTION_SEL);
+    if (attention) lockCircle(attention, 'attention');
+
+    Array.prototype.slice.call(tile.children).forEach(function (child) {
+      if (looksLikeOrderCount(tile, child)) {
+        lockCircle(child, 'order');
+      }
+    });
+  }
+
+  function apply() {
+    document.documentElement.classList.add('pmd-waiter-dashboard-active');
+
+    Array.prototype.slice.call(document.querySelectorAll(TILE_SEL)).forEach(polishTile);
+
+    Array.prototype.slice.call(document.querySelectorAll(ATTENTION_SEL)).forEach(function (el) {
+      lockCircle(el, 'attention');
+    });
+
+    return debug(false);
+  }
+
+  function schedule() {
+    if (raf) return;
+
+    raf = requestAnimationFrame(function () {
+      raf = 0;
+      apply();
+    });
+  }
+
+  function debug(print) {
+    var rows = Array.prototype.slice.call(document.querySelectorAll(TILE_SEL)).map(function (tile) {
+      var r = tile.getBoundingClientRect();
+      var attention = tile.querySelector(':scope > ' + ATTENTION_SEL);
+      var orderBadges = Array.prototype.slice.call(tile.children).filter(function (child) {
+        return child.classList && child.classList.contains('pmd-v183-order-count-badge');
+      });
+
+      return {
+        text: clean(tile.textContent).slice(0, 28),
+        attention: attention ? (attention.getAttribute('data-pmd-kind') || 'yes') : '',
+        orderBadges: orderBadges.map(function (x) { return clean(x.textContent); }).join(','),
+        x: Math.round(r.x),
+        y: Math.round(r.y),
+        w: Math.round(r.width),
+        h: Math.round(r.height)
+      };
+    });
+
+    if (print !== false) console.table(rows);
+
+    return {
+      active: true,
+      tiles: rows.length,
+      attentionBadges: document.querySelectorAll(ATTENTION_SEL).length,
+      orderBadges: document.querySelectorAll('.pmd-v183-order-count-badge').length,
+      oldBadgeLayers: {
+        v175e: typeof window.PMDWaiterBadgeCornerSnapV175e,
+        v182: typeof window.PMDTopRightBadgePolishV182
+      },
+      rows: rows
+    };
+  }
+
+  observer = new MutationObserver(schedule);
+  observer.observe(document.querySelector('#pmd-waiter-dashboard-root') || document.body, {
+    subtree: true,
+    childList: true
+  });
+
+  apply();
+  setTimeout(apply, 200);
+  setTimeout(apply, 900);
+  setTimeout(apply, 1800);
+
+  window.PMDSingleBadgeAuthorityV183 = {
+    active: true,
+    apply: apply,
+    debug: function () { return debug(true); },
+    stop: function () {
+      if (observer) observer.disconnect();
+      if (raf) cancelAnimationFrame(raf);
+      observer = null;
+      raf = 0;
+      console.info('[PMD] V183 single badge authority stopped');
+    }
+  };
+
+  console.info('[PMD] V183 single badge authority active');
+})();
+</script>
+<!-- PMD_V183_SINGLE_BADGE_AUTHORITY_END -->
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<!-- PMD_V190_DETERMINISTIC_FLOOR_COMPACT_START -->
+<style id="pmd-v190-deterministic-floor-compact-style">
+html.pmd-waiter-dashboard-active {
+  --pmd-v190-floor-height: 430px;
+}
+
+html.pmd-waiter-dashboard-active.pmd-v190-floor-compact {
+  --pmd-v190-floor-height: 430px;
+}
+
+html.pmd-waiter-dashboard-active.pmd-v190-floor-expanded {
+  --pmd-v190-floor-height: min(720px, calc(100vh - 235px));
+}
+
+html.pmd-waiter-dashboard-active .pmd-w5-floor-map,
+html.pmd-waiter-dashboard-active .pmd-w5-floor-map-real,
+html.pmd-waiter-dashboard-active .pmd-v155-floor-map {
+  position: relative !important;
+  height: var(--pmd-v190-floor-height) !important;
+  min-height: var(--pmd-v190-floor-height) !important;
+  max-height: var(--pmd-v190-floor-height) !important;
+  overflow: visible !important;
+  background: #fff !important;
+  transform: none !important;
+  transition: height 220ms ease, min-height 220ms ease, max-height 220ms ease !important;
+}
+
+html.pmd-waiter-dashboard-active .pmd-w5-table,
+html.pmd-waiter-dashboard-active .pmd-v155-table,
+html.pmd-waiter-dashboard-active .pmd-floor-table,
+html.pmd-waiter-dashboard-active .pmd-waiter-floor-table,
+html.pmd-waiter-dashboard-active .pmd-v175c-floor-tile {
+  position: absolute !important;
+  width: 104px !important;
+  height: 86px !important;
+  min-width: 104px !important;
+  min-height: 86px !important;
+  max-width: 104px !important;
+  max-height: 86px !important;
+  display: block !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+  transform: none !important;
+  transition: none !important;
+  animation: none !important;
+  overflow: visible !important;
+}
+
+html.pmd-waiter-dashboard-active .pmd-v175c-table-number {
+  position: absolute !important;
+  inset: 0 !important;
+  width: 100% !important;
+  height: 100% !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  text-align: center !important;
+  transform: none !important;
+  line-height: 1 !important;
+}
+</style>
+
+<script id="pmd-v190-deterministic-floor-compact-script">
+(function () {
+  'use strict';
+
+  if (!/\/admin\/dashboardwaiter(?:$|[?#\/])/.test(location.pathname + location.search + location.hash)) return;
+  if (window.PMDFloorDeterministicV190 && window.PMDFloorDeterministicV190.active) return;
+
+  var root = document.documentElement;
+  var mode = localStorage.getItem('pmd_waiter_floor_compact_v190') || 'compact';
+  var raf = 0;
+  var observer = null;
+  var lastClick = 0;
+  var applying = false;
+
+  var FLOOR_SEL = '.pmd-w5-floor-map, .pmd-w5-floor-map-real, .pmd-v155-floor-map';
+  var TILE_SEL = '.pmd-w5-table, .pmd-v155-table, .pmd-floor-table, .pmd-waiter-floor-table, .pmd-v175c-floor-tile';
+  var BTN_SEL = '.pmd-w19-btn[data-w19-compact], button[data-w19-compact], [data-w19-compact]';
+
+  var BASE_W = 1374;
+
+  var POS = {
+    "1":  {x: 93,  y: 69},
+    "2":  {x: 434, y: 61},
+    "3":  {x: 807, y: 104},
+    "4":  {x: 737, y: 302},
+    "5":  {x: 568, y: 135},
+    "6":  {x: 211, y: 67},
+    "7":  {x: 1087, y: 148},
+    "8":  {x: 997, y: 214},
+    "9":  {x: 873, y: 171},
+    "10": {x: 1000, y: 337},
+    "11": {x: 101, y: 194},
+    "12": {x: 304, y: 195},
+    "13": {x: 449, y: 215},
+    "14": {x: 964, y: 99},
+    "15": {x: 1084, y: 72},
+    "16": {x: 111, y: 301},
+    "17": {x: 303, y: 301},
+    "18": {x: 492, y: 324},
+    "19": {x: 614, y: 303},
+    "20": {x: 879, y: 301}
+  };
+
+  function clean(v) {
+    return String(v == null ? '' : v).replace(/\s+/g, ' ').trim();
+  }
+
+  function qsa(sel, base) {
+    try { return Array.prototype.slice.call((base || document).querySelectorAll(sel)); }
+    catch (e) { return []; }
+  }
+
+  function imp(el, prop, val) {
+    if (!el || !el.style) return;
+    if (el.style.getPropertyValue(prop) === String(val) && el.style.getPropertyPriority(prop) === 'important') return;
+    el.style.setProperty(prop, String(val), 'important');
+  }
+
+  function getFloor() {
+    return document.querySelector(FLOOR_SEL);
+  }
+
+  function getTiles() {
+    var f = getFloor();
+    if (!f) return [];
+    return qsa(TILE_SEL, f).filter(function (tile) {
+      return tile.closest(FLOOR_SEL) === f;
+    });
+  }
+
+  function tableNo(tile) {
+    if (!tile) return '';
+
+    var attrs = ['data-table-number', 'data-table-no', 'data-table', 'data-pmd-table-number', 'data-pmd-table-no'];
+    for (var i = 0; i < attrs.length; i++) {
+      var v = clean(tile.getAttribute(attrs[i]));
+      if (/^(20|1[0-9]|[1-9])$/.test(v)) return v;
+    }
+
+    var n = null;
+    try { n = tile.querySelector(':scope > .pmd-v175c-table-number'); }
+    catch (e) { n = tile.querySelector('.pmd-v175c-table-number'); }
+
+    if (n) {
+      var nt = clean(n.textContent);
+      if (/^(20|1[0-9]|[1-9])$/.test(nt)) return nt;
+    }
+
+    var txt = clean(tile.textContent || '');
+    var m = txt.match(/\b(20|1[0-9]|[1-9])\b/);
+    return m ? m[1] : '';
+  }
+
+  function heightForMode() {
+    if (mode === 'expanded') {
+      var h = Math.max(520, Math.min(720, window.innerHeight - 235));
+      return h + 'px';
+    }
+    return '430px';
+  }
+
+  function unwrapOldScalers() {
+    qsa('.pmd-v185-floor-scaler, .pmd-v187-floor-scaler').forEach(function (scaler) {
+      var parent = scaler.parentElement;
+      if (!parent) return;
+      while (scaler.firstChild) parent.insertBefore(scaler.firstChild, scaler);
+      scaler.remove();
+    });
+  }
+
+  function normalizeNumber(tile) {
+    var n = null;
+    try { n = tile.querySelector(':scope > .pmd-v175c-table-number'); }
+    catch (e) { n = tile.querySelector('.pmd-v175c-table-number'); }
+
+    if (!n) return;
+
+    imp(n, 'position', 'absolute');
+    imp(n, 'inset', '0');
+    imp(n, 'width', '100%');
+    imp(n, 'height', '100%');
+    imp(n, 'display', 'flex');
+    imp(n, 'align-items', 'center');
+    imp(n, 'justify-content', 'center');
+    imp(n, 'text-align', 'center');
+    imp(n, 'transform', 'none');
+    imp(n, 'line-height', '1');
+  }
+
+  function applyTile(tile, floorW) {
+    var no = tableNo(tile);
+    var p = POS[no];
+
+    imp(tile, 'position', 'absolute');
+
+    if (p) {
+      imp(tile, 'left', Math.round(p.x * (floorW / BASE_W)) + 'px');
+      imp(tile, 'top', p.y + 'px');
+    }
+
+    imp(tile, 'width', '104px');
+    imp(tile, 'height', '86px');
+    imp(tile, 'min-width', '104px');
+    imp(tile, 'min-height', '86px');
+    imp(tile, 'max-width', '104px');
+    imp(tile, 'max-height', '86px');
+    imp(tile, 'display', 'block');
+    imp(tile, 'visibility', 'visible');
+    imp(tile, 'opacity', '1');
+    imp(tile, 'transform', 'none');
+    imp(tile, 'transition', 'none');
+    imp(tile, 'animation', 'none');
+    imp(tile, 'overflow', 'visible');
+
+    normalizeNumber(tile);
+  }
+
+  function updateButton() {
+    qsa(BTN_SEL).forEach(function (btn) {
+      btn.setAttribute('title', mode === 'expanded' ? 'Compact floor' : 'Expand floor');
+      btn.setAttribute('aria-label', mode === 'expanded' ? 'Compact floor' : 'Expand floor');
+      btn.setAttribute('data-pmd-v190-mode', mode);
+    });
+  }
+
+  function apply() {
+    if (applying) return;
+    applying = true;
+
+    root.classList.add('pmd-waiter-dashboard-active');
+
+    root.classList.remove(
+      'pmd-v184-floor-small', 'pmd-v184-floor-large',
+      'pmd-v185-floor-small', 'pmd-v185-floor-large', 'pmd-v185-sizing',
+      'pmd-v187-floor-small', 'pmd-v187-floor-large', 'pmd-v187-sizing',
+      'pmd-v188-floor-compact', 'pmd-v188-floor-expanded',
+      'pmd-v189-floor-compact', 'pmd-v189-floor-expanded'
+    );
+
+    root.classList.toggle('pmd-v190-floor-compact', mode === 'compact');
+    root.classList.toggle('pmd-v190-floor-expanded', mode === 'expanded');
+
+    var h = heightForMode();
+    root.style.setProperty('--pmd-v190-floor-height', h);
+
+    unwrapOldScalers();
+
+    var f = getFloor();
+    if (f) {
+      var fw = f.getBoundingClientRect().width || BASE_W;
+
+      imp(f, 'position', 'relative');
+      imp(f, 'height', h);
+      imp(f, 'min-height', h);
+      imp(f, 'max-height', h);
+      imp(f, 'overflow', 'visible');
+      imp(f, 'background', '#ffffff');
+      imp(f, 'transform', 'none');
+
+      getTiles().forEach(function (tile) {
+        applyTile(tile, fw);
+      });
+    }
+
+    updateButton();
+    applying = false;
+  }
+
+  function setMode(next, reason) {
+    if (next !== 'compact' && next !== 'expanded') next = 'compact';
+
+    mode = next;
+    localStorage.setItem('pmd_waiter_floor_compact_v190', mode);
+
+    apply();
+
+    console.info('[PMD] V190 floor mode', {
+      mode: mode,
+      reason: reason || 'set'
+    });
+  }
+
+  function toggle(reason) {
+    setMode(mode === 'expanded' ? 'compact' : 'expanded', reason || 'toggle');
+  }
+
+  function isNotificationClose(btn) {
+    return !!(
+      btn &&
+      (
+        btn.closest('.notification-toast, .toast, .toast-container, .notification, .push-notification, [class*="notification"], [class*="toast"]') ||
+        btn.matches('.notification-toast-close, [aria-label="Close"], [aria-label="close"]')
+      )
+    );
+  }
+
+  function isExactCompactButton(btn) {
+    if (!btn) return false;
+    if (isNotificationClose(btn)) return false;
+    if (!btn.matches(BTN_SEL)) return false;
+
+    var f = getFloor();
+    if (!f) return false;
+
+    var fr = f.getBoundingClientRect();
+    var br = btn.getBoundingClientRect();
+
+    return br.bottom <= fr.top + 25 && br.right >= fr.right - 180;
+  }
+
+  function onClick(e) {
+    var btn = e.target && e.target.closest ? e.target.closest('button,a,[role="button"],.btn,[data-w19-compact]') : null;
+    if (!isExactCompactButton(btn)) return;
+
+    e.preventDefault();
+    e.stopPropagation();
+    if (e.stopImmediatePropagation) e.stopImmediatePropagation();
+
+    var now = Date.now();
+    if (now - lastClick < 400) return;
+    lastClick = now;
+
+    toggle('data-w19-compact-button');
+  }
+
+  function schedule() {
+    if (raf) return;
+    raf = requestAnimationFrame(function () {
+      raf = 0;
+      apply();
+    });
+  }
+
+  function debug(print) {
+    var f = getFloor();
+    var fr = f ? f.getBoundingClientRect() : null;
+    var list = getTiles();
+
+    var coords = {};
+    var xs = [];
+    var ys = [];
+
+    var rows = list.map(function (tile) {
+      var r = tile.getBoundingClientRect();
+      var no = tableNo(tile);
+      var k = Math.round(r.x) + ',' + Math.round(r.y);
+      coords[k] = true;
+      xs.push(r.x);
+      ys.push(r.y);
+
+      return {
+        table: no,
+        relX: fr ? Math.round(r.x - fr.x) : '',
+        relY: fr ? Math.round(r.y - fr.y) : '',
+        x: Math.round(r.x),
+        y: Math.round(r.y),
+        w: Math.round(r.width),
+        h: Math.round(r.height),
+        left: tile.style.getPropertyValue('left'),
+        top: tile.style.getPropertyValue('top')
+      };
+    });
+
+    var spread = {
+      count: rows.length,
+      unique: Object.keys(coords).length,
+      dupes: rows.length - Object.keys(coords).length,
+      spreadX: xs.length ? Math.round(Math.max.apply(null, xs) - Math.min.apply(null, xs)) : 0,
+      spreadY: ys.length ? Math.round(Math.max.apply(null, ys) - Math.min.apply(null, ys)) : 0
+    };
+
+    var floors = f ? [{
+      x: Math.round(fr.x),
+      y: Math.round(fr.y),
+      w: Math.round(fr.width),
+      h: Math.round(fr.height),
+      style: (f.getAttribute('style') || '').slice(0, 180)
+    }] : [];
+
+    var buttons = qsa(BTN_SEL).map(function (btn) {
+      var r = btn.getBoundingClientRect();
+      return {
+        text: clean(btn.textContent),
+        title: btn.getAttribute('title') || '',
+        mode: btn.getAttribute('data-pmd-v190-mode') || '',
+        x: Math.round(r.x),
+        y: Math.round(r.y),
+        w: Math.round(r.width),
+        h: Math.round(r.height)
+      };
+    });
+
+    var out = {
+      active: true,
+      mode: mode,
+      height: heightForMode(),
+      spread: spread,
+      oldObjects: {
+        v184: typeof window.PMDFloorSizeV184,
+        v185: typeof window.PMDFloorScaleWrapperV185,
+        v186: typeof window.PMDFloorToggleDebounceV186,
+        v187: typeof window.PMDFloorScaleSafeV187,
+        v188: typeof window.PMDFloorCompactExpandV188,
+        v189: typeof window.PMDFloorPositionLockV189
+      },
+      oldScalerNodes: document.querySelectorAll('.pmd-v185-floor-scaler, .pmd-v187-floor-scaler').length,
+      floors: floors,
+      rows: rows,
+      buttons: buttons
+    };
+
+    if (print !== false) {
+      console.table(floors);
+      console.table(rows);
+      console.table(buttons);
+      console.log(out);
+    }
+
+    return out;
+  }
+
+  document.addEventListener('click', onClick, true);
+
+  observer = new MutationObserver(schedule);
+  observer.observe(document.querySelector('#pmd-waiter-dashboard-root') || document.body, {
+    subtree: true,
+    childList: true
+  });
+
+  [
+    'pmd_waiter_floor_size_v184',
+    'pmd_waiter_floor_scale_v185',
+    'pmd_waiter_floor_scale_v187',
+    'pmd_waiter_floor_compact_v188',
+    'pmd_waiter_floor_compact_v189',
+    'pmd_waiter_floor_positions_v189'
+  ].forEach(function (k) {
+    localStorage.removeItem(k);
+  });
+
+  apply();
+  setTimeout(apply, 80);
+  setTimeout(apply, 250);
+  setTimeout(apply, 1000);
+  setTimeout(apply, 2500);
+
+  window.PMDFloorDeterministicV190 = {
+    active: true,
+    apply: apply,
+    set: setMode,
+    toggle: toggle,
+    compact: function () { setMode('compact', 'api'); },
+    expand: function () { setMode('expanded', 'api'); },
+    expanded: function () { setMode('expanded', 'api'); },
+    debug: function () { return debug(true); },
+    stop: function () {
+      document.removeEventListener('click', onClick, true);
+      if (observer) observer.disconnect();
+      if (raf) cancelAnimationFrame(raf);
+      observer = null;
+      raf = 0;
+      console.info('[PMD] V190 deterministic floor stopped');
+    }
+  };
+
+  console.info('[PMD] V190 deterministic floor compact active');
+})();
+</script>
+<!-- PMD_V190_DETERMINISTIC_FLOOR_COMPACT_END -->
+
 </body>
 </html>
 
@@ -11661,6 +13288,9 @@ html.pmd-dashboard2-active .pmd-d2-live-pill {
 }
 </style>
 
+
+{{-- PMD_V181_DISABLE_OLD_WAITER_FLOOR_PATCH_START:V36 --}}
+@if (!request()->is('admin/dashboardwaiter*'))
 <script id="pmd-waiter-dashboard-v36-status-colors-select-dragfix-script">
 (function () {
   if (!/\/admin\/dashboardwaiter(?:$|[?#])/.test(location.pathname + location.search + location.hash)) return;
@@ -12139,6 +13769,11 @@ html.pmd-dashboard2-active .pmd-d2-live-pill {
   console.info('[PMD] Waiter Dashboard V36 status colors + select mode + drag/drop fix active');
 })();
 </script>
+@else
+<script>console.info('[PMD] V181 skipped old waiter floor patch: V36');</script>
+@endif
+{{-- PMD_V181_DISABLE_OLD_WAITER_FLOOR_PATCH_END:V36 --}}
+
 <!-- PMD_WAITER_DASHBOARD_V36_STATUS_COLORS_SELECT_DRAGFIX_END -->
 
 
@@ -12268,6 +13903,9 @@ html.pmd-dashboard2-active .pmd-d2-live-pill {
 }
 </style>
 
+
+{{-- PMD_V181_DISABLE_OLD_WAITER_FLOOR_PATCH_START:V40 --}}
+@if (!request()->is('admin/dashboardwaiter*'))
 <script id="pmd-waiter-dashboard-v40-authoritative-compact-merge-script">
 (function () {
   if (!/\/admin\/dashboardwaiter(?:$|[?#])/.test(location.pathname + location.search + location.hash)) return;
@@ -12693,6 +14331,11 @@ html.pmd-dashboard2-active .pmd-d2-live-pill {
   console.info('[PMD] Waiter Dashboard V40 authoritative compact merge active');
 })();
 </script>
+@else
+<script>console.info('[PMD] V181 skipped old waiter floor patch: V40');</script>
+@endif
+{{-- PMD_V181_DISABLE_OLD_WAITER_FLOOR_PATCH_END:V40 --}}
+
 <!-- PMD_WAITER_DASHBOARD_V40_AUTHORITATIVE_COMPACT_MERGE_END -->
 
 
@@ -12772,6 +14415,9 @@ html.pmd-dashboard2-active .pmd-d2-live-pill {
 }
 </style>
 
+
+{{-- PMD_V181_DISABLE_OLD_WAITER_FLOOR_PATCH_START:V41 --}}
+@if (!request()->is('admin/dashboardwaiter*'))
 <script id="pmd-waiter-dashboard-v41-flat-board-frames-script">
 (function () {
   if (!/\/admin\/dashboardwaiter(?:$|[?#])/.test(location.pathname + location.search + location.hash)) return;
@@ -12832,6 +14478,11 @@ html.pmd-dashboard2-active .pmd-d2-live-pill {
   console.info('[PMD] Waiter Dashboard V41 flat board frames active');
 })();
 </script>
+@else
+<script>console.info('[PMD] V181 skipped old waiter floor patch: V41');</script>
+@endif
+{{-- PMD_V181_DISABLE_OLD_WAITER_FLOOR_PATCH_END:V41 --}}
+
 <!-- PMD_WAITER_DASHBOARD_V41_FLAT_BOARD_FRAMES_END -->
 
 
@@ -12892,6 +14543,9 @@ html.pmd-dashboard2-active .pmd-d2-live-pill {
 }
 </style>
 
+
+{{-- PMD_V181_DISABLE_OLD_WAITER_FLOOR_PATCH_START:V43 --}}
+@if (!request()->is('admin/dashboardwaiter*'))
 <script id="pmd-waiter-dashboard-v43-restore-inner-floor-frame-script">
 (function () {
   if (!/\/admin\/dashboardwaiter(?:$|[?#])/.test(location.pathname + location.search + location.hash)) return;
@@ -12946,6 +14600,11 @@ html.pmd-dashboard2-active .pmd-d2-live-pill {
   console.info('[PMD] Waiter Dashboard V43 restored inner floor frame active');
 })();
 </script>
+@else
+<script>console.info('[PMD] V181 skipped old waiter floor patch: V43');</script>
+@endif
+{{-- PMD_V181_DISABLE_OLD_WAITER_FLOOR_PATCH_END:V43 --}}
+
 <!-- PMD_WAITER_DASHBOARD_V43_RESTORE_INNER_FLOOR_FRAME_END -->
 
 
@@ -13047,6 +14706,9 @@ html.pmd-dashboard2-active .pmd-d2-live-pill {
 }
 </style>
 
+
+{{-- PMD_V181_DISABLE_OLD_WAITER_FLOOR_PATCH_START:V44 --}}
+@if (!request()->is('admin/dashboardwaiter*'))
 <script id="pmd-waiter-dashboard-v44-floor-icon-size-fix-script">
 (function () {
   if (!/\/admin\/dashboardwaiter(?:$|[?#])/.test(location.pathname + location.search + location.hash)) return;
@@ -13096,6 +14758,11 @@ html.pmd-dashboard2-active .pmd-d2-live-pill {
   console.info('[PMD] Waiter Dashboard V44 floor icon size fix active');
 })();
 </script>
+@else
+<script>console.info('[PMD] V181 skipped old waiter floor patch: V44');</script>
+@endif
+{{-- PMD_V181_DISABLE_OLD_WAITER_FLOOR_PATCH_END:V44 --}}
+
 <!-- PMD_WAITER_DASHBOARD_V44_FLOOR_ICON_SIZE_FIX_END -->
 
 
@@ -13139,6 +14806,9 @@ html.pmd-dashboard2-active .pmd-d2-live-pill {
 }
 </style>
 
+
+{{-- PMD_V181_DISABLE_OLD_WAITER_FLOOR_PATCH_START:V46 --}}
+@if (!request()->is('admin/dashboardwaiter*'))
 <script id="pmd-waiter-dashboard-v46-floor-map-true-white-script">
 (function () {
   if (!/\/admin\/dashboardwaiter(?:$|[?#])/.test(location.pathname + location.search + location.hash)) return;
@@ -13187,6 +14857,11 @@ html.pmd-dashboard2-active .pmd-d2-live-pill {
   console.info('[PMD] Waiter Dashboard V46 true white floor map active');
 })();
 </script>
+@else
+<script>console.info('[PMD] V181 skipped old waiter floor patch: V46');</script>
+@endif
+{{-- PMD_V181_DISABLE_OLD_WAITER_FLOOR_PATCH_END:V46 --}}
+
 <!-- PMD_WAITER_DASHBOARD_V46_FLOOR_MAP_TRUE_WHITE_END -->
 
 
@@ -13269,6 +14944,9 @@ html.pmd-dashboard2-active .pmd-d2-live-pill {
 }
 </style>
 
+
+{{-- PMD_V181_DISABLE_OLD_WAITER_FLOOR_PATCH_START:V47 --}}
+@if (!request()->is('admin/dashboardwaiter*'))
 <script id="pmd-waiter-dashboard-v47-compact-table-visual-cleanup-script">
 (function () {
   if (!/\/admin\/dashboardwaiter(?:$|[?#])/.test(location.pathname + location.search + location.hash)) return;
@@ -13318,6 +14996,11 @@ html.pmd-dashboard2-active .pmd-d2-live-pill {
   console.info('[PMD] Waiter Dashboard V47 compact table visual cleanup active');
 })();
 </script>
+@else
+<script>console.info('[PMD] V181 skipped old waiter floor patch: V47');</script>
+@endif
+{{-- PMD_V181_DISABLE_OLD_WAITER_FLOOR_PATCH_END:V47 --}}
+
 <!-- PMD_WAITER_DASHBOARD_V47_COMPACT_TABLE_VISUAL_CLEANUP_END -->
 
 
@@ -13351,6 +15034,9 @@ html.pmd-dashboard2-active .pmd-d2-live-pill {
 }
 </style>
 
+
+{{-- PMD_V181_DISABLE_OLD_WAITER_FLOOR_PATCH_START:V48 --}}
+@if (!request()->is('admin/dashboardwaiter*'))
 <script id="pmd-waiter-dashboard-v48-title-cleanup-icons-script">
 (function () {
   if (!/\/admin\/dashboardwaiter(?:$|[?#])/.test(location.pathname + location.search + location.hash)) return;
@@ -13414,6 +15100,11 @@ html.pmd-dashboard2-active .pmd-d2-live-pill {
   console.info('[PMD] Waiter Dashboard V48 title cleanup/icons active');
 })();
 </script>
+@else
+<script>console.info('[PMD] V181 skipped old waiter floor patch: V48');</script>
+@endif
+{{-- PMD_V181_DISABLE_OLD_WAITER_FLOOR_PATCH_END:V48 --}}
+
 <!-- PMD_WAITER_DASHBOARD_V48_TITLE_CLEANUP_ICONS_END -->
 
 
@@ -13496,6 +15187,9 @@ html.pmd-dashboardwaiter-kiosk-page #pmd-waiter-dashboard-root.pmd-w89-compact .
 }
 </style>
 
+
+{{-- PMD_V181_DISABLE_OLD_WAITER_FLOOR_PATCH_START:V89 --}}
+@if (!request()->is('admin/dashboardwaiter*'))
 <script id="pmd-waiter-dashboard-v89-floor-position-lock-script">
 (function () {
   if (!/\/admin\/dashboardwaiter(?:$|[?#])/.test(location.pathname + location.search + location.hash)) return;
@@ -13845,6 +15539,11 @@ html.pmd-dashboardwaiter-kiosk-page #pmd-waiter-dashboard-root.pmd-w89-compact .
   console.info('[PMD] Waiter Dashboard V89 floor position lock active');
 })();
 </script>
+@else
+<script>console.info('[PMD] V181 skipped old waiter floor patch: V89');</script>
+@endif
+{{-- PMD_V181_DISABLE_OLD_WAITER_FLOOR_PATCH_END:V89 --}}
+
 <!-- PMD_WAITER_DASHBOARD_V89_FLOOR_POSITION_LOCK_END -->
 
 
@@ -13885,6 +15584,9 @@ html.pmd-dashboardwaiter-kiosk-page #pmd-waiter-dashboard-root .pmd-v18-merged-t
 }
 </style>
 
+
+{{-- PMD_V181_DISABLE_OLD_WAITER_FLOOR_PATCH_START:V105 --}}
+@if (!request()->is('admin/dashboardwaiter*'))
 <script id="pmd-waiter-dashboard-v105-remove-merge-feature-script">
 (function () {
   if (!/\/admin\/dashboardwaiter(?:$|[?#])/.test(location.pathname + location.search + location.hash)) return;
@@ -14188,5 +15890,10 @@ html.pmd-dashboardwaiter-kiosk-page #pmd-waiter-dashboard-root .pmd-v18-merged-t
   console.info('[PMD] Waiter Dashboard V105 merge feature removed active');
 })();
 </script>
+@else
+<script>console.info('[PMD] V181 skipped old waiter floor patch: V105');</script>
+@endif
+{{-- PMD_V181_DISABLE_OLD_WAITER_FLOOR_PATCH_END:V105 --}}
+
 <!-- PMD_WAITER_DASHBOARD_V105_REMOVE_MERGE_FEATURE_END -->
 

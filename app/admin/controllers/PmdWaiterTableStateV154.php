@@ -45,10 +45,14 @@ class PmdWaiterTableStateV154 extends PmdWaiterDashboardV151
 
     public function update($tableId = null)
     {
-        if (!Schema::hasTable('tables') || !Schema::hasColumn('tables', 'operational_status')) {
+        // PMD_V168B_TI_TABLES_STORAGE
+        $physicalTable = $this->physicalTablesTable();
+
+        if (!$physicalTable || !Schema::hasColumn($physicalTable, 'operational_status')) {
             return $this->json([
                 'ok' => false,
-                'message' => 'Operational table status migration is not installed.',
+                'message' => 'Operational table status migration is not installed for physical table storage.',
+                'physical_table' => $physicalTable,
             ], 409);
         }
 
@@ -63,14 +67,14 @@ class PmdWaiterTableStateV154 extends PmdWaiterDashboardV151
         }
 
         try {
-            $result = DB::transaction(function () use ($tableId, $next, $reason, $skipCleaning) {
-                $columns = Schema::getColumnListing('tables');
+            $result = DB::transaction(function () use ($tableId, $next, $reason, $skipCleaning, $physicalTable) {
+                $columns = Schema::getColumnListing($physicalTable);
                 $pk = in_array('table_id', $columns, true) ? 'table_id' : (in_array('id', $columns, true) ? 'id' : null);
                 if (!$pk) {
                     abort(500, 'Table primary key not found.');
                 }
 
-                $row = DB::table('tables')->where($pk, $tableId)->lockForUpdate()->first();
+                $row = DB::table($physicalTable)->where($pk, $tableId)->lockForUpdate()->first();
                 if (!$row) {
                     abort(404, 'Table not found.');
                 }
@@ -129,7 +133,7 @@ class PmdWaiterTableStateV154 extends PmdWaiterDashboardV151
                     $updates['updated_at'] = date('Y-m-d H:i:s');
                 }
 
-                DB::table('tables')->where($pk, $tableId)->update($updates);
+                DB::table($physicalTable)->where($pk, $tableId)->update($updates);
                 $this->writeHistory($tableId, $effectiveOld, $next, $reason, null, [
                     'source' => 'waiter_floor_v154',
                     'stored_old_status' => $storedOld,
@@ -167,11 +171,13 @@ class PmdWaiterTableStateV154 extends PmdWaiterDashboardV151
         $recentOrdersByTable = $this->loadRecentOrdersIncludingPaid($tables);
 
         $tableRows = [];
-        if (Schema::hasTable('tables')) {
-            $columns = Schema::getColumnListing('tables');
+        $physicalTable = $this->physicalTablesTable();
+
+        if ($physicalTable && Schema::hasTable($physicalTable)) {
+            $columns = Schema::getColumnListing($physicalTable);
             $pk = in_array('table_id', $columns, true) ? 'table_id' : (in_array('id', $columns, true) ? 'id' : null);
             if ($pk) {
-                foreach (DB::table('tables')->get() as $row) {
+                foreach (DB::table($physicalTable)->get() as $row) {
                     $a = (array)$row;
                     $tableRows[(int)$a[$pk]] = $a;
                 }
@@ -448,6 +454,29 @@ class PmdWaiterTableStateV154 extends PmdWaiterDashboardV151
         return ['status' => 'unpaid', 'label' => 'Unpaid', 'total' => $total, 'settled' => $settled, 'due' => $due];
     }
 
+
+    protected function physicalTablesTable(): ?string
+    {
+        foreach (['ti_tables', 'tables'] as $table) {
+            if (Schema::hasTable($table)) {
+                return $table;
+            }
+        }
+
+        return null;
+    }
+
+    protected function tableStatusHistoryTable(): ?string
+    {
+        foreach (['ti_pmd_table_status_history', 'pmd_table_status_history'] as $table) {
+            if (Schema::hasTable($table)) {
+                return $table;
+            }
+        }
+
+        return null;
+    }
+
     protected function actorId(): ?int
     {
         try {
@@ -460,11 +489,12 @@ class PmdWaiterTableStateV154 extends PmdWaiterDashboardV151
 
     protected function writeHistory(int $tableId, string $old, string $new, string $reason, ?int $orderId, array $context): void
     {
-        if (!Schema::hasTable('pmd_table_status_history')) {
+        $historyTable = $this->tableStatusHistoryTable();
+        if (!$historyTable) {
             return;
         }
 
-        DB::table('pmd_table_status_history')->insert([
+        DB::table($historyTable)->insert([
             'table_id' => $tableId,
             'old_status' => $old,
             'new_status' => $new,
