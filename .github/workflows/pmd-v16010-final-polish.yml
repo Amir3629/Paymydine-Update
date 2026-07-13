@@ -1,0 +1,103 @@
+name: PMD V160.10 Final Polish
+
+on:
+  push:
+    branches:
+      - agent/waiter-floor-edit-layout-smooth-final
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: agent/waiter-floor-edit-layout-smooth-final
+          fetch-depth: 0
+
+      - name: Add first-paint number and single-badge CSS invariant
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+
+          path = Path('app/admin/assets/js/pmd-waiter-floor-edit-v160.js')
+          text = path.read_text(encoding='utf-8')
+
+          if 'pmd-v160-stable-floor-invariants' in text:
+              raise SystemExit('Invariant style already present')
+
+          anchor = """  function stableSection(currentRoot) {
+"""
+          code = r'''  function stableInstallCss() {
+    if (document.getElementById('pmd-v160-stable-floor-invariants')) return;
+
+    var style = document.createElement('style');
+    style.id = 'pmd-v160-stable-floor-invariants';
+    style.textContent = [
+      '#pmd-waiter-dashboard-root .pmd-w5-table[data-table] > .pmd-v175c-table-number{',
+      'position:absolute!important;inset:0!important;width:100%!important;height:100%!important;',
+      'display:flex!important;align-items:center!important;justify-content:center!important;',
+      'margin:0!important;padding:0!important;background:transparent!important;border:0!important;',
+      'font-size:30px!important;line-height:1!important;font-weight:950!important;',
+      'color:#05070d!important;-webkit-text-fill-color:#05070d!important;',
+      'text-shadow:none!important;transform:none!important;pointer-events:none!important;z-index:20!important;',
+      '}',
+      '#pmd-waiter-dashboard-root .pmd-w5-table[data-table]:has(> .pmd-v175c-attention-badge) > small,',
+      '#pmd-waiter-dashboard-root .pmd-w5-table[data-table]:has(> .pmd-v175c-attention-badge) > .pmd-v183-order-count-badge{',
+      'display:none!important;visibility:hidden!important;opacity:0!important;pointer-events:none!important;',
+      '}',
+      '#pmd-waiter-dashboard-root .pmd-w5-table[data-table] > .pmd-v175c-attention-badge{',
+      'visibility:visible!important;opacity:1!important;',
+      '}'
+    ].join('');
+
+    (document.head || document.documentElement).appendChild(style);
+  }
+
+'''
+
+          if text.count(anchor) != 1:
+              raise SystemExit(f'stableSection anchor count={text.count(anchor)}')
+          text = text.replace(anchor, code + anchor, 1)
+
+          install_anchor = """  function stableInstall() {
+    var currentRoot = root();
+"""
+          install_new = """  function stableInstall() {
+    stableInstallCss();
+    var currentRoot = root();
+"""
+          if text.count(install_anchor) != 1:
+              raise SystemExit(f'stableInstall anchor count={text.count(install_anchor)}')
+          text = text.replace(install_anchor, install_new, 1)
+
+          debug_anchor = """        floorDomMode: 'stable-section-reconcile',
+"""
+          debug_new = """        floorDomMode: 'stable-section-reconcile',
+        firstPaintNumberLocked: !!document.getElementById('pmd-v160-stable-floor-invariants'),
+        singleBadgeCssInvariant: true,
+"""
+          if text.count(debug_anchor) != 1:
+              raise SystemExit(f'debug anchor count={text.count(debug_anchor)}')
+          text = text.replace(debug_anchor, debug_new, 1)
+
+          path.write_text(text, encoding='utf-8')
+          PY
+
+          node --check app/admin/assets/js/pmd-waiter-floor-edit-v160.js
+          grep -Fq "pmd-v160-stable-floor-invariants" app/admin/assets/js/pmd-waiter-floor-edit-v160.js
+          grep -Fq "singleBadgeCssInvariant: true" app/admin/assets/js/pmd-waiter-floor-edit-v160.js
+          grep -Fq ":has(> .pmd-v175c-attention-badge)" app/admin/assets/js/pmd-waiter-floor-edit-v160.js
+
+      - name: Commit final validated source
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add app/admin/assets/js/pmd-waiter-floor-edit-v160.js
+          git rm -f .github/workflows/pmd-v16010-final-polish.yml
+          git rm -f .github/pmd_v160_10_result.txt || true
+          git commit -m "Lock waiter floor first-paint number and single badge"
+          git push origin HEAD:agent/waiter-floor-edit-layout-smooth-final
