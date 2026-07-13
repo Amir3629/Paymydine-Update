@@ -40,9 +40,23 @@
     return map ? Array.prototype.slice.call(map.querySelectorAll('.pmd-w5-table[data-table]')) : [];
   }
 
+  function toolbarState() {
+    return window.PMDWaiterFloorToolbar && window.PMDWaiterFloorToolbar.state
+      ? window.PMDWaiterFloorToolbar.state
+      : null;
+  }
+
   function isEditing() {
     var r = root();
-    return !!(r && r.classList.contains('pmd-w19-editing'));
+    var state = toolbarState();
+    return !!(
+      (state && state.edit) ||
+      (r && (
+        r.classList.contains('pmd-w19-editing') ||
+        r.classList.contains('pmd-v21-editing') ||
+        r.classList.contains('pmd-v22-editing')
+      ))
+    );
   }
 
   function isCompact() {
@@ -85,11 +99,19 @@
     if (map) map.setAttribute('data-pmd-v160-layout-authority', '1');
   }
 
+  /* The floor tile itself is a button. Resolve the tile first and reject only
+   * a real interactive child inside it, such as the unmerge control. */
   function tableFromEvent(event) {
     var target = event && event.target && event.target.nodeType === 1 ? event.target : null;
     if (!target) return null;
-    if (target.closest('button, a, input, textarea, select, [role="button"], .pmd-w19-unmerge, .pmd-v40-unmerge')) return null;
-    return target.closest(TABLE_SELECTOR);
+
+    var table = target.closest(TABLE_SELECTOR);
+    if (!table) return null;
+
+    var childControl = target.closest('a, input, textarea, select, .pmd-w19-unmerge, .pmd-v40-unmerge, .pmd-v18-unmerge');
+    if (childControl && childControl !== table && table.contains(childControl)) return null;
+
+    return table;
   }
 
   function tableKey(table, index) {
@@ -162,22 +184,14 @@
     var r = root();
     if (!r) return;
     r.classList.add('pmd-v160-edit-freeze');
+    markAuthority();
     restoreLayout(snapshot);
 
     requestAnimationFrame(function () {
       markAuthority();
-      restoreLayout(snapshot);
-    });
-    setTimeout(function () {
-      markAuthority();
-      restoreLayout(snapshot);
-    }, 40);
-    setTimeout(function () {
-      markAuthority();
-      restoreLayout(snapshot);
-      repairBrokenColumnLayout();
+      if (!drag) restoreLayout(snapshot);
       r.classList.remove('pmd-v160-edit-freeze');
-    }, 180);
+    });
   }
 
   function tableRectAt(center, width, height) {
@@ -501,9 +515,8 @@
 
   function repairBrokenColumnLayout() {
     recoveryRuns++;
-    var r = root();
     var map = floorMap();
-    if (!r || !map || r.getAttribute('data-pmd-v160-column-recovered') === '1') return false;
+    if (!map || map.getAttribute('data-pmd-v160-column-recovered') === '1') return false;
     if (drag) return false;
 
     var mapRect = map.getBoundingClientRect();
@@ -525,7 +538,7 @@
     if (!clearlyOneColumn || (!cannotFitVertically && overflowCount === 0)) return false;
 
     if (!arrangeGrid(rows, mapRect)) return false;
-    r.setAttribute('data-pmd-v160-column-recovered', '1');
+    map.setAttribute('data-pmd-v160-column-recovered', '1');
     recoveredColumnLayouts++;
     showRecoveryNotice();
     console.info('[PMD] V160 repaired invalid single-column waiter floor layout', {
@@ -718,7 +731,8 @@
     },
     recoverColumn: function () {
       var r = root();
-      if (r) r.removeAttribute('data-pmd-v160-column-recovered');
+      var map = floorMap();
+      if (map) map.removeAttribute('data-pmd-v160-column-recovered');
       return repairBrokenColumnLayout();
     },
     overlaps: overlapPairs,
@@ -727,9 +741,11 @@
       var tableNodes = map ? map.querySelectorAll('.pmd-w5-table[data-table]') : [];
       var api = window.PMDWaiterV61StableKioskNoJump || window.PMDWaiterV60No404SmartSnap;
       var out = {
-        version: 'pmd-waiter-floor-edit-v160.2',
+        version: 'pmd-waiter-floor-edit-v160.3',
         active: true,
         editing: isEditing(),
+        toolbarEdit: !!(toolbarState() && toolbarState().edit),
+        tableTag: tableNodes.length ? tableNodes[0].tagName : null,
         compact: isCompact(),
         dragging: !!drag,
         tableCount: tableNodes.length,
@@ -738,7 +754,7 @@
         authorityClass: !!(root() && root().classList.contains('pmd-v160-layout-authority')),
         recoveryRuns: recoveryRuns,
         recoveredColumnLayouts: recoveredColumnLayouts,
-        columnRecovered: !!(root() && root().getAttribute('data-pmd-v160-column-recovered') === '1'),
+        columnRecovered: !!(map && map.getAttribute('data-pmd-v160-column-recovered') === '1'),
         legendButton: !!document.querySelector(MAP_SELECTOR + ' .pmd-v61-map-info-btn'),
         legendCard: !!document.querySelector(MAP_SELECTOR + ' .pmd-v61-map-legend')
       };
@@ -754,5 +770,5 @@
     }
   };
 
-  console.info('[PMD] Waiter floor edit V160.2 stable absolute drag authority active');
+  console.info('[PMD] Waiter floor edit V160.3 button-safe drag authority active');
 })();
