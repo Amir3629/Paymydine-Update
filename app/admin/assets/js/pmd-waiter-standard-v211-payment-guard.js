@@ -21,6 +21,12 @@
     return String(value == null ? '' : value).replace(/\s+/g, ' ').trim();
   }
 
+  function escapeHtml(value) {
+    return String(value == null ? '' : value).replace(/[&<>"']/g, function (character) {
+      return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[character];
+    });
+  }
+
   function latestErrorText(posRoot) {
     var candidates = [
       posRoot.querySelector('[data-pos-toast].is-error'),
@@ -47,9 +53,7 @@
     balance.innerHTML = '' +
       '<section class="pmd-v211-payment-error" role="alert">' +
         '<strong>PAYMENT DETAILS NOT LOADED</strong>' +
-        '<span>' + message.replace(/[&<>"']/g, function (character) {
-          return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[character];
-        }) + '</span>' +
+        '<span>' + escapeHtml(message) + '</span>' +
         '<small>The order is still safe. Retry without leaving this table.</small>' +
         '<button type="button" data-v211-payment-retry>RETRY PAYMENT DETAILS</button>' +
       '</section>';
@@ -90,6 +94,20 @@
     var current = dialog.querySelector('.pmd-v211-payment-warning');
     if (!summary.degraded) {
       if (current) current.remove();
+      dialog.removeAttribute('data-v211-payment-mode');
+      return;
+    }
+
+    var storageReady = !summary.payment_storage || summary.payment_storage.ready !== false;
+    var mode = storageReady ? 'compatibility' : 'storage-missing';
+    var title = storageReady ? 'COMPATIBILITY MODE' : 'PAYMENT STORAGE NOT READY';
+    var message = clean(summary.warning || 'Payment information was recovered safely.');
+    var signature = mode + '|' + title + '|' + message;
+
+    if (current && current.getAttribute('data-v211-signature') === signature) {
+      if (dialog.getAttribute('data-v211-payment-mode') !== mode) {
+        dialog.setAttribute('data-v211-payment-mode', mode);
+      }
       return;
     }
 
@@ -101,13 +119,13 @@
       balance.parentNode.insertBefore(current, balance);
     }
 
-    var storageReady = !summary.payment_storage || summary.payment_storage.ready !== false;
+    current.setAttribute('data-v211-signature', signature);
     current.classList.toggle('is-blocking', !storageReady);
     current.innerHTML = '' +
-      '<strong>' + (storageReady ? 'COMPATIBILITY MODE' : 'PAYMENT STORAGE NOT READY') + '</strong>' +
-      '<span>' + clean(summary.warning || 'Payment information was recovered safely.') + '</span>';
+      '<strong>' + escapeHtml(title) + '</strong>' +
+      '<span>' + escapeHtml(message) + '</span>';
 
-    dialog.setAttribute('data-v211-payment-mode', storageReady ? 'compatibility' : 'storage-missing');
+    dialog.setAttribute('data-v211-payment-mode', mode);
   }
 
   function install(pos, posRoot) {
@@ -138,7 +156,8 @@
     paymentButton.addEventListener('click', beginOpen, true);
 
     modal.addEventListener('click', function (event) {
-      if (event.target === modal || event.target.closest('[data-pos-payment-close]')) {
+      var target = event.target && event.target.nodeType === 1 ? event.target : null;
+      if (event.target === modal || (target && target.closest('[data-pos-payment-close]'))) {
         controller.manualClose = true;
         controller.opening = false;
       }
