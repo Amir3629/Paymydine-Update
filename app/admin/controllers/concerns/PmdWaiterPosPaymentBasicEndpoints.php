@@ -20,7 +20,23 @@ trait PmdWaiterPosPaymentBasicEndpoints
             return response()->json(['ok' => false, 'message' => 'Order not found.'], 404);
         }
 
-        return response()->json($this->buildPaymentSummary($order));
+        try {
+            return response()->json($this->buildPaymentSummary($order));
+        } catch (\Throwable $e) {
+            report($e);
+
+            try {
+                return response()->json($this->buildPaymentSummaryFallback($order, $e));
+            } catch (\Throwable $fallbackError) {
+                report($fallbackError);
+
+                return response()->json([
+                    'ok' => false,
+                    'message' => 'Payment details could not be loaded. The payment window can be retried without leaving the order.',
+                    'diagnostic_code' => class_basename($fallbackError),
+                ], 503);
+            }
+        }
     }
 
     public function validatePaymentCoupon($orderId = null)
@@ -39,5 +55,4 @@ trait PmdWaiterPosPaymentBasicEndpoints
         $status = $coupon['ok'] ? 200 : 422;
         return response()->json($coupon, $status);
     }
-
 }
