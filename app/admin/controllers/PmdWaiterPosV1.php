@@ -17,6 +17,7 @@ require_once __DIR__.'/concerns/PmdWaiterPosCanonicalTableReferenceV150Concern.p
 require_once __DIR__.'/concerns/PmdWaiterPosTableStateV154Concern.php';
 require_once __DIR__.'/concerns/PmdWaiterPosOrderScopeConcern.php';
 require_once __DIR__.'/concerns/PmdWaiterPosPaymentSummaryConcern.php';
+require_once __DIR__.'/concerns/PmdWaiterPosPaymentFallbackConcern.php';
 require_once __DIR__.'/concerns/PmdWaiterPosPaymentAllocationConcern.php';
 require_once __DIR__.'/concerns/PmdWaiterPosPaymentTransactionConcern.php';
 
@@ -48,6 +49,7 @@ class PmdWaiterPosV1 extends AdminController
     use \Admin\Controllers\Concerns\PmdWaiterPosTableStateV154Concern;
     use \Admin\Controllers\Concerns\PmdWaiterPosOrderScopeConcern;
     use \Admin\Controllers\Concerns\PmdWaiterPosPaymentSummaryConcern;
+    use \Admin\Controllers\Concerns\PmdWaiterPosPaymentFallbackConcern;
     use \Admin\Controllers\Concerns\PmdWaiterPosPaymentAllocationConcern;
     use \Admin\Controllers\Concerns\PmdWaiterPosPaymentTransactionConcern;
 
