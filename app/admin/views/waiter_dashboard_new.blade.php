@@ -3,183 +3,117 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover">
-    <meta name="theme-color" content="#07111f">
+    <meta name="theme-color" content="#11151a">
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>Waiter POS · PayMyDine</title>
 
-    <link rel="stylesheet" href="{{ asset('app/admin/assets/css/pmd-waiter-dashboard-new-v1.css') }}?v=1">
-
-    {{-- Existing production POS engine styles. They are used only after a table opens. --}}
-    <link rel="stylesheet" href="{{ asset('app/admin/assets/css/pmd-waiter-pos-v1.css') }}?v=27">
-    <link rel="stylesheet" href="{{ asset('app/admin/assets/css/pmd-waiter-pos-product-details-v3.css') }}?v=27">
-    <link rel="stylesheet" href="{{ asset('app/admin/assets/css/pmd-waiter-pos-polish-v26.css') }}?v=27">
-    <link rel="stylesheet" href="{{ asset('app/admin/assets/css/pmd-waiter-pos-simple-v27.css') }}?v=27">
+    {{-- Proven ordering/payment engine styles. V2 overrides presentation only. --}}
+    <link rel="stylesheet" href="{{ asset('app/admin/assets/css/pmd-waiter-pos-v1.css') }}?v=2">
+    <link rel="stylesheet" href="{{ asset('app/admin/assets/css/pmd-waiter-dashboard-new-v1.css') }}?v=2">
 </head>
-<body class="pmd-waiter-new-page">
+<body class="pmd-waiter-new-page pmd-waiter-standard-v2-page">
 <div
-    id="pmd-waiter-new"
-    class="pmd-waiter-new"
-    data-pmd-waiter-new-root
+    id="pmd-waiter-standard-v2"
+    class="pmd-waiter-standard-v2"
+    data-pmd-waiter-v2-root
     data-data-url="{{ $dataUrl }}"
     data-overlay-url="{{ $overlayUrl }}"
     data-standalone-url="{{ $standaloneUrl }}"
     data-floor-operations-url="{{ $floorOperationsUrl }}"
 >
-    <main class="pmd-waiter-launcher" data-waiter-launcher>
-        <header class="pmd-waiter-header">
-            <div class="pmd-waiter-brand">
-                <span class="pmd-waiter-brand-mark" aria-hidden="true">P</span>
+    <main class="pmd-v2-launcher" data-v2-launcher>
+        <header class="pmd-v2-topbar">
+            <div class="pmd-v2-brand">
+                <span class="pmd-v2-brand-key" aria-hidden="true">P</span>
                 <div>
-                    <strong>Waiter POS</strong>
-                    <span data-waiter-user>PayMyDine service</span>
+                    <strong>WAITER POS</strong>
+                    <small data-v2-user>Live service</small>
                 </div>
             </div>
 
-            <div class="pmd-waiter-header-actions">
-                <span class="pmd-waiter-sync-state" data-sync-state>
-                    <i aria-hidden="true"></i>
-                    <span>Connecting</span>
-                </span>
-
-                <button
-                    type="button"
-                    class="pmd-waiter-icon-button"
-                    data-open-alerts
-                    aria-label="Open service alerts"
-                    title="Service alerts"
-                >
-                    <span aria-hidden="true">!</span>
-                    <b data-alert-count hidden>0</b>
+            <div class="pmd-v2-top-actions">
+                <span class="pmd-v2-live" data-v2-sync><i></i><b>CONNECTING</b></span>
+                <button type="button" data-v2-alerts aria-label="Service alerts">
+                    <span>!</span><b data-v2-alert-count hidden>0</b>
                 </button>
-
-                <button
-                    type="button"
-                    class="pmd-waiter-icon-button"
-                    data-refresh
-                    aria-label="Refresh tables"
-                    title="Refresh tables"
-                >↻</button>
+                <button type="button" data-v2-refresh aria-label="Refresh tables">↻</button>
             </div>
         </header>
 
-        <section class="pmd-waiter-command-bar" aria-label="Table controls">
-            <div class="pmd-waiter-tabs" role="tablist" aria-label="Table views">
-                <button type="button" class="is-active" data-table-filter="mine" role="tab" aria-selected="true">
-                    My tables <span data-count-mine>0</span>
+        <section class="pmd-v2-command">
+            <div class="pmd-v2-mode-keys" role="tablist" aria-label="Table views">
+                <button type="button" data-v2-filter="mine" role="tab">
+                    <span>MY TABLES</span><b data-v2-count-mine>0</b>
                 </button>
-                <button type="button" data-table-filter="all" role="tab" aria-selected="false">
-                    All <span data-count-all>0</span>
+                <button type="button" data-v2-filter="all" role="tab" class="is-active">
+                    <span>ALL</span><b data-v2-count-all>0</b>
                 </button>
-                <button type="button" data-table-filter="open" role="tab" aria-selected="false">
-                    Open <span data-count-open>0</span>
+                <button type="button" data-v2-filter="open" role="tab">
+                    <span>OPEN</span><b data-v2-count-open>0</b>
                 </button>
-                <button type="button" data-table-filter="attention" role="tab" aria-selected="false">
-                    Attention <span data-count-attention>0</span>
+                <button type="button" data-v2-filter="attention" role="tab">
+                    <span>ATTENTION</span><b data-v2-count-attention>0</b>
                 </button>
             </div>
 
-            <label class="pmd-waiter-search">
+            <label class="pmd-v2-search">
                 <span aria-hidden="true">⌕</span>
-                <input
-                    type="search"
-                    data-table-search
-                    placeholder="Search table"
-                    autocomplete="off"
-                    enterkeyhint="search"
-                >
-                <button type="button" data-clear-search aria-label="Clear search" hidden>×</button>
+                <input type="search" data-v2-search placeholder="TABLE OR AREA" autocomplete="off" enterkeyhint="search">
+                <button type="button" data-v2-clear-search hidden aria-label="Clear search">×</button>
             </label>
         </section>
 
-        <nav class="pmd-waiter-sections" data-table-sections aria-label="Restaurant areas"></nav>
+        <nav class="pmd-v2-area-keys" data-v2-areas aria-label="Restaurant areas"></nav>
 
-        <section class="pmd-waiter-summary" aria-label="Current service summary">
-            <div>
-                <span>Open checks</span>
-                <strong data-summary-open>0</strong>
-            </div>
-            <div>
-                <span>Ready / attention</span>
-                <strong data-summary-attention>0</strong>
-            </div>
-            <div>
-                <span>Payment due</span>
-                <strong data-summary-due>€0.00</strong>
-            </div>
-        </section>
-
-        <section class="pmd-waiter-table-area" aria-label="Tables">
-            <div class="pmd-waiter-loading" data-table-loading>
+        <section class="pmd-v2-table-stage" aria-label="Restaurant tables">
+            <div class="pmd-v2-loading" data-v2-loading>
                 <span></span><span></span><span></span><span></span><span></span><span></span>
             </div>
 
-            <div class="pmd-waiter-empty" data-table-empty hidden>
-                <strong>No matching tables</strong>
-                <span>Change the filter or clear the search.</span>
-                <button type="button" data-reset-filters>Show all tables</button>
+            <div class="pmd-v2-empty" data-v2-empty hidden>
+                <strong>NO TABLES</strong>
+                <span>Change the view or clear the search.</span>
+                <button type="button" data-v2-reset>SHOW ALL</button>
             </div>
 
-            <div class="pmd-waiter-table-grid" data-table-grid></div>
+            <div class="pmd-v2-table-grid" data-v2-table-grid></div>
         </section>
 
-        <footer class="pmd-waiter-footer">
-            <span data-last-updated>Waiting for table data…</span>
-            <a href="{{ $floorOperationsUrl }}">Floor operations</a>
+        <footer class="pmd-v2-footer">
+            <span data-v2-updated>Loading live tables…</span>
+            <a href="{{ $floorOperationsUrl }}">FLOOR OPERATIONS</a>
         </footer>
-
-        <nav class="pmd-waiter-mobile-nav" aria-label="Waiter quick actions">
-            <button type="button" class="is-active" data-mobile-view="mine">
-                <span aria-hidden="true">▦</span>
-                <b>My tables</b>
-            </button>
-            <button type="button" data-mobile-view="open">
-                <span aria-hidden="true">≡</span>
-                <b>Open checks</b>
-            </button>
-            <button type="button" data-open-alerts>
-                <span aria-hidden="true">!</span>
-                <b>Attention</b>
-                <i data-mobile-alert-count hidden>0</i>
-            </button>
-            <a href="{{ $floorOperationsUrl }}">
-                <span aria-hidden="true">⌂</span>
-                <b>Operations</b>
-            </a>
-        </nav>
     </main>
 
-    <aside class="pmd-waiter-alert-drawer" data-alert-drawer aria-hidden="true">
-        <button type="button" class="pmd-waiter-drawer-backdrop" data-close-alerts aria-label="Close alerts"></button>
-        <section role="dialog" aria-modal="true" aria-labelledby="pmd-waiter-alert-title">
+    <aside class="pmd-v2-alert-drawer" data-v2-alert-drawer aria-hidden="true">
+        <button type="button" class="pmd-v2-drawer-backdrop" data-v2-close-alerts aria-label="Close alerts"></button>
+        <section role="dialog" aria-modal="true" aria-labelledby="pmd-v2-alert-title">
             <header>
                 <div>
-                    <span>LIVE SERVICE</span>
-                    <h2 id="pmd-waiter-alert-title">Needs attention</h2>
+                    <small>LIVE SERVICE</small>
+                    <h2 id="pmd-v2-alert-title">ATTENTION</h2>
                 </div>
-                <button type="button" data-close-alerts aria-label="Close alerts">×</button>
+                <button type="button" data-v2-close-alerts aria-label="Close alerts">×</button>
             </header>
-            <div class="pmd-waiter-alert-list" data-alert-list></div>
+            <div data-v2-alert-list></div>
         </section>
     </aside>
 
-    <section class="pmd-waiter-pos-layer" data-new-pos-layer hidden aria-hidden="true">
-        <div class="pmd-waiter-pos-loading" data-new-pos-loading>
-            <span class="pmd-waiter-spinner" aria-hidden="true"></span>
-            <strong>Opening table…</strong>
-            <button type="button" data-cancel-pos-load>Cancel</button>
+    <section class="pmd-v2-pos-layer" data-v2-pos-layer hidden aria-hidden="true">
+        <div class="pmd-v2-pos-loading" data-v2-pos-loading>
+            <span></span>
+            <strong>OPENING TABLE</strong>
+            <button type="button" data-v2-cancel-pos>CANCEL</button>
         </div>
-        <div class="pmd-waiter-pos-host" data-new-pos-host></div>
+        <div class="pmd-v2-pos-host" data-v2-pos-host></div>
     </section>
 
-    <div class="pmd-waiter-toast" data-waiter-toast role="status" aria-live="polite"></div>
+    <div class="pmd-v2-toast" data-v2-toast role="status" aria-live="polite"></div>
 </div>
 
-{{-- Existing production POS modules; this page mounts them only after a table is selected. --}}
-<script src="{{ asset('app/admin/assets/js/pmd-waiter-pos-payment-v2.js') }}?v=27"></script>
-<script src="{{ asset('app/admin/assets/js/pmd-waiter-pos-payment-policy-v2.js') }}?v=27"></script>
-<script src="{{ asset('app/admin/assets/js/pmd-waiter-pos-v1.js') }}?v=27"></script>
-<script src="{{ asset('app/admin/assets/js/pmd-waiter-pos-product-details-v3.js') }}?v=27"></script>
-<script src="{{ asset('app/admin/assets/js/pmd-waiter-pos-simple-v27.js') }}?v=27"></script>
-<script src="{{ asset('app/admin/assets/js/pmd-waiter-dashboard-new-v1.js') }}?v=1"></script>
+{{-- Only the stable functional POS engine is loaded. Legacy visual/polish modules are intentionally excluded. --}}
+<script src="{{ asset('app/admin/assets/js/pmd-waiter-pos-payment-v2.js') }}?v=2"></script>
+<script src="{{ asset('app/admin/assets/js/pmd-waiter-pos-v1.js') }}?v=2"></script>
+<script src="{{ asset('app/admin/assets/js/pmd-waiter-dashboard-new-v1.js') }}?v=2"></script>
 </body>
 </html>
