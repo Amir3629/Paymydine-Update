@@ -1,26 +1,26 @@
 (function () {
   'use strict';
 
-  if (window.PMDWaiterDashboardNewV1) return;
+  if (window.PMDWaiterStandardV2) return;
 
-  var root = document.querySelector('[data-pmd-waiter-new-root]');
+  var root = document.querySelector('[data-pmd-waiter-v2-root]');
   if (!root) return;
 
-  var launcher = root.querySelector('[data-waiter-launcher]');
-  var tableGrid = root.querySelector('[data-table-grid]');
-  var tableLoading = root.querySelector('[data-table-loading]');
-  var tableEmpty = root.querySelector('[data-table-empty]');
-  var sectionNav = root.querySelector('[data-table-sections]');
-  var searchInput = root.querySelector('[data-table-search]');
-  var clearSearchButton = root.querySelector('[data-clear-search]');
-  var syncState = root.querySelector('[data-sync-state]');
-  var lastUpdated = root.querySelector('[data-last-updated]');
-  var alertDrawer = root.querySelector('[data-alert-drawer]');
-  var alertList = root.querySelector('[data-alert-list]');
-  var posLayer = root.querySelector('[data-new-pos-layer]');
-  var posHost = root.querySelector('[data-new-pos-host]');
-  var posLoading = root.querySelector('[data-new-pos-loading]');
-  var toastElement = root.querySelector('[data-waiter-toast]');
+  var launcher = root.querySelector('[data-v2-launcher]');
+  var grid = root.querySelector('[data-v2-table-grid]');
+  var loading = root.querySelector('[data-v2-loading]');
+  var empty = root.querySelector('[data-v2-empty]');
+  var areas = root.querySelector('[data-v2-areas]');
+  var search = root.querySelector('[data-v2-search]');
+  var clearSearch = root.querySelector('[data-v2-clear-search]');
+  var sync = root.querySelector('[data-v2-sync]');
+  var updated = root.querySelector('[data-v2-updated]');
+  var alertDrawer = root.querySelector('[data-v2-alert-drawer]');
+  var alertList = root.querySelector('[data-v2-alert-list]');
+  var posLayer = root.querySelector('[data-v2-pos-layer]');
+  var posHost = root.querySelector('[data-v2-pos-host]');
+  var posLoading = root.querySelector('[data-v2-pos-loading]');
+  var toastBox = root.querySelector('[data-v2-toast]');
 
   var dataUrl = root.getAttribute('data-data-url') || '/admin/pmd-waiter-dashboard-v9-tenant-data';
   var overlayTemplate = root.getAttribute('data-overlay-url') || '/admin/pmd-waiter-pos-v1/overlay/{table}';
@@ -30,25 +30,25 @@
     payload: null,
     tables: [],
     orders: [],
-    filter: localStorage.getItem('pmd-waiter-new-filter') || 'mine',
-    section: 'all',
-    search: '',
+    filter: localStorage.getItem('pmd-waiter-standard-v2-filter') || 'all',
+    area: 'all',
+    query: '',
     loading: false,
     request: null,
     poll: null,
-    loadedAt: 0,
-    posInstance: null,
     posAbort: null,
+    posInstance: null,
     activeTableId: null,
     historyPushed: false,
-    toastTimer: null
+    toastTimer: null,
+    updatedAt: 0
   };
 
-  function $(selector, parent) {
+  function one(selector, parent) {
     return (parent || root).querySelector(selector);
   }
 
-  function $$(selector, parent) {
+  function all(selector, parent) {
     return Array.prototype.slice.call((parent || root).querySelectorAll(selector));
   }
 
@@ -58,350 +58,55 @@
 
   function esc(value) {
     return String(value == null ? '' : value).replace(/[&<>"']/g, function (character) {
-      return {
-        '&': '&amp;',
-        '<': '&lt;',
-        '>': '&gt;',
-        '"': '&quot;',
-        "'": '&#039;'
-      }[character];
+      return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[character];
     });
   }
 
-  function number(value, fallback) {
+  function num(value, fallback) {
     var parsed = Number(value);
     return Number.isFinite(parsed) ? parsed : (fallback || 0);
   }
 
-  function truthy(value) {
+  function yes(value) {
     return value === true || value === 1 || value === '1' || value === 'true';
   }
 
-  function currencySymbol() {
-    if (state.payload && state.payload.currency) return String(state.payload.currency);
-    return '€';
+  function formatMoney(value) {
+    var symbol = clean(state.payload && state.payload.currency) || '€';
+    return symbol + num(value, 0).toFixed(2);
   }
 
-  function money(value) {
-    return currencySymbol() + number(value, 0).toFixed(2);
+  function formatTime(value) {
+    if (!value) return '';
+    try {
+      return new Intl.DateTimeFormat(undefined, {hour:'2-digit', minute:'2-digit'}).format(new Date(value));
+    } catch (error) {
+      return '';
+    }
   }
 
   function setText(selector, value) {
-    var element = $(selector);
+    var element = one(selector);
     if (element) element.textContent = String(value == null ? '' : value);
   }
 
-  function toast(message, isError) {
-    if (!toastElement) return;
-    toastElement.textContent = String(message || '');
-    toastElement.classList.toggle('is-error', !!isError);
-    toastElement.classList.add('is-show');
+  function toast(message, error) {
+    if (!toastBox) return;
+    toastBox.textContent = clean(message);
+    toastBox.classList.toggle('is-error', !!error);
+    toastBox.classList.add('is-show');
     clearTimeout(state.toastTimer);
     state.toastTimer = setTimeout(function () {
-      toastElement.classList.remove('is-show');
+      toastBox.classList.remove('is-show');
     }, 3200);
   }
 
   function setSync(mode, label) {
-    if (!syncState) return;
-    syncState.classList.toggle('is-online', mode === 'online');
-    syncState.classList.toggle('is-error', mode === 'error');
-    var text = syncState.querySelector('span');
-    if (text) text.textContent = label || mode;
-  }
-
-  function dateLabel(timestamp) {
-    if (!timestamp) return '';
-    try {
-      return new Intl.DateTimeFormat(undefined, {
-        hour: '2-digit',
-        minute: '2-digit'
-      }).format(new Date(timestamp));
-    } catch (error) {
-      return new Date(timestamp).toLocaleTimeString();
-    }
-  }
-
-  function tableSection(table) {
-    return clean(
-      table.section ||
-      table.table_section ||
-      table.table_zone ||
-      table.floor_name ||
-      table.zone ||
-      'Main'
-    ) || 'Main';
-  }
-
-  function tableNumber(table) {
-    return clean(table.number || table.table_number || table.table_no || table.id || '');
-  }
-
-  function tableName(table) {
-    var label = clean(table.label || table.name || table.table_name || '');
-    var numberLabel = tableNumber(table);
-    if (!label || label === numberLabel || label === 'Table ' + numberLabel) return 'Table ' + numberLabel;
-    return label;
-  }
-
-  function orderTableId(order) {
-    return String(order.table_id || order.location_table_id || order.table_ref || order.table_number || order.table_no || '');
-  }
-
-  function deriveTables(payload) {
-    var rawTables = Array.isArray(payload.tables)
-      ? payload.tables
-      : (((payload.sections || {}).floor_plan || {}).tables || []);
-
-    var orders = Array.isArray(payload.orders)
-      ? payload.orders
-      : (Array.isArray(payload.current_orders) ? payload.current_orders : []);
-
-    var ordersByTable = {};
-    orders.forEach(function (order) {
-      var keys = [
-        String(order.table_id || ''),
-        String(order.table_number || ''),
-        String(order.table_no || ''),
-        String(order.table_ref || '')
-      ].filter(Boolean);
-
-      keys.forEach(function (key) {
-        if (!ordersByTable[key]) ordersByTable[key] = [];
-        if (ordersByTable[key].indexOf(order) === -1) ordersByTable[key].push(order);
-      });
-    });
-
-    state.orders = orders;
-
-    return rawTables.map(function (table) {
-      var id = String(table.id || table.table_id || table.location_table_id || '');
-      var numberLabel = tableNumber(table);
-      var linkedOrders = ordersByTable[id] || ordersByTable[numberLabel] || [];
-      var openOrders = Math.max(number(table.open_orders, 0), linkedOrders.length);
-      var due = number(table.due, 0);
-
-      if (!due && linkedOrders.length) {
-        due = linkedOrders.reduce(function (sum, order) {
-          var settlement = clean(order.settlement_status || '').toLowerCase();
-          if (['paid', 'settled', 'closed'].indexOf(settlement) !== -1) return sum;
-          return sum + Math.max(0, number(order.total, 0) - number(order.settled_amount, 0));
-        }, 0);
-      }
-
-      var ready = number(table.ready, 0);
-      var kitchen = number(table.kitchen, 0);
-      var rawStatus = clean(table.status || table.latest_order_status || '').toLowerCase();
-      var assigned = truthy(table.assigned) || truthy(table.is_assigned) || truthy(table.mine);
-      var status = 'free';
-
-      if (ready > 0 || /ready|serve/.test(rawStatus)) {
-        status = 'ready';
-      } else if (kitchen > 0 || /kitchen|prepar|cook|sent/.test(rawStatus)) {
-        status = 'kitchen';
-      } else if (due > 0 && openOrders > 0) {
-        status = 'payment';
-      } else if (/paid|settled|closing/.test(rawStatus)) {
-        status = 'paid';
-      } else if (openOrders > 0 || /active|open|received|pending/.test(rawStatus)) {
-        status = 'active';
-      }
-
-      var hasNote = linkedOrders.some(function (order) {
-        return clean(order.comment || order.note || '') !== '' || (Array.isArray(order.item_notes) && order.item_notes.length > 0);
-      });
-
-      return {
-        raw: table,
-        id: id || numberLabel,
-        number: numberLabel,
-        name: tableName(table),
-        section: tableSection(table),
-        capacity: number(table.capacity || table.table_capacity, 0),
-        assigned: assigned,
-        openOrders: openOrders,
-        due: due,
-        dueLabel: clean(table.due_label) || money(due),
-        ready: ready,
-        kitchen: kitchen,
-        status: status,
-        statusLabel: statusLabel(status),
-        attention: status === 'ready' || ready > 0 || hasNote,
-        hasNote: hasNote,
-        orders: linkedOrders
-      };
-    }).filter(function (table) {
-      return table.id && table.number;
-    });
-  }
-
-  function statusLabel(status) {
-    return {
-      free: 'Free',
-      active: 'Open order',
-      kitchen: 'In kitchen',
-      ready: 'Ready',
-      payment: 'Payment due',
-      paid: 'Paid',
-      unassigned: 'Other waiter'
-    }[status] || 'Table';
-  }
-
-  function mineHasAssignments() {
-    return state.tables.some(function (table) { return table.assigned; });
-  }
-
-  function filteredTables() {
-    var query = state.search.toLowerCase();
-    var hasAssignments = mineHasAssignments();
-
-    return state.tables.filter(function (table) {
-      if (state.filter === 'mine' && hasAssignments && !table.assigned) return false;
-      if (state.filter === 'open' && table.openOrders < 1) return false;
-      if (state.filter === 'attention' && !table.attention) return false;
-      if (state.section !== 'all' && table.section !== state.section) return false;
-
-      if (query) {
-        var haystack = [table.number, table.name, table.section, table.statusLabel].join(' ').toLowerCase();
-        if (haystack.indexOf(query) === -1) return false;
-      }
-
-      return true;
-    }).sort(function (a, b) {
-      if (a.attention !== b.attention) return a.attention ? -1 : 1;
-      if (a.openOrders !== b.openOrders) return b.openOrders - a.openOrders;
-      return a.number.localeCompare(b.number, undefined, { numeric: true, sensitivity: 'base' });
-    });
-  }
-
-  function tableMeta(table) {
-    if (table.ready > 0) return table.ready + ' ready';
-    if (table.kitchen > 0) return table.kitchen + ' in kitchen';
-    if (table.due > 0) return table.dueLabel + ' due';
-    if (table.openOrders > 0) return table.openOrders + (table.openOrders === 1 ? ' open order' : ' open orders');
-    if (table.capacity > 0) return table.capacity + ' seats';
-    return 'Tap to start';
-  }
-
-  function tableSecondary(table) {
-    if (table.hasNote) return 'Order note';
-    if (table.orders.length) {
-      var latest = table.orders[0];
-      return clean(latest.status_label || latest.status || 'Active service');
-    }
-    return table.section;
-  }
-
-  function tableMarkup(table) {
-    var alert = '';
-    if (table.ready > 0) alert = '<span class="pmd-waiter-table-alert">READY</span>';
-    else if (table.hasNote) alert = '<span class="pmd-waiter-table-alert">NOTE</span>';
-    else if (table.openOrders > 1) alert = '<span class="pmd-waiter-table-alert">' + esc(table.openOrders) + '</span>';
-
-    return '' +
-      '<button type="button" class="pmd-waiter-table is-' + esc(table.status) + '" data-open-table="' + esc(table.id) + '" aria-label="Open ' + esc(table.name) + '">' +
-        '<span class="pmd-waiter-table-head">' +
-          '<span class="pmd-waiter-table-status">' + esc(table.statusLabel) + '</span>' +
-          alert +
-        '</span>' +
-        '<span class="pmd-waiter-table-main">' +
-          '<span class="pmd-waiter-table-number">' + esc(table.number) + '</span>' +
-          '<span class="pmd-waiter-table-name">' + esc(table.name) + '</span>' +
-        '</span>' +
-        '<span class="pmd-waiter-table-foot">' +
-          '<span class="pmd-waiter-table-meta">' +
-            '<strong>' + esc(tableMeta(table)) + '</strong>' +
-            '<span>' + esc(tableSecondary(table)) + '</span>' +
-          '</span>' +
-          '<span class="pmd-waiter-table-open" aria-hidden="true">›</span>' +
-        '</span>' +
-      '</button>';
-  }
-
-  function renderSections() {
-    if (!sectionNav) return;
-    var sections = Array.from(new Set(state.tables.map(function (table) { return table.section; }))).sort();
-    var rows = ['all'].concat(sections);
-
-    sectionNav.innerHTML = rows.map(function (section) {
-      var label = section === 'all' ? 'All areas' : section;
-      return '<button type="button" class="' + (state.section === section ? 'is-active' : '') + '" data-table-section="' + esc(section) + '">' + esc(label) + '</button>';
-    }).join('');
-  }
-
-  function renderCounts() {
-    var mine = state.tables.filter(function (table) { return table.assigned; }).length;
-    if (!mineHasAssignments()) mine = state.tables.length;
-    var open = state.tables.filter(function (table) { return table.openOrders > 0; }).length;
-    var attention = state.tables.filter(function (table) { return table.attention; }).length;
-    var due = state.tables.reduce(function (sum, table) { return sum + table.due; }, 0);
-
-    setText('[data-count-mine]', mine);
-    setText('[data-count-all]', state.tables.length);
-    setText('[data-count-open]', open);
-    setText('[data-count-attention]', attention);
-    setText('[data-summary-open]', open);
-    setText('[data-summary-attention]', attention);
-    setText('[data-summary-due]', money(due));
-
-    $$('[data-alert-count]').forEach(function (badge) {
-      badge.textContent = attention;
-      badge.hidden = attention < 1;
-    });
-
-    $$('[data-mobile-alert-count]').forEach(function (badge) {
-      badge.textContent = attention;
-      badge.hidden = attention < 1;
-    });
-  }
-
-  function renderTabs() {
-    $$('[data-table-filter]').forEach(function (button) {
-      var active = button.getAttribute('data-table-filter') === state.filter;
-      button.classList.toggle('is-active', active);
-      button.setAttribute('aria-selected', active ? 'true' : 'false');
-    });
-
-    $$('[data-mobile-view]').forEach(function (button) {
-      button.classList.toggle('is-active', button.getAttribute('data-mobile-view') === state.filter);
-    });
-  }
-
-  function renderAlerts() {
-    if (!alertList) return;
-    var attentionTables = state.tables.filter(function (table) { return table.attention; });
-
-    if (!attentionTables.length) {
-      alertList.innerHTML = '<div class="pmd-waiter-alert-empty"><strong>Everything is clear</strong><span>No table needs immediate attention.</span></div>';
-      return;
-    }
-
-    alertList.innerHTML = attentionTables.map(function (table) {
-      var icon = table.ready > 0 ? '✓' : '!';
-      return '' +
-        '<button type="button" class="pmd-waiter-alert-item" data-alert-table="' + esc(table.id) + '">' +
-          '<b>' + icon + '</b>' +
-          '<span><strong>' + esc(table.name) + ' · ' + esc(table.statusLabel) + '</strong><small>' + esc(tableMeta(table)) + ' · ' + esc(tableSecondary(table)) + '</small></span>' +
-          '<i aria-hidden="true">›</i>' +
-        '</button>';
-    }).join('');
-  }
-
-  function renderTables() {
-    var rows = filteredTables();
-    tableLoading.hidden = true;
-    tableGrid.innerHTML = rows.map(tableMarkup).join('');
-    tableEmpty.hidden = rows.length > 0;
-    renderTabs();
-    renderCounts();
-    renderSections();
-    renderAlerts();
-  }
-
-  function updateUser(payload) {
-    var user = payload.user || {};
-    var name = clean(user.name || user.username || user.email || 'Waiter');
-    setText('[data-waiter-user]', name + ' · live service');
+    if (!sync) return;
+    sync.classList.toggle('is-online', mode === 'online');
+    sync.classList.toggle('is-error', mode === 'error');
+    var text = sync.querySelector('b');
+    if (text) text.textContent = label || mode.toUpperCase();
   }
 
   async function fetchJson(url, options) {
@@ -414,27 +119,326 @@
       }
     }, options || {}));
 
-    var json = await response.json().catch(function () { return {}; });
-    if (!response.ok || json.ok === false) {
-      var error = new Error(json.message || json.error || ('HTTP ' + response.status));
+    var payload = await response.json().catch(function () { return {}; });
+    if (!response.ok || payload.ok === false) {
+      var error = new Error(payload.message || payload.error || ('HTTP ' + response.status));
       error.status = response.status;
       throw error;
     }
-    return json;
+    return payload;
+  }
+
+  function tableNumber(table) {
+    return clean(table.number || table.table_number || table.table_no || table.id || table.table_id);
+  }
+
+  function tableId(table) {
+    return clean(table.id || table.table_id || table.location_table_id || tableNumber(table));
+  }
+
+  function tableName(table) {
+    var number = tableNumber(table);
+    var name = clean(table.name || table.label || table.table_name || '');
+    if (!name || name === number || name.toLowerCase() === ('table ' + number).toLowerCase()) return 'TABLE ' + number;
+    return name.toUpperCase();
+  }
+
+  function tableArea(table) {
+    return clean(table.section || table.table_section || table.table_zone || table.zone || table.floor_name || 'Main') || 'Main';
+  }
+
+  function orderKeys(order) {
+    return [
+      order.table_id,
+      order.location_table_id,
+      order.table_number,
+      order.table_no,
+      order.table_ref,
+      order.table
+    ].map(clean).filter(Boolean);
+  }
+
+  function orderDate(order) {
+    var raw = order.updated_at || order.created_at || order.order_date || '';
+    var timestamp = Date.parse(raw);
+    return Number.isFinite(timestamp) ? timestamp : 0;
+  }
+
+  function orderRemaining(order) {
+    var settlement = clean(order.settlement_status || '').toLowerCase();
+    if (['paid', 'settled', 'closed'].indexOf(settlement) !== -1) return 0;
+    return Math.max(0, num(order.total || order.order_total, 0) - num(order.settled_amount, 0));
+  }
+
+  function deriveTables(payload) {
+    var rawTables = Array.isArray(payload.tables)
+      ? payload.tables
+      : ((((payload.sections || {}).floor_plan || {}).tables) || []);
+
+    var orders = Array.isArray(payload.orders)
+      ? payload.orders
+      : (Array.isArray(payload.current_orders) ? payload.current_orders : []);
+
+    var orderMap = {};
+
+    orders.slice().sort(function (a, b) {
+      return orderDate(b) - orderDate(a);
+    }).forEach(function (order) {
+      orderKeys(order).forEach(function (key) {
+        if (!orderMap[key]) orderMap[key] = [];
+        if (orderMap[key].indexOf(order) === -1) orderMap[key].push(order);
+      });
+    });
+
+    state.orders = orders;
+
+    return rawTables.map(function (raw) {
+      var id = tableId(raw);
+      var number = tableNumber(raw);
+      var linked = orderMap[id] || orderMap[number] || [];
+      var latest = linked[0] || null;
+      var explicitOpen = num(raw.open_orders, 0);
+      var openOrders = Math.max(explicitOpen, linked.length);
+      var due = num(raw.due || raw.payment_due || raw.pending_value, 0);
+
+      if (!due) {
+        due = linked.reduce(function (sum, order) {
+          return sum + orderRemaining(order);
+        }, 0);
+      }
+
+      var note = linked.some(function (order) {
+        return clean(order.comment || order.note || '') !== ''
+          || (Array.isArray(order.item_notes) && order.item_notes.length > 0);
+      });
+
+      var ready = num(raw.ready || raw.ready_orders || raw.ready_count, 0);
+      var waiterCall = yes(raw.waiter_call)
+        || yes(raw.needs_waiter)
+        || yes(raw.call_waiter)
+        || /waiter.?call/.test(clean(raw.attention_type || raw.status).toLowerCase());
+
+      var cleaning = yes(raw.cleaning_required)
+        || yes(raw.needs_cleaning)
+        || /clean/.test(clean(raw.attention_type || '').toLowerCase());
+
+      var rawStatus = clean(
+        raw.status
+        || raw.latest_order_status
+        || (latest && (latest.status_label || latest.status))
+        || ''
+      );
+
+      var settlement = clean(latest && latest.settlement_status).toLowerCase();
+      var assigned = yes(raw.assigned) || yes(raw.is_assigned) || yes(raw.mine);
+
+      var stateKey = 'free';
+      var stateLabel = 'FREE';
+
+      if (waiterCall) {
+        stateKey = 'attention';
+        stateLabel = 'WAITER CALL';
+      } else if (cleaning) {
+        stateKey = 'attention';
+        stateLabel = 'CLEANING';
+      } else if (ready > 0 || /ready|serve/.test(rawStatus.toLowerCase())) {
+        stateKey = 'ready';
+        stateLabel = 'READY';
+      } else if (due > 0 && openOrders > 0) {
+        stateKey = 'payment';
+        stateLabel = settlement === 'partial' ? 'PARTIAL' : 'PAYMENT';
+      } else if (openOrders > 0) {
+        stateKey = 'open';
+        stateLabel = 'OPEN';
+      } else if (/paid|settled/.test(rawStatus.toLowerCase())) {
+        stateKey = 'paid';
+        stateLabel = 'PAID';
+      }
+
+      var itemCount = linked.reduce(function (sum, order) {
+        return sum + num(order.total_items || order.items_count, Array.isArray(order.items) ? order.items.length : 0);
+      }, 0);
+
+      return {
+        raw: raw,
+        id: id || number,
+        number: number,
+        name: tableName(raw),
+        area: tableArea(raw),
+        capacity: num(raw.capacity || raw.table_capacity, 0),
+        assigned: assigned,
+        openOrders: openOrders,
+        linkedOrders: linked,
+        latestOrder: latest,
+        due: due,
+        ready: ready,
+        note: note,
+        waiterCall: waiterCall,
+        cleaning: cleaning,
+        attention: waiterCall || cleaning || ready > 0 || note,
+        itemCount: itemCount,
+        rawStatus: rawStatus,
+        state: stateKey,
+        stateLabel: stateLabel
+      };
+    }).filter(function (table) {
+      return table.id && table.number;
+    });
+  }
+
+  function mineAvailable() {
+    return state.tables.some(function (table) { return table.assigned; });
+  }
+
+  function filteredTables() {
+    var query = state.query.toLowerCase();
+    var hasMine = mineAvailable();
+
+    return state.tables.filter(function (table) {
+      if (state.filter === 'mine' && hasMine && !table.assigned) return false;
+      if (state.filter === 'open' && table.openOrders < 1) return false;
+      if (state.filter === 'attention' && !table.attention) return false;
+      if (state.area !== 'all' && table.area !== state.area) return false;
+
+      if (query) {
+        var haystack = [
+          table.number,
+          table.name,
+          table.area,
+          table.stateLabel,
+          table.rawStatus
+        ].join(' ').toLowerCase();
+        if (haystack.indexOf(query) === -1) return false;
+      }
+      return true;
+    }).sort(function (a, b) {
+      if (a.attention !== b.attention) return a.attention ? -1 : 1;
+      if (a.openOrders !== b.openOrders) return b.openOrders - a.openOrders;
+      return a.number.localeCompare(b.number, undefined, {numeric:true, sensitivity:'base'});
+    });
+  }
+
+  function tablePrimary(table) {
+    if (table.waiterCall) return 'CALL WAITER';
+    if (table.cleaning) return 'CLEAN TABLE';
+    if (table.ready > 0) return table.ready + ' READY';
+    if (table.due > 0) return formatMoney(table.due) + ' DUE';
+    if (table.openOrders > 0) return table.openOrders + (table.openOrders === 1 ? ' OPEN CHECK' : ' OPEN CHECKS');
+    if (table.capacity > 0) return table.capacity + ' SEATS';
+    return 'START ORDER';
+  }
+
+  function tableSecondary(table) {
+    var latest = table.latestOrder;
+    if (table.note) return 'ORDER NOTE';
+    if (table.itemCount > 0) return table.itemCount + (table.itemCount === 1 ? ' ITEM' : ' ITEMS');
+    if (latest) {
+      var status = clean(latest.status_label || latest.status);
+      if (status) return status.toUpperCase();
+    }
+    return table.area.toUpperCase();
+  }
+
+  function tableMarkup(table) {
+    var corner = '';
+    if (table.waiterCall) corner = '<span class="pmd-v2-table-corner">!</span>';
+    else if (table.cleaning) corner = '<span class="pmd-v2-table-corner">C</span>';
+    else if (table.ready > 0) corner = '<span class="pmd-v2-table-corner">' + esc(table.ready) + '</span>';
+    else if (table.note) corner = '<span class="pmd-v2-table-corner">N</span>';
+
+    return '' +
+      '<button type="button" class="pmd-v2-table-key is-' + esc(table.state) + '" data-v2-open-table="' + esc(table.id) + '">' +
+        '<span class="pmd-v2-table-state">' + esc(table.stateLabel) + '</span>' +
+        corner +
+        '<strong>' + esc(table.number) + '</strong>' +
+        '<span class="pmd-v2-table-name">' + esc(table.name) + '</span>' +
+        '<span class="pmd-v2-table-info"><b>' + esc(tablePrimary(table)) + '</b><small>' + esc(tableSecondary(table)) + '</small></span>' +
+      '</button>';
+  }
+
+  function renderAreas() {
+    if (!areas) return;
+    var names = Array.from(new Set(state.tables.map(function (table) { return table.area; }))).sort();
+    var rows = ['all'].concat(names);
+    areas.innerHTML = rows.map(function (name) {
+      var label = name === 'all' ? 'ALL AREAS' : name.toUpperCase();
+      return '<button type="button" class="' + (state.area === name ? 'is-active' : '') + '" data-v2-area="' + esc(name) + '">' + esc(label) + '</button>';
+    }).join('');
+  }
+
+  function renderCounts() {
+    var hasMine = mineAvailable();
+    var mine = hasMine ? state.tables.filter(function (table) { return table.assigned; }).length : state.tables.length;
+    var open = state.tables.filter(function (table) { return table.openOrders > 0; }).length;
+    var attention = state.tables.filter(function (table) { return table.attention; }).length;
+
+    setText('[data-v2-count-mine]', mine);
+    setText('[data-v2-count-all]', state.tables.length);
+    setText('[data-v2-count-open]', open);
+    setText('[data-v2-count-attention]', attention);
+
+    all('[data-v2-alert-count]').forEach(function (badge) {
+      badge.textContent = attention;
+      badge.hidden = attention < 1;
+    });
+  }
+
+  function renderFilters() {
+    all('[data-v2-filter]').forEach(function (button) {
+      var active = button.getAttribute('data-v2-filter') === state.filter;
+      button.classList.toggle('is-active', active);
+      button.setAttribute('aria-selected', active ? 'true' : 'false');
+    });
+  }
+
+  function renderAlerts() {
+    if (!alertList) return;
+    var rows = state.tables.filter(function (table) { return table.attention; });
+
+    if (!rows.length) {
+      alertList.innerHTML = '<div class="pmd-v2-alert-empty"><strong>ALL CLEAR</strong><span>No active waiter, cleaning, note or ready alert.</span></div>';
+      return;
+    }
+
+    alertList.innerHTML = rows.map(function (table) {
+      return '' +
+        '<button type="button" data-v2-alert-table="' + esc(table.id) + '">' +
+          '<b>' + esc(table.number) + '</b>' +
+          '<span><strong>' + esc(table.stateLabel) + '</strong><small>' + esc(tablePrimary(table)) + ' · ' + esc(tableSecondary(table)) + '</small></span>' +
+          '<i>›</i>' +
+        '</button>';
+    }).join('');
+  }
+
+  function renderTables() {
+    var rows = filteredTables();
+    loading.hidden = true;
+    grid.innerHTML = rows.map(tableMarkup).join('');
+    empty.hidden = rows.length > 0;
+    renderCounts();
+    renderFilters();
+    renderAreas();
+    renderAlerts();
+  }
+
+  function updateUser(payload) {
+    var user = payload.user || {};
+    var name = clean(user.name || user.username || user.email || 'Waiter');
+    setText('[data-v2-user]', name.toUpperCase() + ' · LIVE SERVICE');
   }
 
   async function refresh(silent) {
-    if (state.loading) return;
+    if (state.loading || !posLayer.hidden) return;
     state.loading = true;
 
     if (!state.payload) {
-      tableLoading.hidden = false;
-      tableEmpty.hidden = true;
+      loading.hidden = false;
+      empty.hidden = true;
     }
 
     if (state.request) state.request.abort();
     state.request = typeof AbortController === 'function' ? new AbortController() : null;
-    setSync('loading', 'Refreshing');
+    setSync('loading', 'SYNCING');
 
     try {
       var separator = dataUrl.indexOf('?') === -1 ? '?' : '&';
@@ -444,22 +448,27 @@
 
       state.payload = payload;
       state.tables = deriveTables(payload);
-      state.loadedAt = Date.now();
+      state.updatedAt = Date.now();
+
+      if (state.filter === 'mine' && !mineAvailable()) state.filter = 'all';
+
       updateUser(payload);
       renderTables();
-      setSync('online', 'Live');
-      if (lastUpdated) lastUpdated.textContent = 'Updated ' + dateLabel(state.loadedAt);
-      if (!silent) toast('Tables refreshed');
+      setSync('online', 'LIVE');
+      if (updated) updated.textContent = 'UPDATED ' + formatTime(state.updatedAt);
+      if (!silent) toast('LIVE TABLES UPDATED');
     } catch (error) {
       if (error.name === 'AbortError') return;
-      setSync('error', 'Offline');
-      tableLoading.hidden = true;
+      setSync('error', 'OFFLINE');
+      loading.hidden = true;
       if (!state.payload) {
-        tableEmpty.hidden = false;
-        tableEmpty.querySelector('strong').textContent = 'Could not load tables';
-        tableEmpty.querySelector('span').textContent = error.message || 'Check the connection and retry.';
+        empty.hidden = false;
+        var title = empty.querySelector('strong');
+        var subtitle = empty.querySelector('span');
+        if (title) title.textContent = 'DATA ERROR';
+        if (subtitle) subtitle.textContent = error.message || 'Could not load live tables.';
       }
-      if (!silent) toast(error.message || 'Could not refresh tables.', true);
+      if (!silent) toast(error.message || 'COULD NOT REFRESH', true);
     } finally {
       state.loading = false;
       state.request = null;
@@ -468,13 +477,13 @@
 
   function setFilter(filter) {
     if (['mine', 'all', 'open', 'attention'].indexOf(filter) === -1) return;
+    if (filter === 'mine' && !mineAvailable()) filter = 'all';
     state.filter = filter;
-    localStorage.setItem('pmd-waiter-new-filter', filter);
+    localStorage.setItem('pmd-waiter-standard-v2-filter', filter);
     renderTables();
   }
 
   function openAlerts() {
-    if (!alertDrawer) return;
     renderAlerts();
     alertDrawer.classList.add('is-open');
     alertDrawer.setAttribute('aria-hidden', 'false');
@@ -482,10 +491,9 @@
   }
 
   function closeAlerts() {
-    if (!alertDrawer) return;
     alertDrawer.classList.remove('is-open');
     alertDrawer.setAttribute('aria-hidden', 'true');
-    if (!state.posInstance && !state.posAbort) document.body.style.overflow = '';
+    if (posLayer.hidden) document.body.style.overflow = '';
   }
 
   function overlayUrl(tableId) {
@@ -497,7 +505,9 @@
   }
 
   function findTable(tableId) {
-    return state.tables.find(function (table) { return String(table.id) === String(tableId); }) || null;
+    return state.tables.find(function (table) {
+      return String(table.id) === String(tableId);
+    }) || null;
   }
 
   function showPosLayer(tableId) {
@@ -505,18 +515,18 @@
     posLayer.hidden = false;
     posLayer.setAttribute('aria-hidden', 'false');
     posLoading.classList.remove('is-hidden');
-    posHost.innerHTML = '';
-    launcher.setAttribute('aria-hidden', 'true');
-    document.body.classList.add('pmd-waiter-new-pos-open');
+    launcher.hidden = true;
+    document.body.classList.add('pmd-waiter-v2-pos-open');
+    document.body.style.overflow = 'hidden';
   }
 
   function hidePosLayer() {
     posLayer.hidden = true;
     posLayer.setAttribute('aria-hidden', 'true');
     posLoading.classList.remove('is-hidden');
-    posHost.innerHTML = '';
-    launcher.removeAttribute('aria-hidden');
-    document.body.classList.remove('pmd-waiter-new-pos-open');
+    launcher.hidden = false;
+    document.body.classList.remove('pmd-waiter-v2-pos-open');
+    document.body.style.overflow = '';
     state.activeTableId = null;
   }
 
@@ -526,19 +536,22 @@
       state.posAbort = null;
     }
 
-    if (state.posInstance && typeof state.posInstance.destroy === 'function') {
-      try { state.posInstance.destroy(); } catch (error) {}
+    var instance = state.posInstance;
+    state.posInstance = null;
+
+    if (instance && typeof instance.destroy === 'function') {
+      try { instance.destroy(); } catch (error) {}
     }
 
-    state.posInstance = null;
-    if (window.PMDWaiterPOS === state.posInstance) window.PMDWaiterPOS = null;
+    if (window.PMDWaiterPOS === instance) window.PMDWaiterPOS = null;
+    posHost.replaceChildren();
   }
 
   function closePos(fromHistory) {
     destroyPos();
     hidePosLayer();
 
-    if (!fromHistory && state.historyPushed && history.state && history.state.pmdWaiterPosNewOverlay) {
+    if (!fromHistory && state.historyPushed && history.state && history.state.pmdWaiterStandardV2) {
       state.historyPushed = false;
       history.back();
     } else {
@@ -549,7 +562,7 @@
   }
 
   function requestClosePos() {
-    if (state.historyPushed && history.state && history.state.pmdWaiterPosNewOverlay) {
+    if (state.historyPushed && history.state && history.state.pmdWaiterStandardV2) {
       history.back();
     } else {
       closePos(true);
@@ -559,7 +572,7 @@
   async function openPos(tableId) {
     var table = findTable(tableId);
     if (!table) {
-      toast('Table is no longer available. Refresh and try again.', true);
+      toast('TABLE IS NO LONGER AVAILABLE', true);
       return;
     }
 
@@ -569,14 +582,14 @@
 
     if (!window.PMDWaiterPOSApp || typeof window.PMDWaiterPOSApp.mount !== 'function') {
       hidePosLayer();
-      toast('The waiter POS engine is not available.', true);
+      toast('POS ENGINE IS NOT AVAILABLE', true);
       return;
     }
 
-    if (typeof AbortController === 'function') state.posAbort = new AbortController();
+    state.posAbort = typeof AbortController === 'function' ? new AbortController() : null;
 
     history.pushState(
-      { pmdWaiterPosNewOverlay: true, tableId: String(tableId) },
+      {pmdWaiterStandardV2:true, tableId:String(tableId)},
       '',
       location.pathname + '?table=' + encodeURIComponent(String(tableId))
     );
@@ -588,113 +601,112 @@
       });
 
       state.posAbort = null;
-      posHost.innerHTML = payload.html || '';
-      var posRoot = posHost.querySelector('[data-pmd-pos-root]');
 
-      if (!posRoot || !payload.bootstrap) {
-        throw new Error('The table order workspace could not be created.');
+      if (!payload.html || !payload.bootstrap) {
+        throw new Error('Table order data is incomplete.');
       }
+
+      payload.bootstrap.settings = payload.bootstrap.settings || {};
+      payload.bootstrap.settings.dashboard_url = location.pathname;
+
+      var holder = document.createElement('div');
+      holder.innerHTML = payload.html;
+      var posRoot = holder.querySelector('[data-pmd-pos-root]');
+
+      if (!posRoot) {
+        throw new Error('The order workspace could not be created.');
+      }
+
+      posHost.replaceChildren(posRoot);
 
       state.posInstance = window.PMDWaiterPOSApp.mount(posRoot, payload.bootstrap, {
         embedded: true,
         onClose: requestClosePos
       });
 
-      if (window.PMDWaiterPOSProductDetailsV3 && typeof window.PMDWaiterPOSProductDetailsV3.install === 'function') {
-        window.PMDWaiterPOSProductDetailsV3.install(posRoot, state.posInstance);
-      }
-
-      if (window.PMDWaiterPOSSimpleV27 && typeof window.PMDWaiterPOSSimpleV27.install === 'function') {
-        window.PMDWaiterPOSSimpleV27.install(posRoot, state.posInstance);
-      }
-
       posLoading.classList.add('is-hidden');
+      window.dispatchEvent(new CustomEvent('pmd:waiter-standard-v2-opened', {
+        detail: {tableId:String(tableId), table:table, pos:state.posInstance}
+      }));
     } catch (error) {
       if (error.name === 'AbortError') return;
-      toast(error.message || 'Could not open this table.', true);
+      toast(error.message || 'COULD NOT OPEN TABLE', true);
       closePos(false);
     }
   }
 
-  function bindEvents() {
+  function bind() {
     root.addEventListener('click', function (event) {
       var target = event.target && event.target.nodeType === 1 ? event.target : null;
       if (!target) return;
 
-      var filterButton = target.closest('[data-table-filter]');
-      if (filterButton) {
-        setFilter(filterButton.getAttribute('data-table-filter'));
+      var filter = target.closest('[data-v2-filter]');
+      if (filter) {
+        setFilter(filter.getAttribute('data-v2-filter'));
         return;
       }
 
-      var mobileFilter = target.closest('[data-mobile-view]');
-      if (mobileFilter) {
-        setFilter(mobileFilter.getAttribute('data-mobile-view'));
-        window.scrollTo({ top: 0, behavior: 'smooth' });
-        return;
-      }
-
-      var sectionButton = target.closest('[data-table-section]');
-      if (sectionButton) {
-        state.section = sectionButton.getAttribute('data-table-section') || 'all';
+      var area = target.closest('[data-v2-area]');
+      if (area) {
+        state.area = area.getAttribute('data-v2-area') || 'all';
         renderTables();
         return;
       }
 
-      var tableButton = target.closest('[data-open-table]');
-      if (tableButton) {
-        openPos(tableButton.getAttribute('data-open-table'));
+      var table = target.closest('[data-v2-open-table]');
+      if (table) {
+        openPos(table.getAttribute('data-v2-open-table'));
         return;
       }
 
-      var alertTable = target.closest('[data-alert-table]');
+      var alertTable = target.closest('[data-v2-alert-table]');
       if (alertTable) {
-        openPos(alertTable.getAttribute('data-alert-table'));
+        openPos(alertTable.getAttribute('data-v2-alert-table'));
         return;
       }
 
-      if (target.closest('[data-refresh]')) {
+      if (target.closest('[data-v2-refresh]')) {
         refresh(false);
         return;
       }
 
-      if (target.closest('[data-open-alerts]')) {
+      if (target.closest('[data-v2-alerts]')) {
         openAlerts();
         return;
       }
 
-      if (target.closest('[data-close-alerts]')) {
+      if (target.closest('[data-v2-close-alerts]')) {
         closeAlerts();
         return;
       }
 
-      if (target.closest('[data-clear-search]')) {
-        state.search = '';
-        searchInput.value = '';
-        clearSearchButton.hidden = true;
+      if (target.closest('[data-v2-clear-search]')) {
+        state.query = '';
+        search.value = '';
+        clearSearch.hidden = true;
         renderTables();
-        searchInput.focus();
+        search.focus();
         return;
       }
 
-      if (target.closest('[data-reset-filters]')) {
+      if (target.closest('[data-v2-reset]')) {
         state.filter = 'all';
-        state.section = 'all';
-        state.search = '';
-        searchInput.value = '';
-        clearSearchButton.hidden = true;
+        state.area = 'all';
+        state.query = '';
+        search.value = '';
+        clearSearch.hidden = true;
         renderTables();
         return;
       }
 
-      if (target.closest('[data-cancel-pos-load]')) {
+      if (target.closest('[data-v2-cancel-pos]')) {
         requestClosePos();
       }
     });
 
-    searchInput.addEventListener('input', function () {
-      state.search = searchInput.value.trim();
-      clearSearchButton.hidden = !state.search;
+    search.addEventListener('input', function () {
+      state.query = search.value.trim();
+      clearSearch.hidden = !state.query;
       renderTables();
     });
 
@@ -704,9 +716,7 @@
 
     document.addEventListener('keydown', function (event) {
       if (event.key !== 'Escape') return;
-      if (alertDrawer && alertDrawer.classList.contains('is-open')) {
-        closeAlerts();
-      }
+      if (alertDrawer.classList.contains('is-open')) closeAlerts();
     });
 
     document.addEventListener('visibilitychange', function () {
@@ -718,54 +728,60 @@
     });
 
     window.addEventListener('offline', function () {
-      setSync('error', 'Offline');
+      setSync('error', 'OFFLINE');
     });
   }
 
-  function startPolling() {
-    clearInterval(state.poll);
+  function start() {
+    bind();
+    renderFilters();
+    refresh(true);
     state.poll = setInterval(function () {
       if (!document.hidden && posLayer.hidden) refresh(true);
     }, 15000);
+
+    var requested = new URLSearchParams(location.search).get('table');
+    if (requested) {
+      var waitForData = setInterval(function () {
+        if (!state.tables.length) return;
+        clearInterval(waitForData);
+        openPos(requested);
+      }, 100);
+      setTimeout(function () { clearInterval(waitForData); }, 10000);
+    }
+
+    console.info('[PMD] Waiter Standard POS V2 active');
   }
 
-  function debug() {
-    var visible = filteredTables();
-    var result = {
-      version: 'pmd-waiter-dashboard-new-v1',
-      route: location.pathname,
-      dataUrl: dataUrl,
-      tables: state.tables.length,
-      visibleTables: visible.length,
-      assignedTables: state.tables.filter(function (table) { return table.assigned; }).length,
-      openTables: state.tables.filter(function (table) { return table.openOrders > 0; }).length,
-      attentionTables: state.tables.filter(function (table) { return table.attention; }).length,
-      filter: state.filter,
-      section: state.section,
-      search: state.search,
-      posOpen: !posLayer.hidden,
-      activeTableId: state.activeTableId,
-      posEngine: typeof window.PMDWaiterPOSApp,
-      paymentEngine: typeof window.PMDWaiterPOSPaymentV2,
-      lastLoadedAt: state.loadedAt ? new Date(state.loadedAt).toISOString() : null
-    };
-    console.log('[PMD] Waiter dashboard new V1 debug', result);
-    return result;
-  }
-
-  window.PMDWaiterDashboardNewV1 = {
-    active: true,
+  window.PMDWaiterStandardV2 = {
     refresh: function () { return refresh(false); },
     openTable: openPos,
     closeTable: requestClosePos,
-    debug: debug,
-    standaloneUrl: standaloneUrl
+    debug: function () {
+      return {
+        version: 'pmd-waiter-standard-v2',
+        tenant: state.payload && state.payload.tenant_db,
+        tables: state.tables.length,
+        orders: state.orders.length,
+        filter: state.filter,
+        area: state.area,
+        visibleTables: filteredTables().length,
+        attentionTables: state.tables.filter(function (table) { return table.attention; }).length,
+        posOpen: !posLayer.hidden,
+        activeTableId: state.activeTableId,
+        posMounted: !!state.posInstance,
+        legacyPolishLoaded: !!(
+          window.PMDWaiterPOSSimpleV27
+          || window.PMDWaiterPOSProductDetailsV3
+        )
+      };
+    },
+    destroy: function () {
+      clearInterval(state.poll);
+      if (state.request) state.request.abort();
+      destroyPos();
+    }
   };
 
-  bindEvents();
-  renderTabs();
-  refresh(true);
-  startPolling();
-
-  console.info('[PMD] Waiter dashboard new V1 mobile table launcher active');
+  start();
 })();
