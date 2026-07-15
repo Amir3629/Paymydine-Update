@@ -1,0 +1,120 @@
+money(base) + '</b></div><label>TOTAL SHARES<input type="number" min="2" max="99" value="' + state.payment.totalShares + '" data-ws3-total-shares></label><label>PAYING NOW<input type="number" min="1" max="' + state.payment.totalShares + '" value="' + state.payment.payerShares + '" data-ws3-payer-shares></label></div>';
+    } else {
+      var unpaid = (summary.items || []).filter(function (item) { return num(item.unpaid_quantity,0) > 0; });
+      panel.innerHTML = '<div class="pmd-ws3-payment-items">' + unpaid.map(function (item) {
+        var key = String(item.order_menu_id);
+        var value = num(state.payment.itemQuantities[key],0);
+        return '<label class="pmd-ws3-payment-item"><span><strong>' + esc(item.name) + '</strong><small>' + esc(item.unpaid_quantity) + ' UNPAID · ' + money(item.unit_price) + '</small></span><input type="number" min="0" max="' + esc(item.unpaid_quantity) + '" step="1" value="' + value + '" data-ws3-pay-item="' + esc(key) + '"><b>' + money(num(item.unit_price,0) * value * num((summary.settlement || {}).gross_ratio,1)) + '</b></label>';
+      }).join('') + '</div>';
+    }
+  }
+
+  function paymentMethods() {
+    var summary = state.payment.summary || {};
+    var methods = [
+      {key:'cash', name:'CASH', note:'Collect cash and calculate change'},
+      {key:'external_terminal', name:'EXTERNAL CARD', note:'Record after terminal approval'}
+    ];
+    if ((summary.terminal_providers || []).length) methods.push({key:'direct_terminal', name:'CONNECTED TERMINAL', note:'Send full balance to device'});
+    (summary.methods || []).forEach(function (method) {
+      if (method.code === 'cash') return;
+      methods.push({key:'online:' + method.code, name:clean(method.name || method.code).toUpperCase(), note:'Secure customer checkout', provider:method.provider_code, code:method.code});
+    });
+    return methods;
+  }
+
+  function renderMethods() {
+    var container = one('[data-ws3-methods]');
+    var detail = one('[data-ws3-method-detail]');
+    var summary = state.payment.summary;
+    if (!container || !summary) return;
+    var methods = paymentMethods();
+    if (!methods.some(function (method) { return method.key === state.payment.method; })) state.payment.method = 'cash';
+    container.innerHTML = methods.map(function (method) {
+      return '<button type="button" data-ws3-method="' + esc(method.key) + '" data-provider="' + esc(method.provider || '') + '" class="' + (state.payment.method === method.key ? 'is-active' : '') + '"><b>' + esc(method.name) + '</b><small>' + esc(method.note) + '</small></button>';
+    }).join('');
+    if (state.payment.method === 'external_terminal') {
+      detail.innerHTML = '<input data-ws3-reference value="' + esc(state.payment.reference) + '" placeholder="TERMINAL APPROVAL / RECEIPT REFERENCE"><label><input type="checkbox" data-ws3-external-confirm ' + (state.payment.externalConfirmed ? 'checked' : '') + '> TERMINAL PAYMENT APPROVED</label>';
+    } else if (state.payment.method === 'direct_terminal') {
+      var providers = summary.terminal_providers || [];
+      if (!state.payment.provider && providers.length) state.payment.provider = providers[0].provider_code;
+      detail.innerHTML = '<div class="pmd-ws3-methods">' + providers.map(function (provider) {
+        return '<button type="button" data-ws3-terminal-provider="' + esc(provider.provider_code) + '" class="' + (state.payment.provider === provider.provider_code ? 'is-active' : '') + '"><b>' + esc(provider.name) + '</b><small>CONNECTED DEVICE</small></button>';
+      }).join('') + '</div>';
+    } else if (state.payment.method.indexOf('online:') === 0) {
+      detail.innerHTML = '<div class="pmd-ws3-split-summary"><div><strong>SECURE CUSTOMER CHECKOUT</strong><small>Card details are handled by the configured payment provider.</small></div></div>';
+    } else detail.innerHTML = '';
+  }
+
+  function renderAdjustments() {
+    all('[data-ws3-tip]').forEach(function (button) { button.classList.toggle('is-active', String(button.dataset.ws3Tip) === String(state.payment.tip)); });
+    var custom = one('[data-ws3-custom-tip]');
+    if (custom) { custom.hidden = state.payment.tip !== 'custom'; custom.value = state.payment.customTip; }
+    var coupon = one('[data-ws3-coupon]');
+    if (coupon && coupon.value !== state.payment.couponCode) coupon.value = state.payment.couponCode;
+    var result = one('[data-ws3-coupon-result]');
+    if (result) {
+      result.textContent = state.payment.coupon ? state.payment.coupon.code + ' APPLIED · −' + money(state.payment.coupon.discount) : '';
+      result.style.color = state.payment.coupon ? '#4bdd92' : '';
+    }
+  }
+
+  function renderPaymentTotals() {
+    var container = one('[data-ws3-payment-totals]');
+    var change = one('[data-ws3-change]');
+    var button = one('[data-ws3-collect]');
+    var display = one('[data-ws3-tender-display]');
+    if (!container) return;
+    var base = paymentBase();
+    var tip = paymentTip();
+    var coupon = couponDiscount();
+    var payable = paymentPayable();
+    container.innerHTML = '<div class="pmd-ws3-pay-row"><span>ORDER BALANCE COVERED</span><b>' + money(base) + '</b></div><div class="pmd-ws3-pay-row"><span>TIP</span><b>' + money(tip) + '</b></div><div class="pmd-ws3-pay-row"><span>COUPON</span><b>−' + money(coupon) + '</b></div><div class="pmd-ws3-pay-row grand"><span>COLLECT NOW</span><b>' + money(payable) + '</b></div>';
+    if (display) display.textContent = state.payment.tender || '0.00';
+    var tender = num(state.payment.tender,0);
+    var changeDue = Math.max(0, roundMoney(tender - payable));
+    if (change) { change.hidden = state.payment.method !== 'cash' || tender + .001 < payable; if (!change.hidden) change.textContent = 'CHANGE DUE: ' + money(changeDue); }
+    if (button) {
+      var online = state.payment.method.indexOf('online:') === 0;
+      button.textContent = online ? 'OPEN SECURE CHECKOUT' : state.payment.method === 'direct_terminal' ? 'SEND TO TERMINAL' : state.payment.method === 'cash' ? 'RECORD CASH PAYMENT' : 'RECORD APPROVED CARD PAYMENT';
+      var canCollect = !!(state.payment.summary && state.payment.summary.permissions && state.payment.summary.permissions.can_collect_payment);
+      var valid = !!state.payment.summary && base > 0 && payable > 0 && !state.payment.submitting;
+      if (!online && state.payment.method !== 'direct_terminal' && !canCollect) valid = false;
+      if (state.payment.method === 'cash' && tender + .001 < payable) valid = false;
+      if (state.payment.method === 'external_terminal' && (!state.payment.externalConfirmed || !state.payment.reference.trim())) valid = false;
+      if (state.payment.method === 'direct_terminal' && (!state.payment.provider || state.payment.split !== 'full' || tip > 0 || coupon > 0)) valid = false;
+      if (state.payment.split === 'items' && paymentSelectedItems().length < 1) valid = false;
+      button.disabled = !valid;
+    }
+  }
+
+  function renderPaymentHistory() {
+    var container = one('[data-ws3-payment-history]');
+    var summary = state.payment.summary;
+    if (!container || !summary) return;
+    var rows = summary.transactions || [];
+    container.innerHTML = rows.length ? rows.map(function (tx) {
+      return '<article class="pmd-ws3-history-item"><strong>' + esc(clean(tx.payment_method).replace(/_/g,' ').toUpperCase()) + ' · ' + money(tx.amount) + '</strong><small>' + esc(tx.payer_label || 'PAYER') + ' · ' + esc(tx.paid_at || '') + '</small>' + (tx.receipt_url ? '<a href="' + esc(tx.receipt_url) + '" target="_blank" rel="noopener">OPEN RECEIPT</a>' : '') + '</article>';
+    }).join('') : '<div class="pmd-ws3-history-empty">NO PAYMENTS RECORDED</div>';
+  }
+
+  function renderPayment() {
+    renderPaymentBalance();
+    if (!state.payment.summary) return;
+    renderSplit();
+    renderMethods();
+    renderAdjustments();
+    renderPaymentTotals();
+    renderPaymentHistory();
+  }
+
+  async function applyCoupon() {
+    var code = clean((one('[data-ws3-coupon]') || {}).value).toUpperCase();
+    var result = one('[data-ws3-coupon-result]');
+    state.payment.couponCode = code;
+    state.payment.coupon = null;
+    if (!code) return toast('Enter a coupon code.', true);
+    if (Math.abs(paymentBase() - paymentRemaining()) > .02) return toast('Coupon requires the full remaining balance.', true);
+    try {
+      var order = activeOrder();
+      var payload = await fetchJson(route(urls.paymentCoupon, order.order_id), {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stri
