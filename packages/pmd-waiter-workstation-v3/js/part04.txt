@@ -1,0 +1,179 @@
+ Error(data.message || ('HTTP ' + response.status));
+      state.tableData = data;
+      state.currency = clean((data.settings || {}).currency) || state.currency;
+      state.guestCount = activeOrder() ? Math.max(1, num(activeOrder().guest_count, 1)) : 1;
+      restoreDraft();
+      state.metrics.tableLoads += 1;
+      renderOrderWorkspace();
+      toast('Table ' + table.number + ' ready');
+    } catch (error) {
+      if (error.name === 'AbortError') return;
+      var products = one('[data-ws3-products]');
+      if (products) products.innerHTML = '<div class="pmd-ws3-empty"><button type="button" data-ws3-retry-table>RETRY TABLE</button><small>' + esc(error.message || 'Could not open table.') + '</small></div>';
+      toast(error.message || 'Could not open table.', true);
+    } finally {
+      clearTimeout(tableTimer);
+      state.loadingTable = false;
+      renderProducts();
+    }
+  }
+
+  async function refreshTable(silent) {
+    if (!state.currentTable || state.loadingTable) return;
+    state.loadingTable = true;
+    try {
+      var data = await fetchJson(route(urls.tableData, state.currentTable.number) + '?_=' + Date.now(), {}, 15000);
+      state.tableData = data;
+      state.currency = clean((data.settings || {}).currency) || state.currency;
+      state.metrics.tableLoads += 1;
+      renderOrderWorkspace();
+      if (!silent) toast('Order refreshed');
+    } catch (error) {
+      toast(error.message || 'Refresh failed.', true);
+    } finally {
+      state.loadingTable = false;
+    }
+  }
+
+  async function saveOrder(mode) {
+    if (!state.currentTable || !state.cart.length || state.saving) return;
+    state.saving = true;
+    renderTicket();
+    var order = activeOrder();
+    try {
+      var result = await fetchJson(route(urls.save, state.currentTable.number), {
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({
+          mode: mode,
+          order_id: order ? order.order_id : null,
+          expected_updated_at: order ? order.updated_at : null,
+          guest_count: state.guestCount,
+          note: state.tableNote,
+          items: state.cart.map(function (row) { return {menu_id:row.menu_id, quantity:row.quantity, comment:row.comment || '', options:(row.options || []).map(function (option) { return option.id; })}; })
+        })
+      }, 25000);
+      state.cart = [];
+      state.tableNote = '';
+      clearDraft();
+      state.metrics.orderSaves += 1;
+      await refreshTable(true);
+      await loadLauncher(true);
+      renderTicket();
+      toast(result.message || (mode === 'send' ? 'Order sent' : 'Order held'));
+    } catch (error) {
+      toast(error.message || 'Could not save order.', true);
+    } finally {
+      state.saving = false;
+      renderTicket();
+    }
+  }
+
+  function closeTicket() {
+    state.ticketOpen = false;
+    var ticket = one('[data-ws3-ticket]');
+    if (ticket) ticket.classList.remove('is-mobile-open');
+  }
+  function openTicket() {
+    state.ticketOpen = true;
+    var ticket = one('[data-ws3-ticket]');
+    if (ticket) ticket.classList.add('is-mobile-open');
+  }
+
+  /* Payment */
+  function paymentRemaining() { return num((((state.payment.summary || {}).settlement || {}).remaining_amount), 0); }
+  function paymentBase() {
+    var remaining = paymentRemaining();
+    if (state.payment.split === 'full') return remaining;
+    if (state.payment.split === 'equal') return roundMoney(remaining / Math.max(2, state.payment.equalPeople));
+    if (state.payment.split === 'shares') return roundMoney(remaining * (Math.max(1, state.payment.payerShares) / Math.max(2, state.payment.totalShares)));
+    if (state.payment.split === 'items') {
+      var summary = state.payment.summary || {};
+      var ratio = num((summary.settlement || {}).gross_ratio, 1);
+      return roundMoney((summary.items || []).reduce(function (sum, item) {
+        return sum + num(item.unit_price,0) * num(state.payment.itemQuantities[String(item.order_menu_id)],0) * ratio;
+      }, 0));
+    }
+    return remaining;
+  }
+  function paymentTip() {
+    var base = paymentBase();
+    if (state.payment.tip === 'custom') return Math.max(0, roundMoney(state.payment.customTip));
+    return roundMoney(base * (num(state.payment.tip, 0) / 100));
+  }
+  function couponDiscount() { return state.payment.coupon ? num(state.payment.coupon.discount, 0) : 0; }
+  function paymentPayable() { return roundMoney(Math.max(0, paymentBase() + paymentTip() - couponDiscount())); }
+  function paymentSelectedItems() {
+    var summary = state.payment.summary || {};
+    return (summary.items || []).reduce(function (rows, item) {
+      var quantity = num(state.payment.itemQuantities[String(item.order_menu_id)], 0);
+      if (quantity > 0) rows.push({order_menu_id:Number(item.order_menu_id), quantity:quantity});
+      return rows;
+    }, []);
+  }
+  function resetPayment() {
+    state.payment = {
+      summary:null, loading:false, submitting:false, split:'full', equalPeople:Math.max(2, state.guestCount || 2), totalShares:Math.max(2, state.guestCount || 2), payerShares:1,
+      itemQuantities:{}, method:'cash', provider:null, tip:0, customTip:'', couponCode:'', coupon:null, tender:'', reference:'', externalConfirmed:false, payer:'', idempotency:nowId('payment')
+    };
+  }
+
+  async function openPayment() {
+    var order = activeOrder();
+    if (!order) return toast('Send or hold the order first.', true);
+    if (state.cart.length) return toast('Send or hold new items before payment.', true);
+    resetPayment();
+    setScreen('payment');
+    await loadPaymentSummary(false);
+  }
+
+  async function loadPaymentSummary(silent) {
+    var order = activeOrder();
+    if (!order || state.payment.loading) return;
+    state.payment.loading = true;
+    renderPayment();
+    try {
+      var summary = await fetchJson(route(urls.paymentSummary, order.order_id) + '?_=' + Date.now(), {}, 18000);
+      state.payment.summary = summary;
+      state.payment.tender = roundMoney(num((summary.settlement || {}).remaining_amount, 0)).toFixed(2);
+      state.metrics.paymentLoads += 1;
+      renderPayment();
+      if (!silent) toast('Payment balance loaded');
+    } catch (error) {
+      toast(error.message || 'Could not load payment.', true);
+    } finally {
+      state.payment.loading = false;
+      renderPayment();
+    }
+  }
+
+  function renderPaymentBalance() {
+    var container = one('[data-ws3-balance-cards]');
+    var subtitle = one('[data-ws3-payment-subtitle]');
+    var summary = state.payment.summary;
+    if (!container) return;
+    if (!summary) {
+      container.innerHTML = '<div class="pmd-ws3-empty">' + (state.payment.loading ? 'LOADING PAYMENT…' : 'PAYMENT UNAVAILABLE') + '</div>';
+      return;
+    }
+    var settlement = summary.settlement || {};
+    container.innerHTML = [
+      ['ORDER TOTAL', settlement.order_total, ''],
+      ['ALREADY PAID', settlement.settled_amount, ''],
+      ['REMAINING', settlement.remaining_amount, 'remaining']
+    ].map(function (row) { return '<article class="pmd-ws3-balance-card ' + row[2] + '"><span>' + row[0] + '</span><b>' + money(row[1]) + '</b></article>'; }).join('');
+    if (subtitle) subtitle.textContent = 'ORDER #' + summary.order.order_id + ' · ' + clean((summary.table || {}).name || ('TABLE ' + state.currentTable.number)) + ' · ' + clean(settlement.status || 'UNPAID').toUpperCase();
+  }
+
+  function renderSplit() {
+    var panel = one('[data-ws3-split-panel]');
+    var summary = state.payment.summary;
+    if (!panel || !summary) return;
+    all('[data-ws3-split]').forEach(function (button) { button.classList.toggle('is-active', button.dataset.ws3Split === state.payment.split); });
+    var base = paymentBase();
+    if (state.payment.split === 'full') {
+      panel.innerHTML = '<div class="pmd-ws3-split-summary"><div><strong>PAY FULL REMAINING BALANCE</strong><small>Close the check when payment is confirmed.</small></div><b>' + money(base) + '</b></div>';
+    } else if (state.payment.split === 'equal') {
+      panel.innerHTML = '<div class="pmd-ws3-split-summary"><div><strong>ONE EQUAL SHARE</strong><small>Reopen payment for the next payer.</small></div><div class="pmd-ws3-stepper"><button data-ws3-equal-minus>−</button><b>' + state.payment.equalPeople + '</b><button data-ws3-equal-plus>+</button></div><b>' + money(base) + '</b></div>';
+    } else if (state.payment.split === 'shares') {
+      panel.innerHTML = '<div class="pmd-ws3-share-controls"><div class="pmd-ws3-panel-title"><strong>SHARES FOR THIS PAYER</strong><b>' + 
