@@ -14,6 +14,7 @@
     <link rel="stylesheet" href="{{ asset('app/admin/assets/css/pmd-waiter-standard-v22.css') }}?v=22">
     <link rel="stylesheet" href="{{ asset('app/admin/assets/css/pmd-waiter-final-v1.css') }}?v=1">
     <link rel="stylesheet" href="{{ asset('app/admin/assets/css/pmd-waiter-final-v11-fixes.css') }}?v=11">
+    <link rel="stylesheet" href="{{ asset('app/admin/assets/css/pmd-waiter-final-v12-runtime-fixes.css') }}?v=12">
 </head>
 <body class="pmd-waiter-final-page pmd-waiter-standard-v21-page pmd-waiter-standard-v22-page">
 <div
@@ -137,5 +138,6 @@
 <script src="{{ asset('app/admin/assets/js/pmd-waiter-standard-v22.js') }}?v=22"></script>
 <script src="{{ asset('app/admin/assets/js/pmd-waiter-final-v11-fixes.js') }}?v=11"></script>
 <script src="{{ asset('app/admin/assets/js/pmd-waiter-final-v1.js') }}?v=1"></script>
+<script src="{{ asset('app/admin/assets/js/pmd-waiter-final-v12-runtime-fixes.js') }}?v=12"></script>
 </body>
 </html>
