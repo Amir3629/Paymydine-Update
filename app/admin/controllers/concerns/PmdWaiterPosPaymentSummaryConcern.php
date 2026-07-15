@@ -34,19 +34,69 @@ trait PmdWaiterPosPaymentSummaryConcern
 
         $paidQtyByItem = [];
         if (Schema::hasTable('order_payment_transactions') && Schema::hasTable('order_payment_transaction_items')) {
-            $allocationColumn = Schema::hasColumn('order_payment_transaction_items', 'order_menu_id')
+            $transactionColumns = Schema::getColumnListing('order_payment_transactions');
+            $allocationColumns = Schema::getColumnListing('order_payment_transaction_items');
+
+            $transactionIdColumn = in_array('id', $transactionColumns, true)
+                ? 'id'
+                : (in_array('transaction_id', $transactionColumns, true) ? 'transaction_id' : null);
+            $allocationTransactionColumn = in_array('transaction_id', $allocationColumns, true)
+                ? 'transaction_id'
+                : (in_array('payment_transaction_id', $allocationColumns, true) ? 'payment_transaction_id' : null);
+            $allocationColumn = in_array('order_menu_id', $allocationColumns, true)
                 ? 'order_menu_id'
-                : (Schema::hasColumn('order_payment_transaction_items', 'order_item_id') ? 'order_item_id' : null);
-            if ($allocationColumn) {
-                $paidRows = DB::table('order_payment_transactions as tx')
-                    ->join('order_payment_transaction_items as ti', 'ti.transaction_id', '=', 'tx.id')
-                    ->where('tx.order_id', $orderId)
-                    ->whereNotIn('tx.settlement_status', ['failed', 'cancelled'])
-                    ->selectRaw('ti.'.$allocationColumn.' as alloc_key, SUM(ti.quantity_paid) as paid_qty')
-                    ->groupBy('ti.'.$allocationColumn)
-                    ->get();
+                : (in_array('order_item_id', $allocationColumns, true) ? 'order_item_id' : null);
+            $quantityColumn = in_array('quantity_paid', $allocationColumns, true)
+                ? 'quantity_paid'
+                : (in_array('quantity', $allocationColumns, true)
+                    ? 'quantity'
+                    : (in_array('qty', $allocationColumns, true) ? 'qty' : null));
+
+            if (
+                $transactionIdColumn
+                && $allocationTransactionColumn
+                && $allocationColumn
+                && $quantityColumn
+                && in_array('order_id', $transactionColumns, true)
+            ) {
+                // Do not use short aliases inside selectRaw here. TastyIgniter's
+                // tenant table prefix also prefixes query-builder aliases, while
+                // raw SQL aliases remain unchanged. That produced SQL such as
+                // `FROM ti_... AS ti_ti` combined with `SELECT ti.order_menu_id`.
+                $paidQuery = DB::table('order_payment_transactions')
+                    ->join(
+                        'order_payment_transaction_items',
+                        'order_payment_transaction_items.'.$allocationTransactionColumn,
+                        '=',
+                        'order_payment_transactions.'.$transactionIdColumn
+                    )
+                    ->where('order_payment_transactions.order_id', $orderId);
+
+                if (in_array('settlement_status', $transactionColumns, true)) {
+                    $paidQuery->whereNotIn(
+                        'order_payment_transactions.settlement_status',
+                        ['failed', 'cancelled']
+                    );
+                }
+
+                // Select individual allocation rows and aggregate in PHP. This
+                // keeps every qualified identifier inside Laravel's grammar, so
+                // the active tenant prefix is applied consistently.
+                $paidRows = $paidQuery->select([
+                    'order_payment_transaction_items.'.$allocationColumn.' as alloc_key',
+                    'order_payment_transaction_items.'.$quantityColumn.' as paid_qty',
+                ])->get();
+
                 foreach ($paidRows as $paidRow) {
-                    $paidQtyByItem[(int)$paidRow->alloc_key] = (float)$paidRow->paid_qty;
+                    $allocationKey = (int)($paidRow->alloc_key ?? 0);
+                    if ($allocationKey <= 0) {
+                        continue;
+                    }
+                    $paidQtyByItem[$allocationKey] = round(
+                        (float)($paidQtyByItem[$allocationKey] ?? 0)
+                        + (float)($paidRow->paid_qty ?? 0),
+                        3
+                    );
                 }
             }
         }
@@ -103,7 +153,7 @@ trait PmdWaiterPosPaymentSummaryConcern
 
         return [
             'ok' => true,
-            'version' => 'pmd-waiter-pos-v2',
+            'version' => 'pmd-waiter-pos-v2.1.2',
             'order' => [
                 'order_id' => $orderId,
                 'status_id' => (int)($order->status_id ?? 0),
