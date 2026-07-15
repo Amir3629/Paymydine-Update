@@ -9,11 +9,11 @@
 
     {{-- Functional POS engine styles first; Final2 owns the final visual authority. --}}
     <link rel="stylesheet" href="{{ asset('app/admin/assets/css/pmd-waiter-pos-v1.css') }}?v=2">
-    <link rel="stylesheet" href="{{ asset('app/admin/assets/css/pmd-waiter-standard-v211-payment-guard.css') }}?v=211">
     <link rel="stylesheet" href="{{ asset('app/admin/assets/css/pmd-waiter-standard-v22.css') }}?v=22">
     <link rel="stylesheet" href="{{ asset('app/admin/assets/css/pmd-waiter-final-v2.css') }}?v=2">
     <link rel="stylesheet" href="{{ asset('app/admin/assets/css/pmd-waiter-final-v2-pos.css') }}?v=2">
     <link rel="stylesheet" href="{{ asset('app/admin/assets/css/pmd-waiter-final-v2-responsive.css') }}?v=2">
+    <link rel="stylesheet" href="{{ asset('app/admin/assets/css/pmd-waiter-final-v21-payment-colors.css') }}?v=21">
 </head>
 <body class="pmd-waiter-final2-page">
 <div
@@ -124,14 +124,13 @@
     <div class="pmd-final-toast" data-final-toast role="status" aria-live="polite"></div>
 </div>
 
-{{-- Proven functional engines. Final2 adds presentation only and no observer loop. --}}
+{{-- Proven functional engines. Final2 V2.1 removes legacy payment guard loops. --}}
 <script src="{{ asset('app/admin/assets/js/pmd-waiter-pos-payment-v2.js') }}?v=2"></script>
 <script src="{{ asset('app/admin/assets/js/pmd-waiter-pos-v1.js') }}?v=2"></script>
-<script src="{{ asset('app/admin/assets/js/pmd-waiter-standard-v211-payment-guard.js') }}?v=211"></script>
 <script src="{{ asset('app/admin/assets/js/pmd-waiter-standard-v22.js') }}?v=22"></script>
 <script src="{{ asset('app/admin/assets/js/pmd-waiter-final-v11-fixes.js') }}?v=11"></script>
 <script src="{{ asset('app/admin/assets/js/pmd-waiter-final-v1.js') }}?v=1"></script>
-<script src="{{ asset('app/admin/assets/js/pmd-waiter-final-v12-runtime-fixes.js') }}?v=12"></script>
 <script src="{{ asset('app/admin/assets/js/pmd-waiter-final-v2.js') }}?v=2"></script>
+<script src="{{ asset('app/admin/assets/js/pmd-waiter-final-v21-payment-stability.js') }}?v=21"></script>
 </body>
 </html>
