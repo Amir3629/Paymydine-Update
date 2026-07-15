@@ -7,8 +7,11 @@
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>Waiter Workstation · PayMyDine</title>
 
-    {{-- Proven functional engine styles only. Final presentation is owned by one stylesheet below. --}}
+    {{-- Proven functional engine and operations styles. Final presentation loads last. --}}
     <link rel="stylesheet" href="{{ asset('app/admin/assets/css/pmd-waiter-pos-v1.css') }}?v=2">
+    <link rel="stylesheet" href="{{ asset('app/admin/assets/css/pmd-waiter-standard-v21.css') }}?v=21">
+    <link rel="stylesheet" href="{{ asset('app/admin/assets/css/pmd-waiter-standard-v211-payment-guard.css') }}?v=211">
+    <link rel="stylesheet" href="{{ asset('app/admin/assets/css/pmd-waiter-standard-v22.css') }}?v=22">
     <link rel="stylesheet" href="{{ asset('app/admin/assets/css/pmd-waiter-final-v1.css') }}?v=1">
 </head>
 <body class="pmd-waiter-final-page pmd-waiter-standard-v21-page pmd-waiter-standard-v22-page">
