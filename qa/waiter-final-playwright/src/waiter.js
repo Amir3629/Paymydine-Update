@@ -40,8 +40,9 @@ export async function findTableCard(page, options = {}) {
   if (options.filter) await setLauncherFilter(page, options.filter);
 
   if (options.tableNumber) {
+    const escaped = String(options.tableNumber).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
     const exact = page.locator('[data-final-open-table]').filter({
-      has: page.locator('.pmd-final-table-number', { hasText: new RegExp(`^${String(options.tableNumber).replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`) }),
+      has: page.locator('.pmd-final-table-number', { hasText: new RegExp(`^${escaped}$`) }),
     }).first();
     if (await exact.count()) return exact;
   }
@@ -72,7 +73,9 @@ export async function closeTable(page) {
   const close = page.locator(`${posRoot} [data-pos-close]`).first();
   if (!(await close.count())) return;
 
-  page.once('dialog', async (dialog) => dialog.accept());
+  const hasDraft = await page.locator('[data-pos-line]').count() > 0;
+  if (hasDraft) page.once('dialog', async (dialog) => dialog.accept());
+
   await close.click();
   await expect(page.locator('[data-final-launcher]')).toBeVisible({ timeout: 20_000 });
   await expect(page.locator(posRoot)).toHaveCount(0);
@@ -108,10 +111,12 @@ export async function chooseProduct(page, preferredName = qaConfig.testProduct) 
 
 export async function clearLocalCart(page) {
   const clear = page.locator('[data-pos-clear]');
-  if (!(await clear.count())) return;
+  const lines = page.locator('[data-pos-line]');
+  if (!(await clear.count()) || await lines.count() === 0) return;
+
   page.once('dialog', async (dialog) => dialog.accept());
   await clear.click();
-  await expect(page.locator('[data-pos-line]')).toHaveCount(0);
+  await expect(lines).toHaveCount(0);
 }
 
 export async function openPaymentForExistingOrder(page) {
