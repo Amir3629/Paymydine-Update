@@ -8364,38 +8364,20 @@ html.pmd-waiter-dashboard-active .pmd-w19-unmerge {
   box-shadow: 0 8px 18px rgba(239,51,64,.34) !important;
 }
 
-/* Compact mode */
-html.pmd-waiter-dashboard-active .pmd-w19-compact .pmd-w5-floor-map-real {
-  min-height: 118px !important;
-  height: 118px !important;
-  display: flex !important;
-  align-items: center !important;
-  gap: 12px !important;
-  padding: 16px 18px !important;
-  overflow-x: auto !important;
-  overflow-y: hidden !important;
-}
-
-html.pmd-waiter-dashboard-active .pmd-w19-compact .pmd-w5-floor-map-real .pmd-w5-table {
+/* Compact mode changes only the floor viewport. The real table nodes keep
+ * their saved absolute coordinates, dimensions, colors, numbers and badges. */
+html.pmd-waiter-dashboard-active
+#pmd-waiter-dashboard-root.pmd-w19-compact
+.pmd-w5-floor-map-real {
+  height: var(--pmd-v190-floor-height) !important;
+  min-height: var(--pmd-v190-floor-height) !important;
+  max-height: var(--pmd-v190-floor-height) !important;
+  display: block !important;
   position: relative !important;
-  left: auto !important;
-  top: auto !important;
-  transform: none !important;
-  width: 78px !important;
-  height: 62px !important;
-  min-width: 78px !important;
-  min-height: 62px !important;
-  flex: 0 0 78px !important;
-}
-
-html.pmd-waiter-dashboard-active .pmd-w19-compact .pmd-w19-merged-table {
-  position: relative !important;
-  left: auto !important;
-  top: auto !important;
-  transform: none !important;
-  min-width: 112px !important;
-  min-height: 68px !important;
-  flex: 0 0 112px !important;
+  padding: 0 !important;
+  overflow: var(--pmd-v190-floor-overflow) !important;
+  overscroll-behavior: contain !important;
+  scrollbar-gutter: stable !important;
 }
 
 /* Order cards must stay clean, not yellow */
@@ -8461,7 +8443,7 @@ html.pmd-waiter-dashboard-active .pmd-w5-btn.active {
   var state = {
     edit: false,
     merge: false,
-    compact: localStorage.getItem('pmd_waiter_floor_compact') === '1',
+    compact: false,
     selected: new Set(),
     merges: []
   };
@@ -8543,7 +8525,7 @@ html.pmd-waiter-dashboard-active .pmd-w5-btn.active {
       '<button class="pmd-w19-btn primary pmd-w19-save-hidden" data-w19-save title="Save">✓</button>' +
       '<button class="pmd-w19-btn" data-w19-edit title="Edit layout">✎</button>' +
       '<button class="pmd-w19-btn" data-w19-merge title="Merge tables">↔<small></small></button>' +
-      '<button class="pmd-w19-btn" data-w19-compact title="Compact / expand floor">▤</button>';
+      '<button type="button" class="pmd-w19-btn" data-w19-compact title="Compact floor" aria-label="Compact floor" aria-pressed="false">▤</button>';
 
     head.appendChild(tools);
     sync();
@@ -8564,13 +8546,18 @@ html.pmd-waiter-dashboard-active .pmd-w5-btn.active {
     var save = document.querySelector('[data-w19-save]');
     var edit = document.querySelector('[data-w19-edit]');
     var merge = document.querySelector('[data-w19-merge]');
-    var compact = document.querySelector('[data-w19-compact]');
+    var compact = document.querySelector('#pmd-waiter-dashboard-root .pmd-w19-tools button[data-w19-compact]');
     var badge = merge && merge.querySelector('small');
 
     if (save) save.classList.toggle('pmd-w19-save-hidden', !hasPendingSave());
     if (edit) edit.classList.toggle('primary', state.edit);
     if (merge) merge.classList.toggle('warn', state.merge);
-    if (compact) compact.classList.toggle('primary', state.compact);
+    if (compact) {
+      compact.classList.toggle('primary', state.compact);
+      compact.setAttribute('title', state.compact ? 'Expand floor' : 'Compact floor');
+      compact.setAttribute('aria-label', state.compact ? 'Expand floor' : 'Compact floor');
+      compact.setAttribute('aria-pressed', state.compact ? 'true' : 'false');
+    }
 
     if (badge) {
       badge.textContent = state.selected.size;
@@ -8855,7 +8842,8 @@ html.pmd-waiter-dashboard-active .pmd-w5-btn.active {
   function toggleCompact() {
     state.compact = !state.compact;
     state.edit = false;
-    localStorage.setItem('pmd_waiter_floor_compact', state.compact ? '1' : '0');
+    state.merge = false;
+    state.selected.clear();
     sync();
   }
 
@@ -8907,7 +8895,7 @@ html.pmd-waiter-dashboard-active .pmd-w5-btn.active {
       return;
     }
 
-    var compact = e.target.closest('[data-w19-compact]');
+    var compact = e.target.closest('#pmd-waiter-dashboard-root .pmd-w19-tools button[data-w19-compact]');
     if (compact) {
       e.preventDefault();
       e.stopPropagation();
@@ -10286,17 +10274,32 @@ html.pmd-waiter-dashboard-active .pmd-v155-floor-map * {
   animation: none !important;
 }
 
+html.pmd-waiter-dashboard-active #pmd-waiter-dashboard-root {
+  --pmd-v190-floor-height: clamp(560px, calc(100vh - 220px), 820px);
+  --pmd-v190-floor-overflow: visible;
+  --pmd-v190-floor-transition: none;
+}
+
+html.pmd-waiter-dashboard-active #pmd-waiter-dashboard-root.pmd-w19-compact {
+  --pmd-v190-floor-height: clamp(300px, 38vh, 360px);
+  --pmd-v190-floor-overflow: auto;
+}
+
+html.pmd-waiter-dashboard-active #pmd-waiter-dashboard-root.pmd-v190-floor-ready {
+  --pmd-v190-floor-transition: height 220ms cubic-bezier(.2,.8,.2,1), min-height 220ms cubic-bezier(.2,.8,.2,1), max-height 220ms cubic-bezier(.2,.8,.2,1);
+}
+
 html.pmd-waiter-dashboard-active .pmd-w5-floor-map,
 html.pmd-waiter-dashboard-active .pmd-w5-floor-map-real,
 html.pmd-waiter-dashboard-active .pmd-v155-floor-map,
 html.pmd-waiter-dashboard-active [class*="floor-map"] {
-  height: 430px !important;
-  min-height: 430px !important;
-  max-height: 430px !important;
-  overflow: visible !important;
+  height: var(--pmd-v190-floor-height) !important;
+  min-height: var(--pmd-v190-floor-height) !important;
+  max-height: var(--pmd-v190-floor-height) !important;
+  overflow: var(--pmd-v190-floor-overflow) !important;
   background: #ffffff !important;
   transform: none !important;
-  transition: none !important;
+  transition: var(--pmd-v190-floor-transition) !important;
   animation: none !important;
 }
 
@@ -10848,13 +10851,13 @@ html.pmd-waiter-dashboard-active .pmd-v175c-attention-badge[data-pmd-kind="note"
 
   function repairFloor() {
     floorElements().forEach(function (floor) {
-      setImportant(floor, 'height', (window.PMDFloorSizeV184 && window.PMDFloorSizeV184.floorHeight ? window.PMDFloorSizeV184.floorHeight() : '430px'));
-      setImportant(floor, 'min-height', (window.PMDFloorSizeV184 && window.PMDFloorSizeV184.floorHeight ? window.PMDFloorSizeV184.floorHeight() : '430px'));
-      setImportant(floor, 'max-height', (window.PMDFloorSizeV184 && window.PMDFloorSizeV184.floorHeight ? window.PMDFloorSizeV184.floorHeight() : '430px'));
-      setImportant(floor, 'overflow', 'visible');
+      setImportant(floor, 'height', 'var(--pmd-v190-floor-height)');
+      setImportant(floor, 'min-height', 'var(--pmd-v190-floor-height)');
+      setImportant(floor, 'max-height', 'var(--pmd-v190-floor-height)');
+      setImportant(floor, 'overflow', 'var(--pmd-v190-floor-overflow)');
       setImportant(floor, 'background', '#ffffff');
       setImportant(floor, 'transform', 'none');
-      setImportant(floor, 'transition', 'none');
+      setImportant(floor, 'transition', 'var(--pmd-v190-floor-transition)');
       setImportant(floor, 'animation', 'none');
     });
   }
@@ -11066,26 +11069,36 @@ html.pmd-waiter-dashboard-active .pmd-v175c-attention-badge[data-pmd-kind="note"
   V175e and V182 are removed. This only styles existing top-right badges.
 */
 
+/*
+  V183.1 source-aligned no-ring authority.
+  Matches the stable V160.14 Apple-bite geometry directly,
+  so no old circular style is painted during refresh.
+*/
 html.pmd-waiter-dashboard-active .pmd-v175c-attention-badge,
 html.pmd-waiter-dashboard-active .pmd-v183-order-count-badge {
   position: absolute !important;
-  top: -13px !important;
-  right: -13px !important;
+  top: -12px !important;
+  right: -12px !important;
   left: auto !important;
   bottom: auto !important;
+  inset: auto !important;
 
-  width: 36px !important;
-  height: 36px !important;
-  min-width: 36px !important;
-  min-height: 36px !important;
-  max-width: 36px !important;
-  max-height: 36px !important;
+  width: 30px !important;
+  height: 30px !important;
+  min-width: 30px !important;
+  min-height: 30px !important;
+  max-width: 30px !important;
+  max-height: 30px !important;
 
-  border-radius: 999px !important;
-  border: 2px solid #061225 !important;
-  box-shadow: 0 3px 9px rgba(6, 18, 37, .16) !important;
+  border-radius: 0 !important;
+  border: 0 !important;
+  outline: 0 !important;
+  box-shadow: none !important;
 
-  background: #ffffff !important;
+  background: transparent !important;
+  background-color: transparent !important;
+  background-image: none !important;
+
   color: #061225 !important;
   -webkit-text-fill-color: #061225 !important;
 
@@ -11104,39 +11117,52 @@ html.pmd-waiter-dashboard-active .pmd-v183-order-count-badge {
 
   z-index: 150 !important;
   pointer-events: none !important;
-  overflow: hidden !important;
+  overflow: visible !important;
   opacity: 1 !important;
   visibility: visible !important;
 }
 
 html.pmd-waiter-dashboard-active .pmd-v175c-attention-badge[data-pmd-kind="waiter"] {
-  background: #fff3b8 !important;
-  font-size: 22px !important;
+  background: transparent !important;
+  background-color: transparent !important;
+  border: 0 !important;
+  box-shadow: none !important;
+  font-size: 24px !important;
   line-height: 1 !important;
 }
 
 html.pmd-waiter-dashboard-active .pmd-v175c-attention-badge[data-pmd-kind="cleaning"] {
-  background: #ffffff !important;
+  background: transparent !important;
+  background-color: transparent !important;
+  border: 0 !important;
+  box-shadow: none !important;
 }
 
 html.pmd-waiter-dashboard-active .pmd-v175c-attention-badge img {
-  width: 25px !important;
-  height: 25px !important;
-  min-width: 25px !important;
-  min-height: 25px !important;
-  max-width: 25px !important;
-  max-height: 25px !important;
+  width: 26px !important;
+  height: 26px !important;
+  min-width: 26px !important;
+  min-height: 26px !important;
+  max-width: 26px !important;
+  max-height: 26px !important;
   object-fit: contain !important;
   display: block !important;
   margin: 0 !important;
   padding: 0 !important;
+  background: transparent !important;
+  border: 0 !important;
+  outline: 0 !important;
+  box-shadow: none !important;
   transform: none !important;
   transition: none !important;
   animation: none !important;
 }
 
 html.pmd-waiter-dashboard-active .pmd-v183-order-count-badge {
-  background: #ffffff !important;
+  background: transparent !important;
+  background-color: transparent !important;
+  border: 0 !important;
+  box-shadow: none !important;
   color: #061225 !important;
   -webkit-text-fill-color: #061225 !important;
   font-size: 18px !important;
@@ -11170,27 +11196,45 @@ html.pmd-waiter-dashboard-active .pmd-v183-order-count-badge {
     el.style.setProperty(prop, val, 'important');
   }
 
+  /*
+   * V183.2 source-aligned Apple-bite writer.
+   *
+   * This function now writes the same final geometry as V160.14.
+   * It never paints the old black ring, shadow or circular background.
+   */
   function lockCircle(el, type) {
     if (!el) return;
 
     imp(el, 'position', 'absolute');
-    imp(el, 'top', '-13px');
-    imp(el, 'right', '-13px');
+    imp(el, 'inset', 'auto');
+    imp(el, 'top', '-12px');
+    imp(el, 'right', '-12px');
     imp(el, 'left', 'auto');
     imp(el, 'bottom', 'auto');
 
-    imp(el, 'width', '36px');
-    imp(el, 'height', '36px');
-    imp(el, 'min-width', '36px');
-    imp(el, 'min-height', '36px');
-    imp(el, 'max-width', '36px');
-    imp(el, 'max-height', '36px');
+    imp(el, 'width', '30px');
+    imp(el, 'height', '30px');
+    imp(el, 'min-width', '30px');
+    imp(el, 'min-height', '30px');
+    imp(el, 'max-width', '30px');
+    imp(el, 'max-height', '30px');
 
-    imp(el, 'border-radius', '999px');
-    imp(el, 'border', '2px solid #061225');
-    imp(el, 'box-shadow', '0 3px 9px rgba(6, 18, 37, .16)');
+    /*
+     * Never paint the obsolete circular badge.
+     */
+    imp(el, 'border-radius', '0');
+    imp(el, 'border', '0');
+    imp(el, 'border-top', '0');
+    imp(el, 'border-right', '0');
+    imp(el, 'border-bottom', '0');
+    imp(el, 'border-left', '0');
+    imp(el, 'outline', '0');
+    imp(el, 'box-shadow', 'none');
 
-    imp(el, 'background', '#ffffff');
+    imp(el, 'background', 'transparent');
+    imp(el, 'background-color', 'transparent');
+    imp(el, 'background-image', 'none');
+
     imp(el, 'color', '#061225');
     imp(el, '-webkit-text-fill-color', '#061225');
 
@@ -11209,51 +11253,72 @@ html.pmd-waiter-dashboard-active .pmd-v183-order-count-badge {
 
     imp(el, 'z-index', '150');
     imp(el, 'pointer-events', 'none');
-    imp(el, 'overflow', 'hidden');
+    imp(el, 'overflow', 'visible');
     imp(el, 'opacity', '1');
     imp(el, 'visibility', 'visible');
 
     if (type === 'order') {
-      el.classList.add('pmd-v183-order-count-badge');
+      el.classList.add(
+        'pmd-v183-order-count-badge'
+      );
+
       imp(el, 'font-size', '18px');
       imp(el, 'font-weight', '950');
       imp(el, 'line-height', '1');
     }
 
-    var kind = el.getAttribute('data-pmd-kind') || '';
+    var kind =
+      el.getAttribute('data-pmd-kind') || '';
 
     if (kind === 'waiter') {
-      imp(el, 'background', '#fff3b8');
-      imp(el, 'font-size', '22px');
+      imp(el, 'background', 'transparent');
+      imp(el, 'background-color', 'transparent');
+      imp(el, 'font-size', '24px');
       imp(el, 'line-height', '1');
     }
 
     if (kind === 'cleaning') {
-      imp(el, 'background', '#ffffff');
+      imp(el, 'background', 'transparent');
+      imp(el, 'background-color', 'transparent');
     }
 
     if (kind === 'note') {
-      imp(el, 'background', '#e8f3ff');
+      imp(el, 'background', 'transparent');
+      imp(el, 'background-color', 'transparent');
       imp(el, 'font-size', '20px');
       imp(el, 'line-height', '1');
     }
 
     var img = el.querySelector('img');
+
     if (img) {
-      imp(img, 'width', '25px');
-      imp(img, 'height', '25px');
-      imp(img, 'min-width', '25px');
-      imp(img, 'min-height', '25px');
-      imp(img, 'max-width', '25px');
-      imp(img, 'max-height', '25px');
+      imp(img, 'width', '26px');
+      imp(img, 'height', '26px');
+      imp(img, 'min-width', '26px');
+      imp(img, 'min-height', '26px');
+      imp(img, 'max-width', '26px');
+      imp(img, 'max-height', '26px');
+
       imp(img, 'object-fit', 'contain');
       imp(img, 'display', 'block');
+
       imp(img, 'margin', '0');
       imp(img, 'padding', '0');
+
+      imp(img, 'background', 'transparent');
+      imp(img, 'border', '0');
+      imp(img, 'outline', '0');
+      imp(img, 'box-shadow', 'none');
+
       imp(img, 'transform', 'none');
       imp(img, 'transition', 'none');
       imp(img, 'animation', 'none');
     }
+
+    el.setAttribute(
+      'data-pmd-v183-visual',
+      'source-aligned-apple-bite'
+    );
   }
 
   function looksLikeOrderCount(tile, el) {
@@ -11334,6 +11399,8 @@ html.pmd-waiter-dashboard-active .pmd-v183-order-count-badge {
 
     return {
       active: true,
+      visualMode: 'source-aligned-apple-bite',
+      oldCircleWriterDisabled: true,
       tiles: rows.length,
       attentionBadges: document.querySelectorAll(ATTENTION_SEL).length,
       orderBadges: document.querySelectorAll('.pmd-v183-order-count-badge').length,
@@ -11369,7 +11436,7 @@ html.pmd-waiter-dashboard-active .pmd-v183-order-count-badge {
     }
   };
 
-  console.info('[PMD] V183 single badge authority active');
+  console.info('[PMD] V183.2 source-aligned no-ring script authority active');
 })();
 </script>
 <!-- PMD_V183_SINGLE_BADGE_AUTHORITY_END -->
@@ -11397,402 +11464,1405 @@ html.pmd-waiter-dashboard-active .pmd-v183-order-count-badge {
 
 
 
-<!-- PMD_V191_COMPACT_STRIP_AUTHORITY_START -->
-<style id="pmd-v191-compact-strip-authority-style">
+<!-- PMD_V190_CONTAINER_ONLY_FLOOR_COMPACT_START -->
+<script id="pmd-v190-container-only-floor-compact-script">
+(function () {
+  'use strict';
+  if (!/\/admin\/dashboardwaiter(?:$|[?#\/])/.test(location.pathname + location.search + location.hash)) return;
+  if (window.PMDFloorDeterministicV190 && window.PMDFloorDeterministicV190.active) return;
+
+  var ROOT = '#pmd-waiter-dashboard-root';
+  var BUTTON = ROOT + ' .pmd-w19-tools button[data-w19-compact]';
+  var observer = null;
+  var raf = 0;
+
+  function root() { return document.querySelector(ROOT); }
+  function floor() { var r = root(); return r ? r.querySelector('.pmd-w5-floor-map-real') : null; }
+  function button() { return document.querySelector(BUTTON); }
+  function compact() { var r = root(); return !!(r && r.classList.contains('pmd-w19-compact')); }
+
+  function cleanup() {
+    document.documentElement.classList.remove(
+      'pmd-v184-floor-small', 'pmd-v184-floor-large',
+      'pmd-v185-floor-small', 'pmd-v185-floor-large', 'pmd-v185-sizing',
+      'pmd-v187-floor-small', 'pmd-v187-floor-large', 'pmd-v187-sizing',
+      'pmd-v188-floor-compact', 'pmd-v188-floor-expanded',
+      'pmd-v189-floor-compact', 'pmd-v189-floor-expanded'
+    );
+    document.querySelectorAll('.pmd-v185-floor-scaler, .pmd-v187-floor-scaler').forEach(function (node) {
+      var parent = node.parentElement;
+      if (!parent) return;
+      while (node.firstChild) parent.insertBefore(node.firstChild, node);
+      node.remove();
+    });
+  }
+
+  function apply() {
+    var r = root();
+    if (!r) return;
+    cleanup();
+    r.classList.toggle('pmd-v190-floor-compact', compact());
+    r.classList.toggle('pmd-v190-floor-expanded', !compact());
+    var f = floor();
+    if (f && compact()) f.removeAttribute('data-pmd-v159-full-floor');
+    var b = button();
+    if (b) {
+      b.setAttribute('title', compact() ? 'Expand floor' : 'Compact floor');
+      b.setAttribute('aria-label', compact() ? 'Expand floor' : 'Compact floor');
+      b.setAttribute('aria-pressed', compact() ? 'true' : 'false');
+      b.setAttribute('data-pmd-v190-mode', compact() ? 'compact' : 'expanded');
+    }
+  }
+
+  function schedule() {
+    if (raf) return;
+    raf = requestAnimationFrame(function () { raf = 0; apply(); });
+  }
+
+  function clickButton() { var b = button(); if (b) b.click(); }
+
+  document.addEventListener('click', function (event) {
+    var target = event.target && event.target.nodeType === 1 ? event.target : null;
+    if (!target || !target.closest(BUTTON)) return;
+    setTimeout(apply, 0);
+    setTimeout(apply, 90);
+    setTimeout(apply, 240);
+  }, true);
+
+  document.addEventListener('pmd-waiter-dashboard-rendered', function () {
+    setTimeout(apply, 0);
+    setTimeout(apply, 120);
+  }, true);
+
+  ['pmd_waiter_floor_compact', 'PMD_WAITER_FLOOR_COMPACT_V89',
+   'pmd_waiter_floor_size_v184', 'pmd_waiter_floor_scale_v185',
+   'pmd_waiter_floor_scale_v187', 'pmd_waiter_floor_compact_v188',
+   'pmd_waiter_floor_compact_v189', 'pmd_waiter_floor_positions_v189',
+   'pmd_waiter_floor_compact_v190'].forEach(function (key) {
+    try { localStorage.removeItem(key); } catch (error) {}
+  });
+
+  apply();
+  var r = root();
+  if (r) {
+    observer = new MutationObserver(schedule);
+    observer.observe(r, {attributes:true, attributeFilter:['class'], childList:true});
+  }
+  requestAnimationFrame(function () {
+    requestAnimationFrame(function () {
+      var current = root();
+      if (current) current.classList.add('pmd-v190-floor-ready');
+      apply();
+    });
+  });
+
+  window.PMDFloorDeterministicV190 = {
+    active: true,
+    apply: apply,
+    toggle: clickButton,
+    compact: function () { if (!compact()) clickButton(); },
+    expand: function () { if (compact()) clickButton(); },
+    expanded: function () { if (compact()) clickButton(); },
+    debug: function () {
+      var f = floor();
+      var tiles = f ? Array.prototype.slice.call(f.querySelectorAll('.pmd-w5-table[data-table]')) : [];
+      var points = {};
+      tiles.forEach(function (tile) {
+        var rect = tile.getBoundingClientRect();
+        points[Math.round(rect.x) + ',' + Math.round(rect.y)] = true;
+      });
+      var out = {
+        active: true,
+        mode: compact() ? 'compact' : 'expanded',
+        floorHeight: f ? Math.round(f.getBoundingClientRect().height) : 0,
+        tableCount: tiles.length,
+        uniqueTablePositions: Object.keys(points).length,
+        scalerCount: document.querySelectorAll('.pmd-v185-floor-scaler, .pmd-v187-floor-scaler').length
+      };
+      console.log(out);
+      return out;
+    },
+    stop: function () {
+      if (observer) observer.disconnect();
+      if (raf) cancelAnimationFrame(raf);
+      observer = null;
+      raf = 0;
+    }
+  };
+  console.info('[PMD] V190 container-only floor compact active');
+})();
+</script>
+<!-- PMD_V190_CONTAINER_ONLY_FLOOR_COMPACT_END -->
+
+
+<!-- PMD_V191_FLOOR_CONTROL_DOCK_START -->
+<style id="pmd-v191-floor-control-dock-style">
 /*
-  V191: real compact/expand fix.
-  Compact means compact strip, not scale, not position lock.
-  Expanded means original stable floor map.
-*/
+ * V191: vertical floor controls inside the real waiter map.
+ * The stable V160.14 drag and badge implementations are untouched.
+ */
 
-html.pmd-waiter-dashboard-active.pmd-v191-compact-active .pmd-w5-floor-map,
-html.pmd-waiter-dashboard-active.pmd-v191-compact-active .pmd-w5-floor-map-real,
-html.pmd-waiter-dashboard-active.pmd-v191-compact-active .pmd-v155-floor-map {
+html.pmd-waiter-dashboard-active
+#pmd-waiter-dashboard-root
+section.pmd-w5-floor.pmd-v191-floor-shell {
+  padding-top: 0 !important;
+}
+
+html.pmd-waiter-dashboard-active
+#pmd-waiter-dashboard-root
+.pmd-v191-floor-header-hidden,
+
+html.pmd-waiter-dashboard-active
+#pmd-waiter-dashboard-root
+.pmd-v191-floor-title-hidden,
+
+html.pmd-waiter-dashboard-active
+#pmd-waiter-dashboard-root
+.pmd-v191-toolbar-duplicate-hidden {
+  display: none !important;
+}
+
+html.pmd-waiter-dashboard-active
+#pmd-waiter-dashboard-root
+section.pmd-w5-floor.pmd-v191-floor-shell
+.pmd-w5-floor-map-real {
+  margin-top: 0 !important;
   position: relative !important;
-  height: 128px !important;
-  min-height: 128px !important;
-  max-height: 128px !important;
-  overflow: hidden !important;
-  background: #ffffff !important;
-  transform: none !important;
-  transition: height 180ms ease, min-height 180ms ease, max-height 180ms ease !important;
 }
 
-html.pmd-waiter-dashboard-active.pmd-v191-compact-active .pmd-w5-floor-map-real > .pmd-w5-table,
-html.pmd-waiter-dashboard-active.pmd-v191-compact-active .pmd-w5-floor-map-real > .pmd-v155-table,
-html.pmd-waiter-dashboard-active.pmd-v191-compact-active .pmd-w5-floor-map-real > .pmd-floor-table,
-html.pmd-waiter-dashboard-active.pmd-v191-compact-active .pmd-w5-floor-map-real > .pmd-waiter-floor-table,
-html.pmd-waiter-dashboard-active.pmd-v191-compact-active .pmd-w5-floor-map-real > .pmd-v175c-floor-tile {
-  visibility: hidden !important;
-  opacity: 0 !important;
-  pointer-events: none !important;
-}
-
-html.pmd-waiter-dashboard-active .pmd-v191-compact-strip {
+/*
+ * One vertical column on the map's right side.
+ * It sits directly above the existing information button.
+ */
+html.pmd-waiter-dashboard-active
+#pmd-waiter-dashboard-root
+.pmd-w5-floor-map-real
+> .pmd-v191-floor-control-dock {
   position: absolute !important;
-  inset: 0 !important;
-  z-index: 9999 !important;
-  display: flex !important;
-  align-items: center !important;
-  gap: 12px !important;
-  padding: 16px 18px !important;
-  overflow-x: auto !important;
-  overflow-y: hidden !important;
-  background: #ffffff !important;
-  box-sizing: border-box !important;
-}
 
-html.pmd-waiter-dashboard-active .pmd-v191-mini-table {
-  position: relative !important;
-  width: 78px !important;
-  height: 62px !important;
-  min-width: 78px !important;
-  min-height: 62px !important;
-  flex: 0 0 78px !important;
-  border-radius: 12px !important;
-  border: 3px solid #061225 !important;
-  display: grid !important;
-  place-items: center !important;
-  font-size: 24px !important;
-  line-height: 1 !important;
-  font-weight: 950 !important;
-  color: #05070d !important;
-  -webkit-text-fill-color: #05070d !important;
-  box-shadow: none !important;
+  right: 14px !important;
+  bottom: 64px !important;
+  left: auto !important;
+  top: auto !important;
+
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: center !important;
+  justify-content: flex-end !important;
+
+  width: 44px !important;
+  min-width: 44px !important;
+  max-width: 44px !important;
+
+  margin: 0 !important;
+  padding: 0 !important;
+  gap: 8px !important;
+
   transform: none !important;
   transition: none !important;
   animation: none !important;
-  cursor: pointer !important;
-  overflow: visible !important;
-}
 
-html.pmd-waiter-dashboard-active .pmd-v191-mini-number {
+  background: transparent !important;
+  border: 0 !important;
+  box-shadow: none !important;
+
   pointer-events: none !important;
-  position: relative !important;
-  z-index: 2 !important;
+  z-index: 520 !important;
 }
 
-html.pmd-waiter-dashboard-active .pmd-v191-mini-badge {
+html.pmd-waiter-dashboard-active
+#pmd-waiter-dashboard-root
+.pmd-v191-floor-control-dock
+> .pmd-w19-tools {
+  position: static !important;
+
+  inset: auto !important;
+  top: auto !important;
+  right: auto !important;
+  bottom: auto !important;
+  left: auto !important;
+
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: center !important;
+  justify-content: flex-end !important;
+
+  width: 44px !important;
+  min-width: 44px !important;
+  max-width: 44px !important;
+
+  height: auto !important;
+  min-height: 0 !important;
+  max-height: none !important;
+
+  margin: 0 !important;
+  padding: 0 !important;
+  gap: 8px !important;
+
+  transform: none !important;
+  translate: none !important;
+  transition: none !important;
+  animation: none !important;
+
+  background: transparent !important;
+  border: 0 !important;
+  box-shadow: none !important;
+
+  pointer-events: none !important;
+  z-index: 521 !important;
+}
+
+/*
+ * Save keeps its native hidden class until edit mode starts.
+ */
+html.pmd-waiter-dashboard-active
+#pmd-waiter-dashboard-root
+.pmd-v191-floor-control-dock
+.pmd-w19-save-hidden {
+  display: none !important;
+}
+
+html.pmd-waiter-dashboard-active
+#pmd-waiter-dashboard-root
+.pmd-v191-floor-control-dock
+.pmd-w19-btn {
+  position: relative !important;
+
+  width: 42px !important;
+  height: 42px !important;
+  min-width: 42px !important;
+  min-height: 42px !important;
+  max-width: 42px !important;
+  max-height: 42px !important;
+
+  flex: 0 0 42px !important;
+
+  margin: 0 !important;
+  padding: 0 !important;
+
+  border: 2px solid #061225 !important;
+  border-radius: 999px !important;
+
+  background: #ffffff !important;
+  color: #061225 !important;
+  -webkit-text-fill-color: #061225 !important;
+
+  box-shadow:
+    0 7px 20px rgba(6, 18, 37, .12) !important;
+
+  font-size: 19px !important;
+  line-height: 1 !important;
+  font-weight: 900 !important;
+
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+
+  transform: none !important;
+  translate: none !important;
+  transition:
+    transform .15s ease,
+    box-shadow .15s ease !important;
+
+  animation: none !important;
+  pointer-events: auto !important;
+  cursor: pointer !important;
+  z-index: 522 !important;
+}
+
+html.pmd-waiter-dashboard-active
+#pmd-waiter-dashboard-root
+.pmd-v191-floor-control-dock
+.pmd-w19-btn:hover {
+  transform: translateY(-1px) !important;
+  box-shadow:
+    0 9px 24px rgba(6, 18, 37, .18) !important;
+}
+
+html.pmd-waiter-dashboard-active
+#pmd-waiter-dashboard-root
+.pmd-v191-floor-control-dock
+.pmd-w19-btn.primary {
+  background: #061225 !important;
+  color: #ffffff !important;
+  -webkit-text-fill-color: #ffffff !important;
+}
+
+html.pmd-waiter-dashboard-active
+#pmd-waiter-dashboard-root
+.pmd-v191-floor-control-dock
+.pmd-w19-btn small {
   position: absolute !important;
+  top: -5px !important;
+  right: -5px !important;
+
+  min-width: 17px !important;
+  height: 17px !important;
+
+  margin: 0 !important;
+  padding: 0 4px !important;
+
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+
+  border-radius: 999px !important;
+  border: 1px solid #061225 !important;
+
+  background: #ffffff !important;
+  color: #061225 !important;
+  -webkit-text-fill-color: #061225 !important;
+
+  font-size: 10px !important;
+  line-height: 1 !important;
+  font-weight: 900 !important;
+}
+
+/*
+ * Keep the existing information control at the bottom of the column.
+ */
+html.pmd-waiter-dashboard-active
+#pmd-waiter-dashboard-root
+.pmd-w5-floor-map-real
+> .pmd-v61-map-info-btn {
+  position: absolute !important;
+
+  right: 14px !important;
+  bottom: 14px !important;
+  left: auto !important;
+  top: auto !important;
+
+  width: 42px !important;
+  height: 42px !important;
+  min-width: 42px !important;
+  min-height: 42px !important;
+  max-width: 42px !important;
+  max-height: 42px !important;
+
+  margin: 0 !important;
+  z-index: 520 !important;
+}
+
+/*
+ * Invisible geometric obstacle used only by V160's drop resolver.
+ */
+html.pmd-waiter-dashboard-active
+#pmd-waiter-dashboard-root
+.pmd-w5-floor-map-real
+> .pmd-v191-control-reserve {
+  position: absolute !important;
+
+  display: block !important;
+  margin: 0 !important;
+  padding: 0 !important;
+
+  border: 0 !important;
+  outline: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+
+  opacity: 0 !important;
+  visibility: hidden !important;
+
+  pointer-events: none !important;
+  user-select: none !important;
+
+  transform: none !important;
+  transition: none !important;
+  animation: none !important;
+
+  z-index: 0 !important;
+}
+</style>
+
+<script id="pmd-v191-floor-control-dock-script">
+(function () {
+  'use strict';
+
+  if (!/\/admin\/dashboardwaiter\/?$/.test(location.pathname)) {
+    return;
+  }
+
+  if (
+    window.PMDWaiterFloorControlsV191 &&
+    window.PMDWaiterFloorControlsV191.active
+  ) {
+    return;
+  }
+
+  var ROOT_SELECTOR =
+    '#pmd-waiter-dashboard-root';
+
+  var MAP_SELECTOR =
+    ROOT_SELECTOR + ' .pmd-w5-floor-map-real';
+
+  var TOOLBAR_SELECTOR =
+    ROOT_SELECTOR + ' .pmd-w19-tools';
+
+  var state = {
+    applies: 0,
+    moves: 0,
+    titleHides: 0,
+    obstacleUpdates: 0,
+    lastReason: '',
+    lastObstacle: null
+  };
+
+  var observer = null;
+  var resizeObserver = null;
+  var applyRaf = 0;
+  var retryTimer = 0;
+
+  function root() {
+    return document.querySelector(ROOT_SELECTOR);
+  }
+
+  function map() {
+    return document.querySelector(MAP_SELECTOR);
+  }
+
+  function clean(value) {
+    return String(
+      value == null ? '' : value
+    ).replace(/\s+/g, ' ').trim();
+  }
+
+  function visible(element) {
+    if (!element || !element.isConnected) {
+      return false;
+    }
+
+    var style = getComputedStyle(element);
+    var rect = element.getBoundingClientRect();
+
+    return (
+      style.display !== 'none' &&
+      style.visibility !== 'hidden' &&
+      Number(style.opacity) !== 0 &&
+      rect.width > 0 &&
+      rect.height > 0
+    );
+  }
+
+  function floorSection(currentMap) {
+    return currentMap
+      ? currentMap.closest('section.pmd-w5-floor')
+      : null;
+  }
+
+  function findToolbar(currentRoot, dock) {
+    if (!currentRoot) return null;
+
+    var existing = dock
+      ? dock.querySelector('.pmd-w19-tools')
+      : null;
+
+    if (existing) return existing;
+
+    var toolbars = Array.prototype.slice.call(
+      currentRoot.querySelectorAll(
+        '.pmd-w19-tools'
+      )
+    );
+
+    return (
+      toolbars.find(function (toolbar) {
+        return !!(
+          toolbar.querySelector('[data-w19-edit]') &&
+          toolbar.querySelector('[data-w19-compact]')
+        );
+      }) ||
+      toolbars[0] ||
+      null
+    );
+  }
+
+  function ensureDock(currentMap) {
+    var dock = currentMap.querySelector(
+      ':scope > .pmd-v191-floor-control-dock'
+    );
+
+    if (!dock) {
+      dock = document.createElement('div');
+      dock.className =
+        'pmd-v191-floor-control-dock';
+
+      dock.setAttribute(
+        'data-pmd-v191-control-dock',
+        '1'
+      );
+
+      dock.setAttribute(
+        'aria-label',
+        'Floor layout controls'
+      );
+
+      currentMap.appendChild(dock);
+    }
+
+    return dock;
+  }
+
+  function ensureReserve(currentMap) {
+    var reserve = currentMap.querySelector(
+      ':scope > .pmd-v191-control-reserve'
+    );
+
+    if (!reserve) {
+      reserve = document.createElement('div');
+      reserve.className =
+        'pmd-v191-control-reserve';
+
+      reserve.setAttribute(
+        'data-pmd-v160-obstacle',
+        '1'
+      );
+
+      reserve.setAttribute(
+        'data-pmd-v191-control-reserve',
+        '1'
+      );
+
+      reserve.setAttribute(
+        'aria-hidden',
+        'true'
+      );
+
+      currentMap.appendChild(reserve);
+    }
+
+    return reserve;
+  }
+
+  function findTitle(section) {
+    if (!section) return null;
+
+    var candidates =
+      Array.prototype.slice.call(
+        section.querySelectorAll(
+          [
+            'h1',
+            'h2',
+            'h3',
+            'h4',
+            'h5',
+            'h6',
+            '.card-title',
+            '.pmd-w5-title',
+            '.pmd-w19-title',
+            'strong'
+          ].join(',')
+        )
+      );
+
+    return (
+      candidates.find(function (element) {
+        return /waiter\s*floor/i.test(
+          clean(element.textContent)
+        );
+      }) ||
+      null
+    );
+  }
+
+  function hideFloorHeader(
+    section,
+    currentMap,
+    originalToolbarParent
+  ) {
+    if (!section) return;
+
+    section.classList.add(
+      'pmd-v191-floor-shell'
+    );
+
+    var title = findTitle(section);
+
+    if (title) {
+      var header = title.closest(
+        [
+          '.pmd-w5-floor-head',
+          '.pmd-w19-floor-head',
+          '.pmd-w19-head',
+          '.pmd-w5-section-head',
+          '.card-header',
+          'header'
+        ].join(',')
+      );
+
+      if (!header) {
+        header = title.parentElement;
+      }
+
+      if (
+        header &&
+        header !== section &&
+        !header.contains(currentMap)
+      ) {
+        if (
+          !header.classList.contains(
+            'pmd-v191-floor-header-hidden'
+          )
+        ) {
+          state.titleHides++;
+        }
+
+        header.classList.add(
+          'pmd-v191-floor-header-hidden'
+        );
+      } else {
+        if (
+          !title.classList.contains(
+            'pmd-v191-floor-title-hidden'
+          )
+        ) {
+          state.titleHides++;
+        }
+
+        title.classList.add(
+          'pmd-v191-floor-title-hidden'
+        );
+      }
+    }
+
+    if (
+      originalToolbarParent &&
+      originalToolbarParent !== section &&
+      originalToolbarParent !== currentMap &&
+      !originalToolbarParent.contains(currentMap)
+    ) {
+      originalToolbarParent.classList.add(
+        'pmd-v191-floor-header-hidden'
+      );
+    }
+  }
+
+  function updateReserve(
+    currentMap,
+    dock,
+    reserve
+  ) {
+    if (
+      !currentMap ||
+      !dock ||
+      !reserve ||
+      !currentMap.isConnected
+    ) {
+      return;
+    }
+
+    var info = currentMap.querySelector(
+      ':scope > .pmd-v61-map-info-btn'
+    );
+
+    var mapRect =
+      currentMap.getBoundingClientRect();
+
+    var controls = [dock, info].filter(
+      function (element) {
+        return visible(element);
+      }
+    );
+
+    if (
+      !mapRect.width ||
+      !mapRect.height ||
+      !controls.length
+    ) {
+      return;
+    }
+
+    var left = mapRect.width;
+    var top = mapRect.height;
+
+    controls.forEach(function (element) {
+      var rect = element.getBoundingClientRect();
+
+      left = Math.min(
+        left,
+        rect.left - mapRect.left
+      );
+
+      top = Math.min(
+        top,
+        rect.top - mapRect.top
+      );
+    });
+
+    /*
+     * Include breathing room around the controls.
+     * V160 additionally applies TABLE_GAP during collision tests.
+     */
+    left = Math.max(0, left - 12);
+    top = Math.max(0, top - 12);
+
+    var width = Math.max(
+      1,
+      mapRect.width - left
+    );
+
+    var height = Math.max(
+      1,
+      mapRect.height - top
+    );
+
+    reserve.style.setProperty(
+      'left',
+      left.toFixed(2) + 'px',
+      'important'
+    );
+
+    reserve.style.setProperty(
+      'top',
+      top.toFixed(2) + 'px',
+      'important'
+    );
+
+    reserve.style.setProperty(
+      'right',
+      'auto',
+      'important'
+    );
+
+    reserve.style.setProperty(
+      'bottom',
+      'auto',
+      'important'
+    );
+
+    reserve.style.setProperty(
+      'width',
+      width.toFixed(2) + 'px',
+      'important'
+    );
+
+    reserve.style.setProperty(
+      'height',
+      height.toFixed(2) + 'px',
+      'important'
+    );
+
+    state.obstacleUpdates++;
+
+    state.lastObstacle = {
+      left: Number(left.toFixed(2)),
+      top: Number(top.toFixed(2)),
+      width: Number(width.toFixed(2)),
+      height: Number(height.toFixed(2))
+    };
+  }
+
+  function bindResize(
+    currentMap,
+    dock,
+    reserve
+  ) {
+    if (
+      typeof ResizeObserver !== 'function'
+    ) {
+      return;
+    }
+
+    if (!resizeObserver) {
+      resizeObserver =
+        new ResizeObserver(function () {
+          schedule('resize-observer');
+        });
+    }
+
+    resizeObserver.disconnect();
+    resizeObserver.observe(currentMap);
+    resizeObserver.observe(dock);
+
+    var info = currentMap.querySelector(
+      ':scope > .pmd-v61-map-info-btn'
+    );
+
+    if (info) {
+      resizeObserver.observe(info);
+    }
+
+    if (reserve) {
+      /*
+       * Do not observe reserve itself because this function writes
+       * its dimensions.
+       */
+    }
+  }
+
+  function apply(reason) {
+    var currentRoot = root();
+    var currentMap = map();
+
+    if (!currentRoot || !currentMap) {
+      clearTimeout(retryTimer);
+
+      retryTimer = setTimeout(function () {
+        apply('retry');
+      }, 80);
+
+      return false;
+    }
+
+    var section =
+      floorSection(currentMap);
+
+    var dock =
+      ensureDock(currentMap);
+
+    var reserve =
+      ensureReserve(currentMap);
+
+    var toolbar =
+      findToolbar(currentRoot, dock);
+
+    var originalToolbarParent =
+      toolbar && toolbar.parentElement !== dock
+        ? toolbar.parentElement
+        : null;
+
+    if (toolbar && toolbar.parentElement !== dock) {
+      dock.appendChild(toolbar);
+      state.moves++;
+    }
+
+    if (toolbar) {
+      toolbar.classList.add(
+        'pmd-v191-floor-tools'
+      );
+    }
+
+    /*
+     * Hide only duplicate toolbar copies. Never delete buttons,
+     * handlers or application state.
+     */
+    Array.prototype.slice.call(
+      currentRoot.querySelectorAll(
+        '.pmd-w19-tools'
+      )
+    ).forEach(function (candidate) {
+      candidate.classList.toggle(
+        'pmd-v191-toolbar-duplicate-hidden',
+        candidate !== toolbar
+      );
+    });
+
+    hideFloorHeader(
+      section,
+      currentMap,
+      originalToolbarParent
+    );
+
+    updateReserve(
+      currentMap,
+      dock,
+      reserve
+    );
+
+    bindResize(
+      currentMap,
+      dock,
+      reserve
+    );
+
+    state.applies++;
+    state.lastReason = reason || '';
+
+    return true;
+  }
+
+  function schedule(reason) {
+    state.lastReason = reason || '';
+
+    if (applyRaf) return;
+
+    applyRaf = requestAnimationFrame(
+      function () {
+        applyRaf = 0;
+        apply(reason || 'scheduled');
+      }
+    );
+  }
+
+  function rectanglesOverlap(a, b) {
+    return !(
+      a.right <= b.left ||
+      a.left >= b.right ||
+      a.bottom <= b.top ||
+      a.top >= b.bottom
+    );
+  }
+
+  function debug() {
+    var currentRoot = root();
+    var currentMap = map();
+
+    var dock = currentMap
+      ? currentMap.querySelector(
+          ':scope > .pmd-v191-floor-control-dock'
+        )
+      : null;
+
+    var reserve = currentMap
+      ? currentMap.querySelector(
+          ':scope > .pmd-v191-control-reserve'
+        )
+      : null;
+
+    var toolbar = dock
+      ? dock.querySelector('.pmd-w19-tools')
+      : null;
+
+    var section =
+      floorSection(currentMap);
+
+    var title =
+      findTitle(section);
+
+    var reserveRect =
+      reserve && reserve.getBoundingClientRect();
+
+    var overlappingTables = [];
+
+    if (
+      currentMap &&
+      reserveRect &&
+      reserveRect.width &&
+      reserveRect.height
+    ) {
+      Array.prototype.slice.call(
+        currentMap.querySelectorAll(
+          '.pmd-w5-table[data-table]'
+        )
+      ).forEach(function (table) {
+        var style = getComputedStyle(table);
+
+        if (
+          style.display === 'none' ||
+          style.visibility === 'hidden' ||
+          Number(style.opacity) === 0
+        ) {
+          return;
+        }
+
+        if (
+          rectanglesOverlap(
+            table.getBoundingClientRect(),
+            reserveRect
+          )
+        ) {
+          overlappingTables.push(
+            table.getAttribute('data-table') || ''
+          );
+        }
+      });
+    }
+
+    var buttons = toolbar
+      ? Array.prototype.slice.call(
+          toolbar.querySelectorAll(
+            '.pmd-w19-btn'
+          )
+        ).map(function (button) {
+          return {
+            title:
+              button.getAttribute('title') || '',
+            action:
+              button.hasAttribute('data-w19-save')
+                ? 'save'
+                : button.hasAttribute('data-w19-edit')
+                  ? 'edit'
+                  : button.hasAttribute('data-w19-merge')
+                    ? 'merge'
+                    : button.hasAttribute(
+                        'data-w19-compact'
+                      )
+                      ? 'compact'
+                      : 'unknown',
+            visible: visible(button)
+          };
+        })
+      : [];
+
+    var result = {
+      version:
+        'pmd-waiter-floor-controls-v191',
+
+      active: true,
+
+      toolbarInMap: !!(
+        toolbar &&
+        currentMap &&
+        currentMap.contains(toolbar)
+      ),
+
+      verticalColumn: !!dock,
+
+      infoButtonInMap: !!(
+        currentMap &&
+        currentMap.querySelector(
+          ':scope > .pmd-v61-map-info-btn'
+        )
+      ),
+
+      titleHidden: !!(
+        !title ||
+        title.classList.contains(
+          'pmd-v191-floor-title-hidden'
+        ) ||
+        title.closest(
+          '.pmd-v191-floor-header-hidden'
+        )
+      ),
+
+      obstacleRegistered: !!(
+        reserve &&
+        reserve.getAttribute(
+          'data-pmd-v160-obstacle'
+        ) === '1'
+      ),
+
+      obstacle: state.lastObstacle,
+
+      overlappingTables:
+        overlappingTables,
+
+      buttons: buttons,
+
+      state: {
+        applies: state.applies,
+        moves: state.moves,
+        titleHides: state.titleHides,
+        obstacleUpdates:
+          state.obstacleUpdates,
+        lastReason: state.lastReason
+      }
+    };
+
+    console.log(result);
+    return result;
+  }
+
+  document.addEventListener(
+    'pmd-waiter-dashboard-rendered',
+    function () {
+      schedule(
+        'dashboard-rendered'
+      );
+    },
+    true
+  );
+
+  document.addEventListener(
+    'click',
+    function (event) {
+      var target =
+        event.target &&
+        event.target.nodeType === 1
+          ? event.target
+          : null;
+
+      if (
+        !target ||
+        !target.closest(
+          [
+            '[data-w19-save]',
+            '[data-w19-edit]',
+            '[data-w19-merge]',
+            '[data-w19-compact]'
+          ].join(',')
+        )
+      ) {
+        return;
+      }
+
+      setTimeout(function () {
+        schedule('toolbar-click-immediate');
+      }, 0);
+
+      setTimeout(function () {
+        schedule('toolbar-click-settled');
+      }, 140);
+    },
+    true
+  );
+
+  window.addEventListener(
+    'resize',
+    function () {
+      schedule('window-resize');
+    },
+    {passive: true}
+  );
+
+  observer = new MutationObserver(
+    function () {
+      schedule('dom-mutation');
+    }
+  );
+
+  observer.observe(
+    document.body || document.documentElement,
+    {
+      childList: true,
+      subtree: true
+    }
+  );
+
+  window.PMDWaiterFloorControlsV191 = {
+    active: true,
+
+    apply: function () {
+      return apply('manual');
+    },
+
+    debug: debug,
+
+    stop: function () {
+      if (observer) observer.disconnect();
+
+      if (resizeObserver) {
+        resizeObserver.disconnect();
+      }
+
+      if (applyRaf) {
+        cancelAnimationFrame(applyRaf);
+      }
+
+      clearTimeout(retryTimer);
+
+      observer = null;
+      resizeObserver = null;
+      applyRaf = 0;
+
+      console.info(
+        '[PMD] Waiter floor controls V191 stopped'
+      );
+    }
+  };
+
+  apply('boot');
+
+  setTimeout(function () {
+    apply('boot-120');
+  }, 120);
+
+  setTimeout(function () {
+    apply('boot-600');
+  }, 600);
+
+  setTimeout(function () {
+    apply('boot-1800');
+  }, 1800);
+
+  console.info(
+    '[PMD] Waiter floor controls V191 vertical map dock active'
+  );
+})();
+</script>
+<!-- PMD_V191_FLOOR_CONTROL_DOCK_END -->
+
+
+<!-- PMD_V193_PAYMENT_CORNER_START -->
+<style id="pmd-v193-payment-corner-style">
+/*
+ * V193 — payment status in the shared top-right status position.
+ *
+ * Priority:
+ *   1. Attention / waiter / cleaning
+ *   2. Payment status
+ *   3. Order-count badge
+ *
+ * CSS only: no observers, timers or JavaScript state changes.
+ */
+
+/* Convert the old top-left PAID/PARTIAL ribbon into a corner icon. */
+html.pmd-waiter-dashboard-active
+#pmd-waiter-dashboard-root
+.pmd-w5-floor-map-real
+.pmd-w5-table[data-table]
+.pmd-v154-payment-chip[data-payment-state="paid"],
+
+html.pmd-waiter-dashboard-active
+#pmd-waiter-dashboard-root
+.pmd-w5-floor-map-real
+.pmd-w5-table[data-table]
+.pmd-v154-payment-chip[data-payment-state="partial"] {
+  position: absolute !important;
+
+  inset: auto !important;
   top: -12px !important;
   right: -12px !important;
+  bottom: auto !important;
+  left: auto !important;
+
   width: 30px !important;
   height: 30px !important;
   min-width: 30px !important;
   min-height: 30px !important;
   max-width: 30px !important;
   max-height: 30px !important;
-  z-index: 5 !important;
+
+  margin: 0 !important;
+  padding: 0 !important;
+
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+
+  border: 0 !important;
+  outline: 0 !important;
+  border-radius: 999px !important;
+
+  background: #ffffff !important;
+  background-color: #ffffff !important;
+  background-image: none !important;
+
+  box-shadow: none !important;
+
+  /*
+   * Hide the original PAID/PARTIAL wording.
+   * The icon is rendered through ::after.
+   */
+  color: transparent !important;
+  -webkit-text-fill-color: transparent !important;
+
+  font-size: 0 !important;
+  line-height: 1 !important;
+  letter-spacing: 0 !important;
+  text-indent: 0 !important;
+  text-transform: none !important;
+  white-space: nowrap !important;
+
   transform: none !important;
+  translate: none !important;
+  transition: none !important;
   animation: none !important;
+
+  overflow: visible !important;
+  pointer-events: none !important;
+  user-select: none !important;
+
+  opacity: 1 !important;
+  visibility: visible !important;
+
+  z-index: 149 !important;
 }
 
-html.pmd-waiter-dashboard-active .pmd-v191-mini-badge img {
-  width: 20px !important;
-  height: 20px !important;
-  max-width: 20px !important;
-  max-height: 20px !important;
+/* PAID icon. */
+html.pmd-waiter-dashboard-active
+#pmd-waiter-dashboard-root
+.pmd-w5-floor-map-real
+.pmd-w5-table[data-table]
+.pmd-v154-payment-chip[data-payment-state="paid"]::after {
+  content: "✓" !important;
+
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+
+  width: 30px !important;
+  height: 30px !important;
+
+  color: #15803d !important;
+  -webkit-text-fill-color: #15803d !important;
+
+  font-family: inherit !important;
+  font-size: 21px !important;
+  line-height: 1 !important;
+  font-weight: 1000 !important;
+
+  text-align: center !important;
+  text-shadow: none !important;
+
+  transform: none !important;
+}
+
+/* PARTIAL icon. */
+html.pmd-waiter-dashboard-active
+#pmd-waiter-dashboard-root
+.pmd-w5-floor-map-real
+.pmd-w5-table[data-table]
+.pmd-v154-payment-chip[data-payment-state="partial"]::after {
+  content: "◐" !important;
+
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+
+  width: 30px !important;
+  height: 30px !important;
+
+  color: #b45309 !important;
+  -webkit-text-fill-color: #b45309 !important;
+
+  font-family: inherit !important;
+  font-size: 20px !important;
+  line-height: 1 !important;
+  font-weight: 1000 !important;
+
+  text-align: center !important;
+  text-shadow: none !important;
+
+  transform: none !important;
+}
+
+/*
+ * Attention has the highest priority.
+ *
+ * When a waiter/cleaning/attention badge is present, payment is
+ * hidden completely so the two statuses never overlap.
+ */
+html.pmd-waiter-dashboard-active
+#pmd-waiter-dashboard-root
+.pmd-w5-floor-map-real
+.pmd-w5-table[data-table]:has(
+  > .pmd-v175c-attention-badge
+)
+> .pmd-v154-payment-chip[data-payment-state="paid"],
+
+html.pmd-waiter-dashboard-active
+#pmd-waiter-dashboard-root
+.pmd-w5-floor-map-real
+.pmd-w5-table[data-table]:has(
+  > .pmd-v175c-attention-badge
+)
+> .pmd-v154-payment-chip[data-payment-state="partial"] {
+  display: none !important;
+  visibility: hidden !important;
+  opacity: 0 !important;
+}
+
+/*
+ * Payment has priority over the order-count badge.
+ *
+ * This applies only when no attention badge exists.
+ */
+html.pmd-waiter-dashboard-active
+#pmd-waiter-dashboard-root
+.pmd-w5-floor-map-real
+.pmd-w5-table[data-table]:not(
+  :has(> .pmd-v175c-attention-badge)
+):has(
+  > .pmd-v154-payment-chip[data-payment-state="paid"]
+)
+> .pmd-v183-order-count-badge,
+
+html.pmd-waiter-dashboard-active
+#pmd-waiter-dashboard-root
+.pmd-w5-floor-map-real
+.pmd-w5-table[data-table]:not(
+  :has(> .pmd-v175c-attention-badge)
+):has(
+  > .pmd-v154-payment-chip[data-payment-state="partial"]
+)
+> .pmd-v183-order-count-badge {
+  display: none !important;
+  visibility: hidden !important;
+  opacity: 0 !important;
 }
 </style>
-
-<script id="pmd-v191-compact-strip-authority-script">
-(function () {
-  'use strict';
-
-  if (!/\/admin\/dashboardwaiter(?:$|[?#\/])/.test(location.pathname + location.search + location.hash)) return;
-  if (window.PMDWaiterCompactStripV191 && window.PMDWaiterCompactStripV191.active) return;
-
-  var raf = 0;
-  var observer = null;
-  var FLOOR_SEL = '.pmd-w5-floor-map, .pmd-w5-floor-map-real, .pmd-v155-floor-map';
-  var TILE_SEL = '.pmd-w5-table, .pmd-v155-table, .pmd-floor-table, .pmd-waiter-floor-table, .pmd-v175c-floor-tile';
-  var BTN_SEL = '.pmd-w19-btn[data-w19-compact], button[data-w19-compact], [data-w19-compact]';
-
-  function clean(v) {
-    return String(v == null ? '' : v).replace(/\s+/g, ' ').trim();
-  }
-
-  function qsa(sel, base) {
-    try { return Array.prototype.slice.call((base || document).querySelectorAll(sel)); }
-    catch (e) { return []; }
-  }
-
-  function imp(el, prop, val) {
-    if (!el || !el.style) return;
-    if (el.style.getPropertyValue(prop) === String(val) && el.style.getPropertyPriority(prop) === 'important') return;
-    el.style.setProperty(prop, String(val), 'important');
-  }
-
-  function root() {
-    return document.querySelector('#pmd-waiter-dashboard-root') || document.documentElement;
-  }
-
-  function floor() {
-    return document.querySelector('.pmd-w5-floor-map-real') || document.querySelector(FLOOR_SEL);
-  }
-
-  function isCompact() {
-    var r = root();
-    return !!(r && r.classList.contains('pmd-w19-compact'));
-  }
-
-  function tableNo(tile) {
-    if (!tile) return '';
-
-    var attrs = ['data-table-number', 'data-table-no', 'data-table', 'data-pmd-table-number', 'data-pmd-table-no'];
-    for (var i = 0; i < attrs.length; i++) {
-      var v = clean(tile.getAttribute(attrs[i]));
-      if (/^(20|1[0-9]|[1-9])$/.test(v)) return v;
-    }
-
-    var n = null;
-    try { n = tile.querySelector(':scope > .pmd-v175c-table-number'); }
-    catch (e) { n = tile.querySelector('.pmd-v175c-table-number'); }
-
-    if (n) {
-      var nt = clean(n.textContent);
-      if (/^(20|1[0-9]|[1-9])$/.test(nt)) return nt;
-    }
-
-    var txt = clean(tile.textContent || '');
-    var m = txt.match(/\b(20|1[0-9]|[1-9])\b/);
-    return m ? m[1] : '';
-  }
-
-  function realTiles() {
-    var f = floor();
-    if (!f) return [];
-    return qsa(TILE_SEL, f).filter(function (tile) {
-      return tile.closest(FLOOR_SEL) === f;
-    });
-  }
-
-  function setButton() {
-    qsa(BTN_SEL).forEach(function (btn) {
-      btn.setAttribute('title', isCompact() ? 'Expand floor' : 'Compact floor');
-      btn.setAttribute('aria-label', isCompact() ? 'Expand floor' : 'Compact floor');
-      btn.setAttribute('data-pmd-v191-mode', isCompact() ? 'compact' : 'expanded');
-      btn.classList.toggle('primary', isCompact());
-    });
-  }
-
-  function cloneBadge(tile, mini) {
-    var badge =
-      tile.querySelector(':scope > .pmd-v175c-attention-badge') ||
-      tile.querySelector(':scope > .pmd-v183-order-count-badge') ||
-      tile.querySelector('.pmd-v175c-attention-badge') ||
-      tile.querySelector('.pmd-v183-order-count-badge');
-
-    if (!badge) return;
-
-    var c = badge.cloneNode(true);
-    c.classList.add('pmd-v191-mini-badge');
-    c.removeAttribute('style');
-    mini.appendChild(c);
-  }
-
-  function buildMini(tile) {
-    var no = tableNo(tile);
-    if (!no) return null;
-
-    var cs = getComputedStyle(tile);
-    var mini = document.createElement('button');
-    mini.type = 'button';
-    mini.className = 'pmd-v191-mini-table';
-    mini.setAttribute('data-pmd-v191-table', no);
-    mini.setAttribute('aria-label', 'Table ' + no);
-
-    imp(mini, 'background', cs.backgroundColor || '#ff3347');
-    imp(mini, 'border-color', cs.borderTopColor || '#b4081b');
-    imp(mini, 'color', '#05070d');
-
-    mini.innerHTML = '<span class="pmd-v191-mini-number">' + no + '</span>';
-    cloneBadge(tile, mini);
-
-    mini.addEventListener('click', function (e) {
-      e.preventDefault();
-      e.stopPropagation();
-      if (tile && typeof tile.click === 'function') tile.click();
-    }, true);
-
-    return mini;
-  }
-
-  function enterCompact() {
-    var f = floor();
-    if (!f) return;
-
-    document.documentElement.classList.add('pmd-v191-compact-active');
-
-    imp(f, 'position', 'relative');
-    imp(f, 'height', '128px');
-    imp(f, 'min-height', '128px');
-    imp(f, 'max-height', '128px');
-    imp(f, 'overflow', 'hidden');
-    imp(f, 'background', '#ffffff');
-    imp(f, 'transform', 'none');
-
-    realTiles().forEach(function (tile) {
-      imp(tile, 'visibility', 'hidden');
-      imp(tile, 'opacity', '0');
-      imp(tile, 'pointer-events', 'none');
-    });
-
-    var strip = f.querySelector(':scope > .pmd-v191-compact-strip');
-    if (!strip) {
-      strip = document.createElement('div');
-      strip.className = 'pmd-v191-compact-strip';
-      f.appendChild(strip);
-    }
-
-    strip.innerHTML = '';
-    realTiles().forEach(function (tile) {
-      var mini = buildMini(tile);
-      if (mini) strip.appendChild(mini);
-    });
-
-    setButton();
-  }
-
-  function exitCompact() {
-    var f = floor();
-
-    document.documentElement.classList.remove('pmd-v191-compact-active');
-
-    qsa('.pmd-v191-compact-strip').forEach(function (strip) {
-      strip.remove();
-    });
-
-    if (f) {
-      imp(f, 'height', '430px');
-      imp(f, 'min-height', '430px');
-      imp(f, 'max-height', '430px');
-      imp(f, 'overflow', 'visible');
-      imp(f, 'background', '#ffffff');
-      imp(f, 'transform', 'none');
-    }
-
-    realTiles().forEach(function (tile) {
-      imp(tile, 'visibility', 'visible');
-      imp(tile, 'opacity', '1');
-      imp(tile, 'pointer-events', 'auto');
-      imp(tile, 'display', 'block');
-      imp(tile, 'transform', 'none');
-      imp(tile, 'transition', 'none');
-      imp(tile, 'animation', 'none');
-    });
-
-    setButton();
-
-    if (window.PMDWaiterFloorStableV175c && typeof window.PMDWaiterFloorStableV175c.apply === 'function') {
-      try { window.PMDWaiterFloorStableV175c.apply(); } catch (e) {}
-    }
-  }
-
-  function apply() {
-    [
-      'pmd_waiter_floor_size_v184',
-      'pmd_waiter_floor_scale_v185',
-      'pmd_waiter_floor_scale_v187',
-      'pmd_waiter_floor_compact_v188',
-      'pmd_waiter_floor_compact_v189',
-      'pmd_waiter_floor_positions_v189',
-      'pmd_waiter_floor_compact_v190'
-    ].forEach(function (k) {
-      try { localStorage.removeItem(k); } catch (e) {}
-    });
-
-    if (isCompact()) enterCompact();
-    else exitCompact();
-  }
-
-  function schedule() {
-    if (raf) return;
-    raf = requestAnimationFrame(function () {
-      raf = 0;
-      apply();
-    });
-  }
-
-  function debug(print) {
-    var f = floor();
-    var fr = f ? f.getBoundingClientRect() : null;
-    var strip = f ? f.querySelector(':scope > .pmd-v191-compact-strip') : null;
-
-    var out = {
-      active: true,
-      compact: isCompact(),
-      floor: fr ? {
-        x: Math.round(fr.x),
-        y: Math.round(fr.y),
-        w: Math.round(fr.width),
-        h: Math.round(fr.height)
-      } : null,
-      realTiles: realTiles().length,
-      miniTiles: strip ? qsa('.pmd-v191-mini-table', strip).length : 0,
-      stripExists: !!strip,
-      badOldObjects: {
-        v184: typeof window.PMDFloorSizeV184,
-        v185: typeof window.PMDFloorScaleWrapperV185,
-        v186: typeof window.PMDFloorToggleDebounceV186,
-        v187: typeof window.PMDFloorScaleSafeV187,
-        v188: typeof window.PMDFloorCompactExpandV188,
-        v189: typeof window.PMDFloorPositionLockV189,
-        v190: typeof window.PMDFloorDeterministicV190
-      }
-    };
-
-    if (print !== false) console.log(out);
-    return out;
-  }
-
-  document.addEventListener('click', function (e) {
-    var btn = e.target && e.target.closest ? e.target.closest(BTN_SEL) : null;
-    if (!btn) return;
-    setTimeout(apply, 0);
-    setTimeout(apply, 80);
-    setTimeout(apply, 220);
-  }, true);
-
-  observer = new MutationObserver(schedule);
-  observer.observe(document.querySelector('#pmd-waiter-dashboard-root') || document.body, {
-    subtree: true,
-    childList: true,
-    attributes: true,
-    attributeFilter: ['class']
-  });
-
-  apply();
-  setTimeout(apply, 250);
-  setTimeout(apply, 1000);
-
-  window.PMDWaiterCompactStripV191 = {
-    active: true,
-    apply: apply,
-    compact: function () {
-      var r = root();
-      if (r) r.classList.add('pmd-w19-compact');
-      apply();
-    },
-    expand: function () {
-      var r = root();
-      if (r) r.classList.remove('pmd-w19-compact');
-      apply();
-    },
-    debug: function () { return debug(true); },
-    stop: function () {
-      if (observer) observer.disconnect();
-      if (raf) cancelAnimationFrame(raf);
-      observer = null;
-      raf = 0;
-      console.info('[PMD] V191 compact strip stopped');
-    }
-  };
-
-  console.info('[PMD] V191 compact strip authority active');
-})();
-</script>
-<!-- PMD_V191_COMPACT_STRIP_AUTHORITY_END -->
+<!-- PMD_V193_PAYMENT_CORNER_END -->
 
 </body>
 </html>

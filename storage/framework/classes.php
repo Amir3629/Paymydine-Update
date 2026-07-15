@@ -265,4 +265,7 @@
   'Admin\\Controllers\\PmdWaiterDashboardV150' => 'app/admin/controllers/PmdWaiterDashboardV150.php',
   'Admin\\Controllers\\PmdWaiterDashboardV151' => 'app/admin/controllers/PmdWaiterDashboardV151.php',
   'Admin\\Controllers\\PmdWaiterTableStateV154' => 'app/admin/controllers/PmdWaiterTableStateV154.php',
+  'Admin\\Controllers\\PmdWaiterDashboardNewV1' => 'app/admin/controllers/PmdWaiterDashboardNewV1.php',
+  'Admin\\Controllers\\PmdWaiterDashboardFinalV1' => 'app/admin/controllers/PmdWaiterDashboardFinalV1.php',
+  'Admin\\Controllers\\PmdWaiterDashboardFinalV2' => 'app/admin/controllers/PmdWaiterDashboardFinalV2.php',
 );

@@ -6,6 +6,15 @@ use Illuminate\Support\Facades\Schema;
 
 // PMD Waiter POS V2 — standalone fallback, lazy dashboard overlay and payment center.
 Route::middleware(['web'])->group(function () {
+    // PMD_WAITER_DASHBOARD_NEW_V1_ROUTES_START
+    // Independent button-first waiter workstation. The existing floor
+    // operations dashboard at /admin/dashboardwaiter remains untouched.
+    Route::get('/admin/dashboardwaiternew', [\Admin\Controllers\PmdWaiterDashboardNewV1::class, 'index'])
+        ->name('pmd.waiter-dashboard-new');
+    Route::get('/admin/waiter', [\Admin\Controllers\PmdWaiterDashboardNewV1::class, 'index'])
+        ->name('pmd.waiter-dashboard');
+    // PMD_WAITER_DASHBOARD_NEW_V1_ROUTES_END
+
     Route::get('/admin/waiter-pos/{tableId}', [\Admin\Controllers\PmdWaiterPosV1::class, 'index'])
         ->where('tableId', '[0-9]+')
         ->name('pmd.waiter-pos');

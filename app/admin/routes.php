@@ -237,6 +237,21 @@ require_once base_path('routes/qr-pay.php');
 require_once base_path('routes/review-social.php');
 require_once base_path('routes/terminal-payments.php');
 
+
+// PMD_WAITER_POS_V221_DIRECT_ROUTE_LOADER_START
+// Directly loaded from app/admin/routes.php because this is the route file the
+// tenant actually boots. The isolated file can be removed safely on rollback.
+if (file_exists(base_path('routes/pmd-waiter-pos-v22.php'))) {
+    require_once base_path('routes/pmd-waiter-pos-v22.php');
+}
+// PMD_WAITER_POS_V221_DIRECT_ROUTE_LOADER_END
+
+// PMD_WAITER_FINAL_V1_ROUTE_LOADER_START
+if (file_exists(base_path('routes/pmd-waiter-final-v1.php'))) {
+    require base_path('routes/pmd-waiter-final-v1.php');
+}
+// PMD_WAITER_FINAL_V1_ROUTE_LOADER_END
+
 // PMD_ADMIN_QUICK_MODE_PREVIEW_20260616
 if (file_exists(base_path('routes/admin-quick-mode.php'))) {
     require base_path('routes/admin-quick-mode.php');
@@ -3821,3 +3836,6 @@ if (!defined('PMD_WAITER_DASHBOARD_V21_MERGE_CLEANUP')) {
 
 
 
+
+// PMD_WAITER_FINAL_V2_ROUTE_LOADER
+require_once base_path('routes/pmd-waiter-final-v2.php');

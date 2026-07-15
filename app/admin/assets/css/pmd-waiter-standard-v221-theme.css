@@ -1,0 +1,317 @@
+/* PMD Waiter Standard POS V2.2.1 — light/dark theme + Toast-inspired payment workspace */
+:root,
+html[data-pmd-pos-theme="light"]{
+  --pmd-v221-bg:#e7edf2;
+  --pmd-v221-surface:#ffffff;
+  --pmd-v221-surface-2:#f3f6f8;
+  --pmd-v221-line:#aeb9c3;
+  --pmd-v221-text:#10151b;
+  --pmd-v221-muted:#607080;
+  --pmd-v221-top:#10161d;
+  --pmd-v221-top-text:#ffffff;
+  --pmd-v221-key:#ffffff;
+  --pmd-v221-key-hover:#edf2f6;
+  --pmd-v221-accent:#1769aa;
+  --pmd-v221-success:#16894a;
+  --pmd-v221-danger:#c62d3f;
+  --pmd-v221-warning:#d98b00;
+  --pmd-v221-shadow:0 8px 28px rgba(12,20,28,.14);
+}
+
+html[data-pmd-pos-theme="dark"]{
+  --pmd-v221-bg:#11161c;
+  --pmd-v221-surface:#1a2129;
+  --pmd-v221-surface-2:#222b35;
+  --pmd-v221-line:#44515e;
+  --pmd-v221-text:#f4f7fa;
+  --pmd-v221-muted:#aeb9c5;
+  --pmd-v221-top:#090d12;
+  --pmd-v221-top-text:#ffffff;
+  --pmd-v221-key:#242d37;
+  --pmd-v221-key-hover:#303b47;
+  --pmd-v221-accent:#4da3e6;
+  --pmd-v221-success:#38b96a;
+  --pmd-v221-danger:#ff6675;
+  --pmd-v221-warning:#ffb43c;
+  --pmd-v221-shadow:0 10px 30px rgba(0,0,0,.36);
+  color-scheme:dark;
+}
+
+body.pmd-waiter-standard-v221-page,
+body.pmd-waiter-standard-v221-page .pmd-waiter-standard-v2,
+body.pmd-waiter-standard-v221-page .pmd-pos-app{
+  background:var(--pmd-v221-bg)!important;
+  color:var(--pmd-v221-text)!important;
+}
+
+body.pmd-waiter-standard-v221-page .pmd-v2-topbar,
+body.pmd-waiter-standard-v221-page .pmd-pos-topbar,
+body.pmd-waiter-standard-v221-page .pmd-pos-payment-head{
+  background:var(--pmd-v221-top)!important;
+  color:var(--pmd-v221-top-text)!important;
+}
+
+body.pmd-waiter-standard-v221-page .pmd-v2-command,
+body.pmd-waiter-standard-v221-page .pmd-v2-area-keys,
+body.pmd-waiter-standard-v221-page .pmd-pos-tools,
+body.pmd-waiter-standard-v221-page .pmd-pos-categories,
+body.pmd-waiter-standard-v221-page .pmd-pos-cart,
+body.pmd-waiter-standard-v221-page .pmd-pos-payment-dialog,
+body.pmd-waiter-standard-v221-page .pmd-pos-payment-main,
+body.pmd-waiter-standard-v221-page .pmd-pos-payment-summary{
+  background:var(--pmd-v221-surface)!important;
+  color:var(--pmd-v221-text)!important;
+  border-color:var(--pmd-v221-line)!important;
+}
+
+body.pmd-waiter-standard-v221-page .pmd-v2-table-key,
+body.pmd-waiter-standard-v221-page .pmd-pos-product,
+body.pmd-waiter-standard-v221-page .pmd-pos-category,
+body.pmd-waiter-standard-v221-page .pmd-pos-payment-block,
+body.pmd-waiter-standard-v221-page .pmd-pos-balance-card,
+body.pmd-waiter-standard-v221-page .pmd-pos-method,
+body.pmd-waiter-standard-v221-page .pmd-pos-payment-history-item,
+body.pmd-waiter-standard-v221-page .pmd-v221-keypad button,
+body.pmd-waiter-standard-v221-page .pmd-v221-quick-cash button{
+  background:var(--pmd-v221-key)!important;
+  color:var(--pmd-v221-text)!important;
+  border-color:var(--pmd-v221-line)!important;
+}
+
+body.pmd-waiter-standard-v221-page .pmd-pos-product:hover,
+body.pmd-waiter-standard-v221-page .pmd-pos-category:hover,
+body.pmd-waiter-standard-v221-page .pmd-pos-method:hover,
+body.pmd-waiter-standard-v221-page .pmd-v221-keypad button:hover,
+body.pmd-waiter-standard-v221-page .pmd-v221-quick-cash button:hover{
+  background:var(--pmd-v221-key-hover)!important;
+}
+
+body.pmd-waiter-standard-v221-page input,
+body.pmd-waiter-standard-v221-page textarea{
+  background:var(--pmd-v221-surface)!important;
+  color:var(--pmd-v221-text)!important;
+  border-color:var(--pmd-v221-line)!important;
+}
+
+body.pmd-waiter-standard-v221-page small,
+body.pmd-waiter-standard-v221-page .pmd-pos-payment-block-title span,
+body.pmd-waiter-standard-v221-page .pmd-pos-payment-safety{
+  color:var(--pmd-v221-muted)!important;
+}
+
+.pmd-v221-theme-toggle{
+  min-width:44px!important;
+  min-height:42px!important;
+  display:inline-grid!important;
+  place-items:center!important;
+  border:1px solid rgba(255,255,255,.24)!important;
+  border-radius:4px!important;
+  background:transparent!important;
+  color:#fff!important;
+  font-size:19px!important;
+  font-weight:900!important;
+  cursor:pointer!important;
+}
+
+.pmd-v221-theme-toggle:hover{background:rgba(255,255,255,.1)!important}
+
+/* Toast-inspired payment architecture: receipt / tender / payment action. */
+.pmd-pos-payment-dialog.pmd-v221-toast-payment{
+  width:min(1480px,calc(100vw - 24px))!important;
+  height:min(900px,calc(100vh - 24px))!important;
+  max-width:none!important;
+  border:1px solid var(--pmd-v221-line)!important;
+  border-radius:4px!important;
+  box-shadow:var(--pmd-v221-shadow)!important;
+  overflow:hidden!important;
+}
+
+.pmd-v221-toast-payment .pmd-pos-payment-body{
+  display:grid!important;
+  grid-template-columns:minmax(300px,.78fr) minmax(420px,1.25fr) minmax(310px,.82fr)!important;
+  min-height:0!important;
+  height:calc(100% - 76px)!important;
+  background:var(--pmd-v221-bg)!important;
+}
+
+.pmd-v221-toast-payment .pmd-pos-payment-main{
+  display:contents!important;
+}
+
+.pmd-v221-payment-left,
+.pmd-v221-payment-center,
+.pmd-v221-toast-payment .pmd-pos-payment-summary{
+  min-width:0!important;
+  min-height:0!important;
+  overflow:auto!important;
+  padding:14px!important;
+  background:var(--pmd-v221-surface)!important;
+}
+
+.pmd-v221-payment-left{border-right:1px solid var(--pmd-v221-line)!important}
+.pmd-v221-payment-center{border-right:1px solid var(--pmd-v221-line)!important}
+
+.pmd-v221-toast-payment .pmd-pos-payment-summary{
+  position:static!important;
+  border:0!important;
+  border-radius:0!important;
+}
+
+.pmd-v221-toast-payment .pmd-pos-payment-balance{
+  display:grid!important;
+  grid-template-columns:1fr!important;
+  gap:7px!important;
+  margin-bottom:12px!important;
+}
+
+.pmd-v221-toast-payment .pmd-pos-balance-card{
+  min-height:64px!important;
+  border:1px solid var(--pmd-v221-line)!important;
+  border-radius:3px!important;
+  padding:10px 12px!important;
+}
+
+.pmd-v221-toast-payment .pmd-pos-balance-card.is-remaining{
+  border-left:5px solid var(--pmd-v221-danger)!important;
+}
+
+.pmd-v221-toast-payment .pmd-pos-payment-block{
+  margin:0 0 10px!important;
+  padding:10px!important;
+  border:1px solid var(--pmd-v221-line)!important;
+  border-radius:3px!important;
+  box-shadow:none!important;
+}
+
+.pmd-v221-toast-payment .pmd-pos-split-tabs,
+.pmd-v221-toast-payment .pmd-pos-tip-buttons,
+.pmd-v221-toast-payment .pmd-pos-method-grid{
+  gap:5px!important;
+}
+
+.pmd-v221-toast-payment .pmd-pos-split-tabs button,
+.pmd-v221-toast-payment .pmd-pos-tip-buttons button,
+.pmd-v221-toast-payment .pmd-pos-method{
+  border-radius:3px!important;
+}
+
+.pmd-v221-toast-payment .pmd-pos-split-tabs button.is-active,
+.pmd-v221-toast-payment .pmd-pos-tip-buttons button.is-active,
+.pmd-v221-toast-payment .pmd-pos-method.is-active{
+  background:var(--pmd-v221-top)!important;
+  color:#fff!important;
+  border-color:var(--pmd-v221-top)!important;
+}
+
+.pmd-v221-tender-panel{
+  display:grid;
+  gap:9px;
+  margin:0 0 10px;
+  padding:10px;
+  border:1px solid var(--pmd-v221-line);
+  border-radius:3px;
+  background:var(--pmd-v221-surface-2);
+}
+
+.pmd-v221-tender-title{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:10px;
+  font-size:12px;
+  font-weight:1000;
+  text-transform:uppercase;
+  letter-spacing:.04em;
+}
+
+.pmd-v221-tender-title strong{font-size:22px;color:var(--pmd-v221-danger)}
+
+.pmd-v221-keypad{
+  display:grid;
+  grid-template-columns:repeat(3,minmax(72px,1fr));
+  gap:6px;
+}
+
+.pmd-v221-keypad button{
+  min-height:62px;
+  border:1px solid var(--pmd-v221-line);
+  border-radius:3px;
+  font-size:24px;
+  font-weight:950;
+  cursor:pointer;
+}
+
+.pmd-v221-keypad button[data-v221-key="clear"],
+.pmd-v221-keypad button[data-v221-key="back"]{
+  color:var(--pmd-v221-danger)!important;
+}
+
+.pmd-v221-quick-cash{
+  display:grid;
+  grid-template-columns:repeat(3,1fr);
+  gap:6px;
+}
+
+.pmd-v221-quick-cash button{
+  min-height:48px;
+  border:1px solid var(--pmd-v221-line);
+  border-radius:3px;
+  font-size:14px;
+  font-weight:950;
+  cursor:pointer;
+}
+
+.pmd-v221-toast-payment .pmd-pos-pay-button{
+  min-height:62px!important;
+  border-radius:3px!important;
+  background:var(--pmd-v221-success)!important;
+  color:#fff!important;
+  font-size:16px!important;
+  font-weight:1000!important;
+}
+
+.pmd-v221-toast-payment .pmd-pos-payment-secondary{
+  min-height:48px!important;
+  border-radius:3px!important;
+  background:var(--pmd-v221-key)!important;
+  color:var(--pmd-v221-text)!important;
+  border:1px solid var(--pmd-v221-line)!important;
+}
+
+@media(max-width:1050px){
+  .pmd-v221-toast-payment .pmd-pos-payment-body{
+    grid-template-columns:minmax(270px,.8fr) minmax(360px,1.2fr)!important;
+  }
+  .pmd-v221-toast-payment .pmd-pos-payment-summary{
+    grid-column:1/-1!important;
+    border-top:1px solid var(--pmd-v221-line)!important;
+  }
+}
+
+@media(max-width:760px){
+  .pmd-pos-payment-dialog.pmd-v221-toast-payment{
+    width:100vw!important;
+    height:100dvh!important;
+    max-height:none!important;
+    border:0!important;
+    border-radius:0!important;
+  }
+  .pmd-v221-toast-payment .pmd-pos-payment-body{
+    display:block!important;
+    height:calc(100dvh - 70px)!important;
+    overflow:auto!important;
+  }
+  .pmd-v221-payment-left,
+  .pmd-v221-payment-center,
+  .pmd-v221-toast-payment .pmd-pos-payment-summary{
+    overflow:visible!important;
+    border:0!important;
+    border-bottom:1px solid var(--pmd-v221-line)!important;
+  }
+  .pmd-v221-keypad button{min-height:58px}
+  .pmd-v221-toast-payment .pmd-pos-pay-button{
+    position:sticky!important;
+    bottom:8px!important;
+    z-index:5!important;
+  }
+}

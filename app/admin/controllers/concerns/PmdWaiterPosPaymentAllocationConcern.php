@@ -69,7 +69,10 @@ trait PmdWaiterPosPaymentAllocationConcern
         $remaining = (float)$summary['settlement']['remaining_amount'];
         $grossRatio = max(0.000001, (float)$summary['settlement']['gross_ratio']);
         $mode = strtolower(trim((string)($payload['split_mode'] ?? 'full')));
-        if (!in_array($mode, ['full', 'equal', 'items', 'custom'], true)) {
+
+        // V2.2 mirrors customer checkout: equal, items and shares. "custom" is
+        // retained as a backwards-compatible alias for older waiter clients.
+        if (!in_array($mode, ['full', 'equal', 'items', 'shares', 'custom'], true)) {
             $mode = 'full';
         }
 
@@ -112,6 +115,14 @@ trait PmdWaiterPosPaymentAllocationConcern
         $targetGross = $mode === 'full'
             ? $remaining
             : round((float)($payload['amount'] ?? 0), 4);
+
+        if ($mode === 'shares' && array_key_exists('share_percent', $payload)) {
+            $percent = round((float)$payload['share_percent'], 4);
+            if ($percent <= 0 || $percent > 100) {
+                throw ValidationException::withMessages(['share_percent' => 'Share percentage must be between 0.01 and 100.']);
+            }
+        }
+
         if ($targetGross <= 0 || $targetGross > $remaining + 0.02) {
             throw ValidationException::withMessages(['amount' => 'Enter an amount between 0.01 and the remaining balance.']);
         }
@@ -169,5 +180,4 @@ trait PmdWaiterPosPaymentAllocationConcern
             'rows' => $rows,
         ];
     }
-
 }
