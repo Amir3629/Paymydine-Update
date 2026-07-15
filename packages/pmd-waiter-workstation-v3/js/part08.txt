@@ -1,0 +1,114 @@
+tScreen('tables'); loadLauncher(true); return; }
+      if (target.closest('[data-ws3-refresh]')) { state.screen === 'tables' ? loadLauncher(false) : refreshTable(false); return; }
+      if (target.closest('[data-ws3-order-refresh]')) { refreshTable(false); return; }
+      if (target.closest('[data-ws3-reservations]')) { location.href = urls.reservations; return; }
+      if (target.closest('[data-ws3-alerts]')) { renderAlerts(); showDrawer('alerts'); return; }
+      if (target.closest('[data-ws3-close-drawer]')) { closeDrawer(target.closest('[data-ws3-drawer]')); return; }
+      if (target.closest('[data-ws3-modifier-add]')) { addModifiedItem(); return; }
+      if (target.closest('[data-ws3-guests-minus]')) { state.guestCount = Math.max(1,state.guestCount-1); saveDraft(); renderTicket(); return; }
+      if (target.closest('[data-ws3-guests-plus]')) { state.guestCount = Math.min(99,state.guestCount+1); saveDraft(); renderTicket(); return; }
+      if (target.closest('[data-ws3-hold]')) { saveOrder('hold'); return; }
+      if (target.closest('[data-ws3-send]')) { saveOrder('send'); return; }
+      if (target.closest('[data-ws3-pay]')) { openPayment(); return; }
+      if (target.closest('[data-ws3-receipt]')) { openReceiptLinks(); return; }
+      if (target.closest('[data-ws3-more]')) { loadOperations(); return; }
+      if (target.closest('[data-ws3-mobile-order]')) { openTicket(); return; }
+      if (target.closest('[data-ws3-close-ticket]')) { closeTicket(); return; }
+      if (target.closest('[data-ws3-payment-back]')) { setScreen('order'); renderOrderWorkspace(); return; }
+      if (target.closest('[data-ws3-payment-refresh], [data-ws3-payment-status]')) { loadPaymentSummary(false); return; }
+      if ((button = target.closest('[data-ws3-split]'))) { state.payment.split = button.dataset.ws3Split; state.payment.coupon = null; state.payment.couponCode = ''; state.payment.idempotency = nowId('payment'); renderPayment(); return; }
+      if ((button = target.closest('[data-ws3-method]'))) { state.payment.method = button.dataset.ws3Method; state.payment.provider = button.dataset.provider || null; state.payment.idempotency = nowId('payment'); renderPayment(); return; }
+      if ((button = target.closest('[data-ws3-terminal-provider]'))) { state.payment.provider = button.dataset.ws3TerminalProvider; renderMethods(); renderPaymentTotals(); return; }
+      if ((button = target.closest('[data-ws3-tip]'))) { state.payment.tip = button.dataset.ws3Tip === 'custom' ? 'custom' : Number(button.dataset.ws3Tip); renderAdjustments(); renderPaymentTotals(); return; }
+      if (target.closest('[data-ws3-coupon-apply]')) { applyCoupon(); return; }
+      if (target.closest('[data-ws3-collect]')) { executePayment(); return; }
+      if (target.closest('[data-ws3-copy-link]')) { copyPaymentLink(); return; }
+      if ((button = target.closest('[data-ws3-keypad] button'))) { keypad(button.dataset.key || clean(button.textContent)); return; }
+      if ((button = target.closest('[data-ws3-equal-minus]'))) { state.payment.equalPeople = Math.max(2,state.payment.equalPeople-1); renderPayment(); return; }
+      if ((button = target.closest('[data-ws3-equal-plus]'))) { state.payment.equalPeople = Math.min(99,state.payment.equalPeople+1); renderPayment(); return; }
+      if ((button = target.closest('[data-ws3-operation]'))) { handleOperation(button.dataset.ws3Operation); return; }
+      if ((button = target.closest('[data-ws3-table-state]'))) { updateTableState(button.dataset.ws3TableState); return; }
+      if (target.closest('[data-ws3-confirm-cancel]')) { finishConfirm(false); return; }
+      if (target.closest('[data-ws3-confirm-ok]')) { finishConfirm(true); return; }
+      if (target.closest('[data-ws3-retry-table]')) { openTable(state.currentTable); return; }
+    });
+
+    root.addEventListener('input', function (event) {
+      var target = event.target;
+      if (target.matches('[data-ws3-table-search]')) { state.tableQuery = target.value; renderLauncher(); }
+      else if (target.matches('[data-ws3-menu-search]')) { state.menuQuery = target.value; renderProducts(); }
+      else if (target.matches('[data-ws3-table-note]')) { state.tableNote = target.value; saveDraft(); }
+      else if (target.matches('[data-ws3-line-note]')) { var row = state.cart[num(target.dataset.ws3LineNote,0)]; if (row) row.comment = target.value; saveDraft(); }
+      else if (target.matches('[data-ws3-pay-item]')) { state.payment.itemQuantities[String(target.dataset.ws3PayItem)] = Math.max(0,num(target.value,0)); renderSplit(); renderPaymentTotals(); }
+      else if (target.matches('[data-ws3-total-shares]')) { state.payment.totalShares = Math.max(2,Math.min(99,num(target.value,2))); state.payment.payerShares = Math.min(state.payment.payerShares,state.payment.totalShares); renderPayment(); }
+      else if (target.matches('[data-ws3-payer-shares]')) { state.payment.payerShares = Math.max(1,Math.min(state.payment.totalShares,num(target.value,1))); renderPaymentTotals(); }
+      else if (target.matches('[data-ws3-custom-tip]')) { state.payment.customTip = target.value; renderPaymentTotals(); }
+      else if (target.matches('[data-ws3-coupon]')) { state.payment.couponCode = target.value.toUpperCase(); state.payment.coupon = null; renderPaymentTotals(); }
+      else if (target.matches('[data-ws3-reference]')) { state.payment.reference = target.value; renderPaymentTotals(); }
+      else if (target.matches('[data-ws3-payer]')) { state.payment.payer = target.value; }
+    });
+
+    root.addEventListener('change', function (event) {
+      var target = event.target;
+      if (target.matches('[data-ws3-external-confirm]')) { state.payment.externalConfirmed = target.checked; renderPaymentTotals(); }
+    });
+
+    window.addEventListener('online', setOnline);
+    window.addEventListener('offline', setOnline);
+    document.addEventListener('keydown', function (event) {
+      if (event.key === 'Escape') {
+        var drawer = one('[data-ws3-drawer]:not([hidden])');
+        if (drawer) closeDrawer(drawer);
+        else if (state.screen === 'payment') { setScreen('order'); renderOrderWorkspace(); }
+        else if (state.ticketOpen) closeTicket();
+      }
+      if ((event.ctrlKey || event.metaKey) && event.key === 'Enter' && state.screen === 'order') { event.preventDefault(); saveOrder('send'); }
+    });
+  }
+
+  function init() {
+    loadRecentProducts();
+    setOnline();
+    bind();
+    loadLauncher(true);
+    loadNotifications();
+    setInterval(function () {
+      if (document.hidden) return;
+      if (state.screen === 'tables') loadLauncher(true);
+      loadNotifications();
+    }, 15000);
+  }
+
+  window.PMDWaiterWorkstationV3 = {
+    version: VERSION,
+    active: true,
+    refresh: function () { return state.screen === 'tables' ? loadLauncher(false) : refreshTable(false); },
+    openTable: function (number) {
+      var table = state.tables.find(function (row) { return String(row.number) === String(number) || String(row.id) === String(number); });
+      return table ? openTable(table) : false;
+    },
+    debug: function () {
+      return {
+        version: VERSION,
+        active: true,
+        screen: state.screen,
+        tables: state.tables.length,
+        currentTable: state.currentTable,
+        tableLoaded: !!state.tableData,
+        products: state.tableData ? (state.tableData.menu_items || []).length : 0,
+        cartLines: state.cart.length,
+        activeOrderId: activeOrder() ? activeOrder().order_id : null,
+        paymentLoaded: !!state.payment.summary,
+        paymentSplit: state.payment.split,
+        paymentMethod: state.payment.method,
+        operationsLoaded: !!state.operations,
+        permanentObservers: 0,
+        overlayMounts: 0,
+        metrics: Object.assign({}, state.metrics)
+      };
+    }
+  };
+
+  init();
+  console.info('[PMD] Waiter Workstation V3 direct POS active', window.PMDWaiterWorkstationV3.debug());
+})();
