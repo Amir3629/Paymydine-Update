@@ -1,0 +1,150 @@
+ MENU ITEMS</div>';
+    all('[data-ws3-quick]').forEach(function (button) { button.classList.toggle('is-active', button.dataset.ws3Quick === state.quick); });
+  }
+
+  function signature(item, options) { return String(item.id) + ':' + (options || []).map(function (option) { return option.id; }).sort().join(','); }
+  function rememberProduct(id) {
+    var value = String(id);
+    state.recentProductIds = [value].concat(state.recentProductIds.filter(function (row) { return row !== value; })).slice(0, 20);
+    try { localStorage.setItem('pmd-ws3-recent:' + location.host, JSON.stringify(state.recentProductIds)); } catch (error) {}
+  }
+  function loadRecentProducts() {
+    try { state.recentProductIds = JSON.parse(localStorage.getItem('pmd-ws3-recent:' + location.host) || '[]').map(String); } catch (error) { state.recentProductIds = []; }
+  }
+
+  function addItem(item, options) {
+    var key = signature(item, options);
+    var existing = state.cart.find(function (row) { return row.key === key; });
+    if (existing) existing.quantity += 1;
+    else state.cart.push({key:key, menu_id:Number(item.id), name:item.name, price:num(item.price,0), quantity:Math.max(1,num(item.minimum_qty,1)), options:options || [], comment:''});
+    rememberProduct(item.id);
+    saveDraft();
+    renderTicket();
+    toast(item.name + ' added');
+  }
+
+  function openModifier(item) {
+    state.modifierItem = item;
+    state.selectedOptions = {};
+    var title = one('[data-ws3-modifier-title]');
+    var body = one('[data-ws3-modifier-body]');
+    if (title) title.textContent = item.name;
+    if (body) body.innerHTML = (item.options || []).map(function (group) {
+      var inputType = num(group.max, 1) === 1 ? 'radio' : 'checkbox';
+      return '<section class="pmd-ws3-option-group" data-ws3-option-group="' + esc(group.id) + '" data-required="' + (group.required ? '1' : '0') + '" data-min="' + esc(group.min || 0) + '" data-max="' + esc(group.max || 1) + '"><header><strong>' + esc(group.name) + '</strong><small>' + (group.required ? 'REQUIRED' : 'OPTIONAL') + '</small></header><div class="pmd-ws3-option-list">' +
+        (group.values || []).map(function (value) {
+          return '<label><span><input type="' + inputType + '" name="ws3-option-' + esc(group.id) + '" value="' + esc(value.id) + '" data-name="' + esc(value.name) + '" data-price="' + esc(value.price || 0) + '" ' + (value.default ? 'checked' : '') + '> ' + esc(value.name) + '</span><b>' + (num(value.price,0) ? '+' + money(value.price) : '') + '</b></label>';
+        }).join('') + '</div></section>';
+    }).join('');
+    showDrawer('modifier');
+  }
+
+  function addModifiedItem() {
+    if (!state.modifierItem) return;
+    var selected = [];
+    var valid = true;
+    all('[data-ws3-option-group]', one('[data-ws3-modifier-body]')).forEach(function (group) {
+      var checked = all('input:checked', group);
+      var min = num(group.dataset.min, group.dataset.required === '1' ? 1 : 0);
+      var max = num(group.dataset.max, 999);
+      if (checked.length < min || checked.length > max) {
+        valid = false;
+        group.style.outline = '3px solid #ef3f56';
+        setTimeout(function () { group.style.outline = ''; }, 1700);
+        return;
+      }
+      checked.forEach(function (input) { selected.push({id:Number(input.value), name:input.dataset.name || 'Option', price:num(input.dataset.price,0)}); });
+    });
+    if (!valid) return toast('Complete required modifiers.', true);
+    addItem(state.modifierItem, selected);
+    state.modifierItem = null;
+    closeDrawer(one('[data-ws3-drawer="modifier"]'));
+  }
+
+  function renderSentItems() {
+    var order = activeOrder();
+    var section = one('[data-ws3-sent-section]');
+    var list = one('[data-ws3-sent-items]');
+    var pill = one('[data-ws3-order-pill]');
+    var kitchen = one('[data-ws3-kitchen-status]');
+    if (!order) {
+      if (section) section.hidden = true;
+      if (pill) pill.textContent = 'NEW ORDER';
+      return;
+    }
+    if (pill) pill.textContent = 'ORDER #' + order.order_id + ' · ' + clean(order.settlement_status || 'UNPAID').toUpperCase();
+    if (kitchen) kitchen.textContent = clean(order.status_name || order.status || 'SENT').toUpperCase();
+    var items = Array.isArray(order.items) ? order.items : [];
+    if (section) section.hidden = items.length < 1;
+    if (list) list.innerHTML = items.map(function (item) {
+      return '<div class="pmd-ws3-sent-item"><b>' + esc(item.quantity) + '×</b><span><strong>' + esc(item.name) + '</strong>' + (item.comment ? '<small>' + esc(item.comment) + '</small>' : '') + '</span><b>' + money(item.subtotal) + '</b></div>';
+    }).join('');
+  }
+
+  function renderTicket() {
+    var cart = one('[data-ws3-cart]');
+    if (!cart) return;
+    if (!state.cart.length) cart.innerHTML = '<div class="pmd-ws3-cart-empty"><div><strong>NO NEW ITEMS</strong><br><small>Tap a product to add it.</small></div></div>';
+    else cart.innerHTML = state.cart.map(function (row, index) {
+      var options = (row.options || []).map(function (option) { return option.name + (num(option.price,0) ? ' +' + money(option.price) : ''); }).join(' · ');
+      return '<article class="pmd-ws3-line" data-ws3-line="' + index + '"><div class="pmd-ws3-line-top"><div><div class="pmd-ws3-line-name">' + esc(row.name) + '</div>' + (options ? '<div class="pmd-ws3-line-options">' + esc(options) + '</div>' : '') + '</div><b>' + money(lineTotal(row)) + '</b></div><div class="pmd-ws3-line-controls"><button type="button" data-ws3-dec="' + index + '">−</button><b>' + esc(row.quantity) + '</b><button type="button" data-ws3-inc="' + index + '">+</button><button type="button" class="remove" data-ws3-remove="' + index + '">×</button></div><input data-ws3-line-note="' + index + '" value="' + esc(row.comment || '') + '" placeholder="ITEM NOTE, ALLERGY, DONENESS"></article>';
+    }).join('');
+    var newTotal = cartTotal();
+    var total = newTotal + existingTotal();
+    var count = cartCount();
+    var newTotalEl = one('[data-ws3-new-total]');
+    var totalEl = one('[data-ws3-total]');
+    var mobileCount = one('[data-ws3-mobile-count]');
+    var mobileTotal = one('[data-ws3-mobile-total]');
+    var guests = one('[data-ws3-guests]');
+    var note = one('[data-ws3-table-note]');
+    if (newTotalEl) newTotalEl.textContent = money(newTotal);
+    if (totalEl) totalEl.textContent = money(total);
+    if (mobileCount) mobileCount.textContent = count + (count === 1 ? ' ITEM' : ' ITEMS');
+    if (mobileTotal) mobileTotal.textContent = money(total);
+    if (guests) guests.textContent = state.guestCount;
+    if (note && note.value !== state.tableNote) note.value = state.tableNote;
+    var hold = one('[data-ws3-hold]');
+    var send = one('[data-ws3-send]');
+    var pay = one('[data-ws3-pay]');
+    var receipt = one('[data-ws3-receipt]');
+    if (hold) hold.disabled = !state.cart.length || state.saving;
+    if (send) send.disabled = !state.cart.length || state.saving;
+    if (pay) pay.disabled = !activeOrder() || state.cart.length > 0 || state.saving;
+    if (receipt) receipt.disabled = !activeOrder();
+    renderSentItems();
+  }
+
+  function renderOrderWorkspace() {
+    if (!state.currentTable) return;
+    var title = one('[data-ws3-table-title]');
+    var subtitle = one('[data-ws3-table-subtitle]');
+    if (title) title.textContent = 'TABLE ' + state.currentTable.number;
+    if (subtitle) subtitle.textContent = state.currentTable.area.toUpperCase() + ' · QUICK WAITER ORDERING';
+    renderCategories();
+    renderProducts();
+    renderTicket();
+  }
+
+  async function openTable(table) {
+    if (!table || state.loadingTable) return;
+    state.currentTable = table;
+    state.loadingTable = true;
+    state.tableData = null;
+    state.category = 'all';
+    state.quick = 'all';
+    state.menuQuery = '';
+    state.payment.summary = null;
+    state.operations = null;
+    setScreen('order');
+    renderOrderWorkspace();
+    if (requests.table) requests.table.abort();
+    requests.table = new AbortController();
+    var tableTimer = setTimeout(function () { if (requests.table) requests.table.abort(); }, 15000);
+    try {
+      var response = await fetch(route(urls.tableData, table.number) + '?_=' + Date.now(), {
+        credentials:'same-origin', cache:'no-store', signal:requests.table.signal,
+        headers:{'Accept':'application/json','X-Requested-With':'XMLHttpRequest'}
+      });
+      var data = await response.json().catch(function () { return {}; });
+      if (!response.ok || data.ok === false) throw new
