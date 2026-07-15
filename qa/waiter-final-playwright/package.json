@@ -6,6 +6,7 @@
   "description": "End-to-end, responsive, visual and operational QA for the isolated PayMyDine waiter workstation.",
   "scripts": {
     "install:browser": "playwright install chromium",
+    "validate": "playwright test --list",
     "test": "playwright test --project=desktop",
     "test:smoke": "playwright test --project=desktop --grep @smoke",
     "test:full": "playwright test --grep-invert @mutation",
