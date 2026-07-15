@@ -11,11 +11,12 @@
     <link rel="stylesheet" href="{{ asset('app/admin/assets/css/pmd-waiter-pos-v1.css') }}?v=2">
     <link rel="stylesheet" href="{{ asset('app/admin/assets/css/pmd-waiter-final-v1.css') }}?v=1">
 </head>
-<body class="pmd-waiter-final-page">
+<body class="pmd-waiter-final-page pmd-waiter-standard-v21-page pmd-waiter-standard-v22-page">
 <div
     id="pmd-waiter-final-v1"
     class="pmd-final"
     data-pmd-waiter-final-root
+    data-pmd-waiter-v2-root
     data-data-url="{{ $dataUrl }}"
     data-overlay-url="{{ $overlayUrl }}"
     data-standalone-url="{{ $standaloneUrl }}"
@@ -112,19 +113,19 @@
         </section>
     </aside>
 
-    <section class="pmd-final-pos-layer" data-final-pos-layer hidden aria-hidden="true">
+    <section class="pmd-final-pos-layer" data-final-pos-layer data-v2-pos-layer hidden aria-hidden="true">
         <div class="pmd-final-pos-loading" data-final-pos-loading>
             <span></span>
             <strong>OPENING TABLE</strong>
             <button type="button" data-final-cancel-pos>CANCEL</button>
         </div>
-        <div class="pmd-final-pos-host" data-final-pos-host></div>
+        <div class="pmd-final-pos-host" data-final-pos-host data-v2-pos-host></div>
     </section>
 
     <div class="pmd-final-toast" data-final-toast role="status" aria-live="polite"></div>
 </div>
 
-{{-- Proven application engines. No V2.2.1 visual/theme decorator is loaded. --}}
+{{-- Stable functional enhancements are bridged only for the mounted POS. V2.2.1 visual/theme decorator is excluded. --}}
 <script src="{{ asset('app/admin/assets/js/pmd-waiter-pos-payment-v2.js') }}?v=2"></script>
 <script src="{{ asset('app/admin/assets/js/pmd-waiter-pos-v1.js') }}?v=2"></script>
 <script src="{{ asset('app/admin/assets/js/pmd-waiter-standard-v211-payment-guard.js') }}?v=211"></script>
