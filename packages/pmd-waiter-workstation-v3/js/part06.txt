@@ -1,0 +1,149 @@
+ngify({code:code, amount:paymentBase()})});
+      state.payment.coupon = payload;
+      renderAdjustments();
+      renderPaymentTotals();
+      toast('Coupon applied');
+    } catch (error) {
+      if (result) { result.textContent = error.message || 'Coupon invalid'; result.style.color = '#ff6578'; }
+      toast(error.message || 'Coupon invalid.', true);
+    }
+  }
+
+  function guestCheckoutUrl() {
+    var summary = state.payment.summary;
+    if (!summary || !summary.guest_checkout_url) return null;
+    var url = new URL(summary.guest_checkout_url, location.origin);
+    if (state.payment.method.indexOf('online:') === 0) url.searchParams.set('payment_method', state.payment.method.split(':').slice(1).join(':'));
+    url.searchParams.set('source', 'waiter_workstation_v3');
+    return url.toString();
+  }
+
+  async function copyPaymentLink() {
+    var url = guestCheckoutUrl();
+    if (!url) return toast('Customer payment link unavailable.', true);
+    try { await navigator.clipboard.writeText(url); toast('Customer payment link copied'); }
+    catch (error) { window.prompt('Copy customer payment link:', url); }
+  }
+
+  async function executePayment() {
+    if (!state.payment.summary || state.payment.submitting) return;
+    var order = activeOrder();
+    var online = state.payment.method.indexOf('online:') === 0;
+    if (online) {
+      var checkout = guestCheckoutUrl();
+      if (!checkout) return toast('Customer checkout unavailable.', true);
+      window.open(checkout, '_blank', 'noopener');
+      return toast('Secure checkout opened. Refresh status after payment.');
+    }
+    state.payment.submitting = true;
+    renderPaymentTotals();
+    try {
+      if (state.payment.method === 'direct_terminal') {
+        var terminalResult = await fetchJson(route(urls.terminalPayment, order.order_id), {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({provider_code:state.payment.provider})}, 30000);
+        toast(terminalResult.message || 'Terminal request sent');
+        await loadPaymentSummary(true);
+        return;
+      }
+      var splitMode = state.payment.split === 'shares' ? 'custom' : state.payment.split;
+      var result = await fetchJson(route(urls.paymentSettle, order.order_id), {
+        method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({
+          idempotency_key:state.payment.idempotency,
+          payment_method:state.payment.method,
+          provider_code:state.payment.method === 'external_terminal' ? 'external_terminal' : null,
+          split_mode:splitMode,
+          amount:paymentBase(),
+          selected_items:state.payment.split === 'items' ? paymentSelectedItems() : null,
+          tip_amount:paymentTip(),
+          coupon_code:state.payment.coupon ? state.payment.coupon.code : null,
+          payer_label:state.payment.payer,
+          payment_reference:state.payment.reference,
+          cash_received:state.payment.method === 'cash' ? num(state.payment.tender,paymentPayable()) : null,
+          external_confirmed:state.payment.method === 'external_terminal' ? state.payment.externalConfirmed : false,
+          expected_remaining:state.payment.summary.settlement.remaining_amount,
+          expected_updated_at:state.payment.summary.order.updated_at
+        })
+      }, 30000);
+      state.payment.summary = result.summary || state.payment.summary;
+      state.payment.idempotency = nowId('payment');
+      state.payment.coupon = null;
+      state.payment.couponCode = '';
+      state.payment.tip = 0;
+      state.payment.customTip = '';
+      state.payment.reference = '';
+      state.payment.externalConfirmed = false;
+      state.payment.tender = roundMoney(paymentRemaining()).toFixed(2);
+      state.metrics.payments += 1;
+      renderPayment();
+      await refreshTable(true);
+      await loadLauncher(true);
+      toast(result.message || 'Payment recorded');
+    } catch (error) {
+      toast(error.message || 'Payment failed.', true);
+      if (error.status === 409 || error.status === 422) await loadPaymentSummary(true);
+    } finally {
+      state.payment.submitting = false;
+      renderPaymentTotals();
+    }
+  }
+
+  function keypad(key) {
+    var value = String(state.payment.tender || '');
+    var payable = paymentPayable();
+    if (/^\d$/.test(key) && value === payable.toFixed(2)) value = '';
+    if (key === 'clear') value = '';
+    else if (key === 'back') value = value.slice(0, -1);
+    else if (key === 'exact') value = payable.toFixed(2);
+    else if (key === 'plus5') value = (Math.ceil(payable / 5) * 5).toFixed(2);
+    else if (key === 'plus10') value = (Math.ceil(payable / 10) * 10).toFixed(2);
+    else if (key === '00') value += '00';
+    else if (/^\d$/.test(key)) value += key;
+    if (value.length > 8) value = value.slice(0, 8);
+    state.payment.tender = value;
+    renderPaymentTotals();
+  }
+
+  /* Operations */
+  async function loadOperations() {
+    var order = activeOrder();
+    if (!order) return toast('No active order yet.', true);
+    showDrawer('operations');
+    var body = one('[data-ws3-operations-body]');
+    if (body) body.innerHTML = '<div class="pmd-ws3-empty">LOADING OPERATIONS…</div>';
+    try {
+      state.operations = await fetchJson(route(urls.operations, order.order_id) + '?_=' + Date.now(), {}, 18000);
+      state.metrics.operationLoads += 1;
+      renderOperations();
+    } catch (error) {
+      if (body) body.innerHTML = '<div class="pmd-ws3-empty">' + esc(error.message || 'Operations unavailable') + '</div>';
+      toast(error.message || 'Operations unavailable.', true);
+    }
+  }
+
+  function optionsForTables(rows, currentId) {
+    return (rows || []).filter(function (row) { return String(row.id) !== String(currentId); }).map(function (row) {
+      return '<option value="' + esc(row.id) + '">' + esc(clean(row.name || ('Table ' + row.number))) + '</option>';
+    }).join('');
+  }
+  function optionsForChecks(rows) {
+    return (rows || []).map(function (row) {
+      return '<option value="' + esc(row.order_id) + '">Order #' + esc(row.order_id) + ' · ' + esc(clean((row.table || {}).name || 'Table')) + ' · ' + money(row.total) + '</option>';
+    }).join('');
+  }
+
+  function renderOperations() {
+    var body = one('[data-ws3-operations-body]');
+    var summary = state.operations;
+    if (!body || !summary) return;
+    var permission = summary.permissions || {};
+    var order = summary.order || {};
+    var items = summary.items || [];
+    var itemOptions = items.map(function (item) { return '<option value="' + esc(item.order_menu_id) + '">' + esc(item.name) + ' · ' + esc(item.quantity) + '</option>'; }).join('');
+    var itemChecks = items.map(function (item) {
+      return '<label class="pmd-ws3-op-item"><input type="checkbox" data-ws3-move-item="' + esc(item.order_menu_id) + '"><span>' + esc(item.name) + '</span><input type="number" min="0.001" max="' + esc(item.quantity) + '" step="1" value="' + esc(item.quantity) + '" data-ws3-move-qty="' + esc(item.order_menu_id) + '"></label>';
+    }).join('');
+    body.innerHTML = '<div class="pmd-ws3-op-grid">' +
+      '<section class="pmd-ws3-op-card"><h3>TRANSFER TABLE</h3><select data-ws3-transfer-table><option value="">Choose table</option>' + optionsForTables(summary.tables, (summary.table || {}).id) + '</select><button data-ws3-operation="transfer">TRANSFER CHECK</button></section>' +
+      '<section class="pmd-ws3-op-card"><h3>MERGE CHECKS</h3><select data-ws3-merge-order><option value="">Choose open check</option>' + optionsForChecks(summary.open_checks) + '</select><button data-ws3-operation="merge">MERGE INTO THIS CHECK</button></section>' +
+      '<section class="pmd-ws3-op-card"><h3>MOVE ITEMS</h3><select data-ws3-move-target><option value="">Destination check</option>' + optionsForChecks(summary.open_checks) + '</select><div>' + itemChecks + '</div><button data-ws3-operation="move-items">MOVE SELECTED ITEMS</button></section>' +
+      '<section class="pmd-ws3-op-card"><h3>SEAT / COURSE</h3><select data-ws3-service-item><option value="">Choose item</option>' + itemOptions + '</select><input type="number" min="0" max="99" data-ws3-seat placeholder="SEAT NUMBER"><input type="number" min="0" max="20" data-ws3-course placeholder="COURSE NUMBER"><select data-ws3-course-status><option value="held">Held</option><option value="fired">Fire now</option><option value="served">Served</option></select><button data-ws3-operation="item-service">SAVE SERVICE DETAILS</button></section>' +
+      '<section class="pmd-ws3-op-c
