@@ -12,6 +12,8 @@
     <link rel="stylesheet" href="{{ asset('app/admin/assets/css/pmd-waiter-standard-v211-payment-guard.css') }}?v=211">
     <link rel="stylesheet" href="{{ asset('app/admin/assets/css/pmd-waiter-standard-v22.css') }}?v=22">
     <link rel="stylesheet" href="{{ asset('app/admin/assets/css/pmd-waiter-final-v2.css') }}?v=2">
+    <link rel="stylesheet" href="{{ asset('app/admin/assets/css/pmd-waiter-final-v2-pos.css') }}?v=2">
+    <link rel="stylesheet" href="{{ asset('app/admin/assets/css/pmd-waiter-final-v2-responsive.css') }}?v=2">
 </head>
 <body class="pmd-waiter-final2-page">
 <div
