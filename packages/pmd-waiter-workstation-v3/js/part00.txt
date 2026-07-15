@@ -1,0 +1,219 @@
+(function () {
+  'use strict';
+
+  if (window.PMDWaiterWorkstationV3) return;
+
+  var root = document.querySelector('[data-pmd-ws3]');
+  if (!root) return;
+
+  var VERSION = 'pmd-waiter-workstation-v3.0.0';
+  var COLORS = 8;
+  var requests = { launcher: null, table: null, notifications: null };
+  var toastTimer = null;
+  var confirmResolver = null;
+
+  function one(selector, parent) { return (parent || root).querySelector(selector); }
+  function all(selector, parent) { return Array.prototype.slice.call((parent || root).querySelectorAll(selector)); }
+  function clean(value) { return String(value == null ? '' : value).replace(/\s+/g, ' ').trim(); }
+  function esc(value) {
+    return String(value == null ? '' : value).replace(/[&<>"']/g, function (character) {
+      return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[character];
+    });
+  }
+  function num(value, fallback) {
+    var parsed = Number(value);
+    return Number.isFinite(parsed) ? parsed : (fallback || 0);
+  }
+  function yes(value) { return value === true || value === 1 || value === '1' || value === 'true'; }
+  function roundMoney(value) { return Math.round((num(value, 0) + Number.EPSILON) * 100) / 100; }
+  function nowId(prefix) {
+    if (window.crypto && typeof window.crypto.randomUUID === 'function') return String(prefix || 'pmd') + ':' + window.crypto.randomUUID();
+    return String(prefix || 'pmd') + ':' + Date.now() + ':' + Math.random().toString(36).slice(2);
+  }
+  function route(template, value) { return String(template || '').replace(/\{(?:table|order)\}/g, encodeURIComponent(String(value || ''))); }
+  function csrf() { return (document.querySelector('meta[name="csrf-token"]') || {}).content || ''; }
+  function money(value) { return (state.currency || '€') + roundMoney(value).toFixed(2); }
+  function dateValue(value) { var parsed = Date.parse(value || ''); return Number.isFinite(parsed) ? parsed : 0; }
+  function durationLabel(timestamp) {
+    if (!timestamp) return '';
+    var minutes = Math.max(0, Math.floor((Date.now() - timestamp) / 60000));
+    if (minutes < 1) return 'JUST OPENED';
+    if (minutes < 60) return minutes + ' MIN';
+    var hours = Math.floor(minutes / 60);
+    var remain = minutes % 60;
+    return hours + 'H' + (remain ? ' ' + remain + 'M' : '');
+  }
+  function hashColor(value) {
+    var text = String(value || 'menu');
+    var hash = 0;
+    for (var index = 0; index < text.length; index += 1) hash = ((hash << 5) - hash) + text.charCodeAt(index);
+    return Math.abs(hash) % COLORS;
+  }
+  function tableNumber(table) { return clean(table.number || table.table_number || table.table_no || table.id || table.table_id); }
+  function tableId(table) { return clean(table.id || table.table_id || table.location_table_id || tableNumber(table)); }
+  function tableArea(table) { return clean(table.section || table.table_section || table.table_zone || table.zone || table.floor_name || 'Main') || 'Main'; }
+  function orderTimestamp(order) { return dateValue(order.opened_at || order.created_at || order.order_date || order.updated_at); }
+  function orderRemaining(order) {
+    var settlement = clean(order.settlement_status || '').toLowerCase();
+    if (['paid', 'settled', 'closed'].indexOf(settlement) !== -1) return 0;
+    return Math.max(0, num(order.total || order.order_total, 0) - num(order.settled_amount, 0));
+  }
+  function orderKeys(order) {
+    return [order.table_id, order.location_table_id, order.table_number, order.table_no, order.table_ref, order.table]
+      .map(clean).filter(Boolean);
+  }
+  function activeOrder() {
+    if (!state.tableData) return null;
+    var orders = Array.isArray(state.tableData.open_orders) ? state.tableData.open_orders : [];
+    var activeId = state.tableData.active_order_id;
+    return orders.find(function (order) { return String(order.order_id) === String(activeId); }) || orders[0] || null;
+  }
+  function existingTotal() { var order = activeOrder(); return order ? num(order.total || order.order_total, 0) : 0; }
+  function lineUnit(row) {
+    return num(row.price, 0) + (row.options || []).reduce(function (sum, option) { return sum + num(option.price, 0); }, 0);
+  }
+  function lineTotal(row) { return lineUnit(row) * num(row.quantity, 1); }
+  function cartTotal() { return state.cart.reduce(function (sum, row) { return sum + lineTotal(row); }, 0); }
+  function cartCount() { return state.cart.reduce(function (sum, row) { return sum + num(row.quantity, 0); }, 0); }
+
+  var state = {
+    screen: 'tables',
+    launcher: null,
+    tables: [],
+    orders: [],
+    notifications: [],
+    filter: 'open',
+    area: 'all',
+    tableQuery: '',
+    currency: '€',
+    currentTable: null,
+    tableData: null,
+    category: 'all',
+    quick: 'all',
+    menuQuery: '',
+    recentProductIds: [],
+    cart: [],
+    guestCount: 1,
+    tableNote: '',
+    modifierItem: null,
+    selectedOptions: {},
+    saving: false,
+    loadingTable: false,
+    ticketOpen: false,
+    payment: {
+      summary: null,
+      loading: false,
+      submitting: false,
+      split: 'full',
+      equalPeople: 2,
+      totalShares: 2,
+      payerShares: 1,
+      itemQuantities: {},
+      method: 'cash',
+      provider: null,
+      tip: 0,
+      customTip: '',
+      couponCode: '',
+      coupon: null,
+      tender: '',
+      reference: '',
+      externalConfirmed: false,
+      payer: '',
+      idempotency: nowId('payment')
+    },
+    operations: null,
+    metrics: {
+      launcherLoads: 0,
+      tableLoads: 0,
+      orderSaves: 0,
+      paymentLoads: 0,
+      payments: 0,
+      operationLoads: 0
+    }
+  };
+
+  var urls = {
+    launcher: root.dataset.launcherUrl,
+    notifications: root.dataset.notificationsUrl,
+    reservations: root.dataset.reservationsUrl,
+    tableData: root.dataset.tableDataUrl,
+    save: root.dataset.saveUrl,
+    paymentSummary: root.dataset.paymentSummaryUrl,
+    paymentCoupon: root.dataset.paymentCouponUrl,
+    paymentSettle: root.dataset.paymentSettleUrl,
+    terminalPayment: root.dataset.terminalPaymentUrl,
+    operations: root.dataset.operationsUrl,
+    tableState: root.dataset.tableStateUrl
+  };
+
+  function toast(message, error) {
+    var box = one('[data-ws3-toast]');
+    if (!box) return;
+    box.textContent = clean(message);
+    box.classList.toggle('is-error', !!error);
+    box.classList.add('is-show');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(function () { box.classList.remove('is-show'); }, 3400);
+  }
+
+  function setOnline() {
+    var online = one('[data-ws3-online]');
+    if (!online) return;
+    online.classList.toggle('is-offline', !navigator.onLine);
+    var label = online.querySelector('b');
+    if (label) label.textContent = navigator.onLine ? 'LIVE' : 'OFFLINE';
+  }
+
+  async function fetchJson(url, options, timeoutMs) {
+    var controller = new AbortController();
+    var timer = setTimeout(function () { controller.abort(); }, timeoutMs || 15000);
+    var config = Object.assign({
+      credentials: 'same-origin',
+      cache: 'no-store',
+      signal: controller.signal,
+      headers: {
+        'Accept': 'application/json',
+        'X-Requested-With': 'XMLHttpRequest',
+        'X-CSRF-TOKEN': csrf()
+      }
+    }, options || {});
+    if (options && options.headers) config.headers = Object.assign({}, config.headers, options.headers);
+    try {
+      var response = await fetch(url, config);
+      var payload = await response.json().catch(function () { return {}; });
+      if (!response.ok || payload.ok === false) {
+        var error = new Error(payload.message || payload.error || ('HTTP ' + response.status));
+        error.status = response.status;
+        error.payload = payload;
+        throw error;
+      }
+      return payload;
+    } catch (error) {
+      if (error && error.name === 'AbortError') throw new Error('The request took too long. Please retry.');
+      throw error;
+    } finally {
+      clearTimeout(timer);
+    }
+  }
+
+  function setScreen(name) {
+    state.screen = name;
+    all('[data-ws3-screen]').forEach(function (screen) {
+      var active = screen.dataset.ws3Screen === name;
+      screen.hidden = !active;
+      screen.classList.toggle('is-active', active);
+    });
+    if (name !== 'order') closeTicket();
+    window.scrollTo(0, 0);
+  }
+
+  function showDrawer(name) {
+    var drawer = one('[data-ws3-drawer="' + name + '"]');
+    if (!drawer) return;
+    drawer.hidden = false;
+    drawer.setAttribute('aria-hidden', 'false');
+    document.body.style.overflow = 'hidden';
+  }
+
+  function closeDrawer(drawer) {
+    
