@@ -102,7 +102,7 @@ grep -Fq \
   "$TMP_FILE"
 
 grep -Fq \
-  "order_payment_transaction_items.\$allocationColumn.' as alloc_key'" \
+  "order_payment_transaction_items.'.\$allocationColumn.' as alloc_key'" \
   "$TMP_FILE"
 
 if grep -Fq \
