@@ -59,11 +59,12 @@ test('V2.2 table-operations backend returns JSON for a real active order', async
     headers: { Accept: 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
   });
 
-  expect(response.status(), url).toBeLessThan(500);
-  expect(response.ok(), await response.text()).toBeTruthy();
+  const body = await response.text();
+  expect(response.status(), `${url}\n${body}`).toBeLessThan(500);
+  expect(response.ok(), `${url}\n${body}`).toBeTruthy();
   expect(response.headers()['content-type'] || '').toContain('json');
 
-  const payload = await response.json();
+  const payload = JSON.parse(body);
   expect(payload).toBeTruthy();
   await closeTable(page);
   await telemetry.assertHealthy({ maxLongTasks: 24 });
