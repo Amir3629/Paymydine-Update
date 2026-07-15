@@ -13,6 +13,7 @@
     <link rel="stylesheet" href="{{ asset('app/admin/assets/css/pmd-waiter-standard-v211-payment-guard.css') }}?v=211">
     <link rel="stylesheet" href="{{ asset('app/admin/assets/css/pmd-waiter-standard-v22.css') }}?v=22">
     <link rel="stylesheet" href="{{ asset('app/admin/assets/css/pmd-waiter-final-v1.css') }}?v=1">
+    <link rel="stylesheet" href="{{ asset('app/admin/assets/css/pmd-waiter-final-v11-fixes.css') }}?v=11">
 </head>
 <body class="pmd-waiter-final-page pmd-waiter-standard-v21-page pmd-waiter-standard-v22-page">
 <div
@@ -98,7 +99,7 @@
         </footer>
     </main>
 
-    <aside class="pmd-final-drawer" data-final-drawer aria-hidden="true">
+    <aside class="pmd-final-drawer" data-final-drawer aria-hidden="true" inert>
         <button type="button" class="pmd-final-drawer-backdrop" data-final-close-drawer aria-label="Close notification drawer"></button>
         <section role="dialog" aria-modal="true" aria-labelledby="pmd-final-drawer-title">
             <header>
@@ -134,6 +135,7 @@
 <script src="{{ asset('app/admin/assets/js/pmd-waiter-standard-v211-payment-guard.js') }}?v=211"></script>
 <script src="{{ asset('app/admin/assets/js/pmd-waiter-standard-v21.js') }}?v=21"></script>
 <script src="{{ asset('app/admin/assets/js/pmd-waiter-standard-v22.js') }}?v=22"></script>
+<script src="{{ asset('app/admin/assets/js/pmd-waiter-final-v11-fixes.js') }}?v=11"></script>
 <script src="{{ asset('app/admin/assets/js/pmd-waiter-final-v1.js') }}?v=1"></script>
 </body>
 </html>
