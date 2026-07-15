@@ -41,6 +41,7 @@ export default defineConfig({
       name: 'desktop',
       use: {
         ...devices['Desktop Chrome'],
+        browserName: 'chromium',
         viewport: { width: 1536, height: 960 },
         storageState: authFile,
       },
@@ -51,6 +52,7 @@ export default defineConfig({
       name: 'tablet',
       use: {
         ...devices['iPad Pro 11'],
+        browserName: 'chromium',
         storageState: authFile,
       },
       dependencies: ['setup'],
@@ -60,6 +62,7 @@ export default defineConfig({
       name: 'phone',
       use: {
         ...devices['iPhone 14'],
+        browserName: 'chromium',
         storageState: authFile,
       },
       dependencies: ['setup'],
