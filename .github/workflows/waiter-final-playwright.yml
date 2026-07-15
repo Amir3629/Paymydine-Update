@@ -1,0 +1,67 @@
+name: Waiter Final Playwright QA
+
+on:
+  workflow_dispatch:
+    inputs:
+      suite:
+        description: Test suite
+        required: true
+        default: smoke
+        type: choice
+        options:
+          - smoke
+          - full
+          - responsive
+          - stability
+
+permissions:
+  contents: read
+
+jobs:
+  waiter-final-qa:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    defaults:
+      run:
+        working-directory: qa/waiter-final-playwright
+    env:
+      PMD_BASE_URL: ${{ secrets.PMD_QA_BASE_URL }}
+      PMD_USERNAME: ${{ secrets.PMD_QA_USERNAME }}
+      PMD_PASSWORD: ${{ secrets.PMD_QA_PASSWORD }}
+      PMD_FINAL_PATH: /admin/dashboardwaiternewfinal
+      PMD_WORKERS: 1
+      PMD_HEADLESS: 1
+      CI: 1
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: qa/waiter-final-playwright/package.json
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Install Chromium
+        run: npx playwright install --with-deps chromium
+
+      - name: Run selected suite
+        run: ./scripts/run-waiter-final-qa.sh "${{ inputs.suite }}"
+        env:
+          PMD_SKIP_BROWSER_INSTALL: 1
+
+      - name: Upload Playwright report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: waiter-final-playwright-${{ inputs.suite }}
+          path: |
+            qa/waiter-final-playwright/playwright-report
+            qa/waiter-final-playwright/test-results
+          if-no-files-found: warn
+          retention-days: 14
