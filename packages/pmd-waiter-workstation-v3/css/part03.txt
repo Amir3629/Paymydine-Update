@@ -1,0 +1,102 @@
+lor: #fff; font-weight: 900; }
+.pmd-ws3-op-card button.danger { background: var(--pmd-red); }
+.pmd-ws3-op-item { display: grid; grid-template-columns: auto minmax(0, 1fr) 72px; align-items: center; gap: 6px; margin-bottom: 5px; }
+
+.pmd-ws3-confirm { position: fixed; inset: 0; z-index: 700; display: grid; place-items: center; padding: 15px; background: rgba(0,0,0,.74); }
+.pmd-ws3-confirm section { width: min(420px, 100%); padding: 16px; background: var(--pmd-panel); border: 1px solid var(--pmd-line); }
+.pmd-ws3-confirm strong { font-size: 20px; }
+.pmd-ws3-confirm p { color: var(--pmd-muted); }
+.pmd-ws3-confirm input { width: 100%; height: 44px; margin-bottom: 10px; padding: 0 10px; background: #fff; color: #111; border: 0; }
+.pmd-ws3-confirm section > div { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+.pmd-ws3-confirm button { min-height: 46px; border: 1px solid var(--pmd-line); background: var(--pmd-panel-3); color: #fff; font-weight: 900; }
+.pmd-ws3-confirm button.danger { background: var(--pmd-red); border-color: var(--pmd-red); }
+.pmd-ws3-toast { position: fixed; left: 50%; bottom: calc(18px + var(--pmd-safe-bottom)); z-index: 900; min-width: 260px; max-width: min(540px, calc(100vw - 28px)); padding: 12px 18px; transform: translate(-50%, 30px); opacity: 0; pointer-events: none; text-align: center; background: #07162a; color: #fff; border: 1px solid #1d4f8e; border-radius: var(--pmd-radius); font-weight: 900; transition: .18s ease; }
+.pmd-ws3-toast.is-show { transform: translate(-50%, 0); opacity: 1; }
+.pmd-ws3-toast.is-error { background: #3a0d15; border-color: var(--pmd-red); }
+
+@media (max-width: 1280px) {
+  .pmd-ws3-table-grid { grid-template-columns: repeat(6, minmax(125px, 1fr)); }
+  .pmd-ws3-products { grid-template-columns: repeat(4, minmax(115px, 1fr)); }
+  .pmd-ws3-order-layout { grid-template-columns: 126px minmax(0, 1fr) 350px; }
+  .pmd-ws3-payment-layout { grid-template-columns: .9fr 1.2fr .8fr; }
+}
+
+@media (max-width: 980px) {
+  body { overflow: hidden; }
+  .pmd-ws3-topbar { height: 58px; padding: 7px 9px; }
+  .pmd-ws3-brand strong { font-size: 15px; }
+  .pmd-ws3-brand small { font-size: 9px; }
+  .pmd-ws3-logo { width: 38px; height: 38px; }
+  .pmd-ws3-top-actions button, .pmd-ws3-online { min-height: 38px; padding: 0 10px; font-size: 10px; }
+  .pmd-ws3-top-actions [data-ws3-reservations] { display: none; }
+  .pmd-ws3-screen { height: calc(100dvh - 58px); }
+  .pmd-ws3-table-command { grid-template-columns: 1fr; padding: 8px; }
+  .pmd-ws3-filter-tabs { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; }
+  .pmd-ws3-filter-tabs button { flex: 0 0 auto; min-height: 42px; }
+  .pmd-ws3-search { height: 42px; }
+  .pmd-ws3-area-tabs { padding: 7px 8px; }
+  .pmd-ws3-stats { grid-template-columns: repeat(2, 1fr); }
+  .pmd-ws3-stats article { min-height: 48px; border-bottom: 1px solid var(--pmd-line); }
+  .pmd-ws3-table-stage { height: calc(100dvh - 58px - 102px - 52px - 96px); padding: 8px 8px 22px; }
+  .pmd-ws3-table-grid { grid-template-columns: repeat(4, minmax(105px, 1fr)); gap: 6px; }
+  .pmd-ws3-table-card { min-height: 146px; padding: 9px; }
+  .pmd-ws3-table-card .number { font-size: 42px; }
+
+  .pmd-ws3-order-head, .pmd-ws3-payment-head { min-height: 56px; grid-template-columns: 110px minmax(0, 1fr) 110px; padding: 6px; }
+  .pmd-ws3-order-head strong { font-size: 19px; }
+  .pmd-ws3-order-head button, .pmd-ws3-payment-head button { min-height: 40px; padding: 0 9px; font-size: 11px; }
+  .pmd-ws3-order-layout { height: calc(100dvh - 58px - 56px); grid-template-columns: 112px minmax(0, 1fr) 320px; }
+  .pmd-ws3-products { grid-template-columns: repeat(3, minmax(110px, 1fr)); }
+  .pmd-ws3-payment-layout { height: calc(100dvh - 58px - 56px); grid-template-columns: 1fr 1fr; overflow-y: auto; }
+  .pmd-ws3-payment-summary { grid-column: 1 / -1; }
+}
+
+@media (max-width: 720px) {
+  .pmd-ws3-brand span:last-child { display: none; }
+  .pmd-ws3-top-actions [data-ws3-alerts] { font-size: 0; width: 40px; padding: 0; }
+  .pmd-ws3-top-actions [data-ws3-alerts]::before { content: '!'; font-size: 18px; }
+  .pmd-ws3-top-actions [data-ws3-refresh] { width: 40px; padding: 0; }
+  .pmd-ws3-online { padding: 0 8px; }
+  .pmd-ws3-table-grid { grid-template-columns: repeat(3, minmax(90px, 1fr)); }
+  .pmd-ws3-table-card { min-height: 130px; padding: 8px; }
+  .pmd-ws3-table-card .number { font-size: 35px; }
+  .pmd-ws3-table-card .primary { font-size: 11px; }
+  .pmd-ws3-table-card .secondary { font-size: 8px; }
+
+  .pmd-ws3-order-head { grid-template-columns: 82px minmax(0, 1fr) 82px; }
+  .pmd-ws3-order-head > div:last-child [data-ws3-order-refresh] { display: none; }
+  .pmd-ws3-order-head strong { font-size: 18px; }
+  .pmd-ws3-order-head small { font-size: 8px; }
+  .pmd-ws3-order-layout { display: block; height: calc(100dvh - 58px - 56px); padding-bottom: 68px; overflow: hidden; }
+  .pmd-ws3-category-rail { height: 60px; display: flex; gap: 5px; overflow-x: auto; overflow-y: hidden; padding: 6px; border-right: 0; border-bottom: 1px solid var(--pmd-line); scrollbar-width: none; }
+  .pmd-ws3-category-rail button { flex: 0 0 auto; width: auto; min-width: 84px; min-height: 47px; margin: 0; padding: 0 11px; }
+  .pmd-ws3-catalog { height: calc(100% - 60px); grid-template-rows: 50px 44px minmax(0, 1fr); }
+  .pmd-ws3-menu-search { margin: 5px 6px 0; }
+  .pmd-ws3-quick-row { overflow-x: auto; scrollbar-width: none; }
+  .pmd-ws3-quick-row button { flex: 0 0 auto; }
+  .pmd-ws3-products { grid-template-columns: repeat(2, minmax(0, 1fr)); grid-auto-rows: 108px; gap: 5px; padding: 6px; }
+  .pmd-ws3-product { padding: 9px; }
+  .pmd-ws3-product .product-name { font-size: 14px; }
+  .pmd-ws3-ticket { position: fixed; inset: 58px 0 0; z-index: 300; transform: translateY(102%); transition: transform .18s ease; }
+  .pmd-ws3-ticket.is-mobile-open { transform: translateY(0); }
+  .pmd-ws3-ticket > header button { display: block; width: 40px; height: 40px; border: 1px solid var(--pmd-line); background: var(--pmd-panel-3); color: #fff; font-size: 22px; }
+  .pmd-ws3-mobile-order { position: fixed; left: 0; right: 0; bottom: 0; z-index: 250; min-height: 62px; display: flex; align-items: center; justify-content: space-between; padding: 8px 13px calc(8px + var(--pmd-safe-bottom)); border: 0; border-top: 1px solid #3974ba; background: var(--pmd-blue); color: #fff; }
+  .pmd-ws3-mobile-order span { display: grid; text-align: left; }
+  .pmd-ws3-mobile-order small { color: #d7e9ff; }
+  .pmd-ws3-mobile-order strong { font-size: 17px; }
+
+  .pmd-ws3-payment-head { grid-template-columns: 86px minmax(0, 1fr) 86px; }
+  .pmd-ws3-payment-head strong { font-size: 17px; }
+  .pmd-ws3-payment-layout { height: calc(100dvh - 58px - 56px); display: block; overflow-y: auto; padding: 6px 6px calc(18px + var(--pmd-safe-bottom)); }
+  .pmd-ws3-payment-column, .pmd-ws3-payment-summary { overflow: visible; }
+  .pmd-ws3-balance-cards { grid-template-columns: 1fr; }
+  .pmd-ws3-balance-card { min-height: 62px; grid-template-columns: 1fr auto; align-items: center; }
+  .pmd-ws3-split-tabs { grid-template-columns: repeat(2, 1fr); }
+  .pmd-ws3-methods { grid-template-columns: repeat(2, 1fr); }
+  .pmd-ws3-adjustments { grid-template-columns: 1fr; }
+  .pmd-ws3-tip-tabs { grid-template-columns: repeat(2, 1fr); }
+  .pmd-ws3-payment-summary { margin-bottom: 10px; }
+  .pmd-ws3-drawer, .pmd-ws3-drawer.wide { grid-template-columns: 1fr; }
+  .pmd-ws3-drawer .backdrop { display: none; }
+  .pmd-ws3-op-grid { grid-template-columns: 1fr; }
+}
