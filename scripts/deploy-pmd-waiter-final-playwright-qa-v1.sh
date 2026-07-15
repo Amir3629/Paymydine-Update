@@ -155,13 +155,18 @@ npm install
 
 echo
 echo "== Installing Playwright Chromium =="
-npx playwright install chromium
+if [[ "${PMD_SKIP_SYSTEM_DEPS:-0}" == "1" ]]; then
+  npx playwright install chromium
+else
+  npx playwright install --with-deps chromium
+fi
 
 echo
-echo "== Final validation =="
+echo "== Final validation and test discovery =="
 node --check playwright.config.js
 bash -n scripts/run-waiter-final-qa.sh
 npx playwright --version
+npm run validate
 
 INSTALLED=0
 trap cleanup EXIT
@@ -176,6 +181,7 @@ printf '%s\n' \
   '✓ Console/network/layout-shift/long-task telemetry installed' \
   '✓ Real order and payment mutations remain disabled by default' \
   '✓ HTML, JSON, JUnit, screenshot, video and trace reports enabled' \
+  '✓ Playwright loaded and discovered every test successfully' \
   '' \
   "QA directory: $TARGET" \
   "Backup: $BACKUP" \
