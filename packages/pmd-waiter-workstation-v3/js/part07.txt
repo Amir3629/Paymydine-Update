@@ -1,0 +1,135 @@
+ard"><h3>PRINT</h3><button data-ws3-operation="print">RECEIPT / KITCHEN TICKET</button></section>' +
+      '<section class="pmd-ws3-op-card"><h3>TABLE STATE</h3><button data-ws3-table-state="cleaning">CUSTOMER LEFT · CLEANING</button><button data-ws3-table-state="available">MARK AVAILABLE</button></section>' +
+      (permission.can_void ? '<section class="pmd-ws3-op-card"><h3>VOID ITEM</h3><select data-ws3-void-item><option value="">Choose item</option>' + itemOptions + '</select><input type="number" min="0.001" step="1" data-ws3-void-qty placeholder="QUANTITY"><button class="danger" data-ws3-operation="void-item">VOID ITEM</button></section><section class="pmd-ws3-op-card"><h3>VOID ORDER</h3><button class="danger" data-ws3-operation="void-order">VOID ENTIRE ORDER</button></section>' : '') +
+      (permission.can_reopen ? '<section class="pmd-ws3-op-card"><h3>REOPEN CHECK</h3><button data-ws3-operation="reopen">REOPEN ORDER</button></section>' : '') +
+      '</div>' +
+      '<small>ORDER #' + esc(order.order_id) + ' · ' + esc(clean(order.settlement_status).toUpperCase()) + '</small>';
+  }
+
+  async function postOperation(action, payload) {
+    var order = activeOrder();
+    if (!order) return;
+    try {
+      var result = await fetchJson(route(urls.operations, order.order_id) + '/' + action, {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(payload || {})}, 30000);
+      toast(result.message || 'Operation completed');
+      state.operations = result.summary || state.operations;
+      renderOperations();
+      await refreshTable(true);
+      await loadLauncher(true);
+    } catch (error) {
+      toast(error.message || 'Operation failed.', true);
+    }
+  }
+
+  async function handleOperation(action) {
+    var summary = state.operations || {};
+    var expected = ((summary.order || {}).updated_at || '');
+    if (action === 'transfer') {
+      var target = clean((one('[data-ws3-transfer-table]') || {}).value);
+      if (!target) return toast('Choose a destination table.', true);
+      return postOperation('transfer', {target_table_id:Number(target), expected_updated_at:expected});
+    }
+    if (action === 'merge') {
+      var source = clean((one('[data-ws3-merge-order]') || {}).value);
+      if (!source) return toast('Choose another open check.', true);
+      var confirmation = await confirmAction('MERGE CHECKS', 'Merge the selected check into the current order?');
+      if (!confirmation.ok) return;
+      return postOperation('merge', {source_order_id:Number(source), expected_updated_at:expected});
+    }
+    if (action === 'move-items') {
+      var targetOrder = clean((one('[data-ws3-move-target]') || {}).value);
+      var selected = all('[data-ws3-move-item]:checked').map(function (input) {
+        var id = input.dataset.ws3MoveItem;
+        return {order_menu_id:Number(id), quantity:num((one('[data-ws3-move-qty="' + id + '"]') || {}).value,0)};
+      }).filter(function (row) { return row.quantity > 0; });
+      if (!targetOrder || !selected.length) return toast('Choose destination and items.', true);
+      return postOperation('move-items', {target_order_id:Number(targetOrder), items:selected});
+    }
+    if (action === 'item-service') {
+      var itemId = clean((one('[data-ws3-service-item]') || {}).value);
+      if (!itemId) return toast('Choose an item.', true);
+      return postOperation('item-service', {items:[{order_menu_id:Number(itemId), seat_no:num((one('[data-ws3-seat]') || {}).value,0), course_no:num((one('[data-ws3-course]') || {}).value,0), course_status:clean((one('[data-ws3-course-status]') || {}).value || 'held')}]});
+    }
+    if (action === 'void-item') {
+      var voidId = clean((one('[data-ws3-void-item]') || {}).value);
+      var quantity = num((one('[data-ws3-void-qty]') || {}).value,0);
+      if (!voidId || quantity <= 0) return toast('Choose item and quantity.', true);
+      var reason = await confirmAction('VOID ITEM', 'This action requires a reason.', 'VOID REASON');
+      if (!reason.ok || !reason.value) return;
+      return postOperation('void-item', {order_menu_id:Number(voidId), quantity:quantity, reason:reason.value});
+    }
+    if (action === 'void-order') {
+      var voidOrder = await confirmAction('VOID ORDER', 'Cancel the entire check. This cannot be undone.', 'CANCELLATION REASON');
+      if (!voidOrder.ok || !voidOrder.value) return;
+      return postOperation('void-order', {reason:voidOrder.value});
+    }
+    if (action === 'reopen') {
+      var reopen = await confirmAction('REOPEN CHECK', 'Reopen this check for further service?');
+      if (!reopen.ok) return;
+      return postOperation('reopen', {});
+    }
+    if (action === 'print') return openReceiptLinks();
+  }
+
+  async function openReceiptLinks() {
+    var order = activeOrder();
+    if (!order) return toast('No active order.', true);
+    try {
+      var links = await fetchJson(route(urls.operations, order.order_id) + '/print-links');
+      var receipt = links.guest_bill_url || links.order_url;
+      if (receipt) window.open(receipt, '_blank', 'noopener');
+      if (links.kitchen_ticket_url) setTimeout(function () { window.open(links.kitchen_ticket_url, '_blank', 'noopener'); }, 250);
+    } catch (error) { toast(error.message || 'Print links unavailable.', true); }
+  }
+
+  async function updateTableState(next) {
+    if (!state.currentTable) return;
+    var skip = false;
+    if (next === 'available') {
+      var confirmation = await confirmAction('MARK TABLE AVAILABLE', 'Confirm that the table is clean and ready for the next guest.');
+      if (!confirmation.ok) return;
+      skip = true;
+    }
+    try {
+      var result = await fetchJson(route(urls.tableState, state.currentTable.id), {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({status:next, reason:'waiter_workstation_v3', skip_cleaning:skip})});
+      toast(result.message || result.status_label || 'Table updated');
+      await loadLauncher(true);
+      closeDrawer(one('[data-ws3-drawer="operations"]'));
+      setScreen('tables');
+    } catch (error) { toast(error.message || 'Table state update failed.', true); }
+  }
+
+  function bind() {
+    root.addEventListener('click', function (event) {
+      var target = event.target && event.target.nodeType === 1 ? event.target : null;
+      if (!target) return;
+      var button;
+      if ((button = target.closest('[data-ws3-filter]'))) { state.filter = button.dataset.ws3Filter; renderLauncher(); return; }
+      if ((button = target.closest('[data-ws3-area]'))) { state.area = button.dataset.ws3Area; renderLauncher(); return; }
+      if ((button = target.closest('[data-ws3-table]'))) {
+        var table = state.tables.find(function (row) { return String(row.id) === String(button.dataset.ws3Table); });
+        if (table) openTable(table);
+        return;
+      }
+      if ((button = target.closest('[data-ws3-alert-table]'))) {
+        var alertTable = state.tables.find(function (row) { return String(row.id) === String(button.dataset.ws3AlertTable); });
+        closeDrawer(button.closest('[data-ws3-drawer]'));
+        if (alertTable) openTable(alertTable);
+        return;
+      }
+      if ((button = target.closest('[data-ws3-category]'))) { state.category = button.dataset.ws3Category; renderCategories(); renderProducts(); return; }
+      if ((button = target.closest('[data-ws3-quick]'))) { state.quick = button.dataset.ws3Quick; renderProducts(); return; }
+      if ((button = target.closest('[data-ws3-product]'))) {
+        var item = (state.tableData.menu_items || []).find(function (row) { return String(row.id) === String(button.dataset.ws3Product); });
+        if (item) item.has_options ? openModifier(item) : addItem(item, []);
+        return;
+      }
+      if ((button = target.closest('[data-ws3-inc]'))) { state.cart[num(button.dataset.ws3Inc,0)].quantity += 1; saveDraft(); renderTicket(); return; }
+      if ((button = target.closest('[data-ws3-dec]'))) {
+        var decIndex = num(button.dataset.ws3Dec,0);
+        state.cart[decIndex].quantity -= 1;
+        if (state.cart[decIndex].quantity <= 0) state.cart.splice(decIndex,1);
+        saveDraft(); renderTicket(); return;
+      }
+      if ((button = target.closest('[data-ws3-remove]'))) { state.cart.splice(num(button.dataset.ws3Remove,0),1); saveDraft(); renderTicket(); return; }
+      if (target.closest('[data-ws3-home], [data-ws3-back-tables]')) { if (state.cart.length && !confirm('Leave this table? The unsent draft will remain saved.')) return; se
