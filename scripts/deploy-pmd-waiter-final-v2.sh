@@ -70,6 +70,13 @@ echo
 echo "== Confirming proven waiter engines =="
 test -s app/admin/assets/js/pmd-waiter-pos-v1.js
 test -s app/admin/assets/js/pmd-waiter-pos-payment-v2.js
+test -s app/admin/assets/js/pmd-waiter-standard-v211-payment-guard.js
+test -s app/admin/assets/js/pmd-waiter-standard-v22.js
+test -s app/admin/assets/js/pmd-waiter-final-v1.js
+test -s app/admin/assets/js/pmd-waiter-final-v11-fixes.js
+test -s app/admin/assets/js/pmd-waiter-final-v12-runtime-fixes.js
+test -s app/admin/assets/css/pmd-waiter-standard-v211-payment-guard.css
+test -s app/admin/assets/css/pmd-waiter-standard-v22.css
 test -s app/admin/controllers/PmdWaiterPosV1.php
 test -s app/admin/views/waiter_pos_shell.blade.php
 grep -Fq "PMDWaiterPOSApp" app/admin/assets/js/pmd-waiter-pos-v1.js
