@@ -1,0 +1,149 @@
+var target = drawer && drawer.matches ? drawer : (drawer && drawer.closest ? drawer.closest('[data-ws3-drawer]') : null);
+    if (!target) return;
+    target.hidden = true;
+    target.setAttribute('aria-hidden', 'true');
+    if (!one('[data-ws3-drawer]:not([hidden])')) document.body.style.removeProperty('overflow');
+  }
+
+  function confirmAction(title, message, inputPlaceholder) {
+    var modal = one('[data-ws3-confirm]');
+    var titleEl = one('[data-ws3-confirm-title]');
+    var messageEl = one('[data-ws3-confirm-message]');
+    var input = one('[data-ws3-confirm-input]');
+    if (!modal) return Promise.resolve({ok:false, value:''});
+    if (titleEl) titleEl.textContent = title;
+    if (messageEl) messageEl.textContent = message;
+    if (input) {
+      input.hidden = !inputPlaceholder;
+      input.placeholder = inputPlaceholder || '';
+      input.value = '';
+    }
+    modal.hidden = false;
+    modal.setAttribute('aria-hidden', 'false');
+    return new Promise(function (resolve) { confirmResolver = resolve; });
+  }
+
+  function finishConfirm(ok) {
+    var modal = one('[data-ws3-confirm]');
+    var input = one('[data-ws3-confirm-input]');
+    if (modal) {
+      modal.hidden = true;
+      modal.setAttribute('aria-hidden', 'true');
+    }
+    if (confirmResolver) {
+      confirmResolver({ok: !!ok, value: input ? input.value.trim() : ''});
+      confirmResolver = null;
+    }
+  }
+
+  function deriveTables(payload) {
+    var rawTables = Array.isArray(payload.tables) ? payload.tables : ((((payload.sections || {}).floor_plan || {}).tables) || []);
+    var orders = Array.isArray(payload.orders) ? payload.orders : (Array.isArray(payload.current_orders) ? payload.current_orders : []);
+    var orderMap = {};
+    orders.slice().sort(function (a, b) { return orderTimestamp(b) - orderTimestamp(a); }).forEach(function (order) {
+      orderKeys(order).forEach(function (key) {
+        if (!orderMap[key]) orderMap[key] = [];
+        if (orderMap[key].indexOf(order) === -1) orderMap[key].push(order);
+      });
+    });
+    state.orders = orders;
+    return rawTables.map(function (raw) {
+      var id = tableId(raw);
+      var number = tableNumber(raw);
+      var linked = orderMap[id] || orderMap[number] || [];
+      var latest = linked[0] || null;
+      var openOrders = Math.max(num(raw.open_orders, 0), linked.length);
+      var due = num(raw.due || raw.payment_due || raw.pending_value, 0);
+      if (!due) due = linked.reduce(function (sum, order) { return sum + orderRemaining(order); }, 0);
+      var note = linked.some(function (order) {
+        return clean(order.comment || order.note || '') !== '' || (Array.isArray(order.item_notes) && order.item_notes.length > 0);
+      });
+      var ready = num(raw.ready || raw.ready_orders || raw.ready_count, 0);
+      var waiterCall = yes(raw.waiter_call) || yes(raw.needs_waiter) || yes(raw.call_waiter) || /waiter.?call/.test(clean(raw.attention_type || raw.status).toLowerCase());
+      var cleaning = yes(raw.cleaning_required) || yes(raw.needs_cleaning) || /clean/.test(clean(raw.attention_type || '').toLowerCase());
+      var rawStatus = clean(raw.status || raw.latest_order_status || (latest && (latest.status_label || latest.status)) || '');
+      var itemCount = linked.reduce(function (sum, order) { return sum + num(order.total_items || order.items_count, Array.isArray(order.items) ? order.items.length : 0); }, 0);
+      var stateKey = 'free';
+      var stateLabel = 'FREE';
+      if (waiterCall) { stateKey = 'attention'; stateLabel = 'WAITER CALL'; }
+      else if (cleaning) { stateKey = 'attention'; stateLabel = 'CLEANING'; }
+      else if (ready > 0 || /ready|serve/.test(rawStatus.toLowerCase())) { stateKey = 'ready'; stateLabel = 'READY'; }
+      else if (due > 0 && openOrders > 0) { stateKey = 'payment'; stateLabel = 'PAYMENT'; }
+      else if (openOrders > 0) { stateKey = 'open'; stateLabel = 'OPEN'; }
+      return {
+        raw: raw,
+        id: id || number,
+        number: number,
+        name: clean(raw.name || raw.label || raw.table_name || ('Table ' + number)),
+        area: tableArea(raw),
+        capacity: num(raw.capacity || raw.table_capacity, 0),
+        assigned: yes(raw.assigned) || yes(raw.is_assigned) || yes(raw.mine),
+        openOrders: openOrders,
+        linkedOrders: linked,
+        latestOrder: latest,
+        due: due,
+        ready: ready,
+        note: note,
+        waiterCall: waiterCall,
+        cleaning: cleaning,
+        attention: waiterCall || cleaning || ready > 0 || note,
+        itemCount: itemCount,
+        rawStatus: rawStatus,
+        state: stateKey,
+        stateLabel: stateLabel,
+        openedAt: latest ? orderTimestamp(latest) : 0
+      };
+    }).filter(function (table) { return table.id && table.number; });
+  }
+
+  function filteredTables() {
+    var query = state.tableQuery.toLowerCase();
+    var hasMine = state.tables.some(function (table) { return table.assigned; });
+    return state.tables.filter(function (table) {
+      if (state.filter === 'mine' && hasMine && !table.assigned) return false;
+      if (state.filter === 'open' && table.openOrders < 1) return false;
+      if (state.filter === 'attention' && !table.attention) return false;
+      if (state.filter === 'free' && table.openOrders > 0) return false;
+      if (state.area !== 'all' && table.area !== state.area) return false;
+      if (query && [table.number, table.name, table.area, table.stateLabel, table.rawStatus].join(' ').toLowerCase().indexOf(query) === -1) return false;
+      return true;
+    }).sort(function (a, b) {
+      var priority = {attention:0, ready:1, payment:2, open:3, free:4};
+      if (priority[a.state] !== priority[b.state]) return priority[a.state] - priority[b.state];
+      if (a.openedAt !== b.openedAt) return a.openedAt - b.openedAt;
+      return a.number.localeCompare(b.number, undefined, {numeric:true, sensitivity:'base'});
+    });
+  }
+
+  function renderAreas() {
+    var container = one('[data-ws3-areas]');
+    if (!container) return;
+    var values = Array.from(new Set(state.tables.map(function (table) { return table.area; }).filter(Boolean)));
+    var rows = ['all'].concat(values);
+    container.innerHTML = rows.map(function (area) {
+      return '<button type="button" data-ws3-area="' + esc(area) + '" class="' + (state.area === area ? 'is-active' : '') + '">' + esc(area === 'all' ? 'ALL AREAS' : area.toUpperCase()) + '</button>';
+    }).join('');
+  }
+
+  function renderLauncher() {
+    var grid = one('[data-ws3-table-grid]');
+    var status = one('[data-ws3-table-status]');
+    if (!grid) return;
+    var rows = filteredTables();
+    if (status) {
+      status.hidden = rows.length > 0;
+      status.textContent = state.tables.length ? 'NO TABLES MATCH THIS FILTER' : 'NO TABLES AVAILABLE';
+    }
+    grid.innerHTML = rows.map(function (table) {
+      var primary = table.waiterCall ? 'GUEST REQUEST' : table.cleaning ? 'CLEANING REQUIRED' : table.ready > 0 ? table.ready + ' READY TO SERVE' : table.due > 0 ? money(table.due) + ' DUE' : table.openOrders > 0 ? table.itemCount + (table.itemCount === 1 ? ' ITEM' : ' ITEMS') : table.capacity > 0 ? table.capacity + ' SEATS' : 'START ORDER';
+      var secondary = table.note ? 'ORDER NOTE' : table.openedAt ? durationLabel(table.openedAt) : table.area.toUpperCase();
+      var badge = table.note ? '<span class="badge">N</span>' : table.waiterCall ? '<span class="badge">!</span>' : table.ready > 0 ? '<span class="badge">' + esc(table.ready) + '</span>' : '';
+      return '<button type="button" class="pmd-ws3-table-card" data-ws3-table="' + esc(table.id) + '" data-state="' + esc(table.state) + '">' +
+        badge + '<span class="state">' + esc(table.stateLabel) + '</span><span class="number">' + esc(table.number) + '</span><span class="name">TABLE ' + esc(table.number) + '</span><span class="divider"></span><span class="primary">' + esc(primary) + '</span><span class="secondary"><span>' + esc(secondary) + '</span><span>' + esc(table.area.toUpperCase()) + '</span></span></button>';
+    }).join('');
+
+    var mineCount = state.tables.filter(function (table) { return table.assigned; }).length || state.tables.length;
+    var openCount = state.tables.filter(function (table) { return table.openOrders > 0; }).length;
+    var attentionCount = state.tables.filter(function (table) { return table.attention; }).length;
+    var freeCount = state.tables.filter(function (table) { return table.openOrders < 1; }).length;
+    var due = state.tables.reduce(function (sum, ta
