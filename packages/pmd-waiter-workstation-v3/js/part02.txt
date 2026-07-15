@@ -1,0 +1,156 @@
+ble) { return sum + table.due; }, 0);
+    var counts = {mine:mineCount, open:openCount, attention:attentionCount, free:freeCount, all:state.tables.length};
+    Object.keys(counts).forEach(function (key) {
+      var node = one('[data-ws3-count="' + key + '"]');
+      if (node) node.textContent = counts[key];
+    });
+    var statOpen = one('[data-ws3-stat="open"]');
+    var statAttention = one('[data-ws3-stat="attention"]');
+    var statDue = one('[data-ws3-stat="due"]');
+    var statFree = one('[data-ws3-stat="free"]');
+    if (statOpen) statOpen.textContent = openCount;
+    if (statAttention) statAttention.textContent = attentionCount;
+    if (statDue) statDue.textContent = money(due);
+    if (statFree) statFree.textContent = freeCount;
+    all('[data-ws3-filter]').forEach(function (button) { button.classList.toggle('is-active', button.dataset.ws3Filter === state.filter); });
+    renderAreas();
+  }
+
+  async function loadLauncher(silent) {
+    if (requests.launcher) requests.launcher.abort();
+    requests.launcher = new AbortController();
+    var status = one('[data-ws3-table-status]');
+    if (!silent && status) { status.hidden = false; status.textContent = 'LOADING LIVE TABLES…'; }
+    try {
+      var response = await fetch(urls.launcher + (urls.launcher.indexOf('?') === -1 ? '?' : '&') + '_=' + Date.now(), {
+        credentials: 'same-origin',
+        cache: 'no-store',
+        signal: requests.launcher.signal,
+        headers: {'Accept':'application/json','X-Requested-With':'XMLHttpRequest'}
+      });
+      var payload = await response.json().catch(function () { return {}; });
+      if (!response.ok || payload.ok === false) throw new Error(payload.message || ('HTTP ' + response.status));
+      state.launcher = payload;
+      state.currency = clean(payload.currency) || state.currency;
+      state.tables = deriveTables(payload);
+      state.metrics.launcherLoads += 1;
+      var user = one('[data-ws3-user]');
+      if (user) user.textContent = clean((payload.user || {}).name || payload.waiter_name || 'WAITER') + ' · LIVE SERVICE';
+      renderLauncher();
+      if (!silent) toast('Live tables refreshed');
+    } catch (error) {
+      if (error.name === 'AbortError') return;
+      if (status) { status.hidden = false; status.textContent = 'COULD NOT LOAD TABLES · TAP REFRESH'; }
+      toast(error.message || 'Could not load tables.', true);
+    }
+  }
+
+  function genericNotifications(payload) {
+    var rows = [];
+    if (Array.isArray(payload)) rows = payload;
+    else if (Array.isArray(payload.notifications)) rows = payload.notifications;
+    else if (Array.isArray(payload.data)) rows = payload.data;
+    return rows;
+  }
+
+  async function loadNotifications() {
+    if (!urls.notifications) return;
+    if (requests.notifications) requests.notifications.abort();
+    requests.notifications = new AbortController();
+    try {
+      var response = await fetch(urls.notifications + (urls.notifications.indexOf('?') === -1 ? '?' : '&') + '_=' + Date.now(), {
+        credentials: 'same-origin', cache: 'no-store', signal: requests.notifications.signal,
+        headers: {'Accept':'application/json','X-Requested-With':'XMLHttpRequest'}
+      });
+      var payload = await response.json().catch(function () { return {}; });
+      if (!response.ok) throw new Error('Notifications unavailable');
+      state.notifications = genericNotifications(payload);
+      renderAlerts();
+    } catch (error) {
+      if (error.name !== 'AbortError') state.notifications = [];
+    }
+  }
+
+  function renderAlerts() {
+    var list = one('[data-ws3-alert-list]');
+    var tableAlerts = state.tables.filter(function (table) { return table.attention; }).map(function (table) {
+      return {title: 'Table ' + table.number + ' · ' + table.stateLabel, message: table.note ? 'Order note requires attention.' : table.waiterCall ? 'Guest requested a waiter.' : table.ready ? table.ready + ' item(s) ready to serve.' : 'Service attention required.', table: table};
+    });
+    var notices = state.notifications.slice(0, 20).map(function (row) {
+      return {title: clean(row.title || row.subject || row.type || 'Activity'), message: clean(row.message || row.body || row.description || row.text || ''), time: clean(row.created_at || row.time || '')};
+    });
+    var rows = tableAlerts.concat(notices);
+    var count = one('[data-ws3-alert-count]');
+    if (count) { count.hidden = rows.length < 1; count.textContent = rows.length; }
+    if (!list) return;
+    list.innerHTML = rows.length ? rows.map(function (row) {
+      return '<button type="button" class="pmd-ws3-alert-item" ' + (row.table ? 'data-ws3-alert-table="' + esc(row.table.id) + '"' : '') + '><strong>' + esc(row.title) + '</strong><small>' + esc(row.message || '') + (row.time ? ' · ' + esc(row.time) : '') + '</small></button>';
+    }).join('') : '<div class="pmd-ws3-empty">NO ACTIVE ALERTS</div>';
+  }
+
+  function draftKey(table) { return 'pmd-ws3:' + location.host + ':table:' + String(table ? table.id : ''); }
+  function saveDraft() {
+    if (!state.currentTable) return;
+    try {
+      localStorage.setItem(draftKey(state.currentTable), JSON.stringify({cart:state.cart, guestCount:state.guestCount, tableNote:state.tableNote, savedAt:Date.now()}));
+    } catch (error) {}
+  }
+  function restoreDraft() {
+    state.cart = [];
+    state.tableNote = '';
+    if (!state.currentTable) return;
+    try {
+      var draft = JSON.parse(localStorage.getItem(draftKey(state.currentTable)) || 'null');
+      if (!draft || !Array.isArray(draft.cart) || Date.now() - num(draft.savedAt, 0) > 12 * 60 * 60 * 1000) return;
+      state.cart = draft.cart.filter(function (row) { return row && row.menu_id && num(row.quantity, 0) > 0; });
+      state.guestCount = Math.max(1, num(draft.guestCount, state.guestCount));
+      state.tableNote = clean(draft.tableNote || '');
+    } catch (error) {}
+  }
+  function clearDraft() { if (state.currentTable) try { localStorage.removeItem(draftKey(state.currentTable)); } catch (error) {} }
+
+  function filteredProducts() {
+    if (!state.tableData) return [];
+    var items = Array.isArray(state.tableData.menu_items) ? state.tableData.menu_items : [];
+    var query = state.menuQuery.toLowerCase();
+    var filtered = items.filter(function (item) {
+      if (state.category !== 'all' && (item.category_ids || []).map(String).indexOf(String(state.category)) === -1) return false;
+      if (query && clean(item.name).toLowerCase().indexOf(query) === -1) return false;
+      if (num(item.price, 0) <= 0) return false;
+      return true;
+    });
+    if (state.quick === 'popular') filtered = filtered.filter(function (item) { return yes(item.is_bestseller) || yes(item.is_chef_recommended); });
+    if (state.quick === 'recent') {
+      var recent = state.recentProductIds;
+      filtered = filtered.filter(function (item) { return recent.indexOf(String(item.id)) !== -1; })
+        .sort(function (a, b) { return recent.indexOf(String(a.id)) - recent.indexOf(String(b.id)); });
+    }
+    return filtered;
+  }
+
+  function categoryColor(item) {
+    var name = (item.category_names || [])[0] || (item.category_ids || [])[0] || 'menu';
+    return hashColor(name);
+  }
+
+  function renderCategories() {
+    var container = one('[data-ws3-categories]');
+    if (!container || !state.tableData) return;
+    var rows = [{id:'all', name:'All'}].concat(Array.isArray(state.tableData.categories) ? state.tableData.categories : []);
+    container.innerHTML = rows.map(function (category) {
+      return '<button type="button" data-ws3-category="' + esc(category.id) + '" class="' + (String(state.category) === String(category.id) ? 'is-active' : '') + '">' + esc(clean(category.name || 'Menu')) + '</button>';
+    }).join('');
+  }
+
+  function renderProducts() {
+    var container = one('[data-ws3-products]');
+    if (!container) return;
+    if (state.loadingTable) {
+      container.innerHTML = '<div class="pmd-ws3-empty">LOADING MENU…</div>';
+      return;
+    }
+    var items = filteredProducts();
+    container.innerHTML = items.length ? items.map(function (item) {
+      return '<button type="button" class="pmd-ws3-product" data-ws3-product="' + esc(item.id) + '" data-color="' + categoryColor(item) + '" aria-label="Add ' + esc(item.name) + '">' +
+        (item.has_options ? '<span class="modifier-mark">M</span>' : '') + '<span class="product-name">' + esc(item.name) + '</span><span class="product-price">' + money(item.price) + '</span></button>';
+    }).join('') : '<div class="pmd-ws3-empty">NO
