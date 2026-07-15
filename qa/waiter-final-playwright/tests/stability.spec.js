@@ -112,5 +112,8 @@ test('offline state is visible and the launcher recovers after connectivity retu
 
   telemetry.report.failedRequests = [];
   telemetry.report.badResponses = [];
+  telemetry.report.console = telemetry.report.console.filter((row) =>
+    !/ERR_INTERNET_DISCONNECTED|Failed to load resource.*internet disconnected/i.test(row.text || '')
+  );
   await telemetry.assertHealthy({ maxLongTasks: 30 });
 });
