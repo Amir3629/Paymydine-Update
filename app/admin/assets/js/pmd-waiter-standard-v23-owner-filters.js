@@ -39,6 +39,7 @@
         button.type = 'button';
         button.className = 'pmd-pos-category pmd-v23-special-category';
         button.setAttribute('data-v23-owner-filter', definition.key);
+        button.style.setProperty('--pmd-v23-category-accent', definition.key === 'chef' ? '#7c3aed' : '#ea580c');
         button.textContent = definition.label;
         categories.insertBefore(button, allButton || categories.firstChild);
       }
