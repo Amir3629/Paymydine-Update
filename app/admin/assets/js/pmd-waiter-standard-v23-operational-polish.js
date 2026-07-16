@@ -148,6 +148,9 @@
     state.chefRecommended = menu.filter(function (item) { return yes(item.is_chef_recommended) || yes(item.chef_recommended); }).length;
     state.bestsellers = menu.filter(function (item) { return yes(item.is_bestseller) || yes(item.bestseller); }).length;
     updateQuantities();
+    if (window.PMDWaiterStandardV23OwnerFilters && typeof window.PMDWaiterStandardV23OwnerFilters.mount === 'function') {
+      window.PMDWaiterStandardV23OwnerFilters.mount(pos, root);
+    }
     root.classList.add('pmd-waiter-standard-v23-active');
   }
 
