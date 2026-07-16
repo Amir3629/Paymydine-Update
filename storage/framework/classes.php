@@ -268,4 +268,5 @@
   'Admin\\Controllers\\PmdWaiterDashboardNewV1' => 'app/admin/controllers/PmdWaiterDashboardNewV1.php',
   'Admin\\Controllers\\PmdWaiterDashboardFinalV1' => 'app/admin/controllers/PmdWaiterDashboardFinalV1.php',
   'Admin\\Controllers\\PmdWaiterDashboardFinalV2' => 'app/admin/controllers/PmdWaiterDashboardFinalV2.php',
+  'Admin\\Controllers\\PmdWaiterWorkstationV3' => 'app/admin/controllers/PmdWaiterWorkstationV3.php',
 );

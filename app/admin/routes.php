@@ -3839,3 +3839,6 @@ if (!defined('PMD_WAITER_DASHBOARD_V21_MERGE_CLEANUP')) {
 
 // PMD_WAITER_FINAL_V2_ROUTE_LOADER
 require_once base_path('routes/pmd-waiter-final-v2.php');
+// PMD_WAITER_WORKSTATION_V3_ROUTE_LOADER_START
+require_once base_path('routes/pmd-waiter-workstation-v3.php');
+// PMD_WAITER_WORKSTATION_V3_ROUTE_LOADER_END

@@ -14,8 +14,10 @@
     <link rel="stylesheet" href="{{ asset('app/admin/assets/css/pmd-waiter-standard-v211-payment-guard.css') }}?v=211">
     <link rel="stylesheet" href="{{ asset('app/admin/assets/css/pmd-waiter-standard-v22.css') }}?v=22">
     <link rel="stylesheet" href="{{ asset('app/admin/assets/css/pmd-waiter-standard-v221-theme.css') }}?v=221">
+    <link rel="stylesheet" href="{{ asset('app/admin/assets/css/pmd-waiter-standard-v23-operational-polish.css') }}?v=23-20260716_120010">
+    <link rel="stylesheet" href="{{ asset('app/admin/assets/css/pmd-waiter-standard-v231-category-dark-fix.css') }}?v=231-20260716_123909">
 </head>
-<body class="pmd-waiter-new-page pmd-waiter-standard-v2-page pmd-waiter-standard-v21-page pmd-waiter-standard-v211-page pmd-waiter-standard-v221-page pmd-waiter-standard-v22-page">
+<body class="pmd-waiter-new-page pmd-waiter-standard-v2-page pmd-waiter-standard-v21-page pmd-waiter-standard-v211-page pmd-waiter-standard-v221-page pmd-waiter-standard-v22-page pmd-waiter-standard-v23-page">
 <div
     id="pmd-waiter-standard-v2"
     class="pmd-waiter-standard-v2"
@@ -40,7 +42,6 @@
                 <button type="button" data-v2-alerts aria-label="Service alerts">
                     <span>!</span><b data-v2-alert-count hidden>0</b>
                 </button>
-                <button type="button" data-v2-refresh aria-label="Refresh tables">↻</button>
             </div>
         </header>
 
@@ -123,5 +124,7 @@
 <script src="{{ asset('app/admin/assets/js/pmd-waiter-standard-v211-payment-guard.js') }}?v=211"></script>
 <script src="{{ asset('app/admin/assets/js/pmd-waiter-standard-v22.js') }}?v=22"></script>
 <script src="{{ asset('app/admin/assets/js/pmd-waiter-standard-v221-theme.js') }}?v=221"></script>
+<script src="{{ asset('app/admin/assets/js/pmd-waiter-standard-v23-operational-polish.js') }}?v=23-20260716_120010"></script>
+<script src="{{ asset('app/admin/assets/js/pmd-waiter-standard-v23-owner-filters.js') }}?v=231-20260716_123909"></script>
 </body>
 </html>
