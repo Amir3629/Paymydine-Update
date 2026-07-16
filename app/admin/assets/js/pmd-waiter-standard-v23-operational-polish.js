@@ -4,29 +4,25 @@
   if (window.PMDWaiterStandardV23) return;
   if (!/^\/admin\/(?:dashboardwaiternew|waiter)(?:$|[/?#])/.test(location.pathname + location.search + location.hash)) return;
 
-  var root = document.querySelector('[data-pmd-waiter-v2-root]');
-  if (!root) return;
+  var launcher = document.querySelector('[data-pmd-waiter-v2-root]');
+  if (!launcher) return;
 
   var activePos = null;
-  var activePosRoot = null;
-  var autoSyncTimer = null;
-  var feedbackTimer = null;
-
+  var activeRoot = null;
+  var syncTimer = null;
   var state = {
     version: 'pmd-waiter-standard-v2.3',
     active: true,
-    headerDecorated: false,
     userName: '',
     productCards: 0,
     chefRecommended: 0,
     bestsellers: 0,
     autoSyncRuns: 0,
     autoSyncSkips: 0,
-    lastAutoSyncAt: 0,
     lastError: ''
   };
 
-  function clean(value) {
+  function text(value) {
     return String(value == null ? '' : value).replace(/\s+/g, ' ').trim();
   }
 
@@ -38,255 +34,172 @@
     return String(item && (item.id || item.menu_id || item.item_id || item.menu_item_id) || '');
   }
 
-  function cartLineId(line) {
-    return String(line && (
-      line.menu_id || line.item_id || line.menu_item_id || line.id ||
+  function lineId(line) {
+    return String(line && (line.menu_id || line.item_id || line.menu_item_id || line.id ||
       (line.item && (line.item.id || line.item.menu_id)) ||
-      (line.menu && (line.menu.id || line.menu.menu_id))
-    ) || '');
+      (line.menu && (line.menu.id || line.menu.menu_id))) || '');
   }
 
-  function cartLineQty(line) {
-    var value = Number(line && (line.quantity || line.qty || line.count || 1));
-    return Number.isFinite(value) && value > 0 ? value : 1;
-  }
-
-  function currentUserName() {
-    var source = root.querySelector('[data-v2-user]');
-    var text = clean(source && source.textContent);
-    text = text.replace(/\s*[¬∑|-]\s*LIVE SERVICE.*$/i, '').trim();
-    return text || 'ADMIN';
-  }
-
-  function decorateLauncherHeader() {
-    var actions = root.querySelector('.pmd-v2-top-actions');
+  function decorateLauncher() {
+    var actions = launcher.querySelector('.pmd-v2-top-actions');
     if (!actions) return;
-
     var refresh = actions.querySelector('[data-v2-refresh]');
     if (refresh) refresh.remove();
 
+    var source = launcher.querySelector('[data-v2-user]');
+    var userName = text(source && source.textContent).replace(new RegExp('\\s*(?:\\u00b7|-|\\|)\\s*LIVE SERVICE.*$', 'i'), '').trim() || 'ADMIN';
     var pill = actions.querySelector('[data-v23-online-user]');
     if (!pill) {
       pill = document.createElement('span');
       pill.className = 'pmd-v23-online-user';
       pill.setAttribute('data-v23-online-user', '');
-      pill.innerHTML = '<i aria-hidden="true"></i><span>ONLINE</span><b data-v23-online-user-name>ADMIN</b>';
-      var sync = actions.querySelector('[data-v2-sync]');
-      actions.insertBefore(pill, sync || actions.firstChild);
+      pill.innerHTML = '<i aria-hidden="true"></i><span>ONLINE</span><b data-v23-online-user-name></b>';
+      actions.insertBefore(pill, actions.querySelector('[data-v2-sync]') || actions.firstChild);
     }
-
-    var name = currentUserName();
-    var nameNode = pill.querySelector('[data-v23-online-user-name]');
-    if (nameNode) nameNode.textContent = name;
-    state.userName = name;
-    state.headerDecorated = true;
+    pill.querySelector('[data-v23-online-user-name]').textContent = userName;
+    state.userName = userName;
   }
 
   function categoryColor(index) {
-    var palette = ['#2563eb', '#dc2626', '#16a34a', '#f59e0b', '#7c3aed', '#0891b2', '#ea580c', '#db2777'];
-    return palette[Math.abs(index) % palette.length];
+    var colors = ['#2563eb','#dc2626','#16a34a','#f59e0b','#7c3aed','#0891b2','#ea580c','#db2777'];
+    return colors[Math.abs(index) % colors.length];
   }
 
-  function updateProductQuantities() {
-    if (!activePos || !activePos.state || !activePosRoot) return;
-
+  function updateQuantities() {
+    if (!activePos || !activePos.state || !activeRoot) return;
     var quantities = {};
     (Array.isArray(activePos.state.cart) ? activePos.state.cart : []).forEach(function (line) {
-      var id = cartLineId(line);
-      if (!id) return;
-      quantities[id] = (quantities[id] || 0) + cartLineQty(line);
+      var id = lineId(line);
+      var qty = Number(line.quantity || line.qty || line.count || 1);
+      if (id) quantities[id] = (quantities[id] || 0) + (Number.isFinite(qty) && qty > 0 ? qty : 1);
     });
-
-    Array.prototype.slice.call(activePosRoot.querySelectorAll('[data-pos-product]')).forEach(function (button) {
-      var id = String(button.getAttribute('data-pos-product') || '');
-      var quantity = quantities[id] || 0;
-      if (quantity > 0) {
-        button.setAttribute('data-v23-quantity', String(quantity));
-        button.classList.add('has-v23-quantity');
-      } else {
-        button.removeAttribute('data-v23-quantity');
-        button.classList.remove('has-v23-quantity');
-      }
+    Array.prototype.slice.call(activeRoot.querySelectorAll('[data-pos-product]')).forEach(function (card) {
+      var qty = quantities[String(card.getAttribute('data-pos-product') || '')] || 0;
+      card.classList.toggle('has-v23-quantity', qty > 0);
+      if (qty > 0) card.setAttribute('data-v23-quantity', String(qty)); else card.removeAttribute('data-v23-quantity');
     });
   }
 
-  function decorateProducts(pos, posRoot) {
-    var menu = Array.isArray(pos.state && pos.state.menu) ? pos.state.menu : [];
-    var byId = {};
-    menu.forEach(function (item) { byId[itemId(item)] = item; });
+  function decoratePos(pos, root) {
+    if (!pos || !pos.state || !root) return;
+    activePos = pos;
+    activeRoot = root;
 
-    var categoryMap = {};
-    var categoryIndex = 0;
-    menu.forEach(function (item) {
-      var category = Array.isArray(item.category_ids) && item.category_ids.length ? String(item.category_ids[0]) : 'all';
-      if (categoryMap[category] == null) categoryMap[category] = categoryIndex++;
-    });
-
-    var cards = Array.prototype.slice.call(posRoot.querySelectorAll('[data-pos-product]'));
-    cards.forEach(function (button) {
-      var id = String(button.getAttribute('data-pos-product') || '');
-      var item = byId[id] || {};
-      var category = Array.isArray(item.category_ids) && item.category_ids.length ? String(item.category_ids[0]) : 'all';
-      var accent = categoryColor(categoryMap[category] || 0);
-      button.style.setProperty('--pmd-v23-accent', accent);
-      button.classList.add('pmd-v23-product-key');
-      button.setAttribute('title', clean(item.name || button.textContent) + ' ‚Äî tap to add');
-
-      var plus = button.querySelector('.pmd-pos-plus');
-      if (plus) plus.remove();
-    });
-
-    var categoryButtons = Array.prototype.slice.call(posRoot.querySelectorAll('[data-pos-categories] .pmd-pos-category'));
-    categoryButtons.forEach(function (button, index) {
-      button.style.setProperty('--pmd-v23-category-accent', categoryColor(index));
-    });
-
-    state.productCards = cards.length;
-    state.chefRecommended = menu.filter(function (item) {
-      return yes(item.is_chef_recommended) || yes(item.chef_recommended);
-    }).length;
-    state.bestsellers = menu.filter(function (item) {
-      return yes(item.is_bestseller) || yes(item.bestseller);
-    }).length;
-
-    updateProductQuantities();
-  }
-
-  function decoratePosChrome(pos, posRoot) {
-    var back = posRoot.querySelector('[data-pos-close]');
+    var back = root.querySelector('[data-pos-close]');
     if (back) {
-      back.textContent = '‚Üê';
+      back.textContent = '\u2190';
       back.setAttribute('aria-label', 'Back to floor');
       back.setAttribute('title', 'Back to floor');
       back.classList.add('pmd-v23-back-icon');
     }
 
-    var subtitle = posRoot.querySelector('.pmd-pos-table-title span');
+    var subtitle = root.querySelector('.pmd-pos-table-title span');
     if (subtitle) {
-      var section = clean(pos.state && pos.state.table && (
-        pos.state.table.section || pos.state.table.area || pos.state.table.zone || pos.state.table.floor_name
-      ));
-      subtitle.textContent = section || 'MAIN AREA';
+      var table = pos.state.table || {};
+      subtitle.textContent = text(table.section || table.area || table.zone || table.floor_name) || 'MAIN AREA';
     }
 
-    var refresh = posRoot.querySelector('[data-pos-refresh]');
+    var refresh = root.querySelector('[data-pos-refresh]');
     if (refresh) refresh.remove();
 
-    var waiter = posRoot.querySelector('.pmd-pos-waiter');
-    if (waiter) waiter.setAttribute('title', 'Online waiter');
-  }
-
-  function bindProductFeedback(pos, posRoot) {
-    var menu = posRoot.querySelector('[data-pos-menu]');
-    if (!menu || menu.getAttribute('data-v23-feedback-bound') === '1') return;
-    menu.setAttribute('data-v23-feedback-bound', '1');
-
-    menu.addEventListener('click', function (event) {
-      var button = event.target.closest('[data-pos-product]');
-      if (!button) return;
-
-      button.classList.remove('is-v23-added');
-      void button.offsetWidth;
-      button.classList.add('is-v23-added');
-      clearTimeout(feedbackTimer);
-      feedbackTimer = setTimeout(function () {
-        button.classList.remove('is-v23-added');
-      }, 260);
-
-      setTimeout(updateProductQuantities, 0);
-      setTimeout(updateProductQuantities, 120);
-    }, true);
-
-    posRoot.addEventListener('click', function (event) {
-      if (event.target.closest('[data-pos-qty-minus],[data-pos-remove-line],[data-pos-clear],[data-pos-modal-add]')) {
-        setTimeout(updateProductQuantities, 80);
-      }
+    var menu = Array.isArray(pos.state.menu) ? pos.state.menu : [];
+    var byId = {};
+    var categories = {};
+    var categoryCount = 0;
+    menu.forEach(function (item) {
+      byId[itemId(item)] = item;
+      var category = Array.isArray(item.category_ids) && item.category_ids.length ? String(item.category_ids[0]) : 'all';
+      if (categories[category] == null) categories[category] = categoryCount++;
     });
+
+    var cards = Array.prototype.slice.call(root.querySelectorAll('[data-pos-product]'));
+    cards.forEach(function (card) {
+      var item = byId[String(card.getAttribute('data-pos-product') || '')] || {};
+      var category = Array.isArray(item.category_ids) && item.category_ids.length ? String(item.category_ids[0]) : 'all';
+      card.style.setProperty('--pmd-v23-accent', categoryColor(categories[category] || 0));
+      card.classList.add('pmd-v23-product-key');
+      card.setAttribute('title', text(item.name || card.textContent) + ' - tap to add');
+      var add = card.querySelector('.pmd-pos-plus');
+      if (add) add.remove();
+    });
+
+    Array.prototype.slice.call(root.querySelectorAll('[data-pos-categories] .pmd-pos-category')).forEach(function (button, index) {
+      if (!button.style.getPropertyValue('--pmd-v23-category-accent')) button.style.setProperty('--pmd-v23-category-accent', categoryColor(index));
+    });
+
+    var menuRoot = root.querySelector('[data-pos-menu]');
+    if (menuRoot && menuRoot.getAttribute('data-v23-feedback-bound') !== '1') {
+      menuRoot.setAttribute('data-v23-feedback-bound', '1');
+      menuRoot.addEventListener('click', function (event) {
+        var card = event.target.closest('[data-pos-product]');
+        if (!card) return;
+        card.classList.remove('is-v23-added');
+        void card.offsetWidth;
+        card.classList.add('is-v23-added');
+        setTimeout(function () { card.classList.remove('is-v23-added'); }, 260);
+        setTimeout(updateQuantities, 80);
+      }, true);
+      root.addEventListener('click', function (event) {
+        if (event.target.closest('[data-pos-qty-minus],[data-pos-remove-line],[data-pos-clear],[data-pos-modal-add]')) setTimeout(updateQuantities, 80);
+      });
+    }
+
+    state.productCards = cards.length;
+    state.chefRecommended = menu.filter(function (item) { return yes(item.is_chef_recommended) || yes(item.chef_recommended); }).length;
+    state.bestsellers = menu.filter(function (item) { return yes(item.is_bestseller) || yes(item.bestseller); }).length;
+    updateQuantities();
+    root.classList.add('pmd-waiter-standard-v23-active');
   }
 
-  function enhancePos(pos, posRoot) {
-    if (!pos || !pos.state || !posRoot) return;
-    activePos = pos;
-    activePosRoot = posRoot;
-    decoratePosChrome(pos, posRoot);
-    decorateProducts(pos, posRoot);
-    bindProductFeedback(pos, posRoot);
-    posRoot.classList.add('pmd-waiter-standard-v23-active');
-  }
-
-  function canAutoSync() {
-    if (!activePos || !activePos.state || !activePosRoot || !activePosRoot.isConnected) return false;
-    if (document.hidden) return false;
-    if (activePos.state.submitting) return false;
-    if (activePos.state.payment && activePos.state.payment.open) return false;
-    if (Array.isArray(activePos.state.cart) && activePos.state.cart.length > 0) return false;
+  function canSync() {
+    if (!activePos || !activePos.state || !activeRoot || !activeRoot.isConnected || document.hidden) return false;
+    if (activePos.state.submitting || (activePos.state.payment && activePos.state.payment.open)) return false;
+    if (Array.isArray(activePos.state.cart) && activePos.state.cart.length) return false;
     return typeof activePos.refresh === 'function';
   }
 
-  function startAutoSync() {
-    if (autoSyncTimer) clearInterval(autoSyncTimer);
-    autoSyncTimer = setInterval(function () {
-      if (!canAutoSync()) {
-        state.autoSyncSkips += 1;
-        return;
-      }
-
-      Promise.resolve(activePos.refresh())
-        .then(function () {
-          state.autoSyncRuns += 1;
-          state.lastAutoSyncAt = Date.now();
-          setTimeout(function () {
-            if (activePos && activePosRoot) enhancePos(activePos, activePosRoot);
-          }, 0);
-        })
-        .catch(function (error) {
-          state.lastError = clean(error && error.message) || 'Auto-sync failed';
-        });
+  function startSync() {
+    if (syncTimer) clearInterval(syncTimer);
+    syncTimer = setInterval(function () {
+      if (!canSync()) { state.autoSyncSkips += 1; return; }
+      Promise.resolve(activePos.refresh()).then(function () {
+        state.autoSyncRuns += 1;
+        setTimeout(function () { decoratePos(activePos, activeRoot); }, 0);
+      }).catch(function (error) { state.lastError = text(error && error.message) || 'Auto-sync failed'; });
     }, 15000);
   }
 
   window.addEventListener('pmd:waiter-standard-v2-opened', function (event) {
-    var detail = event.detail || {};
-    var pos = detail.pos || window.PMDWaiterPOS;
-    var posRoot = pos && pos.state && pos.state.root
-      ? pos.state.root
-      : root.querySelector('[data-pmd-pos-root]');
-    enhancePos(pos, posRoot);
-    startAutoSync();
+    var pos = (event.detail || {}).pos || window.PMDWaiterPOS;
+    var root = launcher.querySelector('[data-pmd-pos-root]');
+    decoratePos(pos, root);
+    startSync();
   });
 
-  window.addEventListener('popstate', function () {
-    if (activePosRoot && !activePosRoot.isConnected) {
-      activePos = null;
-      activePosRoot = null;
-    }
-  });
-
-  decorateLauncherHeader();
-  setTimeout(decorateLauncherHeader, 250);
-  setTimeout(decorateLauncherHeader, 1000);
+  decorateLauncher();
+  setTimeout(decorateLauncher, 250);
+  setTimeout(decorateLauncher, 1000);
 
   window.PMDWaiterStandardV23 = {
     debug: function () {
       return {
         version: state.version,
         active: state.active,
-        headerDecorated: state.headerDecorated,
         userName: state.userName,
         productCards: state.productCards,
         chefRecommended: state.chefRecommended,
         bestsellers: state.bestsellers,
         autoSyncRuns: state.autoSyncRuns,
         autoSyncSkips: state.autoSyncSkips,
-        lastAutoSyncAt: state.lastAutoSyncAt,
-        posOpen: !!(activePo‘õ€›	âàX›]ôT‹‘õ€›ö\–€€õôX›Y
-Kà\›\úõ‹éà›]Kõ\›\úõ‹ÇàN¬àKàﬁ[ò”õ›Œàù[ò›[€à
+        posOpen: !!(activeRoot && activeRoot.isConnected),
+        lastError: state.lastError
+      };
+    },
+    syncNow: function () {
+      if (!activePos || typeof activePos.refresh !== 'function') return Promise.resolve(false);
+      return Promise.resolve(activePos.refresh()).then(function () { decoratePos(activePos, activeRoot); return true; });
+    }
+  };
 
-H¬àYà
-XX›]ôT‹»\[ŸàX›]ôT‹ÀúôYúô\⁄OOH	Ÿù[ò›[€â Hô]\õàõ€Z\ŸKúô\€€ôJò[ŸJN¬àô]\õàõ€Z\ŸKúô\€€ôJX›]ôT‹ÀúôYúô\⁄
-
-JKù[äù[ò›[€à
-
-H¬à[ö[òŸT‹ X›]ôT‹ÀX›]ôT‹‘õ€›
-N¬àô]\õàùYN¬àJN¬àBàN¬Çà€€ú€€Kö[ôõ 	÷‘QHÿZ]\à›[ô\ô‘»åãå»‹\ò][€ò[€\⁄X›]ôI N¬üJJ
-N¬
+  console.info('[PMD] Waiter Standard POS V2.3 operational polish active');
+})();
