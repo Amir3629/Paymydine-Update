@@ -12,6 +12,14 @@
     activeKey: ''
   };
 
+  function ensureLegacyKeysHidden() {
+    if (document.getElementById('pmd-v23-hide-legacy-special-keys')) return;
+    var style = document.createElement('style');
+    style.id = 'pmd-v23-hide-legacy-special-keys';
+    style.textContent = 'body.pmd-waiter-standard-v23-page [data-v21-virtual="popular"],body.pmd-waiter-standard-v23-page [data-v21-virtual="recent"]{display:none!important}';
+    document.head.appendChild(style);
+  }
+
   function yes(value) {
     return value === true || value === 1 || value === '1' || value === 'true';
   }
@@ -22,6 +30,7 @@
 
   function mount(pos, posRoot) {
     if (!pos || !pos.state || !posRoot) return;
+    ensureLegacyKeysHidden();
     var categories = posRoot.querySelector('[data-pos-categories]');
     var menuRoot = posRoot.querySelector('[data-pos-menu]');
     var menu = Array.isArray(pos.state.menu) ? pos.state.menu : [];
@@ -117,6 +126,8 @@
 
     if (state.activeKey) apply(state.activeKey);
   }
+
+  ensureLegacyKeysHidden();
 
   window.addEventListener('pmd:waiter-standard-v2-opened', function (event) {
     var detail = event.detail || {};
