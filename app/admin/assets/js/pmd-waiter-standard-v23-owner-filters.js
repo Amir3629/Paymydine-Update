@@ -4,7 +4,13 @@
   if (window.PMDWaiterStandardV23OwnerFilters) return;
   if (!/^\/admin\/(?:dashboardwaiternew|waiter)(?:$|[/?#])/.test(location.pathname + location.search + location.hash)) return;
 
-  var state = { version: 'pmd-waiter-standard-v2.3-owner-filters', mounted: 0, chef: 0, bestsellers: 0 };
+  var state = {
+    version: 'pmd-waiter-standard-v2.3-owner-filters',
+    mounted: 0,
+    chef: 0,
+    bestsellers: 0,
+    activeKey: ''
+  };
 
   function yes(value) {
     return value === true || value === 1 || value === '1' || value === 'true';
@@ -47,6 +53,7 @@
       button.hidden = !enabled;
       button.disabled = !enabled;
       button.setAttribute('aria-disabled', enabled ? 'false' : 'true');
+      if (!enabled && state.activeKey === definition.key) state.activeKey = '';
     });
 
     function clearEmpty() {
@@ -57,6 +64,7 @@
     function apply(key) {
       var definition = definitions.find(function (row) { return row.key === key; });
       if (!definition) return;
+      state.activeKey = key;
       clearEmpty();
 
       Array.prototype.slice.call(categories.querySelectorAll('.pmd-pos-category')).forEach(function (button) {
@@ -95,6 +103,7 @@
       categories.addEventListener('click', function (event) {
         var standard = event.target.closest('[data-pos-category]');
         if (!standard || standard.hasAttribute('data-v23-owner-filter')) return;
+        state.activeKey = '';
         clearEmpty();
         Array.prototype.slice.call(categories.querySelectorAll('[data-v23-owner-filter]')).forEach(function (button) {
           button.classList.remove('is-active');
@@ -105,6 +114,8 @@
     state.chef = menu.filter(definitions[0].match).length;
     state.bestsellers = menu.filter(definitions[1].match).length;
     state.mounted += 1;
+
+    if (state.activeKey) apply(state.activeKey);
   }
 
   window.addEventListener('pmd:waiter-standard-v2-opened', function (event) {
@@ -117,6 +128,7 @@
   });
 
   window.PMDWaiterStandardV23OwnerFilters = {
+    mount: mount,
     debug: function () { return Object.assign({}, state); }
   };
 
