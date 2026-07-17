@@ -1,4 +1,129 @@
 (function () {
+
+  function pmdInstallFinalPOSLayout(posRoot, attempt) {
+    if (!posRoot || posRoot.dataset.pmdV292Installed === '1') {
+      return;
+    }
+
+    var app = posRoot.querySelector('.pmd-pos-app');
+    var workspace = posRoot.querySelector('.pmd-pos-workspace');
+    var catalog = posRoot.querySelector('.pmd-pos-catalog');
+    var categories = posRoot.querySelector(
+      '[data-pos-categories], .pmd-pos-categories'
+    );
+    var cart = posRoot.querySelector('.pmd-pos-cart');
+    var oldTopbar = posRoot.querySelector('.pmd-pos-topbar');
+
+    if (!app || !workspace || !catalog || !categories || !cart) {
+      attempt = Number(attempt || 0);
+
+      if (attempt < 100) {
+        setTimeout(function () {
+          pmdInstallFinalPOSLayout(posRoot, attempt + 1);
+        }, 50);
+        return;
+      }
+
+      console.error('[PMD] V2.9.3 POS nodes still missing after retry', {
+        app: !!app,
+        workspace: !!workspace,
+        catalog: !!catalog,
+        categories: !!categories,
+        cart: !!cart,
+        attempts: attempt
+      });
+      return;
+    }
+
+    function clean(node) {
+      return String(node && node.textContent || '')
+        .replace(/\s+/g, ' ')
+        .trim();
+    }
+
+    var titleNode = oldTopbar &&
+      oldTopbar.querySelector('.pmd-pos-table-title strong');
+    var areaNode = oldTopbar &&
+      oldTopbar.querySelector('.pmd-pos-table-title span');
+    var oldBack = oldTopbar &&
+      oldTopbar.querySelector('.pmd-pos-back');
+
+    var tableTitle = clean(titleNode) || posRoot.dataset.pmdTableTitle || 'TABLE';
+    var areaTitle = clean(areaNode) || posRoot.dataset.pmdAreaTitle || 'WAITER POS';
+
+    posRoot.querySelectorAll(
+      '.pmd-pos-topbar,' +
+      '.pmd-pos-tools,' +
+      '.pmd-pos-search-wrap,' +
+      '.pmd-pos-search,' +
+      '.pmd-pos-search-icon,' +
+      '.pmd-pos-view-toggle'
+    ).forEach(function (node) {
+      node.remove();
+    });
+
+    var existingRail = posRoot.querySelector('.pmd-pos-v292-left-rail');
+    if (existingRail) {
+      existingRail.remove();
+    }
+
+    var rail = document.createElement('aside');
+    rail.className = 'pmd-pos-v292-left-rail';
+
+    var railTitle = document.createElement('div');
+    railTitle.className = 'pmd-pos-v292-title';
+
+    var strong = document.createElement('strong');
+    strong.textContent = tableTitle;
+
+    var span = document.createElement('span');
+    span.textContent = areaTitle;
+
+    railTitle.appendChild(strong);
+    railTitle.appendChild(span);
+
+    var back = document.createElement('button');
+    back.type = 'button';
+    back.className = 'pmd-pos-v292-back';
+    back.textContent = 'BACK TO TABLES';
+
+    back.addEventListener('click', function () {
+      if (oldBack) {
+        oldBack.click();
+        return;
+      }
+
+      var host = posRoot.closest('.pmd-v2-pos-host');
+      var closeButton = host && host.querySelector('[data-v2-pos-close]');
+
+      if (closeButton) {
+        closeButton.click();
+        return;
+      }
+
+      document.dispatchEvent(
+        new CustomEvent('pmd:waiter-pos-close', { bubbles: true })
+      );
+    });
+
+    rail.appendChild(railTitle);
+    rail.appendChild(categories);
+    rail.appendChild(back);
+
+    posRoot.setAttribute('data-pmd-pos-root', '1');
+    posRoot.dataset.pmdV292Installed = '1';
+    app.classList.add('pmd-pos-v292-active');
+
+    workspace.insertBefore(rail, workspace.firstChild);
+    workspace.appendChild(catalog);
+    workspace.appendChild(cart);
+
+    console.info(
+      '[PMD] Waiter POS V2.9.3 async-safe final layout active'
+    );
+  }
+
+
   'use strict';
 
   if (window.PMDWaiterStandardV2) return;
@@ -30,7 +155,10 @@
     payload: null,
     tables: [],
     orders: [],
-    filter: localStorage.getItem('pmd-waiter-standard-v2-filter') || 'all',
+    filter: (function () {
+      var saved = localStorage.getItem('pmd-waiter-standard-v2-filter') || 'all';
+      return saved === 'attention' ? 'call' : saved;
+    })(),
     area: 'all',
     query: '',
     loading: false,
@@ -170,6 +298,92 @@
     return Math.max(0, num(order.total || order.order_total, 0) - num(order.settled_amount, 0));
   }
 
+
+  function waiterCallTableKeys(payload) {
+    var keys = {};
+    var seen = [];
+
+    function add(value) {
+      var key = clean(value);
+      if (key) keys[key] = true;
+    }
+
+    function visit(value, depth) {
+      if (!value || depth > 5) return;
+
+      if (Array.isArray(value)) {
+        value.forEach(function (row) { visit(row, depth + 1); });
+        return;
+      }
+
+      if (typeof value !== 'object') return;
+      if (seen.indexOf(value) !== -1) return;
+      seen.push(value);
+
+      var type = clean(
+        value.type
+        || value.alert_type
+        || value.attention_type
+        || value.event
+        || value.kind
+        || value.action
+        || value.title
+        || value.message
+        || value.status
+        || ''
+      ).toLowerCase();
+
+      var isWaiterCall =
+        /waiter[\s_-]*call|call[\s_-]*waiter|needs[\s_-]*waiter|service[\s_-]*call/.test(type)
+        || yes(value.waiter_call)
+        || yes(value.needs_waiter)
+        || yes(value.call_waiter);
+
+      if (isWaiterCall) {
+        [
+          value.table_id,
+          value.location_table_id,
+          value.table_number,
+          value.table_no,
+          value.table_ref,
+          value.table,
+          value.resource_id,
+          value.subject_id
+        ].forEach(add);
+
+        if (value.data && typeof value.data === 'object') {
+          [
+            value.data.table_id,
+            value.data.location_table_id,
+            value.data.table_number,
+            value.data.table_no,
+            value.data.table_ref,
+            value.data.table
+          ].forEach(add);
+        }
+      }
+
+      Object.keys(value).forEach(function (name) {
+        if (/alerts?|notifications?|attention|calls?|events?|service/i.test(name)) {
+          visit(value[name], depth + 1);
+        }
+      });
+    }
+
+    [
+      payload.alerts,
+      payload.service_alerts,
+      payload.notifications,
+      payload.attention,
+      payload.waiter_calls,
+      payload.calls,
+      payload.events,
+      payload.sections
+    ].forEach(function (value) { visit(value, 0); });
+
+    return keys;
+  }
+
   function deriveTables(payload) {
     var rawTables = Array.isArray(payload.tables)
       ? payload.tables
@@ -180,6 +394,7 @@
       : (Array.isArray(payload.current_orders) ? payload.current_orders : []);
 
     var orderMap = {};
+    var waiterCallKeys = waiterCallTableKeys(payload);
 
     orders.slice().sort(function (a, b) {
       return orderDate(b) - orderDate(a);
@@ -216,6 +431,8 @@
       var waiterCall = yes(raw.waiter_call)
         || yes(raw.needs_waiter)
         || yes(raw.call_waiter)
+        || !!waiterCallKeys[id]
+        || !!waiterCallKeys[number]
         || /waiter.?call/.test(clean(raw.attention_type || raw.status).toLowerCase());
 
       var cleaning = yes(raw.cleaning_required)
@@ -297,6 +514,8 @@
     return state.tables.filter(function (table) {
       if (state.filter === 'mine' && hasMine && !table.assigned) return false;
       if (state.filter === 'open' && table.openOrders < 1) return false;
+      if (state.filter === 'call' && !table.waiterCall) return false;
+      if (state.filter === 'note' && !table.note) return false;
       if (state.filter === 'attention' && !table.attention) return false;
       if (state.area !== 'all' && table.area !== state.area) return false;
 
@@ -347,7 +566,7 @@
     else if (table.note) corner = '<span class="pmd-v2-table-corner">N</span>';
 
     return '' +
-      '<button type="button" class="pmd-v2-table-key is-' + esc(table.state) + '" data-v2-open-table="' + esc(table.id) + '">' +
+      '<button type="button" class="pmd-v2-table-key is-' + esc(table.state) + '" data-pmd-has-note="' + (table.note ? '1' : '0') + '" data-pmd-waiter-call="' + (table.waiterCall ? '1' : '0') + '" data-v2-open-table="' + esc(table.id) + '">' +
         '<span class="pmd-v2-table-state">' + esc(table.stateLabel) + '</span>' +
         corner +
         '<strong>' + esc(table.number) + '</strong>' +
@@ -370,11 +589,15 @@
     var hasMine = mineAvailable();
     var mine = hasMine ? state.tables.filter(function (table) { return table.assigned; }).length : state.tables.length;
     var open = state.tables.filter(function (table) { return table.openOrders > 0; }).length;
+    var calls = state.tables.filter(function (table) { return table.waiterCall; }).length;
+    var notes = state.tables.filter(function (table) { return table.note; }).length;
     var attention = state.tables.filter(function (table) { return table.attention; }).length;
 
     setText('[data-v2-count-mine]', mine);
     setText('[data-v2-count-all]', state.tables.length);
     setText('[data-v2-count-open]', open);
+    setText('[data-v2-count-call]', calls);
+    setText('[data-v2-count-note]', notes);
     setText('[data-v2-count-attention]', attention);
 
     all('[data-v2-alert-count]').forEach(function (badge) {
@@ -453,7 +676,36 @@
       if (state.filter === 'mine' && !mineAvailable()) state.filter = 'all';
 
       updateUser(payload);
-      renderTables();
+
+      /*
+       * V2.4 lifecycle owns the visible launcher cards. The original silent
+       * 15-second polling used grid.innerHTML and destroyed every card,
+       * producing repeated legacy/fallback flashes. Keep the initial render
+       * and explicit user-driven renders, but never replace a populated
+       * lifecycle grid during background polling.
+       */
+      var lifecycleOwnsGrid = !!(
+        window.PMDWaiterV241SafeLifecycle
+        && grid
+        && grid.querySelector('[data-v2-open-table]')
+      );
+
+      if (!silent || !lifecycleOwnsGrid) {
+        renderTables();
+      } else {
+        renderCounts();
+        renderFilters();
+        renderAreas();
+        renderAlerts();
+
+        window.dispatchEvent(new CustomEvent('pmd:waiter-launcher-data-refreshed', {
+          detail: {
+            source: 'core-silent-poll',
+            updatedAt: state.updatedAt
+          }
+        }));
+      }
+
       setSync('online', 'LIVE');
       if (updated) updated.textContent = 'UPDATED ' + formatTime(state.updatedAt);
       if (!silent) toast('LIVE TABLES UPDATED');
@@ -476,7 +728,7 @@
   }
 
   function setFilter(filter) {
-    if (['mine', 'all', 'open', 'attention'].indexOf(filter) === -1) return;
+    if (['mine', 'all', 'open', 'call', 'note', 'attention'].indexOf(filter) === -1) return;
     if (filter === 'mine' && !mineAvailable()) filter = 'all';
     state.filter = filter;
     localStorage.setItem('pmd-waiter-standard-v2-filter', filter);
@@ -624,7 +876,81 @@
         onClose: requestClosePos
       });
 
-      posLoading.classList.add('is-hidden');
+      requestAnimationFrame(function () {
+        var initialTopbar = posRoot.querySelector('.pmd-pos-topbar');
+        var initialTable = initialTopbar &&
+          initialTopbar.querySelector('.pmd-pos-table-title strong');
+        var initialArea = initialTopbar &&
+          initialTopbar.querySelector('.pmd-pos-table-title span');
+
+        if (initialTable) {
+          posRoot.dataset.pmdTableTitle =
+            String(initialTable.textContent || '').trim();
+        }
+
+        if (initialArea) {
+          posRoot.dataset.pmdAreaTitle =
+            String(initialArea.textContent || '').trim();
+        }
+
+        pmdInstallFinalPOSLayout(posRoot, 0);
+      });
+
+
+      /*
+       * V2.8.8: This is the real active POS mount path.
+       * Apply the dashboard-style rebuild directly to the mounted root.
+       */
+/*
+       * V2.8.9: remove old POS chrome from the real mounted page.
+       * This intentionally removes:
+       * - complete top header
+       * - back/waiter/table title/theme/clear-cart controls
+       * - search row and view-mode buttons
+       */
+      [
+        '.pmd-pos-topbar',
+        '.pmd-pos-tools',
+        '.pmd-pos-search-wrap',
+        '.pmd-pos-view-toggle'
+      ].forEach(function (selector) {
+        posRoot.querySelectorAll(selector).forEach(function (node) {
+          node.remove();
+        });
+      });
+
+      var posApp = posRoot.querySelector('.pmd-pos-app');
+      var workspace = posRoot.querySelector('.pmd-pos-workspace');
+      var catalog = posRoot.querySelector('.pmd-pos-catalog');
+      var menuScroll = posRoot.querySelector('.pmd-pos-menu-scroll');
+
+      if (posApp) {
+        posApp.classList.add('pmd-pos-v289-clean');
+      }
+
+      if (workspace) {
+        workspace.style.height = '100dvh';
+        workspace.style.minHeight = '100dvh';
+      }
+
+      if (catalog) {
+        catalog.style.height = '100dvh';
+        catalog.style.gridTemplateRows = 'minmax(0, 1fr)';
+      }
+
+      if (menuScroll) {
+        menuScroll.style.minHeight = '0';
+      }
+
+      console.info(
+        '[PMD] Waiter POS V2.8.9 old header and search removed'
+      );
+
+      /*
+       * V2.9.1: apply the final three-column layout on the exact
+       * live POS root used by this page.
+       */
+posLoading.classList.add('is-hidden');
       window.dispatchEvent(new CustomEvent('pmd:waiter-standard-v2-opened', {
         detail: {tableId:String(tableId), table:table, pos:state.posInstance}
       }));

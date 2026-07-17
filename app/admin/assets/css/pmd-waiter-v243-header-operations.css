@@ -1,0 +1,194 @@
+/* PMD Waiter V2.4.3 — operations live in header, not on table cards */
+
+/* Remove direct card action controls from V2.4.2 */
+body.pmd-waiter-standard-v23-page .v242-card-actions,
+body.pmd-waiter-standard-v23-page .v241-status-btn {
+  display: none !important;
+}
+
+/* Restore clean card header spacing */
+body.pmd-waiter-standard-v23-page .v241-card .v241-primary {
+  max-width: 100% !important;
+  padding-right: 0 !important;
+}
+
+/* Header operation controls */
+.v243-ops-controls {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-right: 2px;
+}
+
+.v243-ops-controls button {
+  min-height: 42px;
+  padding: 0 11px;
+  border: 1px solid #526171;
+  border-radius: 3px;
+  background: #17212b;
+  color: #f8fafc;
+  font-size: 9px;
+  line-height: 1;
+  font-weight: 1000;
+  letter-spacing: .035em;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.v243-ops-controls button:hover {
+  background: #243240;
+}
+
+.v243-ops-controls button.is-active {
+  background: #2563eb;
+  border-color: #60a5fa;
+  color: #fff;
+  box-shadow: inset 0 0 0 1px rgba(255,255,255,.35);
+}
+
+/* Selection instruction bar */
+.v243-selection-bar {
+  position: fixed;
+  top: 102px;
+  left: 50%;
+  z-index: 11000;
+  min-width: min(560px, calc(100vw - 24px));
+  padding: 10px 14px;
+  display: none;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  border: 1px solid #60a5fa;
+  border-radius: 3px;
+  background: #111922;
+  color: #fff;
+  box-shadow: 0 10px 28px rgba(0,0,0,.28);
+  transform: translateX(-50%);
+}
+
+.v243-selection-bar.is-open {
+  display: flex;
+}
+
+.v243-selection-bar strong {
+  font-size: 12px;
+  font-weight: 1000;
+  letter-spacing: .03em;
+}
+
+.v243-selection-bar span {
+  color: #aebdca;
+  font-size: 10px;
+  font-weight: 850;
+}
+
+.v243-selection-bar button {
+  width: 34px;
+  height: 32px;
+  flex: 0 0 34px;
+  border: 1px solid #526171;
+  border-radius: 3px;
+  background: #18232e;
+  color: #fff;
+  font-size: 18px;
+  cursor: pointer;
+}
+
+/* Make cards clearly selectable while an operation mode is active */
+body.v243-selecting-table .pmd-v2-table-key {
+  cursor: crosshair !important;
+}
+
+body.v243-selecting-table .pmd-v2-table-key:hover {
+  box-shadow:
+    inset 0 0 0 3px #60a5fa,
+    0 0 0 2px rgba(96,165,250,.24) !important;
+  transform: translateY(-2px) !important;
+}
+
+/* Full-page Merge/Transfer workspace */
+.v243-workspace {
+  position: fixed;
+  inset: 0;
+  z-index: 14000;
+  display: none;
+  background: #0b1118;
+}
+
+.v243-workspace.is-open {
+  display: grid;
+  grid-template-rows: 62px minmax(0,1fr);
+}
+
+.v243-workspace-head {
+  padding: 0 12px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1px solid #3f4d5b;
+  background: #0b1118;
+  color: #fff;
+}
+
+.v243-workspace-head strong {
+  font-size: 18px;
+  font-weight: 1000;
+}
+
+.v243-workspace-head small {
+  display: block;
+  margin-top: 3px;
+  color: #aebdca;
+  font-size: 9px;
+  font-weight: 850;
+}
+
+.v243-workspace-head button {
+  width: 44px;
+  height: 40px;
+  border: 1px solid #526171;
+  border-radius: 3px;
+  background: #18232e;
+  color: #fff;
+  font-size: 22px;
+  cursor: pointer;
+}
+
+.v243-workspace iframe {
+  width: 100%;
+  height: 100%;
+  border: 0;
+  background: #0f1720;
+}
+
+@media (max-width: 900px) {
+  .v243-ops-controls button {
+    max-width: 78px;
+    padding: 0 7px;
+    white-space: normal;
+    text-align: center;
+    line-height: 1.05;
+  }
+}
+
+@media (max-width: 700px) {
+  .v243-ops-controls {
+    position: absolute;
+    left: 8px;
+    right: 8px;
+    top: 68px;
+    z-index: 30;
+    padding: 6px;
+    background: #0b1118;
+    border: 1px solid #3f4d5b;
+  }
+
+  .v243-ops-controls button {
+    flex: 1 1 0;
+    max-width: none;
+  }
+
+  .v243-selection-bar {
+    top: 128px;
+  }
+}

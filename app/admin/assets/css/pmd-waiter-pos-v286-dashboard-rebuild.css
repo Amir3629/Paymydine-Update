@@ -1,0 +1,557 @@
+/* ==========================================================
+   PMD Waiter POS V2.8.6
+   Dashboard-matched POS rebuild
+   ========================================================== */
+
+[data-pmd-pos-root] {
+  --v286-bg: #e8edf2;
+  --v286-panel: #ffffff;
+  --v286-line: #aeb9c5;
+  --v286-text: #101820;
+  --v286-muted: #4b5d70;
+  --v286-navy: #34445a;
+  --v286-green: #16a34a;
+  --v286-orange: #d97706;
+  --v286-blue: #2563eb;
+  --v286-red: #dc2626;
+  --v286-purple: #7c3aed;
+  --v286-teal: #0891b2;
+  width: 100% !important;
+  height: 100dvh !important;
+  background: var(--v286-bg) !important;
+  color: var(--v286-text) !important;
+}
+
+[data-pmd-pos-root],
+[data-pmd-pos-root] * {
+  box-sizing: border-box !important;
+  font-family: Inter, Roboto, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif !important;
+}
+
+[data-pmd-pos-root] .pmd-pos-app {
+  height: 100dvh !important;
+  min-height: 0 !important;
+  display: block !important;
+  background: var(--v286-bg) !important;
+  color: var(--v286-text) !important;
+}
+
+/* Remove the old POS header completely. */
+[data-pmd-pos-root] .pmd-pos-topbar {
+  display: none !important;
+}
+
+/* Main three-column workstation:
+   categories | food cards | order/payment */
+[data-pmd-pos-root] .pmd-pos-workspace {
+  height: 100dvh !important;
+  min-height: 0 !important;
+  display: grid !important;
+  grid-template-columns: minmax(0, 1fr) 390px !important;
+  gap: 0 !important;
+  padding: 0 0 0 136px !important;
+  background: var(--v286-bg) !important;
+  overflow: hidden !important;
+}
+
+[data-pmd-pos-root] .pmd-pos-catalog {
+  min-width: 0 !important;
+  min-height: 0 !important;
+  height: 100dvh !important;
+  display: grid !important;
+  grid-template-columns: 1fr !important;
+  grid-template-rows: auto auto minmax(0, 1fr) !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+  background: var(--v286-bg) !important;
+  overflow: hidden !important;
+}
+
+/* Generated left category rail, visually matching dashboard rail. */
+[data-pmd-pos-root] .pmd-pos-v286-left-rail {
+  position: fixed !important;
+  inset: 0 auto 0 0 !important;
+  z-index: 80 !important;
+  width: 136px !important;
+  padding: 8px 7px 10px !important;
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 7px !important;
+  background: #dfe7ee !important;
+  border-right: 1px solid var(--v286-line) !important;
+  overflow: hidden !important;
+}
+
+[data-pmd-pos-root] .pmd-pos-v286-table {
+  min-height: 58px !important;
+  padding: 9px 12px !important;
+  display: grid !important;
+  align-content: center !important;
+  gap: 2px !important;
+  border: 1px solid var(--v286-line) !important;
+  border-left: 4px solid var(--v286-navy) !important;
+  border-radius: 2px !important;
+  background: var(--v286-navy) !important;
+  color: #fff !important;
+}
+
+[data-pmd-pos-root] .pmd-pos-v286-table strong {
+  font-size: 13px !important;
+  font-weight: 1000 !important;
+  line-height: 1.05 !important;
+  letter-spacing: .02em !important;
+  text-transform: uppercase !important;
+}
+
+[data-pmd-pos-root] .pmd-pos-v286-table span {
+  color: rgba(255,255,255,.72) !important;
+  font-size: 10px !important;
+  font-weight: 850 !important;
+  text-transform: uppercase !important;
+}
+
+[data-pmd-pos-root] .pmd-pos-categories {
+  flex: 1 1 auto !important;
+  min-height: 0 !important;
+  padding: 0 !important;
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 7px !important;
+  overflow-y: auto !important;
+  overflow-x: hidden !important;
+  border: 0 !important;
+  scrollbar-width: thin !important;
+}
+
+[data-pmd-pos-root] .pmd-pos-category {
+  flex: 0 0 auto !important;
+  width: 100% !important;
+  min-height: 54px !important;
+  padding: 8px 11px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: flex-start !important;
+  border: 1px solid var(--v286-line) !important;
+  border-left: 4px solid var(--v286-blue) !important;
+  border-radius: 2px !important;
+  background: #fff !important;
+  color: var(--v286-text) !important;
+  box-shadow: none !important;
+  font-size: 11px !important;
+  font-weight: 1000 !important;
+  line-height: 1.05 !important;
+  text-align: left !important;
+  text-transform: uppercase !important;
+  white-space: normal !important;
+  cursor: pointer !important;
+  transition: none !important;
+}
+
+[data-pmd-pos-root] .pmd-pos-category:nth-child(5n+2) { border-left-color: var(--v286-green) !important; }
+[data-pmd-pos-root] .pmd-pos-category:nth-child(5n+3) { border-left-color: var(--v286-purple) !important; }
+[data-pmd-pos-root] .pmd-pos-category:nth-child(5n+4) { border-left-color: var(--v286-orange) !important; }
+[data-pmd-pos-root] .pmd-pos-category:nth-child(5n+5) { border-left-color: var(--v286-teal) !important; }
+
+[data-pmd-pos-root] .pmd-pos-category.is-active {
+  border-color: var(--v286-navy) !important;
+  border-left-color: var(--v286-navy) !important;
+  background: var(--v286-navy) !important;
+  color: #fff !important;
+}
+
+[data-pmd-pos-root] .pmd-pos-v286-back {
+  flex: 0 0 auto !important;
+  width: 100% !important;
+  min-height: 56px !important;
+  padding: 0 12px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  border: 1px solid var(--v286-line) !important;
+  border-left: 4px solid var(--v286-red) !important;
+  border-radius: 2px !important;
+  background: #fff !important;
+  color: var(--v286-text) !important;
+  font-size: 12px !important;
+  font-weight: 1000 !important;
+  text-transform: uppercase !important;
+  cursor: pointer !important;
+  box-shadow: none !important;
+}
+
+[data-pmd-pos-root] .pmd-pos-v286-back::after {
+  content: "↩" !important;
+  font-size: 18px !important;
+}
+
+/* Search bar: same squared dashboard language. */
+[data-pmd-pos-root] .pmd-pos-tools {
+  padding: 10px 12px !important;
+  display: grid !important;
+  grid-template-columns: minmax(0, 1fr) auto !important;
+  gap: 8px !important;
+  border: 0 !important;
+  border-bottom: 1px solid var(--v286-line) !important;
+  background: var(--v286-bg) !important;
+}
+
+[data-pmd-pos-root] .pmd-pos-search {
+  min-height: 52px !important;
+  padding: 0 15px 0 42px !important;
+  border: 1px solid var(--v286-line) !important;
+  border-radius: 2px !important;
+  background: #fff !important;
+  color: var(--v286-text) !important;
+  box-shadow: none !important;
+  font-size: 12px !important;
+  font-weight: 900 !important;
+  text-transform: uppercase !important;
+}
+
+[data-pmd-pos-root] .pmd-pos-search-icon {
+  left: 15px !important;
+  right: auto !important;
+}
+
+[data-pmd-pos-root] .pmd-pos-view-toggle {
+  display: none !important;
+}
+
+[data-pmd-pos-root] .pmd-pos-warning {
+  margin: 0 12px 8px !important;
+  border-radius: 2px !important;
+}
+
+/* Product grid styled like the table cards. */
+[data-pmd-pos-root] .pmd-pos-menu-scroll {
+  min-height: 0 !important;
+  padding: 0 12px 12px !important;
+  overflow: auto !important;
+  background: var(--v286-bg) !important;
+}
+
+[data-pmd-pos-root] .pmd-pos-menu-grid,
+[data-pmd-pos-root] .pmd-pos-menu-grid.is-list {
+  display: grid !important;
+  grid-template-columns: repeat(auto-fill, minmax(155px, 1fr)) !important;
+  gap: 7px !important;
+  align-content: start !important;
+}
+
+[data-pmd-pos-root] .pmd-pos-product,
+[data-pmd-pos-root] .pmd-pos-menu-grid.is-list .pmd-pos-product {
+  position: relative !important;
+  min-width: 0 !important;
+  min-height: 168px !important;
+  padding: 14px 13px 12px !important;
+  display: flex !important;
+  flex-direction: column !important;
+  justify-content: space-between !important;
+  border: 1px solid #97a6b6 !important;
+  border-top: 5px solid var(--v286-navy) !important;
+  border-radius: 3px !important;
+  background: #fff !important;
+  color: var(--v286-text) !important;
+  box-shadow: none !important;
+  transform: none !important;
+  text-align: left !important;
+  transition: none !important;
+  overflow: hidden !important;
+}
+
+[data-pmd-pos-root] .pmd-pos-product:nth-child(5n+2) { border-top-color: var(--v286-orange) !important; }
+[data-pmd-pos-root] .pmd-pos-product:nth-child(5n+3) { border-top-color: var(--v286-blue) !important; }
+[data-pmd-pos-root] .pmd-pos-product:nth-child(5n+4) { border-top-color: var(--v286-green) !important; }
+[data-pmd-pos-root] .pmd-pos-product:nth-child(5n+5) { border-top-color: var(--v286-purple) !important; }
+
+[data-pmd-pos-root] .pmd-pos-product:is(:hover,:focus,:active) {
+  border-color: #7d8ea0 !important;
+  border-top-color: inherit !important;
+  background: #fff !important;
+  box-shadow: none !important;
+  transform: none !important;
+}
+
+[data-pmd-pos-root] .pmd-pos-product-thumb {
+  display: none !important;
+}
+
+[data-pmd-pos-root] .pmd-pos-product-name {
+  color: var(--v286-text) !important;
+  font-size: 16px !important;
+  font-weight: 1000 !important;
+  line-height: 1.08 !important;
+  letter-spacing: -.02em !important;
+}
+
+[data-pmd-pos-root] .pmd-pos-product-desc,
+[data-pmd-pos-root] .pmd-pos-product-tags {
+  color: var(--v286-muted) !important;
+}
+
+[data-pmd-pos-root] .pmd-pos-product-foot {
+  margin-top: 14px !important;
+  align-items: flex-end !important;
+}
+
+[data-pmd-pos-root] .pmd-pos-price {
+  color: var(--v286-orange) !important;
+  font-size: 17px !important;
+  font-weight: 1000 !important;
+}
+
+[data-pmd-pos-root] .pmd-pos-plus {
+  display: none !important;
+}
+
+/* Right order/payment column replaces the dashboard right rail. */
+[data-pmd-pos-root] .pmd-pos-cart {
+  height: 100dvh !important;
+  min-height: 0 !important;
+  display: grid !important;
+  grid-template-rows: auto auto auto minmax(0, 1fr) auto !important;
+  border: 0 !important;
+  border-left: 1px solid var(--v286-line) !important;
+  border-radius: 0 !important;
+  background: #f8fafc !important;
+  box-shadow: none !important;
+  overflow: hidden !important;
+}
+
+[data-pmd-pos-root] .pmd-pos-cart-head,
+[data-pmd-pos-root] .pmd-pos-section-heading,
+[data-pmd-pos-root] .pmd-pos-cart-footer {
+  border-radius: 0 !important;
+}
+
+[data-pmd-pos-root] .pmd-pos-cart-head {
+  padding: 14px 13px 12px !important;
+  border-bottom: 1px solid var(--v286-line) !important;
+  background: #fff !important;
+}
+
+[data-pmd-pos-root] .pmd-pos-cart-head h2 {
+  color: var(--v286-text) !important;
+  font-size: 19px !important;
+  font-weight: 1000 !important;
+  text-transform: uppercase !important;
+}
+
+[data-pmd-pos-root] .pmd-pos-order-pill {
+  border-radius: 2px !important;
+  background: var(--v286-teal) !important;
+  color: #fff !important;
+}
+
+[data-pmd-pos-root] .pmd-pos-stepper {
+  border-radius: 2px !important;
+  background: #e8edf2 !important;
+}
+
+[data-pmd-pos-root] .pmd-pos-stepper button {
+  border: 1px solid var(--v286-line) !important;
+  border-radius: 2px !important;
+  box-shadow: none !important;
+}
+
+[data-pmd-pos-root] .pmd-pos-section-heading {
+  background: #eef2f6 !important;
+  border-color: var(--v286-line) !important;
+}
+
+[data-pmd-pos-root] .pmd-pos-cart-list {
+  background: #fff !important;
+}
+
+[data-pmd-pos-root] .pmd-pos-cart-line,
+[data-pmd-pos-root] .pmd-pos-cart-item {
+  border-radius: 2px !important;
+}
+
+[data-pmd-pos-root] .pmd-pos-cart-footer {
+  border-top: 1px solid var(--v286-line) !important;
+  background: #fff !important;
+}
+
+[data-pmd-pos-root] .pmd-pos-note,
+[data-pmd-pos-root] textarea,
+[data-pmd-pos-root] input {
+  border-radius: 2px !important;
+  box-shadow: none !important;
+}
+
+[data-pmd-pos-root] .pmd-pos-action,
+[data-pmd-pos-root] .pmd-pos-cart-footer button {
+  border-radius: 2px !important;
+  box-shadow: none !important;
+  text-transform: uppercase !important;
+  font-weight: 1000 !important;
+}
+
+[data-pmd-pos-root] .pmd-pos-action.send {
+  background: var(--v286-green) !important;
+  color: #fff !important;
+}
+
+[data-pmd-pos-root] .pmd-pos-action.pay {
+  background: var(--v286-blue) !important;
+  color: #fff !important;
+}
+
+[data-pmd-pos-root] .pmd-pos-action.more {
+  background: var(--v286-navy) !important;
+  color: #fff !important;
+}
+
+/* Payment modal follows the same square visual system. */
+[data-pmd-pos-root] .pmd-pos-payment-dialog,
+[data-pmd-pos-root] .pmd-pos-modal-card,
+[data-pmd-pos-root] .pmd-pos-payment-block,
+[data-pmd-pos-root] .pmd-pos-method,
+[data-pmd-pos-root] .pmd-pos-pay-button,
+[data-pmd-pos-root] .pmd-pos-payment-secondary {
+  border-radius: 3px !important;
+  box-shadow: none !important;
+}
+
+[data-pmd-pos-root] .pmd-pos-pay-button {
+  background: var(--v286-blue) !important;
+}
+
+/* Dark mode keeps dashboard geometry but uses the same dark palette. */
+html[data-pmd-pos-theme="dark"] [data-pmd-pos-root] {
+  --v286-bg: #0d141b;
+  --v286-panel: #17212b;
+  --v286-line: #536171;
+  --v286-text: #f8fafc;
+  --v286-muted: #b8c2cc;
+  --v286-navy: #263442;
+}
+
+html[data-pmd-pos-theme="dark"] [data-pmd-pos-root] .pmd-pos-v286-left-rail,
+html[data-pmd-pos-theme="dark"] [data-pmd-pos-root] .pmd-pos-catalog,
+html[data-pmd-pos-theme="dark"] [data-pmd-pos-root] .pmd-pos-workspace,
+html[data-pmd-pos-theme="dark"] [data-pmd-pos-root] .pmd-pos-menu-scroll {
+  background: #0d141b !important;
+}
+
+html[data-pmd-pos-theme="dark"] [data-pmd-pos-root] .pmd-pos-category,
+html[data-pmd-pos-theme="dark"] [data-pmd-pos-root] .pmd-pos-product,
+html[data-pmd-pos-theme="dark"] [data-pmd-pos-root] .pmd-pos-v286-back,
+html[data-pmd-pos-theme="dark"] [data-pmd-pos-root] .pmd-pos-cart,
+html[data-pmd-pos-theme="dark"] [data-pmd-pos-root] .pmd-pos-cart-head,
+html[data-pmd-pos-theme="dark"] [data-pmd-pos-root] .pmd-pos-cart-footer,
+html[data-pmd-pos-theme="dark"] [data-pmd-pos-root] .pmd-pos-cart-list {
+  background: #17212b !important;
+  color: #f8fafc !important;
+}
+
+html[data-pmd-pos-theme="dark"] [data-pmd-pos-root] .pmd-pos-category.is-active {
+  background: #34445a !important;
+}
+
+@media (max-width: 980px) {
+  [data-pmd-pos-root] .pmd-pos-workspace {
+    grid-template-columns: minmax(0,1fr) 340px !important;
+  }
+}
+
+@media (max-width: 820px) {
+  [data-pmd-pos-root] .pmd-pos-workspace {
+    display: block !important;
+    padding-left: 0 !important;
+  }
+
+  [data-pmd-pos-root] .pmd-pos-v286-left-rail {
+    position: static !important;
+    width: 100% !important;
+    height: auto !important;
+    padding: 7px !important;
+    flex-direction: row !important;
+    border-right: 0 !important;
+    border-bottom: 1px solid var(--v286-line) !important;
+  }
+
+  [data-pmd-pos-root] .pmd-pos-v286-table {
+    min-width: 120px !important;
+  }
+
+  [data-pmd-pos-root] .pmd-pos-categories {
+    flex-direction: row !important;
+    overflow-x: auto !important;
+  }
+
+  [data-pmd-pos-root] .pmd-pos-category {
+    width: auto !important;
+    min-width: 118px !important;
+  }
+
+  [data-pmd-pos-root] .pmd-pos-v286-back {
+    width: 58px !important;
+    min-width: 58px !important;
+    font-size: 0 !important;
+  }
+
+  [data-pmd-pos-root] .pmd-pos-v286-back::after {
+    margin: auto !important;
+  }
+}
+
+/* ==========================================================
+   V2.8.9 hard removal of old POS chrome
+   ========================================================== */
+
+.pmd-v2-pos-host .pmd-pos-topbar,
+.pmd-v2-pos-host .pmd-pos-tools,
+.pmd-v2-pos-host .pmd-pos-search-wrap,
+.pmd-v2-pos-host .pmd-pos-search,
+.pmd-v2-pos-host .pmd-pos-search-icon,
+.pmd-v2-pos-host .pmd-pos-view-toggle,
+[data-pmd-pos-root] .pmd-pos-topbar,
+[data-pmd-pos-root] .pmd-pos-tools,
+[data-pmd-pos-root] .pmd-pos-search-wrap,
+[data-pmd-pos-root] .pmd-pos-search,
+[data-pmd-pos-root] .pmd-pos-search-icon,
+[data-pmd-pos-root] .pmd-pos-view-toggle,
+.pmd-pos-v289-clean .pmd-pos-topbar,
+.pmd-pos-v289-clean .pmd-pos-tools,
+.pmd-pos-v289-clean .pmd-pos-search-wrap,
+.pmd-pos-v289-clean .pmd-pos-search,
+.pmd-pos-v289-clean .pmd-pos-search-icon,
+.pmd-pos-v289-clean .pmd-pos-view-toggle {
+  display: none !important;
+  visibility: hidden !important;
+  width: 0 !important;
+  height: 0 !important;
+  min-height: 0 !important;
+  max-height: 0 !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  border: 0 !important;
+  overflow: hidden !important;
+}
+
+.pmd-v2-pos-host .pmd-pos-app,
+[data-pmd-pos-root] .pmd-pos-app,
+.pmd-pos-v289-clean {
+  height: 100dvh !important;
+  min-height: 100dvh !important;
+}
+
+.pmd-v2-pos-host .pmd-pos-workspace,
+[data-pmd-pos-root] .pmd-pos-workspace,
+.pmd-pos-v289-clean .pmd-pos-workspace {
+  height: 100dvh !important;
+  min-height: 100dvh !important;
+  top: 0 !important;
+  margin-top: 0 !important;
+  padding-top: 0 !important;
+}
+
+.pmd-v2-pos-host .pmd-pos-catalog,
+[data-pmd-pos-root] .pmd-pos-catalog,
+.pmd-pos-v289-clean .pmd-pos-catalog {
+  height: 100dvh !important;
+  grid-template-rows: minmax(0, 1fr) !important;
+}

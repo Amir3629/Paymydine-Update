@@ -1,0 +1,99 @@
+/* PMD Waiter V2.8.3 Final Visual Shield */
+
+html.pmd-v283-booting,
+html.pmd-v283-booting body {
+  overflow: hidden !important;
+}
+
+html.pmd-v283-booting body > *:not(#pmd-v283-shield) {
+  visibility: hidden !important;
+}
+
+#pmd-v283-shield {
+  position: fixed;
+  inset: 0;
+  z-index: 2147483647;
+  display: grid;
+  place-items: center;
+  background: #e8edf2;
+  color: #111827;
+  opacity: 1;
+  visibility: visible;
+  pointer-events: all;
+}
+
+#pmd-v283-shield[hidden] {
+  display: none !important;
+}
+
+#pmd-v283-shield .pmd-v283-box {
+  width: min(340px, calc(100vw - 40px));
+  padding: 24px;
+  border: 1px solid #aeb9c5;
+  border-left: 5px solid #2563eb;
+  background: #ffffff;
+  box-shadow: 0 12px 34px rgba(15, 23, 42, .12);
+  text-align: center;
+}
+
+#pmd-v283-shield .pmd-v283-title {
+  margin: 0 0 10px;
+  font-size: 15px;
+  font-weight: 1000;
+  letter-spacing: .05em;
+  text-transform: uppercase;
+}
+
+#pmd-v283-shield .pmd-v283-status {
+  margin: 0;
+  font-size: 12px;
+  font-weight: 800;
+  color: #52606d;
+}
+
+#pmd-v283-shield .pmd-v283-progress {
+  position: relative;
+  height: 4px;
+  margin-top: 18px;
+  overflow: hidden;
+  background: #d8e0e8;
+}
+
+#pmd-v283-shield .pmd-v283-progress::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  width: 35%;
+  background: #2563eb;
+  animation: pmd-v283-progress 900ms linear infinite;
+}
+
+@keyframes pmd-v283-progress {
+  from { transform: translateX(-120%); }
+  to   { transform: translateX(390%); }
+}
+
+html[data-pmd-pos-theme="dark"] #pmd-v283-shield {
+  background: #0d141b;
+  color: #f8fafc;
+}
+
+html[data-pmd-pos-theme="dark"] #pmd-v283-shield .pmd-v283-box {
+  background: #17212b;
+  border-color: #536171;
+  border-left-color: #3b82f6;
+  box-shadow: none;
+}
+
+html[data-pmd-pos-theme="dark"] #pmd-v283-shield .pmd-v283-status {
+  color: #b8c2cc;
+}
+
+html[data-pmd-pos-theme="dark"] #pmd-v283-shield .pmd-v283-progress {
+  background: #263442;
+}
+
+/* The real page appears in a single frame, with no fade or transition. */
+html.pmd-v283-ready body > * {
+  visibility: visible;
+}

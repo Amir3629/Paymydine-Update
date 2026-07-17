@@ -1,0 +1,116 @@
+/* PMD Waiter V2.4.2 — remove legacy flash and expose lifecycle actions */
+
+/* A newly-rendered core card stays invisible only until V2.4.2 decorates it. */
+body.pmd-waiter-standard-v23-page
+[data-v2-table-grid] > [data-v2-open-table]:not(.v242-ready) {
+  opacity: 0 !important;
+}
+
+body.pmd-waiter-standard-v23-page
+[data-v2-table-grid] > [data-v2-open-table].v242-ready {
+  opacity: 1 !important;
+  transition: opacity .06s linear !important;
+}
+
+/* Replace the unreliable nested STATUS button. */
+body.pmd-waiter-standard-v23-page .v241-status-btn {
+  display: none !important;
+}
+
+body.pmd-waiter-standard-v23-page .v242-card-actions {
+  position: absolute;
+  right: 9px;
+  top: 9px;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  z-index: 8;
+}
+
+body.pmd-waiter-standard-v23-page .v242-action {
+  min-height: 29px;
+  padding: 0 8px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--v241-state, #64748b);
+  border-radius: 3px;
+  background: color-mix(
+    in srgb,
+    var(--v241-state, #64748b) 12%,
+    var(--pmd-v23-surface)
+  );
+  color: var(--v241-state, #475569);
+  font-size: 8px;
+  line-height: 1;
+  font-weight: 1000;
+  letter-spacing: .025em;
+  white-space: nowrap;
+  cursor: pointer;
+  user-select: none;
+}
+
+body.pmd-waiter-standard-v23-page .v242-action:hover,
+body.pmd-waiter-standard-v23-page .v242-action:focus {
+  outline: none;
+  background: var(--v241-state, #475569);
+  color: #fff;
+}
+
+body.pmd-waiter-standard-v23-page .v242-action.is-primary {
+  border-color: var(--v241-state, #475569);
+  background: var(--v241-state, #475569);
+  color: #fff;
+}
+
+body.pmd-waiter-standard-v23-page .v242-action.is-primary:hover {
+  filter: brightness(1.08);
+}
+
+/* Leave enough top-right space for the two explicit controls. */
+body.pmd-waiter-standard-v23-page .v241-card .v241-primary {
+  max-width: calc(100% - 128px);
+}
+
+/* Updating state lock */
+body.pmd-waiter-standard-v23-page .v241-card.v242-updating {
+  pointer-events: none;
+  opacity: .62 !important;
+}
+
+.v242-toast {
+  position: fixed;
+  left: 50%;
+  bottom: 22px;
+  z-index: 15000;
+  max-width: min(520px, calc(100vw - 24px));
+  padding: 11px 15px;
+  border-radius: 3px;
+  background: #111922;
+  color: #fff;
+  box-shadow: 0 8px 26px rgba(0,0,0,.3);
+  font-size: 12px;
+  font-weight: 900;
+  transform: translate(-50%, 18px);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity .15s ease, transform .15s ease;
+}
+
+.v242-toast.show {
+  opacity: 1;
+  transform: translate(-50%, 0);
+}
+
+.v242-toast.error {
+  background: #991b1b;
+}
+
+@media (max-width: 900px) {
+  body.pmd-waiter-standard-v23-page .v242-action.is-primary {
+    max-width: 82px;
+    white-space: normal;
+    text-align: center;
+    line-height: 1.05;
+  }
+}

@@ -1,0 +1,95 @@
+/* PMD Waiter V3.0 clean bootstrap */
+
+/* Final launcher shell is defined before JavaScript starts. */
+.pmd-v2-topbar,
+.pmd-v2-footer,
+.pmd-v2-command,
+.pmd-v23-online-user,
+.pmd-v2-live,
+.pmd-v233-header-search,
+.pmd-v263-area-search {
+  display: none !important;
+}
+
+html,
+body,
+[data-pmd-waiter-v2-root] {
+  transition: none !important;
+  animation: none !important;
+}
+
+.pmd-v300-service-tray {
+  display: flex;
+  flex-flow: row wrap;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+  margin-top: 7px;
+}
+
+.pmd-v300-service-badge {
+  min-height: 28px;
+  padding: 0 10px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  border: 1px solid #d97706;
+  border-radius: 3px;
+  background: transparent;
+  color: #d97706;
+  font: inherit;
+  font-size: 11px;
+  font-weight: 1000;
+  line-height: 1;
+  letter-spacing: .04em;
+  box-shadow: none;
+  transform: none;
+  transition: none;
+  animation: none;
+}
+
+.pmd-v300-service-badge > b {
+  min-width: 18px;
+  height: 18px;
+  padding: 0 4px;
+  display: inline-grid;
+  place-items: center;
+  border-radius: 3px;
+  background: #d97706;
+  color: #fff;
+  font-size: 10px;
+}
+
+.pmd-v300-service-badge:is(:hover, :focus, :active) {
+  background: transparent !important;
+  color: #d97706 !important;
+  box-shadow: none !important;
+  transform: none !important;
+  outline: none !important;
+}
+
+html[data-pmd-pos-theme="dark"] .pmd-v300-has-service,
+html[data-pmd-pos-theme="dark"] .pmd-v300-has-service:is(:hover, :focus, :active) {
+  background: #172330 !important;
+  color: #f8fafc !important;
+  border-top-color: #d97706 !important;
+  box-shadow: none !important;
+  transform: none !important;
+}
+
+/* Legacy badge generations are never painted. */
+[data-v271-open-note],
+[data-v271-open-call],
+[data-v272-note],
+[data-v272-call],
+[data-v273-note],
+[data-v273-call],
+[data-v274-note],
+[data-v274-call],
+.pmd-v271-note-button,
+.pmd-v272-alert-badge,
+.pmd-v272-card-alerts,
+.pmd-v274-service-tray {
+  display: none !important;
+}

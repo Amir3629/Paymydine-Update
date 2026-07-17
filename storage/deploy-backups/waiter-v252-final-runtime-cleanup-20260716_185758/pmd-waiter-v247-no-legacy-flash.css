@@ -1,0 +1,70 @@
+/*
+ * PMD Waiter V2.4.7
+ * Never reveal a freshly-rendered legacy card before lifecycle decoration.
+ */
+
+/*
+ * V2.4.2 can add v242-ready before V2.4.1 adds v241-card.
+ * Require both readiness and lifecycle decoration before showing a card.
+ */
+body.pmd-waiter-standard-v23-page
+[data-v2-table-grid] > [data-v2-open-table]:not(.v241-card) {
+  opacity: 0 !important;
+  visibility: hidden !important;
+  pointer-events: none !important;
+}
+
+body.pmd-waiter-standard-v23-page
+[data-v2-table-grid] > [data-v2-open-table].v241-card {
+  opacity: 1 !important;
+  visibility: visible !important;
+  pointer-events: auto !important;
+  transition: opacity .05s linear !important;
+}
+
+/*
+ * Do not show the old blue state even for a single paint.
+ * The physical lifecycle color is applied only after decoration.
+ */
+body.pmd-waiter-standard-v23-page
+[data-v2-table-grid] > [data-v2-open-table]:not(.v241-card) {
+  --pmd-table-state-color: transparent !important;
+  border-color: transparent !important;
+  background: transparent !important;
+  box-shadow: none !important;
+}
+
+/*
+ * Core can briefly display its empty-state while cards are being replaced.
+ * Hide it whenever the grid still contains table nodes awaiting decoration.
+ */
+body.pmd-waiter-standard-v23-page
+[data-v2-table-grid]:has(> [data-v2-open-table]) ~ [data-v2-empty],
+body.pmd-waiter-standard-v23-page
+.pmd-v2-table-stage:has([data-v2-open-table]) [data-v2-empty] {
+  display: none !important;
+}
+
+/* Lifecycle cards remain the only visible card design. */
+body.pmd-waiter-standard-v23-page
+[data-v2-table-grid] > .v241-card[data-v241-status="available"] {
+  border-top-color: #16a34a !important;
+}
+body.pmd-waiter-standard-v23-page
+[data-v2-table-grid] > .v241-card[data-v241-status="occupied"] {
+  border-top-color: #475569 !important;
+}
+body.pmd-waiter-standard-v23-page
+[data-v2-table-grid] > .v241-card[data-v241-status="cleaning"] {
+  border-top-color: #d97706 !important;
+}
+body.pmd-waiter-standard-v23-page
+[data-v2-table-grid] > .v241-card[data-v241-status="reserved"] {
+  border-top-color: #2563eb !important;
+}
+
+/* Avoid height collapse while the fresh cards are waiting for decoration. */
+body.pmd-waiter-standard-v23-page
+[data-v2-table-grid] > [data-v2-open-table]:not(.v241-card) {
+  min-height: 158px !important;
+}

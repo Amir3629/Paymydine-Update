@@ -238,6 +238,7 @@
       var results = await Promise.all([
         fetchText('/app/admin/assets/css/pmd-waiter-pos-v1.css?v=4'),
         fetchText('/app/admin/assets/css/pmd-waiter-pos-product-details-v3.css?v=4'),
+        fetchText('/app/admin/assets/css/pmd-waiter-pos-v286-dashboard-rebuild.css?v=287'),
         ensureScripts(),
         fetch(overlayUrl(tableNo) + '?_=' + Date.now(), {
           credentials: 'same-origin',
@@ -256,8 +257,16 @@
       if (!overlayShadow || loadingTable !== tableNo) return;
       var posCss = results[0];
       var detailsCss = results[1];
-      var json = results[3];
-      overlayShadow.innerHTML = '<style>' + shadowBaseCss() + '\n' + posCss + '\n' + detailsCss + '</style>' + json.html;
+      var dashboardCss = results[2];
+      var json = results[4];
+      overlayShadow.innerHTML =
+        '<style>' +
+        shadowBaseCss() + '\n' +
+        posCss + '\n' +
+        detailsCss + '\n' +
+        dashboardCss +
+        '</style>' +
+        json.html;
 
       var root = overlayShadow.querySelector('[data-pmd-pos-root]');
       if (!root || !window.PMDWaiterPOSApp) throw new Error('The isolated POS application did not mount.');
@@ -268,6 +277,16 @@
       if (window.PMDWaiterPOSProductDetailsV3) {
         window.PMDWaiterPOSProductDetailsV3.install(root, posInstance);
       }
+
+      if (
+        window.PMDWaiterPOSV286 &&
+        typeof window.PMDWaiterPOSV286.install === 'function'
+      ) {
+        window.PMDWaiterPOSV286.install(root);
+      } else {
+        console.error('[PMD] V286 installer is unavailable inside shadow POS');
+      }
+
       loadingTable = null;
       console.info('[PMD] Waiter POS shadow workspace mounted', {table: tableNo, isolated: true});
     } catch (error) {

@@ -1,0 +1,138 @@
+/* ==========================================================
+   PMD Waiter V2.6.8
+   Stable first paint and notification icon
+   ========================================================== */
+
+/*
+ * Disable visual interpolation during initial boot.
+ * This prevents buttons, borders and colors from animating from
+ * an old CSS state into the final state.
+ */
+html.pmd-v268-booting *,
+html.pmd-v268-booting *::before,
+html.pmd-v268-booting *::after {
+  transition: none !important;
+  animation: none !important;
+  scroll-behavior: auto !important;
+}
+
+/*
+ * The right rail is already server-independent and visually stable.
+ * Keep it visible immediately.
+ *
+ * Hide only the sections that are rebuilt/decorated by JavaScript.
+ */
+html.pmd-v268-booting
+:is(
+  [data-v2-filters],
+  .pmd-v2-filter-rail,
+  .pmd-v2-sidebar,
+  [data-v2-areas],
+  [data-v2-tables],
+  .pmd-v2-table-grid,
+  .pmd-v2-floor,
+  .pmd-v2-content
+) {
+  visibility: hidden !important;
+}
+
+/*
+ * Do not hide the full application background.
+ * The correct theme background remains visible during the tiny boot window.
+ */
+html.pmd-v268-booting,
+html.pmd-v268-booting body,
+html.pmd-v268-booting [data-pmd-waiter-v2-root] {
+  opacity: 1 !important;
+}
+
+/*
+ * Reveal all final sections simultaneously.
+ */
+html.pmd-v268-ready
+:is(
+  [data-v2-filters],
+  .pmd-v2-filter-rail,
+  .pmd-v2-sidebar,
+  [data-v2-areas],
+  [data-v2-tables],
+  .pmd-v2-table-grid,
+  .pmd-v2-floor,
+  .pmd-v2-content
+) {
+  visibility: visible !important;
+}
+
+/*
+ * Notification button: retain the red side accent and button frame,
+ * but show only a centered bell icon.
+ */
+body.pmd-waiter-standard-v23-page
+:is(
+  .v257-operations-rail,
+  .pmd-v257-operations-rail
+)
+.v257-operation[data-v268-notification-icon="1"] {
+  display: grid !important;
+  place-items: center !important;
+  grid-template-columns: 1fr !important;
+  grid-template-rows: 1fr !important;
+  padding: 0 !important;
+  overflow: hidden !important;
+  text-align: center !important;
+}
+
+.pmd-v268-notification-icon {
+  display: grid !important;
+  place-items: center !important;
+  width: 28px !important;
+  height: 28px !important;
+  color: #dc2626 !important;
+  pointer-events: none !important;
+}
+
+.pmd-v268-notification-icon svg {
+  display: block !important;
+  width: 25px !important;
+  height: 25px !important;
+  overflow: visible !important;
+  fill: none !important;
+  stroke: currentColor !important;
+  stroke-width: 2.2 !important;
+  stroke-linecap: round !important;
+  stroke-linejoin: round !important;
+}
+
+/* Dark-mode icon */
+html[data-pmd-pos-theme="dark"]
+.pmd-v268-notification-icon {
+  color: #ef4444 !important;
+}
+
+/* Permanently hide any old numerical alert counters */
+[data-v2-alert-count],
+[data-v257-notification-count],
+.v257-notification-count,
+.pmd-v257-notification-count {
+  display: none !important;
+}
+
+/*
+ * No hover, focus or active visual mutation.
+ */
+body.pmd-waiter-standard-v23-page
+:is(
+  .v257-operations-rail,
+  .pmd-v257-operations-rail
+)
+.v257-operation[data-v268-notification-icon="1"]:is(
+  :hover,
+  :focus,
+  :focus-visible,
+  :active
+) {
+  transform: none !important;
+  filter: none !important;
+  box-shadow: none !important;
+  outline: none !important;
+}

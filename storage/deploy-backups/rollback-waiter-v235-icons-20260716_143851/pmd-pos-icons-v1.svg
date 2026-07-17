@@ -1,0 +1,47 @@
+<svg xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <style>
+      .i{fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+    </style>
+
+    <symbol id="menu" viewBox="0 0 24 24"><path class="i" d="M4 6h16M4 12h16M4 18h16"/></symbol>
+    <symbol id="grid" viewBox="0 0 24 24"><rect class="i" x="3" y="3" width="7" height="7" rx="1"/><rect class="i" x="14" y="3" width="7" height="7" rx="1"/><rect class="i" x="3" y="14" width="7" height="7" rx="1"/><rect class="i" x="14" y="14" width="7" height="7" rx="1"/></symbol>
+    <symbol id="table" viewBox="0 0 24 24"><path class="i" d="M4 8h16v8H4zM7 16v4M17 16v4M7 8V4M17 8V4"/></symbol>
+    <symbol id="open" viewBox="0 0 24 24"><path class="i" d="M4 5h12a3 3 0 0 1 3 3v11H7a3 3 0 0 1-3-3V5zM7 5v14M11 9h5M11 13h5"/></symbol>
+    <symbol id="bell" viewBox="0 0 24 24"><path class="i" d="M6 9a6 6 0 0 1 12 0v5l2 3H4l2-3V9zM10 20h4"/></symbol>
+    <symbol id="note" viewBox="0 0 24 24"><path class="i" d="M5 3h14v18H5zM8 8h8M8 12h8M8 16h5"/></symbol>
+    <symbol id="star" viewBox="0 0 24 24"><path class="i" d="m12 3 2.8 5.7 6.2.9-4.5 4.4 1.1 6.2L12 17.3 6.4 20.2 7.5 14 3 9.6l6.2-.9L12 3z"/></symbol>
+    <symbol id="chef" viewBox="0 0 24 24"><path class="i" d="M7 10a4 4 0 0 1 1-7 4.5 4.5 0 0 1 8 0 4 4 0 0 1 1 7v8H7v-8zM7 14h10M10 18v-4M14 18v-4"/></symbol>
+    <symbol id="clock" viewBox="0 0 24 24"><circle class="i" cx="12" cy="12" r="9"/><path class="i" d="M12 7v6l4 2"/></symbol>
+    <symbol id="breakfast" viewBox="0 0 24 24"><circle class="i" cx="12" cy="12" r="7"/><circle class="i" cx="12" cy="12" r="2.2"/><path class="i" d="M3 4v7M5 4v7M4 11v9M20 4v16M17 8h3"/></symbol>
+    <symbol id="appetizer" viewBox="0 0 24 24"><path class="i" d="M5 15h14M7 15a5 5 0 0 1 10 0M12 7v3M9 8l1 2M15 8l-1 2"/></symbol>
+    <symbol id="main" viewBox="0 0 24 24"><path class="i" d="M4 15h16M6 15a6 6 0 0 1 12 0M12 6v3M3 18h18"/></symbol>
+    <symbol id="dessert" viewBox="0 0 24 24"><path class="i" d="M5 9h14l-2 11H7L5 9zM8 9a4 4 0 0 1 8 0M12 3v2"/><circle class="i" cx="12" cy="3" r="1"/></symbol>
+    <symbol id="drink" viewBox="0 0 24 24"><path class="i" d="M6 3h12l-2 18H8L6 3zM8 8h8M15 3l3-2"/></symbol>
+    <symbol id="coffee" viewBox="0 0 24 24"><path class="i" d="M4 8h13v8a4 4 0 0 1-4 4H8a4 4 0 0 1-4-4V8zM17 10h2a3 3 0 0 1 0 6h-2M7 3v2M11 3v2M15 3v2"/></symbol>
+    <symbol id="tea" viewBox="0 0 24 24"><path class="i" d="M5 9h12v7a4 4 0 0 1-4 4H9a4 4 0 0 1-4-4V9zM17 11h2a3 3 0 0 1 0 6h-2M12 9c0-3 2-4 4-5"/></symbol>
+    <symbol id="beer" viewBox="0 0 24 24"><path class="i" d="M6 5h10v16H6zM16 8h2a3 3 0 0 1 0 6h-2M8 8h6M9 5V3M13 5V3"/></symbol>
+    <symbol id="wine" viewBox="0 0 24 24"><path class="i" d="M7 3h10l-1 7a4 4 0 0 1-8 0L7 3zM12 14v6M8 20h8"/></symbol>
+    <symbol id="cocktail" viewBox="0 0 24 24"><path class="i" d="M5 4h14l-7 8v8M8 20h8M15 4l3-2"/></symbol>
+    <symbol id="softdrink" viewBox="0 0 24 24"><path class="i" d="M7 5h10l-1 16H8L7 5zM6 5h12M13 5l2-3M9 10h6"/></symbol>
+    <symbol id="juice" viewBox="0 0 24 24"><path class="i" d="M6 7h12l-1 14H7L6 7zM9 7V4h6v3M14 4l2-2"/></symbol>
+    <symbol id="water" viewBox="0 0 24 24"><path class="i" d="M12 3s6 7 6 12a6 6 0 0 1-12 0c0-5 6-12 6-12z"/></symbol>
+    <symbol id="soup" viewBox="0 0 24 24"><path class="i" d="M4 11h16a8 8 0 0 1-16 0zM8 6c0-2 2-2 2-4M13 6c0-2 2-2 2-4"/></symbol>
+    <symbol id="salad" viewBox="0 0 24 24"><path class="i" d="M4 11h16a8 8 0 0 1-16 0zM8 10c0-4 3-6 6-6-1 3-3 5-6 6zM13 10c1-3 3-4 6-4-1 3-3 4-6 4z"/></symbol>
+    <symbol id="pizza" viewBox="0 0 24 24"><path class="i" d="M4 20 12 4l8 16H4zM8 15h.01M13 11h.01M16 16h.01"/></symbol>
+    <symbol id="burger" viewBox="0 0 24 24"><path class="i" d="M5 10a7 5 0 0 1 14 0H5zM4 13h16M5 16h14M6 19h12"/></symbol>
+    <symbol id="sandwich" viewBox="0 0 24 24"><path class="i" d="m4 8 8-5 8 5-8 5-8-5zM4 12l8 5 8-5M4 16l8 5 8-5"/></symbol>
+    <symbol id="pasta" viewBox="0 0 24 24"><path class="i" d="M5 11h14a7 7 0 0 1-14 0zM7 8c2-3 3 1 5-2s3 1 5-2"/></symbol>
+    <symbol id="noodles" viewBox="0 0 24 24"><path class="i" d="M5 12h14a7 7 0 0 1-14 0zM8 4v6M12 4v6M16 4v6"/></symbol>
+    <symbol id="rice" viewBox="0 0 24 24"><path class="i" d="M5 11h14a7 7 0 0 1-14 0zM7 10c1-4 9-4 10 0"/></symbol>
+    <symbol id="meat" viewBox="0 0 24 24"><path class="i" d="M6 18c-4-4 1-11 6-11 3 0 4-3 7-2 4 2 2 9-2 11-4 2-7 5-11 2zM15 8h.01"/></symbol>
+    <symbol id="chicken" viewBox="0 0 24 24"><path class="i" d="M8 16c-3-3-2-8 1-10s8-1 9 3-3 8-7 8c-1 0-2 0-3-1zM6 17l-3 3M4 16l3 3"/></symbol>
+    <symbol id="fish" viewBox="0 0 24 24"><path class="i" d="M4 12c4-5 10-5 15 0-5 5-11 5-15 0zM19 12l3-3v6l-3-3zM9 11h.01"/></symbol>
+    <symbol id="seafood" viewBox="0 0 24 24"><path class="i" d="M4 13c4-4 8-4 12 0-4 4-8 4-12 0zM16 13l4-3v6l-4-3zM8 12h.01M5 6c3 1 5 1 8 0"/></symbol>
+    <symbol id="vegan" viewBox="0 0 24 24"><path class="i" d="M5 19C5 9 11 4 20 4c0 9-5 15-15 15zM7 17c4-4 7-7 11-10"/></symbol>
+    <symbol id="bakery" viewBox="0 0 24 24"><path class="i" d="M5 19c-2-6 1-12 7-14 6 2 9 8 7 14H5zM9 9l6 6M8 13l4 4M12 7l4 4"/></symbol>
+    <symbol id="icecream" viewBox="0 0 24 24"><path class="i" d="M7 8a5 5 0 0 1 10 0c0 3-2 5-5 5s-5-2-5-5zM9 13l3 8 3-8"/></symbol>
+    <symbol id="kids" viewBox="0 0 24 24"><circle class="i" cx="12" cy="8" r="4"/><path class="i" d="M5 21c1-5 4-7 7-7s6 2 7 7M9 8h.01M15 8h.01M10 11c1 1 3 1 4 0"/></symbol>
+    <symbol id="halal" viewBox="0 0 24 24"><path class="i" d="M17 4a8 8 0 1 0 0 16 7 7 0 1 1 0-16zM17 8v8M14 12h6"/></symbol>
+  </defs>
+</svg>

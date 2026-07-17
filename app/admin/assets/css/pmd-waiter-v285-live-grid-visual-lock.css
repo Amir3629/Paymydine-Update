@@ -1,0 +1,28 @@
+/* PMD Waiter V2.8.5 live grid visual lock */
+
+.pmd-v285-grid-host {
+  position: relative !important;
+}
+
+.pmd-v285-grid-overlay {
+  position: absolute !important;
+  inset: 0 !important;
+  z-index: 999 !important;
+  overflow: hidden !important;
+  pointer-events: none !important;
+  background: inherit !important;
+  opacity: 1 !important;
+  visibility: visible !important;
+  transition: none !important;
+  animation: none !important;
+}
+
+.pmd-v285-grid-overlay > * {
+  margin: 0 !important;
+  transition: none !important;
+  animation: none !important;
+}
+
+.pmd-v285-grid-updating {
+  visibility: hidden !important;
+}

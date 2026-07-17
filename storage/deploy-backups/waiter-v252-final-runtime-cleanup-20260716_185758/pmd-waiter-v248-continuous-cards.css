@@ -1,0 +1,91 @@
+/*
+ * PMD Waiter V2.4.8
+ * Cards must remain continuously visible during core refreshes.
+ */
+
+/*
+ * Override V2.4.7: never hide a freshly-rendered card.
+ * Before lifecycle decoration it appears as a neutral fallback, not blue.
+ */
+body.pmd-waiter-standard-v23-page
+[data-v2-table-grid] > [data-v2-open-table]:not(.v241-card) {
+  opacity: 1 !important;
+  visibility: visible !important;
+  pointer-events: auto !important;
+  min-height: 158px !important;
+
+  --pmd-table-state-color: #64748b !important;
+  border: 1px solid #94a3b8 !important;
+  border-top: 6px solid #64748b !important;
+  background: var(--pmd-v23-surface) !important;
+  color: var(--pmd-v23-text) !important;
+  box-shadow: none !important;
+
+  transition:
+    border-color .05s linear,
+    background-color .05s linear !important;
+}
+
+/* Never show saturated blue legacy state during the fallback phase. */
+body.pmd-waiter-standard-v23-page
+[data-v2-table-grid] > [data-v2-open-table]:not(.v241-card).is-open,
+body.pmd-waiter-standard-v23-page
+[data-v2-table-grid] > [data-v2-open-table]:not(.v241-card).is-kitchen,
+body.pmd-waiter-standard-v23-page
+[data-v2-table-grid] > [data-v2-open-table]:not(.v241-card).is-payment,
+body.pmd-waiter-standard-v23-page
+[data-v2-table-grid] > [data-v2-open-table]:not(.v241-card).is-ready {
+  border-top-color: #64748b !important;
+  background: var(--pmd-v23-surface) !important;
+}
+
+/*
+ * Keep temporary legacy information visible until lifecycle markup replaces
+ * it. This prevents blank cards while the API decoration catches up.
+ */
+body.pmd-waiter-standard-v23-page
+[data-v2-table-grid] > [data-v2-open-table]:not(.v241-card) > .pmd-v2-table-state,
+body.pmd-waiter-standard-v23-page
+[data-v2-table-grid] > [data-v2-open-table]:not(.v241-card) > .pmd-v2-table-info,
+body.pmd-waiter-standard-v23-page
+[data-v2-table-grid] > [data-v2-open-table]:not(.v241-card) > .pmd-v21-payment-meta,
+body.pmd-waiter-standard-v23-page
+[data-v2-table-grid] > [data-v2-open-table]:not(.v241-card) > .pmd-v21-age-meta {
+  display: block !important;
+}
+
+body.pmd-waiter-standard-v23-page
+[data-v2-table-grid] > [data-v2-open-table]:not(.v241-card) > .pmd-v2-table-corner {
+  display: grid !important;
+}
+
+/* Neutralize old blue text and corner badges during the short fallback. */
+body.pmd-waiter-standard-v23-page
+[data-v2-table-grid] > [data-v2-open-table]:not(.v241-card) > .pmd-v2-table-state {
+  color: #475569 !important;
+}
+
+body.pmd-waiter-standard-v23-page
+[data-v2-table-grid] > [data-v2-open-table]:not(.v241-card) > .pmd-v2-table-corner {
+  background: #64748b !important;
+  color: #fff !important;
+}
+
+/*
+ * The empty-state must stay hidden whenever the grid contains any cards,
+ * whether decorated or still in neutral fallback.
+ */
+body.pmd-waiter-standard-v23-page
+.pmd-v2-table-stage:has([data-v2-table-grid] > [data-v2-open-table])
+[data-v2-empty] {
+  display: none !important;
+}
+
+/* Finished lifecycle cards remain fully visible without opacity animation. */
+body.pmd-waiter-standard-v23-page
+[data-v2-table-grid] > [data-v2-open-table].v241-card {
+  opacity: 1 !important;
+  visibility: visible !important;
+  pointer-events: auto !important;
+  transition: none !important;
+}

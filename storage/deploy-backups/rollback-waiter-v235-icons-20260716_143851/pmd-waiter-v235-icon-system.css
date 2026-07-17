@@ -1,0 +1,154 @@
+/* PMD POS V2.3.5 — neutral icon category system */
+
+body.pmd-waiter-standard-v23-page {
+  --pmd-icon-key-bg:#1a2530;
+  --pmd-icon-key-hover:#243240;
+  --pmd-icon-key-active:#2f6fed;
+  --pmd-icon-key-border:#566575;
+  --pmd-icon-key-text:#f8fafc;
+  --pmd-icon-muted:#b7c2cc;
+}
+
+html:not([data-pmd-pos-theme="dark"]) body.pmd-waiter-standard-v23-page {
+  --pmd-icon-key-bg:#ffffff;
+  --pmd-icon-key-hover:#edf2f7;
+  --pmd-icon-key-active:#2563eb;
+  --pmd-icon-key-border:#9aa9b8;
+  --pmd-icon-key-text:#111820;
+  --pmd-icon-muted:#52606d;
+}
+
+/* Shared icon wrapper */
+.pmd-v235-icon {
+  width:30px;
+  height:30px;
+  display:grid;
+  place-items:center;
+  flex:0 0 30px;
+  color:currentColor;
+}
+.pmd-v235-icon svg {
+  width:26px;
+  height:26px;
+  display:block;
+}
+
+/* Launcher service rail: neutral keys, state color only for active/alerts */
+body.pmd-waiter-standard-v23-page .pmd-v2-mode-keys button {
+  --pmd-service-accent:#64748b;
+  min-height:72px!important;
+  padding:8px 7px!important;
+  display:grid!important;
+  grid-template-columns:34px minmax(0,1fr) auto!important;
+  gap:7px!important;
+  align-items:center!important;
+  background:var(--pmd-icon-key-bg)!important;
+  color:var(--pmd-icon-key-text)!important;
+  border:1px solid var(--pmd-icon-key-border)!important;
+  border-left:5px solid var(--pmd-service-accent)!important;
+  opacity:1!important;
+  filter:none!important;
+}
+
+body.pmd-waiter-standard-v23-page .pmd-v2-mode-keys button span:not(.pmd-v235-icon) {
+  color:var(--pmd-icon-key-text)!important;
+  font-size:11px!important;
+  line-height:1.05!important;
+  font-weight:950!important;
+}
+
+body.pmd-waiter-standard-v23-page .pmd-v2-mode-keys button b {
+  color:var(--pmd-icon-muted)!important;
+  font-size:15px!important;
+}
+
+body.pmd-waiter-standard-v23-page .pmd-v2-mode-keys button:hover {
+  background:var(--pmd-icon-key-hover)!important;
+  box-shadow:inset 0 0 0 1px var(--pmd-service-accent)!important;
+}
+
+body.pmd-waiter-standard-v23-page .pmd-v2-mode-keys button.is-active {
+  background:var(--pmd-icon-key-active)!important;
+  color:#fff!important;
+  border-color:var(--pmd-icon-key-active)!important;
+  box-shadow:none!important;
+}
+body.pmd-waiter-standard-v23-page .pmd-v2-mode-keys button.is-active span,
+body.pmd-waiter-standard-v23-page .pmd-v2-mode-keys button.is-active b {
+  color:#fff!important;
+}
+
+body.pmd-waiter-standard-v23-page [data-v2-filter="mine"] {--pmd-service-accent:#7c3aed}
+body.pmd-waiter-standard-v23-page [data-v2-filter="all"] {--pmd-service-accent:#2563eb}
+body.pmd-waiter-standard-v23-page [data-v2-filter="open"] {--pmd-service-accent:#ea580c}
+body.pmd-waiter-standard-v23-page [data-v2-filter="call"] {--pmd-service-accent:#dc2626}
+body.pmd-waiter-standard-v23-page [data-v2-filter="note"] {--pmd-service-accent:#a16207}
+
+/* Food categories: POS key style with icon + label */
+body.pmd-waiter-standard-v23-page .pmd-pos-category {
+  min-height:76px!important;
+  padding:7px 5px!important;
+  display:flex!important;
+  flex-direction:column!important;
+  align-items:center!important;
+  justify-content:center!important;
+  gap:5px!important;
+  background:var(--pmd-icon-key-bg)!important;
+  color:var(--pmd-icon-key-text)!important;
+  border:1px solid var(--pmd-icon-key-border)!important;
+  border-left:1px solid var(--pmd-icon-key-border)!important;
+  border-radius:3px!important;
+  font-size:10px!important;
+  line-height:1.03!important;
+  font-weight:900!important;
+  text-align:center!important;
+  box-shadow:none!important;
+}
+
+body.pmd-waiter-standard-v23-page .pmd-pos-category .pmd-v235-icon {
+  width:32px;
+  height:32px;
+  flex-basis:32px;
+}
+
+body.pmd-waiter-standard-v23-page .pmd-pos-category:hover {
+  background:var(--pmd-icon-key-hover)!important;
+  box-shadow:inset 0 0 0 1px var(--pmd-icon-key-border)!important;
+}
+
+body.pmd-waiter-standard-v23-page .pmd-pos-category.is-active {
+  background:var(--pmd-icon-key-active)!important;
+  border-color:var(--pmd-icon-key-active)!important;
+  color:#fff!important;
+}
+
+/* Special categories remain subtly distinguished, not fully saturated */
+body.pmd-waiter-standard-v23-page .pmd-pos-category[data-v23-owner-filter="bestseller"] {
+  border-top:4px solid #ea580c!important;
+}
+body.pmd-waiter-standard-v23-page .pmd-pos-category[data-v23-owner-filter="chef"] {
+  border-top:4px solid #7c3aed!important;
+}
+body.pmd-waiter-standard-v23-page .pmd-pos-category[data-v21-virtual="popular"] {
+  border-top:4px solid #2563eb!important;
+}
+body.pmd-waiter-standard-v23-page .pmd-pos-category[data-v21-virtual="recent"] {
+  border-top:4px solid #0891b2!important;
+}
+
+/* Keep operational buttons meaningfully colored */
+body.pmd-waiter-standard-v23-page .pmd-pos-send {background:#16a34a!important;color:#fff!important}
+body.pmd-waiter-standard-v23-page .pmd-pos-hold {background:#d97706!important;color:#fff!important}
+body.pmd-waiter-standard-v23-page .pmd-pos-pay {background:#2563eb!important;color:#fff!important}
+body.pmd-waiter-standard-v23-page .pmd-pos-remove {color:#fb7185!important}
+
+/* Responsive */
+@media (max-width:700px){
+  body.pmd-waiter-standard-v23-page .pmd-v2-mode-keys button {
+    grid-template-columns:30px minmax(0,1fr) auto!important;
+    min-height:62px!important;
+  }
+  body.pmd-waiter-standard-v23-page .pmd-pos-category {
+    min-height:68px!important;
+  }
+}
