@@ -1,3 +1,15 @@
+/*
+ * PMD_SINGLE_LOGO_SKIP_RESERVATIONS2_V1
+ * Reservations2 owns its logo independently through Side Menu 2.
+ */
+if (
+  window.location.pathname === '/admin/reservations2' ||
+  window.location.pathname.indexOf('/admin/reservations2/') === 0
+) {
+  console.info(
+    '[PMD] Global admin logo skipped on Reservations2'
+  );
+} else {
 // PMD_ADMIN_FINAL_SINGLE_LOGO_V20
 (function () {
   "use strict";
@@ -174,3 +186,4 @@
     boot();
   }
 })();
+}

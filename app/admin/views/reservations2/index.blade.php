@@ -13,7 +13,73 @@
 })();
 </script>
 
-<link rel="stylesheet" href="/app/admin/assets/css/pmd-side-menu2-v1.css?v=20260718-7">
+<!-- PMD_SM2_CRITICAL_LOGO_START -->
+<style id="pmd-sm2-critical-logo">
+  /*
+   * Runs inside the initial HTML response.
+   * Prevents any incorrect logo from appearing before
+   * the external Side Menu stylesheet finishes loading.
+   */
+  #pmd-side-menu2 .pmd-sm2__brand {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    height: 116px !important;
+    min-height: 116px !important;
+    padding: 8px !important;
+    overflow: hidden !important;
+  }
+
+  #pmd-side-menu2 .pmd-sm2__brand
+    > :not(#pmd-side-menu2-logo) {
+    display: none !important;
+  }
+
+  #pmd-side-menu2 .pmd-sm2__brand img,
+  #pmd-side-menu2 .pmd-sm2__brand svg,
+  #pmd-side-menu2 .pmd-sm2__brand picture,
+  #pmd-side-menu2 .pmd-sm2__brand-text,
+  #pmd-side-menu2 .logo,
+  #pmd-side-menu2 .logo-svg {
+    display: none !important;
+  }
+
+  #pmd-side-menu2-logo {
+    display: block !important;
+    width: 96px !important;
+    height: 82px !important;
+    flex: 0 0 96px !important;
+    overflow: hidden !important;
+
+    background-image:
+      url("/app/admin/assets/images/paymydine-logo.svg?v=20260718-8")
+      !important;
+
+    background-repeat: no-repeat !important;
+    background-size: 132px auto !important;
+    background-position: center -5px !important;
+
+    opacity: 1 !important;
+    visibility: visible !important;
+    transform: none !important;
+  }
+
+  html.pmd-sm2-collapsed #pmd-side-menu2-logo {
+    width: 48px !important;
+    height: 54px !important;
+    flex-basis: 48px !important;
+    background-size: 80px auto !important;
+    background-position: center -3px !important;
+  }
+
+  html.pmd-sm2-collapsed
+    #pmd-side-menu2 .pmd-sm2__brand {
+    height: 96px !important;
+    min-height: 96px !important;
+  }
+</style>
+<!-- PMD_SM2_CRITICAL_LOGO_END -->
+<link rel="stylesheet" href="/app/admin/assets/css/pmd-side-menu2-v1.css?v=20260718-8">
 <link rel="stylesheet" href="/app/admin/assets/css/pmd-reservations2-v1.css?v=20260718-1">
 
 <script>
@@ -27,13 +93,16 @@ window.PMD_RESERVATIONS2_BOOT = {
 </script>
 
 <aside id="pmd-side-menu2" aria-label="Admin navigation">
-    <a class="pmd-sm2__brand" href="{{ admin_url('dashboard') }}" aria-label="PayMyDine dashboard">
-        <span
-            class="pmd-sm2__mark"
-            aria-hidden="true"
-        ></span>
-        
-    </a>
+    <div
+    class="pmd-sm2__brand"
+    aria-label="PayMyDine"
+>
+    <span
+        id="pmd-side-menu2-logo"
+        class="pmd-sm2__mark"
+        aria-hidden="true"
+    ></span>
+</div>
 
     <nav class="pmd-sm2__nav">
         <a class="pmd-sm2__item" href="{{ admin_url('dashboard') }}">

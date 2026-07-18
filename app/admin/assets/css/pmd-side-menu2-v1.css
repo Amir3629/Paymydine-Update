@@ -567,3 +567,62 @@ html.pmd-sm2-expanded .pmd-sm2__brand {
   display: none !important;
 }
 
+
+/* ==========================================================
+   PMD SIDE MENU 2 — ZERO-FLASH LOGO LOCK V7
+   ========================================================== */
+
+#pmd-side-menu2 .pmd-sm2__brand {
+  overflow: hidden !important;
+}
+
+#pmd-side-menu2 .pmd-sm2__brand
+  > :not(#pmd-side-menu2-logo) {
+  display: none !important;
+}
+
+#pmd-side-menu2 .pmd-sm2__brand img,
+#pmd-side-menu2 .pmd-sm2__brand svg,
+#pmd-side-menu2 .pmd-sm2__brand picture,
+#pmd-side-menu2 .pmd-sm2__brand-text,
+#pmd-side-menu2 .pmd-sm2__brand .logo,
+#pmd-side-menu2 .pmd-sm2__brand .logo-svg {
+  display: none !important;
+  opacity: 0 !important;
+  visibility: hidden !important;
+}
+
+#pmd-side-menu2-logo {
+  display: block !important;
+
+  background-image:
+    url("/app/admin/assets/images/paymydine-logo.svg?v=20260718-8")
+    !important;
+
+  background-repeat: no-repeat !important;
+  background-color: transparent !important;
+
+  opacity: 1 !important;
+  visibility: visible !important;
+}
+
+html.pmd-sm2-expanded #pmd-side-menu2-logo {
+  width: 96px !important;
+  height: 82px !important;
+  min-width: 96px !important;
+  flex: 0 0 96px !important;
+
+  background-size: 132px auto !important;
+  background-position: center -5px !important;
+}
+
+html.pmd-sm2-collapsed #pmd-side-menu2-logo {
+  width: 48px !important;
+  height: 54px !important;
+  min-width: 48px !important;
+  flex: 0 0 48px !important;
+
+  background-size: 80px auto !important;
+  background-position: center -3px !important;
+}
+
