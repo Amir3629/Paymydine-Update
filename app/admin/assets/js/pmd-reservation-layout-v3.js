@@ -426,7 +426,8 @@
       !floor &&
       (
         window.PMDReservationFloorV4 ||
-        window.PMDReservationFloorV41Authority
+      window.PMDReservationFloorV41Authority ||
+      window.PMDNewReservationFloorV1
       )
     ) {
       return;
@@ -956,7 +957,8 @@
      */
     if (
       window.PMDReservationFloorV4 ||
-      window.PMDReservationFloorV41Authority
+      window.PMDReservationFloorV41Authority ||
+      window.PMDNewReservationFloorV1
     ) {
       return;
     }
@@ -968,7 +970,8 @@
       !floor &&
       (
         window.PMDReservationFloorV4 ||
-        window.PMDReservationFloorV41Authority
+      window.PMDReservationFloorV41Authority ||
+      window.PMDNewReservationFloorV1
       )
     ) {
       return;
@@ -1567,7 +1570,8 @@
      */
     if (
       window.PMDReservationFloorV4 ||
-      window.PMDReservationFloorV41Authority
+      window.PMDReservationFloorV41Authority ||
+      window.PMDNewReservationFloorV1
     ) {
       return;
     }
@@ -1932,7 +1936,8 @@
      */
     if (
       window.PMDReservationFloorV4 ||
-      window.PMDReservationFloorV41Authority
+      window.PMDReservationFloorV41Authority ||
+      window.PMDNewReservationFloorV1
     ) {
       return;
     }
@@ -2138,7 +2143,8 @@
      */
     if (
       window.PMDReservationFloorV4 ||
-      window.PMDReservationFloorV41Authority
+      window.PMDReservationFloorV41Authority ||
+      window.PMDNewReservationFloorV1
     ) {
       return;
     }
@@ -2161,7 +2167,8 @@
 
     if (
       window.PMDReservationFloorV4 ||
-      window.PMDReservationFloorV41Authority
+      window.PMDReservationFloorV41Authority ||
+      window.PMDNewReservationFloorV1
     ) {
       return;
     }
@@ -2373,7 +2380,8 @@
      */
     if (
       window.PMDReservationFloorV4 ||
-      window.PMDReservationFloorV41Authority
+      window.PMDReservationFloorV41Authority ||
+      window.PMDNewReservationFloorV1
     ) {
       return;
     }
