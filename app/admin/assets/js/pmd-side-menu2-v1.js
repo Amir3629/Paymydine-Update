@@ -89,7 +89,9 @@
       state
     );
 
-    window.dispatchEvent(
+    lockVerticalGeometry();
+
+  window.dispatchEvent(
       new CustomEvent(
         'pmd:side-menu2-state',
         {
@@ -301,7 +303,38 @@
    * applied only after the saved state and page geometry are
    * already stable. User-triggered expand/collapse remains smooth.
    */
-  function enableRuntimeTransitions() {
+  
+  /*
+   * PMD_SIDE_MENU2_VERTICAL_JS_GUARD_V5
+   *
+   * CSS permanently owns top, bottom and height.
+   * Remove accidental runtime mutations after any state change.
+   */
+  function lockVerticalGeometry() {
+    var menu =
+      document.querySelector(
+        '#pmd-side-menu2'
+      );
+
+    if (!menu) return;
+
+    [
+      'top',
+      'bottom',
+      'height',
+      'min-height',
+      'max-height',
+      'margin-top',
+      'margin-bottom',
+      'transform',
+      'translate'
+    ].forEach(function (property) {
+      menu.style.removeProperty(property);
+    });
+  }
+
+function enableRuntimeTransitions() {
+    lockVerticalGeometry();
     requestAnimationFrame(function () {
       requestAnimationFrame(function () {
         document.documentElement.classList.add(

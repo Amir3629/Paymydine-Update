@@ -1462,3 +1462,49 @@ html.pmd-side-menu2-global-page
 }
 
 /* PMD_SM2_COMPACT_NO_REFRESH_JUMP_V18_END */
+
+/* PMD_SM2_VERTICAL_POSITION_LOCK_V19_START */
+
+/*
+ * The menu's vertical geometry never belongs to JavaScript.
+ * Width can animate after user interaction; top/bottom cannot.
+ */
+html.pmd-side-menu2-global-page
+  #pmd-side-menu2 {
+  top: 14px !important;
+  bottom: 14px !important;
+
+  height: auto !important;
+  min-height: 0 !important;
+  max-height: none !important;
+
+  margin-block: 0 !important;
+
+  translate: none !important;
+  transform: none !important;
+
+  transition-property: width !important;
+  transition-duration: 220ms !important;
+  transition-timing-function:
+    cubic-bezier(.22,.75,.24,1)
+    !important;
+}
+
+/*
+ * During initial paint even width transition is disabled.
+ */
+html.pmd-side-menu2-global-page:not(.pmd-sm2-runtime-ready)
+  #pmd-side-menu2 {
+  transition: none !important;
+}
+
+/*
+ * Prevent descendants from changing the menu's external height.
+ */
+html.pmd-side-menu2-global-page
+  #pmd-side-menu2 {
+  box-sizing: border-box !important;
+  overflow: hidden !important;
+}
+
+/* PMD_SM2_VERTICAL_POSITION_LOCK_V19_END */

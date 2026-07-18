@@ -233,9 +233,32 @@
 </style>
 <!-- PMD_SM2_ZERO_REFRESH_TRANSITION_V5_END -->
 
+<!-- PMD_SM2_VERTICAL_FIRST_PAINT_LOCK_V6_START -->
+<style>
+  html.pmd-side-menu2-global-page
+    #pmd-side-menu2 {
+    top: 14px !important;
+    bottom: 14px !important;
+    height: auto !important;
+    min-height: 0 !important;
+    max-height: none !important;
+
+    margin-top: 0 !important;
+    margin-bottom: 0 !important;
+
+    translate: none !important;
+    transform: none !important;
+
+    contain: layout paint !important;
+
+    transition-property: width !important;
+  }
+</style>
+<!-- PMD_SM2_VERTICAL_FIRST_PAINT_LOCK_V6_END -->
+
 <link
     rel="stylesheet"
-    href="/app/admin/assets/css/pmd-side-menu2-v1.css?v=20260719-global-5"
+    href="/app/admin/assets/css/pmd-side-menu2-v1.css?v=20260719-global-6"
 >
 
 <aside id="pmd-side-menu2" aria-label="Admin navigation">
@@ -437,7 +460,7 @@
 </aside>
 
 <script
-    src="/app/admin/assets/js/pmd-side-menu2-v1.js?v=20260719-global-5"
+    src="/app/admin/assets/js/pmd-side-menu2-v1.js?v=20260719-global-6"
     defer
 ></script>
 
