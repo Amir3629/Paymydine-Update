@@ -1335,3 +1335,78 @@ html.pmd-side-menu2-global-page
 }
 
 /* PMD_GLOBAL_MENU_RUNTIME_LOCK_V2_END */
+
+/* PMD_GLOBAL_LAYOUT_V4_CSS_AUTHORITY_START */
+
+html.pmd-side-menu2-global-page {
+  --pmd-admin-gap: 14px;
+}
+
+html.pmd-side-menu2-global-page,
+html.pmd-side-menu2-global-page body {
+  overflow-x: hidden !important;
+}
+
+/*
+ * The runtime owns page geometry.
+ * Old native sidebar offsets are neutralized here.
+ */
+html.pmd-side-menu2-global-page
+  .page-wrapper {
+  margin-left: 0 !important;
+  margin-right: 0 !important;
+  padding-left: 0 !important;
+  padding-right: 0 !important;
+  max-width: none !important;
+  min-width: 0 !important;
+  box-sizing: border-box !important;
+}
+
+html.pmd-side-menu2-global-page
+  .page-content {
+  margin-left: 0 !important;
+  margin-right: 0 !important;
+  max-width: none !important;
+  min-width: 0 !important;
+  box-sizing: border-box !important;
+}
+
+/*
+ * Menu always remains above all standard page content.
+ */
+html.pmd-side-menu2-global-page
+  #pmd-side-menu2 {
+  z-index: 12000 !important;
+  pointer-events: auto !important;
+  isolation: isolate !important;
+}
+
+/*
+ * Hide every legacy injected logo.
+ */
+html.pmd-side-menu2-global-page
+  #pmd-side-menu2
+  img,
+html.pmd-side-menu2-global-page
+  #pmd-side-menu2
+  picture,
+html.pmd-side-menu2-global-page
+  #pmd-side-menu2
+  .logo,
+html.pmd-side-menu2-global-page
+  #pmd-side-menu2
+  .logo-svg,
+html.pmd-side-menu2-global-page
+  #pmd-side-menu2
+  [class*="single-logo"] {
+  display: none !important;
+}
+
+html.pmd-side-menu2-global-page
+  #pmd-side-menu2-logo {
+  display: block !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+}
+
+/* PMD_GLOBAL_LAYOUT_V4_CSS_AUTHORITY_END */

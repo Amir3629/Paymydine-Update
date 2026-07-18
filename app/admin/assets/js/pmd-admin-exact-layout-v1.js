@@ -2,13 +2,17 @@
   'use strict';
 
   var path =
-    String(location.pathname || '');
+    String(
+      window.location &&
+      window.location.pathname ||
+      ''
+    );
 
   var excluded =
     path === '/admin/login' ||
     path.indexOf('/admin/dashboardwaiter') === 0 ||
-    path.indexOf('/admin/kds') === 0 ||
     path.indexOf('/admin/dashboardkitchen') === 0 ||
+    path.indexOf('/admin/kds') === 0 ||
     path.indexOf('/admin/quick-mode') === 0 ||
     path.indexOf('/admin/reservations2') === 0;
 
@@ -19,8 +23,8 @@
 
   if (!menu) return;
 
-  if (window.PMDAdminExactLayoutV2) {
-    window.PMDAdminExactLayoutV2.apply();
+  if (window.PMDAdminExactLayoutV4) {
+    window.PMDAdminExactLayoutV4.apply();
     return;
   }
 
@@ -45,65 +49,32 @@
     );
   }
 
-  function removeLegacyGeometry(element) {
-    if (!element) return;
-
-    [
-      'margin-left',
-      'margin-right',
-      'padding-left',
-      'padding-right',
-      'left',
-      'right',
-      'transform',
-      'max-width'
-    ].forEach(function (property) {
-      element.style.removeProperty(
-        property
-      );
-    });
-  }
-
-  function findPageElements() {
-    var wrapper =
-      document.querySelector(
-        '.page-wrapper'
-      );
-
-    var content =
-      document.querySelector(
-        '.page-content'
-      );
-
+  function elements() {
     return {
-      wrapper: wrapper,
-      content: content,
+      wrapper:
+        document.querySelector(
+          '.page-wrapper'
+        ),
+
+      content:
+        document.querySelector(
+          '.page-content'
+        ),
 
       topbar:
         document.querySelector(
           '.navbar-top, .navbar-fixed-top'
-        ),
-
-      inner:
-        content
-          ? content.firstElementChild
-          : null
+        )
     };
   }
 
-  function normalizeDirectChildren(
+  function normalizeContentChildren(
     content
   ) {
     if (!content) return;
 
     Array.from(content.children)
       .forEach(function (child) {
-        if (
-          child.id === 'pmd-side-menu2'
-        ) {
-          return;
-        }
-
         setImportant(
           child,
           'box-sizing',
@@ -112,25 +83,24 @@
 
         setImportant(
           child,
-          'max-width',
-          '100%'
+          'min-width',
+          '0px'
         );
 
         setImportant(
           child,
-          'min-width',
-          '0px'
+          'max-width',
+          '100%'
         );
       });
   }
 
   function apply() {
-    var elements =
-      findPageElements();
+    var page = elements();
 
     if (
-      !elements.wrapper ||
-      !elements.content
+      !page.wrapper ||
+      !page.content
     ) {
       return null;
     }
@@ -146,162 +116,125 @@
     var menuRight =
       Math.round(menuRect.right);
 
-    var contentWidth =
+    var wrapperWidth =
       Math.max(
         0,
         window.innerWidth -
         menuRight
       );
 
-    document.documentElement.style.setProperty(
-      '--pmd-admin-gap',
-      gap + 'px'
-    );
-
-    document.documentElement.style.setProperty(
-      '--pmd-admin-menu-right',
-      menuRight + 'px'
-    );
-
     /*
-     * Remove native 212px sidebar geometry.
+     * Critical architectural correction:
+     *
+     * The entire page-wrapper begins after Side Menu 2.
+     * Children that use absolute positioning, grids,
+     * percentages or 100% widths therefore remain inside
+     * the visible content area.
      */
-    [
+    setImportant(
       document.body,
-      elements.wrapper,
-      elements.content
-    ].forEach(function (element) {
-      removeLegacyGeometry(element);
-
-      setImportant(
-        element,
-        'box-sizing',
-        'border-box'
-      );
-
-      setImportant(
-        element,
-        'max-width',
-        'none'
-      );
-    });
+      'margin-left',
+      '0px'
+    );
 
     setImportant(
-      elements.wrapper,
+      document.body,
+      'padding-left',
+      '0px'
+    );
+
+    setImportant(
+      document.body,
+      'overflow-x',
+      'hidden'
+    );
+
+    setImportant(
+      page.wrapper,
       'position',
       'absolute'
     );
 
     setImportant(
-      elements.wrapper,
-      'left',
-      '0px'
-    );
-
-    setImportant(
-      elements.wrapper,
-      'right',
-      'auto'
-    );
-
-    setImportant(
-      elements.wrapper,
-      'margin-left',
-      '0px'
-    );
-
-    setImportant(
-      elements.wrapper,
-      'width',
-      '100vw'
-    );
-
-    setImportant(
-      elements.wrapper,
-      'min-width',
-      '0px'
-    );
-
-    setImportant(
-      elements.wrapper,
-      'overflow-x',
-      'hidden'
-    );
-
-    setImportant(
-      elements.wrapper,
-      'z-index',
-      '1'
-    );
-
-    setImportant(
-      elements.content,
-      'position',
-      'relative'
-    );
-
-    setImportant(
-      elements.content,
+      page.wrapper,
       'left',
       menuRight + 'px'
     );
 
     setImportant(
-      elements.content,
+      page.wrapper,
       'right',
       'auto'
     );
 
     setImportant(
-      elements.content,
+      page.wrapper,
       'margin-left',
       '0px'
     );
 
     setImportant(
-      elements.content,
+      page.wrapper,
       'margin-right',
       '0px'
     );
 
     setImportant(
-      elements.content,
-      'width',
-      contentWidth + 'px'
+      page.wrapper,
+      'padding-left',
+      '0px'
     );
 
     setImportant(
-      elements.content,
+      page.wrapper,
+      'padding-right',
+      '0px'
+    );
+
+    setImportant(
+      page.wrapper,
+      'width',
+      wrapperWidth + 'px'
+    );
+
+    setImportant(
+      page.wrapper,
+      'max-width',
+      'none'
+    );
+
+    setImportant(
+      page.wrapper,
       'min-width',
       '0px'
     );
 
     setImportant(
-      elements.content,
-      'padding-left',
-      gap + 'px'
+      page.wrapper,
+      'box-sizing',
+      'border-box'
     );
 
     setImportant(
-      elements.content,
-      'padding-right',
-      gap + 'px'
-    );
-
-    setImportant(
-      elements.content,
+      page.wrapper,
       'overflow-x',
       'hidden'
     );
 
     setImportant(
-      elements.content,
+      page.wrapper,
       'z-index',
       '1'
     );
 
     setImportant(
-      elements.content,
+      page.wrapper,
+      'transform',
+      'none'
+    );
+
+    setImportant(
+      page.wrapper,
       'transition',
       [
         'left 220ms cubic-bezier(.22,.75,.24,1)',
@@ -309,54 +242,131 @@
       ].join(', ')
     );
 
-    normalizeDirectChildren(
-      elements.content
+    /*
+     * page-content is now local to the correctly positioned
+     * wrapper. It receives only the shared 14px inset.
+     */
+    setImportant(
+      page.content,
+      'position',
+      'relative'
     );
 
-    if (elements.topbar) {
-      var topbarLeft =
-        menuRight + gap;
+    setImportant(
+      page.content,
+      'left',
+      '0px'
+    );
 
+    setImportant(
+      page.content,
+      'right',
+      'auto'
+    );
+
+    setImportant(
+      page.content,
+      'margin-left',
+      '0px'
+    );
+
+    setImportant(
+      page.content,
+      'margin-right',
+      '0px'
+    );
+
+    setImportant(
+      page.content,
+      'padding-left',
+      gap + 'px'
+    );
+
+    setImportant(
+      page.content,
+      'padding-right',
+      gap + 'px'
+    );
+
+    setImportant(
+      page.content,
+      'width',
+      '100%'
+    );
+
+    setImportant(
+      page.content,
+      'max-width',
+      'none'
+    );
+
+    setImportant(
+      page.content,
+      'min-width',
+      '0px'
+    );
+
+    setImportant(
+      page.content,
+      'box-sizing',
+      'border-box'
+    );
+
+    setImportant(
+      page.content,
+      'overflow-x',
+      'hidden'
+    );
+
+    setImportant(
+      page.content,
+      'transform',
+      'none'
+    );
+
+    normalizeContentChildren(
+      page.content
+    );
+
+    if (page.topbar) {
       setImportant(
-        elements.topbar,
+        page.topbar,
         'left',
-        topbarLeft + 'px'
+        menuRight + 'px'
       );
 
       setImportant(
-        elements.topbar,
+        page.topbar,
         'right',
         '0px'
       );
 
       setImportant(
-        elements.topbar,
+        page.topbar,
         'margin-left',
         '0px'
       );
 
       setImportant(
-        elements.topbar,
+        page.topbar,
         'width',
-        'calc(100vw - ' +
-          topbarLeft +
-          'px)'
+        wrapperWidth + 'px'
       );
 
       setImportant(
-        elements.topbar,
+        page.topbar,
         'max-width',
         'none'
       );
 
       setImportant(
-        elements.topbar,
-        'z-index',
-        '1030'
+        page.topbar,
+        'box-sizing',
+        'border-box'
       );
 
       setImportant(
-        elements.topbar,
+        page.topbar,
         'transition',
         [
           'left 220ms cubic-bezier(.22,.75,.24,1)',
@@ -365,10 +375,6 @@
       );
     }
 
-    /*
-     * The menu must always remain above page content
-     * and must receive pointer events.
-     */
     setImportant(
       menu,
       'z-index',
@@ -381,48 +387,59 @@
       'auto'
     );
 
-    setImportant(
-      menu,
-      'visibility',
-      'visible'
+    document.documentElement.style.setProperty(
+      '--pmd-admin-gap',
+      gap + 'px'
     );
 
-    setImportant(
-      menu,
-      'opacity',
-      '1'
+    document.documentElement.style.setProperty(
+      '--pmd-admin-menu-right',
+      menuRight + 'px'
     );
-
-    menu
-      .querySelectorAll(
-        'a, button, [role="button"]'
-      )
-      .forEach(function (element) {
-        setImportant(
-          element,
-          'pointer-events',
-          'auto'
-        );
-      });
 
     return {
       gap: gap,
-      menuLeft:
-        Math.round(menuRect.left),
-
       menuRight: menuRight,
-      contentLeft:
+
+      wrapperLeft:
         Math.round(
-          elements.content
+          page.wrapper
             .getBoundingClientRect()
             .left
         ),
 
-      contentWidth:
+      contentLeft:
         Math.round(
-          elements.content
+          page.content
             .getBoundingClientRect()
-            .width
+            .left
+        ),
+
+      visibleContentLeft:
+        Math.round(
+          page.content
+            .getBoundingClientRect()
+            .left +
+          parseFloat(
+            getComputedStyle(
+              page.content
+            ).paddingLeft
+          )
+        ),
+
+      rightGap:
+        Math.round(
+          window.innerWidth -
+          (
+            page.content
+              .getBoundingClientRect()
+              .right -
+            parseFloat(
+              getComputedStyle(
+                page.content
+              ).paddingRight
+            )
+          )
         )
     };
   }
@@ -447,7 +464,7 @@
       requestAnimationFrame(frame);
   }
 
-  function schedule() {
+  function handleResize() {
     clearTimeout(resizeTimer);
 
     resizeTimer =
@@ -457,10 +474,23 @@
   function init() {
     apply();
 
-    [0, 40, 120, 300, 700, 1200]
-      .forEach(function (delay) {
-        setTimeout(apply, delay);
-      });
+    [
+      0,
+      40,
+      100,
+      220,
+      500,
+      900
+    ].forEach(function (delay) {
+      setTimeout(apply, delay);
+    });
+
+    window.addEventListener(
+      'pmd:side-menu2-state',
+      function () {
+        animate(340);
+      }
+    );
 
     menu.addEventListener(
       'transitionstart',
@@ -478,15 +508,8 @@
     );
 
     window.addEventListener(
-      'pmd:side-menu2-state',
-      function () {
-        animate(340);
-      }
-    );
-
-    window.addEventListener(
       'resize',
-      schedule,
+      handleResize,
       { passive: true }
     );
 
@@ -494,7 +517,8 @@
       'load',
       function () {
         apply();
-        setTimeout(apply, 200);
+        setTimeout(apply, 100);
+        setTimeout(apply, 400);
       },
       { once: true }
     );
@@ -539,8 +563,8 @@
     }
   );
 
-  window.PMDAdminExactLayoutV2 = {
-    version: '2.0.0',
+  window.PMDAdminExactLayoutV4 = {
+    version: '4.0.0',
     apply: apply,
     animate: animate,
     observer: observer
@@ -559,7 +583,7 @@
   }
 
   console.info(
-    '[PMD Admin Exact Layout V2] Ready',
-    window.PMDAdminExactLayoutV2
+    '[PMD Admin Exact Layout V4] Ready',
+    window.PMDAdminExactLayoutV4
   );
 })();

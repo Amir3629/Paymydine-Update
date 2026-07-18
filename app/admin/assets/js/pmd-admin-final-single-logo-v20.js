@@ -1,13 +1,54 @@
+/* PMD_GLOBAL_LOGO_ROUTE_AUTHORITY_V3_START */
+
+/*
+ * Side Menu 2 is the only logo authority on standard
+ * PayMyDine admin pages.
+ *
+ * This guard runs from the first JavaScript instruction.
+ * It does not depend on the menu DOM already existing.
+ */
+(function () {
+  'use strict';
+
+  var path =
+    String(
+      window.location &&
+      window.location.pathname ||
+      ''
+    );
+
+  var isAdmin =
+    path === '/admin' ||
+    path.indexOf('/admin/') === 0;
+
+  var excluded =
+    path === '/admin/login' ||
+    path.indexOf('/admin/dashboardwaiter') === 0 ||
+    path.indexOf('/admin/dashboardkitchen') === 0 ||
+    path.indexOf('/admin/kds') === 0 ||
+    path.indexOf('/admin/quick-mode') === 0;
+
+  if (isAdmin && !excluded) {
+    window.PMD_ADMIN_FINAL_SINGLE_LOGO_V20_SKIPPED = true;
+    window.PMD_GLOBAL_SIDE_MENU2_OWNS_LOGO = true;
+
+    console.info(
+      '[PMD] Legacy logo disabled by global route authority'
+    );
+  }
+})();
+
+/* PMD_GLOBAL_LOGO_ROUTE_AUTHORITY_V3_END */
+
 /*
  * PMD_SINGLE_LOGO_SKIP_RESERVATIONS2_V1
  * Reservations2 owns its logo independently through Side Menu 2.
  */
 if (
-  window.location.pathname === '/admin/reservations2' ||
-  window.location.pathname.indexOf('/admin/reservations2/') === 0
+  window.PMD_GLOBAL_SIDE_MENU2_OWNS_LOGO === true
 ) {
   console.info(
-    '[PMD] Global admin logo skipped on Reservations2'
+    '[PMD] Global admin logo skipped for Side Menu 2'
   );
 } else {
 // PMD_ADMIN_FINAL_SINGLE_LOGO_V20
