@@ -1150,3 +1150,68 @@ html.pmd-sm2-collapsed
 }
 
 /* PMD_SM2_COLLAPSED_LOGO_SHORTER_V15_END */
+
+/* PMD_GLOBAL_SPACING_CONTRACT_V1_START */
+
+html.pmd-side-menu2-global-page {
+  --pmd-admin-gap: 14px;
+}
+
+html.pmd-side-menu2-global-page,
+html.pmd-side-menu2-global-page body {
+  overflow-x: hidden !important;
+}
+
+/*
+ * New grids and existing Bootstrap rows inherit one
+ * spacing contract unless a component explicitly
+ * requires another internal density.
+ */
+html.pmd-side-menu2-global-page
+  .row {
+  margin-left:
+    calc(var(--pmd-admin-gap) / -2)
+    !important;
+
+  margin-right:
+    calc(var(--pmd-admin-gap) / -2)
+    !important;
+}
+
+html.pmd-side-menu2-global-page
+  .row > [class*="col-"] {
+  padding-left:
+    calc(var(--pmd-admin-gap) / 2)
+    !important;
+
+  padding-right:
+    calc(var(--pmd-admin-gap) / 2)
+    !important;
+}
+
+html.pmd-side-menu2-global-page
+  .card-deck,
+html.pmd-side-menu2-global-page
+  .grid,
+html.pmd-side-menu2-global-page
+  [class*="grid"] {
+  gap: var(--pmd-admin-gap);
+}
+
+/*
+ * Shared page sections maintain the same vertical rhythm.
+ */
+html.pmd-side-menu2-global-page
+  .page-title,
+html.pmd-side-menu2-global-page
+  .page-header,
+html.pmd-side-menu2-global-page
+  .toolbar,
+html.pmd-side-menu2-global-page
+  .card,
+html.pmd-side-menu2-global-page
+  .panel {
+  box-sizing: border-box;
+}
+
+/* PMD_GLOBAL_SPACING_CONTRACT_V1_END */
