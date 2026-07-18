@@ -14,7 +14,36 @@ if (
 (function () {
   "use strict";
 
-  if (!/\/admin(\/|$)/i.test(window.location.pathname)) return;
+  
+  /*
+   * PMD_GLOBAL_SIDE_MENU2_SKIP_LEGACY_LOGO_V2
+   *
+   * Side Menu 2 owns its own symbol.
+   * The legacy global-logo installer must not inject
+   * another logo into these pages.
+   */
+  if (
+    document.documentElement.classList.contains(
+      'pmd-side-menu2-global-page'
+    ) ||
+    document.documentElement.classList.contains(
+      'pmd-sm2-expanded'
+    ) ||
+    document.documentElement.classList.contains(
+      'pmd-sm2-collapsed'
+    ) ||
+    document.getElementById('pmd-side-menu2')
+  ) {
+    window.PMD_ADMIN_FINAL_SINGLE_LOGO_V20_SKIPPED = true;
+
+    console.info(
+      '[PMD] Legacy global logo skipped for Side Menu 2'
+    );
+
+    return;
+  }
+
+if (!/\/admin(\/|$)/i.test(window.location.pathname)) return;
 
   var VERSION = "v20-20260625_154925";
   var LOGO_URL = "/app/admin/assets/images/pmd-logo-final.png?v=" + encodeURIComponent(VERSION);

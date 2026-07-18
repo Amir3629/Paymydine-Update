@@ -1215,3 +1215,123 @@ html.pmd-side-menu2-global-page
 }
 
 /* PMD_GLOBAL_SPACING_CONTRACT_V1_END */
+
+/* PMD_GLOBAL_MENU_RUNTIME_LOCK_V2_START */
+
+html.pmd-side-menu2-global-page {
+  --pmd-admin-gap: 14px;
+}
+
+html.pmd-side-menu2-global-page,
+html.pmd-side-menu2-global-page body {
+  overflow-x: hidden !important;
+}
+
+/*
+ * Side Menu 2 is the only navigation authority.
+ */
+html.pmd-side-menu2-global-page
+  #pmd-side-menu2 {
+  z-index: 12000 !important;
+  pointer-events: auto !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+  isolation: isolate !important;
+}
+
+html.pmd-side-menu2-global-page
+  #pmd-side-menu2 *,
+html.pmd-side-menu2-global-page
+  #pmd-side-menu2 a,
+html.pmd-side-menu2-global-page
+  #pmd-side-menu2 button {
+  pointer-events: auto !important;
+}
+
+/*
+ * Never display a logo injected by an older runtime.
+ * Side Menu 2 uses only #pmd-side-menu2-logo.
+ */
+html.pmd-side-menu2-global-page
+  #pmd-side-menu2 img,
+html.pmd-side-menu2-global-page
+  #pmd-side-menu2 picture,
+html.pmd-side-menu2-global-page
+  #pmd-side-menu2 .logo,
+html.pmd-side-menu2-global-page
+  #pmd-side-menu2 .logo-svg,
+html.pmd-side-menu2-global-page
+  #pmd-side-menu2
+  .pmd-admin-final-logo,
+html.pmd-side-menu2-global-page
+  #pmd-side-menu2
+  .pmd-admin-final-logo-v20,
+html.pmd-side-menu2-global-page
+  #pmd-side-menu2
+  .pmd-admin-final-single-logo-v20,
+html.pmd-side-menu2-global-page
+  #pmd-side-menu2
+  [class*="single-logo"] {
+  display: none !important;
+}
+
+/*
+ * The legitimate symbol is a CSS background,
+ * not an IMG element.
+ */
+html.pmd-side-menu2-global-page
+  #pmd-side-menu2-logo {
+  display: block !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+}
+
+/*
+ * Old admin content must never sit above the menu.
+ */
+html.pmd-side-menu2-global-page
+  .page-wrapper,
+html.pmd-side-menu2-global-page
+  .page-content {
+  max-width: none !important;
+  box-sizing: border-box !important;
+}
+
+html.pmd-side-menu2-global-page
+  .page-wrapper {
+  z-index: 1 !important;
+}
+
+html.pmd-side-menu2-global-page
+  .page-content {
+  z-index: 1 !important;
+  min-width: 0 !important;
+}
+
+/*
+ * Keep one predictable card gap without altering
+ * internal form spacing.
+ */
+html.pmd-side-menu2-global-page
+  .row {
+  margin-left:
+    calc(var(--pmd-admin-gap) / -2)
+    !important;
+
+  margin-right:
+    calc(var(--pmd-admin-gap) / -2)
+    !important;
+}
+
+html.pmd-side-menu2-global-page
+  .row > [class*="col-"] {
+  padding-left:
+    calc(var(--pmd-admin-gap) / 2)
+    !important;
+
+  padding-right:
+    calc(var(--pmd-admin-gap) / 2)
+    !important;
+}
+
+/* PMD_GLOBAL_MENU_RUNTIME_LOCK_V2_END */
