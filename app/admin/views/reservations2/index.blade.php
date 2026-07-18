@@ -13,8 +13,7 @@
 })();
 </script>
 
-<link rel="preload" as="image" href="/app/admin/assets/images/paymydine-logo.svg?v=20260718-4" type="image/svg+xml" fetchpriority="high">
-<link rel="stylesheet" href="/app/admin/assets/css/pmd-side-menu2-v1.css?v=20260718-4">
+<link rel="stylesheet" href="/app/admin/assets/css/pmd-side-menu2-v1.css?v=20260718-5">
 <link rel="stylesheet" href="/app/admin/assets/css/pmd-reservations2-v1.css?v=20260718-1">
 
 <script>
@@ -29,16 +28,10 @@ window.PMD_RESERVATIONS2_BOOT = {
 
 <aside id="pmd-side-menu2" aria-label="Admin navigation">
     <a class="pmd-sm2__brand" href="{{ admin_url('dashboard') }}" aria-label="PayMyDine dashboard">
-        <img
-            class="pmd-sm2__mark-image"
-            src="/app/admin/assets/images/paymydine-logo.svg?v=20260718-4"
-            width="160"
-            height="54"
-            decoding="sync"
-            loading="eager"
-            fetchpriority="high"
-            alt="PayMyDine"
-        >
+        <span
+            class="pmd-sm2__mark"
+            aria-hidden="true"
+        ></span>
         
     </a>
 

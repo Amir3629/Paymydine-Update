@@ -388,3 +388,63 @@ html.pmd-sm2-expanded .pmd-sm2__toggle {
   padding: 0 13px !important;
 }
 
+
+/* ==========================================================
+   PMD SIDE MENU 2 — SYMBOL-ONLY LOGO V4
+   Uses a background image so global logo-cleanup scripts
+   cannot remove or replace it.
+   ========================================================== */
+
+.pmd-sm2__mark-image {
+  display: none !important;
+}
+
+.pmd-sm2__mark {
+  display: block !important;
+  width: 48px !important;
+  height: 58px !important;
+  min-width: 48px !important;
+  flex: 0 0 48px !important;
+
+  background-image:
+    url("/app/admin/assets/images/paymydine-symbol.svg?v=20260718-5") !important;
+
+  background-repeat: no-repeat !important;
+  background-position: center center !important;
+  background-size: contain !important;
+
+  opacity: 1 !important;
+  visibility: visible !important;
+  transform: none !important;
+
+  transition:
+    width 220ms cubic-bezier(.22,.75,.24,1),
+    height 220ms cubic-bezier(.22,.75,.24,1) !important;
+}
+
+/* Compact mode: only the graphic symbol. */
+html.pmd-sm2-collapsed .pmd-sm2__mark {
+  width: 48px !important;
+  height: 58px !important;
+}
+
+/* Expanded mode: same symbol, slightly larger. */
+html.pmd-sm2-expanded .pmd-sm2__mark {
+  width: 82px !important;
+  height: 76px !important;
+  flex-basis: 82px !important;
+}
+
+/* Center the symbol in both states. */
+.pmd-sm2__brand,
+html.pmd-sm2-expanded .pmd-sm2__brand {
+  justify-content: center !important;
+  padding-left: 8px !important;
+  padding-right: 8px !important;
+}
+
+/* No duplicate PayMyDine text beside the uploaded artwork. */
+.pmd-sm2__brand-text {
+  display: none !important;
+}
+
