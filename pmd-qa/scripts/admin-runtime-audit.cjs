@@ -380,7 +380,7 @@ function uniqueNumberChanges(values) {
 }
 
 async function inventoryControls(page) {
-  return page.evaluate((destructivePattern, togglePattern) => {
+  return page.evaluate(({ destructivePattern, togglePattern }) => {
     const destructive = new RegExp(destructivePattern, 'i');
     const toggle = new RegExp(togglePattern, 'i');
     return Array.from(document.querySelectorAll('a,button,input,select,[role="button"]')).map((element, index) => {
@@ -406,7 +406,10 @@ async function inventoryControls(page) {
         visible: rect.width > 0 && rect.height > 0 && style.display !== 'none' && style.visibility !== 'hidden'
       };
     }).filter((item) => item.visible);
-  }, destructiveText.source, safeToggleText.source);
+  }, {
+    destructivePattern: destructiveText.source,
+    togglePattern: safeToggleText.source
+  });
 }
 
 async function testSafeControls(page, routeUrl, audit) {
