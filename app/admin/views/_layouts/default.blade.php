@@ -16895,3 +16895,9 @@ html.pmd-dashboardwaiter-kiosk-page #pmd-waiter-dashboard-root .pmd-v18-merged-t
 
 <!-- PMD_WAITER_DASHBOARD_V105_REMOVE_MERGE_FEATURE_END -->
 
+
+<!-- PMD_ADMIN_SIDEBAR_NATIVE_V1_START -->
+<script>(function(){try{var s=localStorage.getItem('pmd_admin_sidebar_state')==='collapsed'?'collapsed':'expanded';document.documentElement.classList.add('pmd-admin-sidebar-'+s);}catch(e){document.documentElement.classList.add('pmd-admin-sidebar-expanded');}})();</script>
+<link rel="stylesheet" href="{{ asset('app/admin/assets/css/pmd-admin-sidebar-native-v1.css') }}?v={{ time() }}">
+<script defer src="{{ asset('app/admin/assets/js/pmd-admin-sidebar-native-v1.js') }}?v={{ time() }}"></script>
+<!-- PMD_ADMIN_SIDEBAR_NATIVE_V1_END -->
