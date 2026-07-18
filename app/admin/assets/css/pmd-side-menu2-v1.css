@@ -489,3 +489,81 @@ html.pmd-sm2-expanded .pmd-sm2__mark {
   flex-basis: 108px !important;
 }
 
+
+/* ==========================================================
+   PMD SIDE MENU 2 — TOP SYMBOL ONLY V6
+   Uses the original uploaded SVG and displays only its
+   upper symbol through a fixed clipping window.
+   ========================================================== */
+
+/* Disable every previous logo implementation. */
+.pmd-sm2__mark-image {
+  display: none !important;
+}
+
+.pmd-sm2__mark {
+  position: relative !important;
+  display: block !important;
+  overflow: hidden !important;
+
+  min-width: 0 !important;
+  flex: 0 0 auto !important;
+
+  background-image:
+    url("/app/admin/assets/images/paymydine-logo.svg?v=20260718-7")
+    !important;
+
+  background-repeat: no-repeat !important;
+  background-color: transparent !important;
+
+  opacity: 1 !important;
+  visibility: visible !important;
+  transform: none !important;
+}
+
+/*
+ * The source SVG is 428.72 × 551.8.
+ * We enlarge it and expose only the top symbol.
+ * Everything below the symbol remains outside the window.
+ */
+html.pmd-sm2-collapsed .pmd-sm2__mark {
+  width: 48px !important;
+  height: 54px !important;
+
+  background-size: 80px auto !important;
+  background-position: center -3px !important;
+}
+
+html.pmd-sm2-expanded .pmd-sm2__mark {
+  width: 96px !important;
+  height: 82px !important;
+
+  background-size: 132px auto !important;
+  background-position: center -5px !important;
+}
+
+/* Remove excessive logo-section height. */
+html.pmd-sm2-collapsed .pmd-sm2__brand {
+  height: 96px !important;
+  min-height: 96px !important;
+}
+
+html.pmd-sm2-expanded .pmd-sm2__brand {
+  height: 116px !important;
+  min-height: 116px !important;
+}
+
+/* Always center the clipping window. */
+.pmd-sm2__brand,
+html.pmd-sm2-expanded .pmd-sm2__brand {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  padding: 8px !important;
+}
+
+/* There must be no text beside or below the symbol. */
+.pmd-sm2__brand-text {
+  display: none !important;
+}
+
