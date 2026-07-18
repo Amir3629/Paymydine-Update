@@ -1,4 +1,37 @@
-<link rel="stylesheet" href="/app/admin/assets/css/pmd-reservations2-v1.css?v=20260718-1">
+<script>
+document.documentElement.classList.add('pmd-r2-no-sidebar');
+</script>
+
+<style id="pmd-r2-no-sidebar-style">
+html.pmd-r2-no-sidebar .sidebar,
+html.pmd-r2-no-sidebar #navSidebar,
+html.pmd-r2-no-sidebar .sidebar-overlay,
+html.pmd-r2-no-sidebar [data-toggle="sidebar"] {
+    display: none !important;
+}
+
+html.pmd-r2-no-sidebar body,
+html.pmd-r2-no-sidebar .page-wrapper,
+html.pmd-r2-no-sidebar .page-content,
+html.pmd-r2-no-sidebar main,
+html.pmd-r2-no-sidebar .content-wrapper {
+    margin-left: 0 !important;
+    padding-left: 0 !important;
+}
+
+html.pmd-r2-no-sidebar .navbar-top,
+html.pmd-r2-no-sidebar .navbar-fixed-top {
+    left: 0 !important;
+    width: 100% !important;
+    margin-left: 0 !important;
+}
+
+html.pmd-r2-no-sidebar #pmd-reservations2 {
+    margin-left: 0 !important;
+}
+</style>
+
+<link rel="stylesheet" href="/app/admin/assets/css/pmd-reservations2-v1.css?v=20260718-2">
 
 <script>
 window.PMD_RESERVATIONS2_BOOT = {
@@ -116,4 +149,4 @@ window.PMD_RESERVATIONS2_BOOT = {
     {!! $this->renderList() !!}
 </div>
 
-<script src="/app/admin/assets/js/pmd-reservations2-v1.js?v=20260718-1"></script>
+<script src="/app/admin/assets/js/pmd-reservations2-v1.js?v=20260718-2"></script>
