@@ -1150,3 +1150,155 @@ html.pmd-sm2-collapsed
 }
 
 /* PMD_SM2_COLLAPSED_LOGO_SHORTER_V15_END */
+
+/* PMD_R2_CONTENT_GAP_FIX_V16_START */
+
+/*
+ * The original admin layout still reserves space for
+ * the removed native sidebar. Side Menu 2 already owns
+ * the horizontal offset, so reset the legacy wrappers.
+ */
+html.pmd-sm2-collapsed,
+html.pmd-sm2-expanded {
+  --pmd-sm2-content-gap: 12px;
+}
+
+/*
+ * Collapsed menu:
+ * left 14px + width 72px + gap 12px = 98px.
+ */
+html.pmd-sm2-collapsed {
+  --pmd-sm2-content-left: 98px;
+}
+
+/*
+ * Expanded menu:
+ * left 14px + width 190px + gap 12px = 216px.
+ */
+html.pmd-sm2-expanded {
+  --pmd-sm2-content-left: 216px;
+}
+
+/*
+ * Remove the margin left behind by the original
+ * TastyIgniter/admin sidebar layout.
+ */
+html.pmd-sm2-collapsed body .page-wrapper,
+html.pmd-sm2-expanded body .page-wrapper,
+html.pmd-sm2-collapsed body .page-content,
+html.pmd-sm2-expanded body .page-content,
+html.pmd-sm2-collapsed body .main-content,
+html.pmd-sm2-expanded body .main-content,
+html.pmd-sm2-collapsed body .content-wrapper,
+html.pmd-sm2-expanded body .content-wrapper,
+html.pmd-sm2-collapsed body #page-wrapper,
+html.pmd-sm2-expanded body #page-wrapper {
+  margin-left: 0 !important;
+  padding-left: 0 !important;
+  max-width: none !important;
+  width: 100% !important;
+}
+
+/*
+ * Some admin layouts center their internal container.
+ * Reservations2 must use the complete available width.
+ */
+html.pmd-sm2-collapsed
+  #pmd-reservations2,
+html.pmd-sm2-expanded
+  #pmd-reservations2 {
+  position: relative !important;
+
+  margin-left:
+    var(--pmd-sm2-content-left)
+    !important;
+
+  margin-right: 12px !important;
+
+  width:
+    calc(
+      100vw -
+      var(--pmd-sm2-content-left) -
+      12px
+    )
+    !important;
+
+  max-width: none !important;
+
+  transition:
+    margin-left 220ms
+      cubic-bezier(.22,.75,.24,1),
+    width 220ms
+      cubic-bezier(.22,.75,.24,1)
+    !important;
+}
+
+/*
+ * Keep the top toolbar aligned with the content and
+ * move it smoothly when the menu expands/collapses.
+ */
+html.pmd-sm2-collapsed
+  .navbar-top,
+html.pmd-sm2-collapsed
+  .navbar-fixed-top,
+html.pmd-sm2-expanded
+  .navbar-top,
+html.pmd-sm2-expanded
+  .navbar-fixed-top {
+  left:
+    var(--pmd-sm2-content-left)
+    !important;
+
+  width:
+    calc(
+      100vw -
+      var(--pmd-sm2-content-left)
+    )
+    !important;
+
+  margin-left: 0 !important;
+  max-width: none !important;
+
+  transition:
+    left 220ms
+      cubic-bezier(.22,.75,.24,1),
+    width 220ms
+      cubic-bezier(.22,.75,.24,1)
+    !important;
+}
+
+/*
+ * Remove Bootstrap/container centering only inside
+ * the isolated Reservations2 page.
+ */
+#pmd-reservations2 > .container,
+#pmd-reservations2 > .container-fluid {
+  width: 100% !important;
+  max-width: none !important;
+  margin-left: 0 !important;
+  margin-right: 0 !important;
+}
+
+/*
+ * Narrow screens: do not force a desktop-width page.
+ */
+@media (max-width: 767px) {
+  html.pmd-sm2-collapsed {
+    --pmd-sm2-content-left: 88px;
+  }
+
+  html.pmd-sm2-collapsed
+    #pmd-reservations2 {
+    margin-right: 8px !important;
+
+    width:
+      calc(
+        100vw -
+        var(--pmd-sm2-content-left) -
+        8px
+      )
+      !important;
+  }
+}
+
+/* PMD_R2_CONTENT_GAP_FIX_V16_END */
