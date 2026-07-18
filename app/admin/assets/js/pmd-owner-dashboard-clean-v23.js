@@ -31,6 +31,19 @@ var __pmdPath = String((window.location && window.location.pathname) || '');
 (function () {
   'use strict';
 
+  /*
+   * PMD Reservations hard isolation:
+   * Owner Dashboard injectors must never mount dashboard floors
+   * inside the native Reservations workspace.
+   */
+  if (/^\/admin\/reservations\/?$/.test(window.location.pathname)) {
+    console.info(
+      '[PMD] Owner dashboard clean v23 fully disabled on Reservations'
+    );
+    return;
+  }
+
+
   var VERSION = 'owner-clean-v23-waiter-interactive-floor-20260626';
   var root = null;
   var lastData = null;
