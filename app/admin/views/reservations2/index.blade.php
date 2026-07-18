@@ -1,3 +1,10 @@
+@php
+    $pmdSideMenu2LogoPath = setting('favicon_logo');
+    $pmdSideMenu2LogoUrl = $pmdSideMenu2LogoPath
+        ? asset('assets/media/uploads/'.ltrim($pmdSideMenu2LogoPath, '/'))
+        : asset('app/admin/assets/images/logo.png');
+@endphp
+
 <script>
 (function () {
     var state = 'collapsed';
@@ -13,7 +20,8 @@
 })();
 </script>
 
-<link rel="stylesheet" href="/app/admin/assets/css/pmd-side-menu2-v1.css?v=20260718-1">
+<link rel="preload" as="image" href="{{ $pmdSideMenu2LogoUrl }}">
+<link rel="stylesheet" href="/app/admin/assets/css/pmd-side-menu2-v1.css?v=20260718-2">
 <link rel="stylesheet" href="/app/admin/assets/css/pmd-reservations2-v1.css?v=20260718-1">
 
 <script>
@@ -28,17 +36,15 @@ window.PMD_RESERVATIONS2_BOOT = {
 
 <aside id="pmd-side-menu2" aria-label="Admin navigation">
     <a class="pmd-sm2__brand" href="{{ admin_url('dashboard') }}" aria-label="PayMyDine dashboard">
-        <svg class="pmd-sm2__logo" viewBox="0 0 64 64" aria-hidden="true">
-            <defs>
-                <linearGradient id="pmd-sm2-logo" x1="0" y1="0" x2="1" y2="1">
-                    <stop offset="0" stop-color="#99ef25"/>
-                    <stop offset="1" stop-color="#00a88d"/>
-                </linearGradient>
-            </defs>
-            <path d="M14 10h23c10 0 18 7 18 17s-8 17-18 17H28v10H14V10Z" fill="url(#pmd-sm2-logo)"/>
-            <path d="M28 22h9c4 0 6 2 6 5s-2 5-6 5h-9V22Z" fill="#071712"/>
-            <path d="M8 22h14v11H8z" fill="#f2c94c" opacity=".92"/>
-        </svg>
+        <img
+            class="pmd-sm2__mark-image"
+            src="{{ $pmdSideMenu2LogoUrl }}"
+            width="46"
+            height="46"
+            decoding="sync"
+            fetchpriority="high"
+            alt="PayMyDine"
+        >
         <span class="pmd-sm2__brand-text">
             <strong>PayMyDine</strong>
             <small>Restaurant admin</small>
@@ -50,34 +56,61 @@ window.PMD_RESERVATIONS2_BOOT = {
             <svg viewBox="0 0 24 24"><path d="M3 11 12 4l9 7"/><path d="M5 10v10h14V10"/><path d="M9 20v-6h6v6"/></svg>
             <span class="pmd-sm2__label">Dashboard</span>
         </a>
+
         <a class="pmd-sm2__item" href="{{ admin_url('orders') }}">
             <svg viewBox="0 0 24 24"><path d="M6 7h12l1 13H5L6 7Z"/><path d="M9 7V5a3 3 0 0 1 6 0v2"/></svg>
             <span class="pmd-sm2__label">Orders</span>
         </a>
+
         <a class="pmd-sm2__item is-active" href="{{ admin_url('reservations2') }}" aria-current="page">
             <svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M7 3v4M17 3v4M3 10h18"/><path d="M8 14h3M13 14h3M8 17h3"/></svg>
             <span class="pmd-sm2__label">Reservations</span>
         </a>
+
         <a class="pmd-sm2__item" href="{{ admin_url('coupons') }}">
             <svg viewBox="0 0 24 24"><path d="m3 12 9-9 9 9-9 9-9-9Z"/><circle cx="9" cy="9" r="1.5"/></svg>
             <span class="pmd-sm2__label">Coupons & Gifts</span>
         </a>
-        <a class="pmd-sm2__item" href="{{ admin_url('restaurant') }}">
-            <svg viewBox="0 0 24 24"><path d="M6 3v8M3 3v5a3 3 0 0 0 6 0V3M6 11v10M16 3v18M16 3c3 2 4 5 4 8h-4"/></svg>
-            <span class="pmd-sm2__label">Restaurant</span>
-        </a>
+
+        <div class="pmd-sm2__dropdown" data-pmd-sm2-dropdown="restaurant">
+            <button type="button" class="pmd-sm2__dropdown-toggle" data-pmd-sm2-dropdown-toggle aria-expanded="false">
+                <svg viewBox="0 0 24 24"><path d="M6 3v8M3 3v5a3 3 0 0 0 6 0V3M6 11v10M16 3v18M16 3c3 2 4 5 4 8h-4"/></svg>
+                <span class="pmd-sm2__label">Restaurant</span>
+                <svg class="pmd-sm2__chevron" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></svg>
+            </button>
+            <div class="pmd-sm2__submenu"><div class="pmd-sm2__submenu-inner">
+                <a class="pmd-sm2__subitem" href="{{ admin_url('restaurant') }}">Restaurant setup</a>
+                <a class="pmd-sm2__subitem" href="{{ admin_url('dashboardkitchen') }}">Kitchen display</a>
+            </div></div>
+        </div>
+
         <a class="pmd-sm2__item" href="{{ admin_url('dashboardkitchen') }}">
             <svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="13" rx="2"/><path d="M8 21h8M12 17v4"/></svg>
             <span class="pmd-sm2__label">Kitchen Display</span>
         </a>
-        <a class="pmd-sm2__item" href="{{ admin_url('themes') }}">
-            <svg viewBox="0 0 24 24"><path d="m14 4 6 6L9 21H3v-6L14 4Z"/><path d="m12 6 6 6"/></svg>
-            <span class="pmd-sm2__label">Design</span>
-        </a>
-        <a class="pmd-sm2__item" href="{{ admin_url('settings') }}">
-            <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.9l.1.1-2.8 2.8-.1-.1a1.7 1.7 0 0 0-1.9-.3 1.7 1.7 0 0 0-1 1.6v.2H10V21a1.7 1.7 0 0 0-1-1.6 1.7 1.7 0 0 0-1.9.3l-.1.1L4.2 17l.1-.1a1.7 1.7 0 0 0 .3-1.9A1.7 1.7 0 0 0 3 14H2.8v-4H3a1.7 1.7 0 0 0 1.6-1 1.7 1.7 0 0 0-.3-1.9L4.2 7 7 4.2l.1.1a1.7 1.7 0 0 0 1.9.3 1.7 1.7 0 0 0 1-1.6v-.2h4V3a1.7 1.7 0 0 0 1 1.6 1.7 1.7 0 0 0 1.9-.3l.1-.1L19.8 7l-.1.1a1.7 1.7 0 0 0-.3 1.9 1.7 1.7 0 0 0 1.6 1h.2v4H21a1.7 1.7 0 0 0-1.6 1Z"/></svg>
-            <span class="pmd-sm2__label">System</span>
-        </a>
+
+        <div class="pmd-sm2__dropdown" data-pmd-sm2-dropdown="design">
+            <button type="button" class="pmd-sm2__dropdown-toggle" data-pmd-sm2-dropdown-toggle aria-expanded="false">
+                <svg viewBox="0 0 24 24"><path d="m14 4 6 6L9 21H3v-6L14 4Z"/><path d="m12 6 6 6"/></svg>
+                <span class="pmd-sm2__label">Design</span>
+                <svg class="pmd-sm2__chevron" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></svg>
+            </button>
+            <div class="pmd-sm2__submenu"><div class="pmd-sm2__submenu-inner">
+                <a class="pmd-sm2__subitem" href="{{ admin_url('themes') }}">Themes</a>
+            </div></div>
+        </div>
+
+        <div class="pmd-sm2__dropdown" data-pmd-sm2-dropdown="system">
+            <button type="button" class="pmd-sm2__dropdown-toggle" data-pmd-sm2-dropdown-toggle aria-expanded="false">
+                <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.9l.1.1-2.8 2.8-.1-.1a1.7 1.7 0 0 0-1.9-.3 1.7 1.7 0 0 0-1 1.6v.2H10V21a1.7 1.7 0 0 0-1-1.6 1.7 1.7 0 0 0-1.9.3l-.1.1L4.2 17l.1-.1a1.7 1.7 0 0 0 .3-1.9A1.7 1.7 0 0 0 3 14H2.8v-4H3a1.7 1.7 0 0 0 1.6-1 1.7 1.7 0 0 0-.3-1.9L4.2 7 7 4.2l.1.1a1.7 1.7 0 0 0 1.9.3 1.7 1.7 0 0 0 1-1.6v-.2h4V3a1.7 1.7 0 0 0 1 1.6 1.7 1.7 0 0 0 1.9-.3l.1-.1L19.8 7l-.1.1a1.7 1.7 0 0 0-.3 1.9 1.7 1.7 0 0 0 1.6 1h.2v4H21a1.7 1.7 0 0 0-1.6 1Z"/></svg>
+                <span class="pmd-sm2__label">System</span>
+                <svg class="pmd-sm2__chevron" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></svg>
+            </button>
+            <div class="pmd-sm2__submenu"><div class="pmd-sm2__submenu-inner">
+                <a class="pmd-sm2__subitem" href="{{ admin_url('settings') }}">Settings</a>
+                <a class="pmd-sm2__subitem" href="{{ admin_url('staffs/account') }}">My account</a>
+            </div></div>
+        </div>
     </nav>
 
     <div class="pmd-sm2__footer">
@@ -90,20 +123,10 @@ window.PMD_RESERVATIONS2_BOOT = {
 
 <div id="pmd-reservations2" class="pmd-r2" aria-busy="true">
     <header class="pmd-r2__hero">
-        <div>
-            <h1>Reservations</h1>
-            <p>Bookings and live floor assignments</p>
-        </div>
-
+        <div><h1>Reservations</h1><p>Bookings and live floor assignments</p></div>
         <div class="pmd-r2__hero-actions">
-            <button type="button" class="btn btn-default pmd-r2__refresh" data-pmd-r2-refresh>
-                <span aria-hidden="true">↻</span>
-                Refresh
-            </button>
-            <a class="btn btn-primary pmd-r2__new" href="{{ admin_url('reservations/create') }}">
-                <span aria-hidden="true">＋</span>
-                New reservation
-            </a>
+            <button type="button" class="btn btn-default pmd-r2__refresh" data-pmd-r2-refresh><span aria-hidden="true">↻</span>Refresh</button>
+            <a class="btn btn-primary pmd-r2__new" href="{{ admin_url('reservations/create') }}"><span aria-hidden="true">＋</span>New reservation</a>
         </div>
     </header>
 
@@ -140,5 +163,5 @@ window.PMD_RESERVATIONS2_BOOT = {
 
 <div class="pmd-r2-source" aria-hidden="true">{!! $this->renderList() !!}</div>
 
-<script src="/app/admin/assets/js/pmd-side-menu2-v1.js?v=20260718-1"></script>
+<script src="/app/admin/assets/js/pmd-side-menu2-v1.js?v=20260718-2"></script>
 <script src="/app/admin/assets/js/pmd-reservations2-v1.js?v=20260718-1"></script>
