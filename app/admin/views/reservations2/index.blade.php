@@ -79,8 +79,8 @@
   }
 </style>
 <!-- PMD_SM2_CRITICAL_LOGO_END -->
-<link rel="stylesheet" href="/app/admin/assets/css/pmd-side-menu2-v1.css?v=20260718-8">
-<link rel="stylesheet" href="/app/admin/assets/css/pmd-reservations2-v1.css?v=20260718-1">
+<link rel="stylesheet" href="/app/admin/assets/css/pmd-side-menu2-v1.css?v=20260718-9">
+<link rel="stylesheet" href="/app/admin/assets/css/pmd-reservations2-v1.css?v=20260718-9">
 
 <script>
 window.PMD_RESERVATIONS2_BOOT = {
@@ -129,11 +129,13 @@ window.PMD_RESERVATIONS2_BOOT = {
             <button type="button" class="pmd-sm2__dropdown-toggle" data-pmd-sm2-dropdown-toggle aria-expanded="false">
                 <svg viewBox="0 0 24 24"><path d="M6 3v8M3 3v5a3 3 0 0 0 6 0V3M6 11v10M16 3v18M16 3c3 2 4 5 4 8h-4"/></svg>
                 <span class="pmd-sm2__label">Restaurant</span>
-                <svg class="pmd-sm2__chevron" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></svg>
             </button>
             <div class="pmd-sm2__submenu"><div class="pmd-sm2__submenu-inner">
-                <a class="pmd-sm2__subitem" href="{{ admin_url('restaurant') }}">Restaurant setup</a>
-                <a class="pmd-sm2__subitem" href="{{ admin_url('dashboardkitchen') }}">Kitchen display</a>
+                <a class="pmd-sm2__subitem" href="{{ admin_url('locations') }}">Locations</a>
+                <a class="pmd-sm2__subitem" href="{{ admin_url('menus') }}">Menus</a>
+                <a class="pmd-sm2__subitem" href="{{ admin_url('categories') }}">Categories</a>
+                <a class="pmd-sm2__subitem" href="{{ admin_url('mealtimes') }}">Mealtimes</a>
+                <a class="pmd-sm2__subitem" href="{{ admin_url('tables') }}">Tables</a>
             </div></div>
         </div>
 
@@ -146,10 +148,10 @@ window.PMD_RESERVATIONS2_BOOT = {
             <button type="button" class="pmd-sm2__dropdown-toggle" data-pmd-sm2-dropdown-toggle aria-expanded="false">
                 <svg viewBox="0 0 24 24"><path d="m14 4 6 6L9 21H3v-6L14 4Z"/><path d="m12 6 6 6"/></svg>
                 <span class="pmd-sm2__label">Design</span>
-                <svg class="pmd-sm2__chevron" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></svg>
             </button>
             <div class="pmd-sm2__submenu"><div class="pmd-sm2__submenu-inner">
                 <a class="pmd-sm2__subitem" href="{{ admin_url('themes') }}">Themes</a>
+                <a class="pmd-sm2__subitem" href="{{ admin_url('mail_templates') }}">Mail templates</a>
             </div></div>
         </div>
 
@@ -157,10 +159,13 @@ window.PMD_RESERVATIONS2_BOOT = {
             <button type="button" class="pmd-sm2__dropdown-toggle" data-pmd-sm2-dropdown-toggle aria-expanded="false">
                 <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.9l.1.1-2.8 2.8-.1-.1a1.7 1.7 0 0 0-1.9-.3 1.7 1.7 0 0 0-1 1.6v.2H10V21a1.7 1.7 0 0 0-1-1.6 1.7 1.7 0 0 0-1.9.3l-.1.1L4.2 17l.1-.1a1.7 1.7 0 0 0 .3-1.9A1.7 1.7 0 0 0 3 14H2.8v-4H3a1.7 1.7 0 0 0 1.6-1 1.7 1.7 0 0 0-.3-1.9L4.2 7 7 4.2l.1.1a1.7 1.7 0 0 0 1.9.3 1.7 1.7 0 0 0 1-1.6v-.2h4V3a1.7 1.7 0 0 0 1 1.6 1.7 1.7 0 0 0 1.9-.3l.1-.1L19.8 7l-.1.1a1.7 1.7 0 0 0-.3 1.9 1.7 1.7 0 0 0 1.6 1h.2v4H21a1.7 1.7 0 0 0-1.6 1Z"/></svg>
                 <span class="pmd-sm2__label">System</span>
-                <svg class="pmd-sm2__chevron" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></svg>
             </button>
             <div class="pmd-sm2__submenu"><div class="pmd-sm2__submenu-inner">
                 <a class="pmd-sm2__subitem" href="{{ admin_url('settings') }}">Settings</a>
+                <a class="pmd-sm2__subitem" href="{{ admin_url('staffs') }}">Staff</a>
+                <a class="pmd-sm2__subitem" href="{{ admin_url('system_logs') }}">System logs</a>
+                <a class="pmd-sm2__subitem" href="{{ admin_url('pos_configs') }}">POS configuration</a>
+                <a class="pmd-sm2__subitem" href="{{ admin_url('terminal_devices') }}">Terminal devices</a>
                 <a class="pmd-sm2__subitem" href="{{ admin_url('staffs/account') }}">My account</a>
             </div></div>
         </div>

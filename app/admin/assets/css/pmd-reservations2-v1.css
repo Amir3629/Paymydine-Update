@@ -91,3 +91,144 @@
   .pmd-r2-floor { min-height: 500px; }
   .pmd-r2__legend { position: static; margin: 0 14px 14px; flex-wrap: wrap; }
 }
+
+/* PMD_R2_FINAL_DENSITY_V2_START */
+
+/*
+ * Match the density and rhythm of the rest
+ * of the final admin panel.
+ */
+#pmd-reservations2.pmd-r2 {
+  padding: 11px 12px 18px !important;
+  min-height: calc(100vh - 64px) !important;
+}
+
+/* Header/title row */
+#pmd-reservations2 .pmd-r2__hero {
+  gap: 12px !important;
+  margin-bottom: 10px !important;
+}
+
+#pmd-reservations2 .pmd-r2__hero h1 {
+  font-size: 23px !important;
+  line-height: 1.1 !important;
+}
+
+#pmd-reservations2 .pmd-r2__hero p {
+  margin-top: 3px !important;
+  font-size: 12px !important;
+}
+
+#pmd-reservations2
+  .pmd-r2__hero-actions {
+  gap: 8px !important;
+}
+
+#pmd-reservations2
+  .pmd-r2__hero-actions .btn,
+#pmd-reservations2
+  .pmd-r2__floor-head .btn {
+  min-height: 38px !important;
+  padding: 7px 13px !important;
+}
+
+/* KPI row */
+#pmd-reservations2 .pmd-r2__kpis {
+  gap: 9px !important;
+  margin-bottom: 9px !important;
+}
+
+#pmd-reservations2 .pmd-r2-kpi {
+  min-height: 94px !important;
+  padding: 17px 19px !important;
+  border-radius: 15px !important;
+}
+
+#pmd-reservations2 .pmd-r2-kpi strong {
+  margin-top: 6px !important;
+  font-size: 27px !important;
+}
+
+#pmd-reservations2 .pmd-r2-kpi i {
+  width: 44px !important;
+  height: 44px !important;
+  border-radius: 13px !important;
+  font-size: 20px !important;
+}
+
+/* Main workspace */
+#pmd-reservations2 .pmd-r2__workspace {
+  grid-template-columns:
+    minmax(290px, 30%)
+    minmax(0, 1fr)
+    !important;
+
+  gap: 9px !important;
+}
+
+#pmd-reservations2 .pmd-r2__list-panel,
+#pmd-reservations2 .pmd-r2__floor-panel {
+  min-height: 500px !important;
+  border-radius: 15px !important;
+}
+
+#pmd-reservations2 .pmd-r2__panel-head {
+  min-height: 61px !important;
+  padding: 11px 15px !important;
+}
+
+#pmd-reservations2 .pmd-r2__panel-head h2 {
+  font-size: 18px !important;
+}
+
+#pmd-reservations2 .pmd-r2__panel-head span {
+  margin-top: 2px !important;
+}
+
+/* Search/filter row */
+#pmd-reservations2 .pmd-r2__filters {
+  padding: 9px 10px !important;
+  gap: 7px !important;
+}
+
+#pmd-reservations2
+  .pmd-r2__search input {
+  height: 40px !important;
+}
+
+#pmd-reservations2 .pmd-r2__clear {
+  width: 40px !important;
+  height: 40px !important;
+}
+
+/* Reservation cards */
+#pmd-reservations2 .pmd-r2__cards {
+  padding: 9px !important;
+  gap: 7px !important;
+  max-height: 384px !important;
+}
+
+#pmd-reservations2 .pmd-r2-card {
+  padding: 11px 12px !important;
+  border-radius: 12px !important;
+}
+
+#pmd-reservations2 .pmd-r2-card__meta {
+  margin-top: 6px !important;
+}
+
+/* Floor */
+#pmd-reservations2 .pmd-r2-floor {
+  min-height: 420px !important;
+  margin: 10px !important;
+  border-radius: 12px !important;
+}
+
+#pmd-reservations2 .pmd-r2__legend {
+  left: 20px !important;
+  bottom: 17px !important;
+  gap: 10px !important;
+  padding: 7px 10px !important;
+}
+
+/* PMD_R2_FINAL_DENSITY_V2_END */

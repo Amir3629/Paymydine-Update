@@ -626,3 +626,161 @@ html.pmd-sm2-collapsed #pmd-side-menu2-logo {
   background-position: center -3px !important;
 }
 
+/* PMD_SIDE_MENU2_FINAL_CALIBRATION_V8_START */
+
+/*
+ * Final width:
+ * collapsed = 72px
+ * expanded  = 190px
+ */
+html.pmd-sm2-collapsed,
+html.pmd-sm2-expanded {
+  --pmd-sm2-panel: 72px;
+  --pmd-sm2-offset: 88px;
+  --pmd-sm2-speed: 220ms;
+}
+
+html.pmd-sm2-expanded {
+  --pmd-sm2-panel: 190px;
+  --pmd-sm2-offset: 206px;
+}
+
+#pmd-side-menu2 {
+  width: var(--pmd-sm2-panel) !important;
+
+  transition:
+    width var(--pmd-sm2-speed)
+      cubic-bezier(.22,.75,.24,1),
+    box-shadow var(--pmd-sm2-speed) ease
+    !important;
+}
+
+/* Remove the visible edge line below the logo. */
+#pmd-side-menu2 .pmd-sm2__brand {
+  border-bottom: 0 !important;
+  box-shadow: none !important;
+  overflow: hidden !important;
+}
+
+/*
+ * Show more of the original symbol:
+ * - slightly smaller background image
+ * - taller clipping window
+ * - positioned higher inside the menu
+ */
+html.pmd-sm2-expanded
+  #pmd-side-menu2 .pmd-sm2__brand {
+  height: 106px !important;
+  min-height: 106px !important;
+  padding: 1px 8px 9px !important;
+  align-items: flex-start !important;
+}
+
+html.pmd-sm2-expanded #pmd-side-menu2-logo {
+  width: 104px !important;
+  min-width: 104px !important;
+  height: 96px !important;
+  flex: 0 0 104px !important;
+
+  background-size: 122px auto !important;
+  background-position: center 1px !important;
+}
+
+html.pmd-sm2-collapsed
+  #pmd-side-menu2 .pmd-sm2__brand {
+  height: 88px !important;
+  min-height: 88px !important;
+  padding: 1px 6px 7px !important;
+  align-items: flex-start !important;
+}
+
+html.pmd-sm2-collapsed #pmd-side-menu2-logo {
+  width: 50px !important;
+  min-width: 50px !important;
+  height: 68px !important;
+  flex: 0 0 50px !important;
+
+  background-size: 74px auto !important;
+  background-position: center 1px !important;
+}
+
+/*
+ * Dropdown buttons remain functional,
+ * but there is no arrow icon.
+ */
+#pmd-side-menu2 .pmd-sm2__chevron {
+  display: none !important;
+}
+
+/* Prevent right-side empty space left by the removed arrow. */
+html.pmd-sm2-expanded
+  #pmd-side-menu2 .pmd-sm2__dropdown-toggle {
+  padding-right: 12px !important;
+}
+
+html.pmd-sm2-expanded
+  #pmd-side-menu2 .pmd-sm2__label {
+  max-width: none !important;
+}
+
+/* Cleaner and denser submenu layout. */
+#pmd-side-menu2 .pmd-sm2__dropdown {
+  min-height: 48px !important;
+}
+
+#pmd-side-menu2 .pmd-sm2__submenu {
+  width: 100% !important;
+}
+
+#pmd-side-menu2
+  .pmd-sm2__dropdown.is-open
+  .pmd-sm2__submenu-inner {
+  padding: 2px 0 5px !important;
+}
+
+#pmd-side-menu2 .pmd-sm2__subitem {
+  min-height: 31px !important;
+  margin: 1px 5px 1px 38px !important;
+  padding: 6px 7px !important;
+  border-radius: 8px !important;
+
+  font-size: 11.5px !important;
+  line-height: 1.2 !important;
+}
+
+/*
+ * Content follows the menu smoothly and stays close to it.
+ */
+html.pmd-sm2-collapsed #pmd-reservations2,
+html.pmd-sm2-expanded #pmd-reservations2 {
+  margin-left: var(--pmd-sm2-offset) !important;
+  width:
+    calc(100% - var(--pmd-sm2-offset) - 6px)
+    !important;
+
+  transition:
+    margin-left var(--pmd-sm2-speed)
+      cubic-bezier(.22,.75,.24,1),
+    width var(--pmd-sm2-speed)
+      cubic-bezier(.22,.75,.24,1)
+    !important;
+}
+
+html.pmd-sm2-collapsed .navbar-top,
+html.pmd-sm2-collapsed .navbar-fixed-top,
+html.pmd-sm2-expanded .navbar-top,
+html.pmd-sm2-expanded .navbar-fixed-top {
+  left: var(--pmd-sm2-offset) !important;
+  width:
+    calc(100% - var(--pmd-sm2-offset))
+    !important;
+
+  transition:
+    left var(--pmd-sm2-speed)
+      cubic-bezier(.22,.75,.24,1),
+    width var(--pmd-sm2-speed)
+      cubic-bezier(.22,.75,.24,1)
+    !important;
+}
+
+/* PMD_SIDE_MENU2_FINAL_CALIBRATION_V8_END */
