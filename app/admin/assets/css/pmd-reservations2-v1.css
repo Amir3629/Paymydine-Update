@@ -232,3 +232,97 @@
 }
 
 /* PMD_R2_FINAL_DENSITY_V2_END */
+
+/* PMD_R2_UNIFIED_GAPS_V3_START */
+
+#pmd-reservations2 {
+  --pmd-r2-gap: 14px;
+}
+
+/* Title to KPI row */
+#pmd-reservations2 .pmd-r2__hero {
+  margin-bottom:
+    var(--pmd-r2-gap)
+    !important;
+}
+
+/* KPI to KPI */
+#pmd-reservations2 .pmd-r2__kpis {
+  gap:
+    var(--pmd-r2-gap)
+    !important;
+
+  margin-bottom:
+    var(--pmd-r2-gap)
+    !important;
+}
+
+/* Reservations panel to floor panel */
+#pmd-reservations2 .pmd-r2__workspace {
+  gap:
+    var(--pmd-r2-gap)
+    !important;
+}
+
+/*
+ * Keep the four KPI columns equal.
+ */
+#pmd-reservations2 .pmd-r2__kpis {
+  grid-template-columns:
+    repeat(4, minmax(0, 1fr))
+    !important;
+}
+
+/*
+ * Prevent content from forcing the page wider
+ * than the viewport.
+ */
+#pmd-reservations2 .pmd-r2__hero,
+#pmd-reservations2 .pmd-r2__kpis,
+#pmd-reservations2 .pmd-r2__workspace,
+#pmd-reservations2 .pmd-r2__list-panel,
+#pmd-reservations2 .pmd-r2__floor-panel {
+  min-width: 0 !important;
+  max-width: 100% !important;
+  box-sizing: border-box !important;
+}
+
+/*
+ * Consistent internal panel spacing.
+ */
+#pmd-reservations2 .pmd-r2__panel-head,
+#pmd-reservations2 .pmd-r2__filters,
+#pmd-reservations2 .pmd-r2__cards {
+  box-sizing: border-box !important;
+}
+
+/*
+ * Smaller screens.
+ */
+@media (max-width: 1100px) {
+  #pmd-reservations2 .pmd-r2__kpis {
+    grid-template-columns:
+      repeat(2, minmax(0, 1fr))
+      !important;
+  }
+}
+
+@media (max-width: 767px) {
+  #pmd-reservations2 {
+    --pmd-r2-gap: 10px;
+  }
+
+  #pmd-reservations2 .pmd-r2__kpis {
+    grid-template-columns:
+      1fr
+      !important;
+  }
+
+  #pmd-reservations2 .pmd-r2__workspace {
+    grid-template-columns:
+      1fr
+      !important;
+  }
+}
+
+/* PMD_R2_UNIFIED_GAPS_V3_END */

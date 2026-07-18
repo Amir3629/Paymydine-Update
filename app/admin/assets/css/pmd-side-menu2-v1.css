@@ -1151,79 +1151,124 @@ html.pmd-sm2-collapsed
 
 /* PMD_SM2_COLLAPSED_LOGO_SHORTER_V15_END */
 
-/* PMD_R2_CONTENT_GAP_FIX_V16_START */
+/* PMD_R2_EXACT_SPACING_V17_START */
 
 /*
- * The original admin layout still reserves space for
- * the removed native sidebar. Side Menu 2 already owns
- * the horizontal offset, so reset the legacy wrappers.
+ * Single layout spacing token.
+ *
+ * Screen → menu:       14px
+ * Menu → page cards:   14px
+ * Card → card:         14px
+ * Cards → right edge:  14px
  */
 html.pmd-sm2-collapsed,
 html.pmd-sm2-expanded {
-  --pmd-sm2-content-gap: 12px;
+  --pmd-r2-space: 14px;
+
+  /*
+   * Sidebar starts 14px from the viewport.
+   * Root starts exactly at the sidebar's right edge.
+   * Root padding creates the visible 14px card gap.
+   */
+  --pmd-sm2-menu-left: 14px;
+  --pmd-sm2-menu-width: 72px;
+  --pmd-sm2-menu-right:
+    calc(
+      var(--pmd-sm2-menu-left) +
+      var(--pmd-sm2-menu-width)
+    );
 }
 
-/*
- * Collapsed menu:
- * left 14px + width 72px + gap 12px = 98px.
- */
-html.pmd-sm2-collapsed {
-  --pmd-sm2-content-left: 98px;
-}
-
-/*
- * Expanded menu:
- * left 14px + width 190px + gap 12px = 216px.
- */
 html.pmd-sm2-expanded {
-  --pmd-sm2-content-left: 216px;
+  --pmd-sm2-menu-width: 190px;
 }
 
 /*
- * Remove the margin left behind by the original
- * TastyIgniter/admin sidebar layout.
+ * Remove the original admin sidebar geometry.
+ *
+ * The audit showed .page-wrapper at left:212px.
+ * Setting margin-left alone was insufficient because
+ * the wrapper is absolutely positioned.
  */
 html.pmd-sm2-collapsed body .page-wrapper,
-html.pmd-sm2-expanded body .page-wrapper,
-html.pmd-sm2-collapsed body .page-content,
-html.pmd-sm2-expanded body .page-content,
-html.pmd-sm2-collapsed body .main-content,
-html.pmd-sm2-expanded body .main-content,
-html.pmd-sm2-collapsed body .content-wrapper,
-html.pmd-sm2-expanded body .content-wrapper,
-html.pmd-sm2-collapsed body #page-wrapper,
-html.pmd-sm2-expanded body #page-wrapper {
+html.pmd-sm2-expanded body .page-wrapper {
+  position: absolute !important;
+
+  left: 0 !important;
+  right: auto !important;
+
   margin-left: 0 !important;
+  margin-right: 0 !important;
+
   padding-left: 0 !important;
+  padding-right: 0 !important;
+
+  width: 100vw !important;
+  min-width: 0 !important;
   max-width: none !important;
-  width: 100% !important;
+
+  overflow-x: hidden !important;
 }
 
 /*
- * Some admin layouts center their internal container.
- * Reservations2 must use the complete available width.
+ * Remove the measured 28px legacy padding from
+ * .page-content.
  */
-html.pmd-sm2-collapsed
-  #pmd-reservations2,
-html.pmd-sm2-expanded
-  #pmd-reservations2 {
+html.pmd-sm2-collapsed body .page-content,
+html.pmd-sm2-expanded body .page-content {
   position: relative !important;
 
-  margin-left:
-    var(--pmd-sm2-content-left)
-    !important;
+  left: 0 !important;
+  right: auto !important;
 
-  margin-right: 12px !important;
+  margin: 0 !important;
+  padding: 0 !important;
+
+  width: 100vw !important;
+  min-width: 0 !important;
+  max-width: none !important;
+
+  overflow-x: hidden !important;
+}
+
+/*
+ * Root begins at the exact right edge of the menu.
+ *
+ * The internal 14px padding means the first visible
+ * card starts exactly 14px after the sidebar.
+ */
+html.pmd-sm2-collapsed #pmd-reservations2,
+html.pmd-sm2-expanded #pmd-reservations2 {
+  position: relative !important;
+  left: 0 !important;
+  right: auto !important;
+
+  margin-top: 0 !important;
+  margin-bottom: 0 !important;
+  margin-left:
+    var(--pmd-sm2-menu-right)
+    !important;
+  margin-right: 0 !important;
+
+  padding-left:
+    var(--pmd-r2-space)
+    !important;
+  padding-right:
+    var(--pmd-r2-space)
+    !important;
 
   width:
     calc(
       100vw -
-      var(--pmd-sm2-content-left) -
-      12px
+      var(--pmd-sm2-menu-right)
     )
     !important;
 
+  min-width: 0 !important;
   max-width: none !important;
+
+  box-sizing: border-box !important;
+  transform: none !important;
 
   transition:
     margin-left 220ms
@@ -1234,29 +1279,32 @@ html.pmd-sm2-expanded
 }
 
 /*
- * Keep the top toolbar aligned with the content and
- * move it smoothly when the menu expands/collapses.
+ * Align the header with the first visible page card.
  */
-html.pmd-sm2-collapsed
-  .navbar-top,
-html.pmd-sm2-collapsed
-  .navbar-fixed-top,
-html.pmd-sm2-expanded
-  .navbar-top,
-html.pmd-sm2-expanded
-  .navbar-fixed-top {
+html.pmd-sm2-collapsed .navbar-top,
+html.pmd-sm2-collapsed .navbar-fixed-top,
+html.pmd-sm2-expanded .navbar-top,
+html.pmd-sm2-expanded .navbar-fixed-top {
   left:
-    var(--pmd-sm2-content-left)
+    calc(
+      var(--pmd-sm2-menu-right) +
+      var(--pmd-r2-space)
+    )
     !important;
+
+  right: 0 !important;
+
+  margin-left: 0 !important;
+  margin-right: 0 !important;
 
   width:
     calc(
       100vw -
-      var(--pmd-sm2-content-left)
+      var(--pmd-sm2-menu-right) -
+      var(--pmd-r2-space)
     )
     !important;
 
-  margin-left: 0 !important;
   max-width: none !important;
 
   transition:
@@ -1268,37 +1316,44 @@ html.pmd-sm2-expanded
 }
 
 /*
- * Remove Bootstrap/container centering only inside
- * the isolated Reservations2 page.
+ * Prevent hidden Bootstrap/container constraints.
  */
-#pmd-reservations2 > .container,
-#pmd-reservations2 > .container-fluid {
+#pmd-reservations2 .container,
+#pmd-reservations2 .container-fluid {
   width: 100% !important;
   max-width: none !important;
+
   margin-left: 0 !important;
   margin-right: 0 !important;
+
+  padding-left: 0 !important;
+  padding-right: 0 !important;
 }
 
 /*
- * Narrow screens: do not force a desktop-width page.
+ * Prevent the old theme from reintroducing the
+ * 212px sidebar offset.
+ */
+html.pmd-sm2-collapsed body,
+html.pmd-sm2-expanded body {
+  margin-left: 0 !important;
+  padding-left: 0 !important;
+  overflow-x: hidden !important;
+}
+
+/*
+ * Narrow screens retain the exact same spacing system.
  */
 @media (max-width: 767px) {
-  html.pmd-sm2-collapsed {
-    --pmd-sm2-content-left: 88px;
+  html.pmd-sm2-collapsed,
+  html.pmd-sm2-expanded {
+    --pmd-r2-space: 10px;
+    --pmd-sm2-menu-left: 10px;
   }
 
-  html.pmd-sm2-collapsed
-    #pmd-reservations2 {
-    margin-right: 8px !important;
-
-    width:
-      calc(
-        100vw -
-        var(--pmd-sm2-content-left) -
-        8px
-      )
-      !important;
+  html.pmd-sm2-collapsed {
+    --pmd-sm2-menu-width: 72px;
   }
 }
 
-/* PMD_R2_CONTENT_GAP_FIX_V16_END */
+/* PMD_R2_EXACT_SPACING_V17_END */
