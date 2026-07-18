@@ -1,0 +1,592 @@
+/* =========================================================
+   PAYMYDINE NEW RESERVATION FLOOR V1
+   Fully independent from all waiter/owner floor maps
+   ========================================================= */
+
+#pmd-res-v3-workspace {
+  left: 110px !important;
+  right: 0 !important;
+  width: auto !important;
+  max-width: none !important;
+}
+
+/*
+ * Hide every previous reservation Floor implementation.
+ * Reservation cards and KPI cards remain untouched.
+ */
+#pmd-res-v3-workspace
+.pmd-res-v3-floor-panel
+> :not(.pmd-new-res-floor) {
+  display: none !important;
+}
+
+.pmd-new-res-floor,
+.pmd-new-res-floor * {
+  box-sizing: border-box;
+}
+
+.pmd-new-res-floor {
+  position: absolute;
+  z-index: 100;
+
+  inset: 0;
+
+  display: grid;
+  grid-template-rows: 68px minmax(0, 1fr);
+
+  overflow: hidden;
+
+  border-radius: inherit;
+  background: #ffffff;
+
+  color: #102638;
+}
+
+/* ---------- Header ---------- */
+
+.pmd-new-res-floor__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+
+  padding: 0 18px;
+
+  border-bottom: 1px solid #d5e4ea;
+  background: #ffffff;
+}
+
+.pmd-new-res-floor__title {
+  min-width: 0;
+}
+
+.pmd-new-res-floor__title strong {
+  display: block;
+
+  font-size: 18px;
+  font-weight: 950;
+  line-height: 1.15;
+}
+
+.pmd-new-res-floor__title span {
+  display: block;
+
+  margin-top: 4px;
+
+  color: #6a7e91;
+
+  font-size: 10px;
+  font-weight: 750;
+}
+
+.pmd-new-res-floor__actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.pmd-new-res-floor__button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+
+  min-height: 40px;
+  padding: 0 14px;
+
+  border: 1px solid #b9d3de;
+  border-radius: 10px;
+
+  background: #ffffff;
+  color: #102638;
+
+  font: inherit;
+  font-size: 10px;
+  font-weight: 900;
+
+  cursor: pointer;
+}
+
+.pmd-new-res-floor__button:hover {
+  background: #f2f7f8;
+}
+
+.pmd-new-res-floor__button svg {
+  width: 17px;
+  height: 17px;
+
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+/* ---------- Workspace ---------- */
+
+.pmd-new-res-floor__workspace {
+  position: relative;
+
+  min-width: 0;
+  min-height: 0;
+
+  overflow: hidden;
+
+  background:
+    radial-gradient(
+      circle,
+      rgba(119, 155, 170, .22) 1px,
+      transparent 1px
+    );
+
+  background-size: 28px 28px;
+  background-color: #f8fafb;
+}
+
+.pmd-new-res-floor__canvas {
+  position: absolute;
+
+  top: 0;
+  left: 0;
+
+  width: 100%;
+  height: 100%;
+
+  overflow: hidden;
+}
+
+/* ---------- Tables ---------- */
+
+.pmd-new-res-table {
+  position: absolute;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  width: 88px;
+  height: 72px;
+
+  padding: 6px;
+
+  border: 4px solid #bd1027;
+  border-radius: 18px;
+
+  background: #ff304b;
+  color: #071622;
+
+  box-shadow:
+    0 0 0 7px rgba(255, 120, 67, .18),
+    0 9px 20px rgba(119, 16, 36, .15);
+
+  cursor: pointer;
+
+  user-select: none;
+  touch-action: manipulation;
+
+  transition:
+    transform 120ms ease,
+    box-shadow 120ms ease,
+    filter 120ms ease;
+}
+
+.pmd-new-res-table:hover {
+  z-index: 10;
+
+  transform: translateY(-2px);
+
+  box-shadow:
+    0 0 0 7px rgba(255, 120, 67, .22),
+    0 14px 26px rgba(119, 16, 36, .20);
+}
+
+.pmd-new-res-table:focus-visible {
+  outline: 4px solid rgba(0, 136, 117, .28);
+  outline-offset: 3px;
+}
+
+.pmd-new-res-table__number {
+  font-size: 25px;
+  font-weight: 950;
+  line-height: 1;
+}
+
+.pmd-new-res-table__capacity {
+  position: absolute;
+
+  top: -13px;
+  right: -11px;
+
+  display: grid;
+  place-items: center;
+
+  min-width: 28px;
+  height: 28px;
+
+  padding: 0 6px;
+
+  border-radius: 999px;
+
+  background: #ffffff;
+  color: #102638;
+
+  box-shadow: 0 3px 10px rgba(16, 38, 56, .12);
+
+  font-size: 12px;
+  font-weight: 950;
+}
+
+.pmd-new-res-table__status-dot {
+  position: absolute;
+
+  right: -6px;
+  bottom: -6px;
+
+  width: 17px;
+  height: 17px;
+
+  border: 3px solid #ffffff;
+  border-radius: 999px;
+
+  background: #ffb100;
+}
+
+/* Free */
+
+.pmd-new-res-table[data-status="free"] {
+  border-color: #0eb755;
+  background: #ffffff;
+
+  box-shadow:
+    0 0 0 6px rgba(14, 183, 85, .12),
+    0 8px 18px rgba(16, 38, 56, .10);
+}
+
+.pmd-new-res-table[data-status="free"]
+.pmd-new-res-table__status-dot {
+  background: #0eb755;
+}
+
+/* Reserved */
+
+.pmd-new-res-table[data-status="reserved"] {
+  border-color: #1689d8;
+  background: #dff2ff;
+
+  box-shadow:
+    0 0 0 6px rgba(22, 137, 216, .13),
+    0 8px 18px rgba(16, 38, 56, .10);
+}
+
+.pmd-new-res-table[data-status="reserved"]
+.pmd-new-res-table__status-dot {
+  background: #1689d8;
+}
+
+/* Seated / occupied */
+
+.pmd-new-res-table[data-status="occupied"] {
+  border-color: #bd1027;
+  background: #ff304b;
+}
+
+.pmd-new-res-table[data-status="occupied"]
+.pmd-new-res-table__status-dot {
+  background: #ffb100;
+}
+
+/* Cleaning */
+
+.pmd-new-res-table[data-status="cleaning"] {
+  border-color: #e47d00;
+  background: #ffe1a8;
+}
+
+.pmd-new-res-table[data-status="cleaning"]
+.pmd-new-res-table__status-dot {
+  background: #e47d00;
+}
+
+/* ---------- Legend ---------- */
+
+.pmd-new-res-floor__legend {
+  position: absolute;
+  z-index: 20;
+
+  left: 14px;
+  bottom: 14px;
+
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+
+  padding: 9px 12px;
+
+  border: 1px solid #d1e0e6;
+  border-radius: 11px;
+
+  background: rgba(255, 255, 255, .94);
+
+  box-shadow: 0 7px 22px rgba(16, 38, 56, .08);
+}
+
+.pmd-new-res-floor__legend-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+
+  color: #617588;
+
+  font-size: 9px;
+  font-weight: 850;
+}
+
+.pmd-new-res-floor__legend-dot {
+  width: 10px;
+  height: 10px;
+
+  border: 2px solid currentColor;
+  border-radius: 999px;
+
+  background: #ffffff;
+}
+
+.pmd-new-res-floor__legend-item--free {
+  color: #0eb755;
+}
+
+.pmd-new-res-floor__legend-item--reserved {
+  color: #1689d8;
+}
+
+.pmd-new-res-floor__legend-item--occupied {
+  color: #bd1027;
+}
+
+.pmd-new-res-floor__legend-item--cleaning {
+  color: #e47d00;
+}
+
+/* ---------- Table reservation drawer ---------- */
+
+.pmd-new-res-drawer {
+  position: absolute;
+  z-index: 100;
+
+  top: 16px;
+  right: 16px;
+
+  width: min(370px, calc(100% - 32px));
+  max-height: calc(100% - 32px);
+
+  overflow: auto;
+
+  border: 1px solid #b9d3de;
+  border-radius: 15px;
+
+  background: #ffffff;
+
+  box-shadow:
+    0 24px 65px rgba(16, 38, 56, .22);
+}
+
+.pmd-new-res-drawer[hidden] {
+  display: none !important;
+}
+
+.pmd-new-res-drawer__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+
+  padding: 15px;
+
+  border-bottom: 1px solid #d8e5ea;
+}
+
+.pmd-new-res-drawer__header small {
+  display: block;
+
+  color: #6a7e91;
+
+  font-size: 9px;
+  font-weight: 900;
+
+  letter-spacing: .08em;
+  text-transform: uppercase;
+}
+
+.pmd-new-res-drawer__header strong {
+  display: block;
+
+  margin-top: 3px;
+
+  font-size: 20px;
+  font-weight: 950;
+}
+
+.pmd-new-res-drawer__close {
+  display: grid;
+  place-items: center;
+
+  width: 39px;
+  height: 39px;
+
+  padding: 0;
+
+  border: 1px solid #b9d3de;
+  border-radius: 10px;
+
+  background: #ffffff;
+  color: #102638;
+
+  font: inherit;
+  font-size: 21px;
+  font-weight: 900;
+
+  cursor: pointer;
+}
+
+.pmd-new-res-drawer__body {
+  padding: 15px;
+}
+
+.pmd-new-res-drawer__state {
+  margin-bottom: 12px;
+
+  color: #607487;
+
+  font-size: 11px;
+  font-weight: 750;
+}
+
+.pmd-new-res-drawer__reservation {
+  padding: 13px;
+
+  border: 1px solid #c3dce6;
+  border-radius: 12px;
+
+  background: #f8fbfc;
+}
+
+.pmd-new-res-drawer__reservation + 
+.pmd-new-res-drawer__reservation {
+  margin-top: 9px;
+}
+
+.pmd-new-res-drawer__reservation strong {
+  display: block;
+
+  font-size: 14px;
+  font-weight: 950;
+}
+
+.pmd-new-res-drawer__reservation span {
+  display: block;
+
+  margin-top: 5px;
+
+  color: #65798d;
+
+  font-size: 10px;
+  font-weight: 750;
+}
+
+.pmd-new-res-drawer__actions {
+  display: grid;
+  gap: 9px;
+
+  padding: 0 15px 15px;
+}
+
+.pmd-new-res-drawer__create,
+.pmd-new-res-drawer__edit {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  min-height: 47px;
+  padding: 0 13px;
+
+  border-radius: 10px;
+
+  font-size: 11px;
+  font-weight: 900;
+  text-align: center;
+  text-decoration: none;
+}
+
+.pmd-new-res-drawer__create {
+  background: #008875;
+  color: #ffffff;
+}
+
+.pmd-new-res-drawer__edit {
+  border: 1px solid #b9d3de;
+
+  background: #ffffff;
+  color: #102638;
+}
+
+/* ---------- Mobile ---------- */
+
+@media (max-width: 760px) {
+  #pmd-res-v3-workspace {
+    left: 0 !important;
+    width: 100% !important;
+  }
+
+  .pmd-new-res-floor {
+    grid-template-rows: 62px minmax(0, 1fr);
+  }
+
+  .pmd-new-res-floor__header {
+    padding: 0 11px;
+  }
+
+  .pmd-new-res-floor__button {
+    width: 41px;
+    min-width: 41px;
+    padding: 0;
+  }
+
+  .pmd-new-res-floor__button span {
+    display: none;
+  }
+
+  .pmd-new-res-table {
+    width: 72px;
+    height: 61px;
+
+    border-width: 3px;
+    border-radius: 15px;
+  }
+
+  .pmd-new-res-table__number {
+    font-size: 21px;
+  }
+
+  .pmd-new-res-drawer {
+    position: fixed;
+
+    top: auto;
+    right: 8px;
+    bottom: max(8px, env(safe-area-inset-bottom));
+    left: 8px;
+
+    width: auto;
+    max-height: 67vh;
+  }
+
+  .pmd-new-res-floor__legend {
+    right: 8px;
+    bottom: 8px;
+    left: 8px;
+
+    justify-content: center;
+  }
+}
+
+/* New Reservation Floor V1 end */

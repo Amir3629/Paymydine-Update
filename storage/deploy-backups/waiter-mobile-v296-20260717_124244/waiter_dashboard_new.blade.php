@@ -55,7 +55,7 @@ document.documentElement.classList.add('pmd-v283-booting');
     <link rel="stylesheet" href="{{ asset('app/admin/assets/css/pmd-waiter-v281-exact-edge-width.css') }}?v=new2">
 <link rel="stylesheet" href="/app/admin/assets/css/pmd-waiter-v285-live-grid-visual-lock.css?v=285">
 <link rel="stylesheet" href="/app/admin/assets/css/pmd-waiter-pos-v286-dashboard-rebuild.css?v=288">
-<link rel="stylesheet" href="/app/admin/assets/css/pmd-waiter-pos-v290-final-layout.css?v=297-20260717">
+<link rel="stylesheet" href="/app/admin/assets/css/pmd-waiter-pos-v290-final-layout.css?v=295-20260717">
 </head>
 <body class="pmd-waiter-new-page pmd-waiter-standard-v2-page pmd-waiter-standard-v21-page pmd-waiter-standard-v211-page pmd-waiter-standard-v221-page pmd-waiter-standard-v22-page pmd-waiter-standard-v23-page">
 
@@ -298,7 +298,7 @@ document.documentElement.classList.add('pmd-v283-booting');
     <link rel="stylesheet" href="/app/admin/assets/css/pmd-waiter-v275-rail-colors-logout-confirm.css?v=275">
     <link rel="stylesheet" href="/app/admin/assets/css/pmd-waiter-v280-exact-neutral-right-rail.css?v=280">
     <link rel="stylesheet" href="/app/admin/assets/css/pmd-waiter-v281-exact-edge-width.css?v=281">
-    <link rel="stylesheet" href="/app/admin/assets/css/pmd-waiter-pos-v290-final-layout.css?v=297-20260717">
+    <link rel="stylesheet" href="/app/admin/assets/css/pmd-waiter-pos-v290-final-layout.css?v=295-20260717">
 </head>
 <body class="pmd-waiter-new-page pmd-waiter-standard-v2-page pmd-waiter-standard-v21-page pmd-waiter-standard-v211-page pmd-waiter-standard-v221-page pmd-waiter-standard-v22-page pmd-waiter-standard-v23-page">
 <div

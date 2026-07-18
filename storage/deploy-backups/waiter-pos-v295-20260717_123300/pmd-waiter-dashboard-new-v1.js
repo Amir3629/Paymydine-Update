@@ -55,17 +55,8 @@
     var oldBack = oldTopbar &&
       oldTopbar.querySelector('.pmd-pos-back');
 
-    var urlTableId = new URLSearchParams(window.location.search).get('table');
-
-    var tableTitle =
-      clean(titleNode) ||
-      posRoot.dataset.pmdTableTitle ||
-      (urlTableId ? 'TABLE ' + urlTableId : 'TABLE');
-
-    var areaTitle =
-      clean(areaNode) ||
-      posRoot.dataset.pmdAreaTitle ||
-      'WAITER POS';
+    var tableTitle = clean(titleNode) || posRoot.dataset.pmdTableTitle || 'TABLE';
+    var areaTitle = clean(areaNode) || posRoot.dataset.pmdAreaTitle || 'WAITER POS';
 
     posRoot.querySelectorAll(
       '.pmd-pos-topbar,' +
@@ -104,12 +95,22 @@
     back.textContent = 'BACK TO TABLES';
 
     back.addEventListener('click', function () {
-      /*
-       * V2.9.5:
-       * The original header/back control has already been removed.
-       * Return directly to the stable waiter table launcher.
-       */
-      window.location.assign('/admin/dashboardwaiternew');
+      if (oldBack) {
+        oldBack.click();
+        return;
+      }
+
+      var host = posRoot.closest('.pmd-v2-pos-host');
+      var closeButton = host && host.querySelector('[data-v2-pos-close]');
+
+      if (closeButton) {
+        closeButton.click();
+        return;
+      }
+
+      document.dispatchEvent(
+        new CustomEvent('pmd:waiter-pos-close', { bubbles: true })
+      );
     });
 
     rail.appendChild(railTitle);

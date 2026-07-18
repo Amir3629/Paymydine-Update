@@ -1,5 +1,5 @@
 -- PayMyDine schema-only dump
--- Generated UTC: Fri Jul 17 12:08:26 UTC 2026
+-- Generated UTC: Sat Jul 18 09:53:27 UTC 2026
 -- Source server: vps-252f1bc4
 -- Data rows are NOT included
 
@@ -3565,7 +3565,7 @@ CREATE TABLE `ti_working_hours` (
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2026-07-17 12:08:27
+-- Dump completed on 2026-07-18  9:53:27
 
 -- ============================================================
 -- DATABASE: mimoza
@@ -5397,7 +5397,7 @@ CREATE TABLE `ti_notifications` (
   KEY `idx_status_created` (`status`,`created_at` DESC),
   KEY `idx_type` (`type`),
   KEY `idx_table_id` (`table_id`)
-) ENGINE=InnoDB AUTO_INCREMENT=1623 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=1628 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -5443,7 +5443,7 @@ CREATE TABLE `ti_order_menus` (
   `combo_items_description` text DEFAULT NULL COMMENT 'Description of combo items',
   PRIMARY KEY (`order_menu_id`),
   KEY `idx_combo_id` (`combo_id`)
-) ENGINE=InnoDB AUTO_INCREMENT=4909 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=4929 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -5534,7 +5534,7 @@ CREATE TABLE `ti_order_totals` (
   `priority` tinyint(1) NOT NULL DEFAULT 0,
   `is_summable` tinyint(1) NOT NULL DEFAULT 0,
   PRIMARY KEY (`order_total_id`)
-) ENGINE=InnoDB AUTO_INCREMENT=5648 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=5658 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -5596,7 +5596,7 @@ CREATE TABLE `ti_orders` (
   KEY `idx_orders_fiskaly_status` (`fiskaly_status`),
   KEY `idx_orders_fiskaly_transaction_id_ref` (`fiskaly_transaction_id_ref`),
   KEY `ti_orders_settlement_status_index` (`settlement_status`)
-) ENGINE=InnoDB AUTO_INCREMENT=1936 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=1941 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -5766,7 +5766,7 @@ CREATE TABLE `ti_pmd_table_status_history` (
   KEY `ti_pmd_table_status_history_table_idx` (`table_id`),
   KEY `ti_pmd_table_status_history_status_idx` (`new_status`),
   KEY `ti_pmd_table_status_history_created_idx` (`created_at`)
-) ENGINE=InnoDB AUTO_INCREMENT=37 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=38 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -6408,7 +6408,7 @@ CREATE TABLE `ti_status_history` (
   `created_at` datetime NOT NULL,
   `updated_at` timestamp NOT NULL,
   PRIMARY KEY (`status_history_id`)
-) ENGINE=InnoDB AUTO_INCREMENT=548 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=553 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -6687,7 +6687,7 @@ CREATE TABLE `ti_working_hours` (
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2026-07-17 12:08:27
+-- Dump completed on 2026-07-18  9:53:28
 
 -- ============================================================
 -- DATABASE: rosana
@@ -9031,7 +9031,7 @@ CREATE TABLE `ti_working_hours` (
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2026-07-17 12:08:27
+-- Dump completed on 2026-07-18  9:53:28
 
 -- ============================================================
 -- DATABASE: persian
@@ -10961,7 +10961,7 @@ CREATE TABLE `ti_working_hours` (
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2026-07-17 12:08:28
+-- Dump completed on 2026-07-18  9:53:28
 
 -- ============================================================
 -- DATABASE: newtenantdb
@@ -12888,4 +12888,4 @@ CREATE TABLE `ti_working_hours` (
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2026-07-17 12:08:28
+-- Dump completed on 2026-07-18  9:53:28
