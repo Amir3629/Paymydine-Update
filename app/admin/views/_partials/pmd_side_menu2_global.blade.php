@@ -64,7 +64,7 @@
   }
 
   html.pmd-side-menu2-global-page.pmd-sm2-expanded {
-    --pmd-sm2-panel: 198px;
+    --pmd-sm2-panel: 184px;
   }
 
   html.pmd-side-menu2-global-page
@@ -153,9 +153,89 @@
 </style>
 <!-- PMD_GLOBAL_MENU_CRITICAL_GEOMETRY_V4_END -->
 
+<!-- PMD_SM2_ZERO_REFRESH_TRANSITION_V5_START -->
+<style>
+  /*
+   * No animation during initial page paint or navigation.
+   * Transitions are enabled only after JS marks the page ready.
+   */
+  html.pmd-side-menu2-global-page
+    #pmd-side-menu2,
+  html.pmd-side-menu2-global-page
+    .page-wrapper,
+  html.pmd-side-menu2-global-page
+    .page-content,
+  html.pmd-side-menu2-global-page
+    .navbar-top,
+  html.pmd-side-menu2-global-page
+    .navbar-fixed-top,
+  html.pmd-side-menu2-global-page
+    #pmd-side-menu2-logo,
+  html.pmd-side-menu2-global-page
+    .pmd-sm2__item,
+  html.pmd-side-menu2-global-page
+    .pmd-sm2__dropdown-toggle,
+  html.pmd-side-menu2-global-page
+    .pmd-sm2__label,
+  html.pmd-side-menu2-global-page
+    .pmd-sm2__toggle,
+  html.pmd-side-menu2-global-page
+    .pmd-sm2__toggle span,
+  html.pmd-side-menu2-global-page
+    .pmd-sm2__toggle svg {
+    transition: none !important;
+    animation: none !important;
+  }
+
+  /*
+   * Transitions become available only after the first stable
+   * layout has already been painted.
+   */
+  html.pmd-side-menu2-global-page.pmd-sm2-runtime-ready
+    #pmd-side-menu2 {
+    transition:
+      width 220ms
+      cubic-bezier(.22,.75,.24,1)
+      !important;
+  }
+
+  html.pmd-side-menu2-global-page.pmd-sm2-runtime-ready
+    .page-wrapper,
+  html.pmd-side-menu2-global-page.pmd-sm2-runtime-ready
+    .navbar-top,
+  html.pmd-side-menu2-global-page.pmd-sm2-runtime-ready
+    .navbar-fixed-top {
+    transition:
+      left 220ms cubic-bezier(.22,.75,.24,1),
+      width 220ms cubic-bezier(.22,.75,.24,1)
+      !important;
+  }
+
+  html.pmd-side-menu2-global-page.pmd-sm2-runtime-ready
+    .pmd-sm2__item,
+  html.pmd-side-menu2-global-page.pmd-sm2-runtime-ready
+    .pmd-sm2__dropdown-toggle,
+  html.pmd-side-menu2-global-page.pmd-sm2-runtime-ready
+    .pmd-sm2__label,
+  html.pmd-side-menu2-global-page.pmd-sm2-runtime-ready
+    .pmd-sm2__toggle,
+  html.pmd-side-menu2-global-page.pmd-sm2-runtime-ready
+    .pmd-sm2__toggle span,
+  html.pmd-side-menu2-global-page.pmd-sm2-runtime-ready
+    .pmd-sm2__toggle svg,
+  html.pmd-side-menu2-global-page.pmd-sm2-runtime-ready
+    #pmd-side-menu2-logo {
+    transition-duration: 220ms !important;
+    transition-timing-function:
+      cubic-bezier(.22,.75,.24,1)
+      !important;
+  }
+</style>
+<!-- PMD_SM2_ZERO_REFRESH_TRANSITION_V5_END -->
+
 <link
     rel="stylesheet"
-    href="/app/admin/assets/css/pmd-side-menu2-v1.css?v=20260719-global-4"
+    href="/app/admin/assets/css/pmd-side-menu2-v1.css?v=20260719-global-5"
 >
 
 <aside id="pmd-side-menu2" aria-label="Admin navigation">
@@ -357,12 +437,12 @@
 </aside>
 
 <script
-    src="/app/admin/assets/js/pmd-side-menu2-v1.js?v=20260719-global-4"
+    src="/app/admin/assets/js/pmd-side-menu2-v1.js?v=20260719-global-5"
     defer
 ></script>
 
 <script
-    src="/app/admin/assets/js/pmd-admin-exact-layout-v1.js?v=20260719-global-4"
+    src="/app/admin/assets/js/pmd-admin-exact-layout-v1.js?v=20260719-global-5"
     defer
 ></script>
 @endif

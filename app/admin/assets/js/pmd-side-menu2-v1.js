@@ -293,7 +293,25 @@
     true
   );
 
-  window.PMDSideMenu2GlobalV3 = {
+  
+  /*
+   * PMD_SIDE_MENU2_RUNTIME_READY_V4
+   *
+   * Initial page paint must be static. The ready class is
+   * applied only after the saved state and page geometry are
+   * already stable. User-triggered expand/collapse remains smooth.
+   */
+  function enableRuntimeTransitions() {
+    requestAnimationFrame(function () {
+      requestAnimationFrame(function () {
+        document.documentElement.classList.add(
+          'pmd-sm2-runtime-ready'
+        );
+      });
+    });
+  }
+
+window.PMDSideMenu2GlobalV3 = {
     version: '3.0.0',
     refresh: refresh,
     applyState: applyState,
@@ -307,4 +325,6 @@
     '[PMD Side Menu 2 Global V3] Ready',
     window.PMDSideMenu2GlobalV3
   );
+
+  enableRuntimeTransitions();
 })();

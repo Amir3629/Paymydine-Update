@@ -1410,3 +1410,55 @@ html.pmd-side-menu2-global-page
 }
 
 /* PMD_GLOBAL_LAYOUT_V4_CSS_AUTHORITY_END */
+
+/* PMD_SM2_COMPACT_NO_REFRESH_JUMP_V18_START */
+
+html.pmd-sm2-collapsed,
+html.pmd-side-menu2-global-page.pmd-sm2-collapsed {
+  --pmd-sm2-panel: 72px !important;
+}
+
+html.pmd-sm2-expanded,
+html.pmd-side-menu2-global-page.pmd-sm2-expanded {
+  --pmd-sm2-panel: 184px !important;
+}
+
+/*
+ * External CSS must never animate the first painted frame.
+ * JS adds pmd-sm2-runtime-ready only after geometry is stable.
+ */
+html.pmd-side-menu2-global-page:not(.pmd-sm2-runtime-ready)
+  #pmd-side-menu2,
+html.pmd-side-menu2-global-page:not(.pmd-sm2-runtime-ready)
+  .page-wrapper,
+html.pmd-side-menu2-global-page:not(.pmd-sm2-runtime-ready)
+  .page-content,
+html.pmd-side-menu2-global-page:not(.pmd-sm2-runtime-ready)
+  .navbar-top,
+html.pmd-side-menu2-global-page:not(.pmd-sm2-runtime-ready)
+  .navbar-fixed-top,
+html.pmd-side-menu2-global-page:not(.pmd-sm2-runtime-ready)
+  #pmd-side-menu2-logo,
+html.pmd-side-menu2-global-page:not(.pmd-sm2-runtime-ready)
+  .pmd-sm2__item,
+html.pmd-side-menu2-global-page:not(.pmd-sm2-runtime-ready)
+  .pmd-sm2__dropdown-toggle,
+html.pmd-side-menu2-global-page:not(.pmd-sm2-runtime-ready)
+  .pmd-sm2__label,
+html.pmd-side-menu2-global-page:not(.pmd-sm2-runtime-ready)
+  .pmd-sm2__toggle,
+html.pmd-side-menu2-global-page:not(.pmd-sm2-runtime-ready)
+  .pmd-sm2__toggle * {
+  transition: none !important;
+  animation: none !important;
+}
+
+/* The menu must never fade, slide in or scale during page load. */
+html.pmd-side-menu2-global-page
+  #pmd-side-menu2 {
+  opacity: 1 !important;
+  visibility: visible !important;
+  transform: none !important;
+}
+
+/* PMD_SM2_COMPACT_NO_REFRESH_JUMP_V18_END */
