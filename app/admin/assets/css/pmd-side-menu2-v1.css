@@ -1004,3 +1004,25 @@ html.pmd-sm2-collapsed
 }
 
 /* PMD_SM2_RESPONSIVE_LOGO_FINAL_V11_END */
+
+/* PMD_SM2_LOGO_CROP_DOWN_V12_START */
+
+/*
+ * Tiny adjustment only:
+ * reveal a few more pixels from the bottom
+ * without changing scale or width.
+ */
+
+html.pmd-sm2-expanded
+  #pmd-side-menu2-logo {
+  height: 112px !important;
+  background-position: center 1px !important;
+}
+
+html.pmd-sm2-collapsed
+  #pmd-side-menu2-logo {
+  height: 61px !important;
+  background-position: center 3px !important;
+}
+
+/* PMD_SM2_LOGO_CROP_DOWN_V12_END */
