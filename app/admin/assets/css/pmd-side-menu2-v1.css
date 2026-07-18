@@ -875,3 +875,48 @@ html.pmd-sm2-collapsed
 }
 
 /* PMD_SM2_SAFE_LOGO_WINDOW_V9_END */
+
+/* PMD_SM2_LOGO_LESS_CROPPED_V10_START */
+
+/*
+ * Keep symbol-only mode, but expose a little more
+ * of the artwork on every side.
+ */
+
+html.pmd-sm2-expanded
+  #pmd-side-menu2 .pmd-sm2__brand {
+  height: 126px !important;
+  min-height: 126px !important;
+  padding: 6px 8px 10px !important;
+}
+
+html.pmd-sm2-expanded
+  #pmd-side-menu2-logo {
+  width: 108px !important;
+  min-width: 108px !important;
+  height: 94px !important;
+  flex: 0 0 108px !important;
+
+  background-size: 124px auto !important;
+  background-position: center -1px !important;
+}
+
+html.pmd-sm2-collapsed
+  #pmd-side-menu2 .pmd-sm2__brand {
+  height: 102px !important;
+  min-height: 102px !important;
+  padding: 5px 6px 8px !important;
+}
+
+html.pmd-sm2-collapsed
+  #pmd-side-menu2-logo {
+  width: 54px !important;
+  min-width: 54px !important;
+  height: 62px !important;
+  flex: 0 0 54px !important;
+
+  background-size: 76px auto !important;
+  background-position: center -1px !important;
+}
+
+/* PMD_SM2_LOGO_LESS_CROPPED_V10_END */
