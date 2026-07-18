@@ -13,7 +13,7 @@
 })();
 </script>
 
-<link rel="stylesheet" href="/app/admin/assets/css/pmd-side-menu2-v1.css?v=20260718-5">
+<link rel="stylesheet" href="/app/admin/assets/css/pmd-side-menu2-v1.css?v=20260718-6">
 <link rel="stylesheet" href="/app/admin/assets/css/pmd-reservations2-v1.css?v=20260718-1">
 
 <script>
