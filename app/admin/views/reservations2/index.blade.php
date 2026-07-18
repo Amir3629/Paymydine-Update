@@ -252,4 +252,10 @@ window.PMD_RESERVATIONS2_BOOT = {
 <div class="pmd-r2-source" aria-hidden="true">{!! $this->renderList() !!}</div>
 
 <script src="/app/admin/assets/js/pmd-side-menu2-v1.js?v=20260718-4"></script>
+<!-- PMD_R2_EXACT_LAYOUT_RUNTIME_START -->
+<script
+    src="/app/admin/assets/js/pmd-reservations2-exact-layout-v1.js?v=20260719-1"
+    defer
+></script>
+<!-- PMD_R2_EXACT_LAYOUT_RUNTIME_END -->
 <script src="/app/admin/assets/js/pmd-reservations2-v1.js?v=20260718-1"></script>
