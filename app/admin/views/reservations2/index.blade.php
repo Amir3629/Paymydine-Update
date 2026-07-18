@@ -79,7 +79,7 @@
   }
 </style>
 <!-- PMD_SM2_CRITICAL_LOGO_END -->
-<link rel="stylesheet" href="/app/admin/assets/css/pmd-side-menu2-v1.css?v=20260718-14">
+<link rel="stylesheet" href="/app/admin/assets/css/pmd-side-menu2-v1.css?v=20260718-15">
 <link rel="stylesheet" href="/app/admin/assets/css/pmd-reservations2-v1.css?v=20260718-9">
 
 <script>

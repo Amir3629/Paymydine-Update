@@ -1042,3 +1042,46 @@ html.pmd-sm2-collapsed
 }
 
 /* PMD_SM2_LOGO_CROP_DOWN_MORE_V13_END */
+
+/* PMD_SM2_COLLAPSED_SAME_CROP_V14_START */
+
+/*
+ * Collapsed mode must use the exact same crop ratio
+ * as expanded mode. Only the overall artwork becomes smaller.
+ */
+
+html.pmd-sm2-collapsed
+  #pmd-side-menu2 .pmd-sm2__brand {
+  height: 94px !important;
+  min-height: 94px !important;
+  padding: 7px 5px 8px !important;
+  align-items: flex-start !important;
+}
+
+html.pmd-sm2-collapsed
+  #pmd-side-menu2-logo {
+  width: 50px !important;
+  min-width: 50px !important;
+  height: 58px !important;
+  flex: 0 0 50px !important;
+
+  /*
+   * Expanded ratio:
+   * artwork 121px inside a 110px window.
+   * Collapsed equivalent:
+   * artwork 55px inside a 50px window.
+   */
+  background-size: 55px auto !important;
+  background-position: center 1px !important;
+
+  transition:
+    width 220ms cubic-bezier(.22,.75,.24,1),
+    min-width 220ms cubic-bezier(.22,.75,.24,1),
+    height 220ms cubic-bezier(.22,.75,.24,1),
+    flex-basis 220ms cubic-bezier(.22,.75,.24,1),
+    background-size 220ms cubic-bezier(.22,.75,.24,1),
+    background-position 220ms cubic-bezier(.22,.75,.24,1)
+    !important;
+}
+
+/* PMD_SM2_COLLAPSED_SAME_CROP_V14_END */
