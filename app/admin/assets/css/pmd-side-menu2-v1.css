@@ -165,3 +165,226 @@ html.pmd-sm2-expanded .navbar-fixed-top {
   html.pmd-sm2-expanded .navbar-top,
   html.pmd-sm2-expanded .navbar-fixed-top { left:0 !important; width:100% !important; }
 }
+/* ==========================================================
+   PMD SIDE MENU 2 — V3 FINAL OVERRIDES
+   Real logo, compact expanded mode and stable dropdown rows
+   ========================================================== */
+
+html.pmd-sm2-collapsed,
+html.pmd-sm2-expanded {
+  --pmd-sm2-speed: 220ms;
+  --pmd-sm2-panel: 72px;
+  --pmd-sm2-offset: 94px;
+}
+
+html.pmd-sm2-expanded {
+  --pmd-sm2-panel: 198px;
+  --pmd-sm2-offset: 220px;
+}
+
+/* Keep the menu dimensions deterministic from first paint. */
+#pmd-side-menu2 {
+  width: var(--pmd-sm2-panel) !important;
+  transition:
+    width var(--pmd-sm2-speed) cubic-bezier(.22,.75,.24,1),
+    box-shadow var(--pmd-sm2-speed) ease !important;
+}
+
+/* Real uploaded logo. */
+.pmd-sm2__brand {
+  height: 104px !important;
+  min-height: 104px !important;
+  padding: 14px 10px !important;
+  justify-content: center !important;
+  overflow: hidden !important;
+}
+
+.pmd-sm2__mark-image {
+  display: block !important;
+  width: 50px !important;
+  height: 54px !important;
+  max-width: none !important;
+  min-width: 50px !important;
+  object-fit: contain !important;
+  object-position: center !important;
+  opacity: 1 !important;
+  visibility: visible !important;
+  flex: 0 0 auto !important;
+  transition:
+    width var(--pmd-sm2-speed) cubic-bezier(.22,.75,.24,1) !important;
+}
+
+html.pmd-sm2-expanded .pmd-sm2__mark-image {
+  width: 158px !important;
+  min-width: 158px !important;
+  height: 62px !important;
+  object-position: left center !important;
+}
+
+/* The uploaded logo already includes its own brand artwork. */
+.pmd-sm2__brand-text {
+  display: none !important;
+}
+
+/* Navigation uses normal flex flow, never grid auto-placement. */
+.pmd-sm2__nav {
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: stretch !important;
+  gap: 5px !important;
+  padding: 12px 8px !important;
+}
+
+/* Standard links and dropdown buttons share exactly one row model. */
+.pmd-sm2__item,
+.pmd-sm2__dropdown-toggle {
+  position: relative !important;
+  flex: 0 0 50px !important;
+  min-height: 50px !important;
+  height: 50px !important;
+  width: 56px !important;
+  max-width: 100% !important;
+  margin: 0 auto !important;
+  padding: 0 17px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: flex-start !important;
+  gap: 12px !important;
+  line-height: 1 !important;
+  text-align: left !important;
+}
+
+html.pmd-sm2-expanded .pmd-sm2__item,
+html.pmd-sm2-expanded .pmd-sm2__dropdown-toggle {
+  width: 100% !important;
+  margin: 0 !important;
+  padding-left: 15px !important;
+  padding-right: 12px !important;
+}
+
+/* Every icon remains in the same column. */
+.pmd-sm2__item > svg:first-child,
+.pmd-sm2__dropdown-toggle > svg:first-child {
+  width: 22px !important;
+  height: 22px !important;
+  min-width: 22px !important;
+  flex: 0 0 22px !important;
+}
+
+/* No wrapping, no text under the icon. */
+.pmd-sm2__label {
+  display: block !important;
+  width: 0 !important;
+  min-width: 0 !important;
+  max-width: 0 !important;
+  flex: 0 0 0 !important;
+  opacity: 0 !important;
+  overflow: hidden !important;
+  white-space: nowrap !important;
+  text-overflow: ellipsis !important;
+  line-height: 1.2 !important;
+}
+
+html.pmd-sm2-expanded .pmd-sm2__label {
+  width: auto !important;
+  max-width: 122px !important;
+  flex: 1 1 auto !important;
+  opacity: 1 !important;
+}
+
+/* Dropdown wrapper must occupy one clean block. */
+.pmd-sm2__dropdown {
+  display: block !important;
+  width: 100% !important;
+  flex: 0 0 auto !important;
+  min-height: 50px !important;
+}
+
+/* Chevron always sits on the far right, never below the label. */
+.pmd-sm2__chevron {
+  width: 15px !important;
+  height: 15px !important;
+  min-width: 15px !important;
+  flex: 0 0 15px !important;
+  margin-left: auto !important;
+  opacity: 0 !important;
+}
+
+html.pmd-sm2-expanded .pmd-sm2__chevron {
+  opacity: .78 !important;
+}
+
+/* Submenu stays below its parent and never overlaps another row. */
+.pmd-sm2__submenu {
+  width: 100% !important;
+  overflow: hidden !important;
+  grid-template-rows: 0fr !important;
+}
+
+.pmd-sm2__dropdown.is-open .pmd-sm2__submenu {
+  grid-template-rows: 1fr !important;
+}
+
+.pmd-sm2__submenu-inner {
+  min-height: 0 !important;
+  overflow: hidden !important;
+  padding: 0 !important;
+}
+
+.pmd-sm2__dropdown.is-open .pmd-sm2__submenu-inner {
+  padding: 3px 0 5px !important;
+}
+
+.pmd-sm2__subitem {
+  display: flex !important;
+  align-items: center !important;
+  min-height: 34px !important;
+  margin: 2px 5px 2px 39px !important;
+  padding: 7px 9px !important;
+  white-space: nowrap !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+}
+
+/* Dropdowns are unavailable in collapsed mode. */
+html.pmd-sm2-collapsed .pmd-sm2__submenu {
+  display: none !important;
+}
+
+/* Content remains close to the sidebar in both states. */
+html.pmd-sm2-collapsed #pmd-reservations2,
+html.pmd-sm2-expanded #pmd-reservations2 {
+  margin-left: var(--pmd-sm2-offset) !important;
+  width: calc(100% - var(--pmd-sm2-offset) - 8px) !important;
+  transition:
+    margin-left var(--pmd-sm2-speed) cubic-bezier(.22,.75,.24,1),
+    width var(--pmd-sm2-speed) cubic-bezier(.22,.75,.24,1) !important;
+}
+
+/* Topbar moves using the exact same duration/easing. */
+html.pmd-sm2-collapsed .navbar-top,
+html.pmd-sm2-collapsed .navbar-fixed-top,
+html.pmd-sm2-expanded .navbar-top,
+html.pmd-sm2-expanded .navbar-fixed-top {
+  left: var(--pmd-sm2-offset) !important;
+  width: calc(100% - var(--pmd-sm2-offset)) !important;
+  transition:
+    left var(--pmd-sm2-speed) cubic-bezier(.22,.75,.24,1),
+    width var(--pmd-sm2-speed) cubic-bezier(.22,.75,.24,1) !important;
+}
+
+/* Prevent the toggle label from dropping below the button. */
+.pmd-sm2__toggle {
+  overflow: hidden !important;
+}
+
+.pmd-sm2__toggle span {
+  white-space: nowrap !important;
+  line-height: 1 !important;
+}
+
+html.pmd-sm2-expanded .pmd-sm2__toggle {
+  width: 100% !important;
+  padding: 0 13px !important;
+}
+

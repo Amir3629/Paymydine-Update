@@ -1,10 +1,3 @@
-@php
-    $pmdSideMenu2LogoPath = setting('favicon_logo');
-    $pmdSideMenu2LogoUrl = $pmdSideMenu2LogoPath
-        ? asset('assets/media/uploads/'.ltrim($pmdSideMenu2LogoPath, '/'))
-        : asset('app/admin/assets/images/logo.png');
-@endphp
-
 <script>
 (function () {
     var state = 'collapsed';
@@ -20,8 +13,8 @@
 })();
 </script>
 
-<link rel="preload" as="image" href="{{ $pmdSideMenu2LogoUrl }}">
-<link rel="stylesheet" href="/app/admin/assets/css/pmd-side-menu2-v1.css?v=20260718-2">
+<link rel="preload" as="image" href="/app/admin/assets/images/paymydine-logo.svg?v=20260718-4" type="image/svg+xml" fetchpriority="high">
+<link rel="stylesheet" href="/app/admin/assets/css/pmd-side-menu2-v1.css?v=20260718-4">
 <link rel="stylesheet" href="/app/admin/assets/css/pmd-reservations2-v1.css?v=20260718-1">
 
 <script>
@@ -38,17 +31,15 @@ window.PMD_RESERVATIONS2_BOOT = {
     <a class="pmd-sm2__brand" href="{{ admin_url('dashboard') }}" aria-label="PayMyDine dashboard">
         <img
             class="pmd-sm2__mark-image"
-            src="{{ $pmdSideMenu2LogoUrl }}"
-            width="46"
-            height="46"
+            src="/app/admin/assets/images/paymydine-logo.svg?v=20260718-4"
+            width="160"
+            height="54"
             decoding="sync"
+            loading="eager"
             fetchpriority="high"
             alt="PayMyDine"
         >
-        <span class="pmd-sm2__brand-text">
-            <strong>PayMyDine</strong>
-            <small>Restaurant admin</small>
-        </span>
+        
     </a>
 
     <nav class="pmd-sm2__nav">
@@ -163,5 +154,5 @@ window.PMD_RESERVATIONS2_BOOT = {
 
 <div class="pmd-r2-source" aria-hidden="true">{!! $this->renderList() !!}</div>
 
-<script src="/app/admin/assets/js/pmd-side-menu2-v1.js?v=20260718-2"></script>
+<script src="/app/admin/assets/js/pmd-side-menu2-v1.js?v=20260718-4"></script>
 <script src="/app/admin/assets/js/pmd-reservations2-v1.js?v=20260718-1"></script>
