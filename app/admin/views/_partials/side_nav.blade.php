@@ -1,3 +1,5 @@
+{{-- PMD_RESERVATIONS2_NO_SIDEBAR_START --}}
+@unless(request()->is('admin/reservations2*'))
 <div class="sidebar" role="navigation">
     <div id="navSidebar" class="nav-sidebar">
         <div class="pmd-sidebar-brand sidebar-mobile-brand">
@@ -319,4 +321,5 @@
 <!-- TOOLBAR_STABILIZER_V2_START -->
 <!-- Disabled: toolbar button layout is now CSS-owned by pmd-admin/components/toolbar-buttons.css. -->
 <!-- TOOLBAR_STABILIZER_V2_END -->
-
+@endunless
+{{-- PMD_RESERVATIONS2_NO_SIDEBAR_END --}}
