@@ -79,7 +79,7 @@
   }
 </style>
 <!-- PMD_SM2_CRITICAL_LOGO_END -->
-<link rel="stylesheet" href="/app/admin/assets/css/pmd-side-menu2-v1.css?v=20260718-15">
+<link rel="stylesheet" href="/app/admin/assets/css/pmd-side-menu2-v1.css?v=20260719-1">
 <link rel="stylesheet" href="/app/admin/assets/css/pmd-reservations2-v1.css?v=20260718-9">
 
 <script>
@@ -132,7 +132,7 @@ window.PMD_RESERVATIONS2_BOOT = {
             </button>
             <div class="pmd-sm2__submenu"><div class="pmd-sm2__submenu-inner">
                 <a class="pmd-sm2__subitem" href="{{ admin_url('locations') }}">Locations</a>
-                <a class="pmd-sm2__subitem" href="{{ admin_url('menus') }}">Menus</a>
+                <a class="pmd-sm2__subitem" href="{{ admin_url('menus') }}">Menu Items</a>
                 <a class="pmd-sm2__subitem" href="{{ admin_url('categories') }}">Categories</a>
                 <a class="pmd-sm2__subitem" href="{{ admin_url('mealtimes') }}">Mealtimes</a>
                 <a class="pmd-sm2__subitem" href="{{ admin_url('tables') }}">Tables</a>
@@ -151,7 +151,7 @@ window.PMD_RESERVATIONS2_BOOT = {
             </button>
             <div class="pmd-sm2__submenu"><div class="pmd-sm2__submenu-inner">
                 <a class="pmd-sm2__subitem" href="{{ admin_url('themes') }}">Themes</a>
-                <a class="pmd-sm2__subitem" href="{{ admin_url('mail_templates') }}">Mail templates</a>
+                <a class="pmd-sm2__subitem" href="{{ admin_url('mail_templates') }}">Mail Templates</a>
             </div></div>
         </div>
 
@@ -163,12 +163,42 @@ window.PMD_RESERVATIONS2_BOOT = {
             <div class="pmd-sm2__submenu"><div class="pmd-sm2__submenu-inner">
                 <a class="pmd-sm2__subitem" href="{{ admin_url('settings') }}">Settings</a>
                 <a class="pmd-sm2__subitem" href="{{ admin_url('staffs') }}">Staff</a>
-                <a class="pmd-sm2__subitem" href="{{ admin_url('system_logs') }}">System logs</a>
-                <a class="pmd-sm2__subitem" href="{{ admin_url('pos_configs') }}">POS configuration</a>
-                <a class="pmd-sm2__subitem" href="{{ admin_url('terminal_devices') }}">Terminal devices</a>
-                <a class="pmd-sm2__subitem" href="{{ admin_url('staffs/account') }}">My account</a>
+                <a class="pmd-sm2__subitem" href="{{ admin_url('system_logs') }}">System Logs</a>
+                <a class="pmd-sm2__subitem" href="{{ admin_url('pos_configs') }}">POS Sync Settings</a>
+                <a class="pmd-sm2__subitem" href="{{ admin_url('terminal_devices') }}">Terminal Devices</a>
+                <a class="pmd-sm2__subitem" href="{{ admin_url('statuses') }}">Statuses</a>
+                <a class="pmd-sm2__subitem" href="{{ admin_url('payments') }}">Payments</a>
+                <a class="pmd-sm2__subitem" href="{{ admin_url('tips') }}">Tips</a>
+                <a class="pmd-sm2__subitem" href="{{ admin_url('languages') }}">Languages</a>
+                <a class="pmd-sm2__subitem" href="{{ admin_url('currencies') }}">Currencies</a>
+                <a class="pmd-sm2__subitem" href="{{ admin_url('countries') }}">Countries</a>
             </div></div>
         </div>
+        <div class="pmd-sm2__dropdown" data-pmd-sm2-dropdown="tools">
+            <button
+                type="button"
+                class="pmd-sm2__dropdown-toggle"
+                data-pmd-sm2-dropdown-toggle
+                aria-expanded="false"
+            >
+                <svg viewBox="0 0 24 24">
+                    <path d="M14.7 6.3a4 4 0 0 0-5 5L3 18v3h3l6.7-6.7a4 4 0 0 0 5-5l-2.3 2.3-3-3 2.3-2.3Z"/>
+                </svg>
+                <span class="pmd-sm2__label">Tools</span>
+            </button>
+
+            <div class="pmd-sm2__submenu">
+                <div class="pmd-sm2__submenu-inner">
+                    <a class="pmd-sm2__subitem" href="{{ admin_url('kds_stations') }}">Manage KDS Stations</a>
+                    <a class="pmd-sm2__subitem" href="{{ admin_url('media_manager') }}">Media Manager</a>
+                    <a class="pmd-sm2__subitem" href="{{ admin_url('dashboardkitchen') }}">Main Kitchen</a>
+                    <a class="pmd-sm2__subitem" href="{{ admin_url('dashboardkitchen') }}?station=bar">Bar / Drinks</a>
+                    <a class="pmd-sm2__subitem" href="{{ admin_url('reviews') }}">Customer Reviews</a>
+                    <a class="pmd-sm2__subitem" href="/admin/quick-mode?preview=pmdquick2026">Quick Mode</a>
+                </div>
+            </div>
+        </div>
+
     </nav>
 
     <div class="pmd-sm2__footer">

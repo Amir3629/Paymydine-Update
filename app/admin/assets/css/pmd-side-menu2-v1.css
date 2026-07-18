@@ -1085,3 +1085,68 @@ html.pmd-sm2-collapsed
 }
 
 /* PMD_SM2_COLLAPSED_SAME_CROP_V14_END */
+
+/* PMD_SM2_COLLAPSED_LOGO_SHORTER_V15_START */
+
+/*
+ * Keep the same crop and scale as the successful
+ * collapsed logo, but shorten the visible window so
+ * no part of the PayMyDine text can appear below it.
+ */
+html.pmd-sm2-collapsed
+  #pmd-side-menu2 .pmd-sm2__brand {
+  height: 84px !important;
+  min-height: 84px !important;
+  padding: 6px 5px 7px !important;
+}
+
+html.pmd-sm2-collapsed
+  #pmd-side-menu2-logo {
+  width: 50px !important;
+  min-width: 50px !important;
+  height: 50px !important;
+  flex: 0 0 50px !important;
+
+  background-size: 55px auto !important;
+  background-position: center 1px !important;
+}
+
+/*
+ * On narrow screens the menu remains collapsed.
+ * Keep exactly the same clean logo window.
+ */
+@media (max-width: 767px) {
+  html.pmd-sm2-collapsed
+    #pmd-side-menu2 .pmd-sm2__brand {
+    height: 82px !important;
+    min-height: 82px !important;
+  }
+
+  html.pmd-sm2-collapsed
+    #pmd-side-menu2-logo {
+    height: 48px !important;
+  }
+}
+
+/*
+ * Long submenu: allow menu navigation to scroll,
+ * while the toggle remains anchored at the bottom.
+ */
+#pmd-side-menu2 .pmd-sm2__nav {
+  overflow-y: auto !important;
+  overflow-x: hidden !important;
+  scrollbar-width: thin;
+  min-height: 0 !important;
+}
+
+#pmd-side-menu2 .pmd-sm2__footer {
+  flex: 0 0 auto !important;
+}
+
+/* Keep long submenu labels readable. */
+#pmd-side-menu2 .pmd-sm2__subitem {
+  white-space: normal !important;
+  line-height: 1.25 !important;
+}
+
+/* PMD_SM2_COLLAPSED_LOGO_SHORTER_V15_END */
