@@ -784,3 +784,94 @@ html.pmd-sm2-expanded .navbar-fixed-top {
 }
 
 /* PMD_SIDE_MENU2_FINAL_CALIBRATION_V8_END */
+
+/* PMD_SM2_SAFE_LOGO_WINDOW_V9_START */
+
+/*
+ * The original SVG contains more than one artwork section.
+ * These exact dimensions expose only the upper PMD symbol.
+ * Do not reduce background-size below these values.
+ */
+
+#pmd-side-menu2 .pmd-sm2__brand {
+  border-bottom: 0 !important;
+  box-shadow: none !important;
+  overflow: hidden !important;
+  justify-content: center !important;
+}
+
+/* Expanded menu — known-good symbol-only window. */
+html.pmd-sm2-expanded
+  #pmd-side-menu2 .pmd-sm2__brand {
+  height: 116px !important;
+  min-height: 116px !important;
+  padding: 8px !important;
+  align-items: center !important;
+}
+
+html.pmd-sm2-expanded
+  #pmd-side-menu2-logo {
+  display: block !important;
+
+  width: 96px !important;
+  min-width: 96px !important;
+  height: 82px !important;
+  flex: 0 0 96px !important;
+
+  background-image:
+    url("/app/admin/assets/images/paymydine-logo.svg?v=20260718-10")
+    !important;
+
+  background-repeat: no-repeat !important;
+  background-size: 132px auto !important;
+  background-position: center -5px !important;
+
+  opacity: 1 !important;
+  visibility: visible !important;
+  overflow: hidden !important;
+}
+
+/* Collapsed menu — known-good compact symbol-only window. */
+html.pmd-sm2-collapsed
+  #pmd-side-menu2 .pmd-sm2__brand {
+  height: 96px !important;
+  min-height: 96px !important;
+  padding: 8px !important;
+  align-items: center !important;
+}
+
+html.pmd-sm2-collapsed
+  #pmd-side-menu2-logo {
+  display: block !important;
+
+  width: 48px !important;
+  min-width: 48px !important;
+  height: 54px !important;
+  flex: 0 0 48px !important;
+
+  background-image:
+    url("/app/admin/assets/images/paymydine-logo.svg?v=20260718-10")
+    !important;
+
+  background-repeat: no-repeat !important;
+  background-size: 80px auto !important;
+  background-position: center -3px !important;
+
+  opacity: 1 !important;
+  visibility: visible !important;
+  overflow: hidden !important;
+}
+
+/* Never allow another logo element inside the brand. */
+#pmd-side-menu2 .pmd-sm2__brand
+  > :not(#pmd-side-menu2-logo),
+#pmd-side-menu2 .pmd-sm2__brand img,
+#pmd-side-menu2 .pmd-sm2__brand svg,
+#pmd-side-menu2 .pmd-sm2__brand picture,
+#pmd-side-menu2 .pmd-sm2__brand-text {
+  display: none !important;
+  visibility: hidden !important;
+  opacity: 0 !important;
+}
+
+/* PMD_SM2_SAFE_LOGO_WINDOW_V9_END */
