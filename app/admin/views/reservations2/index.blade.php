@@ -31,7 +31,115 @@ html.pmd-r2-no-sidebar #pmd-reservations2 {
 }
 </style>
 
-<link rel="stylesheet" href="/app/admin/assets/css/pmd-reservations2-v1.css?v=20260718-2">
+<script id="pmd-r2-force-hide-sidebar-script">
+(function () {
+    'use strict';
+
+    if (String(location.pathname).replace(/\/+$/, '') !== '/admin/reservations2')
+        return;
+
+    function isReservationsContent(node) {
+        return !!(
+            node.closest &&
+            (
+                node.closest('#pmd-reservations2') ||
+                node.closest('.navbar-top') ||
+                node.closest('.navbar-fixed-top')
+            )
+        );
+    }
+
+    function looksLikeLeftNavigation(node) {
+        if (!(node instanceof HTMLElement) || isReservationsContent(node))
+            return false;
+
+        var rect = node.getBoundingClientRect();
+        var style = getComputedStyle(node);
+        var navLinks = node.querySelectorAll('a[href*="/admin/"]').length;
+        var icons = node.querySelectorAll('svg, i, [class*="icon"]').length;
+
+        return (
+            rect.left <= 24 &&
+            rect.top <= 150 &&
+            rect.width >= 55 &&
+            rect.width <= 330 &&
+            rect.height >= 350 &&
+            (style.position === 'fixed' || style.position === 'absolute') &&
+            (navLinks >= 3 || icons >= 5)
+        );
+    }
+
+    function hideNode(node) {
+        if (!(node instanceof HTMLElement))
+            return;
+
+        node.setAttribute('data-pmd-r2-hidden-sidebar', 'true');
+        node.style.setProperty('display', 'none', 'important');
+        node.style.setProperty('visibility', 'hidden', 'important');
+        node.style.setProperty('pointer-events', 'none', 'important');
+    }
+
+    function resetLayout() {
+        [
+            document.body,
+            document.querySelector('.page-wrapper'),
+            document.querySelector('.page-content'),
+            document.querySelector('.content-wrapper'),
+            document.querySelector('main'),
+            document.querySelector('#pmd-reservations2')
+        ].forEach(function (node) {
+            if (!node) return;
+            node.style.setProperty('margin-left', '0', 'important');
+            node.style.setProperty('padding-left', '0', 'important');
+            node.style.setProperty('left', '0', 'important');
+        });
+
+        var topbar = document.querySelector('.navbar-top, .navbar-fixed-top');
+        if (topbar) {
+            topbar.style.setProperty('left', '0', 'important');
+            topbar.style.setProperty('margin-left', '0', 'important');
+            topbar.style.setProperty('width', '100%', 'important');
+        }
+    }
+
+    function run() {
+        document.querySelectorAll(
+            '.sidebar, #navSidebar, .sidebar-overlay, [data-toggle="sidebar"], [class*="sidebar"]'
+        ).forEach(function (node) {
+            if (!isReservationsContent(node) && looksLikeLeftNavigation(node))
+                hideNode(node);
+        });
+
+        Array.prototype.forEach.call(document.body ? document.body.children : [], function (node) {
+            if (looksLikeLeftNavigation(node))
+                hideNode(node);
+        });
+
+        resetLayout();
+    }
+
+    if (document.readyState === 'loading')
+        document.addEventListener('DOMContentLoaded', run, { once: true });
+    else
+        run();
+
+    var observer = new MutationObserver(run);
+    observer.observe(document.documentElement, { childList: true, subtree: true });
+
+    window.setTimeout(function () {
+        run();
+        observer.disconnect();
+    }, 8000);
+
+    window.PMDReservations2NoSidebar = {
+        version: '2.0.0',
+        geometryDetection: true,
+        destructiveRemoval: false
+    };
+})();
+</script>
+
+<link rel="stylesheet" href="/app/admin/assets/css/pmd-reservations2-v1.css?v=20260718-3">
 
 <script>
 window.PMD_RESERVATIONS2_BOOT = {
@@ -149,4 +257,4 @@ window.PMD_RESERVATIONS2_BOOT = {
     {!! $this->renderList() !!}
 </div>
 
-<script src="/app/admin/assets/js/pmd-reservations2-v1.js?v=20260718-2"></script>
+<script src="/app/admin/assets/js/pmd-reservations2-v1.js?v=20260718-3"></script>
