@@ -920,3 +920,87 @@ html.pmd-sm2-collapsed
 }
 
 /* PMD_SM2_LOGO_LESS_CROPPED_V10_END */
+
+/* PMD_SM2_RESPONSIVE_LOGO_FINAL_V11_START */
+
+/*
+ * Final responsive logo behaviour:
+ * - expanded: show slightly more from the bottom
+ * - collapsed: scale the symbol down instead of cropping its sides
+ * - animate smoothly together with the side menu
+ */
+
+#pmd-side-menu2-logo {
+  background-repeat: no-repeat !important;
+  background-position-x: center !important;
+
+  transition:
+    width 220ms cubic-bezier(.22,.75,.24,1),
+    min-width 220ms cubic-bezier(.22,.75,.24,1),
+    height 220ms cubic-bezier(.22,.75,.24,1),
+    flex-basis 220ms cubic-bezier(.22,.75,.24,1),
+    background-size 220ms cubic-bezier(.22,.75,.24,1),
+    background-position 220ms cubic-bezier(.22,.75,.24,1)
+    !important;
+
+  transform-origin: center center !important;
+}
+
+/*
+ * Expanded:
+ * Taller window and slightly smaller artwork.
+ * This reveals more of the bottom without bringing
+ * the PayMyDine text into the visible area.
+ */
+html.pmd-sm2-expanded
+  #pmd-side-menu2 .pmd-sm2__brand {
+  height: 134px !important;
+  min-height: 134px !important;
+  padding: 5px 8px 9px !important;
+  align-items: flex-start !important;
+}
+
+html.pmd-sm2-expanded
+  #pmd-side-menu2-logo {
+  width: 110px !important;
+  min-width: 110px !important;
+  height: 108px !important;
+  flex: 0 0 110px !important;
+
+  background-size: 121px auto !important;
+  background-position: center 2px !important;
+}
+
+/*
+ * Collapsed:
+ * Reduce the actual rendered artwork substantially.
+ * It must fit inside the narrow panel instead of
+ * being clipped by the left and right edges.
+ */
+html.pmd-sm2-collapsed
+  #pmd-side-menu2 .pmd-sm2__brand {
+  height: 92px !important;
+  min-height: 92px !important;
+  padding: 7px 5px 8px !important;
+  align-items: flex-start !important;
+}
+
+html.pmd-sm2-collapsed
+  #pmd-side-menu2-logo {
+  width: 44px !important;
+  min-width: 44px !important;
+  height: 58px !important;
+  flex: 0 0 44px !important;
+
+  background-size: 60px auto !important;
+  background-position: center 4px !important;
+}
+
+/* Keep the logo container free from visible separators. */
+#pmd-side-menu2 .pmd-sm2__brand {
+  border: 0 !important;
+  border-bottom: 0 !important;
+  box-shadow: none !important;
+}
+
+/* PMD_SM2_RESPONSIVE_LOGO_FINAL_V11_END */
