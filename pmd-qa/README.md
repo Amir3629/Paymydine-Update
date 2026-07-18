@@ -119,6 +119,21 @@ The audit writes machine-readable and reviewable evidence under:
 ### Notes and limitations
 
 - The full matrix is intentionally large: target routes plus directly reachable `/admin/settings` child pages across nine viewports and runtime modes.
+- Limit local runs with `PMD_AUDIT_ROUTES`, `PMD_AUDIT_VIEWPORTS`, `PMD_AUDIT_SCENARIOS`, `PMD_AUDIT_CONCURRENCY`, and `PMD_AUDIT_MAX_ROUTES`. Default concurrency is `1`.
+- If Playwright browser download is blocked, set `PMD_CHROMIUM_EXECUTABLE_PATH` or install a system binary available as `chromium`, `chromium-browser`, `google-chrome`, or `google-chrome-stable`.
 - Credentials must be supplied as `PMD_USERNAME` and `PMD_PASSWORD`; older `PMD_ADMIN_USER` and `PMD_ADMIN_PASS` variables are not used by this audit.
-- Safe rapid/double click coverage skips labels and hrefs that look destructive or data-mutating, including delete, save, payment, confirm, create, and Persian equivalents.
-- CPU throttling is enabled only where Chromium CDP supports it; otherwise the audit records the route without CPU throttling.
+- Safe interaction coverage inventories visible controls, classifies safe navigation/toggle/filter controls, and tests each clearly safe control in isolated page states while avoiding destructive/data-changing labels.
+- CPU throttling and slow-network modes use Chromium CDP when supported.
+
+Minimum authenticated route audit requested for stabilization evidence:
+
+```bash
+cd pmd-qa
+export PMD_BASE_URL="https://mimoza.paymydine.com"
+export PMD_USERNAME="<admin username>"
+export PMD_PASSWORD="<admin password>"
+PMD_AUDIT_ROUTES=/admin/reservations,/admin/dashboard,/admin/dashboardwaiternew \
+PMD_AUDIT_VIEWPORTS=1536x960,390x844 \
+PMD_AUDIT_SCENARIOS=cold,reload,fresh-context,sidebar-expanded,sidebar-collapsed,persisted-sidebar,back-forward,fresh-storage,persisted-storage,slow,cpu \
+npm run audit:admin-runtime
+```
