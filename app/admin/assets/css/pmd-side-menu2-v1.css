@@ -1026,3 +1026,19 @@ html.pmd-sm2-collapsed
 }
 
 /* PMD_SM2_LOGO_CROP_DOWN_V12_END */
+
+/* PMD_SM2_LOGO_CROP_DOWN_MORE_V13_START */
+
+html.pmd-sm2-expanded
+  #pmd-side-menu2-logo {
+  height: 116px !important;
+  background-position: center 2px !important;
+}
+
+html.pmd-sm2-collapsed
+  #pmd-side-menu2-logo {
+  height: 64px !important;
+  background-position: center 4px !important;
+}
+
+/* PMD_SM2_LOGO_CROP_DOWN_MORE_V13_END */
