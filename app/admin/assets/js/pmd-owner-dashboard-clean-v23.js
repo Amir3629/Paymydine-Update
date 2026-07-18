@@ -5523,6 +5523,46 @@ var __pmdPath = String((window.location && window.location.pathname) || '');
 (function () {
   'use strict';
 
+  /*
+   * PMD_OWNER_FLOOR_V60_STRICT_ROUTE_GUARD_V1
+   *
+   * Owner Floor V60 belongs only to the Owner Dashboard.
+   * It must never mount on Reservations, Orders, KDS,
+   * waiter workstations, or other admin routes.
+   */
+  var pmdOwnerFloorV60Path = String(
+    (window.location && window.location.pathname) || ''
+  );
+
+  var pmdOwnerFloorV60Allowed =
+    pmdOwnerFloorV60Path === '/admin' ||
+    pmdOwnerFloorV60Path === '/admin/' ||
+    pmdOwnerFloorV60Path === '/admin/dashboard' ||
+    pmdOwnerFloorV60Path === '/admin/dashboard/';
+
+  if (!pmdOwnerFloorV60Allowed) {
+    document
+      .querySelectorAll(
+        '.pmd-owner-floor-v60,' +
+        '.pmd-owner-floor-v60--reservation'
+      )
+      .forEach(function (node) {
+        node.remove();
+      });
+
+    window.PMD_OWNER_FLOOR_V60_BLOCKED = {
+      path: pmdOwnerFloorV60Path,
+      allowed: false
+    };
+
+    console.info(
+      '[PMD] Owner Floor V60 blocked on non-dashboard route',
+      window.PMD_OWNER_FLOOR_V60_BLOCKED
+    );
+
+    return;
+  }
+
   if (window.PMD_OWNER_FLOOR_V60_VISIBLE_PLACEMENT) return;
   window.PMD_OWNER_FLOOR_V60_VISIBLE_PLACEMENT = true;
 
