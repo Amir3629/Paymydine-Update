@@ -49,14 +49,15 @@
 })();
 </script>
 
-<!-- PMD_GLOBAL_MENU_CRITICAL_GEOMETRY_V4_START -->
-<style>
+<!-- PMD_GLOBAL_MENU_CRITICAL_GEOMETRY_V6_START -->
+<style id="pmd-global-menu-critical-geometry-v6">
   /*
-   * These rules are intentionally inline.
-   * They determine the first painted frame before
-   * the external Side Menu stylesheet finishes loading.
+   * Global pages control only the outer fixed shell.
+   *
+   * All internal visual styling—logo, brand, navigation,
+   * dropdowns and footer—is owned by the shared
+   * Reservations2 Side Menu sources.
    */
-
   html.pmd-side-menu2-global-page {
     --pmd-admin-gap: 14px;
     --pmd-sm2-panel: 72px;
@@ -70,88 +71,35 @@
   html.pmd-side-menu2-global-page
     #pmd-side-menu2 {
     position: fixed !important;
+
     left: 14px !important;
     top: 14px !important;
     bottom: 14px !important;
+
     width: var(--pmd-sm2-panel) !important;
+
     z-index: 12000 !important;
+
     display: flex !important;
     flex-direction: column !important;
+
     overflow: hidden !important;
+
     visibility: visible !important;
     opacity: 1 !important;
     pointer-events: auto !important;
+
     border-radius: 22px !important;
+
     background:
       linear-gradient(
         180deg,
         #06120f 0%,
         #003d34 100%
       ) !important;
-    transition:
-      width var(--pmd-sm2-speed)
-      cubic-bezier(.22,.75,.24,1) !important;
-  }
-
-  html.pmd-side-menu2-global-page
-    #pmd-side-menu2
-    .pmd-sm2__brand {
-    display: flex !important;
-    align-items: flex-start !important;
-    justify-content: center !important;
-    height: 116px !important;
-    min-height: 116px !important;
-    padding: 4px 8px 8px !important;
-    border: 0 !important;
-    overflow: hidden !important;
-  }
-
-  html.pmd-side-menu2-global-page
-    #pmd-side-menu2-logo {
-    display: block !important;
-    width: 50px !important;
-    min-width: 50px !important;
-    height: 58px !important;
-    flex: 0 0 50px !important;
-    margin: 0 auto !important;
-    background-image:
-      url("/app/admin/assets/images/paymydine-logo.svg?v=20260719-global-symbol-1")
-      !important;
-    background-repeat: no-repeat !important;
-    background-position: center top !important;
-    background-size: 50px auto !important;
-    visibility: visible !important;
-    opacity: 1 !important;
-  }
-
-  html.pmd-side-menu2-global-page.pmd-sm2-expanded
-    #pmd-side-menu2-logo {
-    width: 116px !important;
-    min-width: 116px !important;
-    height: 116px !important;
-    flex-basis: 116px !important;
-    background-size: 116px auto !important;
-  }
-
-  html.pmd-side-menu2-global-page
-    #pmd-side-menu2
-    img,
-  html.pmd-side-menu2-global-page
-    #pmd-side-menu2
-    picture,
-  html.pmd-side-menu2-global-page
-    #pmd-side-menu2
-    .logo,
-  html.pmd-side-menu2-global-page
-    #pmd-side-menu2
-    .logo-svg,
-  html.pmd-side-menu2-global-page
-    #pmd-side-menu2
-    [class*="single-logo"] {
-    display: none !important;
   }
 </style>
-<!-- PMD_GLOBAL_MENU_CRITICAL_GEOMETRY_V4_END -->
+<!-- PMD_GLOBAL_MENU_CRITICAL_GEOMETRY_V6_END -->
 
 
 
@@ -262,14 +210,14 @@
 
 <link
     rel="stylesheet"
-    href="/app/admin/assets/css/pmd-side-menu2-v1.css?v=20260719-single-source-v1"
+    href="/app/admin/assets/css/pmd-side-menu2-v1.css?v=20260719-single-authority-v3"
 >
 
 @include('admin::_partials.pmd_side_menu2_single_style')
 @include('admin::_partials.pmd_side_menu2_single_menu')
 
 <script
-    src="/app/admin/assets/js/pmd-side-menu2-v1.js?v=20260719-single-source-v1"
+    src="/app/admin/assets/js/pmd-side-menu2-v1.js?v=20260719-single-authority-v3"
     defer
 ></script>
 
