@@ -1,3 +1,64 @@
+/* PMD_SMOOTH_TRANSITIONS_SKIP_SIDE_MENU_V2_START */
+(function () {
+  'use strict';
+
+  function protectSideMenu() {
+    var menu = document.getElementById('pmd-side-menu2');
+
+    if (!menu) {
+      return;
+    }
+
+    [
+      'fadeInUp',
+      'fade-in-up',
+      'fade-in',
+      'animated',
+      'animate__animated',
+      'animate__fadeInUp'
+    ].forEach(function (className) {
+      menu.classList.remove(className);
+    });
+
+    menu.style.setProperty(
+      'animation',
+      'none',
+      'important'
+    );
+
+    menu.style.setProperty(
+      'animation-name',
+      'none',
+      'important'
+    );
+
+    menu.style.setProperty(
+      'transform',
+      'translate3d(0, 0, 0)',
+      'important'
+    );
+
+    menu.style.setProperty(
+      'opacity',
+      '1',
+      'important'
+    );
+  }
+
+  protectSideMenu();
+
+  document.addEventListener(
+    'DOMContentLoaded',
+    protectSideMenu
+  );
+
+  window.addEventListener(
+    'pageshow',
+    protectSideMenu
+  );
+})();
+/* PMD_SMOOTH_TRANSITIONS_SKIP_SIDE_MENU_V2_END */
+
 /**
  * SMOOTH PAGE TRANSITIONS
  * Creates SPA-like experience where only the content area changes

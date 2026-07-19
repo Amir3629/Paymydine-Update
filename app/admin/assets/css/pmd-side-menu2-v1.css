@@ -1555,3 +1555,25 @@ html:not(.pmd-sm2-runtime-ready)
 }
 
 /* PMD_SM2_ABSOLUTE_TRANSFORM_KILL_V20_END */
+
+/* PMD_SM2_NO_FADEINUP_V21_START */
+
+html body #pmd-side-menu2,
+html body #pmd-side-menu2.fadeInUp,
+html body #pmd-side-menu2.animated,
+html body #pmd-side-menu2.animate__animated,
+html body #pmd-side-menu2.animate__fadeInUp {
+  animation: none !important;
+  animation-name: none !important;
+  animation-duration: 0s !important;
+  animation-delay: 0s !important;
+  animation-fill-mode: none !important;
+
+  transform: translate3d(0, 0, 0) !important;
+  translate: none !important;
+
+  opacity: 1 !important;
+  visibility: visible !important;
+}
+
+/* PMD_SM2_NO_FADEINUP_V21_END */

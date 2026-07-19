@@ -287,10 +287,183 @@
 
 <link
     rel="stylesheet"
-    href="/app/admin/assets/css/pmd-side-menu2-v1.css?v=20260719-transform-kill-7"
+    href="/app/admin/assets/css/pmd-side-menu2-v1.css?v=20260719-no-fade-v8"
 >
 
 <aside id="pmd-side-menu2" aria-label="Admin navigation">
+<!-- PMD_SM2_REMOVE_FADEINUP_V8_START -->
+<style id="pmd-sm2-remove-fadeinup-v8">
+  /*
+   * Side Menu 2 must never participate in generic page-entry
+   * animations. Width changes remain available for user clicks.
+   */
+  html body #pmd-side-menu2,
+  html body #pmd-side-menu2.fadeInUp,
+  html body #pmd-side-menu2.animated,
+  html body #pmd-side-menu2[class*="fade"],
+  html body .fadeInUp#pmd-side-menu2,
+  html body .animated#pmd-side-menu2 {
+    top: 14px !important;
+    bottom: 14px !important;
+
+    animation: none 0s step-end 0s 1 normal none running !important;
+    animation-name: none !important;
+    animation-duration: 0s !important;
+    animation-delay: 0s !important;
+    animation-fill-mode: none !important;
+
+    transform: translate3d(0, 0, 0) !important;
+    translate: none !important;
+
+    transition-property: width, box-shadow !important;
+    transition-delay: 0s !important;
+
+    opacity: 1 !important;
+    visibility: visible !important;
+  }
+</style>
+
+<script id="pmd-sm2-remove-fadeinup-runtime-v8">
+(function () {
+  'use strict';
+
+  function neutralize() {
+    var menu = document.getElementById('pmd-side-menu2');
+
+    if (!menu) {
+      return false;
+    }
+
+    [
+      'fadeInUp',
+      'fade-in-up',
+      'fade-in',
+      'animated',
+      'animate__animated',
+      'animate__fadeInUp'
+    ].forEach(function (className) {
+      menu.classList.remove(className);
+    });
+
+    menu.style.setProperty(
+      'animation',
+      'none',
+      'important'
+    );
+
+    menu.style.setProperty(
+      'animation-name',
+      'none',
+      'important'
+    );
+
+    menu.style.setProperty(
+      'animation-duration',
+      '0s',
+      'important'
+    );
+
+    menu.style.setProperty(
+      'animation-delay',
+      '0s',
+      'important'
+    );
+
+    menu.style.setProperty(
+      'transform',
+      'translate3d(0, 0, 0)',
+      'important'
+    );
+
+    menu.style.setProperty(
+      'translate',
+      'none',
+      'important'
+    );
+
+    menu.style.setProperty(
+      'opacity',
+      '1',
+      'important'
+    );
+
+    if (typeof menu.getAnimations === 'function') {
+      menu.getAnimations().forEach(function (animation) {
+        try {
+          animation.cancel();
+        } catch (error) {
+          // No-op.
+        }
+      });
+    }
+
+    return true;
+  }
+
+  function install() {
+    if (!neutralize()) {
+      return false;
+    }
+
+    var menu = document.getElementById('pmd-side-menu2');
+
+    var observer = new MutationObserver(function () {
+      neutralize();
+    });
+
+    observer.observe(menu, {
+      attributes: true,
+      attributeFilter: [
+        'class',
+        'style'
+      ]
+    });
+
+    document.addEventListener(
+      'animationstart',
+      function (event) {
+        if (
+          event.target === menu ||
+          menu.contains(event.target)
+        ) {
+          neutralize();
+        }
+      },
+      true
+    );
+
+    window.PMDSideMenu2FadeGuard = {
+      version: '8.0.0',
+      neutralize: neutralize
+    };
+
+    return true;
+  }
+
+  if (!install()) {
+    document.addEventListener(
+      'DOMContentLoaded',
+      install,
+      {once: true}
+    );
+  }
+
+  [
+    0,
+    1,
+    16,
+    32,
+    64,
+    120,
+    250,
+    500
+  ].forEach(function (delay) {
+    setTimeout(neutralize, delay);
+  });
+})();
+</script>
+<!-- PMD_SM2_REMOVE_FADEINUP_V8_END -->
+
     <a
         class="pmd-sm2__brand"
         href="{{ admin_url('dashboard') }}"
@@ -489,7 +662,7 @@
 </aside>
 
 <script
-    src="/app/admin/assets/js/pmd-side-menu2-v1.js?v=20260719-transform-kill-7"
+    src="/app/admin/assets/js/pmd-side-menu2-v1.js?v=20260719-no-fade-v8"
     defer
 ></script>
 
