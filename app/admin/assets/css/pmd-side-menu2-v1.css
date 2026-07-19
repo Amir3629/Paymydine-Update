@@ -1508,3 +1508,50 @@ html.pmd-side-menu2-global-page
 }
 
 /* PMD_SM2_VERTICAL_POSITION_LOCK_V19_END */
+
+/* PMD_SM2_ABSOLUTE_TRANSFORM_KILL_V20_START */
+
+/*
+ * Global page-transition scripts must never animate the menu
+ * vertically. Width remains the only animated property.
+ */
+:root body #pmd-side-menu2,
+html body #pmd-side-menu2,
+html.pmd-side-menu2-global-page
+  body
+  #pmd-side-menu2 {
+  top: 14px !important;
+  bottom: 14px !important;
+
+  transform: none !important;
+  translate: none !important;
+  rotate: none !important;
+  scale: none !important;
+
+  animation: none !important;
+  animation-name: none !important;
+  animation-duration: 0s !important;
+  animation-delay: 0s !important;
+  animation-iteration-count: 1 !important;
+
+  transition-property: width !important;
+  transition-duration: 220ms !important;
+  transition-delay: 0ms !important;
+  transition-timing-function:
+    cubic-bezier(.22,.75,.24,1) !important;
+
+  will-change: width !important;
+}
+
+/*
+ * Before runtime stabilization, nothing animates at all.
+ */
+html:not(.pmd-sm2-runtime-ready)
+  body
+  #pmd-side-menu2 {
+  transition: none !important;
+  animation: none !important;
+  transform: none !important;
+}
+
+/* PMD_SM2_ABSOLUTE_TRANSFORM_KILL_V20_END */

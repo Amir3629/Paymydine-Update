@@ -256,9 +256,38 @@
 </style>
 <!-- PMD_SM2_VERTICAL_FIRST_PAINT_LOCK_V6_END -->
 
+<!-- PMD_SM2_TRANSFORM_KILL_V7_START -->
+<style>
+  /*
+   * Never allow page-load effects to move the Side Menu.
+   * Only width may animate.
+   */
+  html #pmd-side-menu2,
+  html.pmd-side-menu2-global-page #pmd-side-menu2,
+  body #pmd-side-menu2 {
+    top: 14px !important;
+    bottom: 14px !important;
+
+    transform: none !important;
+    translate: none !important;
+
+    animation: none !important;
+    animation-name: none !important;
+
+    transition-property: width !important;
+    transition-duration: 220ms !important;
+    transition-delay: 0ms !important;
+    transition-timing-function:
+      cubic-bezier(.22,.75,.24,1) !important;
+
+    will-change: width !important;
+  }
+</style>
+<!-- PMD_SM2_TRANSFORM_KILL_V7_END -->
+
 <link
     rel="stylesheet"
-    href="/app/admin/assets/css/pmd-side-menu2-v1.css?v=20260719-global-6"
+    href="/app/admin/assets/css/pmd-side-menu2-v1.css?v=20260719-transform-kill-7"
 >
 
 <aside id="pmd-side-menu2" aria-label="Admin navigation">
@@ -460,7 +489,7 @@
 </aside>
 
 <script
-    src="/app/admin/assets/js/pmd-side-menu2-v1.js?v=20260719-global-6"
+    src="/app/admin/assets/js/pmd-side-menu2-v1.js?v=20260719-transform-kill-7"
     defer
 ></script>
 
