@@ -102,47 +102,33 @@
 <!-- PMD_GLOBAL_MENU_CRITICAL_GEOMETRY_V6_END -->
 
 
-
-
-
-<!-- PMD_SM2_ZERO_REFRESH_TRANSITION_V5_START -->
-<style>
+<!-- PMD_SM2_ZERO_REFRESH_TRANSITION_V7_START -->
+<style id="pmd-sm2-global-shell-transition-v7">
   /*
-   * No animation during initial page paint or navigation.
-   * Transitions are enabled only after JS marks the page ready.
+   * Global pages control only outer-shell/page geometry.
+   *
+   * No logo, brand, item, label, dropdown, submenu or footer
+   * selector is allowed in this block.
    */
+
   html.pmd-side-menu2-global-page
     #pmd-side-menu2,
+
   html.pmd-side-menu2-global-page
     .page-wrapper,
+
   html.pmd-side-menu2-global-page
     .page-content,
+
   html.pmd-side-menu2-global-page
     .navbar-top,
+
   html.pmd-side-menu2-global-page
-    .navbar-fixed-top,
-  html.pmd-side-menu2-global-page
-    #pmd-side-menu2-logo,
-  html.pmd-side-menu2-global-page
-    .pmd-sm2__item,
-  html.pmd-side-menu2-global-page
-    .pmd-sm2__dropdown-toggle,
-  html.pmd-side-menu2-global-page
-    .pmd-sm2__label,
-  html.pmd-side-menu2-global-page
-    .pmd-sm2__toggle,
-  html.pmd-side-menu2-global-page
-    .pmd-sm2__toggle span,
-  html.pmd-side-menu2-global-page
-    .pmd-sm2__toggle svg {
+    .navbar-fixed-top {
     transition: none !important;
     animation: none !important;
   }
 
-  /*
-   * Transitions become available only after the first stable
-   * layout has already been painted.
-   */
   html.pmd-side-menu2-global-page.pmd-sm2-runtime-ready
     #pmd-side-menu2 {
     transition:
@@ -153,8 +139,10 @@
 
   html.pmd-side-menu2-global-page.pmd-sm2-runtime-ready
     .page-wrapper,
+
   html.pmd-side-menu2-global-page.pmd-sm2-runtime-ready
     .navbar-top,
+
   html.pmd-side-menu2-global-page.pmd-sm2-runtime-ready
     .navbar-fixed-top {
     transition:
@@ -162,28 +150,8 @@
       width 220ms cubic-bezier(.22,.75,.24,1)
       !important;
   }
-
-  html.pmd-side-menu2-global-page.pmd-sm2-runtime-ready
-    .pmd-sm2__item,
-  html.pmd-side-menu2-global-page.pmd-sm2-runtime-ready
-    .pmd-sm2__dropdown-toggle,
-  html.pmd-side-menu2-global-page.pmd-sm2-runtime-ready
-    .pmd-sm2__label,
-  html.pmd-side-menu2-global-page.pmd-sm2-runtime-ready
-    .pmd-sm2__toggle,
-  html.pmd-side-menu2-global-page.pmd-sm2-runtime-ready
-    .pmd-sm2__toggle span,
-  html.pmd-side-menu2-global-page.pmd-sm2-runtime-ready
-    .pmd-sm2__toggle svg,
-  html.pmd-side-menu2-global-page.pmd-sm2-runtime-ready
-    #pmd-side-menu2-logo {
-    transition-duration: 220ms !important;
-    transition-timing-function:
-      cubic-bezier(.22,.75,.24,1)
-      !important;
-  }
 </style>
-<!-- PMD_SM2_ZERO_REFRESH_TRANSITION_V5_END -->
+<!-- PMD_SM2_ZERO_REFRESH_TRANSITION_V7_END -->
 
 <!-- PMD_SM2_VERTICAL_FIRST_PAINT_LOCK_V6_START -->
 <style>
@@ -210,69 +178,16 @@
 
 <link
     rel="stylesheet"
-    href="/app/admin/assets/css/pmd-side-menu2-v1.css?v=20260719-collapsed-logo-distance-v1"
+    href="/app/admin/assets/css/pmd-side-menu2-v1.css?v=20260719-identical-behavior-v2"
 >
 
 @include('admin::_partials.pmd_side_menu2_single_style')
 
-<!-- PMD_GLOBAL_COLLAPSED_LOGO_DISTANCE_V1_START -->
-<style id="pmd-global-collapsed-logo-distance-v1">
-  /*
-   * Global Side Menu distance authority:
-   * exactly 14px from the viewport edges.
-   */
-  html.pmd-side-menu2-global-page
-    #pmd-side-menu2 {
-    left: 14px !important;
-    top: 14px !important;
-    bottom: 14px !important;
 
-    margin: 0 !important;
-  }
-
-  /*
-   * Global collapsed logo:
-   * keep the same 48×54 viewport but render the SVG smaller,
-   * so the left and right edges are no longer cropped.
-   *
-   * Reservations2 is intentionally unaffected.
-   */
-  html.pmd-side-menu2-global-page.pmd-sm2-collapsed
-    #pmd-side-menu2-logo {
-    width: 48px !important;
-    min-width: 48px !important;
-    max-width: 48px !important;
-
-    height: 54px !important;
-    min-height: 54px !important;
-    max-height: 54px !important;
-
-    flex: 0 0 48px !important;
-
-    background-size: 68px auto !important;
-    background-position: center -2px !important;
-    background-repeat: no-repeat !important;
-  }
-
-  html.pmd-side-menu2-global-page.pmd-sm2-collapsed
-    #pmd-side-menu2
-    .pmd-sm2__brand {
-    height: 96px !important;
-    min-height: 96px !important;
-
-    padding: 8px !important;
-
-    align-items: center !important;
-    justify-content: center !important;
-
-    overflow: hidden !important;
-  }
-</style>
-<!-- PMD_GLOBAL_COLLAPSED_LOGO_DISTANCE_V1_END -->
 @include('admin::_partials.pmd_side_menu2_single_menu')
 
 <script
-    src="/app/admin/assets/js/pmd-side-menu2-v1.js?v=20260719-collapsed-logo-distance-v1"
+    src="/app/admin/assets/js/pmd-side-menu2-v1.js?v=20260719-identical-behavior-v2"
     defer
 ></script>
 
