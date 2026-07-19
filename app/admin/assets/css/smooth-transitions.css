@@ -71,3 +71,30 @@
 #side-nav .nav-item a:hover {
   transform: scale(1.1) !important; /* Size effect only */
 }
+
+/* PMD_RESERVATIONS2_SIDE_MENU_NO_ENTRY_ANIMATION_V1_START */
+
+/*
+ * Reservations2 renders Side Menu 2 as a direct child of
+ * .page-content. It must not inherit the generic page entry
+ * animation intended only for page content panels.
+ */
+.page-content > #pmd-side-menu2 {
+  animation: none !important;
+  animation-name: none !important;
+  animation-delay: 0s !important;
+  animation-duration: 0s !important;
+
+  opacity: 1 !important;
+  transform: none !important;
+}
+
+/*
+ * Preserve the fixed geometry during the first painted frame.
+ */
+body #pmd-side-menu2 {
+  top: 14px !important;
+  bottom: 14px !important;
+}
+
+/* PMD_RESERVATIONS2_SIDE_MENU_NO_ENTRY_ANIMATION_V1_END */
