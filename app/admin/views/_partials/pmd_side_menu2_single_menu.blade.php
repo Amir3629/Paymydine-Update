@@ -48,7 +48,7 @@ All supported Admin pages include this exact file.
             <span class="pmd-sm2__label">Orders</span>
         </a>
 
-        <a class="pmd-sm2__item {{ $pmdActive([\'reservations\', \'reservations2\']) ? \'is-active\' : \'\' }}" href="{{ admin_url('reservations2') }}" aria-current="page">
+        <a class="pmd-sm2__item {{ $pmdActive(['reservations', 'reservations2']) ? 'is-active' : '' }}" href="{{ admin_url('reservations2') }}" aria-current="page">
             <svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M7 3v4M17 3v4M3 10h18"/><path d="M8 14h3M13 14h3M8 17h3"/></svg>
             <span class="pmd-sm2__label">Reservations</span>
         </a>
@@ -72,7 +72,7 @@ All supported Admin pages include this exact file.
             </div></div>
         </div>
 
-        <a class="pmd-sm2__item {{ $pmdActive([\'dashboardkitchen\', \'kds\']) ? \'is-active\' : \'\' }}" href="{{ admin_url('dashboardkitchen') }}">
+        <a class="pmd-sm2__item {{ $pmdActive(['dashboardkitchen', 'kds']) ? 'is-active' : '' }}" href="{{ admin_url('dashboardkitchen') }}">
             <svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="13" rx="2"/><path d="M8 21h8M12 17v4"/></svg>
             <span class="pmd-sm2__label">Kitchen Display</span>
         </a>
