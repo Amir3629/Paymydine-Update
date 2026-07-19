@@ -153,6 +153,59 @@
 </style>
 <!-- PMD_GLOBAL_MENU_CRITICAL_GEOMETRY_V4_END -->
 
+<!-- PMD_SM2_GLOBAL_LOGO_RESERVATIONS_CROP_V1_START -->
+<style>
+  /*
+   * Match the logo viewport used by Reservations2.
+   * The SVG is intentionally slightly larger than its visible box,
+   * so the unwanted artwork at the bottom remains cropped.
+   */
+  html.pmd-side-menu2-global-page.pmd-sm2-expanded
+    #pmd-side-menu2
+    .pmd-sm2__brand {
+    height: 134px !important;
+    min-height: 134px !important;
+    padding: 0 !important;
+    align-items: flex-start !important;
+    justify-content: center !important;
+    overflow: hidden !important;
+  }
+
+  html.pmd-side-menu2-global-page.pmd-sm2-expanded
+    #pmd-side-menu2-logo {
+    display: block !important;
+
+    width: 110px !important;
+    min-width: 110px !important;
+    max-width: 110px !important;
+
+    height: 116px !important;
+    min-height: 116px !important;
+    max-height: 116px !important;
+
+    flex: 0 0 110px !important;
+    margin: 0 auto !important;
+
+    background-size: 121px auto !important;
+    background-position: center top !important;
+    background-repeat: no-repeat !important;
+
+    overflow: hidden !important;
+  }
+
+  /*
+   * Keep the collapsed symbol clean as well.
+   */
+  html.pmd-side-menu2-global-page.pmd-sm2-collapsed
+    #pmd-side-menu2-logo {
+    height: 54px !important;
+    max-height: 54px !important;
+    overflow: hidden !important;
+    background-position: center top !important;
+  }
+</style>
+<!-- PMD_SM2_GLOBAL_LOGO_RESERVATIONS_CROP_V1_END -->
+
 <!-- PMD_SM2_ZERO_REFRESH_TRANSITION_V5_START -->
 <style>
   /*
@@ -258,7 +311,7 @@
 
 <link
     rel="stylesheet"
-    href="/app/admin/assets/css/pmd-side-menu2-v1.css?v=20260719-global-6"
+    href="/app/admin/assets/css/pmd-side-menu2-v1.css?v=20260719-logo-dropdown-v1"
 >
 
 <aside id="pmd-side-menu2" aria-label="Admin navigation">
@@ -460,7 +513,7 @@
 </aside>
 
 <script
-    src="/app/admin/assets/js/pmd-side-menu2-v1.js?v=20260719-global-6"
+    src="/app/admin/assets/js/pmd-side-menu2-v1.js?v=20260719-logo-dropdown-v1"
     defer
 ></script>
 

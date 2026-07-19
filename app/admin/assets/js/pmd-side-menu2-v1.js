@@ -189,6 +189,54 @@
     }
   }
 
+  /* PMD_SM2_CLOSE_DROPDOWN_ON_NAV_V1_START */
+
+/*
+ * Dropdown openness is temporary UI state.
+ * It must not follow the user to another admin page.
+ */
+function clearDropdownState() {
+  closeAllDropdowns();
+
+  writeStorage(
+    DROPDOWN_KEY,
+    ''
+  );
+}
+
+function handleNavigationDropdownReset(event) {
+  var link = event.target.closest(
+    '#pmd-side-menu2 a[href]'
+  );
+
+  if (!link || !menu.contains(link)) {
+    return;
+  }
+
+  /*
+   * Ignore placeholder links and modified clicks.
+   * Real navigation—normal links and submenu links—closes
+   * every dropdown before the browser changes page.
+   */
+  var href = link.getAttribute('href');
+
+  if (
+    !href ||
+    href === '#' ||
+    href.indexOf('javascript:') === 0 ||
+    event.ctrlKey ||
+    event.metaKey ||
+    event.shiftKey ||
+    event.altKey
+  ) {
+    return;
+  }
+
+  clearDropdownState();
+}
+
+/* PMD_SM2_CLOSE_DROPDOWN_ON_NAV_V1_END */
+
   function onClick(event) {
     var toggle =
       event.target.closest(
@@ -289,6 +337,12 @@
    * Capture phase is intentional.
    * Some old admin scripts stop bubbling clicks.
    */
+  document.addEventListener(
+    'click',
+    handleNavigationDropdownReset,
+    true
+  );
+
   document.addEventListener(
     'click',
     onClick,
