@@ -153,58 +153,143 @@
 </style>
 <!-- PMD_GLOBAL_MENU_CRITICAL_GEOMETRY_V4_END -->
 
-<!-- PMD_SM2_GLOBAL_LOGO_RESERVATIONS_CROP_V1_START -->
-<style>
+<!-- PMD_SM2_EXACT_RESERVATIONS2_LOGO_V2_START -->
+<style id="pmd-sm2-exact-reservations2-logo-v2">
   /*
-   * Match the logo viewport used by Reservations2.
-   * The SVG is intentionally slightly larger than its visible box,
-   * so the unwanted artwork at the bottom remains cropped.
+   * Exact copy of the logo geometry from:
+   * app/admin/views/reservations2/index.blade.php
    */
-  html.pmd-side-menu2-global-page.pmd-sm2-expanded
+
+  html.pmd-side-menu2-global-page
     #pmd-side-menu2
     .pmd-sm2__brand {
-    height: 134px !important;
-    min-height: 134px !important;
-    padding: 0 !important;
-    align-items: flex-start !important;
+    display: flex !important;
+    align-items: center !important;
     justify-content: center !important;
-    overflow: hidden !important;
-  }
-
-  html.pmd-side-menu2-global-page.pmd-sm2-expanded
-    #pmd-side-menu2-logo {
-    display: block !important;
-
-    width: 110px !important;
-    min-width: 110px !important;
-    max-width: 110px !important;
 
     height: 116px !important;
     min-height: 116px !important;
     max-height: 116px !important;
 
-    flex: 0 0 110px !important;
-    margin: 0 auto !important;
-
-    background-size: 121px auto !important;
-    background-position: center top !important;
-    background-repeat: no-repeat !important;
-
+    padding: 8px !important;
+    border: 0 !important;
     overflow: hidden !important;
   }
 
-  /*
-   * Keep the collapsed symbol clean as well.
-   */
+  html.pmd-side-menu2-global-page
+    #pmd-side-menu2
+    .pmd-sm2__brand
+    > :not(#pmd-side-menu2-logo) {
+    display: none !important;
+  }
+
+  html.pmd-side-menu2-global-page
+    #pmd-side-menu2
+    .pmd-sm2__brand img,
+
+  html.pmd-side-menu2-global-page
+    #pmd-side-menu2
+    .pmd-sm2__brand svg,
+
+  html.pmd-side-menu2-global-page
+    #pmd-side-menu2
+    .pmd-sm2__brand picture,
+
+  html.pmd-side-menu2-global-page
+    #pmd-side-menu2
+    .pmd-sm2__brand-text,
+
+  html.pmd-side-menu2-global-page
+    #pmd-side-menu2
+    .pmd-sm2__brand .logo,
+
+  html.pmd-side-menu2-global-page
+    #pmd-side-menu2
+    .pmd-sm2__brand .logo-svg {
+    display: none !important;
+  }
+
+  html.pmd-side-menu2-global-page
+    #pmd-side-menu2-logo {
+    display: block !important;
+
+    width: 96px !important;
+    min-width: 96px !important;
+    max-width: 96px !important;
+
+    height: 82px !important;
+    min-height: 82px !important;
+    max-height: 82px !important;
+
+    flex: 0 0 96px !important;
+    margin: 0 !important;
+    padding: 0 !important;
+
+    position: relative !important;
+    overflow: hidden !important;
+
+    background-image:
+      url("/app/admin/assets/images/paymydine-logo.svg?v=20260718-8")
+      !important;
+
+    background-repeat: no-repeat !important;
+    background-size: 132px auto !important;
+    background-position: center -5px !important;
+
+    opacity: 1 !important;
+    visibility: visible !important;
+
+    transform: none !important;
+    translate: none !important;
+  }
+
   html.pmd-side-menu2-global-page.pmd-sm2-collapsed
     #pmd-side-menu2-logo {
+    width: 48px !important;
+    min-width: 48px !important;
+    max-width: 48px !important;
+
     height: 54px !important;
+    min-height: 54px !important;
     max-height: 54px !important;
-    overflow: hidden !important;
-    background-position: center top !important;
+
+    flex: 0 0 48px !important;
+
+    background-size: 80px auto !important;
+    background-position: center -3px !important;
+  }
+
+  html.pmd-side-menu2-global-page.pmd-sm2-collapsed
+    #pmd-side-menu2
+    .pmd-sm2__brand {
+    height: 96px !important;
+    min-height: 96px !important;
+    max-height: 96px !important;
+
+    padding: 8px !important;
+    align-items: center !important;
+    justify-content: center !important;
+  }
+
+  html.pmd-side-menu2-global-page.pmd-sm2-expanded
+    #pmd-side-menu2-logo {
+    width: 96px !important;
+    min-width: 96px !important;
+    max-width: 96px !important;
+
+    height: 82px !important;
+    min-height: 82px !important;
+    max-height: 82px !important;
+
+    flex: 0 0 96px !important;
+
+    background-size: 132px auto !important;
+    background-position: center -5px !important;
   }
 </style>
-<!-- PMD_SM2_GLOBAL_LOGO_RESERVATIONS_CROP_V1_END -->
+<!-- PMD_SM2_EXACT_RESERVATIONS2_LOGO_V2_END -->
+
+
 
 <!-- PMD_SM2_ZERO_REFRESH_TRANSITION_V5_START -->
 <style>
@@ -311,7 +396,7 @@
 
 <link
     rel="stylesheet"
-    href="/app/admin/assets/css/pmd-side-menu2-v1.css?v=20260719-logo-dropdown-v1"
+    href="/app/admin/assets/css/pmd-side-menu2-v1.css?v=20260719-exact-r2-logo-v2"
 >
 
 <aside id="pmd-side-menu2" aria-label="Admin navigation">
@@ -513,7 +598,7 @@
 </aside>
 
 <script
-    src="/app/admin/assets/js/pmd-side-menu2-v1.js?v=20260719-logo-dropdown-v1"
+    src="/app/admin/assets/js/pmd-side-menu2-v1.js?v=20260719-exact-r2-logo-v2"
     defer
 ></script>
 
