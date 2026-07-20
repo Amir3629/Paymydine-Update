@@ -1,6 +1,14 @@
 (function () {
   'use strict';
 
+  /*
+   * Native reservation floor is the only floor authority.
+   * V3 may build reservation cards and workspace structure,
+   * but may not load, clone, scrape, or mount dashboardwaiter.
+   */
+  var PMD_DISABLE_LEGACY_RESERVATION_FLOOR = true;
+
+
   if (!/^\/admin\/reservations\/?$/.test(location.pathname))
     return;
 
@@ -426,7 +434,8 @@
       !floor &&
       (
         window.PMDReservationFloorV4 ||
-        window.PMDReservationFloorV41Authority
+      window.PMDReservationFloorV41Authority ||
+      window.PMDNewReservationFloorV1
       )
     ) {
       return;
@@ -956,7 +965,8 @@
      */
     if (
       window.PMDReservationFloorV4 ||
-      window.PMDReservationFloorV41Authority
+      window.PMDReservationFloorV41Authority ||
+      window.PMDNewReservationFloorV1
     ) {
       return;
     }
@@ -968,7 +978,8 @@
       !floor &&
       (
         window.PMDReservationFloorV4 ||
-        window.PMDReservationFloorV41Authority
+      window.PMDReservationFloorV41Authority ||
+      window.PMDNewReservationFloorV1
       )
     ) {
       return;
@@ -1567,7 +1578,8 @@
      */
     if (
       window.PMDReservationFloorV4 ||
-      window.PMDReservationFloorV41Authority
+      window.PMDReservationFloorV41Authority ||
+      window.PMDNewReservationFloorV1
     ) {
       return;
     }
@@ -1925,6 +1937,9 @@
     workspace,
     frameDocument
   ) {
+    if (PMD_DISABLE_LEGACY_RESERVATION_FLOOR) {
+      return false;
+    }
     /*
      * V4.1 single-floor authority:
      * V3 still owns reservation cards and KPI layout,
@@ -1932,7 +1947,8 @@
      */
     if (
       window.PMDReservationFloorV4 ||
-      window.PMDReservationFloorV41Authority
+      window.PMDReservationFloorV41Authority ||
+      window.PMDNewReservationFloorV1
     ) {
       return;
     }
@@ -2131,6 +2147,17 @@
     workspace,
     attempt
   ) {
+    if (PMD_DISABLE_LEGACY_RESERVATION_FLOOR) {
+      var obsoleteFrame =
+        document.getElementById(
+          'pmd-res-v33-floor-source'
+        );
+
+      if (obsoleteFrame)
+        obsoleteFrame.remove();
+
+      return false;
+    }
     /*
      * V4.1 single-floor authority:
      * V3 still owns reservation cards and KPI layout,
@@ -2138,7 +2165,8 @@
      */
     if (
       window.PMDReservationFloorV4 ||
-      window.PMDReservationFloorV41Authority
+      window.PMDReservationFloorV41Authority ||
+      window.PMDNewReservationFloorV1
     ) {
       return;
     }
@@ -2161,7 +2189,8 @@
 
     if (
       window.PMDReservationFloorV4 ||
-      window.PMDReservationFloorV41Authority
+      window.PMDReservationFloorV41Authority ||
+      window.PMDNewReservationFloorV1
     ) {
       return;
     }
@@ -2373,7 +2402,8 @@
      */
     if (
       window.PMDReservationFloorV4 ||
-      window.PMDReservationFloorV41Authority
+      window.PMDReservationFloorV41Authority ||
+      window.PMDNewReservationFloorV1
     ) {
       return;
     }

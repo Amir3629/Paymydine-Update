@@ -1,8 +1,90 @@
+/* PMD_GLOBAL_LOGO_ROUTE_AUTHORITY_V3_START */
+
+/*
+ * Side Menu 2 is the only logo authority on standard
+ * PayMyDine admin pages.
+ *
+ * This guard runs from the first JavaScript instruction.
+ * It does not depend on the menu DOM already existing.
+ */
+(function () {
+  'use strict';
+
+  var path =
+    String(
+      window.location &&
+      window.location.pathname ||
+      ''
+    );
+
+  var isAdmin =
+    path === '/admin' ||
+    path.indexOf('/admin/') === 0;
+
+  var excluded =
+    path === '/admin/login' ||
+    path.indexOf('/admin/dashboardwaiter') === 0 ||
+    path.indexOf('/admin/dashboardkitchen') === 0 ||
+    path.indexOf('/admin/kds') === 0 ||
+    path.indexOf('/admin/quick-mode') === 0;
+
+  if (isAdmin && !excluded) {
+    window.PMD_ADMIN_FINAL_SINGLE_LOGO_V20_SKIPPED = true;
+    window.PMD_GLOBAL_SIDE_MENU2_OWNS_LOGO = true;
+
+    console.info(
+      '[PMD] Legacy logo disabled by global route authority'
+    );
+  }
+})();
+
+/* PMD_GLOBAL_LOGO_ROUTE_AUTHORITY_V3_END */
+
+/*
+ * PMD_SINGLE_LOGO_SKIP_RESERVATIONS2_V1
+ * Reservations2 owns its logo independently through Side Menu 2.
+ */
+if (
+  window.PMD_GLOBAL_SIDE_MENU2_OWNS_LOGO === true
+) {
+  console.info(
+    '[PMD] Global admin logo skipped for Side Menu 2'
+  );
+} else {
 // PMD_ADMIN_FINAL_SINGLE_LOGO_V20
 (function () {
   "use strict";
 
-  if (!/\/admin(\/|$)/i.test(window.location.pathname)) return;
+  
+  /*
+   * PMD_GLOBAL_SIDE_MENU2_SKIP_LEGACY_LOGO_V2
+   *
+   * Side Menu 2 owns its own symbol.
+   * The legacy global-logo installer must not inject
+   * another logo into these pages.
+   */
+  if (
+    document.documentElement.classList.contains(
+      'pmd-side-menu2-global-page'
+    ) ||
+    document.documentElement.classList.contains(
+      'pmd-sm2-expanded'
+    ) ||
+    document.documentElement.classList.contains(
+      'pmd-sm2-collapsed'
+    ) ||
+    document.getElementById('pmd-side-menu2')
+  ) {
+    window.PMD_ADMIN_FINAL_SINGLE_LOGO_V20_SKIPPED = true;
+
+    console.info(
+      '[PMD] Legacy global logo skipped for Side Menu 2'
+    );
+
+    return;
+  }
+
+if (!/\/admin(\/|$)/i.test(window.location.pathname)) return;
 
   var VERSION = "v20-20260625_154925";
   var LOGO_URL = "/app/admin/assets/images/pmd-logo-final.png?v=" + encodeURIComponent(VERSION);
@@ -174,3 +256,4 @@
     boot();
   }
 })();
+}
