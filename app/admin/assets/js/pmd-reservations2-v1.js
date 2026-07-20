@@ -74,6 +74,89 @@
     ? boot.reservations.map(normalize)
     : [];
 
+  function installCleanHeaderStyle() {
+    if (document.getElementById('pmd-r2-clean-header-style-v1')) return;
+
+    var style = document.createElement('style');
+    style.id = 'pmd-r2-clean-header-style-v1';
+    style.textContent = [
+      'html.pmd-r2-clean-header-ready body{padding-top:0!important;margin-top:0!important;}',
+      'html.pmd-r2-clean-header-ready .page-wrapper{top:0!important;margin-top:0!important;}',
+      '#pmd-r2-clean-header{display:flex;align-items:center;justify-content:space-between;min-height:64px;width:100%;margin:0;padding:0;background:transparent;border:0;box-shadow:none;position:relative;z-index:40;}',
+      '#pmd-r2-clean-header .pmd-r2-clean-title{font-size:22px;line-height:1.2;font-weight:700;color:#17231f;margin:0;padding:0;white-space:nowrap;}',
+      '#pmd-r2-clean-header .pmd-r2-clean-actions{display:flex;align-items:center;justify-content:flex-end;gap:6px;margin-left:auto;}',
+      '#pmd-r2-clean-header .pmd-r2-clean-action,#pmd-r2-clean-header #notif-root>a,#pmd-r2-clean-header #notif-root>span>a{width:42px;height:42px;min-width:42px;display:inline-flex!important;align-items:center;justify-content:center;padding:0!important;margin:0!important;border:0!important;border-radius:0!important;background:transparent!important;box-shadow:none!important;color:#17231f!important;text-decoration:none!important;position:relative;cursor:pointer;}',
+      '#pmd-r2-clean-header .pmd-r2-clean-action:hover,#pmd-r2-clean-header .pmd-r2-clean-action:focus,#pmd-r2-clean-header #notif-root>a:hover,#pmd-r2-clean-header #notif-root>span>a:hover{background:transparent!important;color:#06120f!important;box-shadow:none!important;outline:none!important;}',
+      '#pmd-r2-clean-header .pmd-r2-clean-action i,#pmd-r2-clean-header #notif-root i{font-size:18px;line-height:1;}',
+      '#pmd-r2-clean-header #notif-root{display:block!important;position:relative!important;margin:0!important;padding:0!important;list-style:none!important;}',
+      '#pmd-r2-clean-header #notif-root .dropdown-menu{right:0!important;left:auto!important;top:calc(100% + 6px)!important;}',
+      '#pmd-r2-clean-header .pmd-r2-mobile-toggle{display:none;}',
+      '@media(max-width:820px){#pmd-r2-clean-header{min-height:58px;}#pmd-r2-clean-header .pmd-r2-clean-title{font-size:19px;}#pmd-r2-clean-header .pmd-r2-mobile-toggle{display:inline-flex!important;}#pmd-r2-clean-header .pmd-r2-clean-actions{gap:2px;}}'
+    ].join('\n');
+    document.head.appendChild(style);
+  }
+
+  function buildCleanHeader() {
+    installCleanHeaderStyle();
+
+    document.getElementById('pmd-r2-clean-header')?.remove();
+
+    var legacyTopbar = document.querySelector('.navbar-top, .navbar-fixed-top');
+    var notificationRoot = document.getElementById('notif-root');
+    var mobileToggle = legacyTopbar
+      ? legacyTopbar.querySelector('.navbar-toggler')
+      : document.querySelector('.navbar-toggler');
+
+    if (notificationRoot) notificationRoot.remove();
+    if (mobileToggle) mobileToggle.remove();
+    if (legacyTopbar) legacyTopbar.remove();
+
+    document.documentElement.classList.add('pmd-r2-clean-header-ready');
+
+    var header = document.createElement('header');
+    header.id = 'pmd-r2-clean-header';
+    header.setAttribute('aria-label', 'Reservations page header');
+
+    var title = document.createElement('h1');
+    title.className = 'pmd-r2-clean-title';
+    title.textContent = 'Reservations';
+
+    var actions = document.createElement('div');
+    actions.className = 'pmd-r2-clean-actions';
+
+    if (mobileToggle) {
+      mobileToggle.classList.add('pmd-r2-clean-action', 'pmd-r2-mobile-toggle');
+      mobileToggle.removeAttribute('style');
+      actions.appendChild(mobileToggle);
+    }
+
+    var create = document.createElement('a');
+    create.className = 'pmd-r2-clean-action pmd-r2-clean-create';
+    create.href = boot.createUrl || '/admin/reservations/create';
+    create.setAttribute('aria-label', 'New reservation');
+    create.setAttribute('title', 'New reservation');
+    create.innerHTML = '<i class="fa fa-plus" aria-hidden="true"></i>';
+    actions.appendChild(create);
+
+    if (notificationRoot) {
+      notificationRoot.classList.add('pmd-r2-clean-notification');
+      actions.appendChild(notificationRoot);
+    }
+
+    header.appendChild(title);
+    header.appendChild(actions);
+    root.insertBefore(header, root.firstChild);
+
+    window.PMDReservations2CleanHeaderV1 = {
+      version: '1.0.0',
+      legacyRemoved: !document.querySelector('.navbar-top, .navbar-fixed-top'),
+      title: 'Reservations',
+      createUrl: create.href,
+      notificationMoved: Boolean(notificationRoot),
+      mobileToggleMoved: Boolean(mobileToggle)
+    };
+  }
+
   function todayIso() {
     var d = new Date();
     var m = String(d.getMonth() + 1).padStart(2, '0');
@@ -246,6 +329,7 @@
   }
 
   function init() {
+    buildCleanHeader();
     updateKpis();
     renderCards();
     renderFloor();
@@ -253,14 +337,16 @@
     root.setAttribute('aria-busy', 'false');
 
     window.PMDReservations2V1 = {
-      version: '1.0.0',
+      version: '1.1.0',
       reservations: reservations.length,
       tables: TABLES.length,
       route: location.pathname,
-      cleanPage: true
+      cleanPage: true,
+      cleanHeader: true
     };
 
     console.info('[PMD Reservations2 V1] Ready', window.PMDReservations2V1);
+    console.info('[PMD Reservations2 Clean Header V1] Ready', window.PMDReservations2CleanHeaderV1);
   }
 
   if (document.readyState === 'loading') {
