@@ -1,5 +1,5 @@
 {{-- 
-PMD_SINGLE_SIDE_MENU_MARKUP_V2
+PMD_SINGLE_SIDE_MENU_MARKUP_V3
 
 Canonical Side Menu markup.
 All supported Admin pages include this exact file.
@@ -125,3 +125,102 @@ Icons use the Tabler Icons outline set.
         </button>
     </div>
 </aside>
+
+<script id="pmd-r2-header-controls-v1">
+(function () {
+  'use strict';
+
+  if (location.pathname.replace(/\/+$/, '') !== '/admin/reservations2') return;
+  if (window.PMDR2HeaderControlsV1) return;
+
+  function createButton(className, label, svg) {
+    var button = document.createElement('button');
+    button.type = 'button';
+    button.className = className;
+    button.setAttribute('aria-label', label);
+    button.setAttribute('title', label);
+    button.innerHTML = svg;
+    return button;
+  }
+
+  function install() {
+    var header = document.getElementById('pmd-r2-clean-header');
+    if (!header) return false;
+
+    var title = header.querySelector('.pmd-r2-clean-title');
+    var actions = header.querySelector('.pmd-r2-clean-actions');
+    if (!title || !actions) return false;
+
+    var leading = header.querySelector('.pmd-r2-clean-leading');
+    if (!leading) {
+      leading = document.createElement('div');
+      leading.className = 'pmd-r2-clean-leading';
+
+      var back = createButton(
+        'pmd-r2-header-back',
+        'Back',
+        '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 6l-6 6l6 6"/></svg>'
+      );
+
+      back.addEventListener('click', function () {
+        if (history.length > 1) history.back();
+        else location.href = '/admin/dashboard';
+      });
+
+      header.insertBefore(leading, title);
+      leading.appendChild(back);
+      leading.appendChild(title);
+    }
+
+    var mobile = header.querySelector('.pmd-r2-mobile-menu');
+    if (!mobile) {
+      mobile = createButton(
+        'pmd-r2-mobile-menu',
+        'Open navigation',
+        '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h16"/></svg>'
+      );
+
+      mobile.setAttribute('aria-expanded', 'false');
+      mobile.addEventListener('click', function () {
+        var open = document.documentElement.classList.toggle('pmd-sm2-mobile-open');
+        mobile.setAttribute('aria-expanded', String(open));
+        mobile.setAttribute('aria-label', open ? 'Close navigation' : 'Open navigation');
+      });
+
+      actions.insertBefore(mobile, actions.firstChild);
+    }
+
+    document.addEventListener('click', function (event) {
+      if (!document.documentElement.classList.contains('pmd-sm2-mobile-open')) return;
+      if (event.target.closest('#pmd-side-menu2, .pmd-r2-mobile-menu')) return;
+      document.documentElement.classList.remove('pmd-sm2-mobile-open');
+      mobile.setAttribute('aria-expanded', 'false');
+      mobile.setAttribute('aria-label', 'Open navigation');
+    });
+
+    window.PMDR2HeaderControlsV1 = {
+      version: '1.0.0',
+      back: true,
+      mobileMenu: true
+    };
+
+    return true;
+  }
+
+  if (install()) return;
+
+  var observer = new MutationObserver(function () {
+    if (install()) observer.disconnect();
+  });
+
+  observer.observe(document.documentElement, {
+    childList: true,
+    subtree: true
+  });
+
+  window.setTimeout(function () {
+    install();
+    observer.disconnect();
+  }, 2000);
+})();
+</script>
