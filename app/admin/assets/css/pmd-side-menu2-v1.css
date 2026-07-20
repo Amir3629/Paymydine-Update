@@ -81,6 +81,7 @@
   display: flex;
   flex-direction: column;
   gap: 5px;
+  width: 100%;
   padding: 2px 8px 12px;
   scrollbar-width: thin;
 }
@@ -119,9 +120,11 @@
 
 .pmd-sm2__item > svg,
 .pmd-sm2__dropdown-toggle > svg {
+  display: block;
   flex: 0 0 22px;
   width: 22px;
   height: 22px;
+  margin: 0;
   fill: none;
   stroke: currentColor;
   stroke-width: 2;
@@ -174,7 +177,16 @@ html.pmd-sm2-collapsed #pmd-side-menu2 .pmd-sm2__submenu {
   display: none;
 }
 
-html.pmd-sm2-collapsed #pmd-side-menu2 .pmd-sm2__brand-mark { display: block; }
+html.pmd-sm2-collapsed #pmd-side-menu2 .pmd-sm2__brand-control {
+  width: 52px;
+  min-width: 52px;
+  margin-inline: auto;
+}
+
+html.pmd-sm2-collapsed #pmd-side-menu2 .pmd-sm2__brand-mark {
+  display: block;
+  margin: auto;
+}
 
 html.pmd-sm2-collapsed #pmd-side-menu2 .pmd-sm2__brand-control:hover .pmd-sm2__brand-mark,
 html.pmd-sm2-collapsed #pmd-side-menu2 .pmd-sm2__brand-control:focus-visible .pmd-sm2__brand-mark {
@@ -184,13 +196,40 @@ html.pmd-sm2-collapsed #pmd-side-menu2 .pmd-sm2__brand-control:focus-visible .pm
 html.pmd-sm2-collapsed #pmd-side-menu2 .pmd-sm2__brand-control:hover .pmd-sm2__brand-expand-icon,
 html.pmd-sm2-collapsed #pmd-side-menu2 .pmd-sm2__brand-control:focus-visible .pmd-sm2__brand-expand-icon {
   display: block;
+  inset: 50% auto auto 50%;
+  transform: translate(-50%, -50%);
+}
+
+html.pmd-sm2-collapsed #pmd-side-menu2 .pmd-sm2__nav {
+  align-items: center;
+  padding-inline: 8px;
+}
+
+html.pmd-sm2-collapsed #pmd-side-menu2 .pmd-sm2__dropdown {
+  display: flex;
+  justify-content: center;
+  width: 100%;
 }
 
 html.pmd-sm2-collapsed #pmd-side-menu2 .pmd-sm2__item,
 html.pmd-sm2-collapsed #pmd-side-menu2 .pmd-sm2__dropdown-toggle {
+  flex: 0 0 44px;
   justify-content: center;
+  width: 44px;
+  min-width: 44px;
+  max-width: 44px;
+  height: 44px;
+  min-height: 44px;
+  margin-inline: auto;
   gap: 0;
-  padding-inline: 0;
+  padding: 0;
+  text-align: center;
+}
+
+html.pmd-sm2-collapsed #pmd-side-menu2 .pmd-sm2__item > svg,
+html.pmd-sm2-collapsed #pmd-side-menu2 .pmd-sm2__dropdown-toggle > svg {
+  flex-basis: 22px;
+  margin: 0 auto;
 }
 
 html.pmd-sm2-expanded #pmd-side-menu2 .pmd-sm2__brand-mark,
@@ -209,6 +248,9 @@ html.pmd-sm2-expanded #pmd-side-menu2 .pmd-sm2__brand-expand-icon {
 
   #pmd-side-menu2 .pmd-sm2__brand-control {
     justify-content: flex-start;
+    width: 100%;
+    min-width: 0;
+    margin: 0;
     padding-inline: 12px;
     pointer-events: none;
   }
@@ -225,15 +267,32 @@ html.pmd-sm2-expanded #pmd-side-menu2 .pmd-sm2__brand-expand-icon {
     display: none !important;
   }
 
+  #pmd-side-menu2 .pmd-sm2__nav {
+    align-items: stretch !important;
+  }
+
+  #pmd-side-menu2 .pmd-sm2__dropdown {
+    display: block !important;
+    width: auto !important;
+  }
+
   #pmd-side-menu2 .pmd-sm2__label {
     display: block !important;
   }
 
   #pmd-side-menu2 .pmd-sm2__item,
   #pmd-side-menu2 .pmd-sm2__dropdown-toggle {
+    flex: initial !important;
     justify-content: flex-start !important;
+    width: 100% !important;
+    min-width: 0 !important;
+    max-width: none !important;
+    height: auto !important;
+    min-height: 44px !important;
+    margin: 0 !important;
     gap: 10px !important;
     padding: 9px 10px !important;
+    text-align: left !important;
   }
 
   #pmd-side-menu2 .pmd-sm2__submenu-inner {
