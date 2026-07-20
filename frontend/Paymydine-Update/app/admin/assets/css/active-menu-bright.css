@@ -1,0 +1,103 @@
+/* ============================================
+   ACTIVE/SELECTED MENU ITEMS - BRIGHTER BACKGROUND
+   Smooth transitions for selected menu items in sidebar
+   ============================================ */
+
+/* Active/Selected menu items - Brighter background */
+.nav-sidebar .nav li.active > a,
+.nav-sidebar .nav .nav li.active > a,
+.nav-sidebar .nav .nav li > a.active,
+.nav-sidebar .nav-item.active > .nav-link,
+#navSidebar .nav li.active > a,
+#navSidebar .nav .nav li.active > a,
+#navSidebar .nav .nav li > a.active,
+#navSidebar .nav-item.active > .nav-link,
+#side-nav-menu .nav-item.active > .nav-link,
+.sidebar .nav li.active > a,
+.sidebar .nav .nav li.active > a,
+.sidebar .nav .nav li > a.active,
+.sidebar .nav-item.active > .nav-link {
+  background-color: rgba(81, 101, 132, 0.75) !important; /* Even brighter blue background (#516584 with 75% opacity) */
+  background: rgba(81, 101, 132, 0.75) !important;
+  color: #FFFFFF !important;
+  font-weight: 600 !important;
+  transition: background-color 0.3s ease, background 0.3s ease !important; /* Smooth transition */
+  border-radius: 4px !important;
+  box-shadow: 0 2px 4px rgba(81, 101, 132, 0.2) !important; /* Subtle shadow for depth */
+}
+
+/* Hover state for menu items - Brighter background */
+.nav-sidebar .nav > li > a:hover,
+.nav-sidebar .nav .nav li > a:hover,
+.nav-sidebar .nav > li > a:focus,
+.nav-sidebar .nav .nav li > a:focus,
+#navSidebar .nav > li > a:hover,
+#navSidebar .nav .nav li > a:hover,
+#navSidebar .nav > li > a:focus,
+#navSidebar .nav .nav li > a:focus,
+.sidebar .nav > li > a:hover,
+.sidebar .nav .nav li > a:hover,
+.sidebar .nav > li > a:focus,
+.sidebar .nav .nav li > a:focus {
+  color: #FFFFFF !important;
+  background-color: rgba(81, 101, 132, 0.65) !important; /* Brighter background on hover (65% opacity) */
+  background: rgba(81, 101, 132, 0.65) !important;
+  transform: scale(1.02) !important; /* Slight size effect */
+  transition: background-color 0.3s ease, background 0.3s ease, transform 0.2s ease !important; /* Smooth transition */
+  border-radius: 4px !important;
+}
+
+/* Ensure smooth transitions for all menu links */
+.nav-sidebar .nav > li > a,
+.nav-sidebar .nav .nav li > a,
+#navSidebar .nav > li > a,
+#navSidebar .nav .nav li > a,
+.sidebar .nav > li > a,
+.sidebar .nav .nav li > a {
+  transition: background-color 0.3s ease, background 0.3s ease, transform 0.2s ease, color 0.2s ease !important;
+}
+
+/* Superadmin sidebar active items - EXACT same as admin panel */
+.nk-sidebar .nav-item.active > .nav-link,
+.nk-sidebar-menu .nav-item.active,
+.nk-sidebar .active,
+.nk-sidebar .nk-menu-item.active > .nk-menu-link,
+.nk-sidebar .nk-menu-link.active,
+.nk-sidebar-menu .nk-menu-item.active > .nk-menu-link,
+.nk-sidebar-menu .nk-menu-link.active {
+  background-color: rgba(81, 101, 132, 0.75) !important; /* EXACT same brightness as admin (75% opacity) */
+  background: rgba(81, 101, 132, 0.75) !important;
+  color: #FFFFFF !important;
+  font-weight: 600 !important;
+  transition: background-color 0.3s ease, background 0.3s ease !important; /* Smooth transition */
+  border-radius: 4px !important;
+  box-shadow: 0 2px 4px rgba(81, 101, 132, 0.2) !important; /* Subtle shadow */
+  border-left: none !important; /* No border, use background like admin */
+}
+
+/* Superadmin sidebar hover - EXACT same as admin panel */
+.nk-sidebar .nav-link:hover,
+.nk-sidebar-menu .nav-link:hover,
+.nk-sidebar .nk-menu-link:hover,
+.nk-sidebar-menu .nk-menu-link:hover,
+.nk-sidebar .nav-link:focus,
+.nk-sidebar-menu .nav-link:focus,
+.nk-sidebar .nk-menu-link:focus,
+.nk-sidebar-menu .nk-menu-link:focus {
+  background-color: rgba(81, 101, 132, 0.65) !important; /* EXACT same brightness as admin hover (65% opacity) */
+  background: rgba(81, 101, 132, 0.65) !important;
+  color: #FFFFFF !important;
+  transform: scale(1.02) !important; /* Slight size effect like admin */
+  transition: background-color 0.3s ease, background 0.3s ease, transform 0.2s ease !important; /* Smooth transition */
+  border-radius: 4px !important;
+}
+
+/* Ensure smooth transitions for all superadmin menu links */
+.nk-sidebar .nav-link,
+.nk-sidebar-menu .nav-link,
+.nk-sidebar .nk-menu-link,
+.nk-sidebar-menu .nk-menu-link {
+  transition: background-color 0.3s ease, background 0.3s ease, transform 0.2s ease, color 0.2s ease !important;
+}
+
+

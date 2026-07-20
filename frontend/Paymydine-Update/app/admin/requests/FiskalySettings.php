@@ -1,0 +1,46 @@
+<?php
+
+namespace Admin\Requests;
+
+use System\Classes\FormRequest;
+
+class FiskalySettings extends FormRequest
+{
+    public function attributes()
+    {
+        return [
+            'fiskaly_is_enabled' => 'Enable Fiskaly / TSE',
+            'fiskaly_environment' => 'Environment',
+            'fiskaly_api_key' => 'API Key',
+            'fiskaly_api_secret' => 'API Secret',
+            'fiskaly_organization_id' => 'Organization ID',
+            'fiskaly_managed_organization_id' => 'Managed Organization ID',
+            'fiskaly_tss_id' => 'TSS ID',
+            'fiskaly_client_id' => 'Client ID',
+            'fiskaly_force_create_client' => 'Create Client',
+            'fiskaly_cash_register_id' => 'Cash Register ID',
+            'fiskaly_taxpayer_id' => 'Taxpayer ID',
+            'fiskaly_establishment_id' => 'Establishment ID',
+            'fiskaly_submission_id' => 'Submission ID',
+        ];
+    }
+
+    public function rules()
+    {
+        return [
+            'fiskaly_is_enabled' => ['nullable'],
+            'fiskaly_environment' => ['required', 'in:test,live'],
+            'fiskaly_api_key' => ['nullable', 'max:255'],
+            'fiskaly_api_secret' => ['nullable', 'max:255'],
+            'fiskaly_organization_id' => ['nullable', 'max:100'],
+            'fiskaly_managed_organization_id' => ['nullable', 'max:100'],
+            'fiskaly_tss_id' => ['nullable', 'max:100'],
+            'fiskaly_client_id' => ['nullable', 'max:100'],
+            'fiskaly_force_create_client' => ['nullable'],
+            'fiskaly_cash_register_id' => ['nullable', 'max:100'],
+            'fiskaly_taxpayer_id' => ['nullable', 'max:100'],
+            'fiskaly_establishment_id' => ['nullable', 'max:100'],
+            'fiskaly_submission_id' => ['nullable', 'max:100'],
+        ];
+    }
+}

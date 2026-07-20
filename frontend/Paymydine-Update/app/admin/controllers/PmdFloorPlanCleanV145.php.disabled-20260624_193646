@@ -1,0 +1,336 @@
+<?php namespace Admin\Controllers;
+
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
+
+class PmdFloorPlanCleanV145
+{
+    public function data()
+    {
+        return $this->json($this->payload(false));
+    }
+
+    public function audit()
+    {
+        return $this->json($this->payload(true));
+    }
+
+    public function addItem()
+    {
+        return $this->json([
+            'ok' => false,
+            'version' => 'v145-status-layout',
+            'message' => 'Add item should still use the existing order endpoint until the final order bridge is confirmed.',
+        ]);
+    }
+
+    public function merge()
+    {
+        $ids = $this->input('table_ids', $this->input('ids', ''));
+        $ids = is_array($ids) ? $ids : explode(',', (string)$ids);
+        $ids = array_values(array_filter(array_map('intval', $ids)));
+
+        return $this->json([
+            'ok' => count($ids) >= 2,
+            'version' => 'v145-status-layout',
+            'message' => count($ids) >= 2
+                ? 'Merge selection received. Backend merge persistence must be connected to the real order/table merge model.'
+                : 'Select at least two tables to merge.',
+            'table_ids' => $ids,
+        ]);
+    }
+
+    protected function payload($audit = false)
+    {
+        $tables = $this->tables();
+        $menus = $this->menus();
+
+        $kpis = [
+            'tables' => count($tables),
+            'ready' => array_sum(array_map(fn($t) => (int)($t['ready'] ?? 0), $tables)),
+            'active_orders' => array_sum(array_map(fn($t) => (int)($t['orders'] ?? 0), $tables)),
+            'attention' => array_sum(array_map(fn($t) => (int)($t['attention'] ?? 0), $tables)),
+            'checks_due' => array_sum(array_map(fn($t) => (float)($t['due'] ?? 0), $tables)),
+        ];
+
+        return [
+            'ok' => true,
+            'version' => 'v145-status-layout',
+            'role' => $this->role(),
+            'generated_at' => date('c'),
+            'tables' => $tables,
+            'floor_tables' => $tables,
+            'menu_items' => $menus,
+            'menus' => $menus,
+            'kpis' => $kpis,
+            'metrics' => $kpis,
+            'floors' => $this->floors($tables),
+            'source' => [
+                'tables' => 'tables',
+                'menus' => 'menus',
+                'orders' => Schema::hasTable('orders') ? 'orders' : null,
+            ],
+            'audit' => $audit ? [
+                'schema_tables' => Schema::hasTable('tables') ? Schema::getColumnListing('tables') : [],
+                'table_count' => count($tables),
+                'menu_count' => count($menus),
+            ] : null,
+        ];
+    }
+
+    protected function tables()
+    {
+        if (!Schema::hasTable('tables')) return [];
+
+        $cols = Schema::getColumnListing('tables');
+        $has = fn($c) => in_array($c, $cols, true);
+        $pick = function ($row, $names, $default = null) {
+            $a = (array)$row;
+            foreach ($names as $n) {
+                if (array_key_exists($n, $a) && $a[$n] !== null && $a[$n] !== '') return $a[$n];
+            }
+            return $default;
+        };
+
+        $q = DB::table('tables');
+        if ($has('table_status')) $q->where('table_status', 1);
+
+        $raw = $q->get()->filter(function ($row) use ($pick) {
+            $name = strtolower(trim((string)$pick($row, ['table_name', 'pos_table_label', 'name', 'label'], '')));
+            $qr = strtolower(trim((string)$pick($row, ['qr_code', 'code'], '')));
+            if (in_array($name, ['cashier', 'delivery'], true)) return false;
+            if (in_array($qr, ['cashier', 'delivery'], true)) return false;
+
+            $visible = $pick($row, ['visible_on_floor_plan'], 1);
+            if ((string)$visible === '0') return false;
+
+            return true;
+        })->sortBy(function ($row) use ($pick) {
+            return (int)$pick($row, ['table_no', 'table_number', 'number', 'table_id', 'id'], 9999);
+        })->values();
+
+        $out = [];
+        $i = 0;
+
+        foreach ($raw as $row) {
+            $a = (array)$row;
+
+            $id = (int)$pick($row, ['table_id', 'id'], 0);
+            $number = (string)$pick($row, ['table_no', 'table_number', 'number'], $id);
+            $label = (string)$pick($row, ['table_name', 'pos_table_label', 'name', 'label'], 'Table '.$number);
+
+            if (!$label || strtolower($label) === 'table') $label = 'Table '.$number;
+
+            $cap = (int)$pick($row, ['capacity', 'table_capacity', 'max_capacity', 'min_capacity'], 2);
+            if ($cap <= 0) $cap = 2;
+
+            $extra = (int)$pick($row, ['extra_capacity'], 0);
+            if ($extra < 0) $extra = 0;
+
+            $floor = (string)$pick($row, ['floor_name', 'floor', 'table_floor'], 'Main');
+            if (!$floor) $floor = 'Main';
+
+            $x = (float)$pick($row, ['floor_x'], 0);
+            $y = (float)$pick($row, ['floor_y'], 0);
+
+            if ($x <= 0 && $y <= 0) {
+                $x = 70 + (($i % 4) * 230);
+                $y = 70 + (floor($i / 4) * 170);
+            }
+
+            $w = (float)$pick($row, ['floor_width'], 0);
+            $h = (float)$pick($row, ['floor_height'], 0);
+
+            if ($w <= 0) $w = $cap <= 4 ? 132 : ($cap <= 6 ? 164 : 210);
+            if ($h <= 0) $h = $cap <= 4 ? 82 : 94;
+
+            $status = $this->tableStatus($id, $number);
+
+            $out[] = [
+                'id' => $id,
+                'table_id' => $id,
+                'number' => $number,
+                'table_no' => $number,
+                'name' => $label,
+                'label' => $label,
+                'capacity' => $cap,
+                'min_capacity' => (int)$pick($row, ['min_capacity'], $cap),
+                'max_capacity' => (int)$pick($row, ['max_capacity'], $cap),
+                'extra_capacity' => $extra,
+                'floor' => $floor,
+                'floor_name' => $floor,
+                'section' => (string)$pick($row, ['table_section', 'section'], 'main'),
+                'zone' => (string)$pick($row, ['table_zone', 'zone'], ''),
+                'features' => (string)$pick($row, ['table_features', 'features'], ''),
+                'x' => $x,
+                'y' => $y,
+                'floor_x' => $x,
+                'floor_y' => $y,
+                'w' => $w,
+                'h' => $h,
+                'floor_width' => $w,
+                'floor_height' => $h,
+                'shape' => (string)$pick($row, ['floor_shape'], 'rect'),
+                'status' => $status['status'],
+                'status_label' => $status['label'],
+                'orders' => $status['orders'],
+                'open_orders' => $status['orders'],
+                'ready' => $status['ready'],
+                'attention' => $status['attention'],
+                'due' => $status['due'],
+                'payment_state' => $status['payment_state'],
+            ];
+
+            $i++;
+        }
+
+        return $out;
+    }
+
+    protected function tableStatus($tableId, $number)
+    {
+        $base = [
+            'status' => 'free',
+            'label' => 'FREE',
+            'orders' => 0,
+            'ready' => 0,
+            'attention' => 0,
+            'due' => 0,
+            'payment_state' => 'none',
+        ];
+
+        if (!Schema::hasTable('orders')) return $base;
+
+        try {
+            $cols = Schema::getColumnListing('orders');
+            $has = fn($c) => in_array($c, $cols, true);
+
+            $tableCol = null;
+            foreach (['table_id', 'table_no', 'table_number', 'table_name'] as $c) {
+                if ($has($c)) { $tableCol = $c; break; }
+            }
+
+            if (!$tableCol) return $base;
+
+            $q = DB::table('orders')->where($tableCol, $tableId);
+            if (in_array($tableCol, ['table_no', 'table_number', 'table_name'], true)) {
+                $q = DB::table('orders')->where($tableCol, $number);
+            }
+
+            $rows = $q->orderByDesc($has('order_id') ? 'order_id' : ($has('id') ? 'id' : $tableCol))->limit(20)->get();
+
+            foreach ($rows as $r) {
+                $a = (array)$r;
+                $txt = strtolower(json_encode($a));
+
+                $isDone = str_contains($txt, 'complete') || str_contains($txt, 'closed') || str_contains($txt, 'cancel');
+                if ($isDone) continue;
+
+                $base['orders']++;
+
+                if (str_contains($txt, 'ready')) $base['ready']++;
+                if (str_contains($txt, 'waiter') || str_contains($txt, 'note') || str_contains($txt, 'allergy')) $base['attention']++;
+
+                foreach (['order_total', 'total', 'total_payable', 'order_amount', 'amount'] as $moneyCol) {
+                    if ($has($moneyCol) && isset($a[$moneyCol])) {
+                        $base['due'] += (float)$a[$moneyCol];
+                        break;
+                    }
+                }
+
+                if (str_contains($txt, 'partial')) $base['payment_state'] = 'partial';
+                if (str_contains($txt, 'paid')) $base['payment_state'] = 'paid';
+            }
+
+            if ($base['attention'] > 0) {
+                $base['status'] = 'attention';
+                $base['label'] = 'CALL';
+            } elseif ($base['ready'] > 0) {
+                $base['status'] = 'ready';
+                $base['label'] = 'READY';
+            } elseif ($base['payment_state'] === 'partial') {
+                $base['status'] = 'partial';
+                $base['label'] = 'PARTIAL';
+            } elseif ($base['orders'] > 0) {
+                $base['status'] = 'active';
+                $base['label'] = 'ORDER';
+            }
+        } catch (\Throwable $e) {
+            return $base;
+        }
+
+        return $base;
+    }
+
+    protected function menus()
+    {
+        $table = Schema::hasTable('menus') ? 'menus' : (Schema::hasTable('menu_items') ? 'menu_items' : null);
+        if (!$table) return [];
+
+        $cols = Schema::getColumnListing($table);
+        $has = fn($c) => in_array($c, $cols, true);
+
+        $q = DB::table($table);
+        foreach (['menu_status', 'status', 'is_enabled'] as $c) {
+            if ($has($c)) {
+                $q->where($c, 1);
+                break;
+            }
+        }
+
+        return $q->limit(100)->get()->map(function ($row) use ($cols) {
+            $a = (array)$row;
+            $pick = function ($names, $default = null) use ($a) {
+                foreach ($names as $n) {
+                    if (array_key_exists($n, $a) && $a[$n] !== null && $a[$n] !== '') return $a[$n];
+                }
+                return $default;
+            };
+
+            return [
+                'id' => (int)$pick(['menu_id', 'id'], 0),
+                'menu_id' => (int)$pick(['menu_id', 'id'], 0),
+                'name' => (string)$pick(['menu_name', 'name', 'title'], 'Menu item'),
+                'title' => (string)$pick(['menu_name', 'name', 'title'], 'Menu item'),
+                'price' => (float)$pick(['menu_price', 'price', 'sale_price'], 0),
+            ];
+        })->values()->all();
+    }
+
+    protected function floors($tables)
+    {
+        $floors = [];
+        foreach ($tables as $t) {
+            $f = $t['floor_name'] ?: 'Main';
+            $floors[$f] = $f;
+        }
+        return array_values($floors ?: ['Main']);
+    }
+
+    protected function role()
+    {
+        try {
+            if (class_exists('\AdminAuth') && \AdminAuth::isLogged()) {
+                $user = \AdminAuth::getUser();
+                $name = strtolower((string)($user->username ?? $user->name ?? 'admin'));
+                if (str_contains($name, 'kds')) return 'kds';
+                if (str_contains($name, 'waiter')) return 'waiter';
+                if (str_contains($name, 'manager')) return 'manager';
+            }
+        } catch (\Throwable $e) {}
+        return 'admin';
+    }
+
+    protected function input($key, $default = null)
+    {
+        return $_POST[$key] ?? $_GET[$key] ?? $default;
+    }
+
+    protected function json($payload)
+    {
+        if (function_exists('response')) return response()->json($payload);
+        header('Content-Type: application/json');
+        echo json_encode($payload);
+        exit;
+    }
+}

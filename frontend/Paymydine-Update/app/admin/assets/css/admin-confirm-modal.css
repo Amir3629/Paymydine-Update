@@ -1,0 +1,107 @@
+/**
+ * Admin confirm modal – match platform: rounder card, button spacing, consistent Cancel style
+ */
+
+/* Smooth close: only opacity, no movement. Lock modal and dialog in place. */
+#adminConfirmModal.fade {
+  transition: opacity 0.25s ease-out !important;
+  transform: none !important;
+}
+#adminConfirmModal.modal-closing {
+  transform: none !important;
+}
+
+/* Backdrop fades out faster than the card when closing */
+body:has(#adminConfirmModal.modal-closing) .modal-backdrop {
+  transition: opacity 0.12s ease-out !important;
+  opacity: 0 !important;
+}
+/* Override theme .modal.fade .modal-dialog transform – dialog must never move on close */
+#adminConfirmModal .modal-dialog {
+  transition: opacity 0.25s ease-out !important;
+  transition-property: opacity !important;
+  transform: translate(0, 0) !important;
+}
+#adminConfirmModal .modal-dialog.confirm-dialog-closing {
+  transform: translate(0, 0) !important;
+  transition: opacity 0.25s ease-out !important;
+}
+#adminConfirmModal.fade .modal-dialog {
+  transform: translate(0, 0) !important;
+}
+#adminConfirmModal.show .modal-dialog {
+  opacity: 1 !important;
+  transform: translate(0, 0) !important;
+}
+#adminConfirmModal.modal-closing,
+#adminConfirmModal.modal-closing .modal-dialog {
+  opacity: 0 !important;
+  transform: translate(0, 0) !important;
+}
+#adminConfirmModal.fade:not(.show) .modal-dialog {
+  opacity: 0 !important;
+  transform: translate(0, 0) !important;
+}
+
+/* Card: more rounded corners for the whole card */
+#adminConfirmModal .modal-content {
+  border-radius: 18px !important;
+  overflow: hidden;
+}
+
+/* Footer: more space between buttons */
+#adminConfirmModal .modal-footer {
+  gap: 14px !important;
+  padding-left: 1.5rem !important;
+  padding-right: 1.5rem !important;
+}
+
+/* Both buttons: smooth hover transition like Add General Staff Note modal */
+#adminConfirmModal .modal-footer .admin-confirm-cancel,
+#adminConfirmModal .modal-footer .admin-confirm-delete {
+  transition: background 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease !important;
+  transform: translateY(0) !important;
+}
+
+/* Left button (Cancel): platform secondary, dark text, same hover effect as other modals */
+#adminConfirmModal .admin-confirm-cancel,
+#adminConfirmModal .modal-footer .admin-confirm-cancel {
+  background: rgb(241, 244, 251) !important;
+  border: 1px solid rgb(201, 210, 227) !important;
+  color: rgb(32, 41, 56) !important;
+  border-radius: 14px !important;
+}
+#adminConfirmModal .admin-confirm-cancel:hover,
+#adminConfirmModal .modal-footer .admin-confirm-cancel:hover {
+  background: rgb(233, 237, 246) !important;
+  border-color: rgb(141, 157, 185) !important;
+  color: rgb(32, 41, 56) !important;
+  transform: translateY(-1px) !important;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08) !important;
+}
+#adminConfirmModal .admin-confirm-cancel:focus,
+#adminConfirmModal .admin-confirm-cancel:active,
+#adminConfirmModal .modal-footer .admin-confirm-cancel:focus,
+#adminConfirmModal .modal-footer .admin-confirm-cancel:active {
+  background: rgb(225, 230, 241) !important;
+  border-color: rgb(141, 157, 185) !important;
+  color: rgb(32, 41, 56) !important;
+  transform: translateY(0) !important;
+}
+
+/* Delete button: round shape, same hover lift as primary buttons */
+#adminConfirmModal .admin-confirm-delete,
+#adminConfirmModal .modal-footer .admin-confirm-delete {
+  border-radius: 14px !important;
+}
+#adminConfirmModal .admin-confirm-delete:hover,
+#adminConfirmModal .modal-footer .admin-confirm-delete:hover {
+  transform: translateY(-1px) !important;
+  box-shadow: rgba(31, 43, 58, 0.4) 0 6px 20px !important;
+  background: linear-gradient(135deg, rgb(54, 74, 99) 0%, rgb(74, 95, 122) 100%) !important;
+  border-color: rgb(74, 95, 122) !important;
+}
+#adminConfirmModal .admin-confirm-delete:active,
+#adminConfirmModal .modal-footer .admin-confirm-delete:active {
+  transform: translateY(0) !important;
+}

@@ -1,0 +1,453 @@
+@import url("https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700;900&display=swap");
+@import "../styles/customer/index.css";
+@import "../styles/global/paymydine-legacy-globals.css";
+
+
+/* PMD_GLOBAL_ROBOTO_FRONTEND_V7
+   Frontend-wide font standardization requested for PayMyDine.
+   Keep icons/SVG geometry untouched while forcing text UI to Roboto.
+*/
+:root {
+  --pmd-font-sans: "Roboto", Arial, Helvetica, sans-serif;
+}
+html,
+body,
+button,
+input,
+textarea,
+select,
+option,
+label,
+p,
+span,
+a,
+div,
+section,
+article,
+aside,
+header,
+footer,
+main,
+nav,
+h1,
+h2,
+h3,
+h4,
+h5,
+h6,
+small,
+strong,
+em {
+  font-family: var(--pmd-font-sans) !important;
+}
+body *:not(svg):not(path):not(circle):not(polyline):not(line):not(rect):not(polygon) {
+  font-family: var(--pmd-font-sans) !important;
+}
+
+
+/* PMD_FRONTEND_TYPOGRAPHY_SYSTEM_V1
+   Global type foundation only: Roboto everywhere without forcing buttons/titles globally.
+   Component-specific hierarchy is handled in theme CSS below.
+*/
+:root {
+  --pmd-font-sans: "Roboto", Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Arial, sans-serif;
+  --pmd-text-micro: .68rem;
+  --pmd-text-caption: .76rem;
+  --pmd-text-body: .94rem;
+  --pmd-text-label: .88rem;
+  --pmd-text-card-title: 1rem;
+  --pmd-text-section-title: .94rem;
+  --pmd-text-button: .80rem;
+  --pmd-text-price: 1rem;
+  --pmd-text-modal-title: clamp(2rem, 6.6vw, 3rem);
+}
+
+html,
+body {
+  font-family: var(--pmd-font-sans) !important;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  font-feature-settings: "kern" 1, "liga" 1, "tnum" 1;
+}
+
+button,
+input,
+textarea,
+select {
+  font-family: var(--pmd-font-sans) !important;
+}
+
+[data-pmd-themed-button],
+.pmd-themed-button {
+  font-family: var(--pmd-font-sans) !important;
+  font-size: var(--pmd-text-button) !important;
+  font-weight: 850 !important;
+  letter-spacing: .13em !important;
+  text-transform: uppercase !important;
+  line-height: 1.1 !important;
+}
+
+.pmd-price,
+[data-pmd-price],
+[data-pmd-money] {
+  font-variant-numeric: tabular-nums !important;
+  font-feature-settings: "tnum" 1, "kern" 1 !important;
+}
+
+
+
+/* PMD_KAZEN_TIP_INPUT_EXACT_SAFE_V36
+   Exact safe styling for the real custom tip input:
+   <input value={paymentCustomTip ?? ""} ...>
+   Match coupon field background/border. */
+html body input[data-pmd-kazen-tip-custom-input-v36="1"] {
+  background: rgba(255, 252, 245, .78) !important;
+  border-color: rgba(36, 35, 32, .20) !important;
+  color: #242320 !important;
+  -webkit-text-fill-color: #242320 !important;
+  box-shadow: none !important;
+}
+
+html body *:has(> input[data-pmd-kazen-tip-custom-input-v36="1"]) {
+  background: rgba(255, 252, 245, .78) !important;
+  border-color: rgba(36, 35, 32, .20) !important;
+  box-shadow: none !important;
+}
+
+html body *:has(+ input[data-pmd-kazen-tip-custom-input-v36="1"]) {
+  background: rgba(255, 252, 245, .78) !important;
+  border-color: rgba(36, 35, 32, .20) !important;
+  color: rgba(36, 35, 32, .55) !important;
+  -webkit-text-fill-color: rgba(36, 35, 32, .55) !important;
+  box-shadow: none !important;
+}
+
+html body input[data-pmd-kazen-tip-custom-input-v36="1"]:focus,
+html body input[data-pmd-kazen-tip-custom-input-v36="1"]:focus-visible {
+  outline: none !important;
+  background: rgba(255, 252, 245, .88) !important;
+  border-color: rgba(36, 35, 32, .28) !important;
+  box-shadow: inset 0 0 0 1px rgba(36, 35, 32, .05) !important;
+}
+
+html[data-pmd-kazen-mode="dark"] body input[data-pmd-kazen-tip-custom-input-v36="1"],
+html[data-pmd-kazen-mode="dark"] body *:has(> input[data-pmd-kazen-tip-custom-input-v36="1"]),
+html[data-pmd-kazen-mode="dark"] body *:has(+ input[data-pmd-kazen-tip-custom-input-v36="1"]) {
+  background: rgba(18, 14, 10, .78) !important;
+  border-color: rgba(244, 236, 221, .22) !important;
+  color: #f7efe4 !important;
+  -webkit-text-fill-color: #f7efe4 !important;
+  box-shadow: none !important;
+}
+
+
+/* PMD_KAZEN_TIP_FIELD_EXACT_COLOR_V37
+   Force the custom tip field to the exact same color as the coupon field.
+   Coupon correct color from visual check: #FBF8F2. */
+html body input[data-pmd-kazen-tip-custom-input-v36="1"],
+html body .kazen-payment-modal input[data-pmd-kazen-tip-custom-input-v36="1"],
+html body .kazen-checkout-shell input[data-pmd-kazen-tip-custom-input-v36="1"] {
+  background-color: #fbf8f2 !important;
+  background: #fbf8f2 !important;
+  border-color: rgba(36, 35, 32, .20) !important;
+  color: #242320 !important;
+  -webkit-text-fill-color: #242320 !important;
+  box-shadow: none !important;
+}
+
+/* Row wrapper around € + input */
+html body *:has(> input[data-pmd-kazen-tip-custom-input-v36="1"]),
+html body .kazen-payment-modal *:has(> input[data-pmd-kazen-tip-custom-input-v36="1"]),
+html body .kazen-checkout-shell *:has(> input[data-pmd-kazen-tip-custom-input-v36="1"]) {
+  background-color: #fbf8f2 !important;
+  background: #fbf8f2 !important;
+  border-color: rgba(36, 35, 32, .20) !important;
+  box-shadow: none !important;
+}
+
+/* € prefix cell before the tip input */
+html body *:has(+ input[data-pmd-kazen-tip-custom-input-v36="1"]),
+html body .kazen-payment-modal *:has(+ input[data-pmd-kazen-tip-custom-input-v36="1"]),
+html body .kazen-checkout-shell *:has(+ input[data-pmd-kazen-tip-custom-input-v36="1"]) {
+  background-color: #fbf8f2 !important;
+  background: #fbf8f2 !important;
+  border-color: rgba(36, 35, 32, .20) !important;
+  color: rgba(36, 35, 32, .55) !important;
+  -webkit-text-fill-color: rgba(36, 35, 32, .55) !important;
+  box-shadow: none !important;
+}
+
+/* Focus remains the same color, only a tiny border change like coupon */
+html body input[data-pmd-kazen-tip-custom-input-v36="1"]:focus,
+html body input[data-pmd-kazen-tip-custom-input-v36="1"]:focus-visible {
+  outline: none !important;
+  background-color: #fbf8f2 !important;
+  background: #fbf8f2 !important;
+  border-color: rgba(36, 35, 32, .28) !important;
+  box-shadow: inset 0 0 0 1px rgba(36, 35, 32, .04) !important;
+}
+
+/* Placeholder and empty state must visually match coupon input */
+html body input[data-pmd-kazen-tip-custom-input-v36="1"]::placeholder {
+  color: rgba(36, 35, 32, .40) !important;
+  -webkit-text-fill-color: rgba(36, 35, 32, .40) !important;
+}
+
+/* Dark mode equivalent */
+html[data-pmd-kazen-mode="dark"] body input[data-pmd-kazen-tip-custom-input-v36="1"],
+html[data-pmd-kazen-mode="dark"] body *:has(> input[data-pmd-kazen-tip-custom-input-v36="1"]),
+html[data-pmd-kazen-mode="dark"] body *:has(+ input[data-pmd-kazen-tip-custom-input-v36="1"]) {
+  background-color: rgba(18, 14, 10, .78) !important;
+  background: rgba(18, 14, 10, .78) !important;
+  border-color: rgba(244, 236, 221, .22) !important;
+  color: #f7efe4 !important;
+  -webkit-text-fill-color: #f7efe4 !important;
+  box-shadow: none !important;
+}
+
+
+
+/* PMD_KAZEN_ALL_CHECKOUT_FIELDS_SAME_COLOR_V38
+   Final field-color normalization:
+   Every checkout/customer input field uses the SAME exact background as coupon: #fbf8f2.
+   This is intentionally broad inside Kazen/customer modals because previous targeted selectors
+   were being overridden by checkout skin wrappers. */
+html body .kazen-page input:not([type="checkbox"]):not([type="radio"]),
+html body .kazen-page textarea,
+html body .kazen-page select,
+html body .kazen-standalone input:not([type="checkbox"]):not([type="radio"]),
+html body .kazen-standalone textarea,
+html body .kazen-standalone select,
+html body .kazen-solid-modal-overlay input:not([type="checkbox"]):not([type="radio"]),
+html body .kazen-solid-modal-overlay textarea,
+html body .kazen-solid-modal-overlay select,
+html body .kazen-payment-modal input:not([type="checkbox"]):not([type="radio"]),
+html body .kazen-payment-modal textarea,
+html body .kazen-payment-modal select,
+html body .kazen-checkout-shell input:not([type="checkbox"]):not([type="radio"]),
+html body .kazen-checkout-shell textarea,
+html body .kazen-checkout-shell select,
+html body [role="dialog"] input:not([type="checkbox"]):not([type="radio"]),
+html body [role="dialog"] textarea,
+html body [role="dialog"] select {
+  background-color: #fbf8f2 !important;
+  background-image: none !important;
+  background: #fbf8f2 !important;
+  border-color: rgba(36, 35, 32, .20) !important;
+  color: #242320 !important;
+  -webkit-text-fill-color: #242320 !important;
+  box-shadow: none !important;
+}
+
+/* Prefix cells and wrappers around input rows, including the euro cell beside custom tip. */
+html body .kazen-page *:has(> input:not([type="checkbox"]):not([type="radio"])),
+html body .kazen-standalone *:has(> input:not([type="checkbox"]):not([type="radio"])),
+html body .kazen-solid-modal-overlay *:has(> input:not([type="checkbox"]):not([type="radio"])),
+html body .kazen-payment-modal *:has(> input:not([type="checkbox"]):not([type="radio"])),
+html body .kazen-checkout-shell *:has(> input:not([type="checkbox"]):not([type="radio"])),
+html body [role="dialog"] *:has(> input:not([type="checkbox"]):not([type="radio"])) {
+  background-color: #fbf8f2 !important;
+  background-image: none !important;
+  background: #fbf8f2 !important;
+  border-color: rgba(36, 35, 32, .20) !important;
+  box-shadow: none !important;
+}
+
+/* Sibling prefix cell before inputs. */
+html body .kazen-page *:has(+ input:not([type="checkbox"]):not([type="radio"])),
+html body .kazen-standalone *:has(+ input:not([type="checkbox"]):not([type="radio"])),
+html body .kazen-solid-modal-overlay *:has(+ input:not([type="checkbox"]):not([type="radio"])),
+html body .kazen-payment-modal *:has(+ input:not([type="checkbox"]):not([type="radio"])),
+html body .kazen-checkout-shell *:has(+ input:not([type="checkbox"]):not([type="radio"])),
+html body [role="dialog"] *:has(+ input:not([type="checkbox"]):not([type="radio"])) {
+  background-color: #fbf8f2 !important;
+  background-image: none !important;
+  background: #fbf8f2 !important;
+  border-color: rgba(36, 35, 32, .20) !important;
+  color: rgba(36, 35, 32, .55) !important;
+  -webkit-text-fill-color: rgba(36, 35, 32, .55) !important;
+  box-shadow: none !important;
+}
+
+/* Focus stays the same base color, only border becomes a little stronger. */
+html body .kazen-page input:not([type="checkbox"]):not([type="radio"]):focus,
+html body .kazen-page textarea:focus,
+html body .kazen-page select:focus,
+html body .kazen-standalone input:not([type="checkbox"]):not([type="radio"]):focus,
+html body .kazen-standalone textarea:focus,
+html body .kazen-standalone select:focus,
+html body .kazen-solid-modal-overlay input:not([type="checkbox"]):not([type="radio"]):focus,
+html body .kazen-solid-modal-overlay textarea:focus,
+html body .kazen-solid-modal-overlay select:focus,
+html body .kazen-payment-modal input:not([type="checkbox"]):not([type="radio"]):focus,
+html body .kazen-payment-modal textarea:focus,
+html body .kazen-payment-modal select:focus,
+html body .kazen-checkout-shell input:not([type="checkbox"]):not([type="radio"]):focus,
+html body .kazen-checkout-shell textarea:focus,
+html body .kazen-checkout-shell select:focus,
+html body [role="dialog"] input:not([type="checkbox"]):not([type="radio"]):focus,
+html body [role="dialog"] textarea:focus,
+html body [role="dialog"] select:focus {
+  outline: none !important;
+  background-color: #fbf8f2 !important;
+  background-image: none !important;
+  background: #fbf8f2 !important;
+  border-color: rgba(36, 35, 32, .28) !important;
+  box-shadow: inset 0 0 0 1px rgba(36, 35, 32, .04) !important;
+}
+
+html body .kazen-page input::placeholder,
+html body .kazen-standalone input::placeholder,
+html body .kazen-solid-modal-overlay input::placeholder,
+html body .kazen-payment-modal input::placeholder,
+html body .kazen-checkout-shell input::placeholder,
+html body [role="dialog"] input::placeholder {
+  color: rgba(36, 35, 32, .40) !important;
+  -webkit-text-fill-color: rgba(36, 35, 32, .40) !important;
+}
+
+/* Dark mode: all fields normalized too. */
+html[data-pmd-kazen-mode="dark"] body .kazen-page input:not([type="checkbox"]):not([type="radio"]),
+html[data-pmd-kazen-mode="dark"] body .kazen-page textarea,
+html[data-pmd-kazen-mode="dark"] body .kazen-page select,
+html[data-pmd-kazen-mode="dark"] body .kazen-standalone input:not([type="checkbox"]):not([type="radio"]),
+html[data-pmd-kazen-mode="dark"] body .kazen-standalone textarea,
+html[data-pmd-kazen-mode="dark"] body .kazen-standalone select,
+html[data-pmd-kazen-mode="dark"] body .kazen-solid-modal-overlay input:not([type="checkbox"]):not([type="radio"]),
+html[data-pmd-kazen-mode="dark"] body .kazen-solid-modal-overlay textarea,
+html[data-pmd-kazen-mode="dark"] body .kazen-solid-modal-overlay select,
+html[data-pmd-kazen-mode="dark"] body [role="dialog"] input:not([type="checkbox"]):not([type="radio"]),
+html[data-pmd-kazen-mode="dark"] body [role="dialog"] textarea,
+html[data-pmd-kazen-mode="dark"] body [role="dialog"] select,
+html[data-pmd-kazen-mode="dark"] body *:has(> input:not([type="checkbox"]):not([type="radio"])),
+html[data-pmd-kazen-mode="dark"] body *:has(+ input:not([type="checkbox"]):not([type="radio"])) {
+  background-color: rgba(18, 14, 10, .78) !important;
+  background-image: none !important;
+  background: rgba(18, 14, 10, .78) !important;
+  border-color: rgba(244, 236, 221, .22) !important;
+  color: #f7efe4 !important;
+  -webkit-text-fill-color: #f7efe4 !important;
+  box-shadow: none !important;
+}
+
+/* PMD_AUDIT_PHASE2_JAPANESE_UI_HARDENING
+   Frontend-only QA hardening for the Claude Japanese-theme audit:
+   - dark note/input readability
+   - dark status/allergen chip contrast
+   - mobile Stripe iframe containment
+   - subtle clipped-description affordance
+   - wide-screen max readability guard
+*/
+html[data-pmd-kazen-mode="dark"] body .kazen-page textarea,
+html[data-pmd-kazen-mode="dark"] body .kazen-standalone textarea,
+html[data-pmd-kazen-mode="dark"] body .kazen-payment-modal textarea,
+html[data-pmd-kazen-mode="dark"] body .kazen-checkout-shell textarea,
+html[data-pmd-kazen-mode="dark"] body [role="dialog"] textarea {
+  background: rgba(18, 14, 10, .86) !important;
+  background-color: rgba(18, 14, 10, .86) !important;
+  color: #f7efe4 !important;
+  -webkit-text-fill-color: #f7efe4 !important;
+  border-color: rgba(244, 236, 221, .28) !important;
+  caret-color: #f7efe4 !important;
+}
+
+html[data-pmd-kazen-mode="dark"] body .kazen-page [class*="badge"],
+html[data-pmd-kazen-mode="dark"] body .kazen-page [class*="chip"],
+html[data-pmd-kazen-mode="dark"] body .kazen-page [class*="allergen"],
+html[data-pmd-kazen-mode="dark"] body .kazen-standalone [class*="badge"],
+html[data-pmd-kazen-mode="dark"] body .kazen-standalone [class*="chip"],
+html[data-pmd-kazen-mode="dark"] body .kazen-standalone [class*="allergen"] {
+  color: #fffaf3 !important;
+  -webkit-text-fill-color: #fffaf3 !important;
+  border-color: rgba(255, 250, 243, .32) !important;
+  text-shadow: 0 1px 1px rgba(0, 0, 0, .38) !important;
+}
+
+html[data-pmd-kazen-mode="dark"] body .pmd-checkout-status-title,
+html[data-pmd-kazen-mode="dark"] body [data-pmd-order-status-card="1"] [class*="status"],
+html[data-pmd-kazen-mode="dark"] body [data-pmd-order-status-card="1"] [class*="badge"] {
+  color: #f7efe4 !important;
+  -webkit-text-fill-color: #f7efe4 !important;
+}
+
+@media (max-width: 390px) {
+  html body form[data-pmd-stripe-form="1"],
+  html body .pmd-stripe-card-frame,
+  html body .pmd-stripe-card-frame .StripeElement,
+  html body .pmd-stripe-card-frame .__PrivateStripeElement,
+  html body .pmd-stripe-card-frame iframe {
+    max-width: 100% !important;
+    width: 100% !important;
+    min-width: 0 !important;
+    overflow: hidden !important;
+  }
+
+  html body .pmd-stripe-card-frame {
+    padding-left: 10px !important;
+    padding-right: 10px !important;
+  }
+}
+
+@media (max-width: 390px) {
+  html body .kazen-page [class*="description"],
+  html body .kazen-standalone [class*="description"] {
+    position: relative !important;
+  }
+
+  html body .kazen-page [class*="description"]::after,
+  html body .kazen-standalone [class*="description"]::after {
+    content: "Tap for details";
+    display: inline-block;
+    margin-inline-start: .35rem;
+    font-size: .72rem;
+    font-weight: 700;
+    opacity: .72;
+  }
+}
+
+@media (min-width: 1800px) {
+  html body .kazen-page,
+  html body .kazen-standalone,
+  html body .kazen-checkout-shell {
+    max-width: 1500px !important;
+    margin-left: auto !important;
+    margin-right: auto !important;
+  }
+}
+/* /PMD_AUDIT_PHASE2_JAPANESE_UI_HARDENING */
+
+
+
+/* PMD_AUDIT_PHASE3_FINAL_POLISH
+   Final frontend-only audit polish: split progress, compact order refs,
+   narrow mobile payment containment, and readable dark-mode helper cards. */
+html body [data-pmd-split-progress="1"] {
+  max-width: 100%;
+}
+
+html body [data-pmd-split-progress="1"] * {
+  box-sizing: border-box;
+}
+
+html[data-pmd-kazen-mode="dark"] body [data-pmd-split-progress="1"],
+body[data-pmd-kazen-mode="dark"] [data-pmd-split-progress="1"] {
+  background: rgba(18, 14, 10, .86) !important;
+  border-color: rgba(244, 231, 200, .22) !important;
+  color: #f7efe4 !important;
+}
+
+@media (max-width: 390px) {
+  html body .kazen-payment-modal,
+  html body .kazen-checkout-shell,
+  html body [data-pmd-stripe-form="1"],
+  html body [data-pmd-stripe-form="1"] * {
+    max-width: 100% !important;
+  }
+
+  html body [data-pmd-stripe-form="1"] input,
+  html body [data-pmd-stripe-form="1"] .pmd-stripe-card-frame {
+    min-width: 0 !important;
+  }
+}
+/* /PMD_AUDIT_PHASE3_FINAL_POLISH */

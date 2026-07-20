@@ -1,0 +1,315 @@
+/* =========================================================
+   PMD RESERVATION LIVE FLOOR V1
+   ========================================================= */
+
+#pmd-res-v3-workspace
+.pmd-res-v3-floor-panel {
+  position: relative !important;
+  min-width: 0 !important;
+  min-height: 0 !important;
+  overflow: hidden !important;
+}
+
+/*
+ * Hide all previous cloned and fallback Floor implementations.
+ * The Reservation cards on the left are not affected.
+ */
+#pmd-res-v3-workspace
+.pmd-res-v3-floor-panel
+> :not(.pmd-res-live-floor-v1) {
+  display: none !important;
+}
+
+.pmd-res-live-floor-v1 {
+  position: absolute;
+  inset: 0;
+
+  display: grid;
+  grid-template-rows: 68px minmax(0, 1fr);
+
+  min-width: 0;
+  min-height: 0;
+
+  overflow: hidden;
+
+  border-radius: inherit;
+  background: #fff;
+}
+
+.pmd-res-live-floor-v1,
+.pmd-res-live-floor-v1 * {
+  box-sizing: border-box;
+}
+
+.pmd-res-live-floor-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+
+  min-width: 0;
+  padding: 0 17px;
+
+  border-bottom: 1px solid #d6e5ea;
+  background: #fff;
+}
+
+.pmd-res-live-floor-title {
+  min-width: 0;
+}
+
+.pmd-res-live-floor-title strong {
+  display: block;
+
+  color: #102638;
+  font-size: 18px;
+  font-weight: 950;
+}
+
+.pmd-res-live-floor-title span {
+  display: block;
+
+  margin-top: 3px;
+
+  overflow: hidden;
+  color: #6d8194;
+
+  font-size: 10px;
+  font-weight: 750;
+
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.pmd-res-live-floor-reload {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+
+  min-width: 104px;
+  min-height: 40px;
+  padding: 0 13px;
+
+  border: 1px solid #b9d4df;
+  border-radius: 10px;
+
+  background: #fff;
+  color: #102638;
+
+  font: inherit;
+  font-size: 10px;
+  font-weight: 900;
+}
+
+.pmd-res-live-floor-reload svg {
+  width: 18px;
+  height: 18px;
+
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.pmd-res-live-floor-stage {
+  position: relative;
+
+  min-width: 0;
+  min-height: 0;
+
+  overflow: hidden;
+  background: #f7fafb;
+}
+
+.pmd-res-live-floor-loading {
+  position: absolute;
+  z-index: 2;
+  inset: 0;
+
+  display: grid;
+  place-items: center;
+
+  padding: 20px;
+
+  background: #f7fafb;
+  color: #6d8194;
+
+  font-size: 12px;
+  font-weight: 800;
+  text-align: center;
+}
+
+.pmd-res-live-floor-loading[hidden] {
+  display: none !important;
+}
+
+/*
+ * The iframe keeps a real desktop viewport.
+ * It is scaled visually to fit the Reservation Floor panel.
+ */
+.pmd-res-live-floor-frame-shell {
+  position: absolute;
+  top: 0;
+  left: 0;
+
+  width: 1600px;
+  height: 900px;
+
+  transform-origin: top left;
+}
+
+.pmd-res-live-floor-frame {
+  display: block;
+
+  width: 1600px;
+  height: 900px;
+
+  border: 0;
+  background: #fff;
+}
+
+/* ---------- Reservation table details ---------- */
+
+.pmd-res-live-table-panel {
+  position: absolute;
+  z-index: 30;
+
+  top: 14px;
+  right: 14px;
+
+  width: min(360px, calc(100% - 28px));
+  max-height: calc(100% - 28px);
+
+  overflow: auto;
+
+  border: 1px solid #b9d4df;
+  border-radius: 14px;
+
+  background: #fff;
+  box-shadow:
+    0 22px 60px rgba(16, 38, 56, .22);
+}
+
+.pmd-res-live-table-panel[hidden] {
+  display: none !important;
+}
+
+.pmd-res-live-table-panel header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+
+  padding: 14px;
+
+  border-bottom: 1px solid #d6e5ea;
+}
+
+.pmd-res-live-table-panel header small {
+  display: block;
+
+  color: #6d8194;
+  font-size: 9px;
+  font-weight: 900;
+
+  letter-spacing: .08em;
+  text-transform: uppercase;
+}
+
+.pmd-res-live-table-panel header strong {
+  display: block;
+
+  margin-top: 3px;
+
+  color: #102638;
+  font-size: 18px;
+  font-weight: 950;
+}
+
+.pmd-res-live-table-close {
+  display: grid;
+  place-items: center;
+
+  width: 38px;
+  height: 38px;
+  padding: 0;
+
+  border: 1px solid #b9d4df;
+  border-radius: 9px;
+
+  background: #fff;
+  color: #102638;
+
+  font: inherit;
+  font-size: 21px;
+  font-weight: 900;
+}
+
+.pmd-res-live-table-body {
+  padding: 13px;
+}
+
+.pmd-res-live-table-empty {
+  padding: 16px 8px;
+
+  color: #6d8194;
+
+  font-size: 11px;
+  font-weight: 750;
+  text-align: center;
+}
+
+.pmd-res-live-create {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  min-height: 46px;
+  margin: 0 13px 13px;
+  padding: 0 13px;
+
+  border-radius: 10px;
+
+  background: #008875;
+  color: #fff;
+
+  font-size: 11px;
+  font-weight: 900;
+  text-decoration: none;
+}
+
+@media (max-width: 760px) {
+  .pmd-res-live-floor-v1 {
+    grid-template-rows: 62px minmax(0, 1fr);
+  }
+
+  .pmd-res-live-floor-head {
+    padding: 0 11px;
+  }
+
+  .pmd-res-live-floor-reload {
+    min-width: 42px;
+    width: 42px;
+    padding: 0;
+  }
+
+  .pmd-res-live-floor-reload span {
+    display: none;
+  }
+
+  .pmd-res-live-table-panel {
+    position: fixed;
+
+    top: auto;
+    right: 8px;
+    bottom: max(8px, env(safe-area-inset-bottom));
+    left: 8px;
+
+    width: auto;
+    max-height: 65vh;
+  }
+}
+
+/* V1 end */

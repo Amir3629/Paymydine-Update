@@ -1,0 +1,508 @@
+/* =========================================================
+   PMD RESERVATION FLOOR V4
+   Scoped only to the custom Reservations workspace
+   ========================================================= */
+
+/*
+ * The real sidebar is 82px wide and begins at x=14.
+ * Keep a safe 110px application inset.
+ */
+#pmd-res-v3-workspace {
+  left: 110px !important;
+  right: 0 !important;
+
+  width: auto !important;
+  max-width: none !important;
+
+  box-sizing: border-box !important;
+}
+
+/* Ensure the page never sits under the fixed sidebar. */
+body.pmd-res-v3-active {
+  overflow-x: hidden !important;
+}
+
+#pmd-res-v3-workspace .pmd-res-v3-floor-panel {
+  position: relative !important;
+
+  min-width: 0 !important;
+  min-height: 0 !important;
+
+  overflow: hidden !important;
+}
+
+/*
+ * Hide every previous cloned/fallback Floor.
+ * Reservation cards and KPI cards are not affected.
+ */
+#pmd-res-v3-workspace
+.pmd-res-v3-floor-panel
+.pmd-res-v33-exact-waiter-floor,
+
+#pmd-res-v3-workspace
+.pmd-res-v3-floor-panel
+.pmd-res-v33-floor-viewport,
+
+#pmd-res-v3-workspace
+.pmd-res-v3-floor-panel
+.pmd-res-v3-floor-scroll,
+
+#pmd-res-v3-workspace
+.pmd-res-v3-floor-panel
+.pmd-res-v3-area-tabs,
+
+#pmd-res-v3-workspace
+.pmd-res-v3-floor-panel
+.pmd-res-v3-floor-legend,
+
+#pmd-res-v3-workspace
+.pmd-res-v3-floor-panel
+.pmd-owner-floor-v60,
+
+#pmd-res-v3-workspace
+.pmd-res-v3-floor-panel
+.pmd-owner-floor-v60--reservation {
+  display: none !important;
+}
+
+/*
+ * Hidden compatibility node:
+ * old renderFloor() may still query this element.
+ */
+.pmd-res-v4-legacy-floor-dummy {
+  display: none !important;
+}
+
+/* ---------- V4 shell ---------- */
+
+.pmd-res-v4 {
+  position: absolute;
+  z-index: 10;
+  inset: 0;
+
+  display: grid;
+  grid-template-rows: 68px minmax(0, 1fr);
+
+  min-width: 0;
+  min-height: 0;
+
+  overflow: hidden;
+
+  border-radius: inherit;
+  background: #fff;
+}
+
+.pmd-res-v4,
+.pmd-res-v4 * {
+  box-sizing: border-box;
+}
+
+.pmd-res-v4-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+
+  min-width: 0;
+  padding: 0 17px;
+
+  border-bottom: 1px solid #d4e4ea;
+  background: #fff;
+}
+
+.pmd-res-v4-title {
+  min-width: 0;
+}
+
+.pmd-res-v4-title strong {
+  display: block;
+
+  color: #102638;
+  font-size: 18px;
+  font-weight: 950;
+  line-height: 1.1;
+}
+
+.pmd-res-v4-title span {
+  display: block;
+
+  margin-top: 4px;
+
+  overflow: hidden;
+
+  color: #687d91;
+  font-size: 10px;
+  font-weight: 750;
+
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.pmd-res-v4-reload {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+
+  min-width: 104px;
+  min-height: 40px;
+  padding: 0 13px;
+
+  border: 1px solid #b8d2de;
+  border-radius: 10px;
+
+  background: #fff;
+  color: #102638;
+
+  font: inherit;
+  font-size: 10px;
+  font-weight: 900;
+  cursor: pointer;
+}
+
+.pmd-res-v4-reload svg {
+  width: 18px;
+  height: 18px;
+
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.pmd-res-v4-stage {
+  position: relative;
+
+  min-width: 0;
+  min-height: 0;
+
+  overflow: hidden;
+  background: #f6f9fa;
+}
+
+.pmd-res-v4-loading {
+  position: absolute;
+  z-index: 20;
+  inset: 0;
+
+  display: grid;
+  place-items: center;
+
+  padding: 20px;
+
+  background: #f6f9fa;
+  color: #687d91;
+
+  font-size: 12px;
+  font-weight: 800;
+  text-align: center;
+}
+
+.pmd-res-v4-loading[hidden] {
+  display: none !important;
+}
+
+/*
+ * Actual natural dimensions will be assigned by JavaScript.
+ */
+.pmd-res-v4-frame-shell {
+  position: absolute;
+  top: 0;
+  left: 0;
+
+  transform-origin: top left;
+}
+
+.pmd-res-v4-frame {
+  display: block;
+
+  width: 1700px;
+  height: 900px;
+
+  border: 0;
+  background: #fff;
+}
+
+/* ---------- Reservation action drawer ---------- */
+
+.pmd-res-v4-table-panel {
+  position: absolute;
+  z-index: 50;
+
+  top: 14px;
+  right: 14px;
+
+  width: min(360px, calc(100% - 28px));
+  max-height: calc(100% - 28px);
+
+  overflow: auto;
+
+  border: 1px solid #b8d2de;
+  border-radius: 14px;
+
+  background: #fff;
+
+  box-shadow:
+    0 22px 60px rgba(16, 38, 56, .20);
+}
+
+.pmd-res-v4-table-panel[hidden] {
+  display: none !important;
+}
+
+.pmd-res-v4-table-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+
+  padding: 14px;
+
+  border-bottom: 1px solid #d4e4ea;
+}
+
+.pmd-res-v4-table-head small {
+  display: block;
+
+  color: #687d91;
+  font-size: 9px;
+  font-weight: 900;
+
+  letter-spacing: .08em;
+  text-transform: uppercase;
+}
+
+.pmd-res-v4-table-head strong {
+  display: block;
+
+  margin-top: 3px;
+
+  color: #102638;
+  font-size: 18px;
+  font-weight: 950;
+}
+
+.pmd-res-v4-close {
+  display: grid;
+  place-items: center;
+
+  width: 38px;
+  height: 38px;
+  padding: 0;
+
+  border: 1px solid #b8d2de;
+  border-radius: 9px;
+
+  background: #fff;
+  color: #102638;
+
+  font: inherit;
+  font-size: 21px;
+  font-weight: 900;
+  cursor: pointer;
+}
+
+.pmd-res-v4-table-message {
+  padding: 27px 16px;
+
+  color: #687d91;
+
+  font-size: 11px;
+  font-weight: 750;
+  text-align: center;
+}
+
+.pmd-res-v4-create {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  min-height: 48px;
+  margin: 0 13px 13px;
+  padding: 0 13px;
+
+  border-radius: 10px;
+
+  background: #008875;
+  color: #fff;
+
+  font-size: 11px;
+  font-weight: 900;
+  text-decoration: none;
+}
+
+/* ---------- Responsive ---------- */
+
+@media (max-width: 760px) {
+  #pmd-res-v3-workspace {
+    left: 0 !important;
+    width: 100% !important;
+  }
+
+  .pmd-res-v4 {
+    grid-template-rows: 62px minmax(0, 1fr);
+  }
+
+  .pmd-res-v4-head {
+    padding: 0 11px;
+  }
+
+  .pmd-res-v4-reload {
+    min-width: 42px;
+    width: 42px;
+    padding: 0;
+  }
+
+  .pmd-res-v4-reload span {
+    display: none;
+  }
+
+  .pmd-res-v4-table-panel {
+    position: fixed;
+
+    top: auto;
+    right: 8px;
+    bottom: max(8px, env(safe-area-inset-bottom));
+    left: 8px;
+
+    width: auto;
+    max-height: 65vh;
+  }
+}
+
+/* V4 end */
+
+/* =========================================================
+   PMD RESERVATION FLOOR V4.1 — SINGLE AUTHORITY
+   ========================================================= */
+
+#pmd-res-v3-workspace
+.pmd-res-v3-floor-panel {
+  isolation: isolate !important;
+}
+
+#pmd-res-v3-workspace
+.pmd-res-v4 {
+  display: grid !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+
+  z-index: 500 !important;
+}
+
+/* Old Floor instances may still be inserted for milliseconds. */
+#pmd-res-v3-workspace
+.pmd-res-v3-floor-panel
+:is(
+  .pmd-res-v33-exact-waiter-floor,
+  .pmd-res-v33-floor-viewport,
+  .pmd-res-v3-floor-scroll,
+  .pmd-owner-floor-v60,
+  .pmd-owner-floor-v60--reservation
+) {
+  display: none !important;
+  visibility: hidden !important;
+  opacity: 0 !important;
+
+  pointer-events: none !important;
+}
+
+/*
+ * Keep V4's own iframe visible.
+ * Do not let broad old iframe selectors hide it.
+ */
+#pmd-res-v3-workspace
+.pmd-res-v4
+.pmd-res-v4-frame {
+  display: block !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+}
+
+/* V4.1 end */
+
+/* =========================================================
+   PMD RESERVATION FLOOR V4.2
+   Exact cropped presentation
+   ========================================================= */
+
+#pmd-res-v3-workspace
+.pmd-res-v4-stage {
+  background: #ffffff !important;
+}
+
+/*
+ * V4.2 calculates a cropped natural canvas.
+ * Allow it to use the complete available width.
+ */
+#pmd-res-v3-workspace
+.pmd-res-v4-frame-shell {
+  transform-origin: center center !important;
+}
+
+#pmd-res-v3-workspace
+.pmd-res-v4-frame {
+  background: #ffffff !important;
+}
+
+/* Remove any visible iframe focus outline. */
+#pmd-res-v3-workspace
+.pmd-res-v4-frame:focus {
+  outline: 0 !important;
+}
+
+/* Keep the heading and button separate and aligned. */
+#pmd-res-v3-workspace
+.pmd-res-v4-head {
+  min-height: 68px !important;
+}
+
+#pmd-res-v3-workspace
+.pmd-res-v4-reload {
+  flex: 0 0 auto !important;
+  white-space: nowrap !important;
+}
+
+/* V4.2 end */
+
+/* =========================================================
+   PMD RESERVATION FLOOR V4.3
+   Correct top-left scaling and visual cleanup
+   ========================================================= */
+
+#pmd-res-v3-workspace
+.pmd-res-v4-frame-shell {
+  transform-origin: top left !important;
+}
+
+/*
+ * The JS calculates left/top using top-left coordinates.
+ * Never override this with center-origin scaling.
+ */
+#pmd-res-v3-workspace
+.pmd-res-v4-stage {
+  overflow: hidden !important;
+}
+
+/* Keep table text compact inside the scaled reservation view. */
+#pmd-res-v3-workspace
+.pmd-res-v4-frame {
+  overflow: hidden !important;
+}
+
+/* Prevent the header control text and icon from colliding. */
+#pmd-res-v3-workspace
+.pmd-res-v4-reload {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 7px !important;
+}
+
+#pmd-res-v3-workspace
+.pmd-res-v4-reload svg {
+  flex: 0 0 18px !important;
+}
+
+/* V4.3 end */

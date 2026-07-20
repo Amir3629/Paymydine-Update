@@ -1,0 +1,208 @@
+/* PMD Sidebar Native Reset v48
+   STOP stacking sidebar experiments.
+   Restores native sidebar menu behavior and only keeps a small safe edge button + profile cleanup.
+   No synthetic rails. No duplicate icons. No MutationObserver. */
+
+/* Kill all synthetic collapsed rails/logos/powers from v45-v47 and old edge buttons */
+html body.page.pmd-admin-theme-v1 #pmd-sidebar-edge-toggle-v40,
+html body.page.pmd-admin-theme-v1 #pmd-sidebar-edge-toggle-v41,
+html body.page.pmd-admin-theme-v1 #pmd-sidebar-edge-toggle-v42,
+html body.page.pmd-admin-theme-v1 #pmd-sidebar-edge-toggle-v43,
+html body.page.pmd-admin-theme-v1 #pmd-sidebar-edge-toggle-v44,
+html body.page.pmd-admin-theme-v1 #pmd-sidebar-edge-toggle-v45,
+html body.page.pmd-admin-theme-v1 #pmd-sidebar-edge-toggle-v46,
+html body.page.pmd-admin-theme-v1 #pmd-sidebar-edge-toggle-v47,
+html body.page.pmd-admin-theme-v1 .pmd-collapsed-rail-v45,
+html body.page.pmd-admin-theme-v1 .pmd-collapsed-rail-v46,
+html body.page.pmd-admin-theme-v1 .pmd-collapsed-rail-v47,
+html body.page.pmd-admin-theme-v1 .pmd-collapsed-logo-v47,
+html body.page.pmd-admin-theme-v1 .pmd-collapsed-power-v45,
+html body.page.pmd-admin-theme-v1 .pmd-collapsed-power-v46,
+html body.page.pmd-admin-theme-v1 .pmd-collapsed-power-v47,
+html body.page.pmd-admin-theme-v1 .pmd-sidebar-toggle-safe-slot-v33,
+html body.page.pmd-admin-theme-v1 .pmd-sidebar-toggle-stable-v31,
+html body.page.pmd-admin-theme-v1 .pmd-sidebar-toggle-end-v28 {
+  display: none !important;
+  visibility: hidden !important;
+  pointer-events: none !important;
+}
+
+/* Hide the native visible toggle button; v48 proxy uses it behind the scenes */
+html body.page.pmd-admin-theme-v1 .pmd-sidebar-icons-toggle:not(#pmd-sidebar-edge-toggle-v48) {
+  display: none !important;
+  visibility: hidden !important;
+  pointer-events: none !important;
+}
+
+/* v48 edge button */
+html body.page.pmd-admin-theme-v1 #pmd-sidebar-edge-toggle-v48 {
+  position: fixed !important;
+  top: var(--pmd-sidebar-edge-top-v48, 178px) !important;
+  left: var(--pmd-sidebar-edge-left-v48, 250px) !important;
+  width: 32px !important;
+  height: 32px !important;
+  min-width: 32px !important;
+  min-height: 32px !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  border-radius: 999px !important;
+  border: 1px solid rgba(200,155,74,.76) !important;
+  background: #fff4dc !important;
+  color: #063b34 !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  box-shadow: 0 10px 22px rgba(0,0,0,.16), inset 0 1px 0 rgba(255,255,255,.72) !important;
+  z-index: 2147483200 !important;
+  cursor: pointer !important;
+  opacity: 1 !important;
+  visibility: visible !important;
+}
+html body.page.pmd-admin-theme-v1 #pmd-sidebar-edge-toggle-v48 svg {
+  width: 18px !important;
+  height: 18px !important;
+  display: block !important;
+  stroke: currentColor !important;
+  fill: none !important;
+  stroke-width: 3 !important;
+  stroke-linecap: round !important;
+  stroke-linejoin: round !important;
+}
+
+/* Restore native sidebar children hidden by v47/v46 */
+html body.page.pmd-admin-theme-v1 .pmd-v47-hide-native,
+html body.page.pmd-admin-theme-v1 .pmd-v46-hidden-native {
+  display: initial !important;
+  visibility: visible !important;
+  pointer-events: auto !important;
+}
+
+/* Sidebar should not clip the edge button */
+html body.page.pmd-admin-theme-v1 #sidebar,
+html body.page.pmd-admin-theme-v1 .sidebar,
+html body.page.pmd-admin-theme-v1 aside,
+html body.page.pmd-admin-theme-v1 .pmd-sidebar,
+html body.page.pmd-admin-theme-v1 .pmd-admin-sidebar {
+  overflow: visible !important;
+}
+
+/* Keep current good expanded logo */
+html body.page.pmd-admin-theme-v1 .pmd-platform-logo-slot-v38,
+html body.page.pmd-admin-theme-v1 .pmd-platform-logo-slot-v37,
+html body.page.pmd-admin-theme-v1 .pmd-platform-logo-slot-v26 {
+  min-height: 92px !important;
+  height: 92px !important;
+  padding: 0 8px 2px !important;
+  margin: -24px auto 2px !important;
+  transform: none !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+}
+html body.page.pmd-admin-theme-v1 .pmd-platform-logo-link-v38,
+html body.page.pmd-admin-theme-v1 .pmd-platform-logo-link-v37,
+html body.page.pmd-admin-theme-v1 .pmd-platform-logo-link-v26 {
+  min-height: 86px !important;
+  height: 86px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+}
+html body.page.pmd-admin-theme-v1 img.pmd-platform-logo-img-v38 {
+  max-height: 82px !important;
+}
+html body.page.pmd-admin-theme-v1 img.pmd-platform-logo-img-v38[data-logo-index="0"],
+html body.page.pmd-admin-theme-v1 img.pmd-platform-logo-img-v38[data-logo-index="1"],
+html body.page.pmd-admin-theme-v1 img.pmd-platform-logo-img-v38[data-logo-index="3"],
+html body.page.pmd-admin-theme-v1 img.pmd-platform-logo-img-v38[data-logo-index="4"],
+html body.page.pmd-admin-theme-v1 img.pmd-platform-logo-img-v38[data-logo-index="5"] {
+  max-width: 198px !important;
+  max-height: 84px !important;
+}
+html body.page.pmd-admin-theme-v1 img.pmd-platform-logo-img-v38[data-logo-index="2"] {
+  max-width: 164px !important;
+  max-height: 68px !important;
+}
+html body.page.pmd-admin-theme-v1 .pmd-logo-cycle-nav-item-v38 { margin: 0 13px 9px !important; }
+html body.page.pmd-admin-theme-v1 .pmd-logo-cycle-btn-v38 { min-height: 35px !important; height: 35px !important; }
+
+/* Collapsed: use native menu, but clean it lightly */
+html body.page.pmd-admin-theme-v1.pmd-sidebar-icons-only #side-nav-menu,
+html body.page.pmd-admin-theme-v1.pmd-sidebar-collapsed #side-nav-menu,
+html.pmd-sidebar-persist-collapsed-v48 body.page.pmd-admin-theme-v1 #side-nav-menu,
+html body.page.pmd-admin-theme-v1.pmd-sidebar-icons-only .side-nav-menu,
+html body.page.pmd-admin-theme-v1.pmd-sidebar-collapsed .side-nav-menu,
+html.pmd-sidebar-persist-collapsed-v48 body.page.pmd-admin-theme-v1 .side-nav-menu {
+  display: block !important;
+  visibility: visible !important;
+  pointer-events: auto !important;
+}
+
+/* Hide logo cycle button while collapsed, because it makes the rail too busy */
+html body.page.pmd-admin-theme-v1.pmd-sidebar-icons-only .pmd-logo-cycle-nav-item-v38,
+html body.page.pmd-admin-theme-v1.pmd-sidebar-collapsed .pmd-logo-cycle-nav-item-v38,
+html.pmd-sidebar-persist-collapsed-v48 body.page.pmd-admin-theme-v1 .pmd-logo-cycle-nav-item-v38 {
+  display: none !important;
+}
+
+/* Collapsed logo stays centered */
+html body.page.pmd-admin-theme-v1.pmd-sidebar-icons-only .pmd-platform-logo-slot-v38,
+html body.page.pmd-admin-theme-v1.pmd-sidebar-collapsed .pmd-platform-logo-slot-v38,
+html.pmd-sidebar-persist-collapsed-v48 body.page.pmd-admin-theme-v1 .pmd-platform-logo-slot-v38 {
+  min-height: 84px !important;
+  height: 84px !important;
+  padding: 8px 4px 4px !important;
+  margin: 0 auto 14px !important;
+}
+html body.page.pmd-admin-theme-v1.pmd-sidebar-icons-only img.pmd-platform-logo-img-v38,
+html body.page.pmd-admin-theme-v1.pmd-sidebar-collapsed img.pmd-platform-logo-img-v38,
+html.pmd-sidebar-persist-collapsed-v48 body.page.pmd-admin-theme-v1 img.pmd-platform-logo-img-v38 {
+  max-width: 62px !important;
+  max-height: 62px !important;
+}
+
+/* Clean collapsed profile only; do not rebuild the whole menu */
+html body.page.pmd-admin-theme-v1 .pmd-v48-power-only {
+  width: 58px !important;
+  min-width: 58px !important;
+  max-width: 58px !important;
+  height: 58px !important;
+  min-height: 58px !important;
+  max-height: 58px !important;
+  padding: 0 !important;
+  margin-left: auto !important;
+  margin-right: auto !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  overflow: hidden !important;
+}
+html body.page.pmd-admin-theme-v1 .pmd-v48-power-only .pmd-v48-hide-profile {
+  display: none !important;
+}
+html body.page.pmd-admin-theme-v1 .pmd-v48-power-only .pmd-v48-power-control,
+html body.page.pmd-admin-theme-v1 .pmd-v48-power-only a.pmd-v48-power-control,
+html body.page.pmd-admin-theme-v1 .pmd-v48-power-only button.pmd-v48-power-control {
+  position: static !important;
+  width: 44px !important;
+  height: 44px !important;
+  min-width: 44px !important;
+  min-height: 44px !important;
+  border-radius: 999px !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+}
+
+/* Less transition blink */
+html body.page.pmd-admin-theme-v1 #sidebar,
+html body.page.pmd-admin-theme-v1 .sidebar,
+html body.page.pmd-admin-theme-v1 .pmd-sidebar,
+html body.page.pmd-admin-theme-v1 .pmd-admin-sidebar,
+html body.page.pmd-admin-theme-v1 #side-nav-menu,
+html body.page.pmd-admin-theme-v1 .side-nav-menu {
+  transition-property: background-color, color, border-color, box-shadow !important;
+  transition-duration: .12s !important;
+}

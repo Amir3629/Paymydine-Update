@@ -1,0 +1,134 @@
+/* PMD Sidebar Column Flow v8
+   Fix: Bootstrap .nav flex/wrap was pushing System to the right.
+   Force sidebar menu to stay one vertical column.
+*/
+
+html body.page.pmd-admin-theme-v1 {
+  --pmd-sidebar-width: 188px !important;
+}
+
+/* Main menu must be vertical block, never flex row/wrap */
+html body.page.pmd-admin-theme-v1 #side-nav-menu,
+html body.page.pmd-admin-theme-v1 ul#side-nav-menu,
+html body.page.pmd-admin-theme-v1 #side-nav-menu.nav {
+  display: block !important;
+  flex-direction: initial !important;
+  flex-wrap: nowrap !important;
+  align-items: initial !important;
+  align-content: initial !important;
+  justify-content: initial !important;
+  width: 100% !important;
+  max-width: 100% !important;
+  overflow-x: hidden !important;
+  list-style: none !important;
+}
+
+/* Every root item stays full-width inside sidebar */
+html body.page.pmd-admin-theme-v1 #side-nav-menu > .nav-item,
+html body.page.pmd-admin-theme-v1 #side-nav-menu > li.nav-item,
+html body.page.pmd-admin-theme-v1 #side-nav-menu > .nav-item.active,
+html body.page.pmd-admin-theme-v1 #side-nav-menu > .nav-item.open,
+html body.page.pmd-admin-theme-v1 #side-nav-menu > .nav-item.show {
+  display: block !important;
+  flex: none !important;
+  clear: both !important;
+  width: 100% !important;
+  min-width: 0 !important;
+  max-width: 100% !important;
+  position: relative !important;
+  left: 0 !important;
+  right: auto !important;
+  margin-left: 0 !important;
+  margin-right: 0 !important;
+  transform: none !important;
+  translate: none !important;
+  float: none !important;
+  box-sizing: border-box !important;
+}
+
+/* Every root link stays inside the root item */
+html body.page.pmd-admin-theme-v1 #side-nav-menu > .nav-item > .nav-link,
+html body.page.pmd-admin-theme-v1 #side-nav-menu > .nav-item.active > .nav-link,
+html body.page.pmd-admin-theme-v1 #side-nav-menu > .nav-item.open > .nav-link,
+html body.page.pmd-admin-theme-v1 #side-nav-menu > .nav-item.show > .nav-link {
+  display: flex !important;
+  width: 100% !important;
+  min-width: 0 !important;
+  max-width: 100% !important;
+  position: relative !important;
+  left: 0 !important;
+  right: auto !important;
+  margin-left: 0 !important;
+  margin-right: 0 !important;
+  transform: none !important;
+  translate: none !important;
+  float: none !important;
+  box-sizing: border-box !important;
+}
+
+/* Collapse/submenu must be vertical block, never Bootstrap flex */
+html body.page.pmd-admin-theme-v1 #side-nav-menu > .nav-item > ul.nav,
+html body.page.pmd-admin-theme-v1 #side-nav-menu > .nav-item > ul.nav.collapse,
+html body.page.pmd-admin-theme-v1 #collapse-system,
+html body.page.pmd-admin-theme-v1 #collapse-design,
+html body.page.pmd-admin-theme-v1 #collapse-restaurant {
+  flex: none !important;
+  flex-direction: initial !important;
+  flex-wrap: nowrap !important;
+  width: 100% !important;
+  min-width: 0 !important;
+  max-width: 100% !important;
+  position: static !important;
+  left: 0 !important;
+  right: auto !important;
+  margin-left: 0 !important;
+  margin-right: 0 !important;
+  transform: none !important;
+  translate: none !important;
+  float: none !important;
+  box-sizing: border-box !important;
+  overflow-x: hidden !important;
+}
+
+/* Correct collapse display states */
+html body.page.pmd-admin-theme-v1 #side-nav-menu > .nav-item > ul.nav.collapse:not(.show) {
+  display: none !important;
+}
+
+html body.page.pmd-admin-theme-v1 #side-nav-menu > .nav-item > ul.nav.collapse.show,
+html body.page.pmd-admin-theme-v1 #side-nav-menu > .nav-item > ul.nav.collapsing,
+html body.page.pmd-admin-theme-v1 #collapse-system.collapse.show,
+html body.page.pmd-admin-theme-v1 #collapse-system.collapsing,
+html body.page.pmd-admin-theme-v1 #collapse-design.collapse.show,
+html body.page.pmd-admin-theme-v1 #collapse-design.collapsing,
+html body.page.pmd-admin-theme-v1 #collapse-restaurant.collapse.show,
+html body.page.pmd-admin-theme-v1 #collapse-restaurant.collapsing {
+  display: block !important;
+}
+
+/* Submenu items also vertical */
+html body.page.pmd-admin-theme-v1 #side-nav-menu > .nav-item > ul.nav > .nav-item {
+  display: block !important;
+  flex: none !important;
+  width: 100% !important;
+  max-width: 100% !important;
+  left: 0 !important;
+  margin-left: 0 !important;
+  transform: none !important;
+}
+
+/* Parent groups like System/Design/Restaurant must not become cream */
+html body.page.pmd-admin-theme-v1 #side-nav-menu > .nav-item.open > .nav-link[data-toggle="collapse"],
+html body.page.pmd-admin-theme-v1 #side-nav-menu > .nav-item.active > .nav-link[data-toggle="collapse"],
+html body.page.pmd-admin-theme-v1 #side-nav-menu > .nav-item > .nav-link[data-toggle="collapse"][aria-expanded="true"] {
+  background: transparent !important;
+  color: rgba(249,250,251,0.94) !important;
+  box-shadow: none !important;
+}
+
+/* Keep current real page cream */
+html body.page.pmd-admin-theme-v1 #side-nav-menu > .nav-item.active > .nav-link:not([data-toggle="collapse"]),
+html body.page.pmd-admin-theme-v1 #side-nav-menu > .nav-item > ul.nav > .nav-item.active > .nav-link {
+  background: linear-gradient(135deg, #FFF9EF 0%, #F5E8D0 100%) !important;
+  color: #062F2A !important;
+}

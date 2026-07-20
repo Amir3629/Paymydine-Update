@@ -1,0 +1,82 @@
+
+/* ===== Admin header cleanup ===== */
+
+/* 1) فقط در دسکتاپ: دکمه همبرگری را مخفی کن */
+@media (min-width: 992px) {
+  .navbar .navbar-toggler[data-bs-target="#navSidebar"] {
+    display: none !important;
+  }
+}
+
+/* 2) فقط در موبایل: فاصله‌های هدر را مرتب کن */
+@media (max-width: 991.98px) {
+  .navbar .navbar-right {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: flex-end !important;
+    gap: 8px !important;
+    flex-wrap: nowrap !important;
+    min-width: 0 !important;
+  }
+
+  .navbar .navbar-right > .navbar-nav,
+  .navbar .navbar-right ul.navbar-nav {
+    display: flex !important;
+    flex-direction: row !important;
+    align-items: center !important;
+    flex-wrap: nowrap !important;
+    gap: 8px !important;
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+
+  .navbar .navbar-right .nav-item {
+    display: flex !important;
+    align-items: center !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    flex: 0 0 auto !important;
+  }
+
+  .navbar .navbar-right .nav-link,
+  .navbar .navbar-right .navbar-tour-btn,
+  .navbar .navbar-right .navbar-toggler {
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    width: 40px !important;
+    height: 40px !important;
+    min-width: 40px !important;
+    min-height: 40px !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    line-height: 1 !important;
+    box-sizing: border-box !important;
+    flex: 0 0 auto !important;
+  }
+
+  .navbar .navbar-profile-avatar,
+  .navbar .navbar-right .rounded-circle.navbar-profile-avatar {
+    width: 40px !important;
+    height: 40px !important;
+    min-width: 40px !important;
+    min-height: 40px !important;
+    display: block !important;
+  }
+
+  .navbar .navbar-right #notification-count {
+    top: 2px !important;
+    right: 0 !important;
+  }
+
+  .navbar .navbar-right .media-toolbar-tooltip-wrap {
+    display: inline-flex !important;
+    align-items: center !important;
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+
+  .navbar .navbar-right > * {
+    flex-shrink: 0 !important;
+  }
+}

@@ -1,0 +1,27 @@
+/* PayMyDine Admin buttons: scoped `.pmd-` starters only. */
+.pmd-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--pmd-space-xs);
+  border-radius: var(--pmd-radius-md);
+  transition: background-color var(--pmd-transition-fast), border-color var(--pmd-transition-fast), color var(--pmd-transition-fast);
+}
+
+.pmd-btn--primary {
+  color: var(--pmd-color-surface);
+  background-color: var(--pmd-color-primary);
+  border-color: var(--pmd-color-primary);
+}
+
+.pmd-btn--danger {
+  color: var(--pmd-color-surface);
+  background-color: var(--pmd-color-danger);
+  border-color: var(--pmd-color-danger);
+}
+
+.pmd-btn--icon {
+  width: 2.5rem;
+  height: 2.5rem;
+  padding: 0;
+}

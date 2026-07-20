@@ -1,0 +1,10 @@
+/*
+ * Legacy CSS Phase 6C migration marker.
+ *
+ * The former rules in this file were moved out of the broad legacy folder into:
+ *   - styles/customer/actions/action-controls-compat.css
+ *
+ * legacy-03.css intentionally remains imported by paymydine-legacy-globals.css as a
+ * stable placeholder during incremental cleanup. Do not delete this file until the
+ * guard/audit scripts and documentation are updated in a dedicated follow-up.
+ */

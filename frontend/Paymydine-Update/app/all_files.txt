@@ -1,0 +1,14 @@
+==================== app/admin/services/CashDrawerService/CashDrawerDriverFactory.php ====================
+
+==================== app/admin/services/CashDrawerService/Drivers/RJ11PrinterDriver.php ====================
+
+==================== app/admin/services/CashDrawerService/Drivers/NetworkCashDrawerDriver.php ====================
+
+==================== frontend/lib/websocket-client.ts ====================
+
+==================== frontend/package.json ====================
+
+==================== app/admin/controllers/PosDevices.php ====================
+
+==================== app/admin/models/config/pos_devices_model.php ====================
+

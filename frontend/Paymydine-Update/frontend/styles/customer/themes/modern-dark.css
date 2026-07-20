@@ -1,0 +1,23 @@
+html[data-theme="modern-dark"] {
+  --pmd-v2-page-bg: #0A0E12;
+  --pmd-v2-card-bg: #1E293B;
+  --pmd-v2-card-sub-bg: #1E293B;
+  --pmd-v2-text: #F8FAFC;
+  --pmd-v2-text-muted: #CBD5E1;
+  --pmd-v2-frame-border: #334155;
+  --pmd-v2-input-bg: #1E293B;
+  --pmd-v2-input-text: #F8FAFC;
+  --pmd-v2-input-border: #334155;
+  --pmd-v2-action-bg: #e8b4a0;
+  --pmd-v2-action-text: #111827;
+  --pmd-v2-action-border: #c9a99a;
+  --pmd-v2-badge-bg: #e8b4a0;
+  --pmd-v2-badge-text: #111827;
+  --pmd-v2-badge-border: #c9a99a;
+  --pmd-v2-context-pill-bg: #e8b4a0;
+  --pmd-v2-context-pill-text: #111827;
+  --pmd-v2-context-pill-border: #c9a99a;
+  --pmd-v2-price: #e8b4a0;
+  --pmd-v2-category-active: #e8b4a0;
+  --pmd-v2-category-active-text: #111827;
+}

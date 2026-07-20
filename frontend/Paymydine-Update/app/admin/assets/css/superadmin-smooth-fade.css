@@ -1,0 +1,91 @@
+/**
+ * SUPERADMIN SMOOTH FADE - NO JUMPING
+ * Pure opacity fade with ZERO layout changes
+ * Locks all containers in place
+ */
+
+/* STEP 1: Lock all containers - MUST happen FIRST */
+html,
+body {
+    overflow-x: hidden !important;
+    position: relative !important;
+    width: 100% !important;
+    height: 100% !important;
+}
+
+/* Force containers to NEVER move */
+.nk-app-root,
+.nk-main,
+.nk-wrap,
+.nk-header,
+.nk-sidebar {
+    transition: none !important;
+    animation: none !important;
+    transform: none !important;
+    will-change: auto !important;
+}
+
+/* Lock wrap at exact position */
+/* CRITICAL: Must be at 64px (header height), NOT 65px - to prevent white gap */
+.nk-wrap {
+    position: fixed !important;
+    top: 64px !important; /* Exactly at header bottom (64px) - was incorrectly 65px */
+    left: 230px !important;
+    right: 0 !important;
+    bottom: 0 !important;
+    margin: 0 !important;
+    z-index: 1 !important; /* Below header (1031) */
+}
+
+/* Lock header at exact position */
+.nk-header {
+    position: fixed !important;
+    top: 0 !important;
+    left: 230px !important;
+    right: 0 !important;
+    height: 65px !important;
+}
+
+/* Lock sidebar at exact position */
+.nk-sidebar {
+    position: fixed !important;
+    top: 0 !important;
+    left: 0 !important;
+    width: 230px !important;
+    height: 100vh !important;
+}
+
+/* STEP 2: Fade effect - ONLY opacity, NO transforms */
+.nk-content-body {
+    opacity: 1;
+    transition: opacity 0.3s ease-in-out;
+}
+
+/* Fade in on page load - ONLY opacity */
+body.page-loaded .nk-content-body {
+    animation: simpleFadeIn 0.3s ease-in-out;
+}
+
+@keyframes simpleFadeIn {
+    0% {
+        opacity: 0;
+    }
+    100% {
+        opacity: 1;
+    }
+}
+
+/* Fade out when leaving - ONLY opacity */
+body.page-leaving .nk-content-body {
+    opacity: 0;
+}
+
+/* Ensure content stays in place during fade */
+.nk-content,
+.nk-content-inner,
+.nk-content-body {
+    position: relative !important;
+    transform: none !important;
+    will-change: opacity !important;
+}
+

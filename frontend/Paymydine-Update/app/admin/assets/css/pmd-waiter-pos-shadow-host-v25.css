@@ -1,0 +1,41 @@
+/* PayMyDine Waiter POS V2.6 — opaque owner-theme Shadow DOM host */
+
+[data-pmd-pos-viewport-host] {
+  --pmd-pos-navy: #062f2a;
+  --pmd-pos-navy-2: #001c18;
+  --pmd-pos-orange: #c89b4a;
+  --pmd-pos-orange-soft: #fff8ec;
+  --pmd-pos-blue: #0f766e;
+  --pmd-pos-green: #087f5b;
+  --pmd-pos-green-soft: #e8f4ee;
+  --pmd-pos-amber: #c88924;
+  --pmd-pos-red: #d64545;
+  --pmd-pos-bg: #f1f4f2;
+  --pmd-pos-card: #ffffff;
+  --pmd-pos-line: #d9e3df;
+  --pmd-pos-muted: #63736e;
+  --pmd-pos-shadow: 0 18px 50px rgba(0, 28, 24, 0.12);
+
+  color: #062f2a !important;
+  opacity: 1 !important;
+  visibility: visible !important;
+  isolation: isolate !important;
+  mix-blend-mode: normal !important;
+  filter: none !important;
+  backdrop-filter: none !important;
+}
+
+[data-pmd-pos-viewport-host="overlay"] {
+  background: #f1f4f2 !important;
+  background-color: #f1f4f2 !important;
+}
+
+/* The table picker intentionally dims the dashboard. The POS workspace itself never does. */
+[data-pmd-pos-viewport-host="picker"] {
+  background: transparent !important;
+}
+
+html.pmd-pos-overlay-open,
+body.pmd-pos-overlay-open {
+  overflow: hidden !important;
+}

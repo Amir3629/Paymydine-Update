@@ -1,0 +1,10 @@
+/*
+ * Legacy CSS Phase 6D migration marker.
+ *
+ * The former rules in this file were moved out of the broad legacy folder into
+ * structured customer compatibility files under styles/customer/.
+ *
+ * This marker intentionally remains imported during the transition so the import
+ * map is stable. It can be deleted only after the guard/audit scripts are updated
+ * in a dedicated removal step.
+ */

@@ -1,0 +1,321 @@
+"use client"
+
+import { AnimatePresence, motion } from "framer-motion"
+import { useEffect, useMemo, useRef, useState } from "react"
+import { ArrowLeft, Leaf } from "lucide-react"
+import { defaultMenuHighlightSettings, type MenuHighlightSettings, type MenuItem } from "@/lib/data"
+import { getMenuImageUrl } from "@/lib/api-client"
+import { Button } from "@/components/ui/button"
+import { useLanguageStore } from "@/store/language-store"
+import type { TranslationKey } from "@/lib/translations"
+import { FoodAttributeTags } from "@/components/food-attribute-tags"
+import { FoodNutritionSummary } from "@/components/food-nutrition-summary"
+import { FoodItemColorDot } from "@/components/food-item-color-dot"
+import { createPortal } from "react-dom"
+import { getTextAlignClass, getTextDirection } from "@/lib/text-direction"
+
+interface MenuItemModalProps {
+ item: MenuItem | null
+ onClose: () => void
+ highlightSettings?: MenuHighlightSettings
+}
+
+function MenuRecommendationBadges({ item, settings = defaultMenuHighlightSettings }: { item: MenuItem; settings?: MenuHighlightSettings }) {
+ if (!settings.show_modal_badges) return null
+ const candidates = [] as Array<{ key: string; label: string; icon: string; className: string }>
+ if ((item as any).is_chef_recommended) {
+ candidates.push({ key: 'chef', label: settings.chef_label || 'Chef’s Choice', icon: '👨‍🍳', className: 'border-[#0F4D43]/35 bg-[#E6F2EF] text-[#0F4D43]' })
+ }
+ if ((item as any).is_bestseller) {
+ candidates.push({ key: 'best', label: settings.bestseller_label || 'Best Seller', icon: '🏆', className: 'border-[#C7A45A]/45 bg-[#F7E8BD] text-[#704A10]' })
+ }
+ const badges = settings.badge_display_mode === 'show_all' ? candidates : candidates.slice(0, 1)
+ if (!badges.length) return null
+ return (
+ <div className="mb-3 flex flex-wrap items-center justify-center gap-1.5" aria-label="Menu item highlights">
+ {badges.map((badge) => (
+ <span key={badge.key} className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.05em] shadow-sm ${badge.className}`} aria-label={badge.label} title={badge.label}>
+ <span aria-hidden="true">{badge.icon}</span>{settings.show_badge_text_in_modal && <span>{badge.label}</span>}
+ </span>
+ ))}
+ </div>
+ )
+}
+
+// PMD_RTL_DO_NOT_ALIGN_MODAL_TITLE
+// PMD_FORCE_MODAL_FOOD_TITLE_NOT_RTL
+// PMD_FOOD_MODAL_TITLE_ALWAYS_CENTER
+export function MenuItemModal({ item, onClose, highlightSettings = defaultMenuHighlightSettings }: MenuItemModalProps) {
+ const { t } = useLanguageStore()
+ const [activeImageIndex, setActiveImageIndex] = useState(0)
+ const [renderedItem, setRenderedItem] = useState<MenuItem | null>(item)
+ const [isLocallyClosed, setIsLocallyClosed] = useState(false)
+ const [isPortalMounted, setIsPortalMounted] = useState(false)
+
+ // PMD_MODAL_PORTAL_MOUNT_START
+ useEffect(() => {
+ setIsPortalMounted(true)
+ }, [])
+ // PMD_MODAL_PORTAL_MOUNT_END
+
+ useEffect(() => {
+ if (typeof document === 'undefined') return
+ const readTheme = () => setCurrentTheme(document.documentElement.getAttribute('data-theme') || 'gold-luxury')
+ readTheme()
+ const observer = new MutationObserver(readTheme)
+ observer.observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] })
+ return () => observer.disconnect()
+ }, [])
+
+ // PMD_MODAL_OPEN_SYNC_FIX_START
+ // The modal component can mount with item=null and later receive the clicked item.
+ // Keep renderedItem in sync so clicking a food item always opens the detail card.
+ useEffect(() => {
+ if (item) {
+ setIsLocallyClosed(false)
+ setRenderedItem(item)
+ setActiveImageIndex(0)
+ }
+ }, [item])
+ // PMD_MODAL_OPEN_SYNC_FIX_END
+ const [isVisible, setIsVisible] = useState(Boolean(item))
+ const [currentTheme, setCurrentTheme] = useState('gold-luxury')
+ const closeTimerRef = useRef<number | null>(null)
+
+ useEffect(() => {
+ if (item && !isLocallyClosed) {
+ if (closeTimerRef.current) {
+ window.clearTimeout(closeTimerRef.current)
+ closeTimerRef.current = null
+ }
+ setRenderedItem(item)
+ setIsVisible(true)
+ return
+ }
+
+ setIsVisible(false)
+ closeTimerRef.current = window.setTimeout(() => {
+ setRenderedItem(null)
+ setActiveImageIndex(0)
+ closeTimerRef.current = null
+ }, 320)
+
+ return () => {
+ if (closeTimerRef.current) {
+ window.clearTimeout(closeTimerRef.current)
+ closeTimerRef.current = null
+ }
+ }
+ }, [item, isLocallyClosed])
+
+ const itemName = renderedItem ? t(renderedItem.nameKey as TranslationKey) || renderedItem.name : ""
+ const itemDescription = renderedItem ? t(renderedItem.descriptionKey as TranslationKey) || renderedItem.description : ""
+ const itemImages = useMemo(() => {
+ if (!renderedItem) return []
+ const fromArray = (value: unknown): string[] => Array.isArray(value)
+ ? value
+   .map((entry: any) => typeof entry === "string" ? entry : entry?.url || entry?.image || entry?.src || entry?.image_path || entry?.path || "")
+   .filter((v): v is string => typeof v === "string" && v.trim().length > 0)
+ : []
+ const mediaUrls = fromArray((renderedItem as any).media)
+ const merged = [
+ renderedItem.image,
+ ...fromArray((renderedItem as any).images),
+ ...fromArray((renderedItem as any).gallery),
+ ...fromArray((renderedItem as any).additional_images),
+ ...fromArray((renderedItem as any).additionalImages),
+ ...fromArray(mediaUrls),
+ ].filter(Boolean) as string[]
+ return Array.from(new Set(merged))
+ }, [renderedItem])
+
+ useEffect(() => {
+ setActiveImageIndex(0)
+ }, [renderedItem?.id])
+
+ useEffect(() => {
+ if (!renderedItem) return
+ console.info("PMD_MODAL_GALLERY_IMAGES", {
+ id: (renderedItem as any)?.id || (renderedItem as any)?.menu_id,
+ name: renderedItem?.name,
+ count: itemImages.length,
+ images: itemImages,
+ })
+ }, [renderedItem, itemImages])
+
+ useEffect(() => {
+ if (!isVisible || !renderedItem || itemImages.length <= 1) return
+ const timer = // PMD_SLOW_GALLERY_ROTATION_FIX_START
+ window.setInterval(() => {
+ setActiveImageIndex((prev) => (prev + 1) % itemImages.length)
+ }, 5000)
+ // PMD_SLOW_GALLERY_ROTATION_FIX_END
+ return () => window.clearInterval(timer)
+ }, [isVisible, renderedItem, itemImages])
+
+
+ // PMD_MODAL_CLOSE_TIMER_CLEANUP_START
+ useEffect(() => {
+ return () => {
+ if (closeTimerRef.current) {
+ window.clearTimeout(closeTimerRef.current)
+ }
+ }
+ }, [])
+ // PMD_MODAL_CLOSE_TIMER_CLEANUP_END
+
+// PMD_MODAL_CLOSE_LOCAL_STATE_FIX_START
+ const isModalOpen = Boolean(item && renderedItem && !isLocallyClosed)
+
+
+ // PMD_FOOD_MODAL_BODY_SCROLL_LOCK_START
+ useEffect(() => {
+ if (!isModalOpen) return
+
+ const previousOverflow = document.body.style.overflow
+ const previousOverscroll = document.body.style.overscrollBehavior
+
+ document.body.style.overflow = "hidden"
+ document.body.style.overscrollBehavior = "none"
+
+ return () => {
+ document.body.style.overflow = previousOverflow
+ document.body.style.overscrollBehavior = previousOverscroll
+ }
+ }, [isModalOpen])
+ // PMD_FOOD_MODAL_BODY_SCROLL_LOCK_END
+
+const handleModalClose = (event?: any) => {
+ event?.stopPropagation?.()
+
+ if (isLocallyClosed) return
+
+ setIsLocallyClosed(true)
+
+ if (closeTimerRef.current) {
+ window.clearTimeout(closeTimerRef.current)
+ }
+
+ // Delay parent teardown so the exit animation can actually be seen.
+ closeTimerRef.current = window.setTimeout(() => {
+ onClose()
+ }, 320)
+ }
+ // PMD_MODAL_CLOSE_LOCAL_STATE_FIX_END
+
+ if (!isPortalMounted || !renderedItem) return null
+
+ return createPortal(
+ <AnimatePresence>
+ {isModalOpen && (
+ <motion.div data-pmd-food-modal-overlay="true" data-pmd-overlay-fix="no-scale-fullscreen"
+ initial={{ opacity: 0 }}
+ animate={{ opacity: 1 }}
+ exit={{ opacity: 0 }}
+ className="fixed -inset-8 z-[999999] flex h-[calc(100dvh+4rem)] min-h-[calc(100vh+4rem)] w-[calc(100vw+4rem)] max-w-none items-center justify-center overflow-y-auto bg-black/70 px-4 py-8 backdrop-blur-lg overscroll-contain"
+ onClick={handleModalClose}
+ style={{ position: "fixed", inset: "-32px", width: "calc(100vw + 64px)", height: "calc(100dvh + 64px)", minHeight: "calc(100vh + 64px)", maxWidth: "none", transformOrigin: "center center" }} transition={{ duration: 0.35, ease: "easeOut" }}>
+ <motion.div
+ initial={{ scale: 0.95, opacity: 0 }}
+ animate={{ scale: isVisible ? 1 : 0.97, y: isVisible ? 0 : 8, opacity: isVisible ? 1 : 0 }}
+ exit={{ scale: 0.97, y: 8, opacity: 0 }}
+ transition={{ duration: 0.48, ease: [0.22, 1, 0.36, 1] }}
+	 className={`relative surface pmd-v2-card w-full max-w-xl max-h-[90dvh] overflow-hidden ${currentTheme === 'organic_botanical_paper' ? 'rounded-[2.35rem] border border-[#D8CBAF] shadow-[0_28px_80px_rgba(66,55,35,0.24)]' : 'rounded-3xl shadow-2xl'}`}
+ style={currentTheme === 'organic_botanical_paper' ? { background: 'radial-gradient(circle at 18% 8%, rgba(255,255,255,.9), transparent 34%), radial-gradient(circle at 85% 16%, rgba(184,134,75,.12), transparent 28%), #FFF9EF', color: '#352F28' } : undefined}
+ onClick={(e) => e.stopPropagation()}
+ >
+ {currentTheme === 'organic_botanical_paper' && (
+   <Leaf className="pointer-events-none absolute -right-4 top-16 z-0 h-24 w-24 rotate-12 text-[#737A55]/10" />
+ )}
+ {/* Close button */}
+ <Button
+   variant="ghost"
+   size="sm"
+   onClick={handleModalClose}
+   className="inline-flex items-center justify-center gap-2 whitespace-nowrap text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0 hover:bg-accent hover:text-accent-foreground h-9 rounded-md px-3 pmd-v2-action-circle hover:opacity-90 absolute top-4 left-4 z-10"
+   style={{
+     background: currentTheme === 'organic_botanical_paper' ? 'var(--theme-primary, #737A55)' : "#062F2A",
+     backgroundColor: currentTheme === 'organic_botanical_paper' ? 'var(--theme-primary, #737A55)' : "#062F2A",
+     color: "#FFFFFF",
+     WebkitTextFillColor: "#FFFFFF",
+     borderColor: currentTheme === 'organic_botanical_paper' ? 'var(--theme-primary, #737A55)' : "#062F2A",
+     outlineColor: currentTheme === 'organic_botanical_paper' ? 'var(--theme-primary, #737A55)' : "#062F2A",
+     textDecoration: "none",
+   }}
+ >
+   <ArrowLeft
+     className="h-4 w-4 mr-1"
+     style={{
+       color: "#FFFFFF",
+       stroke: "#FFFFFF",
+       WebkitTextFillColor: "#FFFFFF",
+     }}
+   />
+   Back
+ </Button>
+
+ <div className={`relative z-10 overflow-y-auto overscroll-contain max-h-[90dvh] ${currentTheme === 'organic_botanical_paper' ? 'bg-transparent p-5 sm:p-6' : 'p-6'}`}>
+ <div
+   className={`relative mb-6 mx-auto flex max-w-full items-center justify-center overflow-visible ${currentTheme === 'organic_botanical_paper' ? 'border border-[#E1D4B9] bg-[#F3EBDD] shadow-inner' : 'bg-black/5'}`}
+   style={currentTheme === 'organic_botanical_paper' ? { borderRadius: '0px' } : { borderRadius: '0px' }}
+   data-pmd-shared-item-gallery="true"
+ >
+ <AnimatePresence mode="wait">
+ <motion.img
+ key={`${renderedItem?.id}-${activeImageIndex}`}
+ src={getMenuImageUrl(itemImages[activeImageIndex] || renderedItem.image) || "/placeholder.svg"}
+ alt={itemName}
+ initial={{ opacity: 0, scale: 0.99 }}
+ animate={{ opacity: 1, scale: 1 }}
+ exit={{ opacity: 0, scale: 1.01 }}
+ transition={{ duration: 0.55, ease: "easeInOut" }}
+ className="block max-w-full max-h-[42dvh] object-contain"
+ style={{ width: "auto", height: "auto", borderRadius: 0 }}
+ />
+ </AnimatePresence>
+ {itemImages.length > 1 && (
+   <div className="absolute bottom-3 left-1/2 flex -translate-x-1/2 items-center gap-1.5 rounded-full bg-white/75 px-2.5 py-1.5 shadow-lg backdrop-blur">
+     {itemImages.map((image, index) => (
+       <button
+         key={`${image}-${index}`}
+         type="button"
+         aria-label={`Show image ${index + 1}`}
+         onClick={() => setActiveImageIndex(index)}
+         className={`h-1.5 rounded-full transition-all ${index === activeImageIndex ? 'w-5 bg-[#0F4D43]' : 'w-1.5 bg-black/25'}`}
+       />
+     ))}
+   </div>
+ )}
+ </div>
+
+ {/* Content */}
+	 <h2 dir="auto" className={`font-serif text-3xl font-bold mb-3 text-center ${currentTheme === 'organic_botanical_paper' ? 'text-[#352F28]' : 'pmd-v2-text'}`}>{itemName}</h2>
+ <MenuRecommendationBadges item={renderedItem} settings={highlightSettings} />
+ <div className="mb-4 flex flex-wrap items-center justify-center gap-1.5">
+ <FoodItemColorDot color={renderedItem?.color} label={`${itemName} color`} />
+ <FoodAttributeTags
+ halal={renderedItem?.halal}
+ vegetarian={renderedItem?.vegetarian}
+ vegan={renderedItem?.vegan}
+ allergens={renderedItem?.allergens}
+ allergyTags={renderedItem?.allergy_tags}
+ className="justify-center"
+ />
+ </div>
+	 <p dir={getTextDirection(itemDescription)} className={`${currentTheme === 'organic_botanical_paper' ? 'text-[#7D7467]' : 'pmd-v2-text-muted'} text-lg leading-relaxed mb-4 ${getTextAlignClass(itemDescription)}`}>{itemDescription}</p>
+ <FoodNutritionSummary
+ calories={renderedItem?.calories}
+ protein={renderedItem?.protein}
+ carbs={renderedItem?.carbs}
+ fat={renderedItem?.fat}
+ sugar={renderedItem?.sugar}
+ servingSize={renderedItem?.serving_size}
+ />
+ </div>
+ </motion.div>
+ </motion.div>
+ )}
+ </AnimatePresence>,
+ document.body
+ )
+}

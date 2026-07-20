@@ -1,0 +1,120 @@
+/* PMD Sidebar System Lock v7
+   Fixes System/collapse parent jumping right after click.
+   Sidebar width stays 188px.
+*/
+
+html body.page.pmd-admin-theme-v1 {
+  --pmd-sidebar-width: 188px !important;
+}
+
+/* Hard reset for every root nav item */
+html body.page.pmd-admin-theme-v1 #side-nav-menu > .nav-item,
+html body.page.pmd-admin-theme-v1 #side-nav-menu > .nav-item.active,
+html body.page.pmd-admin-theme-v1 #side-nav-menu > .nav-item.open,
+html body.page.pmd-admin-theme-v1 #side-nav-menu > .nav-item.show {
+  position: relative !important;
+  left: 0 !important;
+  right: auto !important;
+  top: auto !important;
+  bottom: auto !important;
+  margin-left: 0 !important;
+  margin-right: 0 !important;
+  transform: none !important;
+  width: 100% !important;
+  max-width: 100% !important;
+  float: none !important;
+}
+
+/* Hard reset for collapse parent links like System / Design / Restaurant */
+html body.page.pmd-admin-theme-v1 #side-nav-menu > .nav-item > .nav-link[data-toggle="collapse"],
+html body.page.pmd-admin-theme-v1 #side-nav-menu > .nav-item.active > .nav-link[data-toggle="collapse"],
+html body.page.pmd-admin-theme-v1 #side-nav-menu > .nav-item.open > .nav-link[data-toggle="collapse"],
+html body.page.pmd-admin-theme-v1 #side-nav-menu > .nav-item.show > .nav-link[data-toggle="collapse"],
+html body.page.pmd-admin-theme-v1 #side-nav-menu > .nav-item > .nav-link.system,
+html body.page.pmd-admin-theme-v1 #side-nav-menu > .nav-item.active > .nav-link.system,
+html body.page.pmd-admin-theme-v1 #side-nav-menu > .nav-item.open > .nav-link.system {
+  position: relative !important;
+  left: 0 !important;
+  right: auto !important;
+  top: auto !important;
+  bottom: auto !important;
+  margin-left: 0 !important;
+  margin-right: 0 !important;
+  transform: none !important;
+  translate: none !important;
+  width: 100% !important;
+  max-width: 100% !important;
+  float: none !important;
+  box-sizing: border-box !important;
+}
+
+/* Parent groups are NOT page-active cream buttons */
+html body.page.pmd-admin-theme-v1 #side-nav-menu > .nav-item > .nav-link[data-toggle="collapse"],
+html body.page.pmd-admin-theme-v1 #side-nav-menu > .nav-item.active > .nav-link[data-toggle="collapse"],
+html body.page.pmd-admin-theme-v1 #side-nav-menu > .nav-item.open > .nav-link[data-toggle="collapse"],
+html body.page.pmd-admin-theme-v1 #side-nav-menu > .nav-item > .nav-link[data-toggle="collapse"][aria-expanded="true"] {
+  background: transparent !important;
+  color: rgba(249,250,251,0.94) !important;
+  box-shadow: none !important;
+  border: 0 !important;
+}
+
+/* Very subtle hover/open state only */
+html body.page.pmd-admin-theme-v1 #side-nav-menu > .nav-item > .nav-link[data-toggle="collapse"]:hover,
+html body.page.pmd-admin-theme-v1 #side-nav-menu > .nav-item.open > .nav-link[data-toggle="collapse"]:hover {
+  background: rgba(255,255,255,0.055) !important;
+  color: #fff !important;
+}
+
+/* Collapse UL must stay inside sidebar flow */
+html body.page.pmd-admin-theme-v1 #side-nav-menu > .nav-item > ul.nav,
+html body.page.pmd-admin-theme-v1 #collapse-system,
+html body.page.pmd-admin-theme-v1 #collapse-design,
+html body.page.pmd-admin-theme-v1 #collapse-restaurant {
+  position: static !important;
+  left: 0 !important;
+  right: auto !important;
+  top: auto !important;
+  margin-left: 0 !important;
+  margin-right: 0 !important;
+  transform: none !important;
+  translate: none !important;
+  width: 100% !important;
+  max-width: 100% !important;
+  float: none !important;
+  box-sizing: border-box !important;
+  overflow-x: hidden !important;
+}
+
+/* Current real page, root only */
+html body.page.pmd-admin-theme-v1 #side-nav-menu > .nav-item.active > .nav-link:not([data-toggle="collapse"]) {
+  background: linear-gradient(135deg, #FFF9EF 0%, #F5E8D0 100%) !important;
+  color: #062F2A !important;
+  box-shadow:
+    0 10px 20px rgba(0,0,0,0.16),
+    inset 0 0 0 1px rgba(200,155,74,0.26) !important;
+}
+
+/* Current real submenu page */
+html body.page.pmd-admin-theme-v1 #side-nav-menu > .nav-item > ul.nav > .nav-item.active > .nav-link {
+  background: linear-gradient(135deg, #FFF9EF 0%, #F5E8D0 100%) !important;
+  color: #062F2A !important;
+  box-shadow:
+    0 8px 16px rgba(0,0,0,0.12),
+    inset 0 0 0 1px rgba(200,155,74,0.22) !important;
+}
+
+/* Keep buttons slightly bigger inside same width */
+html body.page.pmd-admin-theme-v1 #side-nav-menu > .nav-item > .nav-link {
+  height: 47px !important;
+  min-height: 47px !important;
+  font-size: 0.90rem !important;
+  font-weight: 800 !important;
+}
+
+html body.page.pmd-admin-theme-v1 #side-nav-menu > .nav-item > ul.nav > .nav-item > .nav-link {
+  height: 34px !important;
+  min-height: 34px !important;
+  font-size: 0.81rem !important;
+  font-weight: 620 !important;
+}

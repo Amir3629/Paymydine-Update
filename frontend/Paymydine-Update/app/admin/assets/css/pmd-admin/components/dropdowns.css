@@ -1,0 +1,10 @@
+/* PayMyDine Admin dropdowns: scoped `.pmd-` starters only. */
+.pmd-dropdown {
+  background-color: var(--pmd-color-surface);
+  border-color: var(--pmd-color-border);
+  border-radius: var(--pmd-radius-lg);
+}
+
+.pmd-dropdown__item {
+  color: var(--pmd-color-text);
+}

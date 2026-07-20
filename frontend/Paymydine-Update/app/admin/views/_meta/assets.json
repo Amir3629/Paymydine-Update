@@ -1,0 +1,97 @@
+{
+  "doctype": "html5",
+  "favicon": "/app/admin/assets/images/favicon.svg",
+  "meta": [
+    {
+      "name": "Content-type",
+      "content": "text/html; charset=utf-8",
+      "type": "equiv"
+    },
+    {
+      "name": "X-UA-Compatible",
+      "content": "IE=edge",
+      "type": "name"
+    },
+    {
+      "name": "viewport",
+      "content": "width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no",
+      "type": "name"
+    }
+  ],
+  "style": [
+    {
+      "path": "css/admin.css",
+      "name": "admin-css"
+    },
+    {
+      "path": "css/pmd-admin/00-variables.css",
+      "name": "pmd-admin-variables-css"
+    },
+    {
+      "path": "css/pmd-admin/components/cards.css",
+      "name": "pmd-admin-cards-css"
+    },
+    {
+      "path": "css/pmd-waiter-pos-shadow-host-v25.css",
+      "name": "pmd-waiter-pos-shadow-host-v25-css"
+    },
+    {
+      "path": "css/pmd-waiter-pos-polish-v26.css",
+      "name": "pmd-waiter-pos-polish-v26-css"
+    },
+    {
+      "path": "css/pmd-waiter-pos-simple-v27.css",
+      "name": "pmd-waiter-pos-simple-v27-css"
+    },
+    {
+      "path": "css/pmd-waiter-floor-stability-v153.css",
+      "name": "pmd-waiter-floor-stability-v153-css"
+    },
+    {
+      "path": "css/pmd-waiter-table-state-v154.css",
+      "name": "pmd-waiter-table-state-v154-css"
+    },
+    {
+      "path": "css/pmd-waiter-floor-ux-v155.css",
+      "name": "pmd-waiter-floor-ux-v155-css"
+    },
+    {
+      "path": "css/pmd-waiter-floor-edit-v160.css",
+      "name": "pmd-waiter-floor-edit-v160-css"
+    }
+  ],
+  "script": [
+    {
+      "path": "js/admin.js",
+      "name": "admin-js"
+    },
+    {
+      "path": "js/pmd-waiter-pos-dashboard-shadow-bridge-v24.js",
+      "name": "pmd-waiter-pos-dashboard-shadow-bridge-v24-js"
+    },
+    {
+      "path": "js/pmd-waiter-pos-dashboard-direct-guard-v23.js",
+      "name": "pmd-waiter-pos-dashboard-direct-guard-v23-js"
+    },
+    {
+      "path": "js/pmd-waiter-pos-simple-v27.js",
+      "name": "pmd-waiter-pos-simple-v27-js"
+    },
+    {
+      "path": "js/pmd-waiter-floor-stability-v153.js",
+      "name": "pmd-waiter-floor-stability-v153-js"
+    },
+    {
+      "path": "js/pmd-waiter-table-state-v154.js",
+      "name": "pmd-waiter-table-state-v154-js"
+    },
+    {
+      "path": "js/pmd-waiter-floor-ux-v155.js",
+      "name": "pmd-waiter-floor-ux-v155-js"
+    },
+    {
+      "path": "js/pmd-waiter-floor-edit-v160.js",
+      "name": "pmd-waiter-floor-edit-v160-js"
+    }
+  ]
+}

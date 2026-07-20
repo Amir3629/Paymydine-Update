@@ -1,0 +1,28 @@
+# Notification-Related Routes
+
+## Admin API Endpoints (Bell Dropdown)
+GET    /admin/notifications-api/count          # Get new notification count
+GET    /admin/notifications-api/               # Get notification list (max 50)
+PATCH  /admin/notifications-api/{id}           # Mark single notification as seen
+PATCH  /admin/notifications-api/mark-all-seen  # Mark all notifications as seen
+
+## Public API Endpoints (Frontend → Backend)
+POST   /api/v1/waiter-call                     # Create waiter call + notification
+POST   /api/v1/table-notes                     # Create table note + notification  
+POST   /api/v1/valet-request                   # Create valet request + notification
+
+## Middleware & Guards
+- Admin routes: web middleware + admin auth
+- API routes: tenant context middleware
+- CSRF: Required for PATCH operations
+- CORS: Handled by framework
+
+## Route Definitions
+Located in:
+- app/admin/routes.php (lines 1136-1140)
+- routes/api.php (lines 183, 243, 309)
+
+## Controllers
+- NotificationsApiController.php (admin bell API)
+- Route closures in api.php (public endpoints)
+- NotificationHelper.php (creation logic)

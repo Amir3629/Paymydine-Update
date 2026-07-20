@@ -1,0 +1,138 @@
+/* PMD Sidebar Small Toggle Notch v69
+   Smaller, higher, cleaner. Overrides v68 inline + CSS. */
+
+body.page.pmd-admin-theme-v1 .sidebar .pmd-sidebar-icons-toggle,
+body.page.pmd-admin-theme-v1 .pmd-sidebar-icons-toggle {
+  position: absolute !important;
+  left: auto !important;
+  right: -12px !important;
+
+  width: 28px !important;
+  height: 42px !important;
+  min-width: 28px !important;
+  min-height: 42px !important;
+  max-width: 28px !important;
+  max-height: 42px !important;
+
+  padding: 0 !important;
+  margin: 0 !important;
+
+  border-radius: 17px 0 0 17px !important;
+  border: 1px solid rgba(205, 161, 75, .82) !important;
+  border-right: 0 !important;
+
+  background: linear-gradient(180deg, #fff1cc 0%, #efc057 100%) !important;
+  color: #07352f !important;
+
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+
+  box-shadow:
+    -5px 8px 16px rgba(0,0,0,.16),
+    inset 0 1px 0 rgba(255,255,255,.75) !important;
+
+  z-index: 2147483000 !important;
+  cursor: pointer !important;
+  opacity: 1 !important;
+  visibility: visible !important;
+  pointer-events: auto !important;
+  overflow: hidden !important;
+
+  transform: none !important;
+  transition:
+    background .12s ease,
+    color .12s ease,
+    box-shadow .12s ease,
+    transform .12s ease !important;
+}
+
+/* Open: put it in the quiet gap between logo and menu, not over Orders */
+body.page.pmd-admin-theme-v1:not(.pmd-sidebar-icons-only) .sidebar .pmd-sidebar-icons-toggle,
+body.page.pmd-admin-theme-v1:not(.pmd-sidebar-icons-only) .pmd-sidebar-icons-toggle {
+  top: 148px !important;
+}
+
+/* Closed: keep it near the compact logo area, not over icons */
+body.page.pmd-admin-theme-v1.pmd-sidebar-icons-only .sidebar .pmd-sidebar-icons-toggle,
+body.page.pmd-admin-theme-v1.pmd-sidebar-icons-only .pmd-sidebar-icons-toggle {
+  top: 104px !important;
+  right: -12px !important;
+}
+
+/* Real icon size. Prevent global 44px icon rules. */
+body.page.pmd-admin-theme-v1 .pmd-sidebar-icons-toggle > i,
+body.page.pmd-admin-theme-v1 .pmd-sidebar-icons-toggle > i.fa,
+body.page.pmd-admin-theme-v1 .pmd-sidebar-icons-toggle > .fa,
+body.page.pmd-admin-theme-v1 .sidebar .pmd-sidebar-icons-toggle > i,
+body.page.pmd-admin-theme-v1 .sidebar .pmd-sidebar-icons-toggle > i.fa,
+body.page.pmd-admin-theme-v1 .sidebar .pmd-sidebar-icons-toggle > .fa {
+  width: 14px !important;
+  min-width: 14px !important;
+  max-width: 14px !important;
+  height: 14px !important;
+  min-height: 14px !important;
+  max-height: 14px !important;
+
+  font-size: 18px !important;
+  line-height: 14px !important;
+
+  margin: 0 !important;
+  padding: 0 !important;
+
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+
+  color: currentColor !important;
+  text-align: center !important;
+  transform: translateX(-1px) translateY(.5px) !important;
+  overflow: visible !important;
+}
+
+body.page.pmd-admin-theme-v1.pmd-sidebar-icons-only .pmd-sidebar-icons-toggle > i,
+body.page.pmd-admin-theme-v1.pmd-sidebar-icons-only .pmd-sidebar-icons-toggle > .fa {
+  transform: translateX(-.5px) translateY(.5px) !important;
+}
+
+body.page.pmd-admin-theme-v1 .pmd-sidebar-icons-toggle > i::before,
+body.page.pmd-admin-theme-v1 .pmd-sidebar-icons-toggle > .fa::before {
+  width: 14px !important;
+  height: 14px !important;
+  line-height: 14px !important;
+  display: inline-block !important;
+  text-align: center !important;
+}
+
+body.page.pmd-admin-theme-v1 .pmd-sidebar-icons-toggle:hover {
+  background: linear-gradient(180deg, #fff6dc 0%, #ffd36b 100%) !important;
+  color: #032b26 !important;
+  box-shadow:
+    -6px 10px 20px rgba(0,0,0,.19),
+    0 0 0 3px rgba(255,226,156,.16),
+    inset 0 1px 0 rgba(255,255,255,.82) !important;
+  transform: translateX(-1px) !important;
+}
+
+body.page.pmd-admin-theme-v1 .pmd-sidebar-icons-toggle:active {
+  transform: translateX(0) scale(.97) !important;
+  box-shadow:
+    -4px 6px 12px rgba(0,0,0,.16),
+    inset 0 1px 2px rgba(0,0,0,.14) !important;
+}
+
+/* Keep v68 logo behavior: open switcher visible, closed switcher hidden */
+body.page.pmd-admin-theme-v1:not(.pmd-sidebar-icons-only) .pmd-logo-cycle-nav-item-v38 {
+  display: flex !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+  pointer-events: auto !important;
+}
+
+body.page.pmd-admin-theme-v1.pmd-sidebar-icons-only .pmd-logo-cycle-nav-item-v38,
+body.page.pmd-admin-theme-v1.pmd-sidebar-icons-only .pmd-logo-cycle-btn-v38 {
+  display: none !important;
+  visibility: hidden !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
+}

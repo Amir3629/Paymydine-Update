@@ -1,0 +1,204 @@
+/* ==========================================================
+   PMD Waiter V2.7.6
+   Exact visual clone of the left service rail
+   ========================================================== */
+
+.v257-operations-rail[data-v276-exact-clone="1"],
+.pmd-v257-operations-rail[data-v276-exact-clone="1"] {
+  box-sizing: border-box !important;
+
+  width: var(--v276-rail-width) !important;
+  min-width: var(--v276-rail-width) !important;
+  max-width: var(--v276-rail-width) !important;
+
+  padding:
+    var(--v276-rail-padding-top)
+    var(--v276-rail-padding-right)
+    var(--v276-rail-padding-bottom)
+    var(--v276-rail-padding-left) !important;
+
+  gap: var(--v276-rail-gap) !important;
+
+  background: var(--v276-rail-bg) !important;
+  background-color: var(--v276-rail-bg) !important;
+  color: var(--v276-rail-color) !important;
+
+  /*
+   * Right rail mirrors the left rail divider on its inner side.
+   */
+  border-left:
+    var(--v276-rail-border-width)
+    solid
+    var(--v276-rail-border-color) !important;
+
+  border-right: 0 !important;
+  box-shadow: none !important;
+}
+
+/* Exact surface, frame, typography and geometry from the left buttons. */
+:is(
+  .v257-operations-rail,
+  .pmd-v257-operations-rail
+)[data-v276-exact-clone="1"]
+> .v257-operation[data-v276-exact-clone-button="1"] {
+  position: relative !important;
+  box-sizing: border-box !important;
+
+  width: var(--v276-button-width) !important;
+  min-width: var(--v276-button-width) !important;
+  max-width: var(--v276-button-width) !important;
+
+  height: var(--v276-button-height) !important;
+  min-height: var(--v276-button-height) !important;
+  max-height: var(--v276-button-height) !important;
+
+  margin: 0 !important;
+
+  padding:
+    var(--v276-button-padding-top)
+    var(--v276-button-padding-right)
+    var(--v276-button-padding-bottom)
+    var(--v276-button-padding-left) !important;
+
+  background: var(--v276-button-bg) !important;
+  background-color: var(--v276-button-bg) !important;
+  color: var(--v276-button-color) !important;
+
+  border-width: var(--v276-button-border-width) !important;
+  border-style: var(--v276-button-border-style) !important;
+  border-color: var(--v276-button-border-color) !important;
+  border-radius: var(--v276-button-radius) !important;
+
+  font-family: var(--v276-button-font-family) !important;
+  font-size: var(--v276-button-font-size) !important;
+  font-weight: var(--v276-button-font-weight) !important;
+  line-height: var(--v276-button-line-height) !important;
+  letter-spacing: var(--v276-button-letter-spacing) !important;
+
+  box-shadow: var(--v276-button-shadow) !important;
+  outline: none !important;
+  transform: none !important;
+  filter: none !important;
+
+  transition: none !important;
+  animation: none !important;
+}
+
+/* Text must inherit the exact cloned left-button colour. */
+:is(
+  .v257-operations-rail,
+  .pmd-v257-operations-rail
+)[data-v276-exact-clone="1"]
+> .v257-operation
+> strong {
+  color: inherit !important;
+  -webkit-text-fill-color: currentColor !important;
+}
+
+/* No separate decorative dot. */
+:is(
+  .v257-operations-rail,
+  .pmd-v257-operations-rail
+)[data-v276-exact-clone="1"]
+> .v257-operation
+> i {
+  display: none !important;
+}
+
+/* ----------------------------------------------------------
+   Operational edge colours — matching the left rail system
+   ---------------------------------------------------------- */
+
+:is(
+  .v257-operations-rail,
+  .pmd-v257-operations-rail
+)[data-v276-exact-clone="1"]
+> .v257-operation::before {
+  content: "" !important;
+  position: absolute !important;
+
+  top: calc(-1 * var(--v276-button-border-width, 1px)) !important;
+  bottom: calc(-1 * var(--v276-button-border-width, 1px)) !important;
+  left: calc(-1 * var(--v276-button-border-width, 1px)) !important;
+
+  width: 5px !important;
+  border-radius:
+    var(--v276-button-radius)
+    0
+    0
+    var(--v276-button-radius) !important;
+
+  background: #475569 !important;
+  pointer-events: none !important;
+}
+
+:is(
+  .v257-operations-rail,
+  .pmd-v257-operations-rail
+) > .v257-operation[data-v257-action="alerts"]::before {
+  background: #ef2929 !important;
+}
+
+:is(
+  .v257-operations-rail,
+  .pmd-v257-operations-rail
+) > .v257-operation[data-v257-action="available"]::before {
+  background: #16a34a !important;
+}
+
+:is(
+  .v257-operations-rail,
+  .pmd-v257-operations-rail
+) > .v257-operation[data-v257-action="cleaning"]::before {
+  background: #d97706 !important;
+}
+
+:is(
+  .v257-operations-rail,
+  .pmd-v257-operations-rail
+) > .v257-operation[data-v257-action="merge"]::before {
+  background: #2563eb !important;
+}
+
+:is(
+  .v257-operations-rail,
+  .pmd-v257-operations-rail
+) > .v257-operation[data-v257-action="theme"]::before {
+  background: #475569 !important;
+}
+
+/* Bell remains red while the button surface matches the left rail. */
+.pmd-v268-notification-icon {
+  color: #ef2929 !important;
+}
+
+/* ----------------------------------------------------------
+   Zero hover/focus/press differences
+   ---------------------------------------------------------- */
+
+:is(
+  .v257-operations-rail,
+  .pmd-v257-operations-rail
+)[data-v276-exact-clone="1"]
+> .v257-operation:is(
+  :hover,
+  :focus,
+  :focus-visible,
+  :active
+) {
+  background: var(--v276-button-bg) !important;
+  background-color: var(--v276-button-bg) !important;
+  color: var(--v276-button-color) !important;
+
+  border-width: var(--v276-button-border-width) !important;
+  border-style: var(--v276-button-border-style) !important;
+  border-color: var(--v276-button-border-color) !important;
+
+  box-shadow: var(--v276-button-shadow) !important;
+  outline: none !important;
+  transform: none !important;
+  filter: none !important;
+
+  transition: none !important;
+  animation: none !important;
+}

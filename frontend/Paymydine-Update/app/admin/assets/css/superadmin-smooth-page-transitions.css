@@ -1,0 +1,155 @@
+/**
+ * SUPERADMIN SMOOTH PAGE TRANSITIONS
+ * Only animates content INSIDE fixed containers
+ * Fixed containers (header, sidebar, wrap) stay perfectly in place
+ */
+
+/* Only animate the INNER content, not the containers */
+.nk-content-body {
+    animation: fadeInContent 0.4s ease-out;
+}
+
+@keyframes fadeInContent {
+    from {
+        opacity: 0;
+    }
+    to {
+        opacity: 1;
+    }
+}
+
+/* Add transition to inner content only */
+.nk-content-body {
+    transition: opacity 0.25s ease;
+}
+
+/* Fade out inner content when leaving */
+body.page-leaving .nk-content-body {
+    opacity: 0;
+}
+
+/* NUCLEAR: LOCK ALL FIXED CONTAINERS IN PLACE */
+html,
+body,
+.nk-app-root,
+.nk-main,
+.nk-wrap,
+.nk-header,
+.nk-sidebar,
+.nk-content,
+.container-fluid,
+.nk-content-inner {
+    transition: none !important;
+    animation: none !important;
+    transform: none !important;
+    will-change: auto !important;
+}
+
+/* Force body to stay in place */
+html {
+    overflow-x: hidden !important;
+}
+
+body {
+    overflow-x: hidden !important;
+    position: relative !important;
+}
+
+/* FORCE: Ensure wrap container is always at correct position */
+/* CRITICAL: Must be at 64px (header height), NOT 65px - to prevent white gap */
+.nk-wrap {
+    position: fixed !important;
+    top: 64px !important; /* Exactly at header bottom (64px) - was incorrectly 65px */
+    left: 230px !important;
+    right: 0 !important;
+    bottom: 0 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    z-index: 1 !important; /* Below header (1030) */
+}
+
+/* CRITICAL: Prevent header from disappearing on dashboard when viewport height is tight */
+/* Override ANY rules that might hide the header */
+body:has(.nk-sidebar) .nk-header,
+body:has(.nk-sidebar) .nk-header.nk-header-fixed,
+body:has(.nk-sidebar) .nk-header.is-light,
+html body:has(.nk-sidebar) .nk-header,
+html body:has(.nk-sidebar) .nk-header.nk-header-fixed {
+    display: flex !important; /* ALWAYS VISIBLE - override any display: none */
+    visibility: visible !important; /* ALWAYS VISIBLE - override any visibility: hidden */
+    opacity: 1 !important; /* ALWAYS VISIBLE - override any opacity: 0 */
+    position: fixed !important; /* ALWAYS FIXED */
+    top: 0 !important; /* ALWAYS AT TOP */
+    height: 64px !important; /* ALWAYS 64px */
+    min-height: 64px !important;
+    max-height: 64px !important;
+    z-index: 1030 !important; /* HIGH Z-INDEX */
+}
+
+/* CRITICAL: Prevent header from being hidden by viewport height media queries */
+@media (max-height: 800px) {
+    .nk-header,
+    .nk-header.nk-header-fixed,
+    .nk-header.is-light {
+        display: flex !important;
+        visibility: visible !important;
+        opacity: 1 !important;
+        position: fixed !important;
+        top: 0 !important;
+        height: 64px !important;
+        z-index: 1030 !important;
+    }
+}
+@media (max-height: 600px) {
+    .nk-header,
+    .nk-header.nk-header-fixed,
+    .nk-header.is-light {
+        display: flex !important;
+        visibility: visible !important;
+        opacity: 1 !important;
+        position: fixed !important;
+        top: 0 !important;
+        height: 64px !important;
+        z-index: 1030 !important;
+    }
+}
+@media (max-height: 400px) {
+    .nk-header,
+    .nk-header.nk-header-fixed,
+    .nk-header.is-light {
+        display: flex !important;
+        visibility: visible !important;
+        opacity: 1 !important;
+        position: fixed !important;
+        top: 0 !important;
+        height: 64px !important;
+        z-index: 1030 !important;
+    }
+}
+
+/* FORCE: Ensure header stays locked at top - ALWAYS VISIBLE */
+.nk-header,
+.nk-header.nk-header-fixed,
+.nk-header.is-light {
+    position: fixed !important;
+    top: 0 !important;
+    left: 230px !important;
+    right: 0 !important;
+    height: 64px !important; /* FIXED: Was 65px, must be 64px to match other rules */
+    min-height: 64px !important;
+    max-height: 64px !important;
+    display: flex !important; /* ALWAYS VISIBLE */
+    visibility: visible !important;
+    opacity: 1 !important;
+    z-index: 1030 !important; /* High z-index to stay on top */
+}
+
+/* FORCE: Ensure sidebar stays locked at left */
+.nk-sidebar {
+    position: fixed !important;
+    top: 0 !important;
+    left: 0 !important;
+    width: 230px !important;
+    height: 100vh !important;
+}
+

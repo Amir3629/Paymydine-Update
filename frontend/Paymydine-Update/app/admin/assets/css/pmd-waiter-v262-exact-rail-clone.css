@@ -1,0 +1,196 @@
+/*
+ * PMD Waiter V2.6.2
+ * Exact geometry clone of the left rail, based on live browser audit:
+ *
+ * left rail: 132px wide, top 62px, padding 10px 7px, gap 6px
+ * left buttons: 117px x 54px, first button top 72px
+ */
+
+/* RIGHT RAIL: exact outer geometry of left rail */
+body.pmd-waiter-standard-v23-page .v257-operations-rail {
+  position: fixed !important;
+  top: 62px !important;
+  right: 0 !important;
+  bottom: 0 !important;
+  left: auto !important;
+
+  width: 132px !important;
+  min-width: 132px !important;
+  max-width: 132px !important;
+  height: calc(100vh - 62px) !important;
+
+  margin: 0 !important;
+  padding: 10px 7px !important;
+  gap: 6px !important;
+
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: stretch !important;
+  justify-content: flex-start !important;
+
+  border: 0 !important;
+  border-left: 1px solid rgb(174, 185, 196) !important;
+  border-radius: 0 !important;
+  background: rgb(227, 234, 240) !important;
+  box-shadow: none !important;
+  overflow-y: auto !important;
+  overflow-x: hidden !important;
+  box-sizing: border-box !important;
+  z-index: 95 !important;
+}
+
+/* RIGHT BUTTONS: exact 117 × 54 clone */
+body.pmd-waiter-standard-v23-page .v257-operations-rail .v257-operation {
+  position: relative !important;
+
+  width: 117px !important;
+  min-width: 117px !important;
+  max-width: 117px !important;
+
+  height: 54px !important;
+  min-height: 54px !important;
+  max-height: 54px !important;
+
+  margin: 0 !important;
+  padding: 8px 9px !important;
+  gap: 5px !important;
+
+  display: grid !important;
+  grid-template-columns: minmax(0, 1fr) auto !important;
+  align-items: center !important;
+
+  border-top: 1px solid rgb(174, 185, 196) !important;
+  border-right: 1px solid rgb(174, 185, 196) !important;
+  border-bottom: 1px solid rgb(174, 185, 196) !important;
+  border-left-width: 6px !important;
+  border-left-style: solid !important;
+  border-left-color: var(--v257-color) !important;
+  border-radius: 3px !important;
+
+  background: rgb(255, 255, 255) !important;
+  color: rgb(16, 24, 32) !important;
+  box-shadow: none !important;
+  outline: none !important;
+
+  text-align: left !important;
+  overflow: hidden !important;
+  box-sizing: border-box !important;
+  flex: 0 0 54px !important;
+
+  font-family: Inter, ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif !important;
+  font-size: 12px !important;
+  font-weight: 950 !important;
+  line-height: normal !important;
+  letter-spacing: .48px !important;
+  cursor: pointer !important;
+}
+
+/* Text matches left rail typography */
+body.pmd-waiter-standard-v23-page .v257-operation strong {
+  display: block !important;
+  min-width: 0 !important;
+  max-width: none !important;
+  margin: 0 !important;
+  padding: 0 !important;
+
+  font: inherit !important;
+  line-height: 1.05 !important;
+  letter-spacing: inherit !important;
+  color: inherit !important;
+  white-space: normal !important;
+  overflow-wrap: normal !important;
+  word-break: normal !important;
+}
+
+/* Remove all decorative dots/icons */
+body.pmd-waiter-standard-v23-page .v257-operation > i {
+  display: none !important;
+}
+
+/* Notifications: badge occupies the second grid column */
+body.pmd-waiter-standard-v23-page
+.v257-operation[data-v257-action="alerts"] {
+  padding: 8px 9px !important;
+  grid-template-columns: minmax(0, 1fr) 24px !important;
+}
+
+body.pmd-waiter-standard-v23-page
+.v257-operation[data-v257-action="alerts"] strong {
+  max-width: none !important;
+  font-size: 9px !important;
+  line-height: 1 !important;
+  overflow-wrap: anywhere !important;
+}
+
+body.pmd-waiter-standard-v23-page .v257-alert-count {
+  position: static !important;
+  transform: none !important;
+
+  width: 22px !important;
+  min-width: 22px !important;
+  max-width: 22px !important;
+  height: 22px !important;
+  min-height: 22px !important;
+  max-height: 22px !important;
+  padding: 0 !important;
+  margin: 0 !important;
+
+  display: grid !important;
+  place-items: center !important;
+
+  border-radius: 999px !important;
+  background: rgb(220, 38, 38) !important;
+  color: #fff !important;
+
+  font-size: 10px !important;
+  font-weight: 1000 !important;
+  line-height: 1 !important;
+  box-sizing: border-box !important;
+}
+
+/* Hover behavior aligned with restrained left rail interaction */
+body.pmd-waiter-standard-v23-page .v257-operation:hover {
+  filter: brightness(.97) !important;
+  transform: none !important;
+  box-shadow: none !important;
+}
+
+body.pmd-waiter-standard-v23-page .v257-operation.is-active {
+  color: #fff !important;
+  background: var(--v257-color) !important;
+  border-color: var(--v257-color) !important;
+}
+
+/* Reserve exact right rail space */
+body.pmd-waiter-standard-v23-page .pmd-v2-area-keys,
+body.pmd-waiter-standard-v23-page .pmd-v2-table-stage {
+  margin-right: 132px !important;
+}
+
+/* Preserve true 8-column layout */
+body.pmd-waiter-standard-v23-page [data-v2-table-grid] {
+  grid-template-columns: repeat(8, minmax(0, 1fr)) !important;
+  gap: 7px !important;
+}
+
+/* Neutralize older V2.5.8–V2.6.1 rail dimensions at all desktop widths */
+@media (min-width: 900px) {
+  body.pmd-waiter-standard-v23-page .v257-operations-rail {
+    top: 62px !important;
+    width: 132px !important;
+    min-width: 132px !important;
+    max-width: 132px !important;
+    padding: 10px 7px !important;
+    gap: 6px !important;
+  }
+
+  body.pmd-waiter-standard-v23-page
+  .v257-operations-rail .v257-operation {
+    width: 117px !important;
+    min-width: 117px !important;
+    max-width: 117px !important;
+    height: 54px !important;
+    min-height: 54px !important;
+    max-height: 54px !important;
+  }
+}

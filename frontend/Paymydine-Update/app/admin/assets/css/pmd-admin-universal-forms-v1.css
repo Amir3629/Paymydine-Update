@@ -1,0 +1,1414 @@
+/* PMD Universal Admin Forms v1
+ * Frontend-only skin for PMD admin create/edit form pages.
+ * Inspired by /admin/menus/create visual language.
+ * No backend/database/business logic changes.
+ */
+
+html.pmd-admin-form-v1,
+body.pmd-admin-form-v1 {
+  background:
+    radial-gradient(circle at 18% 8%, rgba(96,190,232,.12), transparent 28%),
+    radial-gradient(circle at 88% 12%, rgba(8,119,98,.08), transparent 30%),
+    #ffffff !important;
+}
+
+/* Page spacing */
+body.pmd-admin-form-v1 .page-content,
+body.pmd-admin-form-v1 .content,
+body.pmd-admin-form-v1 main,
+body.pmd-admin-form-v1 .container-fluid {
+  --pmd-form-blue: #bfe7fb;
+  --pmd-form-blue-2: #dff3ff;
+  --pmd-form-ink: #10283d;
+  --pmd-form-muted: #6f86a0;
+  --pmd-form-green: #087762;
+  --pmd-form-cream: #fffaf0;
+}
+
+/* Hero card */
+.pmd-admin-form-v1-hero {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  gap: 18px !important;
+  margin: 22px 0 20px !important;
+  padding: 22px 24px !important;
+  border: 1px solid rgba(96,190,232,.58) !important;
+  border-radius: 24px !important;
+  background:
+    linear-gradient(135deg, rgba(255,255,255,.98), rgba(247,252,255,.96)) !important;
+  box-shadow:
+    0 18px 44px rgba(12,39,58,.055),
+    inset 0 1px 0 rgba(255,255,255,.9) !important;
+}
+
+.pmd-admin-form-v1-hero-main {
+  display: flex !important;
+  align-items: center !important;
+  gap: 16px !important;
+  min-width: 0 !important;
+}
+
+.pmd-admin-form-v1-hero-icon {
+  width: 54px !important;
+  height: 54px !important;
+  min-width: 54px !important;
+  border-radius: 18px !important;
+  display: grid !important;
+  place-items: center !important;
+  color: #087762 !important;
+  background:
+    linear-gradient(135deg, rgba(8,119,98,.10), rgba(96,190,232,.13)) !important;
+  border: 1px solid rgba(8,119,98,.14) !important;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.78) !important;
+}
+
+.pmd-admin-form-v1-hero-icon svg {
+  width: 25px !important;
+  height: 25px !important;
+  display: block !important;
+}
+
+.pmd-admin-form-v1-hero-eyebrow {
+  margin: 0 0 4px !important;
+  font-size: 11px !important;
+  letter-spacing: .22em !important;
+  text-transform: uppercase !important;
+  font-weight: 900 !important;
+  color: #7790aa !important;
+}
+
+.pmd-admin-form-v1-hero-title {
+  margin: 0 !important;
+  font-size: clamp(22px, 2vw, 30px) !important;
+  line-height: 1.05 !important;
+  font-weight: 950 !important;
+  letter-spacing: -.035em !important;
+  color: #10283d !important;
+}
+
+.pmd-admin-form-v1-hero-subtitle {
+  margin: 7px 0 0 !important;
+  font-size: 13.5px !important;
+  line-height: 1.55 !important;
+  color: #6f86a0 !important;
+  font-weight: 650 !important;
+}
+
+.pmd-admin-form-v1-hero-pill {
+  white-space: nowrap !important;
+  padding: 11px 14px !important;
+  border-radius: 999px !important;
+  font-size: 12px !important;
+  font-weight: 900 !important;
+  letter-spacing: .08em !important;
+  text-transform: uppercase !important;
+  color: #087762 !important;
+  background: rgba(8,119,98,.08) !important;
+  border: 1px solid rgba(8,119,98,.16) !important;
+}
+
+/* Form shell */
+body.pmd-admin-form-v1 form.pmd-admin-form-v1-form {
+  position: relative !important;
+}
+
+body.pmd-admin-form-v1 .pmd-form-panel-v1,
+body.pmd-admin-form-v1 form.pmd-admin-form-v1-form > .card,
+body.pmd-admin-form-v1 form.pmd-admin-form-v1-form > .panel,
+body.pmd-admin-form-v1 form.pmd-admin-form-v1-form .card,
+body.pmd-admin-form-v1 form.pmd-admin-form-v1-form .panel {
+  border: 1px solid rgba(96,190,232,.52) !important;
+  border-radius: 24px !important;
+  background: rgba(255,255,255,.97) !important;
+  box-shadow: 0 18px 44px rgba(12,39,58,.055) !important;
+  overflow: hidden !important;
+}
+
+body.pmd-admin-form-v1 form.pmd-admin-form-v1-form .card-header,
+body.pmd-admin-form-v1 form.pmd-admin-form-v1-form .panel-heading,
+body.pmd-admin-form-v1 form.pmd-admin-form-v1-form .form-widget-header {
+  background:
+    linear-gradient(135deg, rgba(247,252,255,.98), rgba(255,255,255,.96)) !important;
+  border-bottom: 1px solid rgba(96,190,232,.38) !important;
+  padding: 18px 22px !important;
+}
+
+body.pmd-admin-form-v1 form.pmd-admin-form-v1-form .card-body,
+body.pmd-admin-form-v1 form.pmd-admin-form-v1-form .panel-body,
+body.pmd-admin-form-v1 form.pmd-admin-form-v1-form .form-widget {
+  padding: 20px !important;
+}
+
+/* Section titles */
+body.pmd-admin-form-v1 form.pmd-admin-form-v1-form h1,
+body.pmd-admin-form-v1 form.pmd-admin-form-v1-form h2,
+body.pmd-admin-form-v1 form.pmd-admin-form-v1-form h3,
+body.pmd-admin-form-v1 form.pmd-admin-form-v1-form h4,
+body.pmd-admin-form-v1 form.pmd-admin-form-v1-form legend,
+body.pmd-admin-form-v1 form.pmd-admin-form-v1-form .control-label-title {
+  color: #10283d !important;
+  font-weight: 950 !important;
+  letter-spacing: -.025em !important;
+}
+
+/* Field cards */
+body.pmd-admin-form-v1 .pmd-form-field-v1 {
+  position: relative !important;
+  padding: 14px 14px 13px !important;
+  margin-bottom: 14px !important;
+  border: 1px solid rgba(96,190,232,.55) !important;
+  border-radius: 18px !important;
+  background:
+    linear-gradient(180deg, rgba(248,253,255,.98), rgba(255,255,255,.96)) !important;
+  box-shadow:
+    0 10px 24px rgba(12,39,58,.025),
+    inset 0 1px 0 rgba(255,255,255,.9) !important;
+}
+
+body.pmd-admin-form-v1 .pmd-form-field-v1:hover {
+  border-color: rgba(96,190,232,.82) !important;
+  box-shadow:
+    0 14px 30px rgba(12,39,58,.035),
+    inset 0 1px 0 rgba(255,255,255,.95) !important;
+}
+
+body.pmd-admin-form-v1 .pmd-form-field-v1 > label,
+body.pmd-admin-form-v1 .pmd-form-field-v1 .control-label,
+body.pmd-admin-form-v1 .pmd-form-field-v1 label:not(.custom-control-label):not(.form-check-label) {
+  display: block !important;
+  margin: 0 0 8px !important;
+  font-size: 11px !important;
+  line-height: 1.25 !important;
+  letter-spacing: .18em !important;
+  text-transform: uppercase !important;
+  font-weight: 950 !important;
+  color: #7790aa !important;
+}
+
+/* Inputs */
+body.pmd-admin-form-v1 .pmd-form-field-v1 input[type="text"],
+body.pmd-admin-form-v1 .pmd-form-field-v1 input[type="email"],
+body.pmd-admin-form-v1 .pmd-form-field-v1 input[type="number"],
+body.pmd-admin-form-v1 .pmd-form-field-v1 input[type="password"],
+body.pmd-admin-form-v1 .pmd-form-field-v1 input[type="search"],
+body.pmd-admin-form-v1 .pmd-form-field-v1 input[type="tel"],
+body.pmd-admin-form-v1 .pmd-form-field-v1 input[type="url"],
+body.pmd-admin-form-v1 .pmd-form-field-v1 input[type="date"],
+body.pmd-admin-form-v1 .pmd-form-field-v1 input[type="time"],
+body.pmd-admin-form-v1 .pmd-form-field-v1 input[type="datetime-local"],
+body.pmd-admin-form-v1 .pmd-form-field-v1 select,
+body.pmd-admin-form-v1 .pmd-form-field-v1 textarea,
+body.pmd-admin-form-v1 .pmd-form-field-v1 .form-control {
+  width: 100% !important;
+  min-height: 46px !important;
+  border-radius: 15px !important;
+  border: 1px solid rgba(96,190,232,.64) !important;
+  background: rgba(250,253,255,.96) !important;
+  color: #10283d !important;
+  font-weight: 750 !important;
+  font-size: 13.5px !important;
+  box-shadow: none !important;
+  outline: none !important;
+  transition:
+    border-color 150ms ease,
+    box-shadow 150ms ease,
+    background 150ms ease !important;
+}
+
+body.pmd-admin-form-v1 .pmd-form-field-v1 textarea,
+body.pmd-admin-form-v1 textarea.form-control {
+  min-height: 118px !important;
+  resize: vertical !important;
+}
+
+body.pmd-admin-form-v1 .pmd-form-field-v1 input:focus,
+body.pmd-admin-form-v1 .pmd-form-field-v1 select:focus,
+body.pmd-admin-form-v1 .pmd-form-field-v1 textarea:focus,
+body.pmd-admin-form-v1 .pmd-form-field-v1 .form-control:focus {
+  border-color: rgba(8,119,98,.55) !important;
+  background: #fff !important;
+  box-shadow:
+    0 0 0 4px rgba(8,119,98,.08),
+    0 10px 26px rgba(12,39,58,.045) !important;
+}
+
+/* Selectize / Select2 / custom dropdowns */
+body.pmd-admin-form-v1 .selectize-control .selectize-input,
+body.pmd-admin-form-v1 .select2-container .select2-selection,
+body.pmd-admin-form-v1 .chosen-container .chosen-single {
+  min-height: 46px !important;
+  border-radius: 15px !important;
+  border: 1px solid rgba(96,190,232,.64) !important;
+  background: rgba(250,253,255,.96) !important;
+  color: #10283d !important;
+  font-weight: 750 !important;
+  box-shadow: none !important;
+  display: flex !important;
+  align-items: center !important;
+}
+
+body.pmd-admin-form-v1 .selectize-dropdown,
+body.pmd-admin-form-v1 .select2-dropdown,
+body.pmd-admin-form-v1 .chosen-container .chosen-drop {
+  border: 1px solid rgba(96,190,232,.72) !important;
+  border-radius: 16px !important;
+  box-shadow: 0 18px 46px rgba(12,39,58,.12) !important;
+  overflow: hidden !important;
+}
+
+/* Help text */
+body.pmd-admin-form-v1 .help-block,
+body.pmd-admin-form-v1 .form-text,
+body.pmd-admin-form-v1 .text-muted,
+body.pmd-admin-form-v1 small {
+  color: #7c92aa !important;
+  font-weight: 650 !important;
+}
+
+/* Checkbox / radio cards */
+body.pmd-admin-form-v1 .pmd-form-choice-grid-v1 {
+  display: grid !important;
+  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)) !important;
+  gap: 10px !important;
+}
+
+body.pmd-admin-form-v1 .pmd-form-choice-card-v1 {
+  position: relative !important;
+  display: flex !important;
+  align-items: center !important;
+  gap: 10px !important;
+  min-height: 48px !important;
+  padding: 12px 13px !important;
+  border: 1px solid rgba(96,190,232,.56) !important;
+  border-radius: 16px !important;
+  background:
+    linear-gradient(180deg, rgba(248,253,255,.98), rgba(255,255,255,.96)) !important;
+  color: #10283d !important;
+  font-weight: 800 !important;
+  cursor: pointer !important;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.92) !important;
+}
+
+body.pmd-admin-form-v1 .pmd-form-choice-card-v1:hover {
+  border-color: rgba(8,119,98,.30) !important;
+  background:
+    linear-gradient(180deg, rgba(246,255,252,.98), rgba(255,255,255,.96)) !important;
+}
+
+body.pmd-admin-form-v1 .pmd-form-choice-card-v1 input[type="checkbox"],
+body.pmd-admin-form-v1 .pmd-form-choice-card-v1 input[type="radio"] {
+  width: 18px !important;
+  height: 18px !important;
+  accent-color: #087762 !important;
+}
+
+/* Tabs */
+body.pmd-admin-form-v1 form.pmd-admin-form-v1-form .nav-tabs {
+  gap: 8px !important;
+  border-bottom: 1px solid rgba(96,190,232,.44) !important;
+}
+
+body.pmd-admin-form-v1 form.pmd-admin-form-v1-form .nav-tabs .nav-link {
+  border-radius: 14px 14px 0 0 !important;
+  border: 1px solid transparent !important;
+  color: #6f86a0 !important;
+  font-weight: 900 !important;
+}
+
+body.pmd-admin-form-v1 form.pmd-admin-form-v1-form .nav-tabs .nav-link.active {
+  color: #087762 !important;
+  border-color: rgba(96,190,232,.52) !important;
+  background: #fff !important;
+}
+
+/* Buttons */
+body.pmd-admin-form-v1 .form-buttons,
+body.pmd-admin-form-v1 .form-actions,
+body.pmd-admin-form-v1 .buttons,
+body.pmd-admin-form-v1 .page-actions {
+  gap: 10px !important;
+}
+
+body.pmd-admin-form-v1 .btn,
+body.pmd-admin-form-v1 button {
+  border-radius: 13px !important;
+  font-weight: 900 !important;
+  letter-spacing: -.01em !important;
+}
+
+body.pmd-admin-form-v1 .btn-primary,
+body.pmd-admin-form-v1 .btn-success,
+body.pmd-admin-form-v1 button[type="submit"] {
+  background: #087762 !important;
+  border-color: #087762 !important;
+  color: #fff !important;
+  box-shadow: 0 12px 28px rgba(8,119,98,.20) !important;
+}
+
+body.pmd-admin-form-v1 .btn-primary:hover,
+body.pmd-admin-form-v1 .btn-success:hover,
+body.pmd-admin-form-v1 button[type="submit"]:hover {
+  background: #066956 !important;
+  border-color: #066956 !important;
+  transform: translateY(-1px) !important;
+}
+
+body.pmd-admin-form-v1 .btn-secondary,
+body.pmd-admin-form-v1 .btn-default,
+body.pmd-admin-form-v1 .btn-light {
+  color: #10283d !important;
+  background: rgba(255,255,255,.92) !important;
+  border: 1px solid rgba(96,190,232,.62) !important;
+}
+
+/* Code editors / rich editors: keep safe */
+body.pmd-admin-form-v1 .CodeMirror,
+body.pmd-admin-form-v1 .note-editor,
+body.pmd-admin-form-v1 .fr-box,
+body.pmd-admin-form-v1 .tox-tinymce {
+  border-radius: 16px !important;
+  border: 1px solid rgba(96,190,232,.58) !important;
+  overflow: hidden !important;
+}
+
+/* Theme editor safety */
+body.pmd-admin-form-v1[data-pmd-admin-form-page="theme"] .pmd-form-field-v1 {
+  margin-bottom: 12px !important;
+}
+
+/* Mobile */
+@media (max-width: 760px) {
+  .pmd-admin-form-v1-hero {
+    flex-direction: column !important;
+    align-items: flex-start !important;
+    padding: 18px !important;
+    border-radius: 20px !important;
+  }
+
+  .pmd-admin-form-v1-hero-pill {
+    white-space: normal !important;
+  }
+
+  body.pmd-admin-form-v1 .pmd-form-choice-grid-v1 {
+    grid-template-columns: 1fr !important;
+  }
+
+  body.pmd-admin-form-v1 .pmd-form-field-v1 {
+    padding: 12px !important;
+    border-radius: 16px !important;
+  }
+}
+
+/* PMD Admin Forms v3 — CSS-only KDS polish
+ * Safe: no JS, no observer, no backend.
+ * Goal: closer to /admin/kds_stations/create.
+ */
+
+body.pmd-admin-form-v1 {
+  --pmd-f3-ink: #092f2b;
+  --pmd-f3-text: #10283d;
+  --pmd-f3-muted: #6f86a0;
+  --pmd-f3-green: #087762;
+  --pmd-f3-green-soft: #ecfff7;
+  --pmd-f3-line: rgba(96,190,232,.48);
+  --pmd-f3-line-strong: rgba(96,190,232,.78);
+}
+
+/* Main form panel: cleaner like KDS */
+body.pmd-admin-form-v1 form.pmd-admin-form-v1-form,
+body.pmd-admin-form-v1 .pmd-form-panel-v1 {
+  border: 1px solid var(--pmd-f3-line) !important;
+  border-radius: 24px !important;
+  background: rgba(255,255,255,.985) !important;
+  box-shadow: 0 18px 46px rgba(12,39,58,.045) !important;
+}
+
+/* Do not make every field a heavy blue card */
+body.pmd-admin-form-v1 .pmd-form-field-v1 {
+  padding: 0 !important;
+  margin-bottom: 18px !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+}
+
+/* Labels */
+body.pmd-admin-form-v1 .pmd-form-field-v1 > label,
+body.pmd-admin-form-v1 .pmd-form-field-v1 .control-label,
+body.pmd-admin-form-v1 .pmd-form-field-v1 label:not(.custom-control-label):not(.form-check-label) {
+  margin-bottom: 8px !important;
+  color: var(--pmd-f3-muted) !important;
+  font-size: 11px !important;
+  letter-spacing: .22em !important;
+  text-transform: uppercase !important;
+  font-weight: 950 !important;
+}
+
+/* Inputs: KDS-like */
+body.pmd-admin-form-v1 .pmd-form-field-v1 input[type="text"],
+body.pmd-admin-form-v1 .pmd-form-field-v1 input[type="email"],
+body.pmd-admin-form-v1 .pmd-form-field-v1 input[type="number"],
+body.pmd-admin-form-v1 .pmd-form-field-v1 input[type="password"],
+body.pmd-admin-form-v1 .pmd-form-field-v1 input[type="search"],
+body.pmd-admin-form-v1 .pmd-form-field-v1 input[type="tel"],
+body.pmd-admin-form-v1 .pmd-form-field-v1 input[type="url"],
+body.pmd-admin-form-v1 .pmd-form-field-v1 input[type="date"],
+body.pmd-admin-form-v1 .pmd-form-field-v1 input[type="time"],
+body.pmd-admin-form-v1 .pmd-form-field-v1 input[type="datetime-local"],
+body.pmd-admin-form-v1 .pmd-form-field-v1 select,
+body.pmd-admin-form-v1 .pmd-form-field-v1 textarea,
+body.pmd-admin-form-v1 .pmd-form-field-v1 .form-control {
+  min-height: 50px !important;
+  border-radius: 14px !important;
+  border: 1px solid var(--pmd-f3-line) !important;
+  background: #fff !important;
+  color: var(--pmd-f3-text) !important;
+  font-size: 14px !important;
+  font-weight: 750 !important;
+  box-shadow: 0 8px 18px rgba(12,39,58,.025) !important;
+  outline: none !important;
+}
+
+body.pmd-admin-form-v1 .pmd-form-field-v1 textarea,
+body.pmd-admin-form-v1 textarea.form-control {
+  min-height: 105px !important;
+}
+
+body.pmd-admin-form-v1 .pmd-form-field-v1 input:focus,
+body.pmd-admin-form-v1 .pmd-form-field-v1 select:focus,
+body.pmd-admin-form-v1 .pmd-form-field-v1 textarea:focus,
+body.pmd-admin-form-v1 .pmd-form-field-v1 .form-control:focus {
+  border-color: rgba(8,119,98,.48) !important;
+  box-shadow:
+    0 0 0 4px rgba(8,119,98,.08),
+    0 12px 26px rgba(12,39,58,.045) !important;
+}
+
+/* Kill old beige/yellow focus rings */
+body.pmd-admin-form-v1 input,
+body.pmd-admin-form-v1 select,
+body.pmd-admin-form-v1 textarea,
+body.pmd-admin-form-v1 .form-control {
+  outline: none !important;
+}
+
+/* Dropdown plugins */
+body.pmd-admin-form-v1 .selectize-control .selectize-input,
+body.pmd-admin-form-v1 .select2-container .select2-selection,
+body.pmd-admin-form-v1 .chosen-container .chosen-single {
+  min-height: 50px !important;
+  border-radius: 14px !important;
+  border: 1px solid var(--pmd-f3-line) !important;
+  background: #fff !important;
+  color: var(--pmd-f3-text) !important;
+  font-size: 14px !important;
+  font-weight: 750 !important;
+  box-shadow: 0 8px 18px rgba(12,39,58,.025) !important;
+}
+
+/* Coupon type / discount type buttons and similar segmented controls */
+body.pmd-admin-form-v1 form .btn-group,
+body.pmd-admin-form-v1 form .btn-group-toggle,
+body.pmd-admin-form-v1 form [data-toggle="buttons"] {
+  gap: 10px !important;
+  display: flex !important;
+  flex-wrap: wrap !important;
+}
+
+body.pmd-admin-form-v1 form .btn-group .btn,
+body.pmd-admin-form-v1 form .btn-group-toggle .btn,
+body.pmd-admin-form-v1 form [data-toggle="buttons"] .btn,
+body.pmd-admin-form-v1 form label.btn,
+body.pmd-admin-form-v1 form .btn.btn-outline-primary,
+body.pmd-admin-form-v1 form .btn.btn-outline-secondary,
+body.pmd-admin-form-v1 .pmd-form-choice-card-v1 {
+  min-height: 48px !important;
+  border-radius: 15px !important;
+  border: 1px solid var(--pmd-f3-line) !important;
+  background: #fff !important;
+  color: var(--pmd-f3-text) !important;
+  font-size: 13px !important;
+  font-weight: 900 !important;
+  letter-spacing: .06em !important;
+  box-shadow: 0 10px 22px rgba(12,39,58,.035) !important;
+}
+
+/* Remove navy selected state */
+body.pmd-admin-form-v1 form .btn.active,
+body.pmd-admin-form-v1 form label.btn.active,
+body.pmd-admin-form-v1 form .btn-primary.active,
+body.pmd-admin-form-v1 form .btn-primary:active,
+body.pmd-admin-form-v1 form .btn-primary:focus,
+body.pmd-admin-form-v1 form .btn-check:checked + .btn,
+body.pmd-admin-form-v1 form input[type="radio"]:checked + label,
+body.pmd-admin-form-v1 form input[type="checkbox"]:checked + label,
+body.pmd-admin-form-v1 .pmd-form-choice-card-v1:has(input:checked) {
+  background: linear-gradient(180deg, #f0fff8, #ffffff) !important;
+  color: var(--pmd-f3-green) !important;
+  border-color: rgba(8,119,98,.42) !important;
+  box-shadow:
+    0 12px 26px rgba(8,119,98,.10),
+    inset 0 1px 0 rgba(255,255,255,.9) !important;
+}
+
+/* Legacy selected coupon buttons sometimes use .btn-primary */
+body.pmd-admin-form-v1 form .btn-primary:not([type="submit"]),
+body.pmd-admin-form-v1 form label.btn-primary {
+  background: linear-gradient(180deg, #f0fff8, #ffffff) !important;
+  color: var(--pmd-f3-green) !important;
+  border-color: rgba(8,119,98,.42) !important;
+}
+
+/* Submit / save buttons */
+body.pmd-admin-form-v1 form button[type="submit"],
+body.pmd-admin-form-v1 form input[type="submit"],
+body.pmd-admin-form-v1 form .btn-success,
+body.pmd-admin-form-v1 form .btn-save,
+body.pmd-admin-form-v1 .page-actions .btn-success,
+body.pmd-admin-form-v1 .page-actions .btn-primary {
+  min-height: 44px !important;
+  border-radius: 14px !important;
+  background: var(--pmd-f3-green) !important;
+  border-color: var(--pmd-f3-green) !important;
+  color: #fff !important;
+  font-weight: 950 !important;
+  box-shadow: 0 14px 30px rgba(8,119,98,.18) !important;
+}
+
+/* Header icon buttons */
+body.pmd-admin-form-v1 .page-actions .btn,
+body.pmd-admin-form-v1 .buttons .btn,
+body.pmd-admin-form-v1 .form-actions .btn {
+  min-height: 42px !important;
+  border-radius: 14px !important;
+  font-weight: 900 !important;
+}
+
+/* Tabs */
+body.pmd-admin-form-v1 form .nav-tabs {
+  border-bottom: 1px solid var(--pmd-f3-line-strong) !important;
+}
+
+body.pmd-admin-form-v1 form .nav-tabs .nav-link,
+body.pmd-admin-form-v1 form .nav-tabs a {
+  min-height: 46px !important;
+  border-radius: 14px 14px 0 0 !important;
+  color: var(--pmd-f3-muted) !important;
+  font-weight: 950 !important;
+  border: 1px solid transparent !important;
+  background: transparent !important;
+}
+
+body.pmd-admin-form-v1 form .nav-tabs .nav-link.active,
+body.pmd-admin-form-v1 form .nav-tabs li.active > a,
+body.pmd-admin-form-v1 form .nav-tabs a.active {
+  color: var(--pmd-f3-green) !important;
+  border-color: rgba(8,119,98,.35) !important;
+  border-bottom-color: #fff !important;
+  background: #fff !important;
+  box-shadow: 0 -6px 18px rgba(8,119,98,.055) !important;
+}
+
+/* Section headings */
+body.pmd-admin-form-v1 .pmd-form-panel-v1 h1,
+body.pmd-admin-form-v1 .pmd-form-panel-v1 h2,
+body.pmd-admin-form-v1 .pmd-form-panel-v1 h3,
+body.pmd-admin-form-v1 .pmd-form-panel-v1 h4,
+body.pmd-admin-form-v1 .pmd-form-panel-v1 legend {
+  color: var(--pmd-f3-ink) !important;
+  font-weight: 950 !important;
+  letter-spacing: -.035em !important;
+}
+
+/* Rich/code editor frames */
+body.pmd-admin-form-v1 .CodeMirror,
+body.pmd-admin-form-v1 .note-editor,
+body.pmd-admin-form-v1 .fr-box,
+body.pmd-admin-form-v1 .tox-tinymce {
+  border-radius: 16px !important;
+  border: 1px solid var(--pmd-f3-line) !important;
+  box-shadow: 0 10px 24px rgba(12,39,58,.035) !important;
+}
+
+/* Hide v1 hero on pages that already have good internal KDS-like section headings */
+body.pmd-admin-form-v1[data-pmd-admin-form-page="theme"] .pmd-admin-form-v1-hero {
+  display: none !important;
+}
+
+@media (max-width: 760px) {
+  body.pmd-admin-form-v1 form .btn-group,
+  body.pmd-admin-form-v1 form .btn-group-toggle,
+  body.pmd-admin-form-v1 form [data-toggle="buttons"] {
+    display: grid !important;
+    grid-template-columns: 1fr !important;
+  }
+}
+
+/* PMD Admin Forms v4 — Selected Buttons + Softer Fields
+ * CSS-only. No JS. No MutationObserver.
+ * Purpose: remove remaining navy selected buttons and soften ugly field borders.
+ */
+
+body.pmd-admin-form-v1 {
+  --pmd-v4-green: #087762;
+  --pmd-v4-green-dark: #066956;
+  --pmd-v4-mint: #f0fff8;
+  --pmd-v4-ink: #10283d;
+  --pmd-v4-muted: #6f86a0;
+  --pmd-v4-line: rgba(96,190,232,.38);
+  --pmd-v4-line-strong: rgba(96,190,232,.62);
+}
+
+/* Softer panel border */
+body.pmd-admin-form-v1 form.pmd-admin-form-v1-form,
+body.pmd-admin-form-v1 .pmd-form-panel-v1 {
+  border-color: var(--pmd-v4-line-strong) !important;
+  box-shadow: 0 18px 46px rgba(12,39,58,.038) !important;
+}
+
+/* Softer input appearance */
+body.pmd-admin-form-v1 .pmd-form-field-v1 input[type="text"],
+body.pmd-admin-form-v1 .pmd-form-field-v1 input[type="email"],
+body.pmd-admin-form-v1 .pmd-form-field-v1 input[type="number"],
+body.pmd-admin-form-v1 .pmd-form-field-v1 input[type="password"],
+body.pmd-admin-form-v1 .pmd-form-field-v1 input[type="search"],
+body.pmd-admin-form-v1 .pmd-form-field-v1 input[type="tel"],
+body.pmd-admin-form-v1 .pmd-form-field-v1 input[type="url"],
+body.pmd-admin-form-v1 .pmd-form-field-v1 input[type="date"],
+body.pmd-admin-form-v1 .pmd-form-field-v1 input[type="time"],
+body.pmd-admin-form-v1 .pmd-form-field-v1 input[type="datetime-local"],
+body.pmd-admin-form-v1 .pmd-form-field-v1 select,
+body.pmd-admin-form-v1 .pmd-form-field-v1 textarea,
+body.pmd-admin-form-v1 .pmd-form-field-v1 .form-control,
+body.pmd-admin-form-v1 .input-group .form-control {
+  border-color: var(--pmd-v4-line) !important;
+  background: #fff !important;
+  box-shadow: 0 8px 18px rgba(12,39,58,.018) !important;
+}
+
+/* Make input groups look like one clean KDS control */
+body.pmd-admin-form-v1 .input-group {
+  border-radius: 14px !important;
+}
+
+body.pmd-admin-form-v1 .input-group-text,
+body.pmd-admin-form-v1 .input-group-addon {
+  min-height: 50px !important;
+  border-color: var(--pmd-v4-line) !important;
+  background: rgba(255,255,255,.96) !important;
+  color: var(--pmd-v4-ink) !important;
+  font-weight: 900 !important;
+  border-radius: 14px !important;
+}
+
+/* Hard override: any selected segmented option must be mint/green, never navy */
+body.pmd-admin-form-v1 form .btn-group .btn.active,
+body.pmd-admin-form-v1 form .btn-group-toggle .btn.active,
+body.pmd-admin-form-v1 form [data-toggle="buttons"] .btn.active,
+body.pmd-admin-form-v1 form label.btn.active,
+body.pmd-admin-form-v1 form label.btn-primary.active,
+body.pmd-admin-form-v1 form .btn.btn-primary.active,
+body.pmd-admin-form-v1 form .btn.btn-primary:active,
+body.pmd-admin-form-v1 form .btn.btn-primary:focus,
+body.pmd-admin-form-v1 form .btn.btn-primary[aria-pressed="true"],
+body.pmd-admin-form-v1 form label.btn[aria-pressed="true"],
+body.pmd-admin-form-v1 form .active > .btn,
+body.pmd-admin-form-v1 form .btn:has(input[type="radio"]:checked),
+body.pmd-admin-form-v1 form .btn:has(input[type="checkbox"]:checked),
+body.pmd-admin-form-v1 form label:has(input[type="radio"]:checked),
+body.pmd-admin-form-v1 form label:has(input[type="checkbox"]:checked),
+body.pmd-admin-form-v1 form input[type="radio"]:checked + label,
+body.pmd-admin-form-v1 form input[type="checkbox"]:checked + label,
+body.pmd-admin-form-v1 form .btn-check:checked + .btn {
+  background: linear-gradient(180deg, var(--pmd-v4-mint), #ffffff) !important;
+  background-color: var(--pmd-v4-mint) !important;
+  color: var(--pmd-v4-green) !important;
+  border-color: rgba(8,119,98,.42) !important;
+  box-shadow:
+    0 12px 26px rgba(8,119,98,.10),
+    inset 0 1px 0 rgba(255,255,255,.92) !important;
+  text-shadow: none !important;
+}
+
+/* Coupon/Gift card page specific: selected option buttons are often btn-primary labels */
+body.pmd-admin-form-v1[data-pmd-admin-form-page="coupon"] form label.btn-primary,
+body.pmd-admin-form-v1[data-pmd-admin-form-page="coupon"] form .btn-group .btn-primary,
+body.pmd-admin-form-v1[data-pmd-admin-form-page="coupon"] form [data-toggle="buttons"] .btn-primary {
+  background: linear-gradient(180deg, var(--pmd-v4-mint), #ffffff) !important;
+  background-color: var(--pmd-v4-mint) !important;
+  color: var(--pmd-v4-green) !important;
+  border-color: rgba(8,119,98,.42) !important;
+  box-shadow:
+    0 12px 26px rgba(8,119,98,.10),
+    inset 0 1px 0 rgba(255,255,255,.92) !important;
+}
+
+/* Non-active segmented buttons: clean white */
+body.pmd-admin-form-v1 form .btn-group .btn:not(.active):not(.btn-success):not([type="submit"]),
+body.pmd-admin-form-v1 form .btn-group-toggle .btn:not(.active):not(.btn-success):not([type="submit"]),
+body.pmd-admin-form-v1 form [data-toggle="buttons"] .btn:not(.active):not(.btn-success):not([type="submit"]),
+body.pmd-admin-form-v1 form label.btn:not(.active):not(.btn-success) {
+  background: #fff !important;
+  color: var(--pmd-v4-ink) !important;
+  border-color: var(--pmd-v4-line-strong) !important;
+}
+
+/* Hover state */
+body.pmd-admin-form-v1 form .btn-group .btn:hover,
+body.pmd-admin-form-v1 form .btn-group-toggle .btn:hover,
+body.pmd-admin-form-v1 form [data-toggle="buttons"] .btn:hover,
+body.pmd-admin-form-v1 .pmd-form-choice-card-v1:hover {
+  border-color: rgba(8,119,98,.30) !important;
+  background: linear-gradient(180deg, #f6fffb, #ffffff) !important;
+  color: var(--pmd-v4-green) !important;
+}
+
+/* Real save/submit buttons should stay solid green */
+body.pmd-admin-form-v1 form button[type="submit"],
+body.pmd-admin-form-v1 form input[type="submit"],
+body.pmd-admin-form-v1 form .btn-success,
+body.pmd-admin-form-v1 .page-actions .btn-success {
+  background: var(--pmd-v4-green) !important;
+  background-color: var(--pmd-v4-green) !important;
+  color: #fff !important;
+  border-color: var(--pmd-v4-green) !important;
+}
+
+body.pmd-admin-form-v1 form button[type="submit"]:hover,
+body.pmd-admin-form-v1 form input[type="submit"]:hover,
+body.pmd-admin-form-v1 form .btn-success:hover,
+body.pmd-admin-form-v1 .page-actions .btn-success:hover {
+  background: var(--pmd-v4-green-dark) !important;
+  border-color: var(--pmd-v4-green-dark) !important;
+}
+
+/* Header icon buttons: consistent soft square */
+body.pmd-admin-form-v1 .page-actions .btn,
+body.pmd-admin-form-v1 .buttons .btn {
+  width: 44px !important;
+  min-width: 44px !important;
+  height: 44px !important;
+  min-height: 44px !important;
+  border-radius: 14px !important;
+  background: #fff !important;
+  border: 1px solid rgba(12,39,58,.08) !important;
+  color: var(--pmd-v4-green) !important;
+  box-shadow: 0 10px 24px rgba(12,39,58,.055) !important;
+}
+
+/* Hero closer to KDS: softer, less blue-heavy */
+body.pmd-admin-form-v1 .pmd-admin-form-v1-hero {
+  border-color: var(--pmd-v4-line-strong) !important;
+  background: rgba(255,255,255,.985) !important;
+  box-shadow: 0 18px 46px rgba(12,39,58,.038) !important;
+}
+
+body.pmd-admin-form-v1 .pmd-admin-form-v1-hero-icon {
+  color: var(--pmd-v4-green) !important;
+  background: linear-gradient(180deg, #f0fff8, #ffffff) !important;
+  border-color: rgba(8,119,98,.18) !important;
+}
+
+body.pmd-admin-form-v1 .pmd-admin-form-v1-hero-title {
+  color: #092f2b !important;
+}
+
+body.pmd-admin-form-v1 .pmd-admin-form-v1-hero-pill {
+  color: var(--pmd-v4-green) !important;
+  background: linear-gradient(180deg, #f0fff8, #ffffff) !important;
+  border-color: rgba(8,119,98,.18) !important;
+}
+
+/* Date/time addon buttons inside fields */
+body.pmd-admin-form-v1 .input-group-append .btn,
+body.pmd-admin-form-v1 .input-group-prepend .btn {
+  min-height: 50px !important;
+  border-radius: 14px !important;
+  background: #fff !important;
+  color: var(--pmd-v4-green) !important;
+  border-color: var(--pmd-v4-line) !important;
+  box-shadow: none !important;
+}
+
+/* PMD Admin Forms v5 — KDS measurable polish
+ * Safe visual layer. Works with one-shot JS repair above.
+ */
+
+body.pmd-admin-form-v1.pmd-admin-forms-v5 {
+  --pmd-v5-green: #087762;
+  --pmd-v5-green-dark: #066956;
+  --pmd-v5-mint: #f0fff8;
+  --pmd-v5-ink: #092f2b;
+  --pmd-v5-text: #10283d;
+  --pmd-v5-muted: #506b86;
+  --pmd-v5-line: rgba(96,190,232,.34);
+  --pmd-v5-line-strong: rgba(96,190,232,.56);
+}
+
+/* Reduce huge empty feeling */
+body.pmd-admin-form-v1.pmd-admin-forms-v5 form.pmd-admin-form-v1-form,
+body.pmd-admin-form-v1.pmd-admin-forms-v5 .pmd-form-panel-v1 {
+  max-width: 1320px !important;
+  margin-left: auto !important;
+  margin-right: auto !important;
+  border-color: var(--pmd-v5-line-strong) !important;
+  box-shadow: 0 16px 42px rgba(12,39,58,.035) !important;
+}
+
+/* For coupon, keep a strong left content width so it does not feel like empty ocean */
+body.pmd-admin-form-v1.pmd-admin-forms-v5[data-pmd-admin-form-page="coupon"] .pmd-form-field-v1:not(:has(textarea)) {
+  max-width: 760px !important;
+}
+
+body.pmd-admin-form-v1.pmd-admin-forms-v5[data-pmd-admin-form-page="coupon"] .pmd-form-field-v1:has(textarea) {
+  max-width: 100% !important;
+}
+
+/* Labels: readable, not too pale */
+body.pmd-admin-form-v1.pmd-admin-forms-v5 .pmd-form-field-v1 > label,
+body.pmd-admin-form-v1.pmd-admin-forms-v5 .pmd-form-field-v1 .control-label,
+body.pmd-admin-form-v1.pmd-admin-forms-v5 .pmd-form-field-v1 label:not(.custom-control-label):not(.form-check-label) {
+  color: var(--pmd-v5-muted) !important;
+  font-size: 11.5px !important;
+  letter-spacing: .20em !important;
+  font-weight: 950 !important;
+}
+
+/* Inputs */
+body.pmd-admin-form-v1.pmd-admin-forms-v5 .pmd-form-field-v1 input[type="text"],
+body.pmd-admin-form-v1.pmd-admin-forms-v5 .pmd-form-field-v1 input[type="email"],
+body.pmd-admin-form-v1.pmd-admin-forms-v5 .pmd-form-field-v1 input[type="number"],
+body.pmd-admin-form-v1.pmd-admin-forms-v5 .pmd-form-field-v1 input[type="password"],
+body.pmd-admin-form-v1.pmd-admin-forms-v5 .pmd-form-field-v1 input[type="search"],
+body.pmd-admin-form-v1.pmd-admin-forms-v5 .pmd-form-field-v1 input[type="tel"],
+body.pmd-admin-form-v1.pmd-admin-forms-v5 .pmd-form-field-v1 input[type="url"],
+body.pmd-admin-form-v1.pmd-admin-forms-v5 .pmd-form-field-v1 input[type="date"],
+body.pmd-admin-form-v1.pmd-admin-forms-v5 .pmd-form-field-v1 input[type="time"],
+body.pmd-admin-form-v1.pmd-admin-forms-v5 .pmd-form-field-v1 input[type="datetime-local"],
+body.pmd-admin-form-v1.pmd-admin-forms-v5 .pmd-form-field-v1 select,
+body.pmd-admin-form-v1.pmd-admin-forms-v5 .pmd-form-field-v1 textarea,
+body.pmd-admin-form-v1.pmd-admin-forms-v5 .pmd-form-field-v1 .form-control,
+body.pmd-admin-form-v1.pmd-admin-forms-v5 .selectize-control .selectize-input,
+body.pmd-admin-form-v1.pmd-admin-forms-v5 .select2-container .select2-selection,
+body.pmd-admin-form-v1.pmd-admin-forms-v5 .chosen-container .chosen-single {
+  min-height: 48px !important;
+  border-radius: 14px !important;
+  border-color: var(--pmd-v5-line) !important;
+  background: #fff !important;
+  color: var(--pmd-v5-text) !important;
+  font-size: 14px !important;
+  font-weight: 750 !important;
+  box-shadow: 0 7px 16px rgba(12,39,58,.018) !important;
+}
+
+/* Fix the Tables page tiny 18px inputs from audit */
+body.pmd-admin-form-v1.pmd-admin-forms-v5[data-pmd-admin-form-page="table"] input,
+body.pmd-admin-form-v1.pmd-admin-forms-v5[data-pmd-admin-form-page="table"] select,
+body.pmd-admin-form-v1.pmd-admin-forms-v5[data-pmd-admin-form-page="table"] .form-control {
+  min-height: 48px !important;
+}
+
+/* Segmented buttons */
+body.pmd-admin-form-v1.pmd-admin-forms-v5 .pmd-v5-segment-grid,
+body.pmd-admin-form-v1.pmd-admin-forms-v5 form .btn-group,
+body.pmd-admin-form-v1.pmd-admin-forms-v5 form [data-toggle="buttons"] {
+  display: grid !important;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)) !important;
+  gap: 10px !important;
+  max-width: 760px !important;
+}
+
+/* Segment / option buttons */
+body.pmd-admin-form-v1.pmd-admin-forms-v5 .pmd-v5-option-button,
+body.pmd-admin-form-v1.pmd-admin-forms-v5 form .btn-group .btn,
+body.pmd-admin-form-v1.pmd-admin-forms-v5 form [data-toggle="buttons"] .btn,
+body.pmd-admin-form-v1.pmd-admin-forms-v5 form label.btn,
+body.pmd-admin-form-v1.pmd-admin-forms-v5 .pmd-form-choice-card-v1 {
+  min-height: 48px !important;
+  border-radius: 14px !important;
+  border: 1px solid var(--pmd-v5-line-strong) !important;
+  background: #fff !important;
+  color: var(--pmd-v5-text) !important;
+  font-size: 13px !important;
+  font-weight: 950 !important;
+  letter-spacing: .12em !important;
+  text-align: center !important;
+  box-shadow: 0 8px 18px rgba(12,39,58,.026) !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+}
+
+/* Restore text if legacy CSS hides it */
+body.pmd-admin-form-v1.pmd-admin-forms-v5 .pmd-v5-option-button,
+body.pmd-admin-form-v1.pmd-admin-forms-v5 .pmd-v5-option-button *,
+body.pmd-admin-form-v1.pmd-admin-forms-v5 .pmd-v5-option-text {
+  color: inherit !important;
+  opacity: 1 !important;
+  visibility: visible !important;
+  text-shadow: none !important;
+}
+
+body.pmd-admin-form-v1.pmd-admin-forms-v5 .pmd-v5-option-button[data-pmd-v5-label]:empty::after {
+  content: attr(data-pmd-v5-label) !important;
+  color: inherit !important;
+  opacity: 1 !important;
+  visibility: visible !important;
+}
+
+/* Active segment: mint + green, not navy, with visible text */
+body.pmd-admin-form-v1.pmd-admin-forms-v5 form .btn.active,
+body.pmd-admin-form-v1.pmd-admin-forms-v5 form label.btn.active,
+body.pmd-admin-form-v1.pmd-admin-forms-v5 form .btn-primary.active,
+body.pmd-admin-form-v1.pmd-admin-forms-v5 form .btn-primary:active,
+body.pmd-admin-form-v1.pmd-admin-forms-v5 form .btn[aria-pressed="true"],
+body.pmd-admin-form-v1.pmd-admin-forms-v5 form label:has(input:checked),
+body.pmd-admin-form-v1.pmd-admin-forms-v5 form .btn:has(input:checked),
+body.pmd-admin-form-v1.pmd-admin-forms-v5 form input[type="radio"]:checked + label,
+body.pmd-admin-form-v1.pmd-admin-forms-v5 form input[type="checkbox"]:checked + label,
+body.pmd-admin-form-v1.pmd-admin-forms-v5 form .btn-check:checked + .btn {
+  background: linear-gradient(180deg, var(--pmd-v5-mint), #ffffff) !important;
+  background-color: var(--pmd-v5-mint) !important;
+  color: var(--pmd-v5-green) !important;
+  border-color: rgba(8,119,98,.42) !important;
+  box-shadow:
+    0 12px 26px rgba(8,119,98,.10),
+    inset 0 1px 0 rgba(255,255,255,.92) !important;
+}
+
+/* Save submit */
+body.pmd-admin-form-v1.pmd-admin-forms-v5 form button[type="submit"],
+body.pmd-admin-form-v1.pmd-admin-forms-v5 form input[type="submit"],
+body.pmd-admin-form-v1.pmd-admin-forms-v5 form .btn-success,
+body.pmd-admin-form-v1.pmd-admin-forms-v5 .page-actions .btn-success {
+  background: var(--pmd-v5-green) !important;
+  border-color: var(--pmd-v5-green) !important;
+  color: #fff !important;
+}
+
+/* Section icons */
+body.pmd-admin-form-v1.pmd-admin-forms-v5 .pmd-v5-section-icon {
+  display: inline-grid !important;
+  place-items: center !important;
+  width: 42px !important;
+  height: 42px !important;
+  margin-right: 12px !important;
+  border-radius: 14px !important;
+  background: linear-gradient(180deg, #f0fff8, #ffffff) !important;
+  border: 1px solid rgba(8,119,98,.18) !important;
+  color: var(--pmd-v5-green) !important;
+  font-size: 18px !important;
+  vertical-align: middle !important;
+}
+
+/* Hero icon / pill */
+body.pmd-admin-form-v1.pmd-admin-forms-v5 .pmd-admin-form-v1-hero-icon,
+body.pmd-admin-form-v1.pmd-admin-forms-v5 .pmd-admin-form-v1-hero-pill {
+  background: linear-gradient(180deg, #f0fff8, #ffffff) !important;
+  border-color: rgba(8,119,98,.18) !important;
+  color: var(--pmd-v5-green) !important;
+}
+
+/* Header icon buttons should stay icon-only but look intentional */
+body.pmd-admin-form-v1.pmd-admin-forms-v5 .page-actions .btn,
+body.pmd-admin-form-v1.pmd-admin-forms-v5 .buttons .btn {
+  width: 44px !important;
+  min-width: 44px !important;
+  height: 44px !important;
+  min-height: 44px !important;
+  border-radius: 14px !important;
+  background: #fff !important;
+  color: var(--pmd-v5-green) !important;
+  border: 1px solid rgba(12,39,58,.08) !important;
+  box-shadow: 0 10px 24px rgba(12,39,58,.055) !important;
+}
+
+/* Low contrast help text from audit */
+body.pmd-admin-form-v1.pmd-admin-forms-v5 .help-block,
+body.pmd-admin-form-v1.pmd-admin-forms-v5 .form-text,
+body.pmd-admin-form-v1.pmd-admin-forms-v5 .text-muted,
+body.pmd-admin-form-v1.pmd-admin-forms-v5 small {
+  color: #5b728d !important;
+  font-weight: 750 !important;
+}
+
+/* PMD Admin Forms v6 — coupon repair and compact KDS layout */
+body.pmd-admin-form-v1.pmd-admin-forms-v6[data-pmd-admin-form-page="coupon"] {
+  --pmd-v6-green: #087762;
+  --pmd-v6-ink: #092f2b;
+  --pmd-v6-text: #10283d;
+  --pmd-v6-muted: #4f6984;
+  --pmd-v6-line: rgba(96,190,232,.42);
+  --pmd-v6-line-strong: rgba(96,190,232,.66);
+  --pmd-v6-mint: #f0fff8;
+}
+
+/* Hide generated hero on coupon for now; page header already has title */
+body.pmd-admin-form-v1.pmd-admin-forms-v6[data-pmd-admin-form-page="coupon"] .pmd-admin-form-v1-hero {
+  display: none !important;
+}
+
+/* Form width: not too ocean-wide, not cramped */
+body.pmd-admin-form-v1.pmd-admin-forms-v6[data-pmd-admin-form-page="coupon"] form.pmd-admin-form-v1-form,
+body.pmd-admin-form-v1.pmd-admin-forms-v6[data-pmd-admin-form-page="coupon"] .pmd-form-panel-v1 {
+  max-width: 1240px !important;
+  margin-left: 0 !important;
+  margin-right: auto !important;
+  border-color: var(--pmd-v6-line-strong) !important;
+  border-radius: 24px !important;
+  box-shadow: 0 16px 40px rgba(12,39,58,.035) !important;
+}
+
+/* More readable content width */
+body.pmd-admin-form-v1.pmd-admin-forms-v6[data-pmd-admin-form-page="coupon"] .pmd-form-field-v1 {
+  max-width: 760px !important;
+  margin-bottom: 20px !important;
+}
+
+body.pmd-admin-form-v1.pmd-admin-forms-v6[data-pmd-admin-form-page="coupon"] .pmd-form-field-v1:has(textarea) {
+  max-width: 100% !important;
+}
+
+/* Labels darker */
+body.pmd-admin-form-v1.pmd-admin-forms-v6[data-pmd-admin-form-page="coupon"] .pmd-form-field-v1 > label,
+body.pmd-admin-form-v1.pmd-admin-forms-v6[data-pmd-admin-form-page="coupon"] .pmd-form-field-v1 .control-label,
+body.pmd-admin-form-v1.pmd-admin-forms-v6[data-pmd-admin-form-page="coupon"] .pmd-form-field-v1 label:not(.custom-control-label):not(.form-check-label) {
+  color: var(--pmd-v6-muted) !important;
+  font-size: 11.5px !important;
+  letter-spacing: .20em !important;
+  font-weight: 950 !important;
+}
+
+/* Inputs clean + consistent */
+body.pmd-admin-form-v1.pmd-admin-forms-v6[data-pmd-admin-form-page="coupon"] .pmd-form-field-v1 input,
+body.pmd-admin-form-v1.pmd-admin-forms-v6[data-pmd-admin-form-page="coupon"] .pmd-form-field-v1 select,
+body.pmd-admin-form-v1.pmd-admin-forms-v6[data-pmd-admin-form-page="coupon"] .pmd-form-field-v1 textarea,
+body.pmd-admin-form-v1.pmd-admin-forms-v6[data-pmd-admin-form-page="coupon"] .pmd-form-field-v1 .form-control {
+  min-height: 48px !important;
+  border-radius: 14px !important;
+  border: 1px solid var(--pmd-v6-line) !important;
+  background: #fff !important;
+  color: var(--pmd-v6-text) !important;
+  font-size: 14px !important;
+  font-weight: 750 !important;
+  box-shadow: 0 7px 16px rgba(12,39,58,.018) !important;
+}
+
+body.pmd-admin-form-v1.pmd-admin-forms-v6[data-pmd-admin-form-page="coupon"] .pmd-form-field-v1 textarea {
+  min-height: 90px !important;
+}
+
+/* Segment layout exactly readable */
+body.pmd-admin-form-v1.pmd-admin-forms-v6[data-pmd-admin-form-page="coupon"] .pmd-v6-coupon-card-type,
+body.pmd-admin-form-v1.pmd-admin-forms-v6[data-pmd-admin-form-page="coupon"] .pmd-v6-coupon-discount-type {
+  display: grid !important;
+  gap: 10px !important;
+  max-width: 760px !important;
+}
+
+body.pmd-admin-form-v1.pmd-admin-forms-v6[data-pmd-admin-form-page="coupon"] .pmd-v6-coupon-card-type {
+  grid-template-columns: repeat(3, minmax(150px, 1fr)) !important;
+}
+
+body.pmd-admin-form-v1.pmd-admin-forms-v6[data-pmd-admin-form-page="coupon"] .pmd-v6-coupon-discount-type {
+  grid-template-columns: repeat(2, minmax(180px, 1fr)) !important;
+}
+
+/* Option buttons: always show text */
+body.pmd-admin-form-v1.pmd-admin-forms-v6[data-pmd-admin-form-page="coupon"] .pmd-v6-coupon-option {
+  min-height: 48px !important;
+  border-radius: 14px !important;
+  border: 1px solid var(--pmd-v6-line-strong) !important;
+  background: #fff !important;
+  color: var(--pmd-v6-text) !important;
+  font-size: 13px !important;
+  font-weight: 950 !important;
+  letter-spacing: .12em !important;
+  text-align: center !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  box-shadow: 0 8px 18px rgba(12,39,58,.024) !important;
+  opacity: 1 !important;
+  visibility: visible !important;
+  text-indent: 0 !important;
+  overflow: visible !important;
+}
+
+body.pmd-admin-form-v1.pmd-admin-forms-v6[data-pmd-admin-form-page="coupon"] .pmd-v6-coupon-option *,
+body.pmd-admin-form-v1.pmd-admin-forms-v6[data-pmd-admin-form-page="coupon"] .pmd-v6-coupon-option-text {
+  color: inherit !important;
+  opacity: 1 !important;
+  visibility: visible !important;
+  text-indent: 0 !important;
+  font-size: inherit !important;
+  font-weight: inherit !important;
+  letter-spacing: inherit !important;
+}
+
+/* Backup display if text is hidden by legacy CSS */
+body.pmd-admin-form-v1.pmd-admin-forms-v6[data-pmd-admin-form-page="coupon"] .pmd-v6-coupon-option[data-pmd-v6-label]:empty::after {
+  content: attr(data-pmd-v6-label) !important;
+  color: var(--pmd-v6-text) !important;
+  opacity: 1 !important;
+  visibility: visible !important;
+}
+
+/* Active option */
+body.pmd-admin-form-v1.pmd-admin-forms-v6[data-pmd-admin-form-page="coupon"] .pmd-v6-coupon-option.active,
+body.pmd-admin-form-v1.pmd-admin-forms-v6[data-pmd-admin-form-page="coupon"] .pmd-v6-coupon-option:has(input:checked),
+body.pmd-admin-form-v1.pmd-admin-forms-v6[data-pmd-admin-form-page="coupon"] input[type="radio"]:checked + .pmd-v6-coupon-option,
+body.pmd-admin-form-v1.pmd-admin-forms-v6[data-pmd-admin-form-page="coupon"] input[type="checkbox"]:checked + .pmd-v6-coupon-option {
+  background: linear-gradient(180deg, var(--pmd-v6-mint), #ffffff) !important;
+  color: var(--pmd-v6-green) !important;
+  border-color: rgba(8,119,98,.42) !important;
+  box-shadow:
+    0 12px 26px rgba(8,119,98,.10),
+    inset 0 1px 0 rgba(255,255,255,.92) !important;
+}
+
+/* Help text */
+body.pmd-admin-form-v1.pmd-admin-forms-v6[data-pmd-admin-form-page="coupon"] .help-block,
+body.pmd-admin-form-v1.pmd-admin-forms-v6[data-pmd-admin-form-page="coupon"] .form-text,
+body.pmd-admin-form-v1.pmd-admin-forms-v6[data-pmd-admin-form-page="coupon"] .text-muted,
+body.pmd-admin-form-v1.pmd-admin-forms-v6[data-pmd-admin-form-page="coupon"] small {
+  color: #5b728d !important;
+  font-weight: 750 !important;
+}
+
+/* PMD Admin Forms v7 — coupon discount text repair */
+body.pmd-admin-form-v1.pmd-admin-forms-v7[data-pmd-admin-form-page="coupon"] .pmd-v7-card-type-grid,
+body.pmd-admin-form-v1.pmd-admin-forms-v7[data-pmd-admin-form-page="coupon"] .pmd-v7-discount-type-grid {
+  display: grid !important;
+  gap: 10px !important;
+  max-width: 760px !important;
+}
+
+body.pmd-admin-form-v1.pmd-admin-forms-v7[data-pmd-admin-form-page="coupon"] .pmd-v7-card-type-grid {
+  grid-template-columns: repeat(3, minmax(150px, 1fr)) !important;
+}
+
+body.pmd-admin-form-v1.pmd-admin-forms-v7[data-pmd-admin-form-page="coupon"] .pmd-v7-discount-type-grid {
+  grid-template-columns: repeat(2, minmax(180px, 1fr)) !important;
+}
+
+body.pmd-admin-form-v1.pmd-admin-forms-v7[data-pmd-admin-form-page="coupon"] .pmd-v7-coupon-option {
+  min-height: 48px !important;
+  border-radius: 14px !important;
+  border: 1px solid rgba(96,190,232,.60) !important;
+  background: #fff !important;
+  color: #10283d !important;
+  font-size: 13px !important;
+  font-weight: 950 !important;
+  letter-spacing: .12em !important;
+  text-align: center !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  box-shadow: 0 8px 18px rgba(12,39,58,.024) !important;
+  opacity: 1 !important;
+  visibility: visible !important;
+  text-indent: 0 !important;
+}
+
+body.pmd-admin-form-v1.pmd-admin-forms-v7[data-pmd-admin-form-page="coupon"] .pmd-v7-coupon-option *,
+body.pmd-admin-form-v1.pmd-admin-forms-v7[data-pmd-admin-form-page="coupon"] .pmd-v7-option-text {
+  color: inherit !important;
+  opacity: 1 !important;
+  visibility: visible !important;
+  text-indent: 0 !important;
+  font-size: inherit !important;
+  font-weight: inherit !important;
+  letter-spacing: inherit !important;
+}
+
+body.pmd-admin-form-v1.pmd-admin-forms-v7[data-pmd-admin-form-page="coupon"] .pmd-v7-coupon-option[data-pmd-v7-label]:empty::after {
+  content: attr(data-pmd-v7-label) !important;
+  color: #10283d !important;
+  opacity: 1 !important;
+  visibility: visible !important;
+}
+
+body.pmd-admin-form-v1.pmd-admin-forms-v7[data-pmd-admin-form-page="coupon"] .pmd-v7-coupon-option.active,
+body.pmd-admin-form-v1.pmd-admin-forms-v7[data-pmd-admin-form-page="coupon"] .pmd-v7-coupon-option:has(input:checked) {
+  background: linear-gradient(180deg, #f0fff8, #ffffff) !important;
+  color: #087762 !important;
+  border-color: rgba(8,119,98,.42) !important;
+  box-shadow:
+    0 12px 26px rgba(8,119,98,.10),
+    inset 0 1px 0 rgba(255,255,255,.92) !important;
+}
+
+/* PMD Admin Forms v8 — force coupon option text visibility */
+body.pmd-admin-form-v1.pmd-admin-forms-v8[data-pmd-admin-form-page="coupon"] .pmd-v8-card-type-grid,
+body.pmd-admin-form-v1.pmd-admin-forms-v8[data-pmd-admin-form-page="coupon"] .pmd-v8-discount-type-grid {
+  display: grid !important;
+  gap: 10px !important;
+  max-width: 760px !important;
+}
+
+body.pmd-admin-form-v1.pmd-admin-forms-v8[data-pmd-admin-form-page="coupon"] .pmd-v8-card-type-grid {
+  grid-template-columns: repeat(3, minmax(150px, 1fr)) !important;
+}
+
+body.pmd-admin-form-v1.pmd-admin-forms-v8[data-pmd-admin-form-page="coupon"] .pmd-v8-discount-type-grid {
+  grid-template-columns: repeat(2, minmax(180px, 1fr)) !important;
+}
+
+body.pmd-admin-form-v1.pmd-admin-forms-v8[data-pmd-admin-form-page="coupon"] .pmd-v8-coupon-option {
+  min-height: 48px !important;
+  border-radius: 14px !important;
+  border: 1px solid rgba(96,190,232,.60) !important;
+  background: #fff !important;
+  color: #10283d !important;
+  font-size: 13px !important;
+  font-weight: 950 !important;
+  letter-spacing: .12em !important;
+  text-align: center !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  box-shadow: 0 8px 18px rgba(12,39,58,.024) !important;
+  opacity: 1 !important;
+  visibility: visible !important;
+  text-indent: 0 !important;
+  overflow: visible !important;
+}
+
+body.pmd-admin-form-v1.pmd-admin-forms-v8[data-pmd-admin-form-page="coupon"] .pmd-v8-coupon-option *,
+body.pmd-admin-form-v1.pmd-admin-forms-v8[data-pmd-admin-form-page="coupon"] .pmd-v8-option-text {
+  color: inherit !important;
+  opacity: 1 !important;
+  visibility: visible !important;
+  text-indent: 0 !important;
+  font-size: inherit !important;
+  font-weight: inherit !important;
+  letter-spacing: inherit !important;
+  text-shadow: none !important;
+}
+
+body.pmd-admin-form-v1.pmd-admin-forms-v8[data-pmd-admin-form-page="coupon"] .pmd-v8-coupon-option.active,
+body.pmd-admin-form-v1.pmd-admin-forms-v8[data-pmd-admin-form-page="coupon"] .pmd-v8-coupon-option:has(input:checked) {
+  background: linear-gradient(180deg, #f0fff8, #ffffff) !important;
+  color: #087762 !important;
+  border-color: rgba(8,119,98,.42) !important;
+  box-shadow:
+    0 12px 26px rgba(8,119,98,.10),
+    inset 0 1px 0 rgba(255,255,255,.92) !important;
+}
+
+/* PMD Admin Forms v9 — force readable coupon option text
+ * CSS-only. Uses data-pmd-v8-label generated by v8.
+ * Fixes invisible/faint Voucher / Percentage text.
+ */
+
+body.pmd-admin-form-v1.pmd-admin-forms-v8[data-pmd-admin-form-page="coupon"] .pmd-v8-coupon-option[data-pmd-v8-label] {
+  position: relative !important;
+  min-height: 48px !important;
+  border-radius: 14px !important;
+  border: 1px solid rgba(96,190,232,.62) !important;
+  background: #fff !important;
+  color: transparent !important;
+  font-size: 0 !important;
+  text-indent: 0 !important;
+  overflow: hidden !important;
+  opacity: 1 !important;
+  visibility: visible !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  box-shadow: 0 8px 18px rgba(12,39,58,.024) !important;
+}
+
+/* Hide any broken legacy text/input text, then redraw clean label */
+body.pmd-admin-form-v1.pmd-admin-forms-v8[data-pmd-admin-form-page="coupon"] .pmd-v8-coupon-option[data-pmd-v8-label] > * {
+  color: transparent !important;
+  font-size: 0 !important;
+  opacity: 0 !important;
+  visibility: hidden !important;
+}
+
+body.pmd-admin-form-v1.pmd-admin-forms-v8[data-pmd-admin-form-page="coupon"] .pmd-v8-coupon-option[data-pmd-v8-label]::after {
+  content: attr(data-pmd-v8-label) !important;
+  position: absolute !important;
+  inset: 0 !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  padding: 0 14px !important;
+  color: #10283d !important;
+  font-size: 13px !important;
+  line-height: 1.1 !important;
+  font-weight: 950 !important;
+  letter-spacing: .12em !important;
+  text-align: center !important;
+  text-transform: uppercase !important;
+  opacity: 1 !important;
+  visibility: visible !important;
+  z-index: 3 !important;
+  pointer-events: none !important;
+  text-shadow: none !important;
+}
+
+/* Active / selected state */
+body.pmd-admin-form-v1.pmd-admin-forms-v8[data-pmd-admin-form-page="coupon"] .pmd-v8-coupon-option[data-pmd-v8-label].active,
+body.pmd-admin-form-v1.pmd-admin-forms-v8[data-pmd-admin-form-page="coupon"] .pmd-v8-coupon-option[data-pmd-v8-label]:has(input:checked),
+body.pmd-admin-form-v1.pmd-admin-forms-v8[data-pmd-admin-form-page="coupon"] input[type="radio"]:checked + .pmd-v8-coupon-option[data-pmd-v8-label],
+body.pmd-admin-form-v1.pmd-admin-forms-v8[data-pmd-admin-form-page="coupon"] input[type="checkbox"]:checked + .pmd-v8-coupon-option[data-pmd-v8-label] {
+  background: linear-gradient(180deg, #f0fff8, #ffffff) !important;
+  border-color: rgba(8,119,98,.42) !important;
+  box-shadow:
+    0 12px 26px rgba(8,119,98,.10),
+    inset 0 1px 0 rgba(255,255,255,.92) !important;
+}
+
+body.pmd-admin-form-v1.pmd-admin-forms-v8[data-pmd-admin-form-page="coupon"] .pmd-v8-coupon-option[data-pmd-v8-label].active::after,
+body.pmd-admin-form-v1.pmd-admin-forms-v8[data-pmd-admin-form-page="coupon"] .pmd-v8-coupon-option[data-pmd-v8-label]:has(input:checked)::after,
+body.pmd-admin-form-v1.pmd-admin-forms-v8[data-pmd-admin-form-page="coupon"] input[type="radio"]:checked + .pmd-v8-coupon-option[data-pmd-v8-label]::after,
+body.pmd-admin-form-v1.pmd-admin-forms-v8[data-pmd-admin-form-page="coupon"] input[type="checkbox"]:checked + .pmd-v8-coupon-option[data-pmd-v8-label]::after {
+  color: #087762 !important;
+}
+
+/* Make coupon groups clean and predictable */
+body.pmd-admin-form-v1.pmd-admin-forms-v8[data-pmd-admin-form-page="coupon"] .pmd-v8-card-type-grid {
+  display: grid !important;
+  grid-template-columns: repeat(3, minmax(150px, 1fr)) !important;
+  gap: 10px !important;
+  max-width: 760px !important;
+}
+
+body.pmd-admin-form-v1.pmd-admin-forms-v8[data-pmd-admin-form-page="coupon"] .pmd-v8-discount-type-grid {
+  display: grid !important;
+  grid-template-columns: repeat(2, minmax(180px, 1fr)) !important;
+  gap: 10px !important;
+  max-width: 760px !important;
+}
+
+/* Reduce too much empty panel feeling a bit */
+body.pmd-admin-form-v1.pmd-admin-forms-v8[data-pmd-admin-form-page="coupon"] form.pmd-admin-form-v1-form,
+body.pmd-admin-form-v1.pmd-admin-forms-v8[data-pmd-admin-form-page="coupon"] .pmd-form-panel-v1 {
+  max-width: 1180px !important;
+  margin-left: 0 !important;
+  margin-right: auto !important;
+}
+
+/* Better readable field labels */
+body.pmd-admin-form-v1.pmd-admin-forms-v8[data-pmd-admin-form-page="coupon"] .pmd-form-field-v1 > label,
+body.pmd-admin-form-v1.pmd-admin-forms-v8[data-pmd-admin-form-page="coupon"] .pmd-form-field-v1 .control-label,
+body.pmd-admin-form-v1.pmd-admin-forms-v8[data-pmd-admin-form-page="coupon"] .pmd-form-field-v1 label:not(.custom-control-label):not(.form-check-label) {
+  color: #4f6984 !important;
+  font-size: 11.5px !important;
+  letter-spacing: .20em !important;
+  font-weight: 950 !important;
+}
+
+/* Slightly soften blue border */
+body.pmd-admin-form-v1.pmd-admin-forms-v8[data-pmd-admin-form-page="coupon"] .pmd-form-field-v1 input,
+body.pmd-admin-form-v1.pmd-admin-forms-v8[data-pmd-admin-form-page="coupon"] .pmd-form-field-v1 select,
+body.pmd-admin-form-v1.pmd-admin-forms-v8[data-pmd-admin-form-page="coupon"] .pmd-form-field-v1 textarea,
+body.pmd-admin-form-v1.pmd-admin-forms-v8[data-pmd-admin-form-page="coupon"] .pmd-form-field-v1 .form-control {
+  border-color: rgba(96,190,232,.34) !important;
+  box-shadow: 0 7px 16px rgba(12,39,58,.015) !important;
+}

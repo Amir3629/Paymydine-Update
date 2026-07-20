@@ -1,0 +1,32 @@
+/* PMD v2 customer semantic base classes.
+   Colors must come from html[data-theme="..."] variable files.
+*/
+.pmd-v2-page {
+  background: var(--pmd-v2-page-bg) !important;
+  background-color: var(--pmd-v2-page-bg) !important;
+  color: var(--pmd-v2-text) !important;
+}
+.pmd-v2-card { background: var(--pmd-v2-card-bg); border: 1px solid var(--pmd-v2-frame-border); color: var(--pmd-v2-text); }
+.pmd-v2-card-sub { background: var(--pmd-v2-card-sub-bg); border: 1px solid var(--pmd-v2-frame-border); color: var(--pmd-v2-text); }
+.pmd-v2-action-circle { background: var(--pmd-v2-action-bg); color: var(--pmd-v2-action-text); border: 1px solid var(--pmd-v2-action-border); border-radius: 9999px; }
+.pmd-v2-action-button { background: var(--pmd-v2-action-bg); color: var(--pmd-v2-action-text); border: 1px solid var(--pmd-v2-action-border); }
+.pmd-v2-badge { background: var(--pmd-v2-action-bg); color: var(--pmd-v2-action-text); border: 1px solid var(--pmd-v2-action-border); }
+.pmd-v2-frame { border: 1px solid var(--pmd-v2-frame-border); }
+.pmd-v2-input { background: var(--pmd-v2-input-bg); color: var(--pmd-v2-input-text); border: 1px solid var(--pmd-v2-input-border); }
+.pmd-v2-text { color: var(--pmd-v2-text); }
+.pmd-v2-text-muted { color: var(--pmd-v2-text-muted); }
+.pmd-v2-price { color: var(--pmd-v2-price); }
+.pmd-v2-category-active { background: var(--pmd-v2-category-active); color: var(--pmd-v2-category-active-text); }
+.pmd-v2-pill {
+  background: var(--pmd-v2-context-pill-bg, var(--pmd-v2-action-bg)) !important;
+  background-color: var(--pmd-v2-context-pill-bg, var(--pmd-v2-action-bg)) !important;
+  color: var(--pmd-v2-context-pill-text, var(--pmd-v2-action-text)) !important;
+  border: 1px solid var(--pmd-v2-context-pill-border, var(--pmd-v2-action-border)) !important;
+  border-color: var(--pmd-v2-context-pill-border, var(--pmd-v2-action-border)) !important;
+  border-radius: 9999px;
+}
+.pmd-v2-icon,
+.pmd-v2-action-circle svg,
+.pmd-v2-action-circle svg *,
+.pmd-v2-action-button svg,
+.pmd-v2-action-button svg * { color: currentColor; stroke: currentColor; }

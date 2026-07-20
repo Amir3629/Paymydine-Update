@@ -1,0 +1,168 @@
+/* PMD Waiter V2.6.5 */
+
+/* Remove the complete launcher header. */
+body.pmd-waiter-standard-v23-page .pmd-v2-topbar {
+  display: none !important;
+}
+
+/* Remove every remaining transfer control. */
+body.pmd-waiter-standard-v23-page [data-v243-mode="transfer"],
+body.pmd-waiter-standard-v23-page .v257-operation[data-v257-operation="transfer"],
+body.pmd-waiter-standard-v23-page .v257-operation[data-operation="transfer"],
+body.pmd-waiter-standard-v23-page .v257-transfer,
+body.pmd-waiter-standard-v23-page [data-v257-transfer] {
+  display: none !important;
+}
+
+/* Header is gone, so all fixed rails must begin at the top. */
+body.pmd-waiter-standard-v23-page .v257-operations-rail,
+body.pmd-waiter-standard-v23-page .pmd-v257-operations-rail {
+  top: 0 !important;
+  height: 100vh !important;
+}
+
+/* Keep the main launcher flush with the viewport after header removal. */
+body.pmd-waiter-standard-v23-page .pmd-v2-shell,
+body.pmd-waiter-standard-v23-page .pmd-v2-page,
+body.pmd-waiter-standard-v23-page .pmd-v2-launcher,
+body.pmd-waiter-standard-v23-page .pmd-v2-main {
+  padding-top: 0 !important;
+  margin-top: 0 !important;
+}
+
+/* Right operations rail must fully follow dark mode. */
+body.pmd-waiter-standard-v23-page.pmd-v221-dark .v257-operations-rail,
+body.pmd-waiter-standard-v23-page.pmd-v221-dark .pmd-v257-operations-rail {
+  background: #0b131b !important;
+  border-left-color: #465566 !important;
+  color: #f8fafc !important;
+}
+
+body.pmd-waiter-standard-v23-page.pmd-v221-dark
+.v257-operations-rail .v257-operation,
+body.pmd-waiter-standard-v23-page.pmd-v221-dark
+.pmd-v257-operations-rail .v257-operation {
+  background: #17212b !important;
+  color: #f8fafc !important;
+  border-top-color: #536171 !important;
+  border-right-color: #536171 !important;
+  border-bottom-color: #536171 !important;
+  box-shadow: none !important;
+}
+
+/* There must be no hover/focus colour jump on the right rail. */
+body.pmd-waiter-standard-v23-page
+.v257-operations-rail .v257-operation:hover,
+body.pmd-waiter-standard-v23-page
+.v257-operations-rail .v257-operation:focus,
+body.pmd-waiter-standard-v23-page
+.v257-operations-rail .v257-operation:focus-visible,
+body.pmd-waiter-standard-v23-page
+.v257-operations-rail .v257-operation:active {
+  transform: none !important;
+  box-shadow: none !important;
+  outline: none !important;
+}
+
+body.pmd-waiter-standard-v23-page.pmd-v221-dark
+.v257-operations-rail .v257-operation:hover,
+body.pmd-waiter-standard-v23-page.pmd-v221-dark
+.v257-operations-rail .v257-operation:focus,
+body.pmd-waiter-standard-v23-page.pmd-v221-dark
+.v257-operations-rail .v257-operation:focus-visible,
+body.pmd-waiter-standard-v23-page.pmd-v221-dark
+.v257-operations-rail .v257-operation:active {
+  background: #17212b !important;
+  color: #f8fafc !important;
+  border-top-color: #536171 !important;
+  border-right-color: #536171 !important;
+  border-bottom-color: #536171 !important;
+}
+
+/* NOTE cards must never turn white in dark mode. */
+body.pmd-waiter-standard-v23-page.pmd-v221-dark
+.pmd-v2-table-key.v264-has-note,
+body.pmd-waiter-standard-v23-page.pmd-v221-dark
+.pmd-v2-table-key.v264-has-note:hover,
+body.pmd-waiter-standard-v23-page.pmd-v221-dark
+.pmd-v2-table-key.v264-has-note:focus,
+body.pmd-waiter-standard-v23-page.pmd-v221-dark
+.pmd-v2-table-key.v264-has-note:focus-visible,
+body.pmd-waiter-standard-v23-page.pmd-v221-dark
+.pmd-v2-table-key[data-pmd-has-note="1"],
+body.pmd-waiter-standard-v23-page.pmd-v221-dark
+.pmd-v2-table-key[data-pmd-has-note="1"]:hover,
+body.pmd-waiter-standard-v23-page.pmd-v221-dark
+.pmd-v2-table-key:has(.v257-card-note),
+body.pmd-waiter-standard-v23-page.pmd-v221-dark
+.pmd-v2-table-key:has(.v257-card-note):hover,
+body.pmd-waiter-standard-v23-page.pmd-v221-dark
+.pmd-v2-table-key:has(.pmd-v257-note),
+body.pmd-waiter-standard-v23-page.pmd-v221-dark
+.pmd-v2-table-key:has(.pmd-v257-note):hover {
+  background: #17212b !important;
+  color: #f8fafc !important;
+  border-top: 4px solid #d97706 !important;
+  border-right-color: #b66a0b !important;
+  border-bottom-color: #b66a0b !important;
+  border-left-color: #b66a0b !important;
+  box-shadow: none !important;
+  transform: none !important;
+  outline: none !important;
+}
+
+/* Fixed logout action at the bottom of the left rail. */
+body.pmd-waiter-standard-v23-page .pmd-v265-logout {
+  position: fixed;
+  left: 7px;
+  bottom: 10px;
+  z-index: 80;
+  width: 117px;
+  height: 54px;
+  padding: 0 13px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border: 1px solid #aeb9c5;
+  border-left: 4px solid #dc2626;
+  border-radius: 2px;
+  background: #fff;
+  color: #111827;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 900;
+  letter-spacing: .02em;
+  text-transform: uppercase;
+  cursor: pointer;
+  box-shadow: none;
+}
+
+body.pmd-waiter-standard-v23-page .pmd-v265-logout::after {
+  content: "↪";
+  font-size: 18px;
+  line-height: 1;
+}
+
+body.pmd-waiter-standard-v23-page .pmd-v265-logout:hover,
+body.pmd-waiter-standard-v23-page .pmd-v265-logout:focus,
+body.pmd-waiter-standard-v23-page .pmd-v265-logout:active {
+  background: #fff !important;
+  color: #111827 !important;
+  transform: none !important;
+  box-shadow: none !important;
+  outline: none !important;
+}
+
+body.pmd-waiter-standard-v23-page.pmd-v221-dark .pmd-v265-logout {
+  background: #17212b;
+  color: #f8fafc;
+  border-color: #536171;
+  border-left-color: #ef4444;
+}
+
+body.pmd-waiter-standard-v23-page.pmd-v221-dark .pmd-v265-logout:hover,
+body.pmd-waiter-standard-v23-page.pmd-v221-dark .pmd-v265-logout:focus,
+body.pmd-waiter-standard-v23-page.pmd-v221-dark .pmd-v265-logout:active {
+  background: #17212b !important;
+  color: #f8fafc !important;
+}

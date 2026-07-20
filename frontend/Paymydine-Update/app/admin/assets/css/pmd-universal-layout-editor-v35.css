@@ -1,0 +1,378 @@
+/* PMD Universal Dashboard Layout Editor v35
+   Works for every admin dashboard role, not only Owner.
+   Safe: no MutationObserver, no drag/drop, no backend writes.
+   Saves per-role layout in localStorage.
+   Controls real sizes:
+   - Top KPI frame
+   - Main cards
+   - Floor/Table map
+   - Bottom/Analytics section */
+
+html body.page.pmd-admin-theme-v1 .pmd-universal-layout-trigger-v35 {
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 8px !important;
+  height: 42px !important;
+  padding: 0 15px !important;
+  border-radius: 12px !important;
+  border: 1px solid rgba(15,23,42,.10) !important;
+  background: #fff !important;
+  color: #0f172a !important;
+  font-size: 13px !important;
+  font-weight: 820 !important;
+  cursor: pointer !important;
+  box-shadow: 0 7px 18px rgba(15,23,42,.08) !important;
+  white-space: nowrap !important;
+}
+
+html body.page.pmd-admin-theme-v1 .pmd-universal-layout-trigger-v35.is-active {
+  background: #062f2a !important;
+  color: #fff !important;
+  border-color: #062f2a !important;
+}
+
+html body.page.pmd-admin-theme-v1:not(.pmd-universal-layout-available-v35) .pmd-universal-layout-trigger-v35.pmd-universal-layout-created-v35 {
+  display: none !important;
+}
+
+html body.page.pmd-admin-theme-v1 .pmd-universal-layout-panel-v35 {
+  position: fixed !important;
+  top: 104px !important;
+  right: 24px !important;
+  width: 352px !important;
+  max-width: calc(100vw - 48px) !important;
+  z-index: 100120 !important;
+  display: none !important;
+  border-radius: 18px !important;
+  background: rgba(255,255,255,.985) !important;
+  border: 1px solid rgba(15,23,42,.10) !important;
+  box-shadow: 0 24px 80px rgba(15,23,42,.20) !important;
+  overflow: hidden !important;
+  color: #0f172a !important;
+}
+
+html body.page.pmd-admin-theme-v1.pmd-universal-layout-editing-v35 .pmd-universal-layout-panel-v35 {
+  display: block !important;
+}
+
+html body.page.pmd-admin-theme-v1 .pmd-universal-layout-panel-v35__head {
+  padding: 17px 18px 14px !important;
+  border-bottom: 1px solid rgba(15,23,42,.08) !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  gap: 12px !important;
+}
+
+html body.page.pmd-admin-theme-v1 .pmd-universal-layout-panel-v35__head strong {
+  display: block !important;
+  font-size: 14px !important;
+  font-weight: 900 !important;
+  letter-spacing: -.01em !important;
+}
+
+html body.page.pmd-admin-theme-v1 .pmd-universal-layout-panel-v35__role {
+  display: block !important;
+  margin-top: 3px !important;
+  color: #64748b !important;
+  font-size: 11.5px !important;
+  font-weight: 700 !important;
+}
+
+html body.page.pmd-admin-theme-v1 .pmd-universal-layout-panel-v35__close {
+  width: 32px !important;
+  height: 32px !important;
+  min-width: 32px !important;
+  border: 0 !important;
+  border-radius: 10px !important;
+  background: #f8fafc !important;
+  color: #64748b !important;
+  font-size: 20px !important;
+  line-height: 1 !important;
+  cursor: pointer !important;
+}
+
+html body.page.pmd-admin-theme-v1 .pmd-universal-layout-panel-v35__body {
+  padding: 16px 18px 18px !important;
+}
+
+html body.page.pmd-admin-theme-v1 .pmd-universal-layout-row-v35 {
+  margin: 0 0 16px !important;
+}
+
+html body.page.pmd-admin-theme-v1 .pmd-universal-layout-row-v35 label {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  margin: 0 0 8px !important;
+  color: #334155 !important;
+  font-size: 12px !important;
+  font-weight: 850 !important;
+  text-transform: uppercase !important;
+  letter-spacing: .035em !important;
+}
+
+html body.page.pmd-admin-theme-v1 .pmd-universal-layout-row-v35 label small {
+  color: #94a3b8 !important;
+  font-size: 10.5px !important;
+  font-weight: 700 !important;
+  text-transform: none !important;
+  letter-spacing: 0 !important;
+}
+
+html body.page.pmd-admin-theme-v1 .pmd-universal-layout-segment-v35 {
+  display: grid !important;
+  grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+  gap: 8px !important;
+}
+
+html body.page.pmd-admin-theme-v1 .pmd-universal-layout-segment-v35 button,
+html body.page.pmd-admin-theme-v1 .pmd-universal-layout-actions-v35 button {
+  height: 36px !important;
+  border-radius: 10px !important;
+  border: 1px solid rgba(15,23,42,.10) !important;
+  background: #fff !important;
+  color: #111827 !important;
+  font-size: 12px !important;
+  font-weight: 780 !important;
+  cursor: pointer !important;
+}
+
+html body.page.pmd-admin-theme-v1 .pmd-universal-layout-segment-v35 button.is-selected {
+  background: #062f2a !important;
+  color: #fff !important;
+  border-color: #062f2a !important;
+  box-shadow: 0 8px 18px rgba(6,47,42,.16) !important;
+}
+
+html body.page.pmd-admin-theme-v1 .pmd-universal-layout-actions-v35 {
+  display: grid !important;
+  grid-template-columns: 1fr 1fr !important;
+  gap: 8px !important;
+  margin-top: 8px !important;
+}
+
+html body.page.pmd-admin-theme-v1 .pmd-universal-layout-actions-v35 button[data-action="done"] {
+  background: #062f2a !important;
+  color: #fff !important;
+  border-color: #062f2a !important;
+}
+
+/* Visual outlines while editing */
+html body.page.pmd-admin-theme-v1.pmd-universal-layout-editing-v35 .pmd-dashboard-modern .pmd-layout-group-kpi-v35,
+html body.page.pmd-admin-theme-v1.pmd-universal-layout-editing-v35 .pmd-dashboard-modern .pmd-layout-group-card-v35,
+html body.page.pmd-admin-theme-v1.pmd-universal-layout-editing-v35 .pmd-dashboard-modern .pmd-layout-group-floor-v35,
+html body.page.pmd-admin-theme-v1.pmd-universal-layout-editing-v35 .pmd-dashboard-modern .pmd-layout-group-bottom-v35 {
+  outline: 2px dashed rgba(200,155,74,.78) !important;
+  outline-offset: 5px !important;
+  border-radius: 16px !important;
+}
+
+/* ---------------- TOP KPI / HEADER GROUP ---------------- */
+
+html body.page.pmd-admin-theme-v1 .pmd-dashboard-modern.pmd-layout-kpi-compact-v35 .pmd-layout-group-kpi-v35,
+html body.page.pmd-admin-theme-v1 .pmd-dashboard-modern.pmd-layout-kpi-compact-v35 .pmd-layout-group-kpi-v35 .pmd-role-kpi,
+html body.page.pmd-admin-theme-v1 .pmd-dashboard-modern.pmd-layout-kpi-compact-v35 .pmd-layout-group-kpi-v35 .pmd-dashboard-kpi {
+  height: 112px !important;
+  min-height: 112px !important;
+  max-height: 112px !important;
+}
+
+html body.page.pmd-admin-theme-v1 .pmd-dashboard-modern.pmd-layout-kpi-large-v35 .pmd-layout-group-kpi-v35,
+html body.page.pmd-admin-theme-v1 .pmd-dashboard-modern.pmd-layout-kpi-large-v35 .pmd-layout-group-kpi-v35 .pmd-role-kpi,
+html body.page.pmd-admin-theme-v1 .pmd-dashboard-modern.pmd-layout-kpi-large-v35 .pmd-layout-group-kpi-v35 .pmd-dashboard-kpi {
+  height: 158px !important;
+  min-height: 158px !important;
+  max-height: 158px !important;
+}
+
+html body.page.pmd-admin-theme-v1 .pmd-dashboard-modern.pmd-layout-kpi-compact-v35 .pmd-layout-group-kpi-v35 .pmd-role-kpi,
+html body.page.pmd-admin-theme-v1 .pmd-dashboard-modern.pmd-layout-kpi-compact-v35 .pmd-layout-group-kpi-v35 .pmd-dashboard-kpi {
+  padding: 17px 48px 14px 18px !important;
+}
+html body.page.pmd-admin-theme-v1 .pmd-dashboard-modern.pmd-layout-kpi-large-v35 .pmd-layout-group-kpi-v35 .pmd-role-kpi,
+html body.page.pmd-admin-theme-v1 .pmd-dashboard-modern.pmd-layout-kpi-large-v35 .pmd-layout-group-kpi-v35 .pmd-dashboard-kpi {
+  padding: 24px 76px 20px 26px !important;
+}
+
+html body.page.pmd-admin-theme-v1 .pmd-dashboard-modern.pmd-layout-kpi-compact-v35 .pmd-role-kpi-label,
+html body.page.pmd-admin-theme-v1 .pmd-dashboard-modern.pmd-layout-kpi-compact-v35 .pmd-dashboard-kpi-label {
+  font-size: 10.6px !important;
+  margin-bottom: 11px !important;
+}
+html body.page.pmd-admin-theme-v1 .pmd-dashboard-modern.pmd-layout-kpi-large-v35 .pmd-role-kpi-label,
+html body.page.pmd-admin-theme-v1 .pmd-dashboard-modern.pmd-layout-kpi-large-v35 .pmd-dashboard-kpi-label {
+  font-size: 13.2px !important;
+  margin-bottom: 18px !important;
+}
+
+html body.page.pmd-admin-theme-v1 .pmd-dashboard-modern.pmd-layout-kpi-compact-v35 .pmd-role-kpi-value,
+html body.page.pmd-admin-theme-v1 .pmd-dashboard-modern.pmd-layout-kpi-compact-v35 .pmd-dashboard-kpi-value {
+  font-size: 27px !important;
+  margin-bottom: 8px !important;
+}
+html body.page.pmd-admin-theme-v1 .pmd-dashboard-modern.pmd-layout-kpi-large-v35 .pmd-role-kpi-value,
+html body.page.pmd-admin-theme-v1 .pmd-dashboard-modern.pmd-layout-kpi-large-v35 .pmd-dashboard-kpi-value {
+  font-size: 39px !important;
+  margin-bottom: 13px !important;
+}
+
+html body.page.pmd-admin-theme-v1 .pmd-dashboard-modern.pmd-layout-kpi-compact-v35 .pmd-role-kpi-icon,
+html body.page.pmd-admin-theme-v1 .pmd-dashboard-modern.pmd-layout-kpi-compact-v35 .pmd-dashboard-kpi-icon {
+  width: 38px !important;
+  height: 38px !important;
+  min-width: 38px !important;
+  right: 12px !important;
+  bottom: 17px !important;
+}
+html body.page.pmd-admin-theme-v1 .pmd-dashboard-modern.pmd-layout-kpi-large-v35 .pmd-role-kpi-icon,
+html body.page.pmd-admin-theme-v1 .pmd-dashboard-modern.pmd-layout-kpi-large-v35 .pmd-dashboard-kpi-icon {
+  width: 58px !important;
+  height: 58px !important;
+  min-width: 58px !important;
+  right: 22px !important;
+  bottom: 27px !important;
+}
+
+/* ---------------- MAIN CARD GROUP ---------------- */
+
+html body.page.pmd-admin-theme-v1 .pmd-dashboard-modern.pmd-layout-cards-compact-v35 .pmd-layout-group-card-v35 {
+  height: 230px !important;
+  min-height: 230px !important;
+  max-height: 230px !important;
+  padding: 16px !important;
+  overflow: hidden !important;
+}
+html body.page.pmd-admin-theme-v1 .pmd-dashboard-modern.pmd-layout-cards-large-v35 .pmd-layout-group-card-v35 {
+  height: 350px !important;
+  min-height: 350px !important;
+  max-height: 350px !important;
+  padding: 22px !important;
+  overflow: auto !important;
+}
+
+/* Owner metric cards need slightly different heights */
+html body.page.pmd-admin-theme-v1 .pmd-dashboard-modern.pmd-owner-match-v13.pmd-layout-cards-compact-v35 .pmd-dashboard-card.pmd-layout-group-card-v35 {
+  height: 258px !important;
+  min-height: 258px !important;
+  max-height: 258px !important;
+}
+html body.page.pmd-admin-theme-v1 .pmd-dashboard-modern.pmd-owner-match-v13.pmd-layout-cards-large-v35 .pmd-dashboard-card.pmd-layout-group-card-v35 {
+  height: 334px !important;
+  min-height: 334px !important;
+  max-height: 334px !important;
+}
+
+html body.page.pmd-admin-theme-v1 .pmd-dashboard-modern.pmd-layout-cards-compact-v35 .pmd-dashboard-card-icon,
+html body.page.pmd-admin-theme-v1 .pmd-dashboard-modern.pmd-layout-cards-compact-v35 .pmd-manager-title-icon-v29,
+html body.page.pmd-admin-theme-v1 .pmd-dashboard-modern.pmd-layout-cards-compact-v35 .pmd-manager-title-icon-v30 {
+  width: 40px !important;
+  height: 40px !important;
+  min-width: 40px !important;
+}
+html body.page.pmd-admin-theme-v1 .pmd-dashboard-modern.pmd-layout-cards-large-v35 .pmd-dashboard-card-icon,
+html body.page.pmd-admin-theme-v1 .pmd-dashboard-modern.pmd-layout-cards-large-v35 .pmd-manager-title-icon-v29,
+html body.page.pmd-admin-theme-v1 .pmd-dashboard-modern.pmd-layout-cards-large-v35 .pmd-manager-title-icon-v30 {
+  width: 56px !important;
+  height: 56px !important;
+  min-width: 56px !important;
+}
+
+html body.page.pmd-admin-theme-v1 .pmd-dashboard-modern.pmd-layout-cards-compact-v35 .pmd-dashboard-card-value,
+html body.page.pmd-admin-theme-v1 .pmd-dashboard-modern.pmd-layout-cards-compact-v35 .pmd-manager-finance-value-v29,
+html body.page.pmd-admin-theme-v1 .pmd-dashboard-modern.pmd-layout-cards-compact-v35 .pmd-manager-finance-value-v30 {
+  font-size: 26px !important;
+}
+html body.page.pmd-admin-theme-v1 .pmd-dashboard-modern.pmd-layout-cards-large-v35 .pmd-dashboard-card-value,
+html body.page.pmd-admin-theme-v1 .pmd-dashboard-modern.pmd-layout-cards-large-v35 .pmd-manager-finance-value-v29,
+html body.page.pmd-admin-theme-v1 .pmd-dashboard-modern.pmd-layout-cards-large-v35 .pmd-manager-finance-value-v30 {
+  font-size: 35px !important;
+}
+
+html body.page.pmd-admin-theme-v1 .pmd-dashboard-modern.pmd-layout-cards-compact-v35 .pmd-dashboard-line {
+  height: 29px !important;
+  min-height: 29px !important;
+}
+html body.page.pmd-admin-theme-v1 .pmd-dashboard-modern.pmd-layout-cards-large-v35 .pmd-dashboard-line {
+  height: 41px !important;
+  min-height: 41px !important;
+}
+html body.page.pmd-admin-theme-v1 .pmd-dashboard-modern.pmd-layout-cards-compact-v35 .pmd-dashboard-link {
+  height: 39px !important;
+  min-height: 39px !important;
+}
+html body.page.pmd-admin-theme-v1 .pmd-dashboard-modern.pmd-layout-cards-large-v35 .pmd-dashboard-link {
+  height: 51px !important;
+  min-height: 51px !important;
+}
+
+/* ---------------- FLOOR / MAP GROUP ---------------- */
+
+html body.page.pmd-admin-theme-v1 .pmd-dashboard-modern.pmd-layout-floor-compact-v35 .pmd-layout-group-floor-v35 {
+  height: 440px !important;
+  min-height: 440px !important;
+  max-height: 440px !important;
+  padding: 16px !important;
+  overflow: hidden !important;
+}
+html body.page.pmd-admin-theme-v1 .pmd-dashboard-modern.pmd-layout-floor-large-v35 .pmd-layout-group-floor-v35 {
+  height: 690px !important;
+  min-height: 690px !important;
+  max-height: 690px !important;
+  padding: 22px !important;
+  overflow: auto !important;
+}
+
+html body.page.pmd-admin-theme-v1 .pmd-dashboard-modern.pmd-layout-floor-compact-v35 .pmd-table-tile,
+html body.page.pmd-admin-theme-v1 .pmd-dashboard-modern.pmd-layout-floor-compact-v35 .pmd-manager-table-v29,
+html body.page.pmd-admin-theme-v1 .pmd-dashboard-modern.pmd-layout-floor-compact-v35 .pmd-manager-table-v30 {
+  height: 50px !important;
+  min-height: 50px !important;
+}
+html body.page.pmd-admin-theme-v1 .pmd-dashboard-modern.pmd-layout-floor-large-v35 .pmd-table-tile,
+html body.page.pmd-admin-theme-v1 .pmd-dashboard-modern.pmd-layout-floor-large-v35 .pmd-manager-table-v29,
+html body.page.pmd-admin-theme-v1 .pmd-dashboard-modern.pmd-layout-floor-large-v35 .pmd-manager-table-v30 {
+  height: 82px !important;
+  min-height: 82px !important;
+}
+
+/* Owner floor uses a taller normal baseline; keep compact not too tiny */
+html body.page.pmd-admin-theme-v1 .pmd-dashboard-modern.pmd-owner-match-v13.pmd-layout-floor-compact-v35 .pmd-floor-card.pmd-layout-group-floor-v35 {
+  height: 540px !important;
+  min-height: 540px !important;
+  max-height: 540px !important;
+}
+
+/* ---------------- BOTTOM / ANALYTICS GROUP ---------------- */
+
+html body.page.pmd-admin-theme-v1 .pmd-dashboard-modern.pmd-layout-bottom-compact-v35 .pmd-layout-group-bottom-v35 {
+  height: 190px !important;
+  min-height: 190px !important;
+  max-height: 190px !important;
+  padding: 16px !important;
+  overflow: hidden !important;
+}
+html body.page.pmd-admin-theme-v1 .pmd-dashboard-modern.pmd-layout-bottom-large-v35 .pmd-layout-group-bottom-v35 {
+  height: 360px !important;
+  min-height: 360px !important;
+  max-height: 360px !important;
+  padding: 22px !important;
+  overflow: auto !important;
+}
+
+html body.page.pmd-admin-theme-v1 .pmd-dashboard-modern.pmd-layout-bottom-compact-v35 .pmd-owner-match-footer-v13.pmd-layout-group-bottom-v35 {
+  min-height: 104px !important;
+  height: 104px !important;
+  max-height: 104px !important;
+}
+html body.page.pmd-admin-theme-v1 .pmd-dashboard-modern.pmd-layout-bottom-large-v35 .pmd-owner-match-footer-v13.pmd-layout-group-bottom-v35 {
+  min-height: 154px !important;
+  height: 154px !important;
+  max-height: 154px !important;
+}
+
+/* Disable legacy dashboard edit handles while this editor is active */
+html body.page.pmd-admin-theme-v1.pmd-universal-layout-editing-v35 [data-control="dashboard-container"].edit-mode .widget-item-action,
+html body.page.pmd-admin-theme-v1.pmd-universal-layout-editing-v35 [data-control="dashboard-container"].edit-mode .handle {
+  display: none !important;
+}

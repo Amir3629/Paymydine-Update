@@ -1,0 +1,938 @@
+@media (min-width: 641px) {
+  body.pmd-admin-universal-client-list-active {
+    --pmd-x: 28px;
+    --pmd-gap: 20px;
+    --pmd-radius: 18px;
+    --pmd-border: 1px solid rgba(181, 218, 239, .85);
+    --pmd-bg: rgba(255, 255, 255, .78);
+    --pmd-shadow: 0 18px 45px rgba(12, 39, 58, .05);
+  }
+
+  body.pmd-admin-universal-client-list-active .page-wrapper > .pmd-admin-universal-client-stats,
+  body.pmd-admin-universal-client-list-active .page-wrapper > .pmd-admin-universal-client-card-grid {
+    width: calc(100% - 56px);
+    margin-left: 28px;
+    margin-right: 28px;
+    box-sizing: border-box;
+  }
+
+  body.pmd-admin-universal-client-list-active .page-wrapper > .pmd-admin-universal-client-stats {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 20px;
+    margin-top: 44px;
+    margin-bottom: 20px;
+  }
+
+  body.pmd-admin-universal-client-list-active .page-wrapper > .pmd-admin-universal-client-card-grid {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 20px;
+    margin-bottom: 72px;
+  }
+
+  body.pmd-admin-universal-client-list-active .pmd-admin-universal-client-legacy-host-hidden {
+    display: none !important;
+  }
+
+  .pmd-admin-universal-client-stat {
+    min-height: 112px;
+    border-radius: var(--pmd-radius);
+    border: var(--pmd-border);
+    background: var(--pmd-bg);
+    box-shadow: var(--pmd-shadow);
+    padding: 22px 24px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    position: relative;
+    box-sizing: border-box;
+  }
+
+  .pmd-admin-universal-client-stat span {
+    color: #6b7f94;
+    font-size: 12px;
+    font-weight: 900;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+  }
+
+  .pmd-admin-universal-client-stat strong {
+    display: block;
+    margin-top: 8px;
+    color: #17384e;
+    font-size: 30px;
+    line-height: 1;
+    font-weight: 950;
+  }
+
+  .pmd-admin-universal-client-stat i {
+    width: 44px;
+    height: 44px;
+    border-radius: 16px;
+    display: grid;
+    place-items: center;
+    color: #0f6b5f;
+    background: rgba(15, 107, 95, .09);
+    border: 1px solid rgba(15, 107, 95, .14);
+  }
+
+  .pmd-admin-universal-client-row-card {
+    min-height: 190px;
+    border-radius: var(--pmd-radius);
+    border: var(--pmd-border);
+    background: var(--pmd-bg);
+    box-shadow: var(--pmd-shadow);
+    padding: 18px;
+    box-sizing: border-box;
+    position: relative;
+  }
+
+  .pmd-admin-universal-client-row-card__top {
+    display: flex;
+    justify-content: space-between;
+    gap: 14px;
+    margin-bottom: 18px;
+  }
+
+  .pmd-admin-universal-client-row-card h3 {
+    margin: 0;
+    color: #0f2b3d;
+    font-size: 18px;
+    font-weight: 950;
+    line-height: 1.15;
+  }
+
+  .pmd-admin-universal-client-row-card p {
+    margin: 6px 0 0;
+    color: #6b7f94;
+    font-size: 12px;
+    font-weight: 800;
+    text-transform: capitalize;
+  }
+
+  .pmd-admin-universal-client-row-card__pill {
+    border-radius: 999px;
+    background: rgba(66, 227, 151, .16);
+    color: #06785f;
+    border: 1px solid rgba(66, 227, 151, .28);
+    padding: 8px 12px;
+    font-size: 12px;
+    font-weight: 950;
+    white-space: nowrap;
+  }
+
+  .pmd-admin-universal-client-row-card__details {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 10px;
+  }
+
+  .pmd-admin-universal-client-row-card__detail {
+    border-radius: 14px;
+    border: 1px solid rgba(181, 218, 239, .65);
+    background: rgba(248, 252, 252, .72);
+    padding: 10px 12px;
+    min-height: 54px;
+  }
+
+  .pmd-admin-universal-client-row-card__detail span {
+    color: #6b7f94;
+    font-size: 10px;
+    font-weight: 950;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+  }
+
+  .pmd-admin-universal-client-row-card__detail strong {
+    display: block;
+    margin-top: 5px;
+    color: #0f2b3d;
+    font-size: 13px;
+    font-weight: 850;
+  }
+
+  .pmd-admin-universal-client-row-card__actions {
+    margin-top: 18px;
+  }
+
+  .pmd-admin-universal-client-row-card__btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 38px;
+    padding: 0 16px;
+    border-radius: 11px;
+    background: #087762;
+    color: white;
+    font-weight: 900;
+    text-decoration: none;
+  }
+
+  .pmd-ios-layout-toolbar {
+    position: fixed;
+    top: 16px;
+    right: 190px;
+    z-index: 1300;
+    display: flex;
+    gap: 8px;
+    align-items: center;
+  }
+
+  .pmd-ios-tool-btn {
+    min-height: 42px;
+    padding: 0 15px;
+    border-radius: 14px;
+    border: 1px solid rgba(181, 218, 239, .85);
+    background: rgba(255, 255, 255, .94);
+    color: #0f2b3d;
+    font-weight: 900;
+    box-shadow: 0 14px 34px rgba(12, 39, 58, .09);
+    cursor: pointer;
+  }
+
+  .pmd-ios-tool-btn.danger {
+    color: #8d1b1b;
+  }
+
+  .pmd-ios-tool-btn.danger:disabled {
+    opacity: .38;
+    cursor: not-allowed;
+  }
+
+  .pmd-ios-tool-btn.ghost {
+    color: #087762;
+  }
+
+  body.pmd-ios-edit-mode .pmd-admin-universal-client-stat,
+  body.pmd-ios-edit-mode .pmd-admin-universal-client-row-card {
+    cursor: grab;
+    user-select: none;
+    animation: pmdIosWiggle .54s ease-in-out infinite;
+    transform-origin: center center;
+  }
+
+  body.pmd-ios-edit-mode .pmd-admin-universal-client-stat:active,
+  body.pmd-ios-edit-mode .pmd-admin-universal-client-row-card:active {
+    cursor: grabbing;
+  }
+
+  body.pmd-ios-edit-mode .pmd-admin-universal-client-stat:hover,
+  body.pmd-ios-edit-mode .pmd-admin-universal-client-row-card:hover {
+    outline: 3px solid rgba(8, 119, 98, .16);
+    outline-offset: 3px;
+  }
+
+  .pmd-ios-selected {
+    outline: 3px solid rgba(8, 119, 98, .42) !important;
+    outline-offset: 4px !important;
+    box-shadow: 0 24px 65px rgba(8, 119, 98, .16) !important;
+  }
+
+  .pmd-ios-selected::after {
+    content: "Selected";
+    position: absolute;
+    top: 12px;
+    right: 12px;
+    z-index: 15;
+    border-radius: 999px;
+    background: #087762;
+    color: #fff;
+    padding: 7px 11px;
+    font-size: 11px;
+    font-weight: 950;
+  }
+
+  .pmd-ios-hidden {
+    display: none !important;
+  }
+
+  .pmd-sortable-chosen {
+    transform: scale(1.015);
+  }
+
+  .pmd-sortable-drag {
+    opacity: .95;
+    box-shadow: 0 34px 90px rgba(12, 39, 58, .22) !important;
+    animation: none !important;
+  }
+
+  .pmd-sortable-ghost {
+    opacity: .34 !important;
+    border: 2px dashed rgba(8, 119, 98, .28) !important;
+    background: rgba(8, 119, 98, .045) !important;
+    box-shadow: none !important;
+  }
+
+  body.pmd-ios-sorting {
+    cursor: grabbing;
+  }
+
+  @keyframes pmdIosWiggle {
+    0% { transform: rotate(-.22deg) translateY(0); }
+    50% { transform: rotate(.22deg) translateY(-.4px); }
+    100% { transform: rotate(-.22deg) translateY(0); }
+  }
+
+  @media (min-width: 900px) and (max-width: 1279.98px) {
+    body.pmd-admin-universal-client-list-active .page-wrapper > .pmd-admin-universal-client-card-grid {
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+  }
+
+  @media (max-width: 899.98px) {
+    body.pmd-admin-universal-client-list-active .page-wrapper > .pmd-admin-universal-client-card-grid,
+    body.pmd-admin-universal-client-list-active .page-wrapper > .pmd-admin-universal-client-stats {
+      grid-template-columns: 1fr;
+    }
+  }
+}
+
+/* PMD iOS Motion Polish v17
+ * CSS-only. Do not change drag logic.
+ * Keeps working Sortable v9/v16 behavior, only makes movement feel smoother.
+ */
+@media (min-width: 641px) {
+  body.pmd-ios-sorting .pmd-admin-universal-client-stat,
+  body.pmd-ios-sorting .pmd-admin-universal-client-row-card {
+    animation: none !important;
+    transition:
+      transform 220ms cubic-bezier(.2,.9,.2,1),
+      box-shadow 160ms ease,
+      opacity 160ms ease !important;
+  }
+
+  .pmd-sortable-chosen {
+    animation: none !important;
+    transform: scale(1.012) !important;
+    z-index: 60 !important;
+  }
+
+  .pmd-sortable-drag {
+    animation: none !important;
+    opacity: .97 !important;
+    border-radius: 18px !important;
+    box-shadow: 0 30px 80px rgba(12, 39, 58, .20) !important;
+  }
+
+  .pmd-sortable-ghost {
+    animation: none !important;
+    opacity: .30 !important;
+    border: 2px dashed rgba(8, 119, 98, .24) !important;
+    background: rgba(8, 119, 98, .045) !important;
+    box-shadow: none !important;
+  }
+}
+
+/* PMD iOS Sortable Motion Tune v18
+ * Safe polish only. Drag logic unchanged.
+ */
+@media (min-width: 641px) {
+  .pmd-sortable-chosen {
+    transform: scale(1.008) !important;
+    transition: transform 180ms cubic-bezier(.22,1,.36,1) !important;
+  }
+
+  .pmd-sortable-drag {
+    opacity: .98 !important;
+    box-shadow: 0 34px 88px rgba(12, 39, 58, .20) !important;
+  }
+
+  .pmd-sortable-ghost {
+    opacity: .26 !important;
+    border: 2px dashed rgba(8,119,98,.24) !important;
+    background: rgba(8,119,98,.045) !important;
+  }
+
+  body.pmd-ios-sorting .pmd-admin-universal-client-stat,
+  body.pmd-ios-sorting .pmd-admin-universal-client-row-card {
+    animation: none !important;
+  }
+}
+
+/* PMD iOS Flex Motion v19
+ * CSS-only. Keep Sortable logic stable.
+ * Flex-wrap usually animates smoother than CSS grid in Safari.
+ */
+@media (min-width: 1280px) {
+  body.pmd-admin-universal-client-list-active .page-wrapper > .pmd-admin-universal-client-card-grid {
+    display: flex !important;
+    flex-wrap: wrap !important;
+    gap: 20px !important;
+    align-items: flex-start !important;
+  }
+
+  body.pmd-admin-universal-client-list-active .page-wrapper > .pmd-admin-universal-client-card-grid > .pmd-admin-universal-client-row-card {
+    flex: 0 0 calc((100% - 60px) / 4) !important;
+    max-width: calc((100% - 60px) / 4) !important;
+    min-width: 0 !important;
+  }
+}
+
+@media (min-width: 900px) and (max-width: 1279.98px) {
+  body.pmd-admin-universal-client-list-active .page-wrapper > .pmd-admin-universal-client-card-grid {
+    display: flex !important;
+    flex-wrap: wrap !important;
+    gap: 20px !important;
+    align-items: flex-start !important;
+  }
+
+  body.pmd-admin-universal-client-list-active .page-wrapper > .pmd-admin-universal-client-card-grid > .pmd-admin-universal-client-row-card {
+    flex: 0 0 calc((100% - 40px) / 3) !important;
+    max-width: calc((100% - 40px) / 3) !important;
+    min-width: 0 !important;
+  }
+}
+
+@media (max-width: 899.98px) {
+  body.pmd-admin-universal-client-list-active .page-wrapper > .pmd-admin-universal-client-card-grid {
+    display: flex !important;
+    flex-wrap: wrap !important;
+    gap: 20px !important;
+  }
+
+  body.pmd-admin-universal-client-list-active .page-wrapper > .pmd-admin-universal-client-card-grid > .pmd-admin-universal-client-row-card {
+    flex: 0 0 100% !important;
+    max-width: 100% !important;
+  }
+}
+
+/* Make Sortable visual feedback softer with flex layout */
+@media (min-width: 641px) {
+  body.pmd-ios-sorting .pmd-admin-universal-client-card-grid > .pmd-admin-universal-client-row-card {
+    transition:
+      transform 260ms cubic-bezier(.22, 1, .36, 1),
+      opacity 180ms ease,
+      box-shadow 180ms ease !important;
+  }
+
+  .pmd-sortable-ghost {
+    opacity: .22 !important;
+    transform: scale(.985) !important;
+  }
+
+  .pmd-sortable-chosen {
+    transform: scale(1.01) !important;
+  }
+}
+
+/* PMD iOS FLIP Smooth v20 */
+@media (min-width: 641px) {
+  body.pmd-flip-smooth-active.pmd-ios-sorting .pmd-admin-universal-client-stat,
+  body.pmd-flip-smooth-active.pmd-ios-sorting .pmd-admin-universal-client-row-card {
+    animation: none !important;
+  }
+
+  body.pmd-flip-smooth-active .pmd-sortable-ghost {
+    opacity: .24 !important;
+    border: 2px dashed rgba(8,119,98,.26) !important;
+    background: rgba(8,119,98,.045) !important;
+    box-shadow: none !important;
+  }
+
+  body.pmd-flip-smooth-active .pmd-sortable-drag {
+    opacity: .98 !important;
+    border-radius: 18px !important;
+    box-shadow: 0 34px 88px rgba(12,39,58,.20) !important;
+  }
+}
+
+/* PMD iOS Extra Smooth FLIP v25
+ * Safe polish only. No clone/drop experiment.
+ */
+@media (min-width: 641px) {
+  body.pmd-flip-smooth-active.pmd-ios-sorting .pmd-admin-universal-client-stat,
+  body.pmd-flip-smooth-active.pmd-ios-sorting .pmd-admin-universal-client-row-card {
+    animation: none !important;
+  }
+
+  .pmd-sortable-chosen {
+    transform: scale(1.006) !important;
+  }
+
+  .pmd-sortable-drag {
+    opacity: .985 !important;
+    box-shadow: 0 36px 92px rgba(12,39,58,.20) !important;
+  }
+
+  .pmd-sortable-ghost {
+    opacity: .20 !important;
+    transform: scale(.992) !important;
+  }
+}
+
+/* PMD iOS Pre-Clone Slow Drop v26 */
+@media (min-width: 641px) {
+  .pmd-preclone-drop-v26-real-hidden {
+    visibility: hidden !important;
+  }
+
+  .pmd-preclone-drop-v26-clone {
+    position: fixed !important;
+    margin: 0 !important;
+    z-index: 2147483000 !important;
+    pointer-events: none !important;
+    box-sizing: border-box !important;
+    cursor: grabbing !important;
+    will-change: left, top, width, height, transform !important;
+    opacity: .995 !important;
+    border-radius: 18px !important;
+    box-shadow: 0 38px 96px rgba(12,39,58,.22) !important;
+    transform: translate3d(0,0,0) !important;
+  }
+
+  body.pmd-preclone-drop-v26-active .pmd-sortable-drag,
+  body.pmd-preclone-drop-v26-active .sortable-drag {
+    opacity: 0 !important;
+  }
+}
+
+/* PMD iOS Freeze After Drop v27
+ * Keep v26 smooth landing stable even if mouse moves after release.
+ */
+@media (min-width: 641px) {
+  .pmd-preclone-drop-v26-clone {
+    pointer-events: none !important;
+    user-select: none !important;
+    -webkit-user-select: none !important;
+  }
+}
+
+/* PMD iOS Drop Scroll Lock v28 */
+html.pmd-drop-scroll-lock-v28-active,
+body.pmd-drop-scroll-lock-v28-active {
+  overscroll-behavior: none !important;
+}
+
+/* PMD Universal More Pages Fallback v29 */
+@media (min-width: 641px) {
+  body.pmd-admin-universal-v29-active .pmd-ios-hidden {
+    display: none !important;
+  }
+
+  body.pmd-admin-universal-v29-active.pmd-ios-edit-mode .pmd-admin-universal-client-stat,
+  body.pmd-admin-universal-v29-active.pmd-ios-edit-mode .pmd-admin-universal-client-row-card {
+    cursor: grab !important;
+  }
+
+  body.pmd-admin-universal-v29-active .pmd-admin-universal-client-row-card .btn,
+  body.pmd-admin-universal-v29-active .pmd-admin-universal-client-row-card a.btn {
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    min-height: 38px !important;
+    border-radius: 10px !important;
+    padding: 0 16px !important;
+  }
+}
+
+/* PMD Universal More Pages Safe Insert v30 */
+@media (min-width: 641px) {
+  body.pmd-admin-universal-v30-active .pmd-ios-hidden {
+    display: none !important;
+  }
+
+  body.pmd-admin-universal-v30-active.pmd-ios-edit-mode .pmd-admin-universal-client-stat,
+  body.pmd-admin-universal-v30-active.pmd-ios-edit-mode .pmd-admin-universal-client-row-card {
+    cursor: grab !important;
+  }
+}
+
+/* PMD Universal More Pages Safe Insert v30 */
+@media (min-width: 641px) {
+  body.pmd-admin-universal-v30-active .pmd-ios-hidden {
+    display: none !important;
+  }
+
+  body.pmd-admin-universal-v30-active.pmd-ios-edit-mode .pmd-admin-universal-client-stat,
+  body.pmd-admin-universal-v30-active.pmd-ios-edit-mode .pmd-admin-universal-client-row-card {
+    cursor: grab !important;
+  }
+}
+
+/* PMD Universal More Pages Visual Grid Fix v31
+ * Fix v30 fallback pages: 4 KPI cards + 4-column item cards.
+ * CSS-only. Does not touch drag logic, payment logic, DB, or backend.
+ */
+@media (min-width: 641px) {
+  body.pmd-admin-universal-v30-active .pmd-admin-universal-client-stats {
+    display: grid !important;
+    grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
+    gap: 20px !important;
+    width: 100% !important;
+    max-width: none !important;
+    margin: 24px 0 20px 0 !important;
+    padding: 0 !important;
+  }
+
+  body.pmd-admin-universal-v30-active .pmd-admin-universal-client-stat {
+    position: relative !important;
+    display: flex !important;
+    flex-direction: column !important;
+    justify-content: center !important;
+    min-height: 112px !important;
+    padding: 24px 26px !important;
+    border: 1.5px solid rgba(96, 190, 232, .42) !important;
+    border-radius: 18px !important;
+    background: rgba(255,255,255,.94) !important;
+    box-shadow: 0 14px 34px rgba(10, 37, 55, .055) !important;
+    overflow: hidden !important;
+  }
+
+  body.pmd-admin-universal-v30-active .pmd-admin-universal-client-stat-label {
+    display: block !important;
+    margin-bottom: 8px !important;
+    color: #6f8299 !important;
+    font-size: 12px !important;
+    font-weight: 900 !important;
+    line-height: 1.15 !important;
+    letter-spacing: .16em !important;
+    text-transform: uppercase !important;
+  }
+
+  body.pmd-admin-universal-v30-active .pmd-admin-universal-client-stat-value {
+    color: #17354d !important;
+    font-size: 30px !important;
+    font-weight: 950 !important;
+    line-height: 1 !important;
+  }
+
+  body.pmd-admin-universal-v30-active .pmd-admin-universal-client-stat-icon {
+    position: absolute !important;
+    right: 24px !important;
+    top: 50% !important;
+    width: 44px !important;
+    height: 44px !important;
+    transform: translateY(-50%) !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    border-radius: 16px !important;
+    color: #087762 !important;
+    background: rgba(8,119,98,.09) !important;
+    border: 1px solid rgba(8,119,98,.13) !important;
+    font-size: 0 !important;
+  }
+
+  body.pmd-admin-universal-v30-active .pmd-admin-universal-client-stat-icon::before {
+    content: "" !important;
+    width: 10px !important;
+    height: 10px !important;
+    border-radius: 999px !important;
+    background: #087762 !important;
+    display: block !important;
+  }
+
+  body.pmd-admin-universal-v30-active .pmd-admin-universal-client-card-grid {
+    display: grid !important;
+    grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
+    gap: 20px !important;
+    width: 100% !important;
+    max-width: none !important;
+    margin: 0 0 42px 0 !important;
+    padding: 0 !important;
+    align-items: start !important;
+  }
+
+  body.pmd-admin-universal-v30-active .pmd-admin-universal-client-row-card {
+    position: relative !important;
+    min-width: 0 !important;
+    width: auto !important;
+    min-height: 0 !important;
+    padding: 18px !important;
+    border: 1.5px solid rgba(96, 190, 232, .42) !important;
+    border-radius: 18px !important;
+    background: rgba(255,255,255,.94) !important;
+    box-shadow: 0 14px 34px rgba(10, 37, 55, .055) !important;
+    overflow: hidden !important;
+  }
+
+  body.pmd-admin-universal-v30-active .pmd-admin-universal-client-row-head {
+    display: flex !important;
+    align-items: flex-start !important;
+    justify-content: space-between !important;
+    gap: 14px !important;
+    margin-bottom: 16px !important;
+  }
+
+  body.pmd-admin-universal-v30-active .pmd-admin-universal-client-row-head h3 {
+    margin: 0 0 3px 0 !important;
+    color: #102334 !important;
+    font-size: 18px !important;
+    font-weight: 950 !important;
+    line-height: 1.15 !important;
+  }
+
+  body.pmd-admin-universal-v30-active .pmd-admin-universal-client-row-head span {
+    color: #668098 !important;
+    font-size: 12px !important;
+    font-weight: 800 !important;
+  }
+
+  body.pmd-admin-universal-v30-active .pmd-admin-universal-client-status {
+    flex: 0 0 auto !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    min-height: 38px !important;
+    padding: 0 14px !important;
+    border-radius: 999px !important;
+    color: #087762 !important;
+    background: rgba(36, 225, 137, .16) !important;
+    border: 1px solid rgba(36, 225, 137, .28) !important;
+    font-size: 12px !important;
+    font-weight: 950 !important;
+    white-space: nowrap !important;
+  }
+
+  body.pmd-admin-universal-v30-active .pmd-admin-universal-client-fields {
+    display: grid !important;
+    grid-template-columns: 1fr !important;
+    gap: 10px !important;
+    margin: 0 0 16px 0 !important;
+  }
+
+  body.pmd-admin-universal-v30-active .pmd-admin-universal-client-field {
+    display: flex !important;
+    flex-direction: column !important;
+    justify-content: center !important;
+    min-height: 58px !important;
+    padding: 12px 13px !important;
+    border: 1px solid rgba(96, 190, 232, .36) !important;
+    border-radius: 13px !important;
+    background: rgba(245,250,251,.72) !important;
+  }
+
+  body.pmd-admin-universal-v30-active .pmd-admin-universal-client-field span {
+    display: block !important;
+    margin-bottom: 5px !important;
+    color: #72879d !important;
+    font-size: 10px !important;
+    font-weight: 950 !important;
+    letter-spacing: .15em !important;
+    text-transform: uppercase !important;
+  }
+
+  body.pmd-admin-universal-v30-active .pmd-admin-universal-client-field strong {
+    display: block !important;
+    color: #17354d !important;
+    font-size: 13px !important;
+    font-weight: 900 !important;
+    line-height: 1.25 !important;
+    word-break: break-word !important;
+  }
+
+  body.pmd-admin-universal-v30-active .pmd-admin-universal-client-actions {
+    display: flex !important;
+    align-items: center !important;
+    gap: 10px !important;
+    margin-top: 6px !important;
+  }
+
+  body.pmd-admin-universal-v30-active .pmd-admin-universal-client-actions .btn,
+  body.pmd-admin-universal-v30-active .pmd-admin-universal-client-actions a.btn {
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    min-width: 56px !important;
+    min-height: 38px !important;
+    padding: 0 16px !important;
+    border-radius: 10px !important;
+    background: #087762 !important;
+    border-color: #087762 !important;
+    color: #fff !important;
+    font-size: 13px !important;
+    font-weight: 900 !important;
+    text-decoration: none !important;
+    box-shadow: 0 10px 18px rgba(8,119,98,.16) !important;
+  }
+
+  body.pmd-admin-universal-v30-active .pmd-ios-layout-toolbar {
+    display: inline-flex !important;
+    align-items: center !important;
+    gap: 8px !important;
+  }
+
+  body.pmd-admin-universal-v30-active .pmd-ios-tool-btn {
+    min-height: 38px !important;
+    padding: 0 16px !important;
+    border-radius: 12px !important;
+    font-size: 13px !important;
+    font-weight: 900 !important;
+  }
+}
+
+@media (min-width: 900px) and (max-width: 1279.98px) {
+  body.pmd-admin-universal-v30-active .pmd-admin-universal-client-stats,
+  body.pmd-admin-universal-v30-active .pmd-admin-universal-client-card-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+  }
+}
+
+@media (max-width: 899.98px) {
+  body.pmd-admin-universal-v30-active .pmd-admin-universal-client-stats,
+  body.pmd-admin-universal-v30-active .pmd-admin-universal-client-card-grid {
+    grid-template-columns: 1fr !important;
+  }
+}
+
+/* PMD Universal V30 Sortable Binder v32 */
+@media (min-width: 641px) {
+  body.pmd-admin-universal-v30-active.pmd-ios-edit-mode .pmd-admin-universal-client-stat,
+  body.pmd-admin-universal-v30-active.pmd-ios-edit-mode .pmd-admin-universal-client-row-card {
+    cursor: grab !important;
+    -webkit-user-select: none !important;
+    user-select: none !important;
+  }
+
+  body.pmd-admin-universal-v30-active.pmd-ios-edit-mode .pmd-admin-universal-client-stat:active,
+  body.pmd-admin-universal-v30-active.pmd-ios-edit-mode .pmd-admin-universal-client-row-card:active {
+    cursor: grabbing !important;
+  }
+}
+
+/* PMD Universal V30 Drag Visual Fix v33
+ * Fix broken-looking card while dragging on v30 fallback pages.
+ * CSS-only. Keeps v26/v27/v28 drag/drop logic unchanged.
+ */
+@media (min-width: 641px) {
+  body.pmd-admin-universal-v30-active.pmd-preclone-drop-v26-active .pmd-sortable-drag,
+  body.pmd-admin-universal-v30-active.pmd-preclone-drop-v26-active .sortable-drag {
+    opacity: 0 !important;
+    visibility: hidden !important;
+    pointer-events: none !important;
+  }
+
+  body.pmd-admin-universal-v30-active.pmd-preclone-drop-v26-active .pmd-sortable-chosen,
+  body.pmd-admin-universal-v30-active.pmd-preclone-drop-v26-active .sortable-chosen {
+    opacity: 0 !important;
+    visibility: hidden !important;
+    pointer-events: none !important;
+  }
+
+  body.pmd-admin-universal-v30-active.pmd-preclone-drop-v26-active .pmd-sortable-ghost,
+  body.pmd-admin-universal-v30-active.pmd-preclone-drop-v26-active .sortable-ghost {
+    opacity: .10 !important;
+    visibility: visible !important;
+    background: rgba(8,119,98,.035) !important;
+    border: 2px dashed rgba(8,119,98,.18) !important;
+    box-shadow: none !important;
+    transform: none !important;
+    overflow: hidden !important;
+  }
+
+  body.pmd-admin-universal-v30-active .pmd-preclone-drop-v26-clone {
+    display: block !important;
+    padding: 18px !important;
+    border: 1.5px solid rgba(96, 190, 232, .42) !important;
+    border-radius: 18px !important;
+    background: rgba(255,255,255,.98) !important;
+    box-shadow: 0 38px 96px rgba(12,39,58,.22) !important;
+    overflow: hidden !important;
+    box-sizing: border-box !important;
+  }
+
+  body.pmd-admin-universal-v30-active .pmd-preclone-drop-v26-clone .pmd-admin-universal-client-row-head {
+    display: flex !important;
+    align-items: flex-start !important;
+    justify-content: space-between !important;
+    gap: 14px !important;
+    margin-bottom: 16px !important;
+  }
+
+  body.pmd-admin-universal-v30-active .pmd-preclone-drop-v26-clone h3 {
+    margin: 0 0 3px 0 !important;
+    color: #102334 !important;
+    font-size: 18px !important;
+    font-weight: 950 !important;
+    line-height: 1.15 !important;
+  }
+
+  body.pmd-admin-universal-v30-active .pmd-preclone-drop-v26-clone .pmd-admin-universal-client-fields {
+    display: grid !important;
+    grid-template-columns: 1fr !important;
+    gap: 10px !important;
+    margin: 0 0 16px 0 !important;
+  }
+
+  body.pmd-admin-universal-v30-active .pmd-preclone-drop-v26-clone .pmd-admin-universal-client-field {
+    min-height: 58px !important;
+    padding: 12px 13px !important;
+    border: 1px solid rgba(96, 190, 232, .36) !important;
+    border-radius: 13px !important;
+    background: rgba(245,250,251,.72) !important;
+  }
+
+  body.pmd-admin-universal-v30-active .pmd-preclone-drop-v26-clone .pmd-admin-universal-client-actions {
+    display: flex !important;
+    margin-top: 6px !important;
+  }
+
+  body.pmd-admin-universal-v30-active .pmd-preclone-drop-v26-clone .pmd-admin-universal-client-actions .btn {
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    min-width: 56px !important;
+    min-height: 38px !important;
+    padding: 0 16px !important;
+    border-radius: 10px !important;
+    background: #087762 !important;
+    border-color: #087762 !important;
+    color: #fff !important;
+    font-size: 13px !important;
+    font-weight: 900 !important;
+    text-decoration: none !important;
+  }
+
+  body.pmd-admin-universal-v30-active.pmd-ios-sorting .pmd-admin-universal-client-row-card:not(.pmd-preclone-drop-v26-clone) {
+    transition:
+      transform 520ms cubic-bezier(.16,1,.3,1),
+      box-shadow 180ms ease,
+      opacity 180ms ease !important;
+  }
+}
+
+
+/* PMD New Pages Anti Flash Opacity v40 */
+@media (min-width: 641px) {
+  body.pmd-new-pages-antiflash-clean-v40 [data-pmd-new-pages-legacy-hidden-v40="1"] {
+    display: none !important;
+    visibility: hidden !important;
+    pointer-events: none !important;
+    opacity: 0 !important;
+  }
+}
+
+/* PMD Drag Soft Ghost Cleanup v42
+ * Safer replacement for v41.
+ * CSS-only. Does NOT hide chosen/drag cards.
+ * Only reduces the tiny origin shadow/double-ghost feeling.
+ */
+@media (min-width: 641px) {
+  body.pmd-ios-sorting .pmd-sortable-ghost,
+  body.pmd-ios-sorting .sortable-ghost {
+    opacity: .08 !important;
+    box-shadow: none !important;
+    border: 2px dashed rgba(8,119,98,.14) !important;
+    background: rgba(8,119,98,.02) !important;
+  }
+
+  body.pmd-ios-sorting .pmd-sortable-chosen:not(.pmd-preclone-drop-v26-clone),
+  body.pmd-ios-sorting .sortable-chosen:not(.pmd-preclone-drop-v26-clone) {
+    box-shadow: none !important;
+    outline: none !important;
+  }
+
+  body.pmd-ios-sorting .pmd-sortable-drag:not(.pmd-preclone-drop-v26-clone),
+  body.pmd-ios-sorting .sortable-drag:not(.pmd-preclone-drop-v26-clone) {
+    box-shadow: none !important;
+    outline: none !important;
+  }
+
+  body.pmd-ios-sorting .pmd-preclone-drop-v26-clone {
+    opacity: .995 !important;
+    visibility: visible !important;
+    box-shadow: 0 38px 96px rgba(12,39,58,.22) !important;
+  }
+}

@@ -1,0 +1,1308 @@
+// API Configuration - Dynamic for production
+import { EnvironmentConfig } from './environment-config';
+
+const envConfig = EnvironmentConfig.getInstance();
+const API_BASE_URL = envConfig.getApiBaseUrl();
+const FRONTEND_URL = envConfig.getFrontendUrl();
+
+// Types
+export interface MenuItem {
+  id: number;
+  name: string;
+  nameKey?: string;
+  description: string;
+  descriptionKey?: string;
+  price: number;
+  image: string;
+  images?: string[];
+  gallery?: string[];
+  media?: Array<{ url?: string; image?: string; src?: string }>;
+  category_id?: number;
+  category_name?: string;
+  calories?: number | null;
+  protein?: number | null;
+  carbs?: number | null;
+  fat?: number | null;
+  sugar?: number | null;
+  serving_size?: string | null;
+  color?: string | null;
+  nutrition?: {
+    calories?: number | null;
+    protein?: number | null;
+    carbs?: number | null;
+    fat?: number | null;
+    sugar?: number | null;
+    serving_size?: string | null;
+    disclaimer?: string;
+  } | null;
+  allergens?: string[];
+  allergy_tags?: string[];
+  halal?: boolean;
+  vegetarian?: boolean;
+  vegan?: boolean;
+  stock_qty?: number;
+  minimum_qty?: number;
+  available?: boolean;
+  options?: MenuItemOption[];
+  is_chef_recommended?: boolean;
+  is_bestseller?: boolean;
+  bestseller_source?: 'manual' | 'auto' | null;
+  popularity_count?: number;
+}
+
+export interface MenuItemOption {
+  id: number;
+  name: string;
+  display_type: 'radio' | 'checkbox' | 'select';
+  required: boolean;
+  values: MenuItemOptionValue[];
+}
+
+export interface MenuItemOptionValue {
+  id: number;
+  value: string;
+  price: number;
+  is_default?: boolean;
+}
+
+export interface Category {
+  id: number;
+  name: string;
+  description?: string;
+  image?: string;
+}
+
+export interface MenuResponse {
+  success: boolean;
+  data: {
+    items?: MenuItem[];
+    categories?: Category[];
+    menu_highlight_settings?: any;
+    menu_cache_version?: string;
+    is_frontend_configured?: boolean;
+    setup_status?: {
+      has_categories: boolean;
+      has_menu_items: boolean;
+      has_logo: boolean;
+      has_custom_settings: boolean;
+    };
+  };
+}
+
+export interface OrderRequest {
+  table_id: string | null;
+  table_name?: string;
+  location_id?: number;
+  is_codier?: boolean;
+  items: {
+    menu_id: number;
+    name: string;
+    quantity: number;
+    price: number;
+    special_instructions?: string;
+    options?: Record<string, string>;
+  prep_time_minutes?: number;
+  }[];
+  customer_name: string;
+  customer_email: string;
+  customer_phone?: string;
+  payment_method: 'cash' | 'card' | 'paypal' | 'qr_pay_later';
+  payment_method_raw?: string;
+  payment_provider?: string;
+  payment_reference?: string;
+  total_amount: number;
+  coupon_code?: string | null;
+  coupon_discount?: number;
+  tip_amount?: number;
+  special_instructions?: string;
+  stripe_payment_intent_id?: string;
+  existing_order_id?: number;
+  append_to_order?: boolean;
+  guest_session_id?: string;
+}
+
+
+export type TableOrderDraftItem = {
+  id?: number;
+  menu_id: number;
+  name: string;
+  quantity: number;
+  price: number;
+  subtotal?: number;
+  guest_session_id?: string | null;
+  options?: Record<string, string>;
+  order_menu_id?: number;
+  paid_quantity?: number;
+  unpaid_quantity?: number;
+};
+
+export type TableOrderDraftResponse = {
+  success: boolean;
+  status?: 'empty' | 'draft' | 'submitted_unpaid' | 'partially_paid' | 'paid';
+  draft_id?: number | null;
+  order_id?: number | null;
+  orderId?: number | null;
+  orderNumber?: number | string | null;
+  table_id?: string | null;
+  table_no?: string | null;
+  table_name?: string | null;
+  items?: TableOrderDraftItem[];
+  groups?: Array<{ guest_session_id: string | null; items: TableOrderDraftItem[]; subtotal: number }>;
+  totals?: { subtotal: number; tax?: number; total: number; orderTotal?: number; settledAmount?: number; remainingAmount?: number };
+  order_totals?: Array<{ code: string; title: string; value: number; priority?: number; is_summable?: number }>;
+  settlement?: { orderTotal: number; settledAmount: number; remainingAmount: number; settlementStatus: string };
+  payment?: string | null;
+  status_name?: string | null;
+  paymentStatus?: 'paid' | 'partial' | 'unpaid' | string;
+  deliveryStatus?: string | null;
+  hasActiveTableOrder?: boolean;
+  canShowToNewDevice?: boolean;
+  updatedAt?: string | null;
+  total?: number;
+  message?: string;
+  error?: string;
+};
+
+export type TableOrderDraftContext = {
+  table_id?: string | number | null;
+  table_no?: string | number | null;
+  qr?: string | null;
+};
+
+export interface OrderResponse {
+  success: boolean;
+  message: string;
+  order_id?: number;
+}
+
+export interface PendingQrOrderResponse {
+  success: boolean;
+  data?: {
+    order_id: number;
+    table_id: string;
+    payment: string;
+    status_id: number;
+    order_total: number;
+    items: Array<{
+      order_menu_id?: number;
+      menu_id: number;
+      name: string;
+      quantity: number;
+      price: number;
+      subtotal: number;
+    }>;
+  } | null;
+  error?: string;
+}
+
+export interface RestaurantInfo {
+  id: number;
+  name: string;
+  address: string;
+  city?: string;
+  state?: string;
+  telephone: string;
+  description: string;
+  logo?: string | null;
+}
+
+export interface OrderStatusResponse {
+  success: boolean;
+  data: {
+    order_id: number;
+    status_id: number;
+    status_name: string;
+    customer_status: number; // 0=Kitchen, 1=Preparing, 2=On Way
+    updated_at: string;
+  };
+}
+
+export interface PaymentMethod {
+  code: string;
+  name: string;
+  priority?: number;
+  provider_code?: string | null;
+  enabled?: boolean;
+}
+
+export interface WorldlineInlineSessionResponse {
+  success: boolean;
+  session?: {
+    clientSessionId: string;
+    customerId: string;
+    clientApiUrl: string;
+    assetUrl: string;
+    environment?: string;
+  };
+  error?: string;
+}
+
+// Fallback data for offline mode - No default food items
+const fallbackMenuData: MenuResponse = {
+  success: true,
+  data: {
+    items: [],
+    categories: []
+  }
+};
+
+const fallbackRestaurantInfo: RestaurantInfo = {
+  id: 1,
+  name: "Restaurant",
+  address: "",
+  city: "",
+  state: "",
+  telephone: "",
+  description: ""
+};
+
+import { MultiTenantConfig } from './multi-tenant-config';
+
+const multiTenantConfig = MultiTenantConfig.getInstance();
+
+// API Client Class
+import type { ThemeSettings } from '@/store/theme-store'
+
+
+// SAFE_JSON_START
+const normalizeForJson = (value: any, seen = new WeakSet()): any => {
+  if (value == null) return value
+
+  const t = typeof value
+  if (t === "string" || t === "number" || t === "boolean") return value
+  if (t === "bigint") return value.toString()
+  if (t === "function" || t === "symbol") return undefined
+
+  if (value instanceof Date) return value.toISOString()
+
+  if (typeof window !== "undefined") {
+    if (
+      value === window ||
+      value === document ||
+      value instanceof Event ||
+      value instanceof Element ||
+      value instanceof Node
+    ) {
+      return undefined
+    }
+  }
+
+  if (typeof value !== "object") return value
+  if (seen.has(value)) return undefined
+  seen.add(value)
+
+  if (Array.isArray(value)) {
+    return value
+      .map((item) => normalizeForJson(item, seen))
+      .filter((item) => item !== undefined)
+  }
+
+  const out: Record<string, any> = {}
+  for (const key of Object.keys(value)) {
+    try {
+      const normalized = normalizeForJson((value as Record<string, any>)[key], seen)
+      if (normalized !== undefined) out[key] = normalized
+    } catch {
+      // Skip unreadable / cross-origin properties
+    }
+  }
+  return out
+}
+
+const safeJsonStringify = (value: any) => JSON.stringify(normalizeForJson(value) ?? null)
+// SAFE_JSON_END
+
+export class ApiClient {
+  private baseURL: string;
+  private envConfig: EnvironmentConfig;
+
+  constructor(baseURL: string = API_BASE_URL) {
+    this.baseURL = baseURL;
+    this.envConfig = EnvironmentConfig.getInstance();
+  }
+
+  private async request<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
+    const url = `${this.baseURL}${endpoint}`;
+
+    const config: RequestInit = {
+      headers: {
+        'Accept': 'application/json',
+        'Content-Type': 'application/json',
+        ...options.headers,
+      },
+      ...options,
+    };
+
+    try {
+      const response = await fetch(url, config);
+
+      if (!response.ok) {
+        const msg = await response.text().catch(() => '');
+        throw new Error(`HTTP ${response.status} ${response.statusText} @ ${endpoint}: ${msg}`);
+      }
+
+      const data = await response.json();
+      return data;
+    } catch (error) {
+      console.error(`API request failed for ${endpoint}:`, error);
+      throw error;
+    }
+  }
+
+  private getApiBaseUrl(): string {
+    return multiTenantConfig.getApiBaseUrl();
+  }
+
+  async getMenu(): Promise<MenuResponse> {
+    try {
+      const endpoint = this.envConfig.getApiEndpoint('/menu');
+      // Add cache-busting parameter - handle SSR safely
+      let url: URL;
+      if (endpoint.startsWith('http')) {
+        url = new URL(endpoint);
+      } else {
+        // For relative URLs, provide a base URL for SSR
+        const base = typeof window !== 'undefined'
+          ? window.location.origin
+          : (process.env.NEXT_PUBLIC_SITE_URL || 'https://amir.paymydine.com');
+        url = new URL(endpoint, base);
+      }
+      url.searchParams.set('_t', Date.now().toString());
+      const response = await fetch(url.toString());
+      const data = await response.json();
+      return data;
+    } catch (error) {
+      console.error('Failed to fetch menu from API, using fallback:', error);
+      // FIXED: Return fallback data instead of throwing error
+      return fallbackMenuData;
+    }
+  }
+
+  async getCategories(): Promise<{ success: boolean; data: Category[] }> {
+    try {
+      const endpoint = this.envConfig.getApiEndpoint('/categories');
+      const response = await fetch(endpoint);
+      const data = await response.json();
+      return data;
+    } catch (error) {
+      console.log('Using fallback categories due to API error:', error);
+      return {
+        success: true,
+        data: fallbackMenuData.data.categories || []
+      };
+    }
+  }
+
+  async getMenuItems(categoryId?: number): Promise<{ success: boolean; data: MenuItem[] }> {
+    try {
+      const menuResponse = await this.getMenu();
+      const rawMenuData = menuResponse?.data;
+      let items: MenuItem[] = Array.isArray(rawMenuData)
+        ? rawMenuData
+        : (Array.isArray(rawMenuData?.items) ? rawMenuData.items : []);
+
+      if (categoryId) {
+        items = items.filter((item: MenuItem) => item.category_id === categoryId);
+      }
+
+      return {
+        success: true,
+        data: items
+      };
+    } catch (error) {
+      console.log('Using fallback menu items due to API error:', error);
+      const fallbackData = fallbackMenuData?.data;
+      return {
+        success: true,
+        data: Array.isArray(fallbackData)
+          ? fallbackData
+          : (Array.isArray(fallbackData?.items) ? fallbackData.items : [])
+      };
+    }
+  }
+
+  async getPaymentMethods(): Promise<PaymentMethod[]> {
+    try {
+      const endpoint = this.envConfig.getApiEndpoint('/payments');
+      const response = await fetch(endpoint);
+
+      if (!response.ok) {
+        const errorText = await response.text().catch(() => '');
+        console.error('[PMD /orders error body]', errorText);
+        throw new Error(`HTTP ${response.status} ${response.statusText}: ${errorText}`);
+      }
+
+      const data = await response.json();
+      const rawMethods = Array.isArray(data) ? data : (Array.isArray(data?.data) ? data.data : null);
+      if (!rawMethods) {
+        return [];
+      }
+
+      const normalized = rawMethods.map((method: any, index: number) => {
+        const legacyCode = String(method?.code || "").toLowerCase();
+        const code = legacyCode === "stripe" ? "card" : legacyCode;
+        const fallbackName = code === "card" ? "Card" : String(method?.name || code);
+        return {
+          code,
+          name: String(method?.name || fallbackName),
+          priority: Number(method?.priority ?? index + 1),
+          provider_code: method?.provider_code ?? null,
+          enabled: method?.enabled ?? true,
+        } as PaymentMethod;
+      });
+
+      return normalized.sort((a: PaymentMethod, b: PaymentMethod) => Number(a.priority || 0) - Number(b.priority || 0));
+    } catch (error) {
+      console.error('Failed to fetch payment methods:', error);
+      return [];
+    }
+  }
+
+  async submitOrder(order: OrderRequest): Promise<OrderResponse> {
+    try {
+      const endpoint = this.envConfig.getApiEndpoint('/orders');
+      const response = await fetch(endpoint, {
+        method: 'POST',
+        headers: {
+          'Accept': 'application/json',
+          'Content-Type': 'application/json',
+        },
+        body: safeJsonStringify(order),
+      });
+
+      if (!response.ok) {
+        const responseText = await response.text().catch(() => '');
+        let parsedBody: any = null;
+        try {
+          parsedBody = responseText ? JSON.parse(responseText) : null;
+        } catch {
+          parsedBody = null;
+        }
+
+        if (process.env.NODE_ENV !== 'production') {
+          console.error('[PMD submitOrder non-200]', {
+            status: response.status,
+            message: parsedBody?.message || parsedBody?.error || null,
+            details: parsedBody?.details || null,
+            body: parsedBody ?? responseText,
+          });
+        } else {
+          console.error('[PMD submitOrder non-200]', {
+            status: response.status,
+            message: parsedBody?.message || parsedBody?.error || 'Request failed',
+          });
+        }
+
+        const apiMessage = parsedBody?.message || parsedBody?.error || `HTTP error! status: ${response.status}`;
+        const error = new Error(apiMessage) as Error & { status?: number; details?: Record<string, string[]> };
+        error.status = response.status;
+        error.details = parsedBody?.details;
+        throw error;
+      }
+
+      const data = await response.json();
+      return data;
+    } catch (error) {
+      console.error('Order submission failed:', error);
+      throw error; // Force the error instead of using mock response
+    }
+  }
+
+  async createWorldlineInlineSession(amount: number, currency: string): Promise<WorldlineInlineSessionResponse> {
+    const endpoint = this.envConfig.getApiEndpoint('/payments/worldline/inline/session');
+    const response = await fetch(endpoint, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ amount, currency }),
+    });
+    return response.json();
+  }
+
+  async createWorldlineInlinePayment(payload: {
+    amount: number;
+    currency: string;
+    paymentProductId: number;
+    encryptedCustomerInput: string;
+    encodedClientMetaInfo?: string;
+    cardholderName?: string;
+    email?: string;
+    phone?: string;
+  }): Promise<any> {
+    const endpoint = this.envConfig.getApiEndpoint('/payments/worldline/inline/create-payment');
+    const response = await fetch(endpoint, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    });
+    return response.json();
+  }
+
+  async verifyWorldlineInlinePayment(paymentId: string): Promise<any> {
+    const endpoint = this.envConfig.getApiEndpoint('/payments/worldline/inline/verify');
+    const response = await fetch(endpoint, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ payment_id: paymentId }),
+    });
+    return response.json();
+  }
+
+  // Removed duplicate method - using the one below instead
+
+  async getUserOrders(userId: number): Promise<{ success: boolean; data: any[] }> {
+    try {
+      const endpoint = this.envConfig.getApiEndpoint(`/user/${userId}/orders`);
+      const response = await fetch(endpoint);
+      const data = await response.json();
+      return data;
+    } catch (error) {
+      console.log('User orders fetch failed:', error);
+      return {
+        success: true,
+        data: []
+      };
+    }
+  }
+
+  async getTableByQrCode(qrCode: string): Promise<{ success: boolean; data?: any; message?: string }> {
+    try {
+      // This would typically decode the QR code and return table info
+      return {
+        success: true,
+        data: {
+          table_id: "7",
+          table_name: "Table 7",
+          restaurant_id: 1
+        }
+      };
+    } catch (error) {
+      console.log('QR code processing failed:', error);
+      return {
+        success: false,
+        message: 'Invalid QR code'
+      };
+    }
+  }
+
+  async callWaiter(tableId: string, message: string): Promise<{ success: boolean; message: string }> {
+    try {
+      const endpoint = this.envConfig.getApiEndpoint('/waiter-call');
+      // normalize inputs
+      const safeTableId = String(tableId ?? '').trim();
+      const safeMessage = (message ?? '').trim();
+      if (!safeTableId) throw new Error('Missing table_id');
+
+      if (typeof window !== 'undefined') {
+        const cooldownMs = 3 * 60 * 1000;
+        const cooldownKey = `pmd-waiter-call-cooldown:${safeTableId}`;
+        const lastCallAt = Number(window.localStorage.getItem(cooldownKey) || 0);
+        const remainingMs = cooldownMs - (Date.now() - lastCallAt);
+        if (lastCallAt && remainingMs > 0) {
+          const remainingSeconds = Math.ceil(remainingMs / 1000);
+          const minutes = Math.floor(remainingSeconds / 60);
+          const seconds = String(remainingSeconds % 60).padStart(2, '0');
+          throw new Error(`Waiter already notified. You can call again in ${minutes}:${seconds}.`);
+        }
+        window.localStorage.setItem(cooldownKey, String(Date.now()));
+      }
+
+      const response = await fetch(endpoint, {
+        method: 'POST',
+        headers: {
+          'Accept': 'application/json',
+          'Content-Type': 'application/json',
+        },
+        body: safeJsonStringify({ table_id: safeTableId, message: safeMessage }),
+      });
+
+      if (!response.ok) {
+        if (typeof window !== 'undefined') {
+          try {
+            window.localStorage.removeItem(`pmd-waiter-call-cooldown:${safeTableId}`);
+          } catch {}
+        }
+        // Try to read API validation message
+        let errMsg = `HTTP ${response.status}`;
+        try { const j = await response.json(); if (j?.message) errMsg = j.message; } catch {}
+        throw new Error(errMsg);
+      }
+
+      const data = await response.json();
+      return data;
+    } catch (error) {
+      console.error('Waiter call failed:', error);
+      throw error; // Force the error instead of using mock response
+    }
+  }
+
+  async callTableNote(
+    tableId: string | number,
+    note: string,
+    timestamp?: string
+  ): Promise<{ ok?: boolean; success?: boolean; message: string; id?: number }> {
+    const body = {
+      table_id: String(tableId),                 // <- ensure string (backend expects string)
+      note: (note ?? '').trim(),                 // <- no null/whitespace
+      timestamp: timestamp ?? new Date().toISOString(), // <- always present
+    };
+
+    try {
+      const endpoint = this.envConfig.getApiEndpoint('/table-notes');
+      const res = await fetch(endpoint, {
+        method: 'POST',
+        headers: { Accept: 'application/json', 'Content-Type': 'application/json' },
+        body: safeJsonStringify(body),
+      });
+
+      if (!res.ok) {
+        // read server message so 422 explains itself in console/toast
+        const msg = await res.text();
+        throw new Error(`HTTP ${res.status} ${res.statusText}: ${msg}`);
+      }
+
+      return await res.json();
+    } catch (err) {
+      console.error('Table note failed:', err);
+      throw err;
+    }
+  }
+
+  // Optional: valet creates a notification too
+  async createValetRequest(input: {
+    name: string;
+    license_plate: string;
+    car_make?: string;
+    table_id?: string;
+    table_no?: string;
+    qr?: string;
+  }): Promise<{ ok?: boolean; success?: boolean; message: string; id?: number; notification_id?: number; created_at?: string }> {
+    try {
+      const endpoint = this.envConfig.getApiEndpoint('/valet-request');
+      const payload = {
+        ...input,
+        // Compatibility with the legacy /api/v1 valet route, which expects customer_name.
+        customer_name: input.name,
+        // The active guest-actions route accepts nullable car_make; the legacy route requires it.
+        car_make: input.car_make || 'Not provided',
+      };
+      const body = safeJsonStringify(Object.fromEntries(
+        Object.entries(payload).filter(([, v]) => v !== undefined && v !== '')
+      ));
+      const response = await fetch(endpoint, {
+        method: 'POST',
+        headers: { 'Accept': 'application/json', 'Content-Type': 'application/json' },
+        body,
+      });
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok || data?.success === false || data?.ok === false) {
+        throw new Error(data?.message || data?.error || `HTTP error! status: ${response.status}`);
+      }
+      return data;
+    } catch (error) {
+      console.error('Valet request failed:', error);
+      throw error;
+    }
+  }
+
+  async getSettings(): Promise<{ success: boolean; data: any }> {
+    try {
+      const endpoint = this.envConfig.getApiEndpoint('/settings');
+      const response = await fetch(endpoint);
+      const data = await response.json();
+      return data;
+    } catch (error) {
+      console.log('Settings fetch failed:', error);
+      return {
+        success: true,
+        data: {
+          restaurant_name: 'PayMyDine Restaurant',
+          currency: 'EUR',
+          vat_rate: 0.19,
+          service_charge: 0.10,
+        }
+      };
+    }
+  }
+
+  async getVATSettings(): Promise<{ success: boolean; data: any }> {
+    try {
+      // Try /vat-settings endpoint first (like /simple-theme).
+      const base = typeof window !== 'undefined' ? window.location.origin : this.getApiBaseUrl();
+      const res = await fetch(this.envConfig.getApiEndpoint('/vat-settings'), { headers: { Accept: 'application/json' } });
+      if (res.ok) {
+        const json = await res.json();
+        return json;
+      }
+      // Fallback: try to get from /settings endpoint
+      const settingsRes = await this.getSettings();
+      const settingsData = settingsRes?.data || settingsRes;
+      if (settingsData && (settingsData.vat_mode !== undefined || settingsData.tax_mode !== undefined)) {
+        const data = settingsData;
+        return {
+          success: true,
+          data: {
+            vat_mode: data.vat_mode || data.tax_mode || '0',
+            vat_percentage: data.vat_percentage || data.tax_percentage || '0',
+            vat_menu_price: data.vat_menu_price || data.tax_menu_price || '1',
+            tax_mode: data.tax_mode || data.vat_mode || '0',
+            tax_percentage: data.tax_percentage || data.vat_percentage || '0',
+            tax_menu_price: data.tax_menu_price || data.vat_menu_price || '1',
+          }
+        };
+      }
+      // If not found, return defaults
+      throw new Error('VAT settings not found');
+    } catch (error) {
+      console.error('Failed to fetch VAT settings:', error);
+      // Return default VAT settings
+      return {
+        success: true,
+        data: {
+          vat_mode: '0',
+          vat_percentage: '0',
+          vat_menu_price: '1',
+          tax_mode: '0',
+          tax_percentage: '0',
+          tax_menu_price: '1',
+        }
+      };
+    }
+  }
+
+  async getTaxSettings(): Promise<{ success: boolean; data: any }> {
+    return this.getVATSettings();
+  }
+
+  async validateCoupon(code: string, subtotal: number): Promise<{ success: boolean; data?: any; message?: string }> {
+    try {
+      const endpoint = this.envConfig.getApiEndpoint('/validate-coupon');
+      const res = await fetch(endpoint, {
+        method: 'POST',
+        headers: {
+          'Accept': 'application/json',
+          'Content-Type': 'application/json',
+        },
+        body: safeJsonStringify({ code, subtotal, amount: subtotal }),
+      });
+
+      if (!res.ok) {
+        const errorData = await res.json().catch(() => ({ message: 'Failed to validate coupon' }));
+        return {
+          success: false,
+          message: errorData.message || 'Failed to validate coupon',
+        };
+      }
+
+      const json = await res.json();
+      return json;
+    } catch (error) {
+      console.error('Failed to validate coupon:', error);
+      return {
+        success: false,
+        message: 'Failed to validate coupon',
+      };
+    }
+  }
+
+
+  // PMD_REVIEW_INVOICE_API_CLIENT_20260605
+  async submitReview(payload: {
+    order_id?: number | string | null;
+    rating?: number;
+    review?: string;
+    public_share_consent?: boolean | null;
+  }): Promise<{ success: boolean; data?: any; message?: string; error?: string }> {
+    const endpoint = this.envConfig.getApiEndpoint('/reviews');
+    const response = await fetch(endpoint, {
+      method: 'POST',
+      headers: { Accept: 'application/json', 'Content-Type': 'application/json' },
+      body: safeJsonStringify(payload),
+    });
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok || data?.success === false) {
+      throw new Error(data?.error || data?.message || 'Failed to submit review');
+    }
+    return data;
+  }
+
+  getBusinessInvoiceUrl(orderId: number | string): string {
+    return this.envConfig.getApiEndpoint(`/orders/${encodeURIComponent(String(orderId))}/business-invoice`);
+  }
+
+  async downloadBusinessInvoice(orderId: number | string): Promise<Blob> {
+    const response = await fetch(this.getBusinessInvoiceUrl(orderId), { headers: { Accept: 'application/pdf' } });
+    if (!response.ok) {
+      const message = await response.text().catch(() => 'Failed to download business invoice');
+      throw new Error(message || 'Failed to download business invoice');
+    }
+    return response.blob();
+  }
+
+  async getRestaurantInfo(locationId: number = 1): Promise<{ success: boolean; data: RestaurantInfo }> {
+    try {
+      const endpoint = this.envConfig.getApiEndpoint(`/restaurant`);
+      const response = await fetch(endpoint);
+      const data = await response.json();
+      return data;
+    } catch (error) {
+      console.log('Restaurant info fetch failed, using fallback:', error);
+      return {
+        success: true,
+        data: fallbackRestaurantInfo
+      };
+    }
+  }
+
+  async getOrderStatus(orderId: number): Promise<OrderStatusResponse> {
+    try {
+      const endpoint = this.envConfig.getApiEndpoint(`/order-status?order_id=${orderId}`);
+      const response = await fetch(endpoint);
+      const data = await response.json();
+      return data;
+    } catch (error) {
+      console.error('Order status fetch failed:', error);
+      throw error;
+    }
+  }
+
+  async updateOrderStatus(orderId: number, statusId: number): Promise<{ success: boolean; message: string }> {
+    try {
+      const endpoint = this.envConfig.getApiEndpoint('/order-status');
+      const response = await fetch(endpoint, {
+        method: 'POST',
+        headers: {
+          'Accept': 'application/json',
+          'Content-Type': 'application/json',
+        },
+        body: safeJsonStringify({
+          order_id: orderId,
+          status_id: statusId
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const data = await response.json();
+      return data;
+    } catch (error) {
+      console.error('Order status update failed:', error);
+      throw error;
+    }
+  }
+
+  // Table-specific methods
+  async getTableInfo(tableId: string, qrCode?: string, useTableNo: boolean = false): Promise<{ success: boolean; data?: any; error?: string }> {
+    try {
+      const params = new URLSearchParams();
+      if (tableId) {
+        if (useTableNo) {
+          params.append('table_no', tableId);
+        } else {
+          params.append('table_id', tableId);
+        }
+      }
+      if (qrCode) params.append('qr_code', qrCode);
+
+      const endpoint = this.envConfig.getApiEndpoint(`/table-info?${params}`);
+      const response = await fetch(endpoint);
+      const data = await response.json();
+      return data;
+    } catch (error) {
+      console.error('Table info fetch failed:', error);
+      return { success: false, error: 'Failed to fetch table information' };
+    }
+  }
+
+  async getTableMenu(tableId: string, locationId?: number): Promise<MenuResponse> {
+    try {
+      const params = new URLSearchParams();
+      params.append('table_id', tableId);
+      if (locationId) params.append('location_id', locationId.toString());
+
+      const endpoint = this.envConfig.getApiEndpoint(`/table-menu?${params.toString()}`);
+      const response = await fetch(endpoint);
+      const data = await response.json();
+      return data;
+    } catch (error) {
+      console.log('Table menu fetch failed, using fallback:', error);
+      return fallbackMenuData;
+    }
+  }
+
+  async getTableOrders(tableId: string): Promise<{ success: boolean; data?: any[]; error?: string }> {
+    try {
+      const endpoint = this.envConfig.getApiEndpoint(`/table-orders?table_id=${tableId}`);
+      const response = await fetch(endpoint);
+      const data = await response.json();
+      return data;
+    } catch (error) {
+      console.error('Table orders fetch failed:', error);
+      return { success: false, error: 'Failed to fetch table orders' };
+    }
+  }
+
+  async getTableOrderDraft(context: TableOrderDraftContext): Promise<TableOrderDraftResponse> {
+    try {
+      const params = new URLSearchParams();
+      if (context.table_id != null && String(context.table_id).trim() !== '') params.set('table_id', String(context.table_id));
+      if (context.table_no != null && String(context.table_no).trim() !== '') {
+        params.set('table_no', String(context.table_no));
+        params.set('table', String(context.table_no));
+      }
+      if (context.qr) params.set('qr', context.qr);
+      const response = await fetch(`/api/v1/table-order-draft?${params.toString()}`, { headers: { Accept: 'application/json' } });
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(data?.error || data?.message || 'Failed to fetch table order draft');
+      return data;
+    } catch (error) {
+      console.error('Table order draft fetch failed:', error);
+      return { success: false, status: 'empty', error: error instanceof Error ? error.message : 'Failed to fetch table order draft' };
+    }
+  }
+
+  async confirmTableDraftItems(payload: TableOrderDraftContext & {
+    guest_session_id: string;
+    items: TableOrderDraftItem[];
+  }): Promise<TableOrderDraftResponse> {
+    const response = await fetch('/api/v1/table-order-draft/confirm-items', {
+      method: 'POST',
+      headers: { Accept: 'application/json', 'Content-Type': 'application/json' },
+      body: safeJsonStringify(payload),
+    });
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok || data?.success === false) {
+      throw new Error(data?.error || data?.message || 'Failed to confirm table items');
+    }
+    return data;
+  }
+
+  async submitTableDraft(payload: TableOrderDraftContext & {
+    draft_id?: number | null;
+    guest_session_id?: string | null;
+  }): Promise<TableOrderDraftResponse> {
+    const response = await fetch('/api/v1/table-order-draft/submit', {
+      method: 'POST',
+      headers: { Accept: 'application/json', 'Content-Type': 'application/json' },
+      body: safeJsonStringify(payload),
+    });
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok || data?.success === false) {
+      throw new Error(data?.error || data?.message || 'Failed to submit table order');
+    }
+    return data;
+  }
+
+  async getPendingQrOrderByTable(tableId: string, context?: { tableNo?: string | null; qr?: string | null }): Promise<PendingQrOrderResponse> {
+    try {
+      const params = new URLSearchParams();
+      params.set('table_id', tableId);
+      if (context?.tableNo) params.set('table_no', context.tableNo);
+      if (context?.qr) params.set('qr', context.qr);
+      const endpoint = `/api/v1/orders/pending-qr?${params.toString()}`;
+      const response = await fetch(endpoint, { headers: { Accept: 'application/json' } });
+      return await response.json();
+    } catch (error) {
+      console.error('Pending QR order fetch failed:', error);
+      return { success: false, error: 'Failed to fetch pending QR order' };
+    }
+  }
+
+  async payExistingQrOrder(
+    orderId: number,
+    payload: {
+      payment_method: string;
+      payment_reference?: string | null;
+      amount?: number | null;
+      tip_amount?: number | null;
+      coupon_discount?: number | null;
+      coupon_code?: string | null;
+      selected_items?: Array<{ order_menu_id: number; quantity: number }> | null;
+      payer_label?: string | null;
+      table_id?: string | null;
+      table_no?: string | null;
+      qr?: string | null;
+    }
+  ) {
+    const endpoint = `/api/v1/orders/pay-existing`;
+    const response = await fetch(endpoint, {
+      method: 'POST',
+      headers: {
+        'Accept': 'application/json',
+        'Content-Type': 'application/json',
+      },
+      body: safeJsonStringify({
+        order_id: orderId,
+        payment_method: payload.payment_method,
+        payment_reference: payload.payment_reference ?? null,
+        amount: payload.amount ?? null,
+        tip_amount: payload.tip_amount ?? 0,
+        coupon_discount: payload.coupon_discount ?? 0,
+        coupon_code: payload.coupon_code ?? null,
+        selected_items: payload.selected_items ?? null,
+        payer_label: payload.payer_label ?? null,
+        table_id: payload.table_id ?? null,
+        table_no: payload.table_no ?? null,
+        qr: payload.qr ?? null,
+      }),
+    });
+
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok) {
+      throw new Error(data?.error || data?.message || 'Failed to pay existing order');
+    }
+    return data;
+  }
+
+  async startExistingOrderPayment(payload: {
+    order_id: number;
+    payment_method: string;
+    provider?: string | null;
+    guest_session_id?: string | null;
+    table_id?: string | number | null;
+    table_no?: string | number | null;
+    source?: string | null;
+    payment_reference?: string | null;
+  }) {
+    const response = await fetch('/api/v1/orders/start-payment', {
+      method: 'POST',
+      headers: { Accept: 'application/json', 'Content-Type': 'application/json' },
+      body: safeJsonStringify(payload),
+    });
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok || !data?.success) {
+      throw new Error(data?.error || data?.message || 'Failed to start existing order payment');
+    }
+    return data;
+  }
+
+
+
+  async finalizeExistingOrderPayment(payload: {
+    order_id: number;
+    payment_intent_id: string;
+    payment_method?: string | null;
+    provider?: string | null;
+  }) {
+    const response = await fetch('/api/v1/orders/finalize-payment', {
+      method: 'POST',
+      headers: { Accept: 'application/json', 'Content-Type': 'application/json' },
+      body: safeJsonStringify(payload),
+    });
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok || !data?.success) {
+      throw new Error(data?.error || data?.message || 'Failed to finalize existing order payment');
+    }
+    return data;
+  }
+
+  async getThemeSettings(): Promise<{ success: boolean; data: any }> {
+    try {
+      // Always hit same-origin to avoid port mismatch (proxy keeps URL on 8000)
+      const base = typeof window !== 'undefined' ? window.location.origin : this.getApiBaseUrl();
+      const res = await fetch(`${base}/simple-theme`, { headers: { Accept: 'application/json' } });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const json = await res.json();
+      return json;
+    } catch (error) {
+      console.error('Failed to fetch theme settings:', error);
+      // Return default theme settings
+      return {
+        success: true,
+        data: {
+          theme_id: 'gold-luxury',
+          primary_color: '#062F2A',
+          secondary_color: '#062F2A',
+          accent_color: '#C89B4A',
+          background_color: '#FAF9F4'
+        }
+      };
+    }
+  }
+
+  async updateThemeSettings(settings: Partial<ThemeSettings>): Promise<{ success: boolean; message: string }> {
+    try {
+      const endpoint = this.envConfig.getApiEndpoint('/theme-settings');
+      const response = await fetch(endpoint, {
+        method: 'POST',
+        headers: {
+          'Accept': 'application/json',
+          'Content-Type': 'application/json',
+        },
+        body: safeJsonStringify(settings)
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const data = await response.json();
+      return data;
+    } catch (error) {
+      console.error('Failed to update theme settings:', error);
+      return {
+        success: false,
+        message: 'Failed to update theme settings'
+      };
+    }
+  }
+
+  // NEW: Table-specific methods for api-server2.php
+  async getTables(): Promise<{ success: boolean; data?: any[]; error?: string }> {
+    try {
+      const endpoint = this.envConfig.getApiEndpoint('/tables');
+      const response = await fetch(endpoint);
+      const data = await response.json();
+      return data;
+    } catch (error) {
+      return { success: false, error: 'Failed to fetch tables' };
+    }
+  }
+
+  async createTable(tableData: {
+    table_name: string;
+    location_id?: number;
+    min_capacity?: number;
+    max_capacity?: number;
+  }): Promise<{ success: boolean; data?: any; error?: string }> {
+    try {
+      const endpoint = this.envConfig.getApiEndpoint('/create-table');
+      const response = await fetch(endpoint, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: safeJsonStringify(tableData),
+      });
+      const data = await response.json();
+      return data;
+    } catch (error) {
+      return { success: false, error: 'Failed to create table' };
+    }
+  }
+
+  async updateTable(tableId: string, tableData: any): Promise<{ success: boolean; error?: string }> {
+    try {
+      const endpoint = this.envConfig.getApiEndpoint('/update-table');
+      const response = await fetch(endpoint, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: safeJsonStringify({ table_id: tableId, ...tableData }),
+      });
+      const data = await response.json();
+      return data;
+    } catch (error) {
+      return { success: false, error: 'Failed to update table' };
+    }
+  }
+
+  async deleteTable(tableId: string): Promise<{ success: boolean; error?: string }> {
+    try {
+      const endpoint = this.envConfig.getApiEndpoint(`/delete-table?table_id=${tableId}`);
+      const response = await fetch(endpoint, {
+        method: 'DELETE',
+      });
+      const data = await response.json();
+      return data;
+    } catch (error) {
+      return { success: false, error: 'Failed to delete table' };
+    }
+  }
+
+  async generateQRCode(tableId: string): Promise<{ success: boolean; data?: any; error?: string }> {
+    try {
+      const endpoint = this.envConfig.getApiEndpoint('/generate-qr');
+      const response = await fetch(endpoint, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: safeJsonStringify({ table_id: tableId }),
+      });
+      const data = await response.json();
+      return data;
+    } catch (error) {
+      return { success: false, error: 'Failed to generate QR code' };
+    }
+  }
+
+  async getTableStats(tableId: string): Promise<{ success: boolean; data?: any; error?: string }> {
+    try {
+      const endpoint = this.envConfig.getApiEndpoint(`/table-stats?table_id=${tableId}`);
+      const response = await fetch(endpoint);
+      const data = await response.json();
+      return data;
+    } catch (error) {
+      return { success: false, error: 'Failed to fetch table stats' };
+    }
+  }
+}
+
+// Export singleton instance
+export const apiClient = new ApiClient();
+
+
+
+
+// --- Added for image rendering in Menu/Cart components ---
+// Some components import getMenuImageUrl from "@/lib/api-client".
+// This helper returns a usable image URL (or empty string if missing).
+export function getMenuImageUrl(image: string | null | undefined): string {
+  if (!image) return ""
+
+  const raw = String(image).trim()
+  if (!raw) return ""
+
+  // PMD_FORCE_GET_MENU_IMAGE_URL_FIX_START
+  // Backend gallery images now arrive as /assets/media/uploads/...
+  // Keep those paths EXACTLY as media URLs. Never prefix them with /storage.
+  if (/^https?:\/\//i.test(raw)) {
+    return raw
+  }
+
+  if (raw.startsWith("/assets/media/")) {
+    return raw
+  }
+
+  if (raw.startsWith("assets/media/")) {
+    return `/${raw}`
+  }
+
+  if (raw.startsWith("/api/media/")) {
+    return raw
+  }
+
+  if (raw.startsWith("api/media/")) {
+    return `/${raw}`
+  }
+
+  if (raw.startsWith("/storage/")) {
+    // Keep existing true storage URLs, but do not create /storage/assets...
+    return raw
+  }
+
+  if (raw.startsWith("storage/")) {
+    return `/${raw}`
+  }
+
+  if (raw.startsWith("/attachments/public/")) {
+    return `/assets/media${raw}`
+  }
+
+  if (raw.startsWith("attachments/public/")) {
+    return `/assets/media/${raw}`
+  }
+
+  if (raw.startsWith("/uploads/")) {
+    return `/assets/media${raw}`
+  }
+
+  if (raw.startsWith("uploads/")) {
+    return `/assets/media/${raw}`
+  }
+
+  // Plain filenames from ti_menu_images, e.g. ata.webp
+  if (/\.(png|jpe?g|webp|gif|svg)(\?|#)?$/i.test(raw)) {
+    return `/assets/media/uploads/${raw}`
+  }
+
+  return raw
+  // PMD_FORCE_GET_MENU_IMAGE_URL_FIX_END
+}

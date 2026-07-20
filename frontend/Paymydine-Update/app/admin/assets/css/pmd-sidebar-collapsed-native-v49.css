@@ -1,0 +1,256 @@
+/* PMD Sidebar Collapsed Native v49
+   Open sidebar = the good native design.
+   Closed sidebar = one clean small-logo + icons-only rail.
+   This avoids squeezing the native menu and avoids duplicate/half icons. */
+
+/* Hide every old experimental button/rail */
+html body.page.pmd-admin-theme-v1 #pmd-sidebar-edge-toggle-v40,
+html body.page.pmd-admin-theme-v1 #pmd-sidebar-edge-toggle-v41,
+html body.page.pmd-admin-theme-v1 #pmd-sidebar-edge-toggle-v42,
+html body.page.pmd-admin-theme-v1 #pmd-sidebar-edge-toggle-v43,
+html body.page.pmd-admin-theme-v1 #pmd-sidebar-edge-toggle-v44,
+html body.page.pmd-admin-theme-v1 #pmd-sidebar-edge-toggle-v45,
+html body.page.pmd-admin-theme-v1 #pmd-sidebar-edge-toggle-v46,
+html body.page.pmd-admin-theme-v1 #pmd-sidebar-edge-toggle-v47,
+html body.page.pmd-admin-theme-v1 #pmd-sidebar-edge-toggle-v48,
+html body.page.pmd-admin-theme-v1 .pmd-collapsed-rail-v45,
+html body.page.pmd-admin-theme-v1 .pmd-collapsed-rail-v46,
+html body.page.pmd-admin-theme-v1 .pmd-collapsed-rail-v47,
+html body.page.pmd-admin-theme-v1 .pmd-collapsed-logo-v47,
+html body.page.pmd-admin-theme-v1 .pmd-collapsed-power-v45,
+html body.page.pmd-admin-theme-v1 .pmd-collapsed-power-v46,
+html body.page.pmd-admin-theme-v1 .pmd-collapsed-power-v47,
+html body.page.pmd-admin-theme-v1 .pmd-sidebar-toggle-safe-slot-v33,
+html body.page.pmd-admin-theme-v1 .pmd-sidebar-toggle-stable-v31,
+html body.page.pmd-admin-theme-v1 .pmd-sidebar-toggle-end-v28 {
+  display: none !important;
+  visibility: hidden !important;
+  pointer-events: none !important;
+}
+
+/* Hide native toggle, v49 controls the state */
+html body.page.pmd-admin-theme-v1 .pmd-sidebar-icons-toggle:not(#pmd-sidebar-edge-toggle-v49) {
+  display: none !important;
+  visibility: hidden !important;
+  pointer-events: none !important;
+}
+
+/* Edge button */
+html body.page.pmd-admin-theme-v1 #pmd-sidebar-edge-toggle-v49 {
+  position: fixed !important;
+  top: var(--pmd-sidebar-edge-top-v49, 178px) !important;
+  left: var(--pmd-sidebar-edge-left-v49, 250px) !important;
+  width: 32px !important;
+  height: 32px !important;
+  min-width: 32px !important;
+  min-height: 32px !important;
+  max-width: 32px !important;
+  max-height: 32px !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  border-radius: 999px !important;
+  border: 1px solid rgba(200,155,74,.76) !important;
+  background: #fff4dc !important;
+  color: #063b34 !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  box-shadow: 0 10px 22px rgba(0,0,0,.16), inset 0 1px 0 rgba(255,255,255,.72) !important;
+  z-index: 2147483300 !important;
+  cursor: pointer !important;
+  opacity: 1 !important;
+  visibility: visible !important;
+}
+html body.page.pmd-admin-theme-v1 #pmd-sidebar-edge-toggle-v49 svg {
+  width: 18px !important;
+  height: 18px !important;
+  display: block !important;
+  stroke: currentColor !important;
+  fill: none !important;
+  stroke-width: 3 !important;
+  stroke-linecap: round !important;
+  stroke-linejoin: round !important;
+}
+
+/* Sidebar container */
+html body.page.pmd-admin-theme-v1 .pmd-v49-sidebar {
+  overflow: visible !important;
+}
+
+/* Expanded logo = keep current good look */
+html body.page.pmd-admin-theme-v1 .pmd-platform-logo-slot-v38,
+html body.page.pmd-admin-theme-v1 .pmd-platform-logo-slot-v37,
+html body.page.pmd-admin-theme-v1 .pmd-platform-logo-slot-v26 {
+  min-height: 92px !important;
+  height: 92px !important;
+  padding: 0 8px 2px !important;
+  margin: -24px auto 2px !important;
+  transform: none !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+}
+html body.page.pmd-admin-theme-v1 .pmd-platform-logo-link-v38,
+html body.page.pmd-admin-theme-v1 .pmd-platform-logo-link-v37,
+html body.page.pmd-admin-theme-v1 .pmd-platform-logo-link-v26 {
+  min-height: 86px !important;
+  height: 86px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+}
+html body.page.pmd-admin-theme-v1 img.pmd-platform-logo-img-v38 {
+  max-height: 82px !important;
+}
+html body.page.pmd-admin-theme-v1 img.pmd-platform-logo-img-v38[data-logo-index="0"],
+html body.page.pmd-admin-theme-v1 img.pmd-platform-logo-img-v38[data-logo-index="1"],
+html body.page.pmd-admin-theme-v1 img.pmd-platform-logo-img-v38[data-logo-index="3"],
+html body.page.pmd-admin-theme-v1 img.pmd-platform-logo-img-v38[data-logo-index="4"],
+html body.page.pmd-admin-theme-v1 img.pmd-platform-logo-img-v38[data-logo-index="5"] {
+  max-width: 198px !important;
+  max-height: 84px !important;
+}
+html body.page.pmd-admin-theme-v1 img.pmd-platform-logo-img-v38[data-logo-index="2"] {
+  max-width: 164px !important;
+  max-height: 68px !important;
+}
+html body.page.pmd-admin-theme-v1 .pmd-logo-cycle-nav-item-v38 { margin: 0 13px 9px !important; }
+html body.page.pmd-admin-theme-v1 .pmd-logo-cycle-btn-v38 { min-height: 35px !important; height: 35px !important; }
+
+/* Closed state: keep sidebar narrow and hide all native children. */
+html.pmd-sidebar-persist-collapsed-v49 body.page.pmd-admin-theme-v1 .pmd-v49-sidebar,
+html body.page.pmd-admin-theme-v1.pmd-sidebar-collapsed .pmd-v49-sidebar,
+html body.page.pmd-admin-theme-v1.pmd-sidebar-icons-only .pmd-v49-sidebar {
+  width: 86px !important;
+  min-width: 86px !important;
+  max-width: 86px !important;
+}
+
+/* Hide native direct children ONLY when collapsed, except v49 UI */
+html.pmd-sidebar-persist-collapsed-v49 body.page.pmd-admin-theme-v1 .pmd-v49-sidebar > *:not(.pmd-collapsed-logo-v49):not(.pmd-collapsed-rail-v49):not(.pmd-collapsed-power-v49),
+html body.page.pmd-admin-theme-v1.pmd-sidebar-collapsed .pmd-v49-sidebar > *:not(.pmd-collapsed-logo-v49):not(.pmd-collapsed-rail-v49):not(.pmd-collapsed-power-v49),
+html body.page.pmd-admin-theme-v1.pmd-sidebar-icons-only .pmd-v49-sidebar > *:not(.pmd-collapsed-logo-v49):not(.pmd-collapsed-rail-v49):not(.pmd-collapsed-power-v49) {
+  display: none !important;
+  visibility: hidden !important;
+  pointer-events: none !important;
+}
+
+/* Closed small logo */
+html body.page.pmd-admin-theme-v1 .pmd-collapsed-logo-v49 {
+  display: none !important;
+}
+html.pmd-sidebar-persist-collapsed-v49 body.page.pmd-admin-theme-v1 .pmd-collapsed-logo-v49,
+html body.page.pmd-admin-theme-v1.pmd-sidebar-collapsed .pmd-collapsed-logo-v49,
+html body.page.pmd-admin-theme-v1.pmd-sidebar-icons-only .pmd-collapsed-logo-v49 {
+  position: absolute !important;
+  top: 18px !important;
+  left: 0 !important;
+  width: 86px !important;
+  height: 76px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  z-index: 50 !important;
+}
+html body.page.pmd-admin-theme-v1 .pmd-collapsed-logo-v49 img {
+  max-width: 62px !important;
+  max-height: 62px !important;
+  width: auto !important;
+  height: auto !important;
+  object-fit: contain !important;
+  display: block !important;
+}
+
+/* Closed icons rail */
+html body.page.pmd-admin-theme-v1 .pmd-collapsed-rail-v49 {
+  display: none !important;
+}
+html.pmd-sidebar-persist-collapsed-v49 body.page.pmd-admin-theme-v1 .pmd-collapsed-rail-v49,
+html body.page.pmd-admin-theme-v1.pmd-sidebar-collapsed .pmd-collapsed-rail-v49,
+html body.page.pmd-admin-theme-v1.pmd-sidebar-icons-only .pmd-collapsed-rail-v49 {
+  position: absolute !important;
+  top: 128px !important;
+  left: 0 !important;
+  width: 86px !important;
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: center !important;
+  gap: 24px !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  z-index: 55 !important;
+}
+html body.page.pmd-admin-theme-v1 .pmd-collapsed-rail-v49 a {
+  width: 52px !important;
+  height: 52px !important;
+  min-width: 52px !important;
+  min-height: 52px !important;
+  border-radius: 18px !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  color: rgba(231,238,240,.94) !important;
+  text-decoration: none !important;
+  background: transparent !important;
+  border: 0 !important;
+  box-shadow: none !important;
+}
+html body.page.pmd-admin-theme-v1 .pmd-collapsed-rail-v49 a.is-active {
+  width: 58px !important;
+  height: 58px !important;
+  border-radius: 21px !important;
+  background: #fff4dc !important;
+  color: #063b34 !important;
+  box-shadow: inset 0 0 0 1px rgba(200,155,74,.32), 0 12px 24px rgba(0,0,0,.12) !important;
+}
+html body.page.pmd-admin-theme-v1 .pmd-collapsed-rail-v49 svg {
+  width: 26px !important;
+  height: 26px !important;
+  display: block !important;
+  fill: none !important;
+  stroke: currentColor !important;
+  stroke-width: 2.25 !important;
+  stroke-linecap: round !important;
+  stroke-linejoin: round !important;
+}
+
+/* Closed power */
+html body.page.pmd-admin-theme-v1 .pmd-collapsed-power-v49 {
+  display: none !important;
+}
+html.pmd-sidebar-persist-collapsed-v49 body.page.pmd-admin-theme-v1 .pmd-collapsed-power-v49,
+html body.page.pmd-admin-theme-v1.pmd-sidebar-collapsed .pmd-collapsed-power-v49,
+html body.page.pmd-admin-theme-v1.pmd-sidebar-icons-only .pmd-collapsed-power-v49 {
+  position: absolute !important;
+  left: 14px !important;
+  bottom: 26px !important;
+  width: 58px !important;
+  height: 58px !important;
+  border-radius: 20px !important;
+  border: 1px solid rgba(200,155,74,.35) !important;
+  background: rgba(255,248,226,.08) !important;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.05), 0 8px 18px rgba(0,0,0,.14) !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  z-index: 60 !important;
+  color: #d6a849 !important;
+  text-decoration: none !important;
+}
+html body.page.pmd-admin-theme-v1 .pmd-collapsed-power-v49 svg {
+  width: 24px !important;
+  height: 24px !important;
+  stroke: currentColor !important;
+  fill: none !important;
+  stroke-width: 2.4 !important;
+  stroke-linecap: round !important;
+  stroke-linejoin: round !important;
+}
+
+/* Less blinking */
+html body.page.pmd-admin-theme-v1 .pmd-v49-sidebar,
+html body.page.pmd-admin-theme-v1 #side-nav-menu,
+html body.page.pmd-admin-theme-v1 .side-nav-menu {
+  transition-property: background-color, color, border-color, box-shadow !important;
+  transition-duration: .12s !important;
+}

@@ -1,0 +1,118 @@
+/* ============================================
+   FORCE SEAMLESS CONNECTION - NO GAPS, NO BORDERS, NO DARK COLOR
+   This file aggressively removes ALL possible sources of visual separation
+   ============================================ */
+
+/* Remove ALL padding/margin/borders from sidebar top edge */
+/* BUT: Superadmin sidebar needs padding-top: 170px for logo space, so don't override that */
+.sidebar,
+div.sidebar,
+.sidebar[role="navigation"],
+.nav-sidebar,
+#navSidebar,
+.sidebar .nav-sidebar,
+#navSidebar.nav-sidebar {
+  margin-top: 0 !important;
+  padding-top: 0 !important;
+  border-top: none !important;
+  outline: none !important;
+  box-shadow: none !important;
+}
+
+/* Superadmin sidebar - keep padding-top: 170px for logo space, but remove borders */
+.nk-sidebar {
+  margin-top: 0 !important;
+  /* DON'T override padding-top - sidebar needs 170px for logo */
+  border-top: none !important;
+  outline: none !important;
+  box-shadow: none !important;
+}
+
+/* Superadmin logo area - no padding/margin, but keep background color */
+.nk-sidebar-brand {
+  margin-top: 0 !important;
+  padding-top: 0 !important;
+  border-top: none !important;
+  outline: none !important;
+  box-shadow: none !important;
+}
+
+/* Remove ALL padding/margin/borders from header bottom edge */
+.navbar-top,
+nav.navbar-top,
+.navbar.navbar-top,
+.nk-header,
+.nk-header.nk-header-fixed,
+.nk-header.is-light {
+  margin-bottom: 0 !important;
+  padding-bottom: 0 !important;
+  border-bottom: none !important;
+  outline: none !important;
+}
+
+/* Ensure connection between header and sidebar has NO gap */
+.navbar-top + .sidebar,
+.navbar-top ~ .sidebar,
+.navbar-top + .nav-sidebar,
+.navbar-top ~ .nav-sidebar,
+.nk-header + .nk-sidebar,
+.nk-header ~ .nk-sidebar,
+.nk-header + .nk-sidebar-brand,
+.nk-header ~ .nk-sidebar-brand {
+  margin-top: 0 !important;
+  padding-top: 0 !important;
+  border-top: none !important;
+}
+
+/* Force the very first element inside nav-sidebar to start at top */
+.nav-sidebar > *:first-child,
+#navSidebar > *:first-child {
+  margin-top: 0 !important;
+  padding-top: 0 !important;
+}
+
+/* Remove any pseudo-elements that might create visual lines */
+.sidebar::before,
+.sidebar::after,
+.nav-sidebar::before,
+.nav-sidebar::after,
+#navSidebar::before,
+#navSidebar::after,
+.nk-sidebar::before,
+.nk-sidebar::after,
+.nk-sidebar-brand::before,
+.nk-sidebar-brand::after {
+  display: none !important;
+  content: none !important;
+}
+
+/* Ensure the nav menu inside doesn't create a gap */
+/* BUT: For superadmin, sidebar has padding-top: 170px to account for logo, so menu items should start below logo */
+.nav-sidebar > .nav,
+#navSidebar > .nav {
+  margin-top: 0 !important;
+  padding-top: 0 !important;
+}
+
+/* Superadmin menu - ensure it respects sidebar's padding-top: 170px */
+.nk-sidebar-menu,
+.nk-sidebar .nk-menu {
+  margin-top: 0 !important;
+  padding-top: 0 !important; /* No extra padding - sidebar already has 170px padding-top */
+}
+
+/* CRITICAL: The first nav item should start immediately at top */
+/* For admin panel */
+.nav-sidebar > .nav > li:first-child,
+#navSidebar > .nav > li:first-child {
+  margin-top: 0 !important;
+  padding-top: 0 !important;
+}
+
+/* For superadmin: Menu items should start below logo (after 170px) */
+/* The sidebar itself has padding-top: 170px, so menu items will naturally start below logo */
+.nk-sidebar-menu > .nk-menu-item:first-child,
+.nk-sidebar .nk-menu > .nk-menu-item:first-child {
+  margin-top: 0 !important;
+  padding-top: 0 !important;
+}

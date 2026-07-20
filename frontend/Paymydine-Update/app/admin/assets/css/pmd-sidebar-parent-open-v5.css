@@ -1,0 +1,186 @@
+/* PMD Sidebar Parent/Open v5
+   - less sidebar width
+   - parent collapse buttons are NOT active page buttons
+   - System stays normal when opened
+*/
+
+html body.page.pmd-admin-theme-v1 {
+  --pmd-sidebar-width: 188px !important;
+  --pmd-sidebar-gap: 10px !important;
+}
+
+/* Less width */
+@media (min-width: 1200px) {
+  html body.page.pmd-admin-theme-v1 .sidebar {
+    width: var(--pmd-sidebar-width) !important;
+  }
+
+  html body.page.pmd-admin-theme-v1 .page-wrapper {
+    left: 0 !important;
+    margin-left: calc(var(--pmd-sidebar-offset) + var(--pmd-sidebar-width) + var(--pmd-sidebar-gap)) !important;
+  }
+
+  html body.page.pmd-admin-theme-v1 .navbar-top.navbar-fixed-top {
+    left: calc(var(--pmd-sidebar-offset) + var(--pmd-sidebar-width) + var(--pmd-sidebar-gap)) !important;
+    width: calc(100% - var(--pmd-sidebar-offset) - var(--pmd-sidebar-width) - var(--pmd-sidebar-gap)) !important;
+  }
+}
+
+/* Compact sizes after width reduction */
+html body.page.pmd-admin-theme-v1 .pmd-sidebar-brand {
+  height: 64px !important;
+  min-height: 64px !important;
+  padding: 12px 14px 6px !important;
+}
+
+html body.page.pmd-admin-theme-v1 .pmd-sidebar-brand .logo,
+html body.page.pmd-admin-theme-v1 .pmd-sidebar-brand .logo-svg,
+html body.page.pmd-admin-theme-v1 .pmd-sidebar-brand .pmd-sidebar-brand-img {
+  width: 124px !important;
+  max-width: 124px !important;
+  height: 37px !important;
+}
+
+html body.page.pmd-admin-theme-v1 #side-nav-menu {
+  padding-left: 8px !important;
+  padding-right: 8px !important;
+}
+
+/* Root buttons smaller */
+html body.page.pmd-admin-theme-v1 #side-nav-menu > .nav-item > .nav-link {
+  height: 43px !important;
+  min-height: 43px !important;
+  padding: 0 10px !important;
+  gap: 8px !important;
+  font-size: 0.84rem !important;
+  border-radius: 15px !important;
+  max-width: 100% !important;
+  box-sizing: border-box !important;
+  overflow: hidden !important;
+}
+
+html body.page.pmd-admin-theme-v1 #side-nav-menu > .nav-item > .nav-link > i.fa {
+  width: 20px !important;
+  min-width: 20px !important;
+  height: 20px !important;
+}
+
+/* Children smaller */
+html body.page.pmd-admin-theme-v1 #side-nav-menu > .nav-item > ul.nav {
+  padding-left: 13px !important;
+  margin-top: 5px !important;
+  margin-bottom: 9px !important;
+}
+
+html body.page.pmd-admin-theme-v1 #side-nav-menu > .nav-item > ul.nav > .nav-item > .nav-link {
+  height: 31px !important;
+  min-height: 31px !important;
+  padding: 0 5px !important;
+  gap: 7px !important;
+  font-size: 0.76rem !important;
+  border-radius: 11px !important;
+}
+
+html body.page.pmd-admin-theme-v1 #side-nav-menu > .nav-item > ul.nav > .nav-item > .nav-link > i.fa {
+  width: 17px !important;
+  min-width: 17px !important;
+  height: 17px !important;
+}
+
+/* IMPORTANT: parent/open groups like Restaurant/System must never get cream */
+html body.page.pmd-admin-theme-v1 #side-nav-menu > .nav-item.open > .nav-link,
+html body.page.pmd-admin-theme-v1 #side-nav-menu > .nav-item.open > .nav-link[data-toggle="collapse"],
+html body.page.pmd-admin-theme-v1 #side-nav-menu > .nav-item > .nav-link[data-toggle="collapse"],
+html body.page.pmd-admin-theme-v1 #side-nav-menu > .nav-item > .nav-link[data-toggle="collapse"][aria-expanded="true"],
+html body.page.pmd-admin-theme-v1 #side-nav-menu > .nav-item.active > .nav-link[data-toggle="collapse"],
+html body.page.pmd-admin-theme-v1 #side-nav-menu > .nav-item.active > .nav-link.system,
+html body.page.pmd-admin-theme-v1 #side-nav-menu > .nav-item.open > .nav-link.system {
+  background: transparent !important;
+  color: rgba(249,250,251,0.92) !important;
+  box-shadow: none !important;
+  border: 0 !important;
+  transform: none !important;
+}
+
+/* Optional tiny hover only */
+html body.page.pmd-admin-theme-v1 #side-nav-menu > .nav-item.open > .nav-link:hover,
+html body.page.pmd-admin-theme-v1 #side-nav-menu > .nav-item > .nav-link[data-toggle="collapse"]:hover {
+  background: rgba(255,255,255,0.06) !important;
+  color: #FFFFFF !important;
+}
+
+/* Icons for parent/open stay light */
+html body.page.pmd-admin-theme-v1 #side-nav-menu > .nav-item.open > .nav-link > i.fa,
+html body.page.pmd-admin-theme-v1 #side-nav-menu > .nav-item > .nav-link[data-toggle="collapse"] > i.fa,
+html body.page.pmd-admin-theme-v1 #side-nav-menu > .nav-item.active > .nav-link[data-toggle="collapse"] > i.fa {
+  color: rgba(229,237,245,.96) !important;
+}
+
+/* Only true current page root links get cream */
+html body.page.pmd-admin-theme-v1 #side-nav-menu > .nav-item.active > .nav-link:not([data-toggle="collapse"]) {
+  background: linear-gradient(135deg, #FFF9EF 0%, #F5E8D0 100%) !important;
+  color: #062F2A !important;
+  box-shadow:
+    0 10px 20px rgba(0,0,0,0.16),
+    inset 0 0 0 1px rgba(200,155,74,0.26) !important;
+}
+
+html body.page.pmd-admin-theme-v1 #side-nav-menu > .nav-item.active > .nav-link:not([data-toggle="collapse"]) > i.fa {
+  color: #062F2A !important;
+}
+
+/* Active child page gets cream, smaller */
+html body.page.pmd-admin-theme-v1 #side-nav-menu > .nav-item > ul.nav > .nav-item.active > .nav-link {
+  background: linear-gradient(135deg, #FFF9EF 0%, #F5E8D0 100%) !important;
+  color: #062F2A !important;
+  box-shadow:
+    0 8px 16px rgba(0,0,0,0.12),
+    inset 0 0 0 1px rgba(200,155,74,0.22) !important;
+}
+
+html body.page.pmd-admin-theme-v1 #side-nav-menu > .nav-item > ul.nav > .nav-item.active > .nav-link > i.fa {
+  color: #062F2A !important;
+}
+
+/* System collapse must stay inside normal document flow */
+html body.page.pmd-admin-theme-v1 #collapse-system {
+  position: static !important;
+  transform: none !important;
+  max-width: 100% !important;
+  overflow: hidden !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  border: 0 !important;
+}
+
+html body.page.pmd-admin-theme-v1 #collapse-system.show,
+html body.page.pmd-admin-theme-v1 #collapse-system.collapse.show {
+  display: block !important;
+}
+
+/* Profile card smaller */
+html body.page.pmd-admin-theme-v1 .pmd-sidebar-profile-card {
+  margin: 7px 8px 10px !important;
+  padding: 7px 8px !important;
+  border-radius: 17px !important;
+}
+
+html body.page.pmd-admin-theme-v1 .pmd-sidebar-profile-card__identity img {
+  width: 31px !important;
+  height: 31px !important;
+  flex-basis: 31px !important;
+}
+
+html body.page.pmd-admin-theme-v1 .pmd-sidebar-profile-card__identity strong {
+  font-size: 0.72rem !important;
+}
+
+html body.page.pmd-admin-theme-v1 .pmd-sidebar-profile-card__identity small {
+  font-size: 0.62rem !important;
+}
+
+html body.page.pmd-admin-theme-v1 .pmd-sidebar-profile-card__logout {
+  width: 29px !important;
+  height: 29px !important;
+  flex-basis: 29px !important;
+}

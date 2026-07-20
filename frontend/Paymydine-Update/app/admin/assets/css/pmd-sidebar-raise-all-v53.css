@@ -1,0 +1,80 @@
+/* PMD Sidebar Raise All v53
+   Tiny CSS-only positioning patch.
+   Raises the top sidebar stack in BOTH states:
+   - open: logo + LOGO button + menu buttons a bit higher
+   - closed: logo + icon rail + arrow even higher
+   No dashboard/role/data/route changes. */
+
+/* OPEN SIDEBAR: raise logo and the menu stack */
+html body.page.pmd-admin-theme-v1:not(.pmd-sidebar-icons-only) .pmd-platform-logo-slot-v38 {
+  min-height: 84px !important;
+  height: 84px !important;
+  padding: 0 8px 0 !important;
+  margin: -42px auto -2px !important;
+}
+
+html body.page.pmd-admin-theme-v1:not(.pmd-sidebar-icons-only) .pmd-platform-logo-link-v38 {
+  min-height: 80px !important;
+  height: 80px !important;
+}
+
+html body.page.pmd-admin-theme-v1:not(.pmd-sidebar-icons-only) img.pmd-platform-logo-img-v38 {
+  max-height: 80px !important;
+}
+
+/* Open: move LOGO switcher + Dashboard/Orders/etc. up a little */
+html body.page.pmd-admin-theme-v1:not(.pmd-sidebar-icons-only) #side-nav-menu {
+  margin-top: -6px !important;
+}
+
+html body.page.pmd-admin-theme-v1:not(.pmd-sidebar-icons-only) .pmd-logo-cycle-nav-item-v38 {
+  margin-top: -2px !important;
+  margin-bottom: 7px !important;
+}
+
+/* Open: edge arrow follows the raised Dashboard block */
+html body.page.pmd-admin-theme-v1:not(.pmd-sidebar-icons-only) .pmd-sidebar-icons-toggle {
+  top: 134px !important;
+}
+
+/* CLOSED SIDEBAR: raise even more */
+html body.page.pmd-admin-theme-v1.pmd-sidebar-icons-only .pmd-platform-logo-slot-v38 {
+  min-height: 54px !important;
+  height: 54px !important;
+  padding: 0 4px 0 !important;
+  margin: -64px auto 4px !important;
+}
+
+html body.page.pmd-admin-theme-v1.pmd-sidebar-icons-only .pmd-platform-logo-link-v38 {
+  min-height: 52px !important;
+  height: 52px !important;
+}
+
+html body.page.pmd-admin-theme-v1.pmd-sidebar-icons-only img.pmd-platform-logo-img-v38 {
+  max-width: 58px !important;
+  max-height: 52px !important;
+  object-fit: contain !important;
+}
+
+/* Wide logo candidates: let them breathe but keep inside closed rail */
+html.pmd-logo-candidate-5-v38 body.page.pmd-admin-theme-v1.pmd-sidebar-icons-only img.pmd-platform-logo-img-v38,
+html.pmd-logo-candidate-6-v38 body.page.pmd-admin-theme-v1.pmd-sidebar-icons-only img.pmd-platform-logo-img-v38 {
+  max-width: 70px !important;
+  max-height: 50px !important;
+}
+
+/* Closed: move icon rail higher too */
+html body.page.pmd-admin-theme-v1.pmd-sidebar-icons-only #side-nav-menu {
+  padding-top: 0 !important;
+  margin-top: -8px !important;
+  max-height: calc(100vh - 112px) !important;
+}
+
+html body.page.pmd-admin-theme-v1.pmd-sidebar-icons-only #side-nav-menu > .nav-item {
+  margin-bottom: 6px !important;
+}
+
+/* Closed: arrow aligned with raised rail */
+html body.page.pmd-admin-theme-v1.pmd-sidebar-icons-only .pmd-sidebar-icons-toggle {
+  top: 86px !important;
+}

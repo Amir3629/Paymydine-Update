@@ -1,0 +1,70 @@
+/* ============================================
+   REMOVE NOTIFICATION HEADER BORDER - Remove all border lines
+   Remove the border-bottom line under Statuses and Note/History buttons
+   Override all conflicting CSS rules from header-dropdowns.css, dashboardcontainer.css, etc.
+   ============================================ */
+
+/* Remove border-bottom completely from notification header - MAXIMUM SPECIFICITY */
+#notification-panel .border-bottom.d-flex,
+#notification-panel > div.border-bottom,
+#notification-panel .d-flex.border-bottom,
+#notification-panel .border-bottom,
+#notification-panel .border-bottom.d-flex.justify-content-between,
+#notification-panel .border-bottom.d-flex.justify-content-between.px-3.py-2,
+#notification-panel .d-flex.align-items-center.border-bottom,
+#notification-panel > div:first-child.border-bottom,
+#notification-panel .dropdown-menu .border-bottom.d-flex.justify-content-between.px-3.py-2 {
+  border-bottom: none !important;
+  border-left: none !important;
+  border-right: none !important;
+  border-top: none !important;
+  border: none !important;
+  border-color: transparent !important;
+  border-image: none !important;
+  box-shadow: none !important;
+}
+
+/* Override header-dropdowns.css and dashboardcontainer.css rules */
+#notification-panel .d-flex.align-items-center,
+#notification-panel > div:first-child {
+  border-bottom: none !important;
+  border: none !important;
+}
+
+/* Remove any borders from child elements in the header */
+#notification-panel .border-bottom > div,
+#notification-panel .border-bottom .d-flex,
+#notification-panel .border-bottom > div:first-child,
+#notification-panel .border-bottom > div:last-child {
+  border: none !important;
+  border-bottom: none !important;
+  border-top: none !important;
+  border-left: none !important;
+  border-right: none !important;
+}
+
+/* Remove borders from buttons in the header */
+#notification-panel .border-bottom #notif-note-btn,
+#notification-panel .border-bottom #notif-history-link,
+#notification-panel .border-bottom .btn,
+#notification-panel #notif-note-btn,
+#notification-panel #notif-history-link {
+  border-bottom: none !important;
+  box-shadow: none !important;
+}
+
+/* Remove any pseudo-element borders */
+#notification-panel .border-bottom::before,
+#notification-panel .border-bottom::after {
+  display: none !important;
+  border: none !important;
+  content: none !important;
+}
+
+/* Remove any borders from the Statuses section and toggle switch */
+#notification-panel .border-bottom > div:first-child .d-flex,
+#notification-panel .border-bottom .form-check,
+#notification-panel .border-bottom .form-switch {
+  border: none !important;
+  border-bottom: none !important;
+}

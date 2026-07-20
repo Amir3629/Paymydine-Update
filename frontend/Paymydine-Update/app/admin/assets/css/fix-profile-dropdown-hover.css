@@ -1,0 +1,35 @@
+/* ============================================
+   FIX PROFILE DROPDOWN HOVER - Remove inline styles blocking hover
+   Fix broken hover effect on Edit Details and other buttons
+   ============================================ */
+
+/* Remove inline styles that prevent hover - override with CSS */
+.profile-dropdown-menu .dropdown-item[style*="transform: scale(1)"],
+.profile-dropdown-menu .dropdown-item span[style*="transform: scale(1)"],
+.profile-dropdown-menu .dropdown-item i[style*="transform: scale(1)"] {
+  transform: none !important;
+}
+
+/* Ensure hover effect works - text/icon scaling only */
+.profile-dropdown-menu .dropdown-item span,
+.profile-dropdown-menu .dropdown-item i {
+  transition: transform 0.3s ease-out !important;
+  display: inline-block !important;
+}
+
+.profile-dropdown-menu .dropdown-item:hover span,
+.profile-dropdown-menu .dropdown-item:hover i {
+  transform: scale(1.05) !important; /* Scale on hover */
+  transition: transform 0.3s ease-out !important;
+}
+
+/* Override any inline styles that set transform: scale(1) */
+.profile-dropdown-menu .dropdown-item span[style],
+.profile-dropdown-menu .dropdown-item i[style] {
+  transform: scale(1) !important; /* Default state */
+}
+
+.profile-dropdown-menu .dropdown-item:hover span[style],
+.profile-dropdown-menu .dropdown-item:hover i[style] {
+  transform: scale(1.05) !important; /* Override inline style on hover */
+}

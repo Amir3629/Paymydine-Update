@@ -1,0 +1,8 @@
+/* PayMyDine Admin tables: scoped `.pmd-` starters only. */
+.pmd-table {
+  color: var(--pmd-color-text);
+}
+
+.pmd-table__cell {
+  border-color: var(--pmd-color-border);
+}

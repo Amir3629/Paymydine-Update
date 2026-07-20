@@ -1,0 +1,72 @@
+/*
+ * PayMyDine structured CSS compatibility layer.
+ *
+ * This file remains imported by app/globals.css, but the previous broad
+ * styles/global/legacy/*.css content has been moved into owner-adjacent
+ * files under styles/customer/.
+ *
+ * Structure rule:
+ *   - theme-specific selectors live in styles/customer/themes/*-compat.css
+ *   - checkout/payment selectors live in styles/customer/checkout/
+ *   - menu/action/quantity/badge selectors live in styles/customer/actions/
+ *   - modal selectors live in styles/customer/modals/
+ *   - valet selectors live in styles/customer/valet/
+ *   - legacy files now contain markers only
+ *
+ * Guardrail:
+ *   Run `npm run legacy-css:guard` and `npm run frontend:acceptance` before deploy.
+ */
+
+@import "./legacy/legacy-01.css";
+@import "./legacy/legacy-02.css";
+@import "./legacy/legacy-03.css";
+@import "./legacy/legacy-04.css";
+@import "./legacy/legacy-05.css";
+@import "./legacy/legacy-06.css";
+@import "./legacy/legacy-07.css";
+@import "./legacy/legacy-08.css";
+@import "./legacy/legacy-09.css";
+@import "./legacy/legacy-10.css";
+
+/* Core Tailwind/theme tokens and base compatibility. */
+@import "../customer/core/base-theme-tokens-compat.css";
+
+/* Shared non-theme visual compatibility rules. */
+@import "../customer/core/global-visual-compat.css";
+
+/* Shared rules intentionally scoped to html/body data-theme. */
+@import "../customer/themes/shared-theme-compat.css";
+
+/* Clean Light theme isolated compatibility rules. */
+@import "../customer/themes/clean-light-compat.css";
+
+/* Modern Dark theme isolated compatibility rules. */
+@import "../customer/themes/modern-dark-compat.css";
+
+/* Gold Luxury theme isolated compatibility rules. */
+@import "../customer/themes/gold-luxury-compat.css";
+
+/* Vibrant Colors theme isolated compatibility rules. */
+@import "../customer/themes/vibrant-colors-compat.css";
+
+/* Minimal theme isolated compatibility rules. */
+@import "../customer/themes/minimal-compat.css";
+
+/* Legacy Light theme isolated compatibility rules. */
+@import "../customer/themes/light-compat.css";
+
+/* Customer action, bottom dock, quantity, category and badge controls. */
+@import "../customer/actions/action-controls-compat.css";
+
+/* Food/product modal and dialog compatibility rules. */
+@import "../customer/modals/modal-compat.css";
+
+/* Valet page/control compatibility rules. */
+@import "../customer/valet/valet-compat.css";
+
+/* Checkout, payment, Stripe, split bill, tip/coupon rules. */
+@import "../customer/checkout/checkout-theme-compat.css";
+
+/* Kazen theme/menu/checkout compatibility rules. */
+@import "../customer/themes/kazen-menu-compat.css";
+

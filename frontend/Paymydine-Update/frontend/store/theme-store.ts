@@ -1,0 +1,162 @@
+import { create } from 'zustand'
+import { persist } from 'zustand/middleware'
+import { apiClient } from '@/lib/api-client'
+import { themes, applyTheme, getCurrentTheme, type Theme } from '@/lib/theme-system'
+import { buildSafeThemeOverrides } from '@/lib/theme-loader'
+
+function pmdForceKazenFrontendThemePayload(payload: any) {
+  if (!payload || typeof payload !== "object") return payload
+
+  const normalize = (value: any) => String(value || "").trim().replace(/-/g, "_").toLowerCase()
+  const topAdmin = normalize(payload.admin_theme)
+  const nestedAdmin = normalize(payload.data?.admin_theme)
+  const topFrontend = normalize(payload.frontend_theme)
+  const nestedFrontend = normalize(payload.data?.frontend_theme)
+
+  const hasKazen =
+    topAdmin === "kazen_japanese" ||
+    nestedAdmin === "kazen_japanese" ||
+    topFrontend === "kazen_japanese" ||
+    nestedFrontend === "kazen_japanese"
+
+  if (hasKazen) {
+    payload.admin_theme = "kazen_japanese"
+    payload.frontend_theme = "kazen_japanese"
+    payload.theme_id = "kazen_japanese"
+    if (payload.data && typeof payload.data === "object") {
+      payload.data.admin_theme = "kazen_japanese"
+      payload.data.frontend_theme = "kazen_japanese"
+      payload.data.theme_id = "kazen_japanese"
+    }
+  }
+
+  return payload
+}
+
+export interface ThemeSettings {
+  theme_id: string
+  primary_color: string
+  secondary_color: string
+  accent_color: string
+  background_color: string
+  custom_colors?: Record<string, string>
+}
+
+interface ThemeStore {
+  currentTheme: string
+  availableThemes: Record<string, Theme>
+  settings: ThemeSettings
+  isLoading: boolean
+  lastFetched: number
+  
+  // Actions
+  setTheme: (themeId: string) => void
+  loadSettings: () => Promise<void>
+  updateSettings: (settings: Partial<ThemeSettings>) => Promise<void>
+  getCSSVariables: () => Record<string, string>
+}
+
+const defaultSettings: ThemeSettings = {
+  theme_id: 'gold-luxury',
+  primary_color: '#062F2A',
+  secondary_color: '#062F2A',
+  accent_color: '#C89B4A',
+  background_color: '#FAF9F4'
+}
+
+export const useThemeStore = create<ThemeStore>()(
+  persist(
+    (set, get) => ({
+      currentTheme: 'gold-luxury', // Default, will be updated on client
+      availableThemes: themes,
+      settings: defaultSettings,
+      isLoading: false,
+      lastFetched: 0,
+
+      setTheme: (themeId: string) => {
+        console.log('🎨 ThemeStore: Setting theme to:', themeId)
+        set({ currentTheme: themeId })
+        
+        // Apply theme – let CSS variables handle backgrounds
+        applyTheme(themeId)
+        
+        // Do NOT set any "forced" override flags; admin is the source of truth
+      },
+
+      loadSettings: async () => {
+        console.log('🔄 ThemeStore: Loading settings from admin...')
+        const now = Date.now()
+
+        set({ isLoading: true })
+        
+        try {
+          console.log('🌐 ThemeStore: Calling API...')
+          const response = await apiClient.getThemeSettings()
+          console.log('📡 ThemeStore: API response:', response)
+          
+          if (response.success && response.data) {
+            const normalizedThemeResponse = pmdForceKazenFrontendThemePayload(response)
+            const adminThemeId = normalizedThemeResponse?.data?.theme_id || normalizedThemeResponse?.theme_id || normalizedThemeResponse?.frontend_theme || normalizedThemeResponse?.admin_theme || 'gold-luxury'
+            
+            const overrides = buildSafeThemeOverrides(adminThemeId, response.data)
+
+            // Update store with admin theme (always use admin selection)
+            set({ 
+              settings: { ...defaultSettings, ...response.data },
+              currentTheme: adminThemeId,  // Always use admin theme
+              lastFetched: now,
+              isLoading: false 
+            })
+            
+            console.log('✅ ThemeStore: Applying admin theme:', adminThemeId, overrides)
+            applyTheme(adminThemeId, overrides)
+          } else {
+            console.log('⚠️ ThemeStore: No data in response')
+            set({ isLoading: false })
+          }
+        } catch (error) {
+          console.error('❌ ThemeStore: Failed to load theme settings:', error)
+          set({ isLoading: false })
+        }
+      },
+
+      updateSettings: async (newSettings: Partial<ThemeSettings>) => {
+        try {
+          const response = await apiClient.updateThemeSettings(newSettings)
+          if (response.success) {
+            set((state) => ({
+              settings: { ...state.settings, ...newSettings }
+            }))
+            
+            // If theme_id changed, apply the new theme
+            if (newSettings.theme_id) {
+              get().setTheme(newSettings.theme_id)
+            }
+          }
+          return
+        } catch (error) {
+          console.error('Failed to update theme settings:', error)
+          return
+        }
+      },
+
+      getCSSVariables: () => {
+        const { currentTheme, availableThemes } = get()
+        const theme = availableThemes[currentTheme]
+        if (!theme) return {}
+        
+        // Import the themeToCSSVariables function
+        const { themeToCSSVariables } = require('@/lib/theme-system')
+        return themeToCSSVariables(theme)
+      }
+    }),
+    {
+      name: 'paymydine-theme-store',
+      partialize: (state) => ({ 
+        currentTheme: state.currentTheme,
+        settings: state.settings,
+        lastFetched: state.lastFetched 
+      }),
+    }
+  )
+) 

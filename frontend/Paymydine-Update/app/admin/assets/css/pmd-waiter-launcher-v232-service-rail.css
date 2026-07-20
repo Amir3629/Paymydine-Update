@@ -1,0 +1,394 @@
+/*
+ * PMD Waiter Launcher V2.3.2
+ * Vertical service filter rail + operational colours.
+ * Scoped only to /admin/dashboardwaiternew and /admin/waiter.
+ */
+
+body.pmd-waiter-standard-v23-page {
+  --pmd-launcher-blue: #2563eb;
+  --pmd-launcher-cyan: #0891b2;
+  --pmd-launcher-green: #16a34a;
+  --pmd-launcher-orange: #ea580c;
+  --pmd-launcher-red: #dc2626;
+  --pmd-launcher-purple: #7c3aed;
+  --pmd-launcher-note: #d97706;
+}
+
+/* Launcher becomes a POS-like service rail + working area. */
+body.pmd-waiter-standard-v23-page .pmd-v2-launcher {
+  display: grid !important;
+  grid-template-columns: 154px minmax(0, 1fr) !important;
+  grid-template-rows: auto auto auto minmax(0, 1fr) auto !important;
+  min-height: 100dvh !important;
+}
+
+body.pmd-waiter-standard-v23-page .pmd-v2-topbar {
+  grid-column: 1 / -1 !important;
+  grid-row: 1 !important;
+}
+
+body.pmd-waiter-standard-v23-page .pmd-v2-command {
+  grid-column: 2 !important;
+  grid-row: 2 !important;
+  min-width: 0 !important;
+  padding: 14px 20px 10px !important;
+  display: flex !important;
+  justify-content: flex-end !important;
+  align-items: center !important;
+  border-bottom: 0 !important;
+}
+
+body.pmd-waiter-standard-v23-page .pmd-v2-search {
+  width: min(420px, 100%) !important;
+  min-height: 48px !important;
+  margin-left: auto !important;
+}
+
+/* Main filters now behave like the category rail on the ordering page. */
+body.pmd-waiter-standard-v23-page .pmd-v2-mode-keys {
+  grid-column: 1 !important;
+  grid-row: 2 / 5 !important;
+  align-self: stretch !important;
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 7px !important;
+  padding: 14px 8px !important;
+  background: var(--pmd-v23-surface) !important;
+  border-right: 1px solid var(--pmd-v23-line) !important;
+  border-bottom: 0 !important;
+  overflow-y: auto !important;
+}
+
+body.pmd-waiter-standard-v23-page .pmd-v2-mode-keys button {
+  width: 100% !important;
+  min-height: 70px !important;
+  padding: 10px 9px !important;
+  display: grid !important;
+  grid-template-columns: 1fr auto !important;
+  align-items: center !important;
+  gap: 8px !important;
+  text-align: left !important;
+  border: 1px solid var(--pmd-v23-line-strong) !important;
+  border-left: 7px solid var(--pmd-filter-color, var(--pmd-launcher-blue)) !important;
+  border-radius: 3px !important;
+  background: var(--pmd-v23-surface-2) !important;
+  color: var(--pmd-v23-text) !important;
+  box-shadow: none !important;
+}
+
+body.pmd-waiter-standard-v23-page .pmd-v2-mode-keys button span {
+  font-size: 12px !important;
+  line-height: 1.08 !important;
+  font-weight: 1000 !important;
+  letter-spacing: .035em !important;
+}
+
+body.pmd-waiter-standard-v23-page .pmd-v2-mode-keys button b {
+  min-width: 31px !important;
+  height: 31px !important;
+  padding: 0 7px !important;
+  display: grid !important;
+  place-items: center !important;
+  border-radius: 3px !important;
+  background: color-mix(in srgb, var(--pmd-filter-color) 18%, var(--pmd-v23-surface)) !important;
+  color: var(--pmd-filter-color) !important;
+  border: 1px solid color-mix(in srgb, var(--pmd-filter-color) 55%, transparent) !important;
+  font-size: 13px !important;
+  font-weight: 1000 !important;
+}
+
+body.pmd-waiter-standard-v23-page .pmd-v2-mode-keys button:hover {
+  box-shadow: inset 0 0 0 2px var(--pmd-filter-color) !important;
+}
+
+body.pmd-waiter-standard-v23-page .pmd-v2-mode-keys button.is-active {
+  background: var(--pmd-filter-color) !important;
+  color: #fff !important;
+  border-color: var(--pmd-filter-color) !important;
+}
+
+body.pmd-waiter-standard-v23-page .pmd-v2-mode-keys button.is-active b {
+  background: rgba(255,255,255,.18) !important;
+  color: #fff !important;
+  border-color: rgba(255,255,255,.34) !important;
+}
+
+body.pmd-waiter-standard-v23-page [data-v2-filter="mine"] {
+  --pmd-filter-color: var(--pmd-launcher-purple);
+}
+body.pmd-waiter-standard-v23-page [data-v2-filter="all"] {
+  --pmd-filter-color: var(--pmd-launcher-blue);
+}
+body.pmd-waiter-standard-v23-page [data-v2-filter="open"] {
+  --pmd-filter-color: var(--pmd-launcher-orange);
+}
+body.pmd-waiter-standard-v23-page [data-v2-filter="call"] {
+  --pmd-filter-color: var(--pmd-launcher-red);
+}
+body.pmd-waiter-standard-v23-page [data-v2-filter="note"] {
+  --pmd-filter-color: var(--pmd-launcher-note);
+}
+
+/* Area keys remain across the top of the table workspace. */
+body.pmd-waiter-standard-v23-page .pmd-v2-area-keys {
+  grid-column: 2 !important;
+  grid-row: 3 !important;
+  padding: 0 20px 12px !important;
+  display: flex !important;
+  gap: 7px !important;
+  overflow-x: auto !important;
+  border-bottom: 1px solid var(--pmd-v23-line) !important;
+}
+
+body.pmd-waiter-standard-v23-page .pmd-v2-area-keys button {
+  min-width: 104px !important;
+  min-height: 46px !important;
+  border-left: 5px solid var(--pmd-area-color, var(--pmd-launcher-cyan)) !important;
+}
+
+body.pmd-waiter-standard-v23-page .pmd-v2-area-keys button:nth-child(6n+1) { --pmd-area-color: #2563eb; }
+body.pmd-waiter-standard-v23-page .pmd-v2-area-keys button:nth-child(6n+2) { --pmd-area-color: #16a34a; }
+body.pmd-waiter-standard-v23-page .pmd-v2-area-keys button:nth-child(6n+3) { --pmd-area-color: #7c3aed; }
+body.pmd-waiter-standard-v23-page .pmd-v2-area-keys button:nth-child(6n+4) { --pmd-area-color: #ea580c; }
+body.pmd-waiter-standard-v23-page .pmd-v2-area-keys button:nth-child(6n+5) { --pmd-area-color: #0891b2; }
+body.pmd-waiter-standard-v23-page .pmd-v2-area-keys button:nth-child(6n+6) { --pmd-area-color: #be185d; }
+
+body.pmd-waiter-standard-v23-page .pmd-v2-area-keys button.is-active {
+  background: var(--pmd-area-color) !important;
+  border-color: var(--pmd-area-color) !important;
+  color: #fff !important;
+}
+
+/* More meaningful colour on table keys without making the screen noisy. */
+body.pmd-waiter-standard-v23-page .pmd-v2-table-stage {
+  grid-column: 2 !important;
+  grid-row: 4 !important;
+  min-width: 0 !important;
+}
+
+body.pmd-waiter-standard-v23-page .pmd-v2-table-key {
+  border-top: 8px solid var(--pmd-table-state-color, #64748b) !important;
+  transition: transform .08s ease, box-shadow .08s ease, background .08s ease !important;
+}
+
+body.pmd-waiter-standard-v23-page .pmd-v2-table-key:hover {
+  transform: translateY(-2px) !important;
+  box-shadow: 0 8px 20px rgba(0,0,0,.18), inset 0 0 0 2px var(--pmd-table-state-color) !important;
+}
+
+body.pmd-waiter-standard-v23-page .pmd-v2-table-key.is-free {
+  --pmd-table-state-color: var(--pmd-launcher-green);
+}
+body.pmd-waiter-standard-v23-page .pmd-v2-table-key.is-open {
+  --pmd-table-state-color: var(--pmd-launcher-blue);
+}
+body.pmd-waiter-standard-v23-page .pmd-v2-table-key.is-payment {
+  --pmd-table-state-color: var(--pmd-launcher-orange);
+}
+body.pmd-waiter-standard-v23-page .pmd-v2-table-key.is-ready {
+  --pmd-table-state-color: var(--pmd-launcher-purple);
+}
+body.pmd-waiter-standard-v23-page .pmd-v2-table-key.is-attention {
+  --pmd-table-state-color: var(--pmd-launcher-red);
+}
+body.pmd-waiter-standard-v23-page .pmd-v2-table-key.is-paid {
+  --pmd-table-state-color: var(--pmd-launcher-cyan);
+}
+
+body.pmd-waiter-standard-v23-page .pmd-v2-table-key[data-pmd-has-note="1"] {
+  box-shadow: inset 5px 0 0 var(--pmd-launcher-note) !important;
+}
+
+body.pmd-waiter-standard-v23-page .pmd-v2-footer {
+  grid-column: 1 / -1 !important;
+  grid-row: 5 !important;
+}
+
+/* Drawer remains the global alert inbox. Make its purpose clearer. */
+body.pmd-waiter-standard-v23-page .pmd-v2-alert-drawer header small::after {
+  content: " · CALLS · NOTES · READY";
+}
+
+/* Tablet: keep the useful vertical rail, slightly narrower. */
+@media (max-width: 1000px) {
+  body.pmd-waiter-standard-v23-page .pmd-v2-launcher {
+    grid-template-columns: 126px minmax(0, 1fr) !important;
+  }
+  body.pmd-waiter-standard-v23-page .pmd-v2-mode-keys button {
+    min-height: 62px !important;
+    padding: 8px 7px !important;
+  }
+  body.pmd-waiter-standard-v23-page .pmd-v2-mode-keys button span {
+    font-size: 10px !important;
+  }
+}
+
+/* Phone: turn the rail into a horizontal coloured strip. */
+@media (max-width: 700px) {
+  body.pmd-waiter-standard-v23-page .pmd-v2-launcher {
+    display: flex !important;
+    flex-direction: column !important;
+  }
+
+  body.pmd-waiter-standard-v23-page .pmd-v2-mode-keys {
+    order: 2 !important;
+    width: 100% !important;
+    min-height: auto !important;
+    flex-direction: row !important;
+    padding: 8px !important;
+    overflow-x: auto !important;
+    border-right: 0 !important;
+    border-bottom: 1px solid var(--pmd-v23-line) !important;
+  }
+
+  body.pmd-waiter-standard-v23-page .pmd-v2-mode-keys button {
+    flex: 0 0 122px !important;
+    min-height: 58px !important;
+  }
+
+  body.pmd-waiter-standard-v23-page .pmd-v2-command {
+    order: 3 !important;
+    padding: 8px !important;
+  }
+
+  body.pmd-waiter-standard-v23-page .pmd-v2-search {
+    width: 100% !important;
+  }
+
+  body.pmd-waiter-standard-v23-page .pmd-v2-area-keys {
+    order: 4 !important;
+    padding: 0 8px 8px !important;
+  }
+
+  body.pmd-waiter-standard-v23-page .pmd-v2-table-stage {
+    order: 5 !important;
+  }
+
+  body.pmd-waiter-standard-v23-page .pmd-v2-footer {
+    order: 6 !important;
+  }
+}
+
+/* =========================================================
+   V2.3.2.1 layout repair
+   The mode rail is now a direct child of .pmd-v2-launcher.
+   ========================================================= */
+
+body.pmd-waiter-standard-v23-page .pmd-v2-launcher {
+  display: grid !important;
+  grid-template-columns: 188px minmax(0, 1fr) !important;
+  grid-template-rows: auto auto auto minmax(0, 1fr) auto !important;
+  grid-template-areas:
+    "top top"
+    "rail command"
+    "rail areas"
+    "rail tables"
+    "footer footer" !important;
+  min-height: 100dvh !important;
+  align-items: stretch !important;
+}
+
+body.pmd-waiter-standard-v23-page .pmd-v2-topbar {
+  grid-area: top !important;
+}
+
+body.pmd-waiter-standard-v23-page .pmd-v2-mode-keys {
+  grid-area: rail !important;
+  align-self: stretch !important;
+  width: auto !important;
+  min-width: 0 !important;
+  height: auto !important;
+  min-height: 0 !important;
+  max-height: none !important;
+  margin: 0 !important;
+  padding: 14px 10px !important;
+  position: relative !important;
+  inset: auto !important;
+  z-index: 2 !important;
+}
+
+body.pmd-waiter-standard-v23-page .pmd-v2-command {
+  grid-area: command !important;
+  min-height: 76px !important;
+  height: auto !important;
+  padding: 14px 20px 10px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: flex-end !important;
+  background: var(--pmd-v23-bg) !important;
+}
+
+body.pmd-waiter-standard-v23-page .pmd-v2-area-keys {
+  grid-area: areas !important;
+  min-height: 62px !important;
+  height: auto !important;
+  margin: 0 !important;
+  padding: 0 20px 12px !important;
+  align-self: start !important;
+}
+
+body.pmd-waiter-standard-v23-page .pmd-v2-table-stage {
+  grid-area: tables !important;
+  min-height: 0 !important;
+  align-self: stretch !important;
+  padding-top: 10px !important;
+}
+
+body.pmd-waiter-standard-v23-page .pmd-v2-footer {
+  grid-area: footer !important;
+}
+
+/* Keep light mode professional instead of a blank white canvas. */
+html:not([data-pmd-pos-theme="dark"])
+body.pmd-waiter-standard-v23-page .pmd-v2-command,
+html:not([data-pmd-pos-theme="dark"])
+body.pmd-waiter-standard-v23-page .pmd-v2-area-keys,
+html:not([data-pmd-pos-theme="dark"])
+body.pmd-waiter-standard-v23-page .pmd-v2-table-stage {
+  background: #edf2f6 !important;
+}
+
+html:not([data-pmd-pos-theme="dark"])
+body.pmd-waiter-standard-v23-page .pmd-v2-mode-keys {
+  background: #e3eaf0 !important;
+}
+
+html:not([data-pmd-pos-theme="dark"])
+body.pmd-waiter-standard-v23-page .pmd-v2-table-key {
+  background: #ffffff !important;
+}
+
+/* Compact and readable rail. */
+body.pmd-waiter-standard-v23-page .pmd-v2-mode-keys button {
+  min-height: 68px !important;
+  flex: 0 0 auto !important;
+}
+
+/* Correct direct-child responsive behavior. */
+@media (max-width: 1000px) and (min-width: 701px) {
+  body.pmd-waiter-standard-v23-page .pmd-v2-launcher {
+    grid-template-columns: 150px minmax(0, 1fr) !important;
+  }
+}
+
+@media (max-width: 700px) {
+  body.pmd-waiter-standard-v23-page .pmd-v2-launcher {
+    display: flex !important;
+    flex-direction: column !important;
+    min-height: 100dvh !important;
+  }
+
+  body.pmd-waiter-standard-v23-page .pmd-v2-topbar { order: 1 !important; }
+  body.pmd-waiter-standard-v23-page .pmd-v2-mode-keys { order: 2 !important; }
+  body.pmd-waiter-standard-v23-page .pmd-v2-command { order: 3 !important; }
+  body.pmd-waiter-standard-v23-page .pmd-v2-area-keys { order: 4 !important; }
+  body.pmd-waiter-standard-v23-page .pmd-v2-table-stage { order: 5 !important; }
+  body.pmd-waiter-standard-v23-page .pmd-v2-footer { order: 6 !important; }
+
+  body.pmd-waiter-standard-v23-page .pmd-v2-mode-keys {
+    width: 100% !important;
+    flex-direction: row !important;
+    overflow-x: auto !important;
+    border-right: 0 !important;
+  }
+}

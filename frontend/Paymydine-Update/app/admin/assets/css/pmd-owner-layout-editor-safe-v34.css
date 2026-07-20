@@ -1,0 +1,46 @@
+/* PMD Owner Layout Editor SAFE v34
+   Group-level resizing only. No drag/drop, no MutationObserver, no backend writes. */
+html body.page.pmd-admin-theme-v1 .pmd-owner-layout-trigger-v34{display:inline-flex!important;align-items:center!important;gap:8px!important;height:42px!important;padding:0 15px!important;border-radius:12px!important;border:1px solid rgba(15,23,42,.10)!important;background:#fff!important;color:#0f172a!important;font-size:13px!important;font-weight:820!important;cursor:pointer!important;box-shadow:0 7px 18px rgba(15,23,42,.08)!important;white-space:nowrap!important}
+html body.page.pmd-admin-theme-v1 .pmd-owner-layout-trigger-v34.is-active{background:#062f2a!important;color:#fff!important;border-color:#062f2a!important}
+html body.page.pmd-admin-theme-v1:not(.pmd-owner-layout-available-v34) .pmd-owner-layout-trigger-v34.pmd-owner-layout-created-v34{display:none!important}
+html body.page.pmd-admin-theme-v1 .pmd-owner-layout-panel-v34{position:fixed!important;top:104px!important;right:24px!important;width:336px!important;max-width:calc(100vw - 48px)!important;z-index:100100!important;display:none!important;border-radius:18px!important;background:rgba(255,255,255,.985)!important;border:1px solid rgba(15,23,42,.10)!important;box-shadow:0 24px 80px rgba(15,23,42,.20)!important;overflow:hidden!important;color:#0f172a!important}
+html body.page.pmd-admin-theme-v1.pmd-owner-layout-editing-v34 .pmd-owner-layout-panel-v34{display:block!important}
+html body.page.pmd-admin-theme-v1 .pmd-owner-layout-panel-v34__head{padding:17px 18px 14px!important;border-bottom:1px solid rgba(15,23,42,.08)!important;display:flex!important;align-items:center!important;justify-content:space-between!important;gap:12px!important}
+html body.page.pmd-admin-theme-v1 .pmd-owner-layout-panel-v34__head strong{display:block!important;font-size:14px!important;font-weight:900!important;letter-spacing:-.01em!important}
+html body.page.pmd-admin-theme-v1 .pmd-owner-layout-panel-v34__head span{display:block!important;margin-top:3px!important;color:#64748b!important;font-size:11.5px!important;font-weight:650!important}
+html body.page.pmd-admin-theme-v1 .pmd-owner-layout-panel-v34__close{width:32px!important;height:32px!important;min-width:32px!important;border:0!important;border-radius:10px!important;background:#f8fafc!important;color:#64748b!important;font-size:20px!important;line-height:1!important;cursor:pointer!important}
+html body.page.pmd-admin-theme-v1 .pmd-owner-layout-panel-v34__body{padding:16px 18px 18px!important}
+html body.page.pmd-admin-theme-v1 .pmd-owner-layout-row-v34{margin:0 0 16px!important}
+html body.page.pmd-admin-theme-v1 .pmd-owner-layout-row-v34 label{display:flex!important;align-items:center!important;justify-content:space-between!important;margin:0 0 8px!important;color:#334155!important;font-size:12px!important;font-weight:850!important;text-transform:uppercase!important;letter-spacing:.035em!important}
+html body.page.pmd-admin-theme-v1 .pmd-owner-layout-row-v34 label small{color:#94a3b8!important;font-size:10.5px!important;font-weight:700!important;text-transform:none!important;letter-spacing:0!important}
+html body.page.pmd-admin-theme-v1 .pmd-owner-layout-segment-v34{display:grid!important;grid-template-columns:repeat(3,minmax(0,1fr))!important;gap:8px!important}
+html body.page.pmd-admin-theme-v1 .pmd-owner-layout-segment-v34 button,html body.page.pmd-admin-theme-v1 .pmd-owner-layout-actions-v34 button{height:36px!important;border-radius:10px!important;border:1px solid rgba(15,23,42,.10)!important;background:#fff!important;color:#111827!important;font-size:12px!important;font-weight:780!important;cursor:pointer!important}
+html body.page.pmd-admin-theme-v1 .pmd-owner-layout-segment-v34 button.is-selected{background:#062f2a!important;color:#fff!important;border-color:#062f2a!important;box-shadow:0 8px 18px rgba(6,47,42,.16)!important}
+html body.page.pmd-admin-theme-v1 .pmd-owner-layout-actions-v34{display:grid!important;grid-template-columns:1fr 1fr!important;gap:8px!important;margin-top:8px!important}
+html body.page.pmd-admin-theme-v1 .pmd-owner-layout-actions-v34 button[data-action="done"]{background:#062f2a!important;color:#fff!important;border-color:#062f2a!important}
+html body.page.pmd-admin-theme-v1.pmd-owner-layout-editing-v34 .pmd-dashboard-modern.pmd-owner-match-v13 .pmd-dashboard-cards,html body.page.pmd-admin-theme-v1.pmd-owner-layout-editing-v34 .pmd-dashboard-modern.pmd-owner-match-v13 .pmd-floor-card,html body.page.pmd-admin-theme-v1.pmd-owner-layout-editing-v34 .pmd-dashboard-modern.pmd-owner-match-v13 .pmd-owner-match-footer-v13{outline:2px dashed rgba(200,155,74,.76)!important;outline-offset:6px!important;border-radius:16px!important}
+/* Metric card group sizes */
+html body.page.pmd-admin-theme-v1 .pmd-dashboard-modern.pmd-owner-match-v13.pmd-owner-cards-compact-v34 .pmd-dashboard-card{height:258px!important;min-height:258px!important;max-height:258px!important;padding:17px!important}
+html body.page.pmd-admin-theme-v1 .pmd-dashboard-modern.pmd-owner-match-v13.pmd-owner-cards-compact-v34 .pmd-dashboard-card-head{margin-bottom:12px!important}
+html body.page.pmd-admin-theme-v1 .pmd-dashboard-modern.pmd-owner-match-v13.pmd-owner-cards-compact-v34 .pmd-dashboard-card-icon{width:42px!important;height:42px!important;min-width:42px!important}
+html body.page.pmd-admin-theme-v1 .pmd-dashboard-modern.pmd-owner-match-v13.pmd-owner-cards-compact-v34 .pmd-dashboard-card-value{font-size:27px!important}
+html body.page.pmd-admin-theme-v1 .pmd-dashboard-modern.pmd-owner-match-v13.pmd-owner-cards-compact-v34 .pmd-dashboard-line{height:30px!important;min-height:30px!important}
+html body.page.pmd-admin-theme-v1 .pmd-dashboard-modern.pmd-owner-match-v13.pmd-owner-cards-compact-v34 .pmd-dashboard-link{height:40px!important;min-height:40px!important}
+html body.page.pmd-admin-theme-v1 .pmd-dashboard-modern.pmd-owner-match-v13.pmd-owner-cards-large-v34 .pmd-dashboard-card{height:334px!important;min-height:334px!important;max-height:334px!important;padding:22px!important}
+html body.page.pmd-admin-theme-v1 .pmd-dashboard-modern.pmd-owner-match-v13.pmd-owner-cards-large-v34 .pmd-dashboard-card-icon{width:54px!important;height:54px!important;min-width:54px!important}
+html body.page.pmd-admin-theme-v1 .pmd-dashboard-modern.pmd-owner-match-v13.pmd-owner-cards-large-v34 .pmd-dashboard-card-value{font-size:34px!important}
+html body.page.pmd-admin-theme-v1 .pmd-dashboard-modern.pmd-owner-match-v13.pmd-owner-cards-large-v34 .pmd-dashboard-line{height:40px!important;min-height:40px!important}
+html body.page.pmd-admin-theme-v1 .pmd-dashboard-modern.pmd-owner-match-v13.pmd-owner-cards-large-v34 .pmd-dashboard-link{height:50px!important;min-height:50px!important}
+html body.page.pmd-admin-theme-v1 .pmd-dashboard-modern.pmd-owner-match-v13.pmd-owner-cards-compact-v34 .pmd-sales-chart{height:52px!important;min-height:52px!important;max-height:52px!important}
+html body.page.pmd-admin-theme-v1 .pmd-dashboard-modern.pmd-owner-match-v13.pmd-owner-cards-large-v34 .pmd-sales-chart{height:88px!important;min-height:88px!important;max-height:88px!important}
+/* Floor plan sizes */
+html body.page.pmd-admin-theme-v1 .pmd-dashboard-modern.pmd-owner-match-v13.pmd-owner-floor-compact-v34 .pmd-floor-card{height:540px!important;min-height:540px!important;max-height:540px!important}
+html body.page.pmd-admin-theme-v1 .pmd-dashboard-modern.pmd-owner-match-v13.pmd-owner-floor-compact-v34 .pmd-table-tile{height:60px!important;min-height:60px!important}
+html body.page.pmd-admin-theme-v1 .pmd-dashboard-modern.pmd-owner-match-v13.pmd-owner-floor-large-v34 .pmd-floor-card{height:692px!important;min-height:692px!important;max-height:692px!important}
+html body.page.pmd-admin-theme-v1 .pmd-dashboard-modern.pmd-owner-match-v13.pmd-owner-floor-large-v34 .pmd-table-tile{height:82px!important;min-height:82px!important}
+/* Bottom row sizes */
+html body.page.pmd-admin-theme-v1 .pmd-dashboard-modern.pmd-owner-match-v13.pmd-owner-footer-compact-v34 .pmd-owner-match-footer-v13{gap:14px!important}
+html body.page.pmd-admin-theme-v1 .pmd-dashboard-modern.pmd-owner-match-v13.pmd-owner-footer-compact-v34 .pmd-recent-activity,html body.page.pmd-admin-theme-v1 .pmd-dashboard-modern.pmd-owner-match-v13.pmd-owner-footer-compact-v34 .pmd-premium-card{min-height:106px!important}
+html body.page.pmd-admin-theme-v1 .pmd-dashboard-modern.pmd-owner-match-v13.pmd-owner-footer-large-v34 .pmd-owner-match-footer-v13{gap:24px!important}
+html body.page.pmd-admin-theme-v1 .pmd-dashboard-modern.pmd-owner-match-v13.pmd-owner-footer-large-v34 .pmd-recent-activity,html body.page.pmd-admin-theme-v1 .pmd-dashboard-modern.pmd-owner-match-v13.pmd-owner-footer-large-v34 .pmd-premium-card{min-height:150px!important}
+html body.page.pmd-admin-theme-v1.pmd-owner-layout-editing-v34 [data-control="dashboard-container"].edit-mode .widget-item-action,html body.page.pmd-admin-theme-v1.pmd-owner-layout-editing-v34 [data-control="dashboard-container"].edit-mode .handle{display:none!important}

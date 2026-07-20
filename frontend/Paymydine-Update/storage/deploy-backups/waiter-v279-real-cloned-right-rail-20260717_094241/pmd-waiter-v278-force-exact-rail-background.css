@@ -1,0 +1,37 @@
+/* ==========================================================
+   PMD Waiter V2.7.8
+   Eliminate every old independent right-column surface
+   ========================================================== */
+
+html body
+:is(
+  .v257-operations-rail,
+  .pmd-v257-operations-rail
+)[data-v278-forced-background="1"] {
+  background-image: none !important;
+  box-shadow: none !important;
+  filter: none !important;
+  isolation: isolate !important;
+}
+
+/* Prevent pseudo-elements from painting another dark layer. */
+html body
+:is(
+  .v257-operations-rail,
+  .pmd-v257-operations-rail
+)[data-v278-forced-background="1"]::before,
+html body
+:is(
+  .v257-operations-rail,
+  .pmd-v257-operations-rail
+)[data-v278-forced-background="1"]::after {
+  content: none !important;
+  display: none !important;
+  background: transparent !important;
+}
+
+/*
+ * Buttons already match perfectly according to the audit:
+ * background rgb(51,65,85), width 117px, height 54px.
+ * Do not modify their geometry or surface.
+ */

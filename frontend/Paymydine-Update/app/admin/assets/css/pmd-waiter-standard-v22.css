@@ -1,0 +1,108 @@
+/* PMD Waiter Standard POS V2.2 — operational completeness layer */
+.pmd-waiter-standard-v22-active .pmd-v22-more-action {
+  width: 100%; min-height: 44px; padding: 10px 12px; border: 0; border-top: 1px solid #c5ced7;
+  background: #fff; color: #111820; text-align: left; font: 800 12px/1.2 inherit; letter-spacing: .035em;
+}
+.pmd-waiter-standard-v22-active .pmd-v22-more-action:hover,
+.pmd-waiter-standard-v22-active .pmd-v22-more-action:focus { background: #e9eef3; }
+
+.pmd-v22-operations-modal {
+  position: fixed; inset: 0; z-index: 2147483000; display: none; align-items: center; justify-content: center;
+  padding: max(12px, env(safe-area-inset-top)) max(12px, env(safe-area-inset-right)) max(12px, env(safe-area-inset-bottom)) max(12px, env(safe-area-inset-left));
+  background: rgba(5, 9, 14, .78);
+}
+.pmd-v22-operations-modal.is-show { display: flex; }
+.pmd-v22-operations-dialog {
+  width: min(1120px, 100%); max-height: min(900px, 94vh); display: grid; grid-template-rows: auto auto minmax(0,1fr);
+  overflow: hidden; border: 1px solid #64717d; background: #e8edf2; box-shadow: 0 20px 70px rgba(0,0,0,.45);
+}
+.pmd-v22-operations-dialog > header {
+  display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 14px 16px;
+  background: #10161d; color: #fff; border-bottom: 1px solid #414c57;
+}
+.pmd-v22-operations-dialog header small { display: block; color: #77d8f4; font-weight: 900; letter-spacing: .16em; }
+.pmd-v22-operations-dialog header h2 { margin: 2px 0 0; font-size: 22px; }
+.pmd-v22-operations-dialog header p { margin: 4px 0 0; color: #b8c3ce; font-size: 12px; }
+.pmd-v22-operations-dialog header button { width: 44px; height: 44px; border: 1px solid #6d7a86; background: #202933; color: #fff; font-size: 26px; }
+.pmd-v22-operations-dialog > nav { display: grid; grid-template-columns: repeat(5,1fr); gap: 1px; background: #8d99a4; border-bottom: 1px solid #8d99a4; }
+.pmd-v22-operations-dialog > nav button { min-height: 48px; border: 0; background: #f6f8fa; color: #25303a; font: 900 11px/1.1 inherit; letter-spacing: .05em; }
+.pmd-v22-operations-dialog > nav button.is-active { background: #111820; color: #fff; }
+.pmd-v22-operations-dialog > nav button:disabled { opacity: .45; }
+.pmd-v22-operations-dialog > main { overflow: auto; padding: 14px; }
+.pmd-v22-loading,.pmd-v22-error { min-height: 180px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 14px; font-weight: 800; }
+.pmd-v22-error { color: #b42332; }
+.pmd-v22-two-columns { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 14px; }
+.pmd-v22-panel { display: flex; flex-direction: column; gap: 12px; padding: 14px; border: 1px solid #9aa6b1; background: #fff; }
+.pmd-v22-panel h3 { margin: 0; font-size: 19px; }
+.pmd-v22-panel p { margin: -5px 0 2px; color: #536171; font-size: 12px; }
+.pmd-v22-panel label { display: grid; gap: 6px; color: #4b5967; font-size: 11px; font-weight: 900; letter-spacing: .035em; }
+.pmd-v22-panel input,.pmd-v22-panel select,.pmd-v22-panel textarea { width: 100%; min-height: 44px; padding: 9px 10px; border: 1px solid #81909d; border-radius: 0; background: #fff; color: #10161d; font: 800 14px/1.2 inherit; }
+.pmd-v22-panel textarea { min-height: 92px; resize: vertical; }
+.pmd-v22-panel button,.pmd-v22-error button { min-height: 46px; border: 1px solid #657380; background: #f5f7f9; color: #111820; font: 900 12px/1.15 inherit; letter-spacing: .03em; }
+.pmd-v22-panel button.pmd-v22-primary { background: #138847; border-color: #0b6935; color: #fff; }
+.pmd-v22-panel.is-danger { border-color: #cf4450; }
+.pmd-v22-panel button.pmd-v22-danger { background: #c92d3d; border-color: #9e1927; color: #fff; }
+.pmd-v22-panel button.is-busy { opacity: .55; cursor: wait; }
+.pmd-v22-confirm { grid-template-columns: auto 1fr !important; align-items: center; }
+.pmd-v22-confirm input { width: 22px; min-height: 22px; }
+.pmd-v22-item-list,.pmd-v22-service-list { display: grid; gap: 6px; max-height: 390px; overflow: auto; }
+.pmd-v22-item-pick { grid-template-columns: auto minmax(0,1fr) 82px !important; align-items: center; gap: 8px !important; padding: 8px; border: 1px solid #c2cad1; }
+.pmd-v22-item-pick > input[type=checkbox] { width: 22px; min-height: 22px; }
+.pmd-v22-item-pick span { display: grid; gap: 2px; }
+.pmd-v22-item-pick small { color: #65717c; }
+.pmd-v22-service-row { display: grid; grid-template-columns: minmax(160px,1fr) 84px 120px 120px; gap: 8px; align-items: end; padding: 8px; border: 1px solid #c2cad1; background: #f8fafb; }
+.pmd-v22-service-row > div { align-self: center; display: grid; gap: 3px; }
+.pmd-v22-service-row small { color: #687581; }
+
+/* Payment coverage parity: full balance + equal/items/shares. */
+.pmd-v22-pay-full { width: 100%; min-height: 58px; margin: 8px 0; padding: 10px 12px; display: flex; align-items: center; justify-content: space-between; gap: 16px; border: 1px solid #7d8994; background: #f7f9fa; color: #111820; text-align: left; }
+.pmd-v22-pay-full span { display: grid; gap: 3px; }
+.pmd-v22-pay-full small { color: #667480; }
+.pmd-v22-pay-full strong { font-size: 20px; }
+.pmd-v22-pay-full.is-active { background: #111820; color: #fff; border-color: #111820; }
+.pmd-v22-pay-full.is-active small { color: #bcc6ce; }
+.pmd-v22-split-tabs { grid-template-columns: repeat(3,1fr) !important; }
+.pmd-v22-split-tabs [data-split-mode="full"] { display: none !important; }
+.pmd-v22-payer-progress { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-top: 8px; padding: 8px 10px; border: 1px solid #c9d1d8; background: #f8fafb; font-size: 12px; }
+.pmd-v22-equal-progress { margin-top: 8px; padding-top: 8px; display: flex; justify-content: space-between; border-top: 1px solid #c6cfd7; font-size: 12px; }
+.pmd-v22-shares { display: grid; gap: 8px; }
+.pmd-v22-share-head,.pmd-v22-share-foot { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.pmd-v22-share-head > div { display: grid; gap: 2px; }
+.pmd-v22-share-head small { color: #64717c; }
+.pmd-v22-share-row { width: 100%; min-height: 58px; display: grid; grid-template-columns: minmax(130px,1fr) 90px 100px; gap: 8px; align-items: center; padding: 7px 9px; border: 1px solid #aeb9c3; background: #fff; color: #111820; text-align: left; }
+.pmd-v22-share-row.is-active { border: 3px solid #111820; }
+.pmd-v22-share-row > span { display: grid; gap: 2px; }
+.pmd-v22-share-row small { color: #687581; }
+.pmd-v22-share-row label { position: relative; }
+.pmd-v22-share-row input { width: 100%; min-height: 40px; padding: 7px 24px 7px 8px; border: 1px solid #83909c; font-weight: 900; }
+.pmd-v22-share-row i { position: absolute; right: 8px; top: 50%; transform: translateY(-50%); font-style: normal; font-weight: 900; }
+.pmd-v22-share-row > strong { text-align: right; }
+.pmd-v22-share-foot span { font-size: 12px; font-weight: 800; color: #13723f; }
+.pmd-v22-share-foot span.is-error { color: #ba2938; }
+.pmd-v22-share-foot button { min-height: 40px; border: 1px solid #687581; background: #fff; font-weight: 900; }
+.pmd-v22-item-assignment { display: grid; gap: 8px; }
+.pmd-v22-item-assignment > p { margin: 0; color: #5d6a76; font-size: 12px; }
+.pmd-v22-payer-tabs { display: grid; grid-template-columns: repeat(auto-fit,minmax(90px,1fr)); gap: 4px; }
+.pmd-v22-payer-tabs button { min-height: 40px; border: 1px solid #8996a1; background: #fff; font-weight: 900; }
+.pmd-v22-payer-tabs button.is-active { background: #111820; color: #fff; }
+.pmd-v22-assign-list { display: grid; gap: 4px; max-height: 280px; overflow: auto; }
+.pmd-v22-assign-list button { min-height: 54px; display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 8px 10px; border: 1px solid #afb9c2; background: #fff; color: #111820; text-align: left; }
+.pmd-v22-assign-list span { display: grid; gap: 2px; }
+.pmd-v22-assign-list small { color: #687581; }
+
+@media (max-width: 900px) {
+  .pmd-v22-operations-modal { padding: 0; align-items: stretch; }
+  .pmd-v22-operations-dialog { width: 100%; max-height: 100dvh; height: 100dvh; }
+  .pmd-v22-operations-dialog > nav { grid-template-columns: repeat(5,minmax(112px,1fr)); overflow-x: auto; }
+  .pmd-v22-two-columns { grid-template-columns: 1fr; }
+  .pmd-v22-service-row { grid-template-columns: minmax(120px,1fr) 72px 108px 108px; }
+}
+@media (max-width: 620px) {
+  .pmd-v22-operations-dialog > header { padding-top: max(10px, env(safe-area-inset-top)); }
+  .pmd-v22-operations-dialog > main { padding: 8px; }
+  .pmd-v22-service-row { grid-template-columns: 1fr 70px; }
+  .pmd-v22-service-row label:nth-of-type(2),.pmd-v22-service-row label:nth-of-type(3) { grid-column: span 1; }
+  .pmd-v22-share-row { grid-template-columns: 1fr 78px; }
+  .pmd-v22-share-row > strong { grid-column: 1 / -1; text-align: left; }
+  .pmd-v22-payer-progress,.pmd-v22-share-head,.pmd-v22-share-foot { align-items: stretch; flex-direction: column; }
+}

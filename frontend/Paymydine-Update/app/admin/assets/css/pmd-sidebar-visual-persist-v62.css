@@ -1,0 +1,150 @@
+/* PMD Sidebar Visual Persist v62
+   This is the safe version of "sidebar stays while content changes".
+   No PJAX/SPA. Full page still loads normally, but sidebar does not disappear/flicker. */
+
+/* v58 shield should NOT hide or cover the sidebar anymore.
+   It may still cover only the content area while PMD theme stabilizes. */
+html.pmd-ui-fouc-shield-v58 body.page.pmd-admin-theme-v1 .sidebar,
+html.pmd-ui-fouc-shield-v58 body.page.pmd-admin-theme-v1 #navSidebar,
+html.pmd-ui-fouc-shield-v58 body.page.pmd-admin-theme-v1 #side-nav-menu,
+html.pmd-ui-fouc-shield-v58 body.page.pmd-admin-theme-v1 .pmd-platform-logo-slot-v38,
+html.pmd-ui-fouc-shield-v58 body.page.pmd-admin-theme-v1 img.pmd-platform-logo-img-v38,
+html.pmd-ui-fouc-shield-v58 body.page.pmd-admin-theme-v1 .pmd-sidebar-profile-card,
+html.pmd-ui-fouc-shield-v58 body.page.pmd-admin-theme-v1 .pmd-sidebar-icons-toggle {
+  visibility: visible !important;
+  opacity: 1 !important;
+}
+
+/* Move the loading overlay off the sidebar, so sidebar visually remains there between pages. */
+html.pmd-ui-fouc-shield-v58 body.page.pmd-admin-theme-v1::before {
+  left: 212px !important;
+  right: 0 !important;
+  width: auto !important;
+  inset: 0 0 0 212px !important;
+  pointer-events: none !important;
+}
+
+html.pmd-ui-fouc-shield-v58 body.page.pmd-admin-theme-v1.pmd-sidebar-icons-only::before {
+  left: 96px !important;
+  inset: 0 0 0 96px !important;
+}
+
+html.pmd-ui-fouc-shield-v58 body.page.pmd-admin-theme-v1::after {
+  left: calc(212px + ((100vw - 212px) / 2)) !important;
+  top: 50% !important;
+  pointer-events: none !important;
+}
+
+html.pmd-ui-fouc-shield-v58 body.page.pmd-admin-theme-v1.pmd-sidebar-icons-only::after {
+  left: calc(96px + ((100vw - 96px) / 2)) !important;
+}
+
+/* IMPORTANT: fake a stable logo slot before the real logo JS injects the logo.
+   When the real .pmd-platform-logo-slot-v38 appears, this placeholder disappears with the same dimensions,
+   so menu items do not jump. */
+@supports selector(:has(*)) {
+  html body.page.pmd-admin-theme-v1 #navSidebar:not(:has(.pmd-platform-logo-slot-v38))::before {
+    content: "" !important;
+    display: flex !important;
+    flex: 0 0 auto !important;
+    align-items: center !important;
+    justify-content: center !important;
+    width: 186px !important;
+    min-height: 84px !important;
+    height: 84px !important;
+    margin: -42px auto -2px !important;
+    padding: 0 8px !important;
+    background-image: var(--pmd-active-sidebar-logo-v62, url("/app/admin/assets/images/pmd-logo-final.png")) !important;
+    background-repeat: no-repeat !important;
+    background-position: center center !important;
+    background-size: contain !important;
+    box-sizing: border-box !important;
+    opacity: 1 !important;
+    visibility: visible !important;
+  }
+
+  html body.page.pmd-admin-theme-v1.pmd-sidebar-icons-only #navSidebar:not(:has(.pmd-platform-logo-slot-v38))::before {
+    width: 80px !important;
+    min-height: 54px !important;
+    height: 54px !important;
+    margin: -64px auto 4px !important;
+    padding: 0 4px !important;
+    background-size: contain !important;
+  }
+}
+
+/* Real logo slot: exact same geometry as placeholder */
+html body.page.pmd-admin-theme-v1:not(.pmd-sidebar-icons-only) .pmd-platform-logo-slot-v38 {
+  width: 186px !important;
+  min-height: 84px !important;
+  height: 84px !important;
+  margin: -42px auto -2px !important;
+  padding: 0 8px !important;
+  flex: 0 0 auto !important;
+  box-sizing: border-box !important;
+  overflow: visible !important;
+  contain: layout paint !important;
+}
+
+html body.page.pmd-admin-theme-v1.pmd-sidebar-icons-only .pmd-platform-logo-slot-v38 {
+  width: 80px !important;
+  min-height: 54px !important;
+  height: 54px !important;
+  margin: -64px auto 4px !important;
+  padding: 0 4px !important;
+  flex: 0 0 auto !important;
+  box-sizing: border-box !important;
+  overflow: visible !important;
+  contain: layout paint !important;
+}
+
+html body.page.pmd-admin-theme-v1 .pmd-platform-logo-link-v38 {
+  width: 100% !important;
+  height: 100% !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  overflow: visible !important;
+}
+
+html body.page.pmd-admin-theme-v1 img.pmd-platform-logo-img-v38 {
+  display: block !important;
+  object-fit: contain !important;
+  transform: none !important;
+  transition: none !important;
+  animation: none !important;
+}
+
+html body.page.pmd-admin-theme-v1:not(.pmd-sidebar-icons-only) img.pmd-platform-logo-img-v38 {
+  max-width: 118px !important;
+  max-height: 80px !important;
+  width: auto !important;
+  height: auto !important;
+}
+
+html body.page.pmd-admin-theme-v1.pmd-sidebar-icons-only img.pmd-platform-logo-img-v38 {
+  max-width: 70px !important;
+  max-height: 50px !important;
+  width: auto !important;
+  height: auto !important;
+}
+
+/* Do not let sidebar/menu/logo slide while classes/assets attach. */
+html body.page.pmd-admin-theme-v1 .sidebar,
+html body.page.pmd-admin-theme-v1 #navSidebar,
+html body.page.pmd-admin-theme-v1 #side-nav-menu,
+html body.page.pmd-admin-theme-v1 #side-nav-menu > .nav-item,
+html body.page.pmd-admin-theme-v1 .pmd-platform-logo-slot-v38,
+html body.page.pmd-admin-theme-v1 img.pmd-platform-logo-img-v38,
+html body.page.pmd-admin-theme-v1 .pmd-logo-cycle-nav-item-v38,
+html body.page.pmd-admin-theme-v1 .pmd-sidebar-icons-toggle {
+  animation: none !important;
+  transition-property: background-color, color, box-shadow, opacity !important;
+  transition-duration: .12s !important;
+}
+
+/* When page changes, keep sidebar visible; only browser content area reloads. */
+body.page.pmd-admin-theme-v1 .sidebar {
+  opacity: 1 !important;
+  visibility: visible !important;
+}

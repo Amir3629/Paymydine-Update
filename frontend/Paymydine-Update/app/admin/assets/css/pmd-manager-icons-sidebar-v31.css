@@ -1,0 +1,171 @@
+/* PMD Manager Icons + Sidebar Toggle Stabilizer v31
+   Fixes:
+   1) Manager dashboard broken square icons by rendering inline SVG and styling SVG wrappers.
+   2) Removes old owner footer under Manager.
+   3) Stops sidebar toggle from jumping to top; keeps one stable button at the end of the side menu.
+   Scope: dashboard manager + sidebar toggle only. */
+
+/* Manager: hide old owner/footer content when M role is active */
+html body.page.pmd-admin-theme-v1 .pmd-dashboard-modern[data-pmd-role="manager"] .pmd-owner-match-footer-v13,
+html body.page.pmd-admin-theme-v1 .pmd-dashboard-modern[data-pmd-role="manager"] .pmd-owner-match-footer,
+html body.page.pmd-admin-theme-v1 .pmd-dashboard-modern[data-pmd-role="manager"] .pmd-recent-activity,
+html body.page.pmd-admin-theme-v1 .pmd-dashboard-modern[data-pmd-role="manager"] .pmd-premium-card {
+  display: none !important;
+}
+
+/* Manager SVG icons: replaces missing FontAwesome glyph squares */
+html body.page.pmd-admin-theme-v1 .pmd-manager-ops-v29 .pmd-svg-v31 {
+  display: block !important;
+  width: 1em !important;
+  height: 1em !important;
+  fill: none !important;
+  stroke: currentColor !important;
+  stroke-width: 2.15 !important;
+  stroke-linecap: round !important;
+  stroke-linejoin: round !important;
+  pointer-events: none !important;
+}
+
+html body.page.pmd-admin-theme-v1 .pmd-manager-ops-v29 .pmd-role-kpi-icon .pmd-svg-v31 {
+  width: 20px !important;
+  height: 20px !important;
+}
+
+html body.page.pmd-admin-theme-v1 .pmd-manager-ops-v29 .pmd-role-kpi-sub .pmd-svg-v31,
+html body.page.pmd-admin-theme-v1 .pmd-manager-ops-v29 .pmd-manager-live-pill-v29 .pmd-svg-v31 {
+  width: 11px !important;
+  height: 11px !important;
+}
+
+html body.page.pmd-admin-theme-v1 .pmd-manager-ops-v29 .pmd-manager-action-v29 .pmd-inline-icon-v31 {
+  width: 18px !important;
+  height: 18px !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  color: #c89b4a !important;
+}
+
+html body.page.pmd-admin-theme-v1 .pmd-manager-ops-v29 .pmd-manager-title-icon-v29 .pmd-svg-v31 {
+  width: 19px !important;
+  height: 19px !important;
+}
+
+html body.page.pmd-admin-theme-v1 .pmd-manager-ops-v29 .pmd-manager-alert-v29 > .pmd-inline-icon-v31 {
+  width: 32px !important;
+  height: 32px !important;
+  border-radius: 11px !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  background: #feecec !important;
+  color: #ef4444 !important;
+  font-style: normal !important;
+}
+
+html body.page.pmd-admin-theme-v1 .pmd-manager-ops-v29 .pmd-manager-event-v29 > .pmd-inline-icon-v31 {
+  width: 38px !important;
+  height: 38px !important;
+  border-radius: 13px !important;
+  background: #eaf8ee !important;
+  color: #16a34a !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  font-style: normal !important;
+}
+
+html body.page.pmd-admin-theme-v1 .pmd-manager-ops-v29 .pmd-manager-insight-v29 > .pmd-inline-icon-v31 {
+  width: 36px !important;
+  height: 36px !important;
+  border-radius: 12px !important;
+  background: #062f2a !important;
+  color: #fff !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  font-style: normal !important;
+}
+
+/* Sidebar toggle stable position */
+html body.page.pmd-admin-theme-v1 #side-nav-menu .pmd-sidebar-toggle-stable-v31,
+html body.page.pmd-admin-theme-v1 .side-nav-menu .pmd-sidebar-toggle-stable-v31,
+html body.page.pmd-admin-theme-v1 .sidebar-menu .pmd-sidebar-toggle-stable-v31,
+html body.page.pmd-admin-theme-v1 .nav-sidebar .pmd-sidebar-toggle-stable-v31 {
+  list-style: none !important;
+  margin: 16px 12px 10px !important;
+  padding: 0 !important;
+  display: block !important;
+}
+
+html body.page.pmd-admin-theme-v1 .pmd-sidebar-toggle-stable-v31 .pmd-sidebar-icons-toggle {
+  position: static !important;
+  inset: auto !important;
+  transform: none !important;
+  width: 100% !important;
+  height: 48px !important;
+  min-height: 48px !important;
+  margin: 0 !important;
+  padding: 0 14px !important;
+  border-radius: 14px !important;
+  border: 1px solid rgba(255,241,208,.20) !important;
+  background: rgba(255,248,226,.08) !important;
+  color: #fff4d2 !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: flex-start !important;
+  gap: 13px !important;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.05), 0 8px 18px rgba(0,0,0,.16) !important;
+  z-index: 6 !important;
+  cursor: pointer !important;
+}
+
+html body.page.pmd-admin-theme-v1 .pmd-sidebar-toggle-stable-v31 .pmd-sidebar-icons-toggle:hover {
+  background: rgba(255,248,226,.14) !important;
+  border-color: rgba(255,241,208,.32) !important;
+}
+
+html body.page.pmd-admin-theme-v1 .pmd-sidebar-toggle-stable-v31 .pmd-sidebar-icons-toggle i {
+  width: 24px !important;
+  min-width: 24px !important;
+  text-align: center !important;
+  color: #c89b4a !important;
+  font-size: 18px !important;
+  line-height: 1 !important;
+}
+
+html body.page.pmd-admin-theme-v1 .pmd-sidebar-toggle-label-v31 {
+  display: inline-block !important;
+  color: #fff7dd !important;
+  font-size: 12px !important;
+  font-weight: 850 !important;
+  letter-spacing: .04em !important;
+  text-transform: uppercase !important;
+}
+
+html body.page.pmd-admin-theme-v1.pmd-sidebar-icons-only .pmd-sidebar-toggle-stable-v31,
+html body.page.pmd-admin-theme-v1.pmd-sidebar-collapsed .pmd-sidebar-toggle-stable-v31 {
+  margin: 12px 6px 10px !important;
+}
+
+html body.page.pmd-admin-theme-v1.pmd-sidebar-icons-only .pmd-sidebar-toggle-stable-v31 .pmd-sidebar-icons-toggle,
+html body.page.pmd-admin-theme-v1.pmd-sidebar-collapsed .pmd-sidebar-toggle-stable-v31 .pmd-sidebar-icons-toggle {
+  width: 42px !important;
+  height: 42px !important;
+  min-height: 42px !important;
+  border-radius: 13px !important;
+  justify-content: center !important;
+  padding: 0 !important;
+}
+
+html body.page.pmd-admin-theme-v1.pmd-sidebar-icons-only .pmd-sidebar-toggle-label-v31,
+html body.page.pmd-admin-theme-v1.pmd-sidebar-collapsed .pmd-sidebar-toggle-label-v31 {
+  display: none !important;
+}
+
+/* Hide old floating instances while JS stabilizes */
+html body.page.pmd-admin-theme-v1 .pmd-sidebar-icons-toggle.pmd-sidebar-toggle-duplicate-v31 {
+  display: none !important;
+  visibility: hidden !important;
+  pointer-events: none !important;
+}

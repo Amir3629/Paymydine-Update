@@ -1,0 +1,55 @@
+/* PMD Sidebar Closed Logo Tune v51
+   Tiny patch only.
+   Does not touch dashboard, manager dashboard, logo switcher, routes, or data.
+   Keeps current v50 native sidebar behavior.
+   Moves closed-mode logo higher and makes closed-mode vertical rhythm cleaner. */
+
+/* CLOSED SIDEBAR ONLY */
+html body.page.pmd-admin-theme-v1.pmd-sidebar-icons-only .pmd-platform-logo-slot-v38 {
+  min-height: 64px !important;
+  height: 64px !important;
+  padding: 0 4px 0 !important;
+  margin: -14px auto 18px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+}
+
+html body.page.pmd-admin-theme-v1.pmd-sidebar-icons-only .pmd-platform-logo-link-v38 {
+  min-height: 60px !important;
+  height: 60px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+}
+
+html body.page.pmd-admin-theme-v1.pmd-sidebar-icons-only img.pmd-platform-logo-img-v38 {
+  max-width: 58px !important;
+  max-height: 58px !important;
+  object-fit: contain !important;
+}
+
+/* If the active logo is wide/wordmark, prevent it from cropping weirdly in closed rail */
+html.pmd-logo-candidate-5-v38 body.page.pmd-admin-theme-v1.pmd-sidebar-icons-only img.pmd-platform-logo-img-v38,
+html.pmd-logo-candidate-6-v38 body.page.pmd-admin-theme-v1.pmd-sidebar-icons-only img.pmd-platform-logo-img-v38 {
+  max-width: 66px !important;
+  max-height: 54px !important;
+}
+
+/* Closed nav starts a bit higher after logo is moved up */
+html body.page.pmd-admin-theme-v1.pmd-sidebar-icons-only #side-nav-menu {
+  padding-top: 4px !important;
+  max-height: calc(100vh - 150px) !important;
+}
+
+/* Closed menu item spacing from audit:
+   current Dashboard top ≈ 193, gap ≈ 10.
+   This keeps clean spacing but pulls the rail up slightly. */
+html body.page.pmd-admin-theme-v1.pmd-sidebar-icons-only #side-nav-menu > .nav-item {
+  margin-bottom: 8px !important;
+}
+
+/* Edge arrow follows the first Dashboard icon, not the logo */
+html body.page.pmd-admin-theme-v1.pmd-sidebar-icons-only .pmd-sidebar-icons-toggle {
+  top: 132px !important;
+}

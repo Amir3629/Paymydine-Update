@@ -1,0 +1,598 @@
+/* ==========================================================
+   PMD Waiter V2.7.1
+   Unified Service Inbox
+   ========================================================== */
+
+/* Right side rail must visually belong to the application shell. */
+.v257-operations-rail,
+.pmd-v257-operations-rail {
+  background: #f1f5f9 !important;
+  border-left-color: #b8c4d1 !important;
+}
+
+html[data-pmd-pos-theme="dark"] .v257-operations-rail,
+html[data-pmd-pos-theme="dark"] .pmd-v257-operations-rail {
+  background: #0b131c !important;
+  border-left-color: #405064 !important;
+}
+
+/* Keep rail cards consistent with left-side cards. */
+html[data-pmd-pos-theme="dark"]
+:is(.v257-operations-rail, .pmd-v257-operations-rail)
+.v257-operation {
+  background: #172330 !important;
+  color: #f8fafc !important;
+  border-color: #405064 !important;
+}
+
+.pmd-v271-floor-hidden {
+  display: none !important;
+}
+
+.pmd-v271-service-inbox {
+  min-height: calc(100vh - 10px);
+  width: 100%;
+  padding: 14px 18px 30px;
+  background: #eaf1f6;
+  color: #101821;
+}
+
+.pmd-v271-service-inbox[hidden] {
+  display: none !important;
+}
+
+.pmd-v271-inbox-head {
+  min-height: 72px;
+  padding: 0 16px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border: 1px solid #b8c4d1;
+  border-top: 6px solid #475569;
+  background: #fff;
+}
+
+.pmd-v271-inbox-head > div {
+  display: grid;
+  gap: 3px;
+}
+
+.pmd-v271-inbox-head small {
+  color: #64748b;
+  font-size: 10px;
+  font-weight: 900;
+  letter-spacing: .12em;
+}
+
+.pmd-v271-inbox-head strong {
+  font-size: 22px;
+  font-weight: 1000;
+  letter-spacing: -.02em;
+}
+
+.pmd-v271-inbox-head > button {
+  width: 48px;
+  height: 48px;
+  border: 1px solid #94a3b8;
+  border-radius: 3px;
+  background: transparent;
+  color: inherit;
+  font-size: 28px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.pmd-v271-tabs {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+  margin: 10px 0;
+}
+
+.pmd-v271-tabs button {
+  min-height: 56px;
+  padding: 0 16px;
+  border: 1px solid #aab8c7;
+  border-left: 6px solid #64748b;
+  border-radius: 3px;
+  background: #fff;
+  color: #101821;
+  text-align: left;
+  font-size: 13px;
+  font-weight: 1000;
+  letter-spacing: .03em;
+  cursor: pointer;
+}
+
+.pmd-v271-tabs button:nth-child(1) {
+  border-left-color: #dc2626;
+}
+
+.pmd-v271-tabs button:nth-child(2) {
+  border-left-color: #d97706;
+}
+
+.pmd-v271-tabs button:nth-child(3) {
+  border-left-color: #2563eb;
+}
+
+.pmd-v271-tabs button.is-active {
+  box-shadow: inset 0 0 0 2px currentColor;
+}
+
+.pmd-v271-tabs b {
+  float: right;
+  font-size: 16px;
+}
+
+.pmd-v271-event-list {
+  display: grid;
+  gap: 8px;
+}
+
+.pmd-v271-event {
+  width: 100%;
+  min-height: 90px;
+  display: grid;
+  grid-template-columns: 52px minmax(0, 1fr) auto 20px;
+  align-items: center;
+  gap: 14px;
+  padding: 12px 16px;
+  border: 1px solid #b8c4d1;
+  border-left: 6px solid #64748b;
+  border-radius: 3px;
+  background: #fff;
+  color: #101821;
+  text-align: left;
+  cursor: pointer;
+}
+
+.pmd-v271-event.is-call {
+  border-left-color: #dc2626;
+}
+
+.pmd-v271-event.is-note {
+  border-left-color: #d97706;
+}
+
+.pmd-v271-event.is-payment {
+  border-left-color: #16a34a;
+}
+
+.pmd-v271-event.is-cancel {
+  border-left-color: #be123c;
+}
+
+.pmd-v271-event.is-stock {
+  border-left-color: #7c3aed;
+}
+
+.pmd-v271-event.is-order {
+  border-left-color: #2563eb;
+}
+
+.pmd-v271-event-icon {
+  width: 44px;
+  height: 44px;
+  display: grid;
+  place-items: center;
+  border: 1px solid currentColor;
+  border-radius: 3px;
+  font-size: 20px;
+  font-weight: 1000;
+}
+
+.pmd-v271-event-copy {
+  min-width: 0;
+  display: grid;
+  gap: 3px;
+}
+
+.pmd-v271-event-copy small {
+  color: #64748b;
+  font-size: 10px;
+  font-weight: 1000;
+  letter-spacing: .09em;
+}
+
+.pmd-v271-event-copy strong {
+  font-size: 15px;
+  font-weight: 1000;
+}
+
+.pmd-v271-event-copy > span {
+  overflow-wrap: anywhere;
+  color: #475569;
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 1.45;
+}
+
+.pmd-v271-event time {
+  color: #64748b;
+  font-size: 11px;
+  font-weight: 800;
+}
+
+.pmd-v271-event > i {
+  font-style: normal;
+  font-size: 25px;
+  font-weight: 700;
+}
+
+.pmd-v271-event.is-highlighted {
+  outline: 3px solid #f59e0b;
+  outline-offset: 2px;
+}
+
+.pmd-v271-empty {
+  min-height: 280px;
+  display: grid;
+  place-content: center;
+  justify-items: center;
+  gap: 6px;
+  border: 1px dashed #aab8c7;
+  background: rgba(255,255,255,.35);
+}
+
+.pmd-v271-empty strong {
+  font-size: 22px;
+  font-weight: 1000;
+}
+
+.pmd-v271-empty span {
+  color: #64748b;
+  font-weight: 700;
+}
+
+/* Note remains a separate interaction inside the table card. */
+.pmd-v271-note-button {
+  display: inline-flex;
+  width: max-content;
+  min-height: 25px;
+  align-items: center;
+  justify-content: center;
+  margin-top: 6px;
+  padding: 0 9px;
+  border: 1px solid #d97706;
+  border-radius: 3px;
+  color: #a85d00;
+  background: transparent;
+  font-size: 10px;
+  font-weight: 1000;
+  letter-spacing: .05em;
+  cursor: pointer;
+}
+
+/* Real waiter-call visual language. */
+.pmd-v271-has-call {
+  border-color: #dc2626 !important;
+  border-top-color: #dc2626 !important;
+}
+
+.pmd-v271-has-call::after {
+  content: "WAITER CALL";
+  position: absolute;
+  top: 11px;
+  right: 10px;
+  color: #dc2626;
+  font-size: 9px;
+  font-weight: 1000;
+  letter-spacing: .05em;
+}
+
+/* Dark mode */
+html[data-pmd-pos-theme="dark"] .pmd-v271-service-inbox {
+  background: #0b131c;
+  color: #f8fafc;
+}
+
+html[data-pmd-pos-theme="dark"] .pmd-v271-inbox-head,
+html[data-pmd-pos-theme="dark"] .pmd-v271-tabs button,
+html[data-pmd-pos-theme="dark"] .pmd-v271-event {
+  background: #172330;
+  color: #f8fafc;
+  border-color: #405064;
+}
+
+html[data-pmd-pos-theme="dark"] .pmd-v271-event-copy small,
+html[data-pmd-pos-theme="dark"] .pmd-v271-event-copy > span,
+html[data-pmd-pos-theme="dark"] .pmd-v271-event time,
+html[data-pmd-pos-theme="dark"] .pmd-v271-inbox-head small {
+  color: #cbd5e1;
+}
+
+html[data-pmd-pos-theme="dark"] .pmd-v271-empty {
+  background: #111c27;
+  border-color: #405064;
+}
+
+html[data-pmd-pos-theme="dark"] .pmd-v271-empty span {
+  color: #cbd5e1;
+}
+
+@media (max-width: 900px) {
+  .pmd-v271-tabs {
+    grid-template-columns: 1fr;
+  }
+
+  .pmd-v271-event {
+    grid-template-columns: 42px minmax(0, 1fr) 18px;
+  }
+
+  .pmd-v271-event time {
+    display: none;
+  }
+}
+
+
+/* ==========================================================
+   PMD Waiter V2.7.2
+   Restore operation colours + clean card service badges
+   ========================================================== */
+
+/* Remove the old top-right waiter-call text. */
+.pmd-v271-has-call::after,
+.pmd-v272-has-call::after {
+  content: none !important;
+  display: none !important;
+}
+
+/* Restore the coloured language of the right rail. */
+:is(.v257-operations-rail, .pmd-v257-operations-rail)
+.v257-operation {
+  position: relative !important;
+  overflow: hidden !important;
+}
+
+/* Notification */
+:is(.v257-operations-rail, .pmd-v257-operations-rail)
+.v257-operation[data-v257-operation="notifications"],
+:is(.v257-operations-rail, .pmd-v257-operations-rail)
+.v257-operation:first-child {
+  border-left: 6px solid #ef2b2d !important;
+}
+
+/* Set available */
+:is(.v257-operations-rail, .pmd-v257-operations-rail)
+.v257-operation[data-v257-operation="available"],
+:is(.v257-operations-rail, .pmd-v257-operations-rail)
+.v257-operation[data-v257-operation="set-available"] {
+  border-left: 6px solid #16a34a !important;
+}
+
+/* Needs cleaning */
+:is(.v257-operations-rail, .pmd-v257-operations-rail)
+.v257-operation[data-v257-operation="cleaning"],
+:is(.v257-operations-rail, .pmd-v257-operations-rail)
+.v257-operation[data-v257-operation="needs-cleaning"] {
+  border-left: 6px solid #df7900 !important;
+}
+
+/* Merge */
+:is(.v257-operations-rail, .pmd-v257-operations-rail)
+.v257-operation[data-v257-operation="merge"] {
+  border-left: 6px solid #2563eb !important;
+}
+
+/* Mode */
+:is(.v257-operations-rail, .pmd-v257-operations-rail)
+.v257-operation[data-v257-operation="mode"] {
+  border-left: 6px solid #52637a !important;
+}
+
+/*
+ * Fallback by current visible order:
+ * 1 notification, 2 available, 3 cleaning, 4 merge, 5 mode
+ */
+:is(.v257-operations-rail, .pmd-v257-operations-rail)
+.v257-operation:nth-child(1) {
+  border-left-color: #ef2b2d !important;
+}
+
+:is(.v257-operations-rail, .pmd-v257-operations-rail)
+.v257-operation:nth-child(2) {
+  border-left-color: #16a34a !important;
+}
+
+:is(.v257-operations-rail, .pmd-v257-operations-rail)
+.v257-operation:nth-child(3) {
+  border-left-color: #df7900 !important;
+}
+
+:is(.v257-operations-rail, .pmd-v257-operations-rail)
+.v257-operation:nth-child(4) {
+  border-left-color: #2563eb !important;
+}
+
+:is(.v257-operations-rail, .pmd-v257-operations-rail)
+.v257-operation:nth-child(5) {
+  border-left-color: #52637a !important;
+}
+
+/* No rail hover effects. */
+:is(.v257-operations-rail, .pmd-v257-operations-rail)
+.v257-operation:is(:hover, :focus, :active) {
+  transform: none !important;
+  box-shadow: none !important;
+  filter: none !important;
+}
+
+/* Remove every older generated NOTE control. */
+[data-v271-open-note],
+.pmd-v271-note-button {
+  display: none !important;
+}
+
+/* Container for CALL and NOTE chips. */
+.pmd-v272-card-alerts {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+  width: 100%;
+  margin-top: 7px;
+}
+
+/* Compact and consistent service badges. */
+.pmd-v272-alert-badge {
+  min-width: 0 !important;
+  min-height: 25px !important;
+  height: 25px !important;
+  padding: 0 9px !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 6px !important;
+  border: 1px solid #d97706 !important;
+  border-radius: 3px !important;
+  background: transparent !important;
+  color: #b86a00 !important;
+  font-family: inherit !important;
+  font-size: 10px !important;
+  font-weight: 1000 !important;
+  line-height: 1 !important;
+  letter-spacing: .055em !important;
+  text-transform: uppercase !important;
+  box-shadow: none !important;
+  transform: none !important;
+  cursor: pointer !important;
+}
+
+/* CALL uses the same calm colour language requested for NOTE. */
+.pmd-v272-alert-badge.is-call {
+  border-color: #d97706 !important;
+  color: #d97706 !important;
+}
+
+.pmd-v272-alert-badge.is-note {
+  border-color: #d97706 !important;
+  color: #b86a00 !important;
+}
+
+.pmd-v272-alert-badge b {
+  min-width: 15px;
+  height: 15px;
+  display: inline-grid;
+  place-items: center;
+  padding: 0 3px;
+  border-radius: 2px;
+  background: #d97706;
+  color: #fff;
+  font-size: 9px;
+  line-height: 1;
+}
+
+.pmd-v272-alert-badge b[hidden] {
+  display: none !important;
+}
+
+.pmd-v272-alert-badge:is(:hover, :focus, :active) {
+  background: transparent !important;
+  color: #d97706 !important;
+  box-shadow: none !important;
+  transform: none !important;
+  outline: none !important;
+}
+
+/*
+ * Notes and waiter calls use the same calm orange card edge.
+ * Do not paint the whole card white or add a glowing hover.
+ */
+.pmd-v272-has-service-attention {
+  border-color: #d88a27 !important;
+  border-top-color: #d97706 !important;
+  box-shadow: none !important;
+}
+
+.pmd-v272-has-service-attention:is(:hover, :focus, :active) {
+  border-color: #d88a27 !important;
+  border-top-color: #d97706 !important;
+  background: inherit !important;
+  box-shadow: none !important;
+  transform: none !important;
+}
+
+/* Preserve the dark card background at all times. */
+html[data-pmd-pos-theme="dark"]
+.pmd-v272-has-service-attention,
+html[data-pmd-pos-theme="dark"]
+.pmd-v272-has-service-attention:is(:hover, :focus, :active) {
+  background: #172330 !important;
+  color: #f8fafc !important;
+}
+
+/* Cleaner inbox sizing: it replaces the grid instead of appearing below it. */
+.pmd-v271-service-inbox {
+  position: absolute !important;
+  inset: 0 !important;
+  z-index: 50 !important;
+  min-height: 100% !important;
+  overflow: auto !important;
+  padding: 10px 14px 30px !important;
+}
+
+/* Central content must establish the positioning context. */
+:is(
+  .pmd-v2-main,
+  .pmd-v2-content,
+  .pmd-v2-floor-main
+) {
+  position: relative !important;
+}
+
+/* More compact Service Inbox header. */
+.pmd-v271-inbox-head {
+  min-height: 62px !important;
+  border-top-width: 5px !important;
+}
+
+/* Make service rows easier to scan. */
+.pmd-v271-event-list {
+  gap: 7px !important;
+}
+
+.pmd-v271-event {
+  min-height: 78px !important;
+  grid-template-columns: 42px minmax(0, 1fr) auto 16px !important;
+  padding: 10px 14px !important;
+}
+
+.pmd-v271-event-icon {
+  width: 36px !important;
+  height: 36px !important;
+  font-size: 15px !important;
+}
+
+.pmd-v271-event-copy > span {
+  display: -webkit-box;
+  overflow: hidden;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+}
+
+/* No visual movement in inbox. */
+.pmd-v271-event:is(:hover, :focus, :active),
+.pmd-v271-tabs button:is(:hover, :focus, :active),
+.pmd-v271-inbox-head button:is(:hover, :focus, :active) {
+  transform: none !important;
+  box-shadow: none !important;
+  filter: none !important;
+}
+
+/* Dark inbox remains part of the same application shell. */
+html[data-pmd-pos-theme="dark"]
+.pmd-v271-service-inbox {
+  background: #0b131c !important;
+}
+
+html[data-pmd-pos-theme="dark"]
+.pmd-v271-event,
+html[data-pmd-pos-theme="dark"]
+.pmd-v271-inbox-head,
+html[data-pmd-pos-theme="dark"]
+.pmd-v271-tabs button {
+  background: #172330 !important;
+  border-color: #405064 !important;
+  color: #f8fafc !important;
+}

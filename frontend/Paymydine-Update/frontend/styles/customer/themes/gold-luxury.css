@@ -1,0 +1,48 @@
+html[data-theme="gold-luxury"] {
+  /* Gold Luxury v2: bright premium white / dark jade / champagne gold */
+  --pmd-v2-page-bg: #FAF9F4;
+  --pmd-v2-card-bg: #FFFFFF;
+  --pmd-v2-card-sub-bg: #FFFFFF;
+  --pmd-v2-text: #0D1B1E;
+  --pmd-v2-text-muted: #6B7280;
+  --pmd-v2-input-bg: #FFFFFF;
+  --pmd-v2-input-text: #0D1B1E;
+  --pmd-v2-input-border: #E8E2D8;
+  --pmd-v2-action-bg: #062F2A;
+  --pmd-v2-action-text: #FFFFFF;
+  --pmd-v2-action-border: #062F2A;
+  --pmd-v2-badge-bg: #C89B4A;
+  --pmd-v2-badge-text: #0D1B1E;
+  --pmd-v2-badge-border: #C89B4A;
+  --pmd-v2-price: #B8893F;
+  --pmd-v2-category-active: #C89B4A;
+  --pmd-v2-category-active-text: #062F2A;
+  --pmd-v2-context-pill-bg: #F5E8D0;
+  --pmd-v2-context-pill-text: #062F2A;
+  --pmd-v2-context-pill-border: #E8E2D8;
+  --pmd-v2-frame-border: #E8E2D8;
+
+  --theme-primary: #062F2A;
+  --theme-secondary: #062F2A;
+  --theme-accent: #C89B4A;
+  --theme-background: #FAF9F4;
+  --theme-surface: #FFFFFF;
+  --theme-text-primary: #0D1B1E;
+  --theme-text-secondary: #6B7280;
+  --theme-text-muted: #9CA3AF;
+  --theme-border: #E8E2D8;
+  --theme-input: #FFFFFF;
+  --theme-button: #062F2A;
+  --theme-button-hover: #021F1C;
+  --theme-menu-item-bg: #FFFFFF;
+  --theme-menu-item-border: #E8E2D8;
+  --theme-category-active: #C89B4A;
+  --theme-category-inactive: #6B7280;
+  --theme-price: #B8893F;
+  --theme-cart-bg: #FFFFFF;
+  --theme-cart-border: #E8E2D8;
+  --theme-payment-button: #062F2A;
+  --theme-payment-button-hover: #021F1C;
+  --theme-success: #15803D;
+  --theme-error: #B42318;
+}

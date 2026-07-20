@@ -1,0 +1,210 @@
+/* PMD Sidebar Polish + Persist v41
+   - Bigger/higher logo, stable spacing.
+   - Replaces v40 visible button with v41 proxy button.
+   - Button is lower and icon is visually centered.
+   - Sidebar collapsed state persists across page changes.
+   - Collapsed profile box is fixed: no avatar/power overlap. */
+
+/* Hide v40 proxy visually. Keep native hidden real button intact for JS click forwarding. */
+html body.page.pmd-admin-theme-v1 #pmd-sidebar-edge-toggle-v40 {
+  display: none !important;
+  visibility: hidden !important;
+  pointer-events: none !important;
+}
+
+/* Visible v41 stable edge toggle */
+html body.page.pmd-admin-theme-v1 #pmd-sidebar-edge-toggle-v41 {
+  position: fixed !important;
+  top: var(--pmd-sidebar-edge-top-v41, 176px) !important;
+  left: var(--pmd-sidebar-edge-left-v41, 250px) !important;
+  width: 34px !important;
+  height: 34px !important;
+  min-width: 34px !important;
+  min-height: 34px !important;
+  max-width: 34px !important;
+  max-height: 34px !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  border-radius: 999px !important;
+  border: 1px solid rgba(200,155,74,.66) !important;
+  background: #fff3d9 !important;
+  color: #063b34 !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  box-shadow: 0 10px 24px rgba(0,0,0,.18), inset 0 1px 0 rgba(255,255,255,.68) !important;
+  z-index: 2147482500 !important;
+  cursor: pointer !important;
+  opacity: 1 !important;
+  visibility: visible !important;
+  transform: translateZ(0) !important;
+  transition: background .15s ease, border-color .15s ease !important;
+}
+html body.page.pmd-admin-theme-v1 #pmd-sidebar-edge-toggle-v41:hover {
+  background: #fff8e8 !important;
+  border-color: rgba(200,155,74,.9) !important;
+}
+html body.page.pmd-admin-theme-v1 #pmd-sidebar-edge-toggle-v41 i {
+  display: block !important;
+  font-size: 18px !important;
+  line-height: 1 !important;
+  height: 18px !important;
+  color: currentColor !important;
+  margin: 0 !important;
+  transform: translateY(1.5px) !important; /* visually center FontAwesome arrow */
+}
+
+/* Bigger + higher logo, without transform-jumping. */
+html body.page.pmd-admin-theme-v1 .pmd-platform-logo-slot-v38,
+html body.page.pmd-admin-theme-v1 .pmd-platform-logo-slot-v37,
+html body.page.pmd-admin-theme-v1 .pmd-platform-logo-slot-v26 {
+  min-height: 86px !important;
+  height: 86px !important;
+  padding: 3px 8px 2px !important;
+  margin: -12px auto 3px !important;
+  transform: none !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+}
+html body.page.pmd-admin-theme-v1 .pmd-platform-logo-link-v38,
+html body.page.pmd-admin-theme-v1 .pmd-platform-logo-link-v37,
+html body.page.pmd-admin-theme-v1 .pmd-platform-logo-link-v26 {
+  min-height: 78px !important;
+  height: 78px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+}
+html body.page.pmd-admin-theme-v1 img.pmd-platform-logo-img-v38 {
+  max-height: 74px !important;
+}
+
+/* Candidate 6 in screenshot has icon+wordmark; make it more premium/bigger. */
+html body.page.pmd-admin-theme-v1 img.pmd-platform-logo-img-v38[data-logo-index="5"] {
+  max-width: 192px !important;
+  max-height: 78px !important;
+}
+
+/* Candidate 3/shorter mark: less gap. */
+html.pmd-logo-candidate-3-v38 body.page.pmd-admin-theme-v1 .pmd-platform-logo-slot-v38,
+html.pmd-logo-candidate-3-v38 body.page.pmd-admin-theme-v1 .pmd-platform-logo-slot-v37,
+html.pmd-logo-candidate-3-v38 body.page.pmd-admin-theme-v1 .pmd-platform-logo-slot-v26 {
+  min-height: 70px !important;
+  height: 70px !important;
+  padding-top: 0 !important;
+  padding-bottom: 0 !important;
+  margin: -10px auto 2px !important;
+}
+html.pmd-logo-candidate-3-v38 body.page.pmd-admin-theme-v1 img.pmd-platform-logo-img-v38 {
+  max-height: 62px !important;
+}
+
+/* Keep logo button/menu high and consistent */
+html body.page.pmd-admin-theme-v1 .pmd-logo-cycle-nav-item-v38 {
+  margin: 0 13px 10px !important;
+}
+html body.page.pmd-admin-theme-v1 .pmd-logo-cycle-btn-v38 {
+  min-height: 36px !important;
+  height: 36px !important;
+}
+html body.page.pmd-admin-theme-v1 #side-nav-menu,
+html body.page.pmd-admin-theme-v1 .side-nav-menu,
+html body.page.pmd-admin-theme-v1 .sidebar-menu,
+html body.page.pmd-admin-theme-v1 .nav-sidebar {
+  margin-top: 0 !important;
+  padding-top: 0 !important;
+}
+
+/* Stable collapsed-first CSS to reduce flash when user navigates while sidebar is closed. */
+html.pmd-sidebar-persist-collapsed-v41 body.page.pmd-admin-theme-v1 #sidebar,
+html.pmd-sidebar-persist-collapsed-v41 body.page.pmd-admin-theme-v1 .sidebar,
+html.pmd-sidebar-persist-collapsed-v41 body.page.pmd-admin-theme-v1 .pmd-sidebar,
+html.pmd-sidebar-persist-collapsed-v41 body.page.pmd-admin-theme-v1 .pmd-admin-sidebar {
+  max-width: 86px !important;
+}
+
+/* Collapsed sidebar logo/menu profile fixes */
+html body.page.pmd-admin-theme-v1.pmd-sidebar-icons-only .pmd-platform-logo-slot-v38,
+html body.page.pmd-admin-theme-v1.pmd-sidebar-collapsed .pmd-platform-logo-slot-v38,
+html.pmd-sidebar-persist-collapsed-v41 body.page.pmd-admin-theme-v1 .pmd-platform-logo-slot-v38 {
+  min-height: 78px !important;
+  height: 78px !important;
+  padding: 6px 4px 3px !important;
+  margin: 0 auto 18px !important;
+}
+html body.page.pmd-admin-theme-v1.pmd-sidebar-icons-only img.pmd-platform-logo-img-v38,
+html body.page.pmd-admin-theme-v1.pmd-sidebar-collapsed img.pmd-platform-logo-img-v38,
+html.pmd-sidebar-persist-collapsed-v41 body.page.pmd-admin-theme-v1 img.pmd-platform-logo-img-v38 {
+  max-width: 58px !important;
+  max-height: 58px !important;
+}
+
+/* Collapse profile box: show power as clean button, hide overlapping avatar/text */
+html body.page.pmd-admin-theme-v1.pmd-sidebar-icons-only .sidebar-footer,
+html body.page.pmd-admin-theme-v1.pmd-sidebar-collapsed .sidebar-footer,
+html body.page.pmd-admin-theme-v1.pmd-sidebar-icons-only .pmd-sidebar-footer,
+html body.page.pmd-admin-theme-v1.pmd-sidebar-collapsed .pmd-sidebar-footer,
+html body.page.pmd-admin-theme-v1.pmd-sidebar-icons-only .pmd-sidebar-user,
+html body.page.pmd-admin-theme-v1.pmd-sidebar-collapsed .pmd-sidebar-user,
+html.pmd-sidebar-persist-collapsed-v41 body.page.pmd-admin-theme-v1 .sidebar-footer,
+html.pmd-sidebar-persist-collapsed-v41 body.page.pmd-admin-theme-v1 .pmd-sidebar-footer,
+html.pmd-sidebar-persist-collapsed-v41 body.page.pmd-admin-theme-v1 .pmd-sidebar-user {
+  width: 56px !important;
+  min-width: 56px !important;
+  max-width: 56px !important;
+  height: 56px !important;
+  min-height: 56px !important;
+  padding: 0 !important;
+  margin-left: auto !important;
+  margin-right: auto !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  overflow: visible !important;
+}
+
+/* Hide avatar/name in collapsed mode to prevent the overlap seen in screenshot */
+html body.page.pmd-admin-theme-v1.pmd-sidebar-icons-only .sidebar-footer img,
+html body.page.pmd-admin-theme-v1.pmd-sidebar-collapsed .sidebar-footer img,
+html body.page.pmd-admin-theme-v1.pmd-sidebar-icons-only .pmd-sidebar-footer img,
+html body.page.pmd-admin-theme-v1.pmd-sidebar-collapsed .pmd-sidebar-footer img,
+html.pmd-sidebar-persist-collapsed-v41 body.page.pmd-admin-theme-v1 .sidebar-footer img,
+html.pmd-sidebar-persist-collapsed-v41 body.page.pmd-admin-theme-v1 .pmd-sidebar-footer img,
+html body.page.pmd-admin-theme-v1.pmd-sidebar-icons-only .sidebar-footer .media-body,
+html body.page.pmd-admin-theme-v1.pmd-sidebar-collapsed .sidebar-footer .media-body,
+html body.page.pmd-admin-theme-v1.pmd-sidebar-icons-only .pmd-sidebar-footer .media-body,
+html body.page.pmd-admin-theme-v1.pmd-sidebar-collapsed .pmd-sidebar-footer .media-body,
+html.pmd-sidebar-persist-collapsed-v41 body.page.pmd-admin-theme-v1 .sidebar-footer .media-body,
+html.pmd-sidebar-persist-collapsed-v41 body.page.pmd-admin-theme-v1 .pmd-sidebar-footer .media-body {
+  display: none !important;
+}
+
+/* Power button centered in collapsed profile box */
+html body.page.pmd-admin-theme-v1.pmd-sidebar-icons-only .sidebar-footer a,
+html body.page.pmd-admin-theme-v1.pmd-sidebar-collapsed .sidebar-footer a,
+html body.page.pmd-admin-theme-v1.pmd-sidebar-icons-only .pmd-sidebar-footer a,
+html body.page.pmd-admin-theme-v1.pmd-sidebar-collapsed .pmd-sidebar-footer a,
+html.pmd-sidebar-persist-collapsed-v41 body.page.pmd-admin-theme-v1 .sidebar-footer a,
+html.pmd-sidebar-persist-collapsed-v41 body.page.pmd-admin-theme-v1 .pmd-sidebar-footer a {
+  position: static !important;
+  width: 42px !important;
+  height: 42px !important;
+  min-width: 42px !important;
+  border-radius: 999px !important;
+  margin: 0 !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+}
+
+/* Disable transitions that caused sidebar blinking/jumping during role/page changes */
+html body.page.pmd-admin-theme-v1 #sidebar,
+html body.page.pmd-admin-theme-v1 .sidebar,
+html body.page.pmd-admin-theme-v1 .pmd-sidebar,
+html body.page.pmd-admin-theme-v1 .pmd-admin-sidebar,
+html body.page.pmd-admin-theme-v1 #side-nav-menu,
+html body.page.pmd-admin-theme-v1 .side-nav-menu {
+  transition-property: background-color, color, border-color, box-shadow !important;
+  transition-duration: .12s !important;
+}

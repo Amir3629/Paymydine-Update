@@ -1,0 +1,9 @@
+/*
+ * PayMyDine Admin modular CSS foundation: base layer.
+ *
+ * Keep this file low-risk. Do not add generic element, Bootstrap, or
+ * TastyIgniter overrides here during the foundation phase.
+ */
+.pmd-admin {
+  color: var(--pmd-color-text);
+}

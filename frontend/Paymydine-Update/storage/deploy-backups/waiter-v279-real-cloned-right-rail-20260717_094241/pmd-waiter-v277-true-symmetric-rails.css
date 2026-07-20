@@ -1,0 +1,262 @@
+/* ==========================================================
+   PMD Waiter V2.7.7
+   True symmetric left/right application rails
+   ========================================================== */
+
+/*
+ * This rule intentionally defeats all older V257–V276
+ * right-rail background and button-surface declarations.
+ */
+html body
+:is(
+  .v257-operations-rail,
+  .pmd-v257-operations-rail
+)[data-v277-true-clone="1"] {
+  position: fixed !important;
+
+  top: var(--v277-top) !important;
+  right: 0 !important;
+  bottom: 0 !important;
+  left: auto !important;
+
+  box-sizing: border-box !important;
+
+  width: var(--v277-rail-width) !important;
+  min-width: var(--v277-rail-width) !important;
+  max-width: var(--v277-rail-width) !important;
+
+  margin: 0 !important;
+
+  padding:
+    var(--v277-padding-top)
+    var(--v277-padding-right)
+    var(--v277-padding-bottom)
+    var(--v277-padding-left) !important;
+
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: stretch !important;
+  justify-content: flex-start !important;
+
+  gap: var(--v277-gap) !important;
+
+  background-image: none !important;
+  background: var(--v277-shell-bg) !important;
+  background-color: var(--v277-shell-bg) !important;
+
+  color: var(--v277-shell-color) !important;
+
+  border: 0 !important;
+  border-left:
+    var(--v277-divider-width)
+    solid
+    var(--v277-divider-color) !important;
+
+  border-radius: 0 !important;
+  box-shadow: none !important;
+  filter: none !important;
+  opacity: 1 !important;
+  isolation: isolate !important;
+}
+
+/*
+ * Remove backgrounds injected by any pseudo-element belonging
+ * to older right-rail versions.
+ */
+html body
+:is(
+  .v257-operations-rail,
+  .pmd-v257-operations-rail
+)[data-v277-true-clone="1"]::before,
+html body
+:is(
+  .v257-operations-rail,
+  .pmd-v257-operations-rail
+)[data-v277-true-clone="1"]::after {
+  content: none !important;
+  display: none !important;
+}
+
+/* Exact left-button surface and geometry. */
+html body
+:is(
+  .v257-operations-rail,
+  .pmd-v257-operations-rail
+)[data-v277-true-clone="1"]
+> .v257-operation[data-v277-clone-button="1"] {
+  position: relative !important;
+  box-sizing: border-box !important;
+  flex: 0 0 auto !important;
+
+  width: var(--v277-button-width) !important;
+  min-width: var(--v277-button-width) !important;
+  max-width: var(--v277-button-width) !important;
+
+  height: var(--v277-button-height) !important;
+  min-height: var(--v277-button-height) !important;
+  max-height: var(--v277-button-height) !important;
+
+  margin: 0 !important;
+
+  padding:
+    var(--v277-button-padding-top)
+    var(--v277-button-padding-right)
+    var(--v277-button-padding-bottom)
+    var(--v277-button-padding-left) !important;
+
+  background-image: none !important;
+  background: var(--v277-button-bg) !important;
+  background-color: var(--v277-button-bg) !important;
+
+  color: var(--v277-button-color) !important;
+
+  border-width: var(--v277-button-border-width) !important;
+  border-style: var(--v277-button-border-style) !important;
+  border-color: var(--v277-button-border-color) !important;
+  border-radius: var(--v277-button-radius) !important;
+
+  font-family: var(--v277-button-font-family) !important;
+  font-size: var(--v277-button-font-size) !important;
+  font-weight: var(--v277-button-font-weight) !important;
+  line-height: var(--v277-button-line-height) !important;
+  letter-spacing: var(--v277-button-letter-spacing) !important;
+
+  text-align: left !important;
+
+  box-shadow: none !important;
+  filter: none !important;
+  opacity: 1 !important;
+  transform: none !important;
+  outline: 0 !important;
+
+  transition: none !important;
+  animation: none !important;
+}
+
+/*
+ * Never allow older dark-mode rules to paint a second interior
+ * rectangle behind the right buttons.
+ */
+html[data-pmd-pos-theme="dark"] body
+:is(
+  .v257-operations-rail,
+  .pmd-v257-operations-rail
+)[data-v277-true-clone="1"]
+> .v257-operation {
+  background-image: none !important;
+  background: var(--v277-button-bg) !important;
+  background-color: var(--v277-button-bg) !important;
+}
+
+/* Clone text colour exactly. */
+html body
+:is(
+  .v257-operations-rail,
+  .pmd-v257-operations-rail
+)[data-v277-true-clone="1"]
+> .v257-operation
+> strong {
+  color: inherit !important;
+  -webkit-text-fill-color: currentColor !important;
+  opacity: 1 !important;
+}
+
+/* Remove old decorative i/dot elements. */
+html body
+:is(
+  .v257-operations-rail,
+  .pmd-v257-operations-rail
+)[data-v277-true-clone="1"]
+> .v257-operation
+> i {
+  display: none !important;
+}
+
+/* Operational edge bars, matching the left rail language. */
+html body
+:is(
+  .v257-operations-rail,
+  .pmd-v257-operations-rail
+)[data-v277-true-clone="1"]
+> .v257-operation::before {
+  content: "" !important;
+  display: block !important;
+
+  position: absolute !important;
+  top: -1px !important;
+  bottom: -1px !important;
+  left: -1px !important;
+
+  width: 5px !important;
+
+  background: #475569 !important;
+
+  border-radius:
+    var(--v277-button-radius)
+    0
+    0
+    var(--v277-button-radius) !important;
+
+  pointer-events: none !important;
+}
+
+html body
+.v257-operation[data-v257-action="alerts"]::before {
+  background: #ef2929 !important;
+}
+
+html body
+.v257-operation[data-v257-action="available"]::before {
+  background: #16a34a !important;
+}
+
+html body
+.v257-operation[data-v257-action="cleaning"]::before {
+  background: #d97706 !important;
+}
+
+html body
+.v257-operation[data-v257-action="merge"]::before {
+  background: #2563eb !important;
+}
+
+html body
+.v257-operation[data-v257-action="theme"]::before {
+  background: #475569 !important;
+}
+
+html body
+.pmd-v268-notification-icon {
+  color: #ef2929 !important;
+}
+
+/* No visual state change on interaction. */
+html body
+:is(
+  .v257-operations-rail,
+  .pmd-v257-operations-rail
+)[data-v277-true-clone="1"]
+> .v257-operation:is(
+  :hover,
+  :focus,
+  :focus-visible,
+  :active
+) {
+  background-image: none !important;
+  background: var(--v277-button-bg) !important;
+  background-color: var(--v277-button-bg) !important;
+
+  color: var(--v277-button-color) !important;
+
+  border-width: var(--v277-button-border-width) !important;
+  border-style: var(--v277-button-border-style) !important;
+  border-color: var(--v277-button-border-color) !important;
+
+  box-shadow: none !important;
+  filter: none !important;
+  transform: none !important;
+  outline: 0 !important;
+
+  transition: none !important;
+  animation: none !important;
+}

@@ -1,0 +1,82 @@
+/* PayMyDine Waiter POS V2.7 — stable single-submit workspace */
+
+:root,
+:host,
+.pmd-pos-app {
+  --pmd-pos-owner-gradient:
+    radial-gradient(circle at 10% 10%, rgba(200,155,74,.10), transparent 24%),
+    linear-gradient(90deg,
+      #063a33 0%,
+      #04312b 22%,
+      #02251f 44%,
+      #001914 66%,
+      #000b08 84%,
+      #000000 100%);
+}
+
+.pmd-pos-topbar {
+  background: var(--pmd-pos-owner-gradient) !important;
+  box-shadow: 0 14px 34px rgba(0,0,0,.22) !important;
+}
+
+/* The waiter ordering step has one decisive action only. */
+.pmd-pos-actions {
+  display: grid !important;
+  grid-template-columns: minmax(0, 1fr) !important;
+  gap: 0 !important;
+}
+
+.pmd-pos-action.hold,
+.pmd-pos-secondary-actions {
+  display: none !important;
+}
+
+.pmd-pos-action.send {
+  width: 100% !important;
+  min-height: 58px !important;
+  border-radius: 15px !important;
+  font-size: 16px !important;
+  font-weight: 950 !important;
+  letter-spacing: -.01em;
+  background: linear-gradient(135deg, #d8b064 0%, #c89b4a 54%, #b98731 100%) !important;
+  color: #062f2a !important;
+  box-shadow: 0 12px 28px rgba(137,95,29,.24) !important;
+}
+
+.pmd-pos-action.send::after {
+  content: "Create order and send all new items";
+  display: block;
+  margin-top: 3px;
+  font-size: 9px;
+  font-weight: 850;
+  letter-spacing: .025em;
+  opacity: .72;
+}
+
+.pmd-pos-action.send:disabled::after {
+  content: "Add at least one item";
+}
+
+.pmd-pos-checkout {
+  padding-bottom: 16px !important;
+}
+
+/* Remove the old animated blue long-press treatment even if an older stylesheet is cached. */
+.pmd-pos-product.is-long-pressing,
+.pmd-pos-product.is-long-pressing:hover {
+  transform: scale(.985) !important;
+  border-color: rgba(200,155,74,.72) !important;
+  background: linear-gradient(155deg,#fffdf8,#fff8ea) !important;
+  box-shadow: 0 0 0 4px rgba(200,155,74,.11),0 12px 28px rgba(0,44,38,.10) !important;
+}
+
+.pmd-pos-product.is-long-pressing::after {
+  display: none !important;
+  animation: none !important;
+}
+
+@media (max-width: 820px) {
+  .pmd-pos-action.send {
+    min-height: 56px !important;
+  }
+}

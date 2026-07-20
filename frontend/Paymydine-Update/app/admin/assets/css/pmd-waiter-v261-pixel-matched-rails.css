@@ -1,0 +1,185 @@
+/*
+ * PMD Waiter V2.6.1
+ * Right operations rail is dimensionally matched to the left filter rail.
+ */
+
+body.pmd-waiter-standard-v23-page {
+  --pmd-v261-rail-outer-width:136px;
+  --pmd-v261-rail-padding-x:7px;
+  --pmd-v261-button-height:56px;
+  --pmd-v261-button-gap:7px;
+  --pmd-v261-rail-top:113px;
+}
+
+/* Exact rail position: same vertical start as the first left-side button. */
+.v257-operations-rail {
+  position:fixed !important;
+  z-index:95 !important;
+  top:var(--pmd-v261-rail-top) !important;
+  right:0 !important;
+  bottom:0 !important;
+
+  width:var(--pmd-v261-rail-outer-width) !important;
+  min-width:var(--pmd-v261-rail-outer-width) !important;
+  max-width:var(--pmd-v261-rail-outer-width) !important;
+
+  margin:0 !important;
+  padding:0 var(--pmd-v261-rail-padding-x) 10px !important;
+
+  display:flex !important;
+  flex-direction:column !important;
+  justify-content:flex-start !important;
+  align-items:stretch !important;
+  gap:var(--pmd-v261-button-gap) !important;
+
+  border-left:1px solid var(--pmd-v23-line) !important;
+  background:var(--pmd-v23-page) !important;
+  overflow-y:auto !important;
+  box-sizing:border-box !important;
+}
+
+/* Reserve exactly the rail width plus the same 8px separation. */
+body.pmd-waiter-standard-v23-page .pmd-v2-area-keys,
+body.pmd-waiter-standard-v23-page .pmd-v2-table-stage {
+  margin-right:144px !important;
+}
+
+/* Exact button box: same inner width and height as the left-side buttons. */
+.v257-operation {
+  position:relative !important;
+
+  width:122px !important;
+  min-width:122px !important;
+  max-width:122px !important;
+
+  height:var(--pmd-v261-button-height) !important;
+  min-height:var(--pmd-v261-button-height) !important;
+  max-height:var(--pmd-v261-button-height) !important;
+
+  margin:0 !important;
+  padding:0 12px 0 13px !important;
+
+  display:flex !important;
+  align-items:center !important;
+  justify-content:flex-start !important;
+
+  border:1px solid var(--pmd-v23-line) !important;
+  border-left:5px solid var(--v257-color) !important;
+  border-right:1px solid var(--pmd-v23-line) !important;
+  border-radius:3px !important;
+
+  background:var(--pmd-v23-surface) !important;
+  color:var(--pmd-v23-text) !important;
+
+  text-align:left !important;
+  overflow:hidden !important;
+  box-shadow:none !important;
+  box-sizing:border-box !important;
+  flex:0 0 var(--pmd-v261-button-height) !important;
+}
+
+/* Match left-rail typography and vertical centering. */
+.v257-operation strong {
+  display:block !important;
+  width:100% !important;
+  max-width:none !important;
+  margin:0 !important;
+  padding:0 !important;
+
+  font-family:inherit !important;
+  font-size:10px !important;
+  line-height:1.05 !important;
+  font-weight:1000 !important;
+  letter-spacing:.01em !important;
+
+  white-space:normal !important;
+  word-break:normal !important;
+  overflow:visible !important;
+}
+
+/* No decorative dots. */
+.v257-operation > i {
+  display:none !important;
+}
+
+/* Notification keeps the same 56px height and gets a separate badge lane. */
+.v257-operation[data-v257-action="alerts"] {
+  padding-right:37px !important;
+}
+
+.v257-operation[data-v257-action="alerts"] strong {
+  max-width:70px !important;
+  font-size:8.5px !important;
+  line-height:1 !important;
+  overflow-wrap:anywhere !important;
+}
+
+.v257-alert-count {
+  position:absolute !important;
+  top:50% !important;
+  right:8px !important;
+  transform:translateY(-50%) !important;
+
+  min-width:22px !important;
+  width:auto !important;
+  height:22px !important;
+  padding:0 5px !important;
+
+  display:grid !important;
+  place-items:center !important;
+
+  border-radius:11px !important;
+  background:#dc2626 !important;
+  color:#fff !important;
+
+  font-size:10px !important;
+  line-height:1 !important;
+  font-weight:1000 !important;
+  font-style:normal !important;
+  box-sizing:border-box !important;
+}
+
+/* Same restrained interaction style. */
+.v257-operation:hover,
+.v257-operation.is-active {
+  background:color-mix(
+    in srgb,
+    var(--v257-color) 10%,
+    var(--pmd-v23-surface)
+  ) !important;
+  border-color:var(--v257-color) !important;
+  color:var(--pmd-v23-text) !important;
+}
+
+/* Keep the true eight-column grid from V2.6.0. */
+body.pmd-waiter-standard-v23-page [data-v2-table-grid] {
+  grid-template-columns:repeat(8,minmax(0,1fr)) !important;
+  gap:7px !important;
+}
+
+/* Do not let older responsive rules shrink the right rail. */
+@media (max-width:1250px) {
+  body.pmd-waiter-standard-v23-page {
+    --pmd-v261-rail-outer-width:136px;
+  }
+
+  .v257-operations-rail {
+    width:136px !important;
+    min-width:136px !important;
+    max-width:136px !important;
+  }
+
+  .v257-operation {
+    width:122px !important;
+    min-width:122px !important;
+    max-width:122px !important;
+    height:56px !important;
+    min-height:56px !important;
+    max-height:56px !important;
+  }
+
+  body.pmd-waiter-standard-v23-page .pmd-v2-area-keys,
+  body.pmd-waiter-standard-v23-page .pmd-v2-table-stage {
+    margin-right:144px !important;
+  }
+}

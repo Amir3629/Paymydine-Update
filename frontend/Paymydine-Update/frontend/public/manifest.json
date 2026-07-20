@@ -1,0 +1,25 @@
+{
+  "name": "PayMyDine",
+  "short_name": "PayMyDine",
+  "description": "A luxurious dining experience - Order, pay, and enjoy seamlessly",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#FAFAFA",
+  "theme_color": "#E7CBA9",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "/images/logo.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/images/logo.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}
+

@@ -1,0 +1,81 @@
+/*
+ * PMD Waiter V2.4.6
+ * Never hide core content until lifecycle decoration is actually present.
+ */
+
+/* Undo V2.4.4 global hiding for undecorated cards. */
+body.pmd-waiter-standard-v23-page
+[data-v2-table-grid] > [data-v2-open-table]:not(.v241-card) > .pmd-v2-table-state,
+body.pmd-waiter-standard-v23-page
+[data-v2-table-grid] > [data-v2-open-table]:not(.v241-card) > .pmd-v2-table-info,
+body.pmd-waiter-standard-v23-page
+[data-v2-table-grid] > [data-v2-open-table]:not(.v241-card) > .pmd-v21-payment-meta,
+body.pmd-waiter-standard-v23-page
+[data-v2-table-grid] > [data-v2-open-table]:not(.v241-card) > .pmd-v21-age-meta,
+body.pmd-waiter-standard-v23-page
+[data-v2-table-grid] > [data-v2-open-table]:not(.v241-card) > .pmd-v2-table-corner {
+  display: initial !important;
+}
+
+/* Preserve the original layout types where initial is not suitable. */
+body.pmd-waiter-standard-v23-page
+[data-v2-table-grid] > [data-v2-open-table]:not(.v241-card) > .pmd-v2-table-state,
+body.pmd-waiter-standard-v23-page
+[data-v2-table-grid] > [data-v2-open-table]:not(.v241-card) > .pmd-v2-table-info,
+body.pmd-waiter-standard-v23-page
+[data-v2-table-grid] > [data-v2-open-table]:not(.v241-card) > .pmd-v21-payment-meta,
+body.pmd-waiter-standard-v23-page
+[data-v2-table-grid] > [data-v2-open-table]:not(.v241-card) > .pmd-v21-age-meta {
+  display: block !important;
+}
+
+body.pmd-waiter-standard-v23-page
+[data-v2-table-grid] > [data-v2-open-table]:not(.v241-card) > .pmd-v2-table-corner {
+  display: grid !important;
+}
+
+/* Lifecycle cards alone use the simplified content hierarchy. */
+body.pmd-waiter-standard-v23-page
+[data-v2-table-grid] > [data-v2-open-table].v241-card > .pmd-v2-table-state,
+body.pmd-waiter-standard-v23-page
+[data-v2-table-grid] > [data-v2-open-table].v241-card > .pmd-v2-table-info,
+body.pmd-waiter-standard-v23-page
+[data-v2-table-grid] > [data-v2-open-table].v241-card > .pmd-v21-payment-meta,
+body.pmd-waiter-standard-v23-page
+[data-v2-table-grid] > [data-v2-open-table].v241-card > .pmd-v21-age-meta,
+body.pmd-waiter-standard-v23-page
+[data-v2-table-grid] > [data-v2-open-table].v241-card > .pmd-v2-table-corner {
+  display: none !important;
+}
+
+/* Make sure lifecycle-generated information is always visible. */
+body.pmd-waiter-standard-v23-page .v241-card > .v241-primary {
+  display: block !important;
+}
+
+body.pmd-waiter-standard-v23-page .v241-card > .v241-badges {
+  display: flex !important;
+}
+
+/*
+ * V2.4.2 hides newly-rendered cards until marked ready. A card decorated by
+ * V2.4.1 is safe to reveal immediately, even before V2.4.2's next callback.
+ */
+body.pmd-waiter-standard-v23-page
+[data-v2-table-grid] > [data-v2-open-table].v241-card {
+  opacity: 1 !important;
+}
+
+/* Status-specific border fallback after fresh core rendering. */
+body.pmd-waiter-standard-v23-page .v241-card[data-v241-status="available"] {
+  border-top-color: #16a34a !important;
+}
+body.pmd-waiter-standard-v23-page .v241-card[data-v241-status="occupied"] {
+  border-top-color: #475569 !important;
+}
+body.pmd-waiter-standard-v23-page .v241-card[data-v241-status="cleaning"] {
+  border-top-color: #d97706 !important;
+}
+body.pmd-waiter-standard-v23-page .v241-card[data-v241-status="reserved"] {
+  border-top-color: #2563eb !important;
+}
