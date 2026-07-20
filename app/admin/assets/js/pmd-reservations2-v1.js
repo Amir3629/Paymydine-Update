@@ -75,34 +75,59 @@
     : [];
 
   function installPageStyle() {
-    if (document.getElementById('pmd-r2-clean-page-style-v2')) return;
+    var oldStyle = document.getElementById('pmd-r2-clean-page-style-v2');
+    if (oldStyle) oldStyle.remove();
+
+    if (document.getElementById('pmd-r2-clean-page-style-v3')) return;
 
     var style = document.createElement('style');
-    style.id = 'pmd-r2-clean-page-style-v2';
+    style.id = 'pmd-r2-clean-page-style-v3';
     style.textContent = [
-      'html,body,.page-wrapper,.page-content,#pmd-reservations2{background:#f6f6ef!important;}',
+      'html,body,.page-wrapper,.page-content,#pmd-reservations2{background:#f8fbfd!important;}',
       'body{padding-top:0!important;margin-top:0!important;}',
       '.page-wrapper{top:0!important;margin-top:0!important;}',
       '.navbar-top,.navbar-fixed-top{display:none!important;visibility:hidden!important;opacity:0!important;pointer-events:none!important;height:0!important;min-height:0!important;max-height:0!important;overflow:hidden!important;}',
+      '#pmd-dashboard2-quick-btn{display:none!important;visibility:hidden!important;pointer-events:none!important;}',
       '#pmd-reservations2{min-height:100vh!important;}',
       '#pmd-reservations2 .pmd-r2__hero{display:none!important;}',
       '#pmd-r2-clean-header{display:flex;align-items:center;justify-content:space-between;min-height:64px;width:100%;margin:0;padding:0;background:transparent!important;border:0!important;box-shadow:none!important;position:relative;z-index:40;}',
       '#pmd-r2-clean-header .pmd-r2-clean-title{font-size:22px;line-height:1.2;font-weight:700;color:#17231f;margin:0;padding:0;white-space:nowrap;}',
-      '#pmd-r2-clean-header .pmd-r2-clean-actions{display:flex;align-items:center;justify-content:flex-end;gap:6px;margin-left:auto;}',
-      '#pmd-r2-clean-header .pmd-r2-clean-action,#pmd-r2-clean-header #notif-root>a,#pmd-r2-clean-header #notif-root>span>a{width:42px;height:42px;min-width:42px;display:inline-flex!important;align-items:center;justify-content:center;padding:0!important;margin:0!important;border:0!important;border-radius:0!important;background:transparent!important;box-shadow:none!important;color:#17231f!important;text-decoration:none!important;position:relative;cursor:pointer;}',
-      '#pmd-r2-clean-header .pmd-r2-clean-action:hover,#pmd-r2-clean-header .pmd-r2-clean-action:focus,#pmd-r2-clean-header #notif-root>a:hover,#pmd-r2-clean-header #notif-root>span>a:hover{background:transparent!important;color:#06120f!important;box-shadow:none!important;outline:none!important;}',
-      '#pmd-r2-clean-header .pmd-r2-clean-action i,#pmd-r2-clean-header #notif-root i{font-size:18px;line-height:1;}',
+      '#pmd-r2-clean-header .pmd-r2-clean-actions{display:flex;align-items:center;justify-content:flex-end;gap:8px;margin-left:auto;}',
+      '#pmd-r2-clean-header .pmd-r2-clean-action,#pmd-r2-clean-header #notif-root>a,#pmd-r2-clean-header #notif-root>span>a{width:42px;height:42px;min-width:42px;display:inline-flex!important;align-items:center;justify-content:center;padding:0!important;margin:0!important;border:1px solid #c9e0ef!important;border-radius:11px!important;background:#fff!important;box-shadow:none!important;color:#17231f!important;text-decoration:none!important;position:relative;cursor:pointer;}',
+      '#pmd-r2-clean-header .pmd-r2-clean-action:hover,#pmd-r2-clean-header .pmd-r2-clean-action:focus,#pmd-r2-clean-header #notif-root>a:hover,#pmd-r2-clean-header #notif-root>span>a:hover{background:#f3f8fb!important;border-color:#9fc4d9!important;color:#06120f!important;box-shadow:none!important;outline:none!important;}',
+      '#pmd-r2-clean-header .pmd-r2-clean-action i{font-size:18px;line-height:1;}',
       '#pmd-r2-clean-header #notif-root{display:block!important;position:relative!important;margin:0!important;padding:0!important;list-style:none!important;}',
+      '#pmd-r2-clean-header #notifDropdown.dropdown-toggle:after,#pmd-r2-clean-header #notifDropdown:after{display:none!important;content:none!important;border:0!important;margin:0!important;}',
+      '#pmd-r2-clean-header #bell-icon{display:inline-flex!important;align-items:center!important;justify-content:center!important;width:18px!important;height:18px!important;color:#17231f!important;}',
+      '#pmd-r2-clean-header #bell-icon svg{display:block;width:18px;height:18px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;}',
+      '#pmd-r2-clean-header #notification-count{top:-7px!important;right:-8px!important;z-index:2!important;}',
       '#pmd-r2-clean-header #notif-root .dropdown-menu{right:0!important;left:auto!important;top:calc(100% + 6px)!important;}',
-      '#pmd-r2-clean-header .pmd-r2-mobile-toggle{display:none;}',
-      '@media(max-width:820px){#pmd-r2-clean-header{min-height:58px;}#pmd-r2-clean-header .pmd-r2-clean-title{font-size:19px;}#pmd-r2-clean-header .pmd-r2-mobile-toggle{display:inline-flex!important;}#pmd-r2-clean-header .pmd-r2-clean-actions{gap:2px;}}'
+      '#pmd-r2-clean-header .pmd-r2-mobile-toggle{display:none!important;}',
+      '@media(max-width:820px){#pmd-r2-clean-header{min-height:58px;}#pmd-r2-clean-header .pmd-r2-clean-title{font-size:19px;}#pmd-r2-clean-header .pmd-r2-mobile-toggle{display:inline-flex!important;}#pmd-r2-clean-header .pmd-r2-clean-actions{gap:6px;}}'
     ].join('\n');
 
     document.head.appendChild(style);
   }
 
+  function installReliableBell(notificationRoot) {
+    if (!notificationRoot) return false;
+
+    var oldBell = notificationRoot.querySelector('#bell-icon');
+    if (!oldBell) return false;
+
+    var bell = document.createElement('span');
+    bell.id = 'bell-icon';
+    bell.setAttribute('aria-hidden', 'true');
+    bell.innerHTML = '<svg viewBox="0 0 24 24"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9"></path><path d="M10 21h4"></path></svg>';
+    oldBell.replaceWith(bell);
+    return true;
+  }
+
   function buildCleanHeaderImmediately() {
     installPageStyle();
+
+    var quickButton = document.getElementById('pmd-dashboard2-quick-btn');
+    if (quickButton) quickButton.remove();
 
     var legacyTopbar = document.querySelector('.navbar-top, .navbar-fixed-top');
     var notificationRoot = document.getElementById('notif-root');
@@ -147,6 +172,7 @@
     create.innerHTML = '<i class="fa fa-plus" aria-hidden="true"></i>';
     actions.appendChild(create);
 
+    var reliableBell = installReliableBell(notificationRoot);
     if (notificationRoot) {
       notificationRoot.classList.add('pmd-r2-clean-notification');
       actions.appendChild(notificationRoot);
@@ -156,14 +182,17 @@
     header.appendChild(actions);
     root.insertBefore(header, root.firstChild);
 
-    window.PMDReservations2CleanHeaderV2 = {
-      version: '2.0.0',
+    window.PMDReservations2CleanHeaderV3 = {
+      version: '3.0.0',
       legacyRemoved: !document.querySelector('.navbar-top, .navbar-fixed-top'),
       duplicateHeroRemoved: !root.querySelector('.pmd-r2__hero'),
-      background: '#f6f6ef',
+      dashboard2QuickButtonRemoved: !document.getElementById('pmd-dashboard2-quick-btn'),
+      background: '#f8fbfd',
       title: 'Reservations',
       createUrl: create.href,
       notificationMoved: Boolean(notificationRoot),
+      reliableBellInstalled: reliableBell,
+      dropdownArrowRemoved: true,
       mobileToggleMoved: Boolean(mobileToggle)
     };
   }
@@ -349,18 +378,18 @@
     root.setAttribute('aria-busy', 'false');
 
     window.PMDReservations2V1 = {
-      version: '1.2.0',
+      version: '1.3.0',
       reservations: reservations.length,
       tables: TABLES.length,
       route: location.pathname,
       cleanPage: true,
       cleanHeader: true,
       noLegacyFlashGuard: true,
-      unifiedBackground: '#f6f6ef'
+      unifiedBackground: '#f8fbfd'
     };
 
     console.info('[PMD Reservations2 V1] Ready', window.PMDReservations2V1);
-    console.info('[PMD Reservations2 Clean Header V2] Ready', window.PMDReservations2CleanHeaderV2);
+    console.info('[PMD Reservations2 Clean Header V3] Ready', window.PMDReservations2CleanHeaderV3);
   }
 
   if (document.readyState === 'loading') {
