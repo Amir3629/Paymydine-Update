@@ -1,5 +1,5 @@
 {{-- 
-PMD_SINGLE_SIDE_MENU_MARKUP_V4
+PMD_SINGLE_SIDE_MENU_MARKUP_V5
 
 Canonical Side Menu markup.
 All supported Admin pages include this exact file.
@@ -126,12 +126,12 @@ Icons use the Tabler Icons outline set.
     </div>
 </aside>
 
-<script id="pmd-r2-header-controls-v2">
+<script id="pmd-r2-header-controls-v3">
 (function () {
   'use strict';
 
   if (location.pathname.replace(/\/+$/, '') !== '/admin/reservations2') return;
-  if (window.PMDR2HeaderControlsV2) return;
+  if (window.PMDR2HeaderControlsV3) return;
 
   function createButton(className, label, svg) {
     var button = document.createElement('button');
@@ -144,12 +144,14 @@ Icons use the Tabler Icons outline set.
   }
 
   function installCss() {
-    if (document.getElementById('pmd-r2-mobile-drawer-v1')) return;
+    if (document.getElementById('pmd-r2-mobile-drawer-v2')) return;
     var style = document.createElement('style');
-    style.id = 'pmd-r2-mobile-drawer-v1';
+    style.id = 'pmd-r2-mobile-drawer-v2';
     style.textContent = [
       '@media(max-width:820px){',
-      '#pmd-reservations2{padding-top:10px!important;}',
+      'html,body,.page-wrapper,.page-content,.content-wrapper{top:0!important;margin-top:0!important;padding-top:0!important;}',
+      '.page-wrapper{position:absolute!important;inset:0 auto auto 0!important;width:100vw!important;}',
+      '#pmd-reservations2{top:0!important;margin-top:0!important;padding-top:10px!important;transform:none!important;}',
       '#pmd-r2-clean-header{height:40px!important;min-height:40px!important;margin-top:0!important;}',
       '#pmd-r2-clean-header .pmd-r2-clean-title{display:none!important;}',
       '#pmd-r2-clean-header .pmd-r2-clean-leading{flex:1 1 auto!important;gap:6px!important;}',
@@ -159,30 +161,33 @@ Icons use the Tabler Icons outline set.
       '#pmd-r2-clean-header #bell-icon{position:absolute!important;left:50%!important;top:50%!important;transform:translate(-50%,-50%)!important;margin:0!important;}',
       '#pmd-r2-clean-header #notification-count{top:-5px!important;right:-6px!important;}',
       '#pmd-r2-mobile-nav{display:none!important;}',
-      '#pmd-side-menu2{display:flex!important;position:fixed!important;left:10px!important;top:10px!important;bottom:10px!important;width:80vw!important;max-width:360px!important;height:auto!important;min-height:0!important;z-index:10051!important;transform:translateX(calc(-100% - 24px))!important;opacity:1!important;visibility:visible!important;pointer-events:none!important;border-radius:0 24px 24px 0!important;overflow:hidden!important;transition:transform 280ms cubic-bezier(.22,.75,.24,1)!important;box-shadow:0 24px 70px rgba(0,0,0,.28)!important;}',
-      'html.pmd-r2-drawer-open #pmd-side-menu2{transform:translateX(0)!important;pointer-events:auto!important;}',
-      '#pmd-side-menu2 .pmd-sm2__footer{display:none!important;}',
-      '#pmd-side-menu2 .pmd-sm2__brand{height:104px!important;min-height:104px!important;}',
-      '#pmd-side-menu2 .pmd-sm2__label{display:block!important;}',
-      '#pmd-side-menu2 .pmd-sm2__item,#pmd-side-menu2 .pmd-sm2__dropdown-toggle{justify-content:flex-start!important;}',
+      'body>#pmd-side-menu2{display:flex!important;position:fixed!important;left:10px!important;top:10px!important;bottom:10px!important;width:80vw!important;max-width:360px!important;height:auto!important;min-height:0!important;z-index:2147483646!important;transform:translateX(calc(-100% - 28px))!important;opacity:1!important;visibility:visible!important;pointer-events:none!important;border-radius:0 24px 24px 0!important;overflow:hidden!important;transition:transform 280ms cubic-bezier(.22,.75,.24,1)!important;box-shadow:0 24px 70px rgba(0,0,0,.28)!important;}',
+      'html.pmd-r2-drawer-open body>#pmd-side-menu2{display:flex!important;transform:translateX(0)!important;opacity:1!important;visibility:visible!important;pointer-events:auto!important;}',
+      'body>#pmd-side-menu2 .pmd-sm2__footer{display:none!important;}',
+      'body>#pmd-side-menu2 .pmd-sm2__brand{height:104px!important;min-height:104px!important;}',
+      'body>#pmd-side-menu2 .pmd-sm2__label{display:block!important;}',
+      'body>#pmd-side-menu2 .pmd-sm2__item,body>#pmd-side-menu2 .pmd-sm2__dropdown-toggle{justify-content:flex-start!important;}',
       'body.pmd-r2-drawer-locked{overflow:hidden!important;}',
-      '#pmd-r2-drawer-backdrop{position:fixed;inset:0;z-index:10050;background:rgba(8,18,16,.30);backdrop-filter:blur(7px);-webkit-backdrop-filter:blur(7px);opacity:0;visibility:hidden;pointer-events:none;transition:opacity 280ms ease,visibility 280ms ease;}',
+      '#pmd-r2-drawer-backdrop{position:fixed;inset:0;z-index:2147483645;background:rgba(8,18,16,.30);backdrop-filter:blur(7px);-webkit-backdrop-filter:blur(7px);opacity:0;visibility:hidden;pointer-events:none;transition:opacity 280ms ease,visibility 280ms ease;}',
       'html.pmd-r2-drawer-open #pmd-r2-drawer-backdrop{opacity:1;visibility:visible;pointer-events:auto;}',
       '}',
-      '@media(max-width:420px){#pmd-side-menu2{width:82vw!important;max-width:340px!important;left:8px!important;top:8px!important;bottom:8px!important;}}'
+      '@media(max-width:420px){body>#pmd-side-menu2{width:82vw!important;max-width:340px!important;left:8px!important;top:8px!important;bottom:8px!important;}}'
     ].join('\n');
     document.head.appendChild(style);
   }
 
   function install() {
     var header = document.getElementById('pmd-r2-clean-header');
-    if (!header) return false;
+    var side = document.getElementById('pmd-side-menu2');
+    if (!header || !side) return false;
 
     var title = header.querySelector('.pmd-r2-clean-title');
     var actions = header.querySelector('.pmd-r2-clean-actions');
     if (!title || !actions) return false;
 
     installCss();
+
+    if (side.parentElement !== document.body) document.body.appendChild(side);
 
     var leading = header.querySelector('.pmd-r2-clean-leading');
     var back = header.querySelector('.pmd-r2-header-back');
@@ -232,8 +237,8 @@ Icons use the Tabler Icons outline set.
       backdrop.setAttribute('aria-hidden', String(!open));
     }
 
-    if (!mobile.dataset.pmdR2DrawerBound) {
-      mobile.dataset.pmdR2DrawerBound = '1';
+    if (!mobile.dataset.pmdR2DrawerV3Bound) {
+      mobile.dataset.pmdR2DrawerV3Bound = '1';
       mobile.addEventListener('click', function (event) {
         event.preventDefault();
         event.stopPropagation();
@@ -241,8 +246,8 @@ Icons use the Tabler Icons outline set.
       });
     }
 
-    if (!backdrop.dataset.pmdR2DrawerBound) {
-      backdrop.dataset.pmdR2DrawerBound = '1';
+    if (!backdrop.dataset.pmdR2DrawerV3Bound) {
+      backdrop.dataset.pmdR2DrawerV3Bound = '1';
       backdrop.addEventListener('click', function () { setOpen(false); });
     }
 
@@ -251,8 +256,8 @@ Icons use the Tabler Icons outline set.
     });
 
     document.querySelectorAll('#pmd-side-menu2 a').forEach(function (link) {
-      if (link.dataset.pmdR2DrawerBound) return;
-      link.dataset.pmdR2DrawerBound = '1';
+      if (link.dataset.pmdR2DrawerV3Bound) return;
+      link.dataset.pmdR2DrawerV3Bound = '1';
       link.addEventListener('click', function () { setOpen(false); });
     });
 
@@ -260,9 +265,10 @@ Icons use the Tabler Icons outline set.
       if (window.innerWidth > 820) setOpen(false);
     }, { passive: true });
 
-    window.PMDR2HeaderControlsV2 = {
-      version: '2.0.0',
-      mobileMode: 'drawer-80-percent',
+    window.PMDR2HeaderControlsV3 = {
+      version: '3.0.0',
+      mobileMode: 'body-level-drawer-80-percent',
+      side: side,
       back: back,
       trigger: mobile,
       backdrop: backdrop,
