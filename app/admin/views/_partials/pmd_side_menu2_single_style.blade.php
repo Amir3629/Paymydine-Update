@@ -57,18 +57,16 @@ in the initial HTML response before JavaScript executes.
   }
 
   html.pmd-sm2-collapsed
-    #pmd-side-menu2 .pmd-sm2__brand {
+  #pmd-side-menu2 .pmd-sm2__brand {
     height: 96px !important;
     min-height: 96px !important;
   }
 </style>
 <!-- PMD_SM2_CRITICAL_LOGO_END -->
 
-<!-- PMD_R2_CRITICAL_PREPAINT_V3_START -->
-<style id="pmd-r2-critical-prepaint-v3">
-  :root {
-    background: #f8fbfd !important;
-  }
+<!-- PMD_R2_CRITICAL_PREPAINT_V4_START -->
+<style id="pmd-r2-critical-prepaint-v4">
+  :root { background: #f8fbfd !important; }
 
   html,
   body,
@@ -147,17 +145,13 @@ in the initial HTML response before JavaScript executes.
     overflow: hidden !important;
   }
 
-  #pmd-dashboard2-quick-btn {
+  #pmd-dashboard2-quick-btn,
+  #pmd-reservations2 .pmd-r2__hero {
     display: none !important;
     visibility: hidden !important;
     pointer-events: none !important;
   }
 
-  #pmd-reservations2 .pmd-r2__hero {
-    display: none !important;
-  }
-
-  /* Unified page rhythm: every outer and inter-card gap is 14px. */
   #pmd-reservations2 {
     --pmd-r2-gap: 14px;
     padding-top: var(--pmd-r2-gap) !important;
@@ -176,7 +170,83 @@ in the initial HTML response before JavaScript executes.
     margin-bottom: 0 !important;
   }
 
-  @media (max-width: 767px) {
+  #pmd-r2-clean-header .pmd-r2-clean-leading {
+    display: flex !important;
+    align-items: center !important;
+    gap: 10px !important;
+    min-width: 0 !important;
+  }
+
+  #pmd-r2-clean-header .pmd-r2-header-back,
+  #pmd-r2-clean-header .pmd-r2-mobile-menu {
+    width: 42px !important;
+    height: 42px !important;
+    min-width: 42px !important;
+    padding: 0 !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    border: 1px solid #c9e0ef !important;
+    border-radius: 11px !important;
+    background: #fff !important;
+    color: #17231f !important;
+    box-shadow: none !important;
+  }
+
+  #pmd-r2-clean-header .pmd-r2-header-back svg,
+  #pmd-r2-clean-header .pmd-r2-mobile-menu svg {
+    width: 20px !important;
+    height: 20px !important;
+    fill: none !important;
+    stroke: currentColor !important;
+    stroke-width: 2 !important;
+    stroke-linecap: round !important;
+    stroke-linejoin: round !important;
+  }
+
+  /* Remove the accidental pill/double-frame around Notifications. */
+  #pmd-r2-clean-header #notif-root,
+  #pmd-r2-clean-header #notif-root > .media-toolbar-tooltip-wrap {
+    width: 42px !important;
+    height: 42px !important;
+    min-width: 42px !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    border: 0 !important;
+    border-radius: 0 !important;
+    background: transparent !important;
+    box-shadow: none !important;
+  }
+
+  #pmd-r2-clean-header #notif-root > .media-toolbar-tooltip-wrap {
+    display: block !important;
+  }
+
+  #pmd-r2-clean-header #notifDropdown {
+    box-sizing: border-box !important;
+    width: 42px !important;
+    height: 42px !important;
+    min-width: 42px !important;
+    padding: 0 !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    border: 1px solid #c9e0ef !important;
+    border-radius: 11px !important;
+    background: #fff !important;
+    box-shadow: none !important;
+  }
+
+  #pmd-r2-clean-header #notification-count {
+    top: -6px !important;
+    right: -7px !important;
+  }
+
+  #pmd-r2-clean-header .pmd-r2-mobile-menu {
+    display: none !important;
+  }
+
+  @media (max-width: 820px) {
     #pmd-reservations2 {
       --pmd-r2-gap: 10px;
       padding-top: var(--pmd-r2-gap) !important;
@@ -187,6 +257,48 @@ in the initial HTML response before JavaScript executes.
       height: 42px !important;
       margin-bottom: var(--pmd-r2-gap) !important;
     }
+
+    #pmd-r2-clean-header .pmd-r2-clean-title {
+      font-size: 19px !important;
+    }
+
+    #pmd-r2-clean-header .pmd-r2-mobile-menu {
+      display: inline-flex !important;
+    }
+
+    /* Keep all four KPI cards in one horizontal row on mobile. */
+    #pmd-reservations2 .pmd-r2__kpis {
+      display: grid !important;
+      grid-template-columns: repeat(4, minmax(190px, 1fr)) !important;
+      gap: var(--pmd-r2-gap) !important;
+      overflow-x: auto !important;
+      overflow-y: hidden !important;
+      scroll-snap-type: x proximity !important;
+      -webkit-overflow-scrolling: touch !important;
+      padding-bottom: 3px !important;
+    }
+
+    #pmd-reservations2 .pmd-r2-kpi {
+      min-width: 190px !important;
+      scroll-snap-align: start !important;
+    }
+
+    html.pmd-sm2-mobile-open #pmd-side-menu2 {
+      display: flex !important;
+      visibility: visible !important;
+      opacity: 1 !important;
+      transform: translateX(0) !important;
+      pointer-events: auto !important;
+      z-index: 10050 !important;
+    }
+
+    html.pmd-sm2-mobile-open::after {
+      content: "";
+      position: fixed;
+      inset: 0;
+      background: rgba(6, 18, 15, .36);
+      z-index: 10040;
+    }
   }
 </style>
-<!-- PMD_R2_CRITICAL_PREPAINT_V3_END -->
+<!-- PMD_R2_CRITICAL_PREPAINT_V4_END -->
