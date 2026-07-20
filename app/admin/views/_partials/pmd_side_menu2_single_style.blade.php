@@ -1,9 +1,8 @@
 {{-- 
-PMD_SINGLE_SIDE_MENU_STYLE_V2
+PMD_SINGLE_SIDE_MENU_STYLE_V3
 
 Single visual authority for Side Menu 2.
-Also contains route-scoped critical paint guards that must exist
-in the initial HTML response before JavaScript executes.
+Also contains a DOM-scoped critical paint guard for Reservations2.
 --}}
 <!-- PMD_SM2_CRITICAL_LOGO_START -->
 <style id="pmd-sm2-critical-logo">
@@ -64,49 +63,62 @@ in the initial HTML response before JavaScript executes.
 </style>
 <!-- PMD_SM2_CRITICAL_LOGO_END -->
 
-@if (request()->is('admin/reservations2'))
-<!-- PMD_R2_CRITICAL_PREPAINT_V1_START -->
-<style id="pmd-r2-critical-prepaint-v1">
-  :root {
+<!-- PMD_R2_CRITICAL_PREPAINT_V2_START -->
+<style id="pmd-r2-critical-prepaint-v2">
+  /*
+   * Do not depend on Blade route matching. The presence of the actual
+   * Reservations2 root is the authority, so this works in cached/global views.
+   */
+  html:has(#pmd-reservations2),
+  html:has(#pmd-reservations2) body,
+  body:has(#pmd-reservations2),
+  body:has(#pmd-reservations2) .app-container,
+  body:has(#pmd-reservations2) .layout,
+  body:has(#pmd-reservations2) .layout-wrapper,
+  body:has(#pmd-reservations2) .main-content,
+  body:has(#pmd-reservations2) .page-wrapper,
+  body:has(#pmd-reservations2) .page-content,
+  body:has(#pmd-reservations2) .content-wrapper,
+  body:has(#pmd-reservations2) .container,
+  body:has(#pmd-reservations2) .container-fluid,
+  body:has(#pmd-reservations2) #pmd-reservations2 {
     background: #f8fbfd !important;
-  }
-
-  html,
-  body,
-  body.layout,
-  body.admin,
-  .app-container,
-  .page-wrapper,
-  .page-content,
-  .content-wrapper,
-  .container-fluid,
-  #pmd-reservations2 {
     background-color: #f8fbfd !important;
   }
 
-  html,
-  body {
+  html:has(#pmd-reservations2),
+  html:has(#pmd-reservations2) body {
+    width: 100% !important;
     min-width: 100% !important;
     min-height: 100% !important;
     margin: 0 !important;
     padding: 0 !important;
   }
 
-  body {
+  body:has(#pmd-reservations2) {
     min-height: 100vh !important;
     overflow-x: hidden !important;
   }
 
-  .page-wrapper,
-  .page-content,
-  .content-wrapper,
-  #pmd-reservations2 {
+  body:has(#pmd-reservations2)::before {
+    content: "";
+    position: fixed;
+    inset: 0;
+    z-index: -2147483647;
+    background: #f8fbfd !important;
+    pointer-events: none;
+  }
+
+  body:has(#pmd-reservations2) .page-wrapper,
+  body:has(#pmd-reservations2) .page-content,
+  body:has(#pmd-reservations2) .content-wrapper,
+  body:has(#pmd-reservations2) #pmd-reservations2 {
     min-height: 100vh !important;
     margin-top: 0 !important;
   }
 
-  .navbar-top,
-  .navbar-fixed-top {
+  body:has(#pmd-reservations2) .navbar-top,
+  body:has(#pmd-reservations2) .navbar-fixed-top {
     display: none !important;
     visibility: hidden !important;
     opacity: 0 !important;
@@ -122,15 +134,11 @@ in the initial HTML response before JavaScript executes.
     overflow: hidden !important;
   }
 
-  #pmd-dashboard2-quick-btn {
+  body:has(#pmd-reservations2) #pmd-dashboard2-quick-btn,
+  body:has(#pmd-reservations2) #pmd-reservations2 .pmd-r2__hero {
     display: none !important;
     visibility: hidden !important;
     pointer-events: none !important;
   }
-
-  #pmd-reservations2 .pmd-r2__hero {
-    display: none !important;
-  }
 </style>
-<!-- PMD_R2_CRITICAL_PREPAINT_V1_END -->
-@endif
+<!-- PMD_R2_CRITICAL_PREPAINT_V2_END -->
