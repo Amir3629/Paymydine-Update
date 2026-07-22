@@ -1,64 +1,85 @@
-# PayMyDine Admin EN/DE i18n
+# PayMyDine Admin EN/DE i18n — Quick Guide
 
-This module replaces the old inline DOM dictionaries with one central,
-versioned translation system.
+The complete architecture, history, maintenance, deployment, rollback, troubleshooting, and future-language manual is:
 
-## Source files
+```text
+docs/ADMIN_I18N_GUIDE.md
+```
 
-- `app/admin/i18n/pmd_admin_de.php`
-  - Single source of truth for PayMyDine-specific hardcoded English UI text.
-  - Add new custom English→German entries here.
-- `scripts/pmd-build-admin-i18n.php`
-  - Reads the enabled English and German TastyIgniter translation sets.
-  - Pairs translations by namespace/group/key.
-  - Validates placeholders.
-  - Merges the custom PayMyDine catalogue as the final authority.
-  - Generates an external JavaScript catalogue.
-- `app/admin/assets/js/pmd-admin-i18n-v1.js`
-  - Translates text nodes, button values, placeholders, titles and ARIA labels.
-  - Handles dynamic AJAX/JavaScript content with a MutationObserver.
-  - Includes patterns for order numbers, table numbers and count labels.
-- `app/admin/views/_partials/pmd_admin_i18n.blade.php`
-  - Reads the persistent `pmd_admin_locale` cookie.
-  - Applies the locale to the current request.
-  - Prevents the English first-paint flash when German is active.
-  - Loads the generated catalogue and runtime globally.
-- `scripts/pmd-deploy-admin-i18n.sh`
-  - Idempotent production installer.
-  - Backs up live files.
-  - Removes V3/V4/V4.2/V5 experimental inline translators.
-  - Installs one global partial in both admin layouts.
-  - Builds and validates the complete catalogue.
-  - Clears compiled views and translation caches.
+The translation source-directory rules are also documented in:
 
-## Production deployment
+```text
+app/admin/i18n/README.md
+```
 
-From the checked-out update repository:
+## Current architecture
+
+PMD Admin i18n V1 combines:
+
+1. normal English/German TastyIgniter translations;
+2. custom PayMyDine English-to-German entries from `app/admin/i18n/pmd_admin_de.php`;
+3. a generated external JavaScript catalogue;
+4. one shared DOM/AJAX runtime for every admin page, including the side menu;
+5. a no-flash boot partial that applies the locale before the first visible paint.
+
+The original problem was not an API problem. Many custom PayMyDine labels were hardcoded directly in Blade and JavaScript, so the standard TastyIgniter language system did not know about them.
+
+## Important files
+
+```text
+app/admin/i18n/pmd_admin_de.php
+scripts/pmd-build-admin-i18n.php
+app/admin/assets/js/pmd-admin-i18n-v1.js
+app/admin/views/_partials/pmd_admin_i18n.blade.php
+scripts/pmd-deploy-admin-i18n.sh
+scripts/pmd-update-admin-i18n-from-main.sh
+```
+
+Generated file — do not edit manually:
+
+```text
+app/admin/assets/js/pmd-admin-i18n-catalog-de.js
+```
+
+## Add or correct one German phrase
+
+Edit:
+
+```text
+app/admin/i18n/pmd_admin_de.php
+```
+
+Example:
+
+```php
+'Start Shift' => 'Schicht starten',
+```
+
+Then deploy:
 
 ```bash
-cd /var/www/paymydine/frontend/Paymydine-Update
-git pull
+php -l app/admin/i18n/pmd_admin_de.php
 chmod +x scripts/pmd-deploy-admin-i18n.sh
 ./scripts/pmd-deploy-admin-i18n.sh
 ```
 
-The live application defaults to `/var/www/paymydine`. Override it when needed:
+## Safe VPS update without switching the current branch
 
 ```bash
-PMD_LIVE_ROOT=/another/path ./scripts/pmd-deploy-admin-i18n.sh
+cd /var/www/paymydine/frontend/Paymydine-Update
+
+git fetch origin main
+
+git show origin/main:scripts/pmd-update-admin-i18n-from-main.sh \
+  > /tmp/pmd-update-admin-i18n-from-main.sh
+
+chmod +x /tmp/pmd-update-admin-i18n-from-main.sh
+/tmp/pmd-update-admin-i18n-from-main.sh
 ```
 
-## Adding a missing custom phrase
+This imports only language-system files and then runs the normal production installer. It does not switch branches or select Reservations, Floor, KDS, Waiter, or unrelated files.
 
-1. Edit `app/admin/i18n/pmd_admin_de.php`.
-2. Add the exact English text as the key and German text as the value.
-3. Run the deployment script again.
-4. The catalogue is regenerated and cache-busted automatically through filemtime.
-
-Do not add large dictionaries directly to Blade layouts. The generated external
-catalogue avoids Blade/PHP parser failures and keeps page templates maintainable.
-
-## Verification in the browser console
+## Browser check
 
 ```javascript
 console.table({
@@ -72,8 +93,16 @@ console.table({
 
 Expected for German:
 
-- `version`: `1.0.0`
-- `locale`: `de`
-- `entries`: normally more than 1,000 after the build
-- `pending`: `false`
-- `ready`: `true`
+```text
+version: 1.0.0
+locale: de
+entries: normally more than 1000
+pending: false
+ready: true
+```
+
+## Adding another language
+
+V1 is currently English/German-specific. Creating only `pmd_admin_fr.php` is not enough.
+
+Before adding a third language, follow the V2 multi-language plan in `docs/ADMIN_I18N_GUIDE.md`. The builder, partial, runtime, dynamic patterns, catalogue selection, deployment loop, and cache clearing must first become locale-generic.
