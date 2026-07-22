@@ -9,7 +9,12 @@ declare(strict_types=1);
  * The Blade partial runs while the page is already being rendered. Some
  * controllers prepare translated labels before Blade starts, so changing the
  * locale only inside the layout can be too late. This bootstrap is loaded from
- * app/admin/routes.php and applies the cookie locale before controllers run.
+ * app/admin/routes.php and resolves the cookie locale before controllers run.
+ *
+ * Important lifecycle rule:
+ * Do NOT call translator.localization->setLocale() while routes are loading.
+ * At that moment TastyIgniter's supported locale list may still be null. The
+ * normal localization middleware owns initialization of that service.
  *
  * Current supported admin locales: English (en) and German (de).
  */
@@ -54,20 +59,14 @@ if (!function_exists('pmdAdminResolveLocale')) {
     }
 }
 
-if (!function_exists('pmdAdminApplyLocale')) {
-    function pmdAdminApplyLocale(?string $requested = null): string
+if (!function_exists('pmdAdminApplyLaravelLocale')) {
+    function pmdAdminApplyLaravelLocale(?string $requested = null): string
     {
         $locale = pmdAdminResolveLocale($requested);
 
+        // Safe during route loading. TastyIgniter's localization service is
+        // deliberately not touched here; its middleware initializes it later.
         app()->setLocale($locale);
-
-        if (app()->bound('translator.localization')) {
-            try {
-                app('translator.localization')->setLocale($locale, false);
-            } catch (Throwable $error) {
-                // The Laravel locale above is still valid if the TI service is unavailable.
-            }
-        }
 
         try {
             request()->attributes->set('pmd_admin_locale', $locale);
@@ -79,15 +78,15 @@ if (!function_exists('pmdAdminApplyLocale')) {
     }
 }
 
-// Apply immediately while admin routes are being loaded.
-pmdAdminApplyLocale();
+// Apply only Laravel's locale while admin routes are being loaded.
+pmdAdminApplyLaravelLocale();
 
-// Re-apply immediately before the request is dispatched, after other boot code.
-if (!defined('PMD_ADMIN_EARLY_LOCALE_HOOK_V1')) {
-    define('PMD_ADMIN_EARLY_LOCALE_HOOK_V1', true);
+// Re-apply before request dispatch without touching TI's uninitialized service.
+if (!defined('PMD_ADMIN_EARLY_LOCALE_HOOK_V2')) {
+    define('PMD_ADMIN_EARLY_LOCALE_HOOK_V2', true);
 
     App::before(function () {
-        pmdAdminApplyLocale();
+        pmdAdminApplyLaravelLocale();
     });
 }
 
@@ -140,13 +139,15 @@ if (!defined('PMD_ADMIN_LANGUAGE_SWITCH_ROUTE_V4')) {
                     $staff->save();
                 }
 
-                pmdAdminApplyLocale($code);
+                pmdAdminApplyLaravelLocale($code);
 
+                // This endpoint runs after the normal localization middleware,
+                // so the TI localization service is initialized and safe here.
                 if (app()->bound('translator.localization')) {
                     try {
                         app('translator.localization')->setLocale($code, true);
                     } catch (Throwable $error) {
-                        // Cookie remains the final authority for the next request.
+                        // Staff preference and cookie remain authoritative next request.
                     }
                 }
 
