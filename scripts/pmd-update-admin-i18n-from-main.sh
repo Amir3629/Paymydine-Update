@@ -93,6 +93,7 @@ fi
 REQUIRED_FILES=(
     'app/admin/assets/js/pmd-admin-i18n-v1.js'
     'app/admin/i18n/pmd_admin_de.php'
+    'app/admin/i18n/pmd_admin_locale_bootstrap.php'
     'app/admin/views/_partials/pmd_admin_i18n.blade.php'
     'scripts/pmd-build-admin-i18n.php'
     'scripts/pmd-deploy-admin-i18n.sh'
@@ -141,7 +142,7 @@ for file in "${FILES[@]}"; do
     git show "$SOURCE_REF:$file" > "$temporary"
 done
 
-echo "All source files were read successfully before changing the working tree."
+echo 'All source files were read successfully before changing the working tree.'
 
 echo
 echo '===== 5. INSTALL ONLY LANGUAGE-SYSTEM FILES ====='
@@ -160,6 +161,7 @@ echo
 echo '===== 6. VALIDATE IMPORTED SOURCE ====='
 
 php -l app/admin/i18n/pmd_admin_de.php
+php -l app/admin/i18n/pmd_admin_locale_bootstrap.php
 php -l scripts/pmd-build-admin-i18n.php
 bash -n scripts/pmd-deploy-admin-i18n.sh
 bash -n scripts/pmd-update-admin-i18n-from-main.sh
@@ -181,14 +183,24 @@ echo '===== 8. FINAL VERIFICATION ====='
 LIVE_RUNTIME="$LIVE/app/admin/assets/js/pmd-admin-i18n-v1.js"
 LIVE_CATALOGUE="$LIVE/app/admin/assets/js/pmd-admin-i18n-catalog-de.js"
 LIVE_PARTIAL="$LIVE/app/admin/views/_partials/pmd_admin_i18n.blade.php"
+LIVE_BOOTSTRAP="$LIVE/app/admin/i18n/pmd_admin_locale_bootstrap.php"
+LIVE_ROUTES="$LIVE/app/admin/routes.php"
 
-for file in "$LIVE_RUNTIME" "$LIVE_CATALOGUE" "$LIVE_PARTIAL"; do
+for file in "$LIVE_RUNTIME" "$LIVE_CATALOGUE" "$LIVE_PARTIAL" "$LIVE_BOOTSTRAP"; do
     if [ ! -s "$file" ]; then
         echo "ERROR: Expected live file is missing or empty: $file"
         exit 1
     fi
     echo "LIVE OK: ${file#$LIVE/}"
 done
+
+route_count="$(grep -Fc "require_once base_path('app/admin/i18n/pmd_admin_locale_bootstrap.php');" "$LIVE_ROUTES")"
+echo "app/admin/routes.php: early locale include count=$route_count"
+
+if [ "$route_count" -ne 1 ]; then
+    echo 'ERROR: Early locale bootstrap is not installed exactly once.'
+    exit 1
+fi
 
 layout_found=0
 for layout in \
@@ -231,6 +243,7 @@ printf '%s\n' \
     "Repository backup: $BACKUP" \
     "Sync report: $REPORT" \
     '' \
-    'Only the language-system files were imported.' \
+    'English and German now resolve before controllers run.' \
+    'Only language-system files were imported.' \
     'Reservations, Floor, KDS, Waiter, and unrelated files were not selected.' \
     '======================================================'
