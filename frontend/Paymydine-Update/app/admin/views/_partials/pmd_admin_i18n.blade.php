@@ -1,21 +1,28 @@
 {{--
-    PMD_ADMIN_I18N_V1
+    PMD_ADMIN_I18N_V1_1
 
-    Clean global EN/DE boot layer.
-    - Locale authority: pmd_admin_locale cookie, then current app locale.
+    Clean global EN/DE browser boot layer.
+    - Server locale is applied early by app/admin/i18n/pmd_admin_locale_bootstrap.php.
+    - This partial reads the resolved request locale and keeps a safe view fallback.
     - German pages are hidden before first paint.
     - External catalogue/runtime reveal the page after the first translation.
 --}}
 @php
-    $pmdAdminLocale = strtolower(trim((string)request()->cookie(
+    $pmdAdminLocale = request()->attributes->get(
         'pmd_admin_locale',
-        app()->getLocale()
-    )));
+        request()->cookie('pmd_admin_locale', app()->getLocale())
+    );
+
+    $pmdAdminLocale = strtolower(trim((string)$pmdAdminLocale));
+    $pmdAdminLocale = str_replace('_', '-', $pmdAdminLocale);
+    $pmdAdminLocale = explode('-', $pmdAdminLocale, 2)[0];
 
     if (!in_array($pmdAdminLocale, ['en', 'de'], true)) {
         $pmdAdminLocale = 'en';
     }
 
+    // View-level fallback. The early bootstrap should already have done this
+    // before the controller prepared translated page data.
     app()->setLocale($pmdAdminLocale);
 
     if (app()->bound('translator.localization')) {
@@ -57,6 +64,11 @@
     'use strict';
 
     window.PMD_ADMIN_LOCALE = @json($pmdAdminLocale);
+    window.PMD_ADMIN_LOCALE_SOURCE = @json(
+        request()->attributes->has('pmd_admin_locale')
+            ? 'early-bootstrap'
+            : 'view-fallback'
+    );
 
     document.documentElement.setAttribute(
         'lang',

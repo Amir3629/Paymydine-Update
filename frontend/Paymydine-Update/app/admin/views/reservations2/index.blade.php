@@ -338,16 +338,11 @@ window.PMD_RESERVATIONS2_BOOT = {
 
 <!-- PMD_R2_FLOOR_RESERVATION_V312_END -->
 
-<!-- PMD_R2_FLOOR_TOOLBAR_V315_START -->
 
-<link
-  rel="stylesheet"
-  href="/app/admin/assets/css/pmd-reservations2-floor-toolbar-v315.css?v=20260722_140930"
->
 
-<script
-  src="/app/admin/assets/js/pmd-reservations2-floor-toolbar-v315.js?v=20260722_140930"
-  defer
-></script>
-
-<!-- PMD_R2_FLOOR_TOOLBAR_V315_END -->
+<!-- PMD_R2_FLOOR_TOOLBAR_V316_START -->
+<link rel="stylesheet"
+      href="{{ asset('app/admin/assets/css/pmd-reservations2-floor-toolbar-v316.css') }}?v=20260722_194958">
+<script defer
+        src="{{ asset('app/admin/assets/js/pmd-reservations2-floor-toolbar-v316.js') }}?v=20260722_194958"></script>
+<!-- PMD_R2_FLOOR_TOOLBAR_V316_END -->

@@ -1,0 +1,132 @@
+/*
+ * PMD Reservations2 Working Floor Toolbar V3.1.6
+ *
+ * Important:
+ * Native controls remain alive for their original JS listeners.
+ * They are visually hidden, not removed from the DOM.
+ */
+
+#pmd-r2-shared-floor-canvas-v310
+.pmd-r2-native-toolbar-v316-hidden {
+  position: absolute !important;
+  width: 1px !important;
+  height: 1px !important;
+  min-width: 1px !important;
+  min-height: 1px !important;
+  max-width: 1px !important;
+  max-height: 1px !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  border: 0 !important;
+  overflow: hidden !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
+  clip: rect(0 0 0 0) !important;
+  clip-path: inset(50%) !important;
+  white-space: nowrap !important;
+}
+
+#pmd-r2-shared-floor-canvas-v310
+.pmd-r2-native-action-v316-hidden {
+  position: absolute !important;
+  width: 1px !important;
+  height: 1px !important;
+  min-width: 1px !important;
+  min-height: 1px !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  border: 0 !important;
+  overflow: hidden !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
+  clip: rect(0 0 0 0) !important;
+  clip-path: inset(50%) !important;
+}
+
+#pmd-r2-floor-toolbar-v316 {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: flex-end !important;
+  gap: 8px !important;
+  margin-left: auto !important;
+}
+
+#pmd-r2-floor-toolbar-v316
+.pmd-r2-floor-tool-v316 {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  min-width: 42px;
+  height: 40px;
+  padding: 0 12px;
+  border: 1px solid rgba(21, 52, 74, 0.16);
+  border-radius: 12px;
+  background: #ffffff;
+  color: #173752;
+  cursor: pointer;
+  transition:
+    background-color 160ms ease,
+    border-color 160ms ease,
+    box-shadow 160ms ease,
+    transform 160ms ease;
+}
+
+#pmd-r2-floor-toolbar-v316
+.pmd-r2-floor-tool-v316:hover:not(:disabled) {
+  background: #f4f7f9;
+  border-color: rgba(21, 52, 74, 0.3);
+  box-shadow: 0 5px 14px rgba(21, 52, 74, 0.12);
+  transform: translateY(-1px);
+}
+
+#pmd-r2-floor-toolbar-v316
+.pmd-r2-floor-tool-v316:active:not(:disabled) {
+  transform: translateY(0);
+  box-shadow: none;
+}
+
+#pmd-r2-floor-toolbar-v316
+.pmd-r2-floor-tool-v316[aria-pressed="true"] {
+  background: #173752;
+  border-color: #173752;
+  color: #ffffff;
+}
+
+#pmd-r2-floor-toolbar-v316
+.pmd-r2-floor-tool-v316:disabled {
+  opacity: 0.42;
+  cursor: not-allowed;
+}
+
+#pmd-r2-floor-toolbar-v316
+.pmd-r2-floor-tool-v316[hidden] {
+  display: none !important;
+}
+
+#pmd-r2-floor-toolbar-v316 svg {
+  width: 18px;
+  height: 18px;
+  flex: 0 0 18px;
+}
+
+#pmd-r2-floor-toolbar-v316 span {
+  font-size: 14px;
+  line-height: 1;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+@media (max-width: 767px) {
+  #pmd-r2-floor-toolbar-v316 {
+    width: 100% !important;
+    justify-content: flex-start !important;
+    overflow-x: auto !important;
+    padding-bottom: 2px !important;
+  }
+
+  #pmd-r2-floor-toolbar-v316
+  .pmd-r2-floor-tool-v316 {
+    flex: 0 0 auto;
+  }
+}

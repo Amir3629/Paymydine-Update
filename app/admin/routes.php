@@ -171,20 +171,6 @@ App::before(function () {
 // PMD_LANGUAGE_SWITCH_ROUTE_V2_END
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 // PMD_ADMIN_UI_KIT_PRIORITY_ROUTE_V2_START
 // Must stay near the TOP of app/admin/routes.php, before admin catch-all routes.
 $__pmdUiKitHandler = function () {
@@ -3316,22 +3302,6 @@ if (!defined('PMD_WAITER_DASHBOARD_V19_ROBUST_UNMERGE')) {
 // PMD_WAITER_DASHBOARD_V19_ROBUST_UNMERGE_END
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 // PMD waiter v98 all-tables data endpoint
 if (class_exists('Route')) {
     Route::get('/admin/pmd-waiter-v98-data', function () {
@@ -3999,13 +3969,6 @@ if (!defined('PMD_WAITER_DASHBOARD_V21_MERGE_CLEANUP')) {
     \Illuminate\Support\Facades\Route::post('/admin/pmd-waiter-dashboard-v21-clean-merge-overlaps', $__pmdW21Cleanup);
 }
 // PMD_WAITER_DASHBOARD_V21_MERGE_CLEANUP_END
-
-
-
-
-
-
-
 
 
 // PMD_WAITER_FINAL_V2_ROUTE_LOADER
