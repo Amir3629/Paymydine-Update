@@ -1,119 +1,172 @@
-/* PMD Reservations2 Date Popover V3.1.8 */
+/* PMD Reservations2 Date Popover V3.1.8.2 */
 
-#pmd-r2-date-popover-v318 {
-  position: relative;
-  display: inline-flex;
-  align-items: center;
-  margin-right: 10px;
-  z-index: 80;
+.pmd-r2-header-actions-v318 {
+  display: flex !important;
+  flex-direction: row !important;
+  align-items: center !important;
+  justify-content: flex-end !important;
+  gap: 10px !important;
 }
 
-#pmd-r2-date-button-v318 {
-  width: 46px;
-  height: 46px;
-  padding: 0;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  border: 1px solid #cfe0ec;
-  border-radius: 14px;
-  background: #fff;
-  color: #173752;
-  box-shadow: 0 3px 10px rgba(23,55,82,.05);
-  cursor: pointer;
-  transition: background-color .16s ease, border-color .16s ease, box-shadow .16s ease, transform .16s ease;
+#pmd-r2-date-popover-v318 {
+  position: relative !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  flex: 0 0 46px !important;
+  width: 46px !important;
+  min-width: 46px !important;
+  max-width: 46px !important;
+  height: 46px !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  z-index: 80 !important;
+  order: 1 !important;
+}
+
+#pmd-r2-date-button-v318,
+button#pmd-r2-date-button-v318,
+.pmd-r2-date-trigger-v318 {
+  box-sizing: border-box !important;
+  width: 46px !important;
+  min-width: 46px !important;
+  max-width: 46px !important;
+  height: 46px !important;
+  min-height: 46px !important;
+  max-height: 46px !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  display: inline-flex !important;
+  flex: 0 0 46px !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 0 !important;
+  border: 1px solid #cfe0ec !important;
+  border-radius: 14px !important;
+  background: #fff !important;
+  color: #173752 !important;
+  box-shadow: 0 3px 10px rgba(23,55,82,.05) !important;
+  cursor: pointer !important;
+  overflow: hidden !important;
+  line-height: 1 !important;
+  font-size: 0 !important;
+  white-space: nowrap !important;
+  text-indent: 0 !important;
+  transition: background-color .16s ease, border-color .16s ease, box-shadow .16s ease, transform .16s ease !important;
 }
 
 #pmd-r2-date-button-v318:hover,
 #pmd-r2-date-popover-v318.is-open #pmd-r2-date-button-v318 {
-  background: #f4f8fb;
-  border-color: #9fc2d8;
-  box-shadow: 0 8px 20px rgba(23,55,82,.12);
-  transform: translateY(-1px);
+  background: #f4f8fb !important;
+  border-color: #9fc2d8 !important;
+  box-shadow: 0 8px 20px rgba(23,55,82,.12) !important;
+  transform: translateY(-1px) !important;
 }
 
 #pmd-r2-date-button-v318 svg {
-  width: 21px;
-  height: 21px;
+  display: block !important;
+  width: 22px !important;
+  min-width: 22px !important;
+  max-width: 22px !important;
+  height: 22px !important;
+  min-height: 22px !important;
+  max-height: 22px !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  flex: 0 0 22px !important;
 }
 
 #pmd-r2-date-button-v318 span {
-  position: absolute;
-  width: 1px;
-  height: 1px;
-  overflow: hidden;
-  clip: rect(0 0 0 0);
+  position: absolute !important;
+  width: 1px !important;
+  height: 1px !important;
+  padding: 0 !important;
+  margin: -1px !important;
+  overflow: hidden !important;
+  clip: rect(0 0 0 0) !important;
+  clip-path: inset(50%) !important;
+  white-space: nowrap !important;
+  border: 0 !important;
+}
+
+[data-pmd-r2-header-order="plus"] {
+  order: 2 !important;
+}
+
+[data-pmd-r2-header-order="notification"] {
+  order: 3 !important;
 }
 
 #pmd-r2-date-panel-v318 {
-  position: absolute;
-  top: calc(100% + 12px);
-  right: 0;
-  width: min(560px, calc(100vw - 36px));
-  padding: 0;
-  border: 1px solid rgba(23,55,82,.12);
-  border-radius: 20px;
-  background: #fff;
-  box-shadow: 0 24px 60px rgba(18,42,60,.2);
-  opacity: 0;
-  visibility: hidden;
-  pointer-events: none;
-  transform: translateY(-8px) scale(.985);
-  transform-origin: top right;
-  transition: opacity .18s ease, transform .18s ease, visibility .18s ease;
-  overflow: hidden;
-  z-index: 9999;
+  position: absolute !important;
+  top: calc(100% + 12px) !important;
+  right: 0 !important;
+  width: min(560px, calc(100vw - 36px)) !important;
+  padding: 0 !important;
+  border: 1px solid rgba(23,55,82,.12) !important;
+  border-radius: 20px !important;
+  background: #fff !important;
+  box-shadow: 0 24px 60px rgba(18,42,60,.2) !important;
+  opacity: 0 !important;
+  visibility: hidden !important;
+  pointer-events: none !important;
+  transform: translateY(-8px) scale(.985) !important;
+  transform-origin: top right !important;
+  transition: opacity .18s ease, transform .18s ease, visibility .18s ease !important;
+  overflow: hidden !important;
+  z-index: 9999 !important;
 }
 
 #pmd-r2-date-popover-v318.is-open #pmd-r2-date-panel-v318 {
-  opacity: 1;
-  visibility: visible;
-  pointer-events: auto;
-  transform: translateY(0) scale(1);
+  opacity: 1 !important;
+  visibility: visible !important;
+  pointer-events: auto !important;
+  transform: translateY(0) scale(1) !important;
 }
 
 .pmd-r2-date-card-head-v318 {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 16px;
-  padding: 18px 20px 14px;
-  border-bottom: 1px solid #edf2f5;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  gap: 16px !important;
+  padding: 18px 20px 14px !important;
+  border-bottom: 1px solid #edf2f5 !important;
 }
 
 .pmd-r2-date-card-head-v318 > div {
-  display: flex;
-  flex-direction: column;
-  gap: 3px;
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 3px !important;
 }
 
 .pmd-r2-date-card-head-v318 strong {
-  font-size: 16px;
-  color: #102a3c;
+  font-size: 16px !important;
+  color: #102a3c !important;
 }
 
 .pmd-r2-date-card-head-v318 span {
-  font-size: 12px;
-  color: #718191;
+  font-size: 12px !important;
+  color: #718191 !important;
 }
 
 .pmd-r2-date-card-head-v318 button {
-  width: 34px;
-  height: 34px;
-  border: 0;
-  border-radius: 10px;
-  background: #f4f7f9;
-  color: #173752;
-  font-size: 24px;
-  line-height: 1;
-  cursor: pointer;
+  width: 34px !important;
+  min-width: 34px !important;
+  height: 34px !important;
+  padding: 0 !important;
+  border: 0 !important;
+  border-radius: 10px !important;
+  background: #f4f7f9 !important;
+  color: #173752 !important;
+  font-size: 24px !important;
+  line-height: 1 !important;
+  cursor: pointer !important;
 }
 
 .pmd-r2-date-card-body-v318 {
-  padding: 18px 20px 20px;
+  padding: 18px 20px 20px !important;
 }
 
-/* Existing V317 date controls are moved inside this card. */
 #pmd-r2-date-panel-v318 .pmd-r2-date-original-v318 {
   position: static !important;
   inset: auto !important;
@@ -137,7 +190,7 @@
 
 #pmd-r2-date-panel-v318 button,
 #pmd-r2-date-panel-v318 input {
-  min-height: 44px;
+  min-height: 44px !important;
   border-radius: 12px !important;
 }
 
@@ -154,23 +207,34 @@
 
 @media (max-width: 767px) {
   #pmd-r2-date-popover-v318 {
-    margin-right: 6px;
+    flex-basis: 42px !important;
+    width: 42px !important;
+    min-width: 42px !important;
+    max-width: 42px !important;
+    height: 42px !important;
   }
 
-  #pmd-r2-date-button-v318 {
-    width: 42px;
-    height: 42px;
-    border-radius: 12px;
+  #pmd-r2-date-button-v318,
+  button#pmd-r2-date-button-v318,
+  .pmd-r2-date-trigger-v318 {
+    width: 42px !important;
+    min-width: 42px !important;
+    max-width: 42px !important;
+    height: 42px !important;
+    min-height: 42px !important;
+    max-height: 42px !important;
+    flex-basis: 42px !important;
+    border-radius: 12px !important;
   }
 
   #pmd-r2-date-panel-v318 {
-    position: fixed;
-    top: 78px;
-    right: 12px;
-    left: 12px;
-    width: auto;
-    max-height: calc(100vh - 96px);
-    overflow: auto;
-    transform-origin: top center;
+    position: fixed !important;
+    top: 78px !important;
+    right: 12px !important;
+    left: 12px !important;
+    width: auto !important;
+    max-height: calc(100vh - 96px) !important;
+    overflow: auto !important;
+    transform-origin: top center !important;
   }
 }
