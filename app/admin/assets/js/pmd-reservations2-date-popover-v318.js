@@ -13,9 +13,7 @@
   }
 
   function textOf(node) {
-    return String(node && node.textContent || '')
-      .replace(/\s+/g, ' ')
-      .trim();
+    return String(node && node.textContent || '').replace(/\s+/g, ' ').trim();
   }
 
   function findActionBar(filter) {
@@ -31,25 +29,67 @@
     );
   }
 
-  function findPlusAction(actions, filter) {
-    var candidates = Array.prototype.slice.call(
-      actions.querySelectorAll('a,button')
-    );
+  function directChildren(actions) {
+    return Array.prototype.slice.call(actions ? actions.children : []);
+  }
 
-    return candidates.find(function (node) {
-      if (filter && filter.contains(node)) return false;
-      var label = (
-        node.getAttribute('aria-label') ||
-        node.getAttribute('title') ||
-        textOf(node)
+  function findPlusAction(actions, filter) {
+    return directChildren(actions).find(function (node) {
+      if (node.id === WRAP_ID || (filter && filter.contains(node))) return false;
+      var label = String(
+        node.getAttribute && (
+          node.getAttribute('aria-label') ||
+          node.getAttribute('title') ||
+          textOf(node)
+        ) || ''
       ).toLowerCase();
+
       return label === '+' ||
+        label === '＋' ||
         label.indexOf('new reservation') !== -1 ||
         label.indexOf('create reservation') !== -1 ||
-        node.classList.contains('pmd-r2__new');
-    }) || candidates.find(function (node) {
-      return !(filter && filter.contains(node));
+        (node.classList && node.classList.contains('pmd-r2__new'));
     }) || null;
+  }
+
+  function findNotificationAction(actions, filter) {
+    return directChildren(actions).find(function (node) {
+      if (node.id === WRAP_ID || (filter && filter.contains(node))) return false;
+
+      var label = String(
+        node.getAttribute && (
+          node.getAttribute('aria-label') ||
+          node.getAttribute('title')
+        ) || ''
+      ).toLowerCase();
+
+      return label.indexOf('notification') !== -1 ||
+        Boolean(node.querySelector && node.querySelector(
+          '.fa-bell, .ti-bell, [class*="bell"], [data-notification], .notification-badge, .badge'
+        ));
+    }) || null;
+  }
+
+  function enforceOrder(actions, filter, wrap) {
+    if (!actions || !wrap) return;
+
+    actions.classList.add('pmd-r2-header-actions-v318');
+
+    var plus = findPlusAction(actions, filter);
+    var notification = findNotificationAction(actions, filter);
+
+    wrap.style.setProperty('order', '1', 'important');
+    wrap.setAttribute('data-pmd-r2-header-order', 'calendar');
+
+    if (plus) {
+      plus.style.setProperty('order', '2', 'important');
+      plus.setAttribute('data-pmd-r2-header-order', 'plus');
+    }
+
+    if (notification) {
+      notification.style.setProperty('order', '3', 'important');
+      notification.setAttribute('data-pmd-r2-header-order', 'notification');
+    }
   }
 
   function summaryText(filter) {
@@ -75,7 +115,10 @@
 
   function createShell(actions, filter) {
     var existing = document.getElementById(WRAP_ID);
-    if (existing) return existing;
+    if (existing) {
+      enforceOrder(actions, filter, existing);
+      return existing;
+    }
 
     var wrap = document.createElement('div');
     wrap.id = WRAP_ID;
@@ -88,6 +131,7 @@
     trigger.setAttribute('aria-haspopup', 'dialog');
     trigger.setAttribute('aria-expanded', 'false');
     trigger.setAttribute('aria-controls', PANEL_ID);
+    trigger.setAttribute('aria-label', 'Choose reservation date range');
     trigger.innerHTML =
       '<svg viewBox="0 0 24 24" aria-hidden="true" fill="none" ' +
       'stroke="currentColor" stroke-width="2" stroke-linecap="round" ' +
@@ -116,13 +160,9 @@
     card.appendChild(body);
     wrap.appendChild(trigger);
     wrap.appendChild(card);
+    actions.appendChild(wrap);
 
-    var plus = findPlusAction(actions, filter);
-    if (plus && plus.parentElement === actions) {
-      actions.insertBefore(wrap, plus);
-    } else {
-      actions.appendChild(wrap);
-    }
+    enforceOrder(actions, filter, wrap);
 
     trigger.addEventListener('click', function (event) {
       event.preventDefault();
@@ -165,6 +205,7 @@
       if (!wrap) return;
 
       moveFilterIntoCard(filter, wrap);
+      enforceOrder(actions, filter, wrap);
 
       var trigger = document.getElementById(BUTTON_ID);
       if (trigger) trigger.title = summaryText(filter);
@@ -176,6 +217,24 @@
     } finally {
       applying = false;
     }
+  }
+
+  function audit() {
+    var filter = panel();
+    var wrap = document.getElementById(WRAP_ID);
+    var body = wrap && wrap.querySelector('.pmd-r2-date-card-body-v318');
+    var trigger = document.getElementById(BUTTON_ID);
+    var rect = trigger && trigger.getBoundingClientRect();
+
+    return {
+      filter: Boolean(filter),
+      popover: Boolean(wrap),
+      filterInsidePopover: Boolean(filter && body && body.contains(filter)),
+      trigger: Boolean(trigger),
+      square: Boolean(rect && Math.abs(rect.width - rect.height) < 1),
+      width: rect ? Math.round(rect.width) : 0,
+      height: rect ? Math.round(rect.height) : 0
+    };
   }
 
   function boot() {
@@ -205,27 +264,14 @@
       setTimeout(sync, delay);
     });
 
-    console.info('[PMD Reservations2 Date Popover V3.1.8.1] Ready', {
-      filter: Boolean(panel()),
-      popover: Boolean(document.getElementById(WRAP_ID))
-    });
+    console.info('[PMD Reservations2 Date Popover V3.1.8.2] Ready', audit());
   }
 
   window.PMDReservations2DatePopoverV318 = {
-    version: '3.1.8.1',
+    version: '3.1.8.2',
     refresh: sync,
     close: close,
-    audit: function () {
-      var filter = panel();
-      var wrap = document.getElementById(WRAP_ID);
-      var body = wrap && wrap.querySelector('.pmd-r2-date-card-body-v318');
-      return {
-        filter: Boolean(filter),
-        popover: Boolean(wrap),
-        filterInsidePopover: Boolean(filter && body && body.contains(filter)),
-        trigger: Boolean(document.getElementById(BUTTON_ID))
-      };
-    }
+    audit: audit
   };
 
   if (document.readyState === 'loading') {
