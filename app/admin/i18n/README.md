@@ -1,11 +1,17 @@
 # PayMyDine Admin i18n source files
 
-This directory contains the human-edited custom admin translation catalogues.
+This directory contains the human-edited PayMyDine admin localization sources.
 
 The complete architecture and operations manual is:
 
 ```text
 docs/ADMIN_I18N_GUIDE.md
+```
+
+The English-mode timing fix is documented in:
+
+```text
+docs/ADMIN_I18N_ENGLISH_MODE_FIX.md
 ```
 
 ## Current production support
@@ -17,13 +23,11 @@ English: en
 German:  de
 ```
 
-The current custom German source is:
+## Files in this directory
 
-```text
-pmd_admin_de.php
-```
+### `pmd_admin_de.php`
 
-It contains English visible UI text as array keys and German text as values.
+The central custom English-to-German catalogue for PayMyDine text that is written directly in Blade or JavaScript.
 
 Example:
 
@@ -34,16 +38,30 @@ return [
 ];
 ```
 
-## What belongs here
+### `pmd_admin_locale_bootstrap.php`
 
-Add a phrase here when all of the following are true:
+The early server-locale authority.
+
+It is loaded from `app/admin/routes.php` before admin controllers run, so English and German are selected before controllers or form widgets prepare translated labels.
+
+It also owns the centralized language-switch endpoint:
+
+```text
+/admin/_pmd/language-switch-v4
+```
+
+Do not move the locale decision back into a late Blade-only script. The Blade partial remains a browser boot layer and fallback, not the first server locale authority.
+
+## What belongs in `pmd_admin_de.php`
+
+Add a phrase when all of the following are true:
 
 - it is PayMyDine admin interface text;
 - it is currently written directly in custom Blade or JavaScript;
 - it does not already come correctly from TastyIgniter's normal language system;
 - it is not customer, restaurant, menu, note, or other database content.
 
-## Rules
+## Translation rules
 
 1. Use the exact English visible text as the key.
 2. Preserve placeholders exactly.
@@ -78,6 +96,7 @@ From the update repository:
 
 ```bash
 php -l app/admin/i18n/pmd_admin_de.php
+php -l app/admin/i18n/pmd_admin_locale_bootstrap.php
 chmod +x scripts/pmd-deploy-admin-i18n.sh
 ./scripts/pmd-deploy-admin-i18n.sh
 ```
@@ -95,6 +114,8 @@ git show origin/main:scripts/pmd-update-admin-i18n-from-main.sh \
 chmod +x /tmp/pmd-update-admin-i18n-from-main.sh
 /tmp/pmd-update-admin-i18n-from-main.sh
 ```
+
+The safe updater imports only the language-system files and leaves Reservations, Floor, KDS, Waiter, and unrelated branch work untouched.
 
 ## Adding another language
 
