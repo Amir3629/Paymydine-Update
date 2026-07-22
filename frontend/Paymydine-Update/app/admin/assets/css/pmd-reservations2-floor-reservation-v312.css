@@ -1,0 +1,876 @@
+/* ==========================================================
+   PMD Reservations2 Reservation Floor V3.1.2
+
+   Reservation semantics:
+   GREEN  = free, without an active/upcoming reservation
+   ORANGE = assigned upcoming reservation
+   RED    = occupied, active reservation, reserved or unavailable
+   ========================================================== */
+
+#pmd-r2-shared-floor-canvas-v310 {
+  --pmd-r2-free-bg: #22c96f;
+  --pmd-r2-free-border: #087744;
+
+  --pmd-r2-upcoming-bg: #ff8613;
+  --pmd-r2-upcoming-border: #ad4b00;
+
+  --pmd-r2-busy-bg: #ff3c52;
+  --pmd-r2-busy-border: #b40f2c;
+
+  --pmd-r2-control-ink: #173752;
+  --pmd-r2-control-border: #c7dced;
+  --pmd-r2-control-bg: #ffffff;
+}
+
+/* ==========================================================
+   Reveal the real Floor status/control bar
+   ========================================================== */
+
+#pmd-r2-shared-floor-canvas-v310
+.pmd-floor-v1__statusbar {
+  display: flex !important;
+  position: relative !important;
+  width: 100% !important;
+  min-width: 0 !important;
+  min-height: 58px !important;
+  margin: 0 !important;
+  padding: 9px 12px !important;
+  gap: 10px !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  box-sizing: border-box !important;
+  overflow: hidden !important;
+  background: #f8fbfd !important;
+  border-bottom: 1px solid #d8e7f2 !important;
+}
+
+/*
+ * Area selector remains horizontally scrollable instead of
+ * shrinking or wrapping into several rows.
+ */
+#pmd-r2-shared-floor-canvas-v310
+.pmd-floor-v1__filters.is-area-selector {
+  display: flex !important;
+  flex: 1 1 auto !important;
+  width: auto !important;
+  min-width: 0 !important;
+  gap: 7px !important;
+  overflow-x: auto !important;
+  overflow-y: hidden !important;
+  padding: 1px 2px 4px !important;
+  scrollbar-width: thin !important;
+  overscroll-behavior-inline: contain !important;
+  -webkit-overflow-scrolling: touch !important;
+}
+
+#pmd-r2-shared-floor-canvas-v310
+.pmd-floor-v1__filters.is-area-selector
+button {
+  display: inline-flex !important;
+  flex: 0 0 auto !important;
+  min-width: max-content !important;
+  height: 38px !important;
+  margin: 0 !important;
+  padding: 0 12px !important;
+  gap: 6px !important;
+  align-items: center !important;
+  justify-content: center !important;
+  border: 1px solid var(--pmd-r2-control-border) !important;
+  border-radius: 10px !important;
+  background: var(--pmd-r2-control-bg) !important;
+  color: var(--pmd-r2-control-ink) !important;
+  box-shadow: none !important;
+  font-size: 12px !important;
+  font-weight: 700 !important;
+  line-height: 1 !important;
+  white-space: nowrap !important;
+}
+
+#pmd-r2-shared-floor-canvas-v310
+.pmd-floor-v1__filters.is-area-selector
+button.is-active {
+  background: #173752 !important;
+  border-color: #173752 !important;
+  color: #ffffff !important;
+}
+
+#pmd-r2-shared-floor-canvas-v310
+.pmd-floor-v1__filters.is-area-selector
+button b {
+  display: inline-flex !important;
+  min-width: 18px !important;
+  height: 18px !important;
+  padding: 0 5px !important;
+  align-items: center !important;
+  justify-content: center !important;
+  border-radius: 9px !important;
+  background: rgba(23, 55, 82, 0.10) !important;
+  color: inherit !important;
+  font-size: 10px !important;
+  line-height: 1 !important;
+}
+
+#pmd-r2-shared-floor-canvas-v310
+.pmd-floor-v1__filters.is-area-selector
+button.is-active b {
+  background: rgba(255, 255, 255, 0.18) !important;
+}
+
+/* ==========================================================
+   Reservation Floor toolbar
+   ========================================================== */
+
+#pmd-r2-shared-floor-canvas-v310
+.pmd-floor-v1__secondary-toolbar {
+  display: flex !important;
+  flex: 0 0 auto !important;
+  gap: 6px !important;
+  align-items: center !important;
+  justify-content: flex-end !important;
+  margin: 0 !important;
+  padding: 0 !important;
+}
+
+/*
+ * Hide every operational control first.
+ */
+#pmd-r2-shared-floor-canvas-v310
+.pmd-floor-v1__secondary-toolbar > button,
+
+#pmd-r2-shared-floor-canvas-v310
+[data-floor-merge],
+
+#pmd-r2-shared-floor-canvas-v310
+[data-floor-fullscreen],
+
+#pmd-r2-shared-floor-canvas-v310
+[data-floor-refresh],
+
+#pmd-r2-shared-floor-canvas-v310
+[data-floor-mother-action] {
+  display: none !important;
+}
+
+/*
+ * Reveal only the controls appropriate for Reservations.
+ */
+#pmd-r2-shared-floor-canvas-v310
+[data-floor-edit],
+
+#pmd-r2-shared-floor-canvas-v310
+[data-floor-save]:not([hidden]),
+
+#pmd-r2-shared-floor-canvas-v310
+[data-floor-zoom-out],
+
+#pmd-r2-shared-floor-canvas-v310
+[data-floor-fit],
+
+#pmd-r2-shared-floor-canvas-v310
+[data-floor-zoom-in],
+
+#pmd-r2-shared-floor-canvas-v310
+[data-floor-strip] {
+  display: inline-flex !important;
+  flex: 0 0 auto !important;
+  height: 38px !important;
+  min-width: 38px !important;
+  margin: 0 !important;
+  padding: 0 10px !important;
+  gap: 6px !important;
+  align-items: center !important;
+  justify-content: center !important;
+  border: 1px solid var(--pmd-r2-control-border) !important;
+  border-radius: 10px !important;
+  background: #ffffff !important;
+  color: var(--pmd-r2-control-ink) !important;
+  box-shadow: none !important;
+  font-size: 12px !important;
+  font-weight: 700 !important;
+  line-height: 1 !important;
+  white-space: nowrap !important;
+}
+
+#pmd-r2-shared-floor-canvas-v310
+[data-floor-edit][aria-pressed="true"],
+
+#pmd-r2-shared-floor-canvas-v310
+[data-floor-strip][aria-pressed="true"] {
+  background: #173752 !important;
+  border-color: #173752 !important;
+  color: #ffffff !important;
+}
+
+#pmd-r2-shared-floor-canvas-v310
+[data-floor-save][hidden] {
+  display: none !important;
+}
+
+#pmd-r2-shared-floor-canvas-v310
+.pmd-tabler-icon {
+  color: currentColor !important;
+  stroke: currentColor !important;
+}
+
+/* ==========================================================
+   Reservation-focused table colors
+   ========================================================== */
+
+/*
+ * Default reservation map state: genuinely free.
+ */
+#pmd-r2-shared-floor-canvas-v310
+[data-floor-table] {
+  background: var(--pmd-r2-free-bg) !important;
+  border-color: var(--pmd-r2-free-border) !important;
+  color: #ffffff !important;
+}
+
+/*
+ * Occupied or unavailable means red on Reservations.
+ */
+#pmd-r2-shared-floor-canvas-v310
+[data-floor-table][data-pmd-r2-reservation-state="busy"] {
+  background: var(--pmd-r2-busy-bg) !important;
+  border-color: var(--pmd-r2-busy-border) !important;
+  color: #ffffff !important;
+}
+
+/*
+ * Orange is reserved exclusively for assigned upcoming
+ * reservations—not waiter calls or notes.
+ */
+#pmd-r2-shared-floor-canvas-v310
+[data-floor-table][data-pmd-r2-reservation-state="upcoming"] {
+  background: var(--pmd-r2-upcoming-bg) !important;
+  border-color: var(--pmd-r2-upcoming-border) !important;
+  color: #ffffff !important;
+}
+
+#pmd-r2-shared-floor-canvas-v310
+[data-floor-table][data-pmd-r2-reservation-state="free"] {
+  background: var(--pmd-r2-free-bg) !important;
+  border-color: var(--pmd-r2-free-border) !important;
+  color: #ffffff !important;
+}
+
+/*
+ * Waiter-specific badges do not belong on the Reservations map.
+ * Keep only the neutral merged-table badge.
+ */
+#pmd-r2-shared-floor-canvas-v310
+.pmd-floor-v1__badge.is-call,
+
+#pmd-r2-shared-floor-canvas-v310
+.pmd-floor-v1__badge.is-note,
+
+#pmd-r2-shared-floor-canvas-v310
+.pmd-floor-v1__badge.is-clean {
+  display: none !important;
+}
+
+#pmd-r2-shared-floor-canvas-v310
+.pmd-floor-v1__badge.is-merge {
+  display: inline-flex !important;
+}
+
+/*
+ * Remove waiter-status words from the Reservations map.
+ * The reservation runtime supplies useful reservation labels
+ * only when a table assignment exists.
+ */
+#pmd-r2-shared-floor-canvas-v310
+.pmd-floor-v1__table-meta {
+  display: none !important;
+}
+
+#pmd-r2-shared-floor-canvas-v310
+.pmd-r2-reservation-time-v312 {
+  display: block !important;
+  margin-top: 4px !important;
+  color: #ffffff !important;
+  font-size: 10px !important;
+  font-weight: 800 !important;
+  line-height: 1.15 !important;
+  text-align: center !important;
+}
+
+/* ==========================================================
+   Mobile toolbar
+   ========================================================== */
+
+@media (max-width: 820px) {
+  #pmd-r2-shared-floor-canvas-v310
+  .pmd-floor-v1__statusbar {
+    min-height: 102px !important;
+    padding: 8px !important;
+    gap: 7px !important;
+    align-items: stretch !important;
+    flex-direction: column !important;
+  }
+
+  #pmd-r2-shared-floor-canvas-v310
+  .pmd-floor-v1__filters.is-area-selector {
+    width: 100% !important;
+    flex: 0 0 auto !important;
+  }
+
+  #pmd-r2-shared-floor-canvas-v310
+  .pmd-floor-v1__filters.is-area-selector
+  button {
+    height: 34px !important;
+    padding: 0 9px !important;
+    font-size: 11px !important;
+  }
+
+  #pmd-r2-shared-floor-canvas-v310
+  .pmd-floor-v1__secondary-toolbar {
+    width: 100% !important;
+    justify-content: flex-start !important;
+    overflow-x: auto !important;
+    overflow-y: hidden !important;
+    padding-bottom: 2px !important;
+    scrollbar-width: none !important;
+  }
+
+  #pmd-r2-shared-floor-canvas-v310
+  .pmd-floor-v1__secondary-toolbar::-webkit-scrollbar {
+    display: none !important;
+  }
+
+  #pmd-r2-shared-floor-canvas-v310
+  [data-floor-edit],
+
+  #pmd-r2-shared-floor-canvas-v310
+  [data-floor-save]:not([hidden]),
+
+  #pmd-r2-shared-floor-canvas-v310
+  [data-floor-zoom-out],
+
+  #pmd-r2-shared-floor-canvas-v310
+  [data-floor-fit],
+
+  #pmd-r2-shared-floor-canvas-v310
+  [data-floor-zoom-in],
+
+  #pmd-r2-shared-floor-canvas-v310
+  [data-floor-strip] {
+    height: 34px !important;
+    min-width: 34px !important;
+    padding: 0 8px !important;
+    font-size: 11px !important;
+  }
+
+  /*
+   * The control bar now occupies space above the canvas.
+   * Keep the visible map region comfortable on mobile.
+   */
+  #pmd-r2-shared-floor-canvas-v310
+  .pmd-floor-v1__stage,
+
+  #pmd-r2-shared-floor-canvas-v310
+  .pmd-floor-v1__canvas-wrap {
+    height: 440px !important;
+  }
+}
+
+/* PMD_R2_FLOOR_TOOLBAR_COLORS_V313_START */
+
+/*
+ * These are fallbacks only.
+ * JavaScript replaces them with the exact computed KPI colors.
+ */
+#pmd-r2-shared-floor-canvas-v310 {
+  --pmd-r2-free-bg: #21c970;
+  --pmd-r2-free-border: #087846;
+
+  --pmd-r2-upcoming-bg: #ff8512;
+  --pmd-r2-upcoming-border: #ad4c00;
+
+  --pmd-r2-busy-bg: #ff3c52;
+  --pmd-r2-busy-border: #b40f2c;
+}
+
+/* ==========================================================
+   Prevent native Floor colors flashing before JS classification
+   ========================================================== */
+
+#pmd-r2-shared-floor-canvas-v310
+[data-floor-table] {
+  transition:
+    transform 160ms ease,
+    box-shadow 160ms ease !important;
+
+  animation: none !important;
+}
+
+/*
+ * Occupied/reserved/cleaning are immediately red—even before
+ * the reservation runtime adds its data attribute.
+ */
+#pmd-r2-shared-floor-canvas-v310
+[data-floor-table][data-status="occupied"],
+
+#pmd-r2-shared-floor-canvas-v310
+[data-floor-table][data-status="reserved"],
+
+#pmd-r2-shared-floor-canvas-v310
+[data-floor-table][data-status="cleaning"] {
+  background: var(--pmd-r2-busy-bg) !important;
+  border-color: var(--pmd-r2-busy-border) !important;
+  color: #fff !important;
+}
+
+/*
+ * Attention on the original operational Floor can mean only a
+ * note or waiter call. On Reservations it starts as free green.
+ */
+#pmd-r2-shared-floor-canvas-v310
+[data-floor-table][data-status="available"],
+
+#pmd-r2-shared-floor-canvas-v310
+[data-floor-table][data-status="attention"] {
+  background: var(--pmd-r2-free-bg) !important;
+  border-color: var(--pmd-r2-free-border) !important;
+  color: #fff !important;
+}
+
+/* Final reservation state always has authority. */
+#pmd-r2-shared-floor-canvas-v310
+[data-floor-table][data-pmd-r2-reservation-state="free"] {
+  background: var(--pmd-r2-free-bg) !important;
+  border-color: var(--pmd-r2-free-border) !important;
+}
+
+#pmd-r2-shared-floor-canvas-v310
+[data-floor-table][data-pmd-r2-reservation-state="upcoming"] {
+  background: var(--pmd-r2-upcoming-bg) !important;
+  border-color: var(--pmd-r2-upcoming-border) !important;
+}
+
+#pmd-r2-shared-floor-canvas-v310
+[data-floor-table][data-pmd-r2-reservation-state="busy"] {
+  background: var(--pmd-r2-busy-bg) !important;
+  border-color: var(--pmd-r2-busy-border) !important;
+}
+
+/* ==========================================================
+   Status bar layout
+   ========================================================== */
+
+#pmd-r2-shared-floor-canvas-v310
+.pmd-floor-v1__statusbar {
+  display: grid !important;
+  grid-template-columns:
+    minmax(0, 1fr)
+    auto !important;
+
+  align-items: center !important;
+  width: 100% !important;
+  min-width: 0 !important;
+  min-height: 58px !important;
+  padding: 9px 12px !important;
+  gap: 10px !important;
+  overflow: hidden !important;
+}
+
+#pmd-r2-shared-floor-canvas-v310
+.pmd-floor-v1__filters.is-area-selector {
+  grid-column: 1 !important;
+  min-width: 0 !important;
+}
+
+/* ==========================================================
+   Floor controls
+   ========================================================== */
+
+#pmd-r2-shared-floor-canvas-v310
+.pmd-r2-floor-toolbar-v313 {
+  display: flex !important;
+  grid-column: 2 !important;
+  flex: 0 0 auto !important;
+  align-items: center !important;
+  justify-content: flex-end !important;
+  gap: 6px !important;
+  min-width: max-content !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  overflow: visible !important;
+}
+
+#pmd-r2-shared-floor-canvas-v310
+.pmd-r2-floor-toolbar-v313
+button {
+  display: inline-flex !important;
+  position: relative !important;
+  flex: 0 0 auto !important;
+
+  width: auto !important;
+  min-width: 38px !important;
+  max-width: none !important;
+  height: 38px !important;
+
+  margin: 0 !important;
+  padding: 0 10px !important;
+  gap: 6px !important;
+
+  align-items: center !important;
+  justify-content: center !important;
+
+  border: 1px solid #c7dced !important;
+  border-radius: 10px !important;
+
+  background: #fff !important;
+  color: #173752 !important;
+
+  box-shadow: none !important;
+  transform: none !important;
+
+  font-size: 12px !important;
+  font-weight: 700 !important;
+  line-height: 1 !important;
+  white-space: nowrap !important;
+
+  visibility: visible !important;
+  opacity: 1 !important;
+}
+
+#pmd-r2-shared-floor-canvas-v310
+.pmd-r2-floor-toolbar-v313
+button[hidden] {
+  display: none !important;
+}
+
+#pmd-r2-shared-floor-canvas-v310
+.pmd-r2-floor-toolbar-v313
+button[aria-pressed="true"] {
+  background: #173752 !important;
+  border-color: #173752 !important;
+  color: #fff !important;
+}
+
+#pmd-r2-shared-floor-canvas-v310
+.pmd-r2-floor-toolbar-v313
+.pmd-tabler-icon {
+  display: inline-block !important;
+  flex: 0 0 auto !important;
+  width: 17px !important;
+  height: 17px !important;
+
+  color: currentColor !important;
+  stroke: currentColor !important;
+  fill: none !important;
+}
+
+/*
+ * Keep operational controls hidden. This does not affect the
+ * dedicated Reservation toolbar.
+ */
+#pmd-r2-shared-floor-canvas-v310
+[data-floor-merge],
+
+#pmd-r2-shared-floor-canvas-v310
+[data-floor-fullscreen],
+
+#pmd-r2-shared-floor-canvas-v310
+[data-floor-refresh],
+
+#pmd-r2-shared-floor-canvas-v310
+[data-floor-mother-action] {
+  display: none !important;
+}
+
+/* ==========================================================
+   Mobile
+   ========================================================== */
+
+@media (max-width: 820px) {
+  #pmd-r2-shared-floor-canvas-v310
+  .pmd-floor-v1__statusbar {
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: stretch !important;
+
+    min-height: 98px !important;
+    padding: 8px !important;
+    gap: 7px !important;
+  }
+
+  #pmd-r2-shared-floor-canvas-v310
+  .pmd-r2-floor-toolbar-v313 {
+    width: 100% !important;
+    min-width: 0 !important;
+
+    justify-content: flex-start !important;
+
+    overflow-x: auto !important;
+    overflow-y: hidden !important;
+
+    scrollbar-width: none !important;
+    -webkit-overflow-scrolling: touch !important;
+  }
+
+  #pmd-r2-shared-floor-canvas-v310
+  .pmd-r2-floor-toolbar-v313::-webkit-scrollbar {
+    display: none !important;
+  }
+
+  #pmd-r2-shared-floor-canvas-v310
+  .pmd-r2-floor-toolbar-v313
+  button {
+    min-width: 34px !important;
+    height: 34px !important;
+    padding: 0 8px !important;
+    font-size: 11px !important;
+  }
+
+  #pmd-r2-shared-floor-canvas-v310
+  .pmd-r2-floor-toolbar-v313
+  .pmd-tabler-icon {
+    width: 16px !important;
+    height: 16px !important;
+  }
+}
+
+/* PMD_R2_FLOOR_TOOLBAR_COLORS_V313_END */
+
+/* PMD_R2_FLOOR_TOOLBAR_CLEAN_V314_START */
+
+/* ==========================================================
+   Table numbers
+   ========================================================== */
+
+#pmd-r2-shared-floor-canvas-v310
+.pmd-floor-v1__table-number {
+  color: #08131d !important;
+  fill: #08131d !important;
+  text-shadow: none !important;
+}
+
+/*
+ * Keep reservation-state text readable while the main table
+ * number remains black.
+ */
+#pmd-r2-shared-floor-canvas-v310
+.pmd-floor-v1__table-meta {
+  color: #08131d !important;
+  text-shadow: none !important;
+}
+
+/* ==========================================================
+   One toolbar only
+   ========================================================== */
+
+/*
+ * Hide every native/generated secondary toolbar unless it is
+ * our single Reservations toolbar.
+ */
+#pmd-r2-shared-floor-canvas-v310
+[data-floor-secondary-toolbar]:not(
+  [data-pmd-r2-floor-toolbar-v313]
+),
+
+#pmd-r2-shared-floor-canvas-v310
+.pmd-floor-v1__secondary-toolbar:not(
+  .pmd-r2-floor-toolbar-v313
+) {
+  display: none !important;
+}
+
+/*
+ * Never show operational Floor actions on Reservations.
+ */
+#pmd-r2-shared-floor-canvas-v310
+[data-floor-mother-action],
+
+#pmd-r2-shared-floor-canvas-v310
+[data-floor-merge],
+
+#pmd-r2-shared-floor-canvas-v310
+[data-floor-fullscreen],
+
+#pmd-r2-shared-floor-canvas-v310
+[data-floor-refresh] {
+  display: none !important;
+}
+
+/*
+ * Single canonical toolbar.
+ */
+#pmd-r2-shared-floor-canvas-v310
+.pmd-r2-floor-toolbar-v313 {
+  display: flex !important;
+  flex: 0 0 auto !important;
+  align-items: center !important;
+  justify-content: flex-end !important;
+  gap: 6px !important;
+
+  width: auto !important;
+  min-width: max-content !important;
+  max-width: 100% !important;
+
+  margin: 0 0 0 auto !important;
+  padding: 0 !important;
+
+  overflow-x: auto !important;
+  overflow-y: hidden !important;
+
+  scrollbar-width: none !important;
+  -webkit-overflow-scrolling: touch !important;
+}
+
+#pmd-r2-shared-floor-canvas-v310
+.pmd-r2-floor-toolbar-v313::-webkit-scrollbar {
+  display: none !important;
+}
+
+#pmd-r2-shared-floor-canvas-v310
+.pmd-r2-floor-toolbar-v313
+button {
+  display: inline-flex !important;
+  flex: 0 0 auto !important;
+
+  position: relative !important;
+
+  width: auto !important;
+  min-width: 38px !important;
+  max-width: none !important;
+  height: 38px !important;
+
+  margin: 0 !important;
+  padding: 0 10px !important;
+  gap: 6px !important;
+
+  align-items: center !important;
+  justify-content: center !important;
+
+  background: #fff !important;
+  color: #173752 !important;
+
+  border: 1px solid #c7dced !important;
+  border-radius: 10px !important;
+
+  box-shadow: none !important;
+  transform: none !important;
+
+  font-size: 12px !important;
+  font-weight: 700 !important;
+  line-height: 1 !important;
+  white-space: nowrap !important;
+
+  visibility: visible !important;
+  opacity: 1 !important;
+}
+
+#pmd-r2-shared-floor-canvas-v310
+.pmd-r2-floor-toolbar-v313
+button[hidden] {
+  display: none !important;
+}
+
+#pmd-r2-shared-floor-canvas-v310
+.pmd-r2-floor-toolbar-v313
+button:hover {
+  background: #f1f7fb !important;
+  border-color: #9fc2dd !important;
+}
+
+#pmd-r2-shared-floor-canvas-v310
+.pmd-r2-floor-toolbar-v313
+button[aria-pressed="true"] {
+  background: #173752 !important;
+  border-color: #173752 !important;
+  color: #fff !important;
+}
+
+#pmd-r2-shared-floor-canvas-v310
+.pmd-r2-floor-toolbar-v313
+.pmd-tabler-icon {
+  display: inline-block !important;
+
+  width: 17px !important;
+  height: 17px !important;
+
+  min-width: 17px !important;
+  min-height: 17px !important;
+
+  color: currentColor !important;
+  stroke: currentColor !important;
+  fill: none !important;
+}
+
+/* Give the area selector enough space without breaking buttons. */
+#pmd-r2-shared-floor-canvas-v310
+.pmd-floor-v1__statusbar {
+  display: grid !important;
+
+  grid-template-columns:
+    minmax(0, 1fr)
+    auto !important;
+
+  align-items: center !important;
+
+  width: 100% !important;
+  min-width: 0 !important;
+
+  gap: 10px !important;
+  padding: 9px 12px !important;
+
+  overflow: hidden !important;
+}
+
+#pmd-r2-shared-floor-canvas-v310
+.pmd-floor-v1__filters.is-area-selector {
+  min-width: 0 !important;
+  overflow-x: auto !important;
+  overflow-y: hidden !important;
+
+  scrollbar-width: none !important;
+  -webkit-overflow-scrolling: touch !important;
+}
+
+#pmd-r2-shared-floor-canvas-v310
+.pmd-floor-v1__filters.is-area-selector::-webkit-scrollbar {
+  display: none !important;
+}
+
+@media (max-width: 820px) {
+  #pmd-r2-shared-floor-canvas-v310
+  .pmd-floor-v1__statusbar {
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: stretch !important;
+
+    padding: 8px !important;
+    gap: 7px !important;
+  }
+
+  #pmd-r2-shared-floor-canvas-v310
+  .pmd-r2-floor-toolbar-v313 {
+    width: 100% !important;
+    min-width: 0 !important;
+    margin: 0 !important;
+
+    justify-content: flex-start !important;
+  }
+
+  #pmd-r2-shared-floor-canvas-v310
+  .pmd-r2-floor-toolbar-v313
+  button {
+    min-width: 34px !important;
+    height: 34px !important;
+    padding: 0 8px !important;
+    font-size: 11px !important;
+  }
+
+  #pmd-r2-shared-floor-canvas-v310
+  .pmd-r2-floor-toolbar-v313
+  .pmd-tabler-icon {
+    width: 16px !important;
+    height: 16px !important;
+    min-width: 16px !important;
+    min-height: 16px !important;
+  }
+}
+
+/* PMD_R2_FLOOR_TOOLBAR_CLEAN_V314_END */

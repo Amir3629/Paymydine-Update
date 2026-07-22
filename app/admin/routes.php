@@ -1,6 +1,177 @@
 
 <?php
 
+// PMD_LANGUAGE_SWITCH_ROUTE_V3_BEGIN
+App::before(function () {
+    Route::group([
+        'middleware' => ['web'],
+        'prefix' => config('system.adminUri', 'admin'),
+    ], function () {
+        Route::post(
+            '_pmd/language-switch-v3',
+            function () {
+                $auth = app('admin.auth');
+
+                if (!$auth->isLogged()) {
+                    return response()->json([
+                        'ok' => false,
+                        'message' => 'Authentication required.',
+                    ], 401);
+                }
+
+                $code = strtolower(trim(
+                    (string)request()->input('code', '')
+                ));
+
+                /*
+                 * Only English and German are allowed.
+                 */
+                if (!in_array($code, ['en', 'de'], true)) {
+                    return response()->json([
+                        'ok' => false,
+                        'message' => 'Unsupported language.',
+                    ], 422);
+                }
+
+                $language =
+                    \System\Models\Languages_model::query()
+                        ->where('code', $code)
+                        ->where('status', 1)
+                        ->first();
+
+                if (!$language) {
+                    return response()->json([
+                        'ok' => false,
+                        'message' => 'Language is not enabled.',
+                    ], 404);
+                }
+
+                /*
+                 * Save to the staff profile when possible.
+                 */
+                $staff = $auth->staff();
+
+                if ($staff) {
+                    $staff->language_id =
+                        $language->getKey();
+
+                    $staff->save();
+                }
+
+                /*
+                 * Also update the current request/session.
+                 */
+                app()->setLocale($code);
+
+                if (app()->bound('translator.localization')) {
+                    app('translator.localization')->setLocale(
+                        $code,
+                        true
+                    );
+                }
+
+                /*
+                 * The cookie is the final authority.
+                 * It persists for one year.
+                 */
+                $cookie = cookie(
+                    'pmd_admin_locale',
+                    $code,
+                    60 * 24 * 365,
+                    '/',
+                    null,
+                    request()->isSecure(),
+                    false,
+                    false,
+                    'Lax'
+                );
+
+                return response()
+                    ->json([
+                        'ok' => true,
+                        'locale' => $code,
+                        'name' => $language->name,
+                    ])
+                    ->withCookie($cookie);
+            }
+        )->name('pmd.language.switch.v3');
+    });
+});
+// PMD_LANGUAGE_SWITCH_ROUTE_V3_END
+
+
+
+// PMD_LANGUAGE_SWITCH_ROUTE_V2_BEGIN
+App::before(function () {
+    Route::group([
+        'middleware' => ['web'],
+        'prefix' => config('system.adminUri', 'admin'),
+    ], function () {
+        Route::post('_pmd/language-switch', function () {
+            $auth = app('admin.auth');
+
+            if (!$auth->isLogged()) {
+                return response()->json([
+                    'ok' => false,
+                    'message' => 'Authentication required.',
+                ], 401);
+            }
+
+            $code = strtolower(trim(
+                (string)request()->input('code', '')
+            ));
+
+            if ($code === '') {
+                return response()->json([
+                    'ok' => false,
+                    'message' => 'Language code is required.',
+                ], 422);
+            }
+
+            $language = \System\Models\Languages_model::isEnabled()
+                ->where('code', $code)
+                ->orderByRaw(
+                    "CASE WHEN LOWER(name) = ? THEN 0 ELSE 1 END",
+                    [$code === 'de' ? 'german' : 'english']
+                )
+                ->first();
+
+            if (!$language) {
+                return response()->json([
+                    'ok' => false,
+                    'message' => 'Language is not enabled.',
+                ], 404);
+            }
+
+            $staff = $auth->staff();
+
+            if (!$staff) {
+                return response()->json([
+                    'ok' => false,
+                    'message' => 'Staff record was not found.',
+                ], 404);
+            }
+
+            $staff->language_id = $language->getKey();
+            $staff->save();
+
+            app('translator.localization')->setLocale(
+                $language->code,
+                true
+            );
+
+            return response()->json([
+                'ok' => true,
+                'locale' => strtolower($language->code),
+                'name' => $language->name,
+            ]);
+        })->name('pmd.language.switch');
+    });
+});
+// PMD_LANGUAGE_SWITCH_ROUTE_V2_END
+
+
+
 
 
 

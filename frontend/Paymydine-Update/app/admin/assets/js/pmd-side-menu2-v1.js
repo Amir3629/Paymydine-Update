@@ -415,3 +415,124 @@ window.PMDSideMenu2GlobalV3 = {
 
   enableRuntimeTransitions();
 })();
+
+/* PMD_SM2_DROPDOWN_CLOSE_V16_START */
+(function () {
+  'use strict';
+
+  var menu = document.getElementById('pmd-side-menu2');
+  var html = document.documentElement;
+
+  if (!menu || window.PMDSideMenu2DropdownCloseV16) return;
+
+  var KEY = 'pmd.sideMenu2.openDropdown';
+
+  function closeAll() {
+    menu.querySelectorAll('[data-pmd-sm2-dropdown]').forEach(function (item) {
+      item.classList.remove('is-open');
+
+      var toggle = item.querySelector('[data-pmd-sm2-dropdown-toggle]');
+      if (toggle) {
+        toggle.setAttribute('aria-expanded', 'false');
+      }
+
+      item.querySelectorAll('.pmd-sm2__submenu').forEach(function (submenu) {
+        submenu.classList.remove('show');
+        submenu.hidden = true;
+        submenu.setAttribute('aria-hidden', 'true');
+      });
+    });
+
+    try {
+      localStorage.removeItem(KEY);
+    } catch (error) {}
+  }
+
+  function openDropdown(dropdown) {
+    var submenu = dropdown.querySelector('.pmd-sm2__submenu');
+
+    if (submenu) {
+      submenu.hidden = false;
+      submenu.removeAttribute('aria-hidden');
+    }
+  }
+
+  /*
+   * اجازه بده dropdown هنگام کلیک باز شود.
+   */
+  document.addEventListener('click', function (event) {
+    var toggle = event.target.closest('[data-pmd-sm2-dropdown-toggle]');
+
+    if (toggle && menu.contains(toggle)) {
+      var dropdown = toggle.closest('[data-pmd-sm2-dropdown]');
+
+      requestAnimationFrame(function () {
+        if (dropdown && dropdown.classList.contains('is-open')) {
+          openDropdown(dropdown);
+        }
+      });
+
+      return;
+    }
+
+    if (
+      event.target.closest('[data-pmd-sm2-toggle]') ||
+      event.target.closest('#pmd-side-menu2-backdrop') ||
+      event.target.closest('#pmd-side-menu2 a[href]')
+    ) {
+      closeAll();
+    }
+  }, true);
+
+  /*
+   * با collapsed شدن desktop یا بسته شدن mobile drawer،
+   * dropdown فوراً بسته شود.
+   */
+  new MutationObserver(function () {
+    var desktopClosed =
+      html.classList.contains('pmd-sm2-collapsed') ||
+      menu.classList.contains('is-collapsed');
+
+    var mobileClosed =
+      window.innerWidth <= 820 &&
+      !html.classList.contains('pmd-sm2-mobile-open');
+
+    if (desktopClosed || mobileClosed) {
+      closeAll();
+    }
+  }).observe(html, {
+    attributes: true,
+    attributeFilter: ['class']
+  });
+
+  new MutationObserver(function () {
+    if (menu.classList.contains('is-collapsed')) {
+      closeAll();
+    }
+  }).observe(menu, {
+    attributes: true,
+    attributeFilter: ['class']
+  });
+
+  document.addEventListener('keydown', function (event) {
+    if (event.key === 'Escape') closeAll();
+  });
+
+  window.addEventListener('pmd:side-menu2-state', function (event) {
+    var detail = event.detail || {};
+
+    if (
+      detail.expanded === false ||
+      detail.state === 'collapsed'
+    ) {
+      closeAll();
+    }
+  });
+
+  closeAll();
+
+  window.PMDSideMenu2DropdownCloseV16 = {
+    closeAll: closeAll
+  };
+})();
+/* PMD_SM2_DROPDOWN_CLOSE_V16_END */

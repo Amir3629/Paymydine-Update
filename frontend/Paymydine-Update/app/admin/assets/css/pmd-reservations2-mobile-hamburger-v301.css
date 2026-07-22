@@ -1,0 +1,439 @@
+/* ==========================================================
+   PMD Reservations2 Mobile Hamburger V3.0.1
+
+   Mobile:
+   LEFT  = Back | Hamburger
+   RIGHT = Notification | Plus
+
+   Desktop:
+   Hamburger is hidden.
+   ========================================================== */
+
+.pmd-r2-mobile-hamburger-v301 {
+  display: none;
+}
+
+@media (max-width: 820px) {
+
+  body:has(#pmd-reservations2)
+  #pmd-r2-clean-header {
+    position: relative !important;
+    direction: ltr !important;
+
+    display: grid !important;
+
+    grid-template-columns:
+      44px
+      44px
+      minmax(0, 1fr)
+      auto !important;
+
+    align-items: center !important;
+    column-gap: 8px !important;
+
+    min-height: 72px !important;
+    padding:
+      10px
+      12px !important;
+  }
+
+  /*
+   * Back remains the first button on the far left.
+   */
+  body:has(#pmd-reservations2)
+  #pmd-r2-clean-header
+  .pmd-r2-mobile-back {
+    display: inline-flex !important;
+    visibility: visible !important;
+
+    grid-column: 1 !important;
+    grid-row: 1 !important;
+
+    position: relative !important;
+    inset: auto !important;
+
+    width: 44px !important;
+    height: 44px !important;
+    min-width: 44px !important;
+    min-height: 44px !important;
+
+    align-items: center !important;
+    justify-content: center !important;
+
+    opacity: 1 !important;
+    pointer-events: auto !important;
+  }
+
+  /*
+   * New hamburger immediately after Back.
+   */
+  body:has(#pmd-reservations2)
+  #pmd-r2-clean-header
+  .pmd-r2-mobile-hamburger-v301 {
+    display: inline-flex !important;
+    visibility: visible !important;
+
+    grid-column: 2 !important;
+    grid-row: 1 !important;
+
+    position: relative !important;
+    inset: auto !important;
+
+    width: 44px !important;
+    height: 44px !important;
+    min-width: 44px !important;
+    min-height: 44px !important;
+
+    margin: 0 !important;
+    padding: 0 !important;
+
+    align-items: center !important;
+    justify-content: center !important;
+
+    border:
+      1px solid
+      #c7ddeb !important;
+
+    border-radius:
+      13px !important;
+
+    background:
+      #ffffff !important;
+
+    color:
+      #10283c !important;
+
+    box-shadow:
+      none !important;
+
+    opacity: 1 !important;
+    pointer-events: auto !important;
+    cursor: pointer !important;
+
+    z-index: 20 !important;
+  }
+
+  body:has(#pmd-reservations2)
+  #pmd-r2-clean-header
+  .pmd-r2-mobile-hamburger-v301:hover {
+    background:
+      #f1f7fb !important;
+  }
+
+  body:has(#pmd-reservations2)
+  #pmd-r2-clean-header
+  .pmd-r2-mobile-hamburger-v301 svg {
+    display: block !important;
+
+    width: 22px !important;
+    height: 22px !important;
+
+    stroke: currentColor !important;
+    stroke-width: 2 !important;
+    fill: none !important;
+  }
+
+  /*
+   * Mobile title remains hidden.
+   */
+  body:has(#pmd-reservations2)
+  #pmd-r2-clean-header
+  .pmd-r2__hero-copy,
+
+  body:has(#pmd-reservations2)
+  #pmd-r2-clean-header
+  .pmd-r2-clean-header__title,
+
+  body:has(#pmd-reservations2)
+  #pmd-r2-clean-header
+  h1 {
+    display: none !important;
+  }
+
+  /*
+   * Existing right-side actions remain on the right.
+   */
+  body:has(#pmd-reservations2)
+  #pmd-r2-clean-header
+  .pmd-r2__hero-actions,
+
+  body:has(#pmd-reservations2)
+  #pmd-r2-clean-header
+  .pmd-r2-clean-header__actions {
+    grid-column: 4 !important;
+    grid-row: 1 !important;
+
+    justify-self: end !important;
+
+    display: flex !important;
+    align-items: center !important;
+    gap: 8px !important;
+
+    direction: ltr !important;
+  }
+}
+
+@media (min-width: 821px) {
+  .pmd-r2-mobile-hamburger-v301 {
+    display: none !important;
+  }
+}
+
+
+/* PMD_R2_MOBILE_DRAWER_V302_START */
+
+@media (max-width: 820px) {
+  /*
+   * The global Side Menu CSS uses display:none on mobile.
+   * Override it and use a proper off-canvas drawer.
+   */
+  body:has(#pmd-reservations2)
+  #pmd-side-menu2 {
+    display: flex !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+
+    position: fixed !important;
+
+    top: 10px !important;
+    bottom: 10px !important;
+    left: 10px !important;
+
+    width: min(82vw, 310px) !important;
+    height: auto !important;
+    min-height: 0 !important;
+    max-height: calc(100dvh - 20px) !important;
+
+    z-index: 100500 !important;
+
+    transform:
+      translateX(
+        calc(-100% - 24px)
+      ) !important;
+
+    transition:
+      transform 220ms
+      cubic-bezier(.22,.75,.24,1) !important;
+
+    pointer-events: none !important;
+    overflow: hidden !important;
+
+    border-radius: 22px !important;
+    box-shadow:
+      0 24px 70px
+      rgba(0, 25, 22, .36) !important;
+  }
+
+  /*
+   * Open state is controlled by the existing Side Menu API.
+   */
+  html.pmd-sm2-expanded
+  body:has(#pmd-reservations2)
+  #pmd-side-menu2 {
+    transform:
+      translateX(0) !important;
+
+    pointer-events:
+      auto !important;
+  }
+
+  /*
+   * Mobile drawer always uses the full expanded appearance.
+   */
+  body:has(#pmd-reservations2)
+  #pmd-side-menu2
+  .pmd-sm2__item,
+
+  body:has(#pmd-reservations2)
+  #pmd-side-menu2
+  .pmd-sm2__dropdown-toggle {
+    width: 100% !important;
+    margin: 0 !important;
+  }
+
+  body:has(#pmd-reservations2)
+  #pmd-side-menu2
+  .pmd-sm2__label {
+    width: auto !important;
+    flex: 1 !important;
+    opacity: 1 !important;
+  }
+
+  body:has(#pmd-reservations2)
+  #pmd-side-menu2
+  .pmd-sm2__brand {
+    justify-content:
+      flex-start !important;
+  }
+
+  body:has(#pmd-reservations2)
+  #pmd-side-menu2
+  .pmd-sm2__mark-image {
+    width: 158px !important;
+    min-width: 158px !important;
+  }
+
+  /*
+   * Dark backdrop behind the drawer.
+   */
+  .pmd-r2-mobile-menu-backdrop-v302 {
+    display: block;
+
+    position: fixed;
+    inset: 0;
+
+    z-index: 100450;
+
+    background:
+      rgba(4, 20, 18, .46);
+
+    backdrop-filter:
+      blur(2px);
+
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+
+    transition:
+      opacity 180ms ease,
+      visibility 180ms ease;
+  }
+
+  html.pmd-sm2-expanded
+  .pmd-r2-mobile-menu-backdrop-v302 {
+    opacity: 1;
+    visibility: visible;
+    pointer-events: auto;
+  }
+
+  html.pmd-sm2-expanded,
+  html.pmd-sm2-expanded body {
+    overflow:
+      hidden !important;
+  }
+
+  /*
+   * Keep the hamburger above normal header content,
+   * but below the open drawer.
+   */
+  .pmd-r2-mobile-hamburger-v301 {
+    z-index:
+      100 !important;
+  }
+}
+
+@media (min-width: 821px) {
+  .pmd-r2-mobile-menu-backdrop-v302 {
+    display: none !important;
+  }
+}
+
+/* PMD_R2_MOBILE_DRAWER_V302_END */
+
+
+/* PMD_R2_MOBILE_MENU_FINAL_V303_START */
+
+@media (max-width: 820px) {
+  /*
+   * Always expose the hamburger on the far left.
+   */
+  body:has(#pmd-reservations2)
+  .pmd-r2-mobile-hamburger-v301 {
+    display: inline-flex !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+
+    position: absolute !important;
+    left: 12px !important;
+    top: 14px !important;
+    right: auto !important;
+    bottom: auto !important;
+
+    width: 46px !important;
+    height: 46px !important;
+    min-width: 46px !important;
+    min-height: 46px !important;
+
+    align-items: center !important;
+    justify-content: center !important;
+
+    margin: 0 !important;
+    padding: 0 !important;
+
+    border: 1px solid #c7ddeb !important;
+    border-radius: 14px !important;
+
+    background: #fff !important;
+    color: #10283c !important;
+
+    z-index: 100300 !important;
+
+    cursor: pointer !important;
+    pointer-events: auto !important;
+  }
+
+  body:has(#pmd-reservations2)
+  .pmd-r2-mobile-hamburger-v301 svg {
+    display: block !important;
+    width: 23px !important;
+    height: 23px !important;
+  }
+
+  /*
+   * Override every old mobile display:none declaration.
+   */
+  body:has(#pmd-reservations2)
+  #pmd-side-menu2 {
+    display: flex !important;
+
+    position: fixed !important;
+    left: 10px !important;
+    top: 10px !important;
+    bottom: 10px !important;
+
+    width: min(82vw, 310px) !important;
+    height: auto !important;
+
+    z-index: 100500 !important;
+
+    transform:
+      translateX(
+        calc(-100% - 30px)
+      ) !important;
+
+    visibility: visible !important;
+    opacity: 1 !important;
+
+    pointer-events: none !important;
+
+    transition:
+      transform 220ms
+      cubic-bezier(.22,.75,.24,1)
+      !important;
+  }
+
+  html.pmd-sm2-expanded
+  body:has(#pmd-reservations2)
+  #pmd-side-menu2,
+
+  body.pmd-r2-mobile-drawer-open
+  #pmd-side-menu2 {
+    transform:
+      translateX(0) !important;
+
+    pointer-events:
+      auto !important;
+  }
+
+  html.pmd-sm2-expanded
+  .pmd-r2-mobile-menu-backdrop-v302,
+
+  body.pmd-r2-mobile-drawer-open
+  .pmd-r2-mobile-menu-backdrop-v302 {
+    opacity: 1 !important;
+    visibility: visible !important;
+    pointer-events: auto !important;
+  }
+}
+
+/* PMD_R2_MOBILE_MENU_FINAL_V303_END */

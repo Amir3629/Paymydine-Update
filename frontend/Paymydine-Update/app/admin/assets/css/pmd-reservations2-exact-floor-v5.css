@@ -1,0 +1,358 @@
+/* ==========================================================
+   PMD RESERVATIONS2 EXACT LATEST WAITER FLOOR V5
+   ========================================================== */
+
+/*
+ * Reservations2 layout scripts previously compressed the Floor.
+ * Let the real Waiter authorities own its geometry.
+ */
+#pmd-reservations2,
+#pmd-reservations2 #pmd-waiter-dashboard-root {
+  width: 100% !important;
+  min-width: 0 !important;
+  max-width: none !important;
+
+  height: auto !important;
+  max-height: none !important;
+
+  overflow: visible !important;
+}
+
+/* Same outer Floor shell as current dashboardwaiter. */
+#pmd-reservations2
+#pmd-waiter-dashboard-root
+.pmd-w5-floor.pmd-v191-floor-shell,
+
+#pmd-reservations2
+#pmd-waiter-dashboard-root
+.pmd-v191-floor-shell {
+  width: 100% !important;
+  min-width: 0 !important;
+  max-width: none !important;
+
+  margin-left: 0 !important;
+  margin-right: 0 !important;
+}
+
+/*
+ * Important:
+ * do not assign a custom Reservations height.
+ * V190/V191 must provide exactly the same dimensions as Waiter.
+ */
+#pmd-reservations2
+#pmd-waiter-dashboard-root
+.pmd-w5-floor-map-real {
+  width: 100% !important;
+  min-width: 0 !important;
+  max-width: none !important;
+
+  margin-left: 0 !important;
+  margin-right: 0 !important;
+
+  overflow: hidden !important;
+}
+
+/* Same exact table geometry. Never override left/top/width/height. */
+#pmd-reservations2
+.pmd-w5-floor-map-real
+.pmd-w5-table[data-table] {
+  min-width: 0 !important;
+  min-height: 0 !important;
+
+  border-radius: 19px !important;
+
+  transition:
+    transform 140ms ease,
+    box-shadow 140ms ease,
+    filter 140ms ease !important;
+}
+
+/* Remove Waiter-only visual content, not the table number. */
+#pmd-reservations2
+.pmd-w5-floor-map-real
+.pmd-w5-table[data-table]
+small,
+
+#pmd-reservations2
+.pmd-w5-floor-map-real
+.pmd-w5-table[data-table]
+[class*="badge"],
+
+#pmd-reservations2
+.pmd-w5-floor-map-real
+.pmd-w5-table[data-table]
+[class*="chip"],
+
+#pmd-reservations2
+.pmd-w5-floor-map-real
+.pmd-w5-table[data-table]
+[class*="waiter-call"],
+
+#pmd-reservations2
+.pmd-w5-floor-map-real
+.pmd-w5-table[data-table]
+[class*="clean"],
+
+#pmd-reservations2
+.pmd-w5-floor-map-real
+.pmd-w5-table[data-table]
+[class*="payment"],
+
+#pmd-reservations2
+.pmd-w5-floor-map-real
+.pmd-w5-table[data-table]
+[class*="kitchen"],
+
+#pmd-reservations2
+.pmd-w5-floor-map-real
+.pmd-w5-table[data-table]
+[class*="order-count"] {
+  display: none !important;
+}
+
+/*
+ * High-specificity final reservation state authority.
+ * Use background shorthand because Waiter V175c also uses
+ * background shorthand with !important.
+ */
+
+/* FREE */
+html body
+#pmd-reservations2
+#pmd-waiter-dashboard-root
+.pmd-w5-floor-map-real
+.pmd-w5-table[data-table].pmd-rsv5-free {
+  background: #ffffff !important;
+  background-color: #ffffff !important;
+
+  border: 3px solid #63a99f !important;
+
+  color: #103b37 !important;
+
+  box-shadow:
+    0 0 0 7px rgba(38, 137, 123, .12) !important;
+}
+
+/* RESERVED */
+html body
+#pmd-reservations2
+#pmd-waiter-dashboard-root
+.pmd-w5-floor-map-real
+.pmd-w5-table[data-table].pmd-rsv5-reserved {
+  background: #ffd15c !important;
+  background-color: #ffd15c !important;
+
+  border: 3px solid #b77a00 !important;
+
+  color: #493200 !important;
+
+  box-shadow:
+    0 0 0 7px rgba(221, 163, 23, .15) !important;
+}
+
+/* OCCUPIED */
+html body
+#pmd-reservations2
+#pmd-waiter-dashboard-root
+.pmd-w5-floor-map-real
+.pmd-w5-table[data-table].pmd-rsv5-occupied {
+  background: rgb(255, 51, 71) !important;
+  background-color: rgb(255, 51, 71) !important;
+
+  border: 3px solid rgb(184, 15, 36) !important;
+
+  color: #ffffff !important;
+
+  box-shadow:
+    0 0 0 7px rgba(255, 51, 71, .13) !important;
+}
+
+/* SELECTED */
+html body
+#pmd-reservations2
+#pmd-waiter-dashboard-root
+.pmd-w5-floor-map-real
+.pmd-w5-table[data-table].pmd-rsv5-selected {
+  border-color: #063e37 !important;
+
+  box-shadow:
+    0 0 0 5px rgba(6, 62, 55, .30),
+    0 15px 30px rgba(15, 35, 55, .20) !important;
+
+  z-index: 1000 !important;
+}
+
+/* Original ordering content must not appear on Reservations. */
+#pmd-reservations2
+[data-pmd-rsv5-order-section] {
+  display: none !important;
+}
+
+/* Reservation section below the exact Floor. */
+#pmd-reservations2 .pmd-rsv5-section {
+  width: 100% !important;
+  min-width: 0 !important;
+
+  margin: 22px 0 0 !important;
+
+  border: 1px solid #caddea !important;
+  border-radius: 18px !important;
+
+  background: #ffffff !important;
+  overflow: hidden !important;
+
+  box-shadow:
+    0 12px 30px rgba(16, 36, 58, .055) !important;
+}
+
+#pmd-reservations2 .pmd-rsv5-header {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  gap: 16px !important;
+
+  min-height: 78px !important;
+  padding: 15px 18px !important;
+
+  border-bottom: 1px solid #dce9f2 !important;
+}
+
+#pmd-reservations2 .pmd-rsv5-header h2 {
+  margin: 0 0 4px !important;
+
+  color: #10243a !important;
+  font-size: 21px !important;
+  font-weight: 900 !important;
+}
+
+#pmd-reservations2 .pmd-rsv5-header p {
+  margin: 0 !important;
+
+  color: #617990 !important;
+  font-size: 12px !important;
+  font-weight: 700 !important;
+}
+
+#pmd-reservations2 .pmd-rsv5-create {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+
+  min-height: 42px !important;
+  padding: 0 15px !important;
+
+  border: 1px solid #087868 !important;
+  border-radius: 11px !important;
+
+  background: #087868 !important;
+  color: #ffffff !important;
+
+  font-size: 12px !important;
+  font-weight: 850 !important;
+
+  text-decoration: none !important;
+}
+
+#pmd-reservations2
+.pmd-rsv5-create[aria-disabled="true"] {
+  pointer-events: none !important;
+  opacity: .45 !important;
+}
+
+#pmd-reservations2 .pmd-rsv5-body {
+  padding: 16px !important;
+}
+
+#pmd-reservations2 .pmd-rsv5-empty {
+  min-height: 130px !important;
+
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+
+  padding: 24px !important;
+
+  border: 1px dashed #c7d9e6 !important;
+  border-radius: 14px !important;
+
+  background: #fbfdff !important;
+  color: #617990 !important;
+
+  font-size: 13px !important;
+  font-weight: 750 !important;
+  text-align: center !important;
+}
+
+#pmd-reservations2 .pmd-rsv5-cards {
+  display: grid !important;
+  grid-template-columns:
+    repeat(3, minmax(0, 1fr)) !important;
+
+  gap: 14px !important;
+}
+
+#pmd-reservations2 .pmd-rsv5-card {
+  display: block !important;
+
+  padding: 17px !important;
+
+  border: 1px solid #d3e2ed !important;
+  border-radius: 17px !important;
+
+  background: #ffffff !important;
+  color: #10243a !important;
+
+  text-decoration: none !important;
+
+  box-shadow:
+    0 8px 20px rgba(16, 36, 58, .045) !important;
+}
+
+#pmd-reservations2 .pmd-rsv5-card-top {
+  display: flex !important;
+  align-items: flex-start !important;
+  justify-content: space-between !important;
+  gap: 12px !important;
+
+  margin-bottom: 15px !important;
+}
+
+#pmd-reservations2 .pmd-rsv5-name {
+  color: #10243a !important;
+  font-size: 17px !important;
+  font-weight: 900 !important;
+}
+
+#pmd-reservations2 .pmd-rsv5-status {
+  padding: 6px 10px !important;
+
+  border-radius: 999px !important;
+
+  background: #e1f7ef !important;
+  color: #056f59 !important;
+
+  font-size: 10px !important;
+  font-weight: 850 !important;
+  text-transform: capitalize !important;
+}
+
+#pmd-reservations2 .pmd-rsv5-meta {
+  display: grid !important;
+  grid-template-columns:
+    repeat(3, minmax(0, 1fr)) !important;
+
+  gap: 10px !important;
+}
+
+#pmd-reservations2 .pmd-rsv5-meta span {
+  padding: 10px !important;
+
+  border: 1px solid #d8e4ed !important;
+  border-radius: 11px !important;
+
+  background: #f7fafc !important;
+  color: #425b72 !important;
+
+  font-size: 11px !important;
+  font-weight: 750 !important;
+}

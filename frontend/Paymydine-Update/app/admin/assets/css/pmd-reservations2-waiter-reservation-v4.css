@@ -1,0 +1,48 @@
+/* PMD Reservations2 Waiter Reservation V4 */
+#pmd-reservations2{display:block!important;width:100%!important;min-width:0!important;overflow:visible!important}
+#pmd-reservations2 #pmd-waiter-dashboard-root{position:relative!important;inset:auto!important;width:100%!important;max-width:none!important;height:auto!important;min-height:0!important;margin:14px 0 0!important;padding:0!important;overflow:visible!important;transform:none!important;background:linear-gradient(#f8fafc,#f4f7fb)!important}
+html:has(#pmd-reservations2),body:has(#pmd-reservations2){height:auto!important;overflow-y:auto!important}
+
+/* Exact waiter KPI styling, reservation content supplied by JS. */
+#pmd-reservations2 .pmd-w5-kpis{display:grid!important;grid-template-columns:repeat(4,minmax(0,1fr))!important;gap:16px!important;margin:0 0 22px!important}
+#pmd-reservations2 .pmd-w5-kpi{min-width:0!important;min-height:116px!important;border-radius:18px!important;box-shadow:0 14px 32px rgba(15,23,42,.10)!important}
+
+/* Keep the current waiter floor geometry and controls untouched. */
+#pmd-reservations2 .pmd-w5-floor{display:block!important;width:100%!important;margin:0!important}
+#pmd-reservations2 .pmd-w5-floor-map-real{position:relative!important;width:100%!important;min-width:0!important;background:#fff!important;transform:none!important;animation:none!important}
+#pmd-reservations2 .pmd-w5-table[data-table]{cursor:pointer!important;animation:none!important;transition:box-shadow .14s ease,filter .14s ease!important}
+
+/* Reservation page hides waiter/order-only decorations but never changes geometry. */
+#pmd-reservations2 .pmd-w5-table .pmd-v154-state-stack,
+#pmd-reservations2 .pmd-w5-table .pmd-v175c-attention-badge,
+#pmd-reservations2 .pmd-w5-table .pmd-v183-order-count-badge,
+#pmd-reservations2 .pmd-w5-table .pmd-v160-bite-cutout,
+#pmd-reservations2 .pmd-w5-table>em{display:none!important}
+
+/* Reservation availability authority. */
+#pmd-reservations2 .pmd-w5-table.pmd-rsv4-free{background:#fff!important;border-color:#258a7b!important;color:#071b18!important;box-shadow:0 0 0 7px rgba(37,138,123,.12)!important}
+#pmd-reservations2 .pmd-w5-table.pmd-rsv4-reserved{background:#ffd15a!important;border-color:#b47700!important;color:#241900!important;box-shadow:0 0 0 7px rgba(212,153,0,.16)!important}
+#pmd-reservations2 .pmd-w5-table.pmd-rsv4-occupied{background:#ff3347!important;border-color:#b70821!important;color:#050505!important;box-shadow:0 0 0 7px rgba(255,51,71,.13)!important}
+#pmd-reservations2 .pmd-w5-table.pmd-rsv4-selected{box-shadow:0 0 0 6px rgba(4,61,54,.30),0 16px 34px rgba(15,23,42,.22)!important;filter:brightness(1.02)!important;z-index:999!important}
+#pmd-reservations2 .pmd-w5-table .pmd-v175c-table-number{color:#050505!important;-webkit-text-fill-color:#050505!important}
+
+/* Ordering section is replaced by reservation cards. */
+#pmd-reservations2 [data-pmd-rsv4-order-section]{display:none!important}
+#pmd-reservations2 .pmd-rsv4-section{width:100%!important;margin:22px 0 0!important;border:1px solid #c9dceb!important;border-radius:18px!important;background:#fff!important;overflow:hidden!important;box-shadow:0 12px 30px rgba(16,36,58,.055)!important}
+#pmd-reservations2 .pmd-rsv4-header{display:flex!important;align-items:center!important;justify-content:space-between!important;gap:16px!important;min-height:78px!important;padding:15px 18px!important;border-bottom:1px solid #dce9f2!important}
+#pmd-reservations2 .pmd-rsv4-header h2{margin:0 0 4px!important;color:#10243a!important;font-size:21px!important;font-weight:900!important}
+#pmd-reservations2 .pmd-rsv4-header p{margin:0!important;color:#617990!important;font-size:12px!important;font-weight:700!important}
+#pmd-reservations2 .pmd-rsv4-create{display:inline-flex!important;align-items:center!important;justify-content:center!important;min-height:42px!important;padding:0 15px!important;border:1px solid #087868!important;border-radius:11px!important;background:#087868!important;color:#fff!important;font-size:12px!important;font-weight:850!important;text-decoration:none!important}
+#pmd-reservations2 .pmd-rsv4-create[aria-disabled=true]{pointer-events:none!important;opacity:.45!important}
+#pmd-reservations2 .pmd-rsv4-body{padding:16px!important}
+#pmd-reservations2 .pmd-rsv4-empty{min-height:130px!important;display:flex!important;align-items:center!important;justify-content:center!important;padding:24px!important;border:1px dashed #c7d9e6!important;border-radius:14px!important;background:#fbfdff!important;color:#617990!important;font-size:13px!important;font-weight:750!important;text-align:center!important}
+#pmd-reservations2 .pmd-rsv4-cards{display:grid!important;grid-template-columns:repeat(3,minmax(0,1fr))!important;gap:14px!important}
+#pmd-reservations2 .pmd-rsv4-card{display:block!important;padding:17px!important;border:1px solid #d3e2ed!important;border-radius:17px!important;background:#fff!important;color:#10243a!important;text-decoration:none!important;box-shadow:0 8px 20px rgba(16,36,58,.045)!important}
+#pmd-reservations2 .pmd-rsv4-card:hover{transform:translateY(-2px)!important;border-color:#90bdd4!important;box-shadow:0 13px 28px rgba(16,36,58,.10)!important}
+#pmd-reservations2 .pmd-rsv4-card-top{display:flex!important;justify-content:space-between!important;gap:12px!important;margin-bottom:15px!important}
+#pmd-reservations2 .pmd-rsv4-name{font-size:17px!important;font-weight:900!important}
+#pmd-reservations2 .pmd-rsv4-status{padding:6px 10px!important;border-radius:999px!important;background:#e1f7ef!important;color:#056f59!important;font-size:10px!important;font-weight:850!important;text-transform:capitalize!important}
+#pmd-reservations2 .pmd-rsv4-meta{display:grid!important;grid-template-columns:repeat(3,minmax(0,1fr))!important;gap:10px!important}
+#pmd-reservations2 .pmd-rsv4-meta span{padding:10px!important;border:1px solid #d8e4ed!important;border-radius:11px!important;background:#f7fafc!important;color:#425b72!important;font-size:11px!important;font-weight:750!important}
+@media(max-width:1000px){#pmd-reservations2 .pmd-w5-kpis{grid-template-columns:repeat(2,minmax(0,1fr))!important}#pmd-reservations2 .pmd-rsv4-cards{grid-template-columns:repeat(2,minmax(0,1fr))!important}}
+@media(max-width:680px){#pmd-reservations2 .pmd-w5-kpis,#pmd-reservations2 .pmd-rsv4-cards{grid-template-columns:1fr!important}#pmd-reservations2 .pmd-rsv4-header{align-items:flex-start!important;flex-direction:column!important}#pmd-reservations2 .pmd-rsv4-create{width:100%!important}}

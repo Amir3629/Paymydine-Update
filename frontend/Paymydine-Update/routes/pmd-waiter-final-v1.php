@@ -16,3 +16,8 @@ Route::middleware(['web'])->group(function () {
     Route::get('/admin/dashboardwaiter-final-operations', [\Admin\Controllers\PmdWaiterDashboardFinalV1::class, 'operationsBridge'])
         ->name('pmd.waiter-final.operations');
 });
+
+// Canonical reusable mother floor map.
+if (file_exists(base_path('routes/pmd-floor-v1.php'))) {
+    require_once base_path('routes/pmd-floor-v1.php');
+}

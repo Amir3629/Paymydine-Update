@@ -1,4 +1,73 @@
 
+{{-- PMD_SERVER_LOCALE_BRIDGE_V41_BEGIN --}}
+@php
+    $pmdServerLocale = strtolower(
+        trim(
+            (string)request()->cookie(
+                'pmd_admin_locale',
+                app()->getLocale()
+            )
+        )
+    );
+
+    if (!in_array($pmdServerLocale, ['en', 'de'], true)) {
+        $pmdServerLocale = 'en';
+    }
+@endphp
+
+<script>
+    window.PMD_ADMIN_LOCALE =
+        @json($pmdServerLocale);
+
+    document.documentElement.setAttribute(
+        'lang',
+        window.PMD_ADMIN_LOCALE
+    );
+
+    console.info(
+        '[PMD Locale Bridge V4.1]',
+        {
+            locale: window.PMD_ADMIN_LOCALE
+        }
+    );
+</script>
+{{-- PMD_SERVER_LOCALE_BRIDGE_V41_END --}}
+
+{{-- PMD_ADMIN_LOCALE_COOKIE_V3_BEGIN --}}
+@php
+    /*
+     * Direct PayMyDine admin locale authority.
+     *
+     * The sidebar switcher stores one of:
+     * - en
+     * - de
+     *
+     * This runs before the page is rendered and overrides
+     * unreliable default-language/session behaviour.
+     */
+    $pmdCookieLocale = strtolower(
+        trim((string)request()->cookie(
+            'pmd_admin_locale',
+            ''
+        ))
+    );
+
+    if (in_array($pmdCookieLocale, ['en', 'de'], true)) {
+        app()->setLocale($pmdCookieLocale);
+
+        if (app()->bound('translator.localization')) {
+            app('translator.localization')->setLocale(
+                $pmdCookieLocale,
+                false
+            );
+        }
+    }
+@endphp
+{{-- PMD_ADMIN_LOCALE_COOKIE_V3_END --}}
+
+<!-- PMD_R2_EXACT_LATEST_WAITER_FLOOR_V5 -->
+<!-- PMD_RESERVATIONS2_REAL_WAITER_ROUTE_PATCH_V1 -->
+
 
 
 
@@ -7,7 +76,7 @@
 <!-- PMD_WAITER_DASHBOARD_V56_PAUSE_READ_REFRESH_EDIT_START -->
 <script id="pmd-waiter-dashboard-v56-pause-read-refresh-edit-script">
 (function () {
-  if (!/\/admin\/dashboardwaiter(?:$|[?#])/.test(location.pathname + location.search + location.hash)) return;
+  if (!/(?:\/admin\/dashboardwaiter|\/admin\/reservations2)(?:$|[?#])/.test(location.pathname + location.search + location.hash)) return;
   if (window.PMD_WAITER_DASHBOARD_V56_PAUSE_READ_REFRESH_EDIT) return;
   window.PMD_WAITER_DASHBOARD_V56_PAUSE_READ_REFRESH_EDIT = true;
 
@@ -247,7 +316,7 @@
 
 <script id="pmd-waiter-dashboard-v50-real-floor-drag-clamp-script">
 (function () {
-  if (!/\/admin\/dashboardwaiter(?:$|[?#])/.test(location.pathname + location.search + location.hash)) return;
+  if (!/(?:\/admin\/dashboardwaiter|\/admin\/reservations2)(?:$|[?#])/.test(location.pathname + location.search + location.hash)) return;
   if (window.PMD_WAITER_DASHBOARD_V50_REAL_FLOOR_DRAG_CLAMP) return;
   window.PMD_WAITER_DASHBOARD_V50_REAL_FLOOR_DRAG_CLAMP = true;
 
@@ -3210,7 +3279,7 @@ html.pmd-dashboardreservation-page #pmd-reservation-dashboard-root .pmd-res-toas
 
 <script id="pmd-waiter-dashboard-v35-clean-rewrite-card-header-script">
 (function () {
-  if (!/\/admin\/dashboardwaiter(?:$|[?#])/.test(location.pathname + location.search + location.hash)) return;
+  if (!/(?:\/admin\/dashboardwaiter|\/admin\/reservations2)(?:$|[?#])/.test(location.pathname + location.search + location.hash)) return;
   if (window.PMD_WAITER_DASHBOARD_V35_CLEAN_REWRITE_CARD_HEADER) return;
   window.PMD_WAITER_DASHBOARD_V35_CLEAN_REWRITE_CARD_HEADER = true;
 
@@ -3363,6 +3432,52 @@ html.pmd-dashboardreservation-page #pmd-reservation-dashboard-root .pmd-res-toas
 <!DOCTYPE html>
 <html xmlns="http://www.w3.org/1999/xhtml" lang="en">
 <head>
+
+{{-- PMD_SAFE_NOFLASH_V42_BEGIN --}}
+<style>
+    /*
+     * When German is selected, prevent the browser from
+     * painting the original English DOM.
+     */
+    html.pmd-i18n-waiting {
+        background: #f8fbfd !important;
+    }
+
+    html.pmd-i18n-waiting body {
+        visibility: hidden !important;
+    }
+</style>
+
+<script>
+(function () {
+    'use strict';
+
+    var locale = String(
+        window.PMD_ADMIN_LOCALE ||
+        document.documentElement.lang ||
+        'en'
+    ).toLowerCase();
+
+    if (locale === 'de') {
+        document.documentElement.classList.add(
+            'pmd-i18n-waiting'
+        );
+    }
+
+    /*
+     * Emergency recovery:
+     * never leave the UI hidden indefinitely.
+     */
+    window.setTimeout(function () {
+        document.documentElement.classList.remove(
+            'pmd-i18n-waiting'
+        );
+    }, 4000);
+})();
+</script>
+{{-- PMD_SAFE_NOFLASH_V42_END --}}
+
+
 
 
 
@@ -5675,7 +5790,7 @@ html.pmd-new-pages-antiflash-v40:not(.pmd-new-pages-antiflash-rendered-v40):not(
 <!-- PMD_WAITER_DASHBOARD_V5_WORKFLOW_UI_START -->
 <script id="pmd-waiter-dashboard-v5-boot">
 (function () {
-  if (/\/admin\/dashboardwaiter(?:$|[?#])/.test(location.pathname + location.search + location.hash)) {
+  if (/(?:\/admin\/dashboardwaiter|\/admin\/reservations2)(?:$|[?#])/.test(location.pathname + location.search + location.hash)) {
     document.documentElement.classList.add('pmd-waiter-dashboard-active');
   }
 })();
@@ -6317,7 +6432,7 @@ html.pmd-waiter-dashboard-active body {
   ];
 
   function isPage() {
-    return /\/admin\/dashboardwaiter(?:$|[?#])/.test(location.pathname + location.search + location.hash);
+    return /(?:\/admin\/dashboardwaiter|\/admin\/reservations2)(?:$|[?#])/.test(location.pathname + location.search + location.hash);
   }
 
   function esc(v) {
@@ -7223,7 +7338,7 @@ html.pmd-waiter-dashboard-active .pmd-w5-card:hover {
 </style>
 <script id="pmd-waiter-dashboard-v6-cleanup-fixes-script">
 (function () {
-  if (!/\/admin\/dashboardwaiter(?:$|[?#])/.test(location.pathname + location.search + location.hash)) return;
+  if (!/(?:\/admin\/dashboardwaiter|\/admin\/reservations2)(?:$|[?#])/.test(location.pathname + location.search + location.hash)) return;
 
   document.documentElement.classList.add('pmd-waiter-dashboard-active');
 
@@ -7339,7 +7454,7 @@ html.pmd-waiter-dashboard-active div.pmd-w5-actions:has(button[data-new-order]) 
 </style>
 <script id="pmd-waiter-dashboard-v7-soft-floor-remove-top-actions-script">
 (function () {
-  if (!/\/admin\/dashboardwaiter(?:$|[?#])/.test(location.pathname + location.search + location.hash)) return;
+  if (!/(?:\/admin\/dashboardwaiter|\/admin\/reservations2)(?:$|[?#])/.test(location.pathname + location.search + location.hash)) return;
 
   function hideDuplicateTopActions() {
     document.querySelectorAll('.pmd-w5-actions').forEach(function (el) {
@@ -7966,7 +8081,7 @@ html.pmd-waiter-dashboard-active .pmd-w5-tab {
 
 <script id="pmd-waiter-dashboard-v17-order-card-cleanup-script">
 (function () {
-  if (!/\/admin\/dashboardwaiter(?:$|[?#])/.test(location.pathname + location.search + location.hash)) return;
+  if (!/(?:\/admin\/dashboardwaiter|\/admin\/reservations2)(?:$|[?#])/.test(location.pathname + location.search + location.hash)) return;
   if (window.PMD_WAITER_DASHBOARD_V17_ORDER_CARD_CLEANUP) return;
   window.PMD_WAITER_DASHBOARD_V17_ORDER_CARD_CLEANUP = true;
 
@@ -8431,7 +8546,7 @@ html.pmd-waiter-dashboard-active .pmd-w5-btn.active {
 
 <script id="pmd-waiter-dashboard-v19-clean-cards-working-unmerge-script">
 (function () {
-  if (!/\/admin\/dashboardwaiter(?:$|[?#])/.test(location.pathname + location.search + location.hash)) return;
+  if (!/(?:\/admin\/dashboardwaiter|\/admin\/reservations2)(?:$|[?#])/.test(location.pathname + location.search + location.hash)) return;
   if (window.PMD_WAITER_DASHBOARD_V19_CLEAN_CARDS_UNMERGE) return;
   window.PMD_WAITER_DASHBOARD_V19_CLEAN_CARDS_UNMERGE = true;
 
@@ -9045,7 +9160,7 @@ html.pmd-waiter-dashboard-active .pmd-w5-order-card [class*="items"] {
 
 <script id="pmd-waiter-dashboard-v20-unmerge-hotfix-script">
 (function () {
-  if (!/\/admin\/dashboardwaiter(?:$|[?#])/.test(location.pathname + location.search + location.hash)) return;
+  if (!/(?:\/admin\/dashboardwaiter|\/admin\/reservations2)(?:$|[?#])/.test(location.pathname + location.search + location.hash)) return;
   if (window.PMD_WAITER_DASHBOARD_V20_UNMERGE_HOTFIX) return;
   window.PMD_WAITER_DASHBOARD_V20_UNMERGE_HOTFIX = true;
 
@@ -9342,7 +9457,7 @@ html.pmd-waiter-dashboard-active .pmd-v18-unmerge {
 
 <script id="pmd-waiter-dashboard-v21-stable-floor-order-cleanup-script">
 (function () {
-  if (!/\/admin\/dashboardwaiter(?:$|[?#])/.test(location.pathname + location.search + location.hash)) return;
+  if (!/(?:\/admin\/dashboardwaiter|\/admin\/reservations2)(?:$|[?#])/.test(location.pathname + location.search + location.hash)) return;
   if (window.PMD_WAITER_DASHBOARD_V21_STABLE_CLEANUP) return;
   window.PMD_WAITER_DASHBOARD_V21_STABLE_CLEANUP = true;
 
@@ -10415,7 +10530,7 @@ html.pmd-waiter-dashboard-active .pmd-v175c-attention-badge[data-pmd-kind="note"
   }
 
   if (window.PMDWaiterFloorStableV175c && window.PMDWaiterFloorStableV175c.active) return;
-  if (!/\/admin\/dashboardwaiter(?:$|[?#\/])/.test(location.pathname + location.search + location.hash)) return;
+  if (!/\/admin\/(?:dashboardwaiter|reservations2)(?:$|[?#\/])/.test(location.pathname + location.search + location.hash)) return;
 
   document.documentElement.classList.add('pmd-waiter-dashboard-active');
 
@@ -11022,7 +11137,7 @@ html.pmd-waiter-dashboard-active .pmd-v175c-attention-badge[data-pmd-kind="note"
 <script id="pmd-v180-final-floor-last-debug">
 (function () {
   'use strict';
-  if (!/\/admin\/dashboardwaiter(?:$|[?#\/])/.test(location.pathname + location.search + location.hash)) return;
+  if (!/\/admin\/(?:dashboardwaiter|reservations2)(?:$|[?#\/])/.test(location.pathname + location.search + location.hash)) return;
 
   window.PMDFinalFloorLastV180 = {
     active: true,
@@ -11176,7 +11291,7 @@ html.pmd-waiter-dashboard-active .pmd-v183-order-count-badge {
 (function () {
   'use strict';
 
-  if (!/\/admin\/dashboardwaiter(?:$|[?#\/])/.test(location.pathname + location.search + location.hash)) return;
+  if (!/\/admin\/(?:dashboardwaiter|reservations2)(?:$|[?#\/])/.test(location.pathname + location.search + location.hash)) return;
   if (window.PMDSingleBadgeAuthorityV183 && window.PMDSingleBadgeAuthorityV183.active) return;
 
   var raf = 0;
@@ -11468,7 +11583,7 @@ html.pmd-waiter-dashboard-active .pmd-v183-order-count-badge {
 <script id="pmd-v190-container-only-floor-compact-script">
 (function () {
   'use strict';
-  if (!/\/admin\/dashboardwaiter(?:$|[?#\/])/.test(location.pathname + location.search + location.hash)) return;
+  if (!/\/admin\/(?:dashboardwaiter|reservations2)(?:$|[?#\/])/.test(location.pathname + location.search + location.hash)) return;
   if (window.PMDFloorDeterministicV190 && window.PMDFloorDeterministicV190.active) return;
 
   var ROOT = '#pmd-waiter-dashboard-root';
@@ -11879,7 +11994,7 @@ html.pmd-waiter-dashboard-active
 (function () {
   'use strict';
 
-  if (!/\/admin\/dashboardwaiter\/?$/.test(location.pathname)) {
+  if (!/\/admin\/(?:dashboardwaiter|reservations2)\/?$/.test(location.pathname)) {
     return;
   }
 
@@ -12863,6 +12978,581 @@ html.pmd-waiter-dashboard-active
 }
 </style>
 <!-- PMD_V193_PAYMENT_CORNER_END -->
+
+
+{{-- PMD_GLOBAL_CUSTOM_TRANSLATOR_V4_BEGIN --}}
+<script>
+(function () {
+    'use strict';
+
+    var dictionaries = {
+        en: {},
+        de: {
+            /*
+             * Global navigation
+             */
+            'Dashboard': 'Übersicht',
+            'Orders': 'Bestellungen',
+            'Reservations': 'Reservierungen',
+            'Coupons & Gifts': 'Gutscheine & Geschenke',
+            'Restaurant': 'Restaurant',
+            'Kitchen Display': 'Küchenanzeige',
+            'Design': 'Design',
+            'System': 'System',
+            'Logout': 'Abmelden',
+            'Language': 'Sprache',
+            'Select language': 'Sprache auswählen',
+            'English': 'Englisch',
+            'German': 'Deutsch',
+
+            /*
+             * Common actions
+             */
+            'Add': 'Hinzufügen',
+            'Edit': 'Bearbeiten',
+            'Delete': 'Löschen',
+            'Remove': 'Entfernen',
+            'Save': 'Speichern',
+            'Cancel': 'Abbrechen',
+            'Close': 'Schließen',
+            'Search': 'Suchen',
+            'Filter': 'Filtern',
+            'Refresh': 'Aktualisieren',
+            'Reset': 'Zurücksetzen',
+            'Apply': 'Anwenden',
+            'Continue': 'Weiter',
+            'Back': 'Zurück',
+            'Next': 'Weiter',
+            'Previous': 'Zurück',
+            'View': 'Anzeigen',
+            'Preview': 'Vorschau',
+            'Print': 'Drucken',
+            'Download': 'Herunterladen',
+            'Upload': 'Hochladen',
+            'Enable': 'Aktivieren',
+            'Disable': 'Deaktivieren',
+            'Enabled': 'Aktiviert',
+            'Disabled': 'Deaktiviert',
+            'Active': 'Aktiv',
+            'Inactive': 'Inaktiv',
+            'Yes': 'Ja',
+            'No': 'Nein',
+            'All': 'Alle',
+            'None': 'Keine',
+            'Loading...': 'Wird geladen...',
+            'No results found': 'Keine Ergebnisse gefunden',
+            'No data available': 'Keine Daten verfügbar',
+
+            /*
+             * Reservation page
+             */
+            "Today's Reservations": 'Heutige Reservierungen',
+            'Todays Reservations': 'Heutige Reservierungen',
+            'Upcoming Arrivals': 'Bevorstehende Ankünfte',
+            'Pending Confirmations': 'Ausstehende Bestätigungen',
+            'Reservation Tables': 'Reservierungstische',
+            'Bookings scheduled for today':
+                'Für heute geplante Reservierungen',
+            'Guests expected to arrive soon':
+                'Gäste, die bald erwartet werden',
+            'Bookings requiring confirmation':
+                'Reservierungen, die bestätigt werden müssen',
+            'Tables enabled for reservations':
+                'Für Reservierungen aktivierte Tische',
+
+            'All areas': 'Alle Bereiche',
+            'Bar': 'Bar',
+            'Center': 'Mitte',
+            'Family': 'Familie',
+            'Group': 'Gruppe',
+            'High': 'Hochtisch',
+            'Outdoor': 'Außenbereich',
+            'VIP': 'VIP',
+            'Window': 'Fenster',
+            'One row': 'Eine Reihe',
+
+            'Today': 'Heute',
+            'Tomorrow': 'Morgen',
+            'Upcoming': 'Bevorstehend',
+            'Pending': 'Ausstehend',
+            'Confirmed': 'Bestätigt',
+            'Cancelled': 'Storniert',
+            'Completed': 'Abgeschlossen',
+            'Guests': 'Gäste',
+            'Guest': 'Gast',
+            'Table': 'Tisch',
+            'Tables': 'Tische',
+            'Booking': 'Reservierung',
+            'Bookings': 'Reservierungen',
+            'Reservation': 'Reservierung',
+            'Date': 'Datum',
+            'Time': 'Uhrzeit',
+            'Status': 'Status',
+            'Customer': 'Kunde',
+            'Customer Name': 'Kundenname',
+            'Phone': 'Telefon',
+            'Email': 'E-Mail',
+            'Notes': 'Notizen',
+            'Area': 'Bereich',
+            'Capacity': 'Kapazität',
+
+            /*
+             * Orders and restaurant
+             */
+            'Order': 'Bestellung',
+            'New Order': 'Neue Bestellung',
+            'Order ID': 'Bestell-ID',
+            'Order Total': 'Bestellsumme',
+            'Total': 'Gesamt',
+            'Subtotal': 'Zwischensumme',
+            'Payment': 'Zahlung',
+            'Payment Method': 'Zahlungsmethode',
+            'Cash': 'Barzahlung',
+            'Card': 'Karte',
+            'Delivery': 'Lieferung',
+            'Pickup': 'Abholung',
+            'Pick-up': 'Abholung',
+            'Dine-in': 'Vor Ort',
+            'Menu': 'Menü',
+            'Menu Items': 'Menüartikel',
+            'Categories': 'Kategorien',
+            'Category': 'Kategorie',
+            'Price': 'Preis',
+            'Quantity': 'Menge',
+            'Stock': 'Lagerbestand',
+            'Location': 'Standort',
+            'Locations': 'Standorte',
+            'Staff': 'Mitarbeiter',
+            'Manager': 'Manager',
+            'Waiter': 'Kellner',
+            'Kitchen': 'Küche',
+
+            /*
+             * Dashboard
+             */
+            'Total Sales': 'Gesamtumsatz',
+            'Total Orders': 'Bestellungen gesamt',
+            'Total Customers': 'Kunden gesamt',
+            'Recent Activity': 'Letzte Aktivitäten',
+            'Statistics': 'Statistiken',
+            'Revenue': 'Umsatz',
+            'Open Orders': 'Offene Bestellungen',
+            'Open Checks': 'Offene Rechnungen',
+            'Active Tables': 'Aktive Tische',
+            'Waiter Calls': 'Kellnerrufe',
+            'Kitchen Queue': 'Küchenwarteschlange',
+
+            /*
+             * Settings
+             */
+            'Settings': 'Einstellungen',
+            'General': 'Allgemein',
+            'Details': 'Details',
+            'Name': 'Name',
+            'Description': 'Beschreibung',
+            'Code': 'Code',
+            'Type': 'Typ',
+            'Priority': 'Priorität',
+            'Created': 'Erstellt',
+            'Updated': 'Aktualisiert',
+            'Date Added': 'Hinzugefügt am',
+            'Date Updated': 'Aktualisiert am',
+            'Actions': 'Aktionen'
+        }
+    };
+
+    function getLocale() {
+        /*
+         * First authority: locale rendered by PHP.
+         * This works even when an older cookie is HttpOnly.
+         */
+        var serverLocale = String(
+            window.PMD_ADMIN_LOCALE || ''
+        ).toLowerCase();
+
+        if (
+            serverLocale === 'de' ||
+            serverLocale === 'en'
+        ) {
+            return serverLocale;
+        }
+
+        /*
+         * Second authority: browser-readable cookie.
+         */
+        var cookieMatch = document.cookie.match(
+            /(?:^|;\s*)pmd_admin_locale=([^;]+)/
+        );
+
+        if (cookieMatch && cookieMatch[1]) {
+            return decodeURIComponent(
+                cookieMatch[1]
+            ).toLowerCase() === 'de'
+                ? 'de'
+                : 'en';
+        }
+
+        /*
+         * Final fallback.
+         */
+        var htmlLocale = (
+            document.documentElement.lang || ''
+        ).toLowerCase();
+
+        return htmlLocale.indexOf('de') === 0
+            ? 'de'
+            : 'en';
+    }
+
+    function normalize(value) {
+        return String(value || '')
+            .replace(/\s+/g, ' ')
+            .trim();
+    }
+
+    function translateExact(text, locale) {
+        if (locale !== 'de') {
+            return text;
+        }
+
+        var dictionary = dictionaries.de;
+        var normalized = normalize(text);
+
+        return dictionary[normalized] || text;
+    }
+
+    function translateTextNode(node, locale) {
+        if (!node || node.nodeType !== Node.TEXT_NODE) {
+            return;
+        }
+
+        var parent = node.parentElement;
+
+        if (!parent) {
+            return;
+        }
+
+        if (
+            parent.closest(
+                'script, style, textarea, code, pre, ' +
+                '[data-pmd-no-translate]'
+            )
+        ) {
+            return;
+        }
+
+        var original = node.nodeValue;
+        var trimmed = normalize(original);
+
+        if (!trimmed) {
+            return;
+        }
+
+        var translated = translateExact(
+            trimmed,
+            locale
+        );
+
+        if (translated === trimmed) {
+            return;
+        }
+
+        var leading =
+            original.match(/^\s*/)[0];
+
+        var trailing =
+            original.match(/\s*$/)[0];
+
+        node.nodeValue =
+            leading + translated + trailing;
+    }
+
+    function translateAttributes(element, locale) {
+        if (!element || element.nodeType !== 1) {
+            return;
+        }
+
+        [
+            'placeholder',
+            'title',
+            'aria-label',
+            'data-original-title'
+        ].forEach(function (attribute) {
+            if (!element.hasAttribute(attribute)) {
+                return;
+            }
+
+            var current =
+                element.getAttribute(attribute);
+
+            var translated =
+                translateExact(current, locale);
+
+            if (translated !== current) {
+                element.setAttribute(
+                    attribute,
+                    translated
+                );
+            }
+        });
+
+        if (
+            element.tagName === 'INPUT' &&
+            ['button', 'submit', 'reset'].indexOf(
+                String(element.type).toLowerCase()
+            ) !== -1
+        ) {
+            var value = element.value;
+            var translatedValue =
+                translateExact(value, locale);
+
+            if (translatedValue !== value) {
+                element.value = translatedValue;
+            }
+        }
+    }
+
+    function translateElement(root, locale) {
+        if (!root) {
+            return;
+        }
+
+        if (root.nodeType === Node.TEXT_NODE) {
+            translateTextNode(root, locale);
+            return;
+        }
+
+        if (root.nodeType !== Node.ELEMENT_NODE &&
+            root.nodeType !== Node.DOCUMENT_NODE) {
+            return;
+        }
+
+        if (root.nodeType === Node.ELEMENT_NODE) {
+            translateAttributes(root, locale);
+        }
+
+        var walker = document.createTreeWalker(
+            root,
+            NodeFilter.SHOW_ELEMENT |
+            NodeFilter.SHOW_TEXT
+        );
+
+        var node;
+
+        while ((node = walker.nextNode())) {
+            if (node.nodeType === Node.TEXT_NODE) {
+                translateTextNode(node, locale);
+            } else {
+                translateAttributes(node, locale);
+            }
+        }
+    }
+
+    var scheduled = false;
+
+    function translatePage() {
+        scheduled = false;
+
+        var locale = getLocale();
+
+        document.documentElement.setAttribute(
+            'lang',
+            locale
+        );
+
+        if (locale !== 'de') {
+            return;
+        }
+
+        translateElement(
+            document.body,
+            locale
+        );
+    }
+
+    function scheduleTranslation() {
+        if (scheduled) {
+            return;
+        }
+
+        scheduled = true;
+
+        window.requestAnimationFrame(
+            translatePage
+        );
+    }
+
+    function initialize() {
+        translatePage();
+
+        window.setTimeout(
+            translatePage,
+            250
+        );
+
+        window.setTimeout(
+            translatePage,
+            800
+        );
+
+        window.setTimeout(
+            translatePage,
+            1800
+        );
+
+        var observer = new MutationObserver(
+            function (mutations) {
+                var shouldTranslate = false;
+
+                mutations.forEach(function (mutation) {
+                    if (
+                        mutation.type === 'childList' &&
+                        mutation.addedNodes.length
+                    ) {
+                        shouldTranslate = true;
+                    }
+
+                    if (
+                        mutation.type === 'characterData'
+                    ) {
+                        shouldTranslate = true;
+                    }
+                });
+
+                if (shouldTranslate) {
+                    scheduleTranslation();
+                }
+            }
+        );
+
+        observer.observe(document.body, {
+            childList: true,
+            subtree: true,
+            characterData: true
+        });
+
+        window.PMDAdminTranslator = {
+            version: '4.0.0',
+            locale: getLocale,
+            run: translatePage
+        };
+
+        console.info(
+            '[PMD Global Translator V4] Ready',
+            {
+                locale: getLocale(),
+                entries: Object.keys(
+                    dictionaries.de
+                ).length
+            }
+        );
+    }
+
+    if (document.readyState === 'loading') {
+        document.addEventListener(
+            'DOMContentLoaded',
+            initialize
+        );
+    } else {
+        initialize();
+    }
+})();
+</script>
+{{-- PMD_GLOBAL_CUSTOM_TRANSLATOR_V4_END --}}
+
+
+
+{{-- PMD_SAFE_NOFLASH_REVEAL_V42_BEGIN --}}
+<script>
+(function () {
+    'use strict';
+
+    var attempts = 0;
+    var maximumAttempts = 160;
+
+    function revealPage() {
+        document.documentElement.classList.remove(
+            'pmd-i18n-waiting'
+        );
+
+        document.documentElement.classList.add(
+            'pmd-i18n-visible'
+        );
+    }
+
+    function translateThenReveal() {
+        var locale = String(
+            window.PMD_ADMIN_LOCALE ||
+            document.documentElement.lang ||
+            'en'
+        ).toLowerCase();
+
+        if (locale !== 'de') {
+            revealPage();
+            return;
+        }
+
+        if (
+            window.PMDAdminTranslator &&
+            typeof window.PMDAdminTranslator.run ===
+                'function'
+        ) {
+            try {
+                window.PMDAdminTranslator.run();
+            } catch (error) {
+                console.error(
+                    '[PMD No-Flash V4.2] Translation error',
+                    error
+                );
+            }
+
+            /*
+             * Allow DOM text updates to complete before paint.
+             */
+            window.requestAnimationFrame(function () {
+                window.requestAnimationFrame(
+                    revealPage
+                );
+            });
+
+            return;
+        }
+
+        attempts += 1;
+
+        if (attempts >= maximumAttempts) {
+            console.error(
+                '[PMD No-Flash V4.2] Translator timeout'
+            );
+
+            revealPage();
+            return;
+        }
+
+        window.setTimeout(
+            translateThenReveal,
+            20
+        );
+    }
+
+    if (document.readyState === 'loading') {
+        document.addEventListener(
+            'DOMContentLoaded',
+            translateThenReveal,
+            {
+                once: true
+            }
+        );
+    } else {
+        translateThenReveal();
+    }
+
+    console.info(
+        '[PMD Safe No-Flash V4.2] Ready'
+    );
+})();
+</script>
+{{-- PMD_SAFE_NOFLASH_REVEAL_V42_END --}}
 
 </body>
 </html>
@@ -14290,8 +14980,16 @@ html.pmd-dashboard2-active .pmd-d2-live-pill {
 {{-- PMD_V181_DISABLE_OLD_WAITER_FLOOR_PATCH_START:V36 --}}
 @if (!request()->is('admin/dashboardwaiter*'))
 <script id="pmd-waiter-dashboard-v36-status-colors-select-dragfix-script">
+
+  /*
+   * PMD Reservations2 V7.1:
+   * This is an obsolete Waiter authority. The real Waiter page still
+   * uses it where appropriate, but Reservations2 uses V175c–V191.
+   */
+  if (/^\/admin\/reservations2\/?$/.test(location.pathname)) return;
+
 (function () {
-  if (!/\/admin\/dashboardwaiter(?:$|[?#])/.test(location.pathname + location.search + location.hash)) return;
+  if (!/(?:\/admin\/dashboardwaiter|\/admin\/reservations2)(?:$|[?#])/.test(location.pathname + location.search + location.hash)) return;
   if (window.PMD_WAITER_DASHBOARD_V36_STATUS_COLORS_SELECT_DRAGFIX) return;
   window.PMD_WAITER_DASHBOARD_V36_STATUS_COLORS_SELECT_DRAGFIX = true;
 
@@ -14905,8 +15603,16 @@ html.pmd-dashboard2-active .pmd-d2-live-pill {
 {{-- PMD_V181_DISABLE_OLD_WAITER_FLOOR_PATCH_START:V40 --}}
 @if (!request()->is('admin/dashboardwaiter*'))
 <script id="pmd-waiter-dashboard-v40-authoritative-compact-merge-script">
+
+  /*
+   * PMD Reservations2 V7.1:
+   * This is an obsolete Waiter authority. The real Waiter page still
+   * uses it where appropriate, but Reservations2 uses V175c–V191.
+   */
+  if (/^\/admin\/reservations2\/?$/.test(location.pathname)) return;
+
 (function () {
-  if (!/\/admin\/dashboardwaiter(?:$|[?#])/.test(location.pathname + location.search + location.hash)) return;
+  if (!/(?:\/admin\/dashboardwaiter|\/admin\/reservations2)(?:$|[?#])/.test(location.pathname + location.search + location.hash)) return;
   if (window.PMD_WAITER_DASHBOARD_V40_AUTHORITATIVE_COMPACT_MERGE) return;
   window.PMD_WAITER_DASHBOARD_V40_AUTHORITATIVE_COMPACT_MERGE = true;
 
@@ -15417,8 +16123,16 @@ html.pmd-dashboard2-active .pmd-d2-live-pill {
 {{-- PMD_V181_DISABLE_OLD_WAITER_FLOOR_PATCH_START:V41 --}}
 @if (!request()->is('admin/dashboardwaiter*'))
 <script id="pmd-waiter-dashboard-v41-flat-board-frames-script">
+
+  /*
+   * PMD Reservations2 V7.1:
+   * This is an obsolete Waiter authority. The real Waiter page still
+   * uses it where appropriate, but Reservations2 uses V175c–V191.
+   */
+  if (/^\/admin\/reservations2\/?$/.test(location.pathname)) return;
+
 (function () {
-  if (!/\/admin\/dashboardwaiter(?:$|[?#])/.test(location.pathname + location.search + location.hash)) return;
+  if (!/(?:\/admin\/dashboardwaiter|\/admin\/reservations2)(?:$|[?#])/.test(location.pathname + location.search + location.hash)) return;
   if (window.PMD_WAITER_DASHBOARD_V41_FLAT_BOARD_FRAMES) return;
   window.PMD_WAITER_DASHBOARD_V41_FLAT_BOARD_FRAMES = true;
 
@@ -15545,8 +16259,16 @@ html.pmd-dashboard2-active .pmd-d2-live-pill {
 {{-- PMD_V181_DISABLE_OLD_WAITER_FLOOR_PATCH_START:V43 --}}
 @if (!request()->is('admin/dashboardwaiter*'))
 <script id="pmd-waiter-dashboard-v43-restore-inner-floor-frame-script">
+
+  /*
+   * PMD Reservations2 V7.1:
+   * This is an obsolete Waiter authority. The real Waiter page still
+   * uses it where appropriate, but Reservations2 uses V175c–V191.
+   */
+  if (/^\/admin\/reservations2\/?$/.test(location.pathname)) return;
+
 (function () {
-  if (!/\/admin\/dashboardwaiter(?:$|[?#])/.test(location.pathname + location.search + location.hash)) return;
+  if (!/(?:\/admin\/dashboardwaiter|\/admin\/reservations2)(?:$|[?#])/.test(location.pathname + location.search + location.hash)) return;
   if (window.PMD_WAITER_DASHBOARD_V43_RESTORE_INNER_FLOOR_FRAME) return;
   window.PMD_WAITER_DASHBOARD_V43_RESTORE_INNER_FLOOR_FRAME = true;
 
@@ -15708,8 +16430,16 @@ html.pmd-dashboard2-active .pmd-d2-live-pill {
 {{-- PMD_V181_DISABLE_OLD_WAITER_FLOOR_PATCH_START:V44 --}}
 @if (!request()->is('admin/dashboardwaiter*'))
 <script id="pmd-waiter-dashboard-v44-floor-icon-size-fix-script">
+
+  /*
+   * PMD Reservations2 V7.1:
+   * This is an obsolete Waiter authority. The real Waiter page still
+   * uses it where appropriate, but Reservations2 uses V175c–V191.
+   */
+  if (/^\/admin\/reservations2\/?$/.test(location.pathname)) return;
+
 (function () {
-  if (!/\/admin\/dashboardwaiter(?:$|[?#])/.test(location.pathname + location.search + location.hash)) return;
+  if (!/(?:\/admin\/dashboardwaiter|\/admin\/reservations2)(?:$|[?#])/.test(location.pathname + location.search + location.hash)) return;
   if (window.PMD_WAITER_DASHBOARD_V44_FLOOR_ICON_SIZE_FIX) return;
   window.PMD_WAITER_DASHBOARD_V44_FLOOR_ICON_SIZE_FIX = true;
 
@@ -15808,8 +16538,16 @@ html.pmd-dashboard2-active .pmd-d2-live-pill {
 {{-- PMD_V181_DISABLE_OLD_WAITER_FLOOR_PATCH_START:V46 --}}
 @if (!request()->is('admin/dashboardwaiter*'))
 <script id="pmd-waiter-dashboard-v46-floor-map-true-white-script">
+
+  /*
+   * PMD Reservations2 V7.1:
+   * This is an obsolete Waiter authority. The real Waiter page still
+   * uses it where appropriate, but Reservations2 uses V175c–V191.
+   */
+  if (/^\/admin\/reservations2\/?$/.test(location.pathname)) return;
+
 (function () {
-  if (!/\/admin\/dashboardwaiter(?:$|[?#])/.test(location.pathname + location.search + location.hash)) return;
+  if (!/(?:\/admin\/dashboardwaiter|\/admin\/reservations2)(?:$|[?#])/.test(location.pathname + location.search + location.hash)) return;
   if (window.PMD_WAITER_DASHBOARD_V46_FLOOR_MAP_TRUE_WHITE) return;
   window.PMD_WAITER_DASHBOARD_V46_FLOOR_MAP_TRUE_WHITE = true;
 
@@ -15946,8 +16684,16 @@ html.pmd-dashboard2-active .pmd-d2-live-pill {
 {{-- PMD_V181_DISABLE_OLD_WAITER_FLOOR_PATCH_START:V47 --}}
 @if (!request()->is('admin/dashboardwaiter*'))
 <script id="pmd-waiter-dashboard-v47-compact-table-visual-cleanup-script">
+
+  /*
+   * PMD Reservations2 V7.1:
+   * This is an obsolete Waiter authority. The real Waiter page still
+   * uses it where appropriate, but Reservations2 uses V175c–V191.
+   */
+  if (/^\/admin\/reservations2\/?$/.test(location.pathname)) return;
+
 (function () {
-  if (!/\/admin\/dashboardwaiter(?:$|[?#])/.test(location.pathname + location.search + location.hash)) return;
+  if (!/(?:\/admin\/dashboardwaiter|\/admin\/reservations2)(?:$|[?#])/.test(location.pathname + location.search + location.hash)) return;
   if (window.PMD_WAITER_DASHBOARD_V47_COMPACT_TABLE_VISUAL_CLEANUP) return;
   window.PMD_WAITER_DASHBOARD_V47_COMPACT_TABLE_VISUAL_CLEANUP = true;
 
@@ -16036,8 +16782,16 @@ html.pmd-dashboard2-active .pmd-d2-live-pill {
 {{-- PMD_V181_DISABLE_OLD_WAITER_FLOOR_PATCH_START:V48 --}}
 @if (!request()->is('admin/dashboardwaiter*'))
 <script id="pmd-waiter-dashboard-v48-title-cleanup-icons-script">
+
+  /*
+   * PMD Reservations2 V7.1:
+   * This is an obsolete Waiter authority. The real Waiter page still
+   * uses it where appropriate, but Reservations2 uses V175c–V191.
+   */
+  if (/^\/admin\/reservations2\/?$/.test(location.pathname)) return;
+
 (function () {
-  if (!/\/admin\/dashboardwaiter(?:$|[?#])/.test(location.pathname + location.search + location.hash)) return;
+  if (!/(?:\/admin\/dashboardwaiter|\/admin\/reservations2)(?:$|[?#])/.test(location.pathname + location.search + location.hash)) return;
   if (window.PMD_WAITER_DASHBOARD_V48_TITLE_CLEANUP_ICONS) return;
   window.PMD_WAITER_DASHBOARD_V48_TITLE_CLEANUP_ICONS = true;
 
@@ -16189,8 +16943,16 @@ html.pmd-dashboardwaiter-kiosk-page #pmd-waiter-dashboard-root.pmd-w89-compact .
 {{-- PMD_V181_DISABLE_OLD_WAITER_FLOOR_PATCH_START:V89 --}}
 @if (!request()->is('admin/dashboardwaiter*'))
 <script id="pmd-waiter-dashboard-v89-floor-position-lock-script">
+
+  /*
+   * PMD Reservations2 V7.1:
+   * This is an obsolete Waiter authority. The real Waiter page still
+   * uses it where appropriate, but Reservations2 uses V175c–V191.
+   */
+  if (/^\/admin\/reservations2\/?$/.test(location.pathname)) return;
+
 (function () {
-  if (!/\/admin\/dashboardwaiter(?:$|[?#])/.test(location.pathname + location.search + location.hash)) return;
+  if (!/(?:\/admin\/dashboardwaiter|\/admin\/reservations2)(?:$|[?#])/.test(location.pathname + location.search + location.hash)) return;
   if (window.PMD_WAITER_DASHBOARD_V89_FLOOR_POSITION_LOCK) return;
   window.PMD_WAITER_DASHBOARD_V89_FLOOR_POSITION_LOCK = true;
 
@@ -16586,8 +17348,16 @@ html.pmd-dashboardwaiter-kiosk-page #pmd-waiter-dashboard-root .pmd-v18-merged-t
 {{-- PMD_V181_DISABLE_OLD_WAITER_FLOOR_PATCH_START:V105 --}}
 @if (!request()->is('admin/dashboardwaiter*'))
 <script id="pmd-waiter-dashboard-v105-remove-merge-feature-script">
+
+  /*
+   * PMD Reservations2 V7.1:
+   * This is an obsolete Waiter authority. The real Waiter page still
+   * uses it where appropriate, but Reservations2 uses V175c–V191.
+   */
+  if (/^\/admin\/reservations2\/?$/.test(location.pathname)) return;
+
 (function () {
-  if (!/\/admin\/dashboardwaiter(?:$|[?#])/.test(location.pathname + location.search + location.hash)) return;
+  if (!/(?:\/admin\/dashboardwaiter|\/admin\/reservations2)(?:$|[?#])/.test(location.pathname + location.search + location.hash)) return;
   if (window.PMD_WAITER_DASHBOARD_V105_REMOVE_MERGE_FEATURE) return;
   window.PMD_WAITER_DASHBOARD_V105_REMOVE_MERGE_FEATURE = true;
 
@@ -16894,4 +17664,3 @@ html.pmd-dashboardwaiter-kiosk-page #pmd-waiter-dashboard-root .pmd-v18-merged-t
 {{-- PMD_V181_DISABLE_OLD_WAITER_FLOOR_PATCH_END:V105 --}}
 
 <!-- PMD_WAITER_DASHBOARD_V105_REMOVE_MERGE_FEATURE_END -->
-

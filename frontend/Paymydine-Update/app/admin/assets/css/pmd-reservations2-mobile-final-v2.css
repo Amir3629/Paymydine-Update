@@ -1,0 +1,715 @@
+/* ==========================================================
+   PMD RESERVATIONS2 MOBILE HEADER + KPI ROW V2
+
+   Mobile header:
+   [ Back ] [ Menu ]               [ Bell ] [ Plus ]
+
+   Side Menu styling is intentionally untouched.
+   ========================================================== */
+
+@media (max-width: 820px) {
+
+  /* ========================================================
+     MOBILE HEADER
+     ======================================================== */
+
+  body:has(#pmd-reservations2) #pmd-r2-clean-header {
+    display: grid !important;
+    grid-template-columns:
+      40px
+      40px
+      minmax(0, 1fr)
+      auto !important;
+    grid-template-rows: 44px !important;
+    align-items: center !important;
+    width: 100% !important;
+    min-width: 0 !important;
+    min-height: 52px !important;
+    column-gap: 8px !important;
+    margin: 0 0 10px !important;
+    padding: 0 !important;
+  }
+
+  /* Hide title only on mobile. */
+  body:has(#pmd-reservations2)
+  #pmd-r2-clean-header .pmd-r2-clean-title {
+    display: none !important;
+    visibility: hidden !important;
+    pointer-events: none !important;
+  }
+
+  /* Back button: first button on the left. */
+  body:has(#pmd-reservations2)
+  #pmd-r2-clean-header .pmd-r2-mobile-back {
+    grid-column: 1 !important;
+    grid-row: 1 !important;
+  }
+
+  /* Hamburger button: second button on the left. */
+  body:has(#pmd-reservations2)
+  #pmd-r2-clean-header .pmd-r2-mobile-toggle,
+  body:has(#pmd-reservations2)
+  #pmd-r2-clean-header .pmd-r2-mobile-menu {
+    grid-column: 2 !important;
+    grid-row: 1 !important;
+  }
+
+  /* Shared left mobile button style. */
+  body:has(#pmd-reservations2)
+  #pmd-r2-clean-header .pmd-r2-mobile-back,
+  body:has(#pmd-reservations2)
+  #pmd-r2-clean-header .pmd-r2-mobile-toggle,
+  body:has(#pmd-reservations2)
+  #pmd-r2-clean-header .pmd-r2-mobile-menu {
+    position: relative !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    width: 40px !important;
+    min-width: 40px !important;
+    max-width: 40px !important;
+    height: 40px !important;
+    min-height: 40px !important;
+    max-height: 40px !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    border: 1px solid #c9e0ef !important;
+    border-radius: 11px !important;
+    background: #ffffff !important;
+    color: #101f2a !important;
+    box-shadow: none !important;
+    cursor: pointer !important;
+    transform: none !important;
+  }
+
+  body:has(#pmd-reservations2)
+  #pmd-r2-clean-header .pmd-r2-mobile-back:hover,
+  body:has(#pmd-reservations2)
+  #pmd-r2-clean-header .pmd-r2-mobile-back:focus-visible,
+  body:has(#pmd-reservations2)
+  #pmd-r2-clean-header .pmd-r2-mobile-toggle:hover,
+  body:has(#pmd-reservations2)
+  #pmd-r2-clean-header .pmd-r2-mobile-toggle:focus-visible {
+    background: #f1f7fb !important;
+    border-color: #9fc6dc !important;
+    outline: none !important;
+  }
+
+  body:has(#pmd-reservations2)
+  #pmd-r2-clean-header .pmd-r2-mobile-back svg,
+  body:has(#pmd-reservations2)
+  #pmd-r2-clean-header .pmd-r2-mobile-toggle svg,
+  body:has(#pmd-reservations2)
+  #pmd-r2-clean-header .pmd-r2-mobile-menu svg {
+    display: block !important;
+    width: 21px !important;
+    height: 21px !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    fill: none !important;
+    stroke: currentColor !important;
+    stroke-width: 2 !important;
+    stroke-linecap: round !important;
+    stroke-linejoin: round !important;
+    transform: none !important;
+  }
+
+  /* Right-side action group. */
+  body:has(#pmd-reservations2)
+  #pmd-r2-clean-header .pmd-r2-clean-actions {
+    grid-column: 4 !important;
+    grid-row: 1 !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: flex-end !important;
+    gap: 7px !important;
+    min-width: 0 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+
+  /*
+   * Right-side order:
+   * Notification first, then Create/Plus.
+   */
+  body:has(#pmd-reservations2)
+  #pmd-r2-clean-header #notif-root {
+    order: 1 !important;
+  }
+
+  body:has(#pmd-reservations2)
+  #pmd-r2-clean-header .pmd-r2-clean-action {
+    order: 2 !important;
+  }
+
+  body:has(#pmd-reservations2)
+  #pmd-r2-clean-header .pmd-r2-clean-action,
+  body:has(#pmd-reservations2)
+  #pmd-r2-clean-header #notif-root,
+  body:has(#pmd-reservations2)
+  #pmd-r2-clean-header #notif-root > a,
+  body:has(#pmd-reservations2)
+  #pmd-r2-clean-header #notif-root > span > a,
+  body:has(#pmd-reservations2)
+  #pmd-r2-clean-header #notifDropdown {
+    flex: 0 0 40px !important;
+    width: 40px !important;
+    min-width: 40px !important;
+    max-width: 40px !important;
+    height: 40px !important;
+    min-height: 40px !important;
+    max-height: 40px !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    border-radius: 11px !important;
+  }
+
+  /* ========================================================
+     FOUR KPI CARDS IN ONE ROW
+     ======================================================== */
+
+  body:has(#pmd-reservations2)
+  #pmd-reservations2 .pmd-r2__kpis {
+    display: grid !important;
+    grid-template-columns: repeat(4, minmax(150px, 1fr)) !important;
+    grid-auto-flow: column !important;
+    gap: 10px !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    margin: 0 0 10px !important;
+    padding: 0 0 5px !important;
+    overflow-x: auto !important;
+    overflow-y: hidden !important;
+    overscroll-behavior-x: contain !important;
+    scroll-snap-type: x proximity !important;
+    scroll-behavior: smooth !important;
+    scrollbar-width: thin !important;
+    -webkit-overflow-scrolling: touch !important;
+  }
+
+  body:has(#pmd-reservations2)
+  #pmd-reservations2 .pmd-r2-kpi {
+    scroll-snap-align: start !important;
+    min-width: 150px !important;
+    width: auto !important;
+    min-height: 102px !important;
+    padding: 16px !important;
+    border-radius: 16px !important;
+  }
+
+  body:has(#pmd-reservations2)
+  #pmd-reservations2 .pmd-r2-kpi > div {
+    min-width: 0 !important;
+  }
+
+  body:has(#pmd-reservations2)
+  #pmd-reservations2 .pmd-r2-kpi span {
+    font-size: 11px !important;
+    line-height: 1.25 !important;
+    white-space: nowrap !important;
+  }
+
+  body:has(#pmd-reservations2)
+  #pmd-reservations2 .pmd-r2-kpi strong {
+    font-size: 28px !important;
+    line-height: 1 !important;
+  }
+
+  body:has(#pmd-reservations2)
+  #pmd-reservations2 .pmd-r2-kpi i {
+    flex: 0 0 42px !important;
+    width: 42px !important;
+    height: 42px !important;
+    border-radius: 13px !important;
+    font-size: 19px !important;
+  }
+}
+
+/* Slightly smaller controls on very narrow devices. */
+@media (max-width: 390px) {
+
+  body:has(#pmd-reservations2) #pmd-r2-clean-header {
+    grid-template-columns:
+      38px
+      38px
+      minmax(0, 1fr)
+      auto !important;
+    column-gap: 6px !important;
+  }
+
+  body:has(#pmd-reservations2)
+  #pmd-r2-clean-header .pmd-r2-mobile-back,
+  body:has(#pmd-reservations2)
+  #pmd-r2-clean-header .pmd-r2-mobile-toggle,
+  body:has(#pmd-reservations2)
+  #pmd-r2-clean-header .pmd-r2-mobile-menu,
+  body:has(#pmd-reservations2)
+  #pmd-r2-clean-header .pmd-r2-clean-action,
+  body:has(#pmd-reservations2)
+  #pmd-r2-clean-header #notif-root,
+  body:has(#pmd-reservations2)
+  #pmd-r2-clean-header #notif-root > a,
+  body:has(#pmd-reservations2)
+  #pmd-r2-clean-header #notif-root > span > a,
+  body:has(#pmd-reservations2)
+  #pmd-r2-clean-header #notifDropdown {
+    flex-basis: 38px !important;
+    width: 38px !important;
+    min-width: 38px !important;
+    max-width: 38px !important;
+    height: 38px !important;
+    min-height: 38px !important;
+    max-height: 38px !important;
+  }
+
+  body:has(#pmd-reservations2)
+  #pmd-r2-clean-header .pmd-r2-clean-actions {
+    gap: 5px !important;
+  }
+
+  body:has(#pmd-reservations2)
+  #pmd-reservations2 .pmd-r2__kpis {
+    grid-template-columns: repeat(4, minmax(140px, 1fr)) !important;
+  }
+
+  body:has(#pmd-reservations2)
+  #pmd-reservations2 .pmd-r2-kpi {
+    min-width: 140px !important;
+  }
+}
+
+/* ==========================================================
+   PMD RESERVATIONS2 MOBILE HEADER ORDER V3
+
+   LEFT:  Back | Hamburger
+   RIGHT: Notification | Plus
+   ========================================================== */
+
+@media (max-width: 820px) {
+
+  body:has(#pmd-reservations2) #pmd-r2-clean-header {
+    direction: ltr !important;
+  }
+
+  /* Left controls */
+  body:has(#pmd-reservations2)
+  #pmd-r2-clean-header .pmd-r2-mobile-back {
+    grid-column: 1 !important;
+    grid-row: 1 !important;
+    order: 1 !important;
+  }
+
+  body:has(#pmd-reservations2)
+  #pmd-r2-clean-header .pmd-r2-mobile-toggle,
+  body:has(#pmd-reservations2)
+  #pmd-r2-clean-header .pmd-r2-mobile-menu,
+  body:has(#pmd-reservations2)
+  #pmd-r2-clean-header [data-pmd-r2-mobile-menu] {
+    grid-column: 2 !important;
+    grid-row: 1 !important;
+    order: 2 !important;
+  }
+
+  /* Right-side action container */
+  body:has(#pmd-reservations2)
+  #pmd-r2-clean-header .pmd-r2-clean-actions {
+    direction: ltr !important;
+    display: flex !important;
+    flex-direction: row !important;
+    align-items: center !important;
+    justify-content: flex-end !important;
+  }
+
+  /* Notification must be left of plus inside the right group. */
+  body:has(#pmd-reservations2)
+  #pmd-r2-clean-header #notif-root {
+    order: 1 !important;
+  }
+
+  body:has(#pmd-reservations2)
+  #pmd-r2-clean-header .pmd-r2-clean-action {
+    order: 2 !important;
+  }
+
+  /*
+   * Because the action group itself is on the right side:
+   * visual order becomes Notification then Plus.
+   */
+}
+
+/* ==========================================================
+   PMD RESERVATIONS2 MOBILE V4
+
+   Header:
+   LEFT  = Back, Hamburger
+   RIGHT = Notification, Plus
+
+   KPI:
+   Exactly 2 cards visible, cards 3 and 4 via horizontal scroll.
+   ========================================================== */
+
+@media (max-width: 820px) {
+
+  /* ========================================================
+     HEADER LEFT ORDER
+     ======================================================== */
+
+  body:has(#pmd-reservations2) #pmd-r2-clean-header {
+    direction: ltr !important;
+    grid-template-columns:
+      40px
+      40px
+      minmax(0, 1fr)
+      auto !important;
+    column-gap: 8px !important;
+  }
+
+  body:has(#pmd-reservations2)
+  #pmd-r2-clean-header .pmd-r2-mobile-back {
+    grid-column: 1 !important;
+    grid-row: 1 !important;
+    justify-self: start !important;
+    order: 1 !important;
+  }
+
+  body:has(#pmd-reservations2)
+  #pmd-r2-clean-header .pmd-r2-mobile-toggle,
+  body:has(#pmd-reservations2)
+  #pmd-r2-clean-header .pmd-r2-mobile-menu,
+  body:has(#pmd-reservations2)
+  #pmd-r2-clean-header [data-pmd-r2-mobile-menu] {
+    grid-column: 2 !important;
+    grid-row: 1 !important;
+    justify-self: start !important;
+    order: 2 !important;
+  }
+
+  /*
+   * Force the right-side order:
+   * Notification appears first, Plus appears after it.
+   */
+  body:has(#pmd-reservations2)
+  #pmd-r2-clean-header .pmd-r2-clean-actions {
+    direction: ltr !important;
+    flex-direction: row !important;
+  }
+
+  body:has(#pmd-reservations2)
+  #pmd-r2-clean-header #notif-root {
+    order: 1 !important;
+  }
+
+  body:has(#pmd-reservations2)
+  #pmd-r2-clean-header .pmd-r2-clean-action {
+    order: 2 !important;
+  }
+
+  /* ========================================================
+     KPI CAROUSEL: TWO CARDS VISIBLE
+     ======================================================== */
+
+  body:has(#pmd-reservations2)
+  #pmd-reservations2 .pmd-r2__kpis {
+    --pmd-r2-mobile-kpi-gap: 10px;
+    --pmd-r2-mobile-kpi-width:
+      calc(
+        (100% - var(--pmd-r2-mobile-kpi-gap))
+        / 2
+      );
+
+    display: flex !important;
+    flex-wrap: nowrap !important;
+    align-items: stretch !important;
+    gap: var(--pmd-r2-mobile-kpi-gap) !important;
+
+    width: 100% !important;
+    max-width: 100% !important;
+
+    margin: 0 0 12px !important;
+    padding: 0 0 8px !important;
+
+    overflow-x: auto !important;
+    overflow-y: hidden !important;
+
+    scroll-snap-type: x mandatory !important;
+    scroll-padding-left: 0 !important;
+    scroll-behavior: smooth !important;
+
+    overscroll-behavior-x: contain !important;
+    -webkit-overflow-scrolling: touch !important;
+
+    scrollbar-width: thin !important;
+  }
+
+  body:has(#pmd-reservations2)
+  #pmd-reservations2 .pmd-r2-kpi {
+    flex:
+      0
+      0
+      var(--pmd-r2-mobile-kpi-width) !important;
+
+    width:
+      var(--pmd-r2-mobile-kpi-width) !important;
+
+    min-width:
+      var(--pmd-r2-mobile-kpi-width) !important;
+
+    max-width:
+      var(--pmd-r2-mobile-kpi-width) !important;
+
+    min-height: 110px !important;
+    padding: 17px 16px !important;
+
+    scroll-snap-align: start !important;
+    scroll-snap-stop: always !important;
+
+    overflow: hidden !important;
+  }
+
+  body:has(#pmd-reservations2)
+  #pmd-reservations2 .pmd-r2-kpi > div {
+    flex: 1 1 auto !important;
+    min-width: 0 !important;
+    overflow: hidden !important;
+  }
+
+  body:has(#pmd-reservations2)
+  #pmd-reservations2 .pmd-r2-kpi span {
+    display: block !important;
+    max-width: 100% !important;
+
+    font-size: 11px !important;
+    line-height: 1.2 !important;
+
+    white-space: nowrap !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+  }
+
+  body:has(#pmd-reservations2)
+  #pmd-reservations2 .pmd-r2-kpi strong {
+    margin-top: 7px !important;
+    font-size: 30px !important;
+    line-height: 1 !important;
+  }
+
+  body:has(#pmd-reservations2)
+  #pmd-reservations2 .pmd-r2-kpi i {
+    flex: 0 0 44px !important;
+    width: 44px !important;
+    height: 44px !important;
+    margin-left: 8px !important;
+    font-size: 20px !important;
+  }
+}
+
+/* Narrow phones still show exactly two cards. */
+@media (max-width: 390px) {
+
+  body:has(#pmd-reservations2) #pmd-r2-clean-header {
+    grid-template-columns:
+      38px
+      38px
+      minmax(0, 1fr)
+      auto !important;
+    column-gap: 6px !important;
+  }
+
+  body:has(#pmd-reservations2)
+  #pmd-reservations2 .pmd-r2__kpis {
+    --pmd-r2-mobile-kpi-gap: 8px;
+  }
+
+  body:has(#pmd-reservations2)
+  #pmd-reservations2 .pmd-r2-kpi {
+    min-height: 104px !important;
+    padding: 14px 13px !important;
+  }
+
+  body:has(#pmd-reservations2)
+  #pmd-reservations2 .pmd-r2-kpi i {
+    flex-basis: 40px !important;
+    width: 40px !important;
+    height: 40px !important;
+    margin-left: 5px !important;
+  }
+}
+
+/* ==========================================================
+   PMD RESERVATIONS2 BACK BUTTON FINAL V5
+
+   Desktop: completely hidden
+   Mobile: visible at far left, hamburger immediately after it
+   ========================================================== */
+
+/* Never show the mobile back button on desktop. */
+@media (min-width: 821px) {
+  body:has(#pmd-reservations2)
+  #pmd-r2-clean-header .pmd-r2-mobile-back {
+    display: none !important;
+    visibility: hidden !important;
+    position: absolute !important;
+    width: 0 !important;
+    height: 0 !important;
+    min-width: 0 !important;
+    min-height: 0 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    border: 0 !important;
+    opacity: 0 !important;
+    overflow: hidden !important;
+    pointer-events: none !important;
+  }
+}
+
+/* Mobile header: Back | Hamburger ........ Bell | Plus */
+@media (max-width: 820px) {
+
+  body:has(#pmd-reservations2) #pmd-r2-clean-header {
+    display: grid !important;
+    grid-template-columns:
+      40px
+      40px
+      minmax(0, 1fr)
+      auto !important;
+    grid-template-rows: 40px !important;
+    align-items: center !important;
+    column-gap: 8px !important;
+    direction: ltr !important;
+  }
+
+  body:has(#pmd-reservations2)
+  #pmd-r2-clean-header .pmd-r2-mobile-back {
+    grid-column: 1 !important;
+    grid-row: 1 !important;
+
+    position: relative !important;
+    inset: auto !important;
+
+    display: inline-flex !important;
+    visibility: visible !important;
+
+    align-items: center !important;
+    justify-content: center !important;
+
+    width: 40px !important;
+    min-width: 40px !important;
+    max-width: 40px !important;
+
+    height: 40px !important;
+    min-height: 40px !important;
+    max-height: 40px !important;
+
+    margin: 0 !important;
+    padding: 0 !important;
+
+    border: 1px solid #c9e0ef !important;
+    border-radius: 11px !important;
+
+    background: #ffffff !important;
+    color: #101f2a !important;
+
+    opacity: 1 !important;
+    overflow: visible !important;
+    pointer-events: auto !important;
+
+    box-shadow: none !important;
+    transform: none !important;
+
+    cursor: pointer !important;
+    z-index: 110 !important;
+  }
+
+  body:has(#pmd-reservations2)
+  #pmd-r2-clean-header .pmd-r2-mobile-back:hover,
+  body:has(#pmd-reservations2)
+  #pmd-r2-clean-header .pmd-r2-mobile-back:focus-visible {
+    background: #f1f7fb !important;
+    border-color: #9fc6dc !important;
+    outline: none !important;
+  }
+
+  body:has(#pmd-reservations2)
+  #pmd-r2-clean-header .pmd-r2-mobile-back svg {
+    display: block !important;
+
+    width: 21px !important;
+    height: 21px !important;
+
+    margin: 0 !important;
+    padding: 0 !important;
+
+    fill: none !important;
+    stroke: currentColor !important;
+    stroke-width: 2.2 !important;
+    stroke-linecap: round !important;
+    stroke-linejoin: round !important;
+
+    opacity: 1 !important;
+    visibility: visible !important;
+
+    transform: none !important;
+    pointer-events: none !important;
+  }
+
+  /* Hamburger must remain immediately to the right of Back. */
+  body:has(#pmd-reservations2)
+  #pmd-r2-clean-header .pmd-r2-mobile-toggle,
+  body:has(#pmd-reservations2)
+  #pmd-r2-clean-header .pmd-r2-mobile-menu,
+  body:has(#pmd-reservations2)
+  #pmd-r2-clean-header [data-pmd-r2-mobile-menu] {
+    grid-column: 2 !important;
+    grid-row: 1 !important;
+
+    display: inline-flex !important;
+    visibility: visible !important;
+
+    width: 40px !important;
+    min-width: 40px !important;
+    max-width: 40px !important;
+
+    height: 40px !important;
+    min-height: 40px !important;
+    max-height: 40px !important;
+
+    margin: 0 !important;
+    opacity: 1 !important;
+    pointer-events: auto !important;
+  }
+
+  body:has(#pmd-reservations2)
+  #pmd-r2-clean-header .pmd-r2-clean-actions {
+    grid-column: 4 !important;
+    grid-row: 1 !important;
+  }
+}
+
+@media (max-width: 390px) {
+  body:has(#pmd-reservations2) #pmd-r2-clean-header {
+    grid-template-columns:
+      38px
+      38px
+      minmax(0, 1fr)
+      auto !important;
+    grid-template-rows: 38px !important;
+    column-gap: 6px !important;
+  }
+
+  body:has(#pmd-reservations2)
+  #pmd-r2-clean-header .pmd-r2-mobile-back,
+  body:has(#pmd-reservations2)
+  #pmd-r2-clean-header .pmd-r2-mobile-toggle,
+  body:has(#pmd-reservations2)
+  #pmd-r2-clean-header .pmd-r2-mobile-menu,
+  body:has(#pmd-reservations2)
+  #pmd-r2-clean-header [data-pmd-r2-mobile-menu] {
+    width: 38px !important;
+    min-width: 38px !important;
+    max-width: 38px !important;
+
+    height: 38px !important;
+    min-height: 38px !important;
+    max-height: 38px !important;
+  }
+}
