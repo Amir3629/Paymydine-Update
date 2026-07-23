@@ -5,6 +5,7 @@ namespace Admin\Controllers;
 use Admin\ActivityTypes\StatusUpdated;
 use Admin\Facades\AdminMenu;
 use Admin\Models\Reservations_model;
+use Admin\Models\Status_history_model;
 use Admin\Models\Statuses_model;
 use Igniter\Flame\Exception\ApplicationException;
 
@@ -79,12 +80,24 @@ class Reservations2 extends Reservations
 
         if ((int)$reservation->status_id !== (int)$status->status_id) {
             if ($action === 'seat' || $action === 'cancel') {
-                $reservation->processed = true;
+                $reservation->newQuery()
+                    ->where($reservation->getKeyName(), $reservation->getKey())
+                    ->update(['processed' => true]);
             }
 
-            if ($record = $reservation->addStatusHistory($status)) {
-                StatusUpdated::log($record, $this->getUser());
+            // Create history directly so status updates work even when the
+            // workspace URL contains cache-busting/date query parameters.
+            $record = Status_history_model::createHistory(
+                $status,
+                $reservation,
+                ['staff_id' => $this->getUser()->getKey()]
+            );
+
+            if (!$record) {
+                throw new ApplicationException('The reservation status could not be updated.');
             }
+
+            StatusUpdated::log($record, $this->getUser());
         }
 
         $freshReservation = Reservations_model::query()
@@ -129,6 +142,10 @@ class Reservations2 extends Reservations
                 'check in',
                 'confirmed',
                 'approved',
+                'angekommen',
+                'eingetroffen',
+                'bestätigt',
+                'bestaetigt',
             ],
             'seat' => [
                 'seated',
@@ -136,12 +153,17 @@ class Reservations2 extends Reservations
                 'completed',
                 'complete',
                 'finished',
+                'platziert',
+                'besetzt',
+                'abgeschlossen',
             ],
             'cancel' => [
                 'cancelled',
                 'canceled',
                 'declined',
                 'rejected',
+                'storniert',
+                'abgesagt',
             ],
         ];
 
