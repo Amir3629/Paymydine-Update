@@ -129,12 +129,34 @@ class Reservations extends \Admin\Classes\AdminController
 
         $startAt = make_carbon($startAt);
         $endAt = make_carbon($endAt);
-
         $reservation->duration = $startAt->diffInMinutes($endAt);
         $reservation->reserve_date = $startAt->toDateString();
         $reservation->reserve_time = $startAt->toTimeString();
 
         $reservation->save();
+    }
+
+    /**
+     * Prefill a new reservation when Reservations2 opens the create form from
+     * a selected floor table. Existing create/edit behaviour is unchanged.
+     */
+    public function formExtendModel($model)
+    {
+        if ($model->exists) {
+            return;
+        }
+
+        $tableId = (int)request()->query('table_id');
+        $reserveDate = trim((string)request()->query('reserve_date'));
+
+        if ($tableId > 0) {
+            $model->table_id = $tableId;
+            $model->setAttribute('tables', [$tableId]);
+        }
+
+        if (preg_match('/^\d{4}-\d{2}-\d{2}$/', $reserveDate)) {
+            $model->reserve_date = $reserveDate;
+        }
     }
 
     public function formExtendQuery($query)
