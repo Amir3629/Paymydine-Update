@@ -1,11 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-@include('admin::_partials.pmd_admin_i18n')
-
-
-
-<meta charset="UTF-8">
+    <meta charset="UTF-8">
     <title>@yield('pageTitle', 'Admin Panel')</title>
     @styles
 
@@ -274,6 +270,10 @@ section.pmd962-hero,
 <!-- PMD_KDS_INDEX_V130_INLINE_ADVANCED_NO_FLASH_END -->
 
 
+
+
+
+
 <!-- PMD_KDS_INDEX_V133_CLEAN_CSS_STABILITY_START -->
 <?php if (function_exists('request') && trim(request()->path(), '/') === 'admin/kds_stations'): ?>
 <style id="pmd-kds-index-v133-clean-css-stability">
@@ -432,10 +432,10 @@ html.pmd-new-pages-antiflash-v40:not(.pmd-new-pages-antiflash-rendered-v40):not(
 <!-- /PMD New Pages Anti-Flash Opacity v40 -->
 
 
-<!-- PMD Admin Forms Clean v1 -->
-<link rel="stylesheet" href="/app/admin/assets/css/pmd-admin-universal-forms-v1.css?v=clean1">
-<script defer src="/app/admin/assets/js/pmd-admin-universal-forms-v1.js?v=clean1"></script>
-<!-- /PMD Admin Forms Clean v1 -->
+<!-- PMD Universal Admin Forms v1 -->
+<link rel="stylesheet" href="/app/admin/assets/css/pmd-admin-universal-forms-v1.css?v=10">
+<script defer src="/app/admin/assets/js/pmd-admin-universal-forms-v1.js?v=10"></script>
+<!-- /PMD Universal Admin Forms v1 -->
 
 </head>
 <body class="admin">
@@ -445,6 +445,11 @@ html.pmd-new-pages-antiflash-v40:not(.pmd-new-pages-antiflash-rendered-v40):not(
     </div>
     @scripts
 <script src="/app/admin/assets/js/pmd-waiter-v98-single-source.js?v=98"></script>
+
+
+
+
+
 
 
 <!-- PMD_ADMIN_FINAL_SINGLE_LOGO_V20 -->
