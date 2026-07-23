@@ -21,6 +21,7 @@ class Reservations2 extends Reservations
         parent::__construct();
 
         AdminMenu::setContext('reservations', 'sales');
+        $this->addJs('assets/js/pmd-reservations2-panel-actions-v331.js');
     }
 
     public function index()
