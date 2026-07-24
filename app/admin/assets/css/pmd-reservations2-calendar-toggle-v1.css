@@ -1,8 +1,9 @@
-/* PMD Reservations2 embedded calendar toggle V1 */
-#pmd-r2-calendar-toggle-v1{display:inline-flex;align-items:center;justify-content:center;width:52px;height:52px;min-width:52px;padding:0;border:1px solid #c9deec;border-radius:15px;background:#fff;color:#14283e;box-shadow:none;cursor:pointer;transition:background .2s ease,color .2s ease,border-color .2s ease,transform .2s ease}
+/* PMD Reservations2 embedded calendar toggle V1.2 */
+#pmd-r2-calendar-toggle-v1{display:inline-flex;align-items:center;justify-content:center;width:52px;height:52px;min-width:52px;padding:0;border:1px solid #c9deec;border-radius:15px;background:#fff;color:#14283e;box-shadow:none;cursor:pointer;transition:background .2s ease,color .2s ease,border-color .2s ease,transform .2s ease;z-index:10070}
 #pmd-r2-calendar-toggle-v1:hover{background:#f1f7fb;transform:translateY(-1px)}
 #pmd-r2-calendar-toggle-v1.is-active{background:#102a43;color:#fff;border-color:#102a43}
 #pmd-r2-calendar-toggle-v1 svg{width:24px;height:24px;pointer-events:none}
+#pmd-r2-calendar-toggle-v1.is-fallback-fixed{position:fixed;top:54px;right:18px;z-index:10110;box-shadow:0 8px 24px rgba(15,40,64,.10)}
 #pmd-r2-calendar-host-v1{display:none;opacity:0;transform:translateY(14px);transition:opacity .28s ease,transform .28s cubic-bezier(.22,.8,.25,1);margin-top:14px;min-width:0}
 #pmd-r2-calendar-host-v1.is-mounted{display:block}
 #pmd-r2-calendar-host-v1.is-visible{opacity:1;transform:translateY(0)}
@@ -10,7 +11,8 @@
 #pmd-r2-calendar-host-v1 .pmd-yc__toolbar{margin:0!important}
 #pmd-r2-calendar-host-v1 .pmd-yc__months{margin:0!important}
 #pmd-reservations2 .pmd-r2-calendar-source{transition:opacity .22s ease,transform .25s cubic-bezier(.22,.8,.25,1);opacity:1;transform:translateY(0)}
-#pmd-reservations2.is-calendar-mode .pmd-r2-calendar-source{opacity:0;transform:translateY(10px);pointer-events:none}
+#pmd-reservations2 .pmd-r2-calendar-source.pmd-r2-calendar-source-hidden{opacity:0;transform:translateY(10px);pointer-events:none}
 #pmd-reservations2 .pmd-r2-calendar-source[hidden]{display:none!important}
-@media(max-width:850px){#pmd-r2-calendar-toggle-v1{width:46px;height:46px;min-width:46px;border-radius:13px}#pmd-r2-calendar-host-v1{margin-top:10px}}
+#pmd-reservations2:not(.is-calendar-mode) .pmd-r2-calendar-source:not([hidden]){opacity:1!important;transform:none!important;pointer-events:auto!important}
+@media(max-width:850px){#pmd-r2-calendar-toggle-v1{width:46px;height:46px;min-width:46px;border-radius:13px}#pmd-r2-calendar-toggle-v1.is-fallback-fixed{top:50px;right:10px}#pmd-r2-calendar-host-v1{margin-top:10px}}
 @media(prefers-reduced-motion:reduce){#pmd-r2-calendar-toggle-v1,#pmd-r2-calendar-host-v1,#pmd-reservations2 .pmd-r2-calendar-source{transition:none!important}}
