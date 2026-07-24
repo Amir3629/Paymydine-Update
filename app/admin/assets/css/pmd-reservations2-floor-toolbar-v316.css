@@ -177,19 +177,15 @@
   box-shadow: 0 0 0 4px rgba(23, 55, 82, .18), 0 14px 28px rgba(23, 55, 82, .22) !important;
 }
 
-html.pmd-r2-reservation-experience-ready,
-html.pmd-r2-reservation-experience-ready body {
+html.pmd-r2-reservation-experience-ready .page-wrapper,
+html.pmd-r2-reservation-experience-ready .page-content,
+html.pmd-r2-reservation-experience-ready #pmd-reservations2 {
   height: auto !important;
-  min-height: 100% !important;
   max-height: none !important;
-  overflow-x: hidden !important;
-  overflow-y: auto !important;
 }
 
 html.pmd-r2-reservation-experience-ready #pmd-reservations2 {
-  height: auto !important;
   min-height: 100vh !important;
-  max-height: none !important;
   overflow: visible !important;
   padding-bottom: 40px !important;
 }
