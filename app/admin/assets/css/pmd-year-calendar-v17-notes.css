@@ -1,0 +1,34 @@
+/* PMD Year Calendar V1.7 — compact header + day notes */
+#pmd-year-calendar.pmd-yc{padding:14px!important}
+#pmd-year-calendar .pmd-yc__toolbar{display:flex!important;align-items:center!important;justify-content:space-between!important;gap:14px!important;min-height:58px!important;padding:8px 12px!important;border-radius:14px 14px 0 0!important}
+#pmd-year-calendar .pmd-yc__legend{display:flex!important;align-items:center!important;gap:10px!important;flex:0 1 auto!important;white-space:nowrap!important}
+#pmd-year-calendar .pmd-yc__legend span{font-size:11px!important;gap:4px!important}
+#pmd-year-calendar .pmd-yc__legend i{width:17px!important;height:17px!important;font-size:8px!important}
+#pmd-year-calendar .pmd-yc__toolbar-right{display:flex!important;align-items:center!important;justify-content:flex-end!important;gap:8px!important;flex:0 0 auto!important;white-space:nowrap!important}
+#pmd-year-calendar .pmd-yc__view-switch,#pmd-year-calendar .pmd-yc__filters{display:flex!important;align-items:center!important;gap:6px!important;flex-wrap:nowrap!important}
+#pmd-year-calendar .pmd-yc__view-switch button,#pmd-year-calendar .pmd-yc__filters button,#pmd-year-calendar [data-pmd-yc-note-button]{height:34px!important;min-height:34px!important;padding:0 11px!important;border-radius:9px!important;font-size:11px!important;line-height:34px!important;white-space:nowrap!important}
+#pmd-year-calendar [data-pmd-yc-note-button]{border:1px solid #f3a53b!important;background:#fff4e5!important;color:#9a5700!important;font-weight:900!important;display:inline-flex!important;align-items:center!important;gap:6px!important}
+#pmd-year-calendar [data-pmd-yc-note-button]::before{content:'✎';font-size:13px}
+#pmd-year-calendar .pmd-yc__month-nav{display:flex!important;align-items:center!important;justify-content:center!important;gap:8px!important;margin:0!important;flex:0 0 auto!important}
+#pmd-year-calendar .pmd-yc__month-nav[hidden]{display:none!important}
+#pmd-year-calendar .pmd-yc__month-nav strong{min-width:115px!important;font-size:16px!important}
+#pmd-year-calendar .pmd-yc__month-nav button{width:34px!important;height:34px!important;border-radius:9px!important}
+#pmd-year-calendar[data-view="month"] .pmd-yc__toolbar{display:grid!important;grid-template-columns:auto minmax(210px,1fr) auto!important}
+#pmd-year-calendar[data-view="month"] .pmd-yc__legend{justify-self:start!important}
+#pmd-year-calendar[data-view="month"] .pmd-yc__month-nav{justify-self:center!important}
+#pmd-year-calendar[data-view="month"] .pmd-yc__toolbar-right{justify-self:end!important}
+#pmd-year-calendar .pmd-yc-operation.is-note{background:#fff1df!important;color:#8a4b00!important}
+#pmd-year-calendar .pmd-yc-operation.is-note i{background:#f2992e!important}
+#pmd-year-calendar .pmd-yc-operation.is-event,#pmd-year-calendar .pmd-yc-operation.is-off{background:#fff8d8!important;color:#725400!important}
+#pmd-year-calendar .pmd-yc-operation.is-event i,#pmd-year-calendar .pmd-yc-operation.is-off i{background:#e9b500!important}
+#pmd-year-calendar .pmd-yc-day__operations{gap:3px!important;margin-top:4px!important}
+#pmd-year-calendar .pmd-yc-operation{height:20px!important;line-height:20px!important;font-size:9px!important;padding:0 6px!important}
+#pmd-year-calendar .pmd-yc-month.is-month-view .pmd-yc-days{grid-auto-rows:minmax(88px,1fr)!important;min-height:calc(100vh - 220px)!important}
+#pmd-year-calendar .pmd-yc-month.is-month-view .pmd-yc-day{min-height:88px!important;padding:6px 8px!important}
+.pmd-yc-note-modal{position:fixed;inset:0;z-index:10120;display:none;align-items:center;justify-content:center;padding:20px}
+.pmd-yc-note-modal.is-open{display:flex}
+.pmd-yc-note-modal__backdrop{position:absolute;inset:0;background:rgba(9,25,39,.42);border:0}
+.pmd-yc-note-modal__card{position:relative;width:min(460px,calc(100vw - 32px));background:#fff;border:1px solid #d7e2ec;border-radius:18px;padding:18px;box-shadow:0 24px 70px rgba(16,42,67,.24)}
+.pmd-yc-note-modal__card h2{margin:0 0 4px;font-size:20px;color:#102a43}.pmd-yc-note-modal__card p{margin:0 0 14px;color:#6b7c93;font-size:12px}.pmd-yc-note-modal__field{display:block;margin-bottom:12px}.pmd-yc-note-modal__field span{display:block;margin-bottom:6px;font-size:11px;font-weight:900;color:#52667a;text-transform:uppercase}.pmd-yc-note-modal__field input,.pmd-yc-note-modal__field textarea{width:100%;border:1px solid #cbd9e6;border-radius:11px;padding:10px 12px;font:inherit;color:#102a43;background:#fff}.pmd-yc-note-modal__field textarea{min-height:110px;resize:vertical}.pmd-yc-note-modal__actions{display:flex;justify-content:flex-end;gap:8px}.pmd-yc-note-modal__actions button{height:38px;padding:0 14px;border-radius:10px;border:1px solid #cbd9e6;background:#edf3f8;color:#102a43;font-weight:900}.pmd-yc-note-modal__actions .is-primary{background:#102a43;color:#fff;border-color:#102a43}.pmd-yc-note-modal__actions .is-delete{margin-right:auto;background:#fff1df;color:#9a5700;border-color:#ffd49d}
+@media(max-width:1250px){#pmd-year-calendar .pmd-yc__legend span{font-size:0!important}#pmd-year-calendar .pmd-yc__legend i{font-size:8px!important}#pmd-year-calendar[data-view="month"] .pmd-yc__toolbar{grid-template-columns:auto 1fr!important}#pmd-year-calendar[data-view="month"] .pmd-yc__month-nav{grid-column:1/-1!important;grid-row:2!important}}
+@media(max-width:850px){#pmd-year-calendar .pmd-yc__toolbar{align-items:stretch!important}#pmd-year-calendar .pmd-yc__toolbar-right{overflow-x:auto!important;justify-content:flex-start!important}#pmd-year-calendar .pmd-yc__legend{overflow-x:auto!important}#pmd-year-calendar .pmd-yc__month-nav{order:2!important}}
