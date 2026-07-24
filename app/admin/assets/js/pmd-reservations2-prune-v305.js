@@ -21,6 +21,10 @@
   var FLOOR_ID =
     'pmd-r2-shared-floor-canvas-v310';
 
+  /* PMD_R2_PRESERVE_RESERVATION_CARDS_V321 */
+  var CARDS_ID =
+    'pmd-r2-reservation-cards-v320';
+
   var pruning = false;
 
   function root() {
@@ -153,18 +157,28 @@
         FLOOR_ID
       );
 
+    var cards =
+      document.getElementById(
+        CARDS_ID
+      );
+
     var anchor =
       (
-        floor &&
-        floor.parentElement === pageRoot
+        cards &&
+        cards.parentElement === pageRoot
       )
-        ? floor
+        ? cards
         : (
-            kpis &&
-            kpis.parentElement === pageRoot
+            floor &&
+            floor.parentElement === pageRoot
           )
-            ? kpis
-            : preservedBranch;
+            ? floor
+            : (
+                kpis &&
+                kpis.parentElement === pageRoot
+              )
+                ? kpis
+                : preservedBranch;
 
     if (
       anchor &&
@@ -219,6 +233,7 @@
           child === preservedBranch ||
           child.id === KPI_ID ||
           child.id === FLOOR_ID ||
+          child.id === CARDS_ID ||
           child.id === EMPTY_ID
         ) {
           return;

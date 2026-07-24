@@ -342,7 +342,19 @@ window.PMD_RESERVATIONS2_BOOT = {
 
 <!-- PMD_R2_FLOOR_TOOLBAR_V316_START -->
 <link rel="stylesheet"
-      href="{{ asset('app/admin/assets/css/pmd-reservations2-floor-toolbar-v316.css') }}?v=20260722_194958">
+      href="{{ asset('app/admin/assets/css/pmd-reservations2-floor-toolbar-v316.css') }}?v=20260722_214140">
 <script defer
-        src="{{ asset('app/admin/assets/js/pmd-reservations2-floor-toolbar-v316.js') }}?v=20260722_194958"></script>
+        src="{{ asset('app/admin/assets/js/pmd-reservations2-floor-toolbar-v316.js') }}?v=20260722_214140"></script>
 <!-- PMD_R2_FLOOR_TOOLBAR_V316_END -->
+
+
+<!-- PMD_R2_DATE_POPOVER_V318_START -->
+<link
+    rel="stylesheet"
+    href="{{ asset('app/admin/assets/css/pmd-reservations2-date-popover-v318.css') }}?v=20260722_230222"
+>
+<script
+    defer
+    src="{{ asset('app/admin/assets/js/pmd-reservations2-date-popover-v318.js') }}?v=20260722_230222"
+></script>
+<!-- PMD_R2_DATE_POPOVER_V318_END -->

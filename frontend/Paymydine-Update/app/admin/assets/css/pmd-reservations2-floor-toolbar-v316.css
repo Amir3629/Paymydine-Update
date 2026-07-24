@@ -1,132 +1,54 @@
-/*
- * PMD Reservations2 Working Floor Toolbar V3.1.6
- *
- * Important:
- * Native controls remain alive for their original JS listeners.
- * They are visually hidden, not removed from the DOM.
- */
-
-#pmd-r2-shared-floor-canvas-v310
-.pmd-r2-native-toolbar-v316-hidden {
-  position: absolute !important;
-  width: 1px !important;
-  height: 1px !important;
-  min-width: 1px !important;
-  min-height: 1px !important;
-  max-width: 1px !important;
-  max-height: 1px !important;
-  padding: 0 !important;
-  margin: 0 !important;
-  border: 0 !important;
-  overflow: hidden !important;
-  opacity: 0 !important;
-  pointer-events: none !important;
-  clip: rect(0 0 0 0) !important;
-  clip-path: inset(50%) !important;
-  white-space: nowrap !important;
+/* PMD Reservations2 Toolbar + Reservation Experience V3.1.7 */
+#pmd-r2-shared-floor-canvas-v310 .pmd-r2-native-toolbar-v316-hidden,
+#pmd-r2-shared-floor-canvas-v310 .pmd-r2-native-action-v316-hidden {
+  position:absolute!important;width:1px!important;height:1px!important;min-width:1px!important;min-height:1px!important;max-width:1px!important;max-height:1px!important;padding:0!important;margin:0!important;border:0!important;overflow:hidden!important;opacity:0!important;pointer-events:none!important;clip:rect(0 0 0 0)!important;clip-path:inset(50%)!important;white-space:nowrap!important;
 }
+#pmd-r2-floor-toolbar-v316{display:inline-flex!important;align-items:center!important;justify-content:flex-end!important;gap:8px!important;margin-left:auto!important}
+#pmd-r2-floor-toolbar-v316 .pmd-r2-floor-tool-v316{display:inline-flex;align-items:center;justify-content:center;gap:7px;min-width:42px;height:40px;padding:0 12px;border:1px solid rgba(21,52,74,.16);border-radius:12px;background:#fff;color:#173752;cursor:pointer;transition:background-color .16s ease,border-color .16s ease,box-shadow .16s ease,transform .16s ease}
+#pmd-r2-floor-toolbar-v316 .pmd-r2-floor-tool-v316:hover:not(:disabled){background:#f4f7f9;border-color:rgba(21,52,74,.3);box-shadow:0 5px 14px rgba(21,52,74,.12);transform:translateY(-1px)}
+#pmd-r2-floor-toolbar-v316 .pmd-r2-floor-tool-v316:active:not(:disabled){transform:translateY(0);box-shadow:none}
+#pmd-r2-floor-toolbar-v316 .pmd-r2-floor-tool-v316[aria-pressed=true]{background:#173752;border-color:#173752;color:#fff}
+#pmd-r2-floor-toolbar-v316 .pmd-r2-floor-tool-v316:disabled{opacity:.42;cursor:not-allowed}
+#pmd-r2-floor-toolbar-v316 .pmd-r2-floor-tool-v316[hidden]{display:none!important}
+#pmd-r2-floor-toolbar-v316 svg{width:18px;height:18px;flex:0 0 18px}
+#pmd-r2-floor-toolbar-v316 span{font-size:14px;line-height:1;font-weight:700;white-space:nowrap}
 
-#pmd-r2-shared-floor-canvas-v310
-.pmd-r2-native-action-v316-hidden {
-  position: absolute !important;
-  width: 1px !important;
-  height: 1px !important;
-  min-width: 1px !important;
-  min-height: 1px !important;
-  padding: 0 !important;
-  margin: 0 !important;
-  border: 0 !important;
-  overflow: hidden !important;
-  opacity: 0 !important;
-  pointer-events: none !important;
-  clip: rect(0 0 0 0) !important;
-  clip-path: inset(50%) !important;
-}
+.pmd-r2-date-filter-v317{display:flex;align-items:end;justify-content:flex-end;gap:8px;flex-wrap:wrap;max-width:100%}
+.pmd-r2-date-filter-v317__quick{display:flex;align-items:center;gap:6px;padding:4px;border:1px solid rgba(21,52,74,.12);border-radius:14px;background:#fff}
+.pmd-r2-date-filter-v317__quick button,.pmd-r2-reservation-cards-v317__header button{height:34px;padding:0 11px;border:0;border-radius:10px;background:transparent;color:#173752;font-size:12px;font-weight:800;cursor:pointer;white-space:nowrap}
+.pmd-r2-date-filter-v317__quick button:hover{background:#eef4f8}
+.pmd-r2-date-filter-v317 label{display:grid;gap:3px;color:#67788b;font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.05em}
+.pmd-r2-date-filter-v317 input{height:42px;min-width:135px;padding:0 10px;border:1px solid rgba(21,52,74,.15);border-radius:12px;background:#fff;color:#152a3a;font:700 12px/1 inherit;outline:none}
+.pmd-r2-date-filter-v317 input:focus{border-color:#173752;box-shadow:0 0 0 3px rgba(23,55,82,.1)}
+.pmd-r2-date-filter-v317__summary{min-width:180px;height:42px;display:flex;align-items:center;padding:0 12px;border-radius:12px;background:#173752;color:#fff;font-size:12px;font-weight:800;white-space:nowrap}
 
-#pmd-r2-floor-toolbar-v316 {
-  display: inline-flex !important;
-  align-items: center !important;
-  justify-content: flex-end !important;
-  gap: 8px !important;
-  margin-left: auto !important;
-}
+#pmd-r2-shared-floor-canvas-v310 [data-floor-table]{cursor:pointer}
+#pmd-r2-shared-floor-canvas-v310 [data-floor-table].pmd-r2-table-selected-v317{box-shadow:0 0 0 4px #173752,0 14px 28px rgba(23,55,82,.22)!important;transform:translateY(-2px)}
 
-#pmd-r2-floor-toolbar-v316
-.pmd-r2-floor-tool-v316 {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 7px;
-  min-width: 42px;
-  height: 40px;
-  padding: 0 12px;
-  border: 1px solid rgba(21, 52, 74, 0.16);
-  border-radius: 12px;
-  background: #ffffff;
-  color: #173752;
-  cursor: pointer;
-  transition:
-    background-color 160ms ease,
-    border-color 160ms ease,
-    box-shadow 160ms ease,
-    transform 160ms ease;
-}
+.pmd-r2-reservation-cards-v317{margin:22px 0 4px;padding:22px;border:1px solid rgba(21,52,74,.12);border-radius:22px;background:#fff;box-shadow:0 14px 34px rgba(20,45,63,.06);scroll-margin-top:90px}
+.pmd-r2-reservation-cards-v317__header{display:flex;align-items:flex-end;justify-content:space-between;gap:18px;margin-bottom:18px}
+.pmd-r2-reservation-cards-v317__header h2{margin:3px 0 3px;color:#112536;font-size:22px;line-height:1.15;font-weight:900}
+.pmd-r2-reservation-cards-v317__header p{margin:0;color:#708093;font-size:13px;font-weight:650}
+.pmd-r2-reservation-cards-v317__eyebrow{display:block;color:#ff8512;font-size:11px;font-weight:900;letter-spacing:.07em;text-transform:uppercase}
+.pmd-r2-reservation-cards-v317__header button{border:1px solid rgba(21,52,74,.16);background:#f7fafc}
+.pmd-r2-reservation-cards-v317__header button:hover{background:#173752;color:#fff}
+.pmd-r2-reservation-cards-v317__grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px}
+.pmd-r2-reservation-card-v317{min-width:0;display:flex;flex-direction:column;padding:17px;border:1px solid rgba(21,52,74,.12);border-radius:17px;background:#fbfdff;transition:transform .16s ease,box-shadow .16s ease,border-color .16s ease}
+.pmd-r2-reservation-card-v317:hover{transform:translateY(-2px);border-color:rgba(21,52,74,.24);box-shadow:0 10px 22px rgba(20,45,63,.09)}
+.pmd-r2-reservation-card-v317__top{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:12px}
+.pmd-r2-reservation-card-v317__time{color:#112536;font-size:21px;font-weight:950;letter-spacing:-.03em}
+.pmd-r2-reservation-card-v317__status{max-width:52%;overflow:hidden;text-overflow:ellipsis;padding:5px 8px;border-radius:999px;background:#eaf8f1;color:#087846;font-size:10px;font-weight:900;text-transform:capitalize;white-space:nowrap}
+.pmd-r2-reservation-card-v317 h3{margin:0 0 12px;color:#112536;font-size:16px;font-weight:900;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.pmd-r2-reservation-card-v317__meta{display:grid;gap:8px;color:#607286;font-size:12px;font-weight:700}
+.pmd-r2-reservation-card-v317__meta span{display:flex;align-items:center;gap:7px;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.pmd-r2-reservation-card-v317__meta svg{width:16px;height:16px;flex:0 0 16px;color:#173752}
+.pmd-r2-reservation-card-v317__note{margin:12px 0 0;padding-top:11px;border-top:1px solid rgba(21,52,74,.09);color:#53677b;font-size:12px;line-height:1.45;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.pmd-r2-reservation-card-v317>a{align-self:flex-start;margin-top:auto;padding-top:14px;color:#173752;font-size:12px;font-weight:900;text-decoration:none}
+.pmd-r2-reservation-card-v317>a:hover{text-decoration:underline}
+.pmd-r2-reservation-cards-v317__empty{min-height:180px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:7px;border:1px dashed rgba(21,52,74,.2);border-radius:17px;background:#fafcfd;color:#728296;text-align:center}
+.pmd-r2-reservation-cards-v317__empty svg{width:34px;height:34px;color:#173752}
+.pmd-r2-reservation-cards-v317__empty strong{color:#173752;font-size:15px}
+.pmd-r2-reservation-cards-v317__empty span{font-size:12px}
 
-#pmd-r2-floor-toolbar-v316
-.pmd-r2-floor-tool-v316:hover:not(:disabled) {
-  background: #f4f7f9;
-  border-color: rgba(21, 52, 74, 0.3);
-  box-shadow: 0 5px 14px rgba(21, 52, 74, 0.12);
-  transform: translateY(-1px);
-}
-
-#pmd-r2-floor-toolbar-v316
-.pmd-r2-floor-tool-v316:active:not(:disabled) {
-  transform: translateY(0);
-  box-shadow: none;
-}
-
-#pmd-r2-floor-toolbar-v316
-.pmd-r2-floor-tool-v316[aria-pressed="true"] {
-  background: #173752;
-  border-color: #173752;
-  color: #ffffff;
-}
-
-#pmd-r2-floor-toolbar-v316
-.pmd-r2-floor-tool-v316:disabled {
-  opacity: 0.42;
-  cursor: not-allowed;
-}
-
-#pmd-r2-floor-toolbar-v316
-.pmd-r2-floor-tool-v316[hidden] {
-  display: none !important;
-}
-
-#pmd-r2-floor-toolbar-v316 svg {
-  width: 18px;
-  height: 18px;
-  flex: 0 0 18px;
-}
-
-#pmd-r2-floor-toolbar-v316 span {
-  font-size: 14px;
-  line-height: 1;
-  font-weight: 700;
-  white-space: nowrap;
-}
-
-@media (max-width: 767px) {
-  #pmd-r2-floor-toolbar-v316 {
-    width: 100% !important;
-    justify-content: flex-start !important;
-    overflow-x: auto !important;
-    padding-bottom: 2px !important;
-  }
-
-  #pmd-r2-floor-toolbar-v316
-  .pmd-r2-floor-tool-v316 {
-    flex: 0 0 auto;
-  }
-}
+@media(max-width:1199px){.pmd-r2-date-filter-v317__summary{display:none}.pmd-r2-reservation-cards-v317__grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:767px){#pmd-r2-floor-toolbar-v316{width:100%!important;justify-content:flex-start!important;overflow-x:auto!important;padding-bottom:2px!important}#pmd-r2-floor-toolbar-v316 .pmd-r2-floor-tool-v316{flex:0 0 auto}.pmd-r2-date-filter-v317{width:100%;justify-content:flex-start}.pmd-r2-date-filter-v317__quick{width:100%;overflow-x:auto}.pmd-r2-date-filter-v317 label{flex:1;min-width:0}.pmd-r2-date-filter-v317 input{min-width:0;width:100%}.pmd-r2-reservation-cards-v317{padding:16px;border-radius:17px}.pmd-r2-reservation-cards-v317__header{align-items:flex-start}.pmd-r2-reservation-cards-v317__grid{grid-template-columns:1fr}}

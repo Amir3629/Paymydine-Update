@@ -342,3 +342,1273 @@
 
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded',boot,{once:true}); else boot();
 })();
+/* PMD Reservations2 Reservation Cards Always V3.2.0 */
+(function () {
+  'use strict';
+
+  var FLOOR_ID =
+    'pmd-r2-shared-floor-canvas-v310';
+
+  var SECTION_ID =
+    'pmd-r2-reservation-cards-v320';
+
+  var GRID_ID =
+    'pmd-r2-reservation-grid-v320';
+
+  var selectedTableId = null;
+  var selectedTableName = null;
+  var bound = false;
+
+  function floor() {
+    return document.getElementById(
+      FLOOR_ID
+    );
+  }
+
+  function bootData() {
+    return window.PMD_RESERVATIONS2_BOOT || {};
+  }
+
+  function reservations() {
+    var data = bootData();
+
+    if (
+      Array.isArray(data.reservations)
+    ) {
+      return data.reservations;
+    }
+
+    if (
+      Array.isArray(
+        window.PMD_RESERVATIONS2_RESERVATIONS
+      )
+    ) {
+      return window
+        .PMD_RESERVATIONS2_RESERVATIONS;
+    }
+
+    return [];
+  }
+
+  function esc(value) {
+    return String(
+      value == null ? '' : value
+    ).replace(
+      /[&<>'"]/g,
+      function (character) {
+        return {
+          '&': '&amp;',
+          '<': '&lt;',
+          '>': '&gt;',
+          "'": '&#39;',
+          '"': '&quot;'
+        }[character];
+      }
+    );
+  }
+
+  function reservationDate(item) {
+    var direct =
+      item &&
+      (
+        item.reservation_datetime ||
+        item.start_at ||
+        item.starts_at
+      );
+
+    if (direct) {
+      var directDate = new Date(direct);
+
+      if (
+        !Number.isNaN(
+          directDate.getTime()
+        )
+      ) {
+        return directDate;
+      }
+    }
+
+    var rawDate =
+      item &&
+      (
+        item.reserve_date ||
+        item.reservation_date ||
+        item.date
+      );
+
+    if (!rawDate) {
+      return null;
+    }
+
+    var dateParts = String(rawDate)
+      .slice(0, 10)
+      .split(/[-\/]/)
+      .map(Number);
+
+    if (dateParts.length !== 3) {
+      return null;
+    }
+
+    var rawTime = String(
+      (
+        item.reserve_time ||
+        item.reservation_time ||
+        item.time ||
+        '00:00:00'
+      )
+    );
+
+    var timeParts = rawTime
+      .split(':')
+      .map(Number);
+
+    return new Date(
+      dateParts[0],
+      dateParts[1] - 1,
+      dateParts[2],
+      timeParts[0] || 0,
+      timeParts[1] || 0,
+      timeParts[2] || 0,
+      0
+    );
+  }
+
+  function isToday(date) {
+    if (!date) {
+      return false;
+    }
+
+    var now = new Date();
+
+    return (
+      date.getFullYear() ===
+        now.getFullYear() &&
+      date.getMonth() ===
+        now.getMonth() &&
+      date.getDate() ===
+        now.getDate()
+    );
+  }
+
+  function tableIds(item) {
+    var ids = [];
+
+    function add(value) {
+      var number = Number(value);
+
+      if (
+        Number.isFinite(number) &&
+        number > 0
+      ) {
+        var id = String(number);
+
+        if (
+          ids.indexOf(id) === -1
+        ) {
+          ids.push(id);
+        }
+      }
+    }
+
+    add(item && item.table_id);
+
+    if (
+      item &&
+      Array.isArray(item.tables)
+    ) {
+      item.tables.forEach(
+        function (table) {
+          if (
+            table &&
+            typeof table === 'object'
+          ) {
+            add(
+              table.table_id ||
+              table.id
+            );
+          } else {
+            add(table);
+          }
+        }
+      );
+    }
+
+    return ids;
+  }
+
+  function tableLabel(item) {
+    var names = [];
+
+    if (
+      item &&
+      Array.isArray(item.tables)
+    ) {
+      item.tables.forEach(
+        function (table) {
+          if (
+            table &&
+            typeof table === 'object'
+          ) {
+            var name =
+              table.table_name ||
+              table.name ||
+              table.table_number;
+
+            if (name) {
+              names.push(name);
+            }
+          }
+        }
+      );
+    }
+
+    if (names.length) {
+      return names.join(', ');
+    }
+
+    var ids = tableIds(item);
+
+    if (ids.length) {
+      return ids.map(
+        function (id) {
+          return 'Table ' + id;
+        }
+      ).join(', ');
+    }
+
+    return 'Unassigned';
+  }
+
+  function guestName(item) {
+    return (
+      item.customer_name ||
+      item.guest_name ||
+      [
+        item.first_name,
+        item.last_name
+      ].filter(Boolean).join(' ') ||
+      'Guest'
+    );
+  }
+
+  function guestCount(item) {
+    return Number(
+      item.guest_num ||
+      item.guests ||
+      item.party_size ||
+      item.covers ||
+      0
+    ) || 0;
+  }
+
+  function statusLabel(item) {
+    return String(
+      item.status_name ||
+      item.status ||
+      item.reservation_status ||
+      'Pending'
+    );
+  }
+
+  function formatTime(date) {
+    if (!date) {
+      return '--:--';
+    }
+
+    try {
+      return new Intl.DateTimeFormat(
+        undefined,
+        {
+          hour: '2-digit',
+          minute: '2-digit'
+        }
+      ).format(date);
+    } catch (error) {
+      return String(
+        date.getHours()
+      ).padStart(2, '0') +
+        ':' +
+        String(
+          date.getMinutes()
+        ).padStart(2, '0');
+    }
+  }
+
+  function ensureSection() {
+    var floorRoot = floor();
+
+    if (!floorRoot) {
+      return null;
+    }
+
+    var section =
+      document.getElementById(
+        SECTION_ID
+      );
+
+    if (section) {
+      return section;
+    }
+
+    section =
+      document.createElement('section');
+
+    section.id = SECTION_ID;
+    section.className =
+      'pmd-r2-reservation-cards-v320';
+
+    section.innerHTML =
+      '<div class="pmd-r2-reservation-cards-v320__head">' +
+        '<div>' +
+          '<strong data-r2-card-title>' +
+            'Today’s reservations' +
+          '</strong>' +
+          '<span data-r2-card-subtitle>' +
+            'All tables' +
+          '</span>' +
+        '</div>' +
+        '<button type="button" ' +
+          'data-r2-show-all hidden>' +
+          'Show all tables' +
+        '</button>' +
+      '</div>' +
+      '<div id="' + GRID_ID + '" ' +
+        'class="pmd-r2-reservation-grid-v320">' +
+      '</div>';
+
+    floorRoot.insertAdjacentElement(
+      'afterend',
+      section
+    );
+
+    var reset =
+      section.querySelector(
+        '[data-r2-show-all]'
+      );
+
+    reset.addEventListener(
+      'click',
+      function () {
+        selectedTableId = null;
+        selectedTableName = null;
+
+        clearTableSelection();
+        render();
+      }
+    );
+
+    return section;
+  }
+
+  function clearTableSelection() {
+    var root = floor();
+
+    if (!root) {
+      return;
+    }
+
+    root.querySelectorAll(
+      '[data-pmd-r2-selected-table-v320]'
+    ).forEach(
+      function (node) {
+        node.removeAttribute(
+          'data-pmd-r2-selected-table-v320'
+        );
+      }
+    );
+  }
+
+  function filteredToday() {
+    return reservations()
+      .filter(
+        function (item) {
+          var date =
+            reservationDate(item);
+
+          if (!isToday(date)) {
+            return false;
+          }
+
+          if (!selectedTableId) {
+            return true;
+          }
+
+          return tableIds(item)
+            .indexOf(
+              String(selectedTableId)
+            ) !== -1;
+        }
+      )
+      .sort(
+        function (left, right) {
+          return (
+            reservationDate(left) -
+            reservationDate(right)
+          );
+        }
+      );
+  }
+
+  function cardMarkup(item) {
+    var date =
+      reservationDate(item);
+
+    var guests =
+      guestCount(item);
+
+    return (
+      '<article ' +
+        'class="pmd-r2-reservation-card-v320">' +
+
+        '<div ' +
+          'class="pmd-r2-reservation-card-v320__top">' +
+
+          '<div>' +
+            '<strong>' +
+              esc(guestName(item)) +
+            '</strong>' +
+
+            '<span>' +
+              esc(statusLabel(item)) +
+            '</span>' +
+          '</div>' +
+
+          '<time>' +
+            esc(formatTime(date)) +
+          '</time>' +
+
+        '</div>' +
+
+        '<div ' +
+          'class="pmd-r2-reservation-card-v320__meta">' +
+
+          '<span>' +
+            esc(tableLabel(item)) +
+          '</span>' +
+
+          '<span>' +
+            esc(
+              guests ?
+                guests + ' guests' :
+                'Guest count unavailable'
+            ) +
+          '</span>' +
+
+        '</div>' +
+
+      '</article>'
+    );
+  }
+
+  function emptyMarkup() {
+    var title = selectedTableId
+      ? 'No reservations for ' +
+        esc(
+          selectedTableName ||
+          'Table ' + selectedTableId
+        ) +
+        ' today'
+      : 'No reservations for today';
+
+    var subtitle = selectedTableId
+      ? 'This table has no reservations scheduled for today.'
+      : 'Reservations scheduled for today will appear here.';
+
+    return (
+      '<div ' +
+        'class="pmd-r2-reservation-empty-v320">' +
+
+        '<div ' +
+          'class="pmd-r2-reservation-empty-v320__icon">' +
+          '▣' +
+        '</div>' +
+
+        '<strong>' +
+          title +
+        '</strong>' +
+
+        '<span>' +
+          subtitle +
+        '</span>' +
+
+      '</div>'
+    );
+  }
+
+  function render() {
+    var section =
+      ensureSection();
+
+    if (!section) {
+      return;
+    }
+
+    var grid =
+      document.getElementById(
+        GRID_ID
+      );
+
+    var title =
+      section.querySelector(
+        '[data-r2-card-title]'
+      );
+
+    var subtitle =
+      section.querySelector(
+        '[data-r2-card-subtitle]'
+      );
+
+    var reset =
+      section.querySelector(
+        '[data-r2-show-all]'
+      );
+
+    if (
+      selectedTableId
+    ) {
+      title.textContent =
+        'Reservations for ' +
+        (
+          selectedTableName ||
+          'Table ' + selectedTableId
+        );
+
+      subtitle.textContent =
+        'Today';
+
+      reset.hidden = false;
+    } else {
+      title.textContent =
+        'Today’s reservations';
+
+      subtitle.textContent =
+        'All tables';
+
+      reset.hidden = true;
+    }
+
+    var items =
+      filteredToday();
+
+    grid.innerHTML =
+      items.length
+        ? items.map(
+            cardMarkup
+          ).join('')
+        : emptyMarkup();
+
+    section.setAttribute(
+      'data-reservation-count',
+      String(items.length)
+    );
+  }
+
+  function tableIdFromNode(node) {
+    if (!node) {
+      return null;
+    }
+
+    var direct =
+      node.getAttribute(
+        'data-table-id'
+      ) ||
+      node.getAttribute(
+        'data-floor-table-id'
+      ) ||
+      node.dataset.tableId ||
+      node.dataset.id;
+
+    if (
+      direct &&
+      Number(direct) > 0
+    ) {
+      return String(
+        Number(direct)
+      );
+    }
+
+    var text = String(
+      node.textContent || ''
+    ).replace(/\s+/g, ' ').trim();
+
+    var match =
+      text.match(/\b(\d+)\b/);
+
+    return match
+      ? String(
+          Number(match[1])
+        )
+      : null;
+  }
+
+  function tableNameFromNode(
+    node,
+    id
+  ) {
+    var label =
+      node.getAttribute(
+        'aria-label'
+      ) ||
+      node.getAttribute(
+        'title'
+      ) ||
+      '';
+
+    if (label) {
+      return label;
+    }
+
+    return 'Table ' + id;
+  }
+
+  function bindTableClicks() {
+    if (bound) {
+      return;
+    }
+
+    bound = true;
+
+    document.addEventListener(
+      'click',
+      function (event) {
+        var root = floor();
+
+        if (
+          !root ||
+          !root.contains(
+            event.target
+          )
+        ) {
+          return;
+        }
+
+        var tableNode =
+          event.target.closest(
+            '[data-table-id],' +
+            '[data-floor-table-id],' +
+            '.pmd-floor-v1__table,' +
+            '.pmd-floor-table,' +
+            '[class*="table-card"]'
+          );
+
+        if (
+          !tableNode ||
+          !root.contains(tableNode)
+        ) {
+          return;
+        }
+
+        if (
+          event.target.closest(
+            'button,' +
+            'a,' +
+            'input,' +
+            'select,' +
+            'textarea'
+          )
+        ) {
+          return;
+        }
+
+        var id =
+          tableIdFromNode(
+            tableNode
+          );
+
+        if (!id) {
+          return;
+        }
+
+        selectedTableId = id;
+        selectedTableName =
+          tableNameFromNode(
+            tableNode,
+            id
+          );
+
+        clearTableSelection();
+
+        tableNode.setAttribute(
+          'data-pmd-r2-selected-table-v320',
+          'true'
+        );
+
+        render();
+
+        var section =
+          ensureSection();
+
+        if (section) {
+          section.scrollIntoView({
+            behavior: 'smooth',
+            block: 'start'
+          });
+        }
+      },
+      true
+    );
+  }
+
+  function boot() {
+    ensureSection();
+    bindTableClicks();
+    render();
+
+    setTimeout(render, 150);
+    setTimeout(render, 500);
+    setTimeout(render, 1200);
+
+    console.info(
+      '[PMD Reservations2 Reservation Cards V3.2.0] Ready',
+      {
+        reservations:
+          reservations().length,
+        section:
+          Boolean(
+            document.getElementById(
+              SECTION_ID
+            )
+          )
+      }
+    );
+  }
+
+  window
+    .PMDReservations2CardsV320 = {
+      version: '3.2.0',
+
+      refresh: render,
+
+      showAll: function () {
+        selectedTableId = null;
+        selectedTableName = null;
+        clearTableSelection();
+        render();
+      },
+
+      audit: function () {
+        var section =
+          document.getElementById(
+            SECTION_ID
+          );
+
+        return {
+          floor:
+            Boolean(floor()),
+
+          section:
+            Boolean(section),
+
+          grid:
+            Boolean(
+              document.getElementById(
+                GRID_ID
+              )
+            ),
+
+          reservations:
+            reservations().length,
+
+          today:
+            reservations().filter(
+              function (item) {
+                return isToday(
+                  reservationDate(item)
+                );
+              }
+            ).length,
+
+          selectedTable:
+            selectedTableId,
+
+          visibleCards:
+            section
+              ? section.querySelectorAll(
+                  '.pmd-r2-reservation-card-v320'
+                ).length
+              : 0,
+
+          emptyState:
+            Boolean(
+              section &&
+              section.querySelector(
+                '.pmd-r2-reservation-empty-v320'
+              )
+            )
+        };
+      }
+    };
+
+  if (
+    document.readyState === 'loading'
+  ) {
+    document.addEventListener(
+      'DOMContentLoaded',
+      boot,
+      {once: true}
+    );
+  } else {
+    boot();
+  }
+})();
+
+/* PMD Reservations2 Scroll + Range Cards V3.2.2 */
+(function () {
+  'use strict';
+
+  var ROOT_ID = 'pmd-reservations2';
+  var FLOOR_ID = 'pmd-r2-shared-floor-canvas-v310';
+  var SECTION_ID = 'pmd-r2-reservation-cards-v320';
+
+  function root() {
+    return document.getElementById(ROOT_ID);
+  }
+
+  function floor() {
+    return document.getElementById(FLOOR_ID);
+  }
+
+  function section() {
+    return document.getElementById(SECTION_ID);
+  }
+
+  function unlockElement(node) {
+    if (!node || node === document.documentElement) {
+      return;
+    }
+
+    node.classList.add(
+      'pmd-r2-scroll-parent-v322'
+    );
+
+    node.style.setProperty(
+      'height',
+      'auto',
+      'important'
+    );
+
+    node.style.setProperty(
+      'min-height',
+      '0',
+      'important'
+    );
+
+    node.style.setProperty(
+      'max-height',
+      'none',
+      'important'
+    );
+
+    node.style.setProperty(
+      'overflow-y',
+      'visible',
+      'important'
+    );
+  }
+
+  function unlockPage() {
+    var page = root();
+
+    if (!page) {
+      return;
+    }
+
+    document.documentElement.classList.add(
+      'pmd-r2-scroll-v322'
+    );
+
+    document.documentElement.style.setProperty(
+      'overflow-y',
+      'auto',
+      'important'
+    );
+
+    document.body.style.setProperty(
+      'overflow-y',
+      'auto',
+      'important'
+    );
+
+    document.body.style.setProperty(
+      'height',
+      'auto',
+      'important'
+    );
+
+    var current = page.parentElement;
+    var limit = 0;
+
+    while (
+      current &&
+      current !== document.body &&
+      limit < 10
+    ) {
+      unlockElement(current);
+      current = current.parentElement;
+      limit += 1;
+    }
+
+    page.style.setProperty(
+      'height',
+      'auto',
+      'important'
+    );
+
+    page.style.setProperty(
+      'max-height',
+      'none',
+      'important'
+    );
+
+    page.style.setProperty(
+      'overflow',
+      'visible',
+      'important'
+    );
+  }
+
+  function reservationDate(item) {
+    if (!item) {
+      return null;
+    }
+
+    var datetime =
+      item.reservation_datetime ||
+      item.start_at ||
+      item.starts_at;
+
+    if (datetime) {
+      var parsedDatetime =
+        new Date(datetime);
+
+      if (
+        !Number.isNaN(
+          parsedDatetime.getTime()
+        )
+      ) {
+        return parsedDatetime;
+      }
+    }
+
+    var rawDate =
+      item.reserve_date ||
+      item.reservation_date ||
+      item.booking_date ||
+      item.date;
+
+    if (!rawDate) {
+      return null;
+    }
+
+    var dateText =
+      String(rawDate).slice(0, 10);
+
+    var parts =
+      dateText.split(/[-/]/).map(Number);
+
+    if (parts.length !== 3) {
+      return null;
+    }
+
+    var rawTime = String(
+      item.reserve_time ||
+      item.reservation_time ||
+      item.booking_time ||
+      item.time ||
+      '00:00:00'
+    );
+
+    var timeParts =
+      rawTime.split(':').map(Number);
+
+    return new Date(
+      parts[0],
+      parts[1] - 1,
+      parts[2],
+      timeParts[0] || 0,
+      timeParts[1] || 0,
+      timeParts[2] || 0
+    );
+  }
+
+  function dateKey(date) {
+    if (!date) {
+      return null;
+    }
+
+    return [
+      date.getFullYear(),
+      String(
+        date.getMonth() + 1
+      ).padStart(2, '0'),
+      String(
+        date.getDate()
+      ).padStart(2, '0')
+    ].join('-');
+  }
+
+  function activeRange() {
+    /*
+     * Read From/To inputs already managed by V317/V318.
+     */
+    var filter =
+      document.getElementById(
+        'pmd-r2-date-filter-v317'
+      );
+
+    var inputs = filter
+      ? Array.prototype.slice.call(
+          filter.querySelectorAll(
+            'input[type="date"]'
+          )
+        )
+      : [];
+
+    var today = dateKey(new Date());
+
+    var from =
+      inputs[0] && inputs[0].value
+        ? inputs[0].value
+        : today;
+
+    var to =
+      inputs[1] && inputs[1].value
+        ? inputs[1].value
+        : from;
+
+    return {
+      from: from,
+      to: to
+    };
+  }
+
+  function loadedReservations() {
+    var boot =
+      window.PMD_RESERVATIONS2_BOOT || {};
+
+    return Array.isArray(
+      boot.reservations
+    )
+      ? boot.reservations
+      : [];
+  }
+
+  function reservationsInRange() {
+    var range = activeRange();
+
+    return loadedReservations().filter(
+      function (item) {
+        var key = dateKey(
+          reservationDate(item)
+        );
+
+        return Boolean(
+          key &&
+          key >= range.from &&
+          key <= range.to
+        );
+      }
+    );
+  }
+
+  function updateEmptyMessage() {
+    var cardsSection = section();
+
+    if (!cardsSection) {
+      return;
+    }
+
+    var empty =
+      cardsSection.querySelector(
+        '.pmd-r2-reservation-empty-v320'
+      );
+
+    if (!empty) {
+      return;
+    }
+
+    var total =
+      loadedReservations().length;
+
+    var filtered =
+      reservationsInRange().length;
+
+    var range =
+      activeRange();
+
+    var title =
+      empty.querySelector('strong');
+
+    var description =
+      empty.querySelector(
+        'span:not(.pmd-r2-reservation-empty-v320__icon)'
+      );
+
+    if (title) {
+      title.textContent =
+        filtered === 0
+          ? 'No reservations in the selected date range'
+          : filtered + ' reservations';
+    }
+
+    if (description) {
+      description.textContent =
+        total +
+        ' reservations are loaded. ' +
+        filtered +
+        ' match ' +
+        range.from +
+        (
+          range.to !== range.from
+            ? ' to ' + range.to
+            : ''
+        ) +
+        '.';
+    }
+  }
+
+  function refresh() {
+    unlockPage();
+
+    /*
+     * Ask the existing card runtime to render first.
+     */
+    if (
+      window.PMDReservations2CardsV320 &&
+      typeof window
+        .PMDReservations2CardsV320
+        .refresh === 'function'
+    ) {
+      window
+        .PMDReservations2CardsV320
+        .refresh();
+    }
+
+    updateEmptyMessage();
+  }
+
+  function bindDateInputs() {
+    var filter =
+      document.getElementById(
+        'pmd-r2-date-filter-v317'
+      );
+
+    if (!filter || filter.dataset.v322Bound) {
+      return;
+    }
+
+    filter.dataset.v322Bound = 'true';
+
+    filter.addEventListener(
+      'change',
+      function () {
+        setTimeout(refresh, 0);
+      }
+    );
+
+    filter.addEventListener(
+      'click',
+      function () {
+        setTimeout(refresh, 0);
+      }
+    );
+  }
+
+  function audit() {
+    var page = root();
+    var cardsSection = section();
+    var pageRect = page
+      ? page.getBoundingClientRect()
+      : null;
+
+    return {
+      root: Boolean(page),
+      floor: Boolean(floor()),
+      section: Boolean(cardsSection),
+
+      totalReservations:
+        loadedReservations().length,
+
+      matchingRange:
+        reservationsInRange().length,
+
+      range: activeRange(),
+
+      documentScrollHeight:
+        document.documentElement
+          .scrollHeight,
+
+      viewportHeight:
+        window.innerHeight,
+
+      canScroll:
+        document.documentElement
+          .scrollHeight >
+        window.innerHeight,
+
+      htmlOverflowY:
+        getComputedStyle(
+          document.documentElement
+        ).overflowY,
+
+      bodyOverflowY:
+        getComputedStyle(
+          document.body
+        ).overflowY,
+
+      rootHeight:
+        pageRect
+          ? Math.round(pageRect.height)
+          : null,
+
+      sectionDisplay:
+        cardsSection
+          ? getComputedStyle(
+              cardsSection
+            ).display
+          : null
+    };
+  }
+
+  function boot() {
+    refresh();
+    bindDateInputs();
+
+    /*
+     * Limited startup passes only.
+     * No permanent observer or interval.
+     */
+    setTimeout(function () {
+      bindDateInputs();
+      refresh();
+    }, 300);
+
+    setTimeout(function () {
+      bindDateInputs();
+      refresh();
+    }, 1000);
+
+    console.info(
+      '[PMD Reservations2 Scroll + Range Cards V3.2.2] Ready',
+      audit()
+    );
+  }
+
+  window.PMDReservations2ScrollV322 = {
+    version: '3.2.2',
+    refresh: refresh,
+    audit: audit
+  };
+
+  if (
+    document.readyState === 'loading'
+  ) {
+    document.addEventListener(
+      'DOMContentLoaded',
+      boot,
+      {once: true}
+    );
+  } else {
+    boot();
+  }
+})();

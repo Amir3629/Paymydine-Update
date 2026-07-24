@@ -1,5 +1,5 @@
 -- PayMyDine schema-only dump
--- Generated UTC: Wed Jul 22 21:32:01 UTC 2026
+-- Generated UTC: Fri Jul 24 10:25:52 UTC 2026
 -- Source server: vps-252f1bc4
 -- Data rows are NOT included
 
@@ -2593,7 +2593,7 @@ CREATE TABLE `ti_reservations` (
   PRIMARY KEY (`reservation_id`),
   KEY `ti_reservations_location_id_table_id_index` (`location_id`,`table_id`),
   KEY `ti_reservations_hash_index` (`hash`)
-) ENGINE=InnoDB AUTO_INCREMENT=4 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=64 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -3565,7 +3565,7 @@ CREATE TABLE `ti_working_hours` (
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2026-07-22 21:32:02
+-- Dump completed on 2026-07-24 10:25:52
 
 -- ============================================================
 -- DATABASE: mimoza
@@ -6137,7 +6137,7 @@ CREATE TABLE `ti_reservations` (
   PRIMARY KEY (`reservation_id`),
   KEY `ti_reservations_location_id_table_id_index` (`location_id`,`table_id`),
   KEY `ti_reservations_hash_index` (`hash`)
-) ENGINE=InnoDB AUTO_INCREMENT=5 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=35 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -6687,7 +6687,7 @@ CREATE TABLE `ti_working_hours` (
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2026-07-22 21:32:02
+-- Dump completed on 2026-07-24 10:25:52
 
 -- ============================================================
 -- DATABASE: rosana
@@ -9031,7 +9031,7 @@ CREATE TABLE `ti_working_hours` (
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2026-07-22 21:32:03
+-- Dump completed on 2026-07-24 10:25:53
 
 -- ============================================================
 -- DATABASE: persian
@@ -10961,7 +10961,7 @@ CREATE TABLE `ti_working_hours` (
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2026-07-22 21:32:03
+-- Dump completed on 2026-07-24 10:25:53
 
 -- ============================================================
 -- DATABASE: newtenantdb
@@ -12888,4 +12888,4 @@ CREATE TABLE `ti_working_hours` (
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2026-07-22 21:32:03
+-- Dump completed on 2026-07-24 10:25:53
