@@ -271,7 +271,11 @@
   }
   function guestName(item) { return item.customer_name || [item.first_name,item.last_name].filter(Boolean).join(' ') || item.guest_name || 'Guest'; }
   function guestCount(item) { return Number(item.guest_num || item.guests || item.party_size || item.covers || 0) || 0; }
-  function statusLabel(item) { return clean(item.status_name || item.status || item.reservation_status || 'Scheduled'); }
+  function statusLabel(item) {
+    var status = item && (item.status_name || item.reservation_status || item.status);
+    if (status && typeof status === 'object') status = status.status_name || status.name || status.label;
+    return clean(status || 'Scheduled');
+  }
   function statusState(item) {
     var status = statusLabel(item).toLowerCase();
     if (/cancel|declin|no.?show/.test(status)) return 'payment';
@@ -440,6 +444,8 @@
       if (floorState && floorState.editing) return;
       var id = tableIdFromNode(table);
       if (!id) return;
+      event.preventDefault();
+      event.stopPropagation();
       state.tableId = id;
       state.tableName = tableNameFromNode(table,id);
       render();
