@@ -1,19 +1,48 @@
-/* PMD Reservations2 embedded calendar toggle V1.4 */
-#pmd-r2-calendar-toggle-v1{display:inline-flex;align-items:center;justify-content:center;width:52px;height:52px;min-width:52px;padding:0;border:1px solid #c9deec;border-radius:15px;background:#fff;color:#14283e;box-shadow:none;cursor:pointer;transition:background .2s ease,color .2s ease,border-color .2s ease,transform .2s ease;z-index:10070}
+/* PMD Reservations2 embedded calendar toggle V1.5 */
+#pmd-r2-calendar-toggle-v1{display:inline-flex;align-items:center;justify-content:center;width:52px;height:52px;min-width:52px;padding:0;border:1px solid #c9deec;border-radius:15px;background:#fff;color:#14283e;box-shadow:none;cursor:pointer;transition:background .18s ease,color .18s ease,border-color .18s ease,transform .18s ease;z-index:10070}
 #pmd-r2-calendar-toggle-v1:hover{background:#f1f7fb;transform:translateY(-1px)}
 #pmd-r2-calendar-toggle-v1.is-active{background:#102a43;color:#fff;border-color:#102a43}
 #pmd-r2-calendar-toggle-v1 svg{width:24px;height:24px;pointer-events:none}
-#pmd-r2-calendar-toggle-v1.is-fallback-fixed{position:fixed;top:54px;right:18px;z-index:10110;box-shadow:0 8px 24px rgba(15,40,64,.10)}
-#pmd-r2-calendar-host-v1{display:none;grid-column:1/-1;width:100%;min-width:0;margin-top:14px;opacity:0;transform:translateY(10px);transition:opacity .22s ease,transform .22s cubic-bezier(.22,.8,.25,1)}
-#pmd-r2-calendar-host-v1.is-mounted{display:block}
+#pmd-r2-calendar-host-v1{display:none;width:100%;min-width:0;margin-top:14px;opacity:0;transform:translateY(8px);transition:opacity .18s ease,transform .18s ease}
+#pmd-r2-calendar-host-v1.is-mounted{display:block!important}
 #pmd-r2-calendar-host-v1.is-visible{opacity:1;transform:none}
-#pmd-r2-calendar-host-v1 #pmd-year-calendar{padding:0!important;min-height:0!important;background:transparent!important}
-#pmd-r2-calendar-host-v1 .pmd-yc__toolbar,#pmd-r2-calendar-host-v1 .pmd-yc__months{margin:0!important}
+#pmd-r2-calendar-host-v1 .pmd-r2-yc{padding:0!important;background:transparent!important;min-height:0!important}
+#pmd-r2-calendar-host-v1 .pmd-yc__toolbar{margin:0!important;display:grid;grid-template-columns:auto 1fr auto;align-items:center;gap:14px;padding:14px;border:1px solid #c9deec;border-bottom:0;border-radius:18px 18px 0 0;background:#fff}
+#pmd-r2-calendar-host-v1 .pmd-yc__legend,#pmd-r2-calendar-host-v1 .pmd-yc__toolbar-right,#pmd-r2-calendar-host-v1 .pmd-yc__month-nav,#pmd-r2-calendar-host-v1 .pmd-yc__view-switch,#pmd-r2-calendar-host-v1 .pmd-yc__filters{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+#pmd-r2-calendar-host-v1 .pmd-yc__month-nav{justify-content:center}
+#pmd-r2-calendar-host-v1 .pmd-yc__toolbar-right{justify-content:flex-end}
+#pmd-r2-calendar-host-v1 .pmd-yc__legend span{display:inline-flex;align-items:center;gap:6px;font-size:13px;font-weight:700;color:#53677d}
+#pmd-r2-calendar-host-v1 .pmd-yc__legend i{display:inline-flex;align-items:center;justify-content:center;width:24px;height:24px;border-radius:7px;color:#fff;font-style:normal;font-size:11px}
+#pmd-r2-calendar-host-v1 .pmd-yc__legend .is-reservation{background:#2f80ed}
+#pmd-r2-calendar-host-v1 .pmd-yc__legend .is-note{background:#f59e0b}
+#pmd-r2-calendar-host-v1 .pmd-yc__legend .is-event{background:#eab308}
+#pmd-r2-calendar-host-v1 button{font:inherit}
+#pmd-r2-calendar-host-v1 .pmd-yc__month-nav button,#pmd-r2-calendar-host-v1 .pmd-yc__view-switch button,#pmd-r2-calendar-host-v1 .pmd-yc__filters button,#pmd-r2-calendar-host-v1 .pmd-r2-yc-note-btn{min-height:40px;padding:0 14px;border:1px solid #c9deec;border-radius:12px;background:#edf4f8;color:#38516a;font-weight:800;cursor:pointer}
+#pmd-r2-calendar-host-v1 .pmd-yc__month-nav button{width:44px;padding:0;background:#fff}
+#pmd-r2-calendar-host-v1 .pmd-yc__view-switch button.is-active,#pmd-r2-calendar-host-v1 .pmd-yc__filters button.is-active{background:#102a43;color:#fff;border-color:#102a43}
+#pmd-r2-calendar-host-v1 .pmd-r2-yc-note-btn{background:#fff7e6;color:#9a5b00;border-color:#ffd58a}
+#pmd-r2-calendar-host-v1 .pmd-yc__months{margin:0!important;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px}
+#pmd-r2-calendar-host-v1 .pmd-yc-month{overflow:hidden;border:1px solid #c9deec;border-radius:18px;background:#fff}
+#pmd-r2-calendar-host-v1 .pmd-yc-month.is-month-view{grid-column:1/-1;border-radius:0 0 18px 18px}
+#pmd-r2-calendar-host-v1 .pmd-yc-month__head{display:flex;align-items:center;justify-content:space-between;padding:14px;border-bottom:1px solid #dce8f0}
+#pmd-r2-calendar-host-v1 .pmd-yc-month__head h2{margin:0;font-size:20px;color:#102536}
+#pmd-r2-calendar-host-v1 .pmd-yc-weekdays,#pmd-r2-calendar-host-v1 .pmd-yc-days{display:grid;grid-template-columns:repeat(7,minmax(0,1fr))}
+#pmd-r2-calendar-host-v1 .pmd-yc-weekdays span{padding:10px 6px;text-align:center;font-size:11px;font-weight:800;color:#7b8fa3;border-bottom:1px solid #e2edf4}
+#pmd-r2-calendar-host-v1 .pmd-yc-day{position:relative;min-height:72px;padding:8px;border:0;border-right:1px solid #e2edf4;border-bottom:1px solid #e2edf4;background:#fff;text-align:left;cursor:pointer}
+#pmd-r2-calendar-host-v1 .is-month-view .pmd-yc-day{min-height:112px}
+#pmd-r2-calendar-host-v1 .pmd-yc-day.is-outside{background:#f5f8fa;color:#aab8c5}
+#pmd-r2-calendar-host-v1 .pmd-yc-day__number{display:inline-flex;align-items:center;justify-content:center;width:25px;height:25px;border-radius:50%;font-weight:800;color:#102a43}
+#pmd-r2-calendar-host-v1 .pmd-yc-day.is-today .pmd-yc-day__number{background:#2f80ed;color:#fff}
+#pmd-r2-calendar-host-v1 .pmd-yc-day__operations{display:grid;gap:5px;margin-top:5px}
+#pmd-r2-calendar-host-v1 .pmd-r2-yc-entry{display:block;overflow:hidden;padding:5px 7px;border-radius:6px;font-size:11px;font-weight:800;line-height:1.2;text-overflow:ellipsis;white-space:nowrap}
+#pmd-r2-calendar-host-v1 .pmd-r2-yc-entry.is-reservation{background:#e6f0ff;color:#1556a8;border-left:4px solid #2f80ed}
+#pmd-r2-calendar-host-v1 .pmd-r2-yc-entry.is-note{background:#fff1d6;color:#8a5300;border-left:4px solid #f59e0b}
+#pmd-r2-calendar-host-v1 .pmd-r2-yc-entry.is-event{background:#fff8c9;color:#6f5a00;border-left:4px solid #eab308}
 #pmd-reservations2.is-calendar-mode #pmd-r2-shared-floor-canvas-v310,
 #pmd-reservations2.is-calendar-mode #pmd-r2-reservation-cards-v320,
 #pmd-reservations2.is-calendar-mode #pmd-waiter-dashboard-root,
 #pmd-reservations2.is-calendar-mode [data-pmd-reservations2-waiter-content]{display:none!important}
-#pmd-reservations2.is-calendar-mode #pmd-r2-date-button-v430,
-#pmd-reservations2.is-calendar-mode #pmd-r2-date-filter-v317{display:none!important}
-@media(max-width:850px){#pmd-r2-calendar-toggle-v1{width:46px;height:46px;min-width:46px;border-radius:13px}#pmd-r2-calendar-toggle-v1.is-fallback-fixed{top:50px;right:10px}#pmd-r2-calendar-host-v1{margin-top:10px}}
+#pmd-reservations2.is-calendar-mode #pmd-r2-date-button-v430,#pmd-reservations2.is-calendar-mode #pmd-r2-date-filter-v317{display:none!important}
+@media(max-width:1100px){#pmd-r2-calendar-host-v1 .pmd-yc__toolbar{grid-template-columns:1fr}#pmd-r2-calendar-host-v1 .pmd-yc__month-nav,#pmd-r2-calendar-host-v1 .pmd-yc__toolbar-right{justify-content:flex-start}#pmd-r2-calendar-host-v1 .pmd-yc__months{grid-template-columns:1fr 1fr}}
+@media(max-width:760px){#pmd-r2-calendar-toggle-v1{width:46px;height:46px;min-width:46px;border-radius:13px}#pmd-r2-calendar-host-v1{margin-top:10px}#pmd-r2-calendar-host-v1 .pmd-yc__months{grid-template-columns:1fr}#pmd-r2-calendar-host-v1 .is-month-view .pmd-yc-day{min-height:86px}}
 @media(prefers-reduced-motion:reduce){#pmd-r2-calendar-toggle-v1,#pmd-r2-calendar-host-v1{transition:none!important}}
