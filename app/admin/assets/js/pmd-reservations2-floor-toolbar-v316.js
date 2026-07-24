@@ -4,13 +4,13 @@
   var route = String(window.location.pathname || '').replace(/\/+$/, '');
   if (route !== '/admin/reservations2') return;
 
-  var VERSION = '4.1.0';
+  var VERSION = '4.2.0';
   var FLOOR_ID = 'pmd-r2-shared-floor-canvas-v310';
   var TOOLBAR_ID = 'pmd-r2-floor-toolbar-v316';
   var FILTER_ID = 'pmd-r2-date-filter-v317';
   var SECTION_ID = 'pmd-r2-reservation-cards-v320';
   var GRID_ID = 'pmd-r2-reservation-grid-v320';
-  var STYLE_ID = 'pmd-r2-waiter-cards-v410-style';
+  var STYLE_ID = 'pmd-r2-waiter-cards-v420-style';
   var STORAGE_KEY = 'pmd.reservations2.dateRange.v1';
   var rendering = false;
   var scheduled = false;
@@ -50,11 +50,13 @@
     var style = document.createElement('style');
     style.id = STYLE_ID;
     style.textContent =
-      '#' + GRID_ID + '{display:grid!important;grid-template-columns:repeat(auto-fill,minmax(300px,1fr))!important;gap:18px!important;align-items:stretch!important}' +
-      '#' + GRID_ID + '>.pmd-w5-card{width:auto!important;min-width:0!important;margin:0!important;text-decoration:none!important;position:relative!important}' +
+      'html.pmd-r2-reservation-experience-ready,html.pmd-r2-reservation-experience-ready body{height:auto!important;min-height:100%!important;overflow-x:hidden!important;overflow-y:auto!important}' +
+      'html.pmd-r2-reservation-experience-ready body>.wrapper,html.pmd-r2-reservation-experience-ready .page-wrapper,html.pmd-r2-reservation-experience-ready .content-wrapper{height:auto!important;min-height:100vh!important;max-height:none!important;overflow:visible!important}' +
+      '#' + SECTION_ID + '{position:relative!important;display:block!important;height:auto!important;min-height:0!important;max-height:none!important;overflow:visible!important;padding-bottom:64px!important}' +
+      '#' + GRID_ID + '{display:grid!important;grid-template-columns:repeat(auto-fill,minmax(300px,1fr))!important;gap:18px!important;align-items:start!important;height:auto!important;max-height:none!important;overflow:visible!important}' +
+      '#' + GRID_ID + '>.pmd-w5-card{width:auto!important;min-width:0!important;margin:0!important;text-decoration:none!important;position:relative!important;height:auto!important}' +
       '#' + GRID_ID + ' .pmd-r2-add-waiter-card{border-style:dashed!important;cursor:pointer!important}' +
       '#' + GRID_ID + ' .pmd-r2-add-waiter-card .pmd-v35-table-no{font-size:30px!important}' +
-      '#' + GRID_ID + ' .pmd-r2-add-waiter-card h2{margin-top:12px!important}' +
       '#' + GRID_ID + ' .pmd-r2-card-link{position:absolute;inset:0;z-index:1;border-radius:inherit}' +
       '#' + GRID_ID + ' button,#' + GRID_ID + ' a.pmd-r2-action-link{position:relative;z-index:2}' +
       '#' + GRID_ID + ' .pmd-r2-contact-row{display:flex;justify-content:space-between;gap:12px;padding:7px 0;border-bottom:1px solid rgba(148,163,184,.18)}' +
@@ -180,9 +182,14 @@
   function guestName(item) { return clean(item.customer_name || [item.first_name, item.last_name].filter(Boolean).join(' ') || item.guest_name || 'Guest'); }
   function guestCount(item) { return Number(item.guest_num || item.guests || item.party_size || item.covers || 0) || 0; }
   function statusLabel(item) { var status = item && (item.status_name || item.reservation_status || item.status); if (status && typeof status === 'object') status = status.status_name || status.name || status.label; return clean(status || 'Scheduled'); }
-  function tone(item) { var s = statusLabel(item).toLowerCase(); if (/cancel|declin|no.?show/.test(s)) return 'cancelled'; if (/complete|finish|closed/.test(s)) return 'served'; if (/seat|active|arriv|check.?in/.test(s)) return 'preparing'; if (/pending|request|wait/.test(s)) return 'received'; return 'received'; }
+  function tone(item) { var s = statusLabel(item).toLowerCase(); if (/cancel|declin|no.?show/.test(s)) return 'cancelled'; if (/complete|finish|closed/.test(s)) return 'served'; if (/seat|active|arriv|check.?in/.test(s)) return 'preparing'; return 'received'; }
+  function dateFilteredReservations() {
+    return reservations().filter(function (item) { var start = reservationStart(item); return start && start >= state.start && start <= state.end; }).sort(function (a, b) { return reservationStart(a) - reservationStart(b); });
+  }
   function filteredReservations() {
-    return reservations().filter(function (item) { var start = reservationStart(item); return start && start >= state.start && start <= state.end && (!state.tableId || tableIds(item).indexOf(String(state.tableId)) !== -1); }).sort(function (a, b) { return reservationStart(a) - reservationStart(b); });
+    var items = dateFilteredReservations();
+    if (!state.tableId) return items;
+    return items.filter(function (item) { return tableIds(item).indexOf(String(state.tableId)) !== -1; });
   }
   function editUrl(item) { var id = item && (item.reservation_id || item.id); var base = clean(bootData().editBaseUrl || '/admin/reservations/edit').replace(/\/$/, ''); return id ? base + '/' + encodeURIComponent(id) : '#'; }
   function createUrl() {
@@ -194,23 +201,25 @@
     var root = floor(); if (!root || !root.parentElement) return null;
     var section = document.getElementById(SECTION_ID);
     if (!section) {
-      section = document.createElement('section'); section.id = SECTION_ID; section.className = 'pmd-r2-reservation-cards-v320';
+      section = document.createElement('section');
+      section.id = SECTION_ID;
+      section.className = 'pmd-r2-reservation-cards-v320';
       section.innerHTML = '<div class="pmd-r2-reservation-cards-v320__head"><div><strong data-r2-card-title>Reservations</strong><span data-r2-card-subtitle></span></div><button type="button" data-r2-show-all hidden>Show all tables</button></div><div id="' + GRID_ID + '" class="pmd-r2-reservation-grid-v320 pmd-w5-grid"></div>';
       root.insertAdjacentElement('afterend', section);
-      section.querySelector('[data-r2-show-all]').addEventListener('click', function () { state.tableId = null; state.tableName = null; clearSelection(); render(); });
+      section.querySelector('[data-r2-show-all]').addEventListener('click', function () { clearTableFilter(); });
     }
     return section;
   }
 
   function addCardMarkup() {
-    var table = state.tableId ? (state.tableName || 'Table ' + state.tableId) : 'Choose a table';
+    var table = state.tableId ? (state.tableName || 'Table ' + state.tableId) : 'Any table';
     return '<article class="pmd-w5-card pmd-v35-ready pmd-r2-add-waiter-card" data-r2-add-reservation>' +
       '<a class="pmd-r2-card-link" href="' + esc(createUrl()) + '" aria-label="Add reservation"></a>' +
       '<div class="pmd-v35-card-head"><div class="pmd-v35-table-no">＋</div></div>' +
       '<div class="pmd-w5-card-top"><span class="pmd-w5-pill warn pmd-v17-card-table-top pmd-v21-table-badge">' + esc(table) + '</span></div>' +
       '<h2>Add reservation</h2>' +
       '<div style="display:flex;gap:8px;flex-wrap:wrap;margin:10px 0"><span class="pmd-w5-pill warn">NEW</span></div>' +
-      '<div class="pmd-w5-meta"><div class="pmd-w5-box"><small>Table</small><b>' + esc(state.tableId || '—') + '</b></div><div class="pmd-w5-box"><small>Date</small><b>' + esc(humanDate(state.start)) + '</b></div><div class="pmd-w5-box pmd-v35-order-box"><small>Type</small><b>Booking</b></div></div>' +
+      '<div class="pmd-w5-meta"><div class="pmd-w5-box"><small>Table</small><b>' + esc(state.tableId || 'Any') + '</b></div><div class="pmd-w5-box"><small>Date</small><b>' + esc(humanDate(state.start)) + '</b></div><div class="pmd-w5-box pmd-v35-order-box"><small>Type</small><b>Booking</b></div></div>' +
       '<div class="pmd-w5-items"><small>Reservation</small><div class="pmd-r2-contact-row"><span>Select this card to create a reservation</span><b>＋</b></div></div>' +
       '<div class="pmd-w5-card-actions"><a class="primary pmd-r2-action-link" href="' + esc(createUrl()) + '">Add reservation</a></div>' +
     '</article>';
@@ -242,15 +251,34 @@
     '</article>';
   }
 
-  function clearSelection() { var root = floor(); if (!root) return; root.querySelectorAll('[data-pmd-r2-selected-table-v320],.pmd-r2-table-selected-v317').forEach(function (node) { node.removeAttribute('data-pmd-r2-selected-table-v320'); node.classList.remove('pmd-r2-table-selected-v317'); }); }
-  function markSelection() { var root = floor(); if (!root) return; clearSelection(); if (!state.tableId) return; root.querySelectorAll('[data-floor-table]').forEach(function (node) { var ids = [node.getAttribute('data-floor-table'), node.getAttribute('data-table-id'), node.getAttribute('data-floor-table-id')].filter(Boolean).map(String); if (ids.indexOf(String(state.tableId)) !== -1) { node.setAttribute('data-pmd-r2-selected-table-v320', 'true'); node.classList.add('pmd-r2-table-selected-v317'); } }); }
-  function updateKpis(items) { var now = new Date(); var upcoming = items.filter(function (item) { var start = reservationStart(item); return start && start >= now; }).length; var pending = items.filter(function (item) { return /pending|confirm|request|wait/i.test(statusLabel(item)); }).length; var tables = new Set(); items.forEach(function (item) { tableIds(item).forEach(function (id) { tables.add(id); }); }); var values = {today:items.length, upcoming:upcoming, pending:pending, tables:tables.size}; Object.keys(values).forEach(function (key) { var node = document.querySelector('[data-r2-v308-value="' + key + '"]'); if (node) node.textContent = String(values[key]); }); }
+  function clearSelection() {
+    var root = floor(); if (!root) return;
+    root.querySelectorAll('[data-pmd-r2-selected-table-v320],.pmd-r2-table-selected-v317').forEach(function (node) { node.removeAttribute('data-pmd-r2-selected-table-v320'); node.classList.remove('pmd-r2-table-selected-v317'); });
+  }
+  function clearTableFilter() { state.tableId = null; state.tableName = null; clearSelection(); render(); }
+  function markSelection() {
+    var root = floor(); if (!root) return;
+    clearSelection(); if (!state.tableId) return;
+    root.querySelectorAll('[data-floor-table]').forEach(function (node) {
+      var ids = [node.getAttribute('data-floor-table'), node.getAttribute('data-table-id'), node.getAttribute('data-floor-table-id')].filter(Boolean).map(String);
+      if (ids.indexOf(String(state.tableId)) !== -1) { node.setAttribute('data-pmd-r2-selected-table-v320', 'true'); node.classList.add('pmd-r2-table-selected-v317'); }
+    });
+  }
+  function updateKpis(items) {
+    var now = new Date();
+    var upcoming = items.filter(function (item) { var start = reservationStart(item); return start && start >= now; }).length;
+    var pending = items.filter(function (item) { return /pending|confirm|request|wait/i.test(statusLabel(item)); }).length;
+    var tables = new Set(); items.forEach(function (item) { tableIds(item).forEach(function (id) { tables.add(id); }); });
+    var values = {today:items.length, upcoming:upcoming, pending:pending, tables:tables.size};
+    Object.keys(values).forEach(function (key) { var node = document.querySelector('[data-r2-v308-value="' + key + '"]'); if (node) node.textContent = String(values[key]); });
+  }
 
   function renderCards(items) {
     var section = ensureSection(); if (!section) return;
+    var allInRange = dateFilteredReservations();
     var selected = state.tableId ? (state.tableName || 'Table ' + state.tableId) : 'All tables';
-    section.querySelector('[data-r2-card-title]').textContent = state.tableId ? 'Reservations for ' + selected : 'Reservations';
-    section.querySelector('[data-r2-card-subtitle]').textContent = rangeLabel() + ' · ' + items.length + ' reservation' + (items.length === 1 ? '' : 's');
+    section.querySelector('[data-r2-card-title]').textContent = state.tableId ? 'Reservations for ' + selected : 'All reservations';
+    section.querySelector('[data-r2-card-subtitle]').textContent = rangeLabel() + ' · ' + items.length + (state.tableId ? ' of ' + allInRange.length : '') + ' reservation' + (items.length === 1 ? '' : 's');
     section.querySelector('[data-r2-show-all]').hidden = !state.tableId;
     document.getElementById(GRID_ID).innerHTML = addCardMarkup() + items.map(reservationCardMarkup).join('');
     section.dataset.reservationCount = String(items.length);
@@ -260,37 +288,94 @@
     if (rendering) return; rendering = true;
     try {
       var root = floor(); if (!root) return;
+      document.documentElement.classList.add('pmd-r2-reservation-experience-ready');
       ensureStyle(); ensureToolbar(root); ensureDateFilter();
       var items = filteredReservations(); updateKpis(items); markSelection(); renderCards(items);
-      document.documentElement.classList.add('pmd-r2-reservation-experience-ready');
-      root.setAttribute('data-pmd-r2-toolbar-authority', 'floor-experience-v4.1');
+      root.setAttribute('data-pmd-r2-toolbar-authority', 'floor-experience-v4.2');
     } finally { rendering = false; }
   }
 
-  function tableIdFromNode(node) { var direct = node && (node.getAttribute('data-floor-table') || node.getAttribute('data-table-id') || node.getAttribute('data-floor-table-id') || node.dataset.tableId || node.dataset.id); if (direct && Number(direct) > 0) return String(Number(direct)); var members = clean(node && node.getAttribute('data-floor-members')).split(',').filter(Boolean); if (members.length && Number(members[0]) > 0) return String(Number(members[0])); var match = clean(node && node.textContent).match(/\b(\d+)\b/); return match ? String(Number(match[1])) : null; }
-  function tableNameFromNode(node, id) { var nameNode = node.querySelector('.pmd-floor-v1__name,[data-floor-table-name],strong'); var name = clean(nameNode && nameNode.textContent); if (name) return /^table\s/i.test(name) ? name : 'Table ' + name; var label = clean(node.getAttribute('aria-label') || node.getAttribute('title')); return label ? label.split(' — ')[0] : 'Table ' + id; }
+  function tableIdFromNode(node) {
+    var direct = node && (node.getAttribute('data-floor-table') || node.getAttribute('data-table-id') || node.getAttribute('data-floor-table-id') || node.dataset.tableId || node.dataset.id);
+    if (direct && Number(direct) > 0) return String(Number(direct));
+    var members = clean(node && node.getAttribute('data-floor-members')).split(',').filter(Boolean);
+    if (members.length && Number(members[0]) > 0) return String(Number(members[0]));
+    var match = clean(node && node.textContent).match(/\b(\d+)\b/);
+    return match ? String(Number(match[1])) : null;
+  }
+  function tableNameFromNode(node, id) {
+    var nameNode = node.querySelector('.pmd-floor-v1__name,[data-floor-table-name],strong');
+    var name = clean(nameNode && nameNode.textContent);
+    if (name) return /^table\s/i.test(name) ? name : 'Table ' + name;
+    var label = clean(node.getAttribute('aria-label') || node.getAttribute('title'));
+    return label ? label.split(' — ')[0] : 'Table ' + id;
+  }
   function bindEvents() {
     if (eventsBound) return; eventsBound = true;
     document.addEventListener('click', function (event) {
       var root = floor(); if (!root || !root.contains(event.target)) return;
       var table = event.target.closest('[data-floor-table]'); if (!table || !root.contains(table)) return;
-      var floorState = root.__pmdFloorV1 && root.__pmdFloorV1.getState ? root.__pmdFloorV1.getState() : null; if (floorState && floorState.editing) return;
+      var floorState = root.__pmdFloorV1 && root.__pmdFloorV1.getState ? root.__pmdFloorV1.getState() : null;
+      if (floorState && floorState.editing) return;
       var id = tableIdFromNode(table); if (!id) return;
       event.preventDefault(); event.stopPropagation();
-      state.tableId = id; state.tableName = tableNameFromNode(table, id); render();
+      if (String(state.tableId || '') === String(id)) {
+        clearTableFilter();
+      } else {
+        state.tableId = id;
+        state.tableName = tableNameFromNode(table, id);
+        render();
+      }
       window.setTimeout(function () { var section = document.getElementById(SECTION_ID); if (section) section.scrollIntoView({behavior:'smooth', block:'start'}); }, 30);
     }, true);
   }
+
   function schedule() { if (scheduled) return; scheduled = true; window.requestAnimationFrame(function () { scheduled = false; render(); }); }
   function connectObserver() { var root = floor(); if (!root) return; if (observer) observer.disconnect(); observer = new MutationObserver(schedule); observer.observe(root, {childList:true, subtree:true, attributes:true, attributeFilter:['hidden','aria-pressed','data-status','data-floor-members']}); }
-  function audit() { var items = filteredReservations(); return {version:VERSION, floor:Boolean(floor()), toolbar:Boolean(document.getElementById(TOOLBAR_ID)), dateFilter:Boolean(document.getElementById(FILTER_ID)), section:Boolean(document.getElementById(SECTION_ID)), totalReservations:reservations().length, filteredReservations:items.length, waiterCards:document.querySelectorAll('#' + GRID_ID + ' > .pmd-w5-card').length, visibleReservationCards:document.querySelectorAll('#' + GRID_ID + ' [data-r2-reservation-id]').length, addReservationCard:Boolean(document.querySelector('#' + GRID_ID + ' [data-r2-add-reservation]')), selectedTable:state.tableId, range:[dateKey(state.start), dateKey(state.end)]}; }
+  function audit() {
+    var items = filteredReservations();
+    return {
+      version:VERSION,
+      floor:Boolean(floor()),
+      toolbar:Boolean(document.getElementById(TOOLBAR_ID)),
+      dateFilter:Boolean(document.getElementById(FILTER_ID)),
+      section:Boolean(document.getElementById(SECTION_ID)),
+      totalReservations:reservations().length,
+      reservationsInDateRange:dateFilteredReservations().length,
+      filteredReservations:items.length,
+      waiterCards:document.querySelectorAll('#' + GRID_ID + ' > .pmd-w5-card').length,
+      visibleReservationCards:document.querySelectorAll('#' + GRID_ID + ' [data-r2-reservation-id]').length,
+      addReservationCard:Boolean(document.querySelector('#' + GRID_ID + ' [data-r2-add-reservation]')),
+      selectedTable:state.tableId,
+      range:[dateKey(state.start), dateKey(state.end)],
+      scrollHeight:document.documentElement.scrollHeight,
+      viewportHeight:window.innerHeight
+    };
+  }
 
-  var api = {version:VERSION, refresh:schedule, renderReservations:schedule, setRange:function (start, end) { var a = parseDate(start, false); var b = parseDate(end, true); if (validRange(a, b)) setRange(a, b); }, clearTable:function () { state.tableId = null; state.tableName = null; clearSelection(); render(); }, getState:function () { return {start:dateKey(state.start), end:dateKey(state.end), tableId:state.tableId, tableName:state.tableName}; }, audit:audit, destroy:function () { if (observer) observer.disconnect(); observer = null; }};
+  var api = {
+    version:VERSION,
+    refresh:schedule,
+    renderReservations:schedule,
+    setRange:function (start, end) { var a = parseDate(start, false); var b = parseDate(end, true); if (validRange(a, b)) setRange(a, b); },
+    clearTable:clearTableFilter,
+    getState:function () { return {start:dateKey(state.start), end:dateKey(state.end), tableId:state.tableId, tableName:state.tableName}; },
+    audit:audit,
+    destroy:function () { if (observer) observer.disconnect(); observer = null; }
+  };
   window.PMDReservations2FloorExperience = api;
   window.PMDReservations2FloorToolbarV316 = api;
-  window.PMDReservations2CardsV320 = {version:VERSION, refresh:schedule, showAll:api.clearTable, audit:audit};
+  window.PMDReservations2CardsV320 = {version:VERSION, refresh:schedule, showAll:clearTableFilter, audit:audit};
   window.PMDReservations2ScrollV322 = {version:VERSION, refresh:schedule, audit:audit};
 
-  function boot() { restoreRange(); bindEvents(); render(); connectObserver(); console.info('[PMD Reservations2 Floor Experience V4.1 waiter cards] Ready', audit()); }
+  function boot() {
+    restoreRange();
+    state.tableId = null;
+    state.tableName = null;
+    bindEvents();
+    render();
+    connectObserver();
+    console.info('[PMD Reservations2 Floor Experience V4.2 all cards + table toggle + scroll] Ready', audit());
+  }
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot, {once:true}); else boot();
 })();
