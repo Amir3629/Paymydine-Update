@@ -1,0 +1,110 @@
+/* PMD Reservations2 calendar toggle V1.11 */
+#pmd-r2-clean-header .pmd-r2-clean-actions{display:flex!important;align-items:center!important;justify-content:flex-end!important;gap:8px!important;flex-wrap:nowrap!important;opacity:1!important;visibility:visible!important;transform:none!important}
+#pmd-r2-clean-header .pmd-r2-clean-actions>#pmd-r2-date-popover-v318:empty{display:none!important}
+#pmd-r2-clean-header .pmd-r2-clean-actions>.pmd-r2-mobile-toggle{order:-10}
+#pmd-r2-date-button-v430,#pmd-r2-calendar-toggle-v1,#pmd-r2-clean-header .pmd-r2-clean-create,#pmd-r2-clean-header #notifDropdown{display:inline-flex!important;align-items:center!important;justify-content:center!important;height:44px!important;min-height:44px!important;max-height:44px!important;box-sizing:border-box!important;border:1px solid #c9deec!important;border-radius:12px!important;background:#fff!important;color:#14283e!important;box-shadow:none!important;margin:0!important;position:relative!important;inset:auto!important;transform:none!important;vertical-align:middle!important;opacity:1!important;visibility:visible!important;transition:none!important}
+#pmd-r2-calendar-toggle-v1,#pmd-r2-clean-header .pmd-r2-clean-create,#pmd-r2-clean-header #notifDropdown{width:44px!important;min-width:44px!important;max-width:44px!important;padding:0!important}
+#pmd-r2-date-button-v430{width:auto!important;min-width:190px!important;max-width:290px!important;padding:0 14px!important;gap:8px!important;white-space:nowrap!important;font-weight:800!important;overflow:hidden!important}
+#pmd-r2-date-button-v430 span{display:block!important;overflow:hidden!important;text-overflow:ellipsis!important;white-space:nowrap!important}
+#pmd-r2-date-button-v430 svg,#pmd-r2-calendar-toggle-v1 svg,#pmd-r2-clean-header #notifDropdown svg{width:20px!important;height:20px!important;flex:0 0 20px!important;pointer-events:none}
+#pmd-r2-clean-header .pmd-r2-clean-create i{font-size:17px!important;line-height:1!important}
+#pmd-r2-clean-header #notif-root{display:block!important;list-style:none!important;margin:0!important;padding:0!important;position:relative!important;opacity:1!important;visibility:visible!important}
+#pmd-r2-clean-header #notif-root>.media-toolbar-tooltip-wrap{display:block!important;position:relative!important}
+#pmd-r2-clean-header #notifDropdown:after{display:none!important}
+#pmd-r2-calendar-toggle-v1{cursor:pointer!important}
+#pmd-r2-calendar-toggle-v1.is-active{background:#fff!important;color:#14283e!important;border-color:#c9deec!important;box-shadow:none!important}
+#pmd-r2-calendar-toggle-v1:hover,#pmd-r2-calendar-toggle-v1.is-active:hover,#pmd-r2-date-button-v430:hover,#pmd-r2-clean-header .pmd-r2-clean-create:hover,#pmd-r2-clean-header #notifDropdown:hover{background:#f1f7fb!important;color:#14283e!important;border-color:#9fc4df!important}
+#pmd-reservations2.is-calendar-mode #pmd-r2-date-button-v430{display:inline-flex!important;visibility:visible!important;opacity:1!important}
+#pmd-r2-calendar-surface-v160{display:none;opacity:1!important;transform:none!important;transition:none!important;position:relative;z-index:2;background:#f8fbfd;width:100%;min-height:520px;box-sizing:border-box}
+#pmd-r2-calendar-surface-v160.is-visible{display:block!important;opacity:1!important;transform:none!important}
+#pmd-reservations2.is-calendar-mode #pmd-r2-shared-floor-canvas-v310{height:auto!important;min-height:0!important;overflow:visible!important;background:#f8fbfd!important}
+#pmd-reservations2.is-calendar-mode #pmd-r2-shared-floor-canvas-v310>*:not(#pmd-r2-calendar-surface-v160){display:none!important}
+#pmd-reservations2.is-calendar-mode #pmd-r2-reservation-section-v320,#pmd-reservations2.is-calendar-mode #pmd-r2-reservation-grid-v320,#pmd-reservations2.is-calendar-mode .pmd-r2-reservation-section-v320{display:none!important}
+#pmd-r2-calendar-surface-v160 .pmd-yc__toolbar{display:grid;grid-template-columns:minmax(240px,1fr) auto minmax(360px,1fr);align-items:center;gap:14px;padding:14px 14px 16px;border:1px solid #d7e4ec;border-radius:18px 18px 0 0;background:#fff}
+#pmd-r2-calendar-surface-v160 .pmd-yc__legend{display:flex;align-items:center;gap:12px;flex-wrap:wrap;color:#526a82;font-weight:700;font-size:13px}
+#pmd-r2-calendar-surface-v160 .pmd-yc__legend span{display:inline-flex;align-items:center;gap:6px}
+#pmd-r2-calendar-surface-v160 .pmd-yc__legend i{display:inline-flex;align-items:center;justify-content:center;width:24px;height:24px;border-radius:7px;font-style:normal;font-size:12px;font-weight:900;color:#fff}
+#pmd-r2-calendar-surface-v160 .pmd-yc__legend .is-reservation{background:#2f80ed}
+#pmd-r2-calendar-surface-v160 .pmd-yc__legend .is-note{background:#f2994a}
+#pmd-r2-calendar-surface-v160 .pmd-yc__legend .is-event{background:#34a853!important;color:#fff!important}
+#pmd-r2-calendar-surface-v160 .pmd-yc__month-nav{display:flex;align-items:center;justify-content:center;gap:18px}
+#pmd-r2-calendar-surface-v160 .pmd-yc__month-nav button,#pmd-r2-calendar-surface-v160 .pmd-yc__toolbar-right button{display:inline-flex;align-items:center;justify-content:center;min-height:42px;padding:0 15px;border:1px solid #d4e1ea;border-radius:12px;background:#eef5f9;color:#29435b;font-weight:800;cursor:pointer}
+#pmd-r2-calendar-surface-v160 .pmd-yc__month-nav button{width:52px;padding:0;background:#fff}
+#pmd-r2-calendar-surface-v160 .pmd-yc__month-nav strong{min-width:132px;text-align:center;font-size:18px;color:#102a43}
+#pmd-r2-calendar-surface-v160 .pmd-yc__toolbar-right{display:flex;align-items:center;justify-content:flex-end;gap:8px}
+#pmd-r2-calendar-surface-v160 .pmd-yc__view-switch,#pmd-r2-calendar-surface-v160 .pmd-yc__filters{display:flex;gap:8px}
+#pmd-r2-calendar-surface-v160 .pmd-yc__toolbar-right button.is-active{background:#102a43;color:#fff;border-color:#102a43}
+#pmd-r2-calendar-surface-v160 .pmd-r2-yc-note-btn{background:#fff8f1!important;color:#9d4f07!important;border-color:#f3c18e!important}
+#pmd-r2-calendar-surface-v160 .pmd-yc__months{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px;padding-top:16px}
+#pmd-r2-calendar-surface-v160 .pmd-yc-month{overflow:hidden;border:1px solid #d7e4ec;border-radius:18px;background:#fff}
+#pmd-r2-calendar-surface-v160 .pmd-yc-month__head{display:flex;align-items:center;justify-content:space-between;padding:14px 16px;border-bottom:1px solid #d7e4ec}
+#pmd-r2-calendar-surface-v160 .pmd-yc-month__head h2{margin:0;font-size:21px;color:#102a43}
+#pmd-r2-calendar-surface-v160 .pmd-yc-weekdays{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));border-bottom:1px solid #d7e4ec;background:#fbfdff}
+#pmd-r2-calendar-surface-v160 .pmd-yc-weekdays span{padding:10px 4px;text-align:center;color:#71849a;font-size:11px;font-weight:800;text-transform:uppercase}
+#pmd-r2-calendar-surface-v160 .pmd-yc-days{display:grid;grid-template-columns:repeat(7,minmax(0,1fr))}
+#pmd-r2-calendar-surface-v160 .pmd-yc-day{position:relative;display:flex;flex-direction:column;align-items:stretch;justify-content:flex-start;min-width:0;height:62px;padding:8px;border:0;border-right:1px solid #e2ebf1;border-bottom:1px solid #e2ebf1;background:#fff;color:#14283e;text-align:left;cursor:pointer;overflow:hidden}
+#pmd-r2-calendar-surface-v160 .pmd-yc-day:nth-child(7n){border-right:0}
+#pmd-r2-calendar-surface-v160 .pmd-yc-day.is-outside{background:#f6f9fb;color:#a9b7c5}
+#pmd-r2-calendar-surface-v160 .pmd-yc-day.is-today .pmd-yc-day__number{display:inline-flex;align-items:center;justify-content:center;width:27px;height:27px;border-radius:50%;background:#2f80ed;color:#fff}
+#pmd-r2-calendar-surface-v160 .pmd-yc-day.is-selected{box-shadow:inset 0 0 0 2px #2f80ed!important;background:#f7fbff!important}
+#pmd-r2-calendar-surface-v160 .pmd-yc-day__number{position:relative;z-index:2;font-weight:800;line-height:1.2}
+#pmd-r2-calendar-surface-v160 .pmd-yc-day__operations{display:flex;flex-direction:column;gap:4px;margin-top:8px;min-width:0}
+#pmd-r2-calendar-surface-v160 .pmd-r2-yc-entry{display:block;min-width:0;padding:5px 8px;border-radius:7px;font-size:11px;font-weight:800;line-height:1.25;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#pmd-r2-calendar-surface-v160 .pmd-r2-yc-entry.is-reservation{background:#e4efff;color:#1555a4;border-left:4px solid #2f80ed}
+#pmd-r2-calendar-surface-v160 .pmd-r2-yc-entry.is-note{background:#fff0dd;color:#9d4f07;border-left:4px solid #f2994a}
+#pmd-r2-calendar-surface-v160 .pmd-r2-yc-entry.is-event{background:#e6f4ea!important;color:#137333!important;border-left:4px solid #34a853!important}
+#pmd-r2-calendar-surface-v160.is-month-mode .pmd-yc__months{grid-template-columns:1fr!important}
+#pmd-reservations2.is-calendar-mode #pmd-r2-calendar-surface-v160.is-month-mode .pmd-yc-month.is-month-view .pmd-yc-days{grid-auto-rows:132px!important}
+#pmd-reservations2.is-calendar-mode #pmd-r2-calendar-surface-v160.is-month-mode .pmd-yc-month.is-month-view .pmd-yc-day{height:132px!important;min-height:132px!important;max-height:132px!important;padding:10px!important}
+#pmd-r2-calendar-surface-v160.is-month-mode .pmd-yc-month.is-month-view .pmd-yc-month__head{padding:16px 18px}
+#pmd-r2-calendar-surface-v160.is-month-mode .pmd-yc-month.is-month-view .pmd-yc-month__head h2{font-size:24px}
+#pmd-r2-calendar-surface-v160.is-year-mode .pmd-yc__months{grid-template-columns:repeat(3,minmax(0,1fr))}
+#pmd-r2-calendar-surface-v160.is-year-mode .pmd-yc-day{height:54px;padding:7px}
+#pmd-r2-calendar-surface-v160 .pmd-yc-day__operations.is-dot-mode{position:absolute!important;left:7px!important;right:7px!important;bottom:7px!important;display:flex!important;flex-direction:row!important;align-items:center!important;justify-content:center!important;gap:4px!important;height:8px!important;min-height:8px!important;max-height:8px!important;margin:0!important;padding:0!important;overflow:visible!important}
+#pmd-r2-calendar-surface-v160 .pmd-r2-yc-dot{appearance:none!important;-webkit-appearance:none!important;display:block!important;position:static!important;inset:auto!important;float:none!important;box-sizing:border-box!important;width:7px!important;height:7px!important;min-width:7px!important;min-height:7px!important;max-width:7px!important;max-height:7px!important;margin:0!important;padding:0!important;border:0!important;border-radius:50%!important;outline:0!important;box-shadow:none!important;transform:none!important;font-size:0!important;line-height:0!important;overflow:hidden!important;flex:0 0 7px!important}
+#pmd-r2-calendar-surface-v160 .pmd-r2-yc-dot:before,#pmd-r2-calendar-surface-v160 .pmd-r2-yc-dot:after{display:none!important;content:none!important}
+#pmd-r2-calendar-surface-v160 .pmd-r2-yc-dot.is-reservation{background:#2f80ed!important}
+#pmd-r2-calendar-surface-v160 .pmd-r2-yc-dot.is-note{background:#f2994a!important}
+#pmd-r2-calendar-surface-v160 .pmd-r2-yc-dot.is-event{background:#34a853!important}
+#pmd-r2-calendar-surface-v160 .pmd-r2-yc-selected{margin-top:18px!important;padding:0!important;border:0!important;border-radius:0!important;background:transparent!important;box-shadow:none!important;scroll-margin-top:18px}
+#pmd-r2-calendar-surface-v160 .pmd-r2-yc-selected[hidden]{display:none!important}
+#pmd-r2-calendar-surface-v160 .pmd-r2-yc-selected__head{display:flex;align-items:center;justify-content:space-between;gap:18px;padding:0 0 14px!important;margin-bottom:0!important;border:0!important;background:transparent!important}
+#pmd-r2-calendar-surface-v160 .pmd-r2-yc-selected__head small{display:block;color:#71849a;font-weight:800;text-transform:uppercase;letter-spacing:.05em}
+#pmd-r2-calendar-surface-v160 .pmd-r2-yc-selected__head h2{margin:3px 0 0;font-size:24px;color:#102a43}
+#pmd-r2-calendar-surface-v160 .pmd-r2-yc-selected__head p{margin:3px 0 0;color:#71849a;font-weight:700}
+#pmd-r2-calendar-surface-v160 .pmd-r2-yc-selected__actions{display:flex;align-items:center;gap:8px;flex-wrap:wrap;justify-content:flex-end}
+#pmd-r2-calendar-surface-v160 .pmd-r2-yc-selected__actions button,#pmd-r2-calendar-surface-v160 .pmd-r2-yc-selected__actions a{display:inline-flex;align-items:center;justify-content:center;min-height:42px;padding:0 14px;border:1px solid #d4e1ea;border-radius:12px;background:#fff;color:#23405b;text-decoration:none;font-weight:800;cursor:pointer}
+#pmd-r2-calendar-surface-v160 .pmd-r2-yc-selected__actions a{background:#102a43;color:#fff;border-color:#102a43}
+#pmd-r2-calendar-surface-v160 .pmd-r2-yc-selected__grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:16px!important;align-items:stretch!important}
+#pmd-r2-calendar-surface-v160 .pmd-r2-yc-detail-card{min-width:0!important;width:auto!important;margin:0!important;height:100%!important;box-sizing:border-box!important}
+#pmd-r2-calendar-surface-v160 .pmd-r2-yc-detail-card .pmd-v35-edit-btn{display:inline-flex;align-items:center;justify-content:center;text-decoration:none}
+#pmd-r2-calendar-surface-v160 .pmd-r2-yc-detail-card.is-event-card{border-color:#34a853!important}
+#pmd-r2-calendar-surface-v160 .pmd-r2-yc-detail-card.is-event-card .pmd-v35-table-no{background:#34a853!important;color:#fff!important}
+#pmd-r2-calendar-surface-v160 .pmd-r2-yc-detail-card.is-event-card .pmd-w5-pill{background:#e6f4ea!important;color:#137333!important;border-color:#34a853!important}
+#pmd-r2-calendar-surface-v160 .pmd-r2-yc-detail-card.is-note-card{border-color:#f2994a!important}
+#pmd-r2-calendar-surface-v160 .pmd-r2-yc-detail-card.is-note-card .pmd-v35-table-no{background:#f2994a!important;color:#fff!important}
+#pmd-r2-calendar-surface-v160 .pmd-r2-yc-empty{display:flex;min-height:150px;align-items:center;justify-content:center;flex-direction:column;gap:6px;border:1px dashed #c9dbe7;border-radius:16px;background:#f8fbfd;color:#62788d;text-align:center}
+#pmd-r2-calendar-surface-v160 .pmd-r2-yc-empty strong{color:#23405b;font-size:17px}
+.pmd-r2-yc-modal[hidden]{display:none!important}
+.pmd-r2-yc-modal{position:fixed;inset:0;z-index:100050;display:flex;align-items:center;justify-content:center;padding:24px;opacity:0;pointer-events:none;transition:none!important}
+.pmd-r2-yc-modal.is-open{opacity:1;pointer-events:auto}
+.pmd-r2-yc-modal__backdrop{position:absolute;inset:0;background:rgba(10,29,45,.46)}
+.pmd-r2-yc-modal__card{position:relative;width:min(560px,100%);padding:22px;border:1px solid #d7e4ec;border-radius:20px;background:#fff;box-shadow:0 24px 70px rgba(10,29,45,.22);transform:none!important;transition:none!important}
+.pmd-r2-yc-modal__head{display:flex;align-items:flex-start;justify-content:space-between;gap:18px;margin-bottom:16px}
+.pmd-r2-yc-modal__head small{display:block;color:#71849a;font-weight:800;text-transform:uppercase;letter-spacing:.06em}
+.pmd-r2-yc-modal__head h2{margin:4px 0 0;color:#102a43;font-size:22px}
+.pmd-r2-yc-modal__head>button{display:inline-flex;width:40px;height:40px;align-items:center;justify-content:center;border:1px solid #d4e1ea;border-radius:12px;background:#fff;color:#23405b;font-size:25px;cursor:pointer}
+.pmd-r2-yc-modal textarea{display:block;width:100%;min-height:140px;resize:vertical;box-sizing:border-box;padding:14px;border:1px solid #c9dbe7;border-radius:14px;background:#f8fbfd;color:#14283e;font:inherit;line-height:1.5;outline:none}
+.pmd-r2-yc-modal textarea:focus{border-color:#2f80ed;box-shadow:0 0 0 3px rgba(47,128,237,.13)}
+.pmd-r2-yc-modal__actions{display:flex;align-items:center;justify-content:flex-end;gap:9px;margin-top:16px}
+.pmd-r2-yc-modal__actions button{min-height:42px;padding:0 16px;border:1px solid #d4e1ea;border-radius:12px;background:#fff;color:#23405b;font-weight:800;cursor:pointer}
+.pmd-r2-yc-modal__actions button.primary{background:#102a43;color:#fff;border-color:#102a43}
+.pmd-r2-yc-modal__actions [data-r2-yc-modal-delete]{margin-right:auto;color:#b42318;border-color:#f0c4bf;background:#fff7f6}
+html.pmd-r2-yc-modal-open{overflow:hidden!important}
+#pmd-r2-clean-header .pmd-r2-clean-actions>#pmd-r2-date-button-v430{order:1!important}
+#pmd-r2-clean-header .pmd-r2-clean-actions>#pmd-r2-calendar-toggle-v1{order:2!important}
+#pmd-r2-clean-header .pmd-r2-clean-actions>.pmd-r2-clean-create{order:3!important}
+#pmd-r2-clean-header .pmd-r2-clean-actions>#notif-root{order:4!important}
+@media(max-width:1350px){#pmd-r2-calendar-surface-v160 .pmd-r2-yc-selected__grid{grid-template-columns:repeat(3,minmax(0,1fr))}}
+@media(max-width:1180px){#pmd-r2-date-button-v430{min-width:44px!important;width:44px!important;max-width:44px!important;padding:0!important}#pmd-r2-date-button-v430 span{display:none!important}#pmd-r2-calendar-surface-v160 .pmd-yc__toolbar{grid-template-columns:1fr}#pmd-r2-calendar-surface-v160 .pmd-yc__month-nav{order:-1}#pmd-r2-calendar-surface-v160 .pmd-yc__toolbar-right{justify-content:flex-start;flex-wrap:wrap}#pmd-r2-calendar-surface-v160 .pmd-yc__months{grid-template-columns:repeat(2,minmax(0,1fr))}#pmd-r2-calendar-surface-v160 .pmd-r2-yc-selected__grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:700px){#pmd-r2-date-button-v430,#pmd-r2-calendar-toggle-v1,#pmd-r2-clean-header .pmd-r2-clean-create,#pmd-r2-clean-header #notifDropdown{width:42px!important;height:42px!important;min-width:42px!important;min-height:42px!important;max-width:42px!important;border-radius:11px!important}#pmd-r2-calendar-surface-v160 .pmd-yc__toolbar{padding:10px;gap:10px}#pmd-r2-calendar-surface-v160 .pmd-yc__months{grid-template-columns:1fr;gap:10px;padding-top:10px}#pmd-r2-calendar-surface-v160 .pmd-yc-month.is-month-view{overflow-x:auto}#pmd-r2-calendar-surface-v160 .pmd-yc-month.is-month-view .pmd-yc-weekdays,#pmd-r2-calendar-surface-v160 .pmd-yc-month.is-month-view .pmd-yc-days{min-width:760px}#pmd-r2-calendar-surface-v160 .pmd-r2-yc-selected__head{align-items:flex-start;flex-direction:column}#pmd-r2-calendar-surface-v160 .pmd-r2-yc-selected__actions{justify-content:flex-start}#pmd-r2-calendar-surface-v160 .pmd-r2-yc-selected__grid{grid-template-columns:1fr}}
