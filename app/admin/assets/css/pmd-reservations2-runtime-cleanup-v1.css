@@ -1,0 +1,50 @@
+/* PMD Reservations2 Runtime Cleanup V1 */
+
+html.pmd-r2-runtime-booting #pmd-reservations2 {
+  visibility: hidden !important;
+}
+
+html.pmd-r2-runtime-ready #pmd-reservations2 {
+  visibility: visible !important;
+}
+
+html.pmd-r2-runtime-booting #pmd-r2-clean-header .pmd-r2-clean-actions {
+  min-width: 342px !important;
+  min-height: 44px !important;
+}
+
+#pmd-reservations2,
+#pmd-reservations2 * {
+  animation-delay: 0s !important;
+}
+
+#pmd-reservations2,
+#pmd-r2-clean-header,
+#pmd-r2-clean-header .pmd-r2-clean-actions,
+#pmd-r2-shared-floor-canvas-v310,
+#pmd-r2-calendar-surface-v160 {
+  transition: none !important;
+}
+
+#pmd-reservations2 {
+  opacity: 1 !important;
+  transform: none !important;
+}
+
+#pmd-r2-date-button-v430,
+#pmd-r2-calendar-toggle-v1,
+#pmd-r2-clean-header .pmd-r2-clean-create,
+#pmd-r2-clean-header #notif-root > .media-toolbar-tooltip-wrap > a {
+  height: 44px !important;
+  min-height: 44px !important;
+  max-height: 44px !important;
+  box-sizing: border-box !important;
+}
+
+#pmd-r2-calendar-toggle-v1,
+#pmd-r2-clean-header .pmd-r2-clean-create,
+#pmd-r2-clean-header #notif-root > .media-toolbar-tooltip-wrap > a {
+  width: 44px !important;
+  min-width: 44px !important;
+  max-width: 44px !important;
+}
