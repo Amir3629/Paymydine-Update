@@ -1,0 +1,19 @@
+<script>(function(){var s='collapsed';try{s=localStorage.getItem('pmd.sideMenu2.state')==='expanded'?'expanded':'collapsed'}catch(e){}document.documentElement.classList.add(s==='expanded'?'pmd-sm2-expanded':'pmd-sm2-collapsed')})();</script>
+@include('admin::_partials.pmd_side_menu2_single_style')
+<link rel="stylesheet" href="/app/admin/assets/css/pmd-side-menu2-v1.css?v=20260724-calendar-v1">
+<link rel="stylesheet" href="/app/admin/assets/css/pmd-year-calendar-v1.css?v=20260724-5">
+<link rel="stylesheet" href="/app/admin/assets/css/pmd-year-calendar-v16-google.css?v=20260724-1">
+<link rel="stylesheet" href="/app/admin/assets/css/pmd-year-calendar-v17-notes.css?v=20260724-1">
+<script>window.PMD_YEAR_CALENDAR_BOOT={version:'1.7.0',route:'/admin/calender',year:@json($calendarYear),today:@json(now()->format('Y-m-d')),reservations:@json($calendarReservations ?? []),events:@json($calendarEvents ?? []),reports:@json($calendarReports ?? []),reservationCreateUrl:@json(admin_url('reservations/create')),reservationEditBaseUrl:@json(admin_url('reservations/edit'))};</script>
+@include('admin::_partials.pmd_side_menu2_single_menu')
+<div id="pmd-year-calendar" class="pmd-yc" aria-busy="true">
+  <div class="pmd-yc__toolbar">
+    <div class="pmd-yc__legend" aria-label="Calendar legend"><span><i class="is-reservation">R</i>Reservation</span><span><i class="is-football">⚽</i>Football</span><span><i class="is-event">★</i>Germany event</span><span><i class="is-report">€</i>Day report</span><span><i class="is-note">✎</i>Note</span></div>
+    <div class="pmd-yc__month-nav" data-pmd-yc-month-nav hidden><button type="button" data-pmd-yc-month-prev aria-label="Previous month">←</button><strong data-pmd-yc-month-label>Month</strong><button type="button" data-pmd-yc-month-next aria-label="Next month">→</button></div>
+    <div class="pmd-yc__toolbar-right"><div class="pmd-yc__view-switch" role="group" aria-label="Calendar view"><button type="button" class="is-active" data-pmd-yc-view="year">Year</button><button type="button" data-pmd-yc-view="month">Month</button></div><div class="pmd-yc__filters" role="group" aria-label="Calendar filters"><button type="button" class="is-active" data-pmd-yc-filter="all">All</button><button type="button" data-pmd-yc-filter="reservations">Reservations</button><button type="button" data-pmd-yc-filter="events">Events</button><button type="button" data-pmd-yc-filter="reports">Reports</button></div></div>
+  </div>
+  <main class="pmd-yc__months" data-pmd-yc-months aria-live="polite"></main>
+</div>
+<div class="pmd-yc-drawer" data-pmd-yc-drawer aria-hidden="true"><button type="button" class="pmd-yc-drawer__backdrop" data-pmd-yc-close tabindex="-1" aria-label="Close day details"></button><aside class="pmd-yc-drawer__panel" role="dialog" aria-modal="true" aria-labelledby="pmd-yc-drawer-title"><div class="pmd-yc-drawer__head"><div><span data-pmd-yc-drawer-kicker>Day overview</span><h2 id="pmd-yc-drawer-title" data-pmd-yc-drawer-title>—</h2></div><button type="button" data-pmd-yc-close aria-label="Close">×</button></div><div class="pmd-yc-drawer__body" data-pmd-yc-drawer-body></div></aside></div>
+<script src="/app/admin/assets/js/pmd-year-calendar-v1.js?v=20260724-5"></script>
+<script src="/app/admin/assets/js/pmd-year-calendar-v17-notes.js?v=20260724-1"></script>
