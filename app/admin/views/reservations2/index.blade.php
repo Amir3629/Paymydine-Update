@@ -358,3 +358,13 @@ window.PMD_RESERVATIONS2_BOOT = {
     src="{{ asset('app/admin/assets/js/pmd-reservations2-date-popover-v318.js') }}?v=20260722_230938"
 ></script>
 <!-- PMD_R2_DATE_POPOVER_V318_END -->
+
+<!-- PMD_R2_EMBEDDED_CALENDAR_TOGGLE_V1_START -->
+<link
+  rel="stylesheet"
+  href="/app/admin/assets/css/pmd-reservations2-calendar-toggle-v1.css?v=1.19.0-20260724_223035"
+>
+<script
+  src="/app/admin/assets/js/pmd-reservations2-calendar-toggle-v1.js?v=1.16.0-20260724_212035"
+></script>
+<!-- PMD_R2_EMBEDDED_CALENDAR_TOGGLE_V1_END -->
