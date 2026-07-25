@@ -1,0 +1,103 @@
+html.pmd-r2-stability-v3-active,
+html.pmd-r2-stability-v3-active body {
+  scroll-behavior: auto !important;
+}
+
+html.pmd-r2-stability-v3-active #pmd-reservations2,
+html.pmd-r2-stability-v3-active #pmd-reservations2 * {
+  animation-delay: 0s !important;
+}
+
+html.pmd-r2-stability-v3-active #pmd-reservations2 {
+  opacity: 1 !important;
+  visibility: visible !important;
+  transform: none !important;
+  animation: none !important;
+  transition: none !important;
+}
+
+html.pmd-r2-stability-v3-active #pmd-r2-clean-header,
+html.pmd-r2-stability-v3-active #pmd-r2-clean-header .pmd-r2-clean-actions,
+html.pmd-r2-stability-v3-active #pmd-r2-kpis,
+html.pmd-r2-stability-v3-active #pmd-r2-shared-floor-canvas-v310 {
+  opacity: 1 !important;
+  visibility: visible !important;
+  transform: none !important;
+  animation: none !important;
+}
+
+#pmd-r2-clean-header .pmd-r2-clean-actions.pmd-r2-header-final-v3 {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: flex-end !important;
+  flex-wrap: nowrap !important;
+  gap: 10px !important;
+  min-height: 38px !important;
+}
+
+#pmd-r2-clean-header .pmd-r2-header-final-v3 > #notif-root,
+#pmd-r2-clean-header .pmd-r2-header-final-v3 > .pmd-r2-clean-create,
+#pmd-r2-clean-header .pmd-r2-header-final-v3 > #pmd-r2-calendar-toggle-v1 {
+  width: 38px !important;
+  min-width: 38px !important;
+  max-width: 38px !important;
+  height: 38px !important;
+  min-height: 38px !important;
+  max-height: 38px !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  box-sizing: border-box !important;
+  flex: 0 0 38px !important;
+}
+
+#pmd-r2-clean-header .pmd-r2-header-final-v3 > #pmd-r2-date-button-v430 {
+  width: auto !important;
+  min-width: 164px !important;
+  height: 38px !important;
+  min-height: 38px !important;
+  max-height: 38px !important;
+  margin: 0 !important;
+  padding: 0 13px !important;
+  box-sizing: border-box !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 8px !important;
+  opacity: 1 !important;
+  visibility: visible !important;
+}
+
+#pmd-r2-clean-header .pmd-r2-header-final-v3 > #pmd-r2-calendar-toggle-v1,
+#pmd-r2-clean-header .pmd-r2-header-final-v3 > .pmd-r2-clean-create,
+#pmd-r2-clean-header .pmd-r2-header-final-v3 > #notif-root {
+  border-radius: 10px !important;
+}
+
+#pmd-r2-clean-header .pmd-r2-header-final-v3 svg {
+  width: 18px !important;
+  height: 18px !important;
+}
+
+#pmd-r2-clean-header .pmd-r2-header-final-v3 > #pmd-r2-calendar-toggle-v1.is-active {
+  background: #fff !important;
+  color: #364a63 !important;
+  border-color: #d6deea !important;
+  box-shadow: none !important;
+}
+
+@media (max-width: 767px) {
+  #pmd-r2-clean-header .pmd-r2-clean-actions.pmd-r2-header-final-v3 {
+    gap: 7px !important;
+  }
+
+  #pmd-r2-clean-header .pmd-r2-header-final-v3 > #pmd-r2-date-button-v430 {
+    min-width: 38px !important;
+    width: 38px !important;
+    padding: 0 !important;
+    overflow: hidden !important;
+  }
+
+  #pmd-r2-clean-header .pmd-r2-header-final-v3 > #pmd-r2-date-button-v430 span {
+    display: none !important;
+  }
+}
