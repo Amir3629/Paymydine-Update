@@ -1,23 +1,24 @@
-/* PMD_MEDIAFIX_ROUTE_GUARD_V51_START */
+/* PMD_MEDIAFIX_ROUTE_GUARD_V52_START */
 (function () {
 
-  var __pmdPath = String((window.location && window.location.pathname) || '');
+  var __pmdPath = String((window.location && window.location.pathname) || '').replace(/\/+$/, '');
   var __pmdSkip =
+    __pmdPath === '/admin/reservations2' ||
+    __pmdPath.indexOf('/admin/reservations2/') === 0 ||
     __pmdPath === '/admin/kds_stations' ||
     __pmdPath.indexOf('/admin/kds_stations/') === 0 ||
     __pmdPath === '/admin/kds_stations/create' ||
     __pmdPath.indexOf('/admin/kds_stations/edit') === 0;
 
-  window.PMD_MEDIAFIX_ROUTE_GUARD_V51 = {
+  window.PMD_MEDIAFIX_ROUTE_GUARD_V52 = {
     path: __pmdPath,
     skipped: __pmdSkip
   };
 
   if (__pmdSkip) {
-    console.info('[PMD Native MediaFix] skipped on KDS settings page', window.PMD_MEDIAFIX_ROUTE_GUARD_V51);
+    console.info('[PMD Native MediaFix] skipped on guarded route', window.PMD_MEDIAFIX_ROUTE_GUARD_V52);
     return;
   }
-
 
 /* PMD_DISABLE_CUSTOM_MEDIA_ON_SETTINGS_START */
 if (!(/\/admin\/settings(?:\/|$)|\/admin\/media_manager(?:\/|$)/.test(window.location.pathname || ""))) {
@@ -30,8 +31,6 @@ if (!(/\/admin\/settings(?:\/|$)|\/admin\/media_manager(?:\/|$)/.test(window.loc
         if (window.console) console.log('[PMD] custom media helper skipped on native settings/media manager page:', pmdNativeMediaPath);
         return;
     }
-
-
 
   var BASE = '/app/admin/assets/vendor/pmd-mediafix/';
   var loaded = {};
@@ -156,7 +155,6 @@ if (!(/\/admin\/settings(?:\/|$)|\/admin\/media_manager(?:\/|$)/.test(window.loc
               $item = $clicked;
             }
 
-            // Ignore folder tree and breadcrumbs. We only want actual media-list items.
             if (!$item.closest('.media-list').length) {
               return;
             }
@@ -164,7 +162,6 @@ if (!(/\/admin\/settings(?:\/|$)|\/admin\/media_manager(?:\/|$)/.test(window.loc
             e.preventDefault();
             e.stopPropagation();
 
-            // Important: single select only.
             $root.find('.selected, .active').removeClass('selected active').removeAttr('aria-selected');
             $item.addClass('selected active').attr('aria-selected', 'true');
 
@@ -289,6 +286,5 @@ if (!(/\/admin\/settings(?:\/|$)|\/admin\/media_manager(?:\/|$)/.test(window.loc
 }
 /* PMD_DISABLE_CUSTOM_MEDIA_ON_SETTINGS_END */
 
-
 })();
-/* PMD_MEDIAFIX_ROUTE_GUARD_V51_END */
+/* PMD_MEDIAFIX_ROUTE_GUARD_V52_END */
