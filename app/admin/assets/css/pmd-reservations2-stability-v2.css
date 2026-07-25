@@ -1,0 +1,77 @@
+/* PMD Reservations2 Stability V2 */
+html.pmd-r2-stability-active #pmd-reservations2,
+html.pmd-r2-stability-ready #pmd-reservations2 {
+  opacity: 1 !important;
+  transform: none !important;
+  animation: none !important;
+  filter: none !important;
+}
+
+body:has(#pmd-reservations2) .page-content,
+body:has(#pmd-reservations2) .page-wrapper,
+body:has(#pmd-reservations2) #pmd-reservations2,
+body:has(#pmd-reservations2) #pmd-r2-clean-header,
+body:has(#pmd-reservations2) .pmd-r2-kpis,
+body:has(#pmd-reservations2) [data-pmd-r2-kpis] {
+  animation: none !important;
+  transition-delay: 0s !important;
+}
+
+#pmd-reservations2 #pmd-r2-clean-header,
+#pmd-reservations2 .pmd-r2-clean-actions {
+  min-height: 44px !important;
+}
+
+#pmd-reservations2 #pmd-r2-calendar-toggle-v1,
+#pmd-reservations2 .pmd-r2-clean-create,
+#pmd-reservations2 #notif-root,
+#pmd-reservations2 #notifDropdown {
+  width: 44px !important;
+  min-width: 44px !important;
+  max-width: 44px !important;
+  height: 44px !important;
+  min-height: 44px !important;
+  max-height: 44px !important;
+  flex: 0 0 44px !important;
+  margin: 0 !important;
+  transform: none !important;
+  animation: none !important;
+  transition: none !important;
+}
+
+#pmd-reservations2 #pmd-r2-date-button-v430 {
+  height: 44px !important;
+  min-height: 44px !important;
+  max-height: 44px !important;
+  width: 190px !important;
+  min-width: 190px !important;
+  max-width: 190px !important;
+  flex: 0 0 190px !important;
+  margin: 0 !important;
+  opacity: 1 !important;
+  visibility: visible !important;
+  transform: none !important;
+  animation: none !important;
+  transition: none !important;
+}
+
+#pmd-reservations2 .pmd-r2-clean-actions > * {
+  align-self: center !important;
+}
+
+#pmd-reservations2 #pmd-r2-date-popover-v318 {
+  display: none !important;
+}
+
+@media (max-width: 767.98px) {
+  #pmd-reservations2 #pmd-r2-date-button-v430 {
+    width: 44px !important;
+    min-width: 44px !important;
+    max-width: 44px !important;
+    flex-basis: 44px !important;
+  }
+
+  #pmd-reservations2 #pmd-r2-date-button-v430 span {
+    display: none !important;
+  }
+}
