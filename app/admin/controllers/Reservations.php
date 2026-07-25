@@ -79,9 +79,9 @@ class Reservations extends \Admin\Classes\AdminController
 
     public function index()
     {
-        $this->asExtension('ListController')->index();
-
-        $this->vars['statusesOptions'] = \Admin\Models\Statuses_model::getDropdownOptionsForReservation();
+        // The legacy Reservations list has been retired.
+        // Keep create/edit endpoints intact for Reservations2 workflows.
+        return redirect(admin_url('reservations2'));
     }
 
     public function index_onDelete()

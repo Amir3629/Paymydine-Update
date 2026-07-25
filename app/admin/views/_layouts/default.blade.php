@@ -8,6 +8,9 @@
 
 
 <!-- PMD_WAITER_DASHBOARD_V56_PAUSE_READ_REFRESH_EDIT_START -->
+
+{{-- PMD_R2_V6_AUTHORITY_GUARD --}}
+@unless (request()->is('admin/reservations2'))
 <script id="pmd-waiter-dashboard-v56-pause-read-refresh-edit-script">
 (function () {
   if (!/(?:\/admin\/dashboardwaiter|\/admin\/reservations2)(?:$|[?#])/.test(location.pathname + location.search + location.hash)) return;
@@ -207,6 +210,8 @@
   console.info('[PMD] Waiter Dashboard V56 pause read refresh during edit active');
 })();
 </script>
+@endunless
+
 <!-- PMD_WAITER_DASHBOARD_V56_PAUSE_READ_REFRESH_EDIT_END -->
 
 
@@ -248,6 +253,9 @@
 }
 </style>
 
+
+{{-- PMD_R2_V6_AUTHORITY_GUARD --}}
+@unless (request()->is('admin/reservations2'))
 <script id="pmd-waiter-dashboard-v50-real-floor-drag-clamp-script">
 (function () {
   if (!/(?:\/admin\/dashboardwaiter|\/admin\/reservations2)(?:$|[?#])/.test(location.pathname + location.search + location.hash)) return;
@@ -524,6 +532,8 @@
   console.info('[PMD] Waiter Dashboard V50 real floor drag + clamp active');
 })();
 </script>
+@endunless
+
 <!-- PMD_WAITER_DASHBOARD_V50_REAL_FLOOR_DRAG_CLAMP_END -->
 
 
@@ -3211,6 +3221,9 @@ html.pmd-dashboardreservation-page #pmd-reservation-dashboard-root .pmd-res-toas
 }
 </style>
 
+
+{{-- PMD_R2_V6_AUTHORITY_GUARD --}}
+@unless (request()->is('admin/reservations2'))
 <script id="pmd-waiter-dashboard-v35-clean-rewrite-card-header-script">
 (function () {
   if (!/(?:\/admin\/dashboardwaiter|\/admin\/reservations2)(?:$|[?#])/.test(location.pathname + location.search + location.hash)) return;
@@ -3361,11 +3374,256 @@ html.pmd-dashboardreservation-page #pmd-reservation-dashboard-root .pmd-res-toas
   console.info('[PMD] Waiter Dashboard V35 clean rewritten card header active');
 })();
 </script>
+@endunless
+
 <!-- PMD_WAITER_DASHBOARD_V35_CLEAN_REWRITE_CARD_HEADER_END -->
 
 <!DOCTYPE html>
 <html xmlns="http://www.w3.org/1999/xhtml" lang="en">
 <head>
+
+{{-- PMD_R2_FINAL_PAINT_GATE_V1_START --}}
+@if (request()->is('admin/reservations2'))
+<style id="pmd-r2-final-paint-gate-v1-style">
+    /*
+     * This class is installed synchronously in <head>, before body paint.
+     * No old Reservations UI or loading stage can become visible.
+     */
+    html.pmd-r2-final-paint-waiting {
+        background: #f5f7fb !important;
+    }
+
+    html.pmd-r2-final-paint-waiting body {
+        visibility: hidden !important;
+    }
+</style>
+
+<script id="pmd-r2-final-paint-gate-v1-script">
+(function () {
+    'use strict';
+
+    var html = document.documentElement;
+    var startedAt = Date.now();
+    var attempts = 0;
+    var revealed = false;
+    var MAX_ATTEMPTS = 100;
+    var RETRY_MS = 50;
+    var MAX_WAIT_MS = 10000;
+
+    html.classList.add('pmd-r2-final-paint-waiting');
+
+    function tableCount() {
+        var selectors = [
+            '#pmd-reservations2 [data-table]',
+            '#pmd-reservations2 [data-table-id]',
+            '#pmd-reservations2 .pmd-floor-v1-table',
+            '#pmd-reservations2 .pmd-w5-table[data-table]',
+            '#pmd-reservations2 .pmd-floor-table',
+            '#pmd-reservations2 .pmd-table'
+        ];
+
+        var found = new Set();
+
+        selectors.forEach(function (selector) {
+            try {
+                document.querySelectorAll(selector).forEach(function (node) {
+                    found.add(node);
+                });
+            } catch (error) {
+                // Ignore unsupported/absent selectors.
+            }
+        });
+
+        return found.size;
+    }
+
+    function guardAudit() {
+        try {
+            if (
+                window.PMDR2AuthorityGuardV6 &&
+                typeof window.PMDR2AuthorityGuardV6.audit === 'function'
+            ) {
+                return window.PMDR2AuthorityGuardV6.audit();
+            }
+        } catch (error) {
+            return null;
+        }
+
+        return null;
+    }
+
+    function hasTemporaryStage() {
+        if (!document.body) {
+            return true;
+        }
+
+        var text = String(document.body.innerText || '');
+
+        return (
+            text.indexOf('Loading live floor') !== -1 ||
+            text.indexOf('Select a table') !== -1 ||
+            text.indexOf('No table selected') !== -1
+        );
+    }
+
+    function isFinalReady() {
+        var root = document.getElementById('pmd-reservations2');
+
+        if (!root) {
+            return false;
+        }
+
+        var count = tableCount();
+        var audit = guardAudit();
+
+        if (
+            audit &&
+            audit.ready === true &&
+            Number(audit.tables || 0) >= 20 &&
+            !hasTemporaryStage()
+        ) {
+            return true;
+        }
+
+        return count >= 20 && !hasTemporaryStage();
+    }
+
+    function reveal(reason) {
+        if (revealed) {
+            return;
+        }
+
+        revealed = true;
+
+        /*
+         * Disable transitions only for the exact reveal frame.
+         * This prevents a fade, slide or opacity animation.
+         */
+        var noTransition = document.createElement('style');
+        noTransition.id = 'pmd-r2-final-reveal-no-transition';
+        noTransition.textContent =
+            '*,*::before,*::after{' +
+            'transition:none!important;' +
+            'animation:none!important;' +
+            '}';
+
+        document.head.appendChild(noTransition);
+
+        html.classList.remove('pmd-r2-final-paint-waiting');
+        html.classList.add('pmd-r2-final-paint-ready');
+
+        requestAnimationFrame(function () {
+            requestAnimationFrame(function () {
+                if (noTransition.parentNode) {
+                    noTransition.parentNode.removeChild(noTransition);
+                }
+            });
+        });
+
+        console.info(
+            '[PMD Reservations2 Final Paint Gate V1] Revealed',
+            {
+                reason: reason,
+                elapsedMs: Date.now() - startedAt,
+                attempts: attempts,
+                tables: tableCount(),
+                guard: guardAudit()
+            }
+        );
+    }
+
+    function check() {
+        attempts += 1;
+
+        if (isFinalReady()) {
+            reveal('final-ui-ready');
+            return;
+        }
+
+        if (
+            attempts >= MAX_ATTEMPTS ||
+            Date.now() - startedAt >= MAX_WAIT_MS
+        ) {
+            /*
+             * Safety fallback: never leave the user on a hidden page
+             * if an unrelated runtime error prevents final readiness.
+             */
+            reveal('safety-timeout');
+            return;
+        }
+
+        setTimeout(check, RETRY_MS);
+    }
+
+    window.PMDReservations2FinalPaintGateV1 = {
+        version: '1.0.0',
+
+        reveal: function () {
+            reveal('manual');
+        },
+
+        audit: function () {
+            return {
+                version: '1.0.0',
+                revealed: revealed,
+                waiting:
+                    html.classList.contains(
+                        'pmd-r2-final-paint-waiting'
+                    ),
+                ready:
+                    html.classList.contains(
+                        'pmd-r2-final-paint-ready'
+                    ),
+                attempts: attempts,
+                elapsedMs: Date.now() - startedAt,
+                tables: tableCount(),
+                temporaryStage: hasTemporaryStage(),
+                guard: guardAudit(),
+                permanentObservers: 0,
+                permanentIntervals: 0
+            };
+        }
+    };
+
+    if (document.readyState === 'loading') {
+        document.addEventListener(
+            'DOMContentLoaded',
+            check,
+            {once: true}
+        );
+    } else {
+        check();
+    }
+})();
+</script>
+@endif
+{{-- PMD_R2_FINAL_PAINT_GATE_V1_END --}}
+
+
+{{-- PMD_R2_V61_HEAD_PREPAINT_START --}}
+@if (request()->is('admin/reservations2'))
+<style id="pmd-r2-v61-head-prepaint">
+html:not(.pmd-r2-v6-ready) #pmd-reservations2 {
+    visibility: hidden !important;
+    opacity: 0 !important;
+    pointer-events: none !important;
+    transition: none !important;
+    animation: none !important;
+}
+html.pmd-r2-v6-ready #pmd-reservations2 {
+    visibility: visible !important;
+    opacity: 1 !important;
+    pointer-events: auto !important;
+    transition: none !important;
+    animation: none !important;
+}
+</style>
+<script id="pmd-r2-v61-head-prepaint-script">
+document.documentElement.classList.add('pmd-r2-v6-booting');
+</script>
+@endif
+{{-- PMD_R2_V61_HEAD_PREPAINT_END --}}
+
 @include('admin::_partials.pmd_admin_i18n')
 
 
@@ -3948,6 +4206,9 @@ html.pmd-owner-clean-v113-active .pmd-v15-shell,
 }
 </style>
 
+
+{{-- PMD_R2_V6_AUTHORITY_GUARD --}}
+@unless (request()->is('admin/reservations2'))
 <script id="pmd-owner-emergency-unhide-script">
 (function () {
   function rescue() {
@@ -3988,6 +4249,8 @@ html.pmd-owner-clean-v113-active .pmd-v15-shell,
   console.info('[PMD] Owner emergency unhide active');
 })();
 </script>
+@endunless
+
 <!-- PMD_OWNER_EMERGENCY_UNHIDE_END -->
 
 
@@ -4220,7 +4483,9 @@ html.pmd-owner-v69-no-loader .pmd-v36-span-2 {
     <!-- Media Finder Widget CSS - Required for image uploader fields -->
     <link rel="stylesheet" href="{{ asset('app/admin/formwidgets/mediafinder/assets/css/mediafinder.css') }}?v={{ time() }}">
     <!-- Date range picker: load last so overrides (bigger card, buttons, ranges) win over .btn-sm etc -->
-    <link rel="stylesheet" href="{{ asset('app/admin/assets/css/daterangepicker-arrows.css') }}?v={{ time() }}">
+    @unless(request()->is('admin/reservations2'))
+<link rel="stylesheet" href="{{ asset('app/admin/assets/css/daterangepicker-arrows.css') }}?v={{ time() }}">
+@endunless
     <!-- No green toolbar buttons - MUST load last so toolbar Save/Back stay blue -->
     <link rel="stylesheet" href="{{ asset('app/admin/assets/css/no-green-toolbar-buttons.css') }}?v={{ time() }}">
     <!-- Dropdown fields same size as text inputs - load after other form styles -->
@@ -6268,6 +6533,9 @@ html.pmd-waiter-dashboard-active body {
 }
 </style>
 
+
+{{-- PMD_R2_V6_AUTHORITY_GUARD --}}
+@unless (request()->is('admin/reservations2'))
 <script id="pmd-waiter-dashboard-v5-script">
 (function () {
   if (window.PMD_WAITER_DASHBOARD_V5_WORKFLOW_UI) return;
@@ -7127,6 +7395,8 @@ html.pmd-waiter-dashboard-active body {
   else boot();
 })();
 </script>
+@endunless
+
 <!-- PMD_WAITER_DASHBOARD_V5_WORKFLOW_UI_END -->
 
 
@@ -7204,25 +7474,8 @@ html.pmd-waiter-dashboard-active .pmd-w5-card:hover {
   box-shadow: 0 18px 44px rgba(15,23,42,.07) !important;
 }
 </style>
-<script id="pmd-waiter-dashboard-v6-cleanup-fixes-script">
-(function () {
-  if (!/(?:\/admin\/dashboardwaiter|\/admin\/reservations2)(?:$|[?#])/.test(location.pathname + location.search + location.hash)) return;
 
-  document.documentElement.classList.add('pmd-waiter-dashboard-active');
 
-  function killOldBubbles() {
-    document.querySelectorAll('#pmd-dashboard2-quick-btn,.pmd-d2-quick-btn,[id*="dashboard2"][id*="quick"],[class*="dashboard2"][class*="quick"]').forEach(function (el) {
-      el.remove();
-    });
-  }
-
-  killOldBubbles();
-  setTimeout(killOldBubbles, 300);
-  setTimeout(killOldBubbles, 1000);
-
-  console.info('[PMD] Waiter Dashboard V6 cleanup active');
-})();
-</script>
 <!-- PMD_WAITER_DASHBOARD_V6_CLEANUP_FIXES_END -->
 
 
@@ -7320,27 +7573,8 @@ html.pmd-waiter-dashboard-active div.pmd-w5-actions:has(button[data-new-order]) 
   display: none !important;
 }
 </style>
-<script id="pmd-waiter-dashboard-v7-soft-floor-remove-top-actions-script">
-(function () {
-  if (!/(?:\/admin\/dashboardwaiter|\/admin\/reservations2)(?:$|[?#])/.test(location.pathname + location.search + location.hash)) return;
 
-  function hideDuplicateTopActions() {
-    document.querySelectorAll('.pmd-w5-actions').forEach(function (el) {
-      if (el.querySelector('[data-new-order]') || (el.querySelector('[data-filter="all"]') && el.querySelector('[data-filter="my"]'))) {
-        el.style.display = 'none';
-        el.style.visibility = 'hidden';
-        el.style.pointerEvents = 'none';
-      }
-    });
-  }
 
-  hideDuplicateTopActions();
-  setTimeout(hideDuplicateTopActions, 120);
-  setTimeout(hideDuplicateTopActions, 600);
-
-  console.info('[PMD] Waiter Dashboard V7 soft floor + duplicate actions hidden');
-})();
-</script>
 <!-- PMD_WAITER_DASHBOARD_V7_SOFT_FLOOR_REMOVE_TOP_ACTIONS_END -->
 
 
@@ -7940,134 +8174,8 @@ html.pmd-waiter-dashboard-active .pmd-w5-tab {
 }
 </style>
 
-<script id="pmd-waiter-dashboard-v17-order-card-cleanup-script">
-(function () {
-  if (!/(?:\/admin\/dashboardwaiter|\/admin\/reservations2)(?:$|[?#])/.test(location.pathname + location.search + location.hash)) return;
-  if (window.PMD_WAITER_DASHBOARD_V17_ORDER_CARD_CLEANUP) return;
-  window.PMD_WAITER_DASHBOARD_V17_ORDER_CARD_CLEANUP = true;
 
-  var hiddenTabs = new Set([
-    'Needs Action',
-    'Payment Waiting',
-    'Ready to Serve',
-    'Notes / Calls',
-    'Selected Table'
-  ]);
 
-  function norm(s) {
-    return String(s || '').replace(/\s+/g, ' ').trim();
-  }
-
-  function isSystemNoteText(txt) {
-    txt = String(txt || '');
-    return /Table Draft Basket|table_draft_id|submitted_by|guest_session/i.test(txt);
-  }
-
-  function findCardTable(card) {
-    var dataTable = norm(card.getAttribute('data-table') || card.dataset.table || '');
-    if (dataTable && dataTable !== '-' && dataTable !== '—') {
-      return /^Table/i.test(dataTable) ? dataTable : ('Table ' + dataTable);
-    }
-
-    var pills = Array.from(card.querySelectorAll('.pmd-w5-pill, [class*="pill"], [class*="badge"]'));
-    for (var i = 0; i < pills.length; i++) {
-      var t = norm(pills[i].textContent);
-      if (/^Table\s+\d+/i.test(t)) return t;
-      if (/^\d+$/.test(t) && Number(t) > 0 && Number(t) <= 999) return 'Table ' + t;
-    }
-
-    var text = norm(card.textContent);
-    var m = text.match(/\bTable\s+(\d+)\b/i);
-    if (m) return 'Table ' + m[1];
-
-    return 'No table';
-  }
-
-  function cleanupTabs() {
-    document.querySelectorAll('.pmd-w5-tabs button, .pmd-w5-tab, button[data-filter]').forEach(function (btn) {
-      var t = norm(btn.textContent);
-      if (hiddenTabs.has(t)) {
-        btn.classList.add('pmd-v17-hidden-tab');
-        btn.setAttribute('aria-hidden', 'true');
-        btn.tabIndex = -1;
-      }
-    });
-  }
-
-  function cleanupSelectedNote() {
-    document.querySelectorAll('.pmd-w5-selected-note').forEach(function (el) {
-      el.classList.add('pmd-v17-hidden-system-note');
-    });
-  }
-
-  function cleanupSystemNotes(card) {
-    card.querySelectorAll('[class*="note"], .pmd-w5-note, .pmd-w5-note-box, .pmd-w5-order-note').forEach(function (note) {
-      if (isSystemNoteText(note.textContent)) {
-        note.classList.add('pmd-v17-hidden-system-note');
-      }
-    });
-
-    /* fallback: hide small divs that only contain system draft note */
-    card.querySelectorAll('div, p, section').forEach(function (el) {
-      if (el === card) return;
-      if (el.querySelector('button, input, select, textarea')) return;
-
-      var txt = norm(el.textContent);
-      if (!txt || txt.length > 500) return;
-
-      if (isSystemNoteText(txt)) {
-        el.classList.add('pmd-v17-hidden-system-note');
-      }
-    });
-  }
-
-  function replaceTopRightPill(card) {
-    var tableText = findCardTable(card);
-
-    var topRight =
-      card.querySelector('.pmd-w5-pill.red') ||
-      card.querySelector('.pmd-w5-pill.is-red') ||
-      Array.from(card.querySelectorAll('.pmd-w5-pill, [class*="pill"], [class*="badge"]')).find(function (el) {
-        var t = norm(el.textContent);
-        return /^\d+$/.test(t) || /^Received$/i.test(t);
-      });
-
-    if (!topRight) return;
-
-    topRight.textContent = tableText;
-    topRight.classList.remove('red', 'is-red');
-    topRight.classList.add('pmd-v17-card-table-top');
-
-    if (tableText === 'No table') {
-      topRight.classList.add('pmd-v17-no-table');
-    } else {
-      topRight.classList.remove('pmd-v17-no-table');
-    }
-  }
-
-  function cleanupCards() {
-    document.querySelectorAll('.pmd-w5-card, .pmd-w5-order-card').forEach(function (card) {
-      cleanupSystemNotes(card);
-      replaceTopRightPill(card);
-    });
-  }
-
-  function run() {
-    cleanupTabs();
-    cleanupSelectedNote();
-    cleanupCards();
-  }
-
-  document.addEventListener('pmd-waiter-dashboard-rendered', run);
-  setTimeout(run, 100);
-  setTimeout(run, 400);
-  setTimeout(run, 1200);
-
-  window.PMDWaiterOrderCardCleanup = { run: run };
-
-  console.info('[PMD] Waiter Dashboard V17 order card cleanup active');
-})();
-</script>
 <!-- PMD_WAITER_DASHBOARD_V17_ORDER_CARD_CLEANUP_END -->
 
 
@@ -8405,590 +8513,8 @@ html.pmd-waiter-dashboard-active .pmd-w5-btn.active {
 }
 </style>
 
-<script id="pmd-waiter-dashboard-v19-clean-cards-working-unmerge-script">
-(function () {
-  if (!/(?:\/admin\/dashboardwaiter|\/admin\/reservations2)(?:$|[?#])/.test(location.pathname + location.search + location.hash)) return;
-  if (window.PMD_WAITER_DASHBOARD_V19_CLEAN_CARDS_UNMERGE) return;
-  window.PMD_WAITER_DASHBOARD_V19_CLEAN_CARDS_UNMERGE = true;
 
-  var SAVE_LAYOUT_ENDPOINT = '/admin/pmd-waiter-dashboard-v10-save-layout';
-  var MERGE_ENDPOINT = '/admin/pmd-waiter-dashboard-v10-merge-tables';
-  var MERGES_ENDPOINT = '/admin/pmd-waiter-dashboard-v10-table-merges';
-  var UNMERGE_ENDPOINT = '/admin/pmd-waiter-dashboard-v19-unmerge-tables';
 
-  var state = {
-    edit: false,
-    merge: false,
-    compact: false,
-    selected: new Set(),
-    merges: []
-  };
-
-  function csrf() {
-    var m = document.querySelector('meta[name="csrf-token"]');
-    if (m && m.content) return m.content;
-    var i = document.querySelector('input[name="_token"]');
-    if (i && i.value) return i.value;
-    return '';
-  }
-
-  function root() { return document.querySelector('#pmd-waiter-dashboard-root'); }
-  function map() { return document.querySelector('.pmd-w5-floor-map-real'); }
-
-  function tables() {
-    return Array.from(document.querySelectorAll('.pmd-w5-floor-map-real .pmd-w5-table[data-table]'));
-  }
-
-  function tableByNo(no) {
-    return tables().find(function (el) {
-      return String(el.dataset.table) === String(no);
-    });
-  }
-
-  function center(el) {
-    var m = map();
-    if (!m || !el) return null;
-
-    var mr = m.getBoundingClientRect();
-    var r = el.getBoundingClientRect();
-
-    return {
-      x: r.left + r.width / 2 - mr.left,
-      y: r.top + r.height / 2 - mr.top,
-      w: r.width,
-      h: r.height
-    };
-  }
-
-  function distance(a, b) {
-    var dx = a.x - b.x;
-    var dy = a.y - b.y;
-    return Math.sqrt(dx * dx + dy * dy);
-  }
-
-  function areClose(aNo, bNo) {
-    var a = center(tableByNo(aNo));
-    var b = center(tableByNo(bNo));
-    if (!a || !b) return false;
-
-    var d = distance(a, b);
-    var maxGap = Math.max(170, Math.min(260, (a.w + b.w) * 1.65));
-
-    return d <= maxGap;
-  }
-
-  function isInMerge(no) {
-    return state.merges.some(function (m) {
-      return (m.table_numbers || []).map(String).indexOf(String(no)) !== -1;
-    });
-  }
-
-  function hasPendingSave() {
-    return state.edit || (state.merge && state.selected.size >= 2);
-  }
-
-  function installTools() {
-    var head = document.querySelector('.pmd-w5-floor .pmd-w5-head');
-    if (!head) return;
-
-    head.querySelectorAll('.pmd-w10-lite-tools,.pmd-w10-floor-tools,.pmd-w11-tools,.pmd-w12-tools,.pmd-w19-tools').forEach(function (x) {
-      x.remove();
-    });
-
-    var tools = document.createElement('div');
-    tools.className = 'pmd-w19-tools';
-    tools.innerHTML =
-      '<button class="pmd-w19-btn primary pmd-w19-save-hidden" data-w19-save title="Save">✓</button>' +
-      '<button class="pmd-w19-btn" data-w19-edit title="Edit layout">✎</button>' +
-      '<button class="pmd-w19-btn" data-w19-merge title="Merge tables">↔<small></small></button>' +
-      '<button type="button" class="pmd-w19-btn" data-w19-compact title="Compact floor" aria-label="Compact floor" aria-pressed="false">▤</button>';
-
-    head.appendChild(tools);
-    sync();
-  }
-
-  function sync() {
-    var r = root();
-    if (!r) return;
-
-    r.classList.toggle('pmd-w19-editing', state.edit);
-    r.classList.toggle('pmd-w19-merging', state.merge);
-    r.classList.toggle('pmd-w19-compact', state.compact);
-
-    tables().forEach(function (el) {
-      el.classList.toggle('pmd-w19-selected', state.selected.has(String(el.dataset.table)));
-    });
-
-    var save = document.querySelector('[data-w19-save]');
-    var edit = document.querySelector('[data-w19-edit]');
-    var merge = document.querySelector('[data-w19-merge]');
-    var compact = document.querySelector('#pmd-waiter-dashboard-root .pmd-w19-tools button[data-w19-compact]');
-    var badge = merge && merge.querySelector('small');
-
-    if (save) save.classList.toggle('pmd-w19-save-hidden', !hasPendingSave());
-    if (edit) edit.classList.toggle('primary', state.edit);
-    if (merge) merge.classList.toggle('warn', state.merge);
-    if (compact) {
-      compact.classList.toggle('primary', state.compact);
-      compact.setAttribute('title', state.compact ? 'Expand floor' : 'Compact floor');
-      compact.setAttribute('aria-label', state.compact ? 'Expand floor' : 'Compact floor');
-      compact.setAttribute('aria-pressed', state.compact ? 'true' : 'false');
-    }
-
-    if (badge) {
-      badge.textContent = state.selected.size;
-      badge.classList.toggle('is-show', state.selected.size > 0);
-    }
-
-    renderMergedIcons();
-  }
-
-  function validateMergeSelection(nums) {
-    nums = nums.map(String);
-
-    if (nums.length < 2) return { ok: false, error: 'Select at least 2 tables.' };
-
-    for (var i = 0; i < nums.length; i++) {
-      if (isInMerge(nums[i])) {
-        return { ok: false, error: 'Table ' + nums[i] + ' is already merged. Unmerge it first.' };
-      }
-    }
-
-    var visited = new Set([nums[0]]);
-    var changed = true;
-
-    while (changed) {
-      changed = false;
-
-      nums.forEach(function (a) {
-        if (!visited.has(a)) return;
-
-        nums.forEach(function (b) {
-          if (visited.has(b)) return;
-          if (areClose(a, b)) {
-            visited.add(b);
-            changed = true;
-          }
-        });
-      });
-    }
-
-    if (visited.size !== nums.length) {
-      return { ok: false, error: 'Only close tables can be merged.' };
-    }
-
-    return { ok: true };
-  }
-
-  function strongestClass(els) {
-    var cls = '';
-
-    els.forEach(function (el) {
-      if (!el) return;
-
-      if (el.classList.contains('is-urgent')) cls = 'is-urgent';
-      else if (cls !== 'is-urgent' && el.classList.contains('is-ready')) cls = 'is-ready';
-      else if (!cls && (
-        el.classList.contains('is-payment') ||
-        el.classList.contains('is-active') ||
-        el.classList.contains('busy') ||
-        el.classList.contains('has-orders')
-      )) cls = 'is-payment';
-    });
-
-    return cls;
-  }
-
-  function removeMergedIcons() {
-    document.querySelectorAll('.pmd-w19-merged-table').forEach(function (x) {
-      x.remove();
-    });
-
-    tables().forEach(function (el) {
-      el.classList.remove('pmd-w19-in-merge');
-    });
-  }
-
-  function renderMergedIcons() {
-    var m = map();
-    if (!m) return;
-
-    removeMergedIcons();
-
-    state.merges.forEach(function (merge) {
-      var nums = (merge.table_numbers || []).map(String);
-      var els = nums.map(tableByNo).filter(Boolean);
-
-      if (els.length < 2) return;
-
-      var points = els.map(center).filter(Boolean);
-      if (!points.length) return;
-
-      var avgX = points.reduce(function (s, p) { return s + p.x; }, 0) / points.length;
-      var avgY = points.reduce(function (s, p) { return s + p.y; }, 0) / points.length;
-
-      var mr = m.getBoundingClientRect();
-      var leftPct = (avgX / mr.width) * 100;
-      var topPct = (avgY / mr.height) * 100;
-
-      els.forEach(function (el) {
-        el.classList.add('pmd-w19-in-merge');
-      });
-
-      var icon = document.createElement('button');
-      icon.type = 'button';
-      icon.className = 'pmd-w19-merged-table ' + strongestClass(els);
-      icon.dataset.mergeKey = merge.merge_key || '';
-      icon.dataset.mergeId = merge.id || merge.merge_id || '';
-      icon.dataset.tables = nums.join(',');
-
-      icon.style.left = leftPct.toFixed(2) + '%';
-      icon.style.top = topPct.toFixed(2) + '%';
-
-      icon.innerHTML =
-        '<span class="pmd-w19-unmerge" title="Unmerge">×</span>' +
-        '<div>' +
-          '<div class="pmd-w19-merged-main">' + nums.join('+') + '</div>' +
-          '<div class="pmd-w19-merged-sub">Merged table</div>' +
-        '</div>';
-
-      m.appendChild(icon);
-    });
-  }
-
-  async function loadMerges() {
-    try {
-      var r = await fetch(MERGES_ENDPOINT + '?ts=' + Date.now(), {
-        credentials: 'same-origin',
-        headers: { Accept: 'application/json', 'X-Requested-With': 'XMLHttpRequest' }
-      });
-
-      var j = await r.json();
-
-      if (r.ok && j && j.ok && Array.isArray(j.merges)) {
-        state.merges = j.merges;
-      }
-    } catch (e) {}
-
-    renderMergedIcons();
-  }
-
-  async function saveLayout() {
-    var payload = tables().map(function (el) {
-      return {
-        table_no: el.dataset.table,
-        floor_x: parseFloat(String(el.style.left || '').replace('%', '')) || 10,
-        floor_y: parseFloat(String(el.style.top || '').replace('%', '')) || 10,
-        floor_width: Math.max(80, Math.round(el.offsetWidth || 96)),
-        floor_height: Math.max(56, Math.round(el.offsetHeight || 68))
-      };
-    });
-
-    try {
-      var r = await fetch(SAVE_LAYOUT_ENDPOINT, {
-        method: 'POST',
-        credentials: 'same-origin',
-        headers: {
-          Accept: 'application/json',
-          'Content-Type': 'application/json',
-          'X-Requested-With': 'XMLHttpRequest',
-          'X-CSRF-TOKEN': csrf()
-        },
-        body: JSON.stringify({ tables: payload })
-      });
-
-      var j = await r.json();
-
-      if (!r.ok || !j || !j.ok) {
-        alert('Layout save failed: ' + ((j && j.error) || ('HTTP ' + r.status)));
-        return;
-      }
-
-      state.edit = false;
-      sync();
-      alert('Floor layout saved.');
-    } catch (e) {
-      alert('Layout save failed: ' + e.message);
-    }
-  }
-
-  async function saveMerge() {
-    var nums = Array.from(state.selected);
-    var check = validateMergeSelection(nums);
-
-    if (!check.ok) {
-      alert(check.error);
-      return;
-    }
-
-    try {
-      var r = await fetch(MERGE_ENDPOINT, {
-        method: 'POST',
-        credentials: 'same-origin',
-        headers: {
-          Accept: 'application/json',
-          'Content-Type': 'application/json',
-          'X-Requested-With': 'XMLHttpRequest',
-          'X-CSRF-TOKEN': csrf()
-        },
-        body: JSON.stringify({ table_numbers: nums })
-      });
-
-      var j = await r.json();
-
-      if (!r.ok || !j || !j.ok) {
-        alert('Merge failed: ' + ((j && j.error) || ('HTTP ' + r.status)));
-        return;
-      }
-
-      state.merge = false;
-      state.selected.clear();
-
-      await loadMerges();
-      sync();
-    } catch (e) {
-      alert('Merge failed: ' + e.message);
-    }
-  }
-
-  async function unmerge(icon) {
-    if (!icon) return;
-
-    var mergeKey = icon.dataset.mergeKey || '';
-    var id = icon.dataset.mergeId || '';
-    var nums = (icon.dataset.tables || '').split(',').map(function (x) { return x.trim(); }).filter(Boolean);
-
-    try {
-      var r = await fetch(UNMERGE_ENDPOINT, {
-        method: 'POST',
-        credentials: 'same-origin',
-        headers: {
-          Accept: 'application/json',
-          'Content-Type': 'application/json',
-          'X-Requested-With': 'XMLHttpRequest',
-          'X-CSRF-TOKEN': csrf()
-        },
-        body: JSON.stringify({
-          merge_key: mergeKey,
-          id: id,
-          table_numbers: nums
-        })
-      });
-
-      var j = await r.json();
-
-      if (!r.ok || !j || !j.ok) {
-        alert('Unmerge failed: ' + ((j && j.error) || ('HTTP ' + r.status)));
-        return;
-      }
-
-      state.merges = state.merges.filter(function (m) {
-        var mKey = String(m.merge_key || '');
-        var mId = String(m.id || m.merge_id || '');
-        var mNums = (m.table_numbers || []).map(String).sort().join(',');
-        var iNums = nums.map(String).sort().join(',');
-
-        if (mergeKey && mKey === mergeKey) return false;
-        if (id && mId === String(id)) return false;
-        if (iNums && mNums === iNums) return false;
-
-        return true;
-      });
-
-      renderMergedIcons();
-      await loadMerges();
-      sync();
-    } catch (e) {
-      alert('Unmerge failed: ' + e.message);
-    }
-  }
-
-  function save() {
-    if (state.edit) {
-      saveLayout();
-      return;
-    }
-
-    if (state.merge && state.selected.size >= 2) {
-      saveMerge();
-      return;
-    }
-  }
-
-  function toggleCompact() {
-    state.compact = !state.compact;
-    state.edit = false;
-    state.merge = false;
-    state.selected.clear();
-    sync();
-  }
-
-  document.addEventListener('pmd-waiter-dashboard-rendered', function () {
-    installTools();
-    loadMerges();
-  });
-
-  document.addEventListener('click', function (e) {
-    var unmergeBtn = e.target.closest('.pmd-w19-unmerge');
-    if (unmergeBtn) {
-      e.preventDefault();
-      e.stopPropagation();
-      e.stopImmediatePropagation();
-      unmerge(unmergeBtn.closest('.pmd-w19-merged-table'));
-      return;
-    }
-
-    var saveBtn = e.target.closest('[data-w19-save]');
-    if (saveBtn) {
-      e.preventDefault();
-      e.stopPropagation();
-      e.stopImmediatePropagation();
-      save();
-      return;
-    }
-
-    var edit = e.target.closest('[data-w19-edit]');
-    if (edit) {
-      e.preventDefault();
-      e.stopPropagation();
-      e.stopImmediatePropagation();
-      state.edit = !state.edit;
-      state.merge = false;
-      state.selected.clear();
-      sync();
-      return;
-    }
-
-    var merge = e.target.closest('[data-w19-merge]');
-    if (merge) {
-      e.preventDefault();
-      e.stopPropagation();
-      e.stopImmediatePropagation();
-      state.merge = !state.merge;
-      state.edit = false;
-      state.selected.clear();
-      sync();
-      return;
-    }
-
-    var compact = e.target.closest('#pmd-waiter-dashboard-root .pmd-w19-tools button[data-w19-compact]');
-    if (compact) {
-      e.preventDefault();
-      e.stopPropagation();
-      e.stopImmediatePropagation();
-      toggleCompact();
-      return;
-    }
-
-    var table = ((e && e.target && e.target.nodeType === 1) ? e.target.closest('.pmd-w5-floor-map-real .pmd-w5-table[data-table]') : null);
-    if (!table) return;
-
-    var no = String(table.dataset.table);
-
-    if (state.merge) {
-      e.preventDefault();
-      e.stopPropagation();
-      e.stopImmediatePropagation();
-
-      if (isInMerge(no)) {
-        alert('Table ' + no + ' is already merged. Unmerge it first.');
-        return;
-      }
-
-      var selected = Array.from(state.selected);
-
-      if (!state.selected.has(no) && selected.length > 0) {
-        var canConnect = selected.some(function (existing) {
-          return areClose(existing, no);
-        });
-
-        if (!canConnect) {
-          alert('Only close tables can be merged.');
-          return;
-        }
-      }
-
-      if (state.selected.has(no)) state.selected.delete(no);
-      else state.selected.add(no);
-
-      sync();
-      return;
-    }
-
-    if (state.edit && isInMerge(no)) {
-      e.preventDefault();
-      e.stopPropagation();
-      e.stopImmediatePropagation();
-      alert('This table is merged. Unmerge it first to edit layout.');
-      return;
-    }
-  }, true);
-
-  document.addEventListener('pointerdown', function (e) {
-    if (state.compact) return;
-
-    var table = ((e && e.target && e.target.nodeType === 1) ? e.target.closest('.pmd-w5-floor-map-real .pmd-w5-table[data-table]') : null);
-    var m = map();
-
-    if (!state.edit || !table || !m) return;
-
-    var no = String(table.dataset.table);
-
-    if (isInMerge(no)) {
-      e.preventDefault();
-      e.stopPropagation();
-      e.stopImmediatePropagation();
-      alert('This table is merged. Unmerge it first to edit layout.');
-      return;
-    }
-
-    e.preventDefault();
-    e.stopPropagation();
-    e.stopImmediatePropagation();
-
-    var rect = m.getBoundingClientRect();
-
-    function move(ev) {
-      var x = ((ev.clientX - rect.left) / rect.width) * 100;
-      var y = ((ev.clientY - rect.top) / rect.height) * 100;
-
-      x = Math.max(2, Math.min(98, x));
-      y = Math.max(2, Math.min(98, y));
-
-      table.style.left = x.toFixed(2) + '%';
-      table.style.top = y.toFixed(2) + '%';
-    }
-
-    function up() {
-      document.removeEventListener('pointermove', move, true);
-      document.removeEventListener('pointerup', up, true);
-    }
-
-    document.addEventListener('pointermove', move, true);
-    document.addEventListener('pointerup', up, true);
-  }, true);
-
-  installTools();
-  loadMerges();
-
-  setTimeout(installTools, 300);
-  setTimeout(loadMerges, 500);
-  setTimeout(installTools, 1200);
-  setTimeout(loadMerges, 1500);
-
-  window.PMDWaiterFloorToolbar = {
-    state: state,
-    save: save,
-    saveLayout: saveLayout,
-    saveMerge: saveMerge,
-    loadMerges: loadMerges,
-    unmerge: unmerge,
-    validateMergeSelection: validateMergeSelection
-  };
-
-  console.info('[PMD] Waiter Dashboard V19 clean cards + working unmerge active');
-})();
-</script>
 <!-- PMD_WAITER_DASHBOARD_V19_CLEAN_CARDS_WORKING_UNMERGE_END -->
 
 
@@ -9019,200 +8545,8 @@ html.pmd-waiter-dashboard-active .pmd-w5-order-card [class*="items"] {
 }
 </style>
 
-<script id="pmd-waiter-dashboard-v20-unmerge-hotfix-script">
-(function () {
-  if (!/(?:\/admin\/dashboardwaiter|\/admin\/reservations2)(?:$|[?#])/.test(location.pathname + location.search + location.hash)) return;
-  if (window.PMD_WAITER_DASHBOARD_V20_UNMERGE_HOTFIX) return;
-  window.PMD_WAITER_DASHBOARD_V20_UNMERGE_HOTFIX = true;
 
-  var LIST_ENDPOINT = '/admin/pmd-waiter-dashboard-v20-table-merges';
-  var MERGE_ENDPOINT = '/admin/pmd-waiter-dashboard-v20-merge-tables';
-  var UNMERGE_ENDPOINT = '/admin/pmd-waiter-dashboard-v20-unmerge-tables';
 
-  function csrf() {
-    var m = document.querySelector('meta[name="csrf-token"]');
-    if (m && m.content) return m.content;
-    var i = document.querySelector('input[name="_token"]');
-    if (i && i.value) return i.value;
-    return '';
-  }
-
-  function selectedTables() {
-    if (window.PMDWaiterFloorToolbar && PMDWaiterFloorToolbar.state && PMDWaiterFloorToolbar.state.selected) {
-      return Array.from(PMDWaiterFloorToolbar.state.selected).map(String);
-    }
-
-    return Array.from(document.querySelectorAll('.pmd-w19-selected, .pmd-v18-selected, .pmd-w12-selected'))
-      .map(function (x) { return String(x.dataset.table || '').trim(); })
-      .filter(Boolean);
-  }
-
-  async function loadMergesIntoV19() {
-    try {
-      var r = await fetch(LIST_ENDPOINT + '?ts=' + Date.now(), {
-        credentials: 'same-origin',
-        headers: { Accept: 'application/json', 'X-Requested-With': 'XMLHttpRequest' }
-      });
-
-      var j = await r.json();
-
-      if (r.ok && j && j.ok && window.PMDWaiterFloorToolbar && PMDWaiterFloorToolbar.state) {
-        PMDWaiterFloorToolbar.state.merges = j.merges || [];
-      }
-
-      if (window.PMDWaiterFloorToolbar && PMDWaiterFloorToolbar.loadMerges) {
-        // V19 will redraw from DB after our endpoint fixed DB rows.
-        PMDWaiterFloorToolbar.loadMerges();
-      }
-
-      return j;
-    } catch (e) {
-      return null;
-    }
-  }
-
-  async function unmergeIcon(icon) {
-    if (!icon) return;
-
-    var mergeKey = icon.dataset.mergeKey || '';
-    var id = icon.dataset.mergeId || '';
-    var nums = String(icon.dataset.tables || '')
-      .split(',')
-      .map(function (x) { return x.trim(); })
-      .filter(Boolean);
-
-    icon.style.opacity = '.35';
-    icon.style.pointerEvents = 'none';
-
-    try {
-      var r = await fetch(UNMERGE_ENDPOINT, {
-        method: 'POST',
-        credentials: 'same-origin',
-        headers: {
-          Accept: 'application/json',
-          'Content-Type': 'application/json',
-          'X-Requested-With': 'XMLHttpRequest',
-          'X-CSRF-TOKEN': csrf()
-        },
-        body: JSON.stringify({
-          id: id,
-          merge_key: mergeKey,
-          table_numbers: nums
-        })
-      });
-
-      var j = await r.json();
-
-      if (!r.ok || !j || !j.ok) {
-        icon.style.opacity = '';
-        icon.style.pointerEvents = '';
-        alert('Unmerge failed: ' + ((j && j.error) || ('HTTP ' + r.status)));
-        return;
-      }
-
-      icon.remove();
-
-      document.querySelectorAll('.pmd-w19-in-merge, .pmd-v18-in-merge').forEach(function (x) {
-        x.classList.remove('pmd-w19-in-merge', 'pmd-v18-in-merge');
-      });
-
-      await loadMergesIntoV19();
-
-      setTimeout(function () {
-        if (window.PMDWaiterDashboard && PMDWaiterDashboard.refresh) {
-          PMDWaiterDashboard.refresh();
-        }
-      }, 150);
-
-    } catch (e) {
-      icon.style.opacity = '';
-      icon.style.pointerEvents = '';
-      alert('Unmerge failed: ' + e.message);
-    }
-  }
-
-  async function mergeSelected() {
-    var nums = selectedTables();
-
-    if (nums.length < 2) return;
-
-    try {
-      var r = await fetch(MERGE_ENDPOINT, {
-        method: 'POST',
-        credentials: 'same-origin',
-        headers: {
-          Accept: 'application/json',
-          'Content-Type': 'application/json',
-          'X-Requested-With': 'XMLHttpRequest',
-          'X-CSRF-TOKEN': csrf()
-        },
-        body: JSON.stringify({ table_numbers: nums })
-      });
-
-      var j = await r.json();
-
-      if (!r.ok || !j || !j.ok) {
-        alert('Merge failed: ' + ((j && j.error) || ('HTTP ' + r.status)));
-        return;
-      }
-
-      if (window.PMDWaiterFloorToolbar && PMDWaiterFloorToolbar.state) {
-        PMDWaiterFloorToolbar.state.selected.clear();
-        PMDWaiterFloorToolbar.state.merge = false;
-      }
-
-      await loadMergesIntoV19();
-
-      setTimeout(function () {
-        if (window.PMDWaiterDashboard && PMDWaiterDashboard.refresh) {
-          PMDWaiterDashboard.refresh();
-        }
-      }, 150);
-
-    } catch (e) {
-      alert('Merge failed: ' + e.message);
-    }
-  }
-
-  // pointerdown happens before the old V19 click handler, so this forces X to work.
-  document.addEventListener('pointerdown', function (e) {
-    var x = e.target.closest('.pmd-w19-unmerge, .pmd-v18-unmerge');
-    if (!x) return;
-
-    e.preventDefault();
-    e.stopPropagation();
-    e.stopImmediatePropagation();
-
-    var icon = x.closest('.pmd-w19-merged-table, .pmd-v18-merged-table');
-    unmergeIcon(icon);
-  }, true);
-
-  // Intercept merge save only when merge mode is active.
-  document.addEventListener('pointerdown', function (e) {
-    var save = e.target.closest('[data-w19-save]');
-    if (!save) return;
-
-    var st = window.PMDWaiterFloorToolbar && PMDWaiterFloorToolbar.state;
-    if (!st || !st.merge) return;
-
-    e.preventDefault();
-    e.stopPropagation();
-    e.stopImmediatePropagation();
-
-    mergeSelected();
-  }, true);
-
-  window.PMDWaiterMergeV20 = {
-    list: loadMergesIntoV19,
-    unmergeIcon: unmergeIcon,
-    mergeSelected: mergeSelected
-  };
-
-  setTimeout(loadMergesIntoV19, 500);
-
-  console.info('[PMD] Waiter Dashboard V20 unmerge hotfix active');
-})();
-</script>
 <!-- PMD_WAITER_DASHBOARD_V20_UNMERGE_HOTFIX_END -->
 
 
@@ -9316,232 +8650,8 @@ html.pmd-waiter-dashboard-active .pmd-v18-unmerge {
 }
 </style>
 
-<script id="pmd-waiter-dashboard-v21-stable-floor-order-cleanup-script">
-(function () {
-  if (!/(?:\/admin\/dashboardwaiter|\/admin\/reservations2)(?:$|[?#])/.test(location.pathname + location.search + location.hash)) return;
-  if (window.PMD_WAITER_DASHBOARD_V21_STABLE_CLEANUP) return;
-  window.PMD_WAITER_DASHBOARD_V21_STABLE_CLEANUP = true;
 
-  var CLEAN_ENDPOINT = '/admin/pmd-waiter-dashboard-v21-clean-merge-overlaps';
-  var LIST_ENDPOINT = '/admin/pmd-waiter-dashboard-v20-table-merges';
 
-  function csrf() {
-    var m = document.querySelector('meta[name="csrf-token"]');
-    if (m && m.content) return m.content;
-    var i = document.querySelector('input[name="_token"]');
-    if (i && i.value) return i.value;
-    return '';
-  }
-
-  function norm(s) {
-    return String(s || '').replace(/\s+/g, ' ').trim();
-  }
-
-  function toolbarState() {
-    return window.PMDWaiterFloorToolbar && PMDWaiterFloorToolbar.state
-      ? PMDWaiterFloorToolbar.state
-      : null;
-  }
-
-  function isEditMode() {
-    var st = toolbarState();
-    return !!(st && st.edit);
-  }
-
-  function isMergeMode() {
-    var st = toolbarState();
-    return !!(st && st.merge);
-  }
-
-  function isSystemNoteText(txt) {
-    return /Table Draft Basket|table_draft_id|submitted_by|guest_session/i.test(String(txt || ''));
-  }
-
-  function findCardTable(card) {
-    var text = norm(card.textContent);
-
-    var direct = card.querySelector('.pmd-v17-card-table-top, .pmd-v21-table-badge');
-    if (direct) {
-      var dt = norm(direct.textContent);
-      if (/^Table\s+\d+$/i.test(dt)) return dt;
-    }
-
-    var pills = Array.from(card.querySelectorAll('.pmd-w5-pill, [class*="pill"], [class*="badge"]'));
-    for (var i = 0; i < pills.length; i++) {
-      var t = norm(pills[i].textContent);
-      if (/^Table\s+\d+$/i.test(t)) return t;
-    }
-
-    var m = text.match(/\bTable\s+(\d+)\b/i);
-    if (m) return 'Table ' + m[1];
-
-    return 'No table';
-  }
-
-  function cleanupOrderCards() {
-    document.querySelectorAll('.pmd-w5-card, .pmd-w5-order-card').forEach(function (card) {
-      var tableText = findCardTable(card);
-      var pills = Array.from(card.querySelectorAll('.pmd-w5-pill, [class*="pill"], [class*="badge"]'));
-
-      var topBadge =
-        card.querySelector('.pmd-v17-card-table-top') ||
-        card.querySelector('.pmd-v21-table-badge') ||
-        pills.find(function (p) {
-          var t = norm(p.textContent);
-          return /^Table\s+\d+$/i.test(t) || /^No table$/i.test(t);
-        });
-
-      if (topBadge) {
-        topBadge.textContent = tableText;
-        topBadge.classList.add('pmd-v21-table-badge');
-
-        if (tableText === 'No table') {
-          topBadge.classList.add('pmd-v21-no-table');
-        } else {
-          topBadge.classList.remove('pmd-v21-no-table');
-        }
-      }
-
-      // Hide duplicate Table — / Table - / left bad table pills.
-      pills.forEach(function (p) {
-        var t = norm(p.textContent);
-
-        if (/^Table\s*[—-]$/i.test(t) || /^Table\s*$/i.test(t)) {
-          p.classList.add('pmd-v21-hide');
-          return;
-        }
-
-        if (topBadge && p !== topBadge && /^Table\s+\d+$/i.test(t)) {
-          p.classList.add('pmd-v21-hide');
-        }
-      });
-
-      // Hide fake note/change badge if no real customer note exists.
-      var hasRealNote = false;
-
-      card.querySelectorAll('[class*="note"], .pmd-w5-note, .pmd-w5-note-box, .pmd-w5-order-note').forEach(function (n) {
-        var t = norm(n.textContent);
-
-        if (!t) return;
-
-        if (isSystemNoteText(t)) {
-          n.classList.add('pmd-v21-hide');
-          return;
-        }
-
-        if (!/^Note\s*\/\s*change$/i.test(t) && !/^Note$/i.test(t)) {
-          hasRealNote = true;
-        }
-      });
-
-      card.querySelectorAll('.pmd-w5-pill, [class*="pill"], [class*="badge"], button').forEach(function (el) {
-        var t = norm(el.textContent);
-
-        if (/^Note\s*\/\s*change$/i.test(t) && !hasRealNote) {
-          el.classList.add('pmd-v21-hide');
-        }
-      });
-    });
-  }
-
-  async function cleanupMergeOverlaps() {
-    try {
-      var r = await fetch(CLEAN_ENDPOINT, {
-        method: 'POST',
-        credentials: 'same-origin',
-        headers: {
-          Accept: 'application/json',
-          'Content-Type': 'application/json',
-          'X-Requested-With': 'XMLHttpRequest',
-          'X-CSRF-TOKEN': csrf()
-        },
-        body: JSON.stringify({})
-      });
-
-      var j = await r.json();
-
-      if (j && j.ok) {
-        console.info('[PMD] V21 merge cleanup', j);
-
-        if (window.PMDWaiterMergeV20 && PMDWaiterMergeV20.list) {
-          await PMDWaiterMergeV20.list();
-        } else if (window.PMDWaiterFloorToolbar && PMDWaiterFloorToolbar.loadMerges) {
-          await PMDWaiterFloorToolbar.loadMerges();
-        }
-
-        setTimeout(function () {
-          if (window.PMDWaiterDashboard && PMDWaiterDashboard.refresh) {
-            PMDWaiterDashboard.refresh();
-          }
-        }, 200);
-      }
-
-      return j;
-    } catch (e) {
-      console.warn('[PMD] V21 merge cleanup failed', e);
-      return null;
-    }
-  }
-
-  // In edit layout mode, block normal table click/select.
-  document.addEventListener('click', function (e) {
-    var table = ((e && e.target && e.target.nodeType === 1) ? e.target.closest('.pmd-w5-floor-map-real .pmd-w5-table[data-table]') : null);
-    if (!table) return;
-
-    if (isEditMode()) {
-      e.preventDefault();
-      e.stopPropagation();
-      e.stopImmediatePropagation();
-      return false;
-    }
-  }, true);
-
-  // Also block pointerup in edit mode so old table click logic does not fire after drag.
-  document.addEventListener('pointerup', function (e) {
-    var table = ((e && e.target && e.target.nodeType === 1) ? e.target.closest('.pmd-w5-floor-map-real .pmd-w5-table[data-table]') : null);
-    if (!table) return;
-
-    if (isEditMode()) {
-      e.preventDefault();
-      e.stopPropagation();
-      e.stopImmediatePropagation();
-      return false;
-    }
-  }, true);
-
-  // If merge mode is on, prevent old normal table selection.
-  document.addEventListener('click', function (e) {
-    var table = ((e && e.target && e.target.nodeType === 1) ? e.target.closest('.pmd-w5-floor-map-real .pmd-w5-table[data-table]') : null);
-    if (!table) return;
-
-    if (isMergeMode()) {
-      e.preventDefault();
-      e.stopPropagation();
-      e.stopImmediatePropagation();
-      return false;
-    }
-  }, true);
-
-  document.addEventListener('pmd-waiter-dashboard-rendered', function () {
-    setTimeout(cleanupOrderCards, 60);
-    setTimeout(cleanupOrderCards, 300);
-  });
-
-  setTimeout(cleanupOrderCards, 200);
-  setTimeout(cleanupOrderCards, 700);
-  setTimeout(cleanupOrderCards, 1500);
-
-  // Run cleanup once on load to remove old duplicate/overlap test merges.
-  setTimeout(cleanupMergeOverlaps, 800);
-
-  window.PMDWaiterV21Cleanup = {
-    cards: cleanupOrderCards,
-    merges: cleanupMergeOverlaps
-  };
-
-  console.info('[PMD] Waiter Dashboard V21 stable floor/order cleanup active');
-})();
-</script>
 <!-- PMD_WAITER_DASHBOARD_V21_STABLE_FLOOR_ORDER_CLEANUP_END -->
 
 
@@ -9624,8 +8734,12 @@ html.pmd-waiter-dashboard-active .pmd-v18-unmerge {
 <!-- PMD_KDS_SERVER_FAST_V82_EARLY_MEDIA_GUARD_START -->
 @unless(!empty($__pmdIsKdsDashboardV82))
 <!-- PMD EARLY SORTABLE DROPZONE START -->
-    <script src="{{ asset('app/admin/assets/vendor/pmd-mediafix/Sortable.min.js') }}?v={{ time() }}"></script>
-    <script src="{{ asset('app/admin/assets/vendor/pmd-mediafix/dropzone.min.js') }}?v={{ time() }}"></script>
+    @unless(request()->is('admin/reservations2'))
+<script src="{{ asset('app/admin/assets/vendor/pmd-mediafix/Sortable.min.js') }}?v={{ time() }}"></script>
+@endunless
+    @unless(request()->is('admin/reservations2'))
+<script src="{{ asset('app/admin/assets/vendor/pmd-mediafix/dropzone.min.js') }}?v={{ time() }}"></script>
+@endunless
 <!-- PMD EARLY SORTABLE DROPZONE END -->
 @endunless
 <!-- PMD_KDS_SERVER_FAST_V82_EARLY_MEDIA_GUARD_END -->
@@ -9965,7 +9079,9 @@ html.pmd-waiter-dashboard-active .pmd-v18-unmerge {
 <!-- PMD_KDS_SERVER_FAST_V82_MEDIAFIX_JS_GUARD_START -->
 @unless(!empty($__pmdIsKdsDashboardV82))
 
+@unless(request()->is('admin/reservations2'))
 <script src="{{ asset('app/admin/assets/js/pmd-mediafinder-autofix.js') }}?v={{ time() }}"></script>
+@endunless
 @endunless
 <!-- PMD_KDS_SERVER_FAST_V82_MEDIAFIX_JS_GUARD_END -->
 @endunless
@@ -10208,2387 +9324,20 @@ html.pmd-waiter-dashboard-active .pmd-v18-unmerge {
     <script src="/app/admin/assets/js/pmd-admin-universal-client-list-v1.js?v=50" defer></script>
 
 
-<!-- PMD_V180_FINAL_FLOOR_LAST_WRAPPER_START -->
-<!--
-  V180: V175c/V175e moved here intentionally.
-  They must run AFTER old V36/V40/V44/V46/V47/V89/V105 floor scripts.
--->
-<!-- PMD_V175C_NO_DUPE_NO_BLINK_START -->
-<style id="pmd-v175c-no-dupe-no-blink-style">
-html.pmd-waiter-dashboard-active,
-html.pmd-waiter-dashboard-active body {
-  scroll-behavior: auto !important;
-}
 
-html.pmd-waiter-dashboard-active #pmd-waiter-dashboard-root *,
-html.pmd-waiter-dashboard-active .pmd-w5-floor-map *,
-html.pmd-waiter-dashboard-active .pmd-w5-floor-map-real *,
-html.pmd-waiter-dashboard-active .pmd-v155-floor-map * {
-  transition: none !important;
-  animation: none !important;
-}
 
-html.pmd-waiter-dashboard-active #pmd-waiter-dashboard-root {
-  --pmd-v190-floor-height: clamp(560px, calc(100vh - 220px), 820px);
-  --pmd-v190-floor-overflow: visible;
-  --pmd-v190-floor-transition: none;
-}
 
-html.pmd-waiter-dashboard-active #pmd-waiter-dashboard-root.pmd-w19-compact {
-  --pmd-v190-floor-height: clamp(300px, 38vh, 360px);
-  --pmd-v190-floor-overflow: auto;
-}
 
-html.pmd-waiter-dashboard-active #pmd-waiter-dashboard-root.pmd-v190-floor-ready {
-  --pmd-v190-floor-transition: height 220ms cubic-bezier(.2,.8,.2,1), min-height 220ms cubic-bezier(.2,.8,.2,1), max-height 220ms cubic-bezier(.2,.8,.2,1);
-}
 
-html.pmd-waiter-dashboard-active .pmd-w5-floor-map,
-html.pmd-waiter-dashboard-active .pmd-w5-floor-map-real,
-html.pmd-waiter-dashboard-active .pmd-v155-floor-map,
-html.pmd-waiter-dashboard-active [class*="floor-map"] {
-  height: var(--pmd-v190-floor-height) !important;
-  min-height: var(--pmd-v190-floor-height) !important;
-  max-height: var(--pmd-v190-floor-height) !important;
-  overflow: var(--pmd-v190-floor-overflow) !important;
-  background: #ffffff !important;
-  transform: none !important;
-  transition: var(--pmd-v190-floor-transition) !important;
-  animation: none !important;
-}
 
-html.pmd-waiter-dashboard-active .pmd-v175c-floor-tile {
-  width: 104px !important;
-  height: 86px !important;
-  min-width: 104px !important;
-  min-height: 86px !important;
-  max-width: 104px !important;
-  max-height: 86px !important;
-  border-radius: 18px !important;
-  box-sizing: border-box !important;
-  transform: none !important;
-  filter: none !important;
-  text-shadow: none !important;
-  transition: none !important;
-  animation: none !important;
-  color: #05070d !important;
-  -webkit-text-fill-color: #05070d !important;
-}
 
-html.pmd-waiter-dashboard-active .pmd-v175c-hide-dupe-number {
-  display: none !important;
-  visibility: hidden !important;
-  opacity: 0 !important;
-  pointer-events: none !important;
-}
 
-html.pmd-waiter-dashboard-active .pmd-v175c-floor-tile.pmd-v175c-table-red {
-  background: #ff3347 !important;
-  border: 4px solid #b70821 !important;
-}
 
-html.pmd-waiter-dashboard-active .pmd-v175c-floor-tile.pmd-v175c-table-green {
-  background: #16c65b !important;
-  border: 4px solid #047a36 !important;
-}
 
-html.pmd-waiter-dashboard-active .pmd-v175c-table-number {
-  position: absolute !important;
-  inset: 0 !important;
-  left: 0 !important;
-  top: 0 !important;
-  right: 0 !important;
-  bottom: 0 !important;
-  width: 100% !important;
-  height: 100% !important;
-  display: flex !important;
-  align-items: center !important;
-  justify-content: center !important;
-  transform: none !important;
-  font-size: var(--pmd-v184-number-size, 30px) !important;
-  line-height: 1 !important;
-  font-weight: 950 !important;
-  color: #05070d !important;
-  -webkit-text-fill-color: #05070d !important;
-  text-shadow: none !important;
-  z-index: 20 !important;
-  pointer-events: none !important;
-}
 
-html.pmd-waiter-dashboard-active .pmd-v175c-attention-badge {
-  position: absolute !important;
-  top: -13px !important;
-  right: -13px !important;
-  width: 36px !important;
-  height: 36px !important;
-  min-width: 36px !important;
-  min-height: 36px !important;
-  border-radius: 999px !important;
-  display: flex !important;
-  align-items: center !important;
-  justify-content: center !important;
-  background: #ffffff !important;
-  color: #061225 !important;
-  -webkit-text-fill-color: #061225 !important;
-  border: 2px solid #061225 !important;
-  box-shadow: 0 3px 9px rgba(6, 18, 37, .16) !important;
-  font-size: 21px !important;
-  line-height: 1 !important;
-  z-index: 80 !important;
-  pointer-events: none !important;
-  transform: none !important;
-  transition: none !important;
-  animation: none !important;
-}
 
-html.pmd-waiter-dashboard-active .pmd-v175c-attention-badge img {
-  width: 25px !important;
-  height: 25px !important;
-  display: block !important;
-  object-fit: contain !important;
-  transform: none !important;
-  transition: none !important;
-  animation: none !important;
-}
 
-html.pmd-waiter-dashboard-active .pmd-v175c-attention-badge[data-pmd-kind="waiter"] {
-  background: #fff4bf !important;
-}
 
-html.pmd-waiter-dashboard-active .pmd-v175c-attention-badge[data-pmd-kind="note"] {
-  background: #e8f3ff !important;
-}
-</style>
-
-<script id="pmd-v175c-no-dupe-no-blink-script">
-(function () {
-  'use strict';
-
-  if (window.PMDWaiterFloorStableV175b && window.PMDWaiterFloorStableV175b.stop) {
-    try { window.PMDWaiterFloorStableV175b.stop(); } catch (e) {}
-  }
-
-  if (window.PMDWaiterFloorStableV175c && window.PMDWaiterFloorStableV175c.active) return;
-  if (!/\/admin\/(?:dashboardwaiter|reservations2)(?:$|[?#\/])/.test(location.pathname + location.search + location.hash)) return;
-
-  document.documentElement.classList.add('pmd-waiter-dashboard-active');
-
-  var CLEANING_IMG = '/app/admin/assets/images/pmd/Cleaning.png';
-  var TABLE_ENDPOINT = '/admin/pmd-waiter-table-states-v154';
-  var NOTIF_ENDPOINT = '/admin/notifications-api';
-
-  var POLL_MS = 10000;
-  var TILE_CLASS = 'pmd-v175c-floor-tile';
-  var NUMBER_CLASS = 'pmd-v175c-table-number';
-  var BADGE_CLASS = 'pmd-v175c-attention-badge';
-  var HIDE_CLASS = 'pmd-v175c-hide-dupe-number';
-
-  var OLD_BADGE_SELECTORS = [
-    '[data-pmd-v170f-slot-badge]',
-    '[data-pmd-v170c-attention-badge]',
-    '[data-pmd-v170b-attention-badge]',
-    '.pmd-v170g-pinned-badge',
-    '.pmd-v174-attention-badge',
-    '.pmd-v175b-attention-badge'
-  ].join(',');
-
-  var OLD_NUMBER_SELECTORS = [
-    '.pmd-v175b-table-number'
-  ].join(',');
-
-  var TILE_SELECTORS = [
-    '.pmd-w5-table',
-    '.pmd-v155-table',
-    '.pmd-floor-table',
-    '.pmd-waiter-floor-table',
-    '[data-table]',
-    '[data-table-number]',
-    '[data-table-no]'
-  ].join(',');
-
-  var state = {
-    tableMap: {},
-    attentionMap: {},
-    timer: null,
-    observer: null,
-    raf: 0,
-    updates: 0
-  };
-
-  function clean(v) {
-    return String(v == null ? '' : v).replace(/\s+/g, ' ').trim();
-  }
-
-  function setImportant(el, prop, value) {
-    if (!el || !el.style) return;
-    if (el.style.getPropertyValue(prop) === value && el.style.getPropertyPriority(prop) === 'important') return;
-    el.style.setProperty(prop, value, 'important');
-  }
-
-  function parsePayload(n) {
-    try {
-      if (!n || !n.payload) return {};
-      return typeof n.payload === 'string' ? JSON.parse(n.payload) : n.payload;
-    } catch (e) {
-      return {};
-    }
-  }
-
-  function isHandled(n) {
-    if (!n) return true;
-    if (n.read === true || n.seen === true || n.is_read === true || n.is_seen === true) return true;
-    if (n.status && /read|seen|dismiss|archiv|closed|done/i.test(String(n.status))) return true;
-
-    return [
-      n.read_at,
-      n.seen_at,
-      n.dismissed_at,
-      n.archived_at,
-      n.deleted_at,
-      n.recipient_read_at,
-      n.recipient_seen_at
-    ].some(Boolean);
-  }
-
-  function tableNoFromNotification(n) {
-    var p = parsePayload(n);
-    var candidates = [
-      n && n.table_name,
-      p.table_name,
-      p.table_label,
-      p.table,
-      p.table_no,
-      p.table_number,
-      n && n.message,
-      n && n.title
-    ].map(clean).filter(Boolean);
-
-    for (var i = 0; i < candidates.length; i++) {
-      var s = candidates[i];
-
-      var m = s.match(/\bTable\s*#?\s*(\d+)\b/i);
-      if (m) return m[1];
-
-      m = s.match(/\bT\s*#?\s*(\d+)\b/i);
-      if (m) return m[1];
-
-      if (/^\d+$/.test(s)) return s;
-    }
-
-    return '';
-  }
-
-  function removeKnownOldBadges(root) {
-    (root || document).querySelectorAll(OLD_BADGE_SELECTORS).forEach(function (el) {
-      if (el && el.parentNode) el.parentNode.removeChild(el);
-    });
-
-    (root || document).querySelectorAll(OLD_NUMBER_SELECTORS).forEach(function (el) {
-      if (el && el.parentNode) el.parentNode.removeChild(el);
-    });
-
-    (root || document).querySelectorAll('.pmd-v170g-pinned-tile').forEach(function (el) {
-      el.classList.remove('pmd-v170g-pinned-tile');
-    });
-  }
-
-  function tableNoFromElement(el) {
-    if (!el || el.nodeType !== 1) return '';
-
-    var attrs = [
-      'data-table-number',
-      'data-table-no',
-      'data-table',
-      'data-pmd-table-number',
-      'data-pmd-table-no'
-    ];
-
-    for (var i = 0; i < attrs.length; i++) {
-      var v = clean(el.getAttribute(attrs[i]));
-      if (/^\d+$/.test(v)) return v;
-    }
-
-    var clone = el.cloneNode(true);
-    clone.querySelectorAll('.' + BADGE_CLASS + ', .' + NUMBER_CLASS + ', ' + OLD_BADGE_SELECTORS + ', ' + OLD_NUMBER_SELECTORS).forEach(function (x) {
-      x.remove();
-    });
-
-    var txt = clean(clone.textContent || '');
-    var m = txt.match(/\b(\d{1,3})\b/);
-    return m ? m[1] : '';
-  }
-
-  function floorElements() {
-    return Array.from(document.querySelectorAll([
-      '.pmd-w5-floor-map',
-      '.pmd-w5-floor-map-real',
-      '.pmd-v155-floor-map',
-      '[class*="floor-map"]'
-    ].join(','))).filter(function (el) {
-      var r = el.getBoundingClientRect();
-      return r.width > 300 && r.height > 80;
-    });
-  }
-
-  function activeCardsTopY() {
-    var nodes = Array.from(document.querySelectorAll('h1,h2,h3,h4,h5,div,span,strong'));
-    var header = nodes.find(function (el) {
-      var t = clean(el.textContent);
-      if (!/Active Order Cards/i.test(t)) return false;
-      if (t.length > 40) return false;
-      var r = el.getBoundingClientRect();
-      return r.width > 20 && r.height > 10;
-    });
-
-    return header ? header.getBoundingClientRect().top : window.innerHeight;
-  }
-
-  function findTiles() {
-    var floorBottom = activeCardsTopY();
-    var all = Array.from(document.querySelectorAll(TILE_SELECTORS));
-    var byNo = new Map();
-
-    all.forEach(function (el) {
-      if (!el || el.closest('.pmd-v35-card, .pmd-order-card, [class*="order-card"]')) return;
-
-      var r = el.getBoundingClientRect();
-      if (r.top >= floorBottom) return;
-      if (r.width < 50 || r.width > 230) return;
-      if (r.height < 40 || r.height > 190) return;
-
-      var no = tableNoFromElement(el);
-      if (!no) return;
-
-      var area = r.width * r.height;
-      var prev = byNo.get(no);
-
-      if (!prev || area > prev.area) {
-        byNo.set(no, { el: el, area: area });
-      }
-    });
-
-    return Array.from(byNo.entries()).map(function (entry) {
-      return { tableNo: entry[0], el: entry[1].el };
-    });
-  }
-
-  function cleaningFromTable(t) {
-    if (!t) return false;
-
-    var s = [
-      t.table_status,
-      t.table_status_label,
-      t.operational_status,
-      t.operational_status_label,
-      t.status,
-      t.status_label
-    ].map(clean).join(' ').toLowerCase();
-
-    return /clean|cleaning|needs\s*cleaning|dirty|customer\s*left/.test(s);
-  }
-
-  function shouldBeGreen(tile, no) {
-    var t = state.tableMap[no];
-    if (cleaningFromTable(t)) return false;
-
-    var cls = clean(tile.el.className).toLowerCase();
-
-    if (cls.indexOf('is-payment') !== -1) return false;
-    if (cls.indexOf('is-urgent') !== -1) return false;
-    if (cls.indexOf('ready') !== -1) return true;
-
-    var s = [
-      t && t.table_status,
-      t && t.table_status_label,
-      t && t.operational_status,
-      t && t.operational_status_label
-    ].map(clean).join(' ').toLowerCase();
-
-    if (/occupied|payment|unpaid|clean|dirty|urgent/.test(s)) return false;
-    if (/ready|available|free/.test(s)) return true;
-
-    return false;
-  }
-
-  async function fetchTables() {
-    try {
-      var r = await fetch(TABLE_ENDPOINT + '?_=' + Date.now(), {
-        credentials: 'same-origin',
-        cache: 'no-store',
-        headers: {
-          'Accept': 'application/json',
-          'X-Requested-With': 'XMLHttpRequest',
-          'Cache-Control': 'no-cache',
-          'Pragma': 'no-cache'
-        }
-      });
-
-      var j = await r.json().catch(function () { return null; });
-      var arr = j && Array.isArray(j.tables) ? j.tables : [];
-      var map = {};
-
-      arr.forEach(function (t) {
-        var raw = clean(t.table_number || t.table_no || t.number || t.table_label || '');
-        var m = raw.match(/\d+/);
-        if (!m) return;
-        map[m[0]] = t;
-      });
-
-      return map;
-    } catch (e) {
-      return {};
-    }
-  }
-
-  async function fetchAttention() {
-    try {
-      var r = await fetch(NOTIF_ENDPOINT + '?limit=50&_=' + Date.now(), {
-        credentials: 'same-origin',
-        cache: 'no-store',
-        headers: {
-          'Accept': 'application/json',
-          'X-Requested-With': 'XMLHttpRequest',
-          'Cache-Control': 'no-cache',
-          'Pragma': 'no-cache'
-        }
-      });
-
-      var j = await r.json().catch(function () { return null; });
-      var items = j && j.ok && Array.isArray(j.items) ? j.items : [];
-      var map = {};
-
-      items.forEach(function (n) {
-        if (!n || !['waiter_call', 'table_note', 'staff_note'].includes(n.type)) return;
-        if (isHandled(n)) return;
-
-        var no = tableNoFromNotification(n);
-        if (!no) return;
-
-        var old = map[no];
-
-        if (!old || n.type === 'waiter_call') {
-          map[no] = {
-            type: n.type,
-            id: n.id || '',
-            label: n.type === 'waiter_call' ? 'Waiter Call' : 'Note'
-          };
-        }
-      });
-
-      return map;
-    } catch (e) {
-      return {};
-    }
-  }
-
-  function desiredBadge(no) {
-    var att = state.attentionMap[no];
-
-    if (att && att.type === 'waiter_call') {
-      return { kind: 'waiter', icon: '🔔', key: 'waiter:' + att.id, label: 'Waiter Call' };
-    }
-
-    if (att && (att.type === 'table_note' || att.type === 'staff_note')) {
-      return { kind: 'note', icon: '📝', key: 'note:' + att.id, label: 'Note' };
-    }
-
-    if (cleaningFromTable(state.tableMap[no])) {
-      return { kind: 'cleaning', icon: '', key: 'cleaning', label: 'Needs Cleaning' };
-    }
-
-    return null;
-  }
-
-  function isCornerSmallBadge(parent, child) {
-    var pr = parent.getBoundingClientRect();
-    var cr = child.getBoundingClientRect();
-
-    if (cr.width > 46 || cr.height > 46) return false;
-
-    var nearRight = cr.left > pr.right - 55;
-    var nearTop = cr.top < pr.top + 30;
-
-    return nearRight && nearTop;
-  }
-
-  function hideDuplicateNumbers(tile) {
-    var el = tile.el;
-    var no = tile.tableNo;
-
-    Array.from(el.childNodes).forEach(function (node) {
-      if (node.nodeType === 3) {
-        if (clean(node.nodeValue) === no) node.nodeValue = '';
-        return;
-      }
-
-      if (node.nodeType !== 1) return;
-
-      var child = node;
-
-      if (child.classList.contains(NUMBER_CLASS)) return;
-      if (child.classList.contains(BADGE_CLASS)) return;
-
-      if (child.matches && child.matches(OLD_BADGE_SELECTORS + ', ' + OLD_NUMBER_SELECTORS)) {
-        child.remove();
-        return;
-      }
-
-      var text = clean(child.textContent || '');
-      if (text !== no) return;
-
-      if (isCornerSmallBadge(el, child)) return;
-
-      var fs = parseFloat(getComputedStyle(child).fontSize || '0') || 0;
-      var cr = child.getBoundingClientRect();
-
-      if (fs >= 18 || cr.width > 32 || cr.height > 32) {
-        child.classList.add(HIDE_CLASS);
-        child.setAttribute('aria-hidden', 'true');
-        setImportant(child, 'display', 'none');
-      }
-    });
-  }
-
-  function ensureNumber(tile) {
-    var el = tile.el;
-    var no = tile.tableNo;
-    var label = el.querySelector(':scope > .' + NUMBER_CLASS);
-
-    if (!label) {
-      label = document.createElement('span');
-      label.className = NUMBER_CLASS;
-      el.appendChild(label);
-    }
-
-    if (label.textContent !== no) label.textContent = no;
-  }
-
-  function setTileVisual(tile) {
-    var el = tile.el;
-    var no = tile.tableNo;
-
-    el.classList.add(TILE_CLASS);
-
-    if (getComputedStyle(el).position === 'static') {
-      setImportant(el, 'position', 'absolute');
-    }
-
-    setImportant(el, 'width', (window.PMDFloorSizeV184 && window.PMDFloorSizeV184.tileW ? window.PMDFloorSizeV184.tileW() : '104px'));
-    setImportant(el, 'height', (window.PMDFloorSizeV184 && window.PMDFloorSizeV184.tileH ? window.PMDFloorSizeV184.tileH() : '86px'));
-    setImportant(el, 'min-width', (window.PMDFloorSizeV184 && window.PMDFloorSizeV184.tileW ? window.PMDFloorSizeV184.tileW() : '104px'));
-    setImportant(el, 'min-height', (window.PMDFloorSizeV184 && window.PMDFloorSizeV184.tileH ? window.PMDFloorSizeV184.tileH() : '86px'));
-    setImportant(el, 'max-width', (window.PMDFloorSizeV184 && window.PMDFloorSizeV184.tileW ? window.PMDFloorSizeV184.tileW() : '104px'));
-    setImportant(el, 'max-height', (window.PMDFloorSizeV184 && window.PMDFloorSizeV184.tileH ? window.PMDFloorSizeV184.tileH() : '86px'));
-    setImportant(el, 'transform', 'none');
-    setImportant(el, 'filter', 'none');
-    setImportant(el, 'transition', 'none');
-    setImportant(el, 'animation', 'none');
-    setImportant(el, 'text-shadow', 'none');
-    setImportant(el, 'color', '#05070d');
-    setImportant(el, '-webkit-text-fill-color', '#05070d');
-
-    if (shouldBeGreen(tile, no)) {
-      el.classList.add('pmd-v175c-table-green');
-      el.classList.remove('pmd-v175c-table-red');
-      setImportant(el, 'background', '#16c65b');
-      setImportant(el, 'border', '4px solid #047a36');
-    } else {
-      el.classList.add('pmd-v175c-table-red');
-      el.classList.remove('pmd-v175c-table-green');
-      setImportant(el, 'background', '#ff3347');
-      setImportant(el, 'border', '4px solid #b70821');
-    }
-
-    hideDuplicateNumbers(tile);
-    ensureNumber(tile);
-  }
-
-  function repairFloor() {
-    floorElements().forEach(function (floor) {
-      setImportant(floor, 'height', 'var(--pmd-v190-floor-height)');
-      setImportant(floor, 'min-height', 'var(--pmd-v190-floor-height)');
-      setImportant(floor, 'max-height', 'var(--pmd-v190-floor-height)');
-      setImportant(floor, 'overflow', 'var(--pmd-v190-floor-overflow)');
-      setImportant(floor, 'background', '#ffffff');
-      setImportant(floor, 'transform', 'none');
-      setImportant(floor, 'transition', 'var(--pmd-v190-floor-transition)');
-      setImportant(floor, 'animation', 'none');
-    });
-  }
-
-  function renderBadgeContent(badge, desired) {
-    if (desired.kind === 'cleaning') {
-      if (!badge.querySelector('img')) {
-        badge.textContent = '';
-        var img = document.createElement('img');
-        img.src = CLEANING_IMG;
-        img.alt = 'Cleaning';
-        badge.appendChild(img);
-      }
-      return;
-    }
-
-    if (badge.querySelector('img') || badge.textContent !== desired.icon) {
-      badge.textContent = desired.icon;
-    }
-  }
-
-  function applyAll() {
-    removeKnownOldBadges(document);
-    repairFloor();
-
-    var tiles = findTiles();
-
-    tiles.forEach(function (tile) {
-      setTileVisual(tile);
-
-      var desired = desiredBadge(tile.tableNo);
-      var badges = tile.el.querySelectorAll(':scope > .' + BADGE_CLASS);
-
-      badges.forEach(function (b, index) {
-        if (index > 0) b.remove();
-      });
-
-      var badge = tile.el.querySelector(':scope > .' + BADGE_CLASS);
-
-      if (!desired) {
-        if (badge) badge.remove();
-        return;
-      }
-
-      if (!badge) {
-        badge = document.createElement('span');
-        badge.className = BADGE_CLASS;
-        tile.el.appendChild(badge);
-      }
-
-      badge.setAttribute('data-pmd-kind', desired.kind);
-      badge.setAttribute('data-pmd-key', desired.key);
-      badge.setAttribute('title', desired.label + ' · Table ' + tile.tableNo);
-      renderBadgeContent(badge, desired);
-    });
-
-    state.updates += 1;
-  }
-
-  async function refresh() {
-    var both = await Promise.all([fetchTables(), fetchAttention()]);
-    state.tableMap = both[0] || {};
-    state.attentionMap = both[1] || {};
-    applyAll();
-    return debug(false);
-  }
-
-  function scheduleApply() {
-    if (state.raf) return;
-
-    state.raf = requestAnimationFrame(function () {
-      state.raf = 0;
-      applyAll();
-    });
-  }
-
-  function observe() {
-    var root = document.querySelector('#pmd-waiter-dashboard-root') || document.body;
-
-    if (state.observer) state.observer.disconnect();
-
-    state.observer = new MutationObserver(function () {
-      scheduleApply();
-    });
-
-    state.observer.observe(root, {
-      subtree: true,
-      childList: true
-    });
-  }
-
-  function debug(printTable) {
-    var tiles = findTiles().map(function (tile) {
-      var r = tile.el.getBoundingClientRect();
-      var badge = tile.el.querySelector(':scope > .' + BADGE_CLASS);
-      var numbers = tile.el.querySelectorAll(':scope > .' + NUMBER_CLASS).length;
-      var hiddenDupes = tile.el.querySelectorAll(':scope > .' + HIDE_CLASS).length;
-
-      return {
-        table: tile.tableNo,
-        badge: badge ? badge.getAttribute('data-pmd-kind') : '',
-        numbers: numbers,
-        hiddenDupes: hiddenDupes,
-        x: Math.round(r.x),
-        y: Math.round(r.y),
-        w: Math.round(r.width),
-        h: Math.round(r.height),
-        bg: getComputedStyle(tile.el).backgroundColor
-      };
-    });
-
-    if (printTable !== false) console.table(tiles);
-
-    return {
-      active: true,
-      updates: state.updates,
-      tiles: tiles,
-      floors: floorElements().map(function (f) {
-        var r = f.getBoundingClientRect();
-        return { w: Math.round(r.width), h: Math.round(r.height), cls: clean(f.className).slice(0, 100) };
-      }),
-      oldBadges: document.querySelectorAll(OLD_BADGE_SELECTORS).length,
-      oldNumbers: document.querySelectorAll(OLD_NUMBER_SELECTORS).length
-    };
-  }
-
-  function stop() {
-    if (state.timer) clearInterval(state.timer);
-    if (state.observer) state.observer.disconnect();
-    if (state.raf) cancelAnimationFrame(state.raf);
-    state.timer = null;
-    state.observer = null;
-    state.raf = 0;
-    console.info('[PMD] V175c no-dupe no-blink stopped');
-  }
-
-  removeKnownOldBadges(document);
-  repairFloor();
-  observe();
-
-  setTimeout(function () { refresh(); }, 100);
-  setTimeout(function () { refresh(); }, 700);
-  setTimeout(function () { refresh(); }, 1500);
-
-  state.timer = setInterval(function () {
-    refresh();
-  }, POLL_MS);
-
-  window.PMDWaiterFloorStableV175c = {
-    active: true,
-    refresh: refresh,
-    debug: function () { return debug(true); },
-    stop: stop
-  };
-
-  console.info('[PMD] V175c no-dupe no-blink active');
-})();
-</script>
-<!-- PMD_V175C_NO_DUPE_NO_BLINK_END -->
-
-
-<script id="pmd-v180-final-floor-last-debug">
-(function () {
-  'use strict';
-  if (!/\/admin\/(?:dashboardwaiter|reservations2)(?:$|[?#\/])/.test(location.pathname + location.search + location.hash)) return;
-
-  window.PMDFinalFloorLastV180 = {
-    active: true,
-    debug: function () {
-      var rows = Array.prototype.slice.call(document.querySelectorAll('.pmd-w5-table, .pmd-v155-table, .pmd-floor-table, .pmd-waiter-floor-table')).map(function (el) {
-        var r = el.getBoundingClientRect();
-        var cs = getComputedStyle(el);
-        return {
-          text: String(el.textContent || '').replace(/\s+/g, ' ').trim().slice(0, 20),
-          x: Math.round(r.x),
-          y: Math.round(r.y),
-          w: Math.round(r.width),
-          h: Math.round(r.height),
-          bg: cs.backgroundColor,
-          cls: String(el.className || '').slice(0, 120)
-        };
-      });
-      console.table(rows);
-      return {
-        active: true,
-        v175c: typeof window.PMDWaiterFloorStableV175c,
-        v175e: typeof window.PMDWaiterBadgeCornerSnapV175e,
-        tiles: rows.length,
-        oldBadges: document.querySelectorAll('[data-pmd-v170f-slot-badge], .pmd-v170g-pinned-badge, .pmd-v174-attention-badge, .pmd-v175b-attention-badge').length,
-        rows: rows
-      };
-    }
-  };
-
-  console.info('[PMD] V180 final floor authority runs last active');
-})();
-</script>
-<!-- PMD_V180_FINAL_FLOOR_LAST_WRAPPER_END -->
-
-
-<!-- PMD_V183_SINGLE_BADGE_AUTHORITY_START -->
-<style id="pmd-v183-single-badge-authority-style">
-/*
-  V183: one badge visual authority only.
-  V175e and V182 are removed. This only styles existing top-right badges.
-*/
-
-/*
-  V183.1 source-aligned no-ring authority.
-  Matches the stable V160.14 Apple-bite geometry directly,
-  so no old circular style is painted during refresh.
-*/
-html.pmd-waiter-dashboard-active .pmd-v175c-attention-badge,
-html.pmd-waiter-dashboard-active .pmd-v183-order-count-badge {
-  position: absolute !important;
-  top: -12px !important;
-  right: -12px !important;
-  left: auto !important;
-  bottom: auto !important;
-  inset: auto !important;
-
-  width: 30px !important;
-  height: 30px !important;
-  min-width: 30px !important;
-  min-height: 30px !important;
-  max-width: 30px !important;
-  max-height: 30px !important;
-
-  border-radius: 0 !important;
-  border: 0 !important;
-  outline: 0 !important;
-  box-shadow: none !important;
-
-  background: transparent !important;
-  background-color: transparent !important;
-  background-image: none !important;
-
-  color: #061225 !important;
-  -webkit-text-fill-color: #061225 !important;
-
-  display: flex !important;
-  align-items: center !important;
-  justify-content: center !important;
-
-  margin: 0 !important;
-  padding: 0 !important;
-  box-sizing: border-box !important;
-
-  transform: none !important;
-  translate: none !important;
-  transition: none !important;
-  animation: none !important;
-
-  z-index: 150 !important;
-  pointer-events: none !important;
-  overflow: visible !important;
-  opacity: 1 !important;
-  visibility: visible !important;
-}
-
-html.pmd-waiter-dashboard-active .pmd-v175c-attention-badge[data-pmd-kind="waiter"] {
-  background: transparent !important;
-  background-color: transparent !important;
-  border: 0 !important;
-  box-shadow: none !important;
-  font-size: 24px !important;
-  line-height: 1 !important;
-}
-
-html.pmd-waiter-dashboard-active .pmd-v175c-attention-badge[data-pmd-kind="cleaning"] {
-  background: transparent !important;
-  background-color: transparent !important;
-  border: 0 !important;
-  box-shadow: none !important;
-}
-
-html.pmd-waiter-dashboard-active .pmd-v175c-attention-badge img {
-  width: 26px !important;
-  height: 26px !important;
-  min-width: 26px !important;
-  min-height: 26px !important;
-  max-width: 26px !important;
-  max-height: 26px !important;
-  object-fit: contain !important;
-  display: block !important;
-  margin: 0 !important;
-  padding: 0 !important;
-  background: transparent !important;
-  border: 0 !important;
-  outline: 0 !important;
-  box-shadow: none !important;
-  transform: none !important;
-  transition: none !important;
-  animation: none !important;
-}
-
-html.pmd-waiter-dashboard-active .pmd-v183-order-count-badge {
-  background: transparent !important;
-  background-color: transparent !important;
-  border: 0 !important;
-  box-shadow: none !important;
-  color: #061225 !important;
-  -webkit-text-fill-color: #061225 !important;
-  font-size: 18px !important;
-  line-height: 1 !important;
-  font-weight: 950 !important;
-  font-family: inherit !important;
-}
-</style>
-
-<script id="pmd-v183-single-badge-authority-script">
-(function () {
-  'use strict';
-
-  if (!/\/admin\/(?:dashboardwaiter|reservations2)(?:$|[?#\/])/.test(location.pathname + location.search + location.hash)) return;
-  if (window.PMDSingleBadgeAuthorityV183 && window.PMDSingleBadgeAuthorityV183.active) return;
-
-  var raf = 0;
-  var observer = null;
-
-  var TILE_SEL = '.pmd-w5-table, .pmd-v155-table, .pmd-floor-table, .pmd-waiter-floor-table';
-  var ATTENTION_SEL = '.pmd-v175c-attention-badge';
-  var NUMBER_SEL = '.pmd-v175c-table-number';
-
-  function clean(v) {
-    return String(v == null ? '' : v).replace(/\s+/g, ' ').trim();
-  }
-
-  function imp(el, prop, val) {
-    if (!el || !el.style) return;
-    if (el.style.getPropertyValue(prop) === val && el.style.getPropertyPriority(prop) === 'important') return;
-    el.style.setProperty(prop, val, 'important');
-  }
-
-  /*
-   * V183.2 source-aligned Apple-bite writer.
-   *
-   * This function now writes the same final geometry as V160.14.
-   * It never paints the old black ring, shadow or circular background.
-   */
-  function lockCircle(el, type) {
-    if (!el) return;
-
-    imp(el, 'position', 'absolute');
-    imp(el, 'inset', 'auto');
-    imp(el, 'top', '-12px');
-    imp(el, 'right', '-12px');
-    imp(el, 'left', 'auto');
-    imp(el, 'bottom', 'auto');
-
-    imp(el, 'width', '30px');
-    imp(el, 'height', '30px');
-    imp(el, 'min-width', '30px');
-    imp(el, 'min-height', '30px');
-    imp(el, 'max-width', '30px');
-    imp(el, 'max-height', '30px');
-
-    /*
-     * Never paint the obsolete circular badge.
-     */
-    imp(el, 'border-radius', '0');
-    imp(el, 'border', '0');
-    imp(el, 'border-top', '0');
-    imp(el, 'border-right', '0');
-    imp(el, 'border-bottom', '0');
-    imp(el, 'border-left', '0');
-    imp(el, 'outline', '0');
-    imp(el, 'box-shadow', 'none');
-
-    imp(el, 'background', 'transparent');
-    imp(el, 'background-color', 'transparent');
-    imp(el, 'background-image', 'none');
-
-    imp(el, 'color', '#061225');
-    imp(el, '-webkit-text-fill-color', '#061225');
-
-    imp(el, 'display', 'flex');
-    imp(el, 'align-items', 'center');
-    imp(el, 'justify-content', 'center');
-
-    imp(el, 'margin', '0');
-    imp(el, 'padding', '0');
-    imp(el, 'box-sizing', 'border-box');
-
-    imp(el, 'transform', 'none');
-    imp(el, 'translate', 'none');
-    imp(el, 'transition', 'none');
-    imp(el, 'animation', 'none');
-
-    imp(el, 'z-index', '150');
-    imp(el, 'pointer-events', 'none');
-    imp(el, 'overflow', 'visible');
-    imp(el, 'opacity', '1');
-    imp(el, 'visibility', 'visible');
-
-    if (type === 'order') {
-      el.classList.add(
-        'pmd-v183-order-count-badge'
-      );
-
-      imp(el, 'font-size', '18px');
-      imp(el, 'font-weight', '950');
-      imp(el, 'line-height', '1');
-    }
-
-    var kind =
-      el.getAttribute('data-pmd-kind') || '';
-
-    if (kind === 'waiter') {
-      imp(el, 'background', 'transparent');
-      imp(el, 'background-color', 'transparent');
-      imp(el, 'font-size', '24px');
-      imp(el, 'line-height', '1');
-    }
-
-    if (kind === 'cleaning') {
-      imp(el, 'background', 'transparent');
-      imp(el, 'background-color', 'transparent');
-    }
-
-    if (kind === 'note') {
-      imp(el, 'background', 'transparent');
-      imp(el, 'background-color', 'transparent');
-      imp(el, 'font-size', '20px');
-      imp(el, 'line-height', '1');
-    }
-
-    var img = el.querySelector('img');
-
-    if (img) {
-      imp(img, 'width', '26px');
-      imp(img, 'height', '26px');
-      imp(img, 'min-width', '26px');
-      imp(img, 'min-height', '26px');
-      imp(img, 'max-width', '26px');
-      imp(img, 'max-height', '26px');
-
-      imp(img, 'object-fit', 'contain');
-      imp(img, 'display', 'block');
-
-      imp(img, 'margin', '0');
-      imp(img, 'padding', '0');
-
-      imp(img, 'background', 'transparent');
-      imp(img, 'border', '0');
-      imp(img, 'outline', '0');
-      imp(img, 'box-shadow', 'none');
-
-      imp(img, 'transform', 'none');
-      imp(img, 'transition', 'none');
-      imp(img, 'animation', 'none');
-    }
-
-    el.setAttribute(
-      'data-pmd-v183-visual',
-      'source-aligned-apple-bite'
-    );
-  }
-
-  function looksLikeOrderCount(tile, el) {
-    if (!tile || !el || el.nodeType !== 1) return false;
-    if (el.matches(ATTENTION_SEL + ',' + NUMBER_SEL)) return false;
-    if (el.closest(ATTENTION_SEL)) return false;
-
-    var txt = clean(el.textContent || '');
-    if (!/^[1-9][0-9]?$/.test(txt)) return false;
-
-    var tr = tile.getBoundingClientRect();
-    var r = el.getBoundingClientRect();
-
-    if (r.width > 52 || r.height > 52) return false;
-
-    var nearTop = r.top <= tr.top + 32;
-    var nearRight = r.left >= tr.right - 56;
-
-    return nearTop && nearRight;
-  }
-
-  function polishTile(tile) {
-    if (!tile) return;
-
-    imp(tile, 'overflow', 'visible');
-
-    var attention = tile.querySelector(':scope > ' + ATTENTION_SEL);
-    if (attention) lockCircle(attention, 'attention');
-
-    Array.prototype.slice.call(tile.children).forEach(function (child) {
-      if (looksLikeOrderCount(tile, child)) {
-        lockCircle(child, 'order');
-      }
-    });
-  }
-
-  function apply() {
-    document.documentElement.classList.add('pmd-waiter-dashboard-active');
-
-    Array.prototype.slice.call(document.querySelectorAll(TILE_SEL)).forEach(polishTile);
-
-    Array.prototype.slice.call(document.querySelectorAll(ATTENTION_SEL)).forEach(function (el) {
-      lockCircle(el, 'attention');
-    });
-
-    return debug(false);
-  }
-
-  function schedule() {
-    if (raf) return;
-
-    raf = requestAnimationFrame(function () {
-      raf = 0;
-      apply();
-    });
-  }
-
-  function debug(print) {
-    var rows = Array.prototype.slice.call(document.querySelectorAll(TILE_SEL)).map(function (tile) {
-      var r = tile.getBoundingClientRect();
-      var attention = tile.querySelector(':scope > ' + ATTENTION_SEL);
-      var orderBadges = Array.prototype.slice.call(tile.children).filter(function (child) {
-        return child.classList && child.classList.contains('pmd-v183-order-count-badge');
-      });
-
-      return {
-        text: clean(tile.textContent).slice(0, 28),
-        attention: attention ? (attention.getAttribute('data-pmd-kind') || 'yes') : '',
-        orderBadges: orderBadges.map(function (x) { return clean(x.textContent); }).join(','),
-        x: Math.round(r.x),
-        y: Math.round(r.y),
-        w: Math.round(r.width),
-        h: Math.round(r.height)
-      };
-    });
-
-    if (print !== false) console.table(rows);
-
-    return {
-      active: true,
-      visualMode: 'source-aligned-apple-bite',
-      oldCircleWriterDisabled: true,
-      tiles: rows.length,
-      attentionBadges: document.querySelectorAll(ATTENTION_SEL).length,
-      orderBadges: document.querySelectorAll('.pmd-v183-order-count-badge').length,
-      oldBadgeLayers: {
-        v175e: typeof window.PMDWaiterBadgeCornerSnapV175e,
-        v182: typeof window.PMDTopRightBadgePolishV182
-      },
-      rows: rows
-    };
-  }
-
-  observer = new MutationObserver(schedule);
-  observer.observe(document.querySelector('#pmd-waiter-dashboard-root') || document.body, {
-    subtree: true,
-    childList: true
-  });
-
-  apply();
-  setTimeout(apply, 200);
-  setTimeout(apply, 900);
-  setTimeout(apply, 1800);
-
-  window.PMDSingleBadgeAuthorityV183 = {
-    active: true,
-    apply: apply,
-    debug: function () { return debug(true); },
-    stop: function () {
-      if (observer) observer.disconnect();
-      if (raf) cancelAnimationFrame(raf);
-      observer = null;
-      raf = 0;
-      console.info('[PMD] V183 single badge authority stopped');
-    }
-  };
-
-  console.info('[PMD] V183.2 source-aligned no-ring script authority active');
-})();
-</script>
-<!-- PMD_V183_SINGLE_BADGE_AUTHORITY_END -->
-
-
-<!-- PMD_V190_CONTAINER_ONLY_FLOOR_COMPACT_START -->
-<script id="pmd-v190-container-only-floor-compact-script">
-(function () {
-  'use strict';
-  if (!/\/admin\/(?:dashboardwaiter|reservations2)(?:$|[?#\/])/.test(location.pathname + location.search + location.hash)) return;
-  if (window.PMDFloorDeterministicV190 && window.PMDFloorDeterministicV190.active) return;
-
-  var ROOT = '#pmd-waiter-dashboard-root';
-  var BUTTON = ROOT + ' .pmd-w19-tools button[data-w19-compact]';
-  var observer = null;
-  var raf = 0;
-
-  function root() { return document.querySelector(ROOT); }
-  function floor() { var r = root(); return r ? r.querySelector('.pmd-w5-floor-map-real') : null; }
-  function button() { return document.querySelector(BUTTON); }
-  function compact() { var r = root(); return !!(r && r.classList.contains('pmd-w19-compact')); }
-
-  function cleanup() {
-    document.documentElement.classList.remove(
-      'pmd-v184-floor-small', 'pmd-v184-floor-large',
-      'pmd-v185-floor-small', 'pmd-v185-floor-large', 'pmd-v185-sizing',
-      'pmd-v187-floor-small', 'pmd-v187-floor-large', 'pmd-v187-sizing',
-      'pmd-v188-floor-compact', 'pmd-v188-floor-expanded',
-      'pmd-v189-floor-compact', 'pmd-v189-floor-expanded'
-    );
-    document.querySelectorAll('.pmd-v185-floor-scaler, .pmd-v187-floor-scaler').forEach(function (node) {
-      var parent = node.parentElement;
-      if (!parent) return;
-      while (node.firstChild) parent.insertBefore(node.firstChild, node);
-      node.remove();
-    });
-  }
-
-  function apply() {
-    var r = root();
-    if (!r) return;
-    cleanup();
-    r.classList.toggle('pmd-v190-floor-compact', compact());
-    r.classList.toggle('pmd-v190-floor-expanded', !compact());
-    var f = floor();
-    if (f && compact()) f.removeAttribute('data-pmd-v159-full-floor');
-    var b = button();
-    if (b) {
-      b.setAttribute('title', compact() ? 'Expand floor' : 'Compact floor');
-      b.setAttribute('aria-label', compact() ? 'Expand floor' : 'Compact floor');
-      b.setAttribute('aria-pressed', compact() ? 'true' : 'false');
-      b.setAttribute('data-pmd-v190-mode', compact() ? 'compact' : 'expanded');
-    }
-  }
-
-  function schedule() {
-    if (raf) return;
-    raf = requestAnimationFrame(function () { raf = 0; apply(); });
-  }
-
-  function clickButton() { var b = button(); if (b) b.click(); }
-
-  document.addEventListener('click', function (event) {
-    var target = event.target && event.target.nodeType === 1 ? event.target : null;
-    if (!target || !target.closest(BUTTON)) return;
-    setTimeout(apply, 0);
-    setTimeout(apply, 90);
-    setTimeout(apply, 240);
-  }, true);
-
-  document.addEventListener('pmd-waiter-dashboard-rendered', function () {
-    setTimeout(apply, 0);
-    setTimeout(apply, 120);
-  }, true);
-
-  ['pmd_waiter_floor_compact', 'PMD_WAITER_FLOOR_COMPACT_V89',
-   'pmd_waiter_floor_size_v184', 'pmd_waiter_floor_scale_v185',
-   'pmd_waiter_floor_scale_v187', 'pmd_waiter_floor_compact_v188',
-   'pmd_waiter_floor_compact_v189', 'pmd_waiter_floor_positions_v189',
-   'pmd_waiter_floor_compact_v190'].forEach(function (key) {
-    try { localStorage.removeItem(key); } catch (error) {}
-  });
-
-  apply();
-  var r = root();
-  if (r) {
-    observer = new MutationObserver(schedule);
-    observer.observe(r, {attributes:true, attributeFilter:['class'], childList:true});
-  }
-  requestAnimationFrame(function () {
-    requestAnimationFrame(function () {
-      var current = root();
-      if (current) current.classList.add('pmd-v190-floor-ready');
-      apply();
-    });
-  });
-
-  window.PMDFloorDeterministicV190 = {
-    active: true,
-    apply: apply,
-    toggle: clickButton,
-    compact: function () { if (!compact()) clickButton(); },
-    expand: function () { if (compact()) clickButton(); },
-    expanded: function () { if (compact()) clickButton(); },
-    debug: function () {
-      var f = floor();
-      var tiles = f ? Array.prototype.slice.call(f.querySelectorAll('.pmd-w5-table[data-table]')) : [];
-      var points = {};
-      tiles.forEach(function (tile) {
-        var rect = tile.getBoundingClientRect();
-        points[Math.round(rect.x) + ',' + Math.round(rect.y)] = true;
-      });
-      var out = {
-        active: true,
-        mode: compact() ? 'compact' : 'expanded',
-        floorHeight: f ? Math.round(f.getBoundingClientRect().height) : 0,
-        tableCount: tiles.length,
-        uniqueTablePositions: Object.keys(points).length,
-        scalerCount: document.querySelectorAll('.pmd-v185-floor-scaler, .pmd-v187-floor-scaler').length
-      };
-      console.log(out);
-      return out;
-    },
-    stop: function () {
-      if (observer) observer.disconnect();
-      if (raf) cancelAnimationFrame(raf);
-      observer = null;
-      raf = 0;
-    }
-  };
-  console.info('[PMD] V190 container-only floor compact active');
-})();
-</script>
-<!-- PMD_V190_CONTAINER_ONLY_FLOOR_COMPACT_END -->
-
-
-<!-- PMD_V191_FLOOR_CONTROL_DOCK_START -->
-<style id="pmd-v191-floor-control-dock-style">
-/*
- * V191: vertical floor controls inside the real waiter map.
- * The stable V160.14 drag and badge implementations are untouched.
- */
-
-html.pmd-waiter-dashboard-active
-#pmd-waiter-dashboard-root
-section.pmd-w5-floor.pmd-v191-floor-shell {
-  padding-top: 0 !important;
-}
-
-html.pmd-waiter-dashboard-active
-#pmd-waiter-dashboard-root
-.pmd-v191-floor-header-hidden,
-
-html.pmd-waiter-dashboard-active
-#pmd-waiter-dashboard-root
-.pmd-v191-floor-title-hidden,
-
-html.pmd-waiter-dashboard-active
-#pmd-waiter-dashboard-root
-.pmd-v191-toolbar-duplicate-hidden {
-  display: none !important;
-}
-
-html.pmd-waiter-dashboard-active
-#pmd-waiter-dashboard-root
-section.pmd-w5-floor.pmd-v191-floor-shell
-.pmd-w5-floor-map-real {
-  margin-top: 0 !important;
-  position: relative !important;
-}
-
-/*
- * One vertical column on the map's right side.
- * It sits directly above the existing information button.
- */
-html.pmd-waiter-dashboard-active
-#pmd-waiter-dashboard-root
-.pmd-w5-floor-map-real
-> .pmd-v191-floor-control-dock {
-  position: absolute !important;
-
-  right: 14px !important;
-  bottom: 64px !important;
-  left: auto !important;
-  top: auto !important;
-
-  display: flex !important;
-  flex-direction: column !important;
-  align-items: center !important;
-  justify-content: flex-end !important;
-
-  width: 44px !important;
-  min-width: 44px !important;
-  max-width: 44px !important;
-
-  margin: 0 !important;
-  padding: 0 !important;
-  gap: 8px !important;
-
-  transform: none !important;
-  transition: none !important;
-  animation: none !important;
-
-  background: transparent !important;
-  border: 0 !important;
-  box-shadow: none !important;
-
-  pointer-events: none !important;
-  z-index: 520 !important;
-}
-
-html.pmd-waiter-dashboard-active
-#pmd-waiter-dashboard-root
-.pmd-v191-floor-control-dock
-> .pmd-w19-tools {
-  position: static !important;
-
-  inset: auto !important;
-  top: auto !important;
-  right: auto !important;
-  bottom: auto !important;
-  left: auto !important;
-
-  display: flex !important;
-  flex-direction: column !important;
-  align-items: center !important;
-  justify-content: flex-end !important;
-
-  width: 44px !important;
-  min-width: 44px !important;
-  max-width: 44px !important;
-
-  height: auto !important;
-  min-height: 0 !important;
-  max-height: none !important;
-
-  margin: 0 !important;
-  padding: 0 !important;
-  gap: 8px !important;
-
-  transform: none !important;
-  translate: none !important;
-  transition: none !important;
-  animation: none !important;
-
-  background: transparent !important;
-  border: 0 !important;
-  box-shadow: none !important;
-
-  pointer-events: none !important;
-  z-index: 521 !important;
-}
-
-/*
- * Save keeps its native hidden class until edit mode starts.
- */
-html.pmd-waiter-dashboard-active
-#pmd-waiter-dashboard-root
-.pmd-v191-floor-control-dock
-.pmd-w19-save-hidden {
-  display: none !important;
-}
-
-html.pmd-waiter-dashboard-active
-#pmd-waiter-dashboard-root
-.pmd-v191-floor-control-dock
-.pmd-w19-btn {
-  position: relative !important;
-
-  width: 42px !important;
-  height: 42px !important;
-  min-width: 42px !important;
-  min-height: 42px !important;
-  max-width: 42px !important;
-  max-height: 42px !important;
-
-  flex: 0 0 42px !important;
-
-  margin: 0 !important;
-  padding: 0 !important;
-
-  border: 2px solid #061225 !important;
-  border-radius: 999px !important;
-
-  background: #ffffff !important;
-  color: #061225 !important;
-  -webkit-text-fill-color: #061225 !important;
-
-  box-shadow:
-    0 7px 20px rgba(6, 18, 37, .12) !important;
-
-  font-size: 19px !important;
-  line-height: 1 !important;
-  font-weight: 900 !important;
-
-  display: flex !important;
-  align-items: center !important;
-  justify-content: center !important;
-
-  transform: none !important;
-  translate: none !important;
-  transition:
-    transform .15s ease,
-    box-shadow .15s ease !important;
-
-  animation: none !important;
-  pointer-events: auto !important;
-  cursor: pointer !important;
-  z-index: 522 !important;
-}
-
-html.pmd-waiter-dashboard-active
-#pmd-waiter-dashboard-root
-.pmd-v191-floor-control-dock
-.pmd-w19-btn:hover {
-  transform: translateY(-1px) !important;
-  box-shadow:
-    0 9px 24px rgba(6, 18, 37, .18) !important;
-}
-
-html.pmd-waiter-dashboard-active
-#pmd-waiter-dashboard-root
-.pmd-v191-floor-control-dock
-.pmd-w19-btn.primary {
-  background: #061225 !important;
-  color: #ffffff !important;
-  -webkit-text-fill-color: #ffffff !important;
-}
-
-html.pmd-waiter-dashboard-active
-#pmd-waiter-dashboard-root
-.pmd-v191-floor-control-dock
-.pmd-w19-btn small {
-  position: absolute !important;
-  top: -5px !important;
-  right: -5px !important;
-
-  min-width: 17px !important;
-  height: 17px !important;
-
-  margin: 0 !important;
-  padding: 0 4px !important;
-
-  display: flex !important;
-  align-items: center !important;
-  justify-content: center !important;
-
-  border-radius: 999px !important;
-  border: 1px solid #061225 !important;
-
-  background: #ffffff !important;
-  color: #061225 !important;
-  -webkit-text-fill-color: #061225 !important;
-
-  font-size: 10px !important;
-  line-height: 1 !important;
-  font-weight: 900 !important;
-}
-
-/*
- * Keep the existing information control at the bottom of the column.
- */
-html.pmd-waiter-dashboard-active
-#pmd-waiter-dashboard-root
-.pmd-w5-floor-map-real
-> .pmd-v61-map-info-btn {
-  position: absolute !important;
-
-  right: 14px !important;
-  bottom: 14px !important;
-  left: auto !important;
-  top: auto !important;
-
-  width: 42px !important;
-  height: 42px !important;
-  min-width: 42px !important;
-  min-height: 42px !important;
-  max-width: 42px !important;
-  max-height: 42px !important;
-
-  margin: 0 !important;
-  z-index: 520 !important;
-}
-
-/*
- * Invisible geometric obstacle used only by V160's drop resolver.
- */
-html.pmd-waiter-dashboard-active
-#pmd-waiter-dashboard-root
-.pmd-w5-floor-map-real
-> .pmd-v191-control-reserve {
-  position: absolute !important;
-
-  display: block !important;
-  margin: 0 !important;
-  padding: 0 !important;
-
-  border: 0 !important;
-  outline: 0 !important;
-  background: transparent !important;
-  box-shadow: none !important;
-
-  opacity: 0 !important;
-  visibility: hidden !important;
-
-  pointer-events: none !important;
-  user-select: none !important;
-
-  transform: none !important;
-  transition: none !important;
-  animation: none !important;
-
-  z-index: 0 !important;
-}
-</style>
-
-<script id="pmd-v191-floor-control-dock-script">
-(function () {
-  'use strict';
-
-  if (!/\/admin\/(?:dashboardwaiter|reservations2)\/?$/.test(location.pathname)) {
-    return;
-  }
-
-  if (
-    window.PMDWaiterFloorControlsV191 &&
-    window.PMDWaiterFloorControlsV191.active
-  ) {
-    return;
-  }
-
-  var ROOT_SELECTOR =
-    '#pmd-waiter-dashboard-root';
-
-  var MAP_SELECTOR =
-    ROOT_SELECTOR + ' .pmd-w5-floor-map-real';
-
-  var TOOLBAR_SELECTOR =
-    ROOT_SELECTOR + ' .pmd-w19-tools';
-
-  var state = {
-    applies: 0,
-    moves: 0,
-    titleHides: 0,
-    obstacleUpdates: 0,
-    lastReason: '',
-    lastObstacle: null
-  };
-
-  var observer = null;
-  var resizeObserver = null;
-  var applyRaf = 0;
-  var retryTimer = 0;
-
-  function root() {
-    return document.querySelector(ROOT_SELECTOR);
-  }
-
-  function map() {
-    return document.querySelector(MAP_SELECTOR);
-  }
-
-  function clean(value) {
-    return String(
-      value == null ? '' : value
-    ).replace(/\s+/g, ' ').trim();
-  }
-
-  function visible(element) {
-    if (!element || !element.isConnected) {
-      return false;
-    }
-
-    var style = getComputedStyle(element);
-    var rect = element.getBoundingClientRect();
-
-    return (
-      style.display !== 'none' &&
-      style.visibility !== 'hidden' &&
-      Number(style.opacity) !== 0 &&
-      rect.width > 0 &&
-      rect.height > 0
-    );
-  }
-
-  function floorSection(currentMap) {
-    return currentMap
-      ? currentMap.closest('section.pmd-w5-floor')
-      : null;
-  }
-
-  function findToolbar(currentRoot, dock) {
-    if (!currentRoot) return null;
-
-    var existing = dock
-      ? dock.querySelector('.pmd-w19-tools')
-      : null;
-
-    if (existing) return existing;
-
-    var toolbars = Array.prototype.slice.call(
-      currentRoot.querySelectorAll(
-        '.pmd-w19-tools'
-      )
-    );
-
-    return (
-      toolbars.find(function (toolbar) {
-        return !!(
-          toolbar.querySelector('[data-w19-edit]') &&
-          toolbar.querySelector('[data-w19-compact]')
-        );
-      }) ||
-      toolbars[0] ||
-      null
-    );
-  }
-
-  function ensureDock(currentMap) {
-    var dock = currentMap.querySelector(
-      ':scope > .pmd-v191-floor-control-dock'
-    );
-
-    if (!dock) {
-      dock = document.createElement('div');
-      dock.className =
-        'pmd-v191-floor-control-dock';
-
-      dock.setAttribute(
-        'data-pmd-v191-control-dock',
-        '1'
-      );
-
-      dock.setAttribute(
-        'aria-label',
-        'Floor layout controls'
-      );
-
-      currentMap.appendChild(dock);
-    }
-
-    return dock;
-  }
-
-  function ensureReserve(currentMap) {
-    var reserve = currentMap.querySelector(
-      ':scope > .pmd-v191-control-reserve'
-    );
-
-    if (!reserve) {
-      reserve = document.createElement('div');
-      reserve.className =
-        'pmd-v191-control-reserve';
-
-      reserve.setAttribute(
-        'data-pmd-v160-obstacle',
-        '1'
-      );
-
-      reserve.setAttribute(
-        'data-pmd-v191-control-reserve',
-        '1'
-      );
-
-      reserve.setAttribute(
-        'aria-hidden',
-        'true'
-      );
-
-      currentMap.appendChild(reserve);
-    }
-
-    return reserve;
-  }
-
-  function findTitle(section) {
-    if (!section) return null;
-
-    var candidates =
-      Array.prototype.slice.call(
-        section.querySelectorAll(
-          [
-            'h1',
-            'h2',
-            'h3',
-            'h4',
-            'h5',
-            'h6',
-            '.card-title',
-            '.pmd-w5-title',
-            '.pmd-w19-title',
-            'strong'
-          ].join(',')
-        )
-      );
-
-    return (
-      candidates.find(function (element) {
-        return /waiter\s*floor/i.test(
-          clean(element.textContent)
-        );
-      }) ||
-      null
-    );
-  }
-
-  function hideFloorHeader(
-    section,
-    currentMap,
-    originalToolbarParent
-  ) {
-    if (!section) return;
-
-    section.classList.add(
-      'pmd-v191-floor-shell'
-    );
-
-    var title = findTitle(section);
-
-    if (title) {
-      var header = title.closest(
-        [
-          '.pmd-w5-floor-head',
-          '.pmd-w19-floor-head',
-          '.pmd-w19-head',
-          '.pmd-w5-section-head',
-          '.card-header',
-          'header'
-        ].join(',')
-      );
-
-      if (!header) {
-        header = title.parentElement;
-      }
-
-      if (
-        header &&
-        header !== section &&
-        !header.contains(currentMap)
-      ) {
-        if (
-          !header.classList.contains(
-            'pmd-v191-floor-header-hidden'
-          )
-        ) {
-          state.titleHides++;
-        }
-
-        header.classList.add(
-          'pmd-v191-floor-header-hidden'
-        );
-      } else {
-        if (
-          !title.classList.contains(
-            'pmd-v191-floor-title-hidden'
-          )
-        ) {
-          state.titleHides++;
-        }
-
-        title.classList.add(
-          'pmd-v191-floor-title-hidden'
-        );
-      }
-    }
-
-    if (
-      originalToolbarParent &&
-      originalToolbarParent !== section &&
-      originalToolbarParent !== currentMap &&
-      !originalToolbarParent.contains(currentMap)
-    ) {
-      originalToolbarParent.classList.add(
-        'pmd-v191-floor-header-hidden'
-      );
-    }
-  }
-
-  function updateReserve(
-    currentMap,
-    dock,
-    reserve
-  ) {
-    if (
-      !currentMap ||
-      !dock ||
-      !reserve ||
-      !currentMap.isConnected
-    ) {
-      return;
-    }
-
-    var info = currentMap.querySelector(
-      ':scope > .pmd-v61-map-info-btn'
-    );
-
-    var mapRect =
-      currentMap.getBoundingClientRect();
-
-    var controls = [dock, info].filter(
-      function (element) {
-        return visible(element);
-      }
-    );
-
-    if (
-      !mapRect.width ||
-      !mapRect.height ||
-      !controls.length
-    ) {
-      return;
-    }
-
-    var left = mapRect.width;
-    var top = mapRect.height;
-
-    controls.forEach(function (element) {
-      var rect = element.getBoundingClientRect();
-
-      left = Math.min(
-        left,
-        rect.left - mapRect.left
-      );
-
-      top = Math.min(
-        top,
-        rect.top - mapRect.top
-      );
-    });
-
-    /*
-     * Include breathing room around the controls.
-     * V160 additionally applies TABLE_GAP during collision tests.
-     */
-    left = Math.max(0, left - 12);
-    top = Math.max(0, top - 12);
-
-    var width = Math.max(
-      1,
-      mapRect.width - left
-    );
-
-    var height = Math.max(
-      1,
-      mapRect.height - top
-    );
-
-    reserve.style.setProperty(
-      'left',
-      left.toFixed(2) + 'px',
-      'important'
-    );
-
-    reserve.style.setProperty(
-      'top',
-      top.toFixed(2) + 'px',
-      'important'
-    );
-
-    reserve.style.setProperty(
-      'right',
-      'auto',
-      'important'
-    );
-
-    reserve.style.setProperty(
-      'bottom',
-      'auto',
-      'important'
-    );
-
-    reserve.style.setProperty(
-      'width',
-      width.toFixed(2) + 'px',
-      'important'
-    );
-
-    reserve.style.setProperty(
-      'height',
-      height.toFixed(2) + 'px',
-      'important'
-    );
-
-    state.obstacleUpdates++;
-
-    state.lastObstacle = {
-      left: Number(left.toFixed(2)),
-      top: Number(top.toFixed(2)),
-      width: Number(width.toFixed(2)),
-      height: Number(height.toFixed(2))
-    };
-  }
-
-  function bindResize(
-    currentMap,
-    dock,
-    reserve
-  ) {
-    if (
-      typeof ResizeObserver !== 'function'
-    ) {
-      return;
-    }
-
-    if (!resizeObserver) {
-      resizeObserver =
-        new ResizeObserver(function () {
-          schedule('resize-observer');
-        });
-    }
-
-    resizeObserver.disconnect();
-    resizeObserver.observe(currentMap);
-    resizeObserver.observe(dock);
-
-    var info = currentMap.querySelector(
-      ':scope > .pmd-v61-map-info-btn'
-    );
-
-    if (info) {
-      resizeObserver.observe(info);
-    }
-
-    if (reserve) {
-      /*
-       * Do not observe reserve itself because this function writes
-       * its dimensions.
-       */
-    }
-  }
-
-  function apply(reason) {
-    var currentRoot = root();
-    var currentMap = map();
-
-    if (!currentRoot || !currentMap) {
-      clearTimeout(retryTimer);
-
-      retryTimer = setTimeout(function () {
-        apply('retry');
-      }, 80);
-
-      return false;
-    }
-
-    var section =
-      floorSection(currentMap);
-
-    var dock =
-      ensureDock(currentMap);
-
-    var reserve =
-      ensureReserve(currentMap);
-
-    var toolbar =
-      findToolbar(currentRoot, dock);
-
-    var originalToolbarParent =
-      toolbar && toolbar.parentElement !== dock
-        ? toolbar.parentElement
-        : null;
-
-    if (toolbar && toolbar.parentElement !== dock) {
-      dock.appendChild(toolbar);
-      state.moves++;
-    }
-
-    if (toolbar) {
-      toolbar.classList.add(
-        'pmd-v191-floor-tools'
-      );
-    }
-
-    /*
-     * Hide only duplicate toolbar copies. Never delete buttons,
-     * handlers or application state.
-     */
-    Array.prototype.slice.call(
-      currentRoot.querySelectorAll(
-        '.pmd-w19-tools'
-      )
-    ).forEach(function (candidate) {
-      candidate.classList.toggle(
-        'pmd-v191-toolbar-duplicate-hidden',
-        candidate !== toolbar
-      );
-    });
-
-    hideFloorHeader(
-      section,
-      currentMap,
-      originalToolbarParent
-    );
-
-    updateReserve(
-      currentMap,
-      dock,
-      reserve
-    );
-
-    bindResize(
-      currentMap,
-      dock,
-      reserve
-    );
-
-    state.applies++;
-    state.lastReason = reason || '';
-
-    return true;
-  }
-
-  function schedule(reason) {
-    state.lastReason = reason || '';
-
-    if (applyRaf) return;
-
-    applyRaf = requestAnimationFrame(
-      function () {
-        applyRaf = 0;
-        apply(reason || 'scheduled');
-      }
-    );
-  }
-
-  function rectanglesOverlap(a, b) {
-    return !(
-      a.right <= b.left ||
-      a.left >= b.right ||
-      a.bottom <= b.top ||
-      a.top >= b.bottom
-    );
-  }
-
-  function debug() {
-    var currentRoot = root();
-    var currentMap = map();
-
-    var dock = currentMap
-      ? currentMap.querySelector(
-          ':scope > .pmd-v191-floor-control-dock'
-        )
-      : null;
-
-    var reserve = currentMap
-      ? currentMap.querySelector(
-          ':scope > .pmd-v191-control-reserve'
-        )
-      : null;
-
-    var toolbar = dock
-      ? dock.querySelector('.pmd-w19-tools')
-      : null;
-
-    var section =
-      floorSection(currentMap);
-
-    var title =
-      findTitle(section);
-
-    var reserveRect =
-      reserve && reserve.getBoundingClientRect();
-
-    var overlappingTables = [];
-
-    if (
-      currentMap &&
-      reserveRect &&
-      reserveRect.width &&
-      reserveRect.height
-    ) {
-      Array.prototype.slice.call(
-        currentMap.querySelectorAll(
-          '.pmd-w5-table[data-table]'
-        )
-      ).forEach(function (table) {
-        var style = getComputedStyle(table);
-
-        if (
-          style.display === 'none' ||
-          style.visibility === 'hidden' ||
-          Number(style.opacity) === 0
-        ) {
-          return;
-        }
-
-        if (
-          rectanglesOverlap(
-            table.getBoundingClientRect(),
-            reserveRect
-          )
-        ) {
-          overlappingTables.push(
-            table.getAttribute('data-table') || ''
-          );
-        }
-      });
-    }
-
-    var buttons = toolbar
-      ? Array.prototype.slice.call(
-          toolbar.querySelectorAll(
-            '.pmd-w19-btn'
-          )
-        ).map(function (button) {
-          return {
-            title:
-              button.getAttribute('title') || '',
-            action:
-              button.hasAttribute('data-w19-save')
-                ? 'save'
-                : button.hasAttribute('data-w19-edit')
-                  ? 'edit'
-                  : button.hasAttribute('data-w19-merge')
-                    ? 'merge'
-                    : button.hasAttribute(
-                        'data-w19-compact'
-                      )
-                      ? 'compact'
-                      : 'unknown',
-            visible: visible(button)
-          };
-        })
-      : [];
-
-    var result = {
-      version:
-        'pmd-waiter-floor-controls-v191',
-
-      active: true,
-
-      toolbarInMap: !!(
-        toolbar &&
-        currentMap &&
-        currentMap.contains(toolbar)
-      ),
-
-      verticalColumn: !!dock,
-
-      infoButtonInMap: !!(
-        currentMap &&
-        currentMap.querySelector(
-          ':scope > .pmd-v61-map-info-btn'
-        )
-      ),
-
-      titleHidden: !!(
-        !title ||
-        title.classList.contains(
-          'pmd-v191-floor-title-hidden'
-        ) ||
-        title.closest(
-          '.pmd-v191-floor-header-hidden'
-        )
-      ),
-
-      obstacleRegistered: !!(
-        reserve &&
-        reserve.getAttribute(
-          'data-pmd-v160-obstacle'
-        ) === '1'
-      ),
-
-      obstacle: state.lastObstacle,
-
-      overlappingTables:
-        overlappingTables,
-
-      buttons: buttons,
-
-      state: {
-        applies: state.applies,
-        moves: state.moves,
-        titleHides: state.titleHides,
-        obstacleUpdates:
-          state.obstacleUpdates,
-        lastReason: state.lastReason
-      }
-    };
-
-    console.log(result);
-    return result;
-  }
-
-  document.addEventListener(
-    'pmd-waiter-dashboard-rendered',
-    function () {
-      schedule(
-        'dashboard-rendered'
-      );
-    },
-    true
-  );
-
-  document.addEventListener(
-    'click',
-    function (event) {
-      var target =
-        event.target &&
-        event.target.nodeType === 1
-          ? event.target
-          : null;
-
-      if (
-        !target ||
-        !target.closest(
-          [
-            '[data-w19-save]',
-            '[data-w19-edit]',
-            '[data-w19-merge]',
-            '[data-w19-compact]'
-          ].join(',')
-        )
-      ) {
-        return;
-      }
-
-      setTimeout(function () {
-        schedule('toolbar-click-immediate');
-      }, 0);
-
-      setTimeout(function () {
-        schedule('toolbar-click-settled');
-      }, 140);
-    },
-    true
-  );
-
-  window.addEventListener(
-    'resize',
-    function () {
-      schedule('window-resize');
-    },
-    {passive: true}
-  );
-
-  observer = new MutationObserver(
-    function () {
-      schedule('dom-mutation');
-    }
-  );
-
-  observer.observe(
-    document.body || document.documentElement,
-    {
-      childList: true,
-      subtree: true
-    }
-  );
-
-  window.PMDWaiterFloorControlsV191 = {
-    active: true,
-
-    apply: function () {
-      return apply('manual');
-    },
-
-    debug: debug,
-
-    stop: function () {
-      if (observer) observer.disconnect();
-
-      if (resizeObserver) {
-        resizeObserver.disconnect();
-      }
-
-      if (applyRaf) {
-        cancelAnimationFrame(applyRaf);
-      }
-
-      clearTimeout(retryTimer);
-
-      observer = null;
-      resizeObserver = null;
-      applyRaf = 0;
-
-      console.info(
-        '[PMD] Waiter floor controls V191 stopped'
-      );
-    }
-  };
-
-  apply('boot');
-
-  setTimeout(function () {
-    apply('boot-120');
-  }, 120);
-
-  setTimeout(function () {
-    apply('boot-600');
-  }, 600);
-
-  setTimeout(function () {
-    apply('boot-1800');
-  }, 1800);
-
-  console.info(
-    '[PMD] Waiter floor controls V191 vertical map dock active'
-  );
-})();
-</script>
-<!-- PMD_V191_FLOOR_CONTROL_DOCK_END -->
 
 
 <!-- PMD_V193_PAYMENT_CORNER_START -->

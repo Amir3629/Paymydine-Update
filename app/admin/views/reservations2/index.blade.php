@@ -1,3 +1,114 @@
+<!-- PMD_R2_V6_PREPAINT_START -->
+<style id="pmd-r2-v6-prepaint">
+html.pmd-r2-v6-booting #pmd-reservations2 {
+  visibility: hidden !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
+  transition: none !important;
+  animation: none !important;
+}
+html.pmd-r2-v6-ready #pmd-reservations2 {
+  visibility: visible !important;
+  opacity: 1 !important;
+  pointer-events: auto !important;
+  transition: none !important;
+  animation: none !important;
+}
+</style>
+<script id="pmd-r2-v6-prepaint-script">
+(function () {
+  'use strict';
+
+  var path = String(window.location.pathname || '').replace(/\/+$/, '');
+  if (path !== '/admin/reservations2') return;
+  if (window.PMDR2AuthorityGuardV6) return;
+
+  var html = document.documentElement;
+  var observer = null;
+  var done = false;
+
+  html.classList.add('pmd-r2-v6-booting');
+
+  function countTables() {
+    return document.querySelectorAll(
+      '#pmd-r2-shared-floor-canvas-v310 [data-table], ' +
+      '#pmd-r2-shared-floor-canvas-v310 .pmd-floor-v1__table, ' +
+      '#pmd-r2-shared-floor-canvas-v310 .pmd-w5-table'
+    ).length;
+  }
+
+  function isFinalReady() {
+    return Boolean(
+      document.getElementById('pmd-reservations2') &&
+      document.getElementById('pmd-r2-shared-floor-canvas-v310') &&
+      document.getElementById('pmd-r2-date-button-v430') &&
+      document.getElementById('pmd-r2-calendar-toggle-v1') &&
+      countTables() > 0
+    );
+  }
+
+  function reveal(reason) {
+    if (done) return;
+    done = true;
+    if (observer) observer.disconnect();
+
+    html.classList.remove(
+      'pmd-r2-v6-booting',
+      'pmd-dashboard-booting',
+      'pmd-waiter-dashboard-active'
+    );
+    html.classList.add('pmd-r2-v6-ready');
+
+    var root = document.getElementById('pmd-reservations2');
+    if (root) {
+      root.style.setProperty('visibility', 'visible', 'important');
+      root.style.setProperty('opacity', '1', 'important');
+      root.style.setProperty('pointer-events', 'auto', 'important');
+      root.style.setProperty('transition', 'none', 'important');
+      root.style.setProperty('animation', 'none', 'important');
+    }
+
+    console.info('[PMD Reservations2 Authority Guard V6] Final UI revealed', {
+      reason: reason,
+      tables: countTables(),
+      waiterRoot: Boolean(document.getElementById('pmd-waiter-dashboard-root'))
+    });
+  }
+
+  function check() {
+    if (isFinalReady()) reveal('final-authority-ready');
+  }
+
+  observer = new MutationObserver(check);
+  observer.observe(document.documentElement, {
+    subtree: true,
+    childList: true,
+    attributes: true,
+    attributeFilter: ['id', 'class', 'hidden', 'aria-busy']
+  });
+
+  document.addEventListener('DOMContentLoaded', check, { once: true });
+  window.setTimeout(function () {
+    reveal('safety-timeout');
+  }, 5000);
+
+  window.PMDR2AuthorityGuardV6 = {
+    version: '6.0.0',
+    audit: function () {
+      return {
+        version: '6.0.0',
+        ready: done,
+        booting: html.classList.contains('pmd-r2-v6-booting'),
+        tables: countTables(),
+        waiterRoot: Boolean(document.getElementById('pmd-waiter-dashboard-root')),
+        dateButton: Boolean(document.getElementById('pmd-r2-date-button-v430')),
+        calendarToggle: Boolean(document.getElementById('pmd-r2-calendar-toggle-v1'))
+      };
+    }
+  };
+})();
+</script>
+<!-- PMD_R2_V6_PREPAINT_END -->
 <script>
 (function () {
     var state = 'collapsed';
@@ -360,6 +471,8 @@ window.PMD_RESERVATIONS2_BOOT = {
 <!-- PMD_R2_DATE_POPOVER_V318_END -->
 
 <!-- PMD_R2_EMBEDDED_CALENDAR_TOGGLE_V1_START -->
+<script id="pmd-r2-stability-v3-early">document.documentElement.classList.add('pmd-r2-stability-v3-active');</script>
+<link rel="stylesheet" href="/app/admin/assets/css/pmd-reservations2-stability-v3.css?v=3.0.0-20260725_084550">
 <link
   rel="stylesheet"
   href="/app/admin/assets/css/pmd-reservations2-calendar-toggle-v1.css?v=1.19.0-20260724_223035"
@@ -367,4 +480,5 @@ window.PMD_RESERVATIONS2_BOOT = {
 <script
   src="/app/admin/assets/js/pmd-reservations2-calendar-toggle-v1.js?v=1.16.0-20260724_212035"
 ></script>
+<script defer src="/app/admin/assets/js/pmd-reservations2-stability-v3.js?v=3.0.0-20260725_084550"></script>
 <!-- PMD_R2_EMBEDDED_CALENDAR_TOGGLE_V1_END -->
