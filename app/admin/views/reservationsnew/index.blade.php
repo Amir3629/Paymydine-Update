@@ -10,5 +10,5 @@
     document.documentElement.classList.add('pmd-reservationsnew-route');
 })();
 </script>
-<link rel="stylesheet" href="/app/admin/assets/css/pmd-reservationsnew-layout-v1.css?v=20260725-1">
+<link rel="stylesheet" href="/app/admin/assets/css/pmd-reservationsnew-layout-v1.css?v=20260725-2">
 @include('admin::reservations2.index')
