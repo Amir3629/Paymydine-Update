@@ -11,7 +11,9 @@
         state === 'expanded' ? 'pmd-sm2-expanded' : 'pmd-sm2-collapsed'
     );
 
-    window.PMD_RESERVATIONS2_REAL_WAITER_EMBED = true;
+    document.documentElement.classList.add('pmd-r2-runtime-booting');
+    window.PMD_RESERVATIONS2_RUNTIME_CLEANUP = true;
+    window.PMD_RESERVATIONS2_REAL_WAITER_EMBED = false;
 })();
 </script>
 
@@ -20,10 +22,11 @@
 <link rel="stylesheet" href="/app/admin/assets/css/pmd-reservations2-v1.css?v=20260719-3">
 <link rel="stylesheet" href="/app/admin/assets/css/pmd-reservations2-mobile-final-v2.css?v=20260720_214338">
 <link rel="stylesheet" href="/app/admin/assets/css/pmd-reservations2-header-final-v1.css?v=20260720_213918">
+<link rel="stylesheet" href="/app/admin/assets/css/pmd-reservations2-runtime-cleanup-v1.css?v=1.0.0">
 
 <script>
 window.PMD_RESERVATIONS2_BOOT = {
-    version: 'reservations2-waiter-reservation-v4',
+    version: 'reservations2-runtime-cleanup-v1',
     route: '/admin/reservations2',
     reservations: @json($pmdReservations2 ?? []),
     createUrl: '{{ admin_url('reservations/create') }}',
@@ -47,15 +50,6 @@ window.PMD_RESERVATIONS2_BOOT = {
         </div>
     </header>
 
-    <main
-        id="pmd-waiter-dashboard-root"
-        class="pmd-reservations2-waiter-content"
-        data-pmd-reservations2-waiter-content
-        aria-busy="true"
-    >
-        <div class="pmd-r2-waiter-boot">Loading reservation floor…</div>
-    </main>
-
     <!-- PMD_R2_SHARED_FLOOR_CANVAS_V310_START -->
 
     @include('admin::_partials.pmd_floor_map_v1', [
@@ -77,139 +71,6 @@ window.PMD_RESERVATIONS2_BOOT = {
     ])
 
     <!-- PMD_R2_SHARED_FLOOR_CANVAS_V310_END -->
-
-<!-- PMD_R2_FLOOR_TOOLBAR_V313_START -->
-
-<script>
-(function () {
-    'use strict';
-
-    var floor = document.getElementById(
-        'pmd-r2-shared-floor-canvas-v310'
-    );
-
-    if (!floor) {
-        return;
-    }
-
-    var statusbar = floor.querySelector(
-        '.pmd-floor-v1__statusbar'
-    );
-
-    if (!statusbar) {
-        return;
-    }
-
-    var oldToolbar = statusbar.querySelector(
-        '[data-pmd-r2-floor-toolbar-v313]'
-    );
-
-    if (oldToolbar) {
-        oldToolbar.remove();
-    }
-
-    var toolbar = document.createElement('div');
-
-    toolbar.className =
-        'pmd-floor-v1__secondary-toolbar ' +
-        'pmd-r2-floor-toolbar-v313';
-
-    toolbar.setAttribute(
-        'data-floor-secondary-toolbar',
-        ''
-    );
-
-    toolbar.setAttribute(
-        'data-pmd-r2-floor-toolbar-v313',
-        ''
-    );
-
-    toolbar.setAttribute(
-        'role',
-        'toolbar'
-    );
-
-    toolbar.setAttribute(
-        'aria-label',
-        'Reservation Floor controls'
-    );
-
-    toolbar.innerHTML = [
-        '<button type="button" ',
-        'data-floor-edit ',
-        'aria-pressed="false" ',
-        'title="Edit layout">',
-        '<i class="ti ti-edit ',
-        'pmd-tabler-icon" ',
-        'style="--pmd-icon-size:17px" ',
-        'aria-hidden="true"></i>',
-        '<span>Edit</span>',
-        '</button>',
-
-        '<button type="button" ',
-        'data-floor-save ',
-        'hidden ',
-        'title="Save layout">',
-        '<i class="ti ti-check ',
-        'pmd-tabler-icon" ',
-        'style="--pmd-icon-size:17px" ',
-        'aria-hidden="true"></i>',
-        '<span>Save</span>',
-        '</button>',
-
-        '<button type="button" ',
-        'data-floor-zoom-out ',
-        'aria-label="Zoom out" ',
-        'title="Zoom out">',
-        '<i class="ti ti-zoom-out ',
-        'pmd-tabler-icon" ',
-        'style="--pmd-icon-size:17px" ',
-        'aria-hidden="true"></i>',
-        '</button>',
-
-        '<button type="button" ',
-        'data-floor-fit ',
-        'aria-label="Full Floor map" ',
-        'title="Full Floor map">',
-        '<i class="ti ti-focus-centered ',
-        'pmd-tabler-icon" ',
-        'style="--pmd-icon-size:17px" ',
-        'aria-hidden="true"></i>',
-        '</button>',
-
-        '<button type="button" ',
-        'data-floor-zoom-in ',
-        'aria-label="Zoom in" ',
-        'title="Zoom in">',
-        '<i class="ti ti-zoom-in ',
-        'pmd-tabler-icon" ',
-        'style="--pmd-icon-size:17px" ',
-        'aria-hidden="true"></i>',
-        '</button>',
-
-        '<button type="button" ',
-        'class="pmd-floor-v1__tool" ',
-        'data-floor-strip ',
-        'aria-pressed="false" ',
-        'title="Show tables in one row">',
-        '<i class="ti ti-table-row ',
-        'pmd-tabler-icon" ',
-        'style="--pmd-icon-size:17px" ',
-        'aria-hidden="true"></i>',
-        '<span>One row</span>',
-        '</button>'
-    ].join('');
-
-    statusbar.appendChild(toolbar);
-
-    document.documentElement.classList.add(
-        'pmd-r2-floor-v313-controls-seeded'
-    );
-})();
-</script>
-
-<!-- PMD_R2_FLOOR_TOOLBAR_V313_END -->
-
 </div>
 
 <link
@@ -238,107 +99,41 @@ window.PMD_RESERVATIONS2_BOOT = {
   defer
 ></script>
 
-
 <script src="/app/admin/assets/js/pmd-side-menu2-v1.js?v=20260718-4"></script>
 <script src="/app/admin/assets/js/pmd-reservations2-v1.js?v=20260718-1"></script>
 
-
-<!-- PMD_R2_EXACT_FLOOR_V5_START -->
-<!-- PMD_R2_EXACT_FLOOR_V5_END -->
-
-
-<!-- PMD_R2_CONTENT_BOUNDARIES_V51_START -->
-<!-- PMD_R2_CONTENT_BOUNDARIES_V51_END -->
-
-
-<!-- PMD_R2_BEHAVIOR_ONLY_V7_START -->
-
-<link
-  rel="stylesheet"
-  href="/app/admin/assets/css/pmd-reservations2-behavior-only-v7.css?v=20260721_161339"
->
-
-<script
-  src="/app/admin/assets/js/pmd-reservations2-behavior-only-v7.js?v=20260721_161339"
-></script>
-
-<!-- PMD_R2_BEHAVIOR_ONLY_V7_END -->
-
-
 <!-- PMD_R2_MOBILE_HAMBURGER_V301_START -->
-
 <link
     rel="stylesheet"
     href="/app/admin/assets/css/pmd-reservations2-mobile-hamburger-v301.css?v=20260722_111424"
 >
-
 <script
     src="/app/admin/assets/js/pmd-reservations2-mobile-hamburger-v301.js?v=20260722_111424"
     defer
 ></script>
-
 <!-- PMD_R2_MOBILE_HAMBURGER_V301_END -->
 
-
-<!-- PMD_R2_PRUNE_V305_START -->
-
-<link
-    rel="stylesheet"
-    href="/app/admin/assets/css/pmd-reservations2-prune-v305.css?v=20260722_114756"
->
-
-<script
-    src="/app/admin/assets/js/pmd-reservations2-prune-v305.js?v=20260722_233803"
-    defer
-></script>
-
-<!-- PMD_R2_PRUNE_V305_END -->
-
-
-<!-- PMD_R2_REMOVE_WAITER_ROOT_V306_START -->
-
-<link
-    rel="stylesheet"
-    href="/app/admin/assets/css/pmd-reservations2-remove-waiter-root-v306.css?v=20260722_115443"
->
-
-<script
-    src="/app/admin/assets/js/pmd-reservations2-remove-waiter-root-v306.js?v=20260722_115443"
-    defer
-></script>
-
-<!-- PMD_R2_REMOVE_WAITER_ROOT_V306_END -->
-
-
 <!-- PMD_R2_RESERVATION_KPIS_V307_START -->
-
 <link
     rel="stylesheet"
     href="/app/admin/assets/css/pmd-reservations2-kpis-v307.css?v=20260722_120725"
 >
-
 <script
     src="/app/admin/assets/js/pmd-reservations2-kpis-v307.js?v=20260722_120725"
     defer
 ></script>
-
 <!-- PMD_R2_RESERVATION_KPIS_V307_END -->
 
 <!-- PMD_R2_FLOOR_RESERVATION_V312_START -->
-
 <link
   rel="stylesheet"
   href="/app/admin/assets/css/pmd-reservations2-floor-reservation-v312.css?v=20260722_135939"
 >
-
 <script
   src="/app/admin/assets/js/pmd-reservations2-floor-reservation-v312.js?v=20260722_135939"
   defer
 ></script>
-
 <!-- PMD_R2_FLOOR_RESERVATION_V312_END -->
-
-
 
 <!-- PMD_R2_FLOOR_TOOLBAR_V316_START -->
 <link rel="stylesheet"
@@ -346,7 +141,6 @@ window.PMD_RESERVATIONS2_BOOT = {
 <script defer
         src="{{ asset('app/admin/assets/js/pmd-reservations2-floor-toolbar-v316.js') }}?v=20260722_235352"></script>
 <!-- PMD_R2_FLOOR_TOOLBAR_V316_END -->
-
 
 <!-- PMD_R2_DATE_POPOVER_V318_START -->
 <link
@@ -368,3 +162,8 @@ window.PMD_RESERVATIONS2_BOOT = {
   src="/app/admin/assets/js/pmd-reservations2-calendar-toggle-v1.js?v=1.16.0-20260724_212035"
 ></script>
 <!-- PMD_R2_EMBEDDED_CALENDAR_TOGGLE_V1_END -->
+
+<script
+  src="/app/admin/assets/js/pmd-reservations2-runtime-cleanup-v1.js?v=1.0.0"
+  defer
+></script>
