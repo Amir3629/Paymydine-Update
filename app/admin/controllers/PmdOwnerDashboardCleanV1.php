@@ -58,16 +58,29 @@ try {
             if (!is_array($items) || !count($items)) {
                 return Response::json(['ok' => false, 'message' => 'No table layout items received'], 422);
             }
+            $submittedIds = array_values(array_unique(array_filter(array_map(function ($item) {
+                if (!is_array($item)) return 0;
+                return (int)($item['table_id'] ?? $item['id'] ?? 0);
+            }, $items))));
             $validIds = [];
-            foreach (DB::table('tables')->whereIn($pk, array_map(function($i){ return (int)($i['id'] ?? 0); }, array_filter($items, 'is_array')))->pluck($pk) as $id) {
+            foreach (DB::table('tables')->whereIn($pk, $submittedIds)->pluck($pk) as $id) {
                 $validIds[(int)$id] = true;
             }
-            $updated = 0; $skipped = [];
+            if (!count($validIds)) {
+                return Response::json([
+                    'ok' => false,
+                    'message' => 'No submitted table IDs matched tables.'.$pk,
+                    'submitted_ids' => $submittedIds,
+                    'primary_key' => $pk,
+                ], 422);
+            }
+            $updated = 0; $matched = 0; $skipped = [];
             DB::beginTransaction();
             foreach ($items as $item) {
                 if (!is_array($item)) { $skipped[] = ['reason' => 'invalid item']; continue; }
-                $id = (int)($item['id'] ?? 0);
+                $id = (int)($item['table_id'] ?? $item['id'] ?? 0);
                 if ($id <= 0 || !isset($validIds[$id])) { $skipped[] = ['id' => $id, 'reason' => 'invalid id']; continue; }
+                $matched++;
                 $w = isset($item['floor_width']) && is_numeric($item['floor_width']) ? max(72, min(260, (float)$item['floor_width'])) : 150;
                 $h = isset($item['floor_height']) && is_numeric($item['floor_height']) ? max(58, min(180, (float)$item['floor_height'])) : 78;
                 $x = isset($item['floor_x']) && is_numeric($item['floor_x']) ? (float)$item['floor_x'] : 0;
@@ -78,10 +91,22 @@ try {
                 $update['floor_x'] = max(0, min(1000 - $w, $x));
                 $update['floor_y'] = max(0, min(560 - $h, $y));
                 if (isset($cols['visible_on_floor_plan'])) $update['visible_on_floor_plan'] = 1;
-                $updated += DB::table('tables')->where($pk, $id)->update($update) >= 0 ? 1 : 0;
+                $updated += DB::table('tables')->where($pk, $id)->update($update);
+            }
+            if ($updated < 1) {
+                DB::rollBack();
+                return Response::json([
+                    'ok' => false,
+                    'message' => 'No table coordinates changed',
+                    'submitted_ids' => $submittedIds,
+                    'matched' => $matched,
+                    'updated' => 0,
+                    'primary_key' => $pk,
+                    'skipped' => $skipped,
+                ], 409);
             }
             DB::commit();
-            return Response::json(['ok' => true, 'updated' => $updated, 'received' => count($items), 'skipped' => $skipped]);
+            return Response::json(['ok' => true, 'updated' => $updated, 'matched' => $matched, 'received' => count($items), 'skipped' => $skipped]);
         } catch (\Throwable $e) {
             try { DB::rollBack(); } catch (\Throwable $ignore) {}
             return Response::json(['ok' => false, 'message' => $e->getMessage(), 'type' => get_class($e)], 500);
