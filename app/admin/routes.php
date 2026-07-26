@@ -203,8 +203,6 @@ $__pmdUiKitHandler = function () {
 
 
 \Illuminate\Support\Facades\Route::get('pmd-owner-dashboard-clean-v1-audit', [\Admin\Controllers\PmdOwnerDashboardCleanV1::class, 'audit']);
-\Illuminate\Support\Facades\Route::get('pmd-owner-dashboard-floor-layout', [\Admin\Controllers\PmdOwnerDashboardCleanV1::class, 'floorLayout']);
-\Illuminate\Support\Facades\Route::post('pmd-owner-dashboard-floor-layout', [\Admin\Controllers\PmdOwnerDashboardCleanV1::class, 'saveFloorLayout']);
 /* PMD_OWNER_DASHBOARD_CLEAN_V1_ROUTES_END */
 
 
@@ -3251,15 +3249,15 @@ if (class_exists('Route')) {
 // PMD_STABLE_FLOOR_PLAN_ROUTES_START
 
 
-Route::get('pmd-floor-plan-data', 'PmdFloorPlanStable@data');
-Route::get('pmd-floor-plan-audit', 'PmdFloorPlanStable@audit');
-Route::match(['GET','POST'], 'pmd-floor-plan-add-item', 'PmdFloorPlanStable@addItem');
-Route::match(['GET','POST'], 'pmd-floor-plan-merge', 'PmdFloorPlanStable@merge');
+Route::get('pmd-floor-plan-data', [\Admin\Controllers\PmdFloorPlanStable::class, 'data']);
+Route::get('pmd-floor-plan-audit', [\Admin\Controllers\PmdFloorPlanStable::class, 'audit']);
+Route::match(['GET','POST'], 'pmd-floor-plan-add-item', [\Admin\Controllers\PmdFloorPlanStable::class, 'addItem']);
+Route::match(['GET','POST'], 'pmd-floor-plan-merge', [\Admin\Controllers\PmdFloorPlanStable::class, 'merge']);
 
 
 // compatibility aliases for current waiter checks
-Route::get('pmd-waiter-floor-v134-data', 'PmdFloorPlanStable@data');
-Route::get('pmd-waiter-floor-v134-audit', 'PmdFloorPlanStable@audit');
+Route::get('pmd-waiter-floor-v134-data', [\Admin\Controllers\PmdFloorPlanStable::class, 'data']);
+Route::get('pmd-waiter-floor-v134-audit', [\Admin\Controllers\PmdFloorPlanStable::class, 'audit']);
 // PMD_STABLE_FLOOR_PLAN_ROUTES_END
 
 
