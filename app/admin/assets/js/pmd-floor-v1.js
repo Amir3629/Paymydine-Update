@@ -250,6 +250,7 @@
       active: null,
       drag: null,
       saving: false,
+      saveAttempted: false,
       saveSequence: 0,
 
       toastTimer: null
@@ -359,7 +360,10 @@
       );
     }
 
-    function normalize(payload) {
+    function normalize(
+      payload,
+      layoutPayload
+    ) {
       var rawTables =
         Array.isArray(payload.tables)
           ? payload.tables
@@ -382,9 +386,57 @@
               : []
           );
 
+      var canonicalIds = {};
+
+      (
+        layoutPayload &&
+        Array.isArray(layoutPayload.tables)
+          ? layoutPayload.tables
+          : []
+      ).forEach(function (table) {
+        var dbTableId = number(
+          table.table_id || table.id,
+          0
+        );
+
+        if (!dbTableId) return;
+
+        [
+          table.table_no,
+          table.table_number,
+          table.number,
+          table.table_name,
+          table.name,
+          table.label
+        ].map(clean).filter(Boolean)
+          .forEach(function (key) {
+            canonicalIds[key.toLowerCase()] =
+              dbTableId;
+          });
+      });
+
       return rawTables
         .map(function (raw, index) {
           var id = tableId(raw);
+
+          var dbTableId = 0;
+
+          [
+            raw.table_no,
+            raw.table_number,
+            raw.number,
+            raw.table_name,
+            raw.name,
+            raw.label
+          ].map(clean).filter(Boolean)
+            .some(function (key) {
+              dbTableId =
+                canonicalIds[
+                  key.toLowerCase()
+                ] || 0;
+
+              return dbTableId > 0;
+            });
 
           var linked =
             linkedOrders(
@@ -486,6 +538,7 @@
           return {
             raw: raw,
             id: id,
+            dbTableId: dbTableId || null,
 
             number:
               tableNumber(raw),
@@ -1817,15 +1870,19 @@ function restoreFloorCoordinates(snapshot) {
 
 
 function saveLayout() {
-      if (state.saving) {
+      if (
+        state.saving ||
+        state.saveAttempted
+      ) {
         console.warn(
-          '[PMD Floor] Save ignored: request already in flight'
+          '[PMD Floor] Save ignored: this edit session already submitted'
         );
 
         return Promise.resolve(null);
       }
 
       state.saving = true;
+      state.saveAttempted = true;
       state.saveSequence += 1;
 
       var saveControls =
@@ -1838,12 +1895,60 @@ function saveLayout() {
         control.disabled = true;
       });
 
+      console.info(
+        '[PMD Floor] Save identity audit',
+        {
+          total: state.tables.length,
+          identities:
+            state.tables.map(function (table) {
+              return {
+                label:
+                  table.name || null,
+                id: table.id || null,
+                table_id:
+                  table.raw
+                    ? table.raw.table_id || null
+                    : null,
+                tableId:
+                  table.tableId || null,
+                dbTableId:
+                  table.dbTableId || null,
+                number:
+                  table.number || null
+              };
+            })
+        }
+      );
+
       var tables =
-        state.tables.map(
+        state.tables.filter(
+          function (table) {
+            if (table.dbTableId) {
+              return true;
+            }
+
+            console.error(
+              '[PMD Floor] Table excluded from save: canonical database ID missing',
+              {
+                label: table.name || null,
+                id: table.id || null,
+                table_id:
+                  table.raw
+                    ? table.raw.table_id || null
+                    : null,
+                number:
+                  table.number || null,
+                source: dataUrl
+              }
+            );
+
+            return false;
+          }
+        ).map(
           function (table) {
             return {
-              id: table.id,
-              table_id: table.id,
+              id: table.dbTableId,
+              table_id: table.dbTableId,
 
               floor_x:
                 Math.round(table.x),
@@ -1873,6 +1978,21 @@ function saveLayout() {
           tables: tables.length
         }
       );
+
+      if (!tables.length) {
+        state.saving = false;
+
+        saveControls.forEach(function (control) {
+          control.disabled = false;
+        });
+
+        toast(
+          'No tables have canonical database IDs',
+          true
+        );
+
+        return Promise.resolve(null);
+      }
 
       return fetchJson(
         layoutUrl,
@@ -2004,7 +2124,9 @@ function saveLayout() {
                 merges: {}
               }
             };
-          })
+          }),
+
+        fetchJson(layoutUrl)
       ])
         .then(function (results) {
           state.payload =
@@ -2017,7 +2139,10 @@ function saveLayout() {
             };
 
           state.tables =
-            normalize(state.payload);
+            normalize(
+              state.payload,
+              results[2] || {}
+            );
 
           render();
 
@@ -2197,6 +2322,10 @@ function saveLayout() {
     }
 
     function setEditing(value) {
+      if (value && !state.editing) {
+        state.saveAttempted = false;
+      }
+
       state.editing = !!value;
 
       root.classList.toggle(
