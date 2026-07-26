@@ -41,47 +41,21 @@
   }
 
   function fetchJson(url, options) {
-    var requestOptions =
-      Object.assign(
-        {},
-        options || {}
-      );
-
-    var headers =
-      Object.assign(
-        {
-          Accept: 'application/json',
-          'Content-Type': 'application/json',
-          'X-Requested-With':
-            'XMLHttpRequest'
-        },
-        requestOptions.headers || {}
-      );
-
-    var csrf =
-      document.querySelector(
-        'meta[name="csrf-token"]'
-      );
-
-    if (
-      csrf &&
-      csrf.content &&
-      !headers['X-CSRF-TOKEN']
-    ) {
-      headers['X-CSRF-TOKEN'] =
-        csrf.content;
-    }
-
-    requestOptions.headers = headers;
-
     return fetch(
       url,
       Object.assign(
         {
           credentials: 'same-origin',
-          cache: 'no-store'
+          cache: 'no-store',
+
+          headers: {
+            Accept: 'application/json',
+            'Content-Type': 'application/json',
+            'X-Requested-With':
+              'XMLHttpRequest'
+          }
         },
-        requestOptions
+        options || {}
       )
     ).then(function (response) {
       return response
@@ -6256,4 +6230,3 @@ function saveLayout() {
   );
 })();
 /* PMD_MERGE_INLINE_NEUTRAL_V287_END */
-

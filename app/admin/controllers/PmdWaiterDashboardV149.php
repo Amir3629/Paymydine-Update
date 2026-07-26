@@ -261,6 +261,8 @@ class PmdWaiterDashboardV149
                 'floor_sort' => (int)($a['floor_sort'] ?? 0),
                 'x' => (float)($a['floor_x'] ?? $pos['x']),
                 'y' => (float)($a['floor_y'] ?? $pos['y']),
+                'floor_x' => (float)($a['floor_x'] ?? $pos['x']),
+                'floor_y' => (float)($a['floor_y'] ?? $pos['y']),
                 'w' => $w,
                 'h' => $h,
                 'shape' => (string)($a['floor_shape'] ?? ($cap >= 6 ? 'rectangle' : 'roundrect')),

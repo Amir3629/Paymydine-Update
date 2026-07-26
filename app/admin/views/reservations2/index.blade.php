@@ -724,9 +724,3 @@ body {
     defer
 ></script>
 <!-- PMD_KPI_TABLE_COLORS_V467_END -->
-<!-- PMD_NATIVE_EDIT_SAVE_V471_BEGIN -->
-<script
-    src="{{ asset('app/admin/assets/js/pmd-reservations2-native-edit-save-v471.js') }}?v=20260726_090652"
-    defer
-></script>
-<!-- PMD_NATIVE_EDIT_SAVE_V471_END -->
