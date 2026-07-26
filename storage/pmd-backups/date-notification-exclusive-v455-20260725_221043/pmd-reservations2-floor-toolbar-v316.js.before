@@ -1,0 +1,1047 @@
+(function(){
+'use strict';
+var route=String(location.pathname||'').replace(/\/+$/,'');if(route!=='/admin/reservations2'&&route!=='/admin/reservations')return;
+var VERSION='4.4.0',FLOOR_ID='pmd-r2-shared-floor-canvas-v310',TOOLBAR_ID='pmd-r2-floor-toolbar-v316',FILTER_ID='pmd-r2-date-filter-v317',DATE_BTN_ID='pmd-r2-date-button-v430',SECTION_ID='pmd-r2-reservation-cards-v320',GRID_ID='pmd-r2-reservation-grid-v320',STYLE_ID='pmd-r2-waiter-cards-v430-style',STORAGE_KEY='pmd.reservations2.dateRange.v2';
+var rendering=false,scheduled=false,observer=null,eventsBound=false;
+var state={start:startOfDay(new Date()),end:endOfDay(new Date()),tableId:null,tableName:null,allDates:true};
+function floor(){return document.getElementById(FLOOR_ID)}
+function bootData(){return window.PMD_RESERVATIONS2_BOOT||{}}
+function reservations(){return Array.isArray(bootData().reservations)?bootData().reservations:[]}
+function clean(v){return String(v==null?'':v).replace(/\s+/g,' ').trim()}
+function esc(v){return clean(v).replace(/[&<>'"]/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c]})}
+function pad(v){return String(v).padStart(2,'0')}
+function startOfDay(v){var d=new Date(v);d.setHours(0,0,0,0);return d}
+function endOfDay(v){var d=new Date(v);d.setHours(23,59,59,999);return d}
+function addDays(v,n){var d=new Date(v);d.setDate(d.getDate()+n);return d}
+function dateKey(v){return v.getFullYear()+'-'+pad(v.getMonth()+1)+'-'+pad(v.getDate())}
+function parseDate(v,end){var p=String(v||'').split('-').map(Number);if(p.length!==3||p.some(function(x){return!Number.isFinite(x)}))return null;var d=new Date(p[0],p[1]-1,p[2]);return Number.isNaN(d.getTime())?null:(end?endOfDay(d):startOfDay(d))}
+function validRange(a,b){return!!(a&&b&&!Number.isNaN(a.getTime())&&!Number.isNaN(b.getTime())&&b>=a)}
+function humanDate(v){try{return new Intl.DateTimeFormat(undefined,{day:'numeric',month:'short',year:'numeric'}).format(v)}catch(e){return dateKey(v)}}
+function humanTime(v){try{return new Intl.DateTimeFormat(undefined,{hour:'2-digit',minute:'2-digit'}).format(v)}catch(e){return pad(v.getHours())+':'+pad(v.getMinutes())}}
+function rangeLabel(){return state.allDates?'All dates':(dateKey(state.start)===dateKey(state.end)?humanDate(state.start):humanDate(state.start)+' – '+humanDate(state.end))}
+function ensureStyle(){var old=document.getElementById(STYLE_ID);if(old)return;document.querySelectorAll('[id^="pmd-r2-waiter-cards-v4"][id$="-style"]').forEach(function(n){n.remove()});var s=document.createElement('style');s.id=STYLE_ID;s.textContent=
+'html.pmd-r2-reservation-experience-ready,html.pmd-r2-reservation-experience-ready body{height:auto!important;min-height:100%!important;overflow-x:hidden!important;overflow-y:auto!important}'+
+'html.pmd-r2-reservation-experience-ready body>.wrapper,html.pmd-r2-reservation-experience-ready .page-wrapper,html.pmd-r2-reservation-experience-ready .content-wrapper{height:auto!important;min-height:100vh!important;max-height:none!important;overflow:visible!important}'+
+'#'+SECTION_ID+'{display:block!important;height:auto!important;max-height:none!important;overflow:visible!important;padding-bottom:72px!important}'+
+'#'+GRID_ID+'{display:grid!important;grid-template-columns:repeat(auto-fill,minmax(255px,1fr))!important;gap:16px!important;align-items:start!important;height:auto!important;max-height:none!important;overflow:visible!important}'+
+'#'+GRID_ID+'>.pmd-w5-card{width:auto!important;min-width:0!important;min-height:0!important;height:auto!important;margin:0!important;padding:18px!important;border-radius:18px!important;text-decoration:none!important;position:relative!important;box-sizing:border-box!important}'+
+'#'+GRID_ID+' .pmd-v35-card-head{min-height:30px!important;margin-bottom:4px!important}#'+GRID_ID+' .pmd-v35-table-no{font-size:20px!important;line-height:1!important}'+
+'#'+GRID_ID+' h2{font-size:20px!important;line-height:1.15!important;margin:12px 0 8px!important;white-space:nowrap!important;overflow:hidden!important;text-overflow:ellipsis!important}'+
+'#'+GRID_ID+' .pmd-w5-card-top{margin:0!important}#'+GRID_ID+' .pmd-w5-pill{font-size:12px!important;padding:6px 10px!important}'+
+'#'+GRID_ID+' .pmd-w5-meta{display:grid!important;grid-template-columns:repeat(3,minmax(0,1fr))!important;gap:8px!important;margin:12px 0!important}'+
+'#'+GRID_ID+' .pmd-w5-box{min-height:64px!important;padding:10px!important;border-radius:13px!important}#'+GRID_ID+' .pmd-w5-box small{font-size:10px!important}#'+GRID_ID+' .pmd-w5-box b{font-size:14px!important;white-space:nowrap!important;overflow:hidden!important;text-overflow:ellipsis!important}'+
+'#'+GRID_ID+' .pmd-w5-items{min-height:0!important;margin:0 0 12px!important;padding:12px!important;border-radius:13px!important}#'+GRID_ID+' .pmd-w5-items>small{font-size:10px!important}'+
+'#'+GRID_ID+' .pmd-r2-compact-row{display:flex!important;justify-content:space-between!important;gap:10px!important;padding-top:7px!important;font-size:13px!important}#'+GRID_ID+' .pmd-r2-compact-row b{white-space:nowrap!important}'+
+'#'+GRID_ID+' .pmd-w5-card-actions{display:grid!important;grid-template-columns:1fr auto!important;gap:8px!important;margin-top:0!important}#'+GRID_ID+' .pmd-w5-card-actions a,#'+GRID_ID+' .pmd-w5-card-actions button{min-height:38px!important;padding:8px 12px!important;font-size:12px!important}'+
+'#'+GRID_ID+' .pmd-r2-card-link{position:absolute!important;inset:0!important;z-index:1!important;border-radius:inherit!important}#'+GRID_ID+' button,#'+GRID_ID+' a.pmd-r2-action-link{position:relative!important;z-index:2!important}'+
+'#'+GRID_ID+' .pmd-r2-add-waiter-card{border-style:dashed!important;cursor:pointer!important}#'+GRID_ID+' .pmd-r2-add-waiter-card .pmd-v35-table-no{font-size:28px!important}'+
+'#'+DATE_BTN_ID+'{position:fixed!important;top:70px!important;right:172px!important;z-index:10050!important;display:flex!important;align-items:center!important;gap:8px!important;height:52px!important;max-width:260px!important;padding:0 16px!important;border:1px solid #cbdced!important;border-radius:15px!important;background:#fff!important;color:#14283e!important;box-shadow:0 8px 24px rgba(15,40,64,.08)!important;font-weight:800!important;cursor:pointer!important}#'+DATE_BTN_ID+' svg{width:20px;height:20px;flex:0 0 auto}#'+DATE_BTN_ID+' span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}'+
+'#'+FILTER_ID+'{position:fixed!important;top:130px!important;right:32px!important;z-index:10060!important;display:none!important;width:min(560px,calc(100vw - 32px))!important;padding:14px!important;border:1px solid #d6e2ee!important;border-radius:16px!important;background:#fff!important;box-shadow:0 20px 50px rgba(15,40,64,.18)!important}#'+FILTER_ID+'.is-open{display:grid!important;grid-template-columns:1fr 1fr!important;gap:10px!important}#'+FILTER_ID+' .pmd-r2-date-filter-v317__quick{grid-column:1/-1!important;display:flex!important;gap:8px!important;flex-wrap:wrap!important}#'+FILTER_ID+' button{padding:8px 12px!important;border:1px solid #d6e2ee!important;border-radius:10px!important;background:#fff!important}#'+FILTER_ID+' button.is-active{background:#102f2b!important;color:#fff!important}#'+FILTER_ID+' label{display:grid!important;gap:5px!important;font-size:11px!important;font-weight:700!important}#'+FILTER_ID+' input{height:40px!important;border:1px solid #d6e2ee!important;border-radius:10px!important;padding:0 10px!important}#'+FILTER_ID+' [data-date-summary]{grid-column:1/-1!important;font-size:12px!important;color:#64748b!important}'+
+'@media(max-width:900px){#'+DATE_BTN_ID+'{right:104px!important;max-width:190px!important}}@media(max-width:700px){#'+GRID_ID+'{grid-template-columns:1fr!important}#'+DATE_BTN_ID+'{top:64px!important;right:88px!important;width:48px!important;padding:0!important;justify-content:center!important}#'+DATE_BTN_ID+' span{display:none!important}#'+FILTER_ID+'{right:12px!important;top:120px!important;width:calc(100vw - 24px)!important}}';document.head.appendChild(s)}
+function restoreRange(){try{var x=JSON.parse(localStorage.getItem(STORAGE_KEY)||'null');if(x&&x.allDates===true){state.allDates=true;return}var a=x&&parseDate(x.start,false),b=x&&parseDate(x.end,true);if(validRange(a,b)){state.start=a;state.end=b;state.allDates=false}}catch(e){}}
+function persistRange(){try{localStorage.setItem(STORAGE_KEY,JSON.stringify({start:dateKey(state.start),end:dateKey(state.end),allDates:state.allDates}))}catch(e){}}
+function setRange(a,b){if(!validRange(a,b))return;state.start=a;state.end=b;state.allDates=false;persistRange();render()}function setAllDates(){state.allDates=true;persistRange();render()}
+function nativeControl(root,sel){return Array.prototype.slice.call(root.querySelectorAll(sel)).find(function(n){return!n.closest('#'+TOOLBAR_ID)})||null}
+function toolButton(key,label,sel){var b=document.createElement('button');b.type='button';b.className='pmd-r2-floor-tool-v316';b.dataset.pmdR2Tool=key;b.textContent=label;b.onclick=function(e){e.preventDefault();e.stopPropagation();var r=floor(),n=r&&nativeControl(r,sel);if(n)n.dispatchEvent(new MouseEvent('click',{bubbles:true,cancelable:true,view:window}));schedule()};return b}
+function ensureToolbar(root){var bar=root.querySelector('.pmd-floor-v1__statusbar');if(!bar)return;var t=document.getElementById(TOOLBAR_ID);if(!t){t=document.createElement('div');t.id=TOOLBAR_ID;t.className='pmd-r2-floor-toolbar-v316';[['edit','Edit','[data-floor-edit]'],['save','Save','[data-floor-save]'],['zoom-out','−','[data-floor-zoom-out]'],['fit','Full Floor','[data-floor-fit]'],['zoom-in','+','[data-floor-zoom-in]'],['strip','One row','[data-floor-strip]']].forEach(function(x){t.appendChild(toolButton(x[0],x[1],x[2]))});bar.appendChild(t)}root.querySelectorAll('[data-floor-secondary-toolbar],.pmd-floor-v1__secondary-toolbar,[data-pmd-r2-floor-toolbar-v313]').forEach(function(n){if(n.id!==TOOLBAR_ID)n.classList.add('pmd-r2-native-toolbar-v316-hidden')})}
+function presetName(){if(state.allDates)return'all';var t=startOfDay(new Date());if(dateKey(state.start)===dateKey(t)&&dateKey(state.end)===dateKey(t))return'today';if(dateKey(state.start)===dateKey(addDays(t,1))&&dateKey(state.end)===dateKey(addDays(t,1)))return'tomorrow';if(dateKey(state.start)===dateKey(t)&&dateKey(state.end)===dateKey(addDays(t,6)))return'week';var a=new Date(t.getFullYear(),t.getMonth(),1),b=new Date(t.getFullYear(),t.getMonth()+1,0);return dateKey(state.start)===dateKey(a)&&dateKey(state.end)===dateKey(b)?'month':'custom'}
+function calendarSvg(){return'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="5" width="18" height="16" rx="2"></rect><path d="M16 3v4M8 3v4M3 11h18"></path></svg>'}
+function ensureDateFilter(){var btn=document.getElementById(DATE_BTN_ID);if(!btn){btn=document.createElement('button');btn.type='button';btn.id=DATE_BTN_ID;btn.innerHTML=calendarSvg()+'<span></span>';document.body.appendChild(btn);btn.addEventListener('click',function(e){e.preventDefault();e.stopPropagation();var p=document.getElementById(FILTER_ID);if(p)p.classList.toggle('is-open')})}btn.querySelector('span').textContent=rangeLabel();var p=document.getElementById(FILTER_ID);if(!p){p=document.createElement('div');p.id=FILTER_ID;p.className='pmd-r2-date-filter-v317';p.innerHTML='<div class="pmd-r2-date-filter-v317__quick"><button type="button" data-range="all">All dates</button><button type="button" data-range="today">Today</button><button type="button" data-range="tomorrow">Tomorrow</button><button type="button" data-range="week">7 days</button><button type="button" data-range="month">This month</button></div><label><span>From</span><input type="date" data-date-start></label><label><span>To</span><input type="date" data-date-end></label><div data-date-summary></div>';document.body.appendChild(p);p.addEventListener('click',function(e){var b=e.target.closest('[data-range]');if(!b)return;var t=startOfDay(new Date());if(b.dataset.range==='all')setAllDates();if(b.dataset.range==='today')setRange(t,endOfDay(t));if(b.dataset.range==='tomorrow'){var x=addDays(t,1);setRange(x,endOfDay(x))}if(b.dataset.range==='week')setRange(t,endOfDay(addDays(t,6)));if(b.dataset.range==='month')setRange(new Date(t.getFullYear(),t.getMonth(),1),endOfDay(new Date(t.getFullYear(),t.getMonth()+1,0)))});p.addEventListener('change',function(){var a=parseDate(p.querySelector('[data-date-start]').value,false)||state.start,b=parseDate(p.querySelector('[data-date-end]').value,true)||state.end;if(b<a)b=endOfDay(a);setRange(a,b)})}p.querySelector('[data-date-start]').value=dateKey(state.start);p.querySelector('[data-date-end]').value=dateKey(state.end);p.querySelector('[data-date-summary]').textContent=rangeLabel()+(state.tableId?' · '+(state.tableName||'Table '+state.tableId):' · All tables');var active=presetName();p.querySelectorAll('[data-range]').forEach(function(b){b.classList.toggle('is-active',b.dataset.range===active)})}
+function reservationStart(i){var d=i&&(i.reservation_datetime||i.start_at||i.starts_at);if(d){var p=new Date(d);if(!Number.isNaN(p.getTime()))return p}var rd=i&&(i.reserve_date||i.reservation_date||i.booking_date||i.date);if(!rd)return null;var a=String(rd).slice(0,10).split(/[-/]/).map(Number),t=String(i.reserve_time||i.reservation_time||i.booking_time||i.time||'00:00').split(':').map(Number);return new Date(a[0],a[1]-1,a[2],t[0]||0,t[1]||0,0,0)}
+function tableIds(i){var ids=[];function add(v){var n=Number(v);if(Number.isFinite(n)&&n>0&&ids.indexOf(String(n))<0)ids.push(String(n))}add(i&&i.table_id);if(i&&Array.isArray(i.tables))i.tables.forEach(function(t){add(t&&typeof t==='object'?(t.table_id||t.id):t)});return ids}
+function tableLabel(i){var names=[];if(i&&Array.isArray(i.tables))i.tables.forEach(function(t){if(t&&typeof t==='object')names.push(t.table_name||t.name||t.table_number)});names=names.filter(Boolean);if(names.length)return names.join(', ');var ids=tableIds(i);return ids.length?ids.map(function(id){return'Table '+id}).join(', '):'Unassigned'}
+function tableNumber(i){var ids=tableIds(i);return ids.length?ids[0]:'—'}
+function guestName(i){return clean(i.customer_name||[i.first_name,i.last_name].filter(Boolean).join(' ')||i.guest_name||'Guest')}
+function guestCount(i){return Number(i.guest_num||i.guests||i.party_size||i.covers||0)||0}
+function statusLabel(i){var s=i&&(i.status_name||i.reservation_status||i.status);if(s&&typeof s==='object')s=s.status_name||s.name||s.label;return clean(s||'Scheduled')}
+function tone(i){var s=statusLabel(i).toLowerCase();if(/cancel|declin|no.?show/.test(s))return'cancelled';if(/complete|finish|closed/.test(s))return'served';if(/seat|active|arriv|check.?in/.test(s))return'preparing';return'received'}
+function dateFilteredReservations(){var items=state.allDates?reservations().slice():reservations().filter(function(i){var s=reservationStart(i);return s&&s>=state.start&&s<=state.end});return items.sort(function(a,b){var x=reservationStart(a),y=reservationStart(b);if(!x&&!y)return 0;if(!x)return 1;if(!y)return-1;return x-y})}
+function filteredReservations(){var x=dateFilteredReservations();return state.tableId?x.filter(function(i){return tableIds(i).indexOf(String(state.tableId))!==-1}):x}
+function editUrl(i){var id=i&&(i.reservation_id||i.id),base=clean(bootData().editBaseUrl||'/admin/reservations/edit').replace(/\/$/,'');return id?base+'/'+encodeURIComponent(id):'#'}
+function createUrl(){var base=clean(bootData().createUrl||'/admin/reservations/create');try{var u=new URL(base,location.origin);if(state.tableId){u.searchParams.set('table_id',state.tableId);u.searchParams.set('table',state.tableId)}u.searchParams.set('reserve_date',dateKey(state.start));return u.pathname+u.search}catch(e){return base}}
+function ensureSection(){var r=floor();if(!r||!r.parentElement)return null;var s=document.getElementById(SECTION_ID);if(!s){s=document.createElement('section');s.id=SECTION_ID;s.className='pmd-r2-reservation-cards-v320';s.innerHTML='<div class="pmd-r2-reservation-cards-v320__head"><div><strong data-r2-card-title>Reservations</strong><span data-r2-card-subtitle></span></div><button type="button" data-r2-show-all hidden>Show all tables</button></div><div id="'+GRID_ID+'" class="pmd-r2-reservation-grid-v320 pmd-w5-grid"></div>';r.insertAdjacentElement('afterend',s);s.querySelector('[data-r2-show-all]').onclick=clearTableFilter}return s}
+function addCardMarkup(){var table=state.tableId?(state.tableName||'Table '+state.tableId):'Any table';return'<article class="pmd-w5-card pmd-v35-ready pmd-r2-add-waiter-card" data-r2-add-reservation><a class="pmd-r2-card-link" href="'+esc(createUrl())+'" aria-label="Add reservation"></a><div class="pmd-v35-card-head"><div class="pmd-v35-table-no">＋</div></div><div class="pmd-w5-card-top"><span class="pmd-w5-pill warn pmd-v21-table-badge">'+esc(table)+'</span></div><h2>Add reservation</h2><div class="pmd-w5-meta"><div class="pmd-w5-box"><small>Table</small><b>'+esc(state.tableId||'Any')+'</b></div><div class="pmd-w5-box"><small>Date</small><b>'+esc(humanDate(state.start))+'</b></div><div class="pmd-w5-box"><small>Type</small><b>Booking</b></div></div><div class="pmd-w5-items"><small>Reservation</small><div class="pmd-r2-compact-row"><span>Create a new booking</span><b>＋</b></div></div><div class="pmd-w5-card-actions"><a class="primary pmd-r2-action-link" href="'+esc(createUrl())+'">Add reservation</a></div></article>'}
+function reservationCardMarkup(i){var start=reservationStart(i),id=i.reservation_id||i.id||'',url=editUrl(i),guests=guestCount(i),status=statusLabel(i);return'<article class="pmd-w5-card pmd-v35-ready" data-r2-reservation-id="'+esc(id)+'" data-table="'+esc(tableNumber(i))+'">'+(url!=='#'?'<a class="pmd-r2-card-link" href="'+esc(url)+'" aria-label="Edit reservation"></a>':'')+'<div class="pmd-v35-card-head"><div class="pmd-v35-table-no">'+esc(tableNumber(i))+'</div>'+(url!=='#'?'<a class="pmd-v35-edit-btn pmd-r2-action-link" href="'+esc(url)+'" title="Edit reservation">✎</a>':'')+'</div><div class="pmd-w5-card-top"><span class="pmd-w5-pill warn pmd-v21-table-badge">'+esc(tableLabel(i))+'</span></div><h2>'+esc(guestName(i))+'</h2><div style="display:flex;gap:8px;margin:8px 0"><span class="pmd-w5-pill warn">'+esc(status)+'</span></div><div class="pmd-w5-meta"><div class="pmd-w5-box"><small>Guests</small><b>'+esc(guests||'—')+'</b></div><div class="pmd-w5-box"><small>Time</small><b>'+esc(start?humanTime(start):'—')+'</b></div><div class="pmd-w5-box"><small>Reservation</small><b>'+esc(id||'—')+'</b></div></div><div class="pmd-w5-items"><small>Booking</small><div class="pmd-r2-compact-row"><span>Date</span><b>'+esc(start?humanDate(start):'Unavailable')+'</b></div></div><div class="pmd-w5-card-actions">'+(url!=='#'?'<a class="primary pmd-r2-action-link" href="'+esc(url)+'">Edit</a>':'')+'<button type="button" class="pmd-v159-order-status pmd-v158-order-status" data-tone="'+esc(tone(i))+'"><strong>'+esc(status)+'</strong></button></div></article>'}
+function clearSelection(){var r=floor();if(r)r.querySelectorAll('[data-pmd-r2-selected-table-v320],.pmd-r2-table-selected-v317').forEach(function(n){n.removeAttribute('data-pmd-r2-selected-table-v320');n.classList.remove('pmd-r2-table-selected-v317')})}
+function clearTableFilter(){state.tableId=null;state.tableName=null;clearSelection();render()}
+function markSelection(){var r=floor();if(!r)return;clearSelection();if(!state.tableId)return;r.querySelectorAll('[data-floor-table]').forEach(function(n){var ids=[n.getAttribute('data-floor-table'),n.getAttribute('data-table-id'),n.getAttribute('data-floor-table-id')].filter(Boolean).map(String);if(ids.indexOf(String(state.tableId))!==-1){n.setAttribute('data-pmd-r2-selected-table-v320','true');n.classList.add('pmd-r2-table-selected-v317')}})}
+function updateKpis(items){var all=reservations(),now=new Date(),today=dateKey(now),todayCount=all.filter(function(i){var s=reservationStart(i);return s&&dateKey(s)===today}).length,up=all.filter(function(i){var s=reservationStart(i);return s&&s>=now}).length,pend=all.filter(function(i){return/pending|confirm|request|wait/i.test(statusLabel(i))}).length,tables=new Set();all.forEach(function(i){tableIds(i).forEach(function(id){tables.add(id)})});var v={today:todayCount,upcoming:up,pending:pend,tables:tables.size};Object.keys(v).forEach(function(k){var n=document.querySelector('[data-r2-v308-value="'+k+'"]');if(n)n.textContent=String(v[k])})}
+function renderCards(items){var s=ensureSection();if(!s)return;var all=dateFilteredReservations(),sel=state.tableId?(state.tableName||'Table '+state.tableId):'All tables';s.querySelector('[data-r2-card-title]').textContent=state.tableId?'Reservations for '+sel:'All reservations';s.querySelector('[data-r2-card-subtitle]').textContent=rangeLabel()+' · '+items.length+(state.tableId?' of '+all.length:'')+' reservation'+(items.length===1?'':'s');s.querySelector('[data-r2-show-all]').hidden=!state.tableId;document.getElementById(GRID_ID).innerHTML=addCardMarkup()+items.map(reservationCardMarkup).join('')}
+function render(){if(rendering)return;rendering=true;try{var r=floor();if(!r)return;document.documentElement.classList.add('pmd-r2-reservation-experience-ready');ensureStyle();ensureToolbar(r);ensureDateFilter();var items=filteredReservations();updateKpis(items);markSelection();renderCards(items);r.setAttribute('data-pmd-r2-toolbar-authority','floor-experience-v4.3')}finally{rendering=false}}
+function tableIdFromNode(n){var d=n&&(n.getAttribute('data-floor-table')||n.getAttribute('data-table-id')||n.getAttribute('data-floor-table-id')||n.dataset.tableId||n.dataset.id);if(d&&Number(d)>0)return String(Number(d));var m=clean(n&&n.getAttribute('data-floor-members')).split(',').filter(Boolean);if(m.length&&Number(m[0])>0)return String(Number(m[0]));var x=clean(n&&n.textContent).match(/\b(\d+)\b/);return x?String(Number(x[1])):null}
+function tableNameFromNode(n,id){var q=n.querySelector('.pmd-floor-v1__name,[data-floor-table-name],strong'),name=clean(q&&q.textContent);if(name)return/^table\s/i.test(name)?name:'Table '+name;var label=clean(n.getAttribute('aria-label')||n.getAttribute('title'));return label?label.split(' — ')[0]:'Table '+id}
+function bindEvents(){if(eventsBound)return;eventsBound=true;document.addEventListener('click',function(e){var p=document.getElementById(FILTER_ID),b=document.getElementById(DATE_BTN_ID);if(p&&p.classList.contains('is-open')&&!p.contains(e.target)&&(!b||!b.contains(e.target)))p.classList.remove('is-open');var r=floor();if(!r||!r.contains(e.target))return;var t=e.target.closest('[data-floor-table]');if(!t||!r.contains(t))return;var fs=r.__pmdFloorV1&&r.__pmdFloorV1.getState?r.__pmdFloorV1.getState():null;if(fs&&fs.editing)return;var id=tableIdFromNode(t);if(!id)return;e.preventDefault();e.stopPropagation();if(String(state.tableId||'')===String(id))clearTableFilter();else{state.tableId=id;state.tableName=tableNameFromNode(t,id);render()}setTimeout(function(){var s=document.getElementById(SECTION_ID);if(s)s.scrollIntoView({behavior:'smooth',block:'start'})},30)},true)}
+function schedule(){if(scheduled)return;scheduled=true;requestAnimationFrame(function(){scheduled=false;render()})}
+function connectObserver(){var r=floor();if(!r)return;if(observer)observer.disconnect();observer=new MutationObserver(schedule);observer.observe(r,{childList:true,subtree:true,attributes:true,attributeFilter:['hidden','aria-pressed','data-status','data-floor-members']})}
+function audit(){var items=filteredReservations();return{version:VERSION,floor:!!floor(),toolbar:!!document.getElementById(TOOLBAR_ID),dateButton:!!document.getElementById(DATE_BTN_ID),dateFilter:!!document.getElementById(FILTER_ID),section:!!document.getElementById(SECTION_ID),totalReservations:reservations().length,reservationsInDateRange:dateFilteredReservations().length,filteredReservations:items.length,visibleReservationCards:document.querySelectorAll('#'+GRID_ID+' [data-r2-reservation-id]').length,selectedTable:state.tableId,range:state.allDates?['all','all']:[dateKey(state.start),dateKey(state.end)],allDates:state.allDates,scrollHeight:document.documentElement.scrollHeight,viewportHeight:innerHeight}}
+var api={version:VERSION,refresh:schedule,renderReservations:schedule,setRange:function(a,b){a=parseDate(a,false);b=parseDate(b,true);if(validRange(a,b))setRange(a,b)},clearTable:clearTableFilter,getState:function(){return{start:dateKey(state.start),end:dateKey(state.end),allDates:state.allDates,tableId:state.tableId,tableName:state.tableName}},audit:audit,destroy:function(){if(observer)observer.disconnect();observer=null}};window.PMDReservations2FloorExperience=api;window.PMDReservations2FloorToolbarV316=api;window.PMDReservations2CardsV320={version:VERSION,refresh:schedule,showAll:clearTableFilter,audit:audit};window.PMDReservations2ScrollV322={version:VERSION,refresh:schedule,audit:audit};
+function boot(){restoreRange();bindEvents();render();connectObserver();console.info('[PMD Reservations2 Floor Experience V4.4 all dates + real KPIs] Ready',audit())}
+if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot,{once:true});else boot();
+})();
+/* PMD Reservations2 single date button V4.3.1 */
+(function () {
+  'use strict';
+
+  var route = String(window.location.pathname || '').replace(/\/+$/, '');
+
+  if (route !== '/admin/reservations2') {
+    return;
+  }
+
+  var NEW_BUTTON_ID = 'pmd-r2-date-button-v430';
+  var OLD_BUTTON_ID = 'pmd-r2-date-button-v318';
+  var OLD_PANEL_ID = 'pmd-r2-date-panel-v318';
+  var applying = false;
+  var scheduled = false;
+
+  function clean(value) {
+    return String(value == null ? '' : value)
+      .replace(/\s+/g, ' ')
+      .trim();
+  }
+
+  function isVisible(element) {
+    if (!element) {
+      return false;
+    }
+
+    var style = window.getComputedStyle(element);
+
+    return (
+      style.display !== 'none' &&
+      style.visibility !== 'hidden' &&
+      element.getClientRects().length > 0
+    );
+  }
+
+  function findCreateButton(newButton, oldButton) {
+    var containers = [
+      newButton && newButton.parentElement,
+      oldButton && oldButton.parentElement,
+      document.querySelector('[data-pmd-header-actions]'),
+      document.querySelector('.pmd-r2__hero-actions'),
+      document.querySelector('.pmd-r2-clean-header__actions'),
+      document.querySelector('.navbar .navbar-nav'),
+      document.querySelector('header')
+    ].filter(Boolean);
+
+    var selectors = [
+      '[data-r2-create]',
+      '[data-create-reservation]',
+      '[aria-label*="create" i]',
+      '[title*="create" i]',
+      '[aria-label*="add" i]',
+      '[title*="add" i]',
+      'a[href*="/admin/reservations/create"]',
+      'a[href*="/admin/reservations2/create"]'
+    ];
+
+    for (var c = 0; c < containers.length; c += 1) {
+      var container = containers[c];
+
+      for (var s = 0; s < selectors.length; s += 1) {
+        var direct = container.querySelector(selectors[s]);
+
+        if (
+          direct &&
+          direct.id !== NEW_BUTTON_ID &&
+          direct.id !== OLD_BUTTON_ID
+        ) {
+          return direct;
+        }
+      }
+
+      var controls = Array.prototype.slice.call(
+        container.querySelectorAll('button, a')
+      );
+
+      var plusButton = controls.find(function (control) {
+        if (
+          control.id === NEW_BUTTON_ID ||
+          control.id === OLD_BUTTON_ID
+        ) {
+          return false;
+        }
+
+        var text = clean(control.textContent);
+        var label = clean(
+          control.getAttribute('aria-label') ||
+          control.getAttribute('title')
+        ).toLowerCase();
+
+        return (
+          text === '+' ||
+          text === '＋' ||
+          /create|add new|new reservation/.test(label)
+        );
+      });
+
+      if (plusButton) {
+        return plusButton;
+      }
+    }
+
+    return null;
+  }
+
+  function removeLegacyCalendar() {
+    document
+      .querySelectorAll(
+        '#' + OLD_BUTTON_ID + ', #' + OLD_PANEL_ID
+      )
+      .forEach(function (element) {
+        element.remove();
+      });
+  }
+
+  function apply() {
+    if (applying) {
+      return;
+    }
+
+    applying = true;
+
+    try {
+      var newButton = document.getElementById(NEW_BUTTON_ID);
+      var oldButton = document.getElementById(OLD_BUTTON_ID);
+
+      if (!newButton) {
+        return;
+      }
+
+      var createButton = findCreateButton(newButton, oldButton);
+
+      if (createButton && createButton.parentElement) {
+        if (createButton.nextElementSibling !== newButton) {
+          createButton.insertAdjacentElement('afterend', newButton);
+        }
+      } else if (oldButton && oldButton.parentElement) {
+        oldButton.insertAdjacentElement('beforebegin', newButton);
+      }
+
+      removeLegacyCalendar();
+
+      newButton.hidden = false;
+      newButton.style.display = 'inline-flex';
+      newButton.removeAttribute('aria-hidden');
+
+      if (!isVisible(newButton)) {
+        newButton.style.visibility = 'visible';
+        newButton.style.opacity = '1';
+      }
+
+      newButton.setAttribute(
+        'data-pmd-single-date-authority',
+        'v4.3.1'
+      );
+
+      document.documentElement.setAttribute(
+        'data-pmd-r2-date-authority',
+        'v430'
+      );
+    } finally {
+      applying = false;
+    }
+  }
+
+  function schedule() {
+    if (scheduled) {
+      return;
+    }
+
+    scheduled = true;
+
+    window.requestAnimationFrame(function () {
+      scheduled = false;
+      apply();
+    });
+  }
+
+  function boot() {
+    apply();
+
+    var observer = new MutationObserver(function (mutations) {
+      var relevant = mutations.some(function (mutation) {
+        if (mutation.type !== 'childList') {
+          return false;
+        }
+
+        return Array.prototype.some.call(
+          mutation.addedNodes,
+          function (node) {
+            if (!node || node.nodeType !== 1) {
+              return false;
+            }
+
+            return (
+              node.id === OLD_BUTTON_ID ||
+              node.id === OLD_PANEL_ID ||
+              node.id === NEW_BUTTON_ID ||
+              (
+                node.querySelector &&
+                node.querySelector(
+                  '#' +
+                    OLD_BUTTON_ID +
+                    ',#' +
+                    OLD_PANEL_ID +
+                    ',#' +
+                    NEW_BUTTON_ID
+                )
+              )
+            );
+          }
+        );
+      });
+
+      if (relevant) {
+        schedule();
+      }
+    });
+
+    observer.observe(document.body, {
+      childList: true,
+      subtree: true
+    });
+
+    window.PMDReservations2SingleDateButtonV431 = {
+      version: '4.3.1',
+      refresh: schedule,
+      audit: function () {
+        var newButton = document.getElementById(NEW_BUTTON_ID);
+
+        return {
+          version: '4.3.1',
+          newButton: Boolean(newButton),
+          newButtonVisible: isVisible(newButton),
+          oldButton: Boolean(
+            document.getElementById(OLD_BUTTON_ID)
+          ),
+          oldPanel: Boolean(
+            document.getElementById(OLD_PANEL_ID)
+          ),
+          authority:
+            document.documentElement.getAttribute(
+              'data-pmd-r2-date-authority'
+            ),
+          previousControl:
+            newButton &&
+            newButton.previousElementSibling
+              ? clean(
+                  newButton.previousElementSibling.textContent ||
+                  newButton.previousElementSibling.getAttribute(
+                    'aria-label'
+                  )
+                )
+              : null
+        };
+      }
+    };
+
+    console.info(
+      '[PMD Reservations2 Single Date Button V4.3.1] Ready',
+      window.PMDReservations2SingleDateButtonV431.audit()
+    );
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', boot, {
+      once: true
+    });
+  } else {
+    boot();
+  }
+})();
+
+/* PMD Reservations2 header date authority V4.3.2 */
+(function () {
+  'use strict';
+
+  var route = String(window.location.pathname || '').replace(/\/+$/, '');
+
+  if (route !== '/admin/reservations2') {
+    return;
+  }
+
+  var NEW_ID = 'pmd-r2-date-button-v430';
+  var OLD_ID = 'pmd-r2-date-button-v318';
+  var OLD_PANEL_ID = 'pmd-r2-date-panel-v318';
+  var STYLE_ID = 'pmd-r2-header-date-v432-style';
+  var busy = false;
+  var queued = false;
+
+  function clean(value) {
+    return String(value == null ? '' : value)
+      .replace(/\s+/g, ' ')
+      .trim();
+  }
+
+  function installStyle() {
+    var style = document.getElementById(STYLE_ID);
+
+    if (!style) {
+      style = document.createElement('style');
+      style.id = STYLE_ID;
+      document.head.appendChild(style);
+    }
+
+    style.textContent =
+      '#' + OLD_ID + ',#' + OLD_PANEL_ID + '{display:none!important;visibility:hidden!important;opacity:0!important;pointer-events:none!important}' +
+
+      '#' + NEW_ID + '{' +
+        'position:static!important;' +
+        'inset:auto!important;' +
+        'top:auto!important;' +
+        'right:auto!important;' +
+        'bottom:auto!important;' +
+        'left:auto!important;' +
+        'transform:none!important;' +
+        'margin:0!important;' +
+        'z-index:auto!important;' +
+        'display:inline-flex!important;' +
+        'align-items:center!important;' +
+        'justify-content:center!important;' +
+        'gap:0!important;' +
+        'width:84px!important;' +
+        'height:84px!important;' +
+        'min-width:84px!important;' +
+        'max-width:84px!important;' +
+        'padding:0!important;' +
+        'border-radius:22px!important;' +
+        'box-shadow:none!important;' +
+      '}' +
+
+      '#' + NEW_ID + ' span{display:none!important}' +
+
+      '#' + NEW_ID + ' svg{' +
+        'width:38px!important;' +
+        'height:38px!important;' +
+        'margin:0!important;' +
+      '}';
+
+  }
+
+  function findCreateButton(oldButton) {
+    var parent = oldButton && oldButton.parentElement;
+
+    if (!parent) {
+      var bell =
+        document.querySelector(
+          'button[aria-label*="notification" i],button[title*="notification" i]'
+        );
+
+      parent = bell && bell.parentElement;
+    }
+
+    if (!parent) {
+      return null;
+    }
+
+    var controls = Array.prototype.slice.call(
+      parent.querySelectorAll('button,a')
+    );
+
+    return controls.find(function (control) {
+      if (control.id === NEW_ID || control.id === OLD_ID) {
+        return false;
+      }
+
+      var text = clean(control.textContent);
+      var label = clean(
+        control.getAttribute('aria-label') ||
+        control.getAttribute('title')
+      ).toLowerCase();
+
+      return (
+        text === '+' ||
+        text === '＋' ||
+        /create|add reservation|new reservation/.test(label)
+      );
+    }) || null;
+  }
+
+  function removeLegacy() {
+    document
+      .querySelectorAll('#' + OLD_ID + ',#' + OLD_PANEL_ID)
+      .forEach(function (node) {
+        node.remove();
+      });
+  }
+
+  function apply() {
+    if (busy) {
+      return;
+    }
+
+    busy = true;
+
+    try {
+      installStyle();
+
+      var newButton = document.getElementById(NEW_ID);
+      var oldButton = document.getElementById(OLD_ID);
+
+      if (!newButton) {
+        return;
+      }
+
+      var createButton = findCreateButton(oldButton);
+
+      if (
+        createButton &&
+        createButton.parentElement &&
+        createButton.nextElementSibling !== newButton
+      ) {
+        createButton.insertAdjacentElement('afterend', newButton);
+      }
+
+      newButton.hidden = false;
+      newButton.removeAttribute('aria-hidden');
+      newButton.setAttribute(
+        'data-pmd-r2-header-date-authority',
+        'v4.3.2'
+      );
+
+      removeLegacy();
+
+      document.documentElement.setAttribute(
+        'data-pmd-r2-date-authority',
+        'v430-header'
+      );
+    } finally {
+      busy = false;
+    }
+  }
+
+  function schedule() {
+    if (queued) {
+      return;
+    }
+
+    queued = true;
+
+    requestAnimationFrame(function () {
+      queued = false;
+      apply();
+    });
+  }
+
+  function boot() {
+    apply();
+
+    var observer = new MutationObserver(function () {
+      schedule();
+    });
+
+    observer.observe(document.body, {
+      childList: true,
+      subtree: true
+    });
+
+    window.setInterval(apply, 1000);
+
+    window.PMDReservations2HeaderDateV432 = {
+      refresh: apply,
+
+      audit: function () {
+        var button = document.getElementById(NEW_ID);
+        var previous = button && button.previousElementSibling;
+
+        return {
+          version: '4.3.2',
+          newButton: Boolean(button),
+          oldButton: Boolean(document.getElementById(OLD_ID)),
+          oldPanel: Boolean(document.getElementById(OLD_PANEL_ID)),
+          parentChildren:
+            button && button.parentElement
+              ? Array.prototype.map.call(
+                  button.parentElement.children,
+                  function (node) {
+                    return node.id ||
+                      clean(
+                        node.getAttribute('aria-label') ||
+                        node.getAttribute('title') ||
+                        node.textContent
+                      );
+                  }
+                )
+              : [],
+          previousControl:
+            previous
+              ? clean(
+                  previous.getAttribute('aria-label') ||
+                  previous.getAttribute('title') ||
+                  previous.textContent
+                )
+              : null,
+          position:
+            button ? getComputedStyle(button).position : null,
+          authority:
+            document.documentElement.getAttribute(
+              'data-pmd-r2-date-authority'
+            )
+        };
+      }
+    };
+
+    console.info(
+      '[PMD Reservations2 Header Date V4.3.2] Ready',
+      window.PMDReservations2HeaderDateV432.audit()
+    );
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', boot, {
+      once: true
+    });
+  } else {
+    boot();
+  }
+})();
+
+/* PMD_DATE_BUTTON_BRIDGE_V454_BEGIN */
+(function () {
+  'use strict';
+
+  var route = String(
+    window.location.pathname || ''
+  ).replace(/\/+$/, '');
+
+  if (
+    route !== '/admin/reservations' &&
+    route !== '/admin/reservations2'
+  ) {
+    return;
+  }
+
+  if (window.PMDReservations2DateButtonBridgeV454) {
+    return;
+  }
+
+  var VERSION = '4.5.4';
+
+  var VISIBLE_BUTTON_ID =
+    'pmd-r2-date-button-v430';
+
+  var WORKING_BUTTON_ID =
+    'pmd-r2-date-button-v318';
+
+  var WORKING_PANEL_ID =
+    'pmd-r2-date-panel-v318';
+
+  var UNUSED_PANEL_ID =
+    'pmd-r2-date-filter-v317';
+
+  var STYLE_ID =
+    'pmd-r2-date-button-bridge-v454-style';
+
+  var workingButtonObserver = null;
+  var pageObserver = null;
+  var applying = false;
+
+  function visibleButton() {
+    return document.getElementById(
+      VISIBLE_BUTTON_ID
+    );
+  }
+
+  function workingButton() {
+    return document.getElementById(
+      WORKING_BUTTON_ID
+    );
+  }
+
+  function workingPanel() {
+    return document.getElementById(
+      WORKING_PANEL_ID
+    );
+  }
+
+  function closeUnusedPanel() {
+    var panel = document.getElementById(
+      UNUSED_PANEL_ID
+    );
+
+    if (!panel) {
+      return;
+    }
+
+    panel.classList.remove('is-open');
+    panel.setAttribute('aria-hidden', 'true');
+  }
+
+  function hideWorkingButtonOnly() {
+    var button = workingButton();
+
+    if (!button) {
+      return null;
+    }
+
+    /*
+     * دکمه مخفی می‌شود، ولی:
+     * - حذف نمی‌شود
+     * - disabled نمی‌شود
+     * - پنل آن مخفی نمی‌شود
+     * بنابراین button.click() همچنان کار می‌کند.
+     */
+    button.hidden = true;
+
+    button.style.setProperty(
+      'display',
+      'none',
+      'important'
+    );
+
+    button.style.setProperty(
+      'visibility',
+      'hidden',
+      'important'
+    );
+
+    button.style.setProperty(
+      'opacity',
+      '0',
+      'important'
+    );
+
+    button.style.setProperty(
+      'position',
+      'absolute',
+      'important'
+    );
+
+    button.style.setProperty(
+      'left',
+      '-99999px',
+      'important'
+    );
+
+    button.setAttribute(
+      'aria-hidden',
+      'true'
+    );
+
+    button.setAttribute(
+      'tabindex',
+      '-1'
+    );
+
+    button.setAttribute(
+      'data-pmd-working-date-trigger',
+      'v454'
+    );
+
+    return button;
+  }
+
+  function syncExpandedState() {
+    var visible = visibleButton();
+    var working = workingButton();
+
+    if (!visible || !working) {
+      return;
+    }
+
+    visible.setAttribute(
+      'aria-expanded',
+      working.getAttribute(
+        'aria-expanded'
+      ) === 'true'
+        ? 'true'
+        : 'false'
+    );
+  }
+
+  function connectWorkingButtonObserver() {
+    var working = workingButton();
+
+    if (!working) {
+      return;
+    }
+
+    if (
+      workingButtonObserver &&
+      workingButtonObserver.__pmdTarget === working
+    ) {
+      return;
+    }
+
+    if (workingButtonObserver) {
+      workingButtonObserver.disconnect();
+    }
+
+    workingButtonObserver =
+      new MutationObserver(function () {
+        syncExpandedState();
+      });
+
+    workingButtonObserver.__pmdTarget =
+      working;
+
+    workingButtonObserver.observe(
+      working,
+      {
+        attributes: true,
+        attributeFilter: [
+          'aria-expanded'
+        ]
+      }
+    );
+  }
+
+  function apply() {
+    if (applying) {
+      return;
+    }
+
+    applying = true;
+
+    try {
+      var visible = visibleButton();
+      var working = hideWorkingButtonOnly();
+      var panel = workingPanel();
+
+      closeUnusedPanel();
+
+      if (panel) {
+        /*
+         * پنل سالم V318 را مخفی یا حذف نمی‌کنیم.
+         */
+        panel.removeAttribute('aria-hidden');
+
+        panel.setAttribute(
+          'data-pmd-date-panel-authority',
+          'v454'
+        );
+      }
+
+      if (!visible) {
+        return;
+      }
+
+      visible.setAttribute(
+        'aria-haspopup',
+        'dialog'
+      );
+
+      visible.setAttribute(
+        'aria-controls',
+        WORKING_PANEL_ID
+      );
+
+      visible.setAttribute(
+        'aria-label',
+        'Reservation date range'
+      );
+
+      visible.setAttribute(
+        'data-pmd-date-button-authority',
+        'bridge-v454'
+      );
+
+      if (working) {
+        syncExpandedState();
+        connectWorkingButtonObserver();
+      }
+    } finally {
+      applying = false;
+    }
+  }
+
+  document.addEventListener(
+    'click',
+    function (event) {
+      var visible = event.target.closest(
+        '#' + VISIBLE_BUTTON_ID
+      );
+
+      if (!visible) {
+        return;
+      }
+
+      /*
+       * Handler اصلی V430 که پنل V317 را باز می‌کند
+       * متوقف می‌شود؛ سپس همان دکمه سالم V318
+       * به‌صورت برنامه‌ای کلیک می‌شود.
+       */
+      event.preventDefault();
+      event.stopPropagation();
+      event.stopImmediatePropagation();
+
+      closeUnusedPanel();
+
+      var working = hideWorkingButtonOnly();
+      var panel = workingPanel();
+
+      if (!working || !panel) {
+        console.warn(
+          '[PMD Date Button Bridge V4.5.4] ' +
+          'Working V318 button or panel not found.',
+          {
+            workingButton: Boolean(working),
+            workingPanel: Boolean(panel)
+          }
+        );
+
+        return;
+      }
+
+      working.click();
+
+      window.requestAnimationFrame(
+        function () {
+          syncExpandedState();
+
+          panel.setAttribute(
+            'data-pmd-opened-by',
+            VISIBLE_BUTTON_ID
+          );
+        }
+      );
+    },
+    true
+  );
+
+  function boot() {
+    [
+      'pmd-r2-date-button-proxy-v451-style',
+      'pmd-r2-date-button-functional-v452-style',
+      'pmd-r2-date-button-native-v453-style'
+    ].forEach(function (id) {
+      var style = document.getElementById(id);
+
+      if (style) {
+        style.remove();
+      }
+    });
+
+    if (!document.getElementById(STYLE_ID)) {
+      var style =
+        document.createElement('style');
+
+      style.id = STYLE_ID;
+
+      /*
+       * فقط دکمه V318 مخفی می‌شود.
+       * هیچ CSSای به پنل V318 اعمال نمی‌شود.
+       */
+      style.textContent =
+        '#' + WORKING_BUTTON_ID + '{' +
+          'display:none!important;' +
+          'visibility:hidden!important;' +
+          'opacity:0!important;' +
+          'position:absolute!important;' +
+          'left:-99999px!important;' +
+        '}';
+
+      document.head.appendChild(style);
+    }
+
+    apply();
+
+    pageObserver =
+      new MutationObserver(function (mutations) {
+        var relevant = mutations.some(
+          function (mutation) {
+            return Array.prototype.some.call(
+              mutation.addedNodes,
+              function (node) {
+                if (
+                  !node ||
+                  node.nodeType !== 1
+                ) {
+                  return false;
+                }
+
+                return (
+                  node.id === VISIBLE_BUTTON_ID ||
+                  node.id === WORKING_BUTTON_ID ||
+                  node.id === WORKING_PANEL_ID ||
+                  (
+                    node.querySelector &&
+                    node.querySelector(
+                      '#' + VISIBLE_BUTTON_ID +
+                      ',#' + WORKING_BUTTON_ID +
+                      ',#' + WORKING_PANEL_ID
+                    )
+                  )
+                );
+              }
+            );
+          }
+        );
+
+        if (relevant) {
+          window.requestAnimationFrame(
+            apply
+          );
+        }
+      });
+
+    pageObserver.observe(
+      document.body,
+      {
+        childList: true,
+        subtree: true
+      }
+    );
+
+    window.PMDReservations2DateButtonBridgeV454 = {
+      version: VERSION,
+
+      refresh: apply,
+
+      audit: function () {
+        var visible = visibleButton();
+        var working = workingButton();
+        var panel = workingPanel();
+
+        return {
+          version: VERSION,
+          visibleButton: Boolean(visible),
+          workingButton: Boolean(working),
+          workingButtonHidden: Boolean(
+            working &&
+            getComputedStyle(working)
+              .display === 'none'
+          ),
+          workingPanel: Boolean(panel),
+          workingPanelControls: panel
+            ? panel.querySelectorAll(
+                'button, input, select'
+              ).length
+            : 0,
+          expanded:
+            visible &&
+            visible.getAttribute(
+              'aria-expanded'
+            ),
+          authority:
+            visible &&
+            visible.getAttribute(
+              'data-pmd-date-button-authority'
+            )
+        };
+      }
+    };
+
+    console.info(
+      '[PMD Reservations2 Date Button Bridge V4.5.4] Ready',
+      window
+        .PMDReservations2DateButtonBridgeV454
+        .audit()
+    );
+  }
+
+  if (
+    document.readyState === 'loading'
+  ) {
+    document.addEventListener(
+      'DOMContentLoaded',
+      boot,
+      { once: true }
+    );
+  } else {
+    boot();
+  }
+})();
+/* PMD_DATE_BUTTON_BRIDGE_V454_END */

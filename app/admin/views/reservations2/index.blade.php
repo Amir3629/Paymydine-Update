@@ -189,6 +189,92 @@ window.PMD_RESERVATIONS2_BOOT = {
 
     <!-- PMD_R2_SHARED_FLOOR_CANVAS_V310_END -->
 
+<!-- PMD_R2_WAITER_CARDS_V1_BEGIN -->
+
+<link
+    rel="stylesheet"
+    href="/app/admin/assets/css/pmd-reservations-waiter-cards-v1.css?v=20260725-1"
+>
+
+<section
+    id="pmd-r2-waiter-cards-v1"
+    aria-label="Live waiter table cards"
+>
+    <div class="pmd-r2-waiter-cards-v1__shell">
+
+        <header class="pmd-r2-waiter-cards-v1__header">
+            <div class="pmd-r2-waiter-cards-v1__heading">
+                <h2>Live Tables & Orders</h2>
+                <p>
+                    The same live table cards and actions used by
+                    the Waiter Dashboard
+                </p>
+            </div>
+
+            <div class="pmd-r2-waiter-cards-v1__actions">
+                <button
+                    type="button"
+                    class="pmd-r2-waiter-cards-v1__button"
+                    data-pmd-r2-waiter-cards-refresh
+                >
+                    Refresh
+                </button>
+            </div>
+        </header>
+
+        <div
+            class="pmd-r2-waiter-cards-v1__viewport"
+            data-pmd-r2-waiter-cards-viewport
+        >
+            <div
+                class="pmd-r2-waiter-cards-v1__loading"
+                data-pmd-r2-waiter-cards-loading
+            >
+                <div class="pmd-r2-waiter-cards-v1__loading-inner">
+                    <div class="pmd-r2-waiter-cards-v1__spinner"></div>
+                    Loading live Waiter Dashboard cards…
+                </div>
+            </div>
+
+            <div
+                class="pmd-r2-waiter-cards-v1__error"
+                data-pmd-r2-waiter-cards-error
+                hidden
+            >
+                <div class="pmd-r2-waiter-cards-v1__error-inner">
+                    <strong
+                        class="pmd-r2-waiter-cards-v1__error-title"
+                    >
+                        Waiter cards unavailable
+                    </strong>
+
+                    <span
+                        data-pmd-waiter-cards-error-message
+                    >
+                        The Waiter Dashboard card area could not
+                        be loaded.
+                    </span>
+                </div>
+            </div>
+
+            <iframe
+                id="pmd-r2-waiter-cards-frame-v1"
+                class="pmd-r2-waiter-cards-v1__frame"
+                src="/admin/dashboardwaiter?pmd_reservations_cards=1"
+                title="Live Waiter Dashboard table cards"
+                loading="eager"
+            ></iframe>
+        </div>
+    </div>
+</section>
+
+<script
+    src="/app/admin/assets/js/pmd-reservations-waiter-cards-v1.js?v=20260725-1"
+    defer
+></script>
+
+<!-- PMD_R2_WAITER_CARDS_V1_END -->
+
 <!-- PMD_R2_FLOOR_TOOLBAR_V313_START -->
 
 <script>
@@ -455,7 +541,7 @@ window.PMD_RESERVATIONS2_BOOT = {
 <link rel="stylesheet"
       href="{{ asset('app/admin/assets/css/pmd-reservations2-floor-toolbar-v316.css') }}?v=20260722_235352">
 <script defer
-        src="{{ asset('app/admin/assets/js/pmd-reservations2-floor-toolbar-v316.js') }}?v=20260722_235352"></script>
+        src="{{ asset('app/admin/assets/js/pmd-reservations2-floor-toolbar-v316.js') }}?v=emergency-rollback-20260726_082256"></script>
 <!-- PMD_R2_FLOOR_TOOLBAR_V316_END -->
 
 
@@ -482,3 +568,165 @@ window.PMD_RESERVATIONS2_BOOT = {
 ></script>
 <script defer src="/app/admin/assets/js/pmd-reservations2-stability-v3.js?v=3.0.0-20260725_084550"></script>
 <!-- PMD_R2_EMBEDDED_CALENDAR_TOGGLE_V1_END -->
+
+{{-- PMD_RESERVATIONS_CANONICAL_BROWSER_URL_V1_BEGIN --}}
+<script>
+(function () {
+    'use strict';
+
+    var currentPath = String(
+        window.location.pathname || ''
+    ).replace(/\/+$/, '');
+
+    if (currentPath !== '/admin/reservations2') {
+        return;
+    }
+
+    var canonicalUrl =
+        '/admin/reservations' +
+        window.location.search +
+        window.location.hash;
+
+    window.history.replaceState(
+        window.history.state,
+        document.title,
+        canonicalUrl
+    );
+
+    console.info(
+        '[PMD Reservations Canonical URL V1] Browser URL changed to',
+        canonicalUrl
+    );
+})();
+</script>
+{{-- PMD_RESERVATIONS_CANONICAL_BROWSER_URL_V1_END --}}
+
+{{-- PMD_RESERVATIONS_SCROLL_UNLOCK_V1_BEGIN --}}
+<style id="pmd-reservations-scroll-unlock-v1">
+html,
+body {
+    height: auto !important;
+    min-height: 100% !important;
+    max-height: none !important;
+    overflow-y: auto !important;
+}
+
+body {
+    position: relative !important;
+}
+
+#pmd-reservations2,
+.pmd-r2 {
+    height: auto !important;
+    min-height: 100vh !important;
+    max-height: none !important;
+    overflow: visible !important;
+}
+</style>
+
+<script>
+(function () {
+    'use strict';
+
+    function unlockReservationsScroll() {
+        var html = document.documentElement;
+        var body = document.body;
+        var root = document.getElementById('pmd-reservations2');
+
+        if (html) {
+            html.style.setProperty(
+                'overflow-y',
+                'auto',
+                'important'
+            );
+
+            html.style.setProperty(
+                'height',
+                'auto',
+                'important'
+            );
+
+            html.style.setProperty(
+                'max-height',
+                'none',
+                'important'
+            );
+        }
+
+        if (body) {
+            body.style.setProperty(
+                'overflow-y',
+                'auto',
+                'important'
+            );
+
+            body.style.setProperty(
+                'height',
+                'auto',
+                'important'
+            );
+
+            body.style.setProperty(
+                'max-height',
+                'none',
+                'important'
+            );
+        }
+
+        if (root) {
+            root.style.setProperty(
+                'height',
+                'auto',
+                'important'
+            );
+
+            root.style.setProperty(
+                'max-height',
+                'none',
+                'important'
+            );
+
+            root.style.setProperty(
+                'overflow',
+                'visible',
+                'important'
+            );
+        }
+    }
+
+    unlockReservationsScroll();
+
+    window.addEventListener(
+        'load',
+        unlockReservationsScroll
+    );
+
+    setTimeout(unlockReservationsScroll, 100);
+    setTimeout(unlockReservationsScroll, 500);
+    setTimeout(unlockReservationsScroll, 1500);
+
+    console.info(
+        '[PMD Reservations Scroll Unlock V1] Active'
+    );
+})();
+</script>
+{{-- PMD_RESERVATIONS_SCROLL_UNLOCK_V1_END --}}
+
+<!-- PMD_FINAL_FLOOR_UI_V466_BEGIN -->
+<script
+    src="{{ asset('app/admin/assets/js/pmd-reservations2-final-floor-ui-v466.js') }}?v=20260726_082858"
+    defer
+></script>
+<!-- PMD_FINAL_FLOOR_UI_V466_END -->
+<!-- PMD_KPI_TABLE_COLORS_V467_BEGIN -->
+<script
+    src="{{ asset('app/admin/assets/js/pmd-reservations2-kpi-table-colors-v467.js?v=stable-after-toggle-rollback-20260726_090209') }}?v=kpi-table-v468-20260726_083754"
+    defer
+></script>
+<!-- PMD_KPI_TABLE_COLORS_V467_END -->
+<!-- PMD_NATIVE_EDIT_SAVE_V471_BEGIN -->
+<script
+    src="{{ asset('app/admin/assets/js/pmd-reservations2-native-edit-save-v471.js') }}?v=20260726_090652"
+    defer
+></script>
+<!-- PMD_NATIVE_EDIT_SAVE_V471_END -->
