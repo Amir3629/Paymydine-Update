@@ -41,37 +41,73 @@
   }
 
   function fetchJson(url, options) {
+    var requestOptions =
+      Object.assign({}, options || {});
+
+    var headers =
+      Object.assign(
+        {
+          Accept: 'application/json',
+          'Content-Type': 'application/json',
+          'X-Requested-With':
+            'XMLHttpRequest'
+        },
+        requestOptions.headers || {}
+      );
+
+    var csrfToken =
+      document.querySelector(
+        'meta[name="csrf-token"]'
+      );
+
+    if (csrfToken && csrfToken.content) {
+      headers['X-CSRF-TOKEN'] =
+        csrfToken.content;
+    }
+
+    requestOptions.headers = headers;
+
     return fetch(
       url,
       Object.assign(
         {
           credentials: 'same-origin',
-          cache: 'no-store',
-
-          headers: {
-            Accept: 'application/json',
-            'Content-Type': 'application/json',
-            'X-Requested-With':
-              'XMLHttpRequest'
-          }
+          cache: 'no-store'
         },
-        options || {}
+        requestOptions
       )
     ).then(function (response) {
-      return response
-        .json()
-        .catch(function () {
-          return {};
-        })
-        .then(function (payload) {
+      return response.text()
+        .then(function (body) {
+          var payload = {};
+
+          if (body) {
+            try {
+              payload = JSON.parse(body);
+            } catch (error) {
+              payload = {
+                message: body
+              };
+            }
+          }
+
           if (
             !response.ok ||
             payload.ok === false
           ) {
-            throw new Error(
+            var requestError = new Error(
               payload.message ||
+              body ||
               'HTTP ' + response.status
             );
+
+            requestError.status =
+              response.status;
+
+            requestError.responseBody =
+              body;
+
+            throw requestError;
           }
 
           return payload;
@@ -213,6 +249,8 @@
 
       active: null,
       drag: null,
+      saving: false,
+      saveSequence: 0,
 
       toastTimer: null
     };
@@ -1779,6 +1817,27 @@ function restoreFloorCoordinates(snapshot) {
 
 
 function saveLayout() {
+      if (state.saving) {
+        console.warn(
+          '[PMD Floor] Save ignored: request already in flight'
+        );
+
+        return Promise.resolve(null);
+      }
+
+      state.saving = true;
+      state.saveSequence += 1;
+
+      var saveControls =
+        root.querySelectorAll(
+          '[data-floor-save], ' +
+          '[data-pmd-r2-tool="edit"]'
+        );
+
+      saveControls.forEach(function (control) {
+        control.disabled = true;
+      });
+
       var tables =
         state.tables.map(
           function (table) {
@@ -1800,6 +1859,20 @@ function saveLayout() {
             };
           }
         );
+
+      console.info(
+        '[PMD Floor] Saving layout',
+        {
+          sequence: state.saveSequence,
+          endpoint: layoutUrl,
+          csrfFound: Boolean(
+            document.querySelector(
+              'meta[name="csrf-token"]'
+            )
+          ),
+          tables: tables.length
+        }
+      );
 
       return fetchJson(
         layoutUrl,
@@ -1881,8 +1954,32 @@ function saveLayout() {
 
           console.error(
             '[PMD Floor] Layout save failed',
-            error
+            {
+              sequence:
+                state.saveSequence,
+              endpoint: layoutUrl,
+              csrfFound: Boolean(
+                document.querySelector(
+                  'meta[name="csrf-token"]'
+                )
+              ),
+              status:
+                error.status || null,
+              response:
+                error.responseBody ||
+                error.message,
+              error: error
+            }
           );
+        })
+        .then(function (payload) {
+          state.saving = false;
+
+          saveControls.forEach(function (control) {
+            control.disabled = false;
+          });
+
+          return payload;
         });
     }
 
