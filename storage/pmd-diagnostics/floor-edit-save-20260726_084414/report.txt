@@ -3355,4 +3355,4 @@ Configuration cache cleared!
 ================================================
 
 ✅ No V469/V470 reference remains
-[?2004h]0;ubuntu@vps-252f1bc4: /var/www/paymydine[01;32mubuntu@vps-252f1bc4[00m:[01;34m/var/www/paymydine[00m$ 
+[?2004h]0;ubuntu@vps-252f1bc4: /var/www/paymydine[01;32mubuntu@vps-252f1bc4[00m:[01;34m/var/www/paymydine[00m$ [?2004l[?2004l

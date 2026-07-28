@@ -423,11 +423,11 @@ window.PMD_RESERVATIONS2_BOOT = {
 >
 <link
   rel="stylesheet"
-  href="/app/admin/assets/css/pmd-reservations2-floor-canvas-v310.css?v=20260722_125201"
+  href="/app/admin/assets/css/pmd-reservations2-floor-canvas-v310.css?v=kpi-direct-20260727_183227"
 >
 
 <script
-  src="/app/admin/assets/js/pmd-floor-v1.js?v=pmd-r2-v310"
+  src="/app/admin/assets/js/pmd-floor-v1.js?v=safe-v3-20260727_122329"
   defer
 ></script>
 <script
@@ -541,7 +541,7 @@ window.PMD_RESERVATIONS2_BOOT = {
 <link rel="stylesheet"
       href="{{ asset('app/admin/assets/css/pmd-reservations2-floor-toolbar-v316.css') }}?v=20260722_235352">
 <script defer
-        src="{{ asset('app/admin/assets/js/pmd-reservations2-floor-toolbar-v316.js') }}?v=emergency-rollback-20260726_082256"></script>
+        src="{{ asset('app/admin/assets/js/pmd-reservations2-floor-toolbar-v316.js?v=range-colors-20260727_180733') }}?v=emergency-rollback-20260726_082256"></script>
 <!-- PMD_R2_FLOOR_TOOLBAR_V316_END -->
 
 
@@ -561,10 +561,10 @@ window.PMD_RESERVATIONS2_BOOT = {
 <link rel="stylesheet" href="/app/admin/assets/css/pmd-reservations2-stability-v3.css?v=3.0.0-20260725_084550">
 <link
   rel="stylesheet"
-  href="/app/admin/assets/css/pmd-reservations2-calendar-toggle-v1.css?v=1.19.0-20260724_223035"
+  href="/app/admin/assets/css/pmd-reservations2-calendar-toggle-v1.css?v=timeslot-20260728_125754"
 >
 <script
-  src="/app/admin/assets/js/pmd-reservations2-calendar-toggle-v1.js?v=1.16.0-20260724_212035"
+  src="/app/admin/assets/js/pmd-reservations2-calendar-toggle-v1.js?v=direct-render-20260728_143811"
 ></script>
 <script defer src="/app/admin/assets/js/pmd-reservations2-stability-v3.js?v=3.0.0-20260725_084550"></script>
 <!-- PMD_R2_EMBEDDED_CALENDAR_TOGGLE_V1_END -->
@@ -720,13 +720,467 @@ body {
 <!-- PMD_FINAL_FLOOR_UI_V466_END -->
 <!-- PMD_KPI_TABLE_COLORS_V467_BEGIN -->
 <script
-    src="{{ asset('app/admin/assets/js/pmd-reservations2-kpi-table-colors-v467.js?v=stable-after-toggle-rollback-20260726_090209') }}?v=kpi-table-v468-20260726_083754"
+    src="/app/admin/assets/js/pmd-reservations2-kpi-table-colors-v467.js?v=inline-semantic-20260727_184517"
     defer
 ></script>
 <!-- PMD_KPI_TABLE_COLORS_V467_END -->
-<!-- PMD_NATIVE_EDIT_SAVE_V471_BEGIN -->
-<script
-    src="{{ asset('app/admin/assets/js/pmd-reservations2-native-edit-save-v471.js') }}?v=20260726_090652"
-    defer
-></script>
-<!-- PMD_NATIVE_EDIT_SAVE_V471_END -->
+
+
+<!-- PMD_ONE_ROW_HIDE_CONTROLS_V1 -->
+<style>
+/*
+ * Presentation only:
+ * hide Edit/Save, zoom-out, Full Floor/Fit and zoom-in
+ * while the native floor engine is in One row mode.
+ *
+ * The One row control itself remains visible.
+ */
+[data-pmd-floor] [data-pmd-r2-tool="edit"],
+[data-pmd-floor] [data-pmd-r2-tool="zoom-out"],
+[data-pmd-floor] [data-pmd-r2-tool="fit"],
+[data-pmd-floor] [data-pmd-r2-tool="zoom-in"] {
+    opacity: 1;
+    visibility: visible;
+    pointer-events: auto;
+    transform: translateY(0);
+    transition:
+        opacity 180ms ease,
+        visibility 180ms ease,
+        transform 180ms ease;
+}
+
+[data-pmd-floor].is-strip-mode
+    [data-pmd-r2-tool="edit"],
+[data-pmd-floor].is-strip-mode
+    [data-pmd-r2-tool="zoom-out"],
+[data-pmd-floor].is-strip-mode
+    [data-pmd-r2-tool="fit"],
+[data-pmd-floor].is-strip-mode
+    [data-pmd-r2-tool="zoom-in"] {
+    opacity: 0 !important;
+    visibility: hidden !important;
+    pointer-events: none !important;
+    transform: translateY(-5px) !important;
+}
+</style>
+<!-- PMD_ONE_ROW_HIDE_CONTROLS_V1_END -->
+<!-- PMD_FLOOR_NO_JUMP_EXPANDED_AREA_V2 -->
+<style>
+/*
+ * During a repeated One-row transition, hide only the canvas
+ * until the canonical strip geometry has been restored.
+ */
+[data-pmd-floor].pmd-strip-restoring-v2
+[data-floor-canvas] {
+    visibility: hidden !important;
+}
+</style>
+
+<script>
+(function () {
+    'use strict';
+
+    var root = document.querySelector(
+        '[data-pmd-floor]'
+    );
+
+    if (!root) return;
+
+    var scroll = root.querySelector(
+        '[data-floor-scroll]'
+    );
+
+    var canvas = root.querySelector(
+        '[data-floor-canvas]'
+    );
+
+    if (!scroll || !canvas) return;
+
+    var canonicalStrip = null;
+    var enteringStripWithCache = false;
+    var transitionId = 0;
+
+    function tables() {
+        return Array.prototype.slice.call(
+            root.querySelectorAll(
+                '[data-floor-table]'
+            )
+        );
+    }
+
+    function captureStripGeometry() {
+        return {
+            canvasStyle:
+                canvas.getAttribute('style'),
+
+            scrollStyle:
+                scroll.getAttribute('style'),
+
+            tables:
+                tables().map(function (table) {
+                    return {
+                        id:
+                            table.getAttribute(
+                                'data-floor-table'
+                            ),
+
+                        style:
+                            table.getAttribute(
+                                'style'
+                            )
+                    };
+                })
+        };
+    }
+
+    function restoreElementStyle(
+        element,
+        styleValue
+    ) {
+        if (styleValue === null) {
+            element.removeAttribute('style');
+        } else {
+            element.setAttribute(
+                'style',
+                styleValue
+            );
+        }
+    }
+
+    function restoreCanonicalStrip() {
+        if (
+            !canonicalStrip ||
+            !root.classList.contains(
+                'is-strip-mode'
+            )
+        ) {
+            return false;
+        }
+
+        var byId = {};
+
+        canonicalStrip.tables.forEach(
+            function (item) {
+                byId[item.id] = item.style;
+            }
+        );
+
+        tables().forEach(function (table) {
+            var id =
+                table.getAttribute(
+                    'data-floor-table'
+                );
+
+            if (
+                !Object.prototype.hasOwnProperty.call(
+                    byId,
+                    id
+                )
+            ) {
+                return;
+            }
+
+            restoreElementStyle(
+                table,
+                byId[id]
+            );
+        });
+
+        restoreElementStyle(
+            canvas,
+            canonicalStrip.canvasStyle
+        );
+
+        restoreElementStyle(
+            scroll,
+            canonicalStrip.scrollStyle
+        );
+
+        scroll.scrollLeft = 0;
+        scroll.scrollTop = 0;
+
+        return true;
+    }
+
+    function fullFloorDimensions() {
+        /*
+         * Use the real visible floor width, not the old
+         * hardcoded 1000px canvas width.
+         */
+        var width = Math.max(
+            1000,
+            scroll.clientWidth
+        );
+
+        /*
+         * Root contains the toolbar above the floor.
+         * Calculate the remaining visible vertical area.
+         */
+        var rootRect =
+            root.getBoundingClientRect();
+
+        var scrollRect =
+            scroll.getBoundingClientRect();
+
+        var remainingHeight =
+            rootRect.bottom -
+            scrollRect.top -
+            12;
+
+        var height = Math.max(
+            560,
+            Math.round(remainingHeight)
+        );
+
+        return {
+            width: width,
+            height: height
+        };
+    }
+
+    function expandFullFloorArea() {
+        if (
+            root.classList.contains(
+                'is-strip-mode'
+            )
+        ) {
+            return;
+        }
+
+        var size =
+            fullFloorDimensions();
+
+        scroll.style.setProperty(
+            '--floor-zoom',
+            '1'
+        );
+
+        scroll.style.height =
+            size.height + 'px';
+
+        scroll.style.minHeight =
+            size.height + 'px';
+
+        scroll.style.maxHeight =
+            size.height + 'px';
+
+        scroll.style.overflow = 'auto';
+
+        canvas.style.width =
+            size.width + 'px';
+
+        canvas.style.minWidth =
+            size.width + 'px';
+
+        canvas.style.height =
+            size.height + 'px';
+
+        canvas.style.minHeight =
+            size.height + 'px';
+
+        canvas.style.transform =
+            'scale(1)';
+
+        canvas.style.transformOrigin =
+            '0 0';
+    }
+
+    function finishStripTransition(id) {
+        if (
+            id !== transitionId ||
+            !root.classList.contains(
+                'is-strip-mode'
+            )
+        ) {
+            return;
+        }
+
+        if (canonicalStrip) {
+            restoreCanonicalStrip();
+
+            root.classList.remove(
+                'pmd-strip-restoring-v2'
+            );
+        }
+    }
+
+    function scheduleCachedStripRestore() {
+        var id = ++transitionId;
+
+        /*
+         * Restore before the browser paints the wrong
+         * repeated One-row geometry.
+         */
+        requestAnimationFrame(function () {
+            restoreCanonicalStrip();
+
+            requestAnimationFrame(
+                function () {
+                    finishStripTransition(id);
+                }
+            );
+        });
+
+        [
+            0,
+            20,
+            50,
+            90,
+            150
+        ].forEach(function (delay) {
+            setTimeout(function () {
+                finishStripTransition(id);
+            }, delay);
+        });
+    }
+
+    function scheduleFirstStripCapture() {
+        var id = ++transitionId;
+
+        /*
+         * Only the first One-row activation needs to wait
+         * for the native engine, because there is no cached
+         * canonical geometry yet.
+         */
+        setTimeout(function () {
+            if (
+                id !== transitionId ||
+                !root.classList.contains(
+                    'is-strip-mode'
+                ) ||
+                canonicalStrip
+            ) {
+                return;
+            }
+
+            canonicalStrip =
+                captureStripGeometry();
+
+            console.log(
+                '[PMD V2] Canonical One-row geometry captured'
+            );
+        }, 500);
+    }
+
+    function scheduleFullExpansion() {
+        /*
+         * Intentionally empty.
+         *
+         * The real pmd-floor-v1 engine now owns Full Floor width,
+         * height, zoom and drag bounds.
+         *
+         * This V2 patch remains responsible only for the excellent
+         * no-flash One-row restoration.
+         *
+         * Writing canvas.style.width/height here would remove the
+         * engine's inline !important priority and allow legacy CSS
+         * to force the canvas back to 1000x560.
+         */
+    }
+
+    /*
+     * Capture phase runs before the native One-row handler.
+     * On repeated entries, hide the canvas before the native
+     * incorrect intermediate geometry becomes visible.
+     */
+    root.addEventListener(
+        'click',
+        function (event) {
+            var stripButton =
+                event.target.closest(
+                    '[data-pmd-r2-tool="strip"],' +
+                    '[data-floor-strip]'
+                );
+
+            if (!stripButton) return;
+
+            var entering =
+                !root.classList.contains(
+                    'is-strip-mode'
+                );
+
+            enteringStripWithCache =
+                entering &&
+                Boolean(canonicalStrip);
+
+            if (enteringStripWithCache) {
+                root.classList.add(
+                    'pmd-strip-restoring-v2'
+                );
+            }
+        },
+        true
+    );
+
+    var previousStrip =
+        root.classList.contains(
+            'is-strip-mode'
+        );
+
+    var observer = new MutationObserver(
+        function () {
+            var currentStrip =
+                root.classList.contains(
+                    'is-strip-mode'
+                );
+
+            if (
+                currentStrip ===
+                previousStrip
+            ) {
+                return;
+            }
+
+            if (currentStrip) {
+                if (
+                    canonicalStrip ||
+                    enteringStripWithCache
+                ) {
+                    scheduleCachedStripRestore();
+                } else {
+                    scheduleFirstStripCapture();
+                }
+            } else {
+                root.classList.remove(
+                    'pmd-strip-restoring-v2'
+                );
+
+                scheduleFullExpansion();
+            }
+
+            enteringStripWithCache = false;
+            previousStrip = currentStrip;
+        }
+    );
+
+    observer.observe(root, {
+        attributes: true,
+        attributeFilter: ['class']
+    });
+
+    /*
+     * Ensure the initial Full Floor uses all available area.
+     */
+    if (!previousStrip) {
+        scheduleFullExpansion();
+    }
+
+    window.addEventListener(
+        'resize',
+        function () {
+            if (
+                !root.classList.contains(
+                    'is-strip-mode'
+                )
+            ) {
+                expandFullFloorArea();
+            }
+        }
+    );
+
+    console.log(
+        '[PMD V2] No-jump strip and expanded drag area active'
+    );
+})();
+</script>
+<!-- PMD_FLOOR_NO_JUMP_EXPANDED_AREA_V2_END -->

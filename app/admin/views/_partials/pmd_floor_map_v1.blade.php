@@ -59,14 +59,26 @@
             <div class="pmd-floor-v1__canvas" data-floor-canvas></div>
         </div>
 
-        <aside class="pmd-floor-v1__guide" data-floor-guide-card hidden>
-            <div><strong>Floor guide</strong><button type="button" data-floor-guide-close aria-label="Close">×</button></div>
-            <p><i class="is-available"></i> Available</p>
-            <p><i class="is-occupied"></i> Occupied / open order</p>
-            <p><i class="is-reserved"></i> Reserved</p>
-            <p><i class="is-cleaning"></i> Needs cleaning</p>
-            <p><i class="is-attention"></i> Waiter call, note or ready item</p>
-            <small>Edit mode lets you drag tables. Merge mode joins selected tables.</small>
+        <aside
+            class="pmd-floor-v1__guide"
+            data-floor-guide-card
+            aria-label="Floor guide"
+            hidden
+        >
+            <p data-floor-guide-status="available">
+                <i class="is-available"></i>
+                Available
+            </p>
+
+            <p data-floor-guide-status="range-reservation">
+                <i class="is-range-reservation"></i>
+                Reserved in selected date range
+            </p>
+
+            <p data-floor-guide-status="occupied">
+                <i class="is-occupied"></i>
+                Occupied / open order
+            </p>
         </aside>
     </div>
 

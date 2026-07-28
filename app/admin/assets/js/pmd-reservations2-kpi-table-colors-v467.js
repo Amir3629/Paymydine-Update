@@ -673,3 +673,333 @@
     boot();
   }
 })();
+
+/* PMD_KPI_ORDER_SAFE_V3
+ * فقط خود چهار کارت جابه‌جا می‌شوند؛
+ * محتوا و data binding سالم می‌ماند.
+ */
+(function () {
+  'use strict';
+
+  var attempts = 0;
+
+  function cardFromValue(node) {
+    if (!node) {
+      return null;
+    }
+
+    var current = node;
+
+    while (
+      current.parentElement &&
+      current.parentElement !==
+        document.body
+    ) {
+      var parent =
+        current.parentElement;
+
+      var count =
+        parent.querySelectorAll(
+          '[data-r2-v308-value]'
+        ).length;
+
+      if (count !== 1) {
+        break;
+      }
+
+      current = parent;
+    }
+
+    return current;
+  }
+
+  function applyOrder() {
+    attempts += 1;
+
+    var free =
+      cardFromValue(
+        document.querySelector(
+          '[data-r2-v308-value="pending"]'
+        )
+      );
+
+    var upcoming =
+      cardFromValue(
+        document.querySelector(
+          '[data-r2-v308-value="upcoming"]'
+        )
+      );
+
+    var today =
+      cardFromValue(
+        document.querySelector(
+          '[data-r2-v308-value="today"]'
+        )
+      );
+
+    var tables =
+      cardFromValue(
+        document.querySelector(
+          '[data-r2-v308-value="tables"]'
+        )
+      );
+
+    var cards = [
+      free,
+      upcoming,
+      today,
+      tables
+    ];
+
+    if (
+      cards.some(
+        function (card) {
+          return !card;
+        }
+      )
+    ) {
+      if (attempts < 20) {
+        window.setTimeout(
+          applyOrder,
+          120
+        );
+      }
+
+      return;
+    }
+
+    var parent =
+      cards[0].parentElement;
+
+    if (
+      !parent ||
+      cards.some(
+        function (card) {
+          return (
+            card.parentElement !==
+            parent
+          );
+        }
+      )
+    ) {
+      return;
+    }
+
+    cards.forEach(
+      function (card) {
+        parent.appendChild(card);
+      }
+    );
+
+    parent.setAttribute(
+      'data-pmd-kpi-order-safe-v3',
+      'true'
+    );
+  }
+
+  if (
+    document.readyState ===
+    'loading'
+  ) {
+    document.addEventListener(
+      'DOMContentLoaded',
+      applyOrder,
+      {
+        once: true
+      }
+    );
+  } else {
+    applyOrder();
+  }
+
+  window.setTimeout(
+    applyOrder,
+    250
+  );
+
+  window.setTimeout(
+    applyOrder,
+    900
+  );
+})();
+
+/* PMD_KPI_INLINE_SEMANTIC_COLORS_V1
+ *
+ * رنگ‌ها مستقیماً روی Article واقعی KPI با !important
+ * اعمال می‌شوند تا هیچ CSS قبلی یا اسکریپت رنگ دیگری
+ * نتواند آن‌ها را دوباره عوض کند.
+ */
+(function () {
+  'use strict';
+
+  var retries = 0;
+
+  var palette = {
+    pending: {
+      background: '#22ce70',
+      border: '#087c4d',
+      color: '#061b14'
+    },
+
+    upcoming: {
+      background: '#ff8913',
+      border: '#a94b00',
+      color: '#171006'
+    },
+
+    today: {
+      background: '#32b2d8',
+      border: '#087aa5',
+      color: '#061725'
+    },
+
+    tables: {
+      background: '#ff3d52',
+      border: '#a90f2b',
+      color: '#19060a'
+    }
+  };
+
+  function cardFor(key) {
+    var value =
+      document.querySelector(
+        '[data-r2-v308-value="' +
+        key +
+        '"]'
+      );
+
+    return value
+      ? value.closest(
+          'article.pmd-r2-v308-card'
+        )
+      : null;
+  }
+
+  function applyCardColor(
+    card,
+    colors,
+    key
+  ) {
+    if (!card) {
+      return;
+    }
+
+    card.setAttribute(
+      'data-pmd-semantic-kpi',
+      key
+    );
+
+    card.style.setProperty(
+      'background',
+      colors.background,
+      'important'
+    );
+
+    card.style.setProperty(
+      'background-color',
+      colors.background,
+      'important'
+    );
+
+    card.style.setProperty(
+      'border-color',
+      colors.border,
+      'important'
+    );
+
+    card.style.setProperty(
+      'color',
+      colors.color,
+      'important'
+    );
+
+    /*
+     * متون داخلی نیز رنگ صحیح را می‌گیرند.
+     */
+    Array.prototype.forEach.call(
+      card.querySelectorAll(
+        '.pmd-r2-v308-copy, ' +
+        '.pmd-r2-v308-copy *, ' +
+        '.pmd-r2-v308-value'
+      ),
+      function (node) {
+        node.style.setProperty(
+          'color',
+          colors.color,
+          'important'
+        );
+      }
+    );
+  }
+
+  function apply() {
+    retries += 1;
+
+    var missing = false;
+
+    Object.keys(palette)
+      .forEach(function (key) {
+        var card =
+          cardFor(key);
+
+        if (!card) {
+          missing = true;
+          return;
+        }
+
+        applyCardColor(
+          card,
+          palette[key],
+          key
+        );
+      });
+
+    /*
+     * فقط برای بارگذاری اولیه چند بار تلاش می‌شود.
+     * Observer دائمی یا Loop سراسری نداریم.
+     */
+    if (
+      missing &&
+      retries < 20
+    ) {
+      window.setTimeout(
+        apply,
+        120
+      );
+    }
+  }
+
+  if (
+    document.readyState ===
+    'loading'
+  ) {
+    document.addEventListener(
+      'DOMContentLoaded',
+      apply,
+      {
+        once: true
+      }
+    );
+  } else {
+    apply();
+  }
+
+  /*
+   * پس از اجرای سایر اسکریپت‌های KPI دوباره تثبیت می‌کنیم.
+   */
+  [
+    100,
+    300,
+    700,
+    1400
+  ].forEach(function (delay) {
+    window.setTimeout(
+      apply,
+      delay
+    );
+  });
+
+  window
+    .PMDApplySemanticKpiColors =
+    apply;
+})();

@@ -341,3 +341,806 @@
 }
 
 /* PMD_R2_FLOOR_CARD_SHAPE_V311_END */
+
+/* PMD_GUIDE_OVERLAY_FINAL_V1
+   Guide trigger and card are overlays of the visible stage.
+   They are intentionally independent from floor scrolling. */
+
+#pmd-r2-shared-floor-canvas-v310
+[data-floor-stage] {
+  position: relative !important;
+  isolation: isolate !important;
+}
+
+#pmd-r2-shared-floor-canvas-v310
+[data-floor-guide] {
+  position: absolute !important;
+  z-index: 160 !important;
+
+  right: 18px !important;
+  bottom: 18px !important;
+  left: auto !important;
+  top: auto !important;
+
+  float: none !important;
+  margin: 0 !important;
+
+  width: 34px !important;
+  min-width: 34px !important;
+  max-width: 34px !important;
+
+  height: 34px !important;
+  min-height: 34px !important;
+  max-height: 34px !important;
+
+  display: grid !important;
+  place-items: center !important;
+
+  padding: 0 !important;
+
+  border: 0 !important;
+  border-radius: 50% !important;
+
+  background: rgba(255, 255, 255, 0.92) !important;
+  color: #173752 !important;
+
+  box-shadow:
+    0 4px 14px rgba(16, 36, 58, 0.14) !important;
+
+  transform: translateZ(0) !important;
+  transition:
+    color 140ms ease,
+    background-color 140ms ease,
+    box-shadow 140ms ease,
+    transform 140ms ease !important;
+
+  will-change: transform !important;
+  cursor: pointer !important;
+}
+
+#pmd-r2-shared-floor-canvas-v310
+[data-floor-guide]:hover {
+  color: #08759f !important;
+  background: #ffffff !important;
+  box-shadow:
+    0 6px 18px rgba(16, 36, 58, 0.18) !important;
+  transform:
+    translateZ(0)
+    scale(1.06) !important;
+}
+
+#pmd-r2-shared-floor-canvas-v310
+[data-floor-guide]:active {
+  transform:
+    translateZ(0)
+    scale(0.96) !important;
+}
+
+#pmd-r2-shared-floor-canvas-v310
+[data-floor-guide-card] {
+  position: absolute !important;
+  z-index: 159 !important;
+
+  right: 18px !important;
+  bottom: 60px !important;
+  left: auto !important;
+  top: auto !important;
+
+  width: max-content !important;
+  min-width: 210px !important;
+  max-width:
+    min(
+      280px,
+      calc(100% - 36px)
+    ) !important;
+
+  max-height:
+    calc(100% - 78px) !important;
+
+  overflow: auto !important;
+  box-sizing: border-box !important;
+
+  margin: 0 !important;
+  padding: 11px 13px !important;
+
+  border:
+    1px solid rgba(199, 220, 237, 0.96) !important;
+  border-radius: 13px !important;
+
+  background:
+    rgba(255, 255, 255, 0.98) !important;
+
+  box-shadow:
+    0 14px 34px rgba(16, 36, 58, 0.17) !important;
+
+  opacity: 0 !important;
+  visibility: hidden !important;
+  pointer-events: none !important;
+
+  transform:
+    translate3d(0, 7px, 0)
+    scale(0.98) !important;
+
+  transform-origin:
+    right bottom !important;
+
+  transition:
+    opacity 180ms ease,
+    visibility 180ms ease,
+    transform 180ms
+      cubic-bezier(.2, .8, .2, 1) !important;
+}
+
+#pmd-r2-shared-floor-canvas-v310
+[data-floor-guide-card].is-open {
+  opacity: 1 !important;
+  visibility: visible !important;
+  pointer-events: auto !important;
+
+  transform:
+    translate3d(0, 0, 0)
+    scale(1) !important;
+}
+
+#pmd-r2-shared-floor-canvas-v310
+[data-floor-guide-card][hidden] {
+  display: none !important;
+}
+
+#pmd-r2-shared-floor-canvas-v310
+[data-floor-guide-card] p {
+  display: flex !important;
+  align-items: center !important;
+  gap: 9px !important;
+
+  margin: 0 !important;
+  padding: 6px 1px !important;
+
+  color: #385167 !important;
+  font-size: 12px !important;
+  font-weight: 750 !important;
+  line-height: 1.3 !important;
+  white-space: nowrap !important;
+}
+
+#pmd-r2-shared-floor-canvas-v310
+[data-floor-guide-card] i {
+  flex: 0 0 auto !important;
+
+  width: 10px !important;
+  height: 10px !important;
+
+  border-radius: 50% !important;
+}
+
+/*
+ * The card no longer has a heading or close button.
+ */
+#pmd-r2-shared-floor-canvas-v310
+[data-floor-guide-card] > div,
+
+#pmd-r2-shared-floor-canvas-v310
+[data-floor-guide-close],
+
+#pmd-r2-shared-floor-canvas-v310
+[data-floor-guide-card] small {
+  display: none !important;
+}
+
+/* PMD_SAFE_KPI_GUIDE_SCROLL_V3 */
+
+#pmd-r2-shared-floor-canvas-v310.is-strip-mode
+[data-floor-scroll] {
+  overflow-x: auto !important;
+  overflow-y: hidden !important;
+
+  overscroll-behavior-x: none !important;
+  overscroll-behavior-y: none !important;
+
+  touch-action: pan-x !important;
+
+  scroll-behavior: auto !important;
+  scroll-snap-type: none !important;
+}
+
+#pmd-r2-shared-floor-canvas-v310
+[data-floor-guide],
+
+#pmd-r2-shared-floor-canvas-v310
+[data-floor-guide]:hover,
+
+#pmd-r2-shared-floor-canvas-v310
+[data-floor-guide]:focus,
+
+#pmd-r2-shared-floor-canvas-v310
+[data-floor-guide]:focus-visible,
+
+#pmd-r2-shared-floor-canvas-v310
+[data-floor-guide]:active {
+  width: 24px !important;
+  min-width: 24px !important;
+  max-width: 24px !important;
+
+  height: 24px !important;
+  min-height: 24px !important;
+  max-height: 24px !important;
+
+  padding: 0 !important;
+  margin: 0 !important;
+
+  border: 0 !important;
+  border-radius: 0 !important;
+  outline: 0 !important;
+
+  background: transparent !important;
+  background-color: transparent !important;
+  background-image: none !important;
+
+  box-shadow: none !important;
+  filter: none !important;
+  backdrop-filter: none !important;
+}
+
+#pmd-r2-shared-floor-canvas-v310
+[data-floor-guide]::before,
+
+#pmd-r2-shared-floor-canvas-v310
+[data-floor-guide]::after {
+  content: none !important;
+  display: none !important;
+}
+
+#pmd-r2-shared-floor-canvas-v310
+[data-floor-guide]
+.pmd-tabler-icon {
+  font-size: 20px !important;
+  line-height: 20px !important;
+}
+
+/* PMD_FINAL_SEMANTIC_KPI_COLORS_V4 */
+
+/*
+ * KPI order فعلی:
+ *
+ * 1. Free Tables
+ * 2. Upcoming Arrivals
+ * 3. Today’s Reservations
+ * 4. Reservation Tables
+ *
+ * رنگ‌ها براساس معنی KPI تنظیم می‌شوند، نه رنگ قبلی Slot.
+ */
+
+/* Free Tables همیشه سبز */
+[data-pmd-kpi-order-safe-v3="true"]
+> :has(
+  [data-r2-v308-value="pending"]
+) {
+  background: #22ce70 !important;
+  background-color: #22ce70 !important;
+  border-color: #087c4d !important;
+  color: #061b14 !important;
+}
+
+/* Today’s Reservations همیشه آبی */
+[data-pmd-kpi-order-safe-v3="true"]
+> :has(
+  [data-r2-v308-value="today"]
+) {
+  background: #32b2d8 !important;
+  background-color: #32b2d8 !important;
+  border-color: #087aa5 !important;
+  color: #061725 !important;
+}
+
+/* Upcoming Arrivals نارنجی */
+[data-pmd-kpi-order-safe-v3="true"]
+> :has(
+  [data-r2-v308-value="upcoming"]
+) {
+  background: #ff8913 !important;
+  background-color: #ff8913 !important;
+  border-color: #a94b00 !important;
+  color: #171006 !important;
+}
+
+/* Reservation Tables قرمز */
+[data-pmd-kpi-order-safe-v3="true"]
+> :has(
+  [data-r2-v308-value="tables"]
+) {
+  background: #ff3d52 !important;
+  background-color: #ff3d52 !important;
+  border-color: #a90f2b !important;
+  color: #19060a !important;
+}
+
+[data-pmd-kpi-order-safe-v3="true"]
+> :has([data-r2-v308-value])
+* {
+  color: inherit !important;
+}
+
+/*
+ * رنگ میزها براساس نتیجه‌ی Date Range.
+ */
+.pmd-floor-v1__table[
+  data-pmd-range-color="free"
+] {
+  background: #22ce70 !important;
+  background-color: #22ce70 !important;
+  border-color: #087c4d !important;
+  color: #061b14 !important;
+}
+
+.pmd-floor-v1__table[
+  data-pmd-range-color="rangeReservation"
+] {
+  background: #32b2d8 !important;
+  background-color: #32b2d8 !important;
+  border-color: #087aa5 !important;
+  color: #061725 !important;
+}
+
+.pmd-floor-v1__table[
+  data-pmd-range-color="busy"
+] {
+  background: #ff3d52 !important;
+  background-color: #ff3d52 !important;
+  border-color: #a90f2b !important;
+  color: #19060a !important;
+}
+
+.pmd-floor-v1__table[
+  data-pmd-range-color
+] * {
+  color: inherit !important;
+}
+
+/* PMD_GUIDE_RANGE_LEGEND_NO_SCROLL_V1
+ *
+ * Guide legend مطابق رنگ‌های فعلی Floor:
+ *
+ * Green = Available
+ * Blue  = Reserved in selected date range
+ * Red   = Occupied / open order
+ *
+ * کارت در Full Floor و One row بدون اسکرول داخلی نمایش داده می‌شود.
+ */
+
+#pmd-r2-shared-floor-canvas-v310
+[data-floor-guide-card] {
+  right: 18px !important;
+  bottom: 54px !important;
+  left: auto !important;
+  top: auto !important;
+
+  width: 272px !important;
+  min-width: 272px !important;
+  max-width:
+    calc(100% - 36px) !important;
+
+  /*
+   * سه ردیف کوتاه داریم؛
+   * دیگر محدودیت ارتفاع یا اسکرول داخلی لازم نیست.
+   */
+  height: auto !important;
+  min-height: 0 !important;
+  max-height: none !important;
+
+  overflow: visible !important;
+  overflow-x: visible !important;
+  overflow-y: visible !important;
+
+  box-sizing: border-box !important;
+
+  padding: 10px 12px !important;
+  margin: 0 !important;
+
+  border:
+    1px solid rgba(
+      199,
+      220,
+      237,
+      0.98
+    ) !important;
+
+  border-radius: 13px !important;
+
+  background:
+    rgba(
+      255,
+      255,
+      255,
+      0.99
+    ) !important;
+
+  box-shadow:
+    0 14px 34px
+    rgba(
+      16,
+      36,
+      58,
+      0.17
+    ) !important;
+}
+
+#pmd-r2-shared-floor-canvas-v310
+[data-floor-guide-card] p {
+  display: flex !important;
+  align-items: center !important;
+
+  gap: 10px !important;
+
+  margin: 0 !important;
+  padding: 6px 1px !important;
+
+  color: #385167 !important;
+
+  font-size: 12px !important;
+  font-weight: 750 !important;
+  line-height: 1.35 !important;
+
+  /*
+   * متن طولانی سطر آبی داخل همان کارت جا بگیرد.
+   */
+  white-space: normal !important;
+  overflow: visible !important;
+}
+
+#pmd-r2-shared-floor-canvas-v310
+[data-floor-guide-card] p + p {
+  border-top:
+    1px solid
+    rgba(
+      218,
+      230,
+      239,
+      0.72
+    ) !important;
+}
+
+#pmd-r2-shared-floor-canvas-v310
+[data-floor-guide-card] i {
+  display: block !important;
+  flex: 0 0 auto !important;
+
+  width: 11px !important;
+  height: 11px !important;
+
+  border: 0 !important;
+  border-radius: 50% !important;
+
+  box-shadow:
+    inset 0 0 0 1px
+    rgba(
+      0,
+      0,
+      0,
+      0.10
+    ) !important;
+}
+
+/* Available = سبز */
+#pmd-r2-shared-floor-canvas-v310
+[data-floor-guide-card]
+.is-available {
+  background: #22ce70 !important;
+  background-color: #22ce70 !important;
+}
+
+/* Reservation inside selected Header range = آبی */
+#pmd-r2-shared-floor-canvas-v310
+[data-floor-guide-card]
+.is-range-reservation {
+  background: #32b2d8 !important;
+  background-color: #32b2d8 !important;
+}
+
+/* Occupied / open order = قرمز */
+#pmd-r2-shared-floor-canvas-v310
+[data-floor-guide-card]
+.is-occupied {
+  background: #ff3d52 !important;
+  background-color: #ff3d52 !important;
+}
+
+
+/*
+ * در One row ارتفاع Stage کمتر است.
+ *
+ * کارت کمی نزدیک‌تر به دکمه قرار می‌گیرد و اندازه‌اش
+ * همچنان کامل و بدون scroll داخلی باقی می‌ماند.
+ */
+#pmd-r2-shared-floor-canvas-v310.is-strip-mode
+[data-floor-guide-card] {
+  right: 14px !important;
+  bottom: 50px !important;
+
+  width: 272px !important;
+  min-width: 272px !important;
+  max-width:
+    calc(100% - 28px) !important;
+
+  max-height: none !important;
+
+  overflow: visible !important;
+  overflow-y: visible !important;
+
+  padding: 8px 11px !important;
+}
+
+#pmd-r2-shared-floor-canvas-v310.is-strip-mode
+[data-floor-guide-card] p {
+  padding: 5px 1px !important;
+
+  font-size: 11.5px !important;
+  line-height: 1.28 !important;
+}
+
+
+/*
+ * جلوگیری از باقی‌ماندن قواعد قدیمی که Card را کوچک
+ * یا دارای Scroll داخلی می‌کردند.
+ */
+#pmd-r2-shared-floor-canvas-v310
+[data-floor-guide-card][hidden] {
+  display: none !important;
+}
+
+#pmd-r2-shared-floor-canvas-v310
+[data-floor-guide-card].is-open {
+  visibility: visible !important;
+  pointer-events: auto !important;
+}
+
+/* PMD_KPI_SEMANTIC_COLORS_FINAL_V1 */
+
+/* Free Tables = سبز */
+[data-pmd-kpi-order-safe-v3="true"]
+> :has(
+  [data-r2-v308-value="pending"]
+) {
+  background: #22ce70 !important;
+  background-color: #22ce70 !important;
+  border-color: #087c4d !important;
+  color: #061b14 !important;
+}
+
+/* Upcoming Arrivals = نارنجی */
+[data-pmd-kpi-order-safe-v3="true"]
+> :has(
+  [data-r2-v308-value="upcoming"]
+) {
+  background: #ff8913 !important;
+  background-color: #ff8913 !important;
+  border-color: #a94b00 !important;
+  color: #171006 !important;
+}
+
+/* Today’s Reservations = آبی */
+[data-pmd-kpi-order-safe-v3="true"]
+> :has(
+  [data-r2-v308-value="today"]
+) {
+  background: #32b2d8 !important;
+  background-color: #32b2d8 !important;
+  border-color: #087aa5 !important;
+  color: #061725 !important;
+}
+
+/* Reservation Tables = قرمز */
+[data-pmd-kpi-order-safe-v3="true"]
+> :has(
+  [data-r2-v308-value="tables"]
+) {
+  background: #ff3d52 !important;
+  background-color: #ff3d52 !important;
+  border-color: #a90f2b !important;
+  color: #19060a !important;
+}
+
+[data-pmd-kpi-order-safe-v3="true"]
+> :has(
+  [data-r2-v308-value]
+)
+* {
+  color: inherit !important;
+}
+
+/* PMD_KPI_DIRECT_ARTICLE_COLORS_V2
+ *
+ * کارت واقعی KPI:
+ * article.pmd-r2-v308-card
+ *
+ * رنگ مستقیماً براساس data-r2-v308-value داخلی تعیین می‌شود.
+ */
+
+
+/* ==========================================================
+   Free Tables = سبز
+   کلید داخلی فعلی: pending
+   ========================================================== */
+
+article.pmd-r2-v308-card:has(
+  [data-r2-v308-value="pending"]
+) {
+  --pmd-r2-v308-card-bg:
+    #22ce70 !important;
+
+  --pmd-r2-v308-card-border:
+    #087c4d !important;
+
+  --pmd-r2-v308-card-color:
+    #061b14 !important;
+
+  background:
+    #22ce70 !important;
+
+  background-color:
+    #22ce70 !important;
+
+  border-color:
+    #087c4d !important;
+
+  color:
+    #061b14 !important;
+}
+
+
+/* ==========================================================
+   Upcoming Arrivals = نارنجی
+   ========================================================== */
+
+article.pmd-r2-v308-card:has(
+  [data-r2-v308-value="upcoming"]
+) {
+  --pmd-r2-v308-card-bg:
+    #ff8913 !important;
+
+  --pmd-r2-v308-card-border:
+    #a94b00 !important;
+
+  --pmd-r2-v308-card-color:
+    #171006 !important;
+
+  background:
+    #ff8913 !important;
+
+  background-color:
+    #ff8913 !important;
+
+  border-color:
+    #a94b00 !important;
+
+  color:
+    #171006 !important;
+}
+
+
+/* ==========================================================
+   Today’s Reservations = آبی
+   ========================================================== */
+
+article.pmd-r2-v308-card:has(
+  [data-r2-v308-value="today"]
+) {
+  --pmd-r2-v308-card-bg:
+    #32b2d8 !important;
+
+  --pmd-r2-v308-card-border:
+    #087aa5 !important;
+
+  --pmd-r2-v308-card-color:
+    #061725 !important;
+
+  background:
+    #32b2d8 !important;
+
+  background-color:
+    #32b2d8 !important;
+
+  border-color:
+    #087aa5 !important;
+
+  color:
+    #061725 !important;
+}
+
+
+/* ==========================================================
+   Reservation Tables = قرمز
+   ========================================================== */
+
+article.pmd-r2-v308-card:has(
+  [data-r2-v308-value="tables"]
+) {
+  --pmd-r2-v308-card-bg:
+    #ff3d52 !important;
+
+  --pmd-r2-v308-card-border:
+    #a90f2b !important;
+
+  --pmd-r2-v308-card-color:
+    #19060a !important;
+
+  background:
+    #ff3d52 !important;
+
+  background-color:
+    #ff3d52 !important;
+
+  border-color:
+    #a90f2b !important;
+
+  color:
+    #19060a !important;
+}
+
+
+/*
+ * تمام متن‌ها و آیکون‌های داخلی، رنگ کارت خودشان را بگیرند.
+ */
+
+article.pmd-r2-v308-card:has(
+  [data-r2-v308-value]
+) .pmd-r2-v308-copy,
+
+article.pmd-r2-v308-card:has(
+  [data-r2-v308-value]
+) .pmd-r2-v308-copy * {
+  color:
+    inherit !important;
+}
+
+
+/*
+ * اگر رنگ کارت با pseudo-element ساخته شده باشد،
+ * همان رنگ قطعی روی آن هم اعمال شود.
+ */
+
+article.pmd-r2-v308-card:has(
+  [data-r2-v308-value="pending"]
+)::before,
+
+article.pmd-r2-v308-card:has(
+  [data-r2-v308-value="pending"]
+)::after {
+  background:
+    #22ce70 !important;
+}
+
+
+article.pmd-r2-v308-card:has(
+  [data-r2-v308-value="upcoming"]
+)::before,
+
+article.pmd-r2-v308-card:has(
+  [data-r2-v308-value="upcoming"]
+)::after {
+  background:
+    #ff8913 !important;
+}
+
+
+article.pmd-r2-v308-card:has(
+  [data-r2-v308-value="today"]
+)::before,
+
+article.pmd-r2-v308-card:has(
+  [data-r2-v308-value="today"]
+)::after {
+  background:
+    #32b2d8 !important;
+}
+
+
+article.pmd-r2-v308-card:has(
+  [data-r2-v308-value="tables"]
+)::before,
+
+article.pmd-r2-v308-card:has(
+  [data-r2-v308-value="tables"]
+)::after {
+  background:
+    #ff3d52 !important;
+}

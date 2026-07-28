@@ -419,34 +419,564 @@
     return '<article class="pmd-w5-card is-old pmd-v35-ready pmd-r2-yc-detail-card is-note-card"><div class="pmd-v35-card-head"><div class="pmd-v35-table-no">✎</div><button type="button" class="pmd-v35-edit-btn" data-r2-yc-edit-note="' + esc(key) + '" aria-label="Edit note">✎</button></div><div class="pmd-w5-card-top"><span class="pmd-w5-pill warn">Note</span></div><h2>' + esc(formatDate(key)) + '</h2><div class="pmd-w5-items"><small>Day note</small><div class="pmd-w5-item"><span>' + esc(text) + '</span></div></div></article>';
   }
 
-  function renderSelected() {
-    var root = ensureRoot();
-    if (!root) return;
-    var section = root.querySelector('[data-r2-yc-selected]');
-    if (!section) return;
+  /* PMD_TIMESLOT_DIRECT_RENDER_HELPERS_V1_BEGIN */
 
-    if (!selectedDate) {
-      section.hidden = true;
-      section.innerHTML = '';
+var pmdTimeslotHiddenRecords = [];
+
+function pmdRestoreCalendarFromTimeslots() {
+  pmdTimeslotHiddenRecords.forEach(
+    function (record) {
+      if (
+        !record ||
+        !record.element
+      ) {
+        return;
+      }
+
+      if (record.hadInlineDisplay) {
+        record.element.style.setProperty(
+          'display',
+          record.displayValue,
+          record.displayPriority
+        );
+      } else {
+        record.element.style.removeProperty(
+          'display'
+        );
+      }
+
+      record.element.removeAttribute(
+        'data-pmd-timeslot-hidden'
+      );
+    }
+  );
+
+  pmdTimeslotHiddenRecords = [];
+
+  var timeline =
+    document.querySelector(
+      '[data-r2-yc-selected]'
+    );
+
+  if (timeline) {
+    timeline.style.removeProperty(
+      'display'
+    );
+
+    timeline.removeAttribute(
+      'data-pmd-timeslot-active'
+    );
+  }
+}
+
+function pmdShowTimeslotScreenOnly(timeline) {
+  if (
+    !timeline ||
+    !timeline.parentElement
+  ) {
+    return;
+  }
+
+  /*
+   * Exact operation confirmed in Safari Console.
+   */
+  pmdRestoreCalendarFromTimeslots();
+
+  var parent =
+    timeline.parentElement;
+
+  Array.from(parent.children)
+    .forEach(function (element) {
+      if (element === timeline) {
+        return;
+      }
+
+      var displayValue =
+        element.style.getPropertyValue(
+          'display'
+        );
+
+      var displayPriority =
+        element.style.getPropertyPriority(
+          'display'
+        );
+
+      pmdTimeslotHiddenRecords.push({
+        element: element,
+        displayValue: displayValue,
+        displayPriority: displayPriority,
+        hadInlineDisplay:
+          displayValue !== ''
+      });
+
+      element.setAttribute(
+        'data-pmd-timeslot-hidden',
+        '1'
+      );
+
+      element.style.setProperty(
+        'display',
+        'none',
+        'important'
+      );
+    });
+
+  timeline.hidden = false;
+
+  timeline.style.setProperty(
+    'display',
+    'block',
+    'important'
+  );
+
+  timeline.setAttribute(
+    'data-pmd-timeslot-active',
+    '1'
+  );
+}
+
+window.PMDShowTimeslotScreenOnly =
+  pmdShowTimeslotScreenOnly;
+
+window.PMDRestoreCalendarFromTimeslots =
+  pmdRestoreCalendarFromTimeslots;
+
+/* PMD_TIMESLOT_DIRECT_RENDER_HELPERS_V1_END */
+
+function renderSelected() {
+    var root = ensureRoot();
+
+    if (!root) {
       return;
     }
 
-    var reservationMap = groupReservations();
-    var eventMap = eventMapForYear(Number(selectedDate.slice(0, 4)));
-    var noteMap = notes();
-    var dayReservations = reservationMap[selectedDate] || [];
-    var dayEvents = eventMap[selectedDate] || [];
-    var dayNote = noteMap[selectedDate] || '';
-    var cards = [];
+    var section =
+      root.querySelector(
+        '[data-r2-yc-selected]'
+      );
 
-    dayReservations.forEach(function (reservation) { cards.push(reservationCard(reservation)); });
-    dayEvents.forEach(function (event) { cards.push(eventCard(event)); });
-    if (dayNote) cards.push(noteCard(selectedDate, dayNote));
+    var frame =
+      root.querySelector(
+        '[data-r2-yc-calendar-frame]'
+      );
+
+    if (!section) {
+      return;
+    }
+
+    if (!selectedDate) {
+      pmdRestoreCalendarFromTimeslots();
+
+      root.classList.remove(
+        'is-timeslot-screen',
+        'is-switching-to-timeslots'
+      );
+
+      if (frame) {
+        frame.hidden = false;
+      }
+
+      section.hidden = true;
+      section.innerHTML = '';
+
+      return;
+    }
+
+    function reservationMinutes(reservation) {
+      var raw = clean(
+        reservation.reserve_time ||
+        reservation.reservation_time ||
+        reservation.time ||
+        ''
+      );
+
+      var match =
+        raw.match(
+          /(\d{1,2}):(\d{2})/
+        );
+
+      if (!match) {
+        return null;
+      }
+
+      return (
+        Number(match[1]) * 60 +
+        Number(match[2])
+      );
+    }
+
+    function minuteLabel(value) {
+      var hour =
+        Math.floor(value / 60);
+
+      var minute =
+        value % 60;
+
+      var suffix =
+        hour >= 12
+          ? 'PM'
+          : 'AM';
+
+      return (
+        (hour % 12 || 12) +
+        ':' +
+        pad(minute) +
+        ' ' +
+        suffix
+      );
+    }
+
+    function guestCount(reservation) {
+      return (
+        Number(
+          reservation.guest_num ||
+          reservation.guests ||
+          reservation.party_size ||
+          reservation.number_of_guests ||
+          0
+        ) || 0
+      );
+    }
+
+    function statusClass(status) {
+      var value =
+        clean(status)
+          .toLowerCase();
+
+      if (
+        /cancel|declin|reject|no.?show/
+          .test(value)
+      ) {
+        return 'is-cancelled';
+      }
+
+      if (
+        /pending|request|wait/
+          .test(value)
+      ) {
+        return 'is-pending';
+      }
+
+      return 'is-confirmed';
+    }
+
+    function bookingChip(reservation) {
+      var table =
+        reservationTable(
+          reservation
+        );
+
+      var status =
+        reservationStatus(
+          reservation
+        );
+
+      var editUrl =
+        reservationEditUrl(
+          reservation
+        );
+
+      var guests =
+        guestCount(
+          reservation
+        );
+
+      return (
+        '<article class="pmd-r2-slot-booking ' +
+          statusClass(status) +
+        '">' +
+
+          '<div class="pmd-r2-slot-booking__main">' +
+
+            '<strong>' +
+              esc(
+                reservationName(
+                  reservation
+                )
+              ) +
+            '</strong>' +
+
+            '<span>' +
+              (
+                table
+                  ? 'Table ' + esc(table)
+                  : 'No table'
+              ) +
+              ' · ' +
+              guests +
+              ' guest' +
+              (
+                guests === 1
+                  ? ''
+                  : 's'
+              ) +
+            '</span>' +
+
+          '</div>' +
+
+          '<div class="pmd-r2-slot-booking__status">' +
+
+            '<span>' +
+              esc(status) +
+            '</span>' +
+
+            (
+              editUrl !== '#'
+                ? (
+                    '<a href="' +
+                    esc(editUrl) +
+                    '">Open</a>'
+                  )
+                : ''
+            ) +
+
+          '</div>' +
+
+        '</article>'
+      );
+    }
+
+    var grouped =
+      groupReservations();
+
+    var reservationsForDay =
+      (
+        grouped[selectedDate] ||
+        []
+      )
+      .slice()
+      .sort(function (first, second) {
+        var firstMinutes =
+          reservationMinutes(first);
+
+        var secondMinutes =
+          reservationMinutes(second);
+
+        if (firstMinutes === null) {
+          firstMinutes = 99999;
+        }
+
+        if (secondMinutes === null) {
+          secondMinutes = 99999;
+        }
+
+        return (
+          firstMinutes -
+          secondMinutes
+        );
+      });
+
+    var slots = {};
+
+    reservationsForDay
+      .forEach(function (reservation) {
+        var minutes =
+          reservationMinutes(
+            reservation
+          );
+
+        var key =
+          minutes === null
+            ? 'unknown'
+            : String(
+                Math.floor(
+                  minutes / 30
+                ) * 30
+              );
+
+        if (!slots[key]) {
+          slots[key] = [];
+        }
+
+        slots[key].push(
+          reservation
+        );
+      });
+
+    var knownMinutes =
+      reservationsForDay
+        .map(
+          reservationMinutes
+        )
+        .filter(function (value) {
+          return value !== null;
+        });
+
+    var startMinutes = 600;
+    var endMinutes = 1320;
+
+    if (knownMinutes.length) {
+      startMinutes =
+        Math.min(
+          startMinutes,
+          Math.floor(
+            Math.min.apply(
+              Math,
+              knownMinutes
+            ) / 30
+          ) * 30
+        );
+
+      endMinutes =
+        Math.max(
+          endMinutes,
+          Math.floor(
+            Math.max.apply(
+              Math,
+              knownMinutes
+            ) / 30
+          ) * 30 + 90
+        );
+    }
+
+    startMinutes =
+      Math.max(
+        0,
+        startMinutes
+      );
+
+    endMinutes =
+      Math.min(
+        1410,
+        endMinutes
+      );
+
+    var rows = [];
+
+    for (
+      var cursor = startMinutes;
+      cursor <= endMinutes;
+      cursor += 30
+    ) {
+      var list =
+        slots[String(cursor)] ||
+        [];
+
+      rows.push(
+        '<section class="pmd-r2-timeslot ' +
+          (
+            list.length
+              ? 'has-bookings'
+              : 'is-empty'
+          ) +
+        '">' +
+
+          '<div class="pmd-r2-timeslot__time">' +
+
+            '<strong>' +
+              minuteLabel(cursor) +
+            '</strong>' +
+
+            '<span>' +
+              (
+                list.length
+                  ? (
+                      list.length +
+                      ' booking' +
+                      (
+                        list.length === 1
+                          ? ''
+                          : 's'
+                      )
+                    )
+                  : 'Available'
+              ) +
+            '</span>' +
+
+          '</div>' +
+
+          '<div class="pmd-r2-timeslot__content">' +
+
+            (
+              list.length
+                ? list
+                    .map(
+                      bookingChip
+                    )
+                    .join('')
+                : (
+                    '<div class="pmd-r2-timeslot__free">' +
+                      '<i></i>' +
+                      '<span>No reservations</span>' +
+                    '</div>'
+                  )
+            ) +
+
+          '</div>' +
+
+        '</section>'
+      );
+    }
+
+    if (slots.unknown) {
+      rows.push(
+        '<section class="pmd-r2-timeslot has-bookings">' +
+
+          '<div class="pmd-r2-timeslot__time">' +
+
+            '<strong>Time not set</strong>' +
+
+            '<span>' +
+              slots.unknown.length +
+              ' booking' +
+              (
+                slots.unknown.length === 1
+                  ? ''
+                  : 's'
+              ) +
+            '</span>' +
+
+          '</div>' +
+
+          '<div class="pmd-r2-timeslot__content">' +
+
+            slots.unknown
+              .map(
+                bookingChip
+              )
+              .join('') +
+
+          '</div>' +
+
+        '</section>'
+      );
+    }
+
+    root.classList.add(
+      'is-timeslot-screen'
+    );
+
+    if (frame) {
+      frame.hidden = true;
+    }
 
     section.hidden = false;
-    section.innerHTML = '<div class="pmd-r2-yc-selected__head"><div><small>Selected day</small><h2>' + esc(formatDate(selectedDate)) + '</h2><p>' + cards.length + ' item' + (cards.length === 1 ? '' : 's') + '</p></div><div class="pmd-r2-yc-selected__actions"><button type="button" data-r2-yc-add-note="' + esc(selectedDate) + '">＋ Note</button><a href="' + esc((boot().createUrl || '/admin/reservations/create') + '?reserve_date=' + encodeURIComponent(selectedDate)) + '">＋ Reservation</a><button type="button" data-r2-yc-clear-selection>Show calendar only</button></div></div>' +
-      (cards.length ? '<div class="pmd-r2-yc-selected__grid">' + cards.join('') + '</div>' : '<div class="pmd-r2-yc-empty"><strong>No reservations, notes or events.</strong><span>Add a note or create a reservation for this day.</span></div>');
-  }
+
+    section.innerHTML =
+      '<div class="pmd-r2-timeslot-screen">' +
+
+        '<button ' +
+          'type="button" ' +
+          'class="pmd-r2-timeslot-screen__back" ' +
+          'data-r2-yc-clear-selection' +
+        '>' +
+          '← Calendar' +
+        '</button>' +
+
+        '<div class="pmd-r2-day-board__timeline">' +
+          rows.join('') +
+        '</div>' +
+
+      '</div>';
+
+    /*
+     * Apply the exact successful Console operation immediately
+     * after the hourly screen exists.
+     */
+    pmdShowTimeslotScreenOnly(
+      section
+    );
+}
 
   function render() {
     var root = ensureRoot();
@@ -504,14 +1034,60 @@
 
   function selectDate(key) {
     selectedDate = key;
-    var parts = key.split('-').map(Number);
-    year = parts[0];
-    month = parts[1] - 1;
-    render();
-    var root = ensureRoot();
-    var section = root && root.querySelector('[data-r2-yc-selected]');
-    if (section) setTimeout(function () { section.scrollIntoView({ behavior: 'smooth', block: 'start' }); }, 40);
-  }
+
+    var parts =
+      String(key || '')
+        .split('-')
+        .map(Number);
+
+    if (parts.length === 3) {
+      year = parts[0];
+      month = parts[1] - 1;
+    }
+
+    var root =
+      ensureRoot();
+
+    if (root) {
+      root.classList.add(
+        'is-switching-to-timeslots'
+      );
+    }
+
+    window.setTimeout(
+      function () {
+        render();
+
+        var current =
+          ensureRoot();
+
+        if (!current) {
+          return;
+        }
+
+        current.classList.remove(
+          'is-switching-to-timeslots'
+        );
+
+        current.classList.add(
+          'is-timeslot-screen'
+        );
+
+        var section =
+          current.querySelector(
+            '[data-r2-yc-selected]'
+          );
+
+        if (section) {
+          section.scrollIntoView({
+            behavior: 'smooth',
+            block: 'start'
+          });
+        }
+      },
+      120
+    );
+}
 
   function bind(root) {
     root.addEventListener('click', function (event) {
@@ -630,3 +1206,10 @@
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init, { once: true });
   else init();
 })();
+
+/* PMD_CALENDAR_TIMESLOT_SCREEN_ONLY_V1 */
+
+
+
+
+/* PMD_TIMESLOT_DIRECT_RENDER_V1 */

@@ -42,8 +42,8 @@ function restoreRange(){try{var x=JSON.parse(localStorage.getItem(STORAGE_KEY)||
 function persistRange(){try{localStorage.setItem(STORAGE_KEY,JSON.stringify({start:dateKey(state.start),end:dateKey(state.end),allDates:state.allDates}))}catch(e){}}
 function setRange(a,b){if(!validRange(a,b))return;state.start=a;state.end=b;state.allDates=false;persistRange();render()}function setAllDates(){state.allDates=true;persistRange();render()}
 function nativeControl(root,sel){return Array.prototype.slice.call(root.querySelectorAll(sel)).find(function(n){return!n.closest('#'+TOOLBAR_ID)})||null}
-function toolButton(key,label,sel){var b=document.createElement('button');b.type='button';b.className='pmd-r2-floor-tool-v316';b.dataset.pmdR2Tool=key;b.textContent=label;b.onclick=function(e){e.preventDefault();e.stopPropagation();var r=floor(),n=r&&nativeControl(r,sel);if(n)n.dispatchEvent(new MouseEvent('click',{bubbles:true,cancelable:true,view:window}));schedule()};return b}
-function ensureToolbar(root){var bar=root.querySelector('.pmd-floor-v1__statusbar');if(!bar)return;var t=document.getElementById(TOOLBAR_ID);if(!t){t=document.createElement('div');t.id=TOOLBAR_ID;t.className='pmd-r2-floor-toolbar-v316';[['edit','Edit','[data-floor-edit]'],['save','Save','[data-floor-save]'],['zoom-out','−','[data-floor-zoom-out]'],['fit','Full Floor','[data-floor-fit]'],['zoom-in','+','[data-floor-zoom-in]'],['strip','One row','[data-floor-strip]']].forEach(function(x){t.appendChild(toolButton(x[0],x[1],x[2]))});bar.appendChild(t)}root.querySelectorAll('[data-floor-secondary-toolbar],.pmd-floor-v1__secondary-toolbar,[data-pmd-r2-floor-toolbar-v313]').forEach(function(n){if(n.id!==TOOLBAR_ID)n.classList.add('pmd-r2-native-toolbar-v316-hidden')})}
+function toolButton(key,label,sel){var b=document.createElement('button');b.type='button';b.className='pmd-r2-floor-tool-v316';b.dataset.pmdR2Tool=key;b.textContent=label;b.onclick=function(e){e.preventDefault();e.stopPropagation();var r=floor(),editing=key==='edit'&&r&&r.__pmdFloorV1&&r.__pmdFloorV1.getState&&r.__pmdFloorV1.getState().editing,n=r&&nativeControl(r,editing?'[data-floor-save]':sel);if(n)n.click();if(key==='edit'&&!editing)b.textContent='Save';schedule()};return b}
+function ensureToolbar(root){var bar=root.querySelector('.pmd-floor-v1__statusbar');if(!bar)return;var t=document.getElementById(TOOLBAR_ID);if(!t){t=document.createElement('div');t.id=TOOLBAR_ID;t.className='pmd-r2-floor-toolbar-v316';[['edit','Edit','[data-floor-edit]'],['zoom-out','−','[data-floor-zoom-out]'],['fit','Full Floor','[data-floor-fit]'],['zoom-in','+','[data-floor-zoom-in]'],['strip','One row','[data-floor-strip]']].forEach(function(x){t.appendChild(toolButton(x[0],x[1],x[2]))});bar.appendChild(t);window.addEventListener('pmd:floor:updated',function(e){if(e.detail&&e.detail.action==='layout'){var b=t.querySelector('[data-pmd-r2-tool="edit"]');if(b)b.textContent='Edit'}})}root.querySelectorAll('[data-floor-secondary-toolbar],.pmd-floor-v1__secondary-toolbar,[data-pmd-r2-floor-toolbar-v313]').forEach(function(n){if(n.id!==TOOLBAR_ID)n.classList.add('pmd-r2-native-toolbar-v316-hidden')})}
 function presetName(){if(state.allDates)return'all';var t=startOfDay(new Date());if(dateKey(state.start)===dateKey(t)&&dateKey(state.end)===dateKey(t))return'today';if(dateKey(state.start)===dateKey(addDays(t,1))&&dateKey(state.end)===dateKey(addDays(t,1)))return'tomorrow';if(dateKey(state.start)===dateKey(t)&&dateKey(state.end)===dateKey(addDays(t,6)))return'week';var a=new Date(t.getFullYear(),t.getMonth(),1),b=new Date(t.getFullYear(),t.getMonth()+1,0);return dateKey(state.start)===dateKey(a)&&dateKey(state.end)===dateKey(b)?'month':'custom'}
 function calendarSvg(){return'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="5" width="18" height="16" rx="2"></rect><path d="M16 3v4M8 3v4M3 11h18"></path></svg>'}
 function ensureDateFilter(){var btn=document.getElementById(DATE_BTN_ID);if(!btn){btn=document.createElement('button');btn.type='button';btn.id=DATE_BTN_ID;btn.innerHTML=calendarSvg()+'<span></span>';document.body.appendChild(btn);btn.addEventListener('click',function(e){e.preventDefault();e.stopPropagation();var p=document.getElementById(FILTER_ID);if(p)p.classList.toggle('is-open')})}btn.querySelector('span').textContent=rangeLabel();var p=document.getElementById(FILTER_ID);if(!p){p=document.createElement('div');p.id=FILTER_ID;p.className='pmd-r2-date-filter-v317';p.innerHTML='<div class="pmd-r2-date-filter-v317__quick"><button type="button" data-range="all">All dates</button><button type="button" data-range="today">Today</button><button type="button" data-range="tomorrow">Tomorrow</button><button type="button" data-range="week">7 days</button><button type="button" data-range="month">This month</button></div><label><span>From</span><input type="date" data-date-start></label><label><span>To</span><input type="date" data-date-end></label><div data-date-summary></div>';document.body.appendChild(p);p.addEventListener('click',function(e){var b=e.target.closest('[data-range]');if(!b)return;var t=startOfDay(new Date());if(b.dataset.range==='all')setAllDates();if(b.dataset.range==='today')setRange(t,endOfDay(t));if(b.dataset.range==='tomorrow'){var x=addDays(t,1);setRange(x,endOfDay(x))}if(b.dataset.range==='week')setRange(t,endOfDay(addDays(t,6)));if(b.dataset.range==='month')setRange(new Date(t.getFullYear(),t.getMonth(),1),endOfDay(new Date(t.getFullYear(),t.getMonth()+1,0)))});p.addEventListener('change',function(){var a=parseDate(p.querySelector('[data-date-start]').value,false)||state.start,b=parseDate(p.querySelector('[data-date-end]').value,true)||state.end;if(b<a)b=endOfDay(a);setRange(a,b)})}p.querySelector('[data-date-start]').value=dateKey(state.start);p.querySelector('[data-date-end]').value=dateKey(state.end);p.querySelector('[data-date-summary]').textContent=rangeLabel()+(state.tableId?' · '+(state.tableName||'Table '+state.tableId):' · All tables');var active=presetName();p.querySelectorAll('[data-range]').forEach(function(b){b.classList.toggle('is-active',b.dataset.range===active)})}
@@ -365,7 +365,7 @@ esc(tableNo||'—')+
 function clearSelection(){var r=floor();if(r)r.querySelectorAll('[data-pmd-r2-selected-table-v320],.pmd-r2-table-selected-v317').forEach(function(n){n.removeAttribute('data-pmd-r2-selected-table-v320');n.classList.remove('pmd-r2-table-selected-v317')})}
 function clearTableFilter(){state.tableId=null;state.tableName=null;clearSelection();render()}
 function markSelection(){var r=floor();if(!r)return;clearSelection();if(!state.tableId)return;r.querySelectorAll('[data-floor-table]').forEach(function(n){var ids=[n.getAttribute('data-floor-table'),n.getAttribute('data-table-id'),n.getAttribute('data-floor-table-id')].filter(Boolean).map(String);if(ids.indexOf(String(state.tableId))!==-1){n.setAttribute('data-pmd-r2-selected-table-v320','true');n.classList.add('pmd-r2-table-selected-v317')}})}
-function updateKpis(items){var all=reservations(),now=new Date(),today=dateKey(now),todayCount=all.filter(function(i){var s=reservationStart(i);return s&&dateKey(s)===today}).length,up=all.filter(function(i){var s=reservationStart(i);return s&&s>=now}).length,pend=all.filter(function(i){return/pending|confirm|request|wait/i.test(statusLabel(i))}).length,tables=new Set();all.forEach(function(i){tableIds(i).forEach(function(id){tables.add(id)})});var v={today:todayCount,upcoming:up,pending:pend,tables:tables.size};Object.keys(v).forEach(function(k){var n=document.querySelector('[data-r2-v308-value="'+k+'"]');if(n)n.textContent=String(v[k])})}
+function updateKpis(items){var all=Array.isArray(items)?items:filteredReservations(),now=new Date(),today=dateKey(now),todayCount=all.filter(function(i){var s=reservationStart(i);return s&&dateKey(s)===today}).length,up=all.filter(function(i){var s=reservationStart(i);return s&&s>=now}).length,pend=all.filter(function(i){return/pending|confirm|request|wait/i.test(statusLabel(i))}).length,tables=new Set();all.forEach(function(i){tableIds(i).forEach(function(id){tables.add(id)})});var v={today:todayCount,upcoming:up,pending:pend,tables:tables.size};Object.keys(v).forEach(function(k){var n=document.querySelector('[data-r2-v308-value="'+k+'"]');if(n)n.textContent=String(v[k])})}
 function renderCards(items){var s=ensureSection();if(!s)return;var all=dateFilteredReservations(),sel=state.tableId?(state.tableName||'Table '+state.tableId):'All tables';s.querySelector('[data-r2-card-title]').textContent=state.tableId?'Reservations for '+sel:'All reservations';s.querySelector('[data-r2-card-subtitle]').textContent=rangeLabel()+' · '+items.length+(state.tableId?' of '+all.length:'')+' reservation'+(items.length===1?'':'s');s.querySelector('[data-r2-show-all]').hidden=!state.tableId;document.getElementById(GRID_ID).innerHTML=addCardMarkup()+items.map(reservationCardMarkup).join('')}
 function render(){if(rendering)return;rendering=true;try{var r=floor();if(!r)return;document.documentElement.classList.add('pmd-r2-reservation-experience-ready');ensureStyle();ensureToolbar(r);ensureDateFilter();var items=filteredReservations();updateKpis(items);markSelection();renderCards(items);r.setAttribute('data-pmd-r2-toolbar-authority','floor-experience-v4.3')}finally{rendering=false}}
 function tableIdFromNode(n){var d=n&&(n.getAttribute('data-floor-table')||n.getAttribute('data-table-id')||n.getAttribute('data-floor-table-id')||n.dataset.tableId||n.dataset.id);if(d&&Number(d)>0)return String(Number(d));var m=clean(n&&n.getAttribute('data-floor-members')).split(',').filter(Boolean);if(m.length&&Number(m[0])>0)return String(Number(m[0]));var x=clean(n&&n.textContent).match(/\b(\d+)\b/);return x?String(Number(x[1])):null}
@@ -4271,83 +4271,246 @@ button.pmd-r2-card-menu-trigger-v458::after {
   function updateFloorTableColors() {
     var freeCount = 0;
     var reservedCount = 0;
+    var rangeReservationCount = 0;
+
+    /*
+     * میزهایی که در Date Range فعلی رزرو فعال دارند.
+     *
+     * dateFilteredReservations() دقیقاً همان بازه‌ی انتخاب‌شده
+     * در Header را استفاده می‌کند.
+     */
+    var reservedInCurrentRange =
+      new Set();
+
+    dateFilteredReservations()
+      .filter(function (reservation) {
+        var status =
+          statusLabel(reservation)
+            .toLowerCase();
+
+        /*
+         * رزروهای لغوشده، No-show و بسته‌شده
+         * نباید میز را آبی کنند.
+         */
+        return !(
+          /cancel|declin|reject|no.?show|complete|finish|closed/
+            .test(status)
+        );
+      })
+      .forEach(function (reservation) {
+        tableIds(reservation)
+          .forEach(function (id) {
+            var normalized =
+              String(Number(id));
+
+            if (
+              normalized &&
+              normalized !== '0' &&
+              normalized !== 'NaN'
+            ) {
+              reservedInCurrentRange
+                .add(normalized);
+            }
+          });
+      });
+
+    function tableIdentifier(element) {
+      var raw =
+        element.getAttribute(
+          'data-floor-table'
+        ) ||
+        element.getAttribute(
+          'data-floor-table-id'
+        ) ||
+        element.getAttribute(
+          'data-table-id'
+        ) ||
+        clean(element.textContent);
+
+      var match =
+        String(raw || '')
+          .match(/\d+/);
+
+      return match
+        ? String(Number(match[0]))
+        : '';
+    }
+
+    function originalState(element) {
+      /*
+       * فایل color-v468 پیش از تغییر رنگ، حالت اصلی
+       * سبز یا قرمز را در این Attribute ذخیره می‌کند.
+       */
+      var saved =
+        element.getAttribute(
+          'data-pmd-v468-original-state'
+        );
+
+      if (
+        saved === 'free' ||
+        saved === 'reserved'
+      ) {
+        return saved;
+      }
+
+      var explicit =
+        [
+          element.getAttribute(
+            'data-status'
+          ),
+          element.getAttribute(
+            'data-state'
+          ),
+          element.getAttribute(
+            'data-table-status'
+          ),
+          element.className
+        ]
+          .join(' ')
+          .toLowerCase();
+
+      if (
+        /free|available|vacant|frei/
+          .test(explicit)
+      ) {
+        return 'free';
+      }
+
+      if (
+        /reserved|occupied|busy|booked|belegt/
+          .test(explicit)
+      ) {
+        return 'reserved';
+      }
+
+      return inferredTableState(
+        element
+      );
+    }
+
+    function applyColor(
+      element,
+      state
+    ) {
+      var colors = {
+        free: {
+          background: '#22ce70',
+          border: '#087c4d',
+          text: '#061b14'
+        },
+
+        rangeReservation: {
+          background: '#32b2d8',
+          border: '#087aa5',
+          text: '#061725'
+        },
+
+        busy: {
+          background: '#ff3d52',
+          border: '#a90f2b',
+          text: '#19060a'
+        }
+      };
+
+      var selected =
+        colors[state];
+
+      element.setAttribute(
+        'data-pmd-table-color',
+        state === 'rangeReservation'
+          ? 'range-reservation-v469'
+          : state === 'busy'
+            ? 'busy-v469'
+            : 'free-v469'
+      );
+
+      element.setAttribute(
+        'data-pmd-range-color',
+        state
+      );
+
+      element.style.setProperty(
+        'background',
+        selected.background,
+        'important'
+      );
+
+      element.style.setProperty(
+        'background-color',
+        selected.background,
+        'important'
+      );
+
+      element.style.setProperty(
+        'border-color',
+        selected.border,
+        'important'
+      );
+
+      element.style.setProperty(
+        'color',
+        selected.text,
+        'important'
+      );
+    }
 
     tableElements().forEach(
       function (element) {
-        var state =
-          inferredTableState(element);
+        var id =
+          tableIdentifier(element);
 
-        if (state === 'free') {
-          freeCount += 1;
+        var baseState =
+          originalState(element);
 
-          element.setAttribute(
-            'data-pmd-table-color',
-            'free-v464'
+        var hasReservationInRange =
+          Boolean(
+            id &&
+            reservedInCurrentRange.has(id)
           );
 
-          element.style.setProperty(
-            'background',
-            '#22c96f',
-            'important'
+        /*
+         * اولویت رنگ:
+         *
+         * 1. رزرو فعال در بازه فعلی = آبی
+         * 2. Busy/Reserved بدون رزرو در بازه = قرمز
+         * 3. Free بدون رزرو در بازه = سبز
+         */
+        if (hasReservationInRange) {
+          rangeReservationCount += 1;
+
+          applyColor(
+            element,
+            'rangeReservation'
           );
 
-          element.style.setProperty(
-            'background-color',
-            '#22c96f',
-            'important'
-          );
-
-          element.style.setProperty(
-            'border-color',
-            '#087c4d',
-            'important'
-          );
-
-          element.style.setProperty(
-            'color',
-            '#061b14',
-            'important'
-          );
+          return;
         }
 
-        if (state === 'reserved') {
+        if (baseState === 'reserved') {
           reservedCount += 1;
 
-          element.setAttribute(
-            'data-pmd-table-color',
-            'reserved-v464'
+          applyColor(
+            element,
+            'busy'
           );
 
-          element.style.setProperty(
-            'background',
-            '#32b2d8',
-            'important'
-          );
-
-          element.style.setProperty(
-            'background-color',
-            '#32b2d8',
-            'important'
-          );
-
-          element.style.setProperty(
-            'border-color',
-            '#087aa5',
-            'important'
-          );
-
-          element.style.setProperty(
-            'color',
-            '#061725',
-            'important'
-          );
+          return;
         }
+
+        freeCount += 1;
+
+        applyColor(
+          element,
+          'free'
+        );
       }
     );
 
     return {
       free: freeCount,
-      reserved: reservedCount
+      reserved: reservedCount,
+      rangeReservations:
+        rangeReservationCount
     };
   }
 

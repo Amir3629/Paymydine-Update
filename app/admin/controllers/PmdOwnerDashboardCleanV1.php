@@ -25,6 +25,72 @@ try {
     }
 
 
+    public function floorDatabaseContext()
+    {
+        try {
+            $connection = DB::connection();
+
+            $databaseName = $connection->getDatabaseName();
+            $connectionName = $connection->getName();
+
+            $columns = \Illuminate\Support\Facades\Schema::hasTable('tables')
+                ? \Illuminate\Support\Facades\Schema::getColumnListing('tables')
+                : [];
+
+            $primaryKey = in_array('table_id', $columns, true)
+                ? 'table_id'
+                : (
+                    in_array('id', $columns, true)
+                        ? 'id'
+                        : null
+                );
+
+            $rows = [];
+
+            if ($primaryKey) {
+                $select = array_values(array_intersect([
+                    $primaryKey,
+                    'table_no',
+                    'table_number',
+                    'name',
+                    'table_name',
+                    'location_id',
+                    'floor_x',
+                    'floor_y',
+                ], $columns));
+
+                $rows = DB::table('tables')
+                    ->select($select)
+                    ->orderBy($primaryKey)
+                    ->limit(100)
+                    ->get();
+            }
+
+            return Response::json([
+                'ok' => true,
+                'connection_name' => $connectionName,
+                'database_name' => $databaseName,
+                'default_connection' => config('database.default'),
+                'tables_exists' => \Illuminate\Support\Facades\Schema::hasTable('tables'),
+                'primary_key' => $primaryKey,
+                'columns' => $columns,
+                'rows' => $rows,
+                'session' => [
+                    'location_id' => session('location_id'),
+                    'restaurant_id' => session('restaurant_id'),
+                    'site_id' => session('site_id'),
+                ],
+            ]);
+        } catch (\Throwable $e) {
+            return Response::json([
+                'ok' => false,
+                'message' => $e->getMessage(),
+                'type' => get_class($e),
+            ], 500);
+        }
+    }
+
+
     public function floorLayout()
     {
         try {
@@ -43,48 +109,365 @@ try {
     public function saveFloorLayout()
     {
         try {
-            if (!\Illuminate\Support\Facades\Schema::hasTable('tables')) {
-                return Response::json(['ok' => false, 'message' => 'tables table not found'], 500);
+            /*
+             * Floor data is read from the tenant database selected from
+             * the current hostname, for example:
+             *
+             * mimoza.paymydine.com => mimoza.ti_tables
+             *
+             * Save must use the same tenant database and physical table.
+             */
+            $db = DB::connection();
+
+            $quoteIdentifier = function ($value) {
+                return '`'.str_replace('`', '``', (string)$value).'`';
+            };
+
+            $tableExists = function ($database, $table) use ($db) {
+                $row = $db->selectOne(
+                    'SELECT COUNT(*) AS aggregate
+                     FROM information_schema.TABLES
+                     WHERE TABLE_SCHEMA = ?
+                       AND TABLE_NAME = ?',
+                    [$database, $table]
+                );
+
+                return $row
+                    && (int)($row->aggregate ?? 0) > 0;
+            };
+
+            $getColumns = function ($database, $table) use ($db) {
+                $rows = $db->select(
+                    'SELECT COLUMN_NAME
+                     FROM information_schema.COLUMNS
+                     WHERE TABLE_SCHEMA = ?
+                       AND TABLE_NAME = ?
+                     ORDER BY ORDINAL_POSITION',
+                    [$database, $table]
+                );
+
+                return array_values(array_map(
+                    function ($row) {
+                        return (string)$row->COLUMN_NAME;
+                    },
+                    $rows
+                ));
+            };
+
+            $host = request()->getHost();
+            $subdomain = strtolower(
+                trim(explode('.', $host)[0] ?? '')
+            );
+
+            $currentDatabase = $db->getDatabaseName();
+            $environmentTenant = getenv('PMD_TENANT_DB') ?: null;
+
+            $databaseCandidates = [];
+
+            if ($environmentTenant) {
+                $databaseCandidates[] = $environmentTenant;
             }
-            $colsList = \Illuminate\Support\Facades\Schema::getColumnListing('tables');
-            $cols = array_flip($colsList);
-            $pk = isset($cols['table_id']) ? 'table_id' : (isset($cols['id']) ? 'id' : null);
-            if (!$pk || !isset($cols['floor_x']) || !isset($cols['floor_y'])) {
-                return Response::json(['ok' => false, 'message' => 'Missing table primary key or floor_x/floor_y columns', 'columns' => $colsList], 422);
+
+            if (
+                $subdomain !== ''
+                && !in_array(
+                    $subdomain,
+                    ['www', 'admin', 'app', 'paymydine'],
+                    true
+                )
+            ) {
+                $databaseCandidates[] = $subdomain;
             }
-            $payload = json_decode((string)request()->getContent(), true);
-            if (!is_array($payload)) $payload = request()->all();
+
+            if (stripos($host, 'mimoza') !== false) {
+                $databaseCandidates[] = 'mimoza';
+            }
+
+            if ($currentDatabase) {
+                $databaseCandidates[] = $currentDatabase;
+            }
+
+            $databaseCandidates = array_values(
+                array_unique(
+                    array_filter($databaseCandidates)
+                )
+            );
+
+            $tenantDatabase = null;
+            $tablesTable = null;
+
+            foreach ($databaseCandidates as $candidateDatabase) {
+                foreach (['ti_tables', 'tables'] as $candidateTable) {
+                    if ($tableExists($candidateDatabase, $candidateTable)) {
+                        $tenantDatabase = $candidateDatabase;
+                        $tablesTable = $candidateTable;
+                        break 2;
+                    }
+                }
+            }
+
+            if (!$tenantDatabase || !$tablesTable) {
+                return Response::json([
+                    'ok' => false,
+                    'message' => 'Could not resolve tenant tables database',
+                    'host' => $host,
+                    'database_candidates' => $databaseCandidates,
+                    'current_database' => $currentDatabase,
+                ], 500);
+            }
+
+            $columnsList = $getColumns(
+                $tenantDatabase,
+                $tablesTable
+            );
+
+            $columns = array_flip($columnsList);
+
+            $primaryKey = isset($columns['table_id'])
+                ? 'table_id'
+                : (
+                    isset($columns['id'])
+                        ? 'id'
+                        : null
+                );
+
+            if (
+                !$primaryKey
+                || !isset($columns['floor_x'])
+                || !isset($columns['floor_y'])
+            ) {
+                return Response::json([
+                    'ok' => false,
+                    'message' =>
+                        'Tenant table is missing primary key or floor coordinates',
+                    'tenant_database' => $tenantDatabase,
+                    'tables_table' => $tablesTable,
+                    'columns' => $columnsList,
+                ], 422);
+            }
+
+            $payload = json_decode(
+                (string)request()->getContent(),
+                true
+            );
+
+            if (!is_array($payload)) {
+                $payload = request()->all();
+            }
+
             $items = $payload['tables'] ?? [];
-            if (!is_array($items) || !count($items)) {
-                return Response::json(['ok' => false, 'message' => 'No table layout items received'], 422);
+
+            if (!is_array($items) || count($items) < 1) {
+                return Response::json([
+                    'ok' => false,
+                    'message' => 'No table layout items received',
+                ], 422);
             }
+
+            $submittedIds = array_values(
+                array_unique(
+                    array_filter(
+                        array_map(
+                            function ($item) {
+                                if (!is_array($item)) {
+                                    return 0;
+                                }
+
+                                return (int)(
+                                    $item['table_id']
+                                    ?? $item['id']
+                                    ?? 0
+                                );
+                            },
+                            $items
+                        )
+                    )
+                )
+            );
+
+            $qualifiedTable =
+                $quoteIdentifier($tenantDatabase)
+                .'.'
+                .$quoteIdentifier($tablesTable);
+
+            $quotedPrimaryKey =
+                $quoteIdentifier($primaryKey);
+
+            $placeholders = implode(
+                ',',
+                array_fill(0, count($submittedIds), '?')
+            );
+
             $validIds = [];
-            foreach (DB::table('tables')->whereIn($pk, array_map(function($i){ return (int)($i['id'] ?? 0); }, array_filter($items, 'is_array')))->pluck($pk) as $id) {
-                $validIds[(int)$id] = true;
+
+            if (count($submittedIds)) {
+                $rows = $db->select(
+                    "SELECT {$quotedPrimaryKey} AS resolved_id
+                     FROM {$qualifiedTable}
+                     WHERE {$quotedPrimaryKey} IN ({$placeholders})",
+                    $submittedIds
+                );
+
+                foreach ($rows as $row) {
+                    $validIds[
+                        (int)$row->resolved_id
+                    ] = true;
+                }
             }
-            $updated = 0; $skipped = [];
-            DB::beginTransaction();
+
+            if (!count($validIds)) {
+                return Response::json([
+                    'ok' => false,
+                    'message' =>
+                        'No submitted table IDs matched tenant table',
+                    'submitted_ids' => $submittedIds,
+                    'tenant_database' => $tenantDatabase,
+                    'tables_table' => $tablesTable,
+                    'primary_key' => $primaryKey,
+                    'current_database' => $currentDatabase,
+                ], 422);
+            }
+
+            $updated = 0;
+            $matched = 0;
+            $skipped = [];
+
+            $db->beginTransaction();
+
             foreach ($items as $item) {
-                if (!is_array($item)) { $skipped[] = ['reason' => 'invalid item']; continue; }
-                $id = (int)($item['id'] ?? 0);
-                if ($id <= 0 || !isset($validIds[$id])) { $skipped[] = ['id' => $id, 'reason' => 'invalid id']; continue; }
-                $w = isset($item['floor_width']) && is_numeric($item['floor_width']) ? max(72, min(260, (float)$item['floor_width'])) : 150;
-                $h = isset($item['floor_height']) && is_numeric($item['floor_height']) ? max(58, min(180, (float)$item['floor_height'])) : 78;
-                $x = isset($item['floor_x']) && is_numeric($item['floor_x']) ? (float)$item['floor_x'] : 0;
-                $y = isset($item['floor_y']) && is_numeric($item['floor_y']) ? (float)$item['floor_y'] : 0;
-                $update = [];
-                if (isset($cols['floor_width'])) $update['floor_width'] = $w;
-                if (isset($cols['floor_height'])) $update['floor_height'] = $h;
-                $update['floor_x'] = max(0, min(1000 - $w, $x));
-                $update['floor_y'] = max(0, min(560 - $h, $y));
-                if (isset($cols['visible_on_floor_plan'])) $update['visible_on_floor_plan'] = 1;
-                $updated += DB::table('tables')->where($pk, $id)->update($update) >= 0 ? 1 : 0;
+                if (!is_array($item)) {
+                    $skipped[] = [
+                        'reason' => 'invalid item',
+                    ];
+                    continue;
+                }
+
+                $id = (int)(
+                    $item['table_id']
+                    ?? $item['id']
+                    ?? 0
+                );
+
+                if (
+                    $id <= 0
+                    || !isset($validIds[$id])
+                ) {
+                    $skipped[] = [
+                        'id' => $id,
+                        'reason' => 'invalid tenant table id',
+                    ];
+                    continue;
+                }
+
+                $matched++;
+
+                $width =
+                    isset($item['floor_width'])
+                    && is_numeric($item['floor_width'])
+                        ? max(
+                            72,
+                            min(
+                                260,
+                                (float)$item['floor_width']
+                            )
+                        )
+                        : 150;
+
+                $height =
+                    isset($item['floor_height'])
+                    && is_numeric($item['floor_height'])
+                        ? max(
+                            58,
+                            min(
+                                180,
+                                (float)$item['floor_height']
+                            )
+                        )
+                        : 78;
+
+                $x =
+                    isset($item['floor_x'])
+                    && is_numeric($item['floor_x'])
+                        ? (float)$item['floor_x']
+                        : 0;
+
+                $y =
+                    isset($item['floor_y'])
+                    && is_numeric($item['floor_y'])
+                        ? (float)$item['floor_y']
+                        : 0;
+
+                $updates = [
+                    'floor_x' =>
+                        max(0, min(1000 - $width, $x)),
+                    'floor_y' =>
+                        max(0, min(560 - $height, $y)),
+                ];
+
+                if (isset($columns['floor_width'])) {
+                    $updates['floor_width'] = $width;
+                }
+
+                if (isset($columns['floor_height'])) {
+                    $updates['floor_height'] = $height;
+                }
+
+                if (isset($columns['visible_on_floor_plan'])) {
+                    $updates['visible_on_floor_plan'] = 1;
+                }
+
+                $setClauses = [];
+                $bindings = [];
+
+                foreach ($updates as $column => $value) {
+                    $setClauses[] =
+                        $quoteIdentifier($column).' = ?';
+
+                    $bindings[] = $value;
+                }
+
+                $bindings[] = $id;
+
+                $affected = $db->update(
+                    "UPDATE {$qualifiedTable}
+                     SET ".implode(', ', $setClauses)."
+                     WHERE {$quotedPrimaryKey} = ?",
+                    $bindings
+                );
+
+                $updated += (int)$affected;
             }
-            DB::commit();
-            return Response::json(['ok' => true, 'updated' => $updated, 'received' => count($items), 'skipped' => $skipped]);
+
+            /*
+             * A matched request can legitimately affect zero rows when
+             * coordinates are saved without any numerical change.
+             */
+            $db->commit();
+
+            return Response::json([
+                'ok' => true,
+                'message' => $updated > 0
+                    ? 'Floor layout saved'
+                    : 'Floor layout already up to date',
+                'updated' => $updated,
+                'matched' => $matched,
+                'received' => count($items),
+                'skipped' => $skipped,
+                'tenant_database' => $tenantDatabase,
+                'tables_table' => $tablesTable,
+                'primary_key' => $primaryKey,
+            ]);
         } catch (\Throwable $e) {
-            try { DB::rollBack(); } catch (\Throwable $ignore) {}
-            return Response::json(['ok' => false, 'message' => $e->getMessage(), 'type' => get_class($e)], 500);
+            try {
+                DB::connection()->rollBack();
+            } catch (\Throwable $ignore) {
+            }
+
+            return Response::json([
+                'ok' => false,
+                'message' => $e->getMessage(),
+                'type' => get_class($e),
+            ], 500);
         }
     }
 

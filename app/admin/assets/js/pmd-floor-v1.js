@@ -41,37 +41,73 @@
   }
 
   function fetchJson(url, options) {
+    var requestOptions =
+      Object.assign({}, options || {});
+
+    var headers =
+      Object.assign(
+        {
+          Accept: 'application/json',
+          'Content-Type': 'application/json',
+          'X-Requested-With':
+            'XMLHttpRequest'
+        },
+        requestOptions.headers || {}
+      );
+
+    var csrfToken =
+      document.querySelector(
+        'meta[name="csrf-token"]'
+      );
+
+    if (csrfToken && csrfToken.content) {
+      headers['X-CSRF-TOKEN'] =
+        csrfToken.content;
+    }
+
+    requestOptions.headers = headers;
+
     return fetch(
       url,
       Object.assign(
         {
           credentials: 'same-origin',
-          cache: 'no-store',
-
-          headers: {
-            Accept: 'application/json',
-            'Content-Type': 'application/json',
-            'X-Requested-With':
-              'XMLHttpRequest'
-          }
+          cache: 'no-store'
         },
-        options || {}
+        requestOptions
       )
     ).then(function (response) {
-      return response
-        .json()
-        .catch(function () {
-          return {};
-        })
-        .then(function (payload) {
+      return response.text()
+        .then(function (body) {
+          var payload = {};
+
+          if (body) {
+            try {
+              payload = JSON.parse(body);
+            } catch (error) {
+              payload = {
+                message: body
+              };
+            }
+          }
+
           if (
             !response.ok ||
             payload.ok === false
           ) {
-            throw new Error(
+            var requestError = new Error(
               payload.message ||
+              body ||
               'HTTP ' + response.status
             );
+
+            requestError.status =
+              response.status;
+
+            requestError.responseBody =
+              body;
+
+            throw requestError;
           }
 
           return payload;
@@ -177,6 +213,23 @@
       stripMode: false,
 
       /*
+       * Exact canonical Full Floor coordinates.
+       *
+       * Captured immediately before entering One row and restored
+       * directly into state.tables before Full Floor renders again.
+       */
+      fullFloorCoordinateSnapshot: null,
+
+      /*
+       * Exact Full Floor dimensions captured immediately before
+       * entering One row.
+       *
+       * This prevents temporary One-row viewport height from being
+       * reused when Full Floor is restored.
+       */
+      fullFloorDimensionSnapshot: null,
+
+      /*
        * Mother Floor context.
        *
        * Context controls which page-specific actions and
@@ -213,9 +266,338 @@
 
       active: null,
       drag: null,
+      saving: false,
+      saveAttempted: false,
+      saveSequence: 0,
 
       toastTimer: null
     };
+
+    /* PMD_DYNAMIC_FULL_FLOOR_ENGINE_V1_START */
+
+    /*
+     * Return the real usable Full Floor size.
+     *
+     * This updates the existing FLOOR_WIDTH/FLOOR_HEIGHT variables,
+     * so every existing clamp, collision check, legal-position check,
+     * normalization routine and drag routine automatically uses the
+     * same correct bounds.
+     */
+    function syncRealFullFloorBounds() {
+      if (
+        !root ||
+        !scroll ||
+        !canvas ||
+        state.stripMode
+      ) {
+        return {
+          width: FLOOR_WIDTH,
+          height: FLOOR_HEIGHT
+        };
+      }
+
+      var rootRect =
+        root.getBoundingClientRect();
+
+      var scrollRect =
+        scroll.getBoundingClientRect();
+
+      /*
+       * Use the complete visible horizontal floor frame.
+       */
+      var savedDimensions =
+        state.fullFloorDimensionSnapshot;
+
+      /*
+       * After returning from One row, preserve the exact Full Floor
+       * dimensions that existed before entering One row.
+       *
+       * Do not measure the temporary 560px post-strip viewport.
+       */
+      var realWidth =
+        savedDimensions
+          ? savedDimensions.width
+          : Math.max(
+              1000,
+              Math.round(scroll.clientWidth || 0),
+              Math.round(scrollRect.width || 0)
+            );
+
+      var availableHeight =
+        Math.round(
+          rootRect.bottom -
+          scrollRect.top -
+          12
+        );
+
+      var realHeight =
+        savedDimensions
+          ? savedDimensions.height
+          : Math.max(
+              560,
+              availableHeight,
+              Math.round(scroll.clientHeight || 0)
+            );
+
+      FLOOR_WIDTH = realWidth;
+      FLOOR_HEIGHT = realHeight;
+
+      /*
+       * Publish the engine's logical bounds to CSS.
+       *
+       * Some stable floor styles use !important and otherwise force
+       * the real canvas back to 1000x560 despite the inline styles.
+       */
+      root.style.setProperty(
+        '--pmd-real-floor-width',
+        FLOOR_WIDTH + 'px'
+      );
+
+      root.style.setProperty(
+        '--pmd-real-floor-height',
+        FLOOR_HEIGHT + 'px'
+      );
+
+      /*
+       * Existing stable styles force 1000x560 using !important.
+       *
+       * Inline declarations with important priority are the final
+       * Full Floor authority and cannot be overridden by those rules.
+       */
+      canvas.style.setProperty(
+        'width',
+        FLOOR_WIDTH + 'px',
+        'important'
+      );
+
+      canvas.style.setProperty(
+        'min-width',
+        FLOOR_WIDTH + 'px',
+        'important'
+      );
+
+      canvas.style.setProperty(
+        'height',
+        FLOOR_HEIGHT + 'px',
+        'important'
+      );
+
+      canvas.style.setProperty(
+        'min-height',
+        FLOOR_HEIGHT + 'px',
+        'important'
+      );
+
+      canvas.style.setProperty(
+        'transform-origin',
+        '0 0',
+        'important'
+      );
+
+      scroll.style.height =
+        FLOOR_HEIGHT + 'px';
+
+      scroll.style.minHeight =
+        FLOOR_HEIGHT + 'px';
+
+      scroll.style.maxHeight =
+        FLOOR_HEIGHT + 'px';
+
+      return {
+        width: FLOOR_WIDTH,
+        height: FLOOR_HEIGHT
+      };
+    }
+
+    /*
+     * Capture state coordinates, not DOM styles.
+     *
+     * One row may freely change the DOM presentation, while the
+     * canonical Full Floor coordinates remain protected here.
+     */
+    function captureCanonicalFullFloor() {
+      var snapshot = {};
+
+      state.tables.forEach(
+        function (table) {
+          snapshot[
+            String(table.id)
+          ] = {
+            x: Number(table.x),
+            y: Number(table.y)
+          };
+        }
+      );
+
+      state.fullFloorCoordinateSnapshot =
+        snapshot;
+
+      /*
+       * Capture the dimensions currently rendered in Full Floor.
+       *
+       * Prefer the engine dimensions because they represent the
+       * logical drag boundary. Fall back to the rendered canvas.
+       */
+      var canvasRect =
+        canvas.getBoundingClientRect();
+
+      state.fullFloorDimensionSnapshot = {
+        width:
+          Math.max(
+            1000,
+            Number(FLOOR_WIDTH) || 0,
+            Math.round(canvasRect.width || 0)
+          ),
+
+        height:
+          Math.max(
+            560,
+            Number(FLOOR_HEIGHT) || 0,
+            Math.round(canvasRect.height || 0)
+          )
+      };
+
+      return snapshot;
+    }
+
+    /*
+     * Restore state coordinates before render().
+     *
+     * Since render reads state.tables, the first Full Floor frame
+     * already contains the exact original positions. No delayed
+     * visual correction or jumping is required.
+     */
+    function restoreCanonicalFullFloor() {
+      var snapshot =
+        state.fullFloorCoordinateSnapshot;
+
+      if (!snapshot) {
+        return;
+      }
+
+      state.tables.forEach(
+        function (table) {
+          var saved =
+            snapshot[
+              String(table.id)
+            ];
+
+          if (!saved) {
+            return;
+          }
+
+          if (
+            Number.isFinite(saved.x)
+          ) {
+            table.x = saved.x;
+          }
+
+          if (
+            Number.isFinite(saved.y)
+          ) {
+            table.y = saved.y;
+          }
+        }
+      );
+
+      /*
+       * Keep the source payload synchronized so another normalize()
+       * cannot reintroduce stale positions.
+       */
+      if (
+        typeof syncPayloadCoordinatesFromTables ===
+        'function'
+      ) {
+        syncPayloadCoordinatesFromTables();
+      }
+
+      /*
+       * Restore exact Full Floor dimensions before render/fit.
+       */
+      var dimensions =
+        state.fullFloorDimensionSnapshot;
+
+      if (dimensions) {
+        FLOOR_WIDTH =
+          dimensions.width;
+
+        FLOOR_HEIGHT =
+          dimensions.height;
+
+        root.style.setProperty(
+          '--pmd-real-floor-width',
+          FLOOR_WIDTH + 'px'
+        );
+
+        root.style.setProperty(
+          '--pmd-real-floor-height',
+          FLOOR_HEIGHT + 'px'
+        );
+
+        canvas.style.setProperty(
+          'width',
+          FLOOR_WIDTH + 'px',
+          'important'
+        );
+
+        canvas.style.setProperty(
+          'min-width',
+          FLOOR_WIDTH + 'px',
+          'important'
+        );
+
+        canvas.style.setProperty(
+          'height',
+          FLOOR_HEIGHT + 'px',
+          'important'
+        );
+
+        canvas.style.setProperty(
+          'min-height',
+          FLOOR_HEIGHT + 'px',
+          'important'
+        );
+
+        canvas.style.setProperty(
+          'transform-origin',
+          '0 0',
+          'important'
+        );
+
+        scroll.style.height =
+          FLOOR_HEIGHT + 'px';
+
+        scroll.style.minHeight =
+          FLOOR_HEIGHT + 'px';
+
+        scroll.style.maxHeight =
+          FLOOR_HEIGHT + 'px';
+      }
+    }
+
+    /* PMD_DYNAMIC_FULL_FLOOR_ENGINE_V1_END */
+
+
+    /*
+     * Keep logical engine bounds aligned with the responsive frame.
+     * This listener does not affect One row.
+     */
+    window.addEventListener(
+      'resize',
+      function () {
+        if (!state.stripMode) {
+          /*
+           * A real browser resize is the only time the saved Full
+           * Floor dimensions should be discarded and recalculated.
+           */
+          state.fullFloorDimensionSnapshot =
+            null;
+
+          syncRealFullFloorBounds();
+          fit();
+        }
+      }
+    );
 
     function toast(message, error) {
       if (!toastNode) return;
@@ -321,7 +703,10 @@
       );
     }
 
-    function normalize(payload) {
+    function normalize(
+      payload,
+      layoutPayload
+    ) {
       var rawTables =
         Array.isArray(payload.tables)
           ? payload.tables
@@ -344,9 +729,85 @@
               : []
           );
 
+      var canonicalIds = {};
+
+      (
+        layoutPayload &&
+        Array.isArray(layoutPayload.tables)
+          ? layoutPayload.tables
+          : []
+      ).forEach(function (table) {
+        var dbTableId = number(
+          table.table_id || table.id,
+          0
+        );
+
+        if (!dbTableId) return;
+
+        [
+          table.table_no,
+          table.table_number,
+          table.number,
+          table.table_name,
+          table.name,
+          table.label
+        ].map(clean).filter(Boolean)
+          .forEach(function (key) {
+            canonicalIds[key.toLowerCase()] =
+              dbTableId;
+          });
+      });
+
       return rawTables
         .map(function (raw, index) {
           var id = tableId(raw);
+
+          /*
+           * The operational waiter payload already exposes the
+           * canonical database primary key as raw.table_id.
+           *
+           * Production evidence:
+           * Table 15 => raw.table_id 340, matching tables.table_id.
+           *
+           * The layout identity map remains a secondary resolver only.
+           */
+          var dbTableId = number(
+            raw.table_id,
+            0
+          );
+
+          /*
+           * Preserve raw.table_id when it already contains the
+           * canonical database ID.
+           *
+           * The layout identity map is only a fallback resolver.
+           * A failed lookup must never replace a valid ID with 0.
+           */
+          if (!dbTableId) {
+            [
+              raw.table_no,
+              raw.table_number,
+              raw.number,
+              raw.table_name,
+              raw.name,
+              raw.label
+            ].map(clean).filter(Boolean)
+              .some(function (key) {
+                var matchedDbTableId =
+                  canonicalIds[
+                    key.toLowerCase()
+                  ] || 0;
+
+                if (matchedDbTableId > 0) {
+                  dbTableId =
+                    matchedDbTableId;
+
+                  return true;
+                }
+
+                return false;
+              });
+          }
 
           var linked =
             linkedOrders(
@@ -448,6 +909,7 @@
           return {
             raw: raw,
             id: id,
+            dbTableId: dbTableId || null,
 
             number:
               tableNumber(raw),
@@ -1223,36 +1685,63 @@
               1
             );
 
-          node.animate(
-            [
+          /*
+           * Tables are positioned by their center point.
+           *
+           * Their permanent CSS transform is:
+           *   translate(-50%, -50%)
+           *
+           * The previous structural animation ended at
+           * translate(0,0) with fill:'both', which permanently
+           * overrode that centering transform after One row.
+           */
+          var animation =
+            node.animate(
+              [
+                {
+                  opacity: .72,
+
+                  transform:
+                    'translate(-50%, -50%) ' +
+                    'translate(' +
+                    translateX +
+                    'px,' +
+                    translateY +
+                    'px) scale(' +
+                    scaleX +
+                    ',' +
+                    scaleY +
+                    ')'
+                },
+
+                {
+                  opacity: 1,
+
+                  transform:
+                    'translate(-50%, -50%) ' +
+                    'translate(0,0) ' +
+                    'scale(1,1)'
+                }
+              ],
               {
-                opacity: .72,
-
-                transform:
-                  'translate(' +
-                  translateX +
-                  'px,' +
-                  translateY +
-                  'px) scale(' +
-                  scaleX +
-                  ',' +
-                  scaleY +
-                  ')'
-              },
-
-              {
-                opacity: 1,
-
-                transform:
-                  'translate(0,0) ' +
-                  'scale(1,1)'
+                duration: duration,
+                easing:
+                  'cubic-bezier(.2,.8,.2,1)',
+                fill: 'none'
               }
-            ],
+            );
+
+          /*
+           * Explicitly remove the Web Animation after completion,
+           * allowing the normal CSS transform to remain authoritative.
+           */
+          animation.addEventListener(
+            'finish',
+            function () {
+              animation.cancel();
+            },
             {
-              duration: duration,
-              easing:
-                'cubic-bezier(.2,.8,.2,1)',
-              fill: 'both'
+              once: true
             }
           );
         });
@@ -1509,6 +1998,10 @@
         return;
       }
 
+      if (!state.stripMode) {
+        syncRealFullFloorBounds();
+      }
+
       if (state.stripMode) {
         /*
          * Keep the page width unchanged.
@@ -1524,20 +2017,13 @@
         return;
       }
 
-      state.zoom =
-        Math.max(
-          .45,
-          Math.min(
-            1.4,
-            Math.min(
-              scroll.clientWidth /
-                FLOOR_WIDTH,
-
-              scroll.clientHeight /
-                FLOOR_HEIGHT
-            )
-          )
-        );
+      /*
+       * Full Floor must keep its canonical visual size.
+       *
+       * FLOOR_WIDTH/FLOOR_HEIGHT already match the real usable
+       * frame, so auto-fitting here only makes the tables smaller.
+       */
+      state.zoom = 1;
 
       applyZoom();
 
@@ -1779,12 +2265,85 @@ function restoreFloorCoordinates(snapshot) {
 
 
 function saveLayout() {
+      if (
+        state.saving ||
+        state.saveAttempted
+      ) {
+        console.warn(
+          '[PMD Floor] Save ignored: this edit session already submitted'
+        );
+
+        return Promise.resolve(null);
+      }
+
+      state.saving = true;
+      state.saveAttempted = true;
+      state.saveSequence += 1;
+
+      var saveControls =
+        root.querySelectorAll(
+          '[data-floor-save], ' +
+          '[data-pmd-r2-tool="edit"]'
+        );
+
+      saveControls.forEach(function (control) {
+        control.disabled = true;
+      });
+
+      console.info(
+        '[PMD Floor] Save identity audit',
+        {
+          total: state.tables.length,
+          identities:
+            state.tables.map(function (table) {
+              return {
+                label:
+                  table.name || null,
+                id: table.id || null,
+                table_id:
+                  table.raw
+                    ? table.raw.table_id || null
+                    : null,
+                tableId:
+                  table.tableId || null,
+                dbTableId:
+                  table.dbTableId || null,
+                number:
+                  table.number || null
+              };
+            })
+        }
+      );
+
       var tables =
-        state.tables.map(
+        state.tables.filter(
+          function (table) {
+            if (table.dbTableId) {
+              return true;
+            }
+
+            console.error(
+              '[PMD Floor] Table excluded from save: canonical database ID missing',
+              {
+                label: table.name || null,
+                id: table.id || null,
+                table_id:
+                  table.raw
+                    ? table.raw.table_id || null
+                    : null,
+                number:
+                  table.number || null,
+                source: dataUrl
+              }
+            );
+
+            return false;
+          }
+        ).map(
           function (table) {
             return {
-              id: table.id,
-              table_id: table.id,
+              id: table.dbTableId,
+              table_id: table.dbTableId,
 
               floor_x:
                 Math.round(table.x),
@@ -1800,6 +2359,35 @@ function saveLayout() {
             };
           }
         );
+
+      console.info(
+        '[PMD Floor] Saving layout',
+        {
+          sequence: state.saveSequence,
+          endpoint: layoutUrl,
+          csrfFound: Boolean(
+            document.querySelector(
+              'meta[name="csrf-token"]'
+            )
+          ),
+          tables: tables.length
+        }
+      );
+
+      if (!tables.length) {
+        state.saving = false;
+
+        saveControls.forEach(function (control) {
+          control.disabled = false;
+        });
+
+        toast(
+          'No tables have canonical database IDs',
+          true
+        );
+
+        return Promise.resolve(null);
+      }
 
       return fetchJson(
         layoutUrl,
@@ -1881,8 +2469,32 @@ function saveLayout() {
 
           console.error(
             '[PMD Floor] Layout save failed',
-            error
+            {
+              sequence:
+                state.saveSequence,
+              endpoint: layoutUrl,
+              csrfFound: Boolean(
+                document.querySelector(
+                  'meta[name="csrf-token"]'
+                )
+              ),
+              status:
+                error.status || null,
+              response:
+                error.responseBody ||
+                error.message,
+              error: error
+            }
           );
+        })
+        .then(function (payload) {
+          state.saving = false;
+
+          saveControls.forEach(function (control) {
+            control.disabled = false;
+          });
+
+          return payload;
         });
     }
 
@@ -1907,7 +2519,9 @@ function saveLayout() {
                 merges: {}
               }
             };
-          })
+          }),
+
+        fetchJson(layoutUrl)
       ])
         .then(function (results) {
           state.payload =
@@ -1920,7 +2534,10 @@ function saveLayout() {
             };
 
           state.tables =
-            normalize(state.payload);
+            normalize(
+              state.payload,
+              results[2] || {}
+            );
 
           render();
 
@@ -2070,13 +2687,84 @@ function saveLayout() {
       state.transitionReason =
         'layout';
 
-      state.stripMode = !!value;
+      var nextStripMode =
+        !!value;
+
+      var enteringStrip =
+        nextStripMode &&
+        !state.stripMode;
+
+      var leavingStrip =
+        !nextStripMode &&
+        state.stripMode;
+
+      /*
+       * Capture the exact model coordinates before One row can
+       * modify presentation styles.
+       */
+      if (enteringStrip) {
+        captureCanonicalFullFloor();
+
+        /*
+         * Release only the Full Floor dimension authority before
+         * One row renders. The existing One row engine then controls
+         * its own width, height and scrolling exactly as before.
+         */
+        canvas.style.removeProperty(
+          'width'
+        );
+
+        canvas.style.removeProperty(
+          'min-width'
+        );
+
+        canvas.style.removeProperty(
+          'height'
+        );
+
+        canvas.style.removeProperty(
+          'min-height'
+        );
+
+        canvas.style.removeProperty(
+          'transform-origin'
+        );
+
+        root.style.removeProperty(
+          '--pmd-real-floor-width'
+        );
+
+        root.style.removeProperty(
+          '--pmd-real-floor-height'
+        );
+      }
+
+      state.stripMode =
+        nextStripMode;
 
       if (state.stripMode) {
         /*
          * Strip mode is operational, not a layout editor.
          */
         setEditing(false);
+      }
+
+      /*
+       * Restore into state.tables before render().
+       *
+       * Therefore Full Floor is correct on its first rendered frame,
+       * rather than being corrected later by a timer.
+       */
+      if (leavingStrip) {
+        /*
+         * restoreCanonicalFullFloor() now restores both:
+         * - exact table coordinates
+         * - exact Full Floor dimensions
+         *
+         * Do not call syncRealFullFloorBounds() here because the
+         * post-strip DOM still temporarily reports 560px height.
+         */
+        restoreCanonicalFullFloor();
       }
 
       root.classList.toggle(
@@ -2100,6 +2788,10 @@ function saveLayout() {
     }
 
     function setEditing(value) {
+      if (value && !state.editing) {
+        state.saveAttempted = false;
+      }
+
       state.editing = !!value;
 
       root.classList.toggle(
@@ -2979,6 +3671,12 @@ function saveLayout() {
         return;
       }
 
+      /*
+       * Ensure all existing clamps and legal-position checks use
+       * the complete visible floor before dragging begins.
+       */
+      syncRealFullFloorBounds();
+
       event.preventDefault();
 
       var rect =
@@ -3057,6 +3755,8 @@ function saveLayout() {
       if (!state.drag) {
         return;
       }
+
+      syncRealFullFloorBounds();
 
       var rect =
         canvas.getBoundingClientRect();
@@ -4439,9 +5139,18 @@ function saveLayout() {
             );
           });
 
-      var left = 24;
-      var top = 22;
+      /*
+       * Floor cards use permanent center-based positioning:
+       *
+       *   transform: translate(-50%, -50%)
+       *
+       * Therefore left/top must contain each card's CENTER,
+       * not its top-left corner.
+       */
+      var horizontalPadding = 24;
+      var verticalPadding = 22;
       var gap = 18;
+      var cursorLeft = horizontalPadding;
       var maximumHeight = 0;
 
       cards.forEach(
@@ -4473,15 +5182,27 @@ function saveLayout() {
               )
             );
 
+          /*
+           * Convert the desired top-left strip position into
+           * the center coordinates required by the table CSS.
+           */
           node.style.left =
-            left + 'px';
+            (
+              cursorLeft +
+              width / 2
+            ) + 'px';
 
           node.style.top =
-            top + 'px';
+            (
+              verticalPadding +
+              height / 2
+            ) + 'px';
 
           node.style.margin = '0';
 
-          left += width + gap;
+          cursorLeft +=
+            width +
+            gap;
 
           maximumHeight =
             Math.max(
@@ -4496,18 +5217,28 @@ function saveLayout() {
           ? scroll.clientWidth
           : 0;
 
+      /*
+       * cursorLeft already points after the final card and gap.
+       * Remove the unnecessary trailing gap, then add right padding.
+       */
+      var contentRight =
+        cards.length
+          ? cursorLeft - gap
+          : horizontalPadding;
+
       var requiredWidth =
         Math.max(
           viewportWidth,
-          left + 24
+          contentRight +
+          horizontalPadding
         );
 
       var requiredHeight =
         Math.max(
           146,
-          top +
+          verticalPadding +
           maximumHeight +
-          22
+          verticalPadding
         );
 
       canvas.style.width =
@@ -4663,20 +5394,263 @@ function saveLayout() {
           '[data-floor-guide]'
         );
 
-      var scroll =
+      var stage =
         root.querySelector(
-          '[data-floor-scroll]'
+          '[data-floor-stage]'
+        );
+
+      /*
+       * The Guide is a viewport overlay, not floor content.
+       *
+       * Keeping it directly inside the non-scrolling stage
+       * makes its position compositor-stable while the canvas
+       * scrolls underneath it. No per-scroll JavaScript writes
+       * are needed, so there is no blinking or jumping.
+       */
+      if (
+        guide &&
+        stage &&
+        guide.parentElement !== stage
+      ) {
+        stage.appendChild(guide);
+      }
+
+      installGuideViewportAnchor();
+
+      refreshFloorIcons();
+    }
+
+    function installGuideViewportAnchor() {
+      var guide =
+        root.querySelector(
+          '[data-floor-guide]'
+        );
+
+      var card =
+        root.querySelector(
+          '[data-floor-guide-card]'
+        );
+
+      var stage =
+        root.querySelector(
+          '[data-floor-stage]'
+        );
+
+      if (!guide || !card || !stage) {
+        return;
+      }
+
+      if (
+        guide.parentElement !== stage
+      ) {
+        stage.appendChild(guide);
+      }
+
+      if (
+        card.parentElement !== stage
+      ) {
+        stage.appendChild(card);
+      }
+
+      /*
+       * Remove every inline value left by the former
+       * scroll-following implementation.
+       *
+       * CSS now owns positioning entirely.
+       */
+      [
+        'position',
+        'float',
+        'left',
+        'top',
+        'right',
+        'bottom',
+        'margin'
+      ].forEach(
+        function (property) {
+          guide.style.removeProperty(
+            property
+          );
+        }
+      );
+
+      guide.setAttribute(
+        'aria-expanded',
+        card.hidden
+          ? 'false'
+          : 'true'
+      );
+
+      /*
+       * Install the outside-click handler once only.
+       */
+      if (
+        !root.__pmdGuideOutsideClickInstalled
+      ) {
+        root.__pmdGuideOutsideClickInstalled =
+          true;
+
+        document.addEventListener(
+          'click',
+          function (event) {
+            var currentGuide =
+              root.querySelector(
+                '[data-floor-guide]'
+              );
+
+            var currentCard =
+              root.querySelector(
+                '[data-floor-guide-card]'
+              );
+
+            if (
+              !currentGuide ||
+              !currentCard ||
+              currentCard.hidden
+            ) {
+              return;
+            }
+
+            if (
+              event.target.closest(
+                '[data-floor-guide]'
+              ) ||
+              event.target.closest(
+                '[data-floor-guide-card]'
+              )
+            ) {
+              return;
+            }
+
+            closeFloorGuideCard();
+          }
+        );
+      }
+    }
+
+    function openFloorGuideCard() {
+      var guide =
+        root.querySelector(
+          '[data-floor-guide]'
+        );
+
+      var card =
+        root.querySelector(
+          '[data-floor-guide-card]'
+        );
+
+      if (!card) {
+        return;
+      }
+
+      if (card.__pmdGuideHideTimer) {
+        window.clearTimeout(
+          card.__pmdGuideHideTimer
+        );
+
+        card.__pmdGuideHideTimer =
+          0;
+      }
+
+      card.hidden = false;
+
+      /*
+       * Two frames ensure the browser paints the initial
+       * closed state before transitioning to the open state.
+       */
+      window.requestAnimationFrame(
+        function () {
+          window.requestAnimationFrame(
+            function () {
+              card.classList.add(
+                'is-open'
+              );
+            }
+          );
+        }
+      );
+
+      if (guide) {
+        guide.setAttribute(
+          'aria-expanded',
+          'true'
+        );
+      }
+    }
+
+    function closeFloorGuideCard() {
+      var guide =
+        root.querySelector(
+          '[data-floor-guide]'
+        );
+
+      var card =
+        root.querySelector(
+          '[data-floor-guide-card]'
         );
 
       if (
-        guide &&
-        scroll &&
-        guide.parentElement !== scroll
+        !card ||
+        card.hidden
       ) {
-        scroll.appendChild(guide);
+        return;
       }
 
-      refreshFloorIcons();
+      card.classList.remove(
+        'is-open'
+      );
+
+      if (guide) {
+        guide.setAttribute(
+          'aria-expanded',
+          'false'
+        );
+      }
+
+      if (card.__pmdGuideHideTimer) {
+        window.clearTimeout(
+          card.__pmdGuideHideTimer
+        );
+      }
+
+      card.__pmdGuideHideTimer =
+        window.setTimeout(
+          function () {
+            if (
+              !card.classList.contains(
+                'is-open'
+              )
+            ) {
+              card.hidden = true;
+            }
+
+            card.__pmdGuideHideTimer =
+              0;
+          },
+          190
+        );
+    }
+
+    function toggleFloorGuideCard() {
+      var card =
+        root.querySelector(
+          '[data-floor-guide-card]'
+        );
+
+      if (!card) {
+        return;
+      }
+
+      if (
+        card.hidden ||
+        !card.classList.contains(
+          'is-open'
+        )
+      ) {
+        openFloorGuideCard();
+      } else {
+        closeFloorGuideCard();
+      }
     }
 
     function ensureMotherToolbar() {
@@ -5492,19 +6466,22 @@ function saveLayout() {
             '[data-floor-guide]'
           )
         ) {
-          root.querySelector(
-            '[data-floor-guide-card]'
-          ).hidden = false;
+          toggleFloorGuideCard();
+
+          return;
         }
 
+        /*
+         * Clicking inside the Guide card must not close it.
+         * Clicking elsewhere is handled by the document-level
+         * outside-click listener.
+         */
         if (
           event.target.closest(
-            '[data-floor-guide-close]'
+            '[data-floor-guide-card]'
           )
         ) {
-          root.querySelector(
-            '[data-floor-guide-card]'
-          ).hidden = true;
+          return;
         }
 
         if (
@@ -6230,5 +7207,3 @@ function saveLayout() {
   );
 })();
 /* PMD_MERGE_INLINE_NEUTRAL_V287_END */
-
-

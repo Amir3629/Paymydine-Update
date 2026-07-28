@@ -1,0 +1,9 @@
+
+
+{"table_id":34,"table_name":"Table 1","floor_x":"663.00","floor_y":"253.00","updated_at":"2026-06-24 21:05:31"}
+{"table_id":35,"table_name":"Table 2","floor_x":"181.00","floor_y":"15.00","updated_at":"2026-06-24 21:05:31"}
+{"table_id":36,"table_name":"Table 3","floor_x":"15.00","floor_y":"15.00","updated_at":"2026-06-24 21:05:31"}
+{"table_id":37,"table_name":"Cashier","floor_x":null,"floor_y":null,"updated_at":"2026-06-24 17:01:52"}
+{"table_id":38,"table_name":"Table 8","floor_x":"1000.00","floor_y":"124.00","updated_at":"2026-06-24 21:05:31"}
+{"table_id":39,"table_name":"Cashier","floor_x":null,"floor_y":null,"updated_at":"2026-06-24 17:01:52"}
+{"table_id":40,"table_name":"Delivery","floor_x":null,"floor_y":null,"updated_at":"2026-06-24 17:01:52"}

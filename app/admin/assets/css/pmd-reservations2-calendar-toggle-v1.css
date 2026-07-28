@@ -664,3 +664,315 @@ section.pmd-r2-yc-selected[data-r2-yc-selected] {
 [data-r2-yc-calendar-frame] {
     overflow: hidden !important;
 }
+
+/* PMD_CALENDAR_TIMESLOT_SCREEN_ONLY_V1_BEGIN */
+
+#pmd-r2-calendar-surface-v160
+[data-r2-yc-calendar-frame] {
+  opacity: 1;
+  transform: translateY(0) scale(1);
+
+  transition:
+    opacity .16s ease,
+    transform .18s ease;
+}
+
+#pmd-r2-calendar-surface-v160.is-switching-to-timeslots
+[data-r2-yc-calendar-frame] {
+  opacity: 0;
+  transform: translateY(-6px) scale(.99);
+}
+
+#pmd-r2-calendar-surface-v160.is-timeslot-screen
+[data-r2-yc-calendar-frame] {
+  display: none !important;
+}
+
+#pmd-r2-calendar-surface-v160.is-timeslot-screen
+[data-r2-yc-selected] {
+  display: block !important;
+
+  width: 100% !important;
+
+  margin: 0 !important;
+  padding: 0 !important;
+
+  opacity: 1 !important;
+
+  animation:
+    pmdTimeslotScreenIn
+    .18s ease-out;
+}
+
+@keyframes pmdTimeslotScreenIn {
+  from {
+    opacity: 0;
+    transform: translateY(7px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.pmd-r2-timeslot-screen {
+  position: relative;
+
+  width: 100%;
+
+  border: 1px solid #cfdfeb;
+  border-radius: 18px;
+
+  background: #fff;
+
+  box-shadow:
+    0 14px 34px
+    rgba(22, 52, 76, .08);
+
+  overflow: hidden;
+}
+
+.pmd-r2-timeslot-screen__back {
+  position: sticky;
+  top: 0;
+
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+
+  min-height: 38px;
+
+  margin: 12px 12px 4px;
+  padding: 0 13px;
+
+  border: 1px solid #cbdce8;
+  border-radius: 11px;
+
+  background: #fff;
+  color: #17344c;
+
+  font: inherit;
+  font-size: 12px;
+  font-weight: 800;
+
+  cursor: pointer;
+
+  z-index: 4;
+}
+
+.pmd-r2-timeslot-screen__back:hover {
+  background: #f3f8fb;
+}
+
+.pmd-r2-day-board__timeline {
+  max-height: min(650px, 68vh);
+
+  overflow-y: auto;
+  overscroll-behavior: contain;
+
+  background: #fff;
+}
+
+.pmd-r2-timeslot {
+  display: grid;
+
+  grid-template-columns:
+    128px
+    minmax(0, 1fr);
+
+  min-height: 68px;
+
+  border-bottom: 1px solid #e4edf3;
+}
+
+.pmd-r2-timeslot:last-child {
+  border-bottom: 0;
+}
+
+.pmd-r2-timeslot__time {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+
+  padding: 12px 16px;
+
+  border-right: 1px solid #e0eaf1;
+
+  background: #f8fbfd;
+}
+
+.pmd-r2-timeslot__time strong {
+  color: #102a43;
+
+  font-size: 13px;
+  font-weight: 850;
+}
+
+.pmd-r2-timeslot__time span {
+  margin-top: 4px;
+
+  color: #8192a5;
+
+  font-size: 10px;
+  font-weight: 750;
+}
+
+.pmd-r2-timeslot__content {
+  display: grid;
+
+  grid-template-columns:
+    repeat(2, minmax(0, 1fr));
+
+  gap: 8px;
+
+  align-content: center;
+
+  padding: 9px 12px;
+}
+
+.pmd-r2-timeslot__free {
+  display: flex;
+  align-items: center;
+
+  gap: 8px;
+
+  color: #8a9aab;
+
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.pmd-r2-timeslot__free i {
+  width: 9px;
+  height: 9px;
+
+  border-radius: 50%;
+
+  background: #22ce70;
+
+  box-shadow:
+    0 0 0 4px
+    rgba(34, 206, 112, .13);
+}
+
+.pmd-r2-slot-booking {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+
+  gap: 12px;
+
+  padding: 10px 12px;
+
+  border: 1px solid #d9e6ee;
+  border-left-width: 4px;
+  border-radius: 12px;
+
+  background: #fff;
+
+  box-shadow:
+    0 4px 12px
+    rgba(23, 55, 82, .06);
+}
+
+.pmd-r2-slot-booking.is-confirmed {
+  border-left-color: #22ce70;
+}
+
+.pmd-r2-slot-booking.is-pending {
+  border-left-color: #ff8913;
+}
+
+.pmd-r2-slot-booking.is-cancelled {
+  border-left-color: #ff3d52;
+  opacity: .68;
+}
+
+.pmd-r2-slot-booking__main {
+  min-width: 0;
+}
+
+.pmd-r2-slot-booking__main strong {
+  display: block;
+
+  overflow: hidden;
+
+  color: #102a43;
+
+  font-size: 12px;
+  font-weight: 850;
+
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.pmd-r2-slot-booking__main span {
+  display: block;
+
+  margin-top: 3px;
+
+  color: #71849a;
+
+  font-size: 10px;
+  font-weight: 700;
+}
+
+.pmd-r2-slot-booking__status {
+  display: flex;
+  align-items: center;
+
+  gap: 7px;
+
+  flex: 0 0 auto;
+}
+
+.pmd-r2-slot-booking__status span {
+  padding: 5px 8px;
+
+  border-radius: 999px;
+
+  background: #eef4f8;
+  color: #496075;
+
+  font-size: 9px;
+  font-weight: 850;
+}
+
+.pmd-r2-slot-booking__status a {
+  color: #087aa5;
+
+  font-size: 10px;
+  font-weight: 850;
+
+  text-decoration: none;
+}
+
+@media (max-width: 1050px) {
+  .pmd-r2-timeslot__content {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 700px) {
+  .pmd-r2-timeslot {
+    grid-template-columns:
+      90px
+      minmax(0, 1fr);
+  }
+
+  .pmd-r2-timeslot__time {
+    padding: 10px 9px;
+  }
+
+  .pmd-r2-slot-booking {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .pmd-r2-slot-booking__status {
+    width: 100%;
+  }
+}
+
+/* PMD_CALENDAR_TIMESLOT_SCREEN_ONLY_V1_END */
