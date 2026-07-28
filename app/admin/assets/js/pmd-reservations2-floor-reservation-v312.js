@@ -421,10 +421,12 @@
         .pmdR2ReservationState = state;
     }
 
-    addTimeLabel(
-      element,
-      assignment
-    );
+    /*
+     * PMD Reservations Floor Clean State V1:
+     * table tiles show only number + colour.
+     * Detailed reservation information belongs below the floor.
+     */
+    removeTimeLabel(element);
 
     var baseLabel =
       element.dataset

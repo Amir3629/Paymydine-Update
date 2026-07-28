@@ -34,7 +34,9 @@ class Reservations2 extends Reservations
         $this->vars['pmdReservations2'] =
             Reservations_model::query()
                 ->orderBy('reservation_id', 'desc')
-                ->limit(250)
+                ->orderBy('reserve_date')
+                ->orderBy('reserve_time')
+                ->limit(1500)
                 ->get();
     }
 

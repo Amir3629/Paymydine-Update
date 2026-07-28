@@ -1,10 +1,22 @@
 (function () {
   'use strict';
 
+  /* PMD Reservations Day Navigation V13 */
+
+  /* PMD Reservations Day View V12 */
+
+  /* PMD Reservations Day View V11 */
+
+  /* PMD Reservations Day View V10 */
+
+  /* PMD Reservations Day View V9 */
+
+  /* PMD Reservations Day View V7 */
+
   var route = String(location.pathname || '').replace(/\/+$/, '');
   if (route !== '/admin/reservations2' && route !== '/admin/reservations') return;
 
-  var VERSION = '1.16.0';
+  var VERSION = '2.0.0';
   var PAGE_ID = 'pmd-reservations2';
   var FLOOR_ID = 'pmd-r2-shared-floor-canvas-v310';
   var ROOT_ID = 'pmd-r2-calendar-surface-v160';
@@ -93,9 +105,18 @@
   }
 
   function reservationTable(reservation) {
-    return clean(
-      reservation.table_name || reservation.table || reservation.table_number || reservation.table_id || ''
+    var value = clean(
+      reservation.table_name ||
+      reservation.table ||
+      reservation.table_number ||
+      reservation.table_id ||
+      ''
     );
+
+    return value
+      .replace(/\btable\s*/gi, '')
+      .replace(/\s*,\s*/g, ', ')
+      .trim();
   }
 
   function reservationName(reservation) {
@@ -606,24 +627,10 @@ function renderSelected() {
     }
 
     function minuteLabel(value) {
-      var hour =
-        Math.floor(value / 60);
+      var hour = Math.floor(value / 60);
+      var minute = value % 60;
 
-      var minute =
-        value % 60;
-
-      var suffix =
-        hour >= 12
-          ? 'PM'
-          : 'AM';
-
-      return (
-        (hour % 12 || 12) +
-        ':' +
-        pad(minute) +
-        ' ' +
-        suffix
-      );
+      return pad(hour) + ':' + pad(minute);
     }
 
     function guestCount(reservation) {
@@ -699,7 +706,19 @@ function renderSelected() {
             '<span>' +
               (
                 table
-                  ? 'Table ' + esc(table)
+                  ? (
+                      (
+                        table.indexOf(',') !== -1
+                          ? 'Tables '
+                          : 'Table '
+                      ) +
+                      esc(
+                        table.replace(
+                          /\s*,\s*/g,
+                          ' + '
+                        )
+                      )
+                    )
                   : 'No table'
               ) +
               ' · ' +
@@ -859,7 +878,13 @@ function renderSelected() {
               ? 'has-bookings'
               : 'is-empty'
           ) +
-        '">' +
+        '" ' +
+          'data-r2-create-date="' +
+            esc(selectedDate) +
+          '" ' +
+          'data-r2-create-time="' +
+            esc(minuteLabel(cursor)) +
+          '">' +
 
           '<div class="pmd-r2-timeslot__time">' +
 
@@ -901,6 +926,17 @@ function renderSelected() {
                     '</div>'
                   )
             ) +
+
+            '<button ' +
+              'type="button" ' +
+              'class="pmd-r2-timeslot__create-button" ' +
+              'data-r2-create-button ' +
+              'aria-label="Create reservation at ' +
+                esc(minuteLabel(cursor)) +
+              '"' +
+            '>' +
+              '+' +
+            '</button>' +
 
           '</div>' +
 
@@ -952,22 +988,262 @@ function renderSelected() {
 
     section.hidden = false;
 
+    /*
+     * PMD Reservations Compact Day View V2
+     *
+     * The first chronological half is displayed in the left column,
+     * and the remaining half is displayed in the right column.
+     */
+    var splitIndex =
+      Math.ceil(rows.length / 2);
+
+    var leftRows =
+      rows.slice(0, splitIndex);
+
+    var rightRows =
+      rows.slice(splitIndex);
+
+    var totalGuests =
+      reservationsForDay.reduce(
+        function (total, reservation) {
+          return total + guestCount(reservation);
+        },
+        0
+      );
+
+    var occupiedSlots =
+      Object.keys(slots).filter(
+        function (key) {
+          return (
+            key !== 'unknown' &&
+            slots[key] &&
+            slots[key].length
+          );
+        }
+      ).length;
+
     section.innerHTML =
       '<div class="pmd-r2-timeslot-screen">' +
 
-        '<button ' +
-          'type="button" ' +
-          'class="pmd-r2-timeslot-screen__back" ' +
-          'data-r2-yc-clear-selection' +
-        '>' +
-          '← Calendar' +
-        '</button>' +
+        '<header class="pmd-r2-day-view__header">' +
 
-        '<div class="pmd-r2-day-board__timeline">' +
-          rows.join('') +
+          '<button ' +
+            'type="button" ' +
+            'class="pmd-r2-timeslot-screen__back" ' +
+            'data-r2-yc-clear-selection' +
+          '>' +
+            'Calendar' +
+          '</button>' +
+
+          '<div class="pmd-r2-day-view__date-nav">' +
+
+            '<button ' +
+              'type="button" ' +
+              'class="pmd-r2-day-view__month-button" ' +
+              'data-r2-yc-prev-month ' +
+              'aria-label="Previous day"' +
+            '>' +
+              '‹' +
+            '</button>' +
+
+            '<div class="pmd-r2-day-view__title">' +
+              '<h2>' +
+                esc(formatDate(selectedDate)) +
+              '</h2>' +
+            '</div>' +
+
+            '<button ' +
+              'type="button" ' +
+              'class="pmd-r2-day-view__month-button" ' +
+              'data-r2-yc-next-month ' +
+              'aria-label="Next day"' +
+            '>' +
+              '›' +
+            '</button>' +
+
+          '</div>' +
+
+          '<div class="pmd-r2-day-view__summary">' +
+            '<span><strong>' +
+              reservationsForDay.length +
+            '</strong> reservations</span>' +
+            '<span><strong>' +
+              totalGuests +
+            '</strong> guests</span>' +
+            '<span><strong>' +
+              occupiedSlots +
+            '</strong> time slots</span>' +
+          '</div>' +
+
+        '</header>' +
+
+        '<div class="pmd-r2-day-board__timeline pmd-r2-day-board__timeline--two-columns">' +
+
+          '<div class="pmd-r2-day-board__column pmd-r2-day-board__column--first">' +
+            leftRows.join('') +
+          '</div>' +
+
+          '<div class="pmd-r2-day-board__column pmd-r2-day-board__column--second">' +
+            rightRows.join('') +
+          '</div>' +
+
         '</div>' +
 
       '</div>';
+
+    /*
+     * PMD Day View Navigation V13
+     *
+     * Preserve the selected day when possible. For example,
+     * 31 August becomes 30 September when September has no 31st.
+     */
+    function shiftSelectedDay(delta) {
+      var parts =
+        String(selectedDate || '')
+          .split('-')
+          .map(Number);
+
+      if (
+        parts.length !== 3 ||
+        !parts[0] ||
+        !parts[1] ||
+        !parts[2]
+      ) {
+        return;
+      }
+
+      /*
+       * Construct at midday to avoid DST-related date jumps.
+       */
+      var targetDate =
+        new Date(
+          parts[0],
+          parts[1] - 1,
+          parts[2],
+          12,
+          0,
+          0,
+          0
+        );
+
+      targetDate.setDate(
+        targetDate.getDate() + delta
+      );
+
+      selectedDate =
+        dateKey(targetDate);
+
+      year =
+        targetDate.getFullYear();
+
+      month =
+        targetDate.getMonth();
+
+      render();
+    }
+
+    var previousMonthButton =
+      section.querySelector(
+        '[data-r2-yc-prev-month]'
+      );
+
+    var nextMonthButton =
+      section.querySelector(
+        '[data-r2-yc-next-month]'
+      );
+
+    if (previousMonthButton) {
+      previousMonthButton.addEventListener(
+        'click',
+        function (event) {
+          event.preventDefault();
+          event.stopPropagation();
+          shiftSelectedDay(-1);
+        }
+      );
+    }
+
+    if (nextMonthButton) {
+      nextMonthButton.addEventListener(
+        'click',
+        function (event) {
+          event.preventDefault();
+          event.stopPropagation();
+          shiftSelectedDay(1);
+        }
+      );
+    }
+
+    /*
+     * PMD Timeslot Create Reservation V10
+     *
+     * Clicking a time row opens the native reservation form with
+     * reserve_date and reserve_time already supplied.
+     */
+    section.addEventListener(
+      'click',
+      function (event) {
+        var createButton =
+          event.target.closest(
+            '[data-r2-create-button]'
+          );
+
+        if (!createButton) {
+          return;
+        }
+
+        event.preventDefault();
+        event.stopPropagation();
+
+        var row =
+          createButton.closest(
+            '[data-r2-create-date][data-r2-create-time]'
+          );
+
+        if (!row) {
+          return;
+        }
+
+        var base =
+          String(
+            boot().createUrl ||
+            '/admin/reservations/create'
+          );
+
+        try {
+          var createUrl =
+            new URL(
+              base,
+              window.location.origin
+            );
+
+          createUrl.searchParams.set(
+            'reserve_date',
+            row.dataset.r2CreateDate
+          );
+
+          createUrl.searchParams.set(
+            'reserve_time',
+            row.dataset.r2CreateTime
+          );
+
+          window.location.href =
+            createUrl.pathname +
+            createUrl.search;
+        } catch (error) {
+          window.location.href =
+            base +
+            '?reserve_date=' +
+            encodeURIComponent(
+              row.dataset.r2CreateDate
+            ) +
+            '&reserve_time=' +
+            encodeURIComponent(
+              row.dataset.r2CreateTime
+            );
+        }
+      }
+    );
 
     /*
      * Apply the exact successful Console operation immediately
@@ -981,6 +1257,17 @@ function renderSelected() {
   function render() {
     var root = ensureRoot();
     if (!root) return;
+
+    /*
+     * PMD Day View V10 performance:
+     * the month/year calendar is hidden while a selected day is open.
+     * Do not rebuild all 42/504 calendar cells unnecessarily.
+     */
+    if (selectedDate) {
+      renderSelected();
+      return;
+    }
+
     var months = root.querySelector('[data-r2-yc-months]');
     var label = root.querySelector('[data-r2-yc-label]');
     label.textContent = view === 'month' ? monthNames[month] + ' ' + year : String(year);

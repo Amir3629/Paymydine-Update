@@ -538,6 +538,9 @@
 
 
 <!-- PMD_WAITER_DASHBOARD_V61_STABLE_KIOSK_NO_JUMP_START -->
+
+{{-- PMD_LEAN_V17_PMD_WAITER_DASHBOARD_V61_STABLE_KIOSK_NO_JUMP_STYLE_BEGIN --}}
+@if(request()->is('admin/dashboardwaiter*'))
 <style id="pmd-waiter-dashboard-v61-stable-kiosk-no-jump-style">
 /*
   V61:
@@ -771,7 +774,13 @@ html.pmd-dashboardwaiter-kiosk-page #pmd-waiter-dashboard-root {
 #pmd-waiter-dashboard-root .pmd-v61-dot-red { background: #ef4444 !important; }
 #pmd-waiter-dashboard-root .pmd-v61-dot-dark { background: #0f172a !important; }
 </style>
+@endif
+{{-- PMD_LEAN_V17_PMD_WAITER_DASHBOARD_V61_STABLE_KIOSK_NO_JUMP_STYLE_END --}}
 
+
+
+{{-- PMD_LEAN_V17_PMD_WAITER_DASHBOARD_V61_STABLE_KIOSK_NO_JUMP_SCRIPT_BEGIN --}}
+@if(request()->is('admin/dashboardwaiter*'))
 <script id="pmd-waiter-dashboard-v61-stable-kiosk-no-jump-script">
 (function () {
   if (!/\/admin\/dashboardwaiter(?:$|[?#])/.test(location.pathname + location.search + location.hash)) return;
@@ -1120,10 +1129,16 @@ html.pmd-dashboardwaiter-kiosk-page #pmd-waiter-dashboard-root {
   console.info('[PMD] Waiter Dashboard V61 stable kiosk no-jump active');
 })();
 </script>
+@endif
+{{-- PMD_LEAN_V17_PMD_WAITER_DASHBOARD_V61_STABLE_KIOSK_NO_JUMP_SCRIPT_END --}}
+
 <!-- PMD_WAITER_DASHBOARD_V61_STABLE_KIOSK_NO_JUMP_END -->
 
 
 <!-- PMD_WAITER_DASHBOARD_V65_REMOVE_SIDEBAR_DOM_START -->
+
+{{-- PMD_LEAN_V17_PMD_WAITER_DASHBOARD_V65_REMOVE_SIDEBAR_DOM_STYLE_BEGIN --}}
+@if(request()->is('admin/dashboardwaiter*'))
 <style id="pmd-waiter-dashboard-v65-remove-sidebar-dom-style">
 /*
   V65:
@@ -1169,7 +1184,13 @@ html.pmd-dashboardwaiter-kiosk-page #pmd-waiter-dashboard-root {
   max-width: none !important;
 }
 </style>
+@endif
+{{-- PMD_LEAN_V17_PMD_WAITER_DASHBOARD_V65_REMOVE_SIDEBAR_DOM_STYLE_END --}}
 
+
+
+{{-- PMD_LEAN_V17_PMD_WAITER_DASHBOARD_V65_REMOVE_SIDEBAR_DOM_SCRIPT_BEGIN --}}
+@if(request()->is('admin/dashboardwaiter*'))
 <script id="pmd-waiter-dashboard-v65-remove-sidebar-dom-script">
 (function () {
   if (!/\/admin\/dashboardwaiter(?:$|[?#])/.test(location.pathname + location.search + location.hash)) return;
@@ -1435,10 +1456,16 @@ html.pmd-dashboardwaiter-kiosk-page #pmd-waiter-dashboard-root {
   console.info('[PMD] Waiter Dashboard V65 remove sidebar DOM active');
 })();
 </script>
+@endif
+{{-- PMD_LEAN_V17_PMD_WAITER_DASHBOARD_V65_REMOVE_SIDEBAR_DOM_SCRIPT_END --}}
+
 <!-- PMD_WAITER_DASHBOARD_V65_REMOVE_SIDEBAR_DOM_END -->
 
 
 <!-- PMD_WAITER_DASHBOARD_V69_REMOVE_OWNER_FLOOR_GHOST_START -->
+
+{{-- PMD_LEAN_V17_PMD_WAITER_DASHBOARD_V69_REMOVE_OWNER_FLOOR_GHOST_STYLE_BEGIN --}}
+@if(request()->is('admin/dashboardwaiter*'))
 <style id="pmd-waiter-dashboard-v69-remove-owner-floor-ghost-style">
 /*
   V69:
@@ -1472,7 +1499,13 @@ html.pmd-dashboardwaiter-kiosk-page #pmd-waiter-dashboard-root {
   margin-top: -46px !important;
 }
 </style>
+@endif
+{{-- PMD_LEAN_V17_PMD_WAITER_DASHBOARD_V69_REMOVE_OWNER_FLOOR_GHOST_STYLE_END --}}
 
+
+
+{{-- PMD_LEAN_V17_PMD_WAITER_DASHBOARD_V69_REMOVE_OWNER_FLOOR_GHOST_SCRIPT_BEGIN --}}
+@if(request()->is('admin/dashboardwaiter*'))
 <script id="pmd-waiter-dashboard-v69-remove-owner-floor-ghost-script">
 (function () {
   if (!/\/admin\/dashboardwaiter(?:$|[?#])/.test(location.pathname + location.search + location.hash)) return;
@@ -1650,10 +1683,16 @@ html.pmd-dashboardwaiter-kiosk-page #pmd-waiter-dashboard-root {
   console.info('[PMD] Waiter Dashboard V69 remove owner floor ghost active');
 })();
 </script>
+@endif
+{{-- PMD_LEAN_V17_PMD_WAITER_DASHBOARD_V69_REMOVE_OWNER_FLOOR_GHOST_SCRIPT_END --}}
+
 <!-- PMD_WAITER_DASHBOARD_V69_REMOVE_OWNER_FLOOR_GHOST_END -->
 
 
 <!-- PMD_WAITER_DASHBOARD_V70_REMOVE_404_WRAPPER_LOGO_GHOST_START -->
+
+{{-- PMD_LEAN_V17_PMD_WAITER_DASHBOARD_V70_REMOVE_404_WRAPPER_LOGO_GHOST_STYLE_BEGIN --}}
+@if(request()->is('admin/dashboardwaiter*'))
 <style id="pmd-waiter-dashboard-v70-remove-404-wrapper-logo-ghost-style">
 /*
   V70:
@@ -1700,7 +1739,13 @@ html.pmd-dashboardwaiter-kiosk-page .pmd-final-sidebar-logo-img-v20 {
   pointer-events: none !important;
 }
 </style>
+@endif
+{{-- PMD_LEAN_V17_PMD_WAITER_DASHBOARD_V70_REMOVE_404_WRAPPER_LOGO_GHOST_STYLE_END --}}
 
+
+
+{{-- PMD_LEAN_V17_PMD_WAITER_DASHBOARD_V70_REMOVE_404_WRAPPER_LOGO_GHOST_SCRIPT_BEGIN --}}
+@if(request()->is('admin/dashboardwaiter*'))
 <script id="pmd-waiter-dashboard-v70-remove-404-wrapper-logo-ghost-script">
 (function () {
   if (!/\/admin\/dashboardwaiter(?:$|[?#])/.test(location.pathname + location.search + location.hash)) return;
@@ -1894,10 +1939,16 @@ html.pmd-dashboardwaiter-kiosk-page .pmd-final-sidebar-logo-img-v20 {
   console.info('[PMD] Waiter Dashboard V70 remove 404 wrapper/logo ghost active');
 })();
 </script>
+@endif
+{{-- PMD_LEAN_V17_PMD_WAITER_DASHBOARD_V70_REMOVE_404_WRAPPER_LOGO_GHOST_SCRIPT_END --}}
+
 <!-- PMD_WAITER_DASHBOARD_V70_REMOVE_404_WRAPPER_LOGO_GHOST_END -->
 
 
 <!-- PMD_WAITER_DASHBOARD_V74_INSIDE_TOP_PADDING_START -->
+
+{{-- PMD_LEAN_V17_PMD_WAITER_DASHBOARD_V74_INSIDE_TOP_PADDING_STYLE_BEGIN --}}
+@if(request()->is('admin/dashboardwaiter*'))
 <style id="pmd-waiter-dashboard-v74-inside-top-padding-style">
 /*
   V74:
@@ -1944,7 +1995,13 @@ html.pmd-dashboardwaiter-kiosk-page [data-pmd-v74-owner-blocked="1"] {
   z-index: -999 !important;
 }
 </style>
+@endif
+{{-- PMD_LEAN_V17_PMD_WAITER_DASHBOARD_V74_INSIDE_TOP_PADDING_STYLE_END --}}
 
+
+
+{{-- PMD_LEAN_V17_PMD_WAITER_DASHBOARD_V74_INSIDE_TOP_PADDING_SCRIPT_BEGIN --}}
+@if(request()->is('admin/dashboardwaiter*'))
 <script id="pmd-waiter-dashboard-v74-inside-top-padding-script">
 (function () {
   if (!/\/admin\/dashboardwaiter(?:$|[?#])/.test(location.pathname + location.search + location.hash)) return;
@@ -2174,6 +2231,9 @@ html.pmd-dashboardwaiter-kiosk-page [data-pmd-v74-owner-blocked="1"] {
   console.info('[PMD] Waiter Dashboard V74 inside top padding active');
 })();
 </script>
+@endif
+{{-- PMD_LEAN_V17_PMD_WAITER_DASHBOARD_V74_INSIDE_TOP_PADDING_SCRIPT_END --}}
+
 <!-- PMD_WAITER_DASHBOARD_V74_INSIDE_TOP_PADDING_END -->
 
 
@@ -4437,59 +4497,59 @@ html.pmd-owner-v69-no-loader .pmd-v36-span-2 {
     {!! get_style_tags() !!}
     <link rel="stylesheet" href="{{ asset('app/admin/assets/css/notifications.css') }}">
     <link rel="stylesheet" href="{{ asset('app/admin/assets/css/push-notifications.css') }}">
-    <link rel="stylesheet" href="{{ asset('app/admin/assets/css/header-dropdowns.css') }}?v={{ time() }}">
+    <link rel="stylesheet" href="{{ asset('app/admin/assets/css/header-dropdowns.css') }}?v={{ request()->is('admin/reservations*') ? 'pmd-reservations-v18-20260728' : time() }}">
     <!-- Remove Green Edges from Dropdowns -->
-    <link rel="stylesheet" href="{{ asset('app/admin/assets/css/remove-green-edges.css') }}?v={{ time() }}">
-    <link rel="stylesheet" href="{{ asset('app/admin/assets/css/smooth-transitions.css') }}?v={{ time() }}">
-    <link rel="stylesheet" href="{{ asset('app/admin/assets/css/custom-fixes.css') }}?v={{ time() }}">
-    <link rel="stylesheet" href="{{ asset('app/admin/assets/css/calendar.css') }}?v={{ time() }}">
+    <link rel="stylesheet" href="{{ asset('app/admin/assets/css/remove-green-edges.css') }}?v={{ request()->is('admin/reservations*') ? 'pmd-reservations-v18-20260728' : time() }}">
+    <link rel="stylesheet" href="{{ asset('app/admin/assets/css/smooth-transitions.css') }}?v={{ request()->is('admin/reservations*') ? 'pmd-reservations-v18-20260728' : time() }}">
+    <link rel="stylesheet" href="{{ asset('app/admin/assets/css/custom-fixes.css') }}?v={{ request()->is('admin/reservations*') ? 'pmd-reservations-v18-20260728' : time() }}">
+    <link rel="stylesheet" href="{{ asset('app/admin/assets/css/calendar.css') }}?v={{ request()->is('admin/reservations*') ? 'pmd-reservations-v18-20260728' : time() }}">
     <!-- Modern Admin Settings Styling -->
-    <link rel="stylesheet" href="{{ asset('app/admin/assets/css/admin-settings-modern.css') }}?v={{ time() }}">
+    <link rel="stylesheet" href="{{ asset('app/admin/assets/css/admin-settings-modern.css') }}?v={{ request()->is('admin/reservations*') ? 'pmd-reservations-v18-20260728' : time() }}">
     <!-- SweetAlert2 – match admin modal/card design -->
-    <link rel="stylesheet" href="{{ asset('app/admin/assets/css/sweetalert2-modal-style.css') }}?v={{ time() }}">
+    <link rel="stylesheet" href="{{ asset('app/admin/assets/css/sweetalert2-modal-style.css') }}?v={{ request()->is('admin/reservations*') ? 'pmd-reservations-v18-20260728' : time() }}">
     <!-- Admin confirm modal – rounder card, button spacing, Cancel style -->
-    <link rel="stylesheet" href="{{ asset('app/admin/assets/css/admin-confirm-modal.css') }}?v={{ time() }}">
+    <link rel="stylesheet" href="{{ asset('app/admin/assets/css/admin-confirm-modal.css') }}?v={{ request()->is('admin/reservations*') ? 'pmd-reservations-v18-20260728' : time() }}">
     <!-- Unified modal design – round corners, nice buttons, consistent styling for all modals -->
-    <link rel="stylesheet" href="{{ asset('app/admin/assets/css/admin-modals-unified.css') }}?v={{ time() }}">
+    <link rel="stylesheet" href="{{ asset('app/admin/assets/css/admin-modals-unified.css') }}?v={{ request()->is('admin/reservations*') ? 'pmd-reservations-v18-20260728' : time() }}">
     <!-- Rounded corners for notification panel, settings menu, profile dropdown, toast -->
-    <link rel="stylesheet" href="{{ asset('app/admin/assets/css/admin-cards-rounded.css') }}?v={{ time() }}">
+    <link rel="stylesheet" href="{{ asset('app/admin/assets/css/admin-cards-rounded.css') }}?v={{ request()->is('admin/reservations*') ? 'pmd-reservations-v18-20260728' : time() }}">
     <!-- Blue Buttons Override - Replace all green buttons with login button style -->
-    <link rel="stylesheet" href="{{ asset('app/admin/assets/css/blue-buttons-override.css') }}?v={{ time() }}">
+    <link rel="stylesheet" href="{{ asset('app/admin/assets/css/blue-buttons-override.css') }}?v={{ request()->is('admin/reservations*') ? 'pmd-reservations-v18-20260728' : time() }}">
     <!-- Smooth Corner - Replace Star Icon with Rounded Corner -->
-    <link rel="stylesheet" href="{{ asset('app/admin/assets/css/smooth-corner-replace-star.css') }}?v={{ time() }}">
+    <link rel="stylesheet" href="{{ asset('app/admin/assets/css/smooth-corner-replace-star.css') }}?v={{ request()->is('admin/reservations*') ? 'pmd-reservations-v18-20260728' : time() }}">
     {{-- Dashboard Container Widget CSS is included via get_style_tags() combiner --}}
     <!-- Fix Menu-Grid Hover - Only icon scale, no green flashing -->
-    <link rel="stylesheet" href="{{ asset('app/admin/assets/css/fix-menu-grid-hover.css') }}?v={{ time() }}">
+    <link rel="stylesheet" href="{{ asset('app/admin/assets/css/fix-menu-grid-hover.css') }}?v={{ request()->is('admin/reservations*') ? 'pmd-reservations-v18-20260728' : time() }}">
     <!-- Fix Footer Button - Remove green hover -->
-    <link rel="stylesheet" href="{{ asset('app/admin/assets/css/fix-footer-button-no-green.css') }}?v={{ time() }}">
+    <link rel="stylesheet" href="{{ asset('app/admin/assets/css/fix-footer-button-no-green.css') }}?v={{ request()->is('admin/reservations*') ? 'pmd-reservations-v18-20260728' : time() }}">
     <!-- Fix Toggle Switches - Restore iOS-style appearance -->
-    <link rel="stylesheet" href="{{ asset('app/admin/assets/css/fix-toggle-switches.css') }}?v={{ time() }}">
+    <link rel="stylesheet" href="{{ asset('app/admin/assets/css/fix-toggle-switches.css') }}?v={{ request()->is('admin/reservations*') ? 'pmd-reservations-v18-20260728' : time() }}">
     <!-- Fix Notification Header Border - Make it straight and full width -->
-    <link rel="stylesheet" href="{{ asset('app/admin/assets/css/fix-notification-header-border.css') }}?v={{ time() }}">
+    <link rel="stylesheet" href="{{ asset('app/admin/assets/css/fix-notification-header-border.css') }}?v={{ request()->is('admin/reservations*') ? 'pmd-reservations-v18-20260728' : time() }}">
     <!-- Fix Notification Header Buttons - Fix z-index, spacing, padding, borders -->
-    <link rel="stylesheet" href="{{ asset('app/admin/assets/css/fix-notification-header-buttons.css') }}?v={{ time() }}">
+    <link rel="stylesheet" href="{{ asset('app/admin/assets/css/fix-notification-header-buttons.css') }}?v={{ request()->is('admin/reservations*') ? 'pmd-reservations-v18-20260728' : time() }}">
     <!-- Fix Profile Dropdown - Remove green hover effects and green text-muted color -->
-    <link rel="stylesheet" href="{{ asset('app/admin/assets/css/fix-profile-dropdown-green.css') }}?v={{ time() }}">
+    <link rel="stylesheet" href="{{ asset('app/admin/assets/css/fix-profile-dropdown-green.css') }}?v={{ request()->is('admin/reservations*') ? 'pmd-reservations-v18-20260728' : time() }}">
     <!-- Fix Profile Dropdown Hover - Remove inline styles blocking hover effect -->
-    <link rel="stylesheet" href="{{ asset('app/admin/assets/css/fix-profile-dropdown-hover.css') }}?v={{ time() }}">
+    <link rel="stylesheet" href="{{ asset('app/admin/assets/css/fix-profile-dropdown-hover.css') }}?v={{ request()->is('admin/reservations*') ? 'pmd-reservations-v18-20260728' : time() }}">
     <!-- Fix Profile Dropdown Closed - Disable items when dropdown is closed -->
-    <link rel="stylesheet" href="{{ asset('app/admin/assets/css/fix-profile-dropdown-closed.css') }}?v={{ time() }}">
+    <link rel="stylesheet" href="{{ asset('app/admin/assets/css/fix-profile-dropdown-closed.css') }}?v={{ request()->is('admin/reservations*') ? 'pmd-reservations-v18-20260728' : time() }}">
     <!-- Fix Green Buttons and Text - Change btn-default, btn-outline-default, and text-muted from green to dark blue/gray -->
-    <link rel="stylesheet" href="{{ asset('app/admin/assets/css/fix-green-buttons-and-text.css') }}?v={{ time() }}">
+    <link rel="stylesheet" href="{{ asset('app/admin/assets/css/fix-green-buttons-and-text.css') }}?v={{ request()->is('admin/reservations*') ? 'pmd-reservations-v18-20260728' : time() }}">
     <!-- Modern Media Finder - Elegant image uploader redesign -->
     @unless($pmdIsNativeMediaContext)
-    <link rel="stylesheet" href="{{ asset('app/admin/assets/css/modern-media-finder.css') }}?v={{ time() }}">
+    <link rel="stylesheet" href="{{ asset('app/admin/assets/css/modern-media-finder.css') }}?v={{ request()->is('admin/reservations*') ? 'pmd-reservations-v18-20260728' : time() }}">
     @endunless
     <!-- Media Finder Widget CSS - Required for image uploader fields -->
-    <link rel="stylesheet" href="{{ asset('app/admin/formwidgets/mediafinder/assets/css/mediafinder.css') }}?v={{ time() }}">
+    <link rel="stylesheet" href="{{ asset('app/admin/formwidgets/mediafinder/assets/css/mediafinder.css') }}?v={{ request()->is('admin/reservations*') ? 'pmd-reservations-v18-20260728' : time() }}">
     <!-- Date range picker: load last so overrides (bigger card, buttons, ranges) win over .btn-sm etc -->
     @unless(request()->is('admin/reservations2'))
-<link rel="stylesheet" href="{{ asset('app/admin/assets/css/daterangepicker-arrows.css') }}?v={{ time() }}">
+<link rel="stylesheet" href="{{ asset('app/admin/assets/css/daterangepicker-arrows.css') }}?v={{ request()->is('admin/reservations*') ? 'pmd-reservations-v18-20260728' : time() }}">
 @endunless
     <!-- No green toolbar buttons - MUST load last so toolbar Save/Back stay blue -->
-    <link rel="stylesheet" href="{{ asset('app/admin/assets/css/no-green-toolbar-buttons.css') }}?v={{ time() }}">
+    <link rel="stylesheet" href="{{ asset('app/admin/assets/css/no-green-toolbar-buttons.css') }}?v={{ request()->is('admin/reservations*') ? 'pmd-reservations-v18-20260728' : time() }}">
     <!-- Dropdown fields same size as text inputs - load after other form styles -->
-    <link rel="stylesheet" href="{{ asset('app/admin/assets/css/dropdown-field-same-size.css') }}?v={{ time() }}">
+    <link rel="stylesheet" href="{{ asset('app/admin/assets/css/dropdown-field-same-size.css') }}?v={{ request()->is('admin/reservations*') ? 'pmd-reservations-v18-20260728' : time() }}">
     {{-- Critical: prevent green flash on first paint - inline so it's in the first render --}}
     <style id="no-green-toolbar-critical">
         body:not(.pmd-admin-theme-v1) .toolbar-action,
@@ -4979,10 +5039,10 @@ html.pmd-owner-v69-no-loader .pmd-v36-span-2 {
 </script>
 
     @unless($pmdIsNativeMediaContext)
-    <link rel="stylesheet" href="{{ asset('app/admin/assets/css/pmd-mediamanager-autofix.css') }}?v={{ time() }}">
+    <link rel="stylesheet" href="{{ asset('app/admin/assets/css/pmd-mediamanager-autofix.css') }}?v={{ request()->is('admin/reservations*') ? 'pmd-reservations-v18-20260728' : time() }}">
     @endunless
     {{-- Final admin toolbar button override: keep after legacy/admin/page CSS because older files override toolbar button sizing and colors. --}}
-    <link rel="stylesheet" href="{{ asset('app/admin/assets/css/pmd-admin/components/toolbar-buttons.css') }}?v={{ time() }}">
+    <link rel="stylesheet" href="{{ asset('app/admin/assets/css/pmd-admin/components/toolbar-buttons.css') }}?v={{ request()->is('admin/reservations*') ? 'pmd-reservations-v18-20260728' : time() }}">
 
 <!-- PMD_DASHBOARD_LOGO_SIZE_FIX_START -->
 <style id="pmd-dashboard-logo-size-fix">
@@ -5167,18 +5227,18 @@ body .media-manager .media-sidebar .sidebar-preview-toolbar button.btn-outline-d
 /* PMD_MEDIA_MANAGER_PREVIEW_TOOLBAR_FIX_END */
 </style>
     <!-- PayMyDine Admin Theme v1 - centralized final general visual layer (intentionally last CSS include) -->
-<link rel="stylesheet" href="{{ asset('app/admin/assets/css/pmd-admin-theme-v1.css') }}?v={{ time() }}">
-<link rel="stylesheet" href="{{ asset('app/admin/assets/css/pmd-admin-sidebar-clean-v4.css') }}?v={{ time() }}">
-<link rel="stylesheet" href="{{ asset('app/admin/assets/css/pmd-sidebar-svg-mask-icons.css') }}?v={{ time() }}">
-<link rel="stylesheet" href="{{ asset('app/admin/assets/css/pmd-sidebar-ref-icons.css') }}?v={{ time() }}">
-<link rel="stylesheet" href="{{ asset('app/admin/assets/css/pmd-sidebar-active-state-fix.css') }}?v={{ time() }}">
-<link rel="stylesheet" href="{{ asset('app/admin/assets/css/pmd-sidebar-parent-open-v5.css') }}?v={{ time() }}">
-<link rel="stylesheet" href="{{ asset('app/admin/assets/css/pmd-sidebar-button-size-v6.css') }}?v={{ time() }}">
-<link rel="stylesheet" href="{{ asset('app/admin/assets/css/pmd-sidebar-system-lock-v7.css') }}?v={{ time() }}">
-<link rel="stylesheet" href="{{ asset('app/admin/assets/css/pmd-sidebar-column-flow-v8.css') }}?v={{ time() }}">
-<link rel="stylesheet" href="{{ asset('app/admin/assets/css/pmd-sidebar-submenu-active-v9.css') }}?v={{ time() }}">
-<link rel="stylesheet" href="{{ asset('app/admin/assets/css/pmd-sidebar-child-icons-v10.css') }}?v={{ time() }}">
-{{-- PMD owner clean v1 disabled legacy dashboard asset: <link rel="stylesheet" href="{{ asset('app/admin/assets/css/pmd-dashboard-modern-v1.css') }}?v={{ time() }}"> --}}
+<link rel="stylesheet" href="{{ asset('app/admin/assets/css/pmd-admin-theme-v1.css') }}?v={{ request()->is('admin/reservations*') ? 'pmd-reservations-v18-20260728' : time() }}">
+<link rel="stylesheet" href="{{ asset('app/admin/assets/css/pmd-admin-sidebar-clean-v4.css') }}?v={{ request()->is('admin/reservations*') ? 'pmd-reservations-v18-20260728' : time() }}">
+<link rel="stylesheet" href="{{ asset('app/admin/assets/css/pmd-sidebar-svg-mask-icons.css') }}?v={{ request()->is('admin/reservations*') ? 'pmd-reservations-v18-20260728' : time() }}">
+<link rel="stylesheet" href="{{ asset('app/admin/assets/css/pmd-sidebar-ref-icons.css') }}?v={{ request()->is('admin/reservations*') ? 'pmd-reservations-v18-20260728' : time() }}">
+<link rel="stylesheet" href="{{ asset('app/admin/assets/css/pmd-sidebar-active-state-fix.css') }}?v={{ request()->is('admin/reservations*') ? 'pmd-reservations-v18-20260728' : time() }}">
+<link rel="stylesheet" href="{{ asset('app/admin/assets/css/pmd-sidebar-parent-open-v5.css') }}?v={{ request()->is('admin/reservations*') ? 'pmd-reservations-v18-20260728' : time() }}">
+<link rel="stylesheet" href="{{ asset('app/admin/assets/css/pmd-sidebar-button-size-v6.css') }}?v={{ request()->is('admin/reservations*') ? 'pmd-reservations-v18-20260728' : time() }}">
+<link rel="stylesheet" href="{{ asset('app/admin/assets/css/pmd-sidebar-system-lock-v7.css') }}?v={{ request()->is('admin/reservations*') ? 'pmd-reservations-v18-20260728' : time() }}">
+<link rel="stylesheet" href="{{ asset('app/admin/assets/css/pmd-sidebar-column-flow-v8.css') }}?v={{ request()->is('admin/reservations*') ? 'pmd-reservations-v18-20260728' : time() }}">
+<link rel="stylesheet" href="{{ asset('app/admin/assets/css/pmd-sidebar-submenu-active-v9.css') }}?v={{ request()->is('admin/reservations*') ? 'pmd-reservations-v18-20260728' : time() }}">
+<link rel="stylesheet" href="{{ asset('app/admin/assets/css/pmd-sidebar-child-icons-v10.css') }}?v={{ request()->is('admin/reservations*') ? 'pmd-reservations-v18-20260728' : time() }}">
+{{-- PMD owner clean v1 disabled legacy dashboard asset: <link rel="stylesheet" href="{{ asset('app/admin/assets/css/pmd-dashboard-modern-v1.css') }}?v={{ request()->is('admin/reservations*') ? 'pmd-reservations-v18-20260728' : time() }}"> --}}
 
     {{-- PMD all-pages toolbar guard: hide only legacy buttons, never the header/proxy containers --}}
     <script>
@@ -5239,7 +5299,7 @@ body .media-manager .media-sidebar .sidebar-preview-toolbar button.btn-outline-d
     </style>
 
     {{-- PMD header actions: load early with defer to reduce proxy delay --}}
-    <script defer src="{{ asset('app/admin/assets/js/pmd-admin-header-actions.js') }}?v={{ time() }}"></script>
+    <script defer src="{{ asset('app/admin/assets/js/pmd-admin-header-actions.js') }}?v={{ request()->is('admin/reservations*') ? 'pmd-reservations-v18-20260728' : time() }}"></script>
 
     <style id="pmd-toolbar-collapse-legacy-actions">
         /*
@@ -5303,17 +5363,17 @@ body .media-manager .media-sidebar .sidebar-preview-toolbar button.btn-outline-d
         }
     </style>
 
-{{-- PMD owner clean v1 disabled legacy dashboard asset: <link rel="stylesheet" href="{{ asset('app/admin/assets/css/pmd-dashboard-remove-hero-v3.css') }}?v={{ time() }}"> --}}
-{{-- PMD owner clean v1 disabled legacy dashboard asset: <link rel="stylesheet" href="{{ asset('app/admin/assets/css/pmd-dashboard-kpi-polish-v4.css') }}?v={{ time() }}"> --}}
-{{-- PMD owner clean v1 disabled legacy dashboard asset: <link rel="stylesheet" href="{{ asset('app/admin/assets/css/pmd-dashboard-real-data-v53.css') }}?v={{ time() }}"> --}}
-{{-- PMD owner clean v1 disabled legacy dashboard asset: <link rel="stylesheet" href="{{ asset('app/admin/assets/css/pmd-dashboard-role-preview-v9.css') }}?v={{ time() }}"> --}}
-{{-- PMD owner clean v1 disabled legacy dashboard asset: <link rel="stylesheet" href="{{ asset('app/admin/assets/css/pmd-dashboard-owner2-v11.css') }}?v={{ time() }}"> --}}
-{{-- PMD owner clean v1 disabled legacy dashboard asset: <link rel="stylesheet" href="{{ asset('app/admin/assets/css/pmd-dashboard-waiter3-v12.css') }}?v={{ time() }}"> --}}
-{{-- PMD owner clean v1 disabled legacy dashboard asset: <link rel="stylesheet" href="{{ asset('app/admin/assets/css/pmd-dashboard-waiter3-v13-polish.css') }}?v={{ time() }}"> --}}
-{{-- PMD owner clean v1 disabled legacy dashboard asset: <link rel="stylesheet" href="{{ asset('app/admin/assets/css/pmd-dashboard-waiter3-v14-compact.css') }}?v={{ time() }}"> --}}
-{{-- PMD owner clean v1 disabled legacy dashboard asset: <link rel="stylesheet" href="{{ asset('app/admin/assets/css/pmd-dashboard-waiter3-v15-rolebar.css') }}?v={{ time() }}"> --}}
-{{-- PMD owner clean v1 disabled legacy dashboard asset: <link rel="stylesheet" href="{{ asset('app/admin/assets/css/pmd-dashboard-w3-quick-icons-v16.css') }}?v={{ time() }}"> --}}
-    <link rel="stylesheet" href="{{ asset('app/admin/assets/css/pmd-sidebar-icons-only-v15.css') }}?v={{ time() }}">
+{{-- PMD owner clean v1 disabled legacy dashboard asset: <link rel="stylesheet" href="{{ asset('app/admin/assets/css/pmd-dashboard-remove-hero-v3.css') }}?v={{ request()->is('admin/reservations*') ? 'pmd-reservations-v18-20260728' : time() }}"> --}}
+{{-- PMD owner clean v1 disabled legacy dashboard asset: <link rel="stylesheet" href="{{ asset('app/admin/assets/css/pmd-dashboard-kpi-polish-v4.css') }}?v={{ request()->is('admin/reservations*') ? 'pmd-reservations-v18-20260728' : time() }}"> --}}
+{{-- PMD owner clean v1 disabled legacy dashboard asset: <link rel="stylesheet" href="{{ asset('app/admin/assets/css/pmd-dashboard-real-data-v53.css') }}?v={{ request()->is('admin/reservations*') ? 'pmd-reservations-v18-20260728' : time() }}"> --}}
+{{-- PMD owner clean v1 disabled legacy dashboard asset: <link rel="stylesheet" href="{{ asset('app/admin/assets/css/pmd-dashboard-role-preview-v9.css') }}?v={{ request()->is('admin/reservations*') ? 'pmd-reservations-v18-20260728' : time() }}"> --}}
+{{-- PMD owner clean v1 disabled legacy dashboard asset: <link rel="stylesheet" href="{{ asset('app/admin/assets/css/pmd-dashboard-owner2-v11.css') }}?v={{ request()->is('admin/reservations*') ? 'pmd-reservations-v18-20260728' : time() }}"> --}}
+{{-- PMD owner clean v1 disabled legacy dashboard asset: <link rel="stylesheet" href="{{ asset('app/admin/assets/css/pmd-dashboard-waiter3-v12.css') }}?v={{ request()->is('admin/reservations*') ? 'pmd-reservations-v18-20260728' : time() }}"> --}}
+{{-- PMD owner clean v1 disabled legacy dashboard asset: <link rel="stylesheet" href="{{ asset('app/admin/assets/css/pmd-dashboard-waiter3-v13-polish.css') }}?v={{ request()->is('admin/reservations*') ? 'pmd-reservations-v18-20260728' : time() }}"> --}}
+{{-- PMD owner clean v1 disabled legacy dashboard asset: <link rel="stylesheet" href="{{ asset('app/admin/assets/css/pmd-dashboard-waiter3-v14-compact.css') }}?v={{ request()->is('admin/reservations*') ? 'pmd-reservations-v18-20260728' : time() }}"> --}}
+{{-- PMD owner clean v1 disabled legacy dashboard asset: <link rel="stylesheet" href="{{ asset('app/admin/assets/css/pmd-dashboard-waiter3-v15-rolebar.css') }}?v={{ request()->is('admin/reservations*') ? 'pmd-reservations-v18-20260728' : time() }}"> --}}
+{{-- PMD owner clean v1 disabled legacy dashboard asset: <link rel="stylesheet" href="{{ asset('app/admin/assets/css/pmd-dashboard-w3-quick-icons-v16.css') }}?v={{ request()->is('admin/reservations*') ? 'pmd-reservations-v18-20260728' : time() }}"> --}}
+    <link rel="stylesheet" href="{{ asset('app/admin/assets/css/pmd-sidebar-icons-only-v15.css') }}?v={{ request()->is('admin/reservations*') ? 'pmd-reservations-v18-20260728' : time() }}">
 <!-- PMD_DASHBOARD_NO_JUMP_V17_START -->
 <script>
 (function () {
@@ -5322,22 +5382,22 @@ body .media-manager .media-sidebar .sidebar-preview-toolbar button.btn-outline-d
   } catch (e) {}
 })();
 </script>
-{{-- PMD owner clean v1 disabled legacy dashboard asset: <link rel="stylesheet" href="{{ asset('app/admin/assets/css/pmd-dashboard-no-jump-v17.css') }}?v={{ time() }}"> --}}
+{{-- PMD owner clean v1 disabled legacy dashboard asset: <link rel="stylesheet" href="{{ asset('app/admin/assets/css/pmd-dashboard-no-jump-v17.css') }}?v={{ request()->is('admin/reservations*') ? 'pmd-reservations-v18-20260728' : time() }}"> --}}
 <!-- PMD_DASHBOARD_NO_JUMP_V17_END -->
 <!-- PMD_OWNER_DASHBOARD_MATCH_V13_CSS_START -->
-{{-- PMD owner clean v1 disabled legacy dashboard asset: <link rel="stylesheet" href="{{ asset('app/admin/assets/css/pmd-dashboard-owner-match-v13.css') }}?v={{ time() }}"> --}}
+{{-- PMD owner clean v1 disabled legacy dashboard asset: <link rel="stylesheet" href="{{ asset('app/admin/assets/css/pmd-dashboard-owner-match-v13.css') }}?v={{ request()->is('admin/reservations*') ? 'pmd-reservations-v18-20260728' : time() }}"> --}}
 <!-- PMD_OWNER_DASHBOARD_MATCH_V13_CSS_END -->
 <!-- PMD_OWNER_BLACK_HEADER_V24_CSS_START -->
-{{-- PMD owner clean v1 disabled legacy dashboard asset: <link rel="stylesheet" href="{{ asset('app/admin/assets/css/pmd-dashboard-owner-black-header-v24.css') }}?v={{ time() }}"> --}}
+{{-- PMD owner clean v1 disabled legacy dashboard asset: <link rel="stylesheet" href="{{ asset('app/admin/assets/css/pmd-dashboard-owner-black-header-v24.css') }}?v={{ request()->is('admin/reservations*') ? 'pmd-reservations-v18-20260728' : time() }}"> --}}
 <!-- PMD_OWNER_BLACK_HEADER_V24_CSS_END -->
 <!-- PMD_UNIVERSAL_LAYOUT_EDITOR_V35_CSS_START -->
-<link rel="stylesheet" href="{{ asset('app/admin/assets/css/pmd-universal-layout-editor-v35.css') }}?v={{ time() }}">
+<link rel="stylesheet" href="{{ asset('app/admin/assets/css/pmd-universal-layout-editor-v35.css') }}?v={{ request()->is('admin/reservations*') ? 'pmd-reservations-v18-20260728' : time() }}">
 <!-- PMD_UNIVERSAL_LAYOUT_EDITOR_V35_CSS_END -->
 <!-- PMD_LOGO_SWITCHER_FINAL_V38_CSS_START -->
-<link rel="stylesheet" href="{{ asset('app/admin/assets/css/pmd-logo-switcher-final-v38.css') }}?v={{ time() }}">
+<link rel="stylesheet" href="{{ asset('app/admin/assets/css/pmd-logo-switcher-final-v38.css') }}?v={{ request()->is('admin/reservations*') ? 'pmd-reservations-v18-20260728' : time() }}">
 <!-- PMD_LOGO_SWITCHER_FINAL_V38_CSS_END -->
 <!-- PMD_MANAGER_OPS_DASHBOARD_V29_CSS_START -->
-{{-- PMD owner clean v1 disabled legacy dashboard asset: <link rel="stylesheet" href="{{ asset('app/admin/assets/css/pmd-manager-ops-dashboard-v29.css') }}?v={{ time() }}"> --}}
+{{-- PMD owner clean v1 disabled legacy dashboard asset: <link rel="stylesheet" href="{{ asset('app/admin/assets/css/pmd-manager-ops-dashboard-v29.css') }}?v={{ request()->is('admin/reservations*') ? 'pmd-reservations-v18-20260728' : time() }}"> --}}
 <!-- PMD_MANAGER_OPS_DASHBOARD_V29_CSS_END -->
 <!-- PMD_SIDEBAR_RECOVER_NATIVE_V50_EARLY_START -->
 <script>
@@ -5348,37 +5408,37 @@ body .media-manager .media-sidebar .sidebar-preview-toolbar button.btn-outline-d
 </script>
 <!-- PMD_SIDEBAR_RECOVER_NATIVE_V50_EARLY_END -->
 <!-- PMD_SIDEBAR_RECOVER_NATIVE_V50_CSS_START -->
-<link rel="stylesheet" href="{{ asset('app/admin/assets/css/pmd-sidebar-recover-native-v50.css') }}?v={{ time() }}">
+<link rel="stylesheet" href="{{ asset('app/admin/assets/css/pmd-sidebar-recover-native-v50.css') }}?v={{ request()->is('admin/reservations*') ? 'pmd-reservations-v18-20260728' : time() }}">
 <!-- PMD_SIDEBAR_RECOVER_NATIVE_V50_CSS_END -->
 <!-- PMD_SIDEBAR_CLOSED_LOGO_TUNE_V51_CSS_START -->
-<link rel="stylesheet" href="{{ asset('app/admin/assets/css/pmd-sidebar-closed-logo-tune-v51.css') }}?v={{ time() }}">
+<link rel="stylesheet" href="{{ asset('app/admin/assets/css/pmd-sidebar-closed-logo-tune-v51.css') }}?v={{ request()->is('admin/reservations*') ? 'pmd-reservations-v18-20260728' : time() }}">
 <!-- PMD_SIDEBAR_CLOSED_LOGO_TUNE_V51_CSS_END -->
 <!-- PMD_SIDEBAR_CLOSED_RAISE_V52_CSS_START -->
-<link rel="stylesheet" href="{{ asset('app/admin/assets/css/pmd-sidebar-closed-raise-v52.css') }}?v={{ time() }}">
+<link rel="stylesheet" href="{{ asset('app/admin/assets/css/pmd-sidebar-closed-raise-v52.css') }}?v={{ request()->is('admin/reservations*') ? 'pmd-reservations-v18-20260728' : time() }}">
 <!-- PMD_SIDEBAR_CLOSED_RAISE_V52_CSS_END -->
 <!-- PMD_SIDEBAR_RAISE_ALL_V53_CSS_START -->
-<link rel="stylesheet" href="{{ asset('app/admin/assets/css/pmd-sidebar-raise-all-v53.css') }}?v={{ time() }}">
+<link rel="stylesheet" href="{{ asset('app/admin/assets/css/pmd-sidebar-raise-all-v53.css') }}?v={{ request()->is('admin/reservations*') ? 'pmd-reservations-v18-20260728' : time() }}">
 <!-- PMD_SIDEBAR_RAISE_ALL_V53_CSS_END -->
 <!-- PMD_SIDEBAR_CLOSED_ICONS_LOWER_V54_CSS_START -->
-<link rel="stylesheet" href="{{ asset('app/admin/assets/css/pmd-sidebar-closed-icons-lower-v54.css') }}?v={{ time() }}">
+<link rel="stylesheet" href="{{ asset('app/admin/assets/css/pmd-sidebar-closed-icons-lower-v54.css') }}?v={{ request()->is('admin/reservations*') ? 'pmd-reservations-v18-20260728' : time() }}">
 <!-- PMD_SIDEBAR_CLOSED_ICONS_LOWER_V54_CSS_END -->
 <!-- PMD_SIDEBAR_LOGO_LAST_TOGGLE_V55_CSS_START -->
-<link rel="stylesheet" href="{{ asset('app/admin/assets/css/pmd-sidebar-logo-last-toggle-v55.css') }}?v={{ time() }}">
+<link rel="stylesheet" href="{{ asset('app/admin/assets/css/pmd-sidebar-logo-last-toggle-v55.css') }}?v={{ request()->is('admin/reservations*') ? 'pmd-reservations-v18-20260728' : time() }}">
 <!-- PMD_SIDEBAR_LOGO_LAST_TOGGLE_V55_CSS_END -->
 <!-- PMD_SIDEBAR_MENU_LOWER_V56_CSS_START -->
-<link rel="stylesheet" href="{{ asset('app/admin/assets/css/pmd-sidebar-menu-lower-v56.css') }}?v={{ time() }}">
+<link rel="stylesheet" href="{{ asset('app/admin/assets/css/pmd-sidebar-menu-lower-v56.css') }}?v={{ request()->is('admin/reservations*') ? 'pmd-reservations-v18-20260728' : time() }}">
 <!-- PMD_SIDEBAR_MENU_LOWER_V56_CSS_END -->
 <!-- PMD_ADMIN_LOADER_HARD_RESET_V64_CSS_START -->
-<link rel="stylesheet" href="{{ asset('app/admin/assets/css/pmd-admin-loader-hard-reset-v64.css') }}?v={{ time() }}">
+<link rel="stylesheet" href="{{ asset('app/admin/assets/css/pmd-admin-loader-hard-reset-v64.css') }}?v={{ request()->is('admin/reservations*') ? 'pmd-reservations-v18-20260728' : time() }}">
 <!-- PMD_ADMIN_LOADER_HARD_RESET_V64_CSS_END -->
 <!-- PMD_STABLE_LOGO_KPI_V65_CSS_START -->
-<link rel="stylesheet" href="{{ asset('app/admin/assets/css/pmd-stable-logo-kpi-v65.css') }}?v={{ time() }}">
+<link rel="stylesheet" href="{{ asset('app/admin/assets/css/pmd-stable-logo-kpi-v65.css') }}?v={{ request()->is('admin/reservations*') ? 'pmd-reservations-v18-20260728' : time() }}">
 <!-- PMD_STABLE_LOGO_KPI_V65_CSS_END -->
 <!-- PMD_SIDEBAR_CLOSED_LOGO_MODE_V66_CSS_START -->
-<link rel="stylesheet" href="{{ asset('app/admin/assets/css/pmd-sidebar-closed-logo-mode-v66.css') }}?v={{ time() }}">
+<link rel="stylesheet" href="{{ asset('app/admin/assets/css/pmd-sidebar-closed-logo-mode-v66.css') }}?v={{ request()->is('admin/reservations*') ? 'pmd-reservations-v18-20260728' : time() }}">
 <!-- PMD_SIDEBAR_CLOSED_LOGO_MODE_V66_CSS_END -->
 <!-- PMD_SIDEBAR_TOGGLE_TOP_GAP_V70_CSS_START -->
-<link rel="stylesheet" href="{{ asset('app/admin/assets/css/pmd-sidebar-toggle-top-gap-v70.css') }}?v={{ time() }}">
+<link rel="stylesheet" href="{{ asset('app/admin/assets/css/pmd-sidebar-toggle-top-gap-v70.css') }}?v={{ request()->is('admin/reservations*') ? 'pmd-reservations-v18-20260728' : time() }}">
 <!-- PMD_SIDEBAR_TOGGLE_TOP_GAP_V70_CSS_END -->
 <!-- PMD_ROLE_DASHBOARD_LOCK_V72_CONTEXT_START -->
 @php
@@ -5444,38 +5504,38 @@ window.PMD_ROLE_DASHBOARD_CONTEXT_V72 = @json($__pmdRoleDash);
 <!-- PMD_KDS_SERVER_FAST_V82_BLADE_FLAG_END -->
 
 <!-- PMD_KDS_SERVER_FAST_V82_JS_START -->
-{{-- PMD owner clean v1 disabled legacy dashboard asset: <script src="{{ asset('app/admin/assets/js/pmd-kds-server-fast-v82.js') }}?v={{ time() }}"></script> --}}
+{{-- PMD owner clean v1 disabled legacy dashboard asset: <script src="{{ asset('app/admin/assets/js/pmd-kds-server-fast-v82.js') }}?v={{ request()->is('admin/reservations*') ? 'pmd-reservations-v18-20260728' : time() }}"></script> --}}
 <!-- PMD_KDS_SERVER_FAST_V82_JS_END -->
 <!-- PMD_KDS_ULTRA_FAST_V83_JS_START -->
-{{-- PMD owner clean v1 disabled legacy dashboard asset: <script src="{{ asset('app/admin/assets/js/pmd-kds-ultra-fast-v83.js') }}?v={{ time() }}"></script> --}}
+{{-- PMD owner clean v1 disabled legacy dashboard asset: <script src="{{ asset('app/admin/assets/js/pmd-kds-ultra-fast-v83.js') }}?v={{ request()->is('admin/reservations*') ? 'pmd-reservations-v18-20260728' : time() }}"></script> --}}
 <!-- PMD_KDS_ULTRA_FAST_V83_JS_END -->
 <!-- PMD_DASHBOARD_ROLE_PREBOOT_V78_JS_START -->
-{{-- PMD owner clean v1 disabled legacy dashboard asset: <script src="{{ asset('app/admin/assets/js/pmd-dashboard-role-preboot-v78.js') }}?v={{ time() }}"></script> --}}
+{{-- PMD owner clean v1 disabled legacy dashboard asset: <script src="{{ asset('app/admin/assets/js/pmd-dashboard-role-preboot-v78.js') }}?v={{ request()->is('admin/reservations*') ? 'pmd-reservations-v18-20260728' : time() }}"></script> --}}
 <!-- PMD_DASHBOARD_ROLE_PREBOOT_V78_JS_END -->
 
 <!-- PMD_ROLE_DASHBOARD_LOCK_V72_CSS_START -->
-{{-- PMD owner clean v1 disabled legacy dashboard asset: <link rel="stylesheet" href="{{ asset('app/admin/assets/css/pmd-role-dashboard-lock-v72.css') }}?v={{ time() }}"> --}}
+{{-- PMD owner clean v1 disabled legacy dashboard asset: <link rel="stylesheet" href="{{ asset('app/admin/assets/css/pmd-role-dashboard-lock-v72.css') }}?v={{ request()->is('admin/reservations*') ? 'pmd-reservations-v18-20260728' : time() }}"> --}}
 <!-- PMD_ROLE_DASHBOARD_LOCK_V72_CSS_END -->
 <!-- PMD_ROLE_NO_SIDEBAR_LOCK_V73_CSS_START -->
-{{-- PMD owner clean v1 disabled legacy dashboard asset: <link rel="stylesheet" href="{{ asset('app/admin/assets/css/pmd-role-no-sidebar-v73.css') }}?v={{ time() }}"> --}}
+{{-- PMD owner clean v1 disabled legacy dashboard asset: <link rel="stylesheet" href="{{ asset('app/admin/assets/css/pmd-role-no-sidebar-v73.css') }}?v={{ request()->is('admin/reservations*') ? 'pmd-reservations-v18-20260728' : time() }}"> --}}
 <!-- PMD_ROLE_NO_SIDEBAR_LOCK_V73_CSS_END -->
 <!-- PMD_DASHBOARD_ROLE_STABILITY_V78_CSS_START -->
-{{-- PMD owner clean v1 disabled legacy dashboard asset: <link rel="stylesheet" href="{{ asset('app/admin/assets/css/pmd-dashboard-role-stability-v78.css') }}?v={{ time() }}"> --}}
+{{-- PMD owner clean v1 disabled legacy dashboard asset: <link rel="stylesheet" href="{{ asset('app/admin/assets/css/pmd-dashboard-role-stability-v78.css') }}?v={{ request()->is('admin/reservations*') ? 'pmd-reservations-v18-20260728' : time() }}"> --}}
 <!-- PMD_DASHBOARD_ROLE_STABILITY_V78_CSS_END -->
 
 <!-- PMD_DASHBOARD_STABILITY_V77_CSS_START -->
-{{-- PMD owner clean v1 disabled legacy dashboard asset: <link rel="stylesheet" href="{{ asset('app/admin/assets/css/pmd-dashboard-stability-v77.css') }}?v={{ time() }}"> --}}
+{{-- PMD owner clean v1 disabled legacy dashboard asset: <link rel="stylesheet" href="{{ asset('app/admin/assets/css/pmd-dashboard-stability-v77.css') }}?v={{ request()->is('admin/reservations*') ? 'pmd-reservations-v18-20260728' : time() }}"> --}}
 <!-- PMD_DASHBOARD_STABILITY_V77_CSS_END -->
 
 
 
 
 <!-- PMD_KDS_SERVER_FAST_V82_CSS_START -->
-{{-- PMD owner clean v1 disabled legacy dashboard asset: <link rel="stylesheet" href="{{ asset('app/admin/assets/css/pmd-kds-server-fast-v82.css') }}?v={{ time() }}"> --}}
+{{-- PMD owner clean v1 disabled legacy dashboard asset: <link rel="stylesheet" href="{{ asset('app/admin/assets/css/pmd-kds-server-fast-v82.css') }}?v={{ request()->is('admin/reservations*') ? 'pmd-reservations-v18-20260728' : time() }}"> --}}
 <!-- PMD_KDS_SERVER_FAST_V82_CSS_END -->
 
 <!-- PMD_KDS_ULTRA_FAST_V83_CSS_START -->
-{{-- PMD owner clean v1 disabled legacy dashboard asset: <link rel="stylesheet" href="{{ asset('app/admin/assets/css/pmd-kds-ultra-fast-v83.css') }}?v={{ time() }}"> --}}
+{{-- PMD owner clean v1 disabled legacy dashboard asset: <link rel="stylesheet" href="{{ asset('app/admin/assets/css/pmd-kds-ultra-fast-v83.css') }}?v={{ request()->is('admin/reservations*') ? 'pmd-reservations-v18-20260728' : time() }}"> --}}
 <!-- PMD_KDS_ULTRA_FAST_V83_CSS_END -->
 
 <!-- PMD_WAITER_STABLE_MOBILE_V97_CSS_START -->
@@ -5485,10 +5545,14 @@ window.PMD_ROLE_DASHBOARD_CONTEXT_V72 = @json($__pmdRoleDash);
 <!-- PMD_WAITER_DATA_REPAIR_V100_CSS_END -->
     {{-- PMD waiter rebuild: old dashboard asset disabled --}}
 {{-- PMD waiter rebuild: old dashboard asset disabled --}}
-{{-- PMD owner clean v1 disabled legacy dashboard asset: <link rel="stylesheet" href="{{ asset('app/admin/assets/css/pmd-waiter-dashboard-v161-direct-renderer.css') }}?v={{ time() }}"> --}}
-{{-- PMD owner clean v1 disabled legacy dashboard asset: <link rel="stylesheet" href="{{ asset('app/admin/assets/css/pmd-waiter-dashboard-v162-fix-mount-position.css') }}?v={{ time() }}"> --}}
+{{-- PMD owner clean v1 disabled legacy dashboard asset: <link rel="stylesheet" href="{{ asset('app/admin/assets/css/pmd-waiter-dashboard-v161-direct-renderer.css') }}?v={{ request()->is('admin/reservations*') ? 'pmd-reservations-v18-20260728' : time() }}"> --}}
+{{-- PMD owner clean v1 disabled legacy dashboard asset: <link rel="stylesheet" href="{{ asset('app/admin/assets/css/pmd-waiter-dashboard-v162-fix-mount-position.css') }}?v={{ request()->is('admin/reservations*') ? 'pmd-reservations-v18-20260728' : time() }}"> --}}
 <!-- PMD_OWNER_DASHBOARD_CLEAN_V23_CSS_START -->
-<link rel="stylesheet" href="{{ asset('app/admin/assets/css/pmd-owner-dashboard-clean-v23.css') }}?v={{ time() }}">
+{{-- PMD_LEAN_V14_OWNER_CSS_GUARDED_BEGIN --}}
+@unless(request()->is('admin/reservations*'))
+<link rel="stylesheet" href="{{ asset('app/admin/assets/css/pmd-owner-dashboard-clean-v23.css') }}?v={{ request()->is('admin/reservations*') ? 'pmd-reservations-v18-20260728' : time() }}">
+@endunless
+{{-- PMD_LEAN_V14_OWNER_CSS_GUARDED_END --}}
 <!-- PMD_OWNER_DASHBOARD_CLEAN_V23_CSS_END -->
 
 
@@ -8735,10 +8799,14 @@ html.pmd-waiter-dashboard-active .pmd-v18-unmerge {
 @unless(!empty($__pmdIsKdsDashboardV82))
 <!-- PMD EARLY SORTABLE DROPZONE START -->
     @unless(request()->is('admin/reservations2'))
-<script src="{{ asset('app/admin/assets/vendor/pmd-mediafix/Sortable.min.js') }}?v={{ time() }}"></script>
+{{-- PMD_LEAN_V14_SORTABLE_GUARDED_BEGIN --}}
+@unless(request()->is('admin/reservations*'))
+<script src="{{ asset('app/admin/assets/vendor/pmd-mediafix/Sortable.min.js') }}?v={{ request()->is('admin/reservations*') ? 'pmd-reservations-v18-20260728' : time() }}"></script>
+@endunless
+{{-- PMD_LEAN_V14_SORTABLE_GUARDED_END --}}
 @endunless
     @unless(request()->is('admin/reservations2'))
-<script src="{{ asset('app/admin/assets/vendor/pmd-mediafix/dropzone.min.js') }}?v={{ time() }}"></script>
+<script src="{{ asset('app/admin/assets/vendor/pmd-mediafix/dropzone.min.js') }}?v={{ request()->is('admin/reservations*') ? 'pmd-reservations-v18-20260728' : time() }}"></script>
 @endunless
 <!-- PMD EARLY SORTABLE DROPZONE END -->
 @endunless
@@ -8746,22 +8814,22 @@ html.pmd-waiter-dashboard-active .pmd-v18-unmerge {
 
 {!! get_script_tags() !!}
 <!-- SlimSelect: dropdown inside form so it scrolls with page (must run before selectList is used) -->
-<script src="{{ asset('app/admin/assets/js/slim-select-relative-position.js') }}?v={{ time() }}"></script>
+<script src="{{ asset('app/admin/assets/js/slim-select-relative-position.js') }}?v={{ request()->is('admin/reservations*') ? 'pmd-reservations-v18-20260728' : time() }}"></script>
 
 <!-- Admin confirm modal (Cancel + Delete) – replaces SweetAlert for data-request-confirm -->
-<script src="{{ asset('app/admin/assets/js/admin-confirm-modal.js') }}?v={{ time() }}"></script>
+<script src="{{ asset('app/admin/assets/js/admin-confirm-modal.js') }}?v={{ request()->is('admin/reservations*') ? 'pmd-reservations-v18-20260728' : time() }}"></script>
 
 <!-- Notification System - ENABLED FOR CPU TESTING -->
 <!-- PMD_KDS_SERVER_FAST_V82_NOTIFICATIONS_JS_GUARD_START -->
 @unless(!empty($__pmdIsKdsDashboardV82))
 
-<script src="{{ asset('app/admin/assets/js/notifications.js') }}?v={{ time() }}"></script>
+<script src="{{ asset('app/admin/assets/js/notifications.js') }}?v={{ request()->is('admin/reservations*') ? 'pmd-reservations-v18-20260728' : time() }}"></script>
 @endunless
 <!-- PMD_KDS_SERVER_FAST_V82_NOTIFICATIONS_JS_GUARD_END -->
 <!-- PMD_KDS_SERVER_FAST_V82_PUSH_JS_GUARD_START -->
 @unless(!empty($__pmdIsKdsDashboardV82))
 
-<script src="{{ asset('app/admin/assets/js/push-notifications.js') }}?v={{ time() }}"></script>
+<script src="{{ asset('app/admin/assets/js/push-notifications.js') }}?v={{ request()->is('admin/reservations*') ? 'pmd-reservations-v18-20260728' : time() }}"></script>
 
 @endunless
 <!-- PMD_KDS_SERVER_FAST_V82_PUSH_JS_GUARD_END -->
@@ -8770,19 +8838,19 @@ html.pmd-waiter-dashboard-active .pmd-v18-unmerge {
 <!-- PMD_KDS_SERVER_FAST_V82_MODAL_FIX_JS_GUARD_START -->
 @unless(!empty($__pmdIsKdsDashboardV82))
 
-<script src="{{ asset('app/admin/assets/js/modal-performance-fix.js') }}?v={{ time() }}"></script>
+<script src="{{ asset('app/admin/assets/js/modal-performance-fix.js') }}?v={{ request()->is('admin/reservations*') ? 'pmd-reservations-v18-20260728' : time() }}"></script>
 @endunless
 <!-- PMD_KDS_SERVER_FAST_V82_MODAL_FIX_JS_GUARD_END -->
 @endunless
 
 <!-- Fix Bootstrap Dropdown _menu null (Folders/Filter/Sort dropdowns on Media Manager) -->
-<script src="{{ asset('app/admin/assets/js/fix-bootstrap-dropdown-null.js') }}?v={{ time() }}"></script>
+<script src="{{ asset('app/admin/assets/js/fix-bootstrap-dropdown-null.js') }}?v={{ request()->is('admin/reservations*') ? 'pmd-reservations-v18-20260728' : time() }}"></script>
 
 <!-- Smooth Page Transitions -->
 <!-- PMD_KDS_ULTRA_FAST_V83_SMOOTH_TRANSITIONS_GUARD_START -->
 @unless(!empty($__pmdIsKdsDashboardV82))
 
-<script src="{{ asset('app/admin/assets/js/smooth-transitions.js') }}?v={{ time() }}"></script>
+<script src="{{ asset('app/admin/assets/js/smooth-transitions.js') }}?v={{ request()->is('admin/reservations*') ? 'pmd-reservations-v18-20260728' : time() }}"></script>
 
 @endunless
 <!-- PMD_KDS_ULTRA_FAST_V83_SMOOTH_TRANSITIONS_GUARD_END -->
@@ -8790,7 +8858,7 @@ html.pmd-waiter-dashboard-active .pmd-v18-unmerge {
 <!-- PMD_KDS_ULTRA_FAST_V83_FORCE_ALIGN_GUARD_START -->
 @unless(!empty($__pmdIsKdsDashboardV82))
 
-<script src="{{ asset('app/admin/assets/js/force-button-alignment.js') }}?v={{ time() }}"></script>
+<script src="{{ asset('app/admin/assets/js/force-button-alignment.js') }}?v={{ request()->is('admin/reservations*') ? 'pmd-reservations-v18-20260728' : time() }}"></script>
 
 @endunless
 <!-- PMD_KDS_ULTRA_FAST_V83_FORCE_ALIGN_GUARD_END -->
@@ -8798,90 +8866,90 @@ html.pmd-waiter-dashboard-active .pmd-v18-unmerge {
 <!-- PMD_KDS_ULTRA_FAST_V83_PAGE_SPECIFIC_GUARD_START -->
 @unless(!empty($__pmdIsKdsDashboardV82))
 
-<script src="{{ asset('app/admin/assets/js/page-specific-fixes.js') }}?v={{ time() }}"></script>
+<script src="{{ asset('app/admin/assets/js/page-specific-fixes.js') }}?v={{ request()->is('admin/reservations*') ? 'pmd-reservations-v18-20260728' : time() }}"></script>
 
 @endunless
 <!-- PMD_KDS_ULTRA_FAST_V83_PAGE_SPECIFIC_GUARD_END -->
 <!-- Fix Media Finder Inline Styles -->
 @unless($pmdIsNativeMediaContext)
-<script src="{{ asset('app/admin/assets/js/fix-media-finder-inline-styles.js') }}?v={{ time() }}"></script>
+<script src="{{ asset('app/admin/assets/js/fix-media-finder-inline-styles.js') }}?v={{ request()->is('admin/reservations*') ? 'pmd-reservations-v18-20260728' : time() }}"></script>
 @endunless
 <!-- Fix History Button Text Centering - Removes inline styles that prevent flexbox centering -->
-<script src="{{ asset('app/admin/assets/js/fix-history-button-centering.js') }}?v={{ time() }}"></script>
+<script src="{{ asset('app/admin/assets/js/fix-history-button-centering.js') }}?v={{ request()->is('admin/reservations*') ? 'pmd-reservations-v18-20260728' : time() }}"></script>
 <!-- Fix Notification Buttons Bottom Border - Ensures bottom border is visible -->
-<script src="{{ asset('app/admin/assets/js/fix-notification-buttons-border.js') }}?v={{ time() }}"></script>
+<script src="{{ asset('app/admin/assets/js/fix-notification-buttons-border.js') }}?v={{ request()->is('admin/reservations*') ? 'pmd-reservations-v18-20260728' : time() }}"></script>
 <!-- Fix Profile Dropdown Green Hover - Removes green hover effect via JavaScript -->
-<script src="{{ asset('app/admin/assets/js/fix-profile-dropdown-green.js') }}?v={{ time() }}"></script>
+<script src="{{ asset('app/admin/assets/js/fix-profile-dropdown-green.js') }}?v={{ request()->is('admin/reservations*') ? 'pmd-reservations-v18-20260728' : time() }}"></script>
 <!-- Fix Tab Link Colors - Force dark blue instead of green -->
 <!-- PMD_KDS_ULTRA_FAST_V83_TAB_COLOR_GUARD_START -->
 @unless(!empty($__pmdIsKdsDashboardV82))
 
-<script src="{{ asset('app/admin/assets/js/fix-tab-link-colors.js') }}?v={{ time() }}"></script>
+<script src="{{ asset('app/admin/assets/js/fix-tab-link-colors.js') }}?v={{ request()->is('admin/reservations*') ? 'pmd-reservations-v18-20260728' : time() }}"></script>
 @endunless
 <!-- PMD_KDS_ULTRA_FAST_V83_TAB_COLOR_GUARD_END -->
 <!-- Fix Suggestion Sentences Label - Remove underline and button shadow -->
 <!-- PMD_KDS_ULTRA_FAST_V83_SUGGESTION_LABEL_GUARD_START -->
 @unless(!empty($__pmdIsKdsDashboardV82))
 
-<script src="{{ asset('app/admin/assets/js/fix-suggestion-sentences-label.js') }}?v={{ time() }}"></script>
+<script src="{{ asset('app/admin/assets/js/fix-suggestion-sentences-label.js') }}?v={{ request()->is('admin/reservations*') ? 'pmd-reservations-v18-20260728' : time() }}"></script>
 @endunless
 <!-- PMD_KDS_ULTRA_FAST_V83_SUGGESTION_LABEL_GUARD_END -->
 <!-- Fix Form Field Focus Colors - Remove green, use dark blue -->
 <!-- PMD_KDS_ULTRA_FAST_V83_FOCUS_COLOR_GUARD_START -->
 @unless(!empty($__pmdIsKdsDashboardV82))
 
-<script src="{{ asset('app/admin/assets/js/fix-form-field-focus-colors.js') }}?v={{ time() }}"></script>
+<script src="{{ asset('app/admin/assets/js/fix-form-field-focus-colors.js') }}?v={{ request()->is('admin/reservations*') ? 'pmd-reservations-v18-20260728' : time() }}"></script>
 @endunless
 <!-- PMD_KDS_ULTRA_FAST_V83_FOCUS_COLOR_GUARD_END -->
 <!-- Fix Profile Dropdown Closed - Disables items when dropdown is closed -->
-<script src="{{ asset('app/admin/assets/js/fix-profile-dropdown-closed.js') }}?v={{ time() }}"></script>
+<script src="{{ asset('app/admin/assets/js/fix-profile-dropdown-closed.js') }}?v={{ request()->is('admin/reservations*') ? 'pmd-reservations-v18-20260728' : time() }}"></script>
 <!-- Fix Menu-Grid Hover - Ensures Tax and Advanced buttons hover works properly -->
 <!-- PMD_KDS_ULTRA_FAST_V83_MENU_GRID_HOVER_GUARD_START -->
 @unless(!empty($__pmdIsKdsDashboardV82))
 
-<script src="{{ asset('app/admin/assets/js/fix-menu-grid-hover.js') }}?v={{ time() }}"></script>
+<script src="{{ asset('app/admin/assets/js/fix-menu-grid-hover.js') }}?v={{ request()->is('admin/reservations*') ? 'pmd-reservations-v18-20260728' : time() }}"></script>
 @endunless
 <!-- PMD_KDS_ULTRA_FAST_V83_MENU_GRID_HOVER_GUARD_END -->
 <!-- Disable tooltips on Note, History, and settings menu-grid (redundant labels) -->
-<script src="{{ asset('app/admin/assets/js/fix-disable-tooltips.js') }}?v={{ time() }}"></script>
+<script src="{{ asset('app/admin/assets/js/fix-disable-tooltips.js') }}?v={{ request()->is('admin/reservations*') ? 'pmd-reservations-v18-20260728' : time() }}"></script>
 
 <!-- Modal Blur Fix -->
 <!-- PMD_KDS_ULTRA_FAST_V83_MODAL_BLUR_GUARD_START -->
 @unless(!empty($__pmdIsKdsDashboardV82))
 
-<script src="{{ asset('app/admin/assets/js/modal-blur-fix.js') }}?v={{ time() }}"></script>
+<script src="{{ asset('app/admin/assets/js/modal-blur-fix.js') }}?v={{ request()->is('admin/reservations*') ? 'pmd-reservations-v18-20260728' : time() }}"></script>
 
 @endunless
 <!-- PMD_KDS_ULTRA_FAST_V83_MODAL_BLUR_GUARD_END -->
 <!-- Media Manager Search Icon Fix -->
 @unless($pmdIsNativeMediaContext)
-<script src="{{ asset('app/admin/assets/js/media-search-icon-fix.js') }}?v={{ time() }}"></script>
+<script src="{{ asset('app/admin/assets/js/media-search-icon-fix.js') }}?v={{ request()->is('admin/reservations*') ? 'pmd-reservations-v18-20260728' : time() }}"></script>
 @endunless
 
 <!-- Image Preview Persistence Fix -->
 @unless($pmdIsNativeMediaContext)
-<script src="{{ asset('app/admin/assets/js/image-preview-persistence.js') }}?v={{ time() }}"></script>
+<script src="{{ asset('app/admin/assets/js/image-preview-persistence.js') }}?v={{ request()->is('admin/reservations*') ? 'pmd-reservations-v18-20260728' : time() }}"></script>
 @endunless
 
 <!-- Debug Redirects (Remove this in production) -->
 <!-- PMD_KDS_ULTRA_FAST_V83_DEBUG_REDIRECTS_GUARD_START -->
 @unless(!empty($__pmdIsKdsDashboardV82))
 
-<script src="{{ asset('app/admin/assets/js/debug-redirects.js') }}?v={{ time() }}"></script>
+<script src="{{ asset('app/admin/assets/js/debug-redirects.js') }}?v={{ request()->is('admin/reservations*') ? 'pmd-reservations-v18-20260728' : time() }}"></script>
 
 @endunless
 <!-- PMD_KDS_ULTRA_FAST_V83_DEBUG_REDIRECTS_GUARD_END -->
 <!-- Sidebar Star Icon - DISABLED (replaced by unified shell curve) -->
-<!-- <script src="{{ asset('app/admin/assets/js/sidebar-star-icon.js') }}?v={{ time() }}" defer></script> -->
+<!-- <script src="{{ asset('app/admin/assets/js/sidebar-star-icon.js') }}?v={{ request()->is('admin/reservations*') ? 'pmd-reservations-v18-20260728' : time() }}" defer></script> -->
 
 <!-- Folder Creation Dropdown Card -->
-<script src="{{ asset('app/admin/assets/js/folder-dropdown-card.js') }}?v={{ time() }}"></script>
+<script src="{{ asset('app/admin/assets/js/folder-dropdown-card.js') }}?v={{ request()->is('admin/reservations*') ? 'pmd-reservations-v18-20260728' : time() }}"></script>
 
 <!-- Global Button Width Fix - Enforces 48x48px buttons on all pages -->
 <!-- PMD_KDS_ULTRA_FAST_V83_BUTTON_WIDTH_GUARD_START -->
 @unless(!empty($__pmdIsKdsDashboardV82))
 
-<script src="{{ asset('app/admin/assets/js/fix-button-widths-global.js') }}?v={{ time() }}"></script>
+<script src="{{ asset('app/admin/assets/js/fix-button-widths-global.js') }}?v={{ request()->is('admin/reservations*') ? 'pmd-reservations-v18-20260728' : time() }}"></script>
 
 @endunless
 <!-- PMD_KDS_ULTRA_FAST_V83_BUTTON_WIDTH_GUARD_END -->
@@ -8889,13 +8957,13 @@ html.pmd-waiter-dashboard-active .pmd-v18-unmerge {
 <!-- PMD_KDS_ULTRA_FAST_V83_DYNAMIC_DROPDOWN_GUARD_START -->
 @unless(!empty($__pmdIsKdsDashboardV82))
 
-<script src="{{ asset('app/admin/assets/js/dynamic-dropdown-height.js') }}?v={{ time() }}"></script>
+<script src="{{ asset('app/admin/assets/js/dynamic-dropdown-height.js') }}?v={{ request()->is('admin/reservations*') ? 'pmd-reservations-v18-20260728' : time() }}"></script>
 
 @endunless
 <!-- PMD_KDS_ULTRA_FAST_V83_DYNAMIC_DROPDOWN_GUARD_END -->
 <!-- PMD Admin Toolbar Auto Normalizer -->
-<script src="{{ asset('app/admin/assets/js/pmd-admin-toolbar-normalizer.js') }}?v={{ time() }}"></script>
-<script src="{{ asset('app/admin/assets/js/pmd-admin-responsive-shell.js') }}?v={{ time() }}"></script>
+<script src="{{ asset('app/admin/assets/js/pmd-admin-toolbar-normalizer.js') }}?v={{ request()->is('admin/reservations*') ? 'pmd-reservations-v18-20260728' : time() }}"></script>
+<script src="{{ asset('app/admin/assets/js/pmd-admin-responsive-shell.js') }}?v={{ request()->is('admin/reservations*') ? 'pmd-reservations-v18-20260728' : time() }}"></script>
 
 <!-- Guide Tour Button Handler -->
 <script>
@@ -9080,7 +9148,7 @@ html.pmd-waiter-dashboard-active .pmd-v18-unmerge {
 @unless(!empty($__pmdIsKdsDashboardV82))
 
 @unless(request()->is('admin/reservations2'))
-<script src="{{ asset('app/admin/assets/js/pmd-mediafinder-autofix.js') }}?v={{ time() }}"></script>
+<script src="{{ asset('app/admin/assets/js/pmd-mediafinder-autofix.js') }}?v={{ request()->is('admin/reservations*') ? 'pmd-reservations-v18-20260728' : time() }}"></script>
 @endunless
 @endunless
 <!-- PMD_KDS_SERVER_FAST_V82_MEDIAFIX_JS_GUARD_END -->
@@ -9239,54 +9307,54 @@ html.pmd-waiter-dashboard-active .pmd-v18-unmerge {
 })();
 </script>
     
-<script src="{{ asset('app/admin/assets/js/pmd-sidebar-system-lock-v7.js') }}?v={{ time() }}"></script>
-{{-- PMD owner clean v1 disabled legacy dashboard asset: <script src="{{ asset('app/admin/assets/js/pmd-dashboard-modern-v1.js') }}?v={{ time() }}"></script> --}}
-{{-- PMD owner clean v1 disabled legacy dashboard asset: <script src="{{ asset('app/admin/assets/js/pmd-dashboard-real-api-v3.js') }}?v={{ time() }}"></script> --}}
-{{-- PMD owner clean v1 disabled legacy dashboard asset: <script src="{{ asset('app/admin/assets/js/pmd-dashboard-role-preview-v9.js') }}?v={{ time() }}"></script> --}}
-{{-- PMD owner clean v1 disabled legacy dashboard asset: <script src="{{ asset('app/admin/assets/js/pmd-dashboard-owner2-v11.js') }}?v={{ time() }}"></script> --}}
-{{-- PMD owner clean v1 disabled legacy dashboard asset: <script src="{{ asset('app/admin/assets/js/pmd-dashboard-waiter3-v12.js') }}?v={{ time() }}"></script> --}}
-{{-- PMD owner clean v1 disabled legacy dashboard asset: <script src="{{ asset('app/admin/assets/js/pmd-dashboard-waiter3-v13-polish.js') }}?v={{ time() }}"></script> --}}
-{{-- PMD owner clean v1 disabled legacy dashboard asset: <script src="{{ asset('app/admin/assets/js/pmd-dashboard-waiter3-v14-compact.js') }}?v={{ time() }}"></script> --}}
-{{-- PMD owner clean v1 disabled legacy dashboard asset: <script src="{{ asset('app/admin/assets/js/pmd-dashboard-waiter3-v15-rolebar.js') }}?v={{ time() }}"></script> --}}
-{{-- PMD owner clean v1 disabled legacy dashboard asset: <script src="{{ asset('app/admin/assets/js/pmd-dashboard-w3-quick-icons-v16.js') }}?v={{ time() }}"></script> --}}
-    <script src="{{ asset('app/admin/assets/js/pmd-sidebar-icons-only-v15.js') }}?v={{ time() }}"></script>
-{{-- PMD owner clean v1 disabled legacy dashboard asset: <script src="{{ asset('app/admin/assets/js/pmd-dashboard-no-jump-v17.js') }}?v={{ time() }}"></script> --}}
+<script src="{{ asset('app/admin/assets/js/pmd-sidebar-system-lock-v7.js') }}?v={{ request()->is('admin/reservations*') ? 'pmd-reservations-v18-20260728' : time() }}"></script>
+{{-- PMD owner clean v1 disabled legacy dashboard asset: <script src="{{ asset('app/admin/assets/js/pmd-dashboard-modern-v1.js') }}?v={{ request()->is('admin/reservations*') ? 'pmd-reservations-v18-20260728' : time() }}"></script> --}}
+{{-- PMD owner clean v1 disabled legacy dashboard asset: <script src="{{ asset('app/admin/assets/js/pmd-dashboard-real-api-v3.js') }}?v={{ request()->is('admin/reservations*') ? 'pmd-reservations-v18-20260728' : time() }}"></script> --}}
+{{-- PMD owner clean v1 disabled legacy dashboard asset: <script src="{{ asset('app/admin/assets/js/pmd-dashboard-role-preview-v9.js') }}?v={{ request()->is('admin/reservations*') ? 'pmd-reservations-v18-20260728' : time() }}"></script> --}}
+{{-- PMD owner clean v1 disabled legacy dashboard asset: <script src="{{ asset('app/admin/assets/js/pmd-dashboard-owner2-v11.js') }}?v={{ request()->is('admin/reservations*') ? 'pmd-reservations-v18-20260728' : time() }}"></script> --}}
+{{-- PMD owner clean v1 disabled legacy dashboard asset: <script src="{{ asset('app/admin/assets/js/pmd-dashboard-waiter3-v12.js') }}?v={{ request()->is('admin/reservations*') ? 'pmd-reservations-v18-20260728' : time() }}"></script> --}}
+{{-- PMD owner clean v1 disabled legacy dashboard asset: <script src="{{ asset('app/admin/assets/js/pmd-dashboard-waiter3-v13-polish.js') }}?v={{ request()->is('admin/reservations*') ? 'pmd-reservations-v18-20260728' : time() }}"></script> --}}
+{{-- PMD owner clean v1 disabled legacy dashboard asset: <script src="{{ asset('app/admin/assets/js/pmd-dashboard-waiter3-v14-compact.js') }}?v={{ request()->is('admin/reservations*') ? 'pmd-reservations-v18-20260728' : time() }}"></script> --}}
+{{-- PMD owner clean v1 disabled legacy dashboard asset: <script src="{{ asset('app/admin/assets/js/pmd-dashboard-waiter3-v15-rolebar.js') }}?v={{ request()->is('admin/reservations*') ? 'pmd-reservations-v18-20260728' : time() }}"></script> --}}
+{{-- PMD owner clean v1 disabled legacy dashboard asset: <script src="{{ asset('app/admin/assets/js/pmd-dashboard-w3-quick-icons-v16.js') }}?v={{ request()->is('admin/reservations*') ? 'pmd-reservations-v18-20260728' : time() }}"></script> --}}
+    <script src="{{ asset('app/admin/assets/js/pmd-sidebar-icons-only-v15.js') }}?v={{ request()->is('admin/reservations*') ? 'pmd-reservations-v18-20260728' : time() }}"></script>
+{{-- PMD owner clean v1 disabled legacy dashboard asset: <script src="{{ asset('app/admin/assets/js/pmd-dashboard-no-jump-v17.js') }}?v={{ request()->is('admin/reservations*') ? 'pmd-reservations-v18-20260728' : time() }}"></script> --}}
 <!-- PMD_OWNER_DASHBOARD_MATCH_V13_JS_START -->
-{{-- PMD owner clean v1 disabled legacy dashboard asset: <script src="{{ asset('app/admin/assets/js/pmd-dashboard-owner-match-v13.js') }}?v={{ time() }}"></script> --}}
+{{-- PMD owner clean v1 disabled legacy dashboard asset: <script src="{{ asset('app/admin/assets/js/pmd-dashboard-owner-match-v13.js') }}?v={{ request()->is('admin/reservations*') ? 'pmd-reservations-v18-20260728' : time() }}"></script> --}}
 <!-- PMD_OWNER_DASHBOARD_MATCH_V13_JS_END -->
 <!-- PMD_UNIVERSAL_LAYOUT_EDITOR_V35_JS_START -->
-<script src="{{ asset('app/admin/assets/js/pmd-universal-layout-editor-v35.js') }}?v={{ time() }}"></script>
+<script src="{{ asset('app/admin/assets/js/pmd-universal-layout-editor-v35.js') }}?v={{ request()->is('admin/reservations*') ? 'pmd-reservations-v18-20260728' : time() }}"></script>
 <!-- PMD_UNIVERSAL_LAYOUT_EDITOR_V35_JS_END -->
 <!-- PMD_SIDEBAR_RECOVER_NATIVE_V50_JS_START -->
-<script src="{{ asset('app/admin/assets/js/pmd-sidebar-recover-native-v50.js') }}?v={{ time() }}"></script>
+<script src="{{ asset('app/admin/assets/js/pmd-sidebar-recover-native-v50.js') }}?v={{ request()->is('admin/reservations*') ? 'pmd-reservations-v18-20260728' : time() }}"></script>
 <!-- PMD_SIDEBAR_RECOVER_NATIVE_V50_JS_END -->
 <!-- PMD_MANAGER_OPS_DASHBOARD_V29_JS_START -->
-{{-- PMD owner clean v1 disabled legacy dashboard asset: <script src="{{ asset('app/admin/assets/js/pmd-manager-ops-dashboard-v29.js') }}?v={{ time() }}"></script> --}}
+{{-- PMD owner clean v1 disabled legacy dashboard asset: <script src="{{ asset('app/admin/assets/js/pmd-manager-ops-dashboard-v29.js') }}?v={{ request()->is('admin/reservations*') ? 'pmd-reservations-v18-20260728' : time() }}"></script> --}}
 <!-- PMD_MANAGER_OPS_DASHBOARD_V29_JS_END -->
 <!-- PMD_SIDEBAR_LOGO_LAST_TOGGLE_V55_JS_START -->
-<script src="{{ asset('app/admin/assets/js/pmd-sidebar-logo-last-toggle-v55.js') }}?v={{ time() }}"></script>
+<script src="{{ asset('app/admin/assets/js/pmd-sidebar-logo-last-toggle-v55.js') }}?v={{ request()->is('admin/reservations*') ? 'pmd-reservations-v18-20260728' : time() }}"></script>
 <!-- PMD_SIDEBAR_LOGO_LAST_TOGGLE_V55_JS_END -->
 <!-- PMD_STABLE_LOGO_KPI_V65_JS_START -->
-<script src="{{ asset('app/admin/assets/js/pmd-stable-logo-switcher-v65.js') }}?v={{ time() }}"></script>
+<script src="{{ asset('app/admin/assets/js/pmd-stable-logo-switcher-v65.js') }}?v={{ request()->is('admin/reservations*') ? 'pmd-reservations-v18-20260728' : time() }}"></script>
 <!-- PMD_STABLE_LOGO_KPI_V65_JS_END -->
 <!-- PMD_SIDEBAR_CLOSED_LOGO_MODE_V66_JS_START -->
-<script src="{{ asset('app/admin/assets/js/pmd-sidebar-closed-logo-mode-v66.js') }}?v={{ time() }}"></script>
+<script src="{{ asset('app/admin/assets/js/pmd-sidebar-closed-logo-mode-v66.js') }}?v={{ request()->is('admin/reservations*') ? 'pmd-reservations-v18-20260728' : time() }}"></script>
 <!-- PMD_SIDEBAR_CLOSED_LOGO_MODE_V66_JS_END -->
 <!-- PMD_SIDEBAR_TOGGLE_TOP_GAP_V70_JS_START -->
-<script src="{{ asset('app/admin/assets/js/pmd-sidebar-toggle-top-gap-v70.js') }}?v={{ time() }}"></script>
+<script src="{{ asset('app/admin/assets/js/pmd-sidebar-toggle-top-gap-v70.js') }}?v={{ request()->is('admin/reservations*') ? 'pmd-reservations-v18-20260728' : time() }}"></script>
 <!-- PMD_SIDEBAR_TOGGLE_TOP_GAP_V70_JS_END -->
 <!-- PMD_ROLE_DASHBOARD_LOCK_V72_JS_START -->
-{{-- PMD owner clean v1 disabled legacy dashboard asset: <script src="{{ asset('app/admin/assets/js/pmd-role-dashboard-lock-v72.js') }}?v={{ time() }}"></script> --}}
+{{-- PMD owner clean v1 disabled legacy dashboard asset: <script src="{{ asset('app/admin/assets/js/pmd-role-dashboard-lock-v72.js') }}?v={{ request()->is('admin/reservations*') ? 'pmd-reservations-v18-20260728' : time() }}"></script> --}}
 <!-- PMD_ROLE_DASHBOARD_LOCK_V72_JS_END -->
 <!-- PMD_ROLE_NO_SIDEBAR_LOCK_V73_JS_START -->
-{{-- PMD owner clean v1 disabled legacy dashboard asset: <script src="{{ asset('app/admin/assets/js/pmd-role-no-sidebar-v73.js') }}?v={{ time() }}"></script> --}}
+{{-- PMD owner clean v1 disabled legacy dashboard asset: <script src="{{ asset('app/admin/assets/js/pmd-role-no-sidebar-v73.js') }}?v={{ request()->is('admin/reservations*') ? 'pmd-reservations-v18-20260728' : time() }}"></script> --}}
 <!-- PMD_ROLE_NO_SIDEBAR_LOCK_V73_JS_END -->
 <!-- PMD_DASHBOARD_ROLE_STABILITY_V78_JS_START -->
-{{-- PMD owner clean v1 disabled legacy dashboard asset: <script src="{{ asset('app/admin/assets/js/pmd-dashboard-role-stability-v78.js') }}?v={{ time() }}"></script> --}}
+{{-- PMD owner clean v1 disabled legacy dashboard asset: <script src="{{ asset('app/admin/assets/js/pmd-dashboard-role-stability-v78.js') }}?v={{ request()->is('admin/reservations*') ? 'pmd-reservations-v18-20260728' : time() }}"></script> --}}
 <!-- PMD_DASHBOARD_ROLE_STABILITY_V78_JS_END -->
 
 <!-- PMD_DASHBOARD_STABILITY_V77_JS_START -->
-{{-- PMD owner clean v1 disabled legacy dashboard asset: <script src="{{ asset('app/admin/assets/js/pmd-dashboard-stability-v77.js') }}?v={{ time() }}"></script> --}}
+{{-- PMD owner clean v1 disabled legacy dashboard asset: <script src="{{ asset('app/admin/assets/js/pmd-dashboard-stability-v77.js') }}?v={{ request()->is('admin/reservations*') ? 'pmd-reservations-v18-20260728' : time() }}"></script> --}}
 <!-- PMD_DASHBOARD_STABILITY_V77_JS_END -->
 
 <!-- PMD_WAITER_STABLE_MOBILE_V97_JS_START -->
@@ -9309,8 +9377,8 @@ html.pmd-waiter-dashboard-active .pmd-v18-unmerge {
 
     {{-- PMD waiter rebuild: old dashboard asset disabled --}}
 {{-- PMD waiter rebuild: old dashboard asset disabled --}}
-{{-- PMD owner clean v1 disabled legacy dashboard asset: <script src="{{ asset('app/admin/assets/js/pmd-waiter-dashboard-v161-direct-renderer.js') }}?v={{ time() }}" defer></script> --}}
-{{-- PMD owner clean v1 disabled legacy dashboard asset: <script src="{{ asset('app/admin/assets/js/pmd-waiter-dashboard-v162-fix-mount-position.js') }}?v={{ time() }}" defer></script> --}}
+{{-- PMD owner clean v1 disabled legacy dashboard asset: <script src="{{ asset('app/admin/assets/js/pmd-waiter-dashboard-v161-direct-renderer.js') }}?v={{ request()->is('admin/reservations*') ? 'pmd-reservations-v18-20260728' : time() }}" defer></script> --}}
+{{-- PMD owner clean v1 disabled legacy dashboard asset: <script src="{{ asset('app/admin/assets/js/pmd-waiter-dashboard-v162-fix-mount-position.js') }}?v={{ request()->is('admin/reservations*') ? 'pmd-reservations-v18-20260728' : time() }}" defer></script> --}}
 
 
 <!-- PMD_ADMIN_FINAL_SINGLE_LOGO_V20 -->
@@ -9319,7 +9387,11 @@ html.pmd-waiter-dashboard-active .pmd-v18-unmerge {
 <!-- /PMD_ADMIN_FINAL_SINGLE_LOGO_V20 -->
 
 <!-- PMD_OWNER_DASHBOARD_CLEAN_V23_JS_START -->
-<script src="{{ asset('app/admin/assets/js/pmd-owner-dashboard-clean-v23.js') }}?v={{ time() }}" defer></script>
+{{-- PMD_LEAN_V14_OWNER_JS_GUARDED_BEGIN --}}
+@unless(request()->is('admin/reservations*'))
+<script src="{{ asset('app/admin/assets/js/pmd-owner-dashboard-clean-v23.js') }}?v={{ request()->is('admin/reservations*') ? 'pmd-reservations-v18-20260728' : time() }}" defer></script>
+@endunless
+{{-- PMD_LEAN_V14_OWNER_JS_GUARDED_END --}}
 <!-- PMD_OWNER_DASHBOARD_CLEAN_V23_JS_END -->
     <script src="/app/admin/assets/js/pmd-admin-universal-client-list-v1.js?v=50" defer></script>
 
@@ -10968,7 +11040,7 @@ html.pmd-dashboard2-active .pmd-d2-live-pill {
 {{-- PMD_V181_DISABLE_OLD_WAITER_FLOOR_PATCH_START:V36 --}}
 @if (!request()->is('admin/dashboardwaiter*'))
 <script id="pmd-waiter-dashboard-v36-status-colors-select-dragfix-script">
-
+(function () {
   /*
    * PMD Reservations2 V7.1:
    * This is an obsolete Waiter authority. The real Waiter page still
@@ -11452,6 +11524,7 @@ html.pmd-dashboard2-active .pmd-d2-live-pill {
 
   console.info('[PMD] Waiter Dashboard V36 status colors + select mode + drag/drop fix active');
 })();
+})();
 </script>
 @else
 <script>console.info('[PMD] V181 skipped old waiter floor patch: V36');</script>
@@ -11591,7 +11664,7 @@ html.pmd-dashboard2-active .pmd-d2-live-pill {
 {{-- PMD_V181_DISABLE_OLD_WAITER_FLOOR_PATCH_START:V40 --}}
 @if (!request()->is('admin/dashboardwaiter*'))
 <script id="pmd-waiter-dashboard-v40-authoritative-compact-merge-script">
-
+(function () {
   /*
    * PMD Reservations2 V7.1:
    * This is an obsolete Waiter authority. The real Waiter page still
@@ -12022,6 +12095,7 @@ html.pmd-dashboard2-active .pmd-d2-live-pill {
 
   console.info('[PMD] Waiter Dashboard V40 authoritative compact merge active');
 })();
+})();
 </script>
 @else
 <script>console.info('[PMD] V181 skipped old waiter floor patch: V40');</script>
@@ -12111,7 +12185,7 @@ html.pmd-dashboard2-active .pmd-d2-live-pill {
 {{-- PMD_V181_DISABLE_OLD_WAITER_FLOOR_PATCH_START:V41 --}}
 @if (!request()->is('admin/dashboardwaiter*'))
 <script id="pmd-waiter-dashboard-v41-flat-board-frames-script">
-
+(function () {
   /*
    * PMD Reservations2 V7.1:
    * This is an obsolete Waiter authority. The real Waiter page still
@@ -12176,6 +12250,7 @@ html.pmd-dashboard2-active .pmd-d2-live-pill {
   };
 
   console.info('[PMD] Waiter Dashboard V41 flat board frames active');
+})();
 })();
 </script>
 @else
@@ -12247,7 +12322,7 @@ html.pmd-dashboard2-active .pmd-d2-live-pill {
 {{-- PMD_V181_DISABLE_OLD_WAITER_FLOOR_PATCH_START:V43 --}}
 @if (!request()->is('admin/dashboardwaiter*'))
 <script id="pmd-waiter-dashboard-v43-restore-inner-floor-frame-script">
-
+(function () {
   /*
    * PMD Reservations2 V7.1:
    * This is an obsolete Waiter authority. The real Waiter page still
@@ -12306,6 +12381,7 @@ html.pmd-dashboard2-active .pmd-d2-live-pill {
   };
 
   console.info('[PMD] Waiter Dashboard V43 restored inner floor frame active');
+})();
 })();
 </script>
 @else
@@ -12418,7 +12494,7 @@ html.pmd-dashboard2-active .pmd-d2-live-pill {
 {{-- PMD_V181_DISABLE_OLD_WAITER_FLOOR_PATCH_START:V44 --}}
 @if (!request()->is('admin/dashboardwaiter*'))
 <script id="pmd-waiter-dashboard-v44-floor-icon-size-fix-script">
-
+(function () {
   /*
    * PMD Reservations2 V7.1:
    * This is an obsolete Waiter authority. The real Waiter page still
@@ -12473,6 +12549,7 @@ html.pmd-dashboard2-active .pmd-d2-live-pill {
 
   console.info('[PMD] Waiter Dashboard V44 floor icon size fix active');
 })();
+})();
 </script>
 @else
 <script>console.info('[PMD] V181 skipped old waiter floor patch: V44');</script>
@@ -12526,7 +12603,7 @@ html.pmd-dashboard2-active .pmd-d2-live-pill {
 {{-- PMD_V181_DISABLE_OLD_WAITER_FLOOR_PATCH_START:V46 --}}
 @if (!request()->is('admin/dashboardwaiter*'))
 <script id="pmd-waiter-dashboard-v46-floor-map-true-white-script">
-
+(function () {
   /*
    * PMD Reservations2 V7.1:
    * This is an obsolete Waiter authority. The real Waiter page still
@@ -12579,6 +12656,7 @@ html.pmd-dashboard2-active .pmd-d2-live-pill {
   };
 
   console.info('[PMD] Waiter Dashboard V46 true white floor map active');
+})();
 })();
 </script>
 @else
@@ -12672,7 +12750,7 @@ html.pmd-dashboard2-active .pmd-d2-live-pill {
 {{-- PMD_V181_DISABLE_OLD_WAITER_FLOOR_PATCH_START:V47 --}}
 @if (!request()->is('admin/dashboardwaiter*'))
 <script id="pmd-waiter-dashboard-v47-compact-table-visual-cleanup-script">
-
+(function () {
   /*
    * PMD Reservations2 V7.1:
    * This is an obsolete Waiter authority. The real Waiter page still
@@ -12727,6 +12805,7 @@ html.pmd-dashboard2-active .pmd-d2-live-pill {
 
   console.info('[PMD] Waiter Dashboard V47 compact table visual cleanup active');
 })();
+})();
 </script>
 @else
 <script>console.info('[PMD] V181 skipped old waiter floor patch: V47');</script>
@@ -12770,7 +12849,7 @@ html.pmd-dashboard2-active .pmd-d2-live-pill {
 {{-- PMD_V181_DISABLE_OLD_WAITER_FLOOR_PATCH_START:V48 --}}
 @if (!request()->is('admin/dashboardwaiter*'))
 <script id="pmd-waiter-dashboard-v48-title-cleanup-icons-script">
-
+(function () {
   /*
    * PMD Reservations2 V7.1:
    * This is an obsolete Waiter authority. The real Waiter page still
@@ -12838,6 +12917,7 @@ html.pmd-dashboard2-active .pmd-d2-live-pill {
   };
 
   console.info('[PMD] Waiter Dashboard V48 title cleanup/icons active');
+})();
 })();
 </script>
 @else
@@ -12931,7 +13011,7 @@ html.pmd-dashboardwaiter-kiosk-page #pmd-waiter-dashboard-root.pmd-w89-compact .
 {{-- PMD_V181_DISABLE_OLD_WAITER_FLOOR_PATCH_START:V89 --}}
 @if (!request()->is('admin/dashboardwaiter*'))
 <script id="pmd-waiter-dashboard-v89-floor-position-lock-script">
-
+(function () {
   /*
    * PMD Reservations2 V7.1:
    * This is an obsolete Waiter authority. The real Waiter page still
@@ -13286,6 +13366,7 @@ html.pmd-dashboardwaiter-kiosk-page #pmd-waiter-dashboard-root.pmd-w89-compact .
 
   console.info('[PMD] Waiter Dashboard V89 floor position lock active');
 })();
+})();
 </script>
 @else
 <script>console.info('[PMD] V181 skipped old waiter floor patch: V89');</script>
@@ -13336,7 +13417,7 @@ html.pmd-dashboardwaiter-kiosk-page #pmd-waiter-dashboard-root .pmd-v18-merged-t
 {{-- PMD_V181_DISABLE_OLD_WAITER_FLOOR_PATCH_START:V105 --}}
 @if (!request()->is('admin/dashboardwaiter*'))
 <script id="pmd-waiter-dashboard-v105-remove-merge-feature-script">
-
+(function () {
   /*
    * PMD Reservations2 V7.1:
    * This is an obsolete Waiter authority. The real Waiter page still
@@ -13644,6 +13725,7 @@ html.pmd-dashboardwaiter-kiosk-page #pmd-waiter-dashboard-root .pmd-v18-merged-t
   };
 
   console.info('[PMD] Waiter Dashboard V105 merge feature removed active');
+})();
 })();
 </script>
 @else
