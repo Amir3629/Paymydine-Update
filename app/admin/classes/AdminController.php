@@ -103,6 +103,11 @@ class AdminController extends BaseController
     public $bodyClass;
 
     /**
+     * Skip the global MediaManager widget on pages that do not use media fields.
+     */
+    public $suppressMediaManager = false;
+
+    /**
      * Class constructor
      */
     public function __construct()
@@ -169,7 +174,11 @@ class AdminController extends BaseController
         $toolbar->bindToController();
 
         // Media Manager widget is available on all admin pages
-        if ($this->currentUser && $this->currentUser->hasPermission('Admin.MediaManager')) {
+        if (
+            !$this->suppressMediaManager &&
+            $this->currentUser &&
+            $this->currentUser->hasPermission('Admin.MediaManager')
+        ) {
             $manager = new MediaManager($this, ['alias' => 'mediamanager']);
             $manager->bindToController();
         }
