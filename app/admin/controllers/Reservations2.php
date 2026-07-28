@@ -27,6 +27,13 @@ class Reservations2 extends Reservations
 
         // Keep the existing Reservations item highlighted in the shared admin UI.
         AdminMenu::setContext('reservations', 'sales');
+
+        // Loaded before the deferred floor-toolbar bundle. It exposes the small
+        // cross-module helpers used by the V4.6.4 floor-color module.
+        $this->addJs(
+            '~/app/admin/assets/js/pmd-reservations2-global-bridge-v20.js',
+            'pmd-reservations2-global-bridge-v20-js'
+        );
     }
 
     public function index()
