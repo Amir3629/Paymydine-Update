@@ -3,8 +3,8 @@
 namespace Admin\Controllers;
 
 use Admin\Facades\AdminMenu;
+use Admin\Facades\Template;
 use Admin\Models\Reservations_model;
-use Admin\Models\Statuses_model;
 use Igniter\Flame\Exception\ApplicationException;
 
 /**
@@ -16,6 +16,11 @@ use Igniter\Flame\Exception\ApplicationException;
  */
 class Reservations2 extends Reservations
 {
+    /**
+     * The custom reservations workspace has no media inputs.
+     */
+    public $suppressMediaManager = true;
+
     public function __construct()
     {
         parent::__construct();
@@ -26,11 +31,12 @@ class Reservations2 extends Reservations
 
     public function index()
     {
-        $this->asExtension('ListController')->index();
+        $pageTitle = lang('admin::lang.reservations.text_title');
+        Template::setTitle($pageTitle);
+        Template::setHeading($pageTitle);
 
-        $this->vars['statusesOptions'] =
-            Statuses_model::getDropdownOptionsForReservation();
-
+        // This page renders its own floor workspace. Building the native list
+        // creates unused List, Filter, Calendar and Sortable widgets/assets.
         $this->vars['pmdReservations2'] =
             Reservations_model::query()
                 ->orderBy('reservation_id', 'desc')
