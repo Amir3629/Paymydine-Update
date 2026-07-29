@@ -3,6 +3,7 @@
 namespace Admin\Controllers;
 
 use Admin\Facades\AdminMenu;
+use Admin\Models\LocationOption;
 use Admin\Models\Reservations_model;
 use Admin\Models\Statuses_model;
 use Igniter\Flame\Exception\ApplicationException;
@@ -17,6 +18,8 @@ use Illuminate\Support\Facades\DB;
  */
 class Reservations2 extends Reservations
 {
+    private const FLOOR_VIEW_OPTION = 'pmd_reservations2_floor_views';
+
     protected $pmdProfileEnabled = false;
 
     protected $pmdProfileId;
@@ -303,6 +306,12 @@ class Reservations2 extends Reservations
             Statuses_model::
                 getDropdownOptionsForReservation();
 
+        $this->vars['pmdFloorView'] =
+            $this->readFloorViewPreference('main-floor');
+
+        $this->vars['pmdCanceledReservationStatusId'] =
+            (int)setting('canceled_reservation_status');
+
         $this->pmdProfileStage(
             'index.status_options',
             $startedAt,
@@ -457,6 +466,60 @@ class Reservations2 extends Reservations
 
         $this->pmdProfileIndexEndedAt =
             microtime(true);
+    }
+
+    public function floorViewPreference()
+    {
+        $user = $this->getUser();
+
+        if (!$user || !$user->hasPermission('Admin.Reservations')) {
+            abort(403);
+        }
+
+        $payload = request()->json()->all() ?: request()->all();
+        $floorId = trim((string)($payload['floor_id'] ?? ''));
+        $zoom = filter_var($payload['zoom'] ?? null, FILTER_VALIDATE_FLOAT);
+        $layoutMode = (string)($payload['layout_mode'] ?? '');
+
+        if (!preg_match('/^[a-z0-9][a-z0-9-]{0,79}$/', $floorId)) {
+            return response()->json(['ok' => false, 'message' => 'Invalid floor_id'], 422);
+        }
+
+        if ($zoom === false || $zoom < 0.4 || $zoom > 1.6) {
+            return response()->json(['ok' => false, 'message' => 'Invalid zoom'], 422);
+        }
+
+        if (!in_array($layoutMode, ['full', 'row'], true)) {
+            return response()->json(['ok' => false, 'message' => 'Invalid layout_mode'], 422);
+        }
+
+        $options = LocationOption::onLocation();
+        $views = $options->get(self::FLOOR_VIEW_OPTION, []);
+        $views = is_array($views) ? $views : [];
+        $views[$floorId] = [
+            'floor_id' => $floorId,
+            'zoom' => round((float)$zoom, 1),
+            'layout_mode' => $layoutMode,
+        ];
+        $options->set(self::FLOOR_VIEW_OPTION, $views);
+
+        return response()->json(['ok' => true, 'floor_view' => $views[$floorId]]);
+    }
+
+    protected function readFloorViewPreference(string $floorId): array
+    {
+        $views = LocationOption::onLocation()->get(self::FLOOR_VIEW_OPTION, []);
+        $saved = is_array($views) ? ($views[$floorId] ?? []) : [];
+        $zoom = isset($saved['zoom']) ? (float)$saved['zoom'] : 1.0;
+        $layoutMode = (string)($saved['layout_mode'] ?? 'full');
+
+        return [
+            'floor_id' => $floorId,
+            'zoom' => max(0.4, min(1.6, $zoom)),
+            'layout_mode' => in_array($layoutMode, ['full', 'row'], true)
+                ? $layoutMode
+                : 'full',
+        ];
     }
 
     public function index_onDelete()

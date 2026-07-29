@@ -6,6 +6,8 @@
     $layoutUrl = $layoutUrl ?? admin_url('pmd-owner-dashboard-floor-layout');
     $stateUrl = $stateUrl ?? admin_url('pmd-floor-v1/state');
     $orderUrl = $orderUrl ?? admin_url('waiter-pos/{table}');
+    $viewPreference = $viewPreference ?? ['floor_id' => 'main-floor', 'zoom' => 1, 'layout_mode' => 'full'];
+    $viewPreferenceUrl = $viewPreferenceUrl ?? admin_url('reservations2/floor-view-preference');
 @endphp
 
 <section
@@ -18,6 +20,10 @@
     data-layout-url="{{ $layoutUrl }}"
     data-state-url="{{ $stateUrl }}"
     data-order-url="{{ $orderUrl }}"
+    data-floor-id="{{ $viewPreference['floor_id'] }}"
+    data-floor-view-zoom="{{ $viewPreference['zoom'] }}"
+    data-floor-view-mode="{{ $viewPreference['layout_mode'] }}"
+    data-floor-view-url="{{ $viewPreferenceUrl }}"
     aria-busy="true"
 >
     <header class="pmd-floor-v1__header">

@@ -6,6 +6,7 @@ var rendering=false,scheduled=false,observer=null,eventsBound=false;
 var state={start:startOfDay(new Date()),end:endOfDay(new Date()),tableId:null,tableName:null,allDates:true};
 function floor(){return document.getElementById(FLOOR_ID)}
 function bootData(){return window.PMD_RESERVATIONS2_BOOT||{}}
+function canceledStatusId(){return Number(bootData().canceledStatusId)||0}
 function reservations(){return Array.isArray(bootData().reservations)?bootData().reservations:[]}
 function clean(v){return String(v==null?'':v).replace(/\s+/g,' ').trim()}
 function esc(v){return clean(v).replace(/[&<>'"]/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c]})}
@@ -41,8 +42,10 @@ function restoreRange(){try{var x=JSON.parse(localStorage.getItem(STORAGE_KEY)||
 function persistRange(){try{localStorage.setItem(STORAGE_KEY,JSON.stringify({start:dateKey(state.start),end:dateKey(state.end),allDates:state.allDates}))}catch(e){}}
 function setRange(a,b){if(!validRange(a,b))return;state.start=a;state.end=b;state.allDates=false;persistRange();render()}function setAllDates(){state.allDates=true;persistRange();render()}
 function nativeControl(root,sel){return Array.prototype.slice.call(root.querySelectorAll(sel)).find(function(n){return!n.closest('#'+TOOLBAR_ID)})||null}
-function toolButton(key,label,sel){var b=document.createElement('button');b.type='button';b.className='pmd-r2-floor-tool-v316';b.dataset.pmdR2Tool=key;b.textContent=label;b.onclick=function(e){e.preventDefault();e.stopPropagation();var r=floor(),editing=key==='edit'&&r&&r.__pmdFloorV1&&r.__pmdFloorV1.getState&&r.__pmdFloorV1.getState().editing,n=r&&nativeControl(r,editing?'[data-floor-save]':sel);if(n)n.click();if(key==='edit'&&!editing)b.textContent='Save';schedule()};return b}
-function ensureToolbar(root){var bar=root.querySelector('.pmd-floor-v1__statusbar');if(!bar)return;var t=document.getElementById(TOOLBAR_ID);if(!t){t=document.createElement('div');t.id=TOOLBAR_ID;t.className='pmd-r2-floor-toolbar-v316';[['edit','Edit','[data-floor-edit]'],['zoom-out','−','[data-floor-zoom-out]'],['fit','Full Floor','[data-floor-fit]'],['zoom-in','+','[data-floor-zoom-in]'],['strip','One row','[data-floor-strip]']].forEach(function(x){t.appendChild(toolButton(x[0],x[1],x[2]))});bar.appendChild(t);window.addEventListener('pmd:floor:updated',function(e){if(e.detail&&e.detail.action==='layout'){var b=t.querySelector('[data-pmd-r2-tool="edit"]');if(b)b.textContent='Edit'}})}root.querySelectorAll('[data-floor-secondary-toolbar],.pmd-floor-v1__secondary-toolbar,[data-pmd-r2-floor-toolbar-v313]').forEach(function(n){if(n.id!==TOOLBAR_ID)n.classList.add('pmd-r2-native-toolbar-v316-hidden')})}
+function zoomSvg(sign){return'<svg viewBox="0 0 24 24" aria-hidden="true" focusable="false" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="10.5" cy="10.5" r="6.5"></circle><path d="M15.5 15.5 21 21M7.5 10.5h6'+(sign==='plus'?'M10.5 7.5v6':'')+'"></path></svg>'}
+function syncToolbarState(t){var r=floor(),state=r&&r.__pmdFloorV1&&r.__pmdFloorV1.getState?r.__pmdFloorV1.getState():null;if(!state)return;var full=t.querySelector('[data-pmd-r2-tool="fit"]'),row=t.querySelector('[data-pmd-r2-tool="strip"]');if(full){full.classList.toggle('is-active',!state.stripMode);full.setAttribute('aria-pressed',state.stripMode?'false':'true')}if(row){row.classList.toggle('is-active',!!state.stripMode);row.setAttribute('aria-pressed',state.stripMode?'true':'false')}}
+function toolButton(key,label,sel){var b=document.createElement('button');b.type='button';b.className='pmd-r2-floor-tool-v316';b.dataset.pmdR2Tool=key;if(key==='zoom-out'||key==='zoom-in'){var accessible=key==='zoom-out'?'Zoom out':'Zoom in';b.innerHTML=zoomSvg(key==='zoom-in'?'plus':'minus');b.setAttribute('aria-label',accessible);b.title=accessible}else b.textContent=label;b.onclick=function(e){e.preventDefault();e.stopPropagation();var r=floor(),editing=key==='edit'&&r&&r.__pmdFloorV1&&r.__pmdFloorV1.getState&&r.__pmdFloorV1.getState().editing,n=r&&nativeControl(r,editing?'[data-floor-save]':sel);if(n)n.click();if(key==='edit'&&!editing)b.textContent='Save';syncToolbarState(b.parentElement);schedule()};return b}
+function ensureToolbar(root){var bar=root.querySelector('.pmd-floor-v1__statusbar');if(!bar)return;var t=document.getElementById(TOOLBAR_ID);if(!t){t=document.createElement('div');t.id=TOOLBAR_ID;t.className='pmd-r2-floor-toolbar-v316';[['edit','Edit','[data-floor-edit]'],['zoom-out','','[data-floor-zoom-out]'],['fit','Full Floor','[data-floor-fit]'],['zoom-in','','[data-floor-zoom-in]'],['strip','One row','[data-floor-strip]']].forEach(function(x){t.appendChild(toolButton(x[0],x[1],x[2]))});bar.appendChild(t);window.addEventListener('pmd:floor:updated',function(e){if(e.detail&&e.detail.action==='layout'){var b=t.querySelector('[data-pmd-r2-tool="edit"]');if(b)b.textContent='Edit'}});window.addEventListener('pmd:floor:view-changed',function(){syncToolbarState(t)})}syncToolbarState(t);root.querySelectorAll('[data-floor-secondary-toolbar],.pmd-floor-v1__secondary-toolbar,[data-pmd-r2-floor-toolbar-v313]').forEach(function(n){if(n.id!==TOOLBAR_ID)n.classList.add('pmd-r2-native-toolbar-v316-hidden')})}
 function presetName(){if(state.allDates)return'all';var t=startOfDay(new Date());if(dateKey(state.start)===dateKey(t)&&dateKey(state.end)===dateKey(t))return'today';if(dateKey(state.start)===dateKey(addDays(t,1))&&dateKey(state.end)===dateKey(addDays(t,1)))return'tomorrow';if(dateKey(state.start)===dateKey(t)&&dateKey(state.end)===dateKey(addDays(t,6)))return'week';var a=new Date(t.getFullYear(),t.getMonth(),1),b=new Date(t.getFullYear(),t.getMonth()+1,0);return dateKey(state.start)===dateKey(a)&&dateKey(state.end)===dateKey(b)?'month':'custom'}
 function calendarSvg(){return'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="5" width="18" height="16" rx="2"></rect><path d="M16 3v4M8 3v4M3 11h18"></path></svg>'}
 function ensureDateFilter(){var btn=document.getElementById(DATE_BTN_ID);if(!btn)return;btn.querySelector('span').textContent=rangeLabel();var p=document.getElementById(FILTER_ID);if(!p){p=document.createElement('div');p.id=FILTER_ID;p.className='pmd-r2-date-filter-v317';p.innerHTML='<div class="pmd-r2-date-filter-v317__quick"><button type="button" data-range="all">All dates</button><button type="button" data-range="today">Today</button><button type="button" data-range="tomorrow">Tomorrow</button><button type="button" data-range="week">7 days</button><button type="button" data-range="month">This month</button></div><label><span>From</span><input type="date" data-date-start></label><label><span>To</span><input type="date" data-date-end></label><div data-date-summary></div>';document.body.appendChild(p);p.addEventListener('click',function(e){var b=e.target.closest('[data-range]');if(!b)return;var t=startOfDay(new Date());if(b.dataset.range==='all')setAllDates();if(b.dataset.range==='today')setRange(t,endOfDay(t));if(b.dataset.range==='tomorrow'){var x=addDays(t,1);setRange(x,endOfDay(x))}if(b.dataset.range==='week')setRange(t,endOfDay(addDays(t,6)));if(b.dataset.range==='month')setRange(new Date(t.getFullYear(),t.getMonth(),1),endOfDay(new Date(t.getFullYear(),t.getMonth()+1,0)))});p.addEventListener('change',function(){var a=parseDate(p.querySelector('[data-date-start]').value,false)||state.start,b=parseDate(p.querySelector('[data-date-end]').value,true)||state.end;if(b<a)b=endOfDay(a);setRange(a,b)})}p.querySelector('[data-date-start]').value=dateKey(state.start);p.querySelector('[data-date-end]').value=dateKey(state.end);p.querySelector('[data-date-summary]').textContent=rangeLabel()+(state.tableId?' · '+(state.tableName||'Table '+state.tableId):' · All tables');var active=presetName();p.querySelectorAll('[data-range]').forEach(function(b){b.classList.toggle('is-active',b.dataset.range===active)})}
@@ -315,6 +318,7 @@ function reservationCardMarkup(i){
 var start=reservationStart(i),
 id=i.reservation_id||i.id||'',
 url=editUrl(i),
+cancelId=canceledStatusId(),
 guests=guestCount(i),
 tableNo=tableNumber(i);
 
@@ -332,15 +336,12 @@ esc(tableNo||'—')+
 '<div class="pmd-r2-card-menu-v458" data-r2-card-menu role="menu" aria-hidden="true">'+
 
 (url!=='#'
-?'<a role="menuitem" href="'+esc(url)+'" class="pmd-r2-card-menu-item-v458"><span class="pmd-r2-menu-icon-v458">✎</span><span>Edit reservation</span></a>'
+?'<a role="menuitem" href="'+esc(url)+'" class="pmd-r2-card-menu-item-v458"><span class="pmd-r2-menu-icon-v458">✎</span><span>Edit</span></a>'
 :'')+
 
-'<button type="button" role="menuitem" class="pmd-r2-card-menu-item-v458" data-r2-menu-focus-table data-table-id="'+esc(tableNo)+'"><span class="pmd-r2-menu-icon-v458">⌖</span><span>Focus table</span></button>'+
 
-'<button type="button" role="menuitem" class="pmd-r2-card-menu-item-v458" data-r2-menu-copy-id data-reservation-id="'+esc(id)+'"><span class="pmd-r2-menu-icon-v458">⧉</span><span>Copy reservation ID</span></button>'+
-
-(url!=='#'
-?'<a role="menuitem" href="'+esc(url)+'#status" class="pmd-r2-card-menu-item-v458 is-danger"><span class="pmd-r2-menu-icon-v458">×</span><span>Cancel / change status</span></a>'
+(id&&cancelId
+?'<button type="button" role="menuitem" class="pmd-r2-card-menu-item-v458 is-danger" data-request="onUpdateStatus" data-request-data="recordId: \''+esc(id)+'\', statusId: \''+esc(cancelId)+'\'" data-request-confirm="Cancel this reservation?" data-request-success="window.location.reload()"><span class="pmd-r2-menu-icon-v458">×</span><span>Cancel</span></button>'
 :'')+
 
 '</div>'+
@@ -1647,9 +1648,6 @@ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',
   var STYLE_ID =
     'pmd-reservation-card-menu-v458-style';
 
-  var TOAST_ID =
-    'pmd-reservation-card-menu-v458-toast';
-
 
   function grid() {
     return document.getElementById(
@@ -1749,201 +1747,8 @@ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',
   }
 
 
-  function showToast(message) {
-    var toast =
-      document.getElementById(
-        TOAST_ID
-      );
-
-    if (!toast) {
-      toast =
-        document.createElement('div');
-
-      toast.id = TOAST_ID;
-      toast.className =
-        'pmd-r2-card-menu-toast-v458';
-
-      document.body.appendChild(toast);
-    }
-
-    toast.textContent = message;
-    toast.classList.add('is-visible');
-
-    clearTimeout(toast.__pmdTimer);
-
-    toast.__pmdTimer =
-      window.setTimeout(function () {
-        toast.classList.remove(
-          'is-visible'
-        );
-      }, 1800);
-  }
 
 
-  function copyReservationId(button) {
-    var id = String(
-      button.getAttribute(
-        'data-reservation-id'
-      ) || ''
-    ).trim();
-
-    if (!id) {
-      return;
-    }
-
-    function success() {
-      showToast(
-        'Reservation #' +
-        id +
-        ' copied'
-      );
-
-      closeMenus();
-    }
-
-    if (
-      navigator.clipboard &&
-      navigator.clipboard.writeText
-    ) {
-      navigator.clipboard
-        .writeText(id)
-        .then(success)
-        .catch(function () {
-          fallbackCopy(id);
-          success();
-        });
-
-      return;
-    }
-
-    fallbackCopy(id);
-    success();
-  }
-
-
-  function fallbackCopy(value) {
-    var input =
-      document.createElement(
-        'textarea'
-      );
-
-    input.value = value;
-    input.setAttribute(
-      'readonly',
-      ''
-    );
-
-    input.style.position = 'fixed';
-    input.style.opacity = '0';
-
-    document.body.appendChild(input);
-
-    input.select();
-
-    try {
-      document.execCommand('copy');
-    } catch (error) {}
-
-    input.remove();
-  }
-
-
-  function focusTable(button) {
-    var tableId = String(
-      button.getAttribute(
-        'data-table-id'
-      ) || ''
-    ).trim();
-
-    var floor =
-      document.getElementById(
-        FLOOR_ID
-      );
-
-    if (!floor || !tableId) {
-      return;
-    }
-
-    var selectors = [
-      '[data-floor-table="' +
-        CSS.escape(tableId) +
-      '"]',
-
-      '[data-table-id="' +
-        CSS.escape(tableId) +
-      '"]',
-
-      '[data-floor-table-id="' +
-        CSS.escape(tableId) +
-      '"]'
-    ];
-
-    var table = null;
-
-    for (
-      var index = 0;
-      index < selectors.length &&
-      !table;
-      index += 1
-    ) {
-      table = floor.querySelector(
-        selectors[index]
-      );
-    }
-
-    if (!table) {
-      var candidates =
-        floor.querySelectorAll(
-          '[data-floor-table]'
-        );
-
-      table = Array.prototype.find.call(
-        candidates,
-        function (candidate) {
-          return (
-            String(
-              candidate.textContent || ''
-            ).trim() === tableId
-          );
-        }
-      );
-    }
-
-    if (!table) {
-      showToast(
-        'Table ' +
-        tableId +
-        ' was not found'
-      );
-
-      closeMenus();
-      return;
-    }
-
-    closeMenus();
-
-    table.scrollIntoView({
-      behavior: 'smooth',
-      block: 'center',
-      inline: 'center'
-    });
-
-    window.setTimeout(
-      function () {
-        table.dispatchEvent(
-          new MouseEvent(
-            'click',
-            {
-              bubbles: true,
-              cancelable: true,
-              view: window
-            }
-          )
-        );
-      },
-      280
-    );
-  }
 
 
   document.addEventListener(
@@ -1959,35 +1764,6 @@ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',
         event.stopPropagation();
 
         toggleMenu(trigger);
-        return;
-      }
-
-      var copyButton =
-        event.target.closest(
-          '[data-r2-menu-copy-id]'
-        );
-
-      if (copyButton) {
-        event.preventDefault();
-        event.stopPropagation();
-
-        copyReservationId(
-          copyButton
-        );
-
-        return;
-      }
-
-      var focusButton =
-        event.target.closest(
-          '[data-r2-menu-focus-table]'
-        );
-
-      if (focusButton) {
-        event.preventDefault();
-        event.stopPropagation();
-
-        focusTable(focusButton);
         return;
       }
 
@@ -2171,33 +1947,6 @@ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',
   background: #fff0f2 !important;
 }
 
-.pmd-r2-card-menu-toast-v458 {
-  position: fixed !important;
-  left: 50% !important;
-  bottom: 28px !important;
-  z-index: 20000 !important;
-  max-width: calc(100vw - 32px) !important;
-  padding: 11px 16px !important;
-  border-radius: 12px !important;
-  background: #102f2b !important;
-  color: #ffffff !important;
-  font-size: 13px !important;
-  font-weight: 800 !important;
-  box-shadow: 0 14px 35px rgba(0,0,0,.22) !important;
-  opacity: 0 !important;
-  visibility: hidden !important;
-  transform: translate(-50%,12px) !important;
-  transition:
-    opacity .18s ease,
-    transform .18s ease,
-    visibility .18s ease !important;
-}
-
-.pmd-r2-card-menu-toast-v458.is-visible {
-  opacity: 1 !important;
-  visibility: visible !important;
-  transform: translate(-50%,0) !important;
-}
 `;
 
     document.head.appendChild(style);
@@ -2326,9 +2075,9 @@ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',
   align-items: center !important;
   justify-content: center !important;
 
-  width: 34px !important;
-  min-width: 34px !important;
-  height: 40px !important;
+  width: 32px !important;
+  min-width: 32px !important;
+  height: 36px !important;
   padding: 0 !important;
   margin: 0 !important;
 
@@ -2342,7 +2091,7 @@ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',
   outline: none !important;
 
   font-family: Arial, sans-serif !important;
-  font-size: 29px !important;
+  font-size: 24px !important;
   font-weight: 900 !important;
   line-height: 1 !important;
 
@@ -2367,6 +2116,12 @@ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',
 
   transform: translateY(-1px) !important;
   opacity: 1 !important;
+}
+
+#pmd-r2-reservation-grid-v320
+.pmd-r2-card-menu-trigger-v458:focus-visible {
+  outline: 2px solid #087aa5 !important;
+  outline-offset: 2px !important;
 }
 
 /*
