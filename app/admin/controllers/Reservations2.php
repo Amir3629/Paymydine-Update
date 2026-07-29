@@ -6,6 +6,7 @@ use Admin\Facades\AdminMenu;
 use Admin\Facades\AdminLocation;
 use Admin\Facades\AdminAuth;
 use Admin\Models\LocationOption;
+use Admin\Models\Locations_model;
 use Admin\Models\Reservations_model;
 use Admin\Models\Statuses_model;
 use Igniter\Flame\Exception\ApplicationException;
@@ -490,7 +491,7 @@ class Reservations2 extends Reservations
         }
 
         try {
-            $location = AdminLocation::current();
+            $location = $this->resolveFloorViewLocation($user);
         } catch (Throwable $exception) {
             $this->logFloorViewFailure('location resolution', $exception);
 
@@ -566,7 +567,7 @@ class Reservations2 extends Reservations
         $location = null;
 
         try {
-            $location = AdminLocation::current();
+            $location = $this->resolveFloorViewLocation();
 
             if (!$location) {
                 return $default;
@@ -615,6 +616,45 @@ class Reservations2 extends Reservations
             'layout_mode' => 'full',
             'full_floor_zoom' => 1.0,
         ];
+    }
+
+    protected function resolveFloorViewLocation($user = null)
+    {
+        if ($location = AdminLocation::current()) {
+            return $location;
+        }
+
+        $user = $user ?: AdminAuth::getUser();
+
+        if (!$user) {
+            return null;
+        }
+
+        $locationId = (int)AdminLocation::getSession('id');
+
+        if (!$locationId && is_single_location()) {
+            $locationId = (int)params('default_location_id');
+        }
+
+        if (!$locationId) {
+            return null;
+        }
+
+        $location = Locations_model::isEnabled()->find($locationId);
+
+        if (
+            !$location
+            || (
+                !$user->isSuperUser()
+                && !$user->hasLocationAccess($location)
+            )
+        ) {
+            return null;
+        }
+
+        AdminLocation::setCurrent($location);
+
+        return $location;
     }
 
     protected function logFloorViewFailure($operation, Throwable $exception, $location = null): void

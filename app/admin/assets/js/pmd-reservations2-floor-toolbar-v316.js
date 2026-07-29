@@ -3543,11 +3543,32 @@ button.pmd-r2-card-menu-trigger-v458::after {
         ? boot.reservations
         : [];
 
+    function floorReservationStatus(reservation) {
+      var status =
+        reservation &&
+        (
+          reservation.status_name ||
+          reservation.reservation_status ||
+          reservation.status
+        );
+
+      if (status && typeof status === 'object') {
+        status =
+          status.status_name ||
+          status.name ||
+          status.label;
+      }
+
+      return String(status || 'Scheduled')
+        .replace(/\s+/g, ' ')
+        .trim()
+        .toLowerCase();
+    }
+
     allReservations
       .filter(function (reservation) {
         var status =
-          statusLabel(reservation)
-            .toLowerCase();
+          floorReservationStatus(reservation);
 
         /*
          * رزروهای لغوشده، No-show و بسته‌شده
