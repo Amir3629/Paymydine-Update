@@ -521,7 +521,7 @@ window.PMD_RESERVATIONS2_BOOT = {
 >
 
 <script
-    src="/app/admin/assets/js/pmd-reservations2-kpis-v307.js?v=20260722_120725"
+    src="/app/admin/assets/js/pmd-reservations2-kpis-v307.js?v=20260729_b1-kpi-stable-v1"
     defer
 ></script>
 
@@ -677,7 +677,7 @@ window.PMD_RESERVATIONS2_BOOT = {
 </style>
 
 <script defer
-        src="{{ asset('app/admin/assets/js/pmd-reservations2-floor-toolbar-v316.js') }}?v=20260729_commit-a-v2"></script>
+        src="{{ asset('app/admin/assets/js/pmd-reservations2-floor-toolbar-v316.js') }}?v=20260729_b1-kpi-stable-v1"></script>
 
 <script id="pmd-r2-toolbar-above-floor-v29-2-script">
 (function () {
@@ -1503,9 +1503,9 @@ body {
   }
 
   #pmd-body-floor-toolbar-v341 > button > svg {
-    width: 18px;
-    height: 18px;
-    flex: 0 0 18px;
+    width: 17px;
+    height: 17px;
+    flex: 0 0 17px;
   }
 
   #pmd-body-floor-toolbar-v341
@@ -1591,17 +1591,17 @@ body {
 
   function zoomIcon(type) {
     var operator = type === 'plus'
-      ? '<path d="M12 8v8M8 12h8" />'
-      : '<path d="M8 12h8" />';
+      ? '<path d="M9 6.8v4.4M6.8 9h4.4" />'
+      : '<path d="M6.8 9h4.4" />';
 
     return [
-      '<svg viewBox="0 0 24 24" fill="none" ',
-      'stroke="currentColor" stroke-width="2" ',
+      '<svg viewBox="0 0 18 18" fill="none" ',
+      'stroke="currentColor" stroke-width="1.8" ',
       'stroke-linecap="round" stroke-linejoin="round" ',
       'aria-hidden="true" focusable="false">',
-      '<circle cx="11" cy="11" r="7" />',
+      '<circle cx="9" cy="9" r="5.5" />',
       operator,
-      '<path d="m20 20-3.5-3.5" />',
+      '<path d="m13.2 13.2 3.1 3.1" />',
       '</svg>'
     ].join('');
   }

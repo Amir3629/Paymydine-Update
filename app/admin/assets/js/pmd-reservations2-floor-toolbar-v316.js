@@ -364,7 +364,7 @@ esc(tableNo||'—')+
 function clearSelection(){var r=floor();if(r)r.querySelectorAll('[data-pmd-r2-selected-table-v320],.pmd-r2-table-selected-v317').forEach(function(n){n.removeAttribute('data-pmd-r2-selected-table-v320');n.classList.remove('pmd-r2-table-selected-v317')})}
 function clearTableFilter(){state.tableId=null;state.tableName=null;clearSelection();render()}
 function markSelection(){var r=floor();if(!r)return;clearSelection();if(!state.tableId)return;r.querySelectorAll('[data-floor-table]').forEach(function(n){var ids=[n.getAttribute('data-floor-table'),n.getAttribute('data-table-id'),n.getAttribute('data-floor-table-id')].filter(Boolean).map(String);if(ids.indexOf(String(state.tableId))!==-1){n.setAttribute('data-pmd-r2-selected-table-v320','true');n.classList.add('pmd-r2-table-selected-v317')}})}
-function updateKpis(items){var all=Array.isArray(items)?items:reservations(),now=new Date(),today=dateKey(now),todayCount=all.filter(function(i){var s=reservationStart(i);return s&&dateKey(s)===today}).length,up=all.filter(function(i){var s=reservationStart(i);return s&&s>=now}).length,pend=all.filter(function(i){return/pending|confirm|request|wait/i.test(statusLabel(i))}).length,tables=new Set();all.forEach(function(i){tableIds(i).forEach(function(id){tables.add(id)})});var v={today:todayCount,upcoming:up,pending:pend,tables:tables.size};Object.keys(v).forEach(function(k){var n=document.querySelector('[data-r2-v308-value="'+k+'"]');if(n)n.textContent=String(v[k])})}
+function updateKpis(items){var all=Array.isArray(items)?items:reservations(),now=new Date(),today=dateKey(now),todayCount=all.filter(function(i){var s=reservationStart(i);return s&&dateKey(s)===today}).length,up=all.filter(function(i){var s=reservationStart(i);return s&&s>=now}).length,tables=new Set();all.forEach(function(i){tableIds(i).forEach(function(id){tables.add(id)})});var v={today:todayCount,upcoming:up,tables:tables.size};Object.keys(v).forEach(function(k){var n=document.querySelector('[data-r2-v308-value="'+k+'"]');if(n){n.textContent=String(v[k]);n.setAttribute('aria-busy','false')}})}
 function renderCards(items){var s=ensureSection();if(!s)return;var all=dateFilteredReservations(),sel=state.tableId?(state.tableName||'Table '+state.tableId):'All tables';s.querySelector('[data-r2-card-title]').textContent=state.tableId?'Reservations for '+sel:'All reservations';s.querySelector('[data-r2-card-subtitle]').textContent=rangeLabel()+' · '+items.length+(state.tableId?' of '+all.length:'')+' reservation'+(items.length===1?'':'s');s.querySelector('[data-r2-show-all]').hidden=!state.tableId;document.getElementById(GRID_ID).innerHTML=addCardMarkup()+items.map(reservationCardMarkup).join('')}
 function render(){if(rendering)return;rendering=true;try{var r=floor();if(!r)return;document.documentElement.classList.add('pmd-r2-reservation-experience-ready');ensureStyle();ensureToolbar(r);ensureSection();ensureDateFilter();var lowerItems=filteredReservations();updateKpis(reservations());markSelection();renderCards(lowerItems);r.setAttribute('data-pmd-r2-toolbar-authority','floor-experience-v4.3')}finally{rendering=false}}
 function tableIdFromNode(n){var d=n&&(n.getAttribute('data-floor-table')||n.getAttribute('data-table-id')||n.getAttribute('data-floor-table-id')||n.dataset.tableId||n.dataset.id);if(d&&Number(d)>0)return String(Number(d));var m=clean(n&&n.getAttribute('data-floor-members')).split(',').filter(Boolean);if(m.length&&Number(m[0])>0)return String(Number(m[0]));var x=clean(n&&n.textContent).match(/\b(\d+)\b/);return x?String(Number(x[1])):null}
@@ -3799,6 +3799,11 @@ button.pmd-r2-card-menu-trigger-v458::after {
       ) {
         element.textContent =
           String(number);
+
+        element.setAttribute(
+          'aria-busy',
+          'false'
+        );
 
         element.setAttribute(
           'data-pmd-kpi-value',
