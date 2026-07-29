@@ -200,6 +200,8 @@
       filter: 'all',
       query: '',
       zoom: 1,
+      initialized: false,
+      userHasChangedZoom: false,
 
       editing: false,
       mergeMode: false,
@@ -2007,8 +2009,6 @@
          * Keep the page width unchanged.
          * Wide one-row contents use horizontal scrolling.
          */
-        state.zoom = 1;
-
         applyZoom();
 
         scroll.scrollLeft = 0;
@@ -2023,8 +2023,6 @@
        * FLOOR_WIDTH/FLOOR_HEIGHT already match the real usable
        * frame, so auto-fitting here only makes the tables smaller.
        */
-      state.zoom = 1;
-
       applyZoom();
 
       scroll.scrollLeft = 0;
@@ -2376,6 +2374,7 @@ function saveLayout() {
 
       if (!tables.length) {
         state.saving = false;
+        state.saveAttempted = false;
 
         saveControls.forEach(function (control) {
           control.disabled = false;
@@ -2462,6 +2461,8 @@ function saveLayout() {
           return payload;
         })
         .catch(function (error) {
+          state.saveAttempted = false;
+
           toast(
             error.message,
             true
@@ -2553,10 +2554,10 @@ function saveLayout() {
               );
             });
 
-          setTimeout(
-            fit,
-            0
-          );
+          setTimeout(function () {
+            fit();
+            state.initialized = true;
+          }, 0);
         })
         .catch(function (error) {
           if (loading) {
@@ -6416,6 +6417,8 @@ function saveLayout() {
             '[data-floor-zoom-in]'
           )
         ) {
+          state.userHasChangedZoom = true;
+
           state.zoom =
             Math.min(
               1.6,
@@ -6430,6 +6433,8 @@ function saveLayout() {
             '[data-floor-zoom-out]'
           )
         ) {
+          state.userHasChangedZoom = true;
+
           state.zoom =
             Math.max(
               .4,
@@ -6752,6 +6757,8 @@ function saveLayout() {
       root: root,
       refresh: load,
       fit: fit,
+      setEditing: setEditing,
+      saveLayout: saveLayout,
 
       setSize: function (size) {
         root.setAttribute(

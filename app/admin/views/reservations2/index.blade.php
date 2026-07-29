@@ -433,7 +433,7 @@ window.PMD_RESERVATIONS2_BOOT = {
 >
 
 <script
-  src="/app/admin/assets/js/pmd-floor-v1.js?v=safe-v3-20260727_122329"
+  src="/app/admin/assets/js/pmd-floor-v1.js?v=20260729_c1-zoom-edit-v1"
   defer
 ></script>
 <script
@@ -1185,9 +1185,23 @@ body {
         var size =
             fullFloorDimensions();
 
+        var floorState =
+            root.__pmdFloorV1 &&
+            root.__pmdFloorV1.getState
+                ? root.__pmdFloorV1.getState()
+                : null;
+
+        var currentZoom =
+            floorState &&
+            Number.isFinite(
+                Number(floorState.zoom)
+            )
+                ? Number(floorState.zoom)
+                : 1;
+
         scroll.style.setProperty(
             '--floor-zoom',
-            '1'
+            String(currentZoom)
         );
 
         scroll.style.height =
@@ -1706,6 +1720,61 @@ body {
           'aria-pressed'
         );
 
+      if (control.key === 'edit') {
+        var instance =
+          floor.__pmdFloorV1;
+
+        var floorState =
+          instance && instance.getState
+            ? instance.getState()
+            : null;
+
+        var editing = Boolean(
+          floorState && floorState.editing
+        );
+
+        var editLabel = isGerman()
+          ? 'Bearbeiten'
+          : 'Edit';
+
+        var saveLabel = isGerman()
+          ? 'Speichern'
+          : 'Save';
+
+        visibleButton.textContent =
+          editing
+            ? saveLabel
+            : editLabel;
+
+        visibleButton.setAttribute(
+          'aria-pressed',
+          editing ? 'true' : 'false'
+        );
+
+        visibleButton.setAttribute(
+          'aria-label',
+          editing
+            ? 'Save floor layout'
+            : 'Edit floor layout'
+        );
+
+        visibleButton.title =
+          editing
+            ? 'Save floor layout'
+            : 'Edit floor layout';
+
+        visibleButton.classList.toggle(
+          'is-active',
+          editing
+        );
+
+        visibleButton.disabled = Boolean(
+          floorState && floorState.saving
+        );
+
+        return;
+      }
+
       if (pressed !== null) {
         visibleButton.setAttribute(
           'aria-pressed',
@@ -1772,6 +1841,44 @@ body {
       button.addEventListener(
         'click',
         function () {
+          if (control.key === 'edit') {
+            var instance =
+              floor.__pmdFloorV1;
+
+            if (
+              !instance ||
+              !instance.getState ||
+              !instance.setEditing ||
+              !instance.saveLayout
+            ) {
+              console.error(
+                '[PMD V34.1] Floor editor API unavailable'
+              );
+
+              return;
+            }
+
+            var editing = Boolean(
+              instance.getState().editing
+            );
+
+            if (!editing) {
+              instance.setEditing(true);
+              syncStates(floor, bar);
+              return;
+            }
+
+            button.disabled = true;
+
+            Promise.resolve(
+              instance.saveLayout()
+            ).then(function () {
+              syncStates(floor, bar);
+            });
+
+            return;
+          }
+
           var nativeButton =
             findNative(
               floor,
