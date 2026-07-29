@@ -668,7 +668,7 @@ window.PMD_RESERVATIONS2_BOOT = {
 </style>
 
 <script defer
-        src="{{ asset('app/admin/assets/js/pmd-reservations2-floor-toolbar-v316.js') }}?v=pmd-lean-v17-20260728_201405"></script>
+        src="{{ asset('app/admin/assets/js/pmd-reservations2-floor-toolbar-v316.js') }}?v=20260729_date-cards-v2"></script>
 
 <script id="pmd-r2-toolbar-above-floor-v29-2-script">
 (function () {
@@ -784,15 +784,15 @@ window.PMD_RESERVATIONS2_BOOT = {
 
 <!-- PMD_R2_EMBEDDED_CALENDAR_TOGGLE_V1_START -->
 <script id="pmd-r2-stability-v3-early">document.documentElement.classList.add('pmd-r2-stability-v3-active');</script>
-<link rel="stylesheet" href="/app/admin/assets/css/pmd-reservations2-stability-v3.css?v=3.0.0-20260725_084550">
+<link rel="stylesheet" href="/app/admin/assets/css/pmd-reservations2-stability-v3.css?v=20260729_date-cards-v2">
 <link
   rel="stylesheet"
-  href="/app/admin/assets/css/pmd-reservations2-calendar-toggle-v1.css?v=20260728_181723"
+  href="/app/admin/assets/css/pmd-reservations2-calendar-toggle-v1.css?v=20260729_date-cards-v2"
 >
 <script
-  src="/app/admin/assets/js/pmd-reservations2-calendar-toggle-v1.js?v=20260728_182351"
+  src="/app/admin/assets/js/pmd-reservations2-calendar-toggle-v1.js?v=20260729_date-cards-v2"
 ></script>
-<script defer src="/app/admin/assets/js/pmd-reservations2-stability-v3.js?v=3.0.0-20260725_084550"></script>
+<script defer src="/app/admin/assets/js/pmd-reservations2-stability-v3.js?v=20260729_date-cards-v2"></script>
 <!-- PMD_R2_EMBEDDED_CALENDAR_TOGGLE_V1_END -->
 
 {{-- PMD_RESERVATIONS_CANONICAL_BROWSER_URL_V1_BEGIN --}}
