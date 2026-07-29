@@ -191,6 +191,14 @@ window.PMD_RESERVATIONS2_BOOT = {
         'orderUrl' => admin_url(
             'waiter-pos/{table}'
         ),
+        'viewPreference' => $pmdFloorView ?? [
+            'floor_id' => 'main-floor',
+            'layout_mode' => 'full',
+            'full_floor_zoom' => 1.0,
+        ],
+        'viewPreferenceUrl' => admin_url(
+            'reservations2/floor-view-preference'
+        ),
     ])
 
     <!-- PMD_R2_SHARED_FLOOR_CANVAS_V310_END -->
@@ -433,7 +441,7 @@ window.PMD_RESERVATIONS2_BOOT = {
 >
 
 <script
-  src="/app/admin/assets/js/pmd-floor-v1.js?v=20260729_c1-zoom-edit-v1"
+  src="/app/admin/assets/js/pmd-floor-v1.js?v=20260729_c2-floor-view-v1"
   defer
 ></script>
 <script
@@ -1516,6 +1524,11 @@ body {
     transform: translateY(1px);
   }
 
+  /* PMD-specific: override the toolbar's forced inline-flex for state-hidden controls. */
+  #pmd-body-floor-toolbar-v341 > button[hidden] {
+    display: none !important;
+  }
+
   #pmd-body-floor-toolbar-v341 > button > svg {
     width: 17px;
     height: 17px;
@@ -1575,12 +1588,6 @@ body {
       de: 'Verkleinern',
       icon: 'minus',
       selector: '[data-floor-zoom-out]'
-    },
-    {
-      key: 'fit',
-      en: 'Full Floor',
-      de: 'Full Floor',
-      selector: '[data-floor-fit]'
     },
     {
       key: 'zoom-in',
@@ -1772,8 +1779,74 @@ body {
           floorState && floorState.saving
         );
 
+        visibleButton.hidden = Boolean(
+          floorState && floorState.stripMode
+        );
+
+        visibleButton.tabIndex =
+          visibleButton.hidden ? -1 : 0;
+
+        visibleButton.setAttribute(
+          'aria-hidden',
+          visibleButton.hidden ? 'true' : 'false'
+        );
+
         return;
       }
+
+      if (control.key === 'strip') {
+        var modeInstance =
+          floor.__pmdFloorV1;
+
+        var modeState =
+          modeInstance && modeInstance.getState
+            ? modeInstance.getState()
+            : null;
+
+        var rowMode = Boolean(
+          modeState && modeState.stripMode
+        );
+
+        var modeLabel = rowMode
+          ? 'Full Floor'
+          : (isGerman() ? 'Eine Reihe' : 'One Row');
+
+        visibleButton.textContent = modeLabel;
+        visibleButton.setAttribute(
+          'aria-label',
+          modeLabel
+        );
+        visibleButton.title = modeLabel;
+        visibleButton.setAttribute(
+          'aria-pressed',
+          rowMode ? 'true' : 'false'
+        );
+      }
+
+      var floorInstance =
+        floor.__pmdFloorV1;
+
+      var currentState =
+        floorInstance && floorInstance.getState
+          ? floorInstance.getState()
+          : null;
+
+      var hiddenInRow = Boolean(
+        currentState &&
+        currentState.stripMode &&
+        (
+          control.key === 'edit' ||
+          control.key === 'zoom-out' ||
+          control.key === 'zoom-in'
+        )
+      );
+
+      visibleButton.hidden = hiddenInRow;
+      visibleButton.tabIndex = hiddenInRow ? -1 : 0;
+      visibleButton.setAttribute(
+        'aria-hidden',
+        hiddenInRow ? 'true' : 'false'
+      );
 
       if (pressed !== null) {
         visibleButton.setAttribute(
@@ -1912,6 +1985,18 @@ body {
     });
 
     document.body.appendChild(bar);
+
+    floor.querySelectorAll(
+      '.pmd-floor-v1__toolbar button, ' +
+      '[data-pmd-r2-floor-toolbar-v313] button, ' +
+      '#pmd-r2-floor-toolbar-v316 button'
+    ).forEach(function (nativeButton) {
+      nativeButton.tabIndex = -1;
+      nativeButton.setAttribute(
+        'aria-hidden',
+        'true'
+      );
+    });
 
     return bar;
   }
