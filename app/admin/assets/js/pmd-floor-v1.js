@@ -161,26 +161,6 @@
         'data-state-url'
       );
 
-    var floorViewUrl =
-      root.getAttribute('data-floor-view-url');
-
-    var floorViewId =
-      root.getAttribute('data-floor-id') ||
-      'main-floor';
-
-    var initialZoom = Math.max(
-      .4,
-      Math.min(
-        1.6,
-        number(root.getAttribute('data-floor-view-zoom'), 1)
-      )
-    );
-
-    var initialStripMode =
-      root.getAttribute('data-floor-view-mode') === 'row';
-
-    var floorViewSaveTimer = null;
-
     var orderTemplate =
       root.getAttribute(
         'data-order-url'
@@ -219,7 +199,7 @@
 
       filter: 'all',
       query: '',
-      zoom: initialZoom,
+      zoom: 1,
 
       editing: false,
       mergeMode: false,
@@ -230,7 +210,7 @@
        * This is display-only and never overwrites the saved
        * normal Floor coordinates.
        */
-      stripMode: initialStripMode,
+      stripMode: false,
 
       /*
        * Exact canonical Full Floor coordinates.
@@ -2013,41 +1993,6 @@
         );
     }
 
-    function floorViewPayload() {
-      return {
-        floor_id: floorViewId,
-        zoom: Math.round(state.zoom * 10) / 10,
-        layout_mode: state.stripMode ? 'row' : 'full'
-      };
-    }
-
-    function notifyFloorViewChanged() {
-      window.dispatchEvent(
-        new CustomEvent('pmd:floor:view-changed', {
-          detail: floorViewPayload()
-        })
-      );
-    }
-
-    function saveFloorViewPreference() {
-      if (!floorViewUrl) return Promise.resolve();
-
-      return fetchJson(floorViewUrl, {
-        method: 'POST',
-        body: JSON.stringify(floorViewPayload())
-      }).catch(function (error) {
-        console.warn('[PMD Floor] View preference save failed', error);
-      });
-    }
-
-    function queueFloorViewPreferenceSave() {
-      window.clearTimeout(floorViewSaveTimer);
-      floorViewSaveTimer = window.setTimeout(function () {
-        floorViewSaveTimer = null;
-        saveFloorViewPreference();
-      }, 180);
-    }
-
     function fit() {
       if (!scroll || !canvas) {
         return;
@@ -2062,6 +2007,8 @@
          * Keep the page width unchanged.
          * Wide one-row contents use horizontal scrolling.
          */
+        state.zoom = 1;
+
         applyZoom();
 
         scroll.scrollLeft = 0;
@@ -2076,6 +2023,8 @@
        * FLOOR_WIDTH/FLOOR_HEIGHT already match the real usable
        * frame, so auto-fitting here only makes the tables smaller.
        */
+      state.zoom = 1;
+
       applyZoom();
 
       scroll.scrollLeft = 0;
@@ -6459,9 +6408,6 @@ function saveLayout() {
             !state.stripMode
           );
 
-          notifyFloorViewChanged();
-          queueFloorViewPreferenceSave();
-
           return;
         }
 
@@ -6477,8 +6423,6 @@ function saveLayout() {
             );
 
           applyZoom();
-          notifyFloorViewChanged();
-          queueFloorViewPreferenceSave();
         }
 
         if (
@@ -6493,8 +6437,6 @@ function saveLayout() {
             );
 
           applyZoom();
-          notifyFloorViewChanged();
-          queueFloorViewPreferenceSave();
         }
 
         if (
@@ -6502,13 +6444,7 @@ function saveLayout() {
             '[data-floor-fit]'
           )
         ) {
-          if (state.stripMode) {
-            setStripMode(false);
-          }
-
           fit();
-          notifyFloorViewChanged();
-          queueFloorViewPreferenceSave();
         }
 
         if (
@@ -6792,9 +6728,6 @@ function saveLayout() {
         }
       }
     );
-
-    root.classList.toggle('is-strip-mode', state.stripMode);
-    applyZoom();
 
     ensureStripButton();
     updateStripButton();

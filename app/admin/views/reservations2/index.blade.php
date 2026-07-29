@@ -144,7 +144,7 @@ window.PMD_RESERVATIONS2_BOOT = {
     reservations: @json($pmdReservations2 ?? []),
     createUrl: '{{ admin_url('reservations/create') }}',
     editBaseUrl: '{{ admin_url('reservations/edit') }}',
-    canceledStatusId: {{ (int)($pmdCanceledReservationStatusId ?? 0) }}
+    canceledStatusId: {{ (int)setting('canceled_reservation_status') }}
 };
 </script>
 
@@ -190,14 +190,6 @@ window.PMD_RESERVATIONS2_BOOT = {
         ),
         'orderUrl' => admin_url(
             'waiter-pos/{table}'
-        ),
-        'viewPreference' => $pmdFloorView ?? [
-            'floor_id' => 'main-floor',
-            'zoom' => 1,
-            'layout_mode' => 'full',
-        ],
-        'viewPreferenceUrl' => admin_url(
-            'reservations2/floor-view-preference'
         ),
     ])
 
@@ -441,7 +433,7 @@ window.PMD_RESERVATIONS2_BOOT = {
 >
 
 <script
-  src="/app/admin/assets/js/pmd-floor-v1.js?v=20260729_floor-prefs-v1"
+  src="/app/admin/assets/js/pmd-floor-v1.js?v=safe-v3-20260727_122329"
   defer
 ></script>
 <script
@@ -662,13 +654,6 @@ window.PMD_RESERVATIONS2_BOOT = {
   }
 
   #pmd-r2-toolbar-above-floor-shell-v292
-  .pmd-r2-floor-tool-v316[aria-pressed="true"] {
-    background: #eef6fb !important;
-    border-color: #8dbbd5 !important;
-    color: #0d5f83 !important;
-  }
-
-  #pmd-r2-toolbar-above-floor-shell-v292
   .pmd-r2-floor-tool-v316 > svg {
     width: 19px !important;
     height: 19px !important;
@@ -692,7 +677,7 @@ window.PMD_RESERVATIONS2_BOOT = {
 </style>
 
 <script defer
-        src="{{ asset('app/admin/assets/js/pmd-reservations2-floor-toolbar-v316.js') }}?v=20260729_floor-prefs-v1"></script>
+        src="{{ asset('app/admin/assets/js/pmd-reservations2-floor-toolbar-v316.js') }}?v=20260729_phase1-ui-v1"></script>
 
 <script id="pmd-r2-toolbar-above-floor-v29-2-script">
 (function () {
