@@ -44,6 +44,11 @@
     var requestOptions =
       Object.assign({}, options || {});
 
+    var debugCallback =
+      requestOptions.pmdDebugCallback;
+
+    delete requestOptions.pmdDebugCallback;
+
     var headers =
       Object.assign(
         {
@@ -91,6 +96,17 @@
             }
           }
 
+          if (typeof debugCallback === 'function') {
+            debugCallback({
+              status: response.status,
+              redirected: response.redirected,
+              responseUrl: response.url,
+              contentType: response.headers.get('content-type'),
+              body: body,
+              parsed: payload
+            });
+          }
+
           if (
             !response.ok ||
             payload.ok === false
@@ -112,6 +128,16 @@
 
           return payload;
         });
+    }).catch(function (error) {
+      if (typeof debugCallback === 'function') {
+        debugCallback({
+          errorName: error && error.name,
+          errorMessage: error && error.message,
+          abortError: Boolean(error && error.name === 'AbortError')
+        });
+      }
+
+      throw error;
     });
   }
 
@@ -167,6 +193,30 @@
       ) ||
       '/admin/waiter-pos/{table}';
 
+    var floorViewId =
+      root.getAttribute('data-floor-view-id') ||
+      'main-floor';
+
+    var floorViewUrl =
+      root.getAttribute('data-floor-view-url') ||
+      '';
+
+    var initialViewMode =
+      root.getAttribute('data-floor-view-mode') === 'row'
+        ? 'row'
+        : 'full';
+
+    var initialFullFloorZoom = Math.max(
+      .4,
+      Math.min(
+        1.6,
+        number(
+          root.getAttribute('data-floor-full-zoom'),
+          1
+        )
+      )
+    );
+
     var FLOOR_WIDTH = 1000;
     var FLOOR_HEIGHT = 560;
 
@@ -199,7 +249,12 @@
 
       filter: 'all',
       query: '',
-      zoom: 1,
+      mode: initialViewMode,
+      fullFloorZoom: initialFullFloorZoom,
+      rowScale: 1,
+      zoom: initialViewMode === 'row' ? 1 : initialFullFloorZoom,
+      initialized: false,
+      userHasChangedZoom: false,
 
       editing: false,
       mergeMode: false,
@@ -210,7 +265,7 @@
        * This is display-only and never overwrites the saved
        * normal Floor coordinates.
        */
-      stripMode: false,
+      stripMode: initialViewMode === 'row',
 
       /*
        * Exact canonical Full Floor coordinates.
@@ -272,6 +327,96 @@
 
       toastTimer: null
     };
+
+    var floorViewSaveTimer = null;
+    var floorViewSaveController = null;
+    var floorViewDebugSequence = 0;
+    var pendingFloorViewAction = null;
+
+    function floorViewPayload(sequence) {
+      return {
+        floor_id: floorViewId,
+        layout_mode: state.stripMode ? 'row' : 'full',
+        full_floor_zoom: state.fullFloorZoom,
+        debug_sequence: sequence
+      };
+    }
+
+    function saveFloorViewPreference() {
+      if (!floorViewUrl) return;
+
+      floorViewDebugSequence += 1;
+
+      var sequence = floorViewDebugSequence;
+      var action = pendingFloorViewAction;
+      var payload = floorViewPayload(sequence);
+      var previousAborted = false;
+
+      if (floorViewSaveController) {
+        floorViewSaveController.abort();
+        previousAborted = true;
+      }
+
+      floorViewSaveController =
+        typeof AbortController === 'function'
+          ? new AbortController()
+          : null;
+
+      console.info('[PMD Floor View Save Attempt]', {
+        action: action,
+        payload: payload,
+        url: floorViewUrl,
+        mode: state.mode,
+        fullFloorZoom: state.fullFloorZoom,
+        sequence: sequence,
+        previousRequestAborted: previousAborted,
+        controllerCreated: Boolean(floorViewSaveController),
+        timestamp: performance.now()
+      });
+
+      fetchJson(floorViewUrl, {
+        method: 'POST',
+        signal: floorViewSaveController
+          ? floorViewSaveController.signal
+          : undefined,
+        body: JSON.stringify(payload),
+        pmdDebugCallback: function (result) {
+          console.info('[PMD Floor View Save Result]', {
+            action: action,
+            sequence: sequence,
+            newestSequence: floorViewDebugSequence,
+            isNewest: sequence === floorViewDebugSequence,
+            result: result,
+            timestamp: performance.now()
+          });
+        }
+      }).catch(function (error) {
+        if (error && error.name === 'AbortError') return;
+        toast(error.message, true);
+        console.error('[PMD Floor] View preference save failed', error);
+      });
+    }
+
+    function queueFloorViewPreferenceSave(delay, action) {
+      if (floorViewSaveTimer) {
+        clearTimeout(floorViewSaveTimer);
+      }
+
+      pendingFloorViewAction = action;
+
+      console.info('[PMD Floor View Save Queued]', {
+        action: action,
+        delay: delay,
+        mode: state.mode,
+        fullFloorZoom: state.fullFloorZoom,
+        timestamp: performance.now()
+      });
+
+      floorViewSaveTimer = setTimeout(function () {
+        floorViewSaveTimer = null;
+        saveFloorViewPreference();
+      }, Math.max(0, Number(delay) || 0));
+    }
 
     /* PMD_DYNAMIC_FULL_FLOOR_ENGINE_V1_START */
 
@@ -1981,6 +2126,12 @@
     function applyZoom() {
       if (!canvas) return;
 
+      var previousZoom = state.zoom;
+
+      state.zoom = state.stripMode
+        ? state.rowScale
+        : state.fullFloorZoom;
+
       canvas.style.transform =
         'scale(' +
         state.zoom +
@@ -1991,6 +2142,17 @@
           '--floor-zoom',
           state.zoom
         );
+
+      console.info('[PMD Floor Transition Diagnostic]', {
+        stage: 'applyZoom',
+        previousZoom: previousZoom,
+        nextZoom: state.zoom,
+        mode: state.mode,
+        stripMode: state.stripMode,
+        fullFloorZoom: state.fullFloorZoom,
+        rowScale: state.rowScale,
+        timestamp: performance.now()
+      });
     }
 
     function fit() {
@@ -2007,8 +2169,6 @@
          * Keep the page width unchanged.
          * Wide one-row contents use horizontal scrolling.
          */
-        state.zoom = 1;
-
         applyZoom();
 
         scroll.scrollLeft = 0;
@@ -2023,8 +2183,6 @@
        * FLOOR_WIDTH/FLOOR_HEIGHT already match the real usable
        * frame, so auto-fitting here only makes the tables smaller.
        */
-      state.zoom = 1;
-
       applyZoom();
 
       scroll.scrollLeft = 0;
@@ -2376,6 +2534,7 @@ function saveLayout() {
 
       if (!tables.length) {
         state.saving = false;
+        state.saveAttempted = false;
 
         saveControls.forEach(function (control) {
           control.disabled = false;
@@ -2462,6 +2621,8 @@ function saveLayout() {
           return payload;
         })
         .catch(function (error) {
+          state.saveAttempted = false;
+
           toast(
             error.message,
             true
@@ -2553,10 +2714,10 @@ function saveLayout() {
               );
             });
 
-          setTimeout(
-            fit,
-            0
-          );
+          setTimeout(function () {
+            fit();
+            state.initialized = true;
+          }, 0);
         })
         .catch(function (error) {
           if (loading) {
@@ -2681,6 +2842,16 @@ function saveLayout() {
     }
 
     function setStripMode(value) {
+      console.info('[PMD Floor Transition Diagnostic]', {
+        stage: 'setStripMode-start',
+        requestedRowMode: Boolean(value),
+        previousMode: state.mode,
+        previousStripMode: state.stripMode,
+        zoom: state.zoom,
+        fullFloorZoom: state.fullFloorZoom,
+        timestamp: performance.now()
+      });
+
       /*
        * Mark the next render as a structural layout transition.
        */
@@ -2742,6 +2913,24 @@ function saveLayout() {
       state.stripMode =
         nextStripMode;
 
+      state.mode = state.stripMode
+        ? 'row'
+        : 'full';
+
+      state.zoom = state.stripMode
+        ? state.rowScale
+        : state.fullFloorZoom;
+
+      console.info('[PMD Floor Transition Diagnostic]', {
+        stage: 'setStripMode-state-mutated',
+        mode: state.mode,
+        stripMode: state.stripMode,
+        zoom: state.zoom,
+        fullFloorZoom: state.fullFloorZoom,
+        rowScale: state.rowScale,
+        timestamp: performance.now()
+      });
+
       if (state.stripMode) {
         /*
          * Strip mode is operational, not a layout editor.
@@ -2775,6 +2964,14 @@ function saveLayout() {
       updateStripButton();
       render();
 
+      console.info('[PMD Floor Transition Diagnostic]', {
+        stage: 'setStripMode-render-complete',
+        mode: state.mode,
+        stripMode: state.stripMode,
+        zoom: state.zoom,
+        timestamp: performance.now()
+      });
+
       window.setTimeout(
         fit,
         0
@@ -2784,6 +2981,11 @@ function saveLayout() {
         state.stripMode
           ? 'One-row Floor view enabled'
           : 'Saved Floor layout restored'
+      );
+
+      queueFloorViewPreferenceSave(
+        0,
+        state.stripMode ? 'one-row' : 'full-floor'
       );
     }
 
@@ -6416,13 +6618,16 @@ function saveLayout() {
             '[data-floor-zoom-in]'
           )
         ) {
-          state.zoom =
+          state.userHasChangedZoom = true;
+
+          state.fullFloorZoom =
             Math.min(
               1.6,
-              state.zoom + .1
+              state.fullFloorZoom + .1
             );
 
           applyZoom();
+          queueFloorViewPreferenceSave(200, 'zoom-in');
         }
 
         if (
@@ -6430,13 +6635,16 @@ function saveLayout() {
             '[data-floor-zoom-out]'
           )
         ) {
-          state.zoom =
+          state.userHasChangedZoom = true;
+
+          state.fullFloorZoom =
             Math.max(
               .4,
-              state.zoom - .1
+              state.fullFloorZoom - .1
             );
 
           applyZoom();
+          queueFloorViewPreferenceSave(200, 'zoom-out');
         }
 
         if (
@@ -6752,6 +6960,8 @@ function saveLayout() {
       root: root,
       refresh: load,
       fit: fit,
+      setEditing: setEditing,
+      saveLayout: saveLayout,
 
       setSize: function (size) {
         root.setAttribute(

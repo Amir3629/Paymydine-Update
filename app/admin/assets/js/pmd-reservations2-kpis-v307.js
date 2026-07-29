@@ -58,80 +58,12 @@
       : null;
   }
 
-  function sourceData() {
-    return (
-      window.PMDReservations2V1 ||
-      window.PMDReservations2 ||
-      {}
-    );
-  }
-
-  function firstDefined(
-    values,
-    fallback
-  ) {
-    for (
-      var index = 0;
-      index < values.length;
-      index += 1
-    ) {
-      var value = values[index];
-
-      if (
-        value !== undefined &&
-        value !== null &&
-        value !== ''
-      ) {
-        return value;
-      }
-    }
-
-    return fallback;
-  }
-
   function metrics() {
-    var source = sourceData();
-
     return {
-      today:
-        firstDefined(
-          [
-            source.todayReservations,
-            source.reservationsToday,
-            source.reservations
-          ],
-          '—'
-        ),
-
-      upcoming:
-        firstDefined(
-          [
-            source.upcomingArrivals,
-            source.upcomingReservations,
-            source.upcoming
-          ],
-          '—'
-        ),
-
-      pending:
-        firstDefined(
-          [
-            source.pendingConfirmations,
-            source.pendingReservations,
-            source.pending
-          ],
-          '—'
-        ),
-
-      tables:
-        firstDefined(
-          [
-            source.reservationTables,
-            source.availableTables,
-            source.tables
-          ],
-          '—'
-        )
+      today: '—',
+      upcoming: '—',
+      pending: '—',
+      tables: '—'
     };
   }
 
@@ -262,6 +194,11 @@
     value.setAttribute(
       'data-r2-v308-value',
       config.key
+    );
+
+    value.setAttribute(
+      'aria-busy',
+      'true'
     );
 
     value.textContent =
@@ -396,25 +333,6 @@
     return section;
   }
 
-  function updateValues(section) {
-    var data = metrics();
-
-    Object.keys(data)
-      .forEach(function (key) {
-        var value =
-          section.querySelector(
-            '[data-r2-v308-value="' +
-            key +
-            '"]'
-          );
-
-        if (value) {
-          value.textContent =
-            String(data[key]);
-        }
-      });
-  }
-
   function refresh() {
     if (rebuilding) {
       return;
@@ -468,8 +386,6 @@
         );
       }
 
-      updateValues(section);
-
       var empty =
         document.getElementById(
           EMPTY_ID
@@ -496,42 +412,6 @@
 
   function boot() {
     refresh();
-
-    /*
-     * Rebuild only when the KPI structure is actually altered.
-     */
-    new MutationObserver(
-      function () {
-        var section =
-          document.getElementById(
-            KPI_ID
-          );
-
-        if (!validSection(section)) {
-          refresh();
-        }
-      }
-    ).observe(
-      document.body,
-      {
-        childList: true,
-        subtree: true
-      }
-    );
-
-    [
-      0,
-      100,
-      300,
-      700,
-      1500,
-      3000
-    ].forEach(function (delay) {
-      setTimeout(
-        refresh,
-        delay
-      );
-    });
 
     console.info(
       '[PMD Reservations2 KPIs V3.0.9] Ready',

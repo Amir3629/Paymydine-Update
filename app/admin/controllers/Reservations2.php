@@ -3,10 +3,14 @@
 namespace Admin\Controllers;
 
 use Admin\Facades\AdminMenu;
+use Admin\Facades\AdminLocation;
+use Admin\Models\LocationOption;
 use Admin\Models\Reservations_model;
 use Admin\Models\Statuses_model;
 use Igniter\Flame\Exception\ApplicationException;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
+use Throwable;
 
 /**
  * Clean Reservations workspace.
@@ -17,6 +21,10 @@ use Illuminate\Support\Facades\DB;
  */
 class Reservations2 extends Reservations
 {
+    private const FLOOR_VIEW_OPTION = 'pmd_reservations2_floor_view_main_floor';
+
+    private const FLOOR_VIEW_ID = 'main-floor';
+
     protected $pmdProfileEnabled = false;
 
     protected $pmdProfileId;
@@ -303,6 +311,9 @@ class Reservations2 extends Reservations
             Statuses_model::
                 getDropdownOptionsForReservation();
 
+        $this->vars['pmdFloorView'] =
+            $this->readFloorViewPreference();
+
         $this->pmdProfileStage(
             'index.status_options',
             $startedAt,
@@ -457,6 +468,243 @@ class Reservations2 extends Reservations
 
         $this->pmdProfileIndexEndedAt =
             microtime(true);
+    }
+
+    public function floorViewPreference()
+    {
+        $user = $this->getUser();
+        $permitted = $user->hasPermission('Admin.Reservations');
+
+        if (!$permitted) {
+            $this->floorViewDebugLog('save.denied', [
+                'permission_result' => false,
+            ]);
+
+            return response()->json([
+                'ok' => false,
+                'message' => 'Unauthorized.',
+            ], 403);
+        }
+
+        try {
+            $location = AdminLocation::current();
+        } catch (Throwable $exception) {
+            $this->logFloorViewFailure('location resolution', $exception);
+
+            return response()->json([
+                'ok' => false,
+                'message' => 'Active location could not be resolved.',
+            ], 500);
+        }
+
+        if (!$location) {
+            return response()->json([
+                'ok' => false,
+                'message' => 'No active location is selected.',
+            ], 409);
+        }
+
+        $floorId = trim((string)request()->input('floor_id'));
+        $mode = trim((string)request()->input('layout_mode'));
+        $zoom = request()->input('full_floor_zoom');
+        $debugSequence = (int)request()->input('debug_sequence', 0);
+
+        $this->floorViewDebugLog('save.received', [
+            'permission_result' => true,
+            'location_id' => (int)$location->location_id,
+            'floor_id' => $floorId,
+            'layout_mode' => $mode,
+            'full_floor_zoom' => $zoom,
+            'debug_sequence' => $debugSequence,
+            'content_type' => request()->header('Content-Type'),
+        ]);
+
+        if ($floorId !== self::FLOOR_VIEW_ID) {
+            return response()->json([
+                'ok' => false,
+                'message' => 'Invalid Floor.',
+            ], 422);
+        }
+
+        if (!in_array($mode, ['full', 'row'], true)) {
+            return response()->json([
+                'ok' => false,
+                'message' => 'Invalid Floor layout mode.',
+            ], 422);
+        }
+
+        if (!is_numeric($zoom) || (float)$zoom < 0.4 || (float)$zoom > 1.6) {
+            return response()->json([
+                'ok' => false,
+                'message' => 'Invalid Floor zoom.',
+            ], 422);
+        }
+
+        $value = [
+            'floor_id' => self::FLOOR_VIEW_ID,
+            'layout_mode' => $mode,
+            'full_floor_zoom' => round((float)$zoom, 2),
+        ];
+
+        try {
+            $record = LocationOption::query()->updateOrCreate([
+                'location_id' => (int)$location->location_id,
+                'item' => self::FLOOR_VIEW_OPTION,
+            ], [
+                'value' => $value,
+            ]);
+
+            $this->floorViewDebugLog('save.succeeded', [
+                'location_id' => (int)$location->location_id,
+                'record_id' => $record->getKey(),
+                'stored_value' => $record->fresh()->value,
+                'debug_sequence' => $debugSequence,
+            ]);
+        } catch (Throwable $exception) {
+            $this->floorViewDebugLog('save.failed', [
+                'location_id' => (int)$location->location_id,
+                'debug_sequence' => $debugSequence,
+                'exception_class' => get_class($exception),
+                'exception_message' => $exception->getMessage(),
+            ]);
+
+            $this->logFloorViewFailure('write', $exception, $location);
+
+            return response()->json([
+                'ok' => false,
+                'message' => 'Floor view preference could not be saved.',
+            ], 500);
+        }
+
+        return response()->json([
+            'ok' => true,
+            'view' => $value,
+            'debug_sequence' => $debugSequence,
+        ]);
+    }
+
+    protected function readFloorViewPreference(): array
+    {
+        $default = $this->defaultFloorViewPreference();
+        $location = null;
+
+        try {
+            $location = AdminLocation::current();
+
+            if (!$location) {
+                $this->floorViewDebugLog('read.no_location');
+
+                return $default;
+            }
+
+            $this->floorViewDebugLog('read.query', [
+                'location_id' => (int)$location->location_id,
+                'item' => self::FLOOR_VIEW_OPTION,
+            ]);
+
+            $record = LocationOption::findRecord(
+                self::FLOOR_VIEW_OPTION,
+                $location
+            );
+
+            if (!$record || !is_array($record->value)) {
+                $this->floorViewDebugLog('read.default', [
+                    'location_id' => (int)$location->location_id,
+                    'record_found' => (bool)$record,
+                    'raw_value' => $record ? $record->getRawOriginal('value') : null,
+                    'cast_value' => $record ? $record->value : null,
+                    'normalized_value' => $default,
+                ]);
+
+                return $default;
+            }
+
+            $value = $record->value;
+            $floorId = (string)($value['floor_id'] ?? '');
+            $mode = (string)($value['layout_mode'] ?? '');
+            $zoom = $value['full_floor_zoom'] ?? null;
+
+            if (
+                $floorId !== self::FLOOR_VIEW_ID
+                || !in_array($mode, ['full', 'row'], true)
+                || !is_numeric($zoom)
+                || (float)$zoom < 0.4
+                || (float)$zoom > 1.6
+            ) {
+                $this->floorViewDebugLog('read.invalid', [
+                    'location_id' => (int)$location->location_id,
+                    'record_id' => $record->getKey(),
+                    'raw_value' => $record->getRawOriginal('value'),
+                    'cast_value' => $record->value,
+                    'normalized_value' => $default,
+                ]);
+
+                return $default;
+            }
+
+            $normalized = [
+                'floor_id' => self::FLOOR_VIEW_ID,
+                'layout_mode' => $mode,
+                'full_floor_zoom' => round((float)$zoom, 2),
+            ];
+
+            $this->floorViewDebugLog('read.succeeded', [
+                'location_id' => (int)$location->location_id,
+                'record_id' => $record->getKey(),
+                'raw_value' => $record->getRawOriginal('value'),
+                'cast_value' => $record->value,
+                'normalized_value' => $normalized,
+            ]);
+
+            return $normalized;
+        } catch (Throwable $exception) {
+            $this->logFloorViewFailure('read', $exception, $location);
+
+            return $default;
+        }
+    }
+
+    protected function defaultFloorViewPreference(): array
+    {
+        return [
+            'floor_id' => self::FLOOR_VIEW_ID,
+            'layout_mode' => 'full',
+            'full_floor_zoom' => 1.0,
+        ];
+    }
+
+    protected function logFloorViewFailure($operation, Throwable $exception, $location = null): void
+    {
+        Log::warning('Reservations2 Floor view preference '.$operation.' failed.', [
+            'tenant_id' => request()->attributes->get('tenant_id'),
+            'location_id' => $location ? (int)$location->location_id : null,
+            'floor_id' => self::FLOOR_VIEW_ID,
+            'exception_class' => get_class($exception),
+            'exception_message' => $exception->getMessage(),
+        ]);
+    }
+
+    protected function floorViewDebugLog($event, array $context = []): void
+    {
+        try {
+            $user = $this->getUser();
+            $base = [
+                'timestamp' => date('c'),
+                'event' => $event,
+                'request_path' => request()->path(),
+                'request_method' => request()->method(),
+                'user_id' => $user ? ($user->user_id ?? $user->staff_id ?? $user->getKey()) : null,
+                'tenant_id' => request()->attributes->get('tenant_id'),
+            ];
+
+            @file_put_contents(
+                storage_path('logs/pmd-floor-view-debug.log'),
+                json_encode(array_merge($base, $context), JSON_UNESCAPED_SLASHES).PHP_EOL,
+                FILE_APPEND | LOCK_EX
+            );
+        } catch (Throwable $exception) {
+            // Diagnostics must never affect Reservations2 availability.
+        }
     }
 
     public function index_onDelete()
