@@ -44,6 +44,11 @@
     var requestOptions =
       Object.assign({}, options || {});
 
+    var debugCallback =
+      requestOptions.pmdDebugCallback;
+
+    delete requestOptions.pmdDebugCallback;
+
     var headers =
       Object.assign(
         {
@@ -91,6 +96,17 @@
             }
           }
 
+          if (typeof debugCallback === 'function') {
+            debugCallback({
+              status: response.status,
+              redirected: response.redirected,
+              responseUrl: response.url,
+              contentType: response.headers.get('content-type'),
+              body: body,
+              parsed: payload
+            });
+          }
+
           if (
             !response.ok ||
             payload.ok === false
@@ -112,6 +128,16 @@
 
           return payload;
         });
+    }).catch(function (error) {
+      if (typeof debugCallback === 'function') {
+        debugCallback({
+          errorName: error && error.name,
+          errorMessage: error && error.message,
+          abortError: Boolean(error && error.name === 'AbortError')
+        });
+      }
+
+      throw error;
     });
   }
 
@@ -304,20 +330,31 @@
 
     var floorViewSaveTimer = null;
     var floorViewSaveController = null;
+    var floorViewDebugSequence = 0;
+    var pendingFloorViewAction = null;
 
-    function floorViewPayload() {
+    function floorViewPayload(sequence) {
       return {
         floor_id: floorViewId,
         layout_mode: state.stripMode ? 'row' : 'full',
-        full_floor_zoom: state.fullFloorZoom
+        full_floor_zoom: state.fullFloorZoom,
+        debug_sequence: sequence
       };
     }
 
     function saveFloorViewPreference() {
       if (!floorViewUrl) return;
 
+      floorViewDebugSequence += 1;
+
+      var sequence = floorViewDebugSequence;
+      var action = pendingFloorViewAction;
+      var payload = floorViewPayload(sequence);
+      var previousAborted = false;
+
       if (floorViewSaveController) {
         floorViewSaveController.abort();
+        previousAborted = true;
       }
 
       floorViewSaveController =
@@ -325,12 +362,34 @@
           ? new AbortController()
           : null;
 
+      console.info('[PMD Floor View Save Attempt]', {
+        action: action,
+        payload: payload,
+        url: floorViewUrl,
+        mode: state.mode,
+        fullFloorZoom: state.fullFloorZoom,
+        sequence: sequence,
+        previousRequestAborted: previousAborted,
+        controllerCreated: Boolean(floorViewSaveController),
+        timestamp: performance.now()
+      });
+
       fetchJson(floorViewUrl, {
         method: 'POST',
         signal: floorViewSaveController
           ? floorViewSaveController.signal
           : undefined,
-        body: JSON.stringify(floorViewPayload())
+        body: JSON.stringify(payload),
+        pmdDebugCallback: function (result) {
+          console.info('[PMD Floor View Save Result]', {
+            action: action,
+            sequence: sequence,
+            newestSequence: floorViewDebugSequence,
+            isNewest: sequence === floorViewDebugSequence,
+            result: result,
+            timestamp: performance.now()
+          });
+        }
       }).catch(function (error) {
         if (error && error.name === 'AbortError') return;
         toast(error.message, true);
@@ -338,10 +397,20 @@
       });
     }
 
-    function queueFloorViewPreferenceSave(delay) {
+    function queueFloorViewPreferenceSave(delay, action) {
       if (floorViewSaveTimer) {
         clearTimeout(floorViewSaveTimer);
       }
+
+      pendingFloorViewAction = action;
+
+      console.info('[PMD Floor View Save Queued]', {
+        action: action,
+        delay: delay,
+        mode: state.mode,
+        fullFloorZoom: state.fullFloorZoom,
+        timestamp: performance.now()
+      });
 
       floorViewSaveTimer = setTimeout(function () {
         floorViewSaveTimer = null;
@@ -2057,6 +2126,8 @@
     function applyZoom() {
       if (!canvas) return;
 
+      var previousZoom = state.zoom;
+
       state.zoom = state.stripMode
         ? state.rowScale
         : state.fullFloorZoom;
@@ -2071,6 +2142,17 @@
           '--floor-zoom',
           state.zoom
         );
+
+      console.info('[PMD Floor Transition Diagnostic]', {
+        stage: 'applyZoom',
+        previousZoom: previousZoom,
+        nextZoom: state.zoom,
+        mode: state.mode,
+        stripMode: state.stripMode,
+        fullFloorZoom: state.fullFloorZoom,
+        rowScale: state.rowScale,
+        timestamp: performance.now()
+      });
     }
 
     function fit() {
@@ -2760,6 +2842,16 @@ function saveLayout() {
     }
 
     function setStripMode(value) {
+      console.info('[PMD Floor Transition Diagnostic]', {
+        stage: 'setStripMode-start',
+        requestedRowMode: Boolean(value),
+        previousMode: state.mode,
+        previousStripMode: state.stripMode,
+        zoom: state.zoom,
+        fullFloorZoom: state.fullFloorZoom,
+        timestamp: performance.now()
+      });
+
       /*
        * Mark the next render as a structural layout transition.
        */
@@ -2829,6 +2921,16 @@ function saveLayout() {
         ? state.rowScale
         : state.fullFloorZoom;
 
+      console.info('[PMD Floor Transition Diagnostic]', {
+        stage: 'setStripMode-state-mutated',
+        mode: state.mode,
+        stripMode: state.stripMode,
+        zoom: state.zoom,
+        fullFloorZoom: state.fullFloorZoom,
+        rowScale: state.rowScale,
+        timestamp: performance.now()
+      });
+
       if (state.stripMode) {
         /*
          * Strip mode is operational, not a layout editor.
@@ -2862,6 +2964,14 @@ function saveLayout() {
       updateStripButton();
       render();
 
+      console.info('[PMD Floor Transition Diagnostic]', {
+        stage: 'setStripMode-render-complete',
+        mode: state.mode,
+        stripMode: state.stripMode,
+        zoom: state.zoom,
+        timestamp: performance.now()
+      });
+
       window.setTimeout(
         fit,
         0
@@ -2873,7 +2983,10 @@ function saveLayout() {
           : 'Saved Floor layout restored'
       );
 
-      queueFloorViewPreferenceSave(0);
+      queueFloorViewPreferenceSave(
+        0,
+        state.stripMode ? 'one-row' : 'full-floor'
+      );
     }
 
     function setEditing(value) {
@@ -6514,7 +6627,7 @@ function saveLayout() {
             );
 
           applyZoom();
-          queueFloorViewPreferenceSave(200);
+          queueFloorViewPreferenceSave(200, 'zoom-in');
         }
 
         if (
@@ -6531,7 +6644,7 @@ function saveLayout() {
             );
 
           applyZoom();
-          queueFloorViewPreferenceSave(200);
+          queueFloorViewPreferenceSave(200, 'zoom-out');
         }
 
         if (

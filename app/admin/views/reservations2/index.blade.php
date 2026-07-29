@@ -441,7 +441,7 @@ window.PMD_RESERVATIONS2_BOOT = {
 >
 
 <script
-  src="/app/admin/assets/js/pmd-floor-v1.js?v=20260729_c2-floor-view-v1"
+  src="/app/admin/assets/js/pmd-floor-v1.js?v=20260729_c2-diagnostics-v1"
   defer
 ></script>
 <script
@@ -1633,6 +1633,102 @@ body {
     );
   }
 
+  function diagnoseToolbar(stage, floor, bar, action) {
+    if (!floor || !bar) return;
+
+    var toolbarRect = bar.getBoundingClientRect();
+    var floorRect = floor.getBoundingClientRect();
+    var style = window.getComputedStyle(bar);
+
+    var buttons = Array.prototype.map.call(
+      bar.querySelectorAll('button'),
+      function (button) {
+        var rect = button.getBoundingClientRect();
+
+        return {
+          action: button.getAttribute('data-pmd-floor-action'),
+          text: button.textContent.trim(),
+          title: button.getAttribute('title'),
+          ariaLabel: button.getAttribute('aria-label'),
+          originalTitle: button.getAttribute('data-original-title'),
+          bsOriginalTitle: button.getAttribute('data-bs-original-title'),
+          hidden: button.hidden,
+          tabIndex: button.tabIndex,
+          left: rect.left,
+          right: rect.right,
+          width: rect.width
+        };
+      }
+    );
+
+    var tooltips = Array.prototype.map.call(
+      document.querySelectorAll(
+        '.tooltip, [role="tooltip"], .bs-tooltip-auto'
+      ),
+      function (tooltip) {
+        return {
+          selector: tooltip.id
+            ? '#' + tooltip.id
+            : tooltip.className,
+          text: tooltip.textContent.trim(),
+          owner: tooltip.getAttribute('data-popper-reference-hidden'),
+          html: tooltip.outerHTML.slice(0, 1000)
+        };
+      }
+    );
+
+    console.info('[PMD Floor Toolbar Diagnostic]', {
+      stage: stage,
+      action: action || null,
+      timestamp: performance.now(),
+      state: floor.__pmdFloorV1 && floor.__pmdFloorV1.getState
+        ? {
+            mode: floor.__pmdFloorV1.getState().mode,
+            stripMode: floor.__pmdFloorV1.getState().stripMode,
+            zoom: floor.__pmdFloorV1.getState().zoom,
+            fullFloorZoom: floor.__pmdFloorV1.getState().fullFloorZoom
+          }
+        : null,
+      toolbar: {
+        left: toolbarRect.left,
+        right: toolbarRect.right,
+        width: toolbarRect.width,
+        scrollWidth: bar.scrollWidth,
+        clientWidth: bar.clientWidth,
+        top: toolbarRect.top,
+        computedLeft: style.left,
+        computedRight: style.right,
+        transform: style.transform,
+        overflow: style.overflow
+      },
+      floor: {
+        left: floorRect.left,
+        right: floorRect.right,
+        width: floorRect.width,
+        overflow: window.getComputedStyle(floor).overflow
+      },
+      viewportWidth: window.innerWidth,
+      bodyOverflow: window.getComputedStyle(document.body).overflow,
+      buttons: buttons,
+      tooltips: tooltips
+    });
+
+    console.table({
+      toolbarLeft: toolbarRect.left,
+      toolbarRight: toolbarRect.right,
+      toolbarWidth: toolbarRect.width,
+      viewportWidth: window.innerWidth,
+      floorLeft: floorRect.left,
+      floorRight: floorRect.right,
+      transform: style.transform,
+      right: style.right,
+      left: style.left
+    });
+  }
+
+  window.PMDFloorToolbarDiagnostic =
+    diagnoseToolbar;
+
   function findNative(
     floor,
     selector
@@ -1701,6 +1797,8 @@ body {
     floor,
     bar
   ) {
+    diagnoseToolbar('sync-start', floor, bar);
+
     controls.forEach(function (control) {
       var nativeButton =
         findNative(
@@ -1866,6 +1964,8 @@ body {
         'important'
       );
     });
+
+    diagnoseToolbar('sync-end', floor, bar);
   }
 
   function createBar(floor) {
@@ -1914,6 +2014,13 @@ body {
       button.addEventListener(
         'click',
         function () {
+          diagnoseToolbar(
+            'click-received',
+            floor,
+            bar,
+            control.key
+          );
+
           if (control.key === 'edit') {
             var instance =
               floor.__pmdFloorV1;
@@ -1968,6 +2075,19 @@ body {
           }
 
           nativeButton.click();
+
+          [0, 60, 100, 200, 300].forEach(
+            function (delay) {
+              window.setTimeout(function () {
+                diagnoseToolbar(
+                  'after-click-' + delay + 'ms',
+                  floor,
+                  bar,
+                  control.key
+                );
+              }, delay);
+            }
+          );
 
           window.setTimeout(
             function () {
@@ -2181,6 +2301,14 @@ body {
             return false;
         }
 
+        if (window.PMDFloorToolbarDiagnostic) {
+            window.PMDFloorToolbarDiagnostic(
+                'v34.3-place-start',
+                floor,
+                bar
+            );
+        }
+
         /*
          * Reapply as inline !important because old Floor scripts may
          * rewrite layout styles after page initialization.
@@ -2225,6 +2353,14 @@ body {
             Math.round(left) + 'px',
             'important'
         );
+
+        if (window.PMDFloorToolbarDiagnostic) {
+            window.PMDFloorToolbarDiagnostic(
+                'v34.3-place-end',
+                floor,
+                bar
+            );
+        }
 
         bar.style.setProperty(
             'right',
