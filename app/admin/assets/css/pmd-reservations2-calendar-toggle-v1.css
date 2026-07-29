@@ -101,7 +101,6 @@
 .pmd-r2-yc-modal__actions button.primary{background:#102a43;color:#fff;border-color:#102a43}
 .pmd-r2-yc-modal__actions [data-r2-yc-modal-delete]{margin-right:auto;color:#b42318;border-color:#f0c4bf;background:#fff7f6}
 html.pmd-r2-yc-modal-open{overflow:hidden!important}
-#pmd-r2-clean-header .pmd-r2-clean-actions>#pmd-r2-date-button-v430{order:1!important}
 #pmd-r2-clean-header .pmd-r2-clean-actions>#pmd-r2-calendar-toggle-v1{order:2!important}
 #pmd-r2-clean-header .pmd-r2-clean-actions>.pmd-r2-clean-create{order:3!important}
 #pmd-r2-clean-header .pmd-r2-clean-actions>#notif-root{order:4!important}

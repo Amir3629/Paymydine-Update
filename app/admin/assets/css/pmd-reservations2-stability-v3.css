@@ -50,22 +50,6 @@ html.pmd-r2-stability-v3-active #pmd-r2-shared-floor-canvas-v310 {
   flex: 0 0 38px !important;
 }
 
-#pmd-r2-clean-header .pmd-r2-header-final-v3 > #pmd-r2-date-button-v430 {
-  width: auto !important;
-  min-width: 164px !important;
-  height: 38px !important;
-  min-height: 38px !important;
-  max-height: 38px !important;
-  margin: 0 !important;
-  padding: 0 13px !important;
-  box-sizing: border-box !important;
-  display: inline-flex !important;
-  align-items: center !important;
-  justify-content: center !important;
-  gap: 8px !important;
-  opacity: 1 !important;
-  visibility: visible !important;
-}
 
 #pmd-r2-clean-header .pmd-r2-header-final-v3 > #pmd-r2-calendar-toggle-v1,
 #pmd-r2-clean-header .pmd-r2-header-final-v3 > .pmd-r2-clean-create,
@@ -89,15 +73,35 @@ html.pmd-r2-stability-v3-active #pmd-r2-shared-floor-canvas-v310 {
   #pmd-r2-clean-header .pmd-r2-clean-actions.pmd-r2-header-final-v3 {
     gap: 7px !important;
   }
+}
+/*
+ * PMD Reservations2: the working Date Range trigger belongs only to the Cards header.
+ * Important declarations are required to supersede legacy V430 fixed/header rules.
+ */
+#pmd-reservations2 .pmd-r2-reservation-cards-v320__head {
+  display: flex !important;
+  align-items: center !important;
+  gap: 12px !important;
+  flex-wrap: wrap !important;
+}
 
-  #pmd-r2-clean-header .pmd-r2-header-final-v3 > #pmd-r2-date-button-v430 {
-    min-width: 38px !important;
-    width: 38px !important;
-    padding: 0 !important;
-    overflow: hidden !important;
-  }
+#pmd-reservations2 .pmd-r2-reservation-cards-v320__head > #pmd-r2-date-button-v430 {
+  position: static !important;
+  inset: auto !important;
+  width: auto !important;
+  min-width: 0 !important;
+  max-width: min(100%, 330px) !important;
+  margin-left: auto !important;
+  order: 2 !important;
+}
 
-  #pmd-r2-clean-header .pmd-r2-header-final-v3 > #pmd-r2-date-button-v430 span {
-    display: none !important;
-  }
+#pmd-reservations2 .pmd-r2-reservation-cards-v320__head > #pmd-r2-date-button-v430 span {
+  display: block !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  white-space: nowrap !important;
+}
+
+#pmd-reservations2 .pmd-r2-reservation-cards-v320__head > [data-r2-show-all] {
+  order: 3 !important;
 }
