@@ -677,7 +677,7 @@ window.PMD_RESERVATIONS2_BOOT = {
 </style>
 
 <script defer
-        src="{{ asset('app/admin/assets/js/pmd-reservations2-floor-toolbar-v316.js') }}?v=20260729_phase1-ui-v1"></script>
+        src="{{ asset('app/admin/assets/js/pmd-reservations2-floor-toolbar-v316.js') }}?v=20260729_commit-a-v1"></script>
 
 <script id="pmd-r2-toolbar-above-floor-v29-2-script">
 (function () {
@@ -1502,6 +1502,12 @@ body {
     transform: translateY(1px);
   }
 
+  #pmd-body-floor-toolbar-v341 > button > svg {
+    width: 18px;
+    height: 18px;
+    flex: 0 0 18px;
+  }
+
   #pmd-body-floor-toolbar-v341
   > button[aria-pressed="true"] {
     background: #eef6fb !important;
@@ -1551,8 +1557,9 @@ body {
     },
     {
       key: 'zoom-out',
-      en: '−',
-      de: '−',
+      en: 'Zoom out',
+      de: 'Verkleinern',
+      icon: 'minus',
       selector: '[data-floor-zoom-out]'
     },
     {
@@ -1563,8 +1570,9 @@ body {
     },
     {
       key: 'zoom-in',
-      en: '+',
-      de: '+',
+      en: 'Zoom in',
+      de: 'Vergrößern',
+      icon: 'plus',
       selector: '[data-floor-zoom-in]'
     },
     {
@@ -1579,6 +1587,23 @@ body {
     return String(
       document.documentElement.lang || ''
     ).toLowerCase().indexOf('de') === 0;
+  }
+
+  function zoomIcon(type) {
+    var operator = type === 'plus'
+      ? '<path d="M12 8v8M8 12h8" />'
+      : '<path d="M8 12h8" />';
+
+    return [
+      '<svg viewBox="0 0 24 24" fill="none" ',
+      'stroke="currentColor" stroke-width="2" ',
+      'stroke-linecap="round" stroke-linejoin="round" ',
+      'aria-hidden="true" focusable="false">',
+      '<circle cx="11" cy="11" r="7" />',
+      operator,
+      '<path d="m20 20-3.5-3.5" />',
+      '</svg>'
+    ].join('');
   }
 
   function getFloor() {
@@ -1721,10 +1746,23 @@ body {
 
       button.type = 'button';
 
-      button.textContent =
-        isGerman()
-          ? control.de
-          : control.en;
+      var label = isGerman()
+        ? control.de
+        : control.en;
+
+      if (control.icon) {
+        button.innerHTML =
+          zoomIcon(control.icon);
+
+        button.setAttribute(
+          'aria-label',
+          label
+        );
+
+        button.title = label;
+      } else {
+        button.textContent = label;
+      }
 
       button.setAttribute(
         'data-pmd-floor-action',
