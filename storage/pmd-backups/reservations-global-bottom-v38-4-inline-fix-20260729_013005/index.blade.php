@@ -2879,156 +2879,173 @@ body {
 {{-- PMD_R2_HOUR_BOTTOM_V38_1_END --}}
 
 
-{{-- PMD_R2_EMPTY_PLACEHOLDER_FIX_V40_BEGIN --}}
-<style id="pmd-r2-empty-placeholder-fix-v40-style">
+{{-- PMD_R2_GLOBAL_BOTTOM_V38_4_BEGIN --}}
+<style id="pmd-r2-global-bottom-v38-4-style">
     /*
-     * V40 — evidence-based bottom spacing fix
+     * V38.4
      *
-     * Audit proved that #pmd-r2-empty-content-v305 reserves
-     * 547px after the active content.
-     *
-     * No Root height is calculated or forced.
-     * Hour/Floor/Calendar dimensions remain untouched.
+     * The Reservations root ends exactly 14px after the
+     * lowest meaningful visible section of the active view.
      */
 
-    #pmd-reservations2 {
-        padding-bottom: 14px !important;
+    #pmd-reservations2.pmd-r2-global-bottom-v38-4-active {
+        height:
+            var(
+                --pmd-r2-global-height-v38-4
+            ) !important;
+
+        min-height: 0 !important;
+        max-height: none !important;
+
         margin-bottom: 0 !important;
+        padding-bottom: 0 !important;
+
+        overflow: visible !important;
+        box-sizing: border-box !important;
     }
 
     /*
-     * Hide only the audited placeholder after JavaScript
-     * confirms that it contains no meaningful content.
+     * Prevent a pseudo-element from extending the page.
      */
-    #pmd-reservations2
-    #pmd-r2-empty-content-v305.pmd-r2-v40-confirmed-empty {
+    #pmd-reservations2.pmd-r2-global-bottom-v38-4-active::after {
         display: none !important;
+        content: none !important;
 
-        width: 0 !important;
         height: 0 !important;
-
-        min-width: 0 !important;
         min-height: 0 !important;
         max-height: 0 !important;
 
         margin: 0 !important;
         padding: 0 !important;
-        border: 0 !important;
-
-        overflow: hidden !important;
-    }
-
-    /*
-     * Cards already contain their real content height.
-     * Audit found an additional 72px padding and 30px margin.
-     */
-    #pmd-reservations2
-    #pmd-r2-reservation-cards-v320 {
-        padding-bottom: 0 !important;
-        margin-bottom: 0 !important;
-    }
-
-    /*
-     * Preserve the working Hour implementation.
-     */
-    #pmd-reservations2.pmd-r2-hour-layout-v38-active {
-        padding-bottom: 14px !important;
     }
 </style>
 
-<script id="pmd-r2-empty-placeholder-fix-v40-script">
+<script id="pmd-r2-global-bottom-v38-4-script">
 (function () {
     'use strict';
 
     var ROOT_ID =
         'pmd-reservations2';
 
-    var EMPTY_ID =
-        'pmd-r2-empty-content-v305';
+    var ACTIVE_CLASS =
+        'pmd-r2-global-bottom-v38-4-active';
 
-    var EMPTY_CLASS =
-        'pmd-r2-v40-confirmed-empty';
+    var HEIGHT_PROPERTY =
+        '--pmd-r2-global-height-v38-4';
+
+    var BOTTOM_GAP = 14;
 
     var root = null;
+    var frameId = 0;
 
-    function isMeaningfulElement(element) {
+    function visible(element) {
         if (!(element instanceof Element)) {
             return false;
+        }
+
+        var rect =
+            element.getBoundingClientRect();
+
+        var style =
+            window.getComputedStyle(element);
+
+        return (
+            rect.width > 0 &&
+            rect.height > 0 &&
+            style.display !== 'none' &&
+            style.visibility !== 'hidden' &&
+            Number(style.opacity || 1) > 0
+        );
+    }
+
+    function excluded(element) {
+        if (!(element instanceof Element)) {
+            return true;
         }
 
         var style =
             window.getComputedStyle(element);
 
-        var rect =
-            element.getBoundingClientRect();
+        var name =
+            (
+                String(element.id || '') +
+                ' ' +
+                String(
+                    typeof element.className ===
+                        'string'
+                        ? element.className
+                        : ''
+                )
+            ).toLowerCase();
 
         if (
-            style.display === 'none' ||
-            style.visibility === 'hidden'
+            style.position === 'fixed' ||
+            style.position === 'sticky' ||
+            style.position === 'absolute'
         ) {
-            return false;
+            return true;
         }
 
         if (
-            element.matches(
-                [
-                    'img',
-                    'svg',
-                    'canvas',
-                    'video',
-                    'iframe',
-                    'table',
-                    'form',
-                    'input',
-                    'select',
-                    'textarea',
-                    'button',
-                    'a[href]'
-                ].join(',')
-            )
+            /drawer|toast|tooltip|popover|modal|dropdown|overlay|notification/
+                .test(name)
         ) {
             return true;
         }
 
         return (
-            rect.width > 1 &&
-            rect.height > 1 &&
-            String(
-                element.textContent || ''
-            )
-                .replace(/\s+/g, ' ')
-                .trim()
-                .length > 0
+            element.tagName === 'SCRIPT' ||
+            element.tagName === 'STYLE' ||
+            element.tagName === 'TEMPLATE' ||
+            element.tagName === 'NOSCRIPT'
         );
     }
 
-    function placeholderIsEmpty(element) {
-        if (!(element instanceof Element)) {
+    function meaningful(element) {
+        if (
+            !(element instanceof Element) ||
+            !visible(element) ||
+            excluded(element)
+        ) {
+            return false;
+        }
+
+        var rect =
+            element.getBoundingClientRect();
+
+        if (
+            rect.width < 30 ||
+            rect.height < 20
+        ) {
             return false;
         }
 
         var text =
             String(
-                element.textContent || ''
+                element.innerText ||
+                element.textContent ||
+                ''
             )
                 .replace(/\s+/g, ' ')
                 .trim();
 
-        if (text.length > 0) {
-            return false;
+        if (
+            text.length > 0 ||
+            element.matches(
+                'table, canvas, img, svg'
+            )
+        ) {
+            return true;
         }
 
-        var children =
-            Array.prototype.slice.call(
-                element.querySelectorAll('*')
-            );
-
-        return !children.some(
-            isMeaningfulElement
-        );
+        return false;
     }
 
-    function removeDirectGreaterSign() {
+    /*
+     * Safely remove only a direct root text node containing ">".
+     * HTML tag endings and arrow buttons are untouched.
+     */
+    function removeStrayGreaterSign() {
         if (!root) {
             return;
         }
@@ -3048,6 +3065,107 @@ body {
         });
     }
 
+    function collectCandidates() {
+        var candidates = [];
+
+        function add(element, type) {
+            if (!meaningful(element)) {
+                return;
+            }
+
+            var rect =
+                element.getBoundingClientRect();
+
+            candidates.push({
+                element: element,
+                type: type,
+
+                /*
+                 * Store viewport geometry only.
+                 *
+                 * The final height will be calculated relative
+                 * to the Reservations Root, so nested scrolling
+                 * does not affect the result.
+                 */
+                viewportBottom:
+                    rect.bottom
+            });
+        }
+
+        /*
+         * Top-level page sections are the safest general candidates.
+         */
+        Array.prototype.slice.call(
+            root.children
+        ).forEach(function (element) {
+            add(
+                element,
+                'root-child'
+            );
+        });
+
+        /*
+         * Known active surfaces, in case they are nested in a wrapper.
+         */
+        add(
+            root.querySelector(
+                '#pmd-r2-calendar-surface-v160.is-visible'
+            ),
+            'calendar'
+        );
+
+        add(
+            root.querySelector(
+                '#pmd-r2-calendar-surface-v160.is-visible ' +
+                '.pmd-r2-day-board__timeline'
+            ),
+            'hour-timeline'
+        );
+
+        add(
+            root.querySelector(
+                '#pmd-r2-shared-floor-canvas-v310 ' +
+                '> .pmd-floor-v1__stage'
+            ),
+            'floor-stage'
+        );
+
+        /*
+         * Reservation cards and their containing grid.
+         */
+        Array.prototype.slice.call(
+            root.querySelectorAll(
+                [
+                    '[class*="reservation"][class*="card"]',
+                    '[class*="booking"][class*="card"]',
+                    '[data-reservation-id]',
+                    'article'
+                ].join(',')
+            )
+        ).forEach(function (element) {
+            add(
+                element,
+                'reservation-card'
+            );
+        });
+
+        return candidates;
+    }
+
+    function clearOwnHeight() {
+        if (!root) {
+            return;
+        }
+
+        root.classList.remove(
+            ACTIVE_CLASS
+        );
+
+        root.style.removeProperty(
+            HEIGHT_PROPERTY
+        );
+    }
+
     function apply() {
         root =
             document.getElementById(
@@ -3058,51 +3176,164 @@ body {
             return false;
         }
 
-        removeDirectGreaterSign();
+        removeStrayGreaterSign();
 
-        var placeholder =
-            document.getElementById(
-                EMPTY_ID
+        /*
+         * Measure the natural active view.
+         */
+        clearOwnHeight();
+
+        var rootRect =
+            root.getBoundingClientRect();
+
+        var rootTop =
+            rootRect.top +
+            window.scrollY;
+
+        var candidates =
+            collectCandidates();
+
+        if (!candidates.length) {
+            return false;
+        }
+
+        /*
+         * Compare candidates in the same viewport coordinate
+         * system. This remains correct whether scrolling occurs
+         * on window, HTML, body, page-wrapper or page-content.
+         */
+        candidates.sort(function (a, b) {
+            return (
+                b.viewportBottom -
+                a.viewportBottom
+            );
+        });
+
+        var finalCandidate =
+            candidates[0];
+
+        /*
+         * Both values come from getBoundingClientRect(), so their
+         * difference is local to #pmd-reservations2 and completely
+         * independent from the active scroll container.
+         */
+        var localContentBottom =
+            finalCandidate.viewportBottom -
+            rootRect.top;
+
+        var contentHeight =
+            Math.max(
+                1,
+                Math.ceil(
+                    localContentBottom +
+                    BOTTOM_GAP
+                )
             );
 
-        if (placeholder) {
-            placeholder.classList.toggle(
-                EMPTY_CLASS,
-                placeholderIsEmpty(
-                    placeholder
+        /*
+         * When content is shorter than the viewport,
+         * fill the screen without creating extra scroll.
+         */
+        /*
+         * Use the Root position in document coordinates.
+         *
+         * rootRect.top changes while scrolling and may become
+         * strongly negative. Using it directly previously created
+         * fake viewport heights such as 1961px.
+         */
+        var rootDocumentTop =
+            rootRect.top +
+            window.scrollY;
+
+        var viewportHeight =
+            Math.max(
+                1,
+                Math.ceil(
+                    window.innerHeight -
+                    Math.max(
+                        0,
+                        rootDocumentTop
+                    )
                 )
+            );
+
+        var finalHeight =
+            Math.max(
+                contentHeight,
+                viewportHeight
+            );
+
+        root.style.setProperty(
+            HEIGHT_PROPERTY,
+            finalHeight + 'px'
+        );
+
+        root.classList.add(
+            ACTIVE_CLASS
+        );
+
+        window.PMD_R2_GLOBAL_BOTTOM_V38_4_RESULT =
+            {
+                finalHeight:
+                    finalHeight,
+
+                contentHeight:
+                    contentHeight,
+
+                viewportHeight:
+                    viewportHeight,
+
+                bottomGap:
+                    BOTTOM_GAP,
+
+                candidateCount:
+                    candidates.length,
+
+                lastElement: {
+                    type:
+                        finalCandidate.type,
+
+                    tag:
+                        finalCandidate.element.tagName,
+
+                    id:
+                        finalCandidate.element.id || '',
+
+                    class:
+                        typeof finalCandidate.element.className ===
+                        'string'
+                            ? finalCandidate.element.className
+                            : '',
+
+                    localBottom:
+                        Math.round(
+                            localContentBottom
+                        ),
+
+                    viewportBottom:
+                        Math.round(
+                            finalCandidate.viewportBottom
+                        )
+                }
+            };
+
+        return true;
+    }
+
+    function applyFrame() {
+        if (frameId) {
+            window.cancelAnimationFrame(
+                frameId
             );
         }
 
-        window.PMD_R2_EMPTY_FIX_V40_RESULT = {
-            placeholderFound:
-                Boolean(placeholder),
-
-            placeholderHidden:
-                Boolean(
-                    placeholder &&
-                    placeholder.classList.contains(
-                        EMPTY_CLASS
-                    )
-                ),
-
-            placeholderText:
-                placeholder
-                    ? String(
-                        placeholder.textContent || ''
-                    )
-                        .replace(/\s+/g, ' ')
-                        .trim()
-                        .slice(0, 200)
-                    : null,
-
-            rootPaddingBottom:
-                window
-                    .getComputedStyle(root)
-                    .paddingBottom
-        };
-
-        return true;
+        frameId =
+            window.requestAnimationFrame(
+                function () {
+                    frameId = 0;
+                    apply();
+                }
+            );
     }
 
     function schedule() {
@@ -3113,10 +3344,11 @@ body {
             200,
             400,
             700,
-            1100
+            1100,
+            1600
         ].forEach(function (delay) {
             window.setTimeout(
-                apply,
+                applyFrame,
                 delay
             );
         });
@@ -3149,938 +3381,21 @@ body {
         window.addEventListener(
             'pageshow',
             schedule
-        );
-
-        window.PMD_R2_APPLY_EMPTY_FIX_V40 =
-            apply;
-
-        console.log(
-            '[PMD V40] Empty 547px placeholder fix active.'
-        );
-    }
-
-    if (
-        document.readyState === 'loading'
-    ) {
-        document.addEventListener(
-            'DOMContentLoaded',
-            boot,
-            {
-                once: true
-            }
-        );
-    } else {
-        boot();
-    }
-})();
-</script>
-{{-- PMD_R2_EMPTY_PLACEHOLDER_FIX_V40_END --}}
-
-
-{{-- PMD_R2_SIDEBAR_SMOOTH_V44_BEGIN --}}
-<style id="pmd-r2-sidebar-smooth-v44-style">
-    /*
-     * PMD V44
-     *
-     * Sidebar Audit:
-     * - #pmd-side-menu2 animates width for 220ms.
-     * - #pmd-reservations2 changed margin-left instantly.
-     *
-     * Preserve all existing expanded/collapsed dimensions.
-     * Only animate the existing horizontal change.
-     */
-
-    @media (min-width: 992px) {
-        #pmd-reservations2 {
-            transition:
-                margin-left 220ms
-                    cubic-bezier(0.22, 0.75, 0.24, 1),
-                margin-right 220ms
-                    cubic-bezier(0.22, 0.75, 0.24, 1)
-                !important;
-
-            will-change:
-                margin-left,
-                margin-right;
-        }
-
-        /*
-         * Use the same duration/easing on the Sidebar itself,
-         * without changing its existing width values.
-         */
-        #pmd-side-menu2 {
-            transition:
-                width 220ms
-                    cubic-bezier(0.22, 0.75, 0.24, 1)
-                !important;
-
-            will-change:
-                width;
-        }
-
-        /*
-         * Keep Sidebar branding and navigation aligned while
-         * their available width changes.
-         */
-        #pmd-side-menu2
-        .pmd-sm2__brand-control,
-
-        #pmd-side-menu2
-        .pmd-sm2__nav,
-
-        #pmd-side-menu2
-        .pmd-sm2__nav-item,
-
-        #pmd-side-menu2
-        .pmd-sm2__nav-link {
-            transition:
-                margin-left 220ms
-                    cubic-bezier(0.22, 0.75, 0.24, 1),
-                margin-right 220ms
-                    cubic-bezier(0.22, 0.75, 0.24, 1),
-                padding-left 220ms
-                    cubic-bezier(0.22, 0.75, 0.24, 1),
-                padding-right 220ms
-                    cubic-bezier(0.22, 0.75, 0.24, 1),
-                opacity 160ms ease
-                !important;
-        }
-    }
-
-    @media (prefers-reduced-motion: reduce) {
-        #pmd-reservations2,
-        #pmd-side-menu2,
-        #pmd-side-menu2 .pmd-sm2__brand-control,
-        #pmd-side-menu2 .pmd-sm2__nav,
-        #pmd-side-menu2 .pmd-sm2__nav-item,
-        #pmd-side-menu2 .pmd-sm2__nav-link {
-            transition-duration: 0.01ms !important;
-        }
-    }
-</style>
-
-<script id="pmd-r2-sidebar-smooth-v44-script">
-(function () {
-    'use strict';
-
-    var root =
-        document.getElementById(
-            'pmd-reservations2'
-        );
-
-    var sidebar =
-        document.getElementById(
-            'pmd-side-menu2'
-        );
-
-    window.PMD_R2_SIDEBAR_SMOOTH_V44_RESULT = {
-        rootFound:
-            Boolean(root),
-
-        sidebarFound:
-            Boolean(sidebar),
-
-        rootTransition:
-            root
-                ? window
-                    .getComputedStyle(root)
-                    .transition
-                : null,
-
-        sidebarTransition:
-            sidebar
-                ? window
-                    .getComputedStyle(sidebar)
-                    .transition
-                : null
-    };
-
-    console.log(
-        '[PMD V44] Reservations Sidebar smooth reflow active.',
-        window.PMD_R2_SIDEBAR_SMOOTH_V44_RESULT
-    );
-})();
-</script>
-{{-- PMD_R2_SIDEBAR_SMOOTH_V44_END --}}
-
-
-{{-- PMD_R2_WIDTH_REFLOW_V44_1_BEGIN --}}
-<style id="pmd-r2-width-reflow-v44-1-style">
-    /*
-     * V44.1
-     *
-     * V44 made Sidebar/margins smoother.
-     * V44.1 animates the actual Reservations width so all
-     * cards, grids, KPI panels, Floor and Calendar resize
-     * continuously instead of jumping.
-     */
-
-    @media (min-width: 992px) {
-        #pmd-reservations2 {
-            box-sizing: border-box !important;
-        }
-
-        html.pmd-r2-width-reflow-v44-1-active
-        #pmd-reservations2 {
-            overflow-x: clip !important;
-        }
-
-        html.pmd-r2-width-reflow-v44-1-active
-        #pmd-reservations2 * {
-            /*
-             * Prevent unrelated child transitions from fighting
-             * against the parent-width animation.
-             */
-            animation-play-state: running;
-        }
-    }
-</style>
-
-<script id="pmd-r2-width-reflow-v44-1-script">
-(function () {
-    'use strict';
-
-    var ROOT_ID =
-        'pmd-reservations2';
-
-    var SIDEBAR_ID =
-        'pmd-side-menu2';
-
-    var TOGGLE_SELECTOR =
-        '.pmd-sm2__brand-control';
-
-    var ACTIVE_CLASS =
-        'pmd-r2-width-reflow-v44-1-active';
-
-    var DURATION =
-        280;
-
-    var EASING =
-        'cubic-bezier(0.22, 0.75, 0.24, 1)';
-
-    var html =
-        document.documentElement;
-
-    var root = null;
-    var sidebar = null;
-    var toggle = null;
-
-    var startState = null;
-    var animationToken = 0;
-    var cleanupTimer = 0;
-
-    function number(value) {
-        var parsed =
-            parseFloat(value);
-
-        return Number.isFinite(parsed)
-            ? parsed
-            : 0;
-    }
-
-    function readState() {
-        if (!root) {
-            return null;
-        }
-
-        var rect =
-            root.getBoundingClientRect();
-
-        var style =
-            window.getComputedStyle(root);
-
-        return {
-            left:
-                rect.left,
-
-            width:
-                rect.width,
-
-            marginLeft:
-                number(
-                    style.marginLeft
-                ),
-
-            marginRight:
-                number(
-                    style.marginRight
-                )
-        };
-    }
-
-    function clearTemporaryStyles() {
-        if (!root) {
-            return;
-        }
-
-        window.clearTimeout(
-            cleanupTimer
-        );
-
-        root.style.removeProperty(
-            'width'
-        );
-
-        root.style.removeProperty(
-            'margin-left'
-        );
-
-        root.style.removeProperty(
-            'margin-right'
-        );
-
-        root.style.removeProperty(
-            'transition'
-        );
-
-        root.style.removeProperty(
-            'will-change'
-        );
-
-        html.classList.remove(
-            ACTIVE_CLASS
-        );
-    }
-
-    function captureBeforeChange(event) {
-        if (
-            window.innerWidth < 992 ||
-            !root
-        ) {
-            return;
-        }
-
-        var control =
-            event.target instanceof Element
-                ? event.target.closest(
-                    TOGGLE_SELECTOR
-                )
-                : null;
-
-        if (!control) {
-            return;
-        }
-
-        clearTemporaryStyles();
-
-        startState =
-            readState();
-    }
-
-    function animateToNewLayout() {
-        if (
-            window.innerWidth < 992 ||
-            !root ||
-            !startState
-        ) {
-            return;
-        }
-
-        var token =
-            ++animationToken;
-
-        /*
-         * At this point the collapsed class has changed and
-         * the browser already knows the final target geometry.
-         */
-        var targetState =
-            readState();
-
-        if (!targetState) {
-            return;
-        }
-
-        var widthDifference =
-            Math.abs(
-                targetState.width -
-                startState.width
-            );
-
-        var marginDifference =
-            Math.abs(
-                targetState.marginLeft -
-                startState.marginLeft
-            );
-
-        if (
-            widthDifference < 1 &&
-            marginDifference < 1
-        ) {
-            startState = null;
-            return;
-        }
-
-        html.classList.add(
-            ACTIVE_CLASS
-        );
-
-        /*
-         * Freeze the Reservations page at its exact pre-click
-         * geometry. This reverses the one-frame layout jump.
-         */
-        root.style.setProperty(
-            'transition',
-            'none',
-            'important'
-        );
-
-        root.style.setProperty(
-            'width',
-            startState.width + 'px',
-            'important'
-        );
-
-        root.style.setProperty(
-            'margin-left',
-            startState.marginLeft + 'px',
-            'important'
-        );
-
-        root.style.setProperty(
-            'margin-right',
-            startState.marginRight + 'px',
-            'important'
-        );
-
-        root.style.setProperty(
-            'will-change',
-            'width, margin-left, margin-right',
-            'important'
-        );
-
-        /*
-         * Force the frozen starting layout to render.
-         */
-        void root.offsetWidth;
-
-        window.requestAnimationFrame(
-            function () {
-                if (
-                    token !==
-                    animationToken
-                ) {
-                    return;
-                }
-
-                root.style.setProperty(
-                    'transition',
-                    [
-                        'width ' +
-                            DURATION +
-                            'ms ' +
-                            EASING,
-
-                        'margin-left ' +
-                            DURATION +
-                            'ms ' +
-                            EASING,
-
-                        'margin-right ' +
-                            DURATION +
-                            'ms ' +
-                            EASING
-                    ].join(', '),
-                    'important'
-                );
-
-                /*
-                 * Animate to the real dimensions belonging to
-                 * the new expanded/collapsed Sidebar state.
-                 */
-                root.style.setProperty(
-                    'width',
-                    targetState.width + 'px',
-                    'important'
-                );
-
-                root.style.setProperty(
-                    'margin-left',
-                    targetState.marginLeft + 'px',
-                    'important'
-                );
-
-                root.style.setProperty(
-                    'margin-right',
-                    targetState.marginRight + 'px',
-                    'important'
-                );
-
-                cleanupTimer =
-                    window.setTimeout(
-                        function () {
-                            if (
-                                token !==
-                                animationToken
-                            ) {
-                                return;
-                            }
-
-                            clearTemporaryStyles();
-
-                            startState = null;
-                        },
-                        DURATION + 80
-                    );
-            }
-        );
-
-        window.PMD_R2_WIDTH_REFLOW_V44_1_RESULT = {
-            startWidth:
-                Math.round(
-                    startState.width
-                ),
-
-            targetWidth:
-                Math.round(
-                    targetState.width
-                ),
-
-            startMarginLeft:
-                Math.round(
-                    startState.marginLeft
-                ),
-
-            targetMarginLeft:
-                Math.round(
-                    targetState.marginLeft
-                ),
-
-            duration:
-                DURATION,
-
-            animated:
-                true
-        };
-    }
-
-    function boot() {
-        root =
-            document.getElementById(
-                ROOT_ID
-            );
-
-        sidebar =
-            document.getElementById(
-                SIDEBAR_ID
-            );
-
-        toggle =
-            sidebar
-                ? sidebar.querySelector(
-                    TOGGLE_SELECTOR
-                )
-                : document.querySelector(
-                    TOGGLE_SELECTOR
-                );
-
-        if (
-            !root ||
-            !sidebar ||
-            !toggle
-        ) {
-            console.warn(
-                '[PMD V44.1] Required element missing.',
-                {
-                    root:
-                        Boolean(root),
-
-                    sidebar:
-                        Boolean(sidebar),
-
-                    toggle:
-                        Boolean(toggle)
-                }
-            );
-
-            return;
-        }
-
-        /*
-         * Capture-phase click runs before the Sidebar runtime
-         * changes pmd-sm2-collapsed.
-         */
-        document.addEventListener(
-            'click',
-            captureBeforeChange,
-            true
-        );
-
-        var previousCollapsed =
-            html.classList.contains(
-                'pmd-sm2-collapsed'
-            );
-
-        var observer =
-            new MutationObserver(
-                function () {
-                    var currentCollapsed =
-                        html.classList.contains(
-                            'pmd-sm2-collapsed'
-                        );
-
-                    if (
-                        currentCollapsed ===
-                        previousCollapsed
-                    ) {
-                        return;
-                    }
-
-                    previousCollapsed =
-                        currentCollapsed;
-
-                    window.requestAnimationFrame(
-                        animateToNewLayout
-                    );
-                }
-            );
-
-        observer.observe(
-            html,
-            {
-                attributes: true,
-                attributeFilter: [
-                    'class'
-                ]
-            }
         );
 
         window.addEventListener(
             'resize',
-            clearTemporaryStyles
-        );
-
-        window.PMD_R2_WIDTH_REFLOW_V44_1 = {
-            clear:
-                clearTemporaryStyles,
-
-            root:
-                root,
-
-            sidebar:
-                sidebar
-        };
-
-        console.log(
-            '[PMD V44.1] Full Reservations width reflow active.'
-        );
-    }
-
-    if (
-        document.readyState ===
-        'loading'
-    ) {
-        document.addEventListener(
-            'DOMContentLoaded',
-            boot,
-            {
-                once: true
-            }
-        );
-    } else {
-        boot();
-    }
-})();
-</script>
-{{-- PMD_R2_WIDTH_REFLOW_V44_1_END --}}
-
-
-{{-- PMD_R2_DATE_TO_CARDS_HEAD_V45_BEGIN --}}
-<style id="pmd-r2-date-to-cards-head-v45-style">
-    /*
-     * PMD V45
-     *
-     * Moves the existing Date Range button into the
-     * Reservation Cards header.
-     *
-     * The real button is moved; it is not cloned.
-     */
-
-    #pmd-reservations2
-    .pmd-r2-reservation-cards-v320__head {
-        display: flex !important;
-        align-items: center !important;
-        justify-content: flex-start !important;
-        gap: 12px !important;
-        flex-wrap: wrap !important;
-    }
-
-    #pmd-reservations2
-    #pmd-r2-date-cards-host-v45 {
-        display: flex !important;
-        align-items: center !important;
-
-        margin-left: auto !important;
-
-        min-width: 0 !important;
-
-        order: 2 !important;
-    }
-
-    #pmd-reservations2
-    #pmd-r2-date-cards-host-v45
-    #pmd-r2-date-button-v430 {
-        display: inline-flex !important;
-        align-items: center !important;
-        justify-content: center !important;
-        gap: 8px !important;
-
-        width: auto !important;
-        max-width: min(100%, 330px) !important;
-        min-width: 0 !important;
-
-        margin: 0 !important;
-
-        order: initial !important;
-
-        white-space: nowrap !important;
-    }
-
-    #pmd-reservations2
-    #pmd-r2-date-cards-host-v45
-    #pmd-r2-date-button-v430 > span {
-        min-width: 0 !important;
-        overflow: hidden !important;
-        text-overflow: ellipsis !important;
-        white-space: nowrap !important;
-    }
-
-    #pmd-reservations2
-    #pmd-r2-date-cards-host-v45
-    #pmd-r2-date-button-v430 > svg {
-        flex: 0 0 auto !important;
-    }
-
-    #pmd-reservations2
-    .pmd-r2-reservation-cards-v320__head
-    > button[data-r2-show-all] {
-        order: 3 !important;
-    }
-
-    @media (max-width: 760px) {
-        #pmd-reservations2
-        #pmd-r2-date-cards-host-v45 {
-            width: 100% !important;
-            margin-left: 0 !important;
-        }
-
-        #pmd-reservations2
-        #pmd-r2-date-cards-host-v45
-        #pmd-r2-date-button-v430 {
-            width: 100% !important;
-            max-width: none !important;
-        }
-    }
-</style>
-
-<script id="pmd-r2-date-to-cards-head-v45-script">
-(function () {
-    'use strict';
-
-    var ROOT_ID =
-        'pmd-reservations2';
-
-    var BUTTON_ID =
-        'pmd-r2-date-button-v430';
-
-    var HOST_ID =
-        'pmd-r2-date-cards-host-v45';
-
-    var HEAD_SELECTOR =
-        '.pmd-r2-reservation-cards-v320__head';
-
-    var root = null;
-
-    function apply() {
-        root =
-            document.getElementById(
-                ROOT_ID
-            );
-
-        var button =
-            document.getElementById(
-                BUTTON_ID
-            );
-
-        var head =
-            root
-                ? root.querySelector(
-                    HEAD_SELECTOR
-                )
-                : null;
-
-        if (
-            !root ||
-            !button ||
-            !head
-        ) {
-            window.PMD_R2_DATE_TO_CARDS_HEAD_V45_RESULT = {
-                rootFound:
-                    Boolean(root),
-
-                buttonFound:
-                    Boolean(button),
-
-                cardsHeadFound:
-                    Boolean(head),
-
-                moved:
-                    false
-            };
-
-            return false;
-        }
-
-        var host =
-            document.getElementById(
-                HOST_ID
-            );
-
-        if (
-            !host ||
-            host.parentElement !== head
-        ) {
-            host =
-                document.createElement(
-                    'div'
-                );
-
-            host.id =
-                HOST_ID;
-
-            host.setAttribute(
-                'data-pmd-r2-date-host',
-                'v45'
-            );
-
-            /*
-             * Keep the hidden Show All button in its original
-             * position and insert Date Range immediately before it.
-             */
-            var showAll =
-                head.querySelector(
-                    ':scope > button[data-r2-show-all]'
-                );
-
-            if (showAll) {
-                head.insertBefore(
-                    host,
-                    showAll
-                );
-            } else {
-                head.appendChild(
-                    host
-                );
-            }
-        }
-
-        if (
-            button.parentElement !== host
-        ) {
-            host.appendChild(
-                button
-            );
-        }
-
-        /*
-         * Remove old Header-specific inline ordering.
-         * Visibility attributes remain untouched.
-         */
-        button.style.removeProperty(
-            'order'
-        );
-
-        window.PMD_R2_DATE_TO_CARDS_HEAD_V45_RESULT = {
-            rootFound:
-                true,
-
-            buttonFound:
-                true,
-
-            cardsHeadFound:
-                true,
-
-            hostFound:
-                true,
-
-            moved:
-                button.parentElement === host,
-
-            buttonParentId:
-                button.parentElement
-                    ? button.parentElement.id
-                    : null,
-
-            buttonText:
-                String(
-                    button.textContent || ''
-                )
-                    .replace(/\s+/g, ' ')
-                    .trim(),
-
-            panelId:
-                button.getAttribute(
-                    'aria-controls'
-                )
-        };
-
-        return true;
-    }
-
-    function schedule() {
-        [
-            0,
-            40,
-            100,
-            200,
-            400,
-            700,
-            1100
-        ].forEach(function (delay) {
-            window.setTimeout(
-                apply,
-                delay
-            );
-        });
-    }
-
-    function boot() {
-        root =
-            document.getElementById(
-                ROOT_ID
-            );
-
-        if (!root) {
-            console.warn(
-                '[PMD V45] Reservations Root not found.'
-            );
-
-            return;
-        }
-
-        schedule();
-
-        root.addEventListener(
-            'click',
-            schedule,
-            true
-        );
-
-        root.addEventListener(
-            'change',
-            schedule,
-            true
-        );
-
-        window.addEventListener(
-            'pageshow',
             schedule
         );
 
-        window.PMD_R2_APPLY_DATE_TO_CARDS_HEAD_V45 =
+        window.PMD_R2_APPLY_GLOBAL_BOTTOM_V38_4 =
             apply;
 
+        window.PMD_R2_CLEAR_GLOBAL_BOTTOM_V38_4 =
+            clearOwnHeight;
+
         console.log(
-            '[PMD V45] Date Range moved to Cards header.'
+            '[PMD V38.4.1] Local-coordinate global bottom active.'
         );
     }
 
@@ -4100,149 +3415,7 @@ body {
     }
 })();
 </script>
-{{-- PMD_R2_DATE_TO_CARDS_HEAD_V45_END --}}
-
-
-{{-- PMD_R2_DATE_CANONICAL_CARDS_V45_3_BEGIN --}}
-<style id="pmd-r2-date-canonical-cards-v45-3-style">
-    /*
-     * Cards Header is now the canonical location.
-     * No MutationObserver and no runtime DOM fight.
-     */
-
-    #pmd-reservations2
-    #pmd-r2-date-cards-host-v45 {
-        pointer-events: auto !important;
-        position: relative !important;
-        z-index: 20 !important;
-    }
-
-    #pmd-reservations2
-    #pmd-r2-date-cards-host-v45
-    > #pmd-r2-date-button-v430 {
-        pointer-events: auto !important;
-        cursor: pointer !important;
-        position: relative !important;
-        z-index: 21 !important;
-    }
-</style>
-
-<script id="pmd-r2-date-canonical-cards-v45-3-script">
-(function () {
-    'use strict';
-
-    function audit() {
-        var root =
-            document.getElementById(
-                'pmd-reservations2'
-            );
-
-        var head =
-            root
-                ? root.querySelector(
-                    '.pmd-r2-reservation-cards-v320__head'
-                )
-                : null;
-
-        var host =
-            document.getElementById(
-                'pmd-r2-date-cards-host-v45'
-            );
-
-        var button =
-            document.getElementById(
-                'pmd-r2-date-button-v430'
-            );
-
-        var panel =
-            document.getElementById(
-                'pmd-r2-date-panel-v318'
-            );
-
-        window.PMD_R2_DATE_CANONICAL_CARDS_V45_3_RESULT = {
-            rootFound:
-                Boolean(root),
-
-            headFound:
-                Boolean(head),
-
-            hostFound:
-                Boolean(host),
-
-            buttonFound:
-                Boolean(button),
-
-            buttonInHost:
-                Boolean(
-                    button &&
-                    host &&
-                    button.parentElement === host
-                ),
-
-            cardsHeadContainsButton:
-                Boolean(
-                    head &&
-                    button &&
-                    head.contains(button)
-                ),
-
-            topHeaderContainsButton:
-                Boolean(
-                    button &&
-                    document
-                        .querySelector(
-                            '#pmd-r2-clean-header'
-                        )
-                        ?.contains(button)
-                ),
-
-            panelFound:
-                Boolean(panel),
-
-            pointerEvents:
-                button
-                    ? getComputedStyle(button)
-                        .pointerEvents
-                    : null,
-
-            authority:
-                button
-                    ? button.getAttribute(
-                        'data-pmd-date-button-authority'
-                    )
-                    : null,
-
-            ariaControls:
-                button
-                    ? button.getAttribute(
-                        'aria-controls'
-                    )
-                    : null
-        };
-
-        return window
-            .PMD_R2_DATE_CANONICAL_CARDS_V45_3_RESULT;
-    }
-
-    window.setTimeout(audit, 100);
-    window.setTimeout(audit, 500);
-    window.setTimeout(audit, 1200);
-
-    window.PMD_R2_AUDIT_DATE_CANONICAL_V45_3 =
-        audit;
-
-    console.log(
-        '[PMD V45.3] Cards Header is the canonical Date Button location.'
-    );
-})();
-</script>
-{{-- PMD_R2_DATE_CANONICAL_CARDS_V45_3_END --}}
-
-
-
-
-
-
+{{-- PMD_R2_GLOBAL_BOTTOM_V38_4_END --}}
 
 
 

@@ -324,24 +324,8 @@ class Reservations2 extends Reservations
 
         $startedAt = microtime(true);
 
-        /*
-         * PMD_RESERVATIONS_N1_FIX_V22
-         *
-         * The old collection was passed directly to Blade @json().
-         * During serialization, every reservation lazily loaded:
-         * location, location options, tables, status and location media.
-         *
-         * Eager-load only the data required by the Reservations UI and
-         * convert every model to a compact plain payload without serializing
-         * the complete Location model.
-         */
-        $reservations =
+        $this->vars['pmdReservations2'] =
             Reservations_model::query()
-                ->with([
-                    'location.all_options',
-                    'tables',
-                    'status',
-                ])
                 ->orderBy(
                     'reservation_id',
                     'desc'
@@ -350,82 +334,6 @@ class Reservations2 extends Reservations
                 ->orderBy('reserve_time')
                 ->limit(1500)
                 ->get();
-
-        $this->vars['pmdReservations2'] =
-            $reservations
-                ->map(function ($reservation) {
-                    /*
-                     * attributesToArray() contains the model's casts and
-                     * appended attributes, but does not serialize complete
-                     * loaded relations.
-                     *
-                     * Because the relations above are already loaded,
-                     * duration, table_name and status_name cause no N+1.
-                     */
-                    $payload =
-                        $reservation
-                            ->attributesToArray();
-
-                    $payload['tables'] =
-                        $reservation
-                            ->tables
-                            ->map(function ($table) {
-                                return [
-                                    'table_id' =>
-                                        (int)$table->table_id,
-
-                                    'table_name' =>
-                                        $table->table_name,
-
-                                    'table_number' =>
-                                        $table->table_name,
-
-                                    'name' =>
-                                        $table->table_name,
-                                ];
-                            })
-                            ->values()
-                            ->all();
-
-                    $payload['status'] =
-                        $reservation->status
-                            ? [
-                                'status_id' =>
-                                    (int)$reservation
-                                        ->status
-                                        ->status_id,
-
-                                'status_name' =>
-                                    $reservation
-                                        ->status
-                                        ->status_name,
-
-                                'status_color' =>
-                                    $reservation
-                                        ->status
-                                        ->status_color,
-                            ]
-                            : null;
-
-                    $payload['location'] =
-                        $reservation->location
-                            ? [
-                                'location_id' =>
-                                    (int)$reservation
-                                        ->location
-                                        ->location_id,
-
-                                'location_name' =>
-                                    $reservation
-                                        ->location
-                                        ->location_name,
-                            ]
-                            : null;
-
-                    return $payload;
-                })
-                ->values()
-                ->all();
 
         $this->pmdProfileStage(
             'index.reservations_query',

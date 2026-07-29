@@ -1,0 +1,13 @@
+1|app/admin/controllers/Reservations2.php
+1|app/admin/classes/AdminController.php
+1|app/admin/views/reservations2/index.blade.php
+1|app/admin/assets/js/pmd-reservations2-floor-toolbar-v316.js
+1|app/admin/assets/js/pmd-mediafinder-autofix.js
+1|app/admin/widgets/Lists.php
+0|app/admin/assets/src/js/vendor/moment.min.js
+0|app/admin/dashboardwidgets/charts/assets/vendor/daterange/daterangepicker.js
+0|app/admin/dashboardwidgets/charts/assets/vendor/daterange/daterangepicker.css
+0|app/admin/formwidgets/repeater/assets/vendor/sortablejs/Sortable.min.js
+0|app/admin/formwidgets/repeater/assets/vendor/sortablejs/jquery-sortable.js
+0|app/admin/assets/css/pmd-reservations-waiter-cards-v1.css
+0|app/admin/assets/js/pmd-reservations-waiter-cards-v1.js

@@ -83,17 +83,14 @@
     var calendar = document.getElementById('pmd-r2-calendar-toggle-v1');
     var date = document.getElementById('pmd-r2-date-button-v430');
 
-    /* PMD_DATE_CARDS_CANONICAL_V45_3_BEGIN */
-    [calendar, create, notification].forEach(function (element) {
+    [date, calendar, create, notification].forEach(function (element) {
       if (element && element.parentElement !== actions) actions.appendChild(element);
     });
-    /* Date Button intentionally remains inside the Reservations Cards header. */
-    /* PMD_DATE_CARDS_CANONICAL_V45_3_END */
 
     if (date) {
       date.hidden = false;
       date.setAttribute('aria-label', 'Reservation date range');
-      date.style.removeProperty('order');
+      date.style.order = '1';
     }
     if (calendar) calendar.style.order = '2';
     if (create) create.style.order = '3';

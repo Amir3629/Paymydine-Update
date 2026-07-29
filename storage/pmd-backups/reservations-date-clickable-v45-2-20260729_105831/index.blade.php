@@ -4103,142 +4103,369 @@ body {
 {{-- PMD_R2_DATE_TO_CARDS_HEAD_V45_END --}}
 
 
-{{-- PMD_R2_DATE_CANONICAL_CARDS_V45_3_BEGIN --}}
-<style id="pmd-r2-date-canonical-cards-v45-3-style">
+{{-- PMD_R2_DATE_HOST_LOCK_V45_1_BEGIN --}}
+<style id="pmd-r2-date-host-lock-v45-1-style">
     /*
-     * Cards Header is now the canonical location.
-     * No MutationObserver and no runtime DOM fight.
+     * Keep the actual Date Range control inside the Cards header.
+     * No duplicate button is created.
      */
 
     #pmd-reservations2
+    .pmd-r2-reservation-cards-v320__head {
+        display: flex !important;
+        align-items: center !important;
+        gap: 12px !important;
+    }
+
+    #pmd-reservations2
     #pmd-r2-date-cards-host-v45 {
-        pointer-events: auto !important;
-        position: relative !important;
-        z-index: 20 !important;
+        display: flex !important;
+        align-items: center !important;
+        justify-content: flex-end !important;
+
+        margin-left: auto !important;
+
+        order: 2 !important;
     }
 
     #pmd-reservations2
     #pmd-r2-date-cards-host-v45
     > #pmd-r2-date-button-v430 {
-        pointer-events: auto !important;
-        cursor: pointer !important;
-        position: relative !important;
-        z-index: 21 !important;
+        display: inline-flex !important;
+        visibility: visible !important;
+        opacity: 1 !important;
+
+        margin: 0 !important;
+        order: initial !important;
     }
 </style>
 
-<script id="pmd-r2-date-canonical-cards-v45-3-script">
+<script id="pmd-r2-date-host-lock-v45-1-script">
 (function () {
     'use strict';
 
-    function audit() {
-        var root =
-            document.getElementById(
-                'pmd-reservations2'
+    var ROOT_ID =
+        'pmd-reservations2';
+
+    var BUTTON_ID =
+        'pmd-r2-date-button-v430';
+
+    var HOST_ID =
+        'pmd-r2-date-cards-host-v45';
+
+    var HEAD_SELECTOR =
+        '.pmd-r2-reservation-cards-v320__head';
+
+    var observer = null;
+    var applying = false;
+    var applyCount = 0;
+
+    function ensureHost(root) {
+        var head =
+            root.querySelector(
+                HEAD_SELECTOR
             );
 
-        var head =
-            root
-                ? root.querySelector(
-                    '.pmd-r2-reservation-cards-v320__head'
-                )
-                : null;
+        if (!head) {
+            return null;
+        }
 
         var host =
             document.getElementById(
-                'pmd-r2-date-cards-host-v45'
+                HOST_ID
             );
 
-        var button =
-            document.getElementById(
-                'pmd-r2-date-button-v430'
+        if (
+            !host ||
+            host.parentElement !== head
+        ) {
+            if (host) {
+                host.remove();
+            }
+
+            host =
+                document.createElement(
+                    'div'
+                );
+
+            host.id =
+                HOST_ID;
+
+            host.setAttribute(
+                'data-pmd-r2-date-host',
+                'v45'
             );
 
-        var panel =
-            document.getElementById(
-                'pmd-r2-date-panel-v318'
-            );
+            var showAll =
+                head.querySelector(
+                    ':scope > button[data-r2-show-all]'
+                );
 
-        window.PMD_R2_DATE_CANONICAL_CARDS_V45_3_RESULT = {
-            rootFound:
-                Boolean(root),
+            if (showAll) {
+                head.insertBefore(
+                    host,
+                    showAll
+                );
+            } else {
+                head.appendChild(
+                    host
+                );
+            }
+        }
 
-            headFound:
-                Boolean(head),
-
-            hostFound:
-                Boolean(host),
-
-            buttonFound:
-                Boolean(button),
-
-            buttonInHost:
-                Boolean(
-                    button &&
-                    host &&
-                    button.parentElement === host
-                ),
-
-            cardsHeadContainsButton:
-                Boolean(
-                    head &&
-                    button &&
-                    head.contains(button)
-                ),
-
-            topHeaderContainsButton:
-                Boolean(
-                    button &&
-                    document
-                        .querySelector(
-                            '#pmd-r2-clean-header'
-                        )
-                        ?.contains(button)
-                ),
-
-            panelFound:
-                Boolean(panel),
-
-            pointerEvents:
-                button
-                    ? getComputedStyle(button)
-                        .pointerEvents
-                    : null,
-
-            authority:
-                button
-                    ? button.getAttribute(
-                        'data-pmd-date-button-authority'
-                    )
-                    : null,
-
-            ariaControls:
-                button
-                    ? button.getAttribute(
-                        'aria-controls'
-                    )
-                    : null
-        };
-
-        return window
-            .PMD_R2_DATE_CANONICAL_CARDS_V45_3_RESULT;
+        return host;
     }
 
-    window.setTimeout(audit, 100);
-    window.setTimeout(audit, 500);
-    window.setTimeout(audit, 1200);
+    function apply() {
+        if (applying) {
+            return false;
+        }
 
-    window.PMD_R2_AUDIT_DATE_CANONICAL_V45_3 =
-        audit;
+        applying = true;
 
-    console.log(
-        '[PMD V45.3] Cards Header is the canonical Date Button location.'
-    );
+        try {
+            var root =
+                document.getElementById(
+                    ROOT_ID
+                );
+
+            var button =
+                document.getElementById(
+                    BUTTON_ID
+                );
+
+            if (
+                !root ||
+                !button
+            ) {
+                window.PMD_R2_DATE_HOST_LOCK_V45_1_RESULT = {
+                    rootFound:
+                        Boolean(root),
+
+                    buttonFound:
+                        Boolean(button),
+
+                    hostFound:
+                        false,
+
+                    locked:
+                        false
+                };
+
+                return false;
+            }
+
+            var host =
+                ensureHost(root);
+
+            if (!host) {
+                window.PMD_R2_DATE_HOST_LOCK_V45_1_RESULT = {
+                    rootFound:
+                        true,
+
+                    buttonFound:
+                        true,
+
+                    hostFound:
+                        false,
+
+                    locked:
+                        false
+                };
+
+                return false;
+            }
+
+            if (
+                button.parentElement !== host
+            ) {
+                host.appendChild(
+                    button
+                );
+
+                applyCount += 1;
+            }
+
+            button.style.removeProperty(
+                'order'
+            );
+
+            window.PMD_R2_DATE_HOST_LOCK_V45_1_RESULT = {
+                rootFound:
+                    true,
+
+                buttonFound:
+                    true,
+
+                hostFound:
+                    true,
+
+                locked:
+                    button.parentElement === host,
+
+                buttonParentId:
+                    button.parentElement
+                        ? button.parentElement.id
+                        : null,
+
+                cardsHeadContainsButton:
+                    Boolean(
+                        root.querySelector(
+                            HEAD_SELECTOR
+                        )?.contains(button)
+                    ),
+
+                applyCount:
+                    applyCount,
+
+                authority:
+                    button.getAttribute(
+                        'data-pmd-date-button-authority'
+                    ),
+
+                panelId:
+                    button.getAttribute(
+                        'aria-controls'
+                    )
+            };
+
+            return true;
+        } finally {
+            applying = false;
+        }
+    }
+
+    function schedule() {
+        [
+            0,
+            20,
+            60,
+            120,
+            250,
+            500,
+            900,
+            1500
+        ].forEach(function (delay) {
+            window.setTimeout(
+                apply,
+                delay
+            );
+        });
+    }
+
+    function boot() {
+        var root =
+            document.getElementById(
+                ROOT_ID
+            );
+
+        if (!root) {
+            console.warn(
+                '[PMD V45.1] Reservations Root not found.'
+            );
+
+            return;
+        }
+
+        schedule();
+
+        /*
+         * bridge-v454 moves the same button back to the top
+         * header after page initialization. Observe only DOM
+         * child movement and restore the button to the Cards host.
+         */
+        observer =
+            new MutationObserver(
+                function (mutations) {
+                    var button =
+                        document.getElementById(
+                            BUTTON_ID
+                        );
+
+                    var host =
+                        document.getElementById(
+                            HOST_ID
+                        );
+
+                    if (
+                        !button ||
+                        !host
+                    ) {
+                        schedule();
+                        return;
+                    }
+
+                    if (
+                        button.parentElement !== host
+                    ) {
+                        window.requestAnimationFrame(
+                            apply
+                        );
+                    }
+                }
+            );
+
+        observer.observe(
+            document.body,
+            {
+                childList: true,
+                subtree: true
+            }
+        );
+
+        root.addEventListener(
+            'click',
+            schedule,
+            true
+        );
+
+        root.addEventListener(
+            'change',
+            schedule,
+            true
+        );
+
+        window.addEventListener(
+            'pageshow',
+            schedule
+        );
+
+        window.PMD_R2_DATE_HOST_LOCK_V45_1 = {
+            apply:
+                apply,
+
+            schedule:
+                schedule,
+
+            disconnect:
+                function () {
+                    if (observer) {
+                        observer.disconnect();
+                    }
+                }
+        };
+
+        console.log(
+            '[PMD V45.1] Date button locked inside Cards header.'
+        );
+    }
+
+    if (
+        document.readyState === 'loading'
+    ) {
+        document.addEventListener(
+            'DOMContentLoaded',
+            boot,
+            {
+                once: true
+            }
+        );
+    } else {
+        boot();
+    }
 })();
 </script>
-{{-- PMD_R2_DATE_CANONICAL_CARDS_V45_3_END --}}
-
-
+{{-- PMD_R2_DATE_HOST_LOCK_V45_1_END --}}
 
 
 
