@@ -2065,15 +2065,25 @@
         ? state.rowScale
         : state.fullFloorZoom;
 
-      canvas.style.transform =
-        'scale(' +
-        state.zoom +
-        ')';
+      /*
+       * One Row owns unscaled, deterministic geometry. Removing the
+       * transform (rather than applying scale(1)) also prevents a saved
+       * Full Floor transform from surviving the mode switch.
+       */
+      canvas.style.transform = state.stripMode
+        ? 'none'
+        : (
+          'scale(' +
+          state.fullFloorZoom +
+          ')'
+        );
 
       canvas.parentElement
         .style.setProperty(
           '--floor-zoom',
-          state.zoom
+          state.stripMode
+            ? state.rowScale
+            : state.fullFloorZoom
         );
     }
 
@@ -2754,13 +2764,6 @@ function saveLayout() {
       );
 
       refreshFloorIcons();
-
-      window.requestAnimationFrame(
-        function () {
-          applyAreaFilter();
-          calibrateOneRow();
-        }
-      );
     }
 
     function setStripMode(value) {
@@ -2865,11 +2868,7 @@ function saveLayout() {
 
       updateStripButton();
       render();
-
-      window.setTimeout(
-        fit,
-        0
-      );
+      fit();
 
       toast(
         state.stripMode
@@ -5371,12 +5370,7 @@ function saveLayout() {
     function refreshAreaAndStripLayout() {
       renderAreaTabs();
       applyAreaFilter();
-
-      window.requestAnimationFrame(
-        function () {
-          calibrateOneRow();
-        }
-      );
+      calibrateOneRow();
     }
 
     function ensureSecondaryToolbar() {

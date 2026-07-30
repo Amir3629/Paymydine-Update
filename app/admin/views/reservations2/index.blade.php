@@ -689,6 +689,9 @@ window.PMD_RESERVATIONS2_BOOT = {
 (function () {
   'use strict';
 
+  // D2.1: V464 is the sole owner of the real five-button Floor toolbar.
+  return;
+
   var ROOT_ID = 'pmd-reservations2';
   var FLOOR_ID = 'pmd-r2-shared-floor-canvas-v310';
   var HOST_ID = 'pmd-r2-floor-toolbar-host-v464';
@@ -1020,6 +1023,9 @@ body {
 <script>
 (function () {
     'use strict';
+
+    // D2.1: the Floor engine renders canonical One Row geometry atomically.
+    return;
 
     var root = document.querySelector(
         '[data-pmd-floor]'
@@ -1561,6 +1567,9 @@ body {
 <script id="pmd-r2-proven-body-toolbar-v34-1-script">
 (function () {
   'use strict';
+
+  // D2.1: do not create a duplicate body-level proxy toolbar.
+  return;
 
   var FLOOR_ID =
     'pmd-r2-shared-floor-canvas-v310';
