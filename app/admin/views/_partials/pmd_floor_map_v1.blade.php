@@ -6,11 +6,17 @@
     $layoutUrl = $layoutUrl ?? admin_url('pmd-owner-dashboard-floor-layout');
     $stateUrl = $stateUrl ?? admin_url('pmd-floor-v1/state');
     $orderUrl = $orderUrl ?? admin_url('waiter-pos/{table}');
+    $viewPreference = is_array($viewPreference ?? null) ? $viewPreference : [];
+    $viewMode = ($viewPreference['layout_mode'] ?? 'full') === 'row' ? 'row' : 'full';
+    $viewZoom = is_numeric($viewPreference['full_floor_zoom'] ?? null)
+        ? max(0.4, min(1.6, (float)$viewPreference['full_floor_zoom']))
+        : 1.0;
+    $viewPreferenceUrl = $viewPreferenceUrl ?? '';
 @endphp
 
 <section
     id="{{ $floorId }}"
-    class="pmd-floor-v1"
+    class="pmd-floor-v1{{ $viewMode === 'row' ? ' is-strip-mode' : '' }}"
     data-pmd-floor
     data-size="{{ $floorSize }}"
     data-mode="{{ $floorMode }}"
@@ -18,6 +24,10 @@
     data-layout-url="{{ $layoutUrl }}"
     data-state-url="{{ $stateUrl }}"
     data-order-url="{{ $orderUrl }}"
+    data-floor-view-id="{{ $viewPreference['floor_id'] ?? 'main-floor' }}"
+    data-floor-view-mode="{{ $viewMode }}"
+    data-floor-full-zoom="{{ $viewZoom }}"
+    data-floor-view-url="{{ $viewPreferenceUrl }}"
     aria-busy="true"
 >
     <header class="pmd-floor-v1__header">

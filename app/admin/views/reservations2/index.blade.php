@@ -143,7 +143,8 @@ window.PMD_RESERVATIONS2_BOOT = {
     route: '/admin/reservations2',
     reservations: @json($pmdReservations2 ?? []),
     createUrl: '{{ admin_url('reservations/create') }}',
-    editBaseUrl: '{{ admin_url('reservations/edit') }}'
+    editBaseUrl: '{{ admin_url('reservations/edit') }}',
+    canceledStatusId: {{ (int)setting('canceled_reservation_status') }}
 };
 </script>
 
@@ -190,6 +191,12 @@ window.PMD_RESERVATIONS2_BOOT = {
         'orderUrl' => admin_url(
             'waiter-pos/{table}'
         ),
+        'viewPreference' => $pmdFloorView ?? [
+            'floor_id' => 'main-floor',
+            'layout_mode' => 'full',
+            'full_floor_zoom' => 1.0,
+        ],
+        'viewPreferenceUrl' => admin_url('reservations2'),
     ])
 
     <!-- PMD_R2_SHARED_FLOOR_CANVAS_V310_END -->
@@ -432,7 +439,7 @@ window.PMD_RESERVATIONS2_BOOT = {
 >
 
 <script
-  src="/app/admin/assets/js/pmd-floor-v1.js?v=safe-v3-20260727_122329"
+  src="/app/admin/assets/js/pmd-floor-v1.js?v=20260729_d1-auth-v1"
   defer
 ></script>
 <script
@@ -520,7 +527,7 @@ window.PMD_RESERVATIONS2_BOOT = {
 >
 
 <script
-    src="/app/admin/assets/js/pmd-reservations2-kpis-v307.js?v=20260722_120725"
+    src="/app/admin/assets/js/pmd-reservations2-kpis-v307.js?v=20260729_b1-kpi-stable-v1"
     defer
 ></script>
 
@@ -598,6 +605,7 @@ window.PMD_RESERVATIONS2_BOOT = {
     outline: 0 !important;
   }
 
+  /* PMD-specific specificity is required to override the legacy toolbar skin above. */
   #pmd-r2-toolbar-above-floor-shell-v292
   #pmd-r2-floor-toolbar-v316 {
     display: inline-flex !important;
@@ -651,6 +659,13 @@ window.PMD_RESERVATIONS2_BOOT = {
     background: #f7fafc !important;
   }
 
+  #pmd-r2-toolbar-above-floor-shell-v292
+  .pmd-r2-floor-tool-v316 > svg {
+    width: 19px !important;
+    height: 19px !important;
+    flex: 0 0 19px !important;
+  }
+
   @media (max-width: 900px) {
     #pmd-r2-toolbar-above-floor-shell-v292 {
       gap: 5px !important;
@@ -668,7 +683,7 @@ window.PMD_RESERVATIONS2_BOOT = {
 </style>
 
 <script defer
-        src="{{ asset('app/admin/assets/js/pmd-reservations2-floor-toolbar-v316.js') }}?v=pmd-lean-v17-20260728_201405"></script>
+        src="{{ asset('app/admin/assets/js/pmd-reservations2-floor-toolbar-v316.js') }}?v=20260729_d1-1-floor-colors-v1"></script>
 
 <script id="pmd-r2-toolbar-above-floor-v29-2-script">
 (function () {
@@ -784,15 +799,15 @@ window.PMD_RESERVATIONS2_BOOT = {
 
 <!-- PMD_R2_EMBEDDED_CALENDAR_TOGGLE_V1_START -->
 <script id="pmd-r2-stability-v3-early">document.documentElement.classList.add('pmd-r2-stability-v3-active');</script>
-<link rel="stylesheet" href="/app/admin/assets/css/pmd-reservations2-stability-v3.css?v=3.0.0-20260725_084550">
+<link rel="stylesheet" href="/app/admin/assets/css/pmd-reservations2-stability-v3.css?v=20260729_date-cards-v2">
 <link
   rel="stylesheet"
-  href="/app/admin/assets/css/pmd-reservations2-calendar-toggle-v1.css?v=20260728_181723"
+  href="/app/admin/assets/css/pmd-reservations2-calendar-toggle-v1.css?v=20260729_date-cards-v2"
 >
 <script
-  src="/app/admin/assets/js/pmd-reservations2-calendar-toggle-v1.js?v=20260728_182351"
+  src="/app/admin/assets/js/pmd-reservations2-calendar-toggle-v1.js?v=20260729_date-cards-v2"
 ></script>
-<script defer src="/app/admin/assets/js/pmd-reservations2-stability-v3.js?v=3.0.0-20260725_084550"></script>
+<script defer src="/app/admin/assets/js/pmd-reservations2-stability-v3.js?v=20260729_date-cards-v2"></script>
 <!-- PMD_R2_EMBEDDED_CALENDAR_TOGGLE_V1_END -->
 
 {{-- PMD_RESERVATIONS_CANONICAL_BROWSER_URL_V1_BEGIN --}}
@@ -1176,9 +1191,23 @@ body {
         var size =
             fullFloorDimensions();
 
+        var floorState =
+            root.__pmdFloorV1 &&
+            root.__pmdFloorV1.getState
+                ? root.__pmdFloorV1.getState()
+                : null;
+
+        var currentZoom =
+            floorState &&
+            Number.isFinite(
+                Number(floorState.zoom)
+            )
+                ? Number(floorState.zoom)
+                : 1;
+
         scroll.style.setProperty(
             '--floor-zoom',
-            '1'
+            String(currentZoom)
         );
 
         scroll.style.height =
@@ -1493,6 +1522,17 @@ body {
     transform: translateY(1px);
   }
 
+  /* PMD-specific: override the toolbar's forced inline-flex for state-hidden controls. */
+  #pmd-body-floor-toolbar-v341 > button[hidden] {
+    display: none !important;
+  }
+
+  #pmd-body-floor-toolbar-v341 > button > svg {
+    width: 17px;
+    height: 17px;
+    flex: 0 0 17px;
+  }
+
   #pmd-body-floor-toolbar-v341
   > button[aria-pressed="true"] {
     background: #eef6fb !important;
@@ -1542,20 +1582,16 @@ body {
     },
     {
       key: 'zoom-out',
-      en: '−',
-      de: '−',
+      en: 'Zoom out',
+      de: 'Verkleinern',
+      icon: 'minus',
       selector: '[data-floor-zoom-out]'
     },
     {
-      key: 'fit',
-      en: 'Full Floor',
-      de: 'Full Floor',
-      selector: '[data-floor-fit]'
-    },
-    {
       key: 'zoom-in',
-      en: '+',
-      de: '+',
+      en: 'Zoom in',
+      de: 'Vergrößern',
+      icon: 'plus',
       selector: '[data-floor-zoom-in]'
     },
     {
@@ -1570,6 +1606,23 @@ body {
     return String(
       document.documentElement.lang || ''
     ).toLowerCase().indexOf('de') === 0;
+  }
+
+  function zoomIcon(type) {
+    var operator = type === 'plus'
+      ? '<path d="M9 6.8v4.4M6.8 9h4.4" />'
+      : '<path d="M6.8 9h4.4" />';
+
+    return [
+      '<svg viewBox="0 0 18 18" fill="none" ',
+      'stroke="currentColor" stroke-width="1.8" ',
+      'stroke-linecap="round" stroke-linejoin="round" ',
+      'aria-hidden="true" focusable="false">',
+      '<circle cx="9" cy="9" r="5.5" />',
+      operator,
+      '<path d="m13.2 13.2 3.1 3.1" />',
+      '</svg>'
+    ].join('');
   }
 
   function getFloor() {
@@ -1672,6 +1725,127 @@ body {
           'aria-pressed'
         );
 
+      if (control.key === 'edit') {
+        var instance =
+          floor.__pmdFloorV1;
+
+        var floorState =
+          instance && instance.getState
+            ? instance.getState()
+            : null;
+
+        var editing = Boolean(
+          floorState && floorState.editing
+        );
+
+        var editLabel = isGerman()
+          ? 'Bearbeiten'
+          : 'Edit';
+
+        var saveLabel = isGerman()
+          ? 'Speichern'
+          : 'Save';
+
+        visibleButton.textContent =
+          editing
+            ? saveLabel
+            : editLabel;
+
+        visibleButton.setAttribute(
+          'aria-pressed',
+          editing ? 'true' : 'false'
+        );
+
+        visibleButton.setAttribute(
+          'aria-label',
+          editing
+            ? 'Save floor layout'
+            : 'Edit floor layout'
+        );
+
+        visibleButton.title =
+          editing
+            ? 'Save floor layout'
+            : 'Edit floor layout';
+
+        visibleButton.classList.toggle(
+          'is-active',
+          editing
+        );
+
+        visibleButton.disabled = Boolean(
+          floorState && floorState.saving
+        );
+
+        visibleButton.hidden = Boolean(
+          floorState && floorState.stripMode
+        );
+
+        visibleButton.tabIndex =
+          visibleButton.hidden ? -1 : 0;
+
+        visibleButton.setAttribute(
+          'aria-hidden',
+          visibleButton.hidden ? 'true' : 'false'
+        );
+
+        return;
+      }
+
+      if (control.key === 'strip') {
+        var modeInstance =
+          floor.__pmdFloorV1;
+
+        var modeState =
+          modeInstance && modeInstance.getState
+            ? modeInstance.getState()
+            : null;
+
+        var rowMode = Boolean(
+          modeState && modeState.stripMode
+        );
+
+        var modeLabel = rowMode
+          ? 'Full Floor'
+          : (isGerman() ? 'Eine Reihe' : 'One Row');
+
+        visibleButton.textContent = modeLabel;
+        visibleButton.setAttribute(
+          'aria-label',
+          modeLabel
+        );
+        visibleButton.title = modeLabel;
+        visibleButton.setAttribute(
+          'aria-pressed',
+          rowMode ? 'true' : 'false'
+        );
+      }
+
+      var floorInstance =
+        floor.__pmdFloorV1;
+
+      var currentState =
+        floorInstance && floorInstance.getState
+          ? floorInstance.getState()
+          : null;
+
+      var hiddenInRow = Boolean(
+        currentState &&
+        currentState.stripMode &&
+        (
+          control.key === 'edit' ||
+          control.key === 'zoom-out' ||
+          control.key === 'zoom-in'
+        )
+      );
+
+      visibleButton.hidden = hiddenInRow;
+      visibleButton.tabIndex = hiddenInRow ? -1 : 0;
+      visibleButton.setAttribute(
+        'aria-hidden',
+        hiddenInRow ? 'true' : 'false'
+      );
+
       if (pressed !== null) {
         visibleButton.setAttribute(
           'aria-pressed',
@@ -1712,10 +1886,23 @@ body {
 
       button.type = 'button';
 
-      button.textContent =
-        isGerman()
-          ? control.de
-          : control.en;
+      var label = isGerman()
+        ? control.de
+        : control.en;
+
+      if (control.icon) {
+        button.innerHTML =
+          zoomIcon(control.icon);
+
+        button.setAttribute(
+          'aria-label',
+          label
+        );
+
+        button.title = label;
+      } else {
+        button.textContent = label;
+      }
 
       button.setAttribute(
         'data-pmd-floor-action',
@@ -1725,6 +1912,44 @@ body {
       button.addEventListener(
         'click',
         function () {
+          if (control.key === 'edit') {
+            var instance =
+              floor.__pmdFloorV1;
+
+            if (
+              !instance ||
+              !instance.getState ||
+              !instance.setEditing ||
+              !instance.saveLayout
+            ) {
+              console.error(
+                '[PMD V34.1] Floor editor API unavailable'
+              );
+
+              return;
+            }
+
+            var editing = Boolean(
+              instance.getState().editing
+            );
+
+            if (!editing) {
+              instance.setEditing(true);
+              syncStates(floor, bar);
+              return;
+            }
+
+            button.disabled = true;
+
+            Promise.resolve(
+              instance.saveLayout()
+            ).then(function () {
+              syncStates(floor, bar);
+            });
+
+            return;
+          }
+
           var nativeButton =
             findNative(
               floor,
@@ -1758,6 +1983,18 @@ body {
     });
 
     document.body.appendChild(bar);
+
+    floor.querySelectorAll(
+      '.pmd-floor-v1__toolbar button, ' +
+      '[data-pmd-r2-floor-toolbar-v313] button, ' +
+      '#pmd-r2-floor-toolbar-v316 button'
+    ).forEach(function (nativeButton) {
+      nativeButton.tabIndex = -1;
+      nativeButton.setAttribute(
+        'aria-hidden',
+        'true'
+      );
+    });
 
     return bar;
   }
@@ -3784,459 +4021,7 @@ body {
 {{-- PMD_R2_WIDTH_REFLOW_V44_1_END --}}
 
 
-{{-- PMD_R2_DATE_TO_CARDS_HEAD_V45_BEGIN --}}
-<style id="pmd-r2-date-to-cards-head-v45-style">
-    /*
-     * PMD V45
-     *
-     * Moves the existing Date Range button into the
-     * Reservation Cards header.
-     *
-     * The real button is moved; it is not cloned.
-     */
 
-    #pmd-reservations2
-    .pmd-r2-reservation-cards-v320__head {
-        display: flex !important;
-        align-items: center !important;
-        justify-content: flex-start !important;
-        gap: 12px !important;
-        flex-wrap: wrap !important;
-    }
-
-    #pmd-reservations2
-    #pmd-r2-date-cards-host-v45 {
-        display: flex !important;
-        align-items: center !important;
-
-        margin-left: auto !important;
-
-        min-width: 0 !important;
-
-        order: 2 !important;
-    }
-
-    #pmd-reservations2
-    #pmd-r2-date-cards-host-v45
-    #pmd-r2-date-button-v430 {
-        display: inline-flex !important;
-        align-items: center !important;
-        justify-content: center !important;
-        gap: 8px !important;
-
-        width: auto !important;
-        max-width: min(100%, 330px) !important;
-        min-width: 0 !important;
-
-        margin: 0 !important;
-
-        order: initial !important;
-
-        white-space: nowrap !important;
-    }
-
-    #pmd-reservations2
-    #pmd-r2-date-cards-host-v45
-    #pmd-r2-date-button-v430 > span {
-        min-width: 0 !important;
-        overflow: hidden !important;
-        text-overflow: ellipsis !important;
-        white-space: nowrap !important;
-    }
-
-    #pmd-reservations2
-    #pmd-r2-date-cards-host-v45
-    #pmd-r2-date-button-v430 > svg {
-        flex: 0 0 auto !important;
-    }
-
-    #pmd-reservations2
-    .pmd-r2-reservation-cards-v320__head
-    > button[data-r2-show-all] {
-        order: 3 !important;
-    }
-
-    @media (max-width: 760px) {
-        #pmd-reservations2
-        #pmd-r2-date-cards-host-v45 {
-            width: 100% !important;
-            margin-left: 0 !important;
-        }
-
-        #pmd-reservations2
-        #pmd-r2-date-cards-host-v45
-        #pmd-r2-date-button-v430 {
-            width: 100% !important;
-            max-width: none !important;
-        }
-    }
-</style>
-
-<script id="pmd-r2-date-to-cards-head-v45-script">
-(function () {
-    'use strict';
-
-    var ROOT_ID =
-        'pmd-reservations2';
-
-    var BUTTON_ID =
-        'pmd-r2-date-button-v430';
-
-    var HOST_ID =
-        'pmd-r2-date-cards-host-v45';
-
-    var HEAD_SELECTOR =
-        '.pmd-r2-reservation-cards-v320__head';
-
-    var root = null;
-
-    function apply() {
-        root =
-            document.getElementById(
-                ROOT_ID
-            );
-
-        var button =
-            document.getElementById(
-                BUTTON_ID
-            );
-
-        var head =
-            root
-                ? root.querySelector(
-                    HEAD_SELECTOR
-                )
-                : null;
-
-        if (
-            !root ||
-            !button ||
-            !head
-        ) {
-            window.PMD_R2_DATE_TO_CARDS_HEAD_V45_RESULT = {
-                rootFound:
-                    Boolean(root),
-
-                buttonFound:
-                    Boolean(button),
-
-                cardsHeadFound:
-                    Boolean(head),
-
-                moved:
-                    false
-            };
-
-            return false;
-        }
-
-        var host =
-            document.getElementById(
-                HOST_ID
-            );
-
-        if (
-            !host ||
-            host.parentElement !== head
-        ) {
-            host =
-                document.createElement(
-                    'div'
-                );
-
-            host.id =
-                HOST_ID;
-
-            host.setAttribute(
-                'data-pmd-r2-date-host',
-                'v45'
-            );
-
-            /*
-             * Keep the hidden Show All button in its original
-             * position and insert Date Range immediately before it.
-             */
-            var showAll =
-                head.querySelector(
-                    ':scope > button[data-r2-show-all]'
-                );
-
-            if (showAll) {
-                head.insertBefore(
-                    host,
-                    showAll
-                );
-            } else {
-                head.appendChild(
-                    host
-                );
-            }
-        }
-
-        if (
-            button.parentElement !== host
-        ) {
-            host.appendChild(
-                button
-            );
-        }
-
-        /*
-         * Remove old Header-specific inline ordering.
-         * Visibility attributes remain untouched.
-         */
-        button.style.removeProperty(
-            'order'
-        );
-
-        window.PMD_R2_DATE_TO_CARDS_HEAD_V45_RESULT = {
-            rootFound:
-                true,
-
-            buttonFound:
-                true,
-
-            cardsHeadFound:
-                true,
-
-            hostFound:
-                true,
-
-            moved:
-                button.parentElement === host,
-
-            buttonParentId:
-                button.parentElement
-                    ? button.parentElement.id
-                    : null,
-
-            buttonText:
-                String(
-                    button.textContent || ''
-                )
-                    .replace(/\s+/g, ' ')
-                    .trim(),
-
-            panelId:
-                button.getAttribute(
-                    'aria-controls'
-                )
-        };
-
-        return true;
-    }
-
-    function schedule() {
-        [
-            0,
-            40,
-            100,
-            200,
-            400,
-            700,
-            1100
-        ].forEach(function (delay) {
-            window.setTimeout(
-                apply,
-                delay
-            );
-        });
-    }
-
-    function boot() {
-        root =
-            document.getElementById(
-                ROOT_ID
-            );
-
-        if (!root) {
-            console.warn(
-                '[PMD V45] Reservations Root not found.'
-            );
-
-            return;
-        }
-
-        schedule();
-
-        root.addEventListener(
-            'click',
-            schedule,
-            true
-        );
-
-        root.addEventListener(
-            'change',
-            schedule,
-            true
-        );
-
-        window.addEventListener(
-            'pageshow',
-            schedule
-        );
-
-        window.PMD_R2_APPLY_DATE_TO_CARDS_HEAD_V45 =
-            apply;
-
-        console.log(
-            '[PMD V45] Date Range moved to Cards header.'
-        );
-    }
-
-    if (
-        document.readyState ===
-        'loading'
-    ) {
-        document.addEventListener(
-            'DOMContentLoaded',
-            boot,
-            {
-                once: true
-            }
-        );
-    } else {
-        boot();
-    }
-})();
-</script>
-{{-- PMD_R2_DATE_TO_CARDS_HEAD_V45_END --}}
-
-
-{{-- PMD_R2_DATE_CANONICAL_CARDS_V45_3_BEGIN --}}
-<style id="pmd-r2-date-canonical-cards-v45-3-style">
-    /*
-     * Cards Header is now the canonical location.
-     * No MutationObserver and no runtime DOM fight.
-     */
-
-    #pmd-reservations2
-    #pmd-r2-date-cards-host-v45 {
-        pointer-events: auto !important;
-        position: relative !important;
-        z-index: 20 !important;
-    }
-
-    #pmd-reservations2
-    #pmd-r2-date-cards-host-v45
-    > #pmd-r2-date-button-v430 {
-        pointer-events: auto !important;
-        cursor: pointer !important;
-        position: relative !important;
-        z-index: 21 !important;
-    }
-</style>
-
-<script id="pmd-r2-date-canonical-cards-v45-3-script">
-(function () {
-    'use strict';
-
-    function audit() {
-        var root =
-            document.getElementById(
-                'pmd-reservations2'
-            );
-
-        var head =
-            root
-                ? root.querySelector(
-                    '.pmd-r2-reservation-cards-v320__head'
-                )
-                : null;
-
-        var host =
-            document.getElementById(
-                'pmd-r2-date-cards-host-v45'
-            );
-
-        var button =
-            document.getElementById(
-                'pmd-r2-date-button-v430'
-            );
-
-        var panel =
-            document.getElementById(
-                'pmd-r2-date-panel-v318'
-            );
-
-        window.PMD_R2_DATE_CANONICAL_CARDS_V45_3_RESULT = {
-            rootFound:
-                Boolean(root),
-
-            headFound:
-                Boolean(head),
-
-            hostFound:
-                Boolean(host),
-
-            buttonFound:
-                Boolean(button),
-
-            buttonInHost:
-                Boolean(
-                    button &&
-                    host &&
-                    button.parentElement === host
-                ),
-
-            cardsHeadContainsButton:
-                Boolean(
-                    head &&
-                    button &&
-                    head.contains(button)
-                ),
-
-            topHeaderContainsButton:
-                Boolean(
-                    button &&
-                    document
-                        .querySelector(
-                            '#pmd-r2-clean-header'
-                        )
-                        ?.contains(button)
-                ),
-
-            panelFound:
-                Boolean(panel),
-
-            pointerEvents:
-                button
-                    ? getComputedStyle(button)
-                        .pointerEvents
-                    : null,
-
-            authority:
-                button
-                    ? button.getAttribute(
-                        'data-pmd-date-button-authority'
-                    )
-                    : null,
-
-            ariaControls:
-                button
-                    ? button.getAttribute(
-                        'aria-controls'
-                    )
-                    : null
-        };
-
-        return window
-            .PMD_R2_DATE_CANONICAL_CARDS_V45_3_RESULT;
-    }
-
-    window.setTimeout(audit, 100);
-    window.setTimeout(audit, 500);
-    window.setTimeout(audit, 1200);
-
-    window.PMD_R2_AUDIT_DATE_CANONICAL_V45_3 =
-        audit;
-
-    console.log(
-        '[PMD V45.3] Cards Header is the canonical Date Button location.'
-    );
-})();
-</script>
-{{-- PMD_R2_DATE_CANONICAL_CARDS_V45_3_END --}}
 
 
 
@@ -4329,5 +4114,3 @@ body {
     margin-top: 0 !important;
   }
 </style>
-
-

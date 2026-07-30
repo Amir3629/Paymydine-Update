@@ -248,25 +248,14 @@
     var actions = findHeaderActions();
     if (!actions) return false;
 
-    var dateButton = document.getElementById('pmd-r2-date-button-v430');
     var toggle = ensureToggle();
     var create = document.querySelector('#pmd-r2-clean-header .pmd-r2-clean-create') ||
       document.querySelector('.pmd-r2-clean-create');
     var notification = document.getElementById('notif-root');
 
-    [dateButton, toggle, create, notification].forEach(function (element) {
-      if (!element) return;
-      if (element === dateButton) {
-        element.hidden = false;
-        element.style.setProperty('display', 'inline-flex', 'important');
-        element.style.setProperty('visibility', 'visible', 'important');
-        element.style.setProperty('opacity', '1', 'important');
-        element.setAttribute('aria-label', 'Reservation date range');
-      }
-      if (element.parentElement !== actions) actions.appendChild(element);
+    [toggle, create, notification].forEach(function (element) {
+      if (element && element.parentElement !== actions) actions.appendChild(element);
     });
-
-    if (dateButton) dateButton.style.setProperty('order', '1', 'important');
     if (toggle) toggle.style.setProperty('order', '2', 'important');
     if (create) create.style.setProperty('order', '3', 'important');
     if (notification) notification.style.setProperty('order', '4', 'important');
@@ -1464,7 +1453,7 @@ function renderSelected() {
       calendarInHeader: Boolean(toggle && actions && toggle.parentElement === actions),
       createInHeader: Boolean(create && actions && create.parentElement === actions),
       notificationInHeader: Boolean(notification && actions && notification.parentElement === actions),
-      headerOrder: actions ? [dateButton, toggle, create, notification].filter(Boolean).map(function (element) { return Array.prototype.indexOf.call(actions.children, element); }) : [],
+      headerOrder: actions ? [toggle, create, notification].filter(Boolean).map(function (element) { return Array.prototype.indexOf.call(actions.children, element); }) : [],
       reservations: reservations().length,
       url: location.pathname
     };

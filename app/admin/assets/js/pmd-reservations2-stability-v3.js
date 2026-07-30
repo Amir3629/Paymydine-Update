@@ -67,11 +67,6 @@
       dateApi.__pmdR2V3Patched = true;
     }
 
-    var oldHeader = window.PMDReservations2HeaderDateV432;
-    if (oldHeader && !oldHeader.__pmdR2V3Patched) {
-      oldHeader.refresh = function () { return true; };
-      oldHeader.__pmdR2V3Patched = true;
-    }
   }
 
   function arrangeHeader() {
@@ -81,20 +76,9 @@
     var notification = document.getElementById('notif-root');
     var create = document.querySelector('#pmd-r2-clean-header .pmd-r2-clean-create') || document.querySelector('.pmd-r2-clean-create');
     var calendar = document.getElementById('pmd-r2-calendar-toggle-v1');
-    var date = document.getElementById('pmd-r2-date-button-v430');
-
-    /* PMD_DATE_CARDS_CANONICAL_V45_3_BEGIN */
     [calendar, create, notification].forEach(function (element) {
       if (element && element.parentElement !== actions) actions.appendChild(element);
     });
-    /* Date Button intentionally remains inside the Reservations Cards header. */
-    /* PMD_DATE_CARDS_CANONICAL_V45_3_END */
-
-    if (date) {
-      date.hidden = false;
-      date.setAttribute('aria-label', 'Reservation date range');
-      date.style.removeProperty('order');
-    }
     if (calendar) calendar.style.order = '2';
     if (create) create.style.order = '3';
     if (notification) notification.style.order = '4';
