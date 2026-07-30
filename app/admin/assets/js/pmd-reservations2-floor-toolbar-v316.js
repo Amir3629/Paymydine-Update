@@ -3568,20 +3568,12 @@ button.pmd-r2-card-menu-trigger-v458::after {
     function floorReservationTableIds(reservation) {
       var ids = [];
 
-      function add(value) {
-        if (value === undefined || value === null) {
-          return;
-        }
-
-        if (typeof value === 'object') {
-          add(value.table_id);
-          add(value.tableId);
-          add(value.id);
-          add(value.table_number);
-          add(value.tableNumber);
-          add(value.number);
-          add(value.table_name);
-          add(value.name);
+      function addScalar(value) {
+        if (
+          value === undefined ||
+          value === null ||
+          value === ''
+        ) {
           return;
         }
 
@@ -3623,34 +3615,59 @@ button.pmd-r2-card-menu-trigger-v458::after {
         });
       }
 
+      /*
+       * Reservation table data has one known nested object level.
+       * Keep extraction bounded instead of walking arbitrary objects.
+       */
+      function addTable(value) {
+        if (value === undefined || value === null) {
+          return;
+        }
+
+        if (typeof value !== 'object') {
+          addScalar(value);
+          return;
+        }
+
+        addScalar(value.table_id);
+        addScalar(value.tableId);
+        addScalar(value.id);
+        addScalar(value.table_number);
+        addScalar(value.tableNumber);
+        addScalar(value.number);
+        addScalar(value.table_name);
+        addScalar(value.tableName);
+        addScalar(value.name);
+      }
+
       if (!reservation || typeof reservation !== 'object') {
         return ids;
       }
 
-      add(reservation.table_id);
-      add(reservation.tableId);
-      add(reservation.table_number);
-      add(reservation.tableNumber);
-      add(reservation.table_name);
-      add(reservation.tableName);
-      add(reservation.table);
-      add(reservation.assigned_table);
-      add(reservation.assignedTable);
-      add(reservation.reservation_table);
-      add(reservation.reservationTable);
+      addTable(reservation.table_id);
+      addTable(reservation.tableId);
+      addTable(reservation.table_number);
+      addTable(reservation.tableNumber);
+      addTable(reservation.table_name);
+      addTable(reservation.tableName);
+      addTable(reservation.table);
+      addTable(reservation.assigned_table);
+      addTable(reservation.assignedTable);
+      addTable(reservation.reservation_table);
+      addTable(reservation.reservationTable);
 
       if (Array.isArray(reservation.table_ids)) {
-        reservation.table_ids.forEach(add);
+        reservation.table_ids.forEach(addTable);
       }
 
       if (Array.isArray(reservation.tableIds)) {
-        reservation.tableIds.forEach(add);
+        reservation.tableIds.forEach(addTable);
       }
 
       if (Array.isArray(reservation.tables)) {
-        reservation.tables.forEach(add);
+        reservation.tables.forEach(addTable);
       } else if (reservation.tables) {
-        add(reservation.tables);
+        addTable(reservation.tables);
       }
 
       return ids;
@@ -4015,7 +4032,6 @@ button.pmd-r2-card-menu-trigger-v458::after {
 
     try {
       removeAreaSelectors();
-      ensureToolbarHost();
       removeOldEmptyHeaders();
 
       var counts =
@@ -4141,6 +4157,7 @@ button.pmd-r2-card-menu-trigger-v458::after {
 
   function boot() {
     installStyle();
+    ensureToolbarHost();
     apply();
 
     [

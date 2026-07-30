@@ -2058,12 +2058,16 @@
       });
     }
 
+    function effectiveFloorScale() {
+      return state.stripMode
+        ? state.rowScale
+        : state.fullFloorZoom;
+    }
+
     function applyZoom() {
       if (!canvas) return;
 
-      state.zoom = state.stripMode
-        ? state.rowScale
-        : state.fullFloorZoom;
+      state.zoom = effectiveFloorScale();
 
       /*
        * One Row owns unscaled, deterministic geometry. Removing the
@@ -2074,16 +2078,14 @@
         ? 'none'
         : (
           'scale(' +
-          state.fullFloorZoom +
+          state.zoom +
           ')'
         );
 
       canvas.parentElement
         .style.setProperty(
           '--floor-zoom',
-          state.stripMode
-            ? state.rowScale
-            : state.fullFloorZoom
+          state.zoom
         );
     }
 
@@ -2832,9 +2834,7 @@ function saveLayout() {
         ? 'row'
         : 'full';
 
-      state.zoom = state.stripMode
-        ? state.rowScale
-        : state.fullFloorZoom;
+      state.zoom = effectiveFloorScale();
 
       if (state.stripMode) {
         /*
