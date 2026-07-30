@@ -3565,6 +3565,97 @@ button.pmd-r2-card-menu-trigger-v458::after {
         .toLowerCase();
     }
 
+    function floorReservationTableIds(reservation) {
+      var ids = [];
+
+      function add(value) {
+        if (value === undefined || value === null) {
+          return;
+        }
+
+        if (typeof value === 'object') {
+          add(value.table_id);
+          add(value.tableId);
+          add(value.id);
+          add(value.table_number);
+          add(value.tableNumber);
+          add(value.number);
+          add(value.table_name);
+          add(value.name);
+          return;
+        }
+
+        var source =
+          String(value)
+            .replace(/\s+/g, ' ')
+            .trim();
+
+        if (!source) {
+          return;
+        }
+
+        var exact = Number(source);
+
+        if (Number.isFinite(exact) && exact > 0) {
+          var normalizedExact = String(exact);
+
+          if (ids.indexOf(normalizedExact) < 0) {
+            ids.push(normalizedExact);
+          }
+
+          return;
+        }
+
+        var matches = source.match(/\d+/g) || [];
+
+        matches.forEach(function (match) {
+          var number = Number(match);
+
+          if (!Number.isFinite(number) || number <= 0) {
+            return;
+          }
+
+          var normalized = String(number);
+
+          if (ids.indexOf(normalized) < 0) {
+            ids.push(normalized);
+          }
+        });
+      }
+
+      if (!reservation || typeof reservation !== 'object') {
+        return ids;
+      }
+
+      add(reservation.table_id);
+      add(reservation.tableId);
+      add(reservation.table_number);
+      add(reservation.tableNumber);
+      add(reservation.table_name);
+      add(reservation.tableName);
+      add(reservation.table);
+      add(reservation.assigned_table);
+      add(reservation.assignedTable);
+      add(reservation.reservation_table);
+      add(reservation.reservationTable);
+
+      if (Array.isArray(reservation.table_ids)) {
+        reservation.table_ids.forEach(add);
+      }
+
+      if (Array.isArray(reservation.tableIds)) {
+        reservation.tableIds.forEach(add);
+      }
+
+      if (Array.isArray(reservation.tables)) {
+        reservation.tables.forEach(add);
+      } else if (reservation.tables) {
+        add(reservation.tables);
+      }
+
+      return ids;
+    }
+
     allReservations
       .filter(function (reservation) {
         var status =
@@ -3580,7 +3671,7 @@ button.pmd-r2-card-menu-trigger-v458::after {
         );
       })
       .forEach(function (reservation) {
-        tableIds(reservation)
+        floorReservationTableIds(reservation)
           .forEach(function (id) {
             var normalized =
               String(Number(id));

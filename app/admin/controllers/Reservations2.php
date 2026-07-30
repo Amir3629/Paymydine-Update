@@ -636,6 +636,22 @@ class Reservations2 extends Reservations
             $locationId = (int)params('default_location_id');
         }
 
+        if (!$locationId && !$user->isSuperUser()) {
+            $staff = $user->staff;
+            $accessibleLocations = $staff
+                ? $staff
+                    ->locations
+                    ->where('location_status', true)
+                    ->values()
+                : collect();
+
+            if ($accessibleLocations->count() === 1) {
+                $locationId = (int)$accessibleLocations
+                    ->first()
+                    ->location_id;
+            }
+        }
+
         if (!$locationId) {
             return null;
         }

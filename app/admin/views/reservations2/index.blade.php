@@ -683,7 +683,7 @@ window.PMD_RESERVATIONS2_BOOT = {
 </style>
 
 <script defer
-        src="{{ asset('app/admin/assets/js/pmd-reservations2-floor-toolbar-v316.js') }}?v=20260729_d1-1-floor-colors-v1"></script>
+        src="{{ asset('app/admin/assets/js/pmd-reservations2-floor-toolbar-v316.js') }}?v=20260730_d1-2-floor-colors-v1"></script>
 
 <script id="pmd-r2-toolbar-above-floor-v29-2-script">
 (function () {
