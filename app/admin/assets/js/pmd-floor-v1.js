@@ -167,6 +167,30 @@
       ) ||
       '/admin/waiter-pos/{table}';
 
+    var floorViewId =
+      root.getAttribute('data-floor-view-id') ||
+      'main-floor';
+
+    var floorViewUrl =
+      root.getAttribute('data-floor-view-url') ||
+      '';
+
+    var initialViewMode =
+      root.getAttribute('data-floor-view-mode') === 'row'
+        ? 'row'
+        : 'full';
+
+    var initialFullFloorZoom = Math.max(
+      .4,
+      Math.min(
+        1.6,
+        number(
+          root.getAttribute('data-floor-full-zoom'),
+          1
+        )
+      )
+    );
+
     var FLOOR_WIDTH = 1000;
     var FLOOR_HEIGHT = 560;
 
@@ -199,7 +223,12 @@
 
       filter: 'all',
       query: '',
-      zoom: 1,
+      mode: initialViewMode,
+      fullFloorZoom: initialFullFloorZoom,
+      rowScale: 1,
+      zoom: initialViewMode === 'row' ? 1 : initialFullFloorZoom,
+      initialized: false,
+      userHasChangedZoom: false,
 
       editing: false,
       mergeMode: false,
@@ -210,7 +239,7 @@
        * This is display-only and never overwrites the saved
        * normal Floor coordinates.
        */
-      stripMode: false,
+      stripMode: initialViewMode === 'row',
 
       /*
        * Exact canonical Full Floor coordinates.
@@ -272,6 +301,57 @@
 
       toastTimer: null
     };
+
+    var floorViewSaveTimer = null;
+    var floorViewSaveController = null;
+
+    function floorViewPayload() {
+      return {
+        floor_id: floorViewId,
+        layout_mode: state.stripMode ? 'row' : 'full',
+        full_floor_zoom: state.fullFloorZoom
+      };
+    }
+
+    function saveFloorViewPreference() {
+      if (!floorViewUrl) return;
+
+      if (floorViewSaveController) {
+        floorViewSaveController.abort();
+      }
+
+      floorViewSaveController =
+        typeof AbortController === 'function'
+          ? new AbortController()
+          : null;
+
+      fetchJson(floorViewUrl, {
+        method: 'POST',
+        headers: {
+          'X-IGNITER-REQUEST-HANDLER':
+            'onSaveFloorViewPreference'
+        },
+        signal: floorViewSaveController
+          ? floorViewSaveController.signal
+          : undefined,
+        body: JSON.stringify(floorViewPayload())
+      }).catch(function (error) {
+        if (error && error.name === 'AbortError') return;
+        toast(error.message, true);
+        console.error('[PMD Floor] View preference save failed', error);
+      });
+    }
+
+    function queueFloorViewPreferenceSave(delay) {
+      if (floorViewSaveTimer) {
+        clearTimeout(floorViewSaveTimer);
+      }
+
+      floorViewSaveTimer = setTimeout(function () {
+        floorViewSaveTimer = null;
+        saveFloorViewPreference();
+      }, Math.max(0, Number(delay) || 0));
+    }
 
     /* PMD_DYNAMIC_FULL_FLOOR_ENGINE_V1_START */
 
@@ -1978,13 +2058,29 @@
       });
     }
 
+    function effectiveFloorScale() {
+      return state.stripMode
+        ? state.rowScale
+        : state.fullFloorZoom;
+    }
+
     function applyZoom() {
       if (!canvas) return;
 
-      canvas.style.transform =
-        'scale(' +
-        state.zoom +
-        ')';
+      state.zoom = effectiveFloorScale();
+
+      /*
+       * One Row owns unscaled, deterministic geometry. Removing the
+       * transform (rather than applying scale(1)) also prevents a saved
+       * Full Floor transform from surviving the mode switch.
+       */
+      canvas.style.transform = state.stripMode
+        ? 'none'
+        : (
+          'scale(' +
+          state.zoom +
+          ')'
+        );
 
       canvas.parentElement
         .style.setProperty(
@@ -2007,8 +2103,6 @@
          * Keep the page width unchanged.
          * Wide one-row contents use horizontal scrolling.
          */
-        state.zoom = 1;
-
         applyZoom();
 
         scroll.scrollLeft = 0;
@@ -2023,8 +2117,6 @@
        * FLOOR_WIDTH/FLOOR_HEIGHT already match the real usable
        * frame, so auto-fitting here only makes the tables smaller.
        */
-      state.zoom = 1;
-
       applyZoom();
 
       scroll.scrollLeft = 0;
@@ -2376,6 +2468,7 @@ function saveLayout() {
 
       if (!tables.length) {
         state.saving = false;
+        state.saveAttempted = false;
 
         saveControls.forEach(function (control) {
           control.disabled = false;
@@ -2462,6 +2555,8 @@ function saveLayout() {
           return payload;
         })
         .catch(function (error) {
+          state.saveAttempted = false;
+
           toast(
             error.message,
             true
@@ -2553,10 +2648,10 @@ function saveLayout() {
               );
             });
 
-          setTimeout(
-            fit,
-            0
-          );
+          setTimeout(function () {
+            fit();
+            state.initialized = true;
+          }, 0);
         })
         .catch(function (error) {
           if (loading) {
@@ -2671,13 +2766,6 @@ function saveLayout() {
       );
 
       refreshFloorIcons();
-
-      window.requestAnimationFrame(
-        function () {
-          applyAreaFilter();
-          calibrateOneRow();
-        }
-      );
     }
 
     function setStripMode(value) {
@@ -2742,6 +2830,12 @@ function saveLayout() {
       state.stripMode =
         nextStripMode;
 
+      state.mode = state.stripMode
+        ? 'row'
+        : 'full';
+
+      state.zoom = effectiveFloorScale();
+
       if (state.stripMode) {
         /*
          * Strip mode is operational, not a layout editor.
@@ -2774,17 +2868,15 @@ function saveLayout() {
 
       updateStripButton();
       render();
-
-      window.setTimeout(
-        fit,
-        0
-      );
+      fit();
 
       toast(
         state.stripMode
           ? 'One-row Floor view enabled'
           : 'Saved Floor layout restored'
       );
+
+      queueFloorViewPreferenceSave(0);
     }
 
     function setEditing(value) {
@@ -5278,12 +5370,7 @@ function saveLayout() {
     function refreshAreaAndStripLayout() {
       renderAreaTabs();
       applyAreaFilter();
-
-      window.requestAnimationFrame(
-        function () {
-          calibrateOneRow();
-        }
-      );
+      calibrateOneRow();
     }
 
     function ensureSecondaryToolbar() {
@@ -6416,13 +6503,16 @@ function saveLayout() {
             '[data-floor-zoom-in]'
           )
         ) {
-          state.zoom =
+          state.userHasChangedZoom = true;
+
+          state.fullFloorZoom =
             Math.min(
               1.6,
-              state.zoom + .1
+              state.fullFloorZoom + .1
             );
 
           applyZoom();
+          queueFloorViewPreferenceSave(200);
         }
 
         if (
@@ -6430,13 +6520,16 @@ function saveLayout() {
             '[data-floor-zoom-out]'
           )
         ) {
-          state.zoom =
+          state.userHasChangedZoom = true;
+
+          state.fullFloorZoom =
             Math.max(
               .4,
-              state.zoom - .1
+              state.fullFloorZoom - .1
             );
 
           applyZoom();
+          queueFloorViewPreferenceSave(200);
         }
 
         if (
@@ -6752,6 +6845,8 @@ function saveLayout() {
       root: root,
       refresh: load,
       fit: fit,
+      setEditing: setEditing,
+      saveLayout: saveLayout,
 
       setSize: function (size) {
         root.setAttribute(
