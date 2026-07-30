@@ -490,6 +490,8 @@ class Reservations2 extends Reservations
             ], 403);
         }
 
+        $this->logFloorViewLocationDiagnostic($user);
+
         try {
             $location = $this->resolveFloorViewLocation($user);
         } catch (Throwable $exception) {
@@ -682,6 +684,81 @@ class Reservations2 extends Reservations
             'exception_class' => get_class($exception),
             'exception_message' => $exception->getMessage(),
         ]);
+    }
+
+    protected function logFloorViewLocationDiagnostic($user): void
+    {
+        try {
+            $staff = $user->staff;
+            $attachedLocations = $staff
+                ? $staff->locations
+                : collect();
+            $enabledAttachedLocations = $attachedLocations
+                ->where('location_status', true)
+                ->values();
+            $sessionLocationId = AdminLocation::getSession('id');
+            $currentLocation = AdminLocation::current();
+            $enabledLocations = Locations_model::isEnabled()
+                ->get();
+            $accessByLocation = [];
+
+            foreach ($enabledLocations as $location) {
+                $accessByLocation[(int)$location->location_id] =
+                    (bool)$user->hasLocationAccess($location);
+            }
+
+            $route = request()->route();
+
+            Log::info('PMD_D1_LOCATION_DIAGNOSTIC', [
+                'user_id' => (int)$user->getKey(),
+                'admin_auth_logged' => (bool)AdminAuth::isLogged(),
+                'is_super_user' => (bool)$user->isSuperUser(),
+                'staff_present' => (bool)$staff,
+                'staff_id' => $staff ? (int)$staff->getKey() : null,
+                'attached_location_count' => $attachedLocations->count(),
+                'enabled_attached_location_count' =>
+                    $enabledAttachedLocations->count(),
+                'enabled_attached_location_ids' =>
+                    $enabledAttachedLocations
+                        ->pluck('location_id')
+                        ->map(function ($id) {
+                            return (int)$id;
+                        })
+                        ->values()
+                        ->all(),
+                'admin_location_check' => (bool)$currentLocation,
+                'admin_location_current_id' => $currentLocation
+                    ? (int)$currentLocation->location_id
+                    : null,
+                'session_location_id_type' =>
+                    gettype($sessionLocationId),
+                'session_location_id' => is_numeric($sessionLocationId)
+                    ? (int)$sessionLocationId
+                    : null,
+                'single_location_mode' => (bool)is_single_location(),
+                'configured_default_location_id' =>
+                    (int)params('default_location_id'),
+                'enabled_location_ids' => $enabledLocations
+                    ->pluck('location_id')
+                    ->map(function ($id) {
+                        return (int)$id;
+                    })
+                    ->values()
+                    ->all(),
+                'access_by_enabled_location_id' => $accessByLocation,
+                'route_name' => $route ? $route->getName() : null,
+                'route_action' => $route
+                    ? $route->getActionName()
+                    : null,
+                'handler' => request()->header(
+                    'X-IGNITER-REQUEST-HANDLER'
+                ),
+            ]);
+        } catch (Throwable $exception) {
+            Log::info('PMD_D1_LOCATION_DIAGNOSTIC', [
+                'diagnostic_error_class' => get_class($exception),
+            ]);
+        }
     }
 
     public function index_onDelete()
