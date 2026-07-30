@@ -3543,6 +3543,48 @@ button.pmd-r2-card-menu-trigger-v458::after {
         ? boot.reservations
         : [];
 
+    /*
+     * V464 is a separate closure from the card renderer at the top of this
+     * file, so it cannot use that closure's tableIds() helper. Keep this
+     * local normalizer beside the color authority that consumes it.
+     */
+    function reservationTableIds(item) {
+      var ids = [];
+
+      function add(value) {
+        if (value && typeof value === 'object') {
+          add(
+            value.table_id ||
+            value.tableId ||
+            value.id ||
+            value.table_number ||
+            value.tableNumber
+          );
+          return;
+        }
+
+        String(value == null ? '' : value)
+          .split(',')
+          .forEach(function (candidate) {
+            var match = candidate.match(/\d+/);
+            if (match) ids.push(String(Number(match[0])));
+          });
+      }
+
+      [
+        item && item.table_id,
+        item && item.tableId,
+        item && item.table_ids,
+        item && item.tableIds,
+        item && item.tables
+      ].forEach(function (value) {
+        if (Array.isArray(value)) value.forEach(add);
+        else add(value);
+      });
+
+      return Array.from(new Set(ids));
+    }
+
     function floorReservationStatus(reservation) {
       var status =
         reservation &&
@@ -3580,7 +3622,7 @@ button.pmd-r2-card-menu-trigger-v458::after {
         );
       })
       .forEach(function (reservation) {
-        tableIds(reservation)
+        reservationTableIds(reservation)
           .forEach(function (id) {
             var normalized =
               String(Number(id));

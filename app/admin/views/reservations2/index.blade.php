@@ -558,7 +558,7 @@ window.PMD_RESERVATIONS2_BOOT = {
   /*
    * Hide the original toolbar row before the first browser paint.
    */
-  #pmd-r2-floor-toolbar-host-v464 {
+  #pmd-r2-floor-toolbar-host-v464.pmd-r2-v292-prepaint-disabled {
     visibility: hidden !important;
     opacity: 0 !important;
 
@@ -688,6 +688,7 @@ window.PMD_RESERVATIONS2_BOOT = {
 <script id="pmd-r2-toolbar-above-floor-v29-2-script">
 (function () {
   'use strict';
+  return; // Superseded by the native Floor/V316 authority.
 
   var ROOT_ID = 'pmd-reservations2';
   var FLOOR_ID = 'pmd-r2-shared-floor-canvas-v310';
@@ -990,13 +991,13 @@ body {
         transform 180ms ease;
 }
 
-[data-pmd-floor].is-strip-mode
+[data-pmd-floor].pmd-r2-strip-controls-hidden-disabled
     [data-pmd-r2-tool="edit"],
-[data-pmd-floor].is-strip-mode
+[data-pmd-floor].pmd-r2-strip-controls-hidden-disabled
     [data-pmd-r2-tool="zoom-out"],
-[data-pmd-floor].is-strip-mode
+[data-pmd-floor].pmd-r2-strip-controls-hidden-disabled
     [data-pmd-r2-tool="fit"],
-[data-pmd-floor].is-strip-mode
+[data-pmd-floor].pmd-r2-strip-controls-hidden-disabled
     [data-pmd-r2-tool="zoom-in"] {
     opacity: 0 !important;
     visibility: hidden !important;
@@ -1020,6 +1021,7 @@ body {
 <script>
 (function () {
     'use strict';
+  return; // Superseded by the native Floor/V316 authority.
 
     var root = document.querySelector(
         '[data-pmd-floor]'
@@ -1561,6 +1563,7 @@ body {
 <script id="pmd-r2-proven-body-toolbar-v34-1-script">
 (function () {
   'use strict';
+  return; // Superseded by the native Floor/V316 authority.
 
   var FLOOR_ID =
     'pmd-r2-shared-floor-canvas-v310';
@@ -2149,6 +2152,7 @@ body {
 <script id="pmd-r2-v34-3-real-position-script">
 (function () {
     'use strict';
+  return; // Superseded by the native Floor/V316 authority.
 
     var FLOOR_ID =
         'pmd-r2-shared-floor-canvas-v310';
