@@ -549,6 +549,383 @@ window.PMD_RESERVATIONS2_BOOT = {
 
 
 
+
+<!-- PMD_TOOLBAR_OUTSIDE_FLOOR_FRAME_V5 -->
+<style id="pmd-toolbar-outside-floor-frame-v5-style">
+/*
+ * Keep the real V316 toolbar, but remove its white 66px
+ * in-Floor header row from the Floor layout.
+ */
+
+#pmd-r2-shared-floor-canvas-v310 {
+    margin-top: 58px !important;
+    overflow: visible !important;
+}
+
+#pmd-r2-shared-floor-canvas-v310
+    > #pmd-r2-floor-toolbar-host-v464 {
+    position: absolute !important;
+    top: -54px !important;
+    right: 0 !important;
+    left: auto !important;
+
+    width: auto !important;
+    height: 40px !important;
+    min-height: 0 !important;
+    max-height: 40px !important;
+
+    padding: 0 !important;
+    margin: 0 !important;
+
+    border: 0 !important;
+    background: transparent !important;
+    box-shadow: none !important;
+
+    overflow: visible !important;
+    z-index: 30 !important;
+
+    display: flex !important;
+    align-items: center !important;
+    justify-content: flex-end !important;
+}
+
+#pmd-r2-floor-toolbar-host-v464
+    > #pmd-r2-floor-toolbar-v316 {
+    position: static !important;
+
+    width: auto !important;
+    height: 40px !important;
+
+    padding: 0 !important;
+    margin: 0 !important;
+
+    display: flex !important;
+    align-items: center !important;
+    justify-content: flex-end !important;
+    gap: 10px !important;
+
+    visibility: visible !important;
+    opacity: 1 !important;
+    pointer-events: auto !important;
+}
+
+/*
+ * The stage remains the only visible content inside
+ * the bordered Floor frame.
+ */
+#pmd-r2-shared-floor-canvas-v310
+    > .pmd-floor-v1__stage {
+    border-radius: inherit;
+}
+
+/*
+ * In One Row, only the mode-return button is needed.
+ */
+#pmd-r2-shared-floor-canvas-v310.is-strip-mode
+    #pmd-r2-floor-toolbar-v316
+    [data-pmd-r2-tool="edit"],
+
+#pmd-r2-shared-floor-canvas-v310.is-strip-mode
+    #pmd-r2-floor-toolbar-v316
+    [data-pmd-r2-tool="zoom-out"],
+
+#pmd-r2-shared-floor-canvas-v310.is-strip-mode
+    #pmd-r2-floor-toolbar-v316
+    [data-pmd-r2-tool="fit"],
+
+#pmd-r2-shared-floor-canvas-v310.is-strip-mode
+    #pmd-r2-floor-toolbar-v316
+    [data-pmd-r2-tool="zoom-in"] {
+    display: none !important;
+}
+
+/*
+ * Ensure the strip/full-floor button itself remains visible.
+ */
+#pmd-r2-shared-floor-canvas-v310
+    #pmd-r2-floor-toolbar-v316
+    [data-pmd-r2-tool="strip"] {
+    display: inline-flex !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+    pointer-events: auto !important;
+    transform: none !important;
+}
+
+/*
+ * Keep the Toolbar reachable at narrower widths.
+ */
+@media (max-width: 700px) {
+    #pmd-r2-shared-floor-canvas-v310 {
+        margin-top: 54px !important;
+    }
+
+    #pmd-r2-shared-floor-canvas-v310
+        > #pmd-r2-floor-toolbar-host-v464 {
+        top: -50px !important;
+        max-width: 100% !important;
+    }
+
+    #pmd-r2-floor-toolbar-v316 {
+        max-width: 100% !important;
+        gap: 6px !important;
+    }
+}
+</style>
+
+<script id="pmd-toolbar-outside-floor-frame-v5-script">
+(function () {
+    'use strict';
+
+    if (window.PMDToolbarOutsideFloorFrameV5) {
+        return;
+    }
+
+    var FLOOR_ID =
+        'pmd-r2-shared-floor-canvas-v310';
+
+    var TOOLBAR_ID =
+        'pmd-r2-floor-toolbar-v316';
+
+    var observer = null;
+
+    function floor() {
+        return document.getElementById(
+            FLOOR_ID
+        );
+    }
+
+    function toolbar() {
+        return document.getElementById(
+            TOOLBAR_ID
+        );
+    }
+
+    function stripButton() {
+        var tool = toolbar();
+
+        return tool
+            ? tool.querySelector(
+                '[data-pmd-r2-tool="strip"]'
+            )
+            : null;
+    }
+
+    function syncModeButton() {
+        var root = floor();
+        var button = stripButton();
+
+        if (!root || !button) {
+            return false;
+        }
+
+        var isOneRow =
+            root.classList.contains(
+                'is-strip-mode'
+            );
+
+        if (
+            !button.hasAttribute(
+                'data-pmd-normal-strip-label-v5'
+            )
+        ) {
+            var normalLabel =
+                button.getAttribute(
+                    'data-bs-original-title'
+                ) ||
+                button.textContent.trim() ||
+                'One Row';
+
+            button.setAttribute(
+                'data-pmd-normal-strip-label-v5',
+                normalLabel
+            );
+        }
+
+        var normalLabel =
+            button.getAttribute(
+                'data-pmd-normal-strip-label-v5'
+            ) || 'One Row';
+
+        var visibleLabel =
+            isOneRow
+                ? 'Full Floor'
+                : normalLabel;
+
+        button.textContent =
+            visibleLabel;
+
+        button.setAttribute(
+            'aria-label',
+            visibleLabel
+        );
+
+        button.setAttribute(
+            'title',
+            visibleLabel
+        );
+
+        button.setAttribute(
+            'aria-hidden',
+            'false'
+        );
+
+        button.setAttribute(
+            'tabindex',
+            '0'
+        );
+
+        return true;
+    }
+
+    function start() {
+        var root = floor();
+
+        if (!root) {
+            return false;
+        }
+
+        syncModeButton();
+
+        observer =
+            new MutationObserver(
+                function (records) {
+                    var classChanged =
+                        records.some(
+                            function (record) {
+                                return (
+                                    record.type ===
+                                        'attributes' &&
+                                    record.attributeName ===
+                                        'class'
+                                );
+                            }
+                        );
+
+                    if (classChanged) {
+                        syncModeButton();
+                    }
+                }
+            );
+
+        observer.observe(
+            root,
+            {
+                attributes: true,
+                attributeFilter: ['class']
+            }
+        );
+
+        root.addEventListener(
+            'click',
+            function (event) {
+                var button =
+                    event.target.closest(
+                        '[data-pmd-r2-tool="strip"]'
+                    );
+
+                if (!button) {
+                    return;
+                }
+
+                requestAnimationFrame(
+                    function () {
+                        requestAnimationFrame(
+                            syncModeButton
+                        );
+                    }
+                );
+            }
+        );
+
+        return true;
+    }
+
+    var attempts = 0;
+
+    function boot() {
+        attempts += 1;
+
+        if (start()) {
+            return;
+        }
+
+        if (attempts < 20) {
+            window.setTimeout(
+                boot,
+                100
+            );
+        }
+    }
+
+    window.PMDToolbarOutsideFloorFrameV5 = {
+        sync: syncModeButton,
+
+        audit: function () {
+            var root = floor();
+            var tool = toolbar();
+            var host =
+                document.getElementById(
+                    'pmd-r2-floor-toolbar-host-v464'
+                );
+
+            return {
+                floor: Boolean(root),
+                toolbar: Boolean(tool),
+                host: Boolean(host),
+                oneRow: Boolean(
+                    root &&
+                    root.classList.contains(
+                        'is-strip-mode'
+                    )
+                ),
+                toolbarParent:
+                    tool &&
+                    tool.parentElement
+                        ? tool.parentElement.id
+                        : null,
+                hostHeight:
+                    host
+                        ? host.getBoundingClientRect()
+                            .height
+                        : null,
+                floorTop:
+                    root
+                        ? root.getBoundingClientRect()
+                            .top
+                        : null,
+                toolbarTop:
+                    tool
+                        ? tool.getBoundingClientRect()
+                            .top
+                        : null
+            };
+        },
+
+        destroy: function () {
+            if (observer) {
+                observer.disconnect();
+                observer = null;
+            }
+        }
+    };
+
+    if (
+        document.readyState ===
+        'loading'
+    ) {
+        document.addEventListener(
+            'DOMContentLoaded',
+            boot,
+            { once: true }
+        );
+    } else {
+        boot();
+    }
+})();
+</script>
+<!-- PMD_TOOLBAR_OUTSIDE_FLOOR_FRAME_V5_END -->
+
 <!-- PMD_R2_FLOOR_TOOLBAR_V316_START -->
 <link rel="stylesheet"
       href="{{ asset('app/admin/assets/css/pmd-reservations2-floor-toolbar-v316.css') }}?v=20260722_235352">
@@ -558,7 +935,7 @@ window.PMD_RESERVATIONS2_BOOT = {
   /*
    * Hide the original toolbar row before the first browser paint.
    */
-  #pmd-r2-floor-toolbar-host-v464 {
+  #pmd-r2-floor-toolbar-host-v464.pmd-r2-v292-prepaint-disabled {
     visibility: hidden !important;
     opacity: 0 !important;
 
@@ -688,6 +1065,8 @@ window.PMD_RESERVATIONS2_BOOT = {
 <script id="pmd-r2-toolbar-above-floor-v29-2-script">
 (function () {
   'use strict';
+
+  return; // Disabled: V316 remains inside the native Floor.
 
   var ROOT_ID = 'pmd-reservations2';
   var FLOOR_ID = 'pmd-r2-shared-floor-canvas-v310';
@@ -990,13 +1369,13 @@ body {
         transform 180ms ease;
 }
 
-[data-pmd-floor].is-strip-mode
+[data-pmd-floor].pmd-r2-strip-controls-hidden-disabled
     [data-pmd-r2-tool="edit"],
-[data-pmd-floor].is-strip-mode
+[data-pmd-floor].pmd-r2-strip-controls-hidden-disabled
     [data-pmd-r2-tool="zoom-out"],
-[data-pmd-floor].is-strip-mode
+[data-pmd-floor].pmd-r2-strip-controls-hidden-disabled
     [data-pmd-r2-tool="fit"],
-[data-pmd-floor].is-strip-mode
+[data-pmd-floor].pmd-r2-strip-controls-hidden-disabled
     [data-pmd-r2-tool="zoom-in"] {
     opacity: 0 !important;
     visibility: hidden !important;
@@ -1020,6 +1399,8 @@ body {
 <script>
 (function () {
     'use strict';
+
+    return; // Disabled: native Floor engine owns One Row geometry.
 
     var root = document.querySelector(
         '[data-pmd-floor]'
@@ -1561,6 +1942,8 @@ body {
 <script id="pmd-r2-proven-body-toolbar-v34-1-script">
 (function () {
   'use strict';
+
+  return; // Disabled: body-level proxy toolbar is obsolete.
 
   var FLOOR_ID =
     'pmd-r2-shared-floor-canvas-v310';
@@ -2149,6 +2532,8 @@ body {
 <script id="pmd-r2-v34-3-real-position-script">
 (function () {
     'use strict';
+
+    return; // Disabled: body-toolbar positioning is obsolete.
 
     var FLOOR_ID =
         'pmd-r2-shared-floor-canvas-v310';
@@ -4114,3 +4499,6660 @@ body {
     margin-top: 0 !important;
   }
 </style>
+
+<!-- PMD_WORKING_TOOLBAR_STYLE_V1 -->
+<style id="pmd-working-toolbar-style-v1">
+
+/* Real space between KPI cards and the Floor map. */
+#pmd-reservations2 > #pmd-r2-shared-floor-canvas-v310 {
+    margin-top: 64px !important;
+    overflow: visible !important;
+}
+
+/* Existing V316 toolbar above and outside the Floor border. */
+#pmd-r2-shared-floor-canvas-v310
+    > #pmd-r2-floor-toolbar-host-v464 {
+    position: absolute !important;
+    top: -56px !important;
+    right: 0 !important;
+    left: auto !important;
+
+    display: flex !important;
+    align-items: center !important;
+    justify-content: flex-end !important;
+
+    width: auto !important;
+    height: 44px !important;
+    min-height: 44px !important;
+    max-height: 44px !important;
+
+    padding: 0 !important;
+    margin: 0 !important;
+
+    background: transparent !important;
+    border: 0 !important;
+    box-shadow: none !important;
+
+    overflow: visible !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+    pointer-events: auto !important;
+
+    z-index: 9999 !important;
+}
+
+/* Keep the real toolbar visible, stable and right-aligned. */
+#pmd-r2-floor-toolbar-host-v464
+    > #pmd-r2-floor-toolbar-v316 {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: flex-end !important;
+    flex-wrap: nowrap !important;
+
+    gap: 10px !important;
+
+    position: relative !important;
+
+    width: auto !important;
+    height: 44px !important;
+
+    margin: 0 !important;
+    padding: 0 !important;
+
+    visibility: visible !important;
+    opacity: 1 !important;
+    pointer-events: auto !important;
+
+    transform: none !important;
+    z-index: 10000 !important;
+}
+
+#pmd-r2-floor-toolbar-v316 button {
+    visibility: visible !important;
+    opacity: 1 !important;
+    pointer-events: auto !important;
+}
+
+/* In One Row show only the return-to-Full-Floor button. */
+#pmd-r2-shared-floor-canvas-v310.is-strip-mode
+    #pmd-r2-floor-toolbar-v316
+    [data-pmd-r2-tool="edit"],
+
+#pmd-r2-shared-floor-canvas-v310.is-strip-mode
+    #pmd-r2-floor-toolbar-v316
+    [data-pmd-r2-tool="zoom-out"],
+
+#pmd-r2-shared-floor-canvas-v310.is-strip-mode
+    #pmd-r2-floor-toolbar-v316
+    [data-pmd-r2-tool="fit"],
+
+#pmd-r2-shared-floor-canvas-v310.is-strip-mode
+    #pmd-r2-floor-toolbar-v316
+    [data-pmd-r2-tool="zoom-in"] {
+    display: none !important;
+}
+
+#pmd-r2-shared-floor-canvas-v310.is-strip-mode
+    #pmd-r2-floor-toolbar-v316
+    [data-pmd-r2-tool="strip"] {
+    display: inline-flex !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+    pointer-events: auto !important;
+}
+
+@media (max-width: 767px) {
+    #pmd-reservations2 > #pmd-r2-shared-floor-canvas-v310 {
+        margin-top: 58px !important;
+    }
+
+    #pmd-r2-shared-floor-canvas-v310
+        > #pmd-r2-floor-toolbar-host-v464 {
+        top: -52px !important;
+        max-width: 100% !important;
+    }
+
+    #pmd-r2-floor-toolbar-host-v464
+        > #pmd-r2-floor-toolbar-v316 {
+        gap: 6px !important;
+        max-width: 100% !important;
+    }
+}
+
+</style>
+<!-- PMD_WORKING_TOOLBAR_STYLE_V1_END -->
+
+<!-- PMD_STABLE_ONE_ROW_V1 -->
+<style id="pmd-stable-one-row-v1-style">
+  [data-pmd-floor].pmd-one-row-v1-restoring
+    [data-floor-scroll] {
+    visibility: hidden !important;
+  }
+
+  [data-pmd-floor].is-strip-mode
+    [data-floor-canvas] {
+    transform: none !important;
+  }
+</style>
+
+<script id="pmd-stable-one-row-v1-script">
+(function () {
+  'use strict';
+
+  function bootStableOneRowV1() {
+    if (
+      window.PMDStableOneRowV1 &&
+      typeof window.PMDStableOneRowV1.destroy === 'function'
+    ) {
+      window.PMDStableOneRowV1.destroy();
+    }
+
+    var floor =
+      document.querySelector('[data-pmd-floor]');
+
+    var scroll =
+      floor &&
+      floor.querySelector('[data-floor-scroll]');
+
+    var canvas =
+      floor &&
+      floor.querySelector('[data-floor-canvas]');
+
+    if (!floor || !scroll || !canvas) {
+      console.warn(
+        '[PMD One Row V1] Floor elements not found.'
+      );
+
+      return false;
+    }
+
+    var canonical = null;
+
+    var previousStrip =
+      floor.classList.contains('is-strip-mode');
+
+    var captureTimer = null;
+    var restoring = false;
+    var destroyed = false;
+
+    function tables() {
+      return Array.prototype.slice.call(
+        floor.querySelectorAll('[data-floor-table]')
+      );
+    }
+
+    function snapshotElement(element) {
+      return {
+        cssText: element.style.cssText,
+        scrollLeft: element.scrollLeft || 0,
+        scrollTop: element.scrollTop || 0
+      };
+    }
+
+    function metrics() {
+      var items = tables();
+
+      var rects = items.map(function (item) {
+        return item.getBoundingClientRect();
+      });
+
+      return {
+        mode:
+          floor.classList.contains('is-strip-mode')
+            ? 'one-row'
+            : 'full-floor',
+
+        tables: items.length,
+
+        canvasWidth:
+          canvas.getBoundingClientRect().width,
+
+        canvasScrollWidth:
+          scroll.scrollWidth,
+
+        stripHeight:
+          scroll.getBoundingClientRect().height,
+
+        firstTable:
+          rects[0]
+            ? {
+                left: rects[0].left,
+                top: rects[0].top,
+                width: rects[0].width,
+                height: rects[0].height
+              }
+            : null,
+
+        secondTable:
+          rects[1]
+            ? {
+                left: rects[1].left,
+                top: rects[1].top,
+                width: rects[1].width,
+                height: rects[1].height
+              }
+            : null,
+
+        firstGap:
+          rects[0] && rects[1]
+            ? rects[1].left - rects[0].right
+            : null
+      };
+    }
+
+    function capture() {
+      var currentTables = tables();
+
+      if (
+        destroyed ||
+        !floor.classList.contains('is-strip-mode') ||
+        currentTables.length === 0
+      ) {
+        return false;
+      }
+
+      canonical = {
+        floorClassName: floor.className,
+
+        scroll:
+          snapshotElement(scroll),
+
+        canvas:
+          snapshotElement(canvas),
+
+        tables:
+          currentTables.map(function (table) {
+            return {
+              id:
+                table.getAttribute('data-floor-table') ||
+                table.dataset.floorTable ||
+                '',
+
+              cssText:
+                table.style.cssText
+            };
+          }),
+
+        metrics:
+          metrics()
+      };
+
+      console.info(
+        '[PMD One Row V1] Canonical One Row captured.',
+        canonical.metrics
+      );
+
+      return true;
+    }
+
+    function savedTableFor(table, index, tableMap) {
+      var id = String(
+        table.getAttribute('data-floor-table') ||
+        table.dataset.floorTable ||
+        ''
+      );
+
+      return (
+        tableMap.get(id) ||
+        canonical.tables[index] ||
+        null
+      );
+    }
+
+    function applyCanonicalStyles(currentTables, tableMap) {
+      scroll.style.cssText =
+        canonical.scroll.cssText;
+
+      canvas.style.cssText =
+        canonical.canvas.cssText;
+
+      currentTables.forEach(function (table, index) {
+        var saved =
+          savedTableFor(table, index, tableMap);
+
+        if (saved) {
+          table.style.cssText =
+            saved.cssText;
+        }
+      });
+
+      canvas.style.transform = 'none';
+    }
+
+    function restore(reason) {
+      if (
+        destroyed ||
+        !canonical ||
+        restoring ||
+        !floor.classList.contains('is-strip-mode')
+      ) {
+        return false;
+      }
+
+      restoring = true;
+
+      var currentTables = tables();
+
+      var tableMap = new Map(
+        canonical.tables.map(function (item) {
+          return [String(item.id), item];
+        })
+      );
+
+      floor.classList.add(
+        'pmd-one-row-v1-restoring'
+      );
+
+      applyCanonicalStyles(
+        currentTables,
+        tableMap
+      );
+
+      scroll.scrollTop =
+        canonical.scroll.scrollTop;
+
+      window.requestAnimationFrame(function () {
+        window.requestAnimationFrame(function () {
+          if (destroyed) {
+            restoring = false;
+            return;
+          }
+
+          applyCanonicalStyles(
+            currentTables,
+            tableMap
+          );
+
+          scroll.scrollLeft =
+            canonical.scroll.scrollLeft;
+
+          scroll.scrollTop =
+            canonical.scroll.scrollTop;
+
+          floor.classList.remove(
+            'pmd-one-row-v1-restoring'
+          );
+
+          restoring = false;
+
+          console.info(
+            '[PMD One Row V1] Restored:',
+            reason,
+            metrics()
+          );
+        });
+      });
+
+      return true;
+    }
+
+    function scheduleInitialCapture() {
+      window.clearTimeout(captureTimer);
+
+      captureTimer =
+        window.setTimeout(function () {
+          capture();
+        }, 450);
+    }
+
+    function handleModeChange() {
+      var isStrip =
+        floor.classList.contains('is-strip-mode');
+
+      if (isStrip === previousStrip) {
+        return;
+      }
+
+      previousStrip = isStrip;
+
+      window.clearTimeout(captureTimer);
+
+      if (!isStrip) {
+        return;
+      }
+
+      if (!canonical) {
+        scheduleInitialCapture();
+        return;
+      }
+
+      window.requestAnimationFrame(function () {
+        window.requestAnimationFrame(function () {
+          restore('mode-change');
+        });
+      });
+    }
+
+    var observer =
+      new MutationObserver(function (mutations) {
+        var classChanged =
+          mutations.some(function (mutation) {
+            return (
+              mutation.type === 'attributes' &&
+              mutation.attributeName === 'class'
+            );
+          });
+
+        if (classChanged) {
+          handleModeChange();
+        }
+      });
+
+    observer.observe(floor, {
+      attributes: true,
+      attributeFilter: ['class']
+    });
+
+    window.PMDStableOneRowV1 = {
+      version: '1.0.0',
+
+      capture: capture,
+
+      restore: function () {
+        return restore('manual');
+      },
+
+      audit: function () {
+        return {
+          active: !destroyed,
+
+          canonicalCaptured:
+            Boolean(canonical),
+
+          canonicalMetrics:
+            canonical
+              ? canonical.metrics
+              : null,
+
+          currentMetrics:
+            metrics()
+        };
+      },
+
+      destroy: function () {
+        if (destroyed) {
+          return;
+        }
+
+        destroyed = true;
+
+        window.clearTimeout(captureTimer);
+        observer.disconnect();
+
+        floor.classList.remove(
+          'pmd-one-row-v1-restoring'
+        );
+
+        delete window.PMDStableOneRowV1;
+
+        console.info(
+          '[PMD One Row V1] Destroyed.'
+        );
+      }
+    };
+
+    /*
+     * If the saved preference opens the page directly in One Row,
+     * capture that first clean rendered geometry automatically.
+     */
+    if (previousStrip) {
+      scheduleInitialCapture();
+    }
+
+    console.info(
+      '[PMD One Row V1] Ready.',
+      {
+        mode:
+          previousStrip
+            ? 'one-row'
+            : 'full-floor',
+
+        tables:
+          tables().length
+      }
+    );
+
+    return true;
+  }
+
+  function start() {
+    var attempts = 0;
+    var maximumAttempts = 20;
+
+    function attempt() {
+      attempts += 1;
+
+      if (bootStableOneRowV1()) {
+        return;
+      }
+
+      if (attempts < maximumAttempts) {
+        window.setTimeout(attempt, 150);
+      }
+    }
+
+    attempt();
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener(
+      'DOMContentLoaded',
+      start,
+      { once: true }
+    );
+  } else {
+    start();
+  }
+})();
+</script>
+<!-- PMD_STABLE_ONE_ROW_V1_END -->
+
+<!-- PMD_THREE_VIEW_CYCLE_V1 -->
+<style id="pmd-three-view-cycle-v1-style">
+  #pmd-r2-floor-toolbar-v316
+    [data-pmd-r2-tool="fit"] {
+    display: none !important;
+  }
+
+  #pmd-reservations2
+    > #pmd-r2-reservation-cards-v320 {
+    display: block !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+    pointer-events: auto !important;
+  }
+
+  #pmd-reservations2.is-calendar-mode
+    > #pmd-r2-reservation-cards-v320 {
+    display: block !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+    pointer-events: auto !important;
+    margin-top: 18px !important;
+  }
+</style>
+
+<script id="pmd-three-view-cycle-v1-script">
+(function () {
+  'use strict';
+
+  var VERSION = '1.1.0';
+
+  var PAGE_ID =
+    'pmd-reservations2';
+
+  var TOGGLE_ID =
+    'pmd-r2-calendar-toggle-v1';
+
+  var CALENDAR_ID =
+    'pmd-r2-calendar-surface-v160';
+
+  var CARDS_ID =
+    'pmd-r2-reservation-cards-v320';
+
+  if (
+    window.PMDThreeViewCycleV1 &&
+    typeof window.PMDThreeViewCycleV1.destroy ===
+      'function'
+  ) {
+    window.PMDThreeViewCycleV1.destroy();
+  }
+
+  function page() {
+    return document.getElementById(
+      PAGE_ID
+    );
+  }
+
+  function calendar() {
+    return document.getElementById(
+      CALENDAR_ID
+    );
+  }
+
+  function toggleButton() {
+    return document.getElementById(
+      TOGGLE_ID
+    );
+  }
+
+  function cards() {
+    return document.getElementById(
+      CARDS_ID
+    );
+  }
+
+  function calendarApi() {
+    return (
+      window.PMDReservations2CalendarToggleV1 ||
+      null
+    );
+  }
+
+  function selectedCardsApi() {
+    return (
+      window.PMDSelectedDateCardsV12 ||
+      null
+    );
+  }
+
+  function localDateKey() {
+    var date = new Date();
+
+    return [
+      String(date.getFullYear()),
+      String(
+        date.getMonth() + 1
+      ).padStart(2, '0'),
+      String(
+        date.getDate()
+      ).padStart(2, '0')
+    ].join('-');
+  }
+
+  function storedDate() {
+    var root = page();
+    var section = cards();
+
+    return (
+      (root &&
+        root.dataset.pmdSelectedDate) ||
+      (section &&
+        section.dataset.pmdSelectedDate) ||
+      ''
+    );
+  }
+
+  function isHourView() {
+    var root = calendar();
+
+    if (!root) {
+      return false;
+    }
+
+    var timeline =
+      root.querySelector(
+        '.pmd-r2-day-board__timeline'
+      );
+
+    return Boolean(
+      root.classList.contains(
+        'is-timeslot-screen'
+      ) &&
+      timeline &&
+      timeline.getClientRects().length
+    );
+  }
+
+  function currentView() {
+    if (isHourView()) {
+      return 'hour';
+    }
+
+    if (
+      page() &&
+      page().classList.contains(
+        'is-calendar-mode'
+      )
+    ) {
+      return 'calendar';
+    }
+
+    return 'floor';
+  }
+
+  function ensureCardsVisible() {
+    var element = cards();
+
+    if (!element) {
+      return false;
+    }
+
+    element.hidden = false;
+
+    element.style.setProperty(
+      'display',
+      'block',
+      'important'
+    );
+
+    element.style.setProperty(
+      'visibility',
+      'visible',
+      'important'
+    );
+
+    element.style.setProperty(
+      'opacity',
+      '1',
+      'important'
+    );
+
+    element.style.setProperty(
+      'pointer-events',
+      'auto',
+      'important'
+    );
+
+    return true;
+  }
+
+  function syncCards(
+    view,
+    reason
+  ) {
+    var selectedApi =
+      selectedCardsApi();
+
+    if (
+      !selectedApi ||
+      typeof selectedApi.syncForView !==
+        'function'
+    ) {
+      return false;
+    }
+
+    return selectedApi.syncForView(
+      view || currentView(),
+      reason || 'three-view-sync'
+    );
+  }
+
+  function removeFitButton() {
+    var button =
+      document.querySelector(
+        '#pmd-r2-floor-toolbar-v316 ' +
+        '[data-pmd-r2-tool="fit"]'
+      );
+
+    if (!button) {
+      return false;
+    }
+
+    button.remove();
+
+    return true;
+  }
+
+  function resetHourToCalendar() {
+    var root = calendar();
+
+    if (!root) {
+      return false;
+    }
+
+    var backButton =
+      root.querySelector(
+        '[data-r2-yc-clear-selection]'
+      );
+
+    if (backButton) {
+      backButton.click();
+    }
+
+    root.classList.remove(
+      'is-timeslot-screen',
+      'is-switching-to-timeslots'
+    );
+
+    return true;
+  }
+
+  function updateButtonState() {
+    var button = toggleButton();
+
+    if (!button) {
+      return;
+    }
+
+    var view =
+      currentView();
+
+    var nextLabel;
+
+    if (view === 'floor') {
+      nextLabel =
+        'Open calendar view';
+    } else if (view === 'calendar') {
+      nextLabel =
+        'Open hour timeline';
+    } else {
+      nextLabel =
+        'Return to floor map';
+    }
+
+    button.setAttribute(
+      'aria-label',
+      nextLabel
+    );
+
+    button.setAttribute(
+      'title',
+      nextLabel
+    );
+
+    button.dataset
+      .pmdThreeViewCurrent =
+      view;
+  }
+
+  function enterCalendar() {
+    var api =
+      calendarApi();
+
+    if (
+      !api ||
+      typeof api.open !== 'function'
+    ) {
+      return false;
+    }
+
+    api.open();
+
+    window.setTimeout(
+      function () {
+        ensureCardsVisible();
+        syncCards(
+          'calendar',
+          'enter-calendar'
+        );
+        updateButtonState();
+      },
+      220
+    );
+
+    return true;
+  }
+
+  function enterHour() {
+    var api =
+      calendarApi();
+
+    if (
+      !api ||
+      typeof api.selectDate !==
+        'function'
+    ) {
+      return false;
+    }
+
+    var apiAudit =
+      typeof api.audit === 'function'
+        ? api.audit()
+        : null;
+
+    var date =
+      storedDate() ||
+      (
+        apiAudit &&
+        apiAudit.selectedDate
+          ? apiAudit.selectedDate
+          : ''
+      ) ||
+      localDateKey();
+
+    var selectedApi =
+      selectedCardsApi();
+
+    if (
+      selectedApi &&
+      typeof selectedApi.select ===
+        'function'
+    ) {
+      selectedApi.select(
+        date,
+        false
+      );
+    }
+
+    api.selectDate(date);
+
+    window.requestAnimationFrame(
+      function () {
+        window.setTimeout(
+          function () {
+            if (
+              typeof window
+                .PMD_R2_APPLY_HOUR_LAYOUT_V38 ===
+              'function'
+            ) {
+              window
+                .PMD_R2_APPLY_HOUR_LAYOUT_V38();
+            }
+
+            if (
+              typeof window
+                .PMD_R2_APPLY_HOUR_BOTTOM_V38_1 ===
+              'function'
+            ) {
+              window
+                .PMD_R2_APPLY_HOUR_BOTTOM_V38_1();
+            }
+
+            ensureCardsVisible();
+
+            syncCards(
+              'hour',
+              'enter-hour'
+            );
+
+            if (
+              window.PMDRealHourTimelineV1 &&
+              typeof window
+                .PMDRealHourTimelineV1.render ===
+                'function'
+            ) {
+              window
+                .PMDRealHourTimelineV1
+                .render(
+                  'three-view-enter-hour'
+                );
+            }
+
+            updateButtonState();
+          },
+          40
+        );
+      }
+    );
+
+    return true;
+  }
+
+  function enterFloor() {
+    var api =
+      calendarApi();
+
+    resetHourToCalendar();
+
+    if (
+      !api ||
+      typeof api.close !== 'function'
+    ) {
+      return false;
+    }
+
+    api.close();
+
+    window.setTimeout(
+      function () {
+        ensureCardsVisible();
+
+        syncCards(
+          'floor',
+          'enter-floor'
+        );
+
+        updateButtonState();
+      },
+      220
+    );
+
+    return true;
+  }
+
+  function cycle(event) {
+    var button =
+      event.target &&
+      event.target.closest
+        ? event.target.closest(
+            '#' + TOGGLE_ID
+          )
+        : null;
+
+    if (!button) {
+      return;
+    }
+
+    event.preventDefault();
+    event.stopPropagation();
+    event.stopImmediatePropagation();
+
+    var view =
+      currentView();
+
+    if (view === 'floor') {
+      enterCalendar();
+      return;
+    }
+
+    if (view === 'calendar') {
+      enterHour();
+      return;
+    }
+
+    enterFloor();
+  }
+
+  function boot() {
+    removeFitButton();
+    ensureCardsVisible();
+    updateButtonState();
+
+    document.addEventListener(
+      'click',
+      cycle,
+      true
+    );
+
+    [250, 900, 1800].forEach(
+      function (delay) {
+        window.setTimeout(
+          function () {
+            removeFitButton();
+            ensureCardsVisible();
+            updateButtonState();
+          },
+          delay
+        );
+      }
+    );
+
+    console.info(
+      '[PMD Three View Cycle V1.1] Ready.',
+      audit()
+    );
+  }
+
+  function audit() {
+    return {
+      version: VERSION,
+      currentView:
+        currentView(),
+      selectedDate:
+        storedDate() || null,
+      page:
+        Boolean(page()),
+      calendar:
+        Boolean(calendar()),
+      cards:
+        Boolean(cards()),
+      cardsVisible:
+        Boolean(
+          cards() &&
+          getComputedStyle(
+            cards()
+          ).display !== 'none'
+        ),
+      fitButtonExists:
+        Boolean(
+          document.querySelector(
+            '#pmd-r2-floor-toolbar-v316 ' +
+            '[data-pmd-r2-tool="fit"]'
+          )
+        ),
+      calendarApi:
+        Boolean(calendarApi()),
+      selectedCardsApi:
+        Boolean(selectedCardsApi()),
+      oneRowApi:
+        Boolean(
+          window.PMDStableOneRowV1
+        )
+    };
+  }
+
+  function destroy() {
+    document.removeEventListener(
+      'click',
+      cycle,
+      true
+    );
+
+    delete window
+      .PMDThreeViewCycleV1;
+  }
+
+  window.PMDThreeViewCycleV1 = {
+    version: VERSION,
+    audit: audit,
+    currentView: currentView,
+    showFloor: enterFloor,
+    showCalendar: enterCalendar,
+    showHour: enterHour,
+    ensureCardsVisible:
+      ensureCardsVisible,
+    destroy: destroy
+  };
+
+  if (
+    document.readyState ===
+    'loading'
+  ) {
+    document.addEventListener(
+      'DOMContentLoaded',
+      boot,
+      { once: true }
+    );
+  } else {
+    boot();
+  }
+})();
+</script>
+<!-- PMD_THREE_VIEW_CYCLE_V1_END -->
+
+<!-- PMD_CARDS_ALL_VIEWS_V11 -->
+<style id="pmd-cards-all-views-v12-style">
+  #pmd-reservations2
+    > #pmd-r2-reservation-cards-v320 {
+    display: block !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+
+    position: relative !important;
+
+    width: 100% !important;
+    height: auto !important;
+    min-height: 1px !important;
+    max-height: none !important;
+
+    overflow: visible !important;
+    pointer-events: auto !important;
+  }
+
+  #pmd-reservations2
+    > #pmd-r2-reservation-cards-v320
+    > .pmd-r2-reservation-cards-v320__head {
+    display: flex !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+
+    width: 100% !important;
+    height: auto !important;
+    min-height: 44px !important;
+
+    pointer-events: auto !important;
+  }
+
+  #pmd-reservations2
+    > #pmd-r2-reservation-cards-v320
+    > #pmd-r2-reservation-grid-v320 {
+    display: grid !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+
+    width: 100% !important;
+    height: auto !important;
+    min-height: 1px !important;
+    max-height: none !important;
+
+    overflow: visible !important;
+    pointer-events: auto !important;
+  }
+
+  #pmd-reservations2.is-calendar-mode
+    > #pmd-r2-reservation-cards-v320,
+
+  #pmd-reservations2.pmd-r2-hour-layout-v38-active
+    > #pmd-r2-reservation-cards-v320 {
+    margin-top: 18px !important;
+  }
+</style>
+
+<script id="pmd-cards-all-views-v12-script">
+(function () {
+  'use strict';
+
+  var VERSION =
+    '1.2.0';
+
+  var clickTimers = [];
+
+  if (
+    window.PMDSelectedDateCardsV12 &&
+    typeof window.PMDSelectedDateCardsV12.destroy ===
+      'function'
+  ) {
+    window.PMDSelectedDateCardsV12.destroy();
+  }
+
+  if (
+    window.PMDCardsAllViewsV11 &&
+    typeof window.PMDCardsAllViewsV11.destroy ===
+      'function'
+  ) {
+    window.PMDCardsAllViewsV11.destroy();
+  }
+
+  function root() {
+    return document.getElementById(
+      'pmd-reservations2'
+    );
+  }
+
+  function calendar() {
+    return document.getElementById(
+      'pmd-r2-calendar-surface-v160'
+    );
+  }
+
+  function cards() {
+    return document.getElementById(
+      'pmd-r2-reservation-cards-v320'
+    );
+  }
+
+  function head() {
+    var section = cards();
+
+    return section
+      ? section.querySelector(
+          ':scope > ' +
+          '.pmd-r2-reservation-cards-v320__head'
+        )
+      : null;
+  }
+
+  function grid() {
+    return document.getElementById(
+      'pmd-r2-reservation-grid-v320'
+    );
+  }
+
+  function reservationCards() {
+    var sectionGrid =
+      grid();
+
+    return sectionGrid
+      ? Array.prototype.slice.call(
+          sectionGrid.querySelectorAll(
+            ':scope > ' +
+            'article[data-r2-reservation-id]'
+          )
+        )
+      : [];
+  }
+
+  function addCard() {
+    var sectionGrid =
+      grid();
+
+    return sectionGrid
+      ? sectionGrid.querySelector(
+          ':scope > ' +
+          'article[data-r2-add-reservation]'
+        )
+      : null;
+  }
+
+  var monthMap = {
+    jan: 1,
+    january: 1,
+    feb: 2,
+    february: 2,
+    mar: 3,
+    march: 3,
+    apr: 4,
+    april: 4,
+    may: 5,
+    jun: 6,
+    june: 6,
+    jul: 7,
+    july: 7,
+    aug: 8,
+    august: 8,
+    sep: 9,
+    sept: 9,
+    september: 9,
+    oct: 10,
+    october: 10,
+    nov: 11,
+    november: 11,
+    dec: 12,
+    december: 12
+  };
+
+  function normalizeDate(value) {
+    if (!value) {
+      return null;
+    }
+
+    var clean =
+      String(value)
+        .replace(/\s+/g, ' ')
+        .trim();
+
+    var iso =
+      clean.match(
+        /(\d{4})-(\d{2})-(\d{2})/
+      );
+
+    if (iso) {
+      return (
+        iso[1] +
+        '-' +
+        iso[2] +
+        '-' +
+        iso[3]
+      );
+    }
+
+    var english =
+      clean.match(
+        /(January|February|March|April|May|June|July|August|September|October|November|December|Jan|Feb|Mar|Apr|Jun|Jul|Aug|Sep|Sept|Oct|Nov|Dec)\s+(\d{1,2}),\s*(\d{4})/i
+      );
+
+    if (!english) {
+      return null;
+    }
+
+    var month =
+      monthMap[
+        english[1].toLowerCase()
+      ];
+
+    return [
+      english[3],
+      String(month).padStart(
+        2,
+        '0'
+      ),
+      String(
+        Number(english[2])
+      ).padStart(
+        2,
+        '0'
+      )
+    ].join('-');
+  }
+
+  function storedDate() {
+    var rootElement =
+      root();
+
+    var section =
+      cards();
+
+    return normalizeDate(
+      (
+        rootElement &&
+        rootElement.dataset
+          .pmdSelectedDate
+      ) ||
+      (
+        section &&
+        section.dataset
+          .pmdSelectedDate
+      ) ||
+      ''
+    );
+  }
+
+  function storeDate(date) {
+    var normalized =
+      normalizeDate(date);
+
+    if (!normalized) {
+      return false;
+    }
+
+    var rootElement =
+      root();
+
+    var section =
+      cards();
+
+    if (rootElement) {
+      rootElement.dataset
+        .pmdSelectedDate =
+        normalized;
+    }
+
+    if (section) {
+      section.dataset
+        .pmdSelectedDate =
+        normalized;
+    }
+
+    return normalized;
+  }
+
+  function currentView() {
+    if (
+      window.PMDThreeViewCycleV1 &&
+      typeof window.PMDThreeViewCycleV1.currentView ===
+        'function'
+    ) {
+      return window
+        .PMDThreeViewCycleV1
+        .currentView();
+    }
+
+    var rootElement =
+      root();
+
+    if (
+      rootElement &&
+      rootElement.classList.contains(
+        'pmd-r2-hour-layout-v38-active'
+      )
+    ) {
+      return 'hour';
+    }
+
+    if (
+      rootElement &&
+      rootElement.classList.contains(
+        'is-calendar-mode'
+      )
+    ) {
+      return 'calendar';
+    }
+
+    return 'floor';
+  }
+
+  function formatDate(date) {
+    return new Intl.DateTimeFormat(
+      document.documentElement.lang ||
+        'de',
+      {
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric'
+      }
+    ).format(
+      new Date(
+        date + 'T12:00:00'
+      )
+    );
+  }
+
+  function revealElement(
+    element,
+    displayValue
+  ) {
+    if (!element) {
+      return false;
+    }
+
+    element.hidden = false;
+
+    element.style.setProperty(
+      'display',
+      displayValue,
+      'important'
+    );
+
+    element.style.setProperty(
+      'visibility',
+      'visible',
+      'important'
+    );
+
+    element.style.setProperty(
+      'opacity',
+      '1',
+      'important'
+    );
+
+    element.style.setProperty(
+      'height',
+      'auto',
+      'important'
+    );
+
+    element.style.setProperty(
+      'max-height',
+      'none',
+      'important'
+    );
+
+    element.style.setProperty(
+      'pointer-events',
+      'auto',
+      'important'
+    );
+
+    return true;
+  }
+
+  function revealStructure() {
+    var section =
+      cards();
+
+    var sectionHead =
+      head();
+
+    var sectionGrid =
+      grid();
+
+    if (
+      !section ||
+      !sectionHead ||
+      !sectionGrid
+    ) {
+      return false;
+    }
+
+    revealElement(
+      section,
+      'block'
+    );
+
+    revealElement(
+      sectionHead,
+      'flex'
+    );
+
+    revealElement(
+      sectionGrid,
+      'grid'
+    );
+
+    section.style.setProperty(
+      'width',
+      '100%',
+      'important'
+    );
+
+    sectionGrid.style.setProperty(
+      'width',
+      '100%',
+      'important'
+    );
+
+    return true;
+  }
+
+  function cardDate(card) {
+    var dateArea =
+      card.querySelector(
+        '.pmd-r2-booking-date-v457'
+      );
+
+    return normalizeDate(
+      (
+        dateArea &&
+        dateArea.textContent
+      ) ||
+      card.textContent ||
+      ''
+    );
+  }
+
+  function showAllCards(
+    reason
+  ) {
+    revealStructure();
+
+    var items =
+      reservationCards();
+
+    items.forEach(
+      function (card) {
+        card.style.removeProperty(
+          'display'
+        );
+
+        card.style.removeProperty(
+          'visibility'
+        );
+
+        card.style.removeProperty(
+          'opacity'
+        );
+
+        delete card.dataset
+          .pmdCardDate;
+      }
+    );
+
+    var add =
+      addCard();
+
+    if (add) {
+      revealElement(
+        add,
+        'flex'
+      );
+    }
+
+    updateHeader(
+      null,
+      items.length
+    );
+
+    console.info(
+      '[PMD Selected Date Cards V1.2] Show all:',
+      reason,
+      {
+        view: currentView(),
+        cards: items.length
+      }
+    );
+
+    return true;
+  }
+
+  function updateHeader(
+    selectedDate,
+    count
+  ) {
+    var sectionHead =
+      head();
+
+    if (!sectionHead) {
+      return;
+    }
+
+    var title =
+      sectionHead.querySelector(
+        'strong'
+      );
+
+    var subtitle =
+      sectionHead.querySelector(
+        'span'
+      );
+
+    if (title) {
+      title.textContent =
+        selectedDate
+          ? 'Reservations'
+          : 'All reservations';
+    }
+
+    if (subtitle) {
+      subtitle.textContent =
+        selectedDate
+          ? (
+              formatDate(
+                selectedDate
+              ) +
+              ' · ' +
+              count +
+              (
+                count === 1
+                  ? ' reservation'
+                  : ' reservations'
+              )
+            )
+          : (
+              'All dates · ' +
+              count +
+              ' reservations'
+            );
+    }
+  }
+
+  function filterSelectedDate(
+    reason
+  ) {
+    revealStructure();
+
+    var selectedDate =
+      storedDate();
+
+    if (!selectedDate) {
+      return showAllCards(
+        reason + '-no-date'
+      );
+    }
+
+    var items =
+      reservationCards();
+
+    var visibleCount = 0;
+    var parsedCount = 0;
+
+    items.forEach(
+      function (card) {
+        var date =
+          cardDate(card);
+
+        var matches =
+          date === selectedDate;
+
+        card.dataset
+          .pmdCardDate =
+          date || '';
+
+        if (date) {
+          parsedCount += 1;
+        }
+
+        card.style.setProperty(
+          'display',
+          matches
+            ? 'block'
+            : 'none',
+          'important'
+        );
+
+        card.style.setProperty(
+          'visibility',
+          matches
+            ? 'visible'
+            : 'hidden',
+          'important'
+        );
+
+        card.style.setProperty(
+          'opacity',
+          matches
+            ? '1'
+            : '0',
+          'important'
+        );
+
+        if (matches) {
+          visibleCount += 1;
+        }
+      }
+    );
+
+    var add =
+      addCard();
+
+    if (add) {
+      revealElement(
+        add,
+        'flex'
+      );
+    }
+
+    updateHeader(
+      selectedDate,
+      visibleCount
+    );
+
+    console.info(
+      '[PMD Selected Date Cards V1.2] Filtered:',
+      reason,
+      {
+        selectedDate:
+          selectedDate,
+        view:
+          currentView(),
+        totalCards:
+          items.length,
+        parsedCards:
+          parsedCount,
+        visibleCards:
+          visibleCount
+      }
+    );
+
+    return true;
+  }
+
+  function syncForView(
+    view,
+    reason
+  ) {
+    var targetView =
+      view ||
+      currentView();
+
+    if (
+      targetView === 'calendar' ||
+      targetView === 'hour'
+    ) {
+      return filterSelectedDate(
+        reason ||
+        'sync-selected'
+      );
+    }
+
+    return showAllCards(
+      reason ||
+      'sync-floor'
+    );
+  }
+
+  function select(
+    date,
+    applyNow
+  ) {
+    var normalized =
+      storeDate(date);
+
+    if (!normalized) {
+      return false;
+    }
+
+    if (applyNow === false) {
+      return normalized;
+    }
+
+    return syncForView(
+      currentView(),
+      'select-date'
+    );
+  }
+
+  function clearTimers() {
+    clickTimers.forEach(
+      function (timer) {
+        window.clearTimeout(
+          timer
+        );
+      }
+    );
+
+    clickTimers = [];
+  }
+
+  function delayedSync(
+    reason
+  ) {
+    clearTimers();
+
+    [80, 260, 650].forEach(
+      function (delay) {
+        clickTimers.push(
+          window.setTimeout(
+            function () {
+              syncForView(
+                currentView(),
+                reason +
+                  '-' +
+                  delay
+              );
+            },
+            delay
+          )
+        );
+      }
+    );
+  }
+
+  function handleClick(event) {
+    var target =
+      event.target &&
+      event.target.closest
+        ? event.target.closest(
+            '[data-r2-yc-date],' +
+            '[data-r2-yc-clear-selection]'
+          )
+        : null;
+
+    if (!target) {
+      return;
+    }
+
+    if (
+      target.matches(
+        '[data-r2-yc-date]'
+      )
+    ) {
+      var date =
+        target.getAttribute(
+          'data-r2-yc-date'
+        );
+
+      if (date) {
+        storeDate(date);
+      }
+
+      delayedSync(
+        'calendar-date-click'
+      );
+
+      return;
+    }
+
+    delayedSync(
+      'calendar-clear-selection'
+    );
+  }
+
+  function apply(
+    reason
+  ) {
+    revealStructure();
+
+    return syncForView(
+      currentView(),
+      reason || 'manual'
+    );
+  }
+
+  function audit() {
+    var items =
+      reservationCards();
+
+    var visible =
+      items.filter(
+        function (card) {
+          var style =
+            getComputedStyle(card);
+
+          return (
+            style.display !==
+              'none' &&
+            style.visibility !==
+              'hidden' &&
+            Number(
+              style.opacity
+            ) > 0
+          );
+        }
+      );
+
+    return {
+      version: VERSION,
+      currentView:
+        currentView(),
+      selectedDate:
+        storedDate(),
+      totalCards:
+        items.length,
+      visibleCards:
+        visible.length,
+      visibleIds:
+        visible.map(
+          function (card) {
+            return card.getAttribute(
+              'data-r2-reservation-id'
+            );
+          }
+        ),
+      permanentInterval:
+        false,
+      mutationObserver:
+        false
+    };
+  }
+
+  function boot() {
+    revealStructure();
+
+    document.addEventListener(
+      'click',
+      handleClick,
+      true
+    );
+
+    [250, 700, 1400].forEach(
+      function (delay) {
+        window.setTimeout(
+          function () {
+            apply(
+              'initial-' +
+              delay
+            );
+          },
+          delay
+        );
+      }
+    );
+
+    console.info(
+      '[PMD Selected Date Cards V1.2] Ready.',
+      audit()
+    );
+  }
+
+  function destroy() {
+    clearTimers();
+
+    document.removeEventListener(
+      'click',
+      handleClick,
+      true
+    );
+
+    delete window
+      .PMDSelectedDateCardsV12;
+
+    delete window
+      .PMDCardsAllViewsV11;
+  }
+
+  window.PMDSelectedDateCardsV12 = {
+    version: VERSION,
+    apply: function () {
+      return apply(
+        'manual'
+      );
+    },
+    select: select,
+    syncForView:
+      syncForView,
+    showAll:
+      showAllCards,
+    filter:
+      filterSelectedDate,
+    audit: audit,
+    destroy: destroy
+  };
+
+  /*
+   * Compatibility for previous runtime callers.
+   */
+  window.PMDCardsAllViewsV11 = {
+    version: VERSION,
+    apply: function () {
+      return apply(
+        'compatibility'
+      );
+    },
+    audit: audit,
+    destroy: destroy
+  };
+
+  if (
+    document.readyState ===
+    'loading'
+  ) {
+    document.addEventListener(
+      'DOMContentLoaded',
+      boot,
+      { once: true }
+    );
+  } else {
+    boot();
+  }
+})();
+</script>
+<!-- PMD_CARDS_ALL_VIEWS_V11_END -->
+
+<!-- PMD_SELECTED_DATE_BUTTON_SYNC_V1 -->
+<script id="pmd-selected-date-button-sync-v1-script">
+(function () {
+  'use strict';
+
+  var VERSION = '1.0.0';
+  var timers = [];
+  var wrapped = false;
+  var originalMethods = {};
+
+  if (
+    window.PMDSelectedDateButtonSyncV1 &&
+    typeof window.PMDSelectedDateButtonSyncV1.destroy ===
+      'function'
+  ) {
+    window.PMDSelectedDateButtonSyncV1.destroy();
+  }
+
+  function root() {
+    return document.getElementById(
+      'pmd-reservations2'
+    );
+  }
+
+  function cards() {
+    return document.getElementById(
+      'pmd-r2-reservation-cards-v320'
+    );
+  }
+
+  function button() {
+    return document.getElementById(
+      'pmd-r2-date-button-v430'
+    );
+  }
+
+  function selectedCardsApi() {
+    return (
+      window.PMDSelectedDateCardsV12 ||
+      null
+    );
+  }
+
+  function currentView() {
+    if (
+      window.PMDThreeViewCycleV1 &&
+      typeof window.PMDThreeViewCycleV1.currentView ===
+        'function'
+    ) {
+      return window
+        .PMDThreeViewCycleV1
+        .currentView();
+    }
+
+    var page = root();
+
+    if (
+      page &&
+      page.classList.contains(
+        'pmd-r2-hour-layout-v38-active'
+      )
+    ) {
+      return 'hour';
+    }
+
+    if (
+      page &&
+      page.classList.contains(
+        'is-calendar-mode'
+      )
+    ) {
+      return 'calendar';
+    }
+
+    return 'floor';
+  }
+
+  function selectedDate() {
+    var page = root();
+    var section = cards();
+
+    var api = selectedCardsApi();
+    var audit =
+      api &&
+      typeof api.audit === 'function'
+        ? api.audit()
+        : null;
+
+    return (
+      (
+        audit &&
+        audit.selectedDate
+      ) ||
+      (
+        page &&
+        page.dataset.pmdSelectedDate
+      ) ||
+      (
+        section &&
+        section.dataset.pmdSelectedDate
+      ) ||
+      ''
+    );
+  }
+
+  function validIsoDate(value) {
+    return /^\d{4}-\d{2}-\d{2}$/.test(
+      String(value || '')
+    );
+  }
+
+  function formatDate(value) {
+    if (!validIsoDate(value)) {
+      return null;
+    }
+
+    var parsed = new Date(
+      value + 'T12:00:00'
+    );
+
+    if (
+      Number.isNaN(
+        parsed.getTime()
+      )
+    ) {
+      return null;
+    }
+
+    return new Intl.DateTimeFormat(
+      document.documentElement.lang ||
+        'de',
+      {
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric'
+      }
+    ).format(parsed);
+  }
+
+  function update(reason) {
+    var dateButton = button();
+
+    if (!dateButton) {
+      return false;
+    }
+
+    var label =
+      dateButton.querySelector('span');
+
+    var view = currentView();
+    var date = selectedDate();
+
+    var shouldShowDate =
+      (
+        view === 'calendar' ||
+        view === 'hour'
+      ) &&
+      validIsoDate(date);
+
+    var text =
+      shouldShowDate
+        ? formatDate(date)
+        : 'All dates';
+
+    if (!text) {
+      text = 'All dates';
+    }
+
+    if (label) {
+      label.textContent = text;
+    }
+
+    dateButton.setAttribute(
+      'aria-label',
+      shouldShowDate
+        ? (
+            'Reservation date: ' +
+            text
+          )
+        : 'Reservation date range'
+    );
+
+    dateButton.dataset
+      .pmdDisplayedDate =
+      shouldShowDate
+        ? date
+        : '';
+
+    console.info(
+      '[PMD Date Button Sync V1] Updated:',
+      reason,
+      {
+        view: view,
+        selectedDate:
+          date || null,
+        buttonText: text
+      }
+    );
+
+    return true;
+  }
+
+  function clearTimers() {
+    timers.forEach(
+      function (timer) {
+        window.clearTimeout(timer);
+      }
+    );
+
+    timers = [];
+  }
+
+  function schedule(reason) {
+    clearTimers();
+
+    [0, 100, 320, 700].forEach(
+      function (delay) {
+        timers.push(
+          window.setTimeout(
+            function () {
+              update(
+                reason + '-' + delay
+              );
+            },
+            delay
+          )
+        );
+      }
+    );
+  }
+
+  function handleDateClick(event) {
+    var cell =
+      event.target &&
+      event.target.closest
+        ? event.target.closest(
+            '[data-r2-yc-date]'
+          )
+        : null;
+
+    if (!cell) {
+      return;
+    }
+
+    schedule(
+      'calendar-date-click'
+    );
+  }
+
+  function wrapApi() {
+    var api = selectedCardsApi();
+
+    if (!api || wrapped) {
+      return false;
+    }
+
+    [
+      'apply',
+      'select',
+      'syncForView',
+      'showAll',
+      'filter'
+    ].forEach(
+      function (methodName) {
+        if (
+          typeof api[methodName] !==
+          'function'
+        ) {
+          return;
+        }
+
+        originalMethods[methodName] =
+          api[methodName];
+
+        api[methodName] =
+          function () {
+            var result =
+              originalMethods[
+                methodName
+              ].apply(
+                api,
+                arguments
+              );
+
+            schedule(
+              'api-' + methodName
+            );
+
+            return result;
+          };
+      }
+    );
+
+    wrapped = true;
+
+    return true;
+  }
+
+  function audit() {
+    var dateButton = button();
+
+    return {
+      version: VERSION,
+      currentView:
+        currentView(),
+      selectedDate:
+        selectedDate() || null,
+      button:
+        Boolean(dateButton),
+      buttonText:
+        dateButton
+          ? (
+              dateButton
+                .querySelector('span')
+                ?.textContent
+                ?.trim() || ''
+            )
+          : null,
+      displayedDate:
+        dateButton
+          ? (
+              dateButton.dataset
+                .pmdDisplayedDate ||
+              null
+            )
+          : null,
+      apiWrapped:
+        wrapped,
+      mutationObserver:
+        false,
+      permanentInterval:
+        false
+    };
+  }
+
+  function boot() {
+    wrapApi();
+
+    document.addEventListener(
+      'click',
+      handleDateClick,
+      true
+    );
+
+    [250, 700, 1400].forEach(
+      function (delay) {
+        timers.push(
+          window.setTimeout(
+            function () {
+              wrapApi();
+              update(
+                'initial-' + delay
+              );
+            },
+            delay
+          )
+        );
+      }
+    );
+
+    console.info(
+      '[PMD Date Button Sync V1] Ready.',
+      audit()
+    );
+  }
+
+  function destroy() {
+    clearTimers();
+
+    document.removeEventListener(
+      'click',
+      handleDateClick,
+      true
+    );
+
+    var api = selectedCardsApi();
+
+    if (api && wrapped) {
+      Object.keys(
+        originalMethods
+      ).forEach(
+        function (methodName) {
+          api[methodName] =
+            originalMethods[
+              methodName
+            ];
+        }
+      );
+    }
+
+    wrapped = false;
+    originalMethods = {};
+
+    delete window
+      .PMDSelectedDateButtonSyncV1;
+  }
+
+  window.PMDSelectedDateButtonSyncV1 = {
+    version: VERSION,
+    update: function () {
+      return update('manual');
+    },
+    audit: audit,
+    destroy: destroy
+  };
+
+  if (
+    document.readyState ===
+    'loading'
+  ) {
+    document.addEventListener(
+      'DOMContentLoaded',
+      boot,
+      { once: true }
+    );
+  } else {
+    boot();
+  }
+})();
+</script>
+<!-- PMD_SELECTED_DATE_BUTTON_SYNC_V1_END -->
+
+<!-- PMD_DATE_BUTTON_LABEL_AUTHORITY_V2 -->
+<style id="pmd-date-button-label-authority-v2-style">
+  /*
+   * Native toolbar scripts may rewrite the original span to
+   * "All dates". Keep it in the DOM but use our stable label.
+   */
+  #pmd-r2-date-button-v430[data-pmd-date-label]
+    > span {
+    display: none !important;
+  }
+
+  #pmd-r2-date-button-v430[data-pmd-date-label]::after {
+    content: attr(data-pmd-date-label);
+    display: inline-block;
+    white-space: nowrap;
+  }
+</style>
+
+<script id="pmd-date-button-label-authority-v2-script">
+(function () {
+  'use strict';
+
+  var VERSION = '2.0.0';
+  var timers = [];
+
+  if (
+    window.PMDDateButtonLabelAuthorityV2 &&
+    typeof window.PMDDateButtonLabelAuthorityV2.destroy ===
+      'function'
+  ) {
+    window.PMDDateButtonLabelAuthorityV2.destroy();
+  }
+
+  function root() {
+    return document.getElementById(
+      'pmd-reservations2'
+    );
+  }
+
+  function cards() {
+    return document.getElementById(
+      'pmd-r2-reservation-cards-v320'
+    );
+  }
+
+  function button() {
+    return document.getElementById(
+      'pmd-r2-date-button-v430'
+    );
+  }
+
+  function currentView() {
+    if (
+      window.PMDThreeViewCycleV1 &&
+      typeof window.PMDThreeViewCycleV1.currentView ===
+        'function'
+    ) {
+      return window
+        .PMDThreeViewCycleV1
+        .currentView();
+    }
+
+    var page = root();
+
+    if (
+      page &&
+      page.classList.contains(
+        'pmd-r2-hour-layout-v38-active'
+      )
+    ) {
+      return 'hour';
+    }
+
+    if (
+      page &&
+      page.classList.contains(
+        'is-calendar-mode'
+      )
+    ) {
+      return 'calendar';
+    }
+
+    return 'floor';
+  }
+
+  function selectedDate() {
+    var page = root();
+    var section = cards();
+
+    var api =
+      window.PMDSelectedDateCardsV12;
+
+    var audit =
+      api &&
+      typeof api.audit === 'function'
+        ? api.audit()
+        : null;
+
+    return (
+      (
+        audit &&
+        audit.selectedDate
+      ) ||
+      (
+        page &&
+        page.dataset.pmdSelectedDate
+      ) ||
+      (
+        section &&
+        section.dataset.pmdSelectedDate
+      ) ||
+      ''
+    );
+  }
+
+  function validDate(value) {
+    return /^\d{4}-\d{2}-\d{2}$/.test(
+      String(value || '')
+    );
+  }
+
+  function formatDate(value) {
+    if (!validDate(value)) {
+      return null;
+    }
+
+    var parsed =
+      new Date(
+        value + 'T12:00:00'
+      );
+
+    if (
+      Number.isNaN(
+        parsed.getTime()
+      )
+    ) {
+      return null;
+    }
+
+    return new Intl.DateTimeFormat(
+      document.documentElement.lang ||
+        'de',
+      {
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric'
+      }
+    ).format(parsed);
+  }
+
+  function apply(reason) {
+    var dateButton = button();
+
+    if (!dateButton) {
+      return false;
+    }
+
+    var view = currentView();
+    var date = selectedDate();
+
+    var showSelectedDate =
+      (
+        view === 'calendar' ||
+        view === 'hour'
+      ) &&
+      validDate(date);
+
+    var label =
+      showSelectedDate
+        ? formatDate(date)
+        : 'All dates';
+
+    if (!label) {
+      label = 'All dates';
+    }
+
+    dateButton.dataset
+      .pmdDateLabel =
+      label;
+
+    dateButton.dataset
+      .pmdDisplayedDate =
+      showSelectedDate
+        ? date
+        : '';
+
+    dateButton.setAttribute(
+      'aria-label',
+      showSelectedDate
+        ? (
+            'Reservation date: ' +
+            label
+          )
+        : 'Reservation date range'
+    );
+
+    console.info(
+      '[PMD Date Button Label Authority V2] Applied:',
+      reason,
+      {
+        view: view,
+        selectedDate:
+          date || null,
+        displayedLabel:
+          label
+      }
+    );
+
+    return true;
+  }
+
+  function clearTimers() {
+    timers.forEach(
+      function (timer) {
+        window.clearTimeout(timer);
+      }
+    );
+
+    timers = [];
+  }
+
+  function schedule(reason) {
+    clearTimers();
+
+    [0, 120, 360, 800].forEach(
+      function (delay) {
+        timers.push(
+          window.setTimeout(
+            function () {
+              apply(
+                reason +
+                '-' +
+                delay
+              );
+            },
+            delay
+          )
+        );
+      }
+    );
+  }
+
+  function handleClick(event) {
+    var target =
+      event.target &&
+      event.target.closest
+        ? event.target.closest(
+            '#pmd-r2-calendar-toggle-v1,' +
+            '[data-r2-yc-date],' +
+            '[data-r2-yc-clear-selection]'
+          )
+        : null;
+
+    if (!target) {
+      return;
+    }
+
+    schedule('relevant-click');
+  }
+
+  function audit() {
+    var dateButton = button();
+
+    return {
+      version: VERSION,
+      currentView:
+        currentView(),
+      selectedDate:
+        selectedDate() || null,
+      button:
+        Boolean(dateButton),
+      nativeSpanText:
+        dateButton
+          ? (
+              dateButton
+                .querySelector('span')
+                ?.textContent
+                ?.trim() || ''
+            )
+          : null,
+      displayedLabel:
+        dateButton
+          ? (
+              dateButton.dataset
+                .pmdDateLabel ||
+              null
+            )
+          : null,
+      displayedDate:
+        dateButton
+          ? (
+              dateButton.dataset
+                .pmdDisplayedDate ||
+              null
+            )
+          : null,
+      mutationObserver:
+        false,
+      permanentInterval:
+        false
+    };
+  }
+
+  function boot() {
+    document.addEventListener(
+      'click',
+      handleClick,
+      true
+    );
+
+    [250, 700, 1400].forEach(
+      function (delay) {
+        timers.push(
+          window.setTimeout(
+            function () {
+              apply(
+                'initial-' +
+                delay
+              );
+            },
+            delay
+          )
+        );
+      }
+    );
+
+    console.info(
+      '[PMD Date Button Label Authority V2] Ready.',
+      audit()
+    );
+  }
+
+  function destroy() {
+    clearTimers();
+
+    document.removeEventListener(
+      'click',
+      handleClick,
+      true
+    );
+
+    var dateButton = button();
+
+    if (dateButton) {
+      delete dateButton.dataset
+        .pmdDateLabel;
+
+      delete dateButton.dataset
+        .pmdDisplayedDate;
+    }
+
+    delete window
+      .PMDDateButtonLabelAuthorityV2;
+  }
+
+  window.PMDDateButtonLabelAuthorityV2 = {
+    version: VERSION,
+    apply: function () {
+      return apply('manual');
+    },
+    audit: audit,
+    destroy: destroy
+  };
+
+  if (
+    document.readyState ===
+    'loading'
+  ) {
+    document.addEventListener(
+      'DOMContentLoaded',
+      boot,
+      { once: true }
+    );
+  } else {
+    boot();
+  }
+})();
+</script>
+<!-- PMD_DATE_BUTTON_LABEL_AUTHORITY_V2_END -->
+
+<!-- PMD_REAL_HOUR_TIMELINE_V1 -->
+<script id="pmd-real-hour-timeline-v1-script">
+(function () {
+  'use strict';
+
+  var VERSION = '1.0.0';
+  var timers = [];
+
+  if (
+    window.PMDRealHourTimelineV1 &&
+    typeof window.PMDRealHourTimelineV1.destroy ===
+      'function'
+  ) {
+    window.PMDRealHourTimelineV1.destroy();
+  }
+
+  function root() {
+    return document.getElementById(
+      'pmd-reservations2'
+    );
+  }
+
+  function calendar() {
+    return document.getElementById(
+      'pmd-r2-calendar-surface-v160'
+    );
+  }
+
+  function timeline() {
+    var calendarRoot = calendar();
+
+    return calendarRoot
+      ? calendarRoot.querySelector(
+          '.pmd-r2-day-board__timeline'
+        )
+      : null;
+  }
+
+  function grid() {
+    return document.getElementById(
+      'pmd-r2-reservation-grid-v320'
+    );
+  }
+
+  function currentView() {
+    if (
+      window.PMDThreeViewCycleV1 &&
+      typeof window.PMDThreeViewCycleV1.currentView ===
+        'function'
+    ) {
+      return window
+        .PMDThreeViewCycleV1
+        .currentView();
+    }
+
+    return 'floor';
+  }
+
+  function selectedDate() {
+    var page = root();
+
+    var cardsApi =
+      window.PMDSelectedDateCardsV12;
+
+    var cardsAudit =
+      cardsApi &&
+      typeof cardsApi.audit === 'function'
+        ? cardsApi.audit()
+        : null;
+
+    return (
+      (
+        cardsAudit &&
+        cardsAudit.selectedDate
+      ) ||
+      (
+        page &&
+        page.dataset.pmdSelectedDate
+      ) ||
+      ''
+    );
+  }
+
+  function clean(value) {
+    return String(value || '')
+      .replace(/\s+/g, ' ')
+      .trim();
+  }
+
+  function visibleCards() {
+    var cardGrid = grid();
+
+    if (!cardGrid) {
+      return [];
+    }
+
+    return Array.prototype.slice
+      .call(
+        cardGrid.querySelectorAll(
+          ':scope > ' +
+          'article[data-r2-reservation-id]'
+        )
+      )
+      .filter(function (card) {
+        var style =
+          getComputedStyle(card);
+
+        return (
+          style.display !== 'none' &&
+          style.visibility !== 'hidden' &&
+          Number(style.opacity) > 0
+        );
+      });
+  }
+
+  function extractTime(text) {
+    var cleanText = clean(text);
+
+    var twelveHour =
+      cleanText.match(
+        /(\d{1,2}):(\d{2})\s*(AM|PM)/i
+      );
+
+    if (twelveHour) {
+      var hour =
+        Number(twelveHour[1]);
+
+      var minute =
+        twelveHour[2];
+
+      var period =
+        twelveHour[3]
+          .toUpperCase();
+
+      if (
+        period === 'AM' &&
+        hour === 12
+      ) {
+        hour = 0;
+      }
+
+      if (
+        period === 'PM' &&
+        hour !== 12
+      ) {
+        hour += 12;
+      }
+
+      return (
+        String(hour).padStart(
+          2,
+          '0'
+        ) +
+        ':' +
+        minute
+      );
+    }
+
+    var twentyFourHour =
+      cleanText.match(
+        /(?:^|\s)([01]?\d|2[0-3]):([0-5]\d)(?:\s|$)/
+      );
+
+    if (!twentyFourHour) {
+      return null;
+    }
+
+    return (
+      String(
+        Number(twentyFourHour[1])
+      ).padStart(
+        2,
+        '0'
+      ) +
+      ':' +
+      twentyFourHour[2]
+    );
+  }
+
+  function extractName(card, id) {
+    var selectors = [
+      'h2',
+      'h3',
+      '.pmd-r2-reservation-card__name',
+      '.pmd-r2-booking-name',
+      '[data-r2-customer-name]',
+      'strong'
+    ];
+
+    for (
+      var index = 0;
+      index < selectors.length;
+      index += 1
+    ) {
+      var element =
+        card.querySelector(
+          selectors[index]
+        );
+
+      var value =
+        clean(
+          element &&
+          element.textContent
+        );
+
+      if (value) {
+        return value;
+      }
+    }
+
+    return (
+      'Reservation ' +
+      String(id || '')
+    );
+  }
+
+  function extractNumber(
+    text,
+    patterns
+  ) {
+    for (
+      var index = 0;
+      index < patterns.length;
+      index += 1
+    ) {
+      var match =
+        text.match(
+          patterns[index]
+        );
+
+      if (
+        match &&
+        match[1]
+      ) {
+        return match[1];
+      }
+    }
+
+    return '—';
+  }
+
+  function reservationFromCard(card) {
+    var id =
+      card.getAttribute(
+        'data-r2-reservation-id'
+      );
+
+    var text =
+      clean(card.textContent);
+
+    var time =
+      extractTime(text);
+
+    if (!time) {
+      return null;
+    }
+
+    return {
+      id: id,
+
+      time: time,
+
+      name:
+        extractName(
+          card,
+          id
+        ),
+
+      table:
+        card.getAttribute(
+          'data-table'
+        ) ||
+        card.getAttribute(
+          'data-table-id'
+        ) ||
+        extractNumber(
+          text,
+          [
+            /(?:Table|Tisch)\s*#?\s*(\d+)/i
+          ]
+        ),
+
+      guests:
+        card.getAttribute(
+          'data-guests'
+        ) ||
+        extractNumber(
+          text,
+          [
+            /(\d+)\s*(?:guests?|Gäste|Personen)/i,
+            /(?:guests?|Gäste|Personen)\s*:?\s*(\d+)/i
+          ]
+        ),
+
+      status:
+        card.getAttribute(
+          'data-status'
+        ) ||
+        'Scheduled'
+    };
+  }
+
+  function reservations() {
+    return visibleCards()
+      .map(
+        reservationFromCard
+      )
+      .filter(Boolean);
+  }
+
+  function groupByTime(items) {
+    return items.reduce(
+      function (
+        result,
+        reservation
+      ) {
+        if (
+          !result[
+            reservation.time
+          ]
+        ) {
+          result[
+            reservation.time
+          ] = [];
+        }
+
+        result[
+          reservation.time
+        ].push(
+          reservation
+        );
+
+        return result;
+      },
+      {}
+    );
+  }
+
+  function createEmptyState() {
+    var empty =
+      document.createElement(
+        'div'
+      );
+
+    empty.className =
+      'pmd-r2-timeslot__free';
+
+    var dot =
+      document.createElement('i');
+
+    var text =
+      document.createElement(
+        'span'
+      );
+
+    text.textContent =
+      'No reservations';
+
+    empty.appendChild(dot);
+    empty.appendChild(text);
+
+    return empty;
+  }
+
+  function createBooking(
+    reservation
+  ) {
+    var article =
+      document.createElement(
+        'article'
+      );
+
+    article.className =
+      'pmd-r2-slot-booking is-confirmed';
+
+    article.setAttribute(
+      'data-r2-reservation-id',
+      reservation.id
+    );
+
+    var main =
+      document.createElement(
+        'div'
+      );
+
+    main.className =
+      'pmd-r2-slot-booking__main';
+
+    var name =
+      document.createElement(
+        'strong'
+      );
+
+    name.textContent =
+      reservation.name;
+
+    var meta =
+      document.createElement(
+        'span'
+      );
+
+    meta.textContent =
+      'Tisch ' +
+      reservation.table +
+      ' · ' +
+      reservation.guests +
+      ' guests';
+
+    main.appendChild(name);
+    main.appendChild(meta);
+
+    var status =
+      document.createElement(
+        'div'
+      );
+
+    status.className =
+      'pmd-r2-slot-booking__status';
+
+    var statusText =
+      document.createElement(
+        'span'
+      );
+
+    statusText.textContent =
+      reservation.status;
+
+    var link =
+      document.createElement('a');
+
+    link.href =
+      '/admin/reservations/edit/' +
+      encodeURIComponent(
+        reservation.id
+      );
+
+    link.textContent =
+      'Geöffnet';
+
+    status.appendChild(
+      statusText
+    );
+
+    status.appendChild(
+      link
+    );
+
+    article.appendChild(main);
+    article.appendChild(status);
+
+    return article;
+  }
+
+  function render(reason) {
+    if (
+      currentView() !== 'hour'
+    ) {
+      return false;
+    }
+
+    var timelineRoot =
+      timeline();
+
+    var date =
+      selectedDate();
+
+    if (
+      !timelineRoot ||
+      !date
+    ) {
+      return false;
+    }
+
+    var items =
+      reservations();
+
+    var grouped =
+      groupByTime(items);
+
+    var slots =
+      Array.prototype.slice.call(
+        timelineRoot.querySelectorAll(
+          '.pmd-r2-timeslot' +
+          '[data-r2-create-time]'
+        )
+      );
+
+    slots.forEach(
+      function (slot) {
+        var time =
+          slot.getAttribute(
+            'data-r2-create-time'
+          );
+
+        var bookings =
+          grouped[time] || [];
+
+        var content =
+          slot.querySelector(
+            '.pmd-r2-timeslot__content'
+          );
+
+        var count =
+          slot.querySelector(
+            '.pmd-r2-timeslot__time span'
+          );
+
+        if (!content) {
+          return;
+        }
+
+        var createButton =
+          content.querySelector(
+            '[data-r2-create-button]'
+          );
+
+        Array.prototype.slice
+          .call(
+            content.querySelectorAll(
+              '.pmd-r2-slot-booking,' +
+              '.pmd-r2-timeslot__free'
+            )
+          )
+          .forEach(
+            function (element) {
+              element.remove();
+            }
+          );
+
+        slot.setAttribute(
+          'data-r2-create-date',
+          date
+        );
+
+        if (!bookings.length) {
+          slot.classList.remove(
+            'has-bookings'
+          );
+
+          slot.classList.add(
+            'is-empty'
+          );
+
+          if (count) {
+            count.textContent =
+              'Verfügbar';
+          }
+
+          content.insertBefore(
+            createEmptyState(),
+            createButton || null
+          );
+
+          return;
+        }
+
+        slot.classList.remove(
+          'is-empty'
+        );
+
+        slot.classList.add(
+          'has-bookings'
+        );
+
+        if (count) {
+          count.textContent =
+            String(
+              bookings.length
+            ) +
+            (
+              bookings.length === 1
+                ? ' Reservierung'
+                : ' Reservierungen'
+            );
+        }
+
+        bookings.forEach(
+          function (
+            reservation
+          ) {
+            content.insertBefore(
+              createBooking(
+                reservation
+              ),
+              createButton || null
+            );
+          }
+        );
+      }
+    );
+
+    var rendered =
+      timelineRoot.querySelectorAll(
+        '.pmd-r2-slot-booking' +
+        '[data-r2-reservation-id]'
+      ).length;
+
+    console.info(
+      '[PMD Real Hour Timeline V1] Rendered:',
+      reason,
+      {
+        selectedDate:
+          date,
+        parsedReservations:
+          items.length,
+        renderedReservations:
+          rendered
+      }
+    );
+
+    return {
+      selectedDate: date,
+      parsedReservations:
+        items.length,
+      renderedReservations:
+        rendered
+    };
+  }
+
+  function clearTimers() {
+    timers.forEach(
+      function (timer) {
+        window.clearTimeout(
+          timer
+        );
+      }
+    );
+
+    timers = [];
+  }
+
+  function schedule(reason) {
+    clearTimers();
+
+    window.requestAnimationFrame(
+      function () {
+        render(
+          reason + '-frame'
+        );
+      }
+    );
+
+    [60, 180].forEach(
+      function (delay) {
+        timers.push(
+          window.setTimeout(
+            function () {
+              render(
+                reason +
+                '-' +
+                delay
+              );
+            },
+            delay
+          )
+        );
+      }
+    );
+  }
+
+  function handleClick(event) {
+    var target =
+      event.target &&
+      event.target.closest
+        ? event.target.closest(
+            '#pmd-r2-calendar-toggle-v1,' +
+            '[data-r2-yc-date]'
+          )
+        : null;
+
+    if (!target) {
+      return;
+    }
+
+    schedule(
+      target.matches(
+        '[data-r2-yc-date]'
+      )
+        ? 'date-click'
+        : 'view-click'
+    );
+  }
+
+  function audit() {
+    var timelineRoot =
+      timeline();
+
+    return {
+      version: VERSION,
+      currentView:
+        currentView(),
+      selectedDate:
+        selectedDate() || null,
+      visibleCards:
+        visibleCards().length,
+      parsedReservations:
+        reservations().length,
+      renderedReservations:
+        timelineRoot
+          ? timelineRoot.querySelectorAll(
+              '.pmd-r2-slot-booking' +
+              '[data-r2-reservation-id]'
+            ).length
+          : 0,
+      mutationObserver:
+        false,
+      permanentInterval:
+        false
+    };
+  }
+
+  function boot() {
+    document.addEventListener(
+      'click',
+      handleClick,
+      true
+    );
+
+    console.info(
+      '[PMD Real Hour Timeline V1] Ready.',
+      audit()
+    );
+  }
+
+  function destroy() {
+    clearTimers();
+
+    document.removeEventListener(
+      'click',
+      handleClick,
+      true
+    );
+
+    delete window
+      .PMDRealHourTimelineV1;
+  }
+
+  window.PMDRealHourTimelineV1 = {
+    version: VERSION,
+    render: function () {
+      return render('manual');
+    },
+    audit: audit,
+    destroy: destroy
+  };
+
+  if (
+    document.readyState ===
+    'loading'
+  ) {
+    document.addEventListener(
+      'DOMContentLoaded',
+      boot,
+      { once: true }
+    );
+  } else {
+    boot();
+  }
+})();
+</script>
+<!-- PMD_REAL_HOUR_TIMELINE_V1_END -->
+
+<!-- PMD_HOUR_ENTRY_AUTHORITY_V11 -->
+<script id="pmd-hour-entry-authority-v11-script">
+(function () {
+  'use strict';
+
+  var VERSION = '1.1.0';
+
+  var frameId = null;
+  var timers = [];
+  var runToken = 0;
+
+  if (
+    window.PMDHourEntryAuthorityV11 &&
+    typeof window.PMDHourEntryAuthorityV11.destroy ===
+      'function'
+  ) {
+    window.PMDHourEntryAuthorityV11.destroy();
+  }
+
+  function currentView() {
+    if (
+      window.PMDThreeViewCycleV1 &&
+      typeof window.PMDThreeViewCycleV1.currentView ===
+        'function'
+    ) {
+      return window
+        .PMDThreeViewCycleV1
+        .currentView();
+    }
+
+    return 'floor';
+  }
+
+  function root() {
+    return document.getElementById(
+      'pmd-reservations2'
+    );
+  }
+
+  function timeline() {
+    return document.querySelector(
+      '#pmd-r2-calendar-surface-v160 ' +
+      '.pmd-r2-day-board__timeline'
+    );
+  }
+
+  function selectedDate() {
+    var page = root();
+
+    var audit =
+      window.PMDSelectedDateCardsV12 &&
+      typeof window.PMDSelectedDateCardsV12.audit ===
+        'function'
+        ? window.PMDSelectedDateCardsV12.audit()
+        : null;
+
+    return (
+      (
+        audit &&
+        audit.selectedDate
+      ) ||
+      (
+        page &&
+        page.dataset.pmdSelectedDate
+      ) ||
+      ''
+    );
+  }
+
+  function visibleCardCount() {
+    return Array.prototype.slice
+      .call(
+        document.querySelectorAll(
+          '#pmd-r2-reservation-grid-v320 ' +
+          '> article[data-r2-reservation-id]'
+        )
+      )
+      .filter(function (card) {
+        var style =
+          getComputedStyle(card);
+
+        return (
+          style.display !== 'none' &&
+          style.visibility !== 'hidden' &&
+          Number(style.opacity) > 0
+        );
+      })
+      .length;
+  }
+
+  function renderedBookingCount() {
+    var hourTimeline =
+      timeline();
+
+    return hourTimeline
+      ? hourTimeline.querySelectorAll(
+          '.pmd-r2-slot-booking' +
+          '[data-r2-reservation-id]'
+        ).length
+      : 0;
+  }
+
+  function clearWork() {
+    if (frameId !== null) {
+      window.cancelAnimationFrame(
+        frameId
+      );
+
+      frameId = null;
+    }
+
+    timers.forEach(
+      function (timer) {
+        window.clearTimeout(timer);
+      }
+    );
+
+    timers = [];
+  }
+
+  function restoreScroll(
+    scrollX,
+    scrollY
+  ) {
+    window.scrollTo({
+      left: scrollX,
+      top: scrollY,
+      behavior: 'auto'
+    });
+  }
+
+  function syncCards() {
+    var api =
+      window.PMDSelectedDateCardsV12;
+
+    if (
+      !api ||
+      typeof api.syncForView !==
+        'function'
+    ) {
+      return false;
+    }
+
+    return api.syncForView(
+      'hour',
+      'hour-entry-authority'
+    );
+  }
+
+  function renderRealHour(
+    reason
+  ) {
+    var api =
+      window.PMDRealHourTimelineV1;
+
+    if (
+      !api ||
+      typeof api.render !==
+        'function'
+    ) {
+      return false;
+    }
+
+    return api.render(reason);
+  }
+
+  function finalize(
+    token,
+    scrollX,
+    scrollY,
+    reason
+  ) {
+    if (token !== runToken) {
+      return false;
+    }
+
+    syncCards();
+
+    window.requestAnimationFrame(
+      function () {
+        if (token !== runToken) {
+          return;
+        }
+
+        var result =
+          renderRealHour(reason);
+
+        restoreScroll(
+          scrollX,
+          scrollY
+        );
+
+        var active =
+          document.activeElement;
+
+        if (
+          active &&
+          active.id ===
+            'pmd-r2-calendar-toggle-v1'
+        ) {
+          active.blur();
+        }
+
+        console.info(
+          '[PMD Hour Entry Authority V1.1] Finalized:',
+          {
+            reason: reason,
+            selectedDate:
+              selectedDate() || null,
+            visibleCards:
+              visibleCardCount(),
+            renderedBookings:
+              renderedBookingCount(),
+            renderResult:
+              result || null,
+            scrollY:
+              window.scrollY
+          }
+        );
+      }
+    );
+
+    return true;
+  }
+
+  function start(
+    scrollX,
+    scrollY,
+    reason
+  ) {
+    clearWork();
+
+    runToken += 1;
+
+    var token = runToken;
+    var frame = 0;
+    var maximumFrames = 36;
+
+    function waitForHour() {
+      if (token !== runToken) {
+        return;
+      }
+
+      restoreScroll(
+        scrollX,
+        scrollY
+      );
+
+      var hourTimeline =
+        timeline();
+
+      var ready =
+        currentView() === 'hour' &&
+        Boolean(hourTimeline) &&
+        hourTimeline.getBoundingClientRect()
+          .height > 0 &&
+        Boolean(selectedDate());
+
+      if (ready) {
+        finalize(
+          token,
+          scrollX,
+          scrollY,
+          reason + '-ready'
+        );
+
+        /*
+         * Two bounded authority passes protect against the
+         * legacy Hour renderer writing after the first pass.
+         */
+        [90, 220].forEach(
+          function (delay) {
+            timers.push(
+              window.setTimeout(
+                function () {
+                  finalize(
+                    token,
+                    scrollX,
+                    scrollY,
+                    reason +
+                      '-authority-' +
+                      delay
+                  );
+                },
+                delay
+              )
+            );
+          }
+        );
+
+        frameId = null;
+        return;
+      }
+
+      frame += 1;
+
+      if (frame >= maximumFrames) {
+        finalize(
+          token,
+          scrollX,
+          scrollY,
+          reason + '-bounded-fallback'
+        );
+
+        frameId = null;
+        return;
+      }
+
+      frameId =
+        window.requestAnimationFrame(
+          waitForHour
+        );
+    }
+
+    frameId =
+      window.requestAnimationFrame(
+        waitForHour
+      );
+  }
+
+  function handleClick(event) {
+    var button =
+      event.target &&
+      event.target.closest
+        ? event.target.closest(
+            '#pmd-r2-calendar-toggle-v1'
+          )
+        : null;
+
+    if (!button) {
+      return;
+    }
+
+    /*
+     * Only Calendar -> Hour needs this authority.
+     */
+    if (
+      currentView() !== 'calendar'
+    ) {
+      return;
+    }
+
+    var scrollX =
+      window.scrollX;
+
+    var scrollY =
+      window.scrollY;
+
+    start(
+      scrollX,
+      scrollY,
+      'header-calendar-to-hour'
+    );
+  }
+
+  function audit() {
+    return {
+      version: VERSION,
+      currentView:
+        currentView(),
+      selectedDate:
+        selectedDate() || null,
+      visibleCards:
+        visibleCardCount(),
+      renderedBookings:
+        renderedBookingCount(),
+      activeFrame:
+        frameId !== null,
+      pendingTimers:
+        timers.length,
+      permanentInterval:
+        false,
+      mutationObserver:
+        false
+    };
+  }
+
+  function destroy() {
+    clearWork();
+
+    document.removeEventListener(
+      'click',
+      handleClick,
+      true
+    );
+
+    delete window
+      .PMDHourEntryAuthorityV11;
+  }
+
+  window.PMDHourEntryAuthorityV11 = {
+    version: VERSION,
+    run: function () {
+      start(
+        window.scrollX,
+        window.scrollY,
+        'manual'
+      );
+
+      return true;
+    },
+    audit: audit,
+    destroy: destroy
+  };
+
+  document.addEventListener(
+    'click',
+    handleClick,
+    true
+  );
+
+  console.info(
+    '[PMD Hour Entry Authority V1.1] Ready.',
+    audit()
+  );
+})();
+</script>
+<!-- PMD_HOUR_ENTRY_AUTHORITY_V11_END -->
+
+<!-- PMD_CALENDAR_REAL_COUNTS_FLOATING_V1 -->
+<style id="pmd-calendar-real-counts-floating-v1-style">
+  /*
+   * Calendar toolbar without a surrounding frame.
+   */
+  #pmd-r2-calendar-surface-v160 .pmd-yc__toolbar {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+    flex-wrap: wrap !important;
+    gap: 10px 14px !important;
+
+    width: 100% !important;
+    min-height: 0 !important;
+    margin: 0 0 14px !important;
+    padding: 0 !important;
+
+    background: transparent !important;
+    background-color: transparent !important;
+    border: 0 !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+    outline: 0 !important;
+  }
+
+  /*
+   * The legend is redundant in this clean Calendar layout.
+   */
+  #pmd-r2-calendar-surface-v160 .pmd-yc__legend {
+    display: none !important;
+  }
+
+  /*
+   * Floating month/date navigation.
+   */
+  #pmd-r2-calendar-surface-v160 .pmd-yc__month-nav {
+    display: inline-flex !important;
+    align-items: center !important;
+    gap: 8px !important;
+
+    width: auto !important;
+    margin: 0 !important;
+    padding: 0 !important;
+
+    background: transparent !important;
+    border: 0 !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+  }
+
+  #pmd-r2-calendar-surface-v160
+    .pmd-yc__month-nav > strong {
+    min-width: 130px !important;
+    margin: 0 !important;
+    text-align: center !important;
+    white-space: nowrap !important;
+  }
+
+  /*
+   * Right-side buttons without a parent frame.
+   */
+  #pmd-r2-calendar-surface-v160
+    .pmd-yc__toolbar-right {
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: flex-end !important;
+    flex-wrap: wrap !important;
+    gap: 8px !important;
+
+    width: auto !important;
+    margin: 0 !important;
+    padding: 0 !important;
+
+    background: transparent !important;
+    border: 0 !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+  }
+
+  #pmd-r2-calendar-surface-v160
+    .pmd-yc__view-switch,
+  #pmd-r2-calendar-surface-v160
+    .pmd-yc__filters {
+    display: inline-flex !important;
+    align-items: center !important;
+    gap: 6px !important;
+
+    width: auto !important;
+    margin: 0 !important;
+    padding: 0 !important;
+
+    background: transparent !important;
+    border: 0 !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+  }
+
+  #pmd-r2-calendar-surface-v160
+    .pmd-yc__month-nav > button,
+  #pmd-r2-calendar-surface-v160
+    .pmd-yc__view-switch > button,
+  #pmd-r2-calendar-surface-v160
+    .pmd-yc__filters > button,
+  #pmd-r2-calendar-surface-v160
+    .pmd-r2-yc-note-btn {
+    position: relative !important;
+    float: none !important;
+    inset: auto !important;
+    margin: 0 !important;
+  }
+
+  /*
+   * Reservation count created by the new real-count authority.
+   */
+  #pmd-r2-calendar-surface-v160
+    .pmd-yc-day__summary.is-reservation[
+      data-pmd-real-reservation-count
+    ] {
+    white-space: nowrap !important;
+  }
+
+  @media (max-width: 900px) {
+    #pmd-r2-calendar-surface-v160 .pmd-yc__toolbar {
+      align-items: flex-start !important;
+    }
+
+    #pmd-r2-calendar-surface-v160
+      .pmd-yc__toolbar-right {
+      justify-content: flex-start !important;
+    }
+  }
+</style>
+
+<script id="pmd-calendar-real-counts-floating-v1-script">
+(function () {
+  'use strict';
+
+  var VERSION = '1.0.0';
+  var TIME_ZONE = 'Europe/Berlin';
+
+  var timers = [];
+  var frameId = null;
+
+  if (
+    window.PMDCalendarRealCountsFloatingV1 &&
+    typeof window.PMDCalendarRealCountsFloatingV1.destroy ===
+      'function'
+  ) {
+    window.PMDCalendarRealCountsFloatingV1.destroy();
+  }
+
+  function calendarRoot() {
+    return document.getElementById(
+      'pmd-r2-calendar-surface-v160'
+    );
+  }
+
+  function sourceReservations() {
+    var boot =
+      window.PMD_RESERVATIONS2_BOOT;
+
+    if (
+      !boot ||
+      !Array.isArray(
+        boot.reservations
+      )
+    ) {
+      return [];
+    }
+
+    return boot.reservations;
+  }
+
+  function clean(value) {
+    return String(value || '')
+      .replace(/\s+/g, ' ')
+      .trim();
+  }
+
+  function validIsoDate(value) {
+    return /^\d{4}-\d{2}-\d{2}$/.test(
+      String(value || '')
+    );
+  }
+
+  function localIsoDate(value) {
+    if (!value) {
+      return null;
+    }
+
+    var raw =
+      String(value).trim();
+
+    /*
+     * Keep plain database dates unchanged.
+     */
+    if (
+      /^\d{4}-\d{2}-\d{2}$/.test(raw)
+    ) {
+      return raw;
+    }
+
+    var parsed =
+      new Date(raw);
+
+    if (
+      Number.isNaN(
+        parsed.getTime()
+      )
+    ) {
+      var direct =
+        raw.match(
+          /^(\d{4})-(\d{2})-(\d{2})/
+        );
+
+      return direct
+        ? (
+            direct[1] +
+            '-' +
+            direct[2] +
+            '-' +
+            direct[3]
+          )
+        : null;
+    }
+
+    try {
+      var parts =
+        new Intl.DateTimeFormat(
+          'en-GB',
+          {
+            timeZone: TIME_ZONE,
+            year: 'numeric',
+            month: '2-digit',
+            day: '2-digit'
+          }
+        ).formatToParts(parsed);
+
+      var result = {};
+
+      parts.forEach(
+        function (part) {
+          if (
+            part.type === 'year' ||
+            part.type === 'month' ||
+            part.type === 'day'
+          ) {
+            result[part.type] =
+              part.value;
+          }
+        }
+      );
+
+      if (
+        result.year &&
+        result.month &&
+        result.day
+      ) {
+        return (
+          result.year +
+          '-' +
+          result.month +
+          '-' +
+          result.day
+        );
+      }
+    } catch (error) {
+      /*
+       * Fall through to the direct ISO part.
+       */
+    }
+
+    var fallback =
+      raw.match(
+        /^(\d{4})-(\d{2})-(\d{2})/
+      );
+
+    return fallback
+      ? (
+          fallback[1] +
+          '-' +
+          fallback[2] +
+          '-' +
+          fallback[3]
+        )
+      : null;
+  }
+
+  function reservationDate(
+    reservation
+  ) {
+    if (!reservation) {
+      return null;
+    }
+
+    /*
+     * reservation_datetime contains the real service date/time.
+     * reserve_date is retained as a reliable fallback.
+     */
+    return (
+      localIsoDate(
+        reservation.reservation_datetime
+      ) ||
+      localIsoDate(
+        reservation.reserve_date
+      ) ||
+      localIsoDate(
+        reservation.date
+      )
+    );
+  }
+
+  function uniqueReservations() {
+    var seen = {};
+
+    return sourceReservations()
+      .filter(
+        function (reservation) {
+          var id =
+            reservation &&
+            (
+              reservation.reservation_id ||
+              reservation.id
+            );
+
+          var key =
+            id !== undefined &&
+            id !== null
+              ? String(id)
+              : JSON.stringify(
+                  reservation
+                );
+
+          if (seen[key]) {
+            return false;
+          }
+
+          seen[key] = true;
+
+          return true;
+        }
+      );
+  }
+
+  function countsByDate() {
+    return uniqueReservations()
+      .reduce(
+        function (
+          counts,
+          reservation
+        ) {
+          var date =
+            reservationDate(
+              reservation
+            );
+
+          if (!validIsoDate(date)) {
+            return counts;
+          }
+
+          counts[date] =
+            (
+              counts[date] ||
+              0
+            ) + 1;
+
+          return counts;
+        },
+        {}
+      );
+  }
+
+  function reservationLabel(count) {
+    return (
+      String(count) +
+      (
+        count === 1
+          ? ' Reservierung'
+          : ' Reservierungen'
+      )
+    );
+  }
+
+  function existingReservationSummary(
+    cell
+  ) {
+    return cell.querySelector(
+      '.pmd-yc-day__summary.is-reservation,' +
+      '[data-r2-yc-reservation-count],' +
+      '[data-pmd-real-reservation-count]'
+    );
+  }
+
+  function summaryHolder(cell) {
+    return (
+      cell.querySelector(
+        '.pmd-yc-day__summaries'
+      ) ||
+      cell.querySelector(
+        '.pmd-yc-day__summary-list'
+      ) ||
+      cell.querySelector(
+        '.pmd-yc-day__meta'
+      ) ||
+      cell.querySelector(
+        '.pmd-yc-day__content'
+      ) ||
+      cell
+    );
+  }
+
+  function ensureReservationSummary(
+    cell,
+    count
+  ) {
+    var summary =
+      existingReservationSummary(
+        cell
+      );
+
+    if (count <= 0) {
+      if (summary) {
+        summary.remove();
+      }
+
+      cell.dataset
+        .pmdRealReservationCount =
+        '0';
+
+      return false;
+    }
+
+    if (!summary) {
+      summary =
+        document.createElement(
+          'span'
+        );
+
+      summary.className =
+        'pmd-yc-day__summary is-reservation';
+
+      summaryHolder(cell)
+        .appendChild(summary);
+    }
+
+    summary.classList.add(
+      'pmd-yc-day__summary',
+      'is-reservation'
+    );
+
+    summary.setAttribute(
+      'data-pmd-real-reservation-count',
+      String(count)
+    );
+
+    summary.textContent =
+      reservationLabel(count);
+
+    cell.dataset
+      .pmdRealReservationCount =
+      String(count);
+
+    return true;
+  }
+
+  function apply(reason) {
+    var calendar =
+      calendarRoot();
+
+    if (!calendar) {
+      return false;
+    }
+
+    var counts =
+      countsByDate();
+
+    var cells =
+      Array.prototype.slice.call(
+        calendar.querySelectorAll(
+          '[data-r2-yc-date]'
+        )
+      );
+
+    var updated = 0;
+    var cellsWithReservations = 0;
+
+    cells.forEach(
+      function (cell) {
+        var date =
+          cell.getAttribute(
+            'data-r2-yc-date'
+          );
+
+        var count =
+          counts[date] || 0;
+
+        if (count > 0) {
+          cellsWithReservations += 1;
+        }
+
+        var before =
+          clean(
+            existingReservationSummary(
+              cell
+            )?.textContent
+          );
+
+        ensureReservationSummary(
+          cell,
+          count
+        );
+
+        var after =
+          clean(
+            existingReservationSummary(
+              cell
+            )?.textContent
+          );
+
+        if (before !== after) {
+          updated += 1;
+        }
+      }
+    );
+
+    console.info(
+      '[PMD Calendar Real Counts + Floating V1] Applied:',
+      reason,
+      {
+        sourceReservations:
+          sourceReservations().length,
+        uniqueReservations:
+          uniqueReservations().length,
+        calendarCells:
+          cells.length,
+        datesWithReservations:
+          Object.keys(counts).length,
+        visibleCellsWithReservations:
+          cellsWithReservations,
+        updatedCells:
+          updated
+      }
+    );
+
+    return {
+      sourceReservations:
+        sourceReservations().length,
+      uniqueReservations:
+        uniqueReservations().length,
+      calendarCells:
+        cells.length,
+      datesWithReservations:
+        Object.keys(counts).length,
+      visibleCellsWithReservations:
+        cellsWithReservations,
+      updatedCells:
+        updated
+    };
+  }
+
+  function clearScheduledWork() {
+    timers.forEach(
+      function (timer) {
+        window.clearTimeout(timer);
+      }
+    );
+
+    timers = [];
+
+    if (frameId !== null) {
+      window.cancelAnimationFrame(
+        frameId
+      );
+
+      frameId = null;
+    }
+  }
+
+  function schedule(reason) {
+    clearScheduledWork();
+
+    frameId =
+      window.requestAnimationFrame(
+        function () {
+          frameId = null;
+
+          apply(
+            reason + '-frame'
+          );
+        }
+      );
+
+    [60, 180, 420].forEach(
+      function (delay) {
+        timers.push(
+          window.setTimeout(
+            function () {
+              apply(
+                reason +
+                '-' +
+                delay
+              );
+            },
+            delay
+          )
+        );
+      }
+    );
+  }
+
+  function relevantClick(event) {
+    var target =
+      event.target &&
+      event.target.closest
+        ? event.target.closest(
+            '#pmd-r2-calendar-toggle-v1,' +
+            '[data-r2-yc-prev],' +
+            '[data-r2-yc-next],' +
+            '[data-r2-yc-view],' +
+            '[data-r2-yc-filter]'
+          )
+        : null;
+
+    if (!target) {
+      return;
+    }
+
+    schedule(
+      'calendar-control-click'
+    );
+  }
+
+  function visibleCellRows() {
+    var calendar =
+      calendarRoot();
+
+    if (!calendar) {
+      return [];
+    }
+
+    var counts =
+      countsByDate();
+
+    return Array.prototype.slice
+      .call(
+        calendar.querySelectorAll(
+          '[data-r2-yc-date]'
+        )
+      )
+      .map(
+        function (cell) {
+          var date =
+            cell.getAttribute(
+              'data-r2-yc-date'
+            );
+
+          var summary =
+            existingReservationSummary(
+              cell
+            );
+
+          return {
+            date: date,
+            realCount:
+              counts[date] || 0,
+            displayedText:
+              clean(
+                summary &&
+                summary.textContent
+              )
+          };
+        }
+      )
+      .filter(
+        function (row) {
+          return (
+            row.realCount > 0 ||
+            row.displayedText
+          );
+        }
+      );
+  }
+
+  function audit() {
+    var counts =
+      countsByDate();
+
+    var rows =
+      visibleCellRows();
+
+    return {
+      version: VERSION,
+      timeZone: TIME_ZONE,
+      sourceReservations:
+        sourceReservations().length,
+      uniqueReservations:
+        uniqueReservations().length,
+      parsedReservations:
+        Object.values(counts)
+          .reduce(
+            function (
+              total,
+              count
+            ) {
+              return total + count;
+            },
+            0
+          ),
+      datesWithReservations:
+        Object.keys(counts).length,
+      calendarCells:
+        calendarRoot()
+          ? calendarRoot()
+              .querySelectorAll(
+                '[data-r2-yc-date]'
+              ).length
+          : 0,
+      visibleCountRows:
+        rows,
+      july31Count:
+        counts['2026-07-31'] || 0,
+      toolbarFrameRemoved:
+        true,
+      legendHidden:
+        true,
+      mutationObserver:
+        false,
+      permanentInterval:
+        false
+    };
+  }
+
+  function boot() {
+    document.addEventListener(
+      'click',
+      relevantClick,
+      true
+    );
+
+    [250, 700, 1400].forEach(
+      function (delay) {
+        timers.push(
+          window.setTimeout(
+            function () {
+              apply(
+                'initial-' +
+                delay
+              );
+            },
+            delay
+          )
+        );
+      }
+    );
+
+    console.info(
+      '[PMD Calendar Real Counts + Floating V1] Ready.',
+      audit()
+    );
+  }
+
+  function destroy() {
+    clearScheduledWork();
+
+    document.removeEventListener(
+      'click',
+      relevantClick,
+      true
+    );
+
+    delete window
+      .PMDCalendarRealCountsFloatingV1;
+  }
+
+  window.PMDCalendarRealCountsFloatingV1 = {
+    version: VERSION,
+
+    refresh: function () {
+      return apply('manual');
+    },
+
+    audit: audit,
+
+    counts: function () {
+      return countsByDate();
+    },
+
+    destroy: destroy
+  };
+
+  if (
+    document.readyState ===
+    'loading'
+  ) {
+    document.addEventListener(
+      'DOMContentLoaded',
+      boot,
+      { once: true }
+    );
+  } else {
+    boot();
+  }
+})();
+</script>
+<!-- PMD_CALENDAR_REAL_COUNTS_FLOATING_V1_END -->
+
+<!-- PMD_CALENDAR_COUNTS_TOOLBAR_V11_FIXED -->
+<style id="pmd-calendar-counts-toolbar-v11-fixed-style">
+  /*
+   * Completely remove the Calendar toolbar container frame.
+   */
+  #pmd-r2-calendar-surface-v160 .pmd-yc__toolbar {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+    flex-wrap: wrap !important;
+    gap: 10px !important;
+
+    width: 100% !important;
+    min-height: 42px !important;
+    margin: 0 0 12px !important;
+    padding: 0 !important;
+
+    background: transparent !important;
+    border: 0 !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+    outline: 0 !important;
+  }
+
+  #pmd-r2-calendar-surface-v160 .pmd-yc__toolbar::before,
+  #pmd-r2-calendar-surface-v160 .pmd-yc__toolbar::after {
+    display: none !important;
+    content: none !important;
+  }
+
+  #pmd-r2-calendar-surface-v160 .pmd-yc__legend {
+    display: none !important;
+  }
+
+  #pmd-r2-calendar-surface-v160 .pmd-yc__month-nav,
+  #pmd-r2-calendar-surface-v160 .pmd-yc__toolbar-right,
+  #pmd-r2-calendar-surface-v160 .pmd-yc__view-switch,
+  #pmd-r2-calendar-surface-v160 .pmd-yc__filters {
+    display: inline-flex !important;
+    align-items: center !important;
+    gap: 7px !important;
+
+    width: auto !important;
+    margin: 0 !important;
+    padding: 0 !important;
+
+    background: transparent !important;
+    border: 0 !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+  }
+
+  #pmd-r2-calendar-surface-v160
+    .pmd-yc__toolbar-right {
+    justify-content: flex-end !important;
+    flex-wrap: wrap !important;
+  }
+
+  #pmd-r2-calendar-surface-v160
+    .pmd-yc__month-nav > strong {
+    min-width: 135px !important;
+    margin: 0 !important;
+    padding: 0 8px !important;
+
+    color: #122b43 !important;
+    font-size: 16px !important;
+    font-weight: 700 !important;
+    line-height: 38px !important;
+    text-align: center !important;
+    white-space: nowrap !important;
+
+    background: transparent !important;
+    border: 0 !important;
+    box-shadow: none !important;
+  }
+
+  /*
+   * Match the clean Hour/Floor toolbar buttons.
+   */
+  #pmd-r2-calendar-surface-v160
+    .pmd-yc__month-nav > button,
+  #pmd-r2-calendar-surface-v160
+    .pmd-yc__view-switch > button,
+  #pmd-r2-calendar-surface-v160
+    .pmd-yc__filters > button,
+  #pmd-r2-calendar-surface-v160
+    .pmd-r2-yc-note-btn {
+    position: relative !important;
+    inset: auto !important;
+    float: none !important;
+
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+
+    min-width: 42px !important;
+    height: 38px !important;
+    margin: 0 !important;
+    padding: 0 13px !important;
+
+    color: #28445f !important;
+    font-size: 13px !important;
+    font-weight: 700 !important;
+    line-height: 1 !important;
+    white-space: nowrap !important;
+
+    background: #ffffff !important;
+    border: 1px solid #cadbe8 !important;
+    border-radius: 9px !important;
+    box-shadow: 0 1px 2px rgba(16, 42, 67, 0.04) !important;
+
+    cursor: pointer !important;
+    transition:
+      color 140ms ease,
+      background-color 140ms ease,
+      border-color 140ms ease,
+      box-shadow 140ms ease,
+      transform 140ms ease !important;
+  }
+
+  #pmd-r2-calendar-surface-v160
+    .pmd-yc__month-nav > button {
+    width: 42px !important;
+    padding: 0 !important;
+    font-size: 17px !important;
+  }
+
+  #pmd-r2-calendar-surface-v160
+    .pmd-yc__month-nav > button:hover,
+  #pmd-r2-calendar-surface-v160
+    .pmd-yc__view-switch > button:hover,
+  #pmd-r2-calendar-surface-v160
+    .pmd-yc__filters > button:hover,
+  #pmd-r2-calendar-surface-v160
+    .pmd-r2-yc-note-btn:hover {
+    color: #102a43 !important;
+    background: #f1f6fa !important;
+    border-color: #9db8cd !important;
+    box-shadow: 0 4px 10px rgba(16, 42, 67, 0.09) !important;
+    transform: translateY(-1px) !important;
+  }
+
+  #pmd-r2-calendar-surface-v160
+    .pmd-yc__view-switch > button.is-active,
+  #pmd-r2-calendar-surface-v160
+    .pmd-yc__filters > button.is-active {
+    color: #ffffff !important;
+    background: #102f4d !important;
+    border-color: #102f4d !important;
+    box-shadow: none !important;
+  }
+
+  #pmd-r2-calendar-surface-v160
+    .pmd-yc__view-switch > button.is-active:hover,
+  #pmd-r2-calendar-surface-v160
+    .pmd-yc__filters > button.is-active:hover {
+    color: #ffffff !important;
+    background: #174365 !important;
+    border-color: #174365 !important;
+  }
+
+  #pmd-r2-calendar-surface-v160
+    .pmd-r2-yc-note-btn {
+    color: #a45100 !important;
+    background: #fffaf4 !important;
+    border-color: #efad69 !important;
+  }
+
+  /*
+   * Hide the duplicate month title inside the Calendar frame.
+   */
+  #pmd-r2-calendar-surface-v160
+    .pmd-yc__calendar-header,
+  #pmd-r2-calendar-surface-v160
+    .pmd-yc__month-header,
+  #pmd-r2-calendar-surface-v160
+    .pmd-yc__grid-title,
+  #pmd-r2-calendar-surface-v160
+    [data-r2-yc-grid-label] {
+    display: none !important;
+  }
+
+  /*
+   * The actual markup uses a direct heading above weekdays.
+   */
+  #pmd-r2-calendar-surface-v160
+    .pmd-yc__calendar > h2,
+  #pmd-r2-calendar-surface-v160
+    .pmd-yc__calendar > h3,
+  #pmd-r2-calendar-surface-v160
+    .pmd-yc__month > h2,
+  #pmd-r2-calendar-surface-v160
+    .pmd-yc__month > h3 {
+    display: none !important;
+  }
+</style>
+
+<script id="pmd-calendar-counts-toolbar-v11-fixed-script">
+(function () {
+  'use strict';
+
+  var VERSION = '1.1.1';
+  var REQUIRED_CELLS = 42;
+
+  var frameId = null;
+  var timers = [];
+  var token = 0;
+  var wrapped = false;
+  var originals = {};
+
+  if (
+    window.PMDCalendarCountsToolbarV111 &&
+    typeof window.PMDCalendarCountsToolbarV111.destroy ===
+      'function'
+  ) {
+    window.PMDCalendarCountsToolbarV111.destroy();
+  }
+
+  function root() {
+    return document.getElementById(
+      'pmd-r2-calendar-surface-v160'
+    );
+  }
+
+  function cells() {
+    var calendar = root();
+
+    return calendar
+      ? Array.prototype.slice.call(
+          calendar.querySelectorAll(
+            '[data-r2-yc-date]'
+          )
+        )
+      : [];
+  }
+
+  function authority() {
+    return window
+      .PMDCalendarRealCountsFloatingV1;
+  }
+
+  function clearWork() {
+    if (frameId !== null) {
+      window.cancelAnimationFrame(
+        frameId
+      );
+
+      frameId = null;
+    }
+
+    timers.forEach(
+      function (timer) {
+        window.clearTimeout(timer);
+      }
+    );
+
+    timers = [];
+  }
+
+  function apply(reason) {
+    var api = authority();
+
+    if (
+      !api ||
+      typeof api.refresh !== 'function'
+    ) {
+      return false;
+    }
+
+    var result = api.refresh();
+
+    console.info(
+      '[PMD Calendar Counts Toolbar V1.1.1] Applied:',
+      reason,
+      result || null
+    );
+
+    return result;
+  }
+
+  function waitForCalendar(reason) {
+    clearWork();
+
+    token += 1;
+
+    var currentToken = token;
+    var attempts = 0;
+
+    function check() {
+      if (currentToken !== token) {
+        return;
+      }
+
+      var calendarCells = cells();
+
+      if (
+        calendarCells.length >=
+        REQUIRED_CELLS
+      ) {
+        apply(reason + '-ready');
+
+        [80, 220, 500, 900].forEach(
+          function (delay) {
+            timers.push(
+              window.setTimeout(
+                function () {
+                  if (
+                    currentToken === token
+                  ) {
+                    apply(
+                      reason +
+                      '-authority-' +
+                      delay
+                    );
+                  }
+                },
+                delay
+              )
+            );
+          }
+        );
+
+        frameId = null;
+        return;
+      }
+
+      attempts += 1;
+
+      if (attempts >= 120) {
+        console.warn(
+          '[PMD Calendar Counts Toolbar V1.1.1] Cells not ready.',
+          {
+            reason: reason,
+            cells:
+              calendarCells.length
+          }
+        );
+
+        frameId = null;
+        return;
+      }
+
+      frameId =
+        window.requestAnimationFrame(
+          check
+        );
+    }
+
+    frameId =
+      window.requestAnimationFrame(
+        check
+      );
+  }
+
+  function wrapCalendarApi() {
+    var api =
+      window
+        .PMDReservations2CalendarToggleV1;
+
+    if (!api || wrapped) {
+      return false;
+    }
+
+    [
+      'open',
+      'render',
+      'toggle',
+      'selectDate'
+    ].forEach(
+      function (methodName) {
+        if (
+          typeof api[methodName] !==
+          'function'
+        ) {
+          return;
+        }
+
+        originals[methodName] =
+          api[methodName];
+
+        api[methodName] =
+          function () {
+            var result =
+              originals[methodName]
+                .apply(
+                  api,
+                  arguments
+                );
+
+            waitForCalendar(
+              'api-' +
+              methodName
+            );
+
+            return result;
+          };
+      }
+    );
+
+    wrapped = true;
+
+    return true;
+  }
+
+  function onClick(event) {
+    var target =
+      event.target &&
+      event.target.closest
+        ? event.target.closest(
+            '#pmd-r2-calendar-toggle-v1,' +
+            '[data-r2-yc-prev],' +
+            '[data-r2-yc-next],' +
+            '[data-r2-yc-view],' +
+            '[data-r2-yc-filter]'
+          )
+        : null;
+
+    if (!target) {
+      return;
+    }
+
+    waitForCalendar(
+      'calendar-control-click'
+    );
+  }
+
+  function displayedText(date) {
+    var calendar = root();
+
+    var cell =
+      calendar &&
+      calendar.querySelector(
+        '[data-r2-yc-date="' +
+        date +
+        '"]'
+      );
+
+    if (!cell) {
+      return null;
+    }
+
+    var summary =
+      cell.querySelector(
+        '[data-pmd-real-reservation-count],' +
+        '.pmd-yc-day__summary.is-reservation'
+      );
+
+    return summary
+      ? String(
+          summary.textContent || ''
+        )
+          .replace(/\s+/g, ' ')
+          .trim()
+      : null;
+  }
+
+  function realCount(date) {
+    var api = authority();
+
+    if (
+      !api ||
+      typeof api.counts !== 'function'
+    ) {
+      return 0;
+    }
+
+    return (
+      api.counts()[date] ||
+      0
+    );
+  }
+
+  function audit() {
+    return {
+      version: VERSION,
+      calendarCells:
+        cells().length,
+      july31RealCount:
+        realCount(
+          '2026-07-31'
+        ),
+      july31DisplayedText:
+        displayedText(
+          '2026-07-31'
+        ),
+      calendarApiWrapped:
+        wrapped,
+      activeFrame:
+        frameId !== null,
+      pendingTimers:
+        timers.length,
+      permanentInterval:
+        false,
+      mutationObserver:
+        false
+    };
+  }
+
+  function boot() {
+    document.addEventListener(
+      'click',
+      onClick,
+      true
+    );
+
+    wrapCalendarApi();
+
+    [200, 600, 1200].forEach(
+      function (delay) {
+        timers.push(
+          window.setTimeout(
+            function () {
+              wrapCalendarApi();
+
+              if (
+                cells().length > 0
+              ) {
+                waitForCalendar(
+                  'initial-' +
+                  delay
+                );
+              }
+            },
+            delay
+          )
+        );
+      }
+    );
+
+    console.info(
+      '[PMD Calendar Counts Toolbar V1.1.1] Ready.',
+      audit()
+    );
+  }
+
+  function destroy() {
+    clearWork();
+
+    document.removeEventListener(
+      'click',
+      onClick,
+      true
+    );
+
+    var api =
+      window
+        .PMDReservations2CalendarToggleV1;
+
+    if (api && wrapped) {
+      Object.keys(
+        originals
+      ).forEach(
+        function (methodName) {
+          api[methodName] =
+            originals[
+              methodName
+            ];
+        }
+      );
+    }
+
+    originals = {};
+    wrapped = false;
+
+    delete window
+      .PMDCalendarCountsToolbarV111;
+  }
+
+  window.PMDCalendarCountsToolbarV111 = {
+    version: VERSION,
+
+    refresh: function () {
+      waitForCalendar('manual');
+      return true;
+    },
+
+    audit: audit,
+
+    destroy: destroy
+  };
+
+  if (
+    document.readyState === 'loading'
+  ) {
+    document.addEventListener(
+      'DOMContentLoaded',
+      boot,
+      { once: true }
+    );
+  } else {
+    boot();
+  }
+})();
+</script>
+<!-- PMD_CALENDAR_COUNTS_TOOLBAR_V11_FIXED_END -->
+
+<!-- PMD_CALENDAR_NATIVE_COUNT_V14 -->
+<script id="pmd-calendar-native-count-v14-script">
+(function () {
+  'use strict';
+
+  var VERSION = '1.4.0';
+
+  var frameId = null;
+  var timers = [];
+  var token = 0;
+
+  var originalRefresh = null;
+  var refreshWrapped = false;
+
+  if (
+    window.PMDCalendarNativeCountV14 &&
+    typeof window.PMDCalendarNativeCountV14.destroy ===
+      'function'
+  ) {
+    window.PMDCalendarNativeCountV14.destroy();
+  }
+
+  function calendar() {
+    return document.getElementById(
+      'pmd-r2-calendar-surface-v160'
+    );
+  }
+
+  function sourceAuthority() {
+    return window
+      .PMDCalendarRealCountsFloatingV1;
+  }
+
+  function realCounts() {
+    var api = sourceAuthority();
+
+    if (
+      !api ||
+      typeof api.counts !== 'function'
+    ) {
+      return {};
+    }
+
+    return api.counts();
+  }
+
+  function reservationLabel(count) {
+    return (
+      String(count) +
+      (
+        count === 1
+          ? ' Reservierung'
+          : ' Reservierungen'
+      )
+    );
+  }
+
+  function nativeOperations(cell) {
+    return cell.querySelector(
+      ':scope > .pmd-yc-day__operations'
+    );
+  }
+
+  function nativeEntry(cell) {
+    return cell.querySelector(
+      ':scope > .pmd-yc-day__operations ' +
+      '> .pmd-r2-yc-entry.is-reservation'
+    );
+  }
+
+  function generatedSummary(cell) {
+    return cell.querySelector(
+      ':scope > ' +
+      '.pmd-yc-day__summary.is-reservation' +
+      '[data-pmd-real-reservation-count]'
+    );
+  }
+
+  function ensureNativeEntry(cell) {
+    var entry =
+      nativeEntry(cell);
+
+    if (entry) {
+      return entry;
+    }
+
+    var operations =
+      nativeOperations(cell);
+
+    if (!operations) {
+      operations =
+        document.createElement('span');
+
+      operations.className =
+        'pmd-yc-day__operations';
+
+      cell.appendChild(operations);
+    }
+
+    entry =
+      document.createElement('span');
+
+    entry.className =
+      'pmd-r2-yc-entry is-reservation';
+
+    operations.appendChild(entry);
+
+    return entry;
+  }
+
+  function removeEmptyOperations(cell) {
+    var operations =
+      nativeOperations(cell);
+
+    if (
+      operations &&
+      operations.children.length === 0 &&
+      !String(
+        operations.textContent || ''
+      ).trim()
+    ) {
+      operations.remove();
+    }
+  }
+
+  function normalizeCell(
+    cell,
+    counts
+  ) {
+    var date =
+      cell.getAttribute(
+        'data-r2-yc-date'
+      );
+
+    var count =
+      counts[date] || 0;
+
+    var summary =
+      generatedSummary(cell);
+
+    /*
+     * Remove only the exact duplicate element created
+     * by PMD Calendar Real Counts V1.
+     */
+    if (summary) {
+      summary.remove();
+    }
+
+    var entry =
+      nativeEntry(cell);
+
+    if (count <= 0) {
+      if (entry) {
+        entry.remove();
+      }
+
+      removeEmptyOperations(cell);
+
+      cell.dataset
+        .pmdNativeReservationCount =
+        '0';
+
+      return {
+        date: date,
+        count: 0,
+        entry: false
+      };
+    }
+
+    entry =
+      ensureNativeEntry(cell);
+
+    entry.textContent =
+      reservationLabel(count);
+
+    entry.setAttribute(
+      'data-pmd-native-reservation-count',
+      String(count)
+    );
+
+    cell.dataset
+      .pmdNativeReservationCount =
+      String(count);
+
+    return {
+      date: date,
+      count: count,
+      entry: true
+    };
+  }
+
+  function normalize(reason) {
+    var root =
+      calendar();
+
+    if (!root) {
+      return false;
+    }
+
+    var counts =
+      realCounts();
+
+    var cells =
+      Array.prototype.slice.call(
+        root.querySelectorAll(
+          '[data-r2-yc-date]'
+        )
+      );
+
+    var updated = 0;
+
+    cells.forEach(
+      function (cell) {
+        var before =
+          nativeEntry(cell)
+            ?.textContent
+            ?.trim() || '';
+
+        var result =
+          normalizeCell(
+            cell,
+            counts
+          );
+
+        var after =
+          nativeEntry(cell)
+            ?.textContent
+            ?.trim() || '';
+
+        if (before !== after) {
+          updated += 1;
+        }
+
+        return result;
+      }
+    );
+
+    var july31 =
+      root.querySelector(
+        '[data-r2-yc-date="2026-07-31"]'
+      );
+
+    console.info(
+      '[PMD Calendar Native Count V1.4] Applied:',
+      reason,
+      {
+        calendarCells:
+          cells.length,
+
+        updatedCells:
+          updated,
+
+        july31RealCount:
+          counts[
+            '2026-07-31'
+          ] || 0,
+
+        july31NativeText:
+          nativeEntry(july31)
+            ?.textContent
+            ?.trim() || null,
+
+        july31DuplicateSummary:
+          Boolean(
+            generatedSummary(
+              july31
+            )
+          )
+      }
+    );
+
+    return true;
+  }
+
+  function clearWork() {
+    if (frameId !== null) {
+      window.cancelAnimationFrame(
+        frameId
+      );
+
+      frameId = null;
+    }
+
+    timers.forEach(
+      function (timer) {
+        window.clearTimeout(timer);
+      }
+    );
+
+    timers = [];
+  }
+
+  function schedule(reason) {
+    clearWork();
+
+    token += 1;
+
+    var currentToken = token;
+    var attempts = 0;
+
+    function waitForCalendar() {
+      if (currentToken !== token) {
+        return;
+      }
+
+      var cellCount =
+        calendar()
+          ?.querySelectorAll(
+            '[data-r2-yc-date]'
+          ).length || 0;
+
+      if (cellCount >= 42) {
+        normalize(
+          reason + '-ready'
+        );
+
+        /*
+         * Bounded passes protect against a late native
+         * Calendar render. No permanent polling.
+         */
+        [80, 220, 500].forEach(
+          function (delay) {
+            timers.push(
+              window.setTimeout(
+                function () {
+                  if (
+                    currentToken === token
+                  ) {
+                    normalize(
+                      reason +
+                      '-authority-' +
+                      delay
+                    );
+                  }
+                },
+                delay
+              )
+            );
+          }
+        );
+
+        frameId = null;
+        return;
+      }
+
+      attempts += 1;
+
+      if (attempts >= 120) {
+        console.warn(
+          '[PMD Calendar Native Count V1.4] Calendar cells not ready.',
+          {
+            reason: reason,
+            calendarCells:
+              cellCount
+          }
+        );
+
+        frameId = null;
+        return;
+      }
+
+      frameId =
+        window.requestAnimationFrame(
+          waitForCalendar
+        );
+    }
+
+    frameId =
+      window.requestAnimationFrame(
+        waitForCalendar
+      );
+  }
+
+  function wrapCountAuthority() {
+    var api =
+      sourceAuthority();
+
+    if (
+      !api ||
+      refreshWrapped ||
+      typeof api.refresh !==
+        'function'
+    ) {
+      return false;
+    }
+
+    originalRefresh =
+      api.refresh;
+
+    api.refresh =
+      function () {
+        var result =
+          originalRefresh.apply(
+            api,
+            arguments
+          );
+
+        window.requestAnimationFrame(
+          function () {
+            normalize(
+              'after-real-count-refresh'
+            );
+          }
+        );
+
+        return result;
+      };
+
+    refreshWrapped = true;
+
+    return true;
+  }
+
+  function relevantClick(event) {
+    var target =
+      event.target &&
+      event.target.closest
+        ? event.target.closest(
+            '#pmd-r2-calendar-toggle-v1,' +
+            '[data-r2-yc-prev],' +
+            '[data-r2-yc-next],' +
+            '[data-r2-yc-view],' +
+            '[data-r2-yc-filter]'
+          )
+        : null;
+
+    if (!target) {
+      return;
+    }
+
+    schedule(
+      'calendar-control-click'
+    );
+  }
+
+  function audit() {
+    var root =
+      calendar();
+
+    var july31 =
+      root?.querySelector(
+        '[data-r2-yc-date="2026-07-31"]'
+      );
+
+    return {
+      version: VERSION,
+
+      calendarCells:
+        root
+          ?.querySelectorAll(
+            '[data-r2-yc-date]'
+          ).length || 0,
+
+      july31RealCount:
+        realCounts()[
+          '2026-07-31'
+        ] || 0,
+
+      july31NativeText:
+        nativeEntry(july31)
+          ?.textContent
+          ?.replace(/\s+/g, ' ')
+          .trim() || null,
+
+      july31NativeEntries:
+        july31
+          ?.querySelectorAll(
+            ':scope > ' +
+            '.pmd-yc-day__operations ' +
+            '> .pmd-r2-yc-entry' +
+            '.is-reservation'
+          ).length || 0,
+
+      july31DuplicateSummaries:
+        july31
+          ?.querySelectorAll(
+            ':scope > ' +
+            '.pmd-yc-day__summary' +
+            '.is-reservation' +
+            '[data-pmd-real-reservation-count]'
+          ).length || 0,
+
+      countAuthorityWrapped:
+        refreshWrapped,
+
+      mutationObserver:
+        false,
+
+      permanentInterval:
+        false
+    };
+  }
+
+  function boot() {
+    document.addEventListener(
+      'click',
+      relevantClick,
+      true
+    );
+
+    wrapCountAuthority();
+
+    [250, 700, 1400].forEach(
+      function (delay) {
+        timers.push(
+          window.setTimeout(
+            function () {
+              wrapCountAuthority();
+
+              if (calendar()) {
+                schedule(
+                  'initial-' +
+                  delay
+                );
+              }
+            },
+            delay
+          )
+        );
+      }
+    );
+
+    console.info(
+      '[PMD Calendar Native Count V1.4] Ready.',
+      audit()
+    );
+  }
+
+  function destroy() {
+    clearWork();
+
+    document.removeEventListener(
+      'click',
+      relevantClick,
+      true
+    );
+
+    var api =
+      sourceAuthority();
+
+    if (
+      api &&
+      refreshWrapped &&
+      originalRefresh
+    ) {
+      api.refresh =
+        originalRefresh;
+    }
+
+    originalRefresh = null;
+    refreshWrapped = false;
+
+    delete window
+      .PMDCalendarNativeCountV14;
+  }
+
+  window.PMDCalendarNativeCountV14 = {
+    version: VERSION,
+
+    refresh: function () {
+      schedule('manual');
+      return true;
+    },
+
+    normalize: function () {
+      return normalize(
+        'manual-immediate'
+      );
+    },
+
+    audit: audit,
+
+    destroy: destroy
+  };
+
+  if (
+    document.readyState === 'loading'
+  ) {
+    document.addEventListener(
+      'DOMContentLoaded',
+      boot,
+      { once: true }
+    );
+  } else {
+    boot();
+  }
+})();
+</script>
+<!-- PMD_CALENDAR_NATIVE_COUNT_V14_END -->
+
+<!-- PMD_CALENDAR_HOUR_STYLE_TOOLBAR_V15 -->
+<style id="pmd-calendar-hour-style-toolbar-v15">
+  /*
+   * Keep all native Calendar DOM and functionality.
+   * Visually separate the toolbar from the Calendar grid.
+   */
+  #pmd-r2-calendar-surface-v160
+    .pmd-r2-yc-calendar-frame {
+    width: 100% !important;
+    margin: 0 !important;
+    padding: 0 !important;
+
+    background: transparent !important;
+    background-color: transparent !important;
+
+    border: 0 !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+
+    overflow: visible !important;
+  }
+
+  /*
+   * Hour-style floating Calendar header:
+   * empty left column, centered date controls, actions right.
+   */
+  #pmd-r2-calendar-surface-v160
+    .pmd-r2-yc-calendar-frame
+    > .pmd-yc__toolbar {
+    display: grid !important;
+    grid-template-columns:
+      minmax(0, 1fr)
+      auto
+      minmax(0, 1fr) !important;
+
+    align-items: center !important;
+    justify-content: normal !important;
+
+    column-gap: 18px !important;
+    row-gap: 8px !important;
+
+    width: 100% !important;
+    min-height: 54px !important;
+
+    margin: 0 0 12px !important;
+    padding: 6px 12px !important;
+
+    background: transparent !important;
+    background-color: transparent !important;
+
+    border: 0 !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+    outline: 0 !important;
+  }
+
+  #pmd-r2-calendar-surface-v160
+    .pmd-yc__toolbar::before,
+  #pmd-r2-calendar-surface-v160
+    .pmd-yc__toolbar::after {
+    display: none !important;
+    content: none !important;
+  }
+
+  /*
+   * Remove the legend completely.
+   */
+  #pmd-r2-calendar-surface-v160
+    .pmd-yc__legend {
+    display: none !important;
+  }
+
+  /*
+   * Month/date navigation exactly in the middle.
+   */
+  #pmd-r2-calendar-surface-v160
+    .pmd-yc__month-nav {
+    grid-column: 2 !important;
+
+    display: grid !important;
+    grid-template-columns: 42px minmax(170px, auto) 42px !important;
+
+    align-items: center !important;
+    justify-content: center !important;
+
+    gap: 10px !important;
+
+    width: auto !important;
+    height: 42px !important;
+
+    margin: 0 !important;
+    padding: 0 !important;
+
+    background: transparent !important;
+    border: 0 !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+  }
+
+  #pmd-r2-calendar-surface-v160
+    .pmd-yc__month-nav
+    > strong {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+
+    min-width: 170px !important;
+    height: 42px !important;
+
+    margin: 0 !important;
+    padding: 0 14px !important;
+
+    color: #102a43 !important;
+    font-size: 17px !important;
+    font-weight: 850 !important;
+    line-height: 1 !important;
+    text-align: center !important;
+    white-space: nowrap !important;
+
+    background: transparent !important;
+    border: 0 !important;
+    box-shadow: none !important;
+  }
+
+  /*
+   * Right-side actions.
+   */
+  #pmd-r2-calendar-surface-v160
+    .pmd-yc__toolbar-right {
+    grid-column: 3 !important;
+    justify-self: end !important;
+
+    display: flex !important;
+    align-items: center !important;
+    justify-content: flex-end !important;
+    flex-wrap: nowrap !important;
+
+    gap: 8px !important;
+
+    width: auto !important;
+    min-width: 0 !important;
+    height: 42px !important;
+
+    margin: 0 !important;
+    padding: 0 !important;
+
+    background: transparent !important;
+    border: 0 !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+  }
+
+  #pmd-r2-calendar-surface-v160
+    .pmd-yc__view-switch,
+  #pmd-r2-calendar-surface-v160
+    .pmd-yc__filters {
+    display: flex !important;
+    align-items: center !important;
+    gap: 8px !important;
+
+    width: auto !important;
+    height: 42px !important;
+
+    margin: 0 !important;
+    padding: 0 !important;
+
+    background: transparent !important;
+    border: 0 !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+  }
+
+  /*
+   * Match the verified Hour toolbar button dimensions:
+   * 42px high, white, light border, 13px radius.
+   */
+  #pmd-r2-calendar-surface-v160
+    .pmd-yc__month-nav
+    > button,
+  #pmd-r2-calendar-surface-v160
+    .pmd-yc__view-switch
+    > button,
+  #pmd-r2-calendar-surface-v160
+    .pmd-yc__filters
+    > button,
+  #pmd-r2-calendar-surface-v160
+    .pmd-r2-yc-note-btn {
+    position: static !important;
+    inset: auto !important;
+    float: none !important;
+
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+
+    min-width: 42px !important;
+    height: 42px !important;
+
+    margin: 0 !important;
+    padding: 0 14px !important;
+
+    color: #102a43 !important;
+    font-family: inherit !important;
+    font-size: 12px !important;
+    font-weight: 850 !important;
+    line-height: 1 !important;
+    text-align: center !important;
+    white-space: nowrap !important;
+
+    background: #ffffff !important;
+    background-color: #ffffff !important;
+
+    border: 1px solid #cbdde9 !important;
+    border-radius: 13px !important;
+    box-shadow: none !important;
+    outline: 0 !important;
+
+    cursor: pointer !important;
+
+    transition:
+      background-color 140ms ease,
+      border-color 140ms ease,
+      color 140ms ease,
+      transform 140ms ease !important;
+  }
+
+  #pmd-r2-calendar-surface-v160
+    .pmd-yc__month-nav
+    > button {
+    width: 42px !important;
+    padding: 0 !important;
+
+    font-size: 23px !important;
+    font-weight: 850 !important;
+  }
+
+  /*
+   * No black active buttons.
+   */
+  #pmd-r2-calendar-surface-v160
+    .pmd-yc__view-switch
+    > button.is-active,
+  #pmd-r2-calendar-surface-v160
+    .pmd-yc__filters
+    > button.is-active {
+    color: #102a43 !important;
+
+    background: #eaf4fc !important;
+    background-color: #eaf4fc !important;
+
+    border-color: #8ebbd8 !important;
+    box-shadow: inset 0 0 0 1px rgba(36, 111, 159, 0.08) !important;
+  }
+
+  #pmd-r2-calendar-surface-v160
+    .pmd-yc__toolbar
+    button:hover {
+    color: #102a43 !important;
+
+    background: #f2f7fb !important;
+    background-color: #f2f7fb !important;
+
+    border-color: #9ebed3 !important;
+    transform: translateY(-1px) !important;
+  }
+
+  #pmd-r2-calendar-surface-v160
+    .pmd-yc__view-switch
+    > button.is-active:hover,
+  #pmd-r2-calendar-surface-v160
+    .pmd-yc__filters
+    > button.is-active:hover {
+    color: #102a43 !important;
+
+    background: #dfeffc !important;
+    background-color: #dfeffc !important;
+
+    border-color: #79abd0 !important;
+  }
+
+  #pmd-r2-calendar-surface-v160
+    .pmd-yc__toolbar
+    button:active {
+    transform: translateY(0) !important;
+  }
+
+  /*
+   * Note remains a normal white toolbar button
+   * with a subtle warm accent, not a separate orange block.
+   */
+  #pmd-r2-calendar-surface-v160
+    .pmd-r2-yc-note-btn {
+    color: #7f480f !important;
+
+    background: #ffffff !important;
+    background-color: #ffffff !important;
+
+    border-color: #d9b487 !important;
+  }
+
+  #pmd-r2-calendar-surface-v160
+    .pmd-r2-yc-note-btn:hover {
+    color: #653500 !important;
+
+    background: #fff8ef !important;
+    background-color: #fff8ef !important;
+
+    border-color: #c99558 !important;
+  }
+
+  /*
+   * The Calendar grid receives its own frame.
+   * Toolbar now appears outside and above it.
+   */
+  #pmd-r2-calendar-surface-v160
+    .pmd-r2-yc-calendar-frame
+    > .pmd-yc__months {
+    display: block !important;
+
+    width: 100% !important;
+    margin: 0 !important;
+    padding: 0 !important;
+
+    background: #ffffff !important;
+    background-color: #ffffff !important;
+
+    border: 1px solid #cfe0ed !important;
+    border-radius: 18px !important;
+
+    box-shadow: none !important;
+    overflow: hidden !important;
+  }
+
+  /*
+   * Date is already centered in the toolbar.
+   * Hide only the duplicate heading in Month View.
+   * Year-view month headings remain untouched.
+   */
+  #pmd-r2-calendar-surface-v160
+    .pmd-yc-month.is-month-view
+    > .pmd-yc-month__head {
+    display: none !important;
+  }
+
+  /*
+   * Preserve weekday spacing after removing the duplicate heading.
+   */
+  #pmd-r2-calendar-surface-v160
+    .pmd-yc-month.is-month-view
+    > .pmd-yc-weekdays {
+    border-top: 0 !important;
+  }
+
+  @media (max-width: 1100px) {
+    #pmd-r2-calendar-surface-v160
+      .pmd-r2-yc-calendar-frame
+      > .pmd-yc__toolbar {
+      grid-template-columns: 1fr !important;
+      justify-items: stretch !important;
+      padding: 6px 0 !important;
+    }
+
+    #pmd-r2-calendar-surface-v160
+      .pmd-yc__month-nav {
+      grid-column: 1 !important;
+      justify-self: center !important;
+    }
+
+    #pmd-r2-calendar-surface-v160
+      .pmd-yc__toolbar-right {
+      grid-column: 1 !important;
+      justify-self: center !important;
+      flex-wrap: wrap !important;
+      height: auto !important;
+    }
+  }
+</style>
+<!-- PMD_CALENDAR_HOUR_STYLE_TOOLBAR_V15_END -->
+
+<!-- PMD_CALENDAR_FRAME_SEPARATION_V16 -->
+<style id="pmd-calendar-frame-separation-v16">
+  /*
+   * Remove every outer frame around the Calendar toolbar.
+   */
+  #pmd-reservations2.is-calendar-mode
+    #pmd-r2-calendar-surface-v160,
+  #pmd-reservations2.is-calendar-mode
+    #pmd-r2-calendar-surface-v160
+    > .pmd-r2-yc-calendar-frame,
+  #pmd-reservations2.is-calendar-mode
+    #pmd-r2-calendar-surface-v160
+    .pmd-r2-yc-calendar-frame {
+    margin-left: 0 !important;
+    margin-right: 0 !important;
+    padding-left: 0 !important;
+    padding-right: 0 !important;
+
+    background: transparent !important;
+    background-color: transparent !important;
+    background-image: none !important;
+
+    border: 0 !important;
+    border-width: 0 !important;
+    border-color: transparent !important;
+    border-radius: 0 !important;
+
+    outline: 0 !important;
+    box-shadow: none !important;
+
+    overflow: visible !important;
+  }
+
+  /*
+   * Toolbar remains on the page background, completely outside
+   * any white rounded Calendar panel.
+   */
+  #pmd-reservations2.is-calendar-mode
+    #pmd-r2-calendar-surface-v160
+    .pmd-r2-yc-calendar-frame
+    > .pmd-yc__toolbar {
+    position: relative !important;
+    z-index: 5 !important;
+
+    margin: 0 0 18px !important;
+    padding: 6px 12px !important;
+
+    background: #f8fbfd !important;
+    background-color: #f8fbfd !important;
+    background-image: none !important;
+
+    border: 0 !important;
+    border-width: 0 !important;
+    border-color: transparent !important;
+    border-radius: 0 !important;
+
+    outline: 0 !important;
+    box-shadow: none !important;
+  }
+
+  #pmd-reservations2.is-calendar-mode
+    #pmd-r2-calendar-surface-v160
+    .pmd-yc__toolbar::before,
+  #pmd-reservations2.is-calendar-mode
+    #pmd-r2-calendar-surface-v160
+    .pmd-yc__toolbar::after {
+    display: none !important;
+    content: none !important;
+  }
+
+  /*
+   * Remove a possible wrapper frame around the rendered months.
+   * The actual Month/Grid gets the white frame below.
+   */
+  #pmd-reservations2.is-calendar-mode
+    #pmd-r2-calendar-surface-v160
+    .pmd-yc__months {
+    margin: 0 !important;
+    padding: 0 !important;
+
+    background: transparent !important;
+    background-color: transparent !important;
+    background-image: none !important;
+
+    border: 0 !important;
+    border-radius: 0 !important;
+    outline: 0 !important;
+    box-shadow: none !important;
+
+    overflow: visible !important;
+  }
+
+  /*
+   * Only the real Month/Grid is framed.
+   */
+  #pmd-reservations2.is-calendar-mode
+    #pmd-r2-calendar-surface-v160
+    .pmd-yc-month.is-month-view {
+    width: 100% !important;
+    margin: 0 !important;
+    padding: 0 !important;
+
+    background: #ffffff !important;
+    background-color: #ffffff !important;
+
+    border: 1px solid #cfe0ed !important;
+    border-radius: 18px !important;
+
+    outline: 0 !important;
+    box-shadow: none !important;
+
+    overflow: hidden !important;
+  }
+
+  /*
+   * Fallback for builds where is-month-view is set on a parent
+   * instead of directly on .pmd-yc-month.
+   */
+  #pmd-reservations2.is-calendar-mode
+    #pmd-r2-calendar-surface-v160
+    .pmd-yc__months
+    > .pmd-yc-month:only-child {
+    background: #ffffff !important;
+    background-color: #ffffff !important;
+
+    border: 1px solid #cfe0ed !important;
+    border-radius: 18px !important;
+
+    outline: 0 !important;
+    box-shadow: none !important;
+
+    overflow: hidden !important;
+  }
+
+  /*
+   * Avoid two borders if both Month selectors match.
+   */
+  #pmd-reservations2.is-calendar-mode
+    #pmd-r2-calendar-surface-v160
+    .pmd-yc-month.is-month-view.pmd-yc-month {
+    border: 1px solid #cfe0ed !important;
+  }
+</style>
+<!-- PMD_CALENDAR_FRAME_SEPARATION_V16_END -->
+
+<!-- PMD_CALENDAR_VERTICAL_RHYTHM_V17 -->
+<style id="pmd-calendar-vertical-rhythm-v17">
+  /*
+   * Reservations2 vertical spacing rule:
+   * major neighboring sections use the same 16px rhythm.
+   */
+
+  /*
+   * Reduce the oversized space between KPI cards
+   * and the Calendar toolbar.
+   */
+  #pmd-reservations2.is-calendar-mode
+    #pmd-r2-calendar-surface-v160 {
+    margin-top: 16px !important;
+    margin-block-start: 16px !important;
+
+    padding-top: 0 !important;
+    padding-block-start: 0 !important;
+  }
+
+  /*
+   * Prevent inner Calendar wrappers from reintroducing
+   * additional top spacing.
+   */
+  #pmd-reservations2.is-calendar-mode
+    #pmd-r2-calendar-surface-v160
+    > .pmd-r2-yc-calendar-frame,
+  #pmd-reservations2.is-calendar-mode
+    #pmd-r2-calendar-surface-v160
+    .pmd-r2-yc-calendar-frame {
+    margin-top: 0 !important;
+    margin-block-start: 0 !important;
+
+    padding-top: 0 !important;
+    padding-block-start: 0 !important;
+  }
+
+  /*
+   * Keep Toolbar → Calendar Grid spacing equal
+   * to KPI → Toolbar spacing.
+   */
+  #pmd-reservations2.is-calendar-mode
+    #pmd-r2-calendar-surface-v160
+    .pmd-r2-yc-calendar-frame
+    > .pmd-yc__toolbar {
+    margin-top: 0 !important;
+    margin-bottom: 16px !important;
+    margin-block-start: 0 !important;
+    margin-block-end: 16px !important;
+  }
+
+  /*
+   * Remove accidental empty spacing before the framed grid.
+   */
+  #pmd-reservations2.is-calendar-mode
+    #pmd-r2-calendar-surface-v160
+    .pmd-yc__months,
+  #pmd-reservations2.is-calendar-mode
+    #pmd-r2-calendar-surface-v160
+    .pmd-yc-month.is-month-view {
+    margin-top: 0 !important;
+    margin-block-start: 0 !important;
+  }
+</style>
+<!-- PMD_CALENDAR_VERTICAL_RHYTHM_V17_END -->
+
+<!-- PMD_CALENDAR_HOUR_TOP_GAP_V18 -->
+<style id="pmd-calendar-hour-top-gap-v18">
+  /*
+   * The real oversized gap came from the shared canvas:
+   * computed margin-top was 64px.
+   *
+   * Calendar and Hour use the same shared canvas, so normalize
+   * that gap to the page's 16px spacing rhythm.
+   *
+   * Floor mode remains untouched.
+   */
+  #pmd-reservations2.is-calendar-mode
+    > #pmd-r2-shared-floor-canvas-v310,
+  #pmd-reservations2.pmd-r2-hour-layout-v38-active
+    > #pmd-r2-shared-floor-canvas-v310,
+  #pmd-reservations2.is-timeslot-screen
+    > #pmd-r2-shared-floor-canvas-v310 {
+    margin-top: 16px !important;
+    margin-block-start: 16px !important;
+  }
+
+  /*
+   * Do not let the nested Calendar surface add another top gap.
+   */
+  #pmd-reservations2.is-calendar-mode
+    #pmd-r2-calendar-surface-v160 {
+    margin-top: 0 !important;
+    margin-block-start: 0 !important;
+  }
+
+  /*
+   * Preserve the verified 16px Toolbar → Grid spacing.
+   */
+  #pmd-reservations2.is-calendar-mode
+    #pmd-r2-calendar-surface-v160
+    .pmd-r2-yc-calendar-frame
+    > .pmd-yc__toolbar {
+    margin-bottom: 16px !important;
+    margin-block-end: 16px !important;
+  }
+</style>
+<!-- PMD_CALENDAR_HOUR_TOP_GAP_V18_END -->
