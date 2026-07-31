@@ -1,0 +1,42 @@
+#pmd-reservation-composer-v1{--pmd-composer-surface:#fff;--pmd-composer-page:#f8fbfd;--pmd-composer-ink:#102a43;--pmd-composer-border:#cfe0ed;--pmd-composer-active:#eaf4fc;color:var(--pmd-composer-ink)}
+.pmd-reservation-composer-backdrop-v1{background:rgba(16,42,67,.28);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);transition:opacity .22s ease}
+#pmd-reservation-composer-v1 .modal-dialog{max-width:980px;transform:scale(.985);opacity:0;transition:transform .22s ease,opacity .22s ease}
+#pmd-reservation-composer-v1.show .modal-dialog{transform:scale(1);opacity:1}
+#pmd-reservation-composer-v1.pmd-reservation-composer-v1--closing .modal-dialog{transform:scale(.985);opacity:0}
+#pmd-reservation-composer-v1 .modal-content{border:1px solid var(--pmd-composer-border);border-radius:18px;background:var(--pmd-composer-surface);box-shadow:0 28px 80px rgba(16,42,67,.2);overflow:hidden}
+#pmd-reservation-composer-v1 form{display:flex;max-height:min(90vh,900px);flex-direction:column}
+#pmd-reservation-composer-v1 .pmd-reservation-composer-v1__header,#pmd-reservation-composer-v1 .pmd-reservation-composer-v1__footer{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:16px 22px;border-bottom:1px solid var(--pmd-composer-border)}
+#pmd-reservation-composer-v1 .pmd-reservation-composer-v1__header small{color:#607d94;font-weight:700}
+#pmd-reservation-composer-v1 .pmd-reservation-composer-v1__header h2{margin:2px 0 0;font-size:24px}
+#pmd-reservation-composer-v1 .pmd-reservation-composer-v1__header button{width:42px;height:42px;border:1px solid var(--pmd-composer-border);border-radius:13px;background:#fff;color:var(--pmd-composer-ink)}
+#pmd-reservation-composer-v1 .pmd-reservation-composer-v1__loading{padding:64px;text-align:center;color:#607d94}
+#pmd-reservation-composer-v1 .pmd-reservation-composer-v1__content{padding:20px 22px;overflow:auto;background:var(--pmd-composer-page)}
+#pmd-reservation-composer-v1 .pmd-reservation-composer-v1__grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}
+#pmd-reservation-composer-v1 label{display:flex;min-width:0;flex-direction:column;gap:7px;font-weight:700}
+#pmd-reservation-composer-v1 label>span{display:flex;align-items:center;gap:7px}
+#pmd-reservation-composer-v1 input:not([type=radio]):not([type=checkbox]),#pmd-reservation-composer-v1 select,#pmd-reservation-composer-v1 textarea{width:100%;min-height:42px;padding:8px 11px;border:1px solid var(--pmd-composer-border);border-radius:11px;background:#fff;color:var(--pmd-composer-ink);font:inherit;box-sizing:border-box}
+#pmd-reservation-composer-v1 textarea{min-height:84px;resize:vertical}
+#pmd-reservation-composer-v1 input:focus,#pmd-reservation-composer-v1 select:focus,#pmd-reservation-composer-v1 textarea:focus{outline:3px solid rgba(46,133,185,.15);border-color:#56a3cf}
+#pmd-reservation-composer-v1 [aria-invalid=true]{border-color:#c94a52!important}
+#pmd-reservation-composer-v1 em[data-error-for]{min-height:15px;color:#ad3039;font-size:12px;font-style:normal;font-weight:600}
+#pmd-reservation-composer-v1 .pmd-reservation-composer-v1__assignment,#pmd-reservation-composer-v1 .pmd-reservation-composer-v1__more{margin-top:16px;padding:16px;border:1px solid var(--pmd-composer-border);border-radius:16px;background:#fff}
+#pmd-reservation-composer-v1 .pmd-reservation-composer-v1__assignment h3{display:flex;align-items:center;gap:8px;margin:0 0 12px;font-size:17px}
+#pmd-reservation-composer-v1 .pmd-reservation-composer-v1__modes{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:12px}
+#pmd-reservation-composer-v1 .pmd-reservation-composer-v1__modes label{display:block;padding:11px;border:1px solid var(--pmd-composer-border);border-radius:13px;cursor:pointer}
+#pmd-reservation-composer-v1 .pmd-reservation-composer-v1__modes label:has(input:checked){background:var(--pmd-composer-active);border-color:#78b4d7}
+#pmd-reservation-composer-v1 .pmd-reservation-composer-v1__tables[hidden]{display:none}
+#pmd-reservation-composer-v1 .pmd-reservation-composer-v1__availability{min-height:22px;margin-top:10px;color:#47677d;font-size:13px}
+#pmd-reservation-composer-v1 .pmd-reservation-composer-v1__availability.is-error{color:#ad3039}
+#pmd-reservation-composer-v1 .pmd-reservation-composer-v1__notes{margin-top:16px}
+#pmd-reservation-composer-v1 .pmd-reservation-composer-v1__more summary{display:flex;align-items:center;justify-content:space-between;cursor:pointer;font-weight:800}
+#pmd-reservation-composer-v1 .pmd-reservation-composer-v1__more[open] summary{margin-bottom:16px}
+#pmd-reservation-composer-v1 .pmd-reservation-composer-v1__check{justify-content:center}
+#pmd-reservation-composer-v1 .pmd-reservation-composer-v1__summary{margin-bottom:16px;padding:12px;border:1px solid #e4a9ad;border-radius:13px;background:#fff4f4;color:#8d2730}
+#pmd-reservation-composer-v1 .pmd-reservation-composer-v1__footer{justify-content:flex-end;border-top:1px solid var(--pmd-composer-border);border-bottom:0;background:#fff}
+#pmd-reservation-composer-v1 .pmd-reservation-composer-v1__footer button{min-height:42px;padding:0 18px;border:1px solid var(--pmd-composer-border);border-radius:13px;background:#fff;color:var(--pmd-composer-ink);font:inherit;font-weight:800}
+#pmd-reservation-composer-v1 .pmd-reservation-composer-v1__footer [data-pmd-composer-save]{display:inline-flex;align-items:center;gap:8px;background:var(--pmd-composer-ink);color:#fff}
+#pmd-reservation-composer-v1 button:disabled{opacity:.55;cursor:wait}
+#pmd-reservation-composer-v1 svg{width:19px;height:19px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.pmd-reservation-composer-v1__sprite{position:absolute;overflow:hidden;pointer-events:none}
+@media(max-width:700px){#pmd-reservation-composer-v1 .modal-dialog{margin:8px}#pmd-reservation-composer-v1 form{max-height:calc(100vh - 16px)}#pmd-reservation-composer-v1 .pmd-reservation-composer-v1__grid{grid-template-columns:1fr}#pmd-reservation-composer-v1 .pmd-reservation-composer-v1__modes{grid-template-columns:1fr}#pmd-reservation-composer-v1 .pmd-reservation-composer-v1__content{padding:16px}#pmd-reservation-composer-v1 .pmd-reservation-composer-v1__footer{position:sticky;bottom:0}}
+@media(prefers-reduced-motion:reduce){#pmd-reservation-composer-v1 .modal-dialog,.pmd-reservation-composer-backdrop-v1{transition:none}}
