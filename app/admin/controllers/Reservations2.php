@@ -9,6 +9,7 @@ use Admin\Models\LocationOption;
 use Admin\Models\Locations_model;
 use Admin\Models\Reservations_model;
 use Admin\Models\Statuses_model;
+use Admin\Services\ReservationComposerService;
 use Igniter\Flame\Exception\ApplicationException;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -706,6 +707,21 @@ class Reservations2 extends Reservations
                 'Admin\Actions\ListController'
             )
             ->index_onDelete();
+    }
+
+    public function index_onLoadReservationComposer()
+    {
+        return app(ReservationComposerService::class)->load(request()->all());
+    }
+
+    public function index_onCheckReservationAvailability()
+    {
+        return app(ReservationComposerService::class)->availability(request()->all());
+    }
+
+    public function index_onSaveReservationComposer()
+    {
+        return app(ReservationComposerService::class)->save(request()->all());
     }
 
     protected function pmdProfileStage(

@@ -11156,3 +11156,14 @@ body {
   }
 </style>
 <!-- PMD_CALENDAR_HOUR_TOP_GAP_V18_END -->
+
+<!-- PMD_RESERVATION_COMPOSER_V1_START -->
+<link rel="stylesheet" href="{{ asset('app/admin/assets/css/pmd-reservation-composer-v1.css') }}?v=1.0.0">
+@include('admin::reservations2._reservation_composer')
+<script>
+window.PMD_RESERVATION_COMPOSER_V1 = Object.freeze({
+  endpoint: @json(admin_url('reservations2'))
+});
+</script>
+<script defer src="{{ asset('app/admin/assets/js/pmd-reservation-composer-v1.js') }}?v=1.0.0"></script>
+<!-- PMD_RESERVATION_COMPOSER_V1_END -->
