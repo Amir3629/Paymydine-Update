@@ -79,8 +79,6 @@ class Reservations extends \Admin\Classes\AdminController
 
     public function index()
     {
-        // The legacy Reservations list has been retired.
-        // Keep create/edit endpoints intact for Reservations2 workflows.
         return redirect(admin_url('reservations2'));
     }
 

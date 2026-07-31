@@ -6,11 +6,17 @@
     $layoutUrl = $layoutUrl ?? admin_url('pmd-owner-dashboard-floor-layout');
     $stateUrl = $stateUrl ?? admin_url('pmd-floor-v1/state');
     $orderUrl = $orderUrl ?? admin_url('waiter-pos/{table}');
+    $viewPreference = is_array($viewPreference ?? null) ? $viewPreference : [];
+    $viewMode = ($viewPreference['layout_mode'] ?? 'full') === 'row' ? 'row' : 'full';
+    $viewZoom = is_numeric($viewPreference['full_floor_zoom'] ?? null)
+        ? max(0.4, min(1.6, (float)$viewPreference['full_floor_zoom']))
+        : 1.0;
+    $viewPreferenceUrl = $viewPreferenceUrl ?? '';
 @endphp
 
 <section
     id="{{ $floorId }}"
-    class="pmd-floor-v1"
+    class="pmd-floor-v1{{ $viewMode === 'row' ? ' is-strip-mode' : '' }}"
     data-pmd-floor
     data-size="{{ $floorSize }}"
     data-mode="{{ $floorMode }}"
@@ -18,6 +24,10 @@
     data-layout-url="{{ $layoutUrl }}"
     data-state-url="{{ $stateUrl }}"
     data-order-url="{{ $orderUrl }}"
+    data-floor-view-id="{{ $viewPreference['floor_id'] ?? 'main-floor' }}"
+    data-floor-view-mode="{{ $viewMode }}"
+    data-floor-full-zoom="{{ $viewZoom }}"
+    data-floor-view-url="{{ $viewPreferenceUrl }}"
     aria-busy="true"
 >
     <header class="pmd-floor-v1__header">
@@ -59,14 +69,26 @@
             <div class="pmd-floor-v1__canvas" data-floor-canvas></div>
         </div>
 
-        <aside class="pmd-floor-v1__guide" data-floor-guide-card hidden>
-            <div><strong>Floor guide</strong><button type="button" data-floor-guide-close aria-label="Close">×</button></div>
-            <p><i class="is-available"></i> Available</p>
-            <p><i class="is-occupied"></i> Occupied / open order</p>
-            <p><i class="is-reserved"></i> Reserved</p>
-            <p><i class="is-cleaning"></i> Needs cleaning</p>
-            <p><i class="is-attention"></i> Waiter call, note or ready item</p>
-            <small>Edit mode lets you drag tables. Merge mode joins selected tables.</small>
+        <aside
+            class="pmd-floor-v1__guide"
+            data-floor-guide-card
+            aria-label="Floor guide"
+            hidden
+        >
+            <p data-floor-guide-status="available">
+                <i class="is-available"></i>
+                Available
+            </p>
+
+            <p data-floor-guide-status="range-reservation">
+                <i class="is-range-reservation"></i>
+                Reserved in selected date range
+            </p>
+
+            <p data-floor-guide-status="occupied">
+                <i class="is-occupied"></i>
+                Occupied / open order
+            </p>
         </aside>
     </div>
 

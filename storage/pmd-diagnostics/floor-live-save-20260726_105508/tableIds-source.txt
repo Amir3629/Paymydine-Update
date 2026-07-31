@@ -1,0 +1,9 @@
+51:function tableIds(i){
+114:if(Array.isArray(i.tableIds)){
+115:i.tableIds.forEach(add);
+180:var ids=tableIds(i);
+187:var ids=tableIds(i);
+281:reservation.tableIds,
+291:tableIds(reservation).forEach(function(value){
+368:function updateKpis(items){var all=reservations(),now=new Date(),today=dateKey(now),todayCount=all.filter(function(i){var s=reservationStart(i);return s&&dateKey(s)===today}).length,up=all.filter(function(i){var s=reservationStart(i);return s&&s>=now}).length,pend=all.filter(function(i){return/pending|confirm|request|wait/i.test(statusLabel(i))}).length,tables=new Set();all.forEach(function(i){tableIds(i).forEach(function(id){tables.add(id)})});var v={today:todayCount,upcoming:up,pending:pend,tables:tables.size};Object.keys(v).forEach(function(k){var n=document.querySelector('[data-r2-v308-value="'+k+'"]');if(n)n.textContent=String(v[k])})}
+3267:      var ids = tableIds(item);

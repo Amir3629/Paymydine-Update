@@ -3,6 +3,10 @@
 /* PMD_OWNER_DASHBOARD_CLEAN_V1_ROUTES_START */
 \Illuminate\Support\Facades\Route::get('admin/pmd-owner-dashboard-clean-v1-data', [\Admin\Controllers\PmdOwnerDashboardCleanV1::class, 'index']);
 \Illuminate\Support\Facades\Route::get('admin/pmd-owner-dashboard-clean-v1-audit', [\Admin\Controllers\PmdOwnerDashboardCleanV1::class, 'audit']);
+\Illuminate\Support\Facades\Route::get('admin/pmd-owner-dashboard-floor-layout', [\Admin\Controllers\PmdOwnerDashboardCleanV1::class, 'floorLayout']);
+\Illuminate\Support\Facades\Route::get('admin/pmd-owner-dashboard-floor-db-context', [\Admin\Controllers\PmdOwnerDashboardCleanV1::class, 'floorDatabaseContext']);
+\Illuminate\Support\Facades\Route::post('admin/pmd-owner-dashboard-floor-layout', [\Admin\Controllers\PmdOwnerDashboardCleanV1::class, 'saveFloorLayout']);
+\Illuminate\Support\Facades\Route::post('admin/reservations2/floor-view-preference', [\Admin\Controllers\Reservations2::class, 'floorViewPreference']);
 /* PMD_OWNER_DASHBOARD_CLEAN_V1_ROUTES_END */
 
 

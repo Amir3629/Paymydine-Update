@@ -2,7 +2,7 @@
   'use strict';
 
   var route = String(window.location.pathname || '').replace(/\/+$/, '');
-  if (route !== '/admin/reservations2') return;
+  if (route !== '/admin/reservations2' && route !== '/admin/reservations') return;
 
   var VERSION = '3.0.0';
   var html = document.documentElement;
@@ -67,11 +67,6 @@
       dateApi.__pmdR2V3Patched = true;
     }
 
-    var oldHeader = window.PMDReservations2HeaderDateV432;
-    if (oldHeader && !oldHeader.__pmdR2V3Patched) {
-      oldHeader.refresh = function () { return true; };
-      oldHeader.__pmdR2V3Patched = true;
-    }
   }
 
   function arrangeHeader() {
@@ -81,17 +76,9 @@
     var notification = document.getElementById('notif-root');
     var create = document.querySelector('#pmd-r2-clean-header .pmd-r2-clean-create') || document.querySelector('.pmd-r2-clean-create');
     var calendar = document.getElementById('pmd-r2-calendar-toggle-v1');
-    var date = document.getElementById('pmd-r2-date-button-v430');
-
-    [date, calendar, create, notification].forEach(function (element) {
+    [calendar, create, notification].forEach(function (element) {
       if (element && element.parentElement !== actions) actions.appendChild(element);
     });
-
-    if (date) {
-      date.hidden = false;
-      date.setAttribute('aria-label', 'Reservation date range');
-      date.style.order = '1';
-    }
     if (calendar) calendar.style.order = '2';
     if (create) create.style.order = '3';
     if (notification) notification.style.order = '4';

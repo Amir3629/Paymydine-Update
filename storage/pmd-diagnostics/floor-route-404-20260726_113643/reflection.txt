@@ -1,0 +1,11 @@
+
+
+floorLayout: YES
+  public=1
+  declared_in=Admin\Controllers\PmdOwnerDashboardCleanV1
+saveFloorLayout: YES
+  public=1
+  declared_in=Admin\Controllers\PmdOwnerDashboardCleanV1
+remap: YES
+  public=1
+  declared_in=Admin\Classes\AdminController

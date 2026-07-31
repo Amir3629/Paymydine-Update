@@ -1,0 +1,99 @@
+app/admin/widgets/Lists.php:514:        if (method_exists($this->model, 'filterColumns')) {
+app/admin/widgets/Lists.php:655:        if (method_exists($this, 'eval'.studly_case($column->type).'TypeValue')) {
+app/admin/widgets/Lists.php:668:        if (is_callable($column->formatter) && ($response = call_user_func_array($column->formatter, [$record, $column, $value])) !== null) {
+app/admin/widgets/SearchBox.php:85:                $redirect : call_user_func_array('array_merge', $result);
+app/admin/widgets/Menu.php:297:            $itemOptions = call_user_func($itemOptions, $this, $item, $user);
+app/admin/widgets/Form.php:491://        if (!$field->required AND $this->model AND method_exists($this->model, 'isAttributeRequired')) {
+app/admin/widgets/Form.php:1013:        if (method_exists($this->model, 'filterFields')) {
+app/admin/widgets/Form.php:1075:        if (method_exists($object, 'methodExists')) {
+app/admin/widgets/Form.php:1079:        return method_exists($object, $method);
+app/admin/routes.php.hotfix_bak_20260322_140723:3040:        $result['model_connection'] = method_exists($model, 'getConnectionName')
+app/admin/models/Menus_model.php:445:                'menu_id' => method_exists($this, 'getKey') ? $this->getKey() : null,
+app/admin/requests/SetupSettings.php:94:        if (method_exists(get_parent_class($this), 'prepareForValidation')) {
+app/admin/actions/FormController.php:550:            if (method_exists($request, 'setController'))
+app/admin/actions/FormController.php:553:            if (method_exists($request, 'setInputKey'))
+app/admin/views/menus/index.blade.php:217:                    if (method_exists($media, $method)) {
+app/admin/views/menus/index.blade.php:233:            if (method_exists($menu, 'getThumb')) {
+app/admin/views/orders/invoice.blade.php:118:        $__conn = method_exists($model, 'getConnectionName') ? ($model->getConnectionName() ?: config('database.default')) : config('database.default');
+app/admin/views/orders/invoice.blade.php:692:            $__dbgConn = method_exists($__dbgModel, 'getConnectionName')
+app/admin/controllers/concerns/PmdWaiterPosBootstrapConcern.php:333:            if (method_exists($menu, 'getThumb')) {
+app/admin/controllers/concerns/PmdWaiterPosSaveEndpoint.php:106:                if ($statusId && method_exists($order, 'addStatusHistory')) {
+app/admin/controllers/PmdWaiterRealFoodV103.php:718:            $arr = is_object($user) && method_exists($user, 'getAttributes') ? $user->getAttributes() : (array)$user;
+app/admin/controllers/Payments.php:187:            if (method_exists($form, 'removeField')) {
+app/admin/controllers/Payments.php:212:            if (method_exists($gateway, 'getConfigFields')) {
+app/admin/controllers/Payments.php:274:        if ($form->model->exists && method_exists($form->model, 'getConfigRules')) {
+app/admin/controllers/Payments.php:281:            if (method_exists($form->model, 'getConfigValidationMessages')) {
+app/admin/controllers/Payments.php:287:            if (method_exists($form->model, 'getConfigValidationAttributes')) {
+app/admin/controllers/Payments.php:363:            'storage_path' => method_exists($model, 'isMethodStorageResolved') && $model->isMethodStorageResolved() ? 'payment_methods' : 'payments',
+app/admin/controllers/Payments.php:498:            'storage_path' => method_exists($model, 'isMethodStorageResolved') && $model->isMethodStorageResolved() ? 'payment_methods' : 'payments',
+app/admin/controllers/Payments.php:533:            'storage_path' => method_exists($model, 'isMethodStorageResolved') && $model->isMethodStorageResolved() ? 'payment_methods' : 'payments',
+app/admin/controllers/PmdWaiterFloorLiveV106.php:36:    protected function userInfo(){ $user=null; try{ $user=AdminAuth::getUser(); } catch (\Throwable $e){ try{ $user=AdminAuth::user(); }catch(\Throwable $e2){} } $out=['id'=>null,'staff_id'=>null,'username'=>'','email'=>'']; if($user){ $a=is_object($user)&&method_exists($user,'getAttributes')?$user->getAttributes():(array)$user; $out['id']=isset($a['id'])?(int)$a['id']:(isset($a['user_id'])?(int)$a['user_id']:null); foreach(['staff_id','staffId'] as $k) if(isset($a[$k])&&is_numeric($a[$k])) $out['staff_id']=(int)$a[$k]; foreach(['username','name','login','staff_name'] as $k) if(!empty($a[$k])){ $out['username']=(string)$a[$k]; break; } foreach(['email','staff_email'] as $k) if(!empty($a[$k])){ $out['email']=(string)$a[$k]; break; } } if(!$out['staff_id']) $out['staff_id']=$out['id'] ?: 1; return $out; }
+app/admin/controllers/PmdWaiterWorkspaceV92.php:85:            $arr = is_object($user) && method_exists($user, 'getAttributes') ? $user->getAttributes() : (array)$user;
+app/admin/controllers/PmdWaiterSeedReadyV102.php:515:            $arr = is_object($user) && method_exists($user, 'getAttributes') ? $user->getAttributes() : (array)$user;
+app/admin/controllers/KitchenDisplay.php:175:                if (is_object($orderData['created_at']) && method_exists($orderData['created_at'], 'toIso8601String')) {
+app/admin/controllers/PmdWaiterRepairV100.php:455:            $arr = is_object($user) && method_exists($user, 'getAttributes') ? $user->getAttributes() : (array)$user;
+app/admin/controllers/PmdWaiterDashboardV149.php:81:            if (method_exists($ctrl, 'addItem')) return $ctrl->addItem();
+app/admin/controllers/Locations.php:64:    public function remap($action, $params)
+app/admin/controllers/PmdWaiterMenuBridgeV105.php:661:            $arr = is_object($user) && method_exists($user, 'getAttributes') ? $user->getAttributes() : (array)$user;
+app/admin/controllers/CashDrawers.php:174:        if (method_exists($device, 'isOnline') && $device->isOnline()) {
+app/admin/controllers/CashDrawers.php:388:        if (method_exists($device, 'isOnline') && !$device->isOnline()) {
+app/admin/controllers/CashDrawers.php:593:        $online = method_exists($device, 'isOnline') ? $device->isOnline() : false;
+app/admin/controllers/PmdWaiterRealDataOnlyV104.php:751:            $arr = is_object($user) && method_exists($user, 'getAttributes') ? $user->getAttributes() : (array)$user;
+app/admin/controllers/PmdWaiterRepairV101.php:456:            $arr = is_object($user) && method_exists($user, 'getAttributes') ? $user->getAttributes() : (array)$user;
+app/admin/traits/ValidatesForm.php:163:                if (method_exists($request, 'setController'))
+app/admin/traits/ValidatesForm.php:166:                if (method_exists($request, 'setInputKey'))
+app/admin/traits/FormExtendable.php:213:            call_user_func_array($callback, [$widget, $widget->model, $widget->getContext()]);
+app/admin/traits/ListExtendable.php:136:            call_user_func_array($callback, [$widget, $widget->model]);
+app/admin/classes/WorldlineHostedCheckoutService.php:455:            $responseBody = method_exists($e, 'getResponseBody') ? (string)$e->getResponseBody() : '';
+app/admin/classes/WorldlineHostedCheckoutService.php:1216:                if (method_exists($e, 'getStatusCode')) {
+app/admin/classes/WorldlineHostedCheckoutService.php:1223:                if (method_exists($e, 'getResponseBody')) {
+app/admin/classes/WorldlineHostedCheckoutService.php:1230:                if (method_exists($e, 'getErrors')) {
+app/admin/classes/WorldlineHostedCheckoutService.php:1244:                if (method_exists($e, 'getResponseBody')) {
+app/admin/classes/WorldlineHostedCheckoutService.php:1250:                if (method_exists($e, 'getErrors')) {
+app/admin/classes/WorldlineHostedCheckoutService.php:1256:                if (method_exists($e, 'getPaymentResult')) {
+app/admin/classes/WorldlineHostedCheckoutService.php:1258:                } elseif (method_exists($e, 'getCreatePaymentResult')) {
+app/admin/classes/WorldlineHostedCheckoutService.php:1272:                'statusCode' => method_exists($e, 'getStatusCode') ? $e->getStatusCode() : null,
+app/admin/classes/WorldlineHostedCheckoutService.php:1297:                        if (method_exists($e, $m)) {
+app/admin/classes/WorldlineHostedCheckoutService.php:1339:            if (is_object($value) && method_exists($value, 'toObject')) {
+app/admin/classes/WorldlineHostedCheckoutService.php:1356:                if (method_exists($e, 'getResponseBody')) {
+app/admin/classes/WorldlineHostedCheckoutService.php:1364:                if (method_exists($e, 'getErrors')) {
+app/admin/classes/WorldlineHostedCheckoutService.php:1401:                'statusCode' => method_exists($e, 'getStatusCode') ? $e->getStatusCode() : null,
+app/admin/classes/WorldlineHostedCheckoutService.php.before_clean_reset_20260406_182016:356:                    'response_body' => method_exists($e, 'getResponseBody') ? $e->getResponseBody() : null,
+app/admin/classes/WorldlineHostedCheckoutService.php.before_clean_reset_20260406_182016:357:                    'errors' => method_exists($e, 'getErrors') ? $e->getErrors() : null,
+app/admin/classes/WorldlineHostedCheckoutService.php.before_clean_reset_20260406_182016:373:                'statusCode' => method_exists($e, 'getStatusCode') ? $e->getStatusCode() : null,
+app/admin/classes/WorldlineHostedCheckoutService.php.before_clean_reset_20260406_182016:374:                'errorId' => method_exists($e, 'getErrorId') ? $e->getErrorId() : null,
+app/admin/classes/WorldlineHostedCheckoutService.php.before_clean_reset_20260406_182016:375:                'responseBody' => method_exists($e, 'getResponseBody') ? $e->getResponseBody() : null,
+app/admin/classes/WorldlineHostedCheckoutService.php.before_clean_reset_20260406_182016:1155:                if (is_object($pmdHostedProbeResponse) && method_exists($pmdHostedProbeResponse, 'toObject')) {
+app/admin/classes/WorldlineHostedCheckoutService.php.before_clean_reset_20260406_182016:1169:                    if (method_exists($probeEx, 'getErrors')) {
+app/admin/classes/WorldlineHostedCheckoutService.php.before_clean_reset_20260406_182016:1181:                    'statusCode' => method_exists($probeEx, 'getStatusCode') ? $probeEx->getStatusCode() : null,
+app/admin/classes/WorldlineHostedCheckoutService.php.before_clean_reset_20260406_182016:1182:                    'responseBody' => method_exists($probeEx, 'getResponseBody') ? $probeEx->getResponseBody() : null,
+app/admin/classes/WorldlineHostedCheckoutService.php.before_clean_reset_20260406_182016:1192:                'statusCode' => method_exists($e, 'getStatusCode') ? $e->getStatusCode() : null,
+app/admin/classes/WorldlineHostedCheckoutService.php.before_clean_reset_20260406_182016:1193:                'responseBody' => method_exists($e, 'getResponseBody') ? $e->getResponseBody() : null,
+app/admin/classes/WorldlineHostedCheckoutService.php.before_clean_reset_20260406_182016:1194:                'errors' => method_exists($e, 'getErrors') ? json_decode(json_encode($e->getErrors()), true) : null,
+app/admin/classes/WorldlineHostedCheckoutService.php.before_clean_reset_20260406_182016:1198:                'normalized_request' => (isset($normalizedRequest) && is_object($normalizedRequest) && method_exists($normalizedRequest, 'toObject'))
+app/admin/classes/WorldlineHostedCheckoutService.php.before_clean_reset_20260406_182016:1211:            if (is_object($value) && method_exists($value, 'toObject')) {
+app/admin/classes/WorldlineHostedCheckoutService.php.before_clean_reset_20260406_182016:1226:                'statusCode' => method_exists($e, 'getStatusCode') ? $e->getStatusCode() : null,
+app/admin/classes/WorldlineHostedCheckoutService.php.before_clean_reset_20260406_182016:1227:                'responseBody' => method_exists($e, 'getResponseBody') ? $e->getResponseBody() : null,
+app/admin/classes/WorldlineHostedCheckoutService.php.before_clean_reset_20260406_182016:1228:                'errors' => method_exists($e, 'getErrors') ? json_decode(json_encode($e->getErrors()), true) : null,
+app/admin/classes/WorldlineHostedCheckoutService.php.before_clean_reset_20260406_182016:1230:                'normalized_request' => (isset($normalizedRequest) && is_object($normalizedRequest) && method_exists($normalizedRequest, 'toObject'))
+app/admin/classes/VRPaymentGatewayService.php:304:            'code' => method_exists($e, 'getCode') ? $e->getCode() : null,
+app/admin/classes/OnboardingSteps.php:108:            if (!method_exists($extension, 'registerOnboardingSteps'))
+app/admin/classes/PaymentGateways.php:100:            if (!method_exists($extension, 'registerPaymentGateways'))
+app/admin/classes/AdminController.php:186:    public function remap($action, $params)
+app/admin/classes/AdminController.php:190:        if (!$this->verifyCsrfToken()) {
+app/admin/classes/AdminController.php:245:        if (method_exists($this, $action)) {
+app/admin/classes/AdminController.php:288:        $result = call_user_func_array([$this, $action], array_values($params));
+app/admin/classes/AdminController.php:474:                $result = call_user_func_array([$widget, $handlerName], array_values($params));
+app/admin/classes/AdminController.php:484:                $result = call_user_func_array([$this, $pageHandler], array_values($params));
+app/admin/classes/AdminController.php:491:                $result = call_user_func_array([$this, $handler], array_values($params));
+app/admin/classes/AdminController.php:502:                    $result = call_user_func_array([$widget, $handler], array_values($params));
+app/admin/classes/PaymentLogger.php:29:            'error_code' => method_exists($exception, 'getCode') ? $exception->getCode() : null,
+app/admin/classes/PaymentLogger.php:30:            'provider_error_id' => method_exists($exception, 'getErrorId') ? $exception->getErrorId() : null,
+app/admin/classes/PaymentLogger.php:31:            'provider_status_code' => method_exists($exception, 'getStatusCode') ? $exception->getStatusCode() : null,
+app/admin/classes/PaymentLogger.php:32:            'provider_response_body' => method_exists($exception, 'getResponseBody') ? self::truncate((string)$exception->getResponseBody(), 2000) : null,
+app/admin/Services/CashDrawerService/CashDrawerService.php:245:                $online = $terminal && method_exists($terminal, 'isOnline') ? $terminal->isOnline() : false;
+app/admin/assets/js/pmd-floor-v1.js:6019:      toolbarWaiterCallAction: true,
+app/admin/formwidgets/Relation.php:156:            elseif (method_exists($this->relatedModel, 'scopeSorted')) {
+app/admin/formwidgets/MapView.php:86:        if (method_exists($this->controller, 'mapViewCenterCoords'))
+app/admin/formwidgets/mediafinder/image_image.blade.php:11:    $src = $mediaItem->path ?? (method_exists($mediaItem, 'getPath') ? $mediaItem->getPath() : '');
+app/admin/routes.php.pre_media_fix_20260321_191937:2885:        $result['model_connection'] = method_exists($model, 'getConnectionName')

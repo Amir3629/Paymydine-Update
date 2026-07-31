@@ -1,6 +1,0 @@
-node_modules/
-pmd-qa-results/
-.env
-playwright-report/
-test-results/
-*.log

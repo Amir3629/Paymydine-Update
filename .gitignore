@@ -39,6 +39,7 @@ audit-backups/
 .deploy-backups/
 backup/
 app/Admin/
+frontend/Paymydine-Update/
 storage/logs/*
 storage/framework/cache/*
 storage/framework/sessions/*
