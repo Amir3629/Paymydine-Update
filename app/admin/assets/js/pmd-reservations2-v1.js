@@ -103,7 +103,7 @@
       '#pmd-r2-clean-header #notification-count{top:-7px!important;right:-8px!important;z-index:2!important;}',
       '#pmd-r2-clean-header #notif-root .dropdown-menu{right:0!important;left:auto!important;top:calc(100% + 6px)!important;}',
       '#pmd-r2-clean-header .pmd-r2-mobile-toggle{display:none!important;}',
-      '@media(max-width:820px){#pmd-r2-clean-header{min-height:58px;}#pmd-r2-clean-header .pmd-r2-clean-title{font-size:19px;}#pmd-r2-clean-header .pmd-r2-mobile-toggle{display:inline-flex!important;}#pmd-r2-clean-header .pmd-r2-clean-actions{gap:6px;}}'
+      '@media(max-width:820px){#pmd-r2-clean-header{min-height:58px;}#pmd-r2-clean-header .pmd-r2-clean-title{font-size:19px;}#pmd-r2-clean-header .pmd-r2-mobile-toggle{display:none!important;}#pmd-r2-clean-header .pmd-r2-clean-actions{gap:6px;}}'
     ].join('\n');
 
     document.head.appendChild(style);
@@ -158,10 +158,19 @@
     var actions = document.createElement('div');
     actions.className = 'pmd-r2-clean-actions';
 
+    /*
+     * PMD_R2_MOBILE_HEADER_SINGLE_OWNER_V2424
+     *
+     * Reservations2 has its own functional hamburger authority:
+     * pmd-reservations2-mobile-hamburger-v301.js.
+     *
+     * Do not move the legacy Bootstrap navbar toggle into the
+     * Reservations actions row. Keeping both controls produced
+     * the extra square button on mobile.
+     */
     if (mobileToggle) {
-      mobileToggle.classList.add('pmd-r2-clean-action', 'pmd-r2-mobile-toggle');
-      mobileToggle.removeAttribute('style');
-      actions.appendChild(mobileToggle);
+      mobileToggle.remove();
+      mobileToggle = null;
     }
 
     var create = document.createElement('a');

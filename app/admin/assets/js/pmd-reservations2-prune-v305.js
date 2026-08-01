@@ -27,6 +27,35 @@
 
   var pruning = false;
 
+  /*
+   * PMD_CHROME_FLOOR_PRESERVATION_V2418
+   *
+   * The canonical Floor, KPI row and reservation cards are active
+   * Reservations2 content. Prune must never remove them, their
+   * descendants, or an ancestor branch that contains them.
+   */
+  function protectedElements() {
+    return [
+      document.getElementById(KPI_ID),
+      document.getElementById(FLOOR_ID),
+      document.getElementById(CARDS_ID)
+    ].filter(Boolean);
+  }
+
+  function isProtectedNode(node) {
+    if (!node || node.nodeType !== 1) {
+      return false;
+    }
+
+    return protectedElements().some(function (protectedElement) {
+      return (
+        node === protectedElement ||
+        node.contains(protectedElement) ||
+        protectedElement.contains(node)
+      );
+    });
+  }
+
   function root() {
     return document.getElementById(
       ROOT_ID
@@ -98,7 +127,10 @@
     Array.from(
       ancestor.children
     ).forEach(function (child) {
-      if (child !== branch) {
+      if (
+        child !== branch &&
+        !isProtectedNode(child)
+      ) {
         child.remove();
       }
     });
@@ -234,7 +266,8 @@
           child.id === KPI_ID ||
           child.id === FLOOR_ID ||
           child.id === CARDS_ID ||
-          child.id === EMPTY_ID
+          child.id === EMPTY_ID ||
+          isProtectedNode(child)
         ) {
           return;
         }
@@ -274,7 +307,8 @@
           .forEach(function (node) {
             if (
               cleanHeader.contains(node) ||
-              node.contains(cleanHeader)
+              node.contains(cleanHeader) ||
+              isProtectedNode(node)
             ) {
               return;
             }

@@ -437,3 +437,126 @@
 }
 
 /* PMD_R2_MOBILE_MENU_FINAL_V303_END */
+
+
+/* PMD_R2_MOBILE_HEADER_SINGLE_OWNER_V2424_START */
+
+/*
+ * Runtime DOM without a Back button:
+ *
+ *   column 1: custom hamburger
+ *   column 2: flexible empty space
+ *   column 3: existing right-side actions
+ *
+ * The former V3.0.1 layout permanently reserved column 1 for a
+ * Back button and forced the hamburger into column 2. On the
+ * Reservations page no Back button exists, leaving a visible
+ * empty column on the left.
+ */
+@media (max-width: 820px) {
+  body:has(#pmd-reservations2)
+  #pmd-r2-clean-header {
+    grid-template-columns:
+      44px
+      minmax(0, 1fr)
+      auto !important;
+
+    align-items:
+      center !important;
+  }
+
+  /*
+   * Only the real Side Menu 2 hamburger owns the left position.
+   */
+  body:has(#pmd-reservations2)
+  #pmd-r2-clean-header
+  > .pmd-r2-mobile-hamburger-v301 {
+    grid-column: 1 !important;
+    grid-row: 1 !important;
+
+    position: relative !important;
+
+    inset: auto !important;
+    top: auto !important;
+    right: auto !important;
+    bottom: auto !important;
+    left: auto !important;
+
+    justify-self: start !important;
+    align-self: center !important;
+
+    margin: 0 !important;
+    transform: none !important;
+  }
+
+  /*
+   * This is the real runtime actions class. Do not alter its
+   * internal gap, button sizes, ordering or right-edge spacing.
+   */
+  body:has(#pmd-reservations2)
+  #pmd-r2-clean-header
+  > .pmd-r2-clean-actions {
+    grid-column: 3 !important;
+    grid-row: 1 !important;
+
+    justify-self: end !important;
+    align-self: center !important;
+  }
+
+  /*
+   * Defensive fallback: even if another old authority restores
+   * the legacy Bootstrap control, it must not appear.
+   */
+  body:has(#pmd-reservations2)
+  #pmd-r2-clean-header
+  .pmd-r2-clean-actions
+  > .navbar-toggler.pmd-r2-mobile-toggle {
+    display: none !important;
+    visibility: hidden !important;
+    opacity: 0 !important;
+    pointer-events: none !important;
+  }
+
+  /*
+   * Future-safe layout when a genuine Back button is present.
+   */
+  body:has(#pmd-reservations2)
+  #pmd-r2-clean-header:has(
+    > .pmd-r2-mobile-back
+  ) {
+    grid-template-columns:
+      44px
+      44px
+      minmax(0, 1fr)
+      auto !important;
+  }
+
+  body:has(#pmd-reservations2)
+  #pmd-r2-clean-header:has(
+    > .pmd-r2-mobile-back
+  )
+  > .pmd-r2-mobile-back {
+    grid-column: 1 !important;
+    grid-row: 1 !important;
+  }
+
+  body:has(#pmd-reservations2)
+  #pmd-r2-clean-header:has(
+    > .pmd-r2-mobile-back
+  )
+  > .pmd-r2-mobile-hamburger-v301 {
+    grid-column: 2 !important;
+    grid-row: 1 !important;
+  }
+
+  body:has(#pmd-reservations2)
+  #pmd-r2-clean-header:has(
+    > .pmd-r2-mobile-back
+  )
+  > .pmd-r2-clean-actions {
+    grid-column: 4 !important;
+    grid-row: 1 !important;
+  }
+}
+
+/* PMD_R2_MOBILE_HEADER_SINGLE_OWNER_V2424_END */

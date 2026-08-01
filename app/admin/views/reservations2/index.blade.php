@@ -132,7 +132,7 @@ html.pmd-r2-v6-ready #pmd-reservations2 {
 </script>
 
 @include('admin::_partials.pmd_side_menu2_single_style')
-<link rel="stylesheet" href="/app/admin/assets/css/pmd-side-menu2-v1.css?v=20260719-single-source-v1">
+<link rel="stylesheet" href="/app/admin/assets/css/pmd-side-menu2-v1.css?v=20260719-single-source-v1&pmd-mobile-menu-visual=2427-20260801_202220">
 <link rel="stylesheet" href="/app/admin/assets/css/pmd-reservations2-v1.css?v=20260719-3">
 <link rel="stylesheet" href="/app/admin/assets/css/pmd-reservations2-mobile-final-v2.css?v=20260720_214338">
 <link rel="stylesheet" href="/app/admin/assets/css/pmd-reservations2-header-final-v1.css?v=20260720_213918">
@@ -149,6 +149,30 @@ window.PMD_RESERVATIONS2_BOOT = {
 </script>
 
 @include('admin::_partials.pmd_side_menu2_single_menu')
+
+
+<!--
+  PMD_CHROME_FLEX_TOP_V2419
+
+  The global .page element is a horizontal flex container.
+  Chrome vertically centers an oversized .page-wrapper when
+  justify-content resolves to center, placing the beginning of
+  Reservations2 roughly half of its total height above the viewport.
+
+  This view-scoped rule keeps the Reservations2 workspace aligned
+  to the top without changing Floor geometry, One Row, Calendar,
+  Hour, cards, KPIs, scrolling, Safari, mobile, or other admin pages.
+-->
+<style id="pmd-chrome-flex-top-v2419">
+body.page {
+  justify-content: flex-start !important;
+  align-content: flex-start !important;
+}
+
+body.page > .page-wrapper {
+  align-self: stretch !important;
+}
+</style>
 
 <div id="pmd-reservations2" class="pmd-r2" aria-busy="true">
     <header class="pmd-r2__hero">
@@ -423,7 +447,7 @@ window.PMD_RESERVATIONS2_BOOT = {
 
 <link
   rel="stylesheet"
-  href="/app/admin/assets/css/pmd-floor-v1.css?v=pmd-r2-v310"
+  href="/app/admin/assets/css/pmd-floor-v1.css?pmd-floor-guide=2413-20260801_182507&v=pmd-r2-v310"
 >
 <link
   rel="stylesheet"
@@ -439,7 +463,7 @@ window.PMD_RESERVATIONS2_BOOT = {
 >
 
 <script
-  src="/app/admin/assets/js/pmd-floor-v1.js?v=20260729_d1-auth-v1"
+  src="/app/admin/assets/js/pmd-floor-v1.js?pmd-floor-guide=2413-20260801_182507&v=20260729_d1-auth-v1"
   defer
 ></script>
 <script
@@ -448,8 +472,8 @@ window.PMD_RESERVATIONS2_BOOT = {
 ></script>
 
 
-<script src="/app/admin/assets/js/pmd-side-menu2-v1.js?v=20260718-4"></script>
-<script src="/app/admin/assets/js/pmd-reservations2-v1.js?v=20260718-1"></script>
+<script src="/app/admin/assets/js/pmd-side-menu2-v1.js?v=20260718-4&pmd-mobile-menu-behavior=2427-20260801_202220"></script>
+<script src="/app/admin/assets/js/pmd-reservations2-v1.js?v=20260718-1&pmd-mobile-header-core=2424-20260801_195840"></script>
 
 
 <!-- PMD_R2_EXACT_FLOOR_V5_START -->
@@ -478,7 +502,7 @@ window.PMD_RESERVATIONS2_BOOT = {
 
 <link
     rel="stylesheet"
-    href="/app/admin/assets/css/pmd-reservations2-mobile-hamburger-v301.css?v=20260722_111424"
+    href="/app/admin/assets/css/pmd-reservations2-mobile-hamburger-v301.css?v=20260722_111424&pmd-mobile-header-layout=2424-20260801_195840"
 >
 
 <script
@@ -497,7 +521,7 @@ window.PMD_RESERVATIONS2_BOOT = {
 >
 
 <script
-    src="/app/admin/assets/js/pmd-reservations2-prune-v305.js?v=20260722_233803"
+    src="/app/admin/assets/js/pmd-reservations2-prune-v305.js?v=20260722_233803&pmd-floor-preserve-prune=2418-20260801_192902"
     defer
 ></script>
 
@@ -512,7 +536,7 @@ window.PMD_RESERVATIONS2_BOOT = {
 >
 
 <script
-    src="/app/admin/assets/js/pmd-reservations2-remove-waiter-root-v306.js?v=20260722_115443"
+    src="/app/admin/assets/js/pmd-reservations2-remove-waiter-root-v306.js?v=20260722_115443&pmd-floor-preserve-remove=2418-20260801_192902"
     defer
 ></script>
 
@@ -523,11 +547,11 @@ window.PMD_RESERVATIONS2_BOOT = {
 
 <link
     rel="stylesheet"
-    href="/app/admin/assets/css/pmd-reservations2-kpis-v307.css?v=20260722_120725"
+    href="/app/admin/assets/css/pmd-reservations2-kpis-v307.css?pmd-kpi=2409?v=20260722_120725"
 >
 
 <script
-    src="/app/admin/assets/js/pmd-reservations2-kpis-v307.js?v=20260729_b1-kpi-stable-v1"
+    src="/app/admin/assets/js/pmd-reservations2-kpis-v307.js?pmd-kpi=2409?v=20260729_b1-kpi-stable-v1"
     defer
 ></script>
 
@@ -1168,11 +1192,11 @@ window.PMD_RESERVATIONS2_BOOT = {
 <!-- PMD_R2_DATE_POPOVER_V318_START -->
 <link
     rel="stylesheet"
-    href="{{ asset('app/admin/assets/css/pmd-reservations2-date-popover-v318.css') }}?v=20260722_230938"
+    href="{{ asset('app/admin/assets/css/pmd-reservations2-date-popover-v318.css?pmd-date-modal-ui=2428-20260801_203012&pmd-date-visible=2430-20260801_203748&pmd-date-global-visible=2431-20260801_213327&pmd-date-backdrop-only=2433-20260801_214044&pmd-date-full-backdrop=2434-20260801_214546') }}?v=20260722_230938"
 >
 <script
     defer
-    src="{{ asset('app/admin/assets/js/pmd-reservations2-date-popover-v318.js') }}?v=20260722_230938"
+    src="{{ asset('app/admin/assets/js/pmd-reservations2-date-popover-v318.js?pmd-date-modal=2428-20260801_203012&pmd-date-click=2429-20260801_203432') }}?v=20260722_230938"
 ></script>
 <!-- PMD_R2_DATE_POPOVER_V318_END -->
 
@@ -11156,3 +11180,14 @@ body {
   }
 </style>
 <!-- PMD_CALENDAR_HOUR_TOP_GAP_V18_END -->
+
+<!-- PMD_RESERVATION_COMPOSER_V1_START -->
+<link rel="stylesheet" href="{{ asset('app/admin/assets/css/pmd-reservation-composer-v1.css') }}?v=1.0.0">
+@include('admin::reservations2._reservation_composer')
+<script>
+window.PMD_RESERVATION_COMPOSER_V1 = Object.freeze({
+  endpoint: @json(admin_url('reservations2'))
+});
+</script>
+<script defer src="{{ asset('app/admin/assets/js/pmd-reservation-composer-v1.js?pmd-composer-draft=2426-20260801_201842') }}?v=1.0.0"></script>
+<!-- PMD_RESERVATION_COMPOSER_V1_END -->

@@ -547,3 +547,648 @@
     boot();
   }
 })();
+
+
+/* ============================================================
+   PMD_DATE_RANGE_CENTER_MODAL_V2428
+
+   - The real #pmd-r2-date-button-v430 opens the existing panel.
+   - The panel is portaled to document.body.
+   - Smooth centered modal with blur-only backdrop.
+   - X, backdrop and Escape close it.
+   - Date filtering behavior is unchanged.
+   ============================================================ */
+
+(function () {
+  'use strict';
+
+  var VERSION = '2.4.2.8';
+
+  var DATE_BUTTON_ID =
+    'pmd-r2-date-button-v430';
+
+  var WRAP_ID =
+    'pmd-r2-date-popover-v318';
+
+  var PANEL_ID =
+    'pmd-r2-date-panel-v318';
+
+  var BACKDROP_ID =
+    'pmd-r2-date-modal-backdrop-v2428';
+
+  var OPEN_CLASS =
+    'pmd-r2-date-modal-open-v2428';
+
+  var bound = false;
+  var lastFocused = null;
+
+  function dateButton() {
+    return document.getElementById(
+      DATE_BUTTON_ID
+    );
+  }
+
+  function wrap() {
+    return document.getElementById(
+      WRAP_ID
+    );
+  }
+
+  function panel() {
+    return document.getElementById(
+      PANEL_ID
+    );
+  }
+
+  function ensureBackdrop() {
+    var existing =
+      document.getElementById(
+        BACKDROP_ID
+      );
+
+    if (existing) {
+      return existing;
+    }
+
+    var backdrop =
+      document.createElement('button');
+
+    backdrop.type = 'button';
+    backdrop.id = BACKDROP_ID;
+    backdrop.className =
+      'pmd-r2-date-modal-backdrop-v2428';
+
+    backdrop.setAttribute(
+      'aria-label',
+      'Close reservation date range'
+    );
+
+    backdrop.setAttribute(
+      'tabindex',
+      '-1'
+    );
+
+    document.body.appendChild(
+      backdrop
+    );
+
+    backdrop.addEventListener(
+      'click',
+      function (event) {
+        event.preventDefault();
+        close();
+      }
+    );
+
+    return backdrop;
+  }
+
+  function portalPanel() {
+    var card = panel();
+
+    if (!card) {
+      return null;
+    }
+
+    if (card.parentElement !== document.body) {
+      document.body.appendChild(card);
+    }
+
+    card.setAttribute(
+      'aria-modal',
+      'true'
+    );
+
+    card.setAttribute(
+      'data-pmd-date-modal-owner',
+      'v2428'
+    );
+
+    return card;
+  }
+
+  function isOpen() {
+    return document.documentElement
+      .classList.contains(
+        OPEN_CLASS
+      );
+  }
+
+  function syncAria(open) {
+    var button = dateButton();
+
+    if (button) {
+      button.setAttribute(
+        'aria-expanded',
+        open ? 'true' : 'false'
+      );
+
+      button.setAttribute(
+        'aria-controls',
+        PANEL_ID
+      );
+
+      button.setAttribute(
+        'aria-haspopup',
+        'dialog'
+      );
+    }
+  }
+
+  function open() {
+    ensureBackdrop();
+
+    var card =
+      portalPanel();
+
+    if (!card) {
+      return false;
+    }
+
+    lastFocused =
+      document.activeElement;
+
+    document.documentElement
+      .classList.add(
+        OPEN_CLASS
+      );
+
+    document.body
+      .classList.add(
+        OPEN_CLASS
+      );
+
+    var container = wrap();
+
+    if (container) {
+      container.classList.add(
+        'is-open'
+      );
+    }
+
+    syncAria(true);
+
+    requestAnimationFrame(
+      function () {
+        document.documentElement
+          .classList.add(
+            OPEN_CLASS + '-painted'
+          );
+
+        var firstControl =
+          card.querySelector(
+            'button, input, select, ' +
+            'textarea, [tabindex]:not([tabindex="-1"])'
+          );
+
+        if (firstControl) {
+          firstControl.focus({
+            preventScroll: true
+          });
+        }
+      }
+    );
+
+    window.dispatchEvent(
+      new CustomEvent(
+        'pmd:date-range-modal-opened',
+        {
+          detail: {
+            version: VERSION
+          }
+        }
+      )
+    );
+
+    return true;
+  }
+
+  function close() {
+    if (!isOpen()) {
+      return false;
+    }
+
+    document.documentElement
+      .classList.remove(
+        OPEN_CLASS + '-painted'
+      );
+
+    document.body
+      .classList.remove(
+        OPEN_CLASS + '-painted'
+      );
+
+    syncAria(false);
+
+    window.setTimeout(
+      function () {
+        document.documentElement
+          .classList.remove(
+            OPEN_CLASS
+          );
+
+        document.body
+          .classList.remove(
+            OPEN_CLASS
+          );
+
+        var container = wrap();
+
+        if (container) {
+          container.classList.remove(
+            'is-open'
+          );
+        }
+
+        if (
+          lastFocused &&
+          typeof lastFocused.focus ===
+            'function'
+        ) {
+          lastFocused.focus({
+            preventScroll: true
+          });
+        }
+      },
+      220
+    );
+
+    window.dispatchEvent(
+      new CustomEvent(
+        'pmd:date-range-modal-closed',
+        {
+          detail: {
+            version: VERSION
+          }
+        }
+      )
+    );
+
+    return true;
+  }
+
+  function toggle() {
+    return isOpen()
+      ? close()
+      : open();
+  }
+
+  function normalizeDateButton() {
+    var button =
+      dateButton();
+
+    if (!button) {
+      return false;
+    }
+
+    /*
+     * Keep one actual text node only.
+     * The duplicated ::after label is disabled by CSS.
+     */
+    var spans =
+      Array.from(
+        button.querySelectorAll(
+          ':scope > span'
+        )
+      );
+
+    if (spans.length > 1) {
+      spans.slice(1).forEach(
+        function (span) {
+          span.remove();
+        }
+      );
+    }
+
+    button.setAttribute(
+      'data-pmd-date-modal-trigger',
+      'v2428'
+    );
+
+    button.setAttribute(
+      'aria-expanded',
+      isOpen() ? 'true' : 'false'
+    );
+
+    return true;
+  }
+
+  function bind() {
+    normalizeDateButton();
+    ensureBackdrop();
+    portalPanel();
+
+    if (bound) {
+      return;
+    }
+
+    bound = true;
+
+    /*
+     * Capture phase prevents the older anchored-popover listener
+     * from opening a second layout.
+     */
+    document.addEventListener(
+      'click',
+      function (event) {
+        var trigger =
+          event.target.closest &&
+          event.target.closest(
+            '#' + DATE_BUTTON_ID
+          );
+
+        if (trigger) {
+          event.preventDefault();
+          event.stopPropagation();
+          event.stopImmediatePropagation();
+          toggle();
+          return;
+        }
+
+        var closeButton =
+          event.target.closest &&
+          event.target.closest(
+            '#' + PANEL_ID +
+            ' .pmd-r2-date-card-head-v318 button'
+          );
+
+        if (closeButton) {
+          event.preventDefault();
+          event.stopPropagation();
+          close();
+        }
+      },
+      true
+    );
+
+    document.addEventListener(
+      'keydown',
+      function (event) {
+        if (
+          event.key === 'Escape' &&
+          isOpen()
+        ) {
+          event.preventDefault();
+          close();
+        }
+      },
+      true
+    );
+
+    new MutationObserver(
+      function () {
+        requestAnimationFrame(
+          function () {
+            normalizeDateButton();
+
+            if (!isOpen()) {
+              portalPanel();
+            }
+          }
+        );
+      }
+    ).observe(
+      document.body,
+      {
+        childList: true,
+        subtree: true
+      }
+    );
+  }
+
+  window.PMDDateRangeCenterModalV2428 = {
+    version: VERSION,
+    open: open,
+    close: close,
+    toggle: toggle,
+
+    audit: function () {
+      var button =
+        dateButton();
+
+      var card =
+        panel();
+
+      var backdrop =
+        document.getElementById(
+          BACKDROP_ID
+        );
+
+      return {
+        version: VERSION,
+        button: Boolean(button),
+        buttonDirectSpans:
+          button
+            ? button.querySelectorAll(
+                ':scope > span'
+              ).length
+            : 0,
+
+        panel: Boolean(card),
+        panelInBody:
+          Boolean(
+            card &&
+            card.parentElement ===
+              document.body
+          ),
+
+        backdrop:
+          Boolean(backdrop),
+
+        open:
+          isOpen()
+      };
+    }
+  };
+
+  if (
+    document.readyState ===
+    'loading'
+  ) {
+    document.addEventListener(
+      'DOMContentLoaded',
+      bind,
+      {
+        once: true
+      }
+    );
+  } else {
+    bind();
+  }
+
+  console.info(
+    '[PMD Date Range Center Modal V2.4.2.8] Ready',
+    window.PMDDateRangeCenterModalV2428.audit()
+  );
+})();
+
+/* PMD_DATE_RANGE_CENTER_MODAL_V2428_END */
+
+
+/* ============================================================
+   PMD_DATE_MODAL_CLICK_BRIDGE_V2429
+
+   V2428 moved the date panel into centered modal presentation.
+   This bridge guarantees that the real visible date button
+   (#pmd-r2-date-button-v430) and the internal date trigger
+   (#pmd-r2-date-button-v318) both toggle the same modal wrapper.
+   ============================================================ */
+
+(function () {
+  'use strict';
+
+  var VERSION = '2.4.2.9';
+
+  var WRAP_ID = 'pmd-r2-date-popover-v318';
+  var PANEL_ID = 'pmd-r2-date-panel-v318';
+
+  var BUTTON_SELECTORS = [
+    '#pmd-r2-date-button-v430',
+    '#pmd-r2-date-button-v318'
+  ].join(',');
+
+  function wrap() {
+    return document.getElementById(WRAP_ID);
+  }
+
+  function panel() {
+    return document.getElementById(PANEL_ID);
+  }
+
+  function buttons() {
+    return Array.prototype.slice.call(
+      document.querySelectorAll(
+        BUTTON_SELECTORS
+      )
+    );
+  }
+
+  function setOpen(open) {
+    var node = wrap();
+
+    if (!node) {
+      return false;
+    }
+
+    node.classList.toggle(
+      'is-open',
+      Boolean(open)
+    );
+
+    document.documentElement.classList.toggle(
+      'pmd-r2-date-modal-open-v2429',
+      Boolean(open)
+    );
+
+    document.body.classList.toggle(
+      'pmd-r2-date-modal-open-v2429',
+      Boolean(open)
+    );
+
+    buttons().forEach(function (button) {
+      button.setAttribute(
+        'aria-expanded',
+        open ? 'true' : 'false'
+      );
+    });
+
+    return true;
+  }
+
+  function isOpen() {
+    var node = wrap();
+
+    return Boolean(
+      node &&
+      node.classList.contains('is-open')
+    );
+  }
+
+  function toggle() {
+    return setOpen(!isOpen());
+  }
+
+  function close() {
+    return setOpen(false);
+  }
+
+  document.addEventListener(
+    'click',
+    function (event) {
+      var button =
+        event.target.closest &&
+        event.target.closest(
+          BUTTON_SELECTORS
+        );
+
+      if (button) {
+        event.preventDefault();
+        event.stopPropagation();
+        event.stopImmediatePropagation();
+
+        toggle();
+
+        return;
+      }
+
+      var node = wrap();
+      var card = panel();
+
+      if (
+        node &&
+        node.classList.contains('is-open') &&
+        card &&
+        !card.contains(event.target)
+      ) {
+        close();
+      }
+    },
+    true
+  );
+
+  document.addEventListener(
+    'keydown',
+    function (event) {
+      if (event.key === 'Escape') {
+        close();
+      }
+    },
+    true
+  );
+
+  window.PMDDateModalClickBridgeV2429 = {
+    version: VERSION,
+    open: function () {
+      return setOpen(true);
+    },
+    close: close,
+    toggle: toggle,
+    audit: function () {
+      var node = wrap();
+      var card = panel();
+
+      return {
+        version: VERSION,
+        wrap: Boolean(node),
+        panel: Boolean(card),
+        open: isOpen(),
+        buttons: buttons().map(function (button) {
+          return {
+            id: button.id,
+            text: String(button.innerText || '')
+              .replace(/\s+/g, ' ')
+              .trim(),
+            expanded: button.getAttribute('aria-expanded')
+          };
+        })
+      };
+    }
+  };
+
+  console.info(
+    '[PMD Date Modal Click Bridge V2.4.2.9] Ready',
+    window.PMDDateModalClickBridgeV2429.audit()
+  );
+})();
+
+/* PMD_DATE_MODAL_CLICK_BRIDGE_V2429_END */

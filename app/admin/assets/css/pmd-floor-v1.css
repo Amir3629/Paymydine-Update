@@ -58,3 +58,262 @@ html body .pmd-floor-v1__badge.is-merge:active {
 
 /* PMD_MERGE_BADGE_NEUTRAL_FORCE_V286_END */
 
+
+/* ============================================================
+   PMD_FLOOR_GUIDE_ONE_ROW_STACK_V2410
+   Keep Floor Guide above table icons in One Row mode
+   ============================================================ */
+
+/*
+ * Establish a predictable stacking context for the Floor workspace.
+ */
+.pmd-floor-v1,
+[data-floor-root],
+[data-pmd-floor-v1] {
+  isolation: isolate !important;
+}
+
+
+/*
+ * Floor canvases and table elements must remain below overlays.
+ */
+.pmd-floor-v1__canvas,
+.pmd-floor-v1__viewport,
+.pmd-floor-v1__stage,
+.pmd-floor-v1__tables,
+[data-floor-canvas],
+[data-floor-viewport],
+[data-floor-stage],
+[data-floor-tables] {
+  position: relative !important;
+  z-index: 1 !important;
+}
+
+
+/*
+ * Individual table icons must never create a layer above the Guide.
+ */
+.pmd-floor-v1__table,
+[data-floor-table],
+[data-floor-table-id] {
+  z-index: 2 !important;
+}
+
+
+/*
+ * The Guide is a real overlay and must stay above every table icon.
+ */
+.pmd-floor-v1__guide,
+[data-floor-guide-card] {
+  position: absolute !important;
+  z-index: 120 !important;
+
+  isolation: isolate !important;
+  transform: translateZ(0) !important;
+
+  pointer-events: auto !important;
+}
+
+
+/*
+ * Open Guide receives the strongest overlay authority.
+ */
+.pmd-floor-v1__guide.is-open,
+[data-floor-guide-card].is-open {
+  z-index: 130 !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+}
+
+
+/*
+ * One Row implementations use several possible state markers.
+ * In every variant, the Guide remains above the horizontal strip.
+ */
+.pmd-floor-v1.is-one-row .pmd-floor-v1__guide,
+.pmd-floor-v1[data-floor-mode="one-row"] .pmd-floor-v1__guide,
+.pmd-floor-v1[data-mode="one-row"] .pmd-floor-v1__guide,
+[data-floor-root].is-one-row [data-floor-guide-card],
+[data-floor-root][data-floor-mode="one-row"] [data-floor-guide-card],
+[data-floor-root][data-mode="one-row"] [data-floor-guide-card],
+body.pmd-floor-one-row [data-floor-guide-card] {
+  z-index: 150 !important;
+}
+
+
+/*
+ * Prevent transformed table strips from painting over the Guide.
+ */
+.pmd-floor-v1.is-one-row .pmd-floor-v1__canvas,
+.pmd-floor-v1.is-one-row .pmd-floor-v1__viewport,
+.pmd-floor-v1.is-one-row .pmd-floor-v1__stage,
+.pmd-floor-v1[data-floor-mode="one-row"] .pmd-floor-v1__canvas,
+.pmd-floor-v1[data-floor-mode="one-row"] .pmd-floor-v1__viewport,
+.pmd-floor-v1[data-mode="one-row"] .pmd-floor-v1__canvas,
+[data-floor-root].is-one-row [data-floor-canvas],
+[data-floor-root][data-floor-mode="one-row"] [data-floor-canvas],
+[data-floor-root][data-mode="one-row"] [data-floor-canvas] {
+  z-index: 1 !important;
+}
+
+
+/*
+ * Guide contents remain above its own background.
+ */
+.pmd-floor-v1__guide > *,
+[data-floor-guide-card] > * {
+  position: relative !important;
+  z-index: 1 !important;
+}
+
+
+/*
+ * Keep the Guide compact and fully visible on smaller screens.
+ */
+@media (max-width: 760px) {
+  .pmd-floor-v1__guide,
+  [data-floor-guide-card] {
+    max-width: min(280px, calc(100vw - 32px)) !important;
+    max-height: min(360px, calc(100vh - 160px)) !important;
+    overflow-y: auto !important;
+    overscroll-behavior: contain !important;
+  }
+}
+
+/* ============================================================
+   PMD_FLOOR_GUIDE_PORTAL_V2411
+   Body-level Guide overlay
+   ============================================================ */
+
+body > .pmd-floor-guide-portal-v2411 {
+  position: fixed !important;
+
+  left:
+    var(
+      --pmd-floor-guide-portal-left,
+      16px
+    ) !important;
+
+  top:
+    var(
+      --pmd-floor-guide-portal-top,
+      90px
+    ) !important;
+
+  right: auto !important;
+  bottom: auto !important;
+
+  width:
+    var(
+      --pmd-floor-guide-portal-width,
+      280px
+    ) !important;
+
+  max-width:
+    calc(100vw - 32px) !important;
+
+  max-height:
+    min(
+      320px,
+      calc(100vh - 32px)
+    ) !important;
+
+  z-index: 2147483000 !important;
+
+  display: grid !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+
+  overflow-x: hidden !important;
+  overflow-y: auto !important;
+
+  isolation: isolate !important;
+  transform: none !important;
+  translate: none !important;
+
+  pointer-events: auto !important;
+
+  border-radius: 16px !important;
+
+  box-shadow:
+    0 22px 60px
+    rgba(15, 40, 64, 0.24) !important;
+
+  overscroll-behavior: contain !important;
+  -webkit-overflow-scrolling: touch !important;
+}
+
+html.pmd-floor-guide-portal-open-v2411
+#pmd-r2-date-button-v430,
+
+html.pmd-floor-guide-portal-open-v2411
+.pmd-r2-floor-toolbar-v316,
+
+html.pmd-floor-guide-portal-open-v2411
+[data-floor-table],
+
+html.pmd-floor-guide-portal-open-v2411
+[data-floor-table-id] {
+  z-index: auto !important;
+}
+
+@media (max-width: 760px) {
+  body > .pmd-floor-guide-portal-v2411 {
+    width:
+      min(
+        280px,
+        calc(100vw - 24px)
+      ) !important;
+
+    max-height:
+      min(
+        300px,
+        calc(100vh - 24px)
+      ) !important;
+  }
+}
+
+/* ============================================================
+   PMD_FLOOR_GUIDE_STABLE_CLICK_COLORS_V2413
+   Exact Guide colors from the real Floor status palette
+   ============================================================ */
+
+.pmd-floor-v1__guide
+[data-floor-guide-status="available"] i,
+.pmd-floor-v1__guide i.is-available {
+  background:
+    var(--pmd-floor-green) !important;
+  background-color:
+    var(--pmd-floor-green) !important;
+}
+
+.pmd-floor-v1__guide
+[data-floor-guide-status="range-reservation"] i,
+.pmd-floor-v1__guide i.is-range-reservation,
+.pmd-floor-v1__guide i.is-reserved {
+  background:
+    var(--pmd-floor-blue) !important;
+  background-color:
+    var(--pmd-floor-blue) !important;
+}
+
+.pmd-floor-v1__guide
+[data-floor-guide-status="occupied"] i,
+.pmd-floor-v1__guide i.is-occupied {
+  background:
+    var(--pmd-floor-red) !important;
+  background-color:
+    var(--pmd-floor-red) !important;
+}
+
+/*
+ * Internal Guide clicks must never create visual movement.
+ * Position changes only when the actual trigger opens the card,
+ * the viewport resizes, or the page scrolls.
+ */
+.pmd-floor-v1__guide.pmd-floor-guide-portal-v2411 {
+  transition:
+    opacity 140ms ease,
+    visibility 140ms ease,
+    box-shadow 140ms ease !important;
+}

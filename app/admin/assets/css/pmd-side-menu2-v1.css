@@ -2024,3 +2024,87 @@ html body #pmd-side-menu2 .pmd-sm2__logout-action {
     font-size: 13px !important;
   }
 }
+
+
+/* ============================================================
+   PMD_MOBILE_MENU_COMPOSER_V2426
+
+   Mobile Side Menu:
+   - pale Reservation Composer-style overlay
+   - smooth blur and unblur
+   - no dark/black overlay
+   - desktop collapse control hidden on mobile
+   ============================================================ */
+
+@media (max-width: 820px) {
+  html body #pmd-side-menu2-backdrop {
+    display: block !important;
+    visibility: visible !important;
+    opacity: 0 !important;
+    pointer-events: none !important;
+
+    background: transparent !important;
+    background-color: transparent !important;
+
+    backdrop-filter: blur(0) !important;
+    -webkit-backdrop-filter: blur(0) !important;
+
+    transition:
+      opacity 280ms cubic-bezier(.22, 1, .36, 1),
+      background-color 280ms cubic-bezier(.22, 1, .36, 1),
+      backdrop-filter 280ms cubic-bezier(.22, 1, .36, 1),
+      -webkit-backdrop-filter 280ms cubic-bezier(.22, 1, .36, 1)
+      !important;
+
+    will-change: opacity, backdrop-filter !important;
+  }
+
+  html.pmd-sm2-mobile-open body #pmd-side-menu2-backdrop,
+  html.pmd-sm2-mobile-open #pmd-side-menu2-backdrop {
+    opacity: 1 !important;
+    pointer-events: auto !important;
+
+    /*
+     * PMD_MOBILE_MENU_BLUR_ONLY_V2427
+     *
+     * Pure blur: no black, green, white or grey tint.
+     */
+    background: transparent !important;
+    background-color: transparent !important;
+
+    backdrop-filter: blur(8px) !important;
+    -webkit-backdrop-filter: blur(8px) !important;
+  }
+
+  /*
+   * Desktop expand/collapse control must not exist visually
+   * inside the mobile drawer.
+   */
+  /*
+   * PMD_MOBILE_MENU_BLUR_ONLY_V2427
+   *
+   * Keep the full brand/logo container visible.
+   * Hide only the desktop collapse-arrow graphic.
+   */
+  #pmd-side-menu2 .pmd-sm2__brand-collapse-icon {
+    display: none !important;
+    visibility: hidden !important;
+    opacity: 0 !important;
+    pointer-events: none !important;
+  }
+
+  /*
+   * Restore the shared brand control that V2426 accidentally hid.
+   * Do not force its internal layout; existing Side Menu CSS owns it.
+   */
+  #pmd-side-menu2 [data-pmd-sm2-toggle]:has(
+    .pmd-sm2__brand-collapse-icon
+  ) {
+    display: flex !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+    pointer-events: auto !important;
+  }
+}
+
+/* PMD_MOBILE_MENU_COMPOSER_V2426_END */

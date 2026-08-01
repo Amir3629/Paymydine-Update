@@ -244,6 +244,23 @@ function handleNavigationDropdownReset(event) {
       );
 
     if (toggle && menu.contains(toggle)) {
+      /*
+       * PMD_MOBILE_MENU_BLUR_ONLY_V2427
+       *
+       * The brand toggle is desktop-only. On mobile retain the
+       * Pay My Dine branding but ignore its collapse action.
+       */
+      if (
+        window.innerWidth <= 820 &&
+        toggle.querySelector(
+          '.pmd-sm2__brand-collapse-icon'
+        )
+      ) {
+        event.preventDefault();
+        event.stopPropagation();
+        return;
+      }
+
       event.preventDefault();
       event.stopPropagation();
 

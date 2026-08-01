@@ -16,6 +16,103 @@
 
   var removing = false;
 
+  /*
+   * PMD_CHROME_FLOOR_PRESERVATION_V2418
+   *
+   * The Blade initially renders the canonical Floor inside the
+   * legacy waiter root. Chrome can execute this removal before
+   * another authority reparents the Floor.
+   *
+   * Move the canonical Floor to the Reservations2 root first.
+   */
+  function reservationsRoot() {
+    return document.getElementById(
+      'pmd-reservations2'
+    );
+  }
+
+  function canonicalFloor(waiterRoot) {
+    if (!waiterRoot) {
+      return null;
+    }
+
+    return (
+      waiterRoot.querySelector(
+        '#pmd-r2-shared-floor-canvas-v310'
+      ) ||
+      waiterRoot.querySelector(
+        '[data-pmd-floor]'
+      )
+    );
+  }
+
+  function rescueCanonicalFloor(waiterRoot) {
+    var floor =
+      canonicalFloor(waiterRoot);
+
+    if (!floor) {
+      return {
+        floorFound: false,
+        rescued: true
+      };
+    }
+
+    var pageRoot =
+      reservationsRoot();
+
+    if (!pageRoot) {
+      return {
+        floorFound: true,
+        rescued: false
+      };
+    }
+
+    var cards =
+      document.getElementById(
+        'pmd-r2-reservation-cards-v320'
+      );
+
+    var empty =
+      document.getElementById(
+        'pmd-r2-empty-content-v305'
+      );
+
+    var reference =
+      (
+        cards &&
+        cards.parentElement === pageRoot
+      )
+        ? cards
+        : (
+            empty &&
+            empty.parentElement === pageRoot
+          )
+            ? empty
+            : null;
+
+    if (reference) {
+      pageRoot.insertBefore(
+        floor,
+        reference
+      );
+    } else {
+      pageRoot.appendChild(
+        floor
+      );
+    }
+
+    floor.setAttribute(
+      'data-pmd-r2-floor-rescued',
+      'v2418'
+    );
+
+    return {
+      floorFound: true,
+      rescued:
+        floor.parentElement === pageRoot
+    };
+  }
+
   function onReservations2() {
     return Boolean(
       document.getElementById(
@@ -51,6 +148,26 @@
               '#pmd-side-menu2'
             )
           ) {
+            return;
+          }
+
+          var rescue =
+            rescueCanonicalFloor(node);
+
+          /*
+           * Never delete a wrapper while it still contains the
+           * canonical Floor. A failed rescue is safer than losing
+           * the entire workspace.
+           */
+          if (
+            rescue.floorFound &&
+            !rescue.rescued
+          ) {
+            console.error(
+              '[PMD Chrome Floor Preservation V2.4.1.8] ' +
+              'Waiter root retained because Floor rescue failed.'
+            );
+
             return;
           }
 
@@ -164,6 +281,23 @@
           Boolean(
             document.getElementById(
               ROOT_ID
+            )
+          ),
+
+        floorPresent:
+          Boolean(
+            document.getElementById(
+              'pmd-r2-shared-floor-canvas-v310'
+            ) ||
+            document.querySelector(
+              '[data-pmd-floor]'
+            )
+          ),
+
+        floorRescued:
+          Boolean(
+            document.querySelector(
+              '[data-pmd-r2-floor-rescued="v2418"]'
             )
           )
       }

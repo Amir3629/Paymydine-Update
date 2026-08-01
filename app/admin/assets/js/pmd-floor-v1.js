@@ -7308,3 +7308,447 @@ function saveLayout() {
   );
 })();
 /* PMD_MERGE_INLINE_NEUTRAL_V287_END */
+
+/* ============================================================
+   PMD_FLOOR_GUIDE_PORTAL_V2411
+   Escape One Row stacking contexts by portalling Guide to body
+   ============================================================ */
+
+(function () {
+  'use strict';
+
+  var VERSION = '2.4.1.3';
+  var GUIDE_SELECTOR =
+    '[data-floor-guide-card], .pmd-floor-v1__guide';
+
+  var TRIGGER_SELECTORS = [
+    '[data-floor-guide-toggle]',
+    '[data-floor-guide-button]',
+    '[data-floor-guide-trigger]',
+    '[aria-label="Floor guide"]',
+    '[aria-label*="guide" i]',
+    '.pmd-floor-v1__guide-toggle',
+    '.pmd-floor-v1__info'
+  ].join(',');
+
+  var state = {
+    guide: null,
+    placeholder: null,
+    originalParent: null,
+    originalNextSibling: null,
+    trigger: null,
+    portalled: false
+  };
+
+  function visible(element) {
+    if (!element) {
+      return false;
+    }
+
+    var style = window.getComputedStyle(element);
+    var rect = element.getBoundingClientRect();
+
+    return (
+      style.display !== 'none' &&
+      style.visibility !== 'hidden' &&
+      parseFloat(style.opacity || '1') > 0 &&
+      rect.width > 0 &&
+      rect.height > 0
+    );
+  }
+
+  function currentGuide() {
+    var guides = Array.prototype.slice.call(
+      document.querySelectorAll(GUIDE_SELECTOR)
+    );
+
+    return (
+      guides.find(function (guide) {
+        return guide.classList.contains('is-open');
+      }) ||
+      guides.find(visible) ||
+      guides[0] ||
+      null
+    );
+  }
+
+  /*
+   * PMD_FLOOR_GUIDE_STABLE_CLICK_COLORS_V2413
+   *
+   * The Guide card itself owns aria-label="Floor guide".
+   * It must never be mistaken for the small Guide trigger.
+   */
+  function isGuideElement(element) {
+    return Boolean(
+      element &&
+      (
+        element.matches(GUIDE_SELECTOR) ||
+        element.closest(GUIDE_SELECTOR)
+      )
+    );
+  }
+
+  function currentTrigger() {
+    var candidates = Array.prototype.slice.call(
+      document.querySelectorAll(TRIGGER_SELECTORS)
+    );
+
+    var visibleCandidates = candidates.filter(function (element) {
+      return (
+        visible(element) &&
+        !isGuideElement(element)
+      );
+    });
+
+    return (
+      visibleCandidates.find(function (element) {
+        var rect = element.getBoundingClientRect();
+
+        return (
+          rect.width <= 80 &&
+          rect.height <= 80
+        );
+      }) ||
+      visibleCandidates[0] ||
+      null
+    );
+  }
+
+  function rememberOrigin(guide) {
+    if (
+      state.guide === guide &&
+      state.originalParent
+    ) {
+      return;
+    }
+
+    state.guide = guide;
+    state.originalParent = guide.parentNode;
+    state.originalNextSibling = guide.nextSibling;
+
+    state.placeholder = document.createComment(
+      'PMD Floor Guide Portal V2411'
+    );
+
+    if (state.originalParent) {
+      state.originalParent.insertBefore(
+        state.placeholder,
+        guide
+      );
+    }
+  }
+
+  function positionGuide() {
+    var guide = state.guide;
+
+    if (!guide || !state.portalled) {
+      return;
+    }
+
+    var trigger =
+      state.trigger ||
+      currentTrigger();
+
+    var width = Math.min(
+      310,
+      Math.max(
+        230,
+        window.innerWidth - 32
+      )
+    );
+
+    var left = 16;
+    var top = 90;
+
+    if (trigger) {
+      var triggerRect =
+        trigger.getBoundingClientRect();
+
+      left = Math.max(
+        16,
+        Math.min(
+          window.innerWidth - width - 16,
+          triggerRect.right - width
+        )
+      );
+
+      top = triggerRect.bottom + 10;
+
+      var estimatedHeight = Math.min(
+        260,
+        window.innerHeight - 32
+      );
+
+      if (
+        top + estimatedHeight >
+        window.innerHeight - 16
+      ) {
+        top = Math.max(
+          16,
+          triggerRect.top -
+            estimatedHeight -
+            10
+        );
+      }
+    }
+
+    guide.style.setProperty(
+      '--pmd-floor-guide-portal-left',
+      left + 'px'
+    );
+
+    guide.style.setProperty(
+      '--pmd-floor-guide-portal-top',
+      top + 'px'
+    );
+
+    guide.style.setProperty(
+      '--pmd-floor-guide-portal-width',
+      width + 'px'
+    );
+  }
+
+  function portalGuide(guide, trigger) {
+    if (!guide) {
+      return;
+    }
+
+    rememberOrigin(guide);
+
+    state.trigger =
+      trigger ||
+      currentTrigger();
+
+    if (guide.parentNode !== document.body) {
+      document.body.appendChild(guide);
+    }
+
+    state.portalled = true;
+
+    guide.classList.add(
+      'pmd-floor-guide-portal-v2411'
+    );
+
+    document.documentElement.classList.add(
+      'pmd-floor-guide-portal-open-v2411'
+    );
+
+    positionGuide();
+  }
+
+  function restoreGuide() {
+    var guide = state.guide;
+
+    if (!guide || !state.portalled) {
+      return;
+    }
+
+    guide.classList.remove(
+      'pmd-floor-guide-portal-v2411'
+    );
+
+    guide.style.removeProperty(
+      '--pmd-floor-guide-portal-left'
+    );
+
+    guide.style.removeProperty(
+      '--pmd-floor-guide-portal-top'
+    );
+
+    guide.style.removeProperty(
+      '--pmd-floor-guide-portal-width'
+    );
+
+    if (
+      state.placeholder &&
+      state.placeholder.parentNode
+    ) {
+      state.placeholder.parentNode.insertBefore(
+        guide,
+        state.placeholder
+      );
+
+      state.placeholder.remove();
+    } else if (state.originalParent) {
+      if (
+        state.originalNextSibling &&
+        state.originalNextSibling.parentNode ===
+          state.originalParent
+      ) {
+        state.originalParent.insertBefore(
+          guide,
+          state.originalNextSibling
+        );
+      } else {
+        state.originalParent.appendChild(guide);
+      }
+    }
+
+    document.documentElement.classList.remove(
+      'pmd-floor-guide-portal-open-v2411'
+    );
+
+    state.placeholder = null;
+    state.portalled = false;
+    state.trigger = null;
+  }
+
+  function syncAfterAction(trigger) {
+    window.requestAnimationFrame(function () {
+      var guide = currentGuide();
+
+      if (
+        guide &&
+        (
+          guide.classList.contains('is-open') ||
+          visible(guide)
+        )
+      ) {
+        portalGuide(guide, trigger);
+      } else {
+        restoreGuide();
+      }
+    });
+  }
+
+  document.addEventListener(
+    'click',
+    function (event) {
+      /*
+       * Clicking anywhere inside the open Guide is an internal action.
+       * Do not reinterpret the Guide card as its own trigger and do not
+       * recalculate its fixed coordinates.
+       */
+      if (
+        state.portalled &&
+        state.guide &&
+        state.guide.contains(event.target)
+      ) {
+        return;
+      }
+
+      var trigger =
+        event.target.closest(TRIGGER_SELECTORS);
+
+      if (
+        trigger &&
+        !isGuideElement(trigger)
+      ) {
+        syncAfterAction(trigger);
+        return;
+      }
+
+      if (
+        state.portalled &&
+        state.guide &&
+        !state.guide.contains(event.target)
+      ) {
+        /*
+         * Existing Floor code remains responsible for closing.
+         * We only restore after that close action has completed.
+         */
+        syncAfterAction(null);
+      }
+    },
+    true
+  );
+
+  document.addEventListener(
+    'keydown',
+    function (event) {
+      if (
+        event.key === 'Escape' &&
+        state.portalled
+      ) {
+        window.requestAnimationFrame(
+          restoreGuide
+        );
+      }
+    },
+    true
+  );
+
+  window.addEventListener(
+    'resize',
+    function () {
+      if (state.portalled) {
+        positionGuide();
+      }
+    },
+    { passive: true }
+  );
+
+  window.addEventListener(
+    'scroll',
+    function () {
+      if (state.portalled) {
+        positionGuide();
+      }
+    },
+    {
+      passive: true,
+      capture: true
+    }
+  );
+
+  window.PMDFloorGuidePortalV2411 = {
+    version: VERSION,
+
+    open: function () {
+      portalGuide(
+        currentGuide(),
+        currentTrigger()
+      );
+    },
+
+    close: restoreGuide,
+
+    audit: function () {
+      var guide =
+        state.guide ||
+        currentGuide();
+
+      var trigger =
+        state.trigger ||
+        currentTrigger();
+
+      return {
+        version: VERSION,
+        ready: true,
+        guideFound: Boolean(guide),
+        triggerFound: Boolean(trigger),
+        guideOpen: Boolean(
+          guide &&
+          (
+            guide.classList.contains('is-open') ||
+            visible(guide)
+          )
+        ),
+        portalled: state.portalled,
+        guideParent:
+          guide && guide.parentElement
+            ? guide.parentElement.tagName
+            : null,
+        guideZIndex:
+          guide
+            ? window.getComputedStyle(guide).zIndex
+            : null,
+        triggerIsGuide: Boolean(
+          trigger &&
+          isGuideElement(trigger)
+        ),
+        stableInternalClicks: true,
+        guideColors: {
+          available: 'var(--pmd-floor-green)',
+          rangeReservation: 'var(--pmd-floor-blue)',
+          occupied: 'var(--pmd-floor-red)'
+        }
+      };
+    }
+  };
+
+  console.info(
+    '[PMD Floor Guide Portal V2.4.1.3] Ready',
+    window.PMDFloorGuidePortalV2411.audit()
+  );
+})();

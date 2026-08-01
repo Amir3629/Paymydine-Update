@@ -8,7 +8,7 @@
 
 @include('admin::_partials.pmd_side_menu2_single_style')
 <link rel="stylesheet" href="/app/admin/assets/css/pmd-side-menu2-v1.css?v=pmd-floor-v1">
-<link rel="stylesheet" href="/app/admin/assets/css/pmd-floor-v1.css?v=pmd-floor-v1">
+<link rel="stylesheet" href="/app/admin/assets/css/pmd-floor-v1.css?pmd-floor-guide=2412-20260801_181938&v=pmd-floor-v1">
 
 @include('admin::_partials.pmd_side_menu2_single_menu')
 
@@ -25,7 +25,7 @@
 </main>
 
 <script src="/app/admin/assets/js/pmd-side-menu2-v1.js?v=pmd-floor-v1"></script>
-<script src="/app/admin/assets/js/pmd-floor-v1.js?v=20260726_122015" defer></script>
+<script src="/app/admin/assets/js/pmd-floor-v1.js?pmd-floor-guide=2412-20260801_181938&v=20260726_122015" defer></script>
 
 
 <!-- PMD_FLOOR_STABLE_V11_START -->

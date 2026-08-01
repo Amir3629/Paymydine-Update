@@ -330,3 +330,1607 @@
     line-height: 1.14 !important;
   }
 }
+
+/* PMD_CONFIGURABLE_RESERVATION_KPIS_V2401_BEGIN */
+
+#pmd-r2-reservation-kpis-v307.pmd-r2-kpis-v2401 {
+  position: relative !important;
+  z-index: 45 !important;
+
+  display: grid !important;
+  grid-template-columns:
+    repeat(4, minmax(0, 1fr)) !important;
+
+  gap: 14px !important;
+
+  width: 100% !important;
+  min-width: 0 !important;
+
+  margin: 16px 0 0 !important;
+  padding: 0 2px 8px !important;
+
+  overflow: visible !important;
+  box-sizing: border-box !important;
+}
+
+#pmd-r2-reservation-kpis-v307
+.pmd-r2-kpi-v2401-card {
+  --kpi-bg: #e8f7f0;
+  --kpi-border: #88c8b4;
+  --kpi-accent: #075548;
+  --kpi-icon: #d4eee4;
+
+  position: relative !important;
+
+  display: grid !important;
+  grid-template-columns:
+    52px minmax(0, 1fr) 34px !important;
+
+  align-items: center !important;
+  gap: 13px !important;
+
+  min-width: 0 !important;
+  min-height: 118px !important;
+
+  margin: 0 !important;
+  padding: 15px !important;
+
+  border:
+    1px solid var(--kpi-border) !important;
+
+  border-radius: 18px !important;
+
+  background: var(--kpi-bg) !important;
+  color: #0b2421 !important;
+
+  box-shadow: none !important;
+  overflow: visible !important;
+  box-sizing: border-box !important;
+}
+
+#pmd-r2-reservation-kpis-v307
+.pmd-r2-kpi-v2401-card[data-pmd-kpi-v2401-tone="orange"] {
+  --kpi-bg: #fff4e7;
+  --kpi-border: #efbf82;
+  --kpi-accent: #8d4800;
+  --kpi-icon: #ffe5c2;
+}
+
+#pmd-r2-reservation-kpis-v307
+.pmd-r2-kpi-v2401-card[data-pmd-kpi-v2401-tone="blue"] {
+  --kpi-bg: #ebf6fb;
+  --kpi-border: #86c7dd;
+  --kpi-accent: #075c79;
+  --kpi-icon: #d6eef7;
+}
+
+#pmd-r2-reservation-kpis-v307
+.pmd-r2-kpi-v2401-card[data-pmd-kpi-v2401-tone="red"] {
+  --kpi-bg: #fff0f1;
+  --kpi-border: #e9a4ac;
+  --kpi-accent: #9a2332;
+  --kpi-icon: #f9dce0;
+}
+
+#pmd-r2-reservation-kpis-v307
+.pmd-r2-kpi-v2401-card[data-pmd-kpi-v2401-tone="purple"] {
+  --kpi-bg: #f4effb;
+  --kpi-border: #c3ace2;
+  --kpi-accent: #5e368c;
+  --kpi-icon: #e9ddf7;
+}
+
+#pmd-r2-reservation-kpis-v307
+.pmd-r2-kpi-v2401-icon {
+  display: inline-flex !important;
+
+  width: 52px !important;
+  height: 52px !important;
+
+  align-items: center !important;
+  justify-content: center !important;
+
+  border-radius: 15px !important;
+
+  background: var(--kpi-icon) !important;
+  color: var(--kpi-accent) !important;
+}
+
+#pmd-r2-reservation-kpis-v307
+.pmd-r2-kpi-v2401-icon svg,
+#pmd-r2-reservation-kpis-v307
+.pmd-r2-kpi-v2401-option-icon svg {
+  display: block !important;
+
+  width: 24px !important;
+  height: 24px !important;
+
+  fill: none !important;
+  stroke: currentColor !important;
+  stroke-width: 1.9 !important;
+  stroke-linecap: round !important;
+  stroke-linejoin: round !important;
+}
+
+#pmd-r2-reservation-kpis-v307
+.pmd-r2-kpi-v2401-copy {
+  display: flex !important;
+  flex-direction: column !important;
+  justify-content: center !important;
+
+  min-width: 0 !important;
+}
+
+#pmd-r2-reservation-kpis-v307
+.pmd-r2-kpi-v2401-title {
+  margin: 0 0 3px !important;
+
+  color: #16312d !important;
+
+  font-size: 14px !important;
+  font-weight: 850 !important;
+  line-height: 1.15 !important;
+}
+
+#pmd-r2-reservation-kpis-v307
+.pmd-r2-kpi-v2401-value {
+  margin: 0 !important;
+
+  color: var(--kpi-accent) !important;
+
+  font-size: 30px !important;
+  font-weight: 900 !important;
+  line-height: 1 !important;
+
+  white-space: nowrap !important;
+}
+
+#pmd-r2-reservation-kpis-v307
+.pmd-r2-kpi-v2401-description {
+  margin: 6px 0 0 !important;
+
+  overflow: hidden !important;
+
+  color: #566a66 !important;
+
+  font-size: 11px !important;
+  font-weight: 650 !important;
+  line-height: 1.2 !important;
+
+  text-overflow: ellipsis !important;
+  white-space: nowrap !important;
+}
+
+#pmd-r2-reservation-kpis-v307
+.pmd-r2-kpi-v2401-more {
+  display: inline-flex !important;
+
+  width: 34px !important;
+  height: 40px !important;
+
+  align-items: center !important;
+  justify-content: center !important;
+  flex-direction: column !important;
+
+  gap: 3px !important;
+
+  margin: 0 !important;
+  padding: 0 !important;
+
+  border: 0 !important;
+  border-radius: 10px !important;
+
+  background: transparent !important;
+  color: var(--kpi-accent) !important;
+
+  box-shadow: none !important;
+  cursor: pointer !important;
+}
+
+#pmd-r2-reservation-kpis-v307
+.pmd-r2-kpi-v2401-more:hover,
+#pmd-r2-reservation-kpis-v307
+.pmd-r2-kpi-v2401-more[aria-expanded="true"] {
+  background:
+    rgba(255, 255, 255, .72) !important;
+}
+
+#pmd-r2-reservation-kpis-v307
+.pmd-r2-kpi-v2401-more span {
+  display: block !important;
+
+  width: 4px !important;
+  height: 4px !important;
+
+  border-radius: 50% !important;
+  background: currentColor !important;
+}
+
+#pmd-r2-reservation-kpis-v307
+.pmd-r2-kpi-v2401-menu {
+  position: absolute !important;
+
+  top: calc(100% - 6px) !important;
+  right: 12px !important;
+
+  z-index: 10080 !important;
+
+  display: grid !important;
+  gap: 5px !important;
+
+  width:
+    min(330px, calc(100vw - 32px)) !important;
+
+  max-height: 430px !important;
+
+  margin: 0 !important;
+  padding: 8px !important;
+
+  overflow-x: hidden !important;
+  overflow-y: auto !important;
+
+  border: 1px solid #c9d9d5 !important;
+  border-radius: 15px !important;
+
+  background: #fff !important;
+
+  box-shadow:
+    0 18px 45px rgba(5, 37, 32, .18) !important;
+
+  box-sizing: border-box !important;
+}
+
+#pmd-r2-reservation-kpis-v307
+.pmd-r2-kpi-v2401-menu[hidden] {
+  display: none !important;
+}
+
+#pmd-r2-reservation-kpis-v307
+.pmd-r2-kpi-v2401-option {
+  display: grid !important;
+  grid-template-columns:
+    38px minmax(0, 1fr) 22px !important;
+
+  align-items: center !important;
+  gap: 10px !important;
+
+  width: 100% !important;
+  min-height: 55px !important;
+
+  margin: 0 !important;
+  padding: 8px 10px !important;
+
+  border: 1px solid transparent !important;
+  border-radius: 11px !important;
+
+  background: #fff !important;
+  color: #132d29 !important;
+
+  text-align: left !important;
+
+  box-shadow: none !important;
+  cursor: pointer !important;
+}
+
+#pmd-r2-reservation-kpis-v307
+.pmd-r2-kpi-v2401-option:hover {
+  border-color: #b9d6cd !important;
+  background: #f2f8f6 !important;
+}
+
+#pmd-r2-reservation-kpis-v307
+.pmd-r2-kpi-v2401-option.is-selected {
+  border-color: #6eb7a3 !important;
+  background: #e7f5ef !important;
+}
+
+#pmd-r2-reservation-kpis-v307
+.pmd-r2-kpi-v2401-option-icon {
+  display: inline-flex !important;
+
+  width: 38px !important;
+  height: 38px !important;
+
+  align-items: center !important;
+  justify-content: center !important;
+
+  border-radius: 10px !important;
+
+  background: #e8f3ef !important;
+  color: #075548 !important;
+}
+
+#pmd-r2-reservation-kpis-v307
+.pmd-r2-kpi-v2401-option-icon svg {
+  width: 20px !important;
+  height: 20px !important;
+}
+
+#pmd-r2-reservation-kpis-v307
+.pmd-r2-kpi-v2401-option-copy {
+  display: flex !important;
+  flex-direction: column !important;
+
+  min-width: 0 !important;
+}
+
+#pmd-r2-reservation-kpis-v307
+.pmd-r2-kpi-v2401-option-copy strong {
+  color: #132d29 !important;
+
+  font-size: 13px !important;
+  font-weight: 800 !important;
+  line-height: 1.2 !important;
+}
+
+#pmd-r2-reservation-kpis-v307
+.pmd-r2-kpi-v2401-option-copy small {
+  margin-top: 3px !important;
+
+  color: #74847f !important;
+
+  font-size: 10px !important;
+  font-weight: 650 !important;
+}
+
+#pmd-r2-reservation-kpis-v307
+.pmd-r2-kpi-v2401-check {
+  color: #08705d !important;
+
+  font-size: 17px !important;
+  font-weight: 900 !important;
+
+  text-align: center !important;
+}
+
+@media (min-width: 821px) and (max-width: 1180px) {
+  #pmd-r2-reservation-kpis-v307.pmd-r2-kpis-v2401 {
+    grid-template-columns:
+      repeat(2, minmax(0, 1fr)) !important;
+  }
+}
+
+@media (max-width: 820px) {
+  #pmd-r2-reservation-kpis-v307.pmd-r2-kpis-v2401 {
+    grid-template-columns: none !important;
+    grid-template-rows: 1fr !important;
+
+    grid-auto-flow: column !important;
+    grid-auto-columns:
+      calc((100% - 10px) / 2) !important;
+
+    gap: 10px !important;
+
+    padding: 2px 8px 10px 2px !important;
+
+    overflow-x: auto !important;
+    overflow-y: visible !important;
+
+    scroll-snap-type: x mandatory !important;
+
+    -webkit-overflow-scrolling: touch !important;
+  }
+
+  #pmd-r2-reservation-kpis-v307
+  .pmd-r2-kpi-v2401-card {
+    grid-template-columns:
+      36px minmax(0, 1fr) 28px !important;
+
+    gap: 7px !important;
+
+    min-height: 116px !important;
+    height: 116px !important;
+
+    padding: 10px !important;
+
+    border-radius: 15px !important;
+
+    scroll-snap-align: start !important;
+  }
+
+  #pmd-r2-reservation-kpis-v307
+  .pmd-r2-kpi-v2401-icon {
+    width: 36px !important;
+    height: 36px !important;
+
+    border-radius: 10px !important;
+  }
+
+  #pmd-r2-reservation-kpis-v307
+  .pmd-r2-kpi-v2401-icon svg {
+    width: 18px !important;
+    height: 18px !important;
+  }
+
+  #pmd-r2-reservation-kpis-v307
+  .pmd-r2-kpi-v2401-title {
+    font-size: 11px !important;
+  }
+
+  #pmd-r2-reservation-kpis-v307
+  .pmd-r2-kpi-v2401-value {
+    font-size: 24px !important;
+  }
+
+  #pmd-r2-reservation-kpis-v307
+  .pmd-r2-kpi-v2401-description {
+    margin-top: 4px !important;
+    font-size: 9px !important;
+  }
+
+  #pmd-r2-reservation-kpis-v307
+  .pmd-r2-kpi-v2401-menu {
+    position: fixed !important;
+
+    top: auto !important;
+    right: 12px !important;
+    bottom: 14px !important;
+    left: 12px !important;
+
+    width: auto !important;
+    max-height: min(70vh, 520px) !important;
+
+    border-radius: 18px !important;
+  }
+}
+
+/* PMD_CONFIGURABLE_RESERVATION_KPIS_V2401_END */
+
+/* ============================================================
+   PMD_KPI_AUTHORITY_COLORS_V2403
+   Sharp KPI colors + compact three-dot controls
+   ============================================================ */
+
+/*
+ * Restore the stronger visual language used by the previous
+ * reservation KPI cards while preserving readable dark text.
+ */
+
+#pmd-r2-reservation-kpis-v307
+.pmd-r2-kpi-v2401-card {
+  --kpi-bg: #21cb72 !important;
+  --kpi-border: #087b4b !important;
+  --kpi-accent: #062c22 !important;
+  --kpi-icon: rgba(255, 255, 255, .88) !important;
+
+  border-width: 2px !important;
+  box-shadow:
+    0 3px 0 rgba(4, 76, 48, .16) !important;
+}
+
+#pmd-r2-reservation-kpis-v307
+.pmd-r2-kpi-v2401-card[data-pmd-kpi-v2401-tone="orange"] {
+  --kpi-bg: #ff8811 !important;
+  --kpi-border: #a54d00 !important;
+  --kpi-accent: #351800 !important;
+  --kpi-icon: rgba(255, 255, 255, .88) !important;
+}
+
+#pmd-r2-reservation-kpis-v307
+.pmd-r2-kpi-v2401-card[data-pmd-kpi-v2401-tone="blue"] {
+  --kpi-bg: #35afd1 !important;
+  --kpi-border: #087493 !important;
+  --kpi-accent: #062b36 !important;
+  --kpi-icon: rgba(255, 255, 255, .88) !important;
+}
+
+#pmd-r2-reservation-kpis-v307
+.pmd-r2-kpi-v2401-card[data-pmd-kpi-v2401-tone="red"] {
+  --kpi-bg: #ff3954 !important;
+  --kpi-border: #ad102b !important;
+  --kpi-accent: #36040c !important;
+  --kpi-icon: rgba(255, 255, 255, .90) !important;
+}
+
+#pmd-r2-reservation-kpis-v307
+.pmd-r2-kpi-v2401-card[data-pmd-kpi-v2401-tone="purple"] {
+  --kpi-bg: #a66ce6 !important;
+  --kpi-border: #6530a0 !important;
+  --kpi-accent: #241036 !important;
+  --kpi-icon: rgba(255, 255, 255, .89) !important;
+}
+
+#pmd-r2-reservation-kpis-v307
+.pmd-r2-kpi-v2401-title,
+#pmd-r2-reservation-kpis-v307
+.pmd-r2-kpi-v2401-description {
+  color: var(--kpi-accent) !important;
+}
+
+#pmd-r2-reservation-kpis-v307
+.pmd-r2-kpi-v2401-value {
+  color: var(--kpi-accent) !important;
+}
+
+/*
+ * Match the small vertical menu control used by the reservation
+ * cards instead of the oversized original 34 × 40 control.
+ */
+
+#pmd-r2-reservation-kpis-v307
+.pmd-r2-kpi-v2401-card {
+  grid-template-columns:
+    52px minmax(0, 1fr) 22px !important;
+}
+
+#pmd-r2-reservation-kpis-v307
+.pmd-r2-kpi-v2401-more {
+  width: 22px !important;
+  min-width: 22px !important;
+  height: 30px !important;
+  min-height: 30px !important;
+
+  gap: 2px !important;
+
+  border-radius: 7px !important;
+}
+
+#pmd-r2-reservation-kpis-v307
+.pmd-r2-kpi-v2401-more span {
+  width: 3px !important;
+  height: 3px !important;
+}
+
+#pmd-r2-reservation-kpis-v307
+.pmd-r2-kpi-v2401-more:hover,
+#pmd-r2-reservation-kpis-v307
+.pmd-r2-kpi-v2401-more:focus-visible,
+#pmd-r2-reservation-kpis-v307
+.pmd-r2-kpi-v2401-more[aria-expanded="true"] {
+  background:
+    rgba(255, 255, 255, .34) !important;
+}
+
+@media (max-width: 820px) {
+  #pmd-r2-reservation-kpis-v307
+  .pmd-r2-kpi-v2401-card {
+    grid-template-columns:
+      36px minmax(0, 1fr) 20px !important;
+  }
+
+  #pmd-r2-reservation-kpis-v307
+  .pmd-r2-kpi-v2401-more {
+    width: 20px !important;
+    min-width: 20px !important;
+    height: 28px !important;
+    min-height: 28px !important;
+  }
+}
+
+/* ============================================================
+   PMD_KPI_STABLE_VALUES_UNIQUE_COLORS_V2404
+   Every visible KPI slot has one unique color
+   ============================================================ */
+
+/*
+ * Colors are assigned by visible position rather than KPI type.
+ * This guarantees that the four visible cards never repeat colors.
+ */
+
+/* Slot 1 — Green */
+#pmd-r2-reservation-kpis-v307
+.pmd-r2-kpi-v2401-card[data-pmd-kpi-v2401-slot="0"] {
+  --kpi-bg: #21cb72 !important;
+  --kpi-border: #087b4b !important;
+  --kpi-accent: #062c22 !important;
+  --kpi-icon: rgba(255, 255, 255, .90) !important;
+}
+
+/* Slot 2 — Orange */
+#pmd-r2-reservation-kpis-v307
+.pmd-r2-kpi-v2401-card[data-pmd-kpi-v2401-slot="1"] {
+  --kpi-bg: #ff8811 !important;
+  --kpi-border: #a54d00 !important;
+  --kpi-accent: #351800 !important;
+  --kpi-icon: rgba(255, 255, 255, .90) !important;
+}
+
+/* Slot 3 — Red */
+#pmd-r2-reservation-kpis-v307
+.pmd-r2-kpi-v2401-card[data-pmd-kpi-v2401-slot="2"] {
+  --kpi-bg: #ff3954 !important;
+  --kpi-border: #ad102b !important;
+  --kpi-accent: #36040c !important;
+  --kpi-icon: rgba(255, 255, 255, .92) !important;
+}
+
+/* Slot 4 — Purple */
+#pmd-r2-reservation-kpis-v307
+.pmd-r2-kpi-v2401-card[data-pmd-kpi-v2401-slot="3"] {
+  --kpi-bg: #a66ce6 !important;
+  --kpi-border: #6530a0 !important;
+  --kpi-accent: #241036 !important;
+  --kpi-icon: rgba(255, 255, 255, .91) !important;
+}
+
+/*
+ * Prevent old metric-tone rules from changing slot colors.
+ */
+#pmd-r2-reservation-kpis-v307
+.pmd-r2-kpi-v2401-card {
+  transition:
+    transform .14s ease,
+    box-shadow .14s ease !important;
+}
+
+#pmd-r2-reservation-kpis-v307
+.pmd-r2-kpi-v2401-card:hover {
+  transform: translateY(-1px) !important;
+}
+
+/* ============================================================
+   PMD_KPI_IDENTITY_MENU_AUDIT_V2405
+   KPI-owned colors, menu stacking and smooth outside close
+   ============================================================ */
+
+/*
+ * V2.4.0.4 temporarily assigned colors by visual slot.
+ * V2.4.0.5 restores KPI identity: each metric owns its color.
+ */
+
+/* Reservations Today — Jade green */
+#pmd-r2-reservation-kpis-v307
+.pmd-r2-kpi-v2401-card[data-pmd-kpi-v2401-key="reservations_today"] {
+  --kpi-bg: #21cb72 !important;
+  --kpi-border: #087b4b !important;
+  --kpi-accent: #062c22 !important;
+  --kpi-icon: rgba(255,255,255,.90) !important;
+}
+
+/* Upcoming Arrivals — Orange */
+#pmd-r2-reservation-kpis-v307
+.pmd-r2-kpi-v2401-card[data-pmd-kpi-v2401-key="upcoming_arrivals"] {
+  --kpi-bg: #ff8811 !important;
+  --kpi-border: #a54d00 !important;
+  --kpi-accent: #351800 !important;
+  --kpi-icon: rgba(255,255,255,.91) !important;
+}
+
+/* Pending Confirmations — Cyan blue */
+#pmd-r2-reservation-kpis-v307
+.pmd-r2-kpi-v2401-card[data-pmd-kpi-v2401-key="pending_confirmations"] {
+  --kpi-bg: #35afd0 !important;
+  --kpi-border: #08758f !important;
+  --kpi-accent: #062c38 !important;
+  --kpi-icon: rgba(255,255,255,.91) !important;
+}
+
+/* Available Tables — Emerald */
+#pmd-r2-reservation-kpis-v307
+.pmd-r2-kpi-v2401-card[data-pmd-kpi-v2401-key="available_tables"] {
+  --kpi-bg: #16b89a !important;
+  --kpi-border: #08715f !important;
+  --kpi-accent: #042f28 !important;
+  --kpi-icon: rgba(255,255,255,.91) !important;
+}
+
+/* No-show Rate — Coral */
+#pmd-r2-reservation-kpis-v307
+.pmd-r2-kpi-v2401-card[data-pmd-kpi-v2401-key="no_show_rate"] {
+  --kpi-bg: #ff596d !important;
+  --kpi-border: #ae1f35 !important;
+  --kpi-accent: #3c0711 !important;
+  --kpi-icon: rgba(255,255,255,.92) !important;
+}
+
+/* Cancellation Rate — Strong red */
+#pmd-r2-reservation-kpis-v307
+.pmd-r2-kpi-v2401-card[data-pmd-kpi-v2401-key="cancellation_rate"] {
+  --kpi-bg: #f6324f !important;
+  --kpi-border: #a70b27 !important;
+  --kpi-accent: #35030c !important;
+  --kpi-icon: rgba(255,255,255,.92) !important;
+}
+
+/* Table Occupancy — Royal blue */
+#pmd-r2-reservation-kpis-v307
+.pmd-r2-kpi-v2401-card[data-pmd-kpi-v2401-key="table_occupancy"] {
+  --kpi-bg: #4388e8 !important;
+  --kpi-border: #1855ad !important;
+  --kpi-accent: #071f46 !important;
+  --kpi-icon: rgba(255,255,255,.92) !important;
+}
+
+/* Average Party Size — Purple */
+#pmd-r2-reservation-kpis-v307
+.pmd-r2-kpi-v2401-card[data-pmd-kpi-v2401-key="average_party_size"] {
+  --kpi-bg: #a66ce6 !important;
+  --kpi-border: #6530a0 !important;
+  --kpi-accent: #241036 !important;
+  --kpi-icon: rgba(255,255,255,.91) !important;
+}
+
+/* Reservation Tables — Amber */
+#pmd-r2-reservation-kpis-v307
+.pmd-r2-kpi-v2401-card[data-pmd-kpi-v2401-key="reservation_tables"] {
+  --kpi-bg: #f4b63f !important;
+  --kpi-border: #a66d05 !important;
+  --kpi-accent: #3a2500 !important;
+  --kpi-icon: rgba(255,255,255,.91) !important;
+}
+
+/* Total Seats — Indigo */
+#pmd-r2-reservation-kpis-v307
+.pmd-r2-kpi-v2401-card[data-pmd-kpi-v2401-key="total_seats"] {
+  --kpi-bg: #7569df !important;
+  --kpi-border: #4437a7 !important;
+  --kpi-accent: #17113f !important;
+  --kpi-icon: rgba(255,255,255,.92) !important;
+}
+
+/* Average Turn Time — Copper */
+#pmd-r2-reservation-kpis-v307
+.pmd-r2-kpi-v2401-card[data-pmd-kpi-v2401-key="average_turn_time"] {
+  --kpi-bg: #d77c4a !important;
+  --kpi-border: #8d3f1b !important;
+  --kpi-accent: #351407 !important;
+  --kpi-icon: rgba(255,255,255,.91) !important;
+}
+
+/* Waiting List — Teal */
+#pmd-r2-reservation-kpis-v307
+.pmd-r2-kpi-v2401-card[data-pmd-kpi-v2401-key="waiting_list"] {
+  --kpi-bg: #2ba8a5 !important;
+  --kpi-border: #126d6b !important;
+  --kpi-accent: #062f2e !important;
+  --kpi-icon: rgba(255,255,255,.91) !important;
+}
+
+/* RevPASH — Magenta */
+#pmd-r2-reservation-kpis-v307
+.pmd-r2-kpi-v2401-card[data-pmd-kpi-v2401-key="revpash"] {
+  --kpi-bg: #d95bc6 !important;
+  --kpi-border: #91317f !important;
+  --kpi-accent: #360d30 !important;
+  --kpi-icon: rgba(255,255,255,.92) !important;
+}
+
+
+/* ============================================================
+   Dropdown options also show each KPI's identity color.
+   ============================================================ */
+
+.pmd-r2-kpi-v2401-option {
+  --pmd-kpi-option-color: #64748b;
+  position: relative !important;
+  overflow: hidden !important;
+  border-left:
+    5px solid
+    var(--pmd-kpi-option-color) !important;
+}
+
+.pmd-r2-kpi-v2401-option::before {
+  content: "" !important;
+  position: absolute !important;
+  inset: 0 !important;
+  pointer-events: none !important;
+  background:
+    linear-gradient(
+      90deg,
+      color-mix(
+        in srgb,
+        var(--pmd-kpi-option-color) 12%,
+        transparent
+      ),
+      transparent 45%
+    ) !important;
+}
+
+.pmd-r2-kpi-v2401-option
+.pmd-r2-kpi-v2401-option-icon {
+  color: var(--pmd-kpi-option-color) !important;
+  border-color:
+    color-mix(
+      in srgb,
+      var(--pmd-kpi-option-color) 38%,
+      #d8e3ec
+    ) !important;
+  background:
+    color-mix(
+      in srgb,
+      var(--pmd-kpi-option-color) 13%,
+      #ffffff
+    ) !important;
+}
+
+.pmd-r2-kpi-v2401-option[data-pmd-kpi-v2401-key="reservations_today"] {
+  --pmd-kpi-option-color: #0a9c59;
+}
+
+.pmd-r2-kpi-v2401-option[data-pmd-kpi-v2401-key="upcoming_arrivals"] {
+  --pmd-kpi-option-color: #e66e00;
+}
+
+.pmd-r2-kpi-v2401-option[data-pmd-kpi-v2401-key="pending_confirmations"] {
+  --pmd-kpi-option-color: #178cab;
+}
+
+.pmd-r2-kpi-v2401-option[data-pmd-kpi-v2401-key="available_tables"] {
+  --pmd-kpi-option-color: #098b75;
+}
+
+.pmd-r2-kpi-v2401-option[data-pmd-kpi-v2401-key="no_show_rate"] {
+  --pmd-kpi-option-color: #e74058;
+}
+
+.pmd-r2-kpi-v2401-option[data-pmd-kpi-v2401-key="cancellation_rate"] {
+  --pmd-kpi-option-color: #cb1736;
+}
+
+.pmd-r2-kpi-v2401-option[data-pmd-kpi-v2401-key="table_occupancy"] {
+  --pmd-kpi-option-color: #3474cf;
+}
+
+.pmd-r2-kpi-v2401-option[data-pmd-kpi-v2401-key="average_party_size"] {
+  --pmd-kpi-option-color: #8750c8;
+}
+
+.pmd-r2-kpi-v2401-option[data-pmd-kpi-v2401-key="reservation_tables"] {
+  --pmd-kpi-option-color: #d48c08;
+}
+
+.pmd-r2-kpi-v2401-option[data-pmd-kpi-v2401-key="total_seats"] {
+  --pmd-kpi-option-color: #6154c8;
+}
+
+.pmd-r2-kpi-v2401-option[data-pmd-kpi-v2401-key="average_turn_time"] {
+  --pmd-kpi-option-color: #bd6331;
+}
+
+.pmd-r2-kpi-v2401-option[data-pmd-kpi-v2401-key="waiting_list"] {
+  --pmd-kpi-option-color: #168987;
+}
+
+.pmd-r2-kpi-v2401-option[data-pmd-kpi-v2401-key="revpash"] {
+  --pmd-kpi-option-color: #b83ca5;
+}
+
+
+/* ============================================================
+   Correct stacking: menu over page, date button behind.
+   ============================================================ */
+
+#pmd-r2-reservation-kpis-v307 {
+  position: relative !important;
+  z-index: 120 !important;
+  overflow: visible !important;
+}
+
+#pmd-r2-reservation-kpis-v307
+.pmd-r2-kpi-v2401-card {
+  position: relative !important;
+  z-index: 1 !important;
+  overflow: visible !important;
+}
+
+#pmd-r2-reservation-kpis-v307
+.pmd-r2-kpi-v2401-card.is-menu-open,
+#pmd-r2-reservation-kpis-v307
+.pmd-r2-kpi-v2401-card:has(
+  .pmd-r2-kpi-v2401-menu:not([hidden])
+) {
+  z-index: 10040 !important;
+}
+
+#pmd-r2-reservation-kpis-v307
+.pmd-r2-kpi-v2401-menu {
+  z-index: 10050 !important;
+  opacity: 1 !important;
+  transform:
+    translateY(0)
+    scale(1) !important;
+  transform-origin: top right !important;
+  transition:
+    opacity .13s ease,
+    transform .13s ease,
+    visibility .13s ease !important;
+  will-change:
+    opacity,
+    transform !important;
+}
+
+#pmd-r2-reservation-kpis-v307
+.pmd-r2-kpi-v2401-menu.is-closing {
+  opacity: 0 !important;
+  transform:
+    translateY(-5px)
+    scale(.985) !important;
+  pointer-events: none !important;
+}
+
+#pmd-r2-date-button-v430,
+#pmd-r2-date-panel-v318 {
+  z-index: 50 !important;
+}
+
+/*
+ * The dropdown remains above the date-range button while open.
+ */
+html:has(
+  #pmd-r2-reservation-kpis-v307
+  .pmd-r2-kpi-v2401-menu:not([hidden])
+)
+#pmd-r2-date-button-v430 {
+  pointer-events: none !important;
+}
+
+
+/* ============================================================
+   Mobile menu width.
+   ============================================================ */
+
+@media (max-width: 760px) {
+  #pmd-r2-reservation-kpis-v307
+  .pmd-r2-kpi-v2401-menu {
+    position: fixed !important;
+    left: 12px !important;
+    right: 12px !important;
+    top: 92px !important;
+    width: auto !important;
+    max-width: none !important;
+    max-height: calc(100vh - 116px) !important;
+    overflow-y: auto !important;
+    z-index: 10050 !important;
+  }
+}
+
+/* ============================================================
+   PMD_KPI_MENU_OUTSIDE_STACK_V2406
+   Date control stays behind active KPI dropdown
+   ============================================================ */
+
+/*
+ * Create a high, isolated layer for KPI cards and their menus.
+ */
+#pmd-r2-reservation-kpis-v307 {
+  isolation: isolate !important;
+  position: relative !important;
+  z-index: 2147483000 !important;
+  overflow: visible !important;
+}
+
+#pmd-r2-reservation-kpis-v307
+.pmd-r2-kpi-v2401-card.is-menu-open,
+#pmd-r2-reservation-kpis-v307
+.pmd-r2-kpi-v2401-card:has(
+  .pmd-r2-kpi-v2401-menu:not([hidden])
+) {
+  isolation: isolate !important;
+  z-index: 2147483100 !important;
+}
+
+#pmd-r2-reservation-kpis-v307
+.pmd-r2-kpi-v2401-menu:not([hidden]) {
+  position: absolute !important;
+  z-index: 2147483200 !important;
+}
+
+
+/*
+ * The date-range control belongs to another stacking context.
+ * Merely increasing the menu z-index cannot reliably place it
+ * above that control. While a KPI menu is open or closing,
+ * suppress the date button so it cannot cover menu options.
+ */
+html[data-pmd-kpi-menu-open="true"]
+#pmd-r2-date-button-v430 {
+  opacity: 0 !important;
+  visibility: hidden !important;
+  pointer-events: none !important;
+  transform: translateY(3px) !important;
+  transition:
+    opacity .12s ease,
+    visibility 0s linear .12s,
+    transform .12s ease !important;
+}
+
+html:not([data-pmd-kpi-menu-open="true"])
+#pmd-r2-date-button-v430 {
+  transition:
+    opacity .14s ease,
+    visibility 0s linear 0s,
+    transform .14s ease !important;
+}
+
+
+/*
+ * Also keep the associated date panel closed and behind while
+ * selecting a KPI.
+ */
+html[data-pmd-kpi-menu-open="true"]
+#pmd-r2-date-panel-v318,
+html[data-pmd-kpi-menu-open="true"]
+.pmd-r2-date-filter-v317 {
+  opacity: 0 !important;
+  visibility: hidden !important;
+  pointer-events: none !important;
+  z-index: -1 !important;
+}
+
+
+/*
+ * Protect the KPI menu from reservation-card and floor layers.
+ */
+html[data-pmd-kpi-menu-open="true"]
+#pmd-r2-reservation-kpis-v307 {
+  pointer-events: auto !important;
+}
+
+html[data-pmd-kpi-menu-open="true"]
+#pmd-r2-reservation-kpis-v307
+.pmd-r2-kpi-v2401-menu {
+  pointer-events: auto !important;
+}
+
+
+/*
+ * Smooth close remains visible for the complete 135ms animation.
+ */
+#pmd-r2-reservation-kpis-v307
+.pmd-r2-kpi-v2401-menu.is-closing {
+  visibility: visible !important;
+  opacity: 0 !important;
+  transform:
+    translateY(-5px)
+    scale(.985) !important;
+  pointer-events: none !important;
+}
+
+
+/* Mobile authority */
+@media (max-width: 760px) {
+  #pmd-r2-reservation-kpis-v307 {
+    z-index: 2147483000 !important;
+  }
+
+  #pmd-r2-reservation-kpis-v307
+  .pmd-r2-kpi-v2401-menu:not([hidden]) {
+    position: fixed !important;
+    z-index: 2147483200 !important;
+  }
+}
+
+/* ============================================================
+   PMD_KPI_MENU_DATE_OVERLAY_V2407
+   Final date-button and stacking-context authority
+   ============================================================ */
+
+/*
+ * Keep ordinary date controls below the KPI layer.
+ */
+#pmd-r2-date-button-v430 {
+  position: relative !important;
+  z-index: 2 !important;
+}
+
+#pmd-r2-date-panel-v318,
+.pmd-r2-date-filter-v317 {
+  z-index: 1000 !important;
+}
+
+
+/*
+ * KPI section and menus always live above page controls.
+ */
+#pmd-r2-reservation-kpis-v307 {
+  position: relative !important;
+  isolation: isolate !important;
+  overflow: visible !important;
+  z-index: 1000000 !important;
+}
+
+#pmd-r2-reservation-kpis-v307
+.pmd-r2-kpi-v2401-card,
+#pmd-r2-reservation-kpis-v307
+[data-pmd-kpi-card] {
+  position: relative !important;
+  overflow: visible !important;
+}
+
+#pmd-r2-reservation-kpis-v307
+.pmd-r2-kpi-v2401-menu,
+#pmd-r2-reservation-kpis-v307
+.pmd-r2-kpi-menu,
+#pmd-r2-reservation-kpis-v307
+[data-pmd-kpi-menu],
+#pmd-r2-reservation-kpis-v307
+[role="menu"],
+#pmd-r2-reservation-kpis-v307
+[role="listbox"] {
+  z-index: 2147483640 !important;
+}
+
+
+/*
+ * Primary JavaScript state.
+ */
+html[data-pmd-kpi-dropdown-active="true"]
+#pmd-r2-date-button-v430,
+body[data-pmd-kpi-dropdown-active="true"]
+#pmd-r2-date-button-v430 {
+  opacity: 0 !important;
+  visibility: hidden !important;
+  pointer-events: none !important;
+  transform: translateY(5px) scale(.98) !important;
+  z-index: -1 !important;
+  transition:
+    opacity .1s ease,
+    transform .1s ease,
+    visibility 0s linear .1s !important;
+}
+
+html[data-pmd-kpi-dropdown-active="true"]
+#pmd-r2-date-panel-v318,
+html[data-pmd-kpi-dropdown-active="true"]
+.pmd-r2-date-filter-v317,
+body[data-pmd-kpi-dropdown-active="true"]
+#pmd-r2-date-panel-v318,
+body[data-pmd-kpi-dropdown-active="true"]
+.pmd-r2-date-filter-v317 {
+  display: none !important;
+  opacity: 0 !important;
+  visibility: hidden !important;
+  pointer-events: none !important;
+  z-index: -1 !important;
+}
+
+
+/*
+ * CSS fallback independent of JavaScript.
+ *
+ * Safari supports :has(), so an expanded KPI trigger or visible
+ * KPI menu also suppresses the date control.
+ */
+html:has(
+  #pmd-r2-reservation-kpis-v307
+  [aria-expanded="true"]
+)
+#pmd-r2-date-button-v430,
+
+html:has(
+  #pmd-r2-reservation-kpis-v307
+  .pmd-r2-kpi-v2401-menu:not([hidden])
+)
+#pmd-r2-date-button-v430,
+
+html:has(
+  #pmd-r2-reservation-kpis-v307
+  .pmd-r2-kpi-menu:not([hidden])
+)
+#pmd-r2-date-button-v430,
+
+html:has(
+  #pmd-r2-reservation-kpis-v307
+  [role="menu"]:not([hidden])
+)
+#pmd-r2-date-button-v430,
+
+html:has(
+  #pmd-r2-reservation-kpis-v307
+  [role="listbox"]:not([hidden])
+)
+#pmd-r2-date-button-v430 {
+  opacity: 0 !important;
+  visibility: hidden !important;
+  pointer-events: none !important;
+  z-index: -1 !important;
+}
+
+
+/*
+ * Also suppress wrappers that may create their own stacking
+ * context around the date button.
+ */
+html[data-pmd-kpi-dropdown-active="true"]
+#pmd-r2-date-button-v430,
+html[data-pmd-kpi-dropdown-active="true"]
+#pmd-r2-date-button-v430 * {
+  pointer-events: none !important;
+}
+
+
+/*
+ * The menu must never be clipped by KPI grid/card containers.
+ */
+#pmd-r2-reservation-kpis-v307,
+#pmd-r2-reservation-kpis-v307 > *,
+#pmd-r2-reservation-kpis-v307
+.pmd-r2-kpi-v2401-card,
+#pmd-r2-reservation-kpis-v307
+.pmd-r2-kpi-v2401-card > * {
+  overflow: visible !important;
+}
+
+
+/* Mobile */
+@media (max-width: 760px) {
+  #pmd-r2-reservation-kpis-v307 {
+    isolation: auto !important;
+    z-index: 2147483000 !important;
+  }
+
+  #pmd-r2-reservation-kpis-v307
+  .pmd-r2-kpi-v2401-menu,
+  #pmd-r2-reservation-kpis-v307
+  .pmd-r2-kpi-menu,
+  #pmd-r2-reservation-kpis-v307
+  [data-pmd-kpi-menu],
+  #pmd-r2-reservation-kpis-v307
+  [role="menu"],
+  #pmd-r2-reservation-kpis-v307
+  [role="listbox"] {
+    z-index: 2147483640 !important;
+  }
+}
+
+/* ============================================================
+   PMD_KPI_REAL_STACKING_V2408
+   Keep Date Range visible, but physically below KPI dropdown
+   ============================================================ */
+
+/*
+ * Undo the incorrect V2.4.0.7 disappearing behavior.
+ * The Date Range button must always remain visible.
+ */
+html[data-pmd-kpi-dropdown-active="true"]
+#pmd-r2-date-button-v430,
+body[data-pmd-kpi-dropdown-active="true"]
+#pmd-r2-date-button-v430,
+html:has(
+  #pmd-r2-reservation-kpis-v307
+  [aria-expanded="true"]
+)
+#pmd-r2-date-button-v430,
+html:has(
+  #pmd-r2-reservation-kpis-v307
+  .pmd-r2-kpi-v2401-menu:not([hidden])
+)
+#pmd-r2-date-button-v430,
+html:has(
+  #pmd-r2-reservation-kpis-v307
+  .pmd-r2-kpi-menu:not([hidden])
+)
+#pmd-r2-date-button-v430,
+html:has(
+  #pmd-r2-reservation-kpis-v307
+  [role="menu"]:not([hidden])
+)
+#pmd-r2-date-button-v430,
+html:has(
+  #pmd-r2-reservation-kpis-v307
+  [role="listbox"]:not([hidden])
+)
+#pmd-r2-date-button-v430 {
+  display: inline-flex !important;
+  opacity: 1 !important;
+  visibility: visible !important;
+  pointer-events: auto !important;
+  transform: none !important;
+  transition:
+    border-color .16s ease,
+    background-color .16s ease,
+    box-shadow .16s ease !important;
+}
+
+
+/*
+ * Date Range stays in its normal layer.
+ */
+#pmd-r2-date-button-v430 {
+  position: relative !important;
+  z-index: 1 !important;
+}
+
+
+/*
+ * Lower every direct wrapper that owns the Date Range button.
+ * This prevents a parent stacking context from rising above
+ * the KPI dropdown even when the child has a low z-index.
+ */
+body *:has(> #pmd-r2-date-button-v430) {
+  position: relative !important;
+  z-index: 1 !important;
+  isolation: auto !important;
+}
+
+
+/*
+ * The whole KPI area receives a higher stacking layer.
+ */
+#pmd-r2-reservation-kpis-v307 {
+  position: relative !important;
+  z-index: 100000 !important;
+  isolation: isolate !important;
+  overflow: visible !important;
+}
+
+#pmd-r2-reservation-kpis-v307 > *,
+#pmd-r2-reservation-kpis-v307
+.pmd-r2-kpi-v2401-card,
+#pmd-r2-reservation-kpis-v307
+[data-pmd-kpi-card] {
+  position: relative !important;
+  overflow: visible !important;
+}
+
+
+/*
+ * Every possible KPI dropdown implementation stays above
+ * the Date Range button and reservation cards.
+ */
+#pmd-r2-reservation-kpis-v307
+.pmd-r2-kpi-v2401-menu,
+#pmd-r2-reservation-kpis-v307
+.pmd-r2-kpi-menu,
+#pmd-r2-reservation-kpis-v307
+[data-pmd-kpi-menu],
+#pmd-r2-reservation-kpis-v307
+[role="menu"],
+#pmd-r2-reservation-kpis-v307
+[role="listbox"] {
+  position: absolute !important;
+  z-index: 2147483646 !important;
+  isolation: isolate !important;
+}
+
+
+/*
+ * When the menu is open, raise its own KPI card as well.
+ */
+#pmd-r2-reservation-kpis-v307
+.pmd-r2-kpi-v2401-card:has(
+  [aria-expanded="true"]
+),
+#pmd-r2-reservation-kpis-v307
+[data-pmd-kpi-card]:has(
+  [aria-expanded="true"]
+),
+#pmd-r2-reservation-kpis-v307
+.pmd-r2-kpi-v2401-card:has(
+  .pmd-r2-kpi-v2401-menu:not([hidden])
+),
+#pmd-r2-reservation-kpis-v307
+[data-pmd-kpi-card]:has(
+  [role="menu"]:not([hidden])
+) {
+  z-index: 2147483600 !important;
+}
+
+
+/*
+ * Do not hide the date popover globally.
+ * Only the KPI dropdown must visually cover the Date Range
+ * button when their areas intersect.
+ */
+html[data-pmd-kpi-dropdown-active="true"]
+#pmd-r2-date-panel-v318,
+html[data-pmd-kpi-dropdown-active="true"]
+.pmd-r2-date-filter-v317,
+body[data-pmd-kpi-dropdown-active="true"]
+#pmd-r2-date-panel-v318,
+body[data-pmd-kpi-dropdown-active="true"]
+.pmd-r2-date-filter-v317 {
+  z-index: 1000 !important;
+}
+
+
+/*
+ * Mobile uses the same real stacking behavior.
+ */
+@media (max-width: 760px) {
+  #pmd-r2-reservation-kpis-v307 {
+    z-index: 100000 !important;
+    overflow: visible !important;
+  }
+
+  #pmd-r2-reservation-kpis-v307
+  .pmd-r2-kpi-v2401-menu,
+  #pmd-r2-reservation-kpis-v307
+  .pmd-r2-kpi-menu,
+  #pmd-r2-reservation-kpis-v307
+  [data-pmd-kpi-menu],
+  #pmd-r2-reservation-kpis-v307
+  [role="menu"],
+  #pmd-r2-reservation-kpis-v307
+  [role="listbox"] {
+    z-index: 2147483646 !important;
+  }
+
+  #pmd-r2-date-button-v430 {
+    display: inline-flex !important;
+    opacity: 1 !important;
+    visibility: visible !important;
+    pointer-events: auto !important;
+    transform: none !important;
+    z-index: 1 !important;
+  }
+}
+
+/* ============================================================
+   PMD_KPI_MENU_SCROLL_V2409
+   Keep all KPI options inside one scrollable dropdown card
+   ============================================================ */
+
+/*
+ * The dropdown itself owns the scroll.
+ * Items are no longer allowed to escape below the white card.
+ */
+#pmd-r2-reservation-kpis-v307
+.pmd-r2-kpi-v2401-menu,
+#pmd-r2-reservation-kpis-v307
+.pmd-r2-kpi-menu,
+#pmd-r2-reservation-kpis-v307
+[data-pmd-kpi-menu],
+#pmd-r2-reservation-kpis-v307
+[role="menu"],
+#pmd-r2-reservation-kpis-v307
+[role="listbox"] {
+  width: min(340px, calc(100vw - 32px)) !important;
+  height: auto !important;
+  min-height: 0 !important;
+  max-height: min(570px, calc(100vh - 150px)) !important;
+
+  overflow-x: hidden !important;
+  overflow-y: auto !important;
+  overscroll-behavior: contain !important;
+  scrollbar-gutter: stable !important;
+
+  padding: 10px !important;
+  border-radius: 18px !important;
+  background: #ffffff !important;
+  box-sizing: border-box !important;
+
+  contain: paint !important;
+  -webkit-overflow-scrolling: touch !important;
+}
+
+
+/*
+ * Remove older layout rules that can place options outside
+ * the normal document flow.
+ */
+#pmd-r2-reservation-kpis-v307
+.pmd-r2-kpi-v2401-menu > *,
+#pmd-r2-reservation-kpis-v307
+.pmd-r2-kpi-menu > *,
+#pmd-r2-reservation-kpis-v307
+[data-pmd-kpi-menu] > *,
+#pmd-r2-reservation-kpis-v307
+[role="menu"] > *,
+#pmd-r2-reservation-kpis-v307
+[role="listbox"] > * {
+  position: relative !important;
+  inset: auto !important;
+  top: auto !important;
+  right: auto !important;
+  bottom: auto !important;
+  left: auto !important;
+
+  width: 100% !important;
+  max-width: 100% !important;
+  flex: 0 0 auto !important;
+  box-sizing: border-box !important;
+}
+
+
+/*
+ * Maintain clean spacing between every KPI option.
+ */
+#pmd-r2-reservation-kpis-v307
+.pmd-r2-kpi-v2401-menu > * + *,
+#pmd-r2-reservation-kpis-v307
+.pmd-r2-kpi-menu > * + *,
+#pmd-r2-reservation-kpis-v307
+[data-pmd-kpi-menu] > * + *,
+#pmd-r2-reservation-kpis-v307
+[role="menu"] > * + *,
+#pmd-r2-reservation-kpis-v307
+[role="listbox"] > * + * {
+  margin-top: 7px !important;
+}
+
+
+/*
+ * The individual option cards stay fully inside the menu.
+ */
+#pmd-r2-reservation-kpis-v307
+.pmd-r2-kpi-v2401-menu button,
+#pmd-r2-reservation-kpis-v307
+.pmd-r2-kpi-menu button,
+#pmd-r2-reservation-kpis-v307
+[data-pmd-kpi-menu] button,
+#pmd-r2-reservation-kpis-v307
+[role="menu"] button,
+#pmd-r2-reservation-kpis-v307
+[role="listbox"] button,
+#pmd-r2-reservation-kpis-v307
+[role="option"] {
+  position: relative !important;
+  width: 100% !important;
+  min-width: 0 !important;
+  max-width: 100% !important;
+  margin: 0 !important;
+  box-sizing: border-box !important;
+}
+
+
+/*
+ * Cleaner native scrollbar.
+ */
+#pmd-r2-reservation-kpis-v307
+.pmd-r2-kpi-v2401-menu::-webkit-scrollbar,
+#pmd-r2-reservation-kpis-v307
+.pmd-r2-kpi-menu::-webkit-scrollbar,
+#pmd-r2-reservation-kpis-v307
+[data-pmd-kpi-menu]::-webkit-scrollbar,
+#pmd-r2-reservation-kpis-v307
+[role="menu"]::-webkit-scrollbar,
+#pmd-r2-reservation-kpis-v307
+[role="listbox"]::-webkit-scrollbar {
+  width: 7px !important;
+}
+
+#pmd-r2-reservation-kpis-v307
+.pmd-r2-kpi-v2401-menu::-webkit-scrollbar-thumb,
+#pmd-r2-reservation-kpis-v307
+.pmd-r2-kpi-menu::-webkit-scrollbar-thumb,
+#pmd-r2-reservation-kpis-v307
+[data-pmd-kpi-menu]::-webkit-scrollbar-thumb,
+#pmd-r2-reservation-kpis-v307
+[role="menu"]::-webkit-scrollbar-thumb,
+#pmd-r2-reservation-kpis-v307
+[role="listbox"]::-webkit-scrollbar-thumb {
+  background: rgba(16, 47, 43, .24) !important;
+  border-radius: 999px !important;
+}
+
+#pmd-r2-reservation-kpis-v307
+.pmd-r2-kpi-v2401-menu::-webkit-scrollbar-track,
+#pmd-r2-reservation-kpis-v307
+.pmd-r2-kpi-menu::-webkit-scrollbar-track,
+#pmd-r2-reservation-kpis-v307
+[data-pmd-kpi-menu]::-webkit-scrollbar-track,
+#pmd-r2-reservation-kpis-v307
+[role="menu"]::-webkit-scrollbar-track,
+#pmd-r2-reservation-kpis-v307
+[role="listbox"]::-webkit-scrollbar-track {
+  background: transparent !important;
+}
+
+
+/*
+ * Mobile: shorter menu so the user can always reach the
+ * first and last options without covering the full screen.
+ */
+@media (max-width: 760px) {
+  #pmd-r2-reservation-kpis-v307
+  .pmd-r2-kpi-v2401-menu,
+  #pmd-r2-reservation-kpis-v307
+  .pmd-r2-kpi-menu,
+  #pmd-r2-reservation-kpis-v307
+  [data-pmd-kpi-menu],
+  #pmd-r2-reservation-kpis-v307
+  [role="menu"],
+  #pmd-r2-reservation-kpis-v307
+  [role="listbox"] {
+    width: min(360px, calc(100vw - 20px)) !important;
+    max-height: calc(100vh - 120px) !important;
+    padding: 9px !important;
+    border-radius: 16px !important;
+  }
+}
+
+@media (max-height: 700px) {
+  #pmd-r2-reservation-kpis-v307
+  .pmd-r2-kpi-v2401-menu,
+  #pmd-r2-reservation-kpis-v307
+  .pmd-r2-kpi-menu,
+  #pmd-r2-reservation-kpis-v307
+  [data-pmd-kpi-menu],
+  #pmd-r2-reservation-kpis-v307
+  [role="menu"],
+  #pmd-r2-reservation-kpis-v307
+  [role="listbox"] {
+    max-height: calc(100vh - 90px) !important;
+  }
+}

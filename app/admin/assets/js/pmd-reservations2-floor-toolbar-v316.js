@@ -184,9 +184,109 @@ return ids.length
 ?ids.map(function(id){return'Table '+id}).join(', ')
 :'Unassigned'
 }
+/*
+ * PMD_VISIBLE_TABLE_NUMBERS_V232
+ *
+ * Physical table_id values such as 342 and 344 are required for
+ * persistence and Floor matching, but must never be printed as the
+ * restaurant-facing table number.
+ *
+ * Card and Hour rendering therefore use table_no/table_number first.
+ * When a populated tables[] relationship exists, top-level legacy
+ * fields are intentionally ignored to prevent duplicate values such
+ * as: 17 + 19 + 342 + 344.
+ */
+function visibleTableNumbers(item){
+var numbers=[];
+
+function push(value){
+if(value===undefined||value===null)return;
+
+var source=clean(value);
+if(!source)return;
+
+var match=source.match(/\d+/);
+if(!match)return;
+
+var number=Number(match[0]);
+if(!Number.isFinite(number)||number<=0)return;
+
+var normalized=String(number);
+
+if(numbers.indexOf(normalized)<0){
+numbers.push(normalized);
+}
+}
+
+function tableObjectNumber(table){
+if(!table||typeof table!=='object'){
+push(table);
+return;
+}
+
+var direct=
+table.table_no||
+table.table_number||
+table.tableNumber||
+table.number;
+
+if(direct!==undefined&&direct!==null&&clean(direct)){
+push(direct);
+return;
+}
+
+/*
+ * table_name values such as "Table 17" or "Tisch 17"
+ * are safe display fallbacks. Physical table_id is excluded.
+ */
+push(
+table.table_name||
+table.tableName||
+table.name
+);
+}
+
+if(!item||typeof item!=='object'){
+return numbers;
+}
+
+/*
+ * The loaded relationship is authoritative for multi-table
+ * reservations. Do not combine it with legacy top-level fields.
+ */
+if(Array.isArray(item.tables)&&item.tables.length){
+item.tables.forEach(tableObjectNumber);
+return numbers;
+}
+
+[
+item.table_no,
+item.table_number,
+item.tableNumber,
+item.table_name,
+item.tableName,
+item.table
+].forEach(push);
+
+/*
+ * Legacy ti_reservations.table_id stores the visible table number
+ * for older/single-table reservations. Use it only when no richer
+ * display field or relationship was provided.
+ */
+if(!numbers.length){
+push(item.table_id);
+push(item.tableId);
+}
+
+return numbers;
+}
+
 function tableNumber(i){
-var ids=tableIds(i);
-return ids.length?ids[0]:'—'
+var numbers=visibleTableNumbers(i);
+
+return numbers.length
+?numbers.join(' + ')
+:'—'
 }
 function guestName(i){return clean(i.customer_name||[i.first_name,i.last_name].filter(Boolean).join(' ')||i.guest_name||'Guest')}
 function guestCount(i){return Number(i.guest_num||i.guests||i.party_size||i.covers||0)||0}
