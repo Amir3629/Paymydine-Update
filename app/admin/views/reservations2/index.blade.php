@@ -1089,6 +1089,7 @@ body.page > .page-wrapper {
 <script id="pmd-r2-toolbar-above-floor-v29-2-script">
 (function () {
   'use strict';
+  return; // Superseded by the native Floor/V316 authority.
 
   return; // Disabled: V316 remains inside the native Floor.
 
@@ -1423,6 +1424,7 @@ body {
 <script>
 (function () {
     'use strict';
+  return; // Superseded by the native Floor/V316 authority.
 
     return; // Disabled: native Floor engine owns One Row geometry.
 
@@ -1966,6 +1968,7 @@ body {
 <script id="pmd-r2-proven-body-toolbar-v34-1-script">
 (function () {
   'use strict';
+  return; // Superseded by the native Floor/V316 authority.
 
   return; // Disabled: body-level proxy toolbar is obsolete.
 
@@ -2556,6 +2559,7 @@ body {
 <script id="pmd-r2-v34-3-real-position-script">
 (function () {
     'use strict';
+  return; // Superseded by the native Floor/V316 authority.
 
     return; // Disabled: body-toolbar positioning is obsolete.
 

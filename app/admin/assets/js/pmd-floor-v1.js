@@ -5246,34 +5246,43 @@ function saveLayout() {
       var cursorLeft = horizontalPadding;
       var maximumHeight = 0;
 
+      /*
+       * One Row is a canonical presentation, not a scaled copy of Full
+       * Floor. Never measure transformed DOM rectangles here: a previous
+       * Full Floor zoom is included in getBoundingClientRect(), which made
+       * every later One Row opening progressively narrower or wider.
+       */
+      state.rowScale = 1;
+      canvas.style.setProperty('transform', 'scale(1)', 'important');
+      canvas.style.setProperty('transform-origin', '0 0', 'important');
+
       cards.forEach(
         function (node) {
-          var rect =
-            node.getBoundingClientRect();
-
           var width =
-            Math.round(
-              rect.width ||
-              (
-                node.classList.contains(
-                  'is-merged-card'
-                )
-                  ? 132
-                  : 108
-              )
-            );
+            node.classList.contains(
+              'is-merged-card'
+            )
+              ? STRIP_MERGED_WIDTH
+              : TABLE_WIDTH;
 
           var height =
-            Math.round(
-              rect.height ||
-              (
-                node.classList.contains(
-                  'is-merged-card'
-                )
-                  ? 104
-                  : 88
-              )
-            );
+            node.classList.contains(
+              'is-merged-card'
+            )
+              ? STRIP_MERGED_HEIGHT
+              : TABLE_HEIGHT;
+
+          node.style.setProperty(
+            'width',
+            width + 'px',
+            'important'
+          );
+
+          node.style.setProperty(
+            'height',
+            height + 'px',
+            'important'
+          );
 
           /*
            * Convert the desired top-left strip position into
