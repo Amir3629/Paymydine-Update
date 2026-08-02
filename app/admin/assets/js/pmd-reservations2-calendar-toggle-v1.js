@@ -14,7 +14,7 @@
   /* PMD Reservations Day View V7 */
 
   var route = String(location.pathname || '').replace(/\/+$/, '');
-  if (route !== '/admin/reservations2' && route !== '/admin/reservations') return;
+  if (route !== '/admin/reservations2' && route !== '/admin/reservations' && route !== '/admin/dashboard2') return;
 
   var VERSION = '2.0.0';
   var PAGE_ID = 'pmd-reservations2';

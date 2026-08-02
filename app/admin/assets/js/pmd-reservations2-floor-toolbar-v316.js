@@ -1,6 +1,6 @@
 (function(){
 'use strict';
-var route=String(location.pathname||'').replace(/\/+$/,'');if(route!=='/admin/reservations2'&&route!=='/admin/reservations')return;
+var route=String(location.pathname||'').replace(/\/+$/,'');if(route!=='/admin/reservations2'&&route!=='/admin/reservations'&&route!=='/admin/dashboard2')return;
 var VERSION='4.4.0',FLOOR_ID='pmd-r2-shared-floor-canvas-v310',TOOLBAR_ID='pmd-r2-floor-toolbar-v316',FILTER_ID='pmd-r2-date-filter-v317',DATE_BTN_ID='pmd-r2-date-button-v430',SECTION_ID='pmd-r2-reservation-cards-v320',GRID_ID='pmd-r2-reservation-grid-v320',STYLE_ID='pmd-r2-waiter-cards-v430-style',STORAGE_KEY='pmd.reservations2.dateRange.v2';
 var rendering=false,scheduled=false,observer=null,eventsBound=false;
 var state={start:startOfDay(new Date()),end:endOfDay(new Date()),tableId:null,tableName:null,allDates:true};

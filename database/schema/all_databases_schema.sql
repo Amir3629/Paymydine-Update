@@ -1,5 +1,5 @@
 -- PayMyDine schema-only dump
--- Generated UTC: Sun Aug  2 10:49:59 UTC 2026
+-- Generated UTC: Sun Aug  2 15:42:14 UTC 2026
 -- Source server: vps-252f1bc4
 -- Data rows are NOT included
 
@@ -3565,7 +3565,7 @@ CREATE TABLE `ti_working_hours` (
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2026-08-02 10:49:59
+-- Dump completed on 2026-08-02 15:42:14
 
 -- ============================================================
 -- DATABASE: mimoza
@@ -6687,7 +6687,7 @@ CREATE TABLE `ti_working_hours` (
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2026-08-02 10:50:00
+-- Dump completed on 2026-08-02 15:42:14
 
 -- ============================================================
 -- DATABASE: rosana
@@ -9031,7 +9031,7 @@ CREATE TABLE `ti_working_hours` (
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2026-08-02 10:50:00
+-- Dump completed on 2026-08-02 15:42:15
 
 -- ============================================================
 -- DATABASE: persian
@@ -10961,7 +10961,7 @@ CREATE TABLE `ti_working_hours` (
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2026-08-02 10:50:00
+-- Dump completed on 2026-08-02 15:42:15
 
 -- ============================================================
 -- DATABASE: newtenantdb
@@ -12888,4 +12888,4 @@ CREATE TABLE `ti_working_hours` (
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2026-08-02 10:50:00
+-- Dump completed on 2026-08-02 15:42:15

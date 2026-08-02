@@ -7,7 +7,8 @@
 
   if (
     route !== '/admin/reservations' &&
-    route !== '/admin/reservations2'
+    route !== '/admin/reservations2' &&
+    route !== '/admin/dashboard2'
   ) {
     return;
   }
