@@ -2,214 +2,115 @@
 
 namespace Admin\Controllers;
 
+use Admin\Models\Menus_model;
+use Admin\Models\Orders_model;
+use Admin\Models\Tables_model;
 use Carbon\Carbon;
+use Illuminate\Database\Query\Builder;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 
 /**
- * Dashboard2 uses the final Reservations2 page and floor DOM.
- * This controller owns only the eight real owner KPI data sources.
+ * Aggregate-only data authority for the Dashboard2 owner KPIs.
+ *
+ * Orders are location-owned rows. Menus and tables use PayMyDine's
+ * Locationable relation, so their model scopes must be used instead of an
+ * assumed location_id column.
  */
 class Dashboard2 extends Reservations2
 {
+    private const VERSION = '3.0.0';
+
     public function index()
     {
+        if ((string)request()->query('pmd_analytics') === '1') {
+            return response()->json($this->analyticsPayload((string)request()->query('period', 'today')));
+        }
+
         if ((string)request()->query('pmd_kpis') === '1') {
-            return response()->json([
-                'ok' => true,
-                'generated_at' => Carbon::now()->toIso8601String(),
-                'metrics' => $this->buildDashboard2Kpis(),
-            ]);
+            return response()->json($this->kpiPayload());
         }
 
         parent::index();
-
-        $this->vars['pmdDashboard2Kpis'] = $this->buildDashboard2Kpis();
+        // The browser performs exactly one aggregate request. Do not execute
+        // the same eight queries again while rendering the HTML shell.
+        $this->vars['pmdDashboard2Kpis'] = $this->cards([], $this->currency());
+        $this->vars['pmdDashboard2KpiPayload'] = null;
 
         return $this->makeView('dashboard2_reservations2_exact');
     }
 
-    protected function buildDashboard2Kpis(): array
+    protected function kpiPayload(): array
     {
-        $now = Carbon::now();
-        $todayStart = $now->copy()->startOfDay();
-        $monthStart = $now->copy()->startOfMonth()->startOfDay();
+        $timezone = $this->restaurantTimezone();
+        $currency = $this->currency();
+        $now = Carbon::now($timezone);
+        $periods = [
+            'today' => [$now->copy()->startOfDay(), $now->copy()],
+            'month' => [$now->copy()->startOfMonth(), $now->copy()],
+        ];
+
+        $kpis = [
+            'revenue' => $this->twoPeriods(fn ($start, $end) => $this->revenue($start, $end), $periods),
+            'guests' => $this->twoPeriods(fn ($start, $end) => $this->guests($start, $end), $periods),
+            'turnover' => $this->twoPeriods(fn ($start, $end) => $this->turnover($start, $end), $periods),
+            'channels' => $this->twoPeriods(fn ($start, $end) => $this->channels($start, $end), $periods),
+            'kitchen' => $this->twoPeriods(fn ($start, $end) => $this->kitchenTime($start, $end), $periods),
+            'occupancy' => $this->occupancy(),
+            'menu' => $this->menuAvailability(),
+            'tips' => $this->twoPeriods(fn ($start, $end) => $this->tips($start, $end), $periods),
+        ];
 
         return [
-            'revenue' => $this->safeMetric(
-                'revenue', 'Revenue', 'green', 'money',
-                function () use ($todayStart, $monthStart, $now) {
-                    $today = $this->revenueForRange($todayStart, $now);
-                    $month = $this->revenueForRange($monthStart, $now);
-                    return [
-                        'value' => $this->money($today['value']),
-                        'description' => $this->money($month['value']).' this month',
-                        'connected' => $today['connected'] && $month['connected'],
-                        'source' => $today['source'].'; '.$month['source'],
-                    ];
-                }
-            ),
-            'guests' => $this->safeMetric(
-                'guests', 'Guests Served', 'purple', 'users',
-                function () use ($todayStart, $monthStart, $now) {
-                    $today = $this->guestsForRange($todayStart, $now);
-                    $month = $this->guestsForRange($monthStart, $now);
-                    return [
-                        'value' => $today['connected'] ? (string)$today['value'] : '—',
-                        'description' => $month['connected']
-                            ? $month['value'].' this month'
-                            : 'Guest/covers field unavailable',
-                        'connected' => $today['connected'] && $month['connected'],
-                        'source' => $today['source'].'; '.$month['source'],
-                    ];
-                }
-            ),
-            'turnover' => $this->safeMetric(
-                'turnover', 'Table Turnover', 'orange', 'timer',
-                function () use ($monthStart, $now) {
-                    $result = $this->averageTableMinutes($monthStart, $now);
-                    return [
-                        'value' => $result['connected'] ? $result['value'].' min' : '—',
-                        'description' => $result['connected']
-                            ? 'Average completed table time this month'
-                            : 'Completed table timestamps unavailable',
-                        'connected' => $result['connected'],
-                        'source' => $result['source'],
-                    ];
-                }
-            ),
-            'channels' => $this->safeMetric(
-                'channels', 'Dine In / Take Away', 'blue', 'utensils',
-                function () use ($todayStart, $now) {
-                    $result = $this->serviceMixForRange($todayStart, $now);
-                    return [
-                        'value' => $result['dine_in'].' / '.$result['takeaway'],
-                        'description' => 'Today · dine in / take away',
-                        'connected' => $result['connected'],
-                        'source' => $result['source'],
-                    ];
-                }
-            ),
-            'kitchen' => $this->safeMetric(
-                'kitchen', 'Kitchen Ticket Time', 'orange', 'flame',
-                function () use ($monthStart, $now) {
-                    $result = $this->averageKitchenMinutes($monthStart, $now);
-                    return [
-                        'value' => $result['connected'] ? $result['value'].' min' : '—',
-                        'description' => $result['connected']
-                            ? 'Average order to ready/served this month'
-                            : 'Ready/served timestamp unavailable',
-                        'connected' => $result['connected'],
-                        'source' => $result['source'],
-                    ];
-                }
-            ),
-            'occupancy' => $this->safeMetric(
-                'occupancy', 'Table Occupancy', 'green', 'table',
-                function () {
-                    $result = $this->tableOccupancy();
-                    $percentage = $result['total'] > 0
-                        ? round(($result['occupied'] / $result['total']) * 100)
-                        : 0;
-                    return [
-                        'value' => $percentage.'%',
-                        'description' => $result['occupied'].' of '.$result['total'].' tables occupied',
-                        'connected' => $result['connected'],
-                        'source' => $result['source'],
-                    ];
-                }
-            ),
-            'menu' => $this->safeMetric(
-                'menu', 'Menu Availability', 'red', 'menu',
-                function () {
-                    $result = $this->menuAvailability();
-                    return [
-                        'value' => $result['available'].' / '.$result['total'],
-                        'description' => 'Available now / total menu items',
-                        'connected' => $result['connected'],
-                        'source' => $result['source'],
-                    ];
-                }
-            ),
-            'tips' => $this->safeMetric(
-                'tips', 'Tips', 'green', 'star',
-                function () use ($todayStart, $monthStart, $now) {
-                    $today = $this->tipsForRange($todayStart, $now);
-                    $month = $this->tipsForRange($monthStart, $now);
-                    return [
-                        'value' => $today['connected'] ? $this->money($today['value']) : '—',
-                        'description' => $month['connected']
-                            ? $this->money($month['value']).' this month'
-                            : 'Tip rows unavailable',
-                        'connected' => $today['connected'] && $month['connected'],
-                        'source' => $today['source'].'; '.$month['source'],
-                    ];
-                }
-            ),
+            'success' => true,
+            'ok' => true,
+            'version' => self::VERSION,
+            'endpoint' => '/admin/dashboard2?pmd_kpis=1',
+            'timezone' => $timezone,
+            'currency' => $currency['code'],
+            'currency_symbol' => $currency['symbol'],
+            'generated_at' => $now->toIso8601String(),
+            'periods' => [
+                'today' => $this->periodContract($periods['today']),
+                'month' => $this->periodContract($periods['month']),
+            ],
+            'kpis' => $kpis,
+            'cards' => $this->cards($kpis, $currency),
         ];
     }
 
-    protected function safeMetric(
-        string $key,
-        string $title,
-        string $tone,
-        string $icon,
-        callable $resolver
-    ): array {
+    protected function twoPeriods(callable $resolver, array $periods): array
+    {
+        return [
+            'today' => $this->safeAggregate(fn () => $resolver(...$periods['today'])),
+            'month' => $this->safeAggregate(fn () => $resolver(...$periods['month'])),
+        ];
+    }
+
+    protected function safeAggregate(callable $resolver): array
+    {
         try {
-            $resolved = $resolver();
-            return array_merge([
-                'key' => $key,
-                'title' => $title,
-                'tone' => $tone,
-                'icon' => $icon,
-                'value' => '—',
-                'description' => 'No data available',
-                'connected' => false,
-                'source' => 'not detected',
-                'error' => null,
-            ], is_array($resolved) ? $resolved : []);
+            return $resolver();
         } catch (\Throwable $error) {
-            logger()->warning('Dashboard2 KPI failed', [
-                'metric' => $key,
+            logger()->warning('Dashboard2 KPI aggregate failed', [
                 'message' => $error->getMessage(),
                 'type' => get_class($error),
+                'location_id' => $this->locationId(),
             ]);
 
             return [
-                'key' => $key,
-                'title' => $title,
-                'tone' => $tone,
-                'icon' => $icon,
-                'value' => '—',
-                'description' => 'Data source error',
-                'connected' => false,
-                'source' => 'runtime error',
-                'error' => $error->getMessage(),
+                'available' => false,
+                'value' => null,
+                'sample_count' => 0,
+                'source' => 'runtime query error',
+                'reason' => 'Source unavailable',
             ];
         }
     }
 
-    protected function columns(string $table): array
+    protected function periodContract(array $period): array
     {
-        return Schema::hasTable($table)
-            ? Schema::getColumnListing($table)
-            : [];
-    }
-
-    protected function firstColumn(array $columns, array $candidates): ?string
-    {
-        foreach ($candidates as $candidate) {
-            if (in_array($candidate, $columns, true)) {
-                return $candidate;
-            }
-        }
-        return null;
-    }
-
-    protected function q(string $column): string
-    {
-        return '`'.str_replace('`', '``', $column).'`';
+        return ['start' => $period[0]->toIso8601String(), 'end' => $period[1]->toIso8601String()];
     }
 
     protected function locationId(): ?int
@@ -224,459 +125,511 @@ class Dashboard2 extends Reservations2
         return $id ? (int)$id : null;
     }
 
-    protected function baseQuery(string $table)
+    protected function restaurantTimezone(): string
     {
-        $query = DB::table($table);
-        $columns = $this->columns($table);
+        $timezone = (string)setting('timezone', config('app.timezone', 'UTC'));
+        return in_array($timezone, timezone_identifiers_list(), true) ? $timezone : 'UTC';
+    }
+
+    protected function currency(): array
+    {
+        $code = strtoupper((string)setting('default_currency_code', ''));
+        $row = null;
+        if ($code !== '' && Schema::hasTable('currencies')) {
+            $row = DB::table('currencies')->where('currency_code', $code)->first();
+        }
+
+        return [
+            'code' => $row && $row->currency_code ? (string)$row->currency_code : ($code ?: 'EUR'),
+            'symbol' => $row && $row->currency_symbol ? (string)$row->currency_symbol : ($code === 'EUR' ? '€' : $code.' '),
+        ];
+    }
+
+    protected function columns(string $table): array
+    {
+        return Schema::hasTable($table) ? Schema::getColumnListing($table) : [];
+    }
+
+    protected function hasColumns(string $table, array $columns): bool
+    {
+        $actual = $this->columns($table);
+        return count(array_diff($columns, $actual)) === 0;
+    }
+
+    protected function firstColumn(array $columns, array $candidates): ?string
+    {
+        foreach ($candidates as $candidate) {
+            if (in_array($candidate, $columns, true)) return $candidate;
+        }
+        return null;
+    }
+
+    protected function orders(): Builder
+    {
+        $query = DB::table('orders');
         $locationId = $this->locationId();
-
-        if ($locationId && in_array('location_id', $columns, true)) {
-            $query->where('location_id', $locationId);
-        }
-
-        return $query;
+        // No location means no safe tenant aggregate; never fall back to all rows.
+        if (!$locationId) return $query->whereRaw('1 = 0');
+        return $query->where('location_id', $locationId);
     }
 
-    protected function dateColumn(array $columns): ?string
+    protected function range(Builder $query, string $column, Carbon $start, Carbon $end): Builder
     {
-        return $this->firstColumn($columns, [
-            'created_at', 'date_added', 'created', 'created_on',
-            'order_date', 'updated_at'
-        ]);
-    }
-
-    protected function applyRange($query, string $column, Carbon $start, Carbon $end): void
-    {
-        if (preg_match('/(^|_)date$/', $column) && !preg_match('/_at$/', $column)) {
-            $query->whereDate($column, '>=', $start->format('Y-m-d'))
-                ->whereDate($column, '<=', $end->format('Y-m-d'));
-            return;
-        }
-
-        $query->whereBetween($column, [
+        return $query->whereBetween($column, [
             $start->format('Y-m-d H:i:s'),
             $end->format('Y-m-d H:i:s'),
         ]);
     }
 
-    protected function statusIds(array $needles): array
+    protected function eligiblePaidOrders(Carbon $start, Carbon $end): Builder
     {
-        if (!Schema::hasTable('statuses')) return [];
+        $query = $this->range($this->orders(), 'settled_at', $start, $end)
+            ->where('processed', 1)
+            ->whereNotNull('settled_at')
+            ->where('settled_amount', '>=', 0);
 
-        $columns = $this->columns('statuses');
-        $id = $this->firstColumn($columns, ['status_id', 'id']);
-        $name = $this->firstColumn($columns, ['status_name', 'name', 'label']);
-        if (!$id || !$name) return [];
-
-        $query = DB::table('statuses');
-        if (in_array('status_for', $columns, true)) {
-            $query->where('status_for', 'order');
+        $query->whereIn(DB::raw('LOWER(settlement_status)'), ['paid', 'settled']);
+        if ($this->hasColumns('statuses', ['status_id', 'status_name']) && Schema::hasColumn('orders', 'status_id')) {
+            $query->whereNotExists(function ($excluded) {
+                $excluded->selectRaw('1')->from('statuses as pmd_status')
+                    ->whereColumn('pmd_status.status_id', 'orders.status_id')
+                    ->whereRaw("LOWER(pmd_status.status_name) REGEXP 'cancel|refund|failed|void'");
+            });
         }
 
-        $query->where(function ($builder) use ($name, $needles) {
-            foreach ($needles as $index => $needle) {
-                $method = $index === 0 ? 'whereRaw' : 'orWhereRaw';
-                $builder->{$method}('LOWER('.$this->q($name).') LIKE ?', ['%'.strtolower($needle).'%']);
-            }
-        });
-
-        return $query->pluck($id)
-            ->map(function ($value) { return (int)$value; })
-            ->filter()
-            ->values()
-            ->all();
+        return $query;
     }
 
-    protected function revenueForRange(Carbon $start, Carbon $end): array
+    protected function unavailable(string $source, string $reason = 'Source unavailable'): array
     {
-        if (!Schema::hasTable('orders')) {
-            return ['value' => 0.0, 'connected' => false, 'source' => 'orders table missing'];
+        return compact('source', 'reason') + ['available' => false, 'value' => null, 'sample_count' => 0];
+    }
+
+    protected function revenue(Carbon $start, Carbon $end): array
+    {
+        if (!$this->locationId()) return $this->unavailable('authenticated admin location missing');
+        if (!$this->hasColumns('orders', ['order_id', 'location_id', 'processed', 'settlement_status', 'settled_amount', 'settled_at'])) {
+            return $this->unavailable('orders settlement fields missing');
         }
 
+        $tips = $this->tipSubquery();
+        $query = $this->eligiblePaidOrders($start, $end);
+        if ($tips) {
+            $query->leftJoinSub($tips, 'pmd_tips', 'orders.order_id', '=', 'pmd_tips.order_id');
+        }
+        $tipExpression = $tips ? 'COALESCE(pmd_tips.tip_amount, 0)' : '0';
+        $row = $query->selectRaw(
+            'COUNT(*) AS samples, COALESCE(SUM(GREATEST(orders.settled_amount - '.$tipExpression.', 0)), 0) AS aggregate'
+        )->first();
+
+        return [
+            'available' => true,
+            'value' => (float)$row->aggregate,
+            'sample_count' => (int)$row->samples,
+            'source' => 'paid orders.settled_amount minus order_totals.tip, grouped by orders.settled_at',
+            'reason' => null,
+        ];
+    }
+
+    protected function guests(Carbon $start, Carbon $end): array
+    {
+        if (!$this->locationId()) return $this->unavailable('authenticated admin location missing');
         $columns = $this->columns('orders');
-        $date = $this->dateColumn($columns);
-        $settled = $this->firstColumn($columns, ['settled_amount', 'paid_amount']);
-        $total = $this->firstColumn($columns, ['order_total', 'total', 'total_amount', 'grand_total']);
-        if (!$date || (!$settled && !$total)) {
-            return ['value' => 0.0, 'connected' => false, 'source' => 'orders date/total column missing'];
-        }
-
-        $query = $this->baseQuery('orders');
-        $this->applyRange($query, $date, $start, $end);
-
-        if (in_array('processed', $columns, true)) {
-            $query->where('processed', 1);
-        }
-
-        $status = $this->firstColumn($columns, ['status_id', 'order_status_id']);
-        $excluded = $this->statusIds(['cancel', 'refund', 'failed']);
-        if ($status && $excluded) {
-            $query->whereNotIn($status, $excluded);
-        }
-
-        if (in_array('settlement_status', $columns, true)) {
-            $query->whereRaw(
-                "LOWER(COALESCE(".$this->q('settlement_status').", '')) NOT IN ('cancelled','canceled','failed','refunded')"
+        $guest = $this->firstColumn($columns, ['guest_num', 'guest_count', 'covers', 'party_size']);
+        if (!$guest || !$this->hasColumns('orders', ['settled_at', 'order_type', 'location_id'])) {
+            return $this->unavailable(
+                'orders served-cover field missing',
+                'Source unavailable: no served cover/guest column is stored on orders'
             );
         }
 
-        if ($settled && $total) {
-            $expression = 'CASE WHEN COALESCE('.$this->q($settled).',0) > 0 THEN '
-                .$this->q($settled).' ELSE COALESCE('.$this->q($total).',0) END';
-            $sourceColumn = $settled.' with '.$total.' fallback';
-        } elseif ($settled) {
-            $expression = 'COALESCE('.$this->q($settled).',0)';
-            $sourceColumn = $settled;
-        } else {
-            $expression = 'COALESCE('.$this->q($total).',0)';
-            $sourceColumn = $total;
-        }
+        $row = $this->dineIn($this->eligiblePaidOrders($start, $end))
+            ->where($guest, '>', 0)
+            ->selectRaw('COUNT(*) AS samples, COALESCE(SUM('.$guest.'), 0) AS aggregate')
+            ->first();
 
-        $sum = $query
-            ->selectRaw('COALESCE(SUM('.$expression.'),0) AS aggregate')
-            ->value('aggregate');
-
-        return [
-            'value' => (float)($sum ?: 0),
-            'connected' => true,
-            'source' => 'orders '.$sourceColumn.' grouped by '.$date,
-        ];
+        return ['available' => true, 'value' => (int)$row->aggregate, 'sample_count' => (int)$row->samples,
+            'source' => 'paid dine-in orders.'.$guest.' grouped by settled_at', 'reason' => null];
     }
 
-    protected function guestsForRange(Carbon $start, Carbon $end): array
+    protected function turnover(Carbon $start, Carbon $end): array
     {
-        if (Schema::hasTable('orders')) {
-            $columns = $this->columns('orders');
-            $guest = $this->firstColumn($columns, ['guest_num', 'guest_count', 'guests', 'covers', 'party_size']);
-            $date = $this->dateColumn($columns);
-            if ($guest && $date) {
-                $query = $this->baseQuery('orders');
-                $this->applyRange($query, $date, $start, $end);
-                if (in_array('processed', $columns, true)) $query->where('processed', 1);
-                return [
-                    'value' => (int)round((float)($query->sum($guest) ?: 0)),
-                    'connected' => true,
-                    'source' => 'orders.'.$guest.' grouped by '.$date,
-                ];
-            }
+        if (!$this->locationId()) return $this->unavailable('authenticated admin location missing');
+        $history = $this->tableTurnoverFromStateHistory($start, $end);
+        if ($history !== null) return $history;
+        if (!$this->hasColumns('orders', ['created_at', 'settled_at', 'order_type', 'location_id'])) {
+            return $this->unavailable('orders.created_at/settled_at/order_type missing');
         }
+        $query = $this->dineIn($this->eligiblePaidOrders($start, $end))
+            ->whereRaw('settled_at > created_at')
+            ->whereRaw('TIMESTAMPDIFF(MINUTE, created_at, settled_at) BETWEEN 1 AND 720');
+        $row = $query->selectRaw(
+            'COUNT(*) AS samples, AVG(TIMESTAMPDIFF(SECOND, created_at, settled_at)) / 60 AS aggregate'
+        )->first();
 
-        return [
-            'value' => 0,
-            'connected' => false,
-            'source' => 'no served guest/covers column on orders',
-        ];
+        return ['available' => true, 'value' => $row->aggregate === null ? null : round((float)$row->aggregate, 1),
+            'sample_count' => (int)$row->samples, 'source' => 'paid dine-in orders created_at -> settled_at (1-720 min)',
+            'reason' => $row->samples ? null : 'No completed table visits'];
     }
 
-    protected function averageTableMinutes(Carbon $start, Carbon $end): array
+    protected function tableTurnoverFromStateHistory(Carbon $start, Carbon $end): ?array
     {
-        if (!Schema::hasTable('orders')) {
-            return ['value' => 0, 'connected' => false, 'source' => 'orders table missing'];
+        if (!$this->hasColumns('pmd_table_status_history', ['id', 'table_id', 'new_status', 'created_at']) ||
+            !Schema::hasTable('tables')) return null;
+        $tableIds = Tables_model::query()->whereHasLocation($this->locationId())->isEnabled()
+            ->pluck('table_id')->map(fn ($id) => (int)$id)->all();
+        if (!$tableIds) {
+            return ['available' => true, 'value' => null, 'sample_count' => 0,
+                'source' => 'pmd_table_status_history occupied -> cleaning/available', 'reason' => 'No completed table visits'];
         }
 
-        $columns = $this->columns('orders');
-        $opened = $this->firstColumn($columns, ['opened_at', 'seated_at', 'created_at', 'date_added']);
-        $closed = $this->firstColumn($columns, ['settled_at', 'closed_at', 'completed_at', 'status_updated_at']);
-        $date = $this->dateColumn($columns);
-        $type = $this->firstColumn($columns, ['order_type', 'service_type', 'type']);
+        $closures = DB::table('pmd_table_status_history as opened')
+            ->join('pmd_table_status_history as closed', function ($join) {
+                $join->on('closed.table_id', '=', 'opened.table_id')
+                    ->whereColumn('closed.created_at', '>', 'opened.created_at')
+                    ->whereIn('closed.new_status', ['cleaning', 'available']);
+            })
+            ->where('opened.new_status', 'occupied')
+            ->whereIn('opened.table_id', $tableIds)
+            ->groupBy('opened.id', 'opened.created_at')
+            ->selectRaw('opened.id, opened.created_at AS opened_at, MIN(closed.created_at) AS closed_at');
 
-        if (!$opened || !$closed || !$date) {
-            return ['value' => 0, 'connected' => false, 'source' => 'opened/closed order timestamps missing'];
-        }
+        $row = DB::query()->fromSub($closures, 'visits')
+            ->whereBetween('closed_at', [$start->format('Y-m-d H:i:s'), $end->format('Y-m-d H:i:s')])
+            ->whereRaw('TIMESTAMPDIFF(MINUTE, opened_at, closed_at) BETWEEN 1 AND 720')
+            ->selectRaw('COUNT(*) AS samples, AVG(TIMESTAMPDIFF(SECOND, opened_at, closed_at)) / 60 AS aggregate')
+            ->first();
 
-        $query = $this->baseQuery('orders');
-        $this->applyRange($query, $date, $start, $end);
-        $query->whereNotNull($opened)->whereNotNull($closed);
-
-        if ($type) {
-            $qt = $this->q($type);
-            $query->whereRaw(
-                "(CAST($qt AS CHAR) REGEXP '^[0-9]+$' OR LOWER(COALESCE($qt,'')) REGEXP 'table|dine[ _-]?in|restaurant|eat[ _-]?in')"
-            );
-        }
-
-        $qo = $this->q($opened);
-        $qc = $this->q($closed);
-        $average = $query
-            ->whereRaw($qc.' > '.$qo)
-            ->whereRaw('TIMESTAMPDIFF(MINUTE, '.$qo.', '.$qc.') BETWEEN 1 AND 720')
-            ->selectRaw('AVG(TIMESTAMPDIFF(MINUTE, '.$qo.', '.$qc.')) AS average_minutes')
-            ->value('average_minutes');
-
-        return $average === null
-            ? ['value' => 0, 'connected' => false, 'source' => 'no completed dine-in orders in selected month']
-            : ['value' => (int)round((float)$average), 'connected' => true, 'source' => 'orders '.$opened.' -> '.$closed];
+        return ['available' => true, 'value' => $row->aggregate === null ? null : round((float)$row->aggregate, 1),
+            'sample_count' => (int)$row->samples,
+            'source' => 'pmd_table_status_history occupied -> first cleaning/available (1-720 min)',
+            'reason' => $row->samples ? null : 'No completed table visits'];
     }
 
-    protected function serviceMixForRange(Carbon $start, Carbon $end): array
+    protected function channels(Carbon $start, Carbon $end): array
     {
-        if (!Schema::hasTable('orders')) {
-            return ['dine_in' => 0, 'takeaway' => 0, 'connected' => false, 'source' => 'orders table missing'];
+        if (!$this->locationId()) return $this->unavailable('authenticated admin location missing');
+        if (!$this->hasColumns('orders', ['order_type', 'settled_at', 'location_id'])) {
+            return $this->unavailable('orders.order_type/settled_at missing');
         }
+        $row = $this->eligiblePaidOrders($start, $end)->selectRaw(
+            "SUM(CASE WHEN LOWER(TRIM(order_type)) NOT IN ('delivery','collection','takeaway','take-away','pickup','cashier') THEN 1 ELSE 0 END) AS dine_in, ".
+            "SUM(CASE WHEN LOWER(TRIM(order_type)) IN ('collection','takeaway','take-away','pickup') THEN 1 ELSE 0 END) AS takeaway"
+        )->first();
 
-        $columns = $this->columns('orders');
-        $type = $this->firstColumn($columns, ['order_type', 'service_type', 'type']);
-        $date = $this->dateColumn($columns);
-        if (!$type || !$date) {
-            return ['dine_in' => 0, 'takeaway' => 0, 'connected' => false, 'source' => 'order type/date column missing'];
-        }
-
-        $query = $this->baseQuery('orders');
-        $this->applyRange($query, $date, $start, $end);
-
-        $dineIn = 0;
-        $takeAway = 0;
-        foreach ($query->pluck($type) as $value) {
-            $normalized = strtolower(trim((string)$value));
-            if (
-                preg_match('/^\d+$/', $normalized)
-                || preg_match('/table\s*\d+/', $normalized)
-                || preg_match('/dine[ _-]?in|restaurant|eat[ _-]?in/', $normalized)
-            ) {
-                $dineIn++;
-            } elseif (preg_match('/take[ _-]?away|pickup|pick-up|collection/', $normalized)) {
-                $takeAway++;
-            }
-        }
-
-        return [
-            'dine_in' => $dineIn,
-            'takeaway' => $takeAway,
-            'connected' => true,
-            'source' => 'orders.'.$type.' grouped by '.$date,
-        ];
+        return ['available' => true, 'value' => ['dine_in' => (int)$row->dine_in, 'takeaway' => (int)$row->takeaway],
+            'sample_count' => (int)$row->dine_in + (int)$row->takeaway,
+            'source' => 'paid orders.order_type; delivery and cashier excluded', 'reason' => null];
     }
 
-    protected function averageKitchenMinutes(Carbon $start, Carbon $end): array
+    protected function dineIn(Builder $query): Builder
     {
-        if (!Schema::hasTable('orders')) {
-            return ['value' => 0, 'connected' => false, 'source' => 'orders table missing'];
+        return $query->whereNotIn(DB::raw('LOWER(TRIM(order_type))'), [
+            'delivery', 'collection', 'takeaway', 'take-away', 'pickup', 'cashier',
+        ]);
+    }
+
+    protected function kitchenTime(Carbon $start, Carbon $end): array
+    {
+        if (!$this->locationId()) return $this->unavailable('authenticated admin location missing');
+        if (!$this->hasColumns('orders', ['order_id', 'created_at', 'location_id']) ||
+            !$this->hasColumns('status_history', ['object_id', 'status_id', 'created_at']) ||
+            !$this->hasColumns('statuses', ['status_id', 'status_name'])) {
+            return $this->unavailable('orders/status_history ready timestamp relation missing');
         }
 
-        $orderColumns = $this->columns('orders');
-        $id = $this->firstColumn($orderColumns, ['order_id', 'id']);
-        $created = $this->dateColumn($orderColumns);
-        if (!$id || !$created) {
-            return ['value' => 0, 'connected' => false, 'source' => 'order id/start timestamp missing'];
+        $timestamps = DB::table('status_history as sh')
+            ->join('statuses as s', 's.status_id', '=', 'sh.status_id')
+            ->whereRaw("LOWER(s.status_name) REGEXP 'received|preparation|ready|served|delivery'")
+            ->when(in_array('status_for', $this->columns('statuses'), true), function ($query) {
+                $query->where('s.status_for', 'order');
+            })
+            ->when(in_array('object_type', $this->columns('status_history'), true), function ($query) {
+                $query->where('sh.object_type', Orders_model::make()->getMorphClass());
+            })
+            ->groupBy('sh.object_id')
+            ->selectRaw("sh.object_id, ".
+                "MIN(CASE WHEN LOWER(s.status_name) REGEXP 'received|preparation' THEN sh.created_at END) AS kitchen_at, ".
+                "MIN(CASE WHEN LOWER(s.status_name) REGEXP 'ready|served|delivery' THEN sh.created_at END) AS ready_at");
+
+        $row = $this->orders()
+            ->joinSub($timestamps, 'pmd_kds', 'orders.order_id', '=', 'pmd_kds.object_id')
+            ->whereBetween('pmd_kds.kitchen_at', [$start->format('Y-m-d H:i:s'), $end->format('Y-m-d H:i:s')])
+            ->whereRaw('pmd_kds.ready_at > pmd_kds.kitchen_at')
+            ->whereRaw('TIMESTAMPDIFF(MINUTE, pmd_kds.kitchen_at, pmd_kds.ready_at) BETWEEN 1 AND 240')
+            ->selectRaw('COUNT(*) AS samples, AVG(TIMESTAMPDIFF(SECOND, pmd_kds.kitchen_at, pmd_kds.ready_at)) / 60 AS aggregate')
+            ->first();
+
+        return ['available' => true, 'value' => $row->aggregate === null ? null : round((float)$row->aggregate, 1),
+            'sample_count' => (int)$row->samples,
+            'source' => 'first Received/Preparation -> first Ready/Served/Delivery status history (1-240 min)',
+            'reason' => $row->samples ? null : 'No completed kitchen tickets'];
+    }
+
+    protected function occupancy(): array
+    {
+        $locationId = $this->locationId();
+        if (!$locationId || !Schema::hasTable('tables') || !Schema::hasTable('orders')) {
+            return $this->unavailable('location-scoped tables/open orders unavailable');
         }
-
-        $servedIds = $this->statusIds(['ready', 'served', 'delivery', 'complete']);
-        if ($servedIds && Schema::hasTable('status_history')) {
-            $historyColumns = $this->columns('status_history');
-            $objectId = $this->firstColumn($historyColumns, ['object_id', 'order_id']);
-            $historyStatus = $this->firstColumn($historyColumns, ['status_id']);
-            $historyDate = $this->firstColumn($historyColumns, ['created_at', 'date_added']);
-
-            if ($objectId && $historyStatus && $historyDate) {
-                $orders = $this->baseQuery('orders');
-                $this->applyRange($orders, $created, $start, $end);
-                $rows = $orders->select([$id.' as pmd_id', $created.' as pmd_started'])->limit(3000)->get();
-                $ids = $rows->pluck('pmd_id')->map(function ($value) { return (int)$value; })->filter()->values();
-
-                if ($ids->isNotEmpty()) {
-                    $historyQuery = DB::table('status_history')
-                        ->select([$objectId, $historyDate])
-                        ->whereIn($objectId, $ids->all())
-                        ->whereIn($historyStatus, $servedIds);
-
-                    if (in_array('object_type', $historyColumns, true)) {
-                        $historyQuery->where('object_type', 'like', '%Orders_model%');
-                    }
-
-                    $history = $historyQuery
-                        ->orderBy($historyDate)
-                        ->get()
-                        ->groupBy($objectId);
-
-                    $durations = [];
-                    foreach ($rows as $order) {
-                        $matches = $history->get((int)$order->pmd_id);
-                        $first = $matches ? $matches->first() : null;
-                        if (!$first || !$order->pmd_started) continue;
-                        $endValue = $first->{$historyDate} ?? null;
-                        if (!$endValue) continue;
-                        $minutes = Carbon::parse($order->pmd_started)
-                            ->diffInMinutes(Carbon::parse($endValue), false);
-                        if ($minutes >= 1 && $minutes <= 240) $durations[] = $minutes;
-                    }
-
-                    if ($durations) {
-                        return [
-                            'value' => (int)round(array_sum($durations) / count($durations)),
-                            'connected' => true,
-                            'source' => 'orders.'.$created.' -> status_history.'.$historyDate.' ready/served status',
-                        ];
-                    }
+        $tables = Tables_model::query()->whereHasLocation($locationId)->isEnabled();
+        if (Schema::hasColumn('tables', 'visible_on_floor_plan')) $tables->where('visible_on_floor_plan', 1);
+        $rows = $tables->get(['table_id', 'table_no', 'table_name', 'operational_status']);
+        $total = $rows->count();
+        $occupiedIds = $rows
+            ->filter(fn ($table) => strtolower((string)$table->operational_status) === 'occupied')
+            ->pluck('table_id')->map(fn ($id) => (int)$id)->flip()->all();
+        if ($total && $this->hasColumns('orders', ['order_type', 'location_id', 'settlement_status'])) {
+            $references = $this->orders()
+                ->whereNotIn(DB::raw('LOWER(settlement_status)'), ['paid', 'settled', 'closed', 'cancelled', 'canceled', 'refunded'])
+                ->pluck('order_type');
+            $referenceMap = [];
+            foreach ($rows as $table) {
+                foreach ([$table->table_id, $table->table_no, $table->table_name, 'Table '.$table->table_no] as $reference) {
+                    $normalized = strtolower(trim((string)$reference));
+                    if ($normalized !== '') $referenceMap[$normalized] = (int)$table->table_id;
                 }
             }
-        }
-
-        $finished = $this->firstColumn($orderColumns, ['served_at', 'ready_at', 'completed_at', 'settled_at']);
-        if ($finished) {
-            $query = $this->baseQuery('orders');
-            $this->applyRange($query, $created, $start, $end);
-            $qc = $this->q($created);
-            $qf = $this->q($finished);
-            $average = $query
-                ->whereNotNull($finished)
-                ->whereRaw($qf.' > '.$qc)
-                ->whereRaw('TIMESTAMPDIFF(MINUTE, '.$qc.', '.$qf.') BETWEEN 1 AND 240')
-                ->selectRaw('AVG(TIMESTAMPDIFF(MINUTE, '.$qc.', '.$qf.')) AS average_minutes')
-                ->value('average_minutes');
-            if ($average !== null) {
-                return [
-                    'value' => (int)round((float)$average),
-                    'connected' => true,
-                    'source' => 'orders.'.$created.' -> '.$finished,
-                ];
+            foreach ($references as $reference) {
+                $normalized = strtolower(trim((string)$reference));
+                if (isset($referenceMap[$normalized])) $occupiedIds[$referenceMap[$normalized]] = true;
             }
         }
+        $occupied = count($occupiedIds);
 
-        return ['value' => 0, 'connected' => false, 'source' => 'no ready/served timestamp records'];
-    }
-
-    protected function tableOccupancy(): array
-    {
-        if (!Schema::hasTable('tables')) {
-            return ['occupied' => 0, 'total' => 0, 'connected' => false, 'source' => 'tables table missing'];
-        }
-
-        $tableColumns = $this->columns('tables');
-        $tableId = $this->firstColumn($tableColumns, ['table_id', 'id']);
-        if (!$tableId) {
-            return ['occupied' => 0, 'total' => 0, 'connected' => false, 'source' => 'table primary key missing'];
-        }
-
-        $tables = $this->baseQuery('tables');
-        if (in_array('table_status', $tableColumns, true)) $tables->where('table_status', 1);
-        if (in_array('visible_on_floor_plan', $tableColumns, true)) $tables->where('visible_on_floor_plan', 1);
-
-        $tableNo = $this->firstColumn($tableColumns, ['table_no', 'table_number', 'number']);
-        if ($tableNo) $tables->where($tableNo, '>', 0);
-
-        $tableIds = $tables->pluck($tableId)
-            ->map(function ($value) { return (int)$value; })
-            ->filter()->unique()->values();
-
-        if ($tableIds->isEmpty()) {
-            return ['occupied' => 0, 'total' => 0, 'connected' => true, 'source' => 'tables current visible rows'];
-        }
-
-        if (!Schema::hasTable('orders')) {
-            return ['occupied' => 0, 'total' => $tableIds->count(), 'connected' => false, 'source' => 'orders table missing'];
-        }
-
-        $orderColumns = $this->columns('orders');
-        $tableRef = $this->firstColumn($orderColumns, ['table_id', 'location_table_id', 'order_type']);
-        if (!$tableRef) {
-            return ['occupied' => 0, 'total' => $tableIds->count(), 'connected' => false, 'source' => 'order table reference missing'];
-        }
-
-        $orders = $this->baseQuery('orders');
-        $status = $this->firstColumn($orderColumns, ['status_id', 'order_status_id']);
-        $closed = $this->statusIds(['paid', 'complete', 'closed', 'cancel', 'refund', 'delivery']);
-        if ($status) {
-            $orders->where($status, '>', 0);
-            if ($closed) $orders->whereNotIn($status, $closed);
-        }
-        if (in_array('settlement_status', $orderColumns, true)) {
-            $orders->whereRaw(
-                "LOWER(COALESCE(".$this->q('settlement_status').", '')) NOT IN ('paid','settled','closed','cancelled','canceled','refunded')"
-            );
-        }
-
-        $valid = array_flip($tableIds->all());
-        $occupied = [];
-        foreach ($orders->pluck($tableRef) as $reference) {
-            $text = trim((string)$reference);
-            $resolved = ctype_digit($text)
-                ? (int)$text
-                : (preg_match('/(?:table\s*)?(\d+)/i', $text, $match) ? (int)$match[1] : 0);
-            if ($resolved > 0 && isset($valid[$resolved])) $occupied[$resolved] = true;
-        }
-
-        return [
-            'occupied' => count($occupied),
-            'total' => $tableIds->count(),
-            'connected' => true,
-            'source' => 'open orders matched to current visible tables',
-        ];
+        return ['available' => true, 'value' => $total ? round($occupied / $total * 100) : 0,
+            'occupied_tables' => $occupied, 'available_tables' => $total, 'sample_count' => $total,
+            'source' => 'enabled visible location tables; operational_status occupied plus unique active-order table references', 'reason' => null];
     }
 
     protected function menuAvailability(): array
     {
-        if (!Schema::hasTable('menus')) {
-            return ['available' => 0, 'total' => 0, 'connected' => false, 'source' => 'menus table missing'];
-        }
-
-        $columns = $this->columns('menus');
-        $total = $this->baseQuery('menus');
-        $available = $this->baseQuery('menus');
-        if (in_array('menu_status', $columns, true)) $available->where('menu_status', 1);
-        if (in_array('is_stock_out', $columns, true)) {
-            $available->where(function ($query) {
-                $query->whereNull('is_stock_out')->orWhere('is_stock_out', 0);
-            });
-        }
-
-        return [
-            'available' => (int)$available->count(),
-            'total' => (int)$total->count(),
-            'connected' => true,
-            'source' => 'menus.menu_status and menus.is_stock_out',
-        ];
-    }
-
-    protected function tipsForRange(Carbon $start, Carbon $end): array
-    {
-        if (!Schema::hasTable('order_totals') || !Schema::hasTable('orders')) {
-            return ['value' => 0.0, 'connected' => false, 'source' => 'orders/order_totals table missing'];
-        }
-
-        $totalsColumns = $this->columns('order_totals');
-        $orderColumns = $this->columns('orders');
-        $totalOrderId = $this->firstColumn($totalsColumns, ['order_id']);
-        $code = $this->firstColumn($totalsColumns, ['code']);
-        $value = $this->firstColumn($totalsColumns, ['value', 'amount', 'total']);
-        $orderId = $this->firstColumn($orderColumns, ['order_id', 'id']);
-        $date = $this->dateColumn($orderColumns);
-
-        if (!$totalOrderId || !$code || !$value || !$orderId || !$date) {
-            return ['value' => 0.0, 'connected' => false, 'source' => 'tip/order relation columns missing'];
-        }
-
-        $query = DB::table('order_totals as ot')
-            ->join('orders as o', 'ot.'.$totalOrderId, '=', 'o.'.$orderId)
-            ->whereRaw("LOWER(COALESCE(ot.".$this->q($code).", '')) = 'tip'");
-
-        if (preg_match('/(^|_)date$/', $date) && !preg_match('/_at$/', $date)) {
-            $query->whereDate('o.'.$date, '>=', $start->format('Y-m-d'))
-                ->whereDate('o.'.$date, '<=', $end->format('Y-m-d'));
-        } else {
-            $query->whereBetween('o.'.$date, [
-                $start->format('Y-m-d H:i:s'),
-                $end->format('Y-m-d H:i:s'),
-            ]);
-        }
-
         $locationId = $this->locationId();
-        if ($locationId && in_array('location_id', $orderColumns, true)) {
-            $query->where('o.location_id', $locationId);
+        if (!$locationId || !Schema::hasTable('menus')) return $this->unavailable('location-scoped menus unavailable');
+        $total = Menus_model::query()->whereHasOrDoesntHaveLocation($locationId)->count();
+        $available = Menus_model::query()->whereHasOrDoesntHaveLocation($locationId)->isEnabled();
+        if (Schema::hasColumn('menus', 'is_stock_out')) $available->inStock();
+
+        return ['available' => true, 'value' => ['available_now' => (int)$available->count(), 'total' => (int)$total],
+            'sample_count' => (int)$total, 'source' => 'customer menu scope: location/global, enabled, in stock', 'reason' => null];
+    }
+
+    protected function tipSubquery(): ?Builder
+    {
+        if (!$this->hasColumns('order_totals', ['order_id', 'code', 'value'])) return null;
+        return DB::table('order_totals')->whereRaw("LOWER(code) = 'tip'")
+            ->groupBy('order_id')->selectRaw('order_id, SUM(value) AS tip_amount');
+    }
+
+    protected function tips(Carbon $start, Carbon $end): array
+    {
+        if (!$this->locationId()) return $this->unavailable('authenticated admin location missing');
+        $tips = $this->tipSubquery();
+        if (!$tips || !$this->hasColumns('orders', ['order_id', 'settled_at', 'location_id'])) {
+            return $this->unavailable('order_totals.code=tip relation missing');
+        }
+        $row = $this->eligiblePaidOrders($start, $end)
+            ->joinSub($tips, 'pmd_tips', 'orders.order_id', '=', 'pmd_tips.order_id')
+            ->selectRaw('COUNT(*) AS samples, COALESCE(SUM(pmd_tips.tip_amount), 0) AS aggregate')->first();
+
+        return ['available' => true, 'value' => (float)$row->aggregate, 'sample_count' => (int)$row->samples,
+            'source' => 'order_totals.code=tip joined once per paid order, grouped by orders.settled_at', 'reason' => null];
+    }
+
+    protected function analyticsPayload(string $requestedPeriod): array
+    {
+        $period = in_array($requestedPeriod, ['today', 'week', 'month'], true) ? $requestedPeriod : 'today';
+        $timezone = $this->restaurantTimezone();
+        $currency = $this->currency();
+        $now = Carbon::now($timezone);
+        $start = $period === 'month' ? $now->copy()->startOfMonth()
+            : ($period === 'week' ? $now->copy()->startOfWeek() : $now->copy()->startOfDay());
+
+        if (!$this->locationId()) {
+            return ['success' => false, 'version' => '1.0.0', 'period' => $period,
+                'timezone' => $timezone, 'currency' => $currency['code'], 'reason' => 'Authenticated admin location unavailable'];
         }
 
-        $sum = $query
-            ->selectRaw('COALESCE(SUM(CAST(ot.'.$this->q($value).' AS DECIMAL(15,2))),0) AS aggregate')
-            ->value('aggregate');
-
         return [
-            'value' => (float)($sum ?: 0),
-            'connected' => true,
-            'source' => 'order_totals code=tip joined to orders.'.$date,
+            'success' => true,
+            'version' => '1.0.0',
+            'timezone' => $timezone,
+            'timezone_source' => "setting('timezone')",
+            'currency' => $currency['code'],
+            'currency_symbol' => $currency['symbol'],
+            'generated_at' => $now->toIso8601String(),
+            'period' => $period,
+            'range' => ['start' => $start->toIso8601String(), 'end' => $now->toIso8601String()],
+            'sales_over_time' => $this->safeAnalytics(fn () => $this->analyticsSalesSeries($start, $now, $period)),
+            'sales_by_hour' => $this->safeAnalytics(fn () => $this->analyticsSalesByHour($start, $now)),
+            'top_items' => $this->safeAnalytics(fn () => $this->analyticsTopItems($start, $now)),
+            'sales_by_category' => $this->safeAnalytics(fn () => $this->analyticsCategorySales($start, $now)),
+            'payment_methods' => $this->safeAnalytics(fn () => $this->analyticsPaymentMethods($start, $now)),
+            'channels' => $this->safeAnalytics(fn () => $this->analyticsChannels($start, $now)),
+            'live_operations' => $this->safeAnalytics(fn () => $this->analyticsLiveOperations($now)),
+            'recent_transactions' => $this->safeAnalytics(fn () => $this->analyticsTransactions()),
+            'alerts' => $this->safeAnalytics(fn () => $this->analyticsAlerts($start, $now)),
+            'reviews' => $this->safeAnalytics(fn () => $this->analyticsReviews()),
+            'tips' => $this->safeAnalytics(fn () => $this->analyticsTips($start, $now)),
+            'calendar_events' => $this->safeAnalytics(fn () => $this->analyticsCalendarEvents($now)),
         ];
     }
 
-    protected function money(float $value): string
+    protected function safeAnalytics(callable $resolver): array
     {
-        return '€'.number_format($value, 2, '.', ',');
+        try {
+            return $resolver();
+        } catch (\Throwable $error) {
+            logger()->warning('Dashboard2 analytics source failed', [
+                'type' => get_class($error),
+                'location_id' => $this->locationId(),
+            ]);
+            return $this->unavailable('Analytics source unavailable');
+        }
+    }
+
+    protected function analyticsPaidQuery(Carbon $start, Carbon $end): Builder
+    {
+        $query = $this->eligiblePaidOrders($start, $end);
+        $tips = $this->tipSubquery();
+        if ($tips) $query->leftJoinSub($tips, 'analytics_tips', 'orders.order_id', '=', 'analytics_tips.order_id');
+        return $query->selectRaw('orders.*, GREATEST(orders.settled_amount - '.($tips ? 'COALESCE(analytics_tips.tip_amount,0)' : '0').',0) AS net_revenue');
+    }
+
+    protected function analyticsSalesSeries(Carbon $start, Carbon $end, string $period): array
+    {
+        if (!$this->hasColumns('orders', ['settled_at', 'settled_amount'])) return $this->unavailable('paid order settlement source missing');
+        $format = $period === 'today' ? '%Y-%m-%d %H:00:00' : '%Y-%m-%d';
+        $rows = DB::query()->fromSub($this->analyticsPaidQuery($start, $end), 'paid')
+            ->groupByRaw("DATE_FORMAT(settled_at, '$format')")
+            ->orderBy('bucket')->selectRaw("DATE_FORMAT(settled_at, '$format') AS bucket, SUM(net_revenue) AS sales, COUNT(*) AS orders")->get()->keyBy('bucket');
+        $cursor = $start->copy(); $step = $period === 'today' ? 'addHour' : 'addDay'; $buckets = [];
+        while ($cursor <= $end) {
+            $key = $period === 'today' ? $cursor->format('Y-m-d H:00:00') : $cursor->format('Y-m-d');
+            $row = $rows->get($key); $buckets[] = ['bucket' => $key, 'sales' => (float)($row->sales ?? 0), 'orders' => (int)($row->orders ?? 0)];
+            $cursor->{$step}();
+        }
+        return ['available' => true, 'buckets' => $buckets, 'source' => 'net paid revenue grouped by settlement time'];
+    }
+
+    protected function analyticsSalesByHour(Carbon $start, Carbon $end): array
+    {
+        $rows = DB::query()->fromSub($this->analyticsPaidQuery($start, $end), 'paid')->groupByRaw('HOUR(settled_at)')
+            ->selectRaw('HOUR(settled_at) AS hour, SUM(net_revenue) AS sales, COUNT(*) AS orders')->get()->keyBy('hour');
+        $hours = []; for ($hour = 0; $hour < 24; $hour++) { $row = $rows->get($hour); $hours[] = ['hour' => $hour, 'sales' => (float)($row->sales ?? 0), 'orders' => (int)($row->orders ?? 0)]; }
+        return ['available' => true, 'hours' => $hours, 'source' => 'net paid revenue grouped by local settlement hour'];
+    }
+
+    protected function analyticsTopItems(Carbon $start, Carbon $end): array
+    {
+        if (!$this->hasColumns('order_menus', ['order_id', 'name', 'quantity', 'subtotal'])) return $this->unavailable('order_menus item totals unavailable');
+        $rows = DB::query()->fromSub($this->eligiblePaidOrders($start, $end)->select('orders.order_id'), 'paid')
+            ->join('order_menus as om', 'om.order_id', '=', 'paid.order_id')->groupBy('om.name')->orderByDesc('quantity')
+            ->limit(5)->get(['om.name', DB::raw('SUM(om.quantity) AS quantity'), DB::raw('SUM(om.subtotal) AS revenue')]);
+        return ['available' => true, 'items' => $rows->map(fn ($row) => ['name' => (string)$row->name, 'quantity' => (int)$row->quantity, 'revenue' => (float)$row->revenue])->all(), 'source' => 'paid order_menus grouped by product name'];
+    }
+
+    protected function analyticsCategorySales(Carbon $start, Carbon $end): array
+    {
+        if (!$this->hasColumns('order_menus', ['order_id', 'menu_id', 'subtotal']) || !Schema::hasTable('menu_categories') || !Schema::hasTable('categories')) return $this->unavailable('menu category relation unavailable');
+        $categoryName = $this->firstColumn($this->columns('categories'), ['name', 'category_name']);
+        if (!$categoryName) return $this->unavailable('category display column unavailable');
+        // A menu may be assigned to multiple categories. Use its primary
+        // (lowest id) category once so item revenue is never multiplied.
+        $primaryCategory = DB::table('menu_categories')->groupBy('menu_id')
+            ->selectRaw('menu_id, MIN(category_id) AS category_id');
+        $rows = DB::query()->fromSub($this->eligiblePaidOrders($start, $end)->select('orders.order_id'), 'paid')
+            ->join('order_menus as om', 'om.order_id', '=', 'paid.order_id')->leftJoinSub($primaryCategory, 'mc', 'mc.menu_id', '=', 'om.menu_id')
+            ->leftJoin('categories as c', 'c.category_id', '=', 'mc.category_id')->groupBy('c.'.$categoryName)->orderByDesc('revenue')
+            ->get([DB::raw("COALESCE(c.`$categoryName`, 'Uncategorized') AS category"), DB::raw('SUM(om.subtotal) AS revenue')]);
+        return ['available' => true, 'categories' => $rows->map(fn ($r) => ['category' => (string)$r->category, 'revenue' => (float)$r->revenue])->all(), 'source' => 'paid order items joined to menu categories'];
+    }
+
+    protected function analyticsPaymentMethods(Carbon $start, Carbon $end): array
+    {
+        $query = DB::query()->fromSub($this->eligiblePaidOrders($start, $end)->select(['orders.payment', 'orders.settled_amount']), 'paid')
+            ->leftJoin('payments as p', 'p.code', '=', 'paid.payment')->groupBy('paid.payment', 'p.name')->orderByDesc('total')
+            ->get([DB::raw("COALESCE(p.name, paid.payment, 'Other') AS method"), DB::raw('SUM(paid.settled_amount) AS total'), DB::raw('COUNT(*) AS transactions')]);
+        return ['available' => true, 'methods' => $query->map(fn ($r) => ['method' => (string)$r->method, 'total' => (float)$r->total, 'transactions' => (int)$r->transactions])->all(), 'source' => 'successful order settlement method joined to configured payments'];
+    }
+
+    protected function analyticsChannels(Carbon $start, Carbon $end): array
+    {
+        $rows = DB::query()->fromSub($this->analyticsPaidQuery($start, $end), 'paid')->selectRaw("CASE WHEN LOWER(TRIM(order_type))='delivery' THEN 'Delivery' WHEN LOWER(TRIM(order_type)) IN ('collection','takeaway','take-away','pickup') THEN 'Take away' ELSE 'Dine in' END AS channel, COUNT(*) AS orders, SUM(net_revenue) AS revenue")->groupBy('channel')->get();
+        return ['available' => true, 'channels' => $rows->map(fn ($r) => ['channel' => $r->channel, 'orders' => (int)$r->orders, 'revenue' => (float)$r->revenue])->all(), 'source' => 'eligible paid orders by confirmed order_type mapping'];
+    }
+
+    protected function analyticsLiveOperations(Carbon $now): array
+    {
+        $closed = ['paid','settled','closed','cancelled','canceled','refunded'];
+        $query = $this->orders()->whereNotIn(DB::raw('LOWER(settlement_status)'), $closed);
+        $count = (clone $query)->count();
+        $orders = $query->leftJoin('statuses as s', 's.status_id', '=', 'orders.status_id')->orderByDesc('orders.created_at')->limit(5)
+            ->get(['orders.order_id', 'orders.order_type', 'orders.created_at', 's.status_name']);
+        $occupancy = $this->occupancy();
+        return ['available' => true, 'live_order_count' => $count, 'orders' => $orders->map(fn ($r) => ['order_id' => (int)$r->order_id, 'channel' => (string)$r->order_type, 'status' => (string)($r->status_name ?: 'Open'), 'opened_at' => (string)$r->created_at])->all(), 'tables' => ['occupied' => $occupancy['occupied_tables'] ?? 0, 'total' => $occupancy['available_tables'] ?? 0], 'source' => 'current location open orders and operational table states'];
+    }
+
+    protected function analyticsTransactions(): array
+    {
+        $start = Carbon::create(1970, 1, 1, 0, 0, 0, $this->restaurantTimezone());
+        $rows = $this->eligiblePaidOrders($start, Carbon::now($this->restaurantTimezone()))->leftJoin('payments as p', 'p.code', '=', 'orders.payment')
+            ->orderByDesc('orders.settled_at')->limit(10)->get(['orders.order_id', 'orders.settled_amount', 'orders.settlement_status', 'orders.settled_at', DB::raw('COALESCE(p.name, orders.payment) AS payment_method')]);
+        return ['available' => true, 'transactions' => $rows->map(fn ($r) => ['order_id' => (int)$r->order_id, 'method' => (string)$r->payment_method, 'amount' => (float)$r->settled_amount, 'status' => (string)$r->settlement_status, 'timestamp' => (string)$r->settled_at])->all(), 'source' => 'latest successful current-location order settlements'];
+    }
+
+    protected function analyticsAlerts(Carbon $start, Carbon $end): array
+    {
+        $failed = $this->range($this->orders(), 'updated_at', $start, $end)->whereIn(DB::raw('LOWER(settlement_status)'), ['failed'])->count();
+        $refunds = $this->range($this->orders(), 'updated_at', $start, $end)->whereIn(DB::raw('LOWER(settlement_status)'), ['refunded','refund'])->count();
+        $stock = Schema::hasColumn('menus', 'is_stock_out') ? Menus_model::query()->whereHasOrDoesntHaveLocation($this->locationId())->stockOut()->count() : null;
+        $negative = Schema::hasTable('reviews') ? DB::table('reviews')->where('location_id', $this->locationId())->whereRaw('(quality + service + delivery) / 3 <= 2')->count() : null;
+        return ['available' => true, 'types' => ['failed_payments' => $failed, 'refunds' => $refunds, 'long_open_tables' => null, 'out_of_stock' => $stock, 'negative_reviews' => $negative], 'unavailable' => ['long_open_tables'], 'source' => 'settlement states, stock flags and location reviews; no reliable open-duration alert threshold configured'];
+    }
+
+    protected function analyticsReviews(): array
+    {
+        if (!Schema::hasTable('reviews')) return $this->unavailable('reviews table unavailable');
+        $base = DB::table('reviews')->where('location_id', $this->locationId())->where('review_status', 1);
+        $summary = (clone $base)->selectRaw('COUNT(*) AS count, AVG((quality + service + delivery) / 3) AS rating')->first();
+        $latest = $base->orderByDesc('created_at')->limit(5)->get(['quality','service','delivery','review_text','created_at']);
+        return ['available' => true, 'average' => $summary->rating === null ? null : round((float)$summary->rating, 1), 'count' => (int)$summary->count, 'latest' => $latest->map(fn ($r) => ['rating' => round(((int)$r->quality + (int)$r->service + (int)$r->delivery) / 3, 1), 'comment' => mb_substr(strip_tags((string)$r->review_text), 0, 180), 'date' => (string)$r->created_at])->all(), 'source' => 'approved current-location reviews'];
+    }
+
+    protected function analyticsTips(Carbon $start, Carbon $end): array
+    {
+        $today = $this->tips(Carbon::now($this->restaurantTimezone())->startOfDay(), $end); $month = $this->tips(Carbon::now($this->restaurantTimezone())->startOfMonth(), $end); $selected = $this->tips($start, $end);
+        return ['available' => $selected['available'], 'today' => $today['value'], 'month' => $month['value'], 'selected' => $selected['value'], 'tipped_orders' => $selected['sample_count'], 'average_tip' => $selected['sample_count'] ? round($selected['value'] / $selected['sample_count'], 2) : 0, 'source' => $selected['source']];
+    }
+
+    protected function analyticsCalendarEvents(Carbon $now): array
+    {
+        return ['available' => false, 'events' => [], 'source' => 'No persistent calendar-event table exists; Reservations2 holidays are client constants and notes are browser-local', 'reason' => 'Source unavailable'];
+    }
+
+    protected function cards(array $kpis, array $currency): array
+    {
+        $definitions = [
+            'revenue' => ['Revenue', 'green', 'money', 'money'],
+            'guests' => ['Guests Served', 'purple', 'users', 'number'],
+            'turnover' => ['Table Turnover', 'orange', 'timer', 'minutes'],
+            'channels' => ['Dine In / Take Away', 'blue', 'utensils', 'channels'],
+            'kitchen' => ['Kitchen Ticket Time', 'orange', 'flame', 'minutes'],
+            'occupancy' => ['Table Occupancy', 'green', 'table', 'percent'],
+            'menu' => ['Menu Availability', 'red', 'menu', 'menu'],
+            'tips' => ['Tips', 'green', 'star', 'money'],
+        ];
+        $cards = [];
+        foreach ($definitions as $key => [$title, $tone, $icon, $format]) {
+            $empty = $this->unavailable('KPI payload pending', 'Loading');
+            $periods = in_array($key, ['occupancy', 'menu'], true)
+                ? $empty
+                : ['today' => $empty, 'month' => $empty];
+            $cards[$key] = compact('key', 'title', 'tone', 'icon', 'format') + [
+                'periods' => $kpis[$key] ?? $periods,
+                'currency' => $currency,
+            ];
+        }
+        return $cards;
     }
 }

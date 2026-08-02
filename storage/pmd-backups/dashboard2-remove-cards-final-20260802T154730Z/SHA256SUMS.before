@@ -1,0 +1,4 @@
+cf189e4ec698129847554db04c5599025e9d90438254d1bad0f6033a32ff413f  app/admin/assets/js/pmd-reservations2-floor-toolbar-v316.js
+e86bb00e6db9c9f6d144ebab3cac42736d31b5f6ceacedf47626afcb5b140189  app/admin/assets/js/pmd-dashboard2-kpis-v1.js
+f1a0667ad9ec4e29c6ba88085c2f4d171c2ccb74a38a4f5996dca9b71d5a3bbb  app/admin/views/dashboard2_reservations2_exact.blade.php
+6433fe45870f1930d11a2a8bcdb9340c356e4c7def3e1a35310d5b3f58e59756  app/admin/views/reservations2/index.blade.php
