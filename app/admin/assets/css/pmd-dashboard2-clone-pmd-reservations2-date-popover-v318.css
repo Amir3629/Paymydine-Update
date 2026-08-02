@@ -1,0 +1,957 @@
+/* PMD Reservations2 Date Popover V3.1.8.2 */
+
+.pmd-r2-header-actions-v318 {
+  display: flex !important;
+  flex-direction: row !important;
+  align-items: center !important;
+  justify-content: flex-end !important;
+  gap: 10px !important;
+}
+
+#pmd-r2-date-popover-v318 {
+  position: relative !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  flex: 0 0 46px !important;
+  width: 46px !important;
+  min-width: 46px !important;
+  max-width: 46px !important;
+  height: 46px !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  z-index: 80 !important;
+  order: 1 !important;
+}
+
+#pmd-r2-date-button-v318,
+button#pmd-r2-date-button-v318,
+.pmd-r2-date-trigger-v318 {
+  box-sizing: border-box !important;
+  width: 46px !important;
+  min-width: 46px !important;
+  max-width: 46px !important;
+  height: 46px !important;
+  min-height: 46px !important;
+  max-height: 46px !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  display: inline-flex !important;
+  flex: 0 0 46px !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 0 !important;
+  border: 1px solid #cfe0ec !important;
+  border-radius: 14px !important;
+  background: #fff !important;
+  color: #173752 !important;
+  box-shadow: 0 3px 10px rgba(23,55,82,.05) !important;
+  cursor: pointer !important;
+  overflow: hidden !important;
+  line-height: 1 !important;
+  font-size: 0 !important;
+  white-space: nowrap !important;
+  text-indent: 0 !important;
+  transition: background-color .16s ease, border-color .16s ease, box-shadow .16s ease, transform .16s ease !important;
+}
+
+#pmd-r2-date-button-v318:hover,
+#pmd-r2-date-popover-v318.is-open #pmd-r2-date-button-v318 {
+  background: #f4f8fb !important;
+  border-color: #9fc2d8 !important;
+  box-shadow: 0 8px 20px rgba(23,55,82,.12) !important;
+  transform: translateY(-1px) !important;
+}
+
+#pmd-r2-date-button-v318 svg {
+  display: block !important;
+  width: 22px !important;
+  min-width: 22px !important;
+  max-width: 22px !important;
+  height: 22px !important;
+  min-height: 22px !important;
+  max-height: 22px !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  flex: 0 0 22px !important;
+}
+
+#pmd-r2-date-button-v318 span {
+  position: absolute !important;
+  width: 1px !important;
+  height: 1px !important;
+  padding: 0 !important;
+  margin: -1px !important;
+  overflow: hidden !important;
+  clip: rect(0 0 0 0) !important;
+  clip-path: inset(50%) !important;
+  white-space: nowrap !important;
+  border: 0 !important;
+}
+
+[data-pmd-r2-header-order="plus"] {
+  order: 2 !important;
+}
+
+[data-pmd-r2-header-order="notification"] {
+  order: 3 !important;
+}
+
+#pmd-r2-date-panel-v318 {
+  position: absolute !important;
+  top: calc(100% + 12px) !important;
+  right: 0 !important;
+  width: min(560px, calc(100vw - 36px)) !important;
+  padding: 0 !important;
+  border: 1px solid rgba(23,55,82,.12) !important;
+  border-radius: 20px !important;
+  background: #fff !important;
+  box-shadow: 0 24px 60px rgba(18,42,60,.2) !important;
+  opacity: 0 !important;
+  visibility: hidden !important;
+  pointer-events: none !important;
+  transform: translateY(-8px) scale(.985) !important;
+  transform-origin: top right !important;
+  transition: opacity .18s ease, transform .18s ease, visibility .18s ease !important;
+  overflow: hidden !important;
+  z-index: 9999 !important;
+}
+
+#pmd-r2-date-popover-v318.is-open #pmd-r2-date-panel-v318 {
+  opacity: 1 !important;
+  visibility: visible !important;
+  pointer-events: auto !important;
+  transform: translateY(0) scale(1) !important;
+}
+
+.pmd-r2-date-card-head-v318 {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  gap: 16px !important;
+  padding: 18px 20px 14px !important;
+  border-bottom: 1px solid #edf2f5 !important;
+}
+
+.pmd-r2-date-card-head-v318 > div {
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 3px !important;
+}
+
+.pmd-r2-date-card-head-v318 strong {
+  font-size: 16px !important;
+  color: #102a3c !important;
+}
+
+.pmd-r2-date-card-head-v318 span {
+  font-size: 12px !important;
+  color: #718191 !important;
+}
+
+.pmd-r2-date-card-head-v318 button {
+  width: 34px !important;
+  min-width: 34px !important;
+  height: 34px !important;
+  padding: 0 !important;
+  border: 0 !important;
+  border-radius: 10px !important;
+  background: #f4f7f9 !important;
+  color: #173752 !important;
+  font-size: 24px !important;
+  line-height: 1 !important;
+  cursor: pointer !important;
+}
+
+.pmd-r2-date-card-body-v318 {
+  padding: 18px 20px 20px !important;
+}
+
+#pmd-r2-date-panel-v318 .pmd-r2-date-original-v318 {
+  position: static !important;
+  inset: auto !important;
+  width: 100% !important;
+  max-width: none !important;
+  min-width: 0 !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  display: grid !important;
+  grid-template-columns: 1fr !important;
+  gap: 16px !important;
+  background: transparent !important;
+  border: 0 !important;
+  box-shadow: none !important;
+  transform: none !important;
+}
+
+#pmd-r2-date-panel-v318 .pmd-r2-date-original-v318 > * {
+  max-width: 100% !important;
+}
+
+#pmd-r2-date-panel-v318 button,
+#pmd-r2-date-panel-v318 input {
+  min-height: 44px !important;
+  border-radius: 12px !important;
+}
+
+#pmd-r2-date-panel-v318 .pmd-r2-date-summary-v318 {
+  width: 100% !important;
+  min-height: 44px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  border-radius: 12px !important;
+  white-space: normal !important;
+  text-align: center !important;
+}
+
+@media (max-width: 767px) {
+  #pmd-r2-date-popover-v318 {
+    flex-basis: 42px !important;
+    width: 42px !important;
+    min-width: 42px !important;
+    max-width: 42px !important;
+    height: 42px !important;
+  }
+
+  #pmd-r2-date-button-v318,
+  button#pmd-r2-date-button-v318,
+  .pmd-r2-date-trigger-v318 {
+    width: 42px !important;
+    min-width: 42px !important;
+    max-width: 42px !important;
+    height: 42px !important;
+    min-height: 42px !important;
+    max-height: 42px !important;
+    flex-basis: 42px !important;
+    border-radius: 12px !important;
+  }
+
+  #pmd-r2-date-panel-v318 {
+    position: fixed !important;
+    top: 78px !important;
+    right: 12px !important;
+    left: 12px !important;
+    width: auto !important;
+    max-height: calc(100vh - 96px) !important;
+    overflow: auto !important;
+    transform-origin: top center !important;
+  }
+}
+/* PMD Reservations2 Calendar Right Placement V3.1.8.3 */
+
+.pmd-r2-header-actions-v3183 {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: flex-end !important;
+  gap: 10px !important;
+}
+
+#pmd-r2-date-popover-v318
+.pmd-r2-calendar-right-v3183,
+#pmd-r2-date-popover-v318.pmd-r2-calendar-right-v3183 {
+  position: relative !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  flex: 0 0 auto !important;
+  margin: 0 !important;
+  inset: auto !important;
+  order: initial !important;
+}
+
+#pmd-r2-date-button-v318 {
+  width: 46px !important;
+  height: 46px !important;
+  min-width: 46px !important;
+  max-width: 46px !important;
+  min-height: 46px !important;
+  max-height: 46px !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  flex: 0 0 46px !important;
+  border-radius: 14px !important;
+}
+
+#pmd-r2-date-button-v318 > span {
+  display: none !important;
+}
+
+#pmd-r2-date-button-v318 svg {
+  width: 21px !important;
+  height: 21px !important;
+  margin: 0 !important;
+}
+
+/*
+ * Keep the popover aligned below the Calendar button,
+ * even after moving it to the right action group.
+ */
+#pmd-r2-date-panel-v318 {
+  left: auto !important;
+  right: 0 !important;
+}
+
+@media (max-width: 767px) {
+  .pmd-r2-header-actions-v3183 {
+    gap: 7px !important;
+  }
+
+  #pmd-r2-date-button-v318 {
+    width: 42px !important;
+    height: 42px !important;
+    min-width: 42px !important;
+    max-width: 42px !important;
+    min-height: 42px !important;
+    max-height: 42px !important;
+    flex-basis: 42px !important;
+  }
+}
+
+
+/* ============================================================
+   PMD_DATE_RANGE_CENTER_MODAL_V2428
+
+   Centered modal using the same blur-only visual language as
+   the current mobile Side Menu. Modal card remains sharp.
+   ============================================================ */
+
+/*
+ * Remove the second label generated by the old Blade
+ * data-pmd-date-label pseudo-element authority.
+ */
+#pmd-r2-date-button-v430[data-pmd-date-label]::after,
+#pmd-r2-date-button-v430::after {
+  content: none !important;
+  display: none !important;
+}
+
+/*
+ * The actual span is the only visible date label.
+ */
+#pmd-r2-date-button-v430 > span {
+  display: block !important;
+  position: static !important;
+
+  width: auto !important;
+  height: auto !important;
+
+  margin: 0 !important;
+  padding: 0 !important;
+
+  overflow: hidden !important;
+  clip: auto !important;
+  clip-path: none !important;
+
+  white-space: nowrap !important;
+  text-overflow: ellipsis !important;
+}
+
+/*
+ * Full-screen blur-only backdrop.
+ */
+#pmd-r2-date-modal-backdrop-v2428 {
+  position: fixed !important;
+  inset: 0 !important;
+
+  display: block !important;
+
+  width: 100vw !important;
+  height: 100vh !important;
+
+  margin: 0 !important;
+  padding: 0 !important;
+
+  border: 0 !important;
+  border-radius: 0 !important;
+
+  background: transparent !important;
+  background-color: transparent !important;
+
+  backdrop-filter: blur(0) !important;
+  -webkit-backdrop-filter: blur(0) !important;
+
+  opacity: 0 !important;
+  visibility: hidden !important;
+  pointer-events: none !important;
+
+  cursor: default !important;
+
+  transition:
+    opacity 220ms cubic-bezier(.22, 1, .36, 1),
+    backdrop-filter 260ms cubic-bezier(.22, 1, .36, 1),
+    -webkit-backdrop-filter 260ms cubic-bezier(.22, 1, .36, 1),
+    visibility 220ms linear
+    !important;
+
+  z-index: 11040 !important;
+}
+
+html.pmd-r2-date-modal-open-v2428
+#pmd-r2-date-modal-backdrop-v2428 {
+  visibility: visible !important;
+  pointer-events: auto !important;
+}
+
+html.pmd-r2-date-modal-open-v2428-painted
+#pmd-r2-date-modal-backdrop-v2428 {
+  opacity: 1 !important;
+
+  backdrop-filter: blur(8px) !important;
+  -webkit-backdrop-filter: blur(8px) !important;
+}
+
+/*
+ * Portal-owned centered modal card.
+ */
+body > #pmd-r2-date-panel-v318[
+  data-pmd-date-modal-owner="v2428"
+] {
+  position: fixed !important;
+
+  top: 50% !important;
+  right: auto !important;
+  bottom: auto !important;
+  left: 50% !important;
+
+  width:
+    min(
+      560px,
+      calc(100vw - 32px)
+    ) !important;
+
+  max-width:
+    calc(100vw - 32px) !important;
+
+  max-height:
+    min(
+      760px,
+      calc(100dvh - 32px)
+    ) !important;
+
+  margin: 0 !important;
+  padding: 0 !important;
+
+  border:
+    1px solid
+    rgba(23, 55, 82, .12)
+    !important;
+
+  border-radius:
+    22px !important;
+
+  background:
+    #ffffff !important;
+
+  box-shadow:
+    0 28px 80px
+    rgba(10, 32, 45, .22)
+    !important;
+
+  overflow:
+    auto !important;
+
+  opacity: 0 !important;
+  visibility: hidden !important;
+  pointer-events: none !important;
+
+  transform:
+    translate(-50%, -46%)
+    scale(.965)
+    !important;
+
+  transform-origin:
+    center center !important;
+
+  transition:
+    opacity 200ms cubic-bezier(.22, 1, .36, 1),
+    transform 240ms cubic-bezier(.22, 1, .36, 1),
+    visibility 200ms linear
+    !important;
+
+  z-index: 11050 !important;
+}
+
+html.pmd-r2-date-modal-open-v2428
+body > #pmd-r2-date-panel-v318[
+  data-pmd-date-modal-owner="v2428"
+] {
+  visibility: visible !important;
+  pointer-events: auto !important;
+}
+
+html.pmd-r2-date-modal-open-v2428-painted
+body > #pmd-r2-date-panel-v318[
+  data-pmd-date-modal-owner="v2428"
+] {
+  opacity: 1 !important;
+
+  transform:
+    translate(-50%, -50%)
+    scale(1)
+    !important;
+}
+
+/*
+ * Keep the underlying page fixed while the date card is open.
+ * The existing .page remains the actual scroll container.
+ */
+html.pmd-r2-date-modal-open-v2428
+body.page {
+  overflow: hidden !important;
+}
+
+/*
+ * Neutral close-button hover; never blue.
+ */
+body > #pmd-r2-date-panel-v318
+.pmd-r2-date-card-head-v318 button:hover,
+
+body > #pmd-r2-date-panel-v318
+.pmd-r2-date-card-head-v318 button:focus-visible {
+  background:
+    #edf4ef !important;
+
+  color:
+    #12372f !important;
+
+  box-shadow:
+    none !important;
+
+  outline:
+    2px solid
+    rgba(18, 55, 47, .14)
+    !important;
+
+  outline-offset:
+    2px !important;
+}
+
+@media (max-width: 767px) {
+  body > #pmd-r2-date-panel-v318[
+    data-pmd-date-modal-owner="v2428"
+  ] {
+    top: 50% !important;
+    right: auto !important;
+    left: 50% !important;
+
+    width:
+      calc(100vw - 24px)
+      !important;
+
+    max-width:
+      calc(100vw - 24px)
+      !important;
+
+    max-height:
+      calc(100dvh - 24px)
+      !important;
+
+    border-radius:
+      18px !important;
+  }
+
+  body > #pmd-r2-date-panel-v318
+  .pmd-r2-date-card-head-v318 {
+    padding:
+      16px 16px 13px !important;
+  }
+
+  body > #pmd-r2-date-panel-v318
+  .pmd-r2-date-card-body-v318 {
+    padding:
+      16px !important;
+  }
+}
+
+/* PMD_DATE_RANGE_CENTER_MODAL_V2428_END */
+
+
+/* ============================================================
+   PMD_DATE_MODAL_VISIBLE_V2430
+
+   V2429 proves the date modal opens:
+   wrapper.is-open === true.
+   This is the final visual authority so the opened panel is
+   actually visible above Floor, KPI, Header, Calendar and cards.
+   ============================================================ */
+
+#pmd-r2-date-popover-v318.is-open {
+  display: block !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+  pointer-events: auto !important;
+
+  position: fixed !important;
+  inset: 0 !important;
+  z-index: 2147482500 !important;
+
+  width: 100vw !important;
+  height: 100vh !important;
+
+  background: transparent !important;
+
+  backdrop-filter: blur(8px) !important;
+  -webkit-backdrop-filter: blur(8px) !important;
+}
+
+#pmd-r2-date-popover-v318.is-open::before {
+  content: "" !important;
+
+  position: fixed !important;
+  inset: 0 !important;
+
+  display: block !important;
+
+  background: transparent !important;
+
+  pointer-events: auto !important;
+}
+
+#pmd-r2-date-popover-v318.is-open
+#pmd-r2-date-panel-v318 {
+  display: block !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+  pointer-events: auto !important;
+
+  position: fixed !important;
+
+  top: 50% !important;
+  left: 50% !important;
+  right: auto !important;
+  bottom: auto !important;
+
+  transform: translate(-50%, -50%) !important;
+
+  z-index: 2147482600 !important;
+
+  width: min(520px, calc(100vw - 32px)) !important;
+  max-width: calc(100vw - 32px) !important;
+  max-height: calc(100vh - 48px) !important;
+
+  overflow: auto !important;
+
+  background: #ffffff !important;
+  color: #14283e !important;
+
+  border: 1px solid #c9deec !important;
+  border-radius: 24px !important;
+
+  box-shadow:
+    0 24px 80px rgba(20, 40, 62, .18) !important;
+}
+
+/*
+ * Hide the duplicated legacy trigger if it is still present
+ * inside the date popover wrapper.
+ */
+#pmd-r2-date-popover-v318
+#pmd-r2-date-button-v318 {
+  display: none !important;
+}
+
+/*
+ * Keep the real visible header button clean: one label only.
+ */
+#pmd-r2-date-button-v430::before,
+#pmd-r2-date-button-v430::after {
+  content: none !important;
+  display: none !important;
+}
+
+/* PMD_DATE_MODAL_VISIBLE_V2430_END */
+
+
+/* ============================================================
+   PMD_DATE_MODAL_GLOBAL_VISIBLE_V2431
+
+   V2429 already sets:
+   html.pmd-r2-date-modal-open-v2429
+   body.pmd-r2-date-modal-open-v2429
+
+   The panel can be present/open but not matched by the older
+   descendant selector, leaving visibility:hidden and opacity:0.
+   This global open-state rule is the final visual authority.
+   ============================================================ */
+
+html.pmd-r2-date-modal-open-v2429
+#pmd-r2-date-popover-v318,
+
+body.pmd-r2-date-modal-open-v2429
+#pmd-r2-date-popover-v318 {
+  display: block !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+  pointer-events: auto !important;
+
+  position: fixed !important;
+  inset: 0 !important;
+
+  width: 100vw !important;
+  height: 100vh !important;
+
+  z-index: 2147482500 !important;
+
+  background: transparent !important;
+
+  backdrop-filter: blur(8px) !important;
+  -webkit-backdrop-filter: blur(8px) !important;
+}
+
+html.pmd-r2-date-modal-open-v2429
+#pmd-r2-date-popover-v318::before,
+
+body.pmd-r2-date-modal-open-v2429
+#pmd-r2-date-popover-v318::before {
+  content: "" !important;
+
+  position: fixed !important;
+  inset: 0 !important;
+
+  display: block !important;
+
+  background: transparent !important;
+  pointer-events: auto !important;
+}
+
+html.pmd-r2-date-modal-open-v2429
+#pmd-r2-date-panel-v318,
+
+body.pmd-r2-date-modal-open-v2429
+#pmd-r2-date-panel-v318,
+
+#pmd-r2-date-popover-v318.is-open
+#pmd-r2-date-panel-v318 {
+  display: block !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+  pointer-events: auto !important;
+
+  position: fixed !important;
+
+  top: 50% !important;
+  left: 50% !important;
+  right: auto !important;
+  bottom: auto !important;
+
+  transform: translate(-50%, -50%) !important;
+
+  z-index: 2147482600 !important;
+
+  width: min(520px, calc(100vw - 32px)) !important;
+  max-width: calc(100vw - 32px) !important;
+  max-height: calc(100vh - 48px) !important;
+
+  overflow: auto !important;
+
+  background: #ffffff !important;
+  color: #14283e !important;
+
+  border: 1px solid #c9deec !important;
+  border-radius: 24px !important;
+
+  box-shadow:
+    0 24px 80px rgba(20, 40, 62, .18) !important;
+}
+
+/*
+ * Internal legacy trigger stays hidden; real header button remains.
+ */
+#pmd-r2-date-button-v318 {
+  display: none !important;
+}
+
+#pmd-r2-date-button-v430::before,
+#pmd-r2-date-button-v430::after {
+  content: none !important;
+  display: none !important;
+}
+
+/* PMD_DATE_MODAL_GLOBAL_VISIBLE_V2431_END */
+
+
+/* ============================================================
+   PMD_DATE_MODAL_BACKDROP_ONLY_V2433
+
+   Minimal final change only:
+   - keep the working V2431 card exactly as it was
+   - add smooth blur + slight dark overlay behind it
+   - no card styling changes
+   - no date logic changes
+   ============================================================ */
+
+html.pmd-r2-date-modal-open-v2429
+#pmd-r2-date-popover-v318,
+
+body.pmd-r2-date-modal-open-v2429
+#pmd-r2-date-popover-v318 {
+  background:
+    rgba(5, 18, 16, .20) !important;
+
+  backdrop-filter:
+    blur(9px) saturate(1.05) !important;
+
+  -webkit-backdrop-filter:
+    blur(9px) saturate(1.05) !important;
+}
+
+html.pmd-r2-date-modal-open-v2429
+#pmd-r2-date-popover-v318::before,
+
+body.pmd-r2-date-modal-open-v2429
+#pmd-r2-date-popover-v318::before {
+  background:
+    rgba(5, 18, 16, .20) !important;
+
+  backdrop-filter:
+    blur(9px) saturate(1.05) !important;
+
+  -webkit-backdrop-filter:
+    blur(9px) saturate(1.05) !important;
+}
+
+/* PMD_DATE_MODAL_BACKDROP_ONLY_V2433_END */
+
+
+/* ============================================================
+   PMD_DATE_BACKDROP_FULL_VIEWPORT_V2434
+
+   Final fix for backdrop strip bug.
+
+   Cause:
+   the wrapper still had old button sizing constraints
+   such as width/max-width/flex-basis around 46px.
+
+   Fix:
+   when modal is open, the wrapper/backdrop becomes a true
+   full-screen layer. Card layout stays from working V2431.
+   ============================================================ */
+
+html.pmd-r2-date-modal-open-v2429
+#pmd-r2-date-popover-v318,
+
+body.pmd-r2-date-modal-open-v2429
+#pmd-r2-date-popover-v318,
+
+#pmd-r2-date-popover-v318.is-open {
+  position: fixed !important;
+
+  top: 0 !important;
+  right: 0 !important;
+  bottom: 0 !important;
+  left: 0 !important;
+  inset: 0 !important;
+
+  display: block !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+
+  width: 100vw !important;
+  min-width: 100vw !important;
+  max-width: 100vw !important;
+
+  height: 100vh !important;
+  min-height: 100vh !important;
+  max-height: 100vh !important;
+
+  flex: none !important;
+  flex-basis: auto !important;
+
+  margin: 0 !important;
+  padding: 0 !important;
+
+  transform: none !important;
+  overflow: visible !important;
+
+  z-index: 2147482500 !important;
+
+  pointer-events: auto !important;
+
+  background:
+    rgba(5, 18, 16, .24) !important;
+
+  backdrop-filter:
+    blur(10px) saturate(1.05) !important;
+
+  -webkit-backdrop-filter:
+    blur(10px) saturate(1.05) !important;
+}
+
+html.pmd-r2-date-modal-open-v2429
+#pmd-r2-date-popover-v318::before,
+
+body.pmd-r2-date-modal-open-v2429
+#pmd-r2-date-popover-v318::before,
+
+#pmd-r2-date-popover-v318.is-open::before {
+  content: "" !important;
+
+  position: fixed !important;
+  inset: 0 !important;
+
+  display: block !important;
+
+  width: 100vw !important;
+  height: 100vh !important;
+
+  background:
+    rgba(5, 18, 16, .24) !important;
+
+  backdrop-filter:
+    blur(10px) saturate(1.05) !important;
+
+  -webkit-backdrop-filter:
+    blur(10px) saturate(1.05) !important;
+
+  pointer-events: auto !important;
+}
+
+/*
+ * Keep the already-working centered card above the full-screen backdrop.
+ */
+html.pmd-r2-date-modal-open-v2429
+#pmd-r2-date-panel-v318,
+
+body.pmd-r2-date-modal-open-v2429
+#pmd-r2-date-panel-v318,
+
+#pmd-r2-date-popover-v318.is-open
+#pmd-r2-date-panel-v318 {
+  position: fixed !important;
+
+  top: 50% !important;
+  left: 50% !important;
+  right: auto !important;
+  bottom: auto !important;
+
+  transform:
+    translate(-50%, -50%) !important;
+
+  visibility: visible !important;
+  opacity: 1 !important;
+  display: block !important;
+
+  pointer-events: auto !important;
+
+  z-index: 2147482600 !important;
+}
+
+/*
+ * Remove only the subtitle:
+ * "Choose a quick range or custom dates"
+ * No card layout/style change.
+ */
+#pmd-r2-date-panel-v318
+.pmd-r2-date-card-head-v318 span {
+  display: none !important;
+}
+
+/*
+ * Keep the internal duplicate trigger hidden.
+ */
+#pmd-r2-date-button-v318 {
+  display: none !important;
+}
+
+/* PMD_DATE_BACKDROP_FULL_VIEWPORT_V2434_END */
