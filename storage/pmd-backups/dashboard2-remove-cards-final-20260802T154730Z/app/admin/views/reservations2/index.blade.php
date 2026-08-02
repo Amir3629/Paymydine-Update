@@ -1084,7 +1084,7 @@ body.page > .page-wrapper {
 </style>
 
 <script defer
-        src="{{ asset('app/admin/assets/js/pmd-reservations2-floor-toolbar-v316.js') }}?v=20260802_dashboard2-no-cards-final-v1"></script>
+        src="{{ asset('app/admin/assets/js/pmd-reservations2-floor-toolbar-v316.js') }}?v=20260729_d1-1-floor-colors-v1"></script>
 
 <script id="pmd-r2-toolbar-above-floor-v29-2-script">
 (function () {
