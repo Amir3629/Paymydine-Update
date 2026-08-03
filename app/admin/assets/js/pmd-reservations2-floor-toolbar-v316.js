@@ -3644,6 +3644,34 @@ button.pmd-r2-card-menu-trigger-v458::after {
         ? boot.reservations
         : [];
 
+    function reservationTableIds(item) {
+      var ids = [];
+
+      function add(value, depth) {
+        if (Array.isArray(value)) {
+          value.forEach(function (entry) {
+            add(entry, depth);
+          });
+        } else if (value && typeof value === 'object') {
+          if (depth < 1) {
+            [value.table_id, value.tableId, value.id, value.table]
+              .forEach(function (entry) {
+                add(entry, depth + 1);
+              });
+          }
+        } else if (value !== undefined && value !== null && String(value)) {
+          ids.push(String(value));
+        }
+      }
+
+      [item.table_id, item.tableId, item.table_ids, item.tableIds, item.tables]
+        .forEach(function (value) {
+          add(value, 0);
+        });
+
+      return Array.from(new Set(ids));
+    }
+
     function floorReservationStatus(reservation) {
       var status =
         reservation &&
@@ -3681,7 +3709,7 @@ button.pmd-r2-card-menu-trigger-v458::after {
         );
       })
       .forEach(function (reservation) {
-        tableIds(reservation)
+        reservationTableIds(reservation)
           .forEach(function (id) {
             var normalized =
               String(Number(id));
