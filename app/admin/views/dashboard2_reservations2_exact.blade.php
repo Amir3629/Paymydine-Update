@@ -365,7 +365,7 @@ window.PMD_DASHBOARD2_KPI_PAYLOAD = @json($pmdDashboard2KpiPayload ?? null);
   }
 </style>
 
-<script src="/app/admin/assets/js/pmd-dashboard2-kpis-v1.js?v=dashboard2-v132"></script>
+<script src="/app/admin/assets/js/pmd-dashboard2-kpis-v1.js?v=dashboard2-v1410-zero-blink"></script>
 
 {{-- PMD_DASHBOARD2_CORRECT_DONUT_STACK_V134 --}}
 <style id="pmd-dashboard2-correct-donut-stack-v134">
