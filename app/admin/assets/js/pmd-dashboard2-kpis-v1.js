@@ -5,10 +5,13 @@
 (function () {
   'use strict';
 
+  /* PMD_DASHBOARD2_V1410_ZERO_BLINK_CANONICAL_BOOT */
+  window.PMD_DASHBOARD2_ZERO_BLINK_V1410 = true;
+
   try {
     if (
       localStorage.getItem(
-        'pmd-dashboard2-chart-mode'
+        'pmd.dashboard2.salesChartMode.v1'
       ) === 'bar'
     ) {
       document.documentElement.classList.add(
@@ -747,7 +750,7 @@
     );
   }
 
-  function svgBars(rows, label) {
+  function svgBars(rows, label, initialVisibleCount) {
     if (!rows || !rows.length) return empty();
 
     var hourly =
@@ -781,15 +784,58 @@
     var gap = dimensions.plotW / rows.length;
     var barW = Math.max(5, Math.min(23, gap * 0.6));
     var baseline = dimensions.top + dimensions.plotH;
-    var indexes = axisIndexes(rows, hourly);
+
+    /* PMD_DASHBOARD2_V1410_ZERO_BLINK_CANONICAL_BOOT
+     * Build the final selected window in the first HTML string. All points
+     * remain in the SVG for the slider, but points outside the selected
+     * window are hidden before the browser gets a paint opportunity.
+     */
+    var requestedInitialVisible = Number(initialVisibleCount);
+    var initialVisible = Number.isFinite(requestedInitialVisible)
+      ? Math.max(1, Math.min(requestedInitialVisible, rows.length))
+      : rows.length;
+    var initialWindowActive = initialVisible < rows.length;
+    var initialPeakIndex = values.indexOf(peak);
+    if (initialPeakIndex < 0) initialPeakIndex = 0;
+    var initialStart = 0;
+
+    if (initialWindowActive) {
+      initialStart = hourly
+        ? Math.max(0, rows.length - initialVisible)
+        : Math.max(
+            0,
+            Math.min(
+              initialPeakIndex - Math.floor(initialVisible / 2),
+              rows.length - initialVisible
+            )
+          );
+    }
+
+    var initialEnd = initialStart + initialVisible;
+    var initialGap = dimensions.plotW / initialVisible;
+    var initialBarW = initialWindowActive
+      ? Math.max(14, Math.min(58, initialGap * 0.68, barW * 2.8))
+      : barW;
+    var visibleRows = rows.slice(initialStart, initialEnd);
+    var indexes = axisIndexes(visibleRows, hourly).map(function (index) {
+      return index + initialStart;
+    });
 
     var barsMarkup = rows.map(function (row, index) {
       var value = Number(row.sales || 0);
       var height = dimensions.plotH * value / scale.max;
-      var x =
-        dimensions.left +
-        index * gap +
-        (gap - barW) / 2;
+      var insideInitialWindow =
+        index >= initialStart && index < initialEnd;
+      var visibleIndex = index - initialStart;
+      var activeGap = initialWindowActive ? initialGap : gap;
+      var activeBarW = initialWindowActive ? initialBarW : barW;
+      var x = insideInitialWindow
+        ? dimensions.left +
+          visibleIndex * activeGap +
+          (activeGap - activeBarW) / 2
+        : dimensions.left +
+          index * gap +
+          (gap - barW) / 2;
 
       var y = baseline - height;
       var isPeak = value === peak && value > 0;
@@ -801,6 +847,7 @@
 
       return (
         '<g class="pmd-chart-focus-point" tabindex="0" ' +
+        (insideInitialWindow ? '' : 'style="display:none" ') +
         'role="img" aria-label="' + esc(aria) + '">' +
 
         '<rect class="' +
@@ -811,7 +858,7 @@
         ) +
         '" x="' + x + '" ' +
         'y="' + (value === 0 ? baseline - 1 : y) + '" ' +
-        'width="' + barW + '" ' +
+        'width="' + (insideInitialWindow ? activeBarW : barW) + '" ' +
         'height="' + (value === 0 ? 1 : Math.max(3, height)) + '">' +
         '<title>' + esc(aria) + '</title>' +
         '</rect>' +
@@ -821,10 +868,12 @@
     }).join('');
 
     var xLabels = indexes.map(function (index) {
+      var visibleLabelIndex = index - initialStart;
+      var labelGap = initialWindowActive ? initialGap : gap;
       var x =
         dimensions.left +
-        index * gap +
-        gap / 2;
+        visibleLabelIndex * labelGap +
+        labelGap / 2;
 
       return (
         '<text class="pmd-dashboard2-chart-axis-label is-x-axis" ' +
@@ -897,8 +946,32 @@
       button.setAttribute('aria-pressed', active ? 'true' : 'false');
     });
     function put(key, html){var body=root.querySelector('[data-pmd-analytics-widget="'+key+'"] [data-pmd-widget-body]');if(body)body.innerHTML=html;}
-    var s=data.sales_over_time; put('salesOverTime',s.available?(salesChartMode==='line'?svgLine(s.buckets):svgBars(s.buckets,'Sales over time bar chart')):empty(s));
-    var h=data.sales_by_hour; put('salesByHour',h.available?svgBars(h.hours,'Sales by hour bar chart'):empty(h));
+    var s=data.sales_over_time;
+    var salesCard = root.querySelector(
+      '[data-pmd-analytics-widget="salesOverTime"]'
+    );
+    var salesBody = salesCard && salesCard.querySelector('[data-pmd-widget-body]');
+
+    if (salesBody) {
+      salesBody.style.setProperty('visibility', 'hidden', 'important');
+      salesBody.style.setProperty('opacity', '0', 'important');
+    }
+
+    put(
+      'salesOverTime',
+      s.available
+        ? (salesChartMode === 'line'
+            ? svgLine(s.buckets)
+            : svgBars(s.buckets, 'Sales over time bar chart', 19))
+        : empty(s)
+    );
+    var h=data.sales_by_hour;
+    put(
+      'salesByHour',
+      h.available
+        ? svgBars(h.hours, 'Sales by hour bar chart', 15)
+        : empty(h)
+    );
     var t=data.top_items; put('topItems',t.available?(t.empty?empty(t):list(t.items,function(r){return '<span>'+esc(r.name)+'</span><b>'+esc(r.quantity)+' · '+esc(money(r.revenue))+'</b>'; })):empty(t));
     var c=(window.PMDDashboard2DonutPeriodsV1395&&window.PMDDashboard2DonutPeriodsV1395.sourceFor?window.PMDDashboard2DonutPeriodsV1395.sourceFor('categorySales'):null)||data.sales_by_category; put('categorySales',c.available?(c.empty?empty(c):svgDonut(c.categories,'category','revenue',function(r){return money(r.revenue);})) :empty(c));
     var p=(window.PMDDashboard2DonutPeriodsV1395&&window.PMDDashboard2DonutPeriodsV1395.sourceFor?window.PMDDashboard2DonutPeriodsV1395.sourceFor('paymentMethods'):null)||data.payment_methods; put('paymentMethods',p.available?(p.empty?empty(p):svgDonut(p.methods,'method','total',function(r){return money(r.total)+' · '+r.transactions;})):empty(p));
@@ -909,6 +982,34 @@
     var rv=data.reviews; put('reviews',rv.available?'<div class="pmd-dashboard2-review-score"><b>'+(rv.average===null?'—':esc(rv.average))+'</b><span>'+esc(rv.count)+' reviews</span></div>'+list(rv.latest,function(r){return '<span>'+esc(r.rating)+' ★ · '+esc(r.comment)+'</span><b>'+esc(r.date)+'</b>'; }):empty(rv));
     var tips=data.tips; put('tips',tips.available?'<dl class="pmd-dashboard2-stats"><div><dt>Today</dt><dd>'+esc(money(tips.today))+'</dd></div><div><dt>This month</dt><dd>'+esc(money(tips.month))+'</dd></div><div><dt>Average</dt><dd>'+esc(money(tips.average_tip))+'</dd></div><div><dt>Tipped orders</dt><dd>'+esc(tips.tipped_orders)+'</dd></div></dl>':empty(tips));
     var ev=data.calendar_events; put('calendarEvents',ev.available?list(ev.events,function(r){return '<span>'+esc(r.title)+'</span><b>'+esc(r.date)+'</b>'; }):empty(ev));
+
+    /* PMD_DASHBOARD2_V1410_ZERO_BLINK_CANONICAL_BOOT
+     * The fetch callback runs after this complete bundle has been evaluated,
+     * so every authority below is already available. Apply the final state
+     * synchronously and reveal exactly once.
+     */
+    if (salesCard) {
+      salesCard.dataset.pmdSalesChartMode = salesChartMode;
+    }
+
+    window.PMDDashboard2ZoomDensityV1375?.refresh?.();
+
+    if (salesChartMode === 'line') {
+      window.PMDDashboard2RealLineV1384?.apply?.();
+    }
+
+    window.PMDDashboard2StablePillV1380?.apply?.();
+    window.PMDDashboard2BarPillSmoothLineV1399?.refresh?.();
+    window.PMDDashboard2SalesAxisV1393?.refresh?.();
+
+    document.documentElement.classList.remove(
+      'pmd-dashboard2-v1403-bar-boot'
+    );
+
+    if (salesBody) {
+      salesBody.style.removeProperty('visibility');
+      salesBody.style.removeProperty('opacity');
+    }
   }
   /*
    * PMD_DASHBOARD2_V1398_NO_PILL_FLASH_PARTIAL_MODE_RENDER
@@ -998,6 +1099,14 @@
         '.pmd-dashboard2-zoom-scrubber-v1375'
       );
 
+    var preservedVisible = Number(
+      scrubber?.querySelector('input[type="range"]')?.value
+    );
+
+    if (!Number.isFinite(preservedVisible) || preservedVisible <= 0) {
+      preservedVisible = 19;
+    }
+
     if (scrubber) {
       scrubber.remove();
     }
@@ -1009,7 +1118,8 @@
               ? svgLine(source.buckets)
               : svgBars(
                   source.buckets,
-                  'Sales over time bar chart'
+                  'Sales over time bar chart',
+                  preservedVisible
                 )
           )
         : empty(source);
@@ -5081,10 +5191,18 @@
      * تمام بازه دیده می‌شود.
      * کاربر با حرکت نقطه به چپ Zoom می‌کند.
      */
+    /* PMD_DASHBOARD2_V1410_ZERO_BLINK_CANONICAL_BOOT: canonical defaults; no later correction pass. */
+    const canonicalDefault =
+      key === 'salesOverTime'
+        ? Math.min(19, total)
+        : key === 'salesByHour'
+          ? Math.min(15, total)
+          : total;
+
     const storedValue =
       zoomState.has(key)
         ? zoomState.get(key)
-        : total;
+        : canonicalDefault;
 
     const safeValue = Math.max(
       Number(input.min),
@@ -5473,18 +5591,8 @@
   }
 
   function scheduleApply() {
-    [
-      0,
-      100,
-      300,
-      700,
-      1400
-    ].forEach(delay => {
-      window.setTimeout(
-        () => applyAll(`boot-${delay}`),
-        delay
-      );
-    });
+    /* PMD_DASHBOARD2_V1410_ZERO_BLINK_CANONICAL_BOOT: V1375 now owns the synchronous defaults. */
+    return [];
   }
 
   document.addEventListener(
@@ -13889,7 +13997,7 @@
     try {
       const stored =
         localStorage.getItem(
-          'pmd-dashboard2-chart-mode'
+          'pmd.dashboard2.salesChartMode.v1'
         );
 
       if (
@@ -14199,6 +14307,23 @@
 (function () {
   'use strict';
 
+  /* PMD_DASHBOARD2_V1410_ZERO_BLINK_CANONICAL_BOOT: this delayed repair is replaced by canonical boot. */
+  if (window.PMD_DASHBOARD2_ZERO_BLINK_V1410) {
+    window.PMDDashboard2BootBarWindowV1402 = {
+      version: 'disabled-by-v1410',
+      refresh() { return this.audit(); },
+      stop() { return this.audit(); },
+      audit() {
+        return {
+          version: 'disabled-by-v1410',
+          disabled: true,
+          replacement: 'PMD_DASHBOARD2_V1410_ZERO_BLINK_CANONICAL_BOOT'
+        };
+      }
+    };
+    return;
+  }
+
   if (
     window
       .PMDDashboard2BootBarWindowV1402
@@ -14265,7 +14390,7 @@
     try {
       const stored =
         localStorage.getItem(
-          'pmd-dashboard2-chart-mode'
+          'pmd.dashboard2.salesChartMode.v1'
         );
 
       if (
@@ -14648,6 +14773,23 @@
 (function () {
   'use strict';
 
+  /* PMD_DASHBOARD2_V1410_ZERO_BLINK_CANONICAL_BOOT: this delayed repair is replaced by canonical boot. */
+  if (window.PMD_DASHBOARD2_ZERO_BLINK_V1410) {
+    window.PMDDashboard2FinalBarBootV1403 = {
+      version: 'disabled-by-v1410',
+      refresh() { return this.audit(); },
+      stop() { return this.audit(); },
+      audit() {
+        return {
+          version: 'disabled-by-v1410',
+          disabled: true,
+          replacement: 'PMD_DASHBOARD2_V1410_ZERO_BLINK_CANONICAL_BOOT'
+        };
+      }
+    };
+    return;
+  }
+
   if (
     window
       .PMDDashboard2FinalBarBootV1403
@@ -14719,7 +14861,7 @@
     try {
       const stored =
         localStorage.getItem(
-          'pmd-dashboard2-chart-mode'
+          'pmd.dashboard2.salesChartMode.v1'
         );
 
       if (
