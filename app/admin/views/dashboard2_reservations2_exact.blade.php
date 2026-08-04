@@ -12,12 +12,41 @@ window.PMD_DASHBOARD2_KPIS = @json($pmdDashboard2Kpis ?? []);
 window.PMD_DASHBOARD2_KPI_PAYLOAD = @json($pmdDashboard2KpiPayload ?? null);
 </script>
 
-@include('admin::reservations2.index')
+<!--
+  PMD_DASHBOARD2_V1413_FIRST_PAINT_LOCK
 
+  Dashboard2 CSS and the initial opacity lock are loaded before
+  reservations2.index so native Reservations UI cannot paint first.
+-->
 <link
     rel="stylesheet"
-    href="/app/admin/assets/css/pmd-dashboard2-kpis-v1.css?v=one-row-flip-v113-20260803_105152"
+    href="/app/admin/assets/css/pmd-dashboard2-kpis-v1.css?v=dashboard2-v1413-fast-reveal"
 >
+
+<style id="pmd-dashboard2-v1413-first-paint-lock">
+  html.pmd-dashboard2-r2-exact body {
+    background: #f8fbfd !important;
+  }
+
+  html.pmd-dashboard2-r2-exact:not(.pmd-dashboard2-v1413-ready)
+  body #pmd-reservations2 {
+    opacity: 0 !important;
+    pointer-events: none !important;
+    transition: none !important;
+    animation: none !important;
+  }
+
+  html.pmd-dashboard2-r2-exact.pmd-dashboard2-v1413-ready
+  body #pmd-reservations2 {
+    opacity: 1 !important;
+    pointer-events: auto !important;
+    transition: none !important;
+    animation: none !important;
+  }
+</style>
+
+@include('admin::reservations2.index')
+
 
 
 
@@ -365,7 +394,7 @@ window.PMD_DASHBOARD2_KPI_PAYLOAD = @json($pmdDashboard2KpiPayload ?? null);
   }
 </style>
 
-<script src="/app/admin/assets/js/pmd-dashboard2-kpis-v1.js?v=dashboard2-v132"></script>
+<script src="/app/admin/assets/js/pmd-dashboard2-kpis-v1.js?v=dashboard2-v1414-scoped-late-render"></script>
 
 {{-- PMD_DASHBOARD2_CORRECT_DONUT_STACK_V134 --}}
 <style id="pmd-dashboard2-correct-donut-stack-v134">
