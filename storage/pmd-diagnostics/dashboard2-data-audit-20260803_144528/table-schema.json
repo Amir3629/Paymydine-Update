@@ -1,0 +1,258 @@
+
+
+{
+    "orders": {
+        "exists": true,
+        "columns": [
+            "order_id",
+            "external_order_number",
+            "source_key",
+            "is_imported_ready2order",
+            "customer_id",
+            "first_name",
+            "last_name",
+            "email",
+            "telephone",
+            "location_id",
+            "address_id",
+            "cart",
+            "total_items",
+            "comment",
+            "payment",
+            "stripe_payment_intent_id",
+            "fiskaly_status",
+            "fiskaly_transaction_id_ref",
+            "fiskaly_qr_code_data",
+            "fiskaly_signature_counter",
+            "fiskaly_tx_number",
+            "fiskaly_serial_number",
+            "order_type",
+            "created_at",
+            "updated_at",
+            "order_time",
+            "order_date",
+            "order_total",
+            "estimated_prep_minutes",
+            "status_id",
+            "ip_address",
+            "user_agent",
+            "assignee_id",
+            "assignee_group_id",
+            "invoice_prefix",
+            "invoice_date",
+            "hash",
+            "processed",
+            "status_updated_at",
+            "assignee_updated_at",
+            "order_time_is_asap",
+            "delivery_comment",
+            "ms_order_type",
+            "settlement_status",
+            "settled_amount",
+            "settlement_method",
+            "settlement_reference",
+            "settled_at"
+        ]
+    },
+    "order_items": {
+        "exists": false,
+        "columns": []
+    },
+    "order_totals": {
+        "exists": true,
+        "columns": [
+            "order_total_id",
+            "order_id",
+            "code",
+            "title",
+            "value",
+            "priority",
+            "is_summable"
+        ]
+    },
+    "order_menus": {
+        "exists": true,
+        "columns": [
+            "order_menu_id",
+            "order_id",
+            "menu_id",
+            "name",
+            "quantity",
+            "price",
+            "subtotal",
+            "option_values",
+            "comment"
+        ]
+    },
+    "payments": {
+        "exists": true,
+        "columns": [
+            "payment_id",
+            "name",
+            "code",
+            "class_name",
+            "description",
+            "data",
+            "status",
+            "is_default",
+            "priority",
+            "created_at",
+            "updated_at"
+        ]
+    },
+    "payment_logs": {
+        "exists": true,
+        "columns": [
+            "payment_log_id",
+            "order_id",
+            "payment_name",
+            "message",
+            "request",
+            "response",
+            "is_success",
+            "created_at",
+            "updated_at",
+            "payment_code",
+            "is_refundable",
+            "refunded_at"
+        ]
+    },
+    "reviews": {
+        "exists": true,
+        "columns": [
+            "review_id",
+            "order_id",
+            "menu_id",
+            "customer_name",
+            "rating",
+            "comment",
+            "status",
+            "source",
+            "customer_id",
+            "sale_id",
+            "sale_type",
+            "location_id",
+            "tenant_host",
+            "author",
+            "quality",
+            "service",
+            "delivery",
+            "review_text",
+            "review_status",
+            "public_share_consent",
+            "created_at",
+            "updated_at"
+        ]
+    },
+    "ratings": {
+        "exists": false,
+        "columns": []
+    },
+    "customer_reviews": {
+        "exists": false,
+        "columns": []
+    },
+    "reservations": {
+        "exists": true,
+        "columns": [
+            "reservation_id",
+            "location_id",
+            "table_id",
+            "guest_num",
+            "occasion_id",
+            "customer_id",
+            "first_name",
+            "last_name",
+            "email",
+            "telephone",
+            "comment",
+            "reserve_time",
+            "reserve_date",
+            "created_at",
+            "updated_at",
+            "assignee_id",
+            "assignee_group_id",
+            "notify",
+            "ip_address",
+            "user_agent",
+            "status_id",
+            "hash",
+            "duration",
+            "processed",
+            "status_updated_at",
+            "assignee_updated_at"
+        ]
+    },
+    "events": {
+        "exists": false,
+        "columns": []
+    },
+    "calendar_events": {
+        "exists": false,
+        "columns": []
+    },
+    "statuses": {
+        "exists": true,
+        "columns": [
+            "status_id",
+            "status_name",
+            "status_comment",
+            "notify_customer",
+            "status_for",
+            "status_color",
+            "created_at",
+            "updated_at"
+        ]
+    },
+    "tables": {
+        "exists": true,
+        "columns": [
+            "table_id",
+            "table_no",
+            "table_name",
+            "pos_table_label",
+            "min_capacity",
+            "max_capacity",
+            "table_status",
+            "operational_status",
+            "operational_status_updated_at",
+            "operational_status_updated_by",
+            "extra_capacity",
+            "is_joinable",
+            "priority",
+            "created_at",
+            "updated_at",
+            "qr_code",
+            "floor_x",
+            "floor_y",
+            "floor_width",
+            "floor_height",
+            "floor_shape",
+            "table_section",
+            "preferred_capacity",
+            "table_features",
+            "floor_notes",
+            "reservable",
+            "reservation_priority",
+            "visible_on_floor_plan",
+            "floor_name",
+            "floor_sort",
+            "table_zone"
+        ]
+    },
+    "pmd_table_status_history": {
+        "exists": true,
+        "columns": [
+            "id",
+            "table_id",
+            "old_status",
+            "new_status",
+            "reason",
+            "actor_id",
+            "order_id",
+            "context",
+            "created_at",
+            "updated_at"
+        ]
+    }
+}

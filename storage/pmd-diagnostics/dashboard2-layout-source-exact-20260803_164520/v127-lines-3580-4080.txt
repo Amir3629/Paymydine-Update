@@ -1,0 +1,480 @@
+  3580	        );
+  3581	      } catch (error) {}
+  3582	
+  3583	      return {
+  3584	        version: '11.7.0',
+  3585	
+  3586	        workspaceFound:
+  3587	          Boolean(workspace),
+  3588	
+  3589	        setChartModeFound:
+  3590	          typeof workspace?.setChartMode === 'function',
+  3591	
+  3592	        getChartModeFound:
+  3593	          typeof workspace?.getChartMode === 'function',
+  3594	
+  3595	        closureMode:
+  3596	          closureMode,
+  3597	
+  3598	        storedMode:
+  3599	          storedMode,
+  3600	
+  3601	        currentSvgType:
+  3602	          svgType,
+  3603	
+  3604	        modesSynchronized:
+  3605	          Boolean(
+  3606	            closureMode &&
+  3607	            closureMode === storedMode &&
+  3608	            closureMode === svgType
+  3609	          ),
+  3610	
+  3611	        recurringInterval:
+  3612	          false,
+  3613	
+  3614	        mutationObserver:
+  3615	          false
+  3616	      };
+  3617	    }
+  3618	  };
+  3619	})();
+  3620	
+  3621	
+  3622	/* PMD_DASHBOARD2_SHARP_COLORS_V121 */
+  3623	(function () {
+  3624	  'use strict';
+  3625	
+  3626	  if (
+  3627	    location.pathname.replace(/\/+$/, '') !==
+  3628	    '/admin/dashboard2'
+  3629	  ) {
+  3630	    return;
+  3631	  }
+  3632	
+  3633	  var id = 'pmd-dashboard2-sharp-colors-v121';
+  3634	
+  3635	  if (document.getElementById(id)) {
+  3636	    return;
+  3637	  }
+  3638	
+  3639	  var style = document.createElement('style');
+  3640	  style.id = id;
+  3641	
+  3642	  style.textContent = `
+  3643	    #pmd-dashboard2-analytics-v1 {
+  3644	      --pmd-vivid-green: #00A676;
+  3645	      --pmd-vivid-green-dark: #007A59;
+  3646	      --pmd-vivid-blue: #2563EB;
+  3647	      --pmd-vivid-orange: #FF8A00;
+  3648	      --pmd-vivid-purple: #D946EF;
+  3649	      --pmd-vivid-cyan: #06B6D4;
+  3650	      --pmd-vivid-red: #EF4444;
+  3651	      --pmd-vivid-ink: #102A43;
+  3652	    }
+  3653	
+  3654	    #pmd-dashboard2-analytics-v1
+  3655	#pmd-dashboard2-analytics-v1
+  3656	#pmd-dashboard2-analytics-v1
+  3657	#pmd-dashboard2-analytics-v1
+  3658	    .pmd-dashboard2-analytics-card h3 {
+  3659	      color: var(--pmd-vivid-ink) !important;
+  3660	      font-weight: 800 !important;
+  3661	    }
+  3662	
+  3663	    #pmd-dashboard2-analytics-v1
+  3664	    .pmd-chart-line {
+  3665	      stroke: var(--pmd-vivid-green) !important;
+  3666	      stroke-width: 4 !important;
+  3667	      filter:
+  3668	        drop-shadow(0 2px 3px rgba(0, 166, 118, 0.25));
+  3669	    }
+  3670	
+  3671	    #pmd-dashboard2-analytics-v1
+  3672	    .pmd-dashboard2-chart circle:not(.pmd-chart-grid) {
+  3673	      fill: #FFFFFF !important;
+  3674	      stroke: var(--pmd-vivid-green) !important;
+  3675	      stroke-width: 4 !important;
+  3676	    }
+  3677	
+  3678	    #pmd-dashboard2-analytics-v1
+  3679	    .pmd-dashboard2-chart rect:not(.is-zero) {
+  3680	      fill: var(--pmd-vivid-green) !important;
+  3681	    }
+  3682	
+  3683	    #pmd-dashboard2-analytics-v1
+  3684	    .pmd-dashboard2-chart rect.is-peak {
+  3685	      fill: var(--pmd-vivid-orange) !important;
+  3686	      filter:
+  3687	        drop-shadow(0 3px 3px rgba(255, 138, 0, 0.25));
+  3688	    }
+  3689	
+  3690	    #pmd-dashboard2-analytics-v1
+  3691	    .pmd-dashboard2-chart rect.is-zero {
+  3692	      fill: rgba(0, 166, 118, 0.12) !important;
+  3693	    }
+  3694	
+  3695	    #pmd-dashboard2-analytics-v1
+  3696	    .pmd-chart-grid {
+  3697	      stroke: rgba(16, 42, 67, 0.13) !important;
+  3698	    }
+  3699	
+  3700	    #pmd-dashboard2-analytics-v1
+  3701	    .pmd-dashboard2-chart-toggle button.is-active,
+  3702	    #pmd-dashboard2-analytics-v1
+  3703	    .pmd-dashboard2-chart-toggle button[aria-pressed="true"] {
+  3704	      background: var(--pmd-vivid-green-dark) !important;
+  3705	      border-color: var(--pmd-vivid-green-dark) !important;
+  3706	      color: #FFFFFF !important;
+  3707	      box-shadow:
+  3708	        0 3px 8px rgba(0, 122, 89, 0.3) !important;
+  3709	    }
+  3710	
+  3711	    #pmd-dashboard2-analytics-v1
+  3712	    .pmd-dashboard2-live-summary b,
+  3713	    #pmd-dashboard2-analytics-v1
+  3714	    .pmd-dashboard2-review-score b,
+  3715	    #pmd-dashboard2-analytics-v1
+  3716	    .pmd-dashboard2-stats dd {
+  3717	      color: var(--pmd-vivid-green-dark) !important;
+  3718	    }
+  3719	
+  3720	    #pmd-dashboard2-analytics-v1
+  3721	    [data-pmd-analytics-widget="alerts"]
+  3722	    .pmd-dashboard2-data-list li:nth-child(1) b,
+  3723	    #pmd-dashboard2-analytics-v1
+  3724	    [data-pmd-analytics-widget="alerts"]
+  3725	    .pmd-dashboard2-data-list li:nth-child(2) b {
+  3726	      color: var(--pmd-vivid-red) !important;
+  3727	    }
+  3728	
+  3729	    #pmd-dashboard2-analytics-v1
+  3730	    [data-pmd-analytics-widget="alerts"]
+  3731	    .pmd-dashboard2-data-list li:nth-child(3) b {
+  3732	      color: var(--pmd-vivid-orange) !important;
+  3733	    }
+  3734	
+  3735	    #pmd-dashboard2-analytics-v1
+  3736	    .pmd-dashboard2-empty {
+  3737	      color: #64748B !important;
+  3738	    }
+  3739	
+  3740	    #pmd-dashboard2-analytics-v1
+  3741	    .pmd-chart-legend i {
+  3742	      box-shadow:
+  3743	        0 0 0 2px #FFFFFF,
+  3744	        0 0 0 3px rgba(16, 42, 67, 0.15);
+  3745	    }
+  3746	  `;
+  3747	
+  3748	  document.head.appendChild(style);
+  3749	
+  3750	  window.PMDDashboard2SharpColorsV121 = {
+  3751	    version: '1.2.1',
+  3752	    palette: [
+  3753	      '#00A676',
+  3754	      '#2563EB',
+  3755	      '#FF8A00',
+  3756	      '#D946EF',
+  3757	      '#06B6D4',
+  3758	      '#EF4444'
+  3759	    ],
+  3760	    audit: function () {
+  3761	      return {
+  3762	        version: '1.2.1',
+  3763	        stylePresent: Boolean(
+  3764	          document.getElementById(id)
+  3765	        ),
+  3766	        deliveryLegendPresent:
+  3767	          Array.from(
+  3768	            document.querySelectorAll(
+  3769	              '[data-pmd-analytics-widget="channelSplit"] ' +
+  3770	              '.pmd-chart-legend span'
+  3771	            )
+  3772	          ).some(function (node) {
+  3773	            return node.textContent.trim() === 'Delivery';
+  3774	          })
+  3775	      };
+  3776	    }
+  3777	  };
+  3778	
+  3779	  console.info(
+  3780	    '[PMD Dashboard2 Sharp Colors V1.2.1] Ready',
+  3781	    window.PMDDashboard2SharpColorsV121.audit()
+  3782	  );
+  3783	})();
+  3784	
+  3785	
+  3786	/* PMD_DASHBOARD2_SINGLE_LAYOUT_AUTHORITY_V127 */
+  3787	(function () {
+  3788	  'use strict';
+  3789	
+  3790	  if (
+  3791	    location.pathname.replace(/\/+$/, '') !==
+  3792	    '/admin/dashboard2'
+  3793	  ) {
+  3794	    return;
+  3795	  }
+  3796	
+  3797	  var VERSION = '1.2.7';
+  3798	  var applied = false;
+  3799	  var attempts = 0;
+  3800	  var timers = [];
+  3801	
+  3802	  var order = [
+  3803	    'salesOverTime',
+  3804	    'categorySales',
+  3805	    'salesByHour',
+  3806	    'paymentMethods',
+  3807	
+  3808	    'recentTransactions',
+  3809	    'alerts',
+  3810	    'liveOperations',
+  3811	    'channelSplit',
+  3812	
+  3813	    'topItems',
+  3814	    'tips',
+  3815	    'reviews',
+  3816	
+  3817	    'calendarEvents'
+  3818	  ];
+  3819	
+  3820	  var columns = {
+  3821	    salesOverTime: 'span 9',
+  3822	    categorySales: 'span 3',
+  3823	
+  3824	    salesByHour: 'span 9',
+  3825	    paymentMethods: 'span 3',
+  3826	
+  3827	    recentTransactions: 'span 4',
+  3828	    alerts: 'span 2',
+  3829	    liveOperations: 'span 3',
+  3830	    channelSplit: 'span 3',
+  3831	
+  3832	    topItems: 'span 4',
+  3833	    tips: 'span 4',
+  3834	    reviews: 'span 4',
+  3835	
+  3836	    calendarEvents: 'span 12'
+  3837	  };
+  3838	
+  3839	  function analyticsRoot() {
+  3840	    return document.getElementById(
+  3841	      'pmd-dashboard2-analytics-v1'
+  3842	    );
+  3843	  }
+  3844	
+  3845	  function analyticsGrid() {
+  3846	    var root = analyticsRoot();
+  3847	
+  3848	    if (!root) {
+  3849	      return null;
+  3850	    }
+  3851	
+  3852	    return (
+  3853	      root.querySelector(
+  3854	        '[data-pmd-analytics-grid]'
+  3855	      ) ||
+  3856	      root.querySelector(
+  3857	        '.pmd-dashboard2-analytics-grid'
+  3858	      )
+  3859	    );
+  3860	  }
+  3861	
+  3862	  function card(key) {
+  3863	    var root = analyticsRoot();
+  3864	
+  3865	    return root
+  3866	      ? root.querySelector(
+  3867	          '[data-pmd-analytics-widget="' +
+  3868	          key +
+  3869	          '"]'
+  3870	        )
+  3871	      : null;
+  3872	  }
+  3873	
+  3874	  function cancelTimers() {
+  3875	    timers.forEach(function (timer) {
+  3876	      clearTimeout(timer);
+  3877	    });
+  3878	
+  3879	    timers = [];
+  3880	  }
+  3881	
+  3882	  function apply() {
+  3883	    attempts += 1;
+  3884	
+  3885	    var grid = analyticsGrid();
+  3886	
+  3887	    if (!grid) {
+  3888	      return false;
+  3889	    }
+  3890	
+  3891	    var cards = order.map(card);
+  3892	
+  3893	    if (
+  3894	      cards.some(function (element) {
+  3895	        return !element;
+  3896	      })
+  3897	    ) {
+  3898	      return false;
+  3899	    }
+  3900	
+  3901	    /*
+  3902	     * Physical DOM order ensures old order values
+  3903	     * can no longer split the requested rows.
+  3904	     */
+  3905	    cards.forEach(function (element) {
+  3906	      grid.appendChild(element);
+  3907	    });
+  3908	
+  3909	    grid.style.setProperty(
+  3910	      'display',
+  3911	      'grid',
+  3912	      'important'
+  3913	    );
+  3914	
+  3915	    grid.style.setProperty(
+  3916	      'grid-template-columns',
+  3917	      'repeat(12, minmax(0, 1fr))',
+  3918	      'important'
+  3919	    );
+  3920	
+  3921	    grid.style.setProperty(
+  3922	      'gap',
+  3923	      '18px',
+  3924	      'important'
+  3925	    );
+  3926	
+  3927	    grid.style.setProperty(
+  3928	      'align-items',
+  3929	      'start',
+  3930	      'important'
+  3931	    );
+  3932	
+  3933	    order.forEach(function (key, index) {
+  3934	      var element = card(key);
+  3935	
+  3936	      element.style.setProperty(
+  3937	        'order',
+  3938	        String(index + 1),
+  3939	        'important'
+  3940	      );
+  3941	
+  3942	      element.style.setProperty(
+  3943	        'grid-column',
+  3944	        columns[key],
+  3945	        'important'
+  3946	      );
+  3947	
+  3948	      element.style.setProperty(
+  3949	        'align-self',
+  3950	        'start',
+  3951	        'important'
+  3952	      );
+  3953	
+  3954	      element.style.setProperty(
+  3955	        'height',
+  3956	        'auto',
+  3957	        'important'
+  3958	      );
+  3959	
+  3960	      element.style.setProperty(
+  3961	        'transition',
+  3962	        'none',
+  3963	        'important'
+  3964	      );
+  3965	
+  3966	      element.style.setProperty(
+  3967	        'animation',
+  3968	        'none',
+  3969	        'important'
+  3970	      );
+  3971	    });
+  3972	
+  3973	    applied = true;
+  3974	    cancelTimers();
+  3975	
+  3976	    return true;
+  3977	  }
+  3978	
+  3979	  function start() {
+  3980	    [
+  3981	      0,
+  3982	      80,
+  3983	      180,
+  3984	      350,
+  3985	      650,
+  3986	      1000,
+  3987	      1600
+  3988	    ].forEach(function (delay) {
+  3989	      timers.push(
+  3990	        setTimeout(function () {
+  3991	          if (!applied) {
+  3992	            apply();
+  3993	          }
+  3994	        }, delay)
+  3995	      );
+  3996	    });
+  3997	  }
+  3998	
+  3999	  function audit() {
+  4000	    var widgets = {};
+  4001	
+  4002	    order.forEach(function (key) {
+  4003	      var element = card(key);
+  4004	
+  4005	      widgets[key] = element
+  4006	        ? {
+  4007	            domIndex:
+  4008	              Array.prototype.indexOf.call(
+  4009	                element.parentElement.children,
+  4010	                element
+  4011	              ),
+  4012	            order:
+  4013	              getComputedStyle(element).order,
+  4014	            gridColumn:
+  4015	              getComputedStyle(element).gridColumn,
+  4016	            inlineOrder:
+  4017	              element.style.getPropertyValue(
+  4018	                'order'
+  4019	              ),
+  4020	            inlineOrderPriority:
+  4021	              element.style.getPropertyPriority(
+  4022	                'order'
+  4023	              ),
+  4024	            inlineGridColumn:
+  4025	              element.style.getPropertyValue(
+  4026	                'grid-column'
+  4027	              ),
+  4028	            inlineGridColumnPriority:
+  4029	              element.style.getPropertyPriority(
+  4030	                'grid-column'
+  4031	              )
+  4032	          }
+  4033	        : null;
+  4034	    });
+  4035	
+  4036	    return {
+  4037	      version: VERSION,
+  4038	      applied: applied,
+  4039	      attempts: attempts,
+  4040	      pendingRetries: timers.length,
+  4041	      mutationObserver: false,
+  4042	      recurringInterval: false,
+  4043	      resizeListener: false,
+  4044	      widgets: widgets
+  4045	    };
+  4046	  }
+  4047	
+  4048	  window.PMDDashboard2SingleLayoutAuthorityV127 = {
+  4049	    version: VERSION,
+  4050	    apply: apply,
+  4051	    audit: audit
+  4052	  };
+  4053	
+  4054	  start();
+  4055	
+  4056	  console.info(
+  4057	    '[PMD Dashboard2 Single Layout Authority V1.2.7] Waiting'
+  4058	  );
+  4059	})();

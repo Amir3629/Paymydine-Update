@@ -1,0 +1,5 @@
+
+
+
+   Illuminate\Database\QueryException  SQLSTATE[42S22]: Column not found: 1054 Unknown column 'locale' in 'SELECT' (SQL: select `language_id`, `name`, `code`, `locale`, `status` from `ti_languages` order by `language_id` asc).
+

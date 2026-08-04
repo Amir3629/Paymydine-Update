@@ -1,0 +1,173 @@
+routes/root-app-before.php:519:    Route::get('/payments', function () {
+routes/api.php:639:            'provider_code' => $row->provider_code,
+routes/worldline-probe.php:19:\Route::get('/payments/worldline/debug-config', function () {
+routes/admin-app-before.php:792:        ['code' => 'card', 'name' => 'Card', 'provider_code' => 'stripe', 'enabled' => true, 'priority' => 1],
+routes/admin-app-before.php:793:        ['code' => 'apple_pay', 'name' => 'Apple Pay', 'provider_code' => 'stripe', 'enabled' => true, 'priority' => 2],
+routes/admin-app-before.php:794:        ['code' => 'google_pay', 'name' => 'Google Pay', 'provider_code' => 'stripe', 'enabled' => true, 'priority' => 3],
+routes/admin-app-before.php:795:        ['code' => 'wero', 'name' => 'Wero', 'provider_code' => 'worldline', 'enabled' => false, 'priority' => 4],
+routes/admin-app-before.php:796:        ['code' => 'paypal', 'name' => 'PayPal', 'provider_code' => 'paypal', 'enabled' => true, 'priority' => 5],
+routes/admin-app-before.php:797:        ['code' => 'cod', 'name' => 'Cash', 'provider_code' => null, 'enabled' => true, 'priority' => 6],
+routes/admin-app-before.php:867:                $resolvedProvider = $row->provider_code ?? ($meta['provider_code'] ?? null);
+routes/admin-app-before.php:884:                $providerSource = $row->provider_code !== null ? 'column:provider_code' : (array_key_exists('provider_code', $meta) ? 'meta.provider_code' : 'default');
+routes/admin-app-before.php:888:                    'provider_code' => $resolvedProvider,
+routes/admin-app-before.php:1085:        $cardMethodConfigured = (bool)(($methods->get('card')['enabled'] ?? false) && (($methods->get('card')['provider_code'] ?? null) === 'stripe'));
+routes/admin-app-before.php:1086:        $appleMethodConfigured = (bool)(($methods->get('apple_pay')['enabled'] ?? false) && (($methods->get('apple_pay')['provider_code'] ?? null) === 'stripe'));
+routes/admin-app-before.php:1087:        $googleMethodConfigured = (bool)(($methods->get('google_pay')['enabled'] ?? false) && (($methods->get('google_pay')['provider_code'] ?? null) === 'stripe'));
+routes/admin-app-before.php:1088:        $weroMethodConfigured = (bool)(($methods->get('wero')['enabled'] ?? false) && (($methods->get('wero')['provider_code'] ?? null) === 'stripe'));
+routes/admin-app-before.php:1230:            'provider_code' => 'vr_payment',
+routes/admin-app-before.php:1388:            $configuredProvider = $m['provider_code'] ?? null;
+routes/admin-app-before.php:1395:                        'provider_code' => null,
+routes/admin-app-before.php:1462:                    'source_of_truth' => $m['source_of_truth'] ?? 'payment_methods.provider_code',
+routes/admin-app-before.php:1471:                'provider_code' => $selectedProvider,
+routes/admin-app-before.php:1483:                'source_of_truth' => $m['source_of_truth'] ?? 'payment_methods.provider_code',
+routes/admin-app-before.php:1505:    Route::get('/payments', function () use ($resolveRuntimeMethodCollection) {
+routes/admin-app-before.php:1510:    Route::get('/payments/debug/availability-trace', function () use ($resolveRuntimeMethodCollection) {
+routes/admin-app-before.php:1536:    Route::get('/payments/vr-payment/diagnostics', function () use ($resolveRuntimeMethodCollection, $resolveVRPaymentRuntimeReadiness) {
+routes/admin-app-before.php:1551:                'provider_code' => (string)($m['provider_code'] ?? ''),
+routes/admin-app-before.php:1560:                    'provider_code' => (string)($trace['configured_provider'] ?? ''),
+routes/admin-app-before.php:1586:            'return_status_endpoint' => '/api/v1/payments/vr-payment/return-status',
+routes/admin-app-before.php:1587:            'webhook_endpoint' => '/api/v1/payments/vr-payment/webhook',
+routes/admin-app-before.php:1605:                    'provider_code' => $m['provider_code'] ?? null,
+routes/admin-app-before.php:1639:                    'provider_code' => array_key_exists('provider_code', $m) ? ($m['provider_code'] ?: null) : $base['provider_code'],
+routes/admin-app-before.php:1651:            $providerCode = $method['provider_code'] ?? null;
+routes/admin-app-before.php:1674:            $providerCode = $method['provider_code'] ?? null;
+routes/admin-app-before.php:1681:            $config['provider_code'] = $providerCode;
+routes/admin-app-before.php:1692:            if (\Illuminate\Support\Facades\Schema::hasColumn($row->getTable(), 'provider_code')) {
+routes/admin-app-before.php:1693:                $row->provider_code = $providerCode;
+routes/admin-app-before.php:1710:                    'provider_code' => $providerCode,
+routes/admin-app-before.php:1776:    Route::get('/payments/stripe/config', function () use ($defaultPaymentMethods, $defaultPaymentProviders, $loadJsonSetting, $availableProviderCodesForMethod, $resolveStripeRuntimeReadiness, $loadMethodRecordsFromPayments) {
+routes/admin-app-before.php:1795:            $providerCode = $method['provider_code'] ?? null;
+routes/admin-app-before.php:1858:        $providerCode = (string)($cardMethod['provider_code'] ?? '');
+routes/admin-app-before.php:2309:            $selectedProvider = strtolower((string)($selected['provider_code'] ?? ''));
+routes/admin-app-before.php:2537:    Route::get('/payments/worldline/auth-diagnostic', function () {
+routes/admin-app-before.php:2601:    Route::get('/payments/worldline/status/{hostedCheckoutId}', function (string $hostedCheckoutId) {
+routes/admin-app-before.php:2635:    Route::get('/payments/worldline/return', function (\Illuminate\Http\Request $request) {
+routes/admin-app-before.php:2766:    Route::get('/payments/worldline/create-debug/{hostedCheckoutId}', function (string $hostedCheckoutId) {
+routes/admin-app-before.php:2903:    Route::get('/payments/sumup/health', function () {
+routes/admin-app-before.php:2941:    Route::get('/payments/sumup/debug', function () {
+routes/admin-app-before.php:3058:    Route::get('/payments/worldline/wero/debug-last', function () use ($loadWorldlineWeroDebug) {
+routes/admin-app-before.php:3066:    Route::get('/payments/worldline/wero/availability-last', function () use ($loadWorldlineWeroDebug) {
+routes/admin-app-before.php:3090:        $providerCode = (string)($weroMethod['provider_code'] ?? '');
+routes/admin-app-before.php:3395:        $providerCode = strtolower((string)($weroMethod['provider_code'] ?? 'stripe'));
+routes/admin-app-before.php:3654:        $paypalMethodEnabled = (bool)(($methods->get('paypal')['enabled'] ?? false) && (($methods->get('paypal')['provider_code'] ?? null) === 'paypal'));
+routes/admin-app-before.php:3655:        $cardMethodEnabled = (bool)(($methods->get('card')['enabled'] ?? false) && (($methods->get('card')['provider_code'] ?? null) === 'paypal'));
+routes/admin-app-before.php:3656:        $applePayMethodEnabled = (bool)(($methods->get('apple_pay')['enabled'] ?? false) && (($methods->get('apple_pay')['provider_code'] ?? null) === 'paypal'));
+routes/admin-app-before.php:3657:        $googlePayMethodEnabled = (bool)(($methods->get('google_pay')['enabled'] ?? false) && (($methods->get('google_pay')['provider_code'] ?? null) === 'paypal'));
+routes/admin-app-before.php:3698:    Route::get('/payments/config-public', function () use ($resolvePaypalRuntimeConfig) {
+routes/admin-app-before.php:4531:                            'provider_code' => strtolower((string)($row->provider_code ?? ($data['provider_code'] ?? ''))),
+routes/admin-app-before.php:4540:                $normalizedPaymentProvider = strtolower((string)($methodConfigByCode->get($normalizedPaymentMethodRaw)['provider_code']
+routes/admin-app-before.php:4541:                    ?? $methodConfigByCode->get($normalizedPaymentMethod)['provider_code']
+routes/admin-app-before.php:4679:                $frontendPaymentProvider = strtolower((string)($methodConfigByCode->get($frontendPaymentMethodRaw)['provider_code'] ?? ''));
+routes/terminal-payments.php:16:            'provider_code' => ['required', 'string', 'max:50'],
+routes/terminal-payments.php:20:        return response()->json($service->createAttempt((int)$data['order_id'], (string)$data['provider_code'], $data['terminal_id'] ?? null));
+app/main/routes_sumup.php:123:    Route::get('/payments/sumup/merchant-profile', function () {
+app/main/routes_sumup.php:151:            'route' => '/api/v1/payments/sumup/create-checkout',
+app/main/routes_sumup.php:152:            'canonical_route' => '/api/v1/payments/card/create-session',
+app/main/routes_sumup.php:160:            ], 404, '/api/v1/payments/card/create-session');
+app/main/routes_sumup.php:178:            ], 400, '/api/v1/payments/card/create-session');
+app/main/routes_sumup.php:226:        ], $resp->status(), '/api/v1/payments/card/create-session');
+app/main/routes_sumup.php:229:    Route::get('/payments/sumup/checkout/{checkoutId}', function ($checkoutId) {
+app/main/routes_sumup.php:231:            'route' => '/api/v1/payments/sumup/checkout/{checkoutId}',
+app/main/routes_sumup.php:232:            'canonical_route' => '/api/v1/payments/sumup/checkout-status',
+app/main/routes_sumup.php:240:            ], 404, '/api/v1/payments/sumup/checkout-status');
+app/main/routes_sumup.php:254:        ], $resp->status(), '/api/v1/payments/sumup/checkout-status');
+app/main/routes_sumup.php:259:            'route' => '/api/v1/payments/sumup/refund/{txnId}',
+app/main/routes_sumup.php:260:            'canonical_route' => '/api/v1/payments/sumup/refund',
+app/main/routes_sumup.php:268:            ], 404, '/api/v1/payments/sumup/refund');
+app/main/routes_sumup.php:297:        ], $resp->status(), '/api/v1/payments/sumup/refund');
+app/main/routes_sumup.php:303:            'canonical_route' => '/api/v1/payments/sumup/webhook',
+app/main/routes_sumup.php:313:            return pmdSumupCompatResponse(['success' => false, 'error' => 'SumUp configuration not found'], 404, '/api/v1/payments/sumup/webhook');
+app/main/routes_sumup.php:338:        return pmdSumupCompatResponse(['success' => true], 200, '/api/v1/payments/sumup/webhook');
+app/main/routes_sumup.php:347:        'canonical_route' => '/api/v1/payments/card/create-session',
+app/main/routes_sumup.php:356:            ], 404, '/api/v1/payments/card/create-session');
+app/main/routes_sumup.php:373:            ], 422, '/api/v1/payments/card/create-session');
+app/main/routes_sumup.php:387:            ], 422, '/api/v1/payments/card/create-session');
+app/main/routes_sumup.php:418:        ], $resp->status(), '/api/v1/payments/card/create-session');
+app/main/routes_sumup.php:427:        ], 500, '/api/v1/payments/card/create-session');
+app/main/routes/worldline-public.php:7:Route::get('/api/v1/payments/worldline/debug-config', function () {
+app/main/routes/worldline-public.php:36:Route::post('/api/v1/payments/worldline/create-hosted-checkout', function (\Illuminate\Http\Request $request) {
+app/main/routes/worldline-public.php:115:Route::get('/api/v1/payments/worldline/auth-diagnostic', function () {
+app/main/routes/worldline-public.php:144:Route::get('/api/v1/payments/worldline/status/{hostedCheckoutId}', function ($hostedCheckoutId) {
+app/main/routes/worldline-public.php:171:Route::get('/api/v1/payments/worldline/return', function (\Illuminate\Http\Request $request) {
+app/admin/routes.php.hotfix_bak_20260322_140723:701:    Route::get('/payments', function () {
+app/admin/routes.php.hotfix_bak_20260322_140723:714:    Route::get('/payments/stripe/config', function () {
+app/admin/routes.php.hotfix_bak_20260322_140723:763:    Route::get('/payments/config-public', function () {
+app/admin/models/Locations_model.php:297:        $paymentGateways = Payments_model::listPayments();
+app/admin/models/Terminal_devices_model.php:19:        'provider_code',
+app/admin/models/Payments_model.php:40:    protected $fillable = ['name', 'code', 'class_name', 'description', 'meta', 'provider_code', 'status', 'is_default', 'priority', 'sort_order'];
+app/admin/models/Payments_model.php:165:        if (array_key_exists('provider_code', $posted)) {
+app/admin/models/Payments_model.php:166:            $this->provider_code = strlen((string)$posted['provider_code']) ? (string)$posted['provider_code'] : null;
+app/admin/models/Payments_model.php:167:            unset($posted['provider_code']);
+app/admin/models/Payments_model.php:175:        if (!$this->provider_code && in_array((string)$this->code, ['cod', 'cash'], true)) {
+app/admin/models/Payments_model.php:176:            $this->provider_code = null;
+app/admin/models/Payments_model.php:329:    public static function listPayments()
+app/admin/models/Payments_model.php:573:        $selectedProvider = strtolower(trim((string)($this->provider_code ?? '')));
+app/admin/models/config/payments_model.php:44:    'provider_code' => [
+app/admin/models/config/terminal_devices_model.php:15:    'provider_code' => [
+app/admin/models/config/terminal_devices_model.php:74:    'provider_code' => [
+app/admin/requests/TerminalDevices.php:12:            'provider_code' => ['required', 'in:sumup'],
+app/admin/requests/TerminalDevices.php:27:            'provider_code' => 'Provider Type',
+app/admin/views/payments/create.blade.php:3:        .form-field[data-field-name="provider_code"] .ss-main {
+app/admin/views/payments/create.blade.php:9:        .form-field[data-field-name="provider_code"] .ss-values {
+app/admin/views/payments/create.blade.php:12:        .form-field[data-field-name="provider_code"] .ss-content,
+app/admin/views/payments/create.blade.php:13:        .form-field[data-field-name="provider_code"] .ss-list {
+app/admin/views/payments/create.blade.php:17:        .form-field[data-field-name="provider_code"] .ss-content.ss-open-below {
+app/admin/views/payments/create.blade.php:20:        .form-field[data-field-name="provider_code"] .ss-content .ss-list.ss-few-options {
+app/admin/views/payments/create.blade.php:24:        .form-field[data-field-name="provider_code"] .ss-content .ss-list .ss-option {
+app/admin/views/payments/edit.blade.php:3:        .form-field[data-field-name="provider_code"] .ss-main {
+app/admin/views/payments/edit.blade.php:9:        .form-field[data-field-name="provider_code"] .ss-values {
+app/admin/views/payments/edit.blade.php:12:        .form-field[data-field-name="provider_code"] .ss-content,
+app/admin/views/payments/edit.blade.php:13:        .form-field[data-field-name="provider_code"] .ss-list {
+app/admin/views/payments/edit.blade.php:17:        .form-field[data-field-name="provider_code"] .ss-content.ss-open-below {
+app/admin/views/payments/edit.blade.php:20:        .form-field[data-field-name="provider_code"] .ss-content .ss-list.ss-few-options {
+app/admin/views/payments/edit.blade.php:24:        .form-field[data-field-name="provider_code"] .ss-content .ss-list .ss-option {
+app/admin/routes.php.broken_before_restore_20260318_185012:703:    Route::get('/payments', function () {
+app/admin/routes.php.broken_before_restore_20260318_185012:716:    Route::get('/payments/stripe/config', function () {
+app/admin/routes.php.broken_before_restore_20260318_185012:765:    Route::get('/payments/config-public', function () {
+app/admin/controllers/concerns/PmdWaiterPosTerminalEndpoint.php:33:        $provider = strtolower(trim((string)($payload['provider_code'] ?? '')));
+app/admin/controllers/concerns/PmdWaiterPosTerminalEndpoint.php:49:            'provider_code' => $provider,
+app/admin/controllers/concerns/PmdWaiterPosPaymentSummaryConcern.php:210:                'provider_code' => $normalizedCode === 'cash' ? null : ($row->provider_code ?: null),
+app/admin/controllers/concerns/PmdWaiterPosPaymentSummaryConcern.php:220:                'provider_code' => null,
+app/admin/controllers/concerns/PmdWaiterPosPaymentSummaryConcern.php:241:                        'provider_code' => $code,
+app/admin/controllers/concerns/PmdWaiterPosPaymentSummaryConcern.php:271:            foreach (['tip_amount', 'coupon_discount', 'coupon_code', 'provider_code', 'notes', 'cash_received', 'change_due'] as $field) {
+app/admin/controllers/concerns/PmdWaiterPosSettleEndpoint.php:156:                    'provider_code' => trim((string)($payload['provider_code'] ?? '')) ?: null,
+app/admin/controllers/Payments.php:173:                'provider_code' => [
+app/admin/controllers/Payments.php:369:            'provider_code_before' => $model->provider_code ?? null,
+app/admin/controllers/Payments.php:373:            $providerCode = post('provider_code', post('Payment.provider_code'));
+app/admin/controllers/Payments.php:378:            $data['provider_code'] = $providerCode;
+app/admin/controllers/Payments.php:380:            $model->provider_code = $providerCode;
+app/admin/controllers/Payments.php:503:            'provider_code_after_prepare' => $model->provider_code ?? null,
+app/admin/controllers/Payments.php:538:            'saved_provider_code' => optional($fresh)->provider_code,
+app/admin/controllers/Payments.php:579:            'card' => ['name' => 'Card', 'priority' => 1, 'provider_code' => 'stripe'],
+app/admin/controllers/Payments.php:580:            'apple_pay' => ['name' => 'Apple Pay', 'priority' => 2, 'provider_code' => 'stripe'],
+app/admin/controllers/Payments.php:581:            'google_pay' => ['name' => 'Google Pay', 'priority' => 3, 'provider_code' => 'stripe'],
+app/admin/controllers/Payments.php:582:            'wero' => ['name' => 'Wero', 'priority' => 4, 'provider_code' => 'worldline'],
+app/admin/controllers/Payments.php:583:            'paypal' => ['name' => 'PayPal', 'priority' => 5, 'provider_code' => 'paypal'],
+app/admin/controllers/Payments.php:584:            'cod' => ['name' => 'Cash', 'priority' => 6, 'provider_code' => null],
+app/admin/controllers/Payments.php:599:                $providerCode = $cfg['provider_code'];
+app/admin/controllers/Payments.php:614:            $currentProviderCode = $row->provider_code
+app/admin/controllers/Payments.php:615:                ?? ($meta['provider_code'] ?? null)
+app/admin/controllers/Payments.php:616:                ?? $cfg['provider_code'];
+app/admin/controllers/Payments.php:617:            $meta['provider_code'] = $currentProviderCode;
+app/admin/controllers/Payments.php:622:            if (\Illuminate\Support\Facades\Schema::hasColumn($row->getTable(), 'provider_code')) {
+app/admin/controllers/Payments.php:623:                $row->provider_code = $currentProviderCode;
+app/admin/controllers/Payments.php:750:        $code = $model->provider_code ?? null;
+app/admin/controllers/Payments.php:752:            $code = $model->data['provider_code'] ?? null;
+app/admin/controllers/TerminalDevices.php:59:        $status = $this->buildStatusSnapshot($model->provider_code, (string)$model->reader_id, (bool)$model->is_active);
+app/admin/controllers/TerminalDevices.php:123:        $providerCode = strtolower((string)$model->provider_code);
+app/admin/routesthatcollegshared.php:415:    Route::get('/payments', function () {
+app/admin/classes/PaymentGateways.php:163:        $gateways = Payments_model::listPayments();
+app/admin/database/migrations/2026_04_22_000100_create_terminal_devices_table.php:17:            $table->string('provider_code', 50)->index();
+app/admin/database/migrations/2026_07_12_000100_extend_waiter_pos_payment_transactions.php:25:            if (!Schema::hasColumn('order_payment_transactions', 'provider_code')) {
+app/admin/database/migrations/2026_07_12_000100_extend_waiter_pos_payment_transactions.php:26:                $table->string('provider_code', 50)->nullable()->after('payment_method');
+app/admin/database/migrations/2026_07_12_000100_extend_waiter_pos_payment_transactions.php:71:                'provider_code',
+app/admin/database/migrations/2026_04_20_000300_create_vr_payment_sessions_table.php:16:            $table->string('provider_code', 50)->default('vr_payment')->index();
+app/admin/database/migrations/2026_06_06_000300_create_payment_attempts_table.php:15:            $table->string('provider_code', 50)->index();
+app/admin/assets/js/pmd-waiter-pos-payment-v2.js:212:        methods.push({key:'online:' + method.code, name:method.name, note:'Secure customer checkout · ' + (method.provider_code || 'provider'), provider:method.provider_code, code:method.code});
+app/admin/assets/js/pmd-waiter-pos-payment-v2.js:235:          if (!state.payment.providerCode && providers.length) state.payment.providerCode = providers[0].provider_code;
+app/admin/assets/js/pmd-waiter-pos-payment-v2.js:237:            return '<button type="button" data-terminal-provider="' + esc(provider.provider_code) + '" class="' + (state.payment.providerCode === provider.provider_code ? 'is-active' : '') + '">' + esc(provider.name) + '</button>';
+app/admin/assets/js/pmd-waiter-pos-payment-v2.js:440:            provider_code: state.payment.method === 'external_terminal' ? 'external_terminal' : null,
+app/admin/assets/js/pmd-waiter-pos-payment-v2.js:493:          body: JSON.stringify({provider_code: state.payment.providerCode}),
+app/admin/routes.php.pre_media_fix_20260321_191937:701:    Route::get('/payments', function () {
+app/admin/routes.php.pre_media_fix_20260321_191937:714:    Route::get('/payments/stripe/config', function () {
+app/admin/routes.php.pre_media_fix_20260321_191937:763:    Route::get('/payments/config-public', function () {

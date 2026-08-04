@@ -1,0 +1,192 @@
+     1	<!--
+     2	  Dashboard2 reservation-card rendering is prevented at its source by the
+     3	  route guard in pmd-reservations2-floor-toolbar-v316.js. This view deliberately
+     4	  contains no competing CSS visibility override.
+     5	-->
+     6	<script id="pmd-dashboard2-r2-exact-route-class">
+     7	document.documentElement.classList.add('pmd-dashboard2-r2-exact');
+     8	</script>
+     9	
+    10	<script id="pmd-dashboard2-kpi-boot-v2">
+    11	window.PMD_DASHBOARD2_KPIS = @json($pmdDashboard2Kpis ?? []);
+    12	window.PMD_DASHBOARD2_KPI_PAYLOAD = @json($pmdDashboard2KpiPayload ?? null);
+    13	</script>
+    14	
+    15	@include('admin::reservations2.index')
+    16	
+    17	<link
+    18	    rel="stylesheet"
+    19	    href="/app/admin/assets/css/pmd-dashboard2-kpis-v1.css?v=one-row-flip-v113-20260803_105152"
+    20	>
+    21	
+    22	
+    23	
+    24	
+    25	
+    26	
+    27	
+    28	<!-- PMD_DASHBOARD2_SINGLE_LAYOUT_AUTHORITY_V127 -->
+    29	<style id="pmd-dashboard2-single-layout-authority-v127">
+    30	  #pmd-dashboard2-analytics-v1
+    31	  [data-pmd-analytics-grid],
+    32	  #pmd-dashboard2-analytics-v1
+    33	  .pmd-dashboard2-analytics-grid {
+    34	    display: grid !important;
+    35	    grid-template-columns:
+    36	      repeat(12, minmax(0, 1fr)) !important;
+    37	    gap: 18px !important;
+    38	    align-items: start !important;
+    39	  }
+    40	
+    41	  #pmd-dashboard2-analytics-v1
+    42	  [data-pmd-analytics-widget] {
+    43	    align-self: start !important;
+    44	    height: auto !important;
+    45	    min-width: 0 !important;
+    46	    transition: none !important;
+    47	    animation: none !important;
+    48	    border: 1px solid #DCE7E3 !important;
+    49	    border-top: 1px solid #DCE7E3 !important;
+    50	    box-shadow:
+    51	      0 7px 20px rgba(16, 42, 67, 0.07) !important;
+    52	  }
+    53	
+    54	  /* Main charts */
+    55	  #pmd-dashboard2-analytics-v1
+    56	  [data-pmd-analytics-widget="salesOverTime"] {
+    57	    order: 1 !important;
+    58	    grid-column: span 9 !important;
+    59	  }
+    60	
+    61	  #pmd-dashboard2-analytics-v1
+    62	  [data-pmd-analytics-widget="categorySales"] {
+    63	    order: 2 !important;
+    64	    grid-column: span 3 !important;
+    65	  }
+    66	
+    67	  #pmd-dashboard2-analytics-v1
+    68	  [data-pmd-analytics-widget="salesByHour"] {
+    69	    order: 3 !important;
+    70	    grid-column: span 9 !important;
+    71	  }
+    72	
+    73	  #pmd-dashboard2-analytics-v1
+    74	  [data-pmd-analytics-widget="paymentMethods"] {
+    75	    order: 4 !important;
+    76	    grid-column: span 3 !important;
+    77	  }
+    78	
+    79	  /*
+    80	   * Requested operational row:
+    81	   * Recent | Alerts | Live | Channels
+    82	   * 4 + 2 + 3 + 3 = 12
+    83	   */
+    84	  #pmd-dashboard2-analytics-v1
+    85	  [data-pmd-analytics-widget="recentTransactions"] {
+    86	    order: 5 !important;
+    87	    grid-column: span 4 !important;
+    88	  }
+    89	
+    90	  #pmd-dashboard2-analytics-v1
+    91	  [data-pmd-analytics-widget="alerts"] {
+    92	    order: 6 !important;
+    93	    grid-column: span 2 !important;
+    94	  }
+    95	
+    96	  #pmd-dashboard2-analytics-v1
+    97	  [data-pmd-analytics-widget="liveOperations"] {
+    98	    order: 7 !important;
+    99	    grid-column: span 3 !important;
+   100	  }
+   101	
+   102	  #pmd-dashboard2-analytics-v1
+   103	  [data-pmd-analytics-widget="channelSplit"] {
+   104	    order: 8 !important;
+   105	    grid-column: span 3 !important;
+   106	  }
+   107	
+   108	  /*
+   109	   * Supporting row:
+   110	   * Top items | Tips | Reviews
+   111	   */
+   112	  #pmd-dashboard2-analytics-v1
+   113	  [data-pmd-analytics-widget="topItems"] {
+   114	    order: 9 !important;
+   115	    grid-column: span 4 !important;
+   116	  }
+   117	
+   118	  #pmd-dashboard2-analytics-v1
+   119	  [data-pmd-analytics-widget="tips"] {
+   120	    order: 10 !important;
+   121	    grid-column: span 4 !important;
+   122	  }
+   123	
+   124	  #pmd-dashboard2-analytics-v1
+   125	  [data-pmd-analytics-widget="reviews"] {
+   126	    order: 11 !important;
+   127	    grid-column: span 4 !important;
+   128	  }
+   129	
+   130	  /* Final full-width row */
+   131	  #pmd-dashboard2-analytics-v1
+   132	  [data-pmd-analytics-widget="calendarEvents"] {
+   133	    order: 12 !important;
+   134	    grid-column: span 12 !important;
+   135	  }
+   136	
+   137	  /*
+   138	   * Compact Recent transactions content.
+   139	   */
+   140	  #pmd-dashboard2-analytics-v1
+   141	  [data-pmd-analytics-widget="recentTransactions"]
+   142	  .pmd-dashboard2-data-list li {
+   143	    gap: 8px !important;
+   144	  }
+   145	
+   146	  #pmd-dashboard2-analytics-v1
+   147	  [data-pmd-analytics-widget="recentTransactions"]
+   148	  .pmd-dashboard2-data-list li > :first-child {
+   149	    min-width: 0 !important;
+   150	    overflow: hidden !important;
+   151	    text-overflow: ellipsis !important;
+   152	    white-space: nowrap !important;
+   153	  }
+   154	
+   155	  #pmd-dashboard2-analytics-v1
+   156	  [data-pmd-analytics-widget="recentTransactions"]
+   157	  .pmd-dashboard2-data-list li > :last-child {
+   158	    flex: 0 0 auto !important;
+   159	    white-space: nowrap !important;
+   160	  }
+   161	
+   162	  @media (max-width: 1280px) {
+   163	    #pmd-dashboard2-analytics-v1
+   164	    [data-pmd-analytics-widget="recentTransactions"],
+   165	    #pmd-dashboard2-analytics-v1
+   166	    [data-pmd-analytics-widget="alerts"],
+   167	    #pmd-dashboard2-analytics-v1
+   168	    [data-pmd-analytics-widget="liveOperations"],
+   169	    #pmd-dashboard2-analytics-v1
+   170	    [data-pmd-analytics-widget="channelSplit"] {
+   171	      grid-column: span 6 !important;
+   172	    }
+   173	
+   174	    #pmd-dashboard2-analytics-v1
+   175	    [data-pmd-analytics-widget="topItems"],
+   176	    #pmd-dashboard2-analytics-v1
+   177	    [data-pmd-analytics-widget="tips"],
+   178	    #pmd-dashboard2-analytics-v1
+   179	    [data-pmd-analytics-widget="reviews"] {
+   180	      grid-column: span 6 !important;
+   181	    }
+   182	  }
+   183	
+   184	  @media (max-width: 760px) {
+   185	    #pmd-dashboard2-analytics-v1
+   186	    [data-pmd-analytics-widget] {
+   187	      grid-column: span 12 !important;
+   188	    }
+   189	  }
+   190	</style>
+   191	
+   192	<script src="/app/admin/assets/js/pmd-dashboard2-kpis-v1.js?v=dashboard2-v127-20260803_155333"></script>

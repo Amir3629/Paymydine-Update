@@ -85,3 +85,5 @@
     src="/app/admin/assets/js/pmd-admin-i18n-v1.js?v={{ $pmdRuntimeVersion }}"
     defer
 ></script>
+<!-- PMD_I18N_PAGE_AUTHORITY_V2 -->
+<script src="/app/admin/assets/js/pmd-admin-i18n-page-authority-v2.js?v=i18n-page-authority-v2-20260803_143428"></script>

@@ -459,6 +459,11 @@ class Dashboard2 extends Reservations2
                 'timezone' => $timezone, 'currency' => $currency['code'], 'reason' => 'Authenticated admin location unavailable'];
         }
 
+        // PMD_DASHBOARD2_V1382_HOURLY_TODAY_UNTIL_NOW
+        // The hourly chart is a live-today timeline, independent
+        // from the wider analytics period used by other widgets.
+        $hourlyStart = $now->copy()->startOfDay();
+
         $payload = [
             'success' => true,
             'version' => '1.1.0',
@@ -470,7 +475,7 @@ class Dashboard2 extends Reservations2
             'period' => $period,
             'range' => ['start' => $start->toIso8601String(), 'end' => $now->toIso8601String()],
             'sales_over_time' => $this->safeAnalytics(fn () => $this->analyticsSalesSeries($start, $now, $period)),
-            'sales_by_hour' => $this->safeAnalytics(fn () => $this->analyticsSalesByHour($start, $now)),
+            'sales_by_hour' => $this->safeAnalytics(fn () => $this->analyticsSalesByHour($hourlyStart, $now)),
             'top_items' => $this->safeAnalytics(fn () => $this->analyticsTopItems($start, $now)),
             'sales_by_category' => $this->safeAnalytics(fn () => $this->analyticsCategorySales($start, $now)),
             'payment_methods' => $this->safeAnalytics(fn () => $this->analyticsPaymentMethods($start, $now)),
@@ -573,9 +578,29 @@ class Dashboard2 extends Reservations2
         $authority = $this->analyticsAuthority($start, $end);
         $rows = DB::query()->fromSub($this->analyticsPaidQuery($start, $end), 'paid')->groupByRaw('HOUR(effective_at)')
             ->selectRaw('HOUR(effective_at) AS hour, SUM(net_revenue) AS sales, COUNT(*) AS orders')->get()->keyBy('hour');
-        $hours = []; for ($hour = 0; $hour < 24; $hour++) { $row = $rows->get($hour); $hours[] = ['hour' => $hour, 'sales' => (float)($row->sales ?? 0), 'orders' => (int)($row->orders ?? 0)]; }
+        $lastHour = (int)$end->format('G');
+        $hours = [];
+        for ($hour = 0; $hour <= $lastHour; $hour++) {
+            $row = $rows->get($hour);
+            $hours[] = [
+                'hour' => $hour,
+                'sales' => (float)($row->sales ?? 0),
+                'orders' => (int)($row->orders ?? 0),
+            ];
+        }
         $samples = array_sum(array_column($hours, 'orders'));
-        return ['available' => true, 'empty' => $samples === 0, 'hours' => $hours, 'sample_count' => $samples, 'reason' => $samples ? null : 'No activity in this period', 'source_mode' => $authority['mode'], 'source' => 'eligible orders grouped by hour of '.$authority['date']];
+        return [
+            'available' => true,
+            'empty' => $samples === 0,
+            'hours' => $hours,
+            'current_hour' => $lastHour,
+            'visible_hours' => $lastHour + 1,
+            'scope' => 'today_until_now',
+            'sample_count' => $samples,
+            'reason' => $samples ? null : 'No activity today yet',
+            'source_mode' => $authority['mode'],
+            'source' => 'today eligible orders from 00:00 until now grouped by hour of '.$authority['date'],
+        ];
     }
 
     protected function analyticsTopItems(Carbon $start, Carbon $end): array
@@ -605,24 +630,323 @@ class Dashboard2 extends Reservations2
         return ['available' => true, 'empty' => $rows->isEmpty(), 'categories' => $rows->map(fn ($r) => ['category' => (string)$r->category, 'revenue' => (float)$r->revenue])->all(), 'sample_count' => $rows->count(), 'reason' => $rows->isEmpty() ? 'No items sold in this period' : null, 'source_mode' => $authority['mode'], 'source' => 'eligible order items joined to menu categories'];
     }
 
-    protected function analyticsPaymentMethods(Carbon $start, Carbon $end): array
-    {
-        $authority = $this->analyticsAuthority($start, $end);
-        if (!$authority['payment']) return $this->unavailable('order payment code unavailable');
-        $query = DB::query()->fromSub($this->analyticsPaidQuery($start, $end), 'paid')
-            ->leftJoin('payments as p', 'p.code', '=', 'paid.effective_payment')->groupBy('paid.effective_payment', 'p.name')->orderByDesc('total')
-            ->get([DB::raw("COALESCE(ti_p.name, ti_paid.effective_payment, 'Other') AS method"), DB::raw('SUM(ti_paid.effective_amount) AS total'), DB::raw('COUNT(*) AS transactions')]);
-        $samples = (int)$query->sum('transactions');
-        return ['available' => true, 'empty' => $samples === 0, 'methods' => $query->map(fn ($r) => ['method' => (string)$r->method, 'total' => (float)$r->total, 'transactions' => (int)$r->transactions])->all(), 'sample_count' => $samples, 'reason' => $samples ? null : 'No transactions in this period', 'source_mode' => $authority['mode'], 'source' => 'orders.'.$authority['payment'].' joined to configured payments'];
+/**
+     * Resolve the payment method actually used to settle an order.
+     *
+     * settlement_method is authoritative for new orders.
+     * effective_payment is retained as a legacy fallback.
+     *
+     * Deferred/admin workflow values such as "QR Payment Later"
+     * are intentionally excluded because they are not payment methods.
+     */
+    protected function analyticsPaymentExpressions(
+        string $alias,
+        array $authority
+    ): array {
+        $candidates = [];
+
+        if (Schema::hasColumn('orders', 'settlement_method')) {
+            $candidates[] =
+                "NULLIF(TRIM({$alias}.settlement_method), '')";
+        }
+
+        if (!empty($authority['payment'])) {
+            $candidates[] =
+                "NULLIF(TRIM({$alias}.effective_payment), '')";
+        }
+
+        if (!$candidates) {
+            return [
+                'raw' => "''",
+                'normalized' => "''",
+                'excluded' => [],
+            ];
+        }
+
+        $raw = count($candidates) === 1
+            ? $candidates[0]
+            : 'COALESCE('.implode(', ', $candidates).')';
+
+        $normalized =
+            "LOWER(REPLACE(REPLACE(REPLACE(TRIM({$raw}), ".
+            "' ', '_'), '-', '_'), '/', '_'))";
+
+        return [
+            'raw' => $raw,
+            'normalized' => $normalized,
+            'excluded' => [
+                'qr_payment_later',
+                'qr_pay_later',
+                'payment_later',
+                'pay_later',
+                'later',
+                'deferred',
+                'pending_payment',
+                'unpaid',
+                'not_paid',
+            ],
+        ];
     }
 
-    protected function analyticsChannels(Carbon $start, Carbon $end): array
-    {
-        $rows = DB::query()->fromSub($this->analyticsPaidQuery($start, $end), 'paid')->selectRaw("CASE WHEN LOWER(TRIM(order_type))='delivery' THEN 'Delivery' WHEN LOWER(TRIM(order_type)) IN ('collection','takeaway','take-away','pickup') THEN 'Take away' ELSE 'Dine in' END AS channel, COUNT(*) AS orders, SUM(net_revenue) AS revenue")->groupBy('channel')->get()->keyBy('channel');
-        $authority = $this->analyticsAuthority($start, $end);
-        $channels = collect(['Dine in','Take away','Delivery'])->map(function ($name) use ($rows) { $row = $rows->get($name); return ['channel' => $name, 'name' => $name, 'orders' => (int)($row->orders ?? 0), 'revenue' => (float)($row->revenue ?? 0)]; });
-        $samples = (int)$channels->sum('orders');
-        return ['available' => true, 'empty' => $samples === 0, 'channels' => $channels->all(), 'sample_count' => $samples, 'reason' => $samples ? null : 'No transactions in this period', 'source_mode' => $authority['mode'], 'source' => 'eligible orders by confirmed order_type mapping'];
+    protected function analyticsPaymentLabelExpression(
+        string $normalized,
+        bool $paymentsJoined
+    ): string {
+        $configuredName = $paymentsJoined
+            ? "NULLIF(TRIM(p.name), '')"
+            : 'NULL';
+
+        return
+            "CASE ".
+            "WHEN {$normalized} IN ('cash','cod') ".
+            "THEN 'Cash' ".
+            "WHEN {$normalized} IN ".
+            "('card','credit_card','debit_card','stripe',".
+            "'worldline','sumup','square','vr_payment') ".
+            "THEN 'Card' ".
+            "WHEN {$normalized} IN ('apple_pay','applepay') ".
+            "THEN 'Apple Pay' ".
+            "WHEN {$normalized} IN ('google_pay','googlepay') ".
+            "THEN 'Google Pay' ".
+            "WHEN {$normalized} IN ('paypal','pay_pal') ".
+            "THEN 'PayPal' ".
+            "WHEN {$normalized} = 'wero' ".
+            "THEN 'Wero' ".
+            "ELSE COALESCE(".$configuredName.", ".
+            "REPLACE({$normalized}, '_', ' ')) END";
+    }
+
+protected function analyticsPaymentMethods(
+        Carbon $start,
+        Carbon $end
+    ): array {
+        $authority = $this->analyticsAuthority(
+            $start,
+            $end
+        );
+
+        if (!$authority) {
+            return $this->unavailable(
+                'No reliable paid-order authority is available'
+            );
+        }
+
+        $rows = DB::query()
+            ->fromSub(
+                $this->analyticsPaidQuery($start, $end),
+                'paid'
+            )
+            ->get([
+                'paid.order_id',
+                'paid.net_revenue',
+                'paid.effective_payment',
+            ]);
+
+        $excluded = [
+            'qr_payment_later',
+            'qr_pay_later',
+            'payment_later',
+            'pay_later',
+            'later',
+            'deferred',
+            'pending_payment',
+            'unpaid',
+            'not_paid',
+        ];
+
+        $normalize = static function ($value): string {
+            $value = strtolower(
+                trim((string)$value)
+            );
+
+            return trim(
+                preg_replace(
+                    '/[^a-z0-9]+/',
+                    '_',
+                    $value
+                ),
+                '_'
+            );
+        };
+
+        $label = static function (
+            string $code
+        ): string {
+            return match ($code) {
+                'cash', 'cod' => 'Cash',
+
+                'card',
+                'credit_card',
+                'debit_card',
+                'stripe',
+                'worldline',
+                'sumup',
+                'square',
+                'vr_payment' => 'Card',
+
+                'apple_pay',
+                'applepay' => 'Apple Pay',
+
+                'google_pay',
+                'googlepay' => 'Google Pay',
+
+                'paypal',
+                'pay_pal' => 'PayPal',
+
+                'wero' => 'Wero',
+
+                'not_recorded' => 'Not recorded',
+
+                default => ucwords(
+                    str_replace('_', ' ', $code)
+                ),
+            };
+        };
+
+        $grouped = [];
+
+        foreach ($rows as $row) {
+            $code = $normalize(
+                $row->effective_payment ?? null
+            );
+
+            /*
+             * QR Payment Later is a workflow state,
+             * not a payment method.
+             *
+             * Settled orders without a recorded method remain
+             * visible under the explicit data-quality bucket
+             * "Not recorded".
+             */
+            if (
+                $code === ''
+                || in_array($code, $excluded, true)
+            ) {
+                $code = 'not_recorded';
+            }
+
+            if (!isset($grouped[$code])) {
+                $grouped[$code] = [
+                    'code' => $code,
+                    'method' => $label($code),
+                    'total' => 0.0,
+                    'transactions' => 0,
+                    'is_payment_method' =>
+                        $code !== 'not_recorded',
+                ];
+            }
+
+            $grouped[$code]['total'] +=
+                (float)$row->net_revenue;
+
+            $grouped[$code]['transactions']++;
+        }
+
+        $methods = array_values($grouped);
+
+        usort(
+            $methods,
+            fn ($left, $right) =>
+                $right['total'] <=> $left['total']
+        );
+
+        foreach ($methods as &$method) {
+            $method['total'] = round(
+                $method['total'],
+                2
+            );
+        }
+
+        unset($method);
+
+        $sampleCount = array_sum(
+            array_column(
+                $methods,
+                'transactions'
+            )
+        );
+
+        return [
+            'available' => true,
+            'empty' => $sampleCount === 0,
+            'methods' => $methods,
+            'sample_count' => $sampleCount,
+            'reason' => $sampleCount
+                ? null
+                : 'No settled orders in this period',
+            'source_mode' =>
+                'canonical_payment_with_unrecorded_bucket',
+            'source' =>
+                'settled frontend and admin orders; '.
+                'QR Payment Later is not treated as a method; '.
+                'missing method values are reported as Not recorded',
+        ];
+    }
+
+protected function analyticsChannels(
+        Carbon $start,
+        Carbon $end
+    ): array {
+        $rows = DB::query()
+            ->fromSub(
+                $this->analyticsPaidQuery($start, $end),
+                'paid'
+            )
+            ->selectRaw(
+                "CASE ".
+                "WHEN LOWER(TRIM(order_type)) IN ".
+                "('collection','takeaway','take-away','pickup') ".
+                "THEN 'Take away' ".
+                "ELSE 'Dine in' END AS channel, ".
+                "COUNT(*) AS orders, ".
+                "SUM(net_revenue) AS revenue"
+            )
+            ->whereNotIn(
+                DB::raw('LOWER(TRIM(order_type))'),
+                [
+                    'delivery',
+                ]
+            )
+            ->groupBy('channel')
+            ->get()
+            ->keyBy('channel');
+
+        $channels = collect([
+            'Dine in',
+            'Take away',
+        ])->map(
+            function ($name) use ($rows) {
+                $row = $rows->get($name);
+
+                return [
+                    'channel' => $name,
+                    'name' => $name,
+                    'orders' =>
+                        (int)($row->orders ?? 0),
+                    'revenue' =>
+                        (float)($row->revenue ?? 0),
+                ];
+            }
+        );
+
+        $samples = (int)$channels->sum(
+            'orders'
+        );
+
+        return [
+            'available' => true,
+            'empty' => $samples === 0,
+            'channels' => $channels->all(),
+            'sample_count' => $samples,
+            'reason' => $samples
+                ? null
+                : 'No dine-in or take-away orders in this period',
+            'source_mode' =>
+                'dine_in_and_takeaway_only',
+            'source' =>
+                'eligible orders grouped into Dine in and '.
+                'Take away; Delivery excluded',
+        ];
     }
 
     protected function analyticsLiveOperations(Carbon $now): array
@@ -638,21 +962,332 @@ class Dashboard2 extends Reservations2
         return ['available' => true, 'live_order_count' => $count, 'orders' => $orders->map(fn ($r) => ['order_id' => (int)$r->order_id, 'channel' => (string)$r->order_type, 'status' => (string)($r->status_name ?: 'Open'), 'opened_at' => (string)$r->created_at])->all(), 'tables' => ['occupied' => $occupancy['occupied_tables'] ?? 0, 'total' => $occupancy['available_tables'] ?? 0], 'sample_count' => $count, 'source_mode' => 'open_statuses', 'status_names' => $statusNames, 'oldest_live_at' => (clone $query)->min('orders.created_at'), 'source' => 'unprocessed current-location orders excluding terminal status names'];
     }
 
-    protected function analyticsTransactions(Carbon $start, Carbon $end): array
-    {
-        $authority = $this->analyticsAuthority($start, $end);
-        $rows = DB::query()->fromSub($this->analyticsPaidQuery($start, $end), 'paid')->leftJoin('payments as p', 'p.code', '=', 'paid.effective_payment')
-            ->orderByDesc('paid.effective_at')->limit(10)->get(['paid.order_id', 'paid.effective_amount', 'paid.effective_at', DB::raw("COALESCE(ti_p.name, ti_paid.effective_payment, 'Other') AS payment_method")]);
-        return ['available' => true, 'empty' => $rows->isEmpty(), 'transactions' => $rows->map(fn ($r) => ['order_id' => (int)$r->order_id, 'method' => (string)$r->payment_method, 'amount' => (float)$r->effective_amount, 'status' => $authority['mode'] === 'settlement_fields' ? 'paid' : 'processed', 'timestamp' => (string)$r->effective_at])->all(), 'sample_count' => $rows->count(), 'reason' => $rows->isEmpty() ? 'No transactions in this period' : null, 'source_mode' => $authority['mode'], 'source' => 'latest eligible orders by '.$authority['date']];
+protected function analyticsTransactions(
+        Carbon $start,
+        Carbon $end
+    ): array {
+        $authority = $this->analyticsAuthority(
+            $start,
+            $end
+        );
+
+        if (!$authority) {
+            return $this->unavailable(
+                'No reliable paid-order authority is available'
+            );
+        }
+
+        $rows = DB::query()
+            ->fromSub(
+                $this->analyticsPaidQuery($start, $end),
+                'paid'
+            )
+            ->orderByDesc('paid.effective_at')
+            ->limit(10)
+            ->get([
+                'paid.order_id',
+                'paid.effective_amount',
+                'paid.effective_at',
+                'paid.effective_payment',
+            ]);
+
+        $excluded = [
+            'qr_payment_later',
+            'qr_pay_later',
+            'payment_later',
+            'pay_later',
+            'later',
+            'deferred',
+            'pending_payment',
+            'unpaid',
+            'not_paid',
+        ];
+
+        $normalize = static function ($value): string {
+            $value = strtolower(
+                trim((string)$value)
+            );
+
+            return trim(
+                preg_replace(
+                    '/[^a-z0-9]+/',
+                    '_',
+                    $value
+                ),
+                '_'
+            );
+        };
+
+        $label = static function (
+            string $code
+        ): string {
+            return match ($code) {
+                'cash', 'cod' => 'Cash',
+
+                'card',
+                'credit_card',
+                'debit_card',
+                'stripe',
+                'worldline',
+                'sumup',
+                'square',
+                'vr_payment' => 'Card',
+
+                'apple_pay',
+                'applepay' => 'Apple Pay',
+
+                'google_pay',
+                'googlepay' => 'Google Pay',
+
+                'paypal',
+                'pay_pal' => 'PayPal',
+
+                'wero' => 'Wero',
+
+                default => 'Not recorded',
+            };
+        };
+
+        $transactions = [];
+
+        foreach ($rows as $row) {
+            $code = $normalize(
+                $row->effective_payment ?? null
+            );
+
+            $methodRecorded = (
+                $code !== ''
+                && !in_array(
+                    $code,
+                    $excluded,
+                    true
+                )
+            );
+
+            $transactions[] = [
+                'order_id' => (int)$row->order_id,
+                'method' => $methodRecorded
+                    ? $label($code)
+                    : 'Not recorded',
+                'method_recorded' =>
+                    $methodRecorded,
+                'amount' =>
+                    (float)$row->effective_amount,
+                'status' => 'paid',
+                'timestamp' =>
+                    (string)$row->effective_at,
+            ];
+        }
+
+        return [
+            'available' => true,
+            'empty' => count($transactions) === 0,
+            'transactions' => $transactions,
+            'sample_count' =>
+                count($transactions),
+            'reason' => $transactions
+                ? null
+                : 'No settled transactions in this period',
+            'source_mode' =>
+                'settled_orders_with_unrecorded_method',
+            'source' =>
+                'latest settled frontend and admin orders; '.
+                'QR Payment Later is not treated as a method',
+        ];
     }
 
-    protected function analyticsAlerts(Carbon $start, Carbon $end): array
-    {
-        $failed = $this->range($this->orders(), 'updated_at', $start, $end)->whereIn(DB::raw('LOWER(settlement_status)'), ['failed'])->count();
-        $refunds = $this->range($this->orders(), 'updated_at', $start, $end)->whereIn(DB::raw('LOWER(settlement_status)'), ['refunded','refund'])->count();
-        $stock = Schema::hasColumn('menus', 'is_stock_out') ? Menus_model::query()->whereHasOrDoesntHaveLocation($this->locationId())->stockOut()->count() : null;
-        $negative = Schema::hasTable('reviews') ? DB::table('reviews')->where('location_id', $this->locationId())->whereRaw('(quality + service + delivery) / 3 <= 2')->count() : null;
-        return ['available' => true, 'types' => ['failed_payments' => $failed, 'refunds' => $refunds, 'long_open_tables' => null, 'out_of_stock' => $stock, 'negative_reviews' => $negative], 'unavailable' => ['long_open_tables'], 'source' => 'settlement states, stock flags and location reviews; no reliable open-duration alert threshold configured'];
+protected function analyticsAlerts(
+        Carbon $start,
+        Carbon $end
+    ): array {
+        $failed = 0;
+        $refunds = 0;
+
+        if (
+            Schema::hasColumn('orders', 'settlement_status')
+            && Schema::hasColumn('orders', 'updated_at')
+        ) {
+            $failed = $this->range(
+                $this->orders(),
+                'updated_at',
+                $start,
+                $end
+            )->whereIn(
+                DB::raw('LOWER(settlement_status)'),
+                ['failed']
+            )->count();
+
+            $refunds = $this->range(
+                $this->orders(),
+                'updated_at',
+                $start,
+                $end
+            )->whereIn(
+                DB::raw('LOWER(settlement_status)'),
+                ['refunded', 'refund']
+            )->count();
+        }
+
+        $stock = Schema::hasColumn(
+            'menus',
+            'is_stock_out'
+        )
+            ? Menus_model::query()
+                ->whereHasOrDoesntHaveLocation(
+                    $this->locationId()
+                )
+                ->stockOut()
+                ->count()
+            : null;
+
+        $negative = null;
+
+        if (
+            Schema::hasTable('reviews')
+            && Schema::hasColumn('reviews', 'location_id')
+        ) {
+            $reviewQuery = DB::table('reviews')
+                ->where(
+                    'location_id',
+                    $this->locationId()
+                );
+
+            if (
+                $this->hasColumns(
+                    'reviews',
+                    ['quality', 'service', 'delivery']
+                )
+            ) {
+                $negative = $reviewQuery
+                    ->whereRaw(
+                        '(COALESCE(quality,0) + '.
+                        'COALESCE(service,0) + '.
+                        'COALESCE(delivery,0)) / 3 <= 2'
+                    )
+                    ->count();
+            } elseif (
+                Schema::hasColumn('reviews', 'rating')
+            ) {
+                $negative = $reviewQuery
+                    ->where('rating', '<=', 2)
+                    ->count();
+            }
+        }
+
+        $longOpenTables = null;
+        $longestOpenMinutes = null;
+        $longOpenThreshold = 90;
+
+        if (
+            Schema::hasTable('tables')
+            && $this->locationId()
+        ) {
+            $tableIds = Tables_model::query()
+                ->whereHasLocation($this->locationId())
+                ->isEnabled()
+                ->pluck('table_id');
+
+            $statusColumn = Schema::hasColumn(
+                'tables',
+                'operational_status'
+            )
+                ? 'operational_status'
+                : (
+                    Schema::hasColumn(
+                        'tables',
+                        'table_status'
+                    )
+                        ? 'table_status'
+                        : null
+                );
+
+            $updatedColumn = Schema::hasColumn(
+                'tables',
+                'operational_status_updated_at'
+            )
+                ? 'operational_status_updated_at'
+                : (
+                    Schema::hasColumn(
+                        'tables',
+                        'updated_at'
+                    )
+                        ? 'updated_at'
+                        : null
+                );
+
+            if (
+                $tableIds->isNotEmpty()
+                && $statusColumn
+                && $updatedColumn
+            ) {
+                $threshold = (clone $end)
+                    ->subMinutes($longOpenThreshold);
+
+                $openQuery = DB::table('tables')
+                    ->whereIn('table_id', $tableIds)
+                    ->whereIn(
+                        DB::raw(
+                            'LOWER(TRIM('.
+                            $statusColumn.
+                            '))'
+                        ),
+                        [
+                            'occupied',
+                            'seated',
+                            'in_use',
+                            'in-use',
+                            'busy',
+                        ]
+                    )
+                    ->whereNotNull($updatedColumn)
+                    ->where(
+                        $updatedColumn,
+                        '<=',
+                        $threshold->format(
+                            'Y-m-d H:i:s'
+                        )
+                    );
+
+                $longOpenTables = $openQuery->count();
+
+                $oldest = (clone $openQuery)
+                    ->min($updatedColumn);
+
+                if ($oldest) {
+                    $longestOpenMinutes = max(
+                        0,
+                        Carbon::parse($oldest)
+                            ->diffInMinutes($end)
+                    );
+                }
+            }
+        }
+
+        $unavailable = [];
+
+        if ($longOpenTables === null) {
+            $unavailable[] = 'long_open_tables';
+        }
+
+        return [
+            'available' => true,
+            'types' => [
+                'failed_payments' => $failed,
+                'refunds' => $refunds,
+                'long_open_tables' => $longOpenTables,
+                'out_of_stock' => $stock,
+                'negative_reviews' => $negative,
+            ],
+            'long_open_threshold_minutes' =>
+                $longOpenThreshold,
+            'longest_open_minutes' =>
+                $longestOpenMinutes,
+            'unavailable' => $unavailable,
+            'source' =>
+                'settlement states, menu stock flags, '.
+                'approved location reviews and current '.
+                'location table operational status',
+        ];
     }
 
     protected function analyticsReviews(): array
@@ -682,9 +1317,178 @@ class Dashboard2 extends Reservations2
         return ['available' => true, 'today' => $today['value'], 'month' => $month['value'], 'selected' => $selected['value'], 'tipped_orders' => $selected['count'], 'average_tip' => $selected['count'] ? round($selected['value'] / $selected['count'], 2) : 0, 'sample_count' => $selected['count'], 'source_mode' => 'order_totals', 'source' => 'confirmed order_totals.code=tip joined to '.$authority['mode'].' orders'];
     }
 
-    protected function analyticsCalendarEvents(Carbon $now): array
-    {
-        return ['available' => false, 'events' => [], 'source' => 'No persistent calendar-event table exists; Reservations2 holidays are client constants and notes are browser-local', 'reason' => 'Source unavailable'];
+protected function analyticsCalendarEvents(
+        Carbon $now
+    ): array {
+        if (
+            !Schema::hasTable('reservations')
+            || !$this->hasColumns(
+                'reservations',
+                [
+                    'reservation_id',
+                    'location_id',
+                    'reserve_date',
+                    'reserve_time',
+                    'guest_num',
+                ]
+            )
+        ) {
+            return $this->unavailable(
+                'Reservations source unavailable'
+            );
+        }
+
+        $query = DB::table(
+            'reservations as r'
+        )
+            ->where(
+                'r.location_id',
+                $this->locationId()
+            )
+            ->whereDate(
+                'r.reserve_date',
+                '>=',
+                $now->toDateString()
+            )
+            ->orderBy('r.reserve_date')
+            ->orderBy('r.reserve_time')
+            ->limit(100);
+
+        $hasStatuses =
+            Schema::hasTable('statuses')
+            && Schema::hasColumn(
+                'reservations',
+                'status_id'
+            )
+            && $this->hasColumns(
+                'statuses',
+                ['status_id', 'status_name']
+            );
+
+        if ($hasStatuses) {
+            $query->leftJoin(
+                'statuses as s',
+                's.status_id',
+                '=',
+                'r.status_id'
+            );
+        }
+
+        $select = [
+            'r.reservation_id',
+            'r.reserve_date',
+            'r.reserve_time',
+            'r.guest_num',
+        ];
+
+        if ($hasStatuses) {
+            $select[] = 's.status_name';
+        }
+
+        $rows = $query->get($select);
+
+        $excludedStatuses = [
+            'cancelled',
+            'canceled',
+            'rejected',
+            'declined',
+            'no show',
+            'no-show',
+            'completed',
+            'closed',
+        ];
+
+        $events = [];
+
+        foreach ($rows as $row) {
+            $date = trim(
+                (string)$row->reserve_date
+            );
+
+            $time = trim(
+                (string)$row->reserve_time
+            );
+
+            if ($time === '') {
+                $time = '00:00:00';
+            }
+
+            try {
+                $reservationAt = Carbon::parse(
+                    $date.' '.$time,
+                    $this->restaurantTimezone()
+                );
+            } catch (\Throwable $error) {
+                continue;
+            }
+
+            if ($reservationAt->lt($now)) {
+                continue;
+            }
+
+            $statusName = $hasStatuses
+                ? trim(
+                    (string)(
+                        $row->status_name ?? ''
+                    )
+                )
+                : '';
+
+            if (
+                in_array(
+                    strtolower($statusName),
+                    $excludedStatuses,
+                    true
+                )
+            ) {
+                continue;
+            }
+
+            $guests = max(
+                0,
+                (int)$row->guest_num
+            );
+
+            $events[] = [
+                'reservation_id' =>
+                    (int)$row->reservation_id,
+                'title' =>
+                    'Reservation #'.
+                    (int)$row->reservation_id.
+                    ' · '.
+                    $guests.
+                    ($guests === 1
+                        ? ' guest'
+                        : ' guests'),
+                'date' =>
+                    $reservationAt->format(
+                        'Y-m-d H:i'
+                    ),
+                'guests' => $guests,
+                'status' =>
+                    $statusName ?: 'Upcoming',
+                'source' => 'reservation',
+            ];
+
+            if (count($events) >= 10) {
+                break;
+            }
+        }
+
+        return [
+            'available' => true,
+            'empty' => count($events) === 0,
+            'events' => $events,
+            'sample_count' => count($events),
+            'reason' => $events
+                ? null
+                : 'No upcoming reservations',
+            'source_mode' =>
+                'location_upcoming_reservations',
+            'source' =>
+                'future frontend and admin reservations '.
+                'for the authenticated restaurant location',
+        ];
     }
 
     protected function analyticsDiagnostics(

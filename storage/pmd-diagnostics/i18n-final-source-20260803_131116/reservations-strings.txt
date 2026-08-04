@@ -1,0 +1,3 @@
+6176:          ? 'Reservations'
+7780:      'Tisch ' +
+7815:      'Geöffnet';

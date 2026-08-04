@@ -19,6 +19,54 @@ Route::group(['prefix' => 'api'], function () {
     });
 
     Route::get('/media/{path}', function ($path) {
+        /*
+         * PMD_API_MEDIA_CLEAN_STREAM_V1
+         *
+         * Some bootstrap output is currently adding bytes before binary
+         * image responses. JSON tolerates leading whitespace, PNG does not.
+         *
+         * Stream the file only after clearing pending output buffers, so
+         * the first response bytes are the real image signature.
+         */
+        $streamFile = static function (
+            string $filePath,
+            string $mimeType
+        ) {
+            $fileSize = filesize($filePath);
+
+            if ($fileSize === false) {
+                abort(404);
+            }
+
+            return response()->stream(
+                static function () use ($filePath) {
+                    while (ob_get_level() > 0) {
+                        if (!@ob_end_clean()) {
+                            break;
+                        }
+                    }
+
+                    $handle = fopen($filePath, 'rb');
+
+                    if ($handle === false) {
+                        return;
+                    }
+
+                    try {
+                        fpassthru($handle);
+                    } finally {
+                        fclose($handle);
+                    }
+                },
+                200,
+                [
+                    'Content-Type' => $mimeType,
+                    'Content-Length' => (string)$fileSize,
+                    'Cache-Control' => 'public, max-age=31536000',
+                    'X-Content-Type-Options' => 'nosniff',
+                ]
+            );
+        };
         $path = explode('?', (string)$path)[0];
         $mediaPath = base_path('assets/media/attachments/public/'.$path);
 
@@ -48,19 +96,19 @@ Route::group(['prefix' => 'api'], function () {
         if (file_exists($mediaPath)) {
             $mimeType = mime_content_type($mediaPath) ?: 'application/octet-stream';
 
-            return response()->file($mediaPath, [
-                'Content-Type' => $mimeType,
-                'Cache-Control' => 'public, max-age=31536000',
-            ]);
+            return $streamFile(
+                $mediaPath,
+                $mimeType
+            );
         }
 
         $fallbackPath = public_path('images/pasta.png');
 
         if (file_exists($fallbackPath)) {
-            return response()->file($fallbackPath, [
-                'Content-Type' => 'image/png',
-                'Cache-Control' => 'public, max-age=31536000',
-            ]);
+            return $streamFile(
+                $fallbackPath,
+                'image/png'
+            );
         }
 
         abort(404);

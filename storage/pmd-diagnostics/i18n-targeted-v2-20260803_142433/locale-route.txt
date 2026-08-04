@@ -1,0 +1,11 @@
+/var/www/paymydine/app/admin/routes.php:11:            '_pmd/language-switch-v3',
+/var/www/paymydine/app/admin/routes.php:64:                app()->setLocale($code);
+/var/www/paymydine/app/admin/routes.php:67:                    app('translator.localization')->setLocale(
+/var/www/paymydine/app/admin/routes.php:78:                    'pmd_admin_locale',
+/var/www/paymydine/app/admin/routes.php:95:                    ->withCookie($cookie);
+/var/www/paymydine/app/admin/routes.php:110:        Route::post('_pmd/language-switch', function () {
+/var/www/paymydine/app/admin/routes.php:158:            app('translator.localization')->setLocale(
+/var/www/paymydine/app/admin/views/_partials/pmd_admin_i18n.blade.php:5:    - Locale authority: pmd_admin_locale cookie, then current app locale.
+/var/www/paymydine/app/admin/views/_partials/pmd_admin_i18n.blade.php:11:        'pmd_admin_locale',
+/var/www/paymydine/app/admin/views/_partials/pmd_admin_i18n.blade.php:19:    app()->setLocale($pmdAdminLocale);
+/var/www/paymydine/app/admin/views/_partials/pmd_admin_i18n.blade.php:22:        app('translator.localization')->setLocale(

@@ -1,0 +1,7 @@
+app/admin/routes.php:11:            '_pmd/language-switch-v3',
+app/admin/views/_layouts/default.blade.php:3687:@include('admin::_partials.pmd_admin_i18n')
+app/admin/views/layouts/default.blade.php:4:@include('admin::_partials.pmd_admin_i18n')
+app/admin/views/_partials/side_nav.blade.php:30:        '/_pmd/language-switch-v3'
+app/admin/views/_partials/pmd_admin_i18n.blade.php:59:    window.PMD_ADMIN_LOCALE = @json($pmdAdminLocale);
+app/admin/views/_partials/pmd_admin_i18n.blade.php:63:        window.PMD_ADMIN_LOCALE
+app/admin/views/_partials/pmd_admin_i18n.blade.php:66:    if (window.PMD_ADMIN_LOCALE === 'de') {

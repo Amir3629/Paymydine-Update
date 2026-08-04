@@ -1,0 +1,65 @@
+14:  var payload = window.PMD_DASHBOARD2_KPI_PAYLOAD || null;
+15:  var cards = normalizeCards(window.PMD_DASHBOARD2_KPIS || {});
+146:    menu.appendChild(heading);
+155:      option.addEventListener('click', function () { replaceKey(slot, choice); }); menu.appendChild(option);
+158:      var periodHeading = heading.cloneNode(false); periodHeading.textContent = 'Period'; menu.appendChild(periodHeading);
+165:        option.addEventListener('click', function () { setPeriod(key, period); }); menu.appendChild(option);
+206:      card.appendChild(button);
+207:      card.appendChild(menu);
+233:    selectedKeys().forEach(function (key, slot) { section.appendChild(createCard(key, slot)); });
+369:    new MutationObserver(function () {
+377:      setTimeout(apply, d);
+1065:    proxy.appendChild(cleanClone(map.edit, 'edit', 'Bearbeiten'));
+1066:    proxy.appendChild(cleanClone(map.zoomOut, 'zoom-out', '−'));
+1067:    proxy.appendChild(cleanClone(map.zoomIn, 'zoom-in', '+'));
+1068:    proxy.appendChild(cleanClone(map.oneRow, 'one-row', 'Eine Reihe'));
+1146:    window.setTimeout(function () {
+1289:      parent.appendChild(card);
+1295:        parent.appendChild(card);
+1310:      new MutationObserver(function () {
+1322:    setTimeout(boot, 250);
+1323:    setTimeout(boot, 900);
+1324:    setTimeout(boot, 1600);
+1329:    setTimeout(boot, 350);
+1330:    setTimeout(boot, 1100);
+1334:  var timer = setInterval(function () {
+1411:      window.setTimeout(function () {
+1472:      window.setTimeout(applyOrder, delay);
+1531:  var resizeFrame = 0;
+1646:    window.setTimeout(apply, 120);
+1647:    window.setTimeout(apply, 450);
+1681:    'resize',
+1683:      if (resizeFrame) {
+1684:        window.cancelAnimationFrame(resizeFrame);
+1687:      resizeFrame = window.requestAnimationFrame(function () {
+1688:        resizeFrame = 0;
+1773:  var resizeFrame = 0;
+1875:     * Only #pmd-reservations2 gets resized.
+1946:    window.setTimeout(apply, 100);
+1947:    window.setTimeout(apply, 260);
+1948:    window.setTimeout(apply, 550);
+1955:    window.setTimeout(apply, 900);
+1956:    window.setTimeout(apply, 1500);
+2014:    'resize',
+2016:      if (resizeFrame) {
+2017:        window.cancelAnimationFrame(resizeFrame);
+2020:      resizeFrame =
+2022:          resizeFrame = 0;
+2386:        var fallback = window.setTimeout(
+2420:    window.setTimeout(function () {
+2627:    window.setTimeout(sync, 80);
+2628:    window.setTimeout(sync, 240);
+2629:    window.setTimeout(sync, 520);
+2630:    window.setTimeout(sync, 950);
+3380:    window.setTimeout(bind, 120);
+3381:    window.setTimeout(bind, 450);
+3382:    window.setTimeout(bind, 1000);
+3622:/* PMD_DASHBOARD2_SHARP_COLORS_V121 */
+3748:  document.head.appendChild(style);
+3786:/* PMD_DASHBOARD2_SINGLE_LAYOUT_AUTHORITY_V127 */
+3906:      grid.appendChild(element);
+3943:        'grid-column',
+3990:        setTimeout(function () {
+4026:                'grid-column'
+4030:                'grid-column'
+4043:      resizeListener: false,

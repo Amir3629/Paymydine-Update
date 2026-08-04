@@ -1,0 +1,113 @@
+5:use Admin\Models\Menus_model;
+6:use Admin\Models\Orders_model;
+7:use Admin\Models\Tables_model;
+41:        return $this->makeView('dashboard2_reservations2_exact');
+140:            $row = DB::table('currencies')->where('currency_code', $code)->first();
+168:    protected function orders(): Builder
+170:        $query = DB::table('orders');
+187:        $query = $this->range($this->orders(), 'settled_at', $start, $end)
+193:        if ($this->hasColumns('statuses', ['status_id', 'status_name']) && Schema::hasColumn('orders', 'status_id')) {
+195:                $excluded->selectRaw('1')->from('statuses as pmd_status')
+196:                    ->whereColumn('pmd_status.status_id', 'orders.status_id')
+218:        if (!$this->hasColumns('orders', ['order_id', 'location_id', 'processed', 'settlement_status', 'settled_amount', 'settled_at'])) {
+219:            return $this->unavailable('orders settlement fields missing');
+225:            $query->leftJoinSub($tips, 'pmd_tips', 'orders.order_id', '=', 'pmd_tips.order_id');
+229:            'COUNT(*) AS samples, COALESCE(SUM(GREATEST(orders.settled_amount - '.$tipExpression.', 0)), 0) AS aggregate'
+236:            'source' => 'paid orders.settled_amount minus order_totals.tip, grouped by orders.settled_at',
+244:        $columns = $this->columns('orders');
+246:        if (!$guest || !$this->hasColumns('orders', ['settled_at', 'order_type', 'location_id'])) {
+248:                'orders served-cover field missing',
+249:                'Source unavailable: no served cover/guest column is stored on orders'
+259:            'source' => 'paid dine-in orders.'.$guest.' grouped by settled_at', 'reason' => null];
+267:        if (!$this->hasColumns('orders', ['created_at', 'settled_at', 'order_type', 'location_id'])) {
+268:            return $this->unavailable('orders.created_at/settled_at/order_type missing');
+278:            'sample_count' => (int)$row->samples, 'source' => 'paid dine-in orders created_at -> settled_at (1-720 min)',
+284:        if (!$this->hasColumns('pmd_table_status_history', ['id', 'table_id', 'new_status', 'created_at']) ||
+286:        $tableIds = Tables_model::query()->whereHasLocation($this->locationId())->isEnabled()
+290:                'source' => 'pmd_table_status_history occupied -> cleaning/available', 'reason' => 'No completed table visits'];
+293:        $closures = DB::table('pmd_table_status_history as opened')
+294:            ->join('pmd_table_status_history as closed', function ($join) {
+312:            'source' => 'pmd_table_status_history occupied -> first cleaning/available (1-720 min)',
+319:        if (!$this->hasColumns('orders', ['order_type', 'settled_at', 'location_id'])) {
+320:            return $this->unavailable('orders.order_type/settled_at missing');
+329:            'source' => 'paid orders.order_type; delivery and cashier excluded', 'reason' => null];
+342:        if (!$this->hasColumns('orders', ['order_id', 'created_at', 'location_id']) ||
+344:            !$this->hasColumns('statuses', ['status_id', 'status_name'])) {
+345:            return $this->unavailable('orders/status_history ready timestamp relation missing');
+348:        $timestamps = DB::table('status_history as sh')
+349:            ->join('statuses as s', 's.status_id', '=', 'sh.status_id')
+351:            ->when(in_array('status_for', $this->columns('statuses'), true), function ($query) {
+355:                $query->where('sh.object_type', Orders_model::make()->getMorphClass());
+362:        $row = $this->orders()
+363:            ->joinSub($timestamps, 'pmd_kds', 'orders.order_id', '=', 'pmd_kds.object_id')
+379:        if (!$locationId || !Schema::hasTable('tables') || !Schema::hasTable('orders')) {
+380:            return $this->unavailable('location-scoped tables/open orders unavailable');
+382:        $tables = Tables_model::query()->whereHasLocation($locationId)->isEnabled();
+389:        if ($total && $this->hasColumns('orders', ['order_type', 'location_id', 'settlement_status'])) {
+390:            $references = $this->orders()
+416:        $total = Menus_model::query()->whereHasOrDoesntHaveLocation($locationId)->count();
+417:        $available = Menus_model::query()->whereHasOrDoesntHaveLocation($locationId)->isEnabled();
+426:        if (!$this->hasColumns('order_totals', ['order_id', 'code', 'value'])) return null;
+427:        if (!DB::table('order_totals')->whereRaw("LOWER(code) = 'tip'")->exists()) return null;
+428:        return DB::table('order_totals')->whereRaw("LOWER(code) = 'tip'")
+436:        if (!$tips || !$this->hasColumns('orders', ['order_id', 'settled_at', 'location_id'])) {
+437:            return $this->unavailable('order_totals.code=tip relation missing');
+440:            ->joinSub($tips, 'pmd_tips', 'orders.order_id', '=', 'pmd_tips.order_id')
+444:            'source' => 'order_totals.code=tip joined once per paid order, grouped by orders.settled_at', 'reason' => null];
+481:            'reviews' => $this->safeAnalytics(fn () => $this->analyticsReviews()),
+483:            'calendar_events' => $this->safeAnalytics(fn () => $this->analyticsCalendarEvents($now)),
+506:        $columns = $this->columns('orders');
+508:            && $this->orders()->whereIn(DB::raw('LOWER(settlement_status)'), ['paid','settled'])
+523:        $query = $this->orders();
+530:        if ($this->hasColumns('statuses', ['status_id','status_name']) && Schema::hasColumn('orders', 'status_id')) {
+533:                $excluded->selectRaw('1')->from('statuses as analytics_status')
+534:                    ->whereRaw("`ti_analytics_status`.`status_id` = `ti_orders`.`status_id`")
+546:        if ($tips) $query->leftJoinSub($tips, 'analytics_tips', 'orders.order_id', '=', 'analytics_tips.order_id');
+547:        $payment = $authority['payment'] ? 'ti_orders.`'.$authority['payment'].'`' : "''";
+548:        return $query->selectRaw('ti_orders.*, ti_orders.`'.$authority['date'].'` AS effective_at, ti_orders.`'.$authority['amount'].'` AS effective_amount, '.$payment.' AS effective_payment, GREATEST(COALESCE(ti_orders.`'.$authority['amount'].'`,0) - '.($tips ? 'COALESCE(ti_analytics_tips.tip_amount,0)' : '0').',0) AS net_revenue');
+558:            ->orderBy('bucket')->selectRaw("DATE_FORMAT(effective_at, '$format') AS bucket, SUM(net_revenue) AS sales, COUNT(*) AS orders")->get()->keyBy('bucket');
+564:            $row = $rows->get($key); $buckets[] = ['bucket' => $key, 'sales' => (float)($row->sales ?? 0), 'orders' => (int)($row->orders ?? 0)];
+567:        $samples = array_sum(array_column($buckets, 'orders'));
+568:        return ['available' => true, 'empty' => $samples === 0, 'buckets' => $buckets, 'sample_count' => $samples, 'reason' => $samples ? null : 'No activity in this period', 'source_mode' => $authority['mode'], 'source' => 'orders.'.$authority['amount'].' grouped by orders.'.$authority['date'].' minus tips'];
+575:            ->selectRaw('HOUR(effective_at) AS hour, SUM(net_revenue) AS sales, COUNT(*) AS orders')->get()->keyBy('hour');
+576:        $hours = []; for ($hour = 0; $hour < 24; $hour++) { $row = $rows->get($hour); $hours[] = ['hour' => $hour, 'sales' => (float)($row->sales ?? 0), 'orders' => (int)($row->orders ?? 0)]; }
+577:        $samples = array_sum(array_column($hours, 'orders'));
+578:        return ['available' => true, 'empty' => $samples === 0, 'hours' => $hours, 'sample_count' => $samples, 'reason' => $samples ? null : 'No activity in this period', 'source_mode' => $authority['mode'], 'source' => 'eligible orders grouped by hour of '.$authority['date']];
+585:        $rows = DB::query()->fromSub($this->analyticsEligibleOrders($start, $end)->select('orders.order_id'), 'paid')
+586:            ->join('order_menus as om', 'om.order_id', '=', 'paid.order_id')->groupBy('om.name')->orderByDesc('quantity')
+588:        return ['available' => true, 'empty' => $rows->isEmpty(), 'items' => $rows->map(fn ($row) => ['name' => (string)$row->name, 'quantity' => (int)$row->quantity, 'revenue' => (float)$row->revenue])->all(), 'sample_count' => $rows->count(), 'reason' => $rows->isEmpty() ? 'No items sold in this period' : null, 'source_mode' => $authority['mode'], 'source' => 'eligible orders joined to order_menus'];
+598:        $primaryCategory = DB::table('menu_categories')->groupBy('menu_id')
+601:        $rows = DB::query()->fromSub($this->analyticsEligibleOrders($start, $end)->select('orders.order_id'), 'paid')
+602:            ->join('order_menus as om', 'om.order_id', '=', 'paid.order_id')->leftJoinSub($primaryCategory, 'mc', 'mc.menu_id', '=', 'om.menu_id')
+603:            ->leftJoin('categories as c', 'c.category_id', '=', 'mc.category_id')->groupBy('c.'.$categoryName)->orderByDesc('revenue')
+613:            ->leftJoin('payments as p', 'p.code', '=', 'paid.effective_payment')->groupBy('paid.effective_payment', 'p.name')->orderByDesc('total')
+616:        return ['available' => true, 'empty' => $samples === 0, 'methods' => $query->map(fn ($r) => ['method' => (string)$r->method, 'total' => (float)$r->total, 'transactions' => (int)$r->transactions])->all(), 'sample_count' => $samples, 'reason' => $samples ? null : 'No transactions in this period', 'source_mode' => $authority['mode'], 'source' => 'orders.'.$authority['payment'].' joined to configured payments'];
+621:        $rows = DB::query()->fromSub($this->analyticsPaidQuery($start, $end), 'paid')->selectRaw("CASE WHEN LOWER(TRIM(order_type))='delivery' THEN 'Delivery' WHEN LOWER(TRIM(order_type)) IN ('collection','takeaway','take-away','pickup') THEN 'Take away' ELSE 'Dine in' END AS channel, COUNT(*) AS orders, SUM(net_revenue) AS revenue")->groupBy('channel')->get()->keyBy('channel');
+623:        $channels = collect(['Dine in','Take away','Delivery'])->map(function ($name) use ($rows) { $row = $rows->get($name); return ['channel' => $name, 'name' => $name, 'orders' => (int)($row->orders ?? 0), 'revenue' => (float)($row->revenue ?? 0)]; });
+624:        $samples = (int)$channels->sum('orders');
+625:        return ['available' => true, 'empty' => $samples === 0, 'channels' => $channels->all(), 'sample_count' => $samples, 'reason' => $samples ? null : 'No transactions in this period', 'source_mode' => $authority['mode'], 'source' => 'eligible orders by confirmed order_type mapping'];
+630:        $query = $this->orders()->where('processed', 0)
+631:            ->leftJoin('statuses as s', 's.status_id', '=', 'orders.status_id')
+635:        $orders = $query->orderByDesc('orders.created_at')->limit(5)
+636:            ->get(['orders.order_id', 'orders.order_type', 'orders.created_at', 's.status_name']);
+638:        return ['available' => true, 'live_order_count' => $count, 'orders' => $orders->map(fn ($r) => ['order_id' => (int)$r->order_id, 'channel' => (string)$r->order_type, 'status' => (string)($r->status_name ?: 'Open'), 'opened_at' => (string)$r->created_at])->all(), 'tables' => ['occupied' => $occupancy['occupied_tables'] ?? 0, 'total' => $occupancy['available_tables'] ?? 0], 'sample_count' => $count, 'source_mode' => 'open_statuses', 'status_names' => $statusNames, 'oldest_live_at' => (clone $query)->min('orders.created_at'), 'source' => 'unprocessed current-location orders excluding terminal status names'];
+644:        $rows = DB::query()->fromSub($this->analyticsPaidQuery($start, $end), 'paid')->leftJoin('payments as p', 'p.code', '=', 'paid.effective_payment')
+646:        return ['available' => true, 'empty' => $rows->isEmpty(), 'transactions' => $rows->map(fn ($r) => ['order_id' => (int)$r->order_id, 'method' => (string)$r->payment_method, 'amount' => (float)$r->effective_amount, 'status' => $authority['mode'] === 'settlement_fields' ? 'paid' : 'processed', 'timestamp' => (string)$r->effective_at])->all(), 'sample_count' => $rows->count(), 'reason' => $rows->isEmpty() ? 'No transactions in this period' : null, 'source_mode' => $authority['mode'], 'source' => 'latest eligible orders by '.$authority['date']];
+651:        $failed = $this->range($this->orders(), 'updated_at', $start, $end)->whereIn(DB::raw('LOWER(settlement_status)'), ['failed'])->count();
+652:        $refunds = $this->range($this->orders(), 'updated_at', $start, $end)->whereIn(DB::raw('LOWER(settlement_status)'), ['refunded','refund'])->count();
+653:        $stock = Schema::hasColumn('menus', 'is_stock_out') ? Menus_model::query()->whereHasOrDoesntHaveLocation($this->locationId())->stockOut()->count() : null;
+654:        $negative = Schema::hasTable('reviews') ? DB::table('reviews')->where('location_id', $this->locationId())->whereRaw('(quality + service + delivery) / 3 <= 2')->count() : null;
+655:        return ['available' => true, 'types' => ['failed_payments' => $failed, 'refunds' => $refunds, 'long_open_tables' => null, 'out_of_stock' => $stock, 'negative_reviews' => $negative], 'unavailable' => ['long_open_tables'], 'source' => 'settlement states, stock flags and location reviews; no reliable open-duration alert threshold configured'];
+660:        if (!Schema::hasTable('reviews')) return $this->unavailable('reviews table unavailable');
+661:        $base = DB::table('reviews')->where('location_id', $this->locationId())->where('review_status', 1);
+666:        return ['available' => true, 'average' => $summary->rating === null ? null : round((float)$summary->rating, 1), 'count' => (int)$summary->count, 'rated_count' => (int)$summary->count, 'unrated_count' => $unrated, 'latest' => $latest->map(fn ($r) => ['rating' => round(((int)$r->quality + (int)$r->service + (int)$r->delivery) / 3, 1), 'comment' => mb_substr(strip_tags((string)$r->review_text), 0, 180), 'date' => (string)$r->created_at])->all(), 'sample_count' => (int)$summary->count, 'source_mode' => 'approved_rated_reviews', 'source' => 'approved current-location reviews excluding zero/unrated rows from average'];
+674:            $row = DB::query()->fromSub($this->analyticsEligibleOrders($from, $end)->select('orders.order_id'), 'paid')
+682:        return ['available' => true, 'today' => $today['value'], 'month' => $month['value'], 'selected' => $selected['value'], 'tipped_orders' => $selected['count'], 'average_tip' => $selected['count'] ? round($selected['value'] / $selected['count'], 2) : 0, 'sample_count' => $selected['count'], 'source_mode' => 'order_totals', 'source' => 'confirmed order_totals.code=tip joined to '.$authority['mode'].' orders'];
+687:        return ['available' => false, 'events' => [], 'source' => 'No persistent calendar-event table exists; Reservations2 holidays are client constants and notes are browser-local', 'reason' => 'Source unavailable'];
+706:        $historicalSettlementCount = $this->hasColumns('orders', ['settlement_status','settled_at'])
+707:            ? $this->orders()->whereIn(DB::raw('LOWER(settlement_status)'), ['paid','settled'])->whereNotNull('settled_at')->count() : 0;
+708:        $historicalProcessedCount = Schema::hasColumn('orders', 'processed') ? $this->orders()->where('processed', 1)->count() : 0;
+716:            'payment_source' => $authority['payment'] ? 'orders.'.$authority['payment'] : 'unavailable',
+718:            'order_item_count' => Schema::hasTable('order_menus') ? DB::table('order_menus')->whereIn('order_id', $eligible ? (clone $eligible)->select('orders.order_id') : [-1])->count() : 0,
+720:            'period_has_orders' => $periodCount > 0,
+726:            'tip_source' => $this->tipSubquery() ? 'order_totals.code=tip' : 'unavailable',

@@ -1,0 +1,48 @@
+        translating = true;
+        try {
+            translateRoot(document.body);
+        } finally {
+            translating = false;
+        }
+
+        observe();
+
+        window.requestAnimationFrame(function () {
+            window.requestAnimationFrame(reveal);
+        });
+    }
+
+    addCatalogueEntries();
+
+    window.PMDAdminI18n = {
+        version: '1.0.0',
+        locale: function () { return locale; },
+        entries: function () { return Object.keys(catalogue).length; },
+        translate: lookup,
+        run: run,
+        reveal: reveal
+    };
+
+    if (locale !== 'de') {
+        reveal();
+    } else {
+        revealTimer = window.setTimeout(reveal, 4000);
+
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', run, { once: true });
+        } else {
+            run();
+        }
+    }
+
+    document.addEventListener('ajaxUpdateComplete', run, true);
+    document.addEventListener('ajaxPromiseDone', run, true);
+    window.addEventListener('load', run, { once: true });
+
+    console.info('[PMD Admin I18n] Ready', {
+        version: window.PMDAdminI18n.version,
+        locale: locale,
+        entries: Object.keys(catalogue).length,
+        noFlash: true
+    });
+})();

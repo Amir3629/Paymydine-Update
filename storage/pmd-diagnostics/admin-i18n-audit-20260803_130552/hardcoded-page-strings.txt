@@ -1,0 +1,1043 @@
+app/admin/views/reservations2/index.blade.php.before-floor-cache-20260726_122015:32:  function countTables() {
+app/admin/views/reservations2/index.blade.php.before-floor-cache-20260726_122015:46:      countTables() > 0
+app/admin/views/reservations2/index.blade.php.before-floor-cache-20260726_122015:71:    console.info('[PMD Reservations2 Authority Guard V6] Final UI revealed', {
+app/admin/views/reservations2/index.blade.php.before-floor-cache-20260726_122015:73:      tables: countTables(),
+app/admin/views/reservations2/index.blade.php.before-floor-cache-20260726_122015:102:        tables: countTables(),
+app/admin/views/reservations2/index.blade.php.before-floor-cache-20260726_122015:139:    reservations: @json($pmdReservations2 ?? []),
+app/admin/views/reservations2/index.blade.php.before-floor-cache-20260726_122015:150:            <h1>Reservations</h1>
+app/admin/views/reservations2/index.blade.php.before-floor-cache-20260726_122015:207:                <h2>Live Tables & Orders</h2>
+app/admin/views/reservations2/index.blade.php.before-floor-cache-20260726_122015:210:                    the Waiter Dashboard
+app/admin/views/reservations2/index.blade.php.before-floor-cache-20260726_122015:235:                    Loading live Waiter Dashboard cards…
+app/admin/views/reservations2/index.blade.php.before-floor-cache-20260726_122015:254:                        The Waiter Dashboard card area could not
+app/admin/views/reservations2/index.blade.php.before-floor-cache-20260726_122015:264:                title="Live Waiter Dashboard table cards"
+app/admin/views/reservations2/index.blade.php.before-floor-cache-20260726_122015:467:        '[PMD Reservations Canonical URL V1] Browser URL changed to',
+app/admin/views/reservations2/index.blade.php.before-floor-cache-20260726_122015:501:    function unlockReservationsScroll() {
+app/admin/views/reservations2/index.blade.php.before-floor-cache-20260726_122015:567:    unlockReservationsScroll();
+app/admin/views/reservations2/index.blade.php.before-floor-cache-20260726_122015:571:        unlockReservationsScroll
+app/admin/views/reservations2/index.blade.php.before-floor-cache-20260726_122015:574:    setTimeout(unlockReservationsScroll, 100);
+app/admin/views/reservations2/index.blade.php.before-floor-cache-20260726_122015:575:    setTimeout(unlockReservationsScroll, 500);
+app/admin/views/reservations2/index.blade.php.before-floor-cache-20260726_122015:576:    setTimeout(unlockReservationsScroll, 1500);
+app/admin/views/reservations2/index.blade.php.before-floor-cache-20260726_122015:579:        '[PMD Reservations Scroll Unlock V1] Active'
+app/admin/views/reservations2/index.blade.php.before-calendar-v114-20260724_210335.bak.before-floor-cache-20260726_122015:28:    reservations: @json($pmdReservations2 ?? []),
+app/admin/views/reservations2/index.blade.php.before-calendar-v114-20260724_210335.bak.before-floor-cache-20260726_122015:39:            <h1>Reservations</h1>
+app/admin/views/reservations2/index.blade.php.before-calendar-v114-20260724_210335.bak.before-floor-cache-20260726_122015:134:        'Reservation Floor controls'
+app/admin/views/reservations2/index.blade.php.before-calendar-v114-20260724_210335.bak.before-floor-cache-20260726_122015:172:        'aria-label="Full Floor map" ',
+app/admin/views/reservations2/index.blade.php.before-calendar-v114-20260724_210335.bak.before-floor-cache-20260726_122015:173:        'title="Full Floor map">',
+app/admin/views/reservations2/index.blade.php.before-calendar-v115-20260724_210853.bak.before-floor-cache-20260726_122015:28:    reservations: @json($pmdReservations2 ?? []),
+app/admin/views/reservations2/index.blade.php.before-calendar-v115-20260724_210853.bak.before-floor-cache-20260726_122015:39:            <h1>Reservations</h1>
+app/admin/views/reservations2/index.blade.php.before-calendar-v115-20260724_210853.bak.before-floor-cache-20260726_122015:134:        'Reservation Floor controls'
+app/admin/views/reservations2/index.blade.php.before-calendar-v115-20260724_210853.bak.before-floor-cache-20260726_122015:172:        'aria-label="Full Floor map" ',
+app/admin/views/reservations2/index.blade.php.before-calendar-v115-20260724_210853.bak.before-floor-cache-20260726_122015:173:        'title="Full Floor map">',
+app/admin/views/reservations2/index.blade.php:37:  function countTables() {
+app/admin/views/reservations2/index.blade.php:51:      countTables() > 0
+app/admin/views/reservations2/index.blade.php:76:    console.info('[PMD Reservations2 Authority Guard V6] Final UI revealed', {
+app/admin/views/reservations2/index.blade.php:78:      tables: countTables(),
+app/admin/views/reservations2/index.blade.php:107:        tables: countTables(),
+app/admin/views/reservations2/index.blade.php:144:    reservations: @json($pmdReservations2 ?? []),
+app/admin/views/reservations2/index.blade.php:160:  Reservations2 roughly half of its total height above the viewport.
+app/admin/views/reservations2/index.blade.php:162:  This view-scoped rule keeps the Reservations2 workspace aligned
+app/admin/views/reservations2/index.blade.php:163:  to the top without changing Floor geometry, One Row, Calendar,
+app/admin/views/reservations2/index.blade.php:164:  Hour, cards, KPIs, scrolling, Safari, mobile, or other admin pages.
+app/admin/views/reservations2/index.blade.php:180:            <h1>Reservations</h1>
+app/admin/views/reservations2/index.blade.php:218:        'viewPreference' => $pmdFloorView ?? [
+app/admin/views/reservations2/index.blade.php:243:                <h2>Live Tables & Orders</h2>
+app/admin/views/reservations2/index.blade.php:246:                    the Waiter Dashboard
+app/admin/views/reservations2/index.blade.php:271:                    Loading live Waiter Dashboard cards…
+app/admin/views/reservations2/index.blade.php:290:                        The Waiter Dashboard card area could not
+app/admin/views/reservations2/index.blade.php:300:                title="Live Waiter Dashboard table cards"
+app/admin/views/reservations2/index.blade.php:367:        'Reservation Floor controls'
+app/admin/views/reservations2/index.blade.php:405:        'aria-label="Full Floor map" ',
+app/admin/views/reservations2/index.blade.php:406:        'title="Full Floor map">',
+app/admin/views/reservations2/index.blade.php:581: * in-Floor header row from the Floor layout.
+app/admin/views/reservations2/index.blade.php:638: * the bordered Floor frame.
+app/admin/views/reservations2/index.blade.php:704:    if (window.PMDToolbarOutsideFloorFrameV5) {
+app/admin/views/reservations2/index.blade.php:776:                ? 'Full Floor'
+app/admin/views/reservations2/index.blade.php:885:    window.PMDToolbarOutsideFloorFrameV5 = {
+app/admin/views/reservations2/index.blade.php:982:   * Transparent row immediately above the Floor map.
+app/admin/views/reservations2/index.blade.php:1093:  return; // Disabled: V316 remains inside the native Floor.
+app/admin/views/reservations2/index.blade.php:1125:     * Place the transparent toolbar row directly before the Floor frame.
+app/admin/views/reservations2/index.blade.php:1241:        '[PMD Reservations Canonical URL V1] Browser URL changed to',
+app/admin/views/reservations2/index.blade.php:1275:    function unlockReservationsScroll() {
+app/admin/views/reservations2/index.blade.php:1341:    unlockReservationsScroll();
+app/admin/views/reservations2/index.blade.php:1345:        unlockReservationsScroll
+app/admin/views/reservations2/index.blade.php:1348:    setTimeout(unlockReservationsScroll, 100);
+app/admin/views/reservations2/index.blade.php:1349:    setTimeout(unlockReservationsScroll, 500);
+app/admin/views/reservations2/index.blade.php:1350:    setTimeout(unlockReservationsScroll, 1500);
+app/admin/views/reservations2/index.blade.php:1353:        '[PMD Reservations Scroll Unlock V1] Active'
+app/admin/views/reservations2/index.blade.php:1377: * hide Edit/Save, zoom-out, Full Floor/Fit and zoom-in
+app/admin/views/reservations2/index.blade.php:1427:    return; // Disabled: native Floor engine owns One Row geometry.
+app/admin/views/reservations2/index.blade.php:1551:    function fullFloorDimensions() {
+app/admin/views/reservations2/index.blade.php:1587:    function expandFullFloorArea() {
+app/admin/views/reservations2/index.blade.php:1597:            fullFloorDimensions();
+app/admin/views/reservations2/index.blade.php:1600:            root.__pmdFloorV1 &&
+app/admin/views/reservations2/index.blade.php:1601:            root.__pmdFloorV1.getState
+app/admin/views/reservations2/index.blade.php:1602:                ? root.__pmdFloorV1.getState()
+app/admin/views/reservations2/index.blade.php:1729:         * The real pmd-floor-v1 engine now owns Full Floor width,
+app/admin/views/reservations2/index.blade.php:1822:     * Ensure the initial Full Floor uses all available area.
+app/admin/views/reservations2/index.blade.php:1836:                expandFullFloorArea();
+app/admin/views/reservations2/index.blade.php:1854:   * Real space between KPI cards and Floor.
+app/admin/views/reservations2/index.blade.php:2035:  function getFloor() {
+app/admin/views/reservations2/index.blade.php:2137:          floor.__pmdFloorV1;
+app/admin/views/reservations2/index.blade.php:2204:          floor.__pmdFloorV1;
+app/admin/views/reservations2/index.blade.php:2216:          ? 'Full Floor'
+app/admin/views/reservations2/index.blade.php:2232:        floor.__pmdFloorV1;
+app/admin/views/reservations2/index.blade.php:2324:              floor.__pmdFloorV1;
+app/admin/views/reservations2/index.blade.php:2333:                '[PMD V34.1] Floor editor API unavailable'
+app/admin/views/reservations2/index.blade.php:2416:    var floor = getFloor();
+app/admin/views/reservations2/index.blade.php:2503:      '[PMD Reservations V34.1] ' +
+app/admin/views/reservations2/index.blade.php:2504:      'Floor toolbar mounted successfully'
+app/admin/views/reservations2/index.blade.php:2531:     * Reserve real layout space between KPI cards and Floor.
+app/admin/views/reservations2/index.blade.php:2532:     * This does not move or wrap the Floor DOM.
+app/admin/views/reservations2/index.blade.php:2592:         * Reapply as inline !important because old Floor scripts may
+app/admin/views/reservations2/index.blade.php:2784:                toolbarAboveFloor:
+app/admin/views/reservations2/index.blade.php:2805:     * These rules activate only when the real Hour Timeline
+app/admin/views/reservations2/index.blade.php:2819:     * Floor controls are not relevant in Hour View.
+app/admin/views/reservations2/index.blade.php:2845:     * The legacy Floor stage reserves approximately 640px.
+app/admin/views/reservations2/index.blade.php:2846:     * Collapse only that stage while Hour View is active.
+app/admin/views/reservations2/index.blade.php:2848:     * Never hide the shared Floor shell because Hour content
+app/admin/views/reservations2/index.blade.php:2871:     * The shared shell wraps the actual visible Hour content.
+app/admin/views/reservations2/index.blade.php:2890:     * Calendar/Hour surface receives its height from content.
+app/admin/views/reservations2/index.blade.php:2907:     * Align the Hour Header and Timeline with the KPI cards.
+app/admin/views/reservations2/index.blade.php:2908:     * Audit showed the Hour surface was 12px wider per side.
+app/admin/views/reservations2/index.blade.php:2929:     * KPI → Hour Header → Timeline.
+app/admin/views/reservations2/index.blade.php:3002:    var currentFloor = null;
+app/admin/views/reservations2/index.blade.php:3003:    var currentCalendar = null;
+app/admin/views/reservations2/index.blade.php:3048:            currentFloor,
+app/admin/views/reservations2/index.blade.php:3053:            currentCalendar,
+app/admin/views/reservations2/index.blade.php:3077:        currentFloor = null;
+app/admin/views/reservations2/index.blade.php:3078:        currentCalendar = null;
+app/admin/views/reservations2/index.blade.php:3121:         * Activate only if the real Hour Timeline is visible.
+app/admin/views/reservations2/index.blade.php:3122:         * Month mode and Floor mode remain untouched.
+app/admin/views/reservations2/index.blade.php:3145:        currentFloor = floor;
+app/admin/views/reservations2/index.blade.php:3146:        currentCalendar = calendar;
+app/admin/views/reservations2/index.blade.php:3223:         * Calendar cells and view buttons change the active screen.
+app/admin/views/reservations2/index.blade.php:3252:            '[PMD V38] Hour spacing and bottom-gap rules active.'
+app/admin/views/reservations2/index.blade.php:3281:     * - final Hour row bottom: 1520px
+app/admin/views/reservations2/index.blade.php:3282:     * - Calendar bottom: 1521px
+app/admin/views/reservations2/index.blade.php:3301:     * Shared shell ends with the visible Calendar content.
+app/admin/views/reservations2/index.blade.php:3347:     * Empty structural siblings after the shared Calendar shell
+app/admin/views/reservations2/index.blade.php:3348:     * must not reserve the legacy Floor/List height in Hour mode.
+app/admin/views/reservations2/index.blade.php:3373:     * Hour mode must not inherit a synthetic page spacer.
+app/admin/views/reservations2/index.blade.php:3505:            '[PMD V38.1] Extra Hour bottom scroll fix active.'
+app/admin/views/reservations2/index.blade.php:3537:     * Hour/Floor/Calendar dimensions remain untouched.
+app/admin/views/reservations2/index.blade.php:3578:     * Preserve the working Hour implementation.
+app/admin/views/reservations2/index.blade.php:3945:        '[PMD V44] Reservations Sidebar smooth reflow active.',
+app/admin/views/reservations2/index.blade.php:3959:     * V44.1 animates the actual Reservations width so all
+app/admin/views/reservations2/index.blade.php:3960:     * cards, grids, KPI panels, Floor and Calendar resize
+app/admin/views/reservations2/index.blade.php:4164:         * Freeze the Reservations page at its exact pre-click
+app/admin/views/reservations2/index.blade.php:4410:            '[PMD V44.1] Full Reservations width reflow active.'
+app/admin/views/reservations2/index.blade.php:4447:   * Floor controls now live in the top page header.
+app/admin/views/reservations2/index.blade.php:4448:   * Remove the obsolete internal Floor toolbar/status row completely.
+app/admin/views/reservations2/index.blade.php:4515:   * Let the actual Floor content begin directly at the top of the frame.
+app/admin/views/reservations2/index.blade.php:4530:/* Real space between KPI cards and the Floor map. */
+app/admin/views/reservations2/index.blade.php:4536:/* Existing V316 toolbar above and outside the Floor border. */
+app/admin/views/reservations2/index.blade.php:4600:/* In One Row show only the return-to-Full-Floor button. */
+app/admin/views/reservations2/index.blade.php:4687:        '[PMD One Row V1] Floor elements not found.'
+app/admin/views/reservations2/index.blade.php:4740:        firstTable:
+app/admin/views/reservations2/index.blade.php:4750:        secondTable:
+app/admin/views/reservations2/index.blade.php:4768:      var currentTables = tables();
+app/admin/views/reservations2/index.blade.php:4773:        currentTables.length === 0
+app/admin/views/reservations2/index.blade.php:4788:          currentTables.map(function (table) {
+app/admin/views/reservations2/index.blade.php:4792:                table.dataset.floorTable ||
+app/admin/views/reservations2/index.blade.php:4812:    function savedTableFor(table, index, tableMap) {
+app/admin/views/reservations2/index.blade.php:4815:        table.dataset.floorTable ||
+app/admin/views/reservations2/index.blade.php:4826:    function applyCanonicalStyles(currentTables, tableMap) {
+app/admin/views/reservations2/index.blade.php:4833:      currentTables.forEach(function (table, index) {
+app/admin/views/reservations2/index.blade.php:4835:          savedTableFor(table, index, tableMap);
+app/admin/views/reservations2/index.blade.php:4858:      var currentTables = tables();
+app/admin/views/reservations2/index.blade.php:4871:        currentTables,
+app/admin/views/reservations2/index.blade.php:4886:            currentTables,
+app/admin/views/reservations2/index.blade.php:5151:      window.PMDReservations2CalendarToggleV1 ||
+app/admin/views/reservations2/index.blade.php:5190:  function isHourView() {
+app/admin/views/reservations2/index.blade.php:5212:    if (isHourView()) {
+app/admin/views/reservations2/index.blade.php:5301:  function resetHourToCalendar() {
+app/admin/views/reservations2/index.blade.php:5339:        'Open calendar view';
+app/admin/views/reservations2/index.blade.php:5342:        'Open hour timeline';
+app/admin/views/reservations2/index.blade.php:5363:  function enterCalendar() {
+app/admin/views/reservations2/index.blade.php:5391:  function enterHour() {
+app/admin/views/reservations2/index.blade.php:5464:              window.PMDRealHourTimelineV1 &&
+app/admin/views/reservations2/index.blade.php:5466:                .PMDRealHourTimelineV1.render ===
+app/admin/views/reservations2/index.blade.php:5470:                .PMDRealHourTimelineV1
+app/admin/views/reservations2/index.blade.php:5486:  function enterFloor() {
+app/admin/views/reservations2/index.blade.php:5490:    resetHourToCalendar();
+app/admin/views/reservations2/index.blade.php:5539:      enterCalendar();
+app/admin/views/reservations2/index.blade.php:5544:      enterHour();
+app/admin/views/reservations2/index.blade.php:5548:    enterFloor();
+app/admin/views/reservations2/index.blade.php:5634:    showFloor: enterFloor,
+app/admin/views/reservations2/index.blade.php:5635:    showCalendar: enterCalendar,
+app/admin/views/reservations2/index.blade.php:5636:    showHour: enterHour,
+app/admin/views/reservations2/index.blade.php:6176:          ? 'Reservations'
+app/admin/views/reservations2/index.blade.php:6752:            'Reservation date: ' +
+app/admin/views/reservations2/index.blade.php:6755:        : 'Reservation date range'
+app/admin/views/reservations2/index.blade.php:7188:            'Reservation date: ' +
+app/admin/views/reservations2/index.blade.php:7191:        : 'Reservation date range'
+app/admin/views/reservations2/index.blade.php:7387:    window.PMDRealHourTimelineV1 &&
+app/admin/views/reservations2/index.blade.php:7388:    typeof window.PMDRealHourTimelineV1.destroy ===
+app/admin/views/reservations2/index.blade.php:7391:    window.PMDRealHourTimelineV1.destroy();
+app/admin/views/reservations2/index.blade.php:7496:    var twelveHour =
+app/admin/views/reservations2/index.blade.php:7501:    if (twelveHour) {
+app/admin/views/reservations2/index.blade.php:7503:        Number(twelveHour[1]);
+app/admin/views/reservations2/index.blade.php:7506:        twelveHour[2];
+app/admin/views/reservations2/index.blade.php:7509:        twelveHour[3]
+app/admin/views/reservations2/index.blade.php:7536:    var twentyFourHour =
+app/admin/views/reservations2/index.blade.php:7541:    if (!twentyFourHour) {
+app/admin/views/reservations2/index.blade.php:7547:        Number(twentyFourHour[1])
+app/admin/views/reservations2/index.blade.php:7553:      twentyFourHour[2]
+app/admin/views/reservations2/index.blade.php:7589:      'Reservation ' +
+app/admin/views/reservations2/index.blade.php:7656:            /(?:Table|Tisch)\s*#?\s*(\d+)/i
+app/admin/views/reservations2/index.blade.php:7780:      'Tisch ' +
+app/admin/views/reservations2/index.blade.php:7815:      'Geöffnet';
+app/admin/views/reservations2/index.blade.php:7976:      '[PMD Real Hour Timeline V1] Rendered:',
+app/admin/views/reservations2/index.blade.php:7981:        parsedReservations:
+app/admin/views/reservations2/index.blade.php:7983:        renderedReservations:
+app/admin/views/reservations2/index.blade.php:7990:      parsedReservations:
+app/admin/views/reservations2/index.blade.php:7992:      renderedReservations:
+app/admin/views/reservations2/index.blade.php:8073:      parsedReservations:
+app/admin/views/reservations2/index.blade.php:8075:      renderedReservations:
+app/admin/views/reservations2/index.blade.php:8097:      '[PMD Real Hour Timeline V1] Ready.',
+app/admin/views/reservations2/index.blade.php:8112:      .PMDRealHourTimelineV1;
+app/admin/views/reservations2/index.blade.php:8115:  window.PMDRealHourTimelineV1 = {
+app/admin/views/reservations2/index.blade.php:8152:    window.PMDHourEntryAuthorityV11 &&
+app/admin/views/reservations2/index.blade.php:8153:    typeof window.PMDHourEntryAuthorityV11.destroy ===
+app/admin/views/reservations2/index.blade.php:8156:    window.PMDHourEntryAuthorityV11.destroy();
+app/admin/views/reservations2/index.blade.php:8289:  function renderRealHour(
+app/admin/views/reservations2/index.blade.php:8293:      window.PMDRealHourTimelineV1;
+app/admin/views/reservations2/index.blade.php:8325:          renderRealHour(reason);
+app/admin/views/reservations2/index.blade.php:8344:          '[PMD Hour Entry Authority V1.1] Finalized:',
+app/admin/views/reservations2/index.blade.php:8378:    function waitForHour() {
+app/admin/views/reservations2/index.blade.php:8408:         * legacy Hour renderer writing after the first pass.
+app/admin/views/reservations2/index.blade.php:8450:          waitForHour
+app/admin/views/reservations2/index.blade.php:8456:        waitForHour
+app/admin/views/reservations2/index.blade.php:8474:     * Only Calendar -> Hour needs this authority.
+app/admin/views/reservations2/index.blade.php:8527:      .PMDHourEntryAuthorityV11;
+app/admin/views/reservations2/index.blade.php:8530:  window.PMDHourEntryAuthorityV11 = {
+app/admin/views/reservations2/index.blade.php:8552:    '[PMD Hour Entry Authority V1.1] Ready.',
+app/admin/views/reservations2/index.blade.php:8562:   * Calendar toolbar without a surrounding frame.
+app/admin/views/reservations2/index.blade.php:8585:   * The legend is redundant in this clean Calendar layout.
+app/admin/views/reservations2/index.blade.php:8671:   * Reservation count created by the new real-count authority.
+app/admin/views/reservations2/index.blade.php:8703:    window.PMDCalendarRealCountsFloatingV1 &&
+app/admin/views/reservations2/index.blade.php:8704:    typeof window.PMDCalendarRealCountsFloatingV1.destroy ===
+app/admin/views/reservations2/index.blade.php:8707:    window.PMDCalendarRealCountsFloatingV1.destroy();
+app/admin/views/reservations2/index.blade.php:8716:  function sourceReservations() {
+app/admin/views/reservations2/index.blade.php:8871:  function uniqueReservations() {
+app/admin/views/reservations2/index.blade.php:8874:    return sourceReservations()
+app/admin/views/reservations2/index.blade.php:8904:    return uniqueReservations()
+app/admin/views/reservations2/index.blade.php:8942:  function existingReservationSummary(
+app/admin/views/reservations2/index.blade.php:8970:  function ensureReservationSummary(
+app/admin/views/reservations2/index.blade.php:8975:      existingReservationSummary(
+app/admin/views/reservations2/index.blade.php:8985:        .pmdRealReservationCount =
+app/admin/views/reservations2/index.blade.php:9018:      .pmdRealReservationCount =
+app/admin/views/reservations2/index.blade.php:9043:    var cellsWithReservations = 0;
+app/admin/views/reservations2/index.blade.php:9056:          cellsWithReservations += 1;
+app/admin/views/reservations2/index.blade.php:9061:            existingReservationSummary(
+app/admin/views/reservations2/index.blade.php:9066:        ensureReservationSummary(
+app/admin/views/reservations2/index.blade.php:9073:            existingReservationSummary(
+app/admin/views/reservations2/index.blade.php:9085:      '[PMD Calendar Real Counts + Floating V1] Applied:',
+app/admin/views/reservations2/index.blade.php:9088:        sourceReservations:
+app/admin/views/reservations2/index.blade.php:9089:          sourceReservations().length,
+app/admin/views/reservations2/index.blade.php:9090:        uniqueReservations:
+app/admin/views/reservations2/index.blade.php:9091:          uniqueReservations().length,
+app/admin/views/reservations2/index.blade.php:9094:        datesWithReservations:
+app/admin/views/reservations2/index.blade.php:9096:        visibleCellsWithReservations:
+app/admin/views/reservations2/index.blade.php:9097:          cellsWithReservations,
+app/admin/views/reservations2/index.blade.php:9104:      sourceReservations:
+app/admin/views/reservations2/index.blade.php:9105:        sourceReservations().length,
+app/admin/views/reservations2/index.blade.php:9106:      uniqueReservations:
+app/admin/views/reservations2/index.blade.php:9107:        uniqueReservations().length,
+app/admin/views/reservations2/index.blade.php:9110:      datesWithReservations:
+app/admin/views/reservations2/index.blade.php:9112:      visibleCellsWithReservations:
+app/admin/views/reservations2/index.blade.php:9113:        cellsWithReservations,
+app/admin/views/reservations2/index.blade.php:9216:            existingReservationSummary(
+app/admin/views/reservations2/index.blade.php:9252:      sourceReservations:
+app/admin/views/reservations2/index.blade.php:9253:        sourceReservations().length,
+app/admin/views/reservations2/index.blade.php:9254:      uniqueReservations:
+app/admin/views/reservations2/index.blade.php:9255:        uniqueReservations().length,
+app/admin/views/reservations2/index.blade.php:9256:      parsedReservations:
+app/admin/views/reservations2/index.blade.php:9267:      datesWithReservations:
+app/admin/views/reservations2/index.blade.php:9315:      '[PMD Calendar Real Counts + Floating V1] Ready.',
+app/admin/views/reservations2/index.blade.php:9330:      .PMDCalendarRealCountsFloatingV1;
+app/admin/views/reservations2/index.blade.php:9333:  window.PMDCalendarRealCountsFloatingV1 = {
+app/admin/views/reservations2/index.blade.php:9368:   * Completely remove the Calendar toolbar container frame.
+app/admin/views/reservations2/index.blade.php:9442:   * Match the clean Hour/Floor toolbar buttons.
+app/admin/views/reservations2/index.blade.php:9534:   * Hide the duplicate month title inside the Calendar frame.
+app/admin/views/reservations2/index.blade.php:9576:    window.PMDCalendarCountsToolbarV111 &&
+app/admin/views/reservations2/index.blade.php:9577:    typeof window.PMDCalendarCountsToolbarV111.destroy ===
+app/admin/views/reservations2/index.blade.php:9580:    window.PMDCalendarCountsToolbarV111.destroy();
+app/admin/views/reservations2/index.blade.php:9603:      .PMDCalendarRealCountsFloatingV1;
+app/admin/views/reservations2/index.blade.php:9637:      '[PMD Calendar Counts Toolbar V1.1.1] Applied:',
+app/admin/views/reservations2/index.blade.php:9645:  function waitForCalendar(reason) {
+app/admin/views/reservations2/index.blade.php:9695:          '[PMD Calendar Counts Toolbar V1.1.1] Cells not ready.',
+app/admin/views/reservations2/index.blade.php:9719:  function wrapCalendarApi() {
+app/admin/views/reservations2/index.blade.php:9722:        .PMDReservations2CalendarToggleV1;
+app/admin/views/reservations2/index.blade.php:9754:            waitForCalendar(
+app/admin/views/reservations2/index.blade.php:9786:    waitForCalendar(
+app/admin/views/reservations2/index.blade.php:9870:    wrapCalendarApi();
+app/admin/views/reservations2/index.blade.php:9877:              wrapCalendarApi();
+app/admin/views/reservations2/index.blade.php:9882:                waitForCalendar(
+app/admin/views/reservations2/index.blade.php:9895:      '[PMD Calendar Counts Toolbar V1.1.1] Ready.',
+app/admin/views/reservations2/index.blade.php:9911:        .PMDReservations2CalendarToggleV1;
+app/admin/views/reservations2/index.blade.php:9930:      .PMDCalendarCountsToolbarV111;
+app/admin/views/reservations2/index.blade.php:9933:  window.PMDCalendarCountsToolbarV111 = {
+app/admin/views/reservations2/index.blade.php:9937:      waitForCalendar('manual');
+app/admin/views/reservations2/index.blade.php:9976:    window.PMDCalendarNativeCountV14 &&
+app/admin/views/reservations2/index.blade.php:9977:    typeof window.PMDCalendarNativeCountV14.destroy ===
+app/admin/views/reservations2/index.blade.php:9980:    window.PMDCalendarNativeCountV14.destroy();
+app/admin/views/reservations2/index.blade.php:9991:      .PMDCalendarRealCountsFloatingV1;
+app/admin/views/reservations2/index.blade.php:10103:     * by PMD Calendar Real Counts V1.
+app/admin/views/reservations2/index.blade.php:10120:        .pmdNativeReservationCount =
+app/admin/views/reservations2/index.blade.php:10142:      .pmdNativeReservationCount =
+app/admin/views/reservations2/index.blade.php:10204:      '[PMD Calendar Native Count V1.4] Applied:',
+app/admin/views/reservations2/index.blade.php:10261:    function waitForCalendar() {
+app/admin/views/reservations2/index.blade.php:10279:         * Calendar render. No permanent polling.
+app/admin/views/reservations2/index.blade.php:10310:          '[PMD Calendar Native Count V1.4] Calendar cells not ready.',
+app/admin/views/reservations2/index.blade.php:10324:          waitForCalendar
+app/admin/views/reservations2/index.blade.php:10330:        waitForCalendar
+app/admin/views/reservations2/index.blade.php:10484:      '[PMD Calendar Native Count V1.4] Ready.',
+app/admin/views/reservations2/index.blade.php:10514:      .PMDCalendarNativeCountV14;
+app/admin/views/reservations2/index.blade.php:10517:  window.PMDCalendarNativeCountV14 = {
+app/admin/views/reservations2/index.blade.php:10554:   * Keep all native Calendar DOM and functionality.
+app/admin/views/reservations2/index.blade.php:10555:   * Visually separate the toolbar from the Calendar grid.
+app/admin/views/reservations2/index.blade.php:10574:   * Hour-style floating Calendar header:
+app/admin/views/reservations2/index.blade.php:10724:   * Match the verified Hour toolbar button dimensions:
+app/admin/views/reservations2/index.blade.php:10862:   * The Calendar grid receives its own frame.
+app/admin/views/reservations2/index.blade.php:10933:   * Remove every outer frame around the Calendar toolbar.
+app/admin/views/reservations2/index.blade.php:10965:   * any white rounded Calendar panel.
+app/admin/views/reservations2/index.blade.php:11078:   * Reservations2 vertical spacing rule:
+app/admin/views/reservations2/index.blade.php:11084:   * and the Calendar toolbar.
+app/admin/views/reservations2/index.blade.php:11096:   * Prevent inner Calendar wrappers from reintroducing
+app/admin/views/reservations2/index.blade.php:11113:   * Keep Toolbar → Calendar Grid spacing equal
+app/admin/views/reservations2/index.blade.php:11147:   * Calendar and Hour use the same shared canvas, so normalize
+app/admin/views/reservations2/index.blade.php:11150:   * Floor mode remains untouched.
+app/admin/views/reservations2/index.blade.php:11163:   * Do not let the nested Calendar surface add another top gap.
+app/admin/views/reservations2/index.blade.php.broken-edit-20260726_123144:32:  function countTables() {
+app/admin/views/reservations2/index.blade.php.broken-edit-20260726_123144:46:      countTables() > 0
+app/admin/views/reservations2/index.blade.php.broken-edit-20260726_123144:71:    console.info('[PMD Reservations2 Authority Guard V6] Final UI revealed', {
+app/admin/views/reservations2/index.blade.php.broken-edit-20260726_123144:73:      tables: countTables(),
+app/admin/views/reservations2/index.blade.php.broken-edit-20260726_123144:102:        tables: countTables(),
+app/admin/views/reservations2/index.blade.php.broken-edit-20260726_123144:139:    reservations: @json($pmdReservations2 ?? []),
+app/admin/views/reservations2/index.blade.php.broken-edit-20260726_123144:150:            <h1>Reservations</h1>
+app/admin/views/reservations2/index.blade.php.broken-edit-20260726_123144:207:                <h2>Live Tables & Orders</h2>
+app/admin/views/reservations2/index.blade.php.broken-edit-20260726_123144:210:                    the Waiter Dashboard
+app/admin/views/reservations2/index.blade.php.broken-edit-20260726_123144:235:                    Loading live Waiter Dashboard cards…
+app/admin/views/reservations2/index.blade.php.broken-edit-20260726_123144:254:                        The Waiter Dashboard card area could not
+app/admin/views/reservations2/index.blade.php.broken-edit-20260726_123144:264:                title="Live Waiter Dashboard table cards"
+app/admin/views/reservations2/index.blade.php.broken-edit-20260726_123144:467:        '[PMD Reservations Canonical URL V1] Browser URL changed to',
+app/admin/views/reservations2/index.blade.php.broken-edit-20260726_123144:501:    function unlockReservationsScroll() {
+app/admin/views/reservations2/index.blade.php.broken-edit-20260726_123144:567:    unlockReservationsScroll();
+app/admin/views/reservations2/index.blade.php.broken-edit-20260726_123144:571:        unlockReservationsScroll
+app/admin/views/reservations2/index.blade.php.broken-edit-20260726_123144:574:    setTimeout(unlockReservationsScroll, 100);
+app/admin/views/reservations2/index.blade.php.broken-edit-20260726_123144:575:    setTimeout(unlockReservationsScroll, 500);
+app/admin/views/reservations2/index.blade.php.broken-edit-20260726_123144:576:    setTimeout(unlockReservationsScroll, 1500);
+app/admin/views/reservations2/index.blade.php.broken-edit-20260726_123144:579:        '[PMD Reservations Scroll Unlock V1] Active'
+app/admin/views/reservations2/index.blade.php.before-calendar-v115-20260724_210853.bak:28:    reservations: @json($pmdReservations2 ?? []),
+app/admin/views/reservations2/index.blade.php.before-calendar-v115-20260724_210853.bak:39:            <h1>Reservations</h1>
+app/admin/views/reservations2/index.blade.php.before-calendar-v115-20260724_210853.bak:134:        'Reservation Floor controls'
+app/admin/views/reservations2/index.blade.php.before-calendar-v115-20260724_210853.bak:172:        'aria-label="Full Floor map" ',
+app/admin/views/reservations2/index.blade.php.before-calendar-v115-20260724_210853.bak:173:        'title="Full Floor map">',
+app/admin/views/reservations2/index.blade.php.before-calendar-v114-20260724_210335.bak:28:    reservations: @json($pmdReservations2 ?? []),
+app/admin/views/reservations2/index.blade.php.before-calendar-v114-20260724_210335.bak:39:            <h1>Reservations</h1>
+app/admin/views/reservations2/index.blade.php.before-calendar-v114-20260724_210335.bak:134:        'Reservation Floor controls'
+app/admin/views/reservations2/index.blade.php.before-calendar-v114-20260724_210335.bak:172:        'aria-label="Full Floor map" ',
+app/admin/views/reservations2/index.blade.php.before-calendar-v114-20260724_210335.bak:173:        'title="Full Floor map">',
+app/admin/views/reservations2/_reservation_composer.blade.php:6:          <div><small data-pmd-composer-kicker>Reservation</small><h2 id="pmd-reservation-composer-title-v1" data-pmd-composer-title>New reservation</h2></div>
+app/admin/views/reservations2/_reservation_composer.blade.php:23:            <h3 id="pmd-composer-assignment-title"><svg aria-hidden="true"><use href="#pmd-composer-icon-table"/></svg>Table assignment</h3>
+app/admin/views/reservations2/_reservation_composer.blade.php:29:            <label class="pmd-reservation-composer-v1__tables"><span>Tables</span><select name="tables[]" multiple></select><em data-error-for="tables"></em></label>
+app/admin/views/dashboard2_reservations2_exact.blade.php:2:  Dashboard2 reservation-card rendering is prevented at its source by the
+app/admin/views/dashboard2_reservations2_exact.blade.php:11:window.PMD_DASHBOARD2_KPIS = @json($pmdDashboard2Kpis ?? []);
+app/admin/views/dashboard2_reservations2_exact.blade.php:12:window.PMD_DASHBOARD2_KPI_PAYLOAD = @json($pmdDashboard2KpiPayload ?? null);
+app/admin/assets/js/pmd-reservations2-behavior-only-v7.js:9:    window.PMDReservations2BehaviorOnlyV7 &&
+app/admin/assets/js/pmd-reservations2-behavior-only-v7.js:10:    typeof window.PMDReservations2BehaviorOnlyV7.stop ===
+app/admin/assets/js/pmd-reservations2-behavior-only-v7.js:14:      window.PMDReservations2BehaviorOnlyV7.stop();
+app/admin/assets/js/pmd-reservations2-behavior-only-v7.js:38:  var selectedTable = '';
+app/admin/assets/js/pmd-reservations2-behavior-only-v7.js:49:  function normalizeTable(input) {
+app/admin/assets/js/pmd-reservations2-behavior-only-v7.js:83:  function reservationTable(reservation) {
+app/admin/assets/js/pmd-reservations2-behavior-only-v7.js:84:    return normalizeTable(
+app/admin/assets/js/pmd-reservations2-behavior-only-v7.js:101:      normalizeTable(number);
+app/admin/assets/js/pmd-reservations2-behavior-only-v7.js:106:          reservationTable(reservation) ===
+app/admin/assets/js/pmd-reservations2-behavior-only-v7.js:113:  function floorTables() {
+app/admin/assets/js/pmd-reservations2-behavior-only-v7.js:123:    return normalizeTable(
+app/admin/assets/js/pmd-reservations2-behavior-only-v7.js:204:      selectedTable === number;
+app/admin/assets/js/pmd-reservations2-behavior-only-v7.js:320:    if (!selectedTable) {
+app/admin/assets/js/pmd-reservations2-behavior-only-v7.js:334:      reservationsFor(selectedTable);
+app/admin/assets/js/pmd-reservations2-behavior-only-v7.js:337:      'Table ' + selectedTable;
+app/admin/assets/js/pmd-reservations2-behavior-only-v7.js:359:              ]) || 'Guest'
+app/admin/assets/js/pmd-reservations2-behavior-only-v7.js:363:          'Table ' +
+app/admin/assets/js/pmd-reservations2-behavior-only-v7.js:364:          selectedTable +
+app/admin/assets/js/pmd-reservations2-behavior-only-v7.js:415:    floorTables().forEach(
+app/admin/assets/js/pmd-reservations2-behavior-only-v7.js:462:      if (selectedTable !== next) {
+app/admin/assets/js/pmd-reservations2-behavior-only-v7.js:463:        selectedTable = next;
+app/admin/assets/js/pmd-reservations2-behavior-only-v7.js:572:  window.PMDReservations2BehaviorOnlyV7 = {
+app/admin/assets/js/pmd-reservations2-behavior-only-v7.js:589:    getSelectedTable:
+app/admin/assets/js/pmd-reservations2-behavior-only-v7.js:591:        return selectedTable;
+app/admin/assets/js/pmd-reservations2-behavior-only-v7.js:604:    '[PMD Reservations2 Behavior Only V7.1] Ready',
+app/admin/assets/js/pmd-reservations2-calendar-toggle-v1.js:4:  /* PMD Reservations Day Navigation V13 */
+app/admin/assets/js/pmd-reservations2-calendar-toggle-v1.js:6:  /* PMD Reservations Day View V12 */
+app/admin/assets/js/pmd-reservations2-calendar-toggle-v1.js:8:  /* PMD Reservations Day View V11 */
+app/admin/assets/js/pmd-reservations2-calendar-toggle-v1.js:10:  /* PMD Reservations Day View V10 */
+app/admin/assets/js/pmd-reservations2-calendar-toggle-v1.js:12:  /* PMD Reservations Day View V9 */
+app/admin/assets/js/pmd-reservations2-calendar-toggle-v1.js:14:  /* PMD Reservations Day View V7 */
+app/admin/assets/js/pmd-reservations2-calendar-toggle-v1.js:24:  var NOTE_KEY = 'pmd.yearCalendar.notes.v1';
+app/admin/assets/js/pmd-reservations2-calendar-toggle-v1.js:107:  function reservationTable(reservation) {
+app/admin/assets/js/pmd-reservations2-calendar-toggle-v1.js:125:      ('Reservation #' + (reservationId(reservation) || ''))
+app/admin/assets/js/pmd-reservations2-calendar-toggle-v1.js:126:    ) || 'Reservation';
+app/admin/assets/js/pmd-reservations2-calendar-toggle-v1.js:177:  function groupReservations() {
+app/admin/assets/js/pmd-reservations2-calendar-toggle-v1.js:204:      button.title = 'Calendar view';
+app/admin/assets/js/pmd-reservations2-calendar-toggle-v1.js:283:          '<div class="pmd-yc__legend"><span><i class="is-reservation">R</i>Reservation</span><span><i class="is-note">✎</i>Note</span><span><i class="is-event">★</i>Event</span></div>' +
+app/admin/assets/js/pmd-reservations2-calendar-toggle-v1.js:285:          '<div class="pmd-yc__toolbar-right"><div class="pmd-yc__view-switch"><button type="button" data-r2-yc-view="year">Year</button><button type="button" data-r2-yc-view="month" class="is-active">Month</button></div><div class="pmd-yc__filters"><button type="button" data-r2-yc-filter="all" class="is-active">All</button><button type="button" data-r2-yc-filter="reservations">Reservations</button><button type="button" data-r2-yc-filter="events">Events</button></div><button type="button" class="pmd-r2-yc-note-btn" data-r2-yc-note>＋ Note</button></div>' +
+app/admin/assets/js/pmd-reservations2-calendar-toggle-v1.js:345:    var reservationMap = groupReservations();
+app/admin/assets/js/pmd-reservations2-calendar-toggle-v1.js:373:  function existingReservationCard(reservation) {
+app/admin/assets/js/pmd-reservations2-calendar-toggle-v1.js:402:    var exactCard = existingReservationCard(reservation);
+app/admin/assets/js/pmd-reservations2-calendar-toggle-v1.js:406:    var table = reservationTable(reservation);
+app/admin/assets/js/pmd-reservations2-calendar-toggle-v1.js:417:        '<div class="pmd-w5-card-top"><span class="pmd-w5-pill warn">' + esc(table ? 'Table ' + table : 'No table') + '</span></div>' +
+app/admin/assets/js/pmd-reservations2-calendar-toggle-v1.js:419:        '<div class="pmd-w5-meta"><div class="pmd-w5-box"><small>Guests</small><b>' + esc(guests) + '</b></div><div class="pmd-w5-box"><small>Time</small><b>' + esc(time) + '</b></div><div class="pmd-w5-box pmd-v35-order-box"><small>Reservation</small><b>' + esc(id || '—') + '</b></div></div>' +
+app/admin/assets/js/pmd-reservations2-calendar-toggle-v1.js:436:function pmdRestoreCalendarFromTimeslots() {
+app/admin/assets/js/pmd-reservations2-calendar-toggle-v1.js:493:  pmdRestoreCalendarFromTimeslots();
+app/admin/assets/js/pmd-reservations2-calendar-toggle-v1.js:551:window.PMDRestoreCalendarFromTimeslots =
+app/admin/assets/js/pmd-reservations2-calendar-toggle-v1.js:552:  pmdRestoreCalendarFromTimeslots;
+app/admin/assets/js/pmd-reservations2-calendar-toggle-v1.js:578:      pmdRestoreCalendarFromTimeslots();
+app/admin/assets/js/pmd-reservations2-calendar-toggle-v1.js:661:        reservationTable(
+app/admin/assets/js/pmd-reservations2-calendar-toggle-v1.js:701:                          ? 'Tables '
+app/admin/assets/js/pmd-reservations2-calendar-toggle-v1.js:702:                          : 'Table '
+app/admin/assets/js/pmd-reservations2-calendar-toggle-v1.js:736:                    '">Open</a>'
+app/admin/assets/js/pmd-reservations2-calendar-toggle-v1.js:748:      groupReservations();
+app/admin/assets/js/pmd-reservations2-calendar-toggle-v1.js:981:     * PMD Reservations Compact Day View V2
+app/admin/assets/js/pmd-reservations2-calendar-toggle-v1.js:995:    var totalGuests =
+app/admin/assets/js/pmd-reservations2-calendar-toggle-v1.js:1024:            'Calendar' +
+app/admin/assets/js/pmd-reservations2-calendar-toggle-v1.js:1060:              totalGuests +
+app/admin/assets/js/pmd-reservations2-calendar-toggle-v1.js:1167:     * PMD Timeslot Create Reservation V10
+app/admin/assets/js/pmd-reservations2-calendar-toggle-v1.js:1432:      rootInsideFloor: Boolean(root && floor && root.parentElement === floor),
+app/admin/assets/js/pmd-reservations2-calendar-toggle-v1.js:1445:      selectedInsideCalendarFrame: Boolean(
+app/admin/assets/js/pmd-reservations2-calendar-toggle-v1.js:1468:    window.PMDReservations2CalendarToggleV1 = {
+app/admin/assets/js/pmd-reservations2-calendar-toggle-v1.js:1479:    console.info('[PMD Reservations2 Calendar Toggle V1.16] Ready', audit());
+app/admin/assets/js/pmd-reservations2-date-popover-v318.js:97:    return summary ? textOf(summary) : 'Reservation date';
+app/admin/assets/js/pmd-reservations2-date-popover-v318.js:147:    card.setAttribute('aria-label', 'Reservation date range');
+app/admin/assets/js/pmd-reservations2-date-popover-v318.js:152:      '<div><strong>Reservation period</strong>' +
+app/admin/assets/js/pmd-reservations2-date-popover-v318.js:267:    console.info('[PMD Reservations2 Date Popover V3.1.8.2] Ready', audit());
+app/admin/assets/js/pmd-reservations2-date-popover-v318.js:270:  window.PMDReservations2DatePopoverV318 = {
+app/admin/assets/js/pmd-reservations2-date-popover-v318.js:283:/* PMD Reservations2 Calendar Right Placement V3.1.8.3 */
+app/admin/assets/js/pmd-reservations2-date-popover-v318.js:372:  function moveCalendar() {
+app/admin/assets/js/pmd-reservations2-date-popover-v318.js:383:     * Calendar | Plus | Notification
+app/admin/assets/js/pmd-reservations2-date-popover-v318.js:385:     * Therefore Calendar must be inserted immediately
+app/admin/assets/js/pmd-reservations2-date-popover-v318.js:426:        'Reservation date range'
+app/admin/assets/js/pmd-reservations2-date-popover-v318.js:431:        'Reservation date range'
+app/admin/assets/js/pmd-reservations2-date-popover-v318.js:442:    moveCalendar();
+app/admin/assets/js/pmd-reservations2-date-popover-v318.js:446:        moveCalendar
+app/admin/assets/js/pmd-reservations2-date-popover-v318.js:467:        moveCalendar,
+app/admin/assets/js/pmd-reservations2-date-popover-v318.js:473:      '[PMD Reservations2 Calendar Right V3.1.8.3] Ready',
+app/admin/assets/js/pmd-reservations2-date-popover-v318.js:495:  window.PMDReservations2CalendarRightV3183 = {
+app/admin/assets/js/pmd-reservations2-date-popover-v318.js:497:    refresh: moveCalendar,
+app/admin/assets/js/pmd-reservations2-date-popover-v318.js:670:  function isOpen() {
+app/admin/assets/js/pmd-reservations2-date-popover-v318.js:767:    if (!isOpen()) {
+app/admin/assets/js/pmd-reservations2-date-popover-v318.js:831:    return isOpen()
+app/admin/assets/js/pmd-reservations2-date-popover-v318.js:870:      isOpen() ? 'true' : 'false'
+app/admin/assets/js/pmd-reservations2-date-popover-v318.js:929:          isOpen()
+app/admin/assets/js/pmd-reservations2-date-popover-v318.js:944:            if (!isOpen()) {
+app/admin/assets/js/pmd-reservations2-date-popover-v318.js:999:          isOpen()
+app/admin/assets/js/pmd-reservations2-date-popover-v318.js:1066:  function setOpen(open) {
+app/admin/assets/js/pmd-reservations2-date-popover-v318.js:1098:  function isOpen() {
+app/admin/assets/js/pmd-reservations2-date-popover-v318.js:1108:    return setOpen(!isOpen());
+app/admin/assets/js/pmd-reservations2-date-popover-v318.js:1112:    return setOpen(false);
+app/admin/assets/js/pmd-reservations2-date-popover-v318.js:1162:      return setOpen(true);
+app/admin/assets/js/pmd-reservations2-date-popover-v318.js:1174:        open: isOpen(),
+app/admin/assets/js/pmd-reservations2-exact-floor-v5.js:8:  if (window.PMDReservations2ExactFloorV5) {
+app/admin/assets/js/pmd-reservations2-exact-floor-v5.js:25:  var selectedTable = '';
+app/admin/assets/js/pmd-reservations2-exact-floor-v5.js:65:  function normalizeTable(input) {
+app/admin/assets/js/pmd-reservations2-exact-floor-v5.js:72:  function reservationTable(reservation) {
+app/admin/assets/js/pmd-reservations2-exact-floor-v5.js:73:    return normalizeTable(
+app/admin/assets/js/pmd-reservations2-exact-floor-v5.js:88:  function reservationsForTable(number) {
+app/admin/assets/js/pmd-reservations2-exact-floor-v5.js:89:    var normalized = normalizeTable(number);
+app/admin/assets/js/pmd-reservations2-exact-floor-v5.js:92:      return reservationTable(reservation) === normalized;
+app/admin/assets/js/pmd-reservations2-exact-floor-v5.js:97:    return normalizeTable(
+app/admin/assets/js/pmd-reservations2-exact-floor-v5.js:130:    if (reservationsForTable(number).length) {
+app/admin/assets/js/pmd-reservations2-exact-floor-v5.js:252:      number === selectedTable
+app/admin/assets/js/pmd-reservations2-exact-floor-v5.js:261:  function floorTables() {
+app/admin/assets/js/pmd-reservations2-exact-floor-v5.js:323:  function ensureReservationSection() {
+app/admin/assets/js/pmd-reservations2-exact-floor-v5.js:384:    ]) || 'Guest';
+app/admin/assets/js/pmd-reservations2-exact-floor-v5.js:444:              : 'Guests —',
+app/admin/assets/js/pmd-reservations2-exact-floor-v5.js:462:    var section = ensureReservationSection();
+app/admin/assets/js/pmd-reservations2-exact-floor-v5.js:480:    if (!selectedTable) {
+app/admin/assets/js/pmd-reservations2-exact-floor-v5.js:497:    var matching = reservationsForTable(selectedTable);
+app/admin/assets/js/pmd-reservations2-exact-floor-v5.js:499:    title.textContent = 'Table ' + selectedTable;
+app/admin/assets/js/pmd-reservations2-exact-floor-v5.js:514:      encodeURIComponent(selectedTable) +
+app/admin/assets/js/pmd-reservations2-exact-floor-v5.js:516:      encodeURIComponent(selectedTable);
+app/admin/assets/js/pmd-reservations2-exact-floor-v5.js:523:        'Table ' +
+app/admin/assets/js/pmd-reservations2-exact-floor-v5.js:524:        escapeHtml(selectedTable) +
+app/admin/assets/js/pmd-reservations2-exact-floor-v5.js:537:  function selectTable(number) {
+app/admin/assets/js/pmd-reservations2-exact-floor-v5.js:538:    var normalized = normalizeTable(number);
+app/admin/assets/js/pmd-reservations2-exact-floor-v5.js:544:    selectedTable = normalized;
+app/admin/assets/js/pmd-reservations2-exact-floor-v5.js:546:    floorTables().forEach(applyState);
+app/admin/assets/js/pmd-reservations2-exact-floor-v5.js:571:      selectTable(tableNumber(table));
+app/admin/assets/js/pmd-reservations2-exact-floor-v5.js:576:  function checkFloor() {
+app/admin/assets/js/pmd-reservations2-exact-floor-v5.js:577:    var tables = floorTables();
+app/admin/assets/js/pmd-reservations2-exact-floor-v5.js:593:  ensureReservationSection();
+app/admin/assets/js/pmd-reservations2-exact-floor-v5.js:596:  checkFloor();
+app/admin/assets/js/pmd-reservations2-exact-floor-v5.js:601:  var timer = window.setInterval(checkFloor, 1800);
+app/admin/assets/js/pmd-reservations2-exact-floor-v5.js:603:  window.PMDReservations2ExactFloorV5 = {
+app/admin/assets/js/pmd-reservations2-exact-floor-v5.js:605:    checkFloor: checkFloor,
+app/admin/assets/js/pmd-reservations2-exact-floor-v5.js:606:    selectTable: selectTable,
+app/admin/assets/js/pmd-reservations2-exact-floor-v5.js:607:    getSelectedTable: function () {
+app/admin/assets/js/pmd-reservations2-exact-floor-v5.js:608:      return selectedTable;
+app/admin/assets/js/pmd-reservations2-exact-floor-v5.js:619:    '[PMD Reservations2 Exact Floor V5] Ready',
+app/admin/assets/js/pmd-reservations2-exact-layout-v1.js:5:  if (window.PMDReservations2InternalLayoutV1) return;
+app/admin/assets/js/pmd-reservations2-exact-layout-v1.js:8:   * Reservations2 shell geometry is intentionally CSS-owned.
+app/admin/assets/js/pmd-reservations2-exact-layout-v1.js:12:  window.PMDReservations2InternalLayoutV1 = Object.freeze({
+app/admin/assets/js/pmd-reservations2-exact-layout-v1.js:21:    '[PMD Reservations2 Internal Layout V1] Ready',
+app/admin/assets/js/pmd-reservations2-exact-layout-v1.js:22:    window.PMDReservations2InternalLayoutV1
+app/admin/assets/js/pmd-reservations2-final-floor-ui-v466.js:16:  if (window.PMDReservations2FinalFloorUIV466) {
+app/admin/assets/js/pmd-reservations2-final-floor-ui-v466.js:102:   * Do not move the Floor, toolbar or page sections.
+app/admin/assets/js/pmd-reservations2-final-floor-ui-v466.js:134:   * Floor tables
+app/admin/assets/js/pmd-reservations2-final-floor-ui-v466.js:157:  function numericTableCandidates() {
+app/admin/assets/js/pmd-reservations2-final-floor-ui-v466.js:210:  function originalTableState(element) {
+app/admin/assets/js/pmd-reservations2-final-floor-ui-v466.js:283:  function updateTableColors() {
+app/admin/assets/js/pmd-reservations2-final-floor-ui-v466.js:291:    numericTableCandidates().forEach(
+app/admin/assets/js/pmd-reservations2-final-floor-ui-v466.js:294:          originalTableState(element);
+app/admin/assets/js/pmd-reservations2-final-floor-ui-v466.js:592:        ? 'Freie Tische'
+app/admin/assets/js/pmd-reservations2-final-floor-ui-v466.js:593:        : 'Free Tables'
+app/admin/assets/js/pmd-reservations2-final-floor-ui-v466.js:616:          ? 'Aktuell verfügbare Tische'
+app/admin/assets/js/pmd-reservations2-final-floor-ui-v466.js:617:          : 'Tables currently available'
+app/admin/assets/js/pmd-reservations2-final-floor-ui-v466.js:660: * Do not create another header and do not move the Floor.
+app/admin/assets/js/pmd-reservations2-final-floor-ui-v466.js:696:/* Today's Reservations uses the former blue KPI family. */
+app/admin/assets/js/pmd-reservations2-final-floor-ui-v466.js:707:/* Free Tables KPI is green. */
+app/admin/assets/js/pmd-reservations2-final-floor-ui-v466.js:718:/* Free Floor tables remain green. */
+app/admin/assets/js/pmd-reservations2-final-floor-ui-v466.js:726:/* Reserved Floor tables become blue. */
+app/admin/assets/js/pmd-reservations2-final-floor-ui-v466.js:775:        updateTableColors();
+app/admin/assets/js/pmd-reservations2-final-floor-ui-v466.js:827:    window.PMDReservations2FinalFloorUIV466 = {
+app/admin/assets/js/pmd-reservations2-final-floor-ui-v466.js:856:          freeTables:
+app/admin/assets/js/pmd-reservations2-final-floor-ui-v466.js:861:          reservedTables:
+app/admin/assets/js/pmd-reservations2-final-floor-ui-v466.js:884:      '[PMD Reservations2 Final Floor UI V4.6.6] Ready',
+app/admin/assets/js/pmd-reservations2-final-floor-ui-v466.js:886:        .PMDReservations2FinalFloorUIV466
+app/admin/assets/js/pmd-reservations2-floor-reservation-v312.js:41:  function validTableId(value) {
+app/admin/assets/js/pmd-reservations2-floor-reservation-v312.js:49:  function reservationTableIds(item) {
+app/admin/assets/js/pmd-reservations2-floor-reservation-v312.js:52:      validTableId(item && item.table_id);
+app/admin/assets/js/pmd-reservations2-floor-reservation-v312.js:64:          validTableId(
+app/admin/assets/js/pmd-reservations2-floor-reservation-v312.js:130:    date.setHours(
+app/admin/assets/js/pmd-reservations2-floor-reservation-v312.js:192:        reservationTableIds(item);
+app/admin/assets/js/pmd-reservations2-floor-reservation-v312.js:272:      validTableId(
+app/admin/assets/js/pmd-reservations2-floor-reservation-v312.js:273:        element.dataset.floorTable
+app/admin/assets/js/pmd-reservations2-floor-reservation-v312.js:286:          validTableId(value.trim());
+app/admin/assets/js/pmd-reservations2-floor-reservation-v312.js:314:     * so it must not make the Reservations map orange/red.
+app/admin/assets/js/pmd-reservations2-floor-reservation-v312.js:389:  function applyTable(
+app/admin/assets/js/pmd-reservations2-floor-reservation-v312.js:418:        .pmdR2ReservationState !== state
+app/admin/assets/js/pmd-reservations2-floor-reservation-v312.js:421:        .pmdR2ReservationState = state;
+app/admin/assets/js/pmd-reservations2-floor-reservation-v312.js:425:     * PMD Reservations Floor Clean State V1:
+app/admin/assets/js/pmd-reservations2-floor-reservation-v312.js:439:        ) || 'Table';
+app/admin/assets/js/pmd-reservations2-floor-reservation-v312.js:470:  function cleanControls(pageFloor) {
+app/admin/assets/js/pmd-reservations2-floor-reservation-v312.js:472:     * The Floor engine generates this toolbar dynamically.
+app/admin/assets/js/pmd-reservations2-floor-reservation-v312.js:474:     * clearer on the Reservations page.
+app/admin/assets/js/pmd-reservations2-floor-reservation-v312.js:477:      pageFloor.querySelector(
+app/admin/assets/js/pmd-reservations2-floor-reservation-v312.js:486:          ? 'Show full Floor map'
+app/admin/assets/js/pmd-reservations2-floor-reservation-v312.js:491:      pageFloor.querySelector(
+app/admin/assets/js/pmd-reservations2-floor-reservation-v312.js:497:        'Edit Floor layout';
+app/admin/assets/js/pmd-reservations2-floor-reservation-v312.js:532:  function syncKpiColors(pageFloor) {
+app/admin/assets/js/pmd-reservations2-floor-reservation-v312.js:579:    pageFloor.style.setProperty(
+app/admin/assets/js/pmd-reservations2-floor-reservation-v312.js:584:    pageFloor.style.setProperty(
+app/admin/assets/js/pmd-reservations2-floor-reservation-v312.js:589:    pageFloor.style.setProperty(
+app/admin/assets/js/pmd-reservations2-floor-reservation-v312.js:594:    pageFloor.style.setProperty(
+app/admin/assets/js/pmd-reservations2-floor-reservation-v312.js:599:    pageFloor.style.setProperty(
+app/admin/assets/js/pmd-reservations2-floor-reservation-v312.js:604:    pageFloor.style.setProperty(
+app/admin/assets/js/pmd-reservations2-floor-reservation-v312.js:609:    pageFloor.dataset
+app/admin/assets/js/pmd-reservations2-floor-reservation-v312.js:613:  function ensureToolbar(pageFloor) {
+app/admin/assets/js/pmd-reservations2-floor-reservation-v312.js:615:      pageFloor.querySelector(
+app/admin/assets/js/pmd-reservations2-floor-reservation-v312.js:629:     * Remove every Floor-generated secondary toolbar.
+app/admin/assets/js/pmd-reservations2-floor-reservation-v312.js:630:     * Only the Reservations toolbar remains.
+app/admin/assets/js/pmd-reservations2-floor-reservation-v312.js:651:     * Remove operational controls if another Floor runtime
+app/admin/assets/js/pmd-reservations2-floor-reservation-v312.js:673:     * Keep only one canonical Reservations toolbar.
+app/admin/assets/js/pmd-reservations2-floor-reservation-v312.js:697:    var pageFloor = floor();
+app/admin/assets/js/pmd-reservations2-floor-reservation-v312.js:699:    if (!pageFloor) {
+app/admin/assets/js/pmd-reservations2-floor-reservation-v312.js:706:      syncKpiColors(pageFloor);
+app/admin/assets/js/pmd-reservations2-floor-reservation-v312.js:707:      ensureToolbar(pageFloor);
+app/admin/assets/js/pmd-reservations2-floor-reservation-v312.js:712:      pageFloor
+app/admin/assets/js/pmd-reservations2-floor-reservation-v312.js:717:          applyTable(
+app/admin/assets/js/pmd-reservations2-floor-reservation-v312.js:723:      cleanControls(pageFloor);
+app/admin/assets/js/pmd-reservations2-floor-reservation-v312.js:725:      pageFloor.setAttribute(
+app/admin/assets/js/pmd-reservations2-floor-reservation-v312.js:730:      pageFloor.setAttribute(
+app/admin/assets/js/pmd-reservations2-floor-reservation-v312.js:755:    var pageFloor = floor();
+app/admin/assets/js/pmd-reservations2-floor-reservation-v312.js:757:    if (!pageFloor) {
+app/admin/assets/js/pmd-reservations2-floor-reservation-v312.js:769:      pageFloor,
+app/admin/assets/js/pmd-reservations2-floor-reservation-v312.js:799:     * Reservation time can cross from upcoming into active
+app/admin/assets/js/pmd-reservations2-floor-reservation-v312.js:808:      '[PMD Reservations2 Reservation Floor V3.1.4] Ready',
+app/admin/assets/js/pmd-reservations2-floor-reservation-v312.js:811:          pageFloor.querySelectorAll(
+app/admin/assets/js/pmd-reservations2-floor-reservation-v312.js:818:        assignedReservations:
+app/admin/assets/js/pmd-reservations2-floor-reservation-v312.js:823:            ? 'Reservation table assignments detected.'
+app/admin/assets/js/pmd-reservations2-floor-reservation-v312.js:829:  window.PMDReservations2FloorV312 = {
+app/admin/assets/js/pmd-reservations2-floor-toolbar-v315.js:67:  function removeUnwanted(pageFloor) {
+app/admin/assets/js/pmd-reservations2-floor-toolbar-v315.js:68:    pageFloor
+app/admin/assets/js/pmd-reservations2-floor-toolbar-v315.js:83:    pageFloor,
+app/admin/assets/js/pmd-reservations2-floor-toolbar-v315.js:86:    pageFloor
+app/admin/assets/js/pmd-reservations2-floor-toolbar-v315.js:100:    pageFloor
+app/admin/assets/js/pmd-reservations2-floor-toolbar-v315.js:115:    pageFloor,
+app/admin/assets/js/pmd-reservations2-floor-toolbar-v315.js:118:    return pageFloor.querySelector(
+app/admin/assets/js/pmd-reservations2-floor-toolbar-v315.js:124:    pageFloor,
+app/admin/assets/js/pmd-reservations2-floor-toolbar-v315.js:129:        pageFloor,
+app/admin/assets/js/pmd-reservations2-floor-toolbar-v315.js:181:  function ensureToolbar(pageFloor) {
+app/admin/assets/js/pmd-reservations2-floor-toolbar-v315.js:183:      pageFloor.querySelector(
+app/admin/assets/js/pmd-reservations2-floor-toolbar-v315.js:221:        'Floor map controls'
+app/admin/assets/js/pmd-reservations2-floor-toolbar-v315.js:233:              pageFloor,
+app/admin/assets/js/pmd-reservations2-floor-toolbar-v315.js:249:              pageFloor,
+app/admin/assets/js/pmd-reservations2-floor-toolbar-v315.js:265:              pageFloor,
+app/admin/assets/js/pmd-reservations2-floor-toolbar-v315.js:277:          title: 'Full Floor',
+app/admin/assets/js/pmd-reservations2-floor-toolbar-v315.js:281:              pageFloor,
+app/admin/assets/js/pmd-reservations2-floor-toolbar-v315.js:297:              pageFloor,
+app/admin/assets/js/pmd-reservations2-floor-toolbar-v315.js:313:              pageFloor,
+app/admin/assets/js/pmd-reservations2-floor-toolbar-v315.js:329:    pageFloor,
+app/admin/assets/js/pmd-reservations2-floor-toolbar-v315.js:338:        pageFloor,
+app/admin/assets/js/pmd-reservations2-floor-toolbar-v315.js:344:        pageFloor,
+app/admin/assets/js/pmd-reservations2-floor-toolbar-v315.js:350:        pageFloor,
+app/admin/assets/js/pmd-reservations2-floor-toolbar-v315.js:405:            ? 'Floor'
+app/admin/assets/js/pmd-reservations2-floor-toolbar-v315.js:416:    var pageFloor = floor();
+app/admin/assets/js/pmd-reservations2-floor-toolbar-v315.js:418:    if (!pageFloor) {
+app/admin/assets/js/pmd-reservations2-floor-toolbar-v315.js:427:          pageFloor
+app/admin/assets/js/pmd-reservations2-floor-toolbar-v315.js:431:        pageFloor
+app/admin/assets/js/pmd-reservations2-floor-toolbar-v315.js:435:        pageFloor,
+app/admin/assets/js/pmd-reservations2-floor-toolbar-v315.js:440:        pageFloor,
+app/admin/assets/js/pmd-reservations2-floor-toolbar-v315.js:444:      pageFloor.setAttribute(
+app/admin/assets/js/pmd-reservations2-floor-toolbar-v315.js:456:    var pageFloor = floor();
+app/admin/assets/js/pmd-reservations2-floor-toolbar-v315.js:458:    if (!pageFloor) {
+app/admin/assets/js/pmd-reservations2-floor-toolbar-v315.js:472:      pageFloor,
+app/admin/assets/js/pmd-reservations2-floor-toolbar-v315.js:504:      '[PMD Reservations2 Final Floor Toolbar V3.1.5] Ready',
+app/admin/assets/js/pmd-reservations2-floor-toolbar-v315.js:514:          pageFloor.querySelectorAll(
+app/admin/assets/js/pmd-reservations2-floor-toolbar-v315.js:521:  window.PMDReservations2FloorToolbarV315 = {
+app/admin/assets/js/pmd-reservations2-floor-toolbar-v316.js:14:function startOfDay(v){var d=new Date(v);d.setHours(0,0,0,0);return d}
+app/admin/assets/js/pmd-reservations2-floor-toolbar-v316.js:15:function endOfDay(v){var d=new Date(v);d.setHours(23,59,59,999);return d}
+app/admin/assets/js/pmd-reservations2-floor-toolbar-v316.js:21:function humanTime(v){try{return new Intl.DateTimeFormat(undefined,{hour:'2-digit',minute:'2-digit'}).format(v)}catch(e){return pad(v.getHours())+':'+pad(v.getMinutes())}}
+app/admin/assets/js/pmd-reservations2-floor-toolbar-v316.js:46:function toolButton(key,label,sel){var b=document.createElement('button');b.type='button';b.className='pmd-r2-floor-tool-v316';b.dataset.pmdR2Tool=key;if(key==='zoom-out'||key==='zoom-in'){var accessible=key==='zoom-out'?'Zoom out':'Zoom in';b.innerHTML=zoomSvg(key==='zoom-in'?'plus':'minus');b.setAttribute('aria-label',accessible);b.title=accessible}else b.textContent=label;b.onclick=function(e){e.preventDefault();e.stopPropagation();var r=floor(),editing=key==='edit'&&r&&r.__pmdFloorV1&&r.__pmdFloorV1.getState&&r.__pmdFloorV1.getState().editing,n=r&&nativeControl(r,editing?'[data-floor-save]':sel);if(n)n.click();if(key==='edit'&&!editing)b.textContent='Save';schedule()};return b}
+app/admin/assets/js/pmd-reservations2-floor-toolbar-v316.js:47:function ensureToolbar(root){var bar=root.querySelector('.pmd-floor-v1__statusbar');if(!bar)return;var t=document.getElementById(TOOLBAR_ID);if(!t){t=document.createElement('div');t.id=TOOLBAR_ID;t.className='pmd-r2-floor-toolbar-v316';[['edit','Edit','[data-floor-edit]'],['zoom-out','','[data-floor-zoom-out]'],['fit','Full Floor','[data-floor-fit]'],['zoom-in','','[data-floor-zoom-in]'],['strip','One row','[data-floor-strip]']].forEach(function(x){t.appendChild(toolButton(x[0],x[1],x[2]))});bar.appendChild(t);window.addEventListener('pmd:floor:updated',function(e){if(e.detail&&e.detail.action==='layout'){var b=t.querySelector('[data-pmd-r2-tool="edit"]');if(b)b.textContent='Edit'}})}root.querySelectorAll('[data-floor-secondary-toolbar],.pmd-floor-v1__secondary-toolbar,[data-pmd-r2-floor-toolbar-v313]').forEach(function(n){if(n.id!==TOOLBAR_ID)n.classList.add('pmd-r2-native-toolbar-v316-hidden')})}
+app/admin/assets/js/pmd-reservations2-floor-toolbar-v316.js:50:function ensureDateFilter(){var btn=document.getElementById(DATE_BTN_ID);if(!btn)return;btn.querySelector('span').textContent=rangeLabel();var p=document.getElementById(FILTER_ID);if(!p){p=document.createElement('div');p.id=FILTER_ID;p.className='pmd-r2-date-filter-v317';p.innerHTML='<div class="pmd-r2-date-filter-v317__quick"><button type="button" data-range="all">All dates</button><button type="button" data-range="today">Today</button><button type="button" data-range="tomorrow">Tomorrow</button><button type="button" data-range="week">7 days</button><button type="button" data-range="month">This month</button></div><label><span>From</span><input type="date" data-date-start></label><label><span>To</span><input type="date" data-date-end></label><div data-date-summary></div>';document.body.appendChild(p);p.addEventListener('click',function(e){var b=e.target.closest('[data-range]');if(!b)return;var t=startOfDay(new Date());if(b.dataset.range==='all')setAllDates();if(b.dataset.range==='today')setRange(t,endOfDay(t));if(b.dataset.range==='tomorrow'){var x=addDays(t,1);setRange(x,endOfDay(x))}if(b.dataset.range==='week')setRange(t,endOfDay(addDays(t,6)));if(b.dataset.range==='month')setRange(new Date(t.getFullYear(),t.getMonth(),1),endOfDay(new Date(t.getFullYear(),t.getMonth()+1,0)))});p.addEventListener('change',function(){var a=parseDate(p.querySelector('[data-date-start]').value,false)||state.start,b=parseDate(p.querySelector('[data-date-end]').value,true)||state.end;if(b<a)b=endOfDay(a);setRange(a,b)})}p.querySelector('[data-date-start]').value=dateKey(state.start);p.querySelector('[data-date-end]').value=dateKey(state.end);p.querySelector('[data-date-summary]').textContent=rangeLabel()+(state.tableId?' · '+(state.tableName||'Table '+state.tableId):' · All tables');var active=presetName();p.querySelectorAll('[data-range]').forEach(function(b){b.classList.toggle('is-active',b.dataset.range===active)})}
+app/admin/assets/js/pmd-reservations2-floor-toolbar-v316.js:107:add(i.assignedTable);
+app/admin/assets/js/pmd-reservations2-floor-toolbar-v316.js:109:add(i.reservationTable);
+app/admin/assets/js/pmd-reservations2-floor-toolbar-v316.js:167:i.assignedTable
+app/admin/assets/js/pmd-reservations2-floor-toolbar-v316.js:176:?'Table '+String(Number(match[0]))
+app/admin/assets/js/pmd-reservations2-floor-toolbar-v316.js:184:?ids.map(function(id){return'Table '+id}).join(', ')
+app/admin/assets/js/pmd-reservations2-floor-toolbar-v316.js:191: * persistence and Floor matching, but must never be printed as the
+app/admin/assets/js/pmd-reservations2-floor-toolbar-v316.js:194: * Card and Hour rendering therefore use table_no/table_number first.
+app/admin/assets/js/pmd-reservations2-floor-toolbar-v316.js:199:function visibleTableNumbers(item){
+app/admin/assets/js/pmd-reservations2-floor-toolbar-v316.js:239: * table_name values such as "Table 17" or "Tisch 17"
+app/admin/assets/js/pmd-reservations2-floor-toolbar-v316.js:285:var numbers=visibleTableNumbers(i);
+app/admin/assets/js/pmd-reservations2-floor-toolbar-v316.js:291:function guestName(i){return clean(i.customer_name||[i.first_name,i.last_name].filter(Boolean).join(' ')||i.guest_name||'Guest')}
+app/admin/assets/js/pmd-reservations2-floor-toolbar-v316.js:295:function dateFilteredReservations(){var items=state.allDates?reservations().slice():reservations().filter(function(i){var s=reservationStart(i);return s&&s>=state.start&&s<=state.end});return items.sort(function(a,b){var x=reservationStart(a),y=reservationStart(b);if(!x&&!y)return 0;if(!x)return 1;if(!y)return-1;return x-y})}
+app/admin/assets/js/pmd-reservations2-floor-toolbar-v316.js:296:function filteredReservations(){
+app/admin/assets/js/pmd-reservations2-floor-toolbar-v316.js:297:var items=dateFilteredReservations();
+app/admin/assets/js/pmd-reservations2-floor-toolbar-v316.js:378:reservation.assignedTable,
+app/admin/assets/js/pmd-reservations2-floor-toolbar-v316.js:380:reservation.reservationTable,
+app/admin/assets/js/pmd-reservations2-floor-toolbar-v316.js:407:function isDashboard2(){return window.location.pathname.replace(/\/+$/,'')==='/admin/dashboard2'}
+app/admin/assets/js/pmd-reservations2-floor-toolbar-v316.js:408:function ensureSection(){if(isDashboard2()){Array.prototype.slice.call(document.querySelectorAll('#'+SECTION_ID+',#'+GRID_ID)).forEach(function(node){node.remove()});return null}var r=floor();if(!r||!r.parentElement)return null;var s=document.getElementById(SECTION_ID);if(!s){s=document.createElement('section');s.id=SECTION_ID;s.className='pmd-r2-reservation-cards-v320';s.innerHTML='<div class="pmd-r2-reservation-cards-v320__head"><div><strong data-r2-card-title>Reservations</strong><span data-r2-card-subtitle></span></div><button type="button" id="'+DATE_BTN_ID+'" aria-haspopup="dialog" aria-controls="pmd-r2-date-panel-v318">'+calendarSvg()+'<span></span></button><button type="button" data-r2-show-all hidden>Show all tables</button></div><div id="'+GRID_ID+'" class="pmd-r2-reservation-grid-v320 pmd-w5-grid"></div>';r.insertAdjacentElement('afterend',s);s.querySelector('[data-r2-show-all]').onclick=clearTableFilter}return s}
+app/admin/assets/js/pmd-reservations2-floor-toolbar-v316.js:434:'<button type="button" class="pmd-r2-card-menu-trigger-v458" data-r2-card-menu-trigger aria-haspopup="menu" aria-expanded="false" aria-label="Reservation actions">⋮</button>'+
+app/admin/assets/js/pmd-reservations2-floor-toolbar-v316.js:454:'<div class="pmd-w5-box"><small>Guests</small><b>'+esc(guests||'—')+'</b></div>'+
+app/admin/assets/js/pmd-reservations2-floor-toolbar-v316.js:456:'<div class="pmd-w5-box"><small>Reservation</small><b>'+esc(id||'—')+'</b></div>'+
+app/admin/assets/js/pmd-reservations2-floor-toolbar-v316.js:466:function clearTableFilter(){state.tableId=null;state.tableName=null;clearSelection();render()}
+app/admin/assets/js/pmd-reservations2-floor-toolbar-v316.js:469:function renderCards(items){var s=ensureSection();if(!s)return;var all=dateFilteredReservations(),sel=state.tableId?(state.tableName||'Table '+state.tableId):'All tables';s.querySelector('[data-r2-card-title]').textContent=state.tableId?'Reservations for '+sel:'All reservations';s.querySelector('[data-r2-card-subtitle]').textContent=rangeLabel()+' · '+items.length+(state.tableId?' of '+all.length:'')+' reservation'+(items.length===1?'':'s');s.querySelector('[data-r2-show-all]').hidden=!state.tableId;document.getElementById(GRID_ID).innerHTML=addCardMarkup()+items.map(reservationCardMarkup).join('')}
+app/admin/assets/js/pmd-reservations2-floor-toolbar-v316.js:470:function render(){if(rendering)return;rendering=true;try{var r=floor();if(!r)return;document.documentElement.classList.add('pmd-r2-reservation-experience-ready');ensureStyle();ensureToolbar(r);ensureSection();ensureDateFilter();var lowerItems=filteredReservations();updateKpis(reservations());markSelection();renderCards(lowerItems);r.setAttribute('data-pmd-r2-toolbar-authority','floor-experience-v4.3')}finally{rendering=false}}
+app/admin/assets/js/pmd-reservations2-floor-toolbar-v316.js:472:function tableNameFromNode(n,id){var q=n.querySelector('.pmd-floor-v1__name,[data-floor-table-name],strong'),name=clean(q&&q.textContent);if(name)return/^table\s/i.test(name)?name:'Table '+name;var label=clean(n.getAttribute('aria-label')||n.getAttribute('title'));return label?label.split(' — ')[0]:'Table '+id}
+app/admin/assets/js/pmd-reservations2-floor-toolbar-v316.js:473:function bindEvents(){if(eventsBound)return;eventsBound=true;document.addEventListener('click',function(e){var p=document.getElementById(FILTER_ID),b=document.getElementById(DATE_BTN_ID);if(p&&p.classList.contains('is-open')&&!p.contains(e.target)&&(!b||!b.contains(e.target)))p.classList.remove('is-open');var r=floor();if(!r||!r.contains(e.target))return;var t=e.target.closest('[data-floor-table]');if(!t||!r.contains(t))return;var fs=r.__pmdFloorV1&&r.__pmdFloorV1.getState?r.__pmdFloorV1.getState():null;if(fs&&fs.editing)return;var id=tableIdFromNode(t);if(!id)return;e.preventDefault();e.stopPropagation();if(String(state.tableId||'')===String(id))clearTableFilter();else{state.tableId=id;state.tableName=tableNameFromNode(t,id);render()}setTimeout(function(){var s=document.getElementById(SECTION_ID);if(s)s.scrollIntoView({behavior:'smooth',block:'start'})},30)},true)}
+app/admin/assets/js/pmd-reservations2-floor-toolbar-v316.js:476:function audit(){var items=filteredReservations();return{version:VERSION,floor:!!floor(),toolbar:!!document.getElementById(TOOLBAR_ID),dateButton:!!document.getElementById(DATE_BTN_ID),dateFilter:!!document.getElementById(FILTER_ID),section:!!document.getElementById(SECTION_ID),totalReservations:reservations().length,reservationsInDateRange:dateFilteredReservations().length,filteredReservations:items.length,visibleReservationCards:document.querySelectorAll('#'+GRID_ID+' [data-r2-reservation-id]').length,selectedTable:state.tableId,range:state.allDates?['all','all']:[dateKey(state.start),dateKey(state.end)],allDates:state.allDates,scrollHeight:document.documentElement.scrollHeight,viewportHeight:innerHeight}}
+app/admin/assets/js/pmd-reservations2-floor-toolbar-v316.js:477:var api={version:VERSION,refresh:schedule,renderReservations:schedule,setRange:function(a,b){a=parseDate(a,false);b=parseDate(b,true);if(validRange(a,b))setRange(a,b)},clearTable:clearTableFilter,getState:function(){return{start:dateKey(state.start),end:dateKey(state.end),allDates:state.allDates,tableId:state.tableId,tableName:state.tableName}},audit:audit,destroy:function(){if(observer)observer.disconnect();observer=null}};window.PMDReservations2FloorExperience=api;window.PMDReservations2FloorToolbarV316=api;window.PMDReservations2CardsV320={version:VERSION,refresh:schedule,showAll:clearTableFilter,audit:audit};window.PMDReservations2ScrollV322={version:VERSION,refresh:schedule,audit:audit};
+app/admin/assets/js/pmd-reservations2-floor-toolbar-v316.js:478:function boot(){restoreRange();bindEvents();render();connectObserver();console.info('[PMD Reservations2 Floor Experience V4.4 all dates + real KPIs] Ready',audit())}
+app/admin/assets/js/pmd-reservations2-floor-toolbar-v316.js:496:  if (window.PMDReservations2DateButtonBridgeV454) {
+app/admin/assets/js/pmd-reservations2-floor-toolbar-v316.js:712:        'Reservation date range'
+app/admin/assets/js/pmd-reservations2-floor-toolbar-v316.js:822:    window.PMDReservations2DateButtonBridgeV454 = {
+app/admin/assets/js/pmd-reservations2-floor-toolbar-v316.js:862:      '[PMD Reservations2 Date Button Bridge V4.5.4] Ready',
+app/admin/assets/js/pmd-reservations2-floor-toolbar-v316.js:864:        .PMDReservations2DateButtonBridgeV454
+app/admin/assets/js/pmd-reservations2-floor-toolbar-v316.js:899:    window.PMDReservations2DateNotificationExclusiveV455
+app/admin/assets/js/pmd-reservations2-floor-toolbar-v316.js:939:  function dateIsOpen() {
+app/admin/assets/js/pmd-reservations2-floor-toolbar-v316.js:960:    if (actionInProgress || !dateIsOpen()) {
+app/admin/assets/js/pmd-reservations2-floor-toolbar-v316.js:1015:  function notificationIsOpen() {
+app/admin/assets/js/pmd-reservations2-floor-toolbar-v316.js:1043:      !notificationIsOpen()
+app/admin/assets/js/pmd-reservations2-floor-toolbar-v316.js:1335:      .PMDReservations2DateNotificationExclusiveV455 = {
+app/admin/assets/js/pmd-reservations2-floor-toolbar-v316.js:1351:            dateOpen: dateIsOpen(),
+app/admin/assets/js/pmd-reservations2-floor-toolbar-v316.js:1352:            notificationOpen:
+app/admin/assets/js/pmd-reservations2-floor-toolbar-v316.js:1353:              notificationIsOpen(),
+app/admin/assets/js/pmd-reservations2-floor-toolbar-v316.js:1382:        .PMDReservations2DateNotificationExclusiveV455
+app/admin/assets/js/pmd-reservations2-floor-toolbar-v316.js:1603:/* Table frame left and Edit icon right */
+app/admin/assets/js/pmd-reservations2-floor-toolbar-v316.js:1695:    window.PMDReservationCardCleanV457 = {
+app/admin/assets/js/pmd-reservations2-floor-toolbar-v316.js:1703:      '[PMD Reservation Card Clean V4.5.7] Ready'
+app/admin/assets/js/pmd-reservations2-floor-toolbar-v316.js:1736:  if (window.PMDReservationCardMenuV458) {
+app/admin/assets/js/pmd-reservations2-floor-toolbar-v316.js:2059:    window.PMDReservationCardMenuV458 = {
+app/admin/assets/js/pmd-reservations2-floor-toolbar-v316.js:2088:      '[PMD Reservation Card Menu V4.5.8] Ready',
+app/admin/assets/js/pmd-reservations2-floor-toolbar-v316.js:2090:        .PMDReservationCardMenuV458
+app/admin/assets/js/pmd-reservations2-floor-toolbar-v316.js:2144: * Table number:
+app/admin/assets/js/pmd-reservations2-floor-toolbar-v316.js:2247:    window.PMDReservationCardStyleV459 = {
+app/admin/assets/js/pmd-reservations2-floor-toolbar-v316.js:2253:      '[PMD Reservation Card Style V4.5.9] Ready'
+app/admin/assets/js/pmd-reservations2-floor-toolbar-v316.js:2322: * Simple Add Reservation card
+app/admin/assets/js/pmd-reservations2-floor-toolbar-v316.js:2470:    window.PMDSimpleAddReservationCardV460 = {
+app/admin/assets/js/pmd-reservations2-floor-toolbar-v316.js:2504:      '[PMD Simple Add Reservation Card V4.6.0] Ready',
+app/admin/assets/js/pmd-reservations2-floor-toolbar-v316.js:2506:        .PMDSimpleAddReservationCardV460
+app/admin/assets/js/pmd-reservations2-floor-toolbar-v316.js:2594:      item.assignedTableId,
+app/admin/assets/js/pmd-reservations2-floor-toolbar-v316.js:2596:      item.reservationTableId,
+app/admin/assets/js/pmd-reservations2-floor-toolbar-v316.js:2599:      item.assignedTable,
+app/admin/assets/js/pmd-reservations2-floor-toolbar-v316.js:2601:      item.reservationTable,
+app/admin/assets/js/pmd-reservations2-floor-toolbar-v316.js:2620:    var byTable = {};
+app/admin/assets/js/pmd-reservations2-floor-toolbar-v316.js:2626:        byTable[id] =
+app/admin/assets/js/pmd-reservations2-floor-toolbar-v316.js:2627:          (byTable[id] || 0) + 1;
+app/admin/assets/js/pmd-reservations2-floor-toolbar-v316.js:2633:      totalReservations:
+app/admin/assets/js/pmd-reservations2-floor-toolbar-v316.js:2635:      reservationsByTable:
+app/admin/assets/js/pmd-reservations2-floor-toolbar-v316.js:2636:        byTable,
+app/admin/assets/js/pmd-reservations2-floor-toolbar-v316.js:2638:        window.PMDReservations2FloorExperience &&
+app/admin/assets/js/pmd-reservations2-floor-toolbar-v316.js:2639:        window.PMDReservations2FloorExperience
+app/admin/assets/js/pmd-reservations2-floor-toolbar-v316.js:2642:              .PMDReservations2FloorExperience
+app/admin/assets/js/pmd-reservations2-floor-toolbar-v316.js:2650:      window.PMDReservations2FloorExperience &&
+app/admin/assets/js/pmd-reservations2-floor-toolbar-v316.js:2651:      window.PMDReservations2FloorExperience
+app/admin/assets/js/pmd-reservations2-floor-toolbar-v316.js:2655:        .PMDReservations2FloorExperience
+app/admin/assets/js/pmd-reservations2-floor-toolbar-v316.js:2661:    window.PMDTableReservationFilterV461 = {
+app/admin/assets/js/pmd-reservations2-floor-toolbar-v316.js:2670:      '[PMD Table Reservation Filter V4.6.1] Ready',
+app/admin/assets/js/pmd-reservations2-floor-toolbar-v316.js:2708:      window.PMDReservations2FloorExperience;
+app/admin/assets/js/pmd-reservations2-floor-toolbar-v316.js:2717:      window.PMDReservations2FloorExperience;
+app/admin/assets/js/pmd-reservations2-floor-toolbar-v316.js:2738:      visibleReservationCards:
+app/admin/assets/js/pmd-reservations2-floor-toolbar-v316.js:2748:    window.PMDTableMatchV462 = {
+app/admin/assets/js/pmd-reservations2-floor-toolbar-v316.js:2758:      '[PMD Table Match V4.6.2] Ready',
+app/admin/assets/js/pmd-reservations2-floor-toolbar-v316.js:2790:  if (window.PMDFloorToolbarSingleRowV463) {
+app/admin/assets/js/pmd-reservations2-floor-toolbar-v316.js:3073:    window.PMDFloorToolbarSingleRowV463 = {
+app/admin/assets/js/pmd-reservations2-floor-toolbar-v316.js:3103:      '[PMD Floor Toolbar Single Row V4.6.3] Ready',
+app/admin/assets/js/pmd-reservations2-floor-toolbar-v316.js:3105:        .PMDFloorToolbarSingleRowV463
+app/admin/assets/js/pmd-reservations2-floor-toolbar-v316.js:3140:  if (window.PMDFloorHeaderKpiColorsV464) {
+app/admin/assets/js/pmd-reservations2-floor-toolbar-v316.js:3292:      var firstFloorChild =
+app/admin/assets/js/pmd-reservations2-floor-toolbar-v316.js:3295:      if (firstFloorChild) {
+app/admin/assets/js/pmd-reservations2-floor-toolbar-v316.js:3298:          firstFloorChild
+app/admin/assets/js/pmd-reservations2-floor-toolbar-v316.js:3555:  function inferredTableState(element) {
+app/admin/assets/js/pmd-reservations2-floor-toolbar-v316.js:3627:  function updateFloorTableColors() {
+app/admin/assets/js/pmd-reservations2-floor-toolbar-v316.js:3630:    var rangeReservationCount = 0;
+app/admin/assets/js/pmd-reservations2-floor-toolbar-v316.js:3633:     * Floor live state is independent from the Date Range used by
+app/admin/assets/js/pmd-reservations2-floor-toolbar-v316.js:3642:    var allReservations =
+app/admin/assets/js/pmd-reservations2-floor-toolbar-v316.js:3647:    function floorReservationStatus(reservation) {
+app/admin/assets/js/pmd-reservations2-floor-toolbar-v316.js:3669:    allReservations
+app/admin/assets/js/pmd-reservations2-floor-toolbar-v316.js:3672:          floorReservationStatus(reservation);
+app/admin/assets/js/pmd-reservations2-floor-toolbar-v316.js:3769:      return inferredTableState(
+app/admin/assets/js/pmd-reservations2-floor-toolbar-v316.js:3785:        rangeReservation: {
+app/admin/assets/js/pmd-reservations2-floor-toolbar-v316.js:3803:        state === 'rangeReservation'
+app/admin/assets/js/pmd-reservations2-floor-toolbar-v316.js:3848:        var hasReservationInRange =
+app/admin/assets/js/pmd-reservations2-floor-toolbar-v316.js:3861:        if (hasReservationInRange) {
+app/admin/assets/js/pmd-reservations2-floor-toolbar-v316.js:3862:          rangeReservationCount += 1;
+app/admin/assets/js/pmd-reservations2-floor-toolbar-v316.js:3866:            'rangeReservation'
+app/admin/assets/js/pmd-reservations2-floor-toolbar-v316.js:3895:      rangeReservations:
+app/admin/assets/js/pmd-reservations2-floor-toolbar-v316.js:3896:        rangeReservationCount
+app/admin/assets/js/pmd-reservations2-floor-toolbar-v316.js:4003:        'Free Tables'
+app/admin/assets/js/pmd-reservations2-floor-toolbar-v316.js:4032:        updateFloorTableColors();
+app/admin/assets/js/pmd-reservations2-floor-toolbar-v316.js:4068:/* One clean operational Floor header */
+app/admin/assets/js/pmd-reservations2-floor-toolbar-v316.js:4097:/* Today KPI = Pending-style blue */
+app/admin/assets/js/pmd-reservations2-floor-toolbar-v316.js:4108:/* Free Tables KPI = green */
+app/admin/assets/js/pmd-reservations2-floor-toolbar-v316.js:4201:    window.PMDFloorHeaderKpiColorsV464 = {
+app/admin/assets/js/pmd-reservations2-floor-toolbar-v316.js:4228:          freeTables: counts.free,
+app/admin/assets/js/pmd-reservations2-floor-toolbar-v316.js:4229:          reservedTables:
+app/admin/assets/js/pmd-reservations2-floor-toolbar-v316.js:4246:      '[PMD Floor Header + KPI Colors V4.6.4] Ready',
+app/admin/assets/js/pmd-reservations2-floor-toolbar-v316.js:4248:        .PMDFloorHeaderKpiColorsV464
+app/admin/assets/js/pmd-reservations2-kpi-table-colors-v467.js:92:  function floorTables() {
+app/admin/assets/js/pmd-reservations2-kpi-table-colors-v467.js:159:  function updateTables() {
+app/admin/assets/js/pmd-reservations2-kpi-table-colors-v467.js:167:    floorTables().forEach(
+app/admin/assets/js/pmd-reservations2-kpi-table-colors-v467.js:388:        "Today's Reservations",
+app/admin/assets/js/pmd-reservations2-kpi-table-colors-v467.js:389:        'Today’s Reservations',
+app/admin/assets/js/pmd-reservations2-kpi-table-colors-v467.js:421:        ? 'Freie Tische'
+app/admin/assets/js/pmd-reservations2-kpi-table-colors-v467.js:422:        : 'Free Tables'
+app/admin/assets/js/pmd-reservations2-kpi-table-colors-v467.js:451:          ? 'Aktuell verfügbare Tische'
+app/admin/assets/js/pmd-reservations2-kpi-table-colors-v467.js:452:          : 'Tables currently available'
+app/admin/assets/js/pmd-reservations2-kpi-table-colors-v467.js:485:/* Today’s Reservations: Pending-style blue */
+app/admin/assets/js/pmd-reservations2-kpi-table-colors-v467.js:497:/* Free Tables KPI: green */
+app/admin/assets/js/pmd-reservations2-kpi-table-colors-v467.js:553:        updateTables();
+app/admin/assets/js/pmd-reservations2-kpi-table-colors-v467.js:605:      .PMDReservations2KpiTableColorsV467 = {
+app/admin/assets/js/pmd-reservations2-kpi-table-colors-v467.js:614:            detectedTables:
+app/admin/assets/js/pmd-reservations2-kpi-table-colors-v467.js:615:              floorTables().length,
+app/admin/assets/js/pmd-reservations2-kpi-table-colors-v467.js:617:            freeTables:
+app/admin/assets/js/pmd-reservations2-kpi-table-colors-v467.js:622:            reservedTables:
+app/admin/assets/js/pmd-reservations2-kpi-table-colors-v467.js:656:      '[PMD KPI + Table Colors V4.6.8] Ready',
+app/admin/assets/js/pmd-reservations2-kpi-table-colors-v467.js:658:        .PMDReservations2KpiTableColorsV467
+app/admin/assets/js/pmd-reservations2-kpis-v307.js:4:  if (window.PMDReservations2KpisV309) {
+app/admin/assets/js/pmd-reservations2-kpis-v307.js:5:    window.PMDReservations2KpisV309.refresh();
+app/admin/assets/js/pmd-reservations2-kpis-v307.js:167:     * Unique attribute prevents old Reservations scripts
+app/admin/assets/js/pmd-reservations2-kpis-v307.js:255:        title: 'Today’s Reservations',
+app/admin/assets/js/pmd-reservations2-kpis-v307.js:267:          'Guests expected to arrive soon'
+app/admin/assets/js/pmd-reservations2-kpis-v307.js:282:        title: 'Reservation Tables',
+app/admin/assets/js/pmd-reservations2-kpis-v307.js:285:          'Tables enabled for reservations'
+app/admin/assets/js/pmd-reservations2-kpis-v307.js:363:      'Reservation overview'
+app/admin/assets/js/pmd-reservations2-kpis-v307.js:457:      '[PMD Reservations2 KPIs V3.0.9] Ready',
+app/admin/assets/js/pmd-reservations2-kpis-v307.js:474:  window.PMDReservations2KpisV309 = {
+app/admin/assets/js/pmd-reservations2-kpis-v307.js:532:      title: 'Reservations Today',
+app/admin/assets/js/pmd-reservations2-kpis-v307.js:553:      title: 'Available Tables',
+app/admin/assets/js/pmd-reservations2-kpis-v307.js:574:      title: 'Table Occupancy',
+app/admin/assets/js/pmd-reservations2-kpis-v307.js:588:      title: 'Reservation Tables',
+app/admin/assets/js/pmd-reservations2-kpis-v307.js:602:      title: 'Average Table Turn Time',
+app/admin/assets/js/pmd-reservations2-kpis-v307.js:617:      menuTitle: 'Revenue per available seat hour',
+app/admin/assets/js/pmd-reservations2-kpis-v307.js:627:      window.PMDReservations2Boot ||
+app/admin/assets/js/pmd-reservations2-kpis-v307.js:640:      window.PMDReservations
+app/admin/assets/js/pmd-reservations2-kpis-v307.js:657:      boot.floorTables,
+app/admin/assets/js/pmd-reservations2-kpis-v307.js:660:      window.PMDFloorTables
+app/admin/assets/js/pmd-reservations2-kpis-v307.js:833:  function enabledTable(table) {
+app/admin/assets/js/pmd-reservations2-kpis-v307.js:845:  function occupiedTable(table) {
+app/admin/assets/js/pmd-reservations2-kpis-v307.js:859:  function availableTable(table) {
+app/admin/assets/js/pmd-reservations2-kpis-v307.js:860:    if (!enabledTable(table)) {
+app/admin/assets/js/pmd-reservations2-kpis-v307.js:877:    var allTables = tables();
+app/admin/assets/js/pmd-reservations2-kpis-v307.js:890:    var activeToday = todayItems.filter(function (item) {
+app/admin/assets/js/pmd-reservations2-kpis-v307.js:908:    var guestTotal = activeToday.reduce(function (sum, item) {
+app/admin/assets/js/pmd-reservations2-kpis-v307.js:921:    var enabledTables = allTables.filter(enabledTable);
+app/admin/assets/js/pmd-reservations2-kpis-v307.js:922:    var occupiedTables = enabledTables.filter(occupiedTable);
+app/admin/assets/js/pmd-reservations2-kpis-v307.js:923:    var freeTables = enabledTables.filter(availableTable);
+app/admin/assets/js/pmd-reservations2-kpis-v307.js:925:    var seats = enabledTables.reduce(function (sum, table) {
+app/admin/assets/js/pmd-reservations2-kpis-v307.js:939:        value: String(activeToday.length),
+app/admin/assets/js/pmd-reservations2-kpis-v307.js:950:        description: 'Reservations awaiting confirmation'
+app/admin/assets/js/pmd-reservations2-kpis-v307.js:954:        value: String(freeTables.length),
+app/admin/assets/js/pmd-reservations2-kpis-v307.js:956:          freeTables.length +
+app/admin/assets/js/pmd-reservations2-kpis-v307.js:958:          enabledTables.length +
+app/admin/assets/js/pmd-reservations2-kpis-v307.js:985:          occupiedTables.length,
+app/admin/assets/js/pmd-reservations2-kpis-v307.js:986:          enabledTables.length
+app/admin/assets/js/pmd-reservations2-kpis-v307.js:989:          occupiedTables.length +
+app/admin/assets/js/pmd-reservations2-kpis-v307.js:991:          enabledTables.length +
+app/admin/assets/js/pmd-reservations2-kpis-v307.js:996:        value: activeToday.length
+app/admin/assets/js/pmd-reservations2-kpis-v307.js:999:              activeToday.length
+app/admin/assets/js/pmd-reservations2-kpis-v307.js:1006:        value: String(enabledTables.length),
+app/admin/assets/js/pmd-reservations2-kpis-v307.js:1007:        description: 'Tables enabled for reservations'
+app/admin/assets/js/pmd-reservations2-kpis-v307.js:1424:        var wasOpen = !menu.hidden;
+app/admin/assets/js/pmd-reservations2-kpis-v307.js:1428:        if (!wasOpen) {
+app/admin/assets/js/pmd-reservations2-kpis-v307.js:1580:          'PMD Reservations2 browser Boot Data',
+app/admin/assets/js/pmd-reservations2-kpis-v307.js:1582:          'PMD Reservations2 browser table/floor Boot Data'
+app/admin/assets/js/pmd-reservations2-kpis-v307.js:1638:          scope: 'Guest total divided by active reservations dated today',
+app/admin/assets/js/pmd-reservations2-kpis-v307.js:1679:            'Revenue per available seat hour',
+app/admin/assets/js/pmd-reservations2-kpis-v307.js:1749:         * Opening a menu or choosing another KPI does not.
+app/admin/assets/js/pmd-reservations2-kpis-v307.js:1757:  window.PMDConfigurableReservationKpisV2401 = {
+app/admin/assets/js/pmd-reservations2-kpis-v307.js:1801:      '[PMD Configurable Reservation KPIs V2.4.0.1] Ready',
+app/admin/assets/js/pmd-reservations2-kpis-v307.js:1865:  function setPageOpenState(open) {
+app/admin/assets/js/pmd-reservations2-kpis-v307.js:1880:  function syncPageOpenState() {
+app/admin/assets/js/pmd-reservations2-kpis-v307.js:1883:    setPageOpenState(Boolean(openMenu));
+app/admin/assets/js/pmd-reservations2-kpis-v307.js:1890:      syncPageOpenState,
+app/admin/assets/js/pmd-reservations2-kpis-v307.js:1915:    setPageOpenState(true);
+app/admin/assets/js/pmd-reservations2-kpis-v307.js:1923:        syncPageOpenState();
+app/admin/assets/js/pmd-reservations2-kpis-v307.js:1933:   * Other Reservation-page controls may stop click propagation.
+app/admin/assets/js/pmd-reservations2-kpis-v307.js:1943:        setPageOpenState(false);
+app/admin/assets/js/pmd-reservations2-kpis-v307.js:1993:      setPageOpenState(true);
+app/admin/assets/js/pmd-reservations2-kpis-v307.js:2026:        menuOpen: Boolean(menu),
+app/admin/assets/js/pmd-reservations2-kpis-v307.js:2027:        pageOpenAttribute:
+app/admin/assets/js/pmd-reservations2-kpis-v307.js:2045:  syncPageOpenState();
+app/admin/assets/js/pmd-reservations2-kpis-v307.js:2169:  function triggerIsOpen(trigger) {
+app/admin/assets/js/pmd-reservations2-kpis-v307.js:2182:  function detectOpenState() {
+app/admin/assets/js/pmd-reservations2-kpis-v307.js:2184:      menuTriggers().some(triggerIsOpen);
+app/admin/assets/js/pmd-reservations2-kpis-v307.js:2218:    var active = detectOpenState();
+app/admin/assets/js/pmd-reservations2-kpis-v307.js:2244:  function isInsideOpenMenu(target) {
+app/admin/assets/js/pmd-reservations2-kpis-v307.js:2258:    if (!detectOpenState()) {
+app/admin/assets/js/pmd-reservations2-kpis-v307.js:2308:      if (!detectOpenState()) {
+app/admin/assets/js/pmd-reservations2-kpis-v307.js:2313:      if (isInsideOpenMenu(event.target)) {
+app/admin/assets/js/pmd-reservations2-kpis-v307.js:2366:        .filter(triggerIsOpen)
+app/admin/assets/js/pmd-reservations2-kpis-v307.js:2376:        detectedOpen:
+app/admin/assets/js/pmd-reservations2-kpis-v307.js:2377:          detectOpenState(),
+app/admin/assets/js/pmd-reservations2-mobile-final-v2.js:91:        'Open navigation'
+app/admin/assets/js/pmd-reservations2-mobile-final-v2.js:175:  window.PMDReservations2MobileFinalV2 = {
+app/admin/assets/js/pmd-reservations2-mobile-hamburger-v301.js:4:  if (window.PMDReservations2MobileMenuV303) {
+app/admin/assets/js/pmd-reservations2-mobile-hamburger-v301.js:5:    window.PMDReservations2MobileMenuV303.refresh();
+app/admin/assets/js/pmd-reservations2-mobile-hamburger-v301.js:15:  function isReservations2() {
+app/admin/assets/js/pmd-reservations2-mobile-hamburger-v301.js:49:  function isOpen() {
+app/admin/assets/js/pmd-reservations2-mobile-hamburger-v301.js:82:  function setOpen(open) {
+app/admin/assets/js/pmd-reservations2-mobile-hamburger-v301.js:124:      !isReservations2() ||
+app/admin/assets/js/pmd-reservations2-mobile-hamburger-v301.js:201:          setOpen(
+app/admin/assets/js/pmd-reservations2-mobile-hamburger-v301.js:202:            !isOpen()
+app/admin/assets/js/pmd-reservations2-mobile-hamburger-v301.js:235:          setOpen(false);
+app/admin/assets/js/pmd-reservations2-mobile-hamburger-v301.js:257:    var open = isOpen();
+app/admin/assets/js/pmd-reservations2-mobile-hamburger-v301.js:268:        : 'Open navigation'
+app/admin/assets/js/pmd-reservations2-mobile-hamburger-v301.js:273:    if (!isReservations2()) {
+app/admin/assets/js/pmd-reservations2-mobile-hamburger-v301.js:290:          isOpen()
+app/admin/assets/js/pmd-reservations2-mobile-hamburger-v301.js:292:          setOpen(false);
+app/admin/assets/js/pmd-reservations2-mobile-hamburger-v301.js:306:          setOpen(false);
+app/admin/assets/js/pmd-reservations2-mobile-hamburger-v301.js:316:          setOpen(false);
+app/admin/assets/js/pmd-reservations2-mobile-hamburger-v301.js:361:      '[PMD Reservations2 Mobile Menu V3.0.3] Ready',
+app/admin/assets/js/pmd-reservations2-mobile-hamburger-v301.js:379:  window.PMDReservations2MobileMenuV303 = {
+app/admin/assets/js/pmd-reservations2-mobile-hamburger-v301.js:385:      setOpen(true);
+app/admin/assets/js/pmd-reservations2-mobile-hamburger-v301.js:389:      setOpen(false);
+app/admin/assets/js/pmd-reservations2-mobile-hamburger-v301.js:393:      setOpen(
+app/admin/assets/js/pmd-reservations2-mobile-hamburger-v301.js:394:        !isOpen()
+app/admin/assets/js/pmd-reservations2-polish-final-v6.js:4:  if (window.PMDReservations2PolishFinalV6) return;
+app/admin/assets/js/pmd-reservations2-polish-final-v6.js:53:        'Open navigation'
+app/admin/assets/js/pmd-reservations2-polish-final-v6.js:104:  function removeFloor() {
+app/admin/assets/js/pmd-reservations2-polish-final-v6.js:125:    var rootReady = removeFloor();
+app/admin/assets/js/pmd-reservations2-polish-final-v6.js:151:  window.PMDReservations2PolishFinalV6 = {
+app/admin/assets/js/pmd-reservations2-polish-final-v6.js:154:    removesFloor: true,
+app/admin/assets/js/pmd-reservations2-prune-v305.js:4:  if (window.PMDReservations2PruneV305) {
+app/admin/assets/js/pmd-reservations2-prune-v305.js:5:    window.PMDReservations2PruneV305.run();
+app/admin/assets/js/pmd-reservations2-prune-v305.js:33:   * The canonical Floor, KPI row and reservation cards are active
+app/admin/assets/js/pmd-reservations2-prune-v305.js:34:   * Reservations2 content. Prune must never remove them, their
+app/admin/assets/js/pmd-reservations2-prune-v305.js:363:      '[PMD Reservations2 Prune V3.0.5] Ready',
+app/admin/assets/js/pmd-reservations2-prune-v305.js:383:  window.PMDReservations2PruneV305 = {
+app/admin/assets/js/pmd-reservations2-remove-waiter-root-v306.js:5:    window.PMDReservations2RemoveWaiterRootV306
+app/admin/assets/js/pmd-reservations2-remove-waiter-root-v306.js:8:      .PMDReservations2RemoveWaiterRootV306
+app/admin/assets/js/pmd-reservations2-remove-waiter-root-v306.js:22:   * The Blade initially renders the canonical Floor inside the
+app/admin/assets/js/pmd-reservations2-remove-waiter-root-v306.js:24:   * another authority reparents the Floor.
+app/admin/assets/js/pmd-reservations2-remove-waiter-root-v306.js:26:   * Move the canonical Floor to the Reservations2 root first.
+app/admin/assets/js/pmd-reservations2-remove-waiter-root-v306.js:34:  function canonicalFloor(waiterRoot) {
+app/admin/assets/js/pmd-reservations2-remove-waiter-root-v306.js:49:  function rescueCanonicalFloor(waiterRoot) {
+app/admin/assets/js/pmd-reservations2-remove-waiter-root-v306.js:51:      canonicalFloor(waiterRoot);
+app/admin/assets/js/pmd-reservations2-remove-waiter-root-v306.js:116:  function onReservations2() {
+app/admin/assets/js/pmd-reservations2-remove-waiter-root-v306.js:127:      !onReservations2()
+app/admin/assets/js/pmd-reservations2-remove-waiter-root-v306.js:141:           * Never touch the Reservations header or Side Menu.
+app/admin/assets/js/pmd-reservations2-remove-waiter-root-v306.js:155:            rescueCanonicalFloor(node);
+app/admin/assets/js/pmd-reservations2-remove-waiter-root-v306.js:159:           * canonical Floor. A failed rescue is safer than losing
+app/admin/assets/js/pmd-reservations2-remove-waiter-root-v306.js:167:              '[PMD Chrome Floor Preservation V2.4.1.8] ' +
+app/admin/assets/js/pmd-reservations2-remove-waiter-root-v306.js:168:              'Waiter root retained because Floor rescue failed.'
+app/admin/assets/js/pmd-reservations2-remove-waiter-root-v306.js:264:      '[PMD Reservations2 Remove Waiter Root V3.0.6] Ready',
+app/admin/assets/js/pmd-reservations2-remove-waiter-root-v306.js:307:  window.PMDReservations2RemoveWaiterRootV306 = {
+app/admin/assets/js/pmd-reservations2-reservation-stable-v3.js:8:  if (window.PMDReservations2StableReservationV3) {
+app/admin/assets/js/pmd-reservations2-reservation-stable-v3.js:32:  var currentTables = [];
+app/admin/assets/js/pmd-reservations2-reservation-stable-v3.js:33:  var lastTableSignature = '';
+app/admin/assets/js/pmd-reservations2-reservation-stable-v3.js:72:  function normalizeTable(input) {
+app/admin/assets/js/pmd-reservations2-reservation-stable-v3.js:79:  function reservationTable(reservation) {
+app/admin/assets/js/pmd-reservations2-reservation-stable-v3.js:80:    return normalizeTable(
+app/admin/assets/js/pmd-reservations2-reservation-stable-v3.js:95:  function forTable(number) {
+app/admin/assets/js/pmd-reservations2-reservation-stable-v3.js:97:      normalizeTable(number);
+app/admin/assets/js/pmd-reservations2-reservation-stable-v3.js:102:          reservationTable(reservation) ===
+app/admin/assets/js/pmd-reservations2-reservation-stable-v3.js:110:    return normalizeTable(
+app/admin/assets/js/pmd-reservations2-reservation-stable-v3.js:138:    if (forTable(number).length) {
+app/admin/assets/js/pmd-reservations2-reservation-stable-v3.js:145:  function applyTableState(table) {
+app/admin/assets/js/pmd-reservations2-reservation-stable-v3.js:192:  function applyAllTableStates(tables) {
+app/admin/assets/js/pmd-reservations2-reservation-stable-v3.js:193:    tables.forEach(applyTableState);
+app/admin/assets/js/pmd-reservations2-reservation-stable-v3.js:330:    ]) || 'Guest';
+app/admin/assets/js/pmd-reservations2-reservation-stable-v3.js:395:              : 'Guests —',
+app/admin/assets/js/pmd-reservations2-reservation-stable-v3.js:463:      forTable(selected);
+app/admin/assets/js/pmd-reservations2-reservation-stable-v3.js:466:      'Table ' + selected;
+app/admin/assets/js/pmd-reservations2-reservation-stable-v3.js:502:        'Table ' +
+app/admin/assets/js/pmd-reservations2-reservation-stable-v3.js:518:  function selectTable(number) {
+app/admin/assets/js/pmd-reservations2-reservation-stable-v3.js:520:      normalizeTable(number);
+app/admin/assets/js/pmd-reservations2-reservation-stable-v3.js:572:      selectTable(
+app/admin/assets/js/pmd-reservations2-reservation-stable-v3.js:607:      tables.length !== currentTables.length ||
+app/admin/assets/js/pmd-reservations2-reservation-stable-v3.js:609:        return table !== currentTables[index];
+app/admin/assets/js/pmd-reservations2-reservation-stable-v3.js:613:      signature !== lastTableSignature;
+app/admin/assets/js/pmd-reservations2-reservation-stable-v3.js:621:      currentTables = tables;
+app/admin/assets/js/pmd-reservations2-reservation-stable-v3.js:622:      lastTableSignature = signature;
+app/admin/assets/js/pmd-reservations2-reservation-stable-v3.js:624:      applyAllTableStates(tables);
+app/admin/assets/js/pmd-reservations2-reservation-stable-v3.js:644:  window.PMDReservations2StableReservationV3 = {
+app/admin/assets/js/pmd-reservations2-reservation-stable-v3.js:647:    selectTable: selectTable,
+app/admin/assets/js/pmd-reservations2-reservation-stable-v3.js:648:    getSelectedTable: function () {
+app/admin/assets/js/pmd-reservations2-reservation-stable-v3.js:659:    '[PMD Reservations2 Stable Reservation V3] Ready',
+app/admin/assets/js/pmd-reservations2-sidebar-v1.js:7:  if (window.PMDReservations2SidebarV1)
+app/admin/assets/js/pmd-reservations2-sidebar-v1.js:10:  window.PMDReservations2SidebarV1 = {
+app/admin/assets/js/pmd-reservations2-sidebar-v1.js:43:    window.PMDReservations2SidebarV1.nativeSidebarRemoved = true;
+app/admin/assets/js/pmd-reservations2-sidebar-v1.js:61:    console.info('[PMD Reservations2 Sidebar V1] Ready', window.PMDReservations2SidebarV1);
+app/admin/assets/js/pmd-reservations2-sidebar-v2.js:5:  if (window.PMDReservations2SidebarV2) return;
+app/admin/assets/js/pmd-reservations2-sidebar-v2.js:7:  window.PMDReservations2SidebarV2 = {
+app/admin/assets/js/pmd-reservations2-sidebar-v2.js:46:    window.PMDReservations2SidebarV2.nativeSidebarHidden = true;
+app/admin/assets/js/pmd-reservations2-sidebar-v2.js:61:    console.info('[PMD Reservations2 Sidebar V2] Ready', window.PMDReservations2SidebarV2);
+app/admin/assets/js/pmd-reservations2-stability-v3.js:64:    var dateApi = window.PMDReservations2DatePopoverV318;
+app/admin/assets/js/pmd-reservations2-stability-v3.js:122:  window.PMDReservations2StabilityV3 = {
+app/admin/assets/js/pmd-reservations2-stability-v3.js:133:        datePopoverPatched: Boolean(window.PMDReservations2DatePopoverV318 && window.PMDReservations2DatePopoverV318.__pmdR2V3Patched),
+app/admin/assets/js/pmd-reservations2-stability-v3.js:143:  console.info('[PMD Reservations2 Stability V3] Ready', window.PMDReservations2StabilityV3.audit());
+app/admin/assets/js/pmd-reservations2-v1.js:4:  if (window.PMDReservations2V1) return;
+app/admin/assets/js/pmd-reservations2-v1.js:50:    var guestName = first(record, ['guest_name', 'first_name', 'customer_name', 'name'], 'Reservation #' + id);
+app/admin/assets/js/pmd-reservations2-v1.js:152:    header.setAttribute('aria-label', 'Reservations page header');
+app/admin/assets/js/pmd-reservations2-v1.js:156:    title.textContent = 'Reservations';
+app/admin/assets/js/pmd-reservations2-v1.js:164:     * Reservations2 has its own functional hamburger authority:
+app/admin/assets/js/pmd-reservations2-v1.js:168:     * Reservations actions row. Keeping both controls produced
+app/admin/assets/js/pmd-reservations2-v1.js:194:    window.PMDReservations2CleanHeaderV3 = {
+app/admin/assets/js/pmd-reservations2-v1.js:200:      title: 'Reservations',
+app/admin/assets/js/pmd-reservations2-v1.js:246:  function filteredReservations() {
+app/admin/assets/js/pmd-reservations2-v1.js:263:    var rows = filteredReservations();
+app/admin/assets/js/pmd-reservations2-v1.js:285:            '<span class="pmd-r2-card__name">', esc(r.name || ('Reservation #' + r.id)), '</span>',
+app/admin/assets/js/pmd-reservations2-v1.js:291:            r.table ? '<span>Table ' + esc(r.table) + '</span>' : '<span>No table</span>',
+app/admin/assets/js/pmd-reservations2-v1.js:300:  function reservationForTable(number) {
+app/admin/assets/js/pmd-reservations2-v1.js:307:    var reservation = reservationForTable(number);
+app/admin/assets/js/pmd-reservations2-v1.js:313:  function renderFloor() {
+app/admin/assets/js/pmd-reservations2-v1.js:324:          'aria-label="Table ', table.number, '">',
+app/admin/assets/js/pmd-reservations2-v1.js:361:        var pages = Math.max(1, Math.ceil(filteredReservations().length / PAGE_SIZE));
+app/admin/assets/js/pmd-reservations2-v1.js:372:      var reservation = reservationForTable(number);
+app/admin/assets/js/pmd-reservations2-v1.js:385:    renderFloor();
+app/admin/assets/js/pmd-reservations2-v1.js:389:    window.PMDReservations2V1 = {
+app/admin/assets/js/pmd-reservations2-v1.js:400:    console.info('[PMD Reservations2 V1] Ready', window.PMDReservations2V1);
+app/admin/assets/js/pmd-reservations2-v1.js:401:    console.info('[PMD Reservations2 Clean Header V3] Ready', window.PMDReservations2CleanHeaderV3);
+app/admin/assets/js/pmd-reservations2-waiter-embed-v1.js:8:  if (window.PMDReservations2RealWaiterEmbedV1) {
+app/admin/assets/js/pmd-reservations2-waiter-embed-v1.js:20:      '[PMD Reservations2 Real Waiter V1] Required roots missing.'
+app/admin/assets/js/pmd-reservations2-waiter-embed-v1.js:110:          '[PMD Reservations2 Real Waiter V1] Ready',
+app/admin/assets/js/pmd-reservations2-waiter-embed-v1.js:134:          '[PMD Reservations2 Real Waiter V1] ' +
+app/admin/assets/js/pmd-reservations2-waiter-embed-v1.js:200:  window.PMDReservations2RealWaiterEmbedV1 = {
+app/admin/assets/js/pmd-reservations2-waiter-reservation-v4.js:3:if(!/^\/admin\/reservations2\/?$/.test(location.pathname)||window.PMDReservations2WaiterReservationV4)return;
+app/admin/assets/js/pmd-reservations2-waiter-reservation-v4.js:17:function normalizeReservation(r){var id=pick(r,['reservation_id','id']);return{id:id,name:pick(r,['guest_name','first_name','customer_name','name'])||('Reservation #'+val(id)),guests:Number(pick(r,['guest_num','guest_count','guests','covers','party_size'])||0),table:tableKey(pick(r,['table_number','table_name','table_no','table','table_id'])),status:val(pick(r,['status_name','status','status_name_text'])||'pending').toLowerCase(),date:val(pick(r,['reserve_date','reservation_date','date'])),time:val(pick(r,['reserve_time','reservation_time','time'])),editUrl:val(boot.editBaseUrl||'/admin/reservations/edit').replace(/\/$/,'')+'/'+encodeURIComponent(val(id))}}
+app/admin/assets/js/pmd-reservations2-waiter-reservation-v4.js:18:var reservations=source.map(normalizeReservation);
+app/admin/assets/js/pmd-reservations2-waiter-reservation-v4.js:19:function forTable(number){var key=tableKey(number);return reservations.filter(function(r){return r.table===key})}
+app/admin/assets/js/pmd-reservations2-waiter-reservation-v4.js:22:function availability(node){var number=numberOf(node);var state=liveState(node);if(/occupied|busy|seated|active/.test(state))return'occupied';if(forTable(number).length)return'reserved';return'free'}
+app/admin/assets/js/pmd-reservations2-waiter-reservation-v4.js:23:function applyState(node){var number=numberOf(node);if(!number)return;var state=availability(node);var previous=node.getAttribute('data-pmd-rsv4-state');if(previous!==state){node.classList.remove('pmd-rsv4-free','pmd-rsv4-reserved','pmd-rsv4-occupied');node.classList.add('pmd-rsv4-'+state);node.setAttribute('data-pmd-rsv4-state',state)}node.classList.toggle('pmd-rsv4-selected',number===selected);node.setAttribute('data-pmd-rsv4-table',number);node.setAttribute('title','Table '+number+' · '+(state==='occupied'?'Occupied':state==='reserved'?'Reserved':'Free'))}
+app/admin/assets/js/pmd-reservations2-waiter-reservation-v4.js:26:function kpiValues(){var today=new Date();var iso=today.getFullYear()+'-'+String(today.getMonth()+1).padStart(2,'0')+'-'+String(today.getDate()).padStart(2,'0');var todayRows=reservations.filter(function(r){return !r.date||r.date.slice(0,10)===iso});return[{title:'Today Reservations',value:todayRows.length,subtitle:'Reservations scheduled today',icon:'📅'},{title:'Guests Today',value:todayRows.reduce(function(sum,r){return sum+r.guests},0),subtitle:'Total booked guests today',icon:'👥'},{title:'Pending / Active',value:reservations.filter(function(r){return !/complete|cancel|declin|no.?show/.test(r.status)}).length,subtitle:'Reservations needing attention',icon:'📝'},{title:'Assigned Tables',value:(new Set(reservations.map(function(r){return r.table}).filter(Boolean))).size,subtitle:'Tables with reservations',icon:'🍽️'}]}
+app/admin/assets/js/pmd-reservations2-waiter-reservation-v4.js:31:function render(){var el=section();var title=el.querySelector('[data-pmd-rsv4-title]');var subtitle=el.querySelector('[data-pmd-rsv4-subtitle]');var body=el.querySelector('[data-pmd-rsv4-body]');var create=el.querySelector('[data-pmd-rsv4-create]');if(!selected){title.textContent='Select a table';subtitle.textContent='Click a table to view its reservations or create a new one.';body.innerHTML='<div class="pmd-rsv4-empty">No table selected.</div>';create.href='#';create.setAttribute('aria-disabled','true');return}var rows=forTable(selected);title.textContent='Table '+selected;subtitle.textContent=rows.length?(rows.length+(rows.length===1?' reservation':' reservations')):'No reservations assigned to this table';var createUrl=val(boot.createUrl||'/admin/reservations/create');create.href=createUrl+(createUrl.indexOf('?')===-1?'?':'&')+'table='+encodeURIComponent(selected)+'&table_number='+encodeURIComponent(selected);create.removeAttribute('aria-disabled');body.innerHTML=rows.length?'<div class="pmd-rsv4-cards">'+rows.map(card).join('')+'</div>':'<div class="pmd-rsv4-empty">Table '+esc(selected)+' has no reservations. Use “New reservation” to create one.</div>'}
+app/admin/assets/js/pmd-reservations2-waiter-reservation-v4.js:33:/* Reservation route authority: table clicks never reach waiter ordering handlers. */
+app/admin/assets/js/pmd-reservations2-waiter-reservation-v4.js:38:window.PMDReservations2WaiterReservationV4={version:'4.0.0',apply:apply,selectTable:select,getSelectedTable:function(){return selected},stop:function(){clearInterval(timer)},reservations:reservations.length,orderClicksBlocked:true};
+app/admin/assets/js/pmd-reservations2-waiter-reservation-v4.js:39:console.info('[PMD Reservations2 Waiter Reservation V4] Ready',{reservations:reservations.length,orderClicksBlocked:true,sharedWaiterFloor:true,mutationObserver:false});
+app/admin/assets/js/pmd-dashboard2-kpis-v1.js:124:    var label = period === 'month' ? 'This month' : (period === 'today' ? 'Today' : 'Current');
+app/admin/assets/js/pmd-dashboard2-kpis-v1.js:162:        option.innerHTML = '<span class="pmd-r2-kpi-v2401-option-copy"><strong>' + (period === 'today' ? 'Today' : 'This month') +
+app/admin/assets/js/pmd-dashboard2-kpis-v1.js:177:    card.dataset.pmdDashboard2Kpi = key;
+app/admin/assets/js/pmd-dashboard2-kpis-v1.js:193:      button.dataset.pmdDashboard2KpiMenuButton = 'selector';
+app/admin/assets/js/pmd-dashboard2-kpis-v1.js:249:        console.warn('[PMD Dashboard2 Real KPI Data V3] Request failed', error);
+app/admin/assets/js/pmd-dashboard2-kpis-v1.js:303:    window.PMDDashboard2KPIDataFinal = {version:VERSION, endpoint:ENDPOINT, refresh:refreshData, audit:audit};
+app/admin/assets/js/pmd-dashboard2-kpis-v1.js:304:    window.PMDDashboard2KpisV2 = {version:VERSION, render:renderKpis, refresh:refreshData, audit:audit};
+app/admin/assets/js/pmd-dashboard2-kpis-v1.js:312:/* PMD Dashboard2 canonical controls bridge V2.5.0 */
+app/admin/assets/js/pmd-dashboard2-kpis-v1.js:317:  if (window.PMDDashboard2CanonicalBridgeV250) return;
+app/admin/assets/js/pmd-dashboard2-kpis-v1.js:332:    if (title && title.textContent !== 'Dashboard') {
+app/admin/assets/js/pmd-dashboard2-kpis-v1.js:333:      title.textContent = 'Dashboard';
+app/admin/assets/js/pmd-dashboard2-kpis-v1.js:336:    document.title = document.title.replace(/Reservations|Reservierungen|Übersicht/g, 'Dashboard');
+app/admin/assets/js/pmd-dashboard2-kpis-v1.js:357:      customCalendarRemoved: !document.getElementById('pmd-dashboard2-calendar-v240'),
+app/admin/assets/js/pmd-dashboard2-kpis-v1.js:379:    window.PMDDashboard2CanonicalBridgeV250 = {version:'2.5.0', refresh:apply, audit:audit};
+app/admin/assets/js/pmd-dashboard2-kpis-v1.js:380:    console.info('[PMD Dashboard2 Canonical Bridge V2.5.0] Ready', audit());
+app/admin/assets/js/pmd-dashboard2-kpis-v1.js:390:/* PMD Dashboard2 persistent analytics workspace V1.0.0 */
+app/admin/assets/js/pmd-dashboard2-kpis-v1.js:397:  var widgetKeys = ['salesOverTime','salesByHour','topItems','categorySales','paymentMethods','channelSplit','liveOperations','recentTransactions','alerts','reviews','tips','calendarEvents'];
+app/admin/assets/js/pmd-dashboard2-kpis-v1.js:411:    root.setAttribute('aria-label', 'Dashboard analytics');
+app/admin/assets/js/pmd-dashboard2-kpis-v1.js:417:  function widget(id, title, span) { var toggle=id==='salesOverTime'?'<div class="pmd-dashboard2-chart-toggle" role="group" aria-label="Chart type"><button type="button" data-pmd-chart-mode="line" class="'+(salesChartMode==='line'?'is-active':'')+'" aria-pressed="'+(salesChartMode==='line'?'true':'false')+'">Linie</button><button type="button" data-pmd-chart-mode="bar" class="'+(salesChartMode==='bar'?'is-active':'')+'" aria-pressed="'+(salesChartMode==='bar'?'true':'false')+'">Balken</button></div>':''; return '<article class="pmd-dashboard2-analytics-card ' + (span||'') + '" data-pmd-analytics-widget="' + id + '"><header><h3>' + esc(title) + '</h3>'+toggle+'</header><div class="pmd-dashboard2-widget-body" data-pmd-widget-body></div></article>'; }
+app/admin/assets/js/pmd-dashboard2-kpis-v1.js:421:      widget('salesOverTime','Umsatzverlauf','is-wide') + widget('salesByHour','Umsatz nach Stunde','') + widget('topItems','Top-selling items','') + widget('categorySales','Sales by category','') + widget('paymentMethods','Payment methods','') + widget('channelSplit','Order channels','') + widget('liveOperations','Live orders / active tables','is-wide') + widget('recentTransactions','Recent transactions','is-wide') + widget('alerts','Alerts','') + widget('reviews','Latest reviews','') + widget('tips','Tips summary','') + widget('calendarEvents','Upcoming events','') + '</div>';
+app/admin/assets/js/pmd-dashboard2-kpis-v1.js:675:      'role="img" aria-label="Umsatzverlauf">' +
+app/admin/assets/js/pmd-dashboard2-kpis-v1.js:858:    var s=data.sales_over_time; put('salesOverTime',s.available?(salesChartMode==='line'?svgLine(s.buckets):svgBars(s.buckets,'Sales over time bar chart')):empty(s));
+app/admin/assets/js/pmd-dashboard2-kpis-v1.js:859:    var h=data.sales_by_hour; put('salesByHour',h.available?svgBars(h.hours,'Sales by hour bar chart'):empty(h));
+app/admin/assets/js/pmd-dashboard2-kpis-v1.js:868:    var tips=data.tips; put('tips',tips.available?'<dl class="pmd-dashboard2-stats"><div><dt>Today</dt><dd>'+esc(money(tips.today))+'</dd></div><div><dt>This month</dt><dd>'+esc(money(tips.month))+'</dd></div><div><dt>Average</dt><dd>'+esc(money(tips.average_tip))+'</dd></div><div><dt>Tipped orders</dt><dd>'+esc(tips.tipped_orders)+'</dd></div></dl>':empty(tips));
+app/admin/assets/js/pmd-dashboard2-kpis-v1.js:878:    function sync(){var active=floor.classList.contains('is-strip-mode');scroll.classList.toggle('pmd-dashboard2-one-row-scroll-v1',active);if(active){/* Existing Reservations2 rules use !important; exact inline priority is required only while One Row is active. */scroll.style.setProperty('overflow-x','auto','important');scroll.style.setProperty('overflow-y','hidden','important');scroll.scrollTop=0;}else{if(originalX.value)scroll.style.setProperty('overflow-x',originalX.value,originalX.priority);else scroll.style.removeProperty('overflow-x');if(originalY.value)scroll.style.setProperty('overflow-y',originalY.value,originalY.priority);else scroll.style.removeProperty('overflow-y');}}
+app/admin/assets/js/pmd-dashboard2-kpis-v1.js:882:  function audit(){var root=document.getElementById(ROOT_ID),keys=window.PMDDashboard2KPIDataFinal&&window.PMDDashboard2KPIDataFinal.audit?window.PMDDashboard2KPIDataFinal.audit():{},widgets={};widgetKeys.forEach(function(k){widgets[k]=Boolean(root&&root.querySelector('[data-pmd-analytics-widget="'+k+'"]'));});var unavailable=[],emptyWidgets=[];if(data)Object.keys(data).forEach(function(k){if(data[k]&&data[k].available===false)unavailable.push(k);if(data[k]&&data[k].available===true&&data[k].empty===true)emptyWidgets.push(k);});var active=Boolean(oneRow&&oneRow.floor.classList.contains('is-strip-mode')),style=oneRow?getComputedStyle(oneRow.scroll):null;return {version:VERSION,route:String(location.pathname).replace(/\/+$/,''),kpis:{totalDefinitions:8,visibleCards:document.querySelectorAll('[data-pmd-dashboard2-kpi]').length,selectedKeys:keys.selectedKeys||[],duplicates:new Set(keys.selectedKeys||[]).size!==(keys.selectedKeys||[]).length,endpointRequestCount:keys.requestCount||0},operationalView:{current:currentView(),floorExists:Boolean(document.getElementById('pmd-r2-shared-floor-canvas-v310')),toolbarExists:Boolean(document.getElementById('pmd-dashboard2-floor-toolbar-proxy-v350')),toolbarButtons:(document.getElementById('pmd-dashboard2-floor-toolbar-proxy-v350')||document).querySelectorAll('[data-proxy-action]').length,reservationCardsPresent:Boolean(document.getElementById('pmd-r2-reservation-cards-v320'))},analytics:{rootCount:document.querySelectorAll('#'+ROOT_ID).length,visible:Boolean(root&&getComputedStyle(root).display!=='none'),currentPeriod:period(),chartMode:salesChartMode,chartLabelsPresent:Boolean(root&&root.querySelector('.pmd-dashboard2-chart-axis-label')),requestCount:requestCount,widgets:widgets,unavailableSources:unavailable,chartCount:root?root.querySelectorAll('svg.pmd-dashboard2-chart,.pmd-dashboard2-donut svg').length:0,availableWidgetCount:data?widgetKeys.filter(function(k){var map={salesOverTime:'sales_over_time',salesByHour:'sales_by_hour',topItems:'top_items',categorySales:'sales_by_category',paymentMethods:'payment_methods',channelSplit:'channels',liveOperations:'live_operations',recentTransactions:'recent_transactions',alerts:'alerts',reviews:'reviews',tips:'tips',calendarEvents:'calendar_events'};return data[map[k]]&&data[map[k]].available===true;}).length:0,emptyWidgetCount:emptyWidgets.length,emptyWidgets:emptyWidgets,unavailableWidgetCount:unavailable.length,sourceModes:data?Object.keys(data).reduce(function(out,k){if(data[k]&&data[k].source_mode)out[k]=data[k].source_mode;return out;},{}):{},outerFrame:(function(){var st=root?getComputedStyle(root):null;return {transparent:Boolean(st&&(st.backgroundColor==='rgba(0, 0, 0, 0)'||st.backgroundColor==='transparent')),borderless:Boolean(st&&parseFloat(st.borderTopWidth)===0),shadowless:Boolean(st&&st.boxShadow==='none')};})()},oneRow:{active:active,overflowX:style?style.overflowX:null,overflowY:style?style.overflowY:null,verticalScrollbar:Boolean(oneRow&&style&&style.overflowY!=='hidden'&&oneRow.scroll.scrollHeight>oneRow.scroll.clientHeight),horizontalOverflow:Boolean(oneRow&&oneRow.scroll.scrollWidth>oneRow.scroll.clientWidth),wheelListeners:active?1:0},protected:{pushNotificationScriptPresent:Boolean(document.querySelector('script[src*="push-notifications.js"]')),notificationPollingActive:Boolean(document.querySelector('script[src*="push-notifications.js"]') && (window.pushNotif && window.pushNotif.pollInterval)),composerPresent:Boolean(document.querySelector('[data-reservation-composer],#pmd-reservation-composer-v1'))}};}
+app/admin/assets/js/pmd-dashboard2-kpis-v1.js:883:  function boot(){var root=shell();if(!root)return;root.addEventListener('click',function(e){var chartButton=e.target.closest('[data-pmd-chart-mode]');if(chartButton){salesChartMode=chartButton.dataset.pmdChartMode;try{localStorage.setItem(CHART_MODE_KEY,salesChartMode);}catch(x){}render();return;}var button=e.target.closest('[data-pmd-analytics-period]');if(!button)return;try{localStorage.setItem(PERIOD_KEY,button.dataset.pmdAnalyticsPeriod);}catch(x){}shell();load(button.dataset.pmdAnalyticsPeriod);});oneRow=setupOneRow();window.PMDDashboard2FinalWorkspace={
+app/admin/assets/js/pmd-dashboard2-kpis-v1.js:916:   PMD Dashboard2 No-Cards Final Audit V1.0.0
+app/admin/assets/js/pmd-dashboard2-kpis-v1.js:952:      visibleReservationCardsBelowView: visibleCount(
+app/admin/assets/js/pmd-dashboard2-kpis-v1.js:976:  window.PMDDashboard2NoCardsFinal = {
+app/admin/assets/js/pmd-dashboard2-kpis-v1.js:983:   PMD Dashboard2 Toolbar + Performance Authority V3.6.0
+app/admin/assets/js/pmd-dashboard2-kpis-v1.js:990:  if (window.PMDDashboard2PerformanceV360) return;
+app/admin/assets/js/pmd-dashboard2-kpis-v1.js:1063:    proxy.setAttribute('aria-label', 'Floor controls');
+app/admin/assets/js/pmd-dashboard2-kpis-v1.js:1126:        'PMDDashboard2ReservationsToolbarProxyV350',
+app/admin/assets/js/pmd-dashboard2-kpis-v1.js:1127:        'PMDDashboard2ReservationsToolbarProxyV351',
+app/admin/assets/js/pmd-dashboard2-kpis-v1.js:1128:        'PMDDashboard2ReservationsToolbarProxyV352'
+app/admin/assets/js/pmd-dashboard2-kpis-v1.js:1143:     * Native controls are created during the existing Reservations startup.
+app/admin/assets/js/pmd-dashboard2-kpis-v1.js:1150:        '[PMD Dashboard2 Toolbar + Performance V3.6.0] Ready',
+app/admin/assets/js/pmd-dashboard2-kpis-v1.js:1155:    window.PMDDashboard2PerformanceV360 = {
+app/admin/assets/js/pmd-dashboard2-kpis-v1.js:1199:      '[data-pmd-analytics-widget="salesByHour"] svg'
+app/admin/assets/js/pmd-dashboard2-kpis-v1.js:1238:    moveChartGuideAbove(root, 'salesByHour');
+app/admin/assets/js/pmd-dashboard2-kpis-v1.js:1257:      ['salesByHour', 2],
+app/admin/assets/js/pmd-dashboard2-kpis-v1.js:1342:   PMD Dashboard2 Analytics Layout + Toggle Authority V6
+app/admin/assets/js/pmd-dashboard2-kpis-v1.js:1354:  if (window.PMDDashboard2AnalyticsLayoutV6) {
+app/admin/assets/js/pmd-dashboard2-kpis-v1.js:1408:       * Allow the original Dashboard2 click listener to render first.
+app/admin/assets/js/pmd-dashboard2-kpis-v1.js:1412:        var workspace = window.PMDDashboard2FinalWorkspace;
+app/admin/assets/js/pmd-dashboard2-kpis-v1.js:1443:      'salesByHour',
+app/admin/assets/js/pmd-dashboard2-kpis-v1.js:1476:  window.PMDDashboard2AnalyticsLayoutV6 = {
+app/admin/assets/js/pmd-dashboard2-kpis-v1.js:1489:        window.PMDDashboard2FinalWorkspace;
+app/admin/assets/js/pmd-dashboard2-kpis-v1.js:1520:/* PMD Dashboard2 Equal Rows V9 Fixed */
+app/admin/assets/js/pmd-dashboard2-kpis-v1.js:1524:  if (window.PMDDashboard2EqualRowsV9) {
+app/admin/assets/js/pmd-dashboard2-kpis-v1.js:1537:    ['salesByHour', 20, 'wide'],
+app/admin/assets/js/pmd-dashboard2-kpis-v1.js:1695:  window.PMDDashboard2EqualRowsV9 = {
+app/admin/assets/js/pmd-dashboard2-kpis-v1.js:1759:/* PMD Dashboard2 One Row Parent Height V11 */
+app/admin/assets/js/pmd-dashboard2-kpis-v1.js:1763:  if (window.PMDDashboard2OneRowParentV11) {
+app/admin/assets/js/pmd-dashboard2-kpis-v1.js:1906:     * Canonical Dashboard scripts enforce height:auto and a 667px
+app/admin/assets/js/pmd-dashboard2-kpis-v1.js:2029:  window.PMDDashboard2OneRowParentV11 = {
+app/admin/assets/js/pmd-dashboard2-kpis-v1.js:2173:/* PMD Dashboard2 One Row FLIP V11.3 */
+app/admin/assets/js/pmd-dashboard2-kpis-v1.js:2177:  if (window.PMDDashboard2OneRowFlipV113) {
+app/admin/assets/js/pmd-dashboard2-kpis-v1.js:2471:  window.PMDDashboard2OneRowFlipV113 = {
+app/admin/assets/js/pmd-dashboard2-kpis-v1.js:2478:/* PMD Dashboard2 View Height Isolation V11.4 */
+app/admin/assets/js/pmd-dashboard2-kpis-v1.js:2482:  if (window.PMDDashboard2ViewHeightIsolationV114) {
+app/admin/assets/js/pmd-dashboard2-kpis-v1.js:2608:      window.PMDDashboard2OneRowParentV11
+app/admin/assets/js/pmd-dashboard2-kpis-v1.js:2610:      window.PMDDashboard2OneRowParentV11.apply();
+app/admin/assets/js/pmd-dashboard2-kpis-v1.js:2623:     * The one-time delayed checks cover the existing Calendar/Hour
+app/admin/assets/js/pmd-dashboard2-kpis-v1.js:2681:  window.PMDDashboard2ViewHeightIsolationV114 = {
+app/admin/assets/js/pmd-dashboard2-kpis-v1.js:2778:/* PMD Dashboard2 Chart Toggle Bridge V11.5 */
+app/admin/assets/js/pmd-dashboard2-kpis-v1.js:2782:  if (window.PMDDashboard2ChartToggleV115) {
+app/admin/assets/js/pmd-dashboard2-kpis-v1.js:2860:      window.PMDDashboard2AnalyticsLayoutV6;
+app/admin/assets/js/pmd-dashboard2-kpis-v1.js:2867:        'PMDDashboard2AnalyticsLayoutV6.setChartMode is unavailable.'
+app/admin/assets/js/pmd-dashboard2-kpis-v1.js:2893:       * downstream Dashboard2 code.
+app/admin/assets/js/pmd-dashboard2-kpis-v1.js:2913:          window.PMDDashboard2EqualRowsV9 &&
+app/admin/assets/js/pmd-dashboard2-kpis-v1.js:2915:            .PMDDashboard2EqualRowsV9
+app/admin/assets/js/pmd-dashboard2-kpis-v1.js:2919:            .PMDDashboard2EqualRowsV9
+app/admin/assets/js/pmd-dashboard2-kpis-v1.js:3046:  window.PMDDashboard2ChartToggleV115 = {
+app/admin/assets/js/pmd-dashboard2-kpis-v1.js:3061:        window.PMDDashboard2AnalyticsLayoutV6;
+app/admin/assets/js/pmd-dashboard2-kpis-v1.js:3168:/* PMD Dashboard2 Chart Toggle Direct Binding V11.5.1 */
+app/admin/assets/js/pmd-dashboard2-kpis-v1.js:3172:  if (window.PMDDashboard2ChartToggleDirectV1151) {
+app/admin/assets/js/pmd-dashboard2-kpis-v1.js:3257:        window.PMDDashboard2AnalyticsLayoutV6;
+app/admin/assets/js/pmd-dashboard2-kpis-v1.js:3276:          window.PMDDashboard2EqualRowsV9 &&
+app/admin/assets/js/pmd-dashboard2-kpis-v1.js:3278:            .PMDDashboard2EqualRowsV9
+app/admin/assets/js/pmd-dashboard2-kpis-v1.js:3282:            .PMDDashboard2EqualRowsV9
+app/admin/assets/js/pmd-dashboard2-kpis-v1.js:3393:  window.PMDDashboard2ChartToggleDirectV1151 = {
+app/admin/assets/js/pmd-dashboard2-kpis-v1.js:3408:        window.PMDDashboard2AnalyticsLayoutV6;
+app/admin/assets/js/pmd-dashboard2-kpis-v1.js:3465:/* PMD Dashboard2 Chart Live Render Restore V11.6 */
+app/admin/assets/js/pmd-dashboard2-kpis-v1.js:3469:  window.PMDDashboard2ChartLiveRenderV116 = {
+app/admin/assets/js/pmd-dashboard2-kpis-v1.js:3489:            window.PMDDashboard2FinalWorkspace
+app/admin/assets/js/pmd-dashboard2-kpis-v1.js:3527:/* PMD Dashboard2 Chart Renderer Authority V11.7 */
+app/admin/assets/js/pmd-dashboard2-kpis-v1.js:3531:  window.PMDDashboard2ChartRendererV117 = {
+app/admin/assets/js/pmd-dashboard2-kpis-v1.js:3536:        .PMDDashboard2FinalWorkspace
+app/admin/assets/js/pmd-dashboard2-kpis-v1.js:3542:        .PMDDashboard2FinalWorkspace
+app/admin/assets/js/pmd-dashboard2-kpis-v1.js:3548:        window.PMDDashboard2FinalWorkspace;

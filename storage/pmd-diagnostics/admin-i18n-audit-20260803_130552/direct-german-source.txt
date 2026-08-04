@@ -1,0 +1,28 @@
+app/admin/views/reservations2/index.blade.php:7656:            /(?:Table|Tisch)\s*#?\s*(\d+)/i
+app/admin/views/reservations2/index.blade.php:7667:            /(\d+)\s*(?:guests?|Gäste|Personen)/i,
+app/admin/views/reservations2/index.blade.php:7668:            /(?:guests?|Gäste|Personen)\s*:?\s*(\d+)/i
+app/admin/views/reservations2/index.blade.php:7780:      'Tisch ' +
+app/admin/views/reservations2/index.blade.php:7815:      'Geöffnet';
+app/admin/views/reservations2/index.blade.php:7950:                : ' Reservierungen'
+app/admin/views/reservations2/index.blade.php:8937:          : ' Reservierungen'
+app/admin/views/reservations2/index.blade.php:10013:          : ' Reservierungen'
+app/admin/assets/js/pmd-reservations2-final-floor-ui-v466.js:549:          'Heutige Reservierungen'
+app/admin/assets/js/pmd-reservations2-final-floor-ui-v466.js:592:        ? 'Freie Tische'
+app/admin/assets/js/pmd-reservations2-final-floor-ui-v466.js:616:          ? 'Aktuell verfügbare Tische'
+app/admin/assets/js/pmd-reservations2-floor-toolbar-v316.js:239: * table_name values such as "Table 17" or "Tisch 17"
+app/admin/assets/js/pmd-dashboard2-kpis-v1.js:336:    document.title = document.title.replace(/Reservations|Reservierungen|Übersicht/g, 'Dashboard');
+app/admin/assets/js/pmd-dashboard2-kpis-v1.js:417:  function widget(id, title, span) { var toggle=id==='salesOverTime'?'<div class="pmd-dashboard2-chart-toggle" role="group" aria-label="Chart type"><button type="button" data-pmd-chart-mode="line" class="'+(salesChartMode==='line'?'is-active':'')+'" aria-pressed="'+(salesChartMode==='line'?'true':'false')+'">Linie</button><button type="button" data-pmd-chart-mode="bar" class="'+(salesChartMode==='bar'?'is-active':'')+'" aria-pressed="'+(salesChartMode==='bar'?'true':'false')+'">Balken</button></div>':''; return '<article class="pmd-dashboard2-analytics-card ' + (span||'') + '" data-pmd-analytics-widget="' + id + '"><header><h3>' + esc(title) + '</h3>'+toggle+'</header><div class="pmd-dashboard2-widget-body" data-pmd-widget-body></div></article>'; }
+app/admin/assets/js/pmd-dashboard2-kpis-v1.js:421:      widget('salesOverTime','Umsatzverlauf','is-wide') + widget('salesByHour','Umsatz nach Stunde','') + widget('topItems','Top-selling items','') + widget('categorySales','Sales by category','') + widget('paymentMethods','Payment methods','') + widget('channelSplit','Order channels','') + widget('liveOperations','Live orders / active tables','is-wide') + widget('recentTransactions','Recent transactions','is-wide') + widget('alerts','Alerts','') + widget('reviews','Latest reviews','') + widget('tips','Tips summary','') + widget('calendarEvents','Upcoming events','') + '</div>';
+app/admin/assets/js/pmd-dashboard2-kpis-v1.js:675:      'role="img" aria-label="Umsatzverlauf">' +
+app/admin/assets/js/pmd-dashboard2-kpis-v1.js:813:      'Umsatz' +
+app/admin/assets/js/pmd-admin-i18n-v1.js:47:        if (match) return 'Tisch ' + match[1];
+app/admin/assets/js/pmd-admin-i18n-v1.js:50:        if (match) return match[1] + ' Gäste';
+app/admin/assets/js/pmd-admin-i18n-v1.js:53:        if (match) return match[1] + ' Reservierungen';
+app/admin/assets/js/pmd-admin-i18n-v1.js:56:        if (match) return match[1] + ' Reservierungen';
+app/admin/assets/js/pmd-admin-i18n-v1.js:62:        if (match) return match[1] + ' Tische';
+app/admin/assets/js/pmd-admin-i18n-v1.js:74:        result = result.replace(/\bTable\s+(\d+)\b/gi, 'Tisch $1');
+app/admin/assets/js/pmd-reservations2-kpi-table-colors-v467.js:378:          'Heutige Reservierungen'
+app/admin/assets/js/pmd-reservations2-kpi-table-colors-v467.js:390:        'Heutige Reservierungen'
+app/admin/assets/js/pmd-reservations2-kpi-table-colors-v467.js:421:        ? 'Freie Tische'
+app/admin/assets/js/pmd-reservations2-kpi-table-colors-v467.js:441:        'Reservierungen, die bestätigt werden müssen'
+app/admin/assets/js/pmd-reservations2-kpi-table-colors-v467.js:451:          ? 'Aktuell verfügbare Tische'

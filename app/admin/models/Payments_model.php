@@ -131,6 +131,7 @@ class Payments_model extends Model
 
         // This only happens during updates (edits) — it maintains its current behavior.
         if (!$this->exists) {
+            $this->prepareAttributesForResolvedStorage();
             return;
         }
 
@@ -175,10 +176,59 @@ class Payments_model extends Model
             $this->provider_code = null;
         }
 
-        // Keep only real DB columns for the resolved storage table.
-        $realColumns = Schema::getColumnListing($this->getTable());
+        $this->prepareAttributesForResolvedStorage();
+    }
+
+    /**
+     * Converts structured configuration values to database-safe JSON and
+     * removes virtual attributes that do not exist in the resolved table.
+     *
+     * The application can use either payment_methods or legacy payments
+     * storage, so the real schema is checked before every write.
+     */
+    protected function prepareAttributesForResolvedStorage(): void
+    {
+        $this->applyStorageMapping();
+
+        $realColumns = Schema::getColumnListing(
+            $this->getTable()
+        );
+
+        foreach (['meta', 'data'] as $jsonColumn) {
+            if (
+                !in_array($jsonColumn, $realColumns, true) ||
+                !array_key_exists($jsonColumn, $this->attributes)
+            ) {
+                continue;
+            }
+
+            $value = $this->attributes[$jsonColumn];
+
+            if (!is_array($value) && !is_object($value)) {
+                continue;
+            }
+
+            $encoded = json_encode(
+                $value,
+                JSON_UNESCAPED_UNICODE |
+                JSON_UNESCAPED_SLASHES |
+                JSON_INVALID_UTF8_SUBSTITUTE
+            );
+
+            if ($encoded === false) {
+                throw new ApplicationException(
+                    'Unable to serialize payment configuration.'
+                );
+            }
+
+            $this->attributes[$jsonColumn] = $encoded;
+        }
+
         foreach (array_keys($this->attributes) as $name) {
-            if (in_array($name, $realColumns, true)) continue;
+            if (in_array($name, $realColumns, true)) {
+                continue;
+            }
+
             unset($this->attributes[$name]);
         }
     }

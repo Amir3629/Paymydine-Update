@@ -1,0 +1,56 @@
+11:window.PMD_DASHBOARD2_KPIS = @json($pmdDashboard2Kpis ?? []);
+12:window.PMD_DASHBOARD2_KPI_PAYLOAD = @json($pmdDashboard2KpiPayload ?? null);
+28:<!-- PMD_DASHBOARD2_SINGLE_LAYOUT_AUTHORITY_V127 -->
+34:    display: grid !important;
+42:  [data-pmd-analytics-widget] {
+48:    border: 1px solid #DCE7E3 !important;
+56:  [data-pmd-analytics-widget="salesOverTime"] {
+57:    order: 1 !important;
+58:    grid-column: span 9 !important;
+62:  [data-pmd-analytics-widget="categorySales"] {
+63:    order: 2 !important;
+64:    grid-column: span 3 !important;
+68:  [data-pmd-analytics-widget="salesByHour"] {
+69:    order: 3 !important;
+70:    grid-column: span 9 !important;
+74:  [data-pmd-analytics-widget="paymentMethods"] {
+75:    order: 4 !important;
+76:    grid-column: span 3 !important;
+85:  [data-pmd-analytics-widget="recentTransactions"] {
+86:    order: 5 !important;
+87:    grid-column: span 4 !important;
+91:  [data-pmd-analytics-widget="alerts"] {
+92:    order: 6 !important;
+93:    grid-column: span 2 !important;
+97:  [data-pmd-analytics-widget="liveOperations"] {
+98:    order: 7 !important;
+99:    grid-column: span 3 !important;
+103:  [data-pmd-analytics-widget="channelSplit"] {
+104:    order: 8 !important;
+105:    grid-column: span 3 !important;
+113:  [data-pmd-analytics-widget="topItems"] {
+114:    order: 9 !important;
+115:    grid-column: span 4 !important;
+119:  [data-pmd-analytics-widget="tips"] {
+120:    order: 10 !important;
+121:    grid-column: span 4 !important;
+125:  [data-pmd-analytics-widget="reviews"] {
+126:    order: 11 !important;
+127:    grid-column: span 4 !important;
+132:  [data-pmd-analytics-widget="calendarEvents"] {
+133:    order: 12 !important;
+134:    grid-column: span 12 !important;
+141:  [data-pmd-analytics-widget="recentTransactions"]
+147:  [data-pmd-analytics-widget="recentTransactions"]
+156:  [data-pmd-analytics-widget="recentTransactions"]
+164:    [data-pmd-analytics-widget="recentTransactions"],
+166:    [data-pmd-analytics-widget="alerts"],
+168:    [data-pmd-analytics-widget="liveOperations"],
+170:    [data-pmd-analytics-widget="channelSplit"] {
+171:      grid-column: span 6 !important;
+175:    [data-pmd-analytics-widget="topItems"],
+177:    [data-pmd-analytics-widget="tips"],
+179:    [data-pmd-analytics-widget="reviews"] {
+180:      grid-column: span 6 !important;
+186:    [data-pmd-analytics-widget] {
+187:      grid-column: span 12 !important;

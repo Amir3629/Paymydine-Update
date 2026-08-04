@@ -1,0 +1,276 @@
+37:  function countTables() {
+51:      countTables() > 0
+76:    console.info('[PMD Reservations2 Authority Guard V6] Final UI revealed', {
+78:      tables: countTables(),
+107:        tables: countTables(),
+144:    reservations: @json($pmdReservations2 ?? []),
+160:  Reservations2 roughly half of its total height above the viewport.
+162:  This view-scoped rule keeps the Reservations2 workspace aligned
+163:  to the top without changing Floor geometry, One Row, Calendar,
+164:  Hour, cards, KPIs, scrolling, Safari, mobile, or other admin pages.
+180:            <h1>Reservations</h1>
+218:        'viewPreference' => $pmdFloorView ?? [
+243:                <h2>Live Tables & Orders</h2>
+367:        'Reservation Floor controls'
+405:        'aria-label="Full Floor map" ',
+406:        'title="Full Floor map">',
+432:        '<span>One row</span>',
+581: * in-Floor header row from the Floor layout.
+638: * the bordered Floor frame.
+704:    if (window.PMDToolbarOutsideFloorFrameV5) {
+776:                ? 'Full Floor'
+885:    window.PMDToolbarOutsideFloorFrameV5 = {
+982:   * Transparent row immediately above the Floor map.
+1093:  return; // Disabled: V316 remains inside the native Floor.
+1125:     * Place the transparent toolbar row directly before the Floor frame.
+1241:        '[PMD Reservations Canonical URL V1] Browser URL changed to',
+1275:    function unlockReservationsScroll() {
+1341:    unlockReservationsScroll();
+1345:        unlockReservationsScroll
+1348:    setTimeout(unlockReservationsScroll, 100);
+1349:    setTimeout(unlockReservationsScroll, 500);
+1350:    setTimeout(unlockReservationsScroll, 1500);
+1353:        '[PMD Reservations Scroll Unlock V1] Active'
+1377: * hide Edit/Save, zoom-out, Full Floor/Fit and zoom-in
+1378: * while the native floor engine is in One row mode.
+1380: * The One row control itself remains visible.
+1427:    return; // Disabled: native Floor engine owns One Row geometry.
+1551:    function fullFloorDimensions() {
+1587:    function expandFullFloorArea() {
+1597:            fullFloorDimensions();
+1600:            root.__pmdFloorV1 &&
+1601:            root.__pmdFloorV1.getState
+1602:                ? root.__pmdFloorV1.getState()
+1729:         * The real pmd-floor-v1 engine now owns Full Floor width,
+1822:     * Ensure the initial Full Floor uses all available area.
+1836:                expandFullFloorArea();
+1854:   * Real space between KPI cards and Floor.
+2006:      en: 'One row',
+2007:      de: 'Eine Reihe',
+2035:  function getFloor() {
+2137:          floor.__pmdFloorV1;
+2204:          floor.__pmdFloorV1;
+2216:          ? 'Full Floor'
+2217:          : (isGerman() ? 'Eine Reihe' : 'One Row');
+2232:        floor.__pmdFloorV1;
+2324:              floor.__pmdFloorV1;
+2333:                '[PMD V34.1] Floor editor API unavailable'
+2416:    var floor = getFloor();
+2503:      '[PMD Reservations V34.1] ' +
+2504:      'Floor toolbar mounted successfully'
+2531:     * Reserve real layout space between KPI cards and Floor.
+2532:     * This does not move or wrap the Floor DOM.
+2592:         * Reapply as inline !important because old Floor scripts may
+2784:                toolbarAboveFloor:
+2805:     * These rules activate only when the real Hour Timeline
+2819:     * Floor controls are not relevant in Hour View.
+2845:     * The legacy Floor stage reserves approximately 640px.
+2846:     * Collapse only that stage while Hour View is active.
+2848:     * Never hide the shared Floor shell because Hour content
+2871:     * The shared shell wraps the actual visible Hour content.
+2890:     * Calendar/Hour surface receives its height from content.
+2907:     * Align the Hour Header and Timeline with the KPI cards.
+2908:     * Audit showed the Hour surface was 12px wider per side.
+2929:     * KPI → Hour Header → Timeline.
+3002:    var currentFloor = null;
+3003:    var currentCalendar = null;
+3048:            currentFloor,
+3053:            currentCalendar,
+3077:        currentFloor = null;
+3078:        currentCalendar = null;
+3121:         * Activate only if the real Hour Timeline is visible.
+3122:         * Month mode and Floor mode remain untouched.
+3145:        currentFloor = floor;
+3146:        currentCalendar = calendar;
+3223:         * Calendar cells and view buttons change the active screen.
+3252:            '[PMD V38] Hour spacing and bottom-gap rules active.'
+3281:     * - final Hour row bottom: 1520px
+3282:     * - Calendar bottom: 1521px
+3301:     * Shared shell ends with the visible Calendar content.
+3347:     * Empty structural siblings after the shared Calendar shell
+3348:     * must not reserve the legacy Floor/List height in Hour mode.
+3373:     * Hour mode must not inherit a synthetic page spacer.
+3505:            '[PMD V38.1] Extra Hour bottom scroll fix active.'
+3537:     * Hour/Floor/Calendar dimensions remain untouched.
+3578:     * Preserve the working Hour implementation.
+3945:        '[PMD V44] Reservations Sidebar smooth reflow active.',
+3959:     * V44.1 animates the actual Reservations width so all
+3960:     * cards, grids, KPI panels, Floor and Calendar resize
+4164:         * Freeze the Reservations page at its exact pre-click
+4410:            '[PMD V44.1] Full Reservations width reflow active.'
+4447:   * Floor controls now live in the top page header.
+4448:   * Remove the obsolete internal Floor toolbar/status row completely.
+4515:   * Let the actual Floor content begin directly at the top of the frame.
+4530:/* Real space between KPI cards and the Floor map. */
+4536:/* Existing V316 toolbar above and outside the Floor border. */
+4600:/* In One Row show only the return-to-Full-Floor button. */
+4687:        '[PMD One Row V1] Floor elements not found.'
+4740:        firstTable:
+4750:        secondTable:
+4768:      var currentTables = tables();
+4773:        currentTables.length === 0
+4788:          currentTables.map(function (table) {
+4792:                table.dataset.floorTable ||
+4812:    function savedTableFor(table, index, tableMap) {
+4815:        table.dataset.floorTable ||
+4826:    function applyCanonicalStyles(currentTables, tableMap) {
+4833:      currentTables.forEach(function (table, index) {
+4835:          savedTableFor(table, index, tableMap);
+4858:      var currentTables = tables();
+4871:        currentTables,
+4886:            currentTables,
+5151:      window.PMDReservations2CalendarToggleV1 ||
+5190:  function isHourView() {
+5212:    if (isHourView()) {
+5301:  function resetHourToCalendar() {
+5339:        'Open calendar view';
+5342:        'Open hour timeline';
+5363:  function enterCalendar() {
+5391:  function enterHour() {
+5464:              window.PMDRealHourTimelineV1 &&
+5466:                .PMDRealHourTimelineV1.render ===
+5470:                .PMDRealHourTimelineV1
+5486:  function enterFloor() {
+5490:    resetHourToCalendar();
+5539:      enterCalendar();
+5544:      enterHour();
+5548:    enterFloor();
+5634:    showFloor: enterFloor,
+5635:    showCalendar: enterCalendar,
+5636:    showHour: enterHour,
+6176:          ? 'Reservations'
+6752:            'Reservation date: ' +
+6755:        : 'Reservation date range'
+7188:            'Reservation date: ' +
+7191:        : 'Reservation date range'
+7387:    window.PMDRealHourTimelineV1 &&
+7388:    typeof window.PMDRealHourTimelineV1.destroy ===
+7391:    window.PMDRealHourTimelineV1.destroy();
+7496:    var twelveHour =
+7501:    if (twelveHour) {
+7503:        Number(twelveHour[1]);
+7506:        twelveHour[2];
+7509:        twelveHour[3]
+7536:    var twentyFourHour =
+7541:    if (!twentyFourHour) {
+7547:        Number(twentyFourHour[1])
+7553:      twentyFourHour[2]
+7656:            /(?:Table|Tisch)\s*#?\s*(\d+)/i
+7660:      guests:
+7662:          'data-guests'
+7667:            /(\d+)\s*(?:guests?|Gäste|Personen)/i,
+7668:            /(?:guests?|Gäste|Personen)\s*:?\s*(\d+)/i
+7780:      'Tisch ' +
+7783:      reservation.guests +
+7784:      ' guests';
+7815:      'Geöffnet';
+7976:      '[PMD Real Hour Timeline V1] Rendered:',
+7981:        parsedReservations:
+7983:        renderedReservations:
+7990:      parsedReservations:
+7992:      renderedReservations:
+8073:      parsedReservations:
+8075:      renderedReservations:
+8097:      '[PMD Real Hour Timeline V1] Ready.',
+8112:      .PMDRealHourTimelineV1;
+8115:  window.PMDRealHourTimelineV1 = {
+8152:    window.PMDHourEntryAuthorityV11 &&
+8153:    typeof window.PMDHourEntryAuthorityV11.destroy ===
+8156:    window.PMDHourEntryAuthorityV11.destroy();
+8289:  function renderRealHour(
+8293:      window.PMDRealHourTimelineV1;
+8325:          renderRealHour(reason);
+8344:          '[PMD Hour Entry Authority V1.1] Finalized:',
+8378:    function waitForHour() {
+8408:         * legacy Hour renderer writing after the first pass.
+8450:          waitForHour
+8456:        waitForHour
+8474:     * Only Calendar -> Hour needs this authority.
+8527:      .PMDHourEntryAuthorityV11;
+8530:  window.PMDHourEntryAuthorityV11 = {
+8552:    '[PMD Hour Entry Authority V1.1] Ready.',
+8562:   * Calendar toolbar without a surrounding frame.
+8585:   * The legend is redundant in this clean Calendar layout.
+8703:    window.PMDCalendarRealCountsFloatingV1 &&
+8704:    typeof window.PMDCalendarRealCountsFloatingV1.destroy ===
+8707:    window.PMDCalendarRealCountsFloatingV1.destroy();
+8716:  function sourceReservations() {
+8871:  function uniqueReservations() {
+8874:    return sourceReservations()
+8904:    return uniqueReservations()
+9043:    var cellsWithReservations = 0;
+9056:          cellsWithReservations += 1;
+9085:      '[PMD Calendar Real Counts + Floating V1] Applied:',
+9088:        sourceReservations:
+9089:          sourceReservations().length,
+9090:        uniqueReservations:
+9091:          uniqueReservations().length,
+9094:        datesWithReservations:
+9096:        visibleCellsWithReservations:
+9097:          cellsWithReservations,
+9104:      sourceReservations:
+9105:        sourceReservations().length,
+9106:      uniqueReservations:
+9107:        uniqueReservations().length,
+9110:      datesWithReservations:
+9112:      visibleCellsWithReservations:
+9113:        cellsWithReservations,
+9252:      sourceReservations:
+9253:        sourceReservations().length,
+9254:      uniqueReservations:
+9255:        uniqueReservations().length,
+9256:      parsedReservations:
+9267:      datesWithReservations:
+9315:      '[PMD Calendar Real Counts + Floating V1] Ready.',
+9330:      .PMDCalendarRealCountsFloatingV1;
+9333:  window.PMDCalendarRealCountsFloatingV1 = {
+9368:   * Completely remove the Calendar toolbar container frame.
+9442:   * Match the clean Hour/Floor toolbar buttons.
+9534:   * Hide the duplicate month title inside the Calendar frame.
+9576:    window.PMDCalendarCountsToolbarV111 &&
+9577:    typeof window.PMDCalendarCountsToolbarV111.destroy ===
+9580:    window.PMDCalendarCountsToolbarV111.destroy();
+9603:      .PMDCalendarRealCountsFloatingV1;
+9637:      '[PMD Calendar Counts Toolbar V1.1.1] Applied:',
+9645:  function waitForCalendar(reason) {
+9695:          '[PMD Calendar Counts Toolbar V1.1.1] Cells not ready.',
+9719:  function wrapCalendarApi() {
+9722:        .PMDReservations2CalendarToggleV1;
+9754:            waitForCalendar(
+9786:    waitForCalendar(
+9870:    wrapCalendarApi();
+9877:              wrapCalendarApi();
+9882:                waitForCalendar(
+9895:      '[PMD Calendar Counts Toolbar V1.1.1] Ready.',
+9911:        .PMDReservations2CalendarToggleV1;
+9930:      .PMDCalendarCountsToolbarV111;
+9933:  window.PMDCalendarCountsToolbarV111 = {
+9937:      waitForCalendar('manual');
+9976:    window.PMDCalendarNativeCountV14 &&
+9977:    typeof window.PMDCalendarNativeCountV14.destroy ===
+9980:    window.PMDCalendarNativeCountV14.destroy();
+9991:      .PMDCalendarRealCountsFloatingV1;
+10103:     * by PMD Calendar Real Counts V1.
+10204:      '[PMD Calendar Native Count V1.4] Applied:',
+10261:    function waitForCalendar() {
+10279:         * Calendar render. No permanent polling.
+10310:          '[PMD Calendar Native Count V1.4] Calendar cells not ready.',
+10324:          waitForCalendar
+10330:        waitForCalendar
+10484:      '[PMD Calendar Native Count V1.4] Ready.',
+10514:      .PMDCalendarNativeCountV14;
+10517:  window.PMDCalendarNativeCountV14 = {
+10554:   * Keep all native Calendar DOM and functionality.
+10555:   * Visually separate the toolbar from the Calendar grid.
+10574:   * Hour-style floating Calendar header:
+10724:   * Match the verified Hour toolbar button dimensions:
+10862:   * The Calendar grid receives its own frame.
+10933:   * Remove every outer frame around the Calendar toolbar.
+10965:   * any white rounded Calendar panel.
+11078:   * Reservations2 vertical spacing rule:
+11084:   * and the Calendar toolbar.
+11096:   * Prevent inner Calendar wrappers from reintroducing
+11113:   * Keep Toolbar → Calendar Grid spacing equal
+11147:   * Calendar and Hour use the same shared canvas, so normalize
+11150:   * Floor mode remains untouched.
+11163:   * Do not let the nested Calendar surface add another top gap.

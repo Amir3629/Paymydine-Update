@@ -2106,3 +2106,495 @@
     boot();
   }
 })();
+
+/* PMD_ORDERS_PAGER_V1_0_0 */
+(function () {
+  'use strict';
+
+  const PATCH = 'PMD_ORDERS_PAGER_V1_0_0';
+
+  if (window[PATCH]) return;
+  window[PATCH] = true;
+
+  const route = String(
+    window.location.pathname || ''
+  ).replace(/\/+$/, '');
+
+  if (route !== '/admin/orders') return;
+
+  const state = {
+    installed: false,
+    currentPage: 1,
+    currentIds: [],
+    nextIds: [],
+    nextAvailable: null,
+    probeError: null
+  };
+
+  function uniqueIds(values) {
+    return [...new Set(
+      values
+        .map(value => Number(value))
+        .filter(value =>
+          Number.isInteger(value) &&
+          value > 0
+        )
+    )].sort((a, b) => b - a);
+  }
+
+  function extractIds(documentObject) {
+    const values = [];
+
+    const rows = documentObject.querySelectorAll(
+      'table tbody tr, ' +
+      '.list-table tbody tr, ' +
+      '.table-list tbody tr, ' +
+      '[data-control="list-record"], ' +
+      '[data-record-id]'
+    );
+
+    rows.forEach(row => {
+      values.push(
+        row.getAttribute('data-order-id'),
+        row.getAttribute('data-record-id'),
+        row.getAttribute('data-order_id'),
+        row.getAttribute('data-record_id')
+      );
+
+      row.querySelectorAll(
+        'input[name="checked[]"][value], ' +
+        'input[type="checkbox"][value], ' +
+        'input[name*="record"][value], ' +
+        'input[name*="order"][value]'
+      ).forEach(input => {
+        values.push(input.value);
+      });
+
+      const text = String(row.textContent || '');
+
+      for (
+        const match of text.matchAll(
+          /#\s*(\d{3,})\b/g
+        )
+      ) {
+        values.push(match[1]);
+      }
+    });
+
+    return uniqueIds(values);
+  }
+
+  function currentPage() {
+    const value = Number(
+      new URL(
+        window.location.href
+      ).searchParams.get('page') || '1'
+    );
+
+    return Number.isInteger(value) && value > 0
+      ? value
+      : 1;
+  }
+
+  function pageUrl(pageNumber, probe) {
+    const url = new URL(
+      '/admin/orders/',
+      window.location.origin
+    );
+
+    url.searchParams.set(
+      'page',
+      String(Math.max(1, pageNumber))
+    );
+
+    if (probe) {
+      url.searchParams.set(
+        '_pmd_pager_probe',
+        String(Date.now())
+      );
+    }
+
+    return url;
+  }
+
+  function injectStyles() {
+    if (
+      document.getElementById(
+        'pmd-orders-pager-v1-style'
+      )
+    ) {
+      return;
+    }
+
+    const style = document.createElement('style');
+
+    style.id = 'pmd-orders-pager-v1-style';
+
+    style.textContent = `
+      .pmd-orders-pager-v1 {
+        width: 100%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 14px;
+        box-sizing: border-box;
+        margin: 26px 0 48px;
+        padding: 18px 20px;
+        border: 1px solid #dbe7e5;
+        border-radius: 18px;
+        background: #ffffff;
+        box-shadow: 0 8px 28px rgba(20, 57, 52, .06);
+      }
+
+      .pmd-orders-pager-v1__button {
+        appearance: none;
+        min-width: 132px;
+        height: 48px;
+        padding: 0 22px;
+        border: 1px solid #07856f;
+        border-radius: 13px;
+        background: #07856f;
+        color: #ffffff;
+        font: inherit;
+        font-size: 15px;
+        font-weight: 800;
+        cursor: pointer;
+        transition:
+          transform .16s ease,
+          opacity .16s ease,
+          background .16s ease;
+      }
+
+      .pmd-orders-pager-v1__button:hover:not(:disabled) {
+        transform: translateY(-1px);
+        background: #046f5e;
+      }
+
+      .pmd-orders-pager-v1__button:disabled {
+        cursor: not-allowed;
+        opacity: .35;
+      }
+
+      .pmd-orders-pager-v1__status {
+        min-width: 180px;
+        text-align: center;
+        color: #173a4e;
+        font-size: 15px;
+        font-weight: 800;
+      }
+
+      .pmd-orders-pager-v1__status small {
+        display: block;
+        margin-top: 3px;
+        color: #718096;
+        font-size: 12px;
+        font-weight: 600;
+      }
+
+      @media (max-width: 640px) {
+        .pmd-orders-pager-v1 {
+          gap: 8px;
+          padding: 14px 10px;
+        }
+
+        .pmd-orders-pager-v1__button {
+          min-width: 96px;
+          padding: 0 12px;
+        }
+
+        .pmd-orders-pager-v1__status {
+          min-width: 105px;
+        }
+      }
+    `;
+
+    document.head.appendChild(style);
+  }
+
+  function correctPageCountLabel() {
+    const labels = document.querySelectorAll(
+      '.pmd-admin-universal-client-stat span'
+    );
+
+    labels.forEach(label => {
+      const text = String(
+        label.textContent || ''
+      ).trim();
+
+      if (
+        /today orders|orders today|heutige bestellungen/i
+          .test(text)
+      ) {
+        label.textContent =
+          document.documentElement.lang
+            .toLowerCase()
+            .startsWith('de')
+            ? 'Bestellungen auf dieser Seite'
+            : 'Orders on this page';
+      }
+    });
+  }
+
+  async function probePage(pageNumber) {
+    const response = await fetch(
+      pageUrl(pageNumber, true).href,
+      {
+        method: 'GET',
+        credentials: 'same-origin',
+        cache: 'no-store',
+        headers: {
+          Accept: 'text/html',
+          'X-PMD-Orders-Pager': '1.0.0'
+        }
+      }
+    );
+
+    if (!response.ok) {
+      throw new Error(
+        `Orders page ${pageNumber} returned HTTP ${response.status}`
+      );
+    }
+
+    const html = await response.text();
+
+    const parsed = new DOMParser()
+      .parseFromString(
+        html,
+        'text/html'
+      );
+
+    return extractIds(parsed);
+  }
+
+  async function mount() {
+    if (
+      document.querySelector(
+        '.pmd-orders-pager-v1'
+      )
+    ) {
+      state.installed = true;
+      return true;
+    }
+
+    const grid = document.querySelector(
+      '.pmd-admin-universal-client-card-grid'
+    );
+
+    if (!grid) return false;
+
+    injectStyles();
+    correctPageCountLabel();
+
+    state.currentPage = currentPage();
+    state.currentIds = extractIds(document);
+
+    const pager = document.createElement('nav');
+    pager.className = 'pmd-orders-pager-v1';
+    pager.setAttribute(
+      'aria-label',
+      'Orders pagination'
+    );
+
+    const previous = document.createElement('button');
+
+    previous.type = 'button';
+    previous.className =
+      'pmd-orders-pager-v1__button';
+    previous.textContent =
+      document.documentElement.lang
+        .toLowerCase()
+        .startsWith('de')
+        ? 'Zurück'
+        : 'Previous';
+
+    previous.disabled =
+      state.currentPage <= 1;
+
+    previous.addEventListener(
+      'click',
+      () => {
+        window.location.assign(
+          pageUrl(
+            state.currentPage - 1,
+            false
+          ).href
+        );
+      }
+    );
+
+    const status = document.createElement('span');
+
+    status.className =
+      'pmd-orders-pager-v1__status';
+
+    status.innerHTML =
+      `${
+        document.documentElement.lang
+          .toLowerCase()
+          .startsWith('de')
+          ? 'Seite'
+          : 'Page'
+      } ${state.currentPage}` +
+      `<small>${state.currentIds.length} ${
+        document.documentElement.lang
+          .toLowerCase()
+          .startsWith('de')
+          ? 'Bestellungen'
+          : 'orders'
+      }</small>`;
+
+    const next = document.createElement('button');
+
+    next.type = 'button';
+    next.className =
+      'pmd-orders-pager-v1__button';
+
+    next.textContent =
+      document.documentElement.lang
+        .toLowerCase()
+        .startsWith('de')
+        ? 'Weiter'
+        : 'Next';
+
+    next.disabled = true;
+
+    next.addEventListener(
+      'click',
+      () => {
+        window.location.assign(
+          pageUrl(
+            state.currentPage + 1,
+            false
+          ).href
+        );
+      }
+    );
+
+    pager.appendChild(previous);
+    pager.appendChild(status);
+    pager.appendChild(next);
+
+    grid.insertAdjacentElement(
+      'afterend',
+      pager
+    );
+
+    try {
+      state.nextIds = await probePage(
+        state.currentPage + 1
+      );
+
+      const sameAsCurrent =
+        state.nextIds.join(',') ===
+        state.currentIds.join(',');
+
+      state.nextAvailable =
+        state.nextIds.length > 0 &&
+        !sameAsCurrent;
+
+      next.disabled =
+        !state.nextAvailable;
+    } catch (error) {
+      state.probeError = String(error);
+
+      /*
+       * Fallback:
+       * اگر صفحه فعلی 20 Card دارد، احتمال وجود صفحه بعدی بالاست.
+       */
+      state.nextAvailable =
+        state.currentIds.length >= 20;
+
+      next.disabled =
+        !state.nextAvailable;
+
+      console.warn(
+        '[PMD Orders Pager V1] Next-page probe failed.',
+        error
+      );
+    }
+
+    state.installed = true;
+
+    console.info(
+      '[PMD Orders Pager V1] Ready',
+      window.PMDOrdersPagerV1.audit()
+    );
+
+    return true;
+  }
+
+  function scheduleMount() {
+    [
+      0,
+      100,
+      300,
+      700,
+      1400
+    ].forEach(delay => {
+      window.setTimeout(
+        () => {
+          if (!state.installed) {
+            mount();
+          }
+        },
+        delay
+      );
+    });
+  }
+
+  window.PMDOrdersPagerV1 = {
+    version: '1.0.0',
+
+    mount,
+
+    audit() {
+      const pager = document.querySelector(
+        '.pmd-orders-pager-v1'
+      );
+
+      const buttons = pager
+        ? [...pager.querySelectorAll('button')]
+        : [];
+
+      const result = {
+        version: '1.0.0',
+        route,
+        installed:
+          Boolean(pager),
+        currentPage:
+          state.currentPage,
+        currentOrderCount:
+          state.currentIds.length,
+        currentIds:
+          state.currentIds,
+        nextAvailable:
+          state.nextAvailable,
+        nextOrderCount:
+          state.nextIds.length,
+        previousDisabled:
+          buttons[0]?.disabled ?? null,
+        nextDisabled:
+          buttons[1]?.disabled ?? null,
+        probeError:
+          state.probeError
+      };
+
+      console.log(result);
+      return result;
+    }
+  };
+
+  if (
+    document.readyState === 'loading'
+  ) {
+    document.addEventListener(
+      'DOMContentLoaded',
+      scheduleMount,
+      {
+        once: true
+      }
+    );
+  } else {
+    scheduleMount();
+  }
+})();

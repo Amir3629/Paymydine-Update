@@ -1,0 +1,7 @@
+No syntax errors detected in /var/www/paymydine/app/admin/i18n/pmd_admin_de.php
+No syntax errors detected in /var/www/paymydine/app/admin/routes.php
+No syntax errors detected in /var/www/paymydine/app/admin/views/_partials/pmd_admin_i18n.blade.php
+No syntax errors detected in /var/www/paymydine/app/admin/views/_layouts/default.blade.php
+No syntax errors detected in /var/www/paymydine/app/admin/views/layouts/default.blade.php
+No syntax errors detected in /var/www/paymydine/app/admin/views/reservations2/index.blade.php
+No syntax errors detected in /var/www/paymydine/app/admin/views/dashboard2_reservations2_exact.blade.php
