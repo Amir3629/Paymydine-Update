@@ -2,7 +2,10 @@
 
 namespace Admin\Controllers;
 
+use Admin\Models\Categories_model;
 use Admin\Models\Menus_model;
+use Admin\Models\Payments_model;
+use Admin\Models\Reviews_model;
 use Admin\Models\Orders_model;
 use Admin\Models\Tables_model;
 use Carbon\Carbon;
@@ -615,19 +618,199 @@ class Dashboard2 extends Reservations2
 
     protected function analyticsCategorySales(Carbon $start, Carbon $end): array
     {
-        if (!$this->hasColumns('order_menus', ['order_id', 'menu_id', 'subtotal']) || !Schema::hasTable('menu_categories') || !Schema::hasTable('categories')) return $this->unavailable('menu category relation unavailable');
-        $categoryName = $this->firstColumn($this->columns('categories'), ['name', 'category_name']);
-        if (!$categoryName) return $this->unavailable('category display column unavailable');
-        // A menu may be assigned to multiple categories. Use its primary
-        // (lowest id) category once so item revenue is never multiplied.
-        $primaryCategory = DB::table('menu_categories')->groupBy('menu_id')
-            ->selectRaw('menu_id, MIN(category_id) AS category_id');
-        $authority = $this->analyticsAuthority($start, $end);
-        $rows = DB::query()->fromSub($this->analyticsEligibleOrders($start, $end)->select('orders.order_id'), 'paid')
-            ->join('order_menus as om', 'om.order_id', '=', 'paid.order_id')->leftJoinSub($primaryCategory, 'mc', 'mc.menu_id', '=', 'om.menu_id')
-            ->leftJoin('categories as c', 'c.category_id', '=', 'mc.category_id')->groupBy('c.'.$categoryName)->orderByDesc('revenue')
-            ->get([DB::raw("COALESCE(ti_c.`$categoryName`, 'Uncategorized') AS category"), DB::raw('SUM(ti_om.subtotal) AS revenue')]);
-        return ['available' => true, 'empty' => $rows->isEmpty(), 'categories' => $rows->map(fn ($r) => ['category' => (string)$r->category, 'revenue' => (float)$r->revenue])->all(), 'sample_count' => $rows->count(), 'reason' => $rows->isEmpty() ? 'No items sold in this period' : null, 'source_mode' => $authority['mode'], 'source' => 'eligible order items joined to menu categories'];
+        /* PMD_DASHBOARD2_V1422_SOURCE_REPAIR */
+        if (
+            !$this->hasColumns('order_menus', ['order_id', 'menu_id', 'subtotal'])
+            || !Schema::hasTable('menu_categories')
+            || !Schema::hasTable('categories')
+        ) {
+            return $this->unavailable('menu category relation unavailable');
+        }
+
+        $locationId = $this->locationId();
+        $enabledCategories = collect();
+
+        /*
+         * Use the same enabled category model as /admin/categories.
+         * A raw fallback keeps the dashboard alive when a location pivot
+         * differs between older tenant schemas.
+         */
+        try {
+            $query = Categories_model::query()->isEnabled();
+
+            if ($locationId) {
+                $query->whereHasOrDoesntHaveLocation($locationId);
+            }
+
+            $enabledCategories = $query
+                ->orderBy('priority')
+                ->orderBy('category_id')
+                ->get()
+                ->map(function ($category) {
+                    return (object)[
+                        'category_id' => (int)$category->category_id,
+                        'name' => trim((string)$category->name),
+                        'priority' => (int)($category->priority ?? 0),
+                    ];
+                });
+        } catch (\Throwable $error) {
+            $columns = $this->columns('categories');
+            $nameColumn = $this->firstColumn($columns, ['name', 'category_name']);
+
+            if (!$nameColumn) {
+                return $this->unavailable('category display column unavailable');
+            }
+
+            $query = DB::table('categories');
+
+            if (in_array('status', $columns, true)) {
+                $query->where('status', 1);
+            }
+
+            if (in_array('priority', $columns, true)) {
+                $query->orderBy('priority');
+            }
+
+            $select = ['category_id', $nameColumn];
+            if (in_array('priority', $columns, true)) {
+                $select[] = 'priority';
+            }
+
+            $enabledCategories = $query
+                ->orderBy('category_id')
+                ->get($select)
+                ->map(function ($category) use ($nameColumn) {
+                    return (object)[
+                        'category_id' => (int)$category->category_id,
+                        'name' => trim((string)$category->{$nameColumn}),
+                        'priority' => (int)($category->priority ?? 0),
+                    ];
+                });
+        }
+
+        $enabledCategories = $enabledCategories
+            ->filter(fn ($category) => $category->category_id > 0 && $category->name !== '')
+            ->unique('category_id')
+            ->values();
+
+        if ($enabledCategories->isEmpty()) {
+            return [
+                'available' => true,
+                'empty' => true,
+                'categories' => [],
+                'sample_count' => 0,
+                'reason' => 'No enabled menu categories',
+                'source_mode' => 'enabled_live_categories',
+                'source' => 'enabled categories from /admin/categories',
+            ];
+        }
+
+        $enabledIds = $enabledCategories
+            ->pluck('category_id')
+            ->map(fn ($id) => (int)$id)
+            ->all();
+
+        $categoryRank = [];
+        foreach ($enabledIds as $index => $categoryId) {
+            $categoryRank[$categoryId] = $index;
+        }
+
+        /*
+         * Resolve one primary enabled category per menu in PHP. This avoids
+         * raw alias/prefix differences (mc vs ti_mc) across tenant schemas.
+         */
+        $primaryByMenu = [];
+        $assignments = DB::table('menu_categories')
+            ->whereIn('category_id', $enabledIds)
+            ->get(['menu_id', 'category_id']);
+
+        foreach ($assignments as $assignment) {
+            $menuId = (int)$assignment->menu_id;
+            $categoryId = (int)$assignment->category_id;
+
+            if ($menuId <= 0 || !isset($categoryRank[$categoryId])) {
+                continue;
+            }
+
+            if (
+                !isset($primaryByMenu[$menuId])
+                || $categoryRank[$categoryId] < $categoryRank[$primaryByMenu[$menuId]]
+            ) {
+                $primaryByMenu[$menuId] = $categoryId;
+            }
+        }
+
+        if (!$primaryByMenu) {
+            return [
+                'available' => true,
+                'empty' => true,
+                'categories' => [],
+                'sample_count' => 0,
+                'reason' => 'Enabled categories have no menu assignments',
+                'source_mode' => 'enabled_live_categories',
+                'source' => 'enabled categories from /admin/categories',
+            ];
+        }
+
+        $orderIds = $this->analyticsEligibleOrders($start, $end)
+            ->select('orders.order_id')
+            ->pluck('orders.order_id')
+            ->map(fn ($id) => (int)$id)
+            ->filter()
+            ->values()
+            ->all();
+
+        $revenueByCategory = array_fill_keys($enabledIds, 0.0);
+
+        if ($orderIds) {
+            $soldRows = DB::table('order_menus')
+                ->whereIn('order_id', $orderIds)
+                ->whereIn('menu_id', array_keys($primaryByMenu))
+                ->get(['menu_id', 'subtotal']);
+
+            foreach ($soldRows as $soldRow) {
+                $menuId = (int)$soldRow->menu_id;
+                $categoryId = $primaryByMenu[$menuId] ?? null;
+
+                if (!$categoryId) {
+                    continue;
+                }
+
+                $revenueByCategory[$categoryId] += (float)($soldRow->subtotal ?? 0);
+            }
+        }
+
+        $categories = $enabledCategories
+            ->map(function ($category) use ($revenueByCategory) {
+                return [
+                    'category_id' => (int)$category->category_id,
+                    'category' => (string)$category->name,
+                    'revenue' => round((float)($revenueByCategory[(int)$category->category_id] ?? 0), 2),
+                    'priority' => (int)$category->priority,
+                ];
+            })
+            ->filter(fn ($row) => $row['revenue'] > 0)
+            ->sort(function ($left, $right) {
+                return ($right['revenue'] <=> $left['revenue'])
+                    ?: ($left['priority'] <=> $right['priority']);
+            })
+            ->take(6)
+            ->values();
+
+        return [
+            'available' => true,
+            'empty' => $categories->isEmpty(),
+            'categories' => $categories->map(function ($row) {
+                unset($row['priority']);
+                return $row;
+            })->all(),
+            'sample_count' => $categories->count(),
+            'reason' => $categories->isEmpty()
+                ? 'No enabled categories sold in this period'
+                : null,
+            'source_mode' => 'top_enabled_live_categories_v1422',
+            'source' => 'top six sold categories from enabled /admin/categories records',
+        ];
     }
 
 /**
@@ -720,10 +903,8 @@ protected function analyticsPaymentMethods(
         Carbon $start,
         Carbon $end
     ): array {
-        $authority = $this->analyticsAuthority(
-            $start,
-            $end
-        );
+        /* PMD_DASHBOARD2_V1422_SOURCE_REPAIR */
+        $authority = $this->analyticsAuthority($start, $end);
 
         if (!$authority) {
             return $this->unavailable(
@@ -731,155 +912,183 @@ protected function analyticsPaymentMethods(
             );
         }
 
-        $rows = DB::query()
-            ->fromSub(
-                $this->analyticsPaidQuery($start, $end),
-                'paid'
+        $normalize = static function ($value): string {
+            $value = strtolower(trim((string)$value));
+            return trim(preg_replace('/[^a-z0-9]+/', '_', $value), '_');
+        };
+
+        $canonical = static function (string $code): string {
+            return match ($code) {
+                'cod', 'cash', 'cash_on_delivery' => 'cash',
+                'credit_card', 'debit_card', 'stripe', 'worldline',
+                'sumup', 'square', 'vr_payment' => 'card',
+                'applepay' => 'apple_pay',
+                'googlepay' => 'google_pay',
+                'pay_pal' => 'paypal',
+                default => $code,
+            };
+        };
+
+        $methodCodes = [
+            'card', 'apple_pay', 'google_pay',
+            'wero', 'paypal', 'cod', 'cash'
+        ];
+
+        /*
+         * Payments_model can resolve either payment_methods (id/sort_order/meta)
+         * or legacy payments (payment_id/priority/data). Query only columns that
+         * physically exist so the Dashboard mirrors /admin/payments safely.
+         */
+        $paymentModel = new Payments_model();
+        $table = $paymentModel->getTable();
+        $columns = Schema::getColumnListing($table);
+
+        foreach (['code', 'name', 'status'] as $requiredColumn) {
+            if (!in_array($requiredColumn, $columns, true)) {
+                return $this->unavailable(
+                    'Payment configuration column unavailable: '.$requiredColumn
+                );
+            }
+        }
+
+        $select = array_values(array_intersect(
+            [
+                $paymentModel->getKeyName(),
+                'name', 'code', 'status', 'priority', 'sort_order',
+                'provider_code', 'meta', 'data'
+            ],
+            $columns
+        ));
+
+        $configuredRows = DB::table($table)
+            ->where('status', 1)
+            ->whereIn(DB::raw('LOWER(code)'), $methodCodes)
+            ->when(
+                in_array('sort_order', $columns, true),
+                fn ($query) => $query->orderBy('sort_order')
             )
+            ->when(
+                !in_array('sort_order', $columns, true)
+                    && in_array('priority', $columns, true),
+                fn ($query) => $query->orderBy('priority')
+            )
+            ->orderBy('name')
+            ->get($select);
+
+        $configured = collect();
+
+        foreach ($configuredRows as $row) {
+            $rawCode = $normalize($row->code ?? null);
+            $code = $canonical($rawCode);
+
+            if ($code === '' || !in_array($rawCode, $methodCodes, true)) {
+                continue;
+            }
+
+            $payload = [];
+            foreach (['meta', 'data'] as $payloadColumn) {
+                if (!property_exists($row, $payloadColumn)) {
+                    continue;
+                }
+
+                $value = $row->{$payloadColumn};
+                if (is_string($value) && $value !== '') {
+                    $decoded = json_decode($value, true);
+                    if (is_array($decoded)) {
+                        $payload = array_merge($payload, $decoded);
+                    }
+                } elseif (is_array($value)) {
+                    $payload = array_merge($payload, $value);
+                }
+            }
+
+            $priority = property_exists($row, 'sort_order')
+                ? (int)$row->sort_order
+                : (property_exists($row, 'priority') ? (int)$row->priority : 0);
+
+            $providerCode = property_exists($row, 'provider_code')
+                ? $normalize($row->provider_code)
+                : $normalize($payload['provider_code'] ?? null);
+
+            $configured->push([
+                'payment_id' => (int)(
+                    $row->{$paymentModel->getKeyName()} ?? 0
+                ),
+                'code' => $code,
+                'method' => trim((string)($row->name ?? ''))
+                    ?: ucwords(str_replace('_', ' ', $code)),
+                'provider_code' => $providerCode ?: null,
+                'priority' => $priority,
+                'total' => 0.0,
+                'transactions' => 0,
+                'enabled' => true,
+            ]);
+        }
+
+        $configured = $configured
+            ->sortBy('priority')
+            ->unique('code')
+            ->values();
+
+        $byCode = $configured->keyBy('code')->all();
+
+        $excluded = [
+            '', 'qr_payment_later', 'qr_pay_later', 'payment_later',
+            'pay_later', 'later', 'deferred', 'pending_payment',
+            'unpaid', 'not_paid', 'not_recorded',
+        ];
+
+        $rows = DB::query()
+            ->fromSub($this->analyticsPaidQuery($start, $end), 'paid')
             ->get([
                 'paid.order_id',
                 'paid.net_revenue',
                 'paid.effective_payment',
             ]);
 
-        $excluded = [
-            'qr_payment_later',
-            'qr_pay_later',
-            'payment_later',
-            'pay_later',
-            'later',
-            'deferred',
-            'pending_payment',
-            'unpaid',
-            'not_paid',
-        ];
-
-        $normalize = static function ($value): string {
-            $value = strtolower(
-                trim((string)$value)
-            );
-
-            return trim(
-                preg_replace(
-                    '/[^a-z0-9]+/',
-                    '_',
-                    $value
-                ),
-                '_'
-            );
-        };
-
-        $label = static function (
-            string $code
-        ): string {
-            return match ($code) {
-                'cash', 'cod' => 'Cash',
-
-                'card',
-                'credit_card',
-                'debit_card',
-                'stripe',
-                'worldline',
-                'sumup',
-                'square',
-                'vr_payment' => 'Card',
-
-                'apple_pay',
-                'applepay' => 'Apple Pay',
-
-                'google_pay',
-                'googlepay' => 'Google Pay',
-
-                'paypal',
-                'pay_pal' => 'PayPal',
-
-                'wero' => 'Wero',
-
-                'not_recorded' => 'Not recorded',
-
-                default => ucwords(
-                    str_replace('_', ' ', $code)
-                ),
-            };
-        };
-
-        $grouped = [];
-
         foreach ($rows as $row) {
-            $code = $normalize(
-                $row->effective_payment ?? null
-            );
+            $raw = $normalize($row->effective_payment ?? null);
 
-            /*
-             * QR Payment Later is a workflow state,
-             * not a payment method.
-             *
-             * Settled orders without a recorded method remain
-             * visible under the explicit data-quality bucket
-             * "Not recorded".
-             */
-            if (
-                $code === ''
-                || in_array($code, $excluded, true)
-            ) {
-                $code = 'not_recorded';
+            if (in_array($raw, $excluded, true)) {
+                continue;
             }
 
-            if (!isset($grouped[$code])) {
-                $grouped[$code] = [
-                    'code' => $code,
-                    'method' => $label($code),
-                    'total' => 0.0,
-                    'transactions' => 0,
-                    'is_payment_method' =>
-                        $code !== 'not_recorded',
-                ];
+            $code = $canonical($raw);
+
+            /* The card follows enabled /admin/payments methods only. */
+            if (!isset($byCode[$code])) {
+                continue;
             }
 
-            $grouped[$code]['total'] +=
-                (float)$row->net_revenue;
-
-            $grouped[$code]['transactions']++;
+            $byCode[$code]['total'] += (float)$row->net_revenue;
+            $byCode[$code]['transactions']++;
         }
 
-        $methods = array_values($grouped);
-
-        usort(
-            $methods,
-            fn ($left, $right) =>
-                $right['total'] <=> $left['total']
-        );
-
-        foreach ($methods as &$method) {
-            $method['total'] = round(
-                $method['total'],
-                2
-            );
-        }
-
-        unset($method);
-
-        $sampleCount = array_sum(
-            array_column(
-                $methods,
-                'transactions'
-            )
-        );
+        $methods = collect(array_values($byCode))
+            ->sort(function ($left, $right) {
+                return ($right['total'] <=> $left['total'])
+                    ?: ($right['transactions'] <=> $left['transactions'])
+                    ?: ($left['priority'] <=> $right['priority']);
+            })
+            ->take(6)
+            ->values()
+            ->map(function ($method) {
+                $method['total'] = round((float)$method['total'], 2);
+                unset($method['priority']);
+                return $method;
+            });
 
         return [
             'available' => true,
-            'empty' => $sampleCount === 0,
-            'methods' => $methods,
-            'sample_count' => $sampleCount,
-            'reason' => $sampleCount
-                ? null
-                : 'No settled orders in this period',
-            'source_mode' =>
-                'canonical_payment_with_unrecorded_bucket',
-            'source' =>
-                'settled frontend and admin orders; '.
-                'QR Payment Later is not treated as a method; '.
-                'missing method values are reported as Not recorded',
+            /* Enabled zero-value methods must still render. */
+            'empty' => $methods->isEmpty(),
+            'methods' => $methods->all(),
+            'sample_count' => (int)$methods->sum('transactions'),
+            'reason' => $methods->isEmpty()
+                ? 'No enabled payment methods in /admin/payments'
+                : null,
+            'source_mode' => 'enabled_admin_payment_methods_v1422',
+            'source' => 'enabled method records from /admin/payments merged with settled order usage',
         ];
     }
 
@@ -888,64 +1097,38 @@ protected function analyticsChannels(
         Carbon $end
     ): array {
         $rows = DB::query()
-            ->fromSub(
-                $this->analyticsPaidQuery($start, $end),
-                'paid'
-            )
+            ->fromSub($this->analyticsPaidQuery($start, $end), 'paid')
             ->selectRaw(
-                "CASE ".
-                "WHEN LOWER(TRIM(order_type)) IN ".
-                "('collection','takeaway','take-away','pickup') ".
-                "THEN 'Take away' ".
-                "ELSE 'Dine in' END AS channel, ".
-                "COUNT(*) AS orders, ".
-                "SUM(net_revenue) AS revenue"
-            )
-            ->whereNotIn(
-                DB::raw('LOWER(TRIM(order_type))'),
-                [
-                    'delivery',
-                ]
+                "CASE " .
+                "WHEN LOWER(TRIM(order_type)) IN ('collection','takeaway','take-away','pickup') THEN 'Take away' " .
+                "WHEN LOWER(TRIM(order_type)) IN ('delivery','delivered') THEN 'Delivery' " .
+                "WHEN LOWER(TRIM(order_type)) IN ('dine_in','dine-in','restaurant','table','') THEN 'Dine in' " .
+                "ELSE CONCAT(UCASE(LEFT(REPLACE(order_type, '_', ' '), 1)), " .
+                "SUBSTRING(REPLACE(order_type, '_', ' '), 2)) END AS channel, " .
+                "COUNT(*) AS orders, SUM(net_revenue) AS revenue"
             )
             ->groupBy('channel')
-            ->get()
-            ->keyBy('channel');
+            ->orderByDesc('revenue')
+            ->limit(6)
+            ->get();
 
-        $channels = collect([
-            'Dine in',
-            'Take away',
-        ])->map(
-            function ($name) use ($rows) {
-                $row = $rows->get($name);
+        $channels = $rows->map(fn ($row) => [
+            'channel' => (string)$row->channel,
+            'name' => (string)$row->channel,
+            'orders' => (int)$row->orders,
+            'revenue' => round((float)$row->revenue, 2),
+        ])->values();
 
-                return [
-                    'channel' => $name,
-                    'name' => $name,
-                    'orders' =>
-                        (int)($row->orders ?? 0),
-                    'revenue' =>
-                        (float)($row->revenue ?? 0),
-                ];
-            }
-        );
-
-        $samples = (int)$channels->sum(
-            'orders'
-        );
+        $samples = (int)$channels->sum('orders');
 
         return [
             'available' => true,
-            'empty' => $samples === 0,
+            'empty' => $channels->isEmpty(),
             'channels' => $channels->all(),
             'sample_count' => $samples,
-            'reason' => $samples
-                ? null
-                : 'No dine-in or take-away orders in this period',
-            'source_mode' =>
-                'dine_in_and_takeaway_only',
-            'source' =>
-                'eligible orders grouped into Dine in and '.
-                'Take away; Delivery excluded',
+            'reason' => $samples ? null : 'No orders in this period',
+            'source_mode' => 'top_live_order_channels',
+            'source' => 'top six real order_type channels from eligible settled orders',
         ];
     }
 
@@ -1068,7 +1251,7 @@ protected function analyticsTransactions(
                 'order_id' => (int)$row->order_id,
                 'method' => $methodRecorded
                     ? $label($code)
-                    : 'Not recorded',
+                    : null,
                 'method_recorded' =>
                     $methodRecorded,
                 'amount' =>
@@ -1089,7 +1272,7 @@ protected function analyticsTransactions(
                 ? null
                 : 'No settled transactions in this period',
             'source_mode' =>
-                'settled_orders_with_unrecorded_method',
+                'settled_orders_optional_payment_method',
             'source' =>
                 'latest settled frontend and admin orders; '.
                 'QR Payment Later is not treated as a method',
@@ -1100,6 +1283,20 @@ protected function analyticsAlerts(
         Carbon $start,
         Carbon $end
     ): array {
+        /*
+         * PMD_DASHBOARD2_V1429_CHART_TOGGLE_AND_TODAY_ALERTS
+         *
+         * Alerts are always a Today/current-status card.
+         * They must not inherit last30, week or month from
+         * any other Dashboard2 analytics widget.
+         */
+        $now = Carbon::now(
+            $this->restaurantTimezone()
+        );
+
+        $start = $now->copy()->startOfDay();
+        $end = $now->copy();
+
         $failed = 0;
         $refunds = 0;
 
@@ -1152,6 +1349,31 @@ protected function analyticsAlerts(
                     $this->locationId()
                 );
 
+            /*
+             * Negative-review alert is also Today-only.
+             * Prefer created_at, then updated_at, then date_added.
+             */
+            $reviewColumns = $this->columns('reviews');
+
+            $reviewDateColumn = $this->firstColumn(
+                $reviewColumns,
+                [
+                    'created_at',
+                    'updated_at',
+                    'date_added',
+                ]
+            );
+
+            if ($reviewDateColumn) {
+                $reviewQuery->whereBetween(
+                    $reviewDateColumn,
+                    [
+                        $start->format('Y-m-d H:i:s'),
+                        $end->format('Y-m-d H:i:s'),
+                    ]
+                );
+            }
+
             if (
                 $this->hasColumns(
                     'reviews',
@@ -1176,7 +1398,7 @@ protected function analyticsAlerts(
 
         $longOpenTables = null;
         $longestOpenMinutes = null;
-        $longOpenThreshold = 90;
+        $longOpenThreshold = max(15, min(720, (int)setting('pmd_dashboard2_long_open_minutes', 90)));
 
         if (
             Schema::hasTable('tables')
@@ -1292,30 +1514,207 @@ protected function analyticsAlerts(
 
     protected function analyticsReviews(): array
     {
-        if (!Schema::hasTable('reviews')) return $this->unavailable('reviews table unavailable');
-        $base = DB::table('reviews')->where('location_id', $this->locationId())->where('review_status', 1);
-        $rated = (clone $base)->whereRaw('(quality + service + delivery) > 0');
-        $summary = (clone $rated)->selectRaw('COUNT(*) AS count, AVG((quality + service + delivery) / 3) AS rating')->first();
-        $unrated = (clone $base)->whereRaw('(quality + service + delivery) = 0')->count();
-        $latest = $rated->orderByDesc('created_at')->limit(5)->get(['quality','service','delivery','review_text','created_at']);
-        return ['available' => true, 'average' => $summary->rating === null ? null : round((float)$summary->rating, 1), 'count' => (int)$summary->count, 'rated_count' => (int)$summary->count, 'unrated_count' => $unrated, 'latest' => $latest->map(fn ($r) => ['rating' => round(((int)$r->quality + (int)$r->service + (int)$r->delivery) / 3, 1), 'comment' => mb_substr(strip_tags((string)$r->review_text), 0, 180), 'date' => (string)$r->created_at])->all(), 'sample_count' => (int)$summary->count, 'source_mode' => 'approved_rated_reviews', 'source' => 'approved current-location reviews excluding zero/unrated rows from average'];
+        /* PMD_DASHBOARD2_V1422_SOURCE_REPAIR */
+        if (!Schema::hasTable('reviews')) {
+            return $this->unavailable('reviews table unavailable');
+        }
+
+        $columns = $this->columns('reviews');
+        $query = Reviews_model::query();
+
+        if (
+            $this->locationId()
+            && in_array('location_id', $columns, true)
+        ) {
+            $query->where('location_id', $this->locationId());
+        }
+
+        /*
+         * /admin/reviews lists the same model ordered by created_at and does
+         * not hide pending rows. Mirror that source so newly created reviews
+         * appear on Dashboard2 immediately.
+         */
+        $orderColumn = in_array('created_at', $columns, true)
+            ? 'created_at'
+            : 'review_id';
+
+        $rows = $query
+            ->orderByDesc($orderColumn)
+            ->get();
+
+        $ratingFor = static function ($row) use ($columns): ?float {
+            if (
+                in_array('quality', $columns, true)
+                && in_array('service', $columns, true)
+                && in_array('delivery', $columns, true)
+            ) {
+                $values = [
+                    (float)($row->quality ?? 0),
+                    (float)($row->service ?? 0),
+                    (float)($row->delivery ?? 0),
+                ];
+
+                if (array_sum($values) <= 0) {
+                    return null;
+                }
+
+                return round(array_sum($values) / 3, 1);
+            }
+
+            if (in_array('rating', $columns, true)) {
+                $rating = (float)($row->rating ?? 0);
+                return $rating > 0 ? round($rating, 1) : null;
+            }
+
+            return null;
+        };
+
+        $commentColumn = $this->firstColumn(
+            $columns,
+            ['review_text', 'comment', 'review', 'message']
+        );
+
+        $rated = $rows
+            ->map(function ($row) use ($ratingFor, $commentColumn, $orderColumn, $columns) {
+                $rating = $ratingFor($row);
+
+                if ($rating === null) {
+                    return null;
+                }
+
+                $comment = $commentColumn
+                    ? mb_substr(strip_tags((string)($row->{$commentColumn} ?? '')), 0, 180)
+                    : '';
+
+                $approved = in_array('review_status', $columns, true)
+                    ? (bool)$row->review_status
+                    : null;
+
+                $status = in_array('status', $columns, true)
+                    ? (string)$row->status
+                    : ($approved === true ? 'approved' : ($approved === false ? 'pending' : null));
+
+                return [
+                    'review_id' => (int)($row->review_id ?? 0),
+                    'rating' => $rating,
+                    'comment' => $comment,
+                    'date' => (string)($row->{$orderColumn} ?? ''),
+                    'approved' => $approved,
+                    'status' => $status,
+                ];
+            })
+            ->filter()
+            ->values();
+
+        $average = $rated->isEmpty()
+            ? null
+            : round((float)$rated->avg('rating'), 1);
+
+        return [
+            'available' => true,
+            'average' => $average,
+            'count' => $rated->count(),
+            'rated_count' => $rated->count(),
+            'unrated_count' => max(0, $rows->count() - $rated->count()),
+            'latest' => $rated->take(5)->all(),
+            'sample_count' => $rated->count(),
+            'source_mode' => 'admin_reviews_exact_model_v1422',
+            'source' => '/admin/reviews Reviews_model, current location, newest first',
+        ];
     }
 
-    protected function analyticsTips(Carbon $start, Carbon $end): array
-    {
-        $tips = $this->tipSubquery();
-        if (!$tips) return $this->unavailable('No authoritative tip total code exists');
-        $resolve = function (Carbon $from) use ($end, $tips) {
-            $row = DB::query()->fromSub($this->analyticsEligibleOrders($from, $end)->select('orders.order_id'), 'paid')
-                ->joinSub($tips, 'tips', 'tips.order_id', '=', 'paid.order_id')
-                ->selectRaw('COUNT(*) AS samples, COALESCE(SUM(ti_tips.tip_amount),0) AS total')->first();
-            return ['value' => (float)$row->total, 'count' => (int)$row->samples];
+    /**
+     * PMD_DASHBOARD2_V1431_SAFE_CHANNELS_TIPS
+     *
+     * Tips are read directly from order_totals.code=tip.
+     * No manually written SQL table alias is used, so the
+     * active HTTP database prefix is handled by Laravel.
+     */
+    protected function analyticsTips(
+        Carbon $start,
+        Carbon $end
+    ): array {
+        if (
+            !$this->hasColumns(
+                'order_totals',
+                ['order_id', 'code', 'value']
+            )
+        ) {
+            return $this->unavailable(
+                'order_totals tip source unavailable'
+            );
+        }
+
+        $resolve = function (
+            Carbon $from,
+            Carbon $until
+        ): array {
+            $eligibleOrderIds = $this
+                ->analyticsEligibleOrders($from, $until)
+                ->select('orders.order_id');
+
+            $row = DB::table('order_totals')
+                ->whereRaw("LOWER(TRIM(code)) = 'tip'")
+                ->whereIn('order_id', $eligibleOrderIds)
+                ->selectRaw(
+                    'COUNT(DISTINCT order_id) AS samples, '.
+                    'COALESCE(SUM(value), 0) AS aggregate'
+                )
+                ->first();
+
+            return [
+                'value' => round(
+                    (float)($row->aggregate ?? 0),
+                    2
+                ),
+                'count' => (int)($row->samples ?? 0),
+            ];
         };
-        $today = $resolve(Carbon::now($this->restaurantTimezone())->startOfDay());
-        $month = $resolve(Carbon::now($this->restaurantTimezone())->startOfMonth());
-        $selected = $resolve($start); $authority = $this->analyticsAuthority($start, $end);
-        return ['available' => true, 'today' => $today['value'], 'month' => $month['value'], 'selected' => $selected['value'], 'tipped_orders' => $selected['count'], 'average_tip' => $selected['count'] ? round($selected['value'] / $selected['count'], 2) : 0, 'sample_count' => $selected['count'], 'source_mode' => 'order_totals', 'source' => 'confirmed order_totals.code=tip joined to '.$authority['mode'].' orders'];
+
+        $now = Carbon::now(
+            $this->restaurantTimezone()
+        );
+
+        $today = $resolve(
+            $now->copy()->startOfDay(),
+            $now->copy()
+        );
+
+        $month = $resolve(
+            $now->copy()->startOfMonth(),
+            $now->copy()
+        );
+
+        $selected = $resolve(
+            $start,
+            $end
+        );
+
+        return [
+            'available' => true,
+            'empty' => $selected['count'] === 0,
+            'today' => $today['value'],
+            'month' => $month['value'],
+            'selected' => $selected['value'],
+            'tipped_orders' => $selected['count'],
+            'average_tip' => $selected['count'] > 0
+                ? round(
+                    $selected['value']
+                    / $selected['count'],
+                    2
+                )
+                : 0,
+            'sample_count' => $selected['count'],
+            'reason' => $selected['count'] > 0
+                ? null
+                : 'No tips in this period',
+            'source_mode' =>
+                'order_totals_tip_prefix_safe_v1431',
+            'source' =>
+                'order_totals.code=tip for eligible paid orders',
+        ];
     }
+
 
 protected function analyticsCalendarEvents(
         Carbon $now

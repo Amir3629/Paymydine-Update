@@ -10016,12 +10016,21 @@ body {
   }
 
   function nativeOperations(cell) {
+    /* PMD_DASHBOARD2_V1415_SINGLE_HYDRATION */
+    if (!(cell instanceof Element)) {
+      return null;
+    }
+
     return cell.querySelector(
       ':scope > .pmd-yc-day__operations'
     );
   }
 
   function nativeEntry(cell) {
+    if (!(cell instanceof Element)) {
+      return null;
+    }
+
     return cell.querySelector(
       ':scope > .pmd-yc-day__operations ' +
       '> .pmd-r2-yc-entry.is-reservation'
@@ -10029,6 +10038,10 @@ body {
   }
 
   function generatedSummary(cell) {
+    if (!(cell instanceof Element)) {
+      return null;
+    }
+
     return cell.querySelector(
       ':scope > ' +
       '.pmd-yc-day__summary.is-reservation' +

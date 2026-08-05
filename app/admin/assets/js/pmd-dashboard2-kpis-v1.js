@@ -463,7 +463,7 @@
   function shell() {
     var root = ensureRoot(); if (!root) return null;
     if (!root.querySelector('[data-pmd-analytics-grid]')) root.innerHTML = '<div class="pmd-dashboard2-analytics-grid" data-pmd-analytics-grid>' +
-      widget('salesOverTime','Umsatzverlauf','is-wide') + widget('salesByHour','Umsatz nach Stunde','') + widget('topItems','Top-selling items','') + widget('categorySales','Sales by category','') + widget('paymentMethods','Payment methods','') + widget('channelSplit','Order channels','') + widget('liveOperations','Live orders / active tables','is-wide') + widget('recentTransactions','Recent transactions','is-wide') + widget('alerts','Alerts','') + widget('reviews','Latest reviews','') + widget('tips','Tips summary','') + widget('calendarEvents','Upcoming reservations','') + '</div>';
+      widget('salesOverTime','Umsatzverlauf','is-wide') + widget('salesByHour','Umsatz nach Stunde','') + widget('topItems','Top-selling items','') + widget('categorySales','Sales by category','') + widget('paymentMethods','Payment methods','') + widget('channelSplit','Order channels','') + widget('liveOperations','Live orders','is-wide') + widget('recentTransactions','Recent transactions','is-wide') + widget('alerts','Alerts','') + widget('reviews','Latest reviews','') + widget('tips','Tips summary','') + widget('calendarEvents','Upcoming reservations','') + '</div>';
     
     return root;
   }
@@ -929,7 +929,24 @@
       '</div>'
     );
   }
-  function svgDonut(rows,name,value,label) { if(!rows||!rows.length)return empty(); var total=rows.reduce(function(sum,r){return sum+Number(r[value]||0);},0);if(total<=0)return empty();var colors=['#00A676','#2563EB','#FF8A00','#D946EF','#06B6D4','#EF4444'],offset=0,circles=rows.map(function(r,i){var pct=Number(r[value]||0)/total*100,c='<circle cx="60" cy="60" r="45" pathLength="100" fill="none" stroke="'+colors[i%colors.length]+'" stroke-width="18" stroke-dasharray="'+pct+' '+(100-pct)+'" stroke-dashoffset="'+(-offset)+'"><title>'+esc(r[name])+' · '+esc(money(r[value]))+' · '+pct.toFixed(1)+'%</title></circle>';offset+=pct;return c;}).join('');var legend='<ul class="pmd-chart-legend">'+rows.map(function(r,i){var pct=Number(r[value]||0)/total*100;return '<li><i style="background:'+colors[i%colors.length]+'"></i><span>'+esc(r[name])+'</span><b>'+esc(label(r))+' · '+pct.toFixed(1)+'%</b></li>';}).join('')+'</ul>';return '<div class="pmd-dashboard2-donut"><svg viewBox="0 0 120 120" role="img" aria-label="Breakdown chart"><circle cx="60" cy="60" r="45" pathLength="100" fill="none" stroke="#edf1ef" stroke-width="18"/>'+circles+'</svg>'+legend+'</div>'; }
+  function svgDonut(rows,name,value,label) {
+    rows = Array.isArray(rows) ? rows.slice(0, 6) : [];
+    if (!rows.length) return empty();
+    var total = rows.reduce(function(sum,r){return sum+Number(r[value]||0);},0);
+    var colors=['#00A676','#2563EB','#FF8A00','#D946EF','#06B6D4','#EF4444'];
+    var offset=0;
+    var circles = total > 0 ? rows.map(function(r,i){
+      var pct=Number(r[value]||0)/total*100;
+      var c='<circle cx="60" cy="60" r="45" pathLength="100" fill="none" stroke="'+colors[i%colors.length]+'" stroke-width="18" stroke-dasharray="'+pct+' '+(100-pct)+'" stroke-dashoffset="'+(-offset)+'"><title>'+esc(r[name])+' · '+esc(money(r[value]))+' · '+pct.toFixed(1)+'%</title></circle>';
+      offset+=pct;
+      return c;
+    }).join('') : '';
+    var legend='<ul class="pmd-chart-legend">'+rows.map(function(r,i){
+      var pct=total>0?Number(r[value]||0)/total*100:0;
+      return '<li><i style="background:'+colors[i%colors.length]+'"></i><span>'+esc(r[name])+'</span><b>'+esc(label(r))+' · '+pct.toFixed(1)+'%</b></li>';
+    }).join('')+'</ul>';
+    return '<div class="pmd-dashboard2-donut"><svg viewBox="0 0 120 120" role="img" aria-label="Breakdown chart"><circle cx="60" cy="60" r="45" pathLength="100" fill="none" stroke="#edf1ef" stroke-width="18"/>'+circles+'</svg>'+legend+'</div>';
+  }
 
   function render() {
     var root=shell(); if(!root||!data) return;
@@ -969,9 +986,9 @@
     var c=(window.PMDDashboard2DonutPeriodsV1395&&window.PMDDashboard2DonutPeriodsV1395.sourceFor?window.PMDDashboard2DonutPeriodsV1395.sourceFor('categorySales'):null)||data.sales_by_category; put('categorySales',c.available?(c.empty?empty(c):svgDonut(c.categories,'category','revenue',function(r){return money(r.revenue);})) :empty(c));
     var p=(window.PMDDashboard2DonutPeriodsV1395&&window.PMDDashboard2DonutPeriodsV1395.sourceFor?window.PMDDashboard2DonutPeriodsV1395.sourceFor('paymentMethods'):null)||data.payment_methods; put('paymentMethods',p.available?(p.empty?empty(p):svgDonut(p.methods,'method','total',function(r){return money(r.total)+' · '+r.transactions;})):empty(p));
     var ch=(window.PMDDashboard2DonutPeriodsV1395&&window.PMDDashboard2DonutPeriodsV1395.sourceFor?window.PMDDashboard2DonutPeriodsV1395.sourceFor('channelSplit'):null)||data.channels; put('channelSplit',ch.available?(ch.empty?empty(ch):svgDonut(ch.channels,'channel','revenue',function(r){return r.orders+' · '+money(r.revenue);})):empty(ch));
-    var live=data.live_operations; put('liveOperations',live.available?'<div class="pmd-dashboard2-live-summary"><b>'+esc(live.live_order_count)+'</b><span>live orders</span><b>'+esc(live.tables.occupied)+' / '+esc(live.tables.total)+'</b><span>active tables</span></div>'+list(live.orders,function(r){return '<span>#'+esc(r.order_id)+' · '+esc(r.channel)+'</span><b>'+esc(r.status)+'</b>'; }):empty(live));
-    var tx=data.recent_transactions; put('recentTransactions',tx.available?(tx.empty?empty(tx):list(tx.transactions,function(r){return '<span>#'+esc(r.order_id)+' · '+esc(r.method)+' · '+esc(r.timestamp)+'</span><b>'+esc(money(r.amount))+'</b>'; })):empty(tx));
-    var a=data.alerts; put('alerts',a.available?list(Object.keys(a.types).map(function(k){return {name:k.replace(/_/g,' '),value:a.types[k]};}),function(r){return '<span>'+esc(r.name)+'</span><b>'+(r.value===null?'Source unavailable':esc(r.value))+'</b>'; }):empty(a));
+    var live=data.live_operations; put('liveOperations',live.available?'<div class="pmd-dashboard2-live-summary"><b>'+esc(live.live_order_count)+'</b><span>live orders</span></div>'+list(live.orders,function(r){return '<span>#'+esc(r.order_id)+' · '+esc(r.channel)+'</span><b>'+esc(r.status)+'</b>'; }):empty(live));
+    var tx=data.recent_transactions; put('recentTransactions',tx.available?(tx.empty?empty(tx):list(tx.transactions,function(r){var method=r.method?' · '+esc(r.method):'';return '<span>#'+esc(r.order_id)+method+' · '+esc(r.timestamp)+'</span><b>'+esc(money(r.amount))+'</b>'; })):empty(tx));
+    var a=data.alerts; put('alerts',a.available?list(Object.keys(a.types).map(function(k){var name=k.replace(/_/g,' ');if(k==='long_open_tables')name+=' (> '+esc(a.long_open_threshold_minutes)+' min)';return {name:name,value:a.types[k]};}),function(r){return '<span>'+esc(r.name)+'</span><b>'+(r.value===null?'Source unavailable':esc(r.value))+'</b>'; }):empty(a));
     var rv=data.reviews; put('reviews',rv.available?'<div class="pmd-dashboard2-review-score"><b>'+(rv.average===null?'—':esc(rv.average))+'</b><span>'+esc(rv.count)+' reviews</span></div>'+list(rv.latest,function(r){return '<span>'+esc(r.rating)+' ★ · '+esc(r.comment)+'</span><b>'+esc(r.date)+'</b>'; }):empty(rv));
     var tips=data.tips; put('tips',tips.available?'<dl class="pmd-dashboard2-stats"><div><dt>Today</dt><dd>'+esc(money(tips.today))+'</dd></div><div><dt>This month</dt><dd>'+esc(money(tips.month))+'</dd></div><div><dt>Average</dt><dd>'+esc(money(tips.average_tip))+'</dd></div><div><dt>Tipped orders</dt><dd>'+esc(tips.tipped_orders)+'</dd></div></dl>':empty(tips));
     var ev=data.calendar_events; put('calendarEvents',ev.available?list(ev.events,function(r){return '<span>'+esc(r.title)+'</span><b>'+esc(r.date)+'</b>'; }):empty(ev));
@@ -1273,10 +1290,88 @@
     return true;
   }
 
+  /*
+   * PMD_DASHBOARD2_V1416_EARLY_ANALYTICS
+   *
+   * Use the request that started at the beginning of the HTML.
+   * Only create a normal request when no speculative request exists.
+   */
   function load(value) {
-    if (cache[value]) { data=cache[value]; render(); return Promise.resolve(data); }
-    if (controller) controller.abort(); controller=new AbortController(); requestCount++;
-    return fetch('/admin/dashboard2?pmd_analytics=1&period='+encodeURIComponent(value),{credentials:'same-origin',cache:'no-store',headers:{Accept:'application/json'},signal:controller.signal}).then(function(r){if(!r.ok)throw new Error('HTTP '+r.status);return r.json();}).then(function(result){if(!result||result.success!==true)throw new Error('Invalid analytics payload');cache[value]=result;data=result;render();return result;}).catch(function(error){if(error.name!=='AbortError')console.warn('[PMD Analytics V1]',error);});
+    if (cache[value]) {
+      data = cache[value];
+      render();
+      return Promise.resolve(data);
+    }
+
+    if (controller) {
+      controller.abort();
+    }
+
+    controller = new AbortController();
+    requestCount++;
+
+    var earlyAuthority =
+      window.PMDDashboard2EarlyPayloadV1416;
+
+    var earlyRequest =
+      earlyAuthority &&
+      typeof earlyAuthority.take === 'function'
+        ? earlyAuthority.take(value)
+        : null;
+
+    var request =
+      earlyRequest ||
+      fetch(
+        '/admin/dashboard2' +
+        '?pmd_analytics=1' +
+        '&period=' +
+        encodeURIComponent(value),
+        {
+          credentials: 'same-origin',
+          cache: 'no-store',
+          headers: {
+            Accept: 'application/json'
+          },
+          signal: controller.signal
+        }
+      ).then(function (response) {
+        if (!response.ok) {
+          throw new Error(
+            'HTTP ' + response.status
+          );
+        }
+
+        return response.json();
+      });
+
+    return request
+      .then(function (result) {
+        if (
+          !result ||
+          result.success !== true
+        ) {
+          throw new Error(
+            'Invalid analytics payload'
+          );
+        }
+
+        cache[value] = result;
+        data = result;
+
+        render();
+
+        return result;
+      })
+      .catch(function (error) {
+        if (
+          error.name !== 'AbortError'
+        ) {
+          console.warn(
+            '[PMD Analytics V1]',
+            error
+          );
+        }
+      });
   }
   function currentView(){var page=document.getElementById('pmd-reservations2');return page&&page.classList.contains('pmd-r2-hour-layout-v38-active')?'hour':(page&&page.classList.contains('is-calendar-mode')?'calendar':'floor');}
   function setupOneRow(){var floor=document.getElementById('pmd-r2-shared-floor-canvas-v310'),scroll=floor&&floor.querySelector('[data-floor-scroll]');if(!floor||!scroll)return null;var originalX={value:scroll.style.getPropertyValue('overflow-x'),priority:scroll.style.getPropertyPriority('overflow-x')},originalY={value:scroll.style.getPropertyValue('overflow-y'),priority:scroll.style.getPropertyPriority('overflow-y')};
@@ -1313,7 +1408,206 @@
   getChartMode:function(){
     return salesChartMode;
   }
-};load(period());}
+}; 
+
+  /*
+   * PMD_DASHBOARD2_V1415_SINGLE_HYDRATION
+   *
+   * Main workspace and the three independently selected donut
+   * periods load in parallel. Nothing is revealed piecemeal.
+   */
+  var hydrationTasks = [
+    load(period())
+  ];
+
+  var donutApi =
+    window.PMDDashboard2DonutPeriodsV1395;
+
+  if (
+    donutApi &&
+    typeof donutApi.refresh === 'function'
+  ) {
+    hydrationTasks.push(
+      donutApi.refresh(
+        null,
+        false
+      )
+    );
+  }
+
+  var hydrationReady =
+    Promise
+      .allSettled(hydrationTasks)
+      .then(function (results) {
+        /*
+         * Main render has created the SVGs.
+         * Apply final authorities synchronously before revealing bodies.
+         */
+        window
+          .PMDDashboard2ZoomDensityV1375
+          ?.refresh?.();
+
+        window
+          .PMDDashboard2StablePillV1380
+          ?.apply?.();
+
+        window
+          .PMDDashboard2BarPillSmoothLineV1399
+          ?.refresh?.();
+
+        window
+          .PMDDashboard2SalesAxisV1393
+          ?.refresh?.();
+
+        window
+          .PMDDashboard2PaymentCompactV1389
+          ?.apply?.();
+
+        window
+          .PMDDashboard2PaymentContentV1390
+          ?.apply?.();
+
+        window
+          .PMDDashboard2FirstRowV1391
+          ?.apply?.();
+
+        root.classList.remove(
+          'pmd-dashboard2-v1415-hydrating'
+        );
+
+        root.classList.add(
+          'pmd-dashboard2-v1415-ready'
+        );
+
+        root.setAttribute(
+          'aria-busy',
+          'false'
+        );
+
+        root.dataset
+          .pmdInitialHydration =
+          'complete';
+
+        document.documentElement
+          .classList.add(
+            'pmd-dashboard2-v1415-analytics-ready'
+          );
+
+        var result = {
+          version: '1.4.1.5',
+          settledTasks: results.length,
+          rejectedTasks:
+            results.filter(function (item) {
+              return item.status === 'rejected';
+            }).length,
+          cards:
+            root.querySelectorAll(
+              '[data-pmd-analytics-widget]'
+            ).length,
+          bodies:
+            root.querySelectorAll(
+              '[data-pmd-widget-body]'
+            ).length,
+          charts:
+            root.querySelectorAll(
+              'svg.pmd-dashboard2-chart, ' +
+              '.pmd-dashboard2-donut svg'
+            ).length,
+          ready: true
+        };
+
+        console.info(
+          '[PMD Dashboard2 V1.4.1.5] ' +
+          'Single hydration complete',
+          result
+        );
+
+        return result;
+      });
+
+  window.PMDDashboard2HydrationV1415 = {
+    version: '1.4.1.5',
+
+    ready: hydrationReady,
+
+    audit: function () {
+      var currentRoot =
+        document.getElementById(
+          'pmd-dashboard2-analytics-v1'
+        );
+
+      return {
+        version: '1.4.1.5',
+
+        rootFound:
+          Boolean(currentRoot),
+
+        serverShell:
+          Boolean(
+            currentRoot &&
+            currentRoot.querySelector(
+              '[data-pmd-analytics-grid]'
+            )
+          ),
+
+        hydrating:
+          Boolean(
+            currentRoot &&
+            currentRoot.classList.contains(
+              'pmd-dashboard2-v1415-hydrating'
+            )
+          ),
+
+        ready:
+          Boolean(
+            currentRoot &&
+            currentRoot.classList.contains(
+              'pmd-dashboard2-v1415-ready'
+            )
+          ),
+
+        ariaBusy:
+          currentRoot
+            ?.getAttribute('aria-busy') ??
+            null,
+
+        cards:
+          currentRoot
+            ?.querySelectorAll(
+              '[data-pmd-analytics-widget]'
+            ).length ?? 0,
+
+        firstRowHeights:
+          [
+            'salesOverTime',
+            'categorySales',
+            'salesByHour',
+            'paymentMethods'
+          ].map(function (key) {
+            var card =
+              document.querySelector(
+                '[data-pmd-analytics-widget="' +
+                key +
+                '"]'
+              );
+
+            return {
+              key: key,
+              height:
+                card
+                  ?.getBoundingClientRect()
+                  .height ?? null
+            };
+          })
+      };
+    }
+  };
+
+  window
+    .PMDDashboard2FinalWorkspace
+    .ready =
+      hydrationReady;
+}
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot,{once:true});else boot();
 })();
 
@@ -5185,13 +5479,14 @@
      * تمام بازه دیده می‌شود.
      * کاربر با حرکت نقطه به چپ Zoom می‌کند.
      */
-    /* PMD_DASHBOARD2_V1410_ZERO_BLINK_CANONICAL_BOOT: canonical defaults; no later correction pass. */
+    /*
+     * PMD_DASHBOARD2_V1420_RANGE_DEFAULT_MAX
+     *
+     * Both time-based chart scrubbers start at the far-right
+     * maximum position after every complete page refresh.
+     */
     const canonicalDefault =
-      key === 'salesOverTime'
-        ? Math.min(19, total)
-        : key === 'salesByHour'
-          ? Math.min(15, total)
-          : total;
+      total;
 
     const storedValue =
       zoomState.has(key)
@@ -5535,7 +5830,13 @@
 
     const min = Number(range.min || 1);
     const max = Number(range.max || 100);
-    const requested = Number(DEFAULTS[key]);
+    /*
+     * PMD_DASHBOARD2_V1420_RANGE_DEFAULT_MAX
+     *
+     * A chart-mode reconstruction must also restore the
+     * range thumb to the current maximum, not 19 or 15.
+     */
+    const requested = max;
 
     const safeValue = Math.max(
       min,
@@ -7143,10 +7444,7 @@
         current >= minimum &&
         current <= total
           ? current
-          : Math.min(
-              DEFAULT_VISIBLE,
-              total
-            );
+          : total;
     }
 
     const visibleCount =
@@ -9635,20 +9933,49 @@
   }
 
   function schedule(reason) {
-    [
-      0,
-      100,
-      300,
-      700,
-      1300,
-      2100
-    ].forEach(delay => {
-      window.setTimeout(() => {
-        queueApply(
-          `${reason}-${delay}`
-        );
-      }, delay);
-    });
+    /*
+     * PMD_DASHBOARD2_V1415_SINGLE_HYDRATION
+     *
+     * Wait only until the canonical chart parts exist.
+     * Stop after the first successful layout application.
+     */
+    let attempt = 0;
+    const maxAttempts = 45;
+
+    function tryApply() {
+      attempt += 1;
+
+      const result = apply(
+        `${reason}-frame-${attempt}`
+      );
+
+      if (
+        result.applied ||
+        result.reason ===
+          'mobile-layout-left-untouched' ||
+        attempt >= maxAttempts
+      ) {
+        if (
+          result.applied &&
+          !reason.includes('resize')
+        ) {
+          console.info(
+            '[PMD Dashboard2 First Row Compact Match V1.3.9.1]',
+            result
+          );
+        }
+
+        return;
+      }
+
+      requestAnimationFrame(
+        tryApply
+      );
+    }
+
+    requestAnimationFrame(
+      tryApply
+    );
   }
 
   window.addEventListener(
@@ -11551,11 +11878,9 @@
     }
 
     const rows =
-      Array.isArray(
-        source[config.rowsKey]
-      )
+      (Array.isArray(source[config.rowsKey])
         ? source[config.rowsKey]
-        : [];
+        : []).slice(0, 6);
 
     if (
       source.empty === true ||
@@ -11575,14 +11900,12 @@
         0
       );
 
-    if (total <= 0) {
-      return emptyHtml(source);
-    }
+    const hasPositiveTotal = total > 0;
 
     let offset = 0;
 
     const circles =
-      rows.map(
+      (hasPositiveTotal ? rows : []).map(
         (row, index) => {
           const value =
             Number(
@@ -11652,7 +11975,7 @@
               );
 
             const percentage =
-              value / total * 100;
+              hasPositiveTotal ? value / total * 100 : 0;
 
             const color =
               COLORS[
@@ -12065,6 +12388,60 @@
       return state.inflight.get(period);
     }
 
+    /*
+     * PMD_DASHBOARD2_V1416_EARLY_ANALYTICS
+     *
+     * The requested Day/Week/Month payload may already be in flight
+     * from the first inline script. Reuse it instead of waiting until
+     * this late authority has booted and issuing another request.
+     */
+    const earlyAuthority =
+      window.PMDDashboard2EarlyPayloadV1416;
+
+    const earlyRequest =
+      !force &&
+      earlyAuthority &&
+      typeof earlyAuthority.take ===
+        'function'
+        ? earlyAuthority.take(period)
+        : null;
+
+    if (earlyRequest) {
+      state.requests += 1;
+
+      const request =
+        earlyRequest
+          .then(payload => {
+            if (
+              !payload ||
+              payload.success !== true
+            ) {
+              throw new Error(
+                'Invalid analytics payload'
+              );
+            }
+
+            state.payloadCache.set(
+              period,
+              payload
+            );
+
+            return payload;
+          })
+          .finally(() => {
+            state.inflight.delete(
+              period
+            );
+          });
+
+      state.inflight.set(
+        period,
+        request
+      );
+
+      return request;
+    }
+
     state.requests += 1;
 
     const request =
@@ -12275,12 +12652,23 @@
         );
       })
       .catch(error => {
+        /* PMD_DASHBOARD2_V1422_SOURCE_REPAIR */
         state.errors += 1;
         state.lastError =
           String(
             error?.message ||
             error
           );
+
+        const body =
+          bodyFor(widgetKey);
+
+        if (body) {
+          body.innerHTML =
+            '<p class="pmd-dashboard2-empty">' +
+            'Data source could not be loaded' +
+            '</p>';
+        }
 
         console.error(
           '[PMD Dashboard2 Donut Periods V1.3.9.5]',
@@ -12371,6 +12759,30 @@
                   )
               )
             )
+            .catch(error => {
+              /* PMD_DASHBOARD2_V1422_SOURCE_REPAIR */
+              state.errors += 1;
+              state.lastError = String(
+                error?.message || error
+              );
+
+              widgetKeys.forEach(widgetKey => {
+                const body = bodyFor(widgetKey);
+                if (body) {
+                  body.innerHTML =
+                    '<p class="pmd-dashboard2-empty">' +
+                    'Data source could not be loaded' +
+                    '</p>';
+                }
+              });
+
+              console.error(
+                '[PMD Dashboard2 Donut Periods V1.3.9.5 refreshAll]',
+                { period, widgetKeys, error }
+              );
+
+              return [];
+            })
             .finally(() => {
               widgetKeys.forEach(
                 widgetKey =>
@@ -12634,19 +13046,13 @@
      * فقط یک اجرای Boot پس از ساخته‌شدن Shell اصلی.
      * هیچ Observer و هیچ Loop دائمی وجود ندارد.
      */
-    window.setTimeout(
-      () => {
-        removeGlobalHeader();
+    /*
+     * PMD_DASHBOARD2_V1415_SINGLE_HYDRATION
+     *
+     * Initial selected-period fetching is owned by the main
+     * workspace Promise. No delayed 350ms overwrite.
+     */
 
-        Object.keys(CONFIG)
-          .forEach(
-            ensureControl
-          );
-
-        refreshAll(false);
-      },
-      350
-    );
 
     console.info(
       '[PMD Dashboard2 Independent Donut Periods V1.3.9.5] Ready',
