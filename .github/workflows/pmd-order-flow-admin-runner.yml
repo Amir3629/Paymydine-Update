@@ -1,0 +1,74 @@
+name: Temporary PayMyDine order-flow patch runner
+
+on:
+  pull_request:
+    branches:
+      - main
+    types:
+      - opened
+      - reopened
+      - synchronize
+
+permissions:
+  contents: write
+
+jobs:
+  apply-fixes:
+    if: github.event.pull_request.head.repo.full_name == github.repository && github.head_ref == 'fix/kazen-order-flow-admin-20260806'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out the source branch
+        uses: actions/checkout@v4
+        with:
+          ref: fix/kazen-order-flow-admin-20260806
+          fetch-depth: 0
+
+      - name: Apply, validate, commit, and clean temporary patch files
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          if [ ! -d tools/pmd-order-flow-admin-v1 ]; then
+            echo 'Source patches already applied; nothing to do.'
+            exit 0
+          fi
+
+          mapfile -t patches < <(find tools/pmd-order-flow-admin-v1 -maxdepth 1 -type f -name '*.patch' | sort)
+          test "${#patches[@]}" -eq 9
+
+          for patch in "${patches[@]}"; do
+            git apply --check "$patch"
+          done
+          for patch in "${patches[@]}"; do
+            git apply "$patch"
+          done
+
+          grep -q 'PMD_KAZEN_MENU_ITEM_SELECTED_COUNT_V1' frontend/app/themes/kazen-japanese/KazenStandalonePage.tsx
+          grep -q 'PMD_KAZEN_MENU_ITEM_SELECTED_COUNT_STYLE_V1' frontend/app/themes/kazen-japanese/kazen-standalone.css
+          grep -q 'PMD_KAZEN_ORDER_FLOW_SUMMARY_V1' frontend/components/themes/kazen-japanese/KazenJapaneseCheckoutShell.tsx
+          grep -q 'paidTipAmount={paidTipAmount}' frontend/features/customer-menu/checkout/ThemedCheckoutShellRoutes.tsx
+          grep -q 'PMD_ORDER_DETAILS_TRUE_PARTIAL_V1' app/admin/views/orders/form/order_details.blade.php
+          grep -q 'PMD_ORDER_EDIT_PLAIN_QUERY_ALIASES_V2' app/admin/views/orders/form/order_details.blade.php
+          grep -q 'PMD_ORDER_MENU_NATIVE_CONTROL_ICONS_V1' app/admin/views/orders/form/order_menus.blade.php
+          grep -q 'PMD_ORDER_EDIT_CLEAN_CUSTOMER_NOTE_V1' app/admin/views/orders/form/form_tabs.blade.php
+          grep -q 'PMD_CUSTOMER_CARD_NATIVE_ICONS_V1' app/admin/views/orders/form/field_customer.blade.php
+          grep -q 'PMD_ORDER_HEADER_NATIVE_ICONS_V1' app/admin/views/orders/form/info.blade.php
+          ! grep -q "@extends('admin::layouts.default')" app/admin/views/orders/form/order_details.blade.php
+          ! grep -q '^@section' app/admin/views/orders/form/order_details.blade.php
+          ! grep -q '^@endsection' app/admin/views/orders/form/order_details.blade.php
+
+          php -l app/Http/Controllers/Api/ReviewController.php
+          php -l app/Http/Middleware/PmdCanonicalPayExistingPersistence.php
+          php -l app/Http/Middleware/TenantDatabaseMiddleware.php
+          git diff --check
+
+          git rm -r tools/pmd-order-flow-admin-v1
+          if [ -f .github/workflows/pmd-order-flow-admin-v1.yml ]; then
+            git rm .github/workflows/pmd-order-flow-admin-v1.yml
+          fi
+
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -A
+          git commit -m 'Fix Kazen order flow and Admin Order Edit'
+          git push origin HEAD:fix/kazen-order-flow-admin-20260806
