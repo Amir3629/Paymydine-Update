@@ -9,6 +9,7 @@ import { Toaster } from "@/components/ui/toaster"
 import { saveSubscription } from "./actions"
 import { useThemeStore } from "@/store/theme-store"
 import "@/lib/i18n" // Import i18n configuration
+import CanonicalPaymentDisplayFix from "@/components/CanonicalPaymentDisplayFix"
 
 
 function urlBase64ToUint8Array(base64String: string) {
@@ -65,6 +66,7 @@ export default function ClientLayout({
       suppressHydrationWarning
     >
       {children}
+      <CanonicalPaymentDisplayFix />
       <Toaster />
     </div>
   )
