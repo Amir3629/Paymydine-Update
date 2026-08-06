@@ -33,12 +33,7 @@ function parseMoney(value: string | null | undefined): number {
 }
 
 function formatMoney(value: number): string {
-  return new Intl.NumberFormat("de-DE", {
-    style: "currency",
-    currency: "EUR",
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  }).format(Math.max(0, value))
+  return `€${Math.max(0, value).toFixed(2)}`
 }
 
 function lineLabel(line: Element): string {
