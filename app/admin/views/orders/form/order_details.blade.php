@@ -123,6 +123,10 @@ $subtotal = (float) optional($totals->firstWhere('code', 'subtotal'))->value;
 $taxRow = $totals->firstWhere('code', 'tax');
 $taxAmount = (float) optional($taxRow)->value;
 $taxTitle = (string) (optional($taxRow)->title ?? 'VAT');
+$tipAmount = (float) optional($totals->firstWhere('code', 'tip'))->value;
+$discountRow = $totals->firstWhere('code', 'discount') ?: $totals->firstWhere('code', 'coupon');
+$discountAmount = abs((float) optional($discountRow)->value);
+$discountTitle = (string) (optional($discountRow)->title ?? 'Coupon');
 $finalTotal = (float) optional($totals->firstWhere('code', 'total'))->value;
 if ($finalTotal <= 0) {
     $finalTotal = (float) ($formModel->order_total ?? ($subtotal + $taxAmount));
@@ -192,6 +196,18 @@ if ($finalTotal <= 0) {
 <tr>
 <td>{{ $taxTitle }}</td>
 <td>{{ currency_format($taxAmount) }}</td>
+</tr>
+@endif
+@if ($tipAmount > 0)
+<tr>
+<td>Tip</td>
+<td>{{ currency_format($tipAmount) }}</td>
+</tr>
+@endif
+@if ($discountAmount > 0)
+<tr>
+<td>{{ $discountTitle }}</td>
+<td>-{{ currency_format($discountAmount) }}</td>
 </tr>
 @endif
 <tr>
