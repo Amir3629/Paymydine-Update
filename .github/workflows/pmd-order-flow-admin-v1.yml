@@ -6,17 +6,26 @@ on:
       - fix/kazen-order-flow-admin-20260806
     paths:
       - .github/workflows/pmd-order-flow-admin-v1.yml
+  pull_request:
+    branches:
+      - main
+    types:
+      - opened
+      - reopened
+      - synchronize
 
 permissions:
   contents: write
 
 jobs:
   apply-fixes:
+    if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository
     runs-on: ubuntu-latest
     steps:
       - name: Check out branch
         uses: actions/checkout@v4
         with:
+          ref: fix/kazen-order-flow-admin-20260806
           fetch-depth: 0
 
       - name: Apply guarded source patches
