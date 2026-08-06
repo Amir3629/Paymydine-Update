@@ -138,20 +138,16 @@ class PmdCanonicalPayExistingPersistence
         $paymentReference = $this->normalizeReference($request->input('payment_reference'));
         $transactionId = (int)($payload['transaction_id'] ?? 0);
 
-        $baseRow = DB::table('order_totals')
-            ->where('order_id', $orderId)
-            ->where('code', 'payment_base')
-            ->lockForUpdate()
-            ->first();
-
         $totalRow = DB::table('order_totals')
             ->where('order_id', $orderId)
             ->where('code', 'total')
             ->lockForUpdate()
             ->first();
 
-        $baseTotal = $this->money($baseRow->value ?? $totalRow->value ?? $order->order_total ?? 0);
-        $this->upsertOrderTotal($orderId, 'payment_base', 'Payment base', $baseTotal, 0, 0);
+        // The route leaves the canonical total unchanged during partial
+        // payments, so this remains the stable gross item/order principal
+        // until the final payment is completed.
+        $baseTotal = $this->money($totalRow->value ?? $order->order_total ?? 0);
 
         $existingTip = $this->money(DB::table('order_totals')
             ->where('order_id', $orderId)
