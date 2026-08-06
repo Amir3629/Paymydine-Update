@@ -150,4 +150,8 @@
   'Main\\Template\\Page' => 'app/main/template/Page.php',
   'System\\Classes\\BaseComponent' => 'app/system/classes/BaseComponent.php',
   'Main\\Components\\ViewBag' => 'app/main/components/ViewBag.php',
+  'Admin\\Models\\Menu_item_options_model' => 'app/admin/models/Menu_item_options_model.php',
+  'System\\Models\\Countries_model' => 'app/system/models/Countries_model.php',
+  'System\\Facades\\Country' => 'app/system/facades/Country.php',
+  'System\\Libraries\\Country' => 'app/system/libraries/Country.php',
 );

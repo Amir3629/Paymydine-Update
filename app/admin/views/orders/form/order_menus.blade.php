@@ -247,7 +247,9 @@ if (!function_exists('pmdR2oShownUnitPrice')) {
                                 @endforeach
                             </div>
                         @endif
-                        @php($pmdMenuComment = pmdCleanGuestSessionComment($menuItem->comment ?? ''))
+                        @php
+                            $pmdMenuComment = pmdCleanGuestSessionComment($menuItem->comment ?? '');
+                        @endphp
                         @if($pmdMenuComment !== '')
                             <div class="order-bill-item-comment">{{ $pmdMenuComment }}</div>
                         @endif
@@ -1027,3 +1029,6 @@ function showNotification(message, type) {
 </style>
 
 
+
+
+<!-- PMD_FIX_ORDER_MENUS_INLINE_PHP_V2 -->
