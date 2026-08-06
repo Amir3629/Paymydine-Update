@@ -14,6 +14,7 @@ type PaymentBreakdown = {
 }
 
 const STORAGE_PREFIX = "pmd:canonical-payment-breakdown:"
+const PENDING_STORAGE_KEY = `${STORAGE_PREFIX}pending`
 
 function parseMoney(value: string | null | undefined): number {
   let normalized = String(value ?? "").replace(/[^0-9,.-]/g, "")
@@ -51,12 +52,13 @@ function findLine(root: ParentNode, labels: string[]): HTMLElement | null {
   return null
 }
 
-function readOrderId(root: ParentNode): string {
+function readVisibleOrderId(root: ParentNode): string {
   const orderLine = findLine(root, ["Order number"])
-  const visible = String(orderLine?.querySelector(":scope > strong")?.textContent ?? "")
+  return String(orderLine?.querySelector(":scope > strong")?.textContent ?? "")
     .replace(/[^0-9]/g, "")
-  if (visible) return visible
+}
 
+function readLastOrderId(): string {
   try {
     return String(localStorage.getItem("lastOrderId") ?? "").replace(/[^0-9]/g, "")
   } catch {
@@ -65,19 +67,36 @@ function readOrderId(root: ParentNode): string {
 }
 
 function saveBreakdown(value: PaymentBreakdown): void {
-  if (!value.orderId) return
   try {
-    sessionStorage.setItem(STORAGE_PREFIX + value.orderId, JSON.stringify(value))
+    sessionStorage.setItem(PENDING_STORAGE_KEY, JSON.stringify(value))
+    if (value.orderId) {
+      sessionStorage.setItem(STORAGE_PREFIX + value.orderId, JSON.stringify(value))
+    }
   } catch {
     // Session storage is an optional enhancement only.
   }
 }
 
 function loadBreakdown(orderId: string): PaymentBreakdown | null {
-  if (!orderId) return null
   try {
-    const parsed = JSON.parse(sessionStorage.getItem(STORAGE_PREFIX + orderId) || "null")
-    return parsed && typeof parsed === "object" ? parsed as PaymentBreakdown : null
+    if (orderId) {
+      const exact = JSON.parse(sessionStorage.getItem(STORAGE_PREFIX + orderId) || "null")
+      if (exact && typeof exact === "object") return exact as PaymentBreakdown
+    }
+
+    const pending = JSON.parse(sessionStorage.getItem(PENDING_STORAGE_KEY) || "null")
+    if (!pending || typeof pending !== "object") return null
+
+    const normalized = {
+      ...(pending as PaymentBreakdown),
+      orderId: orderId || String((pending as PaymentBreakdown).orderId || ""),
+    }
+
+    if (orderId) {
+      sessionStorage.setItem(STORAGE_PREFIX + orderId, JSON.stringify(normalized))
+    }
+
+    return normalized
   } catch {
     return null
   }
@@ -132,7 +151,10 @@ function fixPaymentSummary(root: HTMLElement): PaymentBreakdown | null {
   if (itemValue && grossAmount > 0 && itemValue.textContent !== canonicalItemValue) itemValue.textContent = canonicalItemValue
   if (vatLabel && vatLabel.textContent !== canonicalVatLabel) vatLabel.textContent = canonicalVatLabel
 
-  const orderId = readOrderId(root)
+  // Before payment succeeds there is no current order number in this modal.
+  // Never attach the breakdown to a stale localStorage lastOrderId; keep it as
+  // a pending checkout breakdown and bind it to the visible order after success.
+  const orderId = readVisibleOrderId(root)
 
   const breakdown: PaymentBreakdown = {
     orderId,
@@ -157,34 +179,40 @@ function fixPaidSummary(root: HTMLElement, latest: PaymentBreakdown | null): voi
   const amountLine = findLine(paidBox, ["Amount paid"])
   if (!amountLine) return
 
-  const orderId = readOrderId(paidBox) || latest?.orderId || ""
-  const breakdown = loadBreakdown(orderId) ?? (latest?.orderId === orderId ? latest : null)
+  const orderId = readVisibleOrderId(paidBox) || readLastOrderId() || latest?.orderId || ""
+  const breakdown = loadBreakdown(orderId) ?? latest
   if (!breakdown || breakdown.baseAmount <= 0) return
 
+  const normalizedBreakdown = {
+    ...breakdown,
+    orderId: orderId || breakdown.orderId,
+  }
+  saveBreakdown(normalizedBreakdown)
+
   const signature = JSON.stringify([
-    breakdown.orderId,
-    breakdown.baseAmount,
-    breakdown.vatAmount,
-    breakdown.vatLabel,
-    breakdown.tipAmount,
-    breakdown.couponAmount,
-    breakdown.couponLabel,
-    breakdown.paidAmount,
+    normalizedBreakdown.orderId,
+    normalizedBreakdown.baseAmount,
+    normalizedBreakdown.vatAmount,
+    normalizedBreakdown.vatLabel,
+    normalizedBreakdown.tipAmount,
+    normalizedBreakdown.couponAmount,
+    normalizedBreakdown.couponLabel,
+    normalizedBreakdown.paidAmount,
   ])
   if (paidBox.dataset.pmdCanonicalPaymentSignature === signature) return
 
   paidBox.querySelectorAll('[data-pmd-canonical-payment-line="1"]').forEach((node) => node.remove())
 
   const fragment = document.createDocumentFragment()
-  fragment.append(createSummaryLine("Items subtotal (incl. VAT)", breakdown.baseAmount))
-  if (breakdown.vatAmount > 0) {
-    fragment.append(createSummaryLine(breakdown.vatLabel || "Included VAT", breakdown.vatAmount))
+  fragment.append(createSummaryLine("Items subtotal (incl. VAT)", normalizedBreakdown.baseAmount))
+  if (normalizedBreakdown.vatAmount > 0) {
+    fragment.append(createSummaryLine(normalizedBreakdown.vatLabel || "Included VAT", normalizedBreakdown.vatAmount))
   }
-  if (breakdown.tipAmount > 0) {
-    fragment.append(createSummaryLine("Tip", breakdown.tipAmount))
+  if (normalizedBreakdown.tipAmount > 0) {
+    fragment.append(createSummaryLine("Tip", normalizedBreakdown.tipAmount))
   }
-  if (breakdown.couponAmount > 0) {
-    fragment.append(createSummaryLine(breakdown.couponLabel || "Coupon", breakdown.couponAmount, true))
+  if (normalizedBreakdown.couponAmount > 0) {
+    fragment.append(createSummaryLine(normalizedBreakdown.couponLabel || "Coupon", normalizedBreakdown.couponAmount, true))
   }
 
   paidBox.insertBefore(fragment, amountLine)
