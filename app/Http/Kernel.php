@@ -23,6 +23,7 @@ class Kernel extends HttpKernel
             \Illuminate\View\Middleware\ShareErrorsFromSession::class,
             \Igniter\Flame\Foundation\Http\Middleware\VerifyCsrfToken::class,  // FIX: Enable CSRF middleware
             \Illuminate\Routing\Middleware\SubstituteBindings::class,
+            \Igniter\Flame\Translation\Middleware\Localization::class,
             // PMD_PAY_EXISTING_CANONICAL_PERSISTENCE_V1
             // Request phase normalizes the payload; response phase runs after
             // tenant middleware and persists canonical tip/coupon totals.
