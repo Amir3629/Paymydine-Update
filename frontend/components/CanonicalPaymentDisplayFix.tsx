@@ -108,8 +108,16 @@ function fixPaymentSummary(root: HTMLElement): PaymentBreakdown | null {
   const currentItemsLabel = lineLabel(itemsLine)
   const itemsAmount = lineAmount(itemsLine)
   const vatAmount = lineAmount(vatLine)
-  const alreadyShowsGross = currentItemsLabel.includes("incl. VAT")
-  const grossAmount = Math.round((alreadyShowsGross ? itemsAmount : itemsAmount + vatAmount) * 100) / 100
+  const tipLine = findLine(root, ["Tip"])
+  const couponLine = findLine(root, ["Coupon"])
+  const tipAmount = tipLine ? lineAmount(tipLine) : 0
+  const couponAmount = couponLine ? lineAmount(couponLine) : 0
+  const payableAmount = lineAmount(payableLine)
+  const equationGross = Math.max(0, payableAmount - tipAmount + couponAmount)
+  const fallbackGross = currentItemsLabel.includes("incl. VAT")
+    ? itemsAmount
+    : itemsAmount + vatAmount
+  const grossAmount = Math.round((equationGross > 0 ? equationGross : fallbackGross) * 100) / 100
   const isShare = currentItemsLabel.toLowerCase().startsWith("share")
 
   const itemLabel = itemsLine.querySelector(":scope > span")
@@ -124,8 +132,6 @@ function fixPaymentSummary(root: HTMLElement): PaymentBreakdown | null {
   if (itemValue && grossAmount > 0 && itemValue.textContent !== canonicalItemValue) itemValue.textContent = canonicalItemValue
   if (vatLabel && vatLabel.textContent !== canonicalVatLabel) vatLabel.textContent = canonicalVatLabel
 
-  const tipLine = findLine(root, ["Tip"])
-  const couponLine = findLine(root, ["Coupon"])
   const orderId = readOrderId(root)
 
   const breakdown: PaymentBreakdown = {
@@ -133,10 +139,10 @@ function fixPaymentSummary(root: HTMLElement): PaymentBreakdown | null {
     baseAmount: grossAmount,
     vatAmount,
     vatLabel: String(vatLabel?.textContent ?? "Included VAT").trim(),
-    tipAmount: tipLine ? lineAmount(tipLine) : 0,
-    couponAmount: couponLine ? lineAmount(couponLine) : 0,
+    tipAmount,
+    couponAmount,
     couponLabel: couponLine ? lineLabel(couponLine) : "Coupon",
-    paidAmount: lineAmount(payableLine),
+    paidAmount: payableAmount,
   }
 
   saveBreakdown(breakdown)
