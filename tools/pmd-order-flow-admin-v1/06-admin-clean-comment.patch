@@ -1,0 +1,29 @@
+--- a/app/admin/views/orders/form/form_tabs.blade.php
++++ b/app/admin/views/orders/form/form_tabs.blade.php
+@@ -989,12 +989,23 @@
+                         </div>
+                             </div>
+                             
+-                            <!-- Comment Cards -->
+-                            @if($formModel->comment)
++                            <!-- PMD_ORDER_EDIT_CLEAN_CUSTOMER_NOTE_V1 -->
++                            @php
++                                $__pmdVisibleOrderCommentParts = collect(explode('|', (string)($formModel->comment ?? '')))
++                                    ->map(static fn ($part) => trim($part))
++                                    ->reject(static function ($part) {
++                                        if ($part === '' || strcasecmp($part, 'Table Draft Basket') === 0) return true;
++                                        if (preg_match('/^(Table ID|Table)\s*:/i', $part)) return true;
++                                        return preg_match('/^\[(table_draft_id|submitted_by|guest_session|guest_session_id):/i', $part) === 1;
++                                    })
++                                    ->values();
++                                $__pmdVisibleOrderComment = $__pmdVisibleOrderCommentParts->implode(' | ');
++                            @endphp
++                            @if($__pmdVisibleOrderComment !== '')
+                                 <div class="card bg-light shadow-sm pos-comment-card">
+                                     <div class="card-body p-3">
+                                         <h6 class="card-title mb-2">@lang('admin::lang.orders.label_comment')</h6>
+-                                        <p class="mb-0">{{ $formModel->comment }}</p>
++                                        <p class="mb-0">{{ $__pmdVisibleOrderComment }}</p>
+                                     </div>
+                                 </div>
+                             @endif
