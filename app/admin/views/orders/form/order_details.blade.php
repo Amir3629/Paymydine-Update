@@ -16,6 +16,7 @@ $pmdSplitTransactions = collect();
 $pmdSplitItemsByTx = [];
 
 if ($pmdHasSplitTables) {
+    try {
     $pmdResolverValue = function_exists('pmdResolveSplitAllocationColumn')
         ? pmdResolveSplitAllocationColumn()
         : null;
@@ -43,8 +44,14 @@ if ($pmdHasSplitTables) {
         }
     }
 
-    $pmdJoinLeft = $pmdAllocationColumn === 'menu_id' ? 'om.menu_id' : 'om.order_menu_id';
-    $pmdJoinRight = $pmdAllocationColumn === 'menu_id' ? 'ti.menu_id' : 'ti.order_menu_id';
+    // PMD_ORDER_EDIT_PREFIX_SAFE_SPLIT_QUERY_V1
+    // This application prefixes SQL aliases (for example `ti` becomes
+    // `ti_ti`). Raw alias references must therefore use the real alias.
+    $pmdDbPrefix = (string)DB::connection()->getTablePrefix();
+    $pmdTxItemAlias = $pmdDbPrefix.'pmd_tx_item';
+    $pmdMenuAlias = $pmdDbPrefix.'pmd_order_menu';
+    $pmdJoinLeftColumn = $pmdAllocationColumn === 'menu_id' ? 'menu_id' : 'order_menu_id';
+    $pmdJoinRightColumn = $pmdAllocationColumn === 'menu_id' ? 'menu_id' : $pmdAllocationColumn;
 
     $pmdSplitTransactions = DB::table('order_payment_transactions')
         ->where('order_id', (int)$formModel->order_id)
@@ -55,24 +62,29 @@ if ($pmdHasSplitTables) {
 
     if (!empty($pmdTxIds) && is_string($pmdAllocationColumn) && $pmdAllocationColumn !== '') {
         $pmdSelectColumns = [
-            'ti.transaction_id',
-            'ti.quantity_paid',
-            'ti.unit_price',
-            'ti.line_total',
-            'om.name',
-            'om.menu_id',
-            'om.order_menu_id',
+            $pmdTxItemAlias.'.transaction_id',
+            $pmdTxItemAlias.'.quantity_paid',
+            $pmdTxItemAlias.'.unit_price',
+            $pmdTxItemAlias.'.line_total',
+            $pmdMenuAlias.'.name',
+            $pmdMenuAlias.'.menu_id',
+            $pmdMenuAlias.'.order_menu_id',
         ];
 
         if (Schema::hasColumn('order_menus', 'option_values')) {
-            $pmdSelectColumns[] = 'om.option_values as menu_options';
+            $pmdSelectColumns[] = $pmdMenuAlias.'.option_values as menu_options';
         } elseif (Schema::hasColumn('order_payment_transaction_items', 'menu_options')) {
-            $pmdSelectColumns[] = 'ti.menu_options';
+            $pmdSelectColumns[] = $pmdTxItemAlias.'.menu_options';
         }
 
-        $pmdItemRows = DB::table('order_payment_transaction_items as ti')
-            ->leftJoin('order_menus as om', $pmdJoinLeft, '=', $pmdJoinRight)
-            ->whereIn('ti.transaction_id', $pmdTxIds)
+        $pmdItemRows = DB::table('order_payment_transaction_items as pmd_tx_item')
+            ->leftJoin(
+                'order_menus as pmd_order_menu',
+                $pmdMenuAlias.'.'.$pmdJoinLeftColumn,
+                '=',
+                $pmdTxItemAlias.'.'.$pmdJoinRightColumn
+            )
+            ->whereIn($pmdTxItemAlias.'.transaction_id', $pmdTxIds)
             ->get($pmdSelectColumns);
 
         foreach ($pmdItemRows as $row) {
@@ -85,10 +97,23 @@ if ($pmdHasSplitTables) {
                 }
             }
 
-            $row->menu_options = is_string($row->menu_options) ? json_decode($row->menu_options, true) : $row->menu_options;
+            $rawMenuOptions = property_exists($row, 'menu_options') ? $row->menu_options : null;
+            $row->menu_options = is_string($rawMenuOptions)
+                ? (json_decode($rawMenuOptions, true) ?: [])
+                : (is_array($rawMenuOptions) ? $rawMenuOptions : []);
 
             $pmdSplitItemsByTx[$txId][] = $row;
         }
+    }
+    } catch (\Throwable $pmdOrderEditSplitError) {
+        // Never make the whole Order Edit page fail because an optional split
+        // payment detail query is unavailable or has a legacy schema.
+        \Log::warning('PMD order edit split payment query skipped', [
+            'order_id' => (int)($formModel->order_id ?? 0),
+            'message' => $pmdOrderEditSplitError->getMessage(),
+        ]);
+        $pmdSplitTransactions = collect();
+        $pmdSplitItemsByTx = [];
     }
 }
 
