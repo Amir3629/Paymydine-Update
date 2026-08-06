@@ -117,16 +117,112 @@ class Dashboard2 extends Reservations2
         return ['start' => $period[0]->toIso8601String(), 'end' => $period[1]->toIso8601String()];
     }
 
+    /*
+     * PMD_DASHBOARD2_CANONICAL_LOCATION_FIX_V1
+     *
+     * Use the same authenticated location resolution authority as the
+     * parent Reservations2 controller.
+     */
     protected function locationId(): ?int
     {
         try {
-            $id = \Admin\Facades\AdminLocation::getId();
-            if ($id) return (int)$id;
+            if (
+                $location =
+                    \Admin\Facades\AdminLocation::current()
+            ) {
+                return (int)$location->location_id;
+            }
         } catch (\Throwable $error) {
         }
 
-        $id = session('location_id') ?: session('admin_location_id');
-        return $id ? (int)$id : null;
+        try {
+            $locationId = (int)
+                \Admin\Facades\AdminLocation::getSession(
+                    'id'
+                );
+
+            if ($locationId > 0) {
+                return $locationId;
+            }
+        } catch (\Throwable $error) {
+        }
+
+        try {
+            if (is_single_location()) {
+                $locationId = (int)
+                    params('default_location_id');
+
+                if ($locationId > 0) {
+                    $location =
+                        \Admin\Models\Locations_model::
+                            isEnabled()
+                            ->find($locationId);
+
+                    if ($location) {
+                        \Admin\Facades\AdminLocation::
+                            setCurrent($location);
+
+                        return (int)$location->location_id;
+                    }
+                }
+            }
+        } catch (\Throwable $error) {
+        }
+
+        try {
+            $user =
+                \Admin\Facades\AdminAuth::getUser();
+
+            if (!$user) {
+                return null;
+            }
+
+            $staff = $user->staff;
+
+            $accessibleLocations = $staff
+                ? $staff
+                    ->locations
+                    ->where('location_status', true)
+                    ->values()
+                : collect();
+
+            if ($accessibleLocations->count() !== 1) {
+                return null;
+            }
+
+            $locationId = (int)
+                $accessibleLocations
+                    ->first()
+                    ->location_id;
+
+            if ($locationId < 1) {
+                return null;
+            }
+
+            $location =
+                \Admin\Models\Locations_model::
+                    isEnabled()
+                    ->find($locationId);
+
+            if (
+                !$location
+                || (
+                    !$user->isSuperUser()
+                    && !$user->hasLocationAccess(
+                        $location
+                    )
+                )
+            ) {
+                return null;
+            }
+
+            \Admin\Facades\AdminLocation::
+                setCurrent($location);
+
+            return (int)$location->location_id;
+        } catch (\Throwable $error) {
+            return null;
+        }
     }
 
     protected function restaurantTimezone(): string
@@ -552,7 +648,48 @@ class Dashboard2 extends Reservations2
         $query = $this->analyticsEligibleOrders($start, $end);
         $tips = $this->tipSubquery();
         if ($tips) $query->leftJoinSub($tips, 'analytics_tips', 'orders.order_id', '=', 'analytics_tips.order_id');
-        $payment = $authority['payment'] ? 'ti_orders.`'.$authority['payment'].'`' : "''";
+        /*
+         * PMD_DASHBOARD2_PAYMENT_SOURCE_V1
+         *
+         * New POS/admin payments persist their final method in
+         * orders.settlement_method.
+         *
+         * The legacy orders.payment/payment_code field is retained
+         * only as fallback for older orders.
+         */
+        $paymentCandidates = [];
+
+        if (
+            Schema::hasColumn(
+                'orders',
+                'settlement_method'
+            )
+        ) {
+            $paymentCandidates[] =
+                "NULLIF(TRIM(ti_orders.`settlement_method`), '')";
+        }
+
+        if (!empty($authority['payment'])) {
+            $paymentCandidates[] =
+                "NULLIF(TRIM(ti_orders.`".
+                $authority['payment'].
+                "`), '')";
+        }
+
+        if (!$paymentCandidates) {
+            $payment = "''";
+        } elseif (count($paymentCandidates) === 1) {
+            $payment =
+                $paymentCandidates[0];
+        } else {
+            $payment =
+                'COALESCE('.
+                implode(
+                    ', ',
+                    $paymentCandidates
+                ).
+                ')';
+        }
         return $query->selectRaw('ti_orders.*, ti_orders.`'.$authority['date'].'` AS effective_at, ti_orders.`'.$authority['amount'].'` AS effective_amount, '.$payment.' AS effective_payment, GREATEST(COALESCE(ti_orders.`'.$authority['amount'].'`,0) - '.($tips ? 'COALESCE(ti_analytics_tips.tip_amount,0)' : '0').',0) AS net_revenue');
     }
 
@@ -1514,9 +1651,18 @@ protected function analyticsAlerts(
 
     protected function analyticsReviews(): array
     {
-        /* PMD_DASHBOARD2_V1422_SOURCE_REPAIR */
+        /*
+         * PMD_DASHBOARD2_NATIVE_TODAY_PAYLOAD_V6
+         *
+         * The native Dashboard2 payload now returns only reviews
+         * belonging to the restaurant's current local day.
+         *
+         * No secondary /admin/reviews request is required.
+         */
         if (!Schema::hasTable('reviews')) {
-            return $this->unavailable('reviews table unavailable');
+            return $this->unavailable(
+                'reviews table unavailable'
+            );
         }
 
         $columns = $this->columns('reviews');
@@ -1526,23 +1672,31 @@ protected function analyticsAlerts(
             $this->locationId()
             && in_array('location_id', $columns, true)
         ) {
-            $query->where('location_id', $this->locationId());
+            $query->where(
+                'location_id',
+                $this->locationId()
+            );
         }
 
-        /*
-         * /admin/reviews lists the same model ordered by created_at and does
-         * not hide pending rows. Mirror that source so newly created reviews
-         * appear on Dashboard2 immediately.
-         */
-        $orderColumn = in_array('created_at', $columns, true)
+        $orderColumn = in_array(
+            'created_at',
+            $columns,
+            true
+        )
             ? 'created_at'
             : 'review_id';
+
+        $today = Carbon::now(
+            $this->restaurantTimezone()
+        )->toDateString();
 
         $rows = $query
             ->orderByDesc($orderColumn)
             ->get();
 
-        $ratingFor = static function ($row) use ($columns): ?float {
+        $ratingFor = static function (
+            $row
+        ) use ($columns): ?float {
             if (
                 in_array('quality', $columns, true)
                 && in_array('service', $columns, true)
@@ -1558,12 +1712,19 @@ protected function analyticsAlerts(
                     return null;
                 }
 
-                return round(array_sum($values) / 3, 1);
+                return round(
+                    array_sum($values) / 3,
+                    1
+                );
             }
 
             if (in_array('rating', $columns, true)) {
-                $rating = (float)($row->rating ?? 0);
-                return $rating > 0 ? round($rating, 1) : null;
+                $rating =
+                    (float)($row->rating ?? 0);
+
+                return $rating > 0
+                    ? round($rating, 1)
+                    : null;
             }
 
             return null;
@@ -1571,11 +1732,34 @@ protected function analyticsAlerts(
 
         $commentColumn = $this->firstColumn(
             $columns,
-            ['review_text', 'comment', 'review', 'message']
+            [
+                'review_text',
+                'comment',
+                'review',
+                'message',
+            ]
         );
 
         $rated = $rows
-            ->map(function ($row) use ($ratingFor, $commentColumn, $orderColumn, $columns) {
+            ->map(function (
+                $row
+            ) use (
+                $ratingFor,
+                $commentColumn,
+                $orderColumn,
+                $columns,
+                $today
+            ) {
+                $rawDate =
+                    (string)($row->{$orderColumn} ?? '');
+
+                if (
+                    $orderColumn === 'created_at'
+                    && substr($rawDate, 0, 10) !== $today
+                ) {
+                    return null;
+                }
+
                 $rating = $ratingFor($row);
 
                 if ($rating === null) {
@@ -1583,22 +1767,65 @@ protected function analyticsAlerts(
                 }
 
                 $comment = $commentColumn
-                    ? mb_substr(strip_tags((string)($row->{$commentColumn} ?? '')), 0, 180)
+                    ? mb_substr(
+                        strip_tags(
+                            (string)(
+                                $row->{$commentColumn}
+                                ?? ''
+                            )
+                        ),
+                        0,
+                        180
+                    )
                     : '';
 
-                $approved = in_array('review_status', $columns, true)
+                $approved = in_array(
+                    'review_status',
+                    $columns,
+                    true
+                )
                     ? (bool)$row->review_status
                     : null;
 
-                $status = in_array('status', $columns, true)
+                $status = in_array(
+                    'status',
+                    $columns,
+                    true
+                )
                     ? (string)$row->status
-                    : ($approved === true ? 'approved' : ($approved === false ? 'pending' : null));
+                    : (
+                        $approved === true
+                            ? 'approved'
+                            : (
+                                $approved === false
+                                    ? 'pending'
+                                    : null
+                            )
+                    );
+
+                $time = strlen($rawDate) >= 16
+                    ? substr($rawDate, 11, 5)
+                    : '';
+
+                $starCount = max(
+                    1,
+                    min(
+                        5,
+                        (int)round($rating)
+                    )
+                );
 
                 return [
-                    'review_id' => (int)($row->review_id ?? 0),
+                    'review_id' =>
+                        (int)($row->review_id ?? 0),
+
                     'rating' => $rating,
+                    'stars' =>
+                        str_repeat('★', $starCount),
+
                     'comment' => $comment,
-                    'date' => (string)($row->{$orderColumn} ?? ''),
+                    'date' => $rawDate,
+                    'time' => $time,
                     'approved' => $approved,
                     'status' => $status,
                 ];
@@ -1608,18 +1835,36 @@ protected function analyticsAlerts(
 
         $average = $rated->isEmpty()
             ? null
-            : round((float)$rated->avg('rating'), 1);
+            : round(
+                (float)$rated->avg('rating'),
+                1
+            );
 
         return [
             'available' => true,
+            'empty' => $rated->isEmpty(),
             'average' => $average,
             'count' => $rated->count(),
             'rated_count' => $rated->count(),
-            'unrated_count' => max(0, $rows->count() - $rated->count()),
-            'latest' => $rated->take(5)->all(),
-            'sample_count' => $rated->count(),
-            'source_mode' => 'admin_reviews_exact_model_v1422',
-            'source' => '/admin/reviews Reviews_model, current location, newest first',
+            'unrated_count' => 0,
+
+            'latest' =>
+                $rated->take(4)->all(),
+
+            'sample_count' =>
+                $rated->count(),
+
+            'today' => $today,
+
+            'reason' => $rated->isEmpty()
+                ? 'No reviews today'
+                : null,
+
+            'source_mode' =>
+                'admin_reviews_today_native_v6',
+
+            'source' =>
+                '/admin/reviews Reviews_model, current location, today only',
         ];
     }
 
@@ -1719,6 +1964,12 @@ protected function analyticsAlerts(
 protected function analyticsCalendarEvents(
         Carbon $now
     ): array {
+        /*
+         * PMD_DASHBOARD2_NATIVE_TODAY_PAYLOAD_V6
+         *
+         * Today-only reservations with real table assignments.
+         * reservation_tables is the canonical merge-table source.
+         */
         if (
             !Schema::hasTable('reservations')
             || !$this->hasColumns(
@@ -1737,6 +1988,11 @@ protected function analyticsCalendarEvents(
             );
         }
 
+        $today = $now->toDateString();
+
+        $reservationColumns =
+            $this->columns('reservations');
+
         $query = DB::table(
             'reservations as r'
         )
@@ -1746,12 +2002,12 @@ protected function analyticsCalendarEvents(
             )
             ->whereDate(
                 'r.reserve_date',
-                '>=',
-                $now->toDateString()
+                '=',
+                $today
             )
-            ->orderBy('r.reserve_date')
             ->orderBy('r.reserve_time')
-            ->limit(100);
+            ->orderBy('r.reservation_id')
+            ->limit(250);
 
         $hasStatuses =
             Schema::hasTable('statuses')
@@ -1761,7 +2017,10 @@ protected function analyticsCalendarEvents(
             )
             && $this->hasColumns(
                 'statuses',
-                ['status_id', 'status_name']
+                [
+                    'status_id',
+                    'status_name',
+                ]
             );
 
         if ($hasStatuses) {
@@ -1780,6 +2039,16 @@ protected function analyticsCalendarEvents(
             'r.guest_num',
         ];
 
+        if (
+            in_array(
+                'table_id',
+                $reservationColumns,
+                true
+            )
+        ) {
+            $select[] = 'r.table_id';
+        }
+
         if ($hasStatuses) {
             $select[] = 's.status_name';
         }
@@ -1797,96 +2066,341 @@ protected function analyticsCalendarEvents(
             'closed',
         ];
 
-        $events = [];
-
-        foreach ($rows as $row) {
-            $date = trim(
-                (string)$row->reserve_date
-            );
-
-            $time = trim(
-                (string)$row->reserve_time
-            );
-
-            if ($time === '') {
-                $time = '00:00:00';
-            }
-
-            try {
-                $reservationAt = Carbon::parse(
-                    $date.' '.$time,
-                    $this->restaurantTimezone()
-                );
-            } catch (\Throwable $error) {
-                continue;
-            }
-
-            if ($reservationAt->lt($now)) {
-                continue;
-            }
-
-            $statusName = $hasStatuses
-                ? trim(
-                    (string)(
-                        $row->status_name ?? ''
+        $filteredRows = $rows
+            ->filter(function (
+                $row
+            ) use (
+                $hasStatuses,
+                $excludedStatuses
+            ) {
+                $statusName = $hasStatuses
+                    ? strtolower(
+                        trim(
+                            (string)(
+                                $row->status_name
+                                ?? ''
+                            )
+                        )
                     )
+                    : '';
+
+                return !in_array(
+                    $statusName,
+                    $excludedStatuses,
+                    true
+                );
+            })
+            ->values();
+
+        $reservationIds = $filteredRows
+            ->pluck('reservation_id')
+            ->map(static fn ($id) => (int)$id)
+            ->filter()
+            ->values()
+            ->all();
+
+        $tableIdsByReservation = [];
+
+        if (
+            $reservationIds
+            && Schema::hasTable(
+                'reservation_tables'
+            )
+            && $this->hasColumns(
+                'reservation_tables',
+                [
+                    'reservation_id',
+                    'table_id',
+                ]
+            )
+        ) {
+            DB::table('reservation_tables')
+                ->whereIn(
+                    'reservation_id',
+                    $reservationIds
                 )
-                : '';
+                ->orderBy('reservation_id')
+                ->orderBy('table_id')
+                ->get([
+                    'reservation_id',
+                    'table_id',
+                ])
+                ->each(function (
+                    $pivot
+                ) use (
+                    &$tableIdsByReservation
+                ) {
+                    $reservationId =
+                        (int)$pivot->reservation_id;
+
+                    $tableId =
+                        (int)$pivot->table_id;
+
+                    $tableIdsByReservation[
+                        $reservationId
+                    ][] = $tableId;
+                });
+        }
+
+        foreach ($filteredRows as $row) {
+            $reservationId =
+                (int)$row->reservation_id;
+
+            $directTableId =
+                (int)($row->table_id ?? 0);
+
+            if ($directTableId > 0) {
+                $tableIdsByReservation[
+                    $reservationId
+                ][] = $directTableId;
+            }
+
+            if (
+                isset(
+                    $tableIdsByReservation[
+                        $reservationId
+                    ]
+                )
+            ) {
+                $tableIdsByReservation[
+                    $reservationId
+                ] = array_values(
+                    array_unique(
+                        $tableIdsByReservation[
+                            $reservationId
+                        ]
+                    )
+                );
+            }
+        }
+
+        $allTableIds = collect(
+            $tableIdsByReservation
+        )
+            ->flatten()
+            ->map(static fn ($id) => (int)$id)
+            ->filter()
+            ->unique()
+            ->values()
+            ->all();
+
+        $tableNames = [];
+
+        if (
+            $allTableIds
+            && Schema::hasTable('tables')
+        ) {
+            $tableColumns =
+                $this->columns('tables');
+
+            $tableNameColumn =
+                $this->firstColumn(
+                    $tableColumns,
+                    [
+                        'table_name',
+                        'name',
+                        'table_no',
+                        'table_number',
+                        'number',
+                        'label',
+                    ]
+                );
 
             if (
                 in_array(
-                    strtolower($statusName),
-                    $excludedStatuses,
+                    'table_id',
+                    $tableColumns,
                     true
                 )
             ) {
-                continue;
+                $tableSelect = [
+                    'table_id',
+                ];
+
+                if ($tableNameColumn) {
+                    $tableSelect[] =
+                        $tableNameColumn;
+                }
+
+                DB::table('tables')
+                    ->whereIn(
+                        'table_id',
+                        $allTableIds
+                    )
+                    ->get($tableSelect)
+                    ->each(function (
+                        $table
+                    ) use (
+                        &$tableNames,
+                        $tableNameColumn
+                    ) {
+                        $tableId =
+                            (int)$table->table_id;
+
+                        $name =
+                            $tableNameColumn
+                                ? trim(
+                                    (string)(
+                                        $table
+                                            ->{$tableNameColumn}
+                                        ?? ''
+                                    )
+                                )
+                                : '';
+
+                        $tableNames[$tableId] =
+                            $name !== ''
+                                ? $name
+                                : (string)$tableId;
+                    });
             }
+        }
+
+        $events = [];
+
+        foreach ($filteredRows as $row) {
+            $reservationId =
+                (int)$row->reservation_id;
 
             $guests = max(
                 0,
                 (int)$row->guest_num
             );
 
+            $time = substr(
+                trim(
+                    (string)$row->reserve_time
+                ),
+                0,
+                5
+            );
+
+            $tableIds =
+                $tableIdsByReservation[
+                    $reservationId
+                ] ?? [];
+
+            $labels = array_values(
+                array_map(
+                    static function (
+                        $tableId
+                    ) use (
+                        $tableNames
+                    ): string {
+                        return $tableNames[
+                            (int)$tableId
+                        ] ?? (string)$tableId;
+                    },
+                    $tableIds
+                )
+            );
+
+            /*
+             * PMD_DASHBOARD2_TABLE_LABEL_PREFIX_FIX_V61
+             *
+             * Some table names already contain "Tisch".
+             * Avoid output such as "Tische Tisch 2 + 10".
+             */
+            $cleanLabels = array_values(
+                array_map(
+                    static function (
+                        string $label
+                    ): string {
+                        return preg_replace(
+                            '/^Tische?\s+/iu',
+                            '',
+                            trim($label)
+                        ) ?: trim($label);
+                    },
+                    $labels
+                )
+            );
+
+            $tableLabel = !$cleanLabels
+                ? 'Kein Tisch'
+                : (
+                    count($cleanLabels) === 1
+                        ? 'Tisch '.$cleanLabels[0]
+                        : 'Tische '.
+                            implode(' + ', $cleanLabels)
+                );
+
             $events[] = [
                 'reservation_id' =>
-                    (int)$row->reservation_id,
+                    $reservationId,
+
+                'table_ids' =>
+                    $tableIds,
+
+                'tables' =>
+                    $labels,
+
+                'table_label' =>
+                    $tableLabel,
+
+                'guests' =>
+                    $guests,
+
+                'time' =>
+                    $time,
+
+                'date' =>
+                    $today,
+
                 'title' =>
-                    'Reservation #'.
-                    (int)$row->reservation_id.
+                    $tableLabel.
                     ' · '.
                     $guests.
                     ($guests === 1
-                        ? ' guest'
-                        : ' guests'),
-                'date' =>
-                    $reservationAt->format(
-                        'Y-m-d H:i'
-                    ),
-                'guests' => $guests,
-                'status' =>
-                    $statusName ?: 'Upcoming',
-                'source' => 'reservation',
-            ];
+                        ? ' Gast'
+                        : ' Gäste'),
 
-            if (count($events) >= 10) {
-                break;
-            }
+                'status' =>
+                    $hasStatuses
+                        ? (
+                            trim(
+                                (string)(
+                                    $row->status_name
+                                    ?? ''
+                                )
+                            ) ?: 'Upcoming'
+                        )
+                        : 'Upcoming',
+
+                'source' =>
+                    'reservation',
+            ];
         }
 
         return [
             'available' => true,
             'empty' => count($events) === 0,
-            'events' => $events,
-            'sample_count' => count($events),
+
+            'count' =>
+                count($events),
+
+            'events' =>
+                array_slice(
+                    $events,
+                    0,
+                    4
+                ),
+
+            'sample_count' =>
+                count($events),
+
+            'today' =>
+                $today,
+
             'reason' => $events
                 ? null
-                : 'No upcoming reservations',
+                : 'No reservations today',
+
             'source_mode' =>
-                'location_upcoming_reservations',
+                'location_today_reservations_tables_v6',
+
             'source' =>
-                'future frontend and admin reservations '.
-                'for the authenticated restaurant location',
+                'today reservations plus reservation_tables and tables for the authenticated restaurant location',
         ];
     }
 

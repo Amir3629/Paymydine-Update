@@ -989,9 +989,166 @@
     var live=data.live_operations; put('liveOperations',live.available?'<div class="pmd-dashboard2-live-summary"><b>'+esc(live.live_order_count)+'</b><span>live orders</span></div>'+list(live.orders,function(r){return '<span>#'+esc(r.order_id)+' · '+esc(r.channel)+'</span><b>'+esc(r.status)+'</b>'; }):empty(live));
     var tx=data.recent_transactions; put('recentTransactions',tx.available?(tx.empty?empty(tx):list(tx.transactions,function(r){var method=r.method?' · '+esc(r.method):'';return '<span>#'+esc(r.order_id)+method+' · '+esc(r.timestamp)+'</span><b>'+esc(money(r.amount))+'</b>'; })):empty(tx));
     var a=data.alerts; put('alerts',a.available?list(Object.keys(a.types).map(function(k){var name=k.replace(/_/g,' ');if(k==='long_open_tables')name+=' (> '+esc(a.long_open_threshold_minutes)+' min)';return {name:name,value:a.types[k]};}),function(r){return '<span>'+esc(r.name)+'</span><b>'+(r.value===null?'Source unavailable':esc(r.value))+'</b>'; }):empty(a));
-    var rv=data.reviews; put('reviews',rv.available?'<div class="pmd-dashboard2-review-score"><b>'+(rv.average===null?'—':esc(rv.average))+'</b><span>'+esc(rv.count)+' reviews</span></div>'+list(rv.latest,function(r){return '<span>'+esc(r.rating)+' ★ · '+esc(r.comment)+'</span><b>'+esc(r.date)+'</b>'; }):empty(rv));
+    /*
+     * PMD_DASHBOARD2_NATIVE_TODAY_CARDS_V6
+     *
+     * The first and only render already contains the final
+     * today-only Review presentation.
+     */
+    var rv = data.reviews;
+
+    put(
+      'reviews',
+      rv.available
+        ? (
+            '<div class="pmd-dashboard2-review-score">' +
+              '<b>' +
+                (
+                  rv.average === null
+                    ? '—'
+                    : esc(rv.average)
+                ) +
+              '</b>' +
+              '<span>' +
+                esc(rv.count) +
+                (
+                  Number(rv.count) === 1
+                    ? ' review today'
+                    : ' reviews today'
+                ) +
+              '</span>' +
+            '</div>' +
+
+            list(
+              (rv.latest || []).slice(0, 4),
+              function (r) {
+                var stars =
+                  r.stars ||
+                  Array(
+                    Math.max(
+                      1,
+                      Math.min(
+                        5,
+                        Math.round(
+                          Number(r.rating || 0)
+                        )
+                      )
+                    ) + 1
+                  ).join('★');
+
+                return (
+                  '<span ' +
+                    'style="' +
+                      'color:#d4a017;' +
+                      'font-size:22px;' +
+                      'font-weight:700;' +
+                      'line-height:1;' +
+                      'letter-spacing:2px;' +
+                      'white-space:nowrap' +
+                    '">' +
+                    esc(stars) +
+                  '</span>' +
+
+                  '<b>' +
+                    esc(r.time || '') +
+                  '</b>'
+                );
+              }
+            )
+          )
+        : empty(rv)
+    );
     var tips=data.tips; put('tips',tips.available?'<dl class="pmd-dashboard2-stats"><div><dt>Today</dt><dd>'+esc(money(tips.today))+'</dd></div><div><dt>This month</dt><dd>'+esc(money(tips.month))+'</dd></div><div><dt>Average</dt><dd>'+esc(money(tips.average_tip))+'</dd></div><div><dt>Tipped orders</dt><dd>'+esc(tips.tipped_orders)+'</dd></div></dl>':empty(tips));
-    var ev=data.calendar_events; put('calendarEvents',ev.available?list(ev.events,function(r){return '<span>'+esc(r.title)+'</span><b>'+esc(r.date)+'</b>'; }):empty(ev));
+    /*
+     * PMD_DASHBOARD2_TABLE_TITLE_RENDER_FIX_V62
+     *
+     * Normalize only duplicated visible table prefixes.
+     * Example:
+     * "Tische Tisch 2 + 10" becomes "Tische 2 + 10".
+     */
+    /*
+     * PMD_DASHBOARD2_TABLE_PREFIX_FIX_V63
+     *
+     * Covers normal spaces, NBSP and other invisible whitespace.
+     */
+    function cleanReservationTableTitle(value) {
+      var text = String(value || '')
+        .replace(/[\u00A0\u2007\u202F]/g, ' ')
+        .replace(/\s+/g, ' ')
+        .trim();
+
+      text = text
+        .replace(
+          /^Tische? +Tische? +/iu,
+          function (match) {
+            return /^Tische /iu.test(match)
+              ? 'Tische '
+              : 'Tisch ';
+          }
+        )
+        .replace(
+          /^Tables? +Tables? +/iu,
+          function (match) {
+            return /^Tables /iu.test(match)
+              ? 'Tables '
+              : 'Table ';
+          }
+        );
+
+      return text;
+    }
+
+    /*
+     * PMD_DASHBOARD2_NATIVE_TODAY_CARDS_V6
+     *
+     * Native today count, real table labels and four rows.
+     */
+    var ev = data.calendar_events;
+
+    put(
+      'calendarEvents',
+      ev.available
+        ? (
+            '<div class="pmd-dashboard2-review-score">' +
+              '<b>' +
+                esc(ev.count || 0) +
+              '</b>' +
+              '<span>' +
+                (
+                  Number(ev.count || 0) === 1
+                    ? 'reservation today'
+                    : 'reservations today'
+                ) +
+              '</span>' +
+            '</div>' +
+
+            list(
+              (ev.events || []).slice(0, 4),
+              function (r) {
+                return (
+                  '<span>' +
+                    esc(
+                      cleanReservationTableTitle(
+                        r.title ||
+                        (
+                          (r.table_label || 'Kein Tisch') +
+                          ' · ' +
+                          (r.guests || 0) +
+                          ' Gäste'
+                        )
+                      )
+                    ) +
+                  '</span>' +
+
+                  '<b>' +
+                    esc(r.time || '') +
+                  '</b>'
+                );
+              }
+            )
+          )
+        : empty(ev)
+    );
 
     /* PMD_DASHBOARD2_V1410_ZERO_BLINK_CANONICAL_BOOT
      * The fetch callback runs after this complete bundle has been evaluated,
@@ -11677,28 +11834,12 @@
       }
     },
 
-    channelSplit: {
-      payloadKey: 'channels',
-      rowsKey: 'channels',
-      nameKey: 'channel',
-      valueKey: 'revenue',
-      title: 'Order channels',
-
-      summary(row, payload) {
-        return (
-          String(
-            Number(
-              row.orders || 0
-            )
-          ) +
-          ' · ' +
-          money(
-            row.revenue,
-            payload
-          )
-        );
-      }
-    }
+    /*
+     * PMD_DASHBOARD2_BESTELLKANAELE_CLEAN_V2
+     *
+     * channelSplit is intentionally excluded from V1395.
+     * Its only owner is PMDBestellkanaeleCleanV2.
+     */
   };
 
   const state = {

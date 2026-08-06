@@ -2264,3 +2264,428 @@ body.page
     transition-duration: 1ms !important;
   }
 }
+
+/*
+ * PMD_DASHBOARD2_LIFT_CHARTS_FOR_TOOLBAR_V11
+ *
+ * Move only the two primary chart frames upward inside their cards
+ * so the already-existing chart controls below the SVG can remain
+ * inside the visible card area.
+ *
+ * No JavaScript, SVG dimensions, chart data, mode logic or toolbar
+ * implementation is changed.
+ */
+#pmd-dashboard2-analytics-v1
+[data-pmd-analytics-widget="salesOverTime"]
+.pmd-dashboard2-widget-body,
+
+#pmd-dashboard2-analytics-v1
+[data-pmd-analytics-widget="salesByHour"]
+.pmd-dashboard2-widget-body {
+  padding-bottom: 42px !important;
+  overflow: visible !important;
+}
+
+#pmd-dashboard2-analytics-v1
+[data-pmd-analytics-widget="salesOverTime"]
+.pmd-dashboard2-chart-frame,
+
+#pmd-dashboard2-analytics-v1
+[data-pmd-analytics-widget="salesByHour"]
+.pmd-dashboard2-chart-frame {
+  transform: translateY(-30px) !important;
+  margin-bottom: -30px !important;
+  overflow: visible !important;
+}
+
+#pmd-dashboard2-analytics-v1
+[data-pmd-analytics-widget="salesOverTime"]
+.pmd-dashboard2-chart-nav-v137,
+
+#pmd-dashboard2-analytics-v1
+[data-pmd-analytics-widget="salesByHour"]
+.pmd-dashboard2-chart-nav-v137,
+
+#pmd-dashboard2-analytics-v1
+[data-pmd-analytics-widget="salesOverTime"]
+.pmd-dashboard2-zoom-scrubber-v1375,
+
+#pmd-dashboard2-analytics-v1
+[data-pmd-analytics-widget="salesByHour"]
+.pmd-dashboard2-zoom-scrubber-v1375 {
+  z-index: 20 !important;
+}
+
+@media (max-width: 768px) {
+  #pmd-dashboard2-analytics-v1
+  [data-pmd-analytics-widget="salesOverTime"]
+  .pmd-dashboard2-chart-frame,
+
+  #pmd-dashboard2-analytics-v1
+  [data-pmd-analytics-widget="salesByHour"]
+  .pmd-dashboard2-chart-frame {
+    transform: translateY(-20px) !important;
+    margin-bottom: -20px !important;
+  }
+
+  #pmd-dashboard2-analytics-v1
+  [data-pmd-analytics-widget="salesOverTime"]
+  .pmd-dashboard2-widget-body,
+
+  #pmd-dashboard2-analytics-v1
+  [data-pmd-analytics-widget="salesByHour"]
+  .pmd-dashboard2-widget-body {
+    padding-bottom: 34px !important;
+  }
+}
+
+/*
+ * PMD_DASHBOARD2_LOWER_CARDS_READABILITY_V1
+ *
+ * Scope:
+ * - Fill the unused vertical space inside Trinkgeldübersicht.
+ * - Slightly increase information text in the lower dashboard cards.
+ * - Do not change chart, toolbar, controller or data behavior.
+ */
+
+/* =========================================================
+   Trinkgeldübersicht — make the four cells fill the card
+   ========================================================= */
+
+#pmd-dashboard2-analytics-v1
+[data-pmd-analytics-widget="tips"] {
+  display: flex !important;
+  flex-direction: column !important;
+}
+
+#pmd-dashboard2-analytics-v1
+[data-pmd-analytics-widget="tips"]
+.pmd-dashboard2-widget-body {
+  display: flex !important;
+  flex: 1 1 auto !important;
+  min-height: 0 !important;
+  width: 100% !important;
+}
+
+#pmd-dashboard2-analytics-v1
+[data-pmd-analytics-widget="tips"]
+.pmd-dashboard2-stats {
+  display: grid !important;
+  flex: 1 1 auto !important;
+
+  width: 100% !important;
+  height: 100% !important;
+  min-height: 0 !important;
+
+  grid-template-columns:
+    minmax(0, 1fr)
+    minmax(0, 1fr) !important;
+
+  grid-template-rows:
+    minmax(0, 1fr)
+    minmax(0, 1fr) !important;
+
+  gap: 10px !important;
+}
+
+#pmd-dashboard2-analytics-v1
+[data-pmd-analytics-widget="tips"]
+.pmd-dashboard2-stats > div {
+  display: flex !important;
+  flex-direction: column !important;
+  justify-content: center !important;
+
+  min-height: 0 !important;
+  padding: 13px 14px !important;
+
+  box-sizing: border-box !important;
+}
+
+#pmd-dashboard2-analytics-v1
+[data-pmd-analytics-widget="tips"]
+.pmd-dashboard2-stats dt {
+  font-size: 11.5px !important;
+  line-height: 1.25 !important;
+}
+
+#pmd-dashboard2-analytics-v1
+[data-pmd-analytics-widget="tips"]
+.pmd-dashboard2-stats dd {
+  margin-top: 7px !important;
+  font-size: 18px !important;
+  line-height: 1.1 !important;
+}
+
+/* =========================================================
+   Lower cards — slightly larger information text
+   ========================================================= */
+
+#pmd-dashboard2-analytics-v1
+:is(
+  [data-pmd-analytics-widget="recentTransactions"],
+  [data-pmd-analytics-widget="alerts"],
+  [data-pmd-analytics-widget="liveOperations"],
+  [data-pmd-analytics-widget="topItems"],
+  [data-pmd-analytics-widget="tips"],
+  [data-pmd-analytics-widget="reviews"],
+  [data-pmd-analytics-widget="calendarEvents"]
+)
+.pmd-dashboard2-widget-body {
+  font-size: 13px !important;
+  line-height: 1.35 !important;
+}
+
+/* Lists: transactions, warnings, products, reviews, reservations */
+#pmd-dashboard2-analytics-v1
+:is(
+  [data-pmd-analytics-widget="recentTransactions"],
+  [data-pmd-analytics-widget="alerts"],
+  [data-pmd-analytics-widget="topItems"],
+  [data-pmd-analytics-widget="reviews"],
+  [data-pmd-analytics-widget="calendarEvents"]
+)
+.pmd-dashboard2-data-list li {
+  min-height: 34px !important;
+  padding: 9px 0 !important;
+
+  font-size: 13px !important;
+  line-height: 1.3 !important;
+}
+
+/* Main left-side descriptions */
+#pmd-dashboard2-analytics-v1
+:is(
+  [data-pmd-analytics-widget="recentTransactions"],
+  [data-pmd-analytics-widget="alerts"],
+  [data-pmd-analytics-widget="topItems"],
+  [data-pmd-analytics-widget="reviews"],
+  [data-pmd-analytics-widget="calendarEvents"]
+)
+.pmd-dashboard2-data-list li span {
+  font-size: 13px !important;
+}
+
+/* Right-side amounts, dates and statuses */
+#pmd-dashboard2-analytics-v1
+:is(
+  [data-pmd-analytics-widget="recentTransactions"],
+  [data-pmd-analytics-widget="alerts"],
+  [data-pmd-analytics-widget="topItems"],
+  [data-pmd-analytics-widget="reviews"],
+  [data-pmd-analytics-widget="calendarEvents"]
+)
+.pmd-dashboard2-data-list li b {
+  font-size: 12.75px !important;
+  line-height: 1.3 !important;
+}
+
+/* Live orders */
+#pmd-dashboard2-analytics-v1
+[data-pmd-analytics-widget="liveOperations"]
+.pmd-dashboard2-live-summary {
+  margin-bottom: 11px !important;
+  font-size: 13px !important;
+}
+
+#pmd-dashboard2-analytics-v1
+[data-pmd-analytics-widget="liveOperations"]
+.pmd-dashboard2-live-summary b {
+  font-size: 27px !important;
+}
+
+#pmd-dashboard2-analytics-v1
+[data-pmd-analytics-widget="liveOperations"]
+.pmd-dashboard2-data-list li {
+  min-height: 35px !important;
+  padding: 9px 0 !important;
+  font-size: 13px !important;
+}
+
+/* Keep compact sizing on small screens */
+@media (max-width: 768px) {
+  #pmd-dashboard2-analytics-v1
+  :is(
+    [data-pmd-analytics-widget="recentTransactions"],
+    [data-pmd-analytics-widget="alerts"],
+    [data-pmd-analytics-widget="liveOperations"],
+    [data-pmd-analytics-widget="topItems"],
+    [data-pmd-analytics-widget="tips"],
+    [data-pmd-analytics-widget="reviews"],
+    [data-pmd-analytics-widget="calendarEvents"]
+  )
+  .pmd-dashboard2-widget-body {
+    font-size: 12.5px !important;
+  }
+
+  #pmd-dashboard2-analytics-v1
+  [data-pmd-analytics-widget="tips"]
+  .pmd-dashboard2-stats > div {
+    padding: 11px 12px !important;
+  }
+}
+
+/*
+ * PMD_DASHBOARD2_TIPS_FULL_HEIGHT_V2
+ *
+ * Remove the remaining empty area under Trinkgeldübersicht.
+ * Scope is limited to the tips card.
+ */
+#pmd-dashboard2-analytics-v1
+[data-pmd-analytics-widget="tips"] {
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: stretch !important;
+}
+
+#pmd-dashboard2-analytics-v1
+[data-pmd-analytics-widget="tips"] > header {
+  flex: 0 0 auto !important;
+}
+
+#pmd-dashboard2-analytics-v1
+[data-pmd-analytics-widget="tips"]
+.pmd-dashboard2-widget-body {
+  display: flex !important;
+  flex: 1 1 0% !important;
+
+  width: 100% !important;
+  height: auto !important;
+  min-height: 0 !important;
+  max-height: none !important;
+
+  margin: 0 !important;
+  padding-bottom: 0 !important;
+
+  align-items: stretch !important;
+}
+
+#pmd-dashboard2-analytics-v1
+[data-pmd-analytics-widget="tips"]
+.pmd-dashboard2-stats {
+  display: grid !important;
+  flex: 1 1 0% !important;
+
+  width: 100% !important;
+  height: auto !important;
+  min-height: 0 !important;
+  max-height: none !important;
+
+  margin: 0 !important;
+
+  grid-template-columns:
+    repeat(2, minmax(0, 1fr)) !important;
+
+  grid-template-rows:
+    repeat(2, minmax(0, 1fr)) !important;
+
+  align-content: stretch !important;
+  align-items: stretch !important;
+}
+
+#pmd-dashboard2-analytics-v1
+[data-pmd-analytics-widget="tips"]
+.pmd-dashboard2-stats > div {
+  height: 100% !important;
+  min-height: 0 !important;
+
+  display: flex !important;
+  flex-direction: column !important;
+  justify-content: center !important;
+}
+
+/*
+ * PMD_DASHBOARD2_TIPS_GRID_AUTHORITY_V3
+ *
+ * Runtime audit showed a 63px gap between the tips grid and card bottom.
+ * Make the card a deterministic two-row grid:
+ *
+ * 1. Header
+ * 2. Widget body filling every remaining pixel
+ *
+ * Scope is strictly limited to the Tips summary card.
+ */
+#pmd-dashboard2-analytics-v1
+[data-pmd-analytics-widget="tips"] {
+  display: grid !important;
+
+  grid-template-columns:
+    minmax(0, 1fr) !important;
+
+  grid-template-rows:
+    auto
+    minmax(0, 1fr) !important;
+
+  align-items: stretch !important;
+  align-content: stretch !important;
+}
+
+#pmd-dashboard2-analytics-v1
+[data-pmd-analytics-widget="tips"] > header {
+  grid-column: 1 !important;
+  grid-row: 1 !important;
+
+  min-height: 0 !important;
+  margin-bottom: 13px !important;
+}
+
+#pmd-dashboard2-analytics-v1
+[data-pmd-analytics-widget="tips"]
+.pmd-dashboard2-widget-body {
+  grid-column: 1 !important;
+  grid-row: 2 !important;
+
+  display: grid !important;
+
+  width: 100% !important;
+  height: 100% !important;
+  min-width: 0 !important;
+  min-height: 0 !important;
+  max-height: none !important;
+
+  margin: 0 !important;
+  padding: 0 !important;
+
+  align-self: stretch !important;
+}
+
+#pmd-dashboard2-analytics-v1
+[data-pmd-analytics-widget="tips"]
+.pmd-dashboard2-stats {
+  display: grid !important;
+
+  width: 100% !important;
+  height: 100% !important;
+  min-width: 0 !important;
+  min-height: 0 !important;
+  max-height: none !important;
+
+  margin: 0 !important;
+
+  grid-template-columns:
+    repeat(2, minmax(0, 1fr)) !important;
+
+  grid-template-rows:
+    repeat(2, minmax(0, 1fr)) !important;
+
+  align-self: stretch !important;
+  align-items: stretch !important;
+  align-content: stretch !important;
+
+  gap: 10px !important;
+}
+
+#pmd-dashboard2-analytics-v1
+[data-pmd-analytics-widget="tips"]
+.pmd-dashboard2-stats > div {
+  display: flex !important;
+  flex-direction: column !important;
+  justify-content: center !important;
+
+  width: auto !important;
+  height: auto !important;
+  min-width: 0 !important;
+  min-height: 0 !important;
+
+  align-self: stretch !important;
+}
+

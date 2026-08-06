@@ -20,7 +20,7 @@ window.PMD_DASHBOARD2_KPI_PAYLOAD = @json($pmdDashboard2KpiPayload ?? null);
 -->
 <link
     rel="stylesheet"
-    href="/app/admin/assets/css/pmd-dashboard2-kpis-v1.css?v=dashboard2-v1413-fast-reveal"
+    href="/app/admin/assets/css/pmd-dashboard2-kpis-v1.css?v=dashboard2-tips-grid-authority-v3-20260805"
 >
 
 <style id="pmd-dashboard2-v1413-first-paint-lock">
@@ -375,8 +375,16 @@ window.PMD_DASHBOARD2_KPI_PAYLOAD = @json($pmdDashboard2KpiPayload ?? null);
     > [data-pmd-analytics-grid],
     #pmd-dashboard2-analytics-v1
     > .pmd-dashboard2-analytics-grid {
+      /*
+       * PMD_DASHBOARD2_REMOVE_UNUSED_FIFTH_ROW_V1
+       *
+       * The calendarEvents card now shares row four with
+       * Top items, Tips and Reviews. The old fifth 416px
+       * track had no card and created 434px of blank space:
+       * 416px track + 18px grid gap.
+       */
       grid-template-rows:
-        398px 398px 255px 255px 416px !important;
+        398px 398px 255px 255px !important;
     }
 
     #pmd-dashboard2-analytics-v1
@@ -524,13 +532,125 @@ window.PMD_DASHBOARD2_KPI_PAYLOAD = @json($pmdDashboard2KpiPayload ?? null);
       <div class="pmd-dashboard2-widget-body" data-pmd-widget-body></div>
     </article>
 
+    
+    <!-- PMD_DASHBOARD2_BESTELLKANAELE_CLEAN_V2 -->
     <article
-      class="pmd-dashboard2-analytics-card"
+      id="pmd-bestellkanaele-clean-v2"
+      class="pmd-dashboard2-analytics-card pmd-bestellkanaele-clean-v2"
       data-pmd-analytics-widget="channelSplit"
+      data-pmd-bestell-owner="clean-v2"
+      data-pmd-bestell-period="month"
+      aria-labelledby="pmd-bestell-title-v2"
     >
-      <header><h3>Order channels</h3></header>
-      <div class="pmd-dashboard2-widget-body" data-pmd-widget-body></div>
+      <header class="pmd-bestellkanaele-clean-v2__header">
+        <h3 id="pmd-bestell-title-v2">
+          Bestellkanäle
+        </h3>
+
+        <div
+          class="pmd-bestellkanaele-clean-v2__periods"
+          role="group"
+          aria-label="Zeitraum für Bestellkanäle"
+        >
+          <button
+            type="button"
+            data-pmd-bestell-period="today"
+            aria-pressed="false"
+          >
+            Tag
+          </button>
+
+          <button
+            type="button"
+            data-pmd-bestell-period="week"
+            aria-pressed="false"
+          >
+            Woche
+          </button>
+
+          <button
+            type="button"
+            data-pmd-bestell-period="month"
+            aria-pressed="false"
+          >
+            Monat
+          </button>
+        </div>
+      </header>
+
+      <div class="pmd-bestellkanaele-clean-v2__body">
+        <div class="pmd-bestellkanaele-clean-v2__chart">
+          <svg
+            viewBox="0 0 120 120"
+            role="img"
+            aria-label="Bestellkanäle Diagramm"
+          >
+            <circle
+              cx="60"
+              cy="60"
+              r="45"
+              pathLength="100"
+              fill="none"
+              stroke="#edf1ef"
+              stroke-width="18"
+            ></circle>
+
+            <circle
+              data-pmd-bestell-slice="dine-in"
+              cx="60"
+              cy="60"
+              r="45"
+              pathLength="100"
+              fill="none"
+              stroke="#00a676"
+              stroke-width="18"
+              stroke-dasharray="0 100"
+              stroke-dashoffset="0"
+            ></circle>
+
+            <circle
+              data-pmd-bestell-slice="delivery"
+              cx="60"
+              cy="60"
+              r="45"
+              pathLength="100"
+              fill="none"
+              stroke="#2f66e8"
+              stroke-width="18"
+              stroke-dasharray="0 100"
+              stroke-dashoffset="0"
+            ></circle>
+          </svg>
+        </div>
+
+        <ul class="pmd-bestellkanaele-clean-v2__legend">
+          <li data-pmd-bestell-row="dine-in">
+            <i aria-hidden="true"></i>
+
+            <span class="pmd-bestellkanaele-clean-v2__label">
+              Dine in
+            </span>
+
+            <strong data-pmd-bestell-value="count">0</strong>
+            <strong data-pmd-bestell-value="revenue">0,00 €</strong>
+            <strong data-pmd-bestell-value="percentage">0.0%</strong>
+          </li>
+
+          <li data-pmd-bestell-row="delivery">
+            <i aria-hidden="true"></i>
+
+            <span class="pmd-bestellkanaele-clean-v2__label">
+              Lieferung
+            </span>
+
+            <strong data-pmd-bestell-value="count">0</strong>
+            <strong data-pmd-bestell-value="revenue">0,00 €</strong>
+            <strong data-pmd-bestell-value="percentage">0.0%</strong>
+          </li>
+        </ul>
+      </div>
     </article>
+
 
     <article
       class="pmd-dashboard2-analytics-card is-wide"
@@ -917,24 +1037,19 @@ window.PMD_DASHBOARD2_KPI_PAYLOAD = @json($pmdDashboard2KpiPayload ?? null);
     }
 
     /*
-     * When the data attribute is on a wrapper, stretch its first
-     * internal card shell as well.
+     * PMD_DASHBOARD2_REMOVE_INVALID_FIRST_CHILD_HEIGHT_V1
+     *
+     * The first child of every Analytics article is the real HEADER,
+     * not an internal card shell.
+     *
+     * The removed rule assigned height, min-height and max-height
+     * of 100% to that HEADER. Chromium therefore stretched the
+     * Sales-over-time header across the full card and pushed the
+     * chart body outside the visible card area.
+     *
+     * No replacement height rule is needed. Headers and widget bodies
+     * now use their natural document flow in every browser.
      */
-    [data-pmd-analytics-widget="salesOverTime"] > :first-child,
-    [data-pmd-analytics-widget="categorySales"] > :first-child,
-    [data-pmd-analytics-widget="salesByHour"] > :first-child,
-    [data-pmd-analytics-widget="paymentMethods"] > :first-child,
-    [data-pmd-analytics-widget="alerts"] > :first-child,
-    [data-pmd-analytics-widget="liveOperations"] > :first-child,
-    [data-pmd-analytics-widget="channelSplit"] > :first-child,
-    [data-pmd-analytics-widget="topItems"] > :first-child,
-    [data-pmd-analytics-widget="tips"] > :first-child,
-    [data-pmd-analytics-widget="reviews"] > :first-child {
-      height: 100% !important;
-      min-height: 100% !important;
-      max-height: 100% !important;
-      box-sizing: border-box !important;
-    }
 
     /*
      * Canvas elements must follow the fixed card size rather than
@@ -984,7 +1099,1276 @@ window.PMD_DASHBOARD2_KPI_PAYLOAD = @json($pmdDashboard2KpiPayload ?? null);
   }
 </style>
 
-<script src="/app/admin/assets/js/pmd-dashboard2-kpis-v1.js?v=dashboard2-v1422-source-repair"></script>
+
+<!-- PMD_DASHBOARD2_BESTELLKANAELE_CLEAN_V2 -->
+<style id="pmd-bestellkanaele-clean-v2-style">
+  #pmd-bestellkanaele-clean-v2 {
+    position: relative !important;
+    overflow: hidden !important;
+  }
+
+  #pmd-bestellkanaele-clean-v2
+  .pmd-bestellkanaele-clean-v2__header {
+    display: grid !important;
+    grid-template-columns:
+      minmax(0, 1fr)
+      max-content !important;
+    align-items: start !important;
+    gap: 10px !important;
+  }
+
+  #pmd-bestellkanaele-clean-v2
+  .pmd-bestellkanaele-clean-v2__header h3 {
+    margin: 0 !important;
+    min-width: 0 !important;
+  }
+
+  #pmd-bestellkanaele-clean-v2
+  .pmd-bestellkanaele-clean-v2__periods {
+    display: inline-flex !important;
+    align-items: center !important;
+    gap: 2px !important;
+
+    padding: 3px !important;
+
+    border:
+      1px solid
+      rgba(0, 122, 89, 0.16) !important;
+
+    border-radius: 11px !important;
+
+    background:
+      rgba(247, 250, 249, 0.98) !important;
+
+    box-shadow:
+      0 3px 10px
+      rgba(16, 42, 67, 0.07) !important;
+  }
+
+  #pmd-bestellkanaele-clean-v2
+  button[data-pmd-bestell-period] {
+    appearance: none !important;
+
+    min-width: 39px !important;
+    height: 30px !important;
+
+    margin: 0 !important;
+    padding: 0 10px !important;
+
+    border: 0 !important;
+    border-radius: 8px !important;
+
+    background: transparent !important;
+    color: #52625e !important;
+
+    font: inherit !important;
+    font-size: 11px !important;
+    font-weight: 750 !important;
+    line-height: 1 !important;
+
+    cursor: pointer !important;
+
+    transition:
+      background 120ms ease,
+      color 120ms ease,
+      box-shadow 120ms ease !important;
+  }
+
+  #pmd-bestellkanaele-clean-v2
+  button[data-pmd-bestell-period][aria-pressed="true"] {
+    color: #ffffff !important;
+    background: #008f6a !important;
+
+    box-shadow:
+      0 2px 7px
+      rgba(0, 143, 106, 0.22) !important;
+  }
+
+  #pmd-bestellkanaele-clean-v2
+  button[data-pmd-bestell-period]:hover:not(
+    [aria-pressed="true"]
+  ) {
+    background:
+      rgba(0, 143, 106, 0.08) !important;
+  }
+
+  #pmd-bestellkanaele-clean-v2
+  .pmd-bestellkanaele-clean-v2__body {
+    display: grid !important;
+    grid-template-rows:
+      minmax(0, 1fr)
+      auto !important;
+
+    align-items: center !important;
+    gap: 10px !important;
+
+    width: 100% !important;
+    min-width: 0 !important;
+    min-height: 0 !important;
+
+    padding-top: 8px !important;
+  }
+
+  #pmd-bestellkanaele-clean-v2
+  .pmd-bestellkanaele-clean-v2__chart {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+  }
+
+  #pmd-bestellkanaele-clean-v2
+  .pmd-bestellkanaele-clean-v2__chart svg {
+    display: block !important;
+
+    width: 142px !important;
+    height: 142px !important;
+    max-width: 48% !important;
+
+    transform: rotate(-90deg);
+    transform-origin: center;
+  }
+
+  #pmd-bestellkanaele-clean-v2
+  .pmd-bestellkanaele-clean-v2__chart circle {
+    transition:
+      stroke-dasharray 150ms ease,
+      stroke-dashoffset 150ms ease !important;
+  }
+
+  #pmd-bestellkanaele-clean-v2
+  .pmd-bestellkanaele-clean-v2__legend {
+    display: grid !important;
+    gap: 3px !important;
+
+    width: 100% !important;
+    min-width: 0 !important;
+
+    margin: 0 !important;
+    padding: 0 !important;
+
+    list-style: none !important;
+  }
+
+  #pmd-bestellkanaele-clean-v2
+  .pmd-bestellkanaele-clean-v2__legend > li {
+    display: grid !important;
+
+    grid-template-columns:
+      14px
+      minmax(68px, 1fr)
+      28px
+      minmax(72px, auto)
+      minmax(44px, auto) !important;
+
+    align-items: center !important;
+    column-gap: 7px !important;
+
+    min-width: 0 !important;
+    padding: 3px 0 !important;
+  }
+
+  #pmd-bestellkanaele-clean-v2
+  .pmd-bestellkanaele-clean-v2__legend > li > i {
+    display: block !important;
+
+    width: 10px !important;
+    height: 10px !important;
+
+    border:
+      2px solid
+      #ffffff !important;
+
+    border-radius: 999px !important;
+
+    box-shadow:
+      0 0 0 1px
+      rgba(16, 42, 67, 0.18) !important;
+  }
+
+  #pmd-bestellkanaele-clean-v2
+  [data-pmd-bestell-row="dine-in"] > i {
+    background: #00a676 !important;
+  }
+
+  #pmd-bestellkanaele-clean-v2
+  [data-pmd-bestell-row="delivery"] > i {
+    background: #2f66e8 !important;
+  }
+
+  #pmd-bestellkanaele-clean-v2
+  .pmd-bestellkanaele-clean-v2__label {
+    min-width: 0 !important;
+
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+    white-space: nowrap !important;
+
+    color: #52625e !important;
+  }
+
+  #pmd-bestellkanaele-clean-v2
+  [data-pmd-bestell-value] {
+    white-space: nowrap !important;
+
+    color: #243c35 !important;
+    font-size: 11px !important;
+    font-weight: 800 !important;
+  }
+
+  #pmd-bestellkanaele-clean-v2
+  [data-pmd-bestell-value="count"] {
+    text-align: center !important;
+  }
+
+  #pmd-bestellkanaele-clean-v2
+  [data-pmd-bestell-value="revenue"],
+  #pmd-bestellkanaele-clean-v2
+  [data-pmd-bestell-value="percentage"] {
+    text-align: right !important;
+  }
+
+  #pmd-bestellkanaele-clean-v2[
+    data-pmd-bestell-loading="true"
+  ]
+  .pmd-bestellkanaele-clean-v2__periods {
+    opacity: 0.72 !important;
+  }
+
+  @media (max-width: 1250px) {
+    #pmd-bestellkanaele-clean-v2
+    .pmd-bestellkanaele-clean-v2__legend > li {
+      grid-template-columns:
+        12px
+        minmax(55px, 1fr)
+        22px
+        minmax(58px, auto)
+        minmax(38px, auto) !important;
+
+      column-gap: 5px !important;
+    }
+
+    #pmd-bestellkanaele-clean-v2
+    [data-pmd-bestell-value] {
+      font-size: 10px !important;
+    }
+  }
+
+
+  /*
+   * PMD_BESTELLKANAELE_CLEAN_V21_LAYOUT
+   *
+   * CSS-only refinement:
+   * - period toggle aligned to far right
+   * - donut moved upward
+   * - Dine in and Lieferung both visible
+   * - JavaScript and API behavior unchanged
+   */
+
+  #pmd-bestellkanaele-clean-v2 {
+    display: flex !important;
+    flex-direction: column !important;
+
+    height: 255px !important;
+    min-height: 255px !important;
+    max-height: 255px !important;
+
+    padding:
+      14px
+      14px
+      10px !important;
+
+    overflow: hidden !important;
+  }
+
+  #pmd-bestellkanaele-clean-v2
+  > .pmd-bestellkanaele-clean-v2__header {
+    position: relative !important;
+
+    display: flex !important;
+    flex: 0 0 auto !important;
+
+    align-items: flex-start !important;
+    justify-content: space-between !important;
+
+    width: 100% !important;
+    min-width: 0 !important;
+
+    gap: 12px !important;
+
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+
+  #pmd-bestellkanaele-clean-v2
+  > .pmd-bestellkanaele-clean-v2__header
+  > h3 {
+    flex: 1 1 auto !important;
+
+    min-width: 0 !important;
+
+    margin: 0 !important;
+    padding: 0 !important;
+
+    white-space: nowrap !important;
+  }
+
+  #pmd-bestellkanaele-clean-v2
+  > .pmd-bestellkanaele-clean-v2__header
+  > .pmd-bestellkanaele-clean-v2__periods {
+    position: relative !important;
+
+    top: auto !important;
+    right: auto !important;
+    bottom: auto !important;
+    left: auto !important;
+
+    flex: 0 0 auto !important;
+    align-self: flex-start !important;
+
+    margin:
+      -2px
+      0
+      0
+      auto !important;
+
+    transform: none !important;
+  }
+
+  #pmd-bestellkanaele-clean-v2
+  > .pmd-bestellkanaele-clean-v2__body {
+    display: grid !important;
+    flex: 1 1 auto !important;
+
+    grid-template-rows:
+      minmax(0, 1fr)
+      auto !important;
+
+    align-content: stretch !important;
+    align-items: center !important;
+
+    width: 100% !important;
+    min-width: 0 !important;
+    min-height: 0 !important;
+    max-height: none !important;
+
+    gap: 1px !important;
+
+    margin: 0 !important;
+    padding: 0 !important;
+
+    overflow: visible !important;
+  }
+
+  #pmd-bestellkanaele-clean-v2
+  .pmd-bestellkanaele-clean-v2__chart {
+    display: flex !important;
+
+    align-items: flex-start !important;
+    justify-content: center !important;
+
+    min-width: 0 !important;
+    min-height: 0 !important;
+
+    margin:
+      -9px
+      0
+      -5px !important;
+
+    padding: 0 !important;
+
+    transform:
+      translateY(-5px) !important;
+  }
+
+  #pmd-bestellkanaele-clean-v2
+  .pmd-bestellkanaele-clean-v2__chart
+  svg {
+    display: block !important;
+    flex: 0 0 auto !important;
+
+    width: 122px !important;
+    height: 122px !important;
+
+    max-width: none !important;
+    max-height: none !important;
+
+    margin: 0 !important;
+
+    transform:
+      rotate(-90deg) !important;
+
+    transform-origin:
+      50%
+      50% !important;
+  }
+
+  #pmd-bestellkanaele-clean-v2
+  .pmd-bestellkanaele-clean-v2__legend {
+    position: relative !important;
+
+    display: grid !important;
+    flex: 0 0 auto !important;
+
+    grid-template-rows:
+      repeat(2, minmax(20px, auto)) !important;
+
+    gap: 0 !important;
+
+    width: 100% !important;
+    min-width: 0 !important;
+
+    height: auto !important;
+    min-height: 42px !important;
+    max-height: none !important;
+
+    margin:
+      -2px
+      0
+      0 !important;
+
+    padding: 0 !important;
+
+    overflow: visible !important;
+  }
+
+  #pmd-bestellkanaele-clean-v2
+  .pmd-bestellkanaele-clean-v2__legend
+  > li {
+    display: grid !important;
+
+    grid-template-columns:
+      14px
+      minmax(68px, 1fr)
+      28px
+      minmax(72px, auto)
+      minmax(44px, auto) !important;
+
+    align-items: center !important;
+
+    min-height: 20px !important;
+
+    column-gap: 7px !important;
+
+    margin: 0 !important;
+
+    padding:
+      1px
+      0 !important;
+
+    overflow: visible !important;
+  }
+
+  /*
+   * Neutralize old generic channelSplit body restrictions.
+   */
+  #pmd-dashboard2-analytics-v1
+  [data-pmd-analytics-widget="channelSplit"]
+  > .pmd-bestellkanaele-clean-v2__body {
+    height: auto !important;
+    min-height: 0 !important;
+    max-height: none !important;
+
+    overflow: visible !important;
+  }
+
+  #pmd-dashboard2-analytics-v1
+  [data-pmd-analytics-widget="channelSplit"]
+  .pmd-bestellkanaele-clean-v2__legend {
+    height: auto !important;
+    min-height: 42px !important;
+    max-height: none !important;
+
+    overflow: visible !important;
+  }
+
+  @media (max-width: 1250px) {
+    #pmd-bestellkanaele-clean-v2 {
+      padding:
+        12px
+        12px
+        9px !important;
+    }
+
+    #pmd-bestellkanaele-clean-v2
+    > .pmd-bestellkanaele-clean-v2__header {
+      gap: 7px !important;
+    }
+
+    #pmd-bestellkanaele-clean-v2
+    > .pmd-bestellkanaele-clean-v2__header
+    > .pmd-bestellkanaele-clean-v2__periods {
+      margin-left: auto !important;
+    }
+
+    #pmd-bestellkanaele-clean-v2
+    button[data-pmd-bestell-period] {
+      min-width: 36px !important;
+      height: 28px !important;
+
+      padding:
+        0
+        8px !important;
+
+      font-size: 10px !important;
+    }
+
+    #pmd-bestellkanaele-clean-v2
+    .pmd-bestellkanaele-clean-v2__chart {
+      margin-top: -7px !important;
+
+      transform:
+        translateY(-4px) !important;
+    }
+
+    #pmd-bestellkanaele-clean-v2
+    .pmd-bestellkanaele-clean-v2__chart
+    svg {
+      width: 114px !important;
+      height: 114px !important;
+    }
+  }
+
+
+  /*
+   * PMD_BESTELLKANAELE_TOGGLE_RIGHT_V22
+   *
+   * Move Tag / Woche / Monat farther toward
+   * the card's top-right corner.
+   *
+   * No JavaScript, API, chart or row behavior changed.
+   */
+
+  #pmd-bestellkanaele-clean-v2
+  > .pmd-bestellkanaele-clean-v2__header {
+    width: 100% !important;
+    max-width: none !important;
+
+    padding-right: 0 !important;
+  }
+
+  #pmd-bestellkanaele-clean-v2
+  > .pmd-bestellkanaele-clean-v2__header
+  > .pmd-bestellkanaele-clean-v2__periods {
+    position: absolute !important;
+
+    top: -3px !important;
+    right: 0 !important;
+    bottom: auto !important;
+    left: auto !important;
+
+    margin: 0 !important;
+
+    transform:
+      translateX(0) !important;
+
+    z-index: 5 !important;
+  }
+
+  #pmd-bestellkanaele-clean-v2
+  > .pmd-bestellkanaele-clean-v2__header
+  > h3 {
+    padding-right: 190px !important;
+  }
+
+  @media (max-width: 1250px) {
+    #pmd-bestellkanaele-clean-v2
+    > .pmd-bestellkanaele-clean-v2__header
+    > .pmd-bestellkanaele-clean-v2__periods {
+      top: -2px !important;
+      right: 0 !important;
+    }
+
+    #pmd-bestellkanaele-clean-v2
+    > .pmd-bestellkanaele-clean-v2__header
+    > h3 {
+      padding-right: 170px !important;
+    }
+  }
+
+
+  /*
+   * PMD_BESTELLKANAELE_CHART_BIGGER_V23
+   *
+   * Increase only the donut SVG size.
+   * Header, toggles, rows, spacing, API and JavaScript remain unchanged.
+   */
+
+  #pmd-bestellkanaele-clean-v2
+  .pmd-bestellkanaele-clean-v2__chart
+  svg {
+    width: 138px !important;
+    height: 138px !important;
+  }
+
+  @media (max-width: 1250px) {
+    #pmd-bestellkanaele-clean-v2
+    .pmd-bestellkanaele-clean-v2__chart
+    svg {
+      width: 128px !important;
+      height: 128px !important;
+    }
+  }
+</style>
+
+<script id="pmd-bestellkanaele-clean-v2-script">
+(() => {
+  'use strict';
+
+  const VERSION = '2.0.0';
+
+  const CARD_ID =
+    'pmd-bestellkanaele-clean-v2';
+
+  const STORAGE_KEY =
+    'pmd.dashboard2.bestellkanaele.period.clean.v2';
+
+  const PERIODS = [
+    'today',
+    'week',
+    'month'
+  ];
+
+  const state = {
+    period: 'month',
+    generation: 0,
+    requests: 0,
+    updates: 0,
+    errors: 0,
+    cache: new Map()
+  };
+
+  const card = () =>
+    document.getElementById(
+      CARD_ID
+    );
+
+  const normalizePeriod = value => {
+    value = String(value || '');
+
+    return PERIODS.includes(value)
+      ? value
+      : 'month';
+  };
+
+  const normalizeChannel = value => {
+    const text =
+      String(value || '')
+        .trim()
+        .toLowerCase()
+        .replace(/[-_]+/g, ' ')
+        .replace(/\s+/g, ' ');
+
+    if (
+      text.includes('delivery') ||
+      text.includes('liefer')
+    ) {
+      return 'delivery';
+    }
+
+    if (
+      text.includes('dine') ||
+      text.includes('restaurant') ||
+      text.includes('vor ort') ||
+      text.includes('table')
+    ) {
+      return 'dine-in';
+    }
+
+    return text;
+  };
+
+  const readPeriod = () => {
+    try {
+      return normalizePeriod(
+        localStorage.getItem(
+          STORAGE_KEY
+        )
+      );
+    } catch (error) {
+      return 'month';
+    }
+  };
+
+  const storePeriod = period => {
+    try {
+      localStorage.setItem(
+        STORAGE_KEY,
+        period
+      );
+    } catch (error) {
+      // Storage is optional.
+    }
+  };
+
+  const money = (
+    amount,
+    currency
+  ) => {
+    try {
+      return new Intl.NumberFormat(
+        document.documentElement.lang ||
+          'de-DE',
+        {
+          style: 'currency',
+          currency:
+            currency || 'EUR'
+        }
+      ).format(
+        Number(amount || 0)
+      );
+    } catch (error) {
+      return (
+        Number(amount || 0)
+          .toFixed(2)
+          .replace('.', ',') +
+        ' €'
+      );
+    }
+  };
+
+  const row = key =>
+    card()?.querySelector(
+      `[data-pmd-bestell-row="${key}"]`
+    ) || null;
+
+  const slice = key =>
+    card()?.querySelector(
+      `[data-pmd-bestell-slice="${key}"]`
+    ) || null;
+
+  const setLoading = loading => {
+    const target = card();
+
+    if (!target) {
+      return;
+    }
+
+    target.dataset.pmdBestellLoading =
+      loading ? 'true' : 'false';
+
+    target.querySelectorAll(
+      'button[data-pmd-bestell-period]'
+    ).forEach(button => {
+      button.disabled =
+        Boolean(loading);
+    });
+  };
+
+  const syncButtons = period => {
+    card()?.querySelectorAll(
+      'button[data-pmd-bestell-period]'
+    ).forEach(button => {
+      const active =
+        button.dataset.pmdBestellPeriod ===
+        period;
+
+      button.setAttribute(
+        'aria-pressed',
+        active ? 'true' : 'false'
+      );
+    });
+  };
+
+  const extractValues = payload => {
+    const sourceRows =
+      Array.isArray(
+        payload?.channels?.channels
+      )
+        ? payload.channels.channels
+        : [];
+
+    const values = {
+      'dine-in': {
+        orders: 0,
+        revenue: 0
+      },
+
+      delivery: {
+        orders: 0,
+        revenue: 0
+      }
+    };
+
+    sourceRows.forEach(sourceRow => {
+      const key =
+        normalizeChannel(
+          sourceRow?.channel
+        );
+
+      if (!values[key]) {
+        return;
+      }
+
+      values[key] = {
+        orders:
+          Number(
+            sourceRow?.orders || 0
+          ),
+
+        revenue:
+          Number(
+            sourceRow?.revenue || 0
+          )
+      };
+    });
+
+    return values;
+  };
+
+  const updateRow = (
+    key,
+    values,
+    totalRevenue,
+    currency
+  ) => {
+    const target = row(key);
+
+    if (!target) {
+      return 0;
+    }
+
+    const percentage =
+      totalRevenue > 0
+        ? (
+            values.revenue /
+            totalRevenue *
+            100
+          )
+        : 0;
+
+    target.querySelector(
+      '[data-pmd-bestell-value="count"]'
+    ).textContent =
+      String(values.orders);
+
+    target.querySelector(
+      '[data-pmd-bestell-value="revenue"]'
+    ).textContent =
+      money(
+        values.revenue,
+        currency
+      );
+
+    target.querySelector(
+      '[data-pmd-bestell-value="percentage"]'
+    ).textContent =
+      percentage.toFixed(1) +
+      '%';
+
+    return percentage;
+  };
+
+  const updateSlices = percentages => {
+    let offset = 0;
+
+    [
+      'dine-in',
+      'delivery'
+    ].forEach(key => {
+      const target = slice(key);
+
+      if (!target) {
+        return;
+      }
+
+      const value =
+        Math.max(
+          0,
+          Number(
+            percentages[key] || 0
+          )
+        );
+
+      target.setAttribute(
+        'stroke-dasharray',
+        `${value} ${100 - value}`
+      );
+
+      target.setAttribute(
+        'stroke-dashoffset',
+        String(-offset)
+      );
+
+      offset += value;
+    });
+  };
+
+  const applyPayload = (
+    payload,
+    period
+  ) => {
+    const target = card();
+
+    if (!target) {
+      return false;
+    }
+
+    const values =
+      extractValues(payload);
+
+    const totalRevenue =
+      values['dine-in'].revenue +
+      values.delivery.revenue;
+
+    const currency =
+      payload?.currency ||
+      'EUR';
+
+    const percentages = {
+      'dine-in':
+        updateRow(
+          'dine-in',
+          values['dine-in'],
+          totalRevenue,
+          currency
+        ),
+
+      delivery:
+        updateRow(
+          'delivery',
+          values.delivery,
+          totalRevenue,
+          currency
+        )
+    };
+
+    updateSlices(percentages);
+
+    target.dataset.pmdBestellOwner =
+      'clean-v2';
+
+    target.dataset.pmdBestellRowsStable =
+      'true';
+
+    target.dataset.pmdBestellPeriod =
+      period;
+
+    state.updates += 1;
+
+    return true;
+  };
+
+  const requestPayload = period => {
+    if (state.cache.has(period)) {
+      return Promise.resolve(
+        state.cache.get(period)
+      );
+    }
+
+    state.requests += 1;
+
+    return fetch(
+      (
+        '/admin/dashboard2' +
+        '?pmd_analytics=1' +
+        '&period=' +
+        encodeURIComponent(period)
+      ),
+      {
+        credentials: 'same-origin',
+        cache: 'no-store',
+        headers: {
+          Accept: 'application/json'
+        }
+      }
+    )
+      .then(response => {
+        if (!response.ok) {
+          throw new Error(
+            `HTTP ${response.status}`
+          );
+        }
+
+        return response.json();
+      })
+      .then(payload => {
+        if (
+          !payload ||
+          payload.success !== true
+        ) {
+          throw new Error(
+            'Invalid analytics payload'
+          );
+        }
+
+        state.cache.set(
+          period,
+          payload
+        );
+
+        return payload;
+      });
+  };
+
+  const setPeriod = period => {
+    period =
+      normalizePeriod(period);
+
+    state.period = period;
+    state.generation += 1;
+
+    const generation =
+      state.generation;
+
+    storePeriod(period);
+    syncButtons(period);
+    setLoading(true);
+
+    return requestPayload(period)
+      .then(payload => {
+        if (
+          generation !==
+            state.generation ||
+          period !==
+            state.period
+        ) {
+          return {
+            applied: false,
+            reason: 'stale-request'
+          };
+        }
+
+        return {
+          applied:
+            applyPayload(
+              payload,
+              period
+            ),
+          period
+        };
+      })
+      .catch(error => {
+        state.errors += 1;
+
+        console.error(
+          '[PMD Bestellkanäle Clean V2]',
+          {
+            period,
+            error
+          }
+        );
+
+        return {
+          applied: false,
+          period,
+          error:
+            String(
+              error?.message ||
+              error
+            )
+        };
+      })
+      .finally(() => {
+        if (
+          generation ===
+          state.generation
+        ) {
+          setLoading(false);
+        }
+      });
+  };
+
+  const onClick = event => {
+    const button =
+      event.target.closest(
+        'button[data-pmd-bestell-period]'
+      );
+
+    const target = card();
+
+    if (
+      !button ||
+      !target ||
+      !target.contains(button)
+    ) {
+      return;
+    }
+
+    event.preventDefault();
+
+    setPeriod(
+      button.dataset
+        .pmdBestellPeriod
+    );
+  };
+
+  const audit = () => {
+    const target = card();
+
+    const rows =
+      target
+        ? Array.from(
+            target.querySelectorAll(
+              '[data-pmd-bestell-row]'
+            )
+          ).map(item => ({
+            key:
+              item.dataset
+                .pmdBestellRow,
+
+            label:
+              item.querySelector(
+                '.pmd-bestellkanaele-clean-v2__label'
+              )?.textContent?.trim(),
+
+            count:
+              item.querySelector(
+                '[data-pmd-bestell-value="count"]'
+              )?.textContent?.trim(),
+
+            revenue:
+              item.querySelector(
+                '[data-pmd-bestell-value="revenue"]'
+              )?.textContent?.trim(),
+
+            percentage:
+              item.querySelector(
+                '[data-pmd-bestell-value="percentage"]'
+              )?.textContent?.trim()
+          }))
+        : [];
+
+    const result = {
+      version: VERSION,
+      cardFound:
+        Boolean(target),
+
+      owner:
+        target?.dataset
+          .pmdBestellOwner ||
+        null,
+
+      period:
+        state.period,
+
+      rowsStable:
+        target?.dataset
+          .pmdBestellRowsStable ===
+        'true',
+
+      rowCount:
+        rows.length,
+
+      buttons:
+        target?.querySelectorAll(
+          'button[data-pmd-bestell-period]'
+        ).length || 0,
+
+      activeButtons:
+        target?.querySelectorAll(
+          'button[data-pmd-bestell-period][aria-pressed="true"]'
+        ).length || 0,
+
+      requests:
+        state.requests,
+
+      updates:
+        state.updates,
+
+      errors:
+        state.errors,
+
+      cachedPeriods:
+        Array.from(
+          state.cache.keys()
+        ),
+
+      oldV1431ScriptElement:
+        Boolean(
+          document.getElementById(
+            'pmd-dashboard2-v1431-safe-channel-script'
+          )
+        ),
+
+      oldV1432ScriptElement:
+        Boolean(
+          document.getElementById(
+            'pmd-dashboard2-v1432-channel-toggle-persistence'
+          )
+        ),
+
+      rows
+    };
+
+    console.info(
+      '[PMD Bestellkanäle Clean V2 Audit]',
+      result
+    );
+
+    return result;
+  };
+
+  const boot = () => {
+    const target = card();
+
+    if (!target) {
+      return;
+    }
+
+    state.period =
+      readPeriod();
+
+    target.addEventListener(
+      'click',
+      onClick
+    );
+
+    syncButtons(
+      state.period
+    );
+
+    setPeriod(
+      state.period
+    );
+
+    console.info(
+      '[PMD Bestellkanäle Clean V2] Ready',
+      {
+        version: VERSION,
+        observer: false,
+        stableRows: true
+      }
+    );
+  };
+
+  window.PMDBestellkanaeleCleanV2 = {
+    version: VERSION,
+    setPeriod,
+    audit,
+
+    refresh(force = true) {
+      if (force) {
+        state.cache.delete(
+          state.period
+        );
+      }
+
+      return setPeriod(
+        state.period
+      );
+    }
+  };
+
+  if (
+    document.readyState ===
+    'loading'
+  ) {
+    document.addEventListener(
+      'DOMContentLoaded',
+      boot,
+      {
+        once: true
+      }
+    );
+  } else {
+    boot();
+  }
+})();
+</script>
+
+
+<!-- PMD_DASHBOARD2_NATIVE_V6_CACHE_BUST -->
+<script src="/app/admin/assets/js/pmd-dashboard2-kpis-v1.js?v=table-prefix-fix-v63-20260806"></script>
 
 {{-- PMD_DASHBOARD2_CORRECT_DONUT_STACK_V134 --}}
 <style id="pmd-dashboard2-correct-donut-stack-v134">
@@ -3070,397 +4454,1630 @@ window.PMD_DASHBOARD2_KPI_PAYLOAD = @json($pmdDashboard2KpiPayload ?? null);
   }
 </style>
 
-
-<!-- PMD_DASHBOARD2_V1431_SAFE_CHANNELS_TIPS -->
-<style id="pmd-dashboard2-v1431-safe-channel-legend">
+<!-- PMD_DASHBOARD2_TIPS_RUNTIME_HEIGHT_V4 -->
+<style id="pmd-dashboard2-tips-runtime-height-v4-style">
   /*
-   * Exact production structure:
+   * Exact lower-card readability authority.
+   * Scope is limited to the specified Dashboard2 cards.
+   */
+  #pmd-dashboard2-analytics-v1
+  :is(
+    [data-pmd-analytics-widget="recentTransactions"],
+    [data-pmd-analytics-widget="alerts"],
+    [data-pmd-analytics-widget="liveOperations"],
+    [data-pmd-analytics-widget="topItems"],
+    [data-pmd-analytics-widget="reviews"],
+    [data-pmd-analytics-widget="calendarEvents"]
+  )
+  .pmd-dashboard2-widget-body {
+    font-size: 14px !important;
+    line-height: 1.38 !important;
+  }
+
+  #pmd-dashboard2-analytics-v1
+  :is(
+    [data-pmd-analytics-widget="recentTransactions"],
+    [data-pmd-analytics-widget="alerts"],
+    [data-pmd-analytics-widget="liveOperations"],
+    [data-pmd-analytics-widget="topItems"],
+    [data-pmd-analytics-widget="reviews"],
+    [data-pmd-analytics-widget="calendarEvents"]
+  )
+  .pmd-dashboard2-data-list li {
+    font-size: 14px !important;
+    line-height: 1.35 !important;
+    min-height: 36px !important;
+  }
+
+  #pmd-dashboard2-analytics-v1
+  :is(
+    [data-pmd-analytics-widget="recentTransactions"],
+    [data-pmd-analytics-widget="alerts"],
+    [data-pmd-analytics-widget="liveOperations"],
+    [data-pmd-analytics-widget="topItems"],
+    [data-pmd-analytics-widget="reviews"],
+    [data-pmd-analytics-widget="calendarEvents"]
+  )
+  .pmd-dashboard2-data-list li span {
+    font-size: 14px !important;
+  }
+
+  #pmd-dashboard2-analytics-v1
+  :is(
+    [data-pmd-analytics-widget="recentTransactions"],
+    [data-pmd-analytics-widget="alerts"],
+    [data-pmd-analytics-widget="liveOperations"],
+    [data-pmd-analytics-widget="topItems"],
+    [data-pmd-analytics-widget="reviews"],
+    [data-pmd-analytics-widget="calendarEvents"]
+  )
+  .pmd-dashboard2-data-list li b {
+    font-size: 13.5px !important;
+    line-height: 1.35 !important;
+  }
+
+  #pmd-dashboard2-analytics-v1
+  [data-pmd-analytics-widget="tips"]
+  .pmd-dashboard2-stats dt {
+    font-size: 13px !important;
+    line-height: 1.25 !important;
+  }
+
+  #pmd-dashboard2-analytics-v1
+  [data-pmd-analytics-widget="tips"]
+  .pmd-dashboard2-stats dd {
+    font-size: 20px !important;
+    line-height: 1.1 !important;
+  }
+</style>
+
+<script>
+(function () {
+  'use strict';
+
+  const PATCH_KEY =
+    'PMDDashboard2TipsRuntimeHeightV4';
+
+  if (window[PATCH_KEY]?.installed) {
+    return;
+  }
+
+  let scheduledFrame = 0;
+
+  function important(element, property, value) {
+    if (!element) {
+      return;
+    }
+
+    element.style.setProperty(
+      property,
+      value,
+      'important'
+    );
+  }
+
+  function applyTipsHeight() {
+    const card = document.querySelector(
+      '#pmd-dashboard2-analytics-v1 ' +
+      '[data-pmd-analytics-widget="tips"]'
+    );
+
+    const body = card?.querySelector(
+      '.pmd-dashboard2-widget-body'
+    );
+
+    const grid = card?.querySelector(
+      '.pmd-dashboard2-stats'
+    );
+
+    if (!card || !body || !grid) {
+      return {
+        applied: false,
+        reason: 'tips-elements-not-ready'
+      };
+    }
+
+    important(card, 'display', 'grid');
+    important(
+      card,
+      'grid-template-rows',
+      'auto minmax(0, 1fr)'
+    );
+    important(
+      card,
+      'align-items',
+      'stretch'
+    );
+
+    important(body, 'display', 'block');
+    important(body, 'height', '100%');
+    important(body, 'min-height', '0');
+    important(body, 'max-height', 'none');
+    important(body, 'padding', '0');
+    important(body, 'overflow', 'hidden');
+
+    /*
+     * The audit showed:
+     * body = 188px
+     * grid = 142px
+     *
+     * Set the grid to the exact rendered body height so no
+     * later flex/grid rule can shrink it again.
+     */
+    const bodyHeight =
+      Math.max(
+        0,
+        Math.round(
+          body.getBoundingClientRect().height
+        )
+      );
+
+    important(grid, 'display', 'grid');
+    important(grid, 'width', '100%');
+    important(
+      grid,
+      'height',
+      `${bodyHeight}px`
+    );
+    important(
+      grid,
+      'min-height',
+      `${bodyHeight}px`
+    );
+    important(
+      grid,
+      'max-height',
+      `${bodyHeight}px`
+    );
+
+    important(
+      grid,
+      'grid-template-columns',
+      'repeat(2, minmax(0, 1fr))'
+    );
+
+    important(
+      grid,
+      'grid-template-rows',
+      'repeat(2, minmax(0, 1fr))'
+    );
+
+    important(grid, 'gap', '10px');
+    important(grid, 'margin', '0');
+    important(grid, 'align-items', 'stretch');
+    important(grid, 'align-content', 'stretch');
+
+    [...grid.children].forEach(cell => {
+      important(cell, 'height', 'auto');
+      important(cell, 'min-height', '0');
+      important(cell, 'align-self', 'stretch');
+      important(cell, 'display', 'flex');
+      important(cell, 'flex-direction', 'column');
+      important(cell, 'justify-content', 'center');
+    });
+
+    const cardRect =
+      card.getBoundingClientRect();
+
+    const gridRect =
+      grid.getBoundingClientRect();
+
+    const result = {
+      applied: true,
+      bodyHeight,
+      gridHeight:
+        Math.round(gridRect.height),
+
+      cardBottomGap:
+        Math.round(
+          cardRect.bottom -
+          gridRect.bottom
+        )
+    };
+
+    console.info(
+      '[PMD Dashboard2 Tips Runtime Height V4]',
+      result
+    );
+
+    return result;
+  }
+
+  function schedule() {
+    if (scheduledFrame) {
+      cancelAnimationFrame(scheduledFrame);
+    }
+
+    scheduledFrame =
+      requestAnimationFrame(() => {
+        scheduledFrame = 0;
+        applyTipsHeight();
+      });
+  }
+
+  function boot() {
+    const result = applyTipsHeight();
+
+    const root =
+      document.getElementById(
+        'pmd-dashboard2-analytics-v1'
+      );
+
+    if (root) {
+      const observer =
+        new MutationObserver(schedule);
+
+      observer.observe(root, {
+        childList: true,
+        subtree: true
+      });
+    }
+
+    window.addEventListener(
+      'resize',
+      schedule,
+      { passive: true }
+    );
+
+    [100, 300, 700, 1400].forEach(delay => {
+      window.setTimeout(
+        applyTipsHeight,
+        delay
+      );
+    });
+
+    return result;
+  }
+
+  window[PATCH_KEY] = {
+    installed: true,
+    version: '4.0.0',
+    apply: applyTipsHeight,
+    boot
+  };
+
+  if (
+    document.readyState === 'loading'
+  ) {
+    document.addEventListener(
+      'DOMContentLoaded',
+      boot,
+      { once: true }
+    );
+  } else {
+    window.setTimeout(boot, 0);
+  }
+})();
+</script>
+
+<!-- PMD_DASHBOARD2_DONUT_CARD_FONTS_V1 -->
+<style id="pmd-dashboard2-donut-card-fonts-v1">
+  /*
+   * Match the readability level of the other lower Dashboard2 cards.
    *
-   * li
-   *   i
-   *   span
-   *   b
+   * Scope:
+   * - Umsatz nach Kategorie
+   * - Zahlungsmethoden
+   * - Bestellkanäle
    *
-   * V1431 turns the b text into three explicit spans:
-   * count / revenue / percentage.
+   * No chart sizing, donut sizing, period controls, data or JavaScript
+   * behavior is changed.
    */
 
   #pmd-dashboard2-analytics-v1
-  [data-pmd-analytics-widget="channelSplit"]
-  .pmd-chart-legend {
-    width: 100% !important;
-    min-width: 0 !important;
-    overflow: visible !important;
-  }
-
-  #pmd-dashboard2-analytics-v1
-  [data-pmd-analytics-widget="channelSplit"]
-  .pmd-chart-legend > li {
-    display: grid !important;
-    grid-template-columns:
-      14px
-      minmax(68px, 1fr)
-      28px
-      minmax(70px, auto)
-      minmax(44px, auto) !important;
-    column-gap: 7px !important;
-    align-items: center !important;
-    width: 100% !important;
-    min-width: 0 !important;
-    padding: 3px 0 !important;
-  }
-
-  #pmd-dashboard2-analytics-v1
-  [data-pmd-analytics-widget="channelSplit"]
-  .pmd-chart-legend > li > i {
-    grid-column: 1 !important;
-    margin: 0 !important;
-  }
-
-  #pmd-dashboard2-analytics-v1
-  [data-pmd-analytics-widget="channelSplit"]
-  .pmd-chart-legend > li > span {
-    grid-column: 2 !important;
-    min-width: 0 !important;
-    overflow: hidden !important;
-    text-overflow: ellipsis !important;
-    white-space: nowrap !important;
-  }
-
-  #pmd-dashboard2-analytics-v1
-  [data-pmd-analytics-widget="channelSplit"]
-  .pmd-chart-legend > li > b {
-    display: contents !important;
-  }
-
-  #pmd-dashboard2-analytics-v1
-  [data-pmd-analytics-widget="channelSplit"]
-  .pmd-channel-count-v1431 {
-    grid-column: 3 !important;
-    text-align: center !important;
-    white-space: nowrap !important;
-    font-weight: 800 !important;
-  }
-
-  #pmd-dashboard2-analytics-v1
-  [data-pmd-analytics-widget="channelSplit"]
-  .pmd-channel-revenue-v1431 {
-    grid-column: 4 !important;
-    text-align: right !important;
-    white-space: nowrap !important;
-    font-weight: 800 !important;
-  }
-
-  #pmd-dashboard2-analytics-v1
-  [data-pmd-analytics-widget="channelSplit"]
-  .pmd-channel-percent-v1431 {
-    grid-column: 5 !important;
-    text-align: right !important;
-    white-space: nowrap !important;
-    font-weight: 800 !important;
-  }
-
-  @media (max-width: 1250px) {
-    #pmd-dashboard2-analytics-v1
+  :is(
+    [data-pmd-analytics-widget="categorySales"],
+    [data-pmd-analytics-widget="paymentMethods"],
     [data-pmd-analytics-widget="channelSplit"]
-    .pmd-chart-legend > li {
-      grid-template-columns:
-        12px
-        minmax(55px, 1fr)
-        22px
-        minmax(58px, auto)
-        minmax(38px, auto) !important;
-      column-gap: 5px !important;
+  )
+  .pmd-dashboard2-widget-body {
+    font-size: 14px !important;
+    line-height: 1.38 !important;
+  }
+
+  /*
+   * Legend/list rows.
+   */
+  #pmd-dashboard2-analytics-v1
+  :is(
+    [data-pmd-analytics-widget="categorySales"],
+    [data-pmd-analytics-widget="paymentMethods"],
+    [data-pmd-analytics-widget="channelSplit"]
+  )
+  li {
+    font-size: 14px !important;
+    line-height: 1.35 !important;
+  }
+
+  /*
+   * Labels such as:
+   * Cash, Card, Main Course, Dine in, Lieferung.
+   */
+  #pmd-dashboard2-analytics-v1
+  :is(
+    [data-pmd-analytics-widget="categorySales"],
+    [data-pmd-analytics-widget="paymentMethods"],
+    [data-pmd-analytics-widget="channelSplit"]
+  )
+  li span {
+    font-size: 14px !important;
+    line-height: 1.35 !important;
+  }
+
+  /*
+   * Right-side values, quantities, amounts and percentages.
+   */
+  #pmd-dashboard2-analytics-v1
+  :is(
+    [data-pmd-analytics-widget="categorySales"],
+    [data-pmd-analytics-widget="paymentMethods"],
+    [data-pmd-analytics-widget="channelSplit"]
+  )
+  li :is(
+    b,
+    strong,
+    small
+  ) {
+    font-size: 13.5px !important;
+    line-height: 1.35 !important;
+  }
+
+  /*
+   * Cover legend structures that do not use LI elements.
+   */
+  #pmd-dashboard2-analytics-v1
+  :is(
+    [data-pmd-analytics-widget="categorySales"],
+    [data-pmd-analytics-widget="paymentMethods"],
+    [data-pmd-analytics-widget="channelSplit"]
+  )
+  :is(
+    .pmd-dashboard2-donut-legend,
+    .pmd-dashboard2-donut-list,
+    .pmd-dashboard2-legend,
+    .pmd-dashboard2-data-list
+  ) {
+    font-size: 14px !important;
+    line-height: 1.35 !important;
+  }
+
+  #pmd-dashboard2-analytics-v1
+  :is(
+    [data-pmd-analytics-widget="categorySales"],
+    [data-pmd-analytics-widget="paymentMethods"],
+    [data-pmd-analytics-widget="channelSplit"]
+  )
+  :is(
+    .pmd-dashboard2-donut-legend,
+    .pmd-dashboard2-donut-list,
+    .pmd-dashboard2-legend,
+    .pmd-dashboard2-data-list
+  )
+  :is(
+    span,
+    label
+  ) {
+    font-size: 14px !important;
+    line-height: 1.35 !important;
+  }
+
+  #pmd-dashboard2-analytics-v1
+  :is(
+    [data-pmd-analytics-widget="categorySales"],
+    [data-pmd-analytics-widget="paymentMethods"],
+    [data-pmd-analytics-widget="channelSplit"]
+  )
+  :is(
+    .pmd-dashboard2-donut-legend,
+    .pmd-dashboard2-donut-list,
+    .pmd-dashboard2-legend,
+    .pmd-dashboard2-data-list
+  )
+  :is(
+    b,
+    strong,
+    small
+  ) {
+    font-size: 13.5px !important;
+    line-height: 1.35 !important;
+  }
+
+  /*
+   * Keep the small Day / Week / Month controls compact.
+   * They are intentionally not enlarged to 14px.
+   */
+  #pmd-dashboard2-analytics-v1
+  :is(
+    [data-pmd-analytics-widget="categorySales"],
+    [data-pmd-analytics-widget="paymentMethods"],
+    [data-pmd-analytics-widget="channelSplit"]
+  )
+  :is(
+    .pmd-dashboard2-analytics-period,
+    [data-pmd-donut-period],
+    [data-pmd-period-control]
+  )
+  button {
+    font-size: 11px !important;
+    line-height: 1 !important;
+  }
+
+  @media (max-width: 768px) {
+    #pmd-dashboard2-analytics-v1
+    :is(
+      [data-pmd-analytics-widget="categorySales"],
+      [data-pmd-analytics-widget="paymentMethods"],
+      [data-pmd-analytics-widget="channelSplit"]
+    )
+    .pmd-dashboard2-widget-body {
+      font-size: 13px !important;
     }
 
     #pmd-dashboard2-analytics-v1
-    [data-pmd-analytics-widget="channelSplit"]
-    .pmd-channel-count-v1431,
+    :is(
+      [data-pmd-analytics-widget="categorySales"],
+      [data-pmd-analytics-widget="paymentMethods"],
+      [data-pmd-analytics-widget="channelSplit"]
+    )
+    li span {
+      font-size: 13px !important;
+    }
+
     #pmd-dashboard2-analytics-v1
-    [data-pmd-analytics-widget="channelSplit"]
-    .pmd-channel-revenue-v1431,
-    #pmd-dashboard2-analytics-v1
-    [data-pmd-analytics-widget="channelSplit"]
-    .pmd-channel-percent-v1431 {
-      font-size: 10px !important;
+    :is(
+      [data-pmd-analytics-widget="categorySales"],
+      [data-pmd-analytics-widget="paymentMethods"],
+      [data-pmd-analytics-widget="channelSplit"]
+    )
+    li :is(
+      b,
+      strong,
+      small
+    ) {
+      font-size: 12.5px !important;
     }
   }
 </style>
 
-<script id="pmd-dashboard2-v1431-safe-channel-script">
-(() => {
-  'use strict';
+<!-- PMD_DASHBOARD2_CHART_WIDTH_TRANSITION_VALUES_V11 -->
+<style id="pmd-dashboard2-chart-width-transition-values-v11">
 
-  const MARK =
-    'PMD_DASHBOARD2_V1431_SAFE_CHANNELS_TIPS';
-
-  const cardSelector =
-    '[data-pmd-analytics-widget="channelSplit"]';
-
-  const periodButtonSelector =
-    `${cardSelector} [data-pmd-donut-period]`;
-
-  const normalizeLabel = value =>
-    String(value || '')
-      .trim()
-      .toLowerCase()
-      .replace(/[-_]+/g, ' ')
-      .replace(/\s+/g, ' ');
-
-  function createMetricSpan(
-    className,
-    value
-  ) {
-    const span =
-      document.createElement('span');
-
-    span.className = className;
-    span.textContent = value;
-
-    return span;
+  /*
+   * Make the SVG plotting surface wider inside both primary cards.
+   *
+   * This changes only the visual width of the rendered SVG.
+   * Chart data, viewBox logic, sliders and chart calculations remain
+   * untouched.
+   */
+  #pmd-dashboard2-analytics-v1
+  :is(
+    [data-pmd-analytics-widget="salesOverTime"],
+    [data-pmd-analytics-widget="salesByHour"]
+  )
+  .pmd-dashboard2-chart-frame {
+    overflow: visible !important;
   }
 
-  function splitMetrics(item) {
-    const value =
-      item.querySelector(':scope > b');
+  #pmd-dashboard2-analytics-v1
+  :is(
+    [data-pmd-analytics-widget="salesOverTime"],
+    [data-pmd-analytics-widget="salesByHour"]
+  )
+  .pmd-dashboard2-chart-frame > svg {
+    display: block !important;
 
-    if (!value) {
+    width: calc(100% + 180px) !important;
+    max-width: none !important;
+
+    margin-left: -90px !important;
+    margin-right: -90px !important;
+
+    transform-origin: center center;
+
+    transition:
+      opacity 170ms ease,
+      transform 210ms ease !important;
+
+    will-change:
+      opacity,
+      transform;
+  }
+
+  /*
+   * Smooth replacement when switching between Linie and Balken.
+   * The new SVG fades in instead of appearing abruptly.
+   */
+  #pmd-dashboard2-analytics-v1
+  [data-pmd-analytics-widget="salesOverTime"]
+  .pmd-dashboard2-chart-frame > svg {
+    opacity: 1;
+    transform: translateY(0) scale(.999);
+  }
+
+  #pmd-dashboard2-analytics-v1
+  [data-pmd-analytics-widget="salesOverTime"]
+  .pmd-dashboard2-chart-frame > svg {
+    opacity: 1;
+  }
+
+  #pmd-dashboard2-analytics-v1
+  [data-pmd-analytics-widget="salesOverTime"]
+  .pmd-dashboard2-chart-frame {
+    transition:
+      opacity 180ms ease,
+      transform 210ms ease !important;
+  }
+
+  #pmd-dashboard2-analytics-v1
+  [data-pmd-analytics-widget="salesOverTime"].pmd-dashboard2-chart-mode-transitioning
+  .pmd-dashboard2-chart-frame {
+    opacity: .12 !important;
+    transform: translateY(3px) scale(.996) !important;
+  }
+
+  /*
+   * Make values in Umsatz nach Kategorie and Zahlungsmethoden
+   * clearly readable.
+   */
+  #pmd-dashboard2-analytics-v1
+  :is(
+    [data-pmd-analytics-widget="categorySales"],
+    [data-pmd-analytics-widget="paymentMethods"]
+  )
+  :is(
+    .pmd-dashboard2-donut-legend,
+    .pmd-dashboard2-donut-list,
+    .pmd-dashboard2-legend,
+    .pmd-dashboard2-data-list
+  )
+  li {
+    font-size: 14px !important;
+    line-height: 1.38 !important;
+  }
+
+  #pmd-dashboard2-analytics-v1
+  :is(
+    [data-pmd-analytics-widget="categorySales"],
+    [data-pmd-analytics-widget="paymentMethods"]
+  )
+  li > :first-child,
+  #pmd-dashboard2-analytics-v1
+  :is(
+    [data-pmd-analytics-widget="categorySales"],
+    [data-pmd-analytics-widget="paymentMethods"]
+  )
+  li span {
+    font-size: 14px !important;
+    line-height: 1.38 !important;
+  }
+
+  /*
+   * Right-side totals, amounts, counts and percentages.
+   */
+  #pmd-dashboard2-analytics-v1
+  :is(
+    [data-pmd-analytics-widget="categorySales"],
+    [data-pmd-analytics-widget="paymentMethods"]
+  )
+  li > :last-child,
+
+  #pmd-dashboard2-analytics-v1
+  :is(
+    [data-pmd-analytics-widget="categorySales"],
+    [data-pmd-analytics-widget="paymentMethods"]
+  )
+  :is(
+    .pmd-dashboard2-donut-value,
+    .pmd-dashboard2-legend-value,
+    .pmd-dashboard2-donut-legend-value,
+    [data-pmd-value],
+    b,
+    strong
+  ) {
+    font-size: 14px !important;
+    line-height: 1.3 !important;
+    font-weight: 700 !important;
+  }
+
+  /*
+   * Some donut rows contain nested wrappers. Target the final value
+   * wrapper without changing the period buttons.
+   */
+  #pmd-dashboard2-analytics-v1
+  :is(
+    [data-pmd-analytics-widget="categorySales"],
+    [data-pmd-analytics-widget="paymentMethods"]
+  )
+  li > div:last-child {
+    font-size: 14px !important;
+    line-height: 1.3 !important;
+    font-weight: 700 !important;
+  }
+
+  /*
+   * Keep Tag / Woche / Monat controls compact.
+   */
+  #pmd-dashboard2-analytics-v1
+  :is(
+    [data-pmd-analytics-widget="categorySales"],
+    [data-pmd-analytics-widget="paymentMethods"]
+  )
+  button {
+    font-size: inherit;
+  }
+
+  @media (max-width: 768px) {
+    #pmd-dashboard2-analytics-v1
+    :is(
+      [data-pmd-analytics-widget="salesOverTime"],
+      [data-pmd-analytics-widget="salesByHour"]
+    )
+    .pmd-dashboard2-chart-frame > svg {
+      width: calc(100% + 32px) !important;
+
+      margin-left: -16px !important;
+      margin-right: -16px !important;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    #pmd-dashboard2-analytics-v1
+    .pmd-dashboard2-chart-frame > svg {
+      transition: none !important;
+    }
+  }
+
+
+  /*
+   * PMD Dashboard2 exact donut numeric font authority V1.1
+   *
+   * Some values are nested inside extra DIV/SPAN wrappers.
+   * Force all textual descendants to the requested readable size.
+   */
+  #pmd-dashboard2-analytics-v1
+  :is(
+    [data-pmd-analytics-widget="categorySales"],
+    [data-pmd-analytics-widget="paymentMethods"]
+  )
+  :is(
+    .pmd-dashboard2-widget-body,
+    .pmd-dashboard2-donut-legend,
+    .pmd-dashboard2-donut-list,
+    .pmd-dashboard2-legend,
+    .pmd-dashboard2-data-list
+  )
+  :is(
+    li,
+    li span,
+    li div,
+    li b,
+    li strong,
+    li small,
+    [data-pmd-value]
+  ) {
+    font-size: 14px !important;
+    line-height: 1.35 !important;
+  }
+
+  #pmd-dashboard2-analytics-v1
+  :is(
+    [data-pmd-analytics-widget="categorySales"],
+    [data-pmd-analytics-widget="paymentMethods"]
+  )
+  :is(
+    .pmd-dashboard2-widget-body,
+    .pmd-dashboard2-donut-legend,
+    .pmd-dashboard2-donut-list,
+    .pmd-dashboard2-legend,
+    .pmd-dashboard2-data-list
+  )
+  :is(
+    li b,
+    li strong,
+    li > :last-child,
+    [data-pmd-value]
+  ) {
+    font-weight: 700 !important;
+  }
+
+  @media (max-width: 768px) {
+    #pmd-dashboard2-analytics-v1
+    :is(
+      [data-pmd-analytics-widget="salesOverTime"],
+      [data-pmd-analytics-widget="salesByHour"]
+    )
+    .pmd-dashboard2-chart-frame > svg {
+      width: calc(100% + 70px) !important;
+      margin-left: -35px !important;
+      margin-right: -35px !important;
+    }
+  }
+
+</style>
+
+<script>
+(function () {
+  'use strict';
+
+  const PATCH_KEY =
+    'PMDDashboard2ChartWidthTransitionValuesV11';
+
+  if (window[PATCH_KEY]?.installed) {
+    return;
+  }
+
+  const timers = new WeakMap();
+
+  function beginTransition(button) {
+    const card = button?.closest(
+      '[data-pmd-analytics-widget="salesOverTime"]'
+    );
+
+    if (!card) {
+      return;
+    }
+
+    const existingTimer =
+      timers.get(card);
+
+    if (existingTimer) {
+      clearTimeout(existingTimer);
+    }
+
+    card.classList.add(
+      'pmd-dashboard2-chart-mode-transitioning'
+    );
+
+    /*
+     * Existing Dashboard2 logic replaces the chart shortly after the
+     * mode click. Keeping the class briefly makes the old SVG fade out
+     * and the newly rendered SVG fade back in.
+     */
+    const timer = setTimeout(() => {
+      card.classList.remove(
+        'pmd-dashboard2-chart-mode-transitioning'
+      );
+
+      timers.delete(card);
+    }, 210);
+
+    timers.set(card, timer);
+  }
+
+  document.addEventListener(
+    'click',
+    event => {
+      const button = event.target.closest(
+        '[data-pmd-chart-mode]'
+      );
+
+      if (!button) {
+        return;
+      }
+
+      beginTransition(button);
+    },
+    true
+  );
+
+  window[PATCH_KEY] = {
+    installed: true,
+    version: '1.1.0'
+  };
+
+  console.info(
+    '[PMD Dashboard2 Chart Width + Smooth Switch + Values V1.1] Ready'
+  );
+})();
+</script>
+
+
+<!-- PMD_DASHBOARD2_STABLE_CROSSFADE_V15 -->
+<style id="pmd-dashboard2-stable-crossfade-v15-style">
+  .pmd-dashboard2-chart-crossfade-host-v15 {
+    position: relative !important;
+  }
+
+  .pmd-dashboard2-chart-crossfade-snapshot-v15 {
+    position: absolute !important;
+    z-index: 20 !important;
+
+    pointer-events: none !important;
+    user-select: none !important;
+
+    margin: 0 !important;
+    max-width: none !important;
+
+    opacity: 1;
+
+    will-change:
+      opacity,
+      filter;
+
+    transform-origin:
+      center center;
+  }
+</style>
+
+<script>
+(function () {
+  'use strict';
+
+  const PATCH_KEY =
+    'PMDDashboard2StableCrossfadeV15';
+
+  if (window[PATCH_KEY]?.installed) {
+    return;
+  }
+
+  const CARD_SELECTOR =
+    '[data-pmd-analytics-widget="salesOverTime"]';
+
+  const FRAME_SELECTOR =
+    '.pmd-dashboard2-chart-frame';
+
+  const SVG_SELECTOR =
+    '.pmd-dashboard2-chart-frame > svg';
+
+  const MODE_SELECTOR =
+    'button[data-pmd-chart-mode]';
+
+  const MIN_HIDDEN_TIME = 170;
+  const MAX_HIDDEN_TIME = 720;
+  const REQUIRED_STABLE_FRAMES = 5;
+  const STABLE_TOLERANCE = 1.5;
+  const FADE_DURATION = 420;
+
+  const activeByCard =
+    new WeakMap();
+
+  const lastActivation =
+    new WeakMap();
+
+  function resolve(target) {
+    const button =
+      target?.closest?.(
+        MODE_SELECTOR
+      );
+
+    if (!button) {
+      return null;
+    }
+
+    const card =
+      button.closest(
+        CARD_SELECTOR
+      );
+
+    if (!card) {
+      return null;
+    }
+
+    const frame =
+      card.querySelector(
+        FRAME_SELECTOR
+      );
+
+    const mode =
+      button.getAttribute(
+        'data-pmd-chart-mode'
+      );
+
+    if (
+      !frame ||
+      (
+        mode !== 'line' &&
+        mode !== 'bar'
+      )
+    ) {
+      return null;
+    }
+
+    return {
+      button,
+      card,
+      frame,
+      mode
+    };
+  }
+
+  function cleanup(card) {
+    const active =
+      activeByCard.get(card);
+
+    if (!active) {
+      return;
+    }
+
+    active.cancelled = true;
+
+    if (active.raf) {
+      cancelAnimationFrame(
+        active.raf
+      );
+    }
+
+    if (active.timer) {
+      clearTimeout(
+        active.timer
+      );
+    }
+
+    try {
+      active.oldAnimation?.cancel();
+    } catch (error) {
+    }
+
+    try {
+      active.newAnimation?.cancel();
+    } catch (error) {
+    }
+
+    active.snapshot?.remove();
+
+    if (active.frame) {
+      active.frame.style.removeProperty(
+        'opacity'
+      );
+
+      active.frame.style.removeProperty(
+        'filter'
+      );
+    }
+
+    if (active.host) {
+      active.host.classList.remove(
+        'pmd-dashboard2-chart-crossfade-host-v15'
+      );
+    }
+
+    activeByCard.delete(card);
+  }
+
+  function createSnapshot(frame) {
+    const host =
+      frame.parentElement;
+
+    if (!host) {
+      return null;
+    }
+
+    const frameRect =
+      frame.getBoundingClientRect();
+
+    const hostRect =
+      host.getBoundingClientRect();
+
+    const snapshot =
+      frame.cloneNode(true);
+
+    snapshot.removeAttribute('id');
+
+    snapshot
+      .querySelectorAll('[id]')
+      .forEach(element => {
+        element.removeAttribute('id');
+      });
+
+    snapshot.classList.add(
+      'pmd-dashboard2-chart-crossfade-snapshot-v15'
+    );
+
+    snapshot.setAttribute(
+      'aria-hidden',
+      'true'
+    );
+
+    snapshot.style.setProperty(
+      'left',
+      `${frameRect.left - hostRect.left}px`,
+      'important'
+    );
+
+    snapshot.style.setProperty(
+      'top',
+      `${frameRect.top - hostRect.top}px`,
+      'important'
+    );
+
+    snapshot.style.setProperty(
+      'width',
+      `${frameRect.width}px`,
+      'important'
+    );
+
+    snapshot.style.setProperty(
+      'height',
+      `${frameRect.height}px`,
+      'important'
+    );
+
+    host.classList.add(
+      'pmd-dashboard2-chart-crossfade-host-v15'
+    );
+
+    host.appendChild(snapshot);
+
+    return {
+      host,
+      snapshot
+    };
+  }
+
+  function round(value) {
+    return Math.round(
+      Number(value || 0) * 10
+    ) / 10;
+  }
+
+  function getDrawableBounds(svg) {
+    if (!svg) {
+      return {
+        left: 0,
+        right: 0,
+        width: 0
+      };
+    }
+
+    const elements = [
+      ...svg.querySelectorAll(
+        'polyline,path,rect,circle,line'
+      )
+    ];
+
+    const bounds = elements
+      .map(element =>
+        element.getBoundingClientRect()
+      )
+      .filter(rect =>
+        rect.width > 1 ||
+        rect.height > 1
+      );
+
+    if (!bounds.length) {
+      return {
+        left: 0,
+        right: 0,
+        width: 0
+      };
+    }
+
+    const left = Math.min(
+      ...bounds.map(rect => rect.left)
+    );
+
+    const right = Math.max(
+      ...bounds.map(rect => rect.right)
+    );
+
+    return {
+      left: round(left),
+      right: round(right),
+      width: round(right - left)
+    };
+  }
+
+  function geometrySignature(frame) {
+    const svg =
+      frame.querySelector(
+        ':scope > svg'
+      );
+
+    const frameRect =
+      frame.getBoundingClientRect();
+
+    const svgRect =
+      svg?.getBoundingClientRect();
+
+    const drawable =
+      getDrawableBounds(svg);
+
+    return {
+      mode:
+        svg?.classList.contains(
+          'is-line-chart'
+        )
+          ? 'line'
+          : 'bar',
+
+      frameWidth:
+        round(frameRect.width),
+
+      frameHeight:
+        round(frameRect.height),
+
+      svgWidth:
+        round(svgRect?.width),
+
+      svgHeight:
+        round(svgRect?.height),
+
+      svgTop:
+        round(svgRect?.top),
+
+      drawableLeft:
+        drawable.left,
+
+      drawableRight:
+        drawable.right,
+
+      drawableWidth:
+        drawable.width,
+
+      transform:
+        svg
+          ? getComputedStyle(svg)
+              .transform
+          : 'none'
+    };
+  }
+
+  function signaturesMatch(
+    previous,
+    current
+  ) {
+    if (!previous || !current) {
       return false;
     }
 
     if (
-      value.dataset.pmdChannelSplitV1431
-      === 'true'
+      previous.mode !==
+      current.mode
     ) {
-      return true;
+      return false;
     }
 
-    const text =
-      value.textContent
-        .replace(/\u00a0/g, ' ')
-        .trim();
+    if (
+      previous.transform !==
+      current.transform
+    ) {
+      return false;
+    }
 
-    /*
-     * Expected:
-     * 8 · 558,20 € · 100.0%
-     */
-    const parts =
-      text
-        .split('·')
-        .map(part => part.trim())
-        .filter(Boolean);
+    const numericKeys = [
+      'frameWidth',
+      'frameHeight',
+      'svgWidth',
+      'svgHeight',
+      'svgTop',
+      'drawableLeft',
+      'drawableRight',
+      'drawableWidth'
+    ];
 
-    const count =
-      parts[0] || '0';
+    return numericKeys.every(key =>
+      Math.abs(
+        previous[key] -
+        current[key]
+      ) <= STABLE_TOLERANCE
+    );
+  }
 
-    const revenue =
-      parts[1] || '0,00 €';
+  function reveal(
+    card,
+    active,
+    reason,
+    signature
+  ) {
+    if (
+      active.cancelled ||
+      activeByCard.get(card) !== active
+    ) {
+      return;
+    }
 
-    const percent =
-      parts[2] || '0.0%';
+    const {
+      frame,
+      snapshot
+    } = active;
 
-    value.textContent = '';
-
-    value.append(
-      createMetricSpan(
-        'pmd-channel-count-v1431',
-        count
-      ),
-      createMetricSpan(
-        'pmd-channel-revenue-v1431',
-        revenue
-      ),
-      createMetricSpan(
-        'pmd-channel-percent-v1431',
-        percent
-      )
+    frame.style.removeProperty(
+      'opacity'
     );
 
-    value.dataset.pmdChannelSplitV1431 =
-      'true';
+    active.newAnimation =
+      frame.animate(
+        [
+          {
+            opacity: 0,
+            filter: 'blur(.8px)'
+          },
+          {
+            opacity: 0.38,
+            filter: 'blur(.3px)',
+            offset: 0.38
+          },
+          {
+            opacity: 1,
+            filter: 'blur(0px)'
+          }
+        ],
+        {
+          duration:
+            FADE_DURATION,
+
+          easing:
+            'cubic-bezier(.22,.61,.36,1)',
+
+          fill:
+            'both'
+        }
+      );
+
+    active.oldAnimation =
+      snapshot.animate(
+        [
+          {
+            opacity: 1,
+            filter: 'blur(0px)'
+          },
+          {
+            opacity: 0.68,
+            filter: 'blur(.25px)',
+            offset: 0.28
+          },
+          {
+            opacity: 0,
+            filter: 'blur(1px)'
+          }
+        ],
+        {
+          duration:
+            FADE_DURATION,
+
+          easing:
+            'cubic-bezier(.4,0,.2,1)',
+
+          fill:
+            'forwards'
+        }
+      );
+
+    active.timer =
+      setTimeout(() => {
+        cleanup(card);
+      }, FADE_DURATION + 60);
+
+    console.info(
+      '[PMD Dashboard2 Stable Crossfade V1.5]',
+      {
+        applied: true,
+        requestedMode:
+          active.mode,
+
+        reason,
+
+        hiddenFor:
+          Math.round(
+            performance.now() -
+            active.startedAt
+          ),
+
+        stableFrames:
+          active.stableFrames,
+
+        finalGeometry:
+          signature
+      }
+    );
+  }
+
+  function waitUntilStable(
+    card,
+    active
+  ) {
+    const sample = () => {
+      if (
+        active.cancelled ||
+        activeByCard.get(card) !== active
+      ) {
+        return;
+      }
+
+      const elapsed =
+        performance.now() -
+        active.startedAt;
+
+      const current =
+        geometrySignature(
+          active.frame
+        );
+
+      if (
+        signaturesMatch(
+          active.previousSignature,
+          current
+        )
+      ) {
+        active.stableFrames += 1;
+      } else {
+        active.stableFrames = 0;
+      }
+
+      active.previousSignature =
+        current;
+
+      const stable =
+        elapsed >= MIN_HIDDEN_TIME &&
+        active.stableFrames >=
+          REQUIRED_STABLE_FRAMES;
+
+      const timedOut =
+        elapsed >= MAX_HIDDEN_TIME;
+
+      if (stable || timedOut) {
+        reveal(
+          card,
+          active,
+          stable
+            ? 'geometry-stable'
+            : 'maximum-wait',
+
+          current
+        );
+
+        return;
+      }
+
+      active.raf =
+        requestAnimationFrame(
+          sample
+        );
+    };
+
+    active.raf =
+      requestAnimationFrame(
+        sample
+      );
+  }
+
+  function crossfade(
+    card,
+    frame,
+    mode,
+    trigger
+  ) {
+    if (
+      !card ||
+      !frame ||
+      typeof frame.animate !== 'function'
+    ) {
+      return false;
+    }
+
+    const now =
+      performance.now();
+
+    const previousTime =
+      lastActivation.get(card) || 0;
+
+    if (
+      now - previousTime < 45
+    ) {
+      return false;
+    }
+
+    lastActivation.set(
+      card,
+      now
+    );
+
+    cleanup(card);
+
+    const snapshotResult =
+      createSnapshot(frame);
+
+    if (!snapshotResult) {
+      return false;
+    }
+
+    const {
+      host,
+      snapshot
+    } = snapshotResult;
+
+    /*
+     * Keep the newly rendered chart fully hidden until its SVG and
+     * drawable content stop changing size and position.
+     */
+    frame.style.setProperty(
+      'opacity',
+      '0',
+      'important'
+    );
+
+    const active = {
+      card,
+      host,
+      snapshot,
+      frame,
+      mode,
+      trigger,
+
+      startedAt:
+        performance.now(),
+
+      stableFrames:
+        0,
+
+      previousSignature:
+        null,
+
+      raf:
+        null,
+
+      timer:
+        null,
+
+      oldAnimation:
+        null,
+
+      newAnimation:
+        null,
+
+      cancelled:
+        false
+    };
+
+    activeByCard.set(
+      card,
+      active
+    );
+
+    waitUntilStable(
+      card,
+      active
+    );
+
+    console.info(
+      '[PMD Dashboard2 Stable Crossfade V1.5] Waiting',
+      {
+        requestedMode:
+          mode,
+
+        trigger,
+
+        minimumWait:
+          MIN_HIDDEN_TIME,
+
+        maximumWait:
+          MAX_HIDDEN_TIME,
+
+        requiredStableFrames:
+          REQUIRED_STABLE_FRAMES
+      }
+    );
 
     return true;
   }
 
-  function createDeliveryRow(list) {
-    const item =
-      document.createElement('li');
-
-    item.dataset.pmdChannelSyntheticV1431 =
-      'delivery';
-
-    const dot =
-      document.createElement('i');
-
-    /*
-     * Delivery uses the existing blue analytics color.
-     * A zero-value slice is intentionally not added to the SVG.
-     */
-    dot.style.background = '#2F66E8';
-
-    const label =
-      document.createElement('span');
-
-    label.textContent = 'Delivery';
-
-    const value =
-      document.createElement('b');
-
-    value.textContent =
-      '0 · 0,00 € · 0.0%';
-
-    item.append(dot, label, value);
-    list.append(item);
-
-    splitMetrics(item);
-
-    return item;
-  }
-
-  function apply() {
-    const card =
-      document.querySelector(cardSelector);
-
-    if (!card) {
-      return {
-        applied: false,
-        reason: 'card-not-found'
-      };
-    }
-
-    const list =
-      card.querySelector('.pmd-chart-legend');
-
-    if (!list) {
-      return {
-        applied: false,
-        reason: 'legend-not-found'
-      };
-    }
-
-    const items =
-      Array.from(
-        list.querySelectorAll(':scope > li')
-      );
-
-    items.forEach(splitMetrics);
-
-    const deliveryExists =
-      items.some(item => {
-        const label =
-          item.querySelector(':scope > span');
-
-        return normalizeLabel(
-          label?.textContent
-        ) === 'delivery';
-      });
-
-    if (!deliveryExists) {
-      createDeliveryRow(list);
-    }
-
-    card.dataset.pmdChannelsV1431 =
-      'ready';
-
-    return {
-      applied: true,
-      rows:
-        list.querySelectorAll(
-          ':scope > li'
-        ).length,
-      deliveryPresent: true,
-      metricsSplit:
-        list.querySelectorAll(
-          '[data-pmd-channel-split-v1431="true"]'
-        ).length
-    };
-  }
-
-  function scheduleApply() {
-    queueMicrotask(() => {
-      requestAnimationFrame(() => {
-        apply();
-      });
-    });
-  }
-
   document.addEventListener(
-    'DOMContentLoaded',
-    scheduleApply,
-    { once: true }
+    'mousedown',
+    event => {
+      const result =
+        resolve(event.target);
+
+      if (!result) {
+        return;
+      }
+
+      crossfade(
+        result.card,
+        result.frame,
+        result.mode,
+        'native-mousedown'
+      );
+    },
+    true
   );
 
-  /*
-   * Donut period buttons rebuild the legend asynchronously.
-   * Run the formatter after the existing click handler finishes.
-   */
   document.addEventListener(
     'click',
     event => {
-      if (
-        event.target.closest(
-          periodButtonSelector
-        )
-      ) {
-        scheduleApply();
-
-        requestAnimationFrame(() => {
-          requestAnimationFrame(apply);
-        });
+      if (event.detail !== 0) {
+        return;
       }
-    }
+
+      const result =
+        resolve(event.target);
+
+      if (!result) {
+        return;
+      }
+
+      crossfade(
+        result.card,
+        result.frame,
+        result.mode,
+        'keyboard-click'
+      );
+    },
+    true
   );
 
-  window.PMDDashboard2ChannelsV1431 = {
-    version: '1.4.3.1',
-    mark: MARK,
-    apply,
-    audit() {
-      const card =
-        document.querySelector(cardSelector);
+  window[PATCH_KEY] = {
+    installed: true,
+    version: '1.5.0',
 
-      const list =
-        card?.querySelector(
-          '.pmd-chart-legend'
+    test() {
+      const card =
+        document.querySelector(
+          CARD_SELECTOR
         );
 
-      const rows = list
-        ? Array.from(
-            list.querySelectorAll(
-              ':scope > li'
-            )
-          ).map(item => ({
-            label:
-              item.querySelector(
-                ':scope > span'
-              )?.textContent?.trim(),
-            count:
-              item.querySelector(
-                '.pmd-channel-count-v1431'
-              )?.textContent?.trim(),
-            revenue:
-              item.querySelector(
-                '.pmd-channel-revenue-v1431'
-              )?.textContent?.trim(),
-            percent:
-              item.querySelector(
-                '.pmd-channel-percent-v1431'
-              )?.textContent?.trim()
-          }))
-        : [];
+      const frame =
+        card?.querySelector(
+          FRAME_SELECTOR
+        );
+
+      return crossfade(
+        card,
+        frame,
+        'test',
+        'manual-test'
+      );
+    },
+
+    cleanup() {
+      const card =
+        document.querySelector(
+          CARD_SELECTOR
+        );
+
+      if (card) {
+        cleanup(card);
+      }
+
+      return true;
+    },
+
+    audit() {
+      const card =
+        document.querySelector(
+          CARD_SELECTOR
+        );
+
+      const frame =
+        card?.querySelector(
+          FRAME_SELECTOR
+        );
+
+      const active =
+        card
+          ? activeByCard.get(card)
+          : null;
 
       const result = {
-        version: '1.4.3.1',
-        cardFound: Boolean(card),
-        listFound: Boolean(list),
-        rows,
-        ready:
-          card?.dataset
-            .pmdChannelsV1431 === 'ready'
+        installed: true,
+
+        cardFound:
+          Boolean(card),
+
+        frameFound:
+          Boolean(frame),
+
+        currentGeometry:
+          frame
+            ? geometrySignature(frame)
+            : null,
+
+        active:
+          Boolean(active),
+
+        stableFrames:
+          active?.stableFrames || 0,
+
+        hiddenFor:
+          active
+            ? Math.round(
+                performance.now() -
+                active.startedAt
+              )
+            : 0
       };
 
       console.info(
-        '[PMD Dashboard2 Channels V1431]',
+        '[PMD Dashboard2 Stable Crossfade V1.5 Audit]',
         result
       );
 
@@ -3468,327 +6085,2510 @@ window.PMD_DASHBOARD2_KPI_PAYLOAD = @json($pmdDashboard2KpiPayload ?? null);
     }
   };
 
-  if (
-    document.readyState !== 'loading'
-  ) {
-    scheduleApply();
-  }
+  console.info(
+    '[PMD Dashboard2 Stable Crossfade V1.5] Ready',
+    {
+      event:
+        'mousedown',
+
+      strategy:
+        'wait-for-stable-chart-geometry',
+
+      minimumHidden:
+        MIN_HIDDEN_TIME,
+
+      maximumHidden:
+        MAX_HIDDEN_TIME,
+
+      stableFrames:
+        REQUIRED_STABLE_FRAMES,
+
+      fadeDuration:
+        FADE_DURATION,
+
+      geometryChanged:
+        false
+    }
+  );
 })();
 </script>
 
+<!-- PMD_DASHBOARD2_REMOVE_PLUS_BUTTON_V1 -->
+<style id="pmd-dashboard2-remove-plus-button-v1-style">
+  /*
+   * Hide immediately before the runtime remover deletes the element.
+   * Restricted to an exact Font Awesome plus icon inside an icon-only
+   * interactive control.
+   */
+  body[data-pmd-dashboard2-remove-plus-v1="ready"]
+  .pmd-dashboard2-exact-plus-button-v1 {
+    display: none !important;
+  }
+</style>
 
-<!-- PMD_DASHBOARD2_V1432_CHANNEL_TOGGLE_PERSISTENCE -->
-<script id="pmd-dashboard2-v1432-channel-toggle-persistence">
-(() => {
+<script>
+(function () {
   'use strict';
 
-  const VERSION = '1.4.3.2';
+  const PATCH_KEY =
+    'PMDDashboard2RemovePlusButtonV1';
 
-  const ROOT_SELECTOR =
-    '#pmd-dashboard2-analytics-v1';
+  if (window[PATCH_KEY]?.installed) {
+    return;
+  }
 
-  const CARD_SELECTOR =
-    '[data-pmd-analytics-widget="channelSplit"]';
-
-  const LEGEND_SELECTOR =
-    '.pmd-chart-legend';
+  const ICON_SELECTOR =
+    'i.fa.fa-plus[aria-hidden="true"]';
 
   let observer = null;
-  let frame = 0;
-  let applying = false;
-  let applyCount = 0;
-  let rebuildCount = 0;
+  let removedCount = 0;
 
-  function card() {
-    return document.querySelector(
-      `${ROOT_SELECTOR} ${CARD_SELECTOR}`
+  function isDashboard2() {
+    return (
+      window.location.pathname ===
+        '/admin/dashboard2' ||
+      window.location.pathname ===
+        '/admin/dashboard2/'
     );
   }
 
-  function legend() {
-    return card()?.querySelector(
-      LEGEND_SELECTOR
-    ) || null;
-  }
-
-  function hasCorrectStructure() {
-    const list = legend();
-
-    if (!list) {
+  function exactIcon(icon) {
+    if (!icon) {
       return false;
     }
 
-    const rows = Array.from(
-      list.querySelectorAll(':scope > li')
+    const classes = [
+      ...icon.classList
+    ].sort();
+
+    return (
+      icon.tagName === 'I' &&
+      classes.length === 2 &&
+      classes.includes('fa') &&
+      classes.includes('fa-plus') &&
+      icon.getAttribute(
+        'aria-hidden'
+      ) === 'true'
     );
+  }
 
-    if (!rows.length) {
-      return false;
-    }
-
-    const deliveryExists = rows.some(row => {
-      const label = row.querySelector(
-        ':scope > span'
-      );
-
-      const text = String(
-        label?.textContent || ''
-      )
-        .trim()
-        .toLowerCase();
-
-      return (
-        text === 'delivery'
-        || text === 'lieferung'
-      );
-    });
-
-    const metricsReady = rows.every(row =>
-      Boolean(
-        row.querySelector(
-          '.pmd-channel-count-v1431'
-        )
-      )
-      && Boolean(
-        row.querySelector(
-          '.pmd-channel-revenue-v1431'
-        )
-      )
-      && Boolean(
-        row.querySelector(
-          '.pmd-channel-percent-v1431'
-        )
-      )
+  function getInteractive(icon) {
+    return icon.closest(
+      'button, a, [role="button"]'
     );
-
-    return deliveryExists && metricsReady;
   }
 
-  function runApply(reason) {
-    if (applying) {
-      return;
-    }
-
-    applying = true;
-
-    try {
-      const authority =
-        window.PMDDashboard2ChannelsV1431;
-
-      if (
-        !authority
-        || typeof authority.apply !== 'function'
-      ) {
-        return;
-      }
-
-      if (!hasCorrectStructure()) {
-        authority.apply();
-        applyCount++;
-      }
-
-      const target = card();
-
-      if (target) {
-        target.dataset
-          .pmdChannelsV1432 = 'ready';
-
-        target.dataset
-          .pmdChannelsV1432Reason = reason;
-      }
-    } finally {
-      applying = false;
-    }
-  }
-
-  function schedule(reason) {
-    if (frame) {
-      cancelAnimationFrame(frame);
-    }
-
-    frame = requestAnimationFrame(() => {
-      frame = 0;
-
-      requestAnimationFrame(() => {
-        runApply(reason);
-      });
-    });
-  }
-
-  function mutationTouchesChannelCard(
-    mutation
+  function isIconOnlyControl(
+    control,
+    icon
   ) {
-    const target =
-      mutation.target instanceof Element
-        ? mutation.target
-        : mutation.target.parentElement;
-
-    if (
-      target
-      && (
-        target.matches(CARD_SELECTOR)
-        || target.closest(CARD_SELECTOR)
-      )
-    ) {
-      return true;
-    }
-
-    return Array.from(
-      mutation.addedNodes
-    ).some(node =>
-      node instanceof Element
-      && (
-        node.matches(CARD_SELECTOR)
-        || node.querySelector(CARD_SELECTOR)
-        || node.closest(CARD_SELECTOR)
-      )
-    );
-  }
-
-  function startObserver() {
-    const analyticsRoot =
-      document.querySelector(ROOT_SELECTOR);
-
-    if (!analyticsRoot) {
+    if (!control || !icon) {
       return false;
     }
 
-    observer?.disconnect();
+    const clone =
+      control.cloneNode(true);
 
-    observer = new MutationObserver(
-      mutations => {
+    clone
+      .querySelectorAll(
+        ICON_SELECTOR
+      )
+      .forEach(element => {
+        element.remove();
+      });
+
+    const remainingText =
+      String(
+        clone.textContent || ''
+      )
+        .replace(/\s+/g, '')
+        .trim();
+
+    /*
+     * Permit accessibility labels, but do not remove a control that
+     * contains any visible textual content besides the plus icon.
+     */
+    return remainingText === '';
+  }
+
+  function findCandidates() {
+    if (!isDashboard2()) {
+      return [];
+    }
+
+    const controls =
+      new Set();
+
+    document
+      .querySelectorAll(
+        ICON_SELECTOR
+      )
+      .forEach(icon => {
+        if (!exactIcon(icon)) {
+          return;
+        }
+
+        const control =
+          getInteractive(icon);
+
         if (
-          applying
-          || !mutations.some(
-            mutationTouchesChannelCard
+          !control ||
+          !isIconOnlyControl(
+            control,
+            icon
           )
         ) {
           return;
         }
 
-        rebuildCount++;
-        schedule('channel-card-rebuilt');
-      }
+        controls.add(control);
+      });
+
+    return [
+      ...controls
+    ];
+  }
+
+  function describe(control) {
+    if (!control) {
+      return null;
+    }
+
+    return {
+      tag:
+        control.tagName,
+
+      id:
+        control.id || null,
+
+      className:
+        typeof control.className ===
+        'string'
+          ? control.className
+          : control.getAttribute(
+              'class'
+            ),
+
+      ariaLabel:
+        control.getAttribute(
+          'aria-label'
+        ),
+
+      title:
+        control.getAttribute(
+          'title'
+        ),
+
+      html:
+        control.outerHTML.slice(
+          0,
+          500
+        )
+    };
+  }
+
+  function apply(reason) {
+    const candidates =
+      findCandidates();
+
+    if (candidates.length === 0) {
+      return {
+        applied: false,
+        reason,
+        candidateCount: 0,
+        removedCount
+      };
+    }
+
+    /*
+     * Safety rule: remove only when exactly one exact icon-only plus
+     * control exists on Dashboard2.
+     */
+    if (candidates.length !== 1) {
+      const result = {
+        applied: false,
+        reason:
+          'ambiguous-multiple-candidates',
+
+        trigger:
+          reason,
+
+        candidateCount:
+          candidates.length,
+
+        candidates:
+          candidates.map(describe),
+
+        removedCount
+      };
+
+      console.warn(
+        '[PMD Dashboard2 Remove Plus Button V1] Not removed',
+        result
+      );
+
+      return result;
+    }
+
+    const control =
+      candidates[0];
+
+    control.classList.add(
+      'pmd-dashboard2-exact-plus-button-v1'
     );
 
+    const description =
+      describe(control);
+
+    control.remove();
+
+    removedCount += 1;
+
+    const result = {
+      applied: true,
+      trigger: reason,
+      candidateCount: 1,
+      removedCount,
+      removed:
+        description
+    };
+
+    console.info(
+      '[PMD Dashboard2 Remove Plus Button V1] Removed',
+      result
+    );
+
+    return result;
+  }
+
+  function startObserver() {
+    if (
+      observer ||
+      !document.body
+    ) {
+      return;
+    }
+
+    observer =
+      new MutationObserver(records => {
+        const plusAdded =
+          records.some(record =>
+            [...record.addedNodes]
+              .some(node => {
+                if (
+                  node.nodeType !== 1
+                ) {
+                  return false;
+                }
+
+                return (
+                  node.matches?.(
+                    ICON_SELECTOR
+                  ) ||
+                  Boolean(
+                    node.querySelector?.(
+                      ICON_SELECTOR
+                    )
+                  )
+                );
+              })
+          );
+
+        if (plusAdded) {
+          apply(
+            'mutation-added'
+          );
+        }
+      });
+
     observer.observe(
-      analyticsRoot,
+      document.body,
       {
         childList: true,
         subtree: true
       }
     );
-
-    schedule('observer-start');
-
-    return true;
   }
 
   function boot() {
-    if (!startObserver()) {
-      requestAnimationFrame(() => {
-        startObserver();
-      });
+    if (!isDashboard2()) {
+      return;
     }
+
+    document.body?.setAttribute(
+      'data-pmd-dashboard2-remove-plus-v1',
+      'ready'
+    );
+
+    const initial =
+      apply('initial');
+
+    startObserver();
+
+    [
+      100,
+      300,
+      700,
+      1400,
+      2500
+    ].forEach(delay => {
+      setTimeout(
+        () => apply(
+          `delayed-${delay}`
+        ),
+        delay
+      );
+    });
+
+    console.info(
+      '[PMD Dashboard2 Remove Plus Button V1] Ready',
+      initial
+    );
   }
 
-  document.addEventListener(
-    'DOMContentLoaded',
-    boot,
-    { once: true }
-  );
-
-  if (
-    document.readyState !== 'loading'
-  ) {
-    boot();
-  }
-
-  window.PMDDashboard2ChannelsV1432 = {
-    version: VERSION,
+  window[PATCH_KEY] = {
+    installed: true,
+    version: '1.0.0',
 
     apply() {
-      runApply('manual');
-      return this.audit();
-    },
-
-    restart() {
-      boot();
-      return this.audit();
+      return apply('manual');
     },
 
     audit() {
-      const target = card();
-      const list = legend();
-
-      const rows = list
-        ? Array.from(
-            list.querySelectorAll(
-              ':scope > li'
-            )
-          ).map(row => ({
-            label:
-              row.querySelector(
-                ':scope > span'
-              )?.textContent?.trim()
-              || null,
-
-            count:
-              row.querySelector(
-                '.pmd-channel-count-v1431'
-              )?.textContent?.trim()
-              || null,
-
-            revenue:
-              row.querySelector(
-                '.pmd-channel-revenue-v1431'
-              )?.textContent?.trim()
-              || null,
-
-            percent:
-              row.querySelector(
-                '.pmd-channel-percent-v1431'
-              )?.textContent?.trim()
-              || null
-          }))
-        : [];
+      const candidates =
+        findCandidates();
 
       const result = {
-        version: VERSION,
-        observerActive:
-          Boolean(observer),
-        cardFound:
-          Boolean(target),
-        legendFound:
-          Boolean(list),
-        structureCorrect:
-          hasCorrectStructure(),
-        selectedPeriod:
-          target?.dataset
-            .pmdIndependentDonutPeriod
-          || null,
-        applyCount,
-        rebuildCount,
-        rows
+        route:
+          window.location.pathname,
+
+        candidateCount:
+          candidates.length,
+
+        removedCount,
+
+        candidates:
+          candidates.map(describe)
       };
 
       console.info(
-        '[PMD Dashboard2 Channels V1432]',
+        '[PMD Dashboard2 Remove Plus Button V1 Audit]',
         result
       );
 
       return result;
     },
 
-    disconnect() {
+    stop() {
       observer?.disconnect();
       observer = null;
 
-      return {
-        version: VERSION,
-        observerActive: false
-      };
+      return true;
     }
   };
+
+  if (
+    document.readyState ===
+    'loading'
+  ) {
+    document.addEventListener(
+      'DOMContentLoaded',
+      boot,
+      {
+        once: true
+      }
+    );
+  } else {
+    setTimeout(
+      boot,
+      0
+    );
+  }
+})();
+</script>
+
+
+<!-- PMD_DASHBOARD2_AUTO_GAP_TOOLBARS_V2 -->
+<style id="pmd-dashboard2-auto-gap-toolbars-v2-style">
+  [data-pmd-analytics-widget="salesOverTime"],
+  [data-pmd-analytics-widget="salesByHour"] {
+    position: relative !important;
+  }
+
+  /*
+   * Hide the old ‹ Alle › navigation pills.
+   */
+  [data-pmd-analytics-widget="salesOverTime"]
+  .pmd-dashboard2-chart-nav-v137,
+
+  [data-pmd-analytics-widget="salesByHour"]
+  .pmd-dashboard2-chart-nav-v137 {
+    display: none !important;
+    visibility: hidden !important;
+    opacity: 0 !important;
+    pointer-events: none !important;
+  }
+
+  /*
+   * The original inputs remain active as data sources.
+   * They are moved off-screen so older PMD positioning
+   * authorities cannot create visible duplicate controls.
+   */
+  .pmd-dashboard2-auto-gap-source-v2 {
+    position: fixed !important;
+    top: -10000px !important;
+    right: auto !important;
+    bottom: auto !important;
+    left: -10000px !important;
+
+    width: 1px !important;
+    min-width: 1px !important;
+    max-width: 1px !important;
+    height: 1px !important;
+
+    overflow: hidden !important;
+    visibility: hidden !important;
+    opacity: 0 !important;
+
+    pointer-events: none !important;
+  }
+
+  /*
+   * Reliable visible toolbar.
+   */
+  .pmd-dashboard2-auto-gap-toolbar-v2 {
+    position: absolute !important;
+
+    right: auto !important;
+    bottom: auto !important;
+    left: 50% !important;
+
+    transform: translateX(-50%) !important;
+
+    display: block !important;
+
+    width: 240px !important;
+    min-width: 240px !important;
+    max-width: 240px !important;
+    height: 28px !important;
+
+    overflow: visible !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+
+    z-index: 160 !important;
+    pointer-events: auto !important;
+  }
+
+  .pmd-dashboard2-auto-gap-track-v2 {
+    position: absolute;
+
+    top: 50%;
+    right: 0;
+    left: 0;
+
+    height: 4px;
+
+    transform: translateY(-50%);
+
+    border-radius: 999px;
+    background: #00a77b;
+
+    box-shadow:
+      0 1px 4px rgba(0, 90, 67, 0.22);
+
+    pointer-events: none;
+    z-index: 1;
+  }
+
+  .pmd-dashboard2-auto-gap-knob-v2 {
+    position: absolute;
+
+    top: 50%;
+
+    width: 17px;
+    height: 17px;
+
+    transform: translate(-50%, -50%);
+
+    border: 3px solid #ffffff;
+    border-radius: 50%;
+
+    background: #00a77b;
+
+    box-shadow:
+      0 0 0 1px rgba(0, 110, 82, 0.35),
+      0 2px 7px rgba(0, 0, 0, 0.24);
+
+    pointer-events: none;
+    z-index: 2;
+  }
+
+  .pmd-dashboard2-auto-gap-input-v2 {
+    position: absolute !important;
+    inset: 0 !important;
+
+    display: block !important;
+
+    width: 100% !important;
+    height: 28px !important;
+
+    margin: 0 !important;
+    padding: 0 !important;
+
+    visibility: visible !important;
+    opacity: 0.001 !important;
+
+    cursor: pointer !important;
+    pointer-events: auto !important;
+
+    z-index: 4 !important;
+  }
+
+  @media (max-width: 700px) {
+    .pmd-dashboard2-auto-gap-toolbar-v2 {
+      width: 190px !important;
+      min-width: 190px !important;
+      max-width: 190px !important;
+    }
+  }
+</style>
+
+<script>
+(function () {
+  'use strict';
+
+  const KEY =
+    'PMDDashboard2AutoGapToolbarsV2';
+
+  if (window[KEY]?.installed) {
+    return;
+  }
+
+  const DEFINITIONS = [
+    {
+      key: 'salesOverTime',
+      title: 'Umsatzverlauf'
+    },
+    {
+      key: 'salesByHour',
+      title: 'Umsatz nach Stunde'
+    }
+  ];
+
+  const records =
+    new Map();
+
+  const timers = [];
+
+  const boundModeButtons =
+    new WeakSet();
+
+  const modeBindings = [];
+
+  let resizeTimer = null;
+
+  function setImportant(
+    element,
+    property,
+    value
+  ) {
+    element.style.setProperty(
+      property,
+      value,
+      'important'
+    );
+  }
+
+  function findChartSurface(card) {
+    const selectors = [
+      'svg',
+      'canvas',
+      '[data-pmd-chart-frame]',
+      '[data-pmd-chart-svg]',
+      '[class*="chart-frame"]',
+      '[class*="chart-canvas"]'
+    ];
+
+    const candidates = [
+      ...card.querySelectorAll(
+        selectors.join(',')
+      )
+    ]
+      .filter(element => {
+        if (
+          element.closest(
+            '.pmd-dashboard2-auto-gap-toolbar-v2'
+          )
+        ) {
+          return false;
+        }
+
+        if (
+          element.closest(
+            '.pmd-dashboard2-zoom-scrubber-v1375'
+          )
+        ) {
+          return false;
+        }
+
+        const rect =
+          element.getBoundingClientRect();
+
+        const style =
+          getComputedStyle(element);
+
+        return (
+          rect.width > 250 &&
+          rect.height > 100 &&
+          style.display !== 'none' &&
+          style.visibility !== 'hidden'
+        );
+      })
+      .map(element => {
+        const rect =
+          element.getBoundingClientRect();
+
+        return {
+          element,
+          area:
+            rect.width *
+            rect.height
+        };
+      })
+      .sort(
+        (first, second) =>
+          second.area -
+          first.area
+      );
+
+    return candidates[0]?.element || null;
+  }
+
+  function sourceCandidates() {
+    return [
+      ...document.querySelectorAll(
+        '.pmd-dashboard2-zoom-scrubber-v1375'
+      )
+    ];
+  }
+
+  function findSourceScrubber(
+    card,
+    index,
+    usedSources
+  ) {
+    const direct =
+      card.querySelector(
+        '.pmd-dashboard2-zoom-scrubber-v1375'
+      );
+
+    if (
+      direct &&
+      !usedSources.has(direct)
+    ) {
+      return direct;
+    }
+
+    const candidates =
+      sourceCandidates();
+
+    const unused =
+      candidates.find(
+        candidate =>
+          !usedSources.has(candidate)
+      );
+
+    return (
+      unused ||
+      candidates[index] ||
+      null
+    );
+  }
+
+  function copyRangeState(
+    source,
+    target
+  ) {
+    const attributes = [
+      'min',
+      'max',
+      'step'
+    ];
+
+    attributes.forEach(attribute => {
+      const value =
+        source.getAttribute(
+          attribute
+        );
+
+      if (value === null) {
+        target.removeAttribute(
+          attribute
+        );
+      } else {
+        target.setAttribute(
+          attribute,
+          value
+        );
+      }
+    });
+
+    target.value =
+      source.value;
+  }
+
+  function syncKnob(record) {
+    copyRangeState(
+      record.sourceRange,
+      record.portalRange
+    );
+
+    const minimum =
+      Number(
+        record.portalRange.min || 0
+      );
+
+    const maximum =
+      Number(
+        record.portalRange.max || 100
+      );
+
+    const current =
+      Number(
+        record.portalRange.value ||
+        minimum
+      );
+
+    const span =
+      maximum - minimum;
+
+    const percentage =
+      span > 0
+        ? (
+            (current - minimum) /
+            span
+          ) * 100
+        : 100;
+
+    record.knob.style.left =
+      `${Math.max(
+        0,
+        Math.min(
+          100,
+          percentage
+        )
+      )}%`;
+  }
+
+  function hideSource(record) {
+    record.sourceScrubber
+      .classList.add(
+        'pmd-dashboard2-auto-gap-source-v2'
+      );
+
+    setImportant(
+      record.sourceScrubber,
+      'position',
+      'fixed'
+    );
+
+    setImportant(
+      record.sourceScrubber,
+      'top',
+      '-10000px'
+    );
+
+    setImportant(
+      record.sourceScrubber,
+      'left',
+      '-10000px'
+    );
+
+    setImportant(
+      record.sourceScrubber,
+      'width',
+      '1px'
+    );
+
+    setImportant(
+      record.sourceScrubber,
+      'height',
+      '1px'
+    );
+
+    setImportant(
+      record.sourceScrubber,
+      'visibility',
+      'hidden'
+    );
+
+    setImportant(
+      record.sourceScrubber,
+      'opacity',
+      '0'
+    );
+
+    setImportant(
+      record.sourceScrubber,
+      'pointer-events',
+      'none'
+    );
+  }
+
+  function createRecord(
+    definition,
+    card,
+    sourceScrubber
+  ) {
+    const sourceRange =
+      sourceScrubber.querySelector(
+        'input[type="range"]'
+      );
+
+    if (!sourceRange) {
+      return null;
+    }
+
+    const portal =
+      document.createElement('div');
+
+    portal.className =
+      'pmd-dashboard2-auto-gap-toolbar-v2';
+
+    portal.dataset.pmdAutoGapFor =
+      definition.key;
+
+    const track =
+      document.createElement('div');
+
+    track.className =
+      'pmd-dashboard2-auto-gap-track-v2';
+
+    const knob =
+      document.createElement('div');
+
+    knob.className =
+      'pmd-dashboard2-auto-gap-knob-v2';
+
+    const portalRange =
+      document.createElement('input');
+
+    portalRange.type =
+      'range';
+
+    portalRange.className =
+      'pmd-dashboard2-auto-gap-input-v2';
+
+    portalRange.setAttribute(
+      'aria-label',
+      `${definition.title} Zeitraum`
+    );
+
+    portal.append(
+      track,
+      knob,
+      portalRange
+    );
+
+    card.appendChild(portal);
+
+    const record = {
+      key:
+        definition.key,
+
+      title:
+        definition.title,
+
+      card,
+      sourceScrubber,
+      sourceRange,
+      portal,
+      portalRange,
+      track,
+      knob,
+
+      lastMeasurement:
+        null
+    };
+
+    record.onPortalInput =
+      function () {
+        sourceRange.value =
+          portalRange.value;
+
+        sourceRange.dispatchEvent(
+          new Event(
+            'input',
+            {
+              bubbles: true
+            }
+          )
+        );
+
+        syncKnob(record);
+      };
+
+    record.onPortalChange =
+      function () {
+        sourceRange.value =
+          portalRange.value;
+
+        sourceRange.dispatchEvent(
+          new Event(
+            'change',
+            {
+              bubbles: true
+            }
+          )
+        );
+
+        syncKnob(record);
+      };
+
+    record.onSourceInput =
+      function () {
+        syncKnob(record);
+      };
+
+    portalRange.addEventListener(
+      'input',
+      record.onPortalInput
+    );
+
+    portalRange.addEventListener(
+      'change',
+      record.onPortalChange
+    );
+
+    sourceRange.addEventListener(
+      'input',
+      record.onSourceInput
+    );
+
+    sourceRange.addEventListener(
+      'change',
+      record.onSourceInput
+    );
+
+    hideSource(record);
+    syncKnob(record);
+
+    return record;
+  }
+
+  function destroyRecord(record) {
+    record.portalRange
+      .removeEventListener(
+        'input',
+        record.onPortalInput
+      );
+
+    record.portalRange
+      .removeEventListener(
+        'change',
+        record.onPortalChange
+      );
+
+    record.sourceRange
+      .removeEventListener(
+        'input',
+        record.onSourceInput
+      );
+
+    record.sourceRange
+      .removeEventListener(
+        'change',
+        record.onSourceInput
+      );
+
+    record.portal.remove();
+
+    record.sourceScrubber
+      .classList.remove(
+        'pmd-dashboard2-auto-gap-source-v2'
+      );
+  }
+
+  function ensureRecords() {
+    const usedSources =
+      new Set();
+
+    records.forEach(record => {
+      if (
+        record.card.isConnected &&
+        record.sourceScrubber.isConnected &&
+        record.sourceRange.isConnected
+      ) {
+        usedSources.add(
+          record.sourceScrubber
+        );
+      }
+    });
+
+    DEFINITIONS.forEach(
+      (definition, index) => {
+        const card =
+          document.querySelector(
+            `[data-pmd-analytics-widget="${definition.key}"]`
+          );
+
+        const existing =
+          records.get(
+            definition.key
+          );
+
+        if (
+          existing &&
+          card === existing.card &&
+          existing.portal.isConnected &&
+          existing.sourceScrubber.isConnected &&
+          existing.sourceRange.isConnected
+        ) {
+          usedSources.add(
+            existing.sourceScrubber
+          );
+
+          return;
+        }
+
+        if (existing) {
+          destroyRecord(existing);
+
+          records.delete(
+            definition.key
+          );
+        }
+
+        if (!card) {
+          return;
+        }
+
+        const sourceScrubber =
+          findSourceScrubber(
+            card,
+            index,
+            usedSources
+          );
+
+        if (!sourceScrubber) {
+          return;
+        }
+
+        const record =
+          createRecord(
+            definition,
+            card,
+            sourceScrubber
+          );
+
+        if (!record) {
+          return;
+        }
+
+        records.set(
+          definition.key,
+          record
+        );
+
+        usedSources.add(
+          sourceScrubber
+        );
+      }
+    );
+  }
+
+  function measure(record) {
+    const chartSurface =
+      findChartSurface(
+        record.card
+      );
+
+    const cardRect =
+      record.card
+        .getBoundingClientRect();
+
+    const toolbarHeight = 28;
+
+    const safeCardBottom =
+      cardRect.bottom - 12;
+
+    let chartBottom;
+
+    if (chartSurface) {
+      const chartRect =
+        chartSurface
+          .getBoundingClientRect();
+
+      chartBottom =
+        Math.min(
+          chartRect.bottom,
+          safeCardBottom -
+            toolbarHeight -
+            8
+        );
+    } else {
+      chartBottom =
+        cardRect.top +
+        cardRect.height * 0.78;
+    }
+
+    const availableGap =
+      safeCardBottom -
+      chartBottom;
+
+    const toolbarTopViewport =
+      chartBottom +
+      Math.max(
+        6,
+        (
+          availableGap -
+          toolbarHeight
+        ) / 2
+      );
+
+    const toolbarTopInsideCard =
+      toolbarTopViewport -
+      cardRect.top;
+
+    return {
+      chartSurface,
+      cardRect,
+      chartBottom,
+      safeCardBottom,
+      availableGap,
+      toolbarTopInsideCard
+    };
+  }
+
+  function layoutRecord(record) {
+    setImportant(
+      record.card,
+      'position',
+      'relative'
+    );
+
+    hideSource(record);
+
+    syncKnob(record);
+
+    const measurement =
+      measure(record);
+
+    record.lastMeasurement =
+      measurement;
+
+    setImportant(
+      record.portal,
+      'top',
+      `${Math.round(
+        measurement
+          .toolbarTopInsideCard
+      )}px`
+    );
+
+    return measurement;
+  }
+
+  function bindModeButtons() {
+    records.forEach(record => {
+      const buttons = [
+        ...record.card
+          .querySelectorAll(
+            '[data-pmd-chart-mode]'
+          )
+      ];
+
+      buttons.forEach(button => {
+        if (
+          boundModeButtons.has(
+            button
+          )
+        ) {
+          return;
+        }
+
+        const listener =
+          function () {
+            timers.push(
+              setTimeout(
+                () =>
+                  layoutAll(
+                    'mode-switch-350'
+                  ),
+                350
+              )
+            );
+
+            timers.push(
+              setTimeout(
+                () =>
+                  layoutAll(
+                    'mode-switch-750'
+                  ),
+                750
+              )
+            );
+          };
+
+        button.addEventListener(
+          'mousedown',
+          listener
+        );
+
+        boundModeButtons.add(
+          button
+        );
+
+        modeBindings.push({
+          button,
+          listener
+        });
+      });
+    });
+  }
+
+  function layoutAll(
+    reason = 'manual'
+  ) {
+    ensureRecords();
+
+    records.forEach(
+      record =>
+        layoutRecord(record)
+    );
+
+    bindModeButtons();
+
+    return audit(reason);
+  }
+
+  function inspect(element) {
+    if (!element) {
+      return null;
+    }
+
+    const rect =
+      element.getBoundingClientRect();
+
+    const style =
+      getComputedStyle(element);
+
+    return {
+      display:
+        style.display,
+
+      visibility:
+        style.visibility,
+
+      opacity:
+        style.opacity,
+
+      position:
+        style.position,
+
+      top:
+        Math.round(rect.top),
+
+      bottom:
+        Math.round(rect.bottom),
+
+      left:
+        Math.round(rect.left),
+
+      right:
+        Math.round(rect.right),
+
+      width:
+        Math.round(rect.width),
+
+      height:
+        Math.round(rect.height),
+
+      connected:
+        element.isConnected
+    };
+  }
+
+  function audit(
+    reason = 'audit'
+  ) {
+    const cards = [];
+
+    DEFINITIONS.forEach(
+      definition => {
+        const record =
+          records.get(
+            definition.key
+          );
+
+        if (!record) {
+          cards.push({
+            key:
+              definition.key,
+
+            title:
+              definition.title,
+
+            success: false
+          });
+
+          return;
+        }
+
+        /*
+         * Always use a fresh measurement.
+         * This prevents stale gap values after
+         * switching between Linie and Balken.
+         */
+        const measurement =
+          measure(record);
+
+        const cardRect =
+          record.card
+            .getBoundingClientRect();
+
+        const toolbarRect =
+          record.portal
+            .getBoundingClientRect();
+
+        cards.push({
+          key:
+            record.key,
+
+          title:
+            record.title,
+
+          success: true,
+
+          toolbar:
+            inspect(
+              record.portal
+            ),
+
+          range:
+            inspect(
+              record.portalRange
+            ),
+
+          track:
+            inspect(
+              record.track
+            ),
+
+          knob:
+            inspect(
+              record.knob
+            ),
+
+          measuredGap:
+            Math.round(
+              measurement
+                .availableGap
+            ),
+
+          gapAboveToolbar:
+            Math.round(
+              toolbarRect.top -
+              measurement
+                .chartBottom
+            ),
+
+          gapBelowToolbar:
+            Math.round(
+              measurement
+                .safeCardBottom -
+              toolbarRect.bottom
+            ),
+
+          toolbarInsideCard:
+            toolbarRect.top >=
+              cardRect.top &&
+            toolbarRect.bottom <=
+              cardRect.bottom &&
+            toolbarRect.left >=
+              cardRect.left &&
+            toolbarRect.right <=
+              cardRect.right,
+
+          sourceValue:
+            record.sourceRange
+              .value,
+
+          portalValue:
+            record.portalRange
+              .value
+        });
+      }
+    );
+
+    const result = {
+      installed: true,
+      version: '2.0.0',
+      reason,
+      cards,
+      permanentObservers: 0,
+      intervals: 0
+    };
+
+    console.info(
+      '[PMD Dashboard2 Auto Gap Toolbars V2]',
+      result
+    );
+
+    console.table(
+      cards.map(card => ({
+        card:
+          card.title,
+
+        success:
+          card.success,
+
+        measuredGap:
+          card.measuredGap ??
+          null,
+
+        gapAbove:
+          card.gapAboveToolbar ??
+          null,
+
+        gapBelow:
+          card.gapBelowToolbar ??
+          null,
+
+        insideCard:
+          card.toolbarInsideCard ??
+          false
+      }))
+    );
+
+    return result;
+  }
+
+  function schedule(
+    delay,
+    reason
+  ) {
+    timers.push(
+      setTimeout(
+        () =>
+          layoutAll(reason),
+        delay
+      )
+    );
+  }
+
+  const resizeListener =
+    function () {
+      clearTimeout(
+        resizeTimer
+      );
+
+      resizeTimer =
+        setTimeout(
+          () =>
+            layoutAll(
+              'window-resize'
+            ),
+          120
+        );
+    };
+
+  window.addEventListener(
+    'resize',
+    resizeListener,
+    {
+      passive: true
+    }
+  );
+
+  window[KEY] = {
+    installed: true,
+    version: '2.0.0',
+
+    layout() {
+      return layoutAll(
+        'manual'
+      );
+    },
+
+    audit() {
+      return audit(
+        'audit'
+      );
+    },
+
+    records
+  };
+
+  function boot() {
+    layoutAll('initial');
+
+    schedule(
+      200,
+      'settle-200'
+    );
+
+    schedule(
+      700,
+      'settle-700'
+    );
+
+    schedule(
+      1500,
+      'settle-1500'
+    );
+
+    schedule(
+      2600,
+      'settle-2600'
+    );
+
+    console.info(
+      '[PMD Dashboard2 Auto Gap Toolbars V2] Ready',
+      {
+        cards: [
+          'salesOverTime',
+          'salesByHour'
+        ],
+
+        permanentObservers: 0,
+        intervals: 0,
+        finiteBootRetries: 4
+      }
+    );
+  }
+
+  if (
+    document.readyState ===
+    'loading'
+  ) {
+    document.addEventListener(
+      'DOMContentLoaded',
+      boot,
+      {
+        once: true
+      }
+    );
+  } else {
+    setTimeout(
+      boot,
+      0
+    );
+  }
+})();
+</script>
+
+<!-- PMD_DASHBOARD2_EXACT_KNOB_HIT_FIX_V1 -->
+<style id="pmd-dashboard2-exact-knob-hit-fix-v1-style">
+  /*
+   * The complete visible toolbar owns pointer interaction.
+   * The transparent native range remains only as an
+   * internal value bridge.
+   */
+  .pmd-dashboard2-auto-gap-toolbar-v2.pmd-dashboard2-exact-knob-hit-v1 {
+    cursor: pointer !important;
+    touch-action: none !important;
+    user-select: none !important;
+    -webkit-user-select: none !important;
+  }
+
+  .pmd-dashboard2-auto-gap-toolbar-v2.pmd-dashboard2-exact-knob-hit-v1
+  .pmd-dashboard2-auto-gap-input-v2 {
+    pointer-events: none !important;
+  }
+
+  .pmd-dashboard2-auto-gap-toolbar-v2.pmd-dashboard2-exact-knob-hit-v1
+  .pmd-dashboard2-auto-gap-knob-v2 {
+    transition:
+      transform 120ms ease,
+      box-shadow 120ms ease;
+  }
+</style>
+
+<script>
+(function () {
+  'use strict';
+
+  const KEY =
+    'PMDDashboard2ExactKnobHitFixV1';
+
+  if (window[KEY]?.installed) {
+    return;
+  }
+
+  const bindings =
+    new Map();
+
+  const timers = [];
+
+  const boundModeButtons =
+    new WeakSet();
+
+  const modeBindings = [];
+
+  let resizeTimer = null;
+
+  function rangeNumbers(range) {
+    const minimum =
+      Number(range.min || 0);
+
+    const maximum =
+      Number(range.max || 100);
+
+    const rawStep =
+      range.getAttribute('step');
+
+    const parsedStep =
+      rawStep &&
+      rawStep !== 'any'
+        ? Number(rawStep)
+        : 1;
+
+    const step =
+      Number.isFinite(parsedStep) &&
+      parsedStep > 0
+        ? parsedStep
+        : 1;
+
+    return {
+      minimum,
+      maximum,
+      step
+    };
+  }
+
+  function valuePercentage(range) {
+    const {
+      minimum,
+      maximum
+    } = rangeNumbers(range);
+
+    const current =
+      Number(
+        range.value ||
+        minimum
+      );
+
+    if (maximum <= minimum) {
+      return 0;
+    }
+
+    return Math.max(
+      0,
+      Math.min(
+        1,
+        (
+          current -
+          minimum
+        ) /
+        (
+          maximum -
+          minimum
+        )
+      )
+    );
+  }
+
+  function syncVisual(record) {
+    if (
+      !record.portal?.isConnected ||
+      !record.knob?.isConnected ||
+      !record.track?.isConnected
+    ) {
+      return false;
+    }
+
+    const portalRect =
+      record.portal
+        .getBoundingClientRect();
+
+    const knobRect =
+      record.knob
+        .getBoundingClientRect();
+
+    const knobWidth =
+      knobRect.width || 17;
+
+    const radius =
+      knobWidth / 2;
+
+    const usableWidth =
+      Math.max(
+        1,
+        portalRect.width -
+        knobWidth
+      );
+
+    const percentage =
+      valuePercentage(
+        record.portalRange
+      );
+
+    const center =
+      radius +
+      percentage *
+      usableWidth;
+
+    record.track.style.left =
+      `${radius}px`;
+
+    record.track.style.right =
+      `${radius}px`;
+
+    record.knob.style.left =
+      `${center}px`;
+
+    return true;
+  }
+
+  function pointerPositionToValue(
+    record,
+    clientX
+  ) {
+    const portalRect =
+      record.portal
+        .getBoundingClientRect();
+
+    const knobRect =
+      record.knob
+        .getBoundingClientRect();
+
+    const knobWidth =
+      knobRect.width || 17;
+
+    const radius =
+      knobWidth / 2;
+
+    const usableWidth =
+      Math.max(
+        1,
+        portalRect.width -
+        knobWidth
+      );
+
+    const localPosition =
+      Math.max(
+        0,
+        Math.min(
+          usableWidth,
+          clientX -
+          portalRect.left -
+          radius
+        )
+      );
+
+    const percentage =
+      localPosition /
+      usableWidth;
+
+    const {
+      minimum,
+      maximum,
+      step
+    } = rangeNumbers(
+      record.portalRange
+    );
+
+    const rawValue =
+      minimum +
+      percentage *
+      (
+        maximum -
+        minimum
+      );
+
+    const steppedValue =
+      minimum +
+      Math.round(
+        (
+          rawValue -
+          minimum
+        ) /
+        step
+      ) *
+      step;
+
+    return Math.max(
+      minimum,
+      Math.min(
+        maximum,
+        steppedValue
+      )
+    );
+  }
+
+  function applyPointerValue(
+    record,
+    clientX,
+    finalChange
+  ) {
+    const value =
+      pointerPositionToValue(
+        record,
+        clientX
+      );
+
+    record.portalRange.value =
+      String(value);
+
+    record.sourceRange.value =
+      record.portalRange.value;
+
+    record.sourceRange
+      .dispatchEvent(
+        new Event(
+          finalChange
+            ? 'change'
+            : 'input',
+          {
+            bubbles: true
+          }
+        )
+      );
+
+    syncVisual(record);
+  }
+
+  function unbindRecord(binding) {
+    const {
+      record
+    } = binding;
+
+    record.portal
+      ?.removeEventListener(
+        'pointerdown',
+        binding.pointerDown
+      );
+
+    record.portal
+      ?.removeEventListener(
+        'pointermove',
+        binding.pointerMove
+      );
+
+    record.portal
+      ?.removeEventListener(
+        'pointerup',
+        binding.finish
+      );
+
+    record.portal
+      ?.removeEventListener(
+        'pointercancel',
+        binding.finish
+      );
+
+    record.portal
+      ?.removeEventListener(
+        'pointerenter',
+        binding.pointerEnter
+      );
+
+    record.portal
+      ?.removeEventListener(
+        'pointerleave',
+        binding.pointerLeave
+      );
+
+    record.sourceRange
+      ?.removeEventListener(
+        'input',
+        binding.sourceSync
+      );
+
+    record.sourceRange
+      ?.removeEventListener(
+        'change',
+        binding.sourceSync
+      );
+
+    record.portal
+      ?.classList.remove(
+        'pmd-dashboard2-exact-knob-hit-v1'
+      );
+
+    bindings.delete(
+      record.portal
+    );
+  }
+
+  function bindRecord(record) {
+    if (
+      !record?.portal ||
+      !record?.portalRange ||
+      !record?.sourceRange ||
+      !record?.track ||
+      !record?.knob
+    ) {
+      return false;
+    }
+
+    if (
+      !record.portal.isConnected ||
+      !record.portalRange.isConnected ||
+      !record.sourceRange.isConnected
+    ) {
+      return false;
+    }
+
+    if (
+      bindings.has(
+        record.portal
+      )
+    ) {
+      syncVisual(record);
+      return true;
+    }
+
+    let dragging = false;
+    let pointerId = null;
+
+    record.portal
+      .classList.add(
+        'pmd-dashboard2-exact-knob-hit-v1'
+      );
+
+    record.portal.style
+      .setProperty(
+        'cursor',
+        'pointer',
+        'important'
+      );
+
+    record.portal.style
+      .setProperty(
+        'touch-action',
+        'none',
+        'important'
+      );
+
+    record.portalRange.style
+      .setProperty(
+        'pointer-events',
+        'none',
+        'important'
+      );
+
+    const pointerDown =
+      function (event) {
+        if (
+          event.pointerType ===
+            'mouse' &&
+          event.button !== 0
+        ) {
+          return;
+        }
+
+        dragging = true;
+
+        pointerId =
+          event.pointerId;
+
+        record.portal
+          .setPointerCapture?.(
+            pointerId
+          );
+
+        record.knob.style
+          .transform =
+          'translate(-50%, -50%) scale(1.12)';
+
+        applyPointerValue(
+          record,
+          event.clientX,
+          false
+        );
+
+        event.preventDefault();
+      };
+
+    const pointerMove =
+      function (event) {
+        if (
+          !dragging ||
+          event.pointerId !==
+            pointerId
+        ) {
+          return;
+        }
+
+        applyPointerValue(
+          record,
+          event.clientX,
+          false
+        );
+
+        event.preventDefault();
+      };
+
+    const finish =
+      function (event) {
+        if (
+          !dragging ||
+          event.pointerId !==
+            pointerId
+        ) {
+          return;
+        }
+
+        applyPointerValue(
+          record,
+          event.clientX,
+          true
+        );
+
+        dragging = false;
+
+        record.knob.style
+          .transform =
+          'translate(-50%, -50%) scale(1)';
+
+        try {
+          record.portal
+            .releasePointerCapture?.(
+              pointerId
+            );
+        } catch (error) {
+        }
+
+        pointerId = null;
+
+        event.preventDefault();
+      };
+
+    const pointerEnter =
+      function () {
+        if (!dragging) {
+          record.knob.style
+            .transform =
+            'translate(-50%, -50%) scale(1.08)';
+        }
+      };
+
+    const pointerLeave =
+      function () {
+        if (!dragging) {
+          record.knob.style
+            .transform =
+            'translate(-50%, -50%) scale(1)';
+        }
+      };
+
+    const sourceSync =
+      function () {
+        record.portalRange.value =
+          record.sourceRange.value;
+
+        syncVisual(record);
+      };
+
+    record.portal
+      .addEventListener(
+        'pointerdown',
+        pointerDown
+      );
+
+    record.portal
+      .addEventListener(
+        'pointermove',
+        pointerMove
+      );
+
+    record.portal
+      .addEventListener(
+        'pointerup',
+        finish
+      );
+
+    record.portal
+      .addEventListener(
+        'pointercancel',
+        finish
+      );
+
+    record.portal
+      .addEventListener(
+        'pointerenter',
+        pointerEnter
+      );
+
+    record.portal
+      .addEventListener(
+        'pointerleave',
+        pointerLeave
+      );
+
+    record.sourceRange
+      .addEventListener(
+        'input',
+        sourceSync
+      );
+
+    record.sourceRange
+      .addEventListener(
+        'change',
+        sourceSync
+      );
+
+    const binding = {
+      record,
+      pointerDown,
+      pointerMove,
+      finish,
+      pointerEnter,
+      pointerLeave,
+      sourceSync
+    };
+
+    bindings.set(
+      record.portal,
+      binding
+    );
+
+    syncVisual(record);
+
+    return true;
+  }
+
+  function cleanDisconnectedBindings() {
+    [
+      ...bindings.values()
+    ].forEach(binding => {
+      if (
+        !binding.record.portal
+          ?.isConnected ||
+        !binding.record.sourceRange
+          ?.isConnected
+      ) {
+        unbindRecord(binding);
+      }
+    });
+  }
+
+  function currentAutoGapApi() {
+    return window
+      .PMDDashboard2AutoGapToolbarsV2 ||
+      null;
+  }
+
+  function bindModeButtons(api) {
+    if (!api?.records) {
+      return;
+    }
+
+    [
+      ...api.records.values()
+    ].forEach(record => {
+      [
+        ...record.card
+          .querySelectorAll(
+            '[data-pmd-chart-mode]'
+          )
+      ].forEach(button => {
+        if (
+          boundModeButtons.has(
+            button
+          )
+        ) {
+          return;
+        }
+
+        const listener =
+          function () {
+            timers.push(
+              setTimeout(
+                () =>
+                  bindAll(
+                    'mode-switch-350'
+                  ),
+                350
+              )
+            );
+
+            timers.push(
+              setTimeout(
+                () =>
+                  bindAll(
+                    'mode-switch-800'
+                  ),
+                800
+              )
+            );
+          };
+
+        button.addEventListener(
+          'mousedown',
+          listener
+        );
+
+        boundModeButtons.add(
+          button
+        );
+
+        modeBindings.push({
+          button,
+          listener
+        });
+      });
+    });
+  }
+
+  function bindAll(
+    reason = 'manual'
+  ) {
+    cleanDisconnectedBindings();
+
+    const api =
+      currentAutoGapApi();
+
+    if (!api?.records) {
+      return {
+        installed: true,
+        applied: false,
+        reason,
+        autoGapApiFound: false,
+        boundCards: 0
+      };
+    }
+
+    let boundCards = 0;
+
+    [
+      ...api.records.values()
+    ].forEach(record => {
+      if (
+        bindRecord(record)
+      ) {
+        boundCards += 1;
+      }
+    });
+
+    bindModeButtons(api);
+
+    return audit(reason);
+  }
+
+  function audit(
+    reason = 'audit'
+  ) {
+    const cards = [
+      ...bindings.values()
+    ].map(binding => {
+      const {
+        record
+      } = binding;
+
+      const portalRect =
+        record.portal
+          .getBoundingClientRect();
+
+      const knobRect =
+        record.knob
+          .getBoundingClientRect();
+
+      const knobCenter =
+        knobRect.left +
+        knobRect.width / 2;
+
+      return {
+        title:
+          record.title,
+
+        value:
+          record.portalRange.value,
+
+        knobCenter:
+          Math.round(
+            knobCenter
+          ),
+
+        portalLeft:
+          Math.round(
+            portalRect.left
+          ),
+
+        portalRight:
+          Math.round(
+            portalRect.right
+          ),
+
+        leftInset:
+          Math.round(
+            knobCenter -
+            portalRect.left
+          ),
+
+        rightInset:
+          Math.round(
+            portalRect.right -
+            knobCenter
+          ),
+
+        portalOwnsPointer:
+          getComputedStyle(
+            record.portal
+          ).pointerEvents !==
+            'none',
+
+        hiddenRangePointerEvents:
+          getComputedStyle(
+            record.portalRange
+          ).pointerEvents,
+
+        directClickEnabled:
+          true,
+
+        directDragEnabled:
+          true,
+
+        connected:
+          record.portal.isConnected
+      };
+    });
+
+    const result = {
+      installed: true,
+      version: '1.0.0',
+      applied:
+        cards.length > 0,
+      reason,
+      cards,
+      permanentObservers: 0,
+      intervals: 0
+    };
+
+    console.info(
+      '[PMD Dashboard2 Exact Knob Hit Fix V1]',
+      result
+    );
+
+    console.table(cards);
+
+    return result;
+  }
+
+  const resizeListener =
+    function () {
+      clearTimeout(
+        resizeTimer
+      );
+
+      resizeTimer =
+        setTimeout(
+          function () {
+            bindAll(
+              'window-resize'
+            );
+          },
+          120
+        );
+    };
+
+  window.addEventListener(
+    'resize',
+    resizeListener,
+    {
+      passive: true
+    }
+  );
+
+  window[KEY] = {
+    installed: true,
+    version: '1.0.0',
+
+    bind() {
+      return bindAll(
+        'manual'
+      );
+    },
+
+    audit() {
+      return audit(
+        'audit'
+      );
+    }
+  };
+
+  function schedule(
+    delay,
+    reason
+  ) {
+    timers.push(
+      setTimeout(
+        function () {
+          bindAll(reason);
+        },
+        delay
+      )
+    );
+  }
+
+  function boot() {
+    bindAll('initial');
+
+    schedule(
+      200,
+      'settle-200'
+    );
+
+    schedule(
+      700,
+      'settle-700'
+    );
+
+    schedule(
+      1500,
+      'settle-1500'
+    );
+
+    schedule(
+      2800,
+      'settle-2800'
+    );
+
+    console.info(
+      '[PMD Dashboard2 Exact Knob Hit Fix V1] Ready',
+      {
+        targetCards: [
+          'salesOverTime',
+          'salesByHour'
+        ],
+
+        completeToolbarHitArea:
+          true,
+
+        directKnobDrag:
+          true,
+
+        permanentObservers:
+          0,
+
+        intervals:
+          0,
+
+        finiteBootRetries:
+          4
+      }
+    );
+  }
+
+  if (
+    document.readyState ===
+    'loading'
+  ) {
+    document.addEventListener(
+      'DOMContentLoaded',
+      boot,
+      {
+        once: true
+      }
+    );
+  } else {
+    setTimeout(
+      boot,
+      0
+    );
+  }
 })();
 </script>
