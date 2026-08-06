@@ -1,0 +1,13 @@
+--- a/app/admin/views/_partials/pmd_admin_i18n.blade.php
++++ b/app/admin/views/_partials/pmd_admin_i18n.blade.php
+@@ -86,3 +86,12 @@
+ <!-- PMD_I18N_PAGE_AUTHORITY_V2 -->
+ <script src="/app/admin/assets/js/pmd-admin-i18n-page-authority-v2.js?v=i18n-page-authority-v2-20260803_143428"></script>
++
++{{-- PMD_ORDER_EDIT_POLISH_LOADER_V1 --}}
++@if (function_exists('request') && preg_match('#^admin/orders/edit/\d+$#', trim(request()->path(), '/')))
++<script
++    src="/app/admin/assets/js/pmd-order-edit-polish-v1.js?v={{ is_file(base_path('app/admin/assets/js/pmd-order-edit-polish-v1.js')) ? filemtime(base_path('app/admin/assets/js/pmd-order-edit-polish-v1.js')) : '1' }}"
++    defer
++></script>
++@endif
