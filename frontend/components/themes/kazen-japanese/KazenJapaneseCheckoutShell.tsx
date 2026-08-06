@@ -991,8 +991,11 @@ export function KazenJapaneseCheckoutShell(props: KazenJapaneseCheckoutShellProp
                           baseAmount: pmdKazenPaymentGross,
                           tipAmount: nextTipAmount,
                         })
+                        // PMD_PAY_EXISTING_TIP_AMOUNT_FIX_V42
+                        // Presets remain percentage-based. The payment
+                        // summary recalculates the value using the current
+                        // authoritative order amount.
                         updatePaymentTipPercentage?.(percentage)
-                        updatePaymentCustomTip?.(nextTipAmount)
                       }}
                       className="kzco-tip-preset"
                     >

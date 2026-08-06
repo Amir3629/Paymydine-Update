@@ -301,19 +301,122 @@ export async function handlePaymentFlow({
           submittedItemsSubtotal: pmdSubmittedItemsSubtotal(),
         })
 
+        /*
+         * PMD_PAY_EXISTING_TIP_AMOUNT_FIX_V42
+         *
+         * Backend contract:
+         * provider charge = unpaid order amount + tip - coupon.
+         */
+        const pmdRoundMoneyV42 = (
+          value: unknown
+        ): number => {
+          const numeric =
+            Number(value)
+
+          return Number.isFinite(numeric)
+            ? Math.round(numeric * 100) / 100
+            : 0
+        }
+
+        const pmdPayExistingBaseAmountV42 =
+          (() => {
+            const candidates = [
+              existingOrderAmount,
+              pendingSummary?.remainingAmount,
+              (submittedSnapshot as any)
+                ?.remainingAmount,
+              (submittedSnapshot as any)
+                ?.total,
+              (tableDraft as any)
+                ?.totals?.remainingAmount,
+              (tableDraft as any)
+                ?.totals?.total,
+            ]
+
+            for (const candidate of candidates) {
+              const amount =
+                pmdRoundMoneyV42(candidate)
+
+              if (amount > 0) {
+                return amount
+              }
+            }
+
+            return 0
+          })()
+
+        const pmdPayExistingTipAmountV42 =
+          pmdRoundMoneyV42(
+            Math.max(
+              0,
+              Number(paymentTipAmount || 0)
+            )
+          )
+
+        const pmdPayExistingCouponDiscountV42 =
+          pmdRoundMoneyV42(
+            Math.min(
+              Math.max(
+                0,
+                Number(
+                  safePaymentCouponDiscount ||
+                  0
+                )
+              ),
+              pmdPayExistingBaseAmountV42 +
+                pmdPayExistingTipAmountV42
+            )
+          )
+
+        const pmdPayExistingChargeAmountV42 =
+          pmdRoundMoneyV42(
+            Math.max(
+              0,
+              pmdPayExistingBaseAmountV42 +
+                pmdPayExistingTipAmountV42 -
+                pmdPayExistingCouponDiscountV42
+            )
+          )
+
         const payExistingPayload = {
           payment_method: String(paidMethod),
           payment_reference: stripePaymentIntentId ? String(stripePaymentIntentId) : null,
-          amount: (typeof existingOrderAmount !== "undefined" ? existingOrderAmount : undefined),
-          tip_amount: checkoutStep === "payment" ? Number(paymentTipAmount.toFixed(2)) : 0,
-          coupon_discount: checkoutStep === "payment" ? Number(safePaymentCouponDiscount.toFixed(2)) : 0,
+          amount:
+            pmdPayExistingChargeAmountV42 > 0
+              ? pmdPayExistingChargeAmountV42
+              : undefined,
+          tip_amount:
+            pmdPayExistingTipAmountV42,
+          coupon_discount:
+            pmdPayExistingCouponDiscountV42,
           coupon_code: checkoutStep === "payment" ? safePaymentCouponCode : null,
           selected_items: selectedItemsPayload,
           table_id: tableInfo?.table_id ? String(tableInfo.table_id) : null,
           table_no: tableInfo?.table_no ? String(tableInfo.table_no) : null,
           qr: tableInfo?.qr_code ? String(tableInfo.qr_code) : null,
         }
-    console.info("PMD_PAY_EXISTING_AMOUNT_V40", { amount: pmdPayExistingPayableAmountV40, oldAmount: (typeof existingOrderAmount !== "undefined" ? existingOrderAmount : undefined) })
+        console.info(
+          "PMD_PAY_EXISTING_AMOUNT_V42",
+          {
+            order_id:
+              paymentOrderIdCandidate,
+
+            base_amount:
+              pmdPayExistingBaseAmountV42,
+
+            tip_amount:
+              pmdPayExistingTipAmountV42,
+
+            coupon_discount:
+              pmdPayExistingCouponDiscountV42,
+
+            charge_amount:
+              pmdPayExistingChargeAmountV42,
+
+            old_item_amount:
+              existingOrderAmount,
+          }
+        )
         console.info("PMD_PAY_EXISTING_PAYLOAD", { order_id: paymentOrderIdCandidate, ...payExistingPayload })
         const paidResponse = await apiClient.payExistingQrOrder(paymentOrderIdCandidate, payExistingPayload)
 

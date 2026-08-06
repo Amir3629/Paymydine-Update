@@ -187,29 +187,32 @@
     menu.setAttribute('role', 'menu');
     var heading = document.createElement('span');
     heading.className = 'pmd-dashboard2-kpi-menu-heading';
-    heading.textContent = 'Metric';
+    /*
+     * PMD_DASHBOARD2_CLEAN_KPI_MENU_V1
+     *
+     * Dashboard2 uses a metric-only selector.
+     * Period controls are intentionally not rendered here.
+     */
+    heading.textContent = 'KPI auswählen';
     menu.appendChild(heading);
     var visibleKeys = selectedKeys();
     ORDER.forEach(function (choice) {
       var option = document.createElement('button');
       var unavailable = visibleKeys.indexOf(choice) !== -1 && choice !== key;
-      option.type = 'button'; option.className = 'pmd-r2-kpi-v2401-option'; option.disabled = unavailable;
+      option.type = 'button';
+      option.className =
+        'pmd-r2-kpi-v2401-option' +
+        (choice === key ? ' is-selected' : '');
+      option.disabled = unavailable;
       option.innerHTML = '<span class="pmd-r2-kpi-v2401-option-copy"><strong>' + escapeHtml((cards[choice] || {}).title || choice) +
         '</strong><small>' + (unavailable ? 'Already visible' : 'Show in this card') + '</small></span>' +
         '<span class="pmd-r2-kpi-v2401-check">' + (choice === key ? '✓' : '') + '</span>';
       option.addEventListener('click', function () { replaceKey(slot, choice); }); menu.appendChild(option);
     });
-    if (PERIOD_KEYS.indexOf(key) !== -1) {
-      var periodHeading = heading.cloneNode(false); periodHeading.textContent = 'Period'; menu.appendChild(periodHeading);
-      ['today', 'month'].forEach(function (period) {
-        var option = document.createElement('button'), aggregate = metricPeriod(cards[key], period);
-        option.type = 'button'; option.className = 'pmd-r2-kpi-v2401-option' + (period === selected ? ' is-selected' : '');
-        option.innerHTML = '<span class="pmd-r2-kpi-v2401-option-copy"><strong>' + (period === 'today' ? 'Today' : 'This month') +
-          '</strong><small>' + escapeHtml(formatValue(cards[key], aggregate)) + ' · ' + escapeHtml(statusText(aggregate)) +
-          '</small></span><span class="pmd-r2-kpi-v2401-check">' + (period === selected ? '✓' : '') + '</span>';
-        option.addEventListener('click', function () { setPeriod(key, period); }); menu.appendChild(option);
-      });
-    }
+    /*
+     * Period selector removed from this dropdown.
+     * Existing KPI data-period calculations remain untouched.
+     */
     return menu;
   }
 
@@ -236,7 +239,7 @@
       button.type = 'button';
       button.className = 'pmd-r2-kpi-v2401-more';
       button.dataset.pmdDashboard2KpiMenuButton = 'selector';
-      button.setAttribute('aria-label', 'Choose KPI and period');
+      button.setAttribute('aria-label', 'Choose KPI');
       button.setAttribute('aria-haspopup', 'menu');
       button.setAttribute('aria-expanded', 'false');
       button.innerHTML = '<span></span><span></span><span></span>';
@@ -987,7 +990,57 @@
     var p=(window.PMDDashboard2DonutPeriodsV1395&&window.PMDDashboard2DonutPeriodsV1395.sourceFor?window.PMDDashboard2DonutPeriodsV1395.sourceFor('paymentMethods'):null)||data.payment_methods; put('paymentMethods',p.available?(p.empty?empty(p):svgDonut(p.methods,'method','total',function(r){return money(r.total)+' · '+r.transactions;})):empty(p));
     var ch=(window.PMDDashboard2DonutPeriodsV1395&&window.PMDDashboard2DonutPeriodsV1395.sourceFor?window.PMDDashboard2DonutPeriodsV1395.sourceFor('channelSplit'):null)||data.channels; put('channelSplit',ch.available?(ch.empty?empty(ch):svgDonut(ch.channels,'channel','revenue',function(r){return r.orders+' · '+money(r.revenue);})):empty(ch));
     var live=data.live_operations; put('liveOperations',live.available?'<div class="pmd-dashboard2-live-summary"><b>'+esc(live.live_order_count)+'</b><span>live orders</span></div>'+list(live.orders,function(r){return '<span>#'+esc(r.order_id)+' · '+esc(r.channel)+'</span><b>'+esc(r.status)+'</b>'; }):empty(live));
-    var tx=data.recent_transactions; put('recentTransactions',tx.available?(tx.empty?empty(tx):list(tx.transactions,function(r){var method=r.method?' · '+esc(r.method):'';return '<span>#'+esc(r.order_id)+method+' · '+esc(r.timestamp)+'</span><b>'+esc(money(r.amount))+'</b>'; })):empty(tx));
+    /*
+     * PMD_DASHBOARD2_NATIVE_TODAY_LAST5_TRANSACTIONS_V1
+     *
+     * The Controller already returns Today-only rows.
+     * Show payment time only, without repeating today's date.
+     */
+    var tx = data.recent_transactions;
+
+    put(
+      'recentTransactions',
+      tx.available
+        ? (
+            tx.empty
+              ? empty(tx)
+              : list(
+                  (tx.transactions || []).slice(0, 5),
+                  function (r) {
+                    var method =
+                      r.method
+                        ? ' · ' + esc(r.method)
+                        : '';
+
+                    var timestamp =
+                      String(r.timestamp || '');
+
+                    var timeMatch =
+                      timestamp.match(
+                        /(?:T|\s)(\d{2}:\d{2})(?::\d{2})?/
+                      );
+
+                    var time =
+                      timeMatch
+                        ? timeMatch[1]
+                        : timestamp.slice(0, 5);
+
+                    return (
+                      '<span>#' +
+                      esc(r.order_id) +
+                      method +
+                      ' · ' +
+                      esc(time) +
+                      '</span>' +
+                      '<b>' +
+                      esc(money(r.amount)) +
+                      '</b>'
+                    );
+                  }
+                )
+          )
+        : empty(tx)
+    );
     var a=data.alerts; put('alerts',a.available?list(Object.keys(a.types).map(function(k){var name=k.replace(/_/g,' ');if(k==='long_open_tables')name+=' (> '+esc(a.long_open_threshold_minutes)+' min)';return {name:name,value:a.types[k]};}),function(r){return '<span>'+esc(r.name)+'</span><b>'+(r.value===null?'Source unavailable':esc(r.value))+'</b>'; }):empty(a));
     /*
      * PMD_DASHBOARD2_NATIVE_TODAY_CARDS_V6
@@ -16075,5 +16128,729 @@
     );
   } else {
     reveal('already-loaded');
+  }
+})();
+
+/*
+ * PMD_DASHBOARD2_TOP_ITEMS_PERIOD_TOGGLE_V1
+ *
+ * Independent Tag / Woche / Monat selector for topItems only.
+ * No global Dashboard render, observer or interval.
+ */
+(function () {
+  'use strict';
+
+  var KEY =
+    'PMDDashboard2TopItemsPeriodV1';
+
+  if (window[KEY]?.installed) {
+    return;
+  }
+
+  var ROOT_ID =
+    'pmd-dashboard2-analytics-v1';
+
+  var CARD_SELECTOR =
+    '[data-pmd-analytics-widget="topItems"]';
+
+  var CONTROL_CLASS =
+    'pmd-dashboard2-donut-period-v1395';
+
+  var STORAGE_KEY =
+    'pmd.dashboard2.topItemsPeriod.v1';
+
+  var PERIODS = [
+    'today',
+    'week',
+    'month'
+  ];
+
+  var LABELS = {
+    today: 'Tag',
+    week: 'Woche',
+    month: 'Monat'
+  };
+
+  var cache = new Map();
+  var inflight = new Map();
+  var requestGeneration = 0;
+
+  var state = {
+    selected: readStoredPeriod(),
+    requests: 0,
+    renders: 0,
+    errors: 0,
+    lastError: null
+  };
+
+  function esc(value) {
+    return String(value ?? '')
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#039;');
+  }
+
+  function normalizePeriod(value) {
+    return PERIODS.includes(value)
+      ? value
+      : 'month';
+  }
+
+  function readStoredPeriod() {
+    try {
+      return normalizePeriod(
+        localStorage.getItem(
+          STORAGE_KEY
+        )
+      );
+    } catch (error) {
+      return 'month';
+    }
+  }
+
+  function savePeriod(period) {
+    try {
+      localStorage.setItem(
+        STORAGE_KEY,
+        period
+      );
+    } catch (error) {
+      // Storage is optional.
+    }
+  }
+
+  function root() {
+    return document.getElementById(
+      ROOT_ID
+    );
+  }
+
+  function card() {
+    return (
+      root()?.querySelector(
+        CARD_SELECTOR
+      ) ||
+      document.querySelector(
+        CARD_SELECTOR
+      )
+    );
+  }
+
+  function body() {
+    return card()?.querySelector(
+      '[data-pmd-widget-body]'
+    );
+  }
+
+  function money(value) {
+    return new Intl.NumberFormat(
+      'de-DE',
+      {
+        style: 'currency',
+        currency: 'EUR'
+      }
+    ).format(
+      Number(value || 0)
+    );
+  }
+
+  function installStyles() {
+    var id =
+      'pmd-dashboard2-top-items-period-v1-style';
+
+    if (document.getElementById(id)) {
+      return;
+    }
+
+    var style =
+      document.createElement('style');
+
+    style.id = id;
+
+    style.textContent = `
+      #${ROOT_ID} ${CARD_SELECTOR} {
+        position: relative !important;
+      }
+
+      #${ROOT_ID} ${CARD_SELECTOR} > header {
+        padding-right: 130px !important;
+      }
+
+      #${ROOT_ID} ${CARD_SELECTOR}
+      > .${CONTROL_CLASS}[data-pmd-top-items-period-v1] {
+        position: absolute !important;
+        top: 10px !important;
+        right: 12px !important;
+        z-index: 20 !important;
+      }
+
+      #${ROOT_ID} ${CARD_SELECTOR}
+      > .${CONTROL_CLASS}.is-loading {
+        opacity: .58 !important;
+        pointer-events: none !important;
+      }
+
+      #${ROOT_ID} ${CARD_SELECTOR}
+      .pmd-top-items-period-v1-list {
+        margin: 0 !important;
+        padding: 0 !important;
+        list-style: none !important;
+      }
+
+      #${ROOT_ID} ${CARD_SELECTOR}
+      .pmd-top-items-period-v1-list > li {
+        display: flex !important;
+        align-items: center !important;
+        justify-content: space-between !important;
+        gap: 16px !important;
+        min-height: 44px !important;
+        padding: 10px 0 !important;
+        border-bottom:
+          1px solid rgba(62, 86, 81, .1) !important;
+      }
+
+      #${ROOT_ID} ${CARD_SELECTOR}
+      .pmd-top-items-period-v1-list > li:last-child {
+        border-bottom: 0 !important;
+      }
+
+      #${ROOT_ID} ${CARD_SELECTOR}
+      .pmd-top-items-period-v1-name {
+        min-width: 0 !important;
+        overflow: hidden !important;
+        text-overflow: ellipsis !important;
+        white-space: nowrap !important;
+      }
+
+      #${ROOT_ID} ${CARD_SELECTOR}
+      .pmd-top-items-period-v1-value {
+        flex: 0 0 auto !important;
+        font-weight: 700 !important;
+        white-space: nowrap !important;
+      }
+
+      #${ROOT_ID} ${CARD_SELECTOR}
+      .pmd-top-items-period-v1-empty {
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        min-height: 120px !important;
+        color: #74827f !important;
+        font-weight: 600 !important;
+        text-align: center !important;
+      }
+    `;
+
+    document.head.appendChild(style);
+  }
+
+  function control() {
+    var targetCard = card();
+
+    if (!targetCard) {
+      return null;
+    }
+
+    var existing =
+      targetCard.querySelector(
+        ':scope > .' +
+        CONTROL_CLASS +
+        '[data-pmd-top-items-period-v1]'
+      );
+
+    if (existing) {
+      return existing;
+    }
+
+    var element =
+      document.createElement('div');
+
+    element.className =
+      CONTROL_CLASS;
+
+    element.dataset
+      .pmdTopItemsPeriodV1 =
+      'true';
+
+    element.setAttribute(
+      'role',
+      'group'
+    );
+
+    element.setAttribute(
+      'aria-label',
+      'Top-selling items period'
+    );
+
+    PERIODS.forEach(
+      function (period) {
+        var button =
+          document.createElement(
+            'button'
+          );
+
+        button.type = 'button';
+
+        button.dataset
+          .pmdTopItemsPeriod =
+          period;
+
+        button.dataset
+          .pmdDonutWidget =
+          'topItems';
+
+        button.dataset
+          .pmdDonutPeriod =
+          period;
+
+        button.textContent =
+          LABELS[period];
+
+        button.setAttribute(
+          'aria-pressed',
+          'false'
+        );
+
+        element.appendChild(button);
+      }
+    );
+
+    targetCard.appendChild(element);
+
+    return element;
+  }
+
+  function syncButtons() {
+    control()
+      ?.querySelectorAll(
+        '[data-pmd-top-items-period]'
+      )
+      .forEach(
+        function (button) {
+          var active =
+            button.dataset
+              .pmdTopItemsPeriod ===
+            state.selected;
+
+          button.classList.toggle(
+            'is-active',
+            active
+          );
+
+          button.setAttribute(
+            'aria-pressed',
+            active
+              ? 'true'
+              : 'false'
+          );
+        }
+      );
+  }
+
+  function setLoading(value) {
+    control()?.classList.toggle(
+      'is-loading',
+      Boolean(value)
+    );
+  }
+
+  function requestPayload(
+    period,
+    force
+  ) {
+    if (
+      !force &&
+      cache.has(period)
+    ) {
+      return Promise.resolve(
+        cache.get(period)
+      );
+    }
+
+    if (
+      !force &&
+      inflight.has(period)
+    ) {
+      return inflight.get(period);
+    }
+
+    var early =
+      !force &&
+      window
+        .PMDDashboard2EarlyPayloadV1416
+        ?.take?.(period);
+
+    state.requests += 1;
+
+    var request =
+      (
+        early ||
+        fetch(
+          '/admin/dashboard2' +
+          '?pmd_analytics=1' +
+          '&period=' +
+          encodeURIComponent(period),
+          {
+            credentials:
+              'same-origin',
+
+            cache:
+              'no-store',
+
+            headers: {
+              Accept:
+                'application/json'
+            }
+          }
+        ).then(
+          function (response) {
+            if (!response.ok) {
+              throw new Error(
+                'HTTP ' +
+                response.status
+              );
+            }
+
+            return response.json();
+          }
+        )
+      )
+        .then(
+          function (payload) {
+            if (
+              !payload ||
+              payload.success !== true
+            ) {
+              throw new Error(
+                'Invalid analytics payload'
+              );
+            }
+
+            cache.set(
+              period,
+              payload
+            );
+
+            return payload;
+          }
+        )
+        .finally(
+          function () {
+            inflight.delete(period);
+          }
+        );
+
+    inflight.set(
+      period,
+      request
+    );
+
+    return request;
+  }
+
+  function render(source, period) {
+    var targetBody = body();
+    var targetCard = card();
+
+    if (!targetBody || !targetCard) {
+      return {
+        applied: false,
+        reason: 'card-not-found'
+      };
+    }
+
+    var rows =
+      Array.isArray(source?.items)
+        ? source.items.slice(0, 5)
+        : [];
+
+    if (
+      source?.available !== true ||
+      source?.empty === true ||
+      rows.length === 0
+    ) {
+      targetBody.innerHTML = `
+        <div class="pmd-top-items-period-v1-empty">
+          Keine verkauften Artikel in diesem Zeitraum.
+        </div>
+      `;
+    } else {
+      targetBody.innerHTML = `
+        <ul class="pmd-dashboard2-data-list pmd-top-items-period-v1-list">
+          ${rows.map(
+            function (row) {
+              return `
+                <li>
+                  <span class="pmd-top-items-period-v1-name">
+                    ${esc(row.name)}
+                  </span>
+
+                  <b class="pmd-top-items-period-v1-value">
+                    ${esc(row.quantity)}
+                    ·
+                    ${esc(money(row.revenue))}
+                  </b>
+                </li>
+              `;
+            }
+          ).join('')}
+        </ul>
+      `;
+    }
+
+    targetCard.dataset
+      .pmdTopItemsPeriod =
+      period;
+
+    state.renders += 1;
+
+    return {
+      applied: true,
+      period,
+      displayed: rows.length,
+      maximumDisplayed: 5
+    };
+  }
+
+  function selectPeriod(
+    requestedPeriod,
+    force
+  ) {
+    var period =
+      normalizePeriod(
+        requestedPeriod
+      );
+
+    state.selected = period;
+
+    savePeriod(period);
+    syncButtons();
+    setLoading(true);
+
+    var generation =
+      ++requestGeneration;
+
+    return requestPayload(
+      period,
+      Boolean(force)
+    )
+      .then(
+        function (payload) {
+          if (
+            generation !==
+              requestGeneration ||
+            state.selected !==
+              period
+          ) {
+            return {
+              applied: false,
+              reason: 'stale-request'
+            };
+          }
+
+          return render(
+            payload.top_items,
+            period
+          );
+        }
+      )
+      .catch(
+        function (error) {
+          state.errors += 1;
+
+          state.lastError =
+            String(
+              error?.message ||
+              error
+            );
+
+          console.error(
+            '[PMD Dashboard2 Top Items Period Toggle V1]',
+            error
+          );
+
+          return {
+            applied: false,
+            reason: 'request-failed',
+            error: state.lastError
+          };
+        }
+      )
+      .finally(
+        function () {
+          if (
+            generation ===
+            requestGeneration
+          ) {
+            setLoading(false);
+          }
+        }
+      );
+  }
+
+  function audit() {
+    var targetControl =
+      control();
+
+    var result = {
+      installed: true,
+      version: '1.0.0',
+      cardFound: Boolean(card()),
+      bodyFound: Boolean(body()),
+      controlFound:
+        Boolean(targetControl),
+      selectedPeriod:
+        state.selected,
+      displayedRows:
+        body()?.querySelectorAll(
+          '.pmd-top-items-period-v1-list > li'
+        ).length || 0,
+      requests:
+        state.requests,
+      renders:
+        state.renders,
+      errors:
+        state.errors,
+      lastError:
+        state.lastError,
+      otherCardsRendered: 0,
+      observersAdded: 0,
+      intervalsAdded: 0
+    };
+
+    console.info(
+      '[PMD Dashboard2 Top Items Period Toggle V1]',
+      result
+    );
+
+    return result;
+  }
+
+  function boot(reason) {
+    installStyles();
+
+    var targetControl =
+      control();
+
+    if (!targetControl) {
+      return false;
+    }
+
+    if (
+      targetControl.dataset
+        .pmdClickBound !==
+      'true'
+    ) {
+      targetControl.addEventListener(
+        'click',
+        function (event) {
+          var button =
+            event.target.closest(
+              '[data-pmd-top-items-period]'
+            );
+
+          if (!button) {
+            return;
+          }
+
+          event.preventDefault();
+          event.stopPropagation();
+
+          selectPeriod(
+            button.dataset
+              .pmdTopItemsPeriod,
+            false
+          );
+        }
+      );
+
+      targetControl.dataset
+        .pmdClickBound =
+        'true';
+    }
+
+    syncButtons();
+
+    selectPeriod(
+      state.selected,
+      false
+    );
+
+    console.info(
+      '[PMD Dashboard2 Top Items Period Toggle V1] Ready',
+      {
+        reason,
+        selected:
+          state.selected,
+        otherCardsTouched:
+          false
+      }
+    );
+
+    return true;
+  }
+
+  window[KEY] = {
+    installed: true,
+    version: '1.0.0',
+
+    setPeriod(period) {
+      return selectPeriod(
+        period,
+        false
+      );
+    },
+
+    refresh() {
+      return selectPeriod(
+        state.selected,
+        true
+      );
+    },
+
+    audit,
+    state
+  };
+
+  function start() {
+    if (boot('initial')) {
+      return;
+    }
+
+    [
+      250,
+      700,
+      1400,
+      2400
+    ].forEach(
+      function (delay) {
+        setTimeout(
+          function () {
+            boot(
+              'settle-' +
+              delay
+            );
+          },
+          delay
+        );
+      }
+    );
+  }
+
+  if (
+    document.readyState ===
+    'loading'
+  ) {
+    document.addEventListener(
+      'DOMContentLoaded',
+      start,
+      {
+        once: true
+      }
+    );
+  } else {
+    start();
   }
 })();

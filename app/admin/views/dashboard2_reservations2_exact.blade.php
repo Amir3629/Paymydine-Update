@@ -510,9 +510,9 @@ window.PMD_DASHBOARD2_KPI_PAYLOAD = @json($pmdDashboard2KpiPayload ?? null);
 
     <article
       class="pmd-dashboard2-analytics-card"
-      data-pmd-analytics-widget="topItems"
+      data-pmd-analytics-widget="calendarEvents"
     >
-      <header><h3>Top-selling items</h3></header>
+      <header><h3>Upcoming reservations</h3></header>
       <div class="pmd-dashboard2-widget-body" data-pmd-widget-body></div>
     </article>
 
@@ -694,9 +694,9 @@ window.PMD_DASHBOARD2_KPI_PAYLOAD = @json($pmdDashboard2KpiPayload ?? null);
 
     <article
       class="pmd-dashboard2-analytics-card"
-      data-pmd-analytics-widget="calendarEvents"
+      data-pmd-analytics-widget="topItems"
     >
-      <header><h3>Upcoming reservations</h3></header>
+      <header><h3>Top-selling items</h3></header>
       <div class="pmd-dashboard2-widget-body" data-pmd-widget-body></div>
     </article>
   </div>
@@ -2368,7 +2368,7 @@ window.PMD_DASHBOARD2_KPI_PAYLOAD = @json($pmdDashboard2KpiPayload ?? null);
 
 
 <!-- PMD_DASHBOARD2_NATIVE_V6_CACHE_BUST -->
-<script src="/app/admin/assets/js/pmd-dashboard2-kpis-v1.js?v=table-prefix-fix-v63-20260806"></script>
+<script src="/app/admin/assets/js/pmd-dashboard2-kpis-v1.js?v=clean-kpi-menu-v1-20260806"></script>
 
 {{-- PMD_DASHBOARD2_CORRECT_DONUT_STACK_V134 --}}
 <style id="pmd-dashboard2-correct-donut-stack-v134">
@@ -8592,3 +8592,1326 @@ window.PMD_DASHBOARD2_KPI_PAYLOAD = @json($pmdDashboard2KpiPayload ?? null);
   }
 })();
 </script>
+
+
+<!-- PMD_DASHBOARD2_TOP_ITEMS_TOGGLE_EXACT_CLONE_V12 -->
+<style id="pmd-dashboard2-top-items-toggle-exact-clone-v12-style">
+  /*
+   * Position only.
+   * Dimensions are copied from the real categorySales toggle.
+   */
+  #pmd-dashboard2-analytics-v1
+  [data-pmd-analytics-widget="topItems"] {
+    position: relative !important;
+  }
+
+  #pmd-dashboard2-analytics-v1
+  [data-pmd-analytics-widget="topItems"]
+  > header {
+    padding-right: 190px !important;
+  }
+
+  #pmd-dashboard2-analytics-v1
+  [data-pmd-analytics-widget="topItems"]
+  > .pmd-dashboard2-donut-period-v1395[
+    data-pmd-top-items-period-v1
+  ] {
+    position: absolute !important;
+    top: 14px !important;
+    right: 14px !important;
+    z-index: 20 !important;
+  }
+</style>
+
+<script>
+(function () {
+  'use strict';
+
+  const KEY =
+    'PMDDashboard2TopItemsToggleExactCloneV12';
+
+  if (window[KEY]?.installed) {
+    return;
+  }
+
+  const TOP_SELECTOR =
+    '[data-pmd-analytics-widget="topItems"] ' +
+    '> .pmd-dashboard2-donut-period-v1395' +
+    '[data-pmd-top-items-period-v1]';
+
+  const REFERENCE_SELECTORS = [
+    '[data-pmd-analytics-widget="categorySales"] ' +
+      '.pmd-dashboard2-donut-period-v1395',
+
+    '[data-pmd-analytics-widget="paymentMethods"] ' +
+      '.pmd-dashboard2-donut-period-v1395',
+
+    '[data-pmd-analytics-widget="channelSplit"] ' +
+      '.pmd-dashboard2-donut-period-v1395'
+  ];
+
+  const CONTAINER_PROPERTIES = [
+    'display',
+    'align-items',
+    'justify-content',
+    'gap',
+    'width',
+    'height',
+    'min-width',
+    'min-height',
+    'max-width',
+    'max-height',
+    'padding-top',
+    'padding-right',
+    'padding-bottom',
+    'padding-left',
+    'border-top-width',
+    'border-right-width',
+    'border-bottom-width',
+    'border-left-width',
+    'border-top-style',
+    'border-right-style',
+    'border-bottom-style',
+    'border-left-style',
+    'border-top-color',
+    'border-right-color',
+    'border-bottom-color',
+    'border-left-color',
+    'border-top-left-radius',
+    'border-top-right-radius',
+    'border-bottom-right-radius',
+    'border-bottom-left-radius',
+    'background-color',
+    'box-shadow',
+    'box-sizing'
+  ];
+
+  const BUTTON_PROPERTIES = [
+    'display',
+    'align-items',
+    'justify-content',
+    'width',
+    'height',
+    'min-width',
+    'min-height',
+    'max-width',
+    'max-height',
+    'margin-top',
+    'margin-right',
+    'margin-bottom',
+    'margin-left',
+    'padding-top',
+    'padding-right',
+    'padding-bottom',
+    'padding-left',
+    'border-top-width',
+    'border-right-width',
+    'border-bottom-width',
+    'border-left-width',
+    'border-top-style',
+    'border-right-style',
+    'border-bottom-style',
+    'border-left-style',
+    'border-top-left-radius',
+    'border-top-right-radius',
+    'border-bottom-right-radius',
+    'border-bottom-left-radius',
+    'font-family',
+    'font-size',
+    'font-weight',
+    'line-height',
+    'letter-spacing',
+    'box-sizing'
+  ];
+
+  function findReference() {
+    for (const selector of REFERENCE_SELECTORS) {
+      const element =
+        document.querySelector(selector);
+
+      if (element) {
+        return element;
+      }
+    }
+
+    return null;
+  }
+
+  function copyProperties(
+    source,
+    target,
+    properties
+  ) {
+    const style =
+      getComputedStyle(source);
+
+    properties.forEach(property => {
+      const value =
+        style.getPropertyValue(property);
+
+      if (value) {
+        target.style.setProperty(
+          property,
+          value,
+          'important'
+        );
+      }
+    });
+  }
+
+  function apply(reason = 'manual') {
+    const target =
+      document.querySelector(
+        TOP_SELECTOR
+      );
+
+    const reference =
+      findReference();
+
+    if (!target || !reference) {
+      return {
+        applied: false,
+        reason,
+        targetFound:
+          Boolean(target),
+        referenceFound:
+          Boolean(reference)
+      };
+    }
+
+    copyProperties(
+      reference,
+      target,
+      CONTAINER_PROPERTIES
+    );
+
+    const targetButtons = [
+      ...target.querySelectorAll(
+        ':scope > button'
+      )
+    ];
+
+    const referenceButtons = [
+      ...reference.querySelectorAll(
+        ':scope > button'
+      )
+    ];
+
+    targetButtons.forEach(
+      (button, index) => {
+        const referenceButton =
+          referenceButtons[index] ||
+          referenceButtons[0];
+
+        if (!referenceButton) {
+          return;
+        }
+
+        copyProperties(
+          referenceButton,
+          button,
+          BUTTON_PROPERTIES
+        );
+
+        /*
+         * PMD_DASHBOARD2_TOP_ITEMS_ACTIVE_STATE_FIX_V13
+         *
+         * Clone dimensions only. Never copy the active color as
+         * inline !important styling, because the selected period
+         * changes after Tag / Woche / Monat clicks.
+         */
+        [
+          'background-color',
+          'color',
+          'box-shadow',
+          'border-top-color',
+          'border-right-color',
+          'border-bottom-color',
+          'border-left-color'
+        ].forEach(property => {
+          button.style.removeProperty(
+            property
+          );
+        });
+      }
+    );
+
+    target.dataset
+      .pmdExactToggleCloneV12 =
+      'true';
+
+    const targetRect =
+      target.getBoundingClientRect();
+
+    const referenceRect =
+      reference.getBoundingClientRect();
+
+    const result = {
+      applied: true,
+      reason,
+
+      target: {
+        width:
+          Math.round(targetRect.width),
+        height:
+          Math.round(targetRect.height)
+      },
+
+      reference: {
+        width:
+          Math.round(referenceRect.width),
+        height:
+          Math.round(referenceRect.height)
+      },
+
+      exactHeightMatch:
+        Math.abs(
+          targetRect.height -
+          referenceRect.height
+        ) < 1,
+
+      targetButtons:
+        targetButtons.map(button => ({
+          text:
+            button.textContent.trim(),
+
+          width:
+            Math.round(
+              button
+                .getBoundingClientRect()
+                .width
+            ),
+
+          height:
+            Math.round(
+              button
+                .getBoundingClientRect()
+                .height
+            )
+        })),
+
+      referenceButtons:
+        referenceButtons.map(button => ({
+          text:
+            button.textContent.trim(),
+
+          width:
+            Math.round(
+              button
+                .getBoundingClientRect()
+                .width
+            ),
+
+          height:
+            Math.round(
+              button
+                .getBoundingClientRect()
+                .height
+            )
+        })),
+
+      otherCardsChanged: 0,
+      observersAdded: 0,
+      intervalsAdded: 0
+    };
+
+    console.info(
+      '[PMD Dashboard2 Top Items Exact Toggle Clone V1.2]',
+      result
+    );
+
+    return result;
+  }
+
+  window[KEY] = {
+    installed: true,
+    version: '1.2.0',
+    apply,
+    audit() {
+      return apply('audit');
+    }
+  };
+
+  function boot() {
+    const first =
+      apply('initial');
+
+    if (first.applied) {
+      return;
+    }
+
+    /*
+     * Finite retries only, because dashboard controls
+     * may be created shortly after DOMContentLoaded.
+     */
+    [
+      150,
+      400,
+      800,
+      1400,
+      2400
+    ].forEach(delay => {
+      setTimeout(
+        () => apply(
+          `settle-${delay}`
+        ),
+        delay
+      );
+    });
+  }
+
+  if (
+    document.readyState ===
+    'loading'
+  ) {
+    document.addEventListener(
+      'DOMContentLoaded',
+      boot,
+      {
+        once: true
+      }
+    );
+  } else {
+    boot();
+  }
+})();
+</script>
+
+<!-- PMD_DASHBOARD2_CHANNEL_TOGGLE_EQUAL_FRAMES_V1 -->
+<style id="pmd-dashboard2-channel-toggle-equal-frames-v1-style">
+  /*
+   * Only Bestellkanäle:
+   * Tag / Woche / Monat receive identical frame widths.
+   */
+  #pmd-dashboard2-analytics-v1
+  [data-pmd-analytics-widget="channelSplit"]
+  .pmd-dashboard2-donut-period-v1395
+  > button {
+    flex: 0 0 var(
+      --pmd-channel-toggle-equal-width,
+      auto
+    ) !important;
+
+    width: var(
+      --pmd-channel-toggle-equal-width,
+      auto
+    ) !important;
+
+    min-width: var(
+      --pmd-channel-toggle-equal-width,
+      auto
+    ) !important;
+
+    max-width: var(
+      --pmd-channel-toggle-equal-width,
+      none
+    ) !important;
+
+    justify-content: center !important;
+    text-align: center !important;
+    box-sizing: border-box !important;
+  }
+</style>
+
+<script>
+(function () {
+  'use strict';
+
+  const KEY =
+    'PMDDashboard2ChannelToggleEqualFramesV1';
+
+  if (window[KEY]?.installed) {
+    return;
+  }
+
+  const SELECTOR =
+    '[data-pmd-analytics-widget="channelSplit"] ' +
+    '.pmd-dashboard2-donut-period-v1395';
+
+  function apply(
+    reason = 'manual'
+  ) {
+    const toggle =
+      document.querySelector(
+        SELECTOR
+      );
+
+    if (!toggle) {
+      return {
+        applied: false,
+        reason,
+        toggleFound: false
+      };
+    }
+
+    const buttons = [
+      ...toggle.querySelectorAll(
+        ':scope > button'
+      )
+    ];
+
+    if (!buttons.length) {
+      return {
+        applied: false,
+        reason,
+        toggleFound: true,
+        buttonCount: 0
+      };
+    }
+
+    /*
+     * Remove the previous equal-width value before measuring
+     * each button's natural computed width.
+     */
+    toggle.style.removeProperty(
+      '--pmd-channel-toggle-equal-width'
+    );
+
+    buttons.forEach(button => {
+      button.style.removeProperty(
+        'width'
+      );
+
+      button.style.removeProperty(
+        'min-width'
+      );
+
+      button.style.removeProperty(
+        'max-width'
+      );
+
+      button.style.removeProperty(
+        'flex-basis'
+      );
+    });
+
+    const naturalWidths =
+      buttons.map(button =>
+        Math.ceil(
+          button
+            .getBoundingClientRect()
+            .width
+        )
+      );
+
+    const equalWidth =
+      Math.max(
+        ...naturalWidths
+      );
+
+    toggle.style.setProperty(
+      '--pmd-channel-toggle-equal-width',
+      `${equalWidth}px`
+    );
+
+    toggle.dataset
+      .pmdChannelEqualFramesV1 =
+      'true';
+
+    const finalWidths =
+      buttons.map(button =>
+        Math.round(
+          button
+            .getBoundingClientRect()
+            .width
+        )
+      );
+
+    const result = {
+      applied: true,
+      reason,
+
+      card:
+        'Bestellkanäle',
+
+      labels:
+        buttons.map(button =>
+          button.textContent.trim()
+        ),
+
+      naturalWidths,
+      equalWidth,
+      finalWidths,
+
+      allEqual:
+        new Set(
+          finalWidths
+        ).size === 1,
+
+      otherCardsChanged: 0,
+      observersAdded: 0,
+      intervalsAdded: 0
+    };
+
+    console.info(
+      '[PMD Dashboard2 Bestellkanäle Equal Toggle Frames V1]',
+      result
+    );
+
+    return result;
+  }
+
+  window[KEY] = {
+    installed: true,
+    version: '1.0.0',
+    apply,
+
+    audit() {
+      return apply(
+        'audit'
+      );
+    }
+  };
+
+  function boot() {
+    const initial =
+      apply('initial');
+
+    if (initial.applied) {
+      return;
+    }
+
+    /*
+     * Finite retries only, because the donut period controls
+     * can be created shortly after DOMContentLoaded.
+     */
+    [
+      150,
+      400,
+      800,
+      1400,
+      2400
+    ].forEach(delay => {
+      setTimeout(
+        () => apply(
+          `settle-${delay}`
+        ),
+        delay
+      );
+    });
+  }
+
+  if (
+    document.readyState ===
+    'loading'
+  ) {
+    document.addEventListener(
+      'DOMContentLoaded',
+      boot,
+      {
+        once: true
+      }
+    );
+  } else {
+    boot();
+  }
+})();
+</script>
+
+<!-- PMD_DASHBOARD2_TOP_ITEMS_ACTIVE_STATE_FIX_V13 -->
+<script>
+(function () {
+  'use strict';
+
+  const KEY =
+    'PMDDashboard2TopItemsActiveStateFixV13';
+
+  if (window[KEY]?.installed) {
+    return;
+  }
+
+  const SELECTOR =
+    '[data-pmd-analytics-widget="topItems"] ' +
+    '.pmd-dashboard2-donut-period-v1395' +
+    '[data-pmd-top-items-period-v1]';
+
+  const VISUAL_PROPERTIES = [
+    'background-color',
+    'color',
+    'box-shadow',
+    'border-top-color',
+    'border-right-color',
+    'border-bottom-color',
+    'border-left-color'
+  ];
+
+  function clearCopiedActiveStyles() {
+    const toggle =
+      document.querySelector(
+        SELECTOR
+      );
+
+    if (!toggle) {
+      return {
+        applied: false,
+        toggleFound: false
+      };
+    }
+
+    const buttons = [
+      ...toggle.querySelectorAll(
+        ':scope > button'
+      )
+    ];
+
+    buttons.forEach(button => {
+      VISUAL_PROPERTIES.forEach(
+        property => {
+          button.style.removeProperty(
+            property
+          );
+        }
+      );
+    });
+
+    return {
+      applied: true,
+      toggleFound: true,
+
+      selected:
+        toggle.querySelector(
+          ':scope > button.is-active'
+        )?.textContent.trim() ||
+        null,
+
+      greenButtons:
+        buttons
+          .filter(button =>
+            button.classList.contains(
+              'is-active'
+            )
+          )
+          .map(button =>
+            button.textContent.trim()
+          ),
+
+      inlineActiveColors:
+        buttons.map(button => ({
+          label:
+            button.textContent.trim(),
+
+          background:
+            button.style
+              .getPropertyValue(
+                'background-color'
+              ),
+
+          color:
+            button.style
+              .getPropertyValue(
+                'color'
+              )
+        }))
+    };
+  }
+
+  function handleClick(event) {
+    const button =
+      event.target.closest(
+        `${SELECTOR} > button`
+      );
+
+    if (!button) {
+      return;
+    }
+
+    /*
+     * Allow the existing period-toggle handler to move
+     * is-active first, then remove only stale inline colors.
+     */
+    requestAnimationFrame(
+      clearCopiedActiveStyles
+    );
+  }
+
+  document.addEventListener(
+    'click',
+    handleClick
+  );
+
+  clearCopiedActiveStyles();
+
+  window[KEY] = {
+    installed: true,
+    version: '1.3.0',
+
+    apply:
+      clearCopiedActiveStyles,
+
+    audit:
+      clearCopiedActiveStyles
+  };
+
+  console.info(
+    '[PMD Dashboard2 Top Items Active State Fix V1.3] Ready',
+    {
+      activeColorFollowsSelection:
+        true,
+
+      exactClonedDimensionsPreserved:
+        true,
+
+      otherCardsChanged:
+        0
+    }
+  );
+})();
+</script>
+
+<!-- PMD_DASHBOARD2_SMALL_TOOLBARS_SWAP_V2 -->
+<style id="pmd-dashboard2-small-toolbars-swap-v2-style">
+  /*
+   * Only the visible slider toolbars belonging to:
+   * - Umsatzverlauf
+   * - Umsatz nach Stunde
+   */
+
+  [data-pmd-analytics-widget="salesOverTime"]
+  .pmd-dashboard2-auto-gap-toolbar-v2,
+
+  [data-pmd-analytics-widget="salesByHour"]
+  .pmd-dashboard2-auto-gap-toolbar-v2 {
+    width: 200px !important;
+    min-width: 200px !important;
+    max-width: 200px !important;
+    height: 22px !important;
+  }
+
+  [data-pmd-analytics-widget="salesOverTime"]
+  .pmd-dashboard2-auto-gap-track-v2,
+
+  [data-pmd-analytics-widget="salesByHour"]
+  .pmd-dashboard2-auto-gap-track-v2 {
+    height: 3px !important;
+  }
+
+  [data-pmd-analytics-widget="salesOverTime"]
+  .pmd-dashboard2-auto-gap-knob-v2,
+
+  [data-pmd-analytics-widget="salesByHour"]
+  .pmd-dashboard2-auto-gap-knob-v2 {
+    width: 14px !important;
+    height: 14px !important;
+    border-width: 2px !important;
+  }
+
+  @media (max-width: 700px) {
+    [data-pmd-analytics-widget="salesOverTime"]
+    .pmd-dashboard2-auto-gap-toolbar-v2,
+
+    [data-pmd-analytics-widget="salesByHour"]
+    .pmd-dashboard2-auto-gap-toolbar-v2 {
+      width: 170px !important;
+      min-width: 170px !important;
+      max-width: 170px !important;
+    }
+  }
+</style>
+
+
+<!-- PMD_DASHBOARD2_FINAL_SMALL_TOOLBARS_REAL_SWAP_V3 -->
+<style id="pmd-dashboard2-final-small-toolbars-real-swap-v3-style">
+  /*
+   * Final visible size for the two chart slider toolbars.
+   * This block appears after all older toolbar authorities.
+   */
+  [data-pmd-analytics-widget="salesOverTime"]
+  .pmd-dashboard2-auto-gap-toolbar-v2,
+
+  [data-pmd-analytics-widget="salesByHour"]
+  .pmd-dashboard2-auto-gap-toolbar-v2 {
+    width: 170px !important;
+    min-width: 170px !important;
+    max-width: 170px !important;
+    height: 18px !important;
+  }
+
+  [data-pmd-analytics-widget="salesOverTime"]
+  .pmd-dashboard2-auto-gap-track-v2,
+
+  [data-pmd-analytics-widget="salesByHour"]
+  .pmd-dashboard2-auto-gap-track-v2 {
+    height: 2px !important;
+  }
+
+  [data-pmd-analytics-widget="salesOverTime"]
+  .pmd-dashboard2-auto-gap-knob-v2,
+
+  [data-pmd-analytics-widget="salesByHour"]
+  .pmd-dashboard2-auto-gap-knob-v2 {
+    width: 12px !important;
+    height: 12px !important;
+    border-width: 2px !important;
+  }
+
+  [data-pmd-analytics-widget="salesOverTime"]
+  .pmd-dashboard2-auto-gap-input-v2,
+
+  [data-pmd-analytics-widget="salesByHour"]
+  .pmd-dashboard2-auto-gap-input-v2 {
+    height: 18px !important;
+  }
+
+  @media (max-width: 700px) {
+    [data-pmd-analytics-widget="salesOverTime"]
+    .pmd-dashboard2-auto-gap-toolbar-v2,
+
+    [data-pmd-analytics-widget="salesByHour"]
+    .pmd-dashboard2-auto-gap-toolbar-v2 {
+      width: 145px !important;
+      min-width: 145px !important;
+      max-width: 145px !important;
+    }
+  }
+</style>
+
+<script id="pmd-dashboard2-final-small-toolbars-real-swap-v3-script">
+(function () {
+  'use strict';
+
+  const KEY =
+    'PMDDashboard2FinalSmallToolbarsRealSwapV3';
+
+  if (window[KEY]?.installed) {
+    return;
+  }
+
+  const TOP_ITEMS_SELECTOR =
+    '[data-pmd-analytics-widget="topItems"]';
+
+  const RESERVATIONS_SELECTOR =
+    '[data-pmd-analytics-widget="calendarEvents"]';
+
+  let resizeTimer = null;
+
+  function clearGridPlacement(card) {
+    if (!card) return;
+
+    [
+      'grid-column',
+      'grid-column-start',
+      'grid-column-end',
+      'grid-row',
+      'grid-row-start',
+      'grid-row-end'
+    ].forEach(property => {
+      card.style.removeProperty(property);
+    });
+  }
+
+  function readGridPlacement(card) {
+    const style =
+      getComputedStyle(card);
+
+    return {
+      columnStart:
+        style.gridColumnStart,
+
+      columnEnd:
+        style.gridColumnEnd,
+
+      rowStart:
+        style.gridRowStart,
+
+      rowEnd:
+        style.gridRowEnd
+    };
+  }
+
+  function setGridPlacement(
+    card,
+    placement
+  ) {
+    card.style.setProperty(
+      'grid-column-start',
+      placement.columnStart,
+      'important'
+    );
+
+    card.style.setProperty(
+      'grid-column-end',
+      placement.columnEnd,
+      'important'
+    );
+
+    card.style.setProperty(
+      'grid-row-start',
+      placement.rowStart,
+      'important'
+    );
+
+    card.style.setProperty(
+      'grid-row-end',
+      placement.rowEnd,
+      'important'
+    );
+  }
+
+  function apply(reason = 'manual') {
+    const topItems =
+      document.querySelector(
+        TOP_ITEMS_SELECTOR
+      );
+
+    const reservations =
+      document.querySelector(
+        RESERVATIONS_SELECTOR
+      );
+
+    if (!topItems || !reservations) {
+      return {
+        installed: true,
+        applied: false,
+        reason,
+        topItemsFound:
+          Boolean(topItems),
+        reservationsFound:
+          Boolean(reservations)
+      };
+    }
+
+    /*
+     * Remove our previous inline placement first.
+     * This reveals the real stylesheet positions at
+     * the current responsive breakpoint.
+     */
+    clearGridPlacement(topItems);
+    clearGridPlacement(reservations);
+
+    void document.documentElement.offsetWidth;
+
+    const topItemsPosition =
+      readGridPlacement(topItems);
+
+    const reservationsPosition =
+      readGridPlacement(reservations);
+
+    /*
+     * Swap the actual computed grid positions.
+     * Old CSS grid-column/grid-row rules can no
+     * longer restore the previous visual order.
+     */
+    setGridPlacement(
+      topItems,
+      reservationsPosition
+    );
+
+    setGridPlacement(
+      reservations,
+      topItemsPosition
+    );
+
+    const result = {
+      installed: true,
+      version: '3.0.0',
+      applied: true,
+      reason,
+
+      upcomingReservationsMovedTo:
+        topItemsPosition,
+
+      topItemsMovedTo:
+        reservationsPosition,
+
+      toolbarWidth:
+        '170px',
+
+      toolbarKnob:
+        '12px'
+    };
+
+    console.info(
+      '[PMD Dashboard2 Final Small Toolbars + Real Swap V3]',
+      result
+    );
+
+    return result;
+  }
+
+  function boot() {
+    apply('initial');
+
+    requestAnimationFrame(() => {
+      apply('animation-frame');
+    });
+  }
+
+  window.addEventListener(
+    'resize',
+    function () {
+      clearTimeout(resizeTimer);
+
+      resizeTimer =
+        setTimeout(
+          function () {
+            apply('window-resize');
+          },
+          120
+        );
+    },
+    {
+      passive: true
+    }
+  );
+
+  window[KEY] = {
+    installed: true,
+    version: '3.0.0',
+    apply,
+    audit() {
+      return apply('audit');
+    }
+  };
+
+  if (
+    document.readyState ===
+    'loading'
+  ) {
+    document.addEventListener(
+      'DOMContentLoaded',
+      boot,
+      {
+        once: true
+      }
+    );
+  } else {
+    boot();
+  }
+})();
+</script>
+
+<!-- PMD_DASHBOARD2_EXACT_CARD_COLUMN_SWAP_V4 -->
+<style id="pmd-dashboard2-exact-card-column-swap-v4-style">
+  /*
+   * Desktop four-card row:
+   *
+   * Column 1: Upcoming reservations
+   * Column 2: Trinkgeldübersicht
+   * Column 3: Neueste Bewertungen
+   * Column 4: Meistverkaufte Artikel
+   *
+   * Only the horizontal Grid columns of these two cards change.
+   * Their existing row, dimensions, data and functionality remain intact.
+   */
+  @media (min-width: 1281px) {
+    #pmd-dashboard2-analytics-v1
+    [data-pmd-analytics-grid]
+    > [data-pmd-analytics-widget="calendarEvents"] {
+      grid-column-start: 1 !important;
+      grid-column-end: span 3 !important;
+    }
+
+    #pmd-dashboard2-analytics-v1
+    [data-pmd-analytics-grid]
+    > [data-pmd-analytics-widget="topItems"] {
+      grid-column-start: 10 !important;
+      grid-column-end: span 3 !important;
+    }
+  }
+</style>
+
+<!-- PMD_DASHBOARD2_CLEAN_KPI_MENU_STYLE_V1 -->
+<style id="pmd-dashboard2-clean-kpi-menu-style-v1">
+  /*
+   * Dashboard2 KPI selector only.
+   * The Reservations2 KPI menu and all other cards remain untouched.
+   */
+
+  #pmd-r2-reservation-kpis-v307
+  .pmd-dashboard2-kpi-menu-v2 {
+    gap: 3px !important;
+
+    width:
+      min(286px, calc(100vw - 28px)) !important;
+
+    max-height:
+      min(440px, calc(100vh - 110px)) !important;
+
+    padding: 8px !important;
+
+    border:
+      1px solid rgba(31, 79, 69, 0.16) !important;
+
+    border-radius: 14px !important;
+
+    background: #ffffff !important;
+
+    box-shadow:
+      0 18px 45px rgba(14, 44, 38, 0.16) !important;
+  }
+
+  #pmd-r2-reservation-kpis-v307
+  .pmd-dashboard2-kpi-menu-v2
+  .pmd-dashboard2-kpi-menu-heading {
+    display: block !important;
+
+    margin: 0 !important;
+    padding: 5px 10px 7px !important;
+
+    color: #7a8985 !important;
+
+    font-size: 11px !important;
+    font-weight: 800 !important;
+    line-height: 1 !important;
+
+    letter-spacing: 0.06em !important;
+    text-transform: uppercase !important;
+  }
+
+  /*
+   * The HTML contains only:
+   * 1. option-copy
+   * 2. check
+   *
+   * Therefore the old unused 38px icon column is removed.
+   */
+  #pmd-r2-reservation-kpis-v307
+  .pmd-dashboard2-kpi-menu-v2
+  .pmd-r2-kpi-v2401-option {
+    display: grid !important;
+
+    grid-template-columns:
+      minmax(0, 1fr) 24px !important;
+
+    align-items: center !important;
+    gap: 8px !important;
+
+    min-height: 43px !important;
+
+    padding: 8px 9px 8px 11px !important;
+
+    border:
+      1px solid transparent !important;
+
+    border-radius: 10px !important;
+
+    background: transparent !important;
+
+    text-align: left !important;
+  }
+
+  #pmd-r2-reservation-kpis-v307
+  .pmd-dashboard2-kpi-menu-v2
+  .pmd-r2-kpi-v2401-option:hover:not(:disabled) {
+    border-color:
+      rgba(40, 128, 105, 0.2) !important;
+
+    background: #f3f8f6 !important;
+  }
+
+  #pmd-r2-reservation-kpis-v307
+  .pmd-dashboard2-kpi-menu-v2
+  .pmd-r2-kpi-v2401-option.is-selected {
+    border-color:
+      rgba(19, 143, 111, 0.3) !important;
+
+    background: #eaf6f1 !important;
+  }
+
+  #pmd-r2-reservation-kpis-v307
+  .pmd-dashboard2-kpi-menu-v2
+  .pmd-r2-kpi-v2401-option:disabled {
+    opacity: 0.42 !important;
+
+    background: transparent !important;
+
+    cursor: default !important;
+  }
+
+  #pmd-r2-reservation-kpis-v307
+  .pmd-dashboard2-kpi-menu-v2
+  .pmd-r2-kpi-v2401-option:disabled:hover {
+    border-color: transparent !important;
+    background: transparent !important;
+  }
+
+  #pmd-r2-reservation-kpis-v307
+  .pmd-dashboard2-kpi-menu-v2
+  .pmd-r2-kpi-v2401-option-copy {
+    grid-column: 1 !important;
+
+    display: block !important;
+
+    min-width: 0 !important;
+  }
+
+  #pmd-r2-reservation-kpis-v307
+  .pmd-dashboard2-kpi-menu-v2
+  .pmd-r2-kpi-v2401-option-copy strong {
+    display: block !important;
+
+    overflow: hidden !important;
+
+    color: #17332e !important;
+
+    font-size: 13px !important;
+    font-weight: 780 !important;
+    line-height: 1.2 !important;
+
+    text-overflow: ellipsis !important;
+    white-space: nowrap !important;
+  }
+
+  /*
+   * Remove repeated helper text:
+   * Already visible / Show in this card
+   */
+  #pmd-r2-reservation-kpis-v307
+  .pmd-dashboard2-kpi-menu-v2
+  .pmd-r2-kpi-v2401-option-copy small {
+    display: none !important;
+  }
+
+  /*
+   * Check always belongs to the final right-hand column.
+   */
+  #pmd-r2-reservation-kpis-v307
+  .pmd-dashboard2-kpi-menu-v2
+  .pmd-r2-kpi-v2401-check {
+    grid-column: 2 !important;
+
+    display: inline-flex !important;
+
+    width: 22px !important;
+    height: 22px !important;
+
+    align-items: center !important;
+    justify-content: center !important;
+    justify-self: end !important;
+
+    border-radius: 999px !important;
+
+    color: transparent !important;
+
+    font-size: 14px !important;
+    font-weight: 900 !important;
+    line-height: 1 !important;
+
+    text-align: center !important;
+  }
+
+  #pmd-r2-reservation-kpis-v307
+  .pmd-dashboard2-kpi-menu-v2
+  .pmd-r2-kpi-v2401-option.is-selected
+  .pmd-r2-kpi-v2401-check {
+    background: #07876c !important;
+    color: #ffffff !important;
+
+    box-shadow:
+      0 2px 7px rgba(7, 135, 108, 0.22) !important;
+  }
+
+  @media (max-width: 820px) {
+    #pmd-r2-reservation-kpis-v307
+    .pmd-dashboard2-kpi-menu-v2 {
+      right: 12px !important;
+      left: 12px !important;
+
+      width: auto !important;
+
+      max-height:
+        min(68vh, 410px) !important;
+    }
+  }
+</style>
+
