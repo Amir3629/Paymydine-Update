@@ -11,7 +11,7 @@ use Illuminate\Support\Facades\Schema;
 use Symfony\Component\HttpFoundation\Response;
 
 /**
- * PMD_PAY_EXISTING_CANONICAL_PERSISTENCE_V1
+ * PMD_PAY_EXISTING_CANONICAL_PERSISTENCE_V2
  *
  * Keeps the existing pay-existing endpoint as the payment authority while
  * persisting its tip/coupon/payment result into the canonical order records used
@@ -19,43 +19,69 @@ use Symfony\Component\HttpFoundation\Response;
  */
 class PmdCanonicalPayExistingPersistence
 {
+    private const PERSISTED_ATTRIBUTE = '_pmd_canonical_payment_persisted_v2';
+
     public function handle(Request $request, Closure $next): Response
     {
-        if (!$request->isMethod('post') || trim($request->path(), '/') !== 'api/v1/orders/pay-existing') {
+        if (!$this->matches($request)) {
             return $next($request);
         }
 
-        // Request phase: no database access here. TenantDatabaseMiddleware runs
-        // later in the route stack and switches the active restaurant database.
         $request->merge(array_merge(
             $this->normalizeAdjustments($request),
             ['payment_reference' => $this->normalizeReference($request->input('payment_reference'))]
         ));
 
         $response = $next($request);
-        $payload = $this->responsePayload($response);
+        $this->persistSuccessfulResponse($request, $response);
 
-        if ($response->getStatusCode() >= 400 || !($payload['success'] ?? false) || ($payload['already_paid'] ?? false)) {
-            return $response;
+        return $response;
+    }
+
+    /**
+     * Called both by this middleware and by TenantDatabaseMiddleware. The
+     * request attribute makes the operation idempotent when both paths run.
+     */
+    public function persistSuccessfulResponse(Request $request, Response $response): void
+    {
+        if (!$this->matches($request) || $request->attributes->get(self::PERSISTED_ATTRIBUTE)) {
+            return;
         }
 
-        // Response phase: tenant resolution has completed and the default DB
-        // connection is the active restaurant. Persist auxiliary accounting
-        // data in its own transaction without turning an already successful
-        // payment into a retry/double-charge risk.
+        $payload = $this->responsePayload($response);
+        if ($response->getStatusCode() >= 400 || !($payload['success'] ?? false) || ($payload['already_paid'] ?? false)) {
+            return;
+        }
+
+        $request->attributes->set(self::PERSISTED_ATTRIBUTE, true);
+
         try {
             DB::transaction(function () use ($request, $payload) {
                 $this->persistCanonicalPayment($request, $payload);
             });
+
+            $response->headers->set('X-PMD-Canonical-Persistence', 'ok');
         } catch (\Throwable $e) {
+            // Allow one controlled retry by the outer middleware when this call
+            // came from the tenant middleware and failed before persistence.
+            $request->attributes->remove(self::PERSISTED_ATTRIBUTE);
+
             Log::critical('PMD canonical pay-existing persistence failed after payment success', [
                 'order_id' => (int)$request->input('order_id', 0),
                 'database' => DB::connection()->getDatabaseName(),
                 'message' => $e->getMessage(),
             ]);
         }
+    }
 
-        return $response;
+    protected function matches(Request $request): bool
+    {
+        if (!$request->isMethod('post')) {
+            return false;
+        }
+
+        $path = trim($request->path(), '/');
+        return $path === 'api/v1/orders/pay-existing' || str_ends_with($path, '/orders/pay-existing');
     }
 
     protected function normalizeAdjustments(Request $request): array
@@ -71,17 +97,9 @@ class PmdCanonicalPayExistingPersistence
         }
 
         $requestedAmount = $this->money($request->input('amount', 0));
-
-        // Reconstruct the item/order principal from the submitted equation:
-        // charge = principal + tip - coupon. A coupon may discount principal,
-        // but it must never consume a voluntary tip.
-        $principalAmount = $this->money(
-            $requestedAmount - $tipAmount + $couponDiscount
-        );
+        $principalAmount = $this->money($requestedAmount - $tipAmount + $couponDiscount);
         $couponDiscount = min($couponDiscount, $principalAmount);
-        $payableAmount = $this->money(
-            $principalAmount + $tipAmount - $couponDiscount
-        );
+        $payableAmount = $this->money($principalAmount + $tipAmount - $couponDiscount);
 
         return [
             'amount' => $payableAmount > 0 ? $payableAmount : null,
@@ -144,18 +162,14 @@ class PmdCanonicalPayExistingPersistence
             ->lockForUpdate()
             ->first();
 
-        // The route leaves the canonical total unchanged during partial
-        // payments, so this remains the stable gross item/order principal
-        // until the final payment is completed.
         $baseTotal = $this->money($totalRow->value ?? $order->order_total ?? 0);
-
         $existingTip = $this->money(DB::table('order_totals')
             ->where('order_id', $orderId)
             ->where('code', 'tip')
             ->value('value'));
-        $existingCoupon = abs(round((float) DB::table('order_totals')
+        $existingCoupon = abs(round((float)DB::table('order_totals')
             ->where('order_id', $orderId)
-            ->where('code', 'discount')
+            ->whereIn('code', ['discount', 'coupon'])
             ->sum('value'), 4));
 
         $aggregateTip = $this->money($existingTip + $tipAmount);
@@ -170,7 +184,6 @@ class PmdCanonicalPayExistingPersistence
             $this->upsertOrderTotal($orderId, 'discount', $title, -$aggregateCoupon, 4, 1);
         }
 
-        // order_totals.value is decimal; textual references never belong here.
         DB::table('order_totals')
             ->where('order_id', $orderId)
             ->where('code', 'payment_reference')
@@ -234,6 +247,7 @@ class PmdCanonicalPayExistingPersistence
             'tip_amount' => $tipAmount,
             'coupon_discount' => $couponDiscount,
             'settlement_status' => $settlementStatus,
+            'canonical_total' => $settlementStatus === 'paid' ? ($finalTotal ?? null) : null,
         ]);
     }
 
