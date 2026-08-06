@@ -1,0 +1,89 @@
+--- a/frontend/app/themes/kazen-japanese/KazenStandalonePage.tsx
++++ b/frontend/app/themes/kazen-japanese/KazenStandalonePage.tsx
+@@ -579,6 +579,20 @@
+   const tableLabel = state.tableNumber && /\d/.test(String(state.tableNumber)) ? `Table ${String(state.tableNumber).match(/\d+/)?.[0]}` : "Table"
+   const cartLines = Array.isArray(state.cart.lines) ? state.cart.lines : []
+ 
++  // PMD_KAZEN_MENU_ITEM_SELECTED_COUNT_V1
++  // Show the quantity already selected for each menu item directly on its add button.
++  const selectedQuantityForItem = (item: KazenItem) => {
++    const itemId = String(item?.id ?? "").trim()
++    const itemName = String(item?.name ?? "").trim().toLowerCase()
++
++    return cartLines.reduce((total, line) => {
++      const lineId = String(line?.id ?? "").trim()
++      const lineName = String(line?.name ?? "").trim().toLowerCase()
++      const matches = (itemId !== "" && lineId === itemId) || (itemName !== "" && lineName === itemName)
++      return matches ? total + Math.max(0, Number(line?.quantity || 0)) : total
++    }, 0)
++  }
++
+   // PMD_FIX_KAZEN_CATEGORY_HEADER_VISIBILITY_WATCHDOG_20260613
+   // DOM/style safety only: keep category HEADER rows visible after scroll/sync.
+   // It does NOT force accordion content open.
+@@ -895,6 +909,7 @@
+                 <div className="kazen-items kazen-items-flat">
+                   {kazenActiveCategoryItems.length ? kazenActiveCategoryItems.map((item) => {
+                     const image = itemImage(item)
++                    const selectedQuantity = selectedQuantityForItem(item)
+ 
+                     return (
+                       <div
+@@ -924,11 +939,21 @@
+                           </span>
+                         </button>
+ 
+-                        <button type="button" className="kazen-add" aria-label={`Add ${item.name}`} onClick={(event) => {
++                        <button
++                          type="button"
++                          className={`kazen-add ${selectedQuantity > 0 ? "has-selected-count" : ""}`}
++                          aria-label={selectedQuantity > 0 ? `${selectedQuantity} ${item.name} selected. Add one more.` : `Add ${item.name}`}
++                          data-selected-quantity={selectedQuantity > 0 ? selectedQuantity : undefined}
++                          onClick={(event) => {
+                             event.stopPropagation()
+                             addItem(item, 1)
+-                          }}>
+-                          <Plus className="h-5 w-5" />
++                          }}
++                        >
++                          {selectedQuantity > 0 ? (
++                            <span className="kazen-add-count" aria-hidden="true">{selectedQuantity}</span>
++                          ) : (
++                            <Plus className="h-5 w-5" />
++                          )}
+                         </button>
+                       </div>
+                     )
+@@ -970,6 +995,7 @@
+                     <div className="kazen-items">
+                       {categoryItems.length ? categoryItems.map((item) => {
+                         const image = itemImage(item)
++                        const selectedQuantity = selectedQuantityForItem(item)
+ 
+                         return (
+                           <div
+@@ -999,11 +1025,21 @@
+                               </span>
+                             </button>
+ 
+-                            <button type="button" className="kazen-add" aria-label={`Add ${item.name}`} onClick={(event) => {
++                            <button
++                              type="button"
++                              className={`kazen-add ${selectedQuantity > 0 ? "has-selected-count" : ""}`}
++                              aria-label={selectedQuantity > 0 ? `${selectedQuantity} ${item.name} selected. Add one more.` : `Add ${item.name}`}
++                              data-selected-quantity={selectedQuantity > 0 ? selectedQuantity : undefined}
++                              onClick={(event) => {
+                                 event.stopPropagation()
+                                 addItem(item, 1)
+-                              }}>
+-                              <Plus className="h-5 w-5" />
++                              }}
++                            >
++                              {selectedQuantity > 0 ? (
++                                <span className="kazen-add-count" aria-hidden="true">{selectedQuantity}</span>
++                              ) : (
++                                <Plus className="h-5 w-5" />
++                              )}
+                             </button>
+                           </div>
+                         )
