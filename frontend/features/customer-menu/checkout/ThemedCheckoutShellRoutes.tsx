@@ -26,10 +26,6 @@ export function renderThemedCheckoutShellRoute(props: any) {
     paymentPayableTotal,
     paymentTipAmount,
     paymentCouponDiscount,
-    paidTipAmount,
-    paidCouponDiscount,
-    paidAmountTotal,
-    submittedBaseTotal,
     paymentTipPercentage,
     paymentCustomTip,
     tipSettings,
@@ -117,10 +113,6 @@ export function renderThemedCheckoutShellRoute(props: any) {
         paymentPayableTotal={paymentPayableTotal}
         paymentTipAmount={paymentTipAmount}
         paymentCouponDiscount={paymentCouponDiscount}
-        paidTipAmount={paidTipAmount}
-        paidCouponDiscount={paidCouponDiscount}
-        paidAmountTotal={paidAmountTotal}
-        submittedBaseTotal={submittedBaseTotal}
         paymentTipPercentage={paymentTipPercentage}
         paymentCustomTip={paymentCustomTip}
         tipPercentages={tipSettings.percentages || [5, 10]}
