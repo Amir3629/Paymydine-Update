@@ -1,0 +1,152 @@
+--- a/app/admin/views/orders/form/info.blade.php
++++ b/app/admin/views/orders/form/info.blade.php
+@@ -1064,13 +1064,24 @@
+     margin: 0 !important;
+ }
+ 
++/* PMD_ORDER_HEADER_NATIVE_ICONS_V1 */
++.pmd-order-native-icon {
++    display:inline-flex !important;
++    align-items:center !important;
++    justify-content:center !important;
++    min-width:1rem !important;
++    font-family:Arial, sans-serif !important;
++    font-style:normal !important;
++    font-weight:700 !important;
++    line-height:1 !important;
++}
+ </style>
+ 
+ <div class="order-info-header">
+     <!-- Table Number -->
+     <div class="order-info-item table-number">
+         <label class="order-info-label">Table</label>
+-        <div class="order-info-value">{{ $formModel->order_type_name ?: 'N/A' }}</div>
++        <div class="order-info-value">{{ $formModel->order_type_name ?: '—' }}</div>
+     </div>
+ 
+     <div class="order-info-separator"></div>
+@@ -1109,9 +1120,9 @@
+             style="text-decoration: none; display: inline-flex; align-items: center; justify-content: center;"
+         >
+             @if($formModel->status)
+-                <i class="fa fa-circle status-dot-icon" style="font-size: 11px; color: {{ $formModel->status->status_color ?? '#364a63' }} !important;"></i>
++                <span class="pmd-order-native-icon status-dot-icon" style="color: {{ $formModel->status->status_color ?? '#364a63' }} !important;" aria-hidden="true">●</span>
+             @else
+-                <i class="fa fa-circle-o" style="font-size: 12px; color: #8094ae;"></i>
++                <span class="pmd-order-native-icon" style="color:#8094ae;" aria-hidden="true">○</span>
+             @endif
+         </a>
+     </div>
+@@ -1130,9 +1141,9 @@
+             style="text-decoration: none; color: #526484; cursor: pointer; transition: all 0.2s ease; display: inline-flex; align-items:center; justify-content:center;"
+         >
+             @if($formModel->assignee)
+-                <i class="fa fa-user" aria-hidden="true"></i>
++                <span class="pmd-order-native-icon" aria-hidden="true">●</span>
+             @else
+-                <i class="fa fa-user-plus" style="color: #8094ae;" aria-hidden="true"></i>
++                <span class="pmd-order-native-icon" style="color:#8094ae;" aria-hidden="true">+</span>
+             @endif
+         </a>
+     </div>
+@@ -1158,7 +1169,7 @@
+                 title="Add Staff Note"
+                 onclick="event.preventDefault(); $('#addOrderNoteModal').modal('show'); return false;"
+             >
+-                <i class="fa fa-sticky-note"></i>
++                <span class="pmd-order-native-icon" aria-hidden="true">✎</span>
+             </a>
+         </div>
+     </div>
+@@ -1180,7 +1191,7 @@
+         aria-label="Estimated preparation time"
+         style="min-width:40px;"
+     >
+-        <i class="fa fa-clock-o"></i>
++        <span class="pmd-order-native-icon" aria-hidden="true">◷</span>
+         <span class="hidden-xs">~{{ (int)$formModel->estimated_prep_minutes }} min</span>
+     </a>
+ @endif
+@@ -1192,7 +1203,7 @@
+                 target="_blank"
+                 title="Customer Invoice"
+             >
+-                <i class="fa fa-file-text"></i>
++                <span class="pmd-order-native-icon" aria-hidden="true">▤</span>
+             </a>
+             @if($__isPaidOrder)
+                 <a
+@@ -1204,7 +1215,7 @@
+                 aria-label="View Fiscal / Business Invoice"
+                 title="View Fiscal / Business Invoice"
+             >
+-                <i class="fa fa-file-invoice"></i>
++                <span class="pmd-order-native-icon" aria-hidden="true">▦</span>
+                 </a>
+                 <a
+                     class="send-invoice-icon-btn"
+@@ -1214,7 +1225,7 @@
+                     data-progress-indicator="Sending invoice..."
+                     title="Send Fiscal Invoice via Email"
+                 >
+-                    <i class="fa fa-envelope"></i>
++                    <span class="pmd-order-native-icon" aria-hidden="true">✉</span>
+                 </a>
+             @endif
+             </div>
+@@ -1224,7 +1235,12 @@
+ 
+ <script>
+ // Wire up click handlers for Status and Assignee in the header
+-(function() {
++(function bootOrderInfoHeader() {
++    var $ = window.jQuery || window.$;
++    if (!$) {
++        setTimeout(bootOrderInfoHeader, 100);
++        return;
++    }
+     function initHeaderClickHandlers() {
+         var $ = window.jQuery || window.$;
+         if (!$) {
+@@ -1602,7 +1618,7 @@
+         <div class="modal-content">
+             <div class="modal-header">
+                 <h5 class="modal-title" id="addOrderNoteModalLabel">
+-                    <i class="fa fa-sticky-note"></i> Add Staff Note
++                    <span class="pmd-order-native-icon" aria-hidden="true">✎</span> Add Staff Note
+                 </h5>
+                 <button type="button" class="close" data-bs-dismiss="modal" aria-label="Close" onclick="$('#addOrderNoteModal').modal('hide');">
+                     <span aria-hidden="true">&times;</span>
+@@ -1635,7 +1651,7 @@
+                         data-request-success="onOrderNoteAdded()"
+                         data-progress-indicator="Saving note..."
+                     >
+-                        <i class="fa fa-save"></i> Save Note
++                        <span class="pmd-order-native-icon" aria-hidden="true">✓</span> Save Note
+                     </button>
+                 </div>
+             </form>
+@@ -1645,7 +1661,12 @@
+ 
+ <script>
+ // Initialize note button click handler
+-(function() {
++(function bootOrderNoteControls() {
++    var $ = window.jQuery || window.$;
++    if (!$) {
++        setTimeout(bootOrderNoteControls, 100);
++        return;
++    }
+     function initNoteButton() {
+         var $ = window.jQuery || window.$;
+         if (!$) {
+@@ -1694,7 +1715,7 @@
+             $('#addOrderNoteForm').append('<input type="hidden" name="note" value="' + noteText.replace(/"/g, '&quot;') + '">');
+ 
+             // Trigger the AJAX request using TastyIgniter's system
+-            if (window.$ && $.request) {
++            if ($ && $.request) {
+                 $.request('onAddOrderNote', {
+                     form: '#addOrderNoteForm',
+                     data: {note: noteText},
