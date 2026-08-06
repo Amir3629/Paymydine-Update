@@ -202,8 +202,8 @@ echo "Validating downloaded payload..."
 grep -q 'PMD_REVIEW_ONE_PER_ORDER_V1' "$TMP/direct/app/Http/Controllers/Api/ReviewController.php"
 grep -q 'PMD_PAY_EXISTING_CANONICAL_PERSISTENCE_V2' "$TMP/direct/app/Http/Middleware/PmdCanonicalPayExistingPersistence.php"
 grep -q 'PMD_PAY_EXISTING_CANONICAL_PERSISTENCE_V2' "$TMP/direct/app/Http/Middleware/TenantDatabaseMiddleware.php"
-grep -q 'PMD_CANONICAL_PAYMENT_DISPLAY_FIX_V2' "$TMP/direct/frontend/components/CanonicalPaymentDisplayFix.tsx"
-grep -q 'PMD_REVIEW_LOCK_PER_ORDER_V1' "$TMP/direct/frontend/features/customer-menu/checkout/hooks/useCheckoutReviewInvoiceActions.ts"
+grep -q 'PMD_KAZEN_ORDER_FLOW_DOM_POLISH_V1' "$TMP/direct/frontend/components/CanonicalPaymentDisplayFix.tsx"
+grep -q 'PMD_REVIEW_ONE_PER_ORDER_CLIENT_V1' "$TMP/direct/frontend/features/customer-menu/checkout/hooks/useCheckoutReviewInvoiceActions.ts"
 grep -q 'PMD_ORDER_EDIT_POLISH_V1' "$TMP/direct/app/admin/assets/js/pmd-order-edit-polish-v1.js"
 
 php -l "$TMP/direct/app/Http/Controllers/Api/ReviewController.php" >/dev/null
@@ -283,6 +283,7 @@ echo "Installed marker validation: PASSED"
 echo
 echo "Compiling the modified Blade partials..."
 COMPILE_DIR="$TMP/compiled"
+export COMPILE_DIR
 mkdir -p "$COMPILE_DIR"
 php <<'PHP'
 <?php
