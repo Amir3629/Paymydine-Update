@@ -51,7 +51,7 @@ trap 'rollback $?' ERR
 cd "$ROOT"
 
 echo "============================================================"
-echo "PayMyDine — Admin Order Edit V5"
+echo "PayMyDine — Admin Order Edit V5.1"
 echo "============================================================"
 
 test -f "$BLADE" || { echo "Missing: $BLADE"; exit 1; }
@@ -102,12 +102,13 @@ grep -q 'normalizeMoneySigns' "$TMP/pmd-order-edit-v2.js"
 grep -q 'PMD_ORDER_EDIT_V5' "$TMP/pmd-order-edit-v2.css"
 grep -q 'grid-template-columns: minmax(0, 1fr) minmax(360px, 390px)' "$TMP/pmd-order-edit-v2.css"
 
-if grep -Eq 'MutationObserver|setInterval' "$TMP/pmd-order-edit-v2.js"; then
+# Check executable watcher calls only. Comments such as "No MutationObserver" are allowed.
+if grep -Eq 'new[[:space:]]+MutationObserver[[:space:]]*\(|setInterval[[:space:]]*\(' "$TMP/pmd-order-edit-v2.js"; then
     echo "ERROR: recurring DOM watcher found in V5 JavaScript."
     exit 1
 fi
 
-if grep -Eq 'MutationObserver|forceMobileVisibility|hideVisibleCode' "$TMP/form_tabs.blade.php"; then
+if grep -Eq 'new[[:space:]]+MutationObserver[[:space:]]*\(|forceMobileVisibility[[:space:]]*\(|hideVisibleCode[[:space:]]*\(' "$TMP/form_tabs.blade.php"; then
     echo "ERROR: legacy post-paint layout patch found in V5 Blade."
     exit 1
 fi
