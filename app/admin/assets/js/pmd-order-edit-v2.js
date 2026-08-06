@@ -1,7 +1,7 @@
 /*
  * PMD_ORDER_EDIT_V2
  * Finite-run DOM normalization for Admin Order Edit.
- * No MutationObserver, polling interval, or recurring layout enforcement.
+ * No recurring DOM watcher, polling timer, or layout enforcement loop.
  */
 (function () {
     'use strict';
