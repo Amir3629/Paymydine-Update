@@ -1,5 +1,6 @@
 name: Apply PayMyDine order-flow and admin fixes
 
+# PR runner trigger: 2026-08-06
 on:
   push:
     branches:
