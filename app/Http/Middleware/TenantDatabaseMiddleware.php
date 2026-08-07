@@ -18,8 +18,6 @@ class TenantDatabaseMiddleware
             return response()->json(['error' => 'Invalid domain'], 400);
         }
 
-        // landlord DB = mysql connection using paymydine
-        // logical table name "tenants" => Laravel prefix should resolve to ti_tenants
         $tenantInfo = DB::connection('mysql')->table('tenants')
             ->where('domain', $subdomain . '.paymydine.com')
             ->where('status', 'active')
@@ -29,7 +27,6 @@ class TenantDatabaseMiddleware
             return response()->json(['error' => 'Restaurant not found or inactive'], 404);
         }
 
-        // switch only dedicated tenant connection
         Config::set('database.connections.tenant.database', $tenantInfo->database);
         Config::set('database.connections.tenant.host', $tenantInfo->db_host ?? env('TENANT_DB_HOST', env('DB_HOST')));
         Config::set('database.connections.tenant.port', $tenantInfo->db_port ?? env('TENANT_DB_PORT', env('DB_PORT')));
@@ -50,7 +47,17 @@ class TenantDatabaseMiddleware
             'tenant_db' => $tenantInfo->database ?? null,
         ]);
 
-        return $next($request);
+        $response = $next($request);
+
+        // PMD_PAY_EXISTING_CANONICAL_PERSISTENCE_V2
+        // Run while the tenant connection is certainly active. The canonical
+        // middleware is idempotent, so its outer web-group pass becomes a no-op.
+        if ($request->isMethod('post') && str_ends_with(trim($request->path(), '/'), 'orders/pay-existing')) {
+            app(PmdCanonicalPayExistingPersistence::class)
+                ->persistSuccessfulResponse($request, $response);
+        }
+
+        return $response;
     }
 
     private function extractTenantFromDomain(Request $request): ?string

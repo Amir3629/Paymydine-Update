@@ -1,0 +1,42 @@
+--- a/frontend/app/themes/kazen-japanese/kazen-standalone.css
++++ b/frontend/app/themes/kazen-japanese/kazen-standalone.css
+@@ -5788,3 +5788,39 @@
+   stroke: var(--pmd-kazen-header-hover-red) !important;
+   fill: none !important;
+ }
++
++
++/* PMD_KAZEN_MENU_ITEM_SELECTED_COUNT_STYLE_V1
++   The add control becomes a stable quantity badge once an item is in the order. */
++html body .kazen-page .kazen-item > button.kazen-add.has-selected-count {
++  background: #b85d59 !important;
++  background-color: #b85d59 !important;
++  border-color: #a84f4c !important;
++  color: #fffaf2 !important;
++  -webkit-text-fill-color: #fffaf2 !important;
++  transform: rotate(0deg) !important;
++}
++
++html body .kazen-page .kazen-item > button.kazen-add .kazen-add-count {
++  display: inline-flex !important;
++  align-items: center !important;
++  justify-content: center !important;
++  width: 100% !important;
++  height: 100% !important;
++  color: currentColor !important;
++  -webkit-text-fill-color: currentColor !important;
++  font-family: Inter, ui-sans-serif, system-ui, sans-serif !important;
++  font-size: 1.05rem !important;
++  font-weight: 900 !important;
++  line-height: 1 !important;
++  letter-spacing: 0 !important;
++}
++
++html[data-pmd-kazen-mode="dark"] body .kazen-page .kazen-item > button.kazen-add.has-selected-count,
++body[data-pmd-kazen-mode="dark"] .kazen-page .kazen-item > button.kazen-add.has-selected-count {
++  background: #c96f69 !important;
++  background-color: #c96f69 !important;
++  border-color: #e5a39d !important;
++  color: #fffaf2 !important;
++  -webkit-text-fill-color: #fffaf2 !important;
++}

@@ -1,6 +1,6 @@
 "use client"
 
-import { useMemo, useState } from "react"
+import { useEffect, useMemo, useState } from "react"
 import { Link2, MessageSquare, QrCode, Star } from "lucide-react"
 import { apiClient } from "@/lib/api-client"
 import type { PmdSocialPlatformId } from "@/store/cms/types"
@@ -18,6 +18,41 @@ export function useCheckoutReviewInvoiceActions({
   const [invoiceDownloadStatus, setInvoiceDownloadStatus] = useState<"idle" | "loading" | "error">("idle")
   const [invoiceDownloadMessage, setInvoiceDownloadMessage] = useState("")
 
+  // PMD_REVIEW_ONE_PER_ORDER_CLIENT_V1
+  const resolvedReviewOrderId = useMemo(() => Number(
+    submittedSnapshot?.orderId ||
+    submittedSnapshot?.order_id ||
+    initialSubmittedOrder?.orderId ||
+    initialSubmittedOrder?.order_id ||
+    existingOrderId ||
+    0
+  ), [submittedSnapshot, initialSubmittedOrder, existingOrderId])
+
+  const reviewStorageKey = resolvedReviewOrderId > 0
+    ? `pmd-review-submitted:${resolvedReviewOrderId}`
+    : ""
+
+  useEffect(() => {
+    setReviewRating(0)
+    setReviewComment("")
+    setReviewSubmitStatus("idle")
+    setReviewSubmitMessage("")
+
+    if (!reviewStorageKey || typeof window === "undefined") return
+
+    try {
+      const stored = window.localStorage.getItem(reviewStorageKey)
+      if (!stored) return
+      const parsed = JSON.parse(stored)
+      setReviewRating(Math.max(0, Number(parsed?.rating || 0)))
+      setReviewComment(String(parsed?.comment || ""))
+      setReviewSubmitStatus("success")
+      setReviewSubmitMessage("Thank you — your review was already sent for this order.")
+    } catch {
+      // Storage is only a client convenience; the server is the final authority.
+    }
+  }, [reviewStorageKey])
+
   const activeReviewSharePlatforms = useMemo(() => {
     const platformMeta: Array<{ id: PmdSocialPlatformId; label: string; icon: typeof Star }> = [
       { id: "trustpilot", label: "Trustpilot", icon: Star },
@@ -33,7 +68,7 @@ export function useCheckoutReviewInvoiceActions({
     })
   }, [merchantSettings?.reviewSocial])
 
-  const canSubmitReview = reviewRating > 0 || reviewComment.trim().length > 0
+  const canSubmitReview = reviewSubmitStatus !== "success" && (reviewRating > 0 || reviewComment.trim().length > 0)
 
   const handleSubmitReview = async () => {
     if (!canSubmitReview || reviewSubmitStatus === "loading") return
@@ -42,12 +77,7 @@ export function useCheckoutReviewInvoiceActions({
     setReviewSubmitMessage("")
 
     try {
-      const orderId =
-        submittedSnapshot?.orderId ||
-        submittedSnapshot?.order_id ||
-        initialSubmittedOrder?.orderId ||
-        existingOrderId ||
-        null
+      const orderId = resolvedReviewOrderId > 0 ? resolvedReviewOrderId : null
 
       await apiClient.submitReview({
         order_id: orderId,
@@ -56,11 +86,38 @@ export function useCheckoutReviewInvoiceActions({
         public_share_consent: null,
       })
 
+      if (reviewStorageKey && typeof window !== "undefined") {
+        try {
+          window.localStorage.setItem(reviewStorageKey, JSON.stringify({
+            rating: reviewRating,
+            comment: reviewComment.trim(),
+            submittedAt: new Date().toISOString(),
+          }))
+        } catch {
+          // Server-side duplicate protection remains authoritative.
+        }
+      }
+
       setReviewSubmitStatus("success")
       setReviewSubmitMessage("Thank you — your review was sent to the restaurant.")
     } catch (error) {
+      const message = error instanceof Error ? error.message : "Could not submit your review. Please try again."
+      if (/already submitted|already sent|one review/i.test(message)) {
+        if (reviewStorageKey && typeof window !== "undefined") {
+          try {
+            window.localStorage.setItem(reviewStorageKey, JSON.stringify({
+              rating: reviewRating,
+              comment: reviewComment.trim(),
+              submittedAt: new Date().toISOString(),
+            }))
+          } catch {}
+        }
+        setReviewSubmitStatus("success")
+        setReviewSubmitMessage("Thank you — a review has already been submitted for this order.")
+        return
+      }
       setReviewSubmitStatus("error")
-      setReviewSubmitMessage(error instanceof Error ? error.message : "Could not submit your review. Please try again.")
+      setReviewSubmitMessage(message)
     }
   }
 
