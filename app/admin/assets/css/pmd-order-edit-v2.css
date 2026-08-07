@@ -1,2 +1,489 @@
-/* PMD_ORDER_EDIT_V6 */
-html.pmd-order-edit-v6{--oe-bg:#f8fbfd;--oe-surface:#ffffff;--oe-soft:#f5f9fb;--oe-line:#d9e8ee;--oe-line-strong:#c6dce5;--oe-ink:#102f2b;--oe-muted:#6d8380;--oe-primary:#008d73;--oe-primary-dark:#006c59;--oe-primary-soft:#e8f5f1;--oe-shadow:0 12px 34px rgba(25,55,70,.06);}html.pmd-order-edit-v6,html.pmd-order-edit-v6 body,html.pmd-order-edit-v6 .page-wrapper,html.pmd-order-edit-v6 .content-wrapper,html.pmd-order-edit-v6 .main-content,html.pmd-order-edit-v6 .page-content,html.pmd-order-edit-v6 .form-widget{background:var(--oe-bg) !important;}html.pmd-order-edit-v6 body,html.pmd-order-edit-v6 button,html.pmd-order-edit-v6 input,html.pmd-order-edit-v6 select,html.pmd-order-edit-v6 textarea{color:var(--oe-ink);}html.pmd-order-edit-v6 .container-fluid,html.pmd-order-edit-v6 .content-container,html.pmd-order-edit-v6 .form-widget>form{width:100% !important;max-width:1480px !important;margin-inline:auto !important;}html.pmd-order-edit-v6 .form-widget>form{display:flex !important;flex-direction:column !important;gap:14px !important;padding:18px !important;}html.pmd-order-edit-v6 .form-widget,html.pmd-order-edit-v6 .form-widget>form,html.pmd-order-edit-v6 .form-fields,html.pmd-order-edit-v6 .tab-content,html.pmd-order-edit-v6 .tab-pane{min-height:0 !important;height:auto !important;}html.pmd-order-edit-v6 .order-info-header{display:grid !important;grid-template-columns:.8fr .9fr 1.2fr repeat(3,.8fr) 1.25fr !important;gap:8px !important;width:100% !important;margin:0 !important;padding:10px !important;border:1px solid var(--oe-line) !important;border-radius:18px !important;background:var(--oe-surface) !important;box-shadow:var(--oe-shadow) !important;}html.pmd-order-edit-v6 .order-info-separator{display:none !important;}html.pmd-order-edit-v6 .order-info-item,html.pmd-order-edit-v6 .order-info-item.table-number,html.pmd-order-edit-v6 .order-info-item.order-id,html.pmd-order-edit-v6 .order-info-item.date-time,html.pmd-order-edit-v6 .order-info-item.status,html.pmd-order-edit-v6 .order-info-item.assignee,html.pmd-order-edit-v6 .order-info-item.note,html.pmd-order-edit-v6 .order-info-item.invoice,html.pmd-order-edit-v6 .order-info-item.invoice-combined{display:flex !important;flex-direction:column !important;align-items:center !important;justify-content:center !important;min-width:0 !important;min-height:76px !important;margin:0 !important;padding:10px !important;border:0 !important;border-radius:13px !important;background:var(--oe-soft) !important;text-align:center !important;}html.pmd-order-edit-v6 .order-info-label{height:auto !important;margin:0 0 7px !important;color:var(--oe-muted) !important;font-size:10px !important;font-weight:800 !important;line-height:1.1 !important;letter-spacing:.09em !important;text-transform:uppercase !important;white-space:nowrap !important;}html.pmd-order-edit-v6 .order-info-value{color:var(--oe-ink) !important;font-size:14px !important;font-weight:800 !important;line-height:1.25 !important;}html.pmd-order-edit-v6 .invoice-buttons-container,html.pmd-order-edit-v6 .note-button-container{display:flex !important;align-items:center !important;justify-content:center !important;gap:7px !important;margin:0 !important;}html.pmd-order-edit-v6 .header-status-clickable,html.pmd-order-edit-v6 .header-assignee-clickable,html.pmd-order-edit-v6 .note-icon-btn,html.pmd-order-edit-v6 .invoice-icon-btn,html.pmd-order-edit-v6 .send-invoice-icon-btn{display:inline-flex !important;align-items:center !important;justify-content:center !important;width:38px !important;height:38px !important;min-width:38px !important;min-height:38px !important;margin:0 !important;padding:0 !important;color:var(--oe-primary-dark) !important;border:1px solid var(--oe-line-strong) !important;border-radius:11px !important;background:#f5f8ff !important;box-shadow:none !important;}html.pmd-order-edit-v6 .header-status-clickable:hover,html.pmd-order-edit-v6 .header-assignee-clickable:hover,html.pmd-order-edit-v6 .note-icon-btn:hover,html.pmd-order-edit-v6 .invoice-icon-btn:hover,html.pmd-order-edit-v6 .send-invoice-icon-btn:hover{color:#fff !important;border-color:var(--oe-primary) !important;background:var(--oe-primary) !important;}html.pmd-order-edit-v6 .pmd-oe-icon,html.pmd-order-edit-v6 .pmd-oe-icon svg{display:block !important;width:18px !important;height:18px !important;fill:none !important;stroke:currentColor !important;stroke-width:2 !important;stroke-linecap:round !important;stroke-linejoin:round !important;}html.pmd-order-edit-v6 .pmd-oe-tabs{margin:0 !important;padding:5px !important;border:1px solid var(--oe-line) !important;border-radius:15px !important;background:var(--oe-surface) !important;box-shadow:0 7px 20px rgba(25,55,70,.04) !important;}html.pmd-order-edit-v6 .pmd-oe-tab-list{display:flex !important;flex-wrap:wrap !important;gap:5px !important;}html.pmd-order-edit-v6 .pmd-oe-tab{min-height:38px !important;padding:9px 15px !important;color:#344b62 !important;border:0 !important;border-radius:10px !important;background:transparent !important;font-size:13px !important;font-weight:750 !important;line-height:1.2 !important;}html.pmd-order-edit-v6 .pmd-oe-tab:hover{color:var(--oe-primary-dark) !important;background:var(--oe-primary-soft) !important;}html.pmd-order-edit-v6 .pmd-oe-tab.is-active{color:#fff !important;background:var(--oe-primary) !important;box-shadow:0 6px 15px rgba(0,141,115,.18) !important;}html.pmd-order-edit-v6 .pmd-oe-pane[hidden]{display:none !important;}html.pmd-order-edit-v6 .pmd-oe-pane.is-active{display:block !important;}html.pmd-order-edit-v6 .pmd-oe-workspace{display:grid !important;grid-template-columns:minmax(0,1fr) minmax(330px,360px) !important;align-items:start !important;gap:14px !important;width:100% !important;}html.pmd-order-edit-v6 .pmd-oe-main,html.pmd-order-edit-v6 .pmd-oe-side{min-width:0 !important;width:100% !important;}html.pmd-order-edit-v6 .pmd-oe-side{display:flex !important;flex-direction:column !important;gap:12px !important;}html.pmd-order-edit-v6 .pmd-oe-surface{width:100% !important;margin:0 !important;padding:18px !important;border:1px solid var(--oe-line) !important;border-radius:17px !important;background:var(--oe-surface) !important;box-shadow:var(--oe-shadow) !important;}html.pmd-order-edit-v6 .pmd-oe-summary-section{margin:0 0 18px !important;padding:0 0 18px !important;border-bottom:1px solid var(--oe-line) !important;}html.pmd-order-edit-v6 .pmd-oe-summary-section:last-child{margin-bottom:0 !important;padding-bottom:0 !important;border-bottom:0 !important;}html.pmd-order-edit-v6 .pmd-oe-summary h2,html.pmd-order-edit-v6 .pmd-oe-note-card h2,html.pmd-order-edit-v6 .customer-card-title{margin:0 0 12px !important;color:var(--oe-ink) !important;font-size:15px !important;font-weight:850 !important;line-height:1.25 !important;word-break:normal !important;overflow-wrap:normal !important;}html.pmd-order-edit-v6 .order-bill-card,html.pmd-order-edit-v6 .pos-combined-info-card,html.pmd-order-edit-v6 .pos-comment-card,html.pmd-order-edit-v6 .card{border:0 !important;box-shadow:none !important;background:transparent !important;}html.pmd-order-edit-v6 .order-bill-card .card-body,html.pmd-order-edit-v6 .pos-combined-info-card .card-body,html.pmd-order-edit-v6 .card-body{padding:0 !important;}html.pmd-order-edit-v6 .order-bill-table,html.pmd-order-edit-v6 .order-details-table{width:100% !important;max-width:100% !important;table-layout:auto !important;border-collapse:collapse !important;}html.pmd-order-edit-v6 .order-bill-table thead th{padding:9px 10px !important;color:var(--oe-muted) !important;border:0 !important;border-bottom:1px solid var(--oe-line) !important;background:transparent !important;font-size:10px !important;font-weight:850 !important;letter-spacing:.08em !important;text-transform:uppercase !important;}html.pmd-order-edit-v6 .order-bill-table tbody td{padding:12px 10px !important;border:0 !important;border-bottom:1px solid #edf3f5 !important;background:transparent !important;vertical-align:middle !important;}html.pmd-order-edit-v6 .order-bill-item-name{color:var(--oe-ink) !important;font-size:14px !important;font-weight:800 !important;}html.pmd-order-edit-v6 .quantity-controls{display:inline-grid !important;grid-template-columns:32px 28px 32px !important;align-items:center !important;gap:4px !important;}html.pmd-order-edit-v6 .qty-btn{display:inline-flex !important;align-items:center !important;justify-content:center !important;width:32px !important;height:32px !important;min-width:32px !important;min-height:32px !important;padding:0 !important;color:var(--oe-primary-dark) !important;border:1px solid var(--oe-line) !important;border-radius:9px !important;background:var(--oe-primary-soft) !important;box-shadow:none !important;}html.pmd-order-edit-v6 .qty-display{min-width:28px !important;color:var(--oe-ink) !important;font-size:14px !important;font-weight:850 !important;text-align:center !important;}html.pmd-order-edit-v6 .order-bill-totals td{padding:7px 10px !important;border:0 !important;}html.pmd-order-edit-v6 .order-bill-totals tr:first-child td{padding-top:14px !important;border-top:1px solid var(--oe-line) !important;}html.pmd-order-edit-v6 .order-bill-totals .final-total td{padding-top:11px !important;border-top:1px solid var(--oe-line) !important;color:var(--oe-ink) !important;font-size:18px !important;font-weight:900 !important;}html.pmd-order-edit-v6 #btn-add-item,html.pmd-order-edit-v6 .btn-add-item{display:inline-flex !important;align-items:center !important;justify-content:center !important;gap:8px !important;min-height:42px !important;margin:14px auto 0 !important;padding:10px 18px !important;color:#fff !important;border:0 !important;border-radius:11px !important;background:var(--oe-primary) !important;box-shadow:0 7px 16px rgba(0,141,115,.15) !important;font-size:13px !important;font-weight:800 !important;}html.pmd-order-edit-v6 .order-details-table td{padding:6px 4px !important;border:0 !important;vertical-align:top !important;}html.pmd-order-edit-v6 .order-details-table td:first-child{width:42% !important;color:var(--oe-muted) !important;font-weight:700 !important;white-space:normal !important;}html.pmd-order-edit-v6 .order-details-table td:last-child{text-align:right !important;color:var(--oe-ink) !important;font-weight:800 !important;overflow-wrap:anywhere !important;}html.pmd-order-edit-v6 .pmd-oe-payments-row td,html.pmd-order-edit-v6 .pmd-oe-payments-row th{display:block !important;width:100% !important;text-align:left !important;}html.pmd-order-edit-v6 .pmd-oe-payment-card{display:grid !important;grid-template-columns:minmax(0,1fr) auto !important;gap:8px 10px !important;width:100% !important;margin:7px 0 10px !important;padding:11px !important;border:1px solid var(--oe-line) !important;border-radius:12px !important;background:var(--oe-soft) !important;font-size:12px !important;line-height:1.35 !important;word-break:normal !important;overflow-wrap:anywhere !important;}html.pmd-order-edit-v6 .pmd-oe-payment-card a,html.pmd-order-edit-v6 .pmd-oe-payment-card button{white-space:nowrap !important;}html.pmd-order-edit-v6 .customer-info{padding:7px 0 !important;border:0 !important;}html.pmd-order-edit-v6 .pmd-oe-note-card p{margin:0 !important;color:var(--oe-muted) !important;font-size:13px !important;line-height:1.5 !important;}html.pmd-order-edit-v6 .pmd-oe-secondary{min-height:180px !important;}html.pmd-order-edit-v6 .pmd-oe-empty{display:flex !important;align-items:center !important;justify-content:center !important;gap:12px !important;min-height:145px !important;color:var(--oe-muted) !important;text-align:left !important;}html.pmd-order-edit-v6 .pmd-oe-empty[hidden]{display:none !important;}html.pmd-order-edit-v6 .pmd-oe-empty strong,html.pmd-order-edit-v6 .pmd-oe-empty span{display:block !important;}@media (max-width:1120px){html.pmd-order-edit-v6 .order-info-header{grid-template-columns:repeat(4,minmax(130px,1fr)) !important;}html.pmd-order-edit-v6 .pmd-oe-workspace{grid-template-columns:1fr !important;}}@media (max-width:720px){html.pmd-order-edit-v6 .form-widget>form{padding:10px !important;}html.pmd-order-edit-v6 .order-info-header{grid-template-columns:repeat(2,1fr) !important;}html.pmd-order-edit-v6 .pmd-oe-surface{padding:14px !important;border-radius:14px !important;}html.pmd-order-edit-v6 .pmd-oe-tab{flex:1 1 46% !important;}html.pmd-order-edit-v6 .order-bill-table{min-width:620px !important;}html.pmd-order-edit-v6 .pmd-oe-items{overflow-x:auto !important;}}
+/* PMD_ORDER_EDIT_V7_REFERENCE_MATCH */
+html.pmd-order-edit-v7 {
+  --oe-bg:#f5f7fa;
+  --oe-surface:#ffffff;
+  --oe-line:#e1e7ec;
+  --oe-line-soft:#edf1f4;
+  --oe-ink:#17312e;
+  --oe-text:#2f455f;
+  --oe-muted:#748783;
+  --oe-primary:#075b4e;
+  --oe-primary-2:#0c6f5d;
+  --oe-primary-soft:#edf7f3;
+  --oe-soft:#f8fafb;
+  --oe-shadow:0 10px 28px rgba(26,48,60,.055);
+  --oe-shadow-soft:0 4px 14px rgba(26,48,60,.035);
+}
+
+/* page only — global admin header and global sidebar are intentionally untouched */
+html.pmd-order-edit-v7 .content-wrapper,
+html.pmd-order-edit-v7 .main-content,
+html.pmd-order-edit-v7 .page-content,
+html.pmd-order-edit-v7 .form-widget {
+  background:var(--oe-bg) !important;
+}
+html.pmd-order-edit-v7 .container-fluid,
+html.pmd-order-edit-v7 .content-container,
+html.pmd-order-edit-v7 .form-widget>form {
+  width:100% !important;
+  max-width:1450px !important;
+  margin-inline:auto !important;
+}
+html.pmd-order-edit-v7 .form-widget>form {
+  display:flex !important;
+  flex-direction:column !important;
+  gap:22px !important;
+  padding:22px 24px 30px !important;
+}
+html.pmd-order-edit-v7 .form-widget,
+html.pmd-order-edit-v7 .form-widget>form,
+html.pmd-order-edit-v7 .form-fields,
+html.pmd-order-edit-v7 .tab-content,
+html.pmd-order-edit-v7 .tab-pane {
+  min-height:0 !important;
+  height:auto !important;
+}
+
+/* order information ribbon */
+html.pmd-order-edit-v7 .order-info-header {
+  display:grid !important;
+  grid-template-columns:.78fr .95fr 1.28fr .8fr .9fr .82fr 1.28fr !important;
+  gap:0 !important;
+  width:100% !important;
+  margin:0 !important;
+  padding:18px 20px !important;
+  border:1px solid var(--oe-line) !important;
+  border-radius:20px !important;
+  background:#fff !important;
+  box-shadow:var(--oe-shadow) !important;
+  overflow:hidden !important;
+}
+html.pmd-order-edit-v7 .order-info-separator { display:none !important; }
+html.pmd-order-edit-v7 .order-info-item,
+html.pmd-order-edit-v7 .order-info-item.table-number,
+html.pmd-order-edit-v7 .order-info-item.order-id,
+html.pmd-order-edit-v7 .order-info-item.date-time,
+html.pmd-order-edit-v7 .order-info-item.status,
+html.pmd-order-edit-v7 .order-info-item.assignee,
+html.pmd-order-edit-v7 .order-info-item.note,
+html.pmd-order-edit-v7 .order-info-item.invoice,
+html.pmd-order-edit-v7 .order-info-item.invoice-combined {
+  position:relative !important;
+  display:flex !important;
+  flex-direction:column !important;
+  align-items:center !important;
+  justify-content:center !important;
+  min-width:0 !important;
+  min-height:88px !important;
+  margin:0 !important;
+  padding:10px 18px !important;
+  border:0 !important;
+  border-radius:0 !important;
+  background:transparent !important;
+  text-align:center !important;
+}
+html.pmd-order-edit-v7 .order-info-item:not(:last-child)::after {
+  content:"";
+  position:absolute;
+  top:15px;
+  right:0;
+  width:1px;
+  height:58px;
+  background:var(--oe-line-soft);
+}
+html.pmd-order-edit-v7 .order-info-label {
+  margin:0 0 9px !important;
+  color:#687b78 !important;
+  font-size:10px !important;
+  font-weight:800 !important;
+  line-height:1.1 !important;
+  letter-spacing:.11em !important;
+  text-transform:uppercase !important;
+  white-space:nowrap !important;
+}
+html.pmd-order-edit-v7 .order-info-value {
+  color:var(--oe-ink) !important;
+  font-size:14px !important;
+  font-weight:800 !important;
+  line-height:1.28 !important;
+}
+html.pmd-order-edit-v7 .order-info-item.order-id .order-info-value { color:var(--oe-primary) !important; }
+html.pmd-order-edit-v7 .invoice-buttons-container,
+html.pmd-order-edit-v7 .note-button-container {
+  display:flex !important;
+  align-items:center !important;
+  justify-content:center !important;
+  gap:9px !important;
+  margin:0 !important;
+}
+html.pmd-order-edit-v7 .header-status-clickable,
+html.pmd-order-edit-v7 .header-assignee-clickable,
+html.pmd-order-edit-v7 .note-icon-btn,
+html.pmd-order-edit-v7 .invoice-icon-btn,
+html.pmd-order-edit-v7 .send-invoice-icon-btn {
+  display:inline-flex !important;
+  align-items:center !important;
+  justify-content:center !important;
+  width:38px !important;
+  height:38px !important;
+  min-width:38px !important;
+  min-height:38px !important;
+  margin:0 !important;
+  padding:0 !important;
+  color:#38516e !important;
+  border:1px solid #dbe3ef !important;
+  border-radius:10px !important;
+  background:#f5f8ff !important;
+  box-shadow:none !important;
+  transition:background .16s ease,color .16s ease,border-color .16s ease,transform .16s ease !important;
+}
+html.pmd-order-edit-v7 .header-status-clickable:hover,
+html.pmd-order-edit-v7 .header-assignee-clickable:hover,
+html.pmd-order-edit-v7 .note-icon-btn:hover,
+html.pmd-order-edit-v7 .invoice-icon-btn:hover,
+html.pmd-order-edit-v7 .send-invoice-icon-btn:hover {
+  color:var(--oe-primary) !important;
+  border-color:#bdd6ce !important;
+  background:#eef7f4 !important;
+  transform:translateY(-1px) !important;
+}
+
+/* Tabler inline SVG authority */
+html.pmd-order-edit-v7 .pmd-oe-icon,
+html.pmd-order-edit-v7 .pmd-oe-icon svg {
+  display:block !important;
+  width:18px !important;
+  height:18px !important;
+}
+html.pmd-order-edit-v7 .pmd-oe-icon svg {
+  fill:none !important;
+  stroke:currentColor !important;
+  stroke-width:2 !important;
+  stroke-linecap:round !important;
+  stroke-linejoin:round !important;
+}
+
+/* compact tab control from the selected design */
+html.pmd-order-edit-v7 .pmd-oe-tabs {
+  align-self:flex-start !important;
+  width:auto !important;
+  max-width:100% !important;
+  margin:0 !important;
+  padding:5px !important;
+  border:1px solid var(--oe-line) !important;
+  border-radius:15px !important;
+  background:#fff !important;
+  box-shadow:var(--oe-shadow-soft) !important;
+}
+html.pmd-order-edit-v7 .pmd-oe-tab-list {
+  display:flex !important;
+  flex-wrap:wrap !important;
+  gap:4px !important;
+}
+html.pmd-order-edit-v7 .pmd-oe-tab {
+  min-height:38px !important;
+  padding:9px 17px !important;
+  color:#40526a !important;
+  border:0 !important;
+  border-radius:10px !important;
+  background:transparent !important;
+  box-shadow:none !important;
+  font-size:13px !important;
+  font-weight:750 !important;
+  line-height:1.2 !important;
+}
+html.pmd-order-edit-v7 .pmd-oe-tab:hover {
+  color:var(--oe-primary) !important;
+  background:#f4f8f7 !important;
+}
+html.pmd-order-edit-v7 .pmd-oe-tab.is-active {
+  color:#fff !important;
+  background:var(--oe-primary) !important;
+  box-shadow:0 5px 13px rgba(7,91,78,.16) !important;
+}
+html.pmd-order-edit-v7 .pmd-oe-pane[hidden] { display:none !important; }
+html.pmd-order-edit-v7 .pmd-oe-pane.is-active { display:block !important; }
+
+/* main page composition */
+html.pmd-order-edit-v7 .pmd-oe-workspace {
+  display:grid !important;
+  grid-template-columns:minmax(0,2.18fr) minmax(345px,.92fr) !important;
+  align-items:start !important;
+  gap:18px !important;
+  width:100% !important;
+}
+html.pmd-order-edit-v7 .pmd-oe-main,
+html.pmd-order-edit-v7 .pmd-oe-side { min-width:0 !important; width:100% !important; }
+html.pmd-order-edit-v7 .pmd-oe-side { display:flex !important; flex-direction:column !important; gap:14px !important; }
+html.pmd-order-edit-v7 .pmd-oe-surface {
+  width:100% !important;
+  margin:0 !important;
+  padding:18px !important;
+  border:1px solid var(--oe-line) !important;
+  border-radius:20px !important;
+  background:#fff !important;
+  box-shadow:var(--oe-shadow) !important;
+}
+html.pmd-order-edit-v7 .pmd-oe-items { padding:16px !important; }
+html.pmd-order-edit-v7 .pmd-oe-section-title {
+  display:flex !important;
+  align-items:center !important;
+  gap:9px !important;
+  margin:0 0 14px !important;
+  padding:0 4px !important;
+  color:#1d2f2d !important;
+  font-size:15px !important;
+  font-weight:850 !important;
+  letter-spacing:-.01em !important;
+}
+html.pmd-order-edit-v7 .pmd-oe-section-title .pmd-oe-icon { color:var(--oe-primary) !important; }
+
+/* order overview inner frame */
+html.pmd-order-edit-v7 .order-bill-container {
+  width:100% !important;
+  border:1px solid var(--oe-line-soft) !important;
+  border-radius:15px !important;
+  overflow:hidden !important;
+  background:#fff !important;
+}
+html.pmd-order-edit-v7 .order-bill-card,
+html.pmd-order-edit-v7 .pos-combined-info-card,
+html.pmd-order-edit-v7 .pos-comment-card,
+html.pmd-order-edit-v7 .card {
+  border:0 !important;
+  box-shadow:none !important;
+  background:transparent !important;
+}
+html.pmd-order-edit-v7 .order-bill-card .card-body,
+html.pmd-order-edit-v7 .pos-combined-info-card .card-body,
+html.pmd-order-edit-v7 .card-body { padding:0 !important; }
+html.pmd-order-edit-v7 .order-bill-table,
+html.pmd-order-edit-v7 .order-details-table {
+  width:100% !important;
+  max-width:100% !important;
+  table-layout:auto !important;
+  border-collapse:collapse !important;
+}
+html.pmd-order-edit-v7 .order-bill-table thead th {
+  padding:14px 16px !important;
+  color:#617573 !important;
+  border:0 !important;
+  border-bottom:1px solid var(--oe-line) !important;
+  background:#fbfcfd !important;
+  font-size:10px !important;
+  font-weight:850 !important;
+  letter-spacing:.09em !important;
+  text-transform:uppercase !important;
+}
+html.pmd-order-edit-v7 .order-bill-table tbody td {
+  padding:16px !important;
+  border:0 !important;
+  border-bottom:1px solid var(--oe-line-soft) !important;
+  background:#fff !important;
+  vertical-align:middle !important;
+}
+html.pmd-order-edit-v7 .order-bill-item-name {
+  color:var(--oe-ink) !important;
+  font-size:14px !important;
+  font-weight:850 !important;
+}
+html.pmd-order-edit-v7 .order-bill-item-options,
+html.pmd-order-edit-v7 .order-bill-item-comment {
+  margin-top:5px !important;
+  color:var(--oe-muted) !important;
+  font-size:12px !important;
+}
+html.pmd-order-edit-v7 .quantity-controls {
+  display:inline-grid !important;
+  grid-template-columns:34px 30px 34px !important;
+  align-items:center !important;
+  gap:4px !important;
+}
+html.pmd-order-edit-v7 .qty-btn {
+  display:inline-flex !important;
+  align-items:center !important;
+  justify-content:center !important;
+  width:34px !important;
+  height:34px !important;
+  min-width:34px !important;
+  min-height:34px !important;
+  padding:0 !important;
+  color:var(--oe-primary) !important;
+  border:1px solid #d7e7e2 !important;
+  border-radius:9px !important;
+  background:#f0f7f5 !important;
+  box-shadow:none !important;
+}
+html.pmd-order-edit-v7 .qty-btn:hover { background:#e4f2ee !important; }
+html.pmd-order-edit-v7 .qty-display {
+  min-width:30px !important;
+  color:var(--oe-ink) !important;
+  font-size:14px !important;
+  font-weight:850 !important;
+  text-align:center !important;
+}
+html.pmd-order-edit-v7 .order-bill-total { color:#243b57 !important; font-weight:850 !important; }
+html.pmd-order-edit-v7 .order-bill-totals td {
+  padding:9px 16px !important;
+  border:0 !important;
+  background:#fff !important;
+}
+html.pmd-order-edit-v7 .order-bill-totals tr:first-child td {
+  padding-top:16px !important;
+  border-top:0 !important;
+}
+html.pmd-order-edit-v7 .order-bill-totals .total-label { color:#263934 !important; font-weight:750 !important; }
+html.pmd-order-edit-v7 .order-bill-subtotal-note { color:#8193a5 !important; font-weight:650 !important; }
+html.pmd-order-edit-v7 .order-bill-totals .final-total td {
+  padding-top:14px !important;
+  padding-bottom:15px !important;
+  border-top:1px solid var(--oe-line) !important;
+  color:var(--oe-primary) !important;
+  font-size:18px !important;
+  font-weight:900 !important;
+}
+html.pmd-order-edit-v7 #btn-add-item,
+html.pmd-order-edit-v7 .btn-add-item {
+  display:flex !important;
+  align-items:center !important;
+  justify-content:center !important;
+  gap:9px !important;
+  width:max-content !important;
+  min-width:170px !important;
+  min-height:44px !important;
+  margin:18px auto 4px !important;
+  padding:10px 21px !important;
+  color:#fff !important;
+  border:0 !important;
+  border-radius:10px !important;
+  background:linear-gradient(180deg,var(--oe-primary-2),var(--oe-primary)) !important;
+  box-shadow:0 8px 18px rgba(7,91,78,.16) !important;
+  font-size:13px !important;
+  font-weight:800 !important;
+}
+
+/* right invoice column */
+html.pmd-order-edit-v7 .pmd-oe-summary { padding:18px 20px !important; }
+html.pmd-order-edit-v7 .pmd-oe-summary-section {
+  margin:0 !important;
+  padding:18px 0 !important;
+  border-bottom:1px solid var(--oe-line-soft) !important;
+}
+html.pmd-order-edit-v7 .pmd-oe-summary-section:first-child { padding-top:0 !important; }
+html.pmd-order-edit-v7 .pmd-oe-summary-section:last-child { padding-bottom:0 !important; border-bottom:0 !important; }
+html.pmd-order-edit-v7 .pmd-oe-summary h2,
+html.pmd-order-edit-v7 .pmd-oe-note-card h2,
+html.pmd-order-edit-v7 .customer-card-title {
+  margin:0 0 13px !important;
+  color:#1c302d !important;
+  font-size:15px !important;
+  font-weight:900 !important;
+  line-height:1.25 !important;
+  word-break:normal !important;
+  overflow-wrap:normal !important;
+}
+html.pmd-order-edit-v7 .pmd-oe-summary-payment::before {
+  content:"Rechnung & Zahlung";
+  display:block;
+  margin-bottom:16px;
+  color:#1c302d;
+  font-size:16px;
+  font-weight:900;
+}
+html.pmd-order-edit-v7 .pmd-oe-summary-payment>h2 { font-size:12px !important; color:#71837f !important; font-weight:800 !important; }
+html.pmd-order-edit-v7 .order-details-table td {
+  padding:7px 4px !important;
+  border:0 !important;
+  vertical-align:top !important;
+}
+html.pmd-order-edit-v7 .order-details-table td:first-child {
+  width:43% !important;
+  color:#667c77 !important;
+  font-weight:700 !important;
+  white-space:normal !important;
+}
+html.pmd-order-edit-v7 .order-details-table td:last-child {
+  color:#17312e !important;
+  font-weight:850 !important;
+  text-align:right !important;
+  overflow-wrap:anywhere !important;
+}
+html.pmd-order-edit-v7 .pmd-oe-payments-row td,
+html.pmd-order-edit-v7 .pmd-oe-payments-row th {
+  display:block !important;
+  width:100% !important;
+  text-align:left !important;
+}
+html.pmd-order-edit-v7 .pmd-oe-payment-card {
+  position:relative !important;
+  display:grid !important;
+  grid-template-columns:42px minmax(0,1fr) auto !important;
+  align-items:center !important;
+  gap:8px 10px !important;
+  width:100% !important;
+  margin:8px 0 12px !important;
+  padding:12px !important;
+  border:1px solid #dfe8e4 !important;
+  border-radius:13px !important;
+  background:#fbfcfc !important;
+  font-size:12px !important;
+  line-height:1.35 !important;
+  word-break:normal !important;
+  overflow-wrap:anywhere !important;
+}
+html.pmd-order-edit-v7 .pmd-oe-payment-icon {
+  display:flex !important;
+  align-items:center !important;
+  justify-content:center !important;
+  width:42px !important;
+  height:42px !important;
+  border-radius:50% !important;
+  color:var(--oe-primary) !important;
+  background:#edf7e9 !important;
+}
+html.pmd-order-edit-v7 .pmd-oe-payment-card a,
+html.pmd-order-edit-v7 .pmd-oe-payment-card button {
+  white-space:nowrap !important;
+}
+html.pmd-order-edit-v7 .pmd-oe-summary-customer,
+html.pmd-order-edit-v7 .pmd-oe-summary-location {
+  position:relative !important;
+  padding-left:0 !important;
+}
+html.pmd-order-edit-v7 .customer-info { padding:7px 0 !important; border:0 !important; }
+html.pmd-order-edit-v7 .pmd-oe-note-card p {
+  margin:0 !important;
+  color:var(--oe-muted) !important;
+  font-size:13px !important;
+  line-height:1.5 !important;
+}
+
+/* secondary panes */
+html.pmd-order-edit-v7 .pmd-oe-secondary { min-height:180px !important; }
+html.pmd-order-edit-v7 .pmd-oe-empty {
+  display:flex !important;
+  align-items:center !important;
+  justify-content:center !important;
+  gap:12px !important;
+  min-height:150px !important;
+  color:var(--oe-muted) !important;
+  text-align:left !important;
+}
+html.pmd-order-edit-v7 .pmd-oe-empty[hidden] { display:none !important; }
+html.pmd-order-edit-v7 .pmd-oe-empty strong,
+html.pmd-order-edit-v7 .pmd-oe-empty span { display:block !important; }
+
+@media (max-width:1120px) {
+  html.pmd-order-edit-v7 .order-info-header { grid-template-columns:repeat(4,minmax(130px,1fr)) !important; }
+  html.pmd-order-edit-v7 .order-info-item::after { display:none !important; }
+  html.pmd-order-edit-v7 .pmd-oe-workspace { grid-template-columns:1fr !important; }
+}
+@media (max-width:720px) {
+  html.pmd-order-edit-v7 .form-widget>form { gap:14px !important; padding:12px !important; }
+  html.pmd-order-edit-v7 .order-info-header { grid-template-columns:repeat(2,1fr) !important; padding:10px !important; }
+  html.pmd-order-edit-v7 .pmd-oe-tabs { width:100% !important; }
+  html.pmd-order-edit-v7 .pmd-oe-tab { flex:1 1 46% !important; padding-inline:10px !important; }
+  html.pmd-order-edit-v7 .pmd-oe-surface { padding:13px !important; border-radius:16px !important; }
+  html.pmd-order-edit-v7 .order-bill-table { min-width:620px !important; }
+  html.pmd-order-edit-v7 .pmd-oe-items { overflow-x:auto !important; }
+}
