@@ -1,28 +1,32 @@
-/* PMD_ORDER_EDIT_V6 — finite, route-scoped, no observers or polling. */
+/* PMD_ORDER_EDIT_V7_REFERENCE_MATCH — finite, route-scoped, no observers or polling. */
 (function () {
     'use strict';
 
     if (!/^\/admin\/orders\/edit\/\d+\/?$/.test(window.location.pathname)) return;
 
-    var ROOT = 'pmd-order-edit-v6';
+    var ROOT = 'pmd-order-edit-v7';
+    document.documentElement.classList.remove('pmd-order-edit-v6');
     document.documentElement.classList.add(ROOT);
 
     function compactText(node) {
         return String((node && node.textContent) || '').replace(/\s+/g, ' ').trim();
     }
 
+    /* Tabler Icons SVG paths — consistent outline set used across PMD admin. */
     function icon(name) {
         var map = {
-            status: '<circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="2.5"/>',
-            user: '<path d="M20 21a8 8 0 0 0-16 0"/><circle cx="12" cy="7" r="4"/>',
-            userPlus: '<path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M19 8v6M22 11h-6"/>',
-            note: '<path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/>',
-            receipt: '<path d="M5 3v18l3-2 4 2 4-2 3 2V3l-3 2-4-2-4 2-3-2Z"/><path d="M9 9h6M9 13h6M9 17h4"/>',
-            mail: '<rect width="20" height="16" x="2" y="4" rx="2"/><path d="m22 7-10 6L2 7"/>',
-            plus: '<path d="M12 5v14M5 12h14"/>',
-            minus: '<path d="M5 12h14"/>'
+            target: '<circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="3"/>',
+            userPlus: '<path d="M8 7a4 4 0 1 0 8 0a4 4 0 0 0-8 0"/><path d="M16 19h6"/><path d="M19 16v6"/><path d="M6 21v-2a4 4 0 0 1 4-4h3.5"/>',
+            edit: '<path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4Z"/>',
+            receipt: '<path d="M5 21v-16a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v16l-3-2-2 2-2-2-2 2-2-2-3 2"/><path d="M9 7h6"/><path d="M9 11h6"/><path d="M13 15h2"/>',
+            mail: '<path d="M3 7a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2h-14a2 2 0 0 1-2-2Z"/><path d="m3 7 9 6 9-6"/>',
+            plus: '<path d="M12 5v14"/><path d="M5 12h14"/>',
+            minus: '<path d="M5 12h14"/>',
+            clipboard: '<path d="M9 5h6"/><path d="M9 3h6a2 2 0 0 1 2 2v1h2a2 2 0 0 1 2 2v11a2 2 0 0 1-2 2h-14a2 2 0 0 1-2-2v-11a2 2 0 0 1 2-2h2v-1a2 2 0 0 1 2-2"/><path d="M9 12h6"/><path d="M9 16h6"/>',
+            cash: '<rect x="3" y="6" width="18" height="12" rx="2"/><circle cx="12" cy="12" r="2"/><path d="M7 9h.01"/><path d="M17 15h.01"/>'
         };
-        return '<span class="pmd-oe-icon" aria-hidden="true"><svg viewBox="0 0 24 24">' + (map[name] || map.status) + '</svg></span>';
+        var paths = map[name] || map.target;
+        return '<span class="pmd-oe-icon" aria-hidden="true"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">' + paths + '</svg></span>';
     }
 
     function replaceIcon(node, name) {
@@ -48,9 +52,9 @@
         document.querySelectorAll('.order-info-item.table-number .order-info-value').forEach(function (node) {
             if (/^(N\/A|--)?$/i.test(compactText(node))) node.textContent = '—';
         });
-        document.querySelectorAll('.header-status-clickable').forEach(function (node) { replaceIcon(node, 'status'); });
+        document.querySelectorAll('.header-status-clickable').forEach(function (node) { replaceIcon(node, 'target'); });
         document.querySelectorAll('.header-assignee-clickable').forEach(function (node) { replaceIcon(node, 'userPlus'); });
-        document.querySelectorAll('.note-icon-btn').forEach(function (node) { replaceIcon(node, 'note'); });
+        document.querySelectorAll('.note-icon-btn').forEach(function (node) { replaceIcon(node, 'edit'); });
         document.querySelectorAll('.invoice-icon-btn').forEach(function (node) { replaceIcon(node, 'receipt'); });
         document.querySelectorAll('.send-invoice-icon-btn').forEach(function (node) { replaceIcon(node, 'mail'); });
     }
@@ -62,6 +66,14 @@
             if (node.dataset.pmdOeAdd === '1') return;
             node.innerHTML = icon('plus') + '<span>Add item</span>';
             node.dataset.pmdOeAdd = '1';
+        });
+
+        document.querySelectorAll('.pmd-oe-items').forEach(function (surface) {
+            if (surface.querySelector('.pmd-oe-section-title')) return;
+            var heading = document.createElement('h2');
+            heading.className = 'pmd-oe-section-title';
+            heading.innerHTML = icon('clipboard') + '<span>Bestellübersicht</span>';
+            surface.insertBefore(heading, surface.firstChild);
         });
     }
 
@@ -79,6 +91,12 @@
                     card.classList.add('pmd-oe-payment-card');
                     card.removeAttribute('style');
                     card.querySelectorAll('ul').forEach(function (list) { list.hidden = true; });
+                    if (!card.querySelector('.pmd-oe-payment-icon')) {
+                        var paymentIcon = document.createElement('span');
+                        paymentIcon.className = 'pmd-oe-payment-icon';
+                        paymentIcon.innerHTML = icon('cash');
+                        card.insertBefore(paymentIcon, card.firstChild);
+                    }
                 });
             }
 
@@ -180,10 +198,10 @@
     }
 
     if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', apply, { once: true });
+        document.addEventListener('DOMContentLoaded', apply, { once:true });
     } else {
         apply();
     }
-    window.addEventListener('load', apply, { once: true });
-    window.PMDOrderEditV6 = { run: apply, cleanComment: cleanComment };
+    window.addEventListener('load', apply, { once:true });
+    window.PMDOrderEditV7 = { run:apply, cleanComment:cleanComment };
 })();
