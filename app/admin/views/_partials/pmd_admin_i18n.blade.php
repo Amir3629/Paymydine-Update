@@ -87,3 +87,28 @@
 ></script>
 <!-- PMD_I18N_PAGE_AUTHORITY_V2 -->
 <script src="/app/admin/assets/js/pmd-admin-i18n-page-authority-v2.js?v=i18n-page-authority-v2-20260803_143428"></script>
+
+{{-- PMD_ORDER_EDIT_V2_LOADER --}}
+@php
+    $pmdOrderEditV2Active = function_exists('request')
+        && preg_match('#^admin/orders/edit/\d+$#', trim(request()->path(), '/'));
+    $pmdOrderEditV2CssPath = base_path('app/admin/assets/css/pmd-order-edit-v2.css');
+    $pmdOrderEditV2JsPath = base_path('app/admin/assets/js/pmd-order-edit-v2.js');
+    $pmdOrderEditV2CssVersion = is_file($pmdOrderEditV2CssPath)
+        ? (string)filemtime($pmdOrderEditV2CssPath)
+        : '1';
+    $pmdOrderEditV2JsVersion = is_file($pmdOrderEditV2JsPath)
+        ? (string)filemtime($pmdOrderEditV2JsPath)
+        : '1';
+@endphp
+@if ($pmdOrderEditV2Active)
+<script>document.documentElement.classList.add('pmd-order-edit-v2');</script>
+<link
+    rel="stylesheet"
+    href="/app/admin/assets/css/pmd-order-edit-v2.css?v={{ $pmdOrderEditV2CssVersion }}"
+>
+<script
+    src="/app/admin/assets/js/pmd-order-edit-v2.js?v={{ $pmdOrderEditV2JsVersion }}"
+    defer
+></script>
+@endif

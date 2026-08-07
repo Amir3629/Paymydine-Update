@@ -1,0 +1,15 @@
+{
+  "headers": {
+    "x-nextjs-stale-time": "300",
+    "x-nextjs-prerender": "1",
+    "x-next-cache-tags": "_N_T_/layout,_N_T_/worldline-return/layout,_N_T_/worldline-return/page,_N_T_/worldline-return"
+  },
+  "segmentPaths": [
+    "/_tree",
+    "/_full",
+    "/worldline-return/__PAGE__",
+    "/worldline-return",
+    "/_index",
+    "/_head"
+  ]
+}

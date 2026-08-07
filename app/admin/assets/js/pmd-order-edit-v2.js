@@ -205,3 +205,1069 @@
     window.addEventListener('load', apply, { once:true });
     window.PMDOrderEditV7 = { run:apply, cleanComment:cleanComment };
 })();
+
+/* PMD_ORDER_EDIT_V8_FLAT_REFERENCE
+   Finite Order Edit authority. No observer / polling. */
+(function () {
+    'use strict';
+
+    if (!/^\/admin\/orders\/edit\/\d+\/?$/.test(window.location.pathname)) return;
+
+    document.documentElement.classList.add('pmd-order-edit-v8');
+
+    function text(node) {
+        return String((node && node.textContent) || '')
+            .replace(/\s+/g, ' ')
+            .trim();
+    }
+
+    function cashIcon() {
+        return '<span class="pmd-oe-payment-icon-v8" aria-hidden="true">' +
+            '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">' +
+            '<rect x="3" y="6" width="18" height="12" rx="2"/>' +
+            '<circle cx="12" cy="12" r="2"/>' +
+            '<path d="M7 9h.01"/>' +
+            '<path d="M17 15h.01"/>' +
+            '</svg></span>';
+    }
+
+    function apply() {
+        var heading = document.querySelector(
+            '.pmd-oe-summary-payment > h2, .pmd-oe-summary h2'
+        );
+
+        if (heading) {
+            heading.textContent = 'Rechnung & Zahlung';
+        }
+
+        document.querySelectorAll(
+            '.pmd-oe-summary .order-details-table tr'
+        ).forEach(function (row) {
+
+            var cells = row.querySelectorAll('th, td');
+            if (cells.length < 2) return;
+
+            var label = text(cells[0]);
+            var valueCell = cells[cells.length - 1];
+
+            if (/^(rechnung|invoice)$/i.test(label)) {
+                row.hidden = true;
+                return;
+            }
+
+            if (!/^(items|payments?|zahlungen?)$/i.test(label)) {
+                return;
+            }
+
+            cells[0].textContent = 'Zahlungen';
+            row.classList.add('pmd-oe-payments-row');
+
+            Array.from(valueCell.children).forEach(function (card) {
+
+                if (card.dataset.pmdOeV8 === '1') return;
+
+                var raw = text(card);
+
+                var id =
+                    (raw.match(/#\s*\d+/) || [''])[0]
+                        .replace(/\s+/g, '');
+
+                var method =
+                    (
+                        raw.match(
+                            /\b(CASH|CARD|STRIPE|PAYPAL|SUMUP|WORLDLINE|APPLE\s*PAY|GOOGLE\s*PAY)\b/i
+                        ) || ['Payment']
+                    )[0].toUpperCase();
+
+                var amount =
+                    (
+                        raw.match(
+                            /[€$£]\s?\d+(?:[.,]\d{1,2})?/
+                        ) || ['']
+                    )[0].replace(/\s+/g, '');
+
+                var link = card.querySelector('a[href]');
+                var href = link ? link.getAttribute('href') : '';
+
+                card.className = 'pmd-oe-payment-card-v8';
+                card.removeAttribute('style');
+
+                card.innerHTML =
+                    cashIcon() +
+                    '<div class="pmd-oe-payment-meta-v8">' +
+                        '<strong>' +
+                            (id ? id + ' · ' : '') +
+                            method +
+                        '</strong>' +
+                        '<span>' + amount + '</span>' +
+                    '</div>' +
+                    (
+                        href
+                            ? '<a class="pmd-oe-receipt-v8" href="' +
+                              href.replace(/"/g, '&quot;') +
+                              '" target="_blank" rel="noopener">' +
+                              'Beleg anzeigen</a>'
+                            : ''
+                    );
+
+                card.dataset.pmdOeV8 = '1';
+            });
+        });
+    }
+
+    if (document.readyState === 'loading') {
+        document.addEventListener(
+            'DOMContentLoaded',
+            apply,
+            { once: true }
+        );
+    } else {
+        apply();
+    }
+
+    window.addEventListener(
+        'load',
+        apply,
+        { once: true }
+    );
+
+    window.PMDOrderEditV8 = {
+        run: apply
+    };
+})();
+
+/* PMD_ORDER_EDIT_V9_REFERENCE_FINAL */
+(function () {
+    'use strict';
+
+    if (!/^\/admin\/orders\/edit\/\d+\/?$/.test(window.location.pathname)) {
+        return;
+    }
+
+    function cleanText(node) {
+        return String((node && node.textContent) || '')
+            .replace(/\s+/g, ' ')
+            .trim();
+    }
+
+    function paymentIcon() {
+        return (
+            '<span class="pmd-oe-v9-payment-icon" aria-hidden="true">' +
+                '<svg viewBox="0 0 24 24" fill="none" ' +
+                    'stroke="currentColor" stroke-width="1.8" ' +
+                    'stroke-linecap="round" stroke-linejoin="round">' +
+                    '<rect x="3" y="6" width="18" height="12" rx="2"></rect>' +
+                    '<circle cx="12" cy="12" r="2"></circle>' +
+                    '<path d="M7 9h.01"></path>' +
+                    '<path d="M17 15h.01"></path>' +
+                '</svg>' +
+            '</span>'
+        );
+    }
+
+    function normalizeSummaryHeading(summary) {
+        if (!summary) return;
+
+        var headings = Array.from(
+            summary.querySelectorAll(
+                ':scope > h1, :scope > h2, :scope > h3, ' +
+                '.pmd-oe-summary-payment > h1, ' +
+                '.pmd-oe-summary-payment > h2, ' +
+                '.pmd-oe-summary-payment > h3'
+            )
+        );
+
+        var matching = headings.filter(function (node) {
+            return /rechnung\s*&\s*zahlung/i.test(cleanText(node));
+        });
+
+        matching.forEach(function (node, index) {
+            if (index === 0) {
+                node.textContent = 'Rechnung & Zahlung';
+                node.classList.add('pmd-oe-v9-summary-title');
+            } else {
+                node.style.setProperty('display', 'none', 'important');
+            }
+        });
+    }
+
+    function normalizePaymentCard(summary) {
+        if (!summary) return;
+
+        var paymentRow =
+            summary.querySelector('.pmd-oe-payments-row') ||
+            Array.from(
+                summary.querySelectorAll(
+                    '.order-details-table tr, table tr'
+                )
+            ).find(function (row) {
+                return /^(payments?|zahlungen?)$/i.test(
+                    cleanText(row.querySelector('th, td'))
+                );
+            });
+
+        if (!paymentRow) return;
+
+        paymentRow.classList.add('pmd-oe-v9-payments-row');
+
+        var cells = paymentRow.querySelectorAll('th, td');
+
+        if (cells.length < 2) return;
+
+        var labelCell = cells[0];
+        var valueCell = cells[cells.length - 1];
+
+        labelCell.textContent = 'Zahlungen';
+
+        var source =
+            valueCell.querySelector('.pmd-oe-payment-card-v8') ||
+            valueCell.firstElementChild ||
+            valueCell;
+
+        var raw = cleanText(source);
+
+        var orderMatch = raw.match(/#\s*(\d+)/);
+        var methodMatch = raw.match(
+            /\b(CASH|CARD|STRIPE|PAYPAL|SUMUP|WORLDLINE|APPLE\s*PAY|GOOGLE\s*PAY)\b/i
+        );
+
+        var amountMatches = raw.match(
+            /[€$£]\s?\d+(?:[.,]\d{1,2})?/g
+        ) || [];
+
+        var orderId = orderMatch ? orderMatch[1] : '';
+        var method = methodMatch
+            ? methodMatch[1].replace(/\s+/g, ' ').toUpperCase()
+            : 'PAYMENT';
+
+        var amount = amountMatches.length
+            ? amountMatches[amountMatches.length - 1]
+                .replace(/\s+/g, '')
+            : '';
+
+        var receipt =
+            valueCell.querySelector('a[href*="receipt"]') ||
+            valueCell.querySelector('a[href]');
+
+        var href = receipt
+            ? receipt.getAttribute('href')
+            : '';
+
+        valueCell.innerHTML =
+            '<div class="pmd-oe-v9-payment-card">' +
+                paymentIcon() +
+
+                '<div class="pmd-oe-v9-payment-copy">' +
+                    '<strong>' +
+                        (orderId ? '#' + orderId + ' · ' : '') +
+                        method +
+                    '</strong>' +
+                    (amount
+                        ? '<span>' + amount + '</span>'
+                        : '') +
+                '</div>' +
+
+                (href
+                    ? '<a class="pmd-oe-v9-receipt" ' +
+                      'href="' + href.replace(/"/g, '&quot;') + '" ' +
+                      'target="_blank" rel="noopener">' +
+                        '<svg viewBox="0 0 24 24" fill="none" ' +
+                            'stroke="currentColor" stroke-width="1.8" ' +
+                            'stroke-linecap="round" stroke-linejoin="round" ' +
+                            'aria-hidden="true">' +
+                            '<path d="M6 2h12v20l-3-2-3 2-3-2-3 2V2z"></path>' +
+                            '<path d="M9 8h6"></path>' +
+                            '<path d="M9 12h6"></path>' +
+                        '</svg>' +
+                        '<span>Beleg anzeigen</span>' +
+                      '</a>'
+                    : '') +
+            '</div>';
+    }
+
+    function apply() {
+        document.documentElement.classList.add(
+            'pmd-order-edit-v9'
+        );
+
+        var summary =
+            document.querySelector('.pmd-oe-summary') ||
+            document.querySelector('.pmd-oe-side');
+
+        normalizeSummaryHeading(summary);
+        normalizePaymentCard(summary);
+    }
+
+    if (document.readyState === 'loading') {
+        document.addEventListener(
+            'DOMContentLoaded',
+            apply,
+            { once: true }
+        );
+    } else {
+        apply();
+    }
+
+    window.addEventListener(
+        'load',
+        apply,
+        { once: true }
+    );
+
+    window.PMDOrderEditV9 = {
+        run: apply
+    };
+})();
+
+/* =========================================================
+   PMD_ORDER_EDIT_V10_DASHBOARD2_SHELL
+   ========================================================= */
+
+(function () {
+    'use strict';
+
+    var path = String(
+        window.location.pathname || ''
+    ).replace(/\/+$/, '');
+
+    if (!/^\/admin\/orders\/edit\/\d+$/.test(path)) {
+        return;
+    }
+
+    var HEADER_ID =
+        'pmd-order-edit-dashboard2-header-v10';
+
+    function svgBack() {
+        return (
+            '<svg viewBox="0 0 24 24" ' +
+            'fill="none" stroke="currentColor" ' +
+            'stroke-width="2" ' +
+            'stroke-linecap="round" ' +
+            'stroke-linejoin="round" ' +
+            'aria-hidden="true">' +
+                '<path d="M19 12H5"></path>' +
+                '<path d="M12 19l-7-7 7-7"></path>' +
+            '</svg>'
+        );
+    }
+
+    function nativeHeader() {
+        var selectors = [
+            '.page-header',
+            '.content-header',
+            '.main-header + .page-header',
+            '[data-page-header]',
+            '.page-heading'
+        ];
+
+        for (var i = 0; i < selectors.length; i += 1) {
+            var node = document.querySelector(selectors[i]);
+
+            if (node) {
+                return node;
+            }
+        }
+
+        return null;
+    }
+
+    function findWorkspace() {
+        return (
+            document.querySelector('.form-widget') ||
+            document.querySelector('form[data-request]') ||
+            document.querySelector('.content-wrapper .content') ||
+            document.querySelector('.content-wrapper') ||
+            document.querySelector('main')
+        );
+    }
+
+    function collectHeaderControls(oldHeader) {
+        if (!oldHeader) {
+            return [];
+        }
+
+        var candidates = Array.from(
+            oldHeader.querySelectorAll(
+                'a, button, [role="button"]'
+            )
+        ).filter(function (node) {
+            if (!node) {
+                return false;
+            }
+
+            if (
+                node.closest(
+                    '.breadcrumb, .page-title, .page-heading'
+                )
+            ) {
+                return false;
+            }
+
+            var rect = node.getBoundingClientRect();
+
+            return (
+                rect.width > 20 &&
+                rect.height > 20
+            );
+        });
+
+        /*
+         * Current Admin header has its action buttons at
+         * the right side. Preserve the real DOM nodes so
+         * native listeners/actions remain intact.
+         */
+        return candidates.slice(-3);
+    }
+
+    function buildHeader(oldHeader) {
+        var existing =
+            document.getElementById(HEADER_ID);
+
+        if (existing) {
+            return existing;
+        }
+
+        var header = document.createElement('section');
+
+        header.id = HEADER_ID;
+        header.className =
+            'pmd-order-edit-dashboard2-header-v10';
+
+        var left = document.createElement('div');
+        left.className =
+            'pmd-order-edit-dashboard2-header-v10__left';
+
+        var back = document.createElement('button');
+        back.type = 'button';
+        back.className =
+            'pmd-order-edit-dashboard2-back-v10';
+        back.setAttribute(
+            'aria-label',
+            'Back'
+        );
+        back.innerHTML = svgBack();
+
+        back.addEventListener(
+            'click',
+            function () {
+                if (window.history.length > 1) {
+                    window.history.back();
+                    return;
+                }
+
+                window.location.href =
+                    '/admin/orders';
+            }
+        );
+
+        var title = document.createElement('div');
+
+        title.className =
+            'pmd-order-edit-dashboard2-title-v10';
+
+        title.textContent = 'Bestellung';
+
+        left.appendChild(back);
+        left.appendChild(title);
+
+        var actions = document.createElement('div');
+
+        actions.className =
+            'pmd-order-edit-dashboard2-actions-v10';
+
+        collectHeaderControls(oldHeader)
+            .forEach(function (node) {
+                node.classList.add(
+                    'pmd-order-edit-dashboard2-control-v10'
+                );
+
+                actions.appendChild(node);
+            });
+
+        header.appendChild(left);
+        header.appendChild(actions);
+
+        return header;
+    }
+
+    function install() {
+        if (
+            document.documentElement.classList.contains(
+                'pmd-order-edit-dashboard2-shell-v10'
+            ) &&
+            document.getElementById(HEADER_ID)
+        ) {
+            return;
+        }
+
+        var workspace = findWorkspace();
+
+        if (!workspace) {
+            return;
+        }
+
+        var oldHeader = nativeHeader();
+        var header = buildHeader(oldHeader);
+
+        document.documentElement.classList.add(
+            'pmd-order-edit-dashboard2-shell-v10'
+        );
+
+        /*
+         * Insert immediately before the Order Edit
+         * workspace, not inside its legacy cards.
+         */
+        var insertionParent =
+            workspace.parentElement;
+
+        if (
+            insertionParent &&
+            !header.isConnected
+        ) {
+            insertionParent.insertBefore(
+                header,
+                workspace
+            );
+        }
+
+        if (oldHeader) {
+            oldHeader.classList.add(
+                'pmd-order-edit-native-header-hidden-v10'
+            );
+        }
+    }
+
+    if (document.readyState === 'loading') {
+        document.addEventListener(
+            'DOMContentLoaded',
+            install,
+            { once: true }
+        );
+    } else {
+        install();
+    }
+
+    /*
+     * Finite retries only.
+     * No MutationObserver.
+     * No interval.
+     */
+    window.setTimeout(install, 120);
+    window.setTimeout(install, 450);
+
+    window.addEventListener(
+        'load',
+        install,
+        { once: true }
+    );
+
+    window.PMDOrderEditV10 = {
+        run: install
+    };
+})();
+/* PMD_ORDER_EDIT_V11_1_CONFIRMED_STRUCTURE */
+(function () {
+    'use strict';
+
+    var path = String(window.location.pathname || '')
+        .replace(/\/+$/, '');
+
+    if (!/^\/admin\/orders\/edit\/\d+$/.test(path)) {
+        return;
+    }
+
+    if (window.PMDOrderEditConfirmedStructureV11_1) {
+        return;
+    }
+
+    function boot() {
+        var fakeV10 = document.getElementById(
+            'pmd-order-edit-dashboard2-header-v10'
+        );
+
+        /*
+         * Remove only our previously injected duplicate header.
+         * Native/global PMD header remains authoritative.
+         */
+        if (fakeV10) {
+            fakeV10.remove();
+        }
+
+        /*
+         * Remove only the secondary Bearbeiten/Edit subtitle.
+         */
+        var titleWrap =
+            document.querySelector('.pmd-header-title-wrap');
+
+        if (titleWrap) {
+            Array.prototype.forEach.call(
+                titleWrap.children,
+                function (child) {
+                    var text = String(
+                        child.textContent || ''
+                    )
+                        .replace(/\s+/g, ' ')
+                        .trim()
+                        .toLowerCase();
+
+                    if (
+                        text === 'bearbeiten' ||
+                        text === 'edit'
+                    ) {
+                        child.style.setProperty(
+                            'display',
+                            'none',
+                            'important'
+                        );
+                    }
+                }
+            );
+        }
+
+        document.documentElement.classList.add(
+            'pmd-order-edit-v11-confirmed'
+        );
+    }
+
+    if (document.readyState === 'loading') {
+        document.addEventListener(
+            'DOMContentLoaded',
+            boot,
+            { once: true }
+        );
+    } else {
+        boot();
+    }
+
+    function bg(selector) {
+        var el = document.querySelector(selector);
+
+        return el
+            ? getComputedStyle(el).backgroundColor
+            : null;
+    }
+
+    function rect(selector) {
+        var el = document.querySelector(selector);
+
+        if (!el) {
+            return null;
+        }
+
+        var r = el.getBoundingClientRect();
+
+        return {
+            top: Math.round(r.top),
+            bottom: Math.round(r.bottom),
+            width: Math.round(r.width),
+            height: Math.round(r.height)
+        };
+    }
+
+    window.PMDOrderEditConfirmedStructureV11_1 = {
+        version:
+            'PMD_ORDER_EDIT_V11_1_CONFIRMED_STRUCTURE',
+
+        audit: function () {
+            var ribbon =
+                document.querySelector('.order-info-header');
+
+            var tabs =
+                document.querySelector('.pmd-oe-tabs');
+
+            var order =
+                document.querySelector('.pmd-oe-items');
+
+            var nav =
+                document.querySelector(
+                    'nav.navbar.navbar-top'
+                );
+
+            return {
+                backgrounds: {
+                    html:
+                        getComputedStyle(
+                            document.documentElement
+                        ).backgroundColor,
+
+                    body:
+                        getComputedStyle(
+                            document.body
+                        ).backgroundColor,
+
+                    pageWrapper:
+                        bg('.page-wrapper'),
+
+                    pageContent:
+                        bg('.page-content'),
+
+                    rowFluid:
+                        bg('.page-content > .row-fluid'),
+
+                    formWidget:
+                        bg('.form-widget')
+                },
+
+                header: {
+                    nativeNavbarVisible:
+                        !!nav &&
+                        getComputedStyle(nav).display !==
+                            'none',
+
+                    fakeV10Exists:
+                        !!document.getElementById(
+                            'pmd-order-edit-dashboard2-header-v10'
+                        )
+                },
+
+                geometry: {
+                    ribbon:
+                        rect('.order-info-header'),
+
+                    tabs:
+                        rect('.pmd-oe-tabs'),
+
+                    order:
+                        rect('.pmd-oe-items'),
+
+                    payment:
+                        rect('.pmd-oe-summary')
+                },
+
+                gaps: {
+                    ribbonToTabs:
+                        ribbon && tabs
+                            ? Math.round(
+                                  tabs
+                                      .getBoundingClientRect()
+                                      .top -
+                                  ribbon
+                                      .getBoundingClientRect()
+                                      .bottom
+                              )
+                            : null,
+
+                    tabsToOrder:
+                        tabs && order
+                            ? Math.round(
+                                  order
+                                      .getBoundingClientRect()
+                                      .top -
+                                  tabs
+                                      .getBoundingClientRect()
+                                      .bottom
+                              )
+                            : null
+                }
+            };
+        }
+    };
+
+    console.info(
+        '[PMD Order Edit V11.1] confirmed structure active'
+    );
+})();
+
+/* PMD_ORDER_EDIT_V12_HEADER_RIBBON_PHOTOS */
+(function () {
+    'use strict';
+
+    var path = String(
+        window.location.pathname || ''
+    ).replace(/\/+$/, '');
+
+    if (!/^\/admin\/orders\/edit\/\d+$/.test(path)) {
+        return;
+    }
+
+    if (window.PMDOrderEditV12) {
+        return;
+    }
+
+    function removeFakeHeaders() {
+        [
+            '#pmd-order-edit-dashboard2-header-v10',
+            '.pmd-order-edit-dashboard2-header-v10'
+        ].forEach(function (selector) {
+            document.querySelectorAll(selector)
+                .forEach(function (node) {
+                    node.remove();
+                });
+        });
+    }
+
+    function cleanNativeHeader() {
+        var nav = document.querySelector(
+            'nav.navbar.navbar-top'
+        );
+
+        if (!nav) {
+            return;
+        }
+
+        /*
+         * Do NOT replace the global header.
+         * Only remove legacy Order Edit subtitle fragments.
+         */
+        nav.querySelectorAll('*').forEach(function (el) {
+            if (el.children.length > 0) {
+                return;
+            }
+
+            var text = String(
+                el.textContent || ''
+            )
+                .replace(/\s+/g, ' ')
+                .trim()
+                .toLowerCase();
+
+            if (
+                text === 'bearbeiten' ||
+                text === 'edit'
+            ) {
+                el.style.display = 'none';
+            }
+        });
+
+        nav.classList.add(
+            'pmd-order-edit-native-header-v12'
+        );
+    }
+
+    function cleanPaymentHeading() {
+        var rail = document.querySelector(
+            '.pmd-oe-summary'
+        );
+
+        if (!rail) {
+            return;
+        }
+
+        var headings = Array.from(
+            rail.querySelectorAll(
+                'h1,h2,h3,h4,h5,h6,.card-title,.widget-title,strong'
+            )
+        ).filter(function (el) {
+            return /rechnung\s*&\s*zahlung/i.test(
+                String(el.textContent || '').trim()
+            );
+        });
+
+        if (headings.length > 1) {
+            headings.slice(1).forEach(function (el) {
+                el.style.display = 'none';
+            });
+        }
+    }
+
+    function boot() {
+        removeFakeHeaders();
+        cleanNativeHeader();
+        cleanPaymentHeading();
+
+        document.documentElement.classList.add(
+            'pmd-order-edit-v12'
+        );
+    }
+
+    /*
+     * finite boot only
+     */
+    if (document.readyState === 'loading') {
+        document.addEventListener(
+            'DOMContentLoaded',
+            boot,
+            { once: true }
+        );
+    } else {
+        boot();
+    }
+
+    setTimeout(boot, 180);
+    setTimeout(boot, 650);
+
+    window.PMDOrderEditV12 = {
+        version:
+            'PMD_ORDER_EDIT_V12_HEADER_RIBBON_PHOTOS',
+
+        audit: function () {
+            var ribbon =
+                document.querySelector(
+                    '.order-info-header'
+                );
+
+            var wrapper =
+                document.querySelector(
+                    '.page-wrapper'
+                );
+
+            var navbar =
+                document.querySelector(
+                    'nav.navbar.navbar-top'
+                );
+
+            return {
+                wrapperBackground:
+                    wrapper
+                        ? getComputedStyle(wrapper)
+                            .backgroundColor
+                        : null,
+
+                ribbon:
+                    ribbon
+                        ? {
+                            width:
+                                Math.round(
+                                    ribbon
+                                        .getBoundingClientRect()
+                                        .width
+                                ),
+
+                            height:
+                                Math.round(
+                                    ribbon
+                                        .getBoundingClientRect()
+                                        .height
+                                )
+                        }
+                        : null,
+
+                nativeHeader:
+                    !!navbar,
+
+                fakeHeader:
+                    !!document.querySelector(
+                        '#pmd-order-edit-dashboard2-header-v10'
+                    ),
+
+                photos:
+                    document.querySelectorAll(
+                        '.pmd-order-item-photo-v12'
+                    ).length
+            };
+        }
+    };
+
+    console.info(
+        '[PMD Order Edit V12] active',
+        window.PMDOrderEditV12.audit()
+    );
+})();
+/* PMD_ORDER_EDIT_V13_1_OUTER_FRAME_CONFIRMED */
+
+(function () {
+    'use strict';
+
+    var path = String(window.location.pathname || '').replace(/\/+$/, '');
+
+    if (!/^\/admin\/orders\/edit\/\d+$/.test(path)) {
+        return;
+    }
+
+    function applyConfirmedStructure() {
+        var body = document.body;
+        var page = document.querySelector('.page-content');
+
+        var row =
+            (page && page.querySelector('.row-fluid')) ||
+            document.querySelector('.row-fluid');
+
+        var tabs = document.querySelector('.pmd-oe-tabs');
+        var order = document.querySelector('.pmd-oe-items');
+        var payment = document.querySelector('.pmd-oe-summary');
+
+        if (!tabs) {
+            return;
+        }
+
+        var parent = tabs;
+
+        for (
+            var depth = 0;
+            parent && depth < 6;
+            depth += 1, parent = parent.parentElement
+        ) {
+            if (
+                parent === body ||
+                parent === page ||
+                parent === row ||
+                parent === order ||
+                parent === payment
+            ) {
+                continue;
+            }
+
+            var style = window.getComputedStyle(parent);
+            var box = parent.getBoundingClientRect();
+
+            var shellColor =
+                style.backgroundColor === 'rgb(255, 255, 255)' ||
+                style.backgroundColor === 'rgb(250, 249, 244)';
+
+            var isLegacyShell =
+                box.width > 900 &&
+                box.height > 400 &&
+                shellColor;
+
+            if (!isLegacyShell) {
+                continue;
+            }
+
+            parent.style.setProperty(
+                'background',
+                'transparent',
+                'important'
+            );
+
+            parent.style.setProperty(
+                'background-color',
+                'transparent',
+                'important'
+            );
+
+            parent.style.setProperty(
+                'border',
+                '0',
+                'important'
+            );
+
+            parent.style.setProperty(
+                'border-radius',
+                '0',
+                'important'
+            );
+
+            parent.style.setProperty(
+                'box-shadow',
+                'none',
+                'important'
+            );
+
+            parent.style.setProperty(
+                'outline',
+                '0',
+                'important'
+            );
+        }
+
+        window.PMDOrderEditOuterFrameV13_1 = {
+            version: '13.1',
+            installed: true
+        };
+
+        console.info(
+            '[PMD Order Edit V13.1] confirmed structure active'
+        );
+    }
+
+    if (document.readyState === 'loading') {
+        document.addEventListener(
+            'DOMContentLoaded',
+            applyConfirmedStructure,
+            { once: true }
+        );
+    } else {
+        applyConfirmedStructure();
+    }
+})();
+

@@ -42,6 +42,30 @@ class ReviewController extends Controller
         }
 
         $columns = Schema::getColumnListing('reviews');
+
+        // PMD_REVIEW_ONE_PER_ORDER_V1
+        // A completed order may receive one frontend review only. A new order has
+        // a different order_id and therefore starts a fresh review lifecycle.
+        if ($orderId && in_array('order_id', $columns, true)) {
+            $existingReviewId = DB::table('reviews')
+                ->where('order_id', $orderId)
+                ->when(in_array('source', $columns, true), function ($query) {
+                    $query->where(function ($sourceQuery) {
+                        $sourceQuery->where('source', 'frontend')->orWhereNull('source');
+                    });
+                })
+                ->value(in_array('review_id', $columns, true) ? 'review_id' : 'id');
+
+            if ($existingReviewId) {
+                return response()->json([
+                    'success' => false,
+                    'error' => 'A review has already been submitted for this order.',
+                    'code' => 'review_already_submitted',
+                    'data' => ['review_id' => (int)$existingReviewId],
+                ], 409);
+            }
+        }
+
         $rating = (int)$request->input('rating');
         $comment = trim((string)($request->input('comment', $request->input('review', ''))));
         $now = now();

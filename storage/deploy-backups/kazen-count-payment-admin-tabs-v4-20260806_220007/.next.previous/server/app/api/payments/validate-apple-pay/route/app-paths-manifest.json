@@ -1,0 +1,3 @@
+{
+  "/api/payments/validate-apple-pay/route": "app/api/payments/validate-apple-pay/route.js"
+}

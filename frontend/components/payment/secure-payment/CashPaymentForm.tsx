@@ -64,23 +64,13 @@ export function CashPaymentForm({
         </div>
       </div>
 
-      <Button
-        onClick={handleCashPayment}
-        disabled={isProcessing}
-        className="w-full bg-green-600 text-white hover:bg-green-700"
-      >
-        {isProcessing ? (
-          <div className="flex items-center gap-2">
-            <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-            Recording...
-          </div>
-        ) : (
-          <div className="flex items-center gap-2">
-            <CheckCircle className="h-4 w-4" />
-            Confirm Cash Payment
-          </div>
-        )}
-      </Button>
+      {/*
+       * PMD_SINGLE_CASH_CONFIRM_AUTHORITY_V1
+       *
+       * Cash submission belongs exclusively to PaymentActionButton.
+       * Rendering a second button here caused duplicate payment controls
+       * and two competing payment execution paths.
+       */}
     </div>
   )
 }

@@ -1,6 +1,5 @@
-@extends('admin::layouts.default')
-
-@section('main')
+{{-- PMD_ORDER_DETAILS_TRUE_PARTIAL_V1 --}}
+{{-- PMD_ORDER_DETAILS_COMPACT_PAYMENTS_V2 --}}
 <table class="order-details-table">
 <tbody>
 
@@ -44,12 +43,10 @@ if ($pmdHasSplitTables) {
         }
     }
 
-    // PMD_ORDER_EDIT_PREFIX_SAFE_SPLIT_QUERY_V1
-    // This application prefixes SQL aliases (for example `ti` becomes
-    // `ti_ti`). Raw alias references must therefore use the real alias.
-    $pmdDbPrefix = (string)DB::connection()->getTablePrefix();
-    $pmdTxItemAlias = $pmdDbPrefix.'pmd_tx_item';
-    $pmdMenuAlias = $pmdDbPrefix.'pmd_order_menu';
+    // PMD_ORDER_EDIT_PLAIN_QUERY_ALIASES_V2
+    // Laravel prefixes the physical table name; raw alias references stay plain.
+    $pmdTxItemAlias = 'pmd_tx_item';
+    $pmdMenuAlias = 'pmd_order_menu';
     $pmdJoinLeftColumn = $pmdAllocationColumn === 'menu_id' ? 'menu_id' : 'order_menu_id';
     $pmdJoinRightColumn = $pmdAllocationColumn === 'menu_id' ? 'menu_id' : $pmdAllocationColumn;
 
@@ -128,20 +125,28 @@ $discountRow = $totals->firstWhere('code', 'discount') ?: $totals->firstWhere('c
 $discountAmount = abs((float) optional($discountRow)->value);
 $discountTitle = (string) (optional($discountRow)->title ?? 'Coupon');
 $finalTotal = (float) optional($totals->firstWhere('code', 'total'))->value;
+$pmdPaidTransactionTotal = round((float)$pmdSplitTransactions->sum('amount'), 2);
+$pmdUnclassifiedPaymentAdjustment = 0.0;
+if ($tipAmount <= 0 && $discountAmount <= 0 && $pmdPaidTransactionTotal > 0 && $subtotal > 0) {
+    $pmdUnclassifiedPaymentAdjustment = round($pmdPaidTransactionTotal - $subtotal, 2);
+}
 if ($finalTotal <= 0) {
     $finalTotal = (float) ($formModel->order_total ?? ($subtotal + $taxAmount));
+}
+if ($pmdPaidTransactionTotal > 0 && strtolower((string)($formModel->settlement_status ?? '')) === 'paid') {
+    $finalTotal = $pmdPaidTransactionTotal;
 }
 @endphp
 
 {{-- نمایش سفارشات تقسیم‌شده --}}
 @if ($pmdHasSplitTables && $pmdSplitTransactions->count() > 0)
-<tr>
-<td class="text-muted align-top">Items</td>
+<tr class="pmd-payment-history-row">
+<td class="text-muted align-top">Payments</td>
 <td class="text-right">
 <div style="text-align:left;">
 @foreach ($pmdSplitTransactions as $tx)
-<div style="border:1px solid #eceef4;border-radius:10px;padding:8px 10px;margin-bottom:8px;">
-    <div style="display:flex;justify-content:space-between;gap:10px;">
+<div class="pmd-payment-transaction">
+    <div class="pmd-payment-transaction-head">
         <div>
             <strong>#{{ (int)$tx->id }}</strong>
             · {{ strtoupper((string)$tx->payment_method) }}
@@ -177,7 +182,7 @@ if ($finalTotal <= 0) {
     </ul>
     @endif
     @if (abs($pmdTxPaymentAdjustment) >= 0.01)
-        <div style="margin-top:6px;font-size:12px;color:#5f6368;">
+        <div class="pmd-payment-adjustment">
             Payment adjustment (tip/coupon): {{ $pmdTxPaymentAdjustment >= 0 ? '+' : '-' }}{{ currency_format(abs($pmdTxPaymentAdjustment)) }}
         </div>
     @endif
@@ -210,6 +215,12 @@ if ($finalTotal <= 0) {
 <td>-{{ currency_format($discountAmount) }}</td>
 </tr>
 @endif
+@if (abs($pmdUnclassifiedPaymentAdjustment) >= 0.01)
+<tr>
+<td>Payment adjustment</td>
+<td>{{ $pmdUnclassifiedPaymentAdjustment > 0 ? '+' : '-' }}{{ currency_format(abs($pmdUnclassifiedPaymentAdjustment)) }}</td>
+</tr>
+@endif
 <tr>
 <td>Total</td>
 <td>{{ currency_format($finalTotal) }}</td>
@@ -217,4 +228,3 @@ if ($finalTotal <= 0) {
 
 </tbody>
 </table>
-@endsection

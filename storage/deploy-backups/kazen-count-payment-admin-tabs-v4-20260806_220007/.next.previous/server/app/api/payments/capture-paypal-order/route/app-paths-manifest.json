@@ -1,0 +1,3 @@
+{
+  "/api/payments/capture-paypal-order/route": "app/api/payments/capture-paypal-order/route.js"
+}

@@ -73,8 +73,22 @@
       if (el) el.style.setProperty(prop, value, 'important');
     }
 
+    /* PMD_ORDER_EDIT_HEADER_AUTHORITY_V16
+     *
+     * Dashboard-style header authority:
+     * Dashboard and Order Edit do NOT receive the generated Back control.
+     *
+     * This changes header presentation only.
+     * Existing header action proxy behavior remains unchanged.
+     */
     function isDashboardPage() {
-      return /\/admin\/dashboard\/?$/.test(window.location.pathname);
+      const pathname = String(window.location.pathname || '').replace(/\/+$/, '');
+
+      return (
+        /^\/admin\/dashboard$/.test(pathname) ||
+        /^\/admin\/dashboard2$/.test(pathname) ||
+        /^\/admin\/orders\/edit\/\d+$/.test(pathname)
+      );
     }
 
     function textOf(el) {

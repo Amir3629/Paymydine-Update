@@ -320,15 +320,28 @@ export async function handlePaymentFlow({
 
         const pmdPayExistingBaseAmountV42 =
           (() => {
+            /*
+             * PMD_PAY_EXISTING_REAL_ITEM_BASE_V1
+             *
+             * The backend validates payment against the actual selected
+             * order-item principal. A previously persisted total can contain
+             * an older tip and must not become the principal of a new payment.
+             */
+            const submittedItemsSubtotal =
+              pmdRoundMoneyV42(
+                pmdSubmittedItemsSubtotal()
+              )
+
             const candidates = [
-              existingOrderAmount,
+              submittedItemsSubtotal,
               pendingSummary?.remainingAmount,
               (submittedSnapshot as any)
                 ?.remainingAmount,
-              (submittedSnapshot as any)
-                ?.total,
               (tableDraft as any)
                 ?.totals?.remainingAmount,
+              existingOrderAmount,
+              (submittedSnapshot as any)
+                ?.total,
               (tableDraft as any)
                 ?.totals?.total,
             ]

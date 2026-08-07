@@ -1,0 +1,822 @@
+/*
+ * PMD_ORDER_EDIT_V2
+ *
+ * Route-scoped Order Edit design system.
+ * Loaded synchronously only on /admin/orders/edit/{id}.
+ * No observers, animation loops, or layout polling.
+ */
+
+html.pmd-order-edit-v2 {
+    --pmd-oe-bg: #f3f7f6;
+    --pmd-oe-surface: #ffffff;
+    --pmd-oe-soft: #edf7f3;
+    --pmd-oe-soft-2: #f7faf9;
+    --pmd-oe-line: #d7e6e1;
+    --pmd-oe-line-strong: #bfd6ce;
+    --pmd-oe-ink: #12352e;
+    --pmd-oe-muted: #6e827e;
+    --pmd-oe-primary: #00856a;
+    --pmd-oe-primary-dark: #006b56;
+    --pmd-oe-primary-soft: #dff2eb;
+    --pmd-oe-danger: #d95c57;
+    --pmd-oe-warning: #f59e0b;
+    --pmd-oe-shadow: 0 18px 48px rgba(28, 65, 56, .08);
+}
+
+html.pmd-order-edit-v2,
+html.pmd-order-edit-v2 body {
+    background: var(--pmd-oe-bg) !important;
+}
+
+html.pmd-order-edit-v2 body,
+html.pmd-order-edit-v2 button,
+html.pmd-order-edit-v2 input,
+html.pmd-order-edit-v2 select,
+html.pmd-order-edit-v2 textarea {
+    color: var(--pmd-oe-ink);
+}
+
+html.pmd-order-edit-v2 .page-wrapper,
+html.pmd-order-edit-v2 .content-wrapper,
+html.pmd-order-edit-v2 .main-content,
+html.pmd-order-edit-v2 .page-content,
+html.pmd-order-edit-v2 .form-widget {
+    background: var(--pmd-oe-bg) !important;
+}
+
+html.pmd-order-edit-v2 .container-fluid,
+html.pmd-order-edit-v2 .content-container,
+html.pmd-order-edit-v2 .form-widget > form {
+    max-width: 1540px !important;
+    margin-inline: auto !important;
+}
+
+/* Top order summary */
+html.pmd-order-edit-v2 body .order-info-header {
+    display: grid !important;
+    grid-template-columns: repeat(auto-fit, minmax(132px, 1fr)) !important;
+    align-items: stretch !important;
+    gap: 12px !important;
+    width: 100% !important;
+    min-width: 0 !important;
+    min-height: 0 !important;
+    margin: 0 0 18px !important;
+    padding: 16px !important;
+    overflow: visible !important;
+    border: 1px solid var(--pmd-oe-line) !important;
+    border-radius: 22px !important;
+    background: var(--pmd-oe-surface) !important;
+    box-shadow: var(--pmd-oe-shadow) !important;
+}
+
+html.pmd-order-edit-v2 body .order-info-separator {
+    display: none !important;
+}
+
+html.pmd-order-edit-v2 body .order-info-item,
+html.pmd-order-edit-v2 body .order-info-item.table-number,
+html.pmd-order-edit-v2 body .order-info-item.order-id,
+html.pmd-order-edit-v2 body .order-info-item.date-time,
+html.pmd-order-edit-v2 body .order-info-item.status,
+html.pmd-order-edit-v2 body .order-info-item.assignee,
+html.pmd-order-edit-v2 body .order-info-item.note,
+html.pmd-order-edit-v2 body .order-info-item.invoice,
+html.pmd-order-edit-v2 body .order-info-item.invoice-combined {
+    display: flex !important;
+    flex: 1 1 132px !important;
+    flex-direction: column !important;
+    align-items: flex-start !important;
+    justify-content: center !important;
+    min-width: 0 !important;
+    width: auto !important;
+    margin: 0 !important;
+    padding: 12px 14px !important;
+    text-align: left !important;
+    border: 1px solid transparent !important;
+    border-radius: 15px !important;
+    background: var(--pmd-oe-soft-2) !important;
+}
+
+html.pmd-order-edit-v2 body .order-info-item:hover {
+    border-color: var(--pmd-oe-line) !important;
+    background: var(--pmd-oe-soft) !important;
+}
+
+html.pmd-order-edit-v2 body .order-info-label,
+html.pmd-order-edit-v2 body .order-info-item > .order-info-label {
+    width: auto !important;
+    height: auto !important;
+    min-height: 0 !important;
+    max-height: none !important;
+    margin: 0 0 6px !important;
+    padding: 0 !important;
+    color: var(--pmd-oe-muted) !important;
+    font-size: 10px !important;
+    font-weight: 800 !important;
+    line-height: 1.2 !important;
+    letter-spacing: .08em !important;
+    text-transform: uppercase !important;
+    text-align: left !important;
+}
+
+html.pmd-order-edit-v2 body .order-info-value {
+    color: var(--pmd-oe-ink) !important;
+    font-size: 15px !important;
+    font-weight: 800 !important;
+    line-height: 1.25 !important;
+    white-space: normal !important;
+}
+
+html.pmd-order-edit-v2 body .invoice-buttons-container,
+html.pmd-order-edit-v2 body .note-button-container {
+    justify-content: flex-start !important;
+    gap: 8px !important;
+    margin: 0 !important;
+}
+
+html.pmd-order-edit-v2 body .header-status-clickable,
+html.pmd-order-edit-v2 body .header-assignee-clickable,
+html.pmd-order-edit-v2 body .note-icon-btn,
+html.pmd-order-edit-v2 body .invoice-icon-btn,
+html.pmd-order-edit-v2 body .send-invoice-icon-btn {
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    width: 42px !important;
+    height: 42px !important;
+    min-width: 42px !important;
+    min-height: 42px !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    color: var(--pmd-oe-primary-dark) !important;
+    border: 1px solid var(--pmd-oe-line-strong) !important;
+    border-radius: 12px !important;
+    background: var(--pmd-oe-primary-soft) !important;
+    box-shadow: none !important;
+    transform: none !important;
+    text-decoration: none !important;
+}
+
+html.pmd-order-edit-v2 body .header-status-clickable:hover,
+html.pmd-order-edit-v2 body .header-assignee-clickable:hover,
+html.pmd-order-edit-v2 body .note-icon-btn:hover,
+html.pmd-order-edit-v2 body .invoice-icon-btn:hover,
+html.pmd-order-edit-v2 body .send-invoice-icon-btn:hover {
+    color: #fff !important;
+    border-color: var(--pmd-oe-primary) !important;
+    background: var(--pmd-oe-primary) !important;
+}
+
+html.pmd-order-edit-v2 .pmd-oe-icon,
+html.pmd-order-edit-v2 .pmd-oe-icon svg {
+    display: block !important;
+    width: 18px !important;
+    height: 18px !important;
+    stroke: currentColor !important;
+    fill: none !important;
+    stroke-width: 2 !important;
+}
+
+/* Tabs */
+html.pmd-order-edit-v2 body .tab-heading {
+    margin: 0 0 18px !important;
+    padding: 6px !important;
+    border: 1px solid var(--pmd-oe-line) !important;
+    border-radius: 16px !important;
+    background: rgba(255, 255, 255, .82) !important;
+    box-shadow: 0 8px 24px rgba(28, 65, 56, .05) !important;
+}
+
+html.pmd-order-edit-v2 body .tab-heading .form-nav,
+html.pmd-order-edit-v2 body .tab-heading .nav-tabs {
+    display: flex !important;
+    gap: 6px !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    border: 0 !important;
+}
+
+html.pmd-order-edit-v2 body .tab-heading .nav-link {
+    min-height: 40px !important;
+    padding: 10px 15px !important;
+    color: var(--pmd-oe-muted) !important;
+    border: 0 !important;
+    border-radius: 11px !important;
+    background: transparent !important;
+    font-size: 13px !important;
+    font-weight: 750 !important;
+    line-height: 1.2 !important;
+}
+
+html.pmd-order-edit-v2 body .tab-heading .nav-link:hover {
+    color: var(--pmd-oe-primary-dark) !important;
+    background: var(--pmd-oe-soft) !important;
+}
+
+html.pmd-order-edit-v2 body .tab-heading .nav-link.active {
+    color: #fff !important;
+    background: var(--pmd-oe-primary) !important;
+    box-shadow: 0 7px 18px rgba(0, 133, 106, .22) !important;
+}
+
+/* Main two-column workspace */
+html.pmd-order-edit-v2 body .order-edit-pos-layout {
+    display: grid !important;
+    grid-template-columns: minmax(0, 1.65fr) minmax(330px, .85fr) !important;
+    align-items: start !important;
+    gap: 22px !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    margin: 0 !important;
+    overflow: visible !important;
+}
+
+html.pmd-order-edit-v2 body .order-edit-pos-layout .pos-bill-column,
+html.pmd-order-edit-v2 body .order-edit-pos-layout .pos-info-column {
+    display: block !important;
+    width: auto !important;
+    min-width: 0 !important;
+    max-width: none !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    flex: none !important;
+    overflow: visible !important;
+}
+
+html.pmd-order-edit-v2 body .order-bill-card,
+html.pmd-order-edit-v2 body .pos-combined-info-card,
+html.pmd-order-edit-v2 body .pos-comment-card {
+    width: 100% !important;
+    margin: 0 0 16px !important;
+    overflow: hidden !important;
+    border: 1px solid var(--pmd-oe-line) !important;
+    border-radius: 22px !important;
+    background: var(--pmd-oe-surface) !important;
+    box-shadow: var(--pmd-oe-shadow) !important;
+}
+
+html.pmd-order-edit-v2 body .order-bill-card .card-body,
+html.pmd-order-edit-v2 body .pos-combined-info-card .card-body {
+    display: block !important;
+    width: 100% !important;
+    padding: 22px !important;
+    overflow: visible !important;
+    background: var(--pmd-oe-surface) !important;
+}
+
+html.pmd-order-edit-v2 body .pmd-order-section {
+    width: 100% !important;
+    margin: 0 0 20px !important;
+    padding: 0 0 20px !important;
+    border-bottom: 1px solid var(--pmd-oe-line) !important;
+}
+
+html.pmd-order-edit-v2 body .pmd-order-section:last-child,
+html.pmd-order-edit-v2 body .pmd-order-section-location {
+    margin-bottom: 0 !important;
+    padding-bottom: 0 !important;
+    border-bottom: 0 !important;
+}
+
+html.pmd-order-edit-v2 body .pos-combined-info-card .card-title,
+html.pmd-order-edit-v2 body .customer-card-title {
+    margin: 0 0 14px !important;
+    color: var(--pmd-oe-ink) !important;
+    font-size: 15px !important;
+    font-weight: 850 !important;
+    line-height: 1.25 !important;
+}
+
+/* Item table */
+html.pmd-order-edit-v2 body .order-bill-container {
+    width: 100% !important;
+    max-width: 100% !important;
+    font-size: 14px !important;
+}
+
+html.pmd-order-edit-v2 body .order-bill-table {
+    width: 100% !important;
+    border-collapse: separate !important;
+    border-spacing: 0 !important;
+}
+
+html.pmd-order-edit-v2 body .order-bill-table thead th {
+    padding: 10px 12px !important;
+    color: var(--pmd-oe-muted) !important;
+    border: 0 !important;
+    border-bottom: 1px solid var(--pmd-oe-line) !important;
+    background: transparent !important;
+    font-size: 10px !important;
+    font-weight: 850 !important;
+    letter-spacing: .07em !important;
+}
+
+html.pmd-order-edit-v2 body .order-bill-table tbody td {
+    padding: 14px 12px !important;
+    border: 0 !important;
+    border-bottom: 1px solid #edf2f0 !important;
+    vertical-align: middle !important;
+    background: transparent !important;
+}
+
+html.pmd-order-edit-v2 body .order-bill-table tbody tr:hover td {
+    background: var(--pmd-oe-soft-2) !important;
+}
+
+html.pmd-order-edit-v2 body .order-bill-item-name {
+    margin: 0 !important;
+    color: var(--pmd-oe-ink) !important;
+    font-size: 14px !important;
+    font-weight: 800 !important;
+}
+
+html.pmd-order-edit-v2 body .order-bill-item-options,
+html.pmd-order-edit-v2 body .order-bill-item-comment {
+    margin-top: 5px !important;
+    color: var(--pmd-oe-muted) !important;
+    font-size: 12px !important;
+}
+
+html.pmd-order-edit-v2 body .quantity-controls {
+    display: inline-grid !important;
+    grid-template-columns: 34px 34px 34px !important;
+    align-items: center !important;
+    justify-content: center !important;
+    gap: 4px !important;
+}
+
+html.pmd-order-edit-v2 body .qty-btn {
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    width: 34px !important;
+    height: 34px !important;
+    min-width: 34px !important;
+    min-height: 34px !important;
+    padding: 0 !important;
+    color: var(--pmd-oe-primary-dark) !important;
+    border: 1px solid var(--pmd-oe-line) !important;
+    border-radius: 10px !important;
+    background: var(--pmd-oe-soft) !important;
+    box-shadow: none !important;
+}
+
+html.pmd-order-edit-v2 body .qty-btn:hover {
+    color: #fff !important;
+    border-color: var(--pmd-oe-primary) !important;
+    background: var(--pmd-oe-primary) !important;
+}
+
+html.pmd-order-edit-v2 body .qty-display {
+    min-width: 34px !important;
+    color: var(--pmd-oe-ink) !important;
+    font-size: 14px !important;
+    font-weight: 850 !important;
+}
+
+html.pmd-order-edit-v2 body .order-bill-totals td {
+    padding: 8px 12px !important;
+    border: 0 !important;
+}
+
+html.pmd-order-edit-v2 body .order-bill-totals tr:first-child td {
+    padding-top: 16px !important;
+    border-top: 1px solid var(--pmd-oe-line) !important;
+}
+
+html.pmd-order-edit-v2 body .order-bill-totals .final-total td {
+    padding-top: 14px !important;
+    border-top: 1px solid var(--pmd-oe-line) !important;
+}
+
+html.pmd-order-edit-v2 body .total-label {
+    color: var(--pmd-oe-muted) !important;
+    font-weight: 750 !important;
+}
+
+html.pmd-order-edit-v2 body .total-value {
+    color: var(--pmd-oe-ink) !important;
+    font-weight: 850 !important;
+}
+
+html.pmd-order-edit-v2 body .final-total .total-label,
+html.pmd-order-edit-v2 body .final-total .total-value {
+    color: var(--pmd-oe-ink) !important;
+    font-size: 20px !important;
+    font-weight: 900 !important;
+}
+
+html.pmd-order-edit-v2 body .order-bill-actions {
+    margin-top: 18px !important;
+    padding-top: 18px !important;
+    border-top: 1px solid var(--pmd-oe-line) !important;
+    text-align: center !important;
+}
+
+html.pmd-order-edit-v2 body .order-bill-actions::before {
+    display: none !important;
+}
+
+html.pmd-order-edit-v2 body .btn-add-item {
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    gap: 8px !important;
+    min-height: 44px !important;
+    padding: 11px 20px !important;
+    color: #fff !important;
+    border: 1px solid var(--pmd-oe-primary) !important;
+    border-radius: 12px !important;
+    background: var(--pmd-oe-primary) !important;
+    box-shadow: 0 10px 22px rgba(0, 133, 106, .18) !important;
+    font-size: 13px !important;
+    font-weight: 850 !important;
+}
+
+html.pmd-order-edit-v2 body .btn-add-item:hover {
+    border-color: var(--pmd-oe-primary-dark) !important;
+    background: var(--pmd-oe-primary-dark) !important;
+}
+
+/* Invoice/payment summary */
+html.pmd-order-edit-v2 body .order-details-table {
+    width: 100% !important;
+    border-collapse: collapse !important;
+    font-size: 13px !important;
+}
+
+html.pmd-order-edit-v2 body .order-details-table td {
+    padding: 8px 4px !important;
+    color: var(--pmd-oe-ink) !important;
+    border: 0 !important;
+    vertical-align: top !important;
+}
+
+html.pmd-order-edit-v2 body .order-details-table td:first-child {
+    width: 42% !important;
+    color: var(--pmd-oe-muted) !important;
+    font-weight: 700 !important;
+}
+
+html.pmd-order-edit-v2 body .order-details-table td:last-child {
+    text-align: right !important;
+    font-weight: 850 !important;
+}
+
+html.pmd-order-edit-v2 body .pmd-payment-history-row > td {
+    display: block !important;
+    width: 100% !important;
+    padding: 0 !important;
+    text-align: left !important;
+}
+
+html.pmd-order-edit-v2 body .pmd-payment-history-row > td:first-child {
+    margin-bottom: 10px !important;
+    color: var(--pmd-oe-ink) !important;
+    font-size: 13px !important;
+    font-weight: 850 !important;
+}
+
+html.pmd-order-edit-v2 body .pmd-payment-transaction {
+    margin: 0 0 9px !important;
+    padding: 12px 13px !important;
+    border: 1px solid var(--pmd-oe-line) !important;
+    border-radius: 14px !important;
+    background: var(--pmd-oe-soft-2) !important;
+}
+
+html.pmd-order-edit-v2 body .pmd-payment-transaction:last-child {
+    margin-bottom: 0 !important;
+}
+
+html.pmd-order-edit-v2 body .pmd-payment-transaction-head {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+    gap: 12px !important;
+    color: var(--pmd-oe-ink) !important;
+    font-size: 12px !important;
+    font-weight: 800 !important;
+}
+
+html.pmd-order-edit-v2 body .pmd-payment-transaction ul {
+    display: none !important;
+}
+
+html.pmd-order-edit-v2 body .pmd-payment-adjustment {
+    margin-top: 8px !important;
+    color: var(--pmd-oe-muted) !important;
+    font-size: 11px !important;
+    text-align: left !important;
+}
+
+html.pmd-order-edit-v2 body .pmd-payment-transaction a {
+    display: inline-flex !important;
+    align-items: center !important;
+    min-height: 30px !important;
+    padding: 6px 9px !important;
+    color: var(--pmd-oe-primary-dark) !important;
+    border: 1px solid var(--pmd-oe-line-strong) !important;
+    border-radius: 9px !important;
+    background: var(--pmd-oe-primary-soft) !important;
+    font-size: 11px !important;
+    font-weight: 800 !important;
+    text-decoration: none !important;
+}
+
+/* Customer, location, notes */
+html.pmd-order-edit-v2 body .customer-info {
+    padding: 9px 0 !important;
+    color: var(--pmd-oe-ink) !important;
+    border-bottom: 1px solid #edf2f0 !important;
+}
+
+html.pmd-order-edit-v2 body .customer-info:last-child {
+    border-bottom: 0 !important;
+}
+
+html.pmd-order-edit-v2 body .editable-value,
+html.pmd-order-edit-v2 body .editable-display {
+    color: var(--pmd-oe-ink) !important;
+    font-size: 13px !important;
+}
+
+html.pmd-order-edit-v2 body .pos-comment-card {
+    padding: 0 !important;
+    background: #fffaf0 !important;
+    border-color: #f2dfb6 !important;
+    box-shadow: none !important;
+}
+
+html.pmd-order-edit-v2 body .pos-comment-card .card-body {
+    padding: 14px 16px !important;
+}
+
+html.pmd-order-edit-v2 body .pos-comment-card p {
+    margin: 0 !important;
+    color: #6b5b35 !important;
+    font-size: 12px !important;
+    line-height: 1.55 !important;
+}
+
+/* Keep third-party legacy failures from visually breaking this page. */
+html.pmd-order-edit-v2 body .dropzone,
+html.pmd-order-edit-v2 body .bootstrap-table {
+    max-width: 100% !important;
+}
+
+@media (max-width: 1100px) {
+    html.pmd-order-edit-v2 body .order-edit-pos-layout {
+        grid-template-columns: minmax(0, 1fr) !important;
+    }
+
+    html.pmd-order-edit-v2 body .pos-info-column {
+        order: 2 !important;
+    }
+}
+
+@media (max-width: 760px) {
+    html.pmd-order-edit-v2 body .order-info-header {
+        grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+        gap: 9px !important;
+        padding: 11px !important;
+        border-radius: 17px !important;
+    }
+
+    html.pmd-order-edit-v2 body .order-info-item {
+        min-height: 72px !important;
+        padding: 10px 11px !important;
+    }
+
+    html.pmd-order-edit-v2 body .tab-heading {
+        overflow-x: auto !important;
+        scrollbar-width: none !important;
+    }
+
+    html.pmd-order-edit-v2 body .tab-heading .form-nav {
+        width: max-content !important;
+        min-width: 100% !important;
+        flex-wrap: nowrap !important;
+    }
+
+    html.pmd-order-edit-v2 body .order-bill-card .card-body,
+    html.pmd-order-edit-v2 body .pos-combined-info-card .card-body {
+        padding: 14px !important;
+    }
+
+    html.pmd-order-edit-v2 body .order-bill-table thead th,
+    html.pmd-order-edit-v2 body .order-bill-table tbody td {
+        padding-inline: 6px !important;
+    }
+
+    html.pmd-order-edit-v2 body .quantity-controls {
+        grid-template-columns: 30px 28px 30px !important;
+    }
+
+    html.pmd-order-edit-v2 body .qty-btn {
+        width: 30px !important;
+        height: 30px !important;
+        min-width: 30px !important;
+        min-height: 30px !important;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    html.pmd-order-edit-v2 * {
+        scroll-behavior: auto !important;
+        transition-duration: 0s !important;
+        animation-duration: 0s !important;
+    }
+}
+
+
+/*
+ * PMD_ORDER_EDIT_COMPACT_V3
+ * Compact Order Edit layout without polling or observers.
+ */
+
+html.pmd-order-edit-v2 .container-fluid,
+html.pmd-order-edit-v2 .content-container,
+html.pmd-order-edit-v2 .form-widget > form {
+    max-width: 1380px !important;
+}
+
+html.pmd-order-edit-v2 .content-wrapper,
+html.pmd-order-edit-v2 .page-content,
+html.pmd-order-edit-v2 .main-content {
+    padding-top: 18px !important;
+}
+
+html.pmd-order-edit-v2 .form-widget,
+html.pmd-order-edit-v2 .form-widget > form,
+html.pmd-order-edit-v2 .form-widget .form-fields,
+html.pmd-order-edit-v2 .form-widget .tab-content,
+html.pmd-order-edit-v2 .form-widget .tab-pane {
+    min-height: 0 !important;
+    height: auto !important;
+}
+
+html.pmd-order-edit-v2 body .order-info-header {
+    grid-template-columns:
+        minmax(105px, .72fr)
+        minmax(120px, .8fr)
+        minmax(170px, 1.1fr)
+        minmax(100px, .66fr)
+        minmax(100px, .66fr)
+        minmax(100px, .66fr)
+        minmax(185px, 1.15fr) !important;
+    gap: 8px !important;
+    margin-bottom: 12px !important;
+    padding: 10px !important;
+    border-radius: 18px !important;
+    box-shadow: 0 10px 30px rgba(28, 65, 56, .055) !important;
+}
+
+html.pmd-order-edit-v2 body .order-info-item,
+html.pmd-order-edit-v2 body .order-info-item.table-number,
+html.pmd-order-edit-v2 body .order-info-item.order-id,
+html.pmd-order-edit-v2 body .order-info-item.date-time,
+html.pmd-order-edit-v2 body .order-info-item.status,
+html.pmd-order-edit-v2 body .order-info-item.assignee,
+html.pmd-order-edit-v2 body .order-info-item.note,
+html.pmd-order-edit-v2 body .order-info-item.invoice,
+html.pmd-order-edit-v2 body .order-info-item.invoice-combined {
+    min-height: 72px !important;
+    padding: 10px 12px !important;
+    border-radius: 13px !important;
+}
+
+html.pmd-order-edit-v2 body .order-info-label {
+    margin-bottom: 5px !important;
+    font-size: 9px !important;
+}
+
+html.pmd-order-edit-v2 body .order-info-value {
+    font-size: 14px !important;
+}
+
+html.pmd-order-edit-v2 body .header-status-clickable,
+html.pmd-order-edit-v2 body .header-assignee-clickable,
+html.pmd-order-edit-v2 body .note-icon-btn,
+html.pmd-order-edit-v2 body .invoice-icon-btn,
+html.pmd-order-edit-v2 body .send-invoice-icon-btn {
+    width: 38px !important;
+    height: 38px !important;
+    min-width: 38px !important;
+    min-height: 38px !important;
+    border-radius: 10px !important;
+}
+
+html.pmd-order-edit-v2 .form-widget > form > .form-group:empty,
+html.pmd-order-edit-v2 .form-widget > form > .form-fields:empty,
+html.pmd-order-edit-v2 .form-widget > form > div:empty,
+html.pmd-order-edit-v2 .tab-content > .tab-pane:empty {
+    display: none !important;
+}
+
+html.pmd-order-edit-v2 body .tab-heading {
+    margin-top: 0 !important;
+    margin-bottom: 14px !important;
+    padding: 5px !important;
+    border-radius: 14px !important;
+    box-shadow: none !important;
+}
+
+html.pmd-order-edit-v2 body .tab-heading .nav-link {
+    min-height: 36px !important;
+    padding: 8px 13px !important;
+    font-size: 12px !important;
+}
+
+html.pmd-order-edit-v2 body .order-edit-pos-layout {
+    grid-template-columns:
+        minmax(0, 1.8fr)
+        minmax(310px, .72fr) !important;
+    gap: 16px !important;
+}
+
+html.pmd-order-edit-v2 body .order-bill-card,
+html.pmd-order-edit-v2 body .pos-combined-info-card,
+html.pmd-order-edit-v2 body .pos-comment-card {
+    margin-bottom: 12px !important;
+    border-radius: 18px !important;
+    box-shadow: 0 10px 28px rgba(28, 65, 56, .055) !important;
+}
+
+html.pmd-order-edit-v2 body .order-bill-card .card-body,
+html.pmd-order-edit-v2 body .pos-combined-info-card .card-body {
+    padding: 18px !important;
+}
+
+html.pmd-order-edit-v2 body .order-bill-table thead th {
+    padding: 8px 10px !important;
+}
+
+html.pmd-order-edit-v2 body .order-bill-table tbody td {
+    padding: 11px 10px !important;
+}
+
+html.pmd-order-edit-v2 body .quantity-controls {
+    grid-template-columns: 31px 30px 31px !important;
+}
+
+html.pmd-order-edit-v2 body .qty-btn {
+    width: 31px !important;
+    height: 31px !important;
+    min-width: 31px !important;
+    min-height: 31px !important;
+    border-radius: 9px !important;
+}
+
+html.pmd-order-edit-v2 body .qty-display {
+    min-width: 30px !important;
+}
+
+html.pmd-order-edit-v2 body .pos-combined-info-card .card-title,
+html.pmd-order-edit-v2 body .customer-card-title {
+    margin-bottom: 10px !important;
+    font-size: 14px !important;
+}
+
+html.pmd-order-edit-v2 body .pmd-order-section {
+    margin-bottom: 15px !important;
+    padding-bottom: 15px !important;
+}
+
+html.pmd-order-edit-v2 body .pos-info-column {
+    position: sticky !important;
+    top: 92px !important;
+}
+
+html.pmd-order-edit-v2 body .pos-info-column ul {
+    margin-bottom: 8px !important;
+    padding-left: 17px !important;
+}
+
+html.pmd-order-edit-v2 body .pos-info-column li {
+    margin-bottom: 2px !important;
+    font-size: 11px !important;
+    line-height: 1.25 !important;
+}
+
+@media (max-width: 1100px) {
+    html.pmd-order-edit-v2 body .order-info-header {
+        grid-template-columns:
+            repeat(4, minmax(130px, 1fr)) !important;
+    }
+
+    html.pmd-order-edit-v2 body .order-edit-pos-layout {
+        grid-template-columns: 1fr !important;
+    }
+
+    html.pmd-order-edit-v2 body .pos-info-column {
+        position: static !important;
+    }
+}
+
+@media (max-width: 700px) {
+    html.pmd-order-edit-v2 body .order-info-header {
+        grid-template-columns:
+            repeat(2, minmax(0, 1fr)) !important;
+    }
+}

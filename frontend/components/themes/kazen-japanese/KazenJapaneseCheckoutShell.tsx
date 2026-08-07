@@ -481,6 +481,10 @@ export function KazenJapaneseCheckoutShell(props: KazenJapaneseCheckoutShellProp
     paymentPayableTotal = 0,
     paymentTipAmount = 0,
     paymentCouponDiscount = 0,
+    paidTipAmount = 0,
+    paidCouponDiscount = 0,
+    paidAmountTotal = 0,
+    submittedBaseTotal = 0,
     paymentTipPercentage,
     paymentCustomTip,
     tipPercentages = [5, 10],
@@ -558,6 +562,27 @@ export function KazenJapaneseCheckoutShell(props: KazenJapaneseCheckoutShellProp
   }
 
   const orderTotal = Number(submittedSnapshot?.remainingAmount ?? submittedSnapshot?.orderTotal ?? submittedSnapshot?.total ?? tableDraftTotal ?? finalTotal ?? 0)
+  // PMD_KAZEN_ORDER_FLOW_SUMMARY_V1
+  const paidBaseAmount = Math.max(0, Number(
+    submittedBaseTotal ||
+    submittedSnapshot?.submittedBaseTotal ||
+    submittedSnapshot?.baseTotal ||
+    submittedSnapshot?.itemTotal ||
+    orderTotal ||
+    finalTotal ||
+    0
+  ))
+  const paidTipValue = Math.max(0, Number(paidTipAmount || submittedSnapshot?.paidTipAmount || 0))
+  const paidCouponValue = Math.max(0, Number(paidCouponDiscount || submittedSnapshot?.paidCouponDiscount || 0))
+  const paidAmountValue = Math.max(0, Number(
+    paidAmountTotal ||
+    submittedSnapshot?.paidTotal ||
+    submittedSnapshot?.paid_total ||
+    paymentPayableTotal ||
+    Math.max(0, paidBaseAmount + paidTipValue - paidCouponValue)
+  ))
+  const paidVatValue = Math.max(0, Number(paymentVatAmount || submittedSnapshot?.paidVatAmount || submittedSnapshot?.vatAmount || 0))
+  const reviewLocked = reviewSubmitStatus === "success"
   const submittedDisplayItems = firstNonEmptyItems(
     submittedItems,
     submittedSnapshot?.submittedItems,
@@ -748,7 +773,7 @@ export function KazenJapaneseCheckoutShell(props: KazenJapaneseCheckoutShellProp
     content = (
       <>
         <ItemRows items={personalItems} />
-        <div className="kzco-total-box">
+        <div className="kzco-total-box kzco-final-total">
           <Line label="Total" value={finalTotal} strong />
         </div>
         <ButtonRow columns={2}>
@@ -762,7 +787,7 @@ export function KazenJapaneseCheckoutShell(props: KazenJapaneseCheckoutShellProp
     content = (
       <>
         <ItemRows items={tableDraftItems} />
-        <div className="kzco-total-box">
+        <div className="kzco-total-box kzco-final-total">
           <Line label="Order total" value={tableDraftTotal} strong />
         </div>
         <ButtonRow columns={2}>
@@ -793,13 +818,13 @@ export function KazenJapaneseCheckoutShell(props: KazenJapaneseCheckoutShellProp
             )}
           </span>
         </div>
-        <div className="kzco-total-box">
-          <Line label="Order total" value={orderTotal} strong />
-        </div>
         <section className="kzco-summary">
           <h3 className="kzco-section-title">Order Summary</h3>
           <ItemRows items={submittedDisplayItems} />
         </section>
+        <div className="kzco-total-box kzco-final-total">
+          <Line label="Order total" value={orderTotal} strong />
+        </div>
         <ButtonRow>
           <CheckoutButton variant="primary" onClick={() => setCheckoutStep?.("payment")}>Pay in full</CheckoutButton>
           <CheckoutButton variant="secondary" onClick={() => startSplitFlow?.("equal")}><Users className="h-4 w-4" /> Split bill</CheckoutButton>
@@ -812,7 +837,6 @@ export function KazenJapaneseCheckoutShell(props: KazenJapaneseCheckoutShellProp
     eyebrow = undefined
 
     const paidOrderId = Number(submittedSnapshot?.orderId ?? submittedSnapshot?.order_id ?? submittedSnapshot?.id ?? 0)
-    const paidAmount = Number(submittedSnapshot?.paidTotal ?? submittedSnapshot?.paid_total ?? paymentPayableTotal ?? orderTotal ?? finalTotal ?? 0)
     const showPaidEta = Number(estimatedMinutes || 0) > 0 && (submittedSnapshot?.showCustomerEta ?? true) !== false
 
     content = (
@@ -831,19 +855,25 @@ export function KazenJapaneseCheckoutShell(props: KazenJapaneseCheckoutShellProp
             </em>
           )}
         </div>
-        <div className="kzco-total-box kzco-paid-total-box">
+        <section className="kzco-summary kzco-paid-summary">
+          <h3 className="kzco-section-title">Order Summary</h3>
+          <ItemRows items={submittedDisplayItems} />
+        </section>
+        <div className="kzco-total-box kzco-paid-total-box kzco-final-total">
           {paidOrderId > 0 ? (
             <div className="kzco-line">
               <span>Order number</span>
               <strong>#{paidOrderId}</strong>
             </div>
           ) : null}
-          <Line label="Amount paid" value={paidAmount} strong />
+          <Line label="Items subtotal (incl. VAT)" value={paidBaseAmount} />
+          {paidVatValue > 0 ? <Line label="Included VAT" value={paidVatValue} /> : null}
+          {paidTipValue > 0 ? <Line label="Tip" value={paidTipValue} /> : null}
+          {paidCouponValue > 0 ? (
+            <div className="kzco-line kzco-discount"><span>Coupon</span><strong>-{money(paidCouponValue)}</strong></div>
+          ) : null}
+          <Line label="Amount paid" value={paidAmountValue} strong />
         </div>
-        <section className="kzco-summary">
-          <h3 className="kzco-section-title">Order Summary</h3>
-          <ItemRows items={submittedDisplayItems} />
-        </section>
         <section className="kzco-card kzco-review-card" aria-label="Visit feedback">
           <div className="kzco-review-head">
             <span><MessageSquare className="h-4 w-4" /></span>
@@ -861,7 +891,9 @@ export function KazenJapaneseCheckoutShell(props: KazenJapaneseCheckoutShellProp
                   type="button"
                   aria-label={`${star} star${star > 1 ? "s" : ""}`}
                   data-kzco-active={active ? "1" : "0"}
+                  disabled={reviewLocked}
                   onClick={() => {
+                    if (reviewLocked) return
                     setReviewRating?.(star)
                     if (reviewSubmitStatus !== "loading") setReviewSubmitStatus?.("idle")
                   }}
@@ -873,7 +905,10 @@ export function KazenJapaneseCheckoutShell(props: KazenJapaneseCheckoutShellProp
           </div>
           <textarea
             value={String(reviewComment || "")}
+            disabled={reviewLocked}
+            readOnly={reviewLocked}
             onChange={(event) => {
+              if (reviewLocked) return
               setReviewComment?.(event.target.value)
               if (reviewSubmitStatus !== "loading") setReviewSubmitStatus?.("idle")
             }}
@@ -996,6 +1031,7 @@ export function KazenJapaneseCheckoutShell(props: KazenJapaneseCheckoutShellProp
                         // summary recalculates the value using the current
                         // authoritative order amount.
                         updatePaymentTipPercentage?.(percentage)
+                        updatePaymentCustomTip?.(nextTipAmount)
                       }}
                       className="kzco-tip-preset"
                     >
@@ -4194,6 +4230,23 @@ export function KazenJapaneseCheckoutShell(props: KazenJapaneseCheckoutShellProp
         html body .kzco-overlay[data-kzco-root="1"][data-kzco-mode="dark"] form[data-pmd-stripe-form="1"] input[data-pmd-themed-input]::placeholder {
           color: rgba(244, 231, 200, .60) !important;
           -webkit-text-fill-color: rgba(244, 231, 200, .60) !important;
+        }
+
+        /* PMD_KAZEN_ORDER_FLOW_SUMMARY_STYLE_V1 */
+        html body .kzco-overlay[data-kzco-root="1"] .kzco-final-total {
+          margin-top: .2rem !important;
+          padding-top: 1rem !important;
+          border-top: 1px solid var(--kzco-panel-line) !important;
+        }
+
+        html body .kzco-overlay[data-kzco-root="1"] .kzco-paid-summary {
+          padding-bottom: .35rem !important;
+        }
+
+        html body .kzco-overlay[data-kzco-root="1"] .kzco-stars button:disabled,
+        html body .kzco-overlay[data-kzco-root="1"] .kzco-review-textarea:disabled {
+          cursor: default !important;
+          opacity: .78 !important;
         }
 
         /* PMD_KAZEN_PAID_CONFIRMATION_CARD_V3

@@ -1,0 +1,17 @@
+{
+  "headers": {
+    "x-nextjs-stale-time": "300",
+    "x-nextjs-prerender": "1",
+    "x-next-cache-tags": "_N_T_/layout,_N_T_/payment/layout,_N_T_/payment/sumup/layout,_N_T_/payment/sumup/complete/layout,_N_T_/payment/sumup/complete/page,_N_T_/payment/sumup/complete"
+  },
+  "segmentPaths": [
+    "/_tree",
+    "/_full",
+    "/payment/sumup/complete/__PAGE__",
+    "/payment/sumup/complete",
+    "/payment/sumup",
+    "/payment",
+    "/_index",
+    "/_head"
+  ]
+}
