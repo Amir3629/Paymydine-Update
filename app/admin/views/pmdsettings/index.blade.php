@@ -1,8 +1,47 @@
-<link rel="stylesheet" href="/app/admin/assets/css/pmd-settings-center-v1.css?v=20260808_3">
+<style id="pmd-settings-critical-v6">
+html,
+body,
+.page,
+.page-wrapper,
+.page-content,
+.content-wrapper,
+.container-fluid,
+#pmd-settings-center {
+    background: #f8fbfd !important;
+}
 
-<script id="pmd-settings-center-v2-route-class">
-document.documentElement.classList.add('pmd-settings-center-v2');
+/* This stylesheet exists only on /admin/pmdsettings, so hiding the legacy
+   navbar here is route-scoped and prevents the old header flashing first. */
+.navbar-top,
+.navbar-fixed-top {
+    display: none !important;
+    visibility: hidden !important;
+    opacity: 0 !important;
+    pointer-events: none !important;
+    height: 0 !important;
+    min-height: 0 !important;
+    max-height: 0 !important;
+    overflow: hidden !important;
+}
+
+/* Keep final layout space, but do not paint intermediate/legacy states. */
+#pmd-settings-center {
+    visibility: hidden !important;
+}
+
+html.pmd-settings-v6-ready #pmd-settings-center {
+    visibility: visible !important;
+}
+</style>
+
+<script id="pmd-settings-center-v6-boot">
+document.documentElement.classList.add('pmd-settings-center-v2', 'pmd-settings-v6-booting');
+window.PMDSettingsRevealFallback = window.setTimeout(function () {
+    document.documentElement.classList.add('pmd-settings-v6-ready');
+}, 2500);
 </script>
+
+<link rel="stylesheet" href="/app/admin/assets/css/pmd-settings-center-v1.css?v=20260808_6">
 
 @php
     $pmdAccentPalette = [
@@ -153,4 +192,4 @@ document.documentElement.classList.add('pmd-settings-center-v2');
     </div>
 </div>
 
-<script defer src="/app/admin/assets/js/pmd-settings-center-v1.js?v=20260808_3"></script>
+<script defer src="/app/admin/assets/js/pmd-settings-center-v1.js?v=20260808_6"></script>
