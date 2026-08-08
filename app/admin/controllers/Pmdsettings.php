@@ -8,14 +8,14 @@ use Admin\Facades\AdminMenu;
 use Admin\Facades\Template;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
+use Illuminate\Support\Facades\Validator;
+use Illuminate\Validation\ValidationException;
 
 /**
  * PMD Settings Center
  *
- * A clean owner-facing information architecture that keeps all existing
- * settings/routes intact while presenting them in one coherent place.
- * This page is intentionally read-only: it does not migrate or rewrite any
- * existing setting. Each module continues to use its established authority.
+ * Owner-facing settings IA for PayMyDine. Existing authorities remain intact;
+ * the new pages progressively combine them into fewer owner-friendly screens.
  */
 class Pmdsettings extends AdminController
 {
@@ -37,9 +37,133 @@ class Pmdsettings extends AdminController
         $this->vars['pmdSettingsLocationId'] = $locationId;
         $this->vars['pmdSettingsOpeningHours'] = $this->openingHours($locationId);
         $this->vars['pmdSettingsGroups'] = $this->groups($locationId);
-        $this->vars['pmdSettingsHealth'] = $this->health($locationId);
+        $this->vars['pmdSettingsHealth'] = [];
 
         return $this->makeView('pmdsettings/index');
+    }
+
+    /**
+     * Unified single-restaurant profile page.
+     *
+     * This intentionally reads the existing Location + Settings authorities
+     * instead of inventing a parallel profile table.
+     */
+    public function restaurant()
+    {
+        Template::setTitle('Restaurant profile');
+        Template::setHeading('Restaurant profile');
+
+        $locationId = $this->currentLocationId();
+
+        $this->vars['pmdProfile'] = $this->restaurantProfilePayload($locationId);
+        $this->vars['pmdProfileHours'] = $this->openingHours($locationId);
+        $this->vars['pmdProfileLocationId'] = $locationId;
+
+        return $this->makeView('pmdsettings/restaurant');
+    }
+
+    /**
+     * Save only fields owned by the unified Restaurant Profile page.
+     * Delivery/collection schedules, reservation rows, tables and other
+     * settings are never touched here.
+     */
+    public function onSaveRestaurantProfile()
+    {
+        $locationId = $this->currentLocationId();
+        $profile = (array)post('profile', []);
+        $hours = (array)post('hours', []);
+
+        $validator = Validator::make($profile, [
+            'name' => ['required', 'string', 'max:191'],
+            'email' => ['nullable', 'email', 'max:191'],
+            'telephone' => ['nullable', 'string', 'max:64'],
+            'address_1' => ['nullable', 'string', 'max:191'],
+            'address_2' => ['nullable', 'string', 'max:191'],
+            'city' => ['nullable', 'string', 'max:120'],
+            'state' => ['nullable', 'string', 'max:120'],
+            'postcode' => ['nullable', 'string', 'max:32'],
+            'website_url' => ['nullable', 'url', 'max:500'],
+            'instagram_url' => ['nullable', 'url', 'max:500'],
+            'google_url' => ['nullable', 'url', 'max:500'],
+            'trustpilot_url' => ['nullable', 'url', 'max:500'],
+        ]);
+
+        if ($validator->fails()) {
+            throw new ValidationException($validator);
+        }
+
+        $clean = $validator->validated();
+
+        foreach (range(0, 6) as $weekday) {
+            $row = (array)($hours[$weekday] ?? []);
+            $enabled = !empty($row['enabled']);
+            $opening = trim((string)($row['opening_time'] ?? ''));
+            $closing = trim((string)($row['closing_time'] ?? ''));
+
+            if ($enabled && (!preg_match('/^([01]\\d|2[0-3]):[0-5]\\d$/', $opening)
+                || !preg_match('/^([01]\\d|2[0-3]):[0-5]\\d$/', $closing))) {
+                throw ValidationException::withMessages([
+                    'hours.'.$weekday => ['Please enter a valid opening and closing time.'],
+                ]);
+            }
+        }
+
+        DB::transaction(function () use ($locationId, $clean, $profile, $hours) {
+            $settings = [
+                'site_name' => trim((string)$clean['name']),
+                'site_email' => trim((string)($clean['email'] ?? '')),
+                'pmd_social_website_enabled' => !empty($profile['website_enabled']) ? 1 : 0,
+                'pmd_social_website_url' => trim((string)($clean['website_url'] ?? '')),
+                'pmd_social_instagram_enabled' => !empty($profile['instagram_enabled']) ? 1 : 0,
+                'pmd_social_instagram_url' => trim((string)($clean['instagram_url'] ?? '')),
+                'pmd_social_google_enabled' => !empty($profile['google_enabled']) ? 1 : 0,
+                'pmd_social_google_url' => trim((string)($clean['google_url'] ?? '')),
+                'pmd_social_trustpilot_enabled' => !empty($profile['trustpilot_enabled']) ? 1 : 0,
+                'pmd_social_trustpilot_url' => trim((string)($clean['trustpilot_url'] ?? '')),
+            ];
+
+            setting()->set($settings);
+            setting()->save();
+
+            DB::table('locations')
+                ->where('location_id', $locationId)
+                ->update([
+                    'location_name' => trim((string)$clean['name']),
+                    'location_email' => trim((string)($clean['email'] ?? '')),
+                    'location_telephone' => trim((string)($clean['telephone'] ?? '')),
+                    'location_address_1' => trim((string)($clean['address_1'] ?? '')),
+                    'location_address_2' => trim((string)($clean['address_2'] ?? '')),
+                    'location_city' => trim((string)($clean['city'] ?? '')),
+                    'location_state' => trim((string)($clean['state'] ?? '')),
+                    'location_postcode' => trim((string)($clean['postcode'] ?? '')),
+                ]);
+
+            foreach (range(0, 6) as $weekday) {
+                $row = (array)($hours[$weekday] ?? []);
+                $enabled = !empty($row['enabled']);
+                $opening = $enabled ? trim((string)($row['opening_time'] ?? '')) : '00:00';
+                $closing = $enabled ? trim((string)($row['closing_time'] ?? '')) : '23:59';
+
+                DB::table('working_hours')->updateOrInsert(
+                    [
+                        'location_id' => $locationId,
+                        'weekday' => $weekday,
+                        'type' => 'opening',
+                    ],
+                    [
+                        'opening_time' => $opening.':00',
+                        'closing_time' => $closing.':00',
+                        'status' => $enabled ? 1 : 0,
+                    ]
+                );
+            }
+        });
+
+        flash()->success('Restaurant profile saved.');
+
+        return [
+            '#pmd-profile-save-status' => '<span class="pmd-profile-save-status is-success">Saved</span>',
+        ];
     }
 
     protected function currentLocationId(): int
@@ -68,8 +192,45 @@ class Pmdsettings extends AdminController
         } catch (\Throwable $error) {
         }
 
-        // PayMyDine currently operates as a single-restaurant installation.
         return 1;
+    }
+
+    protected function restaurantProfilePayload(int $locationId): array
+    {
+        $location = null;
+
+        try {
+            $location = DB::table('locations')->where('location_id', $locationId)->first();
+        } catch (\Throwable $error) {
+        }
+
+        $value = function (string $key, $fallback = '') {
+            try {
+                return setting($key, $fallback);
+            } catch (\Throwable $error) {
+                return $fallback;
+            }
+        };
+
+        return [
+            'name' => (string)($value('site_name') ?: ($location->location_name ?? '')),
+            'email' => (string)($value('site_email') ?: ($location->location_email ?? '')),
+            'telephone' => (string)($location->location_telephone ?? ''),
+            'address_1' => (string)($location->location_address_1 ?? ''),
+            'address_2' => (string)($location->location_address_2 ?? ''),
+            'city' => (string)($location->location_city ?? ''),
+            'state' => (string)($location->location_state ?? ''),
+            'postcode' => (string)($location->location_postcode ?? ''),
+            'website_enabled' => (bool)$value('pmd_social_website_enabled', 0),
+            'website_url' => (string)$value('pmd_social_website_url', ''),
+            'instagram_enabled' => (bool)$value('pmd_social_instagram_enabled', 0),
+            'instagram_url' => (string)$value('pmd_social_instagram_url', ''),
+            'google_enabled' => (bool)$value('pmd_social_google_enabled', 0),
+            'google_url' => (string)$value('pmd_social_google_url', ''),
+            'trustpilot_enabled' => (bool)$value('pmd_social_trustpilot_enabled', 0),
+            'trustpilot_url' => (string)$value('pmd_social_trustpilot_url', ''),
+            'site_logo' => (string)$value('site_logo', ''),
+        ];
     }
 
     protected function openingHours(int $locationId): array
@@ -100,9 +261,6 @@ class Pmdsettings extends AdminController
                 return array_values($result);
             }
 
-            // IMPORTANT: query the relation table directly. Do not call
-            // Locations_model::getWorkingHours(), because that helper creates
-            // default rows for locations with no schedule.
             $rows = DB::table('working_hours')
                 ->where('location_id', $locationId)
                 ->where('type', 'opening')
@@ -130,135 +288,83 @@ class Pmdsettings extends AdminController
         return array_values($result);
     }
 
-    protected function health(int $locationId): array
-    {
-        $hours = collect($this->openingHours($locationId));
-        $hasHours = $hours->contains(fn ($day) => !empty($day['enabled']));
-
-        return [
-            [
-                'label' => 'Restaurant profile',
-                'ready' => (string)setting('site_name', '') !== '',
-                'href' => admin_url('settings/edit/general'),
-            ],
-            [
-                'label' => 'Opening hours',
-                'ready' => $hasHours,
-                'href' => admin_url('locations/edit/'.$locationId),
-            ],
-            [
-                'label' => 'Payment methods',
-                'ready' => true,
-                'href' => admin_url('payments?mode=methods'),
-            ],
-            [
-                'label' => 'Team & roles',
-                'ready' => true,
-                'href' => admin_url('staffs'),
-            ],
-        ];
-    }
-
+    /**
+     * Deliberately small IA: one card should represent one owner task/page,
+     * not one database module.
+     */
     protected function groups(int $locationId): array
     {
         return [
             [
                 'id' => 'restaurant',
-                'eyebrow' => 'Core setup',
+                'eyebrow' => '',
                 'title' => 'Restaurant',
-                'description' => 'Identity, hours, localization and the core rules that define how your restaurant operates.',
+                'description' => '',
                 'items' => [
-                    $this->item('Restaurant profile', 'Name, email, address, logos and core restaurant information.', 'restaurant', admin_url('settings/edit/general'), 'Core'),
-                    $this->item('Opening hours', 'Weekly service hours used by reservations, availability and customer-facing experiences.', 'clock', admin_url('locations/edit/'.$locationId), 'Important'),
-                    $this->item('Localization', 'Language, country, currency and timezone settings.', 'globe', admin_url('settings'), 'Setup'),
-                    $this->item('Business information', 'Company details, policies and legal information.', 'building', admin_url('settings'), 'Occasional'),
+                    $this->item('Restaurant profile', 'Name, contact, address, opening hours, website and social links.', 'restaurant', admin_url('pmdsettings/restaurant'), ''),
                 ],
             ],
             [
                 'id' => 'guest',
-                'eyebrow' => 'Guest-facing',
+                'eyebrow' => '',
                 'title' => 'Menu & Guest Experience',
-                'description' => 'Everything guests see or interact with on the digital menu and checkout experience.',
+                'description' => '',
                 'items' => [
-                    $this->item('Menu presentation', 'Menu highlights, featured items and guest-facing menu behaviour.', 'menu', admin_url('settings/edit/menu_highlights'), 'Frontend'),
-                    $this->item('Reviews & social links', 'Post-checkout review prompts and social links shown to guests.', 'star', admin_url('settings/edit/review_social'), 'Frontend'),
-                    $this->item('Customer registration', 'Guest account and registration communication settings.', 'user', admin_url('settings'), 'Optional'),
-                    $this->item('Media library', 'Restaurant media, upload rules and reusable guest-facing assets.', 'image', admin_url('settings'), 'Assets'),
-                ],
-            ],
-            [
-                'id' => 'reservations',
-                'eyebrow' => 'Operations',
-                'title' => 'Reservations & Floor',
-                'description' => 'Reservation behaviour, service hours, tables, floor operations and booking rules.',
-                'items' => [
-                    $this->item('Reservation settings', 'Booking interval, stay time, advance booking and reservation behaviour.', 'calendar', admin_url('settings'), 'Daily ops'),
-                    $this->item('Opening hours', 'The shared schedule authority for reservation times and Hour View.', 'clock', admin_url('locations/edit/'.$locationId), 'Shared'),
-                    $this->item('Tables & floor', 'Table capacity, floor layout and operational table settings.', 'table', admin_url('tables'), 'Floor'),
-                    $this->item('Reservations workspace', 'Open the live reservations and floor workspace.', 'booking', admin_url('reservations2'), 'Workspace'),
+                    $this->item('Menu & checkout', 'Guest-facing menu, highlights, review prompt and checkout experience.', 'menu', admin_url('settings/edit/menu_highlights'), ''),
+                    $this->item('Customer accounts', 'Guest registration and account communication settings.', 'user', admin_url('settings'), ''),
                 ],
             ],
             [
                 'id' => 'team',
-                'eyebrow' => 'People',
+                'eyebrow' => '',
                 'title' => 'Team & Access',
-                'description' => 'Staff accounts, roles, permissions and authentication policies in one place.',
+                'description' => '',
                 'items' => [
-                    $this->item('Staff', 'Manage team members, access and employee accounts.', 'users', admin_url('staffs'), 'Team'),
-                    $this->item('Roles & permissions', 'Control what each role can see and change across PayMyDine.', 'shield', admin_url('staffs'), 'Access'),
-                    $this->item('Authentication', 'Login, PIN and staff access policies.', 'key', admin_url('staffs'), 'Security'),
+                    $this->item('Team & access', 'Staff, roles, permissions, login and PIN policies in one place.', 'users', admin_url('staffs'), ''),
                 ],
             ],
             [
                 'id' => 'devices',
-                'eyebrow' => 'Hardware',
+                'eyebrow' => '',
                 'title' => 'Devices & Hardware',
-                'description' => 'POS hardware, kitchen displays, drawers, biometric devices, printers and connected screens.',
+                'description' => '',
                 'items' => [
-                    $this->item('Kitchen displays', 'KDS stations and kitchen-facing operational screens.', 'monitor', admin_url('kdsstations'), 'Device'),
-                    $this->item('Cash drawers', 'Configure cash drawers and their linked POS devices.', 'cash', admin_url('cashdrawers'), 'Device'),
-                    $this->item('Biometric devices', 'Fingerprint and attendance devices for staff operations.', 'fingerprint', admin_url('biometricdevices'), 'Device'),
-                    $this->item('POS terminals', 'Connected terminals, monitors and local POS device configuration.', 'terminal', admin_url('posdevices'), 'Device'),
+                    $this->item('Devices', 'KDS, POS terminals, cash drawers, biometric devices and connected screens.', 'monitor', admin_url('posdevices'), ''),
                 ],
             ],
             [
                 'id' => 'finance',
-                'eyebrow' => 'Money',
+                'eyebrow' => '',
                 'title' => 'Payments & Finance',
-                'description' => 'Payment methods, taxes, fiscal compliance, invoicing, tips and cash-related configuration.',
+                'description' => '',
                 'items' => [
-                    $this->item('Payment methods', 'Enable and configure the ways guests can pay.', 'card', admin_url('payments?mode=methods'), 'Payments'),
-                    $this->item('VAT & taxes', 'Restaurant VAT, tax rates and fiscal calculation settings.', 'percent', admin_url('settings'), 'Required'),
-                    $this->item('Invoicing', 'Invoice logo, numbering and receipt presentation.', 'invoice', admin_url('settings'), 'Finance'),
-                    $this->item('Fiskaly / TSE', 'German fiscal compliance and TSE configuration.', 'receipt', admin_url('settings'), 'Required'),
+                    $this->item('Payment methods', 'Configure how guests can pay.', 'card', admin_url('payments?mode=methods'), ''),
+                    $this->item('Tax & invoicing', 'VAT, tax calculation, invoice numbering, logo and receipt presentation.', 'invoice', admin_url('settings'), ''),
+                    $this->item('Fiskaly / TSE', 'German fiscal compliance and TSE configuration.', 'receipt', admin_url('settings'), ''),
                 ],
             ],
             [
                 'id' => 'brand',
-                'eyebrow' => 'Identity',
+                'eyebrow' => '',
                 'title' => 'Branding & Communication',
-                'description' => 'Logos, visual identity, email delivery and communication-facing assets.',
+                'description' => '',
                 'items' => [
-                    $this->item('Brand assets', 'Restaurant, dashboard, favicon, invoice and email logos.', 'palette', admin_url('settings/edit/general'), 'Brand'),
-                    $this->item('Email', 'Sending configuration and restaurant email behaviour.', 'mail', admin_url('settings'), 'Communication'),
-                    $this->item('Media', 'Reusable images and upload settings for the PayMyDine experience.', 'image', admin_url('settings'), 'Assets'),
+                    $this->item('Brand & communication', 'Logos, email delivery and reusable media in one place.', 'palette', admin_url('settings/edit/general'), ''),
                 ],
             ],
             [
                 'id' => 'advanced',
-                'eyebrow' => 'Rarely needed',
+                'eyebrow' => '',
                 'title' => 'System & Advanced',
-                'description' => 'Technical configuration, logs and maintenance tools kept out of everyday restaurant setup.',
+                'description' => '',
                 'items' => [
-                    $this->item('Panel settings', 'Maintenance mode and platform-level behaviour.', 'settings', admin_url('settings'), 'Advanced'),
-                    $this->item('Activity & logs', 'Review recent system activity and operational logs.', 'activity', admin_url('activities'), 'System'),
-                    $this->item('Legacy settings', 'Access every existing setting while the new center is being consolidated.', 'archive', admin_url('settings'), 'All settings'),
+                    $this->item('Advanced settings', 'System behaviour, maintenance and less frequently used configuration.', 'settings', admin_url('settings'), ''),
                 ],
             ],
         ];
     }
 
-    protected function item(string $title, string $description, string $icon, string $href, string $badge): array
+    protected function item(string $title, string $description, string $icon, string $href, string $badge = ''): array
     {
         return compact('title', 'description', 'icon', 'href', 'badge');
     }
