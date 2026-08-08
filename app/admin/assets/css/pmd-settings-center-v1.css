@@ -1,8 +1,31 @@
-/* PMD Settings Center V2 — Dashboard2-aligned shell, simplified IA */
+/* PMD Settings Center V4 — Dashboard2/Reservations2 mother-kit shell */
 
 html.pmd-settings-center-v2,
 html.pmd-settings-center-v2 body {
   background: #f8fbfd !important;
+}
+
+/* Hide the legacy topbar immediately; the V4 JS installs one clean header. */
+html.pmd-settings-center-v2 .navbar-top,
+html.pmd-settings-center-v2 .navbar-fixed-top {
+  display: none !important;
+  visibility: hidden !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
+  height: 0 !important;
+  min-height: 0 !important;
+  max-height: 0 !important;
+  overflow: hidden !important;
+}
+
+html.pmd-settings-center-v2 body {
+  padding-top: 0 !important;
+  margin-top: 0 !important;
+}
+
+html.pmd-settings-center-v2 .page-wrapper {
+  top: 0 !important;
+  margin-top: 0 !important;
 }
 
 #pmd-settings-center {
@@ -14,8 +37,8 @@ html.pmd-settings-center-v2 body {
   --pmd-bg: #f8fbfd;
   --pmd-card: #fff;
   --pmd-shadow: 0 10px 28px rgba(17, 40, 35, .05);
-  min-height: calc(100vh - 64px);
-  padding: 28px 30px 72px;
+  min-height: 100vh;
+  padding: 0 30px 72px;
   background: var(--pmd-bg);
   color: var(--pmd-ink);
   font-family: inherit;
@@ -23,6 +46,119 @@ html.pmd-settings-center-v2 body {
 
 #pmd-settings-center * {
   box-sizing: border-box;
+}
+
+/* ---------------------------------------------------------
+   PMD_SETTINGS_CLEAN_HEADER_V4
+   Same proven clean-header geometry used by Reservations2.
+   --------------------------------------------------------- */
+#pmd-settings-clean-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 64px;
+  width: min(1480px, 100%);
+  margin: 0 auto;
+  padding: 0 2px;
+  background: transparent !important;
+  border: 0 !important;
+  box-shadow: none !important;
+  position: relative;
+  z-index: 40;
+}
+
+#pmd-settings-clean-header .pmd-settings-clean-title {
+  margin: 0;
+  padding: 0;
+  color: #17231f;
+  font-size: 22px;
+  line-height: 1.2;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+#pmd-settings-clean-header .pmd-settings-clean-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-left: auto;
+}
+
+#pmd-settings-clean-header #notif-root {
+  display: block !important;
+  position: relative !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  list-style: none !important;
+}
+
+#pmd-settings-clean-header #notif-root > a,
+#pmd-settings-clean-header #notif-root > span > a {
+  width: 42px;
+  height: 42px;
+  min-width: 42px;
+  display: inline-flex !important;
+  align-items: center;
+  justify-content: center;
+  padding: 0 !important;
+  margin: 0 !important;
+  border: 1px solid #c9e0ef !important;
+  border-radius: 11px !important;
+  background: #fff !important;
+  box-shadow: none !important;
+  color: #17231f !important;
+  text-decoration: none !important;
+  position: relative;
+  cursor: pointer;
+}
+
+#pmd-settings-clean-header #notif-root > a:hover,
+#pmd-settings-clean-header #notif-root > span > a:hover {
+  background: #f3f8fb !important;
+  border-color: #9fc4d9 !important;
+  color: #06120f !important;
+  outline: none !important;
+}
+
+#pmd-settings-clean-header #notifDropdown.dropdown-toggle:after,
+#pmd-settings-clean-header #notifDropdown:after {
+  display: none !important;
+  content: none !important;
+  border: 0 !important;
+  margin: 0 !important;
+}
+
+#pmd-settings-clean-header #bell-icon {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  width: 18px !important;
+  height: 18px !important;
+  color: #17231f !important;
+}
+
+#pmd-settings-clean-header #bell-icon svg {
+  display: block;
+  width: 18px;
+  height: 18px;
+  stroke: currentColor;
+  fill: none;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+#pmd-settings-clean-header #notification-count {
+  top: -7px !important;
+  right: -8px !important;
+  z-index: 2 !important;
+}
+
+#pmd-settings-clean-header #notif-root .dropdown-menu {
+  right: 0 !important;
+  left: auto !important;
+  top: calc(100% + 6px) !important;
 }
 
 .pmd-settings-shell {
@@ -35,7 +171,7 @@ html.pmd-settings-center-v2 body {
   align-items: center;
   justify-content: space-between;
   gap: 24px;
-  margin-bottom: 22px;
+  margin: 18px 0 22px;
   padding: 0 2px;
 }
 
@@ -302,33 +438,27 @@ html.pmd-settings-center-v2 body {
   outline-offset: 2px;
 }
 
+/*
+ * IMPORTANT: accent variables live on the icon element via inline style.
+ * Do NOT redeclare --accent/--accent-soft here; doing so was the reason every
+ * card stayed amber despite the per-card palette.
+ */
 .pmd-settings-card__icon {
-  --accent: #0f766e;
-  --accent-soft: #e8f7f4;
   width: 44px;
   height: 44px;
   display: grid;
   place-items: center;
-  border: 1px solid var(--accent);
+  border: 1px solid var(--accent, #0f766e) !important;
   border-radius: 11px;
-  background: var(--accent-soft);
-  color: var(--accent);
+  background: var(--accent-soft, #e8f7f4) !important;
+  color: var(--accent, #0f766e) !important;
 }
-
-.pmd-settings-card[data-accent="emerald"] .pmd-settings-card__icon { --accent: #047857; --accent-soft: #e7f7f0; }
-.pmd-settings-card[data-accent="blue"] .pmd-settings-card__icon { --accent: #2563eb; --accent-soft: #edf3ff; }
-.pmd-settings-card[data-accent="violet"] .pmd-settings-card__icon { --accent: #7c3aed; --accent-soft: #f3edff; }
-.pmd-settings-card[data-accent="rose"] .pmd-settings-card__icon { --accent: #e11d48; --accent-soft: #fff0f3; }
-.pmd-settings-card[data-accent="orange"] .pmd-settings-card__icon { --accent: #ea580c; --accent-soft: #fff2e9; }
-.pmd-settings-card[data-accent="cyan"] .pmd-settings-card__icon { --accent: #0891b2; --accent-soft: #e9f9fc; }
-.pmd-settings-card[data-accent="indigo"] .pmd-settings-card__icon { --accent: #4f46e5; --accent-soft: #efefff; }
-.pmd-settings-card[data-accent="slate"] .pmd-settings-card__icon { --accent: #475569; --accent-soft: #f0f3f6; }
 
 .pmd-settings-card__icon svg {
   width: 21px;
   height: 21px;
-  fill: none;
-  stroke: currentColor;
+  fill: none !important;
+  stroke: currentColor !important;
   stroke-width: 1.8;
   stroke-linecap: round;
   stroke-linejoin: round;
@@ -426,7 +556,15 @@ html.pmd-settings-center-v2 body {
 
 @media (max-width: 760px) {
   #pmd-settings-center {
-    padding: 18px 14px 54px;
+    padding: 0 14px 54px;
+  }
+
+  #pmd-settings-clean-header {
+    min-height: 58px;
+  }
+
+  #pmd-settings-clean-header .pmd-settings-clean-title {
+    font-size: 19px;
   }
 
   .pmd-settings-toolbar,
