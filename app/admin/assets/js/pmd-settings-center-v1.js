@@ -4,6 +4,68 @@
   var root = document.querySelector('[data-pmd-settings-center]');
   if (!root) return;
 
+  /*
+   * PMD_SETTINGS_CLEAN_HEADER_V4
+   *
+   * This intentionally follows the proven Reservations2 Clean Header V3
+   * pattern instead of trying to restyle the legacy admin navbar.
+   *
+   * One owner:
+   * - remove the legacy topbar
+   * - preserve/move the real notification dropdown
+   * - create one clean Dashboard2-style header
+   */
+  function installCleanHeader() {
+    var legacyTopbar = document.querySelector('.navbar-top, .navbar-fixed-top');
+    var notificationRoot = document.getElementById('notif-root');
+
+    var oldHeader = document.getElementById('pmd-settings-clean-header');
+    if (oldHeader) oldHeader.remove();
+
+    if (notificationRoot) notificationRoot.remove();
+    if (legacyTopbar) legacyTopbar.remove();
+
+    document.documentElement.classList.add('pmd-settings-clean-header-ready');
+
+    var header = document.createElement('header');
+    header.id = 'pmd-settings-clean-header';
+    header.setAttribute('aria-label', 'Settings page header');
+
+    var title = document.createElement('h1');
+    title.className = 'pmd-settings-clean-title';
+    title.textContent = 'Settings';
+
+    var actions = document.createElement('div');
+    actions.className = 'pmd-settings-clean-actions';
+
+    if (notificationRoot) {
+      var oldBell = notificationRoot.querySelector('#bell-icon');
+      if (oldBell) {
+        var bell = document.createElement('span');
+        bell.id = 'bell-icon';
+        bell.setAttribute('aria-hidden', 'true');
+        bell.innerHTML = '<svg viewBox="0 0 24 24"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9"></path><path d="M10 21h4"></path></svg>';
+        oldBell.replaceWith(bell);
+      }
+
+      notificationRoot.classList.add('pmd-settings-clean-notification');
+      actions.appendChild(notificationRoot);
+    }
+
+    header.appendChild(title);
+    header.appendChild(actions);
+    root.insertBefore(header, root.firstChild);
+
+    window.PMDSettingsCleanHeaderV4 = {
+      version: '4.0.0',
+      legacyRemoved: !document.querySelector('.navbar-top, .navbar-fixed-top'),
+      title: 'Settings',
+      notificationMoved: Boolean(notificationRoot)
+    };
+  }
+
+  installCleanHeader();
+
   var search = root.querySelector('[data-pmd-settings-search]');
   var cards = Array.prototype.slice.call(
     root.querySelectorAll('[data-pmd-settings-card]')
