@@ -5,17 +5,21 @@
   if (!root) return;
 
   /*
-   * PMD_SETTINGS_HEADER_POLISH_V5
-   * - single clean header owner
-   * - notification button locked to mother-kit geometry
-   * - search moves into header and expands smoothly to the LEFT
-   * - remove remaining cream/legacy shell backgrounds on this route only
+   * PMD_SETTINGS_STABLE_RENDER_V6
+   *
+   * Single visual authority for /admin/pmdsettings:
+   * - legacy navbar is removed before reveal
+   * - clean mother-kit header is built while page content is hidden
+   * - search is moved into the header before first visible paint
+   * - notification is preserved and moved into the same header
+   * - final UI is revealed only after two animation frames
    */
-  function installRoutePolish() {
-    if (document.getElementById('pmd-settings-header-polish-v5')) return;
+
+  function installRouteStyle() {
+    if (document.getElementById('pmd-settings-stable-render-v6')) return;
 
     var style = document.createElement('style');
-    style.id = 'pmd-settings-header-polish-v5';
+    style.id = 'pmd-settings-stable-render-v6';
     style.textContent = [
       'html.pmd-settings-center-v2,',
       'html.pmd-settings-center-v2 body,',
@@ -29,11 +33,11 @@
       'html.pmd-settings-center-v2 #pmd-settings-center {',
       '  background:#f8fbfd !important;',
       '}',
-      'html.pmd-settings-center-v2 body.page {',
-      '  margin:0 !important;',
+      'html.pmd-settings-center-v2 body {',
+      '  margin-top:0 !important;',
       '  padding-top:0 !important;',
       '}',
-      'html.pmd-settings-center-v2 body.page > .page-wrapper {',
+      'html.pmd-settings-center-v2 .page-wrapper {',
       '  top:0 !important;',
       '  margin-top:0 !important;',
       '}',
@@ -47,10 +51,11 @@
       '  justify-content:flex-end !important;',
       '  gap:8px !important;',
       '  min-width:0 !important;',
+      '  margin-left:auto !important;',
       '}',
       '',
-      '/* Search: compact button -> field grows left while notification stays put. */',
-      '#pmd-settings-clean-header .pmd-settings-search-wrap.pmd-settings-header-search {',
+      '/* Compact search -> expands smoothly to the left. */',
+      '#pmd-settings-clean-header .pmd-settings-header-search {',
       '  order:1 !important;',
       '  width:42px !important;',
       '  min-width:42px !important;',
@@ -68,7 +73,7 @@
       '  cursor:pointer !important;',
       '  transition:width .24s cubic-bezier(.2,.8,.2,1), border-color .16s ease, box-shadow .16s ease !important;',
       '}',
-      '#pmd-settings-clean-header .pmd-settings-search-wrap.pmd-settings-header-search.is-open {',
+      '#pmd-settings-clean-header .pmd-settings-header-search.is-open {',
       '  width:min(330px, calc(100vw - 190px)) !important;',
       '  cursor:text !important;',
       '  border-color:#9fc4d9 !important;',
@@ -80,20 +85,35 @@
       '  height:18px !important;',
       '  margin:0 11px !important;',
       '  stroke:#17231f !important;',
-      '  transition:stroke .16s ease !important;',
       '}',
       '#pmd-settings-clean-header .pmd-settings-header-search .pmd-settings-search {',
+      '  -webkit-appearance:none !important;',
+      '  appearance:none !important;',
       '  flex:1 1 auto !important;',
       '  width:0 !important;',
       '  min-width:0 !important;',
       '  height:40px !important;',
+      '  margin:0 !important;',
       '  padding:0 !important;',
       '  opacity:0 !important;',
       '  pointer-events:none !important;',
       '  border:0 !important;',
+      '  border-left:0 !important;',
+      '  border-right:0 !important;',
+      '  border-radius:0 !important;',
+      '  outline:0 !important;',
       '  background:transparent !important;',
+      '  background-image:none !important;',
       '  box-shadow:none !important;',
+      '  filter:none !important;',
       '  transition:opacity .13s ease .04s !important;',
+      '}',
+      '#pmd-settings-clean-header .pmd-settings-header-search .pmd-settings-search:focus,',
+      '#pmd-settings-clean-header .pmd-settings-header-search .pmd-settings-search:focus-visible {',
+      '  border:0 !important;',
+      '  outline:0 !important;',
+      '  box-shadow:none !important;',
+      '  background:transparent !important;',
       '}',
       '#pmd-settings-clean-header .pmd-settings-header-search.is-open .pmd-settings-search {',
       '  width:auto !important;',
@@ -101,11 +121,18 @@
       '  opacity:1 !important;',
       '  pointer-events:auto !important;',
       '}',
+      '#pmd-settings-clean-header .pmd-settings-header-search input[type="search"]::-webkit-search-decoration,',
+      '#pmd-settings-clean-header .pmd-settings-header-search input[type="search"]::-webkit-search-cancel-button,',
+      '#pmd-settings-clean-header .pmd-settings-header-search input[type="search"]::-webkit-search-results-button,',
+      '#pmd-settings-clean-header .pmd-settings-header-search input[type="search"]::-webkit-search-results-decoration {',
+      '  -webkit-appearance:none !important;',
+      '  display:none !important;',
+      '}',
       '#pmd-settings-clean-header .pmd-settings-header-search kbd {',
       '  display:none !important;',
       '}',
       '',
-      '/* Notification: one exact 42x42 square, no pill, no caret. */',
+      '/* Notification: exact mother-kit square. */',
       '#pmd-settings-clean-header #notif-root {',
       '  order:2 !important;',
       '  width:42px !important;',
@@ -185,9 +212,8 @@
       '  font-size:9px !important;',
       '  line-height:1 !important;',
       '}',
-      '',
       '@media(max-width:760px){',
-      '  #pmd-settings-clean-header .pmd-settings-search-wrap.pmd-settings-header-search.is-open {',
+      '  #pmd-settings-clean-header .pmd-settings-header-search.is-open {',
       '    width:min(240px, calc(100vw - 155px)) !important;',
       '  }',
       '}'
@@ -196,19 +222,36 @@
     document.head.appendChild(style);
   }
 
-  installRoutePolish();
+  function hardResetSearchInput(input) {
+    if (!input) return;
+
+    [
+      ['-webkit-appearance', 'none'],
+      ['appearance', 'none'],
+      ['border', '0'],
+      ['border-left', '0'],
+      ['border-right', '0'],
+      ['outline', '0'],
+      ['box-shadow', 'none'],
+      ['background', 'transparent'],
+      ['background-image', 'none'],
+      ['border-radius', '0']
+    ].forEach(function (entry) {
+      input.style.setProperty(entry[0], entry[1], 'important');
+    });
+  }
 
   function installCleanHeader() {
-    var legacyTopbar = document.querySelector('.navbar-top, .navbar-fixed-top');
+    var legacyTopbars = document.querySelectorAll('.navbar-top, .navbar-fixed-top');
     var notificationRoot = document.getElementById('notif-root');
-
     var oldHeader = document.getElementById('pmd-settings-clean-header');
+
     if (oldHeader) oldHeader.remove();
-
     if (notificationRoot) notificationRoot.remove();
-    if (legacyTopbar) legacyTopbar.remove();
 
-    document.documentElement.classList.add('pmd-settings-clean-header-ready');
+    Array.prototype.forEach.call(legacyTopbars, function (node) {
+      node.remove();
+    });
 
     var header = document.createElement('header');
     header.id = 'pmd-settings-clean-header';
@@ -239,35 +282,29 @@
     header.appendChild(actions);
     root.insertBefore(header, root.firstChild);
 
-    window.PMDSettingsCleanHeaderV4 = {
-      version: '5.0.0',
-      legacyRemoved: !document.querySelector('.navbar-top, .navbar-fixed-top'),
-      title: 'Settings',
-      notificationMoved: Boolean(notificationRoot)
-    };
-
     return actions;
   }
 
-  var actions = installCleanHeader();
+  installRouteStyle();
 
+  var actions = installCleanHeader();
   var search = root.querySelector('[data-pmd-settings-search]');
   var searchWrap = search ? search.closest('.pmd-settings-search-wrap') : null;
 
   if (actions && searchWrap) {
     searchWrap.classList.add('pmd-settings-header-search');
     actions.insertBefore(searchWrap, actions.firstChild);
+    hardResetSearchInput(search);
 
     function openSearch(selectText) {
-      if (searchWrap.classList.contains('is-open')) {
-        if (search) search.focus();
-        return;
-      }
       searchWrap.classList.add('is-open');
       searchWrap.setAttribute('aria-expanded', 'true');
+
       window.requestAnimationFrame(function () {
+        hardResetSearchInput(search);
         if (!search) return;
         search.focus();
+        hardResetSearchInput(search);
         if (selectText) search.select();
       });
     }
@@ -293,6 +330,13 @@
       search.addEventListener('click', function (event) {
         event.stopPropagation();
       });
+
+      search.addEventListener('focus', function () {
+        hardResetSearchInput(search);
+        window.requestAnimationFrame(function () {
+          hardResetSearchInput(search);
+        });
+      }, true);
     }
 
     document.addEventListener('pointerdown', function (event) {
@@ -301,7 +345,7 @@
       closeSearch(false);
     });
 
-    window.PMDSettingsHeaderSearchV5 = {
+    window.PMDSettingsHeaderSearchV6 = {
       open: openSearch,
       close: closeSearch,
       element: searchWrap
@@ -390,11 +434,8 @@
       String(event.key || '').toLowerCase() === 'k'
     ) {
       event.preventDefault();
-      if (window.PMDSettingsHeaderSearchV5) {
-        window.PMDSettingsHeaderSearchV5.open(true);
-      } else if (search) {
-        search.focus();
-        search.select();
+      if (window.PMDSettingsHeaderSearchV6) {
+        window.PMDSettingsHeaderSearchV6.open(true);
       }
     }
 
@@ -403,18 +444,32 @@
         search.value = '';
         applySearch();
       }
-      if (window.PMDSettingsHeaderSearchV5) {
-        window.PMDSettingsHeaderSearchV5.close(true);
+      if (window.PMDSettingsHeaderSearchV6) {
+        window.PMDSettingsHeaderSearchV6.close(true);
       }
     }
   });
 
   applySearch();
 
-  window.PMDSettingsHeaderPolishV5 = {
-    version: '5.0.0',
+  function revealStablePage() {
+    if (window.PMDSettingsRevealFallback) {
+      window.clearTimeout(window.PMDSettingsRevealFallback);
+    }
+
+    document.documentElement.classList.remove('pmd-settings-v6-booting');
+    document.documentElement.classList.add('pmd-settings-v6-ready');
+  }
+
+  window.requestAnimationFrame(function () {
+    window.requestAnimationFrame(revealStablePage);
+  });
+
+  window.PMDSettingsStableRenderV6 = {
+    version: '6.0.0',
     background: '#f8fbfd',
     searchInHeader: Boolean(searchWrap && actions && searchWrap.parentNode === actions),
-    notificationInHeader: Boolean(document.querySelector('#pmd-settings-clean-header #notif-root'))
+    notificationInHeader: Boolean(document.querySelector('#pmd-settings-clean-header #notif-root')),
+    flashGuard: true
   };
 })();
