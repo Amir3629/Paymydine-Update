@@ -15,9 +15,6 @@
     root.querySelectorAll('.pmd-settings-module')
   );
   var empty = root.querySelector('[data-pmd-settings-empty]');
-  var navLinks = Array.prototype.slice.call(
-    root.querySelectorAll('[data-pmd-settings-nav]')
-  );
 
   function clean(value) {
     return String(value || '')
@@ -106,43 +103,6 @@
       applySearch();
     }
   });
-
-  navLinks.forEach(function (link) {
-    link.addEventListener('click', function () {
-      navLinks.forEach(function (item) {
-        item.classList.remove('is-active');
-      });
-      link.classList.add('is-active');
-    });
-  });
-
-  if ('IntersectionObserver' in window) {
-    var observer = new IntersectionObserver(
-      function (entries) {
-        entries.forEach(function (entry) {
-          if (!entry.isIntersecting) return;
-
-          var id = entry.target.getAttribute('data-pmd-settings-section');
-          if (!id) return;
-
-          navLinks.forEach(function (link) {
-            link.classList.toggle(
-              'is-active',
-              link.getAttribute('data-pmd-settings-nav') === id
-            );
-          });
-        });
-      },
-      {
-        rootMargin: '-20% 0px -65% 0px',
-        threshold: 0
-      }
-    );
-
-    groups.forEach(function (group) {
-      observer.observe(group);
-    });
-  }
 
   applySearch();
 })();
