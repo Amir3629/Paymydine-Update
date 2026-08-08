@@ -1,11 +1,20 @@
-<link rel="stylesheet" href="/app/admin/assets/css/pmd-settings-center-v1.css?v=20260808_2">
+<link rel="stylesheet" href="/app/admin/assets/css/pmd-settings-center-v1.css?v=20260808_3">
 
 <script id="pmd-settings-center-v2-route-class">
 document.documentElement.classList.add('pmd-settings-center-v2');
 </script>
 
 @php
-    $pmdAccentPalette = ['emerald', 'blue', 'violet', 'rose', 'orange', 'cyan', 'indigo', 'slate'];
+    $pmdAccentPalette = [
+        ['name' => 'emerald', 'color' => '#047857', 'soft' => '#e7f7f0'],
+        ['name' => 'blue',    'color' => '#2563eb', 'soft' => '#edf3ff'],
+        ['name' => 'violet',  'color' => '#7c3aed', 'soft' => '#f3edff'],
+        ['name' => 'rose',    'color' => '#e11d48', 'soft' => '#fff0f3'],
+        ['name' => 'orange',  'color' => '#ea580c', 'soft' => '#fff2e9'],
+        ['name' => 'cyan',    'color' => '#0891b2', 'soft' => '#e9f9fc'],
+        ['name' => 'indigo',  'color' => '#4f46e5', 'soft' => '#efefff'],
+        ['name' => 'slate',   'color' => '#475569', 'soft' => '#f0f3f6'],
+    ];
 @endphp
 
 <div id="pmd-settings-center" class="pmd-settings-center" data-pmd-settings-center>
@@ -85,10 +94,14 @@ document.documentElement.classList.add('pmd-settings-center-v2');
                                 class="pmd-settings-card"
                                 href="{{ $item['href'] }}"
                                 data-pmd-settings-card
-                                data-accent="{{ $accent }}"
+                                data-accent="{{ $accent['name'] }}"
                                 data-pmd-searchable="{{ strtolower($item['title'].' '.$item['description'].' '.$item['badge']) }}"
                             >
-                                <span class="pmd-settings-card__icon" aria-hidden="true">
+                                <span
+                                    class="pmd-settings-card__icon"
+                                    aria-hidden="true"
+                                    style="--accent: {{ $accent['color'] }}; --accent-soft: {{ $accent['soft'] }};"
+                                >
                                     @switch($item['icon'])
                                         @case('clock') <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"></circle><path d="M12 7v5l3 2"></path></svg> @break
                                         @case('globe') <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"></circle><path d="M3 12h18M12 3c3 3 3 15 0 18M12 3c-3 3-3 15 0 18"></path></svg> @break
@@ -140,4 +153,4 @@ document.documentElement.classList.add('pmd-settings-center-v2');
     </div>
 </div>
 
-<script defer src="/app/admin/assets/js/pmd-settings-center-v1.js?v=20260808_2"></script>
+<script defer src="/app/admin/assets/js/pmd-settings-center-v1.js?v=20260808_3"></script>
