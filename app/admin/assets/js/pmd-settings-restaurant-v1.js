@@ -4,6 +4,30 @@
   var root = document.querySelector('[data-pmd-restaurant-profile]');
   if (!root) return;
 
+  function normalizeNotificationIcon(notificationRoot) {
+    if (!notificationRoot) return;
+
+    var toggle = notificationRoot.querySelector('#notifDropdown');
+    if (!toggle) return;
+
+    var bell = toggle.querySelector('#bell-icon');
+
+    if (!bell) {
+      bell = document.createElement('span');
+      bell.id = 'bell-icon';
+      bell.className = 'pmd-profile-notification-bell';
+      toggle.insertBefore(bell, toggle.firstChild || null);
+    }
+
+    bell.classList.add('pmd-profile-notification-bell');
+    bell.innerHTML = [
+      '<svg viewBox="0 0 24 24" aria-hidden="true">',
+      '<path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9"></path>',
+      '<path d="M10 21h4"></path>',
+      '</svg>'
+    ].join('');
+  }
+
   function installNotification() {
     var actions = root.querySelector('[data-pmd-profile-header-actions]');
     var notificationRoot = document.getElementById('notif-root');
@@ -26,8 +50,14 @@
       }
     );
 
+    normalizeNotificationIcon(notificationRoot);
+
     var saveStatus = document.getElementById('pmd-profile-save-status');
-    if (saveStatus && saveStatus.parentNode === actions) {
+    var saveButton = actions.querySelector('.pmd-profile-save-icon');
+
+    if (saveButton) {
+      actions.insertBefore(notificationRoot, saveButton);
+    } else if (saveStatus && saveStatus.parentNode === actions) {
       actions.insertBefore(notificationRoot, saveStatus);
     } else {
       actions.appendChild(notificationRoot);
@@ -70,9 +100,9 @@
   document.documentElement.classList.remove('pmd-restaurant-profile-booting');
   document.documentElement.classList.add('pmd-restaurant-profile-ready');
 
-  window.PMDRestaurantProfileV1 = {
-    version: '1.0.0',
-    locationId: Number(root.getAttribute('data-location-id') || 0),
-    notificationMoved: Boolean(document.querySelector('#pmd-profile-header #notif-root'))
+  window.PMDRestaurantProfileV2 = {
+    version: '2.0.0',
+    notificationMoved: Boolean(document.querySelector('#pmd-profile-header #notif-root')),
+    notificationNormalized: Boolean(document.querySelector('#pmd-profile-header .pmd-profile-notification-bell'))
   };
 })();
