@@ -166,3 +166,263 @@
     body.pmd-sm2-scroll-locked { overflow: hidden !important; }
   }
 </style>
+
+@php
+    $pmdZeroShiftPath = trim(request()->path(), '/');
+    $pmdZeroShiftRoute = in_array(
+        $pmdZeroShiftPath,
+        ['admin/reservations2', 'admin/dashboard2'],
+        true
+    );
+@endphp
+
+@if($pmdZeroShiftRoute)
+<script id="pmd-r2-zero-shift-geometry-guard-v1">
+(function () {
+  'use strict';
+
+  if (window.PMDR2ZeroShiftGuardV1) {
+    return;
+  }
+
+  var route = String(window.location.pathname || '').replace(/\/+$/, '');
+
+  if (route !== '/admin/reservations2' && route !== '/admin/dashboard2') {
+    return;
+  }
+
+  var html = document.documentElement;
+  var frameId = 0;
+  var timeoutId = 0;
+  var done = false;
+  var stableFrames = 0;
+  var firstStableAt = 0;
+  var lastSignature = '';
+  var reason = 'booting';
+
+  html.classList.add('pmd-r2-zero-shift-boot-v1');
+
+  if (!document.getElementById('pmd-r2-zero-shift-critical-v1')) {
+    var style = document.createElement('style');
+    style.id = 'pmd-r2-zero-shift-critical-v1';
+    style.textContent = [
+      'html.pmd-r2-zero-shift-boot-v1 #pmd-reservations2 {',
+      '  visibility:hidden !important;',
+      '  opacity:0 !important;',
+      '  pointer-events:none !important;',
+      '  transition:none !important;',
+      '  animation:none !important;',
+      '}',
+      'html.pmd-r2-zero-shift-boot-v1 #pmd-reservations2 .pmd-floor-v1__table,',
+      'html.pmd-r2-zero-shift-boot-v1 #pmd-reservations2 [data-floor-canvas],',
+      'html.pmd-r2-zero-shift-boot-v1 #pmd-reservations2 .pmd-r2-kpi,',
+      'html.pmd-r2-zero-shift-boot-v1 #pmd-reservations2 #pmd-r2-reservation-grid-v320 > * {',
+      '  transition:none !important;',
+      '  animation:none !important;',
+      '}',
+      'html.pmd-r2-zero-shift-boot-v1 #pmd-reservations2 [data-floor-canvas] {',
+      '  will-change:auto !important;',
+      '}'
+    ].join('\n');
+
+    document.head.appendChild(style);
+  }
+
+  function root() {
+    return document.getElementById('pmd-reservations2');
+  }
+
+  function floor() {
+    return document.getElementById('pmd-r2-shared-floor-canvas-v310');
+  }
+
+  function enforceHidden(node) {
+    if (!node || done) return;
+
+    node.style.setProperty('visibility', 'hidden', 'important');
+    node.style.setProperty('opacity', '0', 'important');
+    node.style.setProperty('pointer-events', 'none', 'important');
+    node.style.setProperty('transition', 'none', 'important');
+    node.style.setProperty('animation', 'none', 'important');
+  }
+
+  function rounded(value) {
+    return Math.round(Number(value || 0) * 10) / 10;
+  }
+
+  function rectSignature(node) {
+    var rect = node.getBoundingClientRect();
+
+    return [
+      rounded(rect.left),
+      rounded(rect.top),
+      rounded(rect.width),
+      rounded(rect.height)
+    ].join(',');
+  }
+
+  function geometrySignature() {
+    var pageRoot = root();
+    var floorRoot = floor();
+
+    if (!pageRoot || !floorRoot) {
+      return null;
+    }
+
+    var canvas = floorRoot.querySelector('[data-floor-canvas]');
+    var tables = Array.prototype.slice.call(
+      floorRoot.querySelectorAll('[data-floor-table]')
+    );
+
+    if (!canvas || tables.length === 0) {
+      return null;
+    }
+
+    if (floorRoot.getAttribute('aria-busy') !== 'false') {
+      return null;
+    }
+
+    if (route === '/admin/reservations2') {
+      if (
+        !document.getElementById('pmd-r2-date-button-v430') ||
+        !document.getElementById('pmd-r2-calendar-toggle-v1')
+      ) {
+        return null;
+      }
+    }
+
+    var parts = [
+      'tables=' + tables.length,
+      'floor=' + rectSignature(floorRoot),
+      'canvas=' + rectSignature(canvas),
+      'transform=' + getComputedStyle(canvas).transform,
+      'scroll=' + [
+        floorRoot.scrollWidth,
+        floorRoot.scrollHeight
+      ].join(',')
+    ];
+
+    tables.forEach(function (table) {
+      parts.push(
+        String(table.getAttribute('data-floor-table') || '') +
+        ':' + rectSignature(table)
+      );
+    });
+
+    return parts.join('|');
+  }
+
+  function reveal(nextReason) {
+    if (done) return;
+
+    done = true;
+    reason = nextReason || 'stable';
+
+    if (frameId) {
+      window.cancelAnimationFrame(frameId);
+    }
+
+    if (timeoutId) {
+      window.clearTimeout(timeoutId);
+    }
+
+    var pageRoot = root();
+
+    html.classList.remove(
+      'pmd-r2-zero-shift-boot-v1',
+      'pmd-r2-v6-booting'
+    );
+
+    html.classList.add(
+      'pmd-r2-zero-shift-ready-v1',
+      'pmd-r2-v6-ready'
+    );
+
+    if (route === '/admin/dashboard2') {
+      html.classList.add('pmd-dashboard2-v1413-ready');
+    }
+
+    if (pageRoot) {
+      pageRoot.style.setProperty('visibility', 'visible', 'important');
+      pageRoot.style.setProperty('opacity', '1', 'important');
+      pageRoot.style.setProperty('pointer-events', 'auto', 'important');
+      pageRoot.style.setProperty('transition', 'none', 'important');
+      pageRoot.style.setProperty('animation', 'none', 'important');
+      pageRoot.setAttribute('data-pmd-zero-shift-ready', '1');
+    }
+
+    console.info('[PMD R2 Zero Shift Guard V1] Revealed', {
+      route: route,
+      reason: reason,
+      stableFrames: stableFrames
+    });
+  }
+
+  function tick(now) {
+    if (done) return;
+
+    var pageRoot = root();
+    enforceHidden(pageRoot);
+
+    var signature = geometrySignature();
+
+    if (!signature) {
+      stableFrames = 0;
+      firstStableAt = 0;
+      lastSignature = '';
+    } else if (signature === lastSignature) {
+      stableFrames += 1;
+
+      if (!firstStableAt) {
+        firstStableAt = now;
+      }
+    } else {
+      lastSignature = signature;
+      stableFrames = 1;
+      firstStableAt = now;
+    }
+
+    /*
+     * Four identical animation frames plus a minimum settle window means
+     * the floor engine's post-render fit/zoom task and toolbar/card setup
+     * have completed before a single table becomes visible.
+     */
+    if (
+      stableFrames >= 4 &&
+      firstStableAt &&
+      now - firstStableAt >= 48
+    ) {
+      reveal('stable-floor-geometry');
+      return;
+    }
+
+    frameId = window.requestAnimationFrame(tick);
+  }
+
+  frameId = window.requestAnimationFrame(tick);
+
+  timeoutId = window.setTimeout(function () {
+    reveal('safety-timeout');
+  }, 6500);
+
+  window.PMDR2ZeroShiftGuardV1 = {
+    version: '1.0.0',
+    route: route,
+    reveal: reveal,
+    audit: function () {
+      return {
+        version: '1.0.0',
+        route: route,
+        done: done,
+        reason: reason,
+        stableFrames: stableFrames,
+        signatureReady: Boolean(lastSignature),
+        tables: floor()
+          ? floor().querySelectorAll('[data-floor-table]').length
+          : 0
+      };
+    }
+  };
+})();
+</script>
+@endif
