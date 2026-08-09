@@ -4,6 +4,9 @@
   var root = document.querySelector('[data-pmd-restaurant-profile]');
   if (!root) return;
 
+  var form = document.getElementById('pmd-restaurant-profile-form');
+  var initialFormState = '';
+
   function installHeaderButtonAuthority() {
     if (document.getElementById('pmd-profile-header-button-authority-v3')) {
       return;
@@ -122,7 +125,6 @@
     var toggle = notificationRoot.querySelector('#notifDropdown');
     if (!toggle) return;
 
-    /* Remove the legacy FontAwesome bell before installing the mother-kit SVG. */
     Array.prototype.forEach.call(
       toggle.querySelectorAll('i.fa, i.fas, i.far, i.fal, i.fab'),
       function (legacyIcon) {
@@ -175,16 +177,12 @@
 
     normalizeNotificationIcon(notificationRoot);
 
-    var saveStatus = document.getElementById('pmd-profile-save-status');
-    var saveButton = actions.querySelector('.pmd-profile-save-icon');
-
-    if (saveButton) {
-      actions.insertBefore(notificationRoot, saveButton);
-    } else if (saveStatus && saveStatus.parentNode === actions) {
-      actions.insertBefore(notificationRoot, saveStatus);
-    } else {
-      actions.appendChild(notificationRoot);
-    }
+    /*
+     * PMD_RESTAURANT_PROFILE_DIRTY_SAVE_V5
+     * Notification owns the far-right position permanently.
+     * The contextual Save action, when visible, sits immediately to its left.
+     */
+    actions.appendChild(notificationRoot);
   }
 
   function updateHoursRow(row) {
@@ -204,6 +202,89 @@
     });
   }
 
+  function serializeFormState() {
+    if (!form) return '';
+
+    var state = [];
+
+    Array.prototype.forEach.call(form.elements, function (field) {
+      if (!field || !field.name || field.type === 'submit' || field.type === 'button') {
+        return;
+      }
+
+      var type = String(field.type || '').toLowerCase();
+      var value;
+
+      if (type === 'checkbox' || type === 'radio') {
+        value = field.checked ? '1' : '0';
+      } else if (field.tagName === 'SELECT' && field.multiple) {
+        value = Array.prototype.filter.call(field.options, function (option) {
+          return option.selected;
+        }).map(function (option) {
+          return option.value;
+        }).join(',');
+      } else {
+        value = String(field.value == null ? '' : field.value);
+      }
+
+      state.push(field.name + '=' + value);
+    });
+
+    return state.join('&');
+  }
+
+  function saveButton() {
+    return root.querySelector('.pmd-profile-save-icon');
+  }
+
+  function setSaveVisible(visible) {
+    var button = saveButton();
+    if (!button) return;
+
+    button.classList.toggle('is-visible', Boolean(visible));
+    button.setAttribute('aria-hidden', visible ? 'false' : 'true');
+    button.tabIndex = visible ? 0 : -1;
+  }
+
+  function refreshDirtyState() {
+    setSaveVisible(serializeFormState() !== initialFormState);
+  }
+
+  function establishCleanBaseline() {
+    initialFormState = serializeFormState();
+    setSaveVisible(false);
+  }
+
+  function installDirtyState() {
+    if (!form) return;
+
+    establishCleanBaseline();
+
+    form.addEventListener('input', refreshDirtyState, true);
+    form.addEventListener('change', function (event) {
+      var hoursRow = event.target && event.target.closest
+        ? event.target.closest('[data-pmd-hours-row]')
+        : null;
+
+      if (hoursRow) {
+        updateHoursRow(hoursRow);
+      }
+
+      refreshDirtyState();
+    }, true);
+
+    /* October/TastyIgniter AJAX framework success lifecycle. */
+    if (window.jQuery) {
+      window.jQuery(form).on('ajaxDone', function () {
+        window.setTimeout(establishCleanBaseline, 0);
+      });
+    }
+
+    form.addEventListener('ajaxDone', function () {
+      window.setTimeout(establishCleanBaseline, 0);
+    });
+  }
+
   installHeaderButtonAuthority();
   installNotification();
 
@@ -211,24 +292,22 @@
     root.querySelectorAll('[data-pmd-hours-row]'),
     function (row) {
       updateHoursRow(row);
-
-      var enabled = row.querySelector('[data-pmd-hours-enabled]');
-      if (enabled) {
-        enabled.addEventListener('change', function () {
-          updateHoursRow(row);
-        });
-      }
     }
   );
+
+  installDirtyState();
 
   document.documentElement.classList.remove('pmd-restaurant-profile-booting');
   document.documentElement.classList.add('pmd-restaurant-profile-ready');
 
-  window.PMDRestaurantProfileV3 = {
-    version: '3.1.0',
+  window.PMDRestaurantProfileV5 = {
+    version: '5.0.0',
     notificationMoved: Boolean(document.querySelector('#pmd-profile-header #notif-root')),
+    notificationRightmost: Boolean(
+      document.querySelector('[data-pmd-profile-header-actions] #notif-root:last-child')
+    ),
+    dirtySaveEnabled: true,
     notificationNormalized: Boolean(document.querySelector('#pmd-profile-header .pmd-profile-notification-bell')),
-    legacyNotificationIconRemoved: !Boolean(document.querySelector('#pmd-profile-header #notifDropdown i.fa')),
-    headerButtonAuthority: Boolean(document.getElementById('pmd-profile-header-button-authority-v3'))
+    legacyNotificationIconRemoved: !Boolean(document.querySelector('#pmd-profile-header #notifDropdown i.fa'))
   };
 })();
