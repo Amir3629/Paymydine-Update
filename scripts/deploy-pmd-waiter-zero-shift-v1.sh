@@ -4,6 +4,7 @@ set -Eeuo pipefail
 LIVE="/var/www/paymydine"
 BRANCH="agent/waiter-dashboard-new-v23-operational-polish"
 REF="origin/$BRANCH"
+GIT_USER="ubuntu"
 BLADE="$LIVE/app/admin/views/waiter_dashboard_new.blade.php"
 CSS="app/admin/assets/css/pmd-waiter-zero-shift-v1.css"
 JS="app/admin/assets/js/pmd-waiter-zero-shift-v1.js"
@@ -55,12 +56,25 @@ grep -Fq "data-pmd-waiter-v2-root" "$BLADE"
 
 echo "Base waiter view found."
 
-git fetch --no-tags origin "$BRANCH:refs/remotes/origin/$BRANCH"
-echo "Branch commit: $(git rev-parse "$REF")"
+# IMPORTANT: Git repository metadata is owned by ubuntu. Never fetch as root.
+sudo -u "$GIT_USER" -H \
+  git -C "$LIVE" fetch --no-tags origin \
+  "$BRANCH:refs/remotes/origin/$BRANCH"
+
+BRANCH_SHA="$(
+  sudo -u "$GIT_USER" -H \
+    git -C "$LIVE" rev-parse "$REF"
+)"
+
+echo "Branch commit: $BRANCH_SHA"
 
 for path in "$CSS" "$JS"; do
   mkdir -p "$STAGE/$(dirname "$path")"
-  git show "$REF:$path" > "$STAGE/$path"
+
+  sudo -u "$GIT_USER" -H \
+    git -C "$LIVE" show "$REF:$path" \
+    > "$STAGE/$path"
+
   test -s "$STAGE/$path"
   echo "Extracted: $path"
 done
@@ -83,7 +97,6 @@ cp "$BLADE" "$STAGE/waiter_dashboard_new.blade.php"
 
 python3 - "$STAGE/waiter_dashboard_new.blade.php" "$TS" <<'PY'
 from pathlib import Path
-import re
 import sys
 
 path = Path(sys.argv[1])
@@ -102,15 +115,15 @@ js_line = (
     "<script src=\"{{ asset('" + js_asset + "') }}?v=20260810-" + stamp + "\"></script>"
 )
 
-# The CSS is render-blocking and targets the server-rendered pmd-waiter-new-page
-# body class, so the grid/actions are protected before the first visible frame.
+# Render-blocking CSS targets the server-rendered pmd-waiter-new-page body class,
+# so dynamic launcher surfaces are protected before the first visible frame.
 if css_asset not in text:
     if '</head>' not in text:
         raise SystemExit('ERROR: </head> anchor missing')
     text = text.replace('</head>', css_line + '\n</head>', 1)
 
-# Zero-shift runtime must execute after V2.1/V2.2.1/V2.3 scripts so it can wait
-# for their final DOM decorations without altering their behavior.
+# Runtime executes after the existing V2.1 / V2.2.1 / V2.3 scripts and waits for
+# their final card/order/header geometry without changing their behavior.
 if js_asset not in text:
     if '</body>' not in text:
         raise SystemExit('ERROR: </body> anchor missing')
@@ -146,6 +159,7 @@ cat <<EOF
 ========================================================
 PMD Waiter Dashboard Zero Shift V1 installed
 ========================================================
+✓ Git fetch/show executed as ubuntu
 ✓ whole page remains visible
 ✓ top-action cluster appears only in final form
 ✓ Areas row has final height from first paint
