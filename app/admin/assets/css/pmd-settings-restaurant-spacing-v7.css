@@ -1,8 +1,16 @@
 /* ==========================================================
-   PMD RESTAURANT PROFILE — SPACING AUTHORITY V8
+   PMD RESTAURANT PROFILE — SPACING AUTHORITY V9
    Tight mother-kit content rail next to the permanent side menu.
 
+   Root cause fixed in V9:
+   the legacy admin .container-fluid adds its own 20px horizontal
+   padding before the Restaurant Profile's own gutter. V8 changed
+   only the inner gutter, so the visible sidebar-to-card distance
+   barely moved. V9 removes ONLY the inherited outer-shell padding
+   on this page, then applies one single 16px page gutter.
+
    Core rules:
+   - inherited outer shell horizontal padding: 0
    - page horizontal gutter: 16px desktop
    - shared content max width: 1480px
    - header and form use the SAME content rail
@@ -12,6 +20,25 @@
    - compact nested-card gap: 10px
    ========================================================== */
 
+/* ----------------------------------------------------------
+   OUTER SHELL AUTHORITY
+   ----------------------------------------------------------
+   Global admin CSS currently gives .nk-content .container-fluid
+   20px left/right padding. Do not stack that with our own 16px.
+   Keep this tightly scoped to Restaurant Profile only.
+   ---------------------------------------------------------- */
+body:has(#pmd-restaurant-profile) .nk-content,
+body:has(#pmd-restaurant-profile) .nk-content-inner,
+body:has(#pmd-restaurant-profile) .nk-content-body,
+body:has(#pmd-restaurant-profile) .nk-content .container-fluid,
+body:has(#pmd-restaurant-profile) .page-content,
+body:has(#pmd-restaurant-profile) .content-wrapper {
+  margin-left: 0 !important;
+  margin-right: 0 !important;
+  padding-left: 0 !important;
+  padding-right: 0 !important;
+}
+
 body:has(#pmd-restaurant-profile) #pmd-restaurant-profile {
   --pmd-shell-max: 1480px;
   --pmd-page-gutter: 16px;
@@ -20,6 +47,10 @@ body:has(#pmd-restaurant-profile) #pmd-restaurant-profile {
   --pmd-field-gap: 15px;
   --pmd-compact-gap: 10px;
 
+  width: 100% !important;
+  max-width: none !important;
+  margin-left: 0 !important;
+  margin-right: 0 !important;
   padding-left: var(--pmd-page-gutter) !important;
   padding-right: var(--pmd-page-gutter) !important;
 }
