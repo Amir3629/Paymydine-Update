@@ -6,60 +6,31 @@
 
   var form = document.getElementById('pmd-restaurant-profile-form');
   var initialFormState = '';
+  var dirtyTrackingArmed = false;
 
   function installHeaderButtonAuthority() {
-    if (document.getElementById('pmd-profile-header-button-authority-v3')) {
-      return;
-    }
+    var oldStyle = document.getElementById('pmd-profile-header-button-authority-v3');
+    if (oldStyle) oldStyle.remove();
 
     var style = document.createElement('style');
-    style.id = 'pmd-profile-header-button-authority-v3';
+    style.id = 'pmd-profile-header-button-authority-v6';
     style.textContent = [
-      '/* PMD_RESTAURANT_PROFILE_HEADER_BUTTON_FIX_V3 */',
+      '/* PMD_RESTAURANT_PROFILE_ACTION_STATE_V6 */',
       '#pmd-profile-header .pmd-profile-header__actions {',
       '  display:flex !important;',
+      '  flex-direction:row !important;',
+      '  direction:ltr !important;',
       '  align-items:center !important;',
       '  justify-content:flex-end !important;',
       '  gap:8px !important;',
       '  min-height:42px !important;',
       '}',
-      '#pmd-profile-header .pmd-profile-header-button,',
-      '#pmd-profile-header button.pmd-profile-save-icon,',
-      '#pmd-profile-header #notifDropdown {',
-      '  box-sizing:border-box !important;',
+      '#pmd-profile-header #notif-root {',
+      '  order:20 !important;',
       '  width:42px !important;',
       '  height:42px !important;',
       '  min-width:42px !important;',
       '  max-width:42px !important;',
-      '  min-height:42px !important;',
-      '  max-height:42px !important;',
-      '  flex:0 0 42px !important;',
-      '  display:inline-flex !important;',
-      '  align-items:center !important;',
-      '  justify-content:center !important;',
-      '  padding:0 !important;',
-      '  margin:0 !important;',
-      '  line-height:1 !important;',
-      '  font-size:0 !important;',
-      '  vertical-align:middle !important;',
-      '  border-radius:11px !important;',
-      '  box-shadow:none !important;',
-      '  -webkit-appearance:none !important;',
-      '  appearance:none !important;',
-      '}',
-      '#pmd-profile-header button.pmd-profile-save-icon {',
-      '  border:1px solid #0d4d42 !important;',
-      '  background:#0d4d42 !important;',
-      '  color:#fff !important;',
-      '}',
-      '#pmd-profile-header button.pmd-profile-save-icon:hover {',
-      '  border-color:#0a4138 !important;',
-      '  background:#0a4138 !important;',
-      '}',
-      '#pmd-profile-header #notif-root {',
-      '  width:42px !important;',
-      '  height:42px !important;',
-      '  min-width:42px !important;',
       '  flex:0 0 42px !important;',
       '  display:block !important;',
       '  position:relative !important;',
@@ -68,48 +39,114 @@
       '  list-style:none !important;',
       '}',
       '#pmd-profile-header #notifDropdown {',
+      '  box-sizing:border-box !important;',
+      '  width:42px !important;',
+      '  height:42px !important;',
+      '  min-width:42px !important;',
+      '  max-width:42px !important;',
+      '  min-height:42px !important;',
+      '  max-height:42px !important;',
+      '  display:inline-flex !important;',
+      '  align-items:center !important;',
+      '  justify-content:center !important;',
+      '  padding:0 !important;',
+      '  margin:0 !important;',
       '  border:1px solid #c9e0ef !important;',
+      '  border-radius:12px !important;',
       '  background:#fff !important;',
       '  color:#17231f !important;',
+      '  box-shadow:none !important;',
+      '  -webkit-appearance:none !important;',
+      '  appearance:none !important;',
       '}',
       '#pmd-profile-header #notifDropdown > i {',
       '  display:none !important;',
       '}',
-      '#pmd-profile-header .pmd-profile-notification-bell,',
-      '#pmd-profile-header .pmd-profile-notification-bell svg,',
-      '#pmd-profile-header .pmd-profile-save-icon svg {',
-      '  width:18px !important;',
-      '  height:18px !important;',
-      '  min-width:18px !important;',
-      '  max-width:18px !important;',
-      '  min-height:18px !important;',
-      '  max-height:18px !important;',
-      '  display:block !important;',
-      '  flex:0 0 18px !important;',
+      '#pmd-profile-header #notifDropdown:after {',
+      '  display:none !important;',
+      '  content:none !important;',
       '}',
-      '#pmd-profile-header .pmd-profile-notification-bell svg,',
-      '#pmd-profile-header .pmd-profile-save-icon svg {',
+      '#pmd-profile-header .pmd-profile-notification-bell,',
+      '#pmd-profile-header .pmd-profile-notification-bell svg {',
+      '  width:20px !important;',
+      '  height:20px !important;',
+      '  min-width:20px !important;',
+      '  max-width:20px !important;',
+      '  min-height:20px !important;',
+      '  max-height:20px !important;',
+      '  display:block !important;',
+      '}',
+      '#pmd-profile-header .pmd-profile-notification-bell svg {',
       '  fill:none !important;',
       '  stroke:currentColor !important;',
       '  stroke-width:2 !important;',
       '  stroke-linecap:round !important;',
       '  stroke-linejoin:round !important;',
       '}',
-      '#pmd-profile-header #notifDropdown:after {',
-      '  display:none !important;',
-      '  content:none !important;',
-      '}',
       '#pmd-profile-header #notification-count {',
       '  position:absolute !important;',
-      '  top:-7px !important;',
-      '  right:-8px !important;',
+      '  top:-6px !important;',
+      '  right:-7px !important;',
       '  z-index:5 !important;',
-      '  font-size:9px !important;',
-      '  line-height:14px !important;',
-      '  min-width:20px !important;',
-      '  height:16px !important;',
-      '  padding:0 5px !important;',
+      '  min-width:18px !important;',
+      '  height:18px !important;',
+      '  padding:0 4px !important;',
+      '  border:2px solid #fff !important;',
       '  border-radius:999px !important;',
+      '  background:#d83a31 !important;',
+      '  color:#fff !important;',
+      '  font-size:9px !important;',
+      '  font-weight:800 !important;',
+      '  line-height:14px !important;',
+      '  text-align:center !important;',
+      '}',
+      '#pmd-profile-header button.pmd-profile-save-icon {',
+      '  order:10 !important;',
+      '  box-sizing:border-box !important;',
+      '  overflow:hidden !important;',
+      '  opacity:0 !important;',
+      '  visibility:hidden !important;',
+      '  pointer-events:none !important;',
+      '  width:0 !important;',
+      '  min-width:0 !important;',
+      '  max-width:0 !important;',
+      '  height:42px !important;',
+      '  min-height:42px !important;',
+      '  max-height:42px !important;',
+      '  flex:0 0 0 !important;',
+      '  margin:0 -8px 0 0 !important;',
+      '  padding:0 !important;',
+      '  border:0 solid #c9e0ef !important;',
+      '  border-radius:12px !important;',
+      '  background:#fff !important;',
+      '  color:#075f4f !important;',
+      '  box-shadow:none !important;',
+      '  transform:translateX(8px) scale(.9) !important;',
+      '  transition:width .2s cubic-bezier(.2,.8,.2,1), min-width .2s cubic-bezier(.2,.8,.2,1), max-width .2s cubic-bezier(.2,.8,.2,1), flex-basis .2s cubic-bezier(.2,.8,.2,1), margin .2s cubic-bezier(.2,.8,.2,1), opacity .16s ease, transform .2s cubic-bezier(.2,.8,.2,1), border-width .15s ease !important;',
+      '  -webkit-appearance:none !important;',
+      '  appearance:none !important;',
+      '}',
+      '#pmd-profile-header button.pmd-profile-save-icon.is-visible {',
+      '  opacity:1 !important;',
+      '  visibility:visible !important;',
+      '  pointer-events:auto !important;',
+      '  width:42px !important;',
+      '  min-width:42px !important;',
+      '  max-width:42px !important;',
+      '  flex:0 0 42px !important;',
+      '  margin:0 !important;',
+      '  border-width:1px !important;',
+      '  transform:translateX(0) scale(1) !important;',
+      '}',
+      '#pmd-profile-header button.pmd-profile-save-icon svg {',
+      '  width:20px !important;',
+      '  height:20px !important;',
+      '  display:block !important;',
+      '  fill:none !important;',
+      '  stroke:currentColor !important;',
+      '  stroke-width:2 !important;',
+      '  stroke-linecap:round !important;',
+      '  stroke-linejoin:round !important;',
       '}',
       '#pmd-profile-header #pmd-profile-save-status:empty {',
       '  display:none !important;',
@@ -177,11 +214,7 @@
 
     normalizeNotificationIcon(notificationRoot);
 
-    /*
-     * PMD_RESTAURANT_PROFILE_DIRTY_SAVE_V5
-     * Notification owns the far-right position permanently.
-     * The contextual Save action, when visible, sits immediately to its left.
-     */
+    /* Canonical visual order is always: contextual Save, then Notification. */
     actions.appendChild(notificationRoot);
   }
 
@@ -247,6 +280,11 @@
   }
 
   function refreshDirtyState() {
+    if (!dirtyTrackingArmed) {
+      setSaveVisible(false);
+      return;
+    }
+
     setSaveVisible(serializeFormState() !== initialFormState);
   }
 
@@ -255,12 +293,29 @@
     setSaveVisible(false);
   }
 
+  function armDirtyTracking() {
+    establishCleanBaseline();
+    dirtyTrackingArmed = true;
+  }
+
   function installDirtyState() {
     if (!form) return;
 
-    establishCleanBaseline();
+    /*
+     * PMD_RESTAURANT_PROFILE_ACTION_STATE_V6
+     * Keep Save hard-hidden during boot. Some admin/autofill scripts normalize
+     * fields after DOM ready; they must become part of the clean baseline.
+     */
+    dirtyTrackingArmed = false;
+    setSaveVisible(false);
 
-    form.addEventListener('input', refreshDirtyState, true);
+    form.addEventListener('input', function (event) {
+      if (!dirtyTrackingArmed || event.isTrusted !== true) {
+        return;
+      }
+      refreshDirtyState();
+    }, true);
+
     form.addEventListener('change', function (event) {
       var hoursRow = event.target && event.target.closest
         ? event.target.closest('[data-pmd-hours-row]')
@@ -270,18 +325,32 @@
         updateHoursRow(hoursRow);
       }
 
+      if (!dirtyTrackingArmed || event.isTrusted !== true) {
+        return;
+      }
+
       refreshDirtyState();
     }, true);
 
-    /* October/TastyIgniter AJAX framework success lifecycle. */
     if (window.jQuery) {
       window.jQuery(form).on('ajaxDone', function () {
-        window.setTimeout(establishCleanBaseline, 0);
+        dirtyTrackingArmed = false;
+        setSaveVisible(false);
+        window.setTimeout(armDirtyTracking, 60);
       });
     }
 
     form.addEventListener('ajaxDone', function () {
-      window.setTimeout(establishCleanBaseline, 0);
+      dirtyTrackingArmed = false;
+      setSaveVisible(false);
+      window.setTimeout(armDirtyTracking, 60);
+    });
+
+    /* Two paints + a short settle window capture browser autofill/global UI normalization. */
+    window.requestAnimationFrame(function () {
+      window.requestAnimationFrame(function () {
+        window.setTimeout(armDirtyTracking, 80);
+      });
     });
   }
 
@@ -300,14 +369,16 @@
   document.documentElement.classList.remove('pmd-restaurant-profile-booting');
   document.documentElement.classList.add('pmd-restaurant-profile-ready');
 
-  window.PMDRestaurantProfileV5 = {
-    version: '5.0.0',
+  window.PMDRestaurantProfileV6 = {
+    version: '6.0.0',
     notificationMoved: Boolean(document.querySelector('#pmd-profile-header #notif-root')),
     notificationRightmost: Boolean(
       document.querySelector('[data-pmd-profile-header-actions] #notif-root:last-child')
     ),
     dirtySaveEnabled: true,
+    dirtyTrackingArmed: function () { return dirtyTrackingArmed; },
     notificationNormalized: Boolean(document.querySelector('#pmd-profile-header .pmd-profile-notification-bell')),
-    legacyNotificationIconRemoved: !Boolean(document.querySelector('#pmd-profile-header #notifDropdown i.fa'))
+    legacyNotificationIconRemoved: !Boolean(document.querySelector('#pmd-profile-header #notifDropdown i.fa')),
+    actionAuthority: Boolean(document.getElementById('pmd-profile-header-button-authority-v6'))
   };
 })();
