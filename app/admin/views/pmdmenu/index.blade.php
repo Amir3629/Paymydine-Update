@@ -1,4 +1,4 @@
-<style id="pmd-menu-critical-v1">
+<style id="pmd-menu-critical-v2">
 html,
 body,
 .page,
@@ -33,6 +33,7 @@ document.documentElement.classList.add('pmd-menu-booting');
 </script>
 
 <link rel="stylesheet" href="/app/admin/assets/css/pmd-settings-menu-v1.css?v=20260809_1">
+<link rel="stylesheet" href="/app/admin/assets/css/pmd-settings-menu-v2.css?v=20260809_2">
 
 <div id="pmd-menu-checkout" class="pmd-menu-checkout" data-pmd-menu-checkout>
     <header class="pmd-menu-header" id="pmd-menu-header">
@@ -67,54 +68,11 @@ document.documentElement.classList.add('pmd-menu-booting');
             <div class="pmd-menu-card">
                 <div class="pmd-menu-card__header">
                     <div class="pmd-menu-section-icon">
-                        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h10"></path></svg>
-                    </div>
-                    <div>
-                        <h2>Menu content</h2>
-                        <p>Everything guests browse before they place an order.</p>
-                    </div>
-                </div>
-
-                <div class="pmd-menu-card__body">
-                    <div class="pmd-menu-action-grid">
-                        @foreach(($pmdMenuActions ?? []) as $action)
-                            <a class="pmd-menu-action" href="{{ $action['href'] }}">
-                                <span class="pmd-menu-action__icon">
-                                    @switch($action['icon'])
-                                        @case('categories')
-                                            <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="4" width="6" height="6" rx="1"></rect><rect x="14" y="4" width="6" height="6" rx="1"></rect><rect x="4" y="14" width="6" height="6" rx="1"></rect><rect x="14" y="14" width="6" height="6" rx="1"></rect></svg>
-                                            @break
-                                        @case('star')
-                                            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m12 3 2.8 5.7 6.2.9-4.5 4.4 1.1 6.2L12 17.3 6.4 20.2 7.5 14 3 9.6l6.2-.9Z"></path></svg>
-                                            @break
-                                        @case('clock')
-                                            <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8"></circle><path d="M12 8v5l3 2"></path></svg>
-                                            @break
-                                        @default
-                                            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 6h14M5 12h14M5 18h14"></path></svg>
-                                    @endswitch
-                                </span>
-                                <span class="pmd-menu-action__copy">
-                                    <strong>{{ $action['title'] }}</strong>
-                                    <small>{{ $action['description'] }}</small>
-                                </span>
-                                <svg class="pmd-menu-action__arrow" viewBox="0 0 24 24" aria-hidden="true"><path d="m9 18 6-6-6-6"></path></svg>
-                            </a>
-                        @endforeach
-                    </div>
-                </div>
-            </div>
-        </section>
-
-        <section class="pmd-menu-section">
-            <div class="pmd-menu-card">
-                <div class="pmd-menu-card__header">
-                    <div class="pmd-menu-section-icon">
                         <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5h16v12H7l-3 3Z"></path><path d="M8 9h8M8 13h5"></path></svg>
                     </div>
                     <div>
                         <h2>Checkout & reviews</h2>
-                        <p>Control what guests see after ordering and how review prompts behave.</p>
+                        <p>Control the guest-facing review experience directly here.</p>
                     </div>
                 </div>
 
@@ -150,14 +108,6 @@ document.documentElement.classList.add('pmd-menu-booting');
                             <span></span>
                         </label>
                     </div>
-
-                    <a class="pmd-menu-inline-action" href="{{ admin_url('reviews') }}">
-                        <span>
-                            <strong>Customer reviews</strong>
-                            <small>Open the review workspace and manage submitted reviews.</small>
-                        </span>
-                        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m9 18 6-6-6-6"></path></svg>
-                    </a>
                 </div>
             </div>
         </section>
