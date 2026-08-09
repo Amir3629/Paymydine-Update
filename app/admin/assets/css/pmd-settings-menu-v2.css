@@ -1,0 +1,124 @@
+/* ==========================================================
+   PMD MENU & CHECKOUT V2
+   ZERO CREAM SHELL + SAME 16px RAIL AS RESTAURANT PROFILE V10
+   ========================================================== */
+
+/* Force the complete legacy admin shell to the mother-kit background. */
+body:has(#pmd-menu-checkout),
+body:has(#pmd-menu-checkout) .page,
+body:has(#pmd-menu-checkout) .page-wrapper,
+body:has(#pmd-menu-checkout) .page-content,
+body:has(#pmd-menu-checkout) .content-wrapper,
+body:has(#pmd-menu-checkout) .main-content,
+body:has(#pmd-menu-checkout) .nk-wrap,
+body:has(#pmd-menu-checkout) .nk-content,
+body:has(#pmd-menu-checkout) .nk-content-inner,
+body:has(#pmd-menu-checkout) .nk-content-body,
+body:has(#pmd-menu-checkout) .nk-content-wrap,
+body:has(#pmd-menu-checkout) .container,
+body:has(#pmd-menu-checkout) .container-fluid,
+body:has(#pmd-menu-checkout) main {
+  background: #f8fbfd !important;
+}
+
+/* Remove legacy horizontal shell spacing exactly like Restaurant Profile V10. */
+body:has(#pmd-menu-checkout) .page-wrapper,
+body:has(#pmd-menu-checkout) .page-content,
+body:has(#pmd-menu-checkout) .content-wrapper,
+body:has(#pmd-menu-checkout) .main-content,
+body:has(#pmd-menu-checkout) .nk-wrap,
+body:has(#pmd-menu-checkout) .nk-content,
+body:has(#pmd-menu-checkout) .nk-content-inner,
+body:has(#pmd-menu-checkout) .nk-content-body,
+body:has(#pmd-menu-checkout) .nk-content-wrap,
+body:has(#pmd-menu-checkout) .container,
+body:has(#pmd-menu-checkout) .container-fluid {
+  margin-left: 0 !important;
+  margin-right: 0 !important;
+  padding-left: 0 !important;
+  padding-right: 0 !important;
+  max-width: none !important;
+}
+
+body:has(#pmd-menu-checkout) .container-fluid > .row,
+body:has(#pmd-menu-checkout) .container > .row,
+body:has(#pmd-menu-checkout) .nk-content-body > .row {
+  margin-left: 0 !important;
+  margin-right: 0 !important;
+}
+
+body:has(#pmd-menu-checkout) .container-fluid > .row > [class*="col-"],
+body:has(#pmd-menu-checkout) .container > .row > [class*="col-"],
+body:has(#pmd-menu-checkout) .nk-content-body > .row > [class*="col-"] {
+  padding-left: 0 !important;
+  padding-right: 0 !important;
+}
+
+/* One and only visible page rail. */
+body:has(#pmd-menu-checkout) #pmd-menu-checkout {
+  width: 100% !important;
+  max-width: none !important;
+  margin: 0 !important;
+  padding-left: 16px !important;
+  padding-right: 16px !important;
+  background: #f8fbfd !important;
+}
+
+body:has(#pmd-menu-checkout) #pmd-menu-header,
+body:has(#pmd-menu-checkout) #pmd-menu-checkout-form {
+  width: 100% !important;
+  max-width: none !important;
+  margin-left: 0 !important;
+  margin-right: 0 !important;
+}
+
+/* Remove any accidental cream/tinted frame around the page. */
+body:has(#pmd-menu-checkout) #pmd-menu-checkout::before,
+body:has(#pmd-menu-checkout) #pmd-menu-checkout::after,
+body:has(#pmd-menu-checkout) .nk-content::before,
+body:has(#pmd-menu-checkout) .nk-content::after,
+body:has(#pmd-menu-checkout) .nk-content-body::before,
+body:has(#pmd-menu-checkout) .nk-content-body::after {
+  background: transparent !important;
+  box-shadow: none !important;
+}
+
+/* Cards stay pure white, never cream. */
+body:has(#pmd-menu-checkout) .pmd-menu-card,
+body:has(#pmd-menu-checkout) .pmd-menu-card__body,
+body:has(#pmd-menu-checkout) .pmd-menu-setting-row {
+  background-color: #fff !important;
+}
+
+/* The rose is identity only; no large tinted body surfaces. */
+body:has(#pmd-menu-checkout) .pmd-menu-card__header {
+  background: linear-gradient(90deg, #fff4f6 0, #ffffff 26%, #ffffff 100%) !important;
+}
+
+/* Cleaner direct-settings rhythm now that navigation tiles are gone. */
+body:has(#pmd-menu-checkout) .pmd-menu-card__body--settings {
+  padding: 6px 16px !important;
+}
+
+body:has(#pmd-menu-checkout) .pmd-menu-setting-row {
+  min-height: 78px !important;
+  padding: 15px 4px !important;
+}
+
+body:has(#pmd-menu-checkout) .pmd-menu-setting-row:last-child {
+  border-bottom: 0 !important;
+}
+
+@media (max-width: 820px) {
+  body:has(#pmd-menu-checkout) #pmd-menu-checkout {
+    padding-left: 14px !important;
+    padding-right: 14px !important;
+  }
+}
+
+@media (max-width: 560px) {
+  body:has(#pmd-menu-checkout) #pmd-menu-checkout {
+    padding-left: 12px !important;
+    padding-right: 12px !important;
+  }
+}
