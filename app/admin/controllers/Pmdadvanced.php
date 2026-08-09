@@ -31,7 +31,7 @@ class Pmdadvanced extends AdminController
         $this->vars['pmdAdvanced'] = [
             'settings' => $this->payload(),
             'order_statuses' => $this->statusOptions('order'),
-            'reservation_statuses' => $this->statusOptions('reservation'),
+            'reservation_statuses' => $this->statusOptions('reserve'),
         ];
 
         return $this->makeView('pmdadvanced/index');
@@ -42,6 +42,7 @@ class Pmdadvanced extends AdminController
         $input = (array)post('advanced', []);
 
         $validator = Validator::make($input, [
+            'country_id' => ['nullable', 'integer', 'min:0'],
             'menus_page' => ['nullable', 'string', 'max:191'],
             'reservation_page' => ['nullable', 'string', 'max:191'],
             'distance_unit' => ['nullable', 'string', 'max:32'],
@@ -96,10 +97,11 @@ class Pmdadvanced extends AdminController
         }
 
         $values = [
+            'country_id' => (int)($clean['country_id'] ?? 0),
             'menus_page' => trim((string)($clean['menus_page'] ?? '')),
             'reservation_page' => trim((string)($clean['reservation_page'] ?? '')),
             'distance_unit' => trim((string)($clean['distance_unit'] ?? 'km')),
-            'default_geocoder' => trim((string)($clean['default_geocoder'] ?? '')), 
+            'default_geocoder' => trim((string)($clean['default_geocoder'] ?? '')),
             'maps_api_key' => trim((string)($clean['maps_api_key'] ?? '')),
             'default_language' => trim((string)($clean['default_language'] ?? 'en')),
             'detect_language' => !empty($input['detect_language']) ? 1 : 0,
@@ -150,7 +152,7 @@ class Pmdadvanced extends AdminController
     protected function payload(): array
     {
         $defaults = [
-            'menus_page'=>'','reservation_page'=>'','distance_unit'=>'km','default_geocoder'=>'','maps_api_key'=>'',
+            'country_id'=>0,'menus_page'=>'','reservation_page'=>'','distance_unit'=>'km','default_geocoder'=>'','maps_api_key'=>'',
             'default_language'=>'en','detect_language'=>0,'default_currency_code'=>'EUR','timezone'=>'UTC','currency_converter'=>[],
             'guest_order'=>1,'location_order'=>1,'order_email'=>1,'default_order_status'=>0,'processing_order_status'=>0,'completed_order_status'=>0,'canceled_order_status'=>0,
             'enable_customer_eta'=>0,'smart_eta_enabled'=>0,'eta_default_prep_minutes'=>20,'eta_order_load_window_minutes'=>30,'eta_busy_item_threshold'=>10,'eta_very_busy_item_threshold'=>20,'eta_busy_extra_minutes'=>5,'eta_very_busy_extra_minutes'=>10,'eta_use_staff_attendance'=>0,'eta_expected_kitchen_staff'=>1,'eta_understaffed_extra_minutes'=>5,'eta_round_to_nearest_minutes'=>5,'eta_max_minutes'=>120,'eta_hint_text'=>'',
