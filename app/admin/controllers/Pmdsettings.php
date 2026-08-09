@@ -24,6 +24,21 @@ class Pmdsettings extends AdminController
     public function __construct()
     {
         parent::__construct();
+
+        $this->bodyClass = trim(($this->bodyClass ?? '').' pmd-settings-suite pmd-settings-center-page');
+
+        // Register final page geometry in <head>. The shared first-paint
+        // authority uses a stronger body-class selector than the old warm
+        // admin theme, eliminating the cream shell before body paint.
+        if ($this->action === 'restaurant') {
+            $this->addCss('css/pmd-settings-restaurant-v1.css');
+            $this->addCss('css/pmd-settings-restaurant-platform-header-v4.css');
+            $this->addCss('css/pmd-settings-restaurant-spacing-v7.css');
+        } else {
+            $this->addCss('css/pmd-settings-center-v1.css');
+        }
+        $this->addCss('css/pmd-settings-suite-first-paint-v1.css');
+
         AdminMenu::setContext('settings', 'system');
     }
 
@@ -42,12 +57,6 @@ class Pmdsettings extends AdminController
         return $this->makeView('pmdsettings/index');
     }
 
-    /**
-     * Unified single-restaurant profile page.
-     *
-     * This intentionally reads the existing Location + Settings authorities
-     * instead of inventing a parallel profile table.
-     */
     public function restaurant()
     {
         Template::setTitle('Restaurant profile');
@@ -62,11 +71,6 @@ class Pmdsettings extends AdminController
         return $this->makeView('pmdsettings/restaurant');
     }
 
-    /**
-     * Save only fields owned by the unified Restaurant Profile page.
-     * Delivery/collection schedules, reservation rows, tables and other
-     * settings are never touched here.
-     */
     public function onSaveRestaurantProfile()
     {
         $locationId = $this->currentLocationId();
@@ -235,15 +239,7 @@ class Pmdsettings extends AdminController
 
     protected function openingHours(int $locationId): array
     {
-        $days = [
-            0 => 'Monday',
-            1 => 'Tuesday',
-            2 => 'Wednesday',
-            3 => 'Thursday',
-            4 => 'Friday',
-            5 => 'Saturday',
-            6 => 'Sunday',
-        ];
+        $days = [0=>'Monday',1=>'Tuesday',2=>'Wednesday',3=>'Thursday',4=>'Friday',5=>'Saturday',6=>'Sunday'];
 
         $result = [];
         foreach ($days as $weekday => $label) {
@@ -270,10 +266,7 @@ class Pmdsettings extends AdminController
 
             foreach ($rows as $row) {
                 $weekday = (int)$row->weekday;
-                if (!array_key_exists($weekday, $result)) {
-                    continue;
-                }
-
+                if (!array_key_exists($weekday, $result)) continue;
                 $result[$weekday]['enabled'] = (bool)$row->status;
                 $result[$weekday]['opening_time'] = substr((string)$row->opening_time, 0, 5);
                 $result[$weekday]['closing_time'] = substr((string)$row->closing_time, 0, 5);
@@ -288,77 +281,52 @@ class Pmdsettings extends AdminController
         return array_values($result);
     }
 
-    /**
-     * Deliberately small IA: one card should represent one owner task/page,
-     * not one database module.
-     */
     protected function groups(int $locationId): array
     {
         return [
             [
-                'id' => 'restaurant',
-                'eyebrow' => '',
-                'title' => 'Restaurant',
-                'description' => '',
+                'id' => 'restaurant', 'eyebrow' => '', 'title' => 'Restaurant', 'description' => '',
                 'items' => [
                     $this->item('Restaurant profile', 'Name, contact, address, opening hours, website and social links.', 'restaurant', admin_url('pmdsettings/restaurant'), ''),
                 ],
             ],
             [
-                'id' => 'guest',
-                'eyebrow' => '',
-                'title' => 'Menu & Guest Experience',
-                'description' => '',
+                'id' => 'guest', 'eyebrow' => '', 'title' => 'Menu & Guest Experience', 'description' => '',
                 'items' => [
-                    $this->item('Menu & checkout', 'Guest-facing menu, highlights, review prompt and checkout experience.', 'menu', admin_url('settings/edit/menu_highlights'), ''),
-                    $this->item('Customer accounts', 'Guest registration and account communication settings.', 'user', admin_url('settings'), ''),
+                    $this->item('Menu & checkout', 'Guest-facing menu, highlights, review prompt and checkout experience.', 'menu', admin_url('pmdmenu'), ''),
+                    $this->item('Customer accounts', 'Guest registration and account communication settings.', 'user', admin_url('settings/edit/user'), ''),
                 ],
             ],
             [
-                'id' => 'team',
-                'eyebrow' => '',
-                'title' => 'Team & Access',
-                'description' => '',
+                'id' => 'team', 'eyebrow' => '', 'title' => 'Team & Access', 'description' => '',
                 'items' => [
-                    $this->item('Team & access', 'Staff, roles, permissions, login and PIN policies in one place.', 'users', admin_url('staffs'), ''),
+                    $this->item('Team & access', 'Staff, roles, permissions, login and PIN policies in one place.', 'users', admin_url('pmdteam'), ''),
                 ],
             ],
             [
-                'id' => 'devices',
-                'eyebrow' => '',
-                'title' => 'Devices & Hardware',
-                'description' => '',
+                'id' => 'devices', 'eyebrow' => '', 'title' => 'Devices & Hardware', 'description' => '',
                 'items' => [
-                    $this->item('Devices', 'KDS, POS terminals, cash drawers, biometric devices and connected screens.', 'monitor', admin_url('posdevices'), ''),
+                    $this->item('Devices', 'KDS, POS terminals, cash drawers, biometric devices and connected screens.', 'monitor', admin_url('pmddevices'), ''),
                 ],
             ],
             [
-                'id' => 'finance',
-                'eyebrow' => '',
-                'title' => 'Payments & Finance',
-                'description' => '',
+                'id' => 'finance', 'eyebrow' => '', 'title' => 'Payments & Finance', 'description' => '',
                 'items' => [
-                    $this->item('Payment methods', 'Configure how guests can pay.', 'card', admin_url('payments?mode=methods'), ''),
-                    $this->item('Tax & invoicing', 'VAT, tax calculation, invoice numbering, logo and receipt presentation.', 'invoice', admin_url('settings'), ''),
-                    $this->item('Fiskaly / TSE', 'German fiscal compliance and TSE configuration.', 'receipt', admin_url('settings'), ''),
+                    $this->item('Payment methods', 'Configure how guests can pay.', 'card', admin_url('pmdfinance#payment-methods'), ''),
+                    $this->item('Tax & invoicing', 'VAT, tax calculation, invoice numbering, logo and receipt presentation.', 'invoice', admin_url('pmdfinance#tax-invoicing'), ''),
+                    $this->item('Fiskaly / TSE', 'German fiscal compliance and TSE configuration.', 'receipt', admin_url('pmdfinance#fiskaly'), ''),
                 ],
             ],
             [
-                'id' => 'brand',
-                'eyebrow' => '',
-                'title' => 'Branding & Communication',
-                'description' => '',
+                'id' => 'brand', 'eyebrow' => '', 'title' => 'Branding & Communication', 'description' => '',
                 'items' => [
-                    $this->item('Brand & communication', 'Logos, email delivery and reusable media in one place.', 'palette', admin_url('settings/edit/general'), ''),
+                    $this->item('Brand & communication', 'Logos, email delivery and reusable media in one place.', 'palette', admin_url('pmdbrand'), ''),
                 ],
             ],
             [
-                'id' => 'advanced',
-                'eyebrow' => '',
-                'title' => 'System & Advanced',
-                'description' => '',
+                'id' => 'advanced', 'eyebrow' => '', 'title' => 'System & Advanced', 'description' => '',
                 'items' => [
-                    $this->item('Advanced settings', 'System behaviour, maintenance and less frequently used configuration.', 'settings', admin_url('settings'), ''),
+                    $this->item('Advanced settings', 'System behaviour, maintenance and less frequently used configuration.', 'settings', admin_url('pmdadvanced'), ''),
                 ],
             ],
         ];
