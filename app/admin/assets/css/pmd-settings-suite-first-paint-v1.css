@@ -3,7 +3,7 @@
 
    Root cause fixed here:
    pmd-admin-theme-v1.css intentionally paints the legacy warm/cream
-   shell (#FAF9F4 / #FFF9EF) and also injects legacy content padding.
+   shell and also injects legacy content padding.
    This stylesheet is registered from each consolidated controller into
    <head> and uses a stronger SERVER-RENDERED body-class selector, so the
    cool mother-kit shell wins from the FIRST paint even though the old
