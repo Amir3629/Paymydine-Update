@@ -37,11 +37,13 @@ body.pmd-waiter-new-page:not(.pmd-waiter-zero-shift-ready-v2)
  * LEFT FILTER RAIL
  * V2 first paints MY TABLES / ALL / OPEN / ...
  * V2.4.1 later replaces it with ALL TABLES / AVAILABLE / OCCUPIED / ...
- * Keep its box in layout but never show the obsolete first state.
+ * Keep its box measurable but visually transparent. V2.8.0 deliberately reads
+ * this rail's computed geometry to construct the final exact right rail, so we
+ * must NOT use visibility:hidden here.
  */
 body.pmd-waiter-new-page:not(.pmd-waiter-zero-shift-ready-v2)
 .pmd-v2-mode-keys {
-  visibility: hidden !important;
+  visibility: visible !important;
   opacity: 0 !important;
   pointer-events: none !important;
   transition: none !important;
