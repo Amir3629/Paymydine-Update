@@ -1,67 +1,80 @@
 /* ==========================================================
-   PMD RESTAURANT PROFILE — SPACING AUTHORITY V9
-   Tight mother-kit content rail next to the permanent side menu.
+   PMD RESTAURANT PROFILE — SPACING AUTHORITY V10
+   TRUE sidebar-to-content rail fix.
 
-   Root cause fixed in V9:
-   the legacy admin .container-fluid adds its own 20px horizontal
-   padding before the Restaurant Profile's own gutter. V8 changed
-   only the inner gutter, so the visible sidebar-to-card distance
-   barely moved. V9 removes ONLY the inherited outer-shell padding
-   on this page, then applies one single 16px page gutter.
+   Root cause:
+   multiple legacy admin wrappers can each contribute horizontal
+   padding/margin, and the profile/header/form max-width rules can
+   visually keep the content centered even after one gutter changes.
 
-   Core rules:
-   - inherited outer shell horizontal padding: 0
-   - page horizontal gutter: 16px desktop
-   - shared content max width: 1480px
-   - header and form use the SAME content rail
-   - section gap: 18px
-   - card body padding: 20px
-   - standard field grid gap: 15px
-   - compact nested-card gap: 10px
+   V10 removes ALL legacy horizontal spacing on the ancestor shell
+   for this page, then applies exactly one 16px gutter at the profile
+   root. Header and form are full-width inside that single rail.
    ========================================================== */
 
 /* ----------------------------------------------------------
-   OUTER SHELL AUTHORITY
-   ----------------------------------------------------------
-   Global admin CSS currently gives .nk-content .container-fluid
-   20px left/right padding. Do not stack that with our own 16px.
-   Keep this tightly scoped to Restaurant Profile only.
+   ZERO LEGACY HORIZONTAL SHELL SPACING — THIS PAGE ONLY
    ---------------------------------------------------------- */
+body:has(#pmd-restaurant-profile) .page-wrapper,
+body:has(#pmd-restaurant-profile) .page-content,
+body:has(#pmd-restaurant-profile) .content-wrapper,
+body:has(#pmd-restaurant-profile) .main-content,
+body:has(#pmd-restaurant-profile) .nk-wrap,
 body:has(#pmd-restaurant-profile) .nk-content,
 body:has(#pmd-restaurant-profile) .nk-content-inner,
 body:has(#pmd-restaurant-profile) .nk-content-body,
-body:has(#pmd-restaurant-profile) .nk-content .container-fluid,
-body:has(#pmd-restaurant-profile) .page-content,
-body:has(#pmd-restaurant-profile) .content-wrapper {
+body:has(#pmd-restaurant-profile) .nk-content-wrap,
+body:has(#pmd-restaurant-profile) .container,
+body:has(#pmd-restaurant-profile) .container-fluid {
   margin-left: 0 !important;
   margin-right: 0 !important;
   padding-left: 0 !important;
   padding-right: 0 !important;
+  max-width: none !important;
 }
 
+/* Kill Bootstrap/grid horizontal compensation if Restaurant Profile
+   is wrapped in rows/columns by the admin shell. */
+body:has(#pmd-restaurant-profile) .container-fluid > .row,
+body:has(#pmd-restaurant-profile) .container > .row,
+body:has(#pmd-restaurant-profile) .nk-content-body > .row {
+  margin-left: 0 !important;
+  margin-right: 0 !important;
+}
+
+body:has(#pmd-restaurant-profile) .container-fluid > .row > [class*="col-"],
+body:has(#pmd-restaurant-profile) .container > .row > [class*="col-"],
+body:has(#pmd-restaurant-profile) .nk-content-body > .row > [class*="col-"] {
+  padding-left: 0 !important;
+  padding-right: 0 !important;
+}
+
+/* ----------------------------------------------------------
+   ONE AND ONLY HORIZONTAL GUTTER
+   ---------------------------------------------------------- */
 body:has(#pmd-restaurant-profile) #pmd-restaurant-profile {
-  --pmd-shell-max: 1480px;
   --pmd-page-gutter: 16px;
   --pmd-section-gap: 18px;
   --pmd-card-pad: 20px;
   --pmd-field-gap: 15px;
   --pmd-compact-gap: 10px;
 
+  display: block !important;
   width: 100% !important;
   max-width: none !important;
-  margin-left: 0 !important;
-  margin-right: 0 !important;
+  margin: 0 !important;
   padding-left: var(--pmd-page-gutter) !important;
   padding-right: var(--pmd-page-gutter) !important;
 }
 
-/* Header and cards must sit on exactly the same left/right rail. */
+/* No centering/max-width rail here: content should begin exactly
+   16px after the host content edge next to the permanent sidebar. */
 body:has(#pmd-restaurant-profile) #pmd-profile-header,
 body:has(#pmd-restaurant-profile) #pmd-restaurant-profile-form {
-  width: min(var(--pmd-shell-max), 100%) !important;
-  max-width: var(--pmd-shell-max) !important;
-  margin-left: auto !important;
-  margin-right: auto !important;
+  width: 100% !important;
+  max-width: none !important;
+  margin-left: 0 !important;
+  margin-right: 0 !important;
 }
 
 body:has(#pmd-restaurant-profile) #pmd-restaurant-profile-form {
