@@ -1,32 +1,27 @@
 /*
- * PMD WAITER DASHBOARD — ZERO SHIFT V2
+ * PMD WAITER DASHBOARD — ZERO SHIFT V3
  * Route: /admin/dashboardwaiternew (and /admin/waiter alias)
  *
- * ROOT CAUSE FIX:
- * The production waiter launcher is not a single render. It is progressively
- * rewritten by the base V2 loader, V2.1 service decoration/reorder, V2.3.3
- * header/search relocation, V2.4.1 table-lifecycle data, V2.6.3 area relabel,
- * V2.7.1/V2.7.4 service data, and V2.8.0/V2.8.1 final right rail.
+ * FINAL-DOM RULE:
+ * The live waiter dashboard is progressively rewritten by multiple production
+ * layers. During boot we keep the stable page/stage visible, keep DOM geometry
+ * measurable for downstream scripts, and visually suppress only surfaces that
+ * are still being rewritten. Final surfaces appear once, with no reveal motion.
  *
- * V1 waited only for the early V2.1/V2.2.1/V2.3 layer, so it could reveal an
- * intermediate "IN KITCHEN / amount due" grid and then expose the later
- * lifecycle rewrite to OCCUPIED / CLEANING / OPEN ORDER / NOTE.
- *
- * V2 keeps the stable page background/stage visible from first paint, hides
- * every launcher surface that is still rewritten later, keeps the existing
- * loading skeleton visible, and releases the final UI only after the runtime
- * confirms the COMPLETE production layer is settled.
+ * Important: V2.8.0 determines the final right rail by measuring the left rail.
+ * Therefore the left rail must stay visibility:visible while booting; opacity:0
+ * hides it from the user without making downstream visible()/geometry checks fail.
  */
 
 body.pmd-waiter-new-page {
   --pmd-waiter-zero-area-height: 50px;
 }
 
-/* Never hide the whole document. The page background/stage remain visible. */
-body.pmd-waiter-new-page:not(.pmd-waiter-zero-shift-ready-v2),
-body.pmd-waiter-new-page:not(.pmd-waiter-zero-shift-ready-v2)
+/* Never hide the whole document. */
+body.pmd-waiter-new-page:not(.pmd-waiter-zero-shift-ready-v3),
+body.pmd-waiter-new-page:not(.pmd-waiter-zero-shift-ready-v3)
 .pmd-v2-launcher,
-body.pmd-waiter-new-page:not(.pmd-waiter-zero-shift-ready-v2)
+body.pmd-waiter-new-page:not(.pmd-waiter-zero-shift-ready-v3)
 .pmd-v2-table-stage {
   transition: none !important;
   animation: none !important;
@@ -35,13 +30,9 @@ body.pmd-waiter-new-page:not(.pmd-waiter-zero-shift-ready-v2)
 
 /*
  * LEFT FILTER RAIL
- * V2 first paints MY TABLES / ALL / OPEN / ...
- * V2.4.1 later replaces it with ALL TABLES / AVAILABLE / OCCUPIED / ...
- * Keep its box measurable but visually transparent. V2.8.0 deliberately reads
- * this rail's computed geometry to construct the final exact right rail, so we
- * must NOT use visibility:hidden here.
+ * Keep it measurable and CSS-visible for V2.8.0, but visually transparent.
  */
-body.pmd-waiter-new-page:not(.pmd-waiter-zero-shift-ready-v2)
+body.pmd-waiter-new-page:not(.pmd-waiter-zero-shift-ready-v3)
 .pmd-v2-mode-keys {
   visibility: visible !important;
   opacity: 0 !important;
@@ -51,8 +42,8 @@ body.pmd-waiter-new-page:not(.pmd-waiter-zero-shift-ready-v2)
   transform: none !important;
 }
 
-/* V2.3.3/V2.6.3 move/relabel the search and Areas controls after parse. */
-body.pmd-waiter-new-page:not(.pmd-waiter-zero-shift-ready-v2)
+/* Areas are populated/relabelled after the first data pass. */
+body.pmd-waiter-new-page:not(.pmd-waiter-zero-shift-ready-v3)
 .pmd-v2-area-keys {
   min-height: var(--pmd-waiter-zero-area-height) !important;
   height: var(--pmd-waiter-zero-area-height) !important;
@@ -64,11 +55,16 @@ body.pmd-waiter-new-page:not(.pmd-waiter-zero-shift-ready-v2)
   transform: none !important;
 }
 
-body.pmd-waiter-new-page:not(.pmd-waiter-zero-shift-ready-v2)
+/*
+ * The command shell owns the left rail. Keep its layout in place while hiding
+ * it visually. V3 explicitly restores this parent on final paint; V2 forgot to
+ * restore the parent opacity, which could leave the completed left rail hidden.
+ */
+body.pmd-waiter-new-page:not(.pmd-waiter-zero-shift-ready-v3)
 .pmd-v2-command,
-body.pmd-waiter-new-page:not(.pmd-waiter-zero-shift-ready-v2)
+body.pmd-waiter-new-page:not(.pmd-waiter-zero-shift-ready-v3)
 .pmd-v2-top-actions,
-body.pmd-waiter-new-page:not(.pmd-waiter-zero-shift-ready-v2)
+body.pmd-waiter-new-page:not(.pmd-waiter-zero-shift-ready-v3)
 [data-v2-user] {
   visibility: hidden !important;
   opacity: 0 !important;
@@ -78,19 +74,14 @@ body.pmd-waiter-new-page:not(.pmd-waiter-zero-shift-ready-v2)
   transform: none !important;
 }
 
-/*
- * RIGHT OPERATIONS RAIL
- * V2.5.7 creates the first rail. V2.8.0 later hides/replaces it with the exact
- * neutral clone. Hide all visible right-rail generations until V2.8.x is final.
- * Hidden workflow bridges remain hidden by their own production rules.
- */
-body.pmd-waiter-new-page:not(.pmd-waiter-zero-shift-ready-v2)
+/* Hide every visible right-rail generation until V2.8.x finalizes it. */
+body.pmd-waiter-new-page:not(.pmd-waiter-zero-shift-ready-v3)
 .v257-operations-rail:not([data-v280-workflow-bridge]),
-body.pmd-waiter-new-page:not(.pmd-waiter-zero-shift-ready-v2)
+body.pmd-waiter-new-page:not(.pmd-waiter-zero-shift-ready-v3)
 .pmd-v257-operations-rail:not([data-v280-workflow-bridge]),
-body.pmd-waiter-new-page:not(.pmd-waiter-zero-shift-ready-v2)
+body.pmd-waiter-new-page:not(.pmd-waiter-zero-shift-ready-v3)
 .pmd-v279-right-rail,
-body.pmd-waiter-new-page:not(.pmd-waiter-zero-shift-ready-v2)
+body.pmd-waiter-new-page:not(.pmd-waiter-zero-shift-ready-v3)
 .pmd-v280-right-rail {
   visibility: hidden !important;
   opacity: 0 !important;
@@ -100,12 +91,8 @@ body.pmd-waiter-new-page:not(.pmd-waiter-zero-shift-ready-v2)
   transform: none !important;
 }
 
-/*
- * TABLE GRID
- * Base V2 -> V2.1 -> V2.4.1 -> V2.7.4 all modify the same card nodes.
- * Keep the final grid measurable but invisible until all those passes finish.
- */
-body.pmd-waiter-new-page:not(.pmd-waiter-zero-shift-ready-v2)
+/* Base V2 -> V2.1 -> V2.4.1 -> V2.7.4 all rewrite these card nodes. */
+body.pmd-waiter-new-page:not(.pmd-waiter-zero-shift-ready-v3)
 .pmd-v2-table-grid {
   visibility: hidden !important;
   opacity: 0 !important;
@@ -115,13 +102,13 @@ body.pmd-waiter-new-page:not(.pmd-waiter-zero-shift-ready-v2)
   transform: none !important;
 }
 
-body.pmd-waiter-new-page:not(.pmd-waiter-zero-shift-ready-v2)
+body.pmd-waiter-new-page:not(.pmd-waiter-zero-shift-ready-v3)
 .pmd-v2-table-grid > *,
-body.pmd-waiter-new-page:not(.pmd-waiter-zero-shift-ready-v2)
+body.pmd-waiter-new-page:not(.pmd-waiter-zero-shift-ready-v3)
 .pmd-v2-table-key,
-body.pmd-waiter-new-page:not(.pmd-waiter-zero-shift-ready-v2)
+body.pmd-waiter-new-page:not(.pmd-waiter-zero-shift-ready-v3)
 .pmd-v21-table-key,
-body.pmd-waiter-new-page:not(.pmd-waiter-zero-shift-ready-v2)
+body.pmd-waiter-new-page:not(.pmd-waiter-zero-shift-ready-v3)
 .v241-card {
   transition: none !important;
   animation: none !important;
@@ -129,14 +116,10 @@ body.pmd-waiter-new-page:not(.pmd-waiter-zero-shift-ready-v2)
   will-change: auto !important;
 }
 
-/*
- * IMPORTANT: never show the base "NO TABLES" transient state while the first
- * and second dashboard requests are still racing. A real empty state is shown
- * only after V2 is released and the application's own hidden flag wins again.
- */
-body.pmd-waiter-new-page:not(.pmd-waiter-zero-shift-ready-v2)
+/* Never expose the transient base NO TABLES state during startup. */
+body.pmd-waiter-new-page:not(.pmd-waiter-zero-shift-ready-v3)
 .pmd-v2-empty,
-body.pmd-waiter-new-page:not(.pmd-waiter-zero-shift-ready-v2)
+body.pmd-waiter-new-page:not(.pmd-waiter-zero-shift-ready-v3)
 .pmd-v2-empty[hidden] {
   display: none !important;
   visibility: hidden !important;
@@ -146,10 +129,10 @@ body.pmd-waiter-new-page:not(.pmd-waiter-zero-shift-ready-v2)
   animation: none !important;
 }
 
-/* Keep the existing skeleton as the ONE intentional loading state. */
-body.pmd-waiter-new-page:not(.pmd-waiter-zero-shift-ready-v2)
+/* The existing skeleton is the only intentional loading surface. */
+body.pmd-waiter-new-page:not(.pmd-waiter-zero-shift-ready-v3)
 .pmd-v2-loading,
-body.pmd-waiter-new-page:not(.pmd-waiter-zero-shift-ready-v2)
+body.pmd-waiter-new-page:not(.pmd-waiter-zero-shift-ready-v3)
 .pmd-v2-loading[hidden] {
   display: grid !important;
   visibility: visible !important;
@@ -160,8 +143,7 @@ body.pmd-waiter-new-page:not(.pmd-waiter-zero-shift-ready-v2)
   transform: none !important;
 }
 
-/* Footer copy is repeatedly rewritten/removed by later launcher layers. */
-body.pmd-waiter-new-page:not(.pmd-waiter-zero-shift-ready-v2)
+body.pmd-waiter-new-page:not(.pmd-waiter-zero-shift-ready-v3)
 .pmd-v2-footer {
   visibility: hidden !important;
   opacity: 0 !important;
@@ -172,27 +154,28 @@ body.pmd-waiter-new-page:not(.pmd-waiter-zero-shift-ready-v2)
 }
 
 /*
- * FINAL PAINT
- * There is deliberately NO transition between boot and ready. Everything that
- * was protected appears directly in its final production geometry/state.
+ * FINAL PAINT — no transition/fade/slide/scale.
+ * Crucially .pmd-v2-command is restored together with its final left rail.
  */
-body.pmd-waiter-new-page.pmd-waiter-zero-shift-ready-v2
+body.pmd-waiter-new-page.pmd-waiter-zero-shift-ready-v3
+.pmd-v2-command,
+body.pmd-waiter-new-page.pmd-waiter-zero-shift-ready-v3
 .pmd-v2-mode-keys,
-body.pmd-waiter-new-page.pmd-waiter-zero-shift-ready-v2
+body.pmd-waiter-new-page.pmd-waiter-zero-shift-ready-v3
 .pmd-v2-area-keys,
-body.pmd-waiter-new-page.pmd-waiter-zero-shift-ready-v2
+body.pmd-waiter-new-page.pmd-waiter-zero-shift-ready-v3
 .pmd-v2-top-actions,
-body.pmd-waiter-new-page.pmd-waiter-zero-shift-ready-v2
+body.pmd-waiter-new-page.pmd-waiter-zero-shift-ready-v3
 [data-v2-user],
-body.pmd-waiter-new-page.pmd-waiter-zero-shift-ready-v2
+body.pmd-waiter-new-page.pmd-waiter-zero-shift-ready-v3
 .pmd-v2-table-grid,
-body.pmd-waiter-new-page.pmd-waiter-zero-shift-ready-v2
+body.pmd-waiter-new-page.pmd-waiter-zero-shift-ready-v3
 .v257-operations-rail:not([data-v280-workflow-bridge]),
-body.pmd-waiter-new-page.pmd-waiter-zero-shift-ready-v2
+body.pmd-waiter-new-page.pmd-waiter-zero-shift-ready-v3
 .pmd-v257-operations-rail:not([data-v280-workflow-bridge]),
-body.pmd-waiter-new-page.pmd-waiter-zero-shift-ready-v2
+body.pmd-waiter-new-page.pmd-waiter-zero-shift-ready-v3
 .pmd-v279-right-rail,
-body.pmd-waiter-new-page.pmd-waiter-zero-shift-ready-v2
+body.pmd-waiter-new-page.pmd-waiter-zero-shift-ready-v3
 .pmd-v280-right-rail {
   visibility: visible !important;
   opacity: 1 !important;
@@ -202,14 +185,10 @@ body.pmd-waiter-new-page.pmd-waiter-zero-shift-ready-v2
   transform: none !important;
 }
 
-body.pmd-waiter-new-page.pmd-waiter-zero-shift-ready-v2
+body.pmd-waiter-new-page.pmd-waiter-zero-shift-ready-v3
 .pmd-v2-area-keys {
   min-height: var(--pmd-waiter-zero-area-height) !important;
 }
-
-/* Do not override display for command/footer on ready: production V2.3.3/V2.9
- * CSS/JS may intentionally remove/hide them. Their native final state must win.
- */
 
 @media (max-width: 780px) {
   body.pmd-waiter-new-page {
