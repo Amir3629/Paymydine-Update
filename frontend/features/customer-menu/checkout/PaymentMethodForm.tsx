@@ -507,18 +507,12 @@ case "cod":
                   {formatCurrency(checkoutStep === "payment" ? payableTotal : finalTotal)}
                 </div>
               </div>
-              <Button
-                type="button"
-                disabled={isLoading}
-                onClick={async () => {
-                  setCashCollectionConfirmed(true)
-                  await handlePayment(undefined, { method_code: "cod", provider_code: null })
-                }}
-                className="w-full"
-                style={modalPrimaryBtnStyle}
-              >
-                {isLoading ? "Submitting..." : "Confirm cash payment"}
-              </Button>
+              {/*
+               * PMD_REMOVE_DUPLICATE_CASH_CONFIRM_20260807
+               *
+               * Cash submission is owned by PaymentActionButton.
+               * Do not render a second payment action here.
+               */}
               {cashCollectionConfirmed && (
                 <div className="rounded-xl border p-3 text-sm" style={{ borderColor: "var(--theme-border)", color: "var(--theme-text-primary)", background: "var(--theme-surface)" }}>
                   Please have the exact amount ready when the waiter comes to collect payment.

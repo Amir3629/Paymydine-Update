@@ -22,10 +22,26 @@
   var allowHide = false;
   var closing = false;
   var checkingTimer = null;
+
+  /*
+   * PMD_COMPOSER_SMART_TABLE_CORRECTNESS_20260807
+   * Protect availability against stale async responses.
+   */
+  var availabilityGeneration = 0;
+
   var saving = false;
   var tableCatalog = [];
   var tablePicker = null;
   var lastAvailability = null;
+
+  /*
+   * PMD_COMPOSER_STABLE_NO_BLINK_V3_20260807
+   *
+   * Do not repeat availability requests when nothing that
+   * affects table availability actually changed.
+   */
+  var pmdLastAvailabilitySignatureV3 = null;
+
 
   function clean(value) { return String(value == null ? '' : value).trim(); }
   function positiveIds(values) {
@@ -614,8 +630,80 @@
       + ' min';
   }
 
-  function applyAvailability(result) {
+  
+function applyAvailability(result) {
     lastAvailability = result;
+
+    /*
+     * PMD_MANUAL_TABLE_V3_AVAILABILITY_BRIDGE_20260807
+     *
+     * Single bridge between the canonical Composer availability
+     * response and the V3 manual dropdown presentation.
+     *
+     * Backend remains authoritative.
+     */
+    window.PMDManualTableAvailabilityV2 =
+        result && typeof result === 'object'
+            ? {
+                available:
+                    Boolean(result.available),
+
+                assignmentMode:
+                    result.assignmentMode || null,
+
+                requestedTableIds:
+                    Array.isArray(result.requestedTableIds)
+                        ? result.requestedTableIds.slice()
+                        : [],
+
+                availableTableIds:
+                    Array.isArray(result.availableTableIds)
+                        ? result.availableTableIds.slice()
+                        : [],
+
+                manualAvailableTableIds:
+                    Array.isArray(result.manualAvailableTableIds)
+                        ? result.manualAvailableTableIds.slice()
+                        : [],
+
+                manualAvailabilityWindowMinutes:
+                    Number(
+                        result.manualAvailabilityWindowMinutes
+                        || 0
+                    ),
+
+                recommendedTableIds:
+                    Array.isArray(result.recommendedTableIds)
+                        ? result.recommendedTableIds.slice()
+                        : []
+            }
+            : null;
+
+    document.dispatchEvent(
+        new CustomEvent(
+            'pmd:manual-table-availability-v2',
+            {
+                detail:
+                    window.PMDManualTableAvailabilityV2
+            }
+        )
+    );
+
+
+    /*
+     * PMD_MANUAL_TABLE_REAL_DROPDOWN_V2_20260807
+     *
+     * Expose only the latest authoritative availability
+     * response for the manual dropdown.
+     */
+    window.PMDManualTableAvailabilityV2 =
+      result || null;
+
+    document.dispatchEvent(
+      new CustomEvent(
+        'pmd:manual-table-availability-v2'
+      )
+    );
     renderTablePicker(result);
 
     var status = root.querySelector(
@@ -972,15 +1060,60 @@
       );
     }
   }
-  function scheduleAvailability() {
+  function pmdAvailabilitySignatureV3(data) {
+    return JSON.stringify({
+      reserve_date: clean(data.reserve_date),
+      reserve_time: timeValue(data.reserve_time) || '',
+      duration: Number(data.duration || 0),
+      guest_num: Number(data.guest_num || 0),
+      assignment_mode: clean(data.assignment_mode),
+      tables: positiveIds(data.tables || [])
+        .sort(function (a, b) {
+          return a - b;
+        }),
+      location_id: Number(data.location_id || 0),
+      reservation_id: Number(data.reservation_id || 0)
+    });
+  }
+
+  /*
+   * PMD_MANUAL_TABLE_FORCE_AVAILABILITY_CORE_V4_20260807
+   *
+   * Optional force=true is reserved for an explicit
+   * "Choose table(s)" user action.
+   *
+   * Ordinary field/focus behaviour keeps the existing
+   * signature protection.
+   */
+  function scheduleAvailability(force) {
     syncAssignment();
     window.clearTimeout(checkingTimer);
+
+    availabilityGeneration += 1;
+    var generation = availabilityGeneration;
 
     var status = root.querySelector(
       '[data-pmd-composer-availability]'
     );
 
     var data = payload();
+
+    var pmdAvailabilitySignature =
+      pmdAvailabilitySignatureV3(data);
+
+    /*
+     * Clicking/focusing a field without changing the effective
+     * reservation must leave the existing recommendation alone.
+     */
+    if (
+      force !== true
+      && lastAvailability
+      && pmdAvailabilitySignature
+        === pmdLastAvailabilitySignatureV3
+    ) {
+      return;
+    }
+
 
     if (
       !dateValue(data.reserve_date)
@@ -1004,8 +1137,19 @@
         'onCheckReservationAvailability',
         payload()
       ).then(function (response) {
+        if (generation !== availabilityGeneration) {
+          return;
+        }
+
+        pmdLastAvailabilitySignatureV3 =
+          pmdAvailabilitySignature;
+
         applyAvailability(response.availability);
       }).catch(function (error) {
+        if (generation !== availabilityGeneration) {
+          return;
+        }
+
         lastAvailability = null;
         renderTablePicker(null);
         status.textContent = error.message;
@@ -1014,6 +1158,34 @@
       });
     }, 300);
   }
+
+  /*
+   * PMD_MANUAL_TABLE_FIRST_CLICK_FORCE_V4_20260807
+   *
+   * Explicit manual-table discovery authority.
+   *
+   * This deliberately calls the SAME canonical availability
+   * engine used by guest/date/time/duration changes.
+   *
+   * Backend:
+   *   unchanged
+   *
+   * Availability endpoint:
+   *   unchanged
+   *
+   * Auto recommendation algorithm:
+   *   unchanged
+   *
+   * Save:
+   *   unchanged
+   */
+  root.addEventListener(
+    'pmd:manual-table-force-availability-v4',
+    function () {
+      scheduleAvailability(true);
+    }
+  );
+
   function open(nextContext, origin) {
     context = nextContext; trigger = origin; baseline = ''; clearErrors();
     root.querySelector('[data-pmd-composer-loading]').hidden = false; root.querySelector('[data-pmd-composer-content]').hidden = true;
@@ -1121,7 +1293,24 @@
       return;
     }
 
-    scheduleAvailability();
+    /*
+     * PMD_COMPOSER_STABLE_NO_BLINK_V3_20260807
+     *
+     * Availability is unrelated to:
+     * Name / telephone / email / comment.
+     */
+    if (
+      [
+        'guest_num',
+        'reserve_date',
+        'reserve_time',
+        'duration',
+        'assignment_mode',
+        'tables[]'
+      ].indexOf(event.target.name) >= 0
+    ) {
+      scheduleAvailability();
+    }
   });
 
   form.addEventListener('input', function (event) {
@@ -1772,6 +1961,13 @@
   }
 
   initialize();
+  /*
+   * PMD_COMPOSER_STABLE_NO_BLINK_V3_20260807
+   *
+   * Removed obsolete V221 cross-scope availability invalidator.
+   * The Smart Context V224 closure owns latestAvailability.
+   */
+
 
   root.addEventListener(
     'shown.bs.modal',
@@ -2162,16 +2358,36 @@
       return;
     }
 
-    var recommendation =
-      recommendationFromStatus();
-
     /*
-     * When the user changes fields, the Availability response
-     * updates this recommendation automatically.
+     * PMD_COMPOSER_SINGLE_RECOMMENDATION_AUTHORITY_20260807
+     *
+     * V223 is no longer allowed to invent:
+     *
+     *   Auto assignment
+     *   Auto · Table X
+     *
+     * Availability-owned V224 is the only source of the
+     * recommendation label.
      */
-    visual.textContent = recommendation
-      ? 'Auto · ' + recommendation
-      : 'Auto assignment';
+    var smart =
+      window.PMDSmartContextTablesV224;
+
+    var recommendation = '';
+
+    if (
+      smart
+      && typeof smart.audit === 'function'
+    ) {
+      try {
+        recommendation =
+          String(
+            smart.audit().recommendation || ''
+          ).trim();
+      } catch (ignore) {}
+    }
+
+    visual.textContent =
+      recommendation || 'No table found';
   }
 
   function nativeTableTrigger() {
@@ -2605,17 +2821,39 @@
 
   function autoRecommendationIds() {
     if (
-      latestAvailability
-      && Array.isArray(
+      !latestAvailability
+      || !Array.isArray(
         latestAvailability.recommendedTableIds
       )
     ) {
-      return positiveIds(
-        latestAvailability.recommendedTableIds
+      return [];
+    }
+
+    var recommended = positiveIds(
+      latestAvailability.recommendedTableIds
+    );
+
+    /*
+     * A recommended table must also be present in the
+     * authoritative available-table set when that set exists.
+     */
+    if (
+      Array.isArray(
+        latestAvailability.availableTableIds
+      )
+    ) {
+      var available = positiveIds(
+        latestAvailability.availableTableIds
+      );
+
+      recommended = recommended.filter(
+        function (id) {
+          return available.indexOf(id) >= 0;
+        }
       );
     }
 
-    return [];
+    return recommended;
   }
 
   function selectedIds() {
@@ -2642,16 +2880,12 @@
     var catalog = tableCatalog();
     var ids = autoRecommendationIds();
 
+    /*
+     * Automatic assignment never falls back to previously
+     * selected tables. It is availability-owned only.
+     */
     if (!ids.length) {
-      var chosen = selectedIds();
-
-      if (chosen.length) {
-        ids = chosen;
-      }
-    }
-
-    if (!ids.length) {
-      return 'Finding best table…';
+      return 'No table found';
     }
 
     return ids.map(function (id) {
@@ -2908,6 +3142,18 @@
           'tables[]'
         ].indexOf(event.target.name) >= 0
       ) {
+        if (
+          [
+            'guest_num',
+            'reserve_date',
+            'reserve_time',
+            'duration'
+          ].indexOf(event.target.name) >= 0
+        ) {
+          latestAvailability = null;
+          updateRecommendationButton();
+        }
+
         window.setTimeout(apply, 0);
       }
     }
@@ -3091,25 +3337,28 @@
     if (
       audit
       && audit.recommendation
-      && !/^auto assign/i.test(
-        String(audit.recommendation)
-      )
     ) {
-      return String(audit.recommendation)
-        .replace(
-          /^auto assign(?:ment)?\s*[·:–-]?\s*/i,
-          ''
-        )
-        .trim();
+      var value =
+        String(audit.recommendation)
+          .replace(
+            /^auto assign(?:ment)?\s*[·:–-]?\s*/i,
+            ''
+          )
+          .replace(
+            /^auto\s*[·:–-]?\s*/i,
+            ''
+          )
+          .trim();
+
+      if (
+        value
+        && !/^finding best table/i.test(value)
+      ) {
+        return value;
+      }
     }
 
-    var chosen = selectedNames();
-
-    if (chosen.length) {
-      return chosen.join(' + ');
-    }
-
-    return 'Finding best table…';
+    return 'No table found';
   }
 
   function enforceRecommendationLabel() {
@@ -3163,21 +3412,14 @@
   function scheduleLabelEnforcement() {
     if (labelTimer) {
       window.clearTimeout(labelTimer);
+      labelTimer = null;
     }
 
-    enforceRecommendationLabel();
-
     /*
-     * V223 updates its label roughly 420ms after field changes.
-     * Reapply once after that legacy update finishes.
+     * One synchronous owner.
+     * No delayed correction and therefore no label blink.
      */
-    labelTimer = window.setTimeout(
-      function () {
-        labelTimer = null;
-        enforceRecommendationLabel();
-      },
-      540
-    );
+    enforceRecommendationLabel();
   }
 
   function isPanelOpen() {
@@ -3819,3 +4061,1876 @@
 })();
 
 /* PMD_COMPOSER_SOFT_DRAFT_V2426_END */
+
+
+/*
+ * PMD_COMPOSER_SMART_TABLE_CORRECTNESS_20260807
+ *
+ * Auto recommendation contract:
+ * - current availability only
+ * - recommended IDs filtered by available IDs
+ * - no previous selected-table fallback
+ * - stale async responses ignored
+ * - button text = Table name(s) OR No table found
+ */
+
+
+/*
+ * PMD_COMPOSER_SINGLE_RECOMMENDATION_AUTHORITY_20260807
+ *
+ * Recommendation label ownership:
+ *
+ * V224 availability result = source of truth
+ * V223 generic Auto text   = disabled
+ * V225 delayed rewrite     = disabled
+ *
+ * Visible states:
+ *
+ *   Tisch / Table N
+ *   No table found
+ */
+
+/*
+ * PMD_RESERVATION_REAL_TABLE_DROPDOWN_V1_20260807
+ *
+ * AUTO column:
+ *   recommendation only
+ *
+ * CHOOSE TABLE(S):
+ *   authoritative manual picker generated from the
+ *   native [name="tables[]"] select.
+ *
+ * Do NOT reduce the manual picker to recommendedTableIds.
+ */
+(function () {
+  'use strict';
+
+  var ROOT_ID = 'pmd-reservation-composer-v1';
+
+  function boot() {
+    var root = document.getElementById(ROOT_ID);
+
+    if (!root) {
+      return false;
+    }
+
+    var form = root.querySelector('form');
+
+    if (!form) {
+      return false;
+    }
+
+    var chooseRadio = form.querySelector(
+      '[name="assignment_mode"][value="choose"]'
+    );
+
+    var chooseLabel = chooseRadio
+      ? chooseRadio.closest('label')
+      : null;
+
+    var select = form.querySelector(
+      '[name="tables[]"]'
+    );
+
+    var panel = root.querySelector(
+      '.pmd-reservation-composer-v1__table-panel'
+    );
+
+    if (
+      !chooseRadio ||
+      !chooseLabel ||
+      !select ||
+      !panel
+    ) {
+      return false;
+    }
+
+    if (
+      chooseLabel.dataset
+        .pmdRealTableDropdownV1 === '1'
+    ) {
+      return true;
+    }
+
+    chooseLabel.dataset
+      .pmdRealTableDropdownV1 = '1';
+
+    root.classList.add(
+      'pmd-real-table-dropdown-v1'
+    );
+
+    panel.classList.add(
+      'pmd-real-table-dropdown-v1__panel'
+    );
+
+    /*
+     * Stop previous dropdown authorities from replacing
+     * the manual catalog with only the recommendation.
+     */
+    chooseLabel.addEventListener(
+      'click',
+      function (event) {
+        event.preventDefault();
+        event.stopPropagation();
+        event.stopImmediatePropagation();
+
+        chooseRadio.checked = true;
+
+        chooseRadio.dispatchEvent(
+          new Event(
+            'change',
+            { bubbles: true }
+          )
+        );
+
+        render();
+
+        panel.hidden = !panel.hidden;
+
+        if (!panel.hidden) {
+          positionPanelV2();
+        }
+
+        chooseLabel.setAttribute(
+          'aria-expanded',
+          panel.hidden ? 'false' : 'true'
+        );
+      },
+      true
+    );
+
+    function cleanLabel(option) {
+      var text = String(
+        option.textContent || ''
+      ).trim();
+
+      return text || (
+        'Table ' + option.value
+      );
+    }
+
+    /*
+     * PMD_MANUAL_TABLE_REAL_DROPDOWN_V2_20260807
+     *
+     * Manual catalog contains ONLY tables confirmed free by
+     * backend for the manual availability window.
+     *
+     * Never temporarily show every physical table.
+     */
+    function enabledOptions() {
+      var availability =
+        window.PMDManualTableAvailabilityV2;
+
+      var availableIds =
+        availability &&
+        Array.isArray(
+          availability.manualAvailableTableIds
+        )
+          ? availability
+              .manualAvailableTableIds
+              .map(Number)
+              .filter(function (id) {
+                return id > 0;
+              })
+          : [];
+
+      return Array.prototype.slice
+        .call(select.options)
+        .filter(function (option) {
+          var id = Number(option.value);
+
+          return (
+            id > 0 &&
+            !option.disabled &&
+            availableIds.indexOf(id) >= 0
+          );
+        });
+    }
+
+    function selectedCount() {
+      return enabledOptions().filter(
+        function (option) {
+          return option.selected;
+        }
+      ).length;
+    }
+
+    /*
+     * PMD_MANUAL_TABLE_REAL_DROPDOWN_V2_20260807
+     *
+     * Position the manual list like a REAL dropdown:
+     * floating under Choose table(s), without increasing
+     * Composer height.
+     */
+    function positionPanelV2() {
+      var rect =
+        chooseLabel.getBoundingClientRect();
+
+      var viewportWidth =
+        window.innerWidth ||
+        document.documentElement.clientWidth;
+
+      var width = Math.max(
+        280,
+        Math.min(
+          rect.width,
+          viewportWidth - 32
+        )
+      );
+
+      var left = rect.left;
+
+      if (left + width > viewportWidth - 16) {
+        left =
+          viewportWidth -
+          width -
+          16;
+      }
+
+      panel.style.position = 'fixed';
+      panel.style.left =
+        Math.max(16, left) + 'px';
+
+      panel.style.top =
+        (rect.bottom + 8) + 'px';
+
+      panel.style.width =
+        width + 'px';
+
+      panel.style.zIndex =
+        '2147483000';
+    }
+
+    function render() {
+      var options = enabledOptions();
+
+      panel.innerHTML = '';
+
+      panel.setAttribute(
+        'data-pmd-real-table-list',
+        '1'
+      );
+
+      if (!options.length) {
+        var empty = document.createElement(
+          'div'
+        );
+
+        empty.className =
+          'pmd-real-table-dropdown-v1__empty';
+
+        var availability =
+          window.PMDManualTableAvailabilityV2;
+
+        empty.textContent =
+          availability
+            ? 'No table is available for this time'
+            : 'Checking available tables…';
+
+        panel.appendChild(empty);
+
+        return;
+      }
+
+      var list = document.createElement('div');
+
+      list.className =
+        'pmd-real-table-dropdown-v1__list';
+
+      options.forEach(function (option) {
+        var button =
+          document.createElement('button');
+
+        button.type = 'button';
+
+        button.className =
+          'pmd-real-table-dropdown-v1__option';
+
+        if (option.selected) {
+          button.classList.add(
+            'is-selected'
+          );
+        }
+
+        button.setAttribute(
+          'data-table-id',
+          option.value
+        );
+
+        var text =
+          document.createElement('span');
+
+        text.className =
+          'pmd-real-table-dropdown-v1__name';
+
+        /*
+         * Native option already contains capacity:
+         *
+         * Table 4 (4–5)
+         *
+         * Keep it compact and readable.
+         */
+        text.textContent =
+          cleanLabel(option);
+
+        var check =
+          document.createElement('span');
+
+        check.className =
+          'pmd-real-table-dropdown-v1__check';
+
+        check.textContent =
+          option.selected ? '✓' : '';
+
+        button.appendChild(text);
+        button.appendChild(check);
+
+        button.addEventListener(
+          'click',
+          function (event) {
+            event.preventDefault();
+            event.stopPropagation();
+
+            /*
+             * Multi-table manual assignment remains supported.
+             */
+            option.selected =
+              !option.selected;
+
+            chooseRadio.checked = true;
+
+            select.dispatchEvent(
+              new Event(
+                'input',
+                { bubbles: true }
+              )
+            );
+
+            select.dispatchEvent(
+              new Event(
+                'change',
+                { bubbles: true }
+              )
+            );
+
+            render();
+
+            panel.hidden = false;
+
+            chooseLabel.setAttribute(
+              'aria-expanded',
+              'true'
+            );
+          }
+        );
+
+        list.appendChild(button);
+      });
+
+      panel.appendChild(list);
+
+      /*
+       * Do not replace the Choose table(s) label
+       * with the chosen/recommended table.
+       */
+      var labelText =
+        chooseLabel.querySelector('span');
+
+      if (labelText) {
+        labelText.textContent =
+          selectedCount() > 0
+            ? 'Choose table(s)'
+            : 'Choose table(s)';
+      }
+    }
+
+    /*
+     * Keep catalog synced if another composer authority
+     * changes the native table list.
+     */
+    var observer =
+      new MutationObserver(function () {
+        if (!panel.hidden) {
+          render();
+        }
+      });
+
+    observer.observe(
+      select,
+      {
+        childList: true,
+        subtree: true,
+        attributes: true,
+        attributeFilter: [
+          'disabled',
+          'selected'
+        ]
+      }
+    );
+
+    select.addEventListener(
+      'change',
+      function () {
+        if (!panel.hidden) {
+          render();
+        }
+      }
+    );
+
+
+    document.addEventListener(
+      'pmd:manual-table-availability-v2',
+      function () {
+        if (!panel.hidden) {
+          render();
+          positionPanelV2();
+        }
+      }
+    );
+
+    window.addEventListener(
+      'resize',
+      function () {
+        if (!panel.hidden) {
+          positionPanelV2();
+        }
+      }
+    );
+
+    window.addEventListener(
+      'scroll',
+      function () {
+        if (!panel.hidden) {
+          positionPanelV2();
+        }
+      },
+      true
+    );
+
+    /*
+     * Initial panel must also contain ALL native options,
+     * not only the automatic recommendation.
+     */
+    render();
+
+    window.PMDReservationRealTableDropdownV1 = {
+      refresh: render,
+
+      audit: function () {
+        return {
+          nativeTableCount:
+            enabledOptions().length,
+
+          renderedTableCount:
+            panel.querySelectorAll(
+              '.pmd-real-table-dropdown-v1__option'
+            ).length,
+
+          selectedTableIds:
+            enabledOptions()
+              .filter(function (option) {
+                return option.selected;
+              })
+              .map(function (option) {
+                return Number(
+                  option.value
+                );
+              })
+        };
+      }
+    };
+
+    return true;
+  }
+
+  if (!boot()) {
+    var timer = window.setInterval(
+      function () {
+        if (boot()) {
+          window.clearInterval(timer);
+        }
+      },
+      100
+    );
+
+    window.setTimeout(
+      function () {
+        window.clearInterval(timer);
+      },
+      10000
+    );
+  }
+}());
+
+
+/*
+ * PMD_MANUAL_TABLE_DROPDOWN_UI_V3_20260807
+ *
+ * Presentation/controller authority only.
+ *
+ * Backend manualAvailableTableIds remains authoritative.
+ * AUTO assignment remains untouched.
+ */
+(function () {
+    'use strict';
+
+    var ROOT_SELECTOR =
+        '#pmd-reservation-composer-v1';
+
+    var PANEL_ID =
+        'pmd-manual-table-dropdown-v3';
+
+    var OPEN_CLASS =
+        'pmd-manual-dropdown-open-v3';
+
+    var explicitOpen = false;
+
+    function clean(value) {
+        return String(
+            value == null ? '' : value
+        ).trim();
+    }
+
+    function root() {
+        return document.querySelector(
+            ROOT_SELECTOR
+        );
+    }
+
+    function form() {
+        var node = root();
+
+        return node
+            ? node.querySelector('form')
+            : null;
+    }
+
+    function nativeSelect() {
+        var currentForm = form();
+
+        return currentForm
+            ? currentForm.querySelector(
+                '[name="tables[]"]'
+            )
+            : null;
+    }
+
+    function findChooseTrigger() {
+        var node = root();
+
+        if (!node) {
+            return null;
+        }
+
+        var candidates =
+            Array.prototype.slice.call(
+                node.querySelectorAll(
+                    'button, label, [role="button"]'
+                )
+            );
+
+        return candidates.find(
+            function (candidate) {
+                var text =
+                    clean(candidate.textContent)
+                        .toLowerCase();
+
+                return (
+                    text === 'choose table(s)' ||
+                    text.indexOf(
+                        'choose table(s)'
+                    ) >= 0
+                );
+            }
+        ) || null;
+    }
+
+    /*
+     * Hide OLD inline manual-table presentation.
+     *
+     * Do NOT hide:
+     * - auto recommendation button
+     * - native select
+     * - our V3 dropdown
+     */
+    function hideLegacyPicker() {
+        var node = root();
+
+        if (!node) {
+            return;
+        }
+
+        var oldOptions =
+            node.querySelectorAll(
+                '.pmd-reservation-composer-v1__table-option'
+            );
+
+        oldOptions.forEach(
+            function (option) {
+                option.style.setProperty(
+                    'display',
+                    'none',
+                    'important'
+                );
+            }
+        );
+
+        [
+            '.pmd-reservation-composer-v1__table-empty-v2291',
+            '.pmd-real-table-dropdown-v1__panel'
+        ].forEach(
+            function (selector) {
+                node.querySelectorAll(
+                    selector
+                ).forEach(
+                    function (element) {
+                        element.style.setProperty(
+                            'display',
+                            'none',
+                            'important'
+                        );
+                    }
+                );
+            }
+        );
+
+        /*
+         * If the old option container is now empty
+         * visually, collapse it as well.
+         */
+        var possibleContainers =
+            node.querySelectorAll(
+                [
+                    '.pmd-reservation-composer-v1__table-options',
+                    '.pmd-reservation-composer-v1__table-picker-options'
+                ].join(',')
+            );
+
+        possibleContainers.forEach(
+            function (container) {
+                container.style.setProperty(
+                    'display',
+                    'none',
+                    'important'
+                );
+            }
+        );
+    }
+
+    function ensurePanel() {
+        var existing =
+            document.getElementById(
+                PANEL_ID
+            );
+
+        if (existing) {
+            return existing;
+        }
+
+        var panel =
+            document.createElement('div');
+
+        panel.id = PANEL_ID;
+
+        panel.className =
+            'pmd-manual-table-dropdown-v3';
+
+        panel.hidden = true;
+
+        /*
+         * Append to body so it NEVER changes
+         * Composer layout/height.
+         */
+        document.body.appendChild(panel);
+
+        return panel;
+    }
+
+    function availableIds() {
+        var availability =
+            window.PMDManualTableAvailabilityV2;
+
+        if (
+            !availability ||
+            !Array.isArray(
+                availability
+                    .manualAvailableTableIds
+            )
+        ) {
+            return [];
+        }
+
+        return availability
+            .manualAvailableTableIds
+            .map(Number)
+            .filter(
+                function (id) {
+                    return id > 0;
+                }
+            );
+    }
+
+    function selectedIds() {
+        var select =
+            nativeSelect();
+
+        if (!select) {
+            return [];
+        }
+
+        return Array.prototype.slice
+            .call(select.options)
+            .filter(
+                function (option) {
+                    return (
+                        option.selected &&
+                        Number(option.value) > 0
+                    );
+                }
+            )
+            .map(
+                function (option) {
+                    return Number(
+                        option.value
+                    );
+                }
+            );
+    }
+
+    function labelForOption(option) {
+        var label =
+            clean(option.textContent);
+
+        if (label) {
+            return label;
+        }
+
+        return (
+            'Table ' +
+            String(option.value)
+        );
+    }
+
+    function positionPanel() {
+        var panel =
+            ensurePanel();
+
+        var trigger =
+            findChooseTrigger();
+
+        if (
+            !trigger ||
+            panel.hidden
+        ) {
+            return;
+        }
+
+        var rect =
+            trigger.getBoundingClientRect();
+
+        var viewportWidth =
+            window.innerWidth ||
+            document.documentElement
+                .clientWidth;
+
+        var preferredWidth =
+            Math.max(
+                300,
+                rect.width
+            );
+
+        var width =
+            Math.min(
+                preferredWidth,
+                viewportWidth - 32
+            );
+
+        var left =
+            rect.left;
+
+        if (
+            left + width >
+            viewportWidth - 16
+        ) {
+            left =
+                viewportWidth -
+                width -
+                16;
+        }
+
+        left =
+            Math.max(
+                16,
+                left
+            );
+
+        panel.style.left =
+            Math.round(left) + 'px';
+
+        panel.style.top =
+            Math.round(
+                rect.bottom + 8
+            ) + 'px';
+
+        panel.style.width =
+            Math.round(width) + 'px';
+    }
+
+    function renderPanel() {
+        var panel =
+            ensurePanel();
+
+        var select =
+            nativeSelect();
+
+        if (!select) {
+            panel.innerHTML = '';
+            return;
+        }
+
+        var ids =
+            availableIds();
+
+        var selected =
+            selectedIds();
+
+        panel.innerHTML = '';
+
+        if (!ids.length) {
+            var empty =
+                document.createElement(
+                    'div'
+                );
+
+            empty.className =
+                'pmd-manual-table-dropdown-v3__empty';
+
+            empty.textContent =
+                window.PMDManualTableAvailabilityV2
+                    ? 'No available tables'
+                    : 'Checking available tables…';
+
+            panel.appendChild(
+                empty
+            );
+
+            return;
+        }
+
+        ids.forEach(
+            function (id) {
+                var option =
+                    Array.prototype.slice
+                        .call(
+                            select.options
+                        )
+                        .find(
+                            function (
+                                current
+                            ) {
+                                return (
+                                    Number(
+                                        current.value
+                                    ) === id
+                                );
+                            }
+                        );
+
+                if (!option) {
+                    return;
+                }
+
+                var row =
+                    document.createElement(
+                        'button'
+                    );
+
+                row.type =
+                    'button';
+
+                row.className =
+                    'pmd-manual-table-dropdown-v3__row';
+
+                if (
+                    selected.indexOf(id) >= 0
+                ) {
+                    row.classList.add(
+                        'is-selected'
+                    );
+                }
+
+                var text =
+                    document.createElement(
+                        'span'
+                    );
+
+                text.className =
+                    'pmd-manual-table-dropdown-v3__label';
+
+                text.textContent =
+                    labelForOption(
+                        option
+                    );
+
+                var check =
+                    document.createElement(
+                        'span'
+                    );
+
+                check.className =
+                    'pmd-manual-table-dropdown-v3__check';
+
+                check.textContent =
+                    selected.indexOf(id) >= 0
+                        ? '✓'
+                        : '';
+
+                row.appendChild(text);
+                row.appendChild(check);
+
+                row.addEventListener(
+                    'click',
+                    function (event) {
+                        event.preventDefault();
+                        event.stopPropagation();
+
+                        option.selected =
+                            !option.selected;
+
+                        select.dispatchEvent(
+                            new Event(
+                                'change',
+                                {
+                                    bubbles: true
+                                }
+                            )
+                        );
+
+                        renderPanel();
+                        positionPanel();
+                    }
+                );
+
+                panel.appendChild(row);
+            }
+        );
+    }
+
+    function closePanel() {
+        explicitOpen = false;
+
+        var panel =
+            ensurePanel();
+
+        panel.hidden = true;
+
+        document.documentElement
+            .classList.remove(
+                OPEN_CLASS
+            );
+
+        var trigger =
+            findChooseTrigger();
+
+        if (trigger) {
+            trigger.setAttribute(
+                'aria-expanded',
+                'false'
+            );
+        }
+    }
+
+    function openPanel() {
+        explicitOpen = true;
+
+        hideLegacyPicker();
+        renderPanel();
+
+        var panel =
+            ensurePanel();
+
+        panel.hidden = false;
+
+        document.documentElement
+            .classList.add(
+                OPEN_CLASS
+            );
+
+        var trigger =
+            findChooseTrigger();
+
+        if (trigger) {
+            trigger.setAttribute(
+                'aria-expanded',
+                'true'
+            );
+        }
+
+        positionPanel();
+    }
+
+    function togglePanel() {
+        if (explicitOpen) {
+            closePanel();
+        } else {
+            openPanel();
+        }
+    }
+
+    /*
+     * IMPORTANT:
+     * Capture phase owns the click BEFORE
+     * old picker handlers can auto-expand
+     * their inline cards.
+     */
+    document.addEventListener(
+        'click',
+        function (event) {
+            var trigger =
+                findChooseTrigger();
+
+            if (!trigger) {
+                return;
+            }
+
+            if (
+                event.target === trigger ||
+                trigger.contains(
+                    event.target
+                )
+            ) {
+                event.preventDefault();
+
+                event.stopPropagation();
+                event.stopImmediatePropagation();
+
+                togglePanel();
+
+                return;
+            }
+
+            var panel =
+                ensurePanel();
+
+            if (
+                explicitOpen &&
+                !panel.contains(
+                    event.target
+                )
+            ) {
+                closePanel();
+            }
+        },
+        true
+    );
+
+    /*
+     * Composer open:
+     * dropdown MUST ALWAYS start closed.
+     */
+    document.addEventListener(
+        'shown.bs.modal',
+        function () {
+            window.setTimeout(
+                function () {
+                    closePanel();
+                    hideLegacyPicker();
+                },
+                0
+            );
+        }
+    );
+
+    /*
+     * Availability refresh:
+     *
+     * Update rows only if USER currently
+     * has dropdown open.
+     *
+     * Never auto-open it.
+     */
+    document.addEventListener(
+        'pmd:manual-table-availability-v2',
+        function () {
+            hideLegacyPicker();
+
+            if (
+                explicitOpen
+            ) {
+                renderPanel();
+                positionPanel();
+            } else {
+                closePanel();
+            }
+        }
+    );
+
+    window.addEventListener(
+        'resize',
+        function () {
+            if (explicitOpen) {
+                positionPanel();
+            }
+        }
+    );
+
+    window.addEventListener(
+        'scroll',
+        function () {
+            if (explicitOpen) {
+                positionPanel();
+            }
+        },
+        true
+    );
+
+    /*
+     * Existing Composer authorities may
+     * redraw their picker after availability.
+     *
+     * Only suppress their VISUAL output.
+     * No availability logic is modified.
+     */
+    var observer =
+        new MutationObserver(
+            function () {
+                hideLegacyPicker();
+
+                if (
+                    explicitOpen
+                ) {
+                    positionPanel();
+                }
+            }
+        );
+
+    function boot() {
+        var node =
+            root();
+
+        if (!node) {
+            return false;
+        }
+
+        closePanel();
+        hideLegacyPicker();
+
+        observer.observe(
+            node,
+            {
+                childList: true,
+                subtree: true
+            }
+        );
+
+        console.info(
+            '[PMD Manual Table Dropdown UI V3] Ready',
+            {
+                manualAvailability:
+                    Boolean(
+                        window
+                            .PMDManualTableAvailabilityV2
+                    )
+            }
+        );
+
+        return true;
+    }
+
+    if (!boot()) {
+        document.addEventListener(
+            'DOMContentLoaded',
+            boot,
+            {
+                once: true
+            }
+        );
+
+        window.setTimeout(
+            boot,
+            500
+        );
+    }
+
+    window.PMDManualTableDropdownUIV3 = {
+        open: openPanel,
+        close: closePanel,
+        refresh: function () {
+            hideLegacyPicker();
+
+            if (
+                explicitOpen
+            ) {
+                renderPanel();
+                positionPanel();
+            }
+        }
+    };
+})();
+
+
+/*
+ * PMD_MANUAL_TABLE_FIRST_CLICK_FORCE_V4_20260807
+ *
+ * First explicit click on "Choose table(s)" must be sufficient
+ * to obtain the current backend manual availability.
+ *
+ * No field mutation is required.
+ */
+(function () {
+    'use strict';
+
+    function clean(value) {
+        return String(
+            value == null ? '' : value
+        ).trim().toLowerCase();
+    }
+
+    document.addEventListener(
+        'click',
+        function (event) {
+            var root =
+                document.getElementById(
+                    'pmd-reservation-composer-v1'
+                );
+
+            if (!root) {
+                return;
+            }
+
+            var target =
+                event.target &&
+                event.target.closest
+                    ? event.target.closest(
+                        'button, label, [role="button"]'
+                    )
+                    : null;
+
+            if (
+                !target ||
+                !root.contains(target)
+            ) {
+                return;
+            }
+
+            var text =
+                clean(target.textContent);
+
+            if (
+                text !== 'choose table(s)' &&
+                text.indexOf(
+                    'choose table(s)'
+                ) < 0
+            ) {
+                return;
+            }
+
+            /*
+             * Existing Choose control performs its own normal
+             * state change first.
+             *
+             * On next task, ask canonical Composer for current
+             * manual availability.
+             */
+            window.setTimeout(
+                function () {
+                    root.dispatchEvent(
+                        new CustomEvent(
+                            'pmd:manual-table-force-availability-v4'
+                        )
+                    );
+                },
+                0
+            );
+        },
+        false
+    );
+}());
+
+/*
+ * PMD_COMPOSER_REAL_AVAILABILITY_AUTHORITY_V5_20260807
+ *
+ * Reservation table assignment has exactly ONE state authority:
+ *
+ * guest_num
+ * duration
+ * reserve_date
+ * reserve_time
+ *
+ *      ↓
+ *
+ * canonical onCheckReservationAvailability
+ *
+ *      ↓
+ *
+ * AUTO:
+ *     recommendedTableIds
+ *
+ * MANUAL:
+ *     manualAvailableTableIds
+ *
+ * No synthetic table catalog.
+ * No cached floor table status.
+ * No guessed 1..20 table list.
+ */
+(function () {
+    'use strict';
+
+    var ROOT_SELECTOR = '#pmd-reservation-composer-v1';
+    var PANEL_ID = 'pmd-manual-table-dropdown-v3';
+
+    var WATCHED = [
+        'guest_num',
+        'duration',
+        'reserve_date',
+        'reserve_time'
+    ];
+
+    function root() {
+        return document.querySelector(ROOT_SELECTOR);
+    }
+
+    function form() {
+        var node = root();
+
+        return node
+            ? node.querySelector('form')
+            : null;
+    }
+
+    function select() {
+        var currentForm = form();
+
+        return currentForm
+            ? currentForm.querySelector('[name="tables[]"]')
+            : null;
+    }
+
+    function positiveIds(values) {
+        return (Array.isArray(values) ? values : [])
+            .map(Number)
+            .filter(function (value) {
+                return Number.isFinite(value) && value > 0;
+            })
+            .filter(function (value, index, all) {
+                return all.indexOf(value) === index;
+            });
+    }
+
+    function availability() {
+        var value =
+            window.PMDManualTableAvailabilityV2;
+
+        return (
+            value &&
+            typeof value === 'object'
+        )
+            ? value
+            : null;
+    }
+
+    function nativeOptionById(id) {
+        var nativeSelect = select();
+
+        if (!nativeSelect) {
+            return null;
+        }
+
+        return Array.prototype
+            .slice.call(nativeSelect.options)
+            .find(function (option) {
+                return Number(option.value) === Number(id);
+            }) || null;
+    }
+
+    function nativeLabel(id) {
+        var option = nativeOptionById(id);
+
+        return option
+            ? String(option.textContent || '').trim()
+            : '';
+    }
+
+    function realManualIds() {
+        var state = availability();
+
+        if (
+            !state ||
+            !Array.isArray(
+                state.manualAvailableTableIds
+            )
+        ) {
+            return [];
+        }
+
+        return positiveIds(
+            state.manualAvailableTableIds
+        ).filter(function (id) {
+            /*
+             * CRITICAL:
+             *
+             * A table is allowed into the dropdown ONLY if the
+             * canonical native Composer catalog contains that
+             * physical table ID.
+             *
+             * This prevents stale/synthetic IDs such as 13..20
+             * from entering the UI.
+             */
+            return Boolean(nativeOptionById(id));
+        });
+    }
+
+    function realRecommendedIds() {
+        var state = availability();
+
+        if (
+            !state ||
+            !Array.isArray(
+                state.recommendedTableIds
+            )
+        ) {
+            return [];
+        }
+
+        return positiveIds(
+            state.recommendedTableIds
+        ).filter(function (id) {
+            return Boolean(nativeOptionById(id));
+        });
+    }
+
+    function chooseTrigger() {
+        var node = root();
+
+        if (!node) {
+            return null;
+        }
+
+        return Array.prototype
+            .slice.call(
+                node.querySelectorAll(
+                    'button, label, [role="button"]'
+                )
+            )
+            .find(function (candidate) {
+                return (
+                    String(
+                        candidate.textContent || ''
+                    )
+                        .trim()
+                        .toLowerCase()
+                        .indexOf(
+                            'choose table(s)'
+                        ) >= 0
+                );
+            }) || null;
+    }
+
+    function autoRadio() {
+        var currentForm = form();
+
+        return currentForm
+            ? currentForm.querySelector(
+                '[name="assignment_mode"][value="auto"]'
+            )
+            : null;
+    }
+
+    function chooseRadio() {
+        var currentForm = form();
+
+        return currentForm
+            ? currentForm.querySelector(
+                '[name="assignment_mode"][value="choose"]'
+            )
+            : null;
+    }
+
+    function selectedMode() {
+        var currentForm = form();
+
+        if (!currentForm) {
+            return '';
+        }
+
+        var checked =
+            currentForm.querySelector(
+                '[name="assignment_mode"]:checked'
+            );
+
+        return checked
+            ? String(checked.value || '')
+            : '';
+    }
+
+    function autoButton() {
+        var node = root();
+
+        if (!node) {
+            return null;
+        }
+
+        var auto =
+            autoRadio();
+
+        if (!auto) {
+            return null;
+        }
+
+        var label =
+            auto.closest('label');
+
+        if (
+            label &&
+            label.textContent
+        ) {
+            return label;
+        }
+
+        return null;
+    }
+
+    function renderAuto() {
+        var state = availability();
+        var ids = realRecommendedIds();
+        var control = autoButton();
+
+        if (!control) {
+            return;
+        }
+
+        /*
+         * Do not present a stale recommendation as valid.
+         */
+        if (!state || !ids.length) {
+            return;
+        }
+
+        var labels = ids
+            .map(nativeLabel)
+            .filter(Boolean);
+
+        if (!labels.length) {
+            return;
+        }
+
+        /*
+         * Preserve any existing structure where possible.
+         * Update visible text node only.
+         */
+        var textNodes =
+            Array.prototype.slice
+                .call(control.childNodes)
+                .filter(function (node) {
+                    return node.nodeType === 3;
+                });
+
+        if (textNodes.length) {
+            textNodes[0].nodeValue =
+                ' ' + labels.join(' + ') + ' ';
+        }
+    }
+
+    function renderManual() {
+        var panel =
+            document.getElementById(
+                PANEL_ID
+            );
+
+        if (!panel) {
+            return;
+        }
+
+        var ids = realManualIds();
+
+        panel.innerHTML = '';
+
+        if (!ids.length) {
+            var empty =
+                document.createElement('div');
+
+            empty.className =
+                'pmd-manual-table-dropdown-v3__empty';
+
+            empty.textContent =
+                'No available tables for this reservation.';
+
+            panel.appendChild(empty);
+            return;
+        }
+
+        ids.forEach(function (id) {
+            var option =
+                nativeOptionById(id);
+
+            if (!option) {
+                return;
+            }
+
+            var row =
+                document.createElement('button');
+
+            row.type = 'button';
+
+            row.className =
+                'pmd-manual-table-dropdown-v3__option';
+
+            row.setAttribute(
+                'data-table-id',
+                String(id)
+            );
+
+            row.textContent =
+                String(
+                    option.textContent || ''
+                ).trim();
+
+            row.addEventListener(
+                'click',
+                function () {
+                    var nativeSelect =
+                        select();
+
+                    if (!nativeSelect) {
+                        return;
+                    }
+
+                    Array.prototype
+                        .slice.call(
+                            nativeSelect.options
+                        )
+                        .forEach(function (
+                            nativeOption
+                        ) {
+                            nativeOption.selected =
+                                Number(
+                                    nativeOption.value
+                                ) === Number(id);
+                        });
+
+                    nativeSelect.dispatchEvent(
+                        new Event(
+                            'change',
+                            {
+                                bubbles: true
+                            }
+                        )
+                    );
+                }
+            );
+
+            panel.appendChild(row);
+        });
+    }
+
+    function renderFromCurrentAvailability() {
+        renderAuto();
+        renderManual();
+    }
+
+    /*
+     * The canonical Composer already emits this event after
+     * applyAvailability().
+     */
+    document.addEventListener(
+        'pmd:manual-table-availability-v2',
+        function () {
+            window.requestAnimationFrame(
+                renderFromCurrentAvailability
+            );
+        }
+    );
+
+    /*
+     * Refresh availability ONLY when the 4 fields that actually
+     * affect a reservation table change.
+     *
+     * Name / telephone / email / comment remain irrelevant.
+     */
+    document.addEventListener(
+        'change',
+        function (event) {
+            var currentForm = form();
+
+            if (
+                !currentForm ||
+                !event.target ||
+                !currentForm.contains(
+                    event.target
+                )
+            ) {
+                return;
+            }
+
+            if (
+                WATCHED.indexOf(
+                    String(
+                        event.target.name || ''
+                    )
+                ) < 0
+            ) {
+                return;
+            }
+
+            /*
+             * Existing Composer listeners own the actual request.
+             *
+             * We clear only stale presentation here so the UI
+             * cannot show yesterday/previous-input availability
+             * while a new availability result is pending.
+             */
+            window.PMDManualTableAvailabilityV2 =
+                null;
+
+            var panel =
+                document.getElementById(
+                    PANEL_ID
+                );
+
+            if (panel && !panel.hidden) {
+                panel.innerHTML =
+                    '<div class="pmd-manual-table-dropdown-v3__empty">' +
+                    'Checking available tables…' +
+                    '</div>';
+            }
+        },
+        true
+    );
+
+    /*
+     * Clicking the manual button must use the current 4 field
+     * values. Existing V4 force-request authority performs the
+     * canonical backend request.
+     *
+     * We do not construct tables locally.
+     */
+    document.addEventListener(
+        'click',
+        function (event) {
+            var trigger =
+                chooseTrigger();
+
+            if (
+                !trigger ||
+                !(
+                    event.target === trigger ||
+                    trigger.contains(
+                        event.target
+                    )
+                )
+            ) {
+                return;
+            }
+
+            var choose =
+                chooseRadio();
+
+            if (choose) {
+                choose.checked = true;
+                choose.dispatchEvent(
+                    new Event(
+                        'change',
+                        {
+                            bubbles: true
+                        }
+                    )
+                );
+            }
+
+            /*
+             * Remove stale table display immediately.
+             */
+            window.PMDManualTableAvailabilityV2 =
+                null;
+        },
+        true
+    );
+
+    window.PMDComposerRealAvailabilityV5 = {
+        audit: function () {
+            var state = availability();
+
+            return {
+                version:
+                    'PMD_COMPOSER_REAL_AVAILABILITY_AUTHORITY_V5_20260807',
+
+                assignmentMode:
+                    selectedMode(),
+
+                guestNum:
+                    form() &&
+                    form().elements.guest_num
+                        ? Number(
+                            form().elements
+                                .guest_num.value || 0
+                        )
+                        : 0,
+
+                duration:
+                    form() &&
+                    form().elements.duration
+                        ? Number(
+                            form().elements
+                                .duration.value || 0
+                        )
+                        : 0,
+
+                reserveDate:
+                    form() &&
+                    form().elements.reserve_date
+                        ? String(
+                            form().elements
+                                .reserve_date.value || ''
+                        )
+                        : '',
+
+                reserveTime:
+                    form() &&
+                    form().elements.reserve_time
+                        ? String(
+                            form().elements
+                                .reserve_time.value || ''
+                        )
+                        : '',
+
+                nativePhysicalTableIds:
+                    select()
+                        ? Array.prototype
+                            .slice.call(
+                                select().options
+                            )
+                            .map(function (option) {
+                                return Number(
+                                    option.value
+                                );
+                            })
+                            .filter(function (id) {
+                                return id > 0;
+                            })
+                        : [],
+
+                backendRecommendedTableIds:
+                    state
+                        ? positiveIds(
+                            state.recommendedTableIds
+                        )
+                        : [],
+
+                renderedRecommendedTableIds:
+                    realRecommendedIds(),
+
+                backendManualAvailableTableIds:
+                    state
+                        ? positiveIds(
+                            state
+                                .manualAvailableTableIds
+                        )
+                        : [],
+
+                renderedManualAvailableTableIds:
+                    realManualIds()
+            };
+        }
+    };
+
+}());

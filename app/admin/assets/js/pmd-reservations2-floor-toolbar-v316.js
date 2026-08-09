@@ -1317,19 +1317,32 @@ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',
         }
       });
 
-    observer.observe(
-      document.body,
-      {
-        childList: true,
-        subtree: true,
-        attributes: true,
-        attributeFilter: [
-          'class',
-          'aria-expanded',
-          'aria-hidden'
-        ]
-      }
-    );
+    /*
+     * PMD_R2_OBSERVER_STORM_FIX_V3_DATE
+     *
+     * Do not observe the complete admin body.
+     * This authority only cares about Reservations2 UI.
+     */
+    var reservationsRoot =
+      document.getElementById(
+        'pmd-reservations2'
+      );
+
+    if (reservationsRoot) {
+      observer.observe(
+        reservationsRoot,
+        {
+          childList: true,
+          subtree: true,
+          attributes: true,
+          attributeFilter: [
+            'class',
+            'aria-expanded',
+            'aria-hidden'
+          ]
+        }
+      );
+    }
 
     window
       .PMDReservations2DateNotificationExclusiveV455 = {
@@ -3474,10 +3487,23 @@ button.pmd-r2-card-menu-trigger-v458::after {
           .join(' ')
       ).toLowerCase();
 
+      /*
+       * PMD_R2_ZERO_STATE_KPI_WIPE_FIX_V1
+       *
+       * IMPORTANT:
+       * Match KPI labels only by their OWN text nodes.
+       *
+       * The previous fallback used node.textContent, which includes
+       * all descendant text. In a zero-reservation state this allowed
+       * structural ancestors such as .page-wrapper to match the text
+       * "Pending confirmations".
+       *
+       * updateKpis() then called replaceLabelText() on .page-wrapper,
+       * and label.textContent = "Free Tables" destroyed the complete
+       * Reservations2 workspace.
+       */
       if (!ownText) {
-        ownText =
-          clean(node.textContent)
-            .toLowerCase();
+        continue;
       }
 
       var matched =
@@ -3954,6 +3980,40 @@ button.pmd-r2-card-menu-trigger-v458::after {
       return;
     }
 
+    /*
+     * PMD_R2_ZERO_STATE_KPI_WIPE_FIX_V1
+     *
+     * Absolute structural safety boundary.
+     * A KPI text helper must NEVER be allowed to write textContent
+     * to page/root/layout containers.
+     */
+    if (
+      label === document.body ||
+      label === document.documentElement ||
+      label.id === 'pmd-reservations2' ||
+      label.id === 'pmd-r2-shared-floor-canvas-v310' ||
+      label.classList.contains('page-wrapper') ||
+      label.classList.contains('page-content') ||
+      label.classList.contains('content-wrapper') ||
+      label.querySelector('#pmd-reservations2') ||
+      label.querySelector(
+        '#pmd-r2-shared-floor-canvas-v310'
+      )
+    ) {
+      console.error(
+        '[PMD R2 Zero State KPI Wipe Fix V1] ' +
+        'Blocked structural label mutation.',
+        {
+          tag: label.tagName,
+          id: label.id || null,
+          className: label.className || null,
+          requestedText: newText
+        }
+      );
+
+      return;
+    }
+
     var changed = false;
 
     Array.prototype.forEach.call(
@@ -4183,20 +4243,36 @@ button.pmd-r2-card-menu-trigger-v458::after {
       }
     );
 
-    observer.observe(
-      document.body,
-      {
-        childList: true,
-        subtree: true,
-        attributes: true,
-        attributeFilter: [
-          'class',
-          'style',
-          'data-status',
-          'data-state'
-        ]
-      }
-    );
+    /*
+     * PMD_R2_OBSERVER_STORM_FIX_V3_COLORS
+     *
+     * CRITICAL:
+     * The old observer watched "style".
+     * apply() -> applyColor() writes style properties.
+     * That retriggered this observer indefinitely.
+     *
+     * Observe only semantic state attributes and actual
+     * DOM membership changes inside Reservations2.
+     */
+    var reservationsRoot =
+      document.getElementById(
+        'pmd-reservations2'
+      );
+
+    if (reservationsRoot) {
+      observer.observe(
+        reservationsRoot,
+        {
+          childList: true,
+          subtree: true,
+          attributes: true,
+          attributeFilter: [
+            'data-status',
+            'data-state'
+          ]
+        }
+      );
+    }
 
     window.PMDFloorHeaderKpiColorsV464 = {
       version: VERSION,

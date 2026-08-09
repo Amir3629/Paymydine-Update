@@ -9,9 +9,9 @@
             : asset('images/logo.png'));
 
     // PMD_LOGIN_LOGO_V58_START
-    $pmdLoginLogoCandidateV58Path = base_path('app/admin/assets/images/pmd-logo-final.png');
+    $pmdLoginLogoCandidateV58Path = base_path('app/admin/assets/images/pmd-login-logo.svg');
     if (file_exists($pmdLoginLogoCandidateV58Path)) {
-        $pmdLoginLogoUrl = asset('app/admin/assets/images/pmd-logo-final.png');
+        $pmdLoginLogoUrl = asset('app/admin/assets/images/pmd-login-logo.svg');
         $pmdLoginLogoVersion = filemtime($pmdLoginLogoCandidateV58Path);
     }
     // PMD_LOGIN_LOGO_V58_END

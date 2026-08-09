@@ -165,11 +165,22 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     });
     
-    // Observe the document body for changes
-    observer.observe(document.body, {
-        childList: true,
-        subtree: true
-    });
+    /*
+     * PMD_R2_PERFORMANCE_SURGICAL_V2_DROPDOWN
+     *
+     * Reservations2 is a very large, mutation-heavy workspace.
+     * Do not watch the complete body there.
+     */
+    const pmdR2DropdownPerformanceRoute =
+        String(window.location.pathname || '')
+            .replace(/\/+$/, '') === '/admin/reservations2';
+
+    if (!pmdR2DropdownPerformanceRoute) {
+        observer.observe(document.body, {
+            childList: true,
+            subtree: true
+        });
+    }
     
     // Watch for SlimSelect style changes and override them immediately
     const styleObserver = new MutationObserver(function(mutations) {
@@ -203,15 +214,36 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     });
     
-    // NUCLEAR OPTION: Continuous monitoring every 100ms
-    console.log('🚀 Starting continuous dropdown width monitoring...');
-    setInterval(function() {
-        const openDropdowns = document.querySelectorAll('.ss-content.ss-open-below, .ss-content.ss-open-above');
-        if (openDropdowns.length > 0) {
-            console.log(`🔄 Found ${openDropdowns.length} open dropdown(s) - forcing width...`);
-            setDynamicDimensions();
-        }
-    }, 100);
+    /*
+     * PMD_R2_PERFORMANCE_SURGICAL_V2_DROPDOWN
+     *
+     * The previous "NUCLEAR OPTION" queried the DOM every 100ms forever.
+     * Reservations2 keeps event-driven dropdown sizing instead.
+     */
+    if (!pmdR2DropdownPerformanceRoute) {
+
+        console.log(
+            '🚀 Starting continuous dropdown width monitoring...'
+        );
+
+        setInterval(function() {
+            const openDropdowns =
+                document.querySelectorAll(
+                    '.ss-content.ss-open-below, ' +
+                    '.ss-content.ss-open-above'
+                );
+
+            if (openDropdowns.length > 0) {
+                setDynamicDimensions();
+            }
+        }, 100);
+
+    } else {
+        console.info(
+            '[PMD R2 Performance V2] ' +
+            'dropdown body observer + 100ms polling disabled.'
+        );
+    }
 });
 
 /**

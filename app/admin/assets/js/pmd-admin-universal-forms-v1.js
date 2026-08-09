@@ -955,3 +955,299 @@
     boot();
   }
 })();
+
+/* PMD_MODERN_ADMIN_PAGES_V21 */
+(function () {
+    'use strict';
+
+    var MARK = 'PMD_MODERN_ADMIN_PAGES_V21';
+
+    function route() {
+        return String(window.location.pathname || '')
+            .replace(/\/+$/, '');
+    }
+
+    function routeType(path) {
+        if (/^\/admin\/coupons\/edit\/[^/]+$/.test(path)) {
+            return 'coupon-edit';
+        }
+
+        if (path === '/admin/themes') {
+            return 'themes-list';
+        }
+
+        if (path === '/admin/themes/edit/frontend-theme') {
+            return 'theme-edit';
+        }
+
+        return null;
+    }
+
+    function addClass(el, className) {
+        if (el && !el.classList.contains(className)) {
+            el.classList.add(className);
+        }
+    }
+
+    function prepareFormPage(type) {
+        var form = document.querySelector('#edit-form');
+
+        if (!form) return;
+
+        addClass(form, 'pmd-modern-form-v21');
+
+        var widget = form.querySelector('.form-widget');
+
+        if (widget) {
+            addClass(widget, 'pmd-modern-form-surface-v21');
+        }
+
+        var outside =
+            form.querySelector('#form-outside-tabs');
+
+        if (outside) {
+            addClass(outside, 'pmd-modern-form-content-v21');
+        }
+
+        form
+            .querySelectorAll('.form-fields')
+            .forEach(function (fields) {
+                addClass(
+                    fields,
+                    'pmd-modern-fields-grid-v21'
+                );
+            });
+
+        form
+            .querySelectorAll('.form-group')
+            .forEach(function (group) {
+                addClass(
+                    group,
+                    'pmd-modern-field-v21'
+                );
+            });
+
+        /*
+         * Existing generic hero/panel enhancement is legacy
+         * decoration on these specific V21 pages.
+         */
+        document
+            .querySelectorAll('.pmd-admin-form-v1-hero')
+            .forEach(function (hero) {
+                hero.setAttribute(
+                    'data-pmd-v21-hide',
+                    '1'
+                );
+            });
+
+        if (type === 'coupon-edit') {
+            var cardType =
+                document.querySelector(
+                    '#form-field-coupon-card-type-group'
+                );
+
+            if (cardType) {
+                addClass(
+                    cardType,
+                    'pmd-v21-full-width'
+                );
+            }
+
+            var description =
+                document.querySelector(
+                    '#form-field-coupon-description-group'
+                );
+
+            if (description) {
+                addClass(
+                    description,
+                    'pmd-v21-full-width'
+                );
+            }
+
+            var cardButtons =
+                document.querySelector(
+                    '#form-field-coupon-card-type'
+                );
+
+            if (cardButtons) {
+                addClass(
+                    cardButtons,
+                    'pmd-v21-card-type'
+                );
+            }
+
+            var discountType =
+                document.querySelector(
+                    '#form-field-coupon-type'
+                );
+
+            if (discountType) {
+                addClass(
+                    discountType,
+                    'pmd-v21-discount-type'
+                );
+            }
+        }
+
+        if (type === 'theme-edit') {
+            [
+                'form-field-theme-data-name-group',
+                'form-field-theme-data-theme-configuration-group',
+                'form-field-theme-data-pmd-kazen-social-url-group'
+            ].forEach(function (id) {
+                var el = document.getElementById(id);
+
+                if (el) {
+                    addClass(
+                        el,
+                        'pmd-v21-full-width'
+                    );
+                }
+            });
+        }
+    }
+
+    function prepareThemesList() {
+        var form =
+            document.querySelector('#list-form');
+
+        if (!form) return;
+
+        addClass(
+            form,
+            'pmd-v21-theme-list'
+        );
+
+        form
+            .querySelectorAll('.row.mb-3')
+            .forEach(function (row) {
+                addClass(
+                    row,
+                    'pmd-v21-theme-row'
+                );
+
+                var card =
+                    row.querySelector(
+                        '.d-flex.align-items-center'
+                    );
+
+                if (card) {
+                    addClass(
+                        card,
+                        'pmd-v21-theme-card'
+                    );
+                }
+
+                var media =
+                    row.querySelector('.media-body');
+
+                if (media) {
+                    addClass(
+                        media,
+                        'pmd-v21-theme-content'
+                    );
+                }
+
+                var thumb =
+                    row.querySelector('.preview-thumb');
+
+                if (thumb) {
+                    addClass(
+                        thumb,
+                        'pmd-v21-theme-thumb'
+                    );
+                }
+            });
+    }
+
+    function apply() {
+        var path = route();
+        var type = routeType(path);
+
+        if (!type) return false;
+
+        document.documentElement.classList.add(
+            'pmd-modern-admin-v21',
+            'pmd-modern-admin-' + type + '-v21'
+        );
+
+        if (document.body) {
+            document.body.classList.add(
+                'pmd-modern-admin-v21',
+                'pmd-modern-admin-' + type + '-v21'
+            );
+        }
+
+        if (type === 'themes-list') {
+            prepareThemesList();
+        } else {
+            prepareFormPage(type);
+        }
+
+        return true;
+    }
+
+    function audit() {
+        var path = route();
+        var type = routeType(path);
+
+        return {
+            mark: MARK,
+            route: path,
+            type: type,
+
+            cleanHeader:
+                !!document.querySelector(
+                    '#pmd-r2-clean-header'
+                ),
+
+            nativeHeader:
+                !!document.querySelector(
+                    'nav.navbar.navbar-top'
+                ),
+
+            canvas:
+                document.querySelector(
+                    '.page-content'
+                )
+                    ? getComputedStyle(
+                        document.querySelector(
+                            '.page-content'
+                        )
+                    ).backgroundColor
+                    : null,
+
+            form:
+                !!document.querySelector(
+                    '.pmd-modern-form-v21'
+                ),
+
+            themeCards:
+                document.querySelectorAll(
+                    '.pmd-v21-theme-card'
+                ).length
+        };
+    }
+
+    if (document.readyState === 'loading') {
+        document.addEventListener(
+            'DOMContentLoaded',
+            apply,
+            { once: true }
+        );
+    } else {
+        apply();
+    }
+
+    window.addEventListener(
+        'load',
+        apply,
+        { once: true }
+    );
+
+    window.PMDModernAdminPagesV21 = {
+        apply: apply,
+        audit: audit
+    };
+})();

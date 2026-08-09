@@ -1061,7 +1061,7 @@ return (
                               {/* PMD_KAZEN_FOOTER_PAYMYDINE_LOGO_SUDO_20260611 */}
           <div className="kazen-paymydine-footer-logo">
             <img
-              src="/assets/media/uploads/PMD.png?v=1780008763"
+              src="/assets/media/uploads/PMDLOGO.svg?v=20260807"
               alt="PayMyDine"
               className="kazen-paymydine-footer-logo-image"
             />

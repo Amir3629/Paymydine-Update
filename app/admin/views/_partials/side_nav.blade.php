@@ -1,15 +1,8 @@
 {{-- PMD GLOBAL SIDE MENU 2 AUTHORITY --}}
 @include('admin::_partials.pmd_side_menu2_global')
 
-{{-- PMD_SIDEBAR_LANGUAGE_SWITCHER_V2_BEGIN --}}
+{{-- PMD_SIDEBAR_LANGUAGE_DIRECT_TOGGLE_20260807 --}}
 @php
-    $pmdLanguages = \System\Models\Languages_model::isEnabled()
-        ->whereIn('code', ['en', 'de'])
-        ->orderByRaw(
-            "CASE WHEN code = 'en' THEN 0 ELSE 1 END"
-        )
-        ->get();
-
     $pmdCurrentLocale = strtolower(
         (string)request()->cookie(
             'pmd_admin_locale',
@@ -25,77 +18,64 @@
         $pmdCurrentLocale = 'en';
     }
 
+    $pmdNextLocale =
+        $pmdCurrentLocale === 'de'
+            ? 'en'
+            : 'de';
+
     $pmdLanguageEndpoint = url(
-        config('system.adminUri', 'admin').
-        '/_pmd/language-switch-v3'
+        config('system.adminUri', 'admin')
+        .'/_pmd/language-switch-v3'
     );
 @endphp
 
-@if($pmdLanguages->count() > 1)
 <div
     id="pmd-sidebar-language"
     data-endpoint="{{ $pmdLanguageEndpoint }}"
+    data-current="{{ $pmdCurrentLocale }}"
+    data-next="{{ $pmdNextLocale }}"
 >
     <button
         type="button"
         id="pmd-language-trigger"
-        aria-label="Change language"
-        title="Change language"
+        aria-label="Switch language to {{ strtoupper($pmdNextLocale) }}"
+        title="Switch to {{ strtoupper($pmdNextLocale) }}"
     >
-        <span class="pmd-language-icon">🌐</span>
+        <span
+            class="pmd-language-icon"
+            aria-hidden="true"
+        >
+            <svg
+                viewBox="0 0 24 24"
+                width="22"
+                height="22"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="1.8"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+            >
+                <circle cx="12" cy="12" r="9"></circle>
+                <path d="M3 12h18"></path>
+                <path d="M12 3a15 15 0 0 1 0 18"></path>
+                <path d="M12 3a15 15 0 0 0 0 18"></path>
+            </svg>
+        </span>
 
         <span class="pmd-language-label">
             Language
         </span>
 
         <span class="pmd-current-language">
-            {{ strtoupper(substr($pmdCurrentLocale, 0, 2)) }}
+            {{ strtoupper($pmdCurrentLocale) }}
         </span>
     </button>
-
-    <div id="pmd-language-menu">
-        <div class="pmd-language-title">
-            Select language
-        </div>
-
-        @foreach($pmdLanguages as $pmdLanguage)
-            @php
-                $pmdCode = strtolower(
-                    (string)$pmdLanguage->code
-                );
-
-                $pmdActive =
-                    $pmdCode === $pmdCurrentLocale;
-            @endphp
-
-            <button
-                type="button"
-                class="pmd-language-choice
-                    {{ $pmdActive ? 'is-active' : '' }}"
-                data-language-code="{{ $pmdCode }}"
-            >
-                <span class="pmd-choice-code">
-                    {{ strtoupper($pmdCode) }}
-                </span>
-
-                <span class="pmd-choice-name">
-                    {{ $pmdLanguage->name }}
-                </span>
-
-                @if($pmdActive)
-                    <span class="pmd-choice-check">✓</span>
-                @endif
-            </button>
-        @endforeach
-
-        <div id="pmd-language-error"></div>
-    </div>
 </div>
 
 <style>
 #pmd-sidebar-language {
     position: fixed;
-    left: 28px;
+    left: 18px;
     bottom: 88px;
     z-index: 99999;
     font-family: inherit;
@@ -108,374 +88,508 @@
 
 #pmd-language-trigger {
     width: 52px;
-    height: 52px;
-    padding: 0;
+    height: 46px;
+
+    padding: 0 7px;
+
     border: 0;
     border-radius: 14px;
-    background: rgba(255,255,255,.10);
+
+    background: rgba(255,255,255,.11);
     color: #fff;
-    cursor: pointer;
+
     display: flex;
     align-items: center;
     justify-content: center;
-    gap: 11px;
+
+    gap: 4px;
+
+    cursor: pointer;
+
     font-family: inherit;
-    font-weight: 700;
+
     transition:
         background .15s ease,
         transform .15s ease,
         width .18s ease;
 }
 
-#pmd-sidebar-language.is-wide #pmd-language-trigger {
-    width: 230px;
-    padding: 0 17px;
-    justify-content: flex-start;
-}
-
 #pmd-language-trigger:hover {
     background: rgba(255,255,255,.18);
-    transform: translateY(-1px);
+}
+
+#pmd-language-trigger:active {
+    transform: scale(.97);
 }
 
 .pmd-language-icon {
-    font-size: 20px;
-    line-height: 1;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+
+    width: 24px;
+    height: 24px;
+
+    color: #ffffff;
+
     flex: 0 0 auto;
+}
+
+.pmd-language-icon svg {
+    display: block;
+
+    width: 22px;
+    height: 22px;
+
+    stroke: currentColor;
 }
 
 .pmd-language-label {
     display: none;
-    flex: 1;
-    font-size: 16px;
-    text-align: left;
-}
 
-#pmd-sidebar-language.is-wide .pmd-language-label {
-    display: block;
+    flex: 1;
+
+    color: #fff;
+
+    font-size: 13px;
+    font-weight: 700;
+
+    text-align: left;
 }
 
 .pmd-current-language {
-    min-width: 25px;
+    min-width: 27px;
+
     padding: 4px 5px;
-    border-radius: 7px;
-    background: #fff;
-    color: #00483c;
-    font-size: 10px;
-    font-weight: 900;
-    text-align: center;
-}
 
-#pmd-language-menu {
-    position: absolute;
-    left: calc(100% + 13px);
-    bottom: 0;
-    width: 235px;
-    padding: 9px;
-    border: 1px solid #dfe8e4;
-    border-radius: 16px;
-    background: #fff;
-    color: #142c25;
-    box-shadow: 0 18px 50px rgba(0,0,0,.24);
-    opacity: 0;
-    visibility: hidden;
-    pointer-events: none;
-    transform: translateX(-8px) scale(.98);
-    transition:
-        opacity .15s ease,
-        transform .15s ease,
-        visibility .15s ease;
-}
-
-#pmd-sidebar-language.is-open #pmd-language-menu {
-    opacity: 1;
-    visibility: visible;
-    pointer-events: auto;
-    transform: translateX(0) scale(1);
-}
-
-.pmd-language-title {
-    padding: 9px 10px 11px;
-    border-bottom: 1px solid #e9efec;
-    font-size: 12px;
-    font-weight: 900;
-    letter-spacing: .08em;
-    text-transform: uppercase;
-}
-
-.pmd-language-choice {
-    width: 100%;
-    min-height: 48px;
-    margin-top: 5px;
-    padding: 7px 10px;
-    border: 1px solid transparent;
-    border-radius: 11px;
-    background: transparent;
-    color: #17342c;
-    cursor: pointer;
-    display: grid;
-    grid-template-columns: 42px 1fr 18px;
-    gap: 8px;
-    align-items: center;
-    text-align: left;
-    font-family: inherit;
-}
-
-.pmd-language-choice:hover {
-    border-color: #cfe5dc;
-    background: #eff8f4;
-}
-
-.pmd-language-choice.is-active {
-    border-color: #a5ddca;
-    background: #e2f5ee;
-    color: #00604d;
-}
-
-.pmd-choice-code {
-    padding: 5px 6px;
-    border-radius: 7px;
-    background: #e9efec;
-    font-size: 11px;
-    font-weight: 900;
-    text-align: center;
-}
-
-.pmd-language-choice.is-active .pmd-choice-code {
-    background: #006b57;
-    color: #fff;
-}
-
-.pmd-choice-name {
-    font-size: 14px;
-    font-weight: 700;
-}
-
-.pmd-choice-check {
-    color: #00745e;
-    font-weight: 900;
-}
-
-#pmd-language-error {
-    display: none;
-    margin-top: 7px;
-    padding: 8px 9px;
     border-radius: 8px;
-    background: #fff0f0;
-    color: #a52020;
-    font-size: 12px;
+
+    background: #fff;
+    color: #07594c;
+
+    font-size: 10px;
+    line-height: 1;
+    font-weight: 900;
+
+    text-align: center;
+}
+
+#pmd-sidebar-language.is-wide
+#pmd-language-trigger {
+    width: 142px;
+
+    padding: 0 13px;
+
+    justify-content: flex-start;
+
+    gap: 9px;
+}
+
+#pmd-sidebar-language.is-wide
+.pmd-language-label {
+    display: block;
 }
 
 #pmd-sidebar-language.is-loading
-    .pmd-language-choice {
-    opacity: .45;
+#pmd-language-trigger {
+    opacity: .55;
     pointer-events: none;
+}
+
+@media (max-width: 820px) {
+    #pmd-sidebar-language {
+        bottom: 82px;
+    }
 }
 </style>
 
 <script>
+/*
+ * PMD_LANGUAGE_DIRECT_TOGGLE_STABLE_20260807
+ *
+ * One click:
+ *
+ * DE -> EN
+ * EN -> DE
+ *
+ * No popup.
+ */
 (function () {
     'use strict';
 
-    function initializePmdLanguageButton() {
-        var root = document.getElementById(
-            'pmd-sidebar-language'
-        );
+    function bootLanguageToggle() {
+        var root =
+            document.getElementById(
+                'pmd-sidebar-language'
+            );
 
-        if (!root || root.dataset.ready === '1') {
+        var trigger =
+            document.getElementById(
+                'pmd-language-trigger'
+            );
+
+        if (
+            !root
+            || !trigger
+            || root.dataset.stableReady === '1'
+        ) {
             return;
         }
 
-        root.dataset.ready = '1';
+        root.dataset.stableReady = '1';
 
-        var trigger = document.getElementById(
-            'pmd-language-trigger'
-        );
+        var endpoint =
+            root.getAttribute(
+                'data-endpoint'
+            );
 
-        var menu = document.getElementById(
-            'pmd-language-menu'
-        );
+        var nextLocale =
+            String(
+                root.getAttribute(
+                    'data-next'
+                ) || ''
+            )
+            .trim()
+            .toLowerCase();
 
-        var errorBox = document.getElementById(
-            'pmd-language-error'
-        );
+        function csrfToken() {
+            var meta =
+                document.querySelector(
+                    'meta[name="csrf-token"]'
+                );
 
-        var sidebar =
-            root.closest('.sidebar') ||
-            document.querySelector('.sidebar');
+            if (
+                meta
+                && meta.getAttribute(
+                    'content'
+                )
+            ) {
+                return meta.getAttribute(
+                    'content'
+                );
+            }
 
-        var endpoint = root.getAttribute(
-            'data-endpoint'
-        );
+            var hidden =
+                document.querySelector(
+                    'input[name="_token"]'
+                );
 
-        var csrfMeta = document.querySelector(
-            'meta[name="csrf-token"]'
-        );
+            return hidden
+                ? hidden.value
+                : '';
+        }
 
-        var csrfToken = csrfMeta
-            ? csrfMeta.getAttribute('content')
-            : '';
+        function syncWidth() {
+            var sidebar =
+                document.getElementById(
+                    'pmd-side-menu2'
+                );
 
-        function synchronizePosition() {
             if (!sidebar) {
                 return;
             }
 
-            var rectangle =
+            var rect =
                 sidebar.getBoundingClientRect();
-
-            var wide = rectangle.width > 150;
 
             root.classList.toggle(
                 'is-wide',
-                wide
+                rect.width > 120
             );
 
             root.style.left =
-                (rectangle.left + (wide ? 52 : 18)) +
-                'px';
+                (
+                    rect.left
+                    + (
+                        rect.width > 120
+                            ? 20
+                            : 18
+                    )
+                )
+                + 'px';
         }
 
-        function closeMenu() {
-            root.classList.remove('is-open');
-        }
-
-        function showError(message) {
-            errorBox.textContent = message;
-            errorBox.style.display = 'block';
-        }
-
-        function clearError() {
-            errorBox.textContent = '';
-            errorBox.style.display = 'none';
-        }
-
-        synchronizePosition();
+        syncWidth();
 
         window.addEventListener(
             'resize',
-            synchronizePosition
+            syncWidth,
+            { passive: true }
         );
 
-        window.setInterval(
-            synchronizePosition,
-            700
+        document.addEventListener(
+            'pmd:side-menu2-state',
+            syncWidth
         );
 
         trigger.addEventListener(
             'click',
-            function (event) {
+            async function (event) {
                 event.preventDefault();
                 event.stopPropagation();
 
-                root.classList.toggle('is-open');
-            }
-        );
-
-        menu.addEventListener(
-            'click',
-            function (event) {
-                event.stopPropagation();
-            }
-        );
-
-        document.addEventListener(
-            'click',
-            closeMenu
-        );
-
-        document.addEventListener(
-            'keydown',
-            function (event) {
-                if (event.key === 'Escape') {
-                    closeMenu();
+                if (
+                    root.classList.contains(
+                        'is-loading'
+                    )
+                ) {
+                    return;
                 }
-            }
-        );
 
-        root.querySelectorAll(
-            '.pmd-language-choice'
-        ).forEach(function (button) {
-            button.addEventListener(
-                'click',
-                function () {
-                    var code = button.getAttribute(
-                        'data-language-code'
+                if (
+                    nextLocale !== 'de'
+                    && nextLocale !== 'en'
+                ) {
+                    console.error(
+                        '[PMD Language] Invalid next locale',
+                        nextLocale
                     );
 
-                    if (!code) {
-                        return;
-                    }
+                    return;
+                }
 
-                    clearError();
-                    root.classList.add('is-loading');
+                root.classList.add(
+                    'is-loading'
+                );
 
+                try {
                     var body =
                         new URLSearchParams();
 
-                    body.append('code', code);
+                    body.set(
+                        'code',
+                        nextLocale
+                    );
 
-                    fetch(endpoint, {
-                        method: 'POST',
-                        credentials: 'same-origin',
-                        headers: {
-                            'Content-Type':
-                                'application/x-www-form-urlencoded; charset=UTF-8',
-                            'X-CSRF-TOKEN': csrfToken,
-                            'X-Requested-With':
-                                'XMLHttpRequest',
-                            'Accept':
-                                'application/json'
-                        },
-                        body: body.toString()
-                    })
-                    .then(function (response) {
-                        return response
-                            .json()
-                            .then(function (data) {
-                                return {
-                                    ok: response.ok,
-                                    data: data
-                                };
-                            });
-                    })
-                    .then(function (result) {
-                        if (
-                            !result.ok ||
-                            !result.data.ok
-                        ) {
-                            throw new Error(
-                                result.data.message ||
-                                'Unable to change language.'
-                            );
-                        }
+                    var token =
+                        csrfToken();
 
-                        window.location.reload();
-                    })
-                    .catch(function (error) {
-                        root.classList.remove(
-                            'is-loading'
+                    if (token) {
+                        body.set(
+                            '_token',
+                            token
+                        );
+                    }
+
+                    var headers = {
+                        'Content-Type':
+                            'application/x-www-form-urlencoded; charset=UTF-8',
+
+                        'X-Requested-With':
+                            'XMLHttpRequest',
+
+                        'Accept':
+                            'application/json'
+                    };
+
+                    if (token) {
+                        headers[
+                            'X-CSRF-TOKEN'
+                        ] = token;
+                    }
+
+                    var response =
+                        await fetch(
+                            endpoint,
+                            {
+                                method: 'POST',
+                                credentials:
+                                    'same-origin',
+                                cache:
+                                    'no-store',
+                                headers:
+                                    headers,
+                                body:
+                                    body.toString()
+                            }
                         );
 
-                        showError(error.message);
-                    });
+                    var raw =
+                        await response.text();
+
+                    var data = {};
+
+                    try {
+                        data =
+                            raw
+                                ? JSON.parse(raw)
+                                : {};
+                    } catch (ignore) {}
+
+                    if (
+                        !response.ok
+                        || !data.ok
+                    ) {
+                        throw new Error(
+                            data.message
+                            || (
+                                'Language switch failed: HTTP '
+                                + response.status
+                            )
+                        );
+                    }
+
+                    /*
+                     * Cookie is written by backend.
+                     * Hard navigation guarantees every page-level
+                     * translation authority starts in new locale.
+                     */
+                    window.location.href =
+                        window.location.pathname
+                        + window.location.search
+                        + window.location.hash;
+                } catch (error) {
+                    root.classList.remove(
+                        'is-loading'
+                    );
+
+                    console.error(
+                        '[PMD Language Toggle]',
+                        error
+                    );
                 }
-            );
-        });
+            }
+        );
     }
 
-    if (document.readyState === 'loading') {
+    if (
+        document.readyState ===
+        'loading'
+    ) {
         document.addEventListener(
             'DOMContentLoaded',
-            initializePmdLanguageButton
+            bootLanguageToggle,
+            { once: true }
         );
     } else {
-        initializePmdLanguageButton();
+        bootLanguageToggle();
     }
 })();
 </script>
-@endif
-{{-- PMD_SIDEBAR_LANGUAGE_SWITCHER_V2_END --}}
+{{-- PMD_SIDEBAR_LANGUAGE_DIRECT_TOGGLE_20260807_END --}}
 
 
+
+
+<style>
+/*
+ * PMD_LANGUAGE_COLLAPSED_CENTER_ALIGNMENT_20260807
+ *
+ * Language icon follows the same centered geometry as every
+ * other collapsed Side Menu icon.
+ *
+ * The DE/EN badge floats outside and does not participate in
+ * centering the globe.
+ */
+
+html.pmd-sm2-collapsed #pmd-sidebar-language {
+    overflow: visible !important;
+}
+
+html.pmd-sm2-collapsed #pmd-language-trigger {
+    position: relative !important;
+
+    width: 52px !important;
+    min-width: 52px !important;
+    height: 46px !important;
+
+    padding: 0 !important;
+
+    display: block !important;
+
+    overflow: visible !important;
+}
+
+html.pmd-sm2-collapsed
+#pmd-language-trigger
+.pmd-language-icon {
+    position: absolute !important;
+
+    left: 50% !important;
+    top: 50% !important;
+
+    width: 24px !important;
+    height: 24px !important;
+
+    margin: 0 !important;
+
+    transform:
+        translate(-50%, -50%) !important;
+
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+}
+
+html.pmd-sm2-collapsed
+#pmd-language-trigger
+.pmd-language-icon svg {
+    width: 22px !important;
+    height: 22px !important;
+
+    margin: 0 !important;
+
+    display: block !important;
+}
+
+html.pmd-sm2-collapsed
+#pmd-language-trigger
+.pmd-current-language {
+    position: absolute !important;
+
+    left: calc(100% - 2px) !important;
+    top: 50% !important;
+
+    margin: 0 !important;
+
+    transform:
+        translateY(-50%) !important;
+
+    z-index: 2 !important;
+}
+
+html.pmd-sm2-collapsed
+#pmd-language-trigger
+.pmd-language-label {
+    display: none !important;
+}
+</style>
+
+
+<style>
+/*
+ * PMD_LANGUAGE_COLLAPSED_ICON_LEFT_NUDGE_20260807
+ *
+ * Optical alignment only.
+ * Does not change language behaviour.
+ */
+html.pmd-sm2-collapsed
+#pmd-language-trigger
+.pmd-language-icon {
+    left: calc(50% - 4px) !important;
+}
+</style>
+
+
+<style>
+/*
+ * PMD_LANGUAGE_WHOLE_CONTROL_ALIGN_20260807
+ *
+ * Move the complete collapsed language control:
+ * frame + icon + badge.
+ *
+ * Undo previous icon-only optical nudge.
+ */
+
+html.pmd-sm2-collapsed
+#pmd-sidebar-language {
+    transform: translateX(-5px) !important;
+}
+
+html.pmd-sm2-collapsed
+#pmd-language-trigger
+.pmd-language-icon {
+    left: 50% !important;
+}
+</style>
 

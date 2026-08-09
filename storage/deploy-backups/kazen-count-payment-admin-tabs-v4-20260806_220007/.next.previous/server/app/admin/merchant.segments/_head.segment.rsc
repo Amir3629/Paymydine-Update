@@ -1,5 +1,0 @@
-1:"$Sreact.fragment"
-2:I[64381,["/_next/static/chunks/1le7nldz4hlfr.js","/_next/static/chunks/0dn247mc1-6_g.js","/_next/static/chunks/1pyi1oje6qgwq.js","/_next/static/chunks/1as67p9r7yzet.js","/_next/static/chunks/0b2_kcnds313o.js"],"ViewportBoundary"]
-3:I[64381,["/_next/static/chunks/1le7nldz4hlfr.js","/_next/static/chunks/0dn247mc1-6_g.js","/_next/static/chunks/1pyi1oje6qgwq.js","/_next/static/chunks/1as67p9r7yzet.js","/_next/static/chunks/0b2_kcnds313o.js"],"MetadataBoundary"]
-4:"$Sreact.suspense"
-0:{"rsc":["$","$1","h",{"children":[null,["$","$L2",null,{"children":[["$","meta","0",{"charSet":"utf-8"}],["$","meta","1",{"name":"viewport","content":"width=device-width, initial-scale=1"}]]}],["$","div",null,{"hidden":true,"children":["$","$L3",null,{"children":["$","$4",null,{"name":"Next.Metadata","children":[["$","title","0",{"children":"PayMyDine - A Luxurious Dining Experience"}],["$","meta","1",{"name":"description","content":"Order, pay, and enjoy your meal seamlessly."}],["$","meta","2",{"name":"generator","content":"v0.dev"}]]}]}]}],null]}],"isPartial":false,"staleTime":300,"varyParams":null,"buildId":"r-DMFU_94fMR5wJKienFX"}

@@ -401,7 +401,12 @@ section.pmd962-hero,
                             <div class="nk-block nk-block-middle nk-auth-body">
                                 <div class="brand-logo pb-5">
                                     <a href="html/index.html" class="logo-link">
-<img class="logo-dark logo-img" src="{{ asset('app/admin/assets/images/pmd-logo-final.png') }}?v={{ filemtime(base_path('app/admin/assets/images/pmd-logo-final.png')) }}" srcset="{{ asset('app/admin/assets/images/pmd-logo-final.png') }}?v={{ filemtime(base_path('app/admin/assets/images/pmd-logo-final.png')) }}" alt="" aria-hidden="true">       </a>
+<!-- PMD_LOGIN_NEW_SVG_20260807 -->
+<img
+    class="logo-dark logo-img pmd-login-new-svg"
+    src="{{ asset('app/admin/assets/images/pmd-login-logo.svg') }}?v={{ filemtime(base_path('app/admin/assets/images/pmd-login-logo.svg')) }}"
+    alt="PayMyDine"
+>       </a>
                                 </div>
                                 <div class="nk-block-head">
                                     <div class="nk-block-head-content">

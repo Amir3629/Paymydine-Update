@@ -1412,3 +1412,834 @@ body.pmd-admin-form-v1.pmd-admin-forms-v8[data-pmd-admin-form-page="coupon"] .pm
   border-color: rgba(96,190,232,.34) !important;
   box-shadow: 0 7px 16px rgba(12,39,58,.015) !important;
 }
+
+/* PMD_MODERN_ADMIN_PAGES_V21 */
+
+/* ==========================================================
+   GLOBAL CANVAS
+   ========================================================== */
+
+html.pmd-modern-admin-v21,
+html.pmd-modern-admin-v21 body,
+html.pmd-modern-admin-v21 .page-wrapper,
+html.pmd-modern-admin-v21 .page-content,
+html.pmd-modern-admin-v21 .page-content > .row-fluid {
+    background:
+        #f5f7fa !important;
+    background-color:
+        #f5f7fa !important;
+}
+
+html.pmd-modern-admin-v21 .page-wrapper {
+    min-height:
+        calc(100vh - 64px) !important;
+
+    height:
+        auto !important;
+}
+
+html.pmd-modern-admin-v21 .page-content {
+    padding:
+        24px 24px 40px !important;
+
+    min-height:
+        calc(100vh - 64px) !important;
+}
+
+html.pmd-modern-admin-v21
+.page-content > .row-fluid {
+    width:
+        100% !important;
+
+    max-width:
+        1260px !important;
+
+    margin:
+        0 auto !important;
+
+    padding:
+        0 !important;
+}
+
+
+/* ==========================================================
+   SHARED HEADER
+   ========================================================== */
+
+html.pmd-modern-admin-v21
+#pmd-r2-clean-header {
+    background:
+        transparent !important;
+
+    border:
+        0 !important;
+
+    box-shadow:
+        none !important;
+}
+
+
+/* ==========================================================
+   FORM PAGES — REMOVE DOUBLE FRAME
+   ========================================================== */
+
+html.pmd-modern-admin-v21
+#edit-form.pmd-modern-form-v21 {
+    width:
+        100% !important;
+
+    max-width:
+        none !important;
+
+    min-height:
+        0 !important;
+
+    margin:
+        0 !important;
+
+    padding:
+        0 !important;
+
+    background:
+        transparent !important;
+
+    border:
+        0 !important;
+
+    border-radius:
+        0 !important;
+
+    box-shadow:
+        none !important;
+
+    overflow:
+        visible !important;
+}
+
+html.pmd-modern-admin-v21
+#edit-form
+.form-widget.pmd-modern-form-surface-v21 {
+    width:
+        100% !important;
+
+    max-width:
+        none !important;
+
+    margin:
+        0 !important;
+
+    padding:
+        28px !important;
+
+    background:
+        #ffffff !important;
+
+    border:
+        1px solid #e1e7eb !important;
+
+    border-radius:
+        18px !important;
+
+    box-shadow:
+        0 7px 24px
+        rgba(28,45,55,.045) !important;
+
+    overflow:
+        visible !important;
+}
+
+
+/* Kill old blue mega borders */
+
+html.pmd-modern-admin-v21
+.pmd-form-panel-v1,
+html.pmd-modern-admin-v21
+.pmd-admin-forms-v5-form {
+    border-color:
+        #e1e7eb !important;
+}
+
+html.pmd-modern-admin-v21
+[data-pmd-v21-hide="1"] {
+    display:
+        none !important;
+}
+
+
+/* ==========================================================
+   TWO-COLUMN FORM GRID
+   ========================================================== */
+
+html.pmd-modern-admin-v21
+.pmd-modern-fields-grid-v21 {
+    display:
+        grid !important;
+
+    grid-template-columns:
+        repeat(2, minmax(0, 1fr)) !important;
+
+    column-gap:
+        24px !important;
+
+    row-gap:
+        22px !important;
+
+    width:
+        100% !important;
+
+    align-items:
+        start !important;
+}
+
+html.pmd-modern-admin-v21
+.pmd-modern-fields-grid-v21
+> .form-group {
+    float:
+        none !important;
+
+    clear:
+        none !important;
+
+    width:
+        auto !important;
+
+    min-width:
+        0 !important;
+
+    max-width:
+        none !important;
+
+    margin:
+        0 !important;
+
+    padding:
+        0 !important;
+}
+
+html.pmd-modern-admin-v21
+.pmd-modern-fields-grid-v21
+> .span-full,
+html.pmd-modern-admin-v21
+.pmd-modern-fields-grid-v21
+> .pmd-v21-full-width {
+    grid-column:
+        1 / -1 !important;
+}
+
+
+/* ==========================================================
+   LABELS
+   ========================================================== */
+
+html.pmd-modern-admin-v21
+.form-group > label,
+html.pmd-modern-admin-v21
+.control-label {
+    display:
+        block !important;
+
+    margin:
+        0 0 8px !important;
+
+    color:
+        #607772 !important;
+
+    font-size:
+        11px !important;
+
+    font-weight:
+        700 !important;
+
+    line-height:
+        1.2 !important;
+
+    letter-spacing:
+        .12em !important;
+
+    text-transform:
+        uppercase !important;
+}
+
+
+/* ==========================================================
+   INPUTS
+   ========================================================== */
+
+html.pmd-modern-admin-v21
+.form-control,
+html.pmd-modern-admin-v21
+.input-group,
+html.pmd-modern-admin-v21
+.selectize-input,
+html.pmd-modern-admin-v21
+.select2-selection {
+    box-sizing:
+        border-box !important;
+
+    width:
+        100% !important;
+
+    min-height:
+        48px !important;
+
+    background:
+        #ffffff !important;
+
+    border:
+        1px solid #dce5e8 !important;
+
+    border-radius:
+        13px !important;
+
+    box-shadow:
+        none !important;
+
+    color:
+        #18312e !important;
+}
+
+html.pmd-modern-admin-v21
+input.form-control,
+html.pmd-modern-admin-v21
+select.form-control,
+html.pmd-modern-admin-v21
+textarea.form-control {
+    padding:
+        11px 15px !important;
+}
+
+html.pmd-modern-admin-v21
+textarea.form-control {
+    min-height:
+        98px !important;
+
+    resize:
+        vertical !important;
+}
+
+html.pmd-modern-admin-v21
+.form-control:focus,
+html.pmd-modern-admin-v21
+.selectize-input.focus,
+html.pmd-modern-admin-v21
+.select2-container--focus
+.select2-selection {
+    border-color:
+        #8fbeb6 !important;
+
+    box-shadow:
+        0 0 0 3px
+        rgba(0,112,96,.08) !important;
+
+    outline:
+        0 !important;
+}
+
+
+/* Help text */
+
+html.pmd-modern-admin-v21
+.help-block,
+html.pmd-modern-admin-v21
+.form-text,
+html.pmd-modern-admin-v21
+.text-muted {
+    margin-top:
+        7px !important;
+
+    color:
+        #7b8d89 !important;
+
+    font-size:
+        12px !important;
+
+    line-height:
+        1.45 !important;
+}
+
+
+/* ==========================================================
+   COUPON CARD TYPE
+   ========================================================== */
+
+html.pmd-modern-admin-coupon-edit-v21
+#form-field-coupon-card-type-group {
+    grid-column:
+        1 / -1 !important;
+}
+
+html.pmd-modern-admin-coupon-edit-v21
+#form-field-coupon-card-type {
+    display:
+        grid !important;
+
+    grid-template-columns:
+        repeat(5, minmax(0, 1fr)) !important;
+
+    gap:
+        10px !important;
+
+    width:
+        100% !important;
+
+    min-height:
+        0 !important;
+
+    padding:
+        0 !important;
+
+    background:
+        transparent !important;
+
+    border:
+        0 !important;
+
+    border-radius:
+        0 !important;
+}
+
+html.pmd-modern-admin-coupon-edit-v21
+#form-field-coupon-card-type
+.btn,
+html.pmd-modern-admin-coupon-edit-v21
+#form-field-coupon-card-type
+label {
+    width:
+        100% !important;
+
+    min-height:
+        48px !important;
+
+    margin:
+        0 !important;
+
+    display:
+        flex !important;
+
+    align-items:
+        center !important;
+
+    justify-content:
+        center !important;
+
+    border:
+        1px solid #dce5e8 !important;
+
+    border-radius:
+        12px !important;
+
+    background:
+        #ffffff !important;
+
+    box-shadow:
+        none !important;
+
+    color:
+        #314c48 !important;
+}
+
+html.pmd-modern-admin-coupon-edit-v21
+#form-field-coupon-card-type
+.btn.active,
+html.pmd-modern-admin-coupon-edit-v21
+#form-field-coupon-card-type
+.btn-primary,
+html.pmd-modern-admin-coupon-edit-v21
+#form-field-coupon-card-type
+label.active {
+    color:
+        #006b5d !important;
+
+    background:
+        #eef8f5 !important;
+
+    border-color:
+        #9fcfc4 !important;
+
+    box-shadow:
+        inset 0 0 0 1px
+        rgba(0,107,93,.04) !important;
+}
+
+
+/* Discount type */
+
+html.pmd-modern-admin-coupon-edit-v21
+[id*="coupon-type"].btn-group,
+html.pmd-modern-admin-coupon-edit-v21
+.pmd-v21-discount-type {
+    display:
+        grid !important;
+
+    grid-template-columns:
+        repeat(2, minmax(0,1fr)) !important;
+
+    gap:
+        10px !important;
+
+    background:
+        transparent !important;
+
+    border:
+        0 !important;
+
+    padding:
+        0 !important;
+}
+
+
+/* ==========================================================
+   SWITCHES
+   ========================================================== */
+
+html.pmd-modern-admin-v21
+.custom-switch,
+html.pmd-modern-admin-v21
+.form-switch {
+    min-height:
+        44px !important;
+
+    display:
+        flex !important;
+
+    align-items:
+        center !important;
+}
+
+
+/* ==========================================================
+   THEME EDIT
+   ========================================================== */
+
+html.pmd-modern-admin-theme-edit-v21
+#edit-form {
+    max-width:
+        1120px !important;
+
+    margin:
+        0 auto !important;
+}
+
+html.pmd-modern-admin-theme-edit-v21
+.nav-tabs {
+    gap:
+        8px !important;
+
+    border:
+        0 !important;
+
+    margin:
+        8px 0 24px !important;
+}
+
+html.pmd-modern-admin-theme-edit-v21
+.nav-tabs .nav-link {
+    border:
+        1px solid #dce5e8 !important;
+
+    border-radius:
+        11px !important;
+
+    padding:
+        10px 16px !important;
+
+    background:
+        #ffffff !important;
+
+    color:
+        #46605c !important;
+}
+
+html.pmd-modern-admin-theme-edit-v21
+.nav-tabs .nav-link.active {
+    background:
+        #006c5d !important;
+
+    border-color:
+        #006c5d !important;
+
+    color:
+        #ffffff !important;
+}
+
+
+/* ==========================================================
+   THEMES LIST
+   ========================================================== */
+
+html.pmd-modern-admin-themes-list-v21
+#list-form.pmd-v21-theme-list {
+    width:
+        100% !important;
+
+    max-width:
+        1240px !important;
+
+    margin:
+        0 auto !important;
+}
+
+html.pmd-modern-admin-themes-list-v21
+.pmd-v21-theme-row {
+    width:
+        100% !important;
+
+    margin:
+        0 0 18px !important;
+
+    padding:
+        0 !important;
+}
+
+html.pmd-modern-admin-themes-list-v21
+.pmd-v21-theme-card {
+    display:
+        grid !important;
+
+    grid-template-columns:
+        220px minmax(0,1fr) !important;
+
+    gap:
+        24px !important;
+
+    width:
+        100% !important;
+
+    min-height:
+        176px !important;
+
+    padding:
+        20px !important;
+
+    align-items:
+        center !important;
+
+    background:
+        #ffffff !important;
+
+    border:
+        1px solid #e1e7eb !important;
+
+    border-radius:
+        18px !important;
+
+    box-shadow:
+        0 7px 24px
+        rgba(28,45,55,.045) !important;
+}
+
+html.pmd-modern-admin-themes-list-v21
+.pmd-v21-theme-thumb {
+    display:
+        block !important;
+
+    width:
+        220px !important;
+
+    height:
+        140px !important;
+
+    margin:
+        0 !important;
+
+    overflow:
+        hidden !important;
+
+    border:
+        1px solid #e5ebee !important;
+
+    border-radius:
+        14px !important;
+
+    background:
+        #f8fafb !important;
+}
+
+html.pmd-modern-admin-themes-list-v21
+.pmd-v21-theme-thumb img {
+    display:
+        block !important;
+
+    width:
+        100% !important;
+
+    height:
+        100% !important;
+
+    object-fit:
+        cover !important;
+
+    border-radius:
+        0 !important;
+}
+
+html.pmd-modern-admin-themes-list-v21
+.pmd-v21-theme-content {
+    min-width:
+        0 !important;
+
+    padding:
+        0 !important;
+}
+
+html.pmd-modern-admin-themes-list-v21
+.pmd-v21-theme-content
+.media-heading {
+    color:
+        #18312e !important;
+
+    font-size:
+        18px !important;
+
+    font-weight:
+        700 !important;
+}
+
+html.pmd-modern-admin-themes-list-v21
+.pmd-v21-theme-content
+.description {
+    max-width:
+        780px !important;
+
+    margin-top:
+        10px !important;
+
+    color:
+        #687d79 !important;
+
+    line-height:
+        1.55 !important;
+}
+
+html.pmd-modern-admin-themes-list-v21
+.pmd-v21-theme-content
+.list-action {
+    margin:
+        16px 0 0 !important;
+}
+
+
+/* Theme action buttons */
+
+html.pmd-modern-admin-themes-list-v21
+.pmd-v21-theme-card
+.btn {
+    min-height:
+        42px !important;
+
+    padding:
+        9px 16px !important;
+
+    border-radius:
+        11px !important;
+
+    box-shadow:
+        none !important;
+}
+
+
+/* ==========================================================
+   GENERAL BUTTONS
+   ========================================================== */
+
+html.pmd-modern-admin-v21
+.btn-primary,
+html.pmd-modern-admin-v21
+.btn-success {
+    border-color:
+        #007765 !important;
+
+    background:
+        #007765 !important;
+
+    color:
+        #ffffff !important;
+
+    border-radius:
+        11px !important;
+
+    box-shadow:
+        0 5px 14px
+        rgba(0,119,101,.15) !important;
+}
+
+html.pmd-modern-admin-v21
+.btn-default,
+html.pmd-modern-admin-v21
+.btn-light {
+    border:
+        1px solid #dce5e8 !important;
+
+    background:
+        #ffffff !important;
+
+    color:
+        #314c48 !important;
+
+    border-radius:
+        11px !important;
+
+    box-shadow:
+        none !important;
+}
+
+
+/* ==========================================================
+   RESPONSIVE
+   ========================================================== */
+
+@media (max-width: 900px) {
+
+    html.pmd-modern-admin-v21
+    .page-content {
+        padding:
+            16px 14px 28px !important;
+    }
+
+    html.pmd-modern-admin-v21
+    #edit-form
+    .form-widget.pmd-modern-form-surface-v21 {
+        padding:
+            18px !important;
+
+        border-radius:
+            16px !important;
+    }
+
+    html.pmd-modern-admin-v21
+    .pmd-modern-fields-grid-v21 {
+        grid-template-columns:
+            1fr !important;
+
+        gap:
+            18px !important;
+    }
+
+    html.pmd-modern-admin-v21
+    .pmd-modern-fields-grid-v21
+    > * {
+        grid-column:
+            1 !important;
+    }
+
+    html.pmd-modern-admin-coupon-edit-v21
+    #form-field-coupon-card-type {
+        grid-template-columns:
+            repeat(2,minmax(0,1fr)) !important;
+    }
+
+    html.pmd-modern-admin-themes-list-v21
+    .pmd-v21-theme-card {
+        grid-template-columns:
+            1fr !important;
+    }
+
+    html.pmd-modern-admin-themes-list-v21
+    .pmd-v21-theme-thumb {
+        width:
+            100% !important;
+
+        height:
+            190px !important;
+    }
+}

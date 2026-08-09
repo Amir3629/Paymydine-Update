@@ -36,6 +36,26 @@ export function getCheckoutStepOnOpen(params: {
   preferPersonalReview: boolean
   currentStep: CheckoutStep
 }): CheckoutStep {
+  /*
+   * PMD_SECOND_ORDER_UNPAID_FIRST_ORDER_FIX_V1_20260807
+   *
+   * An older submitted/unpaid table order must NEVER hijack
+   * a brand-new personal order currently being created.
+   *
+   * Example:
+   *
+   * Order #1 = kitchen + unpaid
+   * Order #2 = new cart items
+   *
+   * Order #2 MUST enter REVIEW first.
+   */
+  if (
+    params.hasPersonalItems ||
+    params.preferPersonalReview
+  ) {
+    return "review"
+  }
+
   const nextStep = params.initialCheckoutStep && !(params.existingOrderId && params.initialCheckoutStep === "review")
     ? params.initialCheckoutStep
     : params.existingOrderId

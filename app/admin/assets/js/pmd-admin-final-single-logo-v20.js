@@ -87,7 +87,13 @@ if (
 if (!/\/admin(\/|$)/i.test(window.location.pathname)) return;
 
   var VERSION = "v20-20260625_154925";
-  var LOGO_URL = "/app/admin/assets/images/pmd-logo-final.png?v=" + encodeURIComponent(VERSION);
+  /*
+   * PMD_LOGIN_NEW_SVG_20260807
+   * Same existing V20 logo authority; only source asset changed.
+   */
+  var LOGO_URL =
+    "/app/admin/assets/images/pmd-login-logo.svg?v=" +
+    encodeURIComponent(VERSION);
 
   function isLoginPage() {
     return /\/admin\/login/i.test(window.location.pathname) ||

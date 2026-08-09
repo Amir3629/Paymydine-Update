@@ -1,3 +1,4 @@
+
 <!-- PMD_R2_V6_PREPAINT_START -->
 
 {{-- PMD_RESERVATIONS_LEGACY_WAITER_IFRAME_DISABLED_V14
@@ -1213,37 +1214,21 @@ body.page > .page-wrapper {
 <script defer src="/app/admin/assets/js/pmd-reservations2-stability-v3.js?v=20260729_date-cards-v2"></script>
 <!-- PMD_R2_EMBEDDED_CALENDAR_TOGGLE_V1_END -->
 
-{{-- PMD_RESERVATIONS_CANONICAL_BROWSER_URL_V1_BEGIN --}}
-<script>
-(function () {
-    'use strict';
+{{-- PMD_RESERVATIONS_CANONICAL_BROWSER_URL_V1_DISABLED_20260808
 
-    var currentPath = String(
-        window.location.pathname || ''
-    ).replace(/\/+$/, '');
+The Reservations2 workspace must keep its real route identity:
 
-    if (currentPath !== '/admin/reservations2') {
-        return;
-    }
+    /admin/reservations2
 
-    var canonicalUrl =
-        '/admin/reservations' +
-        window.location.search +
-        window.location.hash;
+Do NOT rewrite window.location.pathname to /admin/reservations.
 
-    window.history.replaceState(
-        window.history.state,
-        document.title,
-        canonicalUrl
-    );
+Several Reservations2 authorities are route-scoped and explicitly
+require /admin/reservations2. Changing only the browser URL causes
+those authorities to see the wrong route after page boot and especially
+after refresh / zero-state initialization.
 
-    console.info(
-        '[PMD Reservations Canonical URL V1] Browser URL changed to',
-        canonicalUrl
-    );
-})();
-</script>
-{{-- PMD_RESERVATIONS_CANONICAL_BROWSER_URL_V1_END --}}
+No redirect is performed here.
+--}}
 
 {{-- PMD_RESERVATIONS_SCROLL_UNLOCK_V1_BEGIN --}}
 <style id="pmd-reservations-scroll-unlock-v1">

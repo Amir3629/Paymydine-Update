@@ -92,7 +92,29 @@ export function useCheckoutModalLifecycleEffects({
     if ((tableDraft as any)?.order_id || (tableDraft as any)?.orderId) return
 
     setSubmittedSnapshot(null)
-  }, [(tableDraft as any)?.draft_id, (tableDraft as any)?.order_id, (tableDraft as any)?.orderId, setSubmittedSnapshot])
+
+    /*
+     * PMD_SECOND_ORDER_UNPAID_FIRST_ORDER_FIX_V1_20260807
+     *
+     * This is a NEW draft.
+     *
+     * An older unpaid existingOrderId belongs to a previous
+     * submitted order and must not push this draft into
+     * submitted/payment.
+     *
+     * Draft without real order_id = TABLE ORDER REVIEW.
+     */
+    if (isOpen) {
+      setCheckoutStep("review")
+    }
+  }, [
+    isOpen,
+    (tableDraft as any)?.draft_id,
+    (tableDraft as any)?.order_id,
+    (tableDraft as any)?.orderId,
+    setSubmittedSnapshot,
+    setCheckoutStep,
+  ])
 
   useEffect(() => {
     paymentLoadVATSettings()

@@ -149,8 +149,22 @@ if (!empty($imgSrcDashboard)) {
 --}}
 
 @php
+    /* PMD_MODERN_ADMIN_PAGES_V21 */
     $pmdSharedHeaderV20OrderEdit =
-        request()->is('admin/orders/edit/*');
+        request()->is('admin/orders/edit/*')
+        || request()->is('admin/coupons/edit/*')
+        || request()->is('admin/themes')
+        || request()->is('admin/themes/edit/frontend-theme');
+
+    $pmdSharedHeaderV20Title = 'Bestellung';
+
+    if (request()->is('admin/coupons/edit/*')) {
+        $pmdSharedHeaderV20Title = 'Coupon / Gift Card';
+    } elseif (request()->is('admin/themes/edit/frontend-theme')) {
+        $pmdSharedHeaderV20Title = 'Theme';
+    } elseif (request()->is('admin/themes')) {
+        $pmdSharedHeaderV20Title = 'Themes';
+    }
 @endphp
 
 @if(AdminAuth::isLogged() && $pmdSharedHeaderV20OrderEdit)
@@ -710,11 +724,11 @@ if (!empty($imgSrcDashboard)) {
 <header
     id="pmd-r2-clean-header"
     class="pmd-shared-header-v20"
-    aria-label="Order page header"
+    aria-label="Admin page header"
 >
 
     <h1 class="pmd-r2-clean-title">
-        Bestellung
+        {{ $pmdSharedHeaderV20Title }}
     </h1>
 
     <div
@@ -765,6 +779,9 @@ if (!empty($imgSrcDashboard)) {
 @if(
     AdminAuth::isLogged()
     && !request()->is('admin/orders/edit/*')
+    && !request()->is('admin/coupons/edit/*')
+    && !request()->is('admin/themes')
+    && !request()->is('admin/themes/edit/frontend-theme')
 )
     <nav class="navbar navbar-top navbar-expand navbar-fixed-top" role="navigation">
         <div class="container-fluid">

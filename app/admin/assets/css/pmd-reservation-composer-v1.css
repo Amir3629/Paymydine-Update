@@ -3242,3 +3242,541 @@ select[name="duration"].form-select,
 
   font-size: 14px !important;
 }
+
+/*
+ * PMD_RESERVATION_REAL_TABLE_DROPDOWN_V1_20260807
+ */
+
+#pmd-reservation-composer-v1
+.pmd-real-table-dropdown-v1__panel {
+    padding: 10px !important;
+    max-height: 300px !important;
+    overflow-y: auto !important;
+}
+
+#pmd-reservation-composer-v1
+.pmd-real-table-dropdown-v1__list {
+    display: grid !important;
+    grid-template-columns: 1fr !important;
+    gap: 7px !important;
+}
+
+#pmd-reservation-composer-v1
+.pmd-real-table-dropdown-v1__option {
+    width: 100% !important;
+    min-height: 52px !important;
+
+    display: flex !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+
+    padding: 10px 14px !important;
+
+    background: #fff !important;
+
+    border: 1px solid
+        rgba(10, 62, 58, .16) !important;
+
+    border-radius: 12px !important;
+
+    text-align: left !important;
+
+    cursor: pointer !important;
+
+    color: #102a2b !important;
+}
+
+#pmd-reservation-composer-v1
+.pmd-real-table-dropdown-v1__option:hover {
+    border-color:
+        rgba(0, 91, 82, .42) !important;
+
+    background:
+        rgba(230, 248, 244, .44) !important;
+}
+
+#pmd-reservation-composer-v1
+.pmd-real-table-dropdown-v1__option.is-selected {
+    border-color:
+        #006c62 !important;
+
+    background:
+        rgba(220, 244, 239, .72) !important;
+}
+
+#pmd-reservation-composer-v1
+.pmd-real-table-dropdown-v1__name {
+    font-weight: 700 !important;
+}
+
+#pmd-reservation-composer-v1
+.pmd-real-table-dropdown-v1__check {
+    width: 26px !important;
+    text-align: center !important;
+
+    font-weight: 800 !important;
+
+    color: #00685f !important;
+}
+
+#pmd-reservation-composer-v1
+.pmd-real-table-dropdown-v1__empty {
+    padding: 16px !important;
+    text-align: center !important;
+
+    color: #68767d !important;
+}
+
+
+/*
+ * PMD_MANUAL_TABLE_REAL_DROPDOWN_STYLE_V2_20260807
+ *
+ * TRUE floating dropdown.
+ */
+
+#pmd-reservation-composer-v1
+.pmd-real-table-dropdown-v1__panel {
+    position: fixed !important;
+
+    display: block !important;
+
+    max-height: 310px !important;
+
+    padding: 6px !important;
+
+    overflow-x: hidden !important;
+    overflow-y: auto !important;
+
+    background: #ffffff !important;
+
+    border:
+        1px solid
+        rgba(15, 79, 74, .18) !important;
+
+    border-radius: 14px !important;
+
+    box-shadow:
+        0 16px 38px
+        rgba(16, 38, 38, .18) !important;
+
+    box-sizing: border-box !important;
+}
+
+#pmd-reservation-composer-v1
+.pmd-real-table-dropdown-v1__panel[hidden] {
+    display: none !important;
+}
+
+#pmd-reservation-composer-v1
+.pmd-real-table-dropdown-v1__list {
+    display: flex !important;
+
+    flex-direction: column !important;
+
+    gap: 2px !important;
+
+    width: 100% !important;
+}
+
+#pmd-reservation-composer-v1
+button.pmd-real-table-dropdown-v1__option {
+    appearance: none !important;
+
+    display: flex !important;
+
+    align-items: center !important;
+    justify-content: space-between !important;
+
+    width: 100% !important;
+
+    min-width: 0 !important;
+    min-height: 46px !important;
+
+    height: auto !important;
+
+    margin: 0 !important;
+
+    padding:
+        9px 12px !important;
+
+    background:
+        transparent !important;
+
+    color:
+        #102b2c !important;
+
+    border:
+        0 !important;
+
+    border-radius:
+        9px !important;
+
+    box-shadow:
+        none !important;
+
+    font: inherit !important;
+
+    text-align:
+        left !important;
+
+    cursor:
+        pointer !important;
+
+    transform:
+        none !important;
+}
+
+#pmd-reservation-composer-v1
+button.pmd-real-table-dropdown-v1__option:hover {
+    background:
+        #eef8f5 !important;
+}
+
+#pmd-reservation-composer-v1
+button.pmd-real-table-dropdown-v1__option.is-selected {
+    background:
+        #e3f4ef !important;
+
+    color:
+        #005d54 !important;
+}
+
+#pmd-reservation-composer-v1
+.pmd-real-table-dropdown-v1__name {
+    display: block !important;
+
+    min-width: 0 !important;
+
+    overflow: hidden !important;
+
+    color: inherit !important;
+
+    font-size:
+        14px !important;
+
+    font-weight:
+        650 !important;
+
+    line-height:
+        1.25 !important;
+
+    white-space:
+        nowrap !important;
+
+    text-overflow:
+        ellipsis !important;
+}
+
+#pmd-reservation-composer-v1
+.pmd-real-table-dropdown-v1__check {
+    display: flex !important;
+
+    align-items: center !important;
+    justify-content: center !important;
+
+    flex: 0 0 24px !important;
+
+    width: 24px !important;
+    height: 24px !important;
+
+    margin-left:
+        10px !important;
+
+    color:
+        #00695f !important;
+
+    font-size:
+        15px !important;
+
+    font-weight:
+        800 !important;
+}
+
+#pmd-reservation-composer-v1
+.pmd-real-table-dropdown-v1__empty {
+    display: flex !important;
+
+    align-items: center !important;
+
+    min-height:
+        48px !important;
+
+    padding:
+        10px 12px !important;
+
+    color:
+        #6a7679 !important;
+
+    font-size:
+        13px !important;
+
+    line-height:
+        1.35 !important;
+}
+
+/*
+ * Prevent previous matching-table/card rules from
+ * turning V2 options into big pills/cards.
+ */
+#pmd-reservation-composer-v1
+.pmd-real-table-dropdown-v1__panel
+.pmd-real-table-dropdown-v1__option::before,
+
+#pmd-reservation-composer-v1
+.pmd-real-table-dropdown-v1__panel
+.pmd-real-table-dropdown-v1__option::after {
+    box-shadow: none !important;
+}
+
+
+/*
+ * PMD_MANUAL_TABLE_DROPDOWN_UI_STYLE_V3_20260807
+ *
+ * One table = one row.
+ *
+ * Floating card.
+ * Never changes Composer height.
+ */
+
+#pmd-manual-table-dropdown-v3 {
+    position: fixed !important;
+
+    z-index: 2147483000 !important;
+
+    display: flex !important;
+
+    flex-direction: column !important;
+
+    gap: 0 !important;
+
+    max-height: 320px !important;
+
+    overflow-x: hidden !important;
+    overflow-y: auto !important;
+
+    padding: 6px !important;
+
+    margin: 0 !important;
+
+    box-sizing: border-box !important;
+
+    background: #ffffff !important;
+
+    border:
+        1px solid
+        rgba(12, 78, 72, .18) !important;
+
+    border-radius:
+        14px !important;
+
+    box-shadow:
+        0 18px 44px
+        rgba(23, 45, 44, .18) !important;
+}
+
+#pmd-manual-table-dropdown-v3[hidden] {
+    display: none !important;
+}
+
+/*
+ * EXACTLY ONE COLUMN.
+ */
+#pmd-manual-table-dropdown-v3
+.pmd-manual-table-dropdown-v3__row {
+    appearance: none !important;
+
+    display: flex !important;
+
+    flex:
+        0 0 auto !important;
+
+    align-items: center !important;
+
+    justify-content:
+        space-between !important;
+
+    width: 100% !important;
+
+    min-width: 0 !important;
+
+    height: 48px !important;
+    min-height: 48px !important;
+
+    margin: 0 !important;
+
+    padding:
+        0 14px !important;
+
+    box-sizing:
+        border-box !important;
+
+    background:
+        #ffffff !important;
+
+    color:
+        #132f30 !important;
+
+    border:
+        0 !important;
+
+    border-bottom:
+        1px solid
+        #e8eeee !important;
+
+    border-radius:
+        0 !important;
+
+    box-shadow:
+        none !important;
+
+    transform:
+        none !important;
+
+    text-align:
+        left !important;
+
+    cursor:
+        pointer !important;
+
+    font-family:
+        inherit !important;
+}
+
+#pmd-manual-table-dropdown-v3
+.pmd-manual-table-dropdown-v3__row:first-child {
+    border-radius:
+        9px 9px 0 0 !important;
+}
+
+#pmd-manual-table-dropdown-v3
+.pmd-manual-table-dropdown-v3__row:last-child {
+    border-bottom:
+        0 !important;
+
+    border-radius:
+        0 0 9px 9px !important;
+}
+
+#pmd-manual-table-dropdown-v3
+.pmd-manual-table-dropdown-v3__row:only-child {
+    border-radius:
+        9px !important;
+}
+
+#pmd-manual-table-dropdown-v3
+.pmd-manual-table-dropdown-v3__row:hover {
+    background:
+        #f1f9f7 !important;
+}
+
+#pmd-manual-table-dropdown-v3
+.pmd-manual-table-dropdown-v3__row.is-selected {
+    background:
+        #e4f5f0 !important;
+
+    color:
+        #005c54 !important;
+}
+
+#pmd-manual-table-dropdown-v3
+.pmd-manual-table-dropdown-v3__label {
+    display: block !important;
+
+    min-width: 0 !important;
+
+    overflow: hidden !important;
+
+    white-space:
+        nowrap !important;
+
+    text-overflow:
+        ellipsis !important;
+
+    font-size:
+        14px !important;
+
+    font-weight:
+        650 !important;
+
+    line-height:
+        1.2 !important;
+}
+
+#pmd-manual-table-dropdown-v3
+.pmd-manual-table-dropdown-v3__check {
+    display: flex !important;
+
+    align-items: center !important;
+    justify-content: center !important;
+
+    flex:
+        0 0 26px !important;
+
+    width: 26px !important;
+    height: 26px !important;
+
+    margin-left:
+        12px !important;
+
+    color:
+        #00685e !important;
+
+    font-size:
+        16px !important;
+
+    font-weight:
+        800 !important;
+}
+
+#pmd-manual-table-dropdown-v3
+.pmd-manual-table-dropdown-v3__empty {
+    display: flex !important;
+
+    align-items: center !important;
+
+    min-height:
+        48px !important;
+
+    padding:
+        10px 14px !important;
+
+    color:
+        #687778 !important;
+
+    font-size:
+        13px !important;
+
+    line-height:
+        1.3 !important;
+}
+
+/*
+ * Kill old INLINE/manual table cards.
+ *
+ * These are NOT the AUTO recommendation button.
+ */
+#pmd-reservation-composer-v1
+.pmd-reservation-composer-v1__table-options,
+
+#pmd-reservation-composer-v1
+.pmd-reservation-composer-v1__table-picker-options,
+
+#pmd-reservation-composer-v1
+.pmd-reservation-composer-v1__table-empty-v2291,
+
+#pmd-reservation-composer-v1
+.pmd-real-table-dropdown-v1__panel {
+    display:
+        none !important;
+}
+
+/*
+ * If old authority inserts actual option cards
+ * outside its standard wrapper, hide those too.
+ */
+#pmd-reservation-composer-v1
+.pmd-reservation-composer-v1__table-option {
+    display:
+        none !important;
+}
+

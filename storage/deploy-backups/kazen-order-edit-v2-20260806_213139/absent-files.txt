@@ -1,2 +1,0 @@
-app/admin/assets/css/pmd-order-edit-v2.css
-app/admin/assets/js/pmd-order-edit-v2.js

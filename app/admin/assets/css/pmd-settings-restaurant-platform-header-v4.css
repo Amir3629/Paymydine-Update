@@ -1,0 +1,313 @@
+/* ==========================================================
+   PMD RESTAURANT PROFILE — PLATFORM HEADER + SHELL V4
+   Exact mother-kit geometry based on Reservations2 header.
+   UI only.
+   ========================================================== */
+
+:root {
+  --pmd-profile-v4-bg: #f8fbfd;
+  --pmd-profile-v4-ink: #101f2a;
+  --pmd-profile-v4-line: #c9e0ef;
+  --pmd-profile-v4-hover: #f1f7fb;
+}
+
+/* ---------- eliminate legacy/cream shell layers ---------- */
+html:has(#pmd-restaurant-profile),
+html:has(#pmd-restaurant-profile) body,
+body:has(#pmd-restaurant-profile),
+body:has(#pmd-restaurant-profile).layout,
+body:has(#pmd-restaurant-profile).admin,
+body:has(#pmd-restaurant-profile) .app-container,
+body:has(#pmd-restaurant-profile) .layout,
+body:has(#pmd-restaurant-profile) .layout-wrapper,
+body:has(#pmd-restaurant-profile) .main-content,
+body:has(#pmd-restaurant-profile) .page,
+body:has(#pmd-restaurant-profile) .page-wrapper,
+body:has(#pmd-restaurant-profile) .page-content,
+body:has(#pmd-restaurant-profile) .content-wrapper,
+body:has(#pmd-restaurant-profile) .container-fluid,
+body:has(#pmd-restaurant-profile) #pmd-restaurant-profile {
+  background-color: var(--pmd-profile-v4-bg) !important;
+  background-image: none !important;
+}
+
+body:has(#pmd-restaurant-profile) .page-wrapper,
+body:has(#pmd-restaurant-profile) .page-content,
+body:has(#pmd-restaurant-profile) .content-wrapper,
+body:has(#pmd-restaurant-profile) .container-fluid {
+  border: 0 !important;
+  box-shadow: none !important;
+}
+
+body:has(#pmd-restaurant-profile) .page-wrapper::before,
+body:has(#pmd-restaurant-profile) .page-wrapper::after,
+body:has(#pmd-restaurant-profile) .page-content::before,
+body:has(#pmd-restaurant-profile) .page-content::after,
+body:has(#pmd-restaurant-profile) .content-wrapper::before,
+body:has(#pmd-restaurant-profile) .content-wrapper::after {
+  background: transparent !important;
+  background-image: none !important;
+  border: 0 !important;
+  box-shadow: none !important;
+}
+
+/* Kill any old top navigation strip for this page only. */
+body:has(#pmd-restaurant-profile) .navbar-top,
+body:has(#pmd-restaurant-profile) .navbar-fixed-top {
+  display: none !important;
+  visibility: hidden !important;
+  height: 0 !important;
+  min-height: 0 !important;
+  max-height: 0 !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  border: 0 !important;
+  box-shadow: none !important;
+}
+
+/* ---------- header: same geometry as Reservations2 ---------- */
+body:has(#pmd-restaurant-profile) #pmd-profile-header {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  width: 100% !important;
+  max-width: 1280px !important;
+  min-width: 0 !important;
+  min-height: 64px !important;
+  margin: 0 auto 18px !important;
+  padding: 0 !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  position: relative !important;
+  z-index: 100 !important;
+}
+
+body:has(#pmd-restaurant-profile) #pmd-profile-header .pmd-profile-header__left,
+body:has(#pmd-restaurant-profile) #pmd-profile-header .pmd-profile-header__actions {
+  display: flex !important;
+  align-items: center !important;
+  min-width: 0 !important;
+  margin: 0 !important;
+  padding: 0 !important;
+}
+
+body:has(#pmd-restaurant-profile) #pmd-profile-header .pmd-profile-header__left {
+  gap: 10px !important;
+}
+
+body:has(#pmd-restaurant-profile) #pmd-profile-header .pmd-profile-header__actions {
+  flex: 0 0 auto !important;
+  justify-content: flex-end !important;
+  gap: 8px !important;
+  margin-left: auto !important;
+}
+
+body:has(#pmd-restaurant-profile) #pmd-profile-header h1 {
+  margin: 0 !important;
+  padding: 0 !important;
+  color: var(--pmd-profile-v4-ink) !important;
+  font-family: inherit !important;
+  font-size: 22px !important;
+  font-weight: 800 !important;
+  line-height: 1.15 !important;
+  letter-spacing: -0.025em !important;
+}
+
+/* shared platform action button */
+body:has(#pmd-restaurant-profile) #pmd-profile-header .pmd-profile-header-button,
+body:has(#pmd-restaurant-profile) #pmd-profile-header #notif-root,
+body:has(#pmd-restaurant-profile) #pmd-profile-header #notif-root > a,
+body:has(#pmd-restaurant-profile) #pmd-profile-header #notif-root > span > a,
+body:has(#pmd-restaurant-profile) #pmd-profile-header #notifDropdown {
+  position: relative !important;
+  display: inline-flex !important;
+  flex: 0 0 42px !important;
+  align-items: center !important;
+  justify-content: center !important;
+  width: 42px !important;
+  min-width: 42px !important;
+  max-width: 42px !important;
+  height: 42px !important;
+  min-height: 42px !important;
+  max-height: 42px !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  border: 1px solid var(--pmd-profile-v4-line) !important;
+  border-radius: 12px !important;
+  background: #fff !important;
+  color: var(--pmd-profile-v4-ink) !important;
+  box-shadow: none !important;
+  line-height: 1 !important;
+  text-decoration: none !important;
+  transform: none !important;
+  cursor: pointer !important;
+  -webkit-appearance: none !important;
+  appearance: none !important;
+}
+
+/* notif-root is only a wrapper: no second frame */
+body:has(#pmd-restaurant-profile) #pmd-profile-header #notif-root {
+  border: 0 !important;
+  background: transparent !important;
+  list-style: none !important;
+}
+
+body:has(#pmd-restaurant-profile) #pmd-profile-header .pmd-profile-header-button:hover,
+body:has(#pmd-restaurant-profile) #pmd-profile-header .pmd-profile-header-button:focus-visible,
+body:has(#pmd-restaurant-profile) #pmd-profile-header #notifDropdown:hover,
+body:has(#pmd-restaurant-profile) #pmd-profile-header #notifDropdown:focus-visible {
+  border-color: #9fc6dc !important;
+  background: var(--pmd-profile-v4-hover) !important;
+  color: #071612 !important;
+  outline: none !important;
+  box-shadow: none !important;
+}
+
+/* Save is an ordinary mother-kit action, not a green pill. */
+body:has(#pmd-restaurant-profile) #pmd-profile-header .pmd-profile-save-icon,
+body:has(#pmd-restaurant-profile) #pmd-profile-header .pmd-profile-save-icon:hover,
+body:has(#pmd-restaurant-profile) #pmd-profile-header .pmd-profile-save-icon:focus-visible {
+  background: #fff !important;
+  border-color: var(--pmd-profile-v4-line) !important;
+  color: #075f4f !important;
+}
+
+body:has(#pmd-restaurant-profile) #pmd-profile-header .pmd-profile-save-icon:hover,
+body:has(#pmd-restaurant-profile) #pmd-profile-header .pmd-profile-save-icon:focus-visible {
+  background: var(--pmd-profile-v4-hover) !important;
+  border-color: #9fc6dc !important;
+}
+
+/* Back icon + save icon */
+body:has(#pmd-restaurant-profile) #pmd-profile-header .pmd-profile-header-button > svg {
+  display: block !important;
+  flex: 0 0 20px !important;
+  width: 20px !important;
+  height: 20px !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  fill: none !important;
+  stroke: currentColor !important;
+  stroke-width: 2 !important;
+  stroke-linecap: round !important;
+  stroke-linejoin: round !important;
+  transform: none !important;
+}
+
+/* Remove Bootstrap caret. */
+body:has(#pmd-restaurant-profile) #pmd-profile-header #notifDropdown::after,
+body:has(#pmd-restaurant-profile) #pmd-profile-header .dropdown-toggle::after {
+  display: none !important;
+  content: none !important;
+  width: 0 !important;
+  height: 0 !important;
+  margin: 0 !important;
+  border: 0 !important;
+}
+
+/* IMPORTANT: only our canonical bell + badge may paint inside trigger. */
+body:has(#pmd-restaurant-profile) #pmd-profile-header #notifDropdown > *:not(#bell-icon):not(#notification-count) {
+  display: none !important;
+  visibility: hidden !important;
+}
+
+body:has(#pmd-restaurant-profile) #pmd-profile-header #bell-icon {
+  position: absolute !important;
+  inset: 0 !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  width: 20px !important;
+  height: 20px !important;
+  margin: auto !important;
+  padding: 0 !important;
+  color: var(--pmd-profile-v4-ink) !important;
+  pointer-events: none !important;
+}
+
+body:has(#pmd-restaurant-profile) #pmd-profile-header #bell-icon svg {
+  display: block !important;
+  width: 20px !important;
+  height: 20px !important;
+  margin: 0 !important;
+  fill: none !important;
+  stroke: currentColor !important;
+  stroke-width: 2 !important;
+  stroke-linecap: round !important;
+  stroke-linejoin: round !important;
+}
+
+body:has(#pmd-restaurant-profile) #pmd-profile-header #notification-count {
+  position: absolute !important;
+  top: -6px !important;
+  right: -7px !important;
+  left: auto !important;
+  z-index: 5 !important;
+  min-width: 18px !important;
+  height: 18px !important;
+  margin: 0 !important;
+  padding: 0 4px !important;
+  border: 2px solid #fff !important;
+  border-radius: 999px !important;
+  background: #d83a31 !important;
+  color: #fff !important;
+  font-size: 9px !important;
+  font-weight: 800 !important;
+  line-height: 14px !important;
+  text-align: center !important;
+  transform: none !important;
+}
+
+body:has(#pmd-restaurant-profile) #pmd-profile-header #notification-panel,
+body:has(#pmd-restaurant-profile) #pmd-profile-header #notif-root .dropdown-menu {
+  right: 0 !important;
+  left: auto !important;
+  top: calc(100% + 8px) !important;
+  margin: 0 !important;
+  transform: none !important;
+}
+
+/* ---------- remove warm/cream card cast ---------- */
+body:has(#pmd-restaurant-profile) .pmd-profile-card,
+body:has(#pmd-restaurant-profile) .pmd-profile-day-card,
+body:has(#pmd-restaurant-profile) .pmd-profile-social-card,
+body:has(#pmd-restaurant-profile) .pmd-profile-field input,
+body:has(#pmd-restaurant-profile) .pmd-profile-time input {
+  background-color: #fff !important;
+  background-image: none !important;
+}
+
+body:has(#pmd-restaurant-profile) .pmd-profile-card {
+  border-color: #d8e5e1 !important;
+  box-shadow: 0 10px 28px rgba(17, 40, 35, .04) !important;
+}
+
+body:has(#pmd-restaurant-profile) .pmd-profile-day-card,
+body:has(#pmd-restaurant-profile) .pmd-profile-social-card {
+  border-color: #e1eae7 !important;
+}
+
+@media (max-width: 820px) {
+  body:has(#pmd-restaurant-profile) #pmd-profile-header {
+    min-height: 52px !important;
+    margin-bottom: 12px !important;
+  }
+
+  body:has(#pmd-restaurant-profile) #pmd-profile-header h1 {
+    font-size: 20px !important;
+  }
+
+  body:has(#pmd-restaurant-profile) #pmd-profile-header .pmd-profile-header-button,
+  body:has(#pmd-restaurant-profile) #pmd-profile-header #notif-root,
+  body:has(#pmd-restaurant-profile) #pmd-profile-header #notifDropdown {
+    flex-basis: 40px !important;
+    width: 40px !important;
+    min-width: 40px !important;
+    max-width: 40px !important;
+    height: 40px !important;
+    min-height: 40px !important;
+    max-height: 40px !important;
+  }
+}

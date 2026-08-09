@@ -337,14 +337,43 @@ if (/^\/admin\/kds_stations(?:\/|$)/.test(window.location.pathname)) {
       if (e.target && e.target.closest && e.target.closest(CHECKBOX_SELECTOR)) schedule();
     }, true);
 
-    if (observer) observer.disconnect();
-    observer = new MutationObserver(schedule);
-    observer.observe(document.body, {
-      childList: true,
-      subtree: true,
-      attributes: true,
-      attributeFilter: ['checked', 'class', 'style', 'disabled']
-    });
+    /*
+     * PMD_R2_OBSERVER_STORM_FIX_V3_BULK
+     *
+     * Reservations2 has no legacy bulk-list checkbox workflow.
+     * Avoid a body-wide MutationObserver there.
+     */
+    var pmdR2BulkRoute =
+      String(window.location.pathname || '')
+        .replace(/\/+$/, '') ===
+      '/admin/reservations2';
+
+    if (!pmdR2BulkRoute) {
+      if (observer) observer.disconnect();
+
+      observer =
+        new MutationObserver(schedule);
+
+      observer.observe(
+        document.body,
+        {
+          childList: true,
+          subtree: true,
+          attributes: true,
+          attributeFilter: [
+            'checked',
+            'class',
+            'style',
+            'disabled'
+          ]
+        }
+      );
+    } else {
+      console.info(
+        '[PMD R2 Performance V3] ' +
+        'header bulk-delete body observer disabled.'
+      );
+    }
 
     [150, 500, 1000, 2000].forEach(ms => setTimeout(update, ms));
   }

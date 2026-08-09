@@ -17,6 +17,23 @@ if (/^\/admin\/kds_stations(?:\/|$)/.test(window.location.pathname)) {
     
     // Wait for jQuery to be available
     var initDebugRedirects = function() {
+
+        /*
+         * PMD_R2_PERFORMANCE_SURGICAL_V2_DEBUG
+         *
+         * Diagnostic redirect polling is not required during normal
+         * Reservations2 operation.
+         */
+        if (
+            String(window.location.pathname || '')
+                .replace(/\/+$/, '') === '/admin/reservations2'
+        ) {
+            console.info(
+                '[PMD R2 Performance V2] Redirect debugger skipped.'
+            );
+            return;
+        }
+
         // Check if jQuery is available
         var jQueryAvailable = typeof window.jQuery !== 'undefined' || typeof window.$ !== 'undefined';
         

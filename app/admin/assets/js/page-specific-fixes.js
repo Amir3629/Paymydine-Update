@@ -670,12 +670,36 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
     
-    greenColorObserver.observe(document.body, {
-        attributes: true,
-        attributeFilter: ['style', 'class'],
-        childList: true,
-        subtree: true
-    });
+    /*
+     * PMD_R2_OBSERVER_STORM_FIX_V3_PAGEFIX
+     *
+     * Reservations2 has dedicated KPI/table color authorities.
+     * Do not run this legacy global style observer there.
+     */
+    const pmdR2GreenObserverRoute =
+        String(window.location.pathname || '')
+            .replace(/\/+$/, '') ===
+        '/admin/reservations2';
+
+    if (!pmdR2GreenObserverRoute) {
+        greenColorObserver.observe(
+            document.body,
+            {
+                attributes: true,
+                attributeFilter: [
+                    'style',
+                    'class'
+                ],
+                childList: true,
+                subtree: true
+            }
+        );
+    } else {
+        console.info(
+            '[PMD R2 Performance V3] ' +
+            'legacy green-color observer disabled.'
+        );
+    }
     
     // Also run periodically to catch any missed cases
     setInterval(removeAllGreenColors, 2000);
