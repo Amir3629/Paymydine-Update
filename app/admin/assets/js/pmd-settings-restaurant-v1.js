@@ -10,6 +10,21 @@
     var toggle = notificationRoot.querySelector('#notifDropdown');
     if (!toggle) return;
 
+    /*
+     * PMD_RESTAURANT_PROFILE_HEADER_BUTTON_FIX_V3
+     *
+     * The shared notification partial already ships a FontAwesome <i> bell.
+     * V2 added the mother-kit SVG without removing that legacy icon, which
+     * produced the doubled / broken-looking button visible in the header.
+     * Keep the real notification authority, but give it one visual owner.
+     */
+    Array.prototype.forEach.call(
+      toggle.querySelectorAll('i.fa, i.fas, i.far, i.fal, i.fab'),
+      function (legacyIcon) {
+        legacyIcon.remove();
+      }
+    );
+
     var bell = toggle.querySelector('#bell-icon');
 
     if (!bell) {
@@ -26,6 +41,8 @@
       '<path d="M10 21h4"></path>',
       '</svg>'
     ].join('');
+
+    toggle.classList.add('pmd-profile-notification-toggle');
   }
 
   function installNotification() {
@@ -35,6 +52,7 @@
     if (!actions || !notificationRoot) return;
 
     notificationRoot.classList.remove('show');
+    notificationRoot.classList.add('pmd-profile-notification-root');
 
     var toggle = notificationRoot.querySelector('#notifDropdown');
     if (toggle) {
@@ -100,9 +118,10 @@
   document.documentElement.classList.remove('pmd-restaurant-profile-booting');
   document.documentElement.classList.add('pmd-restaurant-profile-ready');
 
-  window.PMDRestaurantProfileV2 = {
-    version: '2.0.0',
+  window.PMDRestaurantProfileV3 = {
+    version: '3.0.0',
     notificationMoved: Boolean(document.querySelector('#pmd-profile-header #notif-root')),
-    notificationNormalized: Boolean(document.querySelector('#pmd-profile-header .pmd-profile-notification-bell'))
+    notificationNormalized: Boolean(document.querySelector('#pmd-profile-header .pmd-profile-notification-bell')),
+    legacyNotificationIconRemoved: !Boolean(document.querySelector('#pmd-profile-header #notifDropdown i.fa'))
   };
 })();
