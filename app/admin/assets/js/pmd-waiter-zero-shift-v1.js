@@ -141,6 +141,18 @@
   function v23Ready() {
     if (!requiresV23) return true;
 
+    /* V2.3 creates an online-user pill, but V2.3.3 intentionally removes that
+     * temporary node as part of its unified header pass. When V2.3.3 exists,
+     * requiring the pill would wait forever for an element whose FINAL state is
+     * absence. The stable requirement is therefore the populated user source +
+     * V2.3 runtime itself; V2.3.3 has its own separate readiness check below. */
+    if (requiresV233) {
+      return Boolean(
+        sourceUserReady() &&
+        window.PMDWaiterStandardV23
+      );
+    }
+
     return Boolean(
       sourceUserReady() &&
       topActions &&
