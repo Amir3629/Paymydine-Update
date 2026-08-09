@@ -9,9 +9,9 @@ use Admin\Facades\Template;
 /**
  * PMD Menu & Checkout
  *
- * A consolidated owner-facing page for guest menu management and checkout
- * behaviour. It reuses existing settings authorities instead of creating a
- * parallel data model.
+ * Owner-facing guest-menu/checkout settings page. Operational menu data such
+ * as dishes, categories and mealtimes stays in its real management authority;
+ * this page contains settings directly instead of navigation tiles.
  */
 class Pmdmenu extends AdminController
 {
@@ -31,33 +31,6 @@ class Pmdmenu extends AdminController
         $this->vars['pmdMenuCheckout'] = [
             'review_prompt_enabled' => (bool)$this->settingValue('pmd_review_share_prompt_enabled', 1),
             'reviews_enabled' => (bool)$this->settingValue('pmd_social_reviews_enabled', 0),
-        ];
-
-        $this->vars['pmdMenuActions'] = [
-            [
-                'title' => 'Menu items',
-                'description' => 'Create dishes, prices, descriptions, availability and menu content.',
-                'href' => admin_url('menus'),
-                'icon' => 'menu',
-            ],
-            [
-                'title' => 'Categories',
-                'description' => 'Organize dishes into clear guest-facing menu sections.',
-                'href' => admin_url('categories'),
-                'icon' => 'categories',
-            ],
-            [
-                'title' => 'Menu highlights',
-                'description' => 'Chef recommendations, best sellers, badges and highlighted items.',
-                'href' => admin_url('settings/edit/menu_highlights'),
-                'icon' => 'star',
-            ],
-            [
-                'title' => 'Meal times',
-                'description' => 'Control breakfast, lunch, dinner and time-based menu availability.',
-                'href' => admin_url('mealtimes'),
-                'icon' => 'clock',
-            ],
         ];
 
         return $this->makeView('pmdmenu/index');
