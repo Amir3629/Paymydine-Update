@@ -1,17 +1,19 @@
 /* ==========================================================
-   PMD SETTINGS SUITE — FIRST PAINT AUTHORITY V2
+   PMD SETTINGS SUITE — FIRST PAINT AUTHORITY V3
 
-   Root cause fixed here:
-   pmd-admin-theme-v1.css intentionally paints the legacy warm/cream
-   shell and also injects legacy content padding.
-   This stylesheet is registered from each consolidated controller into
-   <head> and uses a stronger SERVER-RENDERED body-class selector, so the
-   cool mother-kit shell wins from the FIRST paint even though the old
-   global theme is loaded later.
+   Root causes fixed here:
+   1) pmd-admin-theme-v1.css paints the legacy warm/cream shell and
+      injects old content padding.
+   2) pmd-admin-exact-layout-v1.js used to calculate page-wrapper left,
+      width and a 14px page-content inset only AFTER DOMContentLoaded.
+      That second-stage geometry was the visible "cards move into place"
+      effect on Settings pages.
+
+   V3 makes the final Settings shell geometry exist before first paint.
+   The runtime layout script now calculates the SAME values and therefore
+   has nothing to move during boot.
    ========================================================== */
 
-/* This file is loaded only by the PMD settings suite. Stabilize viewport
-   width immediately so scrollbar appearance cannot shift cards on refresh. */
 html {
   scrollbar-gutter: stable !important;
   background: #f8fbfd !important;
@@ -27,6 +29,9 @@ html body.page.pmd-admin-theme-v1.pmd-settings-suite {
   background-color: #f8fbfd !important;
   background-image: none !important;
   scroll-behavior: auto !important;
+  margin-left: 0 !important;
+  padding-left: 0 !important;
+  overflow-x: hidden !important;
 }
 
 html body.page.pmd-admin-theme-v1.pmd-settings-suite,
@@ -52,12 +57,73 @@ html body.page.pmd-admin-theme-v1.pmd-settings-suite .row-fluid {
 }
 
 /* ==========================================================
-   ONE SHELL RAIL ONLY
+   TRUE FIRST-PAINT OUTER SHELL GEOMETRY
 
-   The global admin theme adds 20/22px content padding; Bootstrap wrappers
-   can add another gutter. Our PMD page roots already own their final rail.
-   Remove only OUTER shell compensation here so the final visible rail is
-   the page's own 16px, not 16 + 22 + Bootstrap.
+   Side Menu 2 first-paint geometry is deterministic on desktop:
+   collapsed = left 14 + width 72 = right edge 86px
+   expanded  = left 14 + width 184 = right edge 198px
+
+   Mirror that BEFORE the deferred exact-layout JS executes.
+   ========================================================== */
+@media (min-width: 821px) {
+  html.pmd-side-menu2-global-page.pmd-sm2-collapsed
+  body.page.pmd-admin-theme-v1.pmd-settings-suite .page-wrapper {
+    position: absolute !important;
+    left: 86px !important;
+    right: auto !important;
+    width: calc(100vw - 86px) !important;
+    max-width: none !important;
+    min-width: 0 !important;
+    margin-left: 0 !important;
+    margin-right: 0 !important;
+    padding-left: 0 !important;
+    padding-right: 0 !important;
+    box-sizing: border-box !important;
+    overflow-x: hidden !important;
+    transform: none !important;
+    transition: none !important;
+  }
+
+  html.pmd-side-menu2-global-page.pmd-sm2-expanded
+  body.page.pmd-admin-theme-v1.pmd-settings-suite .page-wrapper {
+    position: absolute !important;
+    left: 198px !important;
+    right: auto !important;
+    width: calc(100vw - 198px) !important;
+    max-width: none !important;
+    min-width: 0 !important;
+    margin-left: 0 !important;
+    margin-right: 0 !important;
+    padding-left: 0 !important;
+    padding-right: 0 !important;
+    box-sizing: border-box !important;
+    overflow-x: hidden !important;
+    transform: none !important;
+    transition: none !important;
+  }
+}
+
+/* Settings page roots already own their one 16px rail.
+   Never add the generic exact-layout 14px inset on top of it. */
+html body.page.pmd-admin-theme-v1.pmd-settings-suite .page-content {
+  position: relative !important;
+  left: 0 !important;
+  right: auto !important;
+  width: 100% !important;
+  max-width: none !important;
+  min-width: 0 !important;
+  margin-left: 0 !important;
+  margin-right: 0 !important;
+  padding-left: 0 !important;
+  padding-right: 0 !important;
+  box-sizing: border-box !important;
+  overflow-x: hidden !important;
+  transform: none !important;
+  transition: none !important;
+}
+
+/* ==========================================================
+   ONE SHELL RAIL ONLY
    ========================================================== */
 html body.page.pmd-admin-theme-v1.pmd-settings-suite .page-wrapper,
 html body.page.pmd-admin-theme-v1.pmd-settings-suite .page-content,
@@ -108,7 +174,6 @@ html body.page.pmd-admin-theme-v1.pmd-settings-suite .main-content::after {
   box-shadow: none !important;
 }
 
-/* The custom mother-kit header owns the top of these pages from first paint. */
 html body.page.pmd-admin-theme-v1.pmd-settings-suite .navbar-top,
 html body.page.pmd-admin-theme-v1.pmd-settings-suite .navbar-fixed-top,
 html body.page.pmd-admin-theme-v1.pmd-settings-suite .page-title-section {
@@ -125,7 +190,6 @@ html body.page.pmd-admin-theme-v1.pmd-settings-suite .page-title-section {
   box-shadow: none !important;
 }
 
-/* Do not let the global warm card/table layer leak into consolidated pages. */
 html body.page.pmd-admin-theme-v1.pmd-settings-suite .pmd-owner-card,
 html body.page.pmd-admin-theme-v1.pmd-settings-suite .pmd-profile-card,
 html body.page.pmd-admin-theme-v1.pmd-settings-suite .pmd-menu-card,
@@ -135,9 +199,8 @@ html body.page.pmd-admin-theme-v1.pmd-settings-suite .pmd-settings-card {
   background-image: none !important;
 }
 
-/* Structural content must already be in final position on refresh.
-   We deliberately do NOT include Save buttons, switches or field focus
-   controls, so useful interaction animation remains available. */
+/* Structural content must never animate during initial render or runtime
+   normalization. Save/switch interactions are intentionally excluded. */
 html body.page.pmd-admin-theme-v1.pmd-settings-suite :is(
   #pmd-settings-center,
   .pmd-settings-shell,
@@ -199,9 +262,6 @@ html body.page.pmd-admin-theme-v1.pmd-settings-suite :is(
   will-change: auto !important;
 }
 
-/* Global notification stays invisible until page JS places it into the
-   already-reserved 42px slot. That prevents the bell itself from causing
-   a header-width or card-width jump. */
 html body.page.pmd-admin-theme-v1.pmd-settings-suite #notif-root:not(
   #pmd-profile-header #notif-root
 ):not(
