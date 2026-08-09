@@ -42,7 +42,6 @@ class Pmdadvanced extends AdminController
         $input = (array)post('advanced', []);
 
         $validator = Validator::make($input, [
-            'country_id' => ['nullable', 'integer', 'min:0'],
             'menus_page' => ['nullable', 'string', 'max:191'],
             'reservation_page' => ['nullable', 'string', 'max:191'],
             'distance_unit' => ['nullable', 'string', 'max:32'],
@@ -85,6 +84,9 @@ class Pmdadvanced extends AdminController
 
         $converter = $this->settingValue('currency_converter', []);
         if (!is_array($converter)) $converter = [];
+        if (!isset($converter['oer']) || !is_array($converter['oer'])) $converter['oer'] = [];
+        if (!isset($converter['fixerio']) || !is_array($converter['fixerio'])) $converter['fixerio'] = [];
+
         $converter['api'] = (string)($clean['currency_converter_api'] ?? ($converter['api'] ?? ''));
         $converter['oer']['apiKey'] = (string)($clean['currency_oer_api_key'] ?? ($converter['oer']['apiKey'] ?? ''));
         $converter['fixerio']['apiKey'] = (string)($clean['currency_fixer_api_key'] ?? ($converter['fixerio']['apiKey'] ?? ''));
@@ -97,7 +99,6 @@ class Pmdadvanced extends AdminController
         }
 
         $values = [
-            'country_id' => (int)($clean['country_id'] ?? 0),
             'menus_page' => trim((string)($clean['menus_page'] ?? '')),
             'reservation_page' => trim((string)($clean['reservation_page'] ?? '')),
             'distance_unit' => trim((string)($clean['distance_unit'] ?? 'km')),
@@ -142,6 +143,9 @@ class Pmdadvanced extends AdminController
             'maintenance_message' => trim((string)($clean['maintenance_message'] ?? '')),
         ];
 
+        // country_id deliberately remains under the existing Restaurant/Site
+        // authority until it is exposed in the consolidated Restaurant page.
+        // This prevents an Advanced save from silently changing country.
         setting()->set($values);
         setting()->save();
 
@@ -163,9 +167,11 @@ class Pmdadvanced extends AdminController
         foreach ($defaults as $key => $fallback) $defaults[$key] = $this->settingValue($key, $fallback);
 
         $converter = is_array($defaults['currency_converter']) ? $defaults['currency_converter'] : [];
+        $oer = isset($converter['oer']) && is_array($converter['oer']) ? $converter['oer'] : [];
+        $fixer = isset($converter['fixerio']) && is_array($converter['fixerio']) ? $converter['fixerio'] : [];
         $defaults['currency_converter_api'] = (string)($converter['api'] ?? '');
-        $defaults['currency_oer_api_key'] = (string)($converter['oer']['apiKey'] ?? '');
-        $defaults['currency_fixer_api_key'] = (string)($converter['fixerio']['apiKey'] ?? '');
+        $defaults['currency_oer_api_key'] = (string)($oer['apiKey'] ?? '');
+        $defaults['currency_fixer_api_key'] = (string)($fixer['apiKey'] ?? '');
         $defaults['currency_refresh_interval'] = (int)($converter['refreshInterval'] ?? 60);
 
         $lines = [];
