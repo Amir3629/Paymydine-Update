@@ -33,12 +33,33 @@
   var frameId = 0;
   var animationUntil = 0;
   var resizeTimer = 0;
+  var lastSideMenuState = null;
 
   function isSettingsSuite() {
     return Boolean(
       document.body &&
       document.body.classList.contains('pmd-settings-suite')
     );
+  }
+
+  function isDashboard2() {
+    return path.replace(/\/+$/, '') === '/admin/dashboard2';
+  }
+
+  function isStaticBootRoute() {
+    return isSettingsSuite() || isDashboard2();
+  }
+
+  function runtimeTransitionsReady() {
+    return document.documentElement.classList.contains(
+      'pmd-sm2-runtime-ready'
+    );
+  }
+
+  function sideMenuState() {
+    return document.documentElement.classList.contains(
+      'pmd-sm2-expanded'
+    ) ? 'expanded' : 'collapsed';
   }
 
   function setImportant(element, property, value) {
@@ -70,17 +91,15 @@
   }
 
   /*
-   * PMD_SETTINGS_SUITE_STATIC_SHELL_V1
+   * PMD_STATIC_SHELL_BOOT_V2
    *
-   * Settings pages already own their exact 16px inner rail. The legacy
-   * exact-layout runner used to add another 14px AFTER DOMContentLoaded
-   * and simultaneously animate page-wrapper left/width. That was the
-   * visible "all cards move into place" effect on every Settings page.
+   * Settings and Dashboard2 must paint at their FINAL shell geometry.
+   * The old runtime runner applied wrapper left/width after DOMContentLoaded
+   * and animated those changes for 220ms, making every card visibly move.
    *
-   * During Settings first paint/runtime settling:
-   *   - outer page-content gap is 0
-   *   - page-wrapper/topbar transition is NONE
-   * User-triggered sidebar expand/collapse may still animate normally.
+   * Settings keep their own 16px internal rail, so their outer gap is 0.
+   * Dashboard2 keeps the existing 14px global rail; only the boot movement
+   * is removed. Real user-triggered side-menu expand/collapse still animates.
    */
   function apply(options) {
     options = options || {};
@@ -89,6 +108,8 @@
     if (!page.wrapper || !page.content) return null;
 
     var settingsSuite = isSettingsSuite();
+    var dashboard2 = isDashboard2();
+    var staticBootRoute = settingsSuite || dashboard2;
     var animateShell = Boolean(options.animate);
 
     var gap = settingsSuite
@@ -96,7 +117,7 @@
       : (window.innerWidth <= 767 ? MOBILE_GAP : DESKTOP_GAP);
 
     var shellTransition =
-      settingsSuite && !animateShell
+      staticBootRoute && !animateShell
         ? 'none'
         : SHELL_TRANSITION;
 
@@ -168,6 +189,8 @@
       gap: gap,
       menuRight: menuRight,
       settingsSuite: settingsSuite,
+      dashboard2: dashboard2,
+      staticBootRoute: staticBootRoute,
       animated: animateShell,
       wrapperLeft: Math.round(page.wrapper.getBoundingClientRect().left),
       contentLeft: Math.round(page.content.getBoundingClientRect().left),
@@ -208,29 +231,65 @@
     frameId = requestAnimationFrame(frame);
   }
 
+  function settleWithoutAnimation() {
+    animationUntil = 0;
+    cancelAnimationFrame(frameId);
+    apply({ animate: false });
+  }
+
   function handleResize() {
     clearTimeout(resizeTimer);
     resizeTimer = setTimeout(applyStable, 60);
   }
 
+  function handleSideMenuState() {
+    var nextState = sideMenuState();
+    var changed = lastSideMenuState !== null && nextState !== lastSideMenuState;
+
+    lastSideMenuState = nextState;
+
+    if (
+      isStaticBootRoute() &&
+      (!runtimeTransitionsReady() || !changed)
+    ) {
+      settleWithoutAnimation();
+      return;
+    }
+
+    animate(340);
+  }
+
   function init() {
-    applyStable();
+    lastSideMenuState = sideMenuState();
+    settleWithoutAnimation();
 
     [0, 40, 100, 220, 500, 900].forEach(function (delay) {
-      setTimeout(applyStable, delay);
+      setTimeout(function () {
+        if (isStaticBootRoute()) {
+          settleWithoutAnimation();
+        } else {
+          applyStable();
+        }
+      }, delay);
     });
 
-    window.addEventListener('pmd:side-menu2-state', function () {
-      animate(340);
-    });
+    window.addEventListener(
+      'pmd:side-menu2-state',
+      handleSideMenuState
+    );
 
     menu.addEventListener('transitionstart', function () {
+      if (isStaticBootRoute() && !runtimeTransitionsReady()) {
+        settleWithoutAnimation();
+        return;
+      }
+
       animate(340);
     });
 
     menu.addEventListener('transitionend', function () {
-      applyStable();
-      setTimeout(applyStable, 40);
+      settleWithoutAnimation();
+      setTimeout(settleWithoutAnimation, 40);
     });
 
     window.addEventListener(
@@ -242,9 +301,15 @@
     window.addEventListener(
       'load',
       function () {
-        applyStable();
-        setTimeout(applyStable, 100);
-        setTimeout(applyStable, 400);
+        if (isStaticBootRoute()) {
+          settleWithoutAnimation();
+          setTimeout(settleWithoutAnimation, 100);
+          setTimeout(settleWithoutAnimation, 400);
+        } else {
+          applyStable();
+          setTimeout(applyStable, 100);
+          setTimeout(applyStable, 400);
+        }
       },
       { once: true }
     );
@@ -260,10 +325,18 @@
 
     if (!relevant) return;
 
-    /* Runtime-ready/class normalization is not a user animation. */
-    if (isSettingsSuite() && performance.now() >= animationUntil) {
-      apply({ animate: false });
-      return;
+    if (isStaticBootRoute()) {
+      var nextState = sideMenuState();
+      var changed = lastSideMenuState !== null && nextState !== lastSideMenuState;
+
+      if (changed) {
+        lastSideMenuState = nextState;
+      }
+
+      if (!runtimeTransitionsReady() || !changed) {
+        settleWithoutAnimation();
+        return;
+      }
     }
 
     animate(320);
@@ -280,11 +353,13 @@
   });
 
   window.PMDAdminExactLayoutV4 = {
-    version: '5.0.0-settings-static-shell',
+    version: '6.0.0-dashboard2-static-shell',
     apply: applyStable,
     animate: animate,
     observer: observer,
-    isSettingsSuite: isSettingsSuite
+    isSettingsSuite: isSettingsSuite,
+    isDashboard2: isDashboard2,
+    isStaticBootRoute: isStaticBootRoute
   };
 
   if (document.readyState === 'loading') {
@@ -298,7 +373,7 @@
   }
 
   console.info(
-    '[PMD Admin Exact Layout V5] Ready',
+    '[PMD Admin Exact Layout V6] Ready',
     window.PMDAdminExactLayoutV4
   );
 })();
