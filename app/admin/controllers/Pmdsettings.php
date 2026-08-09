@@ -294,7 +294,7 @@ class Pmdsettings extends AdminController
                 'id' => 'guest', 'eyebrow' => '', 'title' => 'Menu & Guest Experience', 'description' => '',
                 'items' => [
                     $this->item('Menu & checkout', 'Guest-facing menu, highlights, review prompt and checkout experience.', 'menu', admin_url('pmdmenu'), ''),
-                    $this->item('Customer accounts', 'Guest registration and account communication settings.', 'user', admin_url('settings/edit/user'), ''),
+                    $this->item('Customer accounts', 'Guest registration and account communication settings.', 'user', admin_url('pmdcustomer'), ''),
                 ],
             ],
             [
