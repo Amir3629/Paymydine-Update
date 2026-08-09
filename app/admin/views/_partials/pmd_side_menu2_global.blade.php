@@ -192,7 +192,7 @@
 ></script>
 
 <script
-    src="/app/admin/assets/js/pmd-admin-exact-layout-v1.js?v=20260719-global-5"
+    src="/app/admin/assets/js/pmd-admin-exact-layout-v1.js?v=20260809-settings-static-shell-v1"
     defer
 ></script>
 @endif
