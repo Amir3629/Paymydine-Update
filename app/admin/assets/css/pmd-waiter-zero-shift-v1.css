@@ -1,0 +1,137 @@
+/*
+ * PMD WAITER DASHBOARD — ZERO SHIFT V1
+ * Route: /admin/dashboardwaiternew (and /admin/waiter alias)
+ *
+ * First paint rule:
+ * - keep the page/topbar/command/stage visible immediately
+ * - reserve the final Areas row height from the first frame
+ * - keep only launcher surfaces that are mutated by later JS invisible
+ * - keep the existing skeleton visible until V2.1/V2.2.1/V2.3 finish decorating
+ * - reveal final launcher surfaces with NO fade/slide/scale
+ *
+ * This prevents the visible chain:
+ * base cards -> V2.1 resize/reorder -> V2.2.1 theme button -> V2.3 waiter pill.
+ */
+
+body.pmd-waiter-new-page {
+  --pmd-waiter-zero-area-height: 50px;
+}
+
+/* Reserve final area-row geometry even before async table data creates buttons. */
+body.pmd-waiter-new-page:not(.pmd-waiter-zero-shift-ready-v1)
+.pmd-v2-area-keys {
+  min-height: var(--pmd-waiter-zero-area-height) !important;
+  height: var(--pmd-waiter-zero-area-height) !important;
+  visibility: hidden !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
+  transition: none !important;
+  animation: none !important;
+  transform: none !important;
+}
+
+/*
+ * V2.2.1 and V2.3 add controls into .pmd-v2-top-actions after DOM parse.
+ * Hide only that right-hand control cluster until its final children exist.
+ * Brand/header shell stays visible, so there is no whole-page blink.
+ */
+body.pmd-waiter-new-page:not(.pmd-waiter-zero-shift-ready-v1)
+.pmd-v2-top-actions {
+  visibility: hidden !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
+  transition: none !important;
+  animation: none !important;
+  transform: none !important;
+}
+
+/*
+ * The base launcher renders cards first. V2.1 then performs a second data pass,
+ * adds pmd-v21-table-key (changing card height), injects metadata and reorders
+ * cards by service priority. Keep that grid measurable but invisible until all
+ * those operations are finished and geometry is stable.
+ */
+body.pmd-waiter-new-page:not(.pmd-waiter-zero-shift-ready-v1)
+.pmd-v2-table-grid {
+  visibility: hidden !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
+  transition: none !important;
+  animation: none !important;
+  transform: none !important;
+}
+
+body.pmd-waiter-new-page:not(.pmd-waiter-zero-shift-ready-v1)
+.pmd-v2-table-grid > *,
+body.pmd-waiter-new-page:not(.pmd-waiter-zero-shift-ready-v1)
+.pmd-v2-table-key,
+body.pmd-waiter-new-page:not(.pmd-waiter-zero-shift-ready-v1)
+.pmd-v21-table-key {
+  transition: none !important;
+  animation: none !important;
+  transform: none !important;
+  will-change: auto !important;
+}
+
+/*
+ * Base V2 hides the skeleton immediately after its first render. During boot we
+ * intentionally keep that existing skeleton in place until the enhanced grid is
+ * final. This avoids an empty stage and avoids exposing intermediate cards.
+ */
+body.pmd-waiter-new-page:not(.pmd-waiter-zero-shift-ready-v1)
+.pmd-v2-loading,
+body.pmd-waiter-new-page:not(.pmd-waiter-zero-shift-ready-v1)
+.pmd-v2-loading[hidden] {
+  display: grid !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+  pointer-events: none !important;
+  transition: none !important;
+  animation: none !important;
+  transform: none !important;
+}
+
+/* Final paint: direct visibility, never a reveal animation. */
+body.pmd-waiter-new-page.pmd-waiter-zero-shift-ready-v1
+.pmd-v2-top-actions,
+body.pmd-waiter-new-page.pmd-waiter-zero-shift-ready-v1
+.pmd-v2-area-keys,
+body.pmd-waiter-new-page.pmd-waiter-zero-shift-ready-v1
+.pmd-v2-table-grid {
+  visibility: visible !important;
+  opacity: 1 !important;
+  pointer-events: auto !important;
+  transition: none !important;
+  animation: none !important;
+  transform: none !important;
+}
+
+body.pmd-waiter-new-page.pmd-waiter-zero-shift-ready-v1
+.pmd-v2-area-keys {
+  min-height: var(--pmd-waiter-zero-area-height) !important;
+}
+
+/* Never animate launcher structure during initial render. Interaction feedback
+ * (button active states, POS product taps, drawers) remains owned by its normal
+ * styles after the launcher is ready.
+ */
+body.pmd-waiter-new-page:not(.pmd-waiter-zero-shift-ready-v1)
+.pmd-v2-launcher,
+body.pmd-waiter-new-page:not(.pmd-waiter-zero-shift-ready-v1)
+.pmd-v2-topbar,
+body.pmd-waiter-new-page:not(.pmd-waiter-zero-shift-ready-v1)
+.pmd-v2-command,
+body.pmd-waiter-new-page:not(.pmd-waiter-zero-shift-ready-v1)
+.pmd-v2-table-stage,
+body.pmd-waiter-new-page:not(.pmd-waiter-zero-shift-ready-v1)
+.pmd-v2-footer {
+  transition: none !important;
+  animation: none !important;
+  transform: none !important;
+}
+
+@media (max-width: 780px) {
+  body.pmd-waiter-new-page {
+    --pmd-waiter-zero-area-height: 50px;
+  }
+}
