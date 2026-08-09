@@ -4,20 +4,125 @@
   var root = document.querySelector('[data-pmd-restaurant-profile]');
   if (!root) return;
 
+  function installHeaderButtonAuthority() {
+    if (document.getElementById('pmd-profile-header-button-authority-v3')) {
+      return;
+    }
+
+    var style = document.createElement('style');
+    style.id = 'pmd-profile-header-button-authority-v3';
+    style.textContent = [
+      '/* PMD_RESTAURANT_PROFILE_HEADER_BUTTON_FIX_V3 */',
+      '#pmd-profile-header .pmd-profile-header__actions {',
+      '  display:flex !important;',
+      '  align-items:center !important;',
+      '  justify-content:flex-end !important;',
+      '  gap:8px !important;',
+      '  min-height:42px !important;',
+      '}',
+      '#pmd-profile-header .pmd-profile-header-button,',
+      '#pmd-profile-header button.pmd-profile-save-icon,',
+      '#pmd-profile-header #notifDropdown {',
+      '  box-sizing:border-box !important;',
+      '  width:42px !important;',
+      '  height:42px !important;',
+      '  min-width:42px !important;',
+      '  max-width:42px !important;',
+      '  min-height:42px !important;',
+      '  max-height:42px !important;',
+      '  flex:0 0 42px !important;',
+      '  display:inline-flex !important;',
+      '  align-items:center !important;',
+      '  justify-content:center !important;',
+      '  padding:0 !important;',
+      '  margin:0 !important;',
+      '  line-height:1 !important;',
+      '  font-size:0 !important;',
+      '  vertical-align:middle !important;',
+      '  border-radius:11px !important;',
+      '  box-shadow:none !important;',
+      '  -webkit-appearance:none !important;',
+      '  appearance:none !important;',
+      '}',
+      '#pmd-profile-header button.pmd-profile-save-icon {',
+      '  border:1px solid #0d4d42 !important;',
+      '  background:#0d4d42 !important;',
+      '  color:#fff !important;',
+      '}',
+      '#pmd-profile-header button.pmd-profile-save-icon:hover {',
+      '  border-color:#0a4138 !important;',
+      '  background:#0a4138 !important;',
+      '}',
+      '#pmd-profile-header #notif-root {',
+      '  width:42px !important;',
+      '  height:42px !important;',
+      '  min-width:42px !important;',
+      '  flex:0 0 42px !important;',
+      '  display:block !important;',
+      '  position:relative !important;',
+      '  padding:0 !important;',
+      '  margin:0 !important;',
+      '  list-style:none !important;',
+      '}',
+      '#pmd-profile-header #notifDropdown {',
+      '  border:1px solid #c9e0ef !important;',
+      '  background:#fff !important;',
+      '  color:#17231f !important;',
+      '}',
+      '#pmd-profile-header #notifDropdown > i {',
+      '  display:none !important;',
+      '}',
+      '#pmd-profile-header .pmd-profile-notification-bell,',
+      '#pmd-profile-header .pmd-profile-notification-bell svg,',
+      '#pmd-profile-header .pmd-profile-save-icon svg {',
+      '  width:18px !important;',
+      '  height:18px !important;',
+      '  min-width:18px !important;',
+      '  max-width:18px !important;',
+      '  min-height:18px !important;',
+      '  max-height:18px !important;',
+      '  display:block !important;',
+      '  flex:0 0 18px !important;',
+      '}',
+      '#pmd-profile-header .pmd-profile-notification-bell svg,',
+      '#pmd-profile-header .pmd-profile-save-icon svg {',
+      '  fill:none !important;',
+      '  stroke:currentColor !important;',
+      '  stroke-width:2 !important;',
+      '  stroke-linecap:round !important;',
+      '  stroke-linejoin:round !important;',
+      '}',
+      '#pmd-profile-header #notifDropdown:after {',
+      '  display:none !important;',
+      '  content:none !important;',
+      '}',
+      '#pmd-profile-header #notification-count {',
+      '  position:absolute !important;',
+      '  top:-7px !important;',
+      '  right:-8px !important;',
+      '  z-index:5 !important;',
+      '  font-size:9px !important;',
+      '  line-height:14px !important;',
+      '  min-width:20px !important;',
+      '  height:16px !important;',
+      '  padding:0 5px !important;',
+      '  border-radius:999px !important;',
+      '}',
+      '#pmd-profile-header #pmd-profile-save-status:empty {',
+      '  display:none !important;',
+      '}'
+    ].join('\n');
+
+    document.head.appendChild(style);
+  }
+
   function normalizeNotificationIcon(notificationRoot) {
     if (!notificationRoot) return;
 
     var toggle = notificationRoot.querySelector('#notifDropdown');
     if (!toggle) return;
 
-    /*
-     * PMD_RESTAURANT_PROFILE_HEADER_BUTTON_FIX_V3
-     *
-     * The shared notification partial already ships a FontAwesome <i> bell.
-     * V2 added the mother-kit SVG without removing that legacy icon, which
-     * produced the doubled / broken-looking button visible in the header.
-     * Keep the real notification authority, but give it one visual owner.
-     */
+    /* Remove the legacy FontAwesome bell before installing the mother-kit SVG. */
     Array.prototype.forEach.call(
       toggle.querySelectorAll('i.fa, i.fas, i.far, i.fal, i.fab'),
       function (legacyIcon) {
@@ -99,6 +204,9 @@
     });
   }
 
+  installHeaderButtonAuthority();
+  installNotification();
+
   Array.prototype.forEach.call(
     root.querySelectorAll('[data-pmd-hours-row]'),
     function (row) {
@@ -113,15 +221,14 @@
     }
   );
 
-  installNotification();
-
   document.documentElement.classList.remove('pmd-restaurant-profile-booting');
   document.documentElement.classList.add('pmd-restaurant-profile-ready');
 
   window.PMDRestaurantProfileV3 = {
-    version: '3.0.0',
+    version: '3.1.0',
     notificationMoved: Boolean(document.querySelector('#pmd-profile-header #notif-root')),
     notificationNormalized: Boolean(document.querySelector('#pmd-profile-header .pmd-profile-notification-bell')),
-    legacyNotificationIconRemoved: !Boolean(document.querySelector('#pmd-profile-header #notifDropdown i.fa'))
+    legacyNotificationIconRemoved: !Boolean(document.querySelector('#pmd-profile-header #notifDropdown i.fa')),
+    headerButtonAuthority: Boolean(document.getElementById('pmd-profile-header-button-authority-v3'))
   };
 })();
