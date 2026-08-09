@@ -46,6 +46,18 @@
     document.documentElement.classList.add(
         'pmd-side-menu2-global-page'
     );
+
+    @if($pmdPath === 'admin/dashboard2')
+    /*
+     * PMD_DASHBOARD2_STATIC_SHELL_FIRST_PAINT_V1
+     *
+     * Server-known route marker. The final Dashboard2 shell geometry can
+     * therefore exist before deferred runtime layout code executes.
+     */
+    document.documentElement.classList.add(
+        'pmd-dashboard2-static-shell-v1'
+    );
+    @endif
 })();
 </script>
 
@@ -183,6 +195,95 @@
 
 @include('admin::_partials.pmd_side_menu2_single_style')
 
+@if($pmdPath === 'admin/dashboard2')
+<!-- PMD_DASHBOARD2_STATIC_SHELL_FIRST_PAINT_V1_START -->
+<style id="pmd-dashboard2-static-shell-first-paint-v1">
+  /*
+   * Match the FINAL pmd-admin-exact-layout geometry before the browser can
+   * paint Dashboard2. This also beats the embedded Reservations2 :has()
+   * wrapper reset which otherwise changes the parent shell after parsing.
+   */
+  html.pmd-dashboard2-static-shell-v1 .page-wrapper,
+  html.pmd-dashboard2-static-shell-v1 body:has(#pmd-reservations2) .page-wrapper {
+    position: absolute !important;
+    left: 86px !important;
+    right: auto !important;
+    width: calc(100vw - 86px) !important;
+    max-width: none !important;
+    min-width: 0 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    box-sizing: border-box !important;
+    overflow-x: hidden !important;
+    transform: none !important;
+    transition: none !important;
+    animation: none !important;
+  }
+
+  html.pmd-dashboard2-static-shell-v1.pmd-sm2-expanded .page-wrapper,
+  html.pmd-dashboard2-static-shell-v1.pmd-sm2-expanded body:has(#pmd-reservations2) .page-wrapper {
+    left: 198px !important;
+    width: calc(100vw - 198px) !important;
+  }
+
+  html.pmd-dashboard2-static-shell-v1 .page-content,
+  html.pmd-dashboard2-static-shell-v1 body:has(#pmd-reservations2) .page-content {
+    position: relative !important;
+    left: 0 !important;
+    right: auto !important;
+    width: 100% !important;
+    max-width: none !important;
+    min-width: 0 !important;
+    margin: 0 !important;
+    padding: 14px !important;
+    box-sizing: border-box !important;
+    overflow-x: hidden !important;
+    transform: none !important;
+    transition: none !important;
+    animation: none !important;
+  }
+
+  html.pmd-dashboard2-static-shell-v1 .page-content > * {
+    box-sizing: border-box !important;
+    min-width: 0 !important;
+    max-width: 100% !important;
+  }
+
+  html.pmd-dashboard2-static-shell-v1 .navbar-top,
+  html.pmd-dashboard2-static-shell-v1 .navbar-fixed-top {
+    left: 86px !important;
+    right: 0 !important;
+    width: calc(100vw - 86px) !important;
+    max-width: none !important;
+    margin-left: 0 !important;
+    box-sizing: border-box !important;
+    transition: none !important;
+    animation: none !important;
+  }
+
+  html.pmd-dashboard2-static-shell-v1.pmd-sm2-expanded .navbar-top,
+  html.pmd-dashboard2-static-shell-v1.pmd-sm2-expanded .navbar-fixed-top {
+    left: 198px !important;
+    width: calc(100vw - 198px) !important;
+  }
+
+  @media (max-width: 767px) {
+    html.pmd-dashboard2-static-shell-v1 .page-wrapper,
+    html.pmd-dashboard2-static-shell-v1.pmd-sm2-expanded .page-wrapper,
+    html.pmd-dashboard2-static-shell-v1 body:has(#pmd-reservations2) .page-wrapper {
+      left: 0 !important;
+      width: 100vw !important;
+    }
+
+    html.pmd-dashboard2-static-shell-v1 .page-content,
+    html.pmd-dashboard2-static-shell-v1 body:has(#pmd-reservations2) .page-content {
+      padding: 10px !important;
+    }
+  }
+</style>
+<!-- PMD_DASHBOARD2_STATIC_SHELL_FIRST_PAINT_V1_END -->
+@endif
+
 
 @include('admin::_partials.pmd_side_menu2_single_menu')
 
@@ -192,7 +293,7 @@
 ></script>
 
 <script
-    src="/app/admin/assets/js/pmd-admin-exact-layout-v1.js?v=20260809-settings-static-shell-v1"
+    src="/app/admin/assets/js/pmd-admin-exact-layout-v1.js?v=20260809-dashboard2-static-shell-v2"
     defer
 ></script>
 @endif
