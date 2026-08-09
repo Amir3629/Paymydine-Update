@@ -1,0 +1,91 @@
+/* ==========================================================
+   PMD RESTAURANT PROFILE — SPACING AUTHORITY V7
+   Shared Dashboard2 / Reservations2 / Settings Center rhythm.
+
+   Core rules:
+   - page horizontal gutter: 30px desktop
+   - shared content max width: 1480px
+   - header and form use the SAME content rail
+   - section gap: 18px
+   - card body padding: 20px
+   - standard field grid gap: 15px
+   - compact nested-card gap: 10px
+   ========================================================== */
+
+body:has(#pmd-restaurant-profile) #pmd-restaurant-profile {
+  --pmd-shell-max: 1480px;
+  --pmd-page-gutter: 30px;
+  --pmd-section-gap: 18px;
+  --pmd-card-pad: 20px;
+  --pmd-field-gap: 15px;
+  --pmd-compact-gap: 10px;
+
+  padding-left: var(--pmd-page-gutter) !important;
+  padding-right: var(--pmd-page-gutter) !important;
+}
+
+/* Header and cards must sit on exactly the same left/right rail. */
+body:has(#pmd-restaurant-profile) #pmd-profile-header,
+body:has(#pmd-restaurant-profile) #pmd-restaurant-profile-form {
+  width: min(var(--pmd-shell-max), 100%) !important;
+  max-width: var(--pmd-shell-max) !important;
+  margin-left: auto !important;
+  margin-right: auto !important;
+}
+
+/* Remove the old 1280px form constraint that created ~100px extra
+   empty space on each side at wide desktop sizes. */
+body:has(#pmd-restaurant-profile) #pmd-restaurant-profile-form {
+  margin-top: 0 !important;
+  margin-bottom: 0 !important;
+}
+
+/* Consistent vertical rhythm between primary cards. */
+body:has(#pmd-restaurant-profile) .pmd-profile-section {
+  margin-top: 0 !important;
+  margin-bottom: var(--pmd-section-gap) !important;
+}
+
+body:has(#pmd-restaurant-profile) .pmd-profile-section:last-child {
+  margin-bottom: 0 !important;
+}
+
+/* Mother-kit card rhythm. */
+body:has(#pmd-restaurant-profile) .pmd-profile-card__body {
+  padding: var(--pmd-card-pad) !important;
+}
+
+body:has(#pmd-restaurant-profile) .pmd-profile-card__body--hours {
+  padding: 16px !important;
+}
+
+body:has(#pmd-restaurant-profile) .pmd-profile-grid {
+  gap: var(--pmd-field-gap) !important;
+}
+
+body:has(#pmd-restaurant-profile) .pmd-profile-hours-grid,
+body:has(#pmd-restaurant-profile) .pmd-profile-social-grid,
+body:has(#pmd-restaurant-profile) .pmd-profile-day-card__times {
+  gap: var(--pmd-compact-gap) !important;
+}
+
+/* Keep the header-to-content spacing on the same 18px rhythm. */
+body:has(#pmd-restaurant-profile) #pmd-profile-header {
+  margin-bottom: var(--pmd-section-gap) !important;
+}
+
+@media (max-width: 820px) {
+  body:has(#pmd-restaurant-profile) #pmd-restaurant-profile {
+    --pmd-page-gutter: 18px;
+    --pmd-section-gap: 14px;
+    --pmd-card-pad: 16px;
+    --pmd-field-gap: 12px;
+    --pmd-compact-gap: 8px;
+  }
+}
+
+@media (max-width: 560px) {
+  body:has(#pmd-restaurant-profile) #pmd-restaurant-profile {
+    --pmd-page-gutter: 14px;
+  }
+}
