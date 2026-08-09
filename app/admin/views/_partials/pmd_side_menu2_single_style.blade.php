@@ -177,11 +177,11 @@
 @endphp
 
 @if($pmdZeroShiftRoute)
-<script id="pmd-r2-zero-shift-geometry-guard-v1">
+<script id="pmd-r2-zero-shift-geometry-guard-v2">
 (function () {
   'use strict';
 
-  if (window.PMDR2ZeroShiftGuardV1) {
+  if (window.PMDR2ZeroShiftGuardV2) {
     return;
   }
 
@@ -200,27 +200,78 @@
   var lastSignature = '';
   var reason = 'booting';
 
-  html.classList.add('pmd-r2-zero-shift-boot-v1');
+  /*
+   * PMD_R2_ZERO_SHIFT_NO_WHITE_BLINK_V2
+   *
+   * V1 correctly prevented the Floor tables from jumping, but it did so by
+   * hiding the COMPLETE #pmd-reservations2 root until Floor geometry settled.
+   * Dashboard2 also has a legacy whole-root opacity lock, while Reservations2
+   * has the older V6 prepaint whole-root visibility lock. Those two locks were
+   * the source of the single white/empty flash on refresh.
+   *
+   * V2 keeps the entire page shell visible from first paint and hides ONLY the
+   * dynamic geometry surfaces while they settle:
+   *   - Floor canvas/tables
+   *   - Reservation cards grid
+   *
+   * The Floor frame, toolbar, KPI cards, page background, analytics shell and
+   * Side Menu therefore never disappear. Once Floor geometry is stable for
+   * four consecutive animation frames, only the dynamic surfaces are released
+   * directly at their final coordinates with no fade/slide/scale animation.
+   */
+  html.classList.add('pmd-r2-zero-shift-boot-v2');
 
-  if (!document.getElementById('pmd-r2-zero-shift-critical-v1')) {
+  if (!document.getElementById('pmd-r2-zero-shift-critical-v2')) {
     var style = document.createElement('style');
-    style.id = 'pmd-r2-zero-shift-critical-v1';
+    style.id = 'pmd-r2-zero-shift-critical-v2';
     style.textContent = [
-      'html.pmd-r2-zero-shift-boot-v1 #pmd-reservations2 {',
+      /* Neutralize Reservations2 V6 whole-root prepaint lock. */
+      'html.pmd-r2-v6-booting #pmd-reservations2 {',
+      '  visibility:visible !important;',
+      '  opacity:1 !important;',
+      '  pointer-events:auto !important;',
+      '  transition:none !important;',
+      '  animation:none !important;',
+      '}',
+
+      /* Neutralize Dashboard2 V1413 whole-root opacity lock. */
+      'html.pmd-dashboard2-r2-exact:not(.pmd-dashboard2-v1413-ready) body #pmd-reservations2 {',
+      '  visibility:visible !important;',
+      '  opacity:1 !important;',
+      '  pointer-events:auto !important;',
+      '  transition:none !important;',
+      '  animation:none !important;',
+      '}',
+
+      /* The page shell itself is ALWAYS visible during boot. */
+      'html.pmd-r2-zero-shift-boot-v2 #pmd-reservations2 {',
+      '  visibility:visible !important;',
+      '  opacity:1 !important;',
+      '  pointer-events:auto !important;',
+      '  transition:none !important;',
+      '  animation:none !important;',
+      '}',
+
+      /* Hide only dynamic geometry surfaces while measurements settle. */
+      'html.pmd-r2-zero-shift-boot-v2 #pmd-r2-shared-floor-canvas-v310 [data-floor-canvas],',
+      'html.pmd-r2-zero-shift-boot-v2 #pmd-r2-reservation-grid-v320 {',
       '  visibility:hidden !important;',
       '  opacity:0 !important;',
       '  pointer-events:none !important;',
       '  transition:none !important;',
       '  animation:none !important;',
       '}',
-      'html.pmd-r2-zero-shift-boot-v1 #pmd-reservations2 .pmd-floor-v1__table,',
-      'html.pmd-r2-zero-shift-boot-v1 #pmd-reservations2 [data-floor-canvas],',
-      'html.pmd-r2-zero-shift-boot-v1 #pmd-reservations2 .pmd-r2-kpi,',
-      'html.pmd-r2-zero-shift-boot-v1 #pmd-reservations2 #pmd-r2-reservation-grid-v320 > * {',
+
+      /* Never animate individual Floor/table/card geometry during boot. */
+      'html.pmd-r2-zero-shift-boot-v2 #pmd-reservations2 .pmd-floor-v1__table,',
+      'html.pmd-r2-zero-shift-boot-v2 #pmd-reservations2 [data-floor-canvas],',
+      'html.pmd-r2-zero-shift-boot-v2 #pmd-reservations2 #pmd-r2-reservation-grid-v320,',
+      'html.pmd-r2-zero-shift-boot-v2 #pmd-reservations2 #pmd-r2-reservation-grid-v320 > * {',
       '  transition:none !important;',
       '  animation:none !important;',
       '}',
-      'html.pmd-r2-zero-shift-boot-v1 #pmd-reservations2 [data-floor-canvas] {',
+
+      'html.pmd-r2-zero-shift-boot-v2 #pmd-reservations2 [data-floor-canvas] {',
       '  will-change:auto !important;',
       '}'
     ].join('\n');
@@ -236,14 +287,48 @@
     return document.getElementById('pmd-r2-shared-floor-canvas-v310');
   }
 
-  function enforceHidden(node) {
-    if (!node || done) return;
+  function dynamicTargets() {
+    var result = [];
+    var floorRoot = floor();
 
-    node.style.setProperty('visibility', 'hidden', 'important');
-    node.style.setProperty('opacity', '0', 'important');
-    node.style.setProperty('pointer-events', 'none', 'important');
-    node.style.setProperty('transition', 'none', 'important');
-    node.style.setProperty('animation', 'none', 'important');
+    if (floorRoot) {
+      var canvas = floorRoot.querySelector('[data-floor-canvas]');
+      if (canvas) result.push(canvas);
+    }
+
+    var reservationGrid = document.getElementById('pmd-r2-reservation-grid-v320');
+    if (reservationGrid) result.push(reservationGrid);
+
+    return result;
+  }
+
+  function keepShellVisible() {
+    var pageRoot = root();
+    if (!pageRoot) return;
+
+    pageRoot.style.setProperty('visibility', 'visible', 'important');
+    pageRoot.style.setProperty('opacity', '1', 'important');
+    pageRoot.style.setProperty('pointer-events', 'auto', 'important');
+    pageRoot.style.setProperty('transition', 'none', 'important');
+    pageRoot.style.setProperty('animation', 'none', 'important');
+  }
+
+  function enforceDynamicHidden() {
+    if (done) return;
+
+    dynamicTargets().forEach(function (node) {
+      node.style.setProperty('visibility', 'hidden', 'important');
+      node.style.setProperty('opacity', '0', 'important');
+      node.style.setProperty('pointer-events', 'none', 'important');
+    });
+  }
+
+  function releaseDynamic() {
+    dynamicTargets().forEach(function (node) {
+      node.style.removeProperty('visibility');
+      node.style.removeProperty('opacity');
+      node.style.removeProperty('pointer-events');
+    });
   }
 
   function rounded(value) {
@@ -326,15 +411,16 @@
       window.clearTimeout(timeoutId);
     }
 
-    var pageRoot = root();
+    keepShellVisible();
 
     html.classList.remove(
+      'pmd-r2-zero-shift-boot-v2',
       'pmd-r2-zero-shift-boot-v1',
       'pmd-r2-v6-booting'
     );
 
     html.classList.add(
-      'pmd-r2-zero-shift-ready-v1',
+      'pmd-r2-zero-shift-ready-v2',
       'pmd-r2-v6-ready'
     );
 
@@ -342,27 +428,30 @@
       html.classList.add('pmd-dashboard2-v1413-ready');
     }
 
+    /*
+     * Release only after removing the boot class, so the dynamic surface is
+     * exposed in its final state without a transition between opacity values.
+     */
+    releaseDynamic();
+
+    var pageRoot = root();
     if (pageRoot) {
-      pageRoot.style.setProperty('visibility', 'visible', 'important');
-      pageRoot.style.setProperty('opacity', '1', 'important');
-      pageRoot.style.setProperty('pointer-events', 'auto', 'important');
-      pageRoot.style.setProperty('transition', 'none', 'important');
-      pageRoot.style.setProperty('animation', 'none', 'important');
-      pageRoot.setAttribute('data-pmd-zero-shift-ready', '1');
+      pageRoot.setAttribute('data-pmd-zero-shift-ready', '2');
     }
 
-    console.info('[PMD R2 Zero Shift Guard V1] Revealed', {
+    console.info('[PMD R2 Zero Shift Guard V2] Dynamic surfaces released', {
       route: route,
       reason: reason,
-      stableFrames: stableFrames
+      stableFrames: stableFrames,
+      targets: dynamicTargets().length
     });
   }
 
   function tick(now) {
     if (done) return;
 
-    var pageRoot = root();
-    enforceHidden(pageRoot);
+    keepShellVisible();
+    enforceDynamicHidden();
 
     var signature = geometrySignature();
 
@@ -384,8 +473,8 @@
 
     /*
      * Four identical animation frames plus a minimum settle window means
-     * the floor engine's post-render fit/zoom task and toolbar/card setup
-     * have completed before a single table becomes visible.
+     * render() -> fit()/zoom plus toolbar/card setup completed before the
+     * dynamic Floor/card layer becomes visible.
      */
     if (
       stableFrames >= 4 &&
@@ -399,24 +488,35 @@
     frameId = window.requestAnimationFrame(tick);
   }
 
+  /* Make the shell visible immediately, before the first measurement frame. */
+  keepShellVisible();
+  enforceDynamicHidden();
+
   frameId = window.requestAnimationFrame(tick);
 
   timeoutId = window.setTimeout(function () {
     reveal('safety-timeout');
   }, 6500);
 
-  window.PMDR2ZeroShiftGuardV1 = {
-    version: '1.0.0',
+  window.PMDR2ZeroShiftGuardV2 = {
+    version: '2.0.0-no-white-blink',
     route: route,
     reveal: reveal,
     audit: function () {
       return {
-        version: '1.0.0',
+        version: '2.0.0-no-white-blink',
         route: route,
         done: done,
         reason: reason,
         stableFrames: stableFrames,
         signatureReady: Boolean(lastSignature),
+        dynamicTargets: dynamicTargets().length,
+        rootVisibility: root()
+          ? getComputedStyle(root()).visibility
+          : null,
+        rootOpacity: root()
+          ? getComputedStyle(root()).opacity
+          : null,
         tables: floor()
           ? floor().querySelectorAll('[data-floor-table]').length
           : 0
