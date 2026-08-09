@@ -266,7 +266,11 @@
     [0, 40, 100, 220, 500, 900].forEach(function (delay) {
       setTimeout(function () {
         if (isStaticBootRoute()) {
-          settleWithoutAnimation();
+          if (performance.now() < animationUntil) {
+            apply({ animate: true });
+          } else {
+            settleWithoutAnimation();
+          }
         } else {
           applyStable();
         }
@@ -288,6 +292,11 @@
     });
 
     menu.addEventListener('transitionend', function () {
+      if (performance.now() < animationUntil) {
+        apply({ animate: true });
+        return;
+      }
+
       settleWithoutAnimation();
       setTimeout(settleWithoutAnimation, 40);
     });
@@ -302,9 +311,27 @@
       'load',
       function () {
         if (isStaticBootRoute()) {
-          settleWithoutAnimation();
-          setTimeout(settleWithoutAnimation, 100);
-          setTimeout(settleWithoutAnimation, 400);
+          if (performance.now() < animationUntil) {
+            apply({ animate: true });
+          } else {
+            settleWithoutAnimation();
+          }
+
+          setTimeout(function () {
+            if (performance.now() < animationUntil) {
+              apply({ animate: true });
+            } else {
+              settleWithoutAnimation();
+            }
+          }, 100);
+
+          setTimeout(function () {
+            if (performance.now() < animationUntil) {
+              apply({ animate: true });
+            } else {
+              settleWithoutAnimation();
+            }
+          }, 400);
         } else {
           applyStable();
           setTimeout(applyStable, 100);
@@ -326,6 +353,15 @@
     if (!relevant) return;
 
     if (isStaticBootRoute()) {
+      /*
+       * A real user sidebar transition is already owned by animate().
+       * Class/style MutationObserver noise must not cancel that animation.
+       */
+      if (performance.now() < animationUntil) {
+        apply({ animate: true });
+        return;
+      }
+
       var nextState = sideMenuState();
       var changed = lastSideMenuState !== null && nextState !== lastSideMenuState;
 
@@ -353,7 +389,7 @@
   });
 
   window.PMDAdminExactLayoutV4 = {
-    version: '6.0.0-dashboard2-static-shell',
+    version: '6.1.0-dashboard2-static-shell',
     apply: applyStable,
     animate: animate,
     observer: observer,
@@ -373,7 +409,7 @@
   }
 
   console.info(
-    '[PMD Admin Exact Layout V6] Ready',
+    '[PMD Admin Exact Layout V6.1] Ready',
     window.PMDAdminExactLayoutV4
   );
 })();
