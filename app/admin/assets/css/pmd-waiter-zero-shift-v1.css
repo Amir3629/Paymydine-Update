@@ -45,6 +45,17 @@ body.pmd-waiter-new-page:not(.pmd-waiter-zero-shift-ready-v1)
   transform: none !important;
 }
 
+/* User text is replaced after the first data request. Keep its space but do not
+ * show the placeholder -> final-name change.
+ */
+body.pmd-waiter-new-page:not(.pmd-waiter-zero-shift-ready-v1)
+[data-v2-user] {
+  visibility: hidden !important;
+  opacity: 0 !important;
+  transition: none !important;
+  animation: none !important;
+}
+
 /*
  * The base launcher renders cards first. V2.1 then performs a second data pass,
  * adds pmd-v21-table-key (changing card height), injects metadata and reorders
@@ -91,13 +102,31 @@ body.pmd-waiter-new-page:not(.pmd-waiter-zero-shift-ready-v1)
   transform: none !important;
 }
 
+/* Footer copy changes from "Loading live tables" to the final timestamp after
+ * data settles. Hide only the text row while preserving its normal 44px space,
+ * so stage growth/reordering cannot create a visible footer hop.
+ */
+body.pmd-waiter-new-page:not(.pmd-waiter-zero-shift-ready-v1)
+.pmd-v2-footer {
+  visibility: hidden !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
+  transition: none !important;
+  animation: none !important;
+  transform: none !important;
+}
+
 /* Final paint: direct visibility, never a reveal animation. */
 body.pmd-waiter-new-page.pmd-waiter-zero-shift-ready-v1
 .pmd-v2-top-actions,
 body.pmd-waiter-new-page.pmd-waiter-zero-shift-ready-v1
+[data-v2-user],
+body.pmd-waiter-new-page.pmd-waiter-zero-shift-ready-v1
 .pmd-v2-area-keys,
 body.pmd-waiter-new-page.pmd-waiter-zero-shift-ready-v1
-.pmd-v2-table-grid {
+.pmd-v2-table-grid,
+body.pmd-waiter-new-page.pmd-waiter-zero-shift-ready-v1
+.pmd-v2-footer {
   visibility: visible !important;
   opacity: 1 !important;
   pointer-events: auto !important;
@@ -122,9 +151,7 @@ body.pmd-waiter-new-page:not(.pmd-waiter-zero-shift-ready-v1)
 body.pmd-waiter-new-page:not(.pmd-waiter-zero-shift-ready-v1)
 .pmd-v2-command,
 body.pmd-waiter-new-page:not(.pmd-waiter-zero-shift-ready-v1)
-.pmd-v2-table-stage,
-body.pmd-waiter-new-page:not(.pmd-waiter-zero-shift-ready-v1)
-.pmd-v2-footer {
+.pmd-v2-table-stage {
   transition: none !important;
   animation: none !important;
   transform: none !important;
