@@ -7,7 +7,7 @@
     return;
   }
 
-  if (window.PMDWaiterZeroShiftV2) {
+  if (window.PMDWaiterZeroShiftV3) {
     return;
   }
 
@@ -18,17 +18,18 @@
     return;
   }
 
-  /* V1 may have been served from an old browser/proxy cache. Never let its
-   * ready class bypass the stronger V2 first-paint shield. */
-  body.classList.remove('pmd-waiter-zero-shift-ready-v1');
+  /* Never allow an older cached ready class to bypass the current guard. */
+  body.classList.remove(
+    'pmd-waiter-zero-shift-ready-v1',
+    'pmd-waiter-zero-shift-ready-v2',
+    'pmd-waiter-zero-shift-ready-v3'
+  );
   root.removeAttribute('data-pmd-waiter-zero-shift-ready');
 
   var grid = root.querySelector('[data-v2-table-grid]');
   var loading = root.querySelector('[data-v2-loading]');
   var empty = root.querySelector('[data-v2-empty]');
   var areas = root.querySelector('[data-v2-areas]');
-  var topActions = root.querySelector('.pmd-v2-top-actions');
-  var userSource = root.querySelector('[data-v2-user]');
   var leftRail = root.querySelector('.pmd-v2-mode-keys');
 
   var startedAt = performance.now();
@@ -41,10 +42,10 @@
   var reason = 'booting';
   var serviceEventSeen = false;
 
-  var MIN_BOOT_MS = 900;
+  var MIN_BOOT_MS = 1100;
   var MIN_STABLE_MS = 120;
   var REQUIRED_STABLE_FRAMES = 8;
-  var SAFETY_TIMEOUT_MS = 8000;
+  var SAFETY_TIMEOUT_MS = 5000;
 
   function hasScript(fragment) {
     return Boolean(
@@ -54,12 +55,6 @@
     );
   }
 
-  /*
-   * The live /dashboardwaiternew page has accumulated several production
-   * layers. The important point is that V2.4.1 and V2.7.x are ASYNC and run
-   * after the early V2/V2.1 render. V1 did not wait for them, which is why an
-   * intermediate grid was visible before the final OCCUPIED/CLEANING state.
-   */
   var requiresV21 = hasScript('pmd-waiter-standard-v21.js');
   var requiresV221 = hasScript('pmd-waiter-standard-v221-theme.js');
   var requiresV23 = hasScript('pmd-waiter-standard-v23-operational-polish.js');
@@ -67,6 +62,8 @@
   var requiresV241 = hasScript('pmd-waiter-v241-table-lifecycle-safe.js');
   var requiresV257 = hasScript('pmd-waiter-v257-operations-rail.js');
   var requiresV263 = hasScript('pmd-waiter-v263-area-search-calls.js');
+  var requiresV265 = hasScript('pmd-waiter-v265-header-dark-logout.js');
+  var requiresV267 = hasScript('pmd-waiter-v266-theme-rails-nohover.js');
   var requiresV271 = hasScript('pmd-waiter-v271-service-inbox.js');
   var requiresV274 = hasScript('pmd-waiter-v274-single-service-source.js');
   var requiresV280 = hasScript('pmd-waiter-v280-exact-neutral-right-rail.js');
@@ -113,63 +110,66 @@
     });
   }
 
-  function v221Ready() {
-    if (!requiresV221) return true;
+  function v265Ready() {
+    if (!requiresV265) return true;
 
     return Boolean(
-      topActions &&
-      topActions.querySelector('[data-v221-theme-toggle]')
+      window.PMDWaiterV265 &&
+      !document.querySelector('.pmd-v2-topbar') &&
+      document.querySelector('.pmd-v265-logout')
     );
   }
 
-  function sourceUserReady() {
-    if (!requiresV23) return true;
-    if (!userSource) return false;
+  function v267Ready() {
+    if (!requiresV267) return true;
 
-    var value = String(userSource.textContent || '')
-      .replace(/\s+/g, ' ')
-      .trim()
-      .toLowerCase();
+    var theme = document.documentElement.getAttribute('data-pmd-pos-theme');
 
     return Boolean(
-      value &&
-      value !== 'live service' &&
-      value.indexOf('live service') !== -1
+      window.PMDWaiterV267 &&
+      (theme === 'light' || theme === 'dark')
+    );
+  }
+
+  function v221Ready() {
+    if (!requiresV221) return true;
+
+    /* V2.6.5 intentionally removes the complete topbar, including the V2.2.1
+     * theme control. In the final production DOM, absence is therefore READY. */
+    if (requiresV265 && v265Ready()) {
+      return true;
+    }
+
+    var actions = root.querySelector('.pmd-v2-top-actions');
+
+    return Boolean(
+      window.PMDWaiterStandardV221 &&
+      actions &&
+      actions.querySelector('[data-v221-theme-toggle]')
     );
   }
 
   function v23Ready() {
     if (!requiresV23) return true;
 
-    /* V2.3 creates an online-user pill, but V2.3.3 intentionally removes that
-     * temporary node as part of its unified header pass. When V2.3.3 exists,
-     * requiring the pill would wait forever for an element whose FINAL state is
-     * absence. The stable requirement is therefore the populated user source +
-     * V2.3 runtime itself; V2.3.3 has its own separate readiness check below. */
-    if (requiresV233) {
-      return Boolean(
-        sourceUserReady() &&
-        window.PMDWaiterStandardV23
-      );
-    }
-
-    return Boolean(
-      sourceUserReady() &&
-      topActions &&
-      topActions.querySelector('[data-v23-online-user]')
-    );
+    /* V2.3 decorates a temporary topbar pill; V2.3.3/V2.6.5 later remove it.
+     * The stable signal is the production runtime itself, not temporary DOM. */
+    return Boolean(window.PMDWaiterStandardV23);
   }
 
   function v233Ready() {
     if (!requiresV233) return true;
 
     var footerGone = !root.querySelector('.pmd-v2-footer');
-    var originalSearch = root.querySelector('.pmd-v233-header-search');
+
+    if (requiresV265 && v265Ready()) {
+      return Boolean(window.PMDWaiterLauncherV233 && footerGone);
+    }
 
     return Boolean(
       window.PMDWaiterLauncherV233 &&
       footerGone &&
-      originalSearch
+      root.querySelector('.pmd-v233-header-search')
     );
   }
 
@@ -230,8 +230,7 @@
 
     return Boolean(
       window.PMDWaiterV271 &&
-      window.PMDWaiterV271.dashboard !== null &&
-      serviceEventSeen
+      window.PMDWaiterV271.dashboard !== null
     );
   }
 
@@ -240,12 +239,15 @@
 
     var rows = cards();
 
-    if (!window.PMDWaiterV274 || !serviceEventSeen) {
+    if (!window.PMDWaiterV274) {
       return false;
     }
 
     if (!rows.length) return true;
 
+    /* These attributes are written only after the final service renderer has
+     * processed each card. This is a stronger observable signal than relying on
+     * an event that could theoretically fire before this guard attaches. */
     return rows.every(function (card) {
       return (
         card.hasAttribute('data-v274-call-count') &&
@@ -286,6 +288,8 @@
       v241Ready() &&
       v257Ready() &&
       v263Ready() &&
+      v265Ready() &&
+      v267Ready() &&
       v271Ready() &&
       v274Ready() &&
       v280Ready() &&
@@ -319,6 +323,25 @@
       .slice(0, 500);
   }
 
+  function auditLayers() {
+    return {
+      base: baseDataReady(),
+      v21: v21Ready(),
+      v221: v221Ready(),
+      v23: v23Ready(),
+      v233: v233Ready(),
+      v241: v241Ready(),
+      v257: v257Ready(),
+      v263: v263Ready(),
+      v265: v265Ready(),
+      v267: v267Ready(),
+      v271: v271Ready(),
+      v274: v274Ready(),
+      v280: v280Ready(),
+      v281: v281Ready()
+    };
+  }
+
   function signature() {
     if (!allLayersReady()) {
       return null;
@@ -326,14 +349,18 @@
 
     var rows = cards();
     var rightRail = document.querySelector('.pmd-v280-right-rail');
+    var logout = document.querySelector('.pmd-v265-logout');
+    var theme = document.documentElement.getAttribute('data-pmd-pos-theme') || '';
     var parts = [
       'root=' + rect(root),
+      'command=' + rect(root.querySelector('.pmd-v2-command')),
       'left=' + rect(leftRail) + ':' + cleanText(leftRail),
-      'actions=' + rect(topActions) + ':' + cleanText(topActions),
       'areas=' + rect(areas) + ':' + cleanText(areas),
       'stage=' + rect(root.querySelector('.pmd-v2-table-stage')),
       'grid=' + rect(grid),
       'right=' + rect(rightRail) + ':' + cleanText(rightRail),
+      'logout=' + rect(logout),
+      'theme=' + theme,
       'areaButtons=' + (areas ? areas.querySelectorAll('[data-v2-area]').length : 0),
       'filters=' + (leftRail ? leftRail.querySelectorAll('[data-v241-filter]').length : 0),
       'cards=' + rows.length
@@ -360,21 +387,19 @@
     if (done) return;
 
     done = true;
-    reason = nextReason || 'stable-complete-production-stack';
+    reason = nextReason || 'stable-final-production-dom';
 
-    if (frameId) {
-      cancelAnimationFrame(frameId);
-    }
+    if (frameId) cancelAnimationFrame(frameId);
+    if (timeoutId) clearTimeout(timeoutId);
 
-    if (timeoutId) {
-      clearTimeout(timeoutId);
-    }
+    body.classList.remove(
+      'pmd-waiter-zero-shift-ready-v1',
+      'pmd-waiter-zero-shift-ready-v2'
+    );
+    body.classList.add('pmd-waiter-zero-shift-ready-v3');
+    root.setAttribute('data-pmd-waiter-zero-shift-ready', '3');
 
-    body.classList.remove('pmd-waiter-zero-shift-ready-v1');
-    body.classList.add('pmd-waiter-zero-shift-ready-v2');
-    root.setAttribute('data-pmd-waiter-zero-shift-ready', '2');
-
-    console.info('[PMD Waiter Zero Shift V2] Final launcher released', {
+    console.info('[PMD Waiter Zero Shift V3] Final launcher released', {
       route: route,
       reason: reason,
       stableFrames: stableFrames,
@@ -385,22 +410,44 @@
     });
   }
 
-  function auditLayers() {
+  function audit() {
     return {
-      base: baseDataReady(),
-      v21: v21Ready(),
-      v221: v221Ready(),
-      v23: v23Ready(),
-      v233: v233Ready(),
-      v241: v241Ready(),
-      v257: v257Ready(),
-      v263: v263Ready(),
-      v271: v271Ready(),
-      v274: v274Ready(),
-      v280: v280Ready(),
-      v281: v281Ready()
+      version: '3.0.0-final-dom-aware',
+      route: route,
+      ready: done,
+      reason: reason,
+      stableFrames: stableFrames,
+      requiredStableFrames: REQUIRED_STABLE_FRAMES,
+      minBootMs: MIN_BOOT_MS,
+      minStableMs: MIN_STABLE_MS,
+      serviceEventSeen: serviceEventSeen,
+      layers: auditLayers(),
+      cards: cards().length,
+      areaButtons: areas
+        ? areas.querySelectorAll('[data-v2-area]').length
+        : 0,
+      lifecycleFilters: leftRail
+        ? leftRail.querySelectorAll('[data-v241-filter]').length
+        : 0,
+      topbarPresent: Boolean(document.querySelector('.pmd-v2-topbar')),
+      logoutPresent: Boolean(document.querySelector('.pmd-v265-logout')),
+      rightRail: Boolean(document.querySelector('.pmd-v280-right-rail')),
+      theme: document.documentElement.getAttribute('data-pmd-pos-theme') || '',
+      elapsedMs: Math.round(performance.now() - startedAt)
     };
   }
+
+  window.PMDWaiterZeroShiftV3 = {
+    version: '3.0.0-final-dom-aware',
+    reveal: reveal,
+    audit: audit
+  };
+
+  console.info('[PMD Waiter Zero Shift V3] Final-DOM guard active', {
+    route: route,
+    requiresV265: requiresV265,
+    requiresV267: requiresV267
+  });
 
   function tick(now) {
     if (done) return;
@@ -428,7 +475,7 @@
       firstStableAt &&
       now - firstStableAt >= MIN_STABLE_MS
     ) {
-      reveal('stable-complete-production-stack');
+      reveal('stable-final-production-dom');
       return;
     }
 
@@ -438,34 +485,7 @@
   frameId = requestAnimationFrame(tick);
 
   timeoutId = setTimeout(function () {
+    console.warn('[PMD Waiter Zero Shift V3] Safety release', audit());
     reveal('safety-timeout');
   }, SAFETY_TIMEOUT_MS);
-
-  window.PMDWaiterZeroShiftV2 = {
-    version: '2.0.0-complete-stack',
-    reveal: reveal,
-    audit: function () {
-      return {
-        version: '2.0.0-complete-stack',
-        route: route,
-        ready: done,
-        reason: reason,
-        stableFrames: stableFrames,
-        requiredStableFrames: REQUIRED_STABLE_FRAMES,
-        minBootMs: MIN_BOOT_MS,
-        minStableMs: MIN_STABLE_MS,
-        serviceEventSeen: serviceEventSeen,
-        layers: auditLayers(),
-        cards: cards().length,
-        areaButtons: areas
-          ? areas.querySelectorAll('[data-v2-area]').length
-          : 0,
-        lifecycleFilters: leftRail
-          ? leftRail.querySelectorAll('[data-v241-filter]').length
-          : 0,
-        rightRail: Boolean(document.querySelector('.pmd-v280-right-rail')),
-        elapsedMs: Math.round(performance.now() - startedAt)
-      };
-    }
-  };
 })();
