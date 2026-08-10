@@ -12,9 +12,9 @@
     recentTransactions: '/admin/pmdreports/transactions',
     alerts: '/admin/pmdreports/alerts',
     liveOperations: '/admin/pmdreports/liveorders',
-    channelSplit: '/admin/pmdreports/orderchannels',
+    channelSplit: '/admin/pmdreportchannels',
     topItems: '/admin/pmdreports/topitems',
-    tips: '/admin/pmdreports/tipssummary',
+    tips: '/admin/pmdreporttips',
     reviews: '/admin/pmdreports/reviews',
     calendarEvents: '/admin/pmdreports/reservations'
   };
@@ -87,14 +87,14 @@
   }, 5000);
 
   window.PMDDashboard2DetailLinksV1 = {
-    version: '1.1.0-resilient-install',
+    version: '1.2.0-dedicated-report-routes',
     install: install,
     routes: map,
     audit: function () {
       var root = document.getElementById('pmd-dashboard2-analytics-v1');
       var found = root ? root.querySelectorAll('.pmd-dashboard2-detail-link').length : 0;
       return {
-        version: '1.1.0-resilient-install',
+        version: '1.2.0-dedicated-report-routes',
         path: path,
         root: !!root,
         expected: expected,
@@ -104,5 +104,5 @@
     }
   };
 
-  console.info('[PMD Dashboard2 Detail Links V1.1] active', window.PMDDashboard2DetailLinksV1.audit());
+  console.info('[PMD Dashboard2 Detail Links V1.2] active', window.PMDDashboard2DetailLinksV1.audit());
 })();
