@@ -10,6 +10,11 @@
   var baseline = '';
   var armed = false;
 
+  function setImportant(node, property, value) {
+    if (!node) return;
+    node.style.setProperty(property, value, 'important');
+  }
+
   function normalizeBell(notificationRoot) {
     if (!notificationRoot) return;
     var toggle = notificationRoot.querySelector('#notifDropdown');
@@ -31,6 +36,85 @@
     }
 
     bell.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9"></path><path d="M10 21h4"></path></svg>';
+
+    /*
+     * PMD_OWNER_NOTIFICATION_TRUE_CENTER_V2
+     *
+     * Legacy/global admin CSS can leave offsets on the notification anchor or
+     * bell span. Use inline !important geometry so the bell's visual centre is
+     * exactly the centre of the 42x42 frame on every consolidated owner page.
+     * The unread badge remains independently anchored outside the frame.
+     */
+    setImportant(notificationRoot, 'position', 'relative');
+    setImportant(notificationRoot, 'display', 'flex');
+    setImportant(notificationRoot, 'align-items', 'center');
+    setImportant(notificationRoot, 'justify-content', 'center');
+    setImportant(notificationRoot, 'width', '42px');
+    setImportant(notificationRoot, 'min-width', '42px');
+    setImportant(notificationRoot, 'max-width', '42px');
+    setImportant(notificationRoot, 'height', '42px');
+    setImportant(notificationRoot, 'min-height', '42px');
+    setImportant(notificationRoot, 'max-height', '42px');
+    setImportant(notificationRoot, 'margin', '0');
+    setImportant(notificationRoot, 'padding', '0');
+
+    setImportant(toggle, 'position', 'relative');
+    setImportant(toggle, 'display', 'inline-flex');
+    setImportant(toggle, 'align-items', 'center');
+    setImportant(toggle, 'justify-content', 'center');
+    setImportant(toggle, 'box-sizing', 'border-box');
+    setImportant(toggle, 'width', '42px');
+    setImportant(toggle, 'min-width', '42px');
+    setImportant(toggle, 'max-width', '42px');
+    setImportant(toggle, 'height', '42px');
+    setImportant(toggle, 'min-height', '42px');
+    setImportant(toggle, 'max-height', '42px');
+    setImportant(toggle, 'margin', '0');
+    setImportant(toggle, 'padding', '0');
+    setImportant(toggle, 'left', 'auto');
+    setImportant(toggle, 'right', 'auto');
+    setImportant(toggle, 'top', 'auto');
+    setImportant(toggle, 'bottom', 'auto');
+    setImportant(toggle, 'line-height', '1');
+    setImportant(toggle, 'text-indent', '0');
+    setImportant(toggle, 'transform', 'none');
+
+    setImportant(bell, 'position', 'absolute');
+    setImportant(bell, 'left', '50%');
+    setImportant(bell, 'top', '50%');
+    setImportant(bell, 'right', 'auto');
+    setImportant(bell, 'bottom', 'auto');
+    setImportant(bell, 'display', 'flex');
+    setImportant(bell, 'align-items', 'center');
+    setImportant(bell, 'justify-content', 'center');
+    setImportant(bell, 'width', '20px');
+    setImportant(bell, 'height', '20px');
+    setImportant(bell, 'margin', '0');
+    setImportant(bell, 'padding', '0');
+    setImportant(bell, 'line-height', '1');
+    setImportant(bell, 'transform', 'translate(-50%, -50%)');
+    setImportant(bell, 'pointer-events', 'none');
+
+    var bellSvg = bell.querySelector('svg');
+    if (bellSvg) {
+      setImportant(bellSvg, 'display', 'block');
+      setImportant(bellSvg, 'width', '20px');
+      setImportant(bellSvg, 'height', '20px');
+      setImportant(bellSvg, 'margin', '0');
+      setImportant(bellSvg, 'padding', '0');
+      setImportant(bellSvg, 'transform', 'none');
+    }
+
+    var count = toggle.querySelector('#notification-count');
+    if (count) {
+      setImportant(count, 'position', 'absolute');
+      setImportant(count, 'top', '-6px');
+      setImportant(count, 'right', '-7px');
+      setImportant(count, 'left', 'auto');
+      setImportant(count, 'bottom', 'auto');
+      setImportant(count, 'margin', '0');
+      setImportant(count, 'transform', 'none');
+    }
   }
 
   function installNotification() {
@@ -145,7 +229,7 @@
   }
 
   window.PMDOwnerSettingsV1 = {
-    version: '1.0.0',
+    version: '2.0.0-notification-true-center',
     notificationMoved: Boolean(root.querySelector('#notif-root')),
     evaluateDirty: evaluateDirty,
     establishBaseline: establishBaseline,
