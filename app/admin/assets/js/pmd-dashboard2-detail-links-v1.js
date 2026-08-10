@@ -12,9 +12,9 @@
     recentTransactions: '/admin/pmdreports/transactions',
     alerts: '/admin/pmdreports/alerts',
     liveOperations: '/admin/pmdreports/liveorders',
-    channelSplit: '/admin/pmdreports/channels',
+    channelSplit: '/admin/pmdreports/orderchannels',
     topItems: '/admin/pmdreports/topitems',
-    tips: '/admin/pmdreports/tips',
+    tips: '/admin/pmdreports/tipssummary',
     reviews: '/admin/pmdreports/reviews',
     calendarEvents: '/admin/pmdreports/reservations'
   };
@@ -44,7 +44,7 @@
   }
 
   window.PMDDashboard2DetailLinksV1 = {
-    version: '1.0.0',
+    version: '1.0.1-conflict-free-actions',
     install: install,
     routes: map
   };
