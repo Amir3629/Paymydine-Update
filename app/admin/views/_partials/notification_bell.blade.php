@@ -25,13 +25,16 @@
   </div>
 </li>
 
-@if(request()->is('admin/dashboard2'))
+<!--
+  PMD_DASHBOARD2_REPORT_LINK_LOADER_V1_1
+  Load globally because the JS itself is route-guarded to /admin/dashboard2.
+  This avoids relying on request()->is() timing/context inside shared partials.
+-->
 <link
   rel="stylesheet"
-  href="/app/admin/assets/css/pmd-dashboard2-detail-links-v1.css?v=20260810-dashboard-report-links-v1-1"
+  href="/app/admin/assets/css/pmd-dashboard2-detail-links-v1.css?v=20260810-dashboard-report-links-v1-2"
 >
 <script
-  src="/app/admin/assets/js/pmd-dashboard2-detail-links-v1.js?v=20260810-dashboard-report-links-v1-1"
+  src="/app/admin/assets/js/pmd-dashboard2-detail-links-v1.js?v=20260810-dashboard-report-links-v1-2"
   defer
 ></script>
-@endif
