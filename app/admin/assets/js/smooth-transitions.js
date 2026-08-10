@@ -251,3 +251,41 @@ class SmoothPageTransitions {
 document.addEventListener('DOMContentLoaded', () => {
     window.smoothTransitions = new SmoothPageTransitions();
 });
+
+/*
+ * PMD_DASHBOARD2_REPORT_LINK_BOOTSTRAP_V1
+ *
+ * Dashboard2 does not render the Settings notification_bell partial, so the
+ * report-link asset cannot rely on that partial for loading. This global file
+ * is already present on Dashboard2. Load the tiny Dashboard2-only CSS/JS here;
+ * the report-link JS contains its own strict /admin/dashboard2 route guard.
+ */
+(function bootstrapDashboard2ReportLinks() {
+    const path = String(window.location.pathname || '').replace(/\/+$/, '');
+    if (path !== '/admin/dashboard2') return;
+
+    const cssId = 'pmd-dashboard2-report-links-css-v1';
+    const jsId = 'pmd-dashboard2-report-links-js-v1';
+
+    if (!document.getElementById(cssId)) {
+        const link = document.createElement('link');
+        link.id = cssId;
+        link.rel = 'stylesheet';
+        link.href = '/app/admin/assets/css/pmd-dashboard2-detail-links-v1.css?v=20260810-dashboard-report-links-v1-3';
+        (document.head || document.documentElement).appendChild(link);
+    }
+
+    if (!document.getElementById(jsId)) {
+        const script = document.createElement('script');
+        script.id = jsId;
+        script.src = '/app/admin/assets/js/pmd-dashboard2-detail-links-v1.js?v=20260810-dashboard-report-links-v1-3';
+        script.defer = true;
+        script.onload = function () {
+            console.info('[PMD Dashboard2 Report Link Bootstrap V1] loaded');
+        };
+        script.onerror = function () {
+            console.error('[PMD Dashboard2 Report Link Bootstrap V1] failed to load report-link asset');
+        };
+        (document.head || document.documentElement).appendChild(script);
+    }
+})();
