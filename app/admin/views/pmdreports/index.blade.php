@@ -6,6 +6,7 @@
     $rows = $report['rows'] ?? [];
     $periods = $report['periods'] ?? [];
     $activePeriod = $report['period'] ?? 'last30';
+    $routeUrl = $report['route_url'] ?? url()->current();
 @endphp
 
 <div
@@ -48,7 +49,7 @@
                 <nav class="pmd-report-periods" aria-label="Report period">
                     @foreach($periods as $value => $label)
                         <a
-                            href="{{ admin_url('pmdreports/'.($report['type'] ?? '')) }}?period={{ $value }}"
+                            href="{{ $routeUrl }}?period={{ $value }}"
                             class="{{ $activePeriod === $value ? 'is-active' : '' }}"
                             aria-current="{{ $activePeriod === $value ? 'page' : 'false' }}"
                         >{{ $label }}</a>
