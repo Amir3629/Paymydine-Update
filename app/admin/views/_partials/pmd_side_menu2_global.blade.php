@@ -11,6 +11,27 @@
     $pmdIsReservations2 =
         str_starts_with($pmdPath, 'admin/reservations2');
 
+    /*
+     * PMD_SETTINGS_SUITE_ROUTE_AUTHORITY_V5
+     *
+     * This is intentionally route-derived instead of body-class-derived.
+     * The route is known by Blade before body paint, so the final vertical
+     * shell/header geometry exists before any deferred controller/runtime CSS
+     * or JS can leave a legacy navbar/page-wrapper top offset behind.
+     */
+    $pmdIsSettingsSuiteRoute =
+        $pmdPath === 'admin/pmdsettings' ||
+        str_starts_with($pmdPath, 'admin/pmdsettings/') ||
+        in_array($pmdPath, [
+            'admin/pmdmenu',
+            'admin/pmdcustomer',
+            'admin/pmdteam',
+            'admin/pmddevices',
+            'admin/pmdfinance',
+            'admin/pmdbrand',
+            'admin/pmdadvanced',
+        ], true);
+
     $pmdActive = function ($paths) use ($pmdPath) {
         foreach ((array) $paths as $path) {
             if (
@@ -47,6 +68,12 @@
         'pmd-side-menu2-global-page'
     );
 
+    @if($pmdIsSettingsSuiteRoute)
+    document.documentElement.classList.add(
+        'pmd-settings-suite-route-v5'
+    );
+    @endif
+
     @if($pmdPath === 'admin/dashboard2')
     /*
      * PMD_DASHBOARD2_STATIC_SHELL_FIRST_PAINT_V1
@@ -60,6 +87,187 @@
     @endif
 })();
 </script>
+
+@if($pmdIsSettingsSuiteRoute)
+<!-- PMD_SETTINGS_SUITE_ROUTE_ZERO_TOP_V5_START -->
+<style id="pmd-settings-suite-route-zero-top-v5">
+  /*
+   * Route-level first-paint authority for ALL consolidated Settings pages.
+   *
+   * The old admin shell can contribute top padding/margins at several nested
+   * wrapper levels even when the legacy navbar itself is hidden. Reset every
+   * shell layer that sits ABOVE the PMD custom page root. Internal PMD cards,
+   * forms and their intentional spacing are not touched.
+   */
+  html.pmd-settings-suite-route-v5,
+  html.pmd-settings-suite-route-v5 body,
+  html.pmd-settings-suite-route-v5 .page,
+  html.pmd-settings-suite-route-v5 .page-wrapper,
+  html.pmd-settings-suite-route-v5 .page-content,
+  html.pmd-settings-suite-route-v5 .content-wrapper,
+  html.pmd-settings-suite-route-v5 .content,
+  html.pmd-settings-suite-route-v5 .main-content,
+  html.pmd-settings-suite-route-v5 .app-container,
+  html.pmd-settings-suite-route-v5 .layout,
+  html.pmd-settings-suite-route-v5 .layout-wrapper,
+  html.pmd-settings-suite-route-v5 .nk-wrap,
+  html.pmd-settings-suite-route-v5 .nk-content,
+  html.pmd-settings-suite-route-v5 .nk-content-inner,
+  html.pmd-settings-suite-route-v5 .nk-content-body,
+  html.pmd-settings-suite-route-v5 .nk-content-wrap,
+  html.pmd-settings-suite-route-v5 .container,
+  html.pmd-settings-suite-route-v5 .container-fluid,
+  html.pmd-settings-suite-route-v5 .row-fluid {
+    margin-top: 0 !important;
+    padding-top: 0 !important;
+    background-color: #f8fbfd !important;
+    background-image: none !important;
+  }
+
+  html.pmd-settings-suite-route-v5 body {
+    top: 0 !important;
+  }
+
+  html.pmd-settings-suite-route-v5 .page,
+  html.pmd-settings-suite-route-v5 .page-wrapper,
+  html.pmd-settings-suite-route-v5 .page-content,
+  html.pmd-settings-suite-route-v5 .content-wrapper,
+  html.pmd-settings-suite-route-v5 .main-content,
+  html.pmd-settings-suite-route-v5 .nk-wrap,
+  html.pmd-settings-suite-route-v5 .nk-content,
+  html.pmd-settings-suite-route-v5 .nk-content-inner,
+  html.pmd-settings-suite-route-v5 .nk-content-body,
+  html.pmd-settings-suite-route-v5 .nk-content-wrap {
+    top: 0 !important;
+    bottom: auto !important;
+  }
+
+  html.pmd-settings-suite-route-v5 .page-wrapper {
+    margin-bottom: 0 !important;
+    padding-bottom: 0 !important;
+  }
+
+  html.pmd-settings-suite-route-v5 .page-content,
+  html.pmd-settings-suite-route-v5 .content-wrapper,
+  html.pmd-settings-suite-route-v5 .main-content,
+  html.pmd-settings-suite-route-v5 .nk-content,
+  html.pmd-settings-suite-route-v5 .nk-content-inner,
+  html.pmd-settings-suite-route-v5 .nk-content-body,
+  html.pmd-settings-suite-route-v5 .nk-content-wrap,
+  html.pmd-settings-suite-route-v5 .container,
+  html.pmd-settings-suite-route-v5 .container-fluid {
+    margin-bottom: 0 !important;
+  }
+
+  /* Hidden legacy topbar must consume literally zero vertical geometry. */
+  html.pmd-settings-suite-route-v5 .navbar-top,
+  html.pmd-settings-suite-route-v5 .navbar-fixed-top,
+  html.pmd-settings-suite-route-v5 .page-title-section {
+    display: none !important;
+    visibility: hidden !important;
+    opacity: 0 !important;
+    pointer-events: none !important;
+    position: absolute !important;
+    top: 0 !important;
+    min-height: 0 !important;
+    height: 0 !important;
+    max-height: 0 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    border: 0 !important;
+    box-shadow: none !important;
+    overflow: hidden !important;
+  }
+
+  /* The custom Settings roots own the only vertical rhythm. */
+  html.pmd-settings-suite-route-v5 :is(
+    #pmd-settings-center,
+    #pmd-restaurant-profile,
+    #pmd-menu-checkout,
+    #pmd-team-access,
+    .pmd-owner-page
+  ) {
+    margin-top: 0 !important;
+    padding-top: 0 !important;
+    transform: none !important;
+    translate: none !important;
+    animation: none !important;
+  }
+
+  /* One header family across every consolidated Settings page. */
+  html.pmd-settings-suite-route-v5 :is(
+    #pmd-settings-clean-header,
+    .pmd-profile-header,
+    .pmd-menu-header,
+    .pmd-team-header,
+    .pmd-owner-header
+  ) {
+    box-sizing: border-box !important;
+    position: relative !important;
+    top: 0 !important;
+    min-height: 64px !important;
+    height: 64px !important;
+    margin-top: 0 !important;
+    padding-top: 0 !important;
+    padding-bottom: 0 !important;
+    display: flex !important;
+    align-items: center !important;
+    transform: none !important;
+    translate: none !important;
+    animation: none !important;
+    transition: none !important;
+  }
+
+  html.pmd-settings-suite-route-v5 :is(
+    .pmd-owner-header h1,
+    .pmd-team-header h1,
+    .pmd-menu-header h1,
+    .pmd-profile-header h1,
+    #pmd-settings-clean-header .pmd-settings-clean-title
+  ) {
+    margin-top: 0 !important;
+    margin-bottom: 0 !important;
+    padding-top: 0 !important;
+    padding-bottom: 0 !important;
+    font-size: 22px !important;
+    line-height: 1.2 !important;
+    font-weight: 700 !important;
+  }
+
+  /* No structural motion during refresh/normalization. */
+  html.pmd-settings-suite-route-v5 :is(
+    .page-wrapper,
+    .page-content,
+    .content-wrapper,
+    .main-content,
+    .nk-wrap,
+    .nk-content,
+    .nk-content-inner,
+    .nk-content-body,
+    .nk-content-wrap,
+    #pmd-settings-center,
+    #pmd-restaurant-profile,
+    #pmd-menu-checkout,
+    #pmd-team-access,
+    .pmd-owner-page,
+    #pmd-settings-clean-header,
+    .pmd-profile-header,
+    .pmd-menu-header,
+    .pmd-team-header,
+    .pmd-owner-header
+  ) {
+    animation: none !important;
+    transition: none !important;
+  }
+
+  @media (max-width: 820px) {
+    html.pmd-settings-suite-route-v5 .page-wrapper {
+      top: 0 !important;
+    }
+  }
+</style>
+<!-- PMD_SETTINGS_SUITE_ROUTE_ZERO_TOP_V5_END -->
+@endif
 
 <!-- PMD_GLOBAL_MENU_CRITICAL_GEOMETRY_V6_START -->
 <style id="pmd-global-menu-critical-geometry-v6">
