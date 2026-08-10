@@ -24,3 +24,14 @@
     <div id="notification-list" class="list-group list-group-flush"></div>
   </div>
 </li>
+
+@if(request()->is('admin/dashboard2'))
+<link
+  rel="stylesheet"
+  href="/app/admin/assets/css/pmd-dashboard2-detail-links-v1.css?v=20260810-dashboard-report-links-v1"
+>
+<script
+  src="/app/admin/assets/js/pmd-dashboard2-detail-links-v1.js?v=20260810-dashboard-report-links-v1"
+  defer
+></script>
+@endif
