@@ -49,9 +49,16 @@ class Pmdreports extends Dashboard2
     public function transactions() { return $this->show('transactions'); }
     public function alerts() { return $this->show('alerts'); }
     public function liveorders() { return $this->show('liveorders'); }
-    public function orderchannels() { return $this->show('channels'); }
+
+    /*
+     * Keep the old V1.1 URLs as harmless redirects. The real pages now use
+     * dedicated index controllers, so there is zero ambiguity with the
+     * inherited Dashboard2::channels() / Dashboard2::tips() methods.
+     */
+    public function orderchannels() { return redirect(admin_url('pmdreportchannels')); }
+    public function tipssummary() { return redirect(admin_url('pmdreporttips')); }
+
     public function topitems() { return $this->show('topitems'); }
-    public function tipssummary() { return $this->show('tips'); }
     public function reviews() { return $this->show('reviews'); }
     public function reservations() { return $this->show('reservations'); }
 
@@ -89,10 +96,20 @@ class Pmdreports extends Dashboard2
             'periods' => $this->periodOptions($type),
             'timezone' => $this->restaurantTimezone(),
             'currency' => $this->reportCurrency(),
+            'route_url' => $this->reportUrl($type),
             'back_url' => admin_url('dashboard2'),
         ], $payload);
 
         return $this->makeView('pmdreports/index');
+    }
+
+    protected function reportUrl(string $type): string
+    {
+        return match ($type) {
+            'channels' => admin_url('pmdreportchannels'),
+            'tips' => admin_url('pmdreporttips'),
+            default => admin_url('pmdreports/'.$type),
+        };
     }
 
     protected function meta(string $type): array
