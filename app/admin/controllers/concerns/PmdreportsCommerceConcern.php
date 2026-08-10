@@ -22,7 +22,7 @@ trait PmdreportsCommerceConcern
         $orders = array_sum(array_map(fn ($r) => (int)$r['orders'], $series['buckets'] ?? []));
         return [
             'stats' => [$this->stat('Net sales', $this->money($sales)), $this->stat('Settled orders', number_format($orders)), $this->stat('Average order', $orders ? $this->money($sales / $orders) : $this->money(0))],
-            'chart' => ['type' => 'line', 'labels' => array_column($rows, 'period'), 'values' => array_map(fn ($r) => (float)str_replace([($this->reportCurrency()['symbol'] ?? '€'), ','], '', $r['sales']), $rows), 'money' => true, 'currency_symbol' => $this->reportCurrency()['symbol']],
+            'chart' => ['type' => 'line', 'labels' => array_column($rows, 'period'), 'values' => array_map(fn ($r) => (float)$r['sales'], $series['buckets'] ?? []), 'money' => true, 'currency_symbol' => $this->reportCurrency()['symbol']],
             'columns' => [['key'=>'period','label'=>'Period'],['key'=>'sales','label'=>'Net sales'],['key'=>'orders','label'=>'Orders'],['key'=>'average','label'=>'Average order']],
             'rows' => $rows, 'empty' => $orders === 0,
             'source' => $series['source'] ?? 'Dashboard2 paid-order revenue authority, net of tips.',
