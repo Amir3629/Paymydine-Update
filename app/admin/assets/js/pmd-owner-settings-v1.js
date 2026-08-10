@@ -161,10 +161,14 @@
       });
     });
 
+    /*
+     * Observe class/child changes only. Observing style would make our own
+     * inline geometry writes wake the observer again and could create a loop.
+     */
     notificationObserver.observe(notificationRoot, {
       subtree: true,
       attributes: true,
-      attributeFilter: ['class', 'style'],
+      attributeFilter: ['class'],
       childList: true
     });
 
@@ -294,7 +298,7 @@
   }
 
   window.PMDOwnerSettingsV1 = {
-    version: '3.0.0-notification-grid-center',
+    version: '3.0.1-notification-grid-center',
     notificationMoved: Boolean(root.querySelector('#notif-root')),
     evaluateDirty: evaluateDirty,
     establishBaseline: establishBaseline,
