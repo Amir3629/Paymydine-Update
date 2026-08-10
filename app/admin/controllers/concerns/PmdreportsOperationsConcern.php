@@ -3,6 +3,8 @@
 namespace Admin\Controllers\Concerns;
 
 use Admin\Models\Reviews_model;
+use Admin\Models\Menus_model;
+use Admin\Models\Tables_model;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
@@ -12,21 +14,67 @@ trait PmdreportsOperationsConcern
     protected function alertsPayload(Carbon $start, Carbon $end): array
     {
         $summary = $this->analyticsAlerts($start, $end); $types = $summary['types'] ?? [];
-        $rows = [
-            ['alert'=>'Failed payments','count'=>$this->nullableCount($types['failed_payments'] ?? null),'scope'=>'Today'],
-            ['alert'=>'Refunds','count'=>$this->nullableCount($types['refunds'] ?? null),'scope'=>'Today'],
-            ['alert'=>'Long-open tables','count'=>$this->nullableCount($types['long_open_tables'] ?? null),'scope'=>'Current · '.(int)($summary['long_open_threshold_minutes'] ?? 90).' min threshold'],
-            ['alert'=>'Out-of-stock items','count'=>$this->nullableCount($types['out_of_stock'] ?? null),'scope'=>'Current menu state'],
-            ['alert'=>'Low reviews','count'=>$this->nullableCount($types['negative_reviews'] ?? null),'scope'=>'Today · rating ≤ 2'],
-        ];
+        $rows = $this->alertDetailRows($end);
+        if (!$rows) {
+            $rows = [
+                ['alert'=>'Failed payments','item'=>$this->nullableCount($types['failed_payments'] ?? null),'detail'=>'Today','time'=>'—'],
+                ['alert'=>'Refunds','item'=>$this->nullableCount($types['refunds'] ?? null),'detail'=>'Today','time'=>'—'],
+                ['alert'=>'Long-open tables','item'=>$this->nullableCount($types['long_open_tables'] ?? null),'detail'=>'Current · '.(int)($summary['long_open_threshold_minutes'] ?? 90).' min threshold','time'=>'—'],
+                ['alert'=>'Out-of-stock items','item'=>$this->nullableCount($types['out_of_stock'] ?? null),'detail'=>'Current menu state','time'=>'—'],
+                ['alert'=>'Low reviews','item'=>$this->nullableCount($types['negative_reviews'] ?? null),'detail'=>'Today · rating ≤ 2','time'=>'—'],
+            ];
+        }
         $total = 0; foreach ($types as $v) if (is_numeric($v)) $total += (int)$v;
         return [
             'stats'=>[$this->stat('Open alerts', number_format($total)), $this->stat('Longest open table', isset($summary['longest_open_minutes']) ? $this->duration((int)$summary['longest_open_minutes']) : '—'), $this->stat('Unavailable checks', number_format(count($summary['unavailable'] ?? [])))],
             'chart'=>null,
-            'columns'=>[['key'=>'alert','label'=>'Alert'],['key'=>'count','label'=>'Count'],['key'=>'scope','label'=>'Source / scope']],
+            'columns'=>[['key'=>'alert','label'=>'Alert'],['key'=>'item','label'=>'Item'],['key'=>'detail','label'=>'Detail'],['key'=>'time','label'=>'Time']],
             'rows'=>$rows, 'empty'=>$total === 0,
             'source'=>$summary['source'] ?? 'Settlement states, stock flags, location reviews and current table operational status.',
         ];
+    }
+
+    protected function alertDetailRows(Carbon $now): array
+    {
+        $rows=[]; $start=$now->copy()->startOfDay();
+
+        try {
+            if ($this->hasColumns('orders',['order_id','settlement_status','updated_at'])) {
+                $amount=$this->firstColumn($this->columns('orders'),['settled_amount','order_total','total','total_amount','grand_total']);
+                $select=['order_id','settlement_status','updated_at']; if($amount)$select[]=$amount;
+                $items=$this->orders()->whereBetween('updated_at',[$start->format('Y-m-d H:i:s'),$now->format('Y-m-d H:i:s')])
+                    ->whereIn(DB::raw('LOWER(settlement_status)'),['failed','refunded','refund'])->orderByDesc('updated_at')->limit(100)->get($select);
+                foreach($items as $item){$state=strtolower((string)$item->settlement_status);$rows[]=['alert'=>str_contains($state,'refund')?'Refund':'Failed payment','item'=>'#'.(int)$item->order_id,'detail'=>$amount?$this->money((float)$item->{$amount}):ucfirst($state),'time'=>$this->dateTime((string)$item->updated_at)];}
+            }
+        } catch (\Throwable $error) {}
+
+        try {
+            if (Schema::hasColumn('menus','is_stock_out')) {
+                Menus_model::query()->whereHasOrDoesntHaveLocation($this->locationId())->stockOut()->limit(100)->get()->each(function($menu)use(&$rows){$rows[]=['alert'=>'Out of stock','item'=>(string)($menu->menu_name??('Menu #'.(int)$menu->menu_id)),'detail'=>'Marked unavailable for ordering','time'=>'Current'];});
+            }
+        } catch (\Throwable $error) {}
+
+        try {
+            if (Schema::hasTable('reviews')) {
+                $columns=$this->columns('reviews'); $date=$this->firstColumn($columns,['created_at','updated_at','date_added']); $comment=$this->firstColumn($columns,['review_text','comment','review','message']);
+                $query=Reviews_model::query(); if($this->locationId()&&in_array('location_id',$columns,true))$query->where('location_id',$this->locationId());
+                if($date)$query->whereBetween($date,[$start->format('Y-m-d H:i:s'),$now->format('Y-m-d H:i:s')]);
+                foreach($query->orderByDesc($date?:'review_id')->limit(100)->get() as $review){$rating=null;if(count(array_diff(['quality','service','delivery'],$columns))===0){$v=[(float)($review->quality??0),(float)($review->service??0),(float)($review->delivery??0)];if(array_sum($v)>0)$rating=array_sum($v)/3;}elseif(in_array('rating',$columns,true)){$rating=(float)($review->rating??0);}if($rating===null||$rating>2)continue;$rows[]=['alert'=>'Low review','item'=>number_format($rating,1).' / 5','detail'=>$comment?(mb_substr(strip_tags((string)($review->{$comment}??'')),0,140)?:'Low guest rating'):'Low guest rating','time'=>$date?$this->dateTime((string)$review->{$date}):'Today'];}
+            }
+        } catch (\Throwable $error) {}
+
+        try {
+            $threshold=max(15,min(720,(int)setting('pmd_dashboard2_long_open_minutes',90)));
+            if(Schema::hasTable('tables')){
+                $tableIds=Tables_model::query()->whereHasLocation($this->locationId())->isEnabled()->pluck('table_id');
+                $status=Schema::hasColumn('tables','operational_status')?'operational_status':(Schema::hasColumn('tables','table_status')?'table_status':null);
+                $updated=Schema::hasColumn('tables','operational_status_updated_at')?'operational_status_updated_at':(Schema::hasColumn('tables','updated_at')?'updated_at':null);
+                $name=$this->firstColumn($this->columns('tables'),['table_name','table_no','name']);
+                if($tableIds->isNotEmpty()&&$status&&$updated){$select=['table_id',$status,$updated];if($name)$select[]=$name;foreach(DB::table('tables')->whereIn('table_id',$tableIds)->whereIn(DB::raw('LOWER(TRIM('.$status.'))'),['occupied','seated','in_use','in-use','busy'])->whereNotNull($updated)->where($updated,'<=',$now->copy()->subMinutes($threshold)->format('Y-m-d H:i:s'))->orderBy($updated)->limit(100)->get($select) as $table){$minutes=0;try{$minutes=Carbon::parse((string)$table->{$updated},$this->restaurantTimezone())->diffInMinutes($now);}catch(\Throwable $error){}$rows[]=['alert'=>'Long-open table','item'=>$name?(string)$table->{$name}:'Table #'.(int)$table->table_id,'detail'=>$this->duration($minutes).' open','time'=>$this->dateTime((string)$table->{$updated})];}}
+            }
+        } catch (\Throwable $error) {}
+
+        return $rows;
     }
 
     protected function livePayload(Carbon $now): array
