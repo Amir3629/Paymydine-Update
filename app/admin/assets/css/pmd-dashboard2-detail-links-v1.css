@@ -1,0 +1,61 @@
+/* PMD Dashboard2 Detail Links V1 */
+#pmd-dashboard2-analytics-v1 [data-pmd-analytics-widget] {
+  position: relative !important;
+}
+
+#pmd-dashboard2-analytics-v1 .pmd-dashboard2-detail-link {
+  position: absolute !important;
+  top: 12px !important;
+  right: 12px !important;
+  z-index: 8 !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 5px !important;
+  min-height: 28px !important;
+  padding: 0 9px !important;
+  border: 1px solid #d5e5df !important;
+  border-radius: 9px !important;
+  background: rgba(255,255,255,.96) !important;
+  color: #0a6b56 !important;
+  box-shadow: 0 3px 10px rgba(16,42,67,.045) !important;
+  font-size: 10px !important;
+  line-height: 1 !important;
+  font-weight: 750 !important;
+  text-decoration: none !important;
+  white-space: nowrap !important;
+  transition: border-color .15s ease, background .15s ease, transform .15s ease !important;
+}
+
+#pmd-dashboard2-analytics-v1 .pmd-dashboard2-detail-link:hover {
+  border-color: #9fcfc0 !important;
+  background: #f7fbfa !important;
+  color: #075b49 !important;
+  transform: translateY(-1px) !important;
+}
+
+#pmd-dashboard2-analytics-v1 .pmd-dashboard2-detail-link svg {
+  width: 12px !important;
+  height: 12px !important;
+  fill: none !important;
+  stroke: currentColor !important;
+  stroke-width: 2 !important;
+  stroke-linecap: round !important;
+  stroke-linejoin: round !important;
+}
+
+/* Cards that already own period/chart controls keep the detail link clear. */
+#pmd-dashboard2-analytics-v1 [data-pmd-analytics-widget="salesOverTime"] .pmd-dashboard2-detail-link,
+#pmd-dashboard2-analytics-v1 [data-pmd-analytics-widget="categorySales"] .pmd-dashboard2-detail-link,
+#pmd-dashboard2-analytics-v1 [data-pmd-analytics-widget="paymentMethods"] .pmd-dashboard2-detail-link,
+#pmd-dashboard2-analytics-v1 [data-pmd-analytics-widget="channelSplit"] .pmd-dashboard2-detail-link {
+  top: auto !important;
+  bottom: 12px !important;
+}
+
+@media (max-width: 760px) {
+  #pmd-dashboard2-analytics-v1 .pmd-dashboard2-detail-link {
+    padding: 0 7px !important;
+    min-height: 26px !important;
+  }
+}

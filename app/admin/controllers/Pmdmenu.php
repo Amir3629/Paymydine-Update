@@ -47,6 +47,14 @@ class Pmdmenu extends AdminController
     public function __construct()
     {
         parent::__construct();
+
+        $this->bodyClass = trim(($this->bodyClass ?? '').' pmd-settings-suite pmd-menu-settings-page');
+
+        // Head-loaded authorities: geometry and cool shell exist before body paint.
+        $this->addCss('css/pmd-settings-menu-v1.css');
+        $this->addCss('css/pmd-settings-menu-v2.css');
+        $this->addCss('css/pmd-settings-suite-first-paint-v1.css');
+
         AdminMenu::setContext('settings', 'system');
     }
 

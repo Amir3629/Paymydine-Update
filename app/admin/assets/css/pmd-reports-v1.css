@@ -1,0 +1,471 @@
+/* ==========================================================
+   PMD OWNER REPORTS V1
+   Detailed Dashboard2 drill-down pages using the same PMD
+   Settings-suite shell, header rhythm and #f8fbfd background.
+   ========================================================== */
+
+html body.page.pmd-admin-theme-v1.pmd-settings-suite.pmd-report-settings-page {
+  background: #f8fbfd !important;
+}
+
+.pmd-report-page {
+  width: 100%;
+  min-height: 100vh;
+  padding: 0 16px 34px;
+  box-sizing: border-box;
+  background: #f8fbfd;
+  color: #17231f;
+}
+
+.pmd-report-header-copy {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  min-width: 0;
+}
+
+.pmd-report-header-copy > span {
+  color: #788783;
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.pmd-report-main {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  width: 100%;
+  min-width: 0;
+}
+
+.pmd-report-intro {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 20px;
+  padding: 18px 20px;
+  border: 1px solid #dfe9e6;
+  border-radius: 18px;
+  background: #fff;
+  box-shadow: 0 9px 28px rgba(16, 42, 67, .045);
+}
+
+.pmd-report-intro h2 {
+  margin: 4px 0 5px;
+  color: #17231f;
+  font-size: 24px;
+  line-height: 1.15;
+  font-weight: 750;
+  letter-spacing: -.025em;
+}
+
+.pmd-report-intro p {
+  max-width: 820px;
+  margin: 0;
+  color: #72817d;
+  font-size: 13px;
+  line-height: 1.55;
+}
+
+.pmd-report-eyebrow {
+  display: inline-flex;
+  align-items: center;
+  min-height: 24px;
+  padding: 0 9px;
+  border-radius: 999px;
+  background: #edf8f4;
+  color: #08745d;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: .02em;
+}
+
+.pmd-report-periods {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 6px;
+}
+
+.pmd-report-periods a {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 34px;
+  padding: 0 12px;
+  border: 1px solid #d8e6e2;
+  border-radius: 10px;
+  background: #fff;
+  color: #53635f;
+  font-size: 11px;
+  font-weight: 700;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.pmd-report-periods a:hover {
+  border-color: #9fcfc0;
+  color: #075f4d;
+  background: #f7fbfa;
+}
+
+.pmd-report-periods a.is-active {
+  border-color: #08815e;
+  background: #08815e;
+  color: #fff;
+}
+
+.pmd-report-stats {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.pmd-report-stat {
+  min-width: 0;
+  min-height: 104px;
+  padding: 15px 16px;
+  border: 1px solid #dfe9e6;
+  border-radius: 16px;
+  background: #fff;
+  box-shadow: 0 7px 20px rgba(16, 42, 67, .04);
+  box-sizing: border-box;
+}
+
+.pmd-report-stat > span {
+  display: block;
+  margin-bottom: 6px;
+  color: #72817d;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .045em;
+}
+
+.pmd-report-stat > strong {
+  display: block;
+  overflow: hidden;
+  color: #17231f;
+  font-size: 22px;
+  line-height: 1.15;
+  font-weight: 760;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.pmd-report-stat > small {
+  display: block;
+  margin-top: 7px;
+  color: #87938f;
+  font-size: 11px;
+  line-height: 1.35;
+}
+
+.pmd-report-card {
+  overflow: hidden;
+}
+
+.pmd-report-card-icon svg {
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.pmd-report-chart {
+  width: 100%;
+  min-height: 350px;
+  padding: 10px 2px 0;
+  box-sizing: border-box;
+}
+
+.pmd-report-chart svg {
+  display: block;
+  width: 100%;
+  height: auto;
+  min-height: 320px;
+  overflow: visible;
+}
+
+.pmd-report-chart-grid {
+  stroke: #e5eeeb;
+  stroke-width: 1;
+}
+
+.pmd-report-chart-axis-label {
+  fill: #788783;
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.pmd-report-chart-line {
+  fill: none;
+  stroke: #08a678;
+  stroke-width: 4;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.pmd-report-chart-area {
+  fill: rgba(8, 166, 120, .08);
+  stroke: none;
+}
+
+.pmd-report-chart-dot {
+  fill: #fff;
+  stroke: #08a678;
+  stroke-width: 3;
+}
+
+.pmd-report-chart-bar {
+  fill: #08a678;
+  rx: 4;
+}
+
+.pmd-report-donut-layout {
+  display: grid;
+  grid-template-columns: minmax(220px, 340px) minmax(0, 1fr);
+  align-items: center;
+  gap: 38px;
+  min-height: 320px;
+}
+
+.pmd-report-donut {
+  width: min(280px, 72vw);
+  aspect-ratio: 1;
+  margin: 0 auto;
+  border-radius: 50%;
+  position: relative;
+}
+
+.pmd-report-donut::after {
+  content: "";
+  position: absolute;
+  inset: 25%;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: inset 0 0 0 1px #edf2f0;
+}
+
+.pmd-report-donut-legend {
+  display: grid;
+  gap: 10px;
+  min-width: 0;
+}
+
+.pmd-report-donut-row {
+  display: grid;
+  grid-template-columns: 10px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 9px;
+  min-width: 0;
+  padding: 8px 0;
+  border-bottom: 1px solid #edf2f0;
+}
+
+.pmd-report-donut-row:last-child {
+  border-bottom: 0;
+}
+
+.pmd-report-donut-row i {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+}
+
+.pmd-report-donut-row span {
+  overflow: hidden;
+  color: #566661;
+  font-size: 12px;
+  font-weight: 650;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.pmd-report-donut-row strong {
+  color: #17231f;
+  font-size: 12px;
+  font-weight: 750;
+  white-space: nowrap;
+}
+
+.pmd-report-table-body {
+  padding-top: 10px !important;
+}
+
+.pmd-report-table-wrap {
+  width: 100%;
+  overflow: auto;
+  border: 1px solid #e1eae7;
+  border-radius: 14px;
+  background: #fff;
+}
+
+.pmd-report-table {
+  width: 100%;
+  min-width: 720px;
+  border-collapse: collapse;
+  table-layout: auto;
+}
+
+.pmd-report-table th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  padding: 11px 13px;
+  border-bottom: 1px solid #dfe9e6;
+  background: #f8fbfa;
+  color: #657570;
+  font-size: 10px;
+  line-height: 1.25;
+  font-weight: 750;
+  letter-spacing: .055em;
+  text-align: left;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.pmd-report-table td {
+  max-width: 520px;
+  padding: 12px 13px;
+  border-bottom: 1px solid #edf2f0;
+  color: #273630;
+  font-size: 12px;
+  line-height: 1.45;
+  vertical-align: middle;
+}
+
+.pmd-report-table tr:last-child td {
+  border-bottom: 0;
+}
+
+.pmd-report-table tbody tr:hover td {
+  background: #fbfdfc;
+}
+
+.pmd-report-empty,
+.pmd-report-error {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  padding: 22px;
+  border: 1px dashed #cfdfda;
+  border-radius: 14px;
+  background: #fbfdfc;
+  color: #70807b;
+}
+
+.pmd-report-error {
+  border-style: solid;
+  border-color: #f0c8c8;
+  background: #fffafa;
+  color: #8d3939;
+}
+
+.pmd-report-empty strong,
+.pmd-report-error strong {
+  color: #263630;
+  font-size: 13px;
+}
+
+.pmd-report-source {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  padding: 14px 16px;
+  border: 1px solid #dfe9e6;
+  border-radius: 14px;
+  background: rgba(255,255,255,.72);
+  color: #73817d;
+}
+
+.pmd-report-source > div:first-child {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+}
+
+.pmd-report-source strong {
+  color: #34443e;
+  font-size: 11px;
+}
+
+.pmd-report-source span {
+  font-size: 10.5px;
+  line-height: 1.4;
+}
+
+.pmd-report-source-meta {
+  display: flex;
+  gap: 6px;
+  flex: 0 0 auto;
+}
+
+.pmd-report-source-meta span {
+  padding: 5px 8px;
+  border-radius: 999px;
+  background: #eef6f3;
+  color: #426058;
+  font-weight: 700;
+}
+
+@media (max-width: 1100px) {
+  .pmd-report-stats {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .pmd-report-donut-layout {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 760px) {
+  .pmd-report-page {
+    padding-left: 10px;
+    padding-right: 10px;
+  }
+
+  .pmd-report-header-copy > span {
+    display: none;
+  }
+
+  .pmd-report-intro {
+    align-items: stretch;
+    flex-direction: column;
+    padding: 15px;
+  }
+
+  .pmd-report-intro h2 {
+    font-size: 21px;
+  }
+
+  .pmd-report-periods {
+    justify-content: flex-start;
+  }
+
+  .pmd-report-stats {
+    grid-template-columns: 1fr;
+  }
+
+  .pmd-report-stat {
+    min-height: 92px;
+  }
+
+  .pmd-report-chart {
+    min-height: 280px;
+  }
+
+  .pmd-report-chart svg {
+    min-height: 260px;
+  }
+
+  .pmd-report-source {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+}

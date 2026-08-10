@@ -22,6 +22,14 @@ class Pmdteam extends AdminController
     public function __construct()
     {
         parent::__construct();
+
+        $this->bodyClass = trim(($this->bodyClass ?? '').' pmd-settings-suite pmd-team-settings-page');
+
+        // Head-loaded authorities prevent warm shell/card restyling after refresh.
+        $this->addCss('css/pmd-team-v1.css');
+        $this->addCss('css/pmd-team-notification-v1.css');
+        $this->addCss('css/pmd-settings-suite-first-paint-v1.css');
+
         AdminMenu::setContext('settings', 'system');
     }
 
