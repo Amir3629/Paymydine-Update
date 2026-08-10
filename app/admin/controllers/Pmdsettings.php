@@ -312,9 +312,7 @@ class Pmdsettings extends AdminController
             [
                 'id' => 'finance', 'eyebrow' => '', 'title' => 'Payments & Finance', 'description' => '',
                 'items' => [
-                    $this->item('Payment methods', 'Configure how guests can pay.', 'card', admin_url('pmdfinance#payment-methods'), ''),
-                    $this->item('Tax & invoicing', 'VAT, tax calculation, invoice numbering, logo and receipt presentation.', 'invoice', admin_url('pmdfinance#tax-invoicing'), ''),
-                    $this->item('Fiskaly / TSE', 'German fiscal compliance and TSE configuration.', 'receipt', admin_url('pmdfinance#fiskaly'), ''),
+                    $this->item('Payments & finance', 'Payment methods, VAT, invoicing and Fiskaly / TSE configuration in one place.', 'card', admin_url('pmdfinance'), ''),
                 ],
             ],
             [
