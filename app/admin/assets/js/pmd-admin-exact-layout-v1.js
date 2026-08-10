@@ -5,6 +5,21 @@
     window.location && window.location.pathname || ''
   );
 
+  var normalizedPath = path.replace(/\/+$/, '') || '/';
+
+  var settingsRoute =
+    normalizedPath === '/admin/pmdsettings' ||
+    normalizedPath.indexOf('/admin/pmdsettings/') === 0 ||
+    [
+      '/admin/pmdmenu',
+      '/admin/pmdcustomer',
+      '/admin/pmdteam',
+      '/admin/pmddevices',
+      '/admin/pmdfinance',
+      '/admin/pmdbrand',
+      '/admin/pmdadvanced'
+    ].indexOf(normalizedPath) !== -1;
+
   var excluded =
     path === '/admin/login' ||
     path.indexOf('/admin/dashboardwaiter') === 0 ||
@@ -25,8 +40,12 @@
 
   var DESKTOP_GAP = 14;
   var MOBILE_GAP = 10;
-  var SHELL_TRANSITION = [
+  var ABSOLUTE_SHELL_TRANSITION = [
     'left 220ms cubic-bezier(.22,.75,.24,1)',
+    'width 220ms cubic-bezier(.22,.75,.24,1)'
+  ].join(', ');
+  var FLOW_SHELL_TRANSITION = [
+    'margin-left 220ms cubic-bezier(.22,.75,.24,1)',
     'width 220ms cubic-bezier(.22,.75,.24,1)'
   ].join(', ');
 
@@ -37,13 +56,16 @@
 
   function isSettingsSuite() {
     return Boolean(
-      document.body &&
-      document.body.classList.contains('pmd-settings-suite')
+      settingsRoute ||
+      (
+        document.body &&
+        document.body.classList.contains('pmd-settings-suite')
+      )
     );
   }
 
   function isDashboard2() {
-    return path.replace(/\/+$/, '') === '/admin/dashboard2';
+    return normalizedPath === '/admin/dashboard2';
   }
 
   function isStaticBootRoute() {
@@ -91,15 +113,15 @@
   }
 
   /*
-   * PMD_STATIC_SHELL_BOOT_V2
+   * PMD_SETTINGS_FLOW_SCROLL_AUTHORITY_V7
    *
-   * Settings and Dashboard2 must paint at their FINAL shell geometry.
-   * The old runtime runner applied wrapper left/width after DOMContentLoaded
-   * and animated those changes for 220ms, making every card visibly move.
+   * Settings pages must keep their final Side Menu geometry WITHOUT removing
+   * .page-wrapper from document flow. The old absolute wrapper fixed horizontal
+   * jumping but also collapsed the document scroll height on long owner pages.
    *
-   * Settings keep their own 16px internal rail, so their outer gap is 0.
-   * Dashboard2 keeps the existing 14px global rail; only the boot movement
-   * is removed. Real user-triggered side-menu expand/collapse still animates.
+   * Settings now use margin-left + width in normal flow. Dashboard2 and legacy
+   * global pages keep their existing absolute shell. Real user-triggered Side
+   * Menu expand/collapse remains animated after runtime-ready.
    */
   function apply(options) {
     options = options || {};
@@ -116,40 +138,89 @@
       ? 0
       : (window.innerWidth <= 767 ? MOBILE_GAP : DESKTOP_GAP);
 
-    var shellTransition =
-      staticBootRoute && !animateShell
-        ? 'none'
-        : SHELL_TRANSITION;
-
     var menuRect = menu.getBoundingClientRect();
-    var menuRight = Math.round(menuRect.right);
-    var wrapperWidth = Math.max(0, window.innerWidth - menuRight);
+    var measuredMenuRight = Math.round(menuRect.right);
+    var flowMenuRight = settingsSuite && window.innerWidth <= 767
+      ? 0
+      : measuredMenuRight;
+    var wrapperWidth = Math.max(
+      0,
+      window.innerWidth - (settingsSuite ? flowMenuRight : measuredMenuRight)
+    );
+
+    var shellTransition = 'none';
+    if (!staticBootRoute || animateShell) {
+      shellTransition = settingsSuite
+        ? FLOW_SHELL_TRANSITION
+        : ABSOLUTE_SHELL_TRANSITION;
+    }
 
     setImportant(document.body, 'margin-left', '0px');
     setImportant(document.body, 'padding-left', '0px');
     setImportant(document.body, 'overflow-x', 'hidden');
 
-    setImportant(page.wrapper, 'position', 'absolute');
-    setImportant(page.wrapper, 'left', menuRight + 'px');
-    setImportant(page.wrapper, 'right', 'auto');
-    setImportant(page.wrapper, 'margin-left', '0px');
-    setImportant(page.wrapper, 'margin-right', '0px');
-    setImportant(page.wrapper, 'padding-left', '0px');
-    setImportant(page.wrapper, 'padding-right', '0px');
-    setImportant(page.wrapper, 'width', wrapperWidth + 'px');
-    setImportant(page.wrapper, 'max-width', 'none');
-    setImportant(page.wrapper, 'min-width', '0px');
-    setImportant(page.wrapper, 'box-sizing', 'border-box');
-    setImportant(page.wrapper, 'overflow-x', 'hidden');
-    setImportant(page.wrapper, 'z-index', '1');
-    setImportant(page.wrapper, 'transform', 'none');
-    setImportant(page.wrapper, 'transition', shellTransition);
+    if (settingsSuite) {
+      /* Normal-flow shell: preserves full document height and vertical scroll. */
+      setImportant(document.documentElement, 'height', 'auto');
+      setImportant(document.documentElement, 'min-height', '100%');
+      setImportant(document.documentElement, 'max-height', 'none');
+      setImportant(document.documentElement, 'overflow-y', 'auto');
+
+      setImportant(document.body, 'position', 'relative');
+      setImportant(document.body, 'height', 'auto');
+      setImportant(document.body, 'min-height', '100vh');
+      setImportant(document.body, 'max-height', 'none');
+      setImportant(document.body, 'overflow-y', 'auto');
+
+      setImportant(page.wrapper, 'position', 'relative');
+      setImportant(page.wrapper, 'left', '0px');
+      setImportant(page.wrapper, 'right', 'auto');
+      setImportant(page.wrapper, 'top', '0px');
+      setImportant(page.wrapper, 'bottom', 'auto');
+      setImportant(page.wrapper, 'margin-left', flowMenuRight + 'px');
+      setImportant(page.wrapper, 'margin-right', '0px');
+      setImportant(page.wrapper, 'margin-top', '0px');
+      setImportant(page.wrapper, 'margin-bottom', '0px');
+      setImportant(page.wrapper, 'padding-left', '0px');
+      setImportant(page.wrapper, 'padding-right', '0px');
+      setImportant(page.wrapper, 'width', wrapperWidth + 'px');
+      setImportant(page.wrapper, 'max-width', 'none');
+      setImportant(page.wrapper, 'min-width', '0px');
+      setImportant(page.wrapper, 'height', 'auto');
+      setImportant(page.wrapper, 'min-height', '100vh');
+      setImportant(page.wrapper, 'max-height', 'none');
+      setImportant(page.wrapper, 'box-sizing', 'border-box');
+      setImportant(page.wrapper, 'overflow-x', 'hidden');
+      setImportant(page.wrapper, 'overflow-y', 'visible');
+      setImportant(page.wrapper, 'z-index', '1');
+      setImportant(page.wrapper, 'transform', 'none');
+      setImportant(page.wrapper, 'transition', shellTransition);
+    } else {
+      setImportant(page.wrapper, 'position', 'absolute');
+      setImportant(page.wrapper, 'left', measuredMenuRight + 'px');
+      setImportant(page.wrapper, 'right', 'auto');
+      setImportant(page.wrapper, 'margin-left', '0px');
+      setImportant(page.wrapper, 'margin-right', '0px');
+      setImportant(page.wrapper, 'padding-left', '0px');
+      setImportant(page.wrapper, 'padding-right', '0px');
+      setImportant(page.wrapper, 'width', wrapperWidth + 'px');
+      setImportant(page.wrapper, 'max-width', 'none');
+      setImportant(page.wrapper, 'min-width', '0px');
+      setImportant(page.wrapper, 'box-sizing', 'border-box');
+      setImportant(page.wrapper, 'overflow-x', 'hidden');
+      setImportant(page.wrapper, 'z-index', '1');
+      setImportant(page.wrapper, 'transform', 'none');
+      setImportant(page.wrapper, 'transition', shellTransition);
+    }
 
     setImportant(page.content, 'position', 'relative');
     setImportant(page.content, 'left', '0px');
     setImportant(page.content, 'right', 'auto');
+    setImportant(page.content, 'top', '0px');
+    setImportant(page.content, 'bottom', 'auto');
     setImportant(page.content, 'margin-left', '0px');
     setImportant(page.content, 'margin-right', '0px');
+    setImportant(page.content, 'margin-top', '0px');
     setImportant(page.content, 'padding-left', gap + 'px');
     setImportant(page.content, 'padding-right', gap + 'px');
     setImportant(page.content, 'width', '100%');
@@ -157,13 +228,23 @@
     setImportant(page.content, 'min-width', '0px');
     setImportant(page.content, 'box-sizing', 'border-box');
     setImportant(page.content, 'overflow-x', 'hidden');
+    if (settingsSuite) {
+      setImportant(page.content, 'height', 'auto');
+      setImportant(page.content, 'min-height', '0px');
+      setImportant(page.content, 'max-height', 'none');
+      setImportant(page.content, 'overflow-y', 'visible');
+    }
     setImportant(page.content, 'transform', 'none');
     setImportant(page.content, 'transition', 'none');
 
     normalizeContentChildren(page.content);
 
     if (page.topbar) {
-      setImportant(page.topbar, 'left', menuRight + 'px');
+      setImportant(
+        page.topbar,
+        'left',
+        (settingsSuite ? flowMenuRight : measuredMenuRight) + 'px'
+      );
       setImportant(page.topbar, 'right', '0px');
       setImportant(page.topbar, 'margin-left', '0px');
       setImportant(page.topbar, 'width', wrapperWidth + 'px');
@@ -182,16 +263,17 @@
 
     document.documentElement.style.setProperty(
       '--pmd-admin-menu-right',
-      menuRight + 'px'
+      (settingsSuite ? flowMenuRight : measuredMenuRight) + 'px'
     );
 
     return {
       gap: gap,
-      menuRight: menuRight,
+      menuRight: settingsSuite ? flowMenuRight : measuredMenuRight,
       settingsSuite: settingsSuite,
       dashboard2: dashboard2,
       staticBootRoute: staticBootRoute,
       animated: animateShell,
+      flowShell: settingsSuite,
       wrapperLeft: Math.round(page.wrapper.getBoundingClientRect().left),
       contentLeft: Math.round(page.content.getBoundingClientRect().left),
       visibleContentLeft: Math.round(
@@ -389,7 +471,7 @@
   });
 
   window.PMDAdminExactLayoutV4 = {
-    version: '6.1.0-dashboard2-static-shell',
+    version: '7.0.0-settings-flow-scroll',
     apply: applyStable,
     animate: animate,
     observer: observer,
@@ -409,7 +491,7 @@
   }
 
   console.info(
-    '[PMD Admin Exact Layout V6.1] Ready',
+    '[PMD Admin Exact Layout V7] Ready',
     window.PMDAdminExactLayoutV4
   );
 })();
