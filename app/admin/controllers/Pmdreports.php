@@ -2,6 +2,12 @@
 
 namespace Admin\Controllers;
 
+/* Explicitly load the two report concerns. Admin controllers in this project
+ * live in a lowercase module directory, so this keeps deployment independent
+ * of host-specific PSR-4 case handling. */
+require_once __DIR__.'/concerns/PmdreportsCommerceConcern.php';
+require_once __DIR__.'/concerns/PmdreportsOperationsConcern.php';
+
 use Admin\Facades\AdminMenu;
 use Admin\Facades\Template;
 use Admin\Controllers\Concerns\PmdreportsCommerceConcern;
