@@ -49,9 +49,9 @@ class Pmdreports extends Dashboard2
     public function transactions() { return $this->show('transactions'); }
     public function alerts() { return $this->show('alerts'); }
     public function liveorders() { return $this->show('liveorders'); }
-    public function channels() { return $this->show('channels'); }
+    public function orderchannels() { return $this->show('channels'); }
     public function topitems() { return $this->show('topitems'); }
-    public function tips() { return $this->show('tips'); }
+    public function tipssummary() { return $this->show('tips'); }
     public function reviews() { return $this->show('reviews'); }
     public function reservations() { return $this->show('reservations'); }
 
