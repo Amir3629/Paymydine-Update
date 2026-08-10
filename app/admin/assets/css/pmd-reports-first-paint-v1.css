@@ -1,0 +1,117 @@
+/* ==========================================================
+   PMD REPORTS — FIRST PAINT FLOW AUTHORITY V1
+   Reports intentionally reuse the Settings suite visual contract,
+   but must stay in normal document flow from the first paint.
+   ========================================================== */
+
+html body.page.pmd-admin-theme-v1.pmd-settings-suite.pmd-report-settings-page {
+  height: auto !important;
+  min-height: 100vh !important;
+  max-height: none !important;
+  overflow-x: hidden !important;
+  overflow-y: auto !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  background: #f8fbfd !important;
+}
+
+html body.page.pmd-admin-theme-v1.pmd-settings-suite.pmd-report-settings-page .page,
+html body.page.pmd-admin-theme-v1.pmd-settings-suite.pmd-report-settings-page .page-wrapper,
+html body.page.pmd-admin-theme-v1.pmd-settings-suite.pmd-report-settings-page .page-content,
+html body.page.pmd-admin-theme-v1.pmd-settings-suite.pmd-report-settings-page .content-wrapper,
+html body.page.pmd-admin-theme-v1.pmd-settings-suite.pmd-report-settings-page .main-content,
+html body.page.pmd-admin-theme-v1.pmd-settings-suite.pmd-report-settings-page .container,
+html body.page.pmd-admin-theme-v1.pmd-settings-suite.pmd-report-settings-page .container-fluid {
+  height: auto !important;
+  max-height: none !important;
+  overflow-y: visible !important;
+  background: #f8fbfd !important;
+}
+
+@media (min-width: 821px) {
+  html.pmd-side-menu2-global-page.pmd-sm2-collapsed
+  body.page.pmd-admin-theme-v1.pmd-settings-suite.pmd-report-settings-page .page-wrapper {
+    position: relative !important;
+    left: 0 !important;
+    right: auto !important;
+    top: 0 !important;
+    bottom: auto !important;
+    width: calc(100vw - 86px) !important;
+    min-width: 0 !important;
+    max-width: none !important;
+    min-height: 100vh !important;
+    margin: 0 0 0 86px !important;
+    padding: 0 !important;
+    overflow-x: hidden !important;
+    overflow-y: visible !important;
+    transform: none !important;
+    transition: none !important;
+    animation: none !important;
+  }
+
+  html.pmd-side-menu2-global-page.pmd-sm2-expanded
+  body.page.pmd-admin-theme-v1.pmd-settings-suite.pmd-report-settings-page .page-wrapper {
+    position: relative !important;
+    left: 0 !important;
+    right: auto !important;
+    top: 0 !important;
+    bottom: auto !important;
+    width: calc(100vw - 198px) !important;
+    min-width: 0 !important;
+    max-width: none !important;
+    min-height: 100vh !important;
+    margin: 0 0 0 198px !important;
+    padding: 0 !important;
+    overflow-x: hidden !important;
+    overflow-y: visible !important;
+    transform: none !important;
+    transition: none !important;
+    animation: none !important;
+  }
+}
+
+html body.page.pmd-admin-theme-v1.pmd-settings-suite.pmd-report-settings-page .page-content {
+  position: relative !important;
+  left: 0 !important;
+  right: auto !important;
+  top: 0 !important;
+  bottom: auto !important;
+  width: 100% !important;
+  min-width: 0 !important;
+  max-width: none !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  overflow-x: hidden !important;
+  overflow-y: visible !important;
+  transform: none !important;
+  transition: none !important;
+  animation: none !important;
+}
+
+html body.page.pmd-admin-theme-v1.pmd-settings-suite.pmd-report-settings-page .navbar-top,
+html body.page.pmd-admin-theme-v1.pmd-settings-suite.pmd-report-settings-page .navbar-fixed-top,
+html body.page.pmd-admin-theme-v1.pmd-settings-suite.pmd-report-settings-page .page-title-section {
+  display: none !important;
+  visibility: hidden !important;
+  opacity: 0 !important;
+  height: 0 !important;
+  min-height: 0 !important;
+  max-height: 0 !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  border: 0 !important;
+  overflow: hidden !important;
+  pointer-events: none !important;
+}
+
+@media (max-width: 820px) {
+  html body.page.pmd-admin-theme-v1.pmd-settings-suite.pmd-report-settings-page .page-wrapper {
+    position: relative !important;
+    left: 0 !important;
+    right: auto !important;
+    width: 100vw !important;
+    min-height: 100vh !important;
+    margin: 0 !important;
+    overflow-y: visible !important;
+  }
+}
