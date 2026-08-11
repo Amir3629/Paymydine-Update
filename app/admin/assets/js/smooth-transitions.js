@@ -271,14 +271,14 @@ document.addEventListener('DOMContentLoaded', () => {
         const link = document.createElement('link');
         link.id = cssId;
         link.rel = 'stylesheet';
-        link.href = '/app/admin/assets/css/pmd-dashboard2-detail-links-v1.css?v=20260810-dashboard-report-links-v1-3';
+        link.href = '/app/admin/assets/css/pmd-dashboard2-detail-links-v1.css?v=20260811-dashboard-report-links-v1-4';
         (document.head || document.documentElement).appendChild(link);
     }
 
     if (!document.getElementById(jsId)) {
         const script = document.createElement('script');
         script.id = jsId;
-        script.src = '/app/admin/assets/js/pmd-dashboard2-detail-links-v1.js?v=20260810-dashboard-report-links-v1-3';
+        script.src = '/app/admin/assets/js/pmd-dashboard2-detail-links-v1.js?v=20260811-dashboard-report-links-v1-4';
         script.defer = true;
         script.onload = function () {
             console.info('[PMD Dashboard2 Report Link Bootstrap V1] loaded');
