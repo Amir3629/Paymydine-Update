@@ -38,6 +38,7 @@ class Pmdreports extends Dashboard2
         $this->addCss('css/pmd-reports-v1.css');
         $this->addJs('js/pmd-owner-settings-v1.js');
         $this->addJs('js/pmd-reports-v1.js');
+        $this->addJs('js/pmd-reports-excel-v1.js');
         AdminMenu::setContext('dashboard');
     }
 
