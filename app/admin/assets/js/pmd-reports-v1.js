@@ -317,11 +317,13 @@
   }
 
   /*
-   * PMD_OWNER_REPORT_CUSTOM_RANGE_UI_V1
+   * PMD_OWNER_REPORT_CUSTOM_RANGE_PORTAL_V1
    *
-   * Pure browser-native date inputs: no daterangepicker/moment dependency.
-   * The server remains authoritative for timezone parsing and the inclusive
-   * start/end window. This UI only builds the canonical query string.
+   * Keep the native date inputs and the canonical server-side GET contract,
+   * but mount the popover directly under <body>. The report intro card uses
+   * overflow clipping for its visual frame, so an in-card absolute popover is
+   * inevitably cropped. A fixed body portal gives the range picker its own
+   * overlay layer without changing report/data authorities.
    */
   function localDateValue(date) {
     var year = date.getFullYear();
@@ -334,20 +336,60 @@
     return /^\d{4}-\d{2}-\d{2}$/.test(String(value || ''));
   }
 
+  function customToggle() {
+    return root.querySelector('[data-pmd-custom-range-toggle]');
+  }
+
+  function positionCustomRange() {
+    var toggle = customToggle();
+    if (!customRangePanel || customRangePanel.hidden || !toggle || !toggle.isConnected) return;
+
+    var edge = 12;
+    var gap = 8;
+    var trigger = toggle.getBoundingClientRect();
+    var width = customRangePanel.offsetWidth || 350;
+    var height = customRangePanel.offsetHeight || 190;
+
+    var left = Math.max(edge, Math.min(trigger.right - width, window.innerWidth - width - edge));
+    var below = trigger.bottom + gap;
+    var above = trigger.top - height - gap;
+    var top;
+
+    if (below + height <= window.innerHeight - edge) {
+      top = below;
+    } else if (above >= edge) {
+      top = above;
+    } else {
+      top = Math.max(edge, Math.min(below, window.innerHeight - height - edge));
+    }
+
+    customRangePanel.style.left = Math.round(left) + 'px';
+    customRangePanel.style.top = Math.round(top) + 'px';
+  }
+
   function closeCustomRange() {
     if (!customRangePanel) return;
     customRangePanel.hidden = true;
-    var toggle = root.querySelector('[data-pmd-custom-range-toggle]');
+    customRangePanel.style.visibility = '';
+    var toggle = customToggle();
     if (toggle) toggle.setAttribute('aria-expanded', 'false');
   }
 
   function openCustomRange() {
     if (!customRangePanel) return;
+    var toggle = customToggle();
+    if (!toggle) return;
+
     customRangePanel.hidden = false;
-    var toggle = root.querySelector('[data-pmd-custom-range-toggle]');
-    if (toggle) toggle.setAttribute('aria-expanded', 'true');
-    var from = customRangePanel.querySelector('[data-pmd-custom-from]');
-    if (from) window.setTimeout(function () { from.focus(); }, 0);
+    customRangePanel.style.visibility = 'hidden';
+    toggle.setAttribute('aria-expanded', 'true');
+
+    window.requestAnimationFrame(function () {
+      positionCustomRange();
+      customRangePanel.style.visibility = 'visible';
+      var from = customRangePanel.querySelector('[data-pmd-custom-from]');
+      if (from) window.setTimeout(function () { from.focus(); }, 0);
+    });
   }
 
   function installCustomRange() {
@@ -370,8 +412,6 @@
     customLink.setAttribute('aria-expanded', 'false');
     customLink.title = 'Choose a custom date range';
 
-    periodNav.style.position = 'relative';
-
     if (!customRangePanel) {
       var current = new URL(window.location.href);
       var currentFrom = current.searchParams.get('date_from') || '';
@@ -383,22 +423,24 @@
 
       customRangePanel = document.createElement('div');
       customRangePanel.className = 'pmd-report-custom-range-panel';
-      customRangePanel.dataset.pmdCustomRangePanel = '1';
+      customRangePanel.dataset.pmdCustomRangePanel = 'body-portal-v1';
       customRangePanel.hidden = true;
       customRangePanel.setAttribute('role', 'dialog');
       customRangePanel.setAttribute('aria-label', 'Custom report date range');
       customRangePanel.style.cssText = [
-        'position:absolute',
-        'top:calc(100% + 9px)',
-        'right:0',
-        'z-index:60',
-        'width:min(350px, calc(100vw - 32px))',
+        'position:fixed',
+        'left:12px',
+        'top:12px',
+        'z-index:2147483000',
+        'width:min(350px, calc(100vw - 24px))',
+        'max-height:calc(100vh - 24px)',
+        'overflow:auto',
         'padding:14px',
         'box-sizing:border-box',
         'border:1px solid #d6e5e1',
         'border-radius:14px',
         'background:#fff',
-        'box-shadow:0 18px 45px rgba(17,40,35,.16)',
+        'box-shadow:0 18px 45px rgba(17,40,35,.18)',
         'text-align:left'
       ].join(';');
 
@@ -408,7 +450,7 @@
           '<span style="display:block;margin-top:3px;color:#7b8985;font-size:10px;line-height:1.35">Choose inclusive start and end dates.</span></div>' +
           '<button type="button" data-pmd-custom-close aria-label="Close" style="width:28px;height:28px;flex:0 0 28px;border:1px solid #e0e9e6;border-radius:8px;background:#fff;color:#61716c;font-size:18px;line-height:1;cursor:pointer">×</button>' +
         '</div>' +
-        '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">' +
+        '<div style="display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:8px">' +
           '<label style="display:grid;gap:5px;color:#6b7b76;font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.04em">From' +
             '<input type="date" data-pmd-custom-from style="width:100%;min-width:0;height:38px;box-sizing:border-box;border:1px solid #d6e5e1;border-radius:9px;background:#fff;color:#263b35;padding:0 9px;font:inherit;font-size:11px;font-weight:650">' +
           '</label>' +
@@ -465,17 +507,26 @@
         window.location.assign(target.toString());
       });
 
-      periodNav.appendChild(customRangePanel);
+      document.body.appendChild(customRangePanel);
 
       document.addEventListener('click', function (event) {
         if (!customRangePanel || customRangePanel.hidden) return;
-        if (customRangePanel.contains(event.target) || customLink.contains(event.target)) return;
+        var toggle = customToggle();
+        if (customRangePanel.contains(event.target) || (toggle && toggle.contains(event.target))) return;
         closeCustomRange();
       });
 
       document.addEventListener('keydown', function (event) {
         if (event.key === 'Escape') closeCustomRange();
       });
+
+      window.addEventListener('resize', function () {
+        if (customRangePanel && !customRangePanel.hidden) positionCustomRange();
+      }, {passive: true});
+
+      window.addEventListener('scroll', function () {
+        if (customRangePanel && !customRangePanel.hidden) positionCustomRange();
+      }, {passive: true, capture: true});
     }
 
     if (!customLink.dataset.pmdCustomBound) {
@@ -498,7 +549,7 @@
     var table = root.querySelector('.pmd-report-table');
     var source = root.querySelector('.pmd-report-source');
     var periodNav = root.querySelector('.pmd-report-periods');
-    var customToggle = root.querySelector('[data-pmd-custom-range-toggle]');
+    var customRangeToggle = root.querySelector('[data-pmd-custom-range-toggle]');
     var params = new URL(window.location.href).searchParams;
     var customActive = params.get('period') === 'custom';
     var customParamsValid = !customActive || (
@@ -506,9 +557,12 @@
       isDateValue(params.get('date_to'))
     );
     var customRequired = !!periodNav;
+    var portalOk = !customRequired || !!(
+      customRangePanel && customRangePanel.parentElement === document.body
+    );
 
     return {
-      version: '1.3.0-custom-range',
+      version: '1.3.1-custom-range-portal',
       type: root.getAttribute('data-pmd-report-type') || '',
       reportNavCount: nav.length,
       activeReportLinks: activeNav.length,
@@ -520,27 +574,30 @@
       dataAuthorityPresent: !!source,
       exportPresent: !!exportButton,
       customRangeRequired: customRequired,
-      customRangeAvailable: !!customToggle,
+      customRangeAvailable: !!customRangeToggle,
+      customRangePortal: portalOk,
       customRangeActive: customActive,
       customRangeParamsValid: customParamsValid,
       ok: nav.length === 12 &&
         activeNav.length === 1 &&
         !!source &&
         !!exportButton &&
-        (!customRequired || !!customToggle) &&
+        (!customRequired || !!customRangeToggle) &&
+        portalOk &&
         customParamsValid
     };
   }
 
   window.PMDOwnerReportsV1 = {
-    version: '1.3.0-custom-range',
+    version: '1.3.1-custom-range-portal',
     type: root.getAttribute('data-pmd-report-type') || '',
     renderChart: renderChart,
     exportCsv: exportCsv,
     openCustomRange: openCustomRange,
     closeCustomRange: closeCustomRange,
+    positionCustomRange: positionCustomRange,
     audit: audit
   };
 
-  console.info('[PMD Owner Reports V1.3] Ready', audit());
+  console.info('[PMD Owner Reports V1.3.1] Ready', audit());
 })();
