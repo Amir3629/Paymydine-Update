@@ -7,15 +7,17 @@
 /*
  * PMD_DASHBOARD2_ZERO_BLINK_GUARD_V1
  *
- * Dashboard2 is assembled from the Reservations2 shell. The existing inline
- * first-paint lock hides that shell before DOMContentLoaded, but the legacy
- * V1.4.1.3 authority releases it immediately on DOMContentLoaded. At that
- * point the clean Dashboard header/KPIs/Floor can still be hydrating, which
- * briefly exposes Reservation/Floor source markup.
+ * Dashboard2 is assembled from the Reservations2 shell. A separate legacy
+ * Zero Shift authority intentionally writes visibility:visible !important on
+ * #pmd-reservations2 while Floor geometry settles. A stylesheet-only guard
+ * therefore cannot win: inline !important beats stylesheet !important.
  *
- * This bounded guard keeps the existing shell in layout but invisible until
- * the final Dashboard header, four KPI cards and the shared Floor are ready.
- * There is no polling, network request or permanent observer.
+ * This revision cooperates with that legacy authority instead of racing it:
+ * while Dashboard2 is booting, every root style mutation is corrected back to
+ * hidden in the same microtask turn. The page is released only after the
+ * legacy Zero Shift guard is done, Analytics V1.4.1.5 reports ready, four KPI
+ * cards exist, the final Floor is settled and the source Reservations/Floor UI
+ * is no longer visible. No polling or network request is added.
  */
 (function installDashboard2ZeroBlinkGuardV1() {
     const path = String(window.location.pathname || '').replace(/\/+$/, '');
@@ -26,6 +28,7 @@
     const GUARD_CLASS = 'pmd-dashboard2-zero-blink-v1';
     const READY_CLASS = 'pmd-dashboard2-zero-blink-ready-v1';
     const STYLE_ID = 'pmd-dashboard2-zero-blink-style-v1';
+    const VERSION = '1.1.0-zero-shift-cooperative';
 
     let observer = null;
     let released = false;
@@ -57,18 +60,50 @@
         (document.head || document.documentElement).appendChild(style);
     }
 
+    function forceRootHidden() {
+        if (released) return false;
+        const page = document.getElementById('pmd-reservations2');
+        if (!page) return false;
+
+        const desired = {
+            visibility: 'hidden',
+            opacity: '0',
+            'pointer-events': 'none',
+            transition: 'none',
+            animation: 'none'
+        };
+
+        let changed = false;
+        Object.keys(desired).forEach(function (name) {
+            if (
+                page.style.getPropertyValue(name) !== desired[name] ||
+                page.style.getPropertyPriority(name) !== 'important'
+            ) {
+                page.style.setProperty(name, desired[name], 'important');
+                changed = true;
+            }
+        });
+
+        return changed;
+    }
+
+    function forceRootVisible() {
+        const page = document.getElementById('pmd-reservations2');
+        if (!page) return false;
+
+        page.style.setProperty('visibility', 'visible', 'important');
+        page.style.setProperty('opacity', '1', 'important');
+        page.style.setProperty('pointer-events', 'auto', 'important');
+        page.style.setProperty('transition', 'none', 'important');
+        page.style.setProperty('animation', 'none', 'important');
+        return true;
+    }
+
     function visible(node) {
         if (!node) return false;
         const style = window.getComputedStyle(node);
         const rect = node.getBoundingClientRect();
 
-        /*
-         * Do not test computed visibility/opacity here. The guard intentionally
-         * hides the parent #pmd-reservations2, so those inherited properties
-         * would make every legacy child look hidden before its own final
-         * Dashboard authority has actually removed it. display/hidden are the
-         * child-owned signals we need for release safety.
-         */
         return !node.hidden &&
             style.display !== 'none' &&
             rect.width > 0 &&
@@ -80,8 +115,21 @@
         return floor.querySelectorAll(
             '[data-floor-canvas] [data-table], ' +
             '[data-floor-canvas] .pmd-floor-v1__table, ' +
-            '[data-floor-canvas] [data-pmd-floor-table]'
+            '[data-floor-canvas] [data-pmd-floor-table], ' +
+            '[data-floor-table]'
         ).length;
+    }
+
+    function zeroShiftState() {
+        try {
+            if (
+                window.PMDR2ZeroShiftGuardV2 &&
+                typeof window.PMDR2ZeroShiftGuardV2.audit === 'function'
+            ) {
+                return window.PMDR2ZeroShiftGuardV2.audit();
+            }
+        } catch (error) {}
+        return null;
     }
 
     function snapshot() {
@@ -92,6 +140,7 @@
         const floor = document.getElementById('pmd-r2-shared-floor-canvas-v310');
         const loading = floor && floor.querySelector('[data-floor-loading]');
         const empty = floor && floor.querySelector('[data-floor-empty]');
+        const zeroShift = zeroShiftState();
 
         const kpiCount = kpis
             ? kpis.querySelectorAll('[data-pmd-dashboard2-kpi]').length
@@ -103,6 +152,15 @@
             (!loading || loading.hidden || window.getComputedStyle(loading).display === 'none') &&
             (tables > 0 || (empty && !empty.hidden));
 
+        const analyticsHydrated = !!analytics &&
+            analytics.classList.contains('pmd-dashboard2-v1415-ready') &&
+            analytics.getAttribute('aria-busy') === 'false' &&
+            html.classList.contains('pmd-dashboard2-v1415-analytics-ready');
+
+        const zeroShiftDone = !!zeroShift &&
+            zeroShift.done === true &&
+            html.classList.contains('pmd-r2-zero-shift-ready-v2');
+
         const legacyVisible = [
             document.querySelector('#pmd-reservations2 .pmd-r2__hero'),
             document.querySelector('#pmd-reservations2 .pmd-r2-waiter-boot'),
@@ -113,6 +171,7 @@
 
         const pageRect = page ? page.getBoundingClientRect() : null;
         const floorRect = floor ? floor.getBoundingClientRect() : null;
+        const analyticsRect = analytics ? analytics.getBoundingClientRect() : null;
 
         return {
             page,
@@ -123,11 +182,16 @@
             kpiCount,
             tables,
             floorSettled,
+            analyticsHydrated,
+            zeroShift,
+            zeroShiftDone,
             legacyVisible,
-            geometry: pageRect && floorRect ? {
+            geometry: pageRect && floorRect && analyticsRect ? {
                 pageHeight: Math.round(pageRect.height),
                 floorHeight: Math.round(floorRect.height),
-                floorTop: Math.round(floorRect.top)
+                floorTop: Math.round(floorRect.top),
+                analyticsTop: Math.round(analyticsRect.top),
+                analyticsHeight: Math.round(analyticsRect.height)
             } : null
         };
     }
@@ -136,11 +200,13 @@
         return !!(
             state.page &&
             state.analytics &&
+            state.analyticsHydrated &&
             state.header &&
             state.kpis &&
             state.kpiCount === 4 &&
             state.floor &&
             state.floorSettled &&
+            state.zeroShiftDone &&
             !state.legacyVisible &&
             state.geometry
         );
@@ -150,7 +216,9 @@
         if (!a || !b) return false;
         return Math.abs(a.pageHeight - b.pageHeight) <= 1 &&
             Math.abs(a.floorHeight - b.floorHeight) <= 1 &&
-            Math.abs(a.floorTop - b.floorTop) <= 1;
+            Math.abs(a.floorTop - b.floorTop) <= 1 &&
+            Math.abs(a.analyticsTop - b.analyticsTop) <= 1 &&
+            Math.abs(a.analyticsHeight - b.analyticsHeight) <= 1;
     }
 
     function release(reason, state) {
@@ -167,12 +235,16 @@
         }
 
         html.classList.add(READY_CLASS);
+        forceRootVisible();
 
-        console.info('[PMD Dashboard2 Zero Blink Guard V1] released', {
+        console.info('[PMD Dashboard2 Zero Blink Guard V1.1] released', {
             reason,
             kpiCount: state ? state.kpiCount : null,
             tables: state ? state.tables : null,
             floorSettled: state ? state.floorSettled : null,
+            analyticsHydrated: state ? state.analyticsHydrated : null,
+            zeroShiftDone: state ? state.zeroShiftDone : null,
+            zeroShiftReason: state && state.zeroShift ? state.zeroShift.reason : null,
             legacyVisible: state ? state.legacyVisible : null,
             stableFrames
         });
@@ -182,6 +254,7 @@
 
     function verifyStable() {
         if (released) return;
+        forceRootHidden();
         const state = snapshot();
 
         if (!structurallyReady(state)) {
@@ -198,7 +271,7 @@
         }
 
         if (stableFrames >= 3) {
-            release('stable-final-dashboard', state);
+            release('stable-after-zero-shift-and-hydration', state);
             return;
         }
 
@@ -207,8 +280,20 @@
 
     function check() {
         if (released) return;
+
+        /*
+         * Critical: the legacy Zero Shift script writes inline visible styles
+         * every frame. Re-applying hidden from this MutationObserver happens in
+         * the same microtask checkpoint before the browser paints that frame.
+         */
+        forceRootHidden();
+
         const state = snapshot();
-        if (!structurallyReady(state)) return;
+        if (!structurallyReady(state)) {
+            stableFrames = 0;
+            lastGeometry = null;
+            return;
+        }
         window.requestAnimationFrame(verifyStable);
     }
 
@@ -217,7 +302,7 @@
         subtree: true,
         childList: true,
         attributes: true,
-        attributeFilter: ['class', 'hidden', 'aria-busy', 'style']
+        attributeFilter: ['class', 'hidden', 'aria-busy', 'style', 'data-pmd-zero-shift-ready']
     });
 
     document.addEventListener('DOMContentLoaded', check, {once: true});
@@ -230,12 +315,13 @@
     }, 6500);
 
     window.PMDDashboard2ZeroBlinkGuardV1 = {
-        version: '1.0.0-stable-final-shell',
+        version: VERSION,
         check,
         audit() {
             const state = snapshot();
+            const page = state.page;
             return {
-                version: '1.0.0-stable-final-shell',
+                version: VERSION,
                 released,
                 guardClass: html.classList.contains(GUARD_CLASS),
                 readyClass: html.classList.contains(READY_CLASS),
@@ -244,8 +330,13 @@
                 floor: !!state.floor,
                 floorSettled: state.floorSettled,
                 tables: state.tables,
+                analyticsHydrated: state.analyticsHydrated,
+                zeroShiftDone: state.zeroShiftDone,
+                zeroShiftReason: state.zeroShift ? state.zeroShift.reason : null,
                 legacyVisible: state.legacyVisible,
                 stableFrames,
+                rootInlineVisibility: page ? page.style.getPropertyValue('visibility') : null,
+                rootInlineOpacity: page ? page.style.getPropertyValue('opacity') : null,
                 geometry: state.geometry,
                 ok: released &&
                     html.classList.contains(READY_CLASS) &&
@@ -253,6 +344,8 @@
                     state.kpiCount === 4 &&
                     !!state.floor &&
                     state.floorSettled &&
+                    state.analyticsHydrated &&
+                    state.zeroShiftDone &&
                     !state.legacyVisible
             };
         }
@@ -526,14 +619,14 @@ document.addEventListener('DOMContentLoaded', () => {
         const link = document.createElement('link');
         link.id = cssId;
         link.rel = 'stylesheet';
-        link.href = '/app/admin/assets/css/pmd-dashboard2-detail-links-v1.css?v=20260811-dashboard-report-links-v1-6';
+        link.href = '/app/admin/assets/css/pmd-dashboard2-detail-links-v1.css?v=20260811-dashboard-report-links-v1-7';
         (document.head || document.documentElement).appendChild(link);
     }
 
     if (!document.getElementById(jsId)) {
         const script = document.createElement('script');
         script.id = jsId;
-        script.src = '/app/admin/assets/js/pmd-dashboard2-detail-links-v1.js?v=20260811-dashboard-report-links-v1-6';
+        script.src = '/app/admin/assets/js/pmd-dashboard2-detail-links-v1.js?v=20260811-dashboard-report-links-v1-7';
         script.defer = true;
         script.onload = function () {
             console.info('[PMD Dashboard2 Report Link Bootstrap V1] loaded');
