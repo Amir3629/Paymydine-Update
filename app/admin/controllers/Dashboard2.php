@@ -2575,11 +2575,34 @@ protected function analyticsCalendarEvents(
 
     protected function cards(array $kpis, array $currency): array
     {
+        /*
+         * PMD_DASHBOARD2_CHANNEL_SERVER_LOCALE_V3
+         *
+         * Paint the final translated Channel KPI title
+         * directly from the server.
+         */
+        $pmdDashboardLocale = strtolower(
+            trim(
+                (string) request()->cookie(
+                    'pmd_admin_locale',
+                    app()->getLocale()
+                )
+            )
+        );
+
+        $pmdChannelTitle =
+            str_starts_with(
+                $pmdDashboardLocale,
+                'de'
+            )
+                ? 'Vor Ort / Zum Mitnehmen'
+                : 'Dine In / Take Away';
+
         $definitions = [
             'revenue' => ['Revenue', 'green', 'money', 'money'],
             'guests' => ['Guests Served', 'purple', 'users', 'number'],
             'turnover' => ['Table Turnover', 'orange', 'timer', 'minutes'],
-            'channels' => ['Dine In / Take Away', 'blue', 'utensils', 'channels'],
+            'channels' => [$pmdChannelTitle, 'blue', 'utensils', 'channels'],
             'kitchen' => ['Kitchen Ticket Time', 'orange', 'flame', 'minutes'],
             'occupancy' => ['Table Occupancy', 'green', 'table', 'percent'],
             'menu' => ['Menu Availability', 'red', 'menu', 'menu'],

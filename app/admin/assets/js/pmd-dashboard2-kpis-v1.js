@@ -15981,8 +15981,24 @@
 
 /* ============================================================
    PMD_DASHBOARD2_V1413_FIRST_PAINT_LOCK
-   One-time reveal after all synchronous DOMContentLoaded owners.
-   No timeout, polling or MutationObserver.
+   PMD_DASHBOARD2_REVEAL_AFTER_REAL_TABLES_V1
+
+   Sole Dashboard2 root-visibility owner.
+
+   Keep Dashboard2 behind the existing prepaint lock until:
+   - final Analytics root exists
+   - final KPI shell exists
+   - shared Floor exists
+   - Floor canvas exists
+   - at least one REAL table has been rendered
+
+   This prevents the final remaining visual sequence:
+       empty Floor frame -> tables appear
+
+   No network request.
+   No polling.
+   No permanent observer.
+   One temporary Floor MutationObserver only.
    ============================================================ */
 (function () {
   'use strict';
@@ -15991,77 +16007,362 @@
     return;
   }
 
-  const VERSION = '1.4.1.3';
-  const READY_CLASS = 'pmd-dashboard2-v1413-ready';
+  const VERSION =
+    '1.4.1.4-reveal-after-real-tables';
+
+  const READY_CLASS =
+    'pmd-dashboard2-v1413-ready';
 
   const state = {
     revealRequests: 0,
     revealCommits: 0,
     revealed: false,
-    lastReason: null
+    lastReason: null,
+    observerActive: false,
+    tableCountAtReveal: 0,
+    stableFrames: 0,
+    fallbackUsed: false
   };
+
+  let observer = null;
+  let fallbackTimer = 0;
+  let frameId = 0;
+
+  function page() {
+    return document.getElementById(
+      'pmd-reservations2'
+    );
+  }
+
+  function analytics() {
+    return document.getElementById(
+      'pmd-dashboard2-analytics-v1'
+    );
+  }
+
+  function floorRoot() {
+    return document.getElementById(
+      'pmd-r2-shared-floor-canvas-v310'
+    );
+  }
+
+  function floorCanvas() {
+    const floor = floorRoot();
+
+    return floor
+      ? floor.querySelector(
+          '[data-floor-canvas]'
+        )
+      : null;
+  }
+
+  function realTables() {
+    const floor = floorRoot();
+
+    return floor
+      ? Array.from(
+          floor.querySelectorAll(
+            '[data-floor-table]'
+          )
+        )
+      : [];
+  }
+
+  function kpiCount() {
+    const root = analytics();
+
+    if (!root) {
+      return 0;
+    }
+
+    /*
+     * Dashboard2 currently owns four final KPI cards.
+     * Keep selectors intentionally broad enough to survive
+     * translations but scoped to the Analytics root.
+     */
+    const selectors = [
+      '[data-pmd-kpi-key]',
+      '[data-pmd-dashboard2-kpi]',
+      '.pmd-dashboard2-kpi',
+      '.pmd-dashboard2-kpi-card'
+    ];
+
+    for (const selector of selectors) {
+      const count =
+        root.querySelectorAll(selector).length;
+
+      if (count >= 4) {
+        return count;
+      }
+    }
+
+    /*
+     * Analytics itself already existing is sufficient here;
+     * Floor readiness is the missing first-paint dependency
+     * that this authority is fixing.
+     */
+    return 4;
+  }
+
+  function readiness() {
+    const floor = floorRoot();
+    const canvas = floorCanvas();
+    const tables = realTables();
+
+    return {
+      page: Boolean(page()),
+      analytics: Boolean(analytics()),
+      floor: Boolean(floor),
+      canvas: Boolean(canvas),
+      tables: tables.length,
+      kpis: kpiCount(),
+      floorBusy:
+        floor
+          ? floor.getAttribute(
+              'aria-busy'
+            )
+          : null
+    };
+  }
+
+  function readyForFinalPaint() {
+    const r = readiness();
+
+    return Boolean(
+      r.page &&
+      r.analytics &&
+      r.floor &&
+      r.canvas &&
+      r.tables > 0 &&
+      r.kpis >= 4 &&
+      r.floorBusy !== 'true'
+    );
+  }
+
+  function cleanup() {
+    if (observer) {
+      observer.disconnect();
+      observer = null;
+    }
+
+    state.observerActive = false;
+
+    if (frameId) {
+      cancelAnimationFrame(frameId);
+      frameId = 0;
+    }
+
+    if (fallbackTimer) {
+      clearTimeout(fallbackTimer);
+      fallbackTimer = 0;
+    }
+
+    window.removeEventListener(
+      'pmd:floor:updated',
+      onFloorUpdated
+    );
+  }
 
   function reveal(reason) {
     state.revealRequests += 1;
     state.lastReason = reason;
 
     if (
-      document.documentElement.classList.contains(
-        READY_CLASS
-      )
+      document.documentElement
+        .classList.contains(
+          READY_CLASS
+        )
     ) {
       state.revealed = true;
+      cleanup();
       return true;
     }
 
-    /*
-     * PMD_DASHBOARD2_V1413_FAST_REVEAL
-     *
-     * Reveal immediately in the same DOMContentLoaded turn.
-     * The initial paint lock still prevents old Reservations2 UI
-     * from becoming visible.
-     */
+    const tables = realTables();
+
     document.documentElement.classList.add(
       READY_CLASS
     );
 
     state.revealCommits += 1;
     state.revealed = true;
+    state.tableCountAtReveal =
+      tables.length;
+
+    cleanup();
 
     console.info(
-      '[PMD Dashboard2 First Paint Lock V1.4.1.3 Fast Reveal] Revealed',
+      '[PMD Dashboard2 First Paint V1.4.1.4] Revealed',
       {
-        reason,
-        analyticsFound: Boolean(
-          document.getElementById(
-            'pmd-dashboard2-analytics-v1'
-          )
-        )
+        reason: reason,
+        tableCount:
+          state.tableCountAtReveal,
+        readiness: readiness()
       }
     );
 
     return true;
   }
 
+  function commitWhenStable(reason) {
+    if (state.revealed) {
+      return;
+    }
+
+    if (!readyForFinalPaint()) {
+      state.stableFrames = 0;
+      return;
+    }
+
+    /*
+     * The tables now exist. Give the Floor two browser
+     * frames to apply its final one-row coordinates before
+     * exposing the root.
+     *
+     * The root is still invisible during both frames, so the
+     * user never sees these geometry writes.
+     */
+    state.stableFrames = 0;
+
+    const checkFrame = function () {
+      if (state.revealed) {
+        return;
+      }
+
+      if (!readyForFinalPaint()) {
+        state.stableFrames = 0;
+        return;
+      }
+
+      state.stableFrames += 1;
+
+      if (state.stableFrames >= 2) {
+        reveal(reason);
+        return;
+      }
+
+      frameId =
+        requestAnimationFrame(
+          checkFrame
+        );
+    };
+
+    frameId =
+      requestAnimationFrame(
+        checkFrame
+      );
+  }
+
+  function onFloorUpdated() {
+    commitWhenStable(
+      'floor-updated'
+    );
+  }
+
+  function installObserver() {
+    if (state.revealed || observer) {
+      return;
+    }
+
+    const target =
+      floorRoot() ||
+      page() ||
+      document.body;
+
+    if (!target) {
+      return;
+    }
+
+    observer =
+      new MutationObserver(
+        function () {
+          commitWhenStable(
+            'real-tables-rendered'
+          );
+        }
+      );
+
+    observer.observe(
+      target,
+      {
+        subtree: true,
+        childList: true,
+        attributes: true,
+        attributeFilter: [
+          'aria-busy'
+        ]
+      }
+    );
+
+    state.observerActive = true;
+  }
+
+  function boot() {
+    if (state.revealed) {
+      return;
+    }
+
+    /*
+     * Fast path:
+     * if Floor already rendered before this owner boots,
+     * reveal after two stable frames immediately.
+     */
+    if (readyForFinalPaint()) {
+      commitWhenStable(
+        'already-floor-ready'
+      );
+      return;
+    }
+
+    installObserver();
+
+    window.addEventListener(
+      'pmd:floor:updated',
+      onFloorUpdated
+    );
+
+    /*
+     * Safety only.
+     *
+     * A restaurant can legitimately have zero configured
+     * tables, or the Floor endpoint can fail. Never leave
+     * Dashboard2 permanently hidden in that case.
+     *
+     * This is one timeout, NOT polling.
+     */
+    fallbackTimer =
+      window.setTimeout(
+        function () {
+          if (state.revealed) {
+            return;
+          }
+
+          state.fallbackUsed = true;
+
+          reveal(
+            'floor-readiness-safety-fallback'
+          );
+        },
+        1500
+      );
+  }
+
   window.PMDDashboard2FirstPaintLockV1413 = {
     version: VERSION,
 
     reveal() {
-      return reveal('manual');
+      return reveal(
+        'manual'
+      );
     },
 
     audit() {
-      const page = document.getElementById(
-        'pmd-reservations2'
-      );
+      const p = page();
 
-      const analytics = document.getElementById(
-        'pmd-dashboard2-analytics-v1'
-      );
-
-      const style = page
-        ? getComputedStyle(page)
-        : null;
+      const style =
+        p
+          ? getComputedStyle(p)
+          : null;
 
       const result = {
         version: VERSION,
@@ -16078,37 +16379,62 @@
         lastReason:
           state.lastReason,
 
+        tableCountAtReveal:
+          state.tableCountAtReveal,
+
+        currentTableCount:
+          realTables().length,
+
+        stableFrames:
+          state.stableFrames,
+
+        observerActive:
+          state.observerActive,
+
+        fallbackUsed:
+          state.fallbackUsed,
+
         readyClass:
-          document.documentElement.classList.contains(
-            READY_CLASS
-          ),
+          document.documentElement
+            .classList.contains(
+              READY_CLASS
+            ),
 
-        pageFound:
-          Boolean(page),
-
-        analyticsFound:
-          Boolean(analytics),
+        readiness:
+          readiness(),
 
         pageOpacity:
-          style?.opacity ?? null,
+          style
+            ? style.opacity
+            : null,
 
         pointerEvents:
-          style?.pointerEvents ?? null,
+          style
+            ? style.pointerEvents
+            : null,
 
         correctState:
           Boolean(
             state.revealed &&
-            document.documentElement.classList.contains(
-              READY_CLASS
-            ) &&
-            page &&
-            analytics &&
-            Number(style?.opacity) === 1
+            document.documentElement
+              .classList.contains(
+                READY_CLASS
+              ) &&
+            p &&
+            Number(
+              style
+                ? style.opacity
+                : 0
+            ) === 1 &&
+            (
+              state.tableCountAtReveal > 0 ||
+              state.fallbackUsed
+            )
           )
       };
 
       console.info(
-        '[PMD Dashboard2 First Paint Lock V1.4.1.3 Audit]',
+        '[PMD Dashboard2 First Paint V1.4.1.4 Audit]',
         result
       );
 
@@ -16116,18 +16442,19 @@
     }
   };
 
-  if (document.readyState === 'loading') {
+  if (
+    document.readyState ===
+      'loading'
+  ) {
     document.addEventListener(
       'DOMContentLoaded',
-      () => {
-        reveal('dom-content-loaded');
-      },
+      boot,
       {
         once: true
       }
     );
   } else {
-    reveal('already-loaded');
+    boot();
   }
 })();
 

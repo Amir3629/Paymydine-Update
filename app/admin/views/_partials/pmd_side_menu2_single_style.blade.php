@@ -219,7 +219,20 @@
    * four consecutive animation frames, only the dynamic surfaces are released
    * directly at their final coordinates with no fade/slide/scale animation.
    */
-  html.classList.add('pmd-r2-zero-shift-boot-v2');
+  /*
+   * PMD_DASHBOARD2_ZERO_SHIFT_NO_DYNAMIC_MASK_V1
+   *
+   * Keep ZeroShift protection on Reservations2.
+   * Dashboard2 must not hide its Floor canvas during boot.
+   */
+  var dashboard2OwnsFloorPaint =
+    route === '/admin/dashboard2';
+
+  if (!dashboard2OwnsFloorPaint) {
+    html.classList.add(
+      'pmd-r2-zero-shift-boot-v2'
+    );
+  }
 
   if (!document.getElementById('pmd-r2-zero-shift-critical-v2')) {
     var style = document.createElement('style');
@@ -234,17 +247,15 @@
       '  animation:none !important;',
       '}',
 
-      /* Neutralize Dashboard2 V1413 whole-root opacity lock. */
-      'html.pmd-dashboard2-r2-exact:not(.pmd-dashboard2-v1413-ready) body #pmd-reservations2 {',
-      '  visibility:visible !important;',
-      '  opacity:1 !important;',
-      '  pointer-events:auto !important;',
-      '  transition:none !important;',
-      '  animation:none !important;',
-      '}',
-
-      /* The page shell itself is ALWAYS visible during boot. */
-      'html.pmd-r2-zero-shift-boot-v2 #pmd-reservations2 {',
+      /*
+       * PMD_DASHBOARD2_SINGLE_ROOT_VISIBILITY_OWNER_V1
+       *
+       * Reservations2 keeps the visible-shell Zero Shift behaviour.
+       * Dashboard2 has its own first-paint lock and MUST NOT be forced
+       * visible by Zero Shift while the Reservations-derived DOM is
+       * still becoming the final Dashboard.
+       */
+      'html:not(.pmd-dashboard2-r2-exact).pmd-r2-zero-shift-boot-v2 #pmd-reservations2 {',
       '  visibility:visible !important;',
       '  opacity:1 !important;',
       '  pointer-events:auto !important;',
@@ -303,6 +314,17 @@
   }
 
   function keepShellVisible() {
+    /*
+     * Dashboard2 root visibility belongs ONLY to
+     * PMDDashboard2FirstPaintLockV1413.
+     *
+     * Zero Shift still owns Floor/table geometry, but it must never
+     * write inline visibility/opacity to the complete Dashboard2 root.
+     */
+    if (route === '/admin/dashboard2') {
+      return;
+    }
+
     var pageRoot = root();
     if (!pageRoot) return;
 
@@ -314,7 +336,16 @@
   }
 
   function enforceDynamicHidden() {
-    if (done) return;
+    /*
+     * Dashboard2 never hides an already-rendered Floor.
+     * Reservations2 keeps the existing behaviour.
+     */
+    if (
+      done ||
+      route === '/admin/dashboard2'
+    ) {
+      return;
+    }
 
     dynamicTargets().forEach(function (node) {
       node.style.setProperty('visibility', 'hidden', 'important');
@@ -424,9 +455,10 @@
       'pmd-r2-v6-ready'
     );
 
-    if (route === '/admin/dashboard2') {
-      html.classList.add('pmd-dashboard2-v1413-ready');
-    }
+    /*
+     * Do NOT release Dashboard2's first-paint lock here.
+     * V1413 is the single authority for the complete Dashboard2 root.
+     */
 
     /*
      * Release only after removing the boot class, so the dynamic surface is
@@ -476,12 +508,36 @@
      * render() -> fit()/zoom plus toolbar/card setup completed before the
      * dynamic Floor/card layer becomes visible.
      */
+    /*
+     * PMD_DASHBOARD2_FAST_FLOOR_REVEAL_V1
+     *
+     * Dashboard2 already has its own first-paint authority.
+     * Once real table geometry exists, two identical frames are enough
+     * to expose the canonical one-row Floor without the visible empty
+     * Floor pause.
+     *
+     * Reservations2 keeps the original conservative settling window.
+     */
+    var requiredStableFrames =
+      route === '/admin/dashboard2'
+        ? 2
+        : 4;
+
+    var requiredSettleMs =
+      route === '/admin/dashboard2'
+        ? 0
+        : 48;
+
     if (
-      stableFrames >= 4 &&
+      stableFrames >= requiredStableFrames &&
       firstStableAt &&
-      now - firstStableAt >= 48
+      now - firstStableAt >= requiredSettleMs
     ) {
-      reveal('stable-floor-geometry');
+      reveal(
+        route === '/admin/dashboard2'
+          ? 'dashboard2-fast-stable-floor'
+          : 'stable-floor-geometry'
+      );
       return;
     }
 
@@ -499,12 +555,12 @@
   }, 6500);
 
   window.PMDR2ZeroShiftGuardV2 = {
-    version: '2.0.0-no-white-blink',
+    version: '2.1.1-dashboard2-fast-floor-reveal',
     route: route,
     reveal: reveal,
     audit: function () {
       return {
-        version: '2.0.0-no-white-blink',
+        version: '2.1.1-dashboard2-fast-floor-reveal',
         route: route,
         done: done,
         reason: reason,

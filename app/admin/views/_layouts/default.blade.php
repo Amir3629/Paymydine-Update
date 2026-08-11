@@ -3689,6 +3689,8 @@ document.documentElement.classList.add('pmd-r2-v6-booting');
 
 
 
+{{-- PMD_DASHBOARD2_RETIRE_EMERGENCY_UNHIDE_V1 --}}
+@unless (request()->is('admin/dashboard2') || request()->is('admin/dashboard2/*'))
 <!-- PMD_OWNER_EMERGENCY_UNHIDE_START -->
 <style id="pmd-owner-emergency-unhide-style">
 html.pmd-owner-clean-v113-boot .pmd-v15-shell,
@@ -3758,6 +3760,8 @@ html.pmd-owner-clean-v113-active .pmd-v15-shell,
 @endunless
 
 <!-- PMD_OWNER_EMERGENCY_UNHIDE_END -->
+@endunless
+{{-- /PMD_DASHBOARD2_RETIRE_EMERGENCY_UNHIDE_V1 --}}
 
 
 

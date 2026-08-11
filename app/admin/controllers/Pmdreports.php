@@ -38,6 +38,7 @@ class Pmdreports extends Dashboard2
         $this->addCss('css/pmd-reports-v1.css');
         $this->addJs('js/pmd-owner-settings-v1.js');
         $this->addJs('js/pmd-reports-v1.js');
+        $this->addJs('js/pmd-reports-excel-v1.js');
         AdminMenu::setContext('dashboard');
     }
 
@@ -49,9 +50,16 @@ class Pmdreports extends Dashboard2
     public function transactions() { return $this->show('transactions'); }
     public function alerts() { return $this->show('alerts'); }
     public function liveorders() { return $this->show('liveorders'); }
-    public function orderchannels() { return $this->show('channels'); }
+
+    /*
+     * Keep the old V1.1 URLs as harmless redirects. The real pages now use
+     * dedicated index controllers, so there is zero ambiguity with the
+     * inherited Dashboard2::channels() / Dashboard2::tips() methods.
+     */
+    public function orderchannels() { return redirect(admin_url('pmdreportchannels')); }
+    public function tipssummary() { return redirect(admin_url('pmdreporttips')); }
+
     public function topitems() { return $this->show('topitems'); }
-    public function tipssummary() { return $this->show('tips'); }
     public function reviews() { return $this->show('reviews'); }
     public function reservations() { return $this->show('reservations'); }
 
@@ -89,28 +97,114 @@ class Pmdreports extends Dashboard2
             'periods' => $this->periodOptions($type),
             'timezone' => $this->restaurantTimezone(),
             'currency' => $this->reportCurrency(),
+            'route_url' => $this->reportUrl($type),
             'back_url' => admin_url('dashboard2'),
         ], $payload);
 
+        /*
+         * PMD_OWNER_REPORT_ASYNC_RESPONSE_V1
+         *
+         * Period changes can ask for the exact same tenant-scoped report as a
+         * compact JSON response. This does NOT introduce a second data source,
+         * extra query, polling loop or cache layer: payload() above remains the
+         * only report authority. The normal HTML route remains the fallback and
+         * is still used for first load, refresh, bookmarks and direct links.
+         */
+        if ($this->wantsAsyncReportResponse()) {
+            return response()->json([
+                'ok' => true,
+                'report' => $this->vars['pmdReport'],
+            ])->withHeaders([
+                'Cache-Control' => 'private, no-store, max-age=0',
+                'Vary' => 'X-PMD-Report-Async',
+            ]);
+        }
+
         return $this->makeView('pmdreports/index');
+    }
+
+    protected function wantsAsyncReportResponse(): bool
+    {
+        return trim((string)request()->header('X-PMD-Report-Async', '')) === '1';
+    }
+
+    protected function reportUrl(string $type): string
+    {
+        return match ($type) {
+            'channels' => admin_url('pmdreportchannels'),
+            'tips' => admin_url('pmdreporttips'),
+            default => admin_url('pmdreports/'.$type),
+        };
     }
 
     protected function meta(string $type): array
     {
         return [
-            'sales' => ['Sales over time', 'Full revenue history, order volume, averages and time-series performance from settled orders.', 'green'],
-            'hourly' => ['Sales by hour', 'See when revenue and order volume are strongest across the day.', 'blue'],
-            'categories' => ['Sales by category', 'Category revenue and contribution based on live enabled menu categories.', 'violet'],
-            'payments' => ['Payment methods', 'How settled revenue is distributed across enabled guest payment methods.', 'orange'],
-            'transactions' => ['Recent transactions', 'A detailed ledger of settled orders for the selected period.', 'slate'],
-            'alerts' => ['Alerts', 'Payment, refund, stock, review and long-open-table exceptions that may need attention.', 'rose'],
-            'liveorders' => ['Live orders', 'Current open orders with operational status, channel and age.', 'green'],
-            'channels' => ['Order channels', 'Revenue and order mix across real order types.', 'cyan'],
-            'topitems' => ['Top-selling items', 'Best-performing menu items ranked by sold quantity and revenue.', 'orange'],
-            'tips' => ['Tips summary', 'Tip totals and tipped-order history from order_totals.', 'green'],
-            'reviews' => ['Latest reviews', 'Recent guest ratings and comments for this restaurant.', 'violet'],
-            'reservations' => ['Upcoming reservations', 'Future reservations with guests, status and real table assignments.', 'blue'],
-        ][$type] ?? ['Owner report', 'Detailed owner report.', 'slate'];
+            'sales' => [
+                'title' => 'Sales over time',
+                'subtitle' => 'Full revenue history, order volume, averages and time-series performance from settled orders.',
+                'accent' => 'green',
+            ],
+            'hourly' => [
+                'title' => 'Sales by hour',
+                'subtitle' => 'See when revenue and order volume are strongest across the day.',
+                'accent' => 'blue',
+            ],
+            'categories' => [
+                'title' => 'Sales by category',
+                'subtitle' => 'Category revenue and contribution based on live enabled menu categories.',
+                'accent' => 'violet',
+            ],
+            'payments' => [
+                'title' => 'Payment methods',
+                'subtitle' => 'How settled revenue is distributed across enabled guest payment methods.',
+                'accent' => 'orange',
+            ],
+            'transactions' => [
+                'title' => 'Recent transactions',
+                'subtitle' => 'A detailed ledger of settled orders for the selected period.',
+                'accent' => 'slate',
+            ],
+            'alerts' => [
+                'title' => 'Alerts',
+                'subtitle' => 'Payment, refund, stock, review and long-open-table exceptions that may need attention.',
+                'accent' => 'rose',
+            ],
+            'liveorders' => [
+                'title' => 'Live orders',
+                'subtitle' => 'Current open orders with operational status, channel and age.',
+                'accent' => 'green',
+            ],
+            'channels' => [
+                'title' => 'Order channels',
+                'subtitle' => 'Revenue and order mix across real order types.',
+                'accent' => 'cyan',
+            ],
+            'topitems' => [
+                'title' => 'Top-selling items',
+                'subtitle' => 'Best-performing menu items ranked by sold quantity and revenue.',
+                'accent' => 'orange',
+            ],
+            'tips' => [
+                'title' => 'Tips summary',
+                'subtitle' => 'Tip totals and tipped-order history from order_totals.',
+                'accent' => 'green',
+            ],
+            'reviews' => [
+                'title' => 'Latest reviews',
+                'subtitle' => 'Recent guest ratings and comments for this restaurant.',
+                'accent' => 'violet',
+            ],
+            'reservations' => [
+                'title' => 'Upcoming reservations',
+                'subtitle' => 'Future reservations with guests, status and real table assignments.',
+                'accent' => 'blue',
+            ],
+        ][$type] ?? [
+            'title' => 'Owner report',
+            'subtitle' => 'Detailed owner report.',
+            'accent' => 'slate',
+        ];
     }
 
     protected function period(string $type): string
@@ -118,8 +212,16 @@ class Pmdreports extends Dashboard2
         if (in_array($type, ['alerts', 'liveorders'], true)) return 'today';
         if ($type === 'reviews') return 'all';
         if ($type === 'reservations') return 'today';
+
         $value = strtolower(trim((string)request()->query('period', 'last30')));
-        return in_array($value, ['today', 'week', 'month', 'last30', 'all'], true) ? $value : 'last30';
+
+        if ($value === 'custom') {
+            return $this->customWindow() ? 'custom' : 'last30';
+        }
+
+        return in_array($value, ['today', 'week', 'month', 'last30', 'all'], true)
+            ? $value
+            : 'last30';
     }
 
     protected function periodOptions(string $type): array
@@ -127,7 +229,55 @@ class Pmdreports extends Dashboard2
         if (in_array($type, ['alerts', 'liveorders'], true)) return ['today' => 'Today'];
         if ($type === 'reviews') return ['all' => 'Latest'];
         if ($type === 'reservations') return ['today' => 'Upcoming'];
-        return ['today' => 'Today', 'week' => 'Week', 'month' => 'Month', 'last30' => 'Last 30 days', 'all' => 'All time'];
+
+        return [
+            'today' => 'Today',
+            'week' => 'Week',
+            'month' => 'Month',
+            'last30' => 'Last 30 days',
+            'all' => 'All time',
+            'custom' => 'Custom',
+        ];
+    }
+
+    /*
+     * PMD_OWNER_REPORT_CUSTOM_RANGE_V1
+     *
+     * Custom ranges use only canonical YYYY-MM-DD query parameters and the
+     * restaurant timezone. The end date is inclusive through 23:59:59.999999.
+     * Invalid/missing dates safely fall back to Last 30 days via period().
+     */
+    protected function customWindow(): ?array
+    {
+        $from = trim((string)request()->query('date_from', ''));
+        $to = trim((string)request()->query('date_to', ''));
+
+        if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $from) ||
+            !preg_match('/^\d{4}-\d{2}-\d{2}$/', $to)) {
+            return null;
+        }
+
+        try {
+            $timezone = $this->restaurantTimezone();
+            $start = Carbon::createFromFormat('Y-m-d', $from, $timezone)->startOfDay();
+            $end = Carbon::createFromFormat('Y-m-d', $to, $timezone)->endOfDay();
+
+            if ($start->format('Y-m-d') !== $from || $end->format('Y-m-d') !== $to) {
+                return null;
+            }
+
+            if ($start->gt($end)) {
+                [$start, $end] = [$end->copy()->startOfDay(), $start->copy()->endOfDay()];
+            }
+
+            $label = $start->isSameDay($end)
+                ? 'Custom · '.$start->format('d M Y')
+                : 'Custom · '.$start->format('d M Y').' – '.$end->format('d M Y');
+
+            return [$start, $end, $label];
+        } catch (\Throwable $error) {
+            return null;
+        }
     }
 
     protected function window(string $period): array
@@ -137,6 +287,11 @@ class Pmdreports extends Dashboard2
         if ($period === 'week') return [$now->copy()->startOfWeek(), $now, 'This week'];
         if ($period === 'month') return [$now->copy()->startOfMonth(), $now, 'This month'];
         if ($period === 'last30') return [$now->copy()->subDays(30)->startOfDay(), $now, 'Last 30 days'];
+
+        if ($period === 'custom') {
+            $custom = $this->customWindow();
+            if ($custom) return $custom;
+        }
 
         $start = $now->copy()->subYear()->startOfDay();
         try {

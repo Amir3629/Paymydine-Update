@@ -4,6 +4,138 @@
  * while header and sidebar remain fixed
  */
 
+/*
+ * PMD_DASHBOARD2_ZERO_BLINK_GUARD_RETIRED_V1
+ *
+ * The extra root-level Dashboard2 guard has been retired.
+ *
+ * Root visibility now has exactly ONE owner:
+ *   PMDDashboard2FirstPaintLockV1413
+ *
+ * PMDR2ZeroShiftGuardV2 owns only Floor/table geometry on Dashboard2.
+ * This avoids two independent !important visibility authorities racing
+ * each other during the first paint.
+ */
+(function installDashboard2ZeroBlinkCompatibilityAudit() {
+    const path = String(
+        window.location.pathname || ''
+    ).replace(/\/+$/, '');
+
+    if (path !== '/admin/dashboard2') return;
+
+    window.PMDDashboard2ZeroBlinkGuardV1 = {
+        version: '1.2.0-retired-single-root-owner',
+        retired: true,
+
+        audit() {
+            const html = document.documentElement;
+            const page = document.getElementById(
+                'pmd-reservations2'
+            );
+
+            const style = page
+                ? window.getComputedStyle(page)
+                : null;
+
+            const hero = document.querySelector(
+                '#pmd-reservations2 .pmd-r2__hero'
+            );
+
+            const waiterRoot =
+                document.getElementById(
+                    'pmd-r2-waiter-cards-v1'
+                ) ||
+                document.querySelector(
+                    '#pmd-reservations2 .pmd-r2-waiter-boot'
+                );
+
+            const isVisible = function (node) {
+                if (!node) return false;
+
+                const s = window.getComputedStyle(node);
+                const r = node.getBoundingClientRect();
+
+                return (
+                    !node.hidden &&
+                    s.display !== 'none' &&
+                    s.visibility !== 'hidden' &&
+                    Number(s.opacity || 1) > 0 &&
+                    r.width > 0 &&
+                    r.height > 0
+                );
+            };
+
+            let zeroShift = null;
+
+            try {
+                if (
+                    window.PMDR2ZeroShiftGuardV2 &&
+                    typeof window.PMDR2ZeroShiftGuardV2.audit ===
+                        'function'
+                ) {
+                    zeroShift =
+                        window.PMDR2ZeroShiftGuardV2.audit();
+                }
+            } catch (error) {}
+
+            const firstPaintReady =
+                html.classList.contains(
+                    'pmd-dashboard2-v1413-ready'
+                );
+
+            return {
+                version:
+                    '1.2.0-retired-single-root-owner',
+
+                retired: true,
+
+                rootVisibilityOwner:
+                    'PMDDashboard2FirstPaintLockV1413',
+
+                zeroShiftGeometryOwner:
+                    'PMDR2ZeroShiftGuardV2',
+
+                firstPaintReady,
+
+                pageFound: Boolean(page),
+
+                pageOpacity:
+                    style ? style.opacity : null,
+
+                pageVisibility:
+                    style ? style.visibility : null,
+
+                legacyHeroVisible:
+                    isVisible(hero),
+
+                legacyWaiterVisible:
+                    isVisible(waiterRoot),
+
+                zeroShiftVersion:
+                    zeroShift
+                        ? zeroShift.version
+                        : null,
+
+                zeroShiftDone:
+                    zeroShift
+                        ? zeroShift.done
+                        : null,
+
+                ok:
+                    Boolean(page) &&
+                    firstPaintReady &&
+                    Number(style?.opacity || 0) === 1 &&
+                    !isVisible(hero) &&
+                    !isVisible(waiterRoot)
+            };
+        }
+    };
+
+    console.info(
+        '[PMD Dashboard2 Zero Blink Guard] retired; V1413 is sole root visibility owner'
+    );
+})();
+
 class SmoothPageTransitions {
     constructor() {
         this.isTransitioning = false;
@@ -251,3 +383,41 @@ class SmoothPageTransitions {
 document.addEventListener('DOMContentLoaded', () => {
     window.smoothTransitions = new SmoothPageTransitions();
 });
+
+/*
+ * PMD_DASHBOARD2_REPORT_LINK_BOOTSTRAP_V1
+ *
+ * Dashboard2 does not render the Settings notification_bell partial, so the
+ * report-link asset cannot rely on that partial for loading. This global file
+ * is already present on Dashboard2. Load the tiny Dashboard2-only CSS/JS here;
+ * the report-link JS contains its own strict /admin/dashboard2 route guard.
+ */
+(function bootstrapDashboard2ReportLinks() {
+    const path = String(window.location.pathname || '').replace(/\/+$/, '');
+    if (path !== '/admin/dashboard2') return;
+
+    const cssId = 'pmd-dashboard2-report-links-css-v1';
+    const jsId = 'pmd-dashboard2-report-links-js-v1';
+
+    if (!document.getElementById(cssId)) {
+        const link = document.createElement('link');
+        link.id = cssId;
+        link.rel = 'stylesheet';
+        link.href = '/app/admin/assets/css/pmd-dashboard2-detail-links-v1.css?v=20260811-dashboard-report-links-v1-6';
+        (document.head || document.documentElement).appendChild(link);
+    }
+
+    if (!document.getElementById(jsId)) {
+        const script = document.createElement('script');
+        script.id = jsId;
+        script.src = '/app/admin/assets/js/pmd-dashboard2-detail-links-v1.js?v=20260811-dashboard-report-links-v1-6';
+        script.defer = true;
+        script.onload = function () {
+            console.info('[PMD Dashboard2 Report Link Bootstrap V1] loaded');
+        };
+        script.onerror = function () {
+            console.error('[PMD Dashboard2 Report Link Bootstrap V1] failed to load report-link asset');
+        };
+        (document.head || document.documentElement).appendChild(script);
+    }
+})();

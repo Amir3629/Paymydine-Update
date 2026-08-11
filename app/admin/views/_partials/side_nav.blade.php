@@ -29,6 +29,275 @@
     );
 @endphp
 
+
+<!-- PMD_LANGUAGE_TRUE_FIRST_PAINT_V5 -->
+<script id="pmd-language-first-paint-state-v5">
+(function () {
+    'use strict';
+
+    if (window.innerWidth <= 820) {
+        return;
+    }
+
+    var state = 'collapsed';
+
+    try {
+        state =
+            localStorage.getItem(
+                'pmd.sideMenu2.state'
+            ) === 'expanded'
+                ? 'expanded'
+                : 'collapsed';
+    } catch (error) {
+        state = 'collapsed';
+    }
+
+    var html =
+        document.documentElement;
+
+    html.classList.toggle(
+        'pmd-sm2-expanded',
+        state === 'expanded'
+    );
+
+    html.classList.toggle(
+        'pmd-sm2-collapsed',
+        state !== 'expanded'
+    );
+})();
+</script>
+
+<style id="pmd-language-first-paint-css-v5">
+#pmd-sidebar-language {
+    position: fixed;
+    left: 18px;
+    bottom: 88px;
+    z-index: 99999;
+    font-family: inherit;
+}
+
+#pmd-sidebar-language,
+#pmd-sidebar-language * {
+    box-sizing: border-box;
+}
+
+#pmd-language-trigger {
+    width: 52px;
+    height: 46px;
+
+    padding: 0 7px;
+
+    border: 0;
+    border-radius: 14px;
+
+    background: rgba(255,255,255,.11);
+    color: #fff;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    gap: 4px;
+
+    cursor: pointer;
+
+    font-family: inherit;
+
+    transition:
+        background .15s ease,
+        transform .15s ease,
+        width .18s ease;
+}
+
+#pmd-language-trigger:hover {
+    background: rgba(255,255,255,.18);
+}
+
+#pmd-language-trigger:active {
+    transform: scale(.97);
+}
+
+.pmd-language-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+
+    width: 24px;
+    height: 24px;
+
+    color: #ffffff;
+
+    flex: 0 0 auto;
+}
+
+.pmd-language-icon svg {
+    display: block;
+
+    width: 22px;
+    height: 22px;
+
+    stroke: currentColor;
+}
+
+.pmd-language-label {
+    display: none;
+
+    flex: 1;
+
+    color: #fff;
+
+    font-size: 13px;
+    font-weight: 700;
+
+    text-align: left;
+}
+
+.pmd-current-language {
+    min-width: 27px;
+
+    padding: 4px 5px;
+
+    border-radius: 8px;
+
+    background: #fff;
+    color: #07594c;
+
+    font-size: 10px;
+    line-height: 1;
+    font-weight: 900;
+
+    text-align: center;
+}
+
+#pmd-sidebar-language.is-wide
+#pmd-language-trigger {
+    width: 142px;
+
+    padding: 0 13px;
+
+    justify-content: flex-start;
+
+    gap: 9px;
+}
+
+#pmd-sidebar-language.is-wide
+.pmd-language-label {
+    display: block;
+}
+
+#pmd-sidebar-language.is-loading
+#pmd-language-trigger {
+    opacity: .55;
+    pointer-events: none;
+}
+
+@media (max-width: 820px) {
+    #pmd-sidebar-language {
+        bottom: 82px;
+    }
+}
+
+html.pmd-sm2-collapsed #pmd-sidebar-language {
+    overflow: visible !important;
+}
+
+html.pmd-sm2-collapsed #pmd-language-trigger {
+    position: relative !important;
+
+    width: 52px !important;
+    min-width: 52px !important;
+    height: 46px !important;
+
+    padding: 0 !important;
+
+    display: block !important;
+
+    overflow: visible !important;
+}
+
+html.pmd-sm2-collapsed
+#pmd-language-trigger
+.pmd-language-icon {
+    position: absolute !important;
+
+    left: 50% !important;
+    top: 50% !important;
+
+    width: 24px !important;
+    height: 24px !important;
+
+    margin: 0 !important;
+
+    transform:
+        translate(-50%, -50%) !important;
+
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+}
+
+html.pmd-sm2-collapsed
+#pmd-language-trigger
+.pmd-language-icon svg {
+    width: 22px !important;
+    height: 22px !important;
+
+    margin: 0 !important;
+
+    display: block !important;
+}
+
+html.pmd-sm2-collapsed
+#pmd-language-trigger
+.pmd-current-language {
+    position: absolute !important;
+
+    left: calc(100% - 2px) !important;
+    top: 50% !important;
+
+    margin: 0 !important;
+
+    transform:
+        translateY(-50%) !important;
+
+    z-index: 2 !important;
+}
+
+html.pmd-sm2-collapsed
+#pmd-language-trigger
+.pmd-language-label {
+    display: none !important;
+}
+
+html.pmd-sm2-collapsed
+#pmd-language-trigger
+.pmd-language-icon {
+    left: calc(50% - 4px) !important;
+}
+
+html.pmd-sm2-collapsed
+#pmd-sidebar-language {
+    transform: translateX(-5px) !important;
+}
+
+html.pmd-sm2-collapsed
+#pmd-language-trigger
+.pmd-language-icon {
+    left: 50% !important;
+}
+
+html:not(.pmd-sm2-runtime-ready)
+#pmd-sidebar-language,
+html:not(.pmd-sm2-runtime-ready)
+#pmd-language-trigger,
+html:not(.pmd-sm2-runtime-ready)
+#pmd-language-trigger * {
+    transition: none !important;
+    animation: none !important;
+}
+</style>
+<!-- /PMD_LANGUAGE_TRUE_FIRST_PAINT_V5 -->
+
 <div
     id="pmd-sidebar-language"
     data-endpoint="{{ $pmdLanguageEndpoint }}"

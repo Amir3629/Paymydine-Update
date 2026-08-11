@@ -24,24 +24,94 @@ window.PMD_DASHBOARD2_KPI_PAYLOAD = @json($pmdDashboard2KpiPayload ?? null);
 >
 
 <style id="pmd-dashboard2-v1413-first-paint-lock">
-  html.pmd-dashboard2-r2-exact body {
+  /*
+   * PMD_DASHBOARD2_TRUE_NO_BLINK_FIRST_PAINT_V1
+   *
+   * Dashboard2 must have a stable painted surface from the
+   * browser's first usable frame.
+   *
+   * Never hide the complete #pmd-reservations2 root.
+   */
+
+  html.pmd-dashboard2-r2-exact,
+  html.pmd-dashboard2-r2-exact body,
+  html.pmd-dashboard2-r2-exact body.page {
     background: #f8fbfd !important;
   }
 
-  html.pmd-dashboard2-r2-exact:not(.pmd-dashboard2-v1413-ready)
+  html.pmd-dashboard2-r2-exact
   body #pmd-reservations2 {
-    opacity: 0 !important;
-    pointer-events: none !important;
-    transition: none !important;
-    animation: none !important;
-  }
-
-  html.pmd-dashboard2-r2-exact.pmd-dashboard2-v1413-ready
-  body #pmd-reservations2 {
+    visibility: visible !important;
     opacity: 1 !important;
     pointer-events: auto !important;
     transition: none !important;
     animation: none !important;
+  }
+
+  /*
+   * Legacy/source surfaces are hidden individually instead of
+   * blanking the complete Dashboard.
+   */
+  html.pmd-dashboard2-r2-exact
+  body #pmd-reservations2 > .pmd-r2__hero,
+
+  html.pmd-dashboard2-r2-exact
+  body #pmd-waiter-dashboard-root,
+
+  html.pmd-dashboard2-r2-exact
+  body #pmd-r2-waiter-cards-v1,
+
+  html.pmd-dashboard2-r2-exact
+  body #pmd-r2-shared-floor-canvas-v310
+  > .pmd-floor-v1__header,
+
+  html.pmd-dashboard2-r2-exact
+  body #pmd-r2-shared-floor-canvas-v310
+  [data-floor-loading] {
+    display: none !important;
+  }
+
+  /*
+   * PMD_DASHBOARD2_ONE_ROW_NO_HIDE_V1
+   *
+   * Stable One Row currently uses visibility:hidden while its
+   * canonical coordinates are restored.
+   *
+   * The tables already exist at that moment, so on Dashboard2
+   * keep them visible and simply disable animation.
+   */
+  html.pmd-dashboard2-r2-exact
+  [data-pmd-floor].pmd-one-row-v1-restoring
+  [data-floor-scroll] {
+    visibility: visible !important;
+    opacity: 1 !important;
+    pointer-events: auto !important;
+  }
+
+  html.pmd-dashboard2-r2-exact
+  [data-pmd-floor].pmd-one-row-v1-restoring
+  [data-floor-canvas],
+
+  html.pmd-dashboard2-r2-exact
+  [data-pmd-floor].pmd-one-row-v1-restoring
+  [data-floor-table],
+
+  html.pmd-dashboard2-r2-exact
+  [data-pmd-floor].pmd-one-row-v1-restoring
+  .pmd-floor-v1__table {
+    transition: none !important;
+    animation: none !important;
+  }
+
+  /*
+   * Keep V1413 ready class only as a state/audit signal.
+   * It no longer controls page visibility.
+   */
+  html.pmd-dashboard2-r2-exact.pmd-dashboard2-v1413-ready
+  body #pmd-reservations2 {
+    visibility: visible !important;
+    opacity: 1 !important;
+    pointer-events: auto !important;
   }
 </style>
 
@@ -457,6 +527,58 @@ window.PMD_DASHBOARD2_KPI_PAYLOAD = @json($pmdDashboard2KpiPayload ?? null);
     content: none !important;
   }
 </style>
+
+
+<!-- PMD_DASHBOARD2_CATEGORY_FINAL_RENDER_GATE_V3 -->
+<style id="pmd-dashboard2-category-final-render-gate-v3">
+
+/*
+ * The early hydration may create categorySales content before
+ * Independent Donut V1.3.9.5 becomes the final owner.
+ *
+ * Preserve layout, but never DISPLAY the intermediate donut.
+ *
+ * Independent Donut sets:
+ * data-pmd-independent-donut-ready="true"
+ * on the category card when renderOne() has completed.
+ */
+
+#pmd-dashboard2-analytics-v1
+[data-pmd-analytics-widget="categorySales"]
+:not([data-pmd-never-used]) {
+    box-sizing: border-box;
+}
+
+#pmd-dashboard2-analytics-v1
+[data-pmd-analytics-widget="categorySales"]
+:not([data-pmd-independent-donut-ready="true"])
+.pmd-dashboard2-donut,
+
+#pmd-dashboard2-analytics-v1
+[data-pmd-analytics-widget="categorySales"]
+:not([data-pmd-independent-donut-ready="true"])
+> .pmd-dashboard2-donut-period-v1395 {
+    visibility: hidden !important;
+    opacity: 0 !important;
+}
+
+/*
+ * Final graph appears immediately in its final geometry.
+ * No fade from the intermediate location.
+ */
+#pmd-dashboard2-analytics-v1
+[data-pmd-analytics-widget="categorySales"]
+.pmd-dashboard2-donut,
+
+#pmd-dashboard2-analytics-v1
+[data-pmd-analytics-widget="categorySales"]
+> .pmd-dashboard2-donut-period-v1395 {
+    animation: none !important;
+    transition: none !important;
+}
+
+</style>
+<!-- /PMD_DASHBOARD2_CATEGORY_FINAL_RENDER_GATE_V3 -->
 
 <section
   id="pmd-dashboard2-analytics-v1"
