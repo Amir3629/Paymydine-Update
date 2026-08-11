@@ -115,19 +115,71 @@ class Pmdreports extends Dashboard2
     protected function meta(string $type): array
     {
         return [
-            'sales' => ['Sales over time', 'Full revenue history, order volume, averages and time-series performance from settled orders.', 'green'],
-            'hourly' => ['Sales by hour', 'See when revenue and order volume are strongest across the day.', 'blue'],
-            'categories' => ['Sales by category', 'Category revenue and contribution based on live enabled menu categories.', 'violet'],
-            'payments' => ['Payment methods', 'How settled revenue is distributed across enabled guest payment methods.', 'orange'],
-            'transactions' => ['Recent transactions', 'A detailed ledger of settled orders for the selected period.', 'slate'],
-            'alerts' => ['Alerts', 'Payment, refund, stock, review and long-open-table exceptions that may need attention.', 'rose'],
-            'liveorders' => ['Live orders', 'Current open orders with operational status, channel and age.', 'green'],
-            'channels' => ['Order channels', 'Revenue and order mix across real order types.', 'cyan'],
-            'topitems' => ['Top-selling items', 'Best-performing menu items ranked by sold quantity and revenue.', 'orange'],
-            'tips' => ['Tips summary', 'Tip totals and tipped-order history from order_totals.', 'green'],
-            'reviews' => ['Latest reviews', 'Recent guest ratings and comments for this restaurant.', 'violet'],
-            'reservations' => ['Upcoming reservations', 'Future reservations with guests, status and real table assignments.', 'blue'],
-        ][$type] ?? ['Owner report', 'Detailed owner report.', 'slate'];
+            'sales' => [
+                'title' => 'Sales over time',
+                'subtitle' => 'Full revenue history, order volume, averages and time-series performance from settled orders.',
+                'accent' => 'green',
+            ],
+            'hourly' => [
+                'title' => 'Sales by hour',
+                'subtitle' => 'See when revenue and order volume are strongest across the day.',
+                'accent' => 'blue',
+            ],
+            'categories' => [
+                'title' => 'Sales by category',
+                'subtitle' => 'Category revenue and contribution based on live enabled menu categories.',
+                'accent' => 'violet',
+            ],
+            'payments' => [
+                'title' => 'Payment methods',
+                'subtitle' => 'How settled revenue is distributed across enabled guest payment methods.',
+                'accent' => 'orange',
+            ],
+            'transactions' => [
+                'title' => 'Recent transactions',
+                'subtitle' => 'A detailed ledger of settled orders for the selected period.',
+                'accent' => 'slate',
+            ],
+            'alerts' => [
+                'title' => 'Alerts',
+                'subtitle' => 'Payment, refund, stock, review and long-open-table exceptions that may need attention.',
+                'accent' => 'rose',
+            ],
+            'liveorders' => [
+                'title' => 'Live orders',
+                'subtitle' => 'Current open orders with operational status, channel and age.',
+                'accent' => 'green',
+            ],
+            'channels' => [
+                'title' => 'Order channels',
+                'subtitle' => 'Revenue and order mix across real order types.',
+                'accent' => 'cyan',
+            ],
+            'topitems' => [
+                'title' => 'Top-selling items',
+                'subtitle' => 'Best-performing menu items ranked by sold quantity and revenue.',
+                'accent' => 'orange',
+            ],
+            'tips' => [
+                'title' => 'Tips summary',
+                'subtitle' => 'Tip totals and tipped-order history from order_totals.',
+                'accent' => 'green',
+            ],
+            'reviews' => [
+                'title' => 'Latest reviews',
+                'subtitle' => 'Recent guest ratings and comments for this restaurant.',
+                'accent' => 'violet',
+            ],
+            'reservations' => [
+                'title' => 'Upcoming reservations',
+                'subtitle' => 'Future reservations with guests, status and real table assignments.',
+                'accent' => 'blue',
+            ],
+        ][$type] ?? [
+            'title' => 'Owner report',
+            'subtitle' => 'Detailed owner report.',
+            'accent' => 'slate',
+        ];
     }
 
     protected function period(string $type): string
