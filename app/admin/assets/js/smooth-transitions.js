@@ -61,10 +61,16 @@
         if (!node) return false;
         const style = window.getComputedStyle(node);
         const rect = node.getBoundingClientRect();
+
+        /*
+         * Do not test computed visibility/opacity here. The guard intentionally
+         * hides the parent #pmd-reservations2, so those inherited properties
+         * would make every legacy child look hidden before its own final
+         * Dashboard authority has actually removed it. display/hidden are the
+         * child-owned signals we need for release safety.
+         */
         return !node.hidden &&
             style.display !== 'none' &&
-            style.visibility !== 'hidden' &&
-            Number(style.opacity || 1) !== 0 &&
             rect.width > 0 &&
             rect.height > 0;
     }
