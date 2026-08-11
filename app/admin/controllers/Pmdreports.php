@@ -187,8 +187,16 @@ class Pmdreports extends Dashboard2
         if (in_array($type, ['alerts', 'liveorders'], true)) return 'today';
         if ($type === 'reviews') return 'all';
         if ($type === 'reservations') return 'today';
+
         $value = strtolower(trim((string)request()->query('period', 'last30')));
-        return in_array($value, ['today', 'week', 'month', 'last30', 'all'], true) ? $value : 'last30';
+
+        if ($value === 'custom') {
+            return $this->customWindow() ? 'custom' : 'last30';
+        }
+
+        return in_array($value, ['today', 'week', 'month', 'last30', 'all'], true)
+            ? $value
+            : 'last30';
     }
 
     protected function periodOptions(string $type): array
@@ -196,7 +204,55 @@ class Pmdreports extends Dashboard2
         if (in_array($type, ['alerts', 'liveorders'], true)) return ['today' => 'Today'];
         if ($type === 'reviews') return ['all' => 'Latest'];
         if ($type === 'reservations') return ['today' => 'Upcoming'];
-        return ['today' => 'Today', 'week' => 'Week', 'month' => 'Month', 'last30' => 'Last 30 days', 'all' => 'All time'];
+
+        return [
+            'today' => 'Today',
+            'week' => 'Week',
+            'month' => 'Month',
+            'last30' => 'Last 30 days',
+            'all' => 'All time',
+            'custom' => 'Custom',
+        ];
+    }
+
+    /*
+     * PMD_OWNER_REPORT_CUSTOM_RANGE_V1
+     *
+     * Custom ranges use only canonical YYYY-MM-DD query parameters and the
+     * restaurant timezone. The end date is inclusive through 23:59:59.999999.
+     * Invalid/missing dates safely fall back to Last 30 days via period().
+     */
+    protected function customWindow(): ?array
+    {
+        $from = trim((string)request()->query('date_from', ''));
+        $to = trim((string)request()->query('date_to', ''));
+
+        if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $from) ||
+            !preg_match('/^\d{4}-\d{2}-\d{2}$/', $to)) {
+            return null;
+        }
+
+        try {
+            $timezone = $this->restaurantTimezone();
+            $start = Carbon::createFromFormat('Y-m-d', $from, $timezone)->startOfDay();
+            $end = Carbon::createFromFormat('Y-m-d', $to, $timezone)->endOfDay();
+
+            if ($start->format('Y-m-d') !== $from || $end->format('Y-m-d') !== $to) {
+                return null;
+            }
+
+            if ($start->gt($end)) {
+                [$start, $end] = [$end->copy()->startOfDay(), $start->copy()->endOfDay()];
+            }
+
+            $label = $start->isSameDay($end)
+                ? 'Custom · '.$start->format('d M Y')
+                : 'Custom · '.$start->format('d M Y').' – '.$end->format('d M Y');
+
+            return [$start, $end, $label];
+        } catch (\Throwable $error) {
+            return null;
+        }
     }
 
     protected function window(string $period): array
@@ -206,6 +262,11 @@ class Pmdreports extends Dashboard2
         if ($period === 'week') return [$now->copy()->startOfWeek(), $now, 'This week'];
         if ($period === 'month') return [$now->copy()->startOfMonth(), $now, 'This month'];
         if ($period === 'last30') return [$now->copy()->subDays(30)->startOfDay(), $now, 'Last 30 days'];
+
+        if ($period === 'custom') {
+            $custom = $this->customWindow();
+            if ($custom) return $custom;
+        }
 
         $start = $now->copy()->subYear()->startOfDay();
         try {
