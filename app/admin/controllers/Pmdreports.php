@@ -100,7 +100,31 @@ class Pmdreports extends Dashboard2
             'back_url' => admin_url('dashboard2'),
         ], $payload);
 
+        /*
+         * PMD_OWNER_REPORT_ASYNC_RESPONSE_V1
+         *
+         * Period changes can ask for the exact same tenant-scoped report as a
+         * compact JSON response. This does NOT introduce a second data source,
+         * extra query, polling loop or cache layer: payload() above remains the
+         * only report authority. The normal HTML route remains the fallback and
+         * is still used for first load, refresh, bookmarks and direct links.
+         */
+        if ($this->wantsAsyncReportResponse()) {
+            return response()->json([
+                'ok' => true,
+                'report' => $this->vars['pmdReport'],
+            ])->withHeaders([
+                'Cache-Control' => 'private, no-store, max-age=0',
+                'Vary' => 'X-PMD-Report-Async',
+            ]);
+        }
+
         return $this->makeView('pmdreports/index');
+    }
+
+    protected function wantsAsyncReportResponse(): bool
+    {
+        return trim((string)request()->header('X-PMD-Report-Async', '')) === '1';
     }
 
     protected function reportUrl(string $type): string
