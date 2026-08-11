@@ -33,6 +33,23 @@
     return link;
   }
 
+  /*
+   * PMD_DASHBOARD2_DETAIL_HEADER_HOST_V1
+   *
+   * Details must never be a direct child of the analytics <article>.
+   * Dashboard2 has chart/layout authorities for the first analytics cards
+   * which legitimately manipulate direct card children. A direct <a> was
+   * therefore interpreted as chart workspace and stretched to card size.
+   *
+   * The existing card <header> is the stable presentation host. The link
+   * remains absolutely positioned by the dedicated CSS, but it is no longer
+   * part of the card's direct-child chart/layout contract.
+   */
+  function detailHost(card) {
+    if (!card) return null;
+    return card.querySelector(':scope > header') || card.querySelector('header');
+  }
+
   function install() {
     var root = document.getElementById('pmd-dashboard2-analytics-v1');
     if (!root) return 0;
@@ -41,8 +58,22 @@
       var card = root.querySelector('[data-pmd-analytics-widget="' + widget + '"]');
       if (!card) return;
 
+      var host = detailHost(card);
+      if (!host) return;
+
+      host.dataset.pmdDetailLinkHost = 'header';
+
       var existing = card.querySelector('.pmd-dashboard2-detail-link[data-pmd-report-widget="' + widget + '"]');
-      if (!existing) card.appendChild(makeLink(widget));
+
+      if (existing) {
+        existing.href = map[widget];
+        if (existing.parentElement !== host) {
+          host.appendChild(existing);
+        }
+        return;
+      }
+
+      host.appendChild(makeLink(widget));
     });
 
     var count = root.querySelectorAll('.pmd-dashboard2-detail-link').length;
@@ -87,22 +118,31 @@
   }, 5000);
 
   window.PMDDashboard2DetailLinksV1 = {
-    version: '1.2.0-dedicated-report-routes',
+    version: '1.2.1-header-host',
     install: install,
     routes: map,
     audit: function () {
       var root = document.getElementById('pmd-dashboard2-analytics-v1');
-      var found = root ? root.querySelectorAll('.pmd-dashboard2-detail-link').length : 0;
+      var links = root ? Array.from(root.querySelectorAll('.pmd-dashboard2-detail-link')) : [];
+      var badDirectChildren = links.filter(function (link) {
+        return !!(link.parentElement && link.parentElement.matches('[data-pmd-analytics-widget]'));
+      }).length;
+      var headerHosted = links.filter(function (link) {
+        return !!(link.parentElement && link.parentElement.matches('header'));
+      }).length;
+
       return {
-        version: '1.2.0-dedicated-report-routes',
+        version: '1.2.1-header-host',
         path: path,
         root: !!root,
         expected: expected,
-        found: found,
-        ok: found === expected
+        found: links.length,
+        headerHosted: headerHosted,
+        badDirectChildren: badDirectChildren,
+        ok: links.length === expected && headerHosted === expected && badDirectChildren === 0
       };
     }
   };
 
-  console.info('[PMD Dashboard2 Detail Links V1.2] active', window.PMDDashboard2DetailLinksV1.audit());
+  console.info('[PMD Dashboard2 Detail Links V1.2.1] active', window.PMDDashboard2DetailLinksV1.audit());
 })();
