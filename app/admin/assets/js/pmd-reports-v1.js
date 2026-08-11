@@ -12,6 +12,7 @@
 
   var chartData = null;
   var tableData = null;
+  var customRangePanel = null;
 
   function parseJson(node) {
     if (!node) return null;
@@ -315,14 +316,199 @@
     renderChart(chartData.type || 'line');
   }
 
+  /*
+   * PMD_OWNER_REPORT_CUSTOM_RANGE_UI_V1
+   *
+   * Pure browser-native date inputs: no daterangepicker/moment dependency.
+   * The server remains authoritative for timezone parsing and the inclusive
+   * start/end window. This UI only builds the canonical query string.
+   */
+  function localDateValue(date) {
+    var year = date.getFullYear();
+    var month = String(date.getMonth() + 1).padStart(2, '0');
+    var day = String(date.getDate()).padStart(2, '0');
+    return year + '-' + month + '-' + day;
+  }
+
+  function isDateValue(value) {
+    return /^\d{4}-\d{2}-\d{2}$/.test(String(value || ''));
+  }
+
+  function closeCustomRange() {
+    if (!customRangePanel) return;
+    customRangePanel.hidden = true;
+    var toggle = root.querySelector('[data-pmd-custom-range-toggle]');
+    if (toggle) toggle.setAttribute('aria-expanded', 'false');
+  }
+
+  function openCustomRange() {
+    if (!customRangePanel) return;
+    customRangePanel.hidden = false;
+    var toggle = root.querySelector('[data-pmd-custom-range-toggle]');
+    if (toggle) toggle.setAttribute('aria-expanded', 'true');
+    var from = customRangePanel.querySelector('[data-pmd-custom-from]');
+    if (from) window.setTimeout(function () { from.focus(); }, 0);
+  }
+
+  function installCustomRange() {
+    var periodNav = root.querySelector('.pmd-report-periods');
+    if (!periodNav) return false;
+
+    var links = Array.from(periodNav.querySelectorAll('a'));
+    var customLink = links.find(function (link) {
+      try {
+        return new URL(link.href, window.location.href).searchParams.get('period') === 'custom';
+      } catch (error) {
+        return false;
+      }
+    });
+
+    if (!customLink) return false;
+
+    customLink.dataset.pmdCustomRangeToggle = '1';
+    customLink.setAttribute('aria-haspopup', 'dialog');
+    customLink.setAttribute('aria-expanded', 'false');
+    customLink.title = 'Choose a custom date range';
+
+    periodNav.style.position = 'relative';
+
+    if (!customRangePanel) {
+      var current = new URL(window.location.href);
+      var currentFrom = current.searchParams.get('date_from') || '';
+      var currentTo = current.searchParams.get('date_to') || '';
+      var today = new Date();
+      var defaultTo = localDateValue(today);
+      var defaultFromDate = new Date(today.getFullYear(), today.getMonth(), today.getDate() - 30);
+      var defaultFrom = localDateValue(defaultFromDate);
+
+      customRangePanel = document.createElement('div');
+      customRangePanel.className = 'pmd-report-custom-range-panel';
+      customRangePanel.dataset.pmdCustomRangePanel = '1';
+      customRangePanel.hidden = true;
+      customRangePanel.setAttribute('role', 'dialog');
+      customRangePanel.setAttribute('aria-label', 'Custom report date range');
+      customRangePanel.style.cssText = [
+        'position:absolute',
+        'top:calc(100% + 9px)',
+        'right:0',
+        'z-index:60',
+        'width:min(350px, calc(100vw - 32px))',
+        'padding:14px',
+        'box-sizing:border-box',
+        'border:1px solid #d6e5e1',
+        'border-radius:14px',
+        'background:#fff',
+        'box-shadow:0 18px 45px rgba(17,40,35,.16)',
+        'text-align:left'
+      ].join(';');
+
+      customRangePanel.innerHTML = '' +
+        '<div style="display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:12px">' +
+          '<div><strong style="display:block;color:#17332c;font-size:12px;font-weight:800">Custom date range</strong>' +
+          '<span style="display:block;margin-top:3px;color:#7b8985;font-size:10px;line-height:1.35">Choose inclusive start and end dates.</span></div>' +
+          '<button type="button" data-pmd-custom-close aria-label="Close" style="width:28px;height:28px;flex:0 0 28px;border:1px solid #e0e9e6;border-radius:8px;background:#fff;color:#61716c;font-size:18px;line-height:1;cursor:pointer">×</button>' +
+        '</div>' +
+        '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">' +
+          '<label style="display:grid;gap:5px;color:#6b7b76;font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.04em">From' +
+            '<input type="date" data-pmd-custom-from style="width:100%;min-width:0;height:38px;box-sizing:border-box;border:1px solid #d6e5e1;border-radius:9px;background:#fff;color:#263b35;padding:0 9px;font:inherit;font-size:11px;font-weight:650">' +
+          '</label>' +
+          '<label style="display:grid;gap:5px;color:#6b7b76;font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.04em">To' +
+            '<input type="date" data-pmd-custom-to style="width:100%;min-width:0;height:38px;box-sizing:border-box;border:1px solid #d6e5e1;border-radius:9px;background:#fff;color:#263b35;padding:0 9px;font:inherit;font-size:11px;font-weight:650">' +
+          '</label>' +
+        '</div>' +
+        '<div data-pmd-custom-error hidden style="margin-top:8px;color:#b42318;font-size:10.5px;font-weight:650"></div>' +
+        '<div style="display:flex;justify-content:flex-end;gap:7px;margin-top:12px">' +
+          '<button type="button" data-pmd-custom-cancel style="height:34px;padding:0 11px;border:1px solid #d6e5e1;border-radius:9px;background:#fff;color:#586964;font-size:10.5px;font-weight:750;cursor:pointer">Cancel</button>' +
+          '<button type="button" data-pmd-custom-apply style="height:34px;padding:0 13px;border:1px solid #07805f;border-radius:9px;background:#07805f;color:#fff;font-size:10.5px;font-weight:800;cursor:pointer">Apply range</button>' +
+        '</div>';
+
+      var fromInput = customRangePanel.querySelector('[data-pmd-custom-from]');
+      var toInput = customRangePanel.querySelector('[data-pmd-custom-to]');
+      var errorNode = customRangePanel.querySelector('[data-pmd-custom-error]');
+
+      fromInput.value = isDateValue(currentFrom) ? currentFrom : defaultFrom;
+      toInput.value = isDateValue(currentTo) ? currentTo : defaultTo;
+
+      function hideError() {
+        errorNode.hidden = true;
+        errorNode.textContent = '';
+      }
+
+      fromInput.addEventListener('input', hideError);
+      toInput.addEventListener('input', hideError);
+
+      customRangePanel.querySelector('[data-pmd-custom-close]').addEventListener('click', closeCustomRange);
+      customRangePanel.querySelector('[data-pmd-custom-cancel]').addEventListener('click', closeCustomRange);
+
+      customRangePanel.querySelector('[data-pmd-custom-apply]').addEventListener('click', function () {
+        var from = fromInput.value;
+        var to = toInput.value;
+
+        if (!isDateValue(from) || !isDateValue(to)) {
+          errorNode.textContent = 'Please choose both dates.';
+          errorNode.hidden = false;
+          return;
+        }
+
+        if (from > to) {
+          var swap = from;
+          from = to;
+          to = swap;
+          fromInput.value = from;
+          toInput.value = to;
+        }
+
+        var target = new URL(customLink.href, window.location.href);
+        target.searchParams.set('period', 'custom');
+        target.searchParams.set('date_from', from);
+        target.searchParams.set('date_to', to);
+        window.location.assign(target.toString());
+      });
+
+      periodNav.appendChild(customRangePanel);
+
+      document.addEventListener('click', function (event) {
+        if (!customRangePanel || customRangePanel.hidden) return;
+        if (customRangePanel.contains(event.target) || customLink.contains(event.target)) return;
+        closeCustomRange();
+      });
+
+      document.addEventListener('keydown', function (event) {
+        if (event.key === 'Escape') closeCustomRange();
+      });
+    }
+
+    if (!customLink.dataset.pmdCustomBound) {
+      customLink.dataset.pmdCustomBound = '1';
+      customLink.addEventListener('click', function (event) {
+        event.preventDefault();
+        if (customRangePanel && !customRangePanel.hidden) closeCustomRange();
+        else openCustomRange();
+      });
+    }
+
+    return true;
+  }
+
+  installCustomRange();
+
   function audit() {
     var nav = root.querySelectorAll('.pmd-report-switcher a');
     var activeNav = root.querySelectorAll('.pmd-report-switcher a.is-active');
     var table = root.querySelector('.pmd-report-table');
     var source = root.querySelector('.pmd-report-source');
+    var periodNav = root.querySelector('.pmd-report-periods');
+    var customToggle = root.querySelector('[data-pmd-custom-range-toggle]');
+    var params = new URL(window.location.href).searchParams;
+    var customActive = params.get('period') === 'custom';
+    var customParamsValid = !customActive || (
+      isDateValue(params.get('date_from')) &&
+      isDateValue(params.get('date_to'))
+    );
+    var customRequired = !!periodNav;
 
     return {
-      version: '1.2.0-settings-detail-family',
+      version: '1.3.0-custom-range',
       type: root.getAttribute('data-pmd-report-type') || '',
       reportNavCount: nav.length,
       activeReportLinks: activeNav.length,
@@ -333,17 +519,28 @@
       tablePresent: !!table,
       dataAuthorityPresent: !!source,
       exportPresent: !!exportButton,
-      ok: nav.length === 12 && activeNav.length === 1 && !!source && !!exportButton
+      customRangeRequired: customRequired,
+      customRangeAvailable: !!customToggle,
+      customRangeActive: customActive,
+      customRangeParamsValid: customParamsValid,
+      ok: nav.length === 12 &&
+        activeNav.length === 1 &&
+        !!source &&
+        !!exportButton &&
+        (!customRequired || !!customToggle) &&
+        customParamsValid
     };
   }
 
   window.PMDOwnerReportsV1 = {
-    version: '1.2.0-settings-detail-family',
+    version: '1.3.0-custom-range',
     type: root.getAttribute('data-pmd-report-type') || '',
     renderChart: renderChart,
     exportCsv: exportCsv,
+    openCustomRange: openCustomRange,
+    closeCustomRange: closeCustomRange,
     audit: audit
   };
 
-  console.info('[PMD Owner Reports V1.2] Ready', audit());
+  console.info('[PMD Owner Reports V1.3] Ready', audit());
 })();
