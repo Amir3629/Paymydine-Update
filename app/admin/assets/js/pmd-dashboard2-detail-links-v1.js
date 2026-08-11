@@ -19,8 +19,19 @@
     calendarEvents: '/admin/pmdreports/reservations'
   };
 
+  var exactToolbarSelectors = {
+    salesOverTime: '.pmd-dashboard2-chart-toggle',
+    categorySales: ':scope > .pmd-dashboard2-donut-period-v1395',
+    paymentMethods: ':scope > .pmd-dashboard2-donut-period-v1395',
+    channelSplit: '.pmd-bestellkanaele-clean-v2__periods',
+    topItems: ':scope > .pmd-dashboard2-donut-period-v1395[data-pmd-top-items-period-v1]'
+  };
+
+  var expectedToolbarWidgets = Object.keys(exactToolbarSelectors);
   var expected = Object.keys(map).length;
   var observer = null;
+  var startedAt = Date.now();
+  var settleMs = 6500;
 
   function makeLink(widget) {
     var link = document.createElement('a');
@@ -38,7 +49,7 @@
     return card.querySelector(':scope > header') || card.querySelector('header');
   }
 
-  function directInteractiveChildren(node) {
+  function interactiveChildren(node) {
     if (!node) return [];
     return Array.from(node.children || []).filter(function (child) {
       return child.matches &&
@@ -47,57 +58,70 @@
     });
   }
 
-  function normalizedText(node) {
-    return String(node && node.textContent || '')
-      .replace(/\s+/g, ' ')
-      .trim()
-      .toLowerCase();
+  function interactiveDescendants(node) {
+    if (!node) return [];
+    return Array.from(node.querySelectorAll('button, a, [role="button"]')).filter(function (child) {
+      return !child.classList.contains('pmd-dashboard2-detail-link');
+    });
   }
 
-  function toolbarHost(header) {
-    if (!header) return null;
+  function exactToolbar(card, header, widget) {
+    var selector = exactToolbarSelectors[widget];
+    if (!selector || !card) return null;
 
-    var knownLabels = {
-      line: true,
-      bar: true,
-      day: true,
-      today: true,
-      week: true,
-      month: true,
-      '30 days': true,
-      'last 30 days': true
-    };
+    var scope = selector.indexOf(':scope') === 0 ? card : (header || card);
+    try {
+      var found = scope.querySelector(selector);
+      if (found && interactiveDescendants(found).length >= 2) return found;
+    } catch (error) {}
 
-    var candidates = Array.from(
-      header.querySelectorAll('div, nav, span, section')
-    ).map(function (node) {
-      var controls = directInteractiveChildren(node);
-      if (controls.length < 2 || controls.length > 7) return null;
+    return null;
+  }
 
-      var known = controls.filter(function (control) {
-        return !!knownLabels[normalizedText(control)];
-      }).length;
+  function genericToolbar(card, header) {
+    if (!card || !header) return null;
 
-      /*
-       * Dashboard2's compact chart/period toolbars are the only header groups
-       * with two or more direct button-like children. Known labels make the
-       * detection deterministic while the direct-child rule avoids wrappers.
-       */
-      if (known < 2) return null;
+    var candidates = [];
+    [
+      header,
+      card
+    ].forEach(function (scope) {
+      Array.from(scope.querySelectorAll('[role="group"], [role="toolbar"], div, nav')).forEach(function (node) {
+        if (node.classList.contains('pmd-dashboard2-detail-link')) return;
+        var controls = interactiveChildren(node);
+        if (controls.length < 2 || controls.length > 6) return;
 
-      return {
-        node: node,
-        controls: controls,
-        known: known
-      };
-    }).filter(Boolean);
+        var signals = controls.filter(function (control) {
+          return control.matches(
+            '[data-pmd-chart-mode], ' +
+            '[data-pmd-donut-period], ' +
+            '[data-pmd-bestell-period], ' +
+            '[data-pmd-top-items-period]'
+          );
+        }).length;
+
+        if (signals < 2) return;
+
+        candidates.push({
+          node: node,
+          signals: signals,
+          controls: controls.length,
+          depth: node.closest('header') ? 0 : 1
+        });
+      });
+    });
 
     candidates.sort(function (a, b) {
-      if (b.known !== a.known) return b.known - a.known;
-      return a.controls.length - b.controls.length;
+      if (a.depth !== b.depth) return a.depth - b.depth;
+      if (b.signals !== a.signals) return b.signals - a.signals;
+      return a.controls - b.controls;
     });
 
     return candidates.length ? candidates[0].node : null;
+  }
+
+  function toolbarHost(card, header, widget) {
+    return exactToolbar(card, header, widget) || genericToolbar(card, header);
   }
 
   function clearIntegratedInlineStyle(link) {
@@ -107,7 +131,8 @@
       'width', 'min-width', 'max-width',
       'height', 'min-height', 'max-height',
       'margin', 'padding', 'border', 'border-radius',
-      'background', 'box-shadow', 'transform', 'align-self', 'justify-self'
+      'background', 'box-shadow', 'transform', 'align-self', 'justify-self',
+      'grid-column', 'grid-row'
     ].forEach(function (name) {
       link.style.removeProperty(name);
     });
@@ -117,8 +142,9 @@
     if (!link || !toolbar) return;
 
     link.dataset.pmdDetailLinkHost = 'toolbar';
+    toolbar.dataset.pmdDetailToolbar = '1';
 
-    var peer = directInteractiveChildren(toolbar)[0] || null;
+    var peer = interactiveChildren(toolbar)[0] || null;
     var peerStyle = peer ? window.getComputedStyle(peer) : null;
 
     function important(name, value) {
@@ -132,6 +158,8 @@
     important('left', 'auto');
     important('z-index', 'auto');
     important('flex', '0 0 auto');
+    important('grid-column', 'auto');
+    important('grid-row', 'auto');
     important('width', 'auto');
     important('min-width', '0');
     important('max-width', 'none');
@@ -139,7 +167,7 @@
     important('min-height', peerStyle && peerStyle.minHeight !== '0px' ? peerStyle.minHeight : '30px');
     important('max-height', peerStyle && peerStyle.height !== 'auto' ? peerStyle.height : '30px');
     important('margin', '0');
-    important('padding', peerStyle ? peerStyle.padding : '0 10px');
+    important('padding', peerStyle ? peerStyle.padding : '0 9px');
     important('border', '0');
     important('border-radius', peerStyle ? peerStyle.borderRadius : '7px');
     important('background', 'transparent');
@@ -151,24 +179,35 @@
     important('transform', 'none');
     important('align-self', 'stretch');
     important('justify-self', 'auto');
+
+    toolbar.style.setProperty('overflow', 'visible', 'important');
+    toolbar.style.setProperty('white-space', 'nowrap', 'important');
+
+    if (toolbar.classList.contains('pmd-dashboard2-chart-toggle')) {
+      toolbar.style.setProperty('grid-template-columns', 'repeat(3, max-content)', 'important');
+      toolbar.style.setProperty('grid-auto-flow', 'column', 'important');
+      toolbar.style.setProperty('grid-auto-columns', 'max-content', 'important');
+    }
   }
 
   function styleAsStandalone(link) {
     if (!link) return;
-    delete link.dataset.pmdDetailLinkHost;
+    link.dataset.pmdDetailLinkHost = 'header';
     clearIntegratedInlineStyle(link);
   }
 
   /*
-   * PMD_DASHBOARD2_DETAIL_TOOLBAR_MEMBER_V1
+   * PMD_DASHBOARD2_DETAIL_TOOLBAR_OWNER_V2
    *
-   * If a card already owns a compact Line/Bar or Day/Week/Month toolbar,
-   * Details becomes the final member of that same toolbar. This prevents the
-   * report link from sitting below/behind existing controls and preserves one
-   * visual control authority per card.
+   * Dashboard2 has five cards with real compact control groups:
+   * - Sales over time: server-rendered Line / Bar toolbar
+   * - Sales by category: late-mounted Day / Week / Month control
+   * - Payment methods: late-mounted Day / Week / Month control
+   * - Order channels: server-rendered period control
+   * - Top-selling items: late-mounted period control
    *
-   * Cards without an existing toolbar keep the small standalone Details link
-   * in the stable card header.
+   * Details must become the final member of those exact controls. The other
+   * seven cards keep one small standalone Details control in their header.
    */
   function installOne(root, widget) {
     var card = root.querySelector('[data-pmd-analytics-widget="' + widget + '"]');
@@ -177,11 +216,22 @@
     var header = detailHost(card);
     if (!header) return false;
 
-    var toolbar = toolbarHost(header);
-    var host = toolbar || header;
+    var toolbar = toolbarHost(card, header, widget);
+    var expectsToolbar = expectedToolbarWidgets.indexOf(widget) !== -1;
     var existing = card.querySelector('.pmd-dashboard2-detail-link[data-pmd-report-widget="' + widget + '"]');
-    var link = existing || makeLink(widget);
 
+    /*
+     * Do not create a temporary standalone link on cards whose real toolbar is
+     * known to hydrate a little later. This removes the visible overlap/jump.
+     */
+    if (expectsToolbar && !toolbar && (Date.now() - startedAt) < settleMs) {
+      if (existing) existing.hidden = true;
+      return false;
+    }
+
+    var host = toolbar || header;
+    var link = existing || makeLink(widget);
+    link.hidden = false;
     link.href = map[widget];
 
     if (link.parentElement !== host) {
@@ -207,11 +257,11 @@
       installOne(root, widget);
     });
 
-    return root.querySelectorAll('.pmd-dashboard2-detail-link').length;
+    return root.querySelectorAll('.pmd-dashboard2-detail-link:not([hidden])').length;
   }
 
   function schedule() {
-    [0, 50, 150, 350, 700, 1200, 2000, 3200, 4500].forEach(function (delay) {
+    [0, 50, 150, 350, 700, 1200, 2000, 3200, 4500, 6500].forEach(function (delay) {
       window.setTimeout(install, delay);
     });
   }
@@ -225,12 +275,6 @@
 
   window.addEventListener('load', schedule, {once: true});
 
-  /*
-   * Do not disconnect merely because all 12 links exist: Dashboard2 hydrates
-   * some compact toolbars after first paint. Keeping the observer for the
-   * bounded 6-second settling window lets existing links migrate into the
-   * real toolbar when that toolbar appears.
-   */
   observer = new MutationObserver(function () {
     install();
   });
@@ -246,15 +290,15 @@
       observer = null;
     }
     install();
-  }, 6000);
+  }, settleMs + 250);
 
   window.PMDDashboard2DetailLinksV1 = {
-    version: '1.3.0-toolbar-member',
+    version: '1.4.0-exact-toolbar-owner',
     install: install,
     routes: map,
     audit: function () {
       var root = document.getElementById('pmd-dashboard2-analytics-v1');
-      var links = root ? Array.from(root.querySelectorAll('.pmd-dashboard2-detail-link')) : [];
+      var links = root ? Array.from(root.querySelectorAll('.pmd-dashboard2-detail-link:not([hidden])')) : [];
       var badDirectChildren = links.filter(function (link) {
         return !!(link.parentElement && link.parentElement.matches('[data-pmd-analytics-widget]'));
       }).length;
@@ -262,14 +306,18 @@
       var toolbarCards = 0;
       var toolbarIntegrated = 0;
       var standaloneHeaderHosted = 0;
+      var missingExpectedToolbars = [];
 
       Object.keys(map).forEach(function (widget) {
         if (!root) return;
         var card = root.querySelector('[data-pmd-analytics-widget="' + widget + '"]');
         if (!card) return;
         var header = detailHost(card);
-        var toolbar = toolbarHost(header);
-        var link = card.querySelector('.pmd-dashboard2-detail-link[data-pmd-report-widget="' + widget + '"]');
+        var toolbar = toolbarHost(card, header, widget);
+        var link = card.querySelector('.pmd-dashboard2-detail-link[data-pmd-report-widget="' + widget + '"]:not([hidden])');
+        var expectsToolbar = expectedToolbarWidgets.indexOf(widget) !== -1;
+
+        if (expectsToolbar && !toolbar) missingExpectedToolbars.push(widget);
 
         if (toolbar) {
           toolbarCards++;
@@ -280,22 +328,26 @@
       });
 
       return {
-        version: '1.3.0-toolbar-member',
+        version: '1.4.0-exact-toolbar-owner',
         path: path,
         root: !!root,
         expected: expected,
         found: links.length,
+        expectedToolbarCards: expectedToolbarWidgets.length,
         toolbarCards: toolbarCards,
         toolbarIntegrated: toolbarIntegrated,
         standaloneHeaderHosted: standaloneHeaderHosted,
+        missingExpectedToolbars: missingExpectedToolbars,
         badDirectChildren: badDirectChildren,
         ok: links.length === expected &&
           badDirectChildren === 0 &&
-          toolbarIntegrated === toolbarCards &&
-          (toolbarIntegrated + standaloneHeaderHosted) === expected
+          missingExpectedToolbars.length === 0 &&
+          toolbarCards === expectedToolbarWidgets.length &&
+          toolbarIntegrated === expectedToolbarWidgets.length &&
+          standaloneHeaderHosted === expected - expectedToolbarWidgets.length
       };
     }
   };
 
-  console.info('[PMD Dashboard2 Detail Links V1.3] active', window.PMDDashboard2DetailLinksV1.audit());
+  console.info('[PMD Dashboard2 Detail Links V1.4] active', window.PMDDashboard2DetailLinksV1.audit());
 })();
