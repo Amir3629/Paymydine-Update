@@ -4,6 +4,255 @@
  * while header and sidebar remain fixed
  */
 
+/*
+ * PMD_DASHBOARD2_ZERO_BLINK_GUARD_V1
+ *
+ * Dashboard2 is assembled from the Reservations2 shell. The existing inline
+ * first-paint lock hides that shell before DOMContentLoaded, but the legacy
+ * V1.4.1.3 authority releases it immediately on DOMContentLoaded. At that
+ * point the clean Dashboard header/KPIs/Floor can still be hydrating, which
+ * briefly exposes Reservation/Floor source markup.
+ *
+ * This bounded guard keeps the existing shell in layout but invisible until
+ * the final Dashboard header, four KPI cards and the shared Floor are ready.
+ * There is no polling, network request or permanent observer.
+ */
+(function installDashboard2ZeroBlinkGuardV1() {
+    const path = String(window.location.pathname || '').replace(/\/+$/, '');
+    if (path !== '/admin/dashboard2') return;
+    if (window.PMDDashboard2ZeroBlinkGuardV1) return;
+
+    const html = document.documentElement;
+    const GUARD_CLASS = 'pmd-dashboard2-zero-blink-v1';
+    const READY_CLASS = 'pmd-dashboard2-zero-blink-ready-v1';
+    const STYLE_ID = 'pmd-dashboard2-zero-blink-style-v1';
+
+    let observer = null;
+    let released = false;
+    let stableFrames = 0;
+    let lastGeometry = null;
+    let safetyTimer = null;
+
+    html.classList.add(GUARD_CLASS);
+
+    if (!document.getElementById(STYLE_ID)) {
+        const style = document.createElement('style');
+        style.id = STYLE_ID;
+        style.textContent = `
+            html.${GUARD_CLASS}:not(.${READY_CLASS}) body #pmd-reservations2,
+            html.${GUARD_CLASS}:not(.${READY_CLASS}) body #pmd-dashboard2-analytics-v1 {
+                visibility: hidden !important;
+                opacity: 0 !important;
+                pointer-events: none !important;
+                transition: none !important;
+                animation: none !important;
+            }
+
+            html.${GUARD_CLASS}.${READY_CLASS} body #pmd-reservations2,
+            html.${GUARD_CLASS}.${READY_CLASS} body #pmd-dashboard2-analytics-v1 {
+                transition: none !important;
+                animation: none !important;
+            }
+        `;
+        (document.head || document.documentElement).appendChild(style);
+    }
+
+    function visible(node) {
+        if (!node) return false;
+        const style = window.getComputedStyle(node);
+        const rect = node.getBoundingClientRect();
+        return !node.hidden &&
+            style.display !== 'none' &&
+            style.visibility !== 'hidden' &&
+            Number(style.opacity || 1) !== 0 &&
+            rect.width > 0 &&
+            rect.height > 0;
+    }
+
+    function floorTableCount(floor) {
+        if (!floor) return 0;
+        return floor.querySelectorAll(
+            '[data-floor-canvas] [data-table], ' +
+            '[data-floor-canvas] .pmd-floor-v1__table, ' +
+            '[data-floor-canvas] [data-pmd-floor-table]'
+        ).length;
+    }
+
+    function snapshot() {
+        const page = document.getElementById('pmd-reservations2');
+        const analytics = document.getElementById('pmd-dashboard2-analytics-v1');
+        const header = document.getElementById('pmd-r2-clean-header');
+        const kpis = document.getElementById('pmd-r2-reservation-kpis-v307');
+        const floor = document.getElementById('pmd-r2-shared-floor-canvas-v310');
+        const loading = floor && floor.querySelector('[data-floor-loading]');
+        const empty = floor && floor.querySelector('[data-floor-empty]');
+
+        const kpiCount = kpis
+            ? kpis.querySelectorAll('[data-pmd-dashboard2-kpi]').length
+            : 0;
+
+        const tables = floorTableCount(floor);
+        const floorSettled = !!floor &&
+            floor.getAttribute('aria-busy') !== 'true' &&
+            (!loading || loading.hidden || window.getComputedStyle(loading).display === 'none') &&
+            (tables > 0 || (empty && !empty.hidden));
+
+        const legacyVisible = [
+            document.querySelector('#pmd-reservations2 .pmd-r2__hero'),
+            document.querySelector('#pmd-reservations2 .pmd-r2-waiter-boot'),
+            document.getElementById('pmd-r2-waiter-cards-v1'),
+            floor && floor.querySelector(':scope > .pmd-floor-v1__header'),
+            floor && floor.querySelector(':scope > .pmd-floor-v1__statusbar')
+        ].filter(Boolean).some(visible);
+
+        const pageRect = page ? page.getBoundingClientRect() : null;
+        const floorRect = floor ? floor.getBoundingClientRect() : null;
+
+        return {
+            page,
+            analytics,
+            header,
+            kpis,
+            floor,
+            kpiCount,
+            tables,
+            floorSettled,
+            legacyVisible,
+            geometry: pageRect && floorRect ? {
+                pageHeight: Math.round(pageRect.height),
+                floorHeight: Math.round(floorRect.height),
+                floorTop: Math.round(floorRect.top)
+            } : null
+        };
+    }
+
+    function structurallyReady(state) {
+        return !!(
+            state.page &&
+            state.analytics &&
+            state.header &&
+            state.kpis &&
+            state.kpiCount === 4 &&
+            state.floor &&
+            state.floorSettled &&
+            !state.legacyVisible &&
+            state.geometry
+        );
+    }
+
+    function sameGeometry(a, b) {
+        if (!a || !b) return false;
+        return Math.abs(a.pageHeight - b.pageHeight) <= 1 &&
+            Math.abs(a.floorHeight - b.floorHeight) <= 1 &&
+            Math.abs(a.floorTop - b.floorTop) <= 1;
+    }
+
+    function release(reason, state) {
+        if (released) return true;
+        released = true;
+
+        if (observer) {
+            observer.disconnect();
+            observer = null;
+        }
+        if (safetyTimer) {
+            window.clearTimeout(safetyTimer);
+            safetyTimer = null;
+        }
+
+        html.classList.add(READY_CLASS);
+
+        console.info('[PMD Dashboard2 Zero Blink Guard V1] released', {
+            reason,
+            kpiCount: state ? state.kpiCount : null,
+            tables: state ? state.tables : null,
+            floorSettled: state ? state.floorSettled : null,
+            legacyVisible: state ? state.legacyVisible : null,
+            stableFrames
+        });
+
+        return true;
+    }
+
+    function verifyStable() {
+        if (released) return;
+        const state = snapshot();
+
+        if (!structurallyReady(state)) {
+            stableFrames = 0;
+            lastGeometry = null;
+            return;
+        }
+
+        if (sameGeometry(lastGeometry, state.geometry)) {
+            stableFrames += 1;
+        } else {
+            stableFrames = 1;
+            lastGeometry = state.geometry;
+        }
+
+        if (stableFrames >= 3) {
+            release('stable-final-dashboard', state);
+            return;
+        }
+
+        window.requestAnimationFrame(verifyStable);
+    }
+
+    function check() {
+        if (released) return;
+        const state = snapshot();
+        if (!structurallyReady(state)) return;
+        window.requestAnimationFrame(verifyStable);
+    }
+
+    observer = new MutationObserver(check);
+    observer.observe(document.documentElement, {
+        subtree: true,
+        childList: true,
+        attributes: true,
+        attributeFilter: ['class', 'hidden', 'aria-busy', 'style']
+    });
+
+    document.addEventListener('DOMContentLoaded', check, {once: true});
+    window.addEventListener('load', check, {once: true});
+    check();
+
+    safetyTimer = window.setTimeout(function () {
+        const state = snapshot();
+        release('safety-timeout-6500', state);
+    }, 6500);
+
+    window.PMDDashboard2ZeroBlinkGuardV1 = {
+        version: '1.0.0-stable-final-shell',
+        check,
+        audit() {
+            const state = snapshot();
+            return {
+                version: '1.0.0-stable-final-shell',
+                released,
+                guardClass: html.classList.contains(GUARD_CLASS),
+                readyClass: html.classList.contains(READY_CLASS),
+                header: !!state.header,
+                kpiCount: state.kpiCount,
+                floor: !!state.floor,
+                floorSettled: state.floorSettled,
+                tables: state.tables,
+                legacyVisible: state.legacyVisible,
+                stableFrames,
+                geometry: state.geometry,
+                ok: released &&
+                    html.classList.contains(READY_CLASS) &&
+                    !!state.header &&
+                    state.kpiCount === 4 &&
+                    !!state.floor &&
+                    state.floorSettled &&
+                    !state.legacyVisible
+            };
+        }
+    };
+})();
+
 class SmoothPageTransitions {
     constructor() {
         this.isTransitioning = false;
@@ -271,14 +520,14 @@ document.addEventListener('DOMContentLoaded', () => {
         const link = document.createElement('link');
         link.id = cssId;
         link.rel = 'stylesheet';
-        link.href = '/app/admin/assets/css/pmd-dashboard2-detail-links-v1.css?v=20260811-dashboard-report-links-v1-5';
+        link.href = '/app/admin/assets/css/pmd-dashboard2-detail-links-v1.css?v=20260811-dashboard-report-links-v1-6';
         (document.head || document.documentElement).appendChild(link);
     }
 
     if (!document.getElementById(jsId)) {
         const script = document.createElement('script');
         script.id = jsId;
-        script.src = '/app/admin/assets/js/pmd-dashboard2-detail-links-v1.js?v=20260811-dashboard-report-links-v1-5';
+        script.src = '/app/admin/assets/js/pmd-dashboard2-detail-links-v1.js?v=20260811-dashboard-report-links-v1-6';
         script.defer = true;
         script.onload = function () {
             console.info('[PMD Dashboard2 Report Link Bootstrap V1] loaded');
