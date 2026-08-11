@@ -82,10 +82,7 @@
     if (!card || !header) return null;
 
     var candidates = [];
-    [
-      header,
-      card
-    ].forEach(function (scope) {
+    [header, card].forEach(function (scope) {
       Array.from(scope.querySelectorAll('[role="group"], [role="toolbar"], div, nav')).forEach(function (node) {
         if (node.classList.contains('pmd-dashboard2-detail-link')) return;
         var controls = interactiveChildren(node);
@@ -138,6 +135,26 @@
     });
   }
 
+  function normalizeToolbarBox(toolbar) {
+    if (!toolbar) return;
+
+    /*
+     * PMD_DASHBOARD2_DETAIL_TOOLBAR_INTRINSIC_WIDTH_V1
+     *
+     * Several native period controls were sized for exactly three buttons.
+     * Once Details becomes the fourth member, that old fixed/inherited width
+     * can leave the Details arrow outside the rounded control frame. Make the
+     * toolbar itself own the intrinsic width of all of its members.
+     */
+    toolbar.style.setProperty('box-sizing', 'border-box', 'important');
+    toolbar.style.setProperty('width', 'max-content', 'important');
+    toolbar.style.setProperty('min-width', 'max-content', 'important');
+    toolbar.style.setProperty('max-width', 'none', 'important');
+    toolbar.style.setProperty('overflow', 'visible', 'important');
+    toolbar.style.setProperty('white-space', 'nowrap', 'important');
+    toolbar.style.setProperty('flex-wrap', 'nowrap', 'important');
+  }
+
   function styleAsToolbarMember(link, toolbar) {
     if (!link || !toolbar) return;
 
@@ -180,8 +197,7 @@
     important('align-self', 'stretch');
     important('justify-self', 'auto');
 
-    toolbar.style.setProperty('overflow', 'visible', 'important');
-    toolbar.style.setProperty('white-space', 'nowrap', 'important');
+    normalizeToolbarBox(toolbar);
 
     if (toolbar.classList.contains('pmd-dashboard2-chart-toggle')) {
       toolbar.style.setProperty('grid-template-columns', 'repeat(3, max-content)', 'important');
@@ -220,10 +236,6 @@
     var expectsToolbar = expectedToolbarWidgets.indexOf(widget) !== -1;
     var existing = card.querySelector('.pmd-dashboard2-detail-link[data-pmd-report-widget="' + widget + '"]');
 
-    /*
-     * Do not create a temporary standalone link on cards whose real toolbar is
-     * known to hydrate a little later. This removes the visible overlap/jump.
-     */
     if (expectsToolbar && !toolbar && (Date.now() - startedAt) < settleMs) {
       if (existing) existing.hidden = true;
       return false;
@@ -293,7 +305,7 @@
   }, settleMs + 250);
 
   window.PMDDashboard2DetailLinksV1 = {
-    version: '1.4.0-exact-toolbar-owner',
+    version: '1.4.1-intrinsic-toolbar-width',
     install: install,
     routes: map,
     audit: function () {
@@ -307,6 +319,7 @@
       var toolbarIntegrated = 0;
       var standaloneHeaderHosted = 0;
       var missingExpectedToolbars = [];
+      var clippedToolbars = [];
 
       Object.keys(map).forEach(function (widget) {
         if (!root) return;
@@ -322,13 +335,22 @@
         if (toolbar) {
           toolbarCards++;
           if (link && link.parentElement === toolbar) toolbarIntegrated++;
+
+          if (link) {
+            var toolbarRect = toolbar.getBoundingClientRect();
+            var linkRect = link.getBoundingClientRect();
+            var fits = toolbar.scrollWidth <= toolbar.clientWidth + 1 &&
+              linkRect.right <= toolbarRect.right + 1 &&
+              linkRect.left >= toolbarRect.left - 1;
+            if (!fits) clippedToolbars.push(widget);
+          }
         } else if (link && link.parentElement === header) {
           standaloneHeaderHosted++;
         }
       });
 
       return {
-        version: '1.4.0-exact-toolbar-owner',
+        version: '1.4.1-intrinsic-toolbar-width',
         path: path,
         root: !!root,
         expected: expected,
@@ -338,10 +360,12 @@
         toolbarIntegrated: toolbarIntegrated,
         standaloneHeaderHosted: standaloneHeaderHosted,
         missingExpectedToolbars: missingExpectedToolbars,
+        clippedToolbars: clippedToolbars,
         badDirectChildren: badDirectChildren,
         ok: links.length === expected &&
           badDirectChildren === 0 &&
           missingExpectedToolbars.length === 0 &&
+          clippedToolbars.length === 0 &&
           toolbarCards === expectedToolbarWidgets.length &&
           toolbarIntegrated === expectedToolbarWidgets.length &&
           standaloneHeaderHosted === expected - expectedToolbarWidgets.length
@@ -349,5 +373,5 @@
     }
   };
 
-  console.info('[PMD Dashboard2 Detail Links V1.4] active', window.PMDDashboard2DetailLinksV1.audit());
+  console.info('[PMD Dashboard2 Detail Links V1.4.1] active', window.PMDDashboard2DetailLinksV1.audit());
 })();
