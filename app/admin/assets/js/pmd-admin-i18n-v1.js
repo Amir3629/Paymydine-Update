@@ -61,6 +61,27 @@
         match = result.match(/^(\d+)\s+Tables?$/i);
         if (match) return match[1] + ' Tische';
 
+        /* PMD_DASHBOARD_LAB_DYNAMIC_I18N_V6
+         * Reuse the central catalogue for count-prefixed text such as
+         * "0 samples", "3 live orders" and "0 reviews today".
+         */
+        match = result.match(/^(\d+)\s+(.+)$/);
+        if (match) {
+            var countedTarget = normalized[normalize(match[2])];
+            if (countedTarget) return match[1] + ' ' + countedTarget;
+        }
+
+        match = result.match(/^long open tables\s+\(>\s*(\d+)\s*min\)$/i);
+        if (match) {
+            return lookup('long open tables') + ' (> ' + match[1] + ' Min.)';
+        }
+
+        if (result.indexOf(' · ') !== -1) {
+            return result.split(' · ').map(function (part) {
+                return lookup(normalize(part));
+            }).join(' · ');
+        }
+
         match = result.match(/^Page\s+(\d+)\s+of\s+(\d+)$/i);
         if (match) return 'Seite ' + match[1] + ' von ' + match[2];
 

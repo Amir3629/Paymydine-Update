@@ -7,20 +7,30 @@ use Admin\Facades\AdminAuth;
 use Admin\Facades\AdminLocation;
 use Admin\Facades\AdminMenu;
 use Admin\Facades\Template;
+use Admin\Models\LocationOption;
 use Admin\Models\Locations_model;
-use Admin\Models\Tables_model;
-use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Schema;
+use Illuminate\Support\Facades\Log;
+use Throwable;
 
 /**
- * PMD Ownerboard
+ * PMD Ownerboard V2
  *
- * Clean owner dashboard surface.
- * HTML requests do NOT inherit Dashboard2 or Reservations2.
- * Dashboard2 remains JSON data authority only for KPI + analytics.
+ * Clean owner dashboard HTML shell.
+ *
+ * Important architecture:
+ * - does NOT inherit Dashboard2
+ * - does NOT inherit Reservations2
+ * - does NOT render Dashboard2/Reservations2 views
+ * - Dashboard2 is reused only as proven JSON data authority
+ * - the shared PMD Floor engine is reused as the canonical Floor authority
  */
 class Ownerboard extends AdminController
 {
+    private const FLOOR_VIEW_OPTION =
+        'pmd_reservations2_floor_view_main_floor';
+
+    private const FLOOR_VIEW_ID = 'main-floor';
+
     protected $requiredPermissions = 'Admin.Dashboard';
 
     public function __construct()
@@ -29,40 +39,51 @@ class Ownerboard extends AdminController
 
         $this->bodyClass = trim(
             ($this->bodyClass ?? '')
-            .' pmd-settings-suite pmd-ownerboard-page'
+            .' pmd-settings-suite'
+            .' pmd-ownerboard-page'
+            .' pmd-ownerboard-v2-page'
         );
 
-        $this->addCss('css/pmd-settings-suite-first-paint-v1.css');
-        $this->addCss('css/pmd-ownerboard-v1.css');
-        $this->addJs('js/pmd-ownerboard-v1.js');
+        /*
+         * First-paint shell authority already proven by Settings.
+         */
+        $this->addCss(
+            'css/pmd-settings-suite-first-paint-v1.css'
+        );
+
+        /*
+         * Canonical shared Floor component.
+         * We intentionally reuse the proven Floor engine/data/layout
+         * instead of rebuilding a second table model in Ownerboard.
+         */
+        $this->addCss('css/pmd-floor-v1.css');
+        $this->addCss('css/pmd-floor-v1-stable-v11.css');
+        $this->addCss('css/pmd-floor-v1-native-smart-v20.css');
+        $this->addCss(
+            'css/pmd-reservations2-floor-canvas-v310.css'
+        );
+
+        /*
+         * One clean Ownerboard presentation/runtime.
+         */
+        $this->addCss('css/pmd-ownerboard-v2.css');
+        $this->addJs('js/pmd-floor-v1.js');
+        $this->addJs('js/pmd-ownerboard-v2.js');
 
         AdminMenu::setContext('dashboard');
     }
 
     public function index()
     {
-        if ((string)request()->query('pmd_floor') === '1') {
-            return response()->json(
-                $this->ownerboardFloorPayload()
-            );
-        }
-
-        if (
-            request()->isMethod('post')
-            && (string)request()->query('pmd_floor_save') === '1'
-        ) {
-            return response()->json(
-                $this->saveOwnerboardFloor()
-            );
-        }
-
         Template::setTitle('Dashboard');
         Template::setHeading('Dashboard');
 
         $locale = strtolower(
-            (string)request()->cookie(
-                'pmd_admin_locale',
-                app()->getLocale()
+            trim(
+                (string)request()->cookie(
+                    'pmd_admin_locale',
+                    app()->getLocale()
+                )
             )
         );
 
@@ -72,262 +93,343 @@ class Ownerboard extends AdminController
                 : 'en';
 
         $this->vars['pmdOwnerboardEndpoints'] = [
-            'kpis' => '/admin/dashboard2?pmd_kpis=1',
-            'analytics' => '/admin/dashboard2?pmd_analytics=1',
-            'floor' => '/admin/ownerboard?pmd_floor=1',
-            'floorSave' => '/admin/ownerboard?pmd_floor_save=1',
+            /*
+             * Proven aggregate/data authorities.
+             * They return JSON before Dashboard2 renders any HTML.
+             */
+            'kpis' =>
+                admin_url('dashboard2').'?pmd_kpis=1',
+
+            'analytics' =>
+                admin_url('dashboard2').'?pmd_analytics=1',
         ];
+
+        /*
+         * Use the exact same persisted Floor view preference as
+         * Dashboard2 / Reservations2 so the user's One Row / Full
+         * Floor choice and Full Floor zoom carry over unchanged.
+         */
+        $this->vars['pmdOwnerboardFloorView'] =
+            $this->readFloorViewPreference();
 
         return $this->makeView('ownerboard/index');
     }
 
-    protected function currentLocationId(): ?int
-    {
-        try {
-            if ($location = AdminLocation::current()) {
-                return (int)$location->location_id;
-            }
-        } catch (\Throwable $error) {
-        }
-
-        try {
-            $locationId = (int)AdminLocation::getSession('id');
-
-            if ($locationId > 0) {
-                return $locationId;
-            }
-        } catch (\Throwable $error) {
-        }
-
-        try {
-            if (
-                function_exists('is_single_location')
-                && is_single_location()
-            ) {
-                $locationId = (int)params(
-                    'default_location_id'
-                );
-
-                if ($locationId > 0) {
-                    $location = Locations_model::isEnabled()
-                        ->find($locationId);
-
-                    if ($location) {
-                        AdminLocation::setCurrent($location);
-                        return (int)$location->location_id;
-                    }
-                }
-            }
-        } catch (\Throwable $error) {
-        }
-
-        try {
-            $user = AdminAuth::getUser();
-
-            if (!$user) {
-                return null;
-            }
-
-            $staff = $user->staff;
-            $locations = $staff
-                ? $staff->locations
-                    ->where('location_status', true)
-                    ->values()
-                : collect();
-
-            if ($locations->count() !== 1) {
-                return null;
-            }
-
-            $locationId = (int)$locations->first()->location_id;
-
-            if ($locationId < 1) {
-                return null;
-            }
-
-            $location = Locations_model::isEnabled()
-                ->find($locationId);
-
-            if (
-                !$location
-                || (
-                    !$user->isSuperUser()
-                    && !$user->hasLocationAccess($location)
-                )
-            ) {
-                return null;
-            }
-
-            AdminLocation::setCurrent($location);
-
-            return (int)$location->location_id;
-        } catch (\Throwable $error) {
-            return null;
-        }
-    }
-
-    protected function scopedTablesQuery(int $locationId)
-    {
-        $query = Tables_model::query()->isEnabled();
-
-        try {
-            $query->whereHasLocation($locationId);
-        } catch (\Throwable $error) {
-            try {
-                $query->whereHasOrDoesntHaveLocation($locationId);
-            } catch (\Throwable $ignored) {
-            }
-        }
-
-        return $query;
-    }
-
-    protected function ownerboardFloorPayload(): array
-    {
-        $locationId = $this->currentLocationId();
-
-        if (!$locationId) {
-            return [
-                'ok' => false,
-                'tables' => [],
-                'reason' => 'Active location unavailable',
-            ];
-        }
-
-        $query = $this->scopedTablesQuery($locationId);
-
-        if (Schema::hasColumn('tables', 'visible_on_floor_plan')) {
-            $query->where('visible_on_floor_plan', 1);
-        }
-
-        if (Schema::hasColumn('tables', 'priority')) {
-            $query->orderBy('priority');
-        }
-
-        $tables = $query->orderBy('table_id')->get();
-        $tableIds = $tables->pluck('table_id')->map(fn ($id) => (int)$id)->all();
-        $latestStatus = [];
-
-        if (
-            $tableIds
-            && Schema::hasTable('pmd_table_status_history')
-            && Schema::hasColumn('pmd_table_status_history', 'table_id')
-            && Schema::hasColumn('pmd_table_status_history', 'new_status')
-            && Schema::hasColumn('pmd_table_status_history', 'created_at')
-        ) {
-            $rows = DB::table('pmd_table_status_history as h')
-                ->joinSub(
-                    DB::table('pmd_table_status_history')
-                        ->selectRaw('table_id, MAX(created_at) AS max_created_at')
-                        ->whereIn('table_id', $tableIds)
-                        ->groupBy('table_id'),
-                    'latest',
-                    function ($join) {
-                        $join->on('latest.table_id', '=', 'h.table_id')
-                            ->on('latest.max_created_at', '=', 'h.created_at');
-                    }
-                )
-                ->whereIn('h.table_id', $tableIds)
-                ->get(['h.table_id', 'h.new_status']);
-
-            foreach ($rows as $row) {
-                $latestStatus[(int)$row->table_id] =
-                    strtolower(trim((string)$row->new_status));
-            }
-        }
-
-        $payload = [];
-
-        foreach ($tables as $table) {
-            $id = (int)$table->table_id;
-            $status = $latestStatus[$id]
-                ?? strtolower(trim((string)($table->operational_status ?? 'available')));
-
-            $busy = in_array($status, [
-                'occupied',
-                'busy',
-                'reserved',
-                'seated',
-                'cleaning',
-            ], true);
-
-            $name = trim((string)($table->table_name ?? ''));
-            $number = trim((string)($table->table_no ?? ''));
-
-            $payload[] = [
-                'id' => $id,
-                'name' => $name !== '' ? $name : 'Table '.$id,
-                'number' => $number !== '' ? $number : (string)$id,
-                'status' => $status !== '' ? $status : 'available',
-                'busy' => $busy,
-                'x' => (float)($table->floor_x ?? 0),
-                'y' => (float)($table->floor_y ?? 0),
-                'width' => (float)($table->floor_width ?? 140),
-                'height' => (float)($table->floor_height ?? 90),
-                'shape' => (string)($table->floor_shape ?? 'rectangle'),
-            ];
-        }
-
-        return [
-            'ok' => true,
-            'version' => 'ownerboard-floor-v1.1',
-            'tables' => $payload,
-        ];
-    }
-
-    protected function saveOwnerboardFloor(): array
+    /**
+     * AJAX handler used directly by pmd-floor-v1.js.
+     */
+    public function onSaveFloorViewPreference()
     {
         $user = AdminAuth::getUser();
 
         if (!$user) {
-            abort(401, 'Unauthenticated.');
+            return response()->json([
+                'ok' => false,
+                'message' => 'Unauthenticated.',
+            ], 401);
         }
 
         if (
-            !$user->hasPermission('Admin.Reservations')
-            && !$user->hasPermission('Admin.Dashboard')
+            !$user->hasPermission('Admin.Dashboard')
+            && !$user->hasPermission('Admin.Reservations')
         ) {
-            abort(403, 'Unauthorized.');
+            return response()->json([
+                'ok' => false,
+                'message' => 'Unauthorized.',
+            ], 403);
         }
 
-        $locationId = $this->currentLocationId();
-        $positions = (array)request()->input('positions', []);
+        try {
+            $location =
+                $this->resolveFloorViewLocation($user);
+        } catch (Throwable $exception) {
+            $this->logFloorViewFailure(
+                'location resolution',
+                $exception
+            );
 
-        if (!$locationId || !$positions) {
-            return ['ok' => false, 'saved' => 0];
+            return response()->json([
+                'ok' => false,
+                'message' =>
+                    'Active location could not be resolved.',
+            ], 500);
         }
 
-        $allowedIds = $this->scopedTablesQuery($locationId)
-            ->pluck('table_id')
-            ->map(fn ($id) => (int)$id)
-            ->all();
+        if (!$location) {
+            return response()->json([
+                'ok' => false,
+                'message' =>
+                    'No active location is selected.',
+            ], 409);
+        }
 
-        $allowed = array_fill_keys($allowedIds, true);
-        $saved = 0;
+        $floorId = trim(
+            (string)request()->input('floor_id')
+        );
 
-        DB::transaction(function () use ($positions, $allowed, &$saved) {
-            foreach ($positions as $position) {
-                $id = (int)($position['id'] ?? 0);
+        $mode = trim(
+            (string)request()->input('layout_mode')
+        );
 
-                if ($id < 1 || !isset($allowed[$id])) {
-                    continue;
-                }
+        $zoom =
+            request()->input('full_floor_zoom');
 
-                $x = max(0, min(10000, (float)($position['x'] ?? 0)));
-                $y = max(0, min(10000, (float)($position['y'] ?? 0)));
+        if ($floorId !== self::FLOOR_VIEW_ID) {
+            return response()->json([
+                'ok' => false,
+                'message' => 'Invalid Floor.',
+            ], 422);
+        }
 
-                DB::table('tables')
-                    ->where('table_id', $id)
-                    ->update([
-                        'floor_x' => $x,
-                        'floor_y' => $y,
-                    ]);
+        if (!in_array($mode, ['full', 'row'], true)) {
+            return response()->json([
+                'ok' => false,
+                'message' =>
+                    'Invalid Floor layout mode.',
+            ], 422);
+        }
 
-                $saved++;
+        if (
+            !is_numeric($zoom)
+            || (float)$zoom < 0.4
+            || (float)$zoom > 1.6
+        ) {
+            return response()->json([
+                'ok' => false,
+                'message' => 'Invalid Floor zoom.',
+            ], 422);
+        }
+
+        $value = [
+            'floor_id' => self::FLOOR_VIEW_ID,
+            'layout_mode' => $mode,
+            'full_floor_zoom' =>
+                round((float)$zoom, 2),
+        ];
+
+        try {
+            LocationOption::query()->updateOrCreate([
+                'location_id' =>
+                    (int)$location->location_id,
+
+                'item' =>
+                    self::FLOOR_VIEW_OPTION,
+            ], [
+                'value' => $value,
+            ]);
+        } catch (Throwable $exception) {
+            $this->logFloorViewFailure(
+                'write',
+                $exception,
+                $location
+            );
+
+            return response()->json([
+                'ok' => false,
+                'message' =>
+                    'Floor view preference could not be saved.',
+            ], 500);
+        }
+
+        return response()->json([
+            'ok' => true,
+            'view' => $value,
+        ]);
+    }
+
+    protected function readFloorViewPreference(): array
+    {
+        $default =
+            $this->defaultFloorViewPreference();
+
+        $location = null;
+
+        try {
+            $location =
+                $this->resolveFloorViewLocation();
+
+            if (!$location) {
+                return $default;
             }
-        });
 
-        return ['ok' => true, 'saved' => $saved];
+            $record =
+                LocationOption::findRecord(
+                    self::FLOOR_VIEW_OPTION,
+                    $location
+                );
+
+            if (
+                !$record
+                || !is_array($record->value)
+            ) {
+                return $default;
+            }
+
+            $value = $record->value;
+
+            $floorId =
+                (string)($value['floor_id'] ?? '');
+
+            $mode =
+                (string)($value['layout_mode'] ?? '');
+
+            $zoom =
+                $value['full_floor_zoom'] ?? null;
+
+            if (
+                $floorId !== self::FLOOR_VIEW_ID
+                || !in_array(
+                    $mode,
+                    ['full', 'row'],
+                    true
+                )
+                || !is_numeric($zoom)
+                || (float)$zoom < 0.4
+                || (float)$zoom > 1.6
+            ) {
+                return $default;
+            }
+
+            return [
+                'floor_id' =>
+                    self::FLOOR_VIEW_ID,
+
+                'layout_mode' => $mode,
+
+                'full_floor_zoom' =>
+                    round((float)$zoom, 2),
+            ];
+        } catch (Throwable $exception) {
+            $this->logFloorViewFailure(
+                'read',
+                $exception,
+                $location
+            );
+
+            return $default;
+        }
+    }
+
+    protected function defaultFloorViewPreference(): array
+    {
+        return [
+            'floor_id' =>
+                self::FLOOR_VIEW_ID,
+
+            /*
+             * Match the current Owner Dashboard experience:
+             * if no preference exists yet, start on Full Floor.
+             */
+            'layout_mode' => 'full',
+
+            'full_floor_zoom' => 1.0,
+        ];
+    }
+
+    protected function resolveFloorViewLocation(
+        $user = null
+    ) {
+        if ($location = AdminLocation::current()) {
+            return $location;
+        }
+
+        $user = $user ?: AdminAuth::getUser();
+
+        if (!$user) {
+            return null;
+        }
+
+        $locationId =
+            (int)AdminLocation::getSession('id');
+
+        if (
+            !$locationId
+            && function_exists('is_single_location')
+            && is_single_location()
+        ) {
+            $locationId =
+                (int)params('default_location_id');
+        }
+
+        if (!$locationId) {
+            $staff = $user->staff;
+
+            $accessibleLocations =
+                $staff
+                    ? $staff
+                        ->locations
+                        ->where(
+                            'location_status',
+                            true
+                        )
+                        ->values()
+                    : collect();
+
+            if (
+                $accessibleLocations->count() === 1
+            ) {
+                $locationId =
+                    (int)$accessibleLocations
+                        ->first()
+                        ->location_id;
+            }
+        }
+
+        if (!$locationId) {
+            return null;
+        }
+
+        $location =
+            Locations_model::isEnabled()
+                ->find($locationId);
+
+        if (
+            !$location
+            || (
+                !$user->isSuperUser()
+                && !$user->hasLocationAccess(
+                    $location
+                )
+            )
+        ) {
+            return null;
+        }
+
+        AdminLocation::setCurrent($location);
+
+        return $location;
+    }
+
+    protected function logFloorViewFailure(
+        string $operation,
+        Throwable $exception,
+        $location = null
+    ): void {
+        Log::warning(
+            'Ownerboard Floor view preference '
+            .$operation
+            .' failed.',
+            [
+                'tenant_id' =>
+                    request()
+                        ->attributes
+                        ->get('tenant_id'),
+
+                'location_id' =>
+                    $location
+                        ? (int)$location->location_id
+                        : null,
+
+                'floor_id' =>
+                    self::FLOOR_VIEW_ID,
+
+                'exception_class' =>
+                    get_class($exception),
+
+                'exception_message' =>
+                    $exception->getMessage(),
+            ]
+        );
     }
 }
 

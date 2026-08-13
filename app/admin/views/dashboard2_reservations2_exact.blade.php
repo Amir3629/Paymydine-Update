@@ -7,6 +7,485 @@
 document.documentElement.classList.add('pmd-dashboard2-r2-exact');
 </script>
 
+<!-- PMD_DASHBOARD2_FIRST_100MS_AUDIT_V1 -->
+<script id="pmd-dashboard2-first-100ms-audit-v1">
+(function () {
+  'use strict';
+
+  if (
+    String(location.pathname || '')
+      .replace(/\/+$/, '') !==
+    '/admin/dashboard2'
+  ) {
+    return;
+  }
+
+  var startedAt = performance.now();
+  var records = [];
+  var mutations = [];
+  var observer = null;
+  var stopped = false;
+
+  function now() {
+    return Math.round(
+      (performance.now() - startedAt) * 10
+    ) / 10;
+  }
+
+  function selectorFor(el) {
+    if (!el || el.nodeType !== 1) {
+      return null;
+    }
+
+    if (el.id) {
+      return '#' + el.id;
+    }
+
+    var widget =
+      el.getAttribute &&
+      el.getAttribute(
+        'data-pmd-analytics-widget'
+      );
+
+    if (widget) {
+      return (
+        '[data-pmd-analytics-widget="' +
+        widget +
+        '"]'
+      );
+    }
+
+    var cls =
+      String(el.className || '')
+        .trim()
+        .split(/\s+/)
+        .filter(Boolean)
+        .slice(0, 3);
+
+    var out =
+      String(el.tagName || '')
+        .toLowerCase();
+
+    if (cls.length) {
+      out += '.' + cls.join('.');
+    }
+
+    return out || null;
+  }
+
+  function textFor(el) {
+    return String(
+      el.innerText ||
+      el.textContent ||
+      ''
+    )
+      .replace(/\s+/g, ' ')
+      .trim()
+      .slice(0, 120);
+  }
+
+  function inspect(el) {
+    if (
+      !el ||
+      el.nodeType !== 1 ||
+      !el.isConnected
+    ) {
+      return null;
+    }
+
+    var style = getComputedStyle(el);
+    var rect = el.getBoundingClientRect();
+
+    var painted =
+      style.display !== 'none' &&
+      style.visibility !== 'hidden' &&
+      Number(style.opacity || 1) > 0 &&
+      rect.width > 2 &&
+      rect.height > 2;
+
+    return {
+      selector: selectorFor(el),
+      tag: el.tagName,
+      text: textFor(el),
+
+      painted: painted,
+
+      display: style.display,
+      visibility: style.visibility,
+      opacity: style.opacity,
+
+      position: style.position,
+      zIndex: style.zIndex,
+
+      x: Math.round(rect.x),
+      y: Math.round(rect.y),
+      width: Math.round(rect.width),
+      height: Math.round(rect.height)
+    };
+  }
+
+  function interestingElements() {
+    var selectors = [
+      'body > *',
+
+      '#pmd-reservations2',
+      '#pmd-dashboard2-analytics-v1',
+
+      '#pmd-r2-clean-header',
+
+      '#pmd-waiter-dashboard-root',
+      '#pmd-r2-waiter-cards-v1',
+
+      '#pmd-r2-reservation-kpis-v307',
+
+      '#pmd-r2-shared-floor-canvas-v310',
+      '#pmd-dashboard2-floor-toolbar-row-v240',
+
+      '.pmd-r2__hero',
+
+      '[data-pmd-analytics-widget]',
+      '[data-pmd-widget-body]',
+
+      '.pmd-dashboard2-donut',
+      '.pmd-dashboard2-chart-frame',
+
+      '[class*="header"]',
+      '[class*="hero"]'
+    ];
+
+    var found = new Set();
+
+    selectors.forEach(function (selector) {
+      try {
+        document
+          .querySelectorAll(selector)
+          .forEach(function (el) {
+            found.add(el);
+          });
+      } catch (error) {}
+    });
+
+    return Array.from(found);
+  }
+
+  function snapshot(reason) {
+    var items =
+      interestingElements()
+        .map(inspect)
+        .filter(Boolean);
+
+    records.push({
+      at: now(),
+      reason: reason,
+      htmlClasses:
+        document.documentElement.className,
+      bodyClasses:
+        document.body
+          ? document.body.className
+          : null,
+      items: items
+    });
+  }
+
+  function mutationElement(node) {
+    if (!node || node.nodeType !== 1) {
+      return null;
+    }
+
+    return inspect(node) || {
+      selector: selectorFor(node),
+      text: textFor(node),
+      connected: node.isConnected
+    };
+  }
+
+  observer = new MutationObserver(
+    function (entries) {
+      entries.forEach(function (entry) {
+        var target =
+          entry.target &&
+          entry.target.nodeType === 1
+            ? selectorFor(entry.target)
+            : null;
+
+        entry.addedNodes.forEach(
+          function (node) {
+            if (node.nodeType !== 1) {
+              return;
+            }
+
+            mutations.push({
+              at: now(),
+              type: 'added',
+              target: target,
+              node: mutationElement(node)
+            });
+          }
+        );
+
+        entry.removedNodes.forEach(
+          function (node) {
+            if (node.nodeType !== 1) {
+              return;
+            }
+
+            mutations.push({
+              at: now(),
+              type: 'removed',
+              target: target,
+              node: {
+                selector: selectorFor(node),
+                text: textFor(node)
+              }
+            });
+          }
+        );
+
+        if (
+          entry.type === 'attributes'
+        ) {
+          mutations.push({
+            at: now(),
+            type: 'attribute',
+            target: target,
+            attribute:
+              entry.attributeName,
+            value:
+              entry.target.getAttribute(
+                entry.attributeName
+              )
+          });
+        }
+      });
+    }
+  );
+
+  observer.observe(
+    document.documentElement,
+    {
+      subtree: true,
+      childList: true,
+      attributes: true,
+      attributeFilter: [
+        'class',
+        'style',
+        'hidden',
+        'aria-hidden',
+        'data-pmd-independent-donut-ready'
+      ]
+    }
+  );
+
+  snapshot('audit-script-start');
+
+  document.addEventListener(
+    'DOMContentLoaded',
+    function () {
+      snapshot('DOMContentLoaded');
+
+      var frame = 0;
+
+      function nextFrame() {
+        frame += 1;
+
+        snapshot(
+          'requestAnimationFrame-' +
+          frame
+        );
+
+        if (frame < 10) {
+          requestAnimationFrame(
+            nextFrame
+          );
+        }
+      }
+
+      requestAnimationFrame(
+        nextFrame
+      );
+    },
+    {
+      once: true
+    }
+  );
+
+  [
+    25,
+    50,
+    75,
+    100,
+    125,
+    150,
+    200,
+    250
+  ].forEach(function (delay) {
+    setTimeout(function () {
+      snapshot(
+        delay + 'ms'
+      );
+
+      if (delay === 250) {
+        stop();
+      }
+    }, delay);
+  });
+
+  function changedPaintStates() {
+    var map = new Map();
+
+    records.forEach(function (record) {
+      record.items.forEach(
+        function (item) {
+          if (!item.selector) {
+            return;
+          }
+
+          if (!map.has(item.selector)) {
+            map.set(
+              item.selector,
+              []
+            );
+          }
+
+          map.get(item.selector).push({
+            at: record.at,
+            reason: record.reason,
+            painted: item.painted,
+            visibility:
+              item.visibility,
+            opacity:
+              item.opacity,
+            display:
+              item.display,
+            text:
+              item.text,
+            x: item.x,
+            y: item.y,
+            width: item.width,
+            height: item.height
+          });
+        }
+      );
+    });
+
+    var changed = [];
+
+    map.forEach(
+      function (states, selector) {
+        var signatures =
+          new Set(
+            states.map(
+              function (state) {
+                return [
+                  state.painted,
+                  state.display,
+                  state.visibility,
+                  state.opacity,
+                  state.x,
+                  state.y,
+                  state.width,
+                  state.height
+                ].join('|');
+              }
+            )
+          );
+
+        if (signatures.size > 1) {
+          changed.push({
+            selector: selector,
+            states: states
+          });
+        }
+      }
+    );
+
+    return changed;
+  }
+
+  function stop() {
+    if (stopped) {
+      return;
+    }
+
+    stopped = true;
+
+    if (observer) {
+      observer.disconnect();
+    }
+
+    var report = {
+      version: '1.0.0',
+      duration:
+        now(),
+
+      snapshots:
+        records.length,
+
+      mutationCount:
+        mutations.length,
+
+      changedPaintStates:
+        changedPaintStates(),
+
+      records:
+        records,
+
+      mutations:
+        mutations
+    };
+
+    window.PMDFirst100msAuditV1 =
+      report;
+
+    try {
+      sessionStorage.setItem(
+        'pmd.dashboard2.first100ms.audit.v1',
+        JSON.stringify(report)
+      );
+    } catch (error) {}
+
+    console.log(
+      '========================================'
+    );
+
+    console.log(
+      'PMD FIRST 250ms AUDIT COMPLETE'
+    );
+
+    console.log(
+      '========================================'
+    );
+
+    console.log(
+      'Changed paint states:',
+      report.changedPaintStates
+    );
+
+    console.log(
+      'DOM mutations:',
+      report.mutations
+    );
+
+    console.log(
+      'Full report:',
+      report
+    );
+  }
+
+  window.PMDFirst100msAuditControllerV1 = {
+    stop: stop,
+
+    snapshot: function (reason) {
+      snapshot(
+        reason ||
+        'manual'
+      );
+    }
+  };
+})();
+</script>
+<!-- /PMD_DASHBOARD2_FIRST_100MS_AUDIT_V1 -->
+
 <script id="pmd-dashboard2-kpi-boot-v2">
 window.PMD_DASHBOARD2_KPIS = @json($pmdDashboard2Kpis ?? []);
 window.PMD_DASHBOARD2_KPI_PAYLOAD = @json($pmdDashboard2KpiPayload ?? null);
@@ -24,6 +503,35 @@ window.PMD_DASHBOARD2_KPI_PAYLOAD = @json($pmdDashboard2KpiPayload ?? null);
 >
 
 <style id="pmd-dashboard2-v1413-first-paint-lock">
+  /*
+   * Dashboard2 never uses the legacy admin top navbar or
+   * the legacy Reservations hero as final UI.
+   *
+   * They were previously painted for ~50-130ms and then
+   * removed by runtime authorities, causing visible blink
+   * and a 64px vertical page jump.
+   *
+   * Suppress them at first paint instead of removing them
+   * after they have already been shown.
+   */
+  html.pmd-dashboard2-r2-exact
+  body > nav.navbar.navbar-top,
+
+  html.pmd-dashboard2-r2-exact
+  body .navbar.navbar-top,
+
+  html.pmd-dashboard2-r2-exact
+  #pmd-reservations2
+  > header.pmd-r2__hero {
+    display: none !important;
+    visibility: hidden !important;
+    opacity: 0 !important;
+    pointer-events: none !important;
+
+    transition: none !important;
+    animation: none !important;
+  }
+
   /*
    * PMD_DASHBOARD2_TRUE_NO_BLINK_FIRST_PAINT_V1
    *
@@ -550,13 +1058,11 @@ window.PMD_DASHBOARD2_KPI_PAYLOAD = @json($pmdDashboard2KpiPayload ?? null);
 }
 
 #pmd-dashboard2-analytics-v1
-[data-pmd-analytics-widget="categorySales"]
-:not([data-pmd-independent-donut-ready="true"])
+[data-pmd-analytics-widget="categorySales"]:not([data-pmd-independent-donut-ready="true"])
 .pmd-dashboard2-donut,
 
 #pmd-dashboard2-analytics-v1
-[data-pmd-analytics-widget="categorySales"]
-:not([data-pmd-independent-donut-ready="true"])
+[data-pmd-analytics-widget="categorySales"]:not([data-pmd-independent-donut-ready="true"])
 > .pmd-dashboard2-donut-period-v1395 {
     visibility: hidden !important;
     opacity: 0 !important;

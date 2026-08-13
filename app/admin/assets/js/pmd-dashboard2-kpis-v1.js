@@ -986,8 +986,24 @@
         : empty(h)
     );
     var t=data.top_items; put('topItems',t.available?(t.empty?empty(t):list(t.items,function(r){return '<span>'+esc(r.name)+'</span><b>'+esc(r.quantity)+' · '+esc(money(r.revenue))+'</b>'; })):empty(t));
-    var c=(window.PMDDashboard2DonutPeriodsV1395&&window.PMDDashboard2DonutPeriodsV1395.sourceFor?window.PMDDashboard2DonutPeriodsV1395.sourceFor('categorySales'):null)||data.sales_by_category; put('categorySales',c.available?(c.empty?empty(c):svgDonut(c.categories,'category','revenue',function(r){return money(r.revenue);})) :empty(c));
-    var p=(window.PMDDashboard2DonutPeriodsV1395&&window.PMDDashboard2DonutPeriodsV1395.sourceFor?window.PMDDashboard2DonutPeriodsV1395.sourceFor('paymentMethods'):null)||data.payment_methods; put('paymentMethods',p.available?(p.empty?empty(p):svgDonut(p.methods,'method','total',function(r){return money(r.total)+' · '+r.transactions;})):empty(p));
+    /*
+     * categorySales and paymentMethods have one canonical renderer:
+     * PMDDashboard2DonutPeriodsV1395.
+     *
+     * The generic last30 workspace must not race that independent
+     * Day/Week/Month renderer and overwrite its selected-period DOM.
+     * Keep the old rendering path only as a compatibility fallback
+     * when V1395 is genuinely unavailable.
+     */
+    if (
+      !window.PMDDashboard2DonutPeriodsV1395 ||
+      typeof window.PMDDashboard2DonutPeriodsV1395.sourceFor !== 'function'
+    ) {
+      var c=data.sales_by_category;
+      put('categorySales',c.available?(c.empty?empty(c):svgDonut(c.categories,'category','revenue',function(r){return money(r.revenue);})) :empty(c));
+      var p=data.payment_methods;
+      put('paymentMethods',p.available?(p.empty?empty(p):svgDonut(p.methods,'method','total',function(r){return money(r.total)+' · '+r.transactions;})):empty(p));
+    }
     var ch=(window.PMDDashboard2DonutPeriodsV1395&&window.PMDDashboard2DonutPeriodsV1395.sourceFor?window.PMDDashboard2DonutPeriodsV1395.sourceFor('channelSplit'):null)||data.channels; put('channelSplit',ch.available?(ch.empty?empty(ch):svgDonut(ch.channels,'channel','revenue',function(r){return r.orders+' · '+money(r.revenue);})):empty(ch));
     var live=data.live_operations; put('liveOperations',live.available?'<div class="pmd-dashboard2-live-summary"><b>'+esc(live.live_order_count)+'</b><span>live orders</span></div>'+list(live.orders,function(r){return '<span>#'+esc(r.order_id)+' · '+esc(r.channel)+'</span><b>'+esc(r.status)+'</b>'; }):empty(live));
     /*
@@ -1648,7 +1664,7 @@
   var hydrationReady =
     Promise
       .allSettled(hydrationTasks)
-      .then(function (results) {
+      .then(async function (results) {
         /*
          * Main render has created the SVGs.
          * Apply final authorities synchronously before revealing bodies.
@@ -1680,6 +1696,27 @@
         window
           .PMDDashboard2FirstRowV1391
           ?.apply?.();
+
+        /*
+         * Final canonical donut paint.
+         *
+         * The first V1395 refresh runs in parallel with the main
+         * workspace hydration so its selected-period payload is
+         * already cached. Final layout/restore authorities run
+         * afterwards, therefore V1395 must repaint once from that
+         * cache before the analytics workspace is revealed.
+         *
+         * No timer, observer or competing renderer is introduced.
+         */
+        if (
+          donutApi &&
+          typeof donutApi.refresh === 'function'
+        ) {
+          await donutApi.refresh(
+            null,
+            false
+          );
+        }
 
         root.classList.remove(
           'pmd-dashboard2-v1415-hydrating'
@@ -12732,6 +12769,34 @@
         payload
       );
 
+    /*
+     * The independent donut renderer owns the paint state of
+     * the donut it just generated.
+     *
+     * Older Dashboard2 first-paint / restore authorities may
+     * leave .pmd-dashboard2-donut with visibility:hidden.
+     * Do not create another observer or delayed repaint:
+     * normalize the canonical output at render time.
+     */
+    const renderedDonut =
+      body.querySelector(
+        ':scope > .pmd-dashboard2-donut'
+      );
+
+    if (renderedDonut) {
+      renderedDonut.style.setProperty(
+        'visibility',
+        'visible',
+        'important'
+      );
+
+      renderedDonut.style.setProperty(
+        'opacity',
+        '1',
+        'important'
+      );
+    }
+
     card.dataset
       .pmdIndependentDonutPeriod =
       period;
@@ -13086,18 +13151,56 @@
               ).length ?? 0,
 
           donutVisible:
-            Boolean(
-              body?.querySelector(
-                '.pmd-dashboard2-donut svg'
-              )
-            ),
+            (() => {
+              const element =
+                body?.querySelector(
+                  '.pmd-dashboard2-donut'
+                );
+
+              if (!element) {
+                return false;
+              }
+
+              const style =
+                getComputedStyle(element);
+
+              const rect =
+                element.getBoundingClientRect();
+
+              return (
+                style.display !== 'none' &&
+                style.visibility !== 'hidden' &&
+                Number(style.opacity || 1) > 0 &&
+                rect.width > 0 &&
+                rect.height > 0
+              );
+            })(),
 
           legendVisible:
-            Boolean(
-              body?.querySelector(
-                '.pmd-chart-legend'
-              )
-            ),
+            (() => {
+              const element =
+                body?.querySelector(
+                  '.pmd-chart-legend'
+                );
+
+              if (!element) {
+                return false;
+              }
+
+              const style =
+                getComputedStyle(element);
+
+              const rect =
+                element.getBoundingClientRect();
+
+              return (
+                style.display !== 'none' &&
+                style.visibility !== 'hidden' &&
+                Number(style.opacity || 1) > 0 &&
+                rect.width > 0 &&
+                rect.height > 0
+              );
+            })(),
 
           independentReady:
             card?.dataset
