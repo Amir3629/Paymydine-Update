@@ -6,7 +6,9 @@
     __pmdPath === '/admin/kds_stations' ||
     __pmdPath.indexOf('/admin/kds_stations/') === 0 ||
     __pmdPath === '/admin/kds_stations/create' ||
-    __pmdPath.indexOf('/admin/kds_stations/edit') === 0;
+    __pmdPath.indexOf('/admin/kds_stations/edit') === 0 ||
+    // PMD_CLEAN_ROLE_WORKSPACE_MEDIAFIX_SKIP_V1
+    /^\/admin\/(?:managerlab|accountantlab|cashierlab|reservationslab)(?:\/|$)/.test(__pmdPath);
 
   window.PMD_MEDIAFIX_ROUTE_GUARD_V51 = {
     path: __pmdPath,
@@ -14,7 +16,10 @@
   };
 
   if (__pmdSkip) {
-    console.info('[PMD Native MediaFix] skipped on KDS settings page', window.PMD_MEDIAFIX_ROUTE_GUARD_V51);
+    // Stay silent on clean role workspaces; retain the legacy KDS diagnostic only on KDS.
+    if (__pmdPath.indexOf('/admin/kds_stations') === 0) {
+      console.info('[PMD Native MediaFix] skipped on KDS settings page', window.PMD_MEDIAFIX_ROUTE_GUARD_V51);
+    }
     return;
   }
 

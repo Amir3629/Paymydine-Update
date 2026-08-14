@@ -1,6 +1,13 @@
 (function () {
     'use strict';
 
+    // PMD_CLEAN_ROLE_WORKSPACE_I18N_PAGE_SKIP_V1
+    // These role workspaces render their EN/DE copy server-first. Do not boot
+    // the observer/RAF page-translator that only owns Dashboard2/Reservations2.
+    if (/^\/admin\/(?:managerlab|accountantlab|cashierlab|reservationslab)(?:\/|$)/.test(String(location.pathname || ''))) {
+        return;
+    }
+
     if (
         window.PMDAdminI18nPageAuthorityV2 &&
         window.PMDAdminI18nPageAuthorityV2.version

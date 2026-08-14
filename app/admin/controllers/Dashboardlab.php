@@ -5,6 +5,7 @@ namespace Admin\Controllers;
 use Admin\Classes\AdminController;
 use Admin\Facades\AdminMenu;
 use Admin\Facades\Template;
+use Admin\Services\PmdRoleDashboardDataV1;
 
 /**
  * PMD Dashboard Lab
@@ -156,7 +157,31 @@ class Dashboardlab extends AdminController
     private function resolveKpiPayload(): array
     {
         try {
-            $source = new class extends Dashboard2 {
+            /* PMD_DASHBOARD_LAB_EXPLICIT_LOCATION_V3_4_3 */
+            $locationId = app(PmdRoleDashboardDataV1::class)
+                ->resolveWorkspaceLocation();
+
+            if (!$locationId) {
+                throw new \RuntimeException(
+                    'Dashboard Lab location unavailable after safe resolution.'
+                );
+            }
+
+            $source = new class($locationId) extends Dashboard2 {
+                private ?int $pmdDashboardLabLocationId = null;
+
+                public function __construct(int $locationId)
+                {
+                    $this->pmdDashboardLabLocationId = $locationId;
+                    parent::__construct();
+                }
+
+                protected function locationId(): ?int
+                {
+                    return $this->pmdDashboardLabLocationId
+                        ?: parent::locationId();
+                }
+
                 public function pmdDashboardLabPayload(): array
                 {
                     return $this->kpiPayload();
@@ -232,7 +257,31 @@ class Dashboardlab extends AdminController
         ) ? $period : 'today';
 
         try {
-            $source = new class extends Dashboard2 {
+            /* PMD_DASHBOARD_LAB_ANALYTICS_LOCATION_PIN_V3_4_3 */
+            $locationId = app(PmdRoleDashboardDataV1::class)
+                ->resolveWorkspaceLocation();
+
+            if (!$locationId) {
+                throw new \RuntimeException(
+                    'Dashboard Lab Analytics location unavailable after safe resolution.'
+                );
+            }
+
+            $source = new class($locationId) extends Dashboard2 {
+                private ?int $pmdDashboardLabLocationId = null;
+
+                public function __construct(int $locationId)
+                {
+                    $this->pmdDashboardLabLocationId = $locationId;
+                    parent::__construct();
+                }
+
+                protected function locationId(): ?int
+                {
+                    return $this->pmdDashboardLabLocationId
+                        ?: parent::locationId();
+                }
+
                 public function pmdDashboardLabAnalyticsPayload(
                     string $period
                 ): array {
@@ -242,12 +291,35 @@ class Dashboardlab extends AdminController
                         return $payload;
                     }
 
-                    $payload['recent_transactions'] =
-                        $this->pmdDashboardLabLatestFiveTransactions();
-                    $payload['reviews'] =
-                        $this->pmdDashboardLabReviewsWithReviewer();
-                    $payload['calendar_events'] =
-                        $this->pmdDashboardLabUpcomingEventsPayload();
+                    /*
+                     * PMD_DASHBOARD_LAB_ENRICHMENT_FAILSOFT_V3_4_3
+                     *
+                     * These three blocks are presentation enrichments only.
+                     * A prefix/schema edge case in one enrichment must never
+                     * blank the entire proven Dashboard2 analytics payload.
+                     * On failure, keep Dashboard2's original section intact.
+                     */
+                    $enrichments = [
+                        'recent_transactions' => 'pmdDashboardLabLatestFiveTransactions',
+                        'reviews' => 'pmdDashboardLabReviewsWithReviewer',
+                        'calendar_events' => 'pmdDashboardLabUpcomingEventsPayload',
+                    ];
+
+                    foreach ($enrichments as $key => $method) {
+                        try {
+                            $payload[$key] = $this->{$method}();
+                        } catch (\Throwable $error) {
+                            logger()->warning(
+                                'Dashboard Lab optional analytics enrichment failed',
+                                [
+                                    'key' => $key,
+                                    'type' => get_class($error),
+                                    'message' => $error->getMessage(),
+                                    'location_id' => $this->locationId(),
+                                ]
+                            );
+                        }
+                    }
 
                     return $payload;
                 }

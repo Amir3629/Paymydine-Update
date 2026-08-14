@@ -3,11 +3,33 @@
 namespace Admin\Controllers;
 
 use Admin\Classes\PmdCleanWorkspaceControllerV1;
+use Admin\Services\PmdCleanWorkspaceSharedV1;
+use Admin\Services\PmdRoleDashboardDataV1;
+use Admin\Models\Staffs_model;
+use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\Cache;
 
-/** Clean Manager workspace: shared shell + operations-focused KPI defaults + Floor. */
+/**
+ * PMD_MANAGER_EXACT_OWNER_COMPONENT_V3_5_2
+ * PMD_MANAGER_REMOVE_ROLE_INSIGHT_CARDS_V3_5_2
+ * PMD_MANAGER_ONLINE_STAFF_CARD_V3_5_2
+ *
+ * Manager keeps the approved four top KPI cards and exact Owner analytics.
+ * The six V3.5 manager-only insight cards are removed completely. A single
+ * Manager-only online-staff card is rendered AFTER all Owner analytics cards.
+ */
 class Managerlab extends PmdCleanWorkspaceControllerV1
 {
     protected $requiredPermissions = 'Admin.Dashboard';
+
+    public function __construct()
+    {
+        parent::__construct();
+        $this->addCss('css/pmd-dashboard-lab-analytics-v1.css');
+        $this->addCss('css/pmd-role-dashboard-v1.css');
+        $this->addCss('css/pmd-manager-online-staff-v1.css');
+        $this->addJs('js/pmd-dashboard-lab-analytics-v1.js');
+    }
 
     protected function pmdWorkspaceKey(): string
     {
@@ -22,10 +44,284 @@ class Managerlab extends PmdCleanWorkspaceControllerV1
     protected function pmdKpiDefaults(): array
     {
         return [
-            'revenue',
-            'guests',
-            'occupancy',
-            'kitchen',
+            'live_orders',
+            'open_alerts',
+            'occupied_tables',
+            'upcoming_reservations',
         ];
+    }
+
+    protected function pmdAfterFloorPartial(): ?string
+    {
+        return 'admin::_partials.pmd_manager_dashboard_v1';
+    }
+
+    public function index()
+    {
+        if ((string)request()->query('pmd_analytics', '') === '1') {
+            /** @var PmdRoleDashboardDataV1 $dashboard */
+            $dashboard = app(PmdRoleDashboardDataV1::class);
+            return response()->json(
+                $dashboard->ownerAnalyticsPayload(
+                    (string)request()->query('period', 'month'),
+                    null
+                )
+            );
+        }
+
+        return parent::index();
+    }
+
+    protected function pmdPrepareWorkspaceVars(
+        PmdCleanWorkspaceSharedV1 $shared,
+        string $locale,
+        array $floorBootstrap
+    ): void {
+        /** @var PmdRoleDashboardDataV1 $dashboard */
+        $dashboard = app(PmdRoleDashboardDataV1::class);
+
+        $bundle = $dashboard->bundle([
+            'liveorders' => ['type' => 'liveorders', 'period' => 'today'],
+            'alerts' => ['type' => 'alerts', 'period' => 'today'],
+            'reservations' => ['type' => 'reservations', 'period' => 'today'],
+        ], $shared->locationId(), $locale);
+
+        /*
+         * PMD_MANAGER_FLOOR_VISIBLE_OCCUPANCY_V3_3_2
+         * The Manager sees the Floor directly above these cards. Use that same
+         * already-resolved Floor display authority for table counts so KPI and
+         * visible Floor cannot disagree.
+         */
+        $bundle = $this->syncVisibleFloorCounts($bundle, $floorBootstrap);
+
+        $this->vars['pmdRoleDashboardMode'] = 'manager';
+        $this->vars['pmdRoleDashboardBundle'] = $bundle;
+        $this->vars['pmdRoleOwnerAnalyticsBootstrap'] =
+            $dashboard->ownerAnalyticsBootstrap($shared->locationId());
+        $this->vars['pmdRoleOwnerAnalyticsEndpoint'] =
+            admin_url('managerlab').'?pmd_analytics=1';
+        // PMD_MANAGER_REMOVE_ROLE_INSIGHT_CARDS_V3_5_2
+        // Service pulse / Floor pressure / Guest flow / Menu demand /
+        // Operational exceptions / Guest feedback are intentionally gone.
+        $this->vars['pmdRoleInsightCards'] = [];
+        $this->vars['pmdManagerOnlineStaff'] =
+            $this->managerOnlineStaffSnapshot($shared->locationId(), $locale);
+        $this->installManagerKpis($bundle, $locale);
+    }
+
+    private function syncVisibleFloorCounts(array $bundle, array $floorBootstrap): array
+    {
+        $tables = is_array($floorBootstrap['display_tables'] ?? null)
+            ? array_values($floorBootstrap['display_tables'])
+            : [];
+
+        if (!$tables) {
+            return $bundle;
+        }
+
+        $enabled = count($tables);
+        $occupied = 0;
+
+        foreach ($tables as $table) {
+            if (!is_array($table)) continue;
+            $status = strtolower(trim((string)($table['status'] ?? '')));
+            if (in_array($status, ['occupied', 'attention', 'waiter-call'], true)) {
+                $occupied++;
+            }
+        }
+
+        if (!isset($bundle['reports']['liveorders']) || !is_array($bundle['reports']['liveorders'])) {
+            return $bundle;
+        }
+
+        $stats = is_array($bundle['reports']['liveorders']['stats'] ?? null)
+            ? $bundle['reports']['liveorders']['stats']
+            : [];
+
+        foreach ($stats as &$stat) {
+            $label = (string)($stat['label'] ?? '');
+            if ($label === 'Occupied tables') {
+                $stat['value'] = (string)$occupied;
+                $stat['meta'] = 'Visible Floor authority';
+            } elseif ($label === 'Enabled tables') {
+                $stat['value'] = (string)$enabled;
+                $stat['meta'] = 'Visible Floor authority';
+            }
+        }
+        unset($stat);
+
+        $bundle['reports']['liveorders']['stats'] = $stats;
+        $bundle['reports']['liveorders']['floor_visible_tables'] = $enabled;
+        $bundle['reports']['liveorders']['floor_occupied_tables'] = $occupied;
+
+        return $bundle;
+    }
+
+    private function installManagerKpis(array $bundle, string $locale): void
+    {
+        $reports = is_array($bundle['reports'] ?? null)
+            ? $bundle['reports']
+            : [];
+
+        $live = is_array($reports['liveorders'] ?? null) ? $reports['liveorders'] : [];
+        $alerts = is_array($reports['alerts'] ?? null) ? $reports['alerts'] : [];
+        $reservations = is_array($reports['reservations'] ?? null) ? $reports['reservations'] : [];
+        $de = strtolower($locale) === 'de';
+
+        $cards = [
+            'live_orders' => $this->roleCard(
+                $de ? 'Live-Bestellungen' : 'Live orders',
+                $this->statValue($live, 'Live orders'),
+                $de ? 'Aktive Bestellungen im laufenden Service' : 'Active orders in the current service',
+                'list',
+                'orange',
+                $live,
+                'current'
+            ),
+            'open_alerts' => $this->roleCard(
+                $de ? 'Benötigt Aufmerksamkeit' : 'Needs attention',
+                $this->statValue($alerts, 'Open alerts'),
+                $de ? 'Operative Ausnahmen, die heute geprüft werden sollten' : 'Operational exceptions to review today',
+                'pending',
+                'red',
+                $alerts,
+                'today'
+            ),
+            'occupied_tables' => $this->roleCard(
+                $de ? 'Belegte Tische' : 'Occupied tables',
+                $this->statValue($live, 'Occupied tables'),
+                $de ? 'Belegte Tische aus der sichtbaren Floor-Ansicht' : 'Occupied tables from the visible Floor state',
+                'occupancy',
+                'green',
+                $live,
+                'current'
+            ),
+            'upcoming_reservations' => $this->roleCard(
+                $de ? 'Kommende Reservierungen' : 'Upcoming reservations',
+                $this->statValue($reservations, 'Upcoming'),
+                $de ? 'Noch erwartete Ankünfte heute' : 'Remaining expected arrivals today',
+                'calendar',
+                'blue',
+                $reservations,
+                'today'
+            ),
+        ];
+
+        foreach ($cards as $cardKey => &$card) {
+            $card['key'] = (string)$cardKey;
+        }
+        unset($card);
+
+        $this->vars['pmdCleanWorkspaceKpiCards'] = $cards;
+        $this->vars['pmdCleanWorkspaceKpiOrder'] = array_keys($cards);
+        $this->vars['pmdCleanWorkspaceKpiSelection'] = array_keys($cards);
+        $this->vars['pmdCleanWorkspaceKpiAriaLabel'] = $de ? 'Manager-KPIs' : 'Manager KPIs';
+    }
+
+
+    private function managerOnlineStaffSnapshot(int $locationId, string $locale): array
+    {
+        $de = strtolower($locale) === 'de';
+        $businessTimezone = 'Europe/Berlin';
+        $now = Carbon::now($businessTimezone);
+        $rows = [];
+        $connected = true;
+
+        try {
+            /*
+             * PMD_MANAGER_ONLINE_STAFF_REAL_PRESENCE_V3_5_3
+             *
+             * The Admin service provider already installs LogUserLastSeen on the
+             * web middleware group. That middleware owns the real online marker:
+             *   is-online-admin-auth-user-{user_id}
+             * with a two-minute TTL. Reuse that exact authority here instead of
+             * confusing biometric/time-clock attendance with application presence.
+             */
+            $staffMembers = Staffs_model::query()
+                ->isEnabled()
+                ->with(['user', 'role', 'locations'])
+                ->orderBy('staff_name')
+                ->get();
+
+            foreach ($staffMembers as $staff) {
+                $user = $staff->user;
+                if (!$user) continue;
+
+                $hasLocation = $staff->locations->contains(function ($location) use ($locationId) {
+                    return (int)$location->location_id === $locationId;
+                });
+                if (!$hasLocation) continue;
+
+                $userId = (int)$user->getKey();
+                if ($userId <= 0) continue;
+
+                $cacheKey = 'is-online-admin-auth-user-'.$userId;
+                if (!Cache::has($cacheKey)) continue;
+
+                $roleName = trim((string)optional($staff->role)->name);
+                if ($roleName === '') {
+                    $roleName = $de ? 'Mitarbeiter' : 'Staff';
+                }
+
+                $rows[] = [
+                    'staff_id' => (int)$staff->getKey(),
+                    'user_id' => $userId,
+                    'name' => trim((string)$staff->staff_name) ?: ($de ? 'Mitarbeiter' : 'Staff'),
+                    'role' => $roleName,
+                    'since' => $de ? 'Aktiv' : 'Active',
+                    'duration' => $de ? 'Jetzt' : 'Now',
+                    'device' => '',
+                ];
+            }
+        } catch (\Throwable $error) {
+            $connected = false;
+        }
+
+        return [
+            'title' => $de ? 'Mitarbeiter online' : 'Staff online',
+            'subtitle' => $de
+                ? 'Aktive Admin-Sitzungen an diesem Standort'
+                : 'Active admin sessions at this location',
+            'count' => count($rows),
+            'count_label' => 'online',
+            'empty' => $de
+                ? 'Aktuell ist kein Mitarbeiter online.'
+                : 'No staff are currently online.',
+            'as_of' => ($de ? 'Stand ' : 'As of ').$now->format('H:i'),
+            'connected' => $connected,
+            'rows' => $rows,
+            'source' => 'LogUserLastSeen middleware cache; active admin request within the two-minute online window',
+        ];
+    }
+
+    private function roleCard(
+        string $title,
+        string $value,
+        string $description,
+        string $icon,
+        string $tone,
+        array $report,
+        string $period
+    ): array {
+        return [
+            'title' => $title,
+            'value' => $value,
+            'description' => $description,
+            'icon' => $icon,
+            'tone' => $tone,
+            'period' => $period,
+            'connected' => empty($report['error']),
+            'source' => (string)($report['source'] ?? 'Dashboard2 manager authority'),
+        ];
+    }
+
+    private function statValue(array $report, string $label): string
+    {
+        foreach (($report['stats'] ?? []) as $stat) {
+            if (strcasecmp((string)($stat['label'] ?? ''), $label) === 0) {
+                return (string)($stat['value'] ?? '—');
+            }
+        }
+        return '—';
     }
 }

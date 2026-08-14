@@ -4,7 +4,19 @@
     $pmdCleanWorkspaceKpiOrder = $pmdCleanWorkspaceKpiOrder ?? array_keys($pmdCleanWorkspaceKpiCards);
     $pmdCleanWorkspaceUsesFloor = $pmdCleanWorkspaceUsesFloor ?? true;
     $pmdCleanWorkspaceAfterFloorPartial = $pmdCleanWorkspaceAfterFloorPartial ?? null;
+    $pmdCleanWorkspaceBelowFloorPartial = $pmdCleanWorkspaceBelowFloorPartial ?? null;
     $pmdCleanWorkspaceReservationsSurface = (($pmdCleanWorkspacePath ?? '') === '/admin/reservationslab');
+
+    /* PMD_CLEAN_WORKSPACE_STANDALONE_CHROME_V3 */
+    $pmdCleanWorkspaceStandaloneChrome = in_array(
+        (string)($pmdCleanWorkspaceKey ?? ''),
+        ['reservations', 'cashier', 'accountant'],
+        true
+    );
+    $pmdCleanWorkspaceHeaderLocale = strtolower((string)($pmdCleanWorkspaceLocale ?? 'en'));
+    $pmdCleanWorkspaceHeaderLocale = $pmdCleanWorkspaceHeaderLocale === 'de' ? 'de' : 'en';
+    $pmdCleanWorkspaceHeaderNextLocale = $pmdCleanWorkspaceHeaderLocale === 'de' ? 'en' : 'de';
+    $pmdCleanWorkspaceLanguageEndpoint = url(config('system.adminUri', 'admin').'/_pmd/language-switch-v3');
     $pmdCleanWorkspaceText = $pmdCleanWorkspaceText ?? [
         'choose_kpi' => 'Choose KPI',
         'visible' => 'Visible in this card',
@@ -35,6 +47,13 @@
         return $paths[$name] ?? $paths['money'];
     };
 @endphp
+
+@if($pmdCleanWorkspaceStandaloneChrome)
+<script id="pmd-clean-workspace-standalone-firstpaint-v3">
+document.documentElement.classList.remove('pmd-side-menu2-global-page','pmd-sm2-expanded','pmd-sm2-collapsed','pmd-sm2-runtime-ready');
+document.documentElement.classList.add('pmd-clean-workspace-standalone-v3');
+</script>
+@endif
 
 {{-- PMD_CLEAN_WORKSPACE_DOCUMENT_SCROLL_V2_2
      Dashboard Lab acquired this same vertical-scroll contract when Analytics
@@ -316,6 +335,11 @@ html body.page.pmd-clean-workspace-page #pmd-dashboard-lab {
 
     <header id="pmd-r2-clean-header" class="pmd-owner-header pmd-dashboard-lab__dashboard2-header" aria-label="Dashboard header" data-pmd-dashboard-lab-header="dashboard2-v5">
         <div class="pmd-owner-header__left">
+            @if($pmdCleanWorkspaceStandaloneChrome)
+                <span class="pmd-clean-workspace__brand" aria-label="PayMyDine">
+                    <img src="/app/admin/assets/images/pmd-brand-mark.svg" alt="PayMyDine">
+                </span>
+            @endif
             <h1 class="pmd-r2-clean-title">{{ $pmdCleanWorkspaceTitle }}</h1>
         </div>
 
@@ -324,6 +348,21 @@ html body.page.pmd-clean-workspace-page #pmd-dashboard-lab {
             data-pmd-dashboard-lab-header-actions
             aria-label="Dashboard actions"
         >
+            @if($pmdCleanWorkspaceStandaloneChrome)
+                <button type="button" id="pmd-clean-workspace-language-v3"
+                    class="pmd-dashboard-lab__header-action pmd-clean-workspace__language"
+                    data-endpoint="{{ $pmdCleanWorkspaceLanguageEndpoint }}"
+                    data-next="{{ $pmdCleanWorkspaceHeaderNextLocale }}"
+                    aria-label="Switch language to {{ strtoupper($pmdCleanWorkspaceHeaderNextLocale) }}"
+                    title="Switch language to {{ strtoupper($pmdCleanWorkspaceHeaderNextLocale) }}">
+                    <svg viewBox="0 0 24 24" aria-hidden="true">
+                        <circle cx="12" cy="12" r="9"></circle><path d="M3 12h18"></path>
+                        <path d="M12 3a15 15 0 0 1 0 18"></path><path d="M12 3a15 15 0 0 0 0 18"></path>
+                    </svg>
+                    <span class="pmd-clean-workspace__language-code">{{ strtoupper($pmdCleanWorkspaceHeaderLocale) }}</span>
+                </button>
+            @endif
+
             <a
                 id="pmd-dashboard-lab-calendar-v4"
                 class="pmd-dashboard-lab__header-action"
@@ -752,6 +791,204 @@ html body.page.pmd-clean-workspace-page #pmd-dashboard-lab {
             @if(!$pmdCleanWorkspaceReservationsSurface && $pmdCleanWorkspaceAfterFloorPartial)
                 @include($pmdCleanWorkspaceAfterFloorPartial)
             @endif
+
+            {{-- PMD_CLEAN_WORKSPACE_BELOW_FLOOR_EXTENSION_V2_1
+                 Content here is physically AFTER the Floor for every workspace.
+                 Reservations keeps its Calendar/Hour surface before Floor. --}}
+            @if($pmdCleanWorkspaceBelowFloorPartial)
+                @include($pmdCleanWorkspaceBelowFloorPartial)
+            @endif
         </main>
     @endif
 </div>
+
+
+@if($pmdCleanWorkspaceStandaloneChrome)
+<style id="pmd-clean-workspace-standalone-chrome-v3">
+html.pmd-clean-workspace-standalone-v3 body :is(#pmd-side-menu2,#pmd-side-menu2-backdrop,#pmd-sidebar-language){display:none!important;visibility:hidden!important;pointer-events:none!important}
+html.pmd-clean-workspace-standalone-v3 body :is(.page,.page-wrapper,.page-content,.content-wrapper,.main-content,.container-fluid){left:0!important;right:auto!important;margin-left:0!important;margin-right:0!important;max-width:none!important}
+html.pmd-clean-workspace-standalone-v3 body .page-wrapper{width:100vw!important;min-width:0!important}
+html.pmd-clean-workspace-standalone-v3 #pmd-dashboard-lab{width:min(1480px,calc(100% - 36px))!important;margin-left:auto!important;margin-right:auto!important}
+/* PMD_CLEAN_WORKSPACE_HEADER_TITLE_GAP_V3_4 */
+html.pmd-clean-workspace-standalone-v3 #pmd-r2-clean-header .pmd-owner-header__left{gap:20px!important}
+html.pmd-clean-workspace-standalone-v3 #pmd-r2-clean-header .pmd-clean-workspace__brand{display:grid;place-items:center;flex:0 0 46px;width:46px;height:46px;border-radius:15px;background:#002b25;box-shadow:0 4px 12px rgba(0,43,37,.12)}
+html.pmd-clean-workspace-standalone-v3 #pmd-r2-clean-header .pmd-clean-workspace__brand img{display:block;width:31px;height:31px;object-fit:contain}
+html.pmd-clean-workspace-standalone-v3 #pmd-r2-clean-header .pmd-clean-workspace__language{position:relative!important}
+html.pmd-clean-workspace-standalone-v3 #pmd-r2-clean-header .pmd-clean-workspace__language-code{position:absolute;top:-7px;right:-9px;display:inline-grid;place-items:center;min-width:25px;height:18px;padding:0 4px;border:2px solid #fff;border-radius:999px;background:#eef6fb;color:#173752;font-size:9px;font-weight:900;line-height:1}
+@media(max-width:700px){html.pmd-clean-workspace-standalone-v3 #pmd-dashboard-lab{width:min(100%,calc(100% - 20px))!important}}
+</style>
+<script id="pmd-clean-workspace-language-runtime-v3">
+(function(){'use strict';var b=document.getElementById('pmd-clean-workspace-language-v3');if(!b||b.dataset.ready==='1')return;b.dataset.ready='1';
+function token(){var m=document.querySelector('meta[name="csrf-token"]');if(m&&m.content)return m.content;var i=document.querySelector('input[name="_token"]');return i?i.value:''}
+b.addEventListener('click',async function(e){e.preventDefault();if(b.disabled)return;var endpoint=b.getAttribute('data-endpoint');var next=String(b.getAttribute('data-next')||'').toLowerCase();if(!endpoint||(next!=='en'&&next!=='de'))return;b.disabled=true;try{var body=new URLSearchParams();body.set('code',next);var tok=token();if(tok)body.set('_token',tok);var h={'Accept':'application/json','Content-Type':'application/x-www-form-urlencoded; charset=UTF-8','X-Requested-With':'XMLHttpRequest'};if(tok)h['X-CSRF-TOKEN']=tok;var r=await fetch(endpoint,{method:'POST',credentials:'same-origin',cache:'no-store',headers:h,body:body.toString()});var d={};try{d=await r.json()}catch(ignore){}if(!r.ok||d.ok!==true)throw new Error(d.message||('Language switch failed: HTTP '+r.status));window.location.href=window.location.pathname+window.location.search+window.location.hash}catch(err){b.disabled=false;console.error('[PMD Clean Language]',err)}},false);
+})();
+</script>
+@endif
+
+
+{{-- PMD_CLEAN_WORKSPACE_STANDALONE_GEOMETRY_V3_2
+     Removing Side Menu must also remove the old desktop shell offset.
+     Standalone pages own a true top=0 / full-width shell. --}}
+@if($pmdCleanWorkspaceStandaloneChrome)
+<style id="pmd-clean-workspace-standalone-geometry-v3-2">
+html.pmd-clean-workspace-standalone-v3,
+html.pmd-clean-workspace-standalone-v3 body.page.pmd-clean-workspace-page {
+  margin: 0 !important;
+  padding: 0 !important;
+}
+
+html.pmd-clean-workspace-standalone-v3
+body.page.pmd-clean-workspace-page
+.page-wrapper {
+  position: relative !important;
+  inset: auto !important;
+  top: 0 !important;
+  left: 0 !important;
+  right: auto !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  width: 100vw !important;
+  min-width: 0 !important;
+  max-width: none !important;
+  min-height: 100vh !important;
+  transform: none !important;
+}
+
+html.pmd-clean-workspace-standalone-v3
+body.page.pmd-clean-workspace-page
+.page-content,
+html.pmd-clean-workspace-standalone-v3
+body.page.pmd-clean-workspace-page
+.content-wrapper,
+html.pmd-clean-workspace-standalone-v3
+body.page.pmd-clean-workspace-page
+.container-fluid {
+  position: relative !important;
+  inset: auto !important;
+  top: 0 !important;
+  left: 0 !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  width: 100% !important;
+  min-width: 0 !important;
+  max-width: none !important;
+  transform: none !important;
+}
+
+html.pmd-clean-workspace-standalone-v3
+body.page.pmd-clean-workspace-page
+#pmd-dashboard-lab {
+  width: calc(100vw - 24px) !important;
+  max-width: none !important;
+  min-width: 0 !important;
+  margin: 0 12px !important;
+  padding: 0 0 56px !important;
+}
+
+html.pmd-clean-workspace-standalone-v3
+body.page.pmd-clean-workspace-page
+#pmd-dashboard-lab
+#pmd-r2-clean-header,
+html.pmd-clean-workspace-standalone-v3
+body.page.pmd-clean-workspace-page
+#pmd-dashboard-lab
+.pmd-dashboard-lab__kpis,
+html.pmd-clean-workspace-standalone-v3
+body.page.pmd-clean-workspace-page
+#pmd-dashboard-lab
+.pmd-dashboard-lab__stage,
+html.pmd-clean-workspace-standalone-v3
+body.page.pmd-clean-workspace-page
+#pmd-dashboard-lab
+.pmd-ops-section {
+  width: 100% !important;
+  max-width: none !important;
+  min-width: 0 !important;
+  margin-left: 0 !important;
+  margin-right: 0 !important;
+}
+
+@media (max-width: 700px) {
+  html.pmd-clean-workspace-standalone-v3
+  body.page.pmd-clean-workspace-page
+  #pmd-dashboard-lab {
+    width: calc(100vw - 16px) !important;
+    margin: 0 8px !important;
+    padding-bottom: 40px !important;
+  }
+}
+</style>
+@endif
+
+{{-- PMD_CLEAN_WORKSPACE_LANGUAGE_TEXT_ONLY_V3_3 --}}
+@if($pmdCleanWorkspaceStandaloneChrome)
+<style id="pmd-clean-workspace-language-text-only-v3-3">
+html.pmd-clean-workspace-standalone-v3 #pmd-clean-workspace-language-v3 svg {
+  display: none !important;
+  visibility: hidden !important;
+}
+html.pmd-clean-workspace-standalone-v3 #pmd-clean-workspace-language-v3 {
+  display: inline-grid !important;
+  place-items: center !important;
+  font-size: 13px !important;
+  font-weight: 900 !important;
+  letter-spacing: .02em !important;
+}
+html.pmd-clean-workspace-standalone-v3 #pmd-clean-workspace-language-v3 .pmd-clean-workspace__language-code {
+  position: static !important;
+  inset: auto !important;
+  display: inline !important;
+  min-width: 0 !important;
+  width: auto !important;
+  height: auto !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  color: #173752 !important;
+  font-size: 13px !important;
+  font-weight: 900 !important;
+  line-height: 1 !important;
+  transform: none !important;
+}
+</style>
+@endif
+
+{{-- PMD_CLEAN_WORKSPACE_LANGUAGE_CENTER_V3_3_2 --}}
+@if($pmdCleanWorkspaceStandaloneChrome)
+<style id="pmd-clean-workspace-language-center-v3-3-2">
+html.pmd-clean-workspace-standalone-v3 #pmd-clean-workspace-language-v3 {
+  position: relative !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  width: 48px !important;
+  min-width: 48px !important;
+  height: 48px !important;
+  min-height: 48px !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  overflow: hidden !important;
+  font-size: 0 !important;
+  line-height: 1 !important;
+}
+html.pmd-clean-workspace-standalone-v3 #pmd-clean-workspace-language-v3 .pmd-clean-workspace__language-code {
+  position: absolute !important;
+  inset: 0 !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  width: 100% !important;
+  height: 100% !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  color: #173752 !important;
+  font-size: 13px !important;
+  font-weight: 900 !important;
+  line-height: 1 !important;
+  letter-spacing: .02em !important;
+  transform: none !important;
+}
+</style>
+@endif

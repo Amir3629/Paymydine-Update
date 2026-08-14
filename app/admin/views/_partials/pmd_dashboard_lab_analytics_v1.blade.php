@@ -1,5 +1,6 @@
 {{--
     PMD_DASHBOARD_LAB_ANALYTICS_SERVER_DOM_V3
+    PMD_DASHBOARD_LAB_SHARED_ROLE_ENDPOINT_V3_4
 
     Canonical Dashboard Lab Analytics markup.
     Initial Analytics data is already resolved by Dashboardlab.php.
@@ -1082,7 +1083,7 @@
     id="pmd-dashboard-lab-analytics-v1"
     class="pmd-dashboard-lab-analytics"
     data-pmd-dashboard-lab-analytics="dashboard2-clean-v1"
-    data-pmd-dashboard-lab-analytics-endpoint="/admin/dashboardlab?pmd_analytics=1"
+    data-pmd-dashboard-lab-analytics-endpoint="{{ $pmdDashboardLabAnalyticsEndpoint ?? '/admin/dashboardlab?pmd_analytics=1' }}"
     data-pmd-lab-server-rendered="{{ $analyticsServerReady ? 'true' : 'false' }}"
     data-pmd-lab-initial-chart-mode="{{ $analyticsChartMode }}"
     aria-label="Dashboard analytics"

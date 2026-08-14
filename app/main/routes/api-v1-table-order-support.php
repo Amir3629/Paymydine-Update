@@ -182,14 +182,18 @@
                         $statusName = strtolower(trim((string)($order->status_name ?? '')));
                         $normalizedStatus = str_replace([' ', '_'], '-', $statusName);
                         $isPaid = in_array($settlementStatus, ['paid', 'settled'], true) || $normalizedStatus === 'paid' || ($total > 0 && $settled >= $total - 0.0001);
-                        $isTerminal = in_array($normalizedStatus, $terminalStatusNames, true);
-                        if (!$isPaid || !$isTerminal) {
-                            if ($isPaid && $statusName === '') {
-                                $updatedAt = $order->updated_at ? \Illuminate\Support\Carbon::parse($order->updated_at) : null;
-                                if ($updatedAt && $updatedAt->lt(now()->subHours(2))) continue;
-                            }
-                            return $order;
+                        $isCancelledFinancially = in_array($settlementStatus, ['cancelled', 'canceled', 'failed', 'refunded', 'refund', 'void', 'voided'], true);
+                        $isCancelledOperationally = in_array($normalizedStatus, ['cancelled', 'canceled', 'cancel'], true);
+
+                        // PMD_TABLE_PAID_ORDER_RELEASE_V1
+                        // Kitchen/fulfilment status and payment status are separate authorities.
+                        // A fully paid table order must never remain financially active just
+                        // because the kitchen status is still Received/Preparing/etc.
+                        if ($isPaid || $isCancelledFinancially || $isCancelledOperationally) {
+                            continue;
                         }
+
+                        return $order;
                     }
                     return null;
                 };

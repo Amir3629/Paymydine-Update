@@ -1,0 +1,195 @@
+/* PMD_ROLE_DASHBOARD_EXACT_OWNER_COMPONENT_V3_5
+ * PMD_ROLE_SPECIFIC_INSIGHTS_V3_5
+ * Manager/Accountant render the literal live Owner Dashboard Lab analytics DOM.
+ * This file is ONLY a role visibility/order adapter.
+ * It must never replace the Owner card display/grid geometry.
+ */
+html body.pmd-dashboard-lab-page
+#pmd-dashboard-lab
+.pmd-role-dashboard-exact-owner {
+  width: 100% !important;
+  min-width: 0 !important;
+  margin: 0 !important;
+  padding: 0 !important;
+}
+
+html body.pmd-dashboard-lab-page
+#pmd-dashboard-lab
+.pmd-role-dashboard-exact-owner
+.pmd-dashboard-lab-analytics__body {
+  min-width: 0 !important;
+}
+
+/* Hide irrelevant Owner widgets; selected widgets are restored to the Owner's
+ * canonical display:grid card contract. V3.4 incorrectly forced display:flex,
+ * which turned the card's header/body rows into a horizontal flex row. */
+html body.pmd-dashboard-lab-page
+#pmd-dashboard-lab
+[data-pmd-role-dashboard="manager"]
+.pmd-dashboard-lab-analytics__card,
+html body.pmd-dashboard-lab-page
+#pmd-dashboard-lab
+[data-pmd-role-dashboard="accountant"]
+.pmd-dashboard-lab-analytics__card {
+  display: none !important;
+}
+
+/* Manager: 9+3 chart/alert first row, then four canonical small cards. */
+html body.pmd-dashboard-lab-page #pmd-dashboard-lab
+[data-pmd-role-dashboard="manager"]
+[data-pmd-lab-analytics-widget="salesByHour"] {
+  display: grid !important;
+  order: 1;
+}
+html body.pmd-dashboard-lab-page #pmd-dashboard-lab
+[data-pmd-role-dashboard="manager"]
+[data-pmd-lab-analytics-widget="alerts"] {
+  display: grid !important;
+  order: 2;
+}
+html body.pmd-dashboard-lab-page #pmd-dashboard-lab
+[data-pmd-role-dashboard="manager"]
+[data-pmd-lab-analytics-widget="liveOperations"] {
+  display: grid !important;
+  order: 3;
+}
+html body.pmd-dashboard-lab-page #pmd-dashboard-lab
+[data-pmd-role-dashboard="manager"]
+[data-pmd-lab-analytics-widget="topItems"] {
+  display: grid !important;
+  order: 4;
+}
+html body.pmd-dashboard-lab-page #pmd-dashboard-lab
+[data-pmd-role-dashboard="manager"]
+[data-pmd-lab-analytics-widget="reviews"] {
+  display: grid !important;
+  order: 5;
+}
+html body.pmd-dashboard-lab-page #pmd-dashboard-lab
+[data-pmd-role-dashboard="manager"]
+[data-pmd-lab-analytics-widget="calendarEvents"] {
+  display: grid !important;
+  order: 6;
+}
+
+/* Accountant: deliberately order the exact Owner cards so the 3-column donut
+ * fills the right side of each 9-column finance chart instead of leaving a gap. */
+html body.pmd-dashboard-lab-page #pmd-dashboard-lab
+[data-pmd-role-dashboard="accountant"]
+[data-pmd-lab-analytics-widget="salesOverTime"] {
+  display: grid !important;
+  order: 1;
+}
+html body.pmd-dashboard-lab-page #pmd-dashboard-lab
+[data-pmd-role-dashboard="accountant"]
+[data-pmd-lab-analytics-widget="paymentMethods"] {
+  display: grid !important;
+  order: 2;
+}
+html body.pmd-dashboard-lab-page #pmd-dashboard-lab
+[data-pmd-role-dashboard="accountant"]
+[data-pmd-lab-analytics-widget="salesByHour"] {
+  display: grid !important;
+  order: 3;
+}
+html body.pmd-dashboard-lab-page #pmd-dashboard-lab
+[data-pmd-role-dashboard="accountant"]
+[data-pmd-lab-analytics-widget="channelSplit"] {
+  display: grid !important;
+  order: 4;
+}
+html body.pmd-dashboard-lab-page #pmd-dashboard-lab
+[data-pmd-role-dashboard="accountant"]
+[data-pmd-lab-analytics-widget="recentTransactions"] {
+  display: grid !important;
+  order: 5;
+}
+html body.pmd-dashboard-lab-page #pmd-dashboard-lab
+[data-pmd-role-dashboard="accountant"]
+[data-pmd-lab-analytics-widget="tips"] {
+  display: grid !important;
+  order: 6;
+}
+
+/* Role-specific Manager/Accountant insight cards intentionally reuse the
+ * Owner card shell, header, toolbar, list and stat-grid classes. Only their
+ * placement is role-specific. */
+html body.pmd-dashboard-lab-page
+#pmd-dashboard-lab
+.pmd-role-specific-insights {
+  width: 100% !important;
+  min-width: 0 !important;
+  margin: 18px 0 22px !important;
+  padding: 0 !important;
+}
+
+html body.pmd-dashboard-lab-page
+#pmd-dashboard-lab
+.pmd-role-specific-insights__grid {
+  display: grid !important;
+  grid-template-columns: repeat(12, minmax(0, 1fr)) !important;
+  gap: 18px !important;
+  width: 100% !important;
+  min-width: 0 !important;
+}
+
+html body.pmd-dashboard-lab-page
+#pmd-dashboard-lab
+[data-pmd-role-dashboard]
+.pmd-role-specific-insights__card {
+  display: grid !important;
+  grid-column: span 4 !important;
+  min-height: 255px !important;
+  height: 255px !important;
+  max-height: 255px !important;
+}
+
+html body.pmd-dashboard-lab-page
+#pmd-dashboard-lab
+.pmd-role-specific-insights__body {
+  display: flex !important;
+  align-items: stretch !important;
+  min-width: 0 !important;
+  overflow: hidden !important;
+}
+
+html body.pmd-dashboard-lab-page
+#pmd-dashboard-lab
+.pmd-role-specific-insights__body
+.pmd-dashboard-lab-stats,
+html body.pmd-dashboard-lab-page
+#pmd-dashboard-lab
+.pmd-role-specific-insights__body
+.pmd-dashboard-lab-list {
+  align-self: stretch !important;
+}
+
+html body.pmd-dashboard-lab-page
+#pmd-dashboard-lab
+.pmd-role-specific-insights__body
+.pmd-dashboard-lab-stats dd {
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  white-space: nowrap !important;
+}
+
+@media (max-width: 1180px) {
+  html body.pmd-dashboard-lab-page
+  #pmd-dashboard-lab
+  [data-pmd-role-dashboard]
+  .pmd-role-specific-insights__card {
+    grid-column: span 6 !important;
+  }
+}
+
+@media (max-width: 760px) {
+  html body.pmd-dashboard-lab-page
+  #pmd-dashboard-lab
+  [data-pmd-role-dashboard]
+  .pmd-role-specific-insights__card {
+    grid-column: 1 / -1 !important;
+    height: auto !important;
+    min-height: 230px !important;
+    max-height: none !important;
+  }
+}

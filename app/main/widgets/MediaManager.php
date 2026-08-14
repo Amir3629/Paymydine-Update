@@ -98,6 +98,16 @@ class MediaManager extends BaseWidget
 
     public function loadAssets()
     {
+        // PMD_CLEAN_ROLE_WORKSPACE_MEDIA_ASSET_GUARD_V1
+        if (
+            request()->is('admin/managerlab*') ||
+            request()->is('admin/accountantlab*') ||
+            request()->is('admin/cashierlab*') ||
+            request()->is('admin/reservationslab*')
+        ) {
+            return;
+        }
+
         $this->addCss('vendor/treeview/bootstrap-treeview.min.css', 'treeview-css');
         $this->addCss('vendor/dropzone/dropzone.min.css', 'dropzone-css');
         $this->addCss('css/mediamanager.css', 'mediamanager-css');

@@ -3690,7 +3690,14 @@ document.documentElement.classList.add('pmd-r2-v6-booting');
 
 
 {{-- PMD_DASHBOARD2_RETIRE_EMERGENCY_UNHIDE_V1 --}}
-@unless (request()->is('admin/dashboard2') || request()->is('admin/dashboard2/*'))
+@unless (
+    request()->is('admin/dashboard2') ||
+    request()->is('admin/dashboard2/*') ||
+    request()->is('admin/managerlab*') ||
+    request()->is('admin/accountantlab*') ||
+    request()->is('admin/cashierlab*') ||
+    request()->is('admin/reservationslab*')
+)
 <!-- PMD_OWNER_EMERGENCY_UNHIDE_START -->
 <style id="pmd-owner-emergency-unhide-style">
 html.pmd-owner-clean-v113-boot .pmd-v15-shell,
@@ -3933,6 +3940,11 @@ html.pmd-owner-v69-no-loader .pmd-v36-span-2 {
 <!-- PMD_ADMIN_LOADER_HARD_RESET_V64_PRELOAD_END -->
 @php
     $pmdIsNativeMediaContext = request()->is('admin/settings*') || request()->is('admin/media_manager*');
+    // PMD_CLEAN_ROLE_WORKSPACE_MEDIA_LAYOUT_GUARD_V1
+    $pmdIsCleanRoleWorkspace = request()->is('admin/managerlab*')
+        || request()->is('admin/accountantlab*')
+        || request()->is('admin/cashierlab*')
+        || request()->is('admin/reservationslab*');
 @endphp
 
     {!! get_metas() !!}
@@ -8243,11 +8255,17 @@ html.pmd-waiter-dashboard-active .pmd-v18-unmerge {
 {{-- Use asset combiner to ensure all widget JS files are included --}}
 @php
     $pmdIsNativeMediaContext = request()->is('admin/settings*') || request()->is('admin/media_manager*');
+    // PMD_CLEAN_ROLE_WORKSPACE_MEDIA_LAYOUT_GUARD_V1
+    $pmdIsCleanRoleWorkspace = request()->is('admin/managerlab*')
+        || request()->is('admin/accountantlab*')
+        || request()->is('admin/cashierlab*')
+        || request()->is('admin/reservationslab*');
 @endphp
 
 <!-- PMD_KDS_SERVER_FAST_V82_EARLY_MEDIA_GUARD_START -->
 @unless(!empty($__pmdIsKdsDashboardV82))
 <!-- PMD EARLY SORTABLE DROPZONE START -->
+@unless($pmdIsCleanRoleWorkspace)
     @unless(request()->is('admin/reservations2'))
 {{-- PMD_LEAN_V14_SORTABLE_GUARDED_BEGIN --}}
 @unless(request()->is('admin/reservations*'))
@@ -8257,6 +8275,7 @@ html.pmd-waiter-dashboard-active .pmd-v18-unmerge {
 @endunless
     @unless(request()->is('admin/reservations2'))
 <script src="{{ asset('app/admin/assets/vendor/pmd-mediafix/dropzone.min.js') }}?v={{ request()->is('admin/reservations*') ? 'pmd-reservations-v18-20260728' : time() }}"></script>
+@endunless
 @endunless
 <!-- PMD EARLY SORTABLE DROPZONE END -->
 @endunless

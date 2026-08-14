@@ -31,6 +31,11 @@ abstract class PmdCleanWorkspaceControllerV1 extends AdminController
         return null;
     }
 
+    protected function pmdBelowFloorPartial(): ?string
+    {
+        return null;
+    }
+
     protected function pmdPrepareWorkspaceVars(
         PmdCleanWorkspaceSharedV1 $shared,
         string $locale,
@@ -87,6 +92,30 @@ abstract class PmdCleanWorkspaceControllerV1 extends AdminController
         /** @var PmdCleanWorkspaceSharedV1 $shared */
         $shared = app(PmdCleanWorkspaceSharedV1::class);
         $locale = $shared->locale();
+
+        /*
+         * PMD_CLEAN_WORKSPACE_REQUEST_COOKIE_LOCALE_V3
+         * Use Laravel's decrypted request cookie, matching the official
+         * language-switch route and global Admin i18n boot authority.
+         */
+        $adminLocale = strtolower(trim((string)request()->cookie(
+            'pmd_admin_locale',
+            ''
+        )));
+
+        if (preg_match('/^(en|de)(?:[-_][a-z0-9]+)?$/i', $adminLocale, $match)) {
+            $locale = strtolower($match[1]);
+        } else {
+            $locale = strtolower(trim((string)$locale));
+            $locale = strpos($locale, 'de') === 0 ? 'de' : 'en';
+        }
+
+        app()->setLocale($locale);
+
+        if (app()->bound('translator.localization')) {
+            app('translator.localization')->setLocale($locale, false);
+        }
+
         $key = $this->pmdWorkspaceKey();
         $title = $this->pmdWorkspaceTitle($locale);
 
@@ -159,6 +188,7 @@ abstract class PmdCleanWorkspaceControllerV1 extends AdminController
 
         $this->vars['pmdCleanWorkspaceUsesFloor'] = $this->pmdUsesFloor();
         $this->vars['pmdCleanWorkspaceAfterFloorPartial'] = $this->pmdAfterFloorPartial();
+        $this->vars['pmdCleanWorkspaceBelowFloorPartial'] = $this->pmdBelowFloorPartial();
         $this->vars['pmdCleanWorkspaceFloorBootstrap'] = $floorBootstrap;
         $this->vars['pmdCleanWorkspaceFloorDisplayTables'] = $floorBootstrap['display_tables'] ?? [];
         $this->vars['pmdCleanWorkspaceFloorMode'] = $floorBootstrap['mode'] ?? 'row';

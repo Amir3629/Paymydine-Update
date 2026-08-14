@@ -4,8 +4,9 @@ if (/\/admin\/dashboardfloor(?:$|[?#])/.test(location.pathname + location.search
 } else {
 // PMD_OWNER_DASHBOARD_CLEAN_V23_DASHBOARDFLOOR_WRAP_V1_BODY_START
 // PMD_OWNER_DASHBOARD_CLEAN_V23_FULL_KIOSK_WRAP_V84_START
-if (/\/admin\/dashboard(?:waiter|reservation)(?:$|[?#])/.test(location.pathname + location.search + location.hash)) {
-  console.info('[PMD] Owner dashboard clean v23 FULLY skipped on kiosk route', { path: location.pathname });
+// PMD_CLEAN_ROLE_WORKSPACE_OWNER_JS_SKIP_V1
+if (/\/admin\/(?:dashboard(?:waiter|reservation)|managerlab|accountantlab|cashierlab|reservationslab)(?:$|[/?#])/.test(location.pathname + location.search + location.hash)) {
+  // Intentionally silent: this Owner-only runtime has no authority on these workspaces.
 } else {
 // PMD_OWNER_DASHBOARD_CLEAN_V23_FULL_KIOSK_WRAP_V84_BODY_START
 /* PMD_DASHBOARD_ROUTE_GUARD_V51_START */

@@ -6,7 +6,13 @@
         str_starts_with($pmdPath, 'admin/dashboardwaiter') ||
         str_starts_with($pmdPath, 'admin/kds') ||
         str_starts_with($pmdPath, 'admin/dashboardkitchen') ||
-        str_starts_with($pmdPath, 'admin/quick-mode');
+        str_starts_with($pmdPath, 'admin/quick-mode') ||
+        /* PMD_ROLE_WORKSPACE_STANDALONE_MENU_EXCLUSION_V3 */
+        in_array($pmdPath, [
+            'admin/reservationslab',
+            'admin/cashierlab',
+            'admin/accountantlab',
+        ], true);
 
     $pmdIsReservations2 =
         str_starts_with($pmdPath, 'admin/reservations2');

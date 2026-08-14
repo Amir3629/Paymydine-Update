@@ -32,8 +32,12 @@ class Login extends \Admin\Classes\AdminController
 
     public function index()
     {
-        if (AdminAuth::isLogged())
+        if (AdminAuth::isLogged()) {
+            if ($landing = $this->pmdRoleLandingRoute())
+                return $this->redirect($landing);
+
             return $this->redirect('dashboard');
+        }
 
         Template::setTitle(lang('admin::lang.login.text_title'));
 
@@ -63,6 +67,54 @@ class Login extends \Admin\Classes\AdminController
         return $this->makeView('auth/reset');
     }
 
+    /**
+     * PMD_ROLE_LANDING_REDIRECT_V1
+     *
+     * One login-owner for role landing. Super users keep the native dashboard.
+     */
+    private function pmdRoleLandingRoute(): ?string
+    {
+        $user = AdminAuth::getUser();
+
+        if (!$user || $user->isSuperUser())
+            return null;
+
+        $staff = $user->staff;
+        $role = $staff ? $staff->role : null;
+
+        if (!$role)
+            return null;
+
+        $code = strtolower(trim((string)($role->code ?? '')));
+        $name = strtolower(trim((string)($role->name ?? '')));
+
+        $map = [
+            'pmd-owner' => 'dashboardlab',
+            'owner' => 'dashboardlab',
+
+            'pmd-accountant' => 'accountantlab',
+            'accountant' => 'accountantlab',
+
+            'pmd-cashier' => 'cashierlab',
+            'cashier' => 'cashierlab',
+
+            'pmd-manager' => 'managerlab',
+            'manager' => 'managerlab',
+
+            'pmd-waiter' => 'cashierlab',
+            'waiter' => 'cashierlab',
+
+            'pmd-reservation' => 'reservationslab',
+            'reservation' => 'reservationslab',
+            'reservations' => 'reservationslab',
+        ];
+
+        if ($code !== '' && isset($map[$code]))
+            return $map[$code];
+
+        return $map[$name] ?? null;
+    }
+
     public function onLogin()
     {
         $data = post();
@@ -85,8 +137,30 @@ class Login extends \Admin\Classes\AdminController
 
         session()->regenerate();
 
+        // PMD_ROLE_LANDING_REDIRECT_V1
+        // Core operational roles always land in their own workspace.
+        if ($landing = $this->pmdRoleLandingRoute())
+            return $this->redirect($landing);
+
         if ($redirectUrl = input('redirect'))
             return $this->redirect($redirectUrl);
+
+        // PMD_MEHDI_ROLE_LANDING_V1
+        // These six identities clone existing live roles. Authentication is
+        // already valid; send each identity directly to its proven workspace
+        // instead of the generic /admin/dashboard fallback.
+        $pmdUsername = strtolower(trim((string)optional(AdminAuth::user())->username));
+        $pmdMehdiLanding = [
+            'mehdiowner' => 'dashboardlab',
+            'mehdimanager' => 'managerlab',
+            'mehdiwaiter' => 'cashierlab',
+            'mehdicashier' => 'cashierlab',
+            'mehdiaccountant' => 'accountantlab',
+            'mehdireservations' => 'reservationslab',
+        ];
+
+        if (isset($pmdMehdiLanding[$pmdUsername]))
+            return $this->redirect($pmdMehdiLanding[$pmdUsername]);
 
         return $this->redirectIntended('dashboard');
     }

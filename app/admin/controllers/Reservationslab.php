@@ -16,7 +16,11 @@ class Reservationslab extends PmdCleanWorkspaceControllerV1
     {
         parent::__construct();
         $this->addCss('css/pmd-reservations-lab-schedule-v1.css');
+        $this->addCss('css/pmd-cashier-lab-orders-v1.css');
         $this->addJs('js/pmd-reservations-lab-schedule-v1.js');
+
+        /* PMD_RESERVATIONS_LAB_TABLE_CARD_FILTER_V1 */
+        $this->addJs('js/pmd-reservations-lab-table-card-filter-v1.js');
     }
 
     protected function pmdWorkspaceKey(): string
@@ -47,6 +51,12 @@ class Reservationslab extends PmdCleanWorkspaceControllerV1
     protected function pmdAfterFloorPartial(): ?string
     {
         return 'admin::_partials.pmd_reservations_lab_schedule_v1';
+    }
+
+    /* PMD_RESERVATIONS_LAB_BELOW_FLOOR_CARDS_V2_1 */
+    protected function pmdBelowFloorPartial(): ?string
+    {
+        return 'admin::_partials.pmd_reservations_lab_cards_v1';
     }
 
     protected function pmdPrepareWorkspaceVars(

@@ -43,6 +43,9 @@
   var availabilityNode = composer.querySelector('[data-pmd-res-lab-availability]');
   var errorNode = composer.querySelector('[data-pmd-res-lab-error]');
   var saveButton = composer.querySelector('[data-pmd-res-lab-save]');
+  /* PMD_RESERVATIONS_LAB_EXACT_COMPOSER_BRIDGE_V2_5 */
+  var loadingNode = composer.querySelector('[data-pmd-res-lab-loading]');
+  var contentNode = composer.querySelector('[data-pmd-res-lab-content]');
   var activeComposerMode = 'create';
   var activeReservationId = null;
 
@@ -84,7 +87,26 @@
   function reservationStatus(item) {
     var raw = item.status;
     if (raw && typeof raw === 'object') raw = raw.name || raw.label || raw.status || raw.status_name;
-    return clean(raw || item.status_name || item.state || text('scheduled', locale === 'de' ? 'Geplant' : 'Scheduled'));
+    var value = clean(raw || item.status_name || item.state || '');
+    var normalized = value.toLowerCase();
+
+    if (locale === 'de') {
+      if (/cancel|canceled|cancelled|storn|declin|reject/.test(normalized)) return 'Storniert';
+      if (/pending|request|wait|aussteh|wart/.test(normalized)) return 'Ausstehend';
+      if (/confirm|approved|bestät/.test(normalized)) return 'Bestätigt';
+      if (/seat|arriv|platziert|angekommen/.test(normalized)) return 'Angekommen';
+      if (/complete|finished|abgesch/.test(normalized)) return 'Abgeschlossen';
+      if (/no.?show|nicht erschienen/.test(normalized)) return 'Nicht erschienen';
+      if (/received|scheduled|geplant|eingegang/.test(normalized)) return 'Geplant';
+      return value || text('scheduled', 'Geplant');
+    }
+
+    if (/storn/.test(normalized)) return 'Cancelled';
+    if (/aussteh|wart/.test(normalized)) return 'Pending';
+    if (/bestät/.test(normalized)) return 'Confirmed';
+    if (/angekommen|platziert/.test(normalized)) return 'Arrived';
+    if (/abgesch/.test(normalized)) return 'Completed';
+    return value || text('scheduled', 'Scheduled');
   }
   function reservationTable(item) {
     if (Array.isArray(item.table_names) && item.table_names.length) return clean(item.table_names.join(', ')).replace(/\btable\s*/gi, '');
@@ -461,6 +483,16 @@
     if (!availabilityNode) return; availabilityNode.textContent = message || '';
     availabilityNode.classList.toggle('is-ok', ok === true); availabilityNode.classList.toggle('is-error', ok === false);
   }
+  function setComposerLoading(loading) {
+    if (loadingNode) {
+      loadingNode.hidden = !loading;
+      loadingNode.setAttribute('aria-hidden', loading ? 'false' : 'true');
+    }
+    if (contentNode) {
+      contentNode.hidden = Boolean(loading);
+      contentNode.setAttribute('aria-hidden', loading ? 'true' : 'false');
+    }
+  }
   function assignmentMode() { var checked = form.querySelector('[name="assignment_mode"]:checked'); return checked ? String(checked.value || '') : 'auto'; }
   function syncTableField() { if (tableField) tableField.hidden = assignmentMode() !== 'choose'; }
   function formPayload() {
@@ -478,7 +510,7 @@
     var selected = (selectedIds || []).map(Number); select.replaceChildren();
     (Array.isArray(tables) ? tables : []).forEach(function (table) {
       var option = document.createElement('option'); option.value = String(table.table_id || '');
-      option.textContent = String(table.table_name || ('Table ' + table.table_id)) + ' (' + String(table.min_capacity || 0) + '–' + String(table.max_capacity || 0) + ')';
+      option.textContent = String(table.table_name || (text('table','Table') + ' ' + table.table_id)) + ' (' + String(table.min_capacity || 0) + '–' + String(table.max_capacity || 0) + ')';
       option.selected = selected.indexOf(Number(table.table_id || 0)) >= 0; select.appendChild(option);
     });
   }
@@ -494,14 +526,27 @@
     var radio = form.querySelector('[name="assignment_mode"][value="' + mode.replace(/[^a-z]/g,'') + '"]'); if (radio) radio.checked = true;
     syncTableField(); setAvailability('', null);
     var title = composer.querySelector('[data-pmd-res-lab-composer-title]'); if (title) title.textContent = reservation ? text('edit_reservation','Edit reservation') : text('new_reservation','New reservation');
+    setComposerLoading(false);
   }
   function openComposer(mode, reservationId, date, time) {
     activeComposerMode = mode === 'edit' ? 'edit' : 'create'; activeReservationId = reservationId ? Number(reservationId) : null;
-    clearComposerError(); setAvailability(text('loading','Loading reservation…'), null); composer.hidden = false; document.body.classList.add('pmd-reservations-lab-composer-open');
+    clearComposerError();
+    setAvailability('', null);
+    setComposerLoading(true);
+    composer.hidden = false;
+    composer.setAttribute('aria-hidden', 'false');
+    document.body.classList.add('pmd-reservations-lab-composer-open', 'pmd-reservation-composer-open-v1', 'modal-open');
     return request('onLoadReservationComposer', {mode:activeComposerMode,reservation_id:activeReservationId,source:'reservationslab',selected_date:String(date || selectedDate || boot.today || ''),selected_time:String(time || ''),table_ids:[],location_id:null})
-      .then(populateComposer).catch(function (error) { showComposerError(error); setAvailability('', null); });
+      .then(populateComposer).catch(function (error) { setComposerLoading(false); showComposerError(error); setAvailability('', null); });
   }
-  function closeComposer() { composer.hidden = true; document.body.classList.remove('pmd-reservations-lab-composer-open'); clearComposerError(); setAvailability('', null); }
+  function closeComposer() {
+    composer.hidden = true;
+    composer.setAttribute('aria-hidden', 'true');
+    document.body.classList.remove('pmd-reservations-lab-composer-open', 'pmd-reservation-composer-open-v1', 'modal-open');
+    clearComposerError();
+    setAvailability('', null);
+    setComposerLoading(true);
+  }
   function checkAvailability() {
     clearComposerError(); var data = formPayload();
     if (!data.reserve_date || !data.reserve_time || !data.guest_num || !data.duration) { setAvailability(text('availability_requirements','Choose date, time, duration and guests.'), false); return; }
@@ -529,10 +574,30 @@
   form.addEventListener('change', function (event) { if (event.target && event.target.name === 'assignment_mode') { syncTableField(); setAvailability('', null); } });
   form.addEventListener('submit', saveReservation);
 
+  /* PMD_RESERVATIONS_LAB_OPERATIONAL_CARDS_CLICK_V1
+   * One direct interaction owner; no observer/timer/polling.
+   */
+  document.addEventListener('click', function (event) {
+    var cardEdit = event.target && event.target.closest
+      ? event.target.closest('[data-pmd-res-lab-card-edit]')
+      : null;
+
+    if (!cardEdit) return;
+
+    event.preventDefault();
+
+    openComposer(
+      'edit',
+      cardEdit.getAttribute('data-pmd-res-lab-card-edit'),
+      cardEdit.getAttribute('data-pmd-res-lab-card-date') || '',
+      cardEdit.getAttribute('data-pmd-res-lab-card-time') || ''
+    );
+  }, true);
+
   bindHeaderToggle();
 
   window.PMDReservationsLabScheduleV1 = {
-    version: '2.4.0',
+    version: '2.6.0',
     openCalendar: function () { setMode(true); },
     closeCalendar: function () { setMode(false); },
     audit: function () {

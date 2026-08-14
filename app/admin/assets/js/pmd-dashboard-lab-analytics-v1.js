@@ -1,14 +1,19 @@
 (function () {
   'use strict';
 
+  /* PMD_DASHBOARD_LAB_SHARED_ROLE_RUNTIME_V3_4
+   * The exact Owner analytics runtime is shared by Manager/Accountant. The
+   * component root supplies its route endpoint; Dashboard Lab keeps its exact
+   * original endpoint by default.
+   */
   var path = String(window.location.pathname || '').replace(/\/+$/, '');
-  if (path !== '/admin/dashboardlab') return;
+  if (['/admin/dashboardlab', '/admin/managerlab', '/admin/accountantlab'].indexOf(path) === -1) return;
 
   var root = document.getElementById('pmd-dashboard-lab-analytics-v1');
   if (!root) return;
 
-  var VERSION = '1.0.0-clean-lab-analytics';
-  var ENDPOINT = '/admin/dashboardlab?pmd_analytics=1';
+  var VERSION = '1.0.1-shared-role-analytics';
+  var ENDPOINT = root.getAttribute('data-pmd-dashboard-lab-analytics-endpoint') || (path + '?pmd_analytics=1');
   var CHART_MODE_KEY = 'pmd.dashboardlab.salesChartMode.v1';
   var PERIOD_KEYS = ['today', 'week', 'month'];
   var cache = Object.create(null);
@@ -228,6 +233,45 @@
     return rows.slice(Math.max(0, rows.length - visible));
   }
 
+  /* PMD_DASHBOARD_LAB_SMOOTH_LINE_CURVES_V3_4_2
+   * Cubic Bezier segments keep every real data point exact while giving each
+   * point a horizontal tangent. Peaks/valleys are rounded and the curve cannot
+   * overshoot beyond the two neighbouring values.
+   */
+  function smoothLinePath(points) {
+    if (!Array.isArray(points) || !points.length) return '';
+
+    var path = 'M ' + points[0].x + ' ' + points[0].y;
+    for (var index = 1; index < points.length; index += 1) {
+      var previous = points[index - 1];
+      var current = points[index];
+      var handle = (current.x - previous.x) * 0.38;
+      path += ' C ' +
+        (previous.x + handle) + ' ' + previous.y + ' ' +
+        (current.x - handle) + ' ' + current.y + ' ' +
+        current.x + ' ' + current.y;
+    }
+    return path;
+  }
+
+  function smoothAreaPath(points, base) {
+    if (!Array.isArray(points) || !points.length) return '';
+
+    var path = 'M ' + points[0].x + ' ' + base +
+      ' L ' + points[0].x + ' ' + points[0].y;
+    for (var index = 1; index < points.length; index += 1) {
+      var previous = points[index - 1];
+      var current = points[index];
+      var handle = (current.x - previous.x) * 0.38;
+      path += ' C ' +
+        (previous.x + handle) + ' ' + previous.y + ' ' +
+        (current.x - handle) + ' ' + current.y + ' ' +
+        current.x + ' ' + current.y;
+    }
+    path += ' L ' + points[points.length - 1].x + ' ' + base + ' Z';
+    return path;
+  }
+
   function svgLine(allRows, payload, visible) {
     var rows = chartRows(allRows, visible);
     if (!rows.length) return empty();
@@ -248,8 +292,8 @@
       };
     });
 
-    var poly = points.map(function (point) { return point.x + ',' + point.y; }).join(' ');
-    var area = d.left + ',' + base + ' ' + poly + ' ' + (d.w - d.right) + ',' + base;
+    var linePath = smoothLinePath(points);
+    var areaPath = smoothAreaPath(points, base);
     var labelEvery = Math.max(1, Math.ceil(rows.length / 7));
     var labels = points.map(function (point, index) {
       if (index % labelEvery !== 0 && index !== points.length - 1) return '';
@@ -263,8 +307,8 @@
     return '<svg viewBox="0 0 900 330" role="img" aria-label="Sales over time line chart">' +
       chartGrid(scale, d, payload) +
       '<line class="pmd-lab-chart-axis" x1="' + d.left + '" y1="' + base + '" x2="' + (d.w - d.right) + '" y2="' + base + '"></line>' +
-      '<polygon class="pmd-lab-chart-area" points="' + area + '"></polygon>' +
-      '<polyline class="pmd-lab-chart-line" points="' + poly + '"></polyline>' +
+      '<path class="pmd-lab-chart-area" d="' + areaPath + '"></path>' +
+      '<path class="pmd-lab-chart-line" d="' + linePath + '"></path>' +
       circles + labels +
       '</svg>';
   }

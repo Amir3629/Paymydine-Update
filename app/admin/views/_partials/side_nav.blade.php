@@ -862,3 +862,49 @@ html.pmd-sm2-collapsed
 }
 </style>
 
+
+{{-- PMD_LANGUAGE_TEXT_ONLY_GLOBAL_V3_3 --}}
+<style id="pmd-language-text-only-global-v3-3">
+#pmd-sidebar-language #pmd-language-trigger .pmd-language-icon,
+#pmd-sidebar-language #pmd-language-trigger .pmd-language-label {
+  display: none !important;
+  visibility: hidden !important;
+}
+#pmd-sidebar-language #pmd-language-trigger,
+#pmd-sidebar-language.is-wide #pmd-language-trigger,
+html.pmd-sm2-collapsed #pmd-sidebar-language #pmd-language-trigger,
+html.pmd-sm2-expanded #pmd-sidebar-language #pmd-language-trigger {
+  position: relative !important;
+  display: grid !important;
+  place-items: center !important;
+  width: 52px !important;
+  min-width: 52px !important;
+  max-width: 52px !important;
+  height: 46px !important;
+  min-height: 46px !important;
+  max-height: 46px !important;
+  padding: 0 !important;
+  gap: 0 !important;
+}
+#pmd-sidebar-language #pmd-language-trigger .pmd-current-language,
+html.pmd-sm2-collapsed #pmd-sidebar-language #pmd-language-trigger .pmd-current-language,
+html.pmd-sm2-expanded #pmd-sidebar-language #pmd-language-trigger .pmd-current-language {
+  position: static !important;
+  inset: auto !important;
+  display: inline !important;
+  min-width: 0 !important;
+  width: auto !important;
+  height: auto !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  color: #ffffff !important;
+  font-size: 13px !important;
+  font-weight: 900 !important;
+  line-height: 1 !important;
+  text-align: center !important;
+  transform: none !important;
+}
+</style>

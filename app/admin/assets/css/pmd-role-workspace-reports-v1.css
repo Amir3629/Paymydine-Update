@@ -1,0 +1,18 @@
+/* PMD_ROLE_WORKSPACE_REPORTS_V1 */
+#pmd-dashboard-lab .pmd-role-reports{width:min(1480px,100%);margin:26px auto 34px;padding:0}
+#pmd-dashboard-lab .pmd-role-reports__header{display:flex;align-items:flex-end;justify-content:space-between;gap:18px;margin:0 2px 14px}
+#pmd-dashboard-lab .pmd-role-reports__header h2{margin:0;color:#102f46;font-size:22px;font-weight:800;line-height:1.15}
+#pmd-dashboard-lab .pmd-role-reports__header p{margin:6px 0 0;color:#607d95;font-size:13.5px;font-weight:600;line-height:1.45}
+#pmd-dashboard-lab .pmd-role-reports__permission{display:inline-flex;align-items:center;justify-content:center;min-height:36px;padding:0 13px;border:1px solid #cfe0ec;border-radius:999px;background:#fff;color:#46657d;font-size:12px;font-weight:800;white-space:nowrap}
+#pmd-dashboard-lab .pmd-role-reports__grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px}
+#pmd-dashboard-lab .pmd-role-report-card{display:grid;grid-template-columns:46px minmax(0,1fr);grid-template-rows:auto auto;gap:0 13px;min-width:0;min-height:164px;padding:16px;border:1px solid #cfe0ec;border-radius:18px;background:#fff;color:#173752;box-shadow:0 7px 22px rgba(16,42,67,.04);text-decoration:none!important}
+#pmd-dashboard-lab .pmd-role-report-card:hover{border-color:#adc8da;box-shadow:0 10px 28px rgba(16,42,67,.08)}
+#pmd-dashboard-lab .pmd-role-report-card__icon{grid-row:1/span 2;display:grid;place-items:center;width:46px;height:46px;border-radius:14px;background:#eef6fb;color:#173752}
+#pmd-dashboard-lab .pmd-role-report-card__icon svg{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round}
+#pmd-dashboard-lab .pmd-role-report-card__body{display:block;min-width:0}
+#pmd-dashboard-lab .pmd-role-report-card__body strong{display:block;color:#102f46;font-size:16px;font-weight:800;line-height:1.25}
+#pmd-dashboard-lab .pmd-role-report-card__body>span{display:block;margin-top:6px;color:#607d95;font-size:13px;font-weight:600;line-height:1.45}
+#pmd-dashboard-lab .pmd-role-report-card__action{grid-column:2;align-self:end;display:inline-flex;align-items:center;gap:5px;margin-top:14px;color:#173752;font-size:12.5px;font-weight:800}
+#pmd-dashboard-lab .pmd-role-report-card__action svg{width:15px;height:15px;fill:none;stroke:currentColor;stroke-width:2}
+@media(max-width:1100px){#pmd-dashboard-lab .pmd-role-reports__grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:700px){#pmd-dashboard-lab .pmd-role-reports__header{align-items:flex-start;flex-direction:column}#pmd-dashboard-lab .pmd-role-reports__grid{grid-template-columns:1fr}}

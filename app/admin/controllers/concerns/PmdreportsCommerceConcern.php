@@ -170,9 +170,15 @@ trait PmdreportsCommerceConcern
     {
         if (!$this->hasColumns('order_menus',['order_id','name','quantity','subtotal'])) return $this->emptySource('order_menus item totals unavailable');
         $ids = $this->analyticsEligibleOrders($start,$end)->select('orders.order_id');
+        /* PMD_REPORTS_PREFIX_SAFE_ALIASES_V3_3_1 */
+        $omAlias = $this->sqlAlias('om');
         $rowsDb = DB::table('order_menus as om')->whereIn('om.order_id',$ids)->groupBy('om.name')
-            ->orderByDesc(DB::raw('SUM(ti_om.quantity)'))->limit(100)
-            ->selectRaw('om.name, SUM(ti_om.quantity) AS quantity, SUM(ti_om.subtotal) AS revenue')->get();
+            ->orderByDesc(DB::raw('SUM('.$omAlias.'.`quantity`)'))->limit(100)
+            ->selectRaw(
+                $omAlias.'.`name` AS name, '.
+                'SUM('.$omAlias.'.`quantity`) AS quantity, '.
+                'SUM('.$omAlias.'.`subtotal`) AS revenue'
+            )->get();
         $rows = $rowsDb->map(fn($r)=>['item'=>(string)$r->name,'quantity'=>number_format((int)$r->quantity),'revenue'=>$this->money((float)$r->revenue)])->all();
         $top = $rowsDb->first();
         return [
@@ -188,9 +194,15 @@ trait PmdreportsCommerceConcern
     {
         if (!$this->hasColumns('order_totals',['order_id','code','value'])) return $this->emptySource('order_totals tip source unavailable');
         $ids = $this->analyticsEligibleOrders($start,$end)->select('orders.order_id');
-        $rowsDb = DB::table('order_totals as ot')->whereRaw("LOWER(TRIM(ti_ot.code))='tip'")->whereIn('ot.order_id',$ids)
+        $otAlias = $this->sqlAlias('ot');
+        $rowsDb = DB::table('order_totals as ot')
+            ->whereRaw("LOWER(TRIM({$otAlias}.`code`))='tip'")
+            ->whereIn('ot.order_id',$ids)
             ->groupBy('ot.order_id')->orderByDesc('ot.order_id')->limit(250)
-            ->selectRaw('ot.order_id, SUM(ot.value) AS tip')->get();
+            ->selectRaw(
+                $otAlias.'.`order_id` AS order_id, '.
+                'SUM('.$otAlias.'.`value`) AS tip'
+            )->get();
         $total=(float)$rowsDb->sum('tip'); $count=$rowsDb->count();
         $rows=$rowsDb->map(fn($r)=>['order'=>'#'.(int)$r->order_id,'tip'=>$this->money((float)$r->tip)])->all();
         return [

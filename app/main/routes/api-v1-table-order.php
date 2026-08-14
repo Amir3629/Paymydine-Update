@@ -10,7 +10,25 @@ $pmdFindOpenTableOrderForContext = function (array $context, $fallbackFinder = n
     try {
         if (is_callable($fallbackFinder)) {
             $found = $fallbackFinder($context);
-            if ($found && (int)($found->order_id ?? 0) > 0) return $found;
+            if ($found && (int)($found->order_id ?? 0) > 0) {
+                // PMD_TABLE_PAID_ORDER_RELEASE_V1_FALLBACK_GUARD
+                // Never let a stale fallback resurrect a fully paid table order.
+                $foundTotal = (float)($found->order_total ?? 0);
+                $foundSettled = (float)($found->settled_amount ?? 0);
+                $foundSettlementStatus = strtolower(trim((string)($found->settlement_status ?? '')));
+                $foundStatusName = strtolower(trim((string)($found->status_name ?? '')));
+                $foundNormalizedStatus = str_replace([' ', '_'], '-', $foundStatusName);
+
+                $foundIsPaid = in_array($foundSettlementStatus, ['paid', 'settled'], true)
+                    || $foundNormalizedStatus === 'paid'
+                    || ($foundTotal > 0 && $foundSettled >= $foundTotal - 0.0001);
+                $foundIsCancelledFinancially = in_array($foundSettlementStatus, ['cancelled', 'canceled', 'failed', 'refunded', 'refund', 'void', 'voided'], true);
+                $foundIsCancelledOperationally = in_array($foundNormalizedStatus, ['cancelled', 'canceled', 'cancel'], true);
+
+                if (!$foundIsPaid && !$foundIsCancelledFinancially && !$foundIsCancelledOperationally) {
+                    return $found;
+                }
+            }
         }
     } catch (\Throwable $ignored) {}
 

@@ -1,0 +1,577 @@
+/* =========================================================
+   PMD_OPERATIONAL_CARDS_SHARED_V2
+   Shared practical cards for Cashier Lab + Reservations Lab.
+   One visual owner. No decorative top color strips.
+   ========================================================= */
+
+#pmd-dashboard-lab .pmd-ops-section {
+  width: 100%;
+  margin: 20px 0 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+#pmd-dashboard-lab .pmd-ops-section__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  margin: 0 0 14px;
+  padding: 0 2px;
+}
+
+#pmd-dashboard-lab .pmd-ops-section__heading {
+  min-width: 0;
+}
+
+#pmd-dashboard-lab .pmd-ops-section__heading h2 {
+  margin: 0;
+  color: #102a43;
+  font-size: 22px;
+  font-weight: 850;
+  line-height: 1.18;
+  letter-spacing: -.015em;
+}
+
+#pmd-dashboard-lab .pmd-ops-section__heading p {
+  margin: 6px 0 0;
+  color: #667d91;
+  font-size: 14px;
+  font-weight: 650;
+  line-height: 1.4;
+}
+
+#pmd-dashboard-lab .pmd-ops-section__range-label {
+  color: #47647c;
+  font-weight: 800;
+}
+
+#pmd-dashboard-lab .pmd-ops-section__tools {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+  flex: 0 0 auto;
+}
+
+#pmd-dashboard-lab .pmd-ops-section__count {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 6px;
+  min-height: 46px;
+  padding: 0 15px;
+  border: 1px solid #cfe0ed;
+  border-radius: 14px;
+  background: #fff;
+  color: #60778b;
+  font-size: 13px;
+  font-weight: 750;
+  white-space: nowrap;
+}
+
+#pmd-dashboard-lab .pmd-ops-section__count strong {
+  color: #102a43;
+  font-size: 17px;
+  font-weight: 900;
+}
+
+/* Three columns on wide desktop gives the content room to breathe. */
+#pmd-dashboard-lab .pmd-ops-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px;
+}
+
+/* PMD_OPERATIONAL_CARDS_EQUAL_PHYSICAL_SIZE_V2_1 */
+#pmd-dashboard-lab .pmd-ops-card {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 232px;
+  padding: 16px;
+  border: 1px solid #cfe0ed;
+  border-radius: 18px;
+  background: #fff;
+  box-shadow: 0 7px 22px rgba(16, 42, 67, .04);
+}
+
+/* Explicitly remove the old decorative status strip. */
+#pmd-dashboard-lab .pmd-ops-card::before,
+#pmd-dashboard-lab .pmd-ops-card::after {
+  display: none !important;
+  content: none !important;
+}
+
+#pmd-dashboard-lab .pmd-ops-card__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-width: 0;
+  margin: 0 0 10px;
+}
+
+#pmd-dashboard-lab .pmd-ops-card__title {
+  min-width: 0;
+  overflow: hidden;
+  color: #102a43;
+  font-size: 17px;
+  font-weight: 900;
+  line-height: 1.25;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+#pmd-dashboard-lab .pmd-ops-card__status {
+  flex: 0 0 auto;
+  padding: 6px 10px;
+  border: 1px solid #cadde9;
+  border-radius: 999px;
+  background: #f7fafc;
+  color: #49667d;
+  font-size: 11.5px;
+  font-weight: 850;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+#pmd-dashboard-lab .pmd-ops-card__status.is-paid,
+#pmd-dashboard-lab .pmd-ops-card__status.is-ready,
+#pmd-dashboard-lab .pmd-ops-card__status.is-confirmed {
+  border-color: #b9dcca;
+  background: #f1faf6;
+  color: #246b4b;
+}
+
+#pmd-dashboard-lab .pmd-ops-card__status.is-partial,
+#pmd-dashboard-lab .pmd-ops-card__status.is-pending {
+  border-color: #e5d2a9;
+  background: #fffaf0;
+  color: #865f17;
+}
+
+#pmd-dashboard-lab .pmd-ops-card__status.is-problem,
+#pmd-dashboard-lab .pmd-ops-card__status.is-cancelled {
+  border-color: #e9c1be;
+  background: #fff6f5;
+  color: #964a44;
+}
+
+#pmd-dashboard-lab .pmd-ops-card__meta {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 7px 9px;
+  min-height: 24px;
+  margin: 0 0 13px;
+  color: #698095;
+  font-size: 13.5px;
+  font-weight: 700;
+  line-height: 1.35;
+}
+
+#pmd-dashboard-lab .pmd-ops-card__meta > strong {
+  color: #18364f;
+  font-size: 14px;
+  font-weight: 900;
+}
+
+#pmd-dashboard-lab .pmd-ops-card__meta > span:not(:first-of-type)::before {
+  content: "·";
+  margin-right: 8px;
+  color: #a2b2bf;
+}
+
+#pmd-dashboard-lab .pmd-ops-card__note {
+  margin-left: auto;
+  color: #8a651f;
+  font-weight: 850;
+}
+
+#pmd-dashboard-lab .pmd-ops-card__facts {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+  border: 1px solid #dce8f0;
+  border-radius: 13px;
+  background: #fbfdff;
+}
+
+#pmd-dashboard-lab .pmd-ops-card__facts > div {
+  min-width: 0;
+  padding: 11px 12px;
+}
+
+#pmd-dashboard-lab .pmd-ops-card__facts > div + div {
+  border-left: 1px solid #e3ebf1;
+}
+
+#pmd-dashboard-lab .pmd-ops-card__facts dt {
+  margin: 0 0 5px;
+  color: #71879a;
+  font-size: 11.5px;
+  font-weight: 800;
+  line-height: 1.15;
+  text-transform: uppercase;
+}
+
+#pmd-dashboard-lab .pmd-ops-card__facts dd {
+  margin: 0;
+  overflow: hidden;
+  color: #14334c;
+  font-size: 15.5px;
+  font-weight: 900;
+  line-height: 1.2;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+#pmd-dashboard-lab .pmd-ops-card__facts dd.is-due {
+  color: #a86617;
+}
+
+#pmd-dashboard-lab .pmd-ops-card__footer {
+  display: flex;
+  justify-content: flex-end;
+  margin: auto 0 0;
+  padding-top: 14px;
+}
+
+#pmd-dashboard-lab .pmd-ops-card__footer a,
+#pmd-dashboard-lab .pmd-ops-card__footer button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 42px;
+  margin: 0;
+  padding: 0 14px;
+  border: 1px solid #cbdde9;
+  border-radius: 12px;
+  background: #fff;
+  color: #173b57;
+  font-family: inherit;
+  font-size: 13.5px;
+  font-weight: 850;
+  line-height: 1;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+#pmd-dashboard-lab .pmd-ops-card__footer a:hover,
+#pmd-dashboard-lab .pmd-ops-card__footer button:hover {
+  border-color: #9ebed3;
+  background: #f2f7fb;
+  color: #102a43;
+}
+
+#pmd-dashboard-lab .pmd-ops-empty {
+  padding: 20px;
+  border: 1px solid #cfe0ed;
+  border-radius: 18px;
+  background: #fff;
+}
+
+#pmd-dashboard-lab .pmd-ops-empty strong,
+#pmd-dashboard-lab .pmd-ops-empty span {
+  display: block;
+}
+
+#pmd-dashboard-lab .pmd-ops-empty strong {
+  margin: 0 0 4px;
+  color: #17364f;
+  font-size: 15.5px;
+  font-weight: 900;
+}
+
+#pmd-dashboard-lab .pmd-ops-empty span {
+  color: #657c90;
+  font-size: 13.5px;
+  font-weight: 650;
+}
+
+/* =========================================================
+   Shared Date Range control
+   Reservations2-inspired 46px trigger; no JS/polling.
+   ========================================================= */
+
+#pmd-dashboard-lab .pmd-ops-range {
+  position: relative;
+  flex: 0 0 46px;
+  width: 46px;
+  height: 46px;
+  margin: 0;
+  padding: 0;
+  z-index: 120;
+}
+
+#pmd-dashboard-lab .pmd-ops-range > summary {
+  list-style: none;
+}
+
+#pmd-dashboard-lab .pmd-ops-range > summary::-webkit-details-marker {
+  display: none;
+}
+
+#pmd-dashboard-lab .pmd-ops-range__trigger {
+  box-sizing: border-box;
+  display: grid;
+  place-items: center;
+  width: 46px;
+  min-width: 46px;
+  max-width: 46px;
+  height: 46px;
+  min-height: 46px;
+  max-height: 46px;
+  margin: 0;
+  padding: 0;
+  border: 1px solid #cfe0ec;
+  border-radius: 14px;
+  background: #fff;
+  color: #173752;
+  box-shadow: 0 3px 10px rgba(23, 55, 82, .05);
+  cursor: pointer;
+}
+
+#pmd-dashboard-lab .pmd-ops-range[open] .pmd-ops-range__trigger,
+#pmd-dashboard-lab .pmd-ops-range__trigger:hover {
+  border-color: #9fc2d8;
+  background: #f4f8fb;
+  box-shadow: 0 8px 20px rgba(23, 55, 82, .10);
+}
+
+#pmd-dashboard-lab .pmd-ops-range__trigger svg {
+  display: block;
+  width: 21px;
+  height: 21px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+#pmd-dashboard-lab .pmd-ops-range__panel {
+  position: absolute;
+  top: calc(100% + 10px);
+  right: 0;
+  width: min(420px, calc(100vw - 40px));
+  padding: 16px;
+  border: 1px solid rgba(23, 55, 82, .13);
+  border-radius: 18px;
+  background: #fff;
+  box-shadow: 0 24px 60px rgba(18, 42, 60, .18);
+}
+
+#pmd-dashboard-lab .pmd-ops-range__panel > header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 14px;
+  margin: 0 0 13px;
+}
+
+#pmd-dashboard-lab .pmd-ops-range__panel > header strong {
+  color: #102a43;
+  font-size: 16px;
+  font-weight: 900;
+}
+
+#pmd-dashboard-lab .pmd-ops-range__panel > header span {
+  color: #647c90;
+  font-size: 12.5px;
+  font-weight: 750;
+}
+
+#pmd-dashboard-lab .pmd-ops-range__presets {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+  margin: 0 0 14px;
+}
+
+#pmd-dashboard-lab .pmd-ops-range__presets a {
+  display: inline-flex;
+  align-items: center;
+  min-height: 36px;
+  padding: 0 11px;
+  border: 1px solid #d1e0ea;
+  border-radius: 10px;
+  background: #f8fbfd;
+  color: #284860;
+  font-size: 12.5px;
+  font-weight: 800;
+  text-decoration: none;
+}
+
+#pmd-dashboard-lab .pmd-ops-range__presets a:hover {
+  border-color: #9fc2d8;
+  background: #eef6fb;
+}
+
+#pmd-dashboard-lab .pmd-ops-range__form {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+#pmd-dashboard-lab .pmd-ops-range__form label {
+  display: grid;
+  gap: 5px;
+  margin: 0;
+}
+
+#pmd-dashboard-lab .pmd-ops-range__form label span {
+  color: #657d91;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+#pmd-dashboard-lab .pmd-ops-range__form input {
+  width: 100%;
+  min-height: 42px;
+  padding: 0 10px;
+  border: 1px solid #cfe0ed;
+  border-radius: 11px;
+  background: #fff;
+  color: #15344e;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 750;
+}
+
+#pmd-dashboard-lab .pmd-ops-range__form button {
+  grid-column: 1 / -1;
+  min-height: 42px;
+  padding: 0 14px;
+  border: 1px solid #173752;
+  border-radius: 11px;
+  background: #173752;
+  color: #fff;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 850;
+  cursor: pointer;
+}
+
+/* Reservation cards use the same exact card shell. */
+#pmd-dashboard-lab .pmd-ops-card[data-pmd-reservation-card] .pmd-ops-card__facts dd {
+  white-space: normal;
+}
+
+@media (max-width: 1180px) {
+  #pmd-dashboard-lab .pmd-ops-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 720px) {
+  #pmd-dashboard-lab .pmd-ops-section {
+    margin-top: 14px;
+  }
+
+  #pmd-dashboard-lab .pmd-ops-section__header {
+    align-items: flex-start;
+    gap: 10px;
+  }
+
+  #pmd-dashboard-lab .pmd-ops-section__heading h2 {
+    font-size: 19px;
+  }
+
+  #pmd-dashboard-lab .pmd-ops-section__heading p {
+    font-size: 12.5px;
+  }
+
+  #pmd-dashboard-lab .pmd-ops-section__count {
+    min-height: 42px;
+    padding: 0 11px;
+    font-size: 11.5px;
+  }
+
+  #pmd-dashboard-lab .pmd-ops-section__count strong {
+    font-size: 15px;
+  }
+
+  #pmd-dashboard-lab .pmd-ops-range,
+  #pmd-dashboard-lab .pmd-ops-range__trigger {
+    width: 42px;
+    min-width: 42px;
+    max-width: 42px;
+    height: 42px;
+    min-height: 42px;
+    max-height: 42px;
+  }
+
+  #pmd-dashboard-lab .pmd-ops-range__panel {
+    position: fixed;
+    top: 82px;
+    right: 10px;
+    left: 10px;
+    width: auto;
+  }
+
+  #pmd-dashboard-lab .pmd-ops-grid {
+    grid-template-columns: 1fr;
+    gap: 10px;
+  }
+
+  #pmd-dashboard-lab .pmd-ops-card {
+    padding: 14px;
+  }
+
+  #pmd-dashboard-lab .pmd-ops-card__facts {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+/* PMD_OPERATIONAL_CARDS_FOUR_COLUMN_V3 */
+@media (min-width:1100px){
+  #pmd-dashboard-lab .pmd-ops-grid{grid-template-columns:repeat(4,minmax(0,1fr))!important;gap:12px!important}
+  #pmd-dashboard-lab .pmd-ops-card{min-height:214px!important;padding:14px!important}
+}
+#pmd-dashboard-lab .pmd-ops-section__count{display:inline-flex!important;align-items:center!important;justify-content:center!important;gap:6px!important;min-height:46px!important;height:46px!important;padding:0 15px!important;line-height:1!important;text-align:center!important}
+#pmd-dashboard-lab .pmd-ops-section__count strong,#pmd-dashboard-lab .pmd-ops-section__count span{display:inline-flex!important;align-items:center!important;justify-content:center!important;margin:0!important;line-height:1!important}
+#pmd-dashboard-lab .pmd-ops-card[hidden],#pmd-dashboard-lab .pmd-res-table-filter-empty[hidden],#pmd-dashboard-lab .pmd-ops-table-filter-chip[hidden]{display:none!important}
+#pmd-dashboard-lab .pmd-ops-table-filter-chip{display:inline-flex;align-items:center;justify-content:center;min-height:46px;height:46px;padding:0 14px;border:1px solid #b7d1e1;border-radius:14px;background:#eef6fb;color:#173752;font:inherit;font-size:12.5px;font-weight:800;line-height:1;cursor:pointer}
+#pmd-dashboard-lab [data-floor-table].is-pmd-reservation-table-filter{outline:4px solid rgba(23,55,82,.18)!important;outline-offset:2px!important}
+
+/* PMD_OPERATIONAL_CARDS_FOUR_COLUMN_AUTHORITY_V3_2
+   V3 used a min-width gate that did not win in the real Safari viewport.
+   Four columns are now the desktop/default authority, with explicit small
+   viewport fallbacks only. */
+#pmd-dashboard-lab .pmd-ops-grid {
+  grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
+  gap: 10px !important;
+}
+
+#pmd-dashboard-lab .pmd-ops-card {
+  min-width: 0 !important;
+  min-height: 202px !important;
+  padding: 12px !important;
+}
+
+@media (max-width: 900px) {
+  #pmd-dashboard-lab .pmd-ops-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  }
+}
+
+@media (max-width: 560px) {
+  #pmd-dashboard-lab .pmd-ops-grid {
+    grid-template-columns: 1fr !important;
+  }
+}
+
+/* PMD_OPERATIONAL_TITLELESS_TOOLS_V3_3_2 */
+#pmd-dashboard-lab .pmd-ops-section__header--tools-only {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: flex-end !important;
+  min-height: 48px !important;
+  margin-bottom: 10px !important;
+}
+#pmd-dashboard-lab .pmd-ops-section__header--tools-only .pmd-ops-section__tools {
+  margin-left: auto !important;
+}

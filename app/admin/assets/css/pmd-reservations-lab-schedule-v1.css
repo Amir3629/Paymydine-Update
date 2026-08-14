@@ -683,11 +683,21 @@ section.pmd-r2-yc-selected[data-r2-yc-selected] {
   transform: translateY(-6px) scale(.99);
 }
 
+/* PMD_RESERVATIONS_LAB_HOUR_REPLACES_CALENDAR_V2_4_2
+ * Calendar V1.18 above forces display:block!important with a stronger
+ * page-scoped selector. Strengthen the EXISTING Timeslot authority so
+ * Hour replaces Calendar instead of stacking underneath it.
+ */
+#pmd-dashboard-lab.is-calendar-mode
 #pmd-r2-calendar-surface-v160.is-timeslot-screen
-[data-r2-yc-calendar-frame] {
+[data-r2-yc-calendar-frame],
+#pmd-dashboard-lab.is-calendar-mode
+#pmd-r2-calendar-surface-v160.is-timeslot-screen
+.pmd-r2-yc-calendar-frame {
   display: none !important;
 }
 
+#pmd-dashboard-lab.is-calendar-mode
 #pmd-r2-calendar-surface-v160.is-timeslot-screen
 [data-r2-yc-selected] {
   display: block !important;
@@ -2558,4 +2568,392 @@ html body.pmd-clean-workspace-reservations .pmd-reservations-lab-composer * {
 .pmd-reservations-lab-composer textarea { font: inherit; }
 @media (max-width: 720px) {
   .pmd-reservations-lab-composer__grid { grid-template-columns: 1fr; }
+}
+
+/* =========================================================
+   PMD_RESERVATIONS_LAB_EXACT_FINAL_TOOLBAR_COMPOSER_V2_5
+   Exact final Reservations2 Calendar toolbar visual contract.
+   Visual-only: no Reservations2 toolbar runtime imported.
+   ========================================================= */
+
+/* V15: same floating Hour-style Calendar toolbar. */
+#pmd-r2-calendar-surface-v160 .pmd-r2-yc-calendar-frame {
+  width: 100% !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  background: transparent !important;
+  background-color: transparent !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+  overflow: visible !important;
+}
+
+#pmd-r2-calendar-surface-v160
+.pmd-r2-yc-calendar-frame > .pmd-yc__toolbar {
+  display: grid !important;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr) !important;
+  align-items: center !important;
+  justify-content: normal !important;
+  column-gap: 18px !important;
+  row-gap: 8px !important;
+  width: 100% !important;
+  min-height: 54px !important;
+  margin: 0 0 12px !important;
+  padding: 6px 12px !important;
+  background: transparent !important;
+  background-color: transparent !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+  outline: 0 !important;
+}
+
+#pmd-r2-calendar-surface-v160 .pmd-yc__toolbar::before,
+#pmd-r2-calendar-surface-v160 .pmd-yc__toolbar::after {
+  display: none !important;
+  content: none !important;
+}
+
+#pmd-r2-calendar-surface-v160 .pmd-yc__legend {
+  display: none !important;
+}
+
+#pmd-r2-calendar-surface-v160 .pmd-yc__month-nav {
+  grid-column: 2 !important;
+  display: grid !important;
+  grid-template-columns: 42px minmax(170px, auto) 42px !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 10px !important;
+  width: auto !important;
+  height: 42px !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  background: transparent !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+}
+
+#pmd-r2-calendar-surface-v160 .pmd-yc__month-nav > strong {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  min-width: 170px !important;
+  height: 42px !important;
+  margin: 0 !important;
+  padding: 0 14px !important;
+  color: #102a43 !important;
+  font-size: 17px !important;
+  font-weight: 850 !important;
+  line-height: 1 !important;
+  text-align: center !important;
+  white-space: nowrap !important;
+  background: transparent !important;
+  border: 0 !important;
+  box-shadow: none !important;
+}
+
+#pmd-r2-calendar-surface-v160 .pmd-yc__toolbar-right {
+  grid-column: 3 !important;
+  justify-self: end !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: flex-end !important;
+  flex-wrap: nowrap !important;
+  gap: 8px !important;
+  width: auto !important;
+  min-width: 0 !important;
+  height: 42px !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  background: transparent !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+}
+
+#pmd-r2-calendar-surface-v160 .pmd-yc__view-switch,
+#pmd-r2-calendar-surface-v160 .pmd-yc__filters {
+  display: flex !important;
+  align-items: center !important;
+  gap: 8px !important;
+  width: auto !important;
+  height: 42px !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  background: transparent !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+}
+
+#pmd-r2-calendar-surface-v160 .pmd-yc__month-nav > button,
+#pmd-r2-calendar-surface-v160 .pmd-yc__view-switch > button,
+#pmd-r2-calendar-surface-v160 .pmd-yc__filters > button,
+#pmd-r2-calendar-surface-v160 .pmd-r2-yc-note-btn {
+  position: static !important;
+  inset: auto !important;
+  float: none !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  min-width: 42px !important;
+  height: 42px !important;
+  margin: 0 !important;
+  padding: 0 14px !important;
+  color: #102a43 !important;
+  font-family: inherit !important;
+  font-size: 12px !important;
+  font-weight: 850 !important;
+  line-height: 1 !important;
+  text-align: center !important;
+  white-space: nowrap !important;
+  background: #ffffff !important;
+  background-color: #ffffff !important;
+  border: 1px solid #cbdde9 !important;
+  border-radius: 13px !important;
+  box-shadow: none !important;
+  outline: 0 !important;
+  cursor: pointer !important;
+  transition:
+    background-color 140ms ease,
+    border-color 140ms ease,
+    color 140ms ease,
+    transform 140ms ease !important;
+}
+
+#pmd-r2-calendar-surface-v160 .pmd-yc__month-nav > button {
+  width: 42px !important;
+  padding: 0 !important;
+  font-size: 23px !important;
+  font-weight: 850 !important;
+}
+
+/* Exact current Reservations2 rule: no black active buttons. */
+#pmd-r2-calendar-surface-v160 .pmd-yc__view-switch > button.is-active,
+#pmd-r2-calendar-surface-v160 .pmd-yc__filters > button.is-active {
+  color: #102a43 !important;
+  background: #eaf4fc !important;
+  background-color: #eaf4fc !important;
+  border-color: #8ebbd8 !important;
+  box-shadow: inset 0 0 0 1px rgba(36, 111, 159, 0.08) !important;
+}
+
+#pmd-r2-calendar-surface-v160 .pmd-yc__toolbar button:hover {
+  color: #102a43 !important;
+  background: #f2f7fb !important;
+  background-color: #f2f7fb !important;
+  border-color: #9ebed3 !important;
+  transform: translateY(-1px) !important;
+}
+
+#pmd-r2-calendar-surface-v160 .pmd-yc__view-switch > button.is-active:hover,
+#pmd-r2-calendar-surface-v160 .pmd-yc__filters > button.is-active:hover {
+  color: #102a43 !important;
+  background: #dfeffc !important;
+  background-color: #dfeffc !important;
+  border-color: #79abd0 !important;
+}
+
+#pmd-r2-calendar-surface-v160 .pmd-yc__toolbar button:active {
+  transform: translateY(0) !important;
+}
+
+#pmd-r2-calendar-surface-v160 .pmd-r2-yc-note-btn {
+  color: #7f480f !important;
+  background: #ffffff !important;
+  background-color: #ffffff !important;
+  border-color: #d9b487 !important;
+}
+
+#pmd-r2-calendar-surface-v160 .pmd-r2-yc-note-btn:hover {
+  color: #653500 !important;
+  background: #fff8ef !important;
+  background-color: #fff8ef !important;
+  border-color: #c99558 !important;
+}
+
+#pmd-r2-calendar-surface-v160
+.pmd-r2-yc-calendar-frame > .pmd-yc__months {
+  display: block !important;
+  width: 100% !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  background: #ffffff !important;
+  background-color: #ffffff !important;
+  border: 1px solid #cfe0ed !important;
+  border-radius: 18px !important;
+  box-shadow: none !important;
+  overflow: hidden !important;
+}
+
+#pmd-r2-calendar-surface-v160
+.pmd-yc-month.is-month-view > .pmd-yc-month__head {
+  display: none !important;
+}
+
+#pmd-r2-calendar-surface-v160
+.pmd-yc-month.is-month-view > .pmd-yc-weekdays {
+  border-top: 0 !important;
+}
+
+/* V16/V17: toolbar sits on page background, only the real Calendar grid is framed. */
+#pmd-dashboard-lab.is-calendar-mode #pmd-r2-calendar-surface-v160,
+#pmd-dashboard-lab.is-calendar-mode
+#pmd-r2-calendar-surface-v160 > .pmd-r2-yc-calendar-frame,
+#pmd-dashboard-lab.is-calendar-mode
+#pmd-r2-calendar-surface-v160 .pmd-r2-yc-calendar-frame {
+  margin-left: 0 !important;
+  margin-right: 0 !important;
+  padding-left: 0 !important;
+  padding-right: 0 !important;
+  background: transparent !important;
+  background-color: transparent !important;
+  background-image: none !important;
+  border: 0 !important;
+  border-width: 0 !important;
+  border-color: transparent !important;
+  border-radius: 0 !important;
+  outline: 0 !important;
+  box-shadow: none !important;
+  overflow: visible !important;
+}
+
+#pmd-dashboard-lab.is-calendar-mode
+#pmd-r2-calendar-surface-v160
+.pmd-r2-yc-calendar-frame > .pmd-yc__toolbar {
+  position: relative !important;
+  z-index: 5 !important;
+  margin: 0 0 16px !important;
+  padding: 6px 12px !important;
+  background: #f8fbfd !important;
+  background-color: #f8fbfd !important;
+  background-image: none !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  outline: 0 !important;
+  box-shadow: none !important;
+}
+
+#pmd-dashboard-lab.is-calendar-mode
+#pmd-r2-calendar-surface-v160 .pmd-yc__months {
+  margin: 0 !important;
+  padding: 0 !important;
+  background: transparent !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  outline: 0 !important;
+  box-shadow: none !important;
+  overflow: visible !important;
+}
+
+#pmd-dashboard-lab.is-calendar-mode
+#pmd-r2-calendar-surface-v160 .pmd-yc-month.is-month-view,
+#pmd-dashboard-lab.is-calendar-mode
+#pmd-r2-calendar-surface-v160 .pmd-yc__months > .pmd-yc-month:only-child {
+  width: 100% !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  background: #ffffff !important;
+  background-color: #ffffff !important;
+  border: 1px solid #cfe0ed !important;
+  border-radius: 18px !important;
+  outline: 0 !important;
+  box-shadow: none !important;
+  overflow: hidden !important;
+}
+
+#pmd-dashboard-lab.is-calendar-mode
+#pmd-r2-calendar-surface-v160 {
+  margin-top: 0 !important;
+  margin-block-start: 0 !important;
+  padding-top: 0 !important;
+}
+
+@media (max-width: 1100px) {
+  #pmd-r2-calendar-surface-v160
+  .pmd-r2-yc-calendar-frame > .pmd-yc__toolbar {
+    grid-template-columns: 1fr !important;
+    justify-items: stretch !important;
+    padding: 6px 0 !important;
+  }
+
+  #pmd-r2-calendar-surface-v160 .pmd-yc__month-nav {
+    grid-column: 1 !important;
+    justify-self: center !important;
+  }
+
+  #pmd-r2-calendar-surface-v160 .pmd-yc__toolbar-right {
+    grid-column: 1 !important;
+    justify-self: center !important;
+    flex-wrap: wrap !important;
+    height: auto !important;
+  }
+}
+
+/* Clean bridge: exact Reservations2 Composer CSS, Lab-owned interaction handlers. */
+#pmd-reservation-composer-v1[data-pmd-res-lab-composer][hidden] {
+  display: none !important;
+}
+
+#pmd-reservation-composer-v1[data-pmd-res-lab-composer]:not([hidden]) {
+  display: block !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+  z-index: 2147483647 !important;
+}
+
+#pmd-reservation-composer-v1[data-pmd-res-lab-composer]
+> .pmd-reservation-composer-backdrop-v1 {
+  position: fixed !important;
+  inset: 0 !important;
+  z-index: 0 !important;
+}
+
+#pmd-reservation-composer-v1[data-pmd-res-lab-composer]
+> .modal-dialog {
+  position: relative !important;
+  z-index: 1 !important;
+}
+
+#pmd-reservation-composer-v1[data-pmd-res-lab-composer]
+[data-pmd-res-lab-loading][hidden],
+#pmd-reservation-composer-v1[data-pmd-res-lab-composer]
+[data-pmd-res-lab-content][hidden],
+#pmd-reservation-composer-v1[data-pmd-res-lab-composer]
+[data-pmd-res-lab-table-field][hidden],
+#pmd-reservation-composer-v1[data-pmd-res-lab-composer]
+[data-pmd-res-lab-error][hidden] {
+  display: none !important;
+}
+
+#pmd-reservation-composer-v1
+.pmd-reservation-composer-v1__check {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  min-height: 42px !important;
+  margin: 10px 0 0 !important;
+  padding: 0 14px !important;
+  color: #102a43 !important;
+  background: #ffffff !important;
+  border: 1px solid #cbdde9 !important;
+  border-radius: 11px !important;
+  box-shadow: none !important;
+  font: inherit !important;
+  font-size: 13px !important;
+  font-weight: 800 !important;
+  cursor: pointer !important;
+}
+
+#pmd-reservation-composer-v1
+.pmd-reservation-composer-v1__check:hover {
+  background: #f2f7fb !important;
+  border-color: #9ebed3 !important;
+}
+
+body.pmd-reservations-lab-composer-open {
+  overflow: hidden !important;
 }
