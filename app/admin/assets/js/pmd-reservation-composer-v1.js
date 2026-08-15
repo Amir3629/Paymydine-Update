@@ -74,16 +74,72 @@
     return null;
   }
   function floorSelection() {
+    /* PMD_COMPOSER_EXACT_FLOOR_DB_ID_SELECTION_V1_3_20260815
+     * data-floor-table is the exact Floor's DISPLAY identity. It is not a
+     * guaranteed tables.table_id. Resolve the selected display card through
+     * root.__pmdFloorV1 state and send dbTableId/raw.table_id to Reservations.
+     */
+    var node = document.querySelector(
+      '.pmd-floor-v1__table.is-selected[data-floor-table], ' +
+      '#pmd-r2-shared-floor-canvas-v310 [data-pmd-r2-selected-table-v320], ' +
+      '#pmd-r2-shared-floor-canvas-v310 .pmd-r2-table-selected-v317'
+    );
+    var exactRoot = node && node.closest ? node.closest('[data-pmd-floor]') : null;
+    var exactInstance = exactRoot && exactRoot.__pmdFloorV1 ? exactRoot.__pmdFloorV1 : null;
+    var exactState = exactInstance && typeof exactInstance.getState === 'function'
+      ? (exactInstance.getState() || {})
+      : null;
+
+    if (exactState && Array.isArray(exactState.displayTables)) {
+      var selectedId = exactState.selectedDisplayId != null && String(exactState.selectedDisplayId) !== ''
+        ? exactState.selectedDisplayId
+        : (node ? node.getAttribute('data-floor-table') : null);
+      var selected = exactState.displayTables.find(function (table) {
+        return table && String(table.id) === String(selectedId == null ? '' : selectedId);
+      }) || null;
+
+      if (selected) {
+        var selectedMembers = selected.isMergedView && Array.isArray(selected.members)
+          ? selected.members
+          : [selected];
+        var ids = positiveIds(selectedMembers.map(function (table) {
+          var raw = table && table.raw && typeof table.raw === 'object' ? table.raw : {};
+          return table ? (table.dbTableId || raw.table_id || 0) : 0;
+        }));
+        var names = selectedMembers.map(function (table) {
+          var raw = table && table.raw && typeof table.raw === 'object' ? table.raw : {};
+          return clean(
+            table && (
+              table.name ||
+              raw.table_name ||
+              raw.name ||
+              ('Table ' + (table.number || table.dbTableId || raw.table_id || ''))
+            )
+          );
+        }).filter(Boolean);
+
+        if (ids.length) {
+          return { ids: ids, names: names, date: null, source: 'exact-floor-db-id' };
+        }
+      }
+    }
+
+    /* Reservations2 compatibility fallback. Keep its existing FloorExperience
+     * state path, but never treat exact Floor data-floor-table as a DB id. */
     var api = window.PMDReservations2FloorExperience;
     var state = api && api.getState ? api.getState() : {};
-    var node = document.querySelector('#pmd-r2-shared-floor-canvas-v310 [data-pmd-r2-selected-table-v320], #pmd-r2-shared-floor-canvas-v310 .pmd-r2-table-selected-v317');
-    var members = node ? clean(node.getAttribute('data-floor-members')).split(',') : [];
+    var exactFloorNode = Boolean(node && node.classList && node.classList.contains('pmd-floor-v1__table'));
+    var members = !exactFloorNode && node
+      ? clean(node.getAttribute('data-floor-members')).split(',')
+      : [];
     var ids = positiveIds(members);
-    if (!ids.length && node && !node.classList.contains('is-merged-card')) ids = positiveIds(node.getAttribute('data-floor-table'));
     if (!ids.length) ids = positiveIds(state.tableId);
-    var names = node ? [clean(node.getAttribute('aria-label') || node.getAttribute('title') || state.tableName)] : [state.tableName];
-    return { ids: ids, names: names.filter(Boolean), date: dateValue(state.start) };
+    var names = node
+      ? [clean(node.getAttribute('aria-label') || node.getAttribute('title') || state.tableName)]
+      : [state.tableName];
+    return { ids: ids, names: names.filter(Boolean), date: dateValue(state.start), source: 'legacy-floor-experience' };
   }
+
   function fallbackFor(element) {
     if (element.href) return element.href;
     var row = element.closest('[data-r2-create-date][data-r2-create-time]');
@@ -555,14 +611,44 @@
       picker.chips.appendChild(chip);
     });
 
-    picker.triggerText.textContent = selected.length
-      ? selected.length
-        + (
-            selected.length === 1
-              ? ' table selected'
-              : ' tables selected'
-          )
+    var selectedNames = selected.map(function (id) {
+      var table = tableCatalog.find(function (item) {
+        return Number(item.table_id) === id;
+      });
+      return table ? (table.table_name || ('Table ' + id)) : ('Table ' + id);
+    });
+
+    picker.triggerText.textContent = selectedNames.length
+      ? selectedNames.join(', ')
       : 'Choose matching table(s)';
+
+    /* PMD_RESERVATIONSLAB_VISIBLE_CHOOSE_CONTEXT_V1_2
+     * The enhanced V224/V225 UI hides the native picker trigger and uses
+     * the assignment_mode=choose label as the visible control. Mirror the
+     * canonical selected table names there so Floor context is visible.
+     */
+    var visibleChooseRadio = form.querySelector(
+      '[name="assignment_mode"][value="choose"]'
+    );
+    var visibleChooseLabel = visibleChooseRadio
+      ? visibleChooseRadio.closest('label')
+      : null;
+    var visibleChooseText = visibleChooseLabel
+      ? visibleChooseLabel.querySelector('span')
+      : null;
+
+    if (visibleChooseText) {
+      visibleChooseText.textContent = selectedNames.length
+        ? selectedNames.join(', ')
+        : 'Choose table(s)';
+    }
+
+    if (visibleChooseLabel) {
+      visibleChooseLabel.setAttribute(
+        'data-pmd-selected-table-names',
+        selectedNames.join(', ')
+      );
+    }
 
     if (!visibleTables.length) {
       var emptyState =
@@ -632,77 +718,73 @@
 
   
 function applyAvailability(result) {
+    /* PMD_COMPOSER_FLOOR_CONTEXT_BLOCK_GUARD_V1_20260815
+     * Floor selection is a create hint, not permission to double-book. If the
+     * canonical backend says any table from that floor context is blocked by an
+     * overlapping reservation, remove the entire floor hint and return to AUTO.
+     * A merged floor card is kept atomic: one blocked member clears the group.
+     */
+    if (
+      context
+      && context.mode === 'create'
+      && Array.isArray(context.tableIds)
+      && context.tableIds.length
+      && result
+      && Array.isArray(result.blockedTableIds)
+    ) {
+      var floorIds = positiveIds(context.tableIds);
+      var blockedIds = positiveIds(result.blockedTableIds);
+      var floorBlocked = floorIds.some(function (id) {
+        return blockedIds.indexOf(id) >= 0;
+      });
+
+      if (floorBlocked) {
+        var tableSelect = form.querySelector('[name="tables[]"]');
+        if (tableSelect) {
+          Array.from(tableSelect.options).forEach(function (optionNode) {
+            if (floorIds.indexOf(Number(optionNode.value)) >= 0) {
+              optionNode.selected = false;
+            }
+          });
+        }
+
+        var autoRadio = form.querySelector('[name="assignment_mode"][value="auto"]');
+        if (autoRadio) autoRadio.checked = true;
+        context.tableIds = [];
+        context.tableNames = [];
+        syncAssignment();
+
+        result = Object.assign({}, result, {
+          assignmentMode: 'auto',
+          requestedTableIds: [],
+          available: positiveIds(result.recommendedTableIds || []).length > 0
+        });
+      }
+    }
+
     lastAvailability = result;
 
-    /*
-     * PMD_MANUAL_TABLE_V3_AVAILABILITY_BRIDGE_20260807
-     *
-     * Single bridge between the canonical Composer availability
-     * response and the V3 manual dropdown presentation.
-     *
-     * Backend remains authoritative.
-     */
+    /* PMD_MANUAL_TABLE_SINGLE_STATE_BRIDGE_V1_20260815
+     * One canonical state assignment and ONE availability event. V3 owns
+     * manual dropdown DOM; later availability logic may update AUTO only. */
     window.PMDManualTableAvailabilityV2 =
         result && typeof result === 'object'
             ? {
-                available:
-                    Boolean(result.available),
-
-                assignmentMode:
-                    result.assignmentMode || null,
-
-                requestedTableIds:
-                    Array.isArray(result.requestedTableIds)
-                        ? result.requestedTableIds.slice()
-                        : [],
-
-                availableTableIds:
-                    Array.isArray(result.availableTableIds)
-                        ? result.availableTableIds.slice()
-                        : [],
-
-                manualAvailableTableIds:
-                    Array.isArray(result.manualAvailableTableIds)
-                        ? result.manualAvailableTableIds.slice()
-                        : [],
-
-                manualAvailabilityWindowMinutes:
-                    Number(
-                        result.manualAvailabilityWindowMinutes
-                        || 0
-                    ),
-
-                recommendedTableIds:
-                    Array.isArray(result.recommendedTableIds)
-                        ? result.recommendedTableIds.slice()
-                        : []
+                available: Boolean(result.available),
+                assignmentMode: result.assignmentMode || null,
+                requestedTableIds: Array.isArray(result.requestedTableIds) ? result.requestedTableIds.slice() : [],
+                availableTableIds: Array.isArray(result.availableTableIds) ? result.availableTableIds.slice() : [],
+                manualAvailableTableIds: Array.isArray(result.manualAvailableTableIds) ? result.manualAvailableTableIds.slice() : [],
+                manualAvailabilityWindowMinutes: Number(result.manualAvailabilityWindowMinutes || 0),
+                recommendedTableIds: Array.isArray(result.recommendedTableIds) ? result.recommendedTableIds.slice() : [],
+                blockedTableIds: Array.isArray(result.blockedTableIds) ? result.blockedTableIds.slice() : []
             }
             : null;
 
     document.dispatchEvent(
-        new CustomEvent(
-            'pmd:manual-table-availability-v2',
-            {
-                detail:
-                    window.PMDManualTableAvailabilityV2
-            }
-        )
-    );
-
-
-    /*
-     * PMD_MANUAL_TABLE_REAL_DROPDOWN_V2_20260807
-     *
-     * Expose only the latest authoritative availability
-     * response for the manual dropdown.
-     */
-    window.PMDManualTableAvailabilityV2 =
-      result || null;
-
-    document.dispatchEvent(
-      new CustomEvent(
-        'pmd:manual-table-availability-v2'
-      )
+        new CustomEvent('pmd:manual-table-availability-v2', {
+            detail: window.PMDManualTableAvailabilityV2
+        })
     );
     renderTablePicker(result);
 
@@ -876,9 +958,58 @@ function applyAvailability(result) {
     ['first_name','last_name','telephone','email','guest_num','reserve_date','reserve_time','duration','comment'].forEach(function (name) {
       var field = form.elements[name]; if (field) field.value = values[name] == null ? '' : (name === 'reserve_time' ? (timeValue(values[name]) || '') : values[name]);
     });
+    /* PMD_COMPOSER_EXPLICIT_HOUR_CONTEXT_V1_4_20260815
+     * The clicked Hour row is stronger than backend defaults/soft draft.
+     * Apply its exact date/time before opening-hours coercion so the Jade wheel
+     * starts on the same slot the user clicked. */
+    if (!data.reservation && context && context.mode === 'create') {
+      if (dateValue(context.selectedDate) && form.elements.reserve_date) {
+        form.elements.reserve_date.value = dateValue(context.selectedDate);
+      }
+      if (timeValue(context.selectedTime) && form.elements.reserve_time) {
+        form.elements.reserve_time.value = timeValue(context.selectedTime);
+      }
+      /* PMD_COMPOSER_EXPLICIT_HOUR_DURATION_CONTEXT_V1_20260815
+       * Hour-slot context may lower the duration only when the normal 45-minute
+       * default cannot fit before closing. This preserves the exact clicked
+       * time instead of snapping the wheel backward to make 45 minutes fit.
+       */
+      if (
+        Number(context.duration || 0) > 0
+        && form.elements.duration
+      ) {
+        var explicitDuration = String(
+          Math.round(Number(context.duration))
+        );
+        var durationField = form.elements.duration;
+        var durationAllowed = durationField.tagName === 'SELECT'
+          ? Array.prototype.some.call(
+              durationField.options,
+              function (option) {
+                return String(option.value) === explicitDuration;
+              }
+            )
+          : true;
+
+        if (durationAllowed) {
+          durationField.value = explicitDuration;
+        }
+      }
+    }
     form.elements.reservation_id.value = context.reservationId || '';
     form.elements.source.value = context.source;
-    var selectedTables = positiveIds(data.reservation ? (data.reservation.tables || []).map(function (table) { return table.table_id; }) : data.defaults.tables);
+    var contextTableIds = context && context.mode === 'create'
+      ? positiveIds(context.tableIds || [])
+      : [];
+    /* PMD_COMPOSER_FRESH_TABLE_CONTEXT_V1_3_20260815
+     * A new Composer open never inherits table assignment from defaults or a
+     * previous unsaved draft. Only the CURRENT explicit create context may
+     * preselect a table; otherwise AUTO starts clean. */
+    var selectedTables = positiveIds(
+      data.reservation
+        ? (data.reservation.tables || []).map(function (table) { return table.table_id; })
+        : contextTableIds
+    );
     tableCatalog = Array.isArray(data.tables)
       ? data.tables
       : [];
@@ -903,7 +1034,10 @@ function applyAvailability(result) {
     lastAvailability = null;
     ensureTablePicker();
     renderTablePicker(null);
-    var assignment = data.reservation ? (selectedTables.length ? 'choose' : 'later') : data.defaults.assignment_mode;
+    /* PMD_COMPOSER_CREATE_CONTEXT_ASSIGNMENT_V1_1_20260815 */
+    var assignment = data.reservation
+      ? (selectedTables.length ? 'choose' : 'later')
+      : (contextTableIds.length ? 'choose' : 'auto');
     var radio = form.querySelector('[name=assignment_mode][value="'+assignment+'"]'); if (radio) radio.checked = true;
     var occasion = form.elements.occasion_id;
     if (occasion) {
@@ -934,6 +1068,22 @@ function applyAvailability(result) {
       && !Number(form.elements.duration.value)
     ) {
       form.elements.duration.value = '45';
+    }
+
+    if (
+      window.PMDReservationComposerFutureOnlyV1
+      && typeof window.PMDReservationComposerFutureOnlyV1.setOpeningHours === 'function'
+    ) {
+      window.PMDReservationComposerFutureOnlyV1.setOpeningHours(
+        Array.isArray(data.pmdOpeningHours) ? data.pmdOpeningHours : []
+      );
+    }
+
+    if (
+      window.PMDReservationComposerFutureOnlyV1
+      && typeof window.PMDReservationComposerFutureOnlyV1.apply === 'function'
+    ) {
+      window.PMDReservationComposerFutureOnlyV1.apply(true);
     }
 
     // PMD_COMPOSER_REVEAL_AND_BLUR_V18
@@ -1098,6 +1248,19 @@ function applyAvailability(result) {
 
     var data = payload();
 
+    if (
+      window.PMDReservationComposerFutureOnlyV1
+      && typeof window.PMDReservationComposerFutureOnlyV1.validate === 'function'
+      && !window.PMDReservationComposerFutureOnlyV1.validate(false)
+    ) {
+      lastAvailability = null;
+      renderTablePicker(null);
+      status.textContent = window.PMDReservationComposerFutureOnlyV1.message();
+      status.classList.add('is-error');
+      status.classList.remove('is-success');
+      return;
+    }
+
     var pmdAvailabilitySignature =
       pmdAvailabilitySignatureV3(data);
 
@@ -1129,6 +1292,8 @@ function applyAvailability(result) {
       return;
     }
 
+    var availabilityDelay = force === true ? 0 : 300;
+
     checkingTimer = window.setTimeout(function () {
       status.textContent = 'Checking availability…';
       status.classList.remove('is-error', 'is-success');
@@ -1156,7 +1321,7 @@ function applyAvailability(result) {
         status.classList.add('is-error');
         status.classList.remove('is-success');
       });
-    }, 300);
+    }, availabilityDelay);
   }
 
   /*
@@ -1249,7 +1414,17 @@ function applyAvailability(result) {
     window.location.reload();
   }
   function submit(event) {
-    event.preventDefault(); if (saving) return; saving = true; clearErrors();
+    event.preventDefault();
+    if (saving) return;
+    clearErrors();
+    if (
+      window.PMDReservationComposerFutureOnlyV1
+      && typeof window.PMDReservationComposerFutureOnlyV1.validate === 'function'
+      && !window.PMDReservationComposerFutureOnlyV1.validate(true)
+    ) {
+      return;
+    }
+    saving = true;
     var save = root.querySelector('[data-pmd-composer-save]'); save.disabled = true;
     var scroll = {x:window.scrollX,y:window.scrollY}; var data = payload();
     request('onSaveReservationComposer', data).then(function (response) {
@@ -1331,7 +1506,428 @@ function applyAvailability(result) {
   root.addEventListener('keydown', function (event) { if (event.key === 'Escape') { event.preventDefault(); close(false); } });
   document.addEventListener('click', clickOwner, true);
 
-  window.PMDReservationComposerV1 = {version:'1.0.0', open:open, normalizeContext:normalize, close:close};
+  window.PMDReservationComposerV1 = {version:'1.0.0', open:open, normalizeContext:normalize, getFloorSelection:floorSelection, close:close};
+}());
+
+/* ============================================================
+   PMD_RESERVATION_COMPOSER_FUTURE_ONLY_V1
+   Canonical Reservations2 + ReservationsLab create policy.
+   SAME OWNER, extended to the shared PMD Settings working_hours authority.
+   - Europe/Berlin booking clock
+   - no past bookings
+   - create time + duration must fit restaurant opening hours
+   - historical EDIT remains possible
+   - event-driven only; no timer/observer/polling authority
+   ============================================================ */
+(function () {
+  'use strict';
+
+  if (window.PMDReservationComposerFutureOnlyV1) return;
+
+  var root = document.getElementById('pmd-reservation-composer-v1');
+  var form = root && root.querySelector('form');
+  if (!root || !form) return;
+
+  var formatter = new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'Europe/Berlin',
+    year: 'numeric', month: '2-digit', day: '2-digit',
+    hour: '2-digit', minute: '2-digit', second: '2-digit',
+    hourCycle: 'h23'
+  });
+  var wheelRef = null;
+  var openingHours = [];
+
+  function pad(value) { return String(value).padStart(2, '0'); }
+  function parts() {
+    var map = {};
+    formatter.formatToParts(new Date()).forEach(function (part) {
+      if (part.type !== 'literal') map[part.type] = part.value;
+    });
+    return {
+      year:Number(map.year||0), month:Number(map.month||0), day:Number(map.day||0),
+      hour:Number(map.hour||0), minute:Number(map.minute||0), second:Number(map.second||0)
+    };
+  }
+  function dateKey(value) { return String(value.year) + '-' + pad(value.month) + '-' + pad(value.day); }
+  function nextDate(key) {
+    var p = String(key || '').split('-').map(Number);
+    var d = new Date(Date.UTC(p[0], (p[1]||1)-1, p[2]||1, 12, 0, 0, 0));
+    d.setUTCDate(d.getUTCDate()+1);
+    return d.getUTCFullYear() + '-' + pad(d.getUTCMonth()+1) + '-' + pad(d.getUTCDate());
+  }
+  function minimum() {
+    var now = parts();
+    var day = dateKey(now);
+    var raw = now.hour * 60 + now.minute + (now.second > 0 ? 1 : 0);
+    var rounded = Math.ceil(raw / 15) * 15;
+    if (rounded >= 1440) return {date:nextDate(day),time:'00:00',minutes:0};
+    return {date:day,time:pad(Math.floor(rounded/60))+':'+pad(rounded%60),minutes:rounded};
+  }
+  function isCreate() { return Number((form.elements.reservation_id && form.elements.reservation_id.value) || 0) < 1; }
+  function validDate(value) { return /^\d{4}-\d{2}-\d{2}$/.test(String(value || '')); }
+  function validTime(value) { return /^([01]\d|2[0-3]):[0-5]\d$/.test(String(value || '').slice(0,5)); }
+  function timeMinutes(value) {
+    var match = String(value || '').slice(0,5).match(/^([01]\d|2[0-3]):([0-5]\d)$/);
+    return match ? Number(match[1]) * 60 + Number(match[2]) : null;
+  }
+  function weekdayForDate(key) {
+    var p = String(key || '').split('-').map(Number);
+    if (p.length !== 3 || !p[0] || !p[1] || !p[2]) return null;
+    return (new Date(Date.UTC(p[0], p[1]-1, p[2])).getUTCDay() + 6) % 7;
+  }
+  function normalizeHours(rows) {
+    return (Array.isArray(rows) ? rows : []).map(function (row) {
+      return {
+        weekday:Number(row && row.weekday),
+        enabled:Boolean(row && row.enabled),
+        opening_time:String((row && row.opening_time)||'').slice(0,5),
+        closing_time:String((row && row.closing_time)||'').slice(0,5)
+      };
+    }).filter(function (row) { return row.weekday >= 0 && row.weekday <= 6; });
+  }
+  function scheduleOpeningHoursFallback() {
+    try {
+      var api = window.PMDReservationsLabScheduleV1;
+      if (api && typeof api.getOpeningHours === 'function') {
+        return api.getOpeningHours();
+      }
+      if (api && typeof api.audit === 'function') {
+        var state = api.audit();
+        return state && Array.isArray(state.openingHours) ? state.openingHours : [];
+      }
+    } catch (ignore) {}
+    return [];
+  }
+  function setOpeningHours(rows) {
+    var normalized = normalizeHours(rows);
+    /* PMD_COMPOSER_WORKING_HOURS_SINGLE_CONTEXT_V1_4_1_20260815
+     * ReservationsLab already bootstraps the SAME working_hours rows for its
+     * Hour screen. If the Composer load response omits that optional copy,
+     * reuse the schedule runtime's exact rows rather than behaving as 24/7. */
+    if (!normalized.length) normalized = normalizeHours(scheduleOpeningHoursFallback());
+    openingHours = normalized;
+    apply(true);
+  }
+  function hoursConfigured() { return openingHours.length > 0; }
+  function hourRow(weekday) {
+    for (var index = openingHours.length - 1; index >= 0; index -= 1) {
+      if (openingHours[index].weekday === weekday) return openingHours[index];
+    }
+    return null;
+  }
+  function durationMinutes() {
+    return Math.max(1, Number((form.elements.duration && form.elements.duration.value) || 45));
+  }
+  function openingAllows(date, time, duration) {
+    if (!hoursConfigured()) return true;
+    var weekday = weekdayForDate(date);
+    var start = timeMinutes(time);
+    if (weekday === null || start === null) return false;
+    var end = start + Math.max(1, Number(duration || 45));
+    var current = hourRow(weekday);
+    var previous = hourRow((weekday + 6) % 7);
+
+    if (previous && previous.enabled) {
+      var po = timeMinutes(previous.opening_time);
+      var pc = timeMinutes(previous.closing_time);
+      if (po !== null && pc !== null && pc < po && start < pc && end <= pc) return true;
+    }
+
+    if (!current || !current.enabled) return false;
+    var open = timeMinutes(current.opening_time);
+    var close = timeMinutes(current.closing_time);
+    if (open === null || close === null) return false;
+    if (open === close) return true; // explicitly enabled 24-hour day
+    if (close <= open) close += 1440; // overnight
+    return start >= open && end <= close;
+  }
+  function dateHasOpeningWindow(date) {
+    if (!hoursConfigured()) return true;
+    if (!validDate(date)) return false;
+    for (var minute = 0; minute < 1440; minute += 15) {
+      var clock = pad(Math.floor(minute / 60)) + ':' + pad(minute % 60);
+      if (openingAllows(date, clock, 1)) return true;
+    }
+    return false;
+  }
+  function futureAllows(date, time) {
+    var min = minimum();
+    return date > min.date || (date === min.date && time >= min.time);
+  }
+  function allowed(date, time, duration) {
+    if (!isCreate()) return true;
+    var day = String(date || '');
+    var clock = String(time || '').slice(0,5);
+    if (!validDate(day) || !validTime(clock)) return true;
+    return futureAllows(day, clock) && openingAllows(day, clock, duration == null ? durationMinutes() : duration);
+  }
+  function reason(date, time, duration) {
+    if (!isCreate()) return '';
+    var day = String(date || '');
+    var clock = String(time || '').slice(0,5);
+    if (validDate(day) && validTime(clock) && !futureAllows(day, clock)) return 'past';
+    if (validDate(day) && validTime(clock) && hoursConfigured() && !openingAllows(day, clock, duration == null ? durationMinutes() : duration)) {
+      var weekday = weekdayForDate(day);
+      var current = weekday === null ? null : hourRow(weekday);
+      var previous = weekday === null ? null : hourRow((weekday + 6) % 7);
+      var previousOvernight = previous && previous.enabled && timeMinutes(previous.closing_time) < timeMinutes(previous.opening_time);
+      if ((!current || !current.enabled) && !previousOvernight) return 'closed';
+      return 'hours';
+    }
+    return '';
+  }
+  function message() {
+    var lang = String(document.documentElement.lang || '').toLowerCase();
+    var date = form.elements.reserve_date ? form.elements.reserve_date.value : '';
+    var time = form.elements.reserve_time ? form.elements.reserve_time.value : '';
+    if (validDate(date) && hoursConfigured() && !dateHasOpeningWindow(date)) {
+      return lang.indexOf('de') === 0
+        ? 'Das Restaurant ist an diesem Tag geschlossen.'
+        : 'The restaurant is closed on the selected date.';
+    }
+    var why = reason(date, time, durationMinutes());
+    if (why === 'closed') {
+      return lang.indexOf('de') === 0
+        ? 'Das Restaurant ist an diesem Tag geschlossen.'
+        : 'The restaurant is closed on the selected date.';
+    }
+    if (why === 'hours') {
+      return lang.indexOf('de') === 0
+        ? 'Die Reservierungszeit liegt außerhalb der Öffnungszeiten.'
+        : 'The reservation time is outside restaurant opening hours.';
+    }
+    return lang.indexOf('de') === 0
+      ? 'Reservierungen können nicht in der Vergangenheit erstellt werden.'
+      : 'Reservations cannot be created in the past.';
+  }
+  function errorNode() { return root.querySelector('[data-error-for="reserve_time"]'); }
+  function clearPolicyError() {
+    var node = errorNode();
+    if (node && node.getAttribute('data-pmd-future-policy-error') === '1') {
+      node.textContent = '';
+      node.removeAttribute('data-pmd-future-policy-error');
+    }
+    var field = form.elements.reserve_time;
+    if (field && field.getAttribute('data-pmd-future-policy-invalid') === '1') {
+      field.removeAttribute('aria-invalid');
+      field.removeAttribute('data-pmd-future-policy-invalid');
+    }
+  }
+  function showPolicyError() {
+    var node = errorNode();
+    var field = form.elements.reserve_time;
+    if (node) { node.textContent = message(); node.setAttribute('data-pmd-future-policy-error','1'); }
+    if (field) { field.setAttribute('aria-invalid','true'); field.setAttribute('data-pmd-future-policy-invalid','1'); }
+  }
+  function allowedTimes(date) {
+    if (!validDate(date)) return [];
+    var result = [];
+    for (var minute = 0; minute < 1440; minute += 15) {
+      var clock = pad(Math.floor(minute/60)) + ':' + pad(minute%60);
+      if (allowed(date, clock, durationMinutes())) result.push(clock);
+    }
+    return result;
+  }
+  function firstAllowedTime(date) {
+    var times = allowedTimes(date);
+    return times.length ? times[0] : '';
+  }
+  function nearestAllowedTime(date, value) {
+    var times = allowedTimes(date);
+    if (!times.length) return '';
+    var target = timeMinutes(value);
+    if (target === null) return times[0];
+    var best = times[0];
+    var bestDistance = Math.abs(timeMinutes(best) - target);
+    for (var index = 1; index < times.length; index += 1) {
+      var distance = Math.abs(timeMinutes(times[index]) - target);
+      if (distance < bestDistance) {
+        best = times[index];
+        bestDistance = distance;
+      }
+    }
+    return best;
+  }
+  function apply(silent) {
+    var date = form.elements.reserve_date;
+    var time = form.elements.reserve_time;
+    if (!date || !time) return minimum();
+    var min = minimum();
+    if (!isCreate()) { date.removeAttribute('min'); refreshWheel(); return min; }
+    var previousTime = String(time.value || '');
+    date.min = min.date;
+    if (!validDate(date.value) || date.value < min.date) date.value = min.date;
+    if (!validTime(time.value) || !allowed(date.value, time.value, durationMinutes())) {
+      var next = nearestAllowedTime(date.value, time.value);
+      /* Never manufacture min.time on a closed/no-valid-time date. That old
+       * fallback could leave an off-hours value in the native field. */
+      time.value = next || '';
+    }
+    clearPolicyError();
+    refreshWheel();
+    if (time.value !== previousTime && silent !== true) {
+      time.dispatchEvent(new Event('input', {bubbles:true}));
+      time.dispatchEvent(new Event('change', {bubbles:true}));
+    }
+    return min;
+  }
+  function validate(show) {
+    if (!isCreate()) { clearPolicyError(); return true; }
+    apply(true);
+    var date = form.elements.reserve_date;
+    var time = form.elements.reserve_time;
+    var ok = date && time && validDate(date.value) && validTime(time.value) && allowed(date.value, time.value, durationMinutes());
+    if (ok) clearPolicyError(); else if (show) showPolicyError();
+    return Boolean(ok);
+  }
+  function to24(hour, period) {
+    var h = Number(hour) % 12;
+    if (period === 'PM') h += 12;
+    return h;
+  }
+  function activeValue(column) {
+    var item = column && column.querySelector('.pmd-jade-wheel-v221__item.is-selected');
+    return item ? item.dataset.value : '';
+  }
+  function setDisabledByValue(column, predicate) {
+    if (!column) return;
+    Array.prototype.forEach.call(column.querySelectorAll('.pmd-jade-wheel-v221__item'), function (item) {
+      var disabled = Boolean(predicate(item.dataset.value));
+      item.disabled = disabled;
+      item.setAttribute('aria-disabled', disabled ? 'true' : 'false');
+      if (disabled && item.classList.contains('is-selected')) {
+        item.classList.remove('is-selected');
+        item.setAttribute('aria-selected', 'false');
+      }
+    });
+  }
+  function selectWheelValue(column, value, smooth) {
+    if (!column) return;
+    var matches = Array.prototype.filter.call(
+      column.querySelectorAll('.pmd-jade-wheel-v221__item'),
+      function (item) { return item.dataset.value === String(value) && !item.disabled; }
+    );
+    var selected = matches[Math.floor(matches.length / 2)] || null;
+    Array.prototype.forEach.call(column.querySelectorAll('.pmd-jade-wheel-v221__item'), function (item) {
+      var active = item === selected;
+      item.classList.toggle('is-selected', active);
+      item.setAttribute('aria-selected', active ? 'true' : 'false');
+    });
+    if (!selected) return;
+    var top = selected.offsetTop - (column.clientHeight - selected.offsetHeight) / 2;
+    column.scrollTo({top:Math.max(0, top), behavior:smooth ? 'smooth' : 'auto'});
+  }
+  function setNoAvailableTimeState(wheel, active) {
+    if (!wheel || !wheel.container) return;
+    wheel.container.classList.toggle('is-no-available-time', Boolean(active));
+    var highlight = wheel.container.querySelector('.pmd-jade-wheel-v221__highlight');
+    if (highlight) {
+      var lang = String(document.documentElement.lang || '').toLowerCase();
+      highlight.setAttribute(
+        'data-pmd-no-time-label',
+        lang.indexOf('de') === 0 ? 'Keine Reservierungszeit verfügbar' : 'No reservation time available'
+      );
+    }
+  }
+  function refreshWheel(target) {
+    if (target) wheelRef = target;
+    var wheel = wheelRef;
+    if (!wheel) return;
+    var date = form.elements.reserve_date;
+    var field = form.elements.reserve_time;
+    if (!isCreate() || !date || !validDate(date.value)) {
+      setNoAvailableTimeState(wheel, false);
+      [wheel.hour,wheel.minute,wheel.period].forEach(function(col){ setDisabledByValue(col,function(){return false;}); });
+      return;
+    }
+
+    var desired = field && validTime(field.value) && allowed(date.value, field.value, durationMinutes())
+      ? String(field.value).slice(0,5)
+      : firstAllowedTime(date.value);
+
+    if (!desired) {
+      [wheel.hour,wheel.minute,wheel.period].forEach(function (column) {
+        setDisabledByValue(column, function () { return true; });
+        Array.prototype.forEach.call(column.querySelectorAll('.pmd-jade-wheel-v221__item'), function (item) {
+          item.classList.remove('is-selected');
+          item.setAttribute('aria-selected', 'false');
+        });
+      });
+      if (field) field.value = '';
+      setNoAvailableTimeState(wheel, true);
+      var emptyHighlight = wheel.container && wheel.container.querySelector('.pmd-jade-wheel-v221__highlight');
+      if (emptyHighlight && validDate(date.value) && hoursConfigured() && !dateHasOpeningWindow(date.value)) {
+        var emptyLang = String(document.documentElement.lang || '').toLowerCase();
+        emptyHighlight.setAttribute(
+          'data-pmd-no-time-label',
+          emptyLang.indexOf('de') === 0 ? 'Restaurant geschlossen' : 'Restaurant closed'
+        );
+      }
+      return;
+    }
+
+    setNoAvailableTimeState(wheel, false);
+    var desiredMinutes = timeMinutes(desired);
+    var desiredHour24 = Math.floor(desiredMinutes / 60);
+    var desiredMinute = desiredMinutes % 60;
+    var desiredPeriod = desiredHour24 >= 12 ? 'PM' : 'AM';
+    var desiredHour12 = desiredHour24 % 12 || 12;
+    var minutes = [0,15,30,45];
+
+    setDisabledByValue(wheel.period, function (period) {
+      for (var h = 1; h <= 12; h += 1) {
+        for (var m = 0; m < minutes.length; m += 1) {
+          if (allowed(date.value, pad(to24(h, period))+':'+pad(minutes[m]), durationMinutes())) return false;
+        }
+      }
+      return true;
+    });
+
+    setDisabledByValue(wheel.hour, function (value) {
+      var h24 = to24(Number(value), desiredPeriod);
+      return !minutes.some(function (minute) {
+        return allowed(date.value, pad(h24)+':'+pad(minute), durationMinutes());
+      });
+    });
+
+    setDisabledByValue(wheel.minute, function (value) {
+      return !allowed(date.value, pad(desiredHour24)+':'+pad(Number(value)), durationMinutes());
+    });
+
+    if (field && field.value !== desired) field.value = desired;
+    selectWheelValue(wheel.period, desiredPeriod, false);
+    selectWheelValue(wheel.hour, desiredHour12, false);
+    selectWheelValue(wheel.minute, desiredMinute, false);
+  }
+  function coerceTime(value) {
+    var date = form.elements.reserve_date;
+    if (!isCreate() || !date || !validDate(date.value)) return value;
+    if (validTime(value) && allowed(date.value, value, durationMinutes())) return value;
+    /* PMD_JADE_NEAREST_VALID_SLOT_V1_4_1_20260815
+     * A wheel release outside the opening window snaps to the nearest valid
+     * 15-minute reservation start. It never rests on a closed time and never
+     * jumps all the way back to the day's first slot unless that is nearest. */
+    return nearestAllowedTime(date.value, value);
+  }
+  function attachWheel(wheel) { wheelRef = wheel || wheelRef; refreshWheel(); }
+
+  var dateField = form.elements.reserve_date;
+  if (dateField) {
+    dateField.addEventListener('input', function () { apply(false); });
+    dateField.addEventListener('change', function () { apply(false); });
+  }
+  root.addEventListener('change', function (event) {
+    if (event.target && String(event.target.name || '') === 'duration') apply(false);
+  });
+  root.addEventListener('shown.bs.modal', function () { apply(true); });
+
+  window.PMDReservationComposerFutureOnlyV1 = Object.freeze({
+    version:'1.2.0', minimum:minimum, isCreate:isCreate, allowed:allowed,
+    apply:apply, validate:validate, message:message, coerceTime:coerceTime,
+    allowedTimes:allowedTimes, nearestAllowedTime:nearestAllowedTime,
+    attachWheel:attachWheel, refreshWheel:refreshWheel,
+    setOpeningHours:setOpeningHours, openingHours:function(){return openingHours.slice();}
+  });
 }());
 
 /* ============================================================
@@ -1525,6 +2121,7 @@ function applyAvailability(result) {
     var bestDistance = Infinity;
 
     items(column).forEach(function (item) {
+      if (item.disabled) return;
       var itemRect = item.getBoundingClientRect();
       var itemCenter =
         itemRect.top + itemRect.height / 2;
@@ -1577,7 +2174,15 @@ function applyAvailability(result) {
       period
     );
 
+    if (
+      window.PMDReservationComposerFutureOnlyV1
+      && typeof window.PMDReservationComposerFutureOnlyV1.coerceTime === 'function'
+    ) {
+      next = window.PMDReservationComposerFutureOnlyV1.coerceTime(next);
+    }
+
     if (field.value === next) {
+      if (window.PMDReservationComposerFutureOnlyV1) window.PMDReservationComposerFutureOnlyV1.refreshWheel(wheel);
       return;
     }
 
@@ -1600,11 +2205,19 @@ function applyAvailability(result) {
     var selected = closestItem(column);
 
     if (!selected) {
+      if (window.PMDReservationComposerFutureOnlyV1) {
+        window.PMDReservationComposerFutureOnlyV1.refreshWheel(wheel);
+      }
       return;
     }
 
-    setSelected(column, selected);
-    centerItem(column, selected, true);
+    /* PMD_JADE_RECENTER_MIDDLE_CYCLE_V1_4_20260815
+     * Each value is repeated five times. Always settle on the middle clone so
+     * Safari cannot accumulate at the finite scroll edge and expose a white
+     * center band after aggressive wheel scrolling. */
+    var middle = middleItem(column, selected.dataset.value) || selected;
+    setSelected(column, middle);
+    centerItem(column, middle, false);
     publishTime();
   }
 
@@ -1640,7 +2253,7 @@ function applyAvailability(result) {
           '.pmd-jade-wheel-v221__item'
         );
 
-        if (!item || !column.contains(item)) {
+        if (!item || !column.contains(item) || item.disabled) {
           return;
         }
 
@@ -1662,7 +2275,8 @@ function applyAvailability(result) {
 
         event.preventDefault();
 
-        var allItems = items(column);
+        var allItems = items(column).filter(function (item) { return !item.disabled; });
+        if (!allItems.length) return;
         var current =
           activeItem(column)
           || closestItem(column);
@@ -1789,6 +2403,10 @@ function applyAvailability(result) {
     bindColumn(minute);
     bindColumn(period);
 
+    if (window.PMDReservationComposerFutureOnlyV1) {
+      window.PMDReservationComposerFutureOnlyV1.attachWheel(wheel);
+    }
+
     field.addEventListener(
       'input',
       syncFromNative
@@ -1843,6 +2461,10 @@ function applyAvailability(result) {
       setSelected(entry[0], item);
       centerItem(entry[0], item, false);
     });
+
+    if (window.PMDReservationComposerFutureOnlyV1) {
+      window.PMDReservationComposerFutureOnlyV1.refreshWheel(wheel);
+    }
 
     window.requestAnimationFrame(function () {
       syncing = false;
@@ -3676,6 +4298,21 @@ function applyAvailability(result) {
     );
   }
 
+  /* PMD_COMPOSER_TABLE_DRAFT_EXCLUSION_V1_3_20260815
+   * Keep the useful soft draft for guest/name/contact/time/comment fields,
+   * but NEVER persist table assignment. Every new open starts from fresh AUTO
+   * or from the user's current explicit Floor/table context. */
+  function isTableDraftField(fieldOrName) {
+    var name = typeof fieldOrName === 'string'
+      ? fieldOrName
+      : (fieldOrName && fieldOrName.name);
+
+    return (
+      name === 'assignment_mode' ||
+      name === 'tables[]'
+    );
+  }
+
   function createSignature(context) {
     context = context || {};
 
@@ -3739,7 +4376,8 @@ function applyAvailability(result) {
         return Boolean(
           field &&
           field.name &&
-          !field.disabled
+          !field.disabled &&
+          !isTableDraftField(field)
         );
       })
       .map(function (field) {
@@ -3834,7 +4472,8 @@ function applyAvailability(result) {
           if (
             !field ||
             !field.name ||
-            field.disabled
+            field.disabled ||
+            isTableDraftField(field)
           ) {
             return;
           }
@@ -3920,7 +4559,8 @@ function applyAvailability(result) {
             !field ||
             !field.name ||
             field.disabled ||
-            field.name === 'location_id'
+            field.name === 'location_id' ||
+            isTableDraftField(field)
           ) {
             return;
           }
@@ -3960,6 +4600,59 @@ function applyAvailability(result) {
     } finally {
       restoring = false;
     }
+  }
+
+  function reapplyExplicitHourContext(context) {
+    context = context || {};
+    if (
+      stringValue(context.mode).toLowerCase() !== 'create' ||
+      stringValue(context.source).toLowerCase() !== 'hour-slot' ||
+      !/^\d{4}-\d{2}-\d{2}$/.test(stringValue(context.selectedDate)) ||
+      !/^([01]\d|2[0-3]):[0-5]\d$/.test(stringValue(context.selectedTime).slice(0,5))
+    ) {
+      return false;
+    }
+
+    var date = form.elements.reserve_date;
+    var time = form.elements.reserve_time;
+    var duration = form.elements.duration;
+    if (date) date.value = stringValue(context.selectedDate);
+    if (time) time.value = stringValue(context.selectedTime).slice(0,5);
+
+    if (
+      duration
+      && Number(context.duration || 0) > 0
+    ) {
+      var explicitDuration = String(
+        Math.round(Number(context.duration))
+      );
+      var durationAllowed = duration.tagName === 'SELECT'
+        ? Array.prototype.some.call(
+            duration.options,
+            function (option) {
+              return String(option.value) === explicitDuration;
+            }
+          )
+        : true;
+
+      if (durationAllowed) {
+        duration.value = explicitDuration;
+      }
+    }
+
+    if (
+      window.PMDReservationComposerFutureOnlyV1 &&
+      typeof window.PMDReservationComposerFutureOnlyV1.apply === 'function'
+    ) {
+      window.PMDReservationComposerFutureOnlyV1.apply(true);
+    }
+    if (
+      window.PMDComposerStableJadeV221 &&
+      typeof window.PMDComposerStableJadeV221.refresh === 'function'
+    ) {
+      window.PMDComposerStableJadeV221.refresh();
+    }
+    return true;
   }
 
   function markTouched() {
@@ -4011,6 +4704,8 @@ function applyAvailability(result) {
         if (activeSignature) {
           restore(activeSignature);
         }
+        /* Explicit Hour-row intent wins over a same-day soft draft time. */
+        reapplyExplicitHourContext(context);
 
         return result;
       });
@@ -4049,7 +4744,9 @@ function applyAvailability(result) {
         restored:
           root.getAttribute(
             'data-pmd-composer-draft-restored'
-          ) === 'v2426'
+          ) === 'v2426',
+
+        tableAssignmentPersisted: false
       };
     }
   };
@@ -4622,6 +5319,33 @@ function applyAvailability(result) {
             return null;
         }
 
+        /*
+         * PMD_MANUAL_TABLE_TRIGGER_LOCALE_FIX_V1_20260815
+         *
+         * The visible label is translated (for example
+         * "Tisch(e) auswählen" in DE), so text is not a stable
+         * authority for the manual-table trigger.
+         *
+         * The canonical assignment_mode=choose radio is the
+         * structural owner in every locale. Resolve its label
+         * first; keep text lookup only as a legacy fallback.
+         */
+        var currentForm = form();
+
+        var chooseInput = currentForm
+            ? currentForm.querySelector(
+                '[name="assignment_mode"][value="choose"]'
+            )
+            : null;
+
+        var chooseLabel = chooseInput
+            ? chooseInput.closest('label')
+            : null;
+
+        if (chooseLabel) {
+            return chooseLabel;
+        }
+
         var candidates =
             Array.prototype.slice.call(
                 node.querySelectorAll(
@@ -4639,6 +5363,10 @@ function applyAvailability(result) {
                     text === 'choose table(s)' ||
                     text.indexOf(
                         'choose table(s)'
+                    ) >= 0 ||
+                    text === 'tisch(e) auswählen' ||
+                    text.indexOf(
+                        'tisch(e) auswählen'
                     ) >= 0
                 );
             }
@@ -5101,6 +5829,47 @@ function applyAvailability(result) {
             ) {
                 event.preventDefault();
 
+                /*
+                 * PMD_MANUAL_TABLE_SELECTION_CANONICAL_FIX_V1_20260815
+                 *
+                 * V3 owns the capture-phase click and stops propagation.
+                 * That means later V4/V5 click listeners cannot change the
+                 * assignment mode or force a fresh availability request.
+                 *
+                 * Own those two actions here BEFORE stopping the click:
+                 * - Choose table(s) really selects assignment_mode=choose
+                 * - the canonical backend availability request is forced now
+                 *
+                 * No synthetic table list is introduced. The dropdown still
+                 * renders only backend manualAvailableTableIds.
+                 */
+                var currentForm = form();
+                var chooseRadio = currentForm
+                    ? currentForm.querySelector(
+                        '[name="assignment_mode"][value="choose"]'
+                    )
+                    : null;
+
+                if (chooseRadio) {
+                    chooseRadio.checked = true;
+                    chooseRadio.dispatchEvent(
+                        new Event(
+                            'change',
+                            { bubbles: true }
+                        )
+                    );
+                }
+
+                var composerRoot = root();
+
+                if (composerRoot) {
+                    composerRoot.dispatchEvent(
+                        new CustomEvent(
+                            'pmd:manual-table-force-availability-v4'
+                        )
+                    );
+                }
+
                 event.stopPropagation();
                 event.stopImmediatePropagation();
 
@@ -5264,6 +6033,24 @@ function applyAvailability(result) {
                 renderPanel();
                 positionPanel();
             }
+        },
+        audit: function () {
+            var trigger = findChooseTrigger();
+
+            return {
+                triggerFound: Boolean(trigger),
+                triggerText: trigger
+                    ? clean(trigger.textContent)
+                    : '',
+                triggerStrategy:
+                    'assignment_mode_choose_structure_first',
+                explicitOpen: explicitOpen,
+                panelExists: Boolean(
+                    document.getElementById(
+                        PANEL_ID
+                    )
+                )
+            };
         }
     };
 })();
@@ -5506,6 +6293,24 @@ function applyAvailability(result) {
             return null;
         }
 
+        /* PMD_RESERVATIONSLAB_VISIBLE_CHOOSE_CONTEXT_V1_2
+         * Do not identify the control by its mutable visible text. When a
+         * Floor table is selected, the label intentionally becomes Table N.
+         */
+        var currentForm = form();
+        var chooseInput = currentForm
+            ? currentForm.querySelector(
+                '[name="assignment_mode"][value="choose"]'
+            )
+            : null;
+        var chooseLabel = chooseInput
+            ? chooseInput.closest('label')
+            : null;
+
+        if (chooseLabel) {
+            return chooseLabel;
+        }
+
         return Array.prototype
             .slice.call(
                 node.querySelectorAll(
@@ -5631,114 +6436,17 @@ function applyAvailability(result) {
         }
     }
 
-    function renderManual() {
-        var panel =
-            document.getElementById(
-                PANEL_ID
-            );
-
-        if (!panel) {
-            return;
-        }
-
-        var ids = realManualIds();
-
-        panel.innerHTML = '';
-
-        if (!ids.length) {
-            var empty =
-                document.createElement('div');
-
-            empty.className =
-                'pmd-manual-table-dropdown-v3__empty';
-
-            empty.textContent =
-                'No available tables for this reservation.';
-
-            panel.appendChild(empty);
-            return;
-        }
-
-        ids.forEach(function (id) {
-            var option =
-                nativeOptionById(id);
-
-            if (!option) {
-                return;
-            }
-
-            var row =
-                document.createElement('button');
-
-            row.type = 'button';
-
-            row.className =
-                'pmd-manual-table-dropdown-v3__option';
-
-            row.setAttribute(
-                'data-table-id',
-                String(id)
-            );
-
-            row.textContent =
-                String(
-                    option.textContent || ''
-                ).trim();
-
-            row.addEventListener(
-                'click',
-                function () {
-                    var nativeSelect =
-                        select();
-
-                    if (!nativeSelect) {
-                        return;
-                    }
-
-                    Array.prototype
-                        .slice.call(
-                            nativeSelect.options
-                        )
-                        .forEach(function (
-                            nativeOption
-                        ) {
-                            nativeOption.selected =
-                                Number(
-                                    nativeOption.value
-                                ) === Number(id);
-                        });
-
-                    nativeSelect.dispatchEvent(
-                        new Event(
-                            'change',
-                            {
-                                bubbles: true
-                            }
-                        )
-                    );
-                }
-            );
-
-            panel.appendChild(row);
-        });
-    }
+    /* Manual dropdown DOM is owned exclusively by PMD_MANUAL_TABLE_DROPDOWN_UI_V3. */
 
     function renderFromCurrentAvailability() {
+        /* V3 is the ONE manual dropdown DOM owner. */
         renderAuto();
-        renderManual();
     }
 
-    /*
-     * The canonical Composer already emits this event after
-     * applyAvailability().
-     */
+    /* The canonical Composer emits one event after applyAvailability(). */
     document.addEventListener(
         'pmd:manual-table-availability-v2',
-        function () {
-            window.requestAnimationFrame(
-                renderFromCurrentAvailability
-            );
-        }
+        renderFromCurrentAvailability
     );
 
     /*

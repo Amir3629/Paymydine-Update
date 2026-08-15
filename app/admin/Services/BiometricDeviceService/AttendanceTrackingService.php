@@ -10,6 +10,8 @@ use Admin\Models\Attendance_audit_logs_model;
 use Admin\Models\Device_sync_logs_model;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
+use Carbon\Carbon;
 
 /**
  * Attendance Tracking Service
@@ -26,54 +28,110 @@ class AttendanceTrackingService
      * @param string $verificationType
      * @return array ['success' => bool, 'action' => 'check_in'|'check_out', 'attendance_id' => int]
      */
-    public function processAttendance(FingerDevices_model $device, int $userId, string $timestamp, string $verificationType = 'fingerprint'): array
-    {
+    public function processAttendance(
+        FingerDevices_model $device,
+        int $userId,
+        string $timestamp,
+        string $verificationType = 'fingerprint',
+        ?string $explicitAction = null
+    ): array {
         DB::beginTransaction();
 
         try {
-            // Find staff member
             $staff = Staffs_model::find($userId);
-            if (!$staff) {
-                throw new \Exception('Staff member not found');
+            if (!$staff) throw new \Exception('Staff member not found');
+            if (!$staff->staff_status) throw new \Exception('Staff member is disabled');
+
+            $eventTime = Carbon::parse($timestamp);
+            $normalizedTimestamp = $eventTime->format('Y-m-d H:i:s');
+            $action = $this->normalizeAttendanceAction($explicitAction);
+
+            /*
+             * PMD_BIOMETRIC_ATTENDANCE_IDEMPOTENT_V1
+             * Device syncs are routinely replayed. The same device event must
+             * never toggle a person twice merely because a sync runs again.
+             */
+            $duplicate = Staff_attendance_model::query()
+                ->where('staff_id', $staff->staff_id)
+                ->where(function ($q) use ($normalizedTimestamp) {
+                    $q->where('check_in_time', $normalizedTimestamp)
+                        ->orWhere('check_out_time', $normalizedTimestamp);
+                });
+
+            if ((int)$device->device_id > 0) {
+                $duplicate->where(function ($q) use ($device) {
+                    $q->where('device_id', $device->device_id)
+                        ->orWhereNull('device_id');
+                });
             }
 
-            // Check if staff is enabled
-            if (!$staff->staff_status) {
-                throw new \Exception('Staff member is disabled');
+            if ($existingEvent = $duplicate->first()) {
+                DB::commit();
+                return [
+                    'success' => true,
+                    'action' => 'duplicate',
+                    'attendance_id' => (int)$existingEvent->attendance_id,
+                    'staff' => [
+                        'staff_id' => $staff->staff_id,
+                        'staff_name' => $staff->staff_name,
+                    ],
+                    'timestamp' => $normalizedTimestamp,
+                    'message' => 'Attendance event already recorded',
+                ];
             }
 
-            // Get attendance date
-            $attendanceDate = date('Y-m-d', strtotime($timestamp));
-            $attendanceTime = date('H:i:s', strtotime($timestamp));
-
-            // Check if already checked in today
-            $existingAttendance = Staff_attendance_model::where('staff_id', $staff->staff_id)
-                ->whereDate('check_in_time', $attendanceDate)
+            $openAttendance = Staff_attendance_model::query()
+                ->where('staff_id', $staff->staff_id)
                 ->whereNull('check_out_time')
+                ->where('check_in_time', '<=', $normalizedTimestamp)
+                ->orderByDesc('check_in_time')
                 ->first();
 
-            if ($existingAttendance) {
-                // Check out
-                $result = $this->processCheckOut($existingAttendance, $timestamp, $device, $verificationType);
-                $action = 'check_out';
+            if ($action === 'check_in') {
+                if ($openAttendance) {
+                    DB::commit();
+                    return [
+                        'success' => true,
+                        'action' => 'already_checked_in',
+                        'attendance_id' => (int)$openAttendance->attendance_id,
+                        'staff' => [
+                            'staff_id' => $staff->staff_id,
+                            'staff_name' => $staff->staff_name,
+                        ],
+                        'timestamp' => $normalizedTimestamp,
+                        'message' => 'Staff already has an open check-in',
+                    ];
+                }
+                $result = $this->processCheckIn($staff, $normalizedTimestamp, $device, $verificationType);
+                $resolvedAction = 'check_in';
+            } elseif ($action === 'check_out') {
+                if (!$openAttendance) {
+                    throw new \Exception('No open check-in exists for this check-out event');
+                }
+                $result = $this->processCheckOut($openAttendance, $normalizedTimestamp, $device, $verificationType);
+                $resolvedAction = 'check_out';
+            } elseif ($openAttendance) {
+                $result = $this->processCheckOut($openAttendance, $normalizedTimestamp, $device, $verificationType);
+                $resolvedAction = 'check_out';
             } else {
-                // Check in
-                $result = $this->processCheckIn($staff, $timestamp, $device, $verificationType);
-                $action = 'check_in';
+                $result = $this->processCheckIn($staff, $normalizedTimestamp, $device, $verificationType);
+                $resolvedAction = 'check_in';
             }
 
             DB::commit();
 
             return [
                 'success' => true,
-                'action' => $action,
+                'action' => $resolvedAction,
                 'attendance_id' => $result['attendance_id'],
                 'staff' => [
                     'staff_id' => $staff->staff_id,
                     'staff_name' => $staff->staff_name,
                 ],
-                'timestamp' => $timestamp,
-                'message' => $action === 'check_in' ? 'Checked in successfully' : 'Checked out successfully'
+                'timestamp' => $normalizedTimestamp,
+                'message' => $resolvedAction === 'check_in'
+                    ? 'Checked in successfully'
+                    : 'Checked out successfully',
             ];
 
         } catch (\Exception $e) {
@@ -82,12 +140,14 @@ class AttendanceTrackingService
             Log::error('Failed to process attendance', [
                 'device_id' => $device->device_id,
                 'user_id' => $userId,
-                'error' => $e->getMessage()
+                'timestamp' => $timestamp,
+                'action' => $explicitAction,
+                'error' => $e->getMessage(),
             ]);
 
             return [
                 'success' => false,
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
             ];
         }
     }
@@ -234,7 +294,18 @@ class AttendanceTrackingService
                         continue;
                     }
 
-                    $result = $this->processAttendance($device, $userId, $timestamp, $verifyType);
+                    $explicitAction = match ((int)$type) {
+                        0 => 'check_in',
+                        1 => 'check_out',
+                        default => null,
+                    };
+                    $result = $this->processAttendance(
+                        $device,
+                        (int)$userId,
+                        (string)$timestamp,
+                        $verifyType,
+                        $explicitAction
+                    );
                     
                     if ($result['success']) {
                         $synced++;
@@ -385,61 +456,95 @@ class AttendanceTrackingService
      */
     protected function checkLateArrival(Staff_attendance_model $attendance): void
     {
-        // TODO: Implement late arrival logic based on schedule
-        // For now, simplified version
-        $schedule = $this->getStaffSchedule($attendance->staff_id);
-        
-        if ($schedule && isset($schedule['time_in'])) {
-            $scheduledTime = strtotime(date('Y-m-d') . ' ' . $schedule['time_in']);
-            $actualTime = strtotime($attendance->check_in_time);
-            
-            $gracePeriod = 5 * 60; // 5 minutes grace period
-            $lateSeconds = $actualTime - $scheduledTime - $gracePeriod;
-            
-            if ($lateSeconds > 0) {
-                $attendance->is_late = true;
-                $attendance->late_minutes = ceil($lateSeconds / 60);
-                $attendance->save();
-            }
+        if (!Schema::hasColumn('staff_attendance', 'is_late')
+            || !Schema::hasColumn('staff_attendance', 'late_minutes')) {
+            return;
         }
+
+        $checkIn = Carbon::parse($attendance->check_in_time);
+        $schedule = $this->getStaffSchedule((int)$attendance->staff_id, $checkIn);
+        if (!$schedule || empty($schedule['time_in'])) return;
+
+        $scheduled = Carbon::parse($checkIn->format('Y-m-d').' '.$schedule['time_in']);
+        $graceMinutes = 5;
+        $lateMinutes = $scheduled->copy()->addMinutes($graceMinutes)->lt($checkIn)
+            ? $scheduled->copy()->addMinutes($graceMinutes)->diffInMinutes($checkIn)
+            : 0;
+
+        $attendance->is_late = $lateMinutes > 0;
+        $attendance->late_minutes = $lateMinutes;
+        $attendance->save();
     }
 
-    /**
-     * Check for overtime
-     * @param Staff_attendance_model $attendance
-     */
     protected function checkOvertime(Staff_attendance_model $attendance): void
     {
-        // TODO: Implement overtime logic based on schedule
-        $schedule = $this->getStaffSchedule($attendance->staff_id);
-        
-        if ($schedule && isset($schedule['time_out'])) {
-            $scheduledOutTime = strtotime(date('Y-m-d', strtotime($attendance->check_in_time)) . ' ' . $schedule['time_out']);
-            $actualOutTime = strtotime($attendance->check_out_time);
-            
-            $overtimeSeconds = $actualOutTime - $scheduledOutTime;
-            
-            if ($overtimeSeconds > 900) { // More than 15 minutes
-                $attendance->is_overtime = true;
-                $attendance->overtime_minutes = ceil($overtimeSeconds / 60);
-                $attendance->save();
-            }
+        if (!$attendance->check_out_time
+            || !Schema::hasColumn('staff_attendance', 'is_overtime')
+            || !Schema::hasColumn('staff_attendance', 'overtime_minutes')) {
+            return;
         }
+
+        $checkIn = Carbon::parse($attendance->check_in_time);
+        $checkOut = Carbon::parse($attendance->check_out_time);
+        $schedule = $this->getStaffSchedule((int)$attendance->staff_id, $checkIn);
+        if (!$schedule || empty($schedule['time_out'])) return;
+
+        $scheduledOut = Carbon::parse($checkIn->format('Y-m-d').' '.$schedule['time_out']);
+        if (!empty($schedule['time_in'])) {
+            $scheduledIn = Carbon::parse($checkIn->format('Y-m-d').' '.$schedule['time_in']);
+            if ($scheduledOut->lte($scheduledIn)) $scheduledOut->addDay();
+        }
+
+        $overtimeMinutes = $scheduledOut->copy()->addMinutes(15)->lt($checkOut)
+            ? $scheduledOut->diffInMinutes($checkOut)
+            : 0;
+
+        $attendance->is_overtime = $overtimeMinutes > 0;
+        $attendance->overtime_minutes = $overtimeMinutes;
+        $attendance->save();
     }
 
     /**
-     * Get staff schedule
-     * @param int $staffId
-     * @return array|null
+     * Resolve the real staff schedule assignment effective on the attendance
+     * date. This replaces the old hard-coded 09:00-17:00 placeholder.
      */
-    protected function getStaffSchedule(int $staffId): ?array
+    protected function getStaffSchedule(int $staffId, $at = null): ?array
     {
-        // TODO: Implement schedule lookup from staff_schedules table
-        // Simplified version - return default schedule
-        return [
-            'time_in' => '09:00:00',
-            'time_out' => '17:00:00',
-        ];
+        if (!Schema::hasTable('staff_schedule_assignments')
+            || !Schema::hasTable('staff_schedules')) {
+            return null;
+        }
+
+        $date = $at ? Carbon::parse($at)->format('Y-m-d') : now()->format('Y-m-d');
+
+        $row = DB::table('staff_schedule_assignments as a')
+            ->join('staff_schedules as s', 'a.schedule_id', '=', 's.schedule_id')
+            ->where('a.staff_id', $staffId)
+            ->where('s.status', 1)
+            ->where(function ($query) use ($date) {
+                $query->whereNull('a.effective_from')->orWhere('a.effective_from', '<=', $date);
+            })
+            ->where(function ($query) use ($date) {
+                $query->whereNull('a.effective_to')->orWhere('a.effective_to', '>=', $date);
+            })
+            ->orderByDesc('a.effective_from')
+            ->select('s.time_in', 's.time_out')
+            ->first();
+
+        return $row ? [
+            'time_in' => (string)$row->time_in,
+            'time_out' => (string)$row->time_out,
+        ] : null;
+    }
+
+    protected function normalizeAttendanceAction(?string $action): ?string
+    {
+        $action = strtolower(trim((string)$action));
+        return match ($action) {
+            'in', 'checkin', 'check-in', 'check_in' => 'check_in',
+            'out', 'checkout', 'check-out', 'check_out' => 'check_out',
+            default => null,
+        };
     }
 
     /**

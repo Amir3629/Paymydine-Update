@@ -7,11 +7,13 @@ namespace Admin\Controllers;
  * of host-specific PSR-4 case handling. */
 require_once __DIR__.'/concerns/PmdreportsCommerceConcern.php';
 require_once __DIR__.'/concerns/PmdreportsOperationsConcern.php';
+require_once __DIR__.'/concerns/PmdreportsAttendanceConcern.php';
 
 use Admin\Facades\AdminMenu;
 use Admin\Facades\Template;
 use Admin\Controllers\Concerns\PmdreportsCommerceConcern;
 use Admin\Controllers\Concerns\PmdreportsOperationsConcern;
+use Admin\Controllers\Concerns\PmdreportsAttendanceConcern;
 use Carbon\Carbon;
 
 /**
@@ -24,6 +26,7 @@ class Pmdreports extends Dashboard2
 {
     use PmdreportsCommerceConcern;
     use PmdreportsOperationsConcern;
+    use PmdreportsAttendanceConcern;
 
     protected $requiredPermissions = 'Admin.Dashboard';
     private ?array $pmdReportCurrency = null;
@@ -62,6 +65,7 @@ class Pmdreports extends Dashboard2
     public function topitems() { return $this->show('topitems'); }
     public function reviews() { return $this->show('reviews'); }
     public function reservations() { return $this->show('reservations'); }
+    public function attendance() { return $this->show('attendance'); }
 
     protected function show(string $type)
     {
@@ -95,6 +99,9 @@ class Pmdreports extends Dashboard2
             'period' => $period,
             'period_label' => $periodLabel,
             'periods' => $this->periodOptions($type),
+            'period_query' => $this->periodQueryParams($period),
+            'date_from' => $this->periodQueryParams($period)['date_from'] ?? null,
+            'date_to' => $this->periodQueryParams($period)['date_to'] ?? null,
             'timezone' => $this->restaurantTimezone(),
             'currency' => $this->reportCurrency(),
             'route_url' => $this->reportUrl($type),
@@ -172,7 +179,7 @@ class Pmdreports extends Dashboard2
             ],
             'liveorders' => [
                 'title' => 'Live orders',
-                'subtitle' => 'Current open orders with operational status, channel and age.',
+                'subtitle' => 'Current open orders created inside the selected report window, with operational status, channel and age.',
                 'accent' => 'green',
             ],
             'channels' => [
@@ -192,13 +199,18 @@ class Pmdreports extends Dashboard2
             ],
             'reviews' => [
                 'title' => 'Latest reviews',
-                'subtitle' => 'Recent guest ratings and comments for this restaurant.',
+                'subtitle' => 'Guest ratings and comments inside the selected report window for this restaurant.',
                 'accent' => 'violet',
             ],
             'reservations' => [
                 'title' => 'Upcoming reservations',
-                'subtitle' => 'Future reservations with guests, status and real table assignments.',
+                'subtitle' => 'Reservations inside the selected report window with guests, status and real table assignments.',
                 'accent' => 'blue',
+            ],
+            'attendance' => [
+                'title' => 'Staff attendance & presence',
+                'subtitle' => 'Real signed-in admin sessions, time-clock attendance and biometric verification for this location.',
+                'accent' => 'green',
             ],
         ][$type] ?? [
             'title' => 'Owner report',
@@ -209,27 +221,34 @@ class Pmdreports extends Dashboard2
 
     protected function period(string $type): string
     {
-        if (in_array($type, ['alerts', 'liveorders'], true)) return 'today';
-        if ($type === 'reviews') return 'all';
-        if ($type === 'reservations') return 'today';
+        $allowed = ['today', 'week', 'month', 'last30', 'all', 'custom'];
+        $queryPeriod = request()->query('period', null);
 
-        $value = strtolower(trim((string)request()->query('period', 'last30')));
+        if ($queryPeriod !== null) {
+            $value = strtolower(trim((string)$queryPeriod));
+            if (!in_array($value, $allowed, true)) $value = 'last30';
 
-        if ($value === 'custom') {
-            return $this->customWindow() ? 'custom' : 'last30';
+            if ($value === 'custom') {
+                if (!$this->customWindow(true)) $value = 'last30';
+            }
+
+            session()->put('pmd.owner_reports.period', $value);
+            return $value;
         }
 
-        return in_array($value, ['today', 'week', 'month', 'last30', 'all'], true)
-            ? $value
-            : 'last30';
+        $saved = strtolower(trim((string)session()->get('pmd.owner_reports.period', '')));
+        if ($saved === 'custom' && $this->customWindow(false)) return 'custom';
+        if (in_array($saved, ['today', 'week', 'month', 'last30', 'all'], true)) return $saved;
+
+        return match ($type) {
+            'attendance', 'alerts', 'liveorders', 'reservations' => 'today',
+            'reviews' => 'all',
+            default => 'last30',
+        };
     }
 
     protected function periodOptions(string $type): array
     {
-        if (in_array($type, ['alerts', 'liveorders'], true)) return ['today' => 'Today'];
-        if ($type === 'reviews') return ['all' => 'Latest'];
-        if ($type === 'reservations') return ['today' => 'Upcoming'];
-
         return [
             'today' => 'Today',
             'week' => 'Week',
@@ -243,14 +262,18 @@ class Pmdreports extends Dashboard2
     /*
      * PMD_OWNER_REPORT_CUSTOM_RANGE_V1
      *
-     * Custom ranges use only canonical YYYY-MM-DD query parameters and the
-     * restaurant timezone. The end date is inclusive through 23:59:59.999999.
-     * Invalid/missing dates safely fall back to Last 30 days via period().
+     * Custom ranges are remembered in the authenticated Admin session so the
+     * exact same selection follows the user across every PMD report route.
      */
-    protected function customWindow(): ?array
+    protected function customWindow(bool $remember = false): ?array
     {
         $from = trim((string)request()->query('date_from', ''));
         $to = trim((string)request()->query('date_to', ''));
+
+        if ($from === '' || $to === '') {
+            $from = trim((string)session()->get('pmd.owner_reports.date_from', ''));
+            $to = trim((string)session()->get('pmd.owner_reports.date_to', ''));
+        }
 
         if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $from) ||
             !preg_match('/^\d{4}-\d{2}-\d{2}$/', $to)) {
@@ -268,6 +291,12 @@ class Pmdreports extends Dashboard2
 
             if ($start->gt($end)) {
                 [$start, $end] = [$end->copy()->startOfDay(), $start->copy()->endOfDay()];
+                [$from, $to] = [$start->format('Y-m-d'), $end->format('Y-m-d')];
+            }
+
+            if ($remember || request()->query('period', null) === 'custom') {
+                session()->put('pmd.owner_reports.date_from', $from);
+                session()->put('pmd.owner_reports.date_to', $to);
             }
 
             $label = $start->isSameDay($end)
@@ -278,6 +307,19 @@ class Pmdreports extends Dashboard2
         } catch (\Throwable $error) {
             return null;
         }
+    }
+
+    protected function periodQueryParams(string $period): array
+    {
+        $params = ['period' => $period];
+        if ($period !== 'custom') return $params;
+
+        $custom = $this->customWindow(false);
+        if (!$custom) return ['period' => 'last30'];
+
+        $params['date_from'] = $custom[0]->format('Y-m-d');
+        $params['date_to'] = $custom[1]->format('Y-m-d');
+        return $params;
     }
 
     protected function window(string $period): array
@@ -313,12 +355,13 @@ class Pmdreports extends Dashboard2
             'payments' => $this->paymentsPayload($start, $end),
             'transactions' => $this->transactionsPayload($start, $end),
             'alerts' => $this->alertsPayload($start, $end),
-            'liveorders' => $this->livePayload($end),
+            'liveorders' => $this->livePayload($start, $end),
             'channels' => $this->channelsPayload($start, $end),
             'topitems' => $this->topItemsPayload($start, $end),
             'tips' => $this->tipsPayload($start, $end),
-            'reviews' => $this->reviewsPayload(),
-            'reservations' => $this->reservationsPayload($end),
+            'reviews' => $this->reviewsPayload($start, $end),
+            'reservations' => $this->reservationsPayload($start, $end, $period),
+            'attendance' => $this->attendancePayload($start, $end, $period),
             default => ['stats' => [], 'chart' => null, 'columns' => [], 'rows' => [], 'empty' => true],
         };
     }

@@ -269,6 +269,7 @@ function handleNavigationDropdownReset(event) {
           ? 'collapsed'
           : 'expanded';
 
+      armRuntimeTransitionsForUserAction();
       applyState(nextState);
       return;
     }
@@ -305,6 +306,7 @@ function handleNavigationDropdownReset(event) {
       if (
         getState() !== 'expanded'
       ) {
+        armRuntimeTransitionsForUserAction();
         applyState('expanded');
       }
 
@@ -316,6 +318,18 @@ function handleNavigationDropdownReset(event) {
   }
 
   function refresh() {
+    /*
+     * PMD_SM2_REFRESH_STATIC_BOOT_CONSOLIDATION_V1
+     *
+     * A page load/refresh is never a user animation. Keep the shared
+     * transition gate OFF while restoring persisted state. This prevents
+     * the entire page wrapper (including ReservationsLab Floor) from
+     * animating after first paint.
+     */
+    document.documentElement.classList.remove(
+      'pmd-sm2-runtime-ready'
+    );
+
     menu.style.setProperty(
       'pointer-events',
       'auto',
@@ -404,19 +418,24 @@ function handleNavigationDropdownReset(event) {
     });
   }
 
-function enableRuntimeTransitions() {
+function armRuntimeTransitionsForUserAction() {
+    /*
+     * PMD_SM2_USER_ACTION_TRANSITIONS_ONLY_V1
+     *
+     * The old implementation armed transitions automatically two RAFs
+     * after every boot. That contradicted the first-paint contract and
+     * could animate the page shell/Floor during refresh. The SAME existing
+     * pmd-sm2-runtime-ready gate is now armed only immediately before an
+     * actual user-driven expand/collapse action.
+     */
     lockVerticalGeometry();
-    requestAnimationFrame(function () {
-      requestAnimationFrame(function () {
-        document.documentElement.classList.add(
-          'pmd-sm2-runtime-ready'
-        );
-      });
-    });
+    document.documentElement.classList.add(
+      'pmd-sm2-runtime-ready'
+    );
   }
 
 window.PMDSideMenu2GlobalV3 = {
-    version: '3.0.0',
+    version: '3.0.1-refresh-static',
     refresh: refresh,
     applyState: applyState,
     setDropdown: setDropdown,
@@ -430,7 +449,7 @@ window.PMDSideMenu2GlobalV3 = {
     window.PMDSideMenu2GlobalV3
   );
 
-  enableRuntimeTransitions();
+  /* Initial boot intentionally leaves pmd-sm2-runtime-ready absent. */
 })();
 
 /* PMD_SM2_DROPDOWN_CLOSE_V16_START */

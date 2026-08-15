@@ -1,0 +1,72 @@
+{
+  "release": "1.0.1-staging.20260815-buildfix",
+  "service": "paymydine-frontend-v2",
+  "defaultPort": 3002,
+  "productionPortUntouched": 3001,
+  "themeResolution": "server-side-before-render",
+  "themeCount": 10,
+  "themes": [
+    "noir_editorial",
+    "verdant_modern",
+    "lumiere_fine_dining",
+    "kazen_japanese",
+    "azzurra_coastal",
+    "neon_cocktail_bar",
+    "art_deco_speakeasy",
+    "shahrazad_persian",
+    "anatolia_turkish",
+    "ember_steakhouse"
+  ],
+  "uiLocales": [
+    "en",
+    "de",
+    "fa",
+    "tr",
+    "ja"
+  ],
+  "includedFlows": [
+    "restaurant-branding",
+    "menu-categories-items-images-options",
+    "allergens-nutrition-dietary-flags",
+    "tenant-table-qr-context",
+    "personal-cart",
+    "shared-table-draft",
+    "submit-to-kitchen",
+    "multi-device-order-polling",
+    "preparation-time-and-order-status",
+    "waiter-call",
+    "table-note",
+    "valet-request",
+    "social-links",
+    "vat-tip-coupon",
+    "full-equal-item-share-payment",
+    "cash-existing-order-settlement",
+    "paypal-create-capture-settlement",
+    "hosted-provider-session-and-return-verification"
+  ],
+  "staticValidation": {
+    "offlineTypeScript": "pass",
+    "themeIsolation": "pass",
+    "sourceSafety": "pass",
+    "structureAndLockfile": "pass",
+    "backendContract": "pass",
+    "featureCoverage": "pass",
+    "importResolution": "pass",
+    "releasePackageSafety": "pass"
+  },
+  "requiresStagingValidation": [
+    "npm-ci",
+    "next-build",
+    "real-table-and-qr",
+    "two-device-table-order",
+    "admin-notifications",
+    "enabled-payment-providers",
+    "visual-regression"
+  ],
+  "buildFixes": [
+    "next16-web-request-response-route-contract",
+    "turbopack-project-root-pinned",
+    "tsconfig-next16-preconfigured",
+    "working-copy-release-audit-no-false-positive"
+  ]
+}

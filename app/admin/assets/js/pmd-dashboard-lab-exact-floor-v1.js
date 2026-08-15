@@ -167,6 +167,16 @@
         'data-state-url'
       );
 
+    var reservationBusyUrl =
+      root.getAttribute(
+        'data-pmd-reservation-busy-url'
+      ) || window.location.href;
+
+    var reservationBusyHandler =
+      root.getAttribute(
+        'data-pmd-reservation-busy-handler'
+      ) || 'onPmdFloorReservationBusyWindows';
+
     var orderTemplate =
       root.getAttribute(
         'data-order-url'
@@ -216,6 +226,9 @@
     var MINIMUM_GAP = 14;
     var SNAP_DISTANCE = 20;
     var EDGE_PADDING = 10;
+
+    var reservationBusyTimer = null;
+    var reservationBusyRefreshPromise = null;
 
     var state = {
       payload: {},
@@ -789,6 +802,106 @@
       );
     }
 
+    /* PMD_FLOOR_RESERVATION_BUSY_RUNTIME_V1
+     * Existing Floor/order state remains the base status authority.
+     * Reservation windows only contribute occupied/busy while active.
+     * One timeout is scheduled to the NEXT start/end boundary; this is not polling.
+     */
+    function reservationBusyWindows() {
+      var rows = state.payload && state.payload.pmd_reservation_busy_windows;
+      return Array.isArray(rows) ? rows : [];
+    }
+
+    function reservationBusyAt(dbTableId, tableNo, at) {
+      var now = Number(at || Date.now());
+      var id = Number(dbTableId || 0);
+      var numberValue = clean(tableNo);
+      return reservationBusyWindows().some(function (row) {
+        if (!row) return false;
+        var rowId = Number(row.table_id || 0);
+        var rowNo = clean(row.table_no);
+        var sameTable = (id > 0 && rowId === id) || (numberValue !== '' && rowNo === numberValue);
+        if (!sameTable) return false;
+        var start = Number(row.start_ms || 0);
+        var end = Number(row.end_ms || 0);
+        return start > 0 && end > start && now >= start && now < end;
+      });
+    }
+
+    function refreshReservationBusyWindows() {
+      if (!reservationBusyUrl || !reservationBusyHandler) {
+        return Promise.resolve(false);
+      }
+      if (reservationBusyRefreshPromise) return reservationBusyRefreshPromise;
+
+      reservationBusyRefreshPromise = fetchJson(reservationBusyUrl, {
+        method: 'POST',
+        headers: {
+          'X-IGNITER-REQUEST-HANDLER': reservationBusyHandler
+        },
+        body: JSON.stringify({})
+      }).then(function (payload) {
+        var rows = payload && payload.windows;
+        if (!Array.isArray(rows)) return false;
+        if (!state.payload || typeof state.payload !== 'object') state.payload = {};
+        state.payload.pmd_reservation_busy_windows = rows;
+        return true;
+      }).catch(function (error) {
+        console.warn('[PMD Floor] Reservation busy refresh failed', error);
+        return false;
+      }).then(function (result) {
+        reservationBusyRefreshPromise = null;
+        return result;
+      }, function (error) {
+        reservationBusyRefreshPromise = null;
+        throw error;
+      });
+
+      return reservationBusyRefreshPromise;
+    }
+
+    function syncReservationBusyStatuses() {
+      var now = Date.now();
+      var changed = false;
+      (state.tables || []).forEach(function (table) {
+        if (!table) return;
+        var base = clean(table.baseStatus || table.status || 'available');
+        var busy = reservationBusyAt(table.dbTableId, table.number, now);
+        var next = (base === 'attention' || base === 'cleaning')
+          ? base
+          : (busy ? 'occupied' : base);
+        if (table.reservationBusy !== busy || table.status !== next) {
+          table.reservationBusy = busy;
+          table.status = next;
+          changed = true;
+        }
+      });
+      if (changed) render();
+      scheduleReservationBusyBoundary();
+    }
+
+    function scheduleReservationBusyBoundary() {
+      if (reservationBusyTimer) {
+        window.clearTimeout(reservationBusyTimer);
+        reservationBusyTimer = null;
+      }
+      var now = Date.now();
+      var next = 0;
+      reservationBusyWindows().forEach(function (row) {
+        [Number(row && row.start_ms || 0), Number(row && row.end_ms || 0)].forEach(function (boundary) {
+          if (boundary <= now) return;
+          if (!next || boundary < next) next = boundary;
+        });
+      });
+      if (!next) return;
+      reservationBusyTimer = window.setTimeout(function () {
+        reservationBusyTimer = null;
+        refreshReservationBusyWindows().then(function () {
+          syncReservationBusyStatuses();
+        });
+      }, Math.max(25, next - now + 35));
+    }
+
     function normalize(
       payload,
       layoutPayload
@@ -954,7 +1067,7 @@
               }
             );
 
-          var status =
+          var baseStatus =
             (
               waiterCall ||
               !!note
@@ -967,6 +1080,19 @@
                   : occupied
                     ? 'occupied'
                     : 'available';
+
+          var reservationBusy = reservationBusyAt(
+            dbTableId,
+            tableNumber(raw),
+            Date.now()
+          );
+
+          var status =
+            (baseStatus === 'attention' || baseStatus === 'cleaning')
+              ? baseStatus
+              : reservationBusy
+                ? 'occupied'
+                : baseStatus;
 
           var floor =
             raw.floor || {};
@@ -1020,6 +1146,8 @@
               ),
 
             status: status,
+            baseStatus: baseStatus,
+            reservationBusy: reservationBusy,
 
             waiterCall:
               waiterCall,
@@ -2623,8 +2751,15 @@ function saveLayout() {
         fetchJson(layoutUrl)
       ])
         .then(function (results) {
+          var preservedReservationBusyWindows = reservationBusyWindows().slice();
           state.payload =
             results[0] || {};
+          if (
+            !Array.isArray(state.payload.pmd_reservation_busy_windows)
+            && preservedReservationBusyWindows.length
+          ) {
+            state.payload.pmd_reservation_busy_windows = preservedReservationBusyWindows;
+          }
 
           state.operational =
             results[1].state || {
@@ -2639,6 +2774,10 @@ function saveLayout() {
             );
 
           render();
+          scheduleReservationBusyBoundary();
+          refreshReservationBusyWindows().then(function () {
+            syncReservationBusyStatuses();
+          });
 
           /*
            * Repair previously saved merged groups that overlap
@@ -6946,6 +7085,7 @@ function saveLayout() {
       updateCounts();
 
       state.initialized = true;
+      scheduleReservationBusyBoundary();
 
       root.setAttribute(
         'data-pmd-floor-boot-source',
@@ -6963,6 +7103,20 @@ function saveLayout() {
         'network-fallback'
       );
     }
+
+    /* PMD_FLOOR_RESERVATION_BUSY_EVENT_REFRESH_V1
+     * No polling. Re-read canonical reservation windows only when the user
+     * returns to the tab/window; boundary starts/ends use the one-shot timer above.
+     */
+    function refreshReservationBusyOnReturn() {
+      if (document.visibilityState === 'hidden') return;
+      refreshReservationBusyWindows().then(function () {
+        syncReservationBusyStatuses();
+      });
+    }
+
+    document.addEventListener('visibilitychange', refreshReservationBusyOnReturn, false);
+    window.addEventListener('focus', refreshReservationBusyOnReturn, false);
 
     window.PMDDashboardLabFloorStabilityV2 = {
       version: '2.0.0',
@@ -7400,4 +7554,391 @@ function saveLayout() {
       };
     }
   };
+})();
+
+
+/* ============================================================
+   PMD_FLOOR_INLINE_TABLE_MANAGER_V1
+   Owner/Manager only. Event-driven UI; no observer/polling/interval.
+   Backend authority is the inherited ManagerLab handler and canonical
+   Admin\Models\Tables_model. QR data is never requested or submitted.
+   ============================================================ */
+(function () {
+  'use strict';
+
+  if (window.PMDFloorInlineTableManagerV1) return;
+
+  function asText(value) {
+    return value === null || value === undefined ? '' : String(value);
+  }
+
+  function asInt(value, fallback) {
+    var parsed = parseInt(value, 10);
+    return Number.isFinite(parsed) ? parsed : (fallback || 0);
+  }
+
+  function parsePayload(text) {
+    if (!text) return {};
+    try { return JSON.parse(text); }
+    catch (error) { return { message: text }; }
+  }
+
+  function request(root, handler, payload) {
+    var endpoint = root.getAttribute('data-pmd-floor-table-manager-url');
+    if (!endpoint) return Promise.reject(new Error('Table manager endpoint is unavailable.'));
+
+    var headers = {
+      Accept: 'application/json',
+      'Content-Type': 'application/json',
+      'X-Requested-With': 'XMLHttpRequest',
+      'X-IGNITER-REQUEST-HANDLER': handler
+    };
+
+    var csrf = document.querySelector('meta[name="csrf-token"]');
+    if (csrf && csrf.content) headers['X-CSRF-TOKEN'] = csrf.content;
+
+    return fetch(endpoint, {
+      method: 'POST',
+      credentials: 'same-origin',
+      cache: 'no-store',
+      headers: headers,
+      body: JSON.stringify(payload || {})
+    }).then(function (response) {
+      return response.text().then(function (text) {
+        var data = parsePayload(text);
+        if (!response.ok || data.ok === false) {
+          var error = new Error(data.message || ('HTTP ' + response.status));
+          error.status = response.status;
+          error.payload = data;
+          throw error;
+        }
+        return data;
+      });
+    });
+  }
+
+  function boot(root) {
+    if (!root || root.__pmdInlineTableManagerV1) return;
+    if (root.getAttribute('data-pmd-floor-table-manager') !== 'true') return;
+
+    var panel = root.querySelector('[data-pmd-floor-table-manager-panel]');
+    var addButton = root.querySelector('[data-pmd-floor-table-add]');
+    var editButton = root.querySelector('[data-pmd-floor-table-edit]');
+    if (!panel || !addButton || !editButton) return;
+
+    var form = panel.querySelector('[data-pmd-floor-table-manager-form]');
+    var saveButton = panel.querySelector('[data-pmd-floor-table-manager-save]');
+    var loading = panel.querySelector('[data-pmd-floor-table-manager-loading]');
+    var errorBox = panel.querySelector('[data-pmd-floor-table-manager-error]');
+    var title = panel.querySelector('[data-pmd-floor-table-manager-title]');
+    var subtitle = panel.querySelector('[data-pmd-floor-table-manager-subtitle]');
+    var numberLock = panel.querySelector('[data-pmd-floor-table-number-lock]');
+    var locationId = asInt(root.getAttribute('data-pmd-floor-table-manager-location'), 0);
+    var busy = false;
+    var currentMode = 'create';
+
+    function field(name) {
+      return panel.querySelector('[data-pmd-floor-table-field="' + name + '"]');
+    }
+
+    function state() {
+      return root.__pmdFloorV1 && typeof root.__pmdFloorV1.getState === 'function'
+        ? root.__pmdFloorV1.getState()
+        : null;
+    }
+
+    function selectedTable() {
+      var current = state();
+      if (!current || !current.selectedDisplayId || !Array.isArray(current.displayTables)) return null;
+      return current.displayTables.find(function (table) {
+        return String(table && table.id) === String(current.selectedDisplayId);
+      }) || null;
+    }
+
+    function syncToolbar() {
+      var current = state();
+      var selected = selectedTable();
+      var layoutEditing = Boolean(current && current.editing);
+      var editable = Boolean(
+        selected
+        && !selected.isMergedView
+        && asInt(selected.dbTableId, 0) > 0
+        && !layoutEditing
+      );
+
+      editButton.disabled = !editable;
+      addButton.disabled = layoutEditing;
+      editButton.setAttribute('aria-disabled', editable ? 'false' : 'true');
+    }
+
+    function setBusy(next) {
+      busy = Boolean(next);
+      panel.setAttribute('aria-busy', busy ? 'true' : 'false');
+      saveButton.disabled = busy;
+      Array.prototype.forEach.call(form.querySelectorAll('input,select,textarea'), function (node) {
+        if (node === field('table_no') && node.getAttribute('data-number-locked') === '1') {
+          node.disabled = true;
+          return;
+        }
+        node.disabled = busy;
+      });
+      loading.hidden = !busy;
+      saveButton.textContent = busy
+        ? (panel.getAttribute('data-saving-label') || 'Saving…')
+        : (panel.getAttribute('data-save-label') || 'Save table');
+    }
+
+    function clearErrors() {
+      errorBox.hidden = true;
+      errorBox.innerHTML = '';
+      Array.prototype.forEach.call(form.querySelectorAll('.has-pmd-floor-table-error'), function (node) {
+        node.classList.remove('has-pmd-floor-table-error');
+      });
+    }
+
+    function showError(error) {
+      clearErrors();
+      var payload = error && error.payload ? error.payload : {};
+      var errors = payload && payload.errors && typeof payload.errors === 'object'
+        ? payload.errors
+        : null;
+      var messages = [];
+
+      if (errors) {
+        Object.keys(errors).forEach(function (name) {
+          var node = field(name);
+          if (node) node.classList.add('has-pmd-floor-table-error');
+          var rows = Array.isArray(errors[name]) ? errors[name] : [errors[name]];
+          rows.forEach(function (message) {
+            if (message) messages.push(asText(message));
+          });
+        });
+      }
+
+      if (!messages.length) {
+        messages.push(asText((payload && payload.message) || (error && error.message) || 'Could not save the table.'));
+      }
+
+      errorBox.innerHTML = messages.map(function (message) {
+        return '<span>' + message.replace(/[&<>"']/g, function (char) {
+          return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' }[char];
+        }) + '</span>';
+      }).join('');
+      errorBox.hidden = false;
+    }
+
+    function setValue(name, value) {
+      var node = field(name);
+      if (!node) return;
+      if (node.type === 'checkbox') {
+        node.checked = Boolean(value);
+      } else {
+        node.value = value === null || value === undefined ? '' : String(value);
+      }
+    }
+
+    function applyTable(table, mode) {
+      currentMode = mode === 'edit' ? 'edit' : 'create';
+      clearErrors();
+
+      var numberField = field('table_no');
+      var locked = Boolean(table && table.number_locked);
+      if (numberField) {
+        numberField.type = locked ? 'text' : 'number';
+        numberField.setAttribute('inputmode', locked ? 'text' : 'numeric');
+        if (locked) {
+          numberField.removeAttribute('min');
+          numberField.removeAttribute('step');
+        } else {
+          numberField.setAttribute('min', '1');
+          numberField.setAttribute('step', '1');
+        }
+      }
+
+      [
+        'table_id', 'table_no', 'table_section', 'floor_name', 'floor_shape',
+        'min_capacity', 'preferred_capacity', 'max_capacity', 'extra_capacity',
+        'priority', 'reservation_priority', 'floor_notes', 'table_status',
+        'reservable', 'visible_on_floor_plan', 'is_joinable'
+      ].forEach(function (name) {
+        setValue(name, table ? table[name] : '');
+      });
+
+      numberField.setAttribute('data-number-locked', locked ? '1' : '0');
+      numberField.disabled = locked;
+      numberLock.hidden = !locked;
+
+      title.textContent = currentMode === 'edit'
+        ? (panel.getAttribute('data-edit-title') || 'Edit table')
+        : (panel.getAttribute('data-create-title') || 'Create new table');
+      subtitle.textContent = currentMode === 'edit'
+        ? (panel.getAttribute('data-edit-subtitle') || '')
+        : (panel.getAttribute('data-create-subtitle') || '');
+    }
+
+    function openPanel(mode, tableId) {
+      if (busy) return;
+      panel.hidden = false;
+      document.documentElement.classList.add('pmd-floor-table-manager-open');
+      clearErrors();
+      setBusy(true);
+
+      request(root, 'onPmdFloorTableManagerLoad', {
+        location_id: locationId,
+        table_id: asInt(tableId, 0)
+      }).then(function (payload) {
+        applyTable(payload.table || {}, payload.mode || mode);
+        setBusy(false);
+        var numberField = field('table_no');
+        if (numberField && !numberField.disabled) numberField.focus();
+      }).catch(function (error) {
+        setBusy(false);
+        showError(error);
+      });
+    }
+
+    function closePanel() {
+      if (busy) return;
+      panel.hidden = true;
+      document.documentElement.classList.remove('pmd-floor-table-manager-open');
+      clearErrors();
+      syncToolbar();
+    }
+
+    function payload() {
+      function integerValue(name) {
+        var node = field(name);
+        return node && node.value !== '' ? asInt(node.value, 0) : null;
+      }
+      function checked(name) {
+        var node = field(name);
+        return Boolean(node && node.checked);
+      }
+      return {
+        location_id: locationId,
+        table: {
+          table_id: asInt(field('table_id').value, 0),
+          table_no: field('table_no').value,
+          table_section: field('table_section').value.trim(),
+          floor_name: field('floor_name').value.trim(),
+          floor_shape: field('floor_shape').value,
+          min_capacity: integerValue('min_capacity'),
+          preferred_capacity: integerValue('preferred_capacity'),
+          max_capacity: integerValue('max_capacity'),
+          extra_capacity: integerValue('extra_capacity'),
+          priority: integerValue('priority'),
+          reservation_priority: integerValue('reservation_priority'),
+          floor_notes: field('floor_notes').value.trim(),
+          table_status: checked('table_status'),
+          reservable: checked('reservable'),
+          visible_on_floor_plan: checked('visible_on_floor_plan'),
+          is_joinable: checked('is_joinable')
+        }
+      };
+    }
+
+    function save() {
+      if (busy) return;
+      clearErrors();
+      setBusy(true);
+
+      request(root, 'onPmdFloorTableManagerSave', payload())
+        .then(function () {
+          var instance = root.__pmdFloorV1;
+          if (instance && typeof instance.refresh === 'function') {
+            return Promise.resolve(instance.refresh());
+          }
+          return null;
+        })
+        .then(function () {
+          setBusy(false);
+          closePanel();
+          syncToolbar();
+        })
+        .catch(function (error) {
+          setBusy(false);
+          showError(error);
+        });
+    }
+
+    addButton.addEventListener('click', function () {
+      syncToolbar();
+      if (addButton.disabled) return;
+      openPanel('create', 0);
+    });
+
+    editButton.addEventListener('click', function () {
+      syncToolbar();
+      var selected = selectedTable();
+      if (!selected || selected.isMergedView || asInt(selected.dbTableId, 0) < 1) {
+        return;
+      }
+      openPanel('edit', asInt(selected.dbTableId, 0));
+    });
+
+    saveButton.addEventListener('click', save);
+
+    panel.querySelectorAll('[data-pmd-floor-table-manager-close]').forEach(function (button) {
+      button.addEventListener('click', closePanel);
+    });
+
+    root.addEventListener('click', function (event) {
+      if (
+        event.target.closest('[data-floor-table]')
+        || event.target.closest('[data-pmd-r2-tool="edit"]')
+        || event.target.closest('[data-floor-edit]')
+      ) {
+        syncToolbar();
+      }
+    });
+
+    document.addEventListener('keydown', function (event) {
+      if (event.key === 'Escape' && !panel.hidden && !busy) closePanel();
+    });
+
+    syncToolbar();
+    root.__pmdInlineTableManagerV1 = {
+      openCreate: function () { openPanel('create', 0); },
+      openSelected: function () {
+        var selected = selectedTable();
+        if (selected && !selected.isMergedView && asInt(selected.dbTableId, 0) > 0) {
+          openPanel('edit', asInt(selected.dbTableId, 0));
+        }
+      },
+      audit: function () {
+        var selected = selectedTable();
+        return {
+          ready: true,
+          role: root.getAttribute('data-pmd-floor-table-manager-role'),
+          locationId: locationId,
+          selectedDisplayId: selected ? selected.id : null,
+          selectedDbTableId: selected ? selected.dbTableId : null,
+          qrFieldsInPanel: panel.querySelectorAll('[name*="qr"],[data-pmd-floor-table-field*="qr"]').length,
+          endpoint: root.getAttribute('data-pmd-floor-table-manager-url')
+        };
+      }
+    };
+  }
+
+  function mount(scope) {
+    Array.prototype.slice.call((scope || document).querySelectorAll('[data-pmd-floor-table-manager="true"]'))
+      .forEach(boot);
+  }
+
+  window.PMDFloorInlineTableManagerV1 = {
+    version: '1.0.0',
+    mount: mount,
+    audit: function () {
+      var root = document.querySelector('[data-pmd-floor-table-manager="true"]');
+      return root && root.__pmdInlineTableManagerV1
+        ? root.__pmdInlineTableManagerV1.audit()
+        : { ready: false };
+    }
+  };
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', function () { mount(document); }, { once: true });
+  } else {
+    mount(document);
+  }
 })();

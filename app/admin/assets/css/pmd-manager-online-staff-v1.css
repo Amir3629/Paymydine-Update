@@ -34,6 +34,26 @@
     font-weight: 600;
 }
 
+.pmd-manager-online-staff__controls {
+    display: inline-flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 8px;
+    flex: 0 0 auto;
+    margin-left: auto;
+}
+
+.pmd-manager-online-staff__toolbar {
+    margin-left: 0 !important;
+}
+
+.pmd-manager-online-staff__toolbar a {
+    width: 30px !important;
+    min-width: 30px !important;
+    height: 22px !important;
+    padding: 0 !important;
+}
+
 .pmd-manager-online-staff__summary {
     display: inline-flex;
     align-items: baseline;
@@ -167,6 +187,12 @@
     .pmd-manager-online-staff__person {
         align-items: flex-start;
         flex-direction: column;
+    }
+
+    .pmd-manager-online-staff__controls {
+        width: 100%;
+        justify-content: space-between;
+        margin-left: 0;
     }
 
     .pmd-manager-online-staff__time {

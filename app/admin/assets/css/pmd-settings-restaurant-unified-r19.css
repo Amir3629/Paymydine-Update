@@ -1,0 +1,92 @@
+/* PMD_RESTAURANT_IDENTITY_UNIFIED_R19 */
+.pmd-profile-logo-field-r19 {
+    align-self: stretch;
+}
+
+.pmd-profile-logo-uploader-r19 {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 148px;
+    gap: 16px;
+    align-items: center;
+    margin-top: 2px;
+}
+
+.pmd-profile-logo-input-r19 {
+    display: grid;
+    gap: 8px;
+}
+
+.pmd-profile-logo-input-r19 input[type="file"] {
+    display: block;
+    width: 100%;
+    min-height: 44px;
+    padding: 9px 11px;
+    border: 1px solid #d9e2ea;
+    border-radius: 10px;
+    background: #fff;
+    color: #26323d;
+}
+
+.pmd-profile-logo-help-r19 {
+    color: #6b7785;
+    font-size: 12px;
+    line-height: 1.45;
+}
+
+.pmd-profile-logo-preview-r19 {
+    min-height: 96px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 12px;
+    border: 1px dashed #cdd8e2;
+    border-radius: 14px;
+    background: #f8fbfd;
+    overflow: hidden;
+}
+
+.pmd-profile-logo-preview-r19 img {
+    display: block;
+    width: auto;
+    height: auto;
+    max-width: 118px;
+    max-height: 74px;
+    object-fit: contain;
+    object-position: center;
+}
+
+.pmd-profile-logo-empty-r19 {
+    color: #7a8794;
+    font-size: 12px;
+    line-height: 1.35;
+    text-align: center;
+}
+
+.pmd-profile-customer-menu-note-r19 {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    margin-top: 6px;
+    color: #687684;
+    font-size: 12px;
+    line-height: 1.4;
+}
+
+.pmd-profile-customer-menu-note-r19::before {
+    content: '';
+    width: 7px;
+    height: 7px;
+    border-radius: 999px;
+    background: #22a06b;
+    flex: 0 0 auto;
+}
+
+@media (max-width: 720px) {
+    .pmd-profile-logo-uploader-r19 {
+        grid-template-columns: 1fr;
+    }
+    .pmd-profile-logo-preview-r19 {
+        min-height: 84px;
+        justify-content: flex-start;
+    }
+}

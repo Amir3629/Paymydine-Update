@@ -17,7 +17,8 @@ class Reservationslab extends PmdCleanWorkspaceControllerV1
         parent::__construct();
         $this->addCss('css/pmd-reservations-lab-schedule-v1.css');
         $this->addCss('css/pmd-cashier-lab-orders-v1.css');
-        $this->addJs('js/pmd-reservations-lab-schedule-v1.js');
+        // PMD_RESERVATIONSLAB_SCHEDULE_DIRECT_AUTHORITY_V1_2
+        // Loaded once, cache-busted, after the canonical Composer in the shared workspace.
 
         /* PMD_RESERVATIONS_LAB_TABLE_CARD_FILTER_V1 */
         $this->addJs('js/pmd-reservations-lab-table-card-filter-v1.js');

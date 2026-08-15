@@ -35,6 +35,8 @@ document.documentElement.classList.add('pmd-restaurant-profile-booting');
 <link rel="stylesheet" href="/app/admin/assets/css/pmd-settings-restaurant-v1.css?v=20260809_2">
 <link rel="stylesheet" href="/app/admin/assets/css/pmd-settings-restaurant-platform-header-v4.css?v=20260809_4">
 <link rel="stylesheet" href="/app/admin/assets/css/pmd-settings-restaurant-spacing-v7.css?v=20260809_10">
+<link rel="stylesheet" href="/app/admin/assets/css/pmd-settings-restaurant-unified-r19.css?v=20260815_r19">
+<link rel="stylesheet" href="/app/admin/assets/css/pmd-settings-restaurant-logo-authority-r20.css?v=20260815_r20">
 
 <div id="pmd-restaurant-profile" class="pmd-restaurant-profile" data-pmd-restaurant-profile>
     <header class="pmd-profile-header" id="pmd-profile-header">
@@ -65,6 +67,10 @@ document.documentElement.classList.add('pmd-restaurant-profile-booting');
         data-request="onSaveRestaurantProfile"
         data-request-flash
         data-request-validate
+    
+        enctype="multipart/form-data"
+    
+        data-request-files
     >
         <section class="pmd-profile-section pmd-profile-section--blue">
             <div class="pmd-profile-card">
@@ -83,6 +89,40 @@ document.documentElement.classList.add('pmd-restaurant-profile-booting');
                         <label class="pmd-profile-field pmd-profile-field--wide">
                             <span>Restaurant name</span>
                             <input type="text" name="profile[name]" value="{{ $pmdProfile['name'] ?? '' }}" maxlength="191" required>
+                        
+                            <small class="pmd-profile-customer-menu-note-r19">Customer menu name — saved once here and used by all 10 QR-menu themes.</small>
+                        </label>
+
+                        {{-- PMD_RESTAURANT_IDENTITY_UNIFIED_R19 --}}
+                        <label class="pmd-profile-field pmd-profile-field--wide pmd-profile-logo-field-r19">
+                            <span>Restaurant logo</span>
+                            <div class="pmd-profile-logo-uploader-r19">
+                                <div class="pmd-profile-logo-input-r19">
+                                    <input
+                                        id="pmd-restaurant-logo-r19"
+                                        type="file"
+                                        name="pmd_restaurant_logo"
+                                        accept="image/png,image/jpeg,image/webp"
+                                    >
+                                    <small class="pmd-profile-logo-help-r19">PNG, JPG or WEBP · max 5 MB. This is the same logo used by all 10 customer-menu themes.</small>
+                                    <small class="pmd-profile-logo-authority-r21">Saved logo must resolve through <code>/api/media/</code>. Broken legacy references are never restored.</small>
+                                    {{-- PMD_RESTAURANT_LOGO_REMOVE_R20 --}}
+                                    <label class="pmd-profile-logo-remove-r20">
+                                        <input type="checkbox" name="profile[remove_logo]" value="1">
+                                        <span>Remove the current restaurant logo</span>
+                                    </label>
+                                    @if(!empty($pmdProfile['site_logo']))
+                                        <small class="pmd-profile-logo-source-r20">Current backend value: {{ $pmdProfile['site_logo'] }}</small>
+                                    @endif
+                                </div>
+                                <div id="pmd-restaurant-logo-preview-r19" class="pmd-profile-logo-preview-r19">
+                                    @if(!empty($pmdProfile['site_logo']))
+                                        <img src="{{ $pmdProfile['site_logo_preview'] ?? $pmdProfile['site_logo'] }}" alt="Current restaurant logo">
+                                    @else
+                                        <span class="pmd-profile-logo-empty-r19">No restaurant logo selected</span>
+                                    @endif
+                                </div>
+                            </div>
                         </label>
 
                         <label class="pmd-profile-field">
@@ -183,7 +223,7 @@ document.documentElement.classList.add('pmd-restaurant-profile-booting');
                                             type="time"
                                             name="hours[{{ $day['weekday'] }}][opening_time]"
                                             value="{{ $day['opening_time'] ?: '09:00' }}"
-                                            step="900"
+                                            step="60"
                                             data-pmd-hours-time
                                         >
                                     </label>
@@ -194,7 +234,7 @@ document.documentElement.classList.add('pmd-restaurant-profile-booting');
                                             type="time"
                                             name="hours[{{ $day['weekday'] }}][closing_time]"
                                             value="{{ $day['closing_time'] ?: '22:00' }}"
-                                            step="900"
+                                            step="60"
                                             data-pmd-hours-time
                                         >
                                     </label>
@@ -285,3 +325,25 @@ document.documentElement.classList.add('pmd-restaurant-profile-booting');
 </div>
 
 <script defer src="/app/admin/assets/js/pmd-settings-restaurant-v1.js?v=20260809_2"></script>
+
+<script id="pmd-restaurant-logo-preview-script-r19">
+// PMD_RESTAURANT_LOGO_PREVIEW_R19
+(function () {
+    var input = document.getElementById('pmd-restaurant-logo-r19');
+    var preview = document.getElementById('pmd-restaurant-logo-preview-r19');
+    if (!input || !preview) return;
+    input.addEventListener('change', function () {
+        var file = input.files && input.files[0];
+        if (!file) return;
+        var reader = new FileReader();
+        reader.onload = function (event) {
+            preview.innerHTML = '';
+            var img = document.createElement('img');
+            img.alt = 'New restaurant logo preview';
+            img.src = String(event.target && event.target.result || '');
+            preview.appendChild(img);
+        };
+        reader.readAsDataURL(file);
+    });
+})();
+</script>

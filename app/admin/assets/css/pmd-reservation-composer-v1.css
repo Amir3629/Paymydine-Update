@@ -3780,3 +3780,59 @@ button.pmd-real-table-dropdown-v1__option.is-selected {
         none !important;
 }
 
+
+
+/* PMD_RESERVATION_COMPOSER_FUTURE_ONLY_V1 */
+#pmd-reservation-composer-v1 .pmd-jade-wheel-v221__item:disabled,
+#pmd-reservation-composer-v1 .pmd-jade-wheel-v221__item[aria-disabled="true"] {
+  color: #9ca9ad !important;
+  opacity: .34 !important;
+  cursor: not-allowed !important;
+  pointer-events: none !important;
+  transform: none !important;
+}
+
+#pmd-reservation-composer-v1 input[name="reserve_date"]:out-of-range {
+  border-color: #c9d9de !important;
+}
+
+
+/* =========================================================
+   PMD_COMPOSER_OPENING_HOURS_WHEEL_STABILITY_V1_4
+   Closed/no-valid-time dates use an explicit stable state instead of leaving
+   all three wheel columns with no centered selection (the Safari white band).
+   ========================================================= */
+#pmd-reservation-composer-v1 .pmd-jade-wheel-v221.is-no-available-time .pmd-jade-wheel-v221__column {
+  overflow-y: hidden !important;
+  pointer-events: none !important;
+  opacity: .18 !important;
+}
+
+#pmd-reservation-composer-v1 .pmd-jade-wheel-v221.is-no-available-time .pmd-jade-wheel-v221__separator {
+  opacity: .18 !important;
+}
+
+#pmd-reservation-composer-v1 .pmd-jade-wheel-v221.is-no-available-time .pmd-jade-wheel-v221__highlight {
+  z-index: 7 !important;
+  background: #f4f7f7 !important;
+  border-color: #d7e2e3 !important;
+}
+
+#pmd-reservation-composer-v1 .pmd-jade-wheel-v221.is-no-available-time .pmd-jade-wheel-v221__highlight::after {
+  content: attr(data-pmd-no-time-label) !important;
+  position: absolute !important;
+  inset: 0 !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  padding: 0 14px !important;
+  color: #65777a !important;
+  font-size: 14px !important;
+  font-weight: 750 !important;
+  text-align: center !important;
+  white-space: nowrap !important;
+}
+
+#pmd-reservation-composer-v1 .pmd-jade-wheel-v221__item {
+  scroll-snap-stop: always !important;
+}

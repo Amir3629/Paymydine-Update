@@ -9,10 +9,13 @@ use Admin\Models\LocationOption;
 use Admin\Models\Locations_model;
 use Admin\Models\Reservations_model;
 use Admin\Models\Statuses_model;
+use Admin\Models\Tables_model;
 use Admin\Services\ReservationComposerService;
+use Carbon\Carbon;
 use Igniter\Flame\Exception\ApplicationException;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Validation\ValidationException;
 use Throwable;
 
 /**
@@ -709,19 +712,457 @@ class Reservations2 extends Reservations
             ->index_onDelete();
     }
 
+    /**
+     * PMD_RESERVATION_COMPOSER_FUTURE_ONLY_SERVER_GUARD_V1
+     * New reservations may not be checked/saved in the past. Existing
+     * historical reservations remain editable; this guard applies only when
+     * reservation_id is absent/zero. Europe/Berlin is the booking authority.
+     */
+    protected function pmdGuardComposerCreateNotPast(array $data): void
+    {
+        if ((int)($data['reservation_id'] ?? 0) > 0) {
+            return;
+        }
+
+        $date = trim((string)($data['reserve_date'] ?? ''));
+        $time = trim((string)($data['reserve_time'] ?? ''));
+
+        if (
+            !preg_match('/^\d{4}-\d{2}-\d{2}$/', $date)
+            || !preg_match('/^([01]\d|2[0-3]):[0-5]\d/', $time)
+        ) {
+            return;
+        }
+
+        try {
+            $requested = Carbon::createFromFormat(
+                '!Y-m-d H:i',
+                $date.' '.substr($time, 0, 5),
+                'Europe/Berlin'
+            );
+        } catch (Throwable $error) {
+            return;
+        }
+
+        if ($requested->lt(Carbon::now('Europe/Berlin')->startOfMinute())) {
+            throw ValidationException::withMessages([
+                'reserve_time' => 'Reservation date and time cannot be in the past.',
+            ]);
+        }
+    }
+
+    /**
+     * PMD_RESERVATION_COMPOSER_BOOKING_INTEGRITY_V1
+     * Same PMD Settings working_hours authority + reservation overlap guard.
+     * No new table status source and no database mutation.
+     */
+    protected function pmdComposerLocationId(array $data): int
+    {
+        $locationId = (int)($data['location_id'] ?? 0);
+        if ($locationId > 0) {
+            return $locationId;
+        }
+
+        try {
+            $location = AdminLocation::current();
+            if ($location && (int)$location->location_id > 0) {
+                return (int)$location->location_id;
+            }
+        } catch (Throwable $error) {
+        }
+
+        try {
+            $locationId = (int)AdminLocation::getSession('id');
+            if ($locationId > 0) {
+                return $locationId;
+            }
+        } catch (Throwable $error) {
+        }
+
+        try {
+            $defaultId = (int)params('default_location_id');
+            if ($defaultId > 0) {
+                return $defaultId;
+            }
+        } catch (Throwable $error) {
+        }
+
+        return 1;
+    }
+
+    protected function pmdComposerOpeningHours(int $locationId): array
+    {
+        if ($locationId < 1) {
+            return [];
+        }
+
+        try {
+            return DB::table('working_hours')
+                ->where('location_id', $locationId)
+                ->where('type', 'opening')
+                ->orderBy('weekday')
+                ->get()
+                ->map(function ($row) {
+                    return [
+                        'weekday' => (int)$row->weekday,
+                        'enabled' => (bool)$row->status,
+                        'opening_time' => substr((string)$row->opening_time, 0, 5),
+                        'closing_time' => substr((string)$row->closing_time, 0, 5),
+                    ];
+                })
+                ->filter(function ($row) {
+                    return $row['weekday'] >= 0 && $row['weekday'] <= 6;
+                })
+                ->values()
+                ->all();
+        } catch (Throwable $error) {
+            // No configured policy must not invent a closed restaurant.
+            return [];
+        }
+    }
+
+    protected function pmdComposerOpeningWindowAllows(array $data): bool
+    {
+        $hours = $this->pmdComposerOpeningHours($this->pmdComposerLocationId($data));
+        if (!$hours) {
+            return true;
+        }
+
+        $date = trim((string)($data['reserve_date'] ?? ''));
+        $time = substr(trim((string)($data['reserve_time'] ?? '')), 0, 5);
+        $duration = max(1, (int)($data['duration'] ?? 45));
+
+        if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $date)
+            || !preg_match('/^([01]\d|2[0-3]):[0-5]\d$/', $time)) {
+            return true;
+        }
+
+        try {
+            $requestedStart = Carbon::createFromFormat('!Y-m-d H:i', $date.' '.$time, 'Europe/Berlin');
+        } catch (Throwable $error) {
+            return true;
+        }
+        $requestedEnd = $requestedStart->copy()->addMinutes($duration);
+
+        $byWeekday = [];
+        foreach ($hours as $row) {
+            $byWeekday[(int)$row['weekday']] = $row;
+        }
+
+        $candidates = [
+            $requestedStart->copy()->startOfDay(),
+            $requestedStart->copy()->subDay()->startOfDay(),
+        ];
+
+        foreach ($candidates as $serviceDate) {
+            // Carbon: Monday=1 ... Sunday=7; PMD Settings: Monday=0 ... Sunday=6.
+            $weekday = ((int)$serviceDate->isoWeekday()) - 1;
+            $row = $byWeekday[$weekday] ?? null;
+            if (!$row || empty($row['enabled'])) {
+                continue;
+            }
+
+            $opening = (string)($row['opening_time'] ?? '');
+            $closing = (string)($row['closing_time'] ?? '');
+            if (!preg_match('/^([01]\d|2[0-3]):[0-5]\d$/', $opening)
+                || !preg_match('/^([01]\d|2[0-3]):[0-5]\d$/', $closing)) {
+                continue;
+            }
+
+            $windowStart = Carbon::createFromFormat(
+                '!Y-m-d H:i',
+                $serviceDate->format('Y-m-d').' '.$opening,
+                'Europe/Berlin'
+            );
+            $windowEnd = Carbon::createFromFormat(
+                '!Y-m-d H:i',
+                $serviceDate->format('Y-m-d').' '.$closing,
+                'Europe/Berlin'
+            );
+
+            if ($opening === $closing) {
+                $windowStart = $serviceDate->copy();
+                $windowEnd = $serviceDate->copy()->addDay();
+            } elseif ($windowEnd->lte($windowStart)) {
+                $windowEnd->addDay();
+            }
+
+            if ($requestedStart->gte($windowStart) && $requestedEnd->lte($windowEnd)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    protected function pmdGuardComposerOpeningHours(array $data): void
+    {
+        if ((int)($data['reservation_id'] ?? 0) > 0) {
+            return;
+        }
+
+        if (!$this->pmdComposerOpeningWindowAllows($data)) {
+            throw ValidationException::withMessages([
+                'reserve_time' => 'Reservation time must be inside the restaurant opening hours.',
+            ]);
+        }
+    }
+
+    protected function pmdComposerConflictingTableIds(array $data): array
+    {
+        $locationId = $this->pmdComposerLocationId($data);
+        $date = trim((string)($data['reserve_date'] ?? ''));
+        $time = substr(trim((string)($data['reserve_time'] ?? '')), 0, 5);
+        $duration = max(1, (int)($data['duration'] ?? 45));
+        $currentReservationId = (int)($data['reservation_id'] ?? 0);
+
+        if ($locationId < 1
+            || !preg_match('/^\d{4}-\d{2}-\d{2}$/', $date)
+            || !preg_match('/^([01]\d|2[0-3]):[0-5]\d$/', $time)) {
+            return [];
+        }
+
+        try {
+            $requestedStart = Carbon::createFromFormat('!Y-m-d H:i', $date.' '.$time, 'Europe/Berlin');
+        } catch (Throwable $error) {
+            return [];
+        }
+        $requestedEnd = $requestedStart->copy()->addMinutes($duration);
+        $dateCandidates = [
+            $requestedStart->format('Y-m-d'),
+            $requestedStart->copy()->subDay()->format('Y-m-d'),
+        ];
+
+        $query = Reservations_model::query()
+            ->with(['tables', 'location'])
+            ->where('location_id', $locationId)
+            ->whereIn('reserve_date', array_values(array_unique($dateCandidates)))
+            ->where('status_id', '>=', 1);
+
+        if ($currentReservationId > 0) {
+            $query->where('reservation_id', '!=', $currentReservationId);
+        }
+
+        $canceledStatusId = (int)setting('canceled_reservation_status');
+        if ($canceledStatusId > 0) {
+            $query->where('status_id', '!=', $canceledStatusId);
+        }
+
+        $blocked = [];
+        foreach ($query->get() as $reservation) {
+            $attributes = $reservation->getAttributes();
+            $existingDate = substr((string)($attributes['reserve_date'] ?? ''), 0, 10);
+            $existingTime = substr((string)($attributes['reserve_time'] ?? ''), 0, 5);
+            if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $existingDate)
+                || !preg_match('/^([01]\d|2[0-3]):[0-5]\d$/', $existingTime)) {
+                continue;
+            }
+
+            try {
+                $existingStart = Carbon::createFromFormat(
+                    '!Y-m-d H:i',
+                    $existingDate.' '.$existingTime,
+                    'Europe/Berlin'
+                );
+            } catch (Throwable $error) {
+                continue;
+            }
+            $existingDuration = max(1, (int)($reservation->duration ?: 45));
+            $existingEnd = $existingStart->copy()->addMinutes($existingDuration);
+
+            if ($requestedStart->lt($existingEnd) && $requestedEnd->gt($existingStart)) {
+                foreach ($reservation->tables as $table) {
+                    $tableId = (int)$table->table_id;
+                    if ($tableId > 0) {
+                        $blocked[$tableId] = true;
+                    }
+                }
+            }
+        }
+
+        $ids = array_map('intval', array_keys($blocked));
+        sort($ids, SORT_NUMERIC);
+        return $ids;
+    }
+
+    protected function pmdPositiveTableIds($values): array
+    {
+        $ids = array_values(array_unique(array_filter(array_map('intval', (array)$values), function ($id) {
+            return $id > 0;
+        })));
+        sort($ids, SORT_NUMERIC);
+        return $ids;
+    }
+
+    protected function pmdRecommendationFromAvailableIds(array $availableIds, int $guestCount): array
+    {
+        if (!$availableIds || $guestCount < 1) {
+            return [];
+        }
+
+        try {
+            $tables = Tables_model::query()
+                ->whereIn('table_id', $availableIds)
+                ->where('table_status', 1)
+                ->orderBy('priority')
+                ->orderBy('table_id')
+                ->get();
+        } catch (Throwable $error) {
+            return [];
+        }
+
+        foreach ($tables as $table) {
+            if ((int)$table->min_capacity <= $guestCount && (int)$table->max_capacity >= $guestCount) {
+                return [(int)$table->table_id];
+            }
+        }
+
+        $recommended = [];
+        $remaining = $guestCount;
+        foreach ($tables as $table) {
+            if (!$table->is_joinable || $remaining < (int)$table->min_capacity) {
+                continue;
+            }
+            $recommended[] = (int)$table->table_id;
+            $remaining -= max(1, (int)$table->max_capacity);
+            if ($remaining <= 0) {
+                break;
+            }
+        }
+
+        return $remaining <= 0 ? $recommended : [];
+    }
+
+    protected function pmdFilterComposerAvailabilityConflicts($response, array $data)
+    {
+        if (!is_array($response)
+            || !isset($response['availability'])
+            || !is_array($response['availability'])) {
+            return $response;
+        }
+
+        $availability = $response['availability'];
+        $blocked = $this->pmdComposerConflictingTableIds($data);
+        $blockedMap = array_fill_keys($blocked, true);
+
+        foreach (['availableTableIds', 'manualAvailableTableIds'] as $key) {
+            if (isset($availability[$key]) && is_array($availability[$key])) {
+                $availability[$key] = array_values(array_filter(
+                    $this->pmdPositiveTableIds($availability[$key]),
+                    function ($id) use ($blockedMap) {
+                        return !isset($blockedMap[$id]);
+                    }
+                ));
+            }
+        }
+
+        $recommended = $this->pmdPositiveTableIds($availability['recommendedTableIds'] ?? []);
+        $recommendationConflicts = (bool)array_intersect($recommended, $blocked);
+        if ($recommendationConflicts) {
+            $recommended = $this->pmdRecommendationFromAvailableIds(
+                $this->pmdPositiveTableIds($availability['manualAvailableTableIds'] ?? []),
+                max(1, (int)($data['guest_num'] ?? 1))
+            );
+        }
+        $availability['recommendedTableIds'] = $recommended;
+        $availability['blockedTableIds'] = $blocked;
+
+        $mode = (string)($data['assignment_mode'] ?? ($availability['assignmentMode'] ?? 'auto'));
+        $requested = $this->pmdPositiveTableIds(
+            $data['tables'] ?? ($availability['requestedTableIds'] ?? [])
+        );
+
+        if ($mode === 'choose' && array_intersect($requested, $blocked)) {
+            $availability['available'] = false;
+        } elseif ($mode === 'auto' && !$recommended) {
+            $availability['available'] = false;
+        }
+
+        $response['availability'] = $availability;
+        return $response;
+    }
+
+    protected function pmdGuardComposerSelectedTables(array $data): void
+    {
+        $mode = (string)($data['assignment_mode'] ?? 'auto');
+        if ($mode !== 'choose') {
+            return;
+        }
+
+        $selected = $this->pmdPositiveTableIds($data['tables'] ?? []);
+        if (!$selected) {
+            return;
+        }
+
+        $blocked = $this->pmdComposerConflictingTableIds($data);
+        if (array_intersect($selected, $blocked)) {
+            throw ValidationException::withMessages([
+                'tables' => 'One or more selected tables are already reserved during this reservation time.',
+            ]);
+        }
+    }
+
+    protected function pmdPrepareAutoAssignment(array $data): array
+    {
+        if ((string)($data['assignment_mode'] ?? 'auto') !== 'auto') {
+            return $data;
+        }
+
+        $response = app(ReservationComposerService::class)->availability($data);
+        $response = $this->pmdFilterComposerAvailabilityConflicts($response, $data);
+        $availability = is_array($response) && isset($response['availability']) && is_array($response['availability'])
+            ? $response['availability']
+            : [];
+        $recommended = $this->pmdPositiveTableIds($availability['recommendedTableIds'] ?? []);
+
+        if (!$recommended) {
+            throw ValidationException::withMessages([
+                'tables' => 'No conflict-free table is available for this reservation time.',
+            ]);
+        }
+
+        // Let the existing canonical save service persist the exact conflict-free
+        // recommendation as an explicit table choice. No second allocation engine.
+        $data['assignment_mode'] = 'choose';
+        $data['tables'] = $recommended;
+        return $data;
+    }
+
     public function onLoadReservationComposer()
     {
-        return app(ReservationComposerService::class)->load(request()->all());
+        $data = request()->all();
+        $response = app(ReservationComposerService::class)->load($data);
+
+        if (is_array($response)) {
+            $locationId = $this->pmdComposerLocationId($data);
+            if ($locationId < 1) {
+                $locationId = (int)($response['locationId'] ?? $response['location_id'] ?? 0);
+            }
+            $response['pmdOpeningHours'] = $this->pmdComposerOpeningHours($locationId);
+        }
+
+        return $response;
     }
 
     public function onCheckReservationAvailability()
     {
-        return app(ReservationComposerService::class)->availability(request()->all());
+        $data = request()->all();
+        $this->pmdGuardComposerCreateNotPast($data);
+        $this->pmdGuardComposerOpeningHours($data);
+
+        $response = app(ReservationComposerService::class)->availability($data);
+        return $this->pmdFilterComposerAvailabilityConflicts($response, $data);
     }
 
     public function onSaveReservationComposer()
     {
-        return app(ReservationComposerService::class)->save(request()->all());
+        $data = request()->all();
+        $this->pmdGuardComposerCreateNotPast($data);
+        $this->pmdGuardComposerOpeningHours($data);
+        $this->pmdGuardComposerSelectedTables($data);
+        $data = $this->pmdPrepareAutoAssignment($data);
+
+        return app(ReservationComposerService::class)->save($data);
     }
 
     protected function pmdProfileStage(

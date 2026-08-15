@@ -71,6 +71,334 @@ class Pmdsettings extends AdminController
         return $this->makeView('pmdsettings/restaurant');
     }
 
+
+
+    /* PMD_FRONTEND_SETTINGS_V2_CONTROLLER */
+    public function frontend()
+    {
+        Template::setTitle('Customer menu & themes');
+        Template::setHeading('Customer menu & themes');
+        $this->vars['pmdFrontend'] = $this->frontendExperiencePayload();
+        return $this->makeView('pmdsettings/frontend');
+    }
+
+    public function onSaveFrontendExperience()
+    {
+        $input = (array)post('frontend', []);
+        $allowedThemes = [
+            'noir_editorial','verdant_modern','lumiere_fine_dining','kazen_japanese',
+            'azzurra_coastal','neon_cocktail_bar','art_deco_speakeasy','shahrazad_persian',
+            'anatolia_turkish','ember_steakhouse',
+        ];
+        $allowedPlatforms = ['instagram','facebook','trustpilot','reviews','website'];
+        $allowedLayouts = ['tabs','accordion'];
+
+        $validator = Validator::make($input, [
+            'theme_configuration' => ['required', 'string', 'in:'.implode(',', $allowedThemes)],
+            'languages' => ['nullable', 'array'],
+            'languages.*' => ['string', 'regex:/^[a-z]{2,3}(?:-[a-z0-9]{2,8})?$/i'],
+            'website_url' => ['nullable', 'url', 'max:500'],
+            'featured_social_platform' => ['nullable', 'string', 'in:'.implode(',', $allowedPlatforms)],
+            'featured_social_url' => ['nullable', 'url', 'max:500'],
+            'kazen_menu_layout' => ['nullable', 'string', 'in:'.implode(',', $allowedLayouts)],
+        ]);
+        if ($validator->fails()) {
+            throw new ValidationException($validator);
+        }
+
+        $clean = $validator->validated();
+        $languages = array_values(array_unique(array_filter(array_map(function ($value) {
+            return strtolower(trim((string)$value));
+        }, (array)($clean['languages'] ?? [])))));
+        if (!$languages) {
+            $defaultLanguage = strtolower(trim((string)setting('default_language', 'en')));
+            $languages = [$defaultLanguage ?: 'en'];
+        }
+
+        $theme = (string)$clean['theme_configuration'];
+        $payload = [
+            // PMD_FRONTEND_V2_SETTINGS_AUTHORITY_R3
+            // These settings are the canonical V2 authority. The public V2
+            // theme endpoint reads them before any legacy theme-table payload.
+            'theme_configuration' => $theme,
+            'theme_id' => $theme,
+            'frontend_theme' => $theme,
+            'pmd_v2_theme_id' => $theme,
+            'pmd_admin_selected_theme' => $theme,
+            'pmd_v2_enabled_languages' => implode(',', $languages),
+            'pmd_v2_waiter_call_enabled' => !empty($input['waiter_call_enabled']) ? '1' : '0',
+            'pmd_v2_valet_enabled' => !empty($input['valet_enabled']) ? '1' : '0',
+            'pmd_v2_table_order_enabled' => !empty($input['table_order_enabled']) ? '1' : '0',
+            'pmd_v2_split_bill_enabled' => !empty($input['split_bill_enabled']) ? '1' : '0',
+            'pmd_v2_tips_enabled' => !empty($input['tips_enabled']) ? '1' : '0',
+            'pmd_v2_coupons_enabled' => !empty($input['coupons_enabled']) ? '1' : '0',
+            'pmd_v2_social_enabled' => !empty($input['social_enabled']) ? '1' : '0',
+            'pmd_kazen_website_enabled' => !empty($input['website_enabled']) ? '1' : '0',
+            'pmd_kazen_website_url' => trim((string)($clean['website_url'] ?? '')),
+            'pmd_kazen_social_enabled' => !empty($input['featured_social_enabled']) ? '1' : '0',
+            'pmd_kazen_social_platform' => (string)($clean['featured_social_platform'] ?? 'instagram'),
+            'pmd_kazen_social_url' => trim((string)($clean['featured_social_url'] ?? '')),
+            'kazen_menu_layout' => (string)($clean['kazen_menu_layout'] ?? 'tabs'),
+        ];
+
+        DB::transaction(function () use ($payload) {
+            setting()->set($payload);
+            setting()->save();
+            $this->persistFrontendThemePayload($payload);
+        });
+
+        flash()->success('Customer menu settings saved.');
+        return [
+            '#pmd-frontend-save-status' => '<span class="pmd-frontend-save-status is-success">Saved</span>',
+        ];
+    }
+
+    protected function frontendExperiencePayload(): array
+    {
+        $data = $this->readFrontendThemePayload();
+        $value = function (string $key, $fallback = '') use ($data) {
+            // PMD Settings is authoritative. Theme-table data is compatibility fallback only.
+            try {
+                $settingValue = setting($key, null);
+                if ($settingValue !== null && $settingValue !== '') return $settingValue;
+            } catch (\Throwable $error) {
+            }
+            if (array_key_exists($key, $data) && $data[$key] !== null && $data[$key] !== '') {
+                return $data[$key];
+            }
+            return $fallback;
+        };
+
+        $theme = (string)$value('pmd_v2_theme_id', '');
+        if ($theme === '') $theme = (string)$value('theme_configuration', 'kazen_japanese');
+        $languageRaw = (string)$value('pmd_v2_enabled_languages', (string)setting('default_language', 'en').',en');
+        $languages = array_values(array_unique(array_filter(array_map('trim', explode(',', strtolower($languageRaw))))));
+
+        return [
+            'theme_configuration' => $theme,
+            'enabled_languages' => $languages,
+            'waiter_call_enabled' => (bool)$value('pmd_v2_waiter_call_enabled', 1),
+            'valet_enabled' => (bool)$value('pmd_v2_valet_enabled', 0),
+            'table_order_enabled' => (bool)$value('pmd_v2_table_order_enabled', 1),
+            'split_bill_enabled' => (bool)$value('pmd_v2_split_bill_enabled', 1),
+            'tips_enabled' => (bool)$value('pmd_v2_tips_enabled', 1),
+            'coupons_enabled' => (bool)$value('pmd_v2_coupons_enabled', 1),
+            'social_enabled' => (bool)$value('pmd_v2_social_enabled', 1),
+            'website_enabled' => (bool)$value('pmd_kazen_website_enabled', 0),
+            'website_url' => (string)$value('pmd_kazen_website_url', ''),
+            'featured_social_enabled' => (bool)$value('pmd_kazen_social_enabled', 0),
+            'featured_social_platform' => (string)$value('pmd_kazen_social_platform', 'instagram'),
+            'featured_social_url' => (string)$value('pmd_kazen_social_url', ''),
+            'kazen_menu_layout' => (string)$value('kazen_menu_layout', 'tabs'),
+        ];
+    }
+
+    protected function decodeFrontendThemePayload($raw): array
+    {
+        if (is_array($raw)) return $raw;
+        if (is_object($raw)) return json_decode(json_encode($raw), true) ?: [];
+        if (!is_string($raw) || trim($raw) === '') return [];
+        $json = json_decode($raw, true);
+        if (json_last_error() === JSON_ERROR_NONE && is_array($json)) return $json;
+        $unserialized = @unserialize($raw);
+        if ($unserialized !== false || $raw === 'b:0;') {
+            return json_decode(json_encode($unserialized), true) ?: [];
+        }
+        return [];
+    }
+
+    protected function readFrontendThemePayload(): array
+    {
+        $data = [];
+        foreach (['themes', 'ti_themes'] as $table) {
+            try {
+                if (!Schema::hasTable($table)) continue;
+                $query = DB::table($table)->where(function ($q) {
+                    $q->where('code', 'frontend-theme')
+                      ->orWhere('code', 'paymydine-nextjs')
+                      ->orWhere('name', 'like', '%Menu Theme%');
+                });
+                // Oldest first; newest matching row wins when merged below.
+                try { $query = $query->orderBy('updated_at'); } catch (\Throwable $error) {}
+                foreach ($query->get() as $row) {
+                    foreach (['data','settings','config','value'] as $column) {
+                        if (isset($row->{$column}) && $row->{$column} !== '') {
+                            $decoded = $this->decodeFrontendThemePayload($row->{$column});
+                            if ($decoded) $data = array_replace_recursive($data, $decoded);
+                        }
+                    }
+                }
+            } catch (\Throwable $error) {}
+        }
+        return $data;
+    }
+
+    protected function persistFrontendThemePayload(array $payload): void
+    {
+        // Compatibility mirror only. Canonical authority is setting()->set($payload).
+        foreach (['themes', 'ti_themes'] as $table) {
+            try {
+                if (!Schema::hasTable($table)) continue;
+                $columns = Schema::getColumnListing($table);
+                $rows = DB::table($table)->where(function ($q) {
+                    $q->where('code', 'frontend-theme')
+                      ->orWhere('code', 'paymydine-nextjs')
+                      ->orWhere('name', 'like', '%Menu Theme%');
+                })->get();
+
+                foreach ($rows as $row) {
+                    $storageColumn = null;
+                    foreach (['data','settings','config','value'] as $column) {
+                        if (in_array($column, $columns, true) && isset($row->{$column}) && $row->{$column} !== '') {
+                            $storageColumn = $column;
+                            break;
+                        }
+                    }
+                    if (!$storageColumn) {
+                        foreach (['data','settings','config','value'] as $column) {
+                            if (in_array($column, $columns, true)) { $storageColumn = $column; break; }
+                        }
+                    }
+                    if (!$storageColumn) continue;
+
+                    $current = $this->decodeFrontendThemePayload($row->{$storageColumn} ?? null);
+                    $merged = array_replace($current, $payload);
+                    $update = [$storageColumn => json_encode($merged, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES)];
+                    if (in_array('updated_at', $columns, true)) $update['updated_at'] = now();
+
+                    if (in_array('theme_id', $columns, true) && isset($row->theme_id)) {
+                        DB::table($table)->where('theme_id', $row->theme_id)->update($update);
+                    } elseif (in_array('id', $columns, true) && isset($row->id)) {
+                        DB::table($table)->where('id', $row->id)->update($update);
+                    } elseif (in_array('code', $columns, true) && isset($row->code)) {
+                        DB::table($table)->where('code', $row->code)->update($update);
+                    }
+                }
+                if ($rows->count()) return;
+            } catch (\Throwable $error) {
+                logger()->warning('PMD frontend settings theme payload persistence failed', ['message' => $error->getMessage()]);
+            }
+        }
+    }
+
+
+
+    /* PMD_RESTAURANT_IDENTITY_R11_CONTROLLER */
+    public function onSaveRestaurantIdentityV2()
+    {
+        $input = (array)post('pmd_identity', []);
+        $siteName = trim((string)($input['site_name'] ?? ''));
+        if ($siteName === '' || mb_strlen($siteName) > 191) {
+            throw new \RuntimeException('Restaurant name is required and must be 191 characters or fewer.');
+        }
+
+        $settings = ['site_name' => $siteName];
+        $file = request()->file('pmd_restaurant_logo');
+        if ($file) {
+            if (!$file->isValid()) {
+                throw new \RuntimeException('The uploaded logo could not be read.');
+            }
+            if ((int)$file->getSize() > 5 * 1024 * 1024) {
+                throw new \RuntimeException('Restaurant logo must be 5 MB or smaller.');
+            }
+            $mime = strtolower((string)$file->getMimeType());
+            $extensions = [
+                'image/png' => 'png',
+                'image/jpeg' => 'jpg',
+                'image/webp' => 'webp',
+            ];
+            if (!isset($extensions[$mime])) {
+                throw new \RuntimeException('Restaurant logo must be PNG, JPG or WEBP.');
+            }
+            $directory = base_path('assets/media/attachments/public');
+            if (!is_dir($directory) && !@mkdir($directory, 0755, true) && !is_dir($directory)) {
+                throw new \RuntimeException('Unable to create the PayMyDine media directory.');
+            }
+            $filename = 'pmd_restaurant_logo_'.date('Ymd_His').'_'.bin2hex(random_bytes(6)).'.'.$extensions[$mime];
+            $file->move($directory, $filename);
+            $settings['site_logo'] = '/api/media/'.$filename;
+        }
+
+        setting()->set($settings);
+        setting()->save();
+
+        flash()->success('Restaurant identity saved.');
+        return [
+            '#pmd-restaurant-identity-status-r11' => '<span class="pmd-identity-r11__status">Saved</span>',
+        ];
+    }
+
+
+    /* PMD_RESTAURANT_PROFILE_SINGLE_AUTHORITY_R19 */
+    protected function storeRestaurantLogoR19(): ?string
+    {
+        $file = request()->file('pmd_restaurant_logo');
+        if (!$file) {
+            return null;
+        }
+        if (!$file->isValid()) {
+            throw new \RuntimeException('The uploaded logo could not be read.');
+        }
+        if ((int)$file->getSize() > 5 * 1024 * 1024) {
+            throw new \RuntimeException('Restaurant logo must be 5 MB or smaller.');
+        }
+        $mime = strtolower((string)$file->getMimeType());
+        $extensions = [
+            'image/png' => 'png',
+            'image/jpeg' => 'jpg',
+            'image/webp' => 'webp',
+        ];
+        if (!isset($extensions[$mime])) {
+            throw new \RuntimeException('Restaurant logo must be PNG, JPG or WEBP.');
+        }
+        $directory = base_path('assets/media/attachments/public');
+        if (!is_dir($directory) && !@mkdir($directory, 0755, true) && !is_dir($directory)) {
+            throw new \RuntimeException('Unable to create the PayMyDine media directory.');
+        }
+        $filename = 'pmd_restaurant_logo_'.date('Ymd_His').'_'.bin2hex(random_bytes(6)).'.'.$extensions[$mime];
+        $file->move($directory, $filename);
+        return '/api/media/'.$filename;
+    }
+
+    /* PMD_RESTAURANT_LOGO_AUTHORITY_R20 */
+    protected function restaurantLogoPreviewR20(string $value): string
+    {
+        $value = trim($value);
+        if ($value === '') return '';
+        if (preg_match('#^https?://#i', $value)) return $value;
+        $path = parse_url($value, PHP_URL_PATH) ?: $value;
+        $path = '/'.ltrim(str_replace('\\', '/', $path), '/');
+        if (str_starts_with($path, '/api/media/')) return $path;
+        if (str_starts_with($path, '/assets/media/')) return $path;
+        return '/api/media/'.basename($path);
+    }
+
+    /* PMD_RESTAURANT_LOGO_PERSISTENCE_GUARD_R21 */
+    protected function resolvedRestaurantLogoR21(?string $uploadedLogo, bool $removeLogo): string
+    {
+        if ($uploadedLogo !== null && trim($uploadedLogo) !== '') {
+            return trim($uploadedLogo);
+        }
+        if ($removeLogo) {
+            return '';
+        }
+
+        $current = trim((string)setting('site_logo', ''));
+        if ($current === '') {
+            return '';
+        }
+
+        $path = parse_url($current, PHP_URL_PATH) ?: $current;
+        $base = basename(str_replace('\\', '/', $path));
+
+        // The proven stale Mimoza logo must never be re-persisted by a cached settings object.
+        if ($base === 'Gemini_Generated_Image_kzcmghkzcmghkzcm-removebg-preview.png') {
+            return '';
+        }
+
+        return $current;
+    }
+
     public function onSaveRestaurantProfile()
     {
         $locationId = $this->currentLocationId();
@@ -97,6 +425,9 @@ class Pmdsettings extends AdminController
         }
 
         $clean = $validator->validated();
+        $uploadedLogo = $this->storeRestaurantLogoR19();
+        $removeLogo = !empty($profile['remove_logo']);
+        $resolvedLogo = $this->resolvedRestaurantLogoR21($uploadedLogo, $removeLogo);
 
         foreach (range(0, 6) as $weekday) {
             $row = (array)($hours[$weekday] ?? []);
@@ -112,7 +443,7 @@ class Pmdsettings extends AdminController
             }
         }
 
-        DB::transaction(function () use ($locationId, $clean, $profile, $hours) {
+        DB::transaction(function () use ($locationId, $clean, $profile, $hours, $uploadedLogo, $removeLogo, $resolvedLogo) {
             $settings = [
                 'site_name' => trim((string)$clean['name']),
                 'site_email' => trim((string)($clean['email'] ?? '')),
@@ -125,6 +456,9 @@ class Pmdsettings extends AdminController
                 'pmd_social_trustpilot_enabled' => !empty($profile['trustpilot_enabled']) ? 1 : 0,
                 'pmd_social_trustpilot_url' => trim((string)($clean['trustpilot_url'] ?? '')),
             ];
+
+            // R21: always write an explicit, sanitized site_logo so a stale cached value cannot come back.
+            $settings['site_logo'] = $resolvedLogo;
 
             setting()->set($settings);
             setting()->save();
@@ -234,6 +568,7 @@ class Pmdsettings extends AdminController
             'trustpilot_enabled' => (bool)$value('pmd_social_trustpilot_enabled', 0),
             'trustpilot_url' => (string)$value('pmd_social_trustpilot_url', ''),
             'site_logo' => (string)$value('site_logo', ''),
+            'site_logo_preview' => $this->restaurantLogoPreviewR20((string)$value('site_logo', '')),
         ];
     }
 
@@ -293,6 +628,7 @@ class Pmdsettings extends AdminController
             [
                 'id' => 'guest', 'eyebrow' => '', 'title' => 'Menu & Guest Experience', 'description' => '',
                 'items' => [
+                    $this->item('Customer menu & themes', 'QR menu theme, languages, waiter, valet, ordering, split bill, tips, coupons and social visibility.', 'palette', admin_url('pmdsettings/frontend'), ''),
                     $this->item('Menu & checkout', 'Guest-facing menu, highlights, review prompt and checkout experience.', 'menu', admin_url('pmdmenu'), ''),
                     $this->item('Customer accounts', 'Guest registration and account communication settings.', 'user', admin_url('pmdcustomer'), ''),
                 ],

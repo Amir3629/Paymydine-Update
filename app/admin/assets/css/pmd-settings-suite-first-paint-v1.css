@@ -450,3 +450,95 @@ html body.page.pmd-admin-theme-v1.pmd-settings-suite #notif-root:not(
   opacity: 0 !important;
   pointer-events: none !important;
 }
+
+/* ==========================================================
+   PMD_RESERVATIONSLAB_LOCAL_ROBOTO_AUTHORITY_V2
+
+   ReservationsLab must never paint fallback glyph metrics and
+   then resize when PMD_ADMIN_GLOBAL_ROBOTO_LOADER_V1 injects
+   Google Roboto later in the boot sequence.
+
+   Use PMD's existing same-origin Roboto assets under the ACTUAL
+   family name used by the existing Admin CSS. font-display: optional
+   prevents a late visible swap on a cold/slow request. The layout
+   preloads these WOFF2 files before render-blocking styles are parsed.
+
+   Scope: ReservationsLab only. Canonical Composer remains the
+   same Roboto design because these are the literal Roboto files.
+   ========================================================== */
+@font-face {
+  font-family: "Roboto";
+  src: url("/app/admin/assets/fonts/Roboto-Regular.woff2") format("woff2");
+  font-style: normal;
+  font-weight: 400;
+  font-display: optional;
+}
+@font-face {
+  font-family: "Roboto";
+  src: url("/app/admin/assets/fonts/Roboto-Medium.woff2") format("woff2");
+  font-style: normal;
+  font-weight: 500;
+  font-display: optional;
+}
+@font-face {
+  font-family: "Roboto";
+  src: url("/app/admin/assets/fonts/Roboto-Bold.woff2") format("woff2");
+  font-style: normal;
+  font-weight: 600;
+  font-display: optional;
+}
+@font-face {
+  font-family: "Roboto";
+  src: url("/app/admin/assets/fonts/Roboto-Bold.woff2") format("woff2");
+  font-style: normal;
+  font-weight: 700;
+  font-display: optional;
+}
+@font-face {
+  font-family: "Roboto";
+  src: url("/app/admin/assets/fonts/Roboto-Bold.woff2") format("woff2");
+  font-style: normal;
+  font-weight: 800;
+  font-display: optional;
+}
+@font-face {
+  font-family: "Roboto";
+  src: url("/app/admin/assets/fonts/Roboto-Bold.woff2") format("woff2");
+  font-style: normal;
+  font-weight: 900;
+  font-display: optional;
+}
+
+html body.page.pmd-settings-suite.pmd-clean-workspace-page.pmd-clean-workspace-reservations,
+html body.page.pmd-settings-suite.pmd-clean-workspace-page.pmd-clean-workspace-reservations #pmd-dashboard-lab,
+html body.page.pmd-settings-suite.pmd-clean-workspace-page.pmd-clean-workspace-reservations #pmd-dashboard-lab :is(
+  h1, h2, h3, h4,
+  .page-title, .card-title, .panel-title, .form-heading, .toolbar-title,
+  label, .control-label, .form-label, .text-muted, small, .help-block, .form-text,
+  input, textarea, select, .form-control, .select2-selection__rendered,
+  button, .btn, a.btn, .toolbar-action .btn, .dropdown-item,
+  table, .table, .list-table, .table td, .table th,
+  .badge, .label, .status, .amount, .price, .total, .value
+),
+html body.page.pmd-settings-suite.pmd-clean-workspace-page.pmd-clean-workspace-reservations #pmd-side-menu2,
+html body.page.pmd-settings-suite.pmd-clean-workspace-page.pmd-clean-workspace-reservations #pmd-side-menu2 :is(a, button, span, strong, small) {
+  font-family: "Roboto", Arial, Helvetica, sans-serif !important;
+}
+
+/* Explicitly preserve icon/code authorities. */
+html body.page.pmd-settings-suite.pmd-clean-workspace-page.pmd-clean-workspace-reservations :is(.fa,.fas,.far,.fal,.fad) {
+  font-family: "Font Awesome 5 Free" !important;
+}
+html body.page.pmd-settings-suite.pmd-clean-workspace-page.pmd-clean-workspace-reservations .fab {
+  font-family: "Font Awesome 5 Brands" !important;
+}
+html body.page.pmd-settings-suite.pmd-clean-workspace-page.pmd-clean-workspace-reservations :is(.ti,[class^="ti-"],[class*=" ti-"]) {
+  font-family: "themify" !important;
+}
+html body.page.pmd-settings-suite.pmd-clean-workspace-page.pmd-clean-workspace-reservations .material-icons {
+  font-family: "Material Icons" !important;
+}
+html body.page.pmd-settings-suite.pmd-clean-workspace-page.pmd-clean-workspace-reservations :is(code,pre,kbd,samp,.CodeMirror,.ace_editor) {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace !important;
+}
+

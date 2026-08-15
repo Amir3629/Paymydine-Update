@@ -18,7 +18,15 @@ html body.page.pmd-admin-theme-v1.pmd-settings-suite.pmd-report-settings-page {
 }
 
 .pmd-report-header {
+  min-height: 64px;
   margin-bottom: 14px;
+  flex-wrap: nowrap;
+}
+
+.pmd-report-header__actions {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: visible;
 }
 
 .pmd-report-export svg {
@@ -112,11 +120,30 @@ html body.page.pmd-admin-theme-v1.pmd-settings-suite.pmd-report-settings-page {
 .pmd-report-periods {
   display: flex;
   align-items: center;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
   justify-content: flex-end;
   gap: 6px;
-  flex: 0 0 auto;
+  flex: 0 1 auto;
+  min-width: 0;
 }
+
+.pmd-report-periods--header {
+  order: 1;
+  margin-left: auto;
+  max-width: min(62vw, 720px);
+  overflow-x: auto;
+  overflow-y: hidden;
+  padding: 2px 1px;
+  scrollbar-width: none;
+  overscroll-behavior-x: contain;
+}
+
+.pmd-report-periods--header::-webkit-scrollbar {
+  display: none;
+}
+
+.pmd-report-header .pmd-report-export { order: 10; }
+.pmd-report-header .pmd-owner-notif-slot { order: 20; }
 
 .pmd-report-periods a {
   min-height: 34px;
@@ -188,6 +215,43 @@ html body.page.pmd-admin-theme-v1.pmd-settings-suite.pmd-report-settings-page {
   border-color: #0b7d61;
   background: #e9f8f2;
   color: #075f4d;
+}
+
+/* ---------- Optional report actions ---------- */
+.pmd-report-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  gap: 7px;
+}
+
+.pmd-report-actions a {
+  min-height: 34px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 12px;
+  border: 1px solid #d6e5e1;
+  border-radius: 10px;
+  background: #fff;
+  color: #0a6b56;
+  font-size: 11px;
+  font-weight: 750;
+  text-decoration: none !important;
+  white-space: nowrap;
+}
+
+.pmd-report-actions a:hover,
+.pmd-report-actions a:focus-visible {
+  border-color: #9fcbbf;
+  background: #f4faf8;
+  color: #075f4d;
+}
+
+.pmd-report-page[data-pmd-report-type="attendance"] .pmd-report-presence {
+  border-color: #d8ebe5;
+  background: #fbfefd;
 }
 
 /* ---------- KPI summary ---------- */
@@ -706,18 +770,27 @@ html body.page.pmd-admin-theme-v1.pmd-settings-suite.pmd-report-settings-page {
     padding-bottom: 28px;
   }
 
-  .pmd-report-intro {
-    align-items: stretch;
-    flex-direction: column;
-    padding: 16px;
+  .pmd-report-header {
+    align-items: flex-start;
+    flex-wrap: wrap;
+    gap: 8px;
   }
 
-  .pmd-report-intro h2 {
-    font-size: 21px;
+  .pmd-report-header .pmd-owner-header__left {
+    width: 100%;
   }
 
-  .pmd-report-periods {
+  .pmd-report-header__actions {
+    width: 100%;
+    flex: 1 1 100%;
+    gap: 8px;
+  }
+
+  .pmd-report-periods--header {
     justify-content: flex-start;
+    max-width: none;
+    margin-left: 0;
+    margin-right: auto;
   }
 
   .pmd-report-stats,
@@ -754,4 +827,1466 @@ html body.page.pmd-admin-theme-v1.pmd-settings-suite.pmd-report-settings-page {
   .pmd-report-source {
     grid-template-columns: 38px minmax(0, 1fr);
   }
+}
+
+/* ==========================================================
+   PMD REPORTS SHARED PERIOD + STAFF PRESENCE V2.3
+   - one six-option period rail in every report header
+   - attendance is an account directory + per-person history
+   ========================================================== */
+
+.pmd-report-window-label--header {
+  order: 1;
+  margin-left: auto;
+}
+
+.pmd-report-card-count {
+  flex: 0 0 auto;
+  margin-left: 8px;
+  padding: 6px 9px;
+  border-radius: 999px;
+  background: #edf6f3;
+  color: #426058;
+  font-size: 10px;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.pmd-attendance-state {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 25px;
+  padding: 0 8px;
+  border-radius: 999px;
+  background: #eef3f2;
+  color: #62716d;
+  font-size: 9.5px;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.pmd-attendance-state.is-ready {
+  background: #e3f7ef;
+  color: #06765c;
+}
+
+.pmd-attendance-state.is-muted {
+  background: #f0f3f2;
+  color: #74817d;
+}
+
+/* ---------- Staff directory ---------- */
+.pmd-report-staff-directory__header,
+.pmd-report-staff-detail__header {
+  align-items: center;
+  gap: 12px;
+}
+
+.pmd-report-staff-search {
+  width: min(240px, 24vw);
+  min-width: 170px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  margin-left: auto;
+  padding: 0 10px;
+  border: 1px solid #d6e5e1;
+  border-radius: 10px;
+  background: #fff;
+}
+
+.pmd-report-staff-search svg {
+  width: 15px;
+  height: 15px;
+  flex: 0 0 15px;
+  fill: none;
+  stroke: #698079;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.pmd-report-staff-search input {
+  width: 100%;
+  min-width: 0;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  color: #21352f;
+  font: inherit;
+  font-size: 11px;
+  font-weight: 650;
+}
+
+.pmd-report-staff-search input::placeholder {
+  color: #94a19d;
+}
+
+.pmd-report-staff-directory-table-wrap {
+  max-height: 660px;
+  overflow: auto;
+  border: 1px solid #e1ebe8;
+  border-radius: 13px;
+}
+
+.pmd-report-staff-directory-table {
+  margin: 0;
+}
+
+.pmd-report-staff-directory-table thead th {
+  position: sticky;
+  top: 0;
+  z-index: 3;
+  background: #f8fbfa;
+}
+
+.pmd-report-staff-directory-table tbody tr {
+  cursor: pointer;
+  transition: background-color .14s ease, box-shadow .14s ease;
+}
+
+.pmd-report-staff-directory-table tbody tr:hover {
+  background: #f6fbf9;
+}
+
+.pmd-report-staff-directory-table tbody tr.is-selected {
+  background: #edf8f4;
+  box-shadow: inset 3px 0 0 #07805f;
+}
+
+.pmd-report-staff-name {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  color: inherit !important;
+  text-decoration: none !important;
+}
+
+.pmd-report-staff-name strong {
+  color: #17332c;
+  font-weight: 820;
+}
+
+.pmd-report-staff-name small {
+  color: #83908c;
+  font-size: 9.5px;
+  font-weight: 650;
+}
+
+.pmd-report-staff-open {
+  width: 42px;
+  text-align: right;
+}
+
+.pmd-report-staff-open a {
+  width: 28px;
+  height: 28px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid #d5e5e0;
+  border-radius: 8px;
+  background: #fff;
+  color: #08705a !important;
+  font-size: 15px;
+  font-weight: 800;
+  text-decoration: none !important;
+}
+
+/* ---------- Selected staff ---------- */
+.pmd-report-staff-detail__header .pmd-attendance-state {
+  margin-left: auto;
+}
+
+.pmd-report-staff-detail__back {
+  min-height: 32px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 10px;
+  border: 1px solid #d4e5df;
+  border-radius: 9px;
+  background: #fff;
+  color: #08705a !important;
+  font-size: 10px;
+  font-weight: 800;
+  text-decoration: none !important;
+  white-space: nowrap;
+}
+
+.pmd-report-staff-detail-stats {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 9px;
+  margin-bottom: 14px;
+}
+
+.pmd-report-staff-detail-stats > div {
+  min-width: 0;
+  min-height: 94px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: 12px;
+  border: 1px solid #deebe7;
+  border-radius: 12px;
+  background: #fbfdfc;
+}
+
+.pmd-report-staff-detail-stats span {
+  color: #73827e;
+  font-size: 9px;
+  font-weight: 820;
+  letter-spacing: .045em;
+  text-transform: uppercase;
+}
+
+.pmd-report-staff-detail-stats strong {
+  display: block;
+  margin-top: 6px;
+  color: #16342c;
+  font-size: 20px;
+  line-height: 1.05;
+  font-weight: 840;
+  letter-spacing: -.02em;
+}
+
+.pmd-report-staff-detail-stats strong.is-small {
+  font-size: 12px;
+  line-height: 1.3;
+}
+
+.pmd-report-staff-detail-stats small {
+  margin-top: 5px;
+  color: #899590;
+  font-size: 9.5px;
+  font-weight: 650;
+}
+
+.pmd-report-staff-history-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 12px;
+}
+
+.pmd-report-staff-history-panel {
+  min-width: 0;
+  overflow: hidden;
+  border: 1px solid #e0ebe8;
+  border-radius: 13px;
+  background: #fff;
+}
+
+.pmd-report-staff-history-panel__title {
+  min-height: 58px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 12px;
+  border-bottom: 1px solid #e6efec;
+  background: #fbfdfc;
+}
+
+.pmd-report-staff-history-panel__title > div {
+  min-width: 0;
+}
+
+.pmd-report-staff-history-panel__title strong,
+.pmd-report-staff-history-panel__title span {
+  display: block;
+}
+
+.pmd-report-staff-history-panel__title strong {
+  color: #213b34;
+  font-size: 12px;
+  font-weight: 820;
+}
+
+.pmd-report-staff-history-panel__title span {
+  margin-top: 3px;
+  color: #7f8d89;
+  font-size: 10px;
+}
+
+.pmd-report-staff-history-panel__title b {
+  flex: 0 0 auto;
+  min-width: 28px;
+  height: 28px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  background: #edf6f3;
+  color: #426058;
+  font-size: 10px;
+}
+
+.pmd-report-staff-history-panel .pmd-report-table-wrap {
+  max-height: 380px;
+  overflow: auto;
+  border: 0;
+  border-radius: 0;
+}
+
+.pmd-report-staff-history-table {
+  margin: 0;
+}
+
+.pmd-report-compact-empty {
+  min-height: 74px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 4px;
+  padding: 14px;
+  border: 1px dashed #d8e6e2;
+  border-radius: 11px;
+  background: #fbfdfc;
+}
+
+.pmd-report-staff-history-panel .pmd-report-compact-empty {
+  margin: 12px;
+}
+
+.pmd-report-compact-empty strong {
+  color: #30463f;
+  font-size: 11px;
+  font-weight: 800;
+}
+
+.pmd-report-compact-empty span {
+  color: #7c8b86;
+  font-size: 10.5px;
+  line-height: 1.45;
+}
+
+@media (max-width: 1280px) {
+  .pmd-report-staff-detail-stats {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 1100px) {
+  .pmd-report-header {
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .pmd-report-header .pmd-owner-header__left {
+    flex: 1 1 auto;
+  }
+
+  .pmd-report-header__actions {
+    flex: 1 1 100%;
+    width: 100%;
+  }
+
+  .pmd-report-periods--header {
+    max-width: none;
+    margin-left: 0;
+    margin-right: auto;
+  }
+
+  .pmd-report-staff-directory__header,
+  .pmd-report-staff-detail__header {
+    flex-wrap: wrap;
+  }
+
+  .pmd-report-staff-search {
+    width: min(320px, 55vw);
+    margin-left: auto;
+  }
+}
+
+@media (max-width: 760px) {
+  .pmd-report-header__actions {
+    align-items: center;
+  }
+
+  .pmd-report-periods--header {
+    flex: 1 1 auto;
+    width: 0;
+  }
+
+  .pmd-report-periods a {
+    min-height: 32px;
+    padding: 0 10px;
+    font-size: 10px;
+  }
+
+  .pmd-report-staff-search {
+    order: 10;
+    width: 100%;
+    max-width: none;
+    margin: 0;
+  }
+
+  .pmd-report-card-count {
+    margin-left: auto;
+  }
+
+  .pmd-report-staff-detail__header .pmd-attendance-state {
+    margin-left: 0;
+  }
+
+  .pmd-report-staff-detail-stats {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .pmd-report-staff-directory-table-wrap {
+    max-height: none;
+    overflow: auto;
+  }
+}
+
+@media (max-width: 480px) {
+  .pmd-report-staff-detail-stats {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+/* ==========================================================
+   Attendance presentation consolidation
+   Keeps V2.3 data + period authorities; presentation only.
+   ========================================================== */
+html body .pmd-report-page[data-pmd-report-type="attendance"] .pmd-report-staff-directory__header,
+html body .pmd-report-page[data-pmd-report-type="attendance"] .pmd-report-staff-detail__header {
+  display: flex !important;
+  align-items: center !important;
+  gap: 14px !important;
+  padding: 16px 20px !important;
+}
+
+html body .pmd-report-page[data-pmd-report-type="attendance"] .pmd-owner-card__icon.pmd-report-card-icon {
+  width: 46px !important;
+  height: 46px !important;
+  min-width: 46px !important;
+  flex: 0 0 46px !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+}
+
+html body .pmd-report-page[data-pmd-report-type="attendance"] .pmd-owner-card__icon.pmd-report-card-icon svg {
+  width: 19px !important;
+  height: 19px !important;
+  min-width: 19px !important;
+  min-height: 19px !important;
+  display: block !important;
+  fill: none !important;
+  stroke: currentColor !important;
+  stroke-width: 1.9 !important;
+}
+
+html body .pmd-report-page[data-pmd-report-type="attendance"] .pmd-owner-card__title {
+  min-width: 0 !important;
+  flex: 1 1 auto !important;
+}
+
+html body .pmd-report-page[data-pmd-report-type="attendance"] .pmd-owner-card__title h2 {
+  display: block !important;
+  margin: 0 !important;
+}
+
+html body .pmd-report-page[data-pmd-report-type="attendance"] .pmd-owner-card__title p {
+  display: flex !important;
+  align-items: center !important;
+  flex-wrap: wrap !important;
+  gap: 0 7px !important;
+  margin: 5px 0 0 !important;
+}
+
+html body .pmd-report-page[data-pmd-report-type="attendance"] .pmd-report-username {
+  color: #61716c !important;
+  font-weight: 750 !important;
+}
+
+html body .pmd-report-page[data-pmd-report-type="attendance"] .pmd-report-staff-directory__tools {
+  min-width: 0 !important;
+  flex: 0 0 auto !important;
+  margin-left: auto !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: flex-end !important;
+  gap: 9px !important;
+}
+
+html body .pmd-report-page[data-pmd-report-type="attendance"] .pmd-report-staff-search {
+  width: 265px !important;
+  min-width: 220px !important;
+  height: 38px !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  display: block !important;
+  border: 0 !important;
+  border-radius: 10px !important;
+  background: transparent !important;
+}
+
+html body .pmd-report-page[data-pmd-report-type="attendance"] .pmd-report-staff-search svg {
+  display: none !important;
+}
+
+html body .pmd-report-page[data-pmd-report-type="attendance"] .pmd-report-staff-search input {
+  width: 100% !important;
+  height: 38px !important;
+  min-width: 0 !important;
+  box-sizing: border-box !important;
+  padding: 0 12px !important;
+  border: 1px solid #d6e5e1 !important;
+  border-radius: 10px !important;
+  outline: 0 !important;
+  background: #fff !important;
+  color: #21352f !important;
+  box-shadow: none !important;
+  font-size: 11px !important;
+  font-weight: 650 !important;
+  line-height: 38px !important;
+}
+
+html body .pmd-report-page[data-pmd-report-type="attendance"] .pmd-report-staff-search input:focus {
+  border-color: #86b9aa !important;
+  box-shadow: 0 0 0 3px rgba(7,128,95,.08) !important;
+}
+
+html body .pmd-report-page[data-pmd-report-type="attendance"] .pmd-report-card-count {
+  min-height: 32px !important;
+  margin: 0 !important;
+  padding: 0 10px !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  border: 1px solid #dce9e5 !important;
+  border-radius: 999px !important;
+  background: #edf6f3 !important;
+  color: #36594f !important;
+  font-size: 10px !important;
+  font-weight: 820 !important;
+  white-space: nowrap !important;
+}
+
+html body .pmd-report-page[data-pmd-report-type="attendance"] .pmd-report-staff-directory__body,
+html body .pmd-report-page[data-pmd-report-type="attendance"] .pmd-report-staff-detail__body {
+  display: block !important;
+  padding: 16px !important;
+  background: #fff !important;
+}
+
+html body .pmd-report-page[data-pmd-report-type="attendance"] .pmd-report-location-scope-note {
+  min-height: 42px !important;
+  margin: 0 0 12px !important;
+  padding: 9px 11px !important;
+  display: flex !important;
+  align-items: center !important;
+  gap: 9px !important;
+  border: 1px solid #e0ebe8 !important;
+  border-radius: 10px !important;
+  background: #f8fbfa !important;
+  color: #71817c !important;
+  font-size: 10px !important;
+  line-height: 1.35 !important;
+}
+
+html body .pmd-report-page[data-pmd-report-type="attendance"] .pmd-report-location-scope-note strong {
+  color: #29463d !important;
+  white-space: nowrap !important;
+}
+
+html body .pmd-report-page[data-pmd-report-type="attendance"] .pmd-report-staff-directory-table-wrap {
+  max-height: 650px !important;
+  overflow: auto !important;
+  border: 1px solid #e1ebe8 !important;
+  border-radius: 13px !important;
+  background: #fff !important;
+}
+
+html body .pmd-report-page[data-pmd-report-type="attendance"] .pmd-report-staff-directory-table {
+  width: 100% !important;
+  margin: 0 !important;
+  table-layout: auto !important;
+  border-collapse: separate !important;
+  border-spacing: 0 !important;
+}
+
+html body .pmd-report-page[data-pmd-report-type="attendance"] .pmd-report-staff-directory-table thead th {
+  position: sticky !important;
+  top: 0 !important;
+  z-index: 3 !important;
+  padding-top: 10px !important;
+  padding-bottom: 10px !important;
+  background: #f8fbfa !important;
+  color: #5d706a !important;
+  font-size: 9px !important;
+  font-weight: 820 !important;
+  letter-spacing: .045em !important;
+  text-transform: uppercase !important;
+  white-space: nowrap !important;
+}
+
+html body .pmd-report-page[data-pmd-report-type="attendance"] .pmd-report-staff-directory-table tbody td {
+  vertical-align: middle !important;
+  padding-top: 10px !important;
+  padding-bottom: 10px !important;
+}
+
+html body .pmd-report-page[data-pmd-report-type="attendance"] .pmd-report-staff-name {
+  min-width: 155px !important;
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: flex-start !important;
+  gap: 3px !important;
+  line-height: 1.2 !important;
+}
+
+html body .pmd-report-page[data-pmd-report-type="attendance"] .pmd-report-staff-name strong {
+  display: block !important;
+  color: #17332c !important;
+  font-size: 11px !important;
+  font-weight: 820 !important;
+  white-space: normal !important;
+}
+
+html body .pmd-report-page[data-pmd-report-type="attendance"] .pmd-report-staff-name small {
+  display: block !important;
+  color: #82908b !important;
+  font-size: 9.5px !important;
+  font-weight: 650 !important;
+  white-space: normal !important;
+}
+
+html body .pmd-report-page[data-pmd-report-type="attendance"] .pmd-report-role-label,
+html body .pmd-report-page[data-pmd-report-type="attendance"] .pmd-report-last-activity {
+  display: inline-block !important;
+  color: #536660 !important;
+  line-height: 1.3 !important;
+}
+
+html body .pmd-report-page[data-pmd-report-type="attendance"] .pmd-attendance-state {
+  position: relative !important;
+  min-height: 27px !important;
+  gap: 6px !important;
+  padding: 0 9px !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  border-radius: 999px !important;
+  font-size: 9.5px !important;
+  font-weight: 820 !important;
+  line-height: 1 !important;
+  white-space: nowrap !important;
+}
+
+html body .pmd-report-page[data-pmd-report-type="attendance"] .pmd-attendance-state::before {
+  content: "" !important;
+  width: 7px !important;
+  height: 7px !important;
+  flex: 0 0 7px !important;
+  display: block !important;
+  border-radius: 50% !important;
+  background: #a0aaa6 !important;
+}
+
+html body .pmd-report-page[data-pmd-report-type="attendance"] .pmd-attendance-state.is-ready::before {
+  background: #16b875 !important;
+  box-shadow: 0 0 0 3px rgba(22,184,117,.11) !important;
+}
+
+html body .pmd-report-page[data-pmd-report-type="attendance"] .pmd-report-staff-open {
+  width: 42px !important;
+  text-align: right !important;
+}
+
+html body .pmd-report-page[data-pmd-report-type="attendance"] .pmd-report-staff-open a {
+  width: 30px !important;
+  height: 30px !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  border: 1px solid #d5e5e0 !important;
+  border-radius: 9px !important;
+  background: #fff !important;
+  color: #08705a !important;
+  font-size: 15px !important;
+  font-weight: 800 !important;
+  text-decoration: none !important;
+}
+
+html body .pmd-report-page[data-pmd-report-type="attendance"] .pmd-report-staff-open a:hover {
+  border-color: #9bcbbb !important;
+  background: #f2faf7 !important;
+}
+
+/* Selected staff: one focused report, no duplicate directory below it. */
+html body .pmd-report-page[data-pmd-report-type="attendance"] .pmd-report-staff-detail__identity p span + span::before {
+  content: "·" !important;
+  margin-right: 7px !important;
+  color: #a0aca8 !important;
+}
+
+html body .pmd-report-page[data-pmd-report-type="attendance"] .pmd-report-staff-detail__actions {
+  flex: 0 0 auto !important;
+  margin-left: auto !important;
+  display: flex !important;
+  align-items: center !important;
+  gap: 8px !important;
+}
+
+html body .pmd-report-page[data-pmd-report-type="attendance"] .pmd-report-staff-detail__back {
+  min-height: 34px !important;
+  gap: 6px !important;
+  padding: 0 11px !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  border: 1px solid #d4e5df !important;
+  border-radius: 9px !important;
+  background: #fff !important;
+  color: #08705a !important;
+  font-size: 10px !important;
+  font-weight: 820 !important;
+  text-decoration: none !important;
+  white-space: nowrap !important;
+}
+
+html body .pmd-report-page[data-pmd-report-type="attendance"] .pmd-report-staff-detail-stats {
+  width: 100% !important;
+  display: grid !important;
+  grid-template-columns: repeat(6, minmax(0, 1fr)) !important;
+  gap: 10px !important;
+  margin: 0 0 14px !important;
+}
+
+html body .pmd-report-page[data-pmd-report-type="attendance"] .pmd-report-staff-detail-stats > article {
+  min-width: 0 !important;
+  min-height: 100px !important;
+  padding: 13px !important;
+  display: flex !important;
+  flex-direction: column !important;
+  justify-content: center !important;
+  border: 1px solid #deebe7 !important;
+  border-radius: 13px !important;
+  background: #fbfdfc !important;
+  box-shadow: none !important;
+}
+
+html body .pmd-report-page[data-pmd-report-type="attendance"] .pmd-report-staff-detail-stats > article > span,
+html body .pmd-report-page[data-pmd-report-type="attendance"] .pmd-report-staff-detail-stats > article > strong,
+html body .pmd-report-page[data-pmd-report-type="attendance"] .pmd-report-staff-detail-stats > article > small {
+  display: block !important;
+}
+
+html body .pmd-report-page[data-pmd-report-type="attendance"] .pmd-report-staff-detail-stats > article > span {
+  color: #73827e !important;
+  font-size: 9px !important;
+  font-weight: 820 !important;
+  letter-spacing: .045em !important;
+  line-height: 1.2 !important;
+  text-transform: uppercase !important;
+}
+
+html body .pmd-report-page[data-pmd-report-type="attendance"] .pmd-report-staff-detail-stats > article > strong {
+  margin: 7px 0 0 !important;
+  color: #16342c !important;
+  font-size: 21px !important;
+  font-weight: 840 !important;
+  line-height: 1.08 !important;
+  letter-spacing: -.02em !important;
+}
+
+html body .pmd-report-page[data-pmd-report-type="attendance"] .pmd-report-staff-detail-stats > article > strong.is-small {
+  font-size: 12px !important;
+  line-height: 1.35 !important;
+}
+
+html body .pmd-report-page[data-pmd-report-type="attendance"] .pmd-report-staff-detail-stats > article > small {
+  margin-top: 6px !important;
+  color: #899590 !important;
+  font-size: 9.5px !important;
+  font-weight: 650 !important;
+  line-height: 1.25 !important;
+}
+
+html body .pmd-report-page[data-pmd-report-type="attendance"] .pmd-report-staff-history-grid {
+  width: 100% !important;
+  display: grid !important;
+  grid-template-columns: 1fr !important;
+  gap: 12px !important;
+}
+
+html body .pmd-report-page[data-pmd-report-type="attendance"] .pmd-report-staff-history-panel {
+  min-width: 0 !important;
+  overflow: hidden !important;
+  display: block !important;
+  border: 1px solid #e0ebe8 !important;
+  border-radius: 13px !important;
+  background: #fff !important;
+}
+
+html body .pmd-report-page[data-pmd-report-type="attendance"] .pmd-report-staff-history-panel__title {
+  min-height: 60px !important;
+  padding: 11px 13px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  gap: 12px !important;
+  border-bottom: 1px solid #e6efec !important;
+  background: #fbfdfc !important;
+}
+
+html body .pmd-report-page[data-pmd-report-type="attendance"] .pmd-report-staff-history-panel__title > div,
+html body .pmd-report-page[data-pmd-report-type="attendance"] .pmd-report-staff-history-panel__title strong,
+html body .pmd-report-page[data-pmd-report-type="attendance"] .pmd-report-staff-history-panel__title span {
+  display: block !important;
+}
+
+html body .pmd-report-page[data-pmd-report-type="attendance"] .pmd-report-staff-history-panel__title strong {
+  color: #213b34 !important;
+  font-size: 12px !important;
+  font-weight: 820 !important;
+}
+
+html body .pmd-report-page[data-pmd-report-type="attendance"] .pmd-report-staff-history-panel__title span {
+  margin-top: 3px !important;
+  color: #7a8984 !important;
+  font-size: 10px !important;
+  line-height: 1.35 !important;
+}
+
+html body .pmd-report-page[data-pmd-report-type="attendance"] .pmd-report-staff-history-panel__title b {
+  min-width: 28px !important;
+  height: 28px !important;
+  padding: 0 8px !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  border-radius: 999px !important;
+  background: #edf6f3 !important;
+  color: #426058 !important;
+  font-size: 10px !important;
+  font-weight: 820 !important;
+}
+
+html body .pmd-report-page[data-pmd-report-type="attendance"] .pmd-report-staff-history-panel .pmd-report-table-wrap {
+  max-height: 390px !important;
+  overflow: auto !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+}
+
+html body .pmd-report-page[data-pmd-report-type="attendance"] .pmd-report-staff-history-panel .pmd-report-compact-empty {
+  margin: 12px !important;
+}
+
+@media (max-width: 1280px) {
+  html body .pmd-report-page[data-pmd-report-type="attendance"] .pmd-report-staff-detail-stats {
+    grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+  }
+}
+
+@media (max-width: 980px) {
+  html body .pmd-report-page[data-pmd-report-type="attendance"] .pmd-report-staff-directory__header,
+  html body .pmd-report-page[data-pmd-report-type="attendance"] .pmd-report-staff-detail__header {
+    flex-wrap: wrap !important;
+  }
+
+  html body .pmd-report-page[data-pmd-report-type="attendance"] .pmd-report-staff-directory__tools,
+  html body .pmd-report-page[data-pmd-report-type="attendance"] .pmd-report-staff-detail__actions {
+    width: 100% !important;
+    margin-left: 60px !important;
+    justify-content: flex-start !important;
+  }
+
+  html body .pmd-report-page[data-pmd-report-type="attendance"] .pmd-report-staff-search {
+    flex: 1 1 auto !important;
+    width: auto !important;
+    max-width: 360px !important;
+  }
+}
+
+@media (max-width: 760px) {
+  html body .pmd-report-page[data-pmd-report-type="attendance"] .pmd-report-staff-directory__tools,
+  html body .pmd-report-page[data-pmd-report-type="attendance"] .pmd-report-staff-detail__actions {
+    margin-left: 0 !important;
+  }
+
+  html body .pmd-report-page[data-pmd-report-type="attendance"] .pmd-report-staff-directory__tools {
+    flex-wrap: wrap !important;
+  }
+
+  html body .pmd-report-page[data-pmd-report-type="attendance"] .pmd-report-staff-search {
+    order: 2 !important;
+    flex: 1 1 100% !important;
+    width: 100% !important;
+    max-width: none !important;
+    min-width: 0 !important;
+  }
+
+  html body .pmd-report-page[data-pmd-report-type="attendance"] .pmd-report-card-count {
+    order: 1 !important;
+  }
+
+  html body .pmd-report-page[data-pmd-report-type="attendance"] .pmd-report-staff-detail-stats {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  }
+
+  html body .pmd-report-page[data-pmd-report-type="attendance"] .pmd-report-location-scope-note {
+    align-items: flex-start !important;
+    flex-direction: column !important;
+  }
+}
+
+/* ==========================================================
+   PMD REPORTS TYPOGRAPHY + ATTENDANCE UI CONSOLIDATION V2.3.2
+   Existing report/data/date-range authorities are unchanged.
+   This is the final presentation layer owned by pmd-reports-v1.css.
+   ========================================================== */
+
+/* ---------- Shared typography: all PMD report pages ---------- */
+html body #pmd-report-page.pmd-report-page {
+  font-size: 14px !important;
+  line-height: 1.45 !important;
+}
+
+html body #pmd-report-page .pmd-report-periods a {
+  min-height: 38px !important;
+  padding: 0 13px !important;
+  font-size: 12.5px !important;
+  line-height: 1 !important;
+}
+
+html body #pmd-report-page .pmd-report-switcher a {
+  min-height: 38px !important;
+  padding: 0 12px !important;
+  font-size: 12px !important;
+  line-height: 1 !important;
+}
+
+html body #pmd-report-page .pmd-report-actions a,
+html body #pmd-report-page .pmd-report-chart-modes button {
+  font-size: 12px !important;
+}
+
+html body #pmd-report-page .pmd-report-stat > span {
+  font-size: 11.5px !important;
+  line-height: 1.25 !important;
+}
+
+html body #pmd-report-page .pmd-report-stat > strong {
+  font-size: 25px !important;
+}
+
+html body #pmd-report-page .pmd-report-stat > small {
+  font-size: 12px !important;
+  line-height: 1.4 !important;
+}
+
+html body #pmd-report-page .pmd-owner-card__title h2 {
+  font-size: 18px !important;
+  line-height: 1.2 !important;
+}
+
+html body #pmd-report-page .pmd-owner-card__title p {
+  font-size: 12.5px !important;
+  line-height: 1.45 !important;
+}
+
+html body #pmd-report-page .pmd-report-chart-axis-label {
+  font-size: 12px !important;
+}
+
+html body #pmd-report-page .pmd-report-donut-row span,
+html body #pmd-report-page .pmd-report-donut-row strong,
+html body #pmd-report-page .pmd-report-focus-row strong,
+html body #pmd-report-page .pmd-report-focus-row > span {
+  font-size: 12.5px !important;
+}
+
+html body #pmd-report-page .pmd-report-focus-row small {
+  font-size: 11.5px !important;
+}
+
+html body #pmd-report-page .pmd-report-operational-row strong {
+  font-size: 14px !important;
+}
+
+html body #pmd-report-page .pmd-report-operational-row span {
+  font-size: 13px !important;
+}
+
+html body #pmd-report-page .pmd-report-operational-row small {
+  font-size: 12px !important;
+}
+
+html body #pmd-report-page .pmd-report-table th {
+  padding: 12px 14px !important;
+  font-size: 11px !important;
+  line-height: 1.25 !important;
+}
+
+html body #pmd-report-page .pmd-report-table td {
+  padding: 13px 14px !important;
+  font-size: 12.5px !important;
+  line-height: 1.45 !important;
+}
+
+html body #pmd-report-page .pmd-report-empty,
+html body #pmd-report-page .pmd-report-error,
+html body #pmd-report-page .pmd-report-compact-empty {
+  font-size: 12.5px !important;
+}
+
+html body #pmd-report-page .pmd-report-empty strong,
+html body #pmd-report-page .pmd-report-error strong,
+html body #pmd-report-page .pmd-report-compact-empty strong {
+  font-size: 13.5px !important;
+}
+
+html body #pmd-report-page .pmd-report-source__copy strong {
+  font-size: 12.5px !important;
+}
+
+html body #pmd-report-page .pmd-report-source__copy span {
+  font-size: 11.5px !important;
+}
+
+html body #pmd-report-page .pmd-report-source-meta span {
+  font-size: 11px !important;
+}
+
+/* ---------- Attendance directory: robust against global Admin rules ---------- */
+html body #pmd-report-page.pmd-report-page[data-pmd-report-type="attendance"] .pmd-report-staff-directory__header,
+html body #pmd-report-page.pmd-report-page[data-pmd-report-type="attendance"] .pmd-report-staff-detail__header {
+  min-height: 82px !important;
+  display: flex !important;
+  align-items: center !important;
+  gap: 14px !important;
+  padding: 16px 20px !important;
+}
+
+html body #pmd-report-page.pmd-report-page[data-pmd-report-type="attendance"] .pmd-report-staff-directory__tools {
+  margin-left: auto !important;
+  display: flex !important;
+  align-items: center !important;
+  gap: 10px !important;
+}
+
+html body #pmd-report-page.pmd-report-page[data-pmd-report-type="attendance"] .pmd-report-staff-search {
+  width: 320px !important;
+  min-width: 250px !important;
+  height: 40px !important;
+  display: block !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  border: 0 !important;
+  background: transparent !important;
+}
+
+html body #pmd-report-page.pmd-report-page[data-pmd-report-type="attendance"] .pmd-report-staff-search input {
+  width: 100% !important;
+  height: 40px !important;
+  display: block !important;
+  box-sizing: border-box !important;
+  padding: 0 13px !important;
+  border: 1px solid #d6e5e1 !important;
+  border-radius: 11px !important;
+  background: #fff !important;
+  color: #21352f !important;
+  font-size: 13px !important;
+  font-weight: 600 !important;
+  line-height: 40px !important;
+  box-shadow: none !important;
+  outline: 0 !important;
+}
+
+html body #pmd-report-page.pmd-report-page[data-pmd-report-type="attendance"] .pmd-report-card-count {
+  min-height: 34px !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  padding: 0 11px !important;
+  border: 1px solid #dce9e5 !important;
+  border-radius: 999px !important;
+  background: #edf6f3 !important;
+  color: #36594f !important;
+  font-size: 12px !important;
+  font-weight: 800 !important;
+  white-space: nowrap !important;
+}
+
+html body #pmd-report-page.pmd-report-page[data-pmd-report-type="attendance"] .pmd-report-location-scope-note {
+  min-height: 44px !important;
+  margin: 0 0 12px !important;
+  padding: 9px 12px !important;
+  display: flex !important;
+  align-items: center !important;
+  gap: 10px !important;
+  border: 1px solid #dfeae7 !important;
+  border-radius: 11px !important;
+  background: #f7fbfa !important;
+}
+
+html body #pmd-report-page.pmd-report-page[data-pmd-report-type="attendance"] .pmd-report-location-scope-note__count {
+  flex: 0 0 auto !important;
+  min-height: 27px !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 4px !important;
+  padding: 0 9px !important;
+  border-radius: 999px !important;
+  background: #e9f6f1 !important;
+  color: #21463b !important;
+  font-size: 12px !important;
+  font-weight: 750 !important;
+  white-space: nowrap !important;
+}
+
+html body #pmd-report-page.pmd-report-page[data-pmd-report-type="attendance"] .pmd-report-location-scope-note__count strong {
+  font-size: 13px !important;
+  font-weight: 850 !important;
+}
+
+html body #pmd-report-page.pmd-report-page[data-pmd-report-type="attendance"] .pmd-report-location-scope-note__copy {
+  min-width: 0 !important;
+  color: #687873 !important;
+  font-size: 12px !important;
+  line-height: 1.35 !important;
+}
+
+html body #pmd-report-page.pmd-report-page[data-pmd-report-type="attendance"] .pmd-report-staff-directory-table thead th {
+  font-size: 11.5px !important;
+}
+
+html body #pmd-report-page.pmd-report-page[data-pmd-report-type="attendance"] .pmd-report-staff-directory-table tbody td {
+  padding-top: 12px !important;
+  padding-bottom: 12px !important;
+  font-size: 12.5px !important;
+}
+
+html body #pmd-report-page.pmd-report-page[data-pmd-report-type="attendance"] .pmd-report-staff-name {
+  min-width: 175px !important;
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: flex-start !important;
+  gap: 4px !important;
+  text-decoration: none !important;
+  line-height: 1.2 !important;
+}
+
+html body #pmd-report-page.pmd-report-page[data-pmd-report-type="attendance"] .pmd-report-staff-name strong {
+  display: block !important;
+  color: #17332c !important;
+  font-size: 13px !important;
+  font-weight: 820 !important;
+}
+
+html body #pmd-report-page.pmd-report-page[data-pmd-report-type="attendance"] .pmd-report-staff-name small,
+html body #pmd-report-page.pmd-report-page[data-pmd-report-type="attendance"] .pmd-report-username {
+  display: block !important;
+  color: #7a8984 !important;
+  font-size: 11.5px !important;
+  font-weight: 650 !important;
+  line-height: 1.25 !important;
+}
+
+html body #pmd-report-page.pmd-report-page[data-pmd-report-type="attendance"] .pmd-report-role-label,
+html body #pmd-report-page.pmd-report-page[data-pmd-report-type="attendance"] .pmd-report-last-activity {
+  font-size: 12.5px !important;
+}
+
+html body #pmd-report-page.pmd-report-page[data-pmd-report-type="attendance"] .pmd-attendance-state {
+  min-height: 30px !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 7px !important;
+  padding: 0 10px !important;
+  border-radius: 999px !important;
+  color: #5f6f6a !important;
+  background: #f1f5f4 !important;
+  font-size: 11.5px !important;
+  font-weight: 800 !important;
+  line-height: 1 !important;
+  white-space: nowrap !important;
+}
+
+html body #pmd-report-page.pmd-report-page[data-pmd-report-type="attendance"] .pmd-attendance-state::before {
+  display: none !important;
+  content: none !important;
+}
+
+html body #pmd-report-page.pmd-report-page[data-pmd-report-type="attendance"] .pmd-attendance-state.is-ready {
+  color: #08705a !important;
+  background: #eaf8f3 !important;
+}
+
+html body #pmd-report-page.pmd-report-page[data-pmd-report-type="attendance"] .pmd-attendance-state__dot {
+  width: 8px !important;
+  height: 8px !important;
+  flex: 0 0 8px !important;
+  display: block !important;
+  border-radius: 50% !important;
+  background: #a2aca8 !important;
+}
+
+html body #pmd-report-page.pmd-report-page[data-pmd-report-type="attendance"] .pmd-attendance-state.is-ready .pmd-attendance-state__dot {
+  background: #16b875 !important;
+  box-shadow: 0 0 0 3px rgba(22,184,117,.11) !important;
+}
+
+/* ---------- Selected staff: dedicated PMD components, not generic article/section ---------- */
+html body #pmd-report-page.pmd-report-page[data-pmd-report-type="attendance"] .pmd-report-staff-detail__identity h2 {
+  font-size: 20px !important;
+}
+
+html body #pmd-report-page.pmd-report-page[data-pmd-report-type="attendance"] .pmd-report-staff-detail__identity p {
+  font-size: 12.5px !important;
+}
+
+html body #pmd-report-page.pmd-report-page[data-pmd-report-type="attendance"] .pmd-report-staff-detail__actions {
+  margin-left: auto !important;
+  display: flex !important;
+  align-items: center !important;
+  gap: 9px !important;
+}
+
+html body #pmd-report-page.pmd-report-page[data-pmd-report-type="attendance"] .pmd-report-staff-detail__back {
+  min-height: 36px !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 6px !important;
+  padding: 0 12px !important;
+  border: 1px solid #d4e5df !important;
+  border-radius: 10px !important;
+  background: #fff !important;
+  color: #08705a !important;
+  font-size: 12px !important;
+  font-weight: 800 !important;
+  line-height: 1 !important;
+  text-decoration: none !important;
+}
+
+html body #pmd-report-page.pmd-report-page[data-pmd-report-type="attendance"] .pmd-report-staff-detail__body {
+  display: block !important;
+  padding: 16px !important;
+}
+
+html body #pmd-report-page.pmd-report-page[data-pmd-report-type="attendance"] .pmd-report-staff-detail-stats {
+  width: 100% !important;
+  display: grid !important;
+  grid-template-columns: repeat(6, minmax(0, 1fr)) !important;
+  gap: 12px !important;
+  margin: 0 0 14px !important;
+}
+
+html body #pmd-report-page.pmd-report-page[data-pmd-report-type="attendance"] .pmd-report-staff-detail-stat {
+  min-width: 0 !important;
+  min-height: 106px !important;
+  display: flex !important;
+  flex-direction: column !important;
+  justify-content: center !important;
+  padding: 14px !important;
+  border: 1px solid #dfeae7 !important;
+  border-radius: 14px !important;
+  background: #fbfdfc !important;
+  box-shadow: none !important;
+}
+
+html body #pmd-report-page.pmd-report-page[data-pmd-report-type="attendance"] .pmd-report-staff-detail-stat > span,
+html body #pmd-report-page.pmd-report-page[data-pmd-report-type="attendance"] .pmd-report-staff-detail-stat > strong,
+html body #pmd-report-page.pmd-report-page[data-pmd-report-type="attendance"] .pmd-report-staff-detail-stat > small {
+  display: block !important;
+}
+
+html body #pmd-report-page.pmd-report-page[data-pmd-report-type="attendance"] .pmd-report-staff-detail-stat > span {
+  color: #74837f !important;
+  font-size: 11px !important;
+  font-weight: 800 !important;
+  letter-spacing: .04em !important;
+  line-height: 1.25 !important;
+  text-transform: uppercase !important;
+}
+
+html body #pmd-report-page.pmd-report-page[data-pmd-report-type="attendance"] .pmd-report-staff-detail-stat > strong {
+  margin-top: 8px !important;
+  color: #16342c !important;
+  font-size: 23px !important;
+  font-weight: 850 !important;
+  line-height: 1.08 !important;
+}
+
+html body #pmd-report-page.pmd-report-page[data-pmd-report-type="attendance"] .pmd-report-staff-detail-stat > strong.is-small {
+  font-size: 13px !important;
+  line-height: 1.35 !important;
+}
+
+html body #pmd-report-page.pmd-report-page[data-pmd-report-type="attendance"] .pmd-report-staff-detail-stat > small {
+  margin-top: 6px !important;
+  color: #87938f !important;
+  font-size: 11.5px !important;
+  line-height: 1.3 !important;
+}
+
+html body #pmd-report-page.pmd-report-page[data-pmd-report-type="attendance"] .pmd-report-staff-history-grid {
+  width: 100% !important;
+  display: grid !important;
+  grid-template-columns: 1fr !important;
+  gap: 14px !important;
+}
+
+html body #pmd-report-page.pmd-report-page[data-pmd-report-type="attendance"] .pmd-report-staff-history-panel {
+  min-width: 0 !important;
+  overflow: hidden !important;
+  display: block !important;
+  border: 1px solid #dfeae7 !important;
+  border-radius: 14px !important;
+  background: #fff !important;
+}
+
+html body #pmd-report-page.pmd-report-page[data-pmd-report-type="attendance"] .pmd-report-staff-history-panel__title {
+  min-height: 66px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  gap: 12px !important;
+  padding: 12px 14px !important;
+  border-bottom: 1px solid #e5eeeb !important;
+  background: #fbfdfc !important;
+}
+
+html body #pmd-report-page.pmd-report-page[data-pmd-report-type="attendance"] .pmd-report-staff-history-panel__title > div {
+  min-width: 0 !important;
+  display: block !important;
+}
+
+html body #pmd-report-page.pmd-report-page[data-pmd-report-type="attendance"] .pmd-report-staff-history-panel__title strong {
+  display: block !important;
+  color: #213b34 !important;
+  font-size: 14px !important;
+  font-weight: 820 !important;
+  line-height: 1.25 !important;
+}
+
+html body #pmd-report-page.pmd-report-page[data-pmd-report-type="attendance"] .pmd-report-staff-history-panel__title span {
+  display: block !important;
+  margin-top: 4px !important;
+  color: #778681 !important;
+  font-size: 12px !important;
+  line-height: 1.4 !important;
+}
+
+html body #pmd-report-page.pmd-report-page[data-pmd-report-type="attendance"] .pmd-report-staff-history-panel__title b {
+  min-width: 30px !important;
+  height: 30px !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  padding: 0 8px !important;
+  border-radius: 999px !important;
+  background: #edf6f3 !important;
+  color: #426058 !important;
+  font-size: 12px !important;
+  font-weight: 820 !important;
+}
+
+html body #pmd-report-page.pmd-report-page[data-pmd-report-type="attendance"] .pmd-report-staff-history-panel .pmd-report-compact-empty {
+  margin: 14px !important;
+  padding: 15px !important;
+}
+
+@media (max-width: 1280px) {
+  html body #pmd-report-page.pmd-report-page[data-pmd-report-type="attendance"] .pmd-report-staff-detail-stats {
+    grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+  }
+}
+
+@media (max-width: 900px) {
+  html body #pmd-report-page.pmd-report-page[data-pmd-report-type="attendance"] .pmd-report-staff-directory__header,
+  html body #pmd-report-page.pmd-report-page[data-pmd-report-type="attendance"] .pmd-report-staff-detail__header {
+    flex-wrap: wrap !important;
+  }
+
+  html body #pmd-report-page.pmd-report-page[data-pmd-report-type="attendance"] .pmd-report-staff-directory__tools,
+  html body #pmd-report-page.pmd-report-page[data-pmd-report-type="attendance"] .pmd-report-staff-detail__actions {
+    width: 100% !important;
+    margin-left: 60px !important;
+  }
+
+  html body #pmd-report-page.pmd-report-page[data-pmd-report-type="attendance"] .pmd-report-location-scope-note {
+    align-items: flex-start !important;
+    flex-direction: column !important;
+  }
+}
+
+@media (max-width: 760px) {
+  html body #pmd-report-page .pmd-report-periods a,
+  html body #pmd-report-page .pmd-report-switcher a {
+    font-size: 11.5px !important;
+  }
+
+  html body #pmd-report-page.pmd-report-page[data-pmd-report-type="attendance"] .pmd-report-staff-directory__tools,
+  html body #pmd-report-page.pmd-report-page[data-pmd-report-type="attendance"] .pmd-report-staff-detail__actions {
+    margin-left: 0 !important;
+  }
+
+  html body #pmd-report-page.pmd-report-page[data-pmd-report-type="attendance"] .pmd-report-staff-search {
+    width: 100% !important;
+    min-width: 0 !important;
+  }
+
+  html body #pmd-report-page.pmd-report-page[data-pmd-report-type="attendance"] .pmd-report-staff-detail-stats {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  }
+}
+
+
+/* PMD REPORTS V2.3.2.1 BROWSER-HARDENING — same canonical report CSS owner. */
+html body #pmd-report-page.pmd-report-page { font-size: 14px !important; }
+html body #pmd-report-page .pmd-report-periods a { font-size: 13.5px !important; min-height: 38px !important; padding: 0 13px !important; }
+html body #pmd-report-page .pmd-report-switcher a { font-size: 13px !important; min-height: 38px !important; padding: 0 13px !important; }
+html body #pmd-report-page .pmd-report-stat > span { font-size: 12.5px !important; }
+html body #pmd-report-page .pmd-report-stat > strong { font-size: 25px !important; }
+html body #pmd-report-page .pmd-report-stat > small { font-size: 13px !important; }
+html body #pmd-report-page .pmd-owner-card__title h2 { font-size: 18px !important; }
+html body #pmd-report-page .pmd-owner-card__title p { font-size: 13.5px !important; }
+html body #pmd-report-page .pmd-report-table th { font-size: 12px !important; }
+html body #pmd-report-page .pmd-report-table td { font-size: 13.5px !important; line-height: 1.45 !important; }
+html body #pmd-report-page .pmd-report-operational-row strong { font-size: 14px !important; }
+html body #pmd-report-page .pmd-report-operational-row span { font-size: 13.5px !important; }
+html body #pmd-report-page .pmd-report-operational-row small { font-size: 12.5px !important; }
+html body #pmd-report-page .pmd-report-empty,
+html body #pmd-report-page .pmd-report-error,
+html body #pmd-report-page .pmd-report-compact-empty { font-size: 13.5px !important; }
+html body #pmd-report-page .pmd-report-source__copy span { font-size: 12.5px !important; }
+@media (max-width: 760px) {
+  html body #pmd-report-page .pmd-report-periods a,
+  html body #pmd-report-page .pmd-report-switcher a { font-size: 12.5px !important; }
+}
+
+
+/* PMD REPORTS V2.3.2.2 FINAL READABILITY POLISH — same canonical CSS owner. */
+html body #pmd-report-page.pmd-report-page { font-size: 14.5px !important; }
+html body #pmd-report-page .pmd-report-periods a { font-size: 14px !important; min-height: 40px !important; padding: 0 14px !important; }
+html body #pmd-report-page .pmd-report-switcher a { font-size: 13.5px !important; min-height: 40px !important; padding: 0 14px !important; }
+html body #pmd-report-page .pmd-report-stat > span { font-size: 13px !important; }
+html body #pmd-report-page .pmd-report-stat > strong { font-size: 26px !important; }
+html body #pmd-report-page .pmd-report-stat > small { font-size: 13.5px !important; }
+html body #pmd-report-page .pmd-owner-card__title h2 { font-size: 19px !important; }
+html body #pmd-report-page .pmd-owner-card__title p { font-size: 14px !important; line-height: 1.45 !important; }
+html body #pmd-report-page .pmd-report-table th { font-size: 12.5px !important; }
+html body #pmd-report-page .pmd-report-table td { font-size: 14px !important; line-height: 1.5 !important; }
+html body #pmd-report-page .pmd-report-operational-row strong { font-size: 14.5px !important; }
+html body #pmd-report-page .pmd-report-operational-row span { font-size: 14px !important; }
+html body #pmd-report-page .pmd-report-operational-row small { font-size: 13px !important; }
+html body #pmd-report-page .pmd-report-empty,
+html body #pmd-report-page .pmd-report-error,
+html body #pmd-report-page .pmd-report-compact-empty { font-size: 14px !important; line-height: 1.45 !important; }
+html body #pmd-report-page .pmd-report-source__copy span { font-size: 13px !important; }
+html body #pmd-report-page.pmd-report-page[data-pmd-report-type="attendance"] .pmd-report-staff-detail-stat > span { font-size: 12.5px !important; }
+html body #pmd-report-page.pmd-report-page[data-pmd-report-type="attendance"] .pmd-report-staff-detail-stat > small { font-size: 13px !important; }
+html body #pmd-report-page.pmd-report-page[data-pmd-report-type="attendance"] .pmd-report-staff-history-panel__title strong { font-size: 15px !important; }
+html body #pmd-report-page.pmd-report-page[data-pmd-report-type="attendance"] .pmd-report-staff-history-panel__title span { font-size: 13.5px !important; }
+@media (max-width: 760px) {
+  html body #pmd-report-page .pmd-report-periods a,
+  html body #pmd-report-page .pmd-report-switcher a { font-size: 13px !important; }
 }

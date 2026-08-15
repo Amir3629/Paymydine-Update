@@ -22,6 +22,8 @@ App::before(function () {
         require_once __DIR__.'/api-health-media.php';
 
         require_once __DIR__.'/theme-settings.php';
+        require_once __DIR__.'/pmd-frontend-v2-theme.php';
+        require_once __DIR__.'/pmd-frontend-v2-media.php';
         require_once __DIR__.'/coupon.php';
 
         require_once __DIR__.'/main-public-compat.php';

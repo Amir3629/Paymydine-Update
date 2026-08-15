@@ -5,6 +5,10 @@
     $range = $pmdCashierOrdersRange ?? [];
     $debug = $pmdCashierOrdersDebug ?? [];
     $count = count($orders);
+    $pmdCashierIsGerman = strtolower((string)($pmdCleanWorkspaceLocale ?? app()->getLocale())) === 'de';
+    $pmdCashierAddReservation = $pmdCashierIsGerman ? 'Reservierung hinzufügen' : 'Add reservation';
+    $pmdCashierNoOrdersCard = $pmdCashierIsGerman ? 'Keine Bestellungen' : 'No Orders';
+    $pmdCashierCreateDate = (string)($range['today'] ?? \Carbon\Carbon::now('Europe/Berlin')->toDateString());
 @endphp
 
 <section
@@ -35,14 +39,26 @@
         </div>
     </header>
 
-    @if($count === 0)
-        <div class="pmd-ops-empty">
-            <strong>{{ $text['empty_title'] ?? 'No orders in this date range' }}</strong>
-            <span>{{ $text['empty_text'] ?? 'No table orders were found for the selected date range.' }}</span>
-        </div>
-    @else
-        <div class="pmd-ops-grid">
-            @foreach($orders as $order)
+    <div class="pmd-ops-grid">
+        {{-- PMD_CASHIERLAB_ADD_RESERVATION_CARD_FIRST_V1
+             Same canonical reservation creation entry point as ReservationsLab. --}}
+        <a
+            class="pmd-ops-add-card pmd-r2-simple-add-link-v460"
+            href="{{ admin_url('reservations/create') }}?reserve_date={{ urlencode($pmdCashierCreateDate) }}"
+            data-pmd-cashier-reservation-create="1"
+            aria-label="{{ $pmdCashierAddReservation }}"
+        >
+            <span class="pmd-r2-simple-add-icon-v460" aria-hidden="true">＋</span>
+            <span class="pmd-r2-simple-add-title-v460">{{ $pmdCashierAddReservation }}</span>
+        </a>
+
+        @if($count === 0)
+            <article class="pmd-ops-inline-empty-card" data-pmd-cashier-empty-card="1">
+                <strong>{{ $pmdCashierNoOrdersCard }}</strong>
+            </article>
+        @endif
+
+        @foreach($orders as $order)
                 <article
                     class="pmd-ops-card"
                     data-pmd-cashier-order="{{ $order['id'] }}"
@@ -97,7 +113,6 @@
                         </a>
                     </footer>
                 </article>
-            @endforeach
-        </div>
-    @endif
+        @endforeach
+    </div>
 </section>

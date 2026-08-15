@@ -5,7 +5,7 @@ if (/\/admin\/dashboardfloor(?:$|[?#])/.test(location.pathname + location.search
 // PMD_OWNER_DASHBOARD_CLEAN_V23_DASHBOARDFLOOR_WRAP_V1_BODY_START
 // PMD_OWNER_DASHBOARD_CLEAN_V23_FULL_KIOSK_WRAP_V84_START
 // PMD_CLEAN_ROLE_WORKSPACE_OWNER_JS_SKIP_V1
-if (/\/admin\/(?:dashboard(?:waiter|reservation)|managerlab|accountantlab|cashierlab|reservationslab)(?:$|[/?#])/.test(location.pathname + location.search + location.hash)) {
+if (/\/admin\/(?:dashboard(?:waiter|reservation)|managerlab|accountantlab|cashierlab|reservationslab|pmdreports|pmdreportchannels|pmdreporttips)(?:$|[/?#])/.test(location.pathname + location.search + location.hash)) {
   // Intentionally silent: this Owner-only runtime has no authority on these workspaces.
 } else {
 // PMD_OWNER_DASHBOARD_CLEAN_V23_FULL_KIOSK_WRAP_V84_BODY_START

@@ -18,9 +18,11 @@
             'guests' => 'Gäste',
             'table' => 'Tisch',
             'open' => 'Reservierung öffnen',
+            'add_reservation' => 'Reservierung hinzufügen',
             'no_table' => 'Noch kein Tisch',
             'empty_title' => 'Keine Reservierungen in diesem Zeitraum',
             'empty_text' => 'Für den ausgewählten Zeitraum wurden keine Reservierungen gefunden.',
+            'empty_card' => 'Keine Reservierung',
             'confirmed' => 'Bestätigt',
             'pending' => 'Ausstehend',
             'cancelled' => 'Storniert',
@@ -46,9 +48,11 @@
             'guests' => 'Guests',
             'table' => 'Table',
             'open' => 'Open reservation',
+            'add_reservation' => 'Add reservation',
             'no_table' => 'No table yet',
             'empty_title' => 'No reservations in this date range',
             'empty_text' => 'No reservations were found for the selected date range.',
+            'empty_card' => 'No Reservation',
             'confirmed' => 'Confirmed',
             'pending' => 'Pending',
             'cancelled' => 'Cancelled',
@@ -119,6 +123,9 @@
         ],
     ];
 
+    /* PMD_RESERVATION_CARD_TABLE_VALUE_NUMBERS_ONLY_V1
+       The fact box already owns the localized TABLE/TISCH label. Keep the
+       value itself compact: "8, 12, 16" instead of repeating "Table". */
     $pmdOpsNormalizeTable = static function ($value) use ($pmdOpsText) {
         $value = trim((string)$value);
 
@@ -127,14 +134,14 @@
         }
 
         if (preg_match('/^(?:table|tisch)\s*#?\s*(\d+)$/iu', $value, $match)) {
-            return $pmdOpsText['table'].' '.$match[1];
+            return $match[1];
         }
 
         if (ctype_digit($value)) {
-            return $pmdOpsText['table'].' '.$value;
+            return $value;
         }
 
-        return $value;
+        return preg_replace('/^(?:table|tisch)\s*#?\s*/iu', '', $value);
     };
 
     $pmdOpsCards = [];
@@ -281,8 +288,10 @@
 
 <section
     data-pmd-titleless-v3-3-2="true"
+    data-pmd-i18n-skip="true"
+    data-pmd-no-translate="true"
     id="pmd-reservations-lab-cards-v2-1"
-    class="pmd-ops-section"
+    class="pmd-ops-section pmd-i18n-skip"
     aria-label="{{ $pmdOpsText['reservations'] }}"
     data-pmd-ops-kind="reservations"
     data-pmd-range-from="{{ $pmdOpsFrom }}"
@@ -303,14 +312,29 @@
         </div>
     </header>
 
-    @if($pmdOpsCount === 0)
-        <div class="pmd-ops-empty">
-            <strong>{{ $pmdOpsText['empty_title'] }}</strong>
-            <span>{{ $pmdOpsText['empty_text'] }}</span>
-        </div>
-    @else
-        <div class="pmd-ops-grid">
-            @foreach($pmdOpsCards as $card)
+    {{-- PMD_RESERVATIONSLAB_ADD_CARD_FIRST_V1
+         Server-localized and excluded from the late global i18n rewrite.
+         The href is a no-JS fallback; the schedule runtime opens the canonical
+         Reservations2 Composer on click. --}}
+    <div class="pmd-ops-grid">
+        <a
+            class="pmd-ops-add-card pmd-r2-simple-add-link-v460"
+            href="{{ admin_url('reservations/create').'?reserve_date='.$pmdOpsToday }}"
+            aria-label="{{ $pmdOpsText['add_reservation'] }}"
+            data-pmd-res-lab-card-create="1"
+            data-pmd-res-lab-create-date="{{ $pmdOpsToday }}"
+        >
+            <span class="pmd-r2-simple-add-icon-v460" aria-hidden="true">＋</span>
+            <span class="pmd-r2-simple-add-title-v460">{{ $pmdOpsText['add_reservation'] }}</span>
+        </a>
+
+        @if($pmdOpsCount === 0)
+            <article class="pmd-ops-inline-empty-card" data-pmd-reservations-empty-card="1">
+                <strong>{{ $pmdOpsText['empty_card'] }}</strong>
+            </article>
+        @endif
+
+        @foreach($pmdOpsCards as $card)
                 <article
                     class="pmd-ops-card"
                     data-pmd-reservation-card="{{ $card['id'] }}"
@@ -355,7 +379,7 @@
                         </a>
                     </footer>
                 </article>
-            @endforeach
-        </div>
-    @endif
+        @endforeach
+    </div>
+
 </section>

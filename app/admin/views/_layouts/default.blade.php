@@ -3442,6 +3442,23 @@ html.pmd-dashboardreservation-page #pmd-reservation-dashboard-root .pmd-res-toas
 <html xmlns="http://www.w3.org/1999/xhtml" lang="en">
 <head>
 
+{{-- PMD_RESERVATIONSLAB_LOCAL_FONT_BOOT_V2_START --}}
+@if (request()->is('admin/reservationslab'))
+{{--
+    ReservationsLab zero-swap typography authority.
+    Start same-origin font fetches at the top of <head> and prevent the late
+    admin.js Google Roboto loader from replacing glyph metrics after paint.
+    No content mask, timer, RAF, observer or delayed class mutation.
+--}}
+<link rel="preload" href="/app/admin/assets/fonts/Roboto-Regular.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="/app/admin/assets/fonts/Roboto-Medium.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="/app/admin/assets/fonts/Roboto-Bold.woff2" as="font" type="font/woff2" crossorigin>
+<script id="pmd-reservationslab-local-roboto-boot-v2">
+window.PMD_ADMIN_GLOBAL_ROBOTO_LOADER_V1 = true;
+</script>
+@endif
+{{-- PMD_RESERVATIONSLAB_LOCAL_FONT_BOOT_V2_END --}}
+
 {{-- PMD_R2_FINAL_PAINT_GATE_V1_START --}}
 @if (request()->is('admin/reservations2'))
 <style id="pmd-r2-final-paint-gate-v1-style">
@@ -3696,7 +3713,10 @@ document.documentElement.classList.add('pmd-r2-v6-booting');
     request()->is('admin/managerlab*') ||
     request()->is('admin/accountantlab*') ||
     request()->is('admin/cashierlab*') ||
-    request()->is('admin/reservationslab*')
+    request()->is('admin/reservationslab*') ||
+    request()->is('admin/pmdreports*') ||
+    request()->is('admin/pmdreportchannels*') ||
+    request()->is('admin/pmdreporttips*')
 )
 <!-- PMD_OWNER_EMERGENCY_UNHIDE_START -->
 <style id="pmd-owner-emergency-unhide-style">
@@ -3944,7 +3964,10 @@ html.pmd-owner-v69-no-loader .pmd-v36-span-2 {
     $pmdIsCleanRoleWorkspace = request()->is('admin/managerlab*')
         || request()->is('admin/accountantlab*')
         || request()->is('admin/cashierlab*')
-        || request()->is('admin/reservationslab*');
+        || request()->is('admin/reservationslab*')
+        || request()->is('admin/pmdreports*')
+        || request()->is('admin/pmdreportchannels*')
+        || request()->is('admin/pmdreporttips*');
 @endphp
 
     {!! get_metas() !!}
@@ -3962,7 +3985,11 @@ html.pmd-owner-v69-no-loader .pmd-v36-span-2 {
     <link rel="stylesheet" href="{{ asset('app/admin/assets/css/header-dropdowns.css') }}?v={{ request()->is('admin/reservations*') ? 'pmd-reservations-v18-20260728' : time() }}">
     <!-- Remove Green Edges from Dropdowns -->
     <link rel="stylesheet" href="{{ asset('app/admin/assets/css/remove-green-edges.css') }}?v={{ request()->is('admin/reservations*') ? 'pmd-reservations-v18-20260728' : time() }}">
+    {{-- PMD_RESERVATIONSLAB_NO_GENERIC_ENTRY_ANIMATION_V1_START --}}
+    @unless(request()->is('admin/reservationslab*'))
     <link rel="stylesheet" href="{{ asset('app/admin/assets/css/smooth-transitions.css') }}?v={{ request()->is('admin/reservations*') ? 'pmd-reservations-v18-20260728' : time() }}">
+    @endunless
+    {{-- PMD_RESERVATIONSLAB_NO_GENERIC_ENTRY_ANIMATION_V1_END --}}
     <link rel="stylesheet" href="{{ asset('app/admin/assets/css/custom-fixes.css') }}?v={{ request()->is('admin/reservations*') ? 'pmd-reservations-v18-20260728' : time() }}">
     <link rel="stylesheet" href="{{ asset('app/admin/assets/css/calendar.css') }}?v={{ request()->is('admin/reservations*') ? 'pmd-reservations-v18-20260728' : time() }}">
     <!-- Modern Admin Settings Styling -->
@@ -8259,7 +8286,10 @@ html.pmd-waiter-dashboard-active .pmd-v18-unmerge {
     $pmdIsCleanRoleWorkspace = request()->is('admin/managerlab*')
         || request()->is('admin/accountantlab*')
         || request()->is('admin/cashierlab*')
-        || request()->is('admin/reservationslab*');
+        || request()->is('admin/reservationslab*')
+        || request()->is('admin/pmdreports*')
+        || request()->is('admin/pmdreportchannels*')
+        || request()->is('admin/pmdreporttips*');
 @endphp
 
 <!-- PMD_KDS_SERVER_FAST_V82_EARLY_MEDIA_GUARD_START -->
@@ -8319,7 +8349,11 @@ html.pmd-waiter-dashboard-active .pmd-v18-unmerge {
 <!-- PMD_KDS_ULTRA_FAST_V83_SMOOTH_TRANSITIONS_GUARD_START -->
 @unless(!empty($__pmdIsKdsDashboardV82))
 
+{{-- PMD_RESERVATIONSLAB_NO_GENERIC_ENTRY_RUNTIME_V1_START --}}
+@unless(request()->is('admin/reservationslab*'))
 <script src="{{ asset('app/admin/assets/js/smooth-transitions.js') }}?v={{ request()->is('admin/reservations*') ? 'pmd-reservations-v18-20260728' : time() }}"></script>
+@endunless
+{{-- PMD_RESERVATIONSLAB_NO_GENERIC_ENTRY_RUNTIME_V1_END --}}
 
 @endunless
 <!-- PMD_KDS_ULTRA_FAST_V83_SMOOTH_TRANSITIONS_GUARD_END -->

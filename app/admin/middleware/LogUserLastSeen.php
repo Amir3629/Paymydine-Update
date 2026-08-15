@@ -21,6 +21,24 @@ class LogUserLastSeen
                     });
                 }
             }
+
+            /*
+             * PMD_ADMIN_SESSION_PRESENCE_V1
+             *
+             * The legacy two-minute cache above remains untouched because other
+             * platform code may still use it as a "recent activity" marker.
+             * Manager online presence is different: it follows the real admin
+             * session until explicit logout or normal session expiry.
+             */
+            try {
+                if (resolve('admin.auth')->check()) {
+                    app(\Admin\Services\PmdAdminPresenceService::class)->touchCurrentSession();
+                }
+            } catch (\Throwable $error) {
+                logger()->warning('PMD admin presence touch failed', [
+                    'message' => $error->getMessage(),
+                ]);
+            }
         }
 
         return $next($request);

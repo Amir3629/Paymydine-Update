@@ -101,8 +101,8 @@ class Login extends \Admin\Classes\AdminController
             'pmd-manager' => 'managerlab',
             'manager' => 'managerlab',
 
-            'pmd-waiter' => 'cashierlab',
-            'waiter' => 'cashierlab',
+            'pmd-waiter' => 'dashboardwaiternew',
+            'waiter' => 'dashboardwaiternew',
 
             'pmd-reservation' => 'reservationslab',
             'reservation' => 'reservationslab',
@@ -137,6 +137,18 @@ class Login extends \Admin\Classes\AdminController
 
         session()->regenerate();
 
+        // PMD_ADMIN_SESSION_PRESENCE_V1
+        // Presence is registered only AFTER successful authentication and
+        // session regeneration. Failure here must never block a valid login.
+        try {
+            app(\Admin\Services\PmdAdminPresenceService::class)->loginCurrentSession();
+        } catch (\Throwable $error) {
+            logger()->warning('PMD admin presence login registration failed', [
+                'user_id' => (int)optional(AdminAuth::getUser())->getKey(),
+                'message' => $error->getMessage(),
+            ]);
+        }
+
         // PMD_ROLE_LANDING_REDIRECT_V1
         // Core operational roles always land in their own workspace.
         if ($landing = $this->pmdRoleLandingRoute())
@@ -153,7 +165,7 @@ class Login extends \Admin\Classes\AdminController
         $pmdMehdiLanding = [
             'mehdiowner' => 'dashboardlab',
             'mehdimanager' => 'managerlab',
-            'mehdiwaiter' => 'cashierlab',
+            'mehdiwaiter' => 'dashboardwaiternew',
             'mehdicashier' => 'cashierlab',
             'mehdiaccountant' => 'accountantlab',
             'mehdireservations' => 'reservationslab',

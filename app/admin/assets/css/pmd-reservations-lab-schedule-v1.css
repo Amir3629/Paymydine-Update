@@ -2957,3 +2957,156 @@ html body.pmd-clean-workspace-reservations .pmd-reservations-lab-composer * {
 body.pmd-reservations-lab-composer-open {
   overflow: hidden !important;
 }
+
+
+/* =========================================================
+   PMD_RESERVATIONSLAB_FUTURE_BOOKING_POLICY_V1
+   Past dates remain viewable for operational history, but past
+   times never expose an active create action.
+   ========================================================= */
+#pmd-r2-calendar-surface-v160 .pmd-yc-day.is-past-date {
+  color: #81919d !important;
+  background: #f7f9fa !important;
+}
+
+#pmd-r2-calendar-surface-v160 .pmd-yc-day.is-past-date .pmd-yc-day__number {
+  opacity: .68 !important;
+}
+
+#pmd-r2-calendar-surface-v160 .pmd-r2-timeslot.is-past-slot {
+  background: #f7f9fa !important;
+}
+
+#pmd-r2-calendar-surface-v160 .pmd-r2-timeslot.is-past-slot .pmd-r2-timeslot__time,
+#pmd-r2-calendar-surface-v160 .pmd-r2-timeslot.is-past-slot .pmd-r2-timeslot__free {
+  color: #7d8d98 !important;
+}
+
+#pmd-r2-calendar-surface-v160 .pmd-r2-timeslot__create-button:disabled,
+#pmd-r2-calendar-surface-v160 .pmd-r2-timeslot__create-button[aria-disabled="true"] {
+  border-color: #d8e1e6 !important;
+  background: #f1f4f6 !important;
+  color: #9aa8b1 !important;
+  opacity: .62 !important;
+  cursor: not-allowed !important;
+  pointer-events: none !important;
+  transform: translateY(-50%) !important;
+  box-shadow: none !important;
+}
+
+
+/* =========================================================
+   PMD_RESERVATIONSLAB_HOUR_INTERACTION_OPENING_HOURS_V1
+   Existing Hour owner only: clickable time/row/card surfaces and shared
+   working_hours closed-state presentation. No animation/settle runtime.
+   ========================================================= */
+#pmd-r2-calendar-surface-v160
+.pmd-r2-timeslot[data-pmd-res-lab-bookable="1"],
+#pmd-r2-calendar-surface-v160
+.pmd-r2-timeslot[data-pmd-res-lab-bookable="1"] .pmd-r2-timeslot__time,
+#pmd-r2-calendar-surface-v160
+.pmd-r2-timeslot[data-pmd-res-lab-bookable="1"] .pmd-r2-timeslot__content {
+  cursor: pointer !important;
+}
+
+#pmd-r2-calendar-surface-v160
+.pmd-r2-slot-booking[data-pmd-res-lab-edit] {
+  cursor: pointer !important;
+}
+
+#pmd-r2-calendar-surface-v160
+.pmd-r2-slot-booking[data-pmd-res-lab-edit]:hover {
+  border-color: #9fcddd !important;
+  background: #fbfdfe !important;
+}
+
+#pmd-r2-calendar-surface-v160 .pmd-r2-timeslot.is-closed-slot {
+  background: #f6f8f9 !important;
+}
+
+#pmd-r2-calendar-surface-v160
+.pmd-r2-timeslot.is-closed-slot .pmd-r2-timeslot__time,
+#pmd-r2-calendar-surface-v160
+.pmd-r2-timeslot.is-closed-slot .pmd-r2-timeslot__free {
+  color: #7c8b95 !important;
+  background: #f6f8f9 !important;
+}
+
+#pmd-r2-calendar-surface-v160
+.pmd-r2-timeslot.is-closed-slot .pmd-r2-timeslot__free > i {
+  background: #a9b5bc !important;
+  box-shadow: 0 0 0 4px rgba(132,148,158,.12) !important;
+}
+
+#pmd-r2-calendar-surface-v160 .pmd-r2-timeslot-closed-message {
+  grid-column: 1 / -1 !important;
+  min-height: 92px !important;
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 6px !important;
+  padding: 18px !important;
+  border: 1px solid #d9e5eb !important;
+  border-radius: 14px !important;
+  background: #f8fafb !important;
+  color: #61727d !important;
+  text-align: center !important;
+}
+
+#pmd-r2-calendar-surface-v160 .pmd-r2-timeslot-closed-message strong {
+  color: #233d4d !important;
+  font-size: 14px !important;
+  font-weight: 850 !important;
+}
+
+#pmd-r2-calendar-surface-v160 .pmd-r2-timeslot-closed-message span {
+  font-size: 12px !important;
+  font-weight: 650 !important;
+}
+
+
+/* =========================================================
+   PMD_RESERVATIONSLAB_CLOSED_CALENDAR_DATES_V1_4
+   working_hours is the authority: a fully closed date is not a navigation
+   target and cannot open Hour/create surfaces.
+   ========================================================= */
+#pmd-r2-calendar-surface-v160 .pmd-yc-day.is-closed-date,
+#pmd-r2-calendar-surface-v160 .pmd-yc-day[data-pmd-res-closed-date="1"] {
+  background: #f2f5f6 !important;
+  color: #9aa8b1 !important;
+  cursor: not-allowed !important;
+  opacity: .66 !important;
+  box-shadow: none !important;
+}
+
+#pmd-r2-calendar-surface-v160 .pmd-yc-day.is-closed-date .pmd-yc-day__number,
+#pmd-r2-calendar-surface-v160 .pmd-yc-day[data-pmd-res-closed-date="1"] .pmd-yc-day__number {
+  color: #8d9ba4 !important;
+  background: transparent !important;
+  opacity: .82 !important;
+}
+
+#pmd-r2-calendar-surface-v160 .pmd-yc-day.is-closed-date:hover,
+#pmd-r2-calendar-surface-v160 .pmd-yc-day[data-pmd-res-closed-date="1"]:hover {
+  background: #f2f5f6 !important;
+  transform: none !important;
+}
+
+
+/* =========================================================
+   PMD_RESERVATIONSLAB_SPLIT_ROW_DIVIDER_V1_4_1
+   The Hour DOM is split into two display:contents wrappers. The generic
+   .pmd-r2-timeslot:last-child rule removed the divider after the last row of
+   the FIRST wrapper too (for 12 rows, exactly between 09:30 and 10:00).
+   Restore that internal divider; only the real final row stays borderless.
+   ========================================================= */
+#pmd-r2-calendar-surface-v160
+.pmd-r2-day-board__column--first > .pmd-r2-timeslot:last-child {
+  border-bottom: 1px solid #dfe9f0 !important;
+}
+
+#pmd-r2-calendar-surface-v160
+.pmd-r2-day-board__column--second > .pmd-r2-timeslot:last-child {
+  border-bottom: 0 !important;
+}

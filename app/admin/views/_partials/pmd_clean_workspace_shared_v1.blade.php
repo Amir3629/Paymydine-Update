@@ -6,13 +6,59 @@
     $pmdCleanWorkspaceAfterFloorPartial = $pmdCleanWorkspaceAfterFloorPartial ?? null;
     $pmdCleanWorkspaceBelowFloorPartial = $pmdCleanWorkspaceBelowFloorPartial ?? null;
     $pmdCleanWorkspaceReservationsSurface = (($pmdCleanWorkspacePath ?? '') === '/admin/reservationslab');
+    $pmdCleanWorkspaceCashierSurface = (($pmdCleanWorkspacePath ?? '') === '/admin/cashierlab');
+    // PMD_CLEAN_WORKSPACE_CANONICAL_RESERVATION_COMPOSER_SURFACE_V1
+    // Cashier may create a reservation, but it must not become a ReservationsLab
+    // Calendar/Hour surface. Only the exact Reservations2 Composer is shared.
+    $pmdCleanWorkspaceComposerSurface = $pmdCleanWorkspaceReservationsSurface || $pmdCleanWorkspaceCashierSurface;
+    $pmdCleanWorkspaceDirectFloorSurface = $pmdCleanWorkspaceReservationsSurface || $pmdCleanWorkspaceCashierSurface;
+    $pmdCleanWorkspaceAddReservationLabel = strtolower((string)($pmdCleanWorkspaceLocale ?? 'en')) === 'de'
+        ? 'Reservierung hinzufügen'
+        : 'Add reservation';
+    $pmdCleanWorkspaceCreateDate = \Carbon\Carbon::now('Europe/Berlin')->toDateString();
 
-    /* PMD_CLEAN_WORKSPACE_STANDALONE_CHROME_V3 */
+    /* PMD_ROLE_AWARE_CLEAN_WORKSPACE_CHROME_V1
+     * Native Reservations/Cashier/Accountant accounts keep the standalone
+     * shell. Owner/Manager keep their normal Side Menu 2 on the same routes.
+     */
+    $pmdCleanWorkspaceRoleUsesSideMenu = false;
+
+    try {
+        $pmdCleanWorkspaceRoleUser = null;
+
+        if (class_exists('\\Admin\\Facades\\AdminAuth')) {
+            $pmdCleanWorkspaceRoleUser = \Admin\Facades\AdminAuth::getUser();
+        } elseif (class_exists('AdminAuth')) {
+            $pmdCleanWorkspaceRoleUser = \AdminAuth::getUser();
+        }
+
+        if ($pmdCleanWorkspaceRoleUser) {
+            if (!empty($pmdCleanWorkspaceRoleUser->is_super_user)) {
+                $pmdCleanWorkspaceRoleUsesSideMenu = true;
+            } elseif (!empty($pmdCleanWorkspaceRoleUser->staff_id)) {
+                $pmdCleanWorkspaceRoleRow = \Illuminate\Support\Facades\DB::table('staffs as s')
+                    ->leftJoin('staff_roles as r', 'r.staff_role_id', '=', 's.staff_role_id')
+                    ->where('s.staff_id', (int)$pmdCleanWorkspaceRoleUser->staff_id)
+                    ->select('r.code as role_code', 'r.name as role_name')
+                    ->first();
+
+                if ($pmdCleanWorkspaceRoleRow) {
+                    $pmdCleanWorkspaceRoleCode = strtolower(trim((string)($pmdCleanWorkspaceRoleRow->role_code ?? '')));
+                    $pmdCleanWorkspaceRoleName = strtolower(trim((string)($pmdCleanWorkspaceRoleRow->role_name ?? '')));
+                    $pmdCleanWorkspaceRoleUsesSideMenu = in_array($pmdCleanWorkspaceRoleCode, ['owner', 'manager'], true)
+                        || in_array($pmdCleanWorkspaceRoleName, ['owner', 'manager'], true);
+                }
+            }
+        }
+    } catch (\Throwable $e) {
+        $pmdCleanWorkspaceRoleUsesSideMenu = false;
+    }
+
     $pmdCleanWorkspaceStandaloneChrome = in_array(
         (string)($pmdCleanWorkspaceKey ?? ''),
         ['reservations', 'cashier', 'accountant'],
         true
-    );
+    ) && !$pmdCleanWorkspaceRoleUsesSideMenu;
     $pmdCleanWorkspaceHeaderLocale = strtolower((string)($pmdCleanWorkspaceLocale ?? 'en'));
     $pmdCleanWorkspaceHeaderLocale = $pmdCleanWorkspaceHeaderLocale === 'de' ? 'de' : 'en';
     $pmdCleanWorkspaceHeaderNextLocale = $pmdCleanWorkspaceHeaderLocale === 'de' ? 'en' : 'de';
@@ -360,6 +406,22 @@ html body.page.pmd-clean-workspace-page #pmd-dashboard-lab {
                         <path d="M12 3a15 15 0 0 1 0 18"></path><path d="M12 3a15 15 0 0 0 0 18"></path>
                     </svg>
                     <span class="pmd-clean-workspace__language-code">{{ strtoupper($pmdCleanWorkspaceHeaderLocale) }}</span>
+                </button>
+            @endif
+
+            @if($pmdCleanWorkspaceComposerSurface)
+                <button
+                    type="button"
+                    id="pmd-reservations-lab-header-create-v1"
+                    class="pmd-dashboard-lab__header-action pmd-reservations-lab__header-create"
+                    @if($pmdCleanWorkspaceCashierSurface) data-pmd-cashier-reservation-create="1" @endif
+                    aria-label="{{ $pmdCleanWorkspaceAddReservationLabel }}"
+                    title="{{ $pmdCleanWorkspaceAddReservationLabel }}"
+                >
+                    <svg viewBox="0 0 24 24" aria-hidden="true">
+                        <path d="M12 5v14"></path>
+                        <path d="M5 12h14"></path>
+                    </svg>
                 </button>
             @endif
 
@@ -785,17 +847,181 @@ html body.page.pmd-clean-workspace-page #pmd-dashboard-lab {
                     'displayTables' => $pmdCleanWorkspaceFloorDisplayTables ?? [],
                     'floorMode' => $pmdCleanWorkspaceFloorMode ?? 'row',
                     'floorZoom' => $pmdCleanWorkspaceFloorZoom ?? 1.0,
+                    'locationId' => $pmdCleanWorkspaceLocationId ?? 0,
+                    'reservationBusyWindows' => $pmdCleanWorkspaceReservationBusyWindows ?? [],
                 ])
+
+                @if($pmdCleanWorkspaceReservationsSurface && $pmdCleanWorkspaceBelowFloorPartial)
+                    {{-- PMD_RESERVATIONSLAB_SERVER_CARDS_PRE_RUNTIME_V1
+                         Reservation cards are already server-rendered. Parse them immediately
+                         after the Floor DOM and BEFORE the synchronous Floor mount/Composer
+                         runtime work, so refresh cannot show the Floor first and cards later. --}}
+                    @include($pmdCleanWorkspaceBelowFloorPartial)
+                @endif
+
+                @if($pmdCleanWorkspaceCashierSurface && $pmdCleanWorkspaceAfterFloorPartial)
+                    {{-- PMD_CASHIERLAB_SERVER_CARDS_PRE_RUNTIME_V1
+                         Cashier operational cards and the Add reservation first card are already
+                         server-rendered. Parse them before Floor/Composer runtime work as well. --}}
+                    @include($pmdCleanWorkspaceAfterFloorPartial)
+                @endif
+
+                {{-- PMD_RESERVATIONSLAB_PARSER_SYNC_FLOOR_BOOT_V1
+                     English does not use the global German pmd-i18n-pending body gate.
+                     Previously the exact Floor runtime arrived through get_script_tags()
+                     at the end of the document, so English could paint the server Floor
+                     before the runtime normalized its controls/state. German happened to
+                     hide that same boot work, which is why the blink looked EN-only.
+
+                     Load the SAME existing Floor runtime synchronously immediately after
+                     the server-rendered Floor and mount it in this parser task. No mask,
+                     no timer, no observer and no second Floor authority. The runtime's
+                     later DOMContentLoaded mount becomes a harmless no-op because the root
+                     already owns __pmdFloorV1. --}}
+                @if($pmdCleanWorkspaceDirectFloorSurface)
+                    @php
+                        $pmdExactFloorRuntimePath = base_path('app/admin/assets/js/pmd-dashboard-lab-exact-floor-v1.js');
+                        $pmdExactFloorRuntimeVersion = is_file($pmdExactFloorRuntimePath)
+                            ? (string)filemtime($pmdExactFloorRuntimePath)
+                            : '1';
+                    @endphp
+                    <script
+                        id="pmd-reservationslab-parser-floor-runtime-v1"
+                        src="{{ asset('app/admin/assets/js/pmd-dashboard-lab-exact-floor-v1.js') }}?v={{ $pmdExactFloorRuntimeVersion }}"
+                    ></script>
+                    <script id="pmd-reservationslab-parser-floor-mount-v1">
+                    (function () {
+                        'use strict';
+                        if (
+                            window.PMDDashboardLabExactFloorV1 &&
+                            typeof window.PMDDashboardLabExactFloorV1.mount === 'function'
+                        ) {
+                            window.PMDDashboardLabExactFloorV1.mount(document);
+                            document.documentElement.setAttribute(
+                                'data-pmd-reservationslab-floor-parser-mounted',
+                                '1'
+                            );
+                        }
+                    })();
+                    </script>
+                @endif
             @endif
 
-            @if(!$pmdCleanWorkspaceReservationsSurface && $pmdCleanWorkspaceAfterFloorPartial)
+            @if($pmdCleanWorkspaceComposerSurface)
+                {{-- PMD_CLEAN_WORKSPACE_CANONICAL_RESERVATION_COMPOSER_SURFACE_V1_START
+                     ReservationsLab and CashierLab share the literal canonical Reservations2
+                     Composer. Cashier does NOT load ReservationsLab Calendar/Hour runtime. --}}
+                <link rel="stylesheet" href="{{ asset('app/admin/assets/css/pmd-reservation-composer-v1.css') }}?v=1.0.0">
+                @include('admin::reservations2._reservation_composer')
+                <script>
+                window.PMD_RESERVATION_COMPOSER_V1 = Object.freeze({
+                  endpoint: @json(admin_url('reservations2'))
+                });
+                </script>
+                <script defer src="{{ asset('app/admin/assets/js/pmd-reservation-composer-v1.js?pmd-composer-draft=2426-20260801_201842') }}?v=1.0.0"></script>
+
+                @if($pmdCleanWorkspaceCashierSurface)
+                    {{-- PMD_CASHIERLAB_CANONICAL_RESERVATION_COMPOSER_BRIDGE_V1
+                         Event-driven only. Current clean Floor selection is read through the
+                         canonical Composer's getFloorSelection() at the moment the user acts. --}}
+                    <script id="pmd-cashierlab-reservation-composer-bridge-v1">
+                    (function () {
+                        'use strict';
+                        if (window.PMDCashierLabReservationCreateV1) return;
+
+                        var createDate = @json($pmdCleanWorkspaceCreateDate);
+
+                        function fallback(trigger) {
+                            if (trigger && trigger.getAttribute) {
+                                var href = trigger.getAttribute('href');
+                                if (href) return href;
+                            }
+                            return '/admin/reservations/create?reserve_date=' + encodeURIComponent(createDate);
+                        }
+
+                        function open(trigger) {
+                            var url = fallback(trigger);
+                            var api = window.PMDReservationComposerV1;
+                            if (!api || typeof api.open !== 'function') {
+                                window.location.href = url;
+                                return;
+                            }
+
+                            var floor = typeof api.getFloorSelection === 'function'
+                                ? (api.getFloorSelection() || {})
+                                : {};
+                            var tableIds = Array.isArray(floor.ids)
+                                ? floor.ids.map(Number).filter(function (id, index, list) {
+                                    return Number.isInteger(id) && id > 0 && list.indexOf(id) === index;
+                                })
+                                : [];
+                            var tableNames = Array.isArray(floor.names)
+                                ? floor.names.filter(Boolean)
+                                : [];
+
+                            api.open({
+                                version: 1,
+                                mode: 'create',
+                                source: tableIds.length ? 'cashier-floor-selection' : 'cashier-add-card',
+                                reservationId: null,
+                                selectedDate: createDate,
+                                selectedTime: null,
+                                duration: null,
+                                tableIds: tableIds,
+                                tableNames: tableNames,
+                                locationId: null,
+                                returnView: 'floor',
+                                fallbackUrl: url
+                            }, trigger || null).catch(function () {
+                                var composer = document.getElementById('pmd-reservation-composer-v1');
+                                if (!composer || !composer.classList.contains('show')) {
+                                    window.location.href = url;
+                                }
+                            });
+                        }
+
+                        document.addEventListener('click', function (event) {
+                            var trigger = event.target && event.target.closest
+                                ? event.target.closest('[data-pmd-cashier-reservation-create]')
+                                : null;
+                            if (!trigger) return;
+                            event.preventDefault();
+                            event.stopImmediatePropagation();
+                            open(trigger);
+                        }, true);
+
+                        window.PMDCashierLabReservationCreateV1 = {
+                            version: '1.0.0',
+                            open: open
+                        };
+                    })();
+                    </script>
+                @endif
+
+                @if($pmdCleanWorkspaceReservationsSurface)
+                    {{-- PMD_RESERVATIONSLAB_SCHEDULE_DIRECT_AUTHORITY_V1_2
+                         One schedule runtime owner, loaded directly after the canonical
+                         Composer with a content-derived cache key. Reservationslab.php
+                         no longer enqueues this file through the combined Admin asset pipeline. --}}
+                    @php
+                        $pmdReservationsLabScheduleRuntimePath = base_path('app/admin/assets/js/pmd-reservations-lab-schedule-v1.js');
+                        $pmdReservationsLabScheduleRuntimeVersion = is_file($pmdReservationsLabScheduleRuntimePath)
+                            ? substr(hash_file('sha256', $pmdReservationsLabScheduleRuntimePath), 0, 16)
+                            : '1';
+                    @endphp
+                    <script defer id="pmd-reservationslab-schedule-direct-v1-2" src="{{ asset('app/admin/assets/js/pmd-reservations-lab-schedule-v1.js') }}?v={{ $pmdReservationsLabScheduleRuntimeVersion }}"></script>
+                @endif
+                {{-- PMD_CLEAN_WORKSPACE_CANONICAL_RESERVATION_COMPOSER_SURFACE_V1_END --}}
+            @endif
+
+            @if(!$pmdCleanWorkspaceReservationsSurface && !$pmdCleanWorkspaceCashierSurface && $pmdCleanWorkspaceAfterFloorPartial)
                 @include($pmdCleanWorkspaceAfterFloorPartial)
             @endif
 
             {{-- PMD_CLEAN_WORKSPACE_BELOW_FLOOR_EXTENSION_V2_1
-                 Content here is physically AFTER the Floor for every workspace.
-                 Reservations keeps its Calendar/Hour surface before Floor. --}}
-            @if($pmdCleanWorkspaceBelowFloorPartial)
+                 Non-Reservations workspaces keep their existing below-Floor hook here.
+                 Reservations cards are parsed immediately after the Floor DOM above. --}}
+            @if(!$pmdCleanWorkspaceReservationsSurface && $pmdCleanWorkspaceBelowFloorPartial)
                 @include($pmdCleanWorkspaceBelowFloorPartial)
             @endif
         </main>

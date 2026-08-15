@@ -1,0 +1,33 @@
+PayMyDine Frontend V2 Revolution
+Release: 1.0.0-staging.20260815
+
+START HERE
+==========
+1. Read README.md.
+2. Read docs/FINAL_RELEASE_REPORT.md and docs/VALIDATION_REPORT.md.
+3. Extract into a NEW staging directory. Do not overwrite the current frontend on port 3001.
+4. Copy .env.example to .env.local and verify the tenant/backend values.
+5. Run:
+     npm ci
+     npm run release:audit
+     npm run build
+6. Start only on port 3002 and perform the full docs/QA_MATRIX.md.
+
+WHAT IS INCLUDED
+================
+- A new, independent Next.js customer-menu frontend.
+- Ten isolated visual themes.
+- Server-resolved tenant/theme bootstrap to prevent cross-theme first-paint flash.
+- Backend adapters for restaurant branding, settings, menu data, table/QR context,
+  shared table drafts, submit-to-kitchen, waiter call, notes, valet, VAT, tips,
+  coupons, split bill, cash settlement, PayPal and hosted payment providers.
+- Five UI locales: English, German, Farsi, Turkish and Japanese.
+- Farsi RTL support.
+- Preview routes, staging PM2/Nginx examples, audits and detailed documentation.
+
+SAFETY STATUS
+=============
+This is a source-complete staging release, not an automatic production cutover.
+The existing production frontend on port 3001 remains the rollback authority until
+port 3002 passes real build, QR/table, multi-device, Admin notification, payment
+provider and visual QA.

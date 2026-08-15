@@ -1,12 +1,12 @@
 -- PayMyDine schema-only dump
--- Generated UTC: Fri Aug 14 18:58:11 UTC 2026
+-- Generated UTC: Sat Aug 15 19:49:01 UTC 2026
 -- Source server: vps-252f1bc4
--- Data rows are NOT included
+-- DATA ROWS ARE NOT INCLUDED
 
 
--- ============================================================
+-- ==================================================
 -- DATABASE: paymydine
--- ============================================================
+-- ==================================================
 
 /*M!999999\- enable the sandbox mode */ 
 -- MariaDB dump 10.19  Distrib 10.11.13-MariaDB, for debian-linux-gnu (x86_64)
@@ -2289,6 +2289,40 @@ CREATE TABLE `ti_payments` (
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
+-- Table structure for table `ti_pmd_admin_presence_sessions`
+--
+
+DROP TABLE IF EXISTS `ti_pmd_admin_presence_sessions`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8mb4 */;
+CREATE TABLE `ti_pmd_admin_presence_sessions` (
+  `presence_id` bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+  `session_hash` char(64) NOT NULL,
+  `user_id` bigint(20) unsigned NOT NULL,
+  `staff_id` bigint(20) unsigned DEFAULT NULL,
+  `location_id` int(11) DEFAULT NULL,
+  `login_at` datetime NOT NULL,
+  `last_seen_at` datetime NOT NULL,
+  `expires_at` datetime NOT NULL,
+  `logout_at` datetime DEFAULT NULL,
+  `ip_address` varchar(45) DEFAULT NULL,
+  `user_agent` text DEFAULT NULL,
+  `created_at` timestamp NULL DEFAULT NULL,
+  `updated_at` timestamp NULL DEFAULT NULL,
+  PRIMARY KEY (`presence_id`),
+  UNIQUE KEY `ti_pmd_admin_presence_sessions_session_hash_unique` (`session_hash`),
+  KEY `pmd_presence_location_online_idx` (`location_id`,`logout_at`,`expires_at`),
+  KEY `ti_pmd_admin_presence_sessions_user_id_index` (`user_id`),
+  KEY `ti_pmd_admin_presence_sessions_staff_id_index` (`staff_id`),
+  KEY `ti_pmd_admin_presence_sessions_location_id_index` (`location_id`),
+  KEY `ti_pmd_admin_presence_sessions_login_at_index` (`login_at`),
+  KEY `ti_pmd_admin_presence_sessions_last_seen_at_index` (`last_seen_at`),
+  KEY `ti_pmd_admin_presence_sessions_expires_at_index` (`expires_at`),
+  KEY `ti_pmd_admin_presence_sessions_logout_at_index` (`logout_at`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
 -- Table structure for table `ti_pmd_table_merges`
 --
 
@@ -3565,11 +3599,11 @@ CREATE TABLE `ti_working_hours` (
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2026-08-14 18:58:12
+-- Dump completed on 2026-08-15 19:49:01
 
--- ============================================================
+-- ==================================================
 -- DATABASE: mimoza
--- ============================================================
+-- ==================================================
 
 /*M!999999\- enable the sandbox mode */ 
 -- MariaDB dump 10.19  Distrib 10.11.13-MariaDB, for debian-linux-gnu (x86_64)
@@ -3994,6 +4028,31 @@ CREATE TABLE `ti_assignable_logs` (
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
+-- Table structure for table `ti_attendance_audit_logs`
+--
+
+DROP TABLE IF EXISTS `ti_attendance_audit_logs`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8mb4 */;
+CREATE TABLE `ti_attendance_audit_logs` (
+  `audit_id` bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+  `attendance_id` bigint(20) unsigned NOT NULL,
+  `action` enum('created','updated','deleted','corrected','auto_checkout') NOT NULL DEFAULT 'created',
+  `changed_by` bigint(20) unsigned DEFAULT NULL,
+  `old_values` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin DEFAULT NULL CHECK (json_valid(`old_values`)),
+  `new_values` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin DEFAULT NULL CHECK (json_valid(`new_values`)),
+  `reason` text DEFAULT NULL,
+  `ip_address` varchar(45) DEFAULT NULL,
+  `user_agent` text DEFAULT NULL,
+  `created_at` timestamp NULL DEFAULT NULL,
+  `updated_at` timestamp NULL DEFAULT NULL,
+  PRIMARY KEY (`audit_id`),
+  KEY `ti_attendance_audit_logs_attendance_id_created_at_index` (`attendance_id`,`created_at`),
+  KEY `ti_attendance_audit_logs_action_index` (`action`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
 -- Table structure for table `ti_banners`
 --
 
@@ -4230,6 +4289,86 @@ CREATE TABLE `ti_customers` (
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
+-- Table structure for table `ti_device_health_logs`
+--
+
+DROP TABLE IF EXISTS `ti_device_health_logs`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8mb4 */;
+CREATE TABLE `ti_device_health_logs` (
+  `health_log_id` bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+  `device_id` bigint(20) unsigned NOT NULL,
+  `status` enum('online','offline','error','unknown') NOT NULL DEFAULT 'unknown',
+  `response_time` int(11) DEFAULT NULL,
+  `users_count` int(11) DEFAULT NULL,
+  `attendance_count` int(11) DEFAULT NULL,
+  `memory_usage` decimal(8,2) DEFAULT NULL,
+  `disk_usage` decimal(8,2) DEFAULT NULL,
+  `firmware_version` varchar(50) DEFAULT NULL,
+  `error_details` text DEFAULT NULL,
+  `device_info` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin DEFAULT NULL CHECK (json_valid(`device_info`)),
+  `checked_at` timestamp NULL DEFAULT NULL,
+  `created_at` timestamp NULL DEFAULT NULL,
+  `updated_at` timestamp NULL DEFAULT NULL,
+  PRIMARY KEY (`health_log_id`),
+  KEY `ti_device_health_logs_device_id_checked_at_index` (`device_id`,`checked_at`),
+  KEY `ti_device_health_logs_status_index` (`status`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Table structure for table `ti_device_notifications`
+--
+
+DROP TABLE IF EXISTS `ti_device_notifications`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8mb4 */;
+CREATE TABLE `ti_device_notifications` (
+  `notification_id` bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+  `device_id` bigint(20) unsigned DEFAULT NULL,
+  `type` enum('device_online','device_offline','device_error','sync_failed','enrollment_success','enrollment_failed','missing_checkout','device_maintenance','low_storage') NOT NULL DEFAULT 'device_offline',
+  `title` varchar(128) NOT NULL,
+  `message` text NOT NULL,
+  `severity` enum('info','warning','error','critical') NOT NULL DEFAULT 'info',
+  `metadata` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin DEFAULT NULL CHECK (json_valid(`metadata`)),
+  `is_read` tinyint(1) NOT NULL DEFAULT 0,
+  `read_at` timestamp NULL DEFAULT NULL,
+  `created_at` timestamp NULL DEFAULT NULL,
+  `updated_at` timestamp NULL DEFAULT NULL,
+  PRIMARY KEY (`notification_id`),
+  KEY `ti_device_notifications_device_id_is_read_index` (`device_id`,`is_read`),
+  KEY `ti_device_notifications_type_severity_index` (`type`,`severity`),
+  KEY `ti_device_notifications_created_at_index` (`created_at`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Table structure for table `ti_device_sync_logs`
+--
+
+DROP TABLE IF EXISTS `ti_device_sync_logs`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8mb4 */;
+CREATE TABLE `ti_device_sync_logs` (
+  `sync_log_id` bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+  `device_id` bigint(20) unsigned NOT NULL,
+  `sync_type` enum('staff_sync','attendance_sync','health_check') NOT NULL DEFAULT 'attendance_sync',
+  `records_synced` int(11) NOT NULL DEFAULT 0,
+  `records_failed` int(11) NOT NULL DEFAULT 0,
+  `status` enum('success','failed','partial','in_progress') NOT NULL DEFAULT 'in_progress',
+  `error_message` text DEFAULT NULL,
+  `sync_details` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin DEFAULT NULL CHECK (json_valid(`sync_details`)),
+  `started_at` timestamp NULL DEFAULT NULL,
+  `completed_at` timestamp NULL DEFAULT NULL,
+  `created_at` timestamp NULL DEFAULT NULL,
+  `updated_at` timestamp NULL DEFAULT NULL,
+  PRIMARY KEY (`sync_log_id`),
+  KEY `ti_device_sync_logs_device_id_created_at_index` (`device_id`,`created_at`),
+  KEY `ti_device_sync_logs_status_index` (`status`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
 -- Table structure for table `ti_extension_settings`
 --
 
@@ -4278,6 +4417,56 @@ CREATE TABLE `ti_failed_jobs` (
   `failed_at` timestamp NOT NULL DEFAULT current_timestamp(),
   PRIMARY KEY (`id`),
   UNIQUE KEY `ti_failed_jobs_uuid_unique` (`uuid`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Table structure for table `ti_finger_devices`
+--
+
+DROP TABLE IF EXISTS `ti_finger_devices`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8mb4 */;
+CREATE TABLE `ti_finger_devices` (
+  `device_id` bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+  `name` varchar(255) NOT NULL,
+  `device_type` enum('fingerprint','rfid','face','hybrid','zkteco') NOT NULL DEFAULT 'zkteco',
+  `connection_type` enum('usb','ethernet','wifi','serial') NOT NULL DEFAULT 'ethernet',
+  `usb_vendor_id` varchar(20) DEFAULT NULL,
+  `usb_product_id` varchar(20) DEFAULT NULL,
+  `ip` varchar(45) NOT NULL,
+  `mac_address` varchar(17) DEFAULT NULL,
+  `port` int(11) NOT NULL DEFAULT 4370,
+  `serial_number` varchar(255) DEFAULT NULL,
+  `firmware_version` varchar(50) DEFAULT NULL,
+  `model` varchar(100) DEFAULT NULL,
+  `manufacturer` varchar(100) NOT NULL DEFAULT 'ZKTeco',
+  `max_users` int(11) NOT NULL DEFAULT 3000,
+  `max_fingerprints` int(11) NOT NULL DEFAULT 9000,
+  `max_attendance_records` int(11) NOT NULL DEFAULT 100000,
+  `description` text DEFAULT NULL,
+  `status` tinyint(1) NOT NULL DEFAULT 1,
+  `connection_status` enum('online','offline','error','unknown') NOT NULL DEFAULT 'unknown',
+  `last_connected_at` timestamp NULL DEFAULT NULL,
+  `last_sync_at` timestamp NULL DEFAULT NULL,
+  `failed_connection_attempts` int(11) NOT NULL DEFAULT 0,
+  `supports_fingerprint` tinyint(1) NOT NULL DEFAULT 1,
+  `supports_rfid` tinyint(1) NOT NULL DEFAULT 0,
+  `supports_face` tinyint(1) NOT NULL DEFAULT 0,
+  `supports_pin` tinyint(1) NOT NULL DEFAULT 0,
+  `auto_sync_enabled` tinyint(1) NOT NULL DEFAULT 1,
+  `sync_interval` int(11) NOT NULL DEFAULT 15,
+  `auto_enroll_enabled` tinyint(1) NOT NULL DEFAULT 0,
+  `location_id` int(11) DEFAULT NULL,
+  `created_at` timestamp NULL DEFAULT NULL,
+  `updated_at` timestamp NULL DEFAULT NULL,
+  `deleted_at` timestamp NULL DEFAULT NULL,
+  PRIMARY KEY (`device_id`),
+  KEY `ti_finger_devices_ip_index` (`ip`),
+  KEY `ti_finger_devices_status_index` (`status`),
+  KEY `ti_finger_devices_location_id_index` (`location_id`),
+  KEY `ti_finger_devices_connection_status_index` (`connection_status`),
+  KEY `ti_finger_devices_device_type_index` (`device_type`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
@@ -5397,7 +5586,7 @@ CREATE TABLE `ti_notifications` (
   KEY `idx_status_created` (`status`,`created_at` DESC),
   KEY `idx_type` (`type`),
   KEY `idx_table_id` (`table_id`)
-) ENGINE=InnoDB AUTO_INCREMENT=1776 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=1777 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -5443,7 +5632,7 @@ CREATE TABLE `ti_order_menus` (
   `combo_items_description` text DEFAULT NULL COMMENT 'Description of combo items',
   PRIMARY KEY (`order_menu_id`),
   KEY `idx_combo_id` (`combo_id`)
-) ENGINE=InnoDB AUTO_INCREMENT=5120 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=5121 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -5534,7 +5723,7 @@ CREATE TABLE `ti_order_totals` (
   `priority` tinyint(1) NOT NULL DEFAULT 0,
   `is_summable` tinyint(1) NOT NULL DEFAULT 0,
   PRIMARY KEY (`order_total_id`)
-) ENGINE=InnoDB AUTO_INCREMENT=5931 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=5933 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -5698,6 +5887,40 @@ CREATE TABLE `ti_payments` (
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
+-- Table structure for table `ti_pmd_admin_presence_sessions`
+--
+
+DROP TABLE IF EXISTS `ti_pmd_admin_presence_sessions`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8mb4 */;
+CREATE TABLE `ti_pmd_admin_presence_sessions` (
+  `presence_id` bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+  `session_hash` char(64) NOT NULL,
+  `user_id` bigint(20) unsigned NOT NULL,
+  `staff_id` bigint(20) unsigned DEFAULT NULL,
+  `location_id` int(11) DEFAULT NULL,
+  `login_at` datetime NOT NULL,
+  `last_seen_at` datetime NOT NULL,
+  `expires_at` datetime NOT NULL,
+  `logout_at` datetime DEFAULT NULL,
+  `ip_address` varchar(45) DEFAULT NULL,
+  `user_agent` text DEFAULT NULL,
+  `created_at` timestamp NULL DEFAULT NULL,
+  `updated_at` timestamp NULL DEFAULT NULL,
+  PRIMARY KEY (`presence_id`),
+  UNIQUE KEY `ti_pmd_admin_presence_sessions_session_hash_unique` (`session_hash`),
+  KEY `pmd_presence_location_online_idx` (`location_id`,`logout_at`,`expires_at`),
+  KEY `ti_pmd_admin_presence_sessions_user_id_index` (`user_id`),
+  KEY `ti_pmd_admin_presence_sessions_staff_id_index` (`staff_id`),
+  KEY `ti_pmd_admin_presence_sessions_location_id_index` (`location_id`),
+  KEY `ti_pmd_admin_presence_sessions_login_at_index` (`login_at`),
+  KEY `ti_pmd_admin_presence_sessions_last_seen_at_index` (`last_seen_at`),
+  KEY `ti_pmd_admin_presence_sessions_expires_at_index` (`expires_at`),
+  KEY `ti_pmd_admin_presence_sessions_logout_at_index` (`logout_at`)
+) ENGINE=InnoDB AUTO_INCREMENT=9 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
 -- Table structure for table `ti_pmd_table_merges`
 --
 
@@ -5741,7 +5964,7 @@ CREATE TABLE `ti_pmd_table_order_drafts` (
   KEY `ti_pmd_table_order_drafts_qr_index` (`qr`),
   KEY `ti_pmd_table_order_drafts_status_index` (`status`),
   KEY `ti_pmd_table_order_drafts_order_id_index` (`order_id`)
-) ENGINE=InnoDB AUTO_INCREMENT=705 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=706 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -6081,7 +6304,7 @@ CREATE TABLE `ti_request_logs` (
   `created_at` timestamp NULL DEFAULT NULL,
   `updated_at` timestamp NULL DEFAULT NULL,
   PRIMARY KEY (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=678 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=679 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -6137,7 +6360,7 @@ CREATE TABLE `ti_reservations` (
   PRIMARY KEY (`reservation_id`),
   KEY `ti_reservations_location_id_table_id_index` (`location_id`,`table_id`),
   KEY `ti_reservations_hash_index` (`hash`)
-) ENGINE=InnoDB AUTO_INCREMENT=282 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=283 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -6210,7 +6433,7 @@ CREATE TABLE `ti_settings` (
   `serialized` tinyint(1) DEFAULT NULL,
   PRIMARY KEY (`setting_id`),
   UNIQUE KEY `ti_settings_sort_item_unique` (`sort`,`item`)
-) ENGINE=InnoDB AUTO_INCREMENT=429 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=456 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 /*!50003 SET @saved_cs_client      = @@character_set_client */ ;
 /*!50003 SET @saved_cs_results     = @@character_set_results */ ;
@@ -6305,6 +6528,78 @@ DELIMITER ;
 /*!50003 SET collation_connection  = @saved_col_connection */ ;
 
 --
+-- Table structure for table `ti_staff_attendance`
+--
+
+DROP TABLE IF EXISTS `ti_staff_attendance`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8mb4 */;
+CREATE TABLE `ti_staff_attendance` (
+  `attendance_id` bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+  `staff_id` bigint(20) unsigned NOT NULL,
+  `check_in_time` datetime NOT NULL,
+  `check_out_time` datetime DEFAULT NULL,
+  `hours_worked` decimal(8,2) DEFAULT NULL,
+  `is_late` tinyint(1) NOT NULL DEFAULT 0,
+  `late_minutes` int(11) NOT NULL DEFAULT 0,
+  `is_overtime` tinyint(1) NOT NULL DEFAULT 0,
+  `overtime_minutes` int(11) NOT NULL DEFAULT 0,
+  `is_edited` tinyint(1) NOT NULL DEFAULT 0,
+  `edited_by` bigint(20) unsigned DEFAULT NULL,
+  `edited_at` timestamp NULL DEFAULT NULL,
+  `status` enum('checked_in','checked_out','abandoned','corrected','auto_checkout') NOT NULL DEFAULT 'checked_in',
+  `location_id` int(11) DEFAULT NULL,
+  `timezone` varchar(50) NOT NULL DEFAULT 'UTC',
+  `device_type` varchar(32) NOT NULL DEFAULT 'manual',
+  `verification_method` enum('fingerprint','rfid','face','pin','manual','mobile') NOT NULL DEFAULT 'manual',
+  `device_id` bigint(20) unsigned DEFAULT NULL,
+  `notes` text DEFAULT NULL,
+  `metadata` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin DEFAULT NULL CHECK (json_valid(`metadata`)),
+  `ip_address` varchar(45) DEFAULT NULL,
+  `user_agent` text DEFAULT NULL,
+  `created_at` timestamp NULL DEFAULT NULL,
+  `updated_at` timestamp NULL DEFAULT NULL,
+  PRIMARY KEY (`attendance_id`),
+  KEY `ti_staff_attendance_staff_id_index` (`staff_id`),
+  KEY `ti_staff_attendance_check_in_time_index` (`check_in_time`),
+  KEY `ti_staff_attendance_location_id_index` (`location_id`),
+  KEY `ti_staff_attendance_staff_id_check_in_time_index` (`staff_id`,`check_in_time`),
+  KEY `ti_staff_attendance_device_id_index` (`device_id`),
+  KEY `ti_staff_attendance_status_index` (`status`),
+  KEY `ti_staff_attendance_verification_method_index` (`verification_method`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Table structure for table `ti_staff_device_mappings`
+--
+
+DROP TABLE IF EXISTS `ti_staff_device_mappings`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8mb4 */;
+CREATE TABLE `ti_staff_device_mappings` (
+  `mapping_id` bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+  `staff_id` bigint(20) unsigned NOT NULL,
+  `device_id` bigint(20) unsigned NOT NULL,
+  `device_uid` int(11) DEFAULT NULL,
+  `card_uid` varchar(100) DEFAULT NULL,
+  `card_label` varchar(100) DEFAULT NULL,
+  `enrollment_type` enum('fingerprint','rfid','face','pin') NOT NULL DEFAULT 'fingerprint',
+  `sync_status` enum('pending','synced','failed','deleted') NOT NULL DEFAULT 'pending',
+  `enrollment_data` text DEFAULT NULL,
+  `enrolled_at` timestamp NULL DEFAULT NULL,
+  `last_synced_at` timestamp NULL DEFAULT NULL,
+  `created_at` timestamp NULL DEFAULT NULL,
+  `updated_at` timestamp NULL DEFAULT NULL,
+  PRIMARY KEY (`mapping_id`),
+  UNIQUE KEY `staff_device_enrollment_unique` (`staff_id`,`device_id`,`enrollment_type`),
+  KEY `ti_staff_device_mappings_staff_id_index` (`staff_id`),
+  KEY `ti_staff_device_mappings_device_id_index` (`device_id`),
+  KEY `ti_staff_device_mappings_card_uid_index` (`card_uid`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
 -- Table structure for table `ti_staff_groups`
 --
 
@@ -6326,6 +6621,50 @@ CREATE TABLE `ti_staff_groups` (
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
+-- Table structure for table `ti_staff_latetimes`
+--
+
+DROP TABLE IF EXISTS `ti_staff_latetimes`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8mb4 */;
+CREATE TABLE `ti_staff_latetimes` (
+  `latetime_id` bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+  `staff_id` bigint(20) unsigned NOT NULL,
+  `attendance_id` bigint(20) unsigned NOT NULL,
+  `duration` time NOT NULL,
+  `latetime_date` date NOT NULL,
+  `notes` text DEFAULT NULL,
+  `created_at` timestamp NULL DEFAULT NULL,
+  `updated_at` timestamp NULL DEFAULT NULL,
+  PRIMARY KEY (`latetime_id`),
+  KEY `ti_staff_latetimes_staff_id_index` (`staff_id`),
+  KEY `ti_staff_latetimes_latetime_date_index` (`latetime_date`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Table structure for table `ti_staff_overtimes`
+--
+
+DROP TABLE IF EXISTS `ti_staff_overtimes`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8mb4 */;
+CREATE TABLE `ti_staff_overtimes` (
+  `overtime_id` bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+  `staff_id` bigint(20) unsigned NOT NULL,
+  `attendance_id` bigint(20) unsigned NOT NULL,
+  `duration` time NOT NULL,
+  `overtime_date` date NOT NULL,
+  `notes` text DEFAULT NULL,
+  `created_at` timestamp NULL DEFAULT NULL,
+  `updated_at` timestamp NULL DEFAULT NULL,
+  PRIMARY KEY (`overtime_id`),
+  KEY `ti_staff_overtimes_staff_id_index` (`staff_id`),
+  KEY `ti_staff_overtimes_overtime_date_index` (`overtime_date`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
 -- Table structure for table `ti_staff_roles`
 --
 
@@ -6342,6 +6681,47 @@ CREATE TABLE `ti_staff_roles` (
   `updated_at` timestamp NULL DEFAULT NULL,
   PRIMARY KEY (`staff_role_id`)
 ) ENGINE=InnoDB AUTO_INCREMENT=14 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Table structure for table `ti_staff_schedule_assignments`
+--
+
+DROP TABLE IF EXISTS `ti_staff_schedule_assignments`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8mb4 */;
+CREATE TABLE `ti_staff_schedule_assignments` (
+  `id` bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+  `staff_id` bigint(20) unsigned NOT NULL,
+  `schedule_id` bigint(20) unsigned NOT NULL,
+  `effective_from` date DEFAULT NULL,
+  `effective_to` date DEFAULT NULL,
+  `created_at` timestamp NULL DEFAULT NULL,
+  `updated_at` timestamp NULL DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  KEY `ti_staff_schedule_assignments_staff_id_index` (`staff_id`),
+  KEY `ti_staff_schedule_assignments_schedule_id_index` (`schedule_id`),
+  KEY `ti_staff_schedule_assignments_staff_id_effective_from_index` (`staff_id`,`effective_from`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Table structure for table `ti_staff_schedules`
+--
+
+DROP TABLE IF EXISTS `ti_staff_schedules`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8mb4 */;
+CREATE TABLE `ti_staff_schedules` (
+  `schedule_id` bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+  `name` varchar(255) NOT NULL,
+  `time_in` time NOT NULL,
+  `time_out` time NOT NULL,
+  `status` tinyint(1) NOT NULL DEFAULT 1,
+  `created_at` timestamp NULL DEFAULT NULL,
+  `updated_at` timestamp NULL DEFAULT NULL,
+  PRIMARY KEY (`schedule_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -6519,7 +6899,7 @@ CREATE TABLE `ti_tables` (
   PRIMARY KEY (`table_id`),
   UNIQUE KEY `idx_tables_table_no` (`table_no`),
   KEY `pmd_ti_tables_operational_status_idx` (`operational_status`)
-) ENGINE=InnoDB AUTO_INCREMENT=348 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=349 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -6584,6 +6964,30 @@ CREATE TABLE `ti_tips_shifts` (
   UNIQUE KEY `unique_shift_date_location` (`shift_date`,`location_id`),
   KEY `idx_shift_date_location` (`shift_date`,`location_id`)
 ) ENGINE=InnoDB AUTO_INCREMENT=6 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Table structure for table `ti_unassigned_cards`
+--
+
+DROP TABLE IF EXISTS `ti_unassigned_cards`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8mb4 */;
+CREATE TABLE `ti_unassigned_cards` (
+  `id` int(10) unsigned NOT NULL AUTO_INCREMENT,
+  `card_uid` varchar(100) NOT NULL,
+  `device_id` int(11) DEFAULT NULL,
+  `first_seen_at` datetime DEFAULT NULL,
+  `last_seen_at` datetime DEFAULT NULL,
+  `times_scanned` int(11) NOT NULL DEFAULT 1,
+  `location_id` int(11) DEFAULT NULL,
+  `notes` text DEFAULT NULL,
+  `created_at` timestamp NULL DEFAULT NULL,
+  `updated_at` timestamp NULL DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `ti_unassigned_cards_card_uid_unique` (`card_uid`),
+  KEY `ti_unassigned_cards_device_id_index` (`device_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -6687,11 +7091,11 @@ CREATE TABLE `ti_working_hours` (
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2026-08-14 18:58:12
+-- Dump completed on 2026-08-15 19:49:02
 
--- ============================================================
+-- ==================================================
 -- DATABASE: rosana
--- ============================================================
+-- ==================================================
 
 /*M!999999\- enable the sandbox mode */ 
 -- MariaDB dump 10.19  Distrib 10.11.13-MariaDB, for debian-linux-gnu (x86_64)
@@ -9031,11 +9435,11 @@ CREATE TABLE `ti_working_hours` (
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2026-08-14 18:58:12
+-- Dump completed on 2026-08-15 19:49:02
 
--- ============================================================
+-- ==================================================
 -- DATABASE: persian
--- ============================================================
+-- ==================================================
 
 /*M!999999\- enable the sandbox mode */ 
 -- MariaDB dump 10.19  Distrib 10.11.13-MariaDB, for debian-linux-gnu (x86_64)
@@ -10961,11 +11365,11 @@ CREATE TABLE `ti_working_hours` (
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2026-08-14 18:58:13
+-- Dump completed on 2026-08-15 19:49:02
 
--- ============================================================
+-- ==================================================
 -- DATABASE: newtenantdb
--- ============================================================
+-- ==================================================
 
 /*M!999999\- enable the sandbox mode */ 
 -- MariaDB dump 10.19  Distrib 10.11.13-MariaDB, for debian-linux-gnu (x86_64)
@@ -12888,4 +13292,4 @@ CREATE TABLE `ti_working_hours` (
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2026-08-14 18:58:13
+-- Dump completed on 2026-08-15 19:49:02

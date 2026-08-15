@@ -1,18 +1,65 @@
 @php
     $pmdPath = trim(request()->path(), '/');
 
+    /* PMD_ROLE_AWARE_SIDE_MENU_V1
+     * Owner/Manager (and super users) keep Side Menu 2 when they enter
+     * clean role workspaces that are standalone for the operational roles.
+     * If role resolution fails, preserve the historical route behaviour.
+     */
+    $pmdSideMenuRoleResolved = false;
+    $pmdRoleUsesSideMenu = false;
+
+    try {
+        $pmdRoleUser = null;
+
+        if (class_exists('\\Admin\\Facades\\AdminAuth')) {
+            $pmdRoleUser = \Admin\Facades\AdminAuth::getUser();
+        } elseif (class_exists('AdminAuth')) {
+            $pmdRoleUser = \AdminAuth::getUser();
+        }
+
+        if ($pmdRoleUser) {
+            if (!empty($pmdRoleUser->is_super_user)) {
+                $pmdSideMenuRoleResolved = true;
+                $pmdRoleUsesSideMenu = true;
+            } elseif (!empty($pmdRoleUser->staff_id)) {
+                $pmdRoleRow = \Illuminate\Support\Facades\DB::table('staffs as s')
+                    ->leftJoin('staff_roles as r', 'r.staff_role_id', '=', 's.staff_role_id')
+                    ->where('s.staff_id', (int)$pmdRoleUser->staff_id)
+                    ->select('r.code as role_code', 'r.name as role_name')
+                    ->first();
+
+                if ($pmdRoleRow) {
+                    $pmdSideMenuRoleResolved = true;
+                    $pmdRoleCode = strtolower(trim((string)($pmdRoleRow->role_code ?? '')));
+                    $pmdRoleName = strtolower(trim((string)($pmdRoleRow->role_name ?? '')));
+                    $pmdRoleUsesSideMenu = in_array($pmdRoleCode, ['owner', 'manager'], true)
+                        || in_array($pmdRoleName, ['owner', 'manager'], true);
+                }
+            }
+        }
+    } catch (\Throwable $e) {
+        $pmdSideMenuRoleResolved = false;
+        $pmdRoleUsesSideMenu = false;
+    }
+
+    $pmdRoleWorkspaceStandaloneRoute = in_array($pmdPath, [
+        'admin/reservationslab',
+        'admin/cashierlab',
+        'admin/accountantlab',
+    ], true);
+
     $pmdSideMenuExcluded =
         $pmdPath === 'admin/login' ||
         str_starts_with($pmdPath, 'admin/dashboardwaiter') ||
         str_starts_with($pmdPath, 'admin/kds') ||
         str_starts_with($pmdPath, 'admin/dashboardkitchen') ||
         str_starts_with($pmdPath, 'admin/quick-mode') ||
-        /* PMD_ROLE_WORKSPACE_STANDALONE_MENU_EXCLUSION_V3 */
-        in_array($pmdPath, [
-            'admin/reservationslab',
-            'admin/cashierlab',
-            'admin/accountantlab',
-        ], true);
+        /* PMD_ROLE_AWARE_SIDE_MENU_V1
+         * Reservations/Cashier/Accountant stay standalone for their native
+         * operational roles, but Owner/Manager retain their normal Side Menu.
+         */
+        ($pmdRoleWorkspaceStandaloneRoute && !($pmdSideMenuRoleResolved && $pmdRoleUsesSideMenu));
 
     $pmdIsReservations2 =
         str_starts_with($pmdPath, 'admin/reservations2');
@@ -660,7 +707,7 @@
 @include('admin::_partials.pmd_side_menu2_single_menu')
 
 <script
-    src="/app/admin/assets/js/pmd-side-menu2-v1.js?v=20260719-identical-behavior-v2"
+    src="/app/admin/assets/js/pmd-side-menu2-v1.js?v=20260815-refresh-static-user-action-v1"
     defer
 ></script>
 

@@ -575,3 +575,105 @@
 #pmd-dashboard-lab .pmd-ops-section__header--tools-only .pmd-ops-section__tools {
   margin-left: auto !important;
 }
+
+
+/* =========================================================
+   PMD_RESERVATIONSLAB_SERVER_CARD_STABILITY + ADD CARD V1
+   The reservation-card section is already EN/DE server-localized, so it is
+   excluded in Blade from the global late i18n rewrite. Keep the grid static
+   on refresh and use the first cell as the canonical create action.
+   ========================================================= */
+#pmd-dashboard-lab #pmd-reservations-lab-cards-v2-1,
+#pmd-dashboard-lab #pmd-reservations-lab-cards-v2-1 .pmd-ops-grid,
+#pmd-dashboard-lab #pmd-reservations-lab-cards-v2-1 .pmd-ops-card,
+#pmd-dashboard-lab #pmd-reservations-lab-cards-v2-1 .pmd-ops-add-card {
+  animation: none !important;
+  transition: none !important;
+  opacity: 1 !important;
+  transform: none !important;
+}
+
+#pmd-dashboard-lab .pmd-ops-add-card {
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-width: 0;
+  min-height: 202px;
+  padding: 18px;
+  border: 1px solid #cfe0ed;
+  border-radius: 18px;
+  background: #fff;
+  color: #173b57;
+  box-shadow: 0 7px 22px rgba(16,42,67,.04);
+  text-align: center;
+  text-decoration: none !important;
+  cursor: pointer;
+}
+
+#pmd-dashboard-lab .pmd-ops-add-card:hover,
+#pmd-dashboard-lab .pmd-ops-add-card:focus-visible {
+  border-color: #9ebed3;
+  background: #f7fbfd;
+  color: #102a43;
+  outline: none;
+}
+
+#pmd-dashboard-lab .pmd-ops-add-card .pmd-r2-simple-add-icon-v460 {
+  display: inline-grid;
+  place-items: center;
+  width: 54px;
+  height: 54px;
+  margin: 0 0 12px;
+  border: 1px solid #b9d4e4;
+  border-radius: 16px;
+  background: #f1f7fb;
+  color: #173b57;
+  font-size: 31px;
+  font-weight: 400;
+  line-height: 1;
+}
+
+#pmd-dashboard-lab .pmd-ops-add-card .pmd-r2-simple-add-title-v460 {
+  display: block;
+  font-size: 16px;
+  font-weight: 900;
+  line-height: 1.25;
+}
+
+#pmd-dashboard-lab .pmd-ops-empty--after-add { margin-top: 10px; }
+
+/* =========================================================
+   PMD_OPERATIONAL_INLINE_EMPTY_CARD_V1
+   Empty states stay inside the same four-column card grid.
+   No separate full-width banner/card authority.
+   ========================================================= */
+#pmd-dashboard-lab .pmd-ops-inline-empty-card {
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 0;
+  min-height: 202px;
+  padding: 18px;
+  border: 1px solid #cfe0ed;
+  border-radius: 18px;
+  background: #fff;
+  color: #173b57;
+  box-shadow: 0 7px 22px rgba(16,42,67,.04);
+  text-align: center;
+}
+#pmd-dashboard-lab .pmd-ops-inline-empty-card strong {
+  display: block;
+  max-width: 240px;
+  margin: 0;
+  color: #173b57;
+  font-size: 16px;
+  font-weight: 850;
+  line-height: 1.35;
+}
+#pmd-dashboard-lab .pmd-ops-inline-empty-card[hidden] {
+  display: none !important;
+}
+

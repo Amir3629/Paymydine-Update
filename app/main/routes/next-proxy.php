@@ -5,7 +5,11 @@
             $active = params('default_themes.main', config('system.defaultTheme'));
             if ($active === 'frontend-theme') {
                 // stream/proxy Next content
-                $next = env('NEXT_PROXY_ORIGIN', 'http://localhost:3001');
+                // PMD_MIMOZA_FRONTEND_V2_PROXY_R3
+                $pmdRequestHost = strtolower((string)request()->getHost());
+                $next = ($pmdRequestHost === 'mimoza.paymydine.com')
+                    ? 'http://127.0.0.1:3002'
+                    : env('NEXT_PROXY_ORIGIN', 'http://localhost:3001');
                 $ch = curl_init($next.'/');
                 curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
                 curl_setopt($ch, CURLOPT_HEADER, false);
@@ -231,7 +235,11 @@ $active = params('default_themes.main', config('system.defaultTheme'));
                     }
                 }
 
-                $next = env('NEXT_PROXY_ORIGIN', 'http://localhost:3001');
+                // PMD_MIMOZA_FRONTEND_V2_PROXY_R3
+                $pmdRequestHost = strtolower((string)request()->getHost());
+                $next = ($pmdRequestHost === 'mimoza.paymydine.com')
+                    ? 'http://127.0.0.1:3002'
+                    : env('NEXT_PROXY_ORIGIN', 'http://localhost:3001');
                 // Preserve query string and path
                 $uri = request()->getRequestUri();
                 $target = rtrim($next, '/').'/'.ltrim($uri, '/');

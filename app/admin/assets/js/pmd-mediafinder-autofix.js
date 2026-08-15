@@ -8,7 +8,7 @@
     __pmdPath === '/admin/kds_stations/create' ||
     __pmdPath.indexOf('/admin/kds_stations/edit') === 0 ||
     // PMD_CLEAN_ROLE_WORKSPACE_MEDIAFIX_SKIP_V1
-    /^\/admin\/(?:managerlab|accountantlab|cashierlab|reservationslab)(?:\/|$)/.test(__pmdPath);
+    /^\/admin\/(?:managerlab|accountantlab|cashierlab|reservationslab|pmdreports|pmdreportchannels|pmdreporttips)(?:\/|$)/.test(__pmdPath);
 
   window.PMD_MEDIAFIX_ROUTE_GUARD_V51 = {
     path: __pmdPath,

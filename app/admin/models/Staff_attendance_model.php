@@ -32,6 +32,14 @@ class Staff_attendance_model extends Model
         'device_id' => 'integer',
         'check_in_time' => 'datetime',
         'check_out_time' => 'datetime',
+        'hours_worked' => 'decimal:2',
+        'is_late' => 'boolean',
+        'late_minutes' => 'integer',
+        'is_overtime' => 'boolean',
+        'overtime_minutes' => 'integer',
+        'is_edited' => 'boolean',
+        'edited_at' => 'datetime',
+        'metadata' => 'array',
     ];
 
     public $relation = [
@@ -77,16 +85,20 @@ class Staff_attendance_model extends Model
     /**
      * Calculate hours worked
      */
-    public function getHoursWorkedAttribute()
+    public function getHoursWorkedAttribute($value = null)
     {
-        if (!$this->check_out_time) {
+        if ($value !== null && $value !== '') {
+            return (float)$value;
+        }
+
+        if (!$this->check_in_time || !$this->check_out_time) {
             return null;
         }
 
         $checkIn = \Carbon\Carbon::parse($this->check_in_time);
         $checkOut = \Carbon\Carbon::parse($this->check_out_time);
 
-        return $checkIn->diffInHours($checkOut, true);
+        return round(max(0, $checkIn->diffInSeconds($checkOut)) / 3600, 2);
     }
 
     /**

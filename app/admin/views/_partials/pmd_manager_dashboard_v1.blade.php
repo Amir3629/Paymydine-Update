@@ -16,7 +16,7 @@
             'as_of' => '',
             'connected' => false,
             'rows' => [],
-            'source' => 'LogUserLastSeen middleware cache for current location',
+            'source' => 'PmdAdminPresenceService session registry for current location',
         ];
     $pmdManagerStaffRows = is_array($pmdManagerStaff['rows'] ?? null)
         ? $pmdManagerStaff['rows']
@@ -40,9 +40,16 @@
                     <h3>{{ (string)($pmdManagerStaff['title'] ?? 'Staff online') }}</h3>
                     <p>{{ (string)($pmdManagerStaff['subtitle'] ?? '') }}</p>
                 </div>
-                <div class="pmd-manager-online-staff__summary" aria-label="{{ (int)($pmdManagerStaff['count'] ?? 0) }} {{ (string)($pmdManagerStaff['count_label'] ?? 'online') }}">
-                    <strong>{{ (int)($pmdManagerStaff['count'] ?? 0) }}</strong>
-                    <span>{{ (string)($pmdManagerStaff['count_label'] ?? 'online') }}</span>
+                <div class="pmd-manager-online-staff__controls">
+                    <div class="pmd-manager-online-staff__summary" aria-label="{{ (int)($pmdManagerStaff['count'] ?? 0) }} {{ (string)($pmdManagerStaff['count_label'] ?? 'online') }}">
+                        <strong>{{ (int)($pmdManagerStaff['count'] ?? 0) }}</strong>
+                        <span>{{ (string)($pmdManagerStaff['count_label'] ?? 'online') }}</span>
+                    </div>
+                    <div class="pmd-dashboard-lab-analytics__toolbar pmd-manager-online-staff__toolbar" role="group" aria-label="Staff attendance details">
+                        <a href="{{ admin_url('pmdreports/attendance') }}" aria-label="Open staff attendance and presence report" title="Staff attendance and presence">
+                            <span class="pmd-dashboard-lab-toolbar-icon" aria-hidden="true">&#8599;</span>
+                        </a>
+                    </div>
                 </div>
             </header>
 

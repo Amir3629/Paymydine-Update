@@ -26,12 +26,8 @@ class Pmdbrand extends AdminController
 
     public function index()
     {
-        Template::setTitle('Brand & communication');
-        Template::setHeading('Brand & communication');
-
-        $this->vars['pmdBrand'] = $this->payload();
-
-        return $this->makeView('pmdbrand/index');
+        // PMD_PMDBRAND_REDIRECT_R11
+        return redirect(admin_url('pmdsettings/restaurant'));
     }
 
     public function onSaveBrand()

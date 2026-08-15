@@ -5,9 +5,8 @@ namespace Admin\Controllers;
 use Admin\Classes\PmdCleanWorkspaceControllerV1;
 use Admin\Services\PmdCleanWorkspaceSharedV1;
 use Admin\Services\PmdRoleDashboardDataV1;
-use Admin\Models\Staffs_model;
+use Admin\Services\PmdAdminPresenceService;
 use Illuminate\Support\Carbon;
-use Illuminate\Support\Facades\Cache;
 
 /**
  * PMD_MANAGER_EXACT_OWNER_COMPONENT_V3_5_2
@@ -224,73 +223,68 @@ class Managerlab extends PmdCleanWorkspaceControllerV1
         $de = strtolower($locale) === 'de';
         $businessTimezone = 'Europe/Berlin';
         $now = Carbon::now($businessTimezone);
-        $rows = [];
-        $connected = true;
 
         try {
             /*
-             * PMD_MANAGER_ONLINE_STAFF_REAL_PRESENCE_V3_5_3
+             * PMD_MANAGER_ONLINE_STAFF_SESSION_PRESENCE_V1
              *
-             * The Admin service provider already installs LogUserLastSeen on the
-             * web middleware group. That middleware owns the real online marker:
-             *   is-online-admin-auth-user-{user_id}
-             * with a two-minute TTL. Reuse that exact authority here instead of
-             * confusing biometric/time-clock attendance with application presence.
+             * "Online" means an authenticated admin session still exists.
+             * It ends immediately on Logout and otherwise expires with the
+             * configured Laravel session lifetime. Biometric/time-clock
+             * attendance remains a separate workforce concept.
              */
-            $staffMembers = Staffs_model::query()
-                ->isEnabled()
-                ->with(['user', 'role', 'locations'])
-                ->orderBy('staff_name')
-                ->get();
+            $snapshot = app(PmdAdminPresenceService::class)
+                ->onlineStaffAtLocation($locationId);
 
-            foreach ($staffMembers as $staff) {
-                $user = $staff->user;
-                if (!$user) continue;
+            $rows = [];
+            foreach (($snapshot['rows'] ?? []) as $row) {
+                $loginAt = null;
+                try {
+                    $loginAt = Carbon::parse((string)($row['login_at'] ?? ''), config('app.timezone'))
+                        ->setTimezone($businessTimezone);
+                } catch (\Throwable $error) {}
 
-                $hasLocation = $staff->locations->contains(function ($location) use ($locationId) {
-                    return (int)$location->location_id === $locationId;
-                });
-                if (!$hasLocation) continue;
-
-                $userId = (int)$user->getKey();
-                if ($userId <= 0) continue;
-
-                $cacheKey = 'is-online-admin-auth-user-'.$userId;
-                if (!Cache::has($cacheKey)) continue;
-
-                $roleName = trim((string)optional($staff->role)->name);
-                if ($roleName === '') {
-                    $roleName = $de ? 'Mitarbeiter' : 'Staff';
-                }
+                $minutes = $loginAt ? max(0, $loginAt->diffInMinutes($now)) : 0;
+                $duration = $minutes < 60
+                    ? $minutes.' min'
+                    : intdiv($minutes, 60).'h '.($minutes % 60).'m';
 
                 $rows[] = [
-                    'staff_id' => (int)$staff->getKey(),
-                    'user_id' => $userId,
-                    'name' => trim((string)$staff->staff_name) ?: ($de ? 'Mitarbeiter' : 'Staff'),
-                    'role' => $roleName,
-                    'since' => $de ? 'Aktiv' : 'Active',
-                    'duration' => $de ? 'Jetzt' : 'Now',
+                    'staff_id' => (int)($row['staff_id'] ?? 0),
+                    'user_id' => (int)($row['user_id'] ?? 0),
+                    'name' => (string)($row['name'] ?? ($de ? 'Mitarbeiter' : 'Staff')),
+                    'role' => (string)($row['role'] ?? ($de ? 'Mitarbeiter' : 'Staff')),
+                    'since' => $loginAt
+                        ? (($de ? 'Seit ' : 'Since ').$loginAt->format('H:i'))
+                        : ($de ? 'Angemeldet' : 'Signed in'),
+                    'duration' => $duration,
+                    'session_count' => (int)($row['session_count'] ?? 1),
                     'device' => '',
                 ];
             }
+
+            $connected = ($snapshot['connected'] ?? false) === true;
+            $source = (string)($snapshot['source'] ?? 'PmdAdminPresenceService session registry');
         } catch (\Throwable $error) {
+            $rows = [];
             $connected = false;
+            $source = 'PmdAdminPresenceService unavailable: '.$error->getMessage();
         }
 
         return [
             'title' => $de ? 'Mitarbeiter online' : 'Staff online',
             'subtitle' => $de
-                ? 'Aktive Admin-Sitzungen an diesem Standort'
-                : 'Active admin sessions at this location',
+                ? 'Angemeldete Admin-Sitzungen an diesem Standort'
+                : 'Signed-in admin sessions at this location',
             'count' => count($rows),
             'count_label' => 'online',
             'empty' => $de
-                ? 'Aktuell ist kein Mitarbeiter online.'
-                : 'No staff are currently online.',
+                ? 'Aktuell ist kein Mitarbeiter angemeldet.'
+                : 'No staff are currently signed in.',
             'as_of' => ($de ? 'Stand ' : 'As of ').$now->format('H:i'),
             'connected' => $connected,
             'rows' => $rows,
-            'source' => 'LogUserLastSeen middleware cache; active admin request within the two-minute online window',
+            'source' => $source,
         ];
     }
 

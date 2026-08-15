@@ -14,7 +14,8 @@
   var tableData = null;
   var customRangePanel = null;
 
-  var asyncSupported = Boolean(
+  var reportType = String(root.getAttribute('data-pmd-report-type') || '');
+  var asyncSupported = reportType !== 'attendance' && Boolean(
     window.fetch &&
     window.AbortController &&
     window.history &&
@@ -737,6 +738,32 @@
     });
   }
 
+  function syncSwitcherPeriodLinks(report) {
+    var period = String((report && report.period) || '');
+    if (!period) return;
+
+    var dateFrom = String((report && report.date_from) || '');
+    var dateTo = String((report && report.date_to) || '');
+
+    root.querySelectorAll('.pmd-report-switcher a').forEach(function (link) {
+      try {
+        var target = new URL(link.href, window.location.href);
+        target.searchParams.set('period', period);
+        target.searchParams.delete('staff_id');
+
+        if (period === 'custom' && isDateValue(dateFrom) && isDateValue(dateTo)) {
+          target.searchParams.set('date_from', dateFrom);
+          target.searchParams.set('date_to', dateTo);
+        } else {
+          target.searchParams.delete('date_from');
+          target.searchParams.delete('date_to');
+        }
+
+        link.href = target.toString();
+      } catch (error) {}
+    });
+  }
+
   function applyAsyncReport(report, targetUrl) {
     if (!report || String(report.type || '') !== String(root.getAttribute('data-pmd-report-type') || '')) {
       throw new Error('Async report type mismatch');
@@ -752,6 +779,7 @@
     renderError(report);
     renderStats(report.stats || []);
     renderPeriodState(report);
+    syncSwitcherPeriodLinks(report);
 
     tableData = {
       type: report.type || root.getAttribute('data-pmd-report-type') || 'report',
@@ -921,6 +949,16 @@
       return;
     }
 
+    var staffRow = event.target.closest('[data-pmd-staff-row]');
+    if (staffRow && root.contains(staffRow) && !event.target.closest('a,button,input,label')) {
+      var staffHref = staffRow.getAttribute('data-pmd-staff-href');
+      if (staffHref) {
+        event.preventDefault();
+        window.location.assign(staffHref);
+        return;
+      }
+    }
+
     var periodLink = event.target.closest('.pmd-report-periods a');
     if (!periodLink || !root.contains(periodLink) || modifiedClick(event)) return;
 
@@ -942,6 +980,24 @@
     closeCustomRange();
     scheduleReportLoad(periodLink.href, {push: true});
   });
+
+  var staffSearch = root.querySelector('[data-pmd-staff-search]');
+  if (staffSearch) {
+    staffSearch.addEventListener('input', function () {
+      var term = String(staffSearch.value || '').trim().toLowerCase();
+      var visible = 0;
+
+      root.querySelectorAll('[data-pmd-staff-row]').forEach(function (row) {
+        var haystack = String(row.getAttribute('data-pmd-staff-search-text') || '').toLowerCase();
+        var show = !term || haystack.indexOf(term) !== -1;
+        row.hidden = !show;
+        if (show) visible++;
+      });
+
+      var empty = root.querySelector('[data-pmd-staff-search-empty]');
+      if (empty) empty.hidden = visible !== 0;
+    });
+  }
 
   window.addEventListener('popstate', function () {
     if (!asyncSupported) return;
@@ -981,7 +1037,7 @@
     );
 
     return {
-      version: '1.4.0-async-period',
+      version: '1.5-shared-period-staff-history',
       type: root.getAttribute('data-pmd-report-type') || '',
       reportNavCount: nav.length,
       activeReportLinks: activeNav.length,
@@ -1003,8 +1059,16 @@
       asyncApplied: asyncAppliedCount,
       asyncAborted: asyncAbortCount,
       asyncFallbacks: asyncFallbackCount,
-      ok: nav.length === 12 &&
+      persistentPeriodLinks: Array.from(nav).every(function (link) {
+        try { return !!new URL(link.href, window.location.href).searchParams.get('period'); }
+        catch (error) { return false; }
+      }),
+      ok: nav.length === 13 &&
         activeNav.length === 1 &&
+        Array.from(nav).every(function (link) {
+          try { return !!new URL(link.href, window.location.href).searchParams.get('period'); }
+          catch (error) { return false; }
+        }) &&
         !!source &&
         !!exportButton &&
         (!customRequired || !!customRangeToggle) &&
@@ -1014,7 +1078,7 @@
   }
 
   window.PMDOwnerReportsV1 = {
-    version: '1.4.0-async-period',
+    version: '1.5-shared-period-staff-history',
     type: root.getAttribute('data-pmd-report-type') || '',
     renderChart: renderChart,
     exportCsv: exportCsv,
@@ -1027,5 +1091,5 @@
     audit: audit
   };
 
-  console.info('[PMD Owner Reports V1.4] Ready', audit());
+  console.info('[PMD Owner Reports V1.5] Ready', audit());
 })();
