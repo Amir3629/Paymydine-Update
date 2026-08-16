@@ -1,3 +1,11 @@
+<!-- PMD_DEVICE_SETTINGS_SUITE_V1_WRAPPER_START -->
+<div class="pmd-owner-page pmd-device-suite-page" data-pmd-owner-page data-pmd-device-suite="cash_drawers-edit">
+    @include('admin::pmddevices._suite_header', [
+        'pmdSuiteTitle' => 'Edit cash drawer',
+        'pmdSuiteBackUrl' => admin_url('cash_drawers'),
+    ])
+    <div class="pmd-device-suite-content">
+        <!-- PMD_DEVICE_SETTINGS_SUITE_V1_CANONICAL_CONTENT_START -->
 <div class="row-fluid cash-drawer-simple-page">
     @php($status = $localHardwareStatus ?? ['state' => 'not_configured', 'message' => 'Local hardware status unavailable.'])
     @php($localPrinters = $status['localPrinters'] ?? [])
@@ -114,3 +122,8 @@
     syncTarget();
 })();
 </script>
+
+        <!-- PMD_DEVICE_SETTINGS_SUITE_V1_CANONICAL_CONTENT_END -->
+    </div>
+</div>
+<!-- PMD_DEVICE_SETTINGS_SUITE_V1_WRAPPER_END -->

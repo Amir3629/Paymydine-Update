@@ -1399,12 +1399,54 @@ section.pmd962-hero,
 <?php endif; ?>
 <!-- PMD_KDS_INDEX_V133_CLEAN_CSS_STABILITY_END -->
 
+<!-- PMD_KDS_OPERATIONAL_CORE_V134_CSS_START -->
+<style id="pmd-kds-operational-core-v134-css">
+  body.pmd-kds-density-compact .orders-grid {
+    grid-template-columns: repeat(auto-fill, minmax(270px, 1fr)) !important;
+    gap: 14px !important;
+  }
+  body.pmd-kds-density-compact .order-card { padding: 14px !important; }
+  body.pmd-kds-density-compact .order-number { font-size: 28px !important; }
+  body.pmd-kds-density-compact .item-name { font-size: 18px !important; }
+  body.pmd-kds-density-compact .item-quantity { font-size: 20px !important; padding: 6px 12px !important; }
+
+  body.pmd-kds-density-large .orders-grid {
+    grid-template-columns: repeat(auto-fill, minmax(420px, 1fr)) !important;
+  }
+
+  .order-card.is-kds-updating-v134 {
+    opacity: .72 !important;
+    pointer-events: none !important;
+  }
+
+  .order-card.is-kds-updating-v134 .status-btn {
+    cursor: wait !important;
+  }
+
+  /* Ready is an affirmative kitchen handoff action, not a disabled/gray state. */
+  .status-btn.status-ready,
+  .status-btn.status-delivery {
+    background: #e8f4ee !important;
+    color: #065f46 !important;
+    border: 1px solid #a7d7c0 !important;
+  }
+
+  .status-btn.status-ready:hover,
+  .status-btn.status-delivery:hover {
+    background: #0f766e !important;
+    color: #ffffff !important;
+    border-color: #0f766e !important;
+  }
+</style>
+<!-- PMD_KDS_OPERATIONAL_CORE_V134_CSS_END -->
+
+
 
 
 
 
 </head>
-<body>
+<body class="pmd-kds-density-{{ $displayDensity ?? 'normal' }}" data-pmd-kds-operational-core="v134">
 
     <div class="kds-container">
         <!-- Header -->
@@ -1425,10 +1467,12 @@ section.pmd962-hero,
                     <span>Orders:</span>
                     <span class="kds-stat-value" id="order-count">{{ count($orders) }}</span>
                 </div>
-                <div class="kds-stat">
+                @if($showReservations ?? true)
+                <div class="kds-stat" data-pmd-kds-reservations-stat>
                     <span>Reservations:</span>
                     <span class="kds-stat-value" id="reservations-count">{{ $reservationsCount }}</span>
                 </div>
+                @endif
             </div>
             <div class="kds-header-right">
                 @if(isset($allStations) && count($allStations) > 0)
@@ -1537,9 +1581,13 @@ section.pmd962-hero,
                         <div class="order-status-buttons">
                             @foreach($statuses as $status)
                                 @if($status['status_id'] != $order['status_id'])
-                                    <button 
+                                    <button
+                                        type="button"
                                         class="status-btn status-{{ strtolower($status['status_name']) }}"
-                                        onclick="updateOrderStatus({{ $order['order_id'] }}, {{ $status['status_id'] }}, '{{ $status['status_name'] }}')">
+                                        data-kds-status-button
+                                        data-order-id="{{ $order['order_id'] }}"
+                                        data-status-id="{{ $status['status_id'] }}"
+                                        data-status-name="{{ $status['status_name'] }}">
                                         @if(strtolower($status['status_name']) === 'cancel')
                                             <i class="fas fa-times"></i> {{ $status['status_name'] }}
                                         @else
@@ -1561,7 +1609,11 @@ section.pmd962-hero,
         const currentStationSlug = '{{ isset($station) && $station ? $station->slug : "" }}';
         const currentStationName = '{{ isset($station) && $station ? $station->name : "Kitchen" }}';
         const canChangeStatus = {{ ($canChangeStatus ?? true) ? 'true' : 'false' }};
-        const refreshInterval = {{ $refreshInterval ?? 5 }} * 1000; // Convert to milliseconds
+        const stationSoundEnabled = {{ ($soundEnabled ?? true) ? 'true' : 'false' }};
+        const operationalLookbackHours = {{ (int)($operationalLookbackHours ?? 36) }};
+        const configuredOrderLimit = {{ (int)($orderLimit ?? 50) }};
+        const stationLocationId = {{ (int)($stationLocationId ?? 0) }};
+        const refreshInterval = Math.max(1000, {{ $refreshInterval ?? 5 }} * 1000); // Convert to milliseconds
 
         // Update clock
         function updateClock() {
@@ -1575,40 +1627,37 @@ section.pmd962-hero,
         // Update elapsed times
         function updateElapsedTimes() {
             document.querySelectorAll('.order-elapsed').forEach(el => {
-                const createdTimestamp = parseInt(el.dataset.created);
+                const createdTimestamp = Number(el.dataset.created || 0);
+                if (!Number.isFinite(createdTimestamp) || createdTimestamp < 1) return;
+
                 const now = Math.floor(Date.now() / 1000);
-                const elapsed = now - createdTimestamp;
-                
+                const elapsed = Math.max(0, now - createdTimestamp);
                 const hours = Math.floor(elapsed / 3600);
                 const minutes = Math.floor((elapsed % 3600) / 60);
                 const seconds = elapsed % 60;
-                
-                let timeString = '';
-                if (hours > 0) {
-                    timeString = `${hours}h ${minutes}m`;
-                } else if (minutes > 0) {
-                    timeString = `${minutes}m ${seconds}s`;
-                } else {
-                    timeString = `${seconds}s`;
-                }
-                
-                el.textContent = timeString;
-                
-                // Add late class if over 15 minutes
-                if (minutes > 15 || hours > 0) {
-                    el.classList.add('late');
-                    el.closest('.order-card').classList.remove('age-new', 'age-normal');
-                    el.closest('.order-card').classList.add('age-late');
-                } else if (minutes > 5) {
-                    el.classList.remove('late');
-                    el.closest('.order-card').classList.remove('age-new', 'age-late');
-                    el.closest('.order-card').classList.add('age-normal');
-                }
+
+                el.textContent = hours > 0
+                    ? `${hours}h ${minutes}m`
+                    : (minutes > 0 ? `${minutes}m ${seconds}s` : `${seconds}s`);
+
+                const totalMinutes = Math.floor(elapsed / 60);
+                const card = el.closest('.order-card');
+                if (!card) return;
+
+                el.classList.toggle('late', totalMinutes > 15);
+                card.classList.toggle('age-late', totalMinutes > 15);
+                card.classList.toggle('age-normal', totalMinutes > 5 && totalMinutes <= 15);
+                card.classList.toggle('age-new', totalMinutes <= 5);
             });
         }
 
         // Sound notification management
-        let isMuted = localStorage.getItem('kds-muted') === 'true';
+        const storedKdsMuteV134 = localStorage.getItem('kds-muted');
+        let isMuted = storedKdsMuteV134 === null
+            ? !stationSoundEnabled
+            : storedKdsMuteV134 === 'true';
+        let refreshInFlightV134 = false;
+        const statusUpdatesInFlightV134 = new Set();
         let previousOrderCount = {{ count($orders) }};
         let previousOrderIds = new Set([@foreach($orders as $order){{ $order['order_id'] }}{{ !$loop->last ? ',' : '' }}@endforeach]);
         let audioContext = null;
@@ -1795,18 +1844,18 @@ section.pmd962-hero,
 
         // Auto-refresh orders from server
         async function refreshOrders() {
+            if (refreshInFlightV134) return;
+            refreshInFlightV134 = true;
+
             const indicator = document.getElementById('loading-indicator');
-            indicator.classList.add('active');
+            if (indicator) indicator.classList.add('active');
 
             try {
                 const refreshUrl = '{{ admin_url("kitchendisplay/index") }}';
-                
                 const formData = new URLSearchParams();
                 formData.append('_handler', 'onRefresh');
-                if (currentStationSlug) {
-                    formData.append('station_slug', currentStationSlug);
-                }
-                
+                if (currentStationSlug) formData.append('station_slug', currentStationSlug);
+
                 const response = await fetch(refreshUrl, {
                     method: 'POST',
                     headers: {
@@ -1817,245 +1866,237 @@ section.pmd962-hero,
                     body: formData.toString()
                 });
 
-                if (!response.ok) {
-                    throw new Error(`HTTP error! status: ${response.status}`);
-                }
-
-                const contentType = response.headers.get('content-type');
-                if (!contentType || !contentType.includes('application/json')) {
-                    const text = await response.text();
-                    throw new Error(`Expected JSON but got: ${contentType}. Response: ${text.substring(0, 100)}`);
-                }
-
+                if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
                 const data = await response.json();
-                
-                if (data.orders && Array.isArray(data.orders)) {
-                    const currentOrderCount = data.orders.length;
-                    const currentOrderIds = new Set(data.orders.map(order => order.order_id));
-                    
-                    // Check if new orders arrived
-                    let hasNewOrders = false;
-                    currentOrderIds.forEach(orderId => {
-                        if (!previousOrderIds.has(orderId)) {
-                            hasNewOrders = true;
-                            console.log(`🆕 New order detected: #${orderId}`);
-                        }
-                    });
-                    
-                    if (hasNewOrders) {
-                        playNotificationSound().catch(e => {});
-                    }
-                    
-                    previousOrderCount = currentOrderCount;
-                    previousOrderIds = new Set(currentOrderIds);
-                    
-                    updateOrdersDisplay(data.orders);
-                    document.getElementById('order-count').textContent = currentOrderCount;
+                if (!data || data.success === false || !Array.isArray(data.orders)) {
+                    throw new Error(data && data.error ? data.error : 'Invalid KDS refresh response');
+                }
+
+                const currentOrderIds = new Set(data.orders.map(order => Number(order.order_id)));
+                let hasNewOrders = false;
+                currentOrderIds.forEach(orderId => {
+                    if (!previousOrderIds.has(orderId)) hasNewOrders = true;
+                });
+
+                if (hasNewOrders) playNotificationSound().catch(() => {});
+
+                previousOrderCount = data.orders.length;
+                previousOrderIds = new Set(currentOrderIds);
+                updateOrdersDisplay(data.orders);
+
+                const reservationNode = document.getElementById('reservations-count');
+                if (reservationNode && Number.isFinite(Number(data.reservationsCount))) {
+                    reservationNode.textContent = String(Number(data.reservationsCount));
                 }
             } catch (error) {
-                console.error('❌ Failed to refresh orders:', error);
+                console.error('KDS refresh failed:', error);
             } finally {
-                setTimeout(() => {
-                    indicator.classList.remove('active');
-                }, 500);
+                refreshInFlightV134 = false;
+                if (indicator) indicator.classList.remove('active');
             }
         }
 
         // Parse date string to timestamp
         function parseDateToTimestamp(dateString) {
-            if (typeof dateString === 'string') {
-                return Math.floor(new Date(dateString).getTime() / 1000);
-            }
-            return dateString;
+            if (typeof dateString === 'number' && Number.isFinite(dateString)) return dateString;
+            const parsed = Date.parse(String(dateString || ''));
+            return Number.isFinite(parsed)
+                ? Math.floor(parsed / 1000)
+                : Math.floor(Date.now() / 1000);
         }
 
-        // Format elapsed time
+        function escapeHtmlV134(value) {
+            return String(value == null ? '' : value).replace(/[&<>"']/g, char => ({
+                '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;'
+            })[char]);
+        }
+
         function formatElapsedTime(createdAtTimestamp) {
             const timestamp = parseDateToTimestamp(createdAtTimestamp);
-            const now = Math.floor(Date.now() / 1000);
-            const elapsed = now - timestamp;
-            
+            const elapsed = Math.max(0, Math.floor(Date.now() / 1000) - timestamp);
             const hours = Math.floor(elapsed / 3600);
             const minutes = Math.floor((elapsed % 3600) / 60);
             const seconds = elapsed % 60;
-            
-            if (hours > 0) {
-                return `${hours}h ${minutes}m`;
-            } else if (minutes > 0) {
-                return `${minutes}m ${seconds}s`;
-            } else {
-                return `${seconds}s`;
-            }
+            return hours > 0
+                ? `${hours}h ${minutes}m`
+                : (minutes > 0 ? `${minutes}m ${seconds}s` : `${seconds}s`);
         }
 
-        // Get age class for order card
         function getAgeClass(createdAtTimestamp) {
-            const timestamp = parseDateToTimestamp(createdAtTimestamp);
-            const now = Math.floor(Date.now() / 1000);
-            const elapsed = now - timestamp;
+            const elapsed = Math.max(0, Math.floor(Date.now() / 1000) - parseDateToTimestamp(createdAtTimestamp));
             const minutes = Math.floor(elapsed / 60);
-            
-            if (minutes > 15) {
-                return 'age-late';
-            } else if (minutes > 5) {
-                return 'age-normal';
-            } else {
-                return 'age-new';
-            }
+            if (minutes > 15) return 'age-late';
+            if (minutes > 5) return 'age-normal';
+            return 'age-new';
         }
 
-        // Render order card HTML
+        function renderSignatureV134(order) {
+            return JSON.stringify({
+                table: order.order_type_name || '',
+                status: Number(order.status_id || 0),
+                items: Array.isArray(order.items) ? order.items : [],
+                notes: Array.isArray(order.notes) ? order.notes : []
+            });
+        }
+
+        // Render order card HTML. Every value that can originate from menu/order
+        // data is escaped before entering innerHTML.
         function renderOrderCard(order, statuses) {
             const createdAtTimestamp = parseDateToTimestamp(order.created_at);
             const elapsedTime = formatElapsedTime(createdAtTimestamp);
             const ageClass = getAgeClass(createdAtTimestamp);
-            const now = Math.floor(Date.now() / 1000);
-            const isLate = Math.floor((now - createdAtTimestamp) / 60) > 15;
-            
+            const elapsedMinutes = Math.floor(Math.max(0, Math.floor(Date.now() / 1000) - createdAtTimestamp) / 60);
+
             let itemsHtml = '';
-            order.items.forEach(item => {
+            (Array.isArray(order.items) ? order.items : []).forEach(item => {
                 let modifiersHtml = '';
-                if (item.modifiers && item.modifiers.length > 0) {
+                if (Array.isArray(item.modifiers) && item.modifiers.length) {
                     modifiersHtml = '<div class="item-modifiers">';
                     item.modifiers.forEach(modifier => {
+                        const qty = Math.max(0, Number(modifier.quantity || 0));
                         modifiersHtml += `
                             <div class="item-modifier">
                                 <i class="fas fa-circle modifier-icon"></i>
-                                ${modifier.quantity > 1 ? `<strong>${modifier.quantity}×</strong>` : ''}
-                                ${modifier.name}
-                                ${modifier.category ? `<span style="color: #707070; font-size: 14px;">(${modifier.category})</span>` : ''}
-                            </div>
-                        `;
+                                ${qty > 1 ? `<strong>${qty}×</strong>` : ''}
+                                ${escapeHtmlV134(modifier.name)}
+                                ${modifier.category ? `<span style="color:#707070;font-size:14px;">(${escapeHtmlV134(modifier.category)})</span>` : ''}
+                            </div>`;
                     });
                     modifiersHtml += '</div>';
                 }
-                
-                const commentHtml = item.comment ? `
-                    <div class="item-comment">${item.comment}</div>
-                ` : '';
-                
+
+                const commentHtml = item.comment
+                    ? `<div class="item-comment">${escapeHtmlV134(item.comment)}</div>`
+                    : '';
+
                 itemsHtml += `
                     <div class="order-item">
                         <div class="item-header">
-                            <div class="item-name">${item.name}</div>
-                            <div class="item-quantity">${item.quantity}×</div>
+                            <div class="item-name">${escapeHtmlV134(item.name)}</div>
+                            <div class="item-quantity">${Math.max(0, Number(item.quantity || 0))}×</div>
                         </div>
                         ${modifiersHtml}
                         ${commentHtml}
-                    </div>
-                `;
+                    </div>`;
             });
-            
+
             let notesHtml = '';
-            if (order.notes && order.notes.length > 0) {
+            if (Array.isArray(order.notes) && order.notes.length) {
                 notesHtml = '<div class="order-notes"><div class="order-notes-title"><i class="fas fa-sticky-note"></i> Order Notes:</div>';
                 order.notes.forEach(note => {
-                    notesHtml += `<div class="order-note">${note.note}</div>`;
+                    notesHtml += `<div class="order-note">${escapeHtmlV134(note.note)}</div>`;
                 });
                 notesHtml += '</div>';
             }
-            
+
             let statusButtonsHtml = '';
-            if (canChangeStatus && statuses && Array.isArray(statuses)) {
+            if (canChangeStatus && Array.isArray(statuses)) {
                 statuses.forEach(status => {
-                    if (status.status_id != order.status_id) {
-                        let displayName = status.status_name;
-                        if (displayName === 'Canceled' || displayName === 'Cancelled') {
-                            displayName = 'Cancel';
-                        } else if (displayName === 'Preparation') {
-                            displayName = 'Preparing';
-                        }
-                        
-                        const statusClass = `status-${status.status_name.toLowerCase().replace(/\s+/g, '-')}`;
-                        const buttonText = status.status_name === 'Canceled' || status.status_name === 'Cancelled' 
-                            ? '<i class="fas fa-times"></i> Cancel' 
-                            : status.status_name === 'Preparation' 
-                            ? 'Preparing' 
-                            : status.status_name;
-                        statusButtonsHtml += `
-                            <button 
-                                class="status-btn ${statusClass}"
-                                onclick="updateOrderStatus(${order.order_id}, ${status.status_id}, '${status.status_name}')">
-                                ${buttonText}
-                            </button>
-                        `;
-                    }
+                    if (Number(status.status_id) === Number(order.status_id)) return;
+                    const rawName = String(status.status_name || '');
+                    const displayName = /cancelled|canceled/i.test(rawName)
+                        ? 'Cancel'
+                        : (rawName === 'Preparation' ? 'Preparing' : rawName);
+                    const statusClass = 'status-' + rawName.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
+                    statusButtonsHtml += `
+                        <button type="button"
+                            class="status-btn ${statusClass}"
+                            data-kds-status-button
+                            data-order-id="${Number(order.order_id)}"
+                            data-status-id="${Number(status.status_id)}"
+                            data-status-name="${escapeHtmlV134(rawName)}">
+                            ${escapeHtmlV134(displayName)}
+                        </button>`;
                 });
             }
-            
+
             return `
-                <div class="order-card ${ageClass}" data-order-id="${order.order_id}">
+                <div class="order-card ${ageClass}" data-order-id="${Number(order.order_id)}">
                     <div class="order-header">
                         <div>
-                            <div class="order-number">#${order.order_id}</div>
-                            <div class="order-table">${order.order_type_name}</div>
+                            <div class="order-number">#${Number(order.order_id)}</div>
+                            <div class="order-table">${escapeHtmlV134(order.order_type_name)}</div>
                         </div>
                         <div class="order-time">
                             <span class="order-time-label">Time Elapsed</span>
-                            <div class="order-elapsed ${isLate ? 'late' : ''}" data-created="${createdAtTimestamp}">
-                                ${elapsedTime}
-                            </div>
+                            <div class="order-elapsed ${elapsedMinutes > 15 ? 'late' : ''}" data-created="${createdAtTimestamp}">${elapsedTime}</div>
                         </div>
                     </div>
                     <div class="order-items">${itemsHtml}</div>
                     ${notesHtml}
                     ${statusButtonsHtml ? `<div class="order-status-buttons">${statusButtonsHtml}</div>` : ''}
-                </div>
-            `;
+                </div>`;
         }
 
-        // Update orders display with new data
+        // Keyed refresh: unchanged tickets keep their DOM node, so the 5-second
+        // refresh does not repaint the complete kitchen wall.
         function updateOrdersDisplay(orders) {
             const grid = document.getElementById('orders-grid');
             const orderCount = document.getElementById('order-count');
-            
             if (!grid) return;
-            
-            orderCount.textContent = orders.length;
+            if (orderCount) orderCount.textContent = String(orders.length);
 
-            if (orders.length === 0) {
-                grid.innerHTML = `
-                    <div class="empty-state" style="grid-column: 1 / -1;">
-                        <i class="fas fa-check-circle"></i>
-                        <h2>All Caught Up!</h2>
-                        <p>No active orders ${currentStationName ? 'for ' + currentStationName : 'in the kitchen'}</p>
-                    </div>
-                `;
+            if (!orders.length) {
+                if (!grid.querySelector('.empty-state') || grid.querySelector('.order-card')) {
+                    grid.innerHTML = `
+                        <div class="empty-state" style="grid-column:1 / -1;">
+                            <i class="fas fa-check-circle"></i>
+                            <h2>All Caught Up!</h2>
+                            <p>No active orders ${escapeHtmlV134(currentStationName ? 'for ' + currentStationName : 'in the kitchen')}</p>
+                        </div>`;
+                }
                 return;
             }
 
+            const empty = grid.querySelector('.empty-state');
+            if (empty) empty.remove();
             const statuses = @json($statuses);
-            
-            grid.innerHTML = '';
-            
-            orders.forEach((order, index) => {
-                try {
-                    const cardHtml = renderOrderCard(order, statuses);
-                    grid.insertAdjacentHTML('beforeend', cardHtml);
-                } catch (error) {
-                    console.error(`❌ Error rendering order ${order.order_id}:`, error);
-                }
+            const wanted = new Set(orders.map(order => String(Number(order.order_id))));
+
+            Array.from(grid.querySelectorAll('.order-card[data-order-id]')).forEach(card => {
+                if (!wanted.has(String(card.dataset.orderId || ''))) card.remove();
             });
-            
+
+            orders.forEach(order => {
+                const id = String(Number(order.order_id));
+                const signature = renderSignatureV134(order);
+                let card = Array.from(grid.querySelectorAll('.order-card[data-order-id]')).find(node => String(node.dataset.orderId) === id) || null;
+
+                if (!card || card.dataset.renderSignatureV134 !== signature) {
+                    const template = document.createElement('template');
+                    template.innerHTML = renderOrderCard(order, statuses).trim();
+                    const next = template.content.firstElementChild;
+                    next.dataset.renderSignatureV134 = signature;
+                    if (card) card.replaceWith(next);
+                    card = next;
+                }
+
+                // appendChild reorders existing nodes without rebuilding them.
+                grid.appendChild(card);
+            });
+
             updateElapsedTimes();
         }
 
         // Update order status
         async function updateOrderStatus(orderId, statusId, statusName) {
-            if (!confirm(`Update order #${orderId} to ${statusName}?`)) {
-                return;
-            }
+            orderId = Number(orderId);
+            statusId = Number(statusId);
+            if (!orderId || !statusId || statusUpdatesInFlightV134.has(orderId)) return;
+            if (!confirm(`Update order #${orderId} to ${statusName}?`)) return;
+
+            const card = document.querySelector(`.order-card[data-order-id="${orderId}"]`);
+            statusUpdatesInFlightV134.add(orderId);
+            if (card) card.classList.add('is-kds-updating-v134');
 
             try {
                 const updateUrl = '{{ admin_url("kitchendisplay/index") }}';
-                
                 const formData = new URLSearchParams();
                 formData.append('_handler', 'onUpdateStatus');
-                formData.append('order_id', orderId);
-                formData.append('status_id', statusId);
+                formData.append('order_id', String(orderId));
+                formData.append('status_id', String(statusId));
                 formData.append('station_slug', currentStationSlug);
-                formData.append('station_name', currentStationName);
-                
+
                 const response = await fetch(updateUrl, {
                     method: 'POST',
                     headers: {
@@ -2066,30 +2107,50 @@ section.pmd962-hero,
                     body: formData.toString()
                 });
 
-                if (!response.ok) {
-                    throw new Error(`HTTP error! status: ${response.status}`);
+                const data = await response.json().catch(() => null);
+                if (!response.ok || !data || data.success === false) {
+                    throw new Error(data && data.error ? data.error : `HTTP ${response.status}`);
                 }
 
-                const contentType = response.headers.get('content-type');
-                if (!contentType || !contentType.includes('application/json')) {
-                    const text = await response.text();
-                    throw new Error(`Expected JSON but got: ${contentType}. Response: ${text.substring(0, 100)}`);
-                }
-
-                const data = await response.json();
-                
-                if (data.success) {
-                    // Refresh orders to reflect changes
-                    refreshOrders();
-                } else {
-                    alert('Failed to update status: ' + (data.error || 'Unknown error'));
-                }
+                await refreshOrders();
             } catch (error) {
-                console.error('Failed to update status:', error);
+                console.error('KDS status update failed:', error);
                 alert('Failed to update status: ' + error.message);
+            } finally {
+                statusUpdatesInFlightV134.delete(orderId);
+                if (card && card.isConnected) card.classList.remove('is-kds-updating-v134');
             }
         }
 
+        document.addEventListener('click', function (event) {
+            const button = event.target.closest('[data-kds-status-button]');
+            if (!button) return;
+            event.preventDefault();
+            updateOrderStatus(
+                Number(button.dataset.orderId || 0),
+                Number(button.dataset.statusId || 0),
+                String(button.dataset.statusName || 'Updated')
+            );
+        });
+
+        window.PMDKdsOperationalCoreV134 = {
+            version: '1.3.4',
+            audit: function () {
+                return {
+                    ready: true,
+                    operationalLookbackHours: operationalLookbackHours,
+                    configuredOrderLimit: configuredOrderLimit,
+                    stationLocationId: stationLocationId || null,
+                    stationSoundEnabled: stationSoundEnabled,
+                    overlappingRefreshBlocked: true,
+                    keyedRefresh: true,
+                    dynamicHtmlEscaped: true,
+                    internalGuestSessionHidden: true,
+                    canonicalStatusHistoryWrite: true,
+                    reservationWindowAware: true
+                };
+            }
+        };
 
         // Initialize
         // PMD v82: defer AudioContext until interaction/new order to keep KDS first paint fast.

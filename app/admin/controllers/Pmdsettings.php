@@ -330,34 +330,88 @@ class Pmdsettings extends AdminController
 
 
     /* PMD_RESTAURANT_PROFILE_SINGLE_AUTHORITY_R19 */
+    /* PMD_RESTAURANT_LOGO_PHYSICAL_CONTRACT_R22 */
+    protected function restaurantLogoLocalPathR22(string $value): ?string
+    {
+        $value = trim($value);
+        if ($value === '') return null;
+        if (preg_match('#^https?://#i', $value)) return '__REMOTE__';
+        $path = parse_url($value, PHP_URL_PATH) ?: $value;
+        $base = basename(str_replace('\\', '/', $path));
+        if ($base === '') return null;
+
+        $root = base_path('assets/media/attachments/public');
+        $direct = $root.'/'.$base;
+        if (is_file($direct)) return $direct;
+        if (is_dir($root)) {
+            try {
+                $it = new \RecursiveIteratorIterator(new \RecursiveDirectoryIterator($root, \RecursiveDirectoryIterator::SKIP_DOTS));
+                foreach ($it as $file) {
+                    if ($file->isFile() && $file->getFilename() === $base) return $file->getPathname();
+                }
+            } catch (\Throwable $error) {
+            }
+        }
+        return null;
+    }
+
+    protected function restaurantLogoIsValidFileR22(string $path): bool
+    {
+        if ($path === '__REMOTE__') return true;
+        if (!is_file($path)) return false;
+        $size = @filesize($path);
+        if (!$size || $size > 5 * 1024 * 1024) return false;
+        $mime = strtolower((string)(@mime_content_type($path) ?: ''));
+        return in_array($mime, ['image/png', 'image/jpeg', 'image/webp'], true);
+    }
+
     protected function storeRestaurantLogoR19(): ?string
     {
+        // PMD_NATIVE_MULTIPART_LOGO_UPLOAD_R22_CONTROLLER
         $file = request()->file('pmd_restaurant_logo');
-        if (!$file) {
-            return null;
-        }
-        if (!$file->isValid()) {
-            throw new \RuntimeException('The uploaded logo could not be read.');
-        }
-        if ((int)$file->getSize() > 5 * 1024 * 1024) {
-            throw new \RuntimeException('Restaurant logo must be 5 MB or smaller.');
+        if (!$file) return null;
+        if (!$file->isValid()) throw new \RuntimeException('The uploaded restaurant logo could not be read.');
+        if ((int)$file->getSize() <= 0 || (int)$file->getSize() > 5 * 1024 * 1024) {
+            throw new \RuntimeException('Restaurant logo must be between 1 byte and 5 MB.');
         }
         $mime = strtolower((string)$file->getMimeType());
-        $extensions = [
-            'image/png' => 'png',
-            'image/jpeg' => 'jpg',
-            'image/webp' => 'webp',
-        ];
-        if (!isset($extensions[$mime])) {
-            throw new \RuntimeException('Restaurant logo must be PNG, JPG or WEBP.');
-        }
+        $extensions = ['image/png'=>'png', 'image/jpeg'=>'jpg', 'image/webp'=>'webp'];
+        if (!isset($extensions[$mime])) throw new \RuntimeException('Restaurant logo must be PNG, JPG or WEBP.');
+
         $directory = base_path('assets/media/attachments/public');
         if (!is_dir($directory) && !@mkdir($directory, 0755, true) && !is_dir($directory)) {
             throw new \RuntimeException('Unable to create the PayMyDine media directory.');
         }
         $filename = 'pmd_restaurant_logo_'.date('Ymd_His').'_'.bin2hex(random_bytes(6)).'.'.$extensions[$mime];
         $file->move($directory, $filename);
+        $stored = $directory.'/'.$filename;
+        @chmod($stored, 0644);
+        if (!$this->restaurantLogoIsValidFileR22($stored)) {
+            @unlink($stored);
+            throw new \RuntimeException('Restaurant logo upload was received but the stored image failed validation.');
+        }
         return '/api/media/'.$filename;
+    }
+
+
+    /* PMD_RESTAURANT_SETTINGS_DIRECT_DB_AUTHORITY_R24 */
+    protected function restaurantSettingValueR24(string $key, $fallback = '')
+    {
+        // Match the proven public Settings API authority: current tenant DB.
+        // Do not let a stale in-process setting()/MediaFinder cache drive this page.
+        try {
+            $value = DB::table('settings')->where('item', $key)->value('value');
+            if ($value !== null) {
+                return $value;
+            }
+        } catch (\Throwable $error) {
+        }
+
+        try {
+            return setting($key, $fallback);
+        } catch (\Throwable $error) {
+            return $fallback;
+        }
     }
 
     /* PMD_RESTAURANT_LOGO_AUTHORITY_R20 */
@@ -365,13 +419,19 @@ class Pmdsettings extends AdminController
     {
         $value = trim($value);
         if ($value === '') return '';
-        if (preg_match('#^https?://#i', $value)) return $value;
         $path = parse_url($value, PHP_URL_PATH) ?: $value;
+        $base = strtolower(basename(str_replace('\\', '/', $path)));
+        if (in_array($base, ['images.png','image.png','images.jpg','image.jpg','images.jpeg','image.jpeg','placeholder.svg','no-image.png'], true)) {
+            return '';
+        }
+        if (preg_match('#^https?://#i', $value)) return $value;
         $path = '/'.ltrim(str_replace('\\', '/', $path), '/');
         if (str_starts_with($path, '/api/media/')) return $path;
         if (str_starts_with($path, '/assets/media/')) return $path;
+        if (str_starts_with($path, '/uploads/')) return '/assets/media'.$path;
         return '/api/media/'.basename($path);
     }
+
 
     /* PMD_RESTAURANT_LOGO_PERSISTENCE_GUARD_R21 */
     protected function resolvedRestaurantLogoR21(?string $uploadedLogo, bool $removeLogo): string
@@ -383,7 +443,7 @@ class Pmdsettings extends AdminController
             return '';
         }
 
-        $current = trim((string)setting('site_logo', ''));
+        $current = trim((string)$this->restaurantSettingValueR24('site_logo', ''));
         if ($current === '') {
             return '';
         }
@@ -393,6 +453,11 @@ class Pmdsettings extends AdminController
 
         // The proven stale Mimoza logo must never be re-persisted by a cached settings object.
         if ($base === 'Gemini_Generated_Image_kzcmghkzcmghkzcm-removebg-preview.png') {
+            return '';
+        }
+
+        $resolvedPath = $this->restaurantLogoLocalPathR22($current);
+        if ($resolvedPath === null || !$this->restaurantLogoIsValidFileR22($resolvedPath)) {
             return '';
         }
 
@@ -543,11 +608,7 @@ class Pmdsettings extends AdminController
         }
 
         $value = function (string $key, $fallback = '') {
-            try {
-                return setting($key, $fallback);
-            } catch (\Throwable $error) {
-                return $fallback;
-            }
+            return $this->restaurantSettingValueR24($key, $fallback);
         };
 
         return [
@@ -567,8 +628,8 @@ class Pmdsettings extends AdminController
             'google_url' => (string)$value('pmd_social_google_url', ''),
             'trustpilot_enabled' => (bool)$value('pmd_social_trustpilot_enabled', 0),
             'trustpilot_url' => (string)$value('pmd_social_trustpilot_url', ''),
-            'site_logo' => (string)$value('site_logo', ''),
-            'site_logo_preview' => $this->restaurantLogoPreviewR20((string)$value('site_logo', '')),
+            'site_logo' => (string)($siteLogoR24 = $value('site_logo', '')),
+            'site_logo_preview' => $this->restaurantLogoPreviewR20((string)$siteLogoR24),
         ];
     }
 

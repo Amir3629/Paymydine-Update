@@ -8,6 +8,7 @@ import {
   Instagram,
   Leaf,
   MessageCircle,
+  Minus,
   Plus,
   Search,
   Star,
@@ -24,9 +25,9 @@ function initials(name: string): string {
 export function RestaurantLogo({ showName = true }: { showName?: boolean }) {
   const { bootstrap } = useMenuRuntime()
   return (
-    <span className={styles.logo} aria-label={bootstrap.restaurant.name}>
+    <span className={styles.logo} data-pmd-restaurant-logo="r24" data-pmd-restaurant-logo-src={bootstrap.restaurant.logoUrl || ''} aria-label={bootstrap.restaurant.name}>
       {bootstrap.restaurant.logoUrl ? (
-        <img className={styles.logoImage} src={bootstrap.restaurant.logoUrl} alt={bootstrap.restaurant.name} width={180} height={64} />
+        <img key={bootstrap.restaurant.logoUrl} className={styles.logoImage} data-pmd-restaurant-logo-image="r24" data-pmd-media-contract="api-media" src={bootstrap.restaurant.logoUrl} alt={bootstrap.restaurant.name} width={160} height={60} loading="eager" decoding="async" />
       ) : (
         <span className={styles.logoFallback} aria-hidden="true">{initials(bootstrap.restaurant.name)}</span>
       )}
@@ -93,11 +94,55 @@ export function DietaryBadges({ item, compact = false }: { item: MenuItem; compa
 }
 
 export function QuickAddButton({ item, className = '' }: { item: MenuItem; className?: string }) {
-  const { quickAdd, labels } = useMenuRuntime()
+  const { quickAdd, labels, cart, updateCartQuantity } = useMenuRuntime()
+  const selectedLines = cart.filter((line) => line.item.id === item.id)
+  const selectedQuantity = selectedLines.reduce((sum, line) => sum + line.quantity, 0)
+
+  const decrementOne = (event: { stopPropagation(): void }) => {
+    event.stopPropagation()
+    const target = [...selectedLines].reverse().find((line) => line.quantity > 0)
+    if (!target) return
+    updateCartQuantity(target.key, target.quantity - 1)
+  }
+
+  const incrementOne = (event: { stopPropagation(): void }) => {
+    event.stopPropagation()
+    quickAdd(item)
+  }
+
+  // PMD_QUICK_ADD_COUNTER_R26B
+  // Zero items = the familiar single + button. Once selected, the exact same
+  // shared component becomes - / quantity / +, so all ten themes stay in sync.
+  if (selectedQuantity <= 0) {
+    return (
+      <button
+        className={`${styles.addButton} ${className}`}
+        type="button"
+        onClick={incrementOne}
+        disabled={!item.available}
+        aria-label={`${labels.add} ${item.name}`}
+        data-pmd-item-quantity="0"
+      >
+        <Plus aria-hidden="true" />
+      </button>
+    )
+  }
+
   return (
-    <button className={`${styles.addButton} ${className}`} type="button" onClick={(event) => { event.stopPropagation(); quickAdd(item) }} disabled={!item.available} aria-label={`${labels.add} ${item.name}`}>
-      <Plus aria-hidden="true" />
-    </button>
+    <span
+      className={`${styles.addCounter} ${className}`}
+      data-pmd-quick-add-counter="r26b"
+      data-pmd-item-quantity={selectedQuantity}
+      aria-label={`${labels.quantity}: ${item.name}, ${selectedQuantity}`}
+    >
+      <button className={styles.addCounterButton} type="button" onClick={decrementOne} aria-label={`− ${item.name}`}>
+        <Minus aria-hidden="true" />
+      </button>
+      <strong className={styles.addCounterValue} aria-live="polite">{selectedQuantity}</strong>
+      <button className={styles.addCounterButton} type="button" onClick={incrementOne} disabled={!item.available} aria-label={`+ ${item.name}`}>
+        <Plus aria-hidden="true" />
+      </button>
+    </span>
   )
 }
 

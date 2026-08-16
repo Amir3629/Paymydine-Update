@@ -70,3 +70,206 @@
         </form>
     </div>
 </details>
+
+<script>
+/* PMD_OPERATIONAL_DATE_RANGE_ASYNC_V1_4_5
+ * Keep the canonical server-rendered range authority, but stop browser-level
+ * navigation. Only the nearest operational section is replaced from the
+ * response HTML. No polling, observer, second data source or duplicated query.
+ */
+(function () {
+    'use strict';
+
+    if (window.PMDOperationalDateRangeV1) return;
+
+    var requestSerial = 0;
+    var activeController = null;
+
+    function owningSection(node) {
+        return node && node.closest
+            ? node.closest('[data-pmd-ops-kind]')
+            : null;
+    }
+
+    function sectionSelector(section) {
+        if (!section) return '';
+        if (section.id) {
+            return '#' + section.id.replace(/([^a-zA-Z0-9_-])/g, '\\$1');
+        }
+        var kind = section.getAttribute('data-pmd-ops-kind') || '';
+        return kind
+            ? '[data-pmd-ops-kind="' + kind.replace(/"/g, '\\"') + '"]'
+            : '';
+    }
+
+    function formUrl(form) {
+        var url = new URL(form.getAttribute('action') || window.location.href, window.location.href);
+        var data = new FormData(form);
+        data.forEach(function (value, key) {
+            url.searchParams.set(key, String(value));
+        });
+        return url;
+    }
+
+    function settleLoading(section) {
+        if (!section || !section.isConnected) return;
+        section.removeAttribute('aria-busy');
+        section.classList.remove('is-pmd-range-loading');
+    }
+
+    function swapRange(url, section, options) {
+        options = options || {};
+        if (!section) return Promise.reject(new Error('Operational range section is unavailable.'));
+
+        requestSerial += 1;
+        var serial = requestSerial;
+
+        if (activeController && typeof activeController.abort === 'function') {
+            activeController.abort();
+        }
+        activeController = typeof AbortController !== 'undefined'
+            ? new AbortController()
+            : null;
+
+        section.setAttribute('aria-busy', 'true');
+        section.classList.add('is-pmd-range-loading');
+
+        return fetch(url.href, {
+            method: 'GET',
+            credentials: 'same-origin',
+            cache: 'no-store',
+            headers: {
+                'Accept': 'text/html',
+                'X-Requested-With': 'XMLHttpRequest'
+            },
+            signal: activeController ? activeController.signal : undefined
+        }).then(function (response) {
+            if (!response.ok) {
+                throw new Error('Date range request failed with HTTP ' + response.status + '.');
+            }
+            return response.text();
+        }).then(function (html) {
+            if (serial !== requestSerial) return null;
+
+            var parsed = new DOMParser().parseFromString(html, 'text/html');
+            var selector = sectionSelector(section);
+            var replacement = selector ? parsed.querySelector(selector) : null;
+
+            if (!replacement) {
+                throw new Error('Updated date range section was not found in the server response.');
+            }
+
+            var next = document.importNode(replacement, true);
+            var kind = section.getAttribute('data-pmd-ops-kind') || '';
+            section.replaceWith(next);
+
+            if (options.updateHistory !== false) {
+                window.history.pushState(
+                    { pmdOperationalRange: true, kind: kind },
+                    '',
+                    url.pathname + url.search + url.hash
+                );
+            }
+
+            document.dispatchEvent(new CustomEvent('pmd:ops-range:updated', {
+                detail: {
+                    kind: kind,
+                    url: url.href,
+                    from: next.getAttribute('data-pmd-range-from') || '',
+                    to: next.getAttribute('data-pmd-range-to') || ''
+                }
+            }));
+
+            return next;
+        }).catch(function (error) {
+            if (error && error.name === 'AbortError') return null;
+            settleLoading(section);
+            console.error('[PMD Operational Date Range V1.4.5]', error);
+
+            if (options.fallbackNavigation !== false) {
+                window.location.assign(url.href);
+            }
+            return null;
+        });
+    }
+
+    document.addEventListener('click', function (event) {
+        var link = event.target && event.target.closest
+            ? event.target.closest('.pmd-ops-range__presets a')
+            : null;
+        if (!link) return;
+        if (event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+
+        var section = owningSection(link);
+        if (!section) return;
+
+        event.preventDefault();
+        event.stopPropagation();
+
+        var details = link.closest('.pmd-ops-range');
+        if (details) details.open = false;
+
+        swapRange(new URL(link.href, window.location.href), section, {
+            updateHistory: true,
+            fallbackNavigation: true
+        });
+    }, false);
+
+    document.addEventListener('submit', function (event) {
+        var form = event.target;
+        if (!form || !form.matches || !form.matches('.pmd-ops-range__form')) return;
+
+        var section = owningSection(form);
+        if (!section) return;
+
+        event.preventDefault();
+        event.stopPropagation();
+
+        var details = form.closest('.pmd-ops-range');
+        if (details) details.open = false;
+
+        swapRange(formUrl(form), section, {
+            updateHistory: true,
+            fallbackNavigation: true
+        });
+    }, false);
+
+    window.addEventListener('popstate', function () {
+        var section = document.querySelector('[data-pmd-ops-kind] .pmd-ops-range')
+            ? document.querySelector('[data-pmd-ops-kind]')
+            : null;
+        if (!section) return;
+
+        swapRange(new URL(window.location.href), section, {
+            updateHistory: false,
+            fallbackNavigation: false
+        });
+    }, false);
+
+    window.PMDOperationalDateRangeV1 = {
+        version: '1.0.0',
+        refresh: function (url) {
+            var section = document.querySelector('[data-pmd-ops-kind]');
+            return swapRange(new URL(url || window.location.href, window.location.href), section, {
+                updateHistory: false,
+                fallbackNavigation: false
+            });
+        },
+        audit: function () {
+            return {
+                ready: true,
+                asyncNavigation: true,
+                fullPageReloadRequired: false,
+                polling: false,
+                observer: false,
+                sections: document.querySelectorAll('[data-pmd-ops-kind]').length,
+                triggers: document.querySelectorAll('.pmd-ops-range__trigger').length,
+                forms: document.querySelectorAll('.pmd-ops-range__form').length
+            };
+        }
+    };
+
+    console.info('[PMD Operational Date Range V1.4.5] Ready', window.PMDOperationalDateRangeV1.audit());
+})();
+</script>
+

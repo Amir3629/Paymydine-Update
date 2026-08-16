@@ -168,8 +168,11 @@ class AdminController extends BaseController
         $toolbar = new Toolbar($this, ['context' => $this->action]);
         $toolbar->bindToController();
 
-        // Media Manager widget is available on all admin pages
-        if ($this->currentUser && $this->currentUser->hasPermission('Admin.MediaManager')) {
+        // PMD_RESTAURANT_PROFILE_SKIP_GLOBAL_MEDIAMANAGER_R24
+        // Restaurant Settings has its own native multipart logo uploader and does not
+        // use MediaFinder/Dropzone. Do not load the global MediaManager vendor bundle here.
+        $pmdSkipMediaManagerR24 = Request::is('admin/pmdsettings/restaurant');
+        if (!$pmdSkipMediaManagerR24 && $this->currentUser && $this->currentUser->hasPermission('Admin.MediaManager')) {
             $manager = new MediaManager($this, ['alias' => 'mediamanager']);
             $manager->bindToController();
         }

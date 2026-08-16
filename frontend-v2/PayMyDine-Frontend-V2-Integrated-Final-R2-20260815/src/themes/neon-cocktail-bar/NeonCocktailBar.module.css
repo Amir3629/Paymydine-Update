@@ -51,7 +51,7 @@
 @media (max-width: 900px) { .grid { grid-template-columns: repeat(2,minmax(0,1fr)); } }
 @media (max-width: 620px) {
   .header { padding: .8rem; }
-  .brand span { display: none; }
+  .brand > span:not([data-pmd-restaurant-logo]) { display: none; }
   .hero, .hero > img { min-height: 30rem; height: 30rem; }
   .hero h1 { font-size: clamp(3.4rem,18vw,5.8rem); }
   .commandBar { grid-template-columns: 1fr; }

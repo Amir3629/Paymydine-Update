@@ -156,8 +156,9 @@ abstract class PmdCleanWorkspaceControllerV1 extends AdminController
      * One shared backend for the owner/manager Floor table card.
      * The UI lives in the exact shared Floor partial, while all mutations go
      * through the canonical Tables_model so its existing lifecycle remains the
-     * authority. In particular this code NEVER reads/writes qr_code; a new
-     * table therefore receives a QR only through the pre-existing model hook.
+     * authority. This manager NEVER sets, regenerates or clears qr_code. The
+     * existing token may be read after save solely for Owner/Manager display;
+     * generation remains exclusively owned by Tables_model.
      */
     protected function pmdFloorTableManagerRole(): string
     {
@@ -208,9 +209,36 @@ abstract class PmdCleanWorkspaceControllerV1 extends AdminController
 
     protected function pmdFloorTableManagerLocationId(): int
     {
-        /** @var PmdCleanWorkspaceSharedV1 $shared */
-        $shared = app(PmdCleanWorkspaceSharedV1::class);
-        return max(0, (int)$shared->locationId());
+        /**
+         * PMD_SHARED_FLOOR_ROLE_LOCATION_V1_4_16
+         * One location identity for every Shared Floor role surface.
+         * PmdCleanWorkspaceSharedV1 remains first authority. The existing
+         * DashboardLab workspace resolver is used only when a native role
+         * shell has no resolved clean-workspace location yet.
+         */
+        $locationId = 0;
+
+        try {
+            /** @var PmdCleanWorkspaceSharedV1 $shared */
+            $shared = app(PmdCleanWorkspaceSharedV1::class);
+            $locationId = max(0, (int)$shared->locationId());
+        } catch (\Throwable $e) {
+            $locationId = 0;
+        }
+
+        if ($locationId < 1) {
+            try {
+                $locationId = max(
+                    0,
+                    (int)app(\Admin\Services\PmdRoleDashboardDataV1::class)
+                        ->resolveWorkspaceLocation()
+                );
+            } catch (\Throwable $e) {
+                $locationId = 0;
+            }
+        }
+
+        return $locationId;
     }
 
     protected function pmdFloorTableManagerLocationIds(\Admin\Models\Tables_model $table): array
@@ -248,12 +276,123 @@ abstract class PmdCleanWorkspaceControllerV1 extends AdminController
         }
     }
 
+    /* PMD_FLOOR_TABLE_CARD_V1_4_FEATURES
+     * Exactly three practical features are managed by the compact card.
+     * Any older/other table_features values remain preserved on edit.
+     */
+    protected function pmdFloorTableManagerManagedFeatureKeys(): array
+    {
+        return ['near_window', 'quiet_area', 'accessible'];
+    }
+
+    protected function pmdFloorTableManagerFeatureArray($value): array
+    {
+        if ($value instanceof \Illuminate\Support\Collection) {
+            $value = $value->all();
+        }
+
+        if (is_string($value)) {
+            $decoded = json_decode($value, true);
+            $value = is_array($decoded) ? $decoded : [];
+        }
+
+        if (!is_array($value)) return [];
+
+        $out = [];
+        foreach ($value as $feature) {
+            $feature = strtolower(trim((string)$feature));
+            if ($feature !== '') $out[$feature] = true;
+        }
+        return array_values(array_keys($out));
+    }
+
+    protected function pmdFloorTableManagerManagedFeatures($value): array
+    {
+        $all = $this->pmdFloorTableManagerFeatureArray($value);
+        $allowed = $this->pmdFloorTableManagerManagedFeatureKeys();
+        return array_values(array_filter($allowed, static function ($feature) use ($all) {
+            return in_array($feature, $all, true);
+        }));
+    }
+
+    protected function pmdFloorTableFeatureMap(array $displayTables): array
+    {
+        $ids = [];
+        foreach ($displayTables as $row) {
+            if (!is_array($row)) continue;
+            foreach (['dbTableId', 'db_table_id', 'table_id', 'id'] as $key) {
+                $id = (int)($row[$key] ?? 0);
+                if ($id > 0) {
+                    $ids[$id] = true;
+                    break;
+                }
+            }
+        }
+        if (!$ids) return [];
+
+        try {
+            $map = [];
+            $rows = \Admin\Models\Tables_model::query()
+                ->whereIn('table_id', array_map('intval', array_keys($ids)))
+                ->get(['table_id', 'table_features']);
+
+            foreach ($rows as $table) {
+                $tableId = (int)($table->table_id ?? 0);
+                if ($tableId < 1) continue;
+                $map[(string)$tableId] = $this->pmdFloorTableManagerManagedFeatures(
+                    $table->table_features ?? []
+                );
+            }
+            return $map;
+        } catch (\Throwable $e) {
+            return [];
+        }
+    }
+
     protected function pmdFloorTableManagerSerialize(
         \Admin\Models\Tables_model $table,
         int $locationId
     ): array {
         $posLabel = trim((string)($table->pos_table_label ?? ''));
         $rawTableNo = trim((string)($table->getRawOriginal('table_no') ?? ''));
+
+        $pmdAssignedFloorName = 'Main Floor';
+        try {
+            $pmdAssignedFloorName = app(\Admin\Services\PmdSharedFloorRegistryV1::class)
+                ->floorNameForTable($locationId, (int)($table->table_id ?? 0));
+        } catch (\Throwable $e) {
+        }
+
+        $pmdCapacity = max(1, (int)(
+            $table->preferred_capacity
+            ?? $table->max_capacity
+            ?? $table->min_capacity
+            ?? 1
+        ));
+
+        $pmdQrCode = trim((string)($table->qr_code ?? ''));
+        $pmdQrTargetUrl = '';
+        $pmdQrImageUrl = '';
+
+        if ($pmdQrCode !== '') {
+            $pmdDisplayedNo = $posLabel !== '' ? $posLabel : $rawTableNo;
+            $pmdRouteTable = ctype_digit($pmdDisplayedNo) && (int)$pmdDisplayedNo > 0
+                ? (int)$pmdDisplayedNo
+                : max(1, (int)($table->table_id ?? 0));
+            $pmdUpdatedTimestamp = strtotime((string)($table->updated_at ?? '')) ?: time();
+            $pmdQrTargetUrl = rtrim(request()->getSchemeAndHttpHost(), '/')
+                .'/table/'.rawurlencode((string)$pmdRouteTable)
+                .'?'.http_build_query([
+                    'location' => $locationId,
+                    'guest' => $pmdCapacity,
+                    'date' => date('Y-m-d', $pmdUpdatedTimestamp),
+                    'time' => date('H:i', $pmdUpdatedTimestamp),
+                    'qr' => $pmdQrCode,
+                    'table' => $pmdRouteTable,
+                ]);
+            $pmdQrImageUrl = 'https://api.qrserver.com/v1/create-qr-code/?size=220x220&data='
+                .rawurlencode($pmdQrTargetUrl);
+        }
 
         return [
             'table_id' => (int)($table->table_id ?? 0),
@@ -263,20 +402,24 @@ abstract class PmdCleanWorkspaceControllerV1 extends AdminController
             'number_locked' => $posLabel !== '',
             'min_capacity' => max(0, (int)($table->min_capacity ?? 0)),
             'max_capacity' => max(0, (int)($table->max_capacity ?? 0)),
-            'preferred_capacity' => $table->preferred_capacity === null
-                ? null
-                : max(0, (int)$table->preferred_capacity),
+            'preferred_capacity' => $pmdCapacity,
             'extra_capacity' => max(0, (int)($table->extra_capacity ?? 0)),
             'priority' => max(0, (int)($table->priority ?? 0)),
             'table_status' => (bool)($table->table_status ?? true),
             'is_joinable' => (bool)($table->is_joinable ?? true),
             'reservable' => (bool)($table->reservable ?? true),
             'visible_on_floor_plan' => (bool)($table->visible_on_floor_plan ?? true),
-            'floor_name' => trim((string)($table->floor_name ?? '')) ?: 'Main Floor',
+            'floor_name' => $pmdAssignedFloorName,
             'table_section' => trim((string)($table->table_section ?? '')) ?: 'Main',
             'floor_shape' => trim((string)($table->floor_shape ?? '')) ?: 'rectangle',
             'floor_notes' => (string)($table->floor_notes ?? ''),
             'reservation_priority' => max(0, (int)($table->reservation_priority ?? 0)),
+            'floor_x' => is_numeric($table->floor_x ?? null) ? (float)$table->floor_x : null,
+            'floor_y' => is_numeric($table->floor_y ?? null) ? (float)$table->floor_y : null,
+            'qr_code' => $pmdQrCode,
+            'qr_target_url' => $pmdQrTargetUrl,
+            'qr_image_url' => $pmdQrImageUrl,
+            'table_features' => $this->pmdFloorTableManagerManagedFeatures($table->table_features ?? []),
             'location_id' => $locationId,
             'location_ids' => $this->pmdFloorTableManagerLocationIds($table),
         ];
@@ -311,6 +454,18 @@ abstract class PmdCleanWorkspaceControllerV1 extends AdminController
 
         $tableId = max(0, (int)request()->input('table_id', 0));
 
+        $activeFloorName = 'Main Floor';
+        try {
+            $registryService = app(\Admin\Services\PmdSharedFloorRegistryV1::class);
+            $registry = $registryService->snapshot($locationId);
+            $activeFloor = $registryService->activeFloor(
+                (array)($registry['floors'] ?? []),
+                (string)request()->cookie((string)($registry['cookie_name'] ?? ''), '')
+            );
+            $activeFloorName = trim((string)($activeFloor['name'] ?? '')) ?: 'Main Floor';
+        } catch (\Throwable $e) {
+        }
+
         if ($tableId < 1) {
             return response()->json([
                 'ok' => true,
@@ -331,11 +486,17 @@ abstract class PmdCleanWorkspaceControllerV1 extends AdminController
                     'is_joinable' => true,
                     'reservable' => true,
                     'visible_on_floor_plan' => true,
-                    'floor_name' => 'Main Floor',
+                    'floor_name' => $activeFloorName,
                     'table_section' => 'Main',
                     'floor_shape' => 'rectangle',
                     'floor_notes' => '',
                     'reservation_priority' => 0,
+                    'floor_x' => null,
+                    'floor_y' => null,
+                    'qr_code' => '',
+                    'qr_target_url' => '',
+                    'qr_image_url' => '',
+                    'table_features' => [],
                     'location_id' => $locationId,
                     'location_ids' => $locationId > 0 ? [$locationId] : [],
                 ],
@@ -352,6 +513,62 @@ abstract class PmdCleanWorkspaceControllerV1 extends AdminController
             'mode' => 'edit',
             'role' => $this->pmdFloorTableManagerRole(),
             'table' => $this->pmdFloorTableManagerSerialize($table, $locationId),
+        ]);
+    }
+
+    public function onPmdFloorTableManagerQrDownload()
+    {
+        $this->pmdAssertCanManageFloorTables();
+
+        $locationId = $this->pmdFloorTableManagerLocationId();
+        $requestedLocationId = max(0, (int)request()->input('location_id', 0));
+        if ($requestedLocationId > 0 && $locationId > 0 && $requestedLocationId !== $locationId) {
+            return response()->json(['ok' => false, 'message' => 'Active Floor location changed.'], 409);
+        }
+
+        $tableId = max(0, (int)request()->input('table_id', 0));
+        $table = $tableId > 0 ? \Admin\Models\Tables_model::query()->find($tableId) : null;
+        if (!$table) {
+            return response()->json(['ok' => false, 'message' => 'Table not found.'], 404);
+        }
+
+        $this->pmdFloorTableManagerAssertLocation($table, $locationId);
+        $serialized = $this->pmdFloorTableManagerSerialize($table, $locationId);
+        $imageUrl = trim((string)($serialized['qr_image_url'] ?? ''));
+        $qrCode = trim((string)($serialized['qr_code'] ?? ''));
+        if ($imageUrl === '' || $qrCode === '') {
+            return response()->json(['ok' => false, 'message' => 'This table does not have a QR code yet.'], 404);
+        }
+
+        $context = stream_context_create([
+            'http' => [
+                'timeout' => 8,
+                'user_agent' => 'PayMyDine Admin QR Download/1.0',
+            ],
+            'ssl' => [
+                'verify_peer' => true,
+                'verify_peer_name' => true,
+            ],
+        ]);
+
+        $png = @file_get_contents($imageUrl, false, $context);
+        if (!is_string($png) || $png === '') {
+            return response()->json([
+                'ok' => false,
+                'message' => 'QR image could not be prepared for download. Please try again.',
+            ], 502);
+        }
+
+        $displayNo = trim((string)($serialized['table_no'] ?? $tableId));
+        $safeNo = preg_replace('/[^A-Za-z0-9_-]+/', '-', $displayNo) ?: (string)$tableId;
+
+        return response()->json([
+            'ok' => true,
+            'filename' => 'paymydine-table-'.$safeNo.'-qr.png',
+            'mime' => 'image/png',
+            'data_url' => 'data:image/png;base64,'.base64_encode($png),
+            'qr_authority' => 'Tables_model',
+            'qr_regenerated' => false,
         ]);
     }
 
@@ -407,6 +624,8 @@ abstract class PmdCleanWorkspaceControllerV1 extends AdminController
             'floor_shape' => ['required', 'in:rectangle,round,booth,bar,custom'],
             'floor_notes' => ['nullable', 'string', 'max:1000'],
             'reservation_priority' => ['nullable', 'integer', 'min:0', 'max:9999'],
+            'table_features' => ['nullable', 'array', 'max:3'],
+            'table_features.*' => ['string', 'in:near_window,quiet_area,accessible'],
         ];
 
         if (!$numberLocked) {
@@ -422,13 +641,32 @@ abstract class PmdCleanWorkspaceControllerV1 extends AdminController
             ], 422);
         }
 
-        $minCapacity = max(0, (int)($payload['min_capacity'] ?? 0));
-        $maxCapacity = max(0, (int)($payload['max_capacity'] ?? 0));
-        $preferredCapacity = array_key_exists('preferred_capacity', $payload)
-            && $payload['preferred_capacity'] !== ''
-            && $payload['preferred_capacity'] !== null
-                ? max(0, (int)$payload['preferred_capacity'])
-                : null;
+        $floorNameInput = trim((string)($payload['floor_name'] ?? '')) ?: 'Main Floor';
+        try {
+            $registryService = app(\Admin\Services\PmdSharedFloorRegistryV1::class);
+            $registrySnapshot = $registryService->snapshot($locationId);
+            $floorMatch = $registryService->findByName(
+                (array)($registrySnapshot['floors'] ?? []),
+                $floorNameInput
+            );
+        } catch (\Throwable $e) {
+            $floorMatch = null;
+        }
+
+        if (!$floorMatch) {
+            return response()->json([
+                'ok' => false,
+                'message' => 'Please choose an existing Floor. Use + Add floor to create a new one.',
+                'errors' => [
+                    'floor_name' => ['Choose an existing Floor.'],
+                ],
+            ], 422);
+        }
+
+        // PMD_FLOOR_TABLE_CARD_V1_3_SINGLE_CAPACITY
+        $preferredCapacity = max(1, (int)($payload['preferred_capacity'] ?? 1));
+        $minCapacity = 1;
+        $maxCapacity = $preferredCapacity;
 
         $errors = [];
         if ($maxCapacity < $minCapacity) {
@@ -470,16 +708,30 @@ abstract class PmdCleanWorkspaceControllerV1 extends AdminController
         $table->min_capacity = $minCapacity;
         $table->max_capacity = $maxCapacity;
         $table->preferred_capacity = $preferredCapacity ?? $maxCapacity;
-        $table->extra_capacity = max(0, (int)($payload['extra_capacity'] ?? 0));
+        $table->extra_capacity = 0;
         $table->priority = max(0, (int)($payload['priority'] ?? 0));
         $table->table_status = (bool)$payload['table_status'];
         $table->is_joinable = (bool)$payload['is_joinable'];
         $table->reservable = (bool)$payload['reservable'];
         $table->visible_on_floor_plan = (bool)$payload['visible_on_floor_plan'];
-        $table->floor_name = trim((string)($payload['floor_name'] ?? '')) ?: 'Main Floor';
+        // PMD_SHARED_FLOOR_MULTI_FLOOR_V1_2_ASSIGNMENT_AUTHORITY
+        // Do not overwrite legacy tables.floor_name. The explicit PMD Floor
+        // assignment is persisted by canonical table_id after Tables_model saves.
+        if ($isCreate && trim((string)($table->floor_name ?? '')) === '') {
+            $table->floor_name = 'Main Floor';
+        }
         $table->table_section = trim((string)($payload['table_section'] ?? '')) ?: 'Main';
         $table->floor_shape = trim((string)($payload['floor_shape'] ?? 'rectangle')) ?: 'rectangle';
         $table->floor_notes = trim((string)($payload['floor_notes'] ?? ''));
+
+        $pmdExistingFeatures = $this->pmdFloorTableManagerFeatureArray($table->table_features ?? []);
+        $pmdManagedFeatureKeys = $this->pmdFloorTableManagerManagedFeatureKeys();
+        $pmdPreservedFeatures = array_values(array_filter($pmdExistingFeatures, static function ($feature) use ($pmdManagedFeatureKeys) {
+            return !in_array($feature, $pmdManagedFeatureKeys, true);
+        }));
+        $pmdSelectedFeatures = $this->pmdFloorTableManagerManagedFeatures($payload['table_features'] ?? []);
+        $table->table_features = array_values(array_unique(array_merge($pmdPreservedFeatures, $pmdSelectedFeatures)));
+
         $table->reservation_priority = max(0, (int)($payload['reservation_priority'] ?? 0));
 
         if (
@@ -493,9 +745,9 @@ abstract class PmdCleanWorkspaceControllerV1 extends AdminController
 
         /*
          * QR GUARANTEE:
-         * Do not read, set, regenerate or clear qr_code here. Tables_model owns
-         * its existing QR lifecycle. This save deliberately leaves that system
-         * byte-for-byte and behaviorally untouched.
+         * Do not set, regenerate or clear qr_code here. Tables_model owns
+         * generation. pmdFloorTableManagerSerialize() may read the saved token
+         * afterward only to display the canonical QR to Owner/Manager.
          */
         $table->save();
 
@@ -508,12 +760,143 @@ abstract class PmdCleanWorkspaceControllerV1 extends AdminController
             }
         }
 
+        $pmdRegistryAfterSave = null;
+        try {
+            $freshTableId = (int)($table->table_id ?? 0);
+            $pmdRegistryAfterSave = app(\Admin\Services\PmdSharedFloorRegistryV1::class)->assignTable(
+                $locationId,
+                $freshTableId,
+                (string)($floorMatch['id'] ?? $floorMatch['name'] ?? 'Main Floor')
+            );
+        } catch (\Throwable $e) {
+            logger()->error('PMD shared Floor table assignment failed', [
+                'location_id' => $locationId,
+                'table_id' => (int)($table->table_id ?? 0),
+                'message' => $e->getMessage(),
+            ]);
+            return response()->json([
+                'ok' => false,
+                'message' => 'Table saved, but its Floor assignment could not be persisted. Refresh before retrying.',
+            ], 500);
+        }
+
         return response()->json([
             'ok' => true,
             'mode' => $isCreate ? 'create' : 'edit',
             'message' => $isCreate ? 'Table created.' : 'Table updated.',
             'table' => $this->pmdFloorTableManagerSerialize($table->fresh(), $locationId),
+            'registry' => $pmdRegistryAfterSave,
             'qr_untouched' => true,
+            'qr_read_only' => true,
+            'qr_authority' => 'Tables_model',
+        ]);
+    }
+
+    /**
+     * PMD_SHARED_FLOOR_MULTI_FLOOR_V1
+     * Location-scoped floor registry. PMD table-to-floor assignment is stored
+     * by canonical table_id in LocationOption; legacy tables.floor_name remains
+     * untouched metadata and is not the new Floor identity authority.
+     */
+    protected function pmdSharedFloorRegistrySnapshot(int $locationId): array
+    {
+        try {
+            return app(\Admin\Services\PmdSharedFloorRegistryV1::class)
+                ->snapshot($locationId);
+        } catch (\Throwable $e) {
+            return [
+                'version' => 1,
+                'location_id' => max(0, $locationId),
+                'cookie_name' => 'pmd_shared_floor_active_'.max(0, $locationId),
+                'floors' => [[
+                    'id' => 'main-floor-'.substr(sha1('main floor'), 0, 10),
+                    'name' => 'Main Floor',
+                    'sort' => 0,
+                ]],
+                'table_floor_map' => [
+                    'by_id' => [],
+                    'by_number' => [],
+                    'by_name' => [],
+                ],
+            ];
+        }
+    }
+
+    public function onPmdFloorRegistryCreate()
+    {
+        $this->pmdAssertCanManageFloorTables();
+
+        $locationId = $this->pmdFloorTableManagerLocationId();
+        $requestedLocationId = max(0, (int)request()->input('location_id', 0));
+        if ($requestedLocationId > 0 && $locationId > 0 && $requestedLocationId !== $locationId) {
+            return response()->json([
+                'ok' => false,
+                'message' => 'Active Floor location changed. Refresh the page and try again.',
+            ], 409);
+        }
+
+        $validator = \Illuminate\Support\Facades\Validator::make(request()->all(), [
+            'name' => ['required', 'string', 'max:120'],
+        ]);
+        if ($validator->fails()) {
+            return response()->json([
+                'ok' => false,
+                'message' => 'Please enter a valid floor name.',
+                'errors' => $validator->errors()->toArray(),
+            ], 422);
+        }
+
+        try {
+            $result = app(\Admin\Services\PmdSharedFloorRegistryV1::class)
+                ->createFloor($locationId, (string)request()->input('name'));
+        } catch (\InvalidArgumentException $e) {
+            return response()->json([
+                'ok' => false,
+                'message' => $e->getMessage(),
+            ], 422);
+        } catch (\Throwable $e) {
+            logger()->error('PMD shared Floor registry create failed', [
+                'location_id' => $locationId,
+                'message' => $e->getMessage(),
+            ]);
+            return response()->json([
+                'ok' => false,
+                'message' => 'Floor could not be created.',
+            ], 500);
+        }
+
+        return response()->json([
+            'ok' => true,
+            'message' => 'Floor created.',
+            'floor' => $result['floor'] ?? null,
+            'registry' => $result['registry'] ?? [],
+        ]);
+    }
+
+    public function onPmdFloorRegistrySnapshot()
+    {
+        $locationId = $this->pmdFloorTableManagerLocationId();
+        $requestedLocationId = max(0, (int)request()->input('location_id', 0));
+        if ($requestedLocationId > 0 && $locationId > 0 && $requestedLocationId !== $locationId) {
+            return response()->json([
+                'ok' => false,
+                'message' => 'Active Floor location changed. Refresh the page and try again.',
+            ], 409);
+        }
+
+        try {
+            $registry = app(\Admin\Services\PmdSharedFloorRegistryV1::class)
+                ->snapshot($locationId);
+        } catch (\Throwable $e) {
+            return response()->json([
+                'ok' => false,
+                'message' => 'Floor registry could not be loaded.',
+            ], 500);
+        }
+
+        return response()->json([
+            'ok' => true,
+            'registry' => $registry,
         ]);
     }
 
@@ -543,6 +926,7 @@ abstract class PmdCleanWorkspaceControllerV1 extends AdminController
             $this->addCss('css/pmd-reservations2-floor-toolbar-v316.css');
             $this->addCss('css/pmd-reservations2-floor-reservation-v312.css');
             $this->addCss('css/pmd-dashboard-lab-exact-floor-v1.css');
+            $this->addCss('css/pmd-shared-floor-multi-floor-v1.css');
         }
 
         // Generic clean-workspace KPI chooser. Zero boot fetch/layout writes.
@@ -559,6 +943,10 @@ abstract class PmdCleanWorkspaceControllerV1 extends AdminController
             && !request()->is('admin/cashierlab*')
         ) {
             $this->addJs('js/pmd-dashboard-lab-exact-floor-v1.js');
+        }
+
+        if ($this->pmdUsesFloor()) {
+            $this->addJs('js/pmd-shared-floor-multi-floor-v1.js');
         }
 
         $this->applyMenuContext();
@@ -604,6 +992,30 @@ abstract class PmdCleanWorkspaceControllerV1 extends AdminController
             ? $shared->floorBootstrap()
             : [];
 
+        $pmdSharedFloorLocationId = $this->pmdUsesFloor()
+            ? $this->pmdFloorTableManagerLocationId()
+            : 0;
+
+        $floorRegistrySnapshot = $this->pmdUsesFloor()
+            ? $this->pmdSharedFloorRegistrySnapshot($pmdSharedFloorLocationId)
+            : [
+                'cookie_name' => '',
+                'floors' => [],
+                'table_floor_map' => ['by_id' => [], 'by_number' => [], 'by_name' => []],
+            ];
+
+        $floorRegistryService = app(\Admin\Services\PmdSharedFloorRegistryV1::class);
+        $floorActiveCookieValue = (string)request()->cookie(
+            (string)($floorRegistrySnapshot['cookie_name'] ?? ''),
+            ''
+        );
+        $floorActive = $this->pmdUsesFloor()
+            ? $floorRegistryService->activeFloor(
+                (array)($floorRegistrySnapshot['floors'] ?? []),
+                $floorActiveCookieValue
+            )
+            : [];
+
         $mode = $this->pmdKpiMode();
 
         if ($mode === 'reservations') {
@@ -637,9 +1049,9 @@ abstract class PmdCleanWorkspaceControllerV1 extends AdminController
         $this->vars['pmdCleanWorkspaceLocale'] = $locale;
         // PMD_CLEAN_WORKSPACE_LOCATION_CONTEXT_V1
         // One explicit location identity for shared Floor reservation-busy reads.
-        $this->vars['pmdCleanWorkspaceLocationId'] = (int)$shared->locationId();
+        $this->vars['pmdCleanWorkspaceLocationId'] = $pmdSharedFloorLocationId;
         $this->vars['pmdCleanWorkspaceReservationBusyWindows'] = $this->pmdUsesFloor()
-            ? $this->pmdFloorReservationBusyWindows((int)$shared->locationId())
+            ? $this->pmdFloorReservationBusyWindows($pmdSharedFloorLocationId)
             : [];
         $this->vars['pmdCleanWorkspaceKpiCookie'] = $cookieName;
         $this->vars['pmdCleanWorkspaceKpiStorage'] = 'pmd:clean:'.$key.':kpis:v1';
@@ -676,6 +1088,10 @@ abstract class PmdCleanWorkspaceControllerV1 extends AdminController
         $this->vars['pmdCleanWorkspaceFloorDisplayTables'] = $floorBootstrap['display_tables'] ?? [];
         $this->vars['pmdCleanWorkspaceFloorMode'] = $floorBootstrap['mode'] ?? 'row';
         $this->vars['pmdCleanWorkspaceFloorZoom'] = $floorBootstrap['zoom'] ?? 1.0;
+        $this->vars['pmdCleanWorkspaceFloorRegistry'] = $floorRegistrySnapshot['floors'] ?? [];
+        $this->vars['pmdCleanWorkspaceFloorActive'] = $floorActive;
+        $this->vars['pmdCleanWorkspaceFloorTableMap'] = $floorRegistrySnapshot['table_floor_map'] ?? [];
+        $this->vars['pmdCleanWorkspaceFloorCookie'] = $floorRegistrySnapshot['cookie_name'] ?? '';
 
         $this->pmdPrepareWorkspaceVars($shared, $locale, $floorBootstrap);
 

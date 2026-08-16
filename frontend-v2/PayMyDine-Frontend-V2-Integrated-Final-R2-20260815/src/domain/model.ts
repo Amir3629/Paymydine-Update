@@ -196,6 +196,14 @@ export type TableOrderState = {
   updatedAt: string | null
 }
 
+export type TableOrdersState = {
+  success: boolean
+  sessionKey: string | null
+  draft: TableOrderState | null
+  orders: TableOrderState[]
+  updatedAt: string | null
+}
+
 export type CustomerBootstrap = {
   apiVersion: 'pmd-customer-bootstrap-v2'
   tenant: { id: string; slug: string; host: string }

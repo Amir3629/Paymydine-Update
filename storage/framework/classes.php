@@ -229,4 +229,7 @@
   'System\\Controllers\\themes' => 'app/system/controllers/Themes.php',
   'Main\\FormWidgets\\TemplateEditor' => 'app/main/formwidgets/TemplateEditor.php',
   'Admin\\Controllers\\pmdbrand' => 'app/admin/controllers/Pmdbrand.php',
+  'Admin\\Controllers\\SuperAdminController' => 'app/admin/controllers/SuperAdminController.php',
+  'Admin\\Controllers\\KitchenDisplay' => 'app/admin/controllers/KitchenDisplay.php',
+  'Admin\\Controllers\\staffs' => 'app/admin/controllers/Staffs.php',
 );

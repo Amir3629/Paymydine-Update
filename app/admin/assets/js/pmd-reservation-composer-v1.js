@@ -3346,7 +3346,7 @@ function applyAvailability(result) {
 (function () {
   'use strict';
 
-  var VERSION = '2.2.4';
+  var VERSION = '2.2.4.1';
   var ROOT_ID = 'pmd-reservation-composer-v1';
 
   if (window.PMDSmartContextTablesV224) {
@@ -3764,20 +3764,29 @@ function applyAvailability(result) {
           'tables[]'
         ].indexOf(event.target.name) >= 0
       ) {
-        if (
-          [
-            'guest_num',
-            'reserve_date',
-            'reserve_time',
-            'duration'
-          ].indexOf(event.target.name) >= 0
-        ) {
-          latestAvailability = null;
-          updateRecommendationButton();
-        }
-
+        /*
+         * PMD_COMPOSER_AUTO_RECOMMENDATION_PERSISTENCE_V2427
+         *
+         * Do NOT clear latestAvailability from a presentation-layer change
+         * event. Native inputs fire `change` when focus leaves after typing.
+         * The core availability runtime then sees the SAME effective
+         * reservation signature and correctly de-duplicates the request.
+         * Clearing V224 here used to orphan the visible Auto recommendation
+         * at `No table found` because no new availability event followed.
+         *
+         * V224 now changes its recommendation cache only when the canonical
+         * `pmd:composer:availability` commit event delivers a new result.
+         */
         window.setTimeout(apply, 0);
       }
+    }
+  );
+
+  root.addEventListener(
+    'show.bs.modal',
+    function () {
+      /* PMD_COMPOSER_AUTO_RECOMMENDATION_SESSION_RESET_V2427 */
+      latestAvailability = null;
     }
   );
 
@@ -3833,6 +3842,9 @@ function applyAvailability(result) {
           autoRecommendationIds(),
         selectedTableIds:
           selectedIds(),
+        recommendationEventOwned: true,
+        blurChangePreservesRecommendation: true,
+        newModalResetsRecommendation: true,
         availabilityVisible: Boolean(
           root.querySelector(
             '[data-pmd-composer-availability]'

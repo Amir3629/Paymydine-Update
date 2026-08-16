@@ -7,7 +7,9 @@ use Admin\Models\Orders_model;
 use Admin\Models\Statuses_model;
 use Admin\Models\Reservations_model;
 use Admin\Models\Kds_stations_model;
+use Admin\Models\Status_history_model;
 use Admin\Models\Categories_model;
+use Carbon\Carbon;
 use System\Models\Settings_model;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\View;
@@ -35,6 +37,15 @@ class KitchenDisplay extends AdminController
     protected $pmdKdsOptionsByOrderMenuIdV83 = null;
     protected $pmdKdsOptionNamesByMenuOptionIdV83 = null;
     protected $pmdKdsCategoriesByMenuIdV83 = [];
+
+    /* PMD_KDS_OPERATIONAL_CORE_V134
+     * Kitchen Display is an operational surface, not an order-history browser.
+     * Keep a generous overnight carry-over while excluding zombie tickets left
+     * in kitchen statuses for days/weeks. This changes display scope only; it
+     * never mutates or auto-completes an old order.
+     */
+    private const PMD_KDS_OPERATIONAL_LOOKBACK_HOURS_V134 = 36;
+    private const PMD_KDS_DEFAULT_ORDER_LIMIT_V134 = 50;
 
     public function __construct()
     {
@@ -92,14 +103,37 @@ class KitchenDisplay extends AdminController
         $this->vars['refreshInterval'] = $refreshInterval;
         
         // Can this station change status?
-        $canChangeStatus = $this->station 
-            ? $this->station->can_change_status 
+        $canChangeStatus = $this->station
+            ? (bool)$this->station->can_change_status
             : true;
         $this->vars['canChangeStatus'] = $canChangeStatus;
-        
-        // Get all active stations for the station selector
-        $this->vars['allStations'] = $this->pmdKdsFastCacheRememberV82('pmd_kds_all_stations_v83', 30, function () {
-            return Kds_stations_model::isActive()->ordered()->get();
+
+        // PMD_KDS_OPERATIONAL_CORE_V134: activate settings that already exist
+        // on KDS stations but were previously ignored by the display runtime.
+        $this->vars['showReservations'] = $this->pmdKdsShowReservationsV134();
+        $this->vars['soundEnabled'] = $this->station
+            ? (bool)($this->station->sound_enabled ?? true)
+            : true;
+        $density = strtolower(trim((string)($this->station->display_density ?? 'normal')));
+        $this->vars['displayDensity'] = in_array($density, ['compact', 'normal', 'large'], true)
+            ? $density
+            : 'normal';
+        $this->vars['orderLimit'] = $this->pmdKdsOrderLimitV134();
+        $this->vars['operationalLookbackHours'] = self::PMD_KDS_OPERATIONAL_LOOKBACK_HOURS_V134;
+        $this->vars['stationLocationId'] = $this->pmdKdsStationLocationIdV134();
+
+        // Only show station choices that can belong to the same operational
+        // location. Global stations (NULL location) remain selectable.
+        $stationLocationId = $this->pmdKdsStationLocationIdV134();
+        $stationCacheKey = 'pmd_kds_all_stations_v134_'.($stationLocationId ?: 'all');
+        $this->vars['allStations'] = $this->pmdKdsFastCacheRememberV82($stationCacheKey, 30, function () use ($stationLocationId) {
+            $query = Kds_stations_model::isActive()->ordered();
+            if ($stationLocationId) {
+                $query->where(function ($scope) use ($stationLocationId) {
+                    $scope->whereNull('location_id')->orWhere('location_id', $stationLocationId);
+                });
+            }
+            return $query->get();
         });
         
         // Render standalone view directly using Laravel's view helper
@@ -143,43 +177,41 @@ class KitchenDisplay extends AdminController
      */
     public function index_onRefresh()
     {
-        // Get station from POST data
-        $stationSlug = post('station_slug');
-        if ($stationSlug) {
+        $stationSlug = trim((string)post('station_slug'));
+        if ($stationSlug !== '') {
             $this->station = Kds_stations_model::where('slug', $stationSlug)
                 ->where('is_active', true)
                 ->first();
-        }
-        // PMD v82: cached kitchen status IDs.
-        $kitchenStatusIds = $this->pmdKitchenStatusIdsV82();
 
-        $ordersQuery = Orders_model::with(['status', 'location', 'order_notes'])
-            ->whereIn('status_id', $kitchenStatusIds)
-            ->orderBy('created_at', 'asc')
-            ->limit(150);
-        
-        $orders = $ordersQuery->get();
-        $this->pmdPrimeKdsOrderItemsV83($orders);
-        
-        // Format orders and filter by station categories
-        $formattedOrders = $orders->map(function($order) {
-            return $this->formatOrderForDisplay($order);
-        })->filter(function($order) {
-            // Filter out orders with no items (happens when all items are filtered out by station)
-            return count($order['items']) > 0;
-        })->values()->toArray();
-        
-        // Convert dates to ISO strings for JavaScript
-        foreach ($formattedOrders as &$orderData) {
-            if (isset($orderData['created_at'])) {
-                if (is_object($orderData['created_at']) && method_exists($orderData['created_at'], 'toIso8601String')) {
-                    $orderData['created_at'] = $orderData['created_at']->toIso8601String();
-                }
+            if (!$this->station) {
+                return Response::json([
+                    'success' => false,
+                    'error' => 'KDS station is unavailable',
+                ], 404);
             }
         }
-        
+
+        $formattedOrders = $this->pmdKdsLoadOperationalOrdersV134()
+            ->map(function ($orderData) {
+                foreach (['created_at', 'status_updated_at'] as $dateKey) {
+                    if (
+                        isset($orderData[$dateKey])
+                        && is_object($orderData[$dateKey])
+                        && method_exists($orderData[$dateKey], 'toIso8601String')
+                    ) {
+                        $orderData[$dateKey] = $orderData[$dateKey]->toIso8601String();
+                    }
+                }
+                return $orderData;
+            })
+            ->values()
+            ->all();
+
         return Response::json([
-            'orders' => array_values($formattedOrders)
+            'success' => true,
+            'orders' => array_values($formattedOrders),
+            'reservationsCount' => $this->getReservationsCount(),
+            'generatedAt' => Carbon::now('Europe/Berlin')->toIso8601String(),
         ]);
     }
 
@@ -188,71 +220,140 @@ class KitchenDisplay extends AdminController
      */
     public function index_onUpdateStatus()
     {
-        $orderId = post('order_id');
-        $statusId = post('status_id');
-        $stationSlug = post('station_slug');
-        $stationName = post('station_name', 'Kitchen');
+        $orderId = (int)post('order_id');
+        $statusId = (int)post('status_id');
+        $stationSlug = trim((string)post('station_slug'));
 
-        if (!$orderId || !$statusId) {
+        if ($orderId < 1 || $statusId < 1) {
             return Response::json([
                 'success' => false,
-                'error' => 'Order ID and Status ID are required'
+                'error' => 'Order ID and Status ID are required',
             ], 400);
         }
 
         try {
+            $station = null;
+            if ($stationSlug !== '') {
+                $station = Kds_stations_model::where('slug', $stationSlug)
+                    ->where('is_active', true)
+                    ->first();
+
+                if (!$station) {
+                    return Response::json([
+                        'success' => false,
+                        'error' => 'KDS station is unavailable',
+                    ], 404);
+                }
+
+                if (!$station->can_change_status) {
+                    return Response::json([
+                        'success' => false,
+                        'error' => 'This station cannot change order status',
+                    ], 403);
+                }
+            }
+
             $order = Orders_model::find($orderId);
             if (!$order) {
                 return Response::json([
                     'success' => false,
-                    'error' => 'Order not found'
+                    'error' => 'Order not found',
                 ], 404);
             }
 
-            // Check if station can change status
-            if ($stationSlug) {
-                $station = Kds_stations_model::where('slug', $stationSlug)->first();
-                if ($station && !$station->can_change_status) {
+            if ($station && (int)($station->location_id ?? 0) > 0) {
+                if ((int)($order->location_id ?? 0) !== (int)$station->location_id) {
                     return Response::json([
                         'success' => false,
-                        'error' => 'This station cannot change order status'
-                    ], 403);
-                }
-                
-                // Check if station can use this status
-                if ($station && !empty($station->status_ids) && !in_array($statusId, $station->status_ids)) {
-                    return Response::json([
-                        'success' => false,
-                        'error' => 'This station cannot set this status'
+                        'error' => 'Order does not belong to this KDS location',
                     ], 403);
                 }
             }
 
-            // Update order status
-            $oldStatusId = $order->status_id;
-            $order->status_id = $statusId;
-            $order->save();
-            
-            // Get status names for notification
-            $newStatus = Statuses_model::find($statusId);
-            $statusName = $newStatus ? $newStatus->status_name : 'Updated';
-            
-            // Create notification with station name
+            $newStatus = Statuses_model::where('status_for', 'order')->find($statusId);
+            if (!$newStatus) {
+                return Response::json([
+                    'success' => false,
+                    'error' => 'Invalid order status',
+                ], 422);
+            }
+
+            if ($station && !empty($station->status_ids)) {
+                $allowedStatusIds = array_map('intval', (array)$station->status_ids);
+                if (!in_array($statusId, $allowedStatusIds, true)) {
+                    return Response::json([
+                        'success' => false,
+                        'error' => 'This station cannot set this status',
+                    ], 403);
+                }
+            }
+
+            if ((int)$order->status_id === $statusId) {
+                return Response::json([
+                    'success' => true,
+                    'message' => 'Order already has this status',
+                    'status_id' => $statusId,
+                    'status_name' => (string)$newStatus->status_name,
+                ]);
+            }
+
+            $staffId = null;
             try {
-                $this->createStationNotification($order, $stationName, $statusName);
-            } catch (\Exception $e) {
-                \Log::warning('Failed to create KDS notification: ' . $e->getMessage());
+                $adminUser = \Admin\Facades\AdminAuth::getUser();
+                $staffId = $adminUser && !empty($adminUser->staff_id)
+                    ? (int)$adminUser->staff_id
+                    : null;
+            } catch (\Throwable $ignored) {
+            }
+
+            $stationName = $station ? (string)$station->name : 'Kitchen';
+            $history = DB::transaction(function () use ($order, $newStatus, $staffId, $stationName) {
+                $history = Status_history_model::createHistory($newStatus, $order, [
+                    'staff_id' => $staffId,
+                    'notify' => false,
+                    'comment' => 'KDS '.$stationName.': '.(string)$newStatus->status_name,
+                ]);
+
+                if (!$history) {
+                    throw new \RuntimeException('Status history rejected the KDS transition.');
+                }
+
+                $order->refresh();
+                return $history;
+            });
+
+            try {
+                $order->fireSystemEvent('admin.statusHistory.added', [$history]);
+            } catch (\Throwable $ignored) {
+            }
+
+            try {
+                $this->createStationNotification(
+                    $order,
+                    $stationName,
+                    (string)$newStatus->status_name
+                );
+            } catch (\Throwable $e) {
+                \Log::warning('Failed to create KDS notification: '.$e->getMessage());
             }
 
             return Response::json([
                 'success' => true,
                 'message' => 'Status updated successfully',
-                'station' => $stationName
+                'station' => $stationName,
+                'status_id' => $statusId,
+                'status_name' => (string)$newStatus->status_name,
             ]);
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
+            \Log::error('KDS status update failed', [
+                'order_id' => $orderId,
+                'status_id' => $statusId,
+                'error' => $e->getMessage(),
+            ]);
+
             return Response::json([
                 'success' => false,
-                'error' => $e->getMessage()
+                'error' => 'Unable to update the order status.',
             ], 500);
         }
     }
@@ -320,29 +421,121 @@ class KitchenDisplay extends AdminController
         });
     }
 
+    protected function pmdKdsStationLocationIdV134()
+    {
+        $locationId = $this->station ? (int)($this->station->location_id ?? 0) : 0;
+        return $locationId > 0 ? $locationId : null;
+    }
+
+    protected function pmdKdsOrderLimitV134()
+    {
+        $configured = $this->station ? (int)($this->station->order_limit ?? 0) : 0;
+        if ($configured < 1) {
+            $configured = self::PMD_KDS_DEFAULT_ORDER_LIMIT_V134;
+        }
+
+        return max(10, min(150, $configured));
+    }
+
+    protected function pmdKdsShowReservationsV134()
+    {
+        if (!$this->station) return true;
+        $value = $this->station->show_reservations;
+        return $value === null ? true : (bool)$value;
+    }
+
+    protected function pmdKdsReservationWindowMinutesV134()
+    {
+        $configured = $this->station ? (int)($this->station->reservation_window_minutes ?? 0) : 0;
+        if ($configured < 1) $configured = 90;
+        return max(15, min(1440, $configured));
+    }
+
+    protected function pmdKdsOperationalOrdersQueryV134()
+    {
+        $query = Orders_model::with(['status', 'location', 'order_notes'])
+            ->whereIn('status_id', $this->pmdKitchenStatusIdsV82());
+
+        $locationId = $this->pmdKdsStationLocationIdV134();
+        if ($locationId) {
+            $query->where('location_id', $locationId);
+        }
+
+        $cutoff = Carbon::now('Europe/Berlin')
+            ->subHours(self::PMD_KDS_OPERATIONAL_LOOKBACK_HOURS_V134);
+
+        try {
+            $columns = DB::getSchemaBuilder()->getColumnListing('orders');
+            $hasOrderDate = in_array('order_date', $columns, true);
+            $hasStatusUpdatedAt = in_array('status_updated_at', $columns, true);
+
+            $query->where(function ($scope) use ($cutoff, $hasOrderDate, $hasStatusUpdatedAt) {
+                $scope->where('created_at', '>=', $cutoff);
+
+                if ($hasOrderDate) {
+                    $scope->orWhereDate('order_date', '>=', $cutoff->toDateString());
+                }
+
+                if ($hasStatusUpdatedAt) {
+                    $scope->orWhere('status_updated_at', '>=', $cutoff);
+                }
+            });
+        } catch (\Throwable $e) {
+            $query->where('created_at', '>=', $cutoff);
+        }
+
+        return $query;
+    }
+
+    protected function pmdKdsLoadOperationalOrdersV134()
+    {
+        $limit = $this->pmdKdsOrderLimitV134();
+        // Category filtering happens after menu bulk-prime. Pull a bounded
+        // candidate set so a sparse station still gets its configured limit.
+        $candidateLimit = min(300, max(120, $limit * 4));
+
+        $orders = $this->pmdKdsOperationalOrdersQueryV134()
+            ->orderBy('created_at', 'desc')
+            ->limit($candidateLimit)
+            ->get();
+
+        $this->pmdPrimeKdsOrderItemsV83($orders);
+
+        $formatted = $orders->map(function ($order) {
+            return $this->formatOrderForDisplay($order);
+        })->filter(function ($order) {
+            return count($order['items']) > 0;
+        })->take($limit)->sortBy(function ($order) {
+            $created = $order['created_at'] ?? null;
+            if (is_object($created) && method_exists($created, 'getTimestamp')) {
+                return $created->getTimestamp();
+            }
+            $ts = strtotime((string)$created);
+            return $ts === false ? 0 : $ts;
+        })->values();
+
+        return $formatted;
+    }
+
+    protected function pmdKdsVisibleItemCommentV134($comment)
+    {
+        $comment = trim((string)$comment);
+        if ($comment === '') return '';
+
+        // guest_session is internal QR/table-order transport metadata. It is
+        // useful for merge/accounting logic but is never a kitchen instruction.
+        $comment = preg_replace('/\[guest_session:[^\]]*\]/iu', '', $comment);
+        $comment = trim((string)preg_replace('/\s{2,}/u', ' ', (string)$comment));
+        return trim($comment, " |\t\n\r\0\x0B");
+    }
+
     /**
      * Get all active orders for kitchen display
      * Filters by station categories if station is set
      */
     protected function getActiveOrders()
     {
-        // PMD v82: cached kitchen status IDs.
-        $kitchenStatusIds = $this->pmdKitchenStatusIdsV82();
-
-        $orders = Orders_model::with(['status', 'location', 'order_notes'])
-            ->whereIn('status_id', $kitchenStatusIds)
-            ->orderBy('created_at', 'asc')
-            ->limit(120)
-            ->get();
-        $this->pmdPrimeKdsOrderItemsV83($orders);
-        
-        // Format and filter orders
-        return $orders->map(function($order) {
-                return $this->formatOrderForDisplay($order);
-        })->filter(function($order) {
-            // Filter out orders with no items for this station
-            return count($order['items']) > 0;
-        })->values();
+        return $this->pmdKdsLoadOperationalOrdersV134();
     }
 
 
@@ -447,6 +640,7 @@ class KitchenDisplay extends AdminController
             'order_id' => $order->order_id,
             'order_type_name' => $order->order_type_name,
             'created_at' => $order->created_at,
+            'status_updated_at' => $order->status_updated_at ?? null,
             'elapsed_time' => $this->getElapsedTime($order->created_at),
             'status_id' => $order->status_id,
             'status_name' => $order->status ? $order->status->status_name : 'Unknown',
@@ -488,7 +682,7 @@ class KitchenDisplay extends AdminController
             $itemData = [
                 'name' => $item->name,
                 'quantity' => $item->quantity,
-                'comment' => $item->comment ?? '',
+                'comment' => $this->pmdKdsVisibleItemCommentV134($item->comment ?? ''),
                 'modifiers' => []
             ];
 
@@ -545,16 +739,18 @@ class KitchenDisplay extends AdminController
      */
     protected function getElapsedTime($createdAt)
     {
-        $now = now();
-        $diff = $createdAt->diff($now);
-        
-        if ($diff->h > 0) {
-            return $diff->h . 'h ' . $diff->i . 'm';
-        } elseif ($diff->i > 0) {
-            return $diff->i . 'm';
-        } else {
-            return $diff->s . 's';
+        if (!$createdAt || !is_object($createdAt) || !method_exists($createdAt, 'getTimestamp')) {
+            return '0s';
         }
+
+        $elapsed = max(0, Carbon::now('Europe/Berlin')->getTimestamp() - $createdAt->getTimestamp());
+        $hours = (int)floor($elapsed / 3600);
+        $minutes = (int)floor(($elapsed % 3600) / 60);
+        $seconds = (int)($elapsed % 60);
+
+        if ($hours > 0) return $hours.'h '.$minutes.'m';
+        if ($minutes > 0) return $minutes.'m '.$seconds.'s';
+        return $seconds.'s';
     }
 
     /**
@@ -603,8 +799,48 @@ class KitchenDisplay extends AdminController
      */
     protected function getReservationsCount()
     {
-        return $this->pmdKdsFastCacheRememberV82('pmd_kds_reservations_count_v83', 20, function () {
-            return Reservations_model::count();
+        if (!$this->pmdKdsShowReservationsV134()) return 0;
+
+        $locationId = $this->pmdKdsStationLocationIdV134();
+        $windowMinutes = $this->pmdKdsReservationWindowMinutesV134();
+        $cacheKey = 'pmd_kds_reservations_count_v134_'.($locationId ?: 'all').'_'.$windowMinutes;
+
+        return $this->pmdKdsFastCacheRememberV82($cacheKey, 20, function () use ($locationId, $windowMinutes) {
+            $now = Carbon::now('Europe/Berlin');
+            $end = $now->copy()->addMinutes($windowMinutes);
+
+            $query = Reservations_model::query()
+                ->whereBetween('reserve_date', [
+                    $now->toDateString(),
+                    $end->toDateString(),
+                ]);
+
+            if ($locationId) {
+                $query->where('location_id', $locationId);
+            }
+
+            $count = 0;
+            foreach ($query->get() as $reservation) {
+                try {
+                    if (method_exists($reservation, 'isCanceled') && $reservation->isCanceled()) {
+                        continue;
+                    }
+
+                    $date = substr(trim((string)$reservation->getOriginal('reserve_date')), 0, 10);
+                    $time = substr(trim((string)$reservation->getOriginal('reserve_time')), 0, 8);
+                    if (strlen($time) === 5) $time .= ':00';
+                    if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $date)) continue;
+                    if (!preg_match('/^\d{2}:\d{2}:\d{2}$/', $time)) continue;
+
+                    $start = Carbon::createFromFormat('Y-m-d H:i:s', $date.' '.$time, 'Europe/Berlin');
+                    if ($start && $start->gte($now) && $start->lte($end)) {
+                        $count++;
+                    }
+                } catch (\Throwable $ignored) {
+                }
+            }
+
+            return $count;
         });
     }
 

@@ -46,6 +46,19 @@
     });
   }
 
+  function pmdManagedTableFeatures(value) {
+    var list = value;
+    if (typeof list === 'string') {
+      try { list = JSON.parse(list); }
+      catch (error) { list = []; }
+    }
+    if (!Array.isArray(list)) list = [];
+    var allowed = ['near_window', 'quiet_area', 'accessible'];
+    return allowed.filter(function (feature) {
+      return list.map(function (item) { return clean(item).toLowerCase(); }).indexOf(feature) !== -1;
+    });
+  }
+
   function fetchJson(url, options) {
     var requestOptions =
       Object.assign({}, options || {});
@@ -224,6 +237,7 @@
     var STRIP_MERGED_HEIGHT = 104;
 
     var MINIMUM_GAP = 14;
+    var ONE_ROW_GAP = 18;
     var SNAP_DISTANCE = 20;
     var EDGE_PADDING = 10;
 
@@ -413,30 +427,105 @@
        *
        * Do not measure the temporary 560px post-strip viewport.
        */
-      var realWidth =
-        savedDimensions
-          ? savedDimensions.width
-          : Math.max(
-              1000,
-              Math.round(scroll.clientWidth || 0),
-              Math.round(scrollRect.width || 0)
-            );
+      /* PMD_FULL_FLOOR_VIEWPORT_COVERAGE_BOUNDS_V1_4_14
+       *
+       * V1.4.13 changed Full Floor zoom to native CSS layout zoom. That is the
+       * key difference that makes viewport/zoom bounds safe now:
+       *
+       *   logical viewport requirement = visible pixels / zoom
+       *   rendered requirement         = logical requirement * native zoom
+       *                                = visible pixels
+       *
+       * So a 560px viewport at 80% needs 700 logical px, but those 700 logical
+       * px render to exactly 560px. The Floor does NOT become visually larger
+       * and no extra pan/scroll world is created. It simply makes every pixel
+       * already painted inside the Floor stage a legal table coordinate.
+       *
+       * Persisted table extents remain stronger than viewport coverage, so a
+       * table deliberately saved farther right/down continues to define the
+       * real Floor on refresh and at other zoom levels.
+       *
+       * Do not carry prior FLOOR_WIDTH/FLOOR_HEIGHT forward: current viewport
+       * coverage + persisted table extents are the complete authority. This
+       * prevents zoom history from accumulating an oversized invisible world.
+       */
+      var logicalZoom =
+        Math.max(
+          0.1,
+          Number(state.zoom) || 1
+        );
+
+      var visibleWidth =
+        Math.max(
+          Math.round(scroll.clientWidth || 0),
+          Math.round(scrollRect.width || 0)
+        );
 
       var availableHeight =
-        Math.round(
-          rootRect.bottom -
-          scrollRect.top -
-          12
+        Math.max(
+          0,
+          Math.round(
+            rootRect.bottom -
+            scrollRect.top -
+            12
+          )
+        );
+
+      var visibleHeight =
+        Math.max(
+          availableHeight,
+          Math.round(scroll.clientHeight || 0),
+          Math.round(scrollRect.height || 0)
+        );
+
+      var viewportLogicalWidth =
+        Math.ceil(
+          visibleWidth / logicalZoom
+        );
+
+      var viewportLogicalHeight =
+        Math.ceil(
+          visibleHeight / logicalZoom
+        );
+
+      /* PMD_FLOOR_LOADED_EXTENT_BOUNDS_V1_4_7
+       * Include canonical persisted table coordinates in the logical map size.
+       */
+      var loadedTableLogicalWidth = 0;
+      var loadedTableLogicalHeight = 0;
+      (state.tables || []).forEach(function (table) {
+        if (!table) return;
+        var tableWidth = Math.max(1, Number(table.w) || TABLE_WIDTH);
+        var tableHeight = Math.max(1, Number(table.h) || TABLE_HEIGHT);
+        var tableX = Number(table.x);
+        var tableY = Number(table.y);
+        if (Number.isFinite(tableX)) {
+          loadedTableLogicalWidth = Math.max(
+            loadedTableLogicalWidth,
+            Math.ceil(tableX + tableWidth / 2 + EDGE_PADDING)
+          );
+        }
+        if (Number.isFinite(tableY)) {
+          loadedTableLogicalHeight = Math.max(
+            loadedTableLogicalHeight,
+            Math.ceil(tableY + tableHeight / 2 + EDGE_PADDING)
+          );
+        }
+      });
+
+      var realWidth =
+        Math.max(
+          1000,
+          viewportLogicalWidth,
+          loadedTableLogicalWidth
         );
 
       var realHeight =
-        savedDimensions
-          ? savedDimensions.height
-          : Math.max(
-              560,
-              availableHeight,
-              Math.round(scroll.clientHeight || 0)
-            );
+        Math.max(
+          560,
+          viewportLogicalHeight,
+          loadedTableLogicalHeight
+        );
 
       FLOOR_WIDTH = realWidth;
       FLOOR_HEIGHT = realHeight;
@@ -1138,6 +1227,8 @@
 
             area: area(raw),
 
+            features: pmdManagedTableFeatures(raw.features || raw.table_features),
+
             capacity:
               number(
                 raw.capacity ||
@@ -1174,22 +1265,21 @@
                 )
               ),
 
-            x: clamp(
-              x,
+            /* PMD_FLOOR_EXTENDED_COORDINATE_PERSISTENCE_V1_4_7
+             * Keep persisted upper coordinates intact during hydration.
+             * The measured/dynamic canvas expands to contain them below.
+             * Only the real top/left safety edge is applied here.
+             */
+            x: Math.max(
               TABLE_WIDTH / 2 +
                 EDGE_PADDING,
-              FLOOR_WIDTH -
-                TABLE_WIDTH / 2 -
-                EDGE_PADDING
+              x
             ),
 
-            y: clamp(
-              y,
+            y: Math.max(
               TABLE_HEIGHT / 2 +
                 EDGE_PADDING,
-              FLOOR_HEIGHT -
-                TABLE_HEIGHT / 2 -
-                EDGE_PADDING
+              y
             ),
 
             w: TABLE_WIDTH,
@@ -1349,6 +1439,11 @@
             area:
               members[0].area,
 
+            features:
+              pmdManagedTableFeatures([].concat.apply([], members.map(function (member) {
+                return Array.isArray(member.features) ? member.features : [];
+              }))),
+
             capacity:
               members.reduce(
                 function (total, member) {
@@ -1503,7 +1598,7 @@
 
             cursorX +=
               size.width +
-              MINIMUM_GAP;
+              ONE_ROW_GAP;
           }
         );
 
@@ -1512,7 +1607,7 @@
             FLOOR_WIDTH,
             cursorX +
               EDGE_PADDING -
-              MINIMUM_GAP
+              ONE_ROW_GAP
           ) + 'px';
 
         canvas.style.height =
@@ -1590,6 +1685,35 @@
           '</span>'
         )
         : '';
+    }
+
+    function pmdFeatureBadges(table) {
+      var features = pmdManagedTableFeatures(table && table.features);
+      if (!features.length) return '';
+
+      var locale = root.getAttribute('data-pmd-floor-feature-locale') === 'de' ? 'de' : 'en';
+      var meta = {
+        near_window: {
+          de: 'Am Fenster', en: 'Near window',
+          svg: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="4" width="16" height="16" rx="2"></rect><path d="M4 12h16M12 4v16"></path></svg>'
+        },
+        quiet_area: {
+          de: 'Ruhiger Bereich', en: 'Quiet area',
+          svg: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 5 6 9H3v6h3l5 4z"></path><path d="m16 9 5 6M21 9l-5 6"></path></svg>'
+        },
+        accessible: {
+          de: 'Barrierefrei', en: 'Accessible',
+          svg: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="5" r="2"></circle><path d="M7 9h5l2 5h3M9 9v5a4 4 0 1 0 4 4M13 14l2 6h4"></path></svg>'
+        }
+      };
+
+      return '<span class="pmd-floor-table-features" data-pmd-floor-table-features aria-hidden="true">' +
+        features.map(function (feature) {
+          var item = meta[feature];
+          return '<span class="pmd-floor-table-feature-icon is-' + escapeHtml(feature) + '" title="' +
+            escapeHtml(item[locale] || item.en) + '">' + item.svg + '</span>';
+        }).join('') +
+        '</span>';
     }
 
     function visible(table) {
@@ -2109,6 +2233,8 @@
               ) +
               '</strong>' +
 
+              pmdFeatureBadges(table) +
+
               (
                 meta
                   ? (
@@ -2209,16 +2335,99 @@
         ? state.rowScale
         : state.fullFloorZoom;
 
-      canvas.style.transform =
-        'scale(' +
-        state.zoom +
-        ')';
+      var viewport =
+        canvas.parentElement;
 
-      canvas.parentElement
+      if (!viewport) {
+        return;
+      }
+
+      viewport
         .style.setProperty(
           '--floor-zoom',
           state.zoom
         );
+
+      /* PMD_FULL_FLOOR_NATIVE_LAYOUT_ZOOM_V1_4_13
+       *
+       * One geometry authority for Full Floor zoom:
+       *
+       *   logical Floor size  = FLOOR_WIDTH / FLOOR_HEIGHT
+       *   table coordinates   = unchanged logical coordinates
+       *   rendered size       = logical size * CSS zoom
+       *   browser scroll size = rendered size
+       *
+       * transform:scale() changes paint but not the element's normal layout
+       * box when shrinking, and transformed overflow can differ from the
+       * normal layout box when enlarging.  Previous fixes therefore needed a
+       * second scroll-bound calculation.  At the right/bottom edge Safari can
+       * visibly fight those two geometries.
+       *
+       * CSS layout zoom scales both rendering and scrollable layout together.
+       * There is no scroll-event clamp, no spacer and no camera runtime. Native
+       * overflow:auto is the only viewport authority.
+       */
+      if (state.stripMode) {
+        /*
+         * One row keeps its proven transform + horizontal-scroll behavior.
+         * Remove Full Floor's layout zoom before restoring that mode.
+         */
+        canvas.style.removeProperty(
+          'zoom'
+        );
+
+        canvas.style.transform =
+          'scale(' +
+          state.zoom +
+          ')';
+
+        viewport.style.setProperty(
+          'overflow-x',
+          'auto',
+          'important'
+        );
+
+        viewport.style.setProperty(
+          'overflow-y',
+          'hidden',
+          'important'
+        );
+
+        return;
+      }
+
+      var zoom =
+        Math.max(
+          0.01,
+          Number(state.zoom) || 1
+        );
+
+      /* PMD_FULL_FLOOR_VIEWPORT_COVERAGE_SYNC_V1_4_14
+       * Re-resolve logical bounds AFTER state.zoom changes and BEFORE native
+       * layout zoom is applied. This makes zoom buttons immediately update the
+       * legal drag area without a render loop, timer, observer or scroll clamp.
+       */
+      syncRealFullFloorBounds();
+
+      /* Full Floor: no transform-based scroll geometry. */
+      canvas.style.transform = 'none';
+      canvas.style.setProperty(
+        'zoom',
+        String(zoom)
+      );
+
+      /*
+       * Restore the stylesheet's native overflow:auto authority. With layout
+       * zoom the browser now knows the exact scaled content size itself:
+       * - if the Floor fits, scrollWidth/Height collapse to the viewport;
+       * - if it exceeds the viewport, max scroll ends exactly at the Floor.
+       */
+      viewport.style.removeProperty(
+        'overflow-x'
+      );
+      viewport.style.removeProperty(
+        'overflow-y'
+      );
     }
 
     function fit() {
@@ -2772,6 +2981,9 @@ function saveLayout() {
               state.payload,
               results[2] || {}
             );
+
+          /* PMD_FLOOR_RELOAD_EXTENT_SYNC_V1_4_7 */
+          syncRealFullFloorBounds();
 
           render();
           scheduleReservationBusyBoundary();
@@ -5405,42 +5617,47 @@ function saveLayout() {
        */
       var horizontalPadding = 24;
       var verticalPadding = 22;
-      var gap = 18;
+      var gap = ONE_ROW_GAP;
       var cursorLeft = horizontalPadding;
       var maximumHeight = 0;
 
       cards.forEach(
         function (node) {
-          var rect =
-            node.getBoundingClientRect();
+          /* PMD_ONE_ROW_CANONICAL_GEOMETRY_V1_4_15_1
+           *
+           * Never derive One-row placement from rendered DOM measurements.
+           * During the Full Floor -> One row structural transition the card
+           * can temporarily inherit the previous Full Floor zoom as an
+           * animation scale. Reading transient rendered width and then
+           * writing it back as a logical left-position makes final cards
+           * overlap after the animation ends.
+           *
+           * Use the same canonical dimensions as buildDisplayTables():
+           *   normal table: 108 x 88
+           *   merged row card: 270 x 104
+           *   fixed row gap: ONE_ROW_GAP (18)
+           *
+           * This is independent of Full Floor zoom, browser animation phase,
+           * device pixel ratio and CSS layout zoom.
+           */
+          var merged =
+            node.classList.contains(
+              'is-merged-card'
+            );
 
           var width =
-            Math.round(
-              rect.width ||
-              (
-                node.classList.contains(
-                  'is-merged-card'
-                )
-                  ? 132
-                  : 108
-              )
-            );
+            merged
+              ? STRIP_MERGED_WIDTH
+              : TABLE_WIDTH;
 
           var height =
-            Math.round(
-              rect.height ||
-              (
-                node.classList.contains(
-                  'is-merged-card'
-                )
-                  ? 104
-                  : 88
-              )
-            );
+            merged
+              ? STRIP_MERGED_HEIGHT
+              : TABLE_HEIGHT;
 
           /*
-           * Convert the desired top-left strip position into
-           * the center coordinates required by the table CSS.
+           * Convert desired top-left row placement into the center
+           * coordinates required by permanent translate(-50%, -50%).
            */
           node.style.left =
             (
@@ -7226,6 +7443,21 @@ function saveLayout() {
           instances.push(
             root.__pmdFloorV1
           );
+
+          /* PMD_SHARED_FLOOR_READY_EVENT_V1_4_13
+           * Event-driven only: no retry timer/observer/polling.
+           */
+          window.dispatchEvent(
+            new CustomEvent(
+              'pmd:shared-floor:ready',
+              {
+                detail: {
+                  root: root,
+                  instance: root.__pmdFloorV1
+                }
+              }
+            )
+          );
         }
       }
     );
@@ -7626,6 +7858,21 @@ function saveLayout() {
     var editButton = root.querySelector('[data-pmd-floor-table-edit]');
     if (!panel || !addButton || !editButton) return;
 
+    /* PMD_FLOOR_TABLE_MANAGER_VIEWPORT_PORTAL_V1_4_4
+     * A fixed modal inside a transformed/stacked Floor container can become
+     * centered against that container and can sit below page controls.
+     * Move the existing panel once to document.body; all references below
+     * retain the same DOM node and no second modal/runtime is created.
+     */
+    panel.setAttribute('data-pmd-floor-table-manager-portal', 'true');
+    panel.setAttribute(
+      'data-pmd-floor-table-manager-owner',
+      root.id || 'pmd-r2-shared-floor-canvas-v310'
+    );
+    if (panel.parentElement !== document.body) {
+      document.body.appendChild(panel);
+    }
+
     var form = panel.querySelector('[data-pmd-floor-table-manager-form]');
     var saveButton = panel.querySelector('[data-pmd-floor-table-manager-save]');
     var loading = panel.querySelector('[data-pmd-floor-table-manager-loading]');
@@ -7633,12 +7880,60 @@ function saveLayout() {
     var title = panel.querySelector('[data-pmd-floor-table-manager-title]');
     var subtitle = panel.querySelector('[data-pmd-floor-table-manager-subtitle]');
     var numberLock = panel.querySelector('[data-pmd-floor-table-number-lock]');
+    var qrDownloadButton = panel.querySelector('[data-pmd-floor-table-qr-download]');
     var locationId = asInt(root.getAttribute('data-pmd-floor-table-manager-location'), 0);
     var busy = false;
     var currentMode = 'create';
 
+    // PMD_FLOOR_TABLE_MANAGER_EVENT_BRIDGE_V1_3
+    function emitManagerEvent(name, detail) {
+      var eventDetail = detail && typeof detail === 'object' ? detail : {};
+      eventDetail.root = root;
+      eventDetail.panel = panel;
+      window.dispatchEvent(new CustomEvent(name, { detail: eventDetail }));
+      return eventDetail;
+    }
+
     function field(name) {
       return panel.querySelector('[data-pmd-floor-table-field="' + name + '"]');
+    }
+
+    function featureFields() {
+      return Array.prototype.slice.call(panel.querySelectorAll('[data-pmd-floor-table-feature]'));
+    }
+
+    function managedFeatureValues(value) {
+      var list = value;
+      if (typeof list === 'string') {
+        try { list = JSON.parse(list); }
+        catch (error) { list = []; }
+      }
+      if (!Array.isArray(list)) list = [];
+
+      var allowed = ['near_window', 'quiet_area', 'accessible'];
+      var normalized = list.map(function (item) {
+        return asText(item).replace(/\s+/g, ' ').trim().toLowerCase();
+      });
+
+      return allowed.filter(function (feature) {
+        return normalized.indexOf(feature) !== -1;
+      });
+    }
+
+    function selectedFeatures() {
+      return managedFeatureValues(
+        featureFields()
+          .filter(function (node) { return node.checked; })
+          .map(function (node) { return node.value; })
+      );
+    }
+
+    function setFeatureValues(values) {
+      var selected = managedFeatureValues(values);
+      featureFields().forEach(function (node) {
+        var value = asText(node.value).replace(/\s+/g, ' ').trim().toLowerCase();
+        node.checked = selected.indexOf(value) !== -1;
+      });
     }
 
     function state() {
@@ -7763,6 +8058,7 @@ function saveLayout() {
       ].forEach(function (name) {
         setValue(name, table ? table[name] : '');
       });
+      setFeatureValues(table ? table.table_features : []);
 
       numberField.setAttribute('data-number-locked', locked ? '1' : '0');
       numberField.disabled = locked;
@@ -7774,6 +8070,11 @@ function saveLayout() {
       subtitle.textContent = currentMode === 'edit'
         ? (panel.getAttribute('data-edit-subtitle') || '')
         : (panel.getAttribute('data-create-subtitle') || '');
+
+      emitManagerEvent('pmd:floor:table-manager:loaded', {
+        table: table || {},
+        mode: currentMode
+      });
     }
 
     function openPanel(mode, tableId) {
@@ -7829,6 +8130,7 @@ function saveLayout() {
           priority: integerValue('priority'),
           reservation_priority: integerValue('reservation_priority'),
           floor_notes: field('floor_notes').value.trim(),
+          table_features: selectedFeatures(),
           table_status: checked('table_status'),
           reservable: checked('reservable'),
           visible_on_floor_plan: checked('visible_on_floor_plan'),
@@ -7837,18 +8139,64 @@ function saveLayout() {
       };
     }
 
+    function downloadQr() {
+      if (!qrDownloadButton || qrDownloadButton.disabled) return;
+      var tableId = asInt(field('table_id') && field('table_id').value, 0);
+      if (tableId < 1) return;
+
+      var originalText = qrDownloadButton.textContent;
+      qrDownloadButton.disabled = true;
+      qrDownloadButton.textContent = panel.getAttribute('data-qr-downloading-label') || 'Preparing…';
+
+      request(root, 'onPmdFloorTableManagerQrDownload', {
+        location_id: locationId,
+        table_id: tableId
+      }).then(function (payload) {
+        if (!payload || !payload.data_url) throw new Error('QR download data is unavailable.');
+        var link = document.createElement('a');
+        link.href = payload.data_url;
+        link.download = payload.filename || ('paymydine-table-' + tableId + '-qr.png');
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+      }).catch(function (error) {
+        showError(error);
+      }).then(function () {
+        qrDownloadButton.disabled = false;
+        qrDownloadButton.textContent = originalText;
+      });
+    }
+
     function save() {
       if (busy) return;
       clearErrors();
       setBusy(true);
 
       request(root, 'onPmdFloorTableManagerSave', payload())
-        .then(function () {
+        .then(function (responsePayload) {
+          var detail = emitManagerEvent('pmd:floor:table-manager:saved', {
+            payload: responsePayload || {},
+            mode: currentMode,
+            refreshHandled: false
+          });
+
+          if (detail.refreshHandled) {
+            if (detail.afterSave && typeof detail.afterSave.then === 'function') {
+              return Promise.resolve(detail.afterSave).then(function () {
+                return responsePayload;
+              });
+            }
+            return responsePayload;
+          }
+
           var instance = root.__pmdFloorV1;
           if (instance && typeof instance.refresh === 'function') {
-            return Promise.resolve(instance.refresh());
+            return Promise.resolve(instance.refresh()).then(function () {
+              return responsePayload;
+            });
           }
-          return null;
+
+          return responsePayload;
         })
         .then(function () {
           setBusy(false);
@@ -7877,6 +8225,7 @@ function saveLayout() {
     });
 
     saveButton.addEventListener('click', save);
+    if (qrDownloadButton) qrDownloadButton.addEventListener('click', downloadQr);
 
     panel.querySelectorAll('[data-pmd-floor-table-manager-close]').forEach(function (button) {
       button.addEventListener('click', closePanel);
@@ -7914,7 +8263,13 @@ function saveLayout() {
           selectedDisplayId: selected ? selected.id : null,
           selectedDbTableId: selected ? selected.dbTableId : null,
           qrFieldsInPanel: panel.querySelectorAll('[name*="qr"],[data-pmd-floor-table-field*="qr"]').length,
-          endpoint: root.getAttribute('data-pmd-floor-table-manager-url')
+          endpoint: root.getAttribute('data-pmd-floor-table-manager-url'),
+          eventBridge: true,
+          featureOptions: featureFields().length,
+          qrDownload: Boolean(qrDownloadButton),
+          featureScopeLocal: true,
+          modalPortal: panel.parentElement === document.body,
+          modalOwner: panel.getAttribute('data-pmd-floor-table-manager-owner')
         };
       }
     };
@@ -7926,7 +8281,7 @@ function saveLayout() {
   }
 
   window.PMDFloorInlineTableManagerV1 = {
-    version: '1.0.0',
+    version: '1.2.1',
     mount: mount,
     audit: function () {
       var root = document.querySelector('[data-pmd-floor-table-manager="true"]');

@@ -11,9 +11,252 @@
         ? 'full'
         : 'row';
 
+    /* PMD_FLOOR_SERVER_EXTENDED_COORDINATES_V1_4_7
+     * Upstream legacy display builders can still clamp first-paint x/y to the
+     * old 1000x560 canvas. The canonical table payload already contains the
+     * persisted floor_x/floor_y. Re-adopt only those coordinates here before
+     * canvas dimensions and server DOM are calculated. Table membership,
+     * status, Floor assignment, merge identity and all business data remain
+     * untouched.
+     */
+    if ($floorMode === 'full' && $displayTables) {
+        $pmdCoordinateData = is_array($floorBootstrap['data'] ?? null)
+            ? $floorBootstrap['data']
+            : [];
+        $pmdCoordinateRows = is_array($pmdCoordinateData['tables'] ?? null)
+            ? $pmdCoordinateData['tables']
+            : (is_array($pmdCoordinateData['sections']['floor_plan']['tables'] ?? null)
+                ? $pmdCoordinateData['sections']['floor_plan']['tables']
+                : []);
+
+        $pmdCoordinateById = [];
+        $pmdCoordinateByNumber = [];
+
+        foreach ($pmdCoordinateRows as $pmdCoordinateRow) {
+            if (!is_array($pmdCoordinateRow)) continue;
+
+            $pmdCoordinateFloor = is_array($pmdCoordinateRow['floor'] ?? null)
+                ? $pmdCoordinateRow['floor']
+                : [];
+            $pmdRawX = $pmdCoordinateRow['floor_x'] ?? ($pmdCoordinateFloor['x'] ?? null);
+            $pmdRawY = $pmdCoordinateRow['floor_y'] ?? ($pmdCoordinateFloor['y'] ?? null);
+            if (!is_numeric($pmdRawX) || !is_numeric($pmdRawY)) continue;
+
+            $pmdCoordinate = [
+                'x' => max(64.0, min(10000.0, (float)$pmdRawX)),
+                'y' => max(54.0, min(10000.0, (float)$pmdRawY)),
+            ];
+
+            foreach (['table_id', 'id', 'location_table_id'] as $pmdIdField) {
+                $pmdId = trim((string)($pmdCoordinateRow[$pmdIdField] ?? ''));
+                if ($pmdId !== '') $pmdCoordinateById[$pmdId] = $pmdCoordinate;
+            }
+
+            foreach (['table_no', 'table_number', 'number'] as $pmdNoField) {
+                $pmdNo = trim((string)($pmdCoordinateRow[$pmdNoField] ?? ''));
+                if ($pmdNo !== '') $pmdCoordinateByNumber[$pmdNo] = $pmdCoordinate;
+            }
+        }
+
+        foreach ($displayTables as &$pmdDisplayTable) {
+            if (!is_array($pmdDisplayTable)) continue;
+
+            $pmdResolvedCoordinates = [];
+            $pmdMemberIds = array_values(array_filter(array_map(
+                'strval',
+                (array)($pmdDisplayTable['member_ids'] ?? [])
+            )));
+
+            if (!empty($pmdDisplayTable['is_merged']) && $pmdMemberIds) {
+                foreach ($pmdMemberIds as $pmdMemberId) {
+                    if (isset($pmdCoordinateById[$pmdMemberId])) {
+                        $pmdResolvedCoordinates[] = $pmdCoordinateById[$pmdMemberId];
+                    }
+                }
+            } else {
+                foreach (['dbTableId', 'db_table_id', 'table_id', 'id'] as $pmdIdField) {
+                    $pmdId = trim((string)($pmdDisplayTable[$pmdIdField] ?? ''));
+                    if ($pmdId !== '' && isset($pmdCoordinateById[$pmdId])) {
+                        $pmdResolvedCoordinates[] = $pmdCoordinateById[$pmdId];
+                        break;
+                    }
+                }
+
+                if (!$pmdResolvedCoordinates) {
+                    foreach (['number', 'table_number', 'table_no'] as $pmdNoField) {
+                        $pmdNo = trim((string)($pmdDisplayTable[$pmdNoField] ?? ''));
+                        if ($pmdNo !== '' && isset($pmdCoordinateByNumber[$pmdNo])) {
+                            $pmdResolvedCoordinates[] = $pmdCoordinateByNumber[$pmdNo];
+                            break;
+                        }
+                    }
+                }
+            }
+
+            if ($pmdResolvedCoordinates) {
+                $pmdDisplayTable['x'] = array_sum(array_column($pmdResolvedCoordinates, 'x'))
+                    / count($pmdResolvedCoordinates);
+                $pmdDisplayTable['y'] = array_sum(array_column($pmdResolvedCoordinates, 'y'))
+                    / count($pmdResolvedCoordinates);
+            }
+        }
+        unset($pmdDisplayTable);
+    }
+
     $floorZoom = is_numeric($floorZoom ?? null)
         ? max(0.4, min(1.6, (float)$floorZoom))
         : 1.0;
+
+    /* PMD_SHARED_FLOOR_MULTI_FLOOR_V1
+     * Server-first active-floor filter. The full table set stays in the core
+     * bootstrap; only the first painted DOM is scoped here. The coordinator
+     * later adopts the exact same active floor inside the existing Floor state.
+     */
+    $pmdFloorRegistry = is_array($pmdCleanWorkspaceFloorRegistry ?? null)
+        ? array_values($pmdCleanWorkspaceFloorRegistry)
+        : [];
+    if (!$pmdFloorRegistry) {
+        $pmdFloorRegistry = [[
+            'id' => 'main-floor-'.substr(sha1('main floor'), 0, 10),
+            'name' => 'Main Floor',
+            'sort' => 0,
+        ]];
+    }
+
+    $pmdFloorActive = is_array($pmdCleanWorkspaceFloorActive ?? null)
+        ? $pmdCleanWorkspaceFloorActive
+        : $pmdFloorRegistry[0];
+    $pmdFloorRegistryCount = count($pmdFloorRegistry);
+    $pmdShowFloorTabs = $pmdFloorRegistryCount > 1;
+    $pmdFloorActiveId = trim((string)($pmdFloorActive['id'] ?? '')) ?: (string)$pmdFloorRegistry[0]['id'];
+    $pmdFloorActiveName = trim((string)($pmdFloorActive['name'] ?? '')) ?: 'Main Floor';
+    $pmdFloorActiveCookie = trim((string)($pmdCleanWorkspaceFloorCookie ?? ''));
+    $pmdFloorTableMap = is_array($pmdCleanWorkspaceFloorTableMap ?? null)
+        ? $pmdCleanWorkspaceFloorTableMap
+        : ['by_id' => [], 'by_number' => [], 'by_name' => []];
+
+    $pmdFloorKey = static function ($value): string {
+        $text = preg_replace('/\s+/u', ' ', trim((string)$value)) ?: '';
+        return function_exists('mb_strtolower') ? mb_strtolower($text, 'UTF-8') : strtolower($text);
+    };
+
+    $pmdResolveDisplayFloorName = static function (array $table) use ($pmdFloorTableMap, $pmdFloorKey): string {
+        // PMD_SHARED_FLOOR_MULTI_FLOOR_V1_2_ASSIGNMENT_AUTHORITY
+        // Legacy table floor_name/section metadata must not silently create or
+        // assign PMD Floor maps. Only the explicit canonical table-id map can
+        // move a table away from Main Floor.
+        foreach (['dbTableId', 'db_table_id', 'table_id', 'id'] as $field) {
+            $id = trim((string)($table[$field] ?? ''));
+            if ($id !== '' && !empty($pmdFloorTableMap['by_id'][$id])) {
+                return (string)$pmdFloorTableMap['by_id'][$id];
+            }
+        }
+
+        foreach (['number', 'table_number', 'table_no'] as $field) {
+            $number = $pmdFloorKey($table[$field] ?? '');
+            if ($number !== '' && !empty($pmdFloorTableMap['by_number'][$number])) {
+                return (string)$pmdFloorTableMap['by_number'][$number];
+            }
+        }
+
+        foreach (['name', 'label', 'table_name'] as $field) {
+            $name = $pmdFloorKey($table[$field] ?? '');
+            if ($name !== '' && !empty($pmdFloorTableMap['by_name'][$name])) {
+                return (string)$pmdFloorTableMap['by_name'][$name];
+            }
+        }
+
+        return 'Main Floor';
+    };
+
+    $displayTables = array_values(array_filter($displayTables, static function ($table) use (
+        $pmdResolveDisplayFloorName,
+        $pmdFloorActiveName,
+        $pmdFloorKey
+    ): bool {
+        if (!is_array($table)) return false;
+        return $pmdFloorKey($pmdResolveDisplayFloorName($table)) === $pmdFloorKey($pmdFloorActiveName);
+    }));
+
+    /* PMD_FLOOR_TABLE_FEATURES_V1_4_2
+     * Server-first icons come from the same canonical Floor bootstrap data.
+     */
+    $pmdFloorFeatureAllowed = ['near_window', 'quiet_area', 'accessible'];
+
+    $pmdNormalizeFloorFeatures = static function ($value) use ($pmdFloorFeatureAllowed): array {
+        if (is_string($value)) {
+            $decoded = json_decode($value, true);
+            $value = is_array($decoded) ? $decoded : [];
+        }
+        if (!is_array($value)) return [];
+
+        $selected = [];
+        foreach ($value as $key => $item) {
+            if (!is_int($key) && !ctype_digit((string)$key)) {
+                if (!$item) continue;
+                $item = $key;
+            }
+            $item = strtolower(trim((string)$item));
+            if ($item !== '' && in_array($item, $pmdFloorFeatureAllowed, true)) {
+                $selected[$item] = true;
+            }
+        }
+        return array_values(array_keys($selected));
+    };
+
+    $pmdFloorFeatureData = is_array($floorBootstrap['data'] ?? null)
+        ? $floorBootstrap['data']
+        : [];
+    $pmdFloorFeatureRows = is_array($pmdFloorFeatureData['tables'] ?? null)
+        ? $pmdFloorFeatureData['tables']
+        : (is_array($pmdFloorFeatureData['sections']['floor_plan']['tables'] ?? null)
+            ? $pmdFloorFeatureData['sections']['floor_plan']['tables']
+            : []);
+
+    $pmdFloorTableFeaturesById = [];
+    $pmdFloorTableFeaturesByNumber = [];
+    foreach ($pmdFloorFeatureRows as $pmdFloorFeatureRow) {
+        if (!is_array($pmdFloorFeatureRow)) continue;
+        $pmdFeatures = $pmdNormalizeFloorFeatures(
+            $pmdFloorFeatureRow['features'] ?? $pmdFloorFeatureRow['table_features'] ?? []
+        );
+        $pmdId = trim((string)($pmdFloorFeatureRow['table_id'] ?? $pmdFloorFeatureRow['id'] ?? ''));
+        if ($pmdId !== '') $pmdFloorTableFeaturesById[$pmdId] = $pmdFeatures;
+
+        $pmdNo = trim((string)(
+            $pmdFloorFeatureRow['table_no']
+            ?? $pmdFloorFeatureRow['table_number']
+            ?? $pmdFloorFeatureRow['number']
+            ?? ''
+        ));
+        if ($pmdNo !== '') $pmdFloorTableFeaturesByNumber[$pmdNo] = $pmdFeatures;
+    }
+
+    $pmdFloorFeatureMeta = [
+        'near_window' => ['de' => 'Am Fenster', 'en' => 'Near window'],
+        'quiet_area' => ['de' => 'Ruhiger Bereich', 'en' => 'Quiet area'],
+        'accessible' => ['de' => 'Barrierefrei', 'en' => 'Accessible'],
+    ];
+
+    $pmdFloorFeaturesForDisplay = static function (array $table) use (
+        $pmdFloorTableFeaturesById,
+        $pmdFloorTableFeaturesByNumber,
+        $pmdNormalizeFloorFeatures
+    ): array {
+        foreach (['dbTableId', 'db_table_id', 'table_id', 'id'] as $field) {
+            $id = trim((string)($table[$field] ?? ''));
+            if ($id !== '' && array_key_exists($id, $pmdFloorTableFeaturesById)) {
+                return array_values($pmdFloorTableFeaturesById[$id]);
+            }
+        }
+        foreach (['number', 'table_number', 'table_no'] as $field) {
+            $number = trim((string)($table[$field] ?? ''));
+            if ($number !== '' && array_key_exists($number, $pmdFloorTableFeaturesByNumber)) {
+                return array_values($pmdFloorTableFeaturesByNumber[$number]);
+            }
+        }
+        return $pmdNormalizeFloorFeatures($table['features'] ?? $table['table_features'] ?? []);
+    };
 
     /* PMD_FLOOR_INLINE_TABLE_MANAGER_V1
      * UI visibility is role-based (owner / manager only). Backend repeats the
@@ -67,6 +310,17 @@
             $pmdFloorTableManagerLocationId = 0;
         }
     }
+    if ($pmdFloorTableManagerLocationId < 1) {
+        try {
+            $pmdFloorTableManagerLocationId = max(
+                0,
+                (int)app(\Admin\Services\PmdRoleDashboardDataV1::class)
+                    ->resolveWorkspaceLocation()
+            );
+        } catch (\Throwable $e) {
+            $pmdFloorTableManagerLocationId = 0;
+        }
+    }
 
     $pmdFloorTableManagerLocale = strtolower((string)app()->getLocale());
     $pmdFloorTableManagerLocale = strpos($pmdFloorTableManagerLocale, 'de') === 0 ? 'de' : 'en';
@@ -77,8 +331,8 @@
             'manage' => 'Floor-Tischverwaltung',
             'create_title' => 'Neuen Tisch erstellen',
             'edit_title' => 'Tisch bearbeiten',
-            'create_subtitle' => 'Praktische Tischdaten direkt im Floor verwalten.',
-            'edit_subtitle' => 'Ausgewählten Tisch bearbeiten, ohne die Floor-Seite zu verlassen.',
+            'create_subtitle' => 'Tischnummer, Floor und Plätze verwalten.',
+            'edit_subtitle' => 'Tischnummer, Floor, Plätze und QR verwalten.',
             'number' => 'Tischnummer',
             'section' => 'Bereich / Zone',
             'floor' => 'Floor',
@@ -109,8 +363,8 @@
             'manage' => 'Floor table management',
             'create_title' => 'Create new table',
             'edit_title' => 'Edit table',
-            'create_subtitle' => 'Manage the practical table details directly on the Floor.',
-            'edit_subtitle' => 'Edit the selected table without leaving this Floor page.',
+            'create_subtitle' => 'Manage table number, Floor and capacity.',
+            'edit_subtitle' => 'Manage table number, Floor, capacity and QR.',
             'number' => 'Table number',
             'section' => 'Section / Zone',
             'floor' => 'Floor',
@@ -134,6 +388,28 @@
             'locked' => 'POS/custom table: its number is managed by the existing POS system.',
             'qr' => 'QR remains fully managed by the existing PMD table system. This card never reads or changes QR codes.',
             'select_first' => 'Select one individual table first.',
+        ];
+
+    $pmdFloorRegistryText = $pmdFloorTableManagerLocale === 'de'
+        ? [
+            'add_floor' => 'Floor hinzufügen',
+            'title' => 'Neuen Floor erstellen',
+            'subtitle' => 'Erstelle eine weitere Floor-Map für diesen Restaurant-Standort.',
+            'name' => 'Floor-Name',
+            'placeholder' => 'z. B. Erdgeschoss, Terrasse oder 1. Etage',
+            'cancel' => 'Abbrechen',
+            'create' => 'Floor erstellen',
+            'required' => 'Bitte einen Floor-Namen eingeben.',
+        ]
+        : [
+            'add_floor' => 'Add floor',
+            'title' => 'Create new floor',
+            'subtitle' => 'Create another Floor map for this restaurant location.',
+            'name' => 'Floor name',
+            'placeholder' => 'For example Ground floor, Terrace or First floor',
+            'cancel' => 'Cancel',
+            'create' => 'Create floor',
+            'required' => 'Floor name is required.',
         ];
 
     /* PMD_FLOOR_RESERVATION_BUSY_WINDOWS_V1_2
@@ -235,6 +511,26 @@
     if ($floorBootstrapJson === false) {
         $floorBootstrapJson = '{}';
     }
+
+    $pmdSharedFloorMultiFloorJson = json_encode([
+        'version' => 1,
+        'location_id' => $pmdFloorTableManagerLocationId,
+        'cookie_name' => $pmdFloorActiveCookie,
+        'floors' => $pmdFloorRegistry,
+        'floor_count' => $pmdFloorRegistryCount,
+        'active' => [
+            'id' => $pmdFloorActiveId,
+            'name' => $pmdFloorActiveName,
+        ],
+        'table_floor_map' => $pmdFloorTableMap,
+        'can_manage' => $pmdFloorCanManageTables,
+        'registry_url' => $pmdFloorCanManageTables ? admin_url('managerlab') : '',
+        'registry_read_url' => request()->url(),
+        'text' => [
+            'name_required' => $pmdFloorRegistryText['required'],
+        ],
+    ], JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT);
+    if ($pmdSharedFloorMultiFloorJson === false) $pmdSharedFloorMultiFloorJson = '{}';
 @endphp
 
 <section
@@ -242,6 +538,8 @@
     class="pmd-floor-v1 pmd-dashboard-lab-exact-floor-v1{{ $floorMode === 'row' ? ' is-strip-mode is-strip-calibrated' : '' }}"
     data-pmd-floor
     data-pmd-dashboard-lab-exact-floor="v1"
+    data-pmd-active-floor-id="{{ $pmdFloorActiveId }}"
+    data-pmd-active-floor-name="{{ $pmdFloorActiveName }}"
     data-size="large"
     data-mode="full"
     data-data-url="{{ $endpoints['data'] ?? admin_url('pmd-waiter-dashboard-v9-tenant-data') }}"
@@ -262,6 +560,7 @@
     data-floor-mode-cookie="pmd_dashboard_lab_floor_mode"
     data-floor-zoom-cookie="pmd_dashboard_lab_floor_zoom"
     data-pmd-floor-boot-source="server"
+    data-pmd-floor-feature-locale="{{ $pmdFloorTableManagerLocale }}"
     aria-busy="false"
 >
     <div
@@ -274,6 +573,50 @@
             role="toolbar"
             aria-label="Floor controls"
         >
+            <div
+                class="pmd-shared-floor-switcher"
+                data-pmd-floor-switcher
+                role="tablist"
+                aria-label="Floors"
+                @if(!$pmdShowFloorTabs && !$pmdFloorCanManageTables) hidden @endif
+            >
+                @if($pmdShowFloorTabs)
+                    @foreach($pmdFloorRegistry as $pmdFloorRegistryItem)
+                        @php
+                            $pmdFloorRegistryItemId = trim((string)($pmdFloorRegistryItem['id'] ?? ''));
+                            $pmdFloorRegistryItemName = trim((string)($pmdFloorRegistryItem['name'] ?? '')) ?: 'Floor';
+                            $pmdFloorRegistryItemActive = $pmdFloorRegistryItemId === $pmdFloorActiveId;
+                        @endphp
+                        <button
+                            type="button"
+                            class="pmd-shared-floor-switcher__floor{{ $pmdFloorRegistryItemActive ? ' is-active' : '' }}"
+                            data-pmd-floor-switch="{{ $pmdFloorRegistryItemId }}"
+                            role="tab"
+                            aria-selected="{{ $pmdFloorRegistryItemActive ? 'true' : 'false' }}"
+                        >{{ $pmdFloorRegistryItemName }}</button>
+                    @endforeach
+                @endif
+
+                @if($pmdFloorCanManageTables)
+                    <button
+                        type="button"
+                        class="pmd-shared-floor-switcher__add"
+                        data-pmd-floor-add
+                        aria-label="{{ $pmdFloorRegistryText['add_floor'] }}"
+                        title="{{ $pmdFloorRegistryText['add_floor'] }}"
+                    >
+                        <svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12h14"></path></svg>
+                        <span>{{ $pmdFloorRegistryText['add_floor'] }}</span>
+                    </button>
+                @endif
+            </div>
+            <span
+                class="pmd-shared-floor-switcher__divider"
+                data-pmd-floor-switcher-divider
+                aria-hidden="true"
+                @if(!$pmdShowFloorTabs && !$pmdFloorCanManageTables) hidden @endif
+            ></span>
+
             @if($pmdFloorCanManageTables)
                 <button
                     type="button"
@@ -376,6 +719,7 @@
                                 ? 'busy'
                                 : ($status === 'reserved' ? 'rangeReservation' : ''));
                         $isMerged = !empty($table['is_merged']);
+                        $pmdDisplayFeatures = $pmdFloorFeaturesForDisplay($table);
                     @endphp
 
                     <button
@@ -402,6 +746,27 @@
                         @endif
 
                         <strong class="pmd-floor-v1__table-number">{{ $table['number'] }}</strong>
+
+                        @if($pmdDisplayFeatures)
+                            <span class="pmd-floor-table-features" data-pmd-floor-table-features aria-hidden="true">
+                                @foreach($pmdDisplayFeatures as $pmdDisplayFeature)
+                                    @php
+                                        $pmdFeatureLabel = $pmdFloorFeatureMeta[$pmdDisplayFeature][$pmdFloorTableManagerLocale]
+                                            ?? $pmdFloorFeatureMeta[$pmdDisplayFeature]['en']
+                                            ?? $pmdDisplayFeature;
+                                    @endphp
+                                    <span class="pmd-floor-table-feature-icon is-{{ $pmdDisplayFeature }}" title="{{ $pmdFeatureLabel }}">
+                                        @if($pmdDisplayFeature === 'near_window')
+                                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="4" width="16" height="16" rx="2"></rect><path d="M4 12h16M12 4v16"></path></svg>
+                                        @elseif($pmdDisplayFeature === 'quiet_area')
+                                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 5 6 9H3v6h3l5 4z"></path><path d="m16 9 5 6M21 9l-5 6"></path></svg>
+                                        @elseif($pmdDisplayFeature === 'accessible')
+                                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="5" r="2"></circle><path d="M7 9h5l2 5h3M9 9v5a4 4 0 1 0 4 4M13 14l2 6h4"></path></svg>
+                                        @endif
+                                    </span>
+                                @endforeach
+                            </span>
+                        @endif
 
                         @if(!in_array($status, ['available', 'occupied'], true))
                             <span class="pmd-floor-v1__table-meta">{{ str_replace('-', ' ', $status) }}</span>
@@ -443,6 +808,32 @@
     </aside>
 
     @if($pmdFloorCanManageTables)
+        <div class="pmd-floor-registry-manager" data-pmd-floor-add-panel hidden>
+            <button type="button" class="pmd-floor-registry-manager__backdrop" data-pmd-floor-add-close aria-label="{{ $pmdFloorRegistryText['cancel'] }}"></button>
+            <section class="pmd-floor-registry-manager__card" role="dialog" aria-modal="true" aria-labelledby="pmd-floor-registry-manager-title-v1">
+                <header class="pmd-floor-registry-manager__header">
+                    <div>
+                        <h2 id="pmd-floor-registry-manager-title-v1">{{ $pmdFloorRegistryText['title'] }}</h2>
+                        <p>{{ $pmdFloorRegistryText['subtitle'] }}</p>
+                    </div>
+                    <button type="button" class="pmd-floor-registry-manager__close" data-pmd-floor-add-close aria-label="{{ $pmdFloorRegistryText['cancel'] }}">
+                        <svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6 6 18"></path></svg>
+                    </button>
+                </header>
+                <div class="pmd-floor-registry-manager__body">
+                    <label class="pmd-floor-registry-manager__field">
+                        <span>{{ $pmdFloorRegistryText['name'] }}</span>
+                        <input type="text" maxlength="120" data-pmd-floor-add-name placeholder="{{ $pmdFloorRegistryText['placeholder'] }}" autocomplete="off">
+                    </label>
+                    <div class="pmd-floor-registry-manager__error" data-pmd-floor-add-error hidden></div>
+                </div>
+                <footer class="pmd-floor-registry-manager__footer">
+                    <button type="button" class="pmd-floor-registry-manager__cancel" data-pmd-floor-add-close>{{ $pmdFloorRegistryText['cancel'] }}</button>
+                    <button type="button" class="pmd-floor-registry-manager__save" data-pmd-floor-add-save>{{ $pmdFloorRegistryText['create'] }}</button>
+                </footer>
+            </section>
+        </div>
+
         <div
             class="pmd-floor-table-manager"
             data-pmd-floor-table-manager-panel
@@ -453,6 +844,7 @@
             data-save-label="{{ $pmdFloorTableManagerText['save'] }}"
             data-saving-label="{{ $pmdFloorTableManagerText['saving'] }}"
             data-loading-label="{{ $pmdFloorTableManagerText['loading'] }}"
+            data-qr-downloading-label="{{ $pmdFloorTableManagerLocale === 'de' ? 'QR wird vorbereitet…' : 'Preparing QR…' }}"
             data-select-first="{{ $pmdFloorTableManagerText['select_first'] }}"
             hidden
         >
@@ -473,84 +865,106 @@
 
                 <div class="pmd-floor-table-manager__loading" data-pmd-floor-table-manager-loading hidden>{{ $pmdFloorTableManagerText['loading'] }}</div>
 
-                <form class="pmd-floor-table-manager__form" data-pmd-floor-table-manager-form novalidate>
+                <form class="pmd-floor-table-manager__form" data-pmd-floor-table-manager-form data-pmd-floor-table-minimal-v13 data-pmd-floor-single="{{ $pmdShowFloorTabs ? 'false' : 'true' }}" novalidate>
                     <input type="hidden" data-pmd-floor-table-field="table_id" value="0">
 
-                    <div class="pmd-floor-table-manager__grid is-top">
+                    {{-- Compatibility-only state. These fields are intentionally not visible.
+                         Existing backend semantics are preserved while the Owner/Manager card
+                         exposes only the practical inputs requested for daily Floor work. --}}
+                    <div data-pmd-floor-table-manager-hidden hidden>
+                        <input type="hidden" data-pmd-floor-table-field="table_section" value="Main">
+                        <input type="hidden" data-pmd-floor-table-field="floor_shape" value="rectangle">
+                        <input type="hidden" data-pmd-floor-table-field="min_capacity" value="1">
+                        <input type="hidden" data-pmd-floor-table-field="max_capacity" value="2">
+                        <input type="hidden" data-pmd-floor-table-field="extra_capacity" value="0">
+                        <input type="hidden" data-pmd-floor-table-field="priority" value="0">
+                        <input type="hidden" data-pmd-floor-table-field="reservation_priority" value="0">
+                        <input type="checkbox" data-pmd-floor-table-field="table_status" checked>
+                        <input type="checkbox" data-pmd-floor-table-field="reservable" checked>
+                        <input type="checkbox" data-pmd-floor-table-field="visible_on_floor_plan" checked>
+                        <input type="checkbox" data-pmd-floor-table-field="is_joinable" checked>
+                    </div>
+
+                    <div class="pmd-floor-table-manager__minimal-grid">
                         <label class="pmd-floor-table-manager__field">
                             <span>{{ $pmdFloorTableManagerText['number'] }}</span>
                             <input type="number" min="1" step="1" inputmode="numeric" data-pmd-floor-table-field="table_no" required>
                             <small data-pmd-floor-table-number-lock hidden>{{ $pmdFloorTableManagerText['locked'] }}</small>
                         </label>
 
-                        <label class="pmd-floor-table-manager__field">
-                            <span>{{ $pmdFloorTableManagerText['section'] }}</span>
-                            <input type="text" maxlength="120" data-pmd-floor-table-field="table_section" placeholder="Main">
-                        </label>
-
-                        <label class="pmd-floor-table-manager__field">
+                        <label
+                            class="pmd-floor-table-manager__field"
+                            data-pmd-floor-table-floor-field
+                            @if(!$pmdShowFloorTabs) hidden @endif
+                        >
                             <span>{{ $pmdFloorTableManagerText['floor'] }}</span>
-                            <input type="text" maxlength="120" data-pmd-floor-table-field="floor_name" placeholder="Main Floor">
-                        </label>
-
-                        <label class="pmd-floor-table-manager__field">
-                            <span>{{ $pmdFloorTableManagerText['shape'] }}</span>
-                            <select data-pmd-floor-table-field="floor_shape">
-                                <option value="rectangle">Rectangle</option>
-                                <option value="round">Round</option>
-                                <option value="booth">Booth</option>
-                                <option value="bar">Bar</option>
-                                <option value="custom">Custom</option>
+                            <select data-pmd-floor-table-field="floor_name" required>
+                                @foreach($pmdFloorRegistry as $pmdFloorRegistryItem)
+                                    <option value="{{ $pmdFloorRegistryItem['name'] }}">{{ $pmdFloorRegistryItem['name'] }}</option>
+                                @endforeach
                             </select>
                         </label>
-                    </div>
 
-                    <div class="pmd-floor-table-manager__capacity">
                         <label class="pmd-floor-table-manager__field">
-                            <span>{{ $pmdFloorTableManagerText['min'] }}</span>
-                            <input type="number" min="0" step="1" inputmode="numeric" data-pmd-floor-table-field="min_capacity" required>
-                        </label>
-                        <label class="pmd-floor-table-manager__field">
-                            <span>{{ $pmdFloorTableManagerText['normal'] }}</span>
-                            <input type="number" min="0" step="1" inputmode="numeric" data-pmd-floor-table-field="preferred_capacity">
-                        </label>
-                        <label class="pmd-floor-table-manager__field">
-                            <span>{{ $pmdFloorTableManagerText['max'] }}</span>
-                            <input type="number" min="0" step="1" inputmode="numeric" data-pmd-floor-table-field="max_capacity" required>
-                        </label>
-                        <label class="pmd-floor-table-manager__field">
-                            <span>{{ $pmdFloorTableManagerText['extra'] }}</span>
-                            <input type="number" min="0" step="1" inputmode="numeric" data-pmd-floor-table-field="extra_capacity">
+                            <span>{{ $pmdFloorTableManagerLocale === 'de' ? 'Plätze' : 'Capacity' }}</span>
+                            <input type="number" min="1" max="999" step="1" inputmode="numeric" data-pmd-floor-table-field="preferred_capacity" required>
                         </label>
                     </div>
 
-                    <div class="pmd-floor-table-manager__grid is-priority">
-                        <label class="pmd-floor-table-manager__field">
-                            <span>{{ $pmdFloorTableManagerText['priority'] }}</span>
-                            <input type="number" min="0" max="9999" step="1" inputmode="numeric" data-pmd-floor-table-field="priority">
-                        </label>
-                        <label class="pmd-floor-table-manager__field">
-                            <span>{{ $pmdFloorTableManagerText['reservation_priority'] }}</span>
-                            <input type="number" min="0" max="9999" step="1" inputmode="numeric" data-pmd-floor-table-field="reservation_priority">
-                        </label>
-                    </div>
-
-                    <div class="pmd-floor-table-manager__switches">
-                        <label class="pmd-floor-table-manager__switch"><input type="checkbox" data-pmd-floor-table-field="table_status"><span>{{ $pmdFloorTableManagerText['enabled'] }}</span></label>
-                        <label class="pmd-floor-table-manager__switch"><input type="checkbox" data-pmd-floor-table-field="reservable"><span>{{ $pmdFloorTableManagerText['reservable'] }}</span></label>
-                        <label class="pmd-floor-table-manager__switch"><input type="checkbox" data-pmd-floor-table-field="visible_on_floor_plan"><span>{{ $pmdFloorTableManagerText['visible'] }}</span></label>
-                        <label class="pmd-floor-table-manager__switch"><input type="checkbox" data-pmd-floor-table-field="is_joinable"><span>{{ $pmdFloorTableManagerText['joinable'] }}</span></label>
-                    </div>
+                    <fieldset class="pmd-floor-table-manager__features" data-pmd-floor-table-features-picker>
+                        <legend>{{ $pmdFloorTableManagerLocale === 'de' ? 'Tischmerkmale' : 'Table features' }}</legend>
+                        <div class="pmd-floor-table-manager__feature-options">
+                            <label class="pmd-floor-table-manager__feature-option">
+                                <input type="checkbox" value="near_window" data-pmd-floor-table-feature>
+                                <span>
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="4" width="16" height="16" rx="2"></rect><path d="M4 12h16M12 4v16"></path></svg>
+                                    <b>{{ $pmdFloorTableManagerLocale === 'de' ? 'Am Fenster' : 'Near window' }}</b>
+                                </span>
+                            </label>
+                            <label class="pmd-floor-table-manager__feature-option">
+                                <input type="checkbox" value="quiet_area" data-pmd-floor-table-feature>
+                                <span>
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 5 6 9H3v6h3l5 4z"></path><path d="m16 9 5 6M21 9l-5 6"></path></svg>
+                                    <b>{{ $pmdFloorTableManagerLocale === 'de' ? 'Ruhiger Bereich' : 'Quiet area' }}</b>
+                                </span>
+                            </label>
+                            <label class="pmd-floor-table-manager__feature-option">
+                                <input type="checkbox" value="accessible" data-pmd-floor-table-feature>
+                                <span>
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="5" r="2"></circle><path d="M7 9h5l2 5h3M9 9v5a4 4 0 1 0 4 4M13 14l2 6h4"></path></svg>
+                                    <b>{{ $pmdFloorTableManagerLocale === 'de' ? 'Barrierefrei' : 'Accessible' }}</b>
+                                </span>
+                            </label>
+                        </div>
+                    </fieldset>
 
                     <label class="pmd-floor-table-manager__field is-notes">
                         <span>{{ $pmdFloorTableManagerText['notes'] }}</span>
-                        <textarea rows="3" maxlength="1000" data-pmd-floor-table-field="floor_notes" placeholder="{{ $pmdFloorTableManagerText['notes_placeholder'] }}"></textarea>
+                        <textarea rows="2" maxlength="1000" data-pmd-floor-table-field="floor_notes" placeholder="{{ $pmdFloorTableManagerText['notes_placeholder'] }}"></textarea>
                     </label>
 
-                    <div class="pmd-floor-table-manager__qr-note">
-                        <svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="4" width="6" height="6" rx="1"></rect><rect x="14" y="4" width="6" height="6" rx="1"></rect><rect x="4" y="14" width="6" height="6" rx="1"></rect><path d="M14 14h2v2h-2zM18 14h2v6h-6v-2M16 18h2"></path></svg>
-                        <span>{{ $pmdFloorTableManagerText['qr'] }}</span>
-                    </div>
+                    <section class="pmd-floor-table-manager__qr-preview" data-pmd-floor-table-qr-preview aria-label="QR Code">
+                        <div class="pmd-floor-table-manager__qr-pending" data-pmd-floor-table-qr-pending>
+                            <svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="4" width="6" height="6" rx="1"></rect><rect x="14" y="4" width="6" height="6" rx="1"></rect><rect x="4" y="14" width="6" height="6" rx="1"></rect><path d="M14 14h2v2h-2zM18 14h2v6h-6v-2M16 18h2"></path></svg>
+                            <div>
+                                <strong>{{ $pmdFloorTableManagerLocale === 'de' ? 'QR-Code' : 'QR code' }}</strong>
+                                <span>{{ $pmdFloorTableManagerLocale === 'de' ? 'Wird beim ersten Speichern automatisch erstellt.' : 'Created automatically on the first save.' }}</span>
+                            </div>
+                        </div>
+
+                        <div class="pmd-floor-table-manager__qr-content" data-pmd-floor-table-qr-content hidden>
+                            <img data-pmd-floor-table-qr-image alt="QR Code">
+                            <div class="pmd-floor-table-manager__qr-copy">
+                                <strong>{{ $pmdFloorTableManagerLocale === 'de' ? 'QR-Code dieses Tisches' : 'This table QR code' }}</strong>
+                                <span>{{ $pmdFloorTableManagerLocale === 'de' ? 'Öffnet das Kundenmenü für genau diesen Tisch.' : 'Opens the customer menu for this exact table.' }}</span>
+                                <code data-pmd-floor-table-qr-code></code>
+                                <div class="pmd-floor-table-manager__qr-actions">
+                                    <a data-pmd-floor-table-qr-link target="_blank" rel="noopener noreferrer">{{ $pmdFloorTableManagerLocale === 'de' ? 'Kundenmenü öffnen' : 'Open customer menu' }}</a>
+                                    <button type="button" data-pmd-floor-table-qr-download>{{ $pmdFloorTableManagerLocale === 'de' ? 'QR herunterladen' : 'Download QR' }}</button>
+                                </div>
+                            </div>
+                        </div>
+                    </section>
 
                     <div class="pmd-floor-table-manager__error" data-pmd-floor-table-manager-error hidden></div>
                 </form>
@@ -566,4 +980,5 @@
     <div class="pmd-floor-v1__toast" data-floor-toast role="status"></div>
 </section>
 
+<script type="application/json" id="pmd-shared-floor-multi-floor-bootstrap-v1">{!! $pmdSharedFloorMultiFloorJson !!}</script>
 <script type="application/json" id="pmd-dashboard-lab-exact-floor-bootstrap-v1">{!! $floorBootstrapJson !!}</script>

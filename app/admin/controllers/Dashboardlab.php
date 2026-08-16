@@ -67,6 +67,8 @@ class Dashboardlab extends AdminController
         $this->addCss('css/pmd-reservations2-floor-toolbar-v316.css');
         $this->addCss('css/pmd-reservations2-floor-reservation-v312.css');
         $this->addCss('css/pmd-dashboard-lab-exact-floor-v1.css');
+        // PMD_SHARED_FLOOR_DASHBOARDLAB_BRIDGE_V1_3_1
+        $this->addCss('css/pmd-shared-floor-multi-floor-v1.css');
 
         /* PMD_DASHBOARD_LAB_STEP4_ALL_DASHBOARD2_ANALYTICS_ASSETS_V1 */
         $this->addCss('css/pmd-dashboard-lab-analytics-v1.css');
@@ -77,6 +79,8 @@ class Dashboardlab extends AdminController
         // Route-scoped copy of the LIVE Floor V1 core only. Appended legacy
         // observer/retry patches are excluded; first geometry comes from Blade.
         $this->addJs('js/pmd-dashboard-lab-exact-floor-v1.js');
+        // Same coordinator used by Manager/Cashier/Reservations shared Floor.
+        $this->addJs('js/pmd-shared-floor-multi-floor-v1.js');
 
         // Clean route-scoped Analytics renderer. Dashboard2 remains data-only.
         $this->addJs('js/pmd-dashboard-lab-analytics-v1.js');
@@ -135,6 +139,45 @@ class Dashboardlab extends AdminController
             $floorBootstrap['mode'] ?? 'row';
         $this->vars['pmdDashboardLabFloorZoom'] =
             $floorBootstrap['zoom'] ?? 1.0;
+
+        /* PMD_SHARED_FLOOR_DASHBOARDLAB_REGISTRY_BRIDGE_V1_3_1
+         * DashboardLab includes the same shared Floor Blade but is not a
+         * PmdCleanWorkspaceControllerV1 subclass. Resolve the exact same
+         * location-scoped registry here so Owner sees the same Floors as
+         * Manager/Cashier/Reservations and first paint uses the same active
+         * Floor cookie. No second registry or table assignment authority.
+         */
+        try {
+            $pmdFloorLocationId = (int)app(PmdRoleDashboardDataV1::class)
+                ->resolveWorkspaceLocation();
+            $pmdFloorRegistryService = app(\Admin\Services\PmdSharedFloorRegistryV1::class);
+            $pmdFloorRegistrySnapshot = $pmdFloorRegistryService->snapshot($pmdFloorLocationId);
+            $pmdFloorCookieName = (string)($pmdFloorRegistrySnapshot['cookie_name'] ?? '');
+            $pmdFloorRequested = $pmdFloorCookieName !== ''
+                ? (string)request()->cookie($pmdFloorCookieName, '')
+                : '';
+            $pmdFloorActive = $pmdFloorRegistryService->activeFloor(
+                (array)($pmdFloorRegistrySnapshot['floors'] ?? []),
+                $pmdFloorRequested
+            );
+
+            $this->vars['pmdCleanWorkspaceLocationId'] = $pmdFloorLocationId;
+            $this->vars['pmdCleanWorkspaceFloorRegistry'] =
+                array_values((array)($pmdFloorRegistrySnapshot['floors'] ?? []));
+            $this->vars['pmdCleanWorkspaceFloorActive'] = $pmdFloorActive;
+            $this->vars['pmdCleanWorkspaceFloorCookie'] = $pmdFloorCookieName;
+            $this->vars['pmdCleanWorkspaceFloorTableMap'] =
+                (array)($pmdFloorRegistrySnapshot['table_floor_map'] ?? [
+                    'by_id' => [],
+                    'by_number' => [],
+                    'by_name' => [],
+                ]);
+        } catch (\Throwable $error) {
+            logger()->warning('Dashboard Lab shared Floor registry bridge failed', [
+                'type' => get_class($error),
+                'message' => $error->getMessage(),
+            ]);
+        }
 
         /* PMD_DASHBOARD_LAB_ANALYTICS_SCROLL_FIRSTPAINT_V2 */
         // Resolve the two initial Analytics periods before Blade is returned.

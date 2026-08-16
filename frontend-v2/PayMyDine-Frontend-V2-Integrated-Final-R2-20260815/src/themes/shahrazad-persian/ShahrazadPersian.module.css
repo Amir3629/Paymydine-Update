@@ -46,7 +46,7 @@
 .social { display: flex; justify-content: center; padding: 2rem 1rem 0; }
 @media (max-width: 720px) {
   .header { min-height: 6.8rem; padding: .8rem; }
-  .brand span { display: none; }
+  .brand > span:not([data-pmd-restaurant-logo]) { display: none; }
   .phonePanel { grid-template-columns: 1fr 1fr; }
   .phonePanel a { grid-column: 1/-1; }
   .item { grid-template-columns: 7rem minmax(0,1fr); }

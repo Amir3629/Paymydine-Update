@@ -438,6 +438,20 @@ class PushNotificationManager {
                 statusName: statusName,
                 statusColor: statusColor
             });
+
+            // PMD_SHARED_FLOOR_ORDER_BUSY_NOTIFICATION_BRIDGE_V1_4_2
+            // Reuse the notification system's EXISTING 15s cross-device poll.
+            // Floor listeners react to the already-fetched payload without a
+            // second polling loop, observer or extra network request.
+            try {
+                window.dispatchEvent(new CustomEvent('pmd:notification:new', {
+                    detail: {
+                        notification: notif,
+                        payload: payload,
+                        statusName: statusName
+                    }
+                }));
+            } catch (_) {}
             
             console.log('📬 NEW notification (ID:', notifId + '):', title, '|', message);
             

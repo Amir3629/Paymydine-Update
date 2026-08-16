@@ -64,14 +64,18 @@ document.documentElement.classList.add('pmd-restaurant-profile-booting');
     <form
         id="pmd-restaurant-profile-form"
         class="pmd-profile-form"
-        data-request="onSaveRestaurantProfile"
-        data-request-flash
-        data-request-validate
     
         enctype="multipart/form-data"
     
-        data-request-files
+        method="POST"
+    
+        action="{{ admin_url('pmdsettings/restaurant') }}"
+    
+        data-pmd-native-multipart-r22="1"
     >
+        {{-- PMD_NATIVE_MULTIPART_LOGO_UPLOAD_R22 --}}
+        <input type="hidden" name="_token" value="{{ csrf_token() }}">
+
         <section class="pmd-profile-section pmd-profile-section--blue">
             <div class="pmd-profile-card">
                 <div class="pmd-profile-card__header">
@@ -115,9 +119,9 @@ document.documentElement.classList.add('pmd-restaurant-profile-booting');
                                         <small class="pmd-profile-logo-source-r20">Current backend value: {{ $pmdProfile['site_logo'] }}</small>
                                     @endif
                                 </div>
-                                <div id="pmd-restaurant-logo-preview-r19" class="pmd-profile-logo-preview-r19">
-                                    @if(!empty($pmdProfile['site_logo']))
-                                        <img src="{{ $pmdProfile['site_logo_preview'] ?? $pmdProfile['site_logo'] }}" alt="Current restaurant logo">
+                                <div id="pmd-restaurant-logo-preview-r19" class="pmd-profile-logo-preview-r19" data-pmd-logo-preview-r24="{{ $pmdProfile['site_logo_preview'] ?? '' }}">
+                                    @if(!empty($pmdProfile['site_logo_preview']))
+                                        <img src="{{ $pmdProfile['site_logo_preview'] }}" alt="Current restaurant logo" data-pmd-current-restaurant-logo="r24">
                                     @else
                                         <span class="pmd-profile-logo-empty-r19">No restaurant logo selected</span>
                                     @endif
@@ -326,24 +330,120 @@ document.documentElement.classList.add('pmd-restaurant-profile-booting');
 
 <script defer src="/app/admin/assets/js/pmd-settings-restaurant-v1.js?v=20260809_2"></script>
 
-<script id="pmd-restaurant-logo-preview-script-r19">
-// PMD_RESTAURANT_LOGO_PREVIEW_R19
+<script id="pmd-restaurant-native-multipart-r22">
+// PMD_NATIVE_MULTIPART_LOGO_UPLOAD_R22
+(function () {
+    var form = document.getElementById('pmd-restaurant-profile-form');
+    if (!form || !window.fetch || !window.FormData) return;
+
+    function setBusy(busy) {
+        var buttons = document.querySelectorAll('[form="pmd-restaurant-profile-form"], #pmd-restaurant-profile-form button[type="submit"]');
+        for (var i = 0; i < buttons.length; i++) buttons[i].disabled = !!busy;
+    }
+
+    function showError(message) {
+        var text = String(message || 'Restaurant settings could not be saved.');
+        window.alert(text);
+    }
+
+    form.addEventListener('submit', function (event) {
+        event.preventDefault();
+        event.stopImmediatePropagation();
+        if (form.dataset.pmdSubmittingR22 === '1') return false;
+        form.dataset.pmdSubmittingR22 = '1';
+        setBusy(true);
+
+        var payload = new FormData(form);
+        fetch(form.getAttribute('action') || window.location.href, {
+            method: 'POST',
+            credentials: 'same-origin',
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest',
+                'X-IGNITER-REQUEST-HANDLER': 'onSaveRestaurantProfile',
+                'Accept': 'application/json'
+            },
+            body: payload
+        }).then(function (response) {
+            return response.text().then(function (text) {
+                var data = null;
+                try { data = text ? JSON.parse(text) : {}; } catch (ignore) {}
+                if (!response.ok) {
+                    var msg = data && (data.X_IGNITER_ERROR_MESSAGE || data.message) || text || ('HTTP ' + response.status);
+                    throw new Error(msg);
+                }
+                return data || {};
+            });
+        }).then(function () {
+            window.location.reload();
+        }).catch(function (error) {
+            form.dataset.pmdSubmittingR22 = '0';
+            setBusy(false);
+            showError(error && error.message);
+        });
+        return false;
+    }, true);
+})();
+</script>
+
+<script id="pmd-restaurant-logo-preview-script-r24">
+// PMD_RESTAURANT_LOGO_PREVIEW_DB_AUTHORITY_R24
 (function () {
     var input = document.getElementById('pmd-restaurant-logo-r19');
     var preview = document.getElementById('pmd-restaurant-logo-preview-r19');
     if (!input || !preview) return;
+
+    var canonical = String(preview.getAttribute('data-pmd-logo-preview-r24') || '').trim();
+    var localPreview = '';
+
+    function isPlaceholder(url) {
+        var clean = String(url || '').split('?')[0].toLowerCase();
+        return /\/(images?|placeholder|no-image)\.(png|jpe?g|svg)$/.test(clean);
+    }
+
+    function enforceCanonical() {
+        if (localPreview) return;
+        var img = preview.querySelector('img');
+        if (!canonical) {
+            if (img && isPlaceholder(img.getAttribute('src') || img.src)) img.remove();
+            return;
+        }
+        if (!img) {
+            preview.innerHTML = '';
+            img = document.createElement('img');
+            img.alt = 'Current restaurant logo';
+            img.setAttribute('data-pmd-current-restaurant-logo', 'r24');
+            preview.appendChild(img);
+        }
+        var current = String(img.getAttribute('src') || '').trim();
+        if (!current || isPlaceholder(current) || current !== canonical) {
+            img.src = canonical;
+        }
+    }
+
     input.addEventListener('change', function () {
         var file = input.files && input.files[0];
-        if (!file) return;
+        if (!file) {
+            localPreview = '';
+            enforceCanonical();
+            return;
+        }
         var reader = new FileReader();
         reader.onload = function (event) {
+            localPreview = String(event.target && event.target.result || '');
             preview.innerHTML = '';
             var img = document.createElement('img');
             img.alt = 'New restaurant logo preview';
-            img.src = String(event.target && event.target.result || '');
+            img.setAttribute('data-pmd-local-restaurant-logo-preview', 'r24');
+            img.src = localPreview;
             preview.appendChild(img);
         };
         reader.readAsDataURL(file);
     });
+
+    // A narrow observer protects this preview from legacy global media helpers.
+    // It does not observe or rewrite the rest of Admin.
+    var observer = new MutationObserver(function () { enforceCanonical(); });
+    observer.observe(preview, { childList: true, subtree: true, attributes: true, attributeFilter: ['src'] });
+    enforceCanonical();
 })();
 </script>

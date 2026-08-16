@@ -1,4 +1,4 @@
-import type { CartLine, TableContext, TableOrderState } from '@/src/domain/model'
+import type { CartLine, TableContext, TableOrderState, TableOrdersState } from '@/src/domain/model'
 
 type JsonObject = Record<string, unknown>
 
@@ -112,14 +112,34 @@ export async function fetchTableOrder(table: TableContext): Promise<TableOrderSt
   return normalizeTableOrder(data)
 }
 
+// PMD_TABLE_ROUND_INVOICE_R27
+function normalizeTableOrdersState(payload: any): TableOrdersState {
+  return {
+    success: payload?.success !== false,
+    sessionKey: payload?.sessionKey ? String(payload.sessionKey) : null,
+    draft: payload?.draft ? normalizeTableOrder(payload.draft) : null,
+    orders: Array.isArray(payload?.orders) ? payload.orders.map((entry: any) => normalizeTableOrder(entry)) : [],
+    updatedAt: payload?.updatedAt || payload?.updated_at || null,
+  }
+}
+
+export async function fetchTableOrdersState(table: TableContext, guestSessionId = ''): Promise<TableOrdersState> {
+  const params = tableParams(table)
+  if (guestSessionId) params.set('guest_session_id', guestSessionId)
+  const data = await jsonRequest<any>(`/api/v1/table-orders/state?${params.toString()}`)
+  return normalizeTableOrdersState(data)
+}
+
 export async function confirmCartItems(input: {
   table: TableContext
   guestSessionId: string
   lines: CartLine[]
+  confirmationId?: string
 }): Promise<TableOrderState> {
   const payload = {
     ...Object.fromEntries(tableParams(input.table)),
     guest_session_id: input.guestSessionId,
+    confirmation_id: input.confirmationId || `confirm-${Date.now()}-${Math.random().toString(36).slice(2)}`,
     items: input.lines.map((line) => ({
       menu_id: Number(line.item.id) || line.item.id,
       name: line.selectedOptions.length
@@ -133,7 +153,7 @@ export async function confirmCartItems(input: {
       option_details: line.selectedOptions,
     })),
   }
-  return normalizeTableOrder(await jsonRequest('/api/v1/table-order-draft/confirm-items', {
+  return normalizeTableOrder(await jsonRequest('/api/v1/table-orders/confirm-items', {
     method: 'POST', body: JSON.stringify(payload),
   }))
 }
@@ -148,7 +168,7 @@ export async function submitTableOrder(input: {
     draft_id: input.draftId,
     guest_session_id: input.guestSessionId,
   }
-  return normalizeTableOrder(await jsonRequest('/api/v1/table-order-draft/submit', {
+  return normalizeTableOrder(await jsonRequest('/api/v1/table-orders/submit', {
     method: 'POST', body: JSON.stringify(payload),
   }))
 }

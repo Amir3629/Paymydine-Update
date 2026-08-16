@@ -8,12 +8,14 @@
 }
 .logoImage {
   display: block;
-  width: auto;
-  height: auto;
-  max-width: 8rem;
+  width: 6.25rem;
+  height: 2.35rem;
+  max-width: 28vw;
   max-height: 2.35rem;
+  flex: 0 0 auto;
   object-fit: contain;
   object-position: center;
+  filter: drop-shadow(0 0 1px rgba(255,255,255,.88)) drop-shadow(0 1px 2px rgba(0,0,0,.42));
 }
 .logoFallback {
   display: grid;
@@ -90,6 +92,47 @@
 }
 .addButton:disabled { opacity: .45; cursor: not-allowed; }
 .addButton svg { width: 1.1rem; height: 1.1rem; }
+/* PMD_QUICK_ADD_COUNTER_R26B */
+.addCounter {
+  display: inline-grid;
+  min-height: 2.75rem;
+  grid-template-columns: 2.45rem minmax(1.65rem, auto) 2.45rem;
+  flex: 0 0 auto;
+  align-items: center;
+  overflow: hidden;
+  border: 1px solid var(--pmd-accent, currentColor);
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--pmd-accent, currentColor) 10%, var(--pmd-surface, transparent));
+  color: inherit;
+  line-height: 1;
+}
+.addCounterButton {
+  display: grid;
+  width: 2.45rem;
+  height: 2.7rem;
+  place-items: center;
+  border: 0;
+  padding: 0;
+  background: transparent;
+  color: var(--pmd-accent, currentColor);
+  cursor: pointer;
+}
+.addCounterButton:hover,
+.addCounterButton:focus-visible {
+  background: color-mix(in srgb, var(--pmd-accent, currentColor) 13%, transparent);
+  outline: none;
+}
+.addCounterButton:disabled { opacity: .45; cursor: not-allowed; }
+.addCounterButton svg { width: 1rem; height: 1rem; }
+.addCounterValue {
+  min-width: 1.65rem;
+  padding: 0 .15rem;
+  color: inherit;
+  font-size: .82rem;
+  font-weight: 900;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+}
 .footer {
   display: grid;
   gap: .6rem;
@@ -123,6 +166,6 @@
 }
 .footerText { max-width: 32rem; margin: 0; font-size: .78rem; opacity: .62; }
 @media (max-width: 480px) {
-  .logoImage { max-width: 6.75rem; max-height: 2rem; }
+  .logoImage { width: 5.25rem; height: 2rem; max-width: 24vw; max-height: 2rem; object-fit: contain; }
   .logoText { max-width: 8.5rem; }
 }

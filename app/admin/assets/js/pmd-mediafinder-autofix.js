@@ -3,6 +3,7 @@
 
   var __pmdPath = String((window.location && window.location.pathname) || '');
   var __pmdSkip =
+    __pmdPath === '/admin/pmdsettings/restaurant' ||
     __pmdPath === '/admin/kds_stations' ||
     __pmdPath.indexOf('/admin/kds_stations/') === 0 ||
     __pmdPath === '/admin/kds_stations/create' ||

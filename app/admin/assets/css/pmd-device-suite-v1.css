@@ -1,0 +1,401 @@
+/* PMD_DEVICE_SETTINGS_SUITE_V1
+   Shared visual shell for canonical device-management authorities.
+   The old controllers/models/actions remain authoritative; this file changes presentation only. */
+
+body.pmd-device-suite-shell,
+body.pmd-device-suite-shell .page,
+body.pmd-device-suite-shell .page-wrapper,
+body.pmd-device-suite-shell .page-content,
+body.pmd-device-suite-shell .content-wrapper,
+body.pmd-device-suite-shell .container-fluid {
+  background: #f8fbfd !important;
+}
+
+body.pmd-device-suite-shell .navbar-top,
+body.pmd-device-suite-shell .navbar-fixed-top,
+body.pmd-device-suite-shell .page-header,
+body.pmd-device-suite-shell .content-header,
+body.pmd-device-suite-shell .breadcrumb,
+body.pmd-device-suite-shell .breadcrumbs {
+  display: none !important;
+  visibility: hidden !important;
+  height: 0 !important;
+  min-height: 0 !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  overflow: hidden !important;
+}
+
+.pmd-owner-page.pmd-device-suite-page {
+  background: #f8fbfd !important;
+}
+
+.pmd-device-suite-content {
+  width: 100%;
+  min-width: 0;
+}
+
+.pmd-device-suite-content > .row-fluid,
+.pmd-device-suite-content > .container-fluid,
+.pmd-device-suite-content .row-fluid,
+.pmd-device-suite-content .container-fluid {
+  width: 100% !important;
+  max-width: none !important;
+  margin-left: 0 !important;
+  margin-right: 0 !important;
+}
+
+/* Canonical list/form widgets become PMD Settings cards. */
+.pmd-device-suite-content .list-widget,
+.pmd-device-suite-content .form-widget,
+.pmd-device-suite-content .control-list,
+.pmd-device-suite-content .table-responsive,
+.pmd-device-suite-content .panel,
+.pmd-device-suite-content .card,
+.pmd-device-suite-content .tab-content {
+  border: 1px solid #dce8e5 !important;
+  border-radius: 18px !important;
+  background: #fff !important;
+  box-shadow: 0 10px 28px rgba(17,40,35,.045) !important;
+}
+
+.pmd-device-suite-content .list-widget,
+.pmd-device-suite-content .form-widget,
+.pmd-device-suite-content .control-list,
+.pmd-device-suite-content .table-responsive {
+  overflow: hidden !important;
+}
+
+.pmd-device-suite-content .panel,
+.pmd-device-suite-content .card,
+.pmd-device-suite-content .tab-content {
+  overflow: visible !important;
+}
+
+.pmd-device-suite-content .panel-heading,
+.pmd-device-suite-content .card-header,
+.pmd-device-suite-content .list-header,
+.pmd-device-suite-content .form-header {
+  padding: 15px 18px !important;
+  border: 0 !important;
+  border-bottom: 1px solid #e7efec !important;
+  background: linear-gradient(90deg,#e9f9fc 0,#fff 30%,#fff 100%) !important;
+  color: #10211d !important;
+}
+
+/* Toolbar and actions. */
+.pmd-device-suite-content .toolbar,
+.pmd-device-suite-content .list-toolbar,
+.pmd-device-suite-content .form-toolbar,
+.pmd-device-suite-content [class*="toolbar-"] {
+  min-height: 54px !important;
+  display: flex !important;
+  align-items: center !important;
+  gap: 8px !important;
+  flex-wrap: wrap !important;
+  padding: 10px 12px !important;
+  border: 0 !important;
+  border-bottom: 1px solid #e8f0ed !important;
+  background: #fff !important;
+  box-shadow: none !important;
+}
+
+.pmd-owner-page.pmd-device-suite-page .pmd-device-suite-content .btn,
+.pmd-owner-page.pmd-device-suite-page .pmd-device-suite-content button,
+.pmd-owner-page.pmd-device-suite-page .pmd-device-suite-content input[type="submit"],
+.pmd-owner-page.pmd-device-suite-page .pmd-device-suite-content input[type="button"] {
+  min-height: 40px !important;
+  height: auto !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 7px !important;
+  padding: 8px 13px !important;
+  border-radius: 11px !important;
+  border: 1px solid #cfe0dc !important;
+  background: #fff !important;
+  color: #0c5d4d !important;
+  box-shadow: none !important;
+  font-size: 12px !important;
+  font-weight: 780 !important;
+  line-height: 1.2 !important;
+  text-transform: none !important;
+  text-decoration: none !important;
+  transform: none !important;
+}
+
+.pmd-owner-page.pmd-device-suite-page .pmd-device-suite-content .btn:hover,
+.pmd-owner-page.pmd-device-suite-page .pmd-device-suite-content button:hover {
+  border-color: #a9cfc3 !important;
+  background: #f2f8f6 !important;
+  color: #075f4f !important;
+  transform: none !important;
+}
+
+.pmd-owner-page.pmd-device-suite-page .pmd-device-suite-content .btn-primary,
+.pmd-owner-page.pmd-device-suite-page .pmd-device-suite-content .btn-success {
+  border-color: #075f4f !important;
+  background: #075f4f !important;
+  color: #fff !important;
+}
+
+.pmd-owner-page.pmd-device-suite-page .pmd-device-suite-content .btn-danger {
+  border-color: #fecaca !important;
+  background: #fff1f2 !important;
+  color: #b42318 !important;
+}
+
+.pmd-owner-page.pmd-device-suite-page .pmd-device-suite-content .btn-warning,
+.pmd-owner-page.pmd-device-suite-page .pmd-device-suite-content .btn-info {
+  border-color: #c9e0ef !important;
+  background: #f3f8fc !important;
+  color: #225b78 !important;
+}
+
+/* Forms. */
+.pmd-device-suite-content .form-fields,
+.pmd-device-suite-content .form-body,
+.pmd-device-suite-content .card-body,
+.pmd-device-suite-content .panel-body {
+  padding: 16px !important;
+}
+
+.pmd-device-suite-content .form-group,
+.pmd-device-suite-content .field-container,
+.pmd-device-suite-content .control-group {
+  margin-bottom: 16px !important;
+}
+
+.pmd-device-suite-content label,
+.pmd-device-suite-content .control-label {
+  display: block !important;
+  margin: 0 0 6px !important;
+  color: #263e37 !important;
+  font-size: 12px !important;
+  font-weight: 760 !important;
+  line-height: 1.3 !important;
+  letter-spacing: 0 !important;
+  text-transform: none !important;
+}
+
+.pmd-device-suite-content input[type="text"],
+.pmd-device-suite-content input[type="number"],
+.pmd-device-suite-content input[type="email"],
+.pmd-device-suite-content input[type="password"],
+.pmd-device-suite-content input[type="url"],
+.pmd-device-suite-content input[type="search"],
+.pmd-device-suite-content select,
+.pmd-device-suite-content textarea,
+.pmd-device-suite-content .form-control,
+.pmd-device-suite-content .select2-selection,
+.pmd-device-suite-content .selectize-input {
+  min-height: 44px !important;
+  width: 100% !important;
+  border: 1px solid #cfe0ed !important;
+  border-radius: 12px !important;
+  background: #fff !important;
+  color: #17332c !important;
+  box-shadow: none !important;
+  font-size: 13px !important;
+  font-weight: 650 !important;
+}
+
+.pmd-device-suite-content textarea {
+  min-height: 104px !important;
+  padding-top: 10px !important;
+  padding-bottom: 10px !important;
+}
+
+.pmd-device-suite-content input:focus,
+.pmd-device-suite-content select:focus,
+.pmd-device-suite-content textarea:focus,
+.pmd-device-suite-content .form-control:focus {
+  outline: none !important;
+  border-color: #9fc6dc !important;
+  box-shadow: 0 0 0 3px rgba(77,157,199,.10) !important;
+}
+
+.pmd-device-suite-content .help-block,
+.pmd-device-suite-content .form-text,
+.pmd-device-suite-content small.text-muted,
+.pmd-device-suite-content .field-comment {
+  color: #7a8985 !important;
+  font-size: 10px !important;
+  line-height: 1.45 !important;
+}
+
+/* Checkbox and switch groups. */
+.pmd-device-suite-content .checkbox,
+.pmd-device-suite-content .custom-checkbox,
+.pmd-device-suite-content .form-check,
+.pmd-device-suite-content .field-checkboxlist .checkbox {
+  border-radius: 12px !important;
+}
+
+.pmd-device-suite-content .field-checkboxlist,
+.pmd-device-suite-content .checkboxlist {
+  display: grid !important;
+  grid-template-columns: repeat(2,minmax(0,1fr)) !important;
+  gap: 8px !important;
+}
+
+.pmd-device-suite-content .field-checkboxlist .checkbox,
+.pmd-device-suite-content .checkboxlist .checkbox {
+  margin: 0 !important;
+  padding: 10px 12px !important;
+  border: 1px solid #e1ebe8 !important;
+  background: #fbfdfc !important;
+}
+
+/* Lists/tables. */
+.pmd-device-suite-content table {
+  width: 100% !important;
+  margin: 0 !important;
+  border-collapse: separate !important;
+  border-spacing: 0 !important;
+  background: #fff !important;
+}
+
+.pmd-device-suite-content table thead th {
+  padding: 11px 13px !important;
+  border: 0 !important;
+  border-bottom: 1px solid #e5eeeb !important;
+  background: #f8fbfd !important;
+  color: #647773 !important;
+  font-size: 10px !important;
+  font-weight: 850 !important;
+  text-transform: uppercase !important;
+  letter-spacing: .04em !important;
+}
+
+.pmd-device-suite-content table tbody td {
+  padding: 12px 13px !important;
+  border: 0 !important;
+  border-bottom: 1px solid #edf3f1 !important;
+  color: #203a33 !important;
+  font-size: 12px !important;
+  vertical-align: middle !important;
+}
+
+.pmd-device-suite-content table tbody tr:last-child td {
+  border-bottom: 0 !important;
+}
+
+.pmd-device-suite-content table tbody tr:hover td {
+  background: #fbfdfc !important;
+}
+
+/* Filters/search. */
+.pmd-device-suite-content .filter-scope,
+.pmd-device-suite-content .filter-search,
+.pmd-device-suite-content .search-input {
+  border-radius: 12px !important;
+}
+
+/* Tabs: used heavily by biometric and KDS settings. */
+.pmd-device-suite-content .tab-heading,
+.pmd-device-suite-content .nav-tabs {
+  border: 0 !important;
+  background: transparent !important;
+}
+
+.pmd-device-suite-content .nav-tabs {
+  display: flex !important;
+  gap: 8px !important;
+  flex-wrap: wrap !important;
+  margin: 0 0 12px !important;
+  padding: 0 !important;
+}
+
+.pmd-device-suite-content .nav-tabs .nav-link,
+.pmd-device-suite-content .nav-tabs a {
+  min-height: 40px !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 7px !important;
+  padding: 8px 13px !important;
+  border: 1px solid #cfe0dc !important;
+  border-radius: 11px !important;
+  background: #fff !important;
+  color: #36554d !important;
+  font-size: 12px !important;
+  font-weight: 760 !important;
+  text-decoration: none !important;
+}
+
+.pmd-device-suite-content .nav-tabs .nav-link.active,
+.pmd-device-suite-content .nav-tabs li.active > a {
+  border-color: #9fcfc1 !important;
+  background: #e9f8f2 !important;
+  color: #075f4f !important;
+}
+
+/* Alerts and diagnostic panels. */
+.pmd-device-suite-content .alert {
+  border-radius: 13px !important;
+  border: 1px solid #d9e8e4 !important;
+  background: #f8fbfa !important;
+  color: #36554d !important;
+  box-shadow: none !important;
+}
+
+.pmd-device-suite-content .alert-success { background: #edf9f4 !important; border-color: #c7eadc !important; color: #087052 !important; }
+.pmd-device-suite-content .alert-warning { background: #fff8ea !important; border-color: #f5dfad !important; color: #9a5a0a !important; }
+.pmd-device-suite-content .alert-danger { background: #fff1f2 !important; border-color: #fecaca !important; color: #b42318 !important; }
+.pmd-device-suite-content .alert-info { background: #f3f8fc !important; border-color: #c9e0ef !important; color: #225b78 !important; }
+
+/* Remove duplicated legacy page headers while the PMD owner header remains. */
+.pmd-device-suite-page .pmd-kds-settings-v57 > .container-fluid > .d-flex.justify-content-between.align-items-center.mb-4,
+.pmd-device-suite-page .pmd92-top {
+  display: none !important;
+}
+
+/* KDS legacy shells must no longer force a second viewport width. */
+.pmd-device-suite-page .pmd-kds-modern-v58,
+.pmd-device-suite-page [data-pmd-kds-modern-v58="1"],
+.pmd-device-suite-page .pmd92-shell,
+.pmd-device-suite-page .pmd92-layout,
+.pmd-device-suite-page .pmd92-main {
+  width: 100% !important;
+  max-width: none !important;
+  margin-left: 0 !important;
+  margin-right: 0 !important;
+  box-sizing: border-box !important;
+}
+
+.pmd-device-suite-page .pmd92-card,
+.pmd-device-suite-page .pmd92-side-card {
+  border: 1px solid #dce8e5 !important;
+  border-radius: 16px !important;
+  background: #fff !important;
+  box-shadow: none !important;
+}
+
+/* Biometric old page CSS is inline and aggressive; wrapper specificity wins. */
+.pmd-owner-page.pmd-device-suite-page .pmd-device-suite-content .btn-primary,
+.pmd-owner-page.pmd-device-suite-page .pmd-device-suite-content a.btn-primary,
+.pmd-owner-page.pmd-device-suite-page .pmd-device-suite-content button.btn-primary {
+  background: #075f4f !important;
+  border-color: #075f4f !important;
+  color: #fff !important;
+  box-shadow: none !important;
+}
+
+/* Keep the R2O sync overlay viewport-based and above the clean Settings shell. */
+.pmd-device-suite-page #pmd-r2o-sync-overlay {
+  z-index: 2147483000 !important;
+}
+
+@media (max-width: 900px) {
+  .pmd-device-suite-content .field-checkboxlist,
+  .pmd-device-suite-content .checkboxlist {
+    grid-template-columns: 1fr !important;
+  }
+
+  .pmd-device-suite-content .toolbar,
+  .pmd-device-suite-content .list-toolbar,
+  .pmd-device-suite-content .form-toolbar,
+  .pmd-device-suite-content [class*="toolbar-"] {
+    align-items: stretch !important;
+  }
+}

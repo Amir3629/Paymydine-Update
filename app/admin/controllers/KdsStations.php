@@ -62,6 +62,15 @@ class KdsStations extends AdminController
         parent::__construct();
 
         AdminMenu::setContext('kds_stations', 'tools');
+
+        /* PMD_DEVICE_SETTINGS_SUITE_V1_CONTROLLER */
+        $this->bodyClass = trim(($this->bodyClass ?? '').' pmd-settings-suite pmd-owner-settings-page pmd-device-suite-shell');
+        $this->addCss('css/pmd-owner-settings-v1.css');
+        $this->addCss('css/pmd-settings-suite-first-paint-v1.css');
+        $this->addCss('css/pmd-device-suite-v1.css');
+        $this->addJs('js/pmd-owner-settings-v1.js');
+        AdminMenu::setContext('settings', 'system');
+
     }
 
     /**

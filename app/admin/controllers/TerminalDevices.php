@@ -51,6 +51,39 @@ class TerminalDevices extends \Admin\Classes\AdminController
     {
         parent::__construct();
         AdminMenu::setContext('terminal_devices', 'system');
+
+        /* PMD_DEVICE_SETTINGS_SUITE_V1_CONTROLLER */
+        $this->bodyClass = trim(($this->bodyClass ?? '').' pmd-settings-suite pmd-owner-settings-page pmd-device-suite-shell');
+        $this->addCss('css/pmd-owner-settings-v1.css');
+        $this->addCss('css/pmd-settings-suite-first-paint-v1.css');
+        $this->addCss('css/pmd-device-suite-v1.css');
+        $this->addJs('js/pmd-owner-settings-v1.js');
+        AdminMenu::setContext('settings', 'system');
+
+    }
+
+    /* PMD_DEVICE_SETTINGS_SUITE_V1_TERMINAL_ACTIONS */
+    public function index()
+    {
+        $this->asExtension('ListController')->index();
+        return $this->makeView('terminaldevices/index');
+    }
+
+    public function create()
+    {
+        $this->asExtension('FormController')->create();
+        return $this->makeView('terminaldevices/create');
+    }
+
+    public function edit($context = null, $recordId = null)
+    {
+        if ($recordId === null && is_numeric($context)) {
+            $recordId = (int)$context;
+            $context = null;
+        }
+
+        $this->asExtension('FormController')->edit($context, $recordId);
+        return $this->makeView('terminaldevices/edit');
     }
 
     public function formExtendFields($form)

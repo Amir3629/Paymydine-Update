@@ -22,7 +22,7 @@ import { getLabels, isRtlLocale, localizeMenuCategory, localizeMenuItem, type Ui
 import {
   callWaiter as callWaiterApi,
   confirmCartItems,
-  fetchTableOrder,
+  fetchTableOrdersState,
   getGuestSessionId,
   requestValet as requestValetApi,
   sendTableNote as sendTableNoteApi,
@@ -64,12 +64,19 @@ type MenuRuntimeValue = {
   openCheckout: () => void
   openService: (mode: ServiceMode) => void
   closeOverlay: () => void
+  continueOrdering: () => void
   activeOrder: TableOrderState | null
+  currentDraft: TableOrderState | null
+  tableOrders: TableOrderState[]
+  selectedOrder: TableOrderState | null
+  selectedOrderId: number | null
+  selectOrder: (orderId: number | null) => void
+  guestSessionId: string
   orderLoading: boolean
   refreshOrder: () => Promise<void>
   confirmPersonalItems: () => Promise<void>
   submitTableOrder: () => Promise<void>
-  markOrderPaid: (amount?: number) => void
+  markOrderPaid: (orderId: number, amount?: number) => void
   callWaiter: () => Promise<void>
   requestValet: (values: { name: string; licensePlate: string; carMake: string }) => Promise<void>
   sendTableNote: (note: string) => Promise<void>
@@ -175,18 +182,38 @@ export function MenuRuntimeProvider({ bootstrap, children }: { bootstrap: Custom
   const [cart, setCart] = useState<CartLine[]>([])
   const [overlay, setOverlay] = useState<RuntimeOverlay>(null)
   const [serviceMode, setServiceMode] = useState<ServiceMode>('waiter')
-  const [activeOrder, setActiveOrder] = useState<TableOrderState | null>(bootstrap.activeOrder)
+  // PMD_TABLE_ROUND_INVOICE_R27
+  // PMD_TABLE_ROUND_INVOICE_R27D_CLIENT_AUTHORITY
+  // Production ignores the legacy SSR single-order snapshot. Preview can still seed
+  // demo state; real tables immediately hydrate draft + invoice history from the
+  // authoritative /api/v1/table-orders/state endpoint.
+  const previewDraft = isPreview && bootstrap.activeOrder?.status === 'draft' ? bootstrap.activeOrder : null
+  const previewOrders = isPreview && bootstrap.activeOrder && bootstrap.activeOrder.status !== 'draft' ? [bootstrap.activeOrder] : []
+  const [currentDraft, setCurrentDraft] = useState<TableOrderState | null>(previewDraft)
+  const [tableOrders, setTableOrders] = useState<TableOrderState[]>(previewOrders)
+  const [selectedOrderId, setSelectedOrderId] = useState<number | null>(previewOrders[0]?.orderId || null)
+  const [guestSessionId, setGuestSessionId] = useState('')
   const [orderLoading, setOrderLoading] = useState(false)
   const [requestStatus, setRequestStatus] = useState<ServiceRequestStatus>({ kind: 'waiter', state: 'idle', message: '' })
   const [toast, setToast] = useState<ToastState>(null)
   const toastTimer = useRef<number | null>(null)
   const cartHydrated = useRef(false)
-  const previousPaymentStatus = useRef(bootstrap.activeOrder?.paymentStatus || '')
 
   const labels = useMemo(() => getLabels(locale), [locale])
   const direction = isRtlLocale(locale) ? 'rtl' : 'ltr'
   const tableKey = bootstrap.table.valid ? (bootstrap.table.id || bootstrap.table.number || bootstrap.table.qr || 'table') : 'browse'
   const cartStorageKey = `pmd-v2:cart:${bootstrap.tenant.id}:${tableKey}`
+
+  const confirmationStorageKey = `pmd-v2:confirm:${bootstrap.tenant.id}:${tableKey}`
+  const selectedOrder = useMemo(
+    () => tableOrders.find((order) => order.orderId === selectedOrderId) || null,
+    [selectedOrderId, tableOrders],
+  )
+  const activeOrder = useMemo(
+    () => currentDraft || selectedOrder || tableOrders.find((order) => order.totals.remainingAmount > 0) || tableOrders[0] || null,
+    [currentDraft, selectedOrder, tableOrders],
+  )
+  const selectOrder = useCallback((orderId: number | null) => setSelectedOrderId(orderId), [])
 
   const notify = useCallback((kind: 'success' | 'error' | 'info', message: string) => {
     if (toastTimer.current) window.clearTimeout(toastTimer.current)
@@ -327,9 +354,11 @@ export function MenuRuntimeProvider({ bootstrap, children }: { bootstrap: Custom
         : entry)
     })
     setSelectedItem(null)
-    // After an item is added, immediately show the personal-cart confirmation step.
-    // This restores the dine-in flow: item -> Confirm My Items -> shared table order.
-    setOverlay('cart')
+    // PMD_QUICK_ADD_COUNTER_R26B
+    // Adding from a menu card must keep the guest on the menu. Adding from the
+    // item-detail dialog closes only that dialog; My Order opens only when the
+    // guest explicitly taps the cart/order control.
+    setOverlay((current) => current === 'item' ? null : current)
     notify('success', `${item.name} — ${labels.added}`)
   }, [labels.added, notify])
 
@@ -361,7 +390,14 @@ export function MenuRuntimeProvider({ bootstrap, children }: { bootstrap: Custom
   }, [bootstrap.restaurant.currency, locale])
 
   const openCart = useCallback(() => setOverlay('cart'), [])
-  const openCheckout = useCallback(() => setOverlay('checkout'), [])
+  const openCheckout = useCallback(() => {
+    // Checkout always reviews the device-local personal cart first.
+    setOverlay(cart.length > 0 ? 'cart' : 'checkout')
+  }, [cart.length])
+  const continueOrdering = useCallback(() => {
+    setOverlay(null)
+    setSelectedItem(null)
+  }, [])
   const openService = useCallback((mode: ServiceMode) => {
     setServiceMode(mode)
     setRequestStatus({ kind: mode, state: 'idle', message: '' })
@@ -373,35 +409,31 @@ export function MenuRuntimeProvider({ bootstrap, children }: { bootstrap: Custom
   }, [])
 
   const refreshOrder = useCallback(async () => {
-    if (isPreview) return
-    if (!bootstrap.table.valid) return
-    setOrderLoading(true)
+    if (isPreview || (!bootstrap.table.id && !bootstrap.table.number && !bootstrap.table.qr)) return
     try {
-      const next = await fetchTableOrder(bootstrap.table)
-      const before = previousPaymentStatus.current
-      previousPaymentStatus.current = next.paymentStatus
-      setActiveOrder(next.status === 'empty' ? null : next)
-      if (before && before !== 'paid' && next.paymentStatus === 'paid') {
-        notify('success', labels.paid)
-        setOverlay('checkout')
-      }
+      const session = guestSessionId || getGuestSessionId(bootstrap.tenant.id, bootstrap.table)
+      if (!guestSessionId) setGuestSessionId(session)
+      const next = await fetchTableOrdersState(bootstrap.table, session)
+      setCurrentDraft(next.draft)
+      setTableOrders(next.orders)
+      setSelectedOrderId((current) => {
+        if (current && next.orders.some((order) => order.orderId === current)) return current
+        return next.orders.find((order) => order.totals.remainingAmount > 0)?.orderId || next.orders[0]?.orderId || null
+      })
     } catch (error) {
-      if (process.env.NODE_ENV !== 'production') console.debug('[PMD V2] Table-order refresh failed', error)
-    } finally {
-      setOrderLoading(false)
+      if (process.env.NODE_ENV !== 'production') console.debug('[PMD V2] Table-order state refresh failed', error)
     }
-  }, [bootstrap.table, isPreview, labels.paid, notify])
+  }, [bootstrap.table, bootstrap.tenant.id, guestSessionId, isPreview])
 
   useEffect(() => {
-    if (isPreview) return
-    if (!bootstrap.table.valid) return
+    if (isPreview || (!bootstrap.table.id && !bootstrap.table.number && !bootstrap.table.qr)) return
     let cancelled = false
     const run = async () => {
       if (cancelled || document.visibilityState === 'hidden') return
       await refreshOrder()
     }
     void run()
-    const timer = window.setInterval(run, 5000)
+    const timer = window.setInterval(run, 3000)
     const onFocus = () => void run()
     const onVisibility = () => { if (document.visibilityState === 'visible') void run() }
     window.addEventListener('focus', onFocus)
@@ -419,64 +451,84 @@ export function MenuRuntimeProvider({ bootstrap, children }: { bootstrap: Custom
       notify('error', labels.emptyCart)
       return
     }
-    if (!bootstrap.table.valid || (!bootstrap.table.id && !bootstrap.table.number)) {
+    if (!bootstrap.table.id && !bootstrap.table.number) {
       notify('error', labels.scanTableQr)
       return
     }
     setOrderLoading(true)
     try {
-      const guestSessionId = getGuestSessionId(bootstrap.tenant.id, bootstrap.table)
+      const session = guestSessionId || getGuestSessionId(bootstrap.tenant.id, bootstrap.table)
+      if (!guestSessionId) setGuestSessionId(session)
+      const fingerprint = JSON.stringify(cart.map((line) => ({ key: line.key, quantity: line.quantity, subtotal: line.subtotal })))
+      let confirmationId = ''
+      if (!isPreview) {
+        try {
+          const stored = JSON.parse(window.localStorage.getItem(confirmationStorageKey) || 'null') as { fingerprint?: string; id?: string } | null
+          if (stored?.fingerprint === fingerprint && stored.id) confirmationId = stored.id
+        } catch {}
+        if (!confirmationId) {
+          confirmationId = typeof crypto !== 'undefined' && 'randomUUID' in crypto ? crypto.randomUUID() : `confirm-${Date.now()}-${Math.random().toString(36).slice(2)}`
+          try { window.localStorage.setItem(confirmationStorageKey, JSON.stringify({ fingerprint, id: confirmationId })) } catch {}
+        }
+      }
       const next = isPreview
-        ? demoDraft(cart, guestSessionId, activeOrder)
-        : await confirmCartItems({ table: bootstrap.table, guestSessionId, lines: cart })
-      setActiveOrder(next)
+        ? demoDraft(cart, session, currentDraft)
+        : await confirmCartItems({ table: bootstrap.table, guestSessionId: session, lines: cart, confirmationId })
+      setCurrentDraft(next.status === 'draft' ? next : null)
       clearCart()
+      if (!isPreview) { try { window.localStorage.removeItem(confirmationStorageKey) } catch {} }
       setOverlay('checkout')
       notify('success', labels.confirmItems)
+      if (!isPreview) void refreshOrder()
     } catch (error) {
+      // Keep the same confirmation id in localStorage so a lost HTTP response can
+      // be retried without duplicating the guest's food into a later round.
       notify('error', error instanceof Error ? error.message : labels.error)
     } finally {
       setOrderLoading(false)
     }
-  }, [activeOrder, bootstrap.table, bootstrap.tenant.id, cart, clearCart, isPreview, labels.confirmItems, labels.emptyCart, labels.error, labels.scanTableQr, notify])
+  }, [bootstrap.table, bootstrap.tenant.id, cart, clearCart, confirmationStorageKey, currentDraft, guestSessionId, isPreview, labels.confirmItems, labels.emptyCart, labels.error, labels.scanTableQr, notify, refreshOrder])
 
   const submitTableOrder = useCallback(async () => {
-    if (!bootstrap.table.valid) {
+    if (!bootstrap.table.id && !bootstrap.table.number) {
       notify('error', labels.scanTableQr)
       return
     }
-    if (!activeOrder || (activeOrder.status !== 'draft' && !activeOrder.draftId)) return
+    if (!currentDraft?.draftId || currentDraft.status !== 'draft') return
     setOrderLoading(true)
     try {
-      const guestSessionId = getGuestSessionId(bootstrap.tenant.id, bootstrap.table)
-      const next = isPreview
-        ? demoSubmitted(activeOrder)
-        : await submitTableOrderApi({ table: bootstrap.table, draftId: activeOrder.draftId || null, guestSessionId })
-      setActiveOrder(next)
-      previousPaymentStatus.current = next.paymentStatus
+      const session = guestSessionId || getGuestSessionId(bootstrap.tenant.id, bootstrap.table)
+      if (!guestSessionId) setGuestSessionId(session)
+      const submitted = isPreview
+        ? demoSubmitted(currentDraft)
+        : await submitTableOrderApi({ table: bootstrap.table, draftId: currentDraft.draftId, guestSessionId: session })
+      setCurrentDraft(null)
+      setTableOrders((current) => [submitted, ...current.filter((order) => order.orderId !== submitted.orderId)])
+      setSelectedOrderId(submitted.orderId)
       setOverlay('checkout')
       notify('success', labels.submitKitchen)
+      if (!isPreview) void refreshOrder()
     } catch (error) {
       notify('error', error instanceof Error ? error.message : labels.error)
     } finally {
       setOrderLoading(false)
     }
-  }, [activeOrder, bootstrap.table, bootstrap.tenant.id, isPreview, labels.error, labels.scanTableQr, labels.submitKitchen, notify])
+  }, [bootstrap.table, bootstrap.tenant.id, currentDraft, guestSessionId, isPreview, labels.error, labels.scanTableQr, labels.submitKitchen, notify, refreshOrder])
 
-  const markOrderPaid = useCallback((amount?: number) => {
-    setActiveOrder((current) => {
-      if (!current) return current
-      const paidAmount = Number(amount ?? current.totals.remainingAmount ?? current.totals.orderTotal ?? 0)
-      const settledAmount = Math.min(current.totals.orderTotal, current.totals.settledAmount + paidAmount)
-      const remainingAmount = Math.max(0, current.totals.orderTotal - settledAmount)
+  const markOrderPaid = useCallback((orderId: number, amount?: number) => {
+    setTableOrders((current) => current.map((order) => {
+      if (order.orderId !== orderId) return order
+      const paidAmount = Number(amount ?? order.totals.remainingAmount ?? order.totals.orderTotal ?? 0)
+      const settledAmount = Math.min(order.totals.orderTotal, order.totals.settledAmount + paidAmount)
+      const remainingAmount = Math.max(0, order.totals.orderTotal - settledAmount)
       return {
-        ...current,
+        ...order,
         status: remainingAmount <= 0 ? 'paid' : 'partially_paid',
         paymentStatus: remainingAmount <= 0 ? 'paid' : 'partial',
-        totals: { ...current.totals, settledAmount, remainingAmount },
+        totals: { ...order.totals, settledAmount, remainingAmount },
         updatedAt: new Date().toISOString(),
       }
-    })
+    }))
   }, [])
 
   const callWaiter = useCallback(async () => {
@@ -544,12 +596,12 @@ export function MenuRuntimeProvider({ bootstrap, children }: { bootstrap: Custom
     bootstrap, labels, locale, direction, setLocale, search, setSearch, selectedCategory, setSelectedCategory,
     categories, visibleItems, featuredItems, bestsellerItems, selectedItem, openItem, quickAdd, addConfiguredItem,
     cart, cartCount, cartSubtotal, updateCartQuantity, removeCartLine, clearCart, overlay, serviceMode, openCart,
-    openCheckout, openService, closeOverlay, activeOrder, orderLoading, refreshOrder, confirmPersonalItems,
+    openCheckout, openService, closeOverlay, continueOrdering, activeOrder, currentDraft, tableOrders, selectedOrder, selectedOrderId, selectOrder, guestSessionId, orderLoading, refreshOrder, confirmPersonalItems,
     submitTableOrder, markOrderPaid, callWaiter, requestValet, sendTableNote, requestStatus, toast, notify,
     formatCurrency, tableDisplay, isPreview,
   }), [
-    activeOrder, addConfiguredItem, bestsellerItems, bootstrap, callWaiter, cart, cartCount, cartSubtotal, categories,
-    clearCart, closeOverlay, confirmPersonalItems, direction, featuredItems, formatCurrency, isPreview, labels, locale,
+    activeOrder, currentDraft, tableOrders, selectedOrder, selectedOrderId, selectOrder, guestSessionId, addConfiguredItem, bestsellerItems, bootstrap, callWaiter, cart, cartCount, cartSubtotal, categories,
+    clearCart, closeOverlay, continueOrdering, confirmPersonalItems, direction, featuredItems, formatCurrency, isPreview, labels, locale,
     markOrderPaid, notify, openCart, openCheckout, openItem, openService, orderLoading, overlay, quickAdd, refreshOrder,
     removeCartLine, requestStatus, requestValet, sendTableNote, search, selectedCategory, selectedItem, serviceMode,
     setLocale, submitTableOrder, tableDisplay, toast, updateCartQuantity, visibleItems,

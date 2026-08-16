@@ -397,11 +397,21 @@ try {
                         ? (float)$item['floor_y']
                         : 0;
 
+                /* PMD_FLOOR_LAYOUT_EXTENDED_COORDINATE_SAVE_V1_4_7
+                 * floor_x/floor_y are canonical TABLE-CENTRE coordinates.
+                 * The old 1000x560 clamp contradicted the zoom-aware dynamic
+                 * Floor canvas: the browser could drag farther, but POST would
+                 * silently truncate those coordinates before writing the DB.
+                 * Keep only a generous corruption-safety ceiling; actual
+                 * visual legality remains owned by the Floor engine's gap and
+                 * edge checks before this request is sent.
+                 */
+                $maxFloorCoordinate = 10000.0;
                 $updates = [
                     'floor_x' =>
-                        max(0, min(1000 - $width, $x)),
+                        max(0, min($maxFloorCoordinate, $x)),
                     'floor_y' =>
-                        max(0, min(560 - $height, $y)),
+                        max(0, min($maxFloorCoordinate, $y)),
                 ];
 
                 if (isset($columns['floor_width'])) {

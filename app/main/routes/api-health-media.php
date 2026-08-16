@@ -123,6 +123,7 @@ Route::group(['prefix' => 'api'], function () {
             require_once __DIR__.'/api-v1-table-order-support.php';
             require_once __DIR__.'/api-v1-coupon.php';
             require_once __DIR__.'/api-v1-table-order.php';
+require_once __DIR__.'/api-v1-table-order-rounds.php';
             require_once __DIR__.'/api-v1-guest-actions.php';
         });
 });

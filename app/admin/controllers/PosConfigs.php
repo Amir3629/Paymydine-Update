@@ -115,6 +115,15 @@ class PosConfigs extends \Admin\Classes\AdminController
 
         // Set admin menu context for this controller
         AdminMenu::setContext('pos_configs', 'system');
+
+        /* PMD_DEVICE_SETTINGS_SUITE_V1_CONTROLLER */
+        $this->bodyClass = trim(($this->bodyClass ?? '').' pmd-settings-suite pmd-owner-settings-page pmd-device-suite-shell');
+        $this->addCss('css/pmd-owner-settings-v1.css');
+        $this->addCss('css/pmd-settings-suite-first-paint-v1.css');
+        $this->addCss('css/pmd-device-suite-v1.css');
+        $this->addJs('js/pmd-owner-settings-v1.js');
+        AdminMenu::setContext('settings', 'system');
+
     }
 
     public function listExtendQuery($query)
