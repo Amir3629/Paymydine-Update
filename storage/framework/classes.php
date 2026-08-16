@@ -232,4 +232,6 @@
   'Admin\\Controllers\\SuperAdminController' => 'app/admin/controllers/SuperAdminController.php',
   'Admin\\Controllers\\KitchenDisplay' => 'app/admin/controllers/KitchenDisplay.php',
   'Admin\\Controllers\\staffs' => 'app/admin/controllers/Staffs.php',
+  'Admin\\Controllers\\pmdcustomer' => 'app/admin/controllers/Pmdcustomer.php',
+  'Admin\\Controllers\\pmdfinance' => 'app/admin/controllers/Pmdfinance.php',
 );

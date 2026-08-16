@@ -30,8 +30,10 @@ assertContains('src/server/bootstrap.ts', [
 ])
 
 assertContains('src/lib/client-api.ts', [
-  '/api/v1/table-order-draft/confirm-items',
-  '/api/v1/table-order-draft/submit',
+  // PMD_TABLE_ROUND_BACKEND_AUDIT_R28D
+  '/api/v1/table-orders/state',
+  '/api/v1/table-orders/confirm-items',
+  '/api/v1/table-orders/submit',
   '/api/v1/waiter-call',
   '/api/v1/valet-request',
   '/validate-coupon',

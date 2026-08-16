@@ -1,24 +1,8 @@
-<!-- PMD_DEVICE_SETTINGS_SUITE_V1_WRAPPER_START -->
-<div class="pmd-owner-page pmd-device-suite-page" data-pmd-owner-page data-pmd-device-suite="pos_configs-create">
-    @include('admin::pmddevices._suite_header', [
-        'pmdSuiteTitle' => 'Create POS integration',
-        'pmdSuiteBackUrl' => admin_url('pos_configs'),
-    ])
-    <div class="pmd-device-suite-content">
-        <!-- PMD_DEVICE_SETTINGS_SUITE_V1_CANONICAL_CONTENT_START -->
-<div class="row-fluid">
-    {!! form_open([
-        'id' => 'edit-form',
-        'role' => 'form',
-        'method' => 'POST',
-    ]) !!}
-
-    {!! $this->renderForm() !!}
-
-    {!! form_close() !!}
+@include('admin::pmddevices._v2_boot')
+@php $pmdFormWidget = $this->widgets['form'] ?? null; try { if ($pmdFormWidget) $pmdFormWidget->render(['useContainer'=>false]); } catch (\Throwable $e) {} @endphp
+<div id="pmd-restaurant-profile" data-pmd-restaurant-profile data-pmd-device-settings-v2="pos-config-create">
+    @include('admin::pmddevices._v2_header',['pmdSuiteTitle'=>'Create POS integration','pmdSuiteBackUrl'=>admin_url('pos_configs'),'pmdSuiteSave'=>true])
+    {!! form_open(['id'=>'pmd-restaurant-profile-form','role'=>'form','method'=>'POST']) !!}
+    <section class="pmd-profile-section pmd-profile-section--cyan"><div class="pmd-profile-card"><div class="pmd-profile-card__header"><div class="pmd-profile-section-icon"><svg viewBox="0 0 24 24"><path d="M5 6h14M5 12h14M5 18h14"></path></svg></div><div><h2>Integration credentials</h2><p>Provider identity, endpoint and credentials.</p></div></div><div class="pmd-profile-card__body"><div class="pmd-profile-grid pmd-profile-grid--2 pmd-device-native-form">@foreach(['devices','url','username','password','access_token','id_application','sumup_affiliate_key','sumup_reader_id','sumup_pairing_code','sumup_pairing_state','sumup_reader_label','sumup_pos_migration_notice'] as $pmdName) @include('admin::pmddevices._v2_field',['pmdFormWidget'=>$pmdFormWidget,'pmdFieldName'=>$pmdName]) @endforeach</div></div></div></section>
+    <div class="pmd-profile-bottom-save"><button type="button" class="pmd-profile-bottom-save__button" data-request="onSave" data-request-form="#pmd-restaurant-profile-form" data-request-flash><svg viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"></path></svg><span>Save integration</span></button></div>{!! form_close() !!}
 </div>
-
-        <!-- PMD_DEVICE_SETTINGS_SUITE_V1_CANONICAL_CONTENT_END -->
-    </div>
-</div>
-<!-- PMD_DEVICE_SETTINGS_SUITE_V1_WRAPPER_END -->

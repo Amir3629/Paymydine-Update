@@ -63,14 +63,11 @@ class KdsStations extends AdminController
 
         AdminMenu::setContext('kds_stations', 'tools');
 
-        /* PMD_DEVICE_SETTINGS_SUITE_V1_CONTROLLER */
-        $this->bodyClass = trim(($this->bodyClass ?? '').' pmd-settings-suite pmd-owner-settings-page pmd-device-suite-shell');
-        $this->addCss('css/pmd-owner-settings-v1.css');
-        $this->addCss('css/pmd-settings-suite-first-paint-v1.css');
-        $this->addCss('css/pmd-device-suite-v1.css');
-        $this->addJs('js/pmd-owner-settings-v1.js');
+        /* PMD_DEVICE_BACKEND_ONLY_V4
+         * Browser GET pages live under /admin/pmddevices/*. This controller
+         * remains only the canonical action/model/service authority.
+         */
         AdminMenu::setContext('settings', 'system');
-
     }
 
     /**
@@ -78,6 +75,11 @@ class KdsStations extends AdminController
      */
     public function index()
     {
+        /* PMD_DEVICE_LEGACY_UI_REDIRECT_V4_KDS_INDEX */
+        if (request()->isMethod('get') && !request()->ajax()) {
+            return redirect(admin_url('pmddevices/kds'));
+        }
+
 
         // Ensure the table exists
         $this->ensureTableExists();
@@ -92,6 +94,11 @@ class KdsStations extends AdminController
      */
     public function create()
     {
+        /* PMD_DEVICE_LEGACY_UI_REDIRECT_V4_KDS_CREATE */
+        if (request()->isMethod('get') && !request()->ajax()) {
+            return redirect(admin_url('pmddevices/kds/create'));
+        }
+
         /* PMD_KDS_V114_IGNORE_STATUS_ONLY_CREATE */
         if (request()->isMethod('post') && !request()->has('Kds_station') && (request()->has('status') || request()->has('message') || request()->has('clear_after'))) {
             if (request()->ajax() || request()->wantsJson()) {
@@ -118,6 +125,11 @@ class KdsStations extends AdminController
      */
     public function edit($context = null, $recordId = null)
     {
+        /* PMD_DEVICE_LEGACY_UI_REDIRECT_V4_KDS_EDIT */
+        if (request()->isMethod('get') && !request()->ajax()) {
+            return redirect(admin_url('pmddevices/kds/edit/'.(int)basename(request()->path())));
+        }
+
         /* PMD_KDS_V114_IGNORE_STATUS_ONLY_EDIT */
         if (request()->isMethod('post') && !request()->has('Kds_station') && (request()->has('status') || request()->has('message') || request()->has('clear_after'))) {
             if (request()->ajax() || request()->wantsJson()) {
@@ -479,6 +491,28 @@ public function formExtendFields($form)
         return redirect(admin_url('kds_stations'))->with('success', 'KDS station created.');
     }
     /* PMD_KDS_BACKEND_SAVE_V108_END */
+
+
+    /* PMD_DEVICE_NATIVE_KDS_ACTIONS_V4 */
+    public function onPmdDeviceNativeSaveV4($context = null, $recordId = null)
+    {
+        return $this->pmdKdsBackendSaveV108($this->pmdKdsCurrentRecordIdV108());
+    }
+
+    public function onPmdDeviceNativeDeleteV4($context = null, $recordId = null)
+    {
+        $id = $this->pmdKdsCurrentRecordIdV108();
+        if (!$id) {
+            return redirect(admin_url('pmddevices/kds'))->with('error', 'KDS station not found.');
+        }
+        $station = Kds_stations_model::find($id);
+        if (!$station) {
+            return redirect(admin_url('pmddevices/kds'))->with('error', 'KDS station not found.');
+        }
+        $station->delete();
+        flash()->success('KDS station deleted.');
+        return redirect(admin_url('pmddevices/kds'));
+    }
 
 }
 

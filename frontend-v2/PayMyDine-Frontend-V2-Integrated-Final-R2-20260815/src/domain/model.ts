@@ -185,6 +185,8 @@ export type TableOrderState = {
   paymentStatus: 'paid' | 'partial' | 'unpaid' | string
   deliveryStatus: string | null
   statusName: string | null
+  invoiceAvailable?: boolean
+  invoiceDownloadToken?: string | null
   canShowToNewDevice: boolean
   hasActiveTableOrder: boolean
   items: OrderLine[]

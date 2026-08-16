@@ -65,14 +65,11 @@ class CashDrawers extends AdminController
         parent::__construct();
         AdminMenu::setContext('cash_drawers', 'system');
 
-        /* PMD_DEVICE_SETTINGS_SUITE_V1_CONTROLLER */
-        $this->bodyClass = trim(($this->bodyClass ?? '').' pmd-settings-suite pmd-owner-settings-page pmd-device-suite-shell');
-        $this->addCss('css/pmd-owner-settings-v1.css');
-        $this->addCss('css/pmd-settings-suite-first-paint-v1.css');
-        $this->addCss('css/pmd-device-suite-v1.css');
-        $this->addJs('js/pmd-owner-settings-v1.js');
+        /* PMD_DEVICE_BACKEND_ONLY_V4
+         * Browser GET pages live under /admin/pmddevices/*. This controller
+         * remains only the canonical action/model/service authority.
+         */
         AdminMenu::setContext('settings', 'system');
-
     }
 
     /**
@@ -80,6 +77,11 @@ class CashDrawers extends AdminController
      */
     public function create()
     {
+        /* PMD_DEVICE_LEGACY_UI_REDIRECT_V4_DRAWERS_CREATE */
+        if (request()->isMethod('get') && !request()->ajax()) {
+            return redirect(admin_url('pmddevices/drawers/create'));
+        }
+
         $this->asExtension('FormController')->create();
         
         return $this->makeView('cashdrawers/create');
@@ -90,6 +92,11 @@ class CashDrawers extends AdminController
      */
     public function edit($context = null, $recordId = null)
     {
+        /* PMD_DEVICE_LEGACY_UI_REDIRECT_V4_DRAWERS_EDIT */
+        if (request()->isMethod('get') && !request()->ajax()) {
+            return redirect(admin_url('pmddevices/drawers/edit/'.(int)basename(request()->path())));
+        }
+
         $this->asExtension('FormController')->edit($context, $recordId);
         $model = $this->formFindModelObject($recordId);
         $this->vars['localHardwareStatus'] = $this->buildLocalHardwareStatus($model);
@@ -687,4 +694,15 @@ class CashDrawers extends AdminController
         }
         $drawer->save();
     }
+
+    /* PMD_DEVICE_LEGACY_UI_REDIRECT_V4_DRAWERS_INDEX */
+    public function index()
+    {
+        if (request()->isMethod('get') && !request()->ajax()) {
+            return redirect(admin_url('pmddevices/drawers'));
+        }
+        $this->asExtension('ListController')->index();
+        return request()->ajax() ? null : $this->makeView('cashdrawers/index');
+    }
+
 }

@@ -27,13 +27,21 @@ class PosDevices extends \Admin\Classes\AdminController
         parent::__construct();
         AdminMenu::setContext('pos_devices', 'system');
 
-        /* PMD_DEVICE_SETTINGS_SUITE_V1_CONTROLLER */
-        $this->bodyClass = trim(($this->bodyClass ?? '').' pmd-settings-suite pmd-owner-settings-page pmd-device-suite-shell');
-        $this->addCss('css/pmd-owner-settings-v1.css');
-        $this->addCss('css/pmd-settings-suite-first-paint-v1.css');
-        $this->addCss('css/pmd-device-suite-v1.css');
-        $this->addJs('js/pmd-owner-settings-v1.js');
+        /* PMD_DEVICE_BACKEND_ONLY_V4
+         * Browser GET pages live under /admin/pmddevices/*. This controller
+         * remains only the canonical action/model/service authority.
+         */
         AdminMenu::setContext('settings', 'system');
-
     }
+
+    /* PMD_DEVICE_LEGACY_UI_REDIRECT_V4_POS */
+    public function index()
+    {
+        if (request()->isMethod('get') && !request()->ajax()) {
+            return redirect(admin_url('pmddevices/pos'));
+        }
+        $this->asExtension('ListController')->index();
+        return request()->ajax() ? null : $this->makeView('posdevices/index');
+    }
+
 }

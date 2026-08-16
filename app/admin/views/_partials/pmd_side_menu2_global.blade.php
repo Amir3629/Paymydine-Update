@@ -74,15 +74,33 @@
     $pmdIsSettingsSuiteRoute =
         $pmdPath === 'admin/pmdsettings' ||
         str_starts_with($pmdPath, 'admin/pmdsettings/') ||
+        str_starts_with($pmdPath, 'admin/pmddevices') ||
         in_array($pmdPath, [
             'admin/pmdmenu',
             'admin/pmdcustomer',
             'admin/pmdteam',
-            'admin/pmddevices',
             'admin/pmdfinance',
             'admin/pmdbrand',
             'admin/pmdadvanced',
         ], true);
+
+    /* PMD_DEVICE_SETTINGS_SUITE_V2_ROUTE_AUTHORITY
+     * Canonical device CRUD URLs remain unchanged, but they are visually part
+     * of Settings and therefore must receive the same first-paint Side Menu
+     * geometry as /admin/pmdsettings/restaurant.
+     */
+    $pmdIsDeviceSettingsSuiteRoute =
+        str_starts_with($pmdPath, 'admin/posdevices') ||
+        str_starts_with($pmdPath, 'admin/terminal_devices') ||
+        str_starts_with($pmdPath, 'admin/terminaldevices') ||
+        str_starts_with($pmdPath, 'admin/kds_stations') ||
+        str_starts_with($pmdPath, 'admin/cash_drawers') ||
+        str_starts_with($pmdPath, 'admin/biometric_devices') ||
+        str_starts_with($pmdPath, 'admin/biometricdevices') ||
+        str_starts_with($pmdPath, 'admin/pos_configs');
+
+    $pmdIsSettingsSuiteRoute = $pmdIsSettingsSuiteRoute || $pmdIsDeviceSettingsSuiteRoute;
+
 
     $pmdActive = function ($paths) use ($pmdPath) {
         foreach ((array) $paths as $path) {

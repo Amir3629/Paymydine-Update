@@ -1053,7 +1053,9 @@ Route::group([
                 }
                 $lockedOrder->processed = $newSettlementStatus === 'paid' ? 1 : 0;
                 if ($newSettlementStatus === 'paid') {
-                    $lockedOrder->status_id = $paidStatusId;
+                    // PMD_PRESERVE_KITCHEN_STATUS_ON_PAYMENT_R28
+                    // Payment settlement is financial state. Keep the existing kitchen/fulfilment
+                    // status_id (Received/Preparing/Ready/etc.) intact after a mid-service payment.
                     $lockedOrder->settled_at = now();
                 }
                 $lockedOrder->save();
@@ -1396,6 +1398,116 @@ Route::group([
 
         return response()->json(['success' => true, 'data' => ['review_id' => $reviewId]]);
     });
+
+    // PMD_PAID_INVOICE_DOWNLOAD_R28
+    // PMD_CANONICAL_CUSTOMER_INVOICE_R28E
+    // Paid customer invoices now reuse the exact Admin customer-invoice Blade as the
+    // single visual/data authority. No second PDF layout is maintained in this API.
+    // The HMAC table-session capability and full-payment guard from R28 remain required.
+    Route::get('/orders/{order}/paid-invoice', function (\Illuminate\Http\Request $request, $orderId) {
+        $orderId = (int)$orderId;
+        if ($orderId < 1) return response('Invoice not found', 404);
+
+        $token = trim((string)$request->query('token', ''));
+        if ($token === '') return response('Invoice token is required', 403);
+
+        if (!\Illuminate\Support\Facades\Schema::hasTable('pmd_table_order_drafts')) {
+            return response('Invoice session not found', 404);
+        }
+
+        $submittedDraft = \Illuminate\Support\Facades\DB::table('pmd_table_order_drafts')
+            ->where('status', 'submitted')
+            ->where('order_id', $orderId)
+            ->orderByDesc('id')
+            ->first();
+        $sessionKey = trim((string)($submittedDraft->session_key ?? ''));
+        if (!$submittedDraft || $sessionKey === '') return response('Invoice session not found', 404);
+
+        $expectedToken = hash_hmac(
+            'sha256',
+            $request->getHost().'|'.$orderId.'|'.$sessionKey,
+            (string)config('app.key')
+        );
+        if (!hash_equals($expectedToken, $token)) return response('Invalid invoice token', 403);
+
+        $order = \Admin\Models\Orders_model::query()->where('order_id', $orderId)->first();
+        if (!$order) return response('Invoice not found', 404);
+
+        $canonicalTotal = \Illuminate\Support\Facades\DB::table('order_totals')
+            ->where('order_id', $orderId)
+            ->where('code', 'total')
+            ->value('value');
+        $orderTotal = round((float)($canonicalTotal ?? $order->order_total ?? 0), 4);
+        $settledAmount = max(0, round((float)($order->settled_amount ?? 0), 4));
+        $settlementStatus = strtolower(trim((string)($order->settlement_status ?? '')));
+        $isPaid = in_array($settlementStatus, ['paid', 'settled'], true)
+            || ($orderTotal > 0 && $settledAmount >= $orderTotal - 0.0001);
+        if (!$isPaid) return response('Invoice is available after full payment', 409);
+
+        // Use the platform's existing invoice-number/date authority before rendering the
+        // canonical customer view. This is the same Orders_model/HasInvoice path used by Admin.
+        try {
+            if (method_exists($order, 'hasInvoice') && !$order->hasInvoice()) $order->generateInvoice();
+            $order = $order->fresh() ?: $order;
+        } catch (\Throwable $e) {
+            \Log::warning('PMD R28E invoice metadata generation skipped', [
+                'order_id' => $orderId,
+                'message' => $e->getMessage(),
+            ]);
+        }
+
+        try {
+            $html = \Illuminate\Support\Facades\View::make('admin::orders.customer_invoice', [
+                'model' => $order,
+            ])->render();
+        } catch (\Throwable $e) {
+            \Log::error('PMD R28E canonical customer invoice render failed', [
+                'order_id' => $orderId,
+                'message' => $e->getMessage(),
+            ]);
+            return response('Unable to render customer invoice', 500);
+        }
+
+        // The canonical Admin customer invoice is HTML/print CSS. When opened from the
+        // frontend download button, request print=1 so the browser immediately offers its
+        // native Print / Save as PDF flow while preserving the exact Admin design, logo,
+        // tenant invoice template, footer, VAT/Fiskaly data and future Admin-side changes.
+        $printRequested = in_array(strtolower(trim((string)$request->query('print', '0'))), ['1', 'true', 'yes', 'on'], true);
+        if ($printRequested) {
+            $printScript = <<<'HTML'
+<script id="pmd-r28e-canonical-invoice-autoprint">
+(function () {
+  var fired = false;
+  function printCanonicalInvoice() {
+    if (fired) return;
+    fired = true;
+    window.setTimeout(function () {
+      try { window.print(); } catch (e) {}
+    }, 300);
+  }
+  if (document.readyState === 'complete') printCanonicalInvoice();
+  else window.addEventListener('load', printCanonicalInvoice, { once: true });
+})();
+</script>
+HTML;
+            if (stripos($html, '</body>') !== false) {
+                $html = preg_replace('/<\/body>/i', $printScript.'</body>', $html, 1);
+            } else {
+                $html .= $printScript;
+            }
+        }
+
+        return response($html, 200, [
+            'Content-Type' => 'text/html; charset=UTF-8',
+            'Content-Disposition' => 'inline',
+            'Cache-Control' => 'private, no-store, max-age=0',
+            'Pragma' => 'no-cache',
+            'Referrer-Policy' => 'no-referrer',
+            'X-Content-Type-Options' => 'nosniff',
+            'X-Frame-Options' => 'SAMEORIGIN',
+            'X-PMD-Invoice-Authority' => 'admin::orders.customer_invoice',
+        ]);
+    })->withoutMiddleware([\Igniter\Cart\Middleware\Currency::class]);
 
     Route::get('/orders/{order}/business-invoice', function ($orderId) {
         $orderId = (int)$orderId;

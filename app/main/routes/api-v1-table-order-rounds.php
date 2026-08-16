@@ -257,6 +257,63 @@ $pmdRoundAugmentOrderPayload = function (array $payload, $order, $submittedDraft
     $payload['created_at'] = $createdAt !== '' ? $createdAt : null;
     $payload['createdAt'] = $createdAt !== '' ? $createdAt : null;
     $payload['submittedAt'] = $submittedDraft ? (string)($submittedDraft->updated_at ?? '') : $createdAt;
+    // PMD_PAID_INVOICE_ORDER_STATUS_R28
+    // Keep fulfilment status independent from payment state. Older pay-existing runs
+    // could overwrite status_id with Paid; recover the last non-financial kitchen state
+    // from status history so already-paid rounds still show Received/Preparing/Ready.
+    $financialStatusNames = ['paid', 'settled', 'payment open', 'payment complete', 'payment completed', 'partially paid', 'partial', 'unpaid'];
+    $normalizeStatusName = function ($value) {
+        return strtolower(trim(preg_replace('/\s+/u', ' ', (string)$value)));
+    };
+    $deliveryStatus = trim((string)($payload['deliveryStatus'] ?? $payload['status_name'] ?? ''));
+    $currentWasFinancial = in_array($normalizeStatusName($deliveryStatus), $financialStatusNames, true);
+    if ($currentWasFinancial) $deliveryStatus = '';
+
+    if ($deliveryStatus === '' && $orderId > 0) {
+        try {
+            $morphClass = \Admin\Models\Orders_model::make()->getMorphClass();
+            $historyRows = DB::table('status_history as sh')
+                ->leftJoin('statuses as st', 'st.status_id', '=', 'sh.status_id')
+                ->where('sh.object_id', $orderId)
+                ->where('sh.object_type', $morphClass)
+                ->orderByDesc('sh.created_at')
+                ->orderByDesc('sh.status_history_id')
+                ->limit(20)
+                ->get(['st.status_name']);
+            foreach ($historyRows as $historyRow) {
+                $candidate = trim((string)($historyRow->status_name ?? ''));
+                if ($candidate === '' || in_array($normalizeStatusName($candidate), $financialStatusNames, true)) continue;
+                $deliveryStatus = $candidate;
+                break;
+            }
+        } catch (\Throwable $ignored) {}
+    }
+
+    // R27-created table rounds start in the restaurant's status_id=1. This is only a
+    // compatibility fallback for already-paid rows that have no historical status row.
+    if ($deliveryStatus === '' && $orderId > 0 && stripos((string)($order->comment ?? ''), 'Table Round') !== false) {
+        try {
+            $candidate = trim((string)(DB::table('statuses')->where('status_id', 1)->value('status_name') ?? ''));
+            if ($candidate !== '' && !in_array($normalizeStatusName($candidate), $financialStatusNames, true)) $deliveryStatus = $candidate;
+        } catch (\Throwable $ignored) {}
+    }
+
+    $payload['deliveryStatus'] = $deliveryStatus !== '' ? $deliveryStatus : null;
+    if ($deliveryStatus !== '' || $currentWasFinancial) $payload['status_name'] = $deliveryStatus !== '' ? $deliveryStatus : null;
+
+    $orderTotalForInvoice = (float)($payload['totals']['orderTotal'] ?? $payload['total'] ?? $order->order_total ?? 0);
+    $settledForInvoice = (float)($payload['totals']['settledAmount'] ?? $order->settled_amount ?? 0);
+    $remainingForInvoice = max(0, (float)($payload['totals']['remainingAmount'] ?? ($orderTotalForInvoice - $settledForInvoice)));
+    $settlementForInvoice = strtolower(trim((string)($order->settlement_status ?? '')));
+    $isFullyPaidForInvoice = in_array($settlementForInvoice, ['paid', 'settled'], true)
+        || strtolower((string)($payload['paymentStatus'] ?? '')) === 'paid'
+        || ($orderTotalForInvoice > 0 && $remainingForInvoice <= 0.0001);
+    $invoiceToken = ($isFullyPaidForInvoice && $orderId > 0 && trim($sessionKey) !== '')
+        ? hash_hmac('sha256', request()->getHost().'|'.$orderId.'|'.$sessionKey, (string)config('app.key'))
+        : null;
+    $payload['invoiceAvailable'] = $invoiceToken !== null;
+    $payload['invoiceDownloadToken'] = $invoiceToken;
+
     return $payload;
 };
 

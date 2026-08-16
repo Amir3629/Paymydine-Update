@@ -57,14 +57,11 @@ class Biometricdevices extends \Admin\Classes\AdminController
         parent::__construct();
         \Admin\Facades\AdminMenu::setContext('biometric_devices', 'system');
 
-        /* PMD_DEVICE_SETTINGS_SUITE_V1_CONTROLLER */
-        $this->bodyClass = trim(($this->bodyClass ?? '').' pmd-settings-suite pmd-owner-settings-page pmd-device-suite-shell');
-        $this->addCss('css/pmd-owner-settings-v1.css');
-        $this->addCss('css/pmd-settings-suite-first-paint-v1.css');
-        $this->addCss('css/pmd-device-suite-v1.css');
-        $this->addJs('js/pmd-owner-settings-v1.js');
+        /* PMD_DEVICE_BACKEND_ONLY_V4
+         * Browser GET pages live under /admin/pmddevices/*. This controller
+         * remains only the canonical action/model/service authority.
+         */
         \Admin\Facades\AdminMenu::setContext('settings', 'system');
-
     }
 
     /**
@@ -72,6 +69,11 @@ class Biometricdevices extends \Admin\Classes\AdminController
      */
     public function index()
     {
+        /* PMD_DEVICE_LEGACY_UI_REDIRECT_V4_BIOMETRIC_INDEX */
+        if (request()->isMethod('get') && !request()->ajax()) {
+            return redirect(admin_url('pmddevices/biometric'));
+        }
+
         $activeTab = request('tab', 'attendance'); // Default to Staff Attendance tab
         
         // Always preserve the active tab in vars
@@ -712,5 +714,31 @@ class Biometricdevices extends \Admin\Classes\AdminController
             ], 500);
         }
     }
+
+    /* PMD_DEVICE_LEGACY_UI_REDIRECT_V4_BIOMETRIC_CREATE */
+    public function create($context = null)
+    {
+        if (request()->isMethod('get') && !request()->ajax()) {
+            return redirect(admin_url('pmddevices/biometric/create'));
+        }
+        $this->asExtension('FormController')->create($context);
+        return request()->ajax() ? null : $this->makeView('biometricdevices/create');
+    }
+
+
+    /* PMD_DEVICE_LEGACY_UI_REDIRECT_V4_BIOMETRIC_EDIT */
+    public function edit($context = null, $recordId = null)
+    {
+        if (request()->isMethod('get') && !request()->ajax()) {
+            return redirect(admin_url('pmddevices/biometric/edit/'.(int)basename(request()->path())));
+        }
+        if ($recordId === null && is_numeric($context)) {
+            $recordId = (int)$context;
+            $context = null;
+        }
+        $this->asExtension('FormController')->edit($context, $recordId);
+        return request()->ajax() ? null : $this->makeView('biometricdevices/edit');
+    }
+
 }
 

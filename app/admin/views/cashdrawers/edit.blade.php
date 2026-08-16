@@ -1,129 +1,20 @@
-<!-- PMD_DEVICE_SETTINGS_SUITE_V1_WRAPPER_START -->
-<div class="pmd-owner-page pmd-device-suite-page" data-pmd-owner-page data-pmd-device-suite="cash_drawers-edit">
-    @include('admin::pmddevices._suite_header', [
-        'pmdSuiteTitle' => 'Edit cash drawer',
-        'pmdSuiteBackUrl' => admin_url('cash_drawers'),
-    ])
-    <div class="pmd-device-suite-content">
-        <!-- PMD_DEVICE_SETTINGS_SUITE_V1_CANONICAL_CONTENT_START -->
-<div class="row-fluid cash-drawer-simple-page">
-    @php($status = $localHardwareStatus ?? ['state' => 'not_configured', 'message' => 'Local hardware status unavailable.'])
-    @php($localPrinters = $status['localPrinters'] ?? [])
-    @php($diagnosticResult = $status['diagnosticResult'] ?? null)
-
-    <div class="panel panel-default" style="margin-bottom: 15px;">
-        <div class="panel-heading"><strong>Connection Status</strong></div>
-        <div class="panel-body">
-            <div class="alert {{ ($status['state'] ?? '') === 'online' || (($status['drawer']->setup_state ?? '') === 'ready') ? 'alert-success' : (($status['state'] ?? '') === 'offline' ? 'alert-warning' : 'alert-info') }}" style="margin-bottom: 10px;">
-                {{ $status['message'] ?? 'Unknown status.' }}
-            </div>
-
-            <div class="table-responsive">
-                <table class="table table-bordered" style="margin-bottom: 10px;">
-                    <tbody>
-                        <tr>
-                            <th style="width: 30%;">Local Agent Reachable</th>
-                            <td>{{ ($status['state'] ?? '') === 'online' ? 'Yes' : 'No' }}</td>
-                        </tr>
-                        <tr>
-                            <th>Selected Printer Target</th>
-                            <td>{{ $formModel->device_path ?? 'Not selected' }}</td>
-                        </tr>
-                        <tr>
-                            <th>Terminal</th>
-                            <td>{{ $status['device']->name ?? 'Not configured' }}</td>
-                        </tr>
-                        <tr>
-                            <th>Last Seen</th>
-                            <td>{{ $status['device']->last_seen_at ?? 'Never' }}</td>
-                        </tr>
-                        <tr>
-                            <th>Last Command</th>
-                            <td>
-                                {{ $status['drawer']->last_command_status ?? 'None' }}
-                                @if(!empty($status['drawer']->last_command_message))
-                                    — {{ $status['drawer']->last_command_message }}
-                                @endif
-                            </td>
-                        </tr>
-                        <tr>
-                            <th>Last Queue Status</th>
-                            <td>{{ $status['command']->status ?? 'None' }}</td>
-                        </tr>
-                        <tr>
-                            <th>Last Queue Time</th>
-                            <td>{{ $status['command']->queued_at ?? 'N/A' }}</td>
-                        </tr>
-                    </tbody>
-                </table>
-            </div>
-
-            <div class="form-inline" style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
-                <a class="btn btn-default" href="{{ admin_url('cash_drawers/windows_connector/'.$formModel->drawer_id) }}"><i class="fa fa-download"></i> Download Connector</a>
-                <a class="btn btn-default" data-request="onCheckAgentBridge"><i class="fa fa-heartbeat"></i> Check Agent</a>
-                <a class="btn btn-default" data-request="onLoadLocalPrinters"><i class="fa fa-list"></i> Load Printers</a>
-                <a class="btn btn-default" data-request="onApplyLocalPrinter" data-request-form="#local-printer-form"><i class="fa fa-link"></i> Use Selected Printer</a>
-                <a class="btn btn-info" data-request="onTestConnection" data-request-form="#local-printer-form"><i class="fa fa-plug"></i> Test Drawer</a>
-                <a class="btn btn-warning" data-request="onDiagnoseDrawer" data-request-form="#local-printer-form"><i class="fa fa-stethoscope"></i> Diagnose Drawer</a>
-                <a class="btn btn-info" data-request="onTestPrintLocal" data-request-form="#local-printer-form"><i class="fa fa-print"></i> Test Print</a>
-                <a class="btn btn-success" data-request="onOpenDrawer" data-request-form="#local-printer-form"><i class="fa fa-unlock"></i> Open Drawer</a>
-            </div>
-
-            <form id="local-printer-form" style="margin-top:10px;">
-                <select name="local_printer_name" class="form-control" style="min-width:260px;">
-                    <option value="">Select printer from terminal...</option>
-                    @foreach($localPrinters as $printer)
-                        @php($printerName = $printer['name'] ?? null)
-                        @php($printerTarget = $printer['port_name'] ?? $printerName)
-                        @if($printerName)
-                            <option value="{{ $printerName }}" data-target="{{ $printerTarget }}">{{ $printerName }} ({{ $printerTarget }})</option>
-                        @endif
-                    @endforeach
-                </select>
-                <input type="hidden" name="local_printer_target" id="local_printer_target" value="">
-            </form>
-
-            @if(is_array($diagnosticResult))
-                <div class="alert alert-info" style="margin-top:10px;">
-                    <strong>Latest Drawer Diagnostic:</strong>
-                    <div>Printer: {{ $diagnosticResult['printer_name'] ?? 'n/a' }}</div>
-                    <div>Mode: {{ $diagnosticResult['mode'] ?? 'n/a' }}</div>
-                    <div>Success Index: {{ $diagnosticResult['success_index'] ?? 'none' }}</div>
-                    <div>Attempts: {{ count($diagnosticResult['attempted_commands'] ?? []) }}</div>
-                </div>
-            @endif
-        </div>
-    </div>
-
-    {!! form_open([
-        'id'     => 'edit-form',
-        'role'   => 'form',
-        'method' => 'POST',
-    ]) !!}
-
-    {!! $this->renderForm() !!}
-
+@include('admin::pmddevices._v2_boot')
+@php
+$pmdFormWidget = $this->widgets['form'] ?? null; try { if ($pmdFormWidget) $pmdFormWidget->render(['useContainer'=>false]); } catch (\Throwable $e) {}
+$pmdStatus = $localHardwareStatus ?? ['state'=>'not_configured','message'=>'Local hardware status unavailable.'];
+$pmdLocalPrinters = $pmdStatus['localPrinters'] ?? [];
+@endphp
+<div id="pmd-restaurant-profile" data-pmd-restaurant-profile data-pmd-device-settings-v2="cash-edit">
+    @include('admin::pmddevices._v2_header',['pmdSuiteTitle'=>'Edit cash drawer','pmdSuiteBackUrl'=>admin_url('cash_drawers'),'pmdSuiteSave'=>true,'pmdSuiteDelete'=>true])
+    {!! form_open(['id'=>'pmd-restaurant-profile-form','role'=>'form','method'=>'PATCH']) !!}
+    <section class="pmd-profile-section"><div class="pmd-profile-card"><div class="pmd-profile-card__header"><div class="pmd-profile-section-icon"><svg viewBox="0 0 24 24"><rect x="3" y="7" width="18" height="12" rx="2"></rect><path d="M3 11h18M8 15h.01"></path></svg></div><div><h2>Drawer setup</h2><p>Location, local POS mapping and automatic opening behavior.</p></div></div><div class="pmd-profile-card__body"><div class="pmd-profile-grid pmd-profile-grid--2 pmd-device-native-form">@foreach(['name','location_id','status','local_pos_device_id','printer_id','auto_open_on_cash','test_on_save'] as $pmdName) @include('admin::pmddevices._v2_field',['pmdFormWidget'=>$pmdFormWidget,'pmdFieldName'=>$pmdName]) @endforeach</div></div></div></section>
+    <section class="pmd-profile-section pmd-profile-section--cyan"><div class="pmd-profile-card"><div class="pmd-profile-card__header"><div class="pmd-profile-section-icon"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"></circle><path d="M4 12h3M17 12h3M12 4v3M12 17v3"></path></svg></div><div><h2>Connection status & tools</h2><p>{{ $pmdStatus['message'] ?? 'Unknown status.' }}</p></div></div><div class="pmd-profile-card__body">
+        <div class="pmd-device-status-grid"><div class="pmd-device-status-card"><span>Local agent</span><strong>{{ ($pmdStatus['state'] ?? '') === 'online' ? 'Online' : 'Offline / not configured' }}</strong></div><div class="pmd-device-status-card"><span>Terminal</span><strong>{{ $pmdStatus['device']->name ?? 'Not configured' }}</strong></div><div class="pmd-device-status-card"><span>Last seen</span><strong>{{ $pmdStatus['device']->last_seen_at ?? 'Never' }}</strong></div><div class="pmd-device-status-card"><span>Last command</span><strong>{{ $pmdStatus['drawer']->last_command_status ?? 'None' }}</strong></div></div>
+        <div style="margin-top:14px"><div class="pmd-profile-grid pmd-profile-grid--2"><label class="pmd-profile-field"><span>Local printer</span><select name="local_printer_name" id="pmd-local-printer-name"><option value="">Select printer from terminal...</option>@foreach($pmdLocalPrinters as $printer) @php($pmdPrinterName=$printer['name'] ?? null) @php($pmdPrinterTarget=$printer['port_name'] ?? $pmdPrinterName) @if($pmdPrinterName)<option value="{{ $pmdPrinterName }}" data-target="{{ $pmdPrinterTarget }}">{{ $pmdPrinterName }} ({{ $pmdPrinterTarget }})</option>@endif @endforeach</select></label><input type="hidden" name="local_printer_target" id="pmd-local-printer-target" value=""></div></div>
+        <div class="pmd-device-actions" style="margin-top:14px">@if(isset($formModel))<a class="pmd-device-action" href="{{ admin_url('cash_drawers/windows_connector/'.$formModel->drawer_id) }}">Download connector</a>@endif<button type="button" class="pmd-device-action" data-request="onCheckAgentBridge" data-request-form="#pmd-restaurant-profile-form">Check agent</button><button type="button" class="pmd-device-action" data-request="onLoadLocalPrinters" data-request-form="#pmd-restaurant-profile-form">Load printers</button><button type="button" class="pmd-device-action" data-request="onApplyLocalPrinter" data-request-form="#pmd-restaurant-profile-form">Use selected printer</button><button type="button" class="pmd-device-action" data-request="onTestConnection" data-request-form="#pmd-restaurant-profile-form">Test drawer</button><button type="button" class="pmd-device-action" data-request="onDiagnoseDrawer" data-request-form="#pmd-restaurant-profile-form">Diagnose</button><button type="button" class="pmd-device-action" data-request="onTestPrintLocal" data-request-form="#pmd-restaurant-profile-form">Test print</button><button type="button" class="pmd-device-action pmd-device-action--primary" data-request="onOpenDrawer" data-request-form="#pmd-restaurant-profile-form">Open drawer</button></div>
+    </div></div></section>
+    <section class="pmd-profile-section pmd-profile-section--violet"><div class="pmd-profile-card"><div class="pmd-profile-card__header"><div class="pmd-profile-section-icon"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"></circle><path d="M19 12a7 7 0 0 0-.1-1l2-1.5-2-3.4-2.4 1a8 8 0 0 0-1.7-1L14.5 3h-5l-.4 3.1a8 8 0 0 0-1.7 1l-2.4-1-2 3.4L5.1 11a7 7 0 0 0 0 2L3 14.5l2 3.4 2.4-1a8 8 0 0 0 1.7 1l.4 3.1h5l.4-3.1a8 8 0 0 0 1.7-1l2.4 1 2-3.4-2.1-1.5a7 7 0 0 0 .1-1Z"></path></svg></div><div><h2>Technical connection</h2><p>Advanced hardware fields remain canonical.</p></div></div><div class="pmd-profile-card__body"><div class="pmd-profile-grid pmd-profile-grid--2 pmd-device-native-form">@foreach(['connection_type','device_path','esc_pos_command','voltage','network_ip','network_port','serial_port','serial_baud_rate','usb_vendor_id','usb_product_id','pos_device_id'] as $pmdName) @include('admin::pmddevices._v2_field',['pmdFormWidget'=>$pmdFormWidget,'pmdFieldName'=>$pmdName]) @endforeach</div></div></div></section>
+    <div class="pmd-profile-bottom-save"><button type="button" class="pmd-profile-bottom-save__button" data-request="onSave" data-request-form="#pmd-restaurant-profile-form" data-request-flash><svg viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"></path></svg><span>Save changes</span></button></div>
     {!! form_close() !!}
 </div>
-
-<script>
-(function () {
-    const select = document.querySelector('#local-printer-form select[name="local_printer_name"]');
-    const targetInput = document.getElementById('local_printer_target');
-
-    if (!select || !targetInput) return;
-
-    function syncTarget() {
-        const selected = select.options[select.selectedIndex];
-        targetInput.value = selected ? (selected.dataset.target || selected.value || '') : '';
-    }
-
-    select.addEventListener('change', syncTarget);
-    syncTarget();
-})();
-</script>
-
-        <!-- PMD_DEVICE_SETTINGS_SUITE_V1_CANONICAL_CONTENT_END -->
-    </div>
-</div>
-<!-- PMD_DEVICE_SETTINGS_SUITE_V1_WRAPPER_END -->
+<script>(function(){var s=document.getElementById('pmd-local-printer-name'),t=document.getElementById('pmd-local-printer-target');if(!s||!t)return;function sync(){var o=s.options[s.selectedIndex];t.value=o?(o.getAttribute('data-target')||o.value||''):'';}s.addEventListener('change',sync);sync();})();</script>

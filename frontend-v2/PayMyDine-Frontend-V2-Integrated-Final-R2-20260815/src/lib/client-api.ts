@@ -56,6 +56,8 @@ function normalizeTableOrder(payload: any): TableOrderState {
     paymentStatus: String(payload?.paymentStatus || payload?.payment_status || (remainingAmount <= 0 && orderTotal > 0 ? 'paid' : settledAmount > 0 ? 'partial' : 'unpaid')),
     deliveryStatus: payload?.deliveryStatus || null,
     statusName: payload?.status_name || payload?.statusName || null,
+    invoiceAvailable: Boolean(payload?.invoiceAvailable || payload?.invoice_available),
+    invoiceDownloadToken: payload?.invoiceDownloadToken || payload?.invoice_download_token || null,
     canShowToNewDevice: Boolean(payload?.canShowToNewDevice),
     hasActiveTableOrder: Boolean(payload?.hasActiveTableOrder || payload?.order_id || payload?.draft_id),
     items,
@@ -128,6 +130,16 @@ export async function fetchTableOrdersState(table: TableContext, guestSessionId 
   if (guestSessionId) params.set('guest_session_id', guestSessionId)
   const data = await jsonRequest<any>(`/api/v1/table-orders/state?${params.toString()}`)
   return normalizeTableOrdersState(data)
+}
+
+// PMD_PAID_INVOICE_ORDER_STATUS_R28
+// PMD_CANONICAL_CUSTOMER_INVOICE_CLIENT_R28E
+// Return a same-origin URL instead of downloading a separately generated PDF. The URL
+// renders the canonical Admin customer invoice and opens the browser Save-as-PDF flow.
+export function downloadPaidInvoice(input: { orderId: number; token: string }): string {
+  if (!input.orderId || !input.token) throw new Error('Paid invoice is not available yet.')
+  const params = new URLSearchParams({ token: input.token, print: '1' })
+  return `/api/v1/orders/${encodeURIComponent(String(input.orderId))}/paid-invoice?${params.toString()}`
 }
 
 export async function confirmCartItems(input: {

@@ -25,7 +25,7 @@ import {
   X,
 } from 'lucide-react'
 import type { CartOptionSelection, MenuItem, TableOrderState } from '@/src/domain/model'
-import { clearPendingProviderPayment, finalizeExistingOrderPayment, payExistingOrder, startHostedProviderPayment, validateCoupon } from '@/src/lib/client-api'
+import { clearPendingProviderPayment, finalizeExistingOrderPayment, payExistingOrder, startHostedProviderPayment, validateCoupon, downloadPaidInvoice } from '@/src/lib/client-api'
 import { useMenuRuntime } from '@/src/runtime/MenuRuntimeContext'
 import { DietaryBadges } from './SharedPieces'
 import { PayPalButton } from './PayPalButton'
@@ -285,6 +285,7 @@ type R27FlowCopy = {
   paymentPartial: string
   paymentComplete: string
   viewOrder: string
+  downloadInvoice: string
 }
 
 function r27FlowCopy(locale: string): R27FlowCopy {
@@ -293,26 +294,31 @@ function r27FlowCopy(locale: string): R27FlowCopy {
     tableOrders: 'Tischbestellungen', sharedDraft: 'Aktueller Tischentwurf', submittedOrders: 'Gesendete Bestellungen', myItems: 'Meine Artikel',
     selectOrderToPay: 'Bestellung zum Bezahlen auswählen', noSubmittedOrders: 'Noch keine Bestellung an die Küche gesendet.', sentToKitchen: 'An die Küche gesendet',
     paymentOpen: 'Zahlung offen', paymentPartial: 'Teilweise bezahlt', paymentComplete: 'Bezahlt', viewOrder: 'Bestellung ansehen',
+    downloadInvoice: 'Rechnung herunterladen',
   }
   if (lang === 'fa') return {
     tableOrders: 'سفارش‌های میز', sharedDraft: 'سبد مشترک فعلی میز', submittedOrders: 'سفارش‌های ارسال‌شده', myItems: 'آیتم‌های من',
     selectOrderToPay: 'یک سفارش را برای پرداخت انتخاب کنید', noSubmittedOrders: 'هنوز سفارشی به آشپزخانه ارسال نشده است.', sentToKitchen: 'ارسال‌شده به آشپزخانه',
     paymentOpen: 'پرداخت باز', paymentPartial: 'بخشی پرداخت شده', paymentComplete: 'پرداخت‌شده', viewOrder: 'مشاهده سفارش',
+    downloadInvoice: 'دانلود فاکتور',
   }
   if (lang === 'tr') return {
     tableOrders: 'Masa siparişleri', sharedDraft: 'Güncel ortak masa sepeti', submittedOrders: 'Gönderilen siparişler', myItems: 'Ürünlerim',
     selectOrderToPay: 'Ödenecek siparişi seçin', noSubmittedOrders: 'Henüz mutfağa gönderilmiş sipariş yok.', sentToKitchen: 'Mutfağa gönderildi',
     paymentOpen: 'Ödeme açık', paymentPartial: 'Kısmen ödendi', paymentComplete: 'Ödendi', viewOrder: 'Siparişi görüntüle',
+    downloadInvoice: 'Faturayı indir',
   }
   if (lang === 'ja') return {
     tableOrders: 'テーブル注文', sharedDraft: '現在の共有カート', submittedOrders: '送信済み注文', myItems: '自分の料理',
     selectOrderToPay: '支払う注文を選択', noSubmittedOrders: 'まだキッチンへ送信された注文はありません。', sentToKitchen: 'キッチンへ送信済み',
     paymentOpen: '未払い', paymentPartial: '一部支払い済み', paymentComplete: '支払い済み', viewOrder: '注文を見る',
+    downloadInvoice: '請求書をダウンロード',
   }
   return {
     tableOrders: 'Table orders', sharedDraft: 'Current table draft', submittedOrders: 'Sent orders', myItems: 'My items',
     selectOrderToPay: 'Select an order to pay', noSubmittedOrders: 'No sent orders yet.', sentToKitchen: 'Sent to kitchen',
     paymentOpen: 'Payment open', paymentPartial: 'Partially paid', paymentComplete: 'Paid', viewOrder: 'View order',
+    downloadInvoice: 'Download invoice',
   }
 }
 
@@ -343,6 +349,48 @@ function paymentBadge(order: TableOrderState, copy: R27FlowCopy): string {
   return copy.paymentOpen
 }
 
+// PMD_PAID_INVOICE_UI_R28
+function operationalStatusLabel(order: TableOrderState, labels: { received: string; preparing: string; ready: string }, copy: R27FlowCopy): string {
+  const raw = String(order.deliveryStatus || order.statusName || '').trim()
+  const normalized = raw.toLowerCase().replace(/[\s_]+/g, '-')
+  if (!raw || /^(paid|settled|payment-open|payment-complete|payment-completed|partially-paid|partial|unpaid)$/.test(normalized)) return copy.sentToKitchen
+  if (/ready|complete|completed|delivered/.test(normalized)) return labels.ready
+  if (/prepar|cook|kitchen/.test(normalized)) return labels.preparing
+  if (/received|new|pending/.test(normalized)) return labels.received
+  return raw
+}
+
+// PMD_CANONICAL_CUSTOMER_INVOICE_UI_R28E
+function InvoiceDownloadButton({ order, className }: { order: TableOrderState; className?: string }) {
+  const { locale, notify } = useMenuRuntime()
+  const copy = r27FlowCopy(locale)
+  const available = Boolean(order.orderId && order.invoiceAvailable && order.invoiceDownloadToken && order.totals.remainingAmount <= 0)
+  if (!available) return null
+
+  const openCanonicalInvoice = () => {
+    if (!order.orderId || !order.invoiceDownloadToken) return
+    try {
+      const href = downloadPaidInvoice({ orderId: order.orderId, token: order.invoiceDownloadToken })
+      const link = document.createElement('a')
+      link.href = href
+      link.target = '_blank'
+      link.rel = 'noopener noreferrer'
+      link.referrerPolicy = 'no-referrer'
+      document.body.appendChild(link)
+      link.click()
+      link.remove()
+    } catch (error) {
+      notify('error', error instanceof Error ? error.message : 'Could not open invoice.')
+    }
+  }
+
+  return (
+    <button className={className || styles.primary} type="button" onClick={openCanonicalInvoice}>
+      <Receipt /> {copy.downloadInvoice}
+    </button>
+  )
+}
+
 function SubmittedOrderCard({ order, selected, onSelect, onPay }: {
   order: TableOrderState
   selected: boolean
@@ -357,7 +405,7 @@ function SubmittedOrderCard({ order, selected, onSelect, onPay }: {
       <div className={styles.invoiceHead}>
         <div>
           <strong>#{order.orderNumber || order.orderId}</strong>
-          <small>{order.statusName || copy.sentToKitchen}</small>
+          <small>{operationalStatusLabel(order, labels, copy)}</small>
         </div>
         <span className={`${styles.paymentBadge} ${canPay ? '' : styles.paymentBadgePaid}`}>{paymentBadge(order, copy)}</span>
       </div>
@@ -375,7 +423,7 @@ function SubmittedOrderCard({ order, selected, onSelect, onPay }: {
       </div>
       <div className={styles.invoiceActions}>
         <button className={styles.secondary} type="button" onClick={onSelect}>{copy.viewOrder}</button>
-        {canPay && <button className={styles.primary} type="button" onClick={onPay}><CreditCard /> {labels.pay}</button>}
+        {canPay ? <button className={styles.primary} type="button" onClick={onPay}><CreditCard /> {labels.pay}</button> : <InvoiceDownloadButton order={order} />}
       </div>
     </article>
   )
@@ -699,7 +747,13 @@ function CheckoutSheet() {
             {!selectedOrder ? (
               <div className={styles.empty}>{copy.selectOrderToPay}</div>
             ) : !canPaySelected ? (
-              <div className={`${styles.statusMessage} ${styles.statusSuccess}`}>#{selectedOrder.orderNumber || selectedOrder.orderId} · {copy.paymentComplete}</div>
+              <>
+                <OrderTimeline order={selectedOrder} />
+                <div className={`${styles.statusMessage} ${styles.statusSuccess}`}>
+                  #{selectedOrder.orderNumber || selectedOrder.orderId} · {copy.paymentComplete} · {operationalStatusLabel(selectedOrder, labels, copy)}
+                </div>
+                <InvoiceDownloadButton order={selectedOrder} />
+              </>
             ) : (
               <>
                 <OrderTimeline order={selectedOrder} />

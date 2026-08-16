@@ -1,12 +1,12 @@
-<!-- PMD_DEVICE_SETTINGS_SUITE_V1_TERMINALS_EDIT -->
-<div class="pmd-owner-page pmd-device-suite-page" data-pmd-owner-page data-pmd-device-suite="terminal_devices-edit">
-    @include('admin::pmddevices._suite_header', [
-        'pmdSuiteTitle' => 'Edit payment terminal',
-        'pmdSuiteBackUrl' => admin_url('terminal_devices'),
-    ])
-    <div class="pmd-device-suite-content">
-        {!! form_open(['id' => 'edit-form', 'role' => 'form', 'method' => 'PATCH']) !!}
-        {!! $this->renderForm() !!}
-        {!! form_close() !!}
-    </div>
+@include('admin::pmddevices._v2_boot')
+@php $pmdFormWidget = $this->widgets['form'] ?? null; try { if ($pmdFormWidget) $pmdFormWidget->render(['useContainer'=>false]); } catch (\Throwable $e) {} @endphp
+<div id="pmd-restaurant-profile" data-pmd-restaurant-profile data-pmd-device-settings-v2="terminal-edit">
+    @include('admin::pmddevices._v2_header', ['pmdSuiteTitle'=>'Edit payment terminal','pmdSuiteBackUrl'=>admin_url('terminal_devices'),'pmdSuiteSave'=>true,'pmdSuiteDelete'=>true])
+    {!! form_open(['id'=>'pmd-restaurant-profile-form','role'=>'form','method'=>'PATCH']) !!}
+    <section class="pmd-profile-section"><div class="pmd-profile-card"><div class="pmd-profile-card__header"><div class="pmd-profile-section-icon"><svg viewBox="0 0 24 24"><rect x="5" y="2" width="14" height="20" rx="2"></rect><path d="M8 6h8M8 10h8M8 14h8"></path></svg></div><div><h2>Terminal connection</h2><p>Provider, location, reader pairing and readiness.</p></div></div><div class="pmd-profile-card__body"><div class="pmd-profile-grid pmd-profile-grid--2 pmd-device-native-form">
+        @foreach(['provider_code','location_id','reader_label','reader_id','affiliate_key','pairing_state','terminal_status','is_active','status_snapshot','metadata','terminal_setup_guide'] as $pmdName) @include('admin::pmddevices._v2_field',['pmdFormWidget'=>$pmdFormWidget,'pmdFieldName'=>$pmdName]) @endforeach
+    </div></div></div></section>
+    <section class="pmd-profile-section pmd-profile-section--cyan"><div class="pmd-profile-card"><div class="pmd-profile-card__header"><div class="pmd-profile-section-icon"><svg viewBox="0 0 24 24"><path d="M12 3v4M12 17v4M3 12h4M17 12h4"></path><circle cx="12" cy="12" r="4"></circle></svg></div><div><h2>Reader tools</h2><p>Use the existing terminal handlers without leaving Settings.</p></div></div><div class="pmd-profile-card__body"><div class="pmd-device-actions"><button type="button" class="pmd-device-action" data-request="onDiscoverReaders" data-request-form="#pmd-restaurant-profile-form">Discover readers</button><button type="button" class="pmd-device-action pmd-device-action--primary" data-request="onTestTerminalConnection" data-request-form="#pmd-restaurant-profile-form">Test terminal connection</button></div></div></div></section>
+    <div class="pmd-profile-bottom-save"><button type="button" class="pmd-profile-bottom-save__button" data-request="onSave" data-request-form="#pmd-restaurant-profile-form" data-request-flash><svg viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"></path></svg><span>Save changes</span></button></div>
+    {!! form_close() !!}
 </div>

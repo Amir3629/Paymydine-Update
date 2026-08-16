@@ -52,31 +52,43 @@ class TerminalDevices extends \Admin\Classes\AdminController
         parent::__construct();
         AdminMenu::setContext('terminal_devices', 'system');
 
-        /* PMD_DEVICE_SETTINGS_SUITE_V1_CONTROLLER */
-        $this->bodyClass = trim(($this->bodyClass ?? '').' pmd-settings-suite pmd-owner-settings-page pmd-device-suite-shell');
-        $this->addCss('css/pmd-owner-settings-v1.css');
-        $this->addCss('css/pmd-settings-suite-first-paint-v1.css');
-        $this->addCss('css/pmd-device-suite-v1.css');
-        $this->addJs('js/pmd-owner-settings-v1.js');
+        /* PMD_DEVICE_BACKEND_ONLY_V4
+         * Browser GET pages live under /admin/pmddevices/*. This controller
+         * remains only the canonical action/model/service authority.
+         */
         AdminMenu::setContext('settings', 'system');
-
     }
 
     /* PMD_DEVICE_SETTINGS_SUITE_V1_TERMINAL_ACTIONS */
     public function index()
     {
+        /* PMD_DEVICE_LEGACY_UI_REDIRECT_V4_TERMINALS_INDEX */
+        if (request()->isMethod('get') && !request()->ajax()) {
+            return redirect(admin_url('pmddevices/terminals'));
+        }
+
         $this->asExtension('ListController')->index();
         return $this->makeView('terminaldevices/index');
     }
 
     public function create()
     {
+        /* PMD_DEVICE_LEGACY_UI_REDIRECT_V4_TERMINALS_CREATE */
+        if (request()->isMethod('get') && !request()->ajax()) {
+            return redirect(admin_url('pmddevices/terminals/create'));
+        }
+
         $this->asExtension('FormController')->create();
         return $this->makeView('terminaldevices/create');
     }
 
     public function edit($context = null, $recordId = null)
     {
+        /* PMD_DEVICE_LEGACY_UI_REDIRECT_V4_TERMINALS_EDIT */
+        if (request()->isMethod('get') && !request()->ajax()) {
+            return redirect(admin_url('pmddevices/terminals/edit/'.(int)basename(request()->path())));
+        }
+
         if ($recordId === null && is_numeric($context)) {
             $recordId = (int)$context;
             $context = null;

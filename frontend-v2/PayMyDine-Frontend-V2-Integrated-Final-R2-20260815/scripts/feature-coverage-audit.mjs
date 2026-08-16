@@ -29,15 +29,31 @@ for (const themeId of themeIds) {
     'LanguageSelect',
     'PlatformFooter',
     'RuntimeOverlays',
+    'ThemeBottomToolBar',
     'openItem',
-    'openCart',
-    'openCheckout',
   ]
   for (const marker of required) {
     if (!content.includes(marker)) failures.push(`${themeId}: missing ${marker}`)
   }
-  if (!content.includes("openService('waiter')")) failures.push(`${themeId}: waiter service action is not wired`)
-  if (!content.includes("openService('valet')")) failures.push(`${themeId}: valet service action is not wired`)
+ }
+
+// PMD_SHARED_TOOLBAR_FEATURE_AUDIT_R28D
+// Shared runtime owns behavior; each of the ten themes only renders the shared toolbar.
+const toolbarPath = path.join(root, 'src/runtime/components/ThemeBottomToolBar.tsx')
+if (!fs.existsSync(toolbarPath)) {
+  failures.push('ThemeBottomToolBar: shared toolbar file is missing')
+} else {
+  const toolbar = fs.readFileSync(toolbarPath, 'utf8')
+  for (const marker of [
+    "openService('waiter')",
+    "openService('note')",
+    "openService('valet')",
+    'openCheckout()',
+    'openCart()',
+    'data-pmd-unified-bottom-bar="r14"',
+  ]) {
+    if (!toolbar.includes(marker)) failures.push(`ThemeBottomToolBar: missing ${marker}`)
+  }
 }
 
 const runtime = fs.readFileSync(path.join(root, 'src/runtime/MenuRuntimeContext.tsx'), 'utf8')

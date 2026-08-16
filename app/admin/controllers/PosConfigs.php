@@ -116,14 +116,11 @@ class PosConfigs extends \Admin\Classes\AdminController
         // Set admin menu context for this controller
         AdminMenu::setContext('pos_configs', 'system');
 
-        /* PMD_DEVICE_SETTINGS_SUITE_V1_CONTROLLER */
-        $this->bodyClass = trim(($this->bodyClass ?? '').' pmd-settings-suite pmd-owner-settings-page pmd-device-suite-shell');
-        $this->addCss('css/pmd-owner-settings-v1.css');
-        $this->addCss('css/pmd-settings-suite-first-paint-v1.css');
-        $this->addCss('css/pmd-device-suite-v1.css');
-        $this->addJs('js/pmd-owner-settings-v1.js');
+        /* PMD_DEVICE_BACKEND_ONLY_V4
+         * Browser GET pages live under /admin/pmddevices/*. This controller
+         * remains only the canonical action/model/service authority.
+         */
         AdminMenu::setContext('settings', 'system');
-
     }
 
     public function listExtendQuery($query)
@@ -703,4 +700,41 @@ class PosConfigs extends \Admin\Classes\AdminController
             ];
         }
     }
+
+    /* PMD_DEVICE_LEGACY_UI_REDIRECT_V4_INTEGRATIONS_INDEX */
+    public function index()
+    {
+        if (request()->isMethod('get') && !request()->ajax()) {
+            return redirect(admin_url('pmddevices/integrations'));
+        }
+        $this->asExtension('ListController')->index();
+        return request()->ajax() ? null : $this->makeView('posconfigs/index');
+    }
+
+
+    /* PMD_DEVICE_LEGACY_UI_REDIRECT_V4_INTEGRATIONS_CREATE */
+    public function create($context = null)
+    {
+        if (request()->isMethod('get') && !request()->ajax()) {
+            return redirect(admin_url('pmddevices/integrations/create'));
+        }
+        $this->asExtension('FormController')->create($context);
+        return request()->ajax() ? null : $this->makeView('posconfigs/create');
+    }
+
+
+    /* PMD_DEVICE_LEGACY_UI_REDIRECT_V4_INTEGRATIONS_EDIT */
+    public function edit($context = null, $recordId = null)
+    {
+        if (request()->isMethod('get') && !request()->ajax()) {
+            return redirect(admin_url('pmddevices/integrations/edit/'.(int)basename(request()->path())));
+        }
+        if ($recordId === null && is_numeric($context)) {
+            $recordId = (int)$context;
+            $context = null;
+        }
+        $this->asExtension('FormController')->edit($context, $recordId);
+        return request()->ajax() ? null : $this->makeView('posconfigs/edit');
+    }
+
 }
