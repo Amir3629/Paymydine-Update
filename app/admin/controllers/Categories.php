@@ -57,7 +57,42 @@ class Categories extends AdminController
         parent::__construct();
 
         AdminMenu::setContext('categories', 'restaurant');
+        $this->addCss('assets/css/pmd-admin-universal-list-v1.css', 'pmd-admin-universal-list-v1');
     }
 
+
+    public function index()
+    {
+        $this->vars['pmdUniversalList'] = $this->pmdBuildUniversalListData();
+
+        $this->asExtension('ListController')->index();
+    }
+
+    protected function pmdBuildUniversalListData(): array
+    {
+        try {
+            $query = Categories_model::query();
+            $total = (clone $query)->count();
+            $enabled = (clone $query)->where('status', 1)->count();
+            $hidden = (clone $query)->where('frontend_visible', 0)->count();
+            $needsImage = (clone $query)->where(function ($imageQuery) {
+                $imageQuery->whereNull('image')->orWhere('image', '');
+            })->count();
+        } catch (\Throwable $exception) {
+            $total = $enabled = $hidden = $needsImage = 0;
+        }
+
+        return [
+            'pageKey' => 'categories',
+            'title' => 'Categories',
+            'description' => 'Read-only menu category summary and existing category list.',
+            'kpis' => [
+                ['label' => 'Total categories', 'value' => $total, 'icon' => 'fa-layer-group', 'meaning' => 'Menu organization size'],
+                ['label' => 'Enabled', 'value' => $enabled, 'icon' => 'fa-toggle-on', 'meaning' => 'Visible taxonomy'],
+                ['label' => 'Hidden from frontend', 'value' => $hidden, 'icon' => 'fa-eye-slash', 'meaning' => 'Customer visibility exceptions'],
+                ['label' => 'Needs image', 'value' => $needsImage, 'icon' => 'fa-image', 'meaning' => 'Merchandising gaps'],
+            ],
+        ];
+    }
 
 }
