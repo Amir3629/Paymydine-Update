@@ -1,4 +1,20 @@
-<li class="nav-item dropdown" id="notif-root" style="position:relative">
+@php
+  $pmdPushUser = \Admin\Facades\AdminAuth::getUser();
+  $pmdPushIdentity = '0';
+  if ($pmdPushUser) {
+      if (!empty($pmdPushUser->staff_id)) {
+          $pmdPushIdentity = (string)$pmdPushUser->staff_id;
+      } elseif (!empty($pmdPushUser->user_id)) {
+          $pmdPushIdentity = (string)$pmdPushUser->user_id;
+      } elseif (!empty($pmdPushUser->staff_email)) {
+          $pmdPushIdentity = (string)$pmdPushUser->staff_email;
+      } elseif (!empty($pmdPushUser->email)) {
+          $pmdPushIdentity = (string)$pmdPushUser->email;
+      }
+  }
+  $pmdPushScope = sha1((string)request()->getHost().'|'.$pmdPushIdentity);
+@endphp
+<li class="nav-item dropdown" id="notif-root" data-pmd-push-scope="{{ $pmdPushScope }}" style="position:relative">
   <a href="#" id="notifDropdown"
      class="nav-link dropdown-toggle"
      data-toggle="dropdown" aria-haspopup="true" aria-expanded="false" role="button">

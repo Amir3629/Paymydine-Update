@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+    <link rel="icon" type="image/svg+xml" href="{{ asset('app/admin/assets/images/pmd-brand-mark.svg') }}?v=pmd-brand-mark-20260817">
 @include('admin::_partials.pmd_admin_i18n')
 
 

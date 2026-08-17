@@ -3441,6 +3441,7 @@ html.pmd-dashboardreservation-page #pmd-reservation-dashboard-root .pmd-res-toas
 <!DOCTYPE html>
 <html xmlns="http://www.w3.org/1999/xhtml" lang="en">
 <head>
+    <link rel="icon" type="image/svg+xml" href="{{ asset('app/admin/assets/images/pmd-brand-mark.svg') }}?v=pmd-brand-mark-20260817">
 
 {{-- PMD_RESERVATIONSLAB_LOCAL_FONT_BOOT_V2_START --}}
 @if (request()->is('admin/reservationslab'))

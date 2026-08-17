@@ -16,9 +16,46 @@ class PushNotificationManager {
     constructor() {
         this.container = null;
         this.bellIcon = null;
-        this.highestSeenId = 0; // Track the HIGHEST notification ID we've ever seen
-        this.shownNotificationIds = new Set(); // Track ALL notification IDs we've shown
+        this.highestSeenId = 0; // Highest ID observed in this page runtime
+        this.shownNotificationIds = new Set(); // Same-page duplicate guard
+        this.popupWatermarkKey = this.buildPopupWatermarkKey();
+        this.persistedPopupWatermark = this.readPopupWatermark();
+        this.hasPopupBaseline = this.persistedPopupWatermark !== null;
+        if (this.hasPopupBaseline) {
+            this.highestSeenId = this.persistedPopupWatermark;
+        }
         this.init();
+    }
+
+    buildPopupWatermarkKey() {
+        const root = document.getElementById('notif-root');
+        const scope = root && root.dataset && root.dataset.pmdPushScope
+            ? root.dataset.pmdPushScope
+            : 'anonymous';
+        return `pmd.push.popup-watermark.v1:${scope}`;
+    }
+
+    readPopupWatermark() {
+        try {
+            const raw = window.localStorage.getItem(this.popupWatermarkKey);
+            if (raw === null || raw === '') return null;
+            const value = Number.parseInt(raw, 10);
+            return Number.isFinite(value) && value >= 0 ? value : null;
+        } catch (e) {
+            return null;
+        }
+    }
+
+    writePopupWatermark(id) {
+        const value = Number.parseInt(id, 10);
+        if (!Number.isFinite(value) || value < 0) return;
+        this.persistedPopupWatermark = value;
+        this.hasPopupBaseline = true;
+        try {
+            window.localStorage.setItem(this.popupWatermarkKey, String(value));
+        } catch (e) {
+            // In restricted storage modes, the current-page guards still work.
+        }
     }
 
     init() {
@@ -285,25 +322,31 @@ class PushNotificationManager {
             
             console.log(`[${new Date().toLocaleTimeString()}] API check: ID=${notifId}, HighestSeen=${this.highestSeenId}`);
             
-            // Update highest seen ID (always track the highest ID we've encountered)
-            if (notifId > this.highestSeenId) {
-                this.highestSeenId = notifId;
-                
-                // Only show push if we haven't already shown this specific notification
-                if (!this.shownNotificationIds.has(notifId)) {
-                    console.log('🎉 NEW NOTIFICATION!', notifId, '(highest was', (notifId - 1) + ')');
-                    this.shownNotificationIds.add(notifId);
-                    
-                    // Continue to show the notification...
-                } else {
-                    console.log('⚠️ Already shown notification', notifId);
-                    return;
-                }
-            } else {
-                // This is an old notification (ID is lower than highest we've seen)
-                console.log('⏪ Old notification', notifId, '(highest seen:', this.highestSeenId + ')');
+            // With no stored watermark, this page establishes a baseline only.
+            // Existing history stays in the bell but is never replayed as a popup.
+            if (!this.hasPopupBaseline) {
+                this.highestSeenId = Math.max(this.highestSeenId, notifId);
+                this.writePopupWatermark(this.highestSeenId);
+                console.log('📌 Notification popup baseline established at ID', this.highestSeenId);
                 return;
             }
+
+            if (notifId <= this.persistedPopupWatermark || notifId <= this.highestSeenId) {
+                this.highestSeenId = Math.max(this.highestSeenId, notifId);
+                console.log('⏪ Notification already accounted for', notifId, '(popup watermark:', this.persistedPopupWatermark + ')');
+                return;
+            }
+
+            this.highestSeenId = notifId;
+            this.writePopupWatermark(notifId);
+
+            if (this.shownNotificationIds.has(notifId)) {
+                console.log('⚠️ Already shown notification', notifId);
+                return;
+            }
+
+            console.log('🎉 NEW NOTIFICATION!', notifId);
+            this.shownNotificationIds.add(notifId);
             
             // Extract EXACT data from notification
             // Parse the payload JSON to get order details
