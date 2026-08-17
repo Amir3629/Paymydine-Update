@@ -168,14 +168,6 @@ $config['form']['fields'] = [
         'readOnly' => true,
         'comment' => 'Auto-detected from device',
     ],
-    'location_id' => [
-        'label' => 'Location',
-        'type' => 'relation',
-        'relationFrom' => 'location',
-        'nameFrom' => 'location_name',
-        'span' => 'right',
-        'placeholder' => 'Select location (optional)',
-    ],
     'description' => [
         'label' => 'Description',
         'type' => 'textarea',

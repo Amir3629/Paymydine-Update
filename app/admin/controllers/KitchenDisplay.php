@@ -66,7 +66,6 @@ class KitchenDisplay extends AdminController
         // Load station if slug provided
         if ($stationSlug) {
             $this->station = Kds_stations_model::where('slug', $stationSlug)
-                ->where('is_active', true)
                 ->first();
             
             if (!$this->station) {
@@ -84,56 +83,22 @@ class KitchenDisplay extends AdminController
         $this->vars['statuses'] = $this->getKitchenStatuses();
         $this->vars['reservationsCount'] = $this->getReservationsCount();
         
-        // Get notification sound setting
-        $soundSetting = $this->station 
-            ? $this->station->notification_sound 
-            : $this->getDefaultNotificationSound();
-        $this->vars['kdsNotificationSound'] = $soundSetting;
-        
-        // Get theme color
-        $themeColor = $this->station 
-            ? $this->station->theme_color 
-            : '#4CAF50';
-        $this->vars['themeColor'] = $themeColor;
-        
-        // Get refresh interval
-        $refreshInterval = $this->station 
-            ? $this->station->refresh_interval 
-            : 5;
-        $this->vars['refreshInterval'] = $refreshInterval;
-        
-        // Can this station change status?
-        $canChangeStatus = $this->station
-            ? (bool)$this->station->can_change_status
-            : true;
-        $this->vars['canChangeStatus'] = $canChangeStatus;
-
-        // PMD_KDS_OPERATIONAL_CORE_V134: activate settings that already exist
-        // on KDS stations but were previously ignored by the display runtime.
-        $this->vars['showReservations'] = $this->pmdKdsShowReservationsV134();
-        $this->vars['soundEnabled'] = $this->station
-            ? (bool)($this->station->sound_enabled ?? true)
-            : true;
-        $density = strtolower(trim((string)($this->station->display_density ?? 'normal')));
-        $this->vars['displayDensity'] = in_array($density, ['compact', 'normal', 'large'], true)
-            ? $density
-            : 'normal';
-        $this->vars['orderLimit'] = $this->pmdKdsOrderLimitV134();
+        // PMD_KDS_MINIMAL_STATION_V1
+        // Station-specific display/workflow/location/active knobs are retired. KDS now
+        // has one product behaviour; each station only owns name + category routing.
+        $this->vars['kdsNotificationSound'] = $this->getDefaultNotificationSound();
+        $this->vars['themeColor'] = '#4CAF50';
+        $this->vars['refreshInterval'] = 5;
+        $this->vars['canChangeStatus'] = true;
+        $this->vars['showReservations'] = false;
+        $this->vars['soundEnabled'] = true;
+        $this->vars['displayDensity'] = 'normal';
+        $this->vars['orderLimit'] = 50;
         $this->vars['operationalLookbackHours'] = self::PMD_KDS_OPERATIONAL_LOOKBACK_HOURS_V134;
-        $this->vars['stationLocationId'] = $this->pmdKdsStationLocationIdV134();
+        $this->vars['stationLocationId'] = null;
 
-        // Only show station choices that can belong to the same operational
-        // location. Global stations (NULL location) remain selectable.
-        $stationLocationId = $this->pmdKdsStationLocationIdV134();
-        $stationCacheKey = 'pmd_kds_all_stations_v134_'.($stationLocationId ?: 'all');
-        $this->vars['allStations'] = $this->pmdKdsFastCacheRememberV82($stationCacheKey, 30, function () use ($stationLocationId) {
-            $query = Kds_stations_model::isActive()->ordered();
-            if ($stationLocationId) {
-                $query->where(function ($scope) use ($stationLocationId) {
-                    $scope->whereNull('location_id')->orWhere('location_id', $stationLocationId);
-                });
-            }
-            return $query->get();
+        $this->vars['allStations'] = $this->pmdKdsFastCacheRememberV82('pmd_kds_all_stations_minimal_v1_1', 30, function () {
+            return Kds_stations_model::query()->orderBy('name', 'asc')->get();
         });
         
         // Render standalone view directly using Laravel's view helper
@@ -180,7 +145,6 @@ class KitchenDisplay extends AdminController
         $stationSlug = trim((string)post('station_slug'));
         if ($stationSlug !== '') {
             $this->station = Kds_stations_model::where('slug', $stationSlug)
-                ->where('is_active', true)
                 ->first();
 
             if (!$this->station) {
@@ -222,6 +186,7 @@ class KitchenDisplay extends AdminController
     {
         $orderId = (int)post('order_id');
         $statusId = (int)post('status_id');
+        $expectedStatusId = (int)post('expected_status_id');
         $stationSlug = trim((string)post('station_slug'));
 
         if ($orderId < 1 || $statusId < 1) {
@@ -235,7 +200,6 @@ class KitchenDisplay extends AdminController
             $station = null;
             if ($stationSlug !== '') {
                 $station = Kds_stations_model::where('slug', $stationSlug)
-                    ->where('is_active', true)
                     ->first();
 
                 if (!$station) {
@@ -245,12 +209,6 @@ class KitchenDisplay extends AdminController
                     ], 404);
                 }
 
-                if (!$station->can_change_status) {
-                    return Response::json([
-                        'success' => false,
-                        'error' => 'This station cannot change order status',
-                    ], 403);
-                }
             }
 
             $order = Orders_model::find($orderId);
@@ -261,15 +219,6 @@ class KitchenDisplay extends AdminController
                 ], 404);
             }
 
-            if ($station && (int)($station->location_id ?? 0) > 0) {
-                if ((int)($order->location_id ?? 0) !== (int)$station->location_id) {
-                    return Response::json([
-                        'success' => false,
-                        'error' => 'Order does not belong to this KDS location',
-                    ], 403);
-                }
-            }
-
             $newStatus = Statuses_model::where('status_for', 'order')->find($statusId);
             if (!$newStatus) {
                 return Response::json([
@@ -278,24 +227,34 @@ class KitchenDisplay extends AdminController
                 ], 422);
             }
 
-            if ($station && !empty($station->status_ids)) {
-                $allowedStatusIds = array_map('intval', (array)$station->status_ids);
-                if (!in_array($statusId, $allowedStatusIds, true)) {
-                    return Response::json([
-                        'success' => false,
-                        'error' => 'This station cannot set this status',
-                    ], 403);
-                }
+            $currentStatusId = (int)$order->status_id;
+            $currentStatusName = $order->status ? (string)$order->status->status_name : '';
+
+            // V1.2 safe direct-click/undo guard: never overwrite a status that
+            // another kitchen screen changed after this ticket was rendered.
+            if ($expectedStatusId > 0 && $currentStatusId !== $expectedStatusId) {
+                return Response::json([
+                    'success' => false,
+                    'error' => 'Order status changed on another screen. The KDS has been refreshed.',
+                    'current_status_id' => $currentStatusId,
+                    'current_status_name' => $currentStatusName,
+                ], 409);
             }
 
-            if ((int)$order->status_id === $statusId) {
+            if ($currentStatusId === $statusId) {
                 return Response::json([
                     'success' => true,
                     'message' => 'Order already has this status',
+                    'previous_status_id' => $currentStatusId,
+                    'previous_status_name' => $currentStatusName,
                     'status_id' => $statusId,
                     'status_name' => (string)$newStatus->status_name,
+                    'display_status_name' => $newStatus->status_name === 'Preparation' ? 'Preparing' : ($newStatus->status_name === 'Delivery' ? 'Ready' : (string)$newStatus->status_name),
                 ]);
             }
+
+            $previousStatusId = $currentStatusId;
+            $previousStatusName = $currentStatusName;
 
             $staffId = null;
             try {
@@ -341,8 +300,11 @@ class KitchenDisplay extends AdminController
                 'success' => true,
                 'message' => 'Status updated successfully',
                 'station' => $stationName,
+                'previous_status_id' => $previousStatusId,
+                'previous_status_name' => $previousStatusName,
                 'status_id' => $statusId,
                 'status_name' => (string)$newStatus->status_name,
+                'display_status_name' => $newStatus->status_name === 'Preparation' ? 'Preparing' : ($newStatus->status_name === 'Delivery' ? 'Ready' : (string)$newStatus->status_name),
             ]);
         } catch (\Throwable $e) {
             \Log::error('KDS status update failed', [
@@ -412,8 +374,11 @@ class KitchenDisplay extends AdminController
     /** PMD v82 cached kitchen status IDs, used by initial render and refresh. */
     protected function pmdKitchenStatusIdsV82()
     {
-        return $this->pmdKdsFastCacheRememberV82('pmd_kds_status_ids_v82', 30, function () {
-            $kitchenStatusNames = ['Received', 'Preparation', 'Delivery'];
+        return $this->pmdKdsFastCacheRememberV82('pmd_kds_visible_status_ids_v12', 30, function () {
+            // V1.2: Ready/Delivery means kitchen handoff is complete, so the
+            // ticket leaves the active KDS wall. Undo can safely restore the
+            // previous Received/Preparation status through status history.
+            $kitchenStatusNames = ['Received', 'Preparation'];
             return Statuses_model::whereIn('status_name', $kitchenStatusNames)
                 ->where('status_for', 'order')
                 ->pluck('status_id')
@@ -423,25 +388,18 @@ class KitchenDisplay extends AdminController
 
     protected function pmdKdsStationLocationIdV134()
     {
-        $locationId = $this->station ? (int)($this->station->location_id ?? 0) : 0;
-        return $locationId > 0 ? $locationId : null;
+        // PMD_KDS_MINIMAL_STATION_V1: PayMyDine no longer exposes per-station locations.
+        return null;
     }
 
     protected function pmdKdsOrderLimitV134()
     {
-        $configured = $this->station ? (int)($this->station->order_limit ?? 0) : 0;
-        if ($configured < 1) {
-            $configured = self::PMD_KDS_DEFAULT_ORDER_LIMIT_V134;
-        }
-
-        return max(10, min(150, $configured));
+        return 50;
     }
 
     protected function pmdKdsShowReservationsV134()
     {
-        if (!$this->station) return true;
-        $value = $this->station->show_reservations;
-        return $value === null ? true : (bool)$value;
+        return false;
     }
 
     protected function pmdKdsReservationWindowMinutesV134()
@@ -759,20 +717,12 @@ class KitchenDisplay extends AdminController
      */
     protected function getKitchenStatuses()
     {
-        // Default kitchen statuses
-        $kitchenStatusNames = ['Preparation', 'Delivery'];
-        
-        $query = Statuses_model::where('status_for', 'order');
-        
-        // If station has specific statuses configured, use those
-        if ($this->station && !empty($this->station->status_ids)) {
-            $query->whereIn('status_id', $this->station->status_ids);
-        } else {
-            $query->whereIn('status_name', $kitchenStatusNames);
-        }
-        
-        $statusRows = $this->pmdKdsFastCacheRememberV82('pmd_kds_status_buttons_v82_' . ($this->station ? ($this->station->station_id ?? 'station') : 'all'), 30, function () use ($query) {
-            return $query->orderByRaw("FIELD(status_name, 'Preparation', 'Delivery', 'Completed', 'Canceled')")->get();
+        // PMD_KDS_MINIMAL_STATION_V1: one fixed kitchen workflow.
+        $statusRows = $this->pmdKdsFastCacheRememberV82('pmd_kds_status_buttons_minimal_v1', 30, function () {
+            return Statuses_model::where('status_for', 'order')
+                ->whereIn('status_name', ['Preparation', 'Delivery'])
+                ->orderByRaw("FIELD(status_name, 'Preparation', 'Delivery')")
+                ->get();
         });
 
         return $statusRows->map(function($status) {

@@ -351,6 +351,9 @@
             'notes_placeholder' => 'Optional, z. B. Fensterplatz oder betriebliche Hinweise',
             'cancel' => 'Abbrechen',
             'save' => 'Tisch speichern',
+            'delete' => 'Tisch entfernen',
+            'deleting' => 'Entfernen…',
+            'delete_confirm' => 'Diesen Tisch dauerhaft entfernen? Der QR-Code dieses Tisches funktioniert danach nicht mehr.',
             'saving' => 'Speichern…',
             'loading' => 'Tischdaten werden geladen…',
             'locked' => 'POS-/Custom-Tisch: Die Nummer wird vom bestehenden POS-System verwaltet.',
@@ -383,6 +386,9 @@
             'notes_placeholder' => 'Optional, for example window seat or operational notes',
             'cancel' => 'Cancel',
             'save' => 'Save table',
+            'delete' => 'Remove table',
+            'deleting' => 'Removing…',
+            'delete_confirm' => 'Remove this table permanently? Its QR code will stop working after deletion.',
             'saving' => 'Saving…',
             'loading' => 'Loading table details…',
             'locked' => 'POS/custom table: its number is managed by the existing POS system.',
@@ -808,9 +814,9 @@
     </aside>
 
     @if($pmdFloorCanManageTables)
-        <div class="pmd-floor-registry-manager" data-pmd-floor-add-panel hidden>
-            <button type="button" class="pmd-floor-registry-manager__backdrop" data-pmd-floor-add-close aria-label="{{ $pmdFloorRegistryText['cancel'] }}"></button>
-            <section class="pmd-floor-registry-manager__card" role="dialog" aria-modal="true" aria-labelledby="pmd-floor-registry-manager-title-v1">
+        <div class="pmd-floor-registry-manager" data-pmd-floor-add-panel hidden style="position:fixed!important;inset:0!important;z-index:2147483646!important;isolation:isolate!important;opacity:1!important;filter:none!important;-webkit-filter:none!important;">
+            <button type="button" class="pmd-floor-registry-manager__backdrop" data-pmd-floor-add-close aria-label="{{ $pmdFloorRegistryText['cancel'] }}" style="position:fixed!important;inset:0!important;z-index:1!important;width:100vw!important;height:100vh!important;border:0!important;background:rgba(15,35,54,.42)!important;opacity:1!important;filter:none!important;-webkit-filter:none!important;"></button>
+            <section class="pmd-floor-registry-manager__card" role="dialog" aria-modal="true" aria-labelledby="pmd-floor-registry-manager-title-v1" style="position:relative!important;z-index:2!important;background:#fff!important;background-color:#fff!important;opacity:1!important;filter:none!important;-webkit-filter:none!important;backdrop-filter:none!important;-webkit-backdrop-filter:none!important;">
                 <header class="pmd-floor-registry-manager__header">
                     <div>
                         <h2 id="pmd-floor-registry-manager-title-v1">{{ $pmdFloorRegistryText['title'] }}</h2>
@@ -843,6 +849,9 @@
             data-edit-subtitle="{{ $pmdFloorTableManagerText['edit_subtitle'] }}"
             data-save-label="{{ $pmdFloorTableManagerText['save'] }}"
             data-saving-label="{{ $pmdFloorTableManagerText['saving'] }}"
+            data-delete-label="{{ $pmdFloorTableManagerText['delete'] }}"
+            data-deleting-label="{{ $pmdFloorTableManagerText['deleting'] }}"
+            data-delete-confirm="{{ $pmdFloorTableManagerText['delete_confirm'] }}"
             data-loading-label="{{ $pmdFloorTableManagerText['loading'] }}"
             data-qr-downloading-label="{{ $pmdFloorTableManagerLocale === 'de' ? 'QR wird vorbereitet…' : 'Preparing QR…' }}"
             data-select-first="{{ $pmdFloorTableManagerText['select_first'] }}"
@@ -969,9 +978,21 @@
                     <div class="pmd-floor-table-manager__error" data-pmd-floor-table-manager-error hidden></div>
                 </form>
 
+                {{-- PMD_FLOOR_TABLE_DELETE_R36B --}}
                 <footer class="pmd-floor-table-manager__footer">
-                    <button type="button" class="pmd-floor-table-manager__cancel" data-pmd-floor-table-manager-close>{{ $pmdFloorTableManagerText['cancel'] }}</button>
-                    <button type="button" class="pmd-floor-table-manager__save" data-pmd-floor-table-manager-save>{{ $pmdFloorTableManagerText['save'] }}</button>
+                    {{-- PMD_FLOOR_TABLE_VISUAL_R36C --}}
+                    <button
+                        type="button"
+                        class="pmd-floor-table-manager__delete"
+                        data-pmd-floor-table-manager-delete
+                        hidden
+                        style="margin-right:auto!important;align-items:center!important;justify-content:center!important;min-height:48px!important;height:48px!important;padding:0 20px!important;border:1px solid #d98d99!important;border-radius:12px!important;background:#fff!important;background-image:none!important;color:#a12638!important;font-size:15px!important;line-height:1!important;font-weight:800!important;box-shadow:none!important;text-shadow:none!important;appearance:none!important;-webkit-appearance:none!important;cursor:pointer!important;"
+                    >{{ $pmdFloorTableManagerText['delete'] }}</button>
+
+                    <div class="pmd-floor-table-manager__footer-actions">
+                        <button type="button" class="pmd-floor-table-manager__cancel" data-pmd-floor-table-manager-close>{{ $pmdFloorTableManagerText['cancel'] }}</button>
+                        <button type="button" class="pmd-floor-table-manager__save" data-pmd-floor-table-manager-save>{{ $pmdFloorTableManagerText['save'] }}</button>
+                    </div>
                 </footer>
             </section>
         </div>

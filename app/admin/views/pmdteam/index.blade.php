@@ -24,12 +24,12 @@ html,body,.page,.page-wrapper,.page-content,.content-wrapper,.container,.contain
         <div class="pmd-team-header__actions" data-pmd-team-actions></div>
     </header>
 
-    <section class="pmd-team-section">
+    <section class="pmd-team-section" id="pmd-team-members-section">
         <div class="pmd-team-card">
             <div class="pmd-team-card__header">
                 <div class="pmd-team-icon"><svg viewBox="0 0 24 24"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M22 21v-2a4 4 0 0 0-3-3.87"></path></svg></div>
                 <div><h2>Team members</h2><p>Staff, roles and access state in one place.</p></div>
-                <div class="pmd-team-header-actions"><a class="pmd-team-action" href="{{ admin_url('staffs/create') }}">Add staff</a></div>
+                <div class="pmd-team-header-actions"><button type="button" class="pmd-team-action" data-pmd-inline-open="team:staff:create">Add staff</button></div>
             </div>
             <div class="pmd-team-stats">
                 <div class="pmd-team-stat"><span>Team members</span><strong>{{ (int)$stats['total'] }}</strong></div>
@@ -43,7 +43,7 @@ html,body,.page,.page-wrapper,.page-content,.content-wrapper,.container,.contain
                         <div class="pmd-team-person"><strong>{{ $member->staff_name ?: 'Unnamed staff' }}</strong><small>{{ $member->staff_email ?: optional($member->user)->username }}</small></div>
                         <div class="pmd-team-role">{{ optional($member->role)->name ?: 'No role' }}</div>
                         <div class="pmd-team-status {{ !empty($member->staff_status) ? 'is-active' : '' }}">{{ !empty($member->staff_status) ? 'Active' : 'Disabled' }}</div>
-                        <a class="pmd-team-edit" href="{{ admin_url('staffs/edit/'.$member->staff_id) }}" aria-label="Edit"><svg viewBox="0 0 24 24"><path d="M12 20h9"></path><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"></path></svg></a>
+                        <button type="button" class="pmd-team-edit" data-pmd-inline-open="team:staff:edit:{{ $member->staff_id }}" aria-label="Edit"><svg viewBox="0 0 24 24"><path d="M12 20h9"></path><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"></path></svg></button>
                     </div>
                 @empty
                     <div class="pmd-team-row"><div class="pmd-team-person"><strong>No team members yet</strong><small>Add the first staff member.</small></div></div>
@@ -52,16 +52,16 @@ html,body,.page,.page-wrapper,.page-content,.content-wrapper,.container,.contain
         </div>
     </section>
 
-    <section class="pmd-team-section">
+    <section class="pmd-team-section" id="pmd-team-roles-section">
         <div class="pmd-team-card">
             <div class="pmd-team-card__header">
                 <div class="pmd-team-icon"><svg viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10"></path><path d="m9 12 2 2 4-4"></path></svg></div>
                 <div><h2>Roles & permissions</h2><p>Role overview and permission ownership.</p></div>
-                <div class="pmd-team-header-actions"><a class="pmd-team-action" href="{{ admin_url('staff_roles/create') }}">Add role</a></div>
+                <div class="pmd-team-header-actions"><button type="button" class="pmd-team-action" data-pmd-inline-open="team:role:create">Add role</button></div>
             </div>
             <div class="pmd-team-grid">
                 @forelse($roles as $role)
-                    <div class="pmd-team-panel"><strong>{{ $role->name ?: 'Unnamed role' }}</strong><p>{{ $role->description ?: 'Access rules for this role.' }}</p><a href="{{ admin_url('staff_roles/edit/'.$role->staff_role_id) }}">Edit permissions →</a></div>
+                    <div class="pmd-team-panel"><strong>{{ $role->name ?: 'Unnamed role' }}</strong><p>{{ $role->description ?: 'Access rules for this role.' }}</p><button type="button" class="pmd-team-action" data-pmd-inline-open="team:role:edit:{{ $role->staff_role_id }}">Edit permissions</button></div>
                 @empty
                     <div class="pmd-team-panel"><strong>No roles yet</strong><p>Create a role before assigning permissions.</p></div>
                 @endforelse
@@ -69,7 +69,7 @@ html,body,.page,.page-wrapper,.page-content,.content-wrapper,.container,.contain
         </div>
     </section>
 
-    <section class="pmd-team-section">
+    <section class="pmd-team-section" id="pmd-team-auth-section">
         <div class="pmd-team-card">
             <div class="pmd-team-card__header"><div class="pmd-team-icon"><svg viewBox="0 0 24 24"><circle cx="7.5" cy="15.5" r="5.5"></circle><path d="m21 2-9.6 9.6"></path></svg></div><div><h2>Authentication & access</h2><p>Current account, biometric and card access authority.</p></div></div>
             <div class="pmd-team-grid">
@@ -80,4 +80,7 @@ html,body,.page,.page-wrapper,.page-content,.content-wrapper,.container,.contain
         </div>
     </section>
 </div>
+
+@include('admin::pmdteam._inline_templates_v1')
+@include('admin::_partials.pmd_settings_inline_modal_host_v1')
 <script defer src="/app/admin/assets/js/pmd-team-v1.js?v=20260809_1"></script>

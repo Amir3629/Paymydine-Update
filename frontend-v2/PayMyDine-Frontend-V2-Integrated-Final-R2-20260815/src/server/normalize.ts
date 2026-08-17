@@ -384,6 +384,8 @@ function orderLines(value: unknown): OrderLine[] {
     orderMenuId: first(row,['order_menu_id','id']) == null ? null : num(first(row,['order_menu_id','id'])),
     menuId: str(first(row,['menu_id','id']), String(index)),
     name: str(first(row,['name','menu_name']), `Item ${index+1}`),
+    // PMD_ITEM_NOTE_NORMALIZER_R29
+    note: (str(first(row,['note','comment'])) || '').replace(/\[guest_session:[^\]]*\]/gi, '').replace(/^\s*\|?|\|?\s*$/g, '').trim() || null,
     quantity: Math.max(1,num(row.quantity,1)),
     price: num(row.price),
     subtotal: num(row.subtotal,num(row.price)*Math.max(1,num(row.quantity,1))),

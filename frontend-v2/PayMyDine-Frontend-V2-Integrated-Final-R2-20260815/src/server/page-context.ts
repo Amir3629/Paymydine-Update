@@ -31,13 +31,25 @@ export async function getPageContext(
   const requestHeaders = await headers()
   const requestCookies = await cookies()
   const trustTenantHeader = enabled(process.env.PMD_TRUST_TENANT_OVERRIDE_HEADER)
-  const host = String(
-    process.env.PMD_TENANT_HOST_OVERRIDE ||
-    (trustTenantHeader ? requestHeaders.get('x-pmd-tenant-host') : null) ||
+  // PMD_DYNAMIC_TENANT_HOST_R29
+  // Production tenant authority is the real public request host. The historical
+  // PMD_TENANT_HOST_OVERRIDE=mimoza... remains useful only for localhost/tunnel
+  // checks unless PMD_FORCE_TENANT_HOST_OVERRIDE is explicitly enabled.
+  const forceTenantOverride = enabled(process.env.PMD_FORCE_TENANT_HOST_OVERRIDE)
+  const requestHost = String(
     requestHeaders.get('x-forwarded-host') ||
     requestHeaders.get('host') ||
-    process.env.PMD_PUBLIC_HOST ||
-    'localhost:3002'
+    ''
+  ).split(',')[0].trim()
+  const requestHostName = requestHost.replace(/^https?:\/\//i, '').split('/')[0].split(':')[0].toLowerCase()
+  const localRequest = !requestHostName || ['localhost', '127.0.0.1', '::1'].includes(requestHostName)
+  const trustedTenantHeader = trustTenantHeader ? requestHeaders.get('x-pmd-tenant-host') : null
+  const host = String(
+    forceTenantOverride
+      ? (process.env.PMD_TENANT_HOST_OVERRIDE || trustedTenantHeader || requestHost || process.env.PMD_PUBLIC_HOST || 'localhost:3002')
+      : (!localRequest
+          ? (trustedTenantHeader || requestHost || process.env.PMD_PUBLIC_HOST || process.env.PMD_TENANT_HOST_OVERRIDE || 'localhost:3002')
+          : (trustedTenantHeader || process.env.PMD_TENANT_HOST_OVERRIDE || process.env.PMD_PUBLIC_HOST || requestHost || 'localhost:3002'))
   ).split(',')[0].trim()
 
   const previewAllowed = enabled(process.env.PMD_ENABLE_THEME_PREVIEW) || enabled(process.env.PMD_DEMO_MODE)

@@ -26,7 +26,7 @@
                 <div class="pmd-owner-card__header">
                     <div class="pmd-owner-card__icon"><svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="2"></rect><path d="M3 10h18M7 15h2"></path></svg></div>
                     <div class="pmd-owner-card__title"><h2>Payment methods</h2><p>Guest-facing payment choices and the providers powering them.</p></div>
-                    <div class="pmd-owner-card__actions"><a class="pmd-owner-action" href="{{ admin_url('payments?mode=methods') }}">Manage methods</a><a class="pmd-owner-action" href="{{ admin_url('payments?mode=providers') }}">Providers</a></div>
+                    <div class="pmd-owner-card__actions"><span class="pmd-owner-meta">Edit here — no detail-page navigation</span></div>
                 </div>
                 <div class="pmd-owner-card__body">
                     <div class="pmd-owner-list">
@@ -35,7 +35,7 @@
                                 <div><strong>{{ $method->name ?: ucfirst(str_replace('_',' ',(string)$method->code)) }}</strong><small>{{ $method->description ?: strtoupper((string)$method->code) }}</small></div>
                                 <div class="pmd-owner-meta">Provider: {{ $method->provider_code ?: '—' }}</div>
                                 <div class="pmd-owner-status {{ !empty($method->status) ? 'is-active' : '' }}">{{ !empty($method->status) ? 'Enabled' : 'Disabled' }}</div>
-                                <a class="pmd-owner-action" href="{{ admin_url('payments/edit/'.$method->code) }}">Edit</a>
+                                <button type="button" class="pmd-owner-action" data-pmd-inline-open="finance:method:{{ $method->code }}">Edit</button>
                             </div>
                         @empty
                             <div class="pmd-owner-empty">No payment methods are available yet.</div>
@@ -45,7 +45,7 @@
                         <div class="pmd-owner-divider"></div>
                         <div class="pmd-owner-grid pmd-owner-grid--3">
                             @foreach($providers as $provider)
-                                <div class="pmd-owner-panel"><h3>{{ $provider->name ?: ucfirst((string)$provider->code) }}</h3><p>{{ !empty($provider->status) ? 'Provider enabled' : 'Provider disabled' }}{{ $provider->description ? ' · '.$provider->description : '' }}</p></div>
+                                <div class="pmd-owner-panel"><h3>{{ $provider->name ?: ucfirst((string)$provider->code) }}</h3><p>{{ !empty($provider->status) ? 'Provider enabled' : 'Provider disabled' }}{{ $provider->description ? ' · '.$provider->description : '' }}</p><button type="button" class="pmd-owner-action" data-pmd-inline-open="finance:provider:{{ $provider->code }}">Edit provider</button></div>
                             @endforeach
                         </div>
                     @endif
@@ -138,3 +138,7 @@
         </section>
     </form>
 </div>
+
+
+@include('admin::pmdfinance._inline_templates_v1')
+@include('admin::_partials.pmd_settings_inline_modal_host_v1')

@@ -11,14 +11,6 @@ $config['list']['filter'] = [
             'type' => 'switch',
             'conditions' => 'status = :filtered',
         ],
-        'location' => [
-            'label' => 'Location',
-            'type' => 'selectlist',
-            'scope' => 'whereHasLocation',
-            'modelClass' => 'Admin\\Models\\Locations_model',
-            'nameFrom' => 'location_name',
-            'locationAware' => true,
-        ],
     ],
 ];
 
@@ -45,13 +37,6 @@ $config['list']['columns'] = [
         'label' => 'Drawer Name',
         'type' => 'text',
         'searchable' => true,
-    ],
-    'location_name' => [
-        'label' => 'Location',
-        'relation' => 'location',
-        'select' => 'location_name',
-        'searchable' => true,
-        'locationAware' => true,
     ],
     'terminal' => [
         'label' => 'POS Terminal',
@@ -141,13 +126,6 @@ $config['form']['fields'] = [
         'type' => 'text',
         'span' => 'left',
         'required' => true,
-    ],
-    'location_id' => [
-        'label' => 'Location',
-        'type' => 'select',
-        'span' => 'right',
-        'options' => 'getLocationOptions',
-        'locationAware' => true,
     ],
     'status' => [
         'label' => 'Enabled',

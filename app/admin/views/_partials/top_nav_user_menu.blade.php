@@ -1,5 +1,4 @@
 @php
-    use Admin\Facades\AdminLocation;
     $userPanel = \Admin\Classes\UserPanel::forUser();
     $faviconPath = setting('favicon_logo');
     $defaultAvatar = $userPanel->getAvatarUrl().'&s=64';
@@ -31,27 +30,6 @@
                 <i class="{{ $item->iconCssClass }}"></i><span>@lang($item->label)</span>
             </a>
         @endforeach
-        {{-- Location Picker --}}
-        @if(AdminLocation::listLocations()->isNotEmpty())
-            <div role="separator" class="dropdown-divider"></div>
-            <div class="dropdown-header">
-                <i class="fa fa-location-dot"></i>
-                <span>@lang('admin::lang.side_menu.location')</span>
-            </div>
-            @php
-                $locations = \Admin\Classes\UserPanel::listLocations(null, null, null);
-            @endphp
-            @foreach($locations as $location)
-                <a
-                    class="dropdown-item {{ $location->active ? 'active' : '' }}"
-                    data-request="mainmenu::onChooseLocation"
-                    @unless($location->active)data-request-data="location: '{{ $location->id }}'"@endunless
-                    href="#"
-                >
-                    <span>{{ $location->name }}</span>
-                </a>
-            @endforeach
-        @endif
         <!-- <div role="separator" class="dropdown-divider"></div>
         <a class="dropdown-item text-black-50" href="https://tastyigniter.com/support" target="_blank">
             <i class="fa fa-circle-question fa-fw"></i>@lang('admin::lang.text_support')

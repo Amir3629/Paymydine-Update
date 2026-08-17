@@ -234,4 +234,10 @@
   'Admin\\Controllers\\staffs' => 'app/admin/controllers/Staffs.php',
   'Admin\\Controllers\\pmdcustomer' => 'app/admin/controllers/Pmdcustomer.php',
   'Admin\\Controllers\\pmdfinance' => 'app/admin/controllers/Pmdfinance.php',
+  'Admin\\Controllers\\pmdmenus' => 'app/admin/controllers/Pmdmenus.php',
+  'Admin\\Models\\Menu_combos_model' => 'app/admin/models/Menu_combos_model.php',
+  'Admin\\Controllers\\combos' => 'app/admin/controllers/Combos.php',
+  'Admin\\Models\\Menu_combo_items_model' => 'app/admin/models/Menu_combo_items_model.php',
+  'Admin\\Controllers\\coupons' => 'app/admin/controllers/Coupons.php',
+  'Admin\\Models\\Coupons_model' => 'app/admin/models/Coupons_model.php',
 );

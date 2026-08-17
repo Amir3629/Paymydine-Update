@@ -106,8 +106,14 @@
             $restaurantChildren = $restaurantMenu['child'] ?? [];
             $newRestaurantChildren = [];
 
+            // PMD_SINGLE_LOCATION_PRODUCT_V1: location management is no longer a user-facing destination.
+            foreach ($restaurantChildren as $childCode => $childMenu) {
+                if ($pmdMatches($childCode, $childMenu, ['locations', 'location'])) {
+                    unset($restaurantChildren[$childCode]);
+                }
+            }
+
             $restaurantOrder = [
-                ['locations', 'location'],
                 ['menu items', 'menus', 'menu'],
                 ['categories', 'category'],
                 ['mealtimes', 'meal times', 'mealtime'],

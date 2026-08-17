@@ -63,10 +63,14 @@ class Locations extends \Admin\Classes\AdminController
 
     public function remap($action, $params)
     {
-        // FIXED: Only redirect to settings in single location mode, not just when a location is checked
-        // This allows users to access the locations list page even when a location is selected
-        if ($action != 'settings' && AdminLocation::isSingleMode())
-            return $this->redirect('locations/settings');
+        /* PMD_SINGLE_LOCATION_PRODUCT_V1
+         * PayMyDine is a single-restaurant product. Keep the existing location
+         * row as an internal compatibility/storage key, but retire every browser
+         * location-management page. Restaurant identity lives in PMD Settings.
+         */
+        if (request()->isMethod('get') && !request()->ajax()) {
+            return redirect(admin_url('pmdsettings/restaurant'));
+        }
 
         return parent::remap($action, $params);
     }

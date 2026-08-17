@@ -156,6 +156,17 @@ function ItemDialog({ item }: { item: MenuItem }) {
   )
 }
 
+
+// PMD_ITEM_NOTE_UI_R29
+function itemNoteCopy(locale: string) {
+  const lang = String(locale || 'en').toLowerCase().split('-')[0]
+  if (lang === 'de') return { add: 'Notiz hinzufügen', edit: 'Notiz bearbeiten', title: 'Notiz für dieses Gericht', placeholder: 'z. B. ohne Zwiebeln, Sauce separat …', save: 'Speichern', cancel: 'Abbrechen' }
+  if (lang === 'fa') return { add: 'افزودن یادداشت', edit: 'ویرایش یادداشت', title: 'یادداشت برای این غذا', placeholder: 'مثلاً بدون پیاز، سس جدا …', save: 'ذخیره', cancel: 'لغو' }
+  if (lang === 'tr') return { add: 'Not ekle', edit: 'Notu düzenle', title: 'Bu ürün için not', placeholder: 'örn. soğansız, sos ayrı …', save: 'Kaydet', cancel: 'İptal' }
+  if (lang === 'ja') return { add: 'メモを追加', edit: 'メモを編集', title: 'この料理へのメモ', placeholder: '例：玉ねぎ抜き、ソース別添え …', save: '保存', cancel: 'キャンセル' }
+  return { add: 'Add note', edit: 'Edit note', title: 'Note for this item', placeholder: 'e.g. no onions, sauce on the side …', save: 'Save', cancel: 'Cancel' }
+}
+
 function CartSheet() {
   const {
     labels,
@@ -164,12 +175,17 @@ function CartSheet() {
     cartSubtotal,
     formatCurrency,
     updateCartQuantity,
+    updateCartNote,
     removeCartLine,
     confirmPersonalItems,
     continueOrdering,
     orderLoading,
     bootstrap,
+    locale,
   } = useMenuRuntime()
+  const [noteLineKey, setNoteLineKey] = useState<string | null>(null)
+  const [noteDraft, setNoteDraft] = useState('')
+  const noteCopy = itemNoteCopy(locale)
   const canConfirm = Boolean(bootstrap.features.tableOrdering && (bootstrap.table.id || bootstrap.table.number))
 
   return (
@@ -197,12 +213,28 @@ function CartSheet() {
               <div>
                 <h3>{line.item.name}</h3>
                 {line.selectedOptions.length > 0 && <p>{line.selectedOptions.map((option) => option.valueName).join(', ')}</p>}
+                {line.note && <p className={styles.itemNotePreview}><Receipt aria-hidden="true" />{line.note}</p>}
                 <div className={styles.smallQty}>
                   <button type="button" onClick={() => updateCartQuantity(line.key, line.quantity - 1)}><Minus /></button>
                   <span>{line.quantity}</span>
                   <button type="button" onClick={() => updateCartQuantity(line.key, line.quantity + 1)}><Plus /></button>
                   <button type="button" onClick={() => removeCartLine(line.key)} aria-label="Remove"><Trash2 /></button>
                 </div>
+                {noteLineKey !== line.key ? (
+                  <button className={styles.itemNoteButton} type="button" onClick={() => { setNoteLineKey(line.key); setNoteDraft(line.note || '') }}>
+                    <Receipt aria-hidden="true" /> {line.note ? noteCopy.edit : noteCopy.add}
+                  </button>
+                ) : (
+                  <div className={styles.itemNoteEditor}>
+                    <label className={styles.label}>{noteCopy.title}
+                      <textarea className={styles.itemNoteTextarea} maxLength={500} value={noteDraft} onChange={(event) => setNoteDraft(event.target.value)} placeholder={noteCopy.placeholder} />
+                    </label>
+                    <div className={styles.itemNoteActions}>
+                      <button className={styles.secondary} type="button" onClick={() => { setNoteLineKey(null); setNoteDraft('') }}>{noteCopy.cancel}</button>
+                      <button className={styles.primary} type="button" onClick={() => { updateCartNote(line.key, noteDraft); setNoteLineKey(null); setNoteDraft('') }}>{noteCopy.save}</button>
+                    </div>
+                  </div>
+                )}
               </div>
               <div className={styles.lineTotal}>{formatCurrency(line.subtotal)}</div>
             </article>
@@ -412,7 +444,7 @@ function SubmittedOrderCard({ order, selected, onSelect, onPay }: {
       <div className={styles.invoiceItems}>
         {order.items.map((item, index) => (
           <div className={styles.orderLine} key={`${item.orderMenuId || item.menuId}-${index}`}>
-            <span>{item.quantity} × {item.name}</span><strong>{formatCurrency(item.subtotal)}</strong>
+            <span>{item.quantity} × {item.name}{item.note ? <small className={styles.orderItemNote}><Receipt aria-hidden="true" />{item.note}</small> : null}</span><strong>{formatCurrency(item.subtotal)}</strong>
           </div>
         ))}
       </div>
@@ -698,7 +730,7 @@ function CheckoutSheet() {
                 {currentDraft.groups.map((group, groupIndex) => (
                   <div className={styles.guestGroup} key={group.guestSessionId || `group-${groupIndex}`}>
                     <strong>{group.guestSessionId && group.guestSessionId === guestSessionId ? copy.myItems : `${labels.tableOrder} ${groupIndex + 1}`}</strong>
-                    {group.items.map((item, index) => <div className={styles.orderLine} key={`${item.menuId}-${index}`}><span>{item.quantity} × {item.name}</span><strong>{formatCurrency(item.subtotal)}</strong></div>)}
+                    {group.items.map((item, index) => <div className={styles.orderLine} key={`${item.menuId}-${index}`}><span>{item.quantity} × {item.name}{item.note ? <small className={styles.orderItemNote}><Receipt aria-hidden="true" />{item.note}</small> : null}</span><strong>{formatCurrency(item.subtotal)}</strong></div>)}
                   </div>
                 ))}
                 <div className={styles.summary}><div className={styles.summaryRow}><span>{labels.total}</span><strong>{formatCurrency(currentDraft.totals.orderTotal)}</strong></div></div>

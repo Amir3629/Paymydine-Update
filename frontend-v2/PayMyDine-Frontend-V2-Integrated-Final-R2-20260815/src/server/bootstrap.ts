@@ -81,7 +81,6 @@ export async function loadCustomerBootstrap(query: BootstrapQuery): Promise<Cust
     tablePayload,
     orderPayload,
     taxApiPayload,
-    taxLegacyPayload,
     tipApiPayload,
   ] = await Promise.all([
     fetchBackendJsonOrNull<any>('/api/v1/settings', requestOptions),
@@ -92,9 +91,15 @@ export async function loadCustomerBootstrap(query: BootstrapQuery): Promise<Cust
     tableId || tableNo || qr ? fetchBackendJsonOrNull<any>(`/api/v1/table-info${tableLookup}`, requestOptions) : Promise.resolve(null),
     tableId || tableNo || qr ? fetchBackendJsonOrNull<any>(`/api/v1/table-order-draft${draftLookup}`, requestOptions) : Promise.resolve(null),
     fetchBackendJsonOrNull<any>('/api/v1/vat-settings', requestOptions),
-    fetchBackendJsonOrNull<any>('/vat-settings', requestOptions),
     fetchBackendJsonOrNull<any>('/api/v1/tip-settings', requestOptions),
   ])
+
+  // PMD_VAT_FAST_FALLBACK_R34
+  // Do not block every SSR render on the slow legacy VAT endpoint when
+  // the canonical /api/v1/vat-settings endpoint already succeeded.
+  const taxLegacyPayload = taxApiPayload
+    ? null
+    : await fetchBackendJsonOrNull<any>('/vat-settings', requestOptions)
 
   const resolvedThemePayload = themePayload || await fetchBackendJsonOrNull<any>('/simple-theme', requestOptions)
 

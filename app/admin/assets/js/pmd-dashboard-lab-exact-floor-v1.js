@@ -7875,6 +7875,7 @@ function saveLayout() {
 
     var form = panel.querySelector('[data-pmd-floor-table-manager-form]');
     var saveButton = panel.querySelector('[data-pmd-floor-table-manager-save]');
+    var deleteButton = panel.querySelector('[data-pmd-floor-table-manager-delete]');
     var loading = panel.querySelector('[data-pmd-floor-table-manager-loading]');
     var errorBox = panel.querySelector('[data-pmd-floor-table-manager-error]');
     var title = panel.querySelector('[data-pmd-floor-table-manager-title]');
@@ -7970,6 +7971,7 @@ function saveLayout() {
       busy = Boolean(next);
       panel.setAttribute('aria-busy', busy ? 'true' : 'false');
       saveButton.disabled = busy;
+      if (deleteButton) deleteButton.disabled = busy;
       Array.prototype.forEach.call(form.querySelectorAll('input,select,textarea'), function (node) {
         if (node === field('table_no') && node.getAttribute('data-number-locked') === '1') {
           node.disabled = true;
@@ -8035,6 +8037,16 @@ function saveLayout() {
     function applyTable(table, mode) {
       currentMode = mode === 'edit' ? 'edit' : 'create';
       clearErrors();
+
+      if (deleteButton) {
+        deleteButton.hidden = !(
+          currentMode === 'edit'
+          && table
+          && table.deletable !== false
+          && asInt(table.table_id, 0) > 0
+        );
+        deleteButton.textContent = panel.getAttribute('data-delete-label') || 'Remove table';
+      }
 
       var numberField = field('table_no');
       var locked = Boolean(table && table.number_locked);
@@ -8167,6 +8179,52 @@ function saveLayout() {
       });
     }
 
+    // PMD_FLOOR_TABLE_DELETE_R36B
+    function removeTable() {
+      if (busy || !deleteButton || deleteButton.hidden) return;
+
+      var tableId = asInt(field('table_id') && field('table_id').value, 0);
+      if (tableId < 1) return;
+
+      var confirmText = panel.getAttribute('data-delete-confirm')
+        || 'Remove this table permanently?';
+      if (!window.confirm(confirmText)) return;
+
+      clearErrors();
+      setBusy(true);
+      deleteButton.textContent = panel.getAttribute('data-deleting-label') || 'Removing…';
+
+      request(root, 'onPmdFloorTableManagerDelete', {
+        location_id: locationId,
+        table_id: tableId
+      })
+        .then(function (responsePayload) {
+          emitManagerEvent('pmd:floor:table-manager:deleted', {
+            payload: responsePayload || {},
+            table_id: tableId
+          });
+
+          var instance = root.__pmdFloorV1;
+          if (instance && typeof instance.refresh === 'function') {
+            return Promise.resolve(instance.refresh()).then(function () {
+              return responsePayload;
+            });
+          }
+
+          return responsePayload;
+        })
+        .then(function () {
+          setBusy(false);
+          closePanel();
+          syncToolbar();
+        })
+        .catch(function (error) {
+          setBusy(false);
+          deleteButton.textContent = panel.getAttribute('data-delete-label') || 'Remove table';
+          showError(error);
+        });
+    }
+
     function save() {
       if (busy) return;
       clearErrors();
@@ -8225,6 +8283,7 @@ function saveLayout() {
     });
 
     saveButton.addEventListener('click', save);
+    if (deleteButton) deleteButton.addEventListener('click', removeTable);
     if (qrDownloadButton) qrDownloadButton.addEventListener('click', downloadQr);
 
     panel.querySelectorAll('[data-pmd-floor-table-manager-close]').forEach(function (button) {

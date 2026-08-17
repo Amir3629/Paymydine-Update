@@ -374,3 +374,144 @@ html.pmd-device-v6-modal-open body {
   .pmd-device-v6-backdrop,
   .pmd-device-v6-card { animation: none !important; }
 }
+
+/* PMD_DEVICE_V6_MODAL_POLISH_V6_1
+   Single visual correction on top of the proven V6 modal authority.
+   No second modal, no observer, no timer geometry repair. */
+
+/* One exact field-frame contract inside every Device modal form. */
+.pmd-device-v6-form .pmd-owner-field > input:not([type="checkbox"]):not([type="radio"]):not([type="hidden"]),
+.pmd-device-v6-form .pmd-owner-field > select {
+  display: block !important;
+  width: 100% !important;
+  height: 46px !important;
+  min-height: 46px !important;
+  max-height: 46px !important;
+  margin: 0 !important;
+  padding: 0 13px !important;
+  border: 1px solid #d5e3ea !important;
+  border-radius: 12px !important;
+  background-color: #fff !important;
+  color: #162a24 !important;
+  box-shadow: 0 2px 8px rgba(24,51,44,.035) !important;
+  outline: 0 !important;
+  line-height: 44px !important;
+  vertical-align: middle !important;
+}
+
+.pmd-device-v6-form .pmd-owner-field > select {
+  line-height: normal !important;
+}
+
+.pmd-device-v6-form .pmd-owner-field > textarea {
+  display: block !important;
+  width: 100% !important;
+  min-height: 96px !important;
+  margin: 0 !important;
+  padding: 12px 13px !important;
+  border: 1px solid #d5e3ea !important;
+  border-radius: 12px !important;
+  background: #fff !important;
+  color: #162a24 !important;
+  box-shadow: 0 2px 8px rgba(24,51,44,.035) !important;
+  outline: 0 !important;
+  line-height: 1.45 !important;
+}
+
+.pmd-device-v6-form .pmd-owner-field > input:not([type="checkbox"]):not([type="radio"]):not([type="hidden"]):focus,
+.pmd-device-v6-form .pmd-owner-field > select:focus,
+.pmd-device-v6-form .pmd-owner-field > textarea:focus {
+  border-color: #9fc6dc !important;
+  box-shadow: 0 0 0 3px rgba(77,157,199,.10) !important;
+}
+
+.pmd-device-v6-check,
+.pmd-device-v6-check span {
+  min-height: 46px !important;
+}
+
+.pmd-device-v6-check span,
+.pmd-device-v6-result,
+.pmd-device-v6-kv-grid > div {
+  border-radius: 12px !important;
+}
+
+.pmd-device-v6-secondary,
+.pmd-device-v6-save,
+.pmd-device-v6-delete {
+  height: 46px !important;
+  min-height: 46px !important;
+  max-height: 46px !important;
+  border-radius: 12px !important;
+}
+
+.pmd-device-v6-close {
+  border-radius: 12px !important;
+}
+
+/* Smooth, visibly dimmed Reservation/Table-style background treatment. */
+.pmd-device-v6-backdrop {
+  background: rgba(9,28,24,.16) !important;
+  backdrop-filter: blur(8px) saturate(.94) !important;
+  -webkit-backdrop-filter: blur(8px) saturate(.94) !important;
+  animation: pmdDeviceV61BackdropIn 180ms ease both !important;
+  touch-action: none;
+}
+
+.pmd-device-v6-card {
+  box-shadow: 0 24px 70px rgba(16,42,67,.18) !important;
+}
+
+/* Robust scroll lock: the page is frozen at its exact pre-modal scroll point.
+   Only .pmd-device-v6-card__body is allowed to scroll while the card is open. */
+html.pmd-device-v6-modal-open {
+  overflow: hidden !important;
+  overscroll-behavior: none !important;
+}
+
+html.pmd-device-v6-modal-open body {
+  position: fixed !important;
+  top: calc(-1 * var(--pmd-device-v6-scroll-y, 0px)) !important;
+  left: 0 !important;
+  right: 0 !important;
+  width: 100% !important;
+  overflow: hidden !important;
+  overscroll-behavior: none !important;
+}
+
+html.pmd-device-v6-modal-open .pmd-device-v6-card__body {
+  overflow: auto !important;
+  overscroll-behavior: contain !important;
+  -webkit-overflow-scrolling: touch;
+}
+
+@keyframes pmdDeviceV61BackdropIn {
+  from {
+    opacity: 0;
+    background: rgba(9,28,24,0);
+    backdrop-filter: blur(0) saturate(1);
+    -webkit-backdrop-filter: blur(0) saturate(1);
+  }
+  to {
+    opacity: 1;
+    background: rgba(9,28,24,.16);
+    backdrop-filter: blur(8px) saturate(.94);
+    -webkit-backdrop-filter: blur(8px) saturate(.94);
+  }
+}
+
+@media (max-width: 760px) {
+  .pmd-device-v6-form .pmd-owner-field > input:not([type="checkbox"]):not([type="radio"]):not([type="hidden"]),
+  .pmd-device-v6-form .pmd-owner-field > select {
+    height: 46px !important;
+    min-height: 46px !important;
+    max-height: 46px !important;
+    border-radius: 12px !important;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pmd-device-v6-backdrop {
+    animation: none !important;
+  }
+}

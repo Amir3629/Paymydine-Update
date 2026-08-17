@@ -336,7 +336,7 @@ html:not(.pmd-sm2-runtime-ready)
         </span>
 
         <span class="pmd-current-language">
-            {{ strtoupper($pmdCurrentLocale) }}
+            {{ strtoupper($pmdNextLocale) }}
         </span>
     </button>
 </div>

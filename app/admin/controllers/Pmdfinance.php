@@ -24,7 +24,9 @@ class Pmdfinance extends AdminController
         $this->bodyClass = trim(($this->bodyClass ?? '').' pmd-settings-suite pmd-owner-settings-page pmd-finance-settings-page');
         $this->addCss('css/pmd-owner-settings-v1.css');
         $this->addCss('css/pmd-settings-suite-first-paint-v1.css');
+        $this->addCss('css/pmd-settings-inline-detail-v1.css');
         $this->addJs('js/pmd-owner-settings-v1.js');
+        $this->addJs('js/pmd-settings-inline-detail-v1.js');
         AdminMenu::setContext('settings', 'system');
     }
 
@@ -40,9 +42,24 @@ class Pmdfinance extends AdminController
             logger()->warning('PMD finance payment summary failed', ['message' => $error->getMessage()]);
         }
 
+        $methods = $payments->filter(fn ($row) => in_array((string)$row->code, self::METHOD_CODES, true))->values();
+        $providers = $payments->filter(fn ($row) => in_array((string)$row->code, self::PROVIDER_CODES, true))->values();
+        $providerLabels = $providers->mapWithKeys(fn ($row) => [
+            (string)$row->code => (string)($row->name ?: ucfirst(str_replace('_', ' ', (string)$row->code))),
+        ])->all();
+        $methodProviders = [];
+        foreach ($methods as $method) {
+            $methodProviders[(string)$method->code] = collect(Payments_model::supportedProvidersForMethod((string)$method->code))
+                ->mapWithKeys(fn ($code) => [(string)$code => $providerLabels[(string)$code] ?? ucfirst(str_replace('_', ' ', (string)$code))])
+                ->all();
+        }
+
         $this->vars['pmdFinance'] = [
-            'methods' => $payments->filter(fn ($row) => in_array((string)$row->code, self::METHOD_CODES, true))->values(),
-            'providers' => $payments->filter(fn ($row) => in_array((string)$row->code, self::PROVIDER_CODES, true))->values(),
+            'methods' => $methods,
+            'providers' => $providers,
+            'method_providers' => $methodProviders,
+            'provider_fields' => $this->inlineProviderFields(),
+            'provider_secret_fields' => $this->inlineProviderSecretFields(),
             'settings' => $this->financeSettings(),
             'fiskaly' => $this->fiskalyPayload(),
         ];
@@ -113,6 +130,84 @@ class Pmdfinance extends AdminController
         flash()->success('Payments & finance settings saved.');
 
         return ['#pmd-owner-save-status' => '<span>Saved</span>'];
+    }
+
+    /**
+     * Presentation-only schema for the Finance in-page modal.
+     * Payments.php remains the save/validation/provider authority.
+     */
+    protected function inlineProviderFields(): array
+    {
+        $mode = [
+            'transaction_mode' => ['label' => 'Connection mode', 'type' => 'select', 'default' => 'test', 'options' => ['test' => 'Test / Sandbox', 'live' => 'Live / Production'], 'help' => 'Use test credentials first, then switch to live after verification.'],
+        ];
+
+        return [
+            'stripe' => array_merge($mode, [
+                'test_publishable_key' => ['label' => 'Test Publishable Key'],
+                'live_publishable_key' => ['label' => 'Live Publishable Key'],
+                'test_secret_key' => ['label' => 'Test Secret Key', 'secret' => true],
+                'live_secret_key' => ['label' => 'Live Secret Key', 'secret' => true],
+                'currency' => ['label' => 'Currency', 'default' => 'EUR'],
+            ]),
+            'paypal' => array_merge($mode, [
+                'test_client_id' => ['label' => 'Sandbox Client ID'],
+                'test_client_secret' => ['label' => 'Sandbox Client Secret', 'secret' => true],
+                'live_client_id' => ['label' => 'Live Client ID'],
+                'live_client_secret' => ['label' => 'Live Client Secret', 'secret' => true],
+                'brand_name' => ['label' => 'Checkout Brand Name'],
+                'currency' => ['label' => 'Currency', 'default' => 'EUR'],
+            ]),
+            'square' => array_merge($mode, [
+                'test_access_token' => ['label' => 'Sandbox Access Token', 'secret' => true],
+                'test_location_id' => ['label' => 'Sandbox Location ID'],
+                'live_access_token' => ['label' => 'Live Access Token', 'secret' => true],
+                'live_location_id' => ['label' => 'Live Location ID'],
+                'currency' => ['label' => 'Currency', 'default' => 'EUR'],
+            ]),
+            'sumup' => [
+                'auth_mode' => ['label' => 'Auth Mode', 'type' => 'select', 'default' => 'access_token', 'options' => ['access_token' => 'Access Token (current)']],
+                'access_token' => ['label' => 'Access Token', 'secret' => true, 'help' => 'Leave blank to keep the stored token.'],
+                'url' => ['label' => 'API Base URL', 'default' => 'https://api.sumup.com'],
+                'id_application' => ['label' => 'Merchant Code', 'help' => 'Optional; PayMyDine can resolve it from SumUp when the token is valid.'],
+                'connection_status' => ['label' => 'Connection status', 'readonly' => true, 'default' => 'Unknown'],
+                'merchant_email' => ['label' => 'Merchant Email', 'readonly' => true],
+                'last_tested_at' => ['label' => 'Last Test Time', 'readonly' => true],
+            ],
+            'worldline' => [
+                'api_endpoint' => ['label' => 'API Endpoint', 'default' => 'https://api.preprod.connect.worldline-solutions.com'],
+                'merchant_id' => ['label' => 'Merchant ID'],
+                'api_key_id' => ['label' => 'API Key ID'],
+                'secret_api_key' => ['label' => 'Secret API Key', 'secret' => true],
+                'webhook_secret' => ['label' => 'Webhook Secret', 'secret' => true],
+                'terminal_id' => ['label' => 'Terminal Device ID'],
+                'terminal_environment' => ['label' => 'Terminal Environment', 'type' => 'select', 'default' => 'test', 'options' => ['test' => 'Test / Sandbox', 'live' => 'Live / Production']],
+            ],
+            'vr_payment' => [
+                'mode' => ['label' => 'Mode', 'type' => 'select', 'default' => 'test', 'options' => ['test' => 'Test / Sandbox', 'live' => 'Live / Production']],
+                'api_base_url' => ['label' => 'API Base URL'],
+                'space_id' => ['label' => 'Space ID'],
+                'user_id' => ['label' => 'User ID'],
+                'auth_key' => ['label' => 'Auth Key', 'secret' => true],
+                'webhook_signing_key' => ['label' => 'Webhook Signing Key', 'secret' => true],
+                'preferred_integration_mode' => ['label' => 'Preferred Integration', 'type' => 'select', 'default' => 'payment_page', 'options' => ['payment_page' => 'Hosted Payment Page']],
+                'api_endpoint' => ['label' => 'Terminal API Endpoint'],
+                'merchant_id' => ['label' => 'Terminal Merchant ID'],
+                'terminal_id' => ['label' => 'Terminal Device ID'],
+            ],
+        ];
+    }
+
+    protected function inlineProviderSecretFields(): array
+    {
+        return [
+            'stripe' => ['test_secret_key', 'live_secret_key'],
+            'paypal' => ['test_client_secret', 'live_client_secret'],
+            'square' => ['test_access_token', 'live_access_token'],
+            'sumup' => ['access_token'],
+            'worldline' => ['secret_api_key', 'webhook_secret'],
+            'vr_payment' => ['auth_key', 'webhook_signing_key'],
+        ];
     }
 
     protected function financeSettings(): array

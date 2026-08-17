@@ -65,56 +65,31 @@
     <input type="hidden" name="_token" value="{{ csrf_token() }}">
 
     @if($kind === 'kds')
+        {{-- PMD_KDS_MINIMAL_STATION_V1_1: only station name and category routing are user-configurable. --}}
         <section class="pmd-device-v6-section">
-            <div class="pmd-device-v6-section__head"><h3>Basic information</h3><p>Name, type, location and station state.</p></div>
-            <div class="pmd-owner-form-grid">
-                <div class="pmd-owner-field"><label>Station name</label><input type="text" name="{{ $arr }}[name]" value="{{ $v('name') }}" required><small>Example: Main Kitchen, Bar, Grill, Dessert or Pass / Expo.</small></div>
-                <div class="pmd-owner-field"><label>Station type</label><select name="{{ $arr }}[station_type]">@foreach(($opts['station_types'] ?? []) as $value=>$label)<option value="{{ $value }}" {{ (string)$v('station_type','kitchen') === (string)$value ? 'selected' : '' }}>{{ $label }}</option>@endforeach</select></div>
-                <div class="pmd-owner-field"><label>Location</label><select name="{{ $arr }}[location_id]"><option value="">All locations</option>@foreach(($opts['locations'] ?? []) as $value=>$label)<option value="{{ $value }}" {{ (string)$v('location_id') === (string)$value ? 'selected' : '' }}>{{ $label }}</option>@endforeach</select></div>
-                <div class="pmd-owner-field"><label>Sort order</label><input type="number" name="{{ $arr }}[priority]" value="{{ $v('priority',0) }}"><small>Lower numbers appear first.</small></div>
-                <div class="pmd-owner-field pmd-owner-field--full"><label>Internal note</label><textarea name="{{ $arr }}[description]">{{ $v('description') }}</textarea><small>Internal note only. Customers will not see this.</small></div>
+            <div class="pmd-device-v6-section__head pmd-device-v6-section__head--actions">
+                <div><h3>Basic information</h3><p>Name this kitchen display.</p></div>
+                @if($mode === 'edit' && !empty($record->slug))
+                    <a class="pmd-owner-action" href="{{ admin_url('kitchendisplay/'.$record->slug) }}" target="_blank" rel="noopener">Open KDS display</a>
+                @endif
             </div>
-            <div class="pmd-owner-setting-row"><div class="pmd-owner-setting-copy"><strong>Active station</strong><small>Disabled stations stay saved but are hidden from KDS routing and selectors.</small></div><label class="pmd-owner-switch"><input type="hidden" name="{{ $arr }}[is_active]" value="0"><input type="checkbox" name="{{ $arr }}[is_active]" value="1" {{ $v('is_active',1) ? 'checked' : '' }}><span></span></label></div>
+            <div class="pmd-owner-form-grid">
+                <div class="pmd-owner-field pmd-owner-field--full"><label>Station name</label><input type="text" name="{{ $arr }}[name]" value="{{ $v('name') }}" required><small>Example: Main Kitchen, Bar, Grill, Dessert or Pass / Expo.</small></div>
+            </div>
         </section>
 
         <section class="pmd-device-v6-section">
-            <div class="pmd-device-v6-section__head"><h3>Routing</h3><p>Choose which menu categories reach this station.</p></div>
+            <div class="pmd-device-v6-section__head"><h3>Routing</h3><p>Choose which menu categories reach this KDS.</p></div>
             @php $selectedCategories = $selectedValues($v('category_ids',[])); @endphp
             <div class="pmd-owner-field"><label>Assigned menu categories</label><div class="pmd-device-v6-check-grid">@foreach(($opts['categories'] ?? []) as $value=>$label)<label class="pmd-device-v6-check"><input type="checkbox" name="{{ $arr }}[category_ids][]" value="{{ $value }}" {{ in_array((string)$value,$selectedCategories,true) ? 'checked' : '' }}><span>{{ $label }}</span></label>@endforeach</div><small>Leave empty to receive all categories.</small></div>
         </section>
 
-        <section class="pmd-device-v6-section">
-            <div class="pmd-device-v6-section__head"><h3>Workflow</h3><p>KDS actions, reservation visibility and completion behavior.</p></div>
-            <div class="pmd-owner-setting-row"><div class="pmd-owner-setting-copy"><strong>Allow KDS buttons</strong><small>Allow station operators to move orders through the configured workflow.</small></div><label class="pmd-owner-switch"><input type="hidden" name="{{ $arr }}[can_change_status]" value="0"><input type="checkbox" name="{{ $arr }}[can_change_status]" value="1" {{ $v('can_change_status',1) ? 'checked' : '' }}><span></span></label></div>
-            <div class="pmd-owner-setting-row"><div class="pmd-owner-setting-copy"><strong>Show reservations counter</strong><small>Show upcoming reservations on the KDS header.</small></div><label class="pmd-owner-switch"><input type="hidden" name="{{ $arr }}[show_reservations]" value="0"><input type="checkbox" name="{{ $arr }}[show_reservations]" value="1" {{ $v('show_reservations',1) ? 'checked' : '' }}><span></span></label></div>
-            <div class="pmd-owner-form-grid pmd-device-v6-form-gap">
-                <div class="pmd-owner-field"><label>Reservation window minutes</label><input type="number" name="{{ $arr }}[reservation_window_minutes]" value="{{ $v('reservation_window_minutes',90) }}"></div>
-                <div class="pmd-owner-field"><label>Ready pickup warning minutes</label><input type="number" name="{{ $arr }}[ready_pickup_timeout_minutes]" value="{{ $v('ready_pickup_timeout_minutes',8) }}"></div>
-                <div class="pmd-owner-field"><label>Hide completed after minutes</label><input type="number" name="{{ $arr }}[auto_hide_completed_minutes]" value="{{ $v('auto_hide_completed_minutes',5) }}"></div>
-            </div>
-            <div class="pmd-owner-divider"></div>
-            @php $selectedStatuses = $selectedValues($v('status_ids',[])); @endphp
-            <div class="pmd-owner-field"><label>Allowed KDS status buttons</label><div class="pmd-device-v6-check-grid">@foreach(($opts['statuses'] ?? []) as $value=>$label)<label class="pmd-device-v6-check"><input type="checkbox" name="{{ $arr }}[status_ids][]" value="{{ $value }}" {{ in_array((string)$value,$selectedStatuses,true) ? 'checked' : '' }}><span>{{ $label }}</span></label>@endforeach</div><small>Leave empty to use the default KDS status workflow.</small></div>
-        </section>
-
-        <section class="pmd-device-v6-section">
-            <div class="pmd-device-v6-section__head pmd-device-v6-section__head--actions"><div><h3>Display & sound</h3><p>Screen density, sound, refresh cadence and order limit.</p></div>@if($mode === 'edit' && !empty($record->slug))<a class="pmd-owner-action" href="{{ admin_url('kitchendisplay/'.$record->slug) }}" target="_blank" rel="noopener">Open KDS display</a>@endif</div>
-            <div class="pmd-owner-form-grid">
-                <div class="pmd-owner-field"><label>Notification sound</label><select name="{{ $arr }}[notification_sound]">@foreach(($opts['sounds'] ?? []) as $value=>$label)<option value="{{ $value }}" {{ (string)$v('notification_sound','doorbell') === (string)$value ? 'selected' : '' }}>{{ $label }}</option>@endforeach</select></div>
-                <div class="pmd-owner-field"><label>Refresh interval seconds</label><input type="number" name="{{ $arr }}[refresh_interval]" value="{{ $v('refresh_interval',5) }}"></div>
-                <div class="pmd-owner-field"><label>Max orders on screen</label><input type="number" name="{{ $arr }}[order_limit]" value="{{ $v('order_limit',50) }}"></div>
-                <div class="pmd-owner-field"><label>Accent color</label><select name="{{ $arr }}[theme_color]">@foreach(($opts['colors'] ?? []) as $value=>$label)<option value="{{ $value }}" {{ (string)$v('theme_color','#4CAF50') === (string)$value ? 'selected' : '' }}>{{ $label }}</option>@endforeach</select></div>
-                <div class="pmd-owner-field"><label>Display density</label><select name="{{ $arr }}[display_density]">@foreach(($opts['densities'] ?? []) as $value=>$label)<option value="{{ $value }}" {{ (string)$v('display_density','normal') === (string)$value ? 'selected' : '' }}>{{ $label }}</option>@endforeach</select></div>
-            </div>
-            <div class="pmd-owner-setting-row"><div class="pmd-owner-setting-copy"><strong>Sound enabled by default</strong><small>Play the configured notification sound for new KDS work.</small></div><label class="pmd-owner-switch"><input type="hidden" name="{{ $arr }}[sound_enabled]" value="0"><input type="checkbox" name="{{ $arr }}[sound_enabled]" value="1" {{ $v('sound_enabled',1) ? 'checked' : '' }}><span></span></label></div>
-        </section>
-
     @elseif($kind === 'terminals')
         <section class="pmd-device-v6-section">
-            <div class="pmd-device-v6-section__head"><h3>Terminal connection</h3><p>Provider, location, reader identity, pairing and readiness.</p></div>
+            <div class="pmd-device-v6-section__head"><h3>Terminal connection</h3><p>Provider, reader identity, pairing and readiness.</p></div>
             <div class="pmd-owner-form-grid">
                 <div class="pmd-owner-field"><label>Provider type</label><select name="{{ $arr }}[provider_code]">@foreach(($opts['providers'] ?? []) as $value=>$label)<option value="{{ $value }}" {{ (string)$v('provider_code','sumup') === (string)$value ? 'selected' : '' }}>{{ $label }}</option>@endforeach</select></div>
-                <div class="pmd-owner-field"><label>Location</label><select name="{{ $arr }}[location_id]"><option value="">All locations</option>@foreach(($opts['locations'] ?? []) as $value=>$label)<option value="{{ $value }}" {{ (string)$v('location_id') === (string)$value ? 'selected' : '' }}>{{ $label }}</option>@endforeach</select></div>
+
                 <div class="pmd-owner-field"><label>Affiliate key</label><input type="text" name="{{ $arr }}[affiliate_key]" value="{{ $v('affiliate_key') }}"></div>
                 <div class="pmd-owner-field"><label>Reader ID</label><input type="text" name="{{ $arr }}[reader_id]" value="{{ $v('reader_id') }}"></div>
                 <div class="pmd-owner-field"><label>Reader label</label><input type="text" name="{{ $arr }}[reader_label]" value="{{ $v('reader_label') }}"></div>
@@ -130,10 +105,10 @@
 
     @elseif($kind === 'drawers')
         <section class="pmd-device-v6-section">
-            <div class="pmd-device-v6-section__head"><h3>Drawer setup</h3><p>Location, local POS mapping, printer and automatic cash opening.</p></div>
+            <div class="pmd-device-v6-section__head"><h3>Drawer setup</h3><p>Local POS mapping, printer and automatic cash opening.</p></div>
             <div class="pmd-owner-form-grid">
                 <div class="pmd-owner-field"><label>Drawer name</label><input type="text" name="{{ $arr }}[name]" value="{{ $v('name') }}" required></div>
-                <div class="pmd-owner-field"><label>Location</label><select name="{{ $arr }}[location_id]"><option value="">All locations</option>@foreach(($opts['locations'] ?? []) as $value=>$label)<option value="{{ $value }}" {{ (string)$v('location_id') === (string)$value ? 'selected' : '' }}>{{ $label }}</option>@endforeach</select></div>
+
                 <div class="pmd-owner-field"><label>Local POS terminal</label><select name="{{ $arr }}[local_pos_device_id]"><option value="">None</option>@foreach(($opts['local_pos'] ?? []) as $value=>$label)<option value="{{ $value }}" {{ (string)$v('local_pos_device_id') === (string)$value ? 'selected' : '' }}>{{ $label }}</option>@endforeach</select></div>
                 <div class="pmd-owner-field"><label>Printer device</label><select name="{{ $arr }}[printer_id]"><option value="">None</option>@foreach(($opts['pos_devices'] ?? []) as $value=>$label)<option value="{{ $value }}" {{ (string)$v('printer_id') === (string)$value ? 'selected' : '' }}>{{ $label }}</option>@endforeach</select></div>
             </div>
@@ -163,13 +138,13 @@
 
     @elseif($kind === 'biometric')
         <section class="pmd-device-v6-section">
-            <div class="pmd-device-v6-section__head"><h3>Device connection</h3><p>Name, network address, location and device status.</p></div>
+            <div class="pmd-device-v6-section__head"><h3>Device connection</h3><p>Name, network address and device status.</p></div>
             <div class="pmd-owner-form-grid">
                 <div class="pmd-owner-field"><label>Device name</label><input type="text" name="{{ $arr }}[name]" value="{{ $v('name') }}" required></div>
                 <div class="pmd-owner-field"><label>IP address</label><input type="text" name="{{ $arr }}[ip]" value="{{ $v('ip') }}" required></div>
                 <div class="pmd-owner-field"><label>Port</label><input type="number" name="{{ $arr }}[port]" value="{{ $v('port',4370) }}"></div>
                 <div class="pmd-owner-field"><label>Serial number</label><input type="text" name="{{ $arr }}[serial_number]" value="{{ $v('serial_number') }}" readonly><small>Detected from the device.</small></div>
-                <div class="pmd-owner-field"><label>Location</label><select name="{{ $arr }}[location_id]"><option value="">Optional</option>@foreach(($opts['locations'] ?? []) as $value=>$label)<option value="{{ $value }}" {{ (string)$v('location_id') === (string)$value ? 'selected' : '' }}>{{ $label }}</option>@endforeach</select></div>
+
                 <div class="pmd-owner-field pmd-owner-field--full"><label>Description</label><textarea name="{{ $arr }}[description]">{{ $v('description') }}</textarea></div>
             </div>
             <div class="pmd-owner-setting-row"><div class="pmd-owner-setting-copy"><strong>Enabled</strong></div><label class="pmd-owner-switch"><input type="hidden" name="{{ $arr }}[status]" value="0"><input type="checkbox" name="{{ $arr }}[status]" value="1" {{ $v('status',1) ? 'checked' : '' }}><span></span></label></div>

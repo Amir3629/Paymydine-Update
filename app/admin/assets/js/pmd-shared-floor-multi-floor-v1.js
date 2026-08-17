@@ -611,6 +611,10 @@
       if (document.body && addPanel.parentElement !== document.body) {
         document.body.appendChild(addPanel);
       }
+      // PMD_FLOOR_ADD_MODAL_LAYER_R36B
+      // Mark the body portal explicitly so its backdrop can dim only the page,
+      // while the dialog card stays at full opacity above that backdrop.
+      addPanel.setAttribute('data-pmd-floor-add-portal', 'true');
 
       addPanel.hidden = false;
       document.documentElement.classList.add('pmd-floor-add-open');

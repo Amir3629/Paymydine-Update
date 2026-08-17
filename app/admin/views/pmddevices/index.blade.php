@@ -103,16 +103,17 @@
                 <div class="pmd-owner-card__icon">
                     <svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="13" rx="2"></rect><path d="M7 21h10M12 17v4"></path></svg>
                 </div>
-                <div class="pmd-owner-card__title"><h2>Kitchen display stations</h2><p>Kitchen, bar, grill, dessert and pass screens.</p></div>
+                <div class="pmd-owner-card__title"><h2>Kitchen display stations</h2><p>Route menu categories to the kitchen displays that need them.</p></div>
                 <div class="pmd-owner-card__actions"><button type="button" class="pmd-owner-action pmd-device-v6-header-add" data-pmd-device-open="kds:create">+ Add KDS</button></div>
             </div>
             <div class="pmd-owner-card__body">
                 <div class="pmd-owner-list">
                     @forelse($kds as $station)
+                        @php $pmdKdsCategoryCount = is_array($station->category_ids) ? count($station->category_ids) : 0; @endphp
                         <div class="pmd-owner-list-row">
-                            <div><strong>{{ $station->name ?: 'KDS station' }}</strong><small>{{ $station->description ?: ucfirst((string)($station->station_type ?: 'kitchen')).' display' }}</small></div>
-                            <div class="pmd-owner-meta">{{ ucfirst((string)($station->display_density ?: 'normal')) }}</div>
-                            <div class="pmd-owner-status {{ !empty($station->is_active) ? 'is-active' : '' }}">{{ !empty($station->is_active) ? 'Active' : 'Inactive' }}</div>
+                            <div><strong>{{ $station->name ?: 'KDS station' }}</strong><small>{{ $pmdKdsCategoryCount > 0 ? $pmdKdsCategoryCount.' routed categories' : 'All menu categories' }}</small></div>
+                            <div class="pmd-owner-meta">Category routing</div>
+                            <a class="pmd-owner-action" href="{{ admin_url('kitchendisplay/'.$station->slug) }}" target="_blank" rel="noopener">Open KDS</a>
                             <button type="button" class="pmd-owner-action" data-pmd-device-open="kds:edit:{{ $station->station_id }}">Edit</button>
                         </div>
                     @empty

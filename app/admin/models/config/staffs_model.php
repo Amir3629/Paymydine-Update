@@ -6,14 +6,6 @@ $config['list']['filter'] = [
         'mode' => 'all', // or any, exact
     ],
     'scopes' => [
-        'location' => [
-            'label' => 'lang:admin::lang.text_filter_location',
-            'type' => 'selectlist',
-            'scope' => 'whereHasLocation',
-            'modelClass' => 'Admin\Models\Locations_model',
-            'nameFrom' => 'location_name',
-            'locationAware' => true,
-        ],
         'role' => [
             'label' => 'lang:admin::lang.staff.text_filter_role',
             'type' => 'selectlist',
@@ -119,13 +111,6 @@ $config['list']['columns'] = [
         'label' => 'lang:admin::lang.staff.column_role',
         'relation' => 'role',
         'select' => 'name',
-    ],
-    'location_name' => [
-        'label' => 'lang:admin::lang.staff.column_location',
-        'relation' => 'locations',
-        'select' => 'location_name',
-        'searchable' => true,
-        'locationAware' => true,
     ],
     'last_login' => [
         'label' => 'lang:admin::lang.staff.column_last_login',
@@ -246,14 +231,6 @@ $config['form']['fields'] = [
             'field' => 'user[send_invite]',
             'condition' => 'unchecked',
         ],
-    ],
-    'locations' => [
-        'label' => 'lang:admin::lang.staff.label_location',
-        'type' => 'relation',
-        'context' => ['create', 'edit'],
-        'span' => 'left',
-        'nameFrom' => 'location_name',
-        'comment' => 'lang:admin::lang.staff.help_location',
     ],
     'groups' => [
         'label' => 'lang:admin::lang.staff.label_group',

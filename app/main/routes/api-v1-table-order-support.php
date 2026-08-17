@@ -63,6 +63,12 @@
                         $lineSubtotal = array_key_exists('subtotal', $item) && is_numeric($item['subtotal'])
                             ? (float)$item['subtotal']
                             : round($unitPrice * $qty, 4);
+                        // PMD_ITEM_NOTE_BACKEND_R29
+                        $itemNote = trim((string)($item['note'] ?? ''));
+                        $itemNote = trim((string)preg_replace('/\[guest_session:[^\]]*\]/iu', '', $itemNote));
+                        $itemNote = (string)preg_replace('/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/u', '', $itemNote);
+                        if (function_exists('mb_substr')) $itemNote = mb_substr($itemNote, 0, 500);
+                        else $itemNote = substr($itemNote, 0, 500);
                         $normalized[] = [
                             'id' => (int)round(microtime(true) * 1000) + $index,
                             'menu_id' => $menuId,
@@ -71,6 +77,7 @@
                             'price' => $unitPrice,
                             'subtotal' => round($lineSubtotal, 4),
                             'options' => is_array($item['options'] ?? null) ? $item['options'] : [],
+                            'note' => $itemNote,
                             'guest_session_id' => trim((string)($item['guest_session_id'] ?? '')),
                         ];
                     }
@@ -104,11 +111,12 @@
                         $items = DB::table('order_menus')
                             ->where('order_id', $orderId)
                             ->orderBy('order_menu_id')
-                            ->get(['order_menu_id','menu_id','name','quantity','price','subtotal'])
+                            ->get(['order_menu_id','menu_id','name','quantity','price','subtotal','comment'])
                             ->map(fn($row) => [
                                 'order_menu_id' => (int)($row->order_menu_id ?? 0),
                                 'menu_id' => (int)($row->menu_id ?? 0),
                                 'name' => (string)($row->name ?? ''),
+                                'note' => trim((string)preg_replace('/\[guest_session:[^\]]*\]/iu', '', (string)($row->comment ?? '')), " |\t\n\r\0\x0B"),
                                 'quantity' => (float)($row->quantity ?? 0),
                                 'price' => (float)($row->price ?? 0),
                                 'subtotal' => (float)($row->subtotal ?? 0),

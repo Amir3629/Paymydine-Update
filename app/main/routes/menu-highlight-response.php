@@ -274,7 +274,21 @@ try {
             WHERE mc.combo_status = 1
             ORDER BY mc.combo_priority ASC, mc.combo_name ASC
         ";
-        $combos = $conn->select($combosQuery);
+        // PMD_OPTIONAL_MENU_COMBOS_R29F
+        // Older tenant schemas can legitimately predate menu_combos. Combos are
+        // optional; absence of that table must not make the entire customer menu 500.
+        $combos = [];
+        try {
+            if ($conn->getSchemaBuilder()->hasTable('menu_combos')) {
+                $combos = $conn->select($combosQuery);
+            }
+        } catch (\Throwable $e) {
+            \Log::warning('PMD_OPTIONAL_MENU_COMBOS_R29F_SKIPPED', [
+                'message' => $e->getMessage(),
+                'database' => $conn->getDatabaseName(),
+            ]);
+            $combos = [];
+        }
         foreach ($combos as &$combo) {
             $combo->price = (float)$combo->price;
             $combo->image = $combo->image ? "/api/media/".$combo->image : '/images/pasta.png';

@@ -8,7 +8,6 @@ use Admin\Facades\Template;
 use Admin\Models\Cash_drawers_model;
 use Admin\Models\FingerDevices_model;
 use Admin\Models\Kds_stations_model;
-use Admin\Models\Locations_model;
 use Admin\Models\Pos_configs_model;
 use Admin\Models\Pos_devices_model;
 use Admin\Models\Terminal_devices_model;
@@ -51,7 +50,7 @@ class Pmddevices extends AdminController
         $terminals = $this->safeCollection(Terminal_devices_model::class, 'terminal_devices', 'terminal_device_id');
         $drawers = $this->safeCollection(Cash_drawers_model::class, 'cash_drawers', 'name');
         $biometric = $this->safeCollection(FingerDevices_model::class, 'finger_devices', 'name');
-        $kds = $this->safeCollection(Kds_stations_model::class, 'kds_stations', 'priority');
+        $kds = $this->safeCollection(Kds_stations_model::class, 'kds_stations', 'name');
         $integrations = collect();
         try {
             if (Schema::hasTable('pos_configs')) {
@@ -156,14 +155,13 @@ class Pmddevices extends AdminController
 
     protected function buildDevicePage(string $kind, string $mode, ?int $recordId): ?array
     {
-        $locations = $this->optionLocations();
         $posOptions = $this->optionPosDevices();
         $base = [
             'kind' => $kind,
             'mode' => $mode,
             'record' => null,
             'items' => collect(),
-            'options' => ['locations' => $locations, 'pos_devices' => $posOptions],
+            'options' => ['pos_devices' => $posOptions],
         ];
 
         if ($kind === 'pos') {
@@ -176,11 +174,9 @@ class Pmddevices extends AdminController
         }
 
         if ($kind === 'kds') {
-            $items = $this->safeCollection(Kds_stations_model::class, 'kds_stations', 'priority');
+            $items = $this->safeCollection(Kds_stations_model::class, 'kds_stations', 'name');
             $record = $mode === 'edit' && $recordId ? Kds_stations_model::find($recordId) : new Kds_stations_model;
             if ($mode === 'edit' && !$record) return null;
-            $stationTypes = (new Kds_stations_model)->getStationTypeOptions();
-            $densities = (new Kds_stations_model)->getDisplayDensityOptions();
             return array_merge($base, [
                 'title' => $mode === 'create' ? 'Create KDS station' : ($mode === 'edit' ? 'Edit KDS station' : 'Kitchen display stations'),
                 'items' => $items,
@@ -192,11 +188,6 @@ class Pmddevices extends AdminController
                 'create_url' => admin_url('pmddevices/kds/create'),
                 'options' => array_merge($base['options'], [
                     'categories' => Kds_stations_model::pmdKdsCategoryOptionsV46(),
-                    'statuses' => Kds_stations_model::pmdKdsStatusOptionsV46(),
-                    'station_types' => $stationTypes,
-                    'densities' => $densities,
-                    'sounds' => Kds_stations_model::$notificationSounds,
-                    'colors' => Kds_stations_model::$themeColors,
                 ]),
             ]);
         }
@@ -280,16 +271,6 @@ class Pmddevices extends AdminController
         }
 
         return null;
-    }
-
-    protected function optionLocations(): array
-    {
-        try {
-            if (!Schema::hasTable('locations')) return [];
-            return Locations_model::query()->orderBy('location_name')->pluck('location_name', 'location_id')->toArray();
-        } catch (\Throwable $e) {
-            return [];
-        }
     }
 
     protected function optionPosDevices(): array

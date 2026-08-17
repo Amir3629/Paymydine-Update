@@ -56,6 +56,7 @@ type MenuRuntimeValue = {
   cartCount: number
   cartSubtotal: number
   updateCartQuantity: (key: string, quantity: number) => void
+  updateCartNote: (key: string, note: string) => void
   removeCartLine: (key: string) => void
   clearCart: () => void
   overlay: RuntimeOverlay
@@ -108,13 +109,23 @@ function defaultSelections(item: MenuItem): CartOptionSelection[] {
   })
 }
 
-function buildCartLine(item: MenuItem, quantity: number, options: CartOptionSelection[]): CartLine {
+// PMD_ITEM_NOTE_RUNTIME_R29
+function cleanItemNote(value: unknown): string {
+  return String(value || '')
+    .replace(/\[guest_session:[^\]]*\]/gi, '')
+    .replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F]/g, '')
+    .trim()
+    .slice(0, 500)
+}
+
+function buildCartLine(item: MenuItem, quantity: number, options: CartOptionSelection[], note = ''): CartLine {
   const unitPrice = item.price + options.reduce((sum, option) => sum + option.price, 0)
   return {
     key: optionKey(item, options),
     item,
     quantity,
     selectedOptions: options,
+    note: cleanItemNote(note),
     unitPrice,
     subtotal: unitPrice * quantity,
   }
@@ -130,6 +141,7 @@ function demoDraft(cart: CartLine[], guestSessionId: string, previous: TableOrde
     quantity: line.quantity,
     price: line.unitPrice,
     subtotal: line.subtotal,
+    note: line.note || null,
     guestSessionId,
     paidQuantity: 0,
     unpaidQuantity: line.quantity,
@@ -259,7 +271,7 @@ export function MenuRuntimeProvider({ bootstrap, children }: { bootstrap: Custom
                   }]
                 : []
             })
-            return [buildCartLine(item, quantity, options)]
+            return [buildCartLine(item, quantity, options, String(row?.note || ''))]
           })
         : []
       setCart(reconstructed)
@@ -276,6 +288,7 @@ export function MenuRuntimeProvider({ bootstrap, children }: { bootstrap: Custom
       itemId: line.item.id,
       quantity: line.quantity,
       selectedOptions: line.selectedOptions,
+      note: line.note,
     }))
     try {
       if (compact.length) window.localStorage.setItem(cartStorageKey, JSON.stringify(compact))
@@ -350,7 +363,7 @@ export function MenuRuntimeProvider({ bootstrap, children }: { bootstrap: Custom
       const existing = current.find((entry) => entry.key === line.key)
       if (!existing) return [...current, line]
       return current.map((entry) => entry.key === line.key
-        ? buildCartLine(item, entry.quantity + line.quantity, options)
+        ? buildCartLine(item, entry.quantity + line.quantity, options, entry.note)
         : entry)
     })
     setSelectedItem(null)
@@ -373,8 +386,11 @@ export function MenuRuntimeProvider({ bootstrap, children }: { bootstrap: Custom
 
   const updateCartQuantity = useCallback((key: string, quantity: number) => {
     setCart((current) => current
-      .map((line) => line.key === key ? buildCartLine(line.item, Math.max(0, quantity), line.selectedOptions) : line)
+      .map((line) => line.key === key ? buildCartLine(line.item, Math.max(0, quantity), line.selectedOptions, line.note) : line)
       .filter((line) => line.quantity > 0))
+  }, [])
+  const updateCartNote = useCallback((key: string, note: string) => {
+    setCart((current) => current.map((line) => line.key === key ? { ...line, note: cleanItemNote(note) } : line))
   }, [])
   const removeCartLine = useCallback((key: string) => setCart((current) => current.filter((line) => line.key !== key)), [])
   const clearCart = useCallback(() => setCart([]), [])
@@ -459,7 +475,7 @@ export function MenuRuntimeProvider({ bootstrap, children }: { bootstrap: Custom
     try {
       const session = guestSessionId || getGuestSessionId(bootstrap.tenant.id, bootstrap.table)
       if (!guestSessionId) setGuestSessionId(session)
-      const fingerprint = JSON.stringify(cart.map((line) => ({ key: line.key, quantity: line.quantity, subtotal: line.subtotal })))
+      const fingerprint = JSON.stringify(cart.map((line) => ({ key: line.key, quantity: line.quantity, subtotal: line.subtotal, note: line.note })))
       let confirmationId = ''
       if (!isPreview) {
         try {
@@ -595,7 +611,7 @@ export function MenuRuntimeProvider({ bootstrap, children }: { bootstrap: Custom
   const value = useMemo<MenuRuntimeValue>(() => ({
     bootstrap, labels, locale, direction, setLocale, search, setSearch, selectedCategory, setSelectedCategory,
     categories, visibleItems, featuredItems, bestsellerItems, selectedItem, openItem, quickAdd, addConfiguredItem,
-    cart, cartCount, cartSubtotal, updateCartQuantity, removeCartLine, clearCart, overlay, serviceMode, openCart,
+    cart, cartCount, cartSubtotal, updateCartQuantity, updateCartNote, removeCartLine, clearCart, overlay, serviceMode, openCart,
     openCheckout, openService, closeOverlay, continueOrdering, activeOrder, currentDraft, tableOrders, selectedOrder, selectedOrderId, selectOrder, guestSessionId, orderLoading, refreshOrder, confirmPersonalItems,
     submitTableOrder, markOrderPaid, callWaiter, requestValet, sendTableNote, requestStatus, toast, notify,
     formatCurrency, tableDisplay, isPreview,
@@ -604,7 +620,7 @@ export function MenuRuntimeProvider({ bootstrap, children }: { bootstrap: Custom
     clearCart, closeOverlay, continueOrdering, confirmPersonalItems, direction, featuredItems, formatCurrency, isPreview, labels, locale,
     markOrderPaid, notify, openCart, openCheckout, openItem, openService, orderLoading, overlay, quickAdd, refreshOrder,
     removeCartLine, requestStatus, requestValet, sendTableNote, search, selectedCategory, selectedItem, serviceMode,
-    setLocale, submitTableOrder, tableDisplay, toast, updateCartQuantity, visibleItems,
+    setLocale, submitTableOrder, tableDisplay, toast, updateCartNote, updateCartQuantity, visibleItems,
   ])
 
   return <MenuRuntimeContext.Provider value={value}>{children}</MenuRuntimeContext.Provider>

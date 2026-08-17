@@ -68,51 +68,15 @@ class Login extends \Admin\Classes\AdminController
     }
 
     /**
-     * PMD_ROLE_LANDING_REDIRECT_V1
+     * PMD_ROLE_LANDING_REDIRECT_V2
      *
-     * One login-owner for role landing. Super users keep the native dashboard.
+     * One shared role-landing authority is used by Login, /admin/dashboard
+     * and the Side Menu so these three entry points cannot drift apart.
      */
     private function pmdRoleLandingRoute(): ?string
     {
-        $user = AdminAuth::getUser();
-
-        if (!$user || $user->isSuperUser())
-            return null;
-
-        $staff = $user->staff;
-        $role = $staff ? $staff->role : null;
-
-        if (!$role)
-            return null;
-
-        $code = strtolower(trim((string)($role->code ?? '')));
-        $name = strtolower(trim((string)($role->name ?? '')));
-
-        $map = [
-            'pmd-owner' => 'dashboardlab',
-            'owner' => 'dashboardlab',
-
-            'pmd-accountant' => 'accountantlab',
-            'accountant' => 'accountantlab',
-
-            'pmd-cashier' => 'cashierlab',
-            'cashier' => 'cashierlab',
-
-            'pmd-manager' => 'managerlab',
-            'manager' => 'managerlab',
-
-            'pmd-waiter' => 'dashboardwaiternew',
-            'waiter' => 'dashboardwaiternew',
-
-            'pmd-reservation' => 'reservationslab',
-            'reservation' => 'reservationslab',
-            'reservations' => 'reservationslab',
-        ];
-
-        if ($code !== '' && isset($map[$code]))
-            return $map[$code];
-
-        return $map[$name] ?? null;
+        return app(\Admin\Services\PmdRoleLandingService::class)
+            ->routeFor(AdminAuth::getUser());
     }
 
     public function onLogin()
@@ -156,23 +120,6 @@ class Login extends \Admin\Classes\AdminController
 
         if ($redirectUrl = input('redirect'))
             return $this->redirect($redirectUrl);
-
-        // PMD_MEHDI_ROLE_LANDING_V1
-        // These six identities clone existing live roles. Authentication is
-        // already valid; send each identity directly to its proven workspace
-        // instead of the generic /admin/dashboard fallback.
-        $pmdUsername = strtolower(trim((string)optional(AdminAuth::user())->username));
-        $pmdMehdiLanding = [
-            'mehdiowner' => 'dashboardlab',
-            'mehdimanager' => 'managerlab',
-            'mehdiwaiter' => 'dashboardwaiternew',
-            'mehdicashier' => 'cashierlab',
-            'mehdiaccountant' => 'accountantlab',
-            'mehdireservations' => 'reservationslab',
-        ];
-
-        if (isset($pmdMehdiLanding[$pmdUsername]))
-            return $this->redirect($pmdMehdiLanding[$pmdUsername]);
 
         return $this->redirectIntended('dashboard');
     }

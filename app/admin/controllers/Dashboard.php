@@ -6,6 +6,7 @@ use Admin\Facades\AdminAuth;
 use Admin\Facades\AdminMenu;
 use Admin\Facades\Template;
 use Admin\Widgets\DashboardContainer;
+use Admin\Services\PmdRoleLandingService;
 use Illuminate\Support\Facades\Request;
 
 class Dashboard extends \Admin\Classes\AdminController
@@ -14,7 +15,9 @@ class Dashboard extends \Admin\Classes\AdminController
 
     protected $callbacks = [];
 
-    protected $requiredPermissions = 'Admin.Dashboard';
+    // PMD_NATIVE_DASHBOARD_RETIRE_V1: any authenticated role may reach this
+    // redirector; destination controllers keep their own permission checks.
+    protected $requiredPermissions = null;
 
     public function __construct()
     {
@@ -25,15 +28,18 @@ class Dashboard extends \Admin\Classes\AdminController
 
     public function index()
     {
-        if (is_null(Request::segment(2)))
-            return $this->redirect('dashboard');
+        // PMD_NATIVE_DASHBOARD_RETIRE_V1
+        // /admin and /admin/dashboard are redirect-only entry points now.
+        // The legacy native dashboard is never rendered for an authenticated user.
+        $landing = app(PmdRoleLandingService::class)->routeFor(AdminAuth::getUser());
 
-        Template::setTitle(lang('admin::lang.dashboard.text_title'));
-        Template::setHeading(lang('admin::lang.dashboard.text_heading'));
+        if ($landing)
+            return $this->redirect($landing);
 
-        $this->initDashboardContainer();
-
-        return $this->makeView('dashboard');
+        return \Illuminate\Support\Facades\Response::make(
+            $this->makeView('access_denied'),
+            403
+        );
     }
 
     public function initDashboardContainer()

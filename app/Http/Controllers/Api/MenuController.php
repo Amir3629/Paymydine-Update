@@ -56,7 +56,7 @@ class MenuController extends Controller
                     AND ma.attachment_id = m.menu_id 
                     AND ma.tag = 'thumb'
                 WHERE m.menu_status = 1
-                ORDER BY c.priority ASC, m.menu_name ASC
+                ORDER BY c.priority ASC, COALESCE(m.menu_priority, 999999) ASC, m.menu_name ASC
             ";
             
             $items = DB::select($query);
@@ -74,18 +74,22 @@ class MenuController extends Controller
                 $item->is_stock_out = (bool)($item->is_stock_out ?? 0);
                 $item->available = (bool)($item->available ?? 1);
                 
-                if ($item->image) {
-                    // If image exists, construct the relative URL for Next.js proxy
+                // PMD_MENU_MANAGER_V1_PRIMARY_IMAGE
+                // A freshly uploaded manager image is stored in the existing menu_images
+                // gallery authority. Prefer its first ordered image as the public primary
+                // image, then fall back to the legacy thumb attachment.
+                $item->images = $menuImagesByMenuId[(int)$item->id] ?? [];
+                if (!empty($item->images[0])) {
+                    $item->image = $item->images[0];
+                } elseif ($item->image) {
                     $item->image = "/api/media/" . $item->image;
                 } else {
-                    // Use default image if none exists
                     $item->image = '/images/pasta.png';
                 }
                 
                 // Mark as regular menu item (not a combo)
                 $item->isCombo = false;
                 $item->comboId = null;
-                $item->images = $menuImagesByMenuId[(int)$item->id] ?? [];
                 
                 // Fetch menu options for this item
                 $item->options = $this->getMenuItemOptions($item->id);
@@ -301,6 +305,9 @@ class MenuController extends Controller
                 });
             }
 
+            $query->orderByRaw('COALESCE(menus.menu_priority, 999999) ASC')
+                ->orderBy('menus.menu_name', 'asc');
+
             $recommendationContext = $this->getRecommendationContext();
             $items = $query->get()->map(function ($item) use ($recommendationContext) {
                 $this->normalizeFoodAttributes($item);
@@ -400,6 +407,8 @@ class MenuController extends Controller
                     DB::raw($this->getOptionalMenuColumnExpression('is_manual_bestseller', 'menus')),
                     DB::raw($this->getOptionalMenuColumnExpression('bestseller_override_mode', 'menus'))
                 ])
+                ->orderByRaw('COALESCE(menus.menu_priority, 999999) ASC')
+                ->orderBy('menus.menu_name', 'asc')
                 ->get();
 
             $recommendationContext = $this->getRecommendationContext();

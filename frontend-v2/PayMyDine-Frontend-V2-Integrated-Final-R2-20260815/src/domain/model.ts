@@ -148,10 +148,12 @@ export type ThemeConfiguration = {
   options: Record<string, unknown>
 }
 
+// PMD_ITEM_NOTE_MODEL_R29
 export type OrderLine = {
   orderMenuId: number | null
   menuId: string
   name: string
+  note: string | null
   quantity: number
   price: number
   subtotal: number
@@ -240,6 +242,7 @@ export type CartLine = {
   item: MenuItem
   quantity: number
   selectedOptions: CartOptionSelection[]
+  note: string
   unitPrice: number
   subtotal: number
 }

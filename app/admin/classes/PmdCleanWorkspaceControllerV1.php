@@ -400,6 +400,11 @@ abstract class PmdCleanWorkspaceControllerV1 extends AdminController
             'table_name' => trim((string)($table->table_name ?? '')),
             'pos_table_label' => $posLabel,
             'number_locked' => $posLabel !== '',
+            'deletable' => !in_array(
+                strtolower(trim((string)($table->table_name ?? ''))),
+                ['cashier', 'delivery'],
+                true
+            ),
             'min_capacity' => max(0, (int)($table->min_capacity ?? 0)),
             'max_capacity' => max(0, (int)($table->max_capacity ?? 0)),
             'preferred_capacity' => $pmdCapacity,
@@ -789,6 +794,115 @@ abstract class PmdCleanWorkspaceControllerV1 extends AdminController
             'qr_untouched' => true,
             'qr_read_only' => true,
             'qr_authority' => 'Tables_model',
+        ]);
+    }
+
+    /**
+     * PMD_FLOOR_TABLE_DELETE_R36B
+     * Owner/Manager destructive action for the inline Floor table card.
+     * Uses canonical Tables_model deletion, preserves its default-table guard,
+     * and clears the PMD Floor assignment before the table row disappears.
+     */
+    public function onPmdFloorTableManagerDelete()
+    {
+        $this->pmdAssertCanManageFloorTables();
+
+        $locationId = $this->pmdFloorTableManagerLocationId();
+        $requestedLocationId = max(0, (int)request()->input('location_id', 0));
+        if ($requestedLocationId > 0 && $locationId > 0 && $requestedLocationId !== $locationId) {
+            return response()->json([
+                'ok' => false,
+                'message' => 'Active Floor location changed. Refresh the page and try again.',
+            ], 409);
+        }
+
+        $tableId = max(0, (int)request()->input('table_id', 0));
+        if ($tableId < 1) {
+            return response()->json([
+                'ok' => false,
+                'message' => 'Table ID is required.',
+            ], 422);
+        }
+
+        $table = \Admin\Models\Tables_model::query()->find($tableId);
+        if (!$table) {
+            return response()->json([
+                'ok' => false,
+                'message' => 'Table not found.',
+            ], 404);
+        }
+
+        $this->pmdFloorTableManagerAssertLocation($table, $locationId);
+
+        $tableName = trim((string)($table->table_name ?? ''));
+        if (in_array(strtolower($tableName), ['cashier', 'delivery'], true)) {
+            return response()->json([
+                'ok' => false,
+                'message' => 'Default tables cannot be deleted.',
+            ], 403);
+        }
+
+        // If the current tenant has the settlement contract, never orphan an
+        // active/unsettled bill by deleting its table from the Floor card.
+        try {
+            if (
+                \Illuminate\Support\Facades\Schema::hasTable('orders')
+                && \Illuminate\Support\Facades\Schema::hasColumn('orders', 'table_id')
+                && \Illuminate\Support\Facades\Schema::hasColumn('orders', 'settlement_status')
+            ) {
+                $hasUnsettledOrder = \Illuminate\Support\Facades\DB::table('orders')
+                    ->where('table_id', $tableId)
+                    ->where(function ($query) {
+                        $query->whereNull('settlement_status')
+                            ->orWhereNotIn('settlement_status', ['paid', 'settled']);
+                    })
+                    ->exists();
+
+                if ($hasUnsettledOrder) {
+                    return response()->json([
+                        'ok' => false,
+                        'message' => 'This table still has an open or unsettled bill. Settle/close it before removing the table.',
+                    ], 409);
+                }
+            }
+        } catch (\Throwable $e) {
+            logger()->warning('PMD Floor table delete settlement guard unavailable', [
+                'location_id' => $locationId,
+                'table_id' => $tableId,
+                'message' => $e->getMessage(),
+            ]);
+        }
+
+        $displayNo = trim((string)($table->getRawOriginal('table_no') ?? $table->table_no ?? $tableId));
+
+        try {
+            \Illuminate\Support\Facades\DB::transaction(function () use ($table, $locationId, $tableId) {
+                if ($locationId > 0) {
+                    app(\Admin\Services\PmdSharedFloorRegistryV1::class)
+                        ->assignTable($locationId, $tableId, 'Main Floor');
+                }
+
+                $table->delete();
+            });
+        } catch (\Throwable $e) {
+            logger()->error('PMD Floor table delete failed', [
+                'location_id' => $locationId,
+                'table_id' => $tableId,
+                'message' => $e->getMessage(),
+            ]);
+
+            return response()->json([
+                'ok' => false,
+                'message' => 'Table could not be removed.',
+            ], 500);
+        }
+
+        return response()->json([
+            'ok' => true,
+            'message' => 'Table removed.',
+            'table_id' => $tableId,
+            'table_no' => $displayNo,
+            'table_name' => $tableName,
         ]);
     }
 

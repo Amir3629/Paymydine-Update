@@ -78,13 +78,6 @@ $config['form']['fields'] = [
         'span' => 'left',
         'required' => true,
     ],
-    'location_id' => [
-        'label' => 'Location',
-        'type' => 'select',
-        'options' => 'listLocationOptions',
-        'span' => 'right',
-        'placeholder' => 'All locations',
-    ],
     'affiliate_key' => [
         'label' => 'Affiliate Key',
         'type' => 'text',

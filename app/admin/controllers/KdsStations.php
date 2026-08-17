@@ -4,9 +4,6 @@ namespace Admin\Controllers;
 
 use Admin\Classes\AdminController;
 use Admin\Models\Kds_stations_model;
-use Admin\Models\Categories_model;
-use Admin\Models\Statuses_model;
-use Admin\Models\Locations_model;
 use Admin\Facades\AdminMenu;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
@@ -27,7 +24,7 @@ class KdsStations extends AdminController
             'model' => 'Admin\Models\Kds_stations_model',
             'title' => 'Manage KDS Stations',
             'emptyMessage' => 'No KDS stations found. Create your first station to get started.',
-            'defaultSort' => ['priority', 'ASC'],
+            'defaultSort' => ['name', 'ASC'],
             'configFile' => 'kds_stations_model',
         ],
     ];
@@ -170,11 +167,8 @@ class KdsStations extends AdminController
     
 public function formExtendFields($form)
     {
+        // PMD_KDS_MINIMAL_STATION_V1: category routing is the only configurable KDS option.
         $this->pmdSetFormFieldOptionsV46($form, 'category_ids', Kds_stations_model::pmdKdsCategoryOptionsV46());
-        $this->pmdSetFormFieldOptionsV46($form, 'status_ids', Kds_stations_model::pmdKdsStatusOptionsV46());
-        $this->pmdSetFormFieldOptionsV46($form, 'location_id', Kds_stations_model::pmdKdsLocationOptionsV46());
-        $this->pmdSetFormFieldOptionsV46($form, 'notification_sound', Kds_stations_model::$notificationSounds);
-        $this->pmdSetFormFieldOptionsV46($form, 'theme_color', Kds_stations_model::$themeColors);
     }
 
     /* PMD_KDS_SETTINGS_BACKEND_V46_CONTROLLER_START */
@@ -438,31 +432,33 @@ public function formExtendFields($form)
         }
 
         $categoryIds = $this->pmdKdsArrayIdsV108($payload['category_ids'] ?? []);
-        $statusIds = $this->pmdKdsArrayIdsV108($payload['status_ids'] ?? []);
-
         $now = now();
 
+        // PMD_KDS_MINIMAL_STATION_V1
+        // Retired per-station knobs are canonical fixed product defaults. This
+        // prevents old hidden settings from silently changing KDS behaviour.
         $data = [
             'name' => $name,
-            'description' => (string)$this->pmdKdsLastValueV108($payload['description'] ?? '', ''),
-            'station_type' => (string)$this->pmdKdsLastValueV108($payload['station_type'] ?? 'kitchen', 'kitchen'),
+            'description' => '',
+            'station_type' => 'kitchen',
             'category_ids' => json_encode($categoryIds),
-            'status_ids' => json_encode($statusIds),
-            'can_change_status' => $this->pmdKdsBoolV108($payload['can_change_status'] ?? 1, 1),
-            'location_id' => $this->pmdKdsNullableIntV108($payload['location_id'] ?? null),
-            'priority' => $this->pmdKdsIntV108($payload['priority'] ?? 0, 0),
-            'is_active' => $this->pmdKdsBoolV108($payload['is_active'] ?? 1, 1),
-            'notification_sound' => (string)$this->pmdKdsLastValueV108($payload['notification_sound'] ?? 'doorbell', 'doorbell'),
-            'sound_enabled' => $this->pmdKdsBoolV108($payload['sound_enabled'] ?? 1, 1),
-            'refresh_interval' => $this->pmdKdsIntV108($payload['refresh_interval'] ?? 5, 5),
-            'theme_color' => (string)$this->pmdKdsLastValueV108($payload['theme_color'] ?? '#4CAF50', '#4CAF50'),
-            'display_density' => (string)$this->pmdKdsLastValueV108($payload['display_density'] ?? 'normal', 'normal'),
-            'show_reservations' => $this->pmdKdsBoolV108($payload['show_reservations'] ?? 1, 1),
-            'reservation_window_minutes' => $this->pmdKdsIntV108($payload['reservation_window_minutes'] ?? 90, 90),
-            'ready_pickup_timeout_minutes' => $this->pmdKdsIntV108($payload['ready_pickup_timeout_minutes'] ?? 8, 8),
-            'auto_hide_completed_minutes' => $this->pmdKdsIntV108($payload['auto_hide_completed_minutes'] ?? 5, 5),
-            'order_limit' => $this->pmdKdsIntV108($payload['order_limit'] ?? 50, 50),
-            'sort_order' => $this->pmdKdsIntV108($payload['priority'] ?? 0, 0),
+            'status_ids' => json_encode([]),
+            'can_change_status' => 1,
+            'location_id' => null,
+            'priority' => 0,
+            // PMD_KDS_MINIMAL_STATION_V1_1: active/inactive is no longer a product setting.
+            'is_active' => 1,
+            'notification_sound' => 'doorbell',
+            'sound_enabled' => 1,
+            'refresh_interval' => 5,
+            'theme_color' => '#4CAF50',
+            'display_density' => 'normal',
+            'show_reservations' => 0,
+            'reservation_window_minutes' => 90,
+            'ready_pickup_timeout_minutes' => 8,
+            'auto_hide_completed_minutes' => 5,
+            'order_limit' => 50,
+            'sort_order' => 0,
             'updated_at' => $now,
         ];
 

@@ -131,11 +131,12 @@ class Kds_stations_model extends Model
     }
 
     /**
-     * Scope: Only active stations
+     * Compatibility scope: active/inactive is no longer a KDS product setting.
      */
     public function scopeIsActive($query)
     {
-        return $query->where('is_active', true);
+        // PMD_KDS_MINIMAL_STATION_V1_1: keep legacy callers working without hiding stations.
+        return $query;
     }
 
     /**
@@ -143,7 +144,8 @@ class Kds_stations_model extends Model
      */
     public function scopeOrdered($query)
     {
-        return $query->orderBy('priority', 'asc')->orderBy('name', 'asc');
+        // PMD_KDS_MINIMAL_STATION_V1: station ordering is deterministic by name.
+        return $query->orderBy('name', 'asc');
     }
 
     /**
@@ -211,8 +213,7 @@ class Kds_stations_model extends Model
      */
     public static function getDropdownOptions()
     {
-        return static::isActive()
-            ->ordered()
+        return static::ordered()
             ->pluck('name', 'station_id')
             ->toArray();
     }

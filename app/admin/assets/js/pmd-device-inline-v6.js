@@ -13,6 +13,29 @@
   var lastTrigger = null;
   var inFlight = false;
 
+  /* PMD_DEVICE_V6_MODAL_POLISH_V6_1
+     Freeze the document at the exact current scroll position while the
+     portaled modal is open. The modal body remains independently scrollable. */
+  var lockedScrollY = 0;
+  var pageScrollLocked = false;
+
+  function lockPageScroll() {
+    if (pageScrollLocked) return;
+    lockedScrollY = window.pageYOffset || document.documentElement.scrollTop || 0;
+    pageScrollLocked = true;
+    document.documentElement.style.setProperty('--pmd-device-v6-scroll-y', lockedScrollY + 'px');
+    document.documentElement.classList.add('pmd-device-v6-modal-open');
+  }
+
+  function unlockPageScroll() {
+    var restoreY = lockedScrollY;
+    document.documentElement.classList.remove('pmd-device-v6-modal-open');
+    document.documentElement.style.removeProperty('--pmd-device-v6-scroll-y');
+    lockedScrollY = 0;
+    pageScrollLocked = false;
+    window.scrollTo(0, restoreY);
+  }
+
   if (modal.parentElement !== document.body) document.body.appendChild(modal);
 
   function setStatus(text, type) {
@@ -58,7 +81,7 @@
 
     modal.hidden = false;
     modal.setAttribute('aria-hidden', 'false');
-    document.documentElement.classList.add('pmd-device-v6-modal-open');
+    lockPageScroll();
 
     requestAnimationFrame(function () {
       var focusTarget = modalBody.querySelector('input:not([type="hidden"]):not([disabled]), select:not([disabled]), textarea:not([disabled]), button:not([disabled])');
@@ -72,7 +95,7 @@
     if (inFlight) return;
     modal.hidden = true;
     modal.setAttribute('aria-hidden', 'true');
-    document.documentElement.classList.remove('pmd-device-v6-modal-open');
+    unlockPageScroll();
     if (modalBody) modalBody.replaceChildren();
     setStatus('');
     if (lastTrigger && typeof lastTrigger.focus === 'function' && document.contains(lastTrigger)) {
@@ -275,7 +298,11 @@
     backendAuthoritiesPreserved: true,
     ajaxSaveKeepsOverview: true,
     noPolling: true,
-    noMutationObserver: true
+    noMutationObserver: true,
+    polishedFieldGeometry: '46px/12px',
+    backgroundScrollLock: 'fixed-position-restore',
+    backdropBlurPx: 8,
+    backdropDimmed: true
   };
 
   console.info('[PMD Device Settings Inline V6] Ready', window.PMDDeviceSettingsV6);

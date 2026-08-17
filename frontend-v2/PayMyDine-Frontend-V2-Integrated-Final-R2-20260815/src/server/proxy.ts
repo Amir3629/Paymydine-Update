@@ -47,15 +47,26 @@ function publicHost(request: Request): string {
   )
 }
 
+// PMD_DYNAMIC_TENANT_PROXY_R29
 function tenantHost(request: Request): string {
   const trustHeader = ['1', 'true', 'yes', 'on'].includes(
     String(process.env.PMD_TRUST_TENANT_OVERRIDE_HEADER || '').trim().toLowerCase(),
   )
-  return cleanHost(
-    process.env.PMD_TENANT_HOST_OVERRIDE ||
-    (trustHeader ? request.headers.get('x-pmd-tenant-host') : null) ||
-    publicHost(request),
+  const forceOverride = ['1', 'true', 'yes', 'on'].includes(
+    String(process.env.PMD_FORCE_TENANT_HOST_OVERRIDE || '').trim().toLowerCase(),
   )
+  const requestPublicHost = publicHost(request)
+  const requestHostName = requestPublicHost.split(':')[0].toLowerCase()
+  const localRequest = !requestHostName || ['localhost', '127.0.0.1', '::1'].includes(requestHostName)
+  const trustedTenantHeader = trustHeader ? request.headers.get('x-pmd-tenant-host') : null
+  const selectedTenantHost = forceOverride
+    ? (process.env.PMD_TENANT_HOST_OVERRIDE || trustedTenantHeader || requestPublicHost)
+    : (!localRequest
+        ? (trustedTenantHeader || requestPublicHost || process.env.PMD_TENANT_HOST_OVERRIDE)
+        : (trustedTenantHeader || process.env.PMD_TENANT_HOST_OVERRIDE || requestPublicHost))
+  // Normalize the terminal env fallback: cleanHost accepts null, not undefined.
+  // Host precedence is unchanged from the R29 multi-tenant design.
+  return cleanHost(selectedTenantHost || null)
 }
 
 function publicOrigin(request: Request): string {

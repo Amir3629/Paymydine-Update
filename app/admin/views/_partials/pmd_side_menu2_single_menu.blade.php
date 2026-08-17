@@ -7,6 +7,28 @@
         }
         return false;
     };
+    $pmdSm2Locale = strtolower((string)request()->cookie('pmd_admin_locale', app()->getLocale()));
+    $pmdSm2IsDe = $pmdSm2Locale === 'de';
+
+    /*
+     * PMD_SIDE_MENU_ROLE_DASHBOARD_V2
+     * Use the same server-side authority as Login and /admin/dashboard.
+     * Navigation selection does not grant permissions.
+     */
+    $pmdSm2DashboardRoute = 'dashboard';
+
+    try {
+        $pmdSm2DashboardRoute = app(\Admin\Services\PmdRoleLandingService::class)
+            ->routeFor(\Admin\Facades\AdminAuth::getUser()) ?: 'dashboard';
+    } catch (\Throwable $pmdSm2RoleError) {
+        $pmdSm2DashboardRoute = 'dashboard';
+    }
+
+    $pmdSm2DashboardIsActive = $pmdActive([$pmdSm2DashboardRoute]);
+    $pmdSm2OrdersIsActive = $pmdActive(['orders'])
+        || ($pmdSm2DashboardRoute !== 'cashierlab' && $pmdActive(['cashierlab']));
+    $pmdSm2ReservationsIsActive = $pmdActive(['reservations', 'reservations2'])
+        || ($pmdSm2DashboardRoute !== 'reservationslab' && $pmdActive(['reservationslab']));
 @endphp
 
 <aside id="pmd-side-menu2" aria-label="Admin navigation">
@@ -20,15 +42,15 @@
     </div>
 
     <nav class="pmd-sm2__nav">
-        <a class="pmd-sm2__item {{ $pmdActive(['dashboard', 'dashboard2', 'dashboardlab', 'managerlab']) ? 'is-active' : '' }}" href="{{ admin_url('dashboardlab') }}">
+        <a class="pmd-sm2__item {{ $pmdSm2DashboardIsActive ? 'is-active' : '' }}" href="{{ admin_url($pmdSm2DashboardRoute) }}" data-pmd-dashboard-route="{{ $pmdSm2DashboardRoute }}">
             <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12l-2 0l9 -9l9 9l-2 0"/><path d="M5 12v7a2 2 0 0 0 2 2h10a2 2 0 0 0 2 -2v-7"/><path d="M9 21v-6a2 2 0 0 1 2 -2h2a2 2 0 0 1 2 2v6"/></svg>
             <span class="pmd-sm2__label">Dashboard</span>
         </a>
-        <a class="pmd-sm2__item {{ $pmdActive(['orders']) ? 'is-active' : '' }}" href="{{ admin_url('orders') }}">
+        <a class="pmd-sm2__item {{ $pmdSm2OrdersIsActive ? 'is-active' : '' }}" href="{{ admin_url('cashierlab') }}">
             <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6.331 8h11.339a2 2 0 0 1 1.977 2.304l-1.255 8.152a3 3 0 0 1 -2.966 2.544h-6.852a3 3 0 0 1 -2.965 -2.544l-1.255 -8.152a2 2 0 0 1 1.977 -2.304"/><path d="M9 11v-5a3 3 0 0 1 6 0v5"/></svg>
             <span class="pmd-sm2__label">Orders</span>
         </a>
-        <a class="pmd-sm2__item {{ $pmdActive(['reservations', 'reservations2', 'reservationslab']) ? 'is-active' : '' }}" href="{{ admin_url('reservationslab') }}">
+        <a class="pmd-sm2__item {{ $pmdSm2ReservationsIsActive ? 'is-active' : '' }}" href="{{ admin_url('reservationslab') }}">
             <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7a2 2 0 0 1 2 -2h12a2 2 0 0 1 2 2v12a2 2 0 0 1 -2 2h-12a2 2 0 0 1 -2 -2z"/><path d="M16 3v4M8 3v4M4 11h16M8 15h2v2h-2z"/></svg>
             <span class="pmd-sm2__label">Reservations</span>
         </a>
@@ -37,49 +59,16 @@
             <span class="pmd-sm2__label">Coupons &amp; Gifts</span>
         </a>
 
-        <div class="pmd-sm2__dropdown" data-pmd-sm2-dropdown="restaurant">
-            <button type="button" class="pmd-sm2__dropdown-toggle" data-pmd-sm2-dropdown-toggle aria-expanded="false">
-                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M19 3v12h-5c-.023-3.681.184-7.406 5-12M19 15v6M8 4v17M5 4v3a3 3 0 1 0 6 0V4"/></svg>
-                <span class="pmd-sm2__label">Restaurant</span>
-            </button>
-            <div class="pmd-sm2__submenu"><div class="pmd-sm2__submenu-inner">
-                <a class="pmd-sm2__subitem" href="{{ admin_url('locations') }}">Locations</a>
-                <a class="pmd-sm2__subitem" href="{{ admin_url('menus') }}">Menu Items</a>
-                <a class="pmd-sm2__subitem" href="{{ admin_url('categories') }}">Categories</a>
-                <a class="pmd-sm2__subitem" href="{{ admin_url('mealtimes') }}">Mealtimes</a>
-                <a class="pmd-sm2__subitem" href="{{ admin_url('tables') }}">Tables</a>
-            </div></div>
-        </div>
-
-        <a class="pmd-sm2__item {{ $pmdActive(['dashboardkitchen', 'kds']) ? 'is-active' : '' }}" href="{{ admin_url('dashboardkitchen') }}">
-            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 5a1 1 0 0 1 1-1h16a1 1 0 0 1 1 1v10a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1zM7 20h10M9 16v4M15 16v4"/></svg>
-            <span class="pmd-sm2__label">Kitchen Display</span>
+        <a class="pmd-sm2__item {{ $pmdActive(['pmdmenus', 'menus']) ? 'is-active' : '' }}" href="{{ admin_url('pmdmenus') }}">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M19 3v12h-5c-.023-3.681.184-7.406 5-12M19 15v6M8 4v17M5 4v3a3 3 0 1 0 6 0V4"/></svg>
+            <span class="pmd-sm2__label">{{ $pmdSm2IsDe ? 'Menü' : 'Menu' }}</span>
         </a>
 
-        <div class="pmd-sm2__dropdown" data-pmd-sm2-dropdown="design">
-            <button type="button" class="pmd-sm2__dropdown-toggle" data-pmd-sm2-dropdown-toggle aria-expanded="false">
-                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 21a9 9 0 1 1 9-9c0 1.657-1.343 3-3 3h-3a2 2 0 0 0-1 3.732A1.5 1.5 0 0 1 12 21z"/><path d="M7.5 10.5h.01M11.5 7.5h.01M15.5 10.5h.01"/></svg>
-                <span class="pmd-sm2__label">Design</span>
-            </button>
-            <div class="pmd-sm2__submenu"><div class="pmd-sm2__submenu-inner">
-                <a class="pmd-sm2__subitem" href="{{ admin_url('themes') }}">Themes</a>
-                <a class="pmd-sm2__subitem" href="{{ admin_url('mail_templates') }}">Mail Templates</a>
-            </div></div>
-        </div>
+        <a class="pmd-sm2__item {{ $pmdActive(['pmdsettings', 'pmddevices', 'pmdteam', 'pmdfinance', 'pmdadvanced', 'languages', 'currencies']) ? 'is-active' : '' }}" href="{{ admin_url('pmdsettings') }}">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06-2.12 2.12-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V20h-3v-.08a1.65 1.65 0 0 0-1-1.51 1.65 1.65 0 0 0-1.82.33l-.06.06-2.12-2.12.06-.06A1.65 1.65 0 0 0 7.2 15a1.65 1.65 0 0 0-1.51-1H5.6v-3h.09A1.65 1.65 0 0 0 7.2 10a1.65 1.65 0 0 0-.33-1.82l-.06-.06L8.93 6l.06.06A1.65 1.65 0 0 0 10.8 6.4a1.65 1.65 0 0 0 1-1.51V4.8h3v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06 2.12 2.12-.06.06A1.65 1.65 0 0 0 19.4 10a1.65 1.65 0 0 0 1.51 1H21v3h-.09A1.65 1.65 0 0 0 19.4 15z"/></svg>
+            <span class="pmd-sm2__label">{{ $pmdSm2IsDe ? 'Einstellungen' : 'Settings' }}</span>
+        </a>
 
-        <div class="pmd-sm2__dropdown" data-pmd-sm2-dropdown="system">
-            <button type="button" class="pmd-sm2__dropdown-toggle" data-pmd-sm2-dropdown-toggle aria-expanded="false">
-                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06-2.12 2.12-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V20h-3v-.08a1.65 1.65 0 0 0-1-1.51 1.65 1.65 0 0 0-1.82.33l-.06.06-2.12-2.12.06-.06A1.65 1.65 0 0 0 7.2 15a1.65 1.65 0 0 0-1.51-1H5.6v-3h.09A1.65 1.65 0 0 0 7.2 10a1.65 1.65 0 0 0-.33-1.82l-.06-.06L8.93 6l.06.06A1.65 1.65 0 0 0 10.8 6.4a1.65 1.65 0 0 0 1-1.51V4.8h3v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06 2.12 2.12-.06.06A1.65 1.65 0 0 0 19.4 10a1.65 1.65 0 0 0 1.51 1H21v3h-.09A1.65 1.65 0 0 0 19.4 15z"/></svg>
-                <span class="pmd-sm2__label">System</span>
-            </button>
-            <div class="pmd-sm2__submenu"><div class="pmd-sm2__submenu-inner">
-                <a class="pmd-sm2__subitem" href="{{ admin_url('settings') }}">Settings</a>
-                <a class="pmd-sm2__subitem" href="{{ admin_url('staffs') }}">Staff</a>
-                <a class="pmd-sm2__subitem" href="{{ admin_url('payments') }}">Payments</a>
-                <a class="pmd-sm2__subitem" href="{{ admin_url('languages') }}">Languages</a>
-                <a class="pmd-sm2__subitem" href="{{ admin_url('currencies') }}">Currencies</a>
-            </div></div>
-        </div>
     </nav>
 
 <!-- PMD_SM2_ACCOUNT_FOOTER_V11_START -->

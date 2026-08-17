@@ -605,7 +605,10 @@ Route::post('/table-orders/submit', function (\Illuminate\Http\Request $request)
                     'quantity' => max(1, (int)($item['quantity'] ?? 1)),
                     'price' => (float)($item['price'] ?? 0),
                     'subtotal' => (float)($item['subtotal'] ?? 0),
-                    'comment' => '[guest_session:'.(string)($item['guest_session_id'] ?? '').']',
+                    // PMD_ITEM_NOTE_ORDER_MENU_R29: keep the human kitchen note in the canonical
+                    // order_menus.comment while preserving the R27 guest-session marker. Admin + KDS
+                    // already strip the internal marker and display only the human instruction.
+                    'comment' => trim(((string)($item['note'] ?? '') !== '' ? (string)$item['note'].' | ' : '').'[guest_session:'.(string)($item['guest_session_id'] ?? '').']', ' |'),
                     'option_values' => !empty($item['options']) ? json_encode($item['options'], JSON_UNESCAPED_UNICODE|JSON_UNESCAPED_SLASHES) : null,
                 ]);
             }

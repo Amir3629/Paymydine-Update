@@ -5,15 +5,24 @@
             $active = params('default_themes.main', config('system.defaultTheme'));
             if ($active === 'frontend-theme') {
                 // stream/proxy Next content
-                // PMD_MIMOZA_FRONTEND_V2_PROXY_R3
+                // PMD_ALL_TENANT_FRONTEND_V2_PROXY_R29F
+                // All public customer tenant hosts use V2. Non-tenant/local tooling
+                // keeps the historical NEXT_PROXY_ORIGIN fallback for rollback.
                 $pmdRequestHost = strtolower((string)request()->getHost());
-                $next = ($pmdRequestHost === 'mimoza.paymydine.com')
+                $pmdIsCustomerTenantHost = preg_match('/^[a-z0-9-]+\.paymydine\.com$/', $pmdRequestHost) === 1;
+                $next = $pmdIsCustomerTenantHost
                     ? 'http://127.0.0.1:3002'
                     : env('NEXT_PROXY_ORIGIN', 'http://localhost:3001');
                 $ch = curl_init($next.'/');
                 curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
                 curl_setopt($ch, CURLOPT_HEADER, false);
                 curl_setopt($ch, CURLOPT_FOLLOWLOCATION, true);
+                // PMD_FORWARD_TENANT_HOST_TO_NEXT_R29F
+                curl_setopt($ch, CURLOPT_HTTPHEADER, [
+                    'Host: '.$pmdRequestHost,
+                    'X-Forwarded-Host: '.$pmdRequestHost,
+                    'X-Forwarded-Proto: '.request()->getScheme(),
+                ]);
                 $resp = curl_exec($ch);
                 $ctype = curl_getinfo($ch, CURLINFO_CONTENT_TYPE) ?: 'text/html; charset=UTF-8';
                 curl_close($ch);
@@ -235,9 +244,12 @@ $active = params('default_themes.main', config('system.defaultTheme'));
                     }
                 }
 
-                // PMD_MIMOZA_FRONTEND_V2_PROXY_R3
+                // PMD_ALL_TENANT_FRONTEND_V2_PROXY_R29F
+                // All public customer tenant hosts use V2. Non-tenant/local tooling
+                // keeps the historical NEXT_PROXY_ORIGIN fallback for rollback.
                 $pmdRequestHost = strtolower((string)request()->getHost());
-                $next = ($pmdRequestHost === 'mimoza.paymydine.com')
+                $pmdIsCustomerTenantHost = preg_match('/^[a-z0-9-]+\.paymydine\.com$/', $pmdRequestHost) === 1;
+                $next = $pmdIsCustomerTenantHost
                     ? 'http://127.0.0.1:3002'
                     : env('NEXT_PROXY_ORIGIN', 'http://localhost:3001');
                 // Preserve query string and path
@@ -248,6 +260,12 @@ $active = params('default_themes.main', config('system.defaultTheme'));
                 curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
                 curl_setopt($ch, CURLOPT_HEADER, false);
                 curl_setopt($ch, CURLOPT_FOLLOWLOCATION, true);
+                // PMD_FORWARD_TENANT_HOST_TO_NEXT_R29F
+                curl_setopt($ch, CURLOPT_HTTPHEADER, [
+                    'Host: '.$pmdRequestHost,
+                    'X-Forwarded-Host: '.$pmdRequestHost,
+                    'X-Forwarded-Proto: '.request()->getScheme(),
+                ]);
                 // Forward method/body
                 $method = request()->getMethod();
                 if ($method !== 'GET') {
