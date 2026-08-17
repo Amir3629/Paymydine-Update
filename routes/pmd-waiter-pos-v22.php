@@ -22,4 +22,8 @@ Route::middleware(['web'])->group(function () {
         ->where('orderId', '[0-9]+');
     Route::get('/admin/pmd-waiter-pos-v22/operations/{orderId}/print-links', [\Admin\Controllers\PmdWaiterPosV1::class, 'printLinksV22'])
         ->where('orderId', '[0-9]+');
+
+    // PMD_CASHIER_MANUAL_TABLE_FREE_ROUTE_R45
+    Route::post('/admin/pmd-waiter-pos-v22/tables/{tableId}/free', [\Admin\Controllers\PmdWaiterPosV1::class, 'markTableFreeV45'])
+        ->where('tableId', '[0-9]+');
 });

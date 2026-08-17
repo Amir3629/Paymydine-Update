@@ -28,11 +28,8 @@ vendor/
 *.sql.gz
 
 # Backup files
-*.bak
-*.bak.*
-*.bak_*
-*.backup
-*.backup.*
+*.bak*
+*.backup*
 *.old
 *.tmp
 *.before_*

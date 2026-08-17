@@ -112,10 +112,29 @@
                         </div>
                     </dl>
 
-                    <footer class="pmd-ops-card__footer">
-                        <a href="{{ $order['edit_url'] }}">
+                    <footer class="pmd-ops-card__footer" style="gap:8px;flex-wrap:wrap;">
+                        {{-- PMD_CASHIER_OPEN_ORDER_COMPOSER_R44 --}}
+                        <a
+                            href="{{ $order['edit_url'] }}"
+                            data-pmd-cashier-open-composer="1"
+                        >
                             {{ $text['open_order'] ?? 'Open order' }}
                         </a>
+
+                        {{-- PMD_CASHIER_MANUAL_FREE_BUTTON_R45
+                             Payment NEVER changes table occupancy. The staff action is
+                             rendered only for a fully-paid card; the endpoint still
+                             re-checks every check on the physical table before release. --}}
+                        @if(!empty($order['is_paid']) && (int)($order['table_id'] ?? 0) > 0)
+                            <button
+                                type="button"
+                                data-pmd-cashier-table-free="{{ (int)$order['table_id'] }}"
+                                data-pmd-cashier-table-label="{{ $order['table'] }}"
+                                style="border-color:#b9dcca;background:#f1faf6;color:#246b4b;"
+                            >
+                                {{ $text['free_table'] ?? 'Set table free' }}
+                            </button>
+                        @endif
                     </footer>
                 </article>
         @endforeach

@@ -1931,3 +1931,95 @@ body.pmd-coc-open {
     grid-template-columns: 1fr !important;
   }
 }
+
+/* =========================================================
+   PMD_CASHIER_ORDER_COMPOSER_R43_COMFORT
+   Small density pass after R42. Payment Center layout is intentionally
+   untouched: R42 payment sizing remains authoritative.
+   ========================================================= */
+
+.pmd-coc .pmd-coc__main {
+  grid-template-columns: minmax(0, 1fr) 370px !important;
+  gap: 16px !important;
+  padding: 16px !important;
+}
+
+.pmd-coc .pmd-coc__catalog,
+.pmd-coc .pmd-coc__cart {
+  border-radius: 20px !important;
+}
+
+.pmd-coc .pmd-coc__menu {
+  grid-template-columns:
+    repeat(auto-fill, minmax(225px, 1fr)) !important;
+  gap: 14px !important;
+  padding: 8px 14px 18px !important;
+}
+
+.pmd-coc .pmd-coc-food {
+  min-height: 310px !important;
+}
+
+.pmd-coc .pmd-coc-food__body {
+  padding: 13px 14px 14px !important;
+}
+
+.pmd-coc .pmd-coc__cart {
+  padding: 14px !important;
+}
+
+.pmd-coc .pmd-coc-existing {
+  padding: 11px !important;
+  border-radius: 15px !important;
+}
+
+.pmd-coc .pmd-coc-existing__items {
+  gap: 8px !important;
+}
+
+.pmd-coc .pmd-coc-existing__items > div {
+  min-height: 54px !important;
+  padding: 10px 11px !important;
+  gap: 9px !important;
+  align-items: start !important;
+}
+
+.pmd-coc .pmd-coc-existing__name {
+  min-width: 0 !important;
+}
+
+.pmd-coc .pmd-coc-existing__name b {
+  display: block !important;
+  line-height: 1.25 !important;
+}
+
+.pmd-coc .pmd-coc-existing__name small {
+  display: -webkit-box !important;
+  -webkit-box-orient: vertical !important;
+  -webkit-line-clamp: 2 !important;
+  overflow: hidden !important;
+  margin-top: 4px !important;
+  color: #6f8292 !important;
+  line-height: 1.35 !important;
+}
+
+.pmd-coc .pmd-coc__note textarea {
+  min-height: 66px !important;
+  max-height: 110px !important;
+}
+
+.pmd-coc .pmd-coc-cart-empty,
+.pmd-coc .pmd-coc__empty {
+  min-height: 68px !important;
+}
+
+@media (max-width: 1180px) {
+  .pmd-coc .pmd-coc__main {
+    grid-template-columns: minmax(0, 1fr) 350px !important;
+  }
+
+  .pmd-coc .pmd-coc__menu {
+    grid-template-columns:
+      repeat(auto-fill, minmax(205px, 1fr)) !important;
+  }
+}

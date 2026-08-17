@@ -93,7 +93,8 @@ $pmdRoundResolveSessionKey = function (array $context, string $guestSessionId = 
     $pmdRoundEnsureSchema,
     $pmdRoundDraftContext,
     $pmdRoundOrderIsFinanciallyOpen,
-    $pmdRoundBackfillLegacySession
+    $pmdRoundBackfillLegacySession,
+    $pmdFindOpenTableOrderForContext
 ) {
     $pmdRoundEnsureSchema();
 
@@ -118,6 +119,20 @@ $pmdRoundResolveSessionKey = function (array $context, string $guestSessionId = 
         foreach ($submitted as $row) {
             $updatedAt = !empty($row->updated_at) ? \Illuminate\Support\Carbon::parse($row->updated_at) : null;
             if ($updatedAt && $updatedAt->lt(now()->subHours(12))) continue;
+
+            // PMD_CASHIER_PAID_SESSION_HISTORY_R44
+            $historyPayload = json_decode(
+                (string)($row->payload ?? ''),
+                true
+            ) ?: [];
+            $cashierParticipants = array_map(
+                static fn ($value) => trim((string)$value),
+                (array)($historyPayload['cashier_participants'] ?? [])
+            );
+            if (in_array(trim($guestSessionId), $cashierParticipants, true)) {
+                return $pmdRoundBackfillLegacySession($row, $context);
+            }
+
             $belongs = DB::table('order_menus')
                 ->where('order_id', (int)$row->order_id)
                 ->where('comment', 'like', $needle)
@@ -126,7 +141,132 @@ $pmdRoundResolveSessionKey = function (array $context, string $guestSessionId = 
         }
     }
 
+    // PMD_CASHIER_CANONICAL_ORDER_IN_ROUND_STATE_R43
+    // Cashier/Waiter POS orders are canonical orders too, but they do not have
+    // an R27 submitted-draft row. Give the newest financially-open table order
+    // a stable synthetic session key so every QR device can hydrate it through
+    // /table-orders/state without creating or mutating a database row.
+    try {
+        $externalOrder = $pmdFindOpenTableOrderForContext($context, null);
+        if (
+            $externalOrder
+            && $pmdRoundOrderIsFinanciallyOpen($externalOrder)
+            && (int)($externalOrder->order_id ?? 0) > 0
+        ) {
+            $externalOrderId = (int)$externalOrder->order_id;
+            return 'pmds_cashier_'.substr(hash('sha256', implode('|', [
+                request()->getHost(),
+                (string)($context['table_id'] ?? ''),
+                (string)($context['table_no'] ?? ''),
+                (string)$externalOrderId,
+            ])), 0, 28);
+        }
+    } catch (\Throwable $ignored) {}
+
     return null;
+};
+
+// PMD_CASHIER_PAID_SESSION_HISTORY_R44
+// Bind QR participants to a Cashier-created canonical order by using the
+// existing pmd_table_order_drafts session/history table. This does NOT create
+// another order. It stores only a submitted history pointer to the real order.
+$pmdRoundBindCashierOrderSessionR44 = function (
+    array $context,
+    $order,
+    string $sessionKey,
+    string $guestSessionId = ''
+) use (
+    $pmdRoundEnsureSchema,
+    $pmdRoundDraftContext
+) {
+    $pmdRoundEnsureSchema();
+
+    $orderId = (int)($order->order_id ?? 0);
+    $sessionKey = trim($sessionKey);
+    $guestSessionId = trim($guestSessionId);
+
+    if ($orderId < 1 || $sessionKey === '') return null;
+
+    return DB::transaction(function () use (
+        $context,
+        $orderId,
+        $sessionKey,
+        $guestSessionId,
+        $pmdRoundDraftContext
+    ) {
+        $query = DB::table('pmd_table_order_drafts')
+            ->where('status', 'submitted')
+            ->where('order_id', $orderId)
+            ->where('session_key', $sessionKey);
+        $pmdRoundDraftContext($query, $context);
+        $row = $query->lockForUpdate()->orderByDesc('id')->first();
+
+        $payload = $row
+            ? (json_decode((string)($row->payload ?? ''), true) ?: [])
+            : [];
+
+        $participants = array_values(array_unique(array_filter(
+            array_map(
+                static fn ($value) => trim((string)$value),
+                (array)($payload['cashier_participants'] ?? [])
+            ),
+            static fn ($value) => $value !== ''
+        )));
+
+        if (
+            $guestSessionId !== ''
+            && !in_array($guestSessionId, $participants, true)
+        ) {
+            $participants[] = $guestSessionId;
+        }
+
+        if (count($participants) > 40) {
+            $participants = array_slice($participants, -40);
+        }
+
+        $payload['source'] = 'cashier_canonical_r44';
+        $payload['cashier_order_id'] = $orderId;
+        $payload['cashier_participants'] = $participants;
+
+        $data = [
+            'table_id' => ($context['table_id'] ?? '') !== ''
+                ? $context['table_id']
+                : null,
+            'table_no' => ($context['table_no'] ?? '') !== ''
+                ? $context['table_no']
+                : null,
+            'table_name' => ($context['table_name'] ?? '') !== ''
+                ? $context['table_name']
+                : null,
+            'qr' => ($context['qr'] ?? '') !== ''
+                ? $context['qr']
+                : null,
+            'session_key' => $sessionKey,
+            'status' => 'submitted',
+            'order_id' => $orderId,
+            'payload' => json_encode(
+                $payload,
+                JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES
+            ),
+            'updated_at' => now(),
+        ];
+
+        if ($row) {
+            DB::table('pmd_table_order_drafts')
+                ->where('id', (int)$row->id)
+                ->update($data);
+            return DB::table('pmd_table_order_drafts')
+                ->where('id', (int)$row->id)
+                ->first();
+        }
+
+        $data['created_at'] = now();
+        $id = DB::table('pmd_table_order_drafts')->insertGetId($data);
+
+        return DB::table('pmd_table_order_drafts')
+            ->where('id', $id)
+            ->first();
+    });
 };
 
 $pmdRoundContextLockKey = function (array $context): string {
@@ -323,13 +463,33 @@ Route::get('/table-orders/state', function (\Illuminate\Http\Request $request) u
     $pmdRoundEnsureSchema,
     $pmdRoundDraftContext,
     $pmdRoundResolveSessionKey,
-    $pmdRoundAugmentOrderPayload
+    $pmdRoundAugmentOrderPayload,
+    $pmdFindOpenTableOrderForContext,
+    $pmdRoundBindCashierOrderSessionR44
 ) {
     $pmdRoundEnsureSchema();
     $context = $resolveTableDraftContext($request);
     if (!$context['table']) return response()->json(['success' => false, 'error' => 'A valid table is required'], 422);
     $guestSessionId = trim((string)$request->query('guest_session_id', ''));
     $sessionKey = $pmdRoundResolveSessionKey($context, $guestSessionId, true);
+
+    // PMD_CASHIER_PAID_SESSION_HISTORY_R44
+    // While the Cashier order is still open, persist the current QR participant
+    // on the synthetic R43 session. After full payment this submitted pointer
+    // remains resolvable for that same guest, so invoiceAvailable can be shown.
+    if ($sessionKey) {
+        try {
+            $cashierOrder = $pmdFindOpenTableOrderForContext($context, null);
+            if ($cashierOrder && (int)($cashierOrder->order_id ?? 0) > 0) {
+                $pmdRoundBindCashierOrderSessionR44(
+                    $context,
+                    $cashierOrder,
+                    $sessionKey,
+                    $guestSessionId
+                );
+            }
+        } catch (\Throwable $ignored) {}
+    }
 
     if (!$sessionKey) {
         return response()->json([
@@ -374,6 +534,38 @@ Route::get('/table-orders/state', function (\Illuminate\Http\Request $request) u
         $payload = json_decode($formatTableOrderResponse(null, $order, $context)->getContent(), true) ?: [];
         $orders[] = $pmdRoundAugmentOrderPayload($payload, $order, $submittedDraft, $context, $sessionKey);
     }
+
+    // PMD_CASHIER_CANONICAL_ORDER_IN_ROUND_STATE_R43
+    // A Cashier-created open check is not represented by a submitted R27 draft.
+    // Merge it into the same live response without duplicating an order that is
+    // already present through a submitted draft.
+    try {
+        $externalOrder = $pmdFindOpenTableOrderForContext($context, null);
+        $externalOrderId = (int)($externalOrder->order_id ?? 0);
+
+        if ($externalOrderId > 0 && !isset($seenOrderIds[$externalOrderId])) {
+            $seenOrderIds[$externalOrderId] = true;
+
+            $payload = json_decode(
+                $formatTableOrderResponse(
+                    null,
+                    $externalOrder,
+                    $context
+                )->getContent(),
+                true
+            ) ?: [];
+
+            $payload['source'] = 'cashier_canonical';
+
+            $orders[] = $pmdRoundAugmentOrderPayload(
+                $payload,
+                $externalOrder,
+                null,
+                $context,
+                $sessionKey
+            );
+        }
+    } catch (\Throwable $ignored) {}
 
     usort($orders, function ($a, $b) {
         return ((int)($b['order_id'] ?? 0)) <=> ((int)($a['order_id'] ?? 0));

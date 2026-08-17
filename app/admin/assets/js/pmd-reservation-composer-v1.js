@@ -1208,6 +1208,34 @@ function applyAvailability(result) {
       notify.checked = false;
     }
 
+    // PMD_RESERVATION_TABLE_PREFERENCE_HYDRATION_V1
+    // Reservation preference is saved intent. Hydrate it directly from the
+    // canonical reservation payload; never infer it from assigned tables.
+    var persistedTableFeatures = Array.isArray(values && values.pmd_table_features)
+      ? values.pmd_table_features
+      : [];
+    var persistedTableFeatureSet = {};
+
+    persistedTableFeatures.forEach(function (featureKey) {
+      featureKey = clean(featureKey);
+      if (
+        featureKey === 'near_window'
+        || featureKey === 'quiet_area'
+        || featureKey === 'accessible'
+      ) {
+        persistedTableFeatureSet[featureKey] = true;
+      }
+    });
+
+    Array.prototype.forEach.call(
+      form.querySelectorAll('input[name="pmd_table_features[]"]'),
+      function (featureInput) {
+        featureInput.checked = !!persistedTableFeatureSet[
+          clean(featureInput.value)
+        ];
+      }
+    );
+
     syncAssignment();
 
     if (

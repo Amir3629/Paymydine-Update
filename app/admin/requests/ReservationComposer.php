@@ -19,6 +19,9 @@ class ReservationComposer extends Reservation
             'assignment_mode' => ['required', 'in:auto,choose,later'],
             'tables' => ['sometimes', 'array'],
             'tables.*' => ['integer', 'distinct'],
+            // PMD_RESERVATION_TABLE_PREFERENCES_V1
+            'pmd_table_features' => ['sometimes', 'array'],
+            'pmd_table_features.*' => ['string', 'distinct', 'in:near_window,quiet_area,accessible'],
             'status_id' => ['nullable', 'integer'],
             'occasion_id' => ['nullable', 'integer'],
             'notify' => ['boolean'],

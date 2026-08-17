@@ -57,7 +57,6 @@
   .bottomService > div { display: none; }
 }
 @media (max-width: 500px) {
-  .headerRight > :first-child { display: none; }
   .actions { margin-top: -1.4rem; }
   .item { grid-template-columns: 6rem minmax(0,1fr); }
   .price { grid-column: 2; grid-template-columns: 1fr auto; justify-items: stretch; min-width: 0; padding: 0 1rem 1rem; }

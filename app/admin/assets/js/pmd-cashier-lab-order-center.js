@@ -1953,6 +1953,13 @@
         '.pmd-ops-card__footer a[href*="/admin/orders/edit/"]'
       )
       .forEach(function (link) {
+        // PMD_CASHIER_OPEN_ORDER_AUTHORITY_R44
+        // Edit-capable Cashier cards belong to the native Composer. R37 is
+        // still used by Details/Documents and by paid/read-only fallback.
+        if (link.getAttribute('data-pmd-cashier-open-composer') === '1') {
+          return;
+        }
+
         if (!link.getAttribute('data-pmd-r37-legacy-href')) {
           link.setAttribute(
             'data-pmd-r37-legacy-href',

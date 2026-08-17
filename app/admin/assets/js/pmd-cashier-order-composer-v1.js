@@ -755,16 +755,35 @@
     document.body.classList.remove('pmd-coc-open');
   }
 
+  // PMD_CASHIER_CANONICAL_TABLE_ROUTE_R44
+  // /admin/pmd-waiter-pos-v1/data/{table} resolves by the physical DB table id.
+  // Never prefer a human/display table number over that canonical id.
   function tableRouteKey(table) {
     if (!table) return '';
 
+    var raw = table.raw && typeof table.raw === 'object'
+      ? table.raw
+      : {};
+
+    var id = Number(
+      table.id ||
+      table.dbTableId ||
+      raw.table_id ||
+      0
+    );
+
+    if (id > 0) {
+      return String(id);
+    }
+
+    // Compatibility only for old cards that truly have no canonical id.
     var number = String(table.number || '').trim();
 
     if (/^\d+$/.test(number) && Number(number) > 0) {
       return number;
     }
 
-    return String(Number(table.id || 0) || '');
+    return '';
   }
 
   function currentOrder() {
@@ -1270,6 +1289,15 @@
     });
   }
 
+  // PMD_CASHIER_LIVE_SYNC_R43
+  function visibleOrderComment(value) {
+    return String(value || '')
+      .replace(/\s*\|\s*\[guest_session:[^\]]*\]/gi, '')
+      .replace(/\[guest_session:[^\]]*\]/gi, '')
+      .replace(/^\s*\|\s*|\s*\|\s*$/g, '')
+      .trim();
+  }
+
   function renderExisting() {
     var box = rootQuery('[data-coc-existing]');
     if (!box) return;
@@ -1303,7 +1331,7 @@
                     '<span class="pmd-coc-existing__qty">', esc(item.quantity), '×</span>',
                     '<span class="pmd-coc-existing__name">',
                       '<b>', esc(item.name || 'Item'), '</b>',
-                      item.comment ? '<small>' + esc(item.comment) + '</small>' : '',
+                      visibleOrderComment(item.comment) ? '<small>' + esc(visibleOrderComment(item.comment)) + '</small>' : '',
                     '</span>',
                     '<strong>', money(item.subtotal || 0), '</strong>',
                   '</div>'
@@ -1937,7 +1965,7 @@
         )
       );
 
-      await refreshCashierOrdersSection();
+      await refreshCashierOrdersSection(state.activeOrderId);
 
       if (state.table) {
         await loadTable(
@@ -2118,103 +2146,215 @@
     );
   }
 
-  async function refreshCashierOrdersSection() {
+  // PMD_CASHIER_LIVE_SYNC_R43
+  var cashierRefreshBusy = false;
+  var cashierRefreshTimer = null;
+  var cashierRefreshKickTimer = null;
+
+  function cashierOrderExists(root, orderId) {
+    if (!root || !orderId) return false;
+
+    return !!root.querySelector(
+      '[data-pmd-cashier-order="' +
+      String(Number(orderId)) +
+      '"]'
+    );
+  }
+
+  function refreshCashierBridgeWidgets() {
+    if (
+      window.PMDCashierOrderCenter &&
+      typeof window.PMDCashierOrderCenter.refresh === 'function'
+    ) {
+      try {
+        window.PMDCashierOrderCenter.refresh();
+      } catch (error) {
+      }
+    }
+
+    if (
+      window.PMDSharedFloorMultiFloorV1 &&
+      typeof window.PMDSharedFloorMultiFloorV1.refresh === 'function'
+    ) {
+      try {
+        window.PMDSharedFloorMultiFloorV1.refresh();
+      } catch (error) {
+      }
+    }
+
+    tagHeaderCreate();
+  }
+
+  function cashierRefreshUrl(attempt) {
+    var url = new URL(location.href);
+
+    url.searchParams.set(
+      'pmd_coc_refresh',
+      String(Date.now()) + '-' + String(attempt || 0)
+    );
+
+    return url.toString();
+  }
+
+  function waitForCashierRefresh(ms) {
+    return new Promise(function (resolve) {
+      window.setTimeout(resolve, ms);
+    });
+  }
+
+  async function refreshCashierOrdersSection(expectedOrderId) {
+    if (cashierRefreshBusy) return false;
+
+    cashierRefreshBusy = true;
+
+    var expected = Number(expectedOrderId || 0);
+    var attempts = expected > 0 ? 3 : 1;
+    var latestSection = null;
+    var expectedFound = expected <= 0;
+
     try {
-      var response = await fetch(location.href, {
-        credentials: 'same-origin',
-        cache: 'no-store',
-        headers: {
-          'Accept': 'text/html',
-          'X-Requested-With': 'XMLHttpRequest'
+      for (var attempt = 0; attempt < attempts; attempt += 1) {
+        var response = await fetch(
+          cashierRefreshUrl(attempt),
+          {
+            credentials: 'same-origin',
+            cache: 'no-store',
+            headers: {
+              'Accept': 'text/html',
+              'X-Requested-With': 'XMLHttpRequest',
+              'Cache-Control': 'no-cache',
+              'Pragma': 'no-cache'
+            }
+          }
+        );
+
+        if (!response.ok) {
+          if (attempt + 1 < attempts) {
+            await waitForCashierRefresh(450 + attempt * 450);
+            continue;
+          }
+          return false;
         }
-      });
 
-      if (!response.ok) return;
+        var html = await response.text();
+        var doc = new DOMParser().parseFromString(
+          html,
+          'text/html'
+        );
 
-      var html = await response.text();
-      var doc = new DOMParser().parseFromString(
-        html,
-        'text/html'
-      );
+        latestSection = doc.querySelector(
+          '#pmd-cashier-current-orders-v2'
+        );
 
-      var next = doc.querySelector(
-        '#pmd-cashier-current-orders-v2'
-      );
+        if (!latestSection) {
+          if (attempt + 1 < attempts) {
+            await waitForCashierRefresh(450 + attempt * 450);
+            continue;
+          }
+          return false;
+        }
+
+        expectedFound =
+          expected <= 0 ||
+          cashierOrderExists(latestSection, expected);
+
+        if (expectedFound || attempt + 1 >= attempts) {
+          break;
+        }
+
+        await waitForCashierRefresh(500 + attempt * 500);
+      }
 
       var current = document.querySelector(
         '#pmd-cashier-current-orders-v2'
       );
 
-      if (next && current) {
-        current.replaceWith(next);
+      if (latestSection && current) {
+        current.replaceWith(latestSection);
+        refreshCashierBridgeWidgets();
       }
 
-      if (
-        window.PMDCashierOrderCenter &&
-        typeof window.PMDCashierOrderCenter.refresh === 'function'
-      ) {
-        try {
-          window.PMDCashierOrderCenter.refresh();
-        } catch (error) {
+      if (expected > 0 && !expectedFound) {
+        console.warn(
+          '[PMD R43] Saved order is not in the refreshed Cashier range yet',
+          {orderId: expected, path: location.pathname}
+        );
+      }
+
+      return expectedFound;
+    } catch (error) {
+      console.warn(
+        '[PMD R43] Cashier live refresh failed',
+        error
+      );
+      return false;
+    } finally {
+      cashierRefreshBusy = false;
+    }
+  }
+
+  function queueCashierLiveRefresh(expectedOrderId, delay) {
+    window.clearTimeout(cashierRefreshKickTimer);
+
+    cashierRefreshKickTimer = window.setTimeout(
+      function () {
+        if (document.visibilityState === 'hidden') return;
+        refreshCashierOrdersSection(expectedOrderId || 0);
+      },
+      Math.max(0, Number(delay || 0))
+    );
+  }
+
+  function startCashierLiveSync() {
+    if (cashierRefreshTimer) return;
+
+    cashierRefreshTimer = window.setInterval(
+      function () {
+        if (
+          document.visibilityState === 'hidden' ||
+          state.open ||
+          state.submitting
+        ) {
+          return;
+        }
+
+        refreshCashierOrdersSection(0);
+      },
+      12000
+    );
+
+    window.addEventListener('focus', function () {
+      if (!state.open) queueCashierLiveRefresh(0, 100);
+    });
+
+    document.addEventListener(
+      'visibilitychange',
+      function () {
+        if (
+          document.visibilityState === 'visible' &&
+          !state.open
+        ) {
+          queueCashierLiveRefresh(0, 150);
         }
       }
-
-      tagHeaderCreate();
-    } catch (error) {
-      // Best effort only. Canonical save/payment is already authoritative.
-    }
-  }
-
-  // PMD_CASHIER_ORDER_COMPOSER_R42
-  // The Cashier card is the authoritative resolved table context for edit.
-  function tableFromOrderCard(card) {
-    if (!card) return null;
-
-    var id = Number(
-      card.getAttribute('data-pmd-cashier-table-id') || 0
     );
 
-    var number = String(
-      card.getAttribute('data-pmd-cashier-table-number') || ''
-    ).trim();
+    window.addEventListener(
+      'pmd:waiter-pos-order-updated',
+      function (event) {
+        var detail = event && event.detail
+          ? event.detail
+          : {};
 
-    var label = String(
-      card.getAttribute('data-pmd-cashier-table-label') || ''
-    ).trim();
+        var orderId = Number(
+          detail.order_id ||
+          detail.orderId ||
+          0
+        );
 
-    // Compatibility for the first R41 render before the R42 data attributes
-    // exist in a cached/partially-refreshed card.
-    if (!number) {
-      var title = card.querySelector('.pmd-ops-card__title');
-      var text = title ? String(title.textContent || '').trim() : '';
-      var match = text.match(/(?:table|tisch)?\s*#?\s*(\d+)$/i);
-      if (match) number = match[1];
-      if (!label) label = text;
-    }
-
-    var table = normalizeTable({
-      id: id,
-      number: number,
-      name: label
-    });
-
-    return table.id || table.number ? table : null;
-  }
-
-  function tableHintForOrderId(orderId) {
-    var cards = Array.prototype.slice.call(
-      document.querySelectorAll(
-        '#pmd-cashier-current-orders-v2 [data-pmd-cashier-order]'
-      )
+        queueCashierLiveRefresh(orderId, 300);
+      }
     );
-
-    var card = cards.find(function (row) {
-      return Number(
-        row.getAttribute('data-pmd-cashier-order') || 0
-      ) === Number(orderId);
-    });
-
-    return tableFromOrderCard(card);
   }
 
   async function resolveTableForOrder(orderId) {
@@ -2628,8 +2768,10 @@
 
   tagHeaderCreate();
 
+  startCashierLiveSync();
+
   window.PMDCashierOrderComposerV1 = {
-    version: '1.0.0-r41',
+    version: '1.0.0-r43',
     openCreate: openCreate,
     openEdit: openEdit,
     close: function () {
@@ -2663,7 +2805,7 @@
   };
 
   console.info(
-    '[PMD] Cashier Order Composer R41 ready',
+    '[PMD] Cashier Order Composer R43 ready',
     {
       version:
         window.PMDCashierOrderComposerV1.version,

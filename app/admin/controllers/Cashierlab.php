@@ -38,6 +38,9 @@ class Cashierlab extends PmdCleanWorkspaceControllerV1
         // It owns New Order / Open Order / Add Items / Payment entry points.
         $this->addCss('css/pmd-cashier-order-composer-v1.css');
         $this->addJs('js/pmd-cashier-order-composer-v1.js');
+        // PMD_CASHIER_R45_ACTION_AUTHORITY
+        // New filename intentionally bypasses any stale R37/R44 browser cache.
+        $this->addJs('js/pmd-cashier-r45-actions.js');
 
         $this->addCss('css/pmd-cashier-lab-order-center.css');
         $this->addJs('js/pmd-cashier-lab-order-center.js');
@@ -175,6 +178,69 @@ class Cashierlab extends PmdCleanWorkspaceControllerV1
                 $maps = $this->tableReferenceMaps($tables);
                 $statusMap = $this->orderStatusMap();
 
+                // PMD_CASHIER_RELEASED_VISIT_FILTER_R45C
+                // Today's Cashier cards are the active operational visit list,
+                // not permanent financial history. Hide only visits explicitly
+                // ended by the staff Manual FREE action. Historical date-range
+                // views stay intact.
+                $releasedOrderIds = [];
+
+                $todayBerlin = \Carbon\Carbon::now(
+                    'Europe/Berlin'
+                )->toDateString();
+
+                $hideReleasedVisits =
+                    $from->toDateString() === $todayBerlin
+                    && $to->toDateString() === $todayBerlin;
+
+                if (
+                    $hideReleasedVisits
+                    && Schema::hasTable(
+                        'pmd_waiter_pos_operation_logs'
+                    )
+                ) {
+                    try {
+                        $logColumns = Schema::getColumnListing(
+                            'pmd_waiter_pos_operation_logs'
+                        );
+
+                        if (
+                            in_array(
+                                'order_id',
+                                $logColumns,
+                                true
+                            )
+                            && in_array(
+                                'action',
+                                $logColumns,
+                                true
+                            )
+                        ) {
+                            foreach (
+                                DB::table(
+                                    'pmd_waiter_pos_operation_logs'
+                                )
+                                    ->where(
+                                        'action',
+                                        'cashier_table_free'
+                                    )
+                                    ->pluck('order_id')
+                                as $releasedOrderId
+                            ) {
+                                $releasedOrderId =
+                                    (int)$releasedOrderId;
+
+                                if ($releasedOrderId > 0) {
+                                    $releasedOrderIds[
+                                        $releasedOrderId
+                                    ] = true;
+                                }
+                            }
+                        }
+                    } catch (\Throwable $ignored) {
+                    }
+                }
+
                 $query = DB::table('orders');
 
                 if (in_array('deleted_at', $columns, true)) {
@@ -212,6 +278,10 @@ class Cashierlab extends PmdCleanWorkspaceControllerV1
 
                     $orderId = (int)($row[$primaryKey] ?? 0);
                     if ($orderId < 1) {
+                        continue;
+                    }
+
+                    if (isset($releasedOrderIds[$orderId])) {
                         continue;
                     }
 
@@ -411,6 +481,7 @@ class Cashierlab extends PmdCleanWorkspaceControllerV1
                 'paid' => 'Bezahlt',
                 'due' => 'Offen',
                 'open_order' => 'Bestellung öffnen',
+                'free_table' => 'Tisch freigeben',
                 'note' => 'Hinweis',
                 'empty_title' => 'Keine Bestellungen in diesem Zeitraum',
                 'empty_text' => 'Für den ausgewählten Zeitraum wurden keine Tischbestellungen gefunden.',
@@ -445,6 +516,7 @@ class Cashierlab extends PmdCleanWorkspaceControllerV1
                 'paid' => 'Paid',
                 'due' => 'Due',
                 'open_order' => 'Open order',
+                'free_table' => 'Set table free',
                 'note' => 'Note',
                 'empty_title' => 'No orders in this date range',
                 'empty_text' => 'No table orders were found for the selected date range.',
@@ -665,6 +737,10 @@ class Cashierlab extends PmdCleanWorkspaceControllerV1
                 'total' => $money($total),
                 'paid' => $money(min($settled, $total)),
                 'due' => $money($due),
+                // PMD_CASHIER_MANUAL_FREE_CARD_CONTRACT_R45
+                'is_paid' => (bool)$isPaid,
+                'due_amount' => round($due, 4),
+                'settlement_status' => $settlement,
                 'has_note' => $hasNote,
                 'edit_url' => admin_url('orders/edit/'.$orderId),
             ];

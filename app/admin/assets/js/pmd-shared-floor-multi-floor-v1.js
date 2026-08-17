@@ -781,8 +781,26 @@
       var matched = false;
       allTables.forEach(function (table) {
         if (!tableMatchesNotification(table, candidates)) return;
-        matched = true;
         if (!table.raw || typeof table.raw !== 'object') table.raw = {};
+
+        // PMD_NOTIFICATION_BUSY_RESPECTS_OPERATIONAL_STATUS_R45C
+        // Notification replay is advisory. Explicit persisted physical-table
+        // lifecycle is authoritative and an available/free table must never
+        // be turned red again by an old Received/order notification.
+        var canonicalOperationalStatus = key(
+          table.raw.operational_status ||
+          table.operational_status ||
+          ''
+        );
+
+        if (
+          canonicalOperationalStatus === 'available' ||
+          canonicalOperationalStatus === 'free'
+        ) {
+          return;
+        }
+
+        matched = true;
         table.raw.open_orders = Math.max(1, Number(table.raw.open_orders || 0));
         table.raw.status = 'occupied';
         table.openOrders = Math.max(1, Number(table.openOrders || 0));
@@ -794,6 +812,61 @@
 
       if (matched) {
         applyActiveFloor(activeId, { persist: false, refit: false });
+      }
+    });
+
+    // PMD_CASHIER_MANUAL_FREE_FLOOR_RECONCILIATION_R45C
+    // Reconcile the existing shared Floor authority immediately after a
+    // successful staff Manual FREE action. No observer, timer or second floor
+    // engine is introduced.
+    window.addEventListener('pmd:cashier-table-freed', function (event) {
+      var detail = event && event.detail ? event.detail : {};
+      var tableDetail = detail.table || {};
+
+      var releasedId = Number(
+        detail.table_id ||
+        tableDetail.table_id ||
+        tableDetail.id ||
+        0
+      );
+
+      if (!releasedId) return;
+
+      var changed = false;
+
+      allTables.forEach(function (table) {
+        if (!table.raw || typeof table.raw !== 'object') {
+          table.raw = {};
+        }
+
+        var raw = table.raw;
+
+        var dbId = Number(
+          table.dbTableId ||
+          raw.table_id ||
+          raw.id ||
+          0
+        );
+
+        if (dbId !== releasedId) return;
+
+        changed = true;
+
+        raw.operational_status = 'available';
+        raw.status = 'available';
+        raw.open_orders = 0;
+
+        table.operational_status = 'available';
+        table.openOrders = 0;
+        table.baseStatus = 'available';
+        table.status = 'available';
+      });
+
+      if (changed) {
+        applyActiveFloor(
+          activeId,
+          { persist: false, refit: false }
+        );
       }
     });
 
@@ -869,6 +942,8 @@
           tableFeatureOptions: ['near_window', 'quiet_area', 'accessible'],
           qrDownload: true,
           notificationBusyBridge: true,
+          notificationBusyRespectsOperationalStatus: true,
+          manualCashierFreeBridge: true,
           safeCreatePlacement: true,
           sharedModalContract: true,
           sharedModalPortal: Boolean(
@@ -910,11 +985,11 @@
     };
 
     window.PMDSharedFloorMultiFloorV1 = {
-      version: '1.4.16',
+      version: '1.4.17',
       audit: function () { return root.__pmdSharedMultiFloorV1.audit(); }
     };
 
-    console.info('[PMD Shared Floor Multi-Floor V1.4.16] Ready', window.PMDSharedFloorMultiFloorV1.audit());
+    console.info('[PMD Shared Floor Multi-Floor V1.4.17] Ready', window.PMDSharedFloorMultiFloorV1.audit());
   }
 
   if (document.readyState === 'loading') {

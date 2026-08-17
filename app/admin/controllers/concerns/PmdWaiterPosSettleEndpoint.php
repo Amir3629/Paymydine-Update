@@ -28,6 +28,9 @@ trait PmdWaiterPosSettleEndpoint
             $existing = DB::table('order_payment_transactions')->where('idempotency_key', $idempotencyKey)->first();
             if ($existing) {
                 $fresh = $this->findOrder($orderId);
+                $tableRelease = $fresh
+                    ? $this->pmdR44ReleaseTableAfterFullSettlement($fresh)
+                    : null;
                 return response()->json([
                     'ok' => true,
                     'duplicate' => true,
@@ -35,6 +38,7 @@ trait PmdWaiterPosSettleEndpoint
                     'transaction_id' => (int)$existing->id,
                     'summary' => $fresh ? $this->buildPaymentSummary($fresh) : null,
                     'receipt_url' => '/admin/orders/split-receipt/'.(int)$existing->id,
+                    'table_release' => $tableRelease,
                 ]);
             }
         }
@@ -205,12 +209,17 @@ trait PmdWaiterPosSettleEndpoint
                 ];
             });
 
+            $tableRelease = !empty($result['order'])
+                ? $this->pmdR44ReleaseTableAfterFullSettlement($result['order'])
+                : null;
+
             if (!empty($result['already_paid'])) {
                 return response()->json([
                     'ok' => true,
                     'already_paid' => true,
                     'message' => 'Order is already fully paid.',
                     'summary' => $result['summary'],
+                    'table_release' => $tableRelease,
                 ]);
             }
 
@@ -230,6 +239,7 @@ trait PmdWaiterPosSettleEndpoint
                 'settlement_status' => $result['settlement_status'],
                 'remaining_amount' => $result['remaining_amount'],
                 'summary' => $result['summary'],
+                'table_release' => $tableRelease,
             ]);
         } catch (ValidationException $e) {
             return response()->json([
@@ -243,6 +253,208 @@ trait PmdWaiterPosSettleEndpoint
                 'ok' => false,
                 'message' => 'Payment could not be recorded. '.$e->getMessage(),
             ], 500);
+        }
+    }
+
+
+    // PMD_FULL_PAYMENT_TABLE_RELEASE_R44
+    // Financial completion makes the physical table available only when this
+    // was the last financially-open check on that canonical table. Kitchen
+    // status remains independent; this changes table lifecycle only.
+    protected function pmdR44ReleaseTableAfterFullSettlement($order): array
+    {
+        // PMD_MANUAL_TABLE_LIFECYCLE_R45
+        // Financial settlement and physical occupancy are separate authorities.
+        // Payment must NEVER make a table green. Only the explicit staff
+        // "Set table free" action may release it after server-side checks.
+        return [
+            'released' => false,
+            'table_id' => null,
+            'reason' => 'manual_table_release_required_r45',
+        ];
+
+        $result = [
+            'released' => false,
+            'table_id' => null,
+            'reason' => 'not_applicable',
+        ];
+
+        try {
+            if (!$order || !Schema::hasTable('tables')) {
+                return $result;
+            }
+
+            $total = max(0, (float)($order->order_total ?? 0));
+            $settled = max(0, (float)($order->settled_amount ?? 0));
+            $status = strtolower(trim((string)($order->settlement_status ?? '')));
+
+            $fullyPaid = in_array($status, ['paid', 'settled'], true)
+                || ($total > 0 && $settled >= $total - 0.0001);
+
+            if (!$fullyPaid) {
+                $result['reason'] = 'not_fully_paid';
+                return $result;
+            }
+
+            $orderColumns = Schema::getColumnListing('orders');
+            $tableId = 0;
+
+            if (
+                in_array('table_id', $orderColumns, true)
+                && (int)($order->table_id ?? 0) > 0
+            ) {
+                $tableId = (int)$order->table_id;
+            }
+
+            if ($tableId < 1) {
+                $rawOrderType = trim((string)($order->order_type ?? ''));
+                if (ctype_digit($rawOrderType)) {
+                    $tableId = (int)$rawOrderType;
+                }
+            }
+
+            if ($tableId < 1) {
+                $result['reason'] = 'canonical_table_not_resolved';
+                return $result;
+            }
+
+            $result['table_id'] = $tableId;
+            $tableColumns = Schema::getColumnListing('tables');
+            $pk = in_array('table_id', $tableColumns, true)
+                ? 'table_id'
+                : (in_array('id', $tableColumns, true) ? 'id' : null);
+
+            if (!$pk || !in_array('operational_status', $tableColumns, true)) {
+                $result['reason'] = 'table_status_columns_unavailable';
+                return $result;
+            }
+
+            return DB::transaction(function () use (
+                $order,
+                $orderColumns,
+                $tableColumns,
+                $pk,
+                $tableId,
+                $result
+            ) {
+                $table = DB::table('tables')
+                    ->where($pk, $tableId)
+                    ->lockForUpdate()
+                    ->first();
+
+                if (!$table) {
+                    $result['reason'] = 'table_not_found';
+                    return $result;
+                }
+
+                $identityColumns = [];
+                if (in_array('table_id', $orderColumns, true)) {
+                    $identityColumns[] = 'table_id';
+                }
+                if (in_array('order_type', $orderColumns, true)) {
+                    $identityColumns[] = 'order_type';
+                }
+
+                if (!$identityColumns) {
+                    $result['reason'] = 'order_table_reference_unavailable';
+                    return $result;
+                }
+
+                $other = DB::table('orders')
+                    ->where('order_id', '!=', (int)$order->getKey())
+                    ->where(function ($query) use ($identityColumns, $tableId) {
+                        foreach ($identityColumns as $column) {
+                            $query->orWhere($column, (string)$tableId);
+                        }
+                    });
+
+                if (in_array('settlement_status', $orderColumns, true)) {
+                    $other->where(function ($query) {
+                        $query
+                            ->whereNull('settlement_status')
+                            ->orWhereNotIn('settlement_status', [
+                                'paid',
+                                'settled',
+                                'cancelled',
+                                'canceled',
+                                'failed',
+                            ]);
+                    });
+                }
+
+                if (
+                    in_array('settled_amount', $orderColumns, true)
+                    && in_array('order_total', $orderColumns, true)
+                ) {
+                    $other->whereRaw(
+                        'COALESCE(settled_amount, 0) < COALESCE(order_total, 0) - 0.0001'
+                    );
+                }
+
+                if ($other->exists()) {
+                    $result['reason'] = 'another_open_check_exists';
+                    return $result;
+                }
+
+                $old = strtolower(trim((string)($table->operational_status ?? 'available')));
+                if ($old === 'available') {
+                    $result['reason'] = 'already_available';
+                    return $result;
+                }
+
+                $updates = ['operational_status' => 'available'];
+
+                if (in_array('operational_status_updated_at', $tableColumns, true)) {
+                    $updates['operational_status_updated_at'] = now();
+                }
+                if (in_array('operational_status_updated_by', $tableColumns, true)) {
+                    $updates['operational_status_updated_by'] = $this->currentUserId();
+                }
+                if (in_array('updated_at', $tableColumns, true)) {
+                    $updates['updated_at'] = now();
+                }
+
+                DB::table('tables')->where($pk, $tableId)->update($updates);
+
+                if (Schema::hasTable('pmd_table_status_history')) {
+                    $historyColumns = Schema::getColumnListing('pmd_table_status_history');
+                    $history = [
+                        'table_id' => $tableId,
+                        'old_status' => $old ?: 'occupied',
+                        'new_status' => 'available',
+                        'reason' => 'full_payment_completed',
+                        'actor_id' => $this->currentUserId(),
+                        'order_id' => (int)$order->getKey(),
+                        'context' => json_encode([
+                            'source' => 'cashier_payment_r44',
+                            'settlement_status' => (string)($order->settlement_status ?? ''),
+                        ], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES),
+                        'created_at' => now(),
+                        'updated_at' => now(),
+                    ];
+
+                    $history = array_intersect_key(
+                        $history,
+                        array_flip($historyColumns)
+                    );
+
+                    if ($history) {
+                        DB::table('pmd_table_status_history')->insert($history);
+                    }
+                }
+
+                $result['released'] = true;
+                $result['reason'] = 'last_open_check_fully_paid';
+                return $result;
+            });
+        } catch (\Throwable $error) {
+            logger()->warning('R44 table release after settlement failed', [
+                'order_id' => $order ? (int)$order->getKey() : null,
+                'message' => $error->getMessage(),
+            ]);
+
+            $result['reason'] = 'release_failed';
+            return $result;
         }
     }
 
