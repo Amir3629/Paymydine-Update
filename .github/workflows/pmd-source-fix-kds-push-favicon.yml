@@ -1,0 +1,146 @@
+name: PMD source fix - KDS push favicon
+
+on:
+  push:
+    branches:
+      - agent/fix-kds-push-favicon
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  source-fix:
+    if: "!contains(github.event.head_commit.message, '[pmd-source-fix-done]')"
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: agent/fix-kds-push-favicon
+          fetch-depth: 0
+
+      - name: Apply guarded canonical fixes
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          import re
+
+          def replace_once(path, old, new):
+              p = Path(path)
+              text = p.read_text()
+              count = text.count(old)
+              if count != 1:
+                  raise SystemExit(f"{path}: expected anchor exactly once, found {count}")
+              p.write_text(text.replace(old, new, 1))
+              print(f"patched {path}")
+
+          # KDS station configuration must be immediately fresh. This is a tiny
+          # collection, so it should not share the 30-second hot-data cache path.
+          replace_once(
+              'app/admin/controllers/KitchenDisplay.php',
+              """        $this->vars['allStations'] = $this->pmdKdsFastCacheRememberV82('pmd_kds_all_stations_minimal_v1_1', 30, function () {\n            return Kds_stations_model::query()->orderBy('name', 'asc')->get();\n        });""",
+              """        // KDS station navigation is configuration state, not hot order data.\n        // Read the canonical table directly so create/edit/delete is immediately\n        // visible and no fixed station-list cache can leak stale context.\n        $this->vars['allStations'] = Kds_stations_model::query()\n            ->orderBy('name', 'asc')\n            ->get();"""
+          )
+
+          # Persist only the toast popup watermark. Bell count/history remain server-owned.
+          push = Path('app/admin/assets/js/push-notifications.js')
+          text = push.read_text()
+          old_ctor = """        this.highestSeenId = 0; // Track the HIGHEST notification ID we've ever seen\n        this.shownNotificationIds = new Set(); // Track ALL notification IDs we've shown\n        this.init();"""
+          new_ctor = """        this.highestSeenId = 0; // Highest ID observed in this page runtime\n        this.shownNotificationIds = new Set(); // Same-page duplicate guard\n        this.popupWatermarkKey = this.buildPopupWatermarkKey();\n        this.persistedPopupWatermark = this.readPopupWatermark();\n        this.hasPopupBaseline = this.persistedPopupWatermark !== null;\n        if (this.hasPopupBaseline) {\n            this.highestSeenId = this.persistedPopupWatermark;\n        }\n        this.init();"""
+          if text.count(old_ctor) != 1:
+              raise SystemExit('push-notifications.js: constructor anchor mismatch')
+          text = text.replace(old_ctor, new_ctor, 1)
+
+          init_anchor = """    init() {\n        // Create toast container"""
+          helpers = """    buildPopupWatermarkKey() {\n        const root = document.getElementById('notif-root');\n        const scope = root && root.dataset && root.dataset.pmdPushScope\n            ? root.dataset.pmdPushScope\n            : 'anonymous';\n        return `pmd.push.popup-watermark.v1:${scope}`;\n    }\n\n    readPopupWatermark() {\n        try {\n            const raw = window.localStorage.getItem(this.popupWatermarkKey);\n            if (raw === null || raw === '') return null;\n            const value = Number.parseInt(raw, 10);\n            return Number.isFinite(value) && value >= 0 ? value : null;\n        } catch (e) {\n            return null;\n        }\n    }\n\n    writePopupWatermark(id) {\n        const value = Number.parseInt(id, 10);\n        if (!Number.isFinite(value) || value < 0) return;\n        this.persistedPopupWatermark = value;\n        this.hasPopupBaseline = true;\n        try {\n            window.localStorage.setItem(this.popupWatermarkKey, String(value));\n        } catch (e) {\n            // In restricted storage modes, the current-page guards still work.\n        }\n    }\n\n    init() {\n        // Create toast container"""
+          if text.count(init_anchor) != 1:
+              raise SystemExit('push-notifications.js: init anchor mismatch')
+          text = text.replace(init_anchor, helpers, 1)
+
+          old_logic = """            // Update highest seen ID (always track the highest ID we've encountered)\n            if (notifId > this.highestSeenId) {\n                this.highestSeenId = notifId;\n                \n                // Only show push if we haven't already shown this specific notification\n                if (!this.shownNotificationIds.has(notifId)) {\n                    console.log('🎉 NEW NOTIFICATION!', notifId, '(highest was', (notifId - 1) + ')');\n                    this.shownNotificationIds.add(notifId);\n                    \n                    // Continue to show the notification...\n                } else {\n                    console.log('⚠️ Already shown notification', notifId);\n                    return;\n                }\n            } else {\n                // This is an old notification (ID is lower than highest we've seen)\n                console.log('⏪ Old notification', notifId, '(highest seen:', this.highestSeenId + ')');\n                return;\n            }"""
+          new_logic = """            // With no stored watermark, this page establishes a baseline only.\n            // Existing history stays in the bell but is never replayed as a popup.\n            if (!this.hasPopupBaseline) {\n                this.highestSeenId = Math.max(this.highestSeenId, notifId);\n                this.writePopupWatermark(this.highestSeenId);\n                console.log('📌 Notification popup baseline established at ID', this.highestSeenId);\n                return;\n            }\n\n            if (notifId <= this.persistedPopupWatermark || notifId <= this.highestSeenId) {\n                this.highestSeenId = Math.max(this.highestSeenId, notifId);\n                console.log('⏪ Notification already accounted for', notifId, '(popup watermark:', this.persistedPopupWatermark + ')');\n                return;\n            }\n\n            this.highestSeenId = notifId;\n            this.writePopupWatermark(notifId);\n\n            if (this.shownNotificationIds.has(notifId)) {\n                console.log('⚠️ Already shown notification', notifId);\n                return;\n            }\n\n            console.log('🎉 NEW NOTIFICATION!', notifId);\n            this.shownNotificationIds.add(notifId);"""
+          if text.count(old_logic) != 1:
+              raise SystemExit('push-notifications.js: notification decision anchor mismatch')
+          push.write_text(text.replace(old_logic, new_logic, 1))
+          print('patched app/admin/assets/js/push-notifications.js')
+
+          # Stable, non-sensitive per-account browser scope for the toast watermark.
+          bell = Path('app/admin/views/_partials/notification_bell.blade.php')
+          b = bell.read_text()
+          old_bell = '<li class="nav-item dropdown" id="notif-root" style="position:relative">'
+          new_bell = """@php\n  $pmdPushUser = \\Admin\\Facades\\AdminAuth::getUser();\n  $pmdPushIdentity = '0';\n  if ($pmdPushUser) {\n      if (!empty($pmdPushUser->staff_id)) {\n          $pmdPushIdentity = (string)$pmdPushUser->staff_id;\n      } elseif (!empty($pmdPushUser->user_id)) {\n          $pmdPushIdentity = (string)$pmdPushUser->user_id;\n      } elseif (!empty($pmdPushUser->staff_email)) {\n          $pmdPushIdentity = (string)$pmdPushUser->staff_email;\n      } elseif (!empty($pmdPushUser->email)) {\n          $pmdPushIdentity = (string)$pmdPushUser->email;\n      }\n  }\n  $pmdPushScope = sha1((string)request()->getHost().'|'.$pmdPushIdentity);\n@endphp\n<li class=\"nav-item dropdown\" id=\"notif-root\" data-pmd-push-scope=\"{{ $pmdPushScope }}\" style=\"position:relative\">"""
+          if b.count(old_bell) != 1:
+              raise SystemExit('notification_bell.blade.php: root anchor mismatch')
+          bell.write_text(b.replace(old_bell, new_bell, 1))
+          print('patched app/admin/views/_partials/notification_bell.blade.php')
+
+          # Canonical current PMD mark for every actual Admin HTML shell.
+          favicon = "{{ asset('app/admin/assets/images/pmd-brand-mark.svg') }}?v=pmd-brand-mark-20260817"
+          shell_paths = [
+              'app/admin/views/_layouts/default.blade.php',
+              'app/admin/views/layouts/default.blade.php',
+              'app/admin/views/auth/login_standalone.blade.php',
+              'app/admin/views/kitchendisplay/index.blade.php',
+          ]
+          for path in shell_paths:
+              p = Path(path)
+              s = p.read_text()
+              m = re.search(r'(?i)<head\b[^>]*>', s)
+              if not m:
+                  raise SystemExit(f'{path}: no <head> found')
+              # Remove only head-level favicon declarations before inserting one owner.
+              head_end = re.search(r'(?i)</head\s*>', s)
+              if not head_end:
+                  raise SystemExit(f'{path}: no </head> found')
+              before = s[:head_end.start()]
+              after = s[head_end.start():]
+              before = re.sub(r'(?im)^\s*<!--\s*Fav Icon\s*-->\s*\n?', '', before)
+              before = re.sub(r'(?im)^\s*<link\b[^>]*\brel=["\'](?:shortcut\s+icon|icon)["\'][^>]*>\s*\n?', '', before)
+              # Re-find head after removal and insert exactly once after it.
+              hm = re.search(r'(?i)<head\b[^>]*>', before)
+              link = f'\n    <link rel="icon" type="image/svg+xml" href="{favicon}">'
+              before = before[:hm.end()] + link + before[hm.end():]
+              p.write_text(before + after)
+              print('patched favicon shell', path)
+          PY
+
+          node --check app/admin/assets/js/push-notifications.js
+          php -l app/admin/controllers/KitchenDisplay.php
+          php -l app/admin/views/_partials/notification_bell.blade.php
+          php -l app/admin/views/layouts/default.blade.php
+          php -l app/admin/views/_layouts/default.blade.php
+          php -l app/admin/views/auth/login_standalone.blade.php
+          php -l app/admin/views/kitchendisplay/index.blade.php
+
+          ! grep -q "pmd_kds_all_stations_minimal_v1_1" app/admin/controllers/KitchenDisplay.php
+          grep -q "pmd.push.popup-watermark.v1" app/admin/assets/js/push-notifications.js
+          grep -q "data-pmd-push-scope" app/admin/views/_partials/notification_bell.blade.php
+          for f in \
+            app/admin/views/_layouts/default.blade.php \
+            app/admin/views/layouts/default.blade.php \
+            app/admin/views/auth/login_standalone.blade.php \
+            app/admin/views/kitchendisplay/index.blade.php; do
+            test "$(grep -c 'pmd-brand-mark-20260817' "$f")" -eq 1
+          done
+          git diff --check
+
+      - name: Commit source fixes and remove one-time workflow
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "PayMyDine Source Fix"
+          git config user.email "actions@users.noreply.github.com"
+          git rm .github/workflows/pmd-source-fix-kds-push-favicon.yml
+          git add \
+            app/admin/controllers/KitchenDisplay.php \
+            app/admin/assets/js/push-notifications.js \
+            app/admin/views/_partials/notification_bell.blade.php \
+            app/admin/views/_layouts/default.blade.php \
+            app/admin/views/layouts/default.blade.php \
+            app/admin/views/auth/login_standalone.blade.php \
+            app/admin/views/kitchendisplay/index.blade.php
+          git diff --cached --check
+          git commit -m "Fix KDS station visibility, notification replay, and favicon [pmd-source-fix-done]"
+          git push origin HEAD:agent/fix-kds-push-favicon
