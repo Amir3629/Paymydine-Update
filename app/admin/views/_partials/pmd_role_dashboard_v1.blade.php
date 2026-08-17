@@ -11,6 +11,17 @@
     $pmdRoleInsightCards = is_array($pmdRoleInsightCards ?? null)
         ? $pmdRoleInsightCards
         : [];
+
+    /* PMD_MANAGER_NO_FINANCE_INSIGHT_CARDS_V3_5_3
+     * Manager keeps the shared Owner analytics below the Floor, but never the
+     * six finance/accounting insight cards. Accountant keeps those cards.
+     * This view-level guard is authoritative even if an older Manager controller
+     * accidentally supplies a non-empty pmdRoleInsightCards array.
+     */
+    if ($pmdRoleMode === 'manager') {
+        $pmdRoleInsightCards = [];
+    }
+
     $pmdRoleInsightAria = $pmdRoleMode === 'accountant'
         ? 'Accountant role insights'
         : 'Manager role insights';
