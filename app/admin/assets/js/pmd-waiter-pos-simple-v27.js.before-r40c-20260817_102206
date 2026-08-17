@@ -54,23 +54,7 @@
     link.rel = 'stylesheet';
     link.href = href;
     link.setAttribute(key, '1');
-    // PMD_WAITER_POS_DOCUMENT_STYLE_TARGET_R40C
-    // ShadowRoot may own stylesheet links directly. Document may not:
-    // inserting a <link> directly into Document causes Safari's
-    // HierarchyRequestError / "incorrect node tree" exception.
-    // CashierLab mounts the POS in light DOM, therefore getRootNode()
-    // returns Document and document-scoped styles belong in <head>.
-    var target = (
-      scope && scope.nodeType === 9
-        ? (scope.head || document.head)
-        : scope
-    );
-
-    if (!target || typeof target.prepend !== 'function') {
-      return;
-    }
-
-    target.prepend(link);
+    scope.prepend(link);
   }
 
   function ensureStyles(root) {

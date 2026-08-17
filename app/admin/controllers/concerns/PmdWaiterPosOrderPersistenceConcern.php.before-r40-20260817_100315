@@ -75,96 +75,29 @@ trait PmdWaiterPosOrderPersistenceConcern
         return $out;
     }
 
-    // PMD_EXPLICIT_ORDER_APPEND_GUARD_R40
-    //
-    // If Cashier explicitly asks to append to Order #X, never silently
-    // fall back to another check and never create a new order because
-    // Order #X became financially locked.
-    protected function resolveWritableOrder(
-        array $table,
-        int $requestedOrderId,
-        bool $lock = false
-    ): ?Orders_model {
+    protected function resolveWritableOrder(array $table, int $requestedOrderId, bool $lock = false): ?Orders_model
+    {
         if ($requestedOrderId > 0) {
-            $q = Orders_model::query()
-                ->where(
-                    'order_id',
-                    $requestedOrderId
-                );
-
+            $q = Orders_model::query()->where('order_id', $requestedOrderId);
             if ($lock) {
                 $q->lockForUpdate();
             }
-
             $order = $q->first();
-
-            if (!$order) {
-                throw ValidationException::withMessages([
-                    'order' =>
-                        'The selected order no longer exists.',
-                ]);
+            if ($order && $this->orderBelongsToTable($order, $table) && $this->orderIsOpen($order)) {
+                return $order;
             }
-
-            if (
-                !$this->orderBelongsToTable(
-                    $order,
-                    $table
-                )
-            ) {
-                throw ValidationException::withMessages([
-                    'order' =>
-                        'The selected order no longer belongs to this table.',
-                ]);
-            }
-
-            if (
-                !$this->orderIsOpen(
-                    $order
-                )
-            ) {
-                throw ValidationException::withMessages([
-                    'order' =>
-                        'This bill can no longer accept item changes because payment has started or the order was cancelled.',
-                ]);
-            }
-
-            return $order;
         }
 
-        /*
-         * Only a brand-new waiter flow with no explicit order id may
-         * select the latest open order automatically.
-         */
-        $rows = $this->openOrdersForTable(
-            $table
-        );
-
+        $rows = $this->openOrdersForTable($table);
         if (!$rows) {
             return null;
         }
 
-        $q = Orders_model::query()
-            ->where(
-                'order_id',
-                (int)$rows[0]['order_id']
-            );
-
+        $q = Orders_model::query()->where('order_id', (int)$rows[0]['order_id']);
         if ($lock) {
             $q->lockForUpdate();
         }
-
-        $fallback = $q->first();
-
-        if (
-            $fallback
-            && $this->orderIsOpen(
-                $fallback
-            )
-        ) {
-            return $fallback;
-        }
-
-        return null;
+        return $q->first();
     }
 
     protected function fillNewOrder(Orders_model $order, array $table, array $payload, string $mode): void

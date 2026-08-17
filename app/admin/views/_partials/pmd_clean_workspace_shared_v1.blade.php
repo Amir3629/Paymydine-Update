@@ -911,14 +911,28 @@ html body.page.pmd-clean-workspace-page #pmd-dashboard-lab {
                 {{-- PMD_CLEAN_WORKSPACE_CANONICAL_RESERVATION_COMPOSER_SURFACE_V1_START
                      ReservationsLab and CashierLab share the literal canonical Reservations2
                      Composer. Cashier does NOT load ReservationsLab Calendar/Hour runtime. --}}
-                <link rel="stylesheet" href="{{ asset('app/admin/assets/css/pmd-reservation-composer-v1.css') }}?v=1.0.0">
+                {{-- PMD_RESERVATION_COMPOSER_CONTENT_HASH_ASSETS_V1_0_2
+                     The canonical Composer previously used a permanent v=1.0.0 URL,
+                     so Safari could revive an old Composer while Schedule was fresh.
+                     One content-derived URL is now the sole browser cache authority. --}}
+                @php
+                    $pmdReservationComposerCssPath = base_path('app/admin/assets/css/pmd-reservation-composer-v1.css');
+                    $pmdReservationComposerJsPath = base_path('app/admin/assets/js/pmd-reservation-composer-v1.js');
+                    $pmdReservationComposerCssVersion = is_file($pmdReservationComposerCssPath)
+                        ? substr(hash_file('sha256', $pmdReservationComposerCssPath), 0, 16)
+                        : '1';
+                    $pmdReservationComposerJsVersion = is_file($pmdReservationComposerJsPath)
+                        ? substr(hash_file('sha256', $pmdReservationComposerJsPath), 0, 16)
+                        : '1';
+                @endphp
+                <link rel="stylesheet" href="{{ asset('app/admin/assets/css/pmd-reservation-composer-v1.css') }}?v={{ $pmdReservationComposerCssVersion }}">
                 @include('admin::reservations2._reservation_composer')
                 <script>
                 window.PMD_RESERVATION_COMPOSER_V1 = Object.freeze({
                   endpoint: @json(admin_url('reservations2'))
                 });
                 </script>
-                <script defer src="{{ asset('app/admin/assets/js/pmd-reservation-composer-v1.js?pmd-composer-draft=2426-20260801_201842') }}?v=1.0.0"></script>
+                <script defer id="pmd-reservation-composer-content-hash-v1-0-2" src="{{ asset('app/admin/assets/js/pmd-reservation-composer-v1.js') }}?v={{ $pmdReservationComposerJsVersion }}"></script>
 
                 @if($pmdCleanWorkspaceCashierSurface)
                     {{-- PMD_CASHIERLAB_CANONICAL_RESERVATION_COMPOSER_BRIDGE_V1

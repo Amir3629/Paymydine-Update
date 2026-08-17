@@ -181,9 +181,12 @@ trait PmdWaiterPosSettleEndpoint
                 if (Schema::hasColumn('orders', 'processed') && $newStatus === 'paid') {
                     $order->processed = 1;
                 }
-                // PMD_PAYMENT_LIFECYCLE_SEPARATION_R37C
-                // Full settlement updates settlement fields only.
-                // Kitchen/order status remains independently controlled.
+                if (Schema::hasColumn('orders', 'status_id') && $newStatus === 'paid') {
+                    $paidStatus = $this->paidStatusId();
+                    if ($paidStatus) {
+                        $order->status_id = $paidStatus;
+                    }
+                }
                 $order->save();
 
                 $order->refresh();

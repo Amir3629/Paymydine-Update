@@ -1,3 +1,20 @@
+@php
+  $pmdComposerFeatureLocale = strtolower((string)app()->getLocale());
+  $pmdComposerFeatureGerman = strpos($pmdComposerFeatureLocale, 'de') === 0;
+  $pmdComposerFeatureText = $pmdComposerFeatureGerman ? [
+    'title' => 'Tischwünsche',
+    'near_window' => 'Am Fenster',
+    'quiet_area' => 'Ruhiger Bereich',
+    'accessible' => 'Barrierefrei',
+    'use_suggestion' => 'Vorschlag übernehmen',
+  ] : [
+    'title' => 'Table preferences',
+    'near_window' => 'Near window',
+    'quiet_area' => 'Quiet area',
+    'accessible' => 'Accessible',
+    'use_suggestion' => 'Use suggestion',
+  ];
+@endphp
 <div class="modal fade pmd-reservation-composer-v1" id="pmd-reservation-composer-v1" tabindex="-1" aria-labelledby="pmd-reservation-composer-title-v1" aria-hidden="true">
   <div class="modal-dialog modal-dialog-centered modal-xl" id="pmd-reservation-composer-dialog-v1">
     <div class="modal-content">
@@ -26,6 +43,36 @@
               <label><input type="radio" name="assignment_mode" value="choose"><span>Choose table(s)</span></label>
               <label><input type="radio" name="assignment_mode" value="later"><span>Assign later</span></label>
             </div>
+            <div class="pmd-reservation-composer-v1__feature-preferences" data-pmd-composer-feature-preferences hidden>
+              <span class="pmd-reservation-composer-v1__feature-title">{{ $pmdComposerFeatureText['title'] }}</span>
+              <div class="pmd-reservation-composer-v1__feature-options">
+                <label data-pmd-composer-feature-option="near_window" hidden>
+                  <input type="checkbox" name="pmd_table_features[]" value="near_window">
+                  <span>
+                    <svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="4" width="16" height="16" rx="2"></rect><path d="M4 12h16M12 4v16"></path></svg>
+                    <b>{{ $pmdComposerFeatureText['near_window'] }}</b>
+                  </span>
+                </label>
+                <label data-pmd-composer-feature-option="quiet_area" hidden>
+                  <input type="checkbox" name="pmd_table_features[]" value="quiet_area">
+                  <span>
+                    <svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 5 6 9H3v6h3l5 4z"></path><path d="m16 9 5 6M21 9l-5 6"></path></svg>
+                    <b>{{ $pmdComposerFeatureText['quiet_area'] }}</b>
+                  </span>
+                </label>
+                <label data-pmd-composer-feature-option="accessible" hidden>
+                  <input type="checkbox" name="pmd_table_features[]" value="accessible">
+                  <span>
+                    <svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="5" r="2"></circle><path d="M7 9h5l2 5h3M9 9v5a4 4 0 1 0 4 4M13 14l2 6h4"></path></svg>
+                    <b>{{ $pmdComposerFeatureText['accessible'] }}</b>
+                  </span>
+                </label>
+              </div>
+            </div>
+            <div class="pmd-reservation-composer-v1__policy-notice" data-pmd-composer-policy-notice hidden>
+              <span data-pmd-composer-policy-message></span>
+              <button type="button" data-pmd-composer-use-suggestion hidden>{{ $pmdComposerFeatureText['use_suggestion'] }}</button>
+            </div>
             <label class="pmd-reservation-composer-v1__tables"><span>Tables</span><select name="tables[]" multiple></select><em data-error-for="tables"></em></label>
             <div class="pmd-reservation-composer-v1__availability" data-pmd-composer-availability aria-live="polite"></div>
           </section>
@@ -34,6 +81,9 @@
           <input type="hidden" name="occasion_id" value="0">
           <input type="hidden" name="location_id" value="">
           <input type="hidden" name="notify" value="0">
+          <input type="hidden" name="pmd_floor_id" value="">
+          <input type="hidden" name="pmd_floor_name" value="">
+          <input type="hidden" name="pmd_floor_locked" value="0">
 
         </div>
         <footer class="pmd-reservation-composer-v1__footer">

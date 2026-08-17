@@ -817,6 +817,19 @@
    * No observer/timer/second Floor state is introduced. Canonical DB table IDs
    * come from the exact Floor runtime's dbTableId/raw.table_id mapping.
    */
+  function activeFloorReservationContext() {
+    var floorId = floor ? clean(floor.getAttribute('data-pmd-active-floor-id')) : '';
+    var floorName = floor ? clean(floor.getAttribute('data-pmd-active-floor-name')) : '';
+    if (floor && floor.__pmdSharedMultiFloorV1 && typeof floor.__pmdSharedMultiFloorV1.audit === 'function') {
+      try {
+        var audit = floor.__pmdSharedMultiFloorV1.audit() || {};
+        floorId = floorId || clean(audit.activeFloorId);
+        floorName = floorName || clean(audit.activeFloorName);
+      } catch (ignore) {}
+    }
+    return { floorId: floorId, floorName: floorName };
+  }
+
   function selectedFloorReservationContext() {
     /* PMD_RESERVATIONSLAB_FLOOR_DB_ID_CONTEXT_V1_3_20260815
      * The exact Floor has TWO identities:
@@ -827,6 +840,7 @@
      * then map every selected member to dbTableId. Never send data-floor-table
      * directly to the reservation backend.
      */
+    var activeFloor = activeFloorReservationContext();
     var api = window.PMDDashboardLabExactFloorV1;
     var instance = floor && floor.__pmdFloorV1 ? floor.__pmdFloorV1 : null;
 
@@ -881,7 +895,10 @@
           tableNames: tableNames,
           displayId: selected.id,
           merged: Boolean(selected.isMergedView),
-          source: 'exact-floor-db-id'
+          source: 'exact-floor-db-id',
+          floorId: activeFloor.floorId,
+          floorName: activeFloor.floorName,
+          floorLocked: true
         };
       }
     }
@@ -903,7 +920,10 @@
           tableNames: Array.isArray(canonicalFloor.names) ? canonicalFloor.names.filter(Boolean) : [],
           displayId: selectedId,
           merged: canonicalIds.length > 1,
-          source: 'composer-fallback'
+          source: 'composer-fallback',
+          floorId: clean(canonicalFloor.floorId || activeFloor.floorId),
+          floorName: clean(canonicalFloor.floorName || activeFloor.floorName),
+          floorLocked: true
         };
       }
     }
@@ -913,7 +933,10 @@
       tableNames: [],
       displayId: selectedId,
       merged: false,
-      source: 'none'
+      source: 'none',
+      floorId: activeFloor.floorId,
+      floorName: activeFloor.floorName,
+      floorLocked: false
     };
   }
 
@@ -934,7 +957,7 @@
     var fallback = composerFallback(normalizedMode, id, day, clock);
     var floorContext = normalizedMode === 'create'
       ? selectedFloorReservationContext()
-      : { tableIds: [], tableNames: [], displayId: null, merged: false };
+      : { tableIds: [], tableNames: [], displayId: null, merged: false, floorId: '', floorName: '', floorLocked: false };
     var isCardEdit = Boolean(
       normalizedMode === 'edit'
       && origin
@@ -958,6 +981,9 @@
       tableNames: floorContext.tableNames.slice(),
       floorSelectionDisplayId: floorContext.displayId,
       floorSelectionMerged: floorContext.merged,
+      floorId: floorContext.floorId || '',
+      floorName: floorContext.floorName || '',
+      floorLocked: Boolean(floorContext.floorLocked),
       locationId: null,
       returnView: selectedDate ? 'hour' : (calendarMode ? 'calendar' : 'floor'),
       fallbackUrl: fallback

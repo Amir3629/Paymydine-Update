@@ -3836,3 +3836,191 @@ button.pmd-real-table-dropdown-v1__option.is-selected {
 #pmd-reservation-composer-v1 .pmd-jade-wheel-v221__item {
   scroll-snap-stop: always !important;
 }
+
+/* ============================================================
+   PMD_COMPOSER_TABLE_POLICY_V1_20260817
+   Same Composer owner: optional table features + same-Floor policy notice.
+   ============================================================ */
+/* ============================================================
+   PMD_COMPOSER_TABLE_POLICY_FEATURE_OPTIONS_V1_0_6_20260817
+   Match the Create/Edit Table feature-option proportions:
+   three equal desktop controls, compact 50px height, 20px icon,
+   14px label, 13px radius. This replaces V1.0.5 big-card sizing.
+   ============================================================ */
+#pmd-reservation-composer-v1 .pmd-reservation-composer-v1__feature-preferences {
+  margin-top: 16px !important;
+}
+#pmd-reservation-composer-v1 .pmd-reservation-composer-v1__feature-preferences[hidden] {
+  display: none !important;
+}
+#pmd-reservation-composer-v1 .pmd-reservation-composer-v1__feature-title {
+  display: block !important;
+  margin: 0 0 10px !important;
+  color: #52677a !important;
+  font-size: 14px !important;
+  font-weight: 850 !important;
+  line-height: 1.2 !important;
+  letter-spacing: 0 !important;
+}
+#pmd-reservation-composer-v1 .pmd-reservation-composer-v1__feature-options {
+  display: grid !important;
+  grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+  align-items: stretch !important;
+  gap: 10px !important;
+  width: 100% !important;
+}
+#pmd-reservation-composer-v1 .pmd-reservation-composer-v1__feature-options > label {
+  box-sizing: border-box !important;
+  display: block !important;
+  min-width: 0 !important;
+  width: 100% !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  border: 0 !important;
+  background: transparent !important;
+  cursor: pointer !important;
+  -webkit-tap-highlight-color: transparent !important;
+}
+#pmd-reservation-composer-v1 .pmd-reservation-composer-v1__feature-options > label[hidden] {
+  display: none !important;
+}
+#pmd-reservation-composer-v1 .pmd-reservation-composer-v1__feature-options input {
+  position: absolute !important;
+  width: 1px !important;
+  height: 1px !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
+}
+#pmd-reservation-composer-v1 .pmd-reservation-composer-v1__feature-options span {
+  box-sizing: border-box !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 9px !important;
+  width: 100% !important;
+  min-width: 0 !important;
+  min-height: 50px !important;
+  height: 50px !important;
+  padding: 0 13px !important;
+  border: 1px solid #d4e3ec !important;
+  border-radius: 13px !important;
+  background: #ffffff !important;
+  background-image: none !important;
+  color: #173752 !important;
+  font-size: 14px !important;
+  font-weight: 800 !important;
+  line-height: 1 !important;
+  box-shadow: none !important;
+  transform: none !important;
+  transition: background-color 140ms ease, border-color 140ms ease, color 140ms ease, box-shadow 140ms ease !important;
+}
+#pmd-reservation-composer-v1 .pmd-reservation-composer-v1__feature-options span svg {
+  display: block !important;
+  flex: 0 0 20px !important;
+  width: 20px !important;
+  min-width: 20px !important;
+  max-width: 20px !important;
+  height: 20px !important;
+  min-height: 20px !important;
+  max-height: 20px !important;
+  color: #075c47 !important;
+}
+#pmd-reservation-composer-v1 .pmd-reservation-composer-v1__feature-options span b {
+  color: inherit !important;
+  font: inherit !important;
+  font-size: 14px !important;
+  font-weight: 800 !important;
+  line-height: 1 !important;
+  white-space: nowrap !important;
+}
+#pmd-reservation-composer-v1 .pmd-reservation-composer-v1__feature-options label:hover span {
+  border-color: #9fc2d8 !important;
+  background: #f8fbfd !important;
+  color: #173752 !important;
+  box-shadow: 0 5px 14px rgba(23, 55, 82, .07) !important;
+}
+#pmd-reservation-composer-v1 .pmd-reservation-composer-v1__feature-options input:focus-visible + span {
+  outline: 0 !important;
+  border-color: #78adc8 !important;
+  box-shadow: 0 0 0 3px rgba(67, 145, 181, .11) !important;
+}
+#pmd-reservation-composer-v1 .pmd-reservation-composer-v1__feature-options input:checked + span {
+  border-color: #064b3c !important;
+  background: #075c47 !important;
+  background-image: none !important;
+  color: #ffffff !important;
+  box-shadow: 0 7px 18px rgba(7, 92, 71, .15) !important;
+}
+#pmd-reservation-composer-v1 .pmd-reservation-composer-v1__feature-options input:checked + span b,
+#pmd-reservation-composer-v1 .pmd-reservation-composer-v1__feature-options input:checked + span svg {
+  color: #ffffff !important;
+}
+#pmd-reservation-composer-v1 .pmd-reservation-composer-v1__feature-options input:disabled + span {
+  opacity: .45 !important;
+  cursor: not-allowed !important;
+  box-shadow: none !important;
+}
+@media (max-width: 760px) {
+  #pmd-reservation-composer-v1 .pmd-reservation-composer-v1__feature-options {
+    grid-template-columns: 1fr !important;
+    gap: 8px !important;
+  }
+  #pmd-reservation-composer-v1 .pmd-reservation-composer-v1__feature-options span {
+    min-height: 48px !important;
+    height: 48px !important;
+  }
+}
+
+#pmd-reservation-composer-v1 .pmd-reservation-composer-v1__policy-notice {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-top: 10px;
+  padding: 10px 12px;
+  border: 1px solid #d7e5ee;
+  border-radius: 12px;
+  background: #f8fbfd;
+  color: #425b70;
+  font-size: 12px;
+  font-weight: 650;
+  line-height: 1.35;
+}
+#pmd-reservation-composer-v1 .pmd-reservation-composer-v1__policy-notice[hidden] {
+  display: none !important;
+}
+#pmd-reservation-composer-v1 .pmd-reservation-composer-v1__policy-notice.is-warning {
+  border-color: #efd4a6;
+  background: #fff9ee;
+  color: #74511a;
+}
+#pmd-reservation-composer-v1 .pmd-reservation-composer-v1__policy-notice.is-success {
+  border-color: #c8e6d9;
+  background: #f1faf6;
+  color: #155846;
+}
+#pmd-reservation-composer-v1 [data-pmd-composer-use-suggestion] {
+  flex: 0 0 auto;
+  min-height: 34px;
+  padding: 0 12px;
+  border: 1px solid #075046;
+  border-radius: 10px;
+  background: #075046;
+  color: #fff;
+  font-size: 12px;
+  font-weight: 750;
+  line-height: 1;
+  cursor: pointer;
+}
+#pmd-reservation-composer-v1 [data-pmd-composer-use-suggestion][hidden] {
+  display: none !important;
+}
+@media (max-width: 700px) {
+  #pmd-reservation-composer-v1 .pmd-reservation-composer-v1__policy-notice {
+    align-items: stretch;
+    flex-direction: column;
+  }
+  #pmd-reservation-composer-v1 [data-pmd-composer-use-suggestion] {
+    width: 100%;
+  }
+}

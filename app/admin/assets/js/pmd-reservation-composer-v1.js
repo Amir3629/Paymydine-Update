@@ -78,17 +78,35 @@
      * data-floor-table is the exact Floor's DISPLAY identity. It is not a
      * guaranteed tables.table_id. Resolve the selected display card through
      * root.__pmdFloorV1 state and send dbTableId/raw.table_id to Reservations.
+     *
+     * PMD_COMPOSER_FLOOR_CONTEXT_V1_4_20260817
+     * Multi-Floor is also part of the recommendation context. A selected table
+     * locks the recommendation to that Floor. With no selected table, the
+     * currently visible Floor is only preferred; AUTO may fall back to another
+     * complete Floor, but a recommendation may never mix Floors.
      */
     var node = document.querySelector(
       '.pmd-floor-v1__table.is-selected[data-floor-table], ' +
       '#pmd-r2-shared-floor-canvas-v310 [data-pmd-r2-selected-table-v320], ' +
       '#pmd-r2-shared-floor-canvas-v310 .pmd-r2-table-selected-v317'
     );
-    var exactRoot = node && node.closest ? node.closest('[data-pmd-floor]') : null;
+    var exactRoot = node && node.closest
+      ? node.closest('[data-pmd-floor]')
+      : document.querySelector('[data-pmd-floor], #pmd-r2-shared-floor-canvas-v310');
     var exactInstance = exactRoot && exactRoot.__pmdFloorV1 ? exactRoot.__pmdFloorV1 : null;
     var exactState = exactInstance && typeof exactInstance.getState === 'function'
       ? (exactInstance.getState() || {})
       : null;
+    var floorId = exactRoot ? clean(exactRoot.getAttribute('data-pmd-active-floor-id')) : '';
+    var floorName = exactRoot ? clean(exactRoot.getAttribute('data-pmd-active-floor-name')) : '';
+
+    if (exactRoot && exactRoot.__pmdSharedMultiFloorV1 && typeof exactRoot.__pmdSharedMultiFloorV1.audit === 'function') {
+      try {
+        var floorAudit = exactRoot.__pmdSharedMultiFloorV1.audit() || {};
+        floorId = floorId || clean(floorAudit.activeFloorId);
+        floorName = floorName || clean(floorAudit.activeFloorName);
+      } catch (ignore) {}
+    }
 
     if (exactState && Array.isArray(exactState.displayTables)) {
       var selectedId = exactState.selectedDisplayId != null && String(exactState.selectedDisplayId) !== ''
@@ -119,9 +137,27 @@
         }).filter(Boolean);
 
         if (ids.length) {
-          return { ids: ids, names: names, date: null, source: 'exact-floor-db-id' };
+          return {
+            ids: ids,
+            names: names,
+            date: null,
+            source: 'exact-floor-db-id',
+            floorId: floorId,
+            floorName: floorName,
+            floorLocked: true
+          };
         }
       }
+
+      return {
+        ids: [],
+        names: [],
+        date: null,
+        source: 'exact-floor-active',
+        floorId: floorId,
+        floorName: floorName,
+        floorLocked: false
+      };
     }
 
     /* Reservations2 compatibility fallback. Keep its existing FloorExperience
@@ -137,7 +173,15 @@
     var names = node
       ? [clean(node.getAttribute('aria-label') || node.getAttribute('title') || state.tableName)]
       : [state.tableName];
-    return { ids: ids, names: names.filter(Boolean), date: dateValue(state.start), source: 'legacy-floor-experience' };
+    return {
+      ids: ids,
+      names: names.filter(Boolean),
+      date: dateValue(state.start),
+      source: 'legacy-floor-experience',
+      floorId: floorId,
+      floorName: floorName,
+      floorLocked: ids.length > 0
+    };
   }
 
   function fallbackFor(element) {
@@ -174,7 +218,9 @@
       version: 1, mode: id ? 'edit' : 'create', source: source,
       reservationId: id || null, selectedDate: date, selectedTime: time,
       duration: null, tableIds: floor.ids.length ? floor.ids : hinted,
-      tableNames: floor.names, locationId: null, returnView: id && source === 'calendar-reservation' ? 'calendar' : (id && source === 'hour-reservation' ? 'hour' : currentView()),
+      tableNames: floor.names, floorId: floor.floorId || '', floorName: floor.floorName || '',
+      floorLocked: Boolean(floor.floorLocked || floor.ids.length),
+      locationId: null, returnView: id && source === 'calendar-reservation' ? 'calendar' : (id && source === 'hour-reservation' ? 'hour' : currentView()),
       fallbackUrl: fallback
     };
   }
@@ -795,6 +841,7 @@ function applyAvailability(result) {
     status.textContent = formatAvailability(result);
     status.classList.toggle('is-error', !result.available);
     status.classList.toggle('is-success', !!result.available);
+    renderPolicyNotice(result);
 
     // PMD_SMART_CONTEXT_TABLES_V224
     root.dispatchEvent(
@@ -951,6 +998,91 @@ function applyAvailability(result) {
     }
   }
 
+  function configureFeaturePreferences(data) {
+    var container = root.querySelector('[data-pmd-composer-feature-preferences]');
+    var options = Array.isArray(data && data.pmdTableFeatureOptions)
+      ? data.pmdTableFeatureOptions
+      : [];
+    var available = {};
+    options.forEach(function (item) {
+      var key = clean(item && item.key);
+      if (key) available[key] = Number(item.count || 0);
+    });
+
+    root.querySelectorAll('[data-pmd-composer-feature-option]').forEach(function (label) {
+      var key = clean(label.getAttribute('data-pmd-composer-feature-option'));
+      var input = label.querySelector('input[name="pmd_table_features[]"]');
+      var exists = Boolean(key && available[key] > 0);
+      label.hidden = !exists;
+      if (input) {
+        input.checked = false;
+        input.disabled = !exists;
+      }
+    });
+
+    if (container) {
+      container.hidden = !Object.keys(available).some(function (key) {
+        return available[key] > 0;
+      });
+    }
+  }
+
+  function selectedFeatureKeys() {
+    return Array.prototype.slice.call(
+      form.querySelectorAll('input[name="pmd_table_features[]"]:checked')
+    ).map(function (input) {
+      return clean(input.value);
+    }).filter(Boolean);
+  }
+
+  function renderPolicyNotice(result) {
+    var notice = root.querySelector('[data-pmd-composer-policy-notice]');
+    var message = notice && notice.querySelector('[data-pmd-composer-policy-message]');
+    var action = notice && notice.querySelector('[data-pmd-composer-use-suggestion]');
+    if (!notice || !message || !action) return;
+
+    var text = clean(result && result.pmdPolicyMessage);
+    var modeNode = form.querySelector('[name="assignment_mode"]:checked');
+    var mode = modeNode ? clean(modeNode.value) : 'auto';
+    var suggested = positiveIds(result && result.pmdSelectedTableSuggestionIds || []);
+    var selected = selectedTableIds();
+    var same = suggested.length === selected.length && suggested.every(function (id) {
+      return selected.indexOf(id) >= 0;
+    });
+
+    message.textContent = text;
+    notice.hidden = !text;
+    action.hidden = !(mode === 'choose' && suggested.length && !same);
+    action.dataset.pmdSuggestionIds = suggested.join(',');
+    notice.classList.toggle('is-warning', Boolean(text && result && result.available === false));
+    notice.classList.toggle('is-success', Boolean(text && result && result.available === true));
+  }
+
+  function applyPolicySuggestion() {
+    var action = root.querySelector('[data-pmd-composer-use-suggestion]');
+    var ids = positiveIds(
+      clean(action && action.dataset.pmdSuggestionIds).split(',')
+    );
+    var select = form.querySelector('[name="tables[]"]');
+    if (!ids.length || !select) return;
+
+    Array.prototype.forEach.call(select.options, function (optionNode) {
+      optionNode.selected = ids.indexOf(Number(optionNode.value)) >= 0;
+    });
+    var choose = form.querySelector('[name="assignment_mode"][value="choose"]');
+    if (choose) choose.checked = true;
+    if (context) {
+      context.tableIds = ids.slice();
+      context.tableNames = ids.map(function (id) {
+        var row = tableCatalog.find(function (table) { return Number(table.table_id) === id; });
+        return row ? clean(row.table_name) : ('Table ' + id);
+      });
+    }
+    syncAssignment();
+    renderTablePicker(lastAvailability);
+    scheduleAvailability(true);
+  }
+
   function populate(data) {
     applySmartComposerFields();
 
@@ -1010,9 +1142,16 @@ function applyAvailability(result) {
         ? (data.reservation.tables || []).map(function (table) { return table.table_id; })
         : contextTableIds
     );
-    tableCatalog = Array.isArray(data.tables)
-      ? data.tables
-      : [];
+    var pmdTableMeta = data && data.pmdTableMeta && typeof data.pmdTableMeta === 'object'
+      ? data.pmdTableMeta
+      : {};
+    tableCatalog = (Array.isArray(data.tables) ? data.tables : []).map(function (table) {
+      var id = Number(table && table.table_id || 0);
+      var meta = pmdTableMeta[id] || pmdTableMeta[String(id)] || {};
+      return Object.assign({}, table || {}, meta || {});
+    });
+    configureFeaturePreferences(data);
+    renderPolicyNotice(null);
 
     var tableSelect = form.querySelector('[name="tables[]"]');
     tableSelect.innerHTML = '';
@@ -1022,6 +1161,7 @@ function applyAvailability(result) {
         tableSelect,
         table.table_id,
         table.table_name
+          + (table.floor_name ? (' · ' + table.floor_name) : '')
           + ' ('
           + table.min_capacity
           + '–'
@@ -1054,6 +1194,13 @@ function applyAvailability(result) {
         || ''
       );
     }
+
+    var floorIdField = form.elements.pmd_floor_id;
+    var floorNameField = form.elements.pmd_floor_name;
+    var floorLockedField = form.elements.pmd_floor_locked;
+    if (floorIdField) floorIdField.value = clean(context && context.floorId);
+    if (floorNameField) floorNameField.value = clean(context && context.floorName);
+    if (floorLockedField) floorLockedField.value = context && context.floorLocked ? '1' : '0';
 
     var notify = form.elements.notify;
     if (notify) {
@@ -1121,8 +1268,15 @@ function applyAvailability(result) {
   function payload() {
     var data = {};
     new FormData(form).forEach(function (value, key) {
-      if (key === 'tables[]') { data.tables = data.tables || []; data.tables.push(Number(value)); }
-      else data[key] = value;
+      if (key === 'tables[]') {
+        data.tables = data.tables || [];
+        data.tables.push(Number(value));
+      } else if (key === 'pmd_table_features[]') {
+        data.pmd_table_features = data.pmd_table_features || [];
+        data.pmd_table_features.push(clean(value));
+      } else {
+        data[key] = value;
+      }
     });
     // PMD_COMPOSER_SMART_V192
     data.tables = positiveIds(data.tables || []);
@@ -1221,6 +1375,12 @@ function applyAvailability(result) {
         .sort(function (a, b) {
           return a - b;
         }),
+      table_features: (Array.isArray(data.pmd_table_features) ? data.pmd_table_features.slice() : [])
+        .map(clean)
+        .filter(Boolean)
+        .sort(),
+      floor_id: clean(data.pmd_floor_id),
+      floor_locked: Number(data.pmd_floor_locked || 0) ? 1 : 0,
       location_id: Number(data.location_id || 0),
       reservation_id: Number(data.reservation_id || 0)
     });
@@ -1363,7 +1523,10 @@ function applyAvailability(result) {
       selected_date: context.selectedDate,
       selected_time: context.selectedTime,
       table_ids: context.tableIds,
-      location_id: context.locationId
+      location_id: context.locationId,
+      pmd_floor_id: clean(context.floorId),
+      pmd_floor_name: clean(context.floorName),
+      pmd_floor_locked: context.floorLocked ? 1 : 0
     }).then(populate).catch(function (error) {
       var loadingState = root.querySelector(
         '[data-pmd-composer-loading]'
@@ -1392,7 +1555,9 @@ function applyAvailability(result) {
     items.unshift(reservation);
     if (window.PMDReservations2KpisV309) window.PMDReservations2KpisV309.refresh();
     var cards = window.PMDReservations2FloorExperience || window.PMDReservations2CardsV320;
-    if (!cards || !(cards.renderReservations || cards.refresh)) throw new Error('Reservation card refresh is unavailable.');
+    if (!cards || !(cards.renderReservations || cards.refresh)) {
+      return Promise.reject(new Error('Reservation card refresh is unavailable.'));
+    }
     (cards.renderReservations || cards.refresh).call(cards);
     return new Promise(function (resolve) { window.requestAnimationFrame(resolve); }).then(function () {
       if (window.PMDCalendarRealCountsFloatingV1) window.PMDCalendarRealCountsFloatingV1.refresh();
@@ -1481,7 +1646,8 @@ function applyAvailability(result) {
         'reserve_time',
         'duration',
         'assignment_mode',
-        'tables[]'
+        'tables[]',
+        'pmd_table_features[]'
       ].indexOf(event.target.name) >= 0
     ) {
       scheduleAvailability();
@@ -1500,6 +1666,8 @@ function applyAvailability(result) {
       scheduleAvailability();
     }
   });
+  var policySuggestionButton = root.querySelector('[data-pmd-composer-use-suggestion]');
+  if (policySuggestionButton) policySuggestionButton.addEventListener('click', applyPolicySuggestion);
   root.querySelectorAll('[data-pmd-composer-close],[data-pmd-composer-cancel]').forEach(function (button) { button.addEventListener('click', function () { close(false); }); });
   root.addEventListener('hide.bs.modal', function (event) { if (!allowHide) { event.preventDefault(); close(false); } });
   root.addEventListener('hidden.bs.modal', function () { allowHide = false; closing = false; root.classList.remove('pmd-reservation-composer-v1--closing'); document.body.classList.remove('pmd-reservation-composer-open-v1'); if (!document.querySelector('.modal.show')) document.body.classList.remove('modal-open'); if (trigger && trigger.isConnected) trigger.focus(); });
@@ -3510,9 +3678,15 @@ function applyAvailability(result) {
       return 'No table found';
     }
 
-    return ids.map(function (id) {
+    var label = ids.map(function (id) {
       return nameFor(id, catalog);
     }).join(' + ');
+    var floorName = String(
+      latestAvailability && latestAvailability.pmdRecommendationFloorName || ''
+    ).trim();
+    return floorName && label.indexOf('· ' + floorName) < 0
+      ? (label + ' · ' + floorName)
+      : label;
   }
 
   function updateRecommendationButton() {
@@ -3761,7 +3935,8 @@ function applyAvailability(result) {
           'reserve_time',
           'duration',
           'assignment_mode',
-          'tables[]'
+          'tables[]',
+          'pmd_table_features[]'
         ].indexOf(event.target.name) >= 0
       ) {
         /*
@@ -3842,6 +4017,16 @@ function applyAvailability(result) {
           autoRecommendationIds(),
         selectedTableIds:
           selectedIds(),
+        floorAware: Boolean(latestAvailability && latestAvailability.pmdFloorAware),
+        recommendationFloorId: latestAvailability ? String(latestAvailability.pmdRecommendationFloorId || '') : '',
+        recommendationFloorName: latestAvailability ? String(latestAvailability.pmdRecommendationFloorName || '') : '',
+        requiredFeatures: latestAvailability && Array.isArray(latestAvailability.pmdRequiredFeatures)
+          ? latestAvailability.pmdRequiredFeatures.slice()
+          : [],
+        selectedTableSuggestionIds: latestAvailability && Array.isArray(latestAvailability.pmdSelectedTableSuggestionIds)
+          ? latestAvailability.pmdSelectedTableSuggestionIds.slice()
+          : [],
+        policyMessage: latestAvailability ? String(latestAvailability.pmdPolicyMessage || '') : '',
         recommendationEventOwned: true,
         blurChangePreservesRecommendation: true,
         newModalResetsRecommendation: true,
@@ -4321,7 +4506,11 @@ function applyAvailability(result) {
 
     return (
       name === 'assignment_mode' ||
-      name === 'tables[]'
+      name === 'tables[]' ||
+      name === 'pmd_table_features[]' ||
+      name === 'pmd_floor_id' ||
+      name === 'pmd_floor_name' ||
+      name === 'pmd_floor_locked'
     );
   }
 

@@ -11,6 +11,7 @@ use Admin\Models\Reservations_model;
 use Admin\Models\Statuses_model;
 use Admin\Models\Tables_model;
 use Admin\Services\ReservationComposerService;
+use Admin\Services\PmdSharedFloorRegistryV1;
 use Carbon\Carbon;
 use Igniter\Flame\Exception\ApplicationException;
 use Illuminate\Support\Facades\DB;
@@ -994,111 +995,691 @@ class Reservations2 extends Reservations
         return $ids;
     }
 
-    protected function pmdRecommendationFromAvailableIds(array $availableIds, int $guestCount): array
+
+    /**
+     * PMD_RESERVATION_TABLE_POLICY_RESPONSE_TRANSPORT_V1_0_3
+     *
+     * ReservationComposerService may return either a plain array or an
+     * Illuminate/Symfony JsonResponse depending on the live runtime path.
+     * Policy code must operate on the JSON payload in BOTH cases and then
+     * preserve the original response transport/status/headers.
+     */
+    protected function pmdComposerResponsePayload($response): ?array
     {
-        if (!$availableIds || $guestCount < 1) {
-            return [];
+        if (is_array($response)) {
+            return $response;
+        }
+
+        if (!is_object($response)) {
+            return null;
         }
 
         try {
-            $tables = Tables_model::query()
-                ->whereIn('table_id', $availableIds)
-                ->where('table_status', 1)
-                ->orderBy('priority')
-                ->orderBy('table_id')
+            if (method_exists($response, 'getData')) {
+                $data = $response->getData(true);
+                if (is_array($data)) {
+                    return $data;
+                }
+            }
+        } catch (Throwable $error) {
+        }
+
+        try {
+            if (method_exists($response, 'getContent')) {
+                $decoded = json_decode((string)$response->getContent(), true);
+                if (is_array($decoded)) {
+                    return $decoded;
+                }
+            }
+        } catch (Throwable $error) {
+        }
+
+        return null;
+    }
+
+    protected function pmdComposerResponseApplyPayload($response, array $payload)
+    {
+        if (is_array($response)) {
+            return $payload;
+        }
+
+        if (is_object($response) && method_exists($response, 'setData')) {
+            try {
+                $response->setData($payload);
+                return $response;
+            } catch (Throwable $error) {
+            }
+        }
+
+        if (is_object($response) && method_exists($response, 'setContent')) {
+            try {
+                $response->setContent(json_encode(
+                    $payload,
+                    JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES
+                ));
+                return $response;
+            } catch (Throwable $error) {
+            }
+        }
+
+        // Defensive fallback only. Normal live paths are array or JSON response objects.
+        return $payload;
+    }
+
+    protected function pmdComposerManagedFeatureKeys(): array
+    {
+        return ['near_window', 'quiet_area', 'accessible'];
+    }
+
+    protected function pmdComposerNormalizeFeatures($value): array
+    {
+        if (is_string($value)) {
+            $decoded = json_decode($value, true);
+            $value = is_array($decoded) ? $decoded : [$value];
+        } elseif ($value instanceof \Illuminate\Support\Collection) {
+            $value = $value->all();
+        }
+
+        if (!is_array($value)) {
+            return [];
+        }
+
+        $allowed = array_fill_keys($this->pmdComposerManagedFeatureKeys(), true);
+        $out = [];
+        foreach ($value as $feature) {
+            $feature = strtolower(trim((string)$feature));
+            if ($feature !== '' && isset($allowed[$feature])) {
+                $out[$feature] = true;
+            }
+        }
+        return array_values(array_keys($out));
+    }
+
+    protected function pmdComposerRequestedFeatures(array $data): array
+    {
+        return $this->pmdComposerNormalizeFeatures(
+            $data['pmd_table_features']
+                ?? $data['pmd_table_features[]']
+                ?? []
+        );
+    }
+
+    protected function pmdComposerFloorRegistryContext(int $locationId): array
+    {
+        try {
+            $snapshot = app(PmdSharedFloorRegistryV1::class)->snapshot($locationId);
+        } catch (Throwable $error) {
+            $snapshot = [];
+        }
+
+        $floors = [];
+        $mainId = 'main-floor';
+        $mainName = 'Main Floor';
+        foreach ((array)($snapshot['floors'] ?? []) as $floor) {
+            if (!is_array($floor)) continue;
+            $id = trim((string)($floor['id'] ?? ''));
+            $name = trim((string)($floor['name'] ?? ''));
+            if ($id === '' || $name === '') continue;
+            $floors[$id] = ['id' => $id, 'name' => $name];
+            if (strcasecmp($name, 'Main Floor') === 0) {
+                $mainId = $id;
+                $mainName = $name;
+            }
+        }
+
+        if (!isset($floors[$mainId])) {
+            $floors[$mainId] = ['id' => $mainId, 'name' => $mainName];
+        }
+
+        $assignments = [];
+        foreach ((array)($snapshot['table_assignments'] ?? []) as $tableId => $floorId) {
+            $tableId = (int)$tableId;
+            $floorId = trim((string)$floorId);
+            if ($tableId > 0 && $floorId !== '' && isset($floors[$floorId])) {
+                $assignments[$tableId] = $floorId;
+            }
+        }
+
+        return [
+            'floors' => $floors,
+            'assignments' => $assignments,
+            'main_id' => $mainId,
+            'main_name' => $mainName,
+        ];
+    }
+
+    protected function pmdComposerTableMeta(int $locationId, array $tableIds): array
+    {
+        $ids = $this->pmdPositiveTableIds($tableIds);
+        if (!$ids) return [];
+
+        $floorContext = $this->pmdComposerFloorRegistryContext($locationId);
+        $floors = (array)$floorContext['floors'];
+        $assignments = (array)$floorContext['assignments'];
+        $mainId = (string)$floorContext['main_id'];
+        $mainName = (string)$floorContext['main_name'];
+
+        try {
+            $rows = Tables_model::query()
+                ->whereIn('table_id', $ids)
                 ->get();
         } catch (Throwable $error) {
             return [];
         }
 
-        foreach ($tables as $table) {
-            if ((int)$table->min_capacity <= $guestCount && (int)$table->max_capacity >= $guestCount) {
-                return [(int)$table->table_id];
+        $meta = [];
+        foreach ($rows as $table) {
+            $id = (int)($table->table_id ?? 0);
+            if ($id < 1) continue;
+
+            $floorId = (string)($assignments[$id] ?? $mainId);
+            $floor = $floors[$floorId] ?? ['id' => $mainId, 'name' => $mainName];
+            $features = $this->pmdComposerNormalizeFeatures($table->table_features ?? []);
+            $rawReservable = $table->reservable;
+
+            $meta[$id] = [
+                'table_id' => $id,
+                'table_name' => trim((string)($table->table_name ?? '')) ?: ('Table '.$id),
+                'min_capacity' => max(0, (int)($table->min_capacity ?? 0)),
+                'max_capacity' => max(0, (int)($table->max_capacity ?? 0)),
+                'preferred_capacity' => max(0, (int)($table->preferred_capacity ?? 0)),
+                'priority' => max(0, (int)($table->priority ?? 0)),
+                'reservation_priority' => max(0, (int)($table->reservation_priority ?? 0)),
+                'is_joinable' => (bool)($table->is_joinable ?? false),
+                'table_status' => (bool)($table->table_status ?? true),
+                'reservable' => $rawReservable === null ? true : (bool)$rawReservable,
+                'features' => $features,
+                'floor_id' => (string)($floor['id'] ?? $mainId),
+                'floor_name' => trim((string)($floor['name'] ?? $mainName)) ?: $mainName,
+            ];
+        }
+        return $meta;
+    }
+
+    protected function pmdComposerFeatureOptions(array $meta): array
+    {
+        $labels = [
+            'near_window' => 'Near window',
+            'quiet_area' => 'Quiet area',
+            'accessible' => 'Accessible',
+        ];
+        $counts = array_fill_keys($this->pmdComposerManagedFeatureKeys(), 0);
+
+        foreach ($meta as $row) {
+            if (!is_array($row) || empty($row['table_status']) || empty($row['reservable'])) continue;
+            foreach ((array)($row['features'] ?? []) as $feature) {
+                if (isset($counts[$feature])) $counts[$feature]++;
             }
         }
 
-        $recommended = [];
-        $remaining = $guestCount;
-        foreach ($tables as $table) {
-            if (!$table->is_joinable || $remaining < (int)$table->min_capacity) {
-                continue;
+        $out = [];
+        foreach ($this->pmdComposerManagedFeatureKeys() as $feature) {
+            if (($counts[$feature] ?? 0) < 1) continue;
+            $out[] = [
+                'key' => $feature,
+                'label' => $labels[$feature] ?? $feature,
+                'count' => (int)$counts[$feature],
+            ];
+        }
+        return $out;
+    }
+
+    protected function pmdComposerTableMatchesFeatures(array $table, array $features): bool
+    {
+        if (!$features) return true;
+        $owned = array_fill_keys((array)($table['features'] ?? []), true);
+        foreach ($features as $feature) {
+            if (!isset($owned[$feature])) return false;
+        }
+        return true;
+    }
+
+    protected function pmdComposerCombinationScore(array $rows, int $guestCount): array
+    {
+        $capacity = 0;
+        $priority = 0;
+        $ids = [];
+        foreach ($rows as $row) {
+            $capacity += max(0, (int)($row['max_capacity'] ?? 0));
+            $priority += max(0, (int)($row['reservation_priority'] ?? $row['priority'] ?? 0));
+            $ids[] = (int)($row['table_id'] ?? 0);
+        }
+        sort($ids, SORT_NUMERIC);
+        return [count($rows), max(0, $capacity - $guestCount), $priority, implode(',', $ids)];
+    }
+
+    protected function pmdComposerBestMerge(array $rows, int $guestCount, array $anchorRows = []): array
+    {
+        $guestCount = max(1, $guestCount);
+        $anchorIds = [];
+        $baseCapacity = 0;
+        foreach ($anchorRows as $row) {
+            $id = (int)($row['table_id'] ?? 0);
+            if ($id > 0) $anchorIds[$id] = true;
+            $baseCapacity += max(0, (int)($row['max_capacity'] ?? 0));
+        }
+
+        if ($anchorRows && $baseCapacity >= $guestCount) {
+            return $anchorRows;
+        }
+
+        $pool = array_values(array_filter($rows, function ($row) use ($anchorIds) {
+            $id = (int)($row['table_id'] ?? 0);
+            return $id > 0
+                && !isset($anchorIds[$id])
+                && !empty($row['is_joinable'])
+                && max(0, (int)($row['max_capacity'] ?? 0)) > 0;
+        }));
+
+        usort($pool, function ($a, $b) {
+            $priority = ((int)($a['reservation_priority'] ?? $a['priority'] ?? 0))
+                <=> ((int)($b['reservation_priority'] ?? $b['priority'] ?? 0));
+            if ($priority !== 0) return $priority;
+            $capacity = ((int)($b['max_capacity'] ?? 0)) <=> ((int)($a['max_capacity'] ?? 0));
+            if ($capacity !== 0) return $capacity;
+            return ((int)($a['table_id'] ?? 0)) <=> ((int)($b['table_id'] ?? 0));
+        });
+        $pool = array_slice($pool, 0, 14);
+
+        $best = null;
+        $bestScore = null;
+        $maxAdditional = 4;
+        $count = count($pool);
+
+        $search = function ($index, $chosen, $capacity) use (&$search, &$best, &$bestScore, $pool, $count, $maxAdditional, $guestCount, $anchorRows) {
+            $all = array_merge($anchorRows, $chosen);
+            if ($capacity >= $guestCount && count($all) >= 2) {
+                $score = $this->pmdComposerCombinationScore($all, $guestCount);
+                $better = $bestScore === null;
+                if (!$better) {
+                    for ($i = 0; $i < 4; $i++) {
+                        if ($score[$i] == $bestScore[$i]) continue;
+                        $better = $score[$i] < $bestScore[$i];
+                        break;
+                    }
+                }
+                if ($better) {
+                    $bestScore = $score;
+                    $best = $all;
+                }
+                return;
             }
-            $recommended[] = (int)$table->table_id;
-            $remaining -= max(1, (int)$table->max_capacity);
-            if ($remaining <= 0) {
+            if ($index >= $count || count($chosen) >= $maxAdditional) return;
+
+            for ($i = $index; $i < $count; $i++) {
+                $row = $pool[$i];
+                $next = $chosen;
+                $next[] = $row;
+                $search(
+                    $i + 1,
+                    $next,
+                    $capacity + max(0, (int)($row['max_capacity'] ?? 0))
+                );
+            }
+        };
+
+        $search(0, [], $baseCapacity);
+        return $best ?: [];
+    }
+
+    protected function pmdComposerBestFloorPlan(array $rows, int $guestCount, array $anchorIds = []): array
+    {
+        $guestCount = max(1, $guestCount);
+        $byId = [];
+        foreach ($rows as $row) {
+            $id = (int)($row['table_id'] ?? 0);
+            if ($id > 0) $byId[$id] = $row;
+        }
+
+        $anchorIds = $this->pmdPositiveTableIds($anchorIds);
+        $anchorRows = [];
+        $anchorComplete = true;
+        foreach ($anchorIds as $id) {
+            if (!isset($byId[$id])) {
+                $anchorComplete = false;
                 break;
             }
+            $anchorRows[] = $byId[$id];
         }
 
-        return $remaining <= 0 ? $recommended : [];
+        if ($anchorIds && $anchorComplete) {
+            if (count($anchorRows) === 1) {
+                $row = $anchorRows[0];
+                if ((int)$row['min_capacity'] <= $guestCount && (int)$row['max_capacity'] >= $guestCount) {
+                    return ['rows' => $anchorRows, 'kind' => 'keep', 'anchor_kept' => true];
+                }
+            } else {
+                $capacity = array_sum(array_map(function ($row) {
+                    return max(0, (int)($row['max_capacity'] ?? 0));
+                }, $anchorRows));
+                $anchorJoinable = !array_filter($anchorRows, function ($row) {
+                    return empty($row['is_joinable']);
+                });
+                if ($capacity >= $guestCount && $anchorJoinable) {
+                    return ['rows' => $anchorRows, 'kind' => 'keep-merge', 'anchor_kept' => true];
+                }
+            }
+
+            $allJoinable = !array_filter($anchorRows, function ($row) {
+                return empty($row['is_joinable']);
+            });
+            if ($allJoinable) {
+                $expanded = $this->pmdComposerBestMerge($rows, $guestCount, $anchorRows);
+                if ($expanded) {
+                    return ['rows' => $expanded, 'kind' => 'expand', 'anchor_kept' => true];
+                }
+            }
+        }
+
+        $single = array_values(array_filter($rows, function ($row) use ($guestCount) {
+            return (int)($row['min_capacity'] ?? 0) <= $guestCount
+                && (int)($row['max_capacity'] ?? 0) >= $guestCount;
+        }));
+        usort($single, function ($a, $b) use ($guestCount) {
+            $aw = max(0, (int)$a['max_capacity'] - $guestCount);
+            $bw = max(0, (int)$b['max_capacity'] - $guestCount);
+            if ($aw !== $bw) return $aw <=> $bw;
+            $ap = (int)($a['reservation_priority'] ?? $a['priority'] ?? 0);
+            $bp = (int)($b['reservation_priority'] ?? $b['priority'] ?? 0);
+            if ($ap !== $bp) return $ap <=> $bp;
+            return (int)$a['table_id'] <=> (int)$b['table_id'];
+        });
+        if ($single) {
+            return [
+                'rows' => [$single[0]],
+                'kind' => $anchorIds ? 'replace' : 'single',
+                'anchor_kept' => false,
+            ];
+        }
+
+        $merged = $this->pmdComposerBestMerge($rows, $guestCount, []);
+        if ($merged) {
+            return [
+                'rows' => $merged,
+                'kind' => $anchorIds ? 'replace-merge' : 'merge',
+                'anchor_kept' => false,
+            ];
+        }
+
+        return ['rows' => [], 'kind' => 'none', 'anchor_kept' => false];
+    }
+
+    protected function pmdComposerRecommendationPlan(
+        array $availableIds,
+        int $guestCount,
+        array $data,
+        array $anchorIds = []
+    ): array {
+        $locationId = $this->pmdComposerLocationId($data);
+        $requiredFeatures = $this->pmdComposerRequestedFeatures($data);
+        $anchorIds = $this->pmdPositiveTableIds($anchorIds);
+        $candidateIds = $this->pmdPositiveTableIds(array_merge($availableIds, $anchorIds));
+        $meta = $this->pmdComposerTableMeta($locationId, $candidateIds);
+
+        $eligible = [];
+        foreach ($meta as $id => $row) {
+            if (empty($row['table_status']) || empty($row['reservable'])) continue;
+            if (!$this->pmdComposerTableMatchesFeatures($row, $requiredFeatures)) continue;
+            $eligible[$id] = $row;
+        }
+
+        $preferredFloorId = trim((string)($data['pmd_floor_id'] ?? ''));
+        $preferredFloorName = trim((string)($data['pmd_floor_name'] ?? ''));
+        $floorLocked = !empty($data['pmd_floor_locked']);
+        $anchorFloorId = '';
+        $anchorFloorName = '';
+        $anchorFloors = [];
+
+        foreach ($anchorIds as $id) {
+            $row = $meta[$id] ?? null;
+            if (!$row) continue;
+            $fid = (string)($row['floor_id'] ?? '');
+            if ($fid !== '') $anchorFloors[$fid] = (string)($row['floor_name'] ?? 'Main Floor');
+        }
+        if (count($anchorFloors) === 1) {
+            $anchorFloorId = (string)array_key_first($anchorFloors);
+            $anchorFloorName = (string)$anchorFloors[$anchorFloorId];
+            $preferredFloorId = $anchorFloorId;
+            $preferredFloorName = $anchorFloorName;
+            $floorLocked = true;
+        } elseif (count($anchorFloors) > 1) {
+            return [
+                'ids' => [],
+                'kind' => 'cross-floor-selection',
+                'floor_id' => '',
+                'floor_name' => '',
+                'anchor_kept' => false,
+                'required_features' => $requiredFeatures,
+                'message' => 'Selected tables are on different Floors. Tables can only be combined inside one Floor.',
+            ];
+        }
+
+        $groups = [];
+        foreach ($eligible as $row) {
+            $floorId = (string)($row['floor_id'] ?? 'main-floor');
+            if ($floorLocked && $preferredFloorId !== '' && $floorId !== $preferredFloorId) continue;
+            if (!isset($groups[$floorId])) {
+                $groups[$floorId] = [
+                    'id' => $floorId,
+                    'name' => (string)($row['floor_name'] ?? 'Main Floor'),
+                    'rows' => [],
+                ];
+            }
+            $groups[$floorId]['rows'][] = $row;
+        }
+
+        $ordered = [];
+        if ($preferredFloorId !== '' && isset($groups[$preferredFloorId])) {
+            $ordered[] = $groups[$preferredFloorId];
+            unset($groups[$preferredFloorId]);
+        }
+        foreach ($groups as $group) $ordered[] = $group;
+
+        foreach ($ordered as $group) {
+            $groupAnchorIds = [];
+            if ($anchorIds && (!$anchorFloorId || $anchorFloorId === $group['id'])) {
+                $groupAnchorIds = $anchorIds;
+            }
+            $plan = $this->pmdComposerBestFloorPlan($group['rows'], $guestCount, $groupAnchorIds);
+            $rows = (array)($plan['rows'] ?? []);
+            if (!$rows) continue;
+
+            $ids = array_values(array_map(function ($row) {
+                return (int)$row['table_id'];
+            }, $rows));
+            $names = array_values(array_map(function ($row) {
+                return (string)$row['table_name'];
+            }, $rows));
+            $kind = (string)($plan['kind'] ?? 'single');
+            $anchorKept = !empty($plan['anchor_kept']);
+
+            if ($anchorIds) {
+                if ($kind === 'keep' || $kind === 'keep-merge') {
+                    $message = implode(' + ', $names).' still fits '.$guestCount.' guest'.($guestCount === 1 ? '' : 's').' on '.$group['name'].'.';
+                } elseif ($kind === 'expand') {
+                    $addedNames = [];
+                    foreach ($rows as $row) {
+                        if (!in_array((int)$row['table_id'], $anchorIds, true)) {
+                            $addedNames[] = (string)$row['table_name'];
+                        }
+                    }
+                    $message = 'Keep the selected table'.(count($anchorIds) > 1 ? 's' : '').' and add '.implode(' + ', $addedNames).' on '.$group['name'].' for '.$guestCount.' guests.';
+                } else {
+                    $message = 'The selected table no longer fits this request. Suggested on '.$group['name'].': '.implode(' + ', $names).'.';
+                }
+            } else {
+                $message = 'Suggested on '.$group['name'].': '.implode(' + ', $names).'.';
+            }
+
+            return [
+                'ids' => $ids,
+                'kind' => $kind,
+                'floor_id' => (string)$group['id'],
+                'floor_name' => (string)$group['name'],
+                'anchor_kept' => $anchorKept,
+                'required_features' => $requiredFeatures,
+                'message' => $message,
+            ];
+        }
+
+        $featureSuffix = $requiredFeatures ? ' with the selected table preferences' : '';
+        $floorSuffix = $floorLocked && ($preferredFloorName || $anchorFloorName)
+            ? ' on '.($preferredFloorName ?: $anchorFloorName)
+            : '';
+        return [
+            'ids' => [],
+            'kind' => 'none',
+            'floor_id' => $preferredFloorId,
+            'floor_name' => $preferredFloorName,
+            'anchor_kept' => false,
+            'required_features' => $requiredFeatures,
+            'message' => 'No same-Floor table or merge matches '.$guestCount.' guest'.($guestCount === 1 ? '' : 's').$featureSuffix.$floorSuffix.'.',
+        ];
     }
 
     protected function pmdFilterComposerAvailabilityConflicts($response, array $data)
     {
-        if (!is_array($response)
-            || !isset($response['availability'])
-            || !is_array($response['availability'])) {
+        $payload = $this->pmdComposerResponsePayload($response);
+        if (!is_array($payload)
+            || !isset($payload['availability'])
+            || !is_array($payload['availability'])) {
             return $response;
         }
 
-        $availability = $response['availability'];
+        $availability = $payload['availability'];
         $blocked = $this->pmdComposerConflictingTableIds($data);
         $blockedMap = array_fill_keys($blocked, true);
-
-        foreach (['availableTableIds', 'manualAvailableTableIds'] as $key) {
-            if (isset($availability[$key]) && is_array($availability[$key])) {
-                $availability[$key] = array_values(array_filter(
-                    $this->pmdPositiveTableIds($availability[$key]),
-                    function ($id) use ($blockedMap) {
-                        return !isset($blockedMap[$id]);
-                    }
-                ));
-            }
-        }
-
-        $recommended = $this->pmdPositiveTableIds($availability['recommendedTableIds'] ?? []);
-        $recommendationConflicts = (bool)array_intersect($recommended, $blocked);
-        if ($recommendationConflicts) {
-            $recommended = $this->pmdRecommendationFromAvailableIds(
-                $this->pmdPositiveTableIds($availability['manualAvailableTableIds'] ?? []),
-                max(1, (int)($data['guest_num'] ?? 1))
-            );
-        }
-        $availability['recommendedTableIds'] = $recommended;
-        $availability['blockedTableIds'] = $blocked;
-
         $mode = (string)($data['assignment_mode'] ?? ($availability['assignmentMode'] ?? 'auto'));
         $requested = $this->pmdPositiveTableIds(
             $data['tables'] ?? ($availability['requestedTableIds'] ?? [])
         );
+        $locationId = $this->pmdComposerLocationId($data);
+        $requiredFeatures = $this->pmdComposerRequestedFeatures($data);
 
-        if ($mode === 'choose' && array_intersect($requested, $blocked)) {
-            $availability['available'] = false;
-        } elseif ($mode === 'auto' && !$recommended) {
-            $availability['available'] = false;
+        foreach (['availableTableIds', 'manualAvailableTableIds'] as $key) {
+            if (!isset($availability[$key]) || !is_array($availability[$key])) continue;
+            $ids = array_values(array_filter(
+                $this->pmdPositiveTableIds($availability[$key]),
+                function ($id) use ($blockedMap) { return !isset($blockedMap[$id]); }
+            ));
+            $meta = $this->pmdComposerTableMeta($locationId, $ids);
+            $floorLocked = !empty($data['pmd_floor_locked']);
+            $floorId = trim((string)($data['pmd_floor_id'] ?? ''));
+            $ids = array_values(array_filter($ids, function ($id) use ($meta, $requiredFeatures, $floorLocked, $floorId) {
+                $row = $meta[$id] ?? null;
+                if (!$row || empty($row['table_status']) || empty($row['reservable'])) return false;
+                if (!$this->pmdComposerTableMatchesFeatures($row, $requiredFeatures)) return false;
+                if ($floorLocked && $floorId !== '' && (string)$row['floor_id'] !== $floorId) return false;
+                return true;
+            }));
+            $availability[$key] = $ids;
         }
 
-        $response['availability'] = $availability;
-        return $response;
+        $manualIds = $this->pmdPositiveTableIds(
+            $availability['manualAvailableTableIds']
+                ?? $availability['availableTableIds']
+                ?? []
+        );
+        $plan = $this->pmdComposerRecommendationPlan(
+            $manualIds,
+            max(1, (int)($data['guest_num'] ?? 1)),
+            $data,
+            $mode === 'choose' ? $requested : []
+        );
+
+        // One recommendation authority for every Composer state. Even while a
+        // Floor-selected table is in CHOOSE mode, the visible Auto suggestion
+        // must remain same-Floor and feature-aware; never leak a cross-Floor
+        // recommendation from the older canonical allocator.
+        $recommended = $this->pmdPositiveTableIds($plan['ids'] ?? []);
+
+        if ($mode === 'choose') {
+            $availability['pmdSelectedTableSuggestionIds'] = $this->pmdPositiveTableIds($plan['ids'] ?? []);
+            $availability['pmdSelectedTableSuggestionKind'] = (string)($plan['kind'] ?? 'none');
+            $availability['pmdSelectedTableCanKeep'] = !empty($plan['anchor_kept']);
+        }
+
+        $availability['recommendedTableIds'] = $recommended;
+        $availability['blockedTableIds'] = $blocked;
+        $availability['pmdFloorAware'] = true;
+        $availability['pmdRecommendationFloorId'] = (string)($plan['floor_id'] ?? '');
+        $availability['pmdRecommendationFloorName'] = (string)($plan['floor_name'] ?? '');
+        $availability['pmdRequiredFeatures'] = array_values((array)($plan['required_features'] ?? $requiredFeatures));
+        $availability['pmdPolicyMessage'] = (string)($plan['message'] ?? '');
+
+        if ($mode === 'choose') {
+            $selectedMeta = $this->pmdComposerTableMeta($locationId, $requested);
+            $selectedFloors = [];
+            $selectedFeatureMismatch = false;
+            foreach ($requested as $id) {
+                $row = $selectedMeta[$id] ?? null;
+                if (!$row) continue;
+                $selectedFloors[(string)$row['floor_id']] = true;
+                if (!$this->pmdComposerTableMatchesFeatures($row, $requiredFeatures)) {
+                    $selectedFeatureMismatch = true;
+                }
+            }
+            $selectionKind = (string)($plan['kind'] ?? 'none');
+            $selectionStillFits = in_array($selectionKind, ['keep', 'keep-merge'], true);
+            if (array_intersect($requested, $blocked)
+                || count($selectedFloors) > 1
+                || $selectedFeatureMismatch
+                || !$selectionStillFits) {
+                $availability['available'] = false;
+            }
+        } elseif (!$recommended) {
+            $availability['available'] = false;
+        } else {
+            $availability['available'] = true;
+        }
+
+        $payload['availability'] = $availability;
+        return $this->pmdComposerResponseApplyPayload($response, $payload);
     }
 
     protected function pmdGuardComposerSelectedTables(array $data): void
     {
         $mode = (string)($data['assignment_mode'] ?? 'auto');
-        if ($mode !== 'choose') {
-            return;
-        }
+        if ($mode !== 'choose') return;
 
         $selected = $this->pmdPositiveTableIds($data['tables'] ?? []);
-        if (!$selected) {
-            return;
-        }
+        if (!$selected) return;
 
         $blocked = $this->pmdComposerConflictingTableIds($data);
         if (array_intersect($selected, $blocked)) {
             throw ValidationException::withMessages([
                 'tables' => 'One or more selected tables are already reserved during this reservation time.',
             ]);
+        }
+
+        $meta = $this->pmdComposerTableMeta($this->pmdComposerLocationId($data), $selected);
+        $floors = [];
+        $requiredFeatures = $this->pmdComposerRequestedFeatures($data);
+        foreach ($selected as $id) {
+            $row = $meta[$id] ?? null;
+            if (!$row) continue;
+            $floors[(string)$row['floor_id']] = true;
+            if (!$this->pmdComposerTableMatchesFeatures($row, $requiredFeatures)) {
+                throw ValidationException::withMessages([
+                    'tables' => 'The selected table does not match the requested table preferences.',
+                ]);
+            }
+        }
+
+        if (count($floors) > 1) {
+            throw ValidationException::withMessages([
+                'tables' => 'Selected tables must be on the same Floor. Cross-Floor table merges are not allowed.',
+            ]);
+        }
+
+        if (count($selected) > 1) {
+            foreach ($selected as $id) {
+                if (empty($meta[$id]['is_joinable'])) {
+                    throw ValidationException::withMessages([
+                        'tables' => 'One or more selected tables cannot be joined for a reservation.',
+                    ]);
+                }
+            }
         }
     }
 
@@ -1110,8 +1691,9 @@ class Reservations2 extends Reservations
 
         $response = app(ReservationComposerService::class)->availability($data);
         $response = $this->pmdFilterComposerAvailabilityConflicts($response, $data);
-        $availability = is_array($response) && isset($response['availability']) && is_array($response['availability'])
-            ? $response['availability']
+        $payload = $this->pmdComposerResponsePayload($response) ?? [];
+        $availability = isset($payload['availability']) && is_array($payload['availability'])
+            ? $payload['availability']
             : [];
         $recommended = $this->pmdPositiveTableIds($availability['recommendedTableIds'] ?? []);
 
@@ -1132,13 +1714,30 @@ class Reservations2 extends Reservations
     {
         $data = request()->all();
         $response = app(ReservationComposerService::class)->load($data);
+        $payload = $this->pmdComposerResponsePayload($response);
 
-        if (is_array($response)) {
+        if (is_array($payload)) {
             $locationId = $this->pmdComposerLocationId($data);
             if ($locationId < 1) {
-                $locationId = (int)($response['locationId'] ?? $response['location_id'] ?? 0);
+                $locationId = (int)($payload['locationId'] ?? $payload['location_id'] ?? 0);
             }
-            $response['pmdOpeningHours'] = $this->pmdComposerOpeningHours($locationId);
+            $payload['pmdOpeningHours'] = $this->pmdComposerOpeningHours($locationId);
+
+            $tableIds = [];
+            foreach ((array)($payload['tables'] ?? []) as $table) {
+                if (is_array($table)) {
+                    $tableIds[] = (int)($table['table_id'] ?? 0);
+                } elseif (is_object($table)) {
+                    $tableIds[] = (int)($table->table_id ?? 0);
+                }
+            }
+            $tableMeta = $this->pmdComposerTableMeta($locationId, $tableIds);
+            $payload['pmdTableMeta'] = $tableMeta;
+            $payload['pmdTableFeatureOptions'] = $this->pmdComposerFeatureOptions($tableMeta);
+            $payload['pmdFloorAwareTableFinder'] = true;
+            $payload['pmdPolicyTransportNormalized'] = !is_array($response);
+
+            return $this->pmdComposerResponseApplyPayload($response, $payload);
         }
 
         return $response;

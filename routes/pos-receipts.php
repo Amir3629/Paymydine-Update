@@ -227,14 +227,19 @@ Route::get('admin/orders/pos-bon/{id}', function ($id) {
 
 });
 
+// PMD_SPLIT_RECEIPT_TENANT_SAFE_R37C
 Route::get('admin/orders/split-receipt/{transactionId}', function ($transactionId) {
     if (!\Illuminate\Support\Facades\Schema::hasTable('order_payment_transactions')
         || !\Illuminate\Support\Facades\Schema::hasTable('order_payment_transaction_items')) {
         abort(404, 'Split receipt is not available');
     }
 
-    $transaction = \Illuminate\Support\Facades\DB::table('order_payment_transactions')
-        ->where('id', (int)$transactionId)
+    $transactionId = (int)$transactionId;
+
+    $transaction = \Illuminate\Support\Facades\DB::table(
+        'order_payment_transactions'
+    )
+        ->where('id', $transactionId)
         ->first();
 
     if (!$transaction) {
@@ -246,33 +251,191 @@ Route::get('admin/orders/split-receipt/{transactionId}', function ($transactionI
         ->first();
 
     $tableName = null;
+
     if ($order && is_numeric($order->order_type ?? null)) {
         $tableRow = \Illuminate\Support\Facades\DB::table('tables')
             ->where('table_id', (int)$order->order_type)
             ->first();
+
         if ($tableRow) {
-            $tableName = $tableRow->table_name ?: ('Table '.$tableRow->table_no);
+            $tableName = $tableRow->table_name
+                ?: ('Table '.$tableRow->table_no);
         }
     }
+
     if (!$tableName) {
         $tableName = (string)($order->order_type ?? '');
     }
 
     $allocationMeta = pmdResolveSplitAllocationColumn();
-    $allocationColumn = $allocationMeta['column'];
-    $joinLeft = $allocationMeta['mode'] === 'menu_id_legacy' ? 'om.menu_id' : 'om.order_menu_id';
-    $items = \Illuminate\Support\Facades\DB::table('order_payment_transaction_items as ti_ti')
-        ->leftJoin('order_menus as om', $joinLeft, '=', 'ti_ti.'.$allocationColumn)
-        ->where('ti_ti.transaction_id', (int)$transactionId)
-        ->get([
-            'ti_ti.'.$allocationColumn.' as allocation_key',
-            'ti_ti.quantity_paid',
-            'ti_ti.unit_price',
-            'ti_ti.line_total',
-            'om.name',
-            'om.order_menu_id',
-            'om.menu_id',
-        ]);
+    $allocationColumn = (string)$allocationMeta['column'];
+    $allocationMode = (string)$allocationMeta['mode'];
+
+    $allocationColumns =
+        \Illuminate\Support\Facades\Schema::getColumnListing(
+            'order_payment_transaction_items'
+        );
+
+    $transactionColumn = in_array(
+        'transaction_id',
+        $allocationColumns,
+        true
+    )
+        ? 'transaction_id'
+        : (
+            in_array(
+                'payment_transaction_id',
+                $allocationColumns,
+                true
+            )
+                ? 'payment_transaction_id'
+                : null
+        );
+
+    if (!$transactionColumn) {
+        abort(
+            500,
+            'Receipt allocation transaction column is unavailable'
+        );
+    }
+
+    /*
+     * Do not use SQL aliases here.
+     * Tenant table prefixes can rewrite builder aliases and leave raw
+     * identifiers pointing at a different name.
+     */
+    $allocationRows =
+        \Illuminate\Support\Facades\DB::table(
+            'order_payment_transaction_items'
+        )
+            ->where($transactionColumn, $transactionId)
+            ->get();
+
+    $items = $allocationRows
+        ->map(function ($row) use (
+            $allocationColumn,
+            $allocationMode,
+            $transaction
+        ) {
+            $data = (array)$row;
+
+            $allocationKey = (int)(
+                $data[$allocationColumn] ?? 0
+            );
+
+            $menu = null;
+
+            if ($allocationKey > 0) {
+                $menuQuery =
+                    \Illuminate\Support\Facades\DB::table(
+                        'order_menus'
+                    )
+                        ->where(
+                            'order_id',
+                            (int)$transaction->order_id
+                        );
+
+                if ($allocationMode === 'menu_id_legacy') {
+                    $menuQuery->where(
+                        'menu_id',
+                        $allocationKey
+                    );
+                } else {
+                    $menuQuery->where(
+                        'order_menu_id',
+                        $allocationKey
+                    );
+                }
+
+                $menu = $menuQuery->first();
+            }
+
+            $quantity = (float)(
+                $data['quantity_paid']
+                ?? $data['quantity']
+                ?? $data['qty']
+                ?? 0
+            );
+
+            if ($quantity <= 0) {
+                $quantity = 1.0;
+            }
+
+            $unitPrice = null;
+
+            foreach (['unit_price', 'price'] as $field) {
+                if (
+                    array_key_exists($field, $data)
+                    && is_numeric($data[$field])
+                ) {
+                    $unitPrice = (float)$data[$field];
+                    break;
+                }
+            }
+
+            if ($unitPrice === null && $menu) {
+                $menuQuantity = (float)(
+                    $menu->quantity ?? 0
+                );
+
+                $menuSubtotal = (float)(
+                    $menu->subtotal ?? 0
+                );
+
+                $unitPrice = $menuQuantity > 0
+                    ? round(
+                        $menuSubtotal / $menuQuantity,
+                        4
+                    )
+                    : (float)($menu->price ?? 0);
+            }
+
+            $unitPrice = (float)($unitPrice ?? 0);
+
+            $lineTotal = null;
+
+            foreach (['line_total', 'amount'] as $field) {
+                if (
+                    array_key_exists($field, $data)
+                    && is_numeric($data[$field])
+                ) {
+                    $lineTotal = (float)$data[$field];
+                    break;
+                }
+            }
+
+            if ($lineTotal === null) {
+                $lineTotal = round(
+                    $unitPrice * $quantity,
+                    4
+                );
+            }
+
+            return (object)[
+                'allocation_key' => $allocationKey,
+                'quantity_paid' => $quantity,
+                'unit_price' => $unitPrice,
+                'line_total' => (float)$lineTotal,
+                'name' => (string)(
+                    $menu->name ?? 'Item'
+                ),
+                'order_menu_id' => (int)(
+                    $menu->order_menu_id ?? (
+                        $allocationMode === 'menu_id_legacy'
+                            ? 0
+                            : $allocationKey
+                    )
+                ),
+                'menu_id' => (int)(
+                    $menu->menu_id ?? (
+                        $allocationMode === 'menu_id_legacy'
+                            ? $allocationKey
+                            : 0
+                    )
+                ),
+            ];
+        })
+        ->values();
 
     return view('admin::orders.split_receipt', [
         'transaction' => $transaction,
@@ -281,5 +444,164 @@ Route::get('admin/orders/split-receipt/{transactionId}', function ($transactionI
         'items' => $items,
     ]);
 });
+
+// PMD_CASHIER_INLINE_CANONICAL_INVOICE_R37C
+// Thin Admin transport adapter only.
+// Visual/data authority remains admin::orders.customer_invoice.
+Route::middleware(['web'])->get(
+    'admin/pmd-cashier-order-center/invoice/{orderId}',
+    function ($orderId) {
+        $user = AdminAuth::getUser();
+
+        if (
+            !$user
+            || !$user->hasPermission('Admin.Orders')
+        ) {
+            abort(403, 'Order permission required.');
+        }
+
+        $orderId = (int)$orderId;
+
+        if ($orderId < 1) {
+            return response(
+                'Invoice not found',
+                404
+            );
+        }
+
+        $order =
+            \Admin\Models\Orders_model::query()
+                ->where('order_id', $orderId)
+                ->first();
+
+        if (!$order) {
+            return response(
+                'Invoice not found',
+                404
+            );
+        }
+
+        $canonicalTotal = null;
+
+        if (
+            \Illuminate\Support\Facades\Schema::hasTable(
+                'order_totals'
+            )
+        ) {
+            $canonicalTotal =
+                \Illuminate\Support\Facades\DB::table(
+                    'order_totals'
+                )
+                    ->where('order_id', $orderId)
+                    ->where('code', 'total')
+                    ->value('value');
+        }
+
+        $orderTotal = round(
+            (float)(
+                $canonicalTotal
+                ?? $order->order_total
+                ?? 0
+            ),
+            4
+        );
+
+        $settledAmount = max(
+            0,
+            round(
+                (float)(
+                    $order->settled_amount ?? 0
+                ),
+                4
+            )
+        );
+
+        $settlementStatus = strtolower(
+            trim(
+                (string)(
+                    $order->settlement_status ?? ''
+                )
+            )
+        );
+
+        $isPaid =
+            in_array(
+                $settlementStatus,
+                ['paid', 'settled'],
+                true
+            )
+            || (
+                $orderTotal > 0
+                && $settledAmount >= $orderTotal - 0.0001
+            );
+
+        if (!$isPaid) {
+            return response(
+                'Invoice is available after full payment.',
+                409
+            );
+        }
+
+        try {
+            if (
+                method_exists($order, 'hasInvoice')
+                && method_exists($order, 'generateInvoice')
+                && !$order->hasInvoice()
+            ) {
+                $order->generateInvoice();
+            }
+
+            $order = $order->fresh() ?: $order;
+        } catch (\Throwable $error) {
+            \Log::warning(
+                'PMD R37C invoice metadata generation skipped',
+                [
+                    'order_id' => $orderId,
+                    'message' => $error->getMessage(),
+                ]
+            );
+        }
+
+        try {
+            $html =
+                \Illuminate\Support\Facades\View::make(
+                    'admin::orders.customer_invoice',
+                    [
+                        'model' => $order,
+                        'isFiscalInvoice' => false,
+                    ]
+                )->render();
+        } catch (\Throwable $error) {
+            \Log::error(
+                'PMD R37C canonical invoice render failed',
+                [
+                    'order_id' => $orderId,
+                    'message' => $error->getMessage(),
+                ]
+            );
+
+            return response(
+                'Unable to render customer invoice.',
+                500
+            );
+        }
+
+        return response(
+            $html,
+            200,
+            [
+                'Content-Type' =>
+                    'text/html; charset=UTF-8',
+                'Content-Disposition' => 'inline',
+                'Cache-Control' =>
+                    'private, no-store, max-age=0',
+                'X-Frame-Options' => 'SAMEORIGIN',
+                'X-PMD-Invoice-Authority' =>
+                    'admin::orders.customer_invoice',
+            ]
+        );
+    }
+);
+
 
 

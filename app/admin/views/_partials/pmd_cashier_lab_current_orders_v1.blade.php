@@ -7,6 +7,7 @@
     $count = count($orders);
     $pmdCashierIsGerman = strtolower((string)($pmdCleanWorkspaceLocale ?? app()->getLocale())) === 'de';
     $pmdCashierAddReservation = $pmdCashierIsGerman ? 'Reservierung hinzufügen' : 'Add reservation';
+    $pmdCashierAddOrder = $pmdCashierIsGerman ? 'Neue Bestellung' : 'New order';
     $pmdCashierNoOrdersCard = $pmdCashierIsGerman ? 'Keine Bestellungen' : 'No Orders';
     $pmdCashierCreateDate = (string)($range['today'] ?? \Carbon\Carbon::now('Europe/Berlin')->toDateString());
 @endphp
@@ -40,16 +41,16 @@
     </header>
 
     <div class="pmd-ops-grid">
-        {{-- PMD_CASHIERLAB_ADD_RESERVATION_CARD_FIRST_V1
-             Same canonical reservation creation entry point as ReservationsLab. --}}
+        {{-- PMD_CASHIERLAB_ADD_ORDER_CARD_R41
+             Cashier + means ordering. Reservation creation stays on ReservationsLab. --}}
         <a
             class="pmd-ops-add-card pmd-r2-simple-add-link-v460"
-            href="{{ admin_url('reservations/create') }}?reserve_date={{ urlencode($pmdCashierCreateDate) }}"
-            data-pmd-cashier-reservation-create="1"
-            aria-label="{{ $pmdCashierAddReservation }}"
+            href="#pmd-cashier-order-composer"
+            data-pmd-cashier-order-create="card"
+            aria-label="{{ $pmdCashierAddOrder }}"
         >
             <span class="pmd-r2-simple-add-icon-v460" aria-hidden="true">＋</span>
-            <span class="pmd-r2-simple-add-title-v460">{{ $pmdCashierAddReservation }}</span>
+            <span class="pmd-r2-simple-add-title-v460">{{ $pmdCashierAddOrder }}</span>
         </a>
 
         @if($count === 0)
@@ -59,9 +60,13 @@
         @endif
 
         @foreach($orders as $order)
+                {{-- PMD_CASHIER_ORDER_CARD_TABLE_HINT_R42 --}}
                 <article
                     class="pmd-ops-card"
                     data-pmd-cashier-order="{{ $order['id'] }}"
+                    data-pmd-cashier-table-id="{{ $order['table_id'] ?? 0 }}"
+                    data-pmd-cashier-table-number="{{ $order['table_number'] ?? '' }}"
+                    data-pmd-cashier-table-label="{{ $order['table_label'] ?? $order['table'] ?? '' }}"
                 >
                     <header class="pmd-ops-card__head">
                         <strong class="pmd-ops-card__title">

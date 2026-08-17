@@ -1,6 +1,9 @@
 (function () {
   'use strict';
 
+  // PMD_WAITER_POS_RICH_MENU_R40
+  // Rich food catalog shared by Cashier + Waiter ordering.
+
   if (window.PMDWaiterPOSApp) return;
 
   var instances = new WeakMap();
@@ -61,6 +64,8 @@
       note: '',
       submitting: false,
       modifierItem: null,
+      modifierQuantity: 1,
+      modifierNote: '',
       draftKey: 'pmd-waiter-pos-v2:' + location.host + ':table:' + String((boot && boot.table && boot.table.id) || ''),
       payment: {
         open: false,
@@ -157,11 +162,59 @@
     }
 
     function filteredMenu() {
-      var query = state.search.toLowerCase().trim();
+      var query = state.search
+        .toLowerCase()
+        .trim();
+
       return state.menu.filter(function (item) {
-        var categoryOk = state.category === 'all' || (item.category_ids || []).map(String).indexOf(String(state.category)) !== -1;
-        var searchOk = !query || String(item.name || '').toLowerCase().indexOf(query) !== -1 || String(item.description || '').toLowerCase().indexOf(query) !== -1;
-        return categoryOk && searchOk;
+        var categoryOk =
+          state.category === 'all'
+          || (item.category_ids || [])
+            .map(String)
+            .indexOf(
+              String(state.category)
+            ) !== -1;
+
+        var allergens = (
+          item.allergens || []
+        ).map(function (row) {
+          return row.name || '';
+        }).join(' ');
+
+        var dietary = [
+          item.halal ? 'halal' : '',
+          item.vegetarian
+            ? 'vegetarian'
+            : '',
+          item.vegan
+            ? 'vegan'
+            : '',
+          item.is_bestseller
+            ? 'bestseller'
+            : '',
+          item.is_chef_recommended
+            ? 'chef recommended'
+            : ''
+        ].join(' ');
+
+        var haystack = [
+          item.name || '',
+          item.description || '',
+          (item.category_names || [])
+            .join(' '),
+          allergens,
+          dietary
+        ].join(' ')
+          .toLowerCase();
+
+        var searchOk =
+          !query
+          || haystack.indexOf(
+            query
+          ) !== -1;
+
+        return categoryOk
+          && searchOk;
       });
     }
 
@@ -199,54 +252,434 @@
       if (menu) menu.classList.toggle('is-list', state.view === 'list');
     }
 
+    function foodBadges(item) {
+      var rows = [];
+
+      if (item.vegan) {
+        rows.push('Vegan');
+      } else if (item.vegetarian) {
+        rows.push('Vegetarian');
+      }
+
+      if (item.halal) {
+        rows.push('Halal');
+      }
+
+      if (item.is_bestseller) {
+        rows.push('Bestseller');
+      }
+
+      if (item.is_chef_recommended) {
+        rows.push('Chef');
+      }
+
+      return rows;
+    }
+
+    function foodFacts(item) {
+      var rows = [];
+
+      if (
+        toNumber(
+          item.prep_minutes,
+          0
+        ) > 0
+      ) {
+        rows.push(
+          String(item.prep_minutes)
+          + ' min'
+        );
+      }
+
+      if (
+        item.calories !== null
+        && item.calories !== undefined
+        && item.calories !== ''
+      ) {
+        rows.push(
+          String(item.calories)
+          + ' kcal'
+        );
+      }
+
+      return rows;
+    }
+
     function renderMenu() {
-      var container = $('[data-pos-menu]');
-      if (!container) return;
-      var items = filteredMenu();
-      container.classList.toggle('is-list', state.view === 'list');
-      if (!items.length) {
-        container.innerHTML = '<div class="pmd-pos-empty"><div><b>No menu items found</b><br><small>Try another category or search.</small></div></div>';
+      var container = $(
+        '[data-pos-menu]'
+      );
+
+      if (!container) {
         return;
       }
-      container.innerHTML = items.map(function (item) {
-        return '<button type="button" class="pmd-pos-product ' + (item.has_options ? 'has-options' : '') + '" data-pos-product="' + esc(item.id) + '">' +
-          '<div><div class="pmd-pos-product-name">' + esc(item.name) + '</div>' +
-          (item.description ? '<div class="pmd-pos-product-desc">' + esc(item.description) + '</div>' : '') + '</div>' +
-          '<div class="pmd-pos-product-foot"><span class="pmd-pos-price">' + money(item.price) + '</span><span class="pmd-pos-plus">+</span></div>' +
-        '</button>';
-      }).join('');
-      $$('[data-pos-product]', container).forEach(function (button) {
-        button.addEventListener('click', function () {
-          var item = state.menu.find(function (row) { return String(row.id) === String(button.getAttribute('data-pos-product')); });
-          if (!item) return;
-          item.has_options ? openModifier(item) : addLine(item, []);
-        });
+
+      var items = filteredMenu();
+
+      container.classList.toggle(
+        'is-list',
+        state.view === 'list'
+      );
+
+      if (!items.length) {
+        container.innerHTML = [
+          '<div class="pmd-pos-empty">',
+            '<div>',
+              '<b>No menu items found</b>',
+              '<br>',
+              '<small>',
+                'Try another category or search.',
+              '</small>',
+            '</div>',
+          '</div>'
+        ].join('');
+
+        return;
+      }
+
+      container.innerHTML = items.map(
+        function (item) {
+          var orderable =
+            item.orderable !== false
+            && item.price_configured !== false
+            && toNumber(
+              item.price,
+              0
+            ) > 0;
+
+          var image = item.image
+            ? [
+                '<img ',
+                  'data-pos-product-image ',
+                  'loading="lazy" ',
+                  'decoding="async" ',
+                  'src="',
+                    esc(item.image),
+                  '" ',
+                  'alt="">'
+              ].join('')
+            : '';
+
+          var fallbackLetter = String(
+            item.name || 'F'
+          ).trim().charAt(0).toUpperCase();
+
+          var categories = (
+            item.category_names || []
+          ).slice(0, 2).join(' · ');
+
+          var badges = foodBadges(
+            item
+          );
+
+          var facts = foodFacts(
+            item
+          );
+
+          var allergens = (
+            item.allergens || []
+          ).map(function (row) {
+            return row.name || '';
+          }).filter(Boolean);
+
+          return [
+            '<button type="button" ',
+              'class="pmd-pos-product ',
+                (
+                  item.has_options
+                    ? 'has-options '
+                    : ''
+                ),
+                (
+                  orderable
+                    ? ''
+                    : 'is-unavailable'
+                ),
+              '" ',
+              'data-pos-product="',
+                esc(item.id),
+              '" ',
+              (
+                orderable
+                  ? ''
+                  : 'disabled'
+              ),
+            '>',
+
+              '<div ',
+                'class="pmd-pos-product__media">',
+
+                '<span ',
+                  'class="pmd-pos-product__fallback">',
+                  esc(
+                    fallbackLetter || 'F'
+                  ),
+                '</span>',
+
+                image,
+
+                badges.length
+                  ? [
+                      '<div ',
+                        'class="pmd-pos-product__badges">',
+                        badges.map(
+                          function (badge) {
+                            return [
+                              '<span>',
+                                esc(badge),
+                              '</span>'
+                            ].join('');
+                          }
+                        ).join(''),
+                      '</div>'
+                    ].join('')
+                  : '',
+
+              '</div>',
+
+              '<div ',
+                'class="pmd-pos-product__content">',
+
+                categories
+                  ? [
+                      '<div ',
+                        'class="pmd-pos-product__category">',
+                        esc(categories),
+                      '</div>'
+                    ].join('')
+                  : '',
+
+                '<div ',
+                  'class="pmd-pos-product-name">',
+                  esc(
+                    item.name || 'Food'
+                  ),
+                '</div>',
+
+                item.description
+                  ? [
+                      '<div ',
+                        'class="pmd-pos-product-desc">',
+                        esc(
+                          item.description
+                        ),
+                      '</div>'
+                    ].join('')
+                  : '',
+
+                facts.length
+                  ? [
+                      '<div ',
+                        'class="pmd-pos-product__facts">',
+                        esc(
+                          facts.join(' · ')
+                        ),
+                      '</div>'
+                    ].join('')
+                  : '',
+
+                allergens.length
+                  ? [
+                      '<div ',
+                        'class="pmd-pos-product__allergens">',
+                        'Contains: ',
+                        esc(
+                          allergens
+                            .slice(0, 4)
+                            .join(', ')
+                        ),
+                        allergens.length > 4
+                          ? '…'
+                          : '',
+                      '</div>'
+                    ].join('')
+                  : '',
+
+                '<div ',
+                  'class="pmd-pos-product-foot">',
+
+                  '<span ',
+                    'class="pmd-pos-price">',
+                    orderable
+                      ? money(item.price)
+                      : 'Price required',
+                  '</span>',
+
+                  '<span ',
+                    'class="pmd-pos-plus">',
+                    orderable
+                      ? '＋'
+                      : '—',
+                  '</span>',
+
+                '</div>',
+
+              '</div>',
+
+            '</button>'
+          ].join('');
+        }
+      ).join('');
+
+      $$(
+        'img[data-pos-product-image]',
+        container
+      ).forEach(function (img) {
+        img.addEventListener(
+          'error',
+          function () {
+            img.style.display = 'none';
+          }
+        );
+      });
+
+      $$(
+        '[data-pos-product]',
+        container
+      ).forEach(function (button) {
+        button.addEventListener(
+          'click',
+          function () {
+            var item = state.menu.find(
+              function (row) {
+                return String(row.id)
+                  === String(
+                    button.getAttribute(
+                      'data-pos-product'
+                    )
+                  );
+              }
+            );
+
+            if (
+              !item
+              || item.orderable === false
+              || item.price_configured === false
+              || toNumber(
+                item.price,
+                0
+              ) <= 0
+            ) {
+              return;
+            }
+
+            /*
+             * Always confirm through Food Details.
+             * Even food without modifiers gets quantity + note +
+             * dietary/nutrition confirmation before entering cart.
+             */
+            openModifier(item);
+          }
+        );
       });
     }
 
-    function signature(item, options) {
-      return String(item.id) + ':' + (options || []).map(function (option) { return option.id; }).sort().join(',');
+    function signature(
+      item,
+      options,
+      note
+    ) {
+      return [
+        String(item.id),
+        (options || [])
+          .map(function (option) {
+            return option.id;
+          })
+          .sort()
+          .join(','),
+        String(note || '')
+          .trim()
+          .toLowerCase()
+      ].join(':');
     }
 
-    function addLine(item, options) {
-      var key = signature(item, options);
-      var existing = state.cart.find(function (row) { return row.key === key; });
+    function addLine(
+      item,
+      options,
+      quantity,
+      comment
+    ) {
+      if (
+        item.orderable === false
+        || item.price_configured === false
+        || toNumber(
+          item.price,
+          0
+        ) <= 0
+      ) {
+        toast(
+          'This food needs a valid price before it can be ordered.',
+          true
+        );
+
+        return;
+      }
+
+      var minimum = Math.max(
+        1,
+        toNumber(
+          item.minimum_qty,
+          1
+        )
+      );
+
+      var qty = Math.max(
+        minimum,
+        Math.min(
+          99,
+          toNumber(
+            quantity,
+            minimum
+          )
+        )
+      );
+
+      var note = String(
+        comment || ''
+      ).trim();
+
+      var key = signature(
+        item,
+        options,
+        note
+      );
+
+      var existing = state.cart.find(
+        function (row) {
+          return row.key === key;
+        }
+      );
+
       if (existing) {
-        existing.quantity += 1;
+        existing.quantity = Math.min(
+          99,
+          toNumber(
+            existing.quantity,
+            0
+          ) + qty
+        );
       } else {
         state.cart.push({
           key: key,
           menu_id: Number(item.id),
           name: item.name,
-          price: toNumber(item.price, 0),
-          quantity: 1,
+          price: toNumber(
+            item.price,
+            0
+          ),
+          quantity: qty,
           options: options || [],
-          comment: '',
+          comment: note
         });
       }
+
       saveDraft();
       renderCart();
-      toast(item.name + ' added');
+
+      toast(
+        item.name
+        + ' added'
+      );
     }
 
     function renderExistingOrder() {
@@ -358,58 +791,694 @@
       renderCart();
     }
 
+    function modifierExtraPrice() {
+      var body = $(
+        '[data-pos-modal-body]'
+      );
+
+      if (!body) {
+        return 0;
+      }
+
+      return $$(
+        'input:checked',
+        body
+      ).reduce(
+        function (sum, input) {
+          return sum
+            + toNumber(
+              input.dataset.optionPrice,
+              0
+            );
+        },
+        0
+      );
+    }
+
+    function updateModifierPreview() {
+      if (!state.modifierItem) {
+        return;
+      }
+
+      var qty = $(
+        '[data-pos-modifier-qty]'
+      );
+
+      var total = $(
+        '[data-pos-modifier-total]'
+      );
+
+      if (qty) {
+        qty.textContent =
+          String(
+            state.modifierQuantity
+          );
+      }
+
+      if (total) {
+        total.textContent = money(
+          (
+            toNumber(
+              state.modifierItem.price,
+              0
+            )
+            + modifierExtraPrice()
+          )
+          * state.modifierQuantity
+        );
+      }
+    }
+
     function openModifier(item) {
       state.modifierItem = item;
-      var modal = $('[data-pos-modifier-modal]');
-      var title = $('[data-pos-modal-title]');
-      var body = $('[data-pos-modal-body]');
-      if (!modal || !body) return;
-      title.textContent = item.name;
-      body.innerHTML = (item.options || []).map(function (group) {
-        var type = Number(group.max || 1) === 1 ? 'radio' : 'checkbox';
-        return '<section class="pmd-pos-option-group" data-option-group="' + esc(group.id) + '" data-required="' + (group.required ? '1' : '0') + '" data-min="' + esc(group.min || 0) + '" data-max="' + esc(group.max || 1) + '">' +
-          '<div class="pmd-pos-option-title"><span>' + esc(group.name) + '</span><small>' + (group.required ? 'Required' : 'Optional') + '</small></div>' +
-          '<div class="pmd-pos-option-list">' + (group.values || []).map(function (value) {
-            return '<label class="pmd-pos-option"><span><input type="' + type + '" name="pmd-option-' + esc(group.id) + '" value="' + esc(value.id) + '" data-option-name="' + esc(value.name) + '" data-option-price="' + esc(value.price || 0) + '" ' + (value.default ? 'checked' : '') + '> ' + esc(value.name) + '</span><b>' + (toNumber(value.price, 0) ? '+' + money(value.price) : '') + '</b></label>';
-          }).join('') + '</div></section>';
+
+      state.modifierQuantity = Math.max(
+        1,
+        toNumber(
+          item.minimum_qty,
+          1
+        )
+      );
+
+      state.modifierNote = '';
+
+      var modal = $(
+        '[data-pos-modifier-modal]'
+      );
+
+      var title = $(
+        '[data-pos-modal-title]'
+      );
+
+      var body = $(
+        '[data-pos-modal-body]'
+      );
+
+      if (
+        !modal
+        || !body
+      ) {
+        return;
+      }
+
+      if (title) {
+        title.textContent =
+          item.name || 'Food details';
+      }
+
+      var categories = (
+        item.category_names || []
+      ).join(' · ');
+
+      var badges = foodBadges(
+        item
+      );
+
+      var allergens = (
+        item.allergens || []
+      ).map(function (row) {
+        return row.name || '';
+      }).filter(Boolean);
+
+      var nutrition = [];
+
+      if (
+        item.calories !== null
+        && item.calories !== undefined
+        && item.calories !== ''
+      ) {
+        nutrition.push([
+          'Calories',
+          String(item.calories) + ' kcal'
+        ]);
+      }
+
+      if (item.serving_size) {
+        nutrition.push([
+          'Serving size',
+          String(item.serving_size)
+        ]);
+      }
+
+      if (
+        item.protein !== null
+        && item.protein !== undefined
+        && item.protein !== ''
+      ) {
+        nutrition.push([
+          'Protein',
+          String(item.protein) + ' g'
+        ]);
+      }
+
+      if (
+        item.carbs !== null
+        && item.carbs !== undefined
+        && item.carbs !== ''
+      ) {
+        nutrition.push([
+          'Carbs',
+          String(item.carbs) + ' g'
+        ]);
+      }
+
+      if (
+        item.fat !== null
+        && item.fat !== undefined
+        && item.fat !== ''
+      ) {
+        nutrition.push([
+          'Fat',
+          String(item.fat) + ' g'
+        ]);
+      }
+
+      if (
+        item.sugar !== null
+        && item.sugar !== undefined
+        && item.sugar !== ''
+      ) {
+        nutrition.push([
+          'Sugar',
+          String(item.sugar) + ' g'
+        ]);
+      }
+
+      if (
+        toNumber(
+          item.prep_minutes,
+          0
+        ) > 0
+      ) {
+        nutrition.push([
+          'Preparation',
+          String(item.prep_minutes)
+          + ' min'
+        ]);
+      }
+
+      var image = item.image
+        ? [
+            '<img ',
+              'data-pos-detail-image ',
+              'src="',
+                esc(item.image),
+              '" ',
+              'alt="">'
+          ].join('')
+        : [
+            '<span ',
+              'class="pmd-pos-food-detail__letter">',
+              esc(
+                String(
+                  item.name || 'F'
+                )
+                  .charAt(0)
+                  .toUpperCase()
+              ),
+            '</span>'
+          ].join('');
+
+      var optionsHtml = (
+        item.options || []
+      ).map(function (group) {
+        var type =
+          Number(group.max || 1) === 1
+            ? 'radio'
+            : 'checkbox';
+
+        return [
+          '<section ',
+            'class="pmd-pos-option-group" ',
+            'data-option-group="',
+              esc(group.id),
+            '" ',
+            'data-required="',
+              group.required
+                ? '1'
+                : '0',
+            '" ',
+            'data-min="',
+              esc(group.min || 0),
+            '" ',
+            'data-max="',
+              esc(group.max || 1),
+            '">',
+
+            '<div ',
+              'class="pmd-pos-option-title">',
+              '<span>',
+                esc(
+                  group.name || 'Options'
+                ),
+              '</span>',
+              '<small>',
+                group.required
+                  ? 'Required'
+                  : 'Optional',
+              '</small>',
+            '</div>',
+
+            '<div ',
+              'class="pmd-pos-option-list">',
+
+              (group.values || [])
+                .map(function (value) {
+                  return [
+                    '<label ',
+                      'class="pmd-pos-option">',
+
+                      '<span>',
+                        '<input ',
+                          'type="',
+                            type,
+                          '" ',
+                          'name="pmd-option-',
+                            esc(group.id),
+                          '" ',
+                          'value="',
+                            esc(value.id),
+                          '" ',
+                          'data-option-name="',
+                            esc(value.name),
+                          '" ',
+                          'data-option-price="',
+                            esc(
+                              value.price || 0
+                            ),
+                          '" ',
+                          (
+                            value.default
+                              ? 'checked'
+                              : ''
+                          ),
+                        '> ',
+                        esc(
+                          value.name || 'Option'
+                        ),
+                      '</span>',
+
+                      '<b>',
+                        toNumber(
+                          value.price,
+                          0
+                        )
+                          ? '+'
+                            + money(
+                              value.price
+                            )
+                          : '',
+                      '</b>',
+
+                    '</label>'
+                  ].join('');
+                })
+                .join(''),
+
+            '</div>',
+          '</section>'
+        ].join('');
       }).join('');
-      modal.classList.add('is-show');
-      modal.setAttribute('aria-hidden', 'false');
+
+      body.innerHTML = [
+        '<div ',
+          'class="pmd-pos-food-detail">',
+
+          '<div ',
+            'class="pmd-pos-food-detail__hero">',
+
+            '<div ',
+              'class="pmd-pos-food-detail__image">',
+              image,
+            '</div>',
+
+            '<div ',
+              'class="pmd-pos-food-detail__intro">',
+
+              categories
+                ? [
+                    '<div ',
+                      'class="pmd-pos-food-detail__categories">',
+                      esc(categories),
+                    '</div>'
+                  ].join('')
+                : '',
+
+              '<h3>',
+                esc(item.name || 'Food'),
+              '</h3>',
+
+              item.description
+                ? [
+                    '<p>',
+                      esc(item.description),
+                    '</p>'
+                  ].join('')
+                : '',
+
+              badges.length
+                ? [
+                    '<div ',
+                      'class="pmd-pos-food-detail__badges">',
+                      badges.map(
+                        function (badge) {
+                          return [
+                            '<span>',
+                              esc(badge),
+                            '</span>'
+                          ].join('');
+                        }
+                      ).join(''),
+                    '</div>'
+                  ].join('')
+                : '',
+
+              '<strong ',
+                'class="pmd-pos-food-detail__price">',
+                money(item.price),
+              '</strong>',
+
+            '</div>',
+          '</div>',
+
+          allergens.length
+            ? [
+                '<div ',
+                  'class="pmd-pos-food-detail__allergens">',
+                  '<b>Allergens</b>',
+                  '<span>',
+                    esc(
+                      allergens.join(', ')
+                    ),
+                  '</span>',
+                '</div>'
+              ].join('')
+            : '',
+
+          nutrition.length
+            ? [
+                '<div ',
+                  'class="pmd-pos-food-detail__nutrition">',
+                  nutrition.map(
+                    function (row) {
+                      return [
+                        '<div>',
+                          '<span>',
+                            esc(row[0]),
+                          '</span>',
+                          '<b>',
+                            esc(row[1]),
+                          '</b>',
+                        '</div>'
+                      ].join('');
+                    }
+                  ).join(''),
+                '</div>'
+              ].join('')
+            : '',
+
+          optionsHtml
+            ? [
+                '<div ',
+                  'class="pmd-pos-food-detail__options">',
+                  optionsHtml,
+                '</div>'
+              ].join('')
+            : '',
+
+          '<section ',
+            'class="pmd-pos-food-detail__order">',
+
+            '<div ',
+              'class="pmd-pos-food-detail__qty-row">',
+
+              '<div>',
+                '<b>Quantity</b>',
+                '<small>',
+                  'Choose how many to add',
+                '</small>',
+              '</div>',
+
+              '<div ',
+                'class="pmd-pos-food-detail__stepper">',
+
+                '<button ',
+                  'type="button" ',
+                  'data-pos-modifier-minus>',
+                  '−',
+                '</button>',
+
+                '<strong ',
+                  'data-pos-modifier-qty>',
+                  esc(
+                    state.modifierQuantity
+                  ),
+                '</strong>',
+
+                '<button ',
+                  'type="button" ',
+                  'data-pos-modifier-plus>',
+                  '+',
+                '</button>',
+
+              '</div>',
+            '</div>',
+
+            '<label ',
+              'class="pmd-pos-food-detail__note">',
+
+              '<span>',
+                '<b>Item note</b>',
+                '<small>',
+                  'Kitchen, allergy, doneness or service note',
+                '</small>',
+              '</span>',
+
+              '<textarea ',
+                'data-pos-modifier-note ',
+                'maxlength="500" ',
+                'placeholder="Optional note…">',
+              '</textarea>',
+
+            '</label>',
+
+            '<div ',
+              'class="pmd-pos-food-detail__confirm">',
+
+              '<span>',
+                'Add to current order',
+              '</span>',
+
+              '<strong ',
+                'data-pos-modifier-total>',
+                money(
+                  toNumber(
+                    item.price,
+                    0
+                  )
+                  * state.modifierQuantity
+                ),
+              '</strong>',
+
+            '</div>',
+
+          '</section>',
+        '</div>'
+      ].join('');
+
+      var detailImage = $(
+        '[data-pos-detail-image]',
+        body
+      );
+
+      if (detailImage) {
+        detailImage.addEventListener(
+          'error',
+          function () {
+            detailImage.style.display =
+              'none';
+          }
+        );
+      }
+
+      var minus = $(
+        '[data-pos-modifier-minus]',
+        body
+      );
+
+      var plus = $(
+        '[data-pos-modifier-plus]',
+        body
+      );
+
+      var note = $(
+        '[data-pos-modifier-note]',
+        body
+      );
+
+      if (minus) {
+        minus.onclick = function () {
+          state.modifierQuantity =
+            Math.max(
+              Math.max(
+                1,
+                toNumber(
+                  item.minimum_qty,
+                  1
+                )
+              ),
+              state.modifierQuantity - 1
+            );
+
+          updateModifierPreview();
+        };
+      }
+
+      if (plus) {
+        plus.onclick = function () {
+          state.modifierQuantity =
+            Math.min(
+              99,
+              state.modifierQuantity + 1
+            );
+
+          updateModifierPreview();
+        };
+      }
+
+      if (note) {
+        note.addEventListener(
+          'input',
+          function () {
+            state.modifierNote =
+              note.value;
+          }
+        );
+      }
+
+      body.addEventListener(
+        'change',
+        updateModifierPreview
+      );
+
+      modal.classList.add(
+        'is-show'
+      );
+
+      modal.setAttribute(
+        'aria-hidden',
+        'false'
+      );
+
+      updateModifierPreview();
     }
 
     function closeModifier() {
-      var modal = $('[data-pos-modifier-modal]');
+      var modal = $(
+        '[data-pos-modifier-modal]'
+      );
+
       if (modal) {
-        modal.classList.remove('is-show');
-        modal.setAttribute('aria-hidden', 'true');
+        modal.classList.remove(
+          'is-show'
+        );
+
+        modal.setAttribute(
+          'aria-hidden',
+          'true'
+        );
       }
+
       state.modifierItem = null;
+      state.modifierQuantity = 1;
+      state.modifierNote = '';
     }
 
     function addModifiedItem() {
-      if (!state.modifierItem) return;
-      var selected = [];
-      var valid = true;
-      $$('[data-pos-modal-body] [data-option-group]').forEach(function (group) {
-        var checked = $$('input:checked', group);
-        var min = Number(group.dataset.min || (group.dataset.required === '1' ? 1 : 0));
-        var max = Number(group.dataset.max || 999);
-        if (checked.length < min || checked.length > max) {
-          valid = false;
-          group.scrollIntoView({behavior:'smooth', block:'center'});
-          group.style.outline = '3px solid rgba(239,51,64,.25)';
-          setTimeout(function () { group.style.outline = ''; }, 1800);
-          return;
-        }
-        checked.forEach(function (input) {
-          selected.push({id:Number(input.value), name:input.dataset.optionName || 'Option', price:Number(input.dataset.optionPrice || 0)});
-        });
-      });
-      if (!valid) {
-        toast('Complete all required options.', true);
+      if (!state.modifierItem) {
         return;
       }
-      addLine(state.modifierItem, selected);
+
+      var selected = [];
+      var valid = true;
+
+      $$(
+        '[data-pos-modal-body] [data-option-group]'
+      ).forEach(function (group) {
+        var checked = $$(
+          'input:checked',
+          group
+        );
+
+        var min = Number(
+          group.dataset.min
+          || (
+            group.dataset.required === '1'
+              ? 1
+              : 0
+          )
+        );
+
+        var max = Number(
+          group.dataset.max || 999
+        );
+
+        if (
+          checked.length < min
+          || checked.length > max
+        ) {
+          valid = false;
+
+          group.scrollIntoView({
+            behavior: 'smooth',
+            block: 'center'
+          });
+
+          group.style.outline =
+            '3px solid rgba(239,51,64,.25)';
+
+          setTimeout(
+            function () {
+              group.style.outline = '';
+            },
+            1800
+          );
+
+          return;
+        }
+
+        checked.forEach(
+          function (input) {
+            selected.push({
+              id: Number(input.value),
+              name:
+                input.dataset.optionName
+                || 'Option',
+              price: Number(
+                input.dataset.optionPrice
+                || 0
+              )
+            });
+          }
+        );
+      });
+
+      if (!valid) {
+        toast(
+          'Complete all required options.',
+          true
+        );
+
+        return;
+      }
+
+      addLine(
+        state.modifierItem,
+        selected,
+        state.modifierQuantity,
+        state.modifierNote
+      );
+
       closeModifier();
     }
 
@@ -662,7 +1731,13 @@
       destroy: destroy,
       addItem: function (id) {
         var item = state.menu.find(function (row) { return String(row.id) === String(id); });
-        if (item) item.has_options ? openModifier(item) : addLine(item, []);
+        if (
+          item
+          && item.orderable !== false
+          && item.price_configured !== false
+        ) {
+          openModifier(item);
+        }
       },
       debug: function () {
         return {

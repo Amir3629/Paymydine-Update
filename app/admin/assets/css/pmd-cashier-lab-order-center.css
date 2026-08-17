@@ -1,0 +1,825 @@
+/* =========================================================
+   PMD CASHIER ORDER CENTER
+   Cashier-only visual authority.
+   Does not own ordering/payment business logic.
+   ========================================================= */
+
+html.pmd-cashier-order-center-open,
+body.pmd-cashier-order-center-open {
+  overflow: hidden !important;
+}
+
+.pmd-cashier-order-center,
+.pmd-cashier-order-center * {
+  box-sizing: border-box;
+}
+
+.pmd-cashier-order-center {
+  position: fixed;
+  inset: 0;
+  z-index: 99980;
+  display: grid;
+  place-items: center;
+  padding: 18px;
+}
+
+.pmd-cashier-order-center[hidden] {
+  display: none !important;
+}
+
+.pmd-cashier-order-center__backdrop {
+  position: absolute;
+  inset: 0;
+  border: 0;
+  background: rgba(15, 35, 54, .38);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+
+.pmd-cashier-order-center__dialog {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  width: min(1040px, 100%);
+  max-height: calc(100vh - 36px);
+  overflow: hidden;
+  border: 1px solid #cfe0ed;
+  border-radius: 22px;
+  background: #f8fbfd;
+  box-shadow: 0 28px 80px rgba(16, 42, 67, .22);
+}
+
+.pmd-cashier-order-center__header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 20px 22px 16px;
+  border-bottom: 1px solid #dce8f0;
+  background: #fff;
+}
+
+.pmd-cashier-order-center__identity {
+  min-width: 0;
+}
+
+.pmd-cashier-order-center__eyebrow {
+  display: block;
+  margin-bottom: 5px;
+  color: #73899b;
+  font-size: 11px;
+  font-weight: 850;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+}
+
+.pmd-cashier-order-center__identity h2 {
+  margin: 0;
+  color: #102a43;
+  font-size: 23px;
+  font-weight: 900;
+  line-height: 1.15;
+}
+
+.pmd-cashier-order-center__identity p {
+  margin: 6px 0 0;
+  color: #667d91;
+  font-size: 13.5px;
+  font-weight: 700;
+}
+
+.pmd-cashier-order-center__close {
+  display: grid;
+  place-items: center;
+  flex: 0 0 44px;
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  border: 1px solid #cfe0ed;
+  border-radius: 13px;
+  background: #fff;
+  color: #173b57;
+  font-size: 25px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.pmd-cashier-order-center__body {
+  min-height: 260px;
+  padding: 18px 22px 22px;
+  overflow: auto;
+}
+
+.pmd-cashier-order-center__loading,
+.pmd-cashier-order-center__error {
+  display: grid;
+  place-items: center;
+  min-height: 280px;
+  padding: 30px;
+  border: 1px solid #dce8f0;
+  border-radius: 18px;
+  background: #fff;
+  color: #60778b;
+  text-align: center;
+  font-weight: 750;
+}
+
+.pmd-cashier-order-center__error {
+  color: #963d49;
+}
+
+.pmd-cashier-order-center__status-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 14px;
+}
+
+.pmd-cashier-order-center__pill {
+  display: inline-flex;
+  align-items: center;
+  min-height: 32px;
+  padding: 0 11px;
+  border: 1px solid #cbdde9;
+  border-radius: 999px;
+  background: #fff;
+  color: #47647c;
+  font-size: 12px;
+  font-weight: 850;
+}
+
+.pmd-cashier-order-center__pill.is-paid {
+  border-color: #b9dcca;
+  background: #f1faf6;
+  color: #246b4b;
+}
+
+.pmd-cashier-order-center__pill.is-partial {
+  border-color: #e5d2a9;
+  background: #fffaf0;
+  color: #865f17;
+}
+
+.pmd-cashier-order-center__pill.is-unpaid {
+  border-color: #e8c9c4;
+  background: #fff7f5;
+  color: #944940;
+}
+
+.pmd-cashier-order-center__money {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+  margin-bottom: 14px;
+}
+
+.pmd-cashier-order-center__money > div {
+  min-width: 0;
+  padding: 15px;
+  border: 1px solid #cfe0ed;
+  border-radius: 16px;
+  background: #fff;
+}
+
+.pmd-cashier-order-center__money span {
+  display: block;
+  margin-bottom: 5px;
+  color: #71879a;
+  font-size: 11px;
+  font-weight: 850;
+  text-transform: uppercase;
+}
+
+.pmd-cashier-order-center__money strong {
+  display: block;
+  overflow: hidden;
+  color: #14334c;
+  font-size: 20px;
+  font-weight: 900;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.pmd-cashier-order-center__money .is-due strong {
+  color: #a86617;
+}
+
+.pmd-cashier-order-center__section {
+  margin-top: 14px;
+  padding: 17px;
+  border: 1px solid #cfe0ed;
+  border-radius: 18px;
+  background: #fff;
+}
+
+.pmd-cashier-order-center__section-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 13px;
+}
+
+.pmd-cashier-order-center__section-head strong {
+  color: #102a43;
+  font-size: 16px;
+  font-weight: 900;
+}
+
+.pmd-cashier-order-center__section-head span {
+  color: #72889a;
+  font-size: 12px;
+  font-weight: 750;
+}
+
+.pmd-cashier-order-center__items {
+  display: grid;
+  gap: 8px;
+}
+
+.pmd-cashier-order-center__item {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  gap: 11px;
+  align-items: center;
+  padding: 11px 12px;
+  border: 1px solid #e0eaf1;
+  border-radius: 13px;
+  background: #fbfdff;
+}
+
+.pmd-cashier-order-center__qty {
+  display: grid;
+  place-items: center;
+  min-width: 38px;
+  min-height: 34px;
+  border-radius: 10px;
+  background: #edf5fa;
+  color: #173b57;
+  font-size: 12.5px;
+  font-weight: 900;
+}
+
+.pmd-cashier-order-center__item-name {
+  min-width: 0;
+  color: #17364f;
+  font-size: 14px;
+  font-weight: 850;
+}
+
+.pmd-cashier-order-center__item-name small {
+  display: block;
+  margin-top: 4px;
+  color: #768b9c;
+  font-size: 11.5px;
+  font-weight: 650;
+}
+
+.pmd-cashier-order-center__item-price {
+  color: #14334c;
+  font-size: 14px;
+  font-weight: 900;
+  white-space: nowrap;
+}
+
+.pmd-cashier-order-center__note {
+  margin: 0;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  color: #526d82;
+  font-size: 13.5px;
+  font-weight: 650;
+  line-height: 1.5;
+}
+
+.pmd-cashier-order-center__history {
+  display: grid;
+  gap: 8px;
+}
+
+.pmd-cashier-order-center__history-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 12px;
+  padding: 10px 12px;
+  border: 1px solid #e0eaf1;
+  border-radius: 12px;
+  background: #fbfdff;
+}
+
+.pmd-cashier-order-center__history-row strong {
+  color: #17364f;
+  font-size: 13px;
+}
+
+.pmd-cashier-order-center__history-row small {
+  display: block;
+  margin-top: 3px;
+  color: #71879a;
+  font-size: 11.5px;
+}
+
+.pmd-cashier-order-center__history-row b {
+  color: #246b4b;
+  font-size: 13px;
+}
+
+.pmd-cashier-order-center__footer {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 9px;
+  padding: 15px 22px 18px;
+  border-top: 1px solid #dce8f0;
+  background: #fff;
+}
+
+.pmd-cashier-order-center__action {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 42px;
+  padding: 0 15px;
+  border: 1px solid #cbdde9;
+  border-radius: 12px;
+  background: #fff;
+  color: #173b57;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 850;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.pmd-cashier-order-center__action:hover {
+  border-color: #9ebed3;
+  background: #f2f7fb;
+  color: #102a43;
+  text-decoration: none;
+}
+
+.pmd-cashier-order-center__action.is-primary {
+  border-color: #0d705e;
+  background: #0d705e;
+  color: #fff;
+}
+
+.pmd-cashier-order-center__action.is-payment {
+  border-color: #d49829;
+  background: #fff8e8;
+  color: #805b15;
+}
+
+.pmd-cashier-order-center__action[disabled] {
+  opacity: .45;
+  cursor: not-allowed;
+}
+
+/* Existing order-card CTA becomes dialog opener without changing card geometry. */
+#pmd-cashier-current-orders-v2 .pmd-ops-card__footer a[data-pmd-r37-order-center] {
+  cursor: pointer;
+}
+
+/* =========================================================
+   Embedded proven Waiter POS
+   Only active after Add items / Payment is requested.
+   ========================================================= */
+
+.pmd-cashier-pos-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 100020;
+  display: grid;
+  place-items: stretch;
+  padding: 12px;
+}
+
+.pmd-cashier-pos-overlay__backdrop {
+  position: absolute;
+  inset: 0;
+  border: 0;
+  background: rgba(8, 22, 35, .58);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+
+.pmd-cashier-pos-overlay__panel {
+  position: relative;
+  z-index: 1;
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+  border-radius: 22px;
+  background: #eef3f8;
+  box-shadow: 0 30px 90px rgba(4, 15, 28, .32);
+}
+
+/*
+ * Legacy "Edit order" inside Waiter POS deliberately stays hidden here.
+ * Cashier R37 must never navigate to /admin/orders/edit/*.
+ */
+.pmd-cashier-pos-overlay [data-pos-edit-order] {
+  display: none !important;
+}
+
+.pmd-cashier-pos-overlay .pmd-pos-app {
+  min-height: calc(100vh - 24px);
+  height: calc(100vh - 24px);
+}
+
+@media (max-width: 720px) {
+  .pmd-cashier-order-center {
+    padding: 10px;
+  }
+
+  .pmd-cashier-order-center__dialog {
+    max-height: calc(100vh - 20px);
+    border-radius: 18px;
+  }
+
+  .pmd-cashier-order-center__header,
+  .pmd-cashier-order-center__body,
+  .pmd-cashier-order-center__footer {
+    padding-left: 14px;
+    padding-right: 14px;
+  }
+
+  .pmd-cashier-order-center__money {
+    grid-template-columns: 1fr;
+    gap: 8px;
+  }
+
+  .pmd-cashier-order-center__item {
+    grid-template-columns: auto minmax(0, 1fr);
+  }
+
+  .pmd-cashier-order-center__item-price {
+    grid-column: 2;
+  }
+
+  .pmd-cashier-order-center__footer {
+    justify-content: stretch;
+  }
+
+  .pmd-cashier-order-center__action {
+    flex: 1 1 calc(50% - 9px);
+  }
+
+  .pmd-cashier-pos-overlay {
+    padding: 0;
+  }
+
+  .pmd-cashier-pos-overlay__panel {
+    border-radius: 0;
+  }
+
+  .pmd-cashier-pos-overlay .pmd-pos-app {
+    min-height: 100vh;
+    height: 100vh;
+  }
+}
+
+
+/* =========================================================
+   PMD_CASHIER_ORDER_CENTER_DOCUMENTS_R37C
+   ========================================================= */
+
+.pmd-cashier-order-center__breakdown {
+  display: grid;
+  gap: 0;
+  margin: -2px 0 14px;
+  overflow: hidden;
+  border: 1px solid #cfe0ed;
+  border-radius: 15px;
+  background: #fff;
+}
+
+.pmd-cashier-order-center__breakdown-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  min-height: 42px;
+  padding: 0 15px;
+  border-bottom: 1px solid #e4edf3;
+  color: #536f84;
+  font-size: 13px;
+  font-weight: 750;
+}
+
+.pmd-cashier-order-center__breakdown-row:last-child {
+  border-bottom: 0;
+}
+
+.pmd-cashier-order-center__breakdown-row strong {
+  color: #17364f;
+  font-size: 13.5px;
+  font-weight: 900;
+}
+
+.pmd-cashier-order-center__breakdown-row.is-negative strong {
+  color: #986319;
+}
+
+.pmd-cashier-order-center__breakdown-row.is-total {
+  min-height: 47px;
+  background: #f8fbfd;
+  color: #17364f;
+  font-weight: 900;
+}
+
+.pmd-cashier-order-center__breakdown-row.is-total strong {
+  font-size: 16px;
+}
+
+.pmd-cashier-order-center.is-document
+.pmd-cashier-order-center__body {
+  padding: 14px;
+  background: #eef4f8;
+}
+
+.pmd-cashier-order-center__document {
+  width: 100%;
+  min-height: 520px;
+  overflow: hidden;
+  border: 1px solid #cfe0ed;
+  border-radius: 16px;
+  background: #fff;
+}
+
+.pmd-cashier-order-center__document-frame {
+  display: block;
+  width: 100%;
+  height: min(70vh, 760px);
+  min-height: 520px;
+  margin: 0;
+  border: 0;
+  background: #fff;
+}
+
+@media (max-width: 720px) {
+  .pmd-cashier-order-center__document {
+    min-height: 420px;
+    border-radius: 12px;
+  }
+
+  .pmd-cashier-order-center__document-frame {
+    height: calc(100vh - 220px);
+    min-height: 420px;
+  }
+}
+
+
+/* =========================================================
+   PMD_CASHIER_ORDER_MUTATION_R39
+   Safe line mutation before payment only.
+   ========================================================= */
+
+.pmd-cashier-order-center__item-end {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+.pmd-cashier-order-center__qty-control {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-width: 82px;
+  min-height: 38px;
+  padding: 3px 5px;
+  border: 1px solid #d7e5ee;
+  border-radius: 11px;
+  background: #f4f9fc;
+}
+
+.pmd-cashier-order-center__qty-control b {
+  min-width: 27px;
+  color: #17364f;
+  font-size: 12.5px;
+  font-weight: 900;
+  text-align: center;
+}
+
+.pmd-cashier-order-center__qty-button {
+  display: grid;
+  place-items: center;
+  flex: 0 0 30px;
+  width: 30px;
+  height: 30px;
+  padding: 0;
+  border: 1px solid #cadde9;
+  border-radius: 8px;
+  background: #fff;
+  color: #173b57;
+  font: inherit;
+  font-size: 20px;
+  font-weight: 800;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.pmd-cashier-order-center__qty-button:hover {
+  border-color: #99bbcf;
+  background: #edf5fa;
+}
+
+.pmd-cashier-order-center__remove-item {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 34px;
+  padding: 0 10px;
+  border: 1px solid #e2bcc3;
+  border-radius: 9px;
+  background: #fff;
+  color: #9b3245;
+  font: inherit;
+  font-size: 11.5px;
+  font-weight: 850;
+  cursor: pointer;
+}
+
+.pmd-cashier-order-center__remove-item:hover {
+  border-color: #cd8794;
+  background: #fff6f7;
+}
+
+.pmd-cashier-order-center__mutation-lock {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 0 0 14px;
+  padding: 12px 14px;
+  border: 1px solid #d9e3ea;
+  border-radius: 13px;
+  background: #f4f7f9;
+}
+
+.pmd-cashier-order-center__mutation-lock strong {
+  flex: 0 0 auto;
+  color: #324e63;
+  font-size: 12.5px;
+  font-weight: 900;
+}
+
+.pmd-cashier-order-center__mutation-lock span {
+  color: #698092;
+  font-size: 12.5px;
+  font-weight: 700;
+  line-height: 1.4;
+}
+
+.pmd-cashier-order-center__void-dialog {
+  position: absolute;
+  inset: 0;
+  z-index: 20;
+  display: grid;
+  place-items: center;
+  padding: 18px;
+}
+
+.pmd-cashier-order-center__void-dialog[hidden] {
+  display: none !important;
+}
+
+.pmd-cashier-order-center__void-backdrop {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  border: 0;
+  background: rgba(14, 35, 51, .36);
+  backdrop-filter: blur(5px);
+  -webkit-backdrop-filter: blur(5px);
+}
+
+.pmd-cashier-order-center__void-panel {
+  position: relative;
+  z-index: 1;
+  width: min(430px, 100%);
+  padding: 20px;
+  border: 1px solid #cfdee8;
+  border-radius: 18px;
+  background: #fff;
+  box-shadow: 0 24px 60px rgba(17, 42, 61, .22);
+}
+
+.pmd-cashier-order-center__void-panel h3 {
+  margin: 2px 0 7px;
+  color: #102a43;
+  font-size: 20px;
+  font-weight: 900;
+}
+
+.pmd-cashier-order-center__void-panel > p {
+  margin: 0 0 16px;
+  color: #60788b;
+  font-size: 13.5px;
+  font-weight: 700;
+  line-height: 1.5;
+}
+
+.pmd-cashier-order-center__void-panel > p.is-error {
+  color: #9d3243;
+}
+
+.pmd-cashier-order-center__void-field {
+  display: grid;
+  gap: 6px;
+  margin-top: 12px;
+}
+
+.pmd-cashier-order-center__void-field[hidden] {
+  display: none !important;
+}
+
+.pmd-cashier-order-center__void-field > span {
+  color: #536d81;
+  font-size: 11.5px;
+  font-weight: 850;
+}
+
+.pmd-cashier-order-center__void-field select,
+.pmd-cashier-order-center__void-field input {
+  width: 100%;
+  min-height: 44px;
+  padding: 0 12px;
+  border: 1px solid #cadce8;
+  border-radius: 11px;
+  outline: 0;
+  background: #fff;
+  color: #17364f;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.pmd-cashier-order-center__void-field select:focus,
+.pmd-cashier-order-center__void-field input:focus {
+  border-color: #7eaac3;
+  box-shadow: 0 0 0 3px rgba(77, 139, 177, .12);
+}
+
+.pmd-cashier-order-center__void-warning {
+  margin-top: 14px;
+  padding: 10px 11px;
+  border: 1px solid #e6ddc4;
+  border-radius: 10px;
+  background: #fffaf0;
+  color: #80631f;
+  font-size: 11.5px;
+  font-weight: 750;
+  line-height: 1.4;
+}
+
+.pmd-cashier-order-center__void-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 17px;
+}
+
+.pmd-cashier-order-center__action.is-danger {
+  border-color: #a93749;
+  background: #a93749;
+  color: #fff;
+}
+
+.pmd-cashier-order-center__action.is-danger:hover {
+  border-color: #8f293a;
+  background: #8f293a;
+  color: #fff;
+}
+
+.pmd-cashier-order-center__action.is-danger[disabled] {
+  opacity: .45;
+}
+
+@media (max-width: 720px) {
+  .pmd-cashier-order-center__item-end {
+    grid-column: 2;
+    justify-content: space-between;
+  }
+
+  .pmd-cashier-order-center__mutation-lock {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  .pmd-cashier-order-center__void-dialog {
+    padding: 10px;
+  }
+
+  .pmd-cashier-order-center__void-panel {
+    border-radius: 16px;
+  }
+
+  .pmd-cashier-order-center__void-actions {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+  }
+}

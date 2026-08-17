@@ -37,22 +37,103 @@ trait PmdWaiterPosOrderScopeConcern
         });
     }
 
+    // PMD_CASHIER_UNPAID_ORDER_EDITABLE_R40
+    //
+    // Kitchen/service completion and financial settlement are separate
+    // lifecycles. A completed/served order may still have an unpaid bill.
+    //
+    // Only cancellation or started/completed payment makes the order
+    // structurally non-editable.
     protected function applyOpenScope($query, array $cols): void
     {
-        $closed = array_values(array_filter(array_map('intval', [
-            setting('completed_order_status'),
-            setting('canceled_order_status'),
-        ])));
-        if ($closed && in_array('status_id', $cols, true)) {
-            $query->whereNotIn('status_id', $closed);
+        $cancelled = array_values(
+            array_filter(
+                array_map('intval', [
+                    setting('canceled_order_status'),
+                ])
+            )
+        );
+
+        if (
+            $cancelled
+            && in_array(
+                'status_id',
+                $cols,
+                true
+            )
+        ) {
+            $query->whereNotIn(
+                'status_id',
+                $cancelled
+            );
         }
-        if (in_array('settlement_status', $cols, true)) {
+
+        if (
+            in_array(
+                'settled_amount',
+                $cols,
+                true
+            )
+        ) {
             $query->where(function ($q) {
-                $q->whereNull('settlement_status')->orWhereNotIn('settlement_status', ['paid', 'settled', 'closed', 'cancelled', 'failed']);
+                $q->whereNull(
+                    'settled_amount'
+                )->orWhere(
+                    'settled_amount',
+                    '<=',
+                    0.0001
+                );
             });
-        } elseif (in_array('payment_status', $cols, true)) {
+        }
+
+        if (
+            in_array(
+                'settlement_status',
+                $cols,
+                true
+            )
+        ) {
             $query->where(function ($q) {
-                $q->whereNull('payment_status')->orWhereNotIn('payment_status', ['paid', 'settled', 'closed']);
+                $q->whereNull(
+                    'settlement_status'
+                )->orWhereNotIn(
+                    'settlement_status',
+                    [
+                        'partial',
+                        'paid',
+                        'settled',
+                        'closed',
+                        'cancelled',
+                        'canceled',
+                        'failed',
+                        'refunded',
+                    ]
+                );
+            });
+
+        } elseif (
+            in_array(
+                'payment_status',
+                $cols,
+                true
+            )
+        ) {
+            $query->where(function ($q) {
+                $q->whereNull(
+                    'payment_status'
+                )->orWhereNotIn(
+                    'payment_status',
+                    [
+                        'partial',
+                        'paid',
+                        'settled',
+                        'closed',
+                        'cancelled',
+                        'canceled',
+                        'failed',
+                        'refunded',
+                    ]
+                );
             });
         }
     }
@@ -74,14 +155,95 @@ trait PmdWaiterPosOrderScopeConcern
 
     protected function orderIsOpen(Orders_model $order): bool
     {
-        $closed = array_values(array_filter(array_map('intval', [
-            setting('completed_order_status'),
-            setting('canceled_order_status'),
-        ])));
-        if ($closed && in_array((int)$order->status_id, $closed, true)) {
+        /*
+         * Do not treat completed/served kitchen status as financially
+         * closed. Only explicit cancellation blocks the order here.
+         */
+        $cancelled = array_values(
+            array_filter(
+                array_map('intval', [
+                    setting('canceled_order_status'),
+                ])
+            )
+        );
+
+        if (
+            $cancelled
+            && in_array(
+                (int)$order->status_id,
+                $cancelled,
+                true
+            )
+        ) {
             return false;
         }
-        return !in_array(strtolower((string)($order->settlement_status ?? $order->payment_status ?? '')), ['paid', 'settled', 'cancelled', 'failed', 'closed'], true);
+
+        /*
+         * Once any money has been settled, structural item mutation
+         * is disabled.
+         */
+        if (
+            (float)(
+                $order->settled_amount ?? 0
+            ) > 0.0001
+        ) {
+            return false;
+        }
+
+        $financialStatus = strtolower(
+            trim(
+                (string)(
+                    $order->settlement_status
+                    ?? $order->payment_status
+                    ?? ''
+                )
+            )
+        );
+
+        if (
+            in_array(
+                $financialStatus,
+                [
+                    'partial',
+                    'paid',
+                    'settled',
+                    'closed',
+                    'cancelled',
+                    'canceled',
+                    'failed',
+                    'refunded',
+                ],
+                true
+            )
+        ) {
+            return false;
+        }
+
+        /*
+         * R39 invariant:
+         * any recorded payment transaction locks item structure.
+         */
+        if (
+            Schema::hasTable(
+                'order_payment_transactions'
+            )
+            && Schema::hasColumn(
+                'order_payment_transactions',
+                'order_id'
+            )
+            && DB::table(
+                'order_payment_transactions'
+            )
+                ->where(
+                    'order_id',
+                    (int)$order->getKey()
+                )
+                ->exists()
+        ) {
+            return false;
+        }
+
+        return true;
     }
 
     protected function findOrder(int $orderId): ?Orders_model

@@ -33,12 +33,6 @@ class Cashierlab extends PmdCleanWorkspaceControllerV1
         // PMD_CASHIER_ORDER_CENTER_R37A
         // UI-only Cashier order detail authority.
         // Ordering/payment business logic remains owned by Waiter POS.
-        // PMD_CASHIER_ORDER_COMPOSER_R41
-        // Cashier-native create/edit composer binds before legacy R37.
-        // It owns New Order / Open Order / Add Items / Payment entry points.
-        $this->addCss('css/pmd-cashier-order-composer-v1.css');
-        $this->addJs('js/pmd-cashier-order-composer-v1.js');
-
         $this->addCss('css/pmd-cashier-lab-order-center.css');
         $this->addJs('js/pmd-cashier-lab-order-center.js');
     }
@@ -566,12 +560,14 @@ class Cashierlab extends PmdCleanWorkspaceControllerV1
                 in_array($settlement, ['closed'], true)
                 || preg_match('/closed|complete|completed|finished/i', $statusRaw);
 
-            // PMD_CASHIER_OPERATIONAL_STATUS_R37C
-            // Payment lifecycle must never replace kitchen/order lifecycle.
             if (preg_match('/cancel|failed|declin|reject|void/', $statusRaw)) {
                 $statusKey = 'problem';
+            } elseif ($isPaid) {
+                $statusKey = 'paid';
             } elseif ($isClosed) {
                 $statusKey = 'closed';
+            } elseif ($settled > 0 && $due > 0) {
+                $statusKey = 'partial';
             } elseif (preg_match('/ready/', $statusRaw)) {
                 $statusKey = 'ready';
             } elseif (preg_match('/served|delivered/', $statusRaw)) {
@@ -638,15 +634,6 @@ class Cashierlab extends PmdCleanWorkspaceControllerV1
 
             $cards[] = [
                 'id' => $orderId,
-
-                // PMD_CASHIER_ORDER_TABLE_HINT_R42
-                // Keep the resolved table reference on the card contract.
-                // R42 uses this instead of trying to reverse-engineer legacy
-                // order_type/table_id shapes from a second endpoint.
-                'table_id' => (int)($order['table_id'] ?? 0),
-                'table_number' => (string)($order['table_number'] ?? ''),
-                'table_label' => (string)($order['table_label'] ?? ''),
-
                 'table' => $normalizeTable(
                     (string)($order['table_label'] ?? ''),
                     (string)($order['table_number'] ?? '')

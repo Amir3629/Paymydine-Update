@@ -240,4 +240,12 @@
   'Admin\\Models\\Menu_combo_items_model' => 'app/admin/models/Menu_combo_items_model.php',
   'Admin\\Controllers\\coupons' => 'app/admin/controllers/Coupons.php',
   'Admin\\Models\\Coupons_model' => 'app/admin/models/Coupons_model.php',
+  'Admin\\Requests\\Staff' => 'app/admin/requests/Staff.php',
+  'System\\Models\\Mail_templates_model' => 'app/system/models/Mail_templates_model.php',
+  'System\\Models\\Mail_layouts_model' => 'app/system/models/Mail_layouts_model.php',
+  'System\\Helpers\\ViewHelper' => 'app/system/helpers/ViewHelper.php',
+  'System\\Models\\Mail_partials_model' => 'app/system/models/Mail_partials_model.php',
+  'System\\Models\\Mail_themes_model' => 'app/system/models/Mail_themes_model.php',
+  'System\\Actions\\SettingsModel' => 'app/system/actions/SettingsModel.php',
+  'Main\\Models\\Image_tool_model' => 'app/main/models/Image_tool_model.php',
 );
