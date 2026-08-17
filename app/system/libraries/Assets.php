@@ -117,6 +117,26 @@ class Assets
 
     public function getFavIcon()
     {
+        /* PMD_ADMIN_FAVICON_AUTHORITY_V1
+         * Admin surfaces always use PayMyDine product branding. Restaurant/site
+         * favicon settings remain untouched for non-admin/customer pages.
+         */
+        try {
+            if (function_exists('request')) {
+                $request = request();
+                if ($request && ($request->is('admin') || $request->is('admin/*'))) {
+                    $attributes = [
+                        'rel' => 'icon',
+                        'type' => 'image/svg+xml',
+                        'href' => asset('app/admin/assets/images/favicon.svg').'?v=pmd-admin-20260817',
+                    ];
+                    return '<link'.Html::attributes($attributes).'>'.PHP_EOL;
+                }
+            }
+        } catch (\Throwable $e) {
+            // Fall through to normal site/tenant favicon resolution.
+        }
+
         // Check if favicon_logo is set in settings
         $faviconFromSettings = setting('favicon_logo');
         
