@@ -97,9 +97,12 @@ class KitchenDisplay extends AdminController
         $this->vars['operationalLookbackHours'] = self::PMD_KDS_OPERATIONAL_LOOKBACK_HOURS_V134;
         $this->vars['stationLocationId'] = null;
 
-        $this->vars['allStations'] = $this->pmdKdsFastCacheRememberV82('pmd_kds_all_stations_minimal_v1_1', 30, function () {
-            return Kds_stations_model::query()->orderBy('name', 'asc')->get();
-        });
+        // KDS station navigation is configuration state, not hot order data.
+        // Read the canonical table directly so create/edit/delete is immediately
+        // visible and no fixed station-list cache can leak stale context.
+        $this->vars['allStations'] = Kds_stations_model::query()
+            ->orderBy('name', 'asc')
+            ->get();
         
         // Render standalone view directly using Laravel's view helper
         return response()->make(

@@ -4,6 +4,7 @@
 <!DOCTYPE html>
 <html lang="en" class="{{ $pmdKdsEmbedded ? 'pmd-kds-embedded-v1' : '' }}">
 <head>
+    <link rel="icon" type="image/svg+xml" href="{{ asset('app/admin/assets/images/pmd-brand-mark.svg') }}?v=pmd-brand-mark-20260817">
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <title>{{ $title }}</title>
