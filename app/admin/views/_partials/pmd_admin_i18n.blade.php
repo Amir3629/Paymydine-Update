@@ -33,6 +33,17 @@
         'app/admin/assets/js/pmd-admin-i18n-v1.js'
     );
 
+    // PMD_I18N_PAGE_AUTHORITY_CONTENT_VERSION_V3
+    // The previous loader used one permanent 20260803 URL, so browsers could
+    // keep executing an old route list even after the file changed on disk.
+    $pmdPageAuthorityPath = base_path(
+        'app/admin/assets/js/pmd-admin-i18n-page-authority-v2.js'
+    );
+
+    $pmdKpiOverlayPath = base_path(
+        'app/admin/assets/css/pmd-kpi-overlay-order-v1.css'
+    );
+
     $pmdCatalogueVersion = is_file($pmdCataloguePath)
         ? (string)filemtime($pmdCataloguePath)
         : 'missing';
@@ -40,6 +51,26 @@
     $pmdRuntimeVersion = is_file($pmdRuntimePath)
         ? (string)filemtime($pmdRuntimePath)
         : '1';
+
+    $pmdPageAuthorityVersion = is_file($pmdPageAuthorityPath)
+        ? (string)filemtime($pmdPageAuthorityPath)
+        : '1';
+
+    $pmdKpiOverlayVersion = is_file($pmdKpiOverlayPath)
+        ? (string)filemtime($pmdKpiOverlayPath)
+        : '1';
+
+    $pmdKpiOverlayRoute = in_array(
+        trim((string)request()->path(), '/'),
+        [
+            'admin/dashboardlab',
+            'admin/managerlab',
+            'admin/reservationslab',
+            'admin/cashierlab',
+            'admin/accountantlab',
+        ],
+        true
+    );
 @endphp
 
 <style id="pmd-admin-i18n-critical-style">
@@ -77,6 +108,13 @@
 })();
 </script>
 
+@if($pmdKpiOverlayRoute)
+<link
+    rel="stylesheet"
+    href="/app/admin/assets/css/pmd-kpi-overlay-order-v1.css?v={{ $pmdKpiOverlayVersion }}"
+>
+@endif
+
 <script
     src="/app/admin/assets/js/pmd-admin-i18n-catalog-de.js?v={{ $pmdCatalogueVersion }}"
     defer
@@ -85,8 +123,8 @@
     src="/app/admin/assets/js/pmd-admin-i18n-v1.js?v={{ $pmdRuntimeVersion }}"
     defer
 ></script>
-<!-- PMD_I18N_PAGE_AUTHORITY_V2 -->
-<script src="/app/admin/assets/js/pmd-admin-i18n-page-authority-v2.js?v=i18n-page-authority-v2-20260803_143428"></script>
+<!-- PMD_I18N_PAGE_AUTHORITY_CONTENT_VERSION_V3 -->
+<script src="/app/admin/assets/js/pmd-admin-i18n-page-authority-v2.js?v={{ $pmdPageAuthorityVersion }}"></script>
 
 {{-- PMD_ORDER_EDIT_V2_LOADER --}}
 @php
