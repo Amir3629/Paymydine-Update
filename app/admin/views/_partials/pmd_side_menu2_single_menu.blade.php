@@ -25,11 +25,42 @@
     }
 
     $pmdSm2DashboardIsActive = $pmdActive([$pmdSm2DashboardRoute]);
+
+    /* PMD_SIDE_MENU_ROLE_WORKSPACE_SHORTCUTS_V1
+     * Reuse the canonical landing-route authority instead of adding a second
+     * role lookup. Owner gets Manager + Accountant; Manager gets Accountant.
+     * These are navigation links only and do not grant target permissions.
+     */
+    $pmdSm2IsOwnerNav = $pmdSm2DashboardRoute === 'dashboardlab';
+    $pmdSm2IsManagerNav = $pmdSm2DashboardRoute === 'managerlab';
+    $pmdSm2FloorManagementSurface = in_array(
+        $pmdSingleMenuPath,
+        ['admin/dashboardlab', 'admin/managerlab'],
+        true
+    );
+
     $pmdSm2OrdersIsActive = $pmdActive(['orders'])
         || ($pmdSm2DashboardRoute !== 'cashierlab' && $pmdActive(['cashierlab']));
     $pmdSm2ReservationsIsActive = $pmdActive(['reservations', 'reservations2'])
         || ($pmdSm2DashboardRoute !== 'reservationslab' && $pmdActive(['reservationslab']));
 @endphp
+
+{{-- PMD_FLOOR_MANAGEMENT_SURFACE_VISIBILITY_V1
+     The shared Floor component is reused on multiple role workspaces. Owner
+     and Manager may manage its tables, but the three management buttons are a
+     product surface only on DashboardLab and ManagerLab. CSS is route-known
+     server-first, so the controls never flash on another page. --}}
+@if(!$pmdSm2FloorManagementSurface)
+<style id="pmd-floor-management-surface-visibility-v1">
+[data-pmd-floor-add],
+[data-pmd-floor-table-add],
+[data-pmd-floor-table-edit] {
+    display: none !important;
+    visibility: hidden !important;
+    pointer-events: none !important;
+}
+</style>
+@endif
 
 <aside id="pmd-side-menu2" aria-label="Admin navigation">
     <div class="pmd-sm2__brand">
@@ -46,6 +77,21 @@
             <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12l-2 0l9 -9l9 9l-2 0"/><path d="M5 12v7a2 2 0 0 0 2 2h10a2 2 0 0 0 2 -2v-7"/><path d="M9 21v-6a2 2 0 0 1 2 -2h2a2 2 0 0 1 2 2v6"/></svg>
             <span class="pmd-sm2__label">Dashboard</span>
         </a>
+
+        @if($pmdSm2IsOwnerNav)
+        <a class="pmd-sm2__item {{ $pmdActive(['managerlab']) ? 'is-active' : '' }}" href="{{ admin_url('managerlab') }}" data-pmd-role-workspace-shortcut="manager">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="9" cy="8" r="3"/><path d="M3 20a6 6 0 0 1 12 0M16 5a3 3 0 0 1 0 6M17 14a5 5 0 0 1 4 5"/></svg>
+            <span class="pmd-sm2__label">Manager</span>
+        </a>
+        @endif
+
+        @if($pmdSm2IsOwnerNav || $pmdSm2IsManagerNav)
+        <a class="pmd-sm2__item {{ $pmdActive(['accountantlab']) ? 'is-active' : '' }}" href="{{ admin_url('accountantlab') }}" data-pmd-role-workspace-shortcut="accountant">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="3" width="16" height="18" rx="2"/><path d="M8 7h8M8 11h2M14 11h2M8 15h2M14 15h2M8 19h8"/></svg>
+            <span class="pmd-sm2__label">{{ $pmdSm2IsDe ? 'Buchhaltung' : 'Accountant' }}</span>
+        </a>
+        @endif
+
         <a class="pmd-sm2__item {{ $pmdSm2OrdersIsActive ? 'is-active' : '' }}" href="{{ admin_url('cashierlab') }}">
             <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6.331 8h11.339a2 2 0 0 1 1.977 2.304l-1.255 8.152a3 3 0 0 1 -2.966 2.544h-6.852a3 3 0 0 1 -2.965 -2.544l-1.255 -8.152a2 2 0 0 1 1.977 -2.304"/><path d="M9 11v-5a3 3 0 0 1 6 0v5"/></svg>
             <span class="pmd-sm2__label">Orders</span>
@@ -288,4 +334,3 @@
 })();
 </script>
 <!-- PMD_SM2_ACCOUNT_RUNTIME_V11_END -->
-

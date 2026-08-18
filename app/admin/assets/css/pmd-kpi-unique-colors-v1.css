@@ -1,0 +1,318 @@
+/* ============================================================
+   PMD_KPI_IDENTITY_COLOR_AUTHORITY_V5
+
+   One KPI identity = one visual color inside its workspace.
+   This authority intentionally has higher specificity than the older
+   pmd-reservations2-kpis-v307.css tone/slot rules, so it wins on ALL clean
+   dashboards even when that legacy stylesheet is loaded later.
+
+   Presentation only. No KPI data/source/business logic changes here.
+   ============================================================ */
+
+#pmd-dashboard-lab {
+  --pmd-kpi-user-lavender: #dfb0fe;
+  --pmd-kpi-user-dusty: #dbcbd3;
+  --pmd-kpi-user-magenta: #fb60fd;
+  --pmd-kpi-user-tan: #d1b48c;
+  --pmd-kpi-user-gold: #ffdb57;
+  --pmd-kpi-user-yellow: #ffff00;
+  --pmd-kpi-user-taupe: #837777;
+}
+
+/* Keep the selected identity variables authoritative on the actual card. */
+#pmd-dashboard-lab
+#pmd-r2-reservation-kpis-v307
+.pmd-r2-kpi-v2401-card[data-pmd-dashboard2-kpi] {
+  background: var(--kpi-bg) !important;
+  border-color: var(--kpi-border) !important;
+}
+
+/* ============================================================
+   OWNER / DASHBOARDLAB
+   ============================================================ */
+#pmd-dashboard-lab #pmd-r2-reservation-kpis-v307 .pmd-r2-kpi-v2401-card[data-pmd-dashboard2-kpi="revenue"] {
+  --kpi-bg: #21cb72 !important;
+  --kpi-border: #087b4b !important;
+  --kpi-accent: #062c22 !important;
+  --kpi-icon: rgba(255,255,255,.90) !important;
+}
+
+#pmd-dashboard-lab #pmd-r2-reservation-kpis-v307 .pmd-r2-kpi-v2401-card[data-pmd-dashboard2-kpi="guests"] {
+  --kpi-bg: var(--pmd-kpi-user-lavender) !important;
+  --kpi-border: #8c55ad !important;
+  --kpi-accent: #2f1740 !important;
+  --kpi-icon: rgba(255,255,255,.88) !important;
+}
+
+#pmd-dashboard-lab #pmd-r2-reservation-kpis-v307 .pmd-r2-kpi-v2401-card[data-pmd-dashboard2-kpi="turnover"] {
+  --kpi-bg: #ff8811 !important;
+  --kpi-border: #a54d00 !important;
+  --kpi-accent: #351800 !important;
+  --kpi-icon: rgba(255,255,255,.90) !important;
+}
+
+#pmd-dashboard-lab #pmd-r2-reservation-kpis-v307 .pmd-r2-kpi-v2401-card[data-pmd-dashboard2-kpi="channels"] {
+  --kpi-bg: #35afd1 !important;
+  --kpi-border: #087493 !important;
+  --kpi-accent: #062b36 !important;
+  --kpi-icon: rgba(255,255,255,.90) !important;
+}
+
+#pmd-dashboard-lab #pmd-r2-reservation-kpis-v307 .pmd-r2-kpi-v2401-card[data-pmd-dashboard2-kpi="kitchen"] {
+  --kpi-bg: var(--pmd-kpi-user-gold) !important;
+  --kpi-border: #a47f00 !important;
+  --kpi-accent: #332600 !important;
+  --kpi-icon: rgba(255,255,255,.78) !important;
+}
+
+#pmd-dashboard-lab #pmd-r2-reservation-kpis-v307 .pmd-r2-kpi-v2401-card[data-pmd-dashboard2-kpi="occupancy"] {
+  --kpi-bg: #4388e8 !important;
+  --kpi-border: #1855ad !important;
+  --kpi-accent: #071f46 !important;
+  --kpi-icon: rgba(255,255,255,.92) !important;
+}
+
+#pmd-dashboard-lab #pmd-r2-reservation-kpis-v307 .pmd-r2-kpi-v2401-card[data-pmd-dashboard2-kpi="menu"] {
+  --kpi-bg: #ff3954 !important;
+  --kpi-border: #ad102b !important;
+  --kpi-accent: #36040c !important;
+  --kpi-icon: rgba(255,255,255,.92) !important;
+}
+
+#pmd-dashboard-lab #pmd-r2-reservation-kpis-v307 .pmd-r2-kpi-v2401-card[data-pmd-dashboard2-kpi="tips"] {
+  --kpi-bg: #16b89a !important;
+  --kpi-border: #08715f !important;
+  --kpi-accent: #042f28 !important;
+  --kpi-icon: rgba(255,255,255,.91) !important;
+}
+
+/* ============================================================
+   MANAGERLAB
+   ============================================================ */
+#pmd-dashboard-lab #pmd-r2-reservation-kpis-v307 .pmd-r2-kpi-v2401-card[data-pmd-dashboard2-kpi="live_orders"] {
+  --kpi-bg: #ff8811 !important;
+  --kpi-border: #a54d00 !important;
+  --kpi-accent: #351800 !important;
+  --kpi-icon: rgba(255,255,255,.90) !important;
+}
+
+#pmd-dashboard-lab #pmd-r2-reservation-kpis-v307 .pmd-r2-kpi-v2401-card[data-pmd-dashboard2-kpi="open_alerts"] {
+  --kpi-bg: #ff3954 !important;
+  --kpi-border: #ad102b !important;
+  --kpi-accent: #36040c !important;
+  --kpi-icon: rgba(255,255,255,.92) !important;
+}
+
+#pmd-dashboard-lab #pmd-r2-reservation-kpis-v307 .pmd-r2-kpi-v2401-card[data-pmd-dashboard2-kpi="occupied_tables"] {
+  --kpi-bg: #21cb72 !important;
+  --kpi-border: #087b4b !important;
+  --kpi-accent: #062c22 !important;
+  --kpi-icon: rgba(255,255,255,.90) !important;
+}
+
+#pmd-dashboard-lab #pmd-r2-reservation-kpis-v307 .pmd-r2-kpi-v2401-card[data-pmd-dashboard2-kpi="upcoming_reservations"] {
+  --kpi-bg: var(--pmd-kpi-user-dusty) !important;
+  --kpi-border: #8a737f !important;
+  --kpi-accent: #33272d !important;
+  --kpi-icon: rgba(255,255,255,.86) !important;
+}
+
+/* ============================================================
+   RESERVATIONSLAB
+   Includes both current clean-workspace keys and older saved aliases.
+   ============================================================ */
+#pmd-dashboard-lab[data-pmd-clean-workspace-key="reservations"] #pmd-r2-reservation-kpis-v307 .pmd-r2-kpi-v2401-card[data-pmd-dashboard2-kpi="reservations_today"] {
+  --kpi-bg: #21cb72 !important;
+  --kpi-border: #087b4b !important;
+  --kpi-accent: #062c22 !important;
+  --kpi-icon: rgba(255,255,255,.90) !important;
+}
+
+#pmd-dashboard-lab[data-pmd-clean-workspace-key="reservations"] #pmd-r2-reservation-kpis-v307 .pmd-r2-kpi-v2401-card[data-pmd-dashboard2-kpi="upcoming_arrivals"] {
+  --kpi-bg: #ff8811 !important;
+  --kpi-border: #a54d00 !important;
+  --kpi-accent: #351800 !important;
+  --kpi-icon: rgba(255,255,255,.90) !important;
+}
+
+#pmd-dashboard-lab[data-pmd-clean-workspace-key="reservations"] #pmd-r2-reservation-kpis-v307 .pmd-r2-kpi-v2401-card[data-pmd-dashboard2-kpi="pending_confirmations"] {
+  --kpi-bg: var(--pmd-kpi-user-magenta) !important;
+  --kpi-border: #9d1fa0 !important;
+  --kpi-accent: #360737 !important;
+  --kpi-icon: rgba(255,255,255,.90) !important;
+}
+
+#pmd-dashboard-lab[data-pmd-clean-workspace-key="reservations"] #pmd-r2-reservation-kpis-v307 .pmd-r2-kpi-v2401-card[data-pmd-dashboard2-kpi="available_tables"] {
+  --kpi-bg: #16b89a !important;
+  --kpi-border: #08715f !important;
+  --kpi-accent: #042f28 !important;
+  --kpi-icon: rgba(255,255,255,.91) !important;
+}
+
+#pmd-dashboard-lab[data-pmd-clean-workspace-key="reservations"] #pmd-r2-reservation-kpis-v307 .pmd-r2-kpi-v2401-card[data-pmd-dashboard2-kpi="table_occupancy"] {
+  --kpi-bg: #4388e8 !important;
+  --kpi-border: #1855ad !important;
+  --kpi-accent: #071f46 !important;
+  --kpi-icon: rgba(255,255,255,.92) !important;
+}
+
+#pmd-dashboard-lab[data-pmd-clean-workspace-key="reservations"] #pmd-r2-reservation-kpis-v307 .pmd-r2-kpi-v2401-card[data-pmd-dashboard2-kpi="no_show_rate"],
+#pmd-dashboard-lab[data-pmd-clean-workspace-key="reservations"] #pmd-r2-reservation-kpis-v307 .pmd-r2-kpi-v2401-card[data-pmd-dashboard2-kpi="no_show"] {
+  --kpi-bg: #ff3954 !important;
+  --kpi-border: #ad102b !important;
+  --kpi-accent: #36040c !important;
+  --kpi-icon: rgba(255,255,255,.92) !important;
+}
+
+#pmd-dashboard-lab[data-pmd-clean-workspace-key="reservations"] #pmd-r2-reservation-kpis-v307 .pmd-r2-kpi-v2401-card[data-pmd-dashboard2-kpi="cancellation_rate"] {
+  --kpi-bg: #ff6f61 !important;
+  --kpi-border: #a83c32 !important;
+  --kpi-accent: #37110d !important;
+  --kpi-icon: rgba(255,255,255,.91) !important;
+}
+
+#pmd-dashboard-lab[data-pmd-clean-workspace-key="reservations"] #pmd-r2-reservation-kpis-v307 .pmd-r2-kpi-v2401-card[data-pmd-dashboard2-kpi="average_party_size"],
+#pmd-dashboard-lab[data-pmd-clean-workspace-key="reservations"] #pmd-r2-reservation-kpis-v307 .pmd-r2-kpi-v2401-card[data-pmd-dashboard2-kpi="avg_party_size"] {
+  --kpi-bg: var(--pmd-kpi-user-lavender) !important;
+  --kpi-border: #8c55ad !important;
+  --kpi-accent: #2f1740 !important;
+  --kpi-icon: rgba(255,255,255,.88) !important;
+}
+
+#pmd-dashboard-lab[data-pmd-clean-workspace-key="reservations"] #pmd-r2-reservation-kpis-v307 .pmd-r2-kpi-v2401-card[data-pmd-dashboard2-kpi="reservation_tables"] {
+  --kpi-bg: var(--pmd-kpi-user-tan) !important;
+  --kpi-border: #80633d !important;
+  --kpi-accent: #33230f !important;
+  --kpi-icon: rgba(255,255,255,.84) !important;
+}
+
+#pmd-dashboard-lab[data-pmd-clean-workspace-key="reservations"] #pmd-r2-reservation-kpis-v307 .pmd-r2-kpi-v2401-card[data-pmd-dashboard2-kpi="total_seats"] {
+  --kpi-bg: #35afd1 !important;
+  --kpi-border: #087493 !important;
+  --kpi-accent: #062b36 !important;
+  --kpi-icon: rgba(255,255,255,.90) !important;
+}
+
+#pmd-dashboard-lab[data-pmd-clean-workspace-key="reservations"] #pmd-r2-reservation-kpis-v307 .pmd-r2-kpi-v2401-card[data-pmd-dashboard2-kpi="average_turn_time"],
+#pmd-dashboard-lab[data-pmd-clean-workspace-key="reservations"] #pmd-r2-reservation-kpis-v307 .pmd-r2-kpi-v2401-card[data-pmd-dashboard2-kpi="average_table_turn_time"],
+#pmd-dashboard-lab[data-pmd-clean-workspace-key="reservations"] #pmd-r2-reservation-kpis-v307 .pmd-r2-kpi-v2401-card[data-pmd-dashboard2-kpi="avg_table_turn_time"] {
+  --kpi-bg: var(--pmd-kpi-user-gold) !important;
+  --kpi-border: #a47f00 !important;
+  --kpi-accent: #332600 !important;
+  --kpi-icon: rgba(255,255,255,.78) !important;
+}
+
+#pmd-dashboard-lab[data-pmd-clean-workspace-key="reservations"] #pmd-r2-reservation-kpis-v307 .pmd-r2-kpi-v2401-card[data-pmd-dashboard2-kpi="waiting_list"],
+#pmd-dashboard-lab[data-pmd-clean-workspace-key="reservations"] #pmd-r2-reservation-kpis-v307 .pmd-r2-kpi-v2401-card[data-pmd-dashboard2-kpi="waitlist"] {
+  --kpi-bg: var(--pmd-kpi-user-taupe) !important;
+  --kpi-border: #514848 !important;
+  --kpi-accent: #1e1919 !important;
+  --kpi-icon: rgba(255,255,255,.86) !important;
+}
+
+#pmd-dashboard-lab[data-pmd-clean-workspace-key="reservations"] #pmd-r2-reservation-kpis-v307 .pmd-r2-kpi-v2401-card[data-pmd-dashboard2-kpi="revenue_per_available_seat_hour"],
+#pmd-dashboard-lab[data-pmd-clean-workspace-key="reservations"] #pmd-r2-reservation-kpis-v307 .pmd-r2-kpi-v2401-card[data-pmd-dashboard2-kpi="revpash"] {
+  --kpi-bg: var(--pmd-kpi-user-dusty) !important;
+  --kpi-border: #8a737f !important;
+  --kpi-accent: #33272d !important;
+  --kpi-icon: rgba(255,255,255,.86) !important;
+}
+
+/* ============================================================
+   CASHIERLAB + ACCOUNTANTLAB
+   ============================================================ */
+#pmd-dashboard-lab #pmd-r2-reservation-kpis-v307 .pmd-r2-kpi-v2401-card[data-pmd-dashboard2-kpi="open_bills"] {
+  --kpi-bg: #ff8811 !important;
+  --kpi-border: #a54d00 !important;
+  --kpi-accent: #351800 !important;
+  --kpi-icon: rgba(255,255,255,.90) !important;
+}
+
+#pmd-dashboard-lab #pmd-r2-reservation-kpis-v307 .pmd-r2-kpi-v2401-card[data-pmd-dashboard2-kpi="average_settlement_time"],
+#pmd-dashboard-lab #pmd-r2-reservation-kpis-v307 .pmd-r2-kpi-v2401-card[data-pmd-dashboard2-kpi="avg_settlement_time"] {
+  --kpi-bg: #35afd1 !important;
+  --kpi-border: #087493 !important;
+  --kpi-accent: #062b36 !important;
+  --kpi-icon: rgba(255,255,255,.90) !important;
+}
+
+#pmd-dashboard-lab[data-pmd-clean-workspace-key="cashier"] #pmd-r2-reservation-kpis-v307 .pmd-r2-kpi-v2401-card[data-pmd-dashboard2-kpi="total_payments_shift"],
+#pmd-dashboard-lab[data-pmd-clean-workspace-key="cashier"] #pmd-r2-reservation-kpis-v307 .pmd-r2-kpi-v2401-card[data-pmd-dashboard2-kpi="shift_payments"],
+#pmd-dashboard-lab[data-pmd-clean-workspace-key="cashier"] #pmd-r2-reservation-kpis-v307 .pmd-r2-kpi-v2401-card[data-pmd-dashboard2-kpi="payments_shift"],
+#pmd-dashboard-lab[data-pmd-clean-workspace-key="cashier"] #pmd-r2-reservation-kpis-v307 .pmd-r2-kpi-v2401-card[data-pmd-dashboard2-kpi*="shift"][data-pmd-dashboard2-kpi*="payment"] {
+  --kpi-bg: var(--pmd-kpi-user-magenta) !important;
+  --kpi-border: #9d1fa0 !important;
+  --kpi-accent: #360737 !important;
+  --kpi-icon: rgba(255,255,255,.90) !important;
+}
+
+#pmd-dashboard-lab #pmd-r2-reservation-kpis-v307 .pmd-r2-kpi-v2401-card[data-pmd-dashboard2-kpi="failed_transactions"],
+#pmd-dashboard-lab #pmd-r2-reservation-kpis-v307 .pmd-r2-kpi-v2401-card[data-pmd-dashboard2-kpi="declined_transactions"] {
+  --kpi-bg: #ff3954 !important;
+  --kpi-border: #ad102b !important;
+  --kpi-accent: #36040c !important;
+  --kpi-icon: rgba(255,255,255,.92) !important;
+}
+
+#pmd-dashboard-lab #pmd-r2-reservation-kpis-v307 .pmd-r2-kpi-v2401-card[data-pmd-dashboard2-kpi="cash_percent"] {
+  --kpi-bg: #a66ce6 !important;
+  --kpi-border: #6530a0 !important;
+  --kpi-accent: #241036 !important;
+  --kpi-icon: rgba(255,255,255,.91) !important;
+}
+
+#pmd-dashboard-lab #pmd-r2-reservation-kpis-v307 .pmd-r2-kpi-v2401-card[data-pmd-dashboard2-kpi="gross_to_net"] {
+  --kpi-bg: #21cb72 !important;
+  --kpi-border: #087b4b !important;
+  --kpi-accent: #062c22 !important;
+  --kpi-icon: rgba(255,255,255,.90) !important;
+}
+
+#pmd-dashboard-lab #pmd-r2-reservation-kpis-v307 .pmd-r2-kpi-v2401-card[data-pmd-dashboard2-kpi="total_loss"],
+#pmd-dashboard-lab #pmd-r2-reservation-kpis-v307 .pmd-r2-kpi-v2401-card[data-pmd-dashboard2-kpi="loss_total"] {
+  --kpi-bg: #ff6f61 !important;
+  --kpi-border: #a83c32 !important;
+  --kpi-accent: #37110d !important;
+  --kpi-icon: rgba(255,255,255,.91) !important;
+}
+
+#pmd-dashboard-lab[data-pmd-clean-workspace-key="cashier"] #pmd-r2-reservation-kpis-v307 .pmd-r2-kpi-v2401-card[data-pmd-dashboard2-kpi*="vat"],
+#pmd-dashboard-lab[data-pmd-clean-workspace-key="accountant"] #pmd-r2-reservation-kpis-v307 .pmd-r2-kpi-v2401-card[data-pmd-dashboard2-kpi*="vat"] {
+  --kpi-bg: var(--pmd-kpi-user-yellow) !important;
+  --kpi-border: #8b8b00 !important;
+  --kpi-accent: #2e2e00 !important;
+  --kpi-icon: rgba(255,255,255,.76) !important;
+}
+
+#pmd-dashboard-lab[data-pmd-clean-workspace-key="cashier"] #pmd-r2-reservation-kpis-v307 .pmd-r2-kpi-v2401-card[data-pmd-dashboard2-kpi*="tip"],
+#pmd-dashboard-lab[data-pmd-clean-workspace-key="accountant"] #pmd-r2-reservation-kpis-v307 .pmd-r2-kpi-v2401-card[data-pmd-dashboard2-kpi*="tip"] {
+  --kpi-bg: var(--pmd-kpi-user-lavender) !important;
+  --kpi-border: #8c55ad !important;
+  --kpi-accent: #2f1740 !important;
+  --kpi-icon: rgba(255,255,255,.88) !important;
+}
+
+#pmd-dashboard-lab[data-pmd-clean-workspace-key="cashier"] #pmd-r2-reservation-kpis-v307 .pmd-r2-kpi-v2401-card[data-pmd-dashboard2-kpi*="method"],
+#pmd-dashboard-lab[data-pmd-clean-workspace-key="accountant"] #pmd-r2-reservation-kpis-v307 .pmd-r2-kpi-v2401-card[data-pmd-dashboard2-kpi*="method"] {
+  --kpi-bg: var(--pmd-kpi-user-dusty) !important;
+  --kpi-border: #8a737f !important;
+  --kpi-accent: #33272d !important;
+  --kpi-icon: rgba(255,255,255,.86) !important;
+}
+
+#pmd-dashboard-lab[data-pmd-clean-workspace-key="cashier"] #pmd-r2-reservation-kpis-v307 .pmd-r2-kpi-v2401-card[data-pmd-dashboard2-kpi*="check"],
+#pmd-dashboard-lab[data-pmd-clean-workspace-key="accountant"] #pmd-r2-reservation-kpis-v307 .pmd-r2-kpi-v2401-card[data-pmd-dashboard2-kpi*="check"] {
+  --kpi-bg: var(--pmd-kpi-user-tan) !important;
+  --kpi-border: #80633d !important;
+  --kpi-accent: #33230f !important;
+  --kpi-icon: rgba(255,255,255,.84) !important;
+}
+
+/* Must beat the broader [*="tip"] rule above. */
+#pmd-dashboard-lab[data-pmd-clean-workspace-key="cashier"] #pmd-r2-reservation-kpis-v307 .pmd-r2-kpi-v2401-card[data-pmd-dashboard2-kpi*="tip"][data-pmd-dashboard2-kpi*="share"],
+#pmd-dashboard-lab[data-pmd-clean-workspace-key="accountant"] #pmd-r2-reservation-kpis-v307 .pmd-r2-kpi-v2401-card[data-pmd-dashboard2-kpi*="tip"][data-pmd-dashboard2-kpi*="share"] {
+  --kpi-bg: var(--pmd-kpi-user-gold) !important;
+  --kpi-border: #a47f00 !important;
+  --kpi-accent: #332600 !important;
+  --kpi-icon: rgba(255,255,255,.78) !important;
+}
