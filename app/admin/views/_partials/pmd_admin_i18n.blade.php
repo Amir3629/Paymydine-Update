@@ -44,6 +44,24 @@
         'app/admin/assets/css/pmd-kpi-overlay-order-v1.css'
     );
 
+    $pmdKpiUniqueColorsPath = base_path(
+        'app/admin/assets/css/pmd-kpi-unique-colors-v1.css'
+    );
+
+    /* PMD_ADMIN_FAVICON_HEAD_AUTHORITY_V2
+     * This partial is in the common Admin <head>, including clean Lab pages.
+     * Use the exact PMD favicon that is already correct on PmdSettings and
+     * version it from the real file mtime so old tab icons cannot survive a
+     * favicon asset replacement under a stale URL.
+     */
+    $pmdAdminFaviconPath = base_path(
+        'app/admin/assets/images/favicon.svg'
+    );
+
+    $pmdAdminFaviconVersion = is_file($pmdAdminFaviconPath)
+        ? (string)filemtime($pmdAdminFaviconPath)
+        : 'pmd-admin-v2';
+
     $pmdCatalogueVersion = is_file($pmdCataloguePath)
         ? (string)filemtime($pmdCataloguePath)
         : 'missing';
@@ -60,6 +78,10 @@
         ? (string)filemtime($pmdKpiOverlayPath)
         : '1';
 
+    $pmdKpiUniqueColorsVersion = is_file($pmdKpiUniqueColorsPath)
+        ? (string)filemtime($pmdKpiUniqueColorsPath)
+        : '1';
+
     $pmdKpiOverlayRoute = in_array(
         trim((string)request()->path(), '/'),
         [
@@ -72,6 +94,18 @@
         true
     );
 @endphp
+
+<link
+    id="pmd-admin-favicon-authority-v2"
+    rel="icon"
+    type="image/svg+xml"
+    href="/app/admin/assets/images/favicon.svg?v={{ $pmdAdminFaviconVersion }}"
+>
+<link
+    rel="shortcut icon"
+    type="image/x-icon"
+    href="/favicon.ico?v={{ $pmdAdminFaviconVersion }}"
+>
 
 <style id="pmd-admin-i18n-critical-style">
     html.pmd-i18n-pending {
@@ -112,6 +146,10 @@
 <link
     rel="stylesheet"
     href="/app/admin/assets/css/pmd-kpi-overlay-order-v1.css?v={{ $pmdKpiOverlayVersion }}"
+>
+<link
+    rel="stylesheet"
+    href="/app/admin/assets/css/pmd-kpi-unique-colors-v1.css?v={{ $pmdKpiUniqueColorsVersion }}"
 >
 @endif
 
