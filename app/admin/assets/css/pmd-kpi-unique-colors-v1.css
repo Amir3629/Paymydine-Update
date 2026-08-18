@@ -1,17 +1,29 @@
 /* ============================================================
-   PMD_KPI_IDENTITY_COLOR_AUTHORITY_V3
+   PMD_KPI_IDENTITY_COLOR_AUTHORITY_V4
 
-   KPI color belongs to KPI identity, never to the visible slot.
-   The clean-workspace chooser updates data-pmd-dashboard2-kpi when the KPI
-   changes, so the selected KPI carries its own color to every card position.
+   KPI color belongs to KPI identity, never to the visible card slot.
+   The clean-workspace chooser updates data-pmd-dashboard2-kpi when a KPI
+   changes, so the selected KPI carries its own color to every position.
 
-   V3 expands the palette so selectable KPIs within the same workspace do not
-   collapse onto the same green/blue/red tone. No KPI data/source logic changes.
+   V4 keeps the existing distinct operational palette and applies the supplied
+   PMD palette to finance/reservation identities that previously could fall
+   back onto a repeated tone. Finance rules are workspace-scoped and include
+   semantic key fallbacks so older persisted chooser keys still receive the
+   intended identity color. No KPI data/source/business logic changes here.
    ============================================================ */
 
-/* ---------- Owner DashboardLab: eight distinct identities ---------- */
+/* ---------- Supplied palette ---------- */
+#pmd-dashboard-lab {
+  --pmd-kpi-user-lavender: #dfb0fe;
+  --pmd-kpi-user-dusty: #dbcbd3;
+  --pmd-kpi-user-magenta: #fb60fd;
+  --pmd-kpi-user-tan: #d1b48c;
+  --pmd-kpi-user-gold: #ffdb57;
+  --pmd-kpi-user-yellow: #ffff00;
+  --pmd-kpi-user-taupe: #837777;
+}
 
-/* Revenue - green */
+/* ---------- Owner DashboardLab: eight distinct identities ---------- */
 #pmd-r2-reservation-kpis-v307 .pmd-r2-kpi-v2401-card[data-pmd-dashboard2-kpi="revenue"] {
   --kpi-bg: #21cb72 !important;
   --kpi-border: #087b4b !important;
@@ -19,7 +31,6 @@
   --kpi-icon: rgba(255,255,255,.90) !important;
 }
 
-/* Guests Served - purple */
 #pmd-r2-reservation-kpis-v307 .pmd-r2-kpi-v2401-card[data-pmd-dashboard2-kpi="guests"] {
   --kpi-bg: #a66ce6 !important;
   --kpi-border: #6530a0 !important;
@@ -27,7 +38,6 @@
   --kpi-icon: rgba(255,255,255,.91) !important;
 }
 
-/* Table Turnover - orange */
 #pmd-r2-reservation-kpis-v307 .pmd-r2-kpi-v2401-card[data-pmd-dashboard2-kpi="turnover"] {
   --kpi-bg: #ff8811 !important;
   --kpi-border: #a54d00 !important;
@@ -35,7 +45,6 @@
   --kpi-icon: rgba(255,255,255,.90) !important;
 }
 
-/* Dine In / Take Away - cyan */
 #pmd-r2-reservation-kpis-v307 .pmd-r2-kpi-v2401-card[data-pmd-dashboard2-kpi="channels"] {
   --kpi-bg: #35afd1 !important;
   --kpi-border: #087493 !important;
@@ -43,7 +52,6 @@
   --kpi-icon: rgba(255,255,255,.90) !important;
 }
 
-/* Kitchen Ticket Time - amber */
 #pmd-r2-reservation-kpis-v307 .pmd-r2-kpi-v2401-card[data-pmd-dashboard2-kpi="kitchen"] {
   --kpi-bg: #f4b63f !important;
   --kpi-border: #a66d05 !important;
@@ -51,7 +59,6 @@
   --kpi-icon: rgba(255,255,255,.91) !important;
 }
 
-/* Table Occupancy - royal blue */
 #pmd-r2-reservation-kpis-v307 .pmd-r2-kpi-v2401-card[data-pmd-dashboard2-kpi="occupancy"] {
   --kpi-bg: #4388e8 !important;
   --kpi-border: #1855ad !important;
@@ -59,7 +66,6 @@
   --kpi-icon: rgba(255,255,255,.92) !important;
 }
 
-/* Menu Availability - red */
 #pmd-r2-reservation-kpis-v307 .pmd-r2-kpi-v2401-card[data-pmd-dashboard2-kpi="menu"] {
   --kpi-bg: #ff3954 !important;
   --kpi-border: #ad102b !important;
@@ -67,7 +73,6 @@
   --kpi-icon: rgba(255,255,255,.92) !important;
 }
 
-/* Tips - teal */
 #pmd-r2-reservation-kpis-v307 .pmd-r2-kpi-v2401-card[data-pmd-dashboard2-kpi="tips"] {
   --kpi-bg: #16b89a !important;
   --kpi-border: #08715f !important;
@@ -76,7 +81,6 @@
 }
 
 /* ---------- Manager: four distinct identities ---------- */
-
 #pmd-r2-reservation-kpis-v307 .pmd-r2-kpi-v2401-card[data-pmd-dashboard2-kpi="live_orders"] {
   --kpi-bg: #ff8811 !important;
   --kpi-border: #a54d00 !important;
@@ -105,8 +109,7 @@
   --kpi-icon: rgba(255,255,255,.92) !important;
 }
 
-/* ---------- Reservations: expanded identity palette ---------- */
-
+/* ---------- Reservations: distinct identities ---------- */
 #pmd-dashboard-lab[data-pmd-clean-workspace-key="reservations"]
 #pmd-r2-reservation-kpis-v307 .pmd-r2-kpi-v2401-card[data-pmd-dashboard2-kpi="reservations_today"] {
   --kpi-bg: #21cb72 !important;
@@ -185,14 +188,15 @@
   --kpi-icon: rgba(255,255,255,.91) !important;
 }
 
+/* Waiting list uses supplied #837777 instead of the generic gray fallback. */
 #pmd-dashboard-lab[data-pmd-clean-workspace-key="reservations"]
 #pmd-r2-reservation-kpis-v307 .pmd-r2-kpi-v2401-card[data-pmd-dashboard2-kpi="waiting_list"],
 #pmd-dashboard-lab[data-pmd-clean-workspace-key="reservations"]
 #pmd-r2-reservation-kpis-v307 .pmd-r2-kpi-v2401-card[data-pmd-dashboard2-kpi="waitlist"] {
-  --kpi-bg: #c7d0db !important;
-  --kpi-border: #6f7d8d !important;
-  --kpi-accent: #172637 !important;
-  --kpi-icon: rgba(255,255,255,.88) !important;
+  --kpi-bg: var(--pmd-kpi-user-taupe) !important;
+  --kpi-border: #514848 !important;
+  --kpi-accent: #1e1919 !important;
+  --kpi-icon: rgba(255,255,255,.86) !important;
 }
 
 #pmd-dashboard-lab[data-pmd-clean-workspace-key="reservations"]
@@ -206,8 +210,7 @@
 }
 
 /* ---------- Cashier + Accountant finance identities ---------- */
-
-/* Open bills - orange */
+/* Default finance identities already distinct. */
 #pmd-r2-reservation-kpis-v307 .pmd-r2-kpi-v2401-card[data-pmd-dashboard2-kpi="open_bills"] {
   --kpi-bg: #ff8811 !important;
   --kpi-border: #a54d00 !important;
@@ -215,7 +218,6 @@
   --kpi-icon: rgba(255,255,255,.90) !important;
 }
 
-/* Average settlement time - cyan */
 #pmd-r2-reservation-kpis-v307 .pmd-r2-kpi-v2401-card[data-pmd-dashboard2-kpi="average_settlement_time"],
 #pmd-r2-reservation-kpis-v307 .pmd-r2-kpi-v2401-card[data-pmd-dashboard2-kpi="avg_settlement_time"] {
   --kpi-bg: #35afd1 !important;
@@ -224,17 +226,6 @@
   --kpi-icon: rgba(255,255,255,.90) !important;
 }
 
-/* Shift payments - amber */
-#pmd-r2-reservation-kpis-v307 .pmd-r2-kpi-v2401-card[data-pmd-dashboard2-kpi="total_payments_shift"],
-#pmd-r2-reservation-kpis-v307 .pmd-r2-kpi-v2401-card[data-pmd-dashboard2-kpi="shift_payments"],
-#pmd-r2-reservation-kpis-v307 .pmd-r2-kpi-v2401-card[data-pmd-dashboard2-kpi="payments_shift"] {
-  --kpi-bg: #f4b63f !important;
-  --kpi-border: #a66d05 !important;
-  --kpi-accent: #3a2500 !important;
-  --kpi-icon: rgba(255,255,255,.91) !important;
-}
-
-/* Failed / declined transactions - red */
 #pmd-r2-reservation-kpis-v307 .pmd-r2-kpi-v2401-card[data-pmd-dashboard2-kpi="failed_transactions"],
 #pmd-r2-reservation-kpis-v307 .pmd-r2-kpi-v2401-card[data-pmd-dashboard2-kpi="declined_transactions"] {
   --kpi-bg: #ff3954 !important;
@@ -243,7 +234,6 @@
   --kpi-icon: rgba(255,255,255,.92) !important;
 }
 
-/* Cash percent - purple */
 #pmd-r2-reservation-kpis-v307 .pmd-r2-kpi-v2401-card[data-pmd-dashboard2-kpi="cash_percent"] {
   --kpi-bg: #a66ce6 !important;
   --kpi-border: #6530a0 !important;
@@ -251,17 +241,6 @@
   --kpi-icon: rgba(255,255,255,.91) !important;
 }
 
-/* VAT - royal blue */
-#pmd-r2-reservation-kpis-v307 .pmd-r2-kpi-v2401-card[data-pmd-dashboard2-kpi="vat_month"],
-#pmd-r2-reservation-kpis-v307 .pmd-r2-kpi-v2401-card[data-pmd-dashboard2-kpi="total_vat"],
-#pmd-r2-reservation-kpis-v307 .pmd-r2-kpi-v2401-card[data-pmd-dashboard2-kpi="vat_collected"] {
-  --kpi-bg: #4388e8 !important;
-  --kpi-border: #1855ad !important;
-  --kpi-accent: #071f46 !important;
-  --kpi-icon: rgba(255,255,255,.92) !important;
-}
-
-/* Gross to net - green */
 #pmd-r2-reservation-kpis-v307 .pmd-r2-kpi-v2401-card[data-pmd-dashboard2-kpi="gross_to_net"] {
   --kpi-bg: #21cb72 !important;
   --kpi-border: #087b4b !important;
@@ -269,7 +248,6 @@
   --kpi-icon: rgba(255,255,255,.90) !important;
 }
 
-/* Total loss - coral, deliberately not the failed-payment red */
 #pmd-r2-reservation-kpis-v307 .pmd-r2-kpi-v2401-card[data-pmd-dashboard2-kpi="total_loss"],
 #pmd-r2-reservation-kpis-v307 .pmd-r2-kpi-v2401-card[data-pmd-dashboard2-kpi="loss_total"] {
   --kpi-bg: #ff6f61 !important;
@@ -278,45 +256,72 @@
   --kpi-icon: rgba(255,255,255,.91) !important;
 }
 
-/* Total tips today / month - teal, deliberately not gross-to-net green */
-#pmd-r2-reservation-kpis-v307 .pmd-r2-kpi-v2401-card[data-pmd-dashboard2-kpi="total_tips"],
-#pmd-r2-reservation-kpis-v307 .pmd-r2-kpi-v2401-card[data-pmd-dashboard2-kpi="tips_total"],
-#pmd-r2-reservation-kpis-v307 .pmd-r2-kpi-v2401-card[data-pmd-dashboard2-kpi="tips_today_month"],
-#pmd-r2-reservation-kpis-v307 .pmd-r2-kpi-v2401-card[data-pmd-dashboard2-kpi="total_tips_today_month"] {
-  --kpi-bg: #16b89a !important;
-  --kpi-border: #08715f !important;
-  --kpi-accent: #042f28 !important;
-  --kpi-icon: rgba(255,255,255,.91) !important;
+/* Shift payments -> supplied #fb60fd. */
+#pmd-dashboard-lab[data-pmd-clean-workspace-key="cashier"]
+#pmd-r2-reservation-kpis-v307 .pmd-r2-kpi-v2401-card[data-pmd-dashboard2-kpi="total_payments_shift"],
+#pmd-dashboard-lab[data-pmd-clean-workspace-key="cashier"]
+#pmd-r2-reservation-kpis-v307 .pmd-r2-kpi-v2401-card[data-pmd-dashboard2-kpi="shift_payments"],
+#pmd-dashboard-lab[data-pmd-clean-workspace-key="cashier"]
+#pmd-r2-reservation-kpis-v307 .pmd-r2-kpi-v2401-card[data-pmd-dashboard2-kpi="payments_shift"],
+#pmd-dashboard-lab[data-pmd-clean-workspace-key="cashier"]
+#pmd-r2-reservation-kpis-v307 .pmd-r2-kpi-v2401-card[data-pmd-dashboard2-kpi*="shift"][data-pmd-dashboard2-kpi*="payment"] {
+  --kpi-bg: var(--pmd-kpi-user-magenta) !important;
+  --kpi-border: #9d1fa0 !important;
+  --kpi-accent: #360737 !important;
+  --kpi-icon: rgba(255,255,255,.90) !important;
 }
 
-/* Most-used payment method - light cool gray */
-#pmd-r2-reservation-kpis-v307 .pmd-r2-kpi-v2401-card[data-pmd-dashboard2-kpi="top_payment_method"],
-#pmd-r2-reservation-kpis-v307 .pmd-r2-kpi-v2401-card[data-pmd-dashboard2-kpi="most_used_payment_method"],
-#pmd-r2-reservation-kpis-v307 .pmd-r2-kpi-v2401-card[data-pmd-dashboard2-kpi="top_method"],
-#pmd-r2-reservation-kpis-v307 .pmd-r2-kpi-v2401-card[data-pmd-dashboard2-kpi="payment_method"] {
-  --kpi-bg: #c7d0db !important;
-  --kpi-border: #6f7d8d !important;
-  --kpi-accent: #172637 !important;
+/* VAT -> supplied #ffff00. Scoped to finance workspaces. */
+#pmd-dashboard-lab[data-pmd-clean-workspace-key="cashier"]
+#pmd-r2-reservation-kpis-v307 .pmd-r2-kpi-v2401-card[data-pmd-dashboard2-kpi*="vat"],
+#pmd-dashboard-lab[data-pmd-clean-workspace-key="accountant"]
+#pmd-r2-reservation-kpis-v307 .pmd-r2-kpi-v2401-card[data-pmd-dashboard2-kpi*="vat"] {
+  --kpi-bg: var(--pmd-kpi-user-yellow) !important;
+  --kpi-border: #8b8b00 !important;
+  --kpi-accent: #2e2e00 !important;
+  --kpi-icon: rgba(255,255,255,.76) !important;
+}
+
+/* Total tips -> supplied #dfb0fe. Broad tip fallback catches older saved keys. */
+#pmd-dashboard-lab[data-pmd-clean-workspace-key="cashier"]
+#pmd-r2-reservation-kpis-v307 .pmd-r2-kpi-v2401-card[data-pmd-dashboard2-kpi*="tip"],
+#pmd-dashboard-lab[data-pmd-clean-workspace-key="accountant"]
+#pmd-r2-reservation-kpis-v307 .pmd-r2-kpi-v2401-card[data-pmd-dashboard2-kpi*="tip"] {
+  --kpi-bg: var(--pmd-kpi-user-lavender) !important;
+  --kpi-border: #8c55ad !important;
+  --kpi-accent: #2f1740 !important;
   --kpi-icon: rgba(255,255,255,.88) !important;
 }
 
-/* Tips to share - pink */
-#pmd-r2-reservation-kpis-v307 .pmd-r2-kpi-v2401-card[data-pmd-dashboard2-kpi="tips_to_share"],
-#pmd-r2-reservation-kpis-v307 .pmd-r2-kpi-v2401-card[data-pmd-dashboard2-kpi="total_tips_to_share"],
-#pmd-r2-reservation-kpis-v307 .pmd-r2-kpi-v2401-card[data-pmd-dashboard2-kpi="tips_share"] {
-  --kpi-bg: #e45aa6 !important;
-  --kpi-border: #913466 !important;
-  --kpi-accent: #351020 !important;
-  --kpi-icon: rgba(255,255,255,.91) !important;
+/* Most-used / top payment method -> supplied #dbcbd3. */
+#pmd-dashboard-lab[data-pmd-clean-workspace-key="cashier"]
+#pmd-r2-reservation-kpis-v307 .pmd-r2-kpi-v2401-card[data-pmd-dashboard2-kpi*="method"],
+#pmd-dashboard-lab[data-pmd-clean-workspace-key="accountant"]
+#pmd-r2-reservation-kpis-v307 .pmd-r2-kpi-v2401-card[data-pmd-dashboard2-kpi*="method"] {
+  --kpi-bg: var(--pmd-kpi-user-dusty) !important;
+  --kpi-border: #8a737f !important;
+  --kpi-accent: #33272d !important;
+  --kpi-icon: rgba(255,255,255,.86) !important;
 }
 
-/* Average checks - lime */
-#pmd-r2-reservation-kpis-v307 .pmd-r2-kpi-v2401-card[data-pmd-dashboard2-kpi="average_checks"],
-#pmd-r2-reservation-kpis-v307 .pmd-r2-kpi-v2401-card[data-pmd-dashboard2-kpi="average_check"],
-#pmd-r2-reservation-kpis-v307 .pmd-r2-kpi-v2401-card[data-pmd-dashboard2-kpi="avg_checks"],
-#pmd-r2-reservation-kpis-v307 .pmd-r2-kpi-v2401-card[data-pmd-dashboard2-kpi="average_checks_today_month"] {
-  --kpi-bg: #b7d84b !important;
-  --kpi-border: #6e8c19 !important;
-  --kpi-accent: #253306 !important;
-  --kpi-icon: rgba(255,255,255,.88) !important;
+/* Average checks -> supplied #d1b48c. */
+#pmd-dashboard-lab[data-pmd-clean-workspace-key="cashier"]
+#pmd-r2-reservation-kpis-v307 .pmd-r2-kpi-v2401-card[data-pmd-dashboard2-kpi*="check"],
+#pmd-dashboard-lab[data-pmd-clean-workspace-key="accountant"]
+#pmd-r2-reservation-kpis-v307 .pmd-r2-kpi-v2401-card[data-pmd-dashboard2-kpi*="check"] {
+  --kpi-bg: var(--pmd-kpi-user-tan) !important;
+  --kpi-border: #80633d !important;
+  --kpi-accent: #33230f !important;
+  --kpi-icon: rgba(255,255,255,.84) !important;
+}
+
+/* Tips-to-share must override the broad tip fallback -> supplied #ffdb57. */
+#pmd-dashboard-lab[data-pmd-clean-workspace-key="cashier"]
+#pmd-r2-reservation-kpis-v307 .pmd-r2-kpi-v2401-card[data-pmd-dashboard2-kpi*="tip"][data-pmd-dashboard2-kpi*="share"],
+#pmd-dashboard-lab[data-pmd-clean-workspace-key="accountant"]
+#pmd-r2-reservation-kpis-v307 .pmd-r2-kpi-v2401-card[data-pmd-dashboard2-kpi*="tip"][data-pmd-dashboard2-kpi*="share"] {
+  --kpi-bg: var(--pmd-kpi-user-gold) !important;
+  --kpi-border: #a47f00 !important;
+  --kpi-accent: #332600 !important;
+  --kpi-icon: rgba(255,255,255,.78) !important;
 }
