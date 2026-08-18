@@ -9,6 +9,39 @@
             'pmd_to' => $to,
         ]);
     };
+
+    /* PMD_RESERVATIONS_FUTURE_RANGE_PRESETS_V1
+     * Reservations are an upcoming-booking workflow. Historical presets such
+     * as Yesterday / Last 7 days belong to order/accounting surfaces, not the
+     * ReservationsLab quick picker. Keep the shared component unchanged for
+     * Cashier and switch only ReservationsLab to future-facing presets.
+     */
+    $pmdRangeFuturePresets = function_exists('request')
+        && request()->is('admin/reservationslab*');
+
+    $pmdRangeLocale = strtolower((string)app()->getLocale());
+    $pmdRangeIsGerman = strpos($pmdRangeLocale, 'de') === 0;
+
+    $pmdRangeToday = trim((string)($range['today'] ?? ''));
+    if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $pmdRangeToday)) {
+        $pmdRangeToday = \Carbon\Carbon::now('Europe/Berlin')->toDateString();
+    }
+
+    try {
+        $pmdRangeTodayCarbon = \Carbon\Carbon::createFromFormat(
+            'Y-m-d',
+            $pmdRangeToday,
+            'Europe/Berlin'
+        )->startOfDay();
+    } catch (\Throwable $error) {
+        $pmdRangeTodayCarbon = \Carbon\Carbon::now('Europe/Berlin')->startOfDay();
+        $pmdRangeToday = $pmdRangeTodayCarbon->toDateString();
+    }
+
+    $pmdRangeTomorrow = $pmdRangeTodayCarbon->copy()->addDay()->toDateString();
+    $pmdRangeNext7To = $pmdRangeTodayCarbon->copy()->addDays(7)->toDateString();
+    $pmdRangeTomorrowLabel = $pmdRangeIsGerman ? 'Morgen' : 'Tomorrow';
+    $pmdRangeNext7Label = $pmdRangeIsGerman ? 'Nächste 7 Tage' : 'Next 7 days';
 @endphp
 
 <details class="pmd-ops-range">
@@ -31,16 +64,26 @@
 
         <nav class="pmd-ops-range__presets" aria-label="{{ $rangeText['date_range'] ?? 'Date range' }}">
             <a
-                href="{{ $pmdRangeUrl($range['today'] ?? '', $range['today'] ?? '') }}"
-            >{{ $rangeText['today'] ?? 'Today' }}</a>
+                href="{{ $pmdRangeUrl($range['today'] ?? $pmdRangeToday, $range['today'] ?? $pmdRangeToday) }}"
+            >{{ $rangeText['today'] ?? ($pmdRangeIsGerman ? 'Heute' : 'Today') }}</a>
 
-            <a
-                href="{{ $pmdRangeUrl($range['yesterday'] ?? '', $range['yesterday'] ?? '') }}"
-            >{{ $rangeText['yesterday'] ?? 'Yesterday' }}</a>
+            @if($pmdRangeFuturePresets)
+                <a
+                    href="{{ $pmdRangeUrl($pmdRangeTomorrow, $pmdRangeTomorrow) }}"
+                >{{ $pmdRangeTomorrowLabel }}</a>
 
-            <a
-                href="{{ $pmdRangeUrl($range['last7_from'] ?? '', $range['today'] ?? '') }}"
-            >{{ $rangeText['last_7_days'] ?? 'Last 7 days' }}</a>
+                <a
+                    href="{{ $pmdRangeUrl($pmdRangeTomorrow, $pmdRangeNext7To) }}"
+                >{{ $pmdRangeNext7Label }}</a>
+            @else
+                <a
+                    href="{{ $pmdRangeUrl($range['yesterday'] ?? '', $range['yesterday'] ?? '') }}"
+                >{{ $rangeText['yesterday'] ?? 'Yesterday' }}</a>
+
+                <a
+                    href="{{ $pmdRangeUrl($range['last7_from'] ?? '', $range['today'] ?? '') }}"
+                >{{ $rangeText['last_7_days'] ?? 'Last 7 days' }}</a>
+            @endif
         </nav>
 
         <form method="get" action="{{ $baseUrl }}" class="pmd-ops-range__form">
@@ -72,7 +115,7 @@
 </details>
 
 <script>
-/* PMD_OPERATIONAL_DATE_RANGE_ASYNC_V1_4_5
+/* PMD_OPERATIONAL_DATE_RANGE_ASYNC_V1_4_6
  * Keep the canonical server-rendered range authority, but stop browser-level
  * navigation. Only the nearest operational section is replaced from the
  * response HTML. No polling, observer, second data source or duplicated query.
@@ -184,7 +227,7 @@
         }).catch(function (error) {
             if (error && error.name === 'AbortError') return null;
             settleLoading(section);
-            console.error('[PMD Operational Date Range V1.4.5]', error);
+            console.error('[PMD Operational Date Range V1.4.6]', error);
 
             if (options.fallbackNavigation !== false) {
                 window.location.assign(url.href);
@@ -247,7 +290,7 @@
     }, false);
 
     window.PMDOperationalDateRangeV1 = {
-        version: '1.0.0',
+        version: '1.0.1',
         refresh: function (url) {
             var section = document.querySelector('[data-pmd-ops-kind]');
             return swapRange(new URL(url || window.location.href, window.location.href), section, {
@@ -269,7 +312,7 @@
         }
     };
 
-    console.info('[PMD Operational Date Range V1.4.5] Ready', window.PMDOperationalDateRangeV1.audit());
+    console.info('[PMD Operational Date Range V1.4.6] Ready', window.PMDOperationalDateRangeV1.audit());
 })();
 </script>
 
