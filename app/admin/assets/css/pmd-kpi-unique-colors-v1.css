@@ -1,166 +1,24 @@
 /* ============================================================
-   PMD_KPI_UNIQUE_COLORS_V1
+   PMD_KPI_IDENTITY_COLOR_AUTHORITY_V2
 
-   Four visible KPI cards on a dashboard must never collapse to duplicate
-   colors. Color is a slot-level presentation concern; KPI data/source logic
-   remains untouched. Chooser swaps therefore keep the four-card palette
-   distinct without adding another runtime or data authority.
+   IMPORTANT:
+   KPI color belongs to the KPI identity, NOT to the visible card slot.
+
+   The previous V1 file forced slot 0/1/2/3 to fixed colors. That meant a
+   chooser swap could change "Table Occupancy" to "Kitchen Ticket Time" while
+   the card incorrectly kept the old slot color.
+
+   The canonical KPI renderers already own the correct behavior:
+   - server first paint writes data-pmd-kpi-v2401-tone from the KPI payload
+   - chooser swaps update data-pmd-kpi-v2401-tone from that selected KPI
+   - pmd-reservations2-kpis-v307.css maps that tone to the card palette
+
+   Therefore this compatibility file intentionally defines NO slot-level color
+   overrides. It remains loadable only so existing cached Admin head markup is
+   harmless while the KPI's own tone remains the single color authority.
+
+   Examples from the current Dashboard KPI authority:
+   - Table Occupancy -> its own KPI tone
+   - Kitchen Ticket Time -> its own KPI tone
+   Moving either KPI to another slot does not change its identity color.
    ============================================================ */
-
-/*
- * Owner DashboardLab + ManagerLab baseline palette.
- * This also matches the approved Owner first-paint order:
- * green / purple / orange / blue.
- */
-html body
-#pmd-dashboard-lab
-#pmd-r2-reservation-kpis-v307.pmd-r2-kpis-v2401
-.pmd-r2-kpi-v2401-card[data-pmd-dashboard-lab-slot="0"] {
-  --kpi-bg: #21cb72 !important;
-  --kpi-border: #087b4b !important;
-  --kpi-accent: #062c22 !important;
-  --kpi-icon: rgba(255, 255, 255, .88) !important;
-}
-
-html body
-#pmd-dashboard-lab
-#pmd-r2-reservation-kpis-v307.pmd-r2-kpis-v2401
-.pmd-r2-kpi-v2401-card[data-pmd-dashboard-lab-slot="1"] {
-  --kpi-bg: #a66ce6 !important;
-  --kpi-border: #6530a0 !important;
-  --kpi-accent: #241036 !important;
-  --kpi-icon: rgba(255, 255, 255, .89) !important;
-}
-
-html body
-#pmd-dashboard-lab
-#pmd-r2-reservation-kpis-v307.pmd-r2-kpis-v2401
-.pmd-r2-kpi-v2401-card[data-pmd-dashboard-lab-slot="2"] {
-  --kpi-bg: #ff8811 !important;
-  --kpi-border: #a54d00 !important;
-  --kpi-accent: #351800 !important;
-  --kpi-icon: rgba(255, 255, 255, .88) !important;
-}
-
-html body
-#pmd-dashboard-lab
-#pmd-r2-reservation-kpis-v307.pmd-r2-kpis-v2401
-.pmd-r2-kpi-v2401-card[data-pmd-dashboard-lab-slot="3"] {
-  --kpi-bg: #35afd1 !important;
-  --kpi-border: #087493 !important;
-  --kpi-accent: #062b36 !important;
-  --kpi-icon: rgba(255, 255, 255, .88) !important;
-}
-
-/* Reservations: green / orange / teal / blue. */
-html body
-#pmd-dashboard-lab[data-pmd-clean-workspace-key="reservations"]
-#pmd-r2-reservation-kpis-v307
-.pmd-r2-kpi-v2401-card[data-pmd-dashboard-lab-slot="1"] {
-  --kpi-bg: #ff8811 !important;
-  --kpi-border: #a54d00 !important;
-  --kpi-accent: #351800 !important;
-  --kpi-icon: rgba(255, 255, 255, .88) !important;
-}
-
-html body
-#pmd-dashboard-lab[data-pmd-clean-workspace-key="reservations"]
-#pmd-r2-reservation-kpis-v307
-.pmd-r2-kpi-v2401-card[data-pmd-dashboard-lab-slot="2"] {
-  --kpi-bg: #18b89d !important;
-  --kpi-border: #087566 !important;
-  --kpi-accent: #062e2a !important;
-  --kpi-icon: rgba(255, 255, 255, .90) !important;
-}
-
-html body
-#pmd-dashboard-lab[data-pmd-clean-workspace-key="reservations"]
-#pmd-r2-reservation-kpis-v307
-.pmd-r2-kpi-v2401-card[data-pmd-dashboard-lab-slot="3"] {
-  --kpi-bg: #438be3 !important;
-  --kpi-border: #155da8 !important;
-  --kpi-accent: #071f3b !important;
-  --kpi-icon: rgba(255, 255, 255, .90) !important;
-}
-
-/* Cashier: orange / blue / red / purple. */
-html body
-#pmd-dashboard-lab[data-pmd-clean-workspace-key="cashier"]
-#pmd-r2-reservation-kpis-v307
-.pmd-r2-kpi-v2401-card[data-pmd-dashboard-lab-slot="0"] {
-  --kpi-bg: #ff8811 !important;
-  --kpi-border: #a54d00 !important;
-  --kpi-accent: #351800 !important;
-  --kpi-icon: rgba(255, 255, 255, .88) !important;
-}
-
-html body
-#pmd-dashboard-lab[data-pmd-clean-workspace-key="cashier"]
-#pmd-r2-reservation-kpis-v307
-.pmd-r2-kpi-v2401-card[data-pmd-dashboard-lab-slot="1"] {
-  --kpi-bg: #35afd1 !important;
-  --kpi-border: #087493 !important;
-  --kpi-accent: #062b36 !important;
-  --kpi-icon: rgba(255, 255, 255, .88) !important;
-}
-
-html body
-#pmd-dashboard-lab[data-pmd-clean-workspace-key="cashier"]
-#pmd-r2-reservation-kpis-v307
-.pmd-r2-kpi-v2401-card[data-pmd-dashboard-lab-slot="2"] {
-  --kpi-bg: #ff3954 !important;
-  --kpi-border: #ad102b !important;
-  --kpi-accent: #36040c !important;
-  --kpi-icon: rgba(255, 255, 255, .90) !important;
-}
-
-html body
-#pmd-dashboard-lab[data-pmd-clean-workspace-key="cashier"]
-#pmd-r2-reservation-kpis-v307
-.pmd-r2-kpi-v2401-card[data-pmd-dashboard-lab-slot="3"] {
-  --kpi-bg: #a66ce6 !important;
-  --kpi-border: #6530a0 !important;
-  --kpi-accent: #241036 !important;
-  --kpi-icon: rgba(255, 255, 255, .89) !important;
-}
-
-/* Accountant: blue / green / red / purple. */
-html body
-#pmd-dashboard-lab[data-pmd-clean-workspace-key="accountant"]
-#pmd-r2-reservation-kpis-v307
-.pmd-r2-kpi-v2401-card[data-pmd-dashboard-lab-slot="0"] {
-  --kpi-bg: #35afd1 !important;
-  --kpi-border: #087493 !important;
-  --kpi-accent: #062b36 !important;
-  --kpi-icon: rgba(255, 255, 255, .88) !important;
-}
-
-html body
-#pmd-dashboard-lab[data-pmd-clean-workspace-key="accountant"]
-#pmd-r2-reservation-kpis-v307
-.pmd-r2-kpi-v2401-card[data-pmd-dashboard-lab-slot="1"] {
-  --kpi-bg: #21cb72 !important;
-  --kpi-border: #087b4b !important;
-  --kpi-accent: #062c22 !important;
-  --kpi-icon: rgba(255, 255, 255, .88) !important;
-}
-
-html body
-#pmd-dashboard-lab[data-pmd-clean-workspace-key="accountant"]
-#pmd-r2-reservation-kpis-v307
-.pmd-r2-kpi-v2401-card[data-pmd-dashboard-lab-slot="2"] {
-  --kpi-bg: #ff3954 !important;
-  --kpi-border: #ad102b !important;
-  --kpi-accent: #36040c !important;
-  --kpi-icon: rgba(255, 255, 255, .90) !important;
-}
-
-html body
-#pmd-dashboard-lab[data-pmd-clean-workspace-key="accountant"]
-#pmd-r2-reservation-kpis-v307
-.pmd-r2-kpi-v2401-card[data-pmd-dashboard-lab-slot="3"] {
-  --kpi-bg: #a66ce6 !important;
-  --kpi-border: #6530a0 !important;
-  --kpi-accent: #241036 !important;
-  --kpi-icon: rgba(255, 255, 255, .89) !important;
-}
