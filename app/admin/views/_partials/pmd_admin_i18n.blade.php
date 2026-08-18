@@ -142,6 +142,90 @@
 })();
 </script>
 
+{{-- PMD_ADMIN_TITLE_AUTHORITY_V1
+     Core Admin layout still appends setting('site_name') to Template titles.
+     That setting may be the restaurant/site identity or the old TastyIgniter
+     default; neither is the PMD product identity for browser tabs. Keep public
+     restaurant/site naming untouched and normalize only the Admin document
+     title to "<page> - PayMyDine". Smooth transitions emit pageContentLoaded,
+     so the same authority is re-applied after AJAX navigation without polling
+     or a MutationObserver. --}}
+<script id="pmd-admin-title-authority-v1">
+(function () {
+    'use strict';
+
+    var BRAND = 'PayMyDine';
+    var LEGACY_SITE_NAME = @json((string)setting('site_name'));
+
+    function escapeRegExp(value) {
+        return String(value || '').replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    }
+
+    function normalize(input) {
+        var title = String(input || '').trim();
+        var suffixes = [LEGACY_SITE_NAME, 'TastyIgniter', BRAND];
+        var seen = {};
+
+        suffixes.forEach(function (suffix) {
+            suffix = String(suffix || '').trim();
+            if (!suffix) return;
+
+            var key = suffix.toLowerCase();
+            if (seen[key]) return;
+            seen[key] = true;
+
+            if (title.toLowerCase() === key) {
+                title = '';
+                return;
+            }
+
+            var pattern = new RegExp(
+                '\\s*(?:-|–|—|\\||·)\\s*' + escapeRegExp(suffix) + '\\s*$',
+                'i'
+            );
+            title = title.replace(pattern, '').trim();
+        });
+
+        return title ? title + ' - ' + BRAND : BRAND;
+    }
+
+    function apply() {
+        var next = normalize(document.title);
+        if (document.title !== next) {
+            document.title = next;
+        }
+        return next;
+    }
+
+    window.PMDAdminTitleAuthorityV1 = {
+        version: '1.0.0',
+        brand: BRAND,
+        legacySiteName: LEGACY_SITE_NAME,
+        normalize: normalize,
+        apply: apply,
+        audit: function () {
+            return {
+                version: '1.0.0',
+                brand: BRAND,
+                legacySiteName: LEGACY_SITE_NAME,
+                title: document.title,
+                normalized: normalize(document.title),
+                ok: document.title === normalize(document.title)
+            };
+        }
+    };
+
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', apply, { once: true });
+    } else {
+        apply();
+    }
+
+    document.addEventListener('pageContentLoaded', apply, false);
+    window.addEventListener('pageshow', apply, false);
+})();
+</script>
+
 @if($pmdKpiOverlayRoute)
 <link
     rel="stylesheet"
