@@ -48,6 +48,10 @@
         'app/admin/assets/css/pmd-kpi-unique-colors-v1.css'
     );
 
+    $pmdFloorToolbarJsPath = base_path(
+        'app/admin/assets/js/pmd-floor-toolbar-authority-v1.js'
+    );
+
     /* PMD_ADMIN_FAVICON_HEAD_AUTHORITY_V2
      * This partial is in the common Admin <head>, including clean Lab pages.
      * Use the exact PMD favicon that is already correct on PmdSettings and
@@ -82,14 +86,31 @@
         ? (string)filemtime($pmdKpiUniqueColorsPath)
         : '1';
 
+    $pmdFloorToolbarJsVersion = is_file($pmdFloorToolbarJsPath)
+        ? (string)filemtime($pmdFloorToolbarJsPath)
+        : '1';
+
+    $pmdAdminCleanLabRoute = trim((string)request()->path(), '/');
+
     $pmdKpiOverlayRoute = in_array(
-        trim((string)request()->path(), '/'),
+        $pmdAdminCleanLabRoute,
         [
             'admin/dashboardlab',
             'admin/managerlab',
             'admin/reservationslab',
             'admin/cashierlab',
             'admin/accountantlab',
+        ],
+        true
+    );
+
+    $pmdFloorToolbarRoute = in_array(
+        $pmdAdminCleanLabRoute,
+        [
+            'admin/dashboardlab',
+            'admin/managerlab',
+            'admin/reservationslab',
+            'admin/cashierlab',
         ],
         true
     );
@@ -116,6 +137,15 @@
         visibility: hidden !important;
     }
 </style>
+
+@if($pmdFloorToolbarRoute)
+<style id="pmd-floor-toolbar-authority-v1-critical">
+    /* PMD_FLOOR_TOOLBAR_AUTHORITY_V1: hide redundant Fit before first paint. */
+    #pmd-r2-floor-toolbar-v316 [data-pmd-r2-tool="fit"] {
+        display: none !important;
+    }
+</style>
+@endif
 
 <script id="pmd-admin-i18n-boot">
 (function () {
@@ -235,6 +265,13 @@
     rel="stylesheet"
     href="/app/admin/assets/css/pmd-kpi-unique-colors-v1.css?v={{ $pmdKpiUniqueColorsVersion }}"
 >
+@endif
+
+@if($pmdFloorToolbarRoute)
+<script
+    src="/app/admin/assets/js/pmd-floor-toolbar-authority-v1.js?v={{ $pmdFloorToolbarJsVersion }}"
+    defer
+></script>
 @endif
 
 <script
