@@ -1458,3 +1458,321 @@ html body>.pmd-floor-registry-manager[data-pmd-floor-add-portal="true"]>.pmd-flo
   background-color:#fff!important;
   color:#102a43!important;
 }
+
+/* PMD_SHARED_FLOOR_TOOLBAR_LARGE_V2_START */
+/*
+ * Final shared Floor toolbar authority.
+ *
+ * 1. Management controls are force-hidden on every clean workspace
+ *    except ManagerLab. DashboardLab is not a clean-workspace-path
+ *    surface and therefore remains allowed.
+ *
+ * 2. Every visible top Floor toolbar control gets the same larger
+ *    touch/click target and icon geometry.
+ */
+
+/* Defense-in-depth for cached/older server markup. */
+#pmd-dashboard-lab[data-pmd-clean-workspace-path]:not([data-pmd-clean-workspace-path="/admin/managerlab"])
+#pmd-r2-shared-floor-canvas-v310
+[data-pmd-floor-add],
+
+#pmd-dashboard-lab[data-pmd-clean-workspace-path]:not([data-pmd-clean-workspace-path="/admin/managerlab"])
+#pmd-r2-shared-floor-canvas-v310
+[data-pmd-floor-table-add],
+
+#pmd-dashboard-lab[data-pmd-clean-workspace-path]:not([data-pmd-clean-workspace-path="/admin/managerlab"])
+#pmd-r2-shared-floor-canvas-v310
+[data-pmd-floor-table-edit] {
+  display: none !important;
+  visibility: hidden !important;
+  pointer-events: none !important;
+}
+
+/* Larger complete top toolbar. */
+#pmd-r2-shared-floor-canvas-v310
+#pmd-r2-floor-toolbar-host-v464 {
+  top: -64px !important;
+  height: 52px !important;
+  min-height: 52px !important;
+  max-height: 52px !important;
+}
+
+#pmd-r2-shared-floor-canvas-v310
+#pmd-r2-floor-toolbar-v316 {
+  height: 52px !important;
+  min-height: 52px !important;
+  max-height: 52px !important;
+  gap: 12px !important;
+}
+
+/* Edit layout / Add table / Edit table / zoom / Full Floor */
+#pmd-r2-shared-floor-canvas-v310
+#pmd-r2-floor-toolbar-v316
+.pmd-r2-floor-tool-v316,
+
+#pmd-r2-shared-floor-canvas-v310
+#pmd-r2-floor-toolbar-v316
+.pmd-r2-floor-tool-v316[aria-pressed="true"] {
+  box-sizing: border-box !important;
+
+  height: 52px !important;
+  min-height: 52px !important;
+  max-height: 52px !important;
+
+  min-width: 52px !important;
+
+  padding: 0 16px !important;
+  gap: 9px !important;
+
+  border-radius: 15px !important;
+
+  font-size: 14px !important;
+  font-weight: 800 !important;
+}
+
+/* Larger icons everywhere in the toolbar. */
+#pmd-r2-shared-floor-canvas-v310
+#pmd-r2-floor-toolbar-v316
+.pmd-r2-floor-tool-v316 svg {
+  width: 20px !important;
+  min-width: 20px !important;
+  max-width: 20px !important;
+
+  height: 20px !important;
+  min-height: 20px !important;
+  max-height: 20px !important;
+
+  flex: 0 0 20px !important;
+}
+
+/* Icon-only zoom controls remain square. */
+#pmd-r2-shared-floor-canvas-v310
+#pmd-r2-floor-toolbar-v316
+[data-pmd-r2-tool="zoom-out"],
+
+#pmd-r2-shared-floor-canvas-v310
+#pmd-r2-floor-toolbar-v316
+[data-pmd-r2-tool="zoom-in"] {
+  width: 52px !important;
+  min-width: 52px !important;
+  max-width: 52px !important;
+
+  flex: 0 0 52px !important;
+  flex-basis: 52px !important;
+
+  padding: 0 !important;
+}
+
+/* Floor tabs + Add floor use exactly the same larger height. */
+#pmd-r2-shared-floor-canvas-v310
+.pmd-shared-floor-switcher__floor,
+
+#pmd-r2-shared-floor-canvas-v310
+.pmd-shared-floor-switcher__add {
+  height: 52px !important;
+  min-height: 52px !important;
+  max-height: 52px !important;
+
+  padding: 0 18px !important;
+
+  border-radius: 15px !important;
+
+  font-size: 15px !important;
+  font-weight: 800 !important;
+}
+
+/* Bigger + icon in Add floor. */
+#pmd-r2-shared-floor-canvas-v310
+.pmd-shared-floor-switcher__add {
+  gap: 8px !important;
+}
+
+#pmd-r2-shared-floor-canvas-v310
+.pmd-shared-floor-switcher__add svg {
+  width: 20px !important;
+  min-width: 20px !important;
+  max-width: 20px !important;
+
+  height: 20px !important;
+  min-height: 20px !important;
+  max-height: 20px !important;
+
+  flex: 0 0 20px !important;
+}
+
+/* Dividers scale with the new toolbar. */
+#pmd-r2-shared-floor-canvas-v310
+.pmd-shared-floor-switcher__divider {
+  height: 34px !important;
+}
+
+#pmd-r2-shared-floor-canvas-v310
+.pmd-floor-table-manager__toolbar-divider {
+  min-height: 34px !important;
+}
+
+/* Still larger than before on mobile, but compact enough to scroll. */
+@media (max-width: 820px) {
+  #pmd-r2-shared-floor-canvas-v310
+  #pmd-r2-floor-toolbar-host-v464 {
+    top: -56px !important;
+
+    height: 46px !important;
+    min-height: 46px !important;
+    max-height: 46px !important;
+  }
+
+  #pmd-r2-shared-floor-canvas-v310
+  #pmd-r2-floor-toolbar-v316 {
+    height: 46px !important;
+    min-height: 46px !important;
+    max-height: 46px !important;
+
+    gap: 8px !important;
+  }
+
+  #pmd-r2-shared-floor-canvas-v310
+  #pmd-r2-floor-toolbar-v316
+  .pmd-r2-floor-tool-v316,
+
+  #pmd-r2-shared-floor-canvas-v310
+  .pmd-shared-floor-switcher__floor,
+
+  #pmd-r2-shared-floor-canvas-v310
+  .pmd-shared-floor-switcher__add {
+    height: 46px !important;
+    min-height: 46px !important;
+    max-height: 46px !important;
+
+    border-radius: 13px !important;
+  }
+
+  #pmd-r2-shared-floor-canvas-v310
+  #pmd-r2-floor-toolbar-v316
+  [data-pmd-r2-tool="zoom-out"],
+
+  #pmd-r2-shared-floor-canvas-v310
+  #pmd-r2-floor-toolbar-v316
+  [data-pmd-r2-tool="zoom-in"] {
+    width: 46px !important;
+    min-width: 46px !important;
+    max-width: 46px !important;
+
+    flex: 0 0 46px !important;
+    flex-basis: 46px !important;
+  }
+
+  #pmd-r2-shared-floor-canvas-v310
+  .pmd-shared-floor-switcher__floor,
+
+  #pmd-r2-shared-floor-canvas-v310
+  .pmd-shared-floor-switcher__add {
+    padding: 0 14px !important;
+    font-size: 14px !important;
+  }
+}
+/* PMD_SHARED_FLOOR_TOOLBAR_LARGE_V2_END */
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+/* PMD_FLOOR_TOOLBAR_VISUAL_R56_START */
+html body #pmd-r2-shared-floor-canvas-v310 [data-floor-strip] {
+  display: none !important;
+  visibility: hidden !important;
+  pointer-events: none !important;
+  position: absolute !important;
+  width: 0 !important;
+  min-width: 0 !important;
+  max-width: 0 !important;
+  height: 0 !important;
+  min-height: 0 !important;
+  max-height: 0 !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  border: 0 !important;
+  overflow: hidden !important;
+}
+
+html body #pmd-r2-floor-toolbar-v316 [data-pmd-r2-tool="strip"] {
+  box-sizing: border-box !important;
+  width: 52px !important;
+  min-width: 52px !important;
+  max-width: 52px !important;
+  height: 52px !important;
+  min-height: 52px !important;
+  max-height: 52px !important;
+  flex: 0 0 52px !important;
+  flex-basis: 52px !important;
+  flex-grow: 0 !important;
+  flex-shrink: 0 !important;
+  padding: 0 !important;
+  gap: 0 !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+}
+
+html body #pmd-r2-floor-toolbar-v316 [data-pmd-r2-tool="strip"] > span {
+  display: none !important;
+}
+
+html body #pmd-r2-floor-toolbar-v316 [data-pmd-r2-tool="strip"] > svg {
+  display: block !important;
+  width: 21px !important;
+  min-width: 21px !important;
+  max-width: 21px !important;
+  height: 21px !important;
+  min-height: 21px !important;
+  max-height: 21px !important;
+  flex: 0 0 21px !important;
+  margin: 0 !important;
+  padding: 0 !important;
+}
+
+html body #pmd-r2-floor-toolbar-v316 [data-pmd-r2-tool="strip"]::before,
+html body #pmd-r2-floor-toolbar-v316 [data-pmd-r2-tool="strip"]::after {
+  content: none !important;
+  display: none !important;
+}
+
+@media (max-width: 820px) {
+  html body #pmd-r2-floor-toolbar-v316 [data-pmd-r2-tool="strip"] {
+    width: 46px !important;
+    min-width: 46px !important;
+    max-width: 46px !important;
+    height: 46px !important;
+    min-height: 46px !important;
+    max-height: 46px !important;
+    flex: 0 0 46px !important;
+    flex-basis: 46px !important;
+  }
+
+  html body #pmd-r2-floor-toolbar-v316 [data-pmd-r2-tool="strip"] > svg {
+    width: 19px !important;
+    min-width: 19px !important;
+    max-width: 19px !important;
+    height: 19px !important;
+    min-height: 19px !important;
+    max-height: 19px !important;
+    flex: 0 0 19px !important;
+  }
+}
+/* PMD_FLOOR_TOOLBAR_VISUAL_R56_END */
+
+
+
+
+
+
+

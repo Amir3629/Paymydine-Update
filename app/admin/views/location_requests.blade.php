@@ -8,7 +8,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
     <meta name="description" content="A powerful Super Admin dashboard for managing multiple tenants, each with its own restaurant management system. Efficiently handle tenants, databases, and domains in one place.">
     <!-- Fav Icon  -->
-    <link rel="shortcut icon" href="./images/favicon.svg">
+    <link rel="shortcut icon" href="/app/admin/assets/images/pmd-brand-mark.svg?v=pmd-exact-sidebar-logo-20260818-v2">
     <!-- Page Title  -->
     <title>Location Requests - PayMyDine Super Admin Dashboard</title>
     <!-- StyleSheets  -->

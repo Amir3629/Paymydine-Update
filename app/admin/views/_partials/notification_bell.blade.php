@@ -1,5 +1,29 @@
-<li class="nav-item dropdown" id="notif-root" style="position:relative">
-  <a href="#" id="notifDropdown"
+
+<li class="nav-item dropdown" id="notif-root" style="position:relative!important;overflow:visible!important;margin-left:clamp(44px,4vw,64px)!important;margin-inline-start:clamp(44px,4vw,64px)!important;padding-left:0!important;padding-inline-start:0!important;" data-pmd-main-header-notification-spacing-v2="" data-pmd-main-header-notification-spacing-r66="">
+<span
+                data-pmd-main-header-notification-divider-r66=""
+                aria-hidden="true"
+                style="
+                    position:absolute!important;
+                    left:-16px!important;
+                    top:50%!important;
+                    transform:translateY(-50%)!important;
+                    width:1px!important;
+                    min-width:1px!important;
+                    max-width:1px!important;
+                    height:34px!important;
+                    min-height:34px!important;
+                    max-height:34px!important;
+                    margin:0!important;
+                    padding:0!important;
+                    border:0!important;
+                    background:#cfe0ec!important;
+                    opacity:1!important;
+                    pointer-events:none!important;
+                    z-index:1!important;
+                "
+            ></span>
+<a href="#" id="notifDropdown"
      class="nav-link dropdown-toggle"
      data-toggle="dropdown" aria-haspopup="true" aria-expanded="false" role="button">
     <i class="fa fa-bell"></i>

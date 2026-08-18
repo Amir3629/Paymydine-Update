@@ -77,12 +77,23 @@ class Cashierlab extends PmdCleanWorkspaceControllerV1
         array $floorBootstrap
     ): void {
         $isGerman = strtolower($locale) === 'de';
+
+        // PMD_CASHIER_HISTORY_MODE_R46
+        // Current = visits not yet manually released.
+        // History = visits ended by the explicit cashier_table_free boundary.
+        $historyMode = in_array(
+            strtolower(trim((string)request()->query('pmd_history', '0'))),
+            ['1', 'true', 'yes', 'on'],
+            true
+        );
+
         [$from, $to] = $this->pmdResolveDateRange();
 
         $source = new class extends PmdWaiterDashboardV151 {
             public function pmdCashierOrdersForRange(
                 Carbon $from,
-                Carbon $to
+                Carbon $to,
+                bool $historyMode = false
             ): array {
                 $base = $this->payload(false);
                 $tables = array_values((array)($base['tables'] ?? []));
@@ -178,62 +189,30 @@ class Cashierlab extends PmdCleanWorkspaceControllerV1
                 $maps = $this->tableReferenceMaps($tables);
                 $statusMap = $this->orderStatusMap();
 
-                // PMD_CASHIER_RELEASED_VISIT_FILTER_R45C
-                // Today's Cashier cards are the active operational visit list,
-                // not permanent financial history. Hide only visits explicitly
-                // ended by the staff Manual FREE action. Historical date-range
-                // views stay intact.
+                // PMD_CASHIER_CURRENT_HISTORY_SPLIT_R46
+                // The explicit Manual FREE operation log is the durable visit boundary.
+                // Payment alone never moves an order to History.
                 $releasedOrderIds = [];
 
-                $todayBerlin = \Carbon\Carbon::now(
-                    'Europe/Berlin'
-                )->toDateString();
-
-                $hideReleasedVisits =
-                    $from->toDateString() === $todayBerlin
-                    && $to->toDateString() === $todayBerlin;
-
-                if (
-                    $hideReleasedVisits
-                    && Schema::hasTable(
-                        'pmd_waiter_pos_operation_logs'
-                    )
-                ) {
+                if (Schema::hasTable('pmd_waiter_pos_operation_logs')) {
                     try {
                         $logColumns = Schema::getColumnListing(
                             'pmd_waiter_pos_operation_logs'
                         );
 
                         if (
-                            in_array(
-                                'order_id',
-                                $logColumns,
-                                true
-                            )
-                            && in_array(
-                                'action',
-                                $logColumns,
-                                true
-                            )
+                            in_array('order_id', $logColumns, true)
+                            && in_array('action', $logColumns, true)
                         ) {
                             foreach (
-                                DB::table(
-                                    'pmd_waiter_pos_operation_logs'
-                                )
-                                    ->where(
-                                        'action',
-                                        'cashier_table_free'
-                                    )
+                                DB::table('pmd_waiter_pos_operation_logs')
+                                    ->where('action', 'cashier_table_free')
                                     ->pluck('order_id')
                                 as $releasedOrderId
                             ) {
-                                $releasedOrderId =
-                                    (int)$releasedOrderId;
-
+                                $releasedOrderId = (int)$releasedOrderId;
                                 if ($releasedOrderId > 0) {
-                                    $releasedOrderIds[
-                                        $releasedOrderId
-                                    ] = true;
+                                    $releasedOrderIds[$releasedOrderId] = true;
                                 }
                             }
                         }
@@ -281,7 +260,9 @@ class Cashierlab extends PmdCleanWorkspaceControllerV1
                         continue;
                     }
 
-                    if (isset($releasedOrderIds[$orderId])) {
+                    $isReleasedVisit = isset($releasedOrderIds[$orderId]);
+
+                    if ($historyMode ? !$isReleasedVisit : $isReleasedVisit) {
                         continue;
                     }
 
@@ -446,7 +427,7 @@ class Cashierlab extends PmdCleanWorkspaceControllerV1
         };
 
         try {
-            $payload = $source->pmdCashierOrdersForRange($from, $to);
+            $payload = $source->pmdCashierOrdersForRange($from, $to, $historyMode);
         } catch (\Throwable $error) {
             logger()->warning('Cashier Lab real day orders render failed', [
                 'type' => get_class($error),
@@ -473,6 +454,9 @@ class Cashierlab extends PmdCleanWorkspaceControllerV1
                 'subtitle_range' => 'Bestellungen im gewählten Zeitraum · neueste zuerst',
                 'order' => 'Bestellung',
                 'orders' => 'Bestellungen',
+                'history' => 'Verlauf',
+                'current' => 'Aktuell',
+                'history_orders' => 'Verlauf',
                 'table' => 'Tisch',
                 'table_unassigned' => 'Tisch nicht zugeordnet',
                 'cashier' => 'Kasse',
@@ -508,6 +492,9 @@ class Cashierlab extends PmdCleanWorkspaceControllerV1
                 'subtitle_range' => 'Orders in the selected date range · newest first',
                 'order' => 'Order',
                 'orders' => 'Orders',
+                'history' => 'History',
+                'current' => 'Current',
+                'history_orders' => 'History',
                 'table' => 'Table',
                 'table_unassigned' => 'Table not assigned',
                 'cashier' => 'Cashier',
@@ -757,6 +744,7 @@ class Cashierlab extends PmdCleanWorkspaceControllerV1
             $from->toDateString() === $today->toDateString()
             && $to->toDateString() === $today->toDateString();
 
+        $this->vars['pmdCashierHistoryMode'] = $historyMode;
         $this->vars['pmdCashierCurrentOrders'] = $cards;
         $this->vars['pmdCashierCurrentOrdersText'] = $text;
         $this->vars['pmdCashierOrdersTitle'] = $isToday
@@ -772,6 +760,8 @@ class Cashierlab extends PmdCleanWorkspaceControllerV1
             admin_url('cashierlab'),
             $text
         );
+        $this->vars['pmdCashierOrdersRange']['extra_query'] =
+            $historyMode ? ['pmd_history' => 1] : [];
     }
 
     private function pmdResolveDateRange(): array

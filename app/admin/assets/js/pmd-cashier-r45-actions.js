@@ -125,6 +125,16 @@
         );
       }
 
+      // PMD_CASHIER_R46_FREE_CONFIRMATION
+      // Do not remove the card/reload until the backend confirms physical state.
+      var confirmedStatus = String(
+        json && json.table && json.table.operational_status || ''
+      ).toLowerCase();
+
+      if (confirmedStatus !== 'available' && confirmedStatus !== 'free') {
+        throw new Error('Table release was not confirmed by the server.');
+      }
+
       window.dispatchEvent(new CustomEvent('pmd:cashier-table-freed', {
         detail: json
       }));

@@ -1,0 +1,219 @@
+/* PMD_KPI_INFO_AUTHORITY_V4_SMOOTH_R50 */
+#pmd-r2-reservation-kpis-v307 .pmd-r2-kpi-v2401-card {
+  position: relative !important;
+}
+
+#pmd-r2-reservation-kpis-v307 button.pmd-kpi-info-button {
+  -webkit-appearance: none !important;
+  appearance: none !important;
+  position: absolute !important;
+  right: 10px !important;
+  bottom: 10px !important;
+  z-index: 25 !important;
+  display: inline-grid !important;
+  place-items: center !important;
+  width: 28px !important;
+  min-width: 28px !important;
+  max-width: 28px !important;
+  height: 28px !important;
+  min-height: 28px !important;
+  max-height: 28px !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  border: 0 !important;
+  outline: 0 !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  color: rgba(16, 42, 67, .88) !important;
+  line-height: 1 !important;
+  cursor: pointer !important;
+  opacity: .88 !important;
+  transform: none !important;
+  transition: opacity .18s ease, transform .18s ease, color .18s ease !important;
+}
+
+#pmd-r2-reservation-kpis-v307 button.pmd-kpi-info-button svg {
+  display: block !important;
+  width: 19px !important;
+  min-width: 19px !important;
+  max-width: 19px !important;
+  height: 19px !important;
+  min-height: 19px !important;
+  max-height: 19px !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  overflow: visible !important;
+}
+
+#pmd-r2-reservation-kpis-v307 button.pmd-kpi-info-button:hover,
+#pmd-r2-reservation-kpis-v307 button.pmd-kpi-info-button[aria-pressed="true"] {
+  border: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  color: #102a43 !important;
+  opacity: 1 !important;
+  transform: scale(1.06) !important;
+}
+
+#pmd-r2-reservation-kpis-v307 button.pmd-kpi-info-button:focus-visible {
+  outline: 2px solid currentColor !important;
+  outline-offset: 2px !important;
+  border-radius: 999px !important;
+}
+
+/* Normal KPI content is already in its final first-paint position. */
+#pmd-r2-reservation-kpis-v307 .pmd-r2-kpi-v2401-card > .pmd-r2-kpi-v2401-icon,
+#pmd-r2-reservation-kpis-v307 .pmd-r2-kpi-v2401-card > .pmd-r2-kpi-v2401-copy,
+#pmd-r2-reservation-kpis-v307 .pmd-r2-kpi-v2401-card > .pmd-r2-kpi-v2401-more {
+  opacity: 1 !important;
+  transform: translateY(0) !important;
+  pointer-events: auto !important;
+  transition: opacity .18s ease, transform .18s ease !important;
+}
+
+/* Explanation panel stays in DOM from the server, but invisible until clicked. */
+#pmd-r2-reservation-kpis-v307 .pmd-kpi-info-panel {
+  display: flex !important;
+  position: absolute !important;
+  inset: 12px 42px 12px 14px !important;
+  z-index: 20 !important;
+  align-items: center !important;
+  justify-content: center !important;
+  flex-direction: column !important;
+  gap: 5px !important;
+  min-width: 0 !important;
+  color: #102a43 !important;
+  opacity: 0 !important;
+  visibility: hidden !important;
+  transform: translateY(5px) !important;
+  pointer-events: none !important;
+  transition:
+    opacity .20s ease,
+    transform .20s ease,
+    visibility 0s linear .20s !important;
+}
+
+#pmd-r2-reservation-kpis-v307 .pmd-kpi-info-panel strong {
+  display: block !important;
+  width: 100% !important;
+  font-size: 13px !important;
+  font-weight: 900 !important;
+  line-height: 1.15 !important;
+}
+
+#pmd-r2-reservation-kpis-v307 .pmd-kpi-info-panel span {
+  display: block !important;
+  width: 100% !important;
+  font-size: 11px !important;
+  font-weight: 700 !important;
+  line-height: 1.28 !important;
+}
+
+/* Parent opacity is intentional: it cannot be defeated by R49's first-paint
+ * visibility:visible rules on title/value/description descendants. */
+#pmd-r2-reservation-kpis-v307 .pmd-r2-kpi-v2401-card.is-pmd-kpi-info-open > .pmd-r2-kpi-v2401-icon,
+#pmd-r2-reservation-kpis-v307 .pmd-r2-kpi-v2401-card.is-pmd-kpi-info-open > .pmd-r2-kpi-v2401-copy,
+#pmd-r2-reservation-kpis-v307 .pmd-r2-kpi-v2401-card.is-pmd-kpi-info-open > .pmd-r2-kpi-v2401-more,
+#pmd-r2-reservation-kpis-v307 .pmd-r2-kpi-v2401-card[data-pmd-kpi-info-open="true"] > .pmd-r2-kpi-v2401-icon,
+#pmd-r2-reservation-kpis-v307 .pmd-r2-kpi-v2401-card[data-pmd-kpi-info-open="true"] > .pmd-r2-kpi-v2401-copy,
+#pmd-r2-reservation-kpis-v307 .pmd-r2-kpi-v2401-card[data-pmd-kpi-info-open="true"] > .pmd-r2-kpi-v2401-more {
+  opacity: 0 !important;
+  transform: translateY(-5px) !important;
+  pointer-events: none !important;
+}
+
+#pmd-r2-reservation-kpis-v307 .pmd-r2-kpi-v2401-card.is-pmd-kpi-info-open > .pmd-kpi-info-panel,
+#pmd-r2-reservation-kpis-v307 .pmd-r2-kpi-v2401-card[data-pmd-kpi-info-open="true"] > .pmd-kpi-info-panel {
+  opacity: 1 !important;
+  visibility: visible !important;
+  transform: translateY(0) !important;
+  pointer-events: auto !important;
+  transition:
+    opacity .20s ease,
+    transform .20s ease,
+    visibility 0s linear 0s !important;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  #pmd-r2-reservation-kpis-v307 .pmd-r2-kpi-v2401-card > .pmd-r2-kpi-v2401-icon,
+  #pmd-r2-reservation-kpis-v307 .pmd-r2-kpi-v2401-card > .pmd-r2-kpi-v2401-copy,
+  #pmd-r2-reservation-kpis-v307 .pmd-r2-kpi-v2401-card > .pmd-r2-kpi-v2401-more,
+  #pmd-r2-reservation-kpis-v307 .pmd-kpi-info-panel,
+  #pmd-r2-reservation-kpis-v307 button.pmd-kpi-info-button {
+    transition: none !important;
+  }
+}
+
+@media (max-width: 820px) {
+  #pmd-r2-reservation-kpis-v307 button.pmd-kpi-info-button {
+    right: 7px !important;
+    bottom: 7px !important;
+    width: 26px !important;
+    min-width: 26px !important;
+    max-width: 26px !important;
+    height: 26px !important;
+    min-height: 26px !important;
+    max-height: 26px !important;
+  }
+
+  #pmd-r2-reservation-kpis-v307 button.pmd-kpi-info-button svg {
+    width: 18px !important;
+    min-width: 18px !important;
+    max-width: 18px !important;
+    height: 18px !important;
+    min-height: 18px !important;
+    max-height: 18px !important;
+  }
+
+  #pmd-r2-reservation-kpis-v307 .pmd-kpi-info-panel {
+    inset: 9px 36px 9px 10px !important;
+  }
+
+  #pmd-r2-reservation-kpis-v307 .pmd-kpi-info-panel strong {
+    font-size: 11px !important;
+  }
+
+  #pmd-r2-reservation-kpis-v307 .pmd-kpi-info-panel span {
+    font-size: 9.5px !important;
+    line-height: 1.2 !important;
+  }
+}
+
+/* PMD_KPI_CARD_NO_SUBTITLE_R58_START */
+/*
+ * Top KPI cards are intentionally clean:
+ * title + value + menu + info button.
+ *
+ * Technical/sample/source text remains in the KPI data object for debugging
+ * and info authority, but is not visible as permanent card chrome.
+ */
+#pmd-dashboard-lab
+#pmd-r2-reservation-kpis-v307
+.pmd-r2-kpi-v2401-description {
+    display: none !important;
+    visibility: hidden !important;
+    opacity: 0 !important;
+
+    width: 0 !important;
+    height: 0 !important;
+    min-height: 0 !important;
+    max-height: 0 !important;
+
+    margin: 0 !important;
+    padding: 0 !important;
+
+    overflow: hidden !important;
+    pointer-events: none !important;
+}
+
+/*
+ * Do NOT hide the R49/R50 information panel.
+ * The (i) explanation remains available and readable.
+ */
+#pmd-dashboard-lab
+#pmd-r2-reservation-kpis-v307
+[data-pmd-kpi-info-panel] {
+    visibility: visible;
+}
+/* PMD_KPI_CARD_NO_SUBTITLE_R58_END */

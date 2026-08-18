@@ -5,14 +5,14 @@ namespace Admin\Controllers;
 use Admin\Classes\PmdCleanWorkspaceControllerV1;
 use Admin\Services\PmdCleanWorkspaceSharedV1;
 use Admin\Services\PmdRoleDashboardDataV1;
-use Admin\Services\PmdCleanWorkspaceFinanceV1;
 
 /**
- * PMD_ACCOUNTANT_EXACT_OWNER_COMPONENT_V3_5_1
+ * PMD_ACCOUNTANT_EXACT_OWNER_COMPONENT_V3_5_4
+ * PMD_ACCOUNTANT_NO_FINANCE_INSIGHT_CARDS_V3_5_4
  *
- * Accountant keeps the approved four visible top KPI cards. Additional
- * accountant-specific finance cards render in the white-card area below, while
- * the exact live Dashboard Lab partial/CSS/JS component remains the visual authority.
+ * Accountant keeps the approved four configurable top KPI cards and the
+ * shared Owner analytics below them. The six intermediate finance insight
+ * cards are intentionally not rendered on this workspace.
  */
 class Accountantlab extends PmdCleanWorkspaceControllerV1
 {
@@ -88,10 +88,8 @@ class Accountantlab extends PmdCleanWorkspaceControllerV1
 
         /*
          * PMD_ACCOUNTANT_TOP_KPI_SURFACE_RESTORE_V3_5_1
-         * V3.5 accidentally made all eight finance KPIs visible at once.
-         * Keep the original four-card surface. If the V3.5 cookie still
-         * contains eight keys, truncate the server-first selection to four;
-         * the normal chooser can still swap any of the audited finance KPIs.
+         * Keep exactly four top KPI cards visible. The chooser can still swap
+         * any audited Accountant KPI into those four positions.
          */
         $selection = is_array($this->vars['pmdCleanWorkspaceKpiSelection'] ?? null)
             ? array_values($this->vars['pmdCleanWorkspaceKpiSelection'])
@@ -104,9 +102,9 @@ class Accountantlab extends PmdCleanWorkspaceControllerV1
         }
         $this->vars['pmdCleanWorkspaceKpiSelection'] = $selection;
 
-        /** @var PmdCleanWorkspaceFinanceV1 $finance */
-        $finance = app(PmdCleanWorkspaceFinanceV1::class);
-        $this->vars['pmdRoleInsightCards'] =
-            $finance->accountantInsightCards($shared->locationId(), $locale);
+        // PMD_ACCOUNTANT_NO_FINANCE_INSIGHT_CARDS_V3_5_4
+        // Revenue bridge / Settlement totals / Payment mix / Tips ledger /
+        // Average checks / Tax & loss control are intentionally removed.
+        $this->vars['pmdRoleInsightCards'] = [];
     }
 }

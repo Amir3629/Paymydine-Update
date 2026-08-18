@@ -1,4 +1,41 @@
 @php
+    // PMD_LOGIN_LANGUAGE_V1
+    // Logged-out choice is browser-local. After successful authentication the
+    // saved staff language becomes authoritative again in Login::onLogin().
+    $pmdLoginLocale = strtolower(trim((string)request()->cookie(
+        'pmd_admin_locale',
+        app()->getLocale()
+    )));
+    $pmdLoginLocale = in_array($pmdLoginLocale, ['en', 'de'], true)
+        ? $pmdLoginLocale
+        : 'en';
+
+    app()->setLocale($pmdLoginLocale);
+    if (app()->bound('translator.localization')) {
+        app('translator.localization')->setLocale($pmdLoginLocale, false);
+    }
+
+    $pmdLoginNextLocale = $pmdLoginLocale === 'de' ? 'en' : 'de';
+    $pmdLoginCopy = $pmdLoginLocale === 'de'
+        ? [
+            'title' => 'Anmelden - PayMyDine',
+            'username_placeholder' => 'Benutzername eingeben',
+            'password_placeholder' => 'Passwort eingeben',
+            'password_updated' => 'Dein Passwort wurde aktualisiert. Du kannst dich jetzt anmelden.',
+            'failed_title' => 'Anmeldung fehlgeschlagen',
+            'failed_text' => 'Prüfe Benutzername und Passwort. Falls du dein Passwort vergessen hast, nutze unten den Link zum Zurücksetzen.',
+            'switch_title' => 'Auf Englisch wechseln',
+        ]
+        : [
+            'title' => 'Login - PayMyDine',
+            'username_placeholder' => 'Enter your username',
+            'password_placeholder' => 'Enter your password',
+            'password_updated' => 'Your password has been updated. You can now sign in.',
+            'failed_title' => 'Login failed',
+            'failed_text' => 'Check your username and password. If you forgot your password, use the reset link below.',
+            'switch_title' => 'Switch to German',
+        ];
+
     $pmdLoginLogoOriginalPath = base_path('assets/media/uploads/Paymydinelogo.png');
     $pmdLoginLogoTrimmedPath = base_path('assets/media/uploads/Paymydinelogo-login.png');
 
@@ -17,7 +54,7 @@
     // PMD_LOGIN_LOGO_V58_END
 @endphp
 <!DOCTYPE html>
-<html lang="zxx" class="js">
+<html lang="{{ $pmdLoginLocale }}" class="js">
 
 <head>
     <base href="../../../">
@@ -26,9 +63,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
     <meta name="description" content="A powerful and conceptual apps base dashboard template that especially build for developers and programmers.">
     <!-- Fav Icon  -->
-    <link rel="shortcut icon" href="./images/favicon.svg">
+    <link rel="shortcut icon" href="/app/admin/assets/images/pmd-brand-mark.svg?v=pmd-exact-sidebar-logo-20260818-v2">
     <!-- Page Title  -->
-    <title>Login | {{setting('site_name')}}</title>
+    <title>{{ $pmdLoginCopy['title'] }}</title>
      <!-- StyleSheets  -->
      <link rel="stylesheet" href="{{ asset('app/admin/assets/css/dashboard.css') }}?ver={{ time() }}">
      <link id="skin-default" rel="stylesheet" href="./assets/css/theme.css?ver=3.2.3">
@@ -1137,6 +1174,35 @@
              color: #7A271A !important;
          }
 
+         /* PMD_LOGIN_LANGUAGE_V1 */
+         body.pg-auth .nk-auth-container,
+         body.pg-auth .nk-split-content.nk-auth-container { position: relative !important; }
+         body.pg-auth .pmd-login-language-button {
+             position: absolute !important;
+             top: 16px !important;
+             right: 16px !important;
+             z-index: 20 !important;
+             display: inline-grid !important;
+             place-items: center !important;
+             width: 46px !important;
+             min-width: 46px !important;
+             height: 42px !important;
+             padding: 0 !important;
+             border: 1px solid #D7C7A8 !important;
+             border-radius: 13px !important;
+             background: #FFF9EE !important;
+             color: #062F2A !important;
+             font-size: 13px !important;
+             font-weight: 900 !important;
+             letter-spacing: .02em !important;
+             cursor: pointer !important;
+             box-shadow: 0 5px 16px rgba(6,47,42,.08) !important;
+         }
+         body.pg-auth .pmd-login-language-button:hover {
+             border-color: #C89B4A !important;
+             background: #F5E8D0 !important;
+         }
+
      </style>
 <!-- PMD_LOGIN_LOGO_V58_CSS_START -->
 <link rel="stylesheet" href="{{ asset('app/admin/assets/css/pmd-login-fouc-v58.css') }}?v={{ time() }}">
@@ -1522,6 +1588,14 @@ section.pmd962-hero,
                 <div class="nk-content ">
                     <div class="nk-split nk-split-page nk-split-md">
                         <div class="nk-split-content nk-block-area nk-block-area-column nk-auth-container bg-white">
+                            <button
+                                type="button"
+                                class="pmd-login-language-button"
+                                data-pmd-login-language="{{ $pmdLoginNextLocale }}"
+                                title="{{ $pmdLoginCopy['switch_title'] }}"
+                                aria-label="{{ $pmdLoginCopy['switch_title'] }}"
+                            >{{ strtoupper($pmdLoginNextLocale) }}</button>
+
                             <div class="nk-block nk-block-middle nk-auth-body">
                                 <div class="brand-logo pb-5">
                                     <a href="{{ admin_url('dashboard') }}" class="logo-link">
@@ -1540,13 +1614,13 @@ section.pmd962-hero,
 
                                 @if (input('reset') === 'success')
                                     <div class="pmd-login-feedback pmd-login-feedback-success">
-                                        Your password has been updated. You can now sign in.
+                                        {{ $pmdLoginCopy['password_updated'] }}
                                     </div>
                                 @endif
 
                                 <div id="pmd-login-notice" class="pmd-login-notice" role="alert" aria-live="polite" hidden>
-                                    <strong>Login failed</strong>
-                                    <span>Check your username and password. If you forgot your password, use the reset link below.</span>
+                                    <strong>{{ $pmdLoginCopy['failed_title'] }}</strong>
+                                    <span>{{ $pmdLoginCopy['failed_text'] }}</span>
                                 </div>
 
                                 {!! form_open([
@@ -1566,7 +1640,7 @@ section.pmd962-hero,
                                             name="username"
                                             id="input-username"
                                             class="form-control form-control-lg"
-                                            placeholder="Enter your username"
+                                            placeholder="{{ $pmdLoginCopy['username_placeholder'] }}"
                                             value="{{ old('username') }}"
                                         />
                                     </div>
@@ -1587,7 +1661,7 @@ section.pmd962-hero,
                                             name="password"
                                             id="input-password"
                                             class="form-control form-control-lg"
-                                            placeholder="Enter your password"
+                                            placeholder="{{ $pmdLoginCopy['password_placeholder'] }}"
                                         />
                                     </div>
                                     {!! form_error('password', '<span class="text-danger">', '</span>') !!}
@@ -1621,6 +1695,24 @@ section.pmd962-hero,
         <!-- main @e -->
     </div>
     <!-- app-root @e -->
+    <!-- PMD_LOGIN_LANGUAGE_V1 -->
+    <script id="pmd-login-language-v1">
+    (function () {
+        'use strict';
+        var button = document.querySelector('[data-pmd-login-language]');
+        if (!button) return;
+        button.addEventListener('click', function () {
+            var code = String(button.getAttribute('data-pmd-login-language') || '').toLowerCase();
+            if (code !== 'en' && code !== 'de') return;
+            var cookie = 'pmd_admin_locale=' + encodeURIComponent(code)
+                + '; Path=/; Max-Age=31536000; SameSite=Lax';
+            if (window.location.protocol === 'https:') cookie += '; Secure';
+            document.cookie = cookie;
+            window.location.reload();
+        });
+    })();
+    </script>
+
     <!-- JavaScript -->
     <script src="{{ asset('app/admin/assets/js/bundle.js?ver=3.2.3') }}"></script>
     <script src="{{ asset('app/admin/assets/js/scripts.js?ver=3.2.3') }}"></script>
@@ -1644,7 +1736,7 @@ section.pmd962-hero,
                 var notice = document.getElementById('pmd-login-notice');
                 if (!notice) return;
 
-                var text = message || 'Check your username and password. If you forgot your password, use the reset link below.';
+                var text = message || @json($pmdLoginCopy['failed_text']);
                 var span = notice.querySelector('span');
 
                 if (span) span.textContent = text;

@@ -3,7 +3,7 @@
 
     // PMD_CLEAN_ROLE_WORKSPACE_I18N_PAGE_SKIP_V1
     // These role workspaces render their EN/DE copy server-first. Do not boot
-    // the observer/RAF page-translator that only owns Dashboard2/Reservations2.
+    // the observer/RAF page-translator that owns Dashboard2/Reservations2/DashboardLab.
     if (/^\/admin\/(?:managerlab|accountantlab|cashierlab|reservationslab)(?:\/|$)/.test(String(location.pathname || ''))) {
         return;
     }
@@ -16,11 +16,12 @@
         return;
     }
 
-    var VERSION = '2.0.0';
+    var VERSION = '2.1.0-dashboardlab';
 
     var allowedRoutes = [
         '/admin/dashboard2',
-        '/admin/reservations2'
+        '/admin/reservations2',
+        '/admin/dashboardlab'
     ];
 
     var running = false;
@@ -475,8 +476,8 @@
 
     function audit() {
         var mixedPattern = locale() === 'de'
-            ? /\b(?:Calendar|Hour|Floor|Sales by|Payment methods|Recent transactions|Top-selling items|Latest reviews|Tips summary|Upcoming events|Order channels|Source unavailable|Table\s+\d+|\d+\s+guests|Open)\b/i
-            : /\b(?:Umsatzverlauf|Umsatz nach Stunde|Linie|Balken|Tisch\s+\d+|\d+\s+Gäste|Geöffnet|aktive Tische|lange offene Tische)\b/i;
+            ? /\b(?:Dashboard|Revenue|Guests Served|Table Turnover|Dine In|Take Away|Kitchen Ticket Time|Table Occupancy|Menu Availability|Tips|Today|Current|Connected|samples?|Choose KPI|Calendar|Hour|Floor|Full Floor|Sales over time|Sales by category|Sales by hour|Payment methods|Recent transactions|Alerts|live orders|Order channels|Top-selling items|Tips summary|reviews today|Upcoming events|Source unavailable|No completed table visits|Table\s+\d+|\d+\s+guests|Open)\b/i
+            : /\b(?:Übersicht|Umsatzverlauf|Umsatz nach Stunde|Zahlungsarten|Letzte Transaktionen|Warnungen|Meistverkaufte Artikel|Trinkgeldübersicht|Bevorstehende Termine|KPI auswählen|Tisch\s+\d+|\d+\s+Gäste|Geöffnet|aktive Tische|lange offene Tische)\b/i;
 
         var visibleMixed = [];
 

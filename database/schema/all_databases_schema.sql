@@ -1,5 +1,5 @@
 -- PayMyDine schema-only dump
--- Generated UTC: Mon Aug 17 15:47:26 UTC 2026
+-- Generated UTC: Tue Aug 18 18:19:48 UTC 2026
 -- Source server: vps-252f1bc4
 -- DATA ROWS ARE NOT INCLUDED
 
@@ -2068,6 +2068,7 @@ CREATE TABLE `ti_orders` (
   `address_id` int(11) DEFAULT NULL,
   `cart` text NOT NULL,
   `total_items` int(11) NOT NULL,
+  `guest_count` tinyint(3) unsigned DEFAULT NULL,
   `comment` text DEFAULT NULL,
   `payment` varchar(128) NOT NULL,
   `stripe_payment_intent_id` varchar(255) DEFAULT NULL,
@@ -3599,7 +3600,7 @@ CREATE TABLE `ti_working_hours` (
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2026-08-17 15:47:26
+-- Dump completed on 2026-08-18 18:19:49
 
 -- ==================================================
 -- DATABASE: mimoza
@@ -5023,7 +5024,7 @@ CREATE TABLE `ti_kds_stations` (
   UNIQUE KEY `slug_unique` (`slug`),
   KEY `is_active_index` (`is_active`),
   KEY `location_id_index` (`location_id`)
-) ENGINE=InnoDB AUTO_INCREMENT=35 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=36 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -5917,7 +5918,7 @@ CREATE TABLE `ti_pmd_admin_presence_sessions` (
   KEY `ti_pmd_admin_presence_sessions_last_seen_at_index` (`last_seen_at`),
   KEY `ti_pmd_admin_presence_sessions_expires_at_index` (`expires_at`),
   KEY `ti_pmd_admin_presence_sessions_logout_at_index` (`logout_at`)
-) ENGINE=InnoDB AUTO_INCREMENT=26 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=34 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -7107,7 +7108,7 @@ CREATE TABLE `ti_working_hours` (
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2026-08-17 15:47:27
+-- Dump completed on 2026-08-18 18:19:49
 
 -- ==================================================
 -- DATABASE: rosana
@@ -9465,7 +9466,7 @@ CREATE TABLE `ti_working_hours` (
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2026-08-17 15:47:27
+-- Dump completed on 2026-08-18 18:19:49
 
 -- ==================================================
 -- DATABASE: persian
@@ -11409,7 +11410,7 @@ CREATE TABLE `ti_working_hours` (
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2026-08-17 15:47:27
+-- Dump completed on 2026-08-18 18:19:50
 
 -- ==================================================
 -- DATABASE: newtenantdb
@@ -13400,4 +13401,4 @@ CREATE TABLE `ti_working_hours` (
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2026-08-17 15:47:27
+-- Dump completed on 2026-08-18 18:19:50

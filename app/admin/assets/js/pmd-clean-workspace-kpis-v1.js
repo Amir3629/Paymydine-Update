@@ -192,7 +192,13 @@
 
     if (iconNode) iconNode.innerHTML = icon(data.icon || 'money');
     if (titleNode) titleNode.textContent = data.title || key;
-    if (valueNode) valueNode.textContent = data.value == null ? '—' : String(data.value);
+    // PMD_KPI_ZERO_SWAP_V1
+    if (valueNode) {
+      var pmdValue = data.value == null ? '' : String(data.value).trim();
+      valueNode.textContent = (!pmdValue || pmdValue === '—' || pmdValue === '–' || pmdValue === '-')
+        ? '0'
+        : String(data.value);
+    }
     if (descriptionNode) descriptionNode.textContent = data.description || '';
 
     persistSelection();

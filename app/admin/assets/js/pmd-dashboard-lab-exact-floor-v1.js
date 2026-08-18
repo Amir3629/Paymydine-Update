@@ -7135,6 +7135,104 @@ function saveLayout() {
       }
     );
 
+    /* PMD_FLOOR_DESKTOP_PAGE_SCROLL_AND_PAN_R54
+     * Desktop interaction contract:
+     * - normal vertical wheel/trackpad scroll continues the PAGE
+     * - horizontal intent still pans the Floor horizontally
+     * - click-drag on empty Floor background pans the Floor viewport
+     * - touch remains browser-native; no touch pointer interception
+     */
+    (function installDesktopFloorNavigationR54() {
+      if (!scroll || scroll.__pmdDesktopNavigationR54) return;
+      scroll.__pmdDesktopNavigationR54 = true;
+
+      var pan = null;
+
+      function wheelPixels(value, deltaMode) {
+        if (deltaMode === 1) return value * 16;
+        if (deltaMode === 2) return value * Math.max(window.innerHeight || 0, 600);
+        return value;
+      }
+
+      scroll.addEventListener('wheel', function (event) {
+        if (event.ctrlKey) return;
+
+        var dx = wheelPixels(Number(event.deltaX || 0), event.deltaMode);
+        var dy = wheelPixels(Number(event.deltaY || 0), event.deltaMode);
+        var horizontalIntent = event.shiftKey || Math.abs(dx) > Math.abs(dy);
+
+        if (state.stripMode && horizontalIntent) {
+          if (event.shiftKey && Math.abs(dy) >= Math.abs(dx)) {
+            event.preventDefault();
+            scroll.scrollLeft += dy;
+          }
+          return;
+        }
+
+        if (!state.stripMode && horizontalIntent) {
+          return;
+        }
+
+        if (Math.abs(dy) >= Math.abs(dx) && dy !== 0) {
+          event.preventDefault();
+          window.scrollBy({
+            top: dy,
+            left: 0,
+            behavior: 'auto'
+          });
+        }
+      }, { passive: false });
+
+      scroll.addEventListener('pointerdown', function (event) {
+        if (event.pointerType !== 'mouse' || event.button !== 0 || state.editing) return;
+        if (event.target.closest('button, a, input, select, textarea, [data-floor-table], [data-floor-guide], [data-floor-guide-card]')) return;
+
+        pan = {
+          pointerId: event.pointerId,
+          clientX: event.clientX,
+          clientY: event.clientY,
+          scrollLeft: scroll.scrollLeft,
+          scrollTop: scroll.scrollTop,
+          moved: false
+        };
+
+        if (scroll.setPointerCapture) {
+          try { scroll.setPointerCapture(event.pointerId); } catch (error) {}
+        }
+
+        scroll.classList.add('is-pmd-floor-grab-pan-r54');
+        event.preventDefault();
+      }, false);
+
+      scroll.addEventListener('pointermove', function (event) {
+        if (!pan || pan.pointerId !== event.pointerId) return;
+
+        var dx = event.clientX - pan.clientX;
+        var dy = event.clientY - pan.clientY;
+        if (Math.abs(dx) + Math.abs(dy) > 3) pan.moved = true;
+
+        scroll.scrollLeft = pan.scrollLeft - dx;
+        scroll.scrollTop = pan.scrollTop - dy;
+        event.preventDefault();
+      }, false);
+
+      function finishPan(event) {
+        if (!pan) return;
+        if (event && event.pointerId != null && pan.pointerId !== event.pointerId) return;
+
+        if (scroll.releasePointerCapture && event && event.pointerId != null) {
+          try { scroll.releasePointerCapture(event.pointerId); } catch (error) {}
+        }
+
+        pan = null;
+        scroll.classList.remove('is-pmd-floor-grab-pan-r54');
+      }
+
+      scroll.addEventListener('pointerup', finishPan, false);
+      scroll.addEventListener('pointercancel', finishPan, false);
+      scroll.addEventListener('lostpointercapture', finishPan, false);
+    })();
+
     root.addEventListener(
       'pointerdown',
       function (event) {
@@ -7596,149 +7694,12 @@ function saveLayout() {
 })();
 
 /* ============================================================
-   PMD_DASHBOARD_LAB_EXACT_FLOOR_TOOLBAR_BRIDGE_V1
-   Static final toolbar -> native Floor V1 controls.
-   No observer, no interval, no delayed geometry correction.
+   PMD_DASHBOARD_LAB_EXACT_FLOOR_TOOLBAR_BRIDGE_R56
+
+   Presentation moved to pmd-floor-toolbar-authority-v1.js.
+   The native Floor core remains the ONLY state/action authority.
+   No duplicate toolbar click/render writer lives here anymore.
    ============================================================ */
-(function () {
-  'use strict';
-
-  function bootExactFloorToolbar() {
-    var root = document.getElementById('pmd-r2-shared-floor-canvas-v310');
-    var toolbar = document.getElementById('pmd-r2-floor-toolbar-v316');
-    if (!root || !toolbar) return;
-
-    function nativeControl(selector) {
-      return Array.prototype.slice.call(root.querySelectorAll(selector)).find(function (node) {
-        return !node.closest('#pmd-r2-floor-toolbar-v316');
-      }) || null;
-    }
-
-    function floorState() {
-      return root.__pmdFloorV1 && typeof root.__pmdFloorV1.getState === 'function'
-        ? root.__pmdFloorV1.getState()
-        : null;
-    }
-
-    function syncToolbar() {
-      var state = floorState();
-      var edit = toolbar.querySelector('[data-pmd-r2-tool="edit"]');
-      var strip = toolbar.querySelector('[data-pmd-r2-tool="strip"]');
-
-      if (edit) {
-        var editing = Boolean(state && state.editing);
-        edit.setAttribute('aria-pressed', editing ? 'true' : 'false');
-        var label = edit.querySelector('span');
-        if (label) label.textContent = editing ? 'Save' : 'Edit';
-      }
-
-      if (strip) {
-        var oneRow = root.classList.contains('is-strip-mode');
-        var stripLabel = oneRow ? 'Full Floor' : 'One row';
-        strip.setAttribute('aria-pressed', oneRow ? 'true' : 'false');
-        strip.setAttribute('aria-label', stripLabel);
-        strip.setAttribute('title', stripLabel);
-        var stripText = strip.querySelector('span');
-        if (stripText) stripText.textContent = stripLabel;
-      }
-    }
-
-    toolbar.addEventListener('click', function (event) {
-      var button = event.target.closest('[data-pmd-r2-tool]');
-      if (!button) return;
-      event.preventDefault();
-      event.stopPropagation();
-
-      var key = button.getAttribute('data-pmd-r2-tool');
-      var state = floorState();
-      var selector = null;
-
-      if (key === 'edit') selector = state && state.editing ? '[data-floor-save]' : '[data-floor-edit]';
-      else if (key === 'zoom-out') selector = '[data-floor-zoom-out]';
-      else if (key === 'fit') selector = '[data-floor-fit]';
-      else if (key === 'zoom-in') selector = '[data-floor-zoom-in]';
-      else if (key === 'strip') selector = '[data-floor-strip]';
-
-      /* PMD_DASHBOARD_LAB_GUIDE_ONE_ROW_SMOOTH_V3 */
-      var stage = null;
-      var finishViewTransition = null;
-
-      if (
-        key === 'strip' &&
-        !window.matchMedia(
-          '(prefers-reduced-motion: reduce)'
-        ).matches
-      ) {
-        stage = root.querySelector(
-          '[data-floor-stage]'
-        );
-
-        if (stage) {
-          root.setAttribute(
-            'data-pmd-floor-user-view-transition',
-            'true'
-          );
-
-          finishViewTransition = function (event) {
-            if (
-              event &&
-              (
-                event.target !== stage ||
-                event.propertyName !== 'height'
-              )
-            ) {
-              return;
-            }
-
-            stage.removeEventListener(
-              'transitionend',
-              finishViewTransition
-            );
-
-            stage.removeEventListener(
-              'transitioncancel',
-              finishViewTransition
-            );
-
-            root.removeAttribute(
-              'data-pmd-floor-user-view-transition'
-            );
-          };
-
-          stage.addEventListener(
-            'transitionend',
-            finishViewTransition
-          );
-
-          stage.addEventListener(
-            'transitioncancel',
-            finishViewTransition
-          );
-        }
-      }
-
-      var target = selector ? nativeControl(selector) : null;
-
-      if (target) {
-        target.click();
-      } else if (finishViewTransition) {
-        finishViewTransition();
-      }
-
-      syncToolbar();
-    });
-
-    window.addEventListener('pmd:floor:updated', syncToolbar);
-    syncToolbar();
-  }
-
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', bootExactFloorToolbar, { once: true });
-  } else {
-    bootExactFloorToolbar();
-  }
-})();
-
 
 /* ============================================================
    PMD_DASHBOARD_LAB_GUIDE_ONE_ROW_SMOOTH_V3_AUDIT
@@ -8356,3 +8317,289 @@ function saveLayout() {
     mount(document);
   }
 })();
+
+/* PMD_FLOOR_PAGE_WHEEL_AUTHORITY_R62_START */
+(function () {
+  'use strict';
+
+  if (window.PMDFloorPageWheelR62) {
+    return;
+  }
+
+  var FLOOR_SELECTOR = '[data-floor-scroll]';
+
+  function deltaY(event) {
+    var value = Number(event.deltaY || 0);
+
+    if (event.deltaMode === 1) {
+      value *= 16;
+    } else if (event.deltaMode === 2) {
+      value *= Math.max(
+        Number(window.innerHeight || 0),
+        600
+      );
+    }
+
+    return value;
+  }
+
+  function canScroll(node) {
+    if (!node) {
+      return false;
+    }
+
+    return (
+      Number(node.scrollHeight || 0) >
+      Number(node.clientHeight || 0) + 1
+    );
+  }
+
+  function shellCandidates() {
+    var result = [];
+    var seen = [];
+
+    [
+      document.scrollingElement,
+      document.documentElement,
+      document.body,
+      document.querySelector('.page-wrapper'),
+      document.querySelector('.page-content'),
+      document.querySelector('.content-wrapper'),
+      document.querySelector('.container-fluid')
+    ].forEach(function (node) {
+      if (
+        !node ||
+        seen.indexOf(node) !== -1
+      ) {
+        return;
+      }
+
+      seen.push(node);
+
+      if (canScroll(node)) {
+        result.push(node);
+      }
+    });
+
+    return result;
+  }
+
+  function chooseScroller() {
+    var candidates =
+      shellCandidates();
+
+    if (!candidates.length) {
+      return null;
+    }
+
+    var active =
+      candidates.find(function (node) {
+        return Number(node.scrollTop || 0) > 0;
+      });
+
+    if (active) {
+      return active;
+    }
+
+    candidates.sort(function (a, b) {
+      var aRange =
+        Number(a.scrollHeight || 0) -
+        Number(a.clientHeight || 0);
+
+      var bRange =
+        Number(b.scrollHeight || 0) -
+        Number(b.clientHeight || 0);
+
+      return bRange - aRange;
+    });
+
+    return candidates[0];
+  }
+
+  function movePage(delta) {
+    var before =
+      Number(window.scrollY || window.pageYOffset || 0);
+
+    window.scrollBy(
+      0,
+      delta
+    );
+
+    var after =
+      Number(window.scrollY || window.pageYOffset || 0);
+
+    if (after !== before) {
+      return true;
+    }
+
+    var scroller =
+      chooseScroller();
+
+    if (!scroller) {
+      return false;
+    }
+
+    var old =
+      Number(scroller.scrollTop || 0);
+
+    var max =
+      Math.max(
+        0,
+        Number(scroller.scrollHeight || 0) -
+        Number(scroller.clientHeight || 0)
+      );
+
+    var next =
+      Math.max(
+        0,
+        Math.min(
+          max,
+          old + delta
+        )
+      );
+
+    scroller.scrollTop =
+      next;
+
+    return (
+      Number(scroller.scrollTop || 0) !== old
+    );
+  }
+
+  function onWheel(event) {
+    var target =
+      event.target;
+
+    if (
+      !target ||
+      !target.closest
+    ) {
+      return;
+    }
+
+    var floor =
+      target.closest(
+        FLOOR_SELECTOR
+      );
+
+    if (!floor) {
+      return;
+    }
+
+    if (
+      event.ctrlKey ||
+      event.metaKey
+    ) {
+      return;
+    }
+
+    /*
+     * Shift+wheel and dominant deltaX are deliberate horizontal Floor
+     * navigation and remain native.
+     */
+    var x =
+      Math.abs(
+        Number(event.deltaX || 0)
+      );
+
+    var y =
+      Math.abs(
+        Number(event.deltaY || 0)
+      );
+
+    if (
+      event.shiftKey ||
+      (x > y && x > 0)
+    ) {
+      return;
+    }
+
+    var amount =
+      deltaY(event);
+
+    if (!amount) {
+      return;
+    }
+
+    /*
+     * Window capture runs before the Floor's own wheel handlers/native
+     * scroll container, so vertical wheel cannot get trapped by Floor.
+     */
+    event.preventDefault();
+    event.stopImmediatePropagation();
+
+    movePage(amount);
+  }
+
+  window.addEventListener(
+    'wheel',
+    onWheel,
+    {
+      capture: true,
+      passive: false
+    }
+  );
+
+  window.PMDFloorPageWheelR62 = {
+    version: '2.0.0-r62',
+
+    audit: function () {
+      var scroller =
+        chooseScroller();
+
+      return {
+        version: '2.0.0-r62',
+
+        captureTarget:
+          'window',
+
+        floorScrollCount:
+          document.querySelectorAll(
+            FLOOR_SELECTOR
+          ).length,
+
+        selectedScroller:
+          scroller
+            ? (
+                scroller.id ||
+                scroller.className ||
+                scroller.tagName
+              )
+            : null,
+
+        scrollTop:
+          scroller
+            ? Math.round(
+                Number(scroller.scrollTop || 0)
+              )
+            : Math.round(
+                Number(window.scrollY || 0)
+              ),
+
+        scrollHeight:
+          scroller
+            ? Math.round(
+                Number(scroller.scrollHeight || 0)
+              )
+            : null,
+
+        clientHeight:
+          scroller
+            ? Math.round(
+                Number(scroller.clientHeight || 0)
+              )
+            : null,
+
+        verticalWheel:
+          'page',
+
+        horizontalGesture:
+          'floor',
+
+        touch:
+          'untouched'
+      };
+    }
+  };
+})();
+/* PMD_FLOOR_PAGE_WHEEL_AUTHORITY_R62_END */

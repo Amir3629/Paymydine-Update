@@ -9,6 +9,25 @@
     $pmdCashierAddReservation = $pmdCashierIsGerman ? 'Reservierung hinzufügen' : 'Add reservation';
     $pmdCashierAddOrder = $pmdCashierIsGerman ? 'Neue Bestellung' : 'New order';
     $pmdCashierNoOrdersCard = $pmdCashierIsGerman ? 'Keine Bestellungen' : 'No Orders';
+
+    // PMD_CASHIER_HISTORY_UI_R46
+    $pmdCashierHistoryMode = !empty($pmdCashierHistoryMode);
+    if ($pmdCashierHistoryMode) {
+        $pmdCashierNoOrdersCard = $pmdCashierIsGerman
+            ? 'Keine Verlaufsbestellungen'
+            : 'No History Orders';
+    }
+    $pmdCashierRangeQuery = [
+        'pmd_from' => (string)($range['from'] ?? ''),
+        'pmd_to' => (string)($range['to'] ?? ''),
+    ];
+    $pmdCashierCurrentUrl = admin_url('cashierlab').'?'.http_build_query($pmdCashierRangeQuery);
+    $pmdCashierHistoryUrl = admin_url('cashierlab').'?'.http_build_query(
+        array_merge($pmdCashierRangeQuery, ['pmd_history' => 1])
+    );
+    $pmdCashierHistoryButton = $text['history'] ?? ($pmdCashierIsGerman ? 'Verlauf' : 'History');
+    $pmdCashierCurrentButton = $text['current'] ?? ($pmdCashierIsGerman ? 'Aktuell' : 'Current');
+
     $pmdCashierCreateDate = (string)($range['today'] ?? \Carbon\Carbon::now('Europe/Berlin')->toDateString());
 @endphp
 
@@ -18,6 +37,7 @@
     class="pmd-ops-section"
     aria-label="{{ $text['orders'] ?? 'Orders' }}"
     data-pmd-ops-kind="orders"
+    data-pmd-history-mode="{{ $pmdCashierHistoryMode ? 'history' : 'current' }}"
     data-pmd-range-from="{{ $range['from'] ?? '' }}"
     data-pmd-range-to="{{ $range['to'] ?? '' }}"
     data-pmd-source-date-column="{{ $debug['date_column'] ?? '' }}"
@@ -31,16 +51,39 @@
                 'pmdOpsRange' => $range,
             ])
 
+            {{-- PMD_CASHIER_HISTORY_INLINE_R47
+                 Same-page mode toggle. The shared operational async authority
+                 replaces only this orders section; the Dashboard/Floor stays mounted. --}}
+            <button
+                type="button"
+                class="pmd-ops-history-toggle{{ $pmdCashierHistoryMode ? ' is-active' : '' }}"
+                data-pmd-cashier-history-toggle="1"
+                data-pmd-history-target-url="{{ $pmdCashierHistoryMode ? $pmdCashierCurrentUrl : $pmdCashierHistoryUrl }}"
+                aria-pressed="{{ $pmdCashierHistoryMode ? 'true' : 'false' }}"
+                aria-label="{{ $pmdCashierHistoryMode ? $pmdCashierCurrentButton : $pmdCashierHistoryButton }}"
+                title="{{ $pmdCashierHistoryMode ? $pmdCashierCurrentButton : $pmdCashierHistoryButton }}"
+            >
+                <svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M3 12a9 9 0 1 0 3-6.7"></path>
+                    <path d="M3 4v5h5"></path>
+                    <path d="M12 7v5l3 2"></path>
+                </svg>
+                <span>{{ $pmdCashierHistoryMode ? $pmdCashierCurrentButton : $pmdCashierHistoryButton }}</span>
+            </button>
+
             <span class="pmd-ops-section__count">
                 <strong>{{ $count }}</strong>
-                {{ $count === 1
-                    ? ($text['order'] ?? 'Order')
-                    : ($text['orders'] ?? 'Orders') }}
+                {{ $pmdCashierHistoryMode
+                    ? ($text['history_orders'] ?? 'History')
+                    : ($count === 1
+                        ? ($text['order'] ?? 'Order')
+                        : ($text['orders'] ?? 'Orders')) }}
             </span>
         </div>
     </header>
 
     <div class="pmd-ops-grid">
+        @if(!$pmdCashierHistoryMode)
         {{-- PMD_CASHIERLAB_ADD_ORDER_CARD_R41
              Cashier + means ordering. Reservation creation stays on ReservationsLab. --}}
         <a
@@ -52,6 +95,7 @@
             <span class="pmd-r2-simple-add-icon-v460" aria-hidden="true">＋</span>
             <span class="pmd-r2-simple-add-title-v460">{{ $pmdCashierAddOrder }}</span>
         </a>
+        @endif
 
         @if($count === 0)
             <article class="pmd-ops-inline-empty-card" data-pmd-cashier-empty-card="1">
@@ -125,7 +169,7 @@
                              Payment NEVER changes table occupancy. The staff action is
                              rendered only for a fully-paid card; the endpoint still
                              re-checks every check on the physical table before release. --}}
-                        @if(!empty($order['is_paid']) && (int)($order['table_id'] ?? 0) > 0)
+                        @if(!$pmdCashierHistoryMode && !empty($order['is_paid']) && (int)($order['table_id'] ?? 0) > 0)
                             <button
                                 type="button"
                                 data-pmd-cashier-table-free="{{ (int)$order['table_id'] }}"

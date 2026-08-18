@@ -101,6 +101,10 @@ class Login extends \Admin\Classes\AdminController
 
         session()->regenerate();
 
+        // PMD_LOGIN_ACCOUNT_LOCALE_V1
+        // The account's saved admin language wins after authentication.
+        $this->pmdQueueAccountLocale();
+
         // PMD_ADMIN_SESSION_PRESENCE_V1
         // Presence is registered only AFTER successful authentication and
         // session regeneration. Failure here must never block a valid login.
@@ -122,6 +126,51 @@ class Login extends \Admin\Classes\AdminController
             return $this->redirect($redirectUrl);
 
         return $this->redirectIntended('dashboard');
+    }
+
+    /** PMD_LOGIN_ACCOUNT_LOCALE_V1 */
+    private function pmdQueueAccountLocale(): void
+    {
+        try {
+            $user = AdminAuth::getUser();
+            $staff = $user ? $user->staff : null;
+            $languageId = (int)($staff->language_id ?? 0);
+
+            if ($languageId < 1) {
+                return;
+            }
+
+            $language = \System\Models\Languages_model::find($languageId);
+            if (!$language || empty($language->status)) {
+                return;
+            }
+
+            $code = strtolower(trim((string)($language->code ?? '')));
+            if (!in_array($code, ['en', 'de'], true)) {
+                return;
+            }
+
+            app()->setLocale($code);
+            if (app()->bound('translator.localization')) {
+                app('translator.localization')->setLocale($code, true);
+            }
+
+            \Illuminate\Support\Facades\Cookie::queue(cookie(
+                'pmd_admin_locale',
+                $code,
+                60 * 24 * 365,
+                '/',
+                null,
+                request()->isSecure(),
+                false,
+                false,
+                'Lax'
+            ));
+        } catch (\Throwable $error) {
+            logger()->warning('PMD login account locale restore failed', [
+                'message' => $error->getMessage(),
+            ]);
+        }
     }
 
     public function onRequestResetPassword()

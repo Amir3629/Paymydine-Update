@@ -39,6 +39,17 @@
         ? 'bar'
         : 'line';
 
+    /* PMD_ANALYTICS_SERVER_SMOOTH_LINE_R54
+     * Server first paint must use the same locale and curve geometry as the
+     * interaction renderer. Otherwise refresh shows sharp/English first and
+     * the first L/B toggle silently changes the chart.
+     */
+    $analyticsLocale = strtolower(trim((string)request()->cookie(
+        'pmd_admin_locale',
+        app()->getLocale()
+    )));
+    $analyticsLocale = strpos($analyticsLocale, 'de') === 0 ? 'de' : 'en';
+
     $analyticsEscape = static function ($value): string {
         return htmlspecialchars(
             (string)($value ?? ''),
@@ -47,13 +58,12 @@
         );
     };
 
-    $analyticsMoney = static function ($value, array $payload): string {
+    $analyticsMoney = static function ($value, array $payload) use ($analyticsLocale): string {
         $number = (float)($value ?? 0);
         $symbol = trim((string)($payload['currency_symbol'] ?? '€'));
         $code = strtoupper(trim((string)($payload['currency'] ?? 'EUR')));
-        $locale = strtolower((string)app()->getLocale());
 
-        if (strpos($locale, 'de') === 0) {
+        if ($analyticsLocale === 'de') {
             $formatted = number_format($number, 2, ',', '.');
             return $formatted.' '.($symbol !== '' ? $symbol : $code);
         }
@@ -121,7 +131,7 @@
         ];
     };
 
-    $analyticsShortLabel = static function (array $row, bool $hourly): string {
+    $analyticsShortLabel = static function (array $row, bool $hourly) use ($analyticsLocale): string {
         if ($hourly) {
             return str_pad(
                 (string)((int)($row['hour'] ?? 0)),
@@ -132,16 +142,35 @@
         }
 
         $raw = trim((string)($row['bucket'] ?? ''));
-
         if ($raw === '') {
             return '';
         }
 
         $timestamp = strtotime($raw);
+        if ($timestamp === false) {
+            return substr($raw, 5, 5);
+        }
 
-        return $timestamp === false
-            ? substr($raw, 5, 5)
-            : date('M d', $timestamp);
+        if ($analyticsLocale === 'de') {
+            $months = [
+                1 => 'Jan.',
+                2 => 'Feb.',
+                3 => 'März',
+                4 => 'Apr.',
+                5 => 'Mai',
+                6 => 'Juni',
+                7 => 'Juli',
+                8 => 'Aug.',
+                9 => 'Sept.',
+                10 => 'Okt.',
+                11 => 'Nov.',
+                12 => 'Dez.',
+            ];
+
+            return date('d.', $timestamp).' '.$months[(int)date('n', $timestamp)];
+        }
+
+        return date('M d', $timestamp);
     };
 
     $analyticsChartGrid = static function (
@@ -189,6 +218,49 @@
         );
     };
 
+    $analyticsSmoothLinePath = static function (array $points): string {
+        if (!$points) {
+            return '';
+        }
+
+        $path = 'M '.$points[0]['x'].' '.$points[0]['y'];
+
+        for ($index = 1; $index < count($points); $index++) {
+            $previous = $points[$index - 1];
+            $current = $points[$index];
+            $handle = ($current['x'] - $previous['x']) * 0.38;
+
+            $path .= ' C '.
+                ($previous['x'] + $handle).' '.$previous['y'].' '.
+                ($current['x'] - $handle).' '.$current['y'].' '.
+                $current['x'].' '.$current['y'];
+        }
+
+        return $path;
+    };
+
+    $analyticsSmoothAreaPath = static function (array $points, $base): string {
+        if (!$points) {
+            return '';
+        }
+
+        $path = 'M '.$points[0]['x'].' '.$base.
+            ' L '.$points[0]['x'].' '.$points[0]['y'];
+
+        for ($index = 1; $index < count($points); $index++) {
+            $previous = $points[$index - 1];
+            $current = $points[$index];
+            $handle = ($current['x'] - $previous['x']) * 0.38;
+
+            $path .= ' C '.
+                ($previous['x'] + $handle).' '.$previous['y'].' '.
+                ($current['x'] - $handle).' '.$current['y'].' '.
+                $current['x'].' '.$current['y'];
+        }
+
+        return $path.' L '.$points[count($points) - 1]['x'].' '.$base.' Z';
+    };
+
     $analyticsSvgLine = static function (
         array $allRows,
         array $payload,
@@ -200,7 +272,9 @@
         $analyticsChartGrid,
         $analyticsShortLabel,
         $analyticsEscape,
-        $analyticsMoney
+        $analyticsMoney,
+        $analyticsSmoothLinePath,
+        $analyticsSmoothAreaPath
     ): string {
         $rows = $analyticsChartRows($allRows, $visible);
 
@@ -248,18 +322,8 @@
             ];
         }
 
-        $poly = implode(
-            ' ',
-            array_map(
-                static fn ($point) => $point['x'].','.$point['y'],
-                $points
-            )
-        );
-
-        $area =
-            $d['left'].','.$base.' '.
-            $poly.' '.
-            ($d['w'] - $d['right']).','.$base;
+        $linePath = $analyticsSmoothLinePath($points);
+        $areaPath = $analyticsSmoothAreaPath($points, $base);
 
         $labelEvery = max(1, (int)ceil($count / 7));
         $labels = '';
@@ -306,8 +370,8 @@
             '" y1="'.$base.
             '" x2="'.($d['w'] - $d['right']).
             '" y2="'.$base.'"></line>'.
-            '<polygon class="pmd-lab-chart-area" points="'.$area.'"></polygon>'.
-            '<polyline class="pmd-lab-chart-line" points="'.$poly.'"></polyline>'.
+            '<path class="pmd-lab-chart-area" d="'.$areaPath.'"></path>'.
+            '<path class="pmd-lab-chart-line" d="'.$linePath.'"></path>'.
             $circles.$labels.
             '</svg>';
     };
@@ -1079,6 +1143,7 @@
         : 'live orders';
 @endphp
 
+
 <section
     id="pmd-dashboard-lab-analytics-v1"
     class="pmd-dashboard-lab-analytics"
@@ -1213,14 +1278,109 @@
             <div class="pmd-dashboard-lab-analytics__body" data-pmd-lab-widget-body data-pmd-lab-state="{{ $analyticsState }}">{!! $analyticsBody('recentTransactions') !!}</div>
         </article>
 
-        <article class="pmd-dashboard-lab-analytics__card" data-pmd-lab-analytics-widget="alerts" aria-busy="{{ $analyticsBusy }}">
+        <article
+            class="pmd-dashboard-lab-analytics__card"
+            data-pmd-lab-analytics-widget="alerts"
+            aria-busy="{{ $analyticsBusy }}"
+            @if(($pmdRoleMode ?? '') === 'manager')
+                data-pmd-manager-alerts-stretch-r63=""
+               
+            @endif
+        
+            data-pmd-manager-alerts-size-r67="">
             <header>
                 <h3>Alerts</h3>
                 <div class="pmd-dashboard-lab-analytics__toolbar">
                     <a href="{{ admin_url('pmdreports/alerts') }}" aria-label="Open Alerts details"><span class="pmd-dashboard-lab-toolbar-icon" aria-hidden="true">&#8599;</span></a>
                 </div>
             </header>
-            <div class="pmd-dashboard-lab-analytics__body" data-pmd-lab-widget-body data-pmd-lab-state="{{ $analyticsState }}">{!! $analyticsBody('alerts') !!}</div>
+            <div
+                class="pmd-dashboard-lab-analytics__body"
+                data-pmd-lab-widget-body
+                data-pmd-lab-state="{{ $analyticsState }}"
+                @if(($pmdRoleMode ?? '') === 'manager')
+                    data-pmd-manager-alerts-body-r63=""
+                    style="overflow-x:hidden!important;overflow-y:auto!important;"
+                @endif
+            >
+                {!! $analyticsBody('alerts') !!}
+
+                @if(($pmdRoleMode ?? '') === 'manager')
+                    {{-- PMD_MANAGER_ALERTS_EXTRA_ROWS_R64 --}}
+                    @php
+                        $pmdR64ManagerIsDe =
+                            strpos(
+                                strtolower(
+                                    (string)($pmdLabLocaleV82 ?? 'en')
+                                ),
+                                'de'
+                            ) === 0;
+
+                        $pmdR64LiveOrdersLabel =
+                            $pmdR64ManagerIsDe
+                                ? 'Live-Bestellungen'
+                                : 'Live orders';
+
+                        $pmdR64UpcomingLabel =
+                            $pmdR64ManagerIsDe
+                                ? 'Bevorstehende Termine'
+                                : 'Upcoming events';
+                    @endphp
+
+                    <ul
+                        class="pmd-dashboard-lab-list pmd-manager-alerts-watch-r64"
+                        data-pmd-manager-alerts-watch-r64=""
+                    >
+                        <li>
+                            <span>{{ $pmdR64LiveOrdersLabel }}</span>
+                            <strong>{{ (int)($pmdLabLiveCountV82 ?? 0) }}</strong>
+                        </li>
+
+                        <li>
+                            <span>{{ $pmdR64UpcomingLabel }}</span>
+                            <strong>{{ (int)($eventCount ?? 0) }}</strong>
+                        </li>
+                    </ul>
+
+                    <style id="pmd-manager-alerts-fill-r64">
+                        /*
+                         * Seven real rows now use the tall Manager card.
+                         * No artificial blank filler.
+                         */
+                        [data-pmd-role-dashboard="manager"]
+                        [data-pmd-lab-analytics-widget="alerts"]
+                        [data-pmd-manager-alerts-body-r63]
+                        > .pmd-dashboard-lab-list {
+                            width: 100% !important;
+                            margin: 0 !important;
+                            padding: 0 !important;
+                        }
+
+                        [data-pmd-role-dashboard="manager"]
+                        [data-pmd-lab-analytics-widget="alerts"]
+                        [data-pmd-manager-alerts-body-r63]
+                        > .pmd-dashboard-lab-list
+                        > li {
+                            box-sizing: border-box !important;
+                            min-height: 48px !important;
+                            padding: 11px 0 !important;
+                        }
+
+                        [data-pmd-role-dashboard="manager"]
+                        [data-pmd-lab-analytics-widget="alerts"]
+                        .pmd-manager-alerts-watch-r64
+                        > li:first-child {
+                            border-top: 1px solid #edf1ef !important;
+                        }
+
+                        [data-pmd-role-dashboard="manager"]
+                        [data-pmd-lab-analytics-widget="alerts"]
+                        [data-pmd-manager-alerts-body-r63] {
+                            scrollbar-width: thin;
+                        }
+                    </style>
+                @endif
+            </div>
         </article>
 
         <article class="pmd-dashboard-lab-analytics__card" data-pmd-lab-analytics-widget="liveOperations" aria-busy="{{ $analyticsBusy }}">
@@ -1304,4 +1464,49 @@
         </article>
     </div>
 </section>
+
+
+
+{{-- PMD_MANAGER_ALERTS_MATCH_SALES_R67_START --}}
+@if(request()->is('admin/managerlab'))
+<style id="pmd-manager-alerts-match-sales-r67">
+
+@media (min-width: 1281px) {
+    #pmd-dashboard-lab
+    [data-pmd-lab-analytics-widget="salesByHour"],
+
+    #pmd-dashboard-lab
+    [data-pmd-lab-analytics-widget="alerts"] {
+        height: 430px !important;
+        min-height: 430px !important;
+        max-height: 430px !important;
+        align-self: start !important;
+    }
+}
+
+@media (min-width: 761px) and (max-width: 1280px) {
+    #pmd-dashboard-lab
+    [data-pmd-lab-analytics-widget="salesByHour"],
+
+    #pmd-dashboard-lab
+    [data-pmd-lab-analytics-widget="alerts"] {
+        height: 390px !important;
+        min-height: 390px !important;
+        max-height: 390px !important;
+        align-self: start !important;
+    }
+}
+
+#pmd-dashboard-lab
+[data-pmd-lab-analytics-widget="alerts"]
+.pmd-dashboard-lab-analytics__body {
+    min-height: 0 !important;
+    overflow-x: hidden !important;
+    overflow-y: auto !important;
+    scrollbar-width: thin;
+}
+
+</style>
+@endif
+{{-- PMD_MANAGER_ALERTS_MATCH_SALES_R67_END --}}
 

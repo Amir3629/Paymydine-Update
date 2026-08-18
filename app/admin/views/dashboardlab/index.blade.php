@@ -266,6 +266,23 @@
       }
     </style>
 
+    {{-- PMD_MAIN_HEADER_NOTIFICATION_GAP_R67_STYLE_START --}}
+    <style id="pmd-main-header-notification-gap-r67">
+    #pmd-dashboard-lab
+    #pmd-r2-clean-header
+    [data-pmd-main-header-notification-divider-r66] {
+        display:none!important;
+        visibility:hidden!important;
+    }
+
+    #pmd-dashboard-lab
+    #pmd-r2-clean-header
+    [data-pmd-main-header-notification-divider=""] {
+        display:none!important;
+        visibility:hidden!important;
+    }
+    </style>
+    {{-- PMD_MAIN_HEADER_NOTIFICATION_GAP_R67_STYLE_END --}}
     <header id="pmd-r2-clean-header" class="pmd-owner-header pmd-dashboard-lab__dashboard2-header" aria-label="Dashboard header" data-pmd-dashboard-lab-header="dashboard2-v5">
         <div class="pmd-owner-header__left">
             <h1 class="pmd-r2-clean-title">Dashboard</h1>
@@ -291,6 +308,52 @@
                 </svg>
             </a>
 
+            {{-- PMD_MAIN_HEADER_NOTIFICATION_GAP_R67_NODE_START --}}
+            <span
+                data-pmd-main-header-notification-gap-r67=""
+                aria-hidden="true"
+                style="
+                    position:relative!important;
+                    display:block!important;
+                    flex:0 0 40px!important;
+                    width:40px!important;
+                    min-width:40px!important;
+                    max-width:40px!important;
+                    height:46px!important;
+                    min-height:46px!important;
+                    max-height:46px!important;
+                    margin:0!important;
+                    padding:0!important;
+                    border:0!important;
+                    background:transparent!important;
+                    pointer-events:none!important;
+                    overflow:visible!important;
+                "
+            >
+                <span
+                    data-pmd-main-header-notification-divider-r67=""
+                    aria-hidden="true"
+                    style="
+                        position:absolute!important;
+                        top:50%!important;
+                        right:8px!important;
+                        transform:translateY(-50%)!important;
+                        display:block!important;
+                        width:1px!important;
+                        min-width:1px!important;
+                        max-width:1px!important;
+                        height:34px!important;
+                        min-height:34px!important;
+                        max-height:34px!important;
+                        margin:0!important;
+                        padding:0!important;
+                        border:0!important;
+                        background:#cfe0ec!important;
+                        pointer-events:none!important;
+                    "
+                ></span>
+            </span>
+            {{-- PMD_MAIN_HEADER_NOTIFICATION_GAP_R67_NODE_END --}}
             <span
                 class="pmd-owner-notif-slot pmd-dashboard-lab__notif-slot"
                 data-pmd-dashboard-lab-notif-slot
@@ -612,9 +675,44 @@
 
                     <div class="pmd-r2-kpi-v2401-copy">
                         <span class="pmd-r2-kpi-v2401-title">{{ $card['title'] }}</span>
-                        <strong class="pmd-r2-kpi-v2401-value">{{ $card['value'] }}</strong>
+                        {{-- PMD_KPI_ZERO_DISPLAY_V1 --}}
+                        <strong class="pmd-r2-kpi-v2401-value">{{ in_array(trim((string)($card['value'] ?? '')), ['', '—', '–', '-'], true) ? '0' : $card['value'] }}</strong>
                         <span class="pmd-r2-kpi-v2401-description">{{ $card['description'] }}</span>
                     </div>
+
+                    {{-- PMD_KPI_INFO_SERVER_FIRST_PAINT_V3 --}}
+                    <div
+                        class="pmd-kpi-info-panel"
+                        data-pmd-kpi-info-panel="1"
+                        aria-live="polite"
+                    >
+                        <strong></strong>
+                        <span></span>
+                    </div>
+
+                    <button
+                        type="button"
+                        class="pmd-kpi-info-button"
+                        data-pmd-kpi-info-button="1"
+                        aria-pressed="false"
+                        aria-label="{{ app()->getLocale() === 'de' ? 'Info zu dieser KPI' : 'About this KPI' }}"
+                        title="{{ app()->getLocale() === 'de' ? 'Info zu dieser KPI' : 'About this KPI' }}"
+                    >
+                        <svg
+                            viewBox="0 0 24 24"
+                            aria-hidden="true"
+                            focusable="false"
+                            fill="none"
+                            stroke="currentColor"
+                            stroke-width="2"
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                        >
+                            <circle cx="12" cy="12" r="9"></circle>
+                            <path d="M12 11v5"></path>
+                            <path d="M12 8h.01"></path>
+                        </svg>
+                    </button>
 
                     <button
                         type="button"

@@ -677,3 +677,122 @@
   display: none !important;
 }
 
+
+
+/* PMD_CASHIER_HISTORY_TOGGLE_R47 */
+#pmd-dashboard-lab
+#pmd-cashier-current-orders-v2
+.pmd-ops-section__tools
+> button.pmd-ops-history-toggle {
+  -webkit-appearance: none !important;
+  appearance: none !important;
+  box-sizing: border-box !important;
+
+  display: inline-flex !important;
+  flex-direction: row !important;
+  align-items: center !important;
+  justify-content: center !important;
+
+  width: auto !important;
+  min-width: 0 !important;
+  max-width: none !important;
+  height: 46px !important;
+  min-height: 46px !important;
+  max-height: 46px !important;
+
+  margin: 0 !important;
+  padding: 0 14px !important;
+  gap: 8px !important;
+
+  border: 1px solid #cfe0ec !important;
+  border-radius: 14px !important;
+  background: #fff !important;
+  background-color: #fff !important;
+  color: #173752 !important;
+  box-shadow: 0 3px 10px rgba(23, 55, 82, .05) !important;
+
+  font-family: inherit !important;
+  font-size: 13px !important;
+  font-weight: 850 !important;
+  line-height: 1 !important;
+  text-align: center !important;
+  text-decoration: none !important;
+  white-space: nowrap !important;
+
+  cursor: pointer !important;
+  overflow: hidden !important;
+  transform: none !important;
+}
+
+#pmd-dashboard-lab
+#pmd-cashier-current-orders-v2
+.pmd-ops-section__tools
+> button.pmd-ops-history-toggle:hover,
+#pmd-dashboard-lab
+#pmd-cashier-current-orders-v2
+.pmd-ops-section__tools
+> button.pmd-ops-history-toggle.is-active {
+  border-color: #9fc2d8 !important;
+  background: #f4f8fb !important;
+  color: #102a43 !important;
+  box-shadow: 0 4px 12px rgba(23, 55, 82, .08) !important;
+}
+
+#pmd-dashboard-lab
+#pmd-cashier-current-orders-v2
+.pmd-ops-section__tools
+> button.pmd-ops-history-toggle svg {
+  display: block !important;
+  width: 20px !important;
+  min-width: 20px !important;
+  max-width: 20px !important;
+  height: 20px !important;
+  min-height: 20px !important;
+  max-height: 20px !important;
+  flex: 0 0 20px !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  transform: none !important;
+}
+
+#pmd-dashboard-lab
+#pmd-cashier-current-orders-v2
+.pmd-ops-section__tools
+> button.pmd-ops-history-toggle span {
+  display: inline-block !important;
+  position: static !important;
+  width: auto !important;
+  height: auto !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  font: inherit !important;
+  line-height: 1 !important;
+  white-space: nowrap !important;
+  transform: none !important;
+}
+
+#pmd-dashboard-lab
+#pmd-cashier-current-orders-v2[aria-busy="true"]
+.pmd-ops-history-toggle {
+  pointer-events: none !important;
+  opacity: .62 !important;
+}
+
+@media (max-width: 620px) {
+  #pmd-dashboard-lab
+  #pmd-cashier-current-orders-v2
+  .pmd-ops-section__tools
+  > button.pmd-ops-history-toggle {
+    width: 46px !important;
+    min-width: 46px !important;
+    max-width: 46px !important;
+    padding: 0 !important;
+  }
+
+  #pmd-dashboard-lab
+  #pmd-cashier-current-orders-v2
+  .pmd-ops-section__tools
+  > button.pmd-ops-history-toggle span {
+    display: none !important;
+  }
+}

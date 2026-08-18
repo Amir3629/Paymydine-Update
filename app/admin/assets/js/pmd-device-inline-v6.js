@@ -174,19 +174,20 @@
   async function requestBackend(handler, button, closeAfter) {
     var form = currentForm();
     if (!form || inFlight) return;
+    var deleting = handler === 'onDelete' || handler === 'onPmdDeviceNativeDeleteV4';
     var url = form.getAttribute('data-pmd-backend-url');
     if (!url) return;
 
     var confirmText = button && button.getAttribute('data-pmd-confirm');
     if (confirmText && !window.confirm(confirmText)) return;
-    if (handler === 'onDelete' && !confirmText && !window.confirm('Delete this device configuration?')) return;
+    if (deleting && !confirmText && !window.confirm('Delete this device configuration?')) return;
 
     var formData = new FormData(form);
     appendExtra(button, formData);
     if (handler === 'onDelete') formData.append('_method', 'DELETE');
 
     setBusy(true);
-    setStatus(handler === form.getAttribute('data-pmd-save-handler') ? 'Saving…' : (handler === 'onDelete' ? 'Deleting…' : 'Working…'));
+    setStatus(handler === form.getAttribute('data-pmd-save-handler') ? 'Saving…' : (deleting ? 'Deleting…' : 'Working…'));
 
     try {
       var response = await fetch(url, {
@@ -202,14 +203,22 @@
 
       var text = await response.text();
       var data = parseResponse(text);
+      var kind = form.getAttribute('data-pmd-device-kind') || '';
       var errorMessage = data.X_IGNITER_ERROR_MESSAGE || data.error || '';
       if (!response.ok || errorMessage) {
         throw new Error(errorMessage || ('Request failed (' + response.status + ')'));
       }
 
-      var kind = form.getAttribute('data-pmd-device-kind') || '';
+      // PMD_KDS_DEVICE_SAVE_VISIBILITY_V115: never report a false KDS save.
+      if (kind === 'kds' && handler === form.getAttribute('data-pmd-save-handler')) {
+        var stationId = Number(data && data.station_id || 0);
+        if (!data || data.ok !== true || stationId < 1) {
+          throw new Error('KDS station save was not confirmed by the server.');
+        }
+      }
+
       if (closeAfter) {
-        setStatus(handler === 'onDelete' ? 'Deleted' : 'Saved', 'ok');
+        setStatus(deleting ? 'Deleted' : 'Saved', 'ok');
         await refreshOverview(kind);
         setBusy(false);
         closeModal();
@@ -259,7 +268,11 @@
 
   if (deleteButton) {
     deleteButton.addEventListener('click', function () {
-      requestBackend('onDelete', deleteButton, true);
+      var form = currentForm();
+      var handler = form && form.getAttribute('data-pmd-device-kind') === 'kds'
+        ? 'onPmdDeviceNativeDeleteV4'
+        : 'onDelete';
+      requestBackend(handler, deleteButton, true);
     });
   }
 
@@ -297,6 +310,7 @@
     modalAnimationMs: 180,
     backendAuthoritiesPreserved: true,
     ajaxSaveKeepsOverview: true,
+    kdsPersistedIdConfirmation: true,
     noPolling: true,
     noMutationObserver: true,
     polishedFieldGeometry: '46px/12px',

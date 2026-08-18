@@ -298,7 +298,39 @@
         $pmdFloorTableManagerRole = '';
     }
 
-    $pmdFloorCanManageTables = in_array($pmdFloorTableManagerRole, ['owner', 'manager'], true);
+    /*
+     * PMD_FLOOR_MANAGEMENT_SURFACE_GATE_V2
+     *
+     * Product authority:
+     * Add floor / Add table / Edit table exist only on the two
+     * management Floor surfaces:
+     *
+     *   /admin/dashboardlab
+     *   /admin/managerlab
+     *
+     * Role permission remains independently owner/manager.
+     * Other workspaces reuse the Floor but must never render these controls.
+     */
+    $pmdFloorManagementSurfacePath =
+        '/'.trim((string)request()->path(), '/');
+
+    $pmdFloorManagementSurface = in_array(
+        $pmdFloorManagementSurfacePath,
+        [
+            '/admin/dashboardlab',
+            '/admin/managerlab',
+        ],
+        true
+    );
+
+    $pmdFloorCanManageTables =
+        $pmdFloorManagementSurface
+        && in_array(
+            $pmdFloorTableManagerRole,
+            ['owner', 'manager'],
+            true
+        );
+
     $pmdFloorTableManagerLocationId = max(0, (int)($locationId ?? 0));
     if ($pmdFloorTableManagerLocationId < 1) {
         try {
@@ -322,8 +354,26 @@
         }
     }
 
-    $pmdFloorTableManagerLocale = strtolower((string)app()->getLocale());
-    $pmdFloorTableManagerLocale = strpos($pmdFloorTableManagerLocale, 'de') === 0 ? 'de' : 'en';
+    /*
+     * PMD_FLOOR_LOCALE_FIRST_PAINT_R51
+     *
+     * Match the common Admin locale authority directly.
+     * The common Admin head uses pmd_admin_locale first, then app locale.
+     * Reading the same cookie here prevents the Floor from first-rendering
+     * German while the surrounding Admin workspace is English.
+     */
+    $pmdFloorTableManagerLocale = strtolower(trim((string)request()->cookie(
+        'pmd_admin_locale',
+        app()->getLocale()
+    )));
+
+    if (!in_array($pmdFloorTableManagerLocale, ['en', 'de'], true)) {
+        $pmdFloorTableManagerLocale = 'en';
+    }
+
+    $pmdFloorLayoutEditLabel = $pmdFloorTableManagerLocale === 'de'
+        ? 'Layout bearbeiten'
+        : 'Edit layout';
     $pmdFloorTableManagerText = $pmdFloorTableManagerLocale === 'de'
         ? [
             'add' => 'Tisch hinzufügen',
@@ -650,26 +700,62 @@
                 <span class="pmd-floor-table-manager__toolbar-divider" aria-hidden="true"></span>
             @endif
 
-            <button type="button" class="pmd-r2-floor-tool-v316" data-pmd-r2-tool="edit" aria-pressed="false" title="Edit layout">
+            @php
+                // PMD_FLOOR_TOGGLE_SERVER_FIRST_PAINT_R50
+                $pmdFloorLayoutEditLabel = $pmdFloorTableManagerLocale === 'de'
+                    ? 'Layout bearbeiten'
+                    : 'Edit layout';
+                $pmdFloorStripActionLabel = $floorMode === 'row'
+                    ? ($pmdFloorTableManagerLocale === 'de' ? 'Gesamter Floor' : 'Full Floor')
+                    : ($pmdFloorTableManagerLocale === 'de' ? 'Eine Reihe' : 'One row');
+            @endphp
+
+                        {{-- PMD_FLOOR_EDIT_SERVER_FIRST_R51 --}}
+<button type="button" class="pmd-r2-floor-tool-v316" data-pmd-r2-tool="edit" aria-pressed="false" aria-label="{{ $pmdFloorLayoutEditLabel }}" title="{{ $pmdFloorLayoutEditLabel }}">
                 <svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20h4l10.5-10.5a2.8 2.8 0 0 0-4-4L4 16v4"></path><path d="M13.5 6.5l4 4"></path></svg>
-                <span>Edit</span>
+                <span>{{ $pmdFloorLayoutEditLabel }}</span>
             </button>
 
             <button type="button" class="pmd-r2-floor-tool-v316" data-pmd-r2-tool="zoom-out" aria-label="Zoom out" title="Zoom out">
                 <svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="10.5" cy="10.5" r="6.5"></circle><path d="M15.5 15.5 21 21M7.5 10.5h6"></path></svg>
             </button>
 
-            <button type="button" class="pmd-r2-floor-tool-v316" data-pmd-r2-tool="fit" aria-label="Full Floor" title="Full Floor">
-                <svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3H5a2 2 0 0 0-2 2v3M16 3h3a2 2 0 0 1 2 2v3M8 21H5a2 2 0 0 1-2-2v-3M16 21h3a2 2 0 0 0 2-2v-3"></path></svg>
-            </button>
-
             <button type="button" class="pmd-r2-floor-tool-v316" data-pmd-r2-tool="zoom-in" aria-label="Zoom in" title="Zoom in">
                 <svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="10.5" cy="10.5" r="6.5"></circle><path d="M15.5 15.5 21 21M7.5 10.5h6M10.5 7.5v6"></path></svg>
             </button>
 
-            <button type="button" class="pmd-r2-floor-tool-v316" data-pmd-r2-tool="strip" aria-pressed="{{ $floorMode === 'row' ? 'true' : 'false' }}" aria-label="{{ $stripLabel }}" title="{{ $stripLabel }}">
-                <svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2"></rect><path d="M3 12h18"></path></svg>
-                <span>{{ $stripLabel }}</span>
+            {{-- PMD_FLOOR_TOGGLE_SERVER_FIRST_PAINT_R56 --}}
+            
+<button
+                type="button"
+                class="pmd-r2-floor-tool-v316"
+                data-pmd-r2-tool="strip"
+                aria-pressed="{{ $floorMode === 'row' ? 'true' : 'false' }}"
+                aria-label="{{ $pmdFloorStripActionLabel }}"
+                title="{{ $pmdFloorStripActionLabel }}"
+                data-pmd-floor-toggle-icon="{{ $floorMode === 'row' ? 'expand-corners' : 'collapse' }}"
+            
+                data-pmd-floor-toggle-inline-square-r63=""
+                style="display:inline-flex!important;align-items:center!important;justify-content:center!important;box-sizing:border-box!important;width:52px!important;min-width:52px!important;max-width:52px!important;inline-size:52px!important;min-inline-size:52px!important;max-inline-size:52px!important;height:52px!important;min-height:52px!important;max-height:52px!important;flex:0 0 52px!important;flex-basis:52px!important;flex-grow:0!important;flex-shrink:0!important;padding:0!important;margin:0!important;aspect-ratio:1/1!important;overflow:hidden!important;box-sizing:border-box!important;display:inline-flex!important;align-items:center!important;justify-content:center!important;width:52px!important;min-width:52px!important;max-width:52px!important;inline-size:52px!important;min-inline-size:52px!important;max-inline-size:52px!important;height:52px!important;min-height:52px!important;max-height:52px!important;flex:0 0 52px!important;flex-basis:52px!important;flex-grow:0!important;flex-shrink:0!important;padding:0!important;margin:0!important;aspect-ratio:1/1!important;overflow:hidden!important;"
+            
+                data-pmd-floor-toggle-repair-r65="">
+                @if($floorMode === 'row')
+                    {{-- One row active: next action is Full Floor. No arrows: open screen corners. --}}
+                    <svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.45" stroke-linecap="round" stroke-linejoin="round" style="display:block!important;width:20px!important;min-width:20px!important;max-width:20px!important;height:20px!important;min-height:20px!important;max-height:20px!important;flex:0 0 20px!important;margin:0!important;display:block!important;width:20px!important;min-width:20px!important;max-width:20px!important;height:20px!important;min-height:20px!important;max-height:20px!important;margin:0!important;padding:0!important;">
+                        <path d="M9 4H4v5"></path>
+                        <path d="M15 4h5v5"></path>
+                        <path d="M20 15v5h-5"></path>
+                        <path d="M9 20H4v-5"></path>
+                    </svg>
+                @else
+                    {{-- Full Floor active: next action compresses to One row. --}}
+                    <svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.45" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M4 4l4.5 4.5"></path><path d="M5.75 8.5H8.5V5.75"></path>
+                        <path d="M20 4l-4.5 4.5"></path><path d="M15.5 5.75V8.5h2.75"></path>
+                        <path d="M4 20l4.5-4.5"></path><path d="M8.5 18.25V15.5H5.75"></path>
+                        <path d="M20 20l-4.5-4.5"></path><path d="M18.25 15.5H15.5v2.75"></path>
+                    </svg>
+                @endif
             </button>
         </div>
     </div>

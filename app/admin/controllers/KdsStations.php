@@ -52,7 +52,8 @@ class KdsStations extends AdminController
         'configFile' => 'kds_stations_model',
     ];
 
-    protected $requiredPermissions = ['Admin.KdsStations'];
+    // Devices & Hardware is gated by Site.Settings; KDS-specific access remains valid too.
+    protected $requiredPermissions = ['Admin.KdsStations', 'Site.Settings'];
 
     public function __construct()
     {
@@ -413,9 +414,39 @@ public function formExtendFields($form)
         return $data;
     }
 
+    /* PMD_KDS_DEVICE_SAVE_VISIBILITY_V115_START */
+    protected function pmdKdsJsonRequestV115(): bool
+    {
+        return request()->ajax() || request()->wantsJson();
+    }
+
+    protected function pmdKdsForgetStationListCacheV115(): void
+    {
+        try {
+            if (function_exists('cache')) {
+                cache()->forget('pmd_kds_all_stations_minimal_v1_1');
+            }
+        } catch (\Throwable $e) {
+            \Log::warning('PMD KDS station list cache invalidation failed: '.$e->getMessage());
+        }
+    }
+    /* PMD_KDS_DEVICE_SAVE_VISIBILITY_V115_END */
+
     protected function pmdKdsBackendSaveV108($recordId = null)
     {
+        /*
+         * PMD_KDS_TABLE_SELF_HEAL_V116
+         * Devices & Hardware posts directly into this backend save method.
+         * Ensure the canonical KDS table exists before persistence.
+         */
         if (!\Illuminate\Support\Facades\Schema::hasTable('kds_stations')) {
+            $this->ensureTableExists();
+        }
+
+        if (!\Illuminate\Support\Facades\Schema::hasTable('kds_stations')) {
+            if ($this->pmdKdsJsonRequestV115()) {
+                return response()->json(['ok' => false, 'error' => 'KDS stations table does not exist.'], 500);
+            }
             return redirect()->back()->with('error', 'KDS stations table does not exist.');
         }
 
@@ -428,6 +459,9 @@ public function formExtendFields($form)
         $name = trim((string)$this->pmdKdsLastValueV108($payload['name'] ?? '', ''));
 
         if ($name === '') {
+            if ($this->pmdKdsJsonRequestV115()) {
+                return response()->json(['ok' => false, 'error' => 'Station name is required.'], 422);
+            }
             return redirect()->back()->withInput()->with('error', 'Station name is required.');
         }
 
@@ -473,6 +507,16 @@ public function formExtendFields($form)
             $safe = $this->pmdKdsFilterColumnsV108($data);
 
             \Illuminate\Support\Facades\DB::table('kds_stations')->where('station_id', $recordId)->update($safe);
+            $this->pmdKdsForgetStationListCacheV115();
+
+            if ($this->pmdKdsJsonRequestV115()) {
+                return response()->json([
+                    'ok' => true,
+                    'station_id' => (int)$recordId,
+                    'mode' => 'edit',
+                    'message' => 'KDS station saved.',
+                ]);
+            }
 
             return redirect(admin_url('kds_stations'))->with('success', 'KDS station saved.');
         }
@@ -483,6 +527,16 @@ public function formExtendFields($form)
         $safe = $this->pmdKdsFilterColumnsV108($data);
 
         $newId = \Illuminate\Support\Facades\DB::table('kds_stations')->insertGetId($safe);
+        $this->pmdKdsForgetStationListCacheV115();
+
+        if ($this->pmdKdsJsonRequestV115()) {
+            return response()->json([
+                'ok' => true,
+                'station_id' => (int)$newId,
+                'mode' => 'create',
+                'message' => 'KDS station created.',
+            ], 201);
+        }
 
         return redirect(admin_url('kds_stations'))->with('success', 'KDS station created.');
     }
@@ -499,19 +553,30 @@ public function formExtendFields($form)
     {
         $id = $this->pmdKdsCurrentRecordIdV108();
         if (!$id) {
+            if ($this->pmdKdsJsonRequestV115()) {
+                return response()->json(['ok' => false, 'error' => 'KDS station not found.'], 404);
+            }
             return redirect(admin_url('pmddevices/kds'))->with('error', 'KDS station not found.');
         }
         $station = Kds_stations_model::find($id);
         if (!$station) {
+            if ($this->pmdKdsJsonRequestV115()) {
+                return response()->json(['ok' => false, 'error' => 'KDS station not found.'], 404);
+            }
             return redirect(admin_url('pmddevices/kds'))->with('error', 'KDS station not found.');
         }
         $station->delete();
+        $this->pmdKdsForgetStationListCacheV115();
+
+        if ($this->pmdKdsJsonRequestV115()) {
+            return response()->json(['ok' => true, 'station_id' => (int)$id, 'message' => 'KDS station deleted.']);
+        }
+
         flash()->success('KDS station deleted.');
         return redirect(admin_url('pmddevices/kds'));
     }
 
 }
-
 
 
 
