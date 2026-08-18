@@ -1,24 +1,160 @@
 /* ============================================================
    PMD_KPI_IDENTITY_COLOR_AUTHORITY_V2
 
-   IMPORTANT:
    KPI color belongs to the KPI identity, NOT to the visible card slot.
 
-   The previous V1 file forced slot 0/1/2/3 to fixed colors. That meant a
-   chooser swap could change "Table Occupancy" to "Kitchen Ticket Time" while
-   the card incorrectly kept the old slot color.
+   The chooser updates data-pmd-dashboard2-kpi / data-pmd-kpi-v2401-key when
+   a KPI is changed. These rules therefore move the KPI's color with the KPI.
+   There are deliberately NO data-pmd-dashboard-lab-slot color rules here.
 
-   The canonical KPI renderers already own the correct behavior:
-   - server first paint writes data-pmd-kpi-v2401-tone from the KPI payload
-   - chooser swaps update data-pmd-kpi-v2401-tone from that selected KPI
-   - pmd-reservations2-kpis-v307.css maps that tone to the card palette
-
-   Therefore this compatibility file intentionally defines NO slot-level color
-   overrides. It remains loadable only so existing cached Admin head markup is
-   harmless while the KPI's own tone remains the single color authority.
-
-   Examples from the current Dashboard KPI authority:
-   - Table Occupancy -> its own KPI tone
-   - Kitchen Ticket Time -> its own KPI tone
-   Moving either KPI to another slot does not change its identity color.
+   ReservationsLab already has its own per-KPI identity palette in the base
+   pmd-reservations2-kpis-v307.css authority, so this file does not override
+   those reservation keys.
    ============================================================ */
+
+/* ---------- Owner DashboardLab KPI identities ---------- */
+
+/* Revenue - green */
+#pmd-r2-reservation-kpis-v307 .pmd-r2-kpi-v2401-card[data-pmd-dashboard2-kpi="revenue"] {
+  --kpi-bg: #21cb72 !important;
+  --kpi-border: #087b4b !important;
+  --kpi-accent: #062c22 !important;
+  --kpi-icon: rgba(255,255,255,.90) !important;
+}
+
+/* Guests Served - purple */
+#pmd-r2-reservation-kpis-v307 .pmd-r2-kpi-v2401-card[data-pmd-dashboard2-kpi="guests"] {
+  --kpi-bg: #a66ce6 !important;
+  --kpi-border: #6530a0 !important;
+  --kpi-accent: #241036 !important;
+  --kpi-icon: rgba(255,255,255,.91) !important;
+}
+
+/* Table Turnover - orange */
+#pmd-r2-reservation-kpis-v307 .pmd-r2-kpi-v2401-card[data-pmd-dashboard2-kpi="turnover"] {
+  --kpi-bg: #ff8811 !important;
+  --kpi-border: #a54d00 !important;
+  --kpi-accent: #351800 !important;
+  --kpi-icon: rgba(255,255,255,.90) !important;
+}
+
+/* Dine In / Take Away - cyan */
+#pmd-r2-reservation-kpis-v307 .pmd-r2-kpi-v2401-card[data-pmd-dashboard2-kpi="channels"] {
+  --kpi-bg: #35afd1 !important;
+  --kpi-border: #087493 !important;
+  --kpi-accent: #062b36 !important;
+  --kpi-icon: rgba(255,255,255,.90) !important;
+}
+
+/* Kitchen Ticket Time - amber */
+#pmd-r2-reservation-kpis-v307 .pmd-r2-kpi-v2401-card[data-pmd-dashboard2-kpi="kitchen"] {
+  --kpi-bg: #f4b63f !important;
+  --kpi-border: #a66d05 !important;
+  --kpi-accent: #3a2500 !important;
+  --kpi-icon: rgba(255,255,255,.91) !important;
+}
+
+/* Table Occupancy - royal blue */
+#pmd-r2-reservation-kpis-v307 .pmd-r2-kpi-v2401-card[data-pmd-dashboard2-kpi="occupancy"] {
+  --kpi-bg: #4388e8 !important;
+  --kpi-border: #1855ad !important;
+  --kpi-accent: #071f46 !important;
+  --kpi-icon: rgba(255,255,255,.92) !important;
+}
+
+/* Menu Availability - red */
+#pmd-r2-reservation-kpis-v307 .pmd-r2-kpi-v2401-card[data-pmd-dashboard2-kpi="menu"] {
+  --kpi-bg: #ff3954 !important;
+  --kpi-border: #ad102b !important;
+  --kpi-accent: #36040c !important;
+  --kpi-icon: rgba(255,255,255,.92) !important;
+}
+
+/* Tips - teal */
+#pmd-r2-reservation-kpis-v307 .pmd-r2-kpi-v2401-card[data-pmd-dashboard2-kpi="tips"] {
+  --kpi-bg: #16b89a !important;
+  --kpi-border: #08715f !important;
+  --kpi-accent: #042f28 !important;
+  --kpi-icon: rgba(255,255,255,.91) !important;
+}
+
+/* ---------- Manager KPI identities ---------- */
+
+#pmd-r2-reservation-kpis-v307 .pmd-r2-kpi-v2401-card[data-pmd-dashboard2-kpi="live_orders"] {
+  --kpi-bg: #ff8811 !important;
+  --kpi-border: #a54d00 !important;
+  --kpi-accent: #351800 !important;
+  --kpi-icon: rgba(255,255,255,.90) !important;
+}
+
+#pmd-r2-reservation-kpis-v307 .pmd-r2-kpi-v2401-card[data-pmd-dashboard2-kpi="open_alerts"] {
+  --kpi-bg: #ff3954 !important;
+  --kpi-border: #ad102b !important;
+  --kpi-accent: #36040c !important;
+  --kpi-icon: rgba(255,255,255,.92) !important;
+}
+
+#pmd-r2-reservation-kpis-v307 .pmd-r2-kpi-v2401-card[data-pmd-dashboard2-kpi="occupied_tables"] {
+  --kpi-bg: #21cb72 !important;
+  --kpi-border: #087b4b !important;
+  --kpi-accent: #062c22 !important;
+  --kpi-icon: rgba(255,255,255,.90) !important;
+}
+
+#pmd-r2-reservation-kpis-v307 .pmd-r2-kpi-v2401-card[data-pmd-dashboard2-kpi="upcoming_reservations"] {
+  --kpi-bg: #4388e8 !important;
+  --kpi-border: #1855ad !important;
+  --kpi-accent: #071f46 !important;
+  --kpi-icon: rgba(255,255,255,.92) !important;
+}
+
+/* ---------- Cashier / Accountant shared finance identities ---------- */
+
+#pmd-r2-reservation-kpis-v307 .pmd-r2-kpi-v2401-card[data-pmd-dashboard2-kpi="open_bills"] {
+  --kpi-bg: #ff8811 !important;
+  --kpi-border: #a54d00 !important;
+  --kpi-accent: #351800 !important;
+  --kpi-icon: rgba(255,255,255,.90) !important;
+}
+
+#pmd-r2-reservation-kpis-v307 .pmd-r2-kpi-v2401-card[data-pmd-dashboard2-kpi="average_settlement_time"] {
+  --kpi-bg: #35afd1 !important;
+  --kpi-border: #087493 !important;
+  --kpi-accent: #062b36 !important;
+  --kpi-icon: rgba(255,255,255,.90) !important;
+}
+
+#pmd-r2-reservation-kpis-v307 .pmd-r2-kpi-v2401-card[data-pmd-dashboard2-kpi="failed_transactions"] {
+  --kpi-bg: #ff3954 !important;
+  --kpi-border: #ad102b !important;
+  --kpi-accent: #36040c !important;
+  --kpi-icon: rgba(255,255,255,.92) !important;
+}
+
+#pmd-r2-reservation-kpis-v307 .pmd-r2-kpi-v2401-card[data-pmd-dashboard2-kpi="cash_percent"] {
+  --kpi-bg: #a66ce6 !important;
+  --kpi-border: #6530a0 !important;
+  --kpi-accent: #241036 !important;
+  --kpi-icon: rgba(255,255,255,.91) !important;
+}
+
+#pmd-r2-reservation-kpis-v307 .pmd-r2-kpi-v2401-card[data-pmd-dashboard2-kpi="vat_month"] {
+  --kpi-bg: #35afd1 !important;
+  --kpi-border: #087493 !important;
+  --kpi-accent: #062b36 !important;
+  --kpi-icon: rgba(255,255,255,.90) !important;
+}
+
+#pmd-r2-reservation-kpis-v307 .pmd-r2-kpi-v2401-card[data-pmd-dashboard2-kpi="gross_to_net"] {
+  --kpi-bg: #21cb72 !important;
+  --kpi-border: #087b4b !important;
+  --kpi-accent: #062c22 !important;
+  --kpi-icon: rgba(255,255,255,.90) !important;
+}
+
+#pmd-r2-reservation-kpis-v307 .pmd-r2-kpi-v2401-card[data-pmd-dashboard2-kpi="total_loss"] {
+  --kpi-bg: #ff3954 !important;
+  --kpi-border: #ad102b !important;
+  --kpi-accent: #36040c !important;
+  --kpi-icon: rgba(255,255,255,.92) !important;
+}
