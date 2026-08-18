@@ -1,5 +1,5 @@
 {{-- PMD_ROLE_DASHBOARD_EXACT_OWNER_INCLUDE_V3_5
-     PMD_ROLE_SPECIFIC_INSIGHTS_V3_5
+     PMD_ROLE_SPECIFIC_INSIGHTS_V3_5_4
      Manager/Accountant reuse the exact live Dashboard Lab analytics partial.
      No second chart/card renderer exists on role pages. --}}
 @php
@@ -12,13 +12,13 @@
         ? $pmdRoleInsightCards
         : [];
 
-    /* PMD_MANAGER_NO_FINANCE_INSIGHT_CARDS_V3_5_3
-     * Manager keeps the shared Owner analytics below the Floor, but never the
-     * six finance/accounting insight cards. Accountant keeps those cards.
-     * This view-level guard is authoritative even if an older Manager controller
-     * accidentally supplies a non-empty pmdRoleInsightCards array.
+    /* PMD_ROLE_NO_FINANCE_INSIGHT_CARDS_V3_5_4
+     * Manager and Accountant keep their approved top KPIs plus shared Owner
+     * analytics, but neither workspace renders the six intermediate finance
+     * insight cards. This view-level guard remains authoritative even if an
+     * older controller accidentally supplies pmdRoleInsightCards.
      */
-    if ($pmdRoleMode === 'manager') {
+    if (in_array($pmdRoleMode, ['manager', 'accountant'], true)) {
         $pmdRoleInsightCards = [];
     }
 
