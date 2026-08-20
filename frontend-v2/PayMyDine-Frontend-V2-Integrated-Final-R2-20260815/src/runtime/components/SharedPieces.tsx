@@ -13,6 +13,7 @@ import {
   Search,
   Star,
   Youtube,
+  Car,
 } from 'lucide-react'
 import type { MenuItem, SocialLink } from '@/src/domain/model'
 import { useMenuRuntime } from '@/src/runtime/MenuRuntimeContext'
@@ -46,6 +47,48 @@ export function LanguageSelect() {
       </select>
       <ChevronDown className={styles.selectIcon} aria-hidden="true" />
     </label>
+  )
+}
+
+
+// PMD_HEADER_VALET_R31
+// One shared header entry point for all ten themes. It reuses the existing
+// ServiceSheet valet mode and requestValet backend flow; no second modal or
+// business authority is introduced.
+export function HeaderValetButton() {
+  const { bootstrap, labels, openService, notify } = useMenuRuntime()
+  // PMD_HEADER_VALET_ALWAYS_VISIBLE_R31C
+  // Header Valet is a product-required entry point. Some legacy tenant settings
+  // explicitly report features.valet=false even though the canonical guest Valet
+  // backend is available. Keep the header action visible; table validity still
+  // gates submission and the existing bottom toolbar keeps its legacy flag.
+
+  const hasTable = Boolean(
+    bootstrap.table.valid &&
+    (bootstrap.table.id || bootstrap.table.number || bootstrap.table.qr)
+  )
+
+  const openValet = () => {
+    if (!hasTable) {
+      notify('error', labels.scanTableQr)
+      return
+    }
+    openService('valet')
+  }
+
+  return (
+    <button
+      className={styles.headerValetButton}
+      type="button"
+      aria-disabled={!hasTable}
+      aria-label={labels.valet}
+      title={labels.valet}
+      data-pmd-header-valet="r31"
+      onClick={openValet}
+    >
+      <Car aria-hidden="true" />
+      <span className={styles.headerValetLabel}>{labels.valet}</span>
+    </button>
   )
 }
 

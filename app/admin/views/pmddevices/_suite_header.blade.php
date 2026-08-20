@@ -6,6 +6,8 @@
     $pmdSuiteActionLabel = $pmdSuiteActionLabel ?? null;
     $pmdSuiteActionTarget = $pmdSuiteActionTarget ?? null;
 @endphp
+@include('admin::_partials.pmd_settings_family_first_paint_v18')
+
 <header class="pmd-owner-header pmd-device-suite-header">
     <div class="pmd-owner-header__left">
         <a class="pmd-owner-header-button" href="{{ $pmdSuiteBackUrl }}" aria-label="Back" title="Back">
@@ -19,6 +21,6 @@
                 {{ $pmdSuiteActionLabel }}
             </a>
         @endif
-        <span class="pmd-owner-notif-slot" data-pmd-owner-notif-slot></span>
+        @include('admin::_partials.pmd_settings_family_notification_placeholder_v18')
     </div>
 </header>

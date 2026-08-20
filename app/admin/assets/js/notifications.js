@@ -80,6 +80,55 @@
         'd-none'
       );
     }
+
+
+    // PMD_SETTINGS_FAMILY_COUNT_MIRROR_V18_3
+    /*
+     * Settings detail pages use a permanent server-first visible
+     * counter to prevent refresh geometry changes.
+     *
+     * COUNT remains the canonical notification-engine data node.
+     * We only mirror its already-resolved value into the existing
+     * visible node when that node exists.
+     *
+     * No timer.
+     * No observer.
+     * No second API request.
+     */
+    const settingsFamilyVisibleCount =
+      document.querySelector(
+        '[data-pmd-settings-family-notification-count-v18]'
+      );
+
+    if (settingsFamilyVisibleCount) {
+      if (
+        settingsFamilyVisibleCount.textContent !== text
+      ) {
+        settingsFamilyVisibleCount.textContent =
+          text;
+      }
+
+      const visualHidden =
+        settingsFamilyVisibleCount.classList.contains(
+          'd-none'
+        );
+
+      if (
+        value > 0 &&
+        visualHidden
+      ) {
+        settingsFamilyVisibleCount.classList.remove(
+          'd-none'
+        );
+      } else if (
+        value <= 0 &&
+        !visualHidden
+      ) {
+        settingsFamilyVisibleCount.classList.add(
+          'd-none'
+        );
+      }
+    }
   }
 
   async function fetchJSON(url, opts={}){

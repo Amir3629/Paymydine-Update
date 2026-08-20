@@ -3,7 +3,7 @@
 import type { CSSProperties } from 'react'
 import { Bell, Car, ChevronRight, Menu, Search, ShoppingBag } from 'lucide-react'
 import { useMenuRuntime } from '@/src/runtime/MenuRuntimeContext'
-import { CategoryGlyph, DietaryBadges, LanguageSelect, PlatformFooter, QuickAddButton, RestaurantLogo, SocialLinks } from '@/src/runtime/components/SharedPieces'
+import { CategoryGlyph, DietaryBadges, LanguageSelect, PlatformFooter, QuickAddButton, RestaurantLogo, SocialLinks, HeaderValetButton } from '@/src/runtime/components/SharedPieces'
 import { RuntimeOverlays } from '@/src/runtime/components/RuntimeOverlays'
 import { ThemeBottomToolBar } from '@/src/runtime/components/ThemeBottomToolBar'
 import styles from './LumiereFineDining.module.css'
@@ -27,7 +27,7 @@ export default function LumiereFineDining() {
           
           <RestaurantLogo />
           <div className={styles.headerRight}>
-            <LanguageSelect />
+            <HeaderValetButton /><LanguageSelect />
             
           </div>
         </header>

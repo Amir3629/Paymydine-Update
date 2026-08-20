@@ -3,7 +3,7 @@
 import type { CSSProperties } from 'react'
 import { Bell, Car, Menu, Search, ShoppingCart, Sparkles, Zap } from 'lucide-react'
 import { useMenuRuntime } from '@/src/runtime/MenuRuntimeContext'
-import { DietaryBadges, LanguageSelect, PlatformFooter, QuickAddButton, RestaurantLogo, SocialLinks } from '@/src/runtime/components/SharedPieces'
+import { DietaryBadges, LanguageSelect, PlatformFooter, QuickAddButton, RestaurantLogo, SocialLinks, HeaderValetButton } from '@/src/runtime/components/SharedPieces'
 import { RuntimeOverlays } from '@/src/runtime/components/RuntimeOverlays'
 import { ThemeBottomToolBar } from '@/src/runtime/components/ThemeBottomToolBar'
 import styles from './NeonCocktailBar.module.css'
@@ -26,7 +26,7 @@ export default function NeonCocktailBar() {
       <header className={styles.header}>
         
         <div className={styles.brand}><RestaurantLogo /><span>Berlin · after dark</span></div>
-        <div className={styles.headerTools}><LanguageSelect /></div>
+        <div className={styles.headerTools}><HeaderValetButton /><LanguageSelect /></div>
       </header>
 
       <section className={styles.hero}>

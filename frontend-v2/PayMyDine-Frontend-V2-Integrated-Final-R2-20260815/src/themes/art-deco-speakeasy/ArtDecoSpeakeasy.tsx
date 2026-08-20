@@ -3,7 +3,7 @@
 import type { CSSProperties } from 'react'
 import { Bell, Car, Crown, Menu, Search, ShoppingBag, Sparkles } from 'lucide-react'
 import { useMenuRuntime } from '@/src/runtime/MenuRuntimeContext'
-import { DietaryBadges, LanguageSelect, PlatformFooter, QuickAddButton, RestaurantLogo, SocialLinks } from '@/src/runtime/components/SharedPieces'
+import { DietaryBadges, LanguageSelect, PlatformFooter, QuickAddButton, RestaurantLogo, SocialLinks, HeaderValetButton } from '@/src/runtime/components/SharedPieces'
 import { RuntimeOverlays } from '@/src/runtime/components/RuntimeOverlays'
 import { ThemeBottomToolBar } from '@/src/runtime/components/ThemeBottomToolBar'
 import styles from './ArtDecoSpeakeasy.module.css'
@@ -27,7 +27,7 @@ export default function ArtDecoSpeakeasy() {
         <header className={styles.header}>
           
           <div className={styles.brand}><Crown /><RestaurantLogo /><span>Fine spirits · late evenings</span></div>
-          <div className={styles.headerActions}><LanguageSelect /></div>
+          <div className={styles.headerActions}><HeaderValetButton /><LanguageSelect /></div>
         </header>
 
         <section className={styles.hero}>

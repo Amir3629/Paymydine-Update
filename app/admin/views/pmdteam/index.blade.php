@@ -15,13 +15,17 @@ html,body,.page,.page-wrapper,.page-content,.content-wrapper,.container,.contain
     $stats = $pmdTeam['stats'] ?? ['total'=>0,'active'=>0,'biometric'=>0,'roles'=>0];
 @endphp
 
+@include('admin::_partials.pmd_settings_family_first_paint_v18')
+
 <div id="pmd-team-access" data-pmd-team-access>
     <header class="pmd-team-header" id="pmd-team-header">
         <div class="pmd-team-header__left">
             <a class="pmd-team-btn" href="{{ admin_url('pmdsettings') }}" aria-label="Back"><svg viewBox="0 0 24 24"><path d="m15 18-6-6 6-6"></path></svg></a>
             <h1>Team & access</h1>
         </div>
-        <div class="pmd-team-header__actions" data-pmd-team-actions></div>
+        <div class="pmd-team-header__actions" data-pmd-team-actions>
+            @include('admin::_partials.pmd_settings_family_notification_placeholder_v18')
+</div>
     </header>
 
     <section class="pmd-team-section" id="pmd-team-members-section">

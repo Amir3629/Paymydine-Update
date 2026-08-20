@@ -109,6 +109,18 @@ $pmdRoundResolveSessionKey = function (array $context, string $guestSessionId = 
     $pmdRoundDraftContext($submittedQuery, $context);
     $submitted = $submittedQuery->orderByDesc('id')->limit(60)->get();
 
+    // PMD_DIRECT_KITCHEN_SEND_R33B
+    // The physical table visit, not payment completion, owns QR history visibility.
+    // Once a QR/table order has occupied the table, every scanner keeps seeing the
+    // newest submitted session until the existing Staff Free Table action closes it.
+    $tableOperationalStatus = strtolower(trim((string)($context['table']->operational_status ?? '')));
+    if ($tableOperationalStatus === 'occupied') {
+        foreach ($submitted as $row) {
+            $session = $pmdRoundBackfillLegacySession($row, $context);
+            if (trim((string)$session) !== '') return $session;
+        }
+    }
+
     foreach ($submitted as $row) {
         $order = DB::table('orders')->where('order_id', (int)$row->order_id)->first();
         if ($pmdRoundOrderIsFinanciallyOpen($order)) return $pmdRoundBackfillLegacySession($row, $context);
@@ -812,6 +824,36 @@ Route::post('/table-orders/submit', function (\Illuminate\Http\Request $request)
                 'session_key' => $sessionKey,
                 'updated_at' => now(),
             ]);
+
+            // PMD_DIRECT_KITCHEN_SEND_R33B_TABLE_OCCUPIED
+            // QR kitchen submission starts/continues the physical table visit.
+            // Payment must never free it; the existing Admin Free Table action is
+            // the only authority that returns operational_status to available.
+            try {
+                if (\Illuminate\Support\Facades\Schema::hasTable('tables')
+                    && \Illuminate\Support\Facades\Schema::hasColumn('tables', 'operational_status')) {
+                    $tableColumns = \Illuminate\Support\Facades\Schema::getColumnListing('tables');
+                    $tablePk = in_array('table_id', $tableColumns, true)
+                        ? 'table_id'
+                        : (in_array('id', $tableColumns, true) ? 'id' : null);
+                    $tablePkValue = $tablePk ? (int)($context['table']->{$tablePk} ?? 0) : 0;
+                    if ($tablePk && $tablePkValue > 0) {
+                        $tableUpdates = ['operational_status' => 'occupied'];
+                        if (in_array('operational_status_updated_at', $tableColumns, true)) {
+                            $tableUpdates['operational_status_updated_at'] = now();
+                        }
+                        if (in_array('updated_at', $tableColumns, true)) {
+                            $tableUpdates['updated_at'] = now();
+                        }
+                        DB::table('tables')->where($tablePk, $tablePkValue)->update($tableUpdates);
+                    }
+                }
+            } catch (\Throwable $tableStateError) {
+                \Illuminate\Support\Facades\Log::warning('PMD R33b could not mark QR table occupied', [
+                    'order_id' => $orderId,
+                    'message' => $tableStateError->getMessage(),
+                ]);
+            }
 
             try {
                 DB::table('notifications')->insert([

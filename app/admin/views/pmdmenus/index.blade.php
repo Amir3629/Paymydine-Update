@@ -31,10 +31,10 @@
             'menu_catalogue' => 'Menu catalogue', 'search_menu' => 'Search menu...', 'stock_filter' => 'Stock filter', 'all' => 'All', 'in_stock' => 'In stock', 'stock_in' => 'Stock in',
             'menu_categories' => 'Menu categories', 'all_foods' => 'All foods', 'combos' => 'Combos', 'edit' => 'Edit', 'edit_combo' => 'Edit combo', 'no_description' => 'No description',
             'items' => 'items', 'more' => 'more', 'no_foods_yet' => 'No foods yet', 'create_first_food' => 'Create the first food item and it will appear here.',
-            'no_results' => 'No menu items match these filters.', 'sort_edit' => 'Edit order', 'sort_done' => 'Done', 'sort_title' => 'Reorder menu cards',
+            'no_results' => 'No menu items match these filters.', 'sort_edit' => 'Edit', 'sort_done' => 'Done', 'sort_title' => 'Reorder menu cards',
             'sort_saving' => 'Saving order...', 'sort_saved' => 'Order saved', 'sort_failed' => 'Could not save order.', 'sort_food_hint' => 'Drag foods to set the frontend order.',
             'sort_combo_hint' => 'Drag combos to set their order.', 'sort_category_hint' => 'Drag categories to set their frontend order.', 'sort_mode_all' => 'All foods is opened for safe ordering.',
-            'add_category' => 'Add category', 'create_category' => 'Create category', 'category_name' => 'Category name', 'category_name_help' => 'Create one menu category. You can reorder it immediately in Edit order mode.', 'category_name_placeholder' => 'e.g. Lunch', 'save_category' => 'Save category', 'category_created' => 'Category created', 'category_create_error' => 'Could not create category.', 'delete_category' => 'Delete category', 'delete_category_confirm' => 'Delete "{name}" and permanently delete all {count} foods assigned to it, including foods also used in other categories? This cannot be undone.', 'delete_empty_category_confirm' => 'Delete "{name}"? This cannot be undone.', 'category_deleted' => 'Category deleted', 'delete_category_error' => 'Could not delete category.',
+            'add_category' => 'Add category', 'create_category' => 'Create category', 'category_name' => 'Category name', 'category_name_help' => 'Create one menu category. You can reorder it immediately in Edit mode.', 'category_name_placeholder' => 'e.g. Lunch', 'save_category' => 'Save category', 'category_created' => 'Category created', 'category_create_error' => 'Could not create category.', 'delete_category' => 'Delete category', 'delete_category_confirm' => 'Delete "{name}" and permanently delete all {count} foods assigned to it, including foods also used in other categories? This cannot be undone.', 'delete_empty_category_confirm' => 'Delete "{name}"? This cannot be undone.', 'category_deleted' => 'Category deleted', 'delete_category_error' => 'Could not delete category.',
             'combo_attrs' => 'Combo attributes inherited from foods', 'all_foods_halal' => 'All foods are Halal', 'all_foods_vegetarian' => 'All foods are vegetarian', 'all_foods_vegan' => 'All foods are vegan',
             'allergen_singular' => 'allergen', 'allergen_plural' => 'allergens', 'combo_foods' => 'Combo foods',
             'menu_item' => 'Menu item', 'close' => 'Close', 'food_image' => 'Food image', 'food_preview' => 'Food preview', 'food_image_help' => 'JPG, PNG or WEBP. The image fills the food card and a new upload becomes the primary image.', 'choose_image' => 'Choose image',
@@ -55,10 +55,10 @@
             'menu_catalogue' => 'Menükatalog', 'search_menu' => 'Menü durchsuchen...', 'stock_filter' => 'Bestandsfilter', 'all' => 'Alle', 'in_stock' => 'Verfügbar', 'stock_in' => 'Wieder verfügbar',
             'menu_categories' => 'Menükategorien', 'all_foods' => 'Alle Speisen', 'combos' => 'Combos', 'edit' => 'Bearbeiten', 'edit_combo' => 'Combo bearbeiten', 'no_description' => 'Keine Beschreibung',
             'items' => 'Artikel', 'more' => 'weitere', 'no_foods_yet' => 'Noch keine Speisen', 'create_first_food' => 'Erstelle die erste Speise. Sie erscheint anschließend hier.',
-            'no_results' => 'Keine Menüartikel entsprechen diesen Filtern.', 'sort_edit' => 'Reihenfolge bearbeiten', 'sort_done' => 'Fertig', 'sort_title' => 'Menükarten sortieren',
+            'no_results' => 'Keine Menüartikel entsprechen diesen Filtern.', 'sort_edit' => 'Bearbeiten', 'sort_done' => 'Fertig', 'sort_title' => 'Menükarten sortieren',
             'sort_saving' => 'Reihenfolge wird gespeichert...', 'sort_saved' => 'Reihenfolge gespeichert', 'sort_failed' => 'Reihenfolge konnte nicht gespeichert werden.', 'sort_food_hint' => 'Ziehe Speisen, um die Reihenfolge im Gästemenü festzulegen.',
             'sort_combo_hint' => 'Ziehe Combos, um ihre Reihenfolge festzulegen.', 'sort_category_hint' => 'Ziehe Kategorien, um ihre Reihenfolge im Gästemenü festzulegen.', 'sort_mode_all' => 'Für sicheres Sortieren wurde „Alle Speisen“ geöffnet.',
-            'add_category' => 'Kategorie hinzufügen', 'create_category' => 'Kategorie erstellen', 'category_name' => 'Kategoriename', 'category_name_help' => 'Erstelle eine Menükategorie. Im Modus „Reihenfolge bearbeiten“ kannst du sie direkt sortieren.', 'category_name_placeholder' => 'z. B. Mittagessen', 'save_category' => 'Kategorie speichern', 'category_created' => 'Kategorie erstellt', 'category_create_error' => 'Kategorie konnte nicht erstellt werden.', 'delete_category' => 'Kategorie löschen', 'delete_category_confirm' => '"{name}" löschen und alle {count} zugeordneten Speisen endgültig löschen, auch wenn sie weiteren Kategorien zugeordnet sind? Dies kann nicht rückgängig gemacht werden.', 'delete_empty_category_confirm' => '"{name}" löschen? Dies kann nicht rückgängig gemacht werden.', 'category_deleted' => 'Kategorie gelöscht', 'delete_category_error' => 'Kategorie konnte nicht gelöscht werden.',
+            'add_category' => 'Kategorie hinzufügen', 'create_category' => 'Kategorie erstellen', 'category_name' => 'Kategoriename', 'category_name_help' => 'Erstelle eine Menükategorie. Im Modus „Bearbeiten“ kannst du sie direkt sortieren.', 'category_name_placeholder' => 'z. B. Mittagessen', 'save_category' => 'Kategorie speichern', 'category_created' => 'Kategorie erstellt', 'category_create_error' => 'Kategorie konnte nicht erstellt werden.', 'delete_category' => 'Kategorie löschen', 'delete_category_confirm' => '"{name}" löschen und alle {count} zugeordneten Speisen endgültig löschen, auch wenn sie weiteren Kategorien zugeordnet sind? Dies kann nicht rückgängig gemacht werden.', 'delete_empty_category_confirm' => '"{name}" löschen? Dies kann nicht rückgängig gemacht werden.', 'category_deleted' => 'Kategorie gelöscht', 'delete_category_error' => 'Kategorie konnte nicht gelöscht werden.',
             'combo_attrs' => 'Vom Inhalt des Combos übernommene Eigenschaften', 'all_foods_halal' => 'Alle Speisen sind Halal', 'all_foods_vegetarian' => 'Alle Speisen sind vegetarisch', 'all_foods_vegan' => 'Alle Speisen sind vegan',
             'allergen_singular' => 'Allergen', 'allergen_plural' => 'Allergene', 'combo_foods' => 'Combo-Speisen',
             'menu_item' => 'Menüartikel', 'close' => 'Schließen', 'food_image' => 'Speisenbild', 'food_preview' => 'Speisenvorschau', 'food_image_help' => 'JPG, PNG oder WEBP. Das Bild füllt die Speisenkarte; ein neues Bild wird zum Hauptbild.', 'choose_image' => 'Bild auswählen',
@@ -765,8 +765,7 @@
                                 viewBox="0 0 24 24"
                                 aria-hidden="true"
                             >
-                                <path d="M6 6l12 12"></path>
-                                <path d="M18 6 6 18"></path>
+                                <path d="M7 12h10"></path>
                             </svg>
                         </span>
                     @endif
@@ -804,6 +803,24 @@
                     data-combo-selectable="{{ $item['menu_status'] ? '1' : '0' }}"
                     data-search="{{ e($searchText) }}"
                 >
+                    {{-- PMD_MENU_EDIT_CARD_DELETE_V132_FOOD --}}
+                    <button
+                        type="button"
+                        class="pmd-menu-card__edit-delete"
+                        data-pmd-edit-delete-kind="food"
+                        data-pmd-edit-delete-id="{{ (int)$item['id'] }}"
+                        draggable="false"
+                        aria-label="{{ $pmdT('delete_food') }}"
+                        title="{{ $pmdT('delete_food') }}"
+                    >
+                        <svg
+                            viewBox="0 0 24 24"
+                            aria-hidden="true"
+                        >
+                            <path d="M7 12h10"></path>
+                        </svg>
+                    </button>
+
                     <div class="pmd-menu-card__media">
                         <div class="pmd-menu-card__placeholder" aria-hidden="true">
                             <svg viewBox="0 0 24 24"><path d="M4 5h16v14H4z"></path><circle cx="9" cy="10" r="2"></circle><path d="m5 17 4-4 3 3 2-2 5 4"></path></svg>
@@ -876,6 +893,26 @@
                     data-combo-selectable="0"
                     data-search="{{ e($comboSearch) }}"
                 >
+                    {{-- PMD_MENU_EDIT_CARD_DELETE_V132_COMBO --}}
+                    @if($canManageCombos)
+                        <button
+                            type="button"
+                            class="pmd-menu-card__edit-delete"
+                            data-pmd-edit-delete-kind="combo"
+                            data-pmd-edit-delete-id="{{ (int)$combo['id'] }}"
+                            draggable="false"
+                            aria-label="{{ $pmdT('delete_combo') }}"
+                            title="{{ $pmdT('delete_combo') }}"
+                        >
+                            <svg
+                                viewBox="0 0 24 24"
+                                aria-hidden="true"
+                            >
+                                <path d="M7 12h10"></path>
+                            </svg>
+                        </button>
+                    @endif
+
                     <div class="pmd-menu-card__media {{ count($comboImages) ? 'has-image' : '' }}">
                         <div class="pmd-menu-card__placeholder pmd-menu-card__placeholder--combo" aria-hidden="true">
                             <svg viewBox="0 0 24 24"><path d="M4 7l8-4 8 4-8 4-8-4z"></path><path d="m4 12 8 4 8-4"></path><path d="m4 17 8 4 8-4"></path></svg>

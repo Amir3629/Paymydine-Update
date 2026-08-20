@@ -38,6 +38,8 @@ document.documentElement.classList.add('pmd-restaurant-profile-booting');
 <link rel="stylesheet" href="/app/admin/assets/css/pmd-settings-restaurant-unified-r19.css?v=20260815_r19">
 <link rel="stylesheet" href="/app/admin/assets/css/pmd-settings-restaurant-logo-authority-r20.css?v=20260815_r20">
 
+@include('admin::_partials.pmd_settings_family_first_paint_v18')
+
 <div id="pmd-restaurant-profile" class="pmd-restaurant-profile" data-pmd-restaurant-profile>
     <header class="pmd-profile-header" id="pmd-profile-header">
         <div class="pmd-profile-header__left">
@@ -48,6 +50,8 @@ document.documentElement.classList.add('pmd-restaurant-profile-booting');
         </div>
 
         <div class="pmd-profile-header__actions" data-pmd-profile-header-actions>
+            @include('admin::_partials.pmd_settings_family_notification_placeholder_v18')
+
             <span id="pmd-profile-save-status"></span>
             <button
                 type="submit"

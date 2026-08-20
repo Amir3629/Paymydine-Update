@@ -56,6 +56,15 @@
   var categorySaving = false;
   var categoryDeleteBusy = false;
 
+  // PMD_MENU_EDIT_ORDER_CATEGORY_MANAGE_V131
+
+  // PMD_MENU_EDIT_MODE_DESTRUCTIVE_AND_SCOPED_SORT_V132
+  // PMD_MENU_LEGACY_CARD_DRAG_PARITY_V138
+  var sortScopeCategory = 'all';
+  var sortScopeGlobalOrder = [];
+  var sortScopeFoodIds = [];
+  var editDeleteBusy = false;
+
   function manager() {
     return document.querySelector('[data-pmd-menu-manager]');
   }
@@ -833,6 +842,11 @@
     restoreFilters();
     applyFilters();
     updateHeaderState();
+
+    if (sortMode) {
+      resetSortScopeFromCurrent();
+    }
+
     syncSortMode();
   }
 
@@ -1033,7 +1047,12 @@
   async function deleteCategoryById(categoryId, trigger) {
     if (
       categoryDeleteBusy
-      || sortMode
+      || !sortMode
+      || sortSaving
+      || categorySaving
+      || categoryDrag
+      || dragCard
+      || editDeleteBusy
       || isComboBuilder()
       || !canDeleteCategories()
     ) {
@@ -1108,9 +1127,18 @@
         formData
       );
 
-      filterState.category = 'all';
+      var categoryRefreshTarget =
+        String(filterState.category)
+          === String(categoryId)
+          ? 'all'
+          : filterState.category;
 
-      await refreshManager('all');
+      filterState.category =
+        categoryRefreshTarget;
+
+      await refreshManager(
+        categoryRefreshTarget
+      );
 
       sortStatus(
         tr(
@@ -1143,6 +1171,143 @@
         && document.contains(trigger)
       ) {
         trigger.classList.remove('is-busy');
+      }
+    }
+  }
+
+
+  async function deleteEditModeCard(
+    kind,
+    rawId,
+    trigger
+  ) {
+    if (
+      !sortMode
+      || editDeleteBusy
+      || sortSaving
+      || categorySaving
+      || categoryDeleteBusy
+      || dragCard
+      || categoryDrag
+      || isComboBuilder()
+    ) {
+      return;
+    }
+
+    var node = manager();
+
+    if (!node) return;
+
+    kind =
+      kind === 'combo'
+        ? 'combo'
+        : 'food';
+
+    if (
+      kind === 'combo'
+      && node.dataset.pmdCanManageCombos
+        !== '1'
+    ) {
+      return;
+    }
+
+    var id =
+      Number(rawId || 0);
+
+    if (!id) return;
+
+    var confirmation =
+      kind === 'combo'
+        ? tr(
+            'delete_combo_confirm',
+            'Delete this combo permanently? '
+            + 'This cannot be undone.'
+          )
+        : tr(
+            'delete_food_confirm',
+            'Delete this food permanently? '
+            + 'This cannot be undone.'
+          );
+
+    if (!window.confirm(confirmation)) {
+      return;
+    }
+
+    editDeleteBusy = true;
+
+    if (trigger) {
+      trigger.disabled = true;
+      trigger.classList.add(
+        'is-busy'
+      );
+    }
+
+    try {
+      var formData =
+        new FormData();
+
+      formData.append(
+        kind === 'combo'
+          ? 'combo_id'
+          : 'menu_id',
+        String(id)
+      );
+
+      await backend(
+        kind === 'combo'
+          ? '/admin/combos'
+          : '/admin/menus',
+        'onPmdMenuManagerDeleteV129',
+        formData
+      );
+
+      var refreshTarget =
+        filterState.category;
+
+      await refreshManager(
+        refreshTarget
+      );
+
+      sortStatus(
+        kind === 'combo'
+          ? tr(
+              'combo_deleted',
+              'Combo deleted'
+            )
+          : tr(
+              'food_deleted',
+              'Food deleted'
+            ),
+        'ok'
+      );
+    } catch (error) {
+      window.alert(
+        error && error.message
+          ? error.message
+          : (
+              kind === 'combo'
+                ? tr(
+                    'delete_combo_error',
+                    'Could not delete combo.'
+                  )
+                : tr(
+                    'delete_food_error',
+                    'Could not delete food.'
+                  )
+            )
+      );
+    } finally {
+      editDeleteBusy = false;
+
+      if (
+        trigger
+        && document.contains(trigger)
+      ) {
+        trigger.disabled = false;
+
+        trigger.classList.remove(
+          'is-busy'
+        );
       }
     }
   }
@@ -1202,8 +1367,30 @@
       return;
     }
     var even = Number(index || 0) % 2 === 1;
-    var name = even ? 'pmd-menu-v128-jiggle-b' : 'pmd-menu-v128-jiggle-a';
-    var duration = even ? '.57s' : '.52s';
+
+    var isCategory =
+      Boolean(
+        element.matches
+        && element.matches(
+          '[data-pmd-category-sortable]'
+        )
+      );
+
+    var name = isCategory
+      ? (
+          even
+            ? 'pmd-menu-v132-category-jiggle-b'
+            : 'pmd-menu-v132-category-jiggle-a'
+        )
+      : (
+          even
+            ? 'pmd-menu-v128-jiggle-b'
+            : 'pmd-menu-v128-jiggle-a'
+        );
+
+    var duration = isCategory
+      ? (even ? '.47s' : '.43s')
+      : (even ? '.57s' : '.52s');
     element.style.setProperty('animation', name + ' ' + duration + ' ease-in-out infinite', 'important');
     element.style.setProperty('animation-delay', even ? '-.19s' : '-.11s', 'important');
     element.style.setProperty('animation-play-state', 'running', 'important');
@@ -1305,19 +1492,29 @@
     if (!node) return;
     sortStatus('');
 
-    if (filterState.category === 'combos') {
+    if (
+      filterState.category === 'combos'
+    ) {
       sortKind = 'combo';
-      filterState.stock = 'all';
-      filterState.search = '';
     } else {
       sortKind = 'food';
-      filterState.category = 'all';
-      filterState.stock = 'all';
-      filterState.search = '';
     }
+
+    /*
+     * Keep the currently selected category.
+     * We only clear secondary filters so every food in that
+     * category is available for canonical ordering.
+     */
+    filterState.stock = 'all';
+    filterState.search = '';
+
     restoreFilters();
     applyFilters();
+
     sortMode = true;
+
+    resetSortScopeFromCurrent();
+
     syncSortMode();
     startAllEditJigglesNow();
     var itemHint = sortKind === 'combo' ? tr('sort_combo_hint', 'Drag combos to set their order.') : tr('sort_food_hint', 'Drag foods to set the frontend order.');
@@ -1327,6 +1524,10 @@
 
   function exitSortMode() {
     sortMode = false;
+
+    sortScopeCategory = 'all';
+    sortScopeGlobalOrder = [];
+    sortScopeFoodIds = [];
     dragCard = null;
     dragSnapshot = [];
     categoryDrag = null;
@@ -1362,6 +1563,88 @@
     }).filter(Boolean);
   }
 
+  function currentVisibleFoodOrder() {
+    return visibleSortTargetCards(
+      'food'
+    ).map(function (card) {
+      return String(
+        card.dataset.menuId || ''
+      );
+    }).filter(Boolean);
+  }
+
+  function resetSortScopeFromCurrent() {
+    sortScopeCategory =
+      String(
+        filterState.category || 'all'
+      );
+
+    sortScopeGlobalOrder =
+      captureSortOrder('food');
+
+    if (
+      sortScopeCategory === 'all'
+      || sortScopeCategory === 'combos'
+    ) {
+      sortScopeFoodIds = [];
+      return;
+    }
+
+    sortScopeFoodIds =
+      currentVisibleFoodOrder();
+  }
+
+  function capturePersistSortOrder(kind) {
+    if (kind !== 'food') {
+      return captureSortOrder(kind);
+    }
+
+    if (
+      sortScopeCategory === 'all'
+      || sortScopeCategory === 'combos'
+      || !sortScopeFoodIds.length
+    ) {
+      return captureSortOrder('food');
+    }
+
+    var base =
+      sortScopeGlobalOrder.length
+        ? sortScopeGlobalOrder.slice()
+        : captureSortOrder('food');
+
+    var scopedSet =
+      new Set(sortScopeFoodIds);
+
+    var orderedScoped =
+      currentVisibleFoodOrder().filter(
+        function (id) {
+          return scopedSet.has(id);
+        }
+      );
+
+    if (
+      orderedScoped.length
+      !== sortScopeFoodIds.length
+    ) {
+      /*
+       * Never persist a partial category sequence.
+       */
+      return base;
+    }
+
+    var queue =
+      orderedScoped.slice();
+
+    return base.map(function (id) {
+      if (!scopedSet.has(id)) {
+        return id;
+      }
+
+      return queue.shift();
+    });
+  }
+
+
   function restoreSortOrder(kind, ids) {
     var node = manager();
     var grid = node && node.querySelector('[data-pmd-menu-grid]');
@@ -1385,7 +1668,7 @@
 
   async function persistSortOrder() {
     if (!sortMode || sortSaving) return;
-    var ids = captureSortOrder(sortKind);
+    var ids = capturePersistSortOrder(sortKind);
     if (!ids.length) return;
     sortSaving = true;
     sortStatus(tr('sort_saving', 'Saving order...'));
@@ -1397,6 +1680,24 @@
       if (sortKind === 'combo') await backend('/admin/combos', 'onPmdMenuManagerSaveOrderV123', formData);
       else await backend('/admin/menus', 'onSaveCardOrder', formData);
       sortStatus(tr('sort_saved', 'Order saved'), 'ok');
+      if (
+        sortKind === 'food'
+        && sortScopeCategory !== 'all'
+        && sortScopeCategory !== 'combos'
+      ) {
+        /*
+         * Normalize the live DOM to the exact sequence that
+         * was persisted. Hidden foods keep their original slots.
+         */
+        restoreSortOrder(
+          'food',
+          ids
+        );
+
+        sortScopeGlobalOrder =
+          ids.slice();
+      }
+
       dragSnapshot = ids.slice();
     } catch (error) {
       restoreSortOrder(sortKind, dragSnapshot);
@@ -1651,6 +1952,32 @@
     var node = manager();
     if (!node) return;
 
+    var editCardDelete =
+      event.target.closest(
+        '[data-pmd-edit-delete-kind]'
+        + '[data-pmd-edit-delete-id]'
+      );
+
+    if (
+      editCardDelete
+      && node.contains(editCardDelete)
+    ) {
+      event.preventDefault();
+      event.stopPropagation();
+
+      deleteEditModeCard(
+        editCardDelete.getAttribute(
+          'data-pmd-edit-delete-kind'
+        ),
+        editCardDelete.getAttribute(
+          'data-pmd-edit-delete-id'
+        ),
+        editCardDelete
+      );
+
+      return;
+    }
+
     var categoryDelete = event.target.closest(
       '[data-pmd-category-delete]'
     );
@@ -1806,6 +2133,27 @@
 
     var categoryButton = event.target.closest('[data-pmd-category-sortable].is-category-sortable');
     if (categoryButton && node.contains(categoryButton)) {
+      var categoryDeleteHit =
+        categoryButton.querySelector(
+          '[data-pmd-category-delete]'
+        );
+
+      if (categoryDeleteHit) {
+        var deleteRect =
+          categoryDeleteHit.getBoundingClientRect();
+
+        var pointerOnDelete =
+          event.clientX >= deleteRect.left
+          && event.clientX <= deleteRect.right
+          && event.clientY >= deleteRect.top
+          && event.clientY <= deleteRect.bottom;
+
+        if (pointerOnDelete) {
+          event.preventDefault();
+          return;
+        }
+      }
+
       categoryDrag = categoryButton;
       categorySnapshot = captureCategoryOrder();
       categoryButton.classList.add('is-category-dragging');
@@ -1824,20 +2172,44 @@
 
     var card = event.target.closest('[data-pmd-menu-card].is-sortable');
     if (!card || !node.contains(card)) return;
+
+    var editCardDelete =
+      card.querySelector(
+        '[data-pmd-edit-delete-kind]'
+      );
+
+    if (editCardDelete) {
+      var editDeleteRect =
+        editCardDelete.getBoundingClientRect();
+
+      var pointerOnEditDelete =
+        event.clientX >= editDeleteRect.left
+        && event.clientX <= editDeleteRect.right
+        && event.clientY >= editDeleteRect.top
+        && event.clientY <= editDeleteRect.bottom;
+
+      if (pointerOnEditDelete) {
+        event.preventDefault();
+        return;
+      }
+    }
+
     dragCard = card;
-    dragSnapshot = captureSortOrder(sortKind);
+    dragSnapshot =
+      capturePersistSortOrder(sortKind);
     pendingSortReorder = null;
     cancelSortFlipAnimations();
     setExplicitJiggle(card, false);
     if (event.dataTransfer) {
       event.dataTransfer.effectAllowed = 'move';
       event.dataTransfer.dropEffect = 'move';
-      try {
-        var rect = card.getBoundingClientRect();
-        var offsetX = Math.max(18, Math.min(rect.width - 18, event.clientX - rect.left));
-        var offsetY = Math.max(18, Math.min(rect.height - 18, event.clientY - rect.top));
-        event.dataTransfer.setDragImage(card, offsetX, offsetY);
-      } catch (e) {}
+      /*
+       * PMD V138:
+       * Match the proven old /admin/menus gesture.
+       *
+       * Do NOT call setDragImage().
+       * Safari/browser owns one native drag representation.
+       */
       try { event.dataTransfer.setData('text/plain', sortKind === 'combo' ? String(card.dataset.comboId || '') : String(card.dataset.menuId || '')); } catch (e) {}
     }
     card.classList.add('is-dragging');
@@ -1858,11 +2230,32 @@
     }
 
     if (!dragCard) return;
-    var target = event.target.closest('[data-pmd-menu-card].is-sortable');
-    if (!target || !node.contains(target) || target === dragCard) return;
+
+    var target =
+      event.target.closest(
+        '[data-pmd-menu-card].is-sortable'
+      );
+
+    if (
+      !target
+      || !node.contains(target)
+      || target === dragCard
+    ) {
+      return;
+    }
+
+    /*
+     * Legacy /admin/menus parity:
+     *
+     * dragover only declares a legal drop target.
+     * It does NOT continuously rewrite the DOM.
+     */
     event.preventDefault();
-    if (event.dataTransfer) event.dataTransfer.dropEffect = 'move';
-    queueSortReorder(dragCard, target, event.clientX, event.clientY);
+
+    if (event.dataTransfer) {
+      event.dataTransfer.dropEffect =
+        'move';
+    }
   });
 
   document.addEventListener('drop', function (event) {
@@ -1886,12 +2279,72 @@
     }
 
     if (!dragCard) return;
+
     event.preventDefault();
-    flushQueuedSortReorder();
-    var droppedCard = dragCard;
-    dragCard = null;
-    settleSortCard(droppedCard);
-    persistSortOrder();
+
+    var droppedCard =
+      dragCard;
+
+    var target =
+      event.target.closest(
+        '[data-pmd-menu-card].is-sortable'
+      );
+
+    /*
+     * No queued live movement should survive into the drop.
+     */
+    pendingSortReorder =
+      null;
+
+    if (sortReorderRaf) {
+      cancelAnimationFrame(
+        sortReorderRaf
+      );
+
+      sortReorderRaf =
+        0;
+    }
+
+    if (
+      target
+      && node.contains(target)
+      && target !== droppedCard
+      && target.dataset.itemType
+        === droppedCard.dataset.itemType
+    ) {
+      reorderRelativeToTarget(
+        droppedCard,
+        target,
+        event.clientX,
+        event.clientY
+      );
+    }
+
+    dragCard =
+      null;
+
+    /*
+     * Keep V132's small final settle.
+     * No clone/proxy is involved.
+     */
+    settleSortCard(
+      droppedCard
+    );
+
+    var finalOrder =
+      capturePersistSortOrder(
+        sortKind
+      );
+
+    if (
+      dragSnapshot.length
+      && finalOrder.join(',')
+        !== dragSnapshot.join(',')
+    ) {
+      persistSortOrder();
+    } else {
+      syncSortMode();
+    }
   });
 
   document.addEventListener('dragend', function () {
@@ -1906,12 +2359,39 @@
     }
 
     if (!dragCard) return;
-    flushQueuedSortReorder();
-    var endedCard = dragCard;
-    dragCard = null;
-    settleSortCard(endedCard);
-    var current = captureSortOrder(sortKind);
-    if (dragSnapshot.length && current.join(',') !== dragSnapshot.join(',')) persistSortOrder();
+
+    pendingSortReorder =
+      null;
+
+    if (sortReorderRaf) {
+      cancelAnimationFrame(
+        sortReorderRaf
+      );
+
+      sortReorderRaf =
+        0;
+    }
+
+    var endedCard =
+      dragCard;
+
+    dragCard =
+      null;
+
+    /*
+     * Legacy parity:
+     *
+     * If browser drag ended without a valid drop,
+     * simply restore the Card.
+     */
+    endedCard.classList.remove(
+      'is-dragging',
+      'is-drag-over'
+    );
+
+    if (sortMode) {
+      syncExplicitJiggle();
+    }
   });
 
   document.addEventListener('input', function (event) {

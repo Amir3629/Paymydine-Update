@@ -381,50 +381,471 @@ document.documentElement.classList.add(
                 <kbd>⌘ K</kbd>
             </div>
 
-            <span
-                data-pmd-settings-header-gap-v11
-                aria-hidden="true"
-            >
-                <span
-                    data-pmd-settings-header-divider-v11
-                    aria-hidden="true"
-                ></span>
-            </span>
+            
 
-            <span
-                class="pmd-settings-notif-slot-v11"
-                data-pmd-settings-notif-slot-v11
-                aria-label="Notifications"
-            >
-                <svg
-                    viewBox="0 0 24 24"
-                    aria-hidden="true"
-                    fill="none"
-                    stroke="currentColor"
-                    stroke-width="2"
-                    stroke-linecap="round"
-                    stroke-linejoin="round"
-                >
-                    <path
-                        d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9"
-                    ></path>
-
-                    <path
-                        d="M13.73 21a2 2 0 0 1-3.46 0"
-                    ></path>
-                </svg>
-
-                @if($pmdSettingsNotificationCountV11 > 0)
-                    <span
-                        class="pmd-settings-notif-count-v11"
-                        aria-hidden="true"
-                    >
-                        {{ $pmdSettingsNotificationCountV11 }}
-                    </span>
-                @endif
-            </span>
+            
         </div>
     </header>
+
+{{-- PMD_SETTINGS_REAL_NOTIFICATION_MOUNT_V15_START --}}
+<script id="pmd-settings-real-notification-mount-v15">
+/*
+ * PMD_SETTINGS_REAL_NOTIFICATION_MOUNT_V15
+ *
+ * ONE notification authority.
+ *
+ * - Uses the real global #notif-root.
+ * - Uses the real #notifDropdown.
+ * - Uses the real #notification-count.
+ * - Replaces only the legacy FontAwesome glyph with inline SVG.
+ * - Normalizes Header to exactly ONE R67 divider.
+ *
+ * No second Bell.
+ * No second count.
+ * No second dropdown.
+ * No observer.
+ * No timer.
+ */
+(function () {
+    'use strict';
+
+
+    function removeNode(node) {
+        if (
+            node
+            && node.parentNode
+        ) {
+            node.parentNode.removeChild(node);
+        }
+    }
+
+
+    function buildGap() {
+        var gap =
+            document.createElement(
+                'span'
+            );
+
+        gap.setAttribute(
+            'data-pmd-main-header-notification-gap-r67',
+            ''
+        );
+
+        gap.setAttribute(
+            'data-pmd-settings-gap-v15',
+            '1'
+        );
+
+        gap.setAttribute(
+            'aria-hidden',
+            'true'
+        );
+
+
+        var divider =
+            document.createElement(
+                'span'
+            );
+
+        divider.setAttribute(
+            'data-pmd-main-header-notification-divider-r67',
+            ''
+        );
+
+        divider.setAttribute(
+            'data-pmd-settings-divider-v15',
+            '1'
+        );
+
+        divider.setAttribute(
+            'aria-hidden',
+            'true'
+        );
+
+        gap.appendChild(
+            divider
+        );
+
+        return gap;
+    }
+
+
+    function normalizeBell(
+        notificationRoot
+    ) {
+        var button =
+            notificationRoot.querySelector(
+                '#notifDropdown'
+            );
+
+        if (!button) {
+            return false;
+        }
+
+
+        var bell =
+            notificationRoot.querySelector(
+                '#bell-icon'
+            );
+
+        if (!bell) {
+            bell =
+                document.createElement(
+                    'span'
+                );
+
+            bell.id =
+                'bell-icon';
+
+            button.insertBefore(
+                bell,
+                button.firstChild
+            );
+        }
+
+
+        /*
+         * Kill FontAwesome glyph authority completely.
+         *
+         * Keeping the same #bell-icon node means existing code that
+         * references the ID remains safe.
+         */
+        bell.className =
+            'pmd-settings-bell-svg-v15';
+
+        bell.removeAttribute(
+            'style'
+        );
+
+        bell.setAttribute(
+            'aria-hidden',
+            'true'
+        );
+
+        bell.innerHTML =
+            '<svg '
+            + 'viewBox="0 0 24 24" '
+            + 'aria-hidden="true" '
+            + 'focusable="false">'
+            + '<path d="'
+            + 'M18 8'
+            + 'a6 6 0 0 0-12 0'
+            + 'c0 7-3 7-3 9'
+            + 'h18'
+            + 'c0-2-3-2-3-9'
+            + '"></path>'
+            + '<path d="M10 21h4"></path>'
+            + '</svg>';
+
+
+        /*
+         * Ensure the old Bootstrap/FontAwesome classes are gone even
+         * if another partial re-added them before this mount.
+         */
+        [
+            'fa',
+            'fas',
+            'far',
+            'fal',
+            'fab',
+            'fa-bell',
+            'fa-bell-o'
+        ].forEach(function (name) {
+            bell.classList.remove(
+                name
+            );
+        });
+
+
+        button.setAttribute(
+            'data-pmd-settings-real-bell-v15',
+            '1'
+        );
+
+        return true;
+    }
+
+
+    function mount() {
+        var header =
+            document.getElementById(
+                'pmd-settings-clean-header'
+            );
+
+        if (!header) {
+            return false;
+        }
+
+
+        var actions =
+            header.querySelector(
+                '.pmd-settings-clean-actions'
+            );
+
+        var notificationRoot =
+            document.getElementById(
+                'notif-root'
+            );
+
+        if (
+            !actions
+            || !notificationRoot
+        ) {
+            return false;
+        }
+
+
+        /*
+         * ======================================================
+         * 1. REMOVE EVERY EXISTING SETTINGS NOTIFICATION GAP
+         *
+         * Screenshot showed TWO vertical lines.
+         * We intentionally throw all old R67 spacer copies away.
+         * ======================================================
+         */
+
+        Array.prototype.slice.call(
+            actions.querySelectorAll(
+                '[data-pmd-main-header-notification-gap-r67]'
+            )
+        ).forEach(function (node) {
+            if (
+                !notificationRoot.contains(
+                    node
+                )
+            ) {
+                removeNode(
+                    node
+                );
+            }
+        });
+
+
+        Array.prototype.slice.call(
+            actions.querySelectorAll(
+                '[data-pmd-main-header-notification-divider-r67]'
+            )
+        ).forEach(function (node) {
+            if (
+                !notificationRoot.contains(
+                    node
+                )
+            ) {
+                removeNode(
+                    node
+                );
+            }
+        });
+
+
+        /*
+         * Remove known Settings fallback Bell slots.
+         * NEVER remove the real notificationRoot.
+         */
+        Array.prototype.slice.call(
+            actions.children
+        ).forEach(function (node) {
+            if (
+                node === notificationRoot
+                || node.contains(
+                    notificationRoot
+                )
+            ) {
+                return;
+            }
+
+
+            if (
+                node.classList
+                && node.classList.contains(
+                    'pmd-settings-header-search'
+                )
+            ) {
+                return;
+            }
+
+
+            var fallback =
+                node.matches
+                && node.matches(
+                    '.pmd-owner-notif-slot,'
+                    + '[data-pmd-settings-notif-slot],'
+                    + '[data-pmd-settings-notif-slot-v10],'
+                    + '[data-pmd-settings-notif-slot-v11],'
+                    + '[data-pmd-settings-notif-fallback],'
+                    + '[data-pmd-settings-notification-fallback]'
+                );
+
+
+            if (fallback) {
+                removeNode(
+                    node
+                );
+            }
+        });
+
+
+        /*
+         * ======================================================
+         * 2. REMOVE OLD R66 DIVIDER FROM REAL NOTIFICATION
+         * ======================================================
+         */
+
+        Array.prototype.slice.call(
+            notificationRoot.querySelectorAll(
+                '[data-pmd-main-header-notification-divider-r66]'
+            )
+        ).forEach(
+            removeNode
+        );
+
+
+        /*
+         * ======================================================
+         * 3. REMOVE OLD TOP-MENU INLINE SPACING
+         * ======================================================
+         */
+
+        [
+            'margin',
+            'margin-left',
+            'margin-inline-start',
+            'padding',
+            'padding-left',
+            'padding-inline-start'
+        ].forEach(function (name) {
+            notificationRoot
+                .style
+                .setProperty(
+                    name,
+                    '0',
+                    'important'
+                );
+        });
+
+
+        /*
+         * ======================================================
+         * 4. CONVERT REAL LEGACY FA BELL TO DASHBOARD SVG
+         * ======================================================
+         */
+
+        if (
+            !normalizeBell(
+                notificationRoot
+            )
+        ) {
+            return false;
+        }
+
+
+        /*
+         * ======================================================
+         * 5. EXACTLY ONE DIVIDER
+         *
+         * actions:
+         *
+         *   Search
+         *   [10px R67 spacer with centered 1px divider]
+         *   real notification
+         * ======================================================
+         */
+
+        var gap =
+            buildGap();
+
+        actions.appendChild(
+            gap
+        );
+
+        actions.appendChild(
+            notificationRoot
+        );
+
+
+        notificationRoot
+            .setAttribute(
+                'data-pmd-settings-real-notif-v15',
+                '1'
+            );
+
+
+        /*
+         * Do not preserve stale Bootstrap dropdown state.
+         */
+        notificationRoot.classList.remove(
+            'show'
+        );
+
+        var toggle =
+            notificationRoot.querySelector(
+                '#notifDropdown'
+            );
+
+        if (toggle) {
+            toggle.classList.remove(
+                'show'
+            );
+
+            toggle.setAttribute(
+                'aria-expanded',
+                'false'
+            );
+        }
+
+
+        Array.prototype.slice.call(
+            notificationRoot.querySelectorAll(
+                '.dropdown-menu.show'
+            )
+        ).forEach(function (menu) {
+            menu.classList.remove(
+                'show'
+            );
+
+            menu.style.removeProperty(
+                'display'
+            );
+        });
+
+
+        document.documentElement
+            .classList.add(
+                'pmd-settings-real-notif-v15-ready'
+            );
+
+        return true;
+    }
+
+
+    /*
+     * Expected path:
+     * notification exists already because Top Menu is before page body.
+     */
+    if (mount()) {
+        return;
+    }
+
+
+    /*
+     * Single safety event only.
+     */
+    document.addEventListener(
+        'DOMContentLoaded',
+        mount,
+        {
+            once: true
+        }
+    );
+})();
+</script>
+{{-- PMD_SETTINGS_REAL_NOTIFICATION_MOUNT_V15_END --}}
+
+
+
+
+
+
 
     <div class="pmd-settings-shell">
 

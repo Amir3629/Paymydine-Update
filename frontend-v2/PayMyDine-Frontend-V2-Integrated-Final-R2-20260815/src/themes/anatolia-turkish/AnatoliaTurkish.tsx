@@ -3,7 +3,7 @@
 import type { CSSProperties } from 'react'
 import { Bell, Car, ChevronRight, Flame, Menu, Search, ShoppingBag, UtensilsCrossed } from 'lucide-react'
 import { useMenuRuntime } from '@/src/runtime/MenuRuntimeContext'
-import { CategoryGlyph, DietaryBadges, LanguageSelect, PlatformFooter, QuickAddButton, RestaurantLogo, SocialLinks } from '@/src/runtime/components/SharedPieces'
+import { CategoryGlyph, DietaryBadges, LanguageSelect, PlatformFooter, QuickAddButton, RestaurantLogo, SocialLinks, HeaderValetButton } from '@/src/runtime/components/SharedPieces'
 import { RuntimeOverlays } from '@/src/runtime/components/RuntimeOverlays'
 import { ThemeBottomToolBar } from '@/src/runtime/components/ThemeBottomToolBar'
 import styles from './AnatoliaTurkish.module.css'
@@ -28,7 +28,7 @@ export default function AnatoliaTurkish() {
           
           <div className={styles.brand}><RestaurantLogo /><small>Anatolian kitchen · fire & hospitality</small></div>
           <div className={styles.headerTools}>
-            <LanguageSelect />
+            <HeaderValetButton /><LanguageSelect />
             
           </div>
         </header>

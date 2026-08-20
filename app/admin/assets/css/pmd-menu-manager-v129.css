@@ -2452,15 +2452,67 @@ html body.pmd-menu-manager-page
 
 
 
-/* ============================================================
-   PMD_MENU_CATEGORY_DELETE_OWNER_MANAGER_V130
-   Selected real-category destructive control only.
+/* PMD_MENU_EDIT_MODE_DESTRUCTIVE_V132_START */
 
-   - Only server-authorized Owner / Manager receives the X.
-   - Hidden on All foods and Combos.
-   - Hidden while sorting / combo-building.
-   - X is contained inside selected pill, so category ordering
-     remains one canonical draggable button.
+/*
+ * ============================================================
+ * PMD MENU EDIT V132
+ * ============================================================
+ *
+ * Normal:
+ *   destructive controls hidden
+ *
+ * Edit:
+ *   real categories -> jiggle / drag / minus
+ *   food cards      -> jiggle / drag / minus
+ *   combo cards     -> minus
+ *   combo cards drag when Combos is the selected sort scope
+ *
+ * No control sits outside a clipped scrolling container.
+ * ============================================================
+ */
+
+
+@keyframes pmd-menu-v132-category-jiggle-a {
+  0%,100% {
+    rotate: -.82deg;
+  }
+
+  25% {
+    rotate: .66deg;
+  }
+
+  50% {
+    rotate: -.58deg;
+  }
+
+  75% {
+    rotate: .76deg;
+  }
+}
+
+
+@keyframes pmd-menu-v132-category-jiggle-b {
+  0%,100% {
+    rotate: .78deg;
+  }
+
+  25% {
+    rotate: -.64deg;
+  }
+
+  50% {
+    rotate: .56deg;
+  }
+
+  75% {
+    rotate: -.74deg;
+  }
+}
+
+
+/* ============================================================
+   CATEGORY PILL
    ============================================================ */
 
 body.pmd-menu-manager-page
@@ -2468,7 +2520,10 @@ body.pmd-menu-manager-page
 .pmd-menu-manager__categories
 button[data-pmd-category-id] {
   position: relative !important;
+
+  overflow: visible !important;
 }
+
 
 body.pmd-menu-manager-page
 #pmd-menu-manager-main
@@ -2478,6 +2533,13 @@ button[data-pmd-category-id]
   pointer-events: none !important;
 }
 
+
+/*
+ * IMPORTANT:
+ * This is INSIDE the pill now.
+ * V131 used a negative top coordinate and could be clipped by
+ * the horizontally scrolling category strip.
+ */
 body.pmd-menu-manager-page
 #pmd-menu-manager-main
 .pmd-menu-manager__categories
@@ -2485,115 +2547,312 @@ button[data-pmd-category-id]
 .pmd-menu-manager__category-delete-hit {
   position: absolute !important;
 
-  top: 50% !important;
-  right: 7px !important;
+  top: 2px !important;
+  right: 2px !important;
+
+  z-index: 30 !important;
 
   display: none !important;
 
-  width: 19px !important;
-  min-width: 19px !important;
-  max-width: 19px !important;
+  width: 15px !important;
+  min-width: 15px !important;
+  max-width: 15px !important;
 
-  height: 19px !important;
-  min-height: 19px !important;
-  max-height: 19px !important;
+  height: 15px !important;
+  min-height: 15px !important;
+  max-height: 15px !important;
 
   place-items: center !important;
 
   margin: 0 !important;
   padding: 0 !important;
 
-  border: 0 !important;
+  box-sizing: border-box !important;
+
+  border: 1.5px solid #ffffff !important;
   border-radius: 999px !important;
 
-  background: rgba(255,255,255,.72) !important;
-  color: #617672 !important;
+  background: #d83a31 !important;
+  color: #ffffff !important;
+
+  box-shadow:
+    0 1px 4px rgba(180,35,24,.28)
+    !important;
 
   opacity: 1 !important;
   visibility: visible !important;
 
   cursor: pointer !important;
 
-  transform: translateY(-50%) !important;
+  transform: none !important;
+  translate: none !important;
+
   transition: none !important;
   animation: none !important;
+
+  touch-action: manipulation !important;
 
   pointer-events: auto !important;
 }
 
-body.pmd-menu-manager-page
-#pmd-menu-manager-main
-.pmd-menu-manager__categories
-button[data-pmd-category-id].is-active {
-  padding-right: 34px !important;
-}
 
 body.pmd-menu-manager-page
 #pmd-menu-manager-main
-.pmd-menu-manager__categories
-button[data-pmd-category-id].is-active
-.pmd-menu-manager__category-delete-hit {
-  display: grid !important;
-}
-
-body.pmd-menu-manager-page
-#pmd-menu-manager-main
-.pmd-menu-manager__categories
-button[data-pmd-category-id].is-active
-.pmd-menu-manager__category-delete-hit:hover {
-  background: #fff1ef !important;
-  color: #b42318 !important;
-}
-
-body.pmd-menu-manager-page
-#pmd-menu-manager-main
-.pmd-menu-manager__category-delete-hit svg {
+.pmd-menu-manager__category-delete-hit
+svg {
   display: block !important;
 
-  width: 11px !important;
-  height: 11px !important;
+  width: 8px !important;
+  height: 8px !important;
 
   margin: 0 !important;
   padding: 0 !important;
 
   fill: none !important;
+
   stroke: currentColor !important;
-  stroke-width: 2.4 !important;
+  stroke-width: 3 !important;
+
   stroke-linecap: round !important;
   stroke-linejoin: round !important;
 
   pointer-events: none !important;
 }
 
+
+/* Category minus exists ONLY during Edit. */
+body.pmd-menu-manager-page
+#pmd-menu-manager-main[data-pmd-sort-mode]:not(
+  [data-pmd-sort-mode="0"]
+)
+.pmd-menu-manager__categories
+button[data-pmd-category-id]
+.pmd-menu-manager__category-delete-hit {
+  display: grid !important;
+}
+
+
+body.pmd-menu-manager-page
+#pmd-menu-manager-main[data-pmd-sort-mode]:not(
+  [data-pmd-sort-mode="0"]
+)
+.pmd-menu-manager__categories
+button[data-pmd-category-id] {
+  cursor: grab !important;
+}
+
+
+body.pmd-menu-manager-page
+#pmd-menu-manager-main[data-pmd-sort-mode]:not(
+  [data-pmd-sort-mode="0"]
+)
+.pmd-menu-manager__categories
+button[data-pmd-category-id]
+.pmd-menu-manager__category-delete-hit:hover {
+  background: #b42318 !important;
+}
+
+
 body.pmd-menu-manager-page
 #pmd-menu-manager-main
 .pmd-menu-manager__category-delete-hit.is-busy {
   opacity: .42 !important;
+
   pointer-events: none !important;
 }
 
-/* Destructive X never competes with reorder / combo-builder modes. */
-body.pmd-menu-manager-page
-#pmd-menu-manager-main[data-pmd-sort-mode]:not([data-pmd-sort-mode="0"])
-.pmd-menu-manager__category-delete-hit,
 
+body.pmd-menu-manager-page
+#pmd-menu-manager-main[data-pmd-sort-mode]:not(
+  [data-pmd-sort-mode="0"]
+)
+.pmd-menu-manager__categories
+button[data-pmd-category-id].is-category-dragging
+.pmd-menu-manager__category-delete-hit {
+  display: none !important;
+}
+
+
+/*
+ * All foods / Combos / + Add category do not contain this
+ * destructive markup server-side.
+ */
 body.pmd-menu-manager-page
 #pmd-menu-manager-main[data-pmd-combo-builder="1"]
 .pmd-menu-manager__category-delete-hit {
   display: none !important;
 }
 
-body.pmd-menu-manager-page
-#pmd-menu-manager-main[data-pmd-sort-mode]:not([data-pmd-sort-mode="0"])
-.pmd-menu-manager__categories
-button[data-pmd-category-id].is-active,
+
+/* ============================================================
+   FOOD + COMBO CARD MINUS
+   ============================================================ */
 
 body.pmd-menu-manager-page
-#pmd-menu-manager-main[data-pmd-combo-builder="1"]
-.pmd-menu-manager__categories
-button[data-pmd-category-id].is-active {
-  padding-right: 14px !important;
+#pmd-menu-manager-main
+.pmd-menu-card {
+  position: relative !important;
 }
+
+
+body.pmd-menu-manager-page
+#pmd-menu-manager-main
+.pmd-menu-card__edit-delete {
+  position: absolute !important;
+
+  top: 9px !important;
+  right: 9px !important;
+
+  z-index: 35 !important;
+
+  display: none !important;
+
+  width: 24px !important;
+  min-width: 24px !important;
+  max-width: 24px !important;
+
+  height: 24px !important;
+  min-height: 24px !important;
+  max-height: 24px !important;
+
+  place-items: center !important;
+
+  margin: 0 !important;
+  padding: 0 !important;
+
+  box-sizing: border-box !important;
+
+  border: 2px solid #ffffff !important;
+  border-radius: 999px !important;
+
+  outline: none !important;
+
+  background: #d83a31 !important;
+  color: #ffffff !important;
+
+  box-shadow:
+    0 3px 9px rgba(180,35,24,.30)
+    !important;
+
+  opacity: 1 !important;
+  visibility: visible !important;
+
+  cursor: pointer !important;
+
+  transform: none !important;
+  translate: none !important;
+
+  transition: none !important;
+  animation: none !important;
+
+  touch-action: manipulation !important;
+}
+
+
+body.pmd-menu-manager-page
+#pmd-menu-manager-main
+.pmd-menu-card__edit-delete
+svg {
+  display: block !important;
+
+  width: 12px !important;
+  min-width: 12px !important;
+  max-width: 12px !important;
+
+  height: 12px !important;
+  min-height: 12px !important;
+  max-height: 12px !important;
+
+  margin: 0 !important;
+  padding: 0 !important;
+
+  fill: none !important;
+
+  stroke: currentColor !important;
+  stroke-width: 3 !important;
+
+  stroke-linecap: round !important;
+  stroke-linejoin: round !important;
+
+  pointer-events: none !important;
+}
+
+
+/* Food + Combo destructive control exists ONLY in Edit. */
+body.pmd-menu-manager-page
+#pmd-menu-manager-main[data-pmd-sort-mode]:not(
+  [data-pmd-sort-mode="0"]
+)
+.pmd-menu-card
+.pmd-menu-card__edit-delete {
+  display: grid !important;
+}
+
+
+body.pmd-menu-manager-page
+#pmd-menu-manager-main[data-pmd-sort-mode]:not(
+  [data-pmd-sort-mode="0"]
+)
+.pmd-menu-card
+.pmd-menu-card__edit-delete:hover {
+  background: #b42318 !important;
+}
+
+
+body.pmd-menu-manager-page
+#pmd-menu-manager-main[data-pmd-sort-mode]:not(
+  [data-pmd-sort-mode="0"]
+)
+.pmd-menu-card
+.pmd-menu-card__edit-delete:active {
+  background: #8f1d15 !important;
+}
+
+
+body.pmd-menu-manager-page
+#pmd-menu-manager-main
+.pmd-menu-card
+.pmd-menu-card__edit-delete:disabled,
+body.pmd-menu-manager-page
+#pmd-menu-manager-main
+.pmd-menu-card
+.pmd-menu-card__edit-delete.is-busy {
+  opacity: .42 !important;
+
+  cursor: default !important;
+
+  pointer-events: none !important;
+}
+
+
+/*
+ * The normal disabled badge occupies the same top-right zone.
+ * During Edit, destructive control owns that corner.
+ */
+body.pmd-menu-manager-page
+#pmd-menu-manager-main[data-pmd-sort-mode]:not(
+  [data-pmd-sort-mode="0"]
+)
+.pmd-menu-card
+.pmd-menu-card__visibility {
+  display: none !important;
+}
+
+
+/*
+ * While actually dragging a card, hide its minus.
+ */
+body.pmd-menu-manager-page
+#pmd-menu-manager-main[data-pmd-sort-mode]:not(
+  [data-pmd-sort-mode="0"]
+)
+.pmd-menu-card.is-dragging
+.pmd-menu-card__edit-delete {
+  display: none !important;
+}
+
+
+/* PMD_MENU_EDIT_MODE_DESTRUCTIVE_V132_END */
 
 /* PMD_DASHBOARD_HEADER_CLONE_V1_MENU_CSS_START */
 html body.pmd-menu-manager-page #pmd-menu-manager-main #pmd-r2-clean-header {
@@ -3089,3 +3348,139 @@ html body.pmd-menu-manager-page #pmd-menu-manager-main
     animation: none !important;
 }
 /* PMD_MENU_NOTIFICATION_BADGE_V13_END */
+
+/* PMD_MENU_LEGACY_CARD_DRAG_PARITY_V138_START */
+
+/*
+ * ============================================================
+ * EXACT OLD /admin/menus CARD DRAG FEEL
+ * ============================================================
+ *
+ * Original legacy authority:
+ *
+ *   opacity: .68;
+ *   transform: scale(.985);
+ *
+ * Browser supplies the native drag visual.
+ * Grid Card remains lightly visible underneath.
+ *
+ * There is NO custom Card clone.
+ * There is NO placeholder.
+ * There is NO compact proxy.
+ * ============================================================
+ */
+
+html
+body.pmd-menu-manager-page
+#pmd-menu-manager-main
+[data-pmd-sort-mode]:not([data-pmd-sort-mode="0"])
+.pmd-menu-card.is-sortable.is-dragging {
+  opacity: .68 !important;
+
+  visibility: visible !important;
+
+  transform:
+    scale(.985) !important;
+
+  translate:
+    none !important;
+
+  z-index:
+    20 !important;
+
+  animation:
+    none !important;
+
+  transition:
+    none !important;
+
+  box-shadow:
+    none !important;
+
+  cursor:
+    grabbing !important;
+}
+
+
+/*
+ * Absolutely forbid remnants of experimental proxy UI.
+ */
+body.pmd-menu-manager-page
+.pmd-menu-card__native-drag-image-v135,
+
+body.pmd-menu-manager-page
+.pmd-menu-card__landing-v135,
+
+body.pmd-menu-manager-page
+.pmd-menu-card__pointer-proxy-v136,
+
+body.pmd-menu-manager-page
+.pmd-menu-card__compact-preview-v137 {
+  display: none !important;
+}
+
+
+/*
+ * No experimental source placeholder.
+ */
+html
+body.pmd-menu-manager-page
+#pmd-menu-manager-main
+.pmd-menu-card.is-pmd-pointer-source-v136::before,
+
+html
+body.pmd-menu-manager-page
+#pmd-menu-manager-main
+.pmd-menu-card.is-pmd-pointer-source-v136::after {
+  content: none !important;
+
+  display: none !important;
+}
+
+
+/*
+ * The real Card is always the source authority.
+ */
+html
+body.pmd-menu-manager-page
+#pmd-menu-manager-main
+.pmd-menu-card.is-pmd-pointer-source-v136 {
+  opacity: 1 !important;
+
+  visibility: visible !important;
+
+  border-style: solid !important;
+
+  background: #fff !important;
+
+  transform: none !important;
+
+  box-shadow: none !important;
+}
+
+
+html
+body.pmd-menu-manager-page
+#pmd-menu-manager-main
+.pmd-menu-card.is-pmd-pointer-source-v136
+> * {
+  opacity: 1 !important;
+
+  visibility: visible !important;
+}
+
+
+/*
+ * Safari should still not start an independent image-only drag.
+ * The ARTICLE remains the native drag source.
+ */
+body.pmd-menu-manager-page
+#pmd-menu-manager-main
+.pmd-menu-card
+img {
+  -webkit-user-drag:
+    none !important;
+}
+
+
+/* PMD_MENU_LEGACY_CARD_DRAG_PARITY_V138_END */

@@ -3,7 +3,7 @@
 import type { CSSProperties } from 'react'
 import { Bell, Car, Crown, Menu, Search, ShoppingBag, Sparkles } from 'lucide-react'
 import { useMenuRuntime } from '@/src/runtime/MenuRuntimeContext'
-import { CategoryGlyph, DietaryBadges, LanguageSelect, PlatformFooter, QuickAddButton, RestaurantLogo, SocialLinks } from '@/src/runtime/components/SharedPieces'
+import { CategoryGlyph, DietaryBadges, LanguageSelect, PlatformFooter, QuickAddButton, RestaurantLogo, SocialLinks, HeaderValetButton } from '@/src/runtime/components/SharedPieces'
 import { RuntimeOverlays } from '@/src/runtime/components/RuntimeOverlays'
 import { ThemeBottomToolBar } from '@/src/runtime/components/ThemeBottomToolBar'
 import styles from './ShahrazadPersian.module.css'
@@ -27,7 +27,7 @@ export default function ShahrazadPersian() {
       <header className={styles.header}>
         
         <div className={styles.brand}><Crown /><RestaurantLogo /><span>Persian Fine Dining</span></div>
-        <div className={styles.headerRight}><LanguageSelect /></div>
+        <div className={styles.headerRight}><HeaderValetButton /><LanguageSelect /></div>
       </header>
 
       <section className={styles.hero}>

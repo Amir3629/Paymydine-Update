@@ -46,6 +46,8 @@ body,
     ];
 @endphp
 
+@include('admin::_partials.pmd_settings_family_first_paint_v18')
+
 <div id="pmd-frontend-settings" class="pmd-frontend-settings" data-pmd-frontend-settings>
     <header class="pmd-frontend-header">
         <div class="pmd-frontend-header__left">
@@ -58,6 +60,8 @@ body,
             </div>
         </div>
         <div class="pmd-frontend-header__actions">
+            @include('admin::_partials.pmd_settings_family_notification_placeholder_v18')
+
             <span id="pmd-frontend-save-status"></span>
             <a class="pmd-frontend-secondary-button" href="{{ root_url('/') }}" target="_blank" rel="noopener">Open customer menu</a>
             <button type="submit" form="pmd-frontend-settings-form" class="pmd-frontend-save-icon" aria-label="Save changes" title="Save changes">

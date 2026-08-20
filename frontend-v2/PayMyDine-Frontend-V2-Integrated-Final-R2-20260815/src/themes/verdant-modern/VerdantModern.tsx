@@ -3,7 +3,7 @@
 import type { CSSProperties } from 'react'
 import { Bell, Car, MapPin, Search, ShoppingBag, Utensils } from 'lucide-react'
 import { useMenuRuntime } from '@/src/runtime/MenuRuntimeContext'
-import { DietaryBadges, LanguageSelect, PlatformFooter, QuickAddButton, RestaurantLogo, SocialLinks } from '@/src/runtime/components/SharedPieces'
+import { DietaryBadges, LanguageSelect, PlatformFooter, QuickAddButton, RestaurantLogo, SocialLinks, HeaderValetButton } from '@/src/runtime/components/SharedPieces'
 import { RuntimeOverlays } from '@/src/runtime/components/RuntimeOverlays'
 import { ThemeBottomToolBar } from '@/src/runtime/components/ThemeBottomToolBar'
 import styles from './VerdantModern.module.css'
@@ -30,7 +30,7 @@ export default function VerdantModern() {
           <RestaurantLogo />
           <div className={styles.headerTools}>
             {tableDisplay && <span className={styles.pill}><MapPin />{labels.table} {tableDisplay}</span>}
-            <LanguageSelect />
+            <HeaderValetButton /><LanguageSelect />
             
           </div>
         </header>

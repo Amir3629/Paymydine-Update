@@ -9,6 +9,7 @@ import {
   findPendingProviderPayment,
   payExistingOrder,
   verifyProviderPayment,
+  settleExistingOrderGroup,
 } from '@/src/lib/client-api'
 import styles from './payment-return.module.css'
 
@@ -78,6 +79,26 @@ export default function PaymentReturnClient() {
             pending.checkoutId ||
             pending.hostedCheckoutId ||
             null
+
+          // PMD_MULTI_ORDER_PAYMENT_R32
+          const groupedAllocations = (pending.orderAllocations || []).filter((entry) => entry.orderId > 0 && entry.amount > 0)
+          if (reference && groupedAllocations.length > 1) {
+            // Group settlement must fail loudly. Unlike the legacy singular reconcile
+            // fallback below, a partially settled group is retried safely through the
+            // backend's per-order already-paid guards and must never be reported as
+            // fully paid until every selected order has settled.
+            await settleExistingOrderGroup({
+              allocations: groupedAllocations,
+              table: pending.table,
+              method: pending.methodCode,
+              providerCode: pending.providerCode || provider,
+              paymentReference: reference,
+            })
+            clearPendingProviderPayment(provider)
+            setState('paid')
+            setMessage(`Payment confirmed. ${groupedAllocations.length} selected table orders have been updated.`)
+            return
+          }
 
           if (reference) {
             try {

@@ -1,3 +1,0 @@
-{
-  "/api/payments/process-google-pay/route": "app/api/payments/process-google-pay/route.js"
-}

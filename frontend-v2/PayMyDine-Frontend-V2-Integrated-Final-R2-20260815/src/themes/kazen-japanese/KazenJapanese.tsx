@@ -3,7 +3,7 @@
 import { useMemo, useState, type CSSProperties } from 'react'
 import { Bell, Car, ChevronDown, Menu, Search, ShoppingBag } from 'lucide-react'
 import { useMenuRuntime } from '@/src/runtime/MenuRuntimeContext'
-import { DietaryBadges, LanguageSelect, PlatformFooter, QuickAddButton, RestaurantLogo, SocialLinks } from '@/src/runtime/components/SharedPieces'
+import { DietaryBadges, LanguageSelect, PlatformFooter, QuickAddButton, RestaurantLogo, SocialLinks, HeaderValetButton } from '@/src/runtime/components/SharedPieces'
 import { RuntimeOverlays } from '@/src/runtime/components/RuntimeOverlays'
 import { ThemeBottomToolBar } from '@/src/runtime/components/ThemeBottomToolBar'
 import styles from './KazenJapanese.module.css'
@@ -30,7 +30,7 @@ export default function KazenJapanese() {
       <header className={styles.header}>
         <div className={styles.brand}><RestaurantLogo /><small>Japanese Cuisine</small></div>
         <div className={styles.headerActions}>
-          <LanguageSelect />
+          <HeaderValetButton /><LanguageSelect />
           
           
         </div>

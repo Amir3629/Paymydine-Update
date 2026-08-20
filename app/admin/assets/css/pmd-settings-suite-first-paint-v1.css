@@ -1273,3 +1273,469 @@ html body.page.pmd-settings-suite
  * PMD_SETTINGS_NOTIFICATION_BELL_GEOMETRY_V1_END
  */
 
+
+/*
+ * PMD_SETTINGS_REAL_NOTIFICATION_GEOMETRY_V15_START
+ *
+ * Settings Header canonical notification authority.
+ *
+ * Search -> 10px spacer -> Bell
+ * Divider centered at right:5px
+ *
+ * Effective:
+ *   Search/action -> divider = 15px
+ *   divider -> Bell          = 15px
+ *
+ * Bell frame = 46x46
+ * Bell SVG   = 21x21
+ */
+
+
+/* ----------------------------------------------------------
+   HEADER ACTION RAIL
+   ---------------------------------------------------------- */
+
+html body.page.pmd-settings-suite
+#pmd-settings-clean-header
+.pmd-settings-clean-actions {
+    display: flex !important;
+
+    align-items: center !important;
+    justify-content: flex-end !important;
+
+    gap: 10px !important;
+
+    margin-left: auto !important;
+
+    overflow: visible !important;
+}
+
+
+/* ----------------------------------------------------------
+   EXACTLY ONE R67 SPACER
+   ---------------------------------------------------------- */
+
+html body.page.pmd-settings-suite
+#pmd-settings-clean-header
+[data-pmd-settings-gap-v15] {
+    position: relative !important;
+
+    display: block !important;
+
+    flex: 0 0 10px !important;
+
+    width: 10px !important;
+    min-width: 10px !important;
+    max-width: 10px !important;
+
+    height: 46px !important;
+    min-height: 46px !important;
+    max-height: 46px !important;
+
+    margin: 0 !important;
+    padding: 0 !important;
+
+    border: 0 !important;
+
+    background: transparent !important;
+
+    box-shadow: none !important;
+
+    pointer-events: none !important;
+
+    overflow: visible !important;
+}
+
+
+html body.page.pmd-settings-suite
+#pmd-settings-clean-header
+[data-pmd-settings-gap-v15]::before,
+
+html body.page.pmd-settings-suite
+#pmd-settings-clean-header
+[data-pmd-settings-gap-v15]::after {
+    display: none !important;
+    content: none !important;
+}
+
+
+html body.page.pmd-settings-suite
+#pmd-settings-clean-header
+[data-pmd-settings-divider-v15] {
+    position: absolute !important;
+
+    top: 50% !important;
+    right: 5px !important;
+    left: auto !important;
+
+    display: block !important;
+
+    width: 1px !important;
+    min-width: 1px !important;
+    max-width: 1px !important;
+
+    height: 34px !important;
+    min-height: 34px !important;
+    max-height: 34px !important;
+
+    margin: 0 !important;
+    padding: 0 !important;
+
+    border: 0 !important;
+
+    background: #cfe0ec !important;
+
+    box-shadow: none !important;
+
+    transform: translateY(-50%) !important;
+
+    pointer-events: none !important;
+}
+
+
+/* ----------------------------------------------------------
+   REAL NOTIFICATION ROOT
+   ---------------------------------------------------------- */
+
+html body.page.pmd-settings-suite
+#pmd-settings-clean-header
+#notif-root[data-pmd-settings-real-notif-v15="1"] {
+    position: relative !important;
+
+    display: block !important;
+
+    flex: 0 0 46px !important;
+
+    width: 46px !important;
+    min-width: 46px !important;
+    max-width: 46px !important;
+
+    height: 46px !important;
+    min-height: 46px !important;
+    max-height: 46px !important;
+
+    margin: 0 !important;
+    margin-left: 0 !important;
+    margin-inline-start: 0 !important;
+
+    padding: 0 !important;
+    padding-left: 0 !important;
+    padding-inline-start: 0 !important;
+
+    list-style: none !important;
+
+    border: 0 !important;
+
+    background: transparent !important;
+
+    box-shadow: none !important;
+
+    overflow: visible !important;
+
+    opacity: 1 !important;
+    visibility: visible !important;
+
+    pointer-events: auto !important;
+
+    transform: none !important;
+}
+
+
+/*
+ * Kill any old divider pseudo-element attached to notif-root.
+ */
+html body.page.pmd-settings-suite
+#pmd-settings-clean-header
+#notif-root::before,
+
+html body.page.pmd-settings-suite
+#pmd-settings-clean-header
+#notif-root::after {
+    display: none !important;
+    content: none !important;
+
+    width: 0 !important;
+    height: 0 !important;
+
+    border: 0 !important;
+}
+
+
+/* ----------------------------------------------------------
+   TOOLTIP WRAPPER
+   ---------------------------------------------------------- */
+
+html body.page.pmd-settings-suite
+#pmd-settings-clean-header
+#notif-root
+> .media-toolbar-tooltip-wrap {
+    position: relative !important;
+
+    display: block !important;
+
+    width: 46px !important;
+    min-width: 46px !important;
+    max-width: 46px !important;
+
+    height: 46px !important;
+    min-height: 46px !important;
+    max-height: 46px !important;
+
+    margin: 0 !important;
+    padding: 0 !important;
+
+    overflow: visible !important;
+
+    transform: none !important;
+}
+
+
+/* ----------------------------------------------------------
+   REAL BUTTON
+   ---------------------------------------------------------- */
+
+html body.page.pmd-settings-suite
+#pmd-settings-clean-header
+#notifDropdown {
+    position: relative !important;
+
+    display: grid !important;
+    place-items: center !important;
+
+    box-sizing: border-box !important;
+
+    flex: 0 0 46px !important;
+
+    width: 46px !important;
+    min-width: 46px !important;
+    max-width: 46px !important;
+
+    height: 46px !important;
+    min-height: 46px !important;
+    max-height: 46px !important;
+
+    margin: 0 !important;
+    padding: 0 !important;
+
+    border: 1px solid #cfe0ec !important;
+    border-radius: 14px !important;
+
+    background: #fff !important;
+
+    color: #173752 !important;
+
+    line-height: 1 !important;
+
+    text-decoration: none !important;
+
+    box-shadow:
+        0 3px 10px rgba(23,55,82,.05)
+        !important;
+
+    overflow: visible !important;
+
+    opacity: 1 !important;
+    visibility: visible !important;
+
+    transform: none !important;
+}
+
+
+html body.page.pmd-settings-suite
+#pmd-settings-clean-header
+#notifDropdown:hover {
+    background: #f7fafc !important;
+    border-color: #bdd4e3 !important;
+}
+
+
+html body.page.pmd-settings-suite
+#pmd-settings-clean-header
+#notifDropdown::before,
+
+html body.page.pmd-settings-suite
+#pmd-settings-clean-header
+#notifDropdown::after {
+    display: none !important;
+    content: none !important;
+
+    width: 0 !important;
+    height: 0 !important;
+
+    margin: 0 !important;
+    padding: 0 !important;
+
+    border: 0 !important;
+}
+
+
+/* ----------------------------------------------------------
+   REAL SVG BELL
+   ---------------------------------------------------------- */
+
+html body.page.pmd-settings-suite
+#pmd-settings-clean-header
+#bell-icon.pmd-settings-bell-svg-v15 {
+    position: static !important;
+
+    display: block !important;
+
+    box-sizing: border-box !important;
+
+    flex: 0 0 21px !important;
+
+    width: 21px !important;
+    min-width: 21px !important;
+    max-width: 21px !important;
+
+    height: 21px !important;
+    min-height: 21px !important;
+    max-height: 21px !important;
+
+    margin: 0 !important;
+    padding: 0 !important;
+
+    border: 0 !important;
+    border-radius: 0 !important;
+
+    background: transparent !important;
+
+    color: #173752 !important;
+
+    font-family: inherit !important;
+    font-size: 0 !important;
+    line-height: 0 !important;
+
+    box-shadow: none !important;
+
+    overflow: visible !important;
+
+    transform: none !important;
+}
+
+
+/*
+ * Absolutely kill FontAwesome ::before.
+ * This is the square seen in the screenshot.
+ */
+html body.page.pmd-settings-suite
+#pmd-settings-clean-header
+#bell-icon.pmd-settings-bell-svg-v15::before,
+
+html body.page.pmd-settings-suite
+#pmd-settings-clean-header
+#bell-icon.pmd-settings-bell-svg-v15::after {
+    display: none !important;
+
+    content: none !important;
+
+    width: 0 !important;
+    height: 0 !important;
+
+    font-family: inherit !important;
+    font-size: 0 !important;
+    line-height: 0 !important;
+}
+
+
+html body.page.pmd-settings-suite
+#pmd-settings-clean-header
+#bell-icon.pmd-settings-bell-svg-v15
+> svg {
+    display: block !important;
+
+    box-sizing: border-box !important;
+
+    width: 21px !important;
+    min-width: 21px !important;
+    max-width: 21px !important;
+
+    height: 21px !important;
+    min-height: 21px !important;
+    max-height: 21px !important;
+
+    margin: 0 !important;
+    padding: 0 !important;
+
+    fill: none !important;
+
+    stroke: currentColor !important;
+
+    stroke-width: 2 !important;
+    stroke-linecap: round !important;
+    stroke-linejoin: round !important;
+
+    overflow: visible !important;
+
+    transform: none !important;
+}
+
+
+/* ----------------------------------------------------------
+   REAL COUNT
+   ---------------------------------------------------------- */
+
+html body.page.pmd-settings-suite
+#pmd-settings-clean-header
+#notification-count {
+    position: absolute !important;
+
+    top: -7px !important;
+    right: -8px !important;
+    left: auto !important;
+
+    z-index: 10 !important;
+
+    align-items: center !important;
+    justify-content: center !important;
+
+    min-width: 20px !important;
+
+    height: 16px !important;
+    min-height: 16px !important;
+    max-height: 16px !important;
+
+    margin: 0 !important;
+
+    padding: 1px 5px !important;
+
+    border: 2px solid #f8fbfd !important;
+    border-radius: 999px !important;
+
+    font-size: 9px !important;
+    line-height: 1 !important;
+    font-weight: 700 !important;
+
+    transform: none !important;
+}
+
+
+html body.page.pmd-settings-suite
+#pmd-settings-clean-header
+#notification-count:not(.d-none) {
+    display: flex !important;
+}
+
+
+html body.page.pmd-settings-suite
+#pmd-settings-clean-header
+#notification-count.d-none {
+    display: none !important;
+}
+
+
+/* ----------------------------------------------------------
+   REAL DROPDOWN
+   ---------------------------------------------------------- */
+
+html body.page.pmd-settings-suite
+#pmd-settings-clean-header
+#notification-panel {
+    z-index: 10050 !important;
+}
+
+
+/*
+ * PMD_SETTINGS_REAL_NOTIFICATION_GEOMETRY_V15_END
+ */
+

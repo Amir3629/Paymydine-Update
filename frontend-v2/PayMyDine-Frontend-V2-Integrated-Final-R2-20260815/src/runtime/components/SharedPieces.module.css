@@ -169,3 +169,49 @@
   .logoImage { width: 5.25rem; height: 2rem; max-width: 24vw; max-height: 2rem; object-fit: contain; }
   .logoText { max-width: 8.5rem; }
 }
+
+/* PMD_HEADER_VALET_R31
+ * Compact theme-aware Valet card/button for every header.
+ * Uses existing --pmd-* theme tokens and collapses to icon-only on small screens.
+ */
+.headerValetButton {
+  display: inline-flex;
+  min-height: 2.55rem;
+  max-width: 12rem;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+  gap: .45rem;
+  border: 1px solid var(--pmd-line, currentColor);
+  border-radius: 999px;
+  padding: .5rem .78rem;
+  background: color-mix(in srgb, var(--pmd-accent, currentColor) 9%, var(--pmd-control, transparent));
+  color: inherit;
+  font: inherit;
+  font-size: .76rem;
+  font-weight: 800;
+  line-height: 1;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: transform 140ms ease, background 140ms ease, border-color 140ms ease, opacity 140ms ease;
+}
+.headerValetButton:hover,
+.headerValetButton:focus-visible {
+  border-color: var(--pmd-accent, currentColor);
+  background: color-mix(in srgb, var(--pmd-accent, currentColor) 15%, var(--pmd-control, transparent));
+  outline: none;
+  transform: translateY(-1px);
+}
+.headerValetButton[aria-disabled="true"] { opacity: .58; }
+.headerValetButton svg { width: 1rem; height: 1rem; flex: 0 0 auto; }
+.headerValetLabel { overflow: hidden; text-overflow: ellipsis; }
+
+@media (max-width: 560px) {
+  .headerValetButton {
+    width: 2.55rem;
+    max-width: 2.55rem;
+    padding: 0;
+  }
+  .headerValetLabel { display: none; }
+}
+

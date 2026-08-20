@@ -25,6 +25,7 @@ Frontend V2 adapts the existing public PayMyDine business endpoints and adds one
 | `/api/v1/table-order-draft/submit` | POST | Submit/merge table order and send to kitchen |
 | `/api/v1/waiter-call` | POST | Create waiter-call notification |
 | `/api/v1/valet-request` | POST | Create valet notification when enabled |
+| `/api/v1/reviews` | POST | Submit one 1–5 star customer review for a completed order; review is stored pending moderation |
 | `/validate-coupon` | POST | Validate coupon and return discount |
 | `/api/v1/orders/pay-existing` | POST | Full/partial/selected-item settlement where supported |
 | provider session routes | POST | Start the selected payment provider flow |

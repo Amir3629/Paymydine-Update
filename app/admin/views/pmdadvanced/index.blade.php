@@ -6,6 +6,8 @@
     $checked = fn($value) => !in_array(strtolower((string)$value), ['0','false','off','no',''], true);
 @endphp
 
+@include('admin::_partials.pmd_settings_family_first_paint_v18')
+
 <div id="pmd-advanced-page" class="pmd-owner-page" data-pmd-owner-page>
     <header class="pmd-owner-header">
         <div class="pmd-owner-header__left">
@@ -15,7 +17,7 @@
         <div class="pmd-owner-header__actions" data-pmd-owner-header-actions>
             <span id="pmd-owner-save-status"></span>
             <button type="submit" form="pmd-advanced-form" class="pmd-owner-header-button pmd-owner-save" data-pmd-owner-save aria-label="Save changes" aria-hidden="true" tabindex="-1"><svg viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"></path></svg></button>
-            <span class="pmd-owner-notif-slot" data-pmd-owner-notif-slot></span>
+            @include('admin::_partials.pmd_settings_family_notification_placeholder_v18')
         </div>
     </header>
 

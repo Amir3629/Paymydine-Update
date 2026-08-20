@@ -406,10 +406,12 @@ export function MenuRuntimeProvider({ bootstrap, children }: { bootstrap: Custom
   }, [bootstrap.restaurant.currency, locale])
 
   const openCart = useCallback(() => setOverlay('cart'), [])
+  // PMD_CHECKOUT_DIRECT_TABLE_ORDERS_R34
+  // Table Orders / Checkout and My Order are separate toolbar destinations.
+  // A non-empty personal cart must never hijack the Table Orders button.
   const openCheckout = useCallback(() => {
-    // Checkout always reviews the device-local personal cart first.
-    setOverlay(cart.length > 0 ? 'cart' : 'checkout')
-  }, [cart.length])
+    setOverlay('checkout')
+  }, [])
   const continueOrdering = useCallback(() => {
     setOverlay(null)
     setSelectedItem(null)
@@ -462,6 +464,11 @@ export function MenuRuntimeProvider({ bootstrap, children }: { bootstrap: Custom
     }
   }, [bootstrap.table.id, bootstrap.table.number, bootstrap.table.qr, isPreview, refreshOrder])
 
+  // PMD_DIRECT_KITCHEN_SEND_R33B
+  // The public UI still calls the legacy context method name for compatibility,
+  // but one guest click now completes BOTH backend phases: confirm-items then submit.
+  // The personal cart and stable confirmation id are kept until a real submitted
+  // order exists, so a lost response can be retried without duplicating food.
   const confirmPersonalItems = useCallback(async () => {
     if (!cart.length) {
       notify('error', labels.emptyCart)
@@ -471,39 +478,111 @@ export function MenuRuntimeProvider({ bootstrap, children }: { bootstrap: Custom
       notify('error', labels.scanTableQr)
       return
     }
+
     setOrderLoading(true)
+    let confirmedDraft: TableOrderState | null = null
     try {
       const session = guestSessionId || getGuestSessionId(bootstrap.tenant.id, bootstrap.table)
       if (!guestSessionId) setGuestSessionId(session)
-      const fingerprint = JSON.stringify(cart.map((line) => ({ key: line.key, quantity: line.quantity, subtotal: line.subtotal, note: line.note })))
+
+      const fingerprint = JSON.stringify(cart.map((line) => ({
+        key: line.key,
+        quantity: line.quantity,
+        subtotal: line.subtotal,
+        note: line.note,
+      })))
+
       let confirmationId = ''
       if (!isPreview) {
         try {
           const stored = JSON.parse(window.localStorage.getItem(confirmationStorageKey) || 'null') as { fingerprint?: string; id?: string } | null
           if (stored?.fingerprint === fingerprint && stored.id) confirmationId = stored.id
         } catch {}
+
         if (!confirmationId) {
-          confirmationId = typeof crypto !== 'undefined' && 'randomUUID' in crypto ? crypto.randomUUID() : `confirm-${Date.now()}-${Math.random().toString(36).slice(2)}`
-          try { window.localStorage.setItem(confirmationStorageKey, JSON.stringify({ fingerprint, id: confirmationId })) } catch {}
+          confirmationId = typeof crypto !== 'undefined' && 'randomUUID' in crypto
+            ? crypto.randomUUID()
+            : `confirm-${Date.now()}-${Math.random().toString(36).slice(2)}`
+          try {
+            window.localStorage.setItem(confirmationStorageKey, JSON.stringify({ fingerprint, id: confirmationId }))
+          } catch {}
         }
       }
-      const next = isPreview
-        ? demoDraft(cart, session, currentDraft)
-        : await confirmCartItems({ table: bootstrap.table, guestSessionId: session, lines: cart, confirmationId })
-      setCurrentDraft(next.status === 'draft' ? next : null)
+
+      let submitted: TableOrderState
+      if (isPreview) {
+        confirmedDraft = demoDraft(cart, session, currentDraft)
+        submitted = demoSubmitted(confirmedDraft)
+      } else {
+        const confirmed = await confirmCartItems({
+          table: bootstrap.table,
+          guestSessionId: session,
+          lines: cart,
+          confirmationId,
+        })
+
+        // A retry can resolve directly to the order if another phone already
+        // submitted the same shared transient draft after our confirmation.
+        if (confirmed.orderId && confirmed.status !== 'draft') {
+          submitted = confirmed
+        } else {
+          if (!confirmed.draftId || confirmed.status !== 'draft') {
+            throw new Error('The order could not be prepared for the kitchen.')
+          }
+          confirmedDraft = confirmed
+          setCurrentDraft(confirmed)
+          submitted = await submitTableOrderApi({
+            table: bootstrap.table,
+            draftId: confirmed.draftId,
+            guestSessionId: session,
+          })
+        }
+      }
+
+      if (!submitted.orderId || submitted.status === 'draft') {
+        throw new Error('The kitchen order was not created.')
+      }
+
+      setCurrentDraft(null)
+      setTableOrders((current) => [
+        submitted,
+        ...current.filter((order) => order.orderId !== submitted.orderId),
+      ])
+      setSelectedOrderId(submitted.orderId)
+
+      // Only now is the personal cart allowed to disappear.
       clearCart()
-      if (!isPreview) { try { window.localStorage.removeItem(confirmationStorageKey) } catch {} }
+      if (!isPreview) {
+        try { window.localStorage.removeItem(confirmationStorageKey) } catch {}
+      }
+
       setOverlay('checkout')
-      notify('success', labels.confirmItems)
+      notify('success', labels.submitKitchen)
       if (!isPreview) void refreshOrder()
     } catch (error) {
-      // Keep the same confirmation id in localStorage so a lost HTTP response can
-      // be retried without duplicating the guest's food into a later round.
+      // If confirm succeeded but submit was interrupted, expose the transient
+      // draft as a recovery state and KEEP the cart + confirmation id for retry.
+      if (confirmedDraft?.status === 'draft') setCurrentDraft(confirmedDraft)
       notify('error', error instanceof Error ? error.message : labels.error)
     } finally {
       setOrderLoading(false)
     }
-  }, [bootstrap.table, bootstrap.tenant.id, cart, clearCart, confirmationStorageKey, currentDraft, guestSessionId, isPreview, labels.confirmItems, labels.emptyCart, labels.error, labels.scanTableQr, notify, refreshOrder])
+  }, [
+    bootstrap.table,
+    bootstrap.tenant.id,
+    cart,
+    clearCart,
+    confirmationStorageKey,
+    currentDraft,
+    guestSessionId,
+    isPreview,
+    labels.emptyCart,
+    labels.error,
+    labels.scanTableQr,
+    labels.submitKitchen,
+    notify,
+    refreshOrder,
+  ])
 
   const submitTableOrder = useCallback(async () => {
     if (!bootstrap.table.id && !bootstrap.table.number) {

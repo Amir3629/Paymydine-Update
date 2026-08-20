@@ -3,7 +3,7 @@
 import type { CSSProperties } from 'react'
 import { Bell, Car, Menu, ReceiptText, Search, ShoppingBag } from 'lucide-react'
 import { useMenuRuntime } from '@/src/runtime/MenuRuntimeContext'
-import { DietaryBadges, LanguageSelect, PlatformFooter, QuickAddButton, RestaurantLogo, SocialLinks } from '@/src/runtime/components/SharedPieces'
+import { DietaryBadges, LanguageSelect, PlatformFooter, QuickAddButton, RestaurantLogo, SocialLinks, HeaderValetButton } from '@/src/runtime/components/SharedPieces'
 import { RuntimeOverlays } from '@/src/runtime/components/RuntimeOverlays'
 import { ThemeBottomToolBar } from '@/src/runtime/components/ThemeBottomToolBar'
 import styles from './NoirEditorial.module.css'
@@ -32,7 +32,7 @@ export default function NoirEditorial() {
         <RestaurantLogo />
         <div className={styles.headerActions}>
           {tableDisplay && <span className={styles.table}>{labels.table} {tableDisplay}</span>}
-          <LanguageSelect />
+          <HeaderValetButton /><LanguageSelect />
           
           
         </div>

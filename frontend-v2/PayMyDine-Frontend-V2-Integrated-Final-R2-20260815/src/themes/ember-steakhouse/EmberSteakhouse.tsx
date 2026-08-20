@@ -3,7 +3,7 @@
 import type { CSSProperties } from 'react'
 import { Beef, Bell, Car, ChevronRight, Flame, Menu, Search, ShoppingBag, Sparkles } from 'lucide-react'
 import { useMenuRuntime } from '@/src/runtime/MenuRuntimeContext'
-import { DietaryBadges, LanguageSelect, PlatformFooter, QuickAddButton, RestaurantLogo, SocialLinks } from '@/src/runtime/components/SharedPieces'
+import { DietaryBadges, LanguageSelect, PlatformFooter, QuickAddButton, RestaurantLogo, SocialLinks, HeaderValetButton } from '@/src/runtime/components/SharedPieces'
 import { RuntimeOverlays } from '@/src/runtime/components/RuntimeOverlays'
 import { ThemeBottomToolBar } from '@/src/runtime/components/ThemeBottomToolBar'
 import styles from './EmberSteakhouse.module.css'
@@ -26,7 +26,7 @@ export default function EmberSteakhouse() {
       <header className={styles.header}>
         
         <div className={styles.brand}><RestaurantLogo /><small>Wood · fire · prime cuts</small></div>
-        <div className={styles.headerTools}><LanguageSelect /></div>
+        <div className={styles.headerTools}><HeaderValetButton /><LanguageSelect /></div>
       </header>
 
       <section className={styles.hero}>

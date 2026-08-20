@@ -104,6 +104,8 @@ body:has(#pmd-menu-checkout)
 }
 </style>
 
+@include('admin::_partials.pmd_settings_family_first_paint_v18')
+
 <div id="pmd-menu-checkout" class="pmd-menu-checkout" data-pmd-menu-checkout>
     <header class="pmd-menu-header" id="pmd-menu-header">
         <div class="pmd-menu-header__left">
@@ -114,6 +116,8 @@ body:has(#pmd-menu-checkout)
         </div>
 
         <div class="pmd-menu-header__actions" data-pmd-menu-header-actions>
+            @include('admin::_partials.pmd_settings_family_notification_placeholder_v18')
+
             <span id="pmd-menu-save-status"></span>
             <button
                 type="submit"

@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react'
 import type { TableContext } from '@/src/domain/model'
-import { payExistingOrder } from '@/src/lib/client-api'
+import { payExistingOrder, settleExistingOrderGroup, type ExistingOrderPaymentAllocation } from '@/src/lib/client-api'
 import styles from './RuntimeOverlays.module.css'
 
 type PayPalWindow = Window & {
@@ -27,6 +27,7 @@ type Props = {
   selectedItems: Array<{ order_menu_id: number; quantity: number }> | null
   payerLabel: string | null
   items: Array<{ id: string; name: string; quantity: number; price: number }>
+  orderAllocations?: ExistingOrderPaymentAllocation[] | null
   onSuccess: () => void | Promise<void>
   onError: (message: string) => void
 }
@@ -86,6 +87,10 @@ async function requestJson(url: string, body?: unknown): Promise<any> {
 }
 
 export function PayPalButton(props: Props) {
+  // PMD_MULTI_ORDER_PAYMENT_R32
+  const groupedAllocations = (props.orderAllocations || []).filter((entry) => entry.orderId > 0 && entry.amount > 0)
+  const isMultiOrder = groupedAllocations.length > 1
+  const multiOrderCaptureLockedRef = useRef(false)
   const containerRef = useRef<HTMLDivElement | null>(null)
   const [status, setStatus] = useState<'loading' | 'ready' | 'error'>('loading')
   const [message, setMessage] = useState('Loading PayPal…')
@@ -102,7 +107,7 @@ export function PayPalButton(props: Props) {
       amount: props.amount,
       currency: props.currency.toUpperCase(),
       payment_method: props.methodCode,
-      order_id: props.orderId,
+      order_id: isMultiOrder ? undefined : props.orderId,
       items: props.items,
       tableNumber: props.table.number || props.table.id,
       table_id: props.table.id,
@@ -128,6 +133,7 @@ export function PayPalButton(props: Props) {
           fundingSource: props.methodCode === 'card' ? 'card' : 'paypal',
           style: { layout: 'vertical', color: 'gold', shape: 'pill', label: 'paypal', height: 45, tagline: false },
           createOrder: async () => {
+            if (isMultiOrder && multiOrderCaptureLockedRef.current) throw new Error('This PayPal payment was already captured. Refresh the order status instead of paying again.')
             const data = await requestJson('/api/v1/payments/paypal/create-order', paymentData)
             const id = String(data?.orderID || data?.orderId || data?.id || data?.paypal?.id || '')
             if (!id) throw new Error('PayPal did not return an order ID.')
@@ -150,27 +156,45 @@ export function PayPalButton(props: Props) {
                 '',
               )
               if (!reference) throw new Error('PayPal capture reference is missing.')
+              if (isMultiOrder) multiOrderCaptureLockedRef.current = true
 
-              await payExistingOrder({
-                orderId: props.orderId,
-                table: props.table,
-                method: props.methodCode,
-                providerCode: props.providerCode || 'paypal',
-                paymentReference: reference,
-                amount: props.amount,
-                tipAmount: props.tipAmount,
-                couponCode: props.couponCode,
-                couponDiscount: props.couponDiscount,
-                selectedItems: props.selectedItems,
-                payerLabel: props.payerLabel,
-              })
+              if (isMultiOrder) {
+                await settleExistingOrderGroup({
+                  allocations: groupedAllocations,
+                  table: props.table,
+                  method: props.methodCode,
+                  providerCode: props.providerCode || 'paypal',
+                  paymentReference: reference,
+                })
+              } else {
+                await payExistingOrder({
+                  orderId: props.orderId,
+                  table: props.table,
+                  method: props.methodCode,
+                  providerCode: props.providerCode || 'paypal',
+                  paymentReference: reference,
+                  amount: props.amount,
+                  tipAmount: props.tipAmount,
+                  couponCode: props.couponCode,
+                  couponDiscount: props.couponDiscount,
+                  selectedItems: props.selectedItems,
+                  payerLabel: props.payerLabel,
+                })
+              }
 
               if (cancelled) return
               setStatus('ready')
               setMessage('PayPal payment confirmed.')
               await onSuccessRef.current()
             } catch (error) {
-              const text = error instanceof Error ? error.message : 'PayPal payment failed.'
+              const baseText = error instanceof Error ? error.message : 'PayPal payment failed.'
+              const text = isMultiOrder && multiOrderCaptureLockedRef.current
+                ? `PayPal payment was captured, but the selected orders are still synchronizing: ${baseText} Do not pay again.`
+                : baseText
+              if (isMultiOrder && multiOrderCaptureLockedRef.current) {
+                try { await buttons?.close?.() } catch {}
+                containerRef.current?.replaceChildren()
+              }
               if (!cancelled) {
                 setStatus('error')
                 setMessage(text)
@@ -223,6 +247,7 @@ export function PayPalButton(props: Props) {
     props.items,
     props.methodCode,
     props.orderId,
+    props.orderAllocations,
     props.payerLabel,
     props.providerCode,
     props.selectedItems,

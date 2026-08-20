@@ -8210,6 +8210,199 @@ html.pmd-waiter-dashboard-active .pmd-v18-unmerge {
 
 
 
+
+
+
+
+<!-- PMD_SETTINGS_FAMILY_HEADER_V18_PREBOOT_START -->
+<script id="pmd-settings-family-v18-preboot">
+(function () {
+    'use strict';
+
+    function clean(value) {
+        return String(value || '')
+            .split('?')[0]
+            .split('#')[0]
+            .replace(/\/+$/, '') || '/';
+    }
+
+
+    function isDetail(path) {
+        path = clean(path);
+
+        if (
+            path === '/admin/pmdsettings/restaurant' ||
+            path === '/admin/pmdsettings/frontend' ||
+            path === '/admin/pmdmenu' ||
+            path === '/admin/pmdcustomer' ||
+            path === '/admin/pmdteam' ||
+            path === '/admin/pmdfinance' ||
+            path === '/admin/pmdbrand' ||
+            path === '/admin/pmdadvanced' ||
+            path === '/admin/pmddevices'
+        ) {
+            return true;
+        }
+
+        return (
+            path.indexOf('/admin/pmddevices/') === 0
+        );
+    }
+
+
+    function isSettingsNavigation(path) {
+        path = clean(path);
+
+        return (
+            path === '/admin/pmdsettings' ||
+            path.indexOf('/admin/pmdsettings/') === 0 ||
+            path === '/admin/pmdmenu' ||
+            path === '/admin/pmdcustomer' ||
+            path === '/admin/pmdteam' ||
+            path === '/admin/pmdfinance' ||
+            path === '/admin/pmdbrand' ||
+            path === '/admin/pmdadvanced' ||
+            path === '/admin/pmddevices' ||
+            path.indexOf('/admin/pmddevices/') === 0
+        );
+    }
+
+
+    var path =
+        clean(window.location.pathname);
+
+
+    if (isDetail(path)) {
+        var html =
+            document.documentElement;
+
+        html.classList.add(
+            'pmd-settings-family-v18-route'
+        );
+
+        html.classList.remove(
+            'pmd-sm2-runtime-ready'
+        );
+
+
+        /*
+         * Resolve Side Menu state before BODY/page content exists.
+         */
+        var state =
+            'collapsed';
+
+        try {
+            state =
+                localStorage.getItem(
+                    'pmd.sideMenu2.state'
+                ) === 'expanded'
+                    ? 'expanded'
+                    : 'collapsed';
+        } catch (error) {}
+
+
+        html.classList.toggle(
+            'pmd-sm2-expanded',
+            state === 'expanded'
+        );
+
+        html.classList.toggle(
+            'pmd-sm2-collapsed',
+            state !== 'expanded'
+        );
+
+
+        /*
+         * PMD_SETTINGS_FAMILY_V18_EXACT_LAYOUT_BYPASS
+         *
+         * Exact Layout already supports an existing
+         * PMDAdminExactLayoutV4 compatibility authority.
+         *
+         * Set it BEFORE that script starts so Settings detail
+         * pages do not start its boot timers/observer.
+         *
+         * V18 CSS owns this shell instead.
+         */
+        window.PMDSettingsFamilyStaticShellV18 = {
+            version: '18.0.1',
+            settingsFamilyV18: true,
+
+            apply: function () {
+                return {
+                    version: '18.0.1',
+                    route: path,
+                    bypassed: true
+                };
+            }
+        };
+
+
+        window.PMDAdminExactLayoutV4 =
+            window.PMDSettingsFamilyStaticShellV18;
+    }
+
+
+    /*
+     * Settings navigation uses normal browser navigation.
+     * We do NOT preventDefault().
+     *
+     * We only block propagation into the legacy SPA
+     * transition handler.
+     */
+    document.addEventListener(
+        'click',
+        function (event) {
+            if (
+                event.defaultPrevented ||
+                event.button !== 0 ||
+                event.ctrlKey ||
+                event.metaKey ||
+                event.shiftKey ||
+                event.altKey
+            ) {
+                return;
+            }
+
+            var link =
+                event.target &&
+                event.target.closest
+                    ? event.target.closest(
+                        '#navSidebar a[href],'
+                        + '#pmd-side-menu2 a[href]'
+                    )
+                    : null;
+
+            if (!link) {
+                return;
+            }
+
+            var targetPath = '';
+
+            try {
+                targetPath =
+                    clean(
+                        new URL(
+                            link.href,
+                            window.location.href
+                        ).pathname
+                    );
+            } catch (error) {
+                return;
+            }
+
+            if (
+                isSettingsNavigation(path) ||
+                isSettingsNavigation(targetPath)
+            ) {
+                event.stopPropagation();
+            }
+        },
+        true
+    );
+})();
+</script>
+<!-- PMD_SETTINGS_FAMILY_HEADER_V18_PREBOOT_END -->
+
 </head>
 <script>
     // SMART FIX: Force dropdown alignment WITHOUT breaking Bootstrap animations
@@ -9118,6 +9311,14 @@ html.pmd-waiter-dashboard-active
 
 
 
+
+
+
+
+
+<!-- PMD_SETTINGS_FAMILY_HEADER_V18_RUNTIME_START -->
+<script src="/app/admin/assets/js/pmd-settings-family-header-v18.js?v=20260820_103303"></script>
+<!-- PMD_SETTINGS_FAMILY_HEADER_V18_RUNTIME_END -->
 
 </body>
 </html>

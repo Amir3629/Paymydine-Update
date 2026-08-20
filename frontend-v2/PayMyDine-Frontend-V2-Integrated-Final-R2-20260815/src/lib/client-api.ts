@@ -189,6 +189,39 @@ export async function submitTableOrder(input: {
   }))
 }
 
+
+// PMD_FRONTEND_V2_PAID_ORDER_REVIEW_R30
+// Reuse the canonical tenant ReviewController. The server remains the final
+// one-review-per-order authority; local storage is only a client convenience.
+export async function submitReview(input: {
+  orderId: number
+  rating: number
+  review?: string
+  customerName?: string | null
+}): Promise<{ reviewId: number | null; status: string }> {
+  const orderId = Math.max(0, Math.trunc(Number(input.orderId || 0)))
+  const rating = Math.trunc(Number(input.rating || 0))
+
+  if (orderId < 1) throw new Error('Order number is not available yet.')
+  if (rating < 1 || rating > 5) throw new Error('Please choose a rating from 1 to 5 stars.')
+
+  const data = await jsonRequest<any>('/api/v1/reviews', {
+    method: 'POST',
+    body: JSON.stringify({
+      order_id: orderId,
+      customer_name: input.customerName || null,
+      rating,
+      review: String(input.review || '').trim().slice(0, 2000),
+      public_share_consent: null,
+    }),
+  })
+
+  return {
+    reviewId: Number(data?.data?.review_id || 0) || null,
+    status: String(data?.data?.status || 'pending'),
+  }
+}
+
 export async function callWaiter(table: TableContext, message = ''): Promise<void> {
   if (!table.id && !table.number) throw new Error('A table is required.')
   await jsonRequest('/api/v1/waiter-call', {
@@ -278,6 +311,50 @@ export async function payExistingOrder(input: {
   })
 }
 
+// PMD_MULTI_ORDER_PAYMENT_R32
+// One provider charge can settle several submitted QR table orders. The backend
+// remains authoritative per order: each allocation is sent through the existing
+// /orders/pay-existing endpoint and therefore keeps all table/order guards.
+export async function settleExistingOrderGroup(input: {
+  allocations: ExistingOrderPaymentAllocation[]
+  table: TableContext
+  method: string
+  providerCode?: string | null
+  paymentReference?: string | null
+}): Promise<any[]> {
+  const allocations = input.allocations.filter((entry) => entry.orderId > 0 && entry.amount > 0)
+  if (allocations.length < 2) throw new Error('At least two payable orders are required for grouped settlement.')
+
+  const results: any[] = []
+  for (const allocation of allocations) {
+    let settled = false
+    let lastError: unknown = null
+    for (let attempt = 0; attempt < 3 && !settled; attempt += 1) {
+      try {
+        results.push(await payExistingOrder({
+          orderId: allocation.orderId,
+          table: input.table,
+          method: input.method,
+          providerCode: input.providerCode || null,
+          paymentReference: input.paymentReference || null,
+          amount: allocation.amount,
+          tipAmount: allocation.tipAmount,
+          couponCode: allocation.couponCode,
+          couponDiscount: allocation.couponDiscount,
+          selectedItems: allocation.selectedItems,
+          payerLabel: allocation.payerLabel,
+        }))
+        settled = true
+      } catch (error) {
+        lastError = error
+        if (attempt < 2) await new Promise((resolve) => globalThis.setTimeout(resolve, 350 * (attempt + 1)))
+      }
+    }
+    if (!settled) throw lastError instanceof Error ? lastError : new Error(`Order #${allocation.orderId} could not be settled.`)
+  }
+  return results
+}
+
 export async function startProviderPayment(input: {
   orderId: number
   table: TableContext
@@ -307,12 +384,24 @@ export async function fetchOrderStatus(orderId: number): Promise<any> {
   return jsonRequest(`/api/v1/order-status?order_id=${encodeURIComponent(String(orderId))}`)
 }
 
+// PMD_MULTI_ORDER_PAYMENT_R32
+export type ExistingOrderPaymentAllocation = {
+  orderId: number
+  amount: number
+  tipAmount: number
+  couponDiscount: number
+  couponCode: string | null
+  selectedItems: Array<{ order_menu_id: number; quantity: number }> | null
+  payerLabel: string | null
+}
+
 export type PendingProviderPayment = {
   provider: string
   settlementMode: 'pay-existing' | 'start-finalize'
   methodCode: string
   providerCode: string | null
   orderId: number
+  orderAllocations?: ExistingOrderPaymentAllocation[] | null
   table: TableContext
   returnTo: string
   createdAt: string
@@ -477,6 +566,7 @@ export async function verifyProviderPayment(
 
 export type HostedProviderPaymentInput = {
   orderId: number
+  orderAllocations?: ExistingOrderPaymentAllocation[] | null
   settlementMode?: 'pay-existing' | 'start-finalize'
   table: TableContext
   methodCode: string
@@ -578,6 +668,7 @@ function buildPendingProviderPayment(
     methodCode: input.methodCode,
     providerCode: input.providerCode || String(data?.provider || data?.provider_code || '') || null,
     orderId: input.orderId,
+    orderAllocations: input.orderAllocations || null,
     table: input.table,
     returnTo,
     createdAt: new Date().toISOString(),
@@ -611,8 +702,10 @@ export async function startHostedProviderPayment(input: HostedProviderPaymentInp
   if (typeof window === 'undefined') throw new Error('Hosted payment must start in the browser.')
 
   const requestedProvider = normalizeProviderCode(input.methodCode, input.providerCode)
+  const groupedAllocations = (input.orderAllocations || []).filter((entry) => entry.orderId > 0 && entry.amount > 0)
+  const isMultiOrder = groupedAllocations.length > 1
   const returnTo = `${window.location.pathname}${window.location.search}`
-  const merchantReference = `PMD-V2-${input.orderId}-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`
+  const merchantReference = `PMD-V2-${isMultiOrder ? 'MULTI-' : ''}${input.orderId}-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`
   const primaryReturnProvider = providerReturnCode(input.methodCode, requestedProvider)
   const returnUrl = `${window.location.origin}/payment/return?payment_return_provider=${encodeURIComponent(primaryReturnProvider)}&return_to=${encodeURIComponent(returnTo)}`
   const cancelUrl = window.location.href
@@ -621,23 +714,30 @@ export async function startHostedProviderPayment(input: HostedProviderPaymentInp
   // provider confirms payment. Calling /orders/start-payment for qr_pay_later
   // orders is intentionally skipped because the current Laravel route rejects it.
   const settlementMode = input.settlementMode || 'pay-existing'
-  const orderStart = settlementMode === 'start-finalize'
-    ? await startProviderPayment({
-        orderId: input.orderId,
-        table: input.table,
-        method: input.methodCode,
-        provider: input.providerCode,
-        guestSessionId: input.guestSessionId,
-        returnUrl,
-        cancelUrl,
-      })
-    : {
+  const orderStart = isMultiOrder
+    ? {
         success: true,
-        order_id: input.orderId,
         amount: input.amount,
         currency: input.currency,
         provider: requestedProvider,
       }
+    : settlementMode === 'start-finalize'
+      ? await startProviderPayment({
+          orderId: input.orderId,
+          table: input.table,
+          method: input.methodCode,
+          provider: input.providerCode,
+          guestSessionId: input.guestSessionId,
+          returnUrl,
+          cancelUrl,
+        })
+      : {
+          success: true,
+          order_id: input.orderId,
+          amount: input.amount,
+          currency: input.currency,
+          provider: requestedProvider,
+        }
 
   const sessionPayload: Record<string, unknown> = {
     amount: Number(orderStart?.amount || input.amount),
@@ -646,7 +746,7 @@ export async function startHostedProviderPayment(input: HostedProviderPaymentInp
     cancel_url: cancelUrl,
     customer_email: String(input.customerEmail || ''),
     merchant_reference: merchantReference,
-    order_id: input.orderId,
+    order_id: isMultiOrder ? undefined : input.orderId,
     payment_method: input.methodCode,
     provider: input.providerCode || requestedProvider,
     guest_session_id: input.guestSessionId,
