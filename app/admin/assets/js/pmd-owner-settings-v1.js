@@ -9,7 +9,6 @@
   var save = root.querySelector('[data-pmd-owner-save]');
   var baseline = '';
   var armed = false;
-  var notificationObserver = null;
 
   function setImportant(node, property, value) {
     if (!node) return;
@@ -36,12 +35,12 @@
     setImportant(notificationRoot, 'display', 'flex');
     setImportant(notificationRoot, 'align-items', 'center');
     setImportant(notificationRoot, 'justify-content', 'center');
-    setImportant(notificationRoot, 'width', '42px');
-    setImportant(notificationRoot, 'min-width', '42px');
-    setImportant(notificationRoot, 'max-width', '42px');
-    setImportant(notificationRoot, 'height', '42px');
-    setImportant(notificationRoot, 'min-height', '42px');
-    setImportant(notificationRoot, 'max-height', '42px');
+    setImportant(notificationRoot, 'width', '46px');
+    setImportant(notificationRoot, 'min-width', '46px');
+    setImportant(notificationRoot, 'max-width', '46px');
+    setImportant(notificationRoot, 'height', '46px');
+    setImportant(notificationRoot, 'min-height', '46px');
+    setImportant(notificationRoot, 'max-height', '46px');
     setImportant(notificationRoot, 'margin', '0');
     setImportant(notificationRoot, 'padding', '0');
     setImportant(notificationRoot, 'overflow', 'visible');
@@ -52,12 +51,12 @@
     setImportant(toggle, 'align-items', 'center');
     setImportant(toggle, 'justify-content', 'center');
     setImportant(toggle, 'box-sizing', 'border-box');
-    setImportant(toggle, 'width', '42px');
-    setImportant(toggle, 'min-width', '42px');
-    setImportant(toggle, 'max-width', '42px');
-    setImportant(toggle, 'height', '42px');
-    setImportant(toggle, 'min-height', '42px');
-    setImportant(toggle, 'max-height', '42px');
+    setImportant(toggle, 'width', '46px');
+    setImportant(toggle, 'min-width', '46px');
+    setImportant(toggle, 'max-width', '46px');
+    setImportant(toggle, 'height', '46px');
+    setImportant(toggle, 'min-height', '46px');
+    setImportant(toggle, 'max-height', '46px');
     setImportant(toggle, 'margin', '0');
     setImportant(toggle, 'padding', '0');
     setImportant(toggle, 'left', 'auto');
@@ -78,8 +77,8 @@
       setImportant(bell, 'display', 'flex');
       setImportant(bell, 'align-items', 'center');
       setImportant(bell, 'justify-content', 'center');
-      setImportant(bell, 'width', '20px');
-      setImportant(bell, 'height', '20px');
+      setImportant(bell, 'width', '21px');
+      setImportant(bell, 'height', '21px');
       setImportant(bell, 'margin', '0');
       setImportant(bell, 'padding', '0');
       setImportant(bell, 'line-height', '1');
@@ -89,8 +88,8 @@
       var bellSvg = bell.querySelector('svg');
       if (bellSvg) {
         setImportant(bellSvg, 'display', 'block');
-        setImportant(bellSvg, 'width', '20px');
-        setImportant(bellSvg, 'height', '20px');
+        setImportant(bellSvg, 'width', '21px');
+        setImportant(bellSvg, 'height', '21px');
         setImportant(bellSvg, 'margin', '0');
         setImportant(bellSvg, 'padding', '0');
         setImportant(bellSvg, 'transform', 'none');
@@ -142,55 +141,99 @@
     applyNotificationGeometry(notificationRoot);
   }
 
+  /*
+   * PMD_SETTINGS_HEADER_DASHBOARD_CLONE_V1_ONE_SHOT
+   *
+   * No observer.
+   * No delayed geometry repair.
+   * No repeated timeout.
+   */
   function installNotificationGeometryGuard(notificationRoot) {
-    if (!notificationRoot) return;
+    applyNotificationGeometry(notificationRoot);
+  }
 
-    if (notificationObserver) {
-      notificationObserver.disconnect();
-      notificationObserver = null;
-    }
+  function dashboardNotificationGap() {
+    var gap = document.createElement('span');
 
-    var queued = false;
-    notificationObserver = new MutationObserver(function () {
-      if (queued) return;
-      queued = true;
+    gap.setAttribute(
+      'data-pmd-main-header-notification-gap-r67',
+      ''
+    );
 
-      window.requestAnimationFrame(function () {
-        queued = false;
-        applyNotificationGeometry(notificationRoot);
-      });
-    });
+    gap.setAttribute(
+      'aria-hidden',
+      'true'
+    );
 
-    /*
-     * Observe class/child changes only. Observing style would make our own
-     * inline geometry writes wake the observer again and could create a loop.
-     */
-    notificationObserver.observe(notificationRoot, {
-      subtree: true,
-      attributes: true,
-      attributeFilter: ['class'],
-      childList: true
-    });
+    gap.style.cssText =
+      'position:relative!important;'
+      + 'display:block!important;'
+      + 'flex:0 0 10px!important;'
+      + 'width:10px!important;'
+      + 'min-width:10px!important;'
+      + 'max-width:10px!important;'
+      + 'height:46px!important;'
+      + 'min-height:46px!important;'
+      + 'max-height:46px!important;'
+      + 'margin:0!important;'
+      + 'padding:0!important;'
+      + 'border:0!important;'
+      + 'background:transparent!important;'
+      + 'pointer-events:none!important;'
+      + 'overflow:visible!important;';
 
-    [0, 80, 250, 700, 1400].forEach(function (delay) {
-      window.setTimeout(function () {
-        applyNotificationGeometry(notificationRoot);
-      }, delay);
-    });
+    var divider = document.createElement(
+      'span'
+    );
 
-    window.addEventListener('load', function () {
-      applyNotificationGeometry(notificationRoot);
-    }, { once: true });
+    divider.setAttribute(
+      'data-pmd-main-header-notification-divider-r67',
+      ''
+    );
+
+    divider.setAttribute(
+      'aria-hidden',
+      'true'
+    );
+
+    divider.style.cssText =
+      'position:absolute!important;'
+      + 'top:50%!important;'
+      + 'right:5px!important;'
+      + 'left:auto!important;'
+      + 'transform:translateY(-50%)!important;'
+      + 'display:block!important;'
+      + 'width:1px!important;'
+      + 'min-width:1px!important;'
+      + 'max-width:1px!important;'
+      + 'height:34px!important;'
+      + 'min-height:34px!important;'
+      + 'max-height:34px!important;'
+      + 'margin:0!important;'
+      + 'padding:0!important;'
+      + 'border:0!important;'
+      + 'background:#cfe0ec!important;'
+      + 'pointer-events:none!important;';
+
+    gap.appendChild(divider);
+
+    return gap;
   }
 
   function installNotification() {
     if (!actions) return;
-    var notificationRoot = document.getElementById('notif-root');
+
+    var notificationRoot =
+      document.getElementById('notif-root');
+
     if (!notificationRoot) return;
 
     notificationRoot.classList.remove('show');
+
     Array.prototype.forEach.call(
-      notificationRoot.querySelectorAll('.dropdown-menu.show'),
+      notificationRoot.querySelectorAll(
+        '.dropdown-menu.show'
+      ),
       function (menu) {
         menu.classList.remove('show');
         menu.style.removeProperty('display');
@@ -199,15 +242,48 @@
 
     normalizeBell(notificationRoot);
 
-    var slot = actions.querySelector('[data-pmd-owner-notif-slot]');
-    if (slot) {
-      slot.replaceWith(notificationRoot);
-    } else {
-      actions.appendChild(notificationRoot);
+    var slot = actions.querySelector(
+      '[data-pmd-owner-notif-slot]'
+    );
+
+    var oldGap = actions.querySelector(
+      '[data-pmd-main-header-notification-gap-r67]'
+    );
+
+    if (oldGap) {
+      oldGap.remove();
     }
 
-    applyNotificationGeometry(notificationRoot);
-    installNotificationGeometryGuard(notificationRoot);
+    var gap = dashboardNotificationGap();
+
+    if (slot) {
+      /*
+       * First-paint slot already reserved exactly the
+       * same total horizontal footprint.
+       */
+      slot.replaceWith(
+        gap,
+        notificationRoot
+      );
+    } else if (
+      !actions.contains(notificationRoot)
+    ) {
+      actions.appendChild(gap);
+      actions.appendChild(notificationRoot);
+    } else {
+      actions.insertBefore(
+        gap,
+        notificationRoot
+      );
+    }
+
+    applyNotificationGeometry(
+      notificationRoot
+    );
+
+    installNotificationGeometryGuard(
+      notificationRoot
+    );
   }
 
   function serializeForm() {
@@ -298,7 +374,7 @@
   }
 
   window.PMDOwnerSettingsV1 = {
-    version: '3.0.1-notification-grid-center',
+    version: '4.0.0-dashboard-header-clone',
     notificationMoved: Boolean(root.querySelector('#notif-root')),
     evaluateDirty: evaluateDirty,
     establishBaseline: establishBaseline,

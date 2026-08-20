@@ -42,7 +42,45 @@
 
   function show(el){ el && el.classList.remove('d-none'); }
   function hide(el){ el && el.classList.add('d-none'); }
-  function setCount(n){ if(n>0){COUNT.textContent=String(n);COUNT.classList.remove('d-none');} else {COUNT.textContent='0';COUNT.classList.add('d-none');}}
+  // PMD_NOTIFICATION_COUNT_IDEMPOTENT_DOM_V1
+  // Do not mutate an already-correct server-rendered badge.
+  function setCount(n) {
+    const value = Math.max(
+      0,
+      Number(n) || 0
+    );
+
+    const text =
+      String(value);
+
+    if (
+      COUNT.textContent !== text
+    ) {
+      COUNT.textContent =
+        text;
+    }
+
+    const hidden =
+      COUNT.classList.contains(
+        'd-none'
+      );
+
+    if (
+      value > 0 &&
+      hidden
+    ) {
+      COUNT.classList.remove(
+        'd-none'
+      );
+    } else if (
+      value <= 0 &&
+      !hidden
+    ) {
+      COUNT.classList.add(
+        'd-none'
+      );
+    }
+  }
 
   async function fetchJSON(url, opts={}){
     const res = await fetch(url, {

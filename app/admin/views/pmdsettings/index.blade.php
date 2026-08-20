@@ -1,4 +1,71 @@
-<style id="pmd-settings-critical-v7">
+@php
+    /*
+     * PMD_SETTINGS_CONTENT_HASH_ASSETS
+     *
+     * Browser cache key follows REAL file content.
+     * No manual version number.
+     */
+    $pmdSettingsCenterCssPath =
+        base_path(
+            'app/admin/assets/css/'.
+            'pmd-settings-center-v1.css'
+        );
+
+    $pmdSettingsSuiteCssPath =
+        base_path(
+            'app/admin/assets/css/'.
+            'pmd-settings-suite-first-paint-v1.css'
+        );
+
+    $pmdSettingsCenterJsPath =
+        base_path(
+            'app/admin/assets/js/'.
+            'pmd-settings-center-v1.js'
+        );
+
+    $pmdSettingsCenterCssVersion =
+        is_file($pmdSettingsCenterCssPath)
+            ? substr(
+                hash_file(
+                    'sha256',
+                    $pmdSettingsCenterCssPath
+                ),
+                0,
+                16
+            )
+            : '1';
+
+    $pmdSettingsSuiteCssVersion =
+        is_file($pmdSettingsSuiteCssPath)
+            ? substr(
+                hash_file(
+                    'sha256',
+                    $pmdSettingsSuiteCssPath
+                ),
+                0,
+                16
+            )
+            : '1';
+
+    $pmdSettingsCenterJsVersion =
+        is_file($pmdSettingsCenterJsPath)
+            ? substr(
+                hash_file(
+                    'sha256',
+                    $pmdSettingsCenterJsPath
+                ),
+                0,
+                16
+            )
+            : '1';
+@endphp
+
+<style id="pmd-settings-critical-v11">
+/*
+ * PMD_SETTINGS_SERVER_FIRST_HEADER_V11
+ * Exact Dashboard first-paint geometry.
+ */
+
 html,
 body,
 .page,
@@ -7,129 +74,191 @@ body,
 .content-wrapper,
 .container-fluid,
 #pmd-settings-center {
-    background: #f8fbfd !important;
+  background:#f8fbfd!important;
 }
 
-/*
- * PMD_SETTINGS_ZERO_JUMP_V7
- *
- * Never hide the Settings application itself.
- * Reserve the final header geometry instead.
- */
 .navbar-top,
-.navbar-fixed-top {
-    display: none !important;
-    visibility: hidden !important;
-    opacity: 0 !important;
-    pointer-events: none !important;
-    height: 0 !important;
-    min-height: 0 !important;
-    max-height: 0 !important;
-    overflow: hidden !important;
+.navbar-fixed-top,
+.page-title-section {
+  display:none!important;
+  visibility:hidden!important;
+  opacity:0!important;
+  pointer-events:none!important;
+
+  position:absolute!important;
+
+  width:0!important;
+  min-width:0!important;
+  max-width:0!important;
+
+  height:0!important;
+  min-height:0!important;
+  max-height:0!important;
+
+  margin:0!important;
+  padding:0!important;
+
+  overflow:hidden!important;
 }
 
 #pmd-settings-center {
-    visibility: visible !important;
-    opacity: 1 !important;
+  width:100%!important;
+  min-width:0!important;
+  min-height:100vh!important;
+
+  margin:0!important;
+
+  padding:
+    0 30px 72px
+    !important;
+
+  box-sizing:border-box!important;
+
+  opacity:1!important;
+  visibility:visible!important;
+
+  transform:none!important;
+  transition:none!important;
+  animation:none!important;
 }
 
-/*
- * Before JS installs the real 64px clean header,
- * reserve exactly the same vertical space.
- */
-html.pmd-settings-v7-booting #pmd-settings-center::before {
-    content: "";
-    display: block;
-    width: 100%;
-    height: 64px;
-    min-height: 64px;
-    pointer-events: none;
+#pmd-settings-clean-header {
+  position:relative!important;
+  z-index:120!important;
+
+  display:flex!important;
+  align-items:center!important;
+  justify-content:space-between!important;
+
+  width:min(1480px,100%)!important;
+
+  height:64px!important;
+  min-height:64px!important;
+  max-height:64px!important;
+
+  margin:0 auto!important;
+
+  padding:
+    0 2px
+    !important;
+
+  box-sizing:border-box!important;
+
+  background:transparent!important;
+
+  overflow:visible!important;
+
+  transform:none!important;
+  transition:none!important;
+  animation:none!important;
 }
 
-html.pmd-settings-v7-ready #pmd-settings-center::before {
-    display: none !important;
-}
-
-/*
- * Search begins in toolbar markup but its FINAL home is the header.
- * Do not paint the temporary toolbar version.
- */
-html.pmd-settings-v7-booting
-#pmd-settings-center
-.pmd-settings-toolbar
-.pmd-settings-search-wrap {
-    display: none !important;
-}
-
-/*
- * Prevent the old standalone notification button flashing before
- * JS moves it into the clean header.
- */
-html.pmd-settings-v7-booting #notif-root {
-    visibility: hidden !important;
-    opacity: 0 !important;
-    pointer-events: none !important;
-}
-
-html.pmd-settings-v7-ready
 #pmd-settings-clean-header
-#notif-root {
-    visibility: visible !important;
-    opacity: 1 !important;
-    pointer-events: auto !important;
+.pmd-settings-clean-actions {
+  display:flex!important;
+  align-items:center!important;
+  justify-content:flex-end!important;
+
+  gap:10px!important;
+
+  height:46px!important;
+  min-height:46px!important;
+  max-height:46px!important;
+
+  margin-left:auto!important;
+
+  padding:0!important;
 }
 
-/*
- * PMD_SETTINGS_SIMPLIFY_V8_SAFE
- */
+#pmd-settings-clean-header
+.pmd-settings-header-search,
 
-/* Search toolbar becomes empty after JS moves Search to Header. */
-#pmd-settings-center .pmd-settings-toolbar:empty {
-    display: none !important;
-    margin: 0 !important;
-    padding: 0 !important;
+#pmd-settings-clean-header
+.pmd-settings-notif-slot-v11 {
+  display:grid!important;
+  place-items:center!important;
+
+  flex:0 0 46px!important;
+
+  width:46px!important;
+  min-width:46px!important;
+  max-width:46px!important;
+
+  height:46px!important;
+  min-height:46px!important;
+  max-height:46px!important;
+
+  margin:0!important;
+  padding:0!important;
+
+  box-sizing:border-box!important;
+
+  border:
+    1px solid #cfe0ec
+    !important;
+
+  border-radius:14px!important;
+
+  background:#fff!important;
+  color:#173752!important;
+
+  overflow:visible!important;
+
+  transform:none!important;
+  transition:none!important;
+  animation:none!important;
 }
 
-/* Simple section heading: title only. */
-#pmd-settings-center .pmd-settings-group__head {
-    display: block !important;
-    margin: 0 0 14px !important;
-    padding: 0 !important;
+#pmd-settings-clean-header
+[data-pmd-settings-header-gap-v11] {
+  position:relative!important;
+
+  display:block!important;
+
+  flex:0 0 10px!important;
+
+  width:10px!important;
+  min-width:10px!important;
+  max-width:10px!important;
+
+  height:46px!important;
 }
 
-#pmd-settings-center .pmd-settings-group__head h2 {
-    margin: 0 !important;
-    padding: 0 !important;
+#pmd-settings-clean-header
+[data-pmd-settings-header-divider-v11] {
+  position:absolute!important;
+
+  top:50%!important;
+  right:5px!important;
+
+  width:1px!important;
+  height:34px!important;
+
+  background:#cfe0ec!important;
+
+  transform:
+    translateY(-50%)
+    !important;
 }
 
-/* Safety against old cached markup. */
-#pmd-settings-center .pmd-settings-group__count,
-#pmd-settings-center .pmd-settings-card__badge,
-#pmd-settings-center .pmd-settings-group__head .pmd-settings-section-kicker,
-#pmd-settings-center .pmd-settings-group__head p,
-#pmd-settings-center .pmd-settings-toolbar__copy {
-    display: none !important;
+@media(max-width:820px) {
+  #pmd-settings-center {
+    padding:
+      0 10px 40px
+      !important;
+  }
 }
-
 </style>
 
-<script id="pmd-settings-center-v7-boot">
+<script id="pmd-settings-center-v11-boot">
 document.documentElement.classList.add(
     'pmd-settings-center-v2',
-    'pmd-settings-v7-booting'
+    'pmd-settings-server-header-v11'
 );
-
-/*
- * Safety fallback only.
- * Content is NEVER hidden, even if JS fails.
- */
-window.PMDSettingsRevealFallback = window.setTimeout(function () {
-    document.documentElement.classList.remove('pmd-settings-v7-booting');
-    document.documentElement.classList.add('pmd-settings-v7-ready');
-}, 1500);
 </script>
 
-<link rel="stylesheet" href="/app/admin/assets/css/pmd-settings-center-v1.css?v=20260808_8">
+<link rel="stylesheet" href="/app/admin/assets/css/pmd-settings-center-v1.css?v={{ $pmdSettingsCenterCssVersion }}">
+<link rel="stylesheet" href="/app/admin/assets/css/pmd-settings-suite-first-paint-v1.css?v={{ $pmdSettingsSuiteCssVersion }}">
 
 @php
     /*
@@ -189,10 +318,57 @@ window.PMDSettingsRevealFallback = window.setTimeout(function () {
 @endphp
 
 <div id="pmd-settings-center" class="pmd-settings-center" data-pmd-settings-center>
-    <div class="pmd-settings-shell">
-        <section class="pmd-settings-toolbar" aria-label="Settings tools">
-            <div class="pmd-settings-search-wrap">
-                <svg aria-hidden="true" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"></circle><path d="m20 20-4-4"></path></svg>
+
+    {{-- PMD_SETTINGS_SERVER_FIRST_HEADER_V11 --}}
+    @php
+        $pmdSettingsNotificationCountV11 = 0;
+
+        try {
+            $pmdSettingsNotificationCountV11 =
+                app(
+                    \Admin\Services\PmdNotificationCountV1::class
+                )->currentNewCount();
+        } catch (\Throwable $error) {
+            $pmdSettingsNotificationCountV11 = 0;
+        }
+    @endphp
+
+    <header
+        id="pmd-settings-clean-header"
+        class="pmd-owner-header pmd-dashboard-lab__dashboard2-header"
+        aria-label="Settings header"
+        data-pmd-settings-server-header-v11
+    >
+        <div class="pmd-owner-header__left">
+            <h1 class="pmd-settings-clean-title">
+                Settings
+            </h1>
+        </div>
+
+        <div
+            class="pmd-settings-clean-actions"
+            data-pmd-settings-header-actions-v11
+        >
+            <div
+                class="pmd-settings-search-wrap pmd-settings-header-search"
+                role="search"
+                aria-expanded="false"
+            >
+                <svg
+                    viewBox="0 0 24 24"
+                    aria-hidden="true"
+                >
+                    <circle
+                        cx="11"
+                        cy="11"
+                        r="7"
+                    ></circle>
+
+                    <path
+                        d="m20 20-4-4"
+                    ></path>
+                </svg>
+
                 <input
                     type="search"
                     class="pmd-settings-search"
@@ -201,9 +377,57 @@ window.PMDSettingsRevealFallback = window.setTimeout(function () {
                     autocomplete="off"
                     aria-label="Search settings"
                 >
+
                 <kbd>⌘ K</kbd>
             </div>
-        </section>
+
+            <span
+                data-pmd-settings-header-gap-v11
+                aria-hidden="true"
+            >
+                <span
+                    data-pmd-settings-header-divider-v11
+                    aria-hidden="true"
+                ></span>
+            </span>
+
+            <span
+                class="pmd-settings-notif-slot-v11"
+                data-pmd-settings-notif-slot-v11
+                aria-label="Notifications"
+            >
+                <svg
+                    viewBox="0 0 24 24"
+                    aria-hidden="true"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                >
+                    <path
+                        d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9"
+                    ></path>
+
+                    <path
+                        d="M13.73 21a2 2 0 0 1-3.46 0"
+                    ></path>
+                </svg>
+
+                @if($pmdSettingsNotificationCountV11 > 0)
+                    <span
+                        class="pmd-settings-notif-count-v11"
+                        aria-hidden="true"
+                    >
+                        {{ $pmdSettingsNotificationCountV11 }}
+                    </span>
+                @endif
+            </span>
+        </div>
+    </header>
+
+    <div class="pmd-settings-shell">
+
 
         <main class="pmd-settings-content">
             {{-- PMD_SETTINGS_REMOVE_TOP_SCHEDULE_V9
@@ -288,4 +512,4 @@ window.PMDSettingsRevealFallback = window.setTimeout(function () {
     </div>
 </div>
 
-<script defer src="/app/admin/assets/js/pmd-settings-center-v1.js?v=20260808_8"></script>
+<script defer src="/app/admin/assets/js/pmd-settings-center-v1.js?v={{ $pmdSettingsCenterJsVersion }}"></script>

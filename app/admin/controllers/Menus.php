@@ -799,6 +799,230 @@ class Menus extends AdminController
         ]);
     }
 
+    /**
+     * PMD_MENU_CATEGORY_DELETE_WITH_FOODS_V130
+     *
+     * Owner/Manager-only destructive category action.
+     *
+     * Deletes:
+     * - the selected category
+     * - every food assigned to the selected category
+     * - only affected combos that become invalid (< 2 foods)
+     *
+     * Menus_model remains canonical food deletion authority.
+     */
+    public function onPmdMenuManagerDeleteCategoryV130(): JsonResponse
+    {
+        $user = AdminAuth::getUser();
+
+        if (
+            !$user
+            || !$user->hasPermission('Admin.Menus')
+            || !$user->hasPermission('Admin.Categories')
+        ) {
+            abort(403);
+        }
+
+        $role = '';
+
+        try {
+            if (!empty($user->is_super_user)) {
+                $role = 'owner';
+            } elseif (!empty($user->staff_id)) {
+                $roleRow = DB::table('staffs as s')
+                    ->leftJoin(
+                        'staff_roles as r',
+                        'r.staff_role_id',
+                        '=',
+                        's.staff_role_id'
+                    )
+                    ->where(
+                        's.staff_id',
+                        (int)$user->staff_id
+                    )
+                    ->select(
+                        'r.code as role_code',
+                        'r.name as role_name'
+                    )
+                    ->first();
+
+                $roleCode = strtolower(
+                    trim(
+                        (string)(
+                            $roleRow->role_code
+                            ?? ''
+                        )
+                    )
+                );
+
+                $roleName = strtolower(
+                    trim(
+                        (string)(
+                            $roleRow->role_name
+                            ?? ''
+                        )
+                    )
+                );
+
+                if (
+                    $roleCode === 'owner'
+                    || $roleName === 'owner'
+                ) {
+                    $role = 'owner';
+                } elseif (
+                    $roleCode === 'manager'
+                    || $roleName === 'manager'
+                ) {
+                    $role = 'manager';
+                }
+            }
+        } catch (\Throwable $error) {
+            $role = '';
+        }
+
+        if (!in_array($role, ['owner', 'manager'], true)) {
+            abort(403);
+        }
+
+        $categoryId = (int)post('category_id');
+
+        if ($categoryId < 1) {
+            return response()->json([
+                'ok' => false,
+                'message' => 'Invalid category.',
+            ], 422);
+        }
+
+        $category = Categories_model::query()
+            ->find($categoryId);
+
+        if (!$category) {
+            return response()->json([
+                'ok' => false,
+                'message' => 'Category not found.',
+            ], 404);
+        }
+
+        $menuIds = DB::table('menu_categories')
+            ->where('category_id', $categoryId)
+            ->pluck('menu_id')
+            ->map(static fn($id) => (int)$id)
+            ->filter(static fn($id) => $id > 0)
+            ->unique()
+            ->values()
+            ->all();
+
+        /*
+         * Capture only combos affected by foods we are about
+         * to delete. We never sweep unrelated existing combos.
+         */
+        $affectedComboIds = [];
+
+        if (
+            $menuIds
+            && Schema::hasTable('menu_combo_items')
+        ) {
+            $affectedComboIds = DB::table('menu_combo_items')
+                ->whereIn('menu_id', $menuIds)
+                ->pluck('combo_id')
+                ->map(static fn($id) => (int)$id)
+                ->filter(static fn($id) => $id > 0)
+                ->unique()
+                ->values()
+                ->all();
+        }
+
+        try {
+            $result = DB::transaction(
+                function () use (
+                    $category,
+                    $menuIds,
+                    $affectedComboIds
+                ) {
+                    $deletedFoods = 0;
+                    $deletedCombos = 0;
+
+                    foreach ($menuIds as $menuId) {
+                        $menu = Menus_model::query()
+                            ->find((int)$menuId);
+
+                        if (!$menu) {
+                            continue;
+                        }
+
+                        /*
+                         * Canonical model delete lifecycle:
+                         * relations / images / child rows continue
+                         * using the existing Menus_model authority.
+                         */
+                        $menu->delete();
+
+                        $deletedFoods++;
+                    }
+
+                    $category->delete();
+
+                    /*
+                     * menu_combo_items rows referencing deleted
+                     * foods are FK-cascaded.
+                     *
+                     * A Combo requires >= 2 foods in this manager.
+                     * Remove only affected Combos that are now
+                     * structurally invalid.
+                     */
+                    if (
+                        Schema::hasTable('menu_combos')
+                        && Schema::hasTable('menu_combo_items')
+                    ) {
+                        foreach ($affectedComboIds as $comboId) {
+                            $remaining = DB::table(
+                                'menu_combo_items'
+                            )
+                                ->where(
+                                    'combo_id',
+                                    (int)$comboId
+                                )
+                                ->count();
+
+                            if ($remaining >= 2) {
+                                continue;
+                            }
+
+                            $combo = \Admin\Models\Menu_combos_model::query()
+                                ->find((int)$comboId);
+
+                            if (!$combo) {
+                                continue;
+                            }
+
+                            $combo->delete();
+
+                            $deletedCombos++;
+                        }
+                    }
+
+                    return [
+                        'deleted_foods' => $deletedFoods,
+                        'deleted_combos' => $deletedCombos,
+                    ];
+                }
+            );
+        } catch (\Throwable $error) {
+            return response()->json([
+                'ok' => false,
+                'message' => 'Category could not be deleted.',
+            ], 500);
+        }
+
+        return response()->json([
+            'ok' => true,
+            'category_id' => $categoryId,
+            'deleted_foods' => (int)$result['deleted_foods'],
+            'deleted_combos' => (int)$result['deleted_combos'],
+            'message' => 'Category and assigned foods deleted.',
+        ]);
+    }
+
     public function onSaveCategoryOrder(): JsonResponse
     {
         $user = \Admin\Facades\AdminAuth::getUser();

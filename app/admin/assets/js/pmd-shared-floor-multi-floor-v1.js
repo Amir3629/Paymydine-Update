@@ -98,6 +98,51 @@
     var addError = addPanel ? addPanel.querySelector('[data-pmd-floor-add-error]') : null;
     var addBusy = false;
 
+
+    // PMD_FLOOR_MANAGE_RUNTIME_V2
+    var managePanel =
+      root.querySelector(
+        '[data-pmd-floor-manage-panel]'
+      );
+
+    var manageInput =
+      managePanel
+        ? managePanel.querySelector(
+            '[data-pmd-floor-manage-name]'
+          )
+        : null;
+
+    var manageSave =
+      managePanel
+        ? managePanel.querySelector(
+            '[data-pmd-floor-manage-save]'
+          )
+        : null;
+
+    var manageDelete =
+      managePanel
+        ? managePanel.querySelector(
+            '[data-pmd-floor-manage-delete]'
+          )
+        : null;
+
+    var manageError =
+      managePanel
+        ? managePanel.querySelector(
+            '[data-pmd-floor-manage-error]'
+          )
+        : null;
+
+    var manageLockedNote =
+      managePanel
+        ? managePanel.querySelector(
+            '[data-pmd-floor-manage-locked]'
+          )
+        : null;
+
+    var manageBusy = false;
+    var manageLocked = false;
+
     function floorById(id) {
       id = clean(id);
       return floors.find(function (floor) { return clean(floor && floor.id) === id; }) || null;
@@ -203,32 +248,216 @@
       }
     }
 
+    // PMD_EDIT_FLOOR_CUSTOM_EXISTENCE_V5_JS_START
+    function floorFlagIsDefault(value) {
+      if (value === true || value === 1) {
+        return true;
+      }
+
+      var normalized = key(value);
+
+      return (
+        normalized === '1'
+        || normalized === 'true'
+        || normalized === 'yes'
+      );
+    }
+
+    function hasCustomFloor() {
+      if (!Array.isArray(floors) || !floors.length) {
+        return false;
+      }
+
+      var explicitCount = 0;
+      var explicitCustom = false;
+
+      floors.forEach(function (floor) {
+        if (
+          !floor
+          || !Object.prototype.hasOwnProperty.call(
+            floor,
+            'is_default'
+          )
+        ) {
+          return;
+        }
+
+        explicitCount += 1;
+
+        if (!floorFlagIsDefault(floor.is_default)) {
+          explicitCustom = true;
+        }
+      });
+
+      if (explicitCustom) {
+        return true;
+      }
+
+      /*
+       * Stable default flag exists but another row is
+       * legacy/unflagged -> that additional row is custom.
+       */
+      if (
+        explicitCount > 0
+        && explicitCount < floors.length
+      ) {
+        return true;
+      }
+
+      /*
+       * Compatibility for old registries that pre-date
+       * is_default.
+       */
+      if (explicitCount === 0) {
+        return floors.length > 1;
+      }
+
+      return false;
+    }
+
+    function setManageVisibility(node, visible) {
+      if (!node) return;
+
+      node.hidden = !visible;
+
+      node.setAttribute(
+        'aria-hidden',
+        visible ? 'false' : 'true'
+      );
+
+      node.style.setProperty(
+        'display',
+        visible ? 'inline-flex' : 'none',
+        'important'
+      );
+
+      node.style.setProperty(
+        'visibility',
+        visible ? 'visible' : 'hidden',
+        'important'
+      );
+
+      node.style.setProperty(
+        'pointer-events',
+        visible ? 'auto' : 'none',
+        'important'
+      );
+
+      node.setAttribute(
+        'data-pmd-floor-manage-custom-visible',
+        visible ? '1' : '0'
+      );
+    }
+    // PMD_EDIT_FLOOR_CUSTOM_EXISTENCE_V5_JS_END
+
     function renderSwitcher() {
+      // PMD_EDIT_FLOOR_SECOND_FLOOR_VISIBILITY_V4
       if (!switcher) return;
-      var add = switcher.querySelector('[data-pmd-floor-add]');
-      var addHtml = add ? add.outerHTML : '';
+
+      var add = switcher.querySelector(
+        '[data-pmd-floor-add]'
+      );
+
+      var manage = switcher.querySelector(
+        '[data-pmd-floor-manage], '
+        + '[data-pmd-floor-manager], '
+        + '.pmd-shared-floor-switcher__manage'
+      );
+
+      var addHtml = add
+        ? add.outerHTML
+        : '';
+
+      var manageHtml = manage
+        ? manage.outerHTML
+        : '';
+
+      /*
+       * Registry always contains the permanent default Floor.
+       *
+       * Therefore:
+       *   1 Floor  = default only       -> hide Edit Floor
+       *   2+ Floor = custom Floor exists -> show Edit Floor
+       */
       var showFloorTabs = floors.length > 1;
-      var showSwitcher = showFloorTabs || Boolean(addHtml);
-      var divider = root.querySelector('[data-pmd-floor-switcher-divider]');
+      var showManage = hasCustomFloor();
+
+      var showSwitcher =
+        showFloorTabs
+        || Boolean(addHtml)
+        || (
+          showManage
+          && Boolean(manageHtml)
+        );
+
+      var divider = root.querySelector(
+        '[data-pmd-floor-switcher-divider]'
+      );
 
       var floorHtml = showFloorTabs
         ? floors.map(function (floor) {
             var id = clean(floor.id);
             var name = clean(floor.name);
-            var button = document.createElement('button');
+
+            var button = document.createElement(
+              'button'
+            );
+
             button.type = 'button';
-            button.className = 'pmd-shared-floor-switcher__floor' + (id === activeId ? ' is-active' : '');
-            button.setAttribute('data-pmd-floor-switch', id);
-            button.setAttribute('role', 'tab');
-            button.setAttribute('aria-selected', id === activeId ? 'true' : 'false');
+
+            button.className =
+              'pmd-shared-floor-switcher__floor'
+              + (
+                id === activeId
+                  ? ' is-active'
+                  : ''
+              );
+
+            button.setAttribute(
+              'data-pmd-floor-switch',
+              id
+            );
+
+            button.setAttribute(
+              'role',
+              'tab'
+            );
+
+            button.setAttribute(
+              'aria-selected',
+              id === activeId
+                ? 'true'
+                : 'false'
+            );
+
             button.textContent = name;
+
             return button.outerHTML;
           }).join('')
         : '';
 
-      switcher.innerHTML = floorHtml + addHtml;
+      /*
+       * Left-side order:
+       * Floor tabs -> Add Floor -> Edit Floor
+       */
+      switcher.innerHTML =
+        floorHtml
+        + addHtml
+        + manageHtml;
+
+      var liveManage = switcher.querySelector(
+        '[data-pmd-floor-manage], '
+        + '[data-pmd-floor-manager], '
+        + '.pmd-shared-floor-switcher__manage'
+      );
+
+      setManageVisibility(liveManage, showManage);
+
       switcher.hidden = !showSwitcher;
-      if (divider) divider.hidden = !showSwitcher;
+
+      if (divider) {
+        divider.hidden = !showSwitcher;
+      }
     }
 
     function applyActiveFloor(id, options) {
@@ -675,6 +904,360 @@
       });
     }
 
+    // PMD_FLOOR_MANAGE_ACTIONS_V2
+    function activeFloorObject() {
+      return floorById(activeId);
+    }
+
+    // PMD_DEFAULT_FLOOR_UI_STABLE_ID_V4
+    function activeFloorIsMain() {
+      var floor =
+        activeFloorObject();
+
+      if (!floor) {
+        return false;
+      }
+
+      return (
+        floor.is_default === true
+        || String(
+          floor.is_default
+          || ''
+        ) === '1'
+      );
+    }
+
+    function clearManageError() {
+      if (!manageError) return;
+
+      manageError.textContent = '';
+      manageError.hidden = true;
+    }
+
+    function showManageError(message) {
+      if (!manageError) return;
+
+      manageError.textContent =
+        clean(message)
+        || 'Floor could not be updated.';
+
+      manageError.hidden = false;
+    }
+
+    function setManageBusy(value) {
+      manageBusy =
+        Boolean(value);
+
+      if (!managePanel) return;
+
+      managePanel.setAttribute(
+        'aria-busy',
+        manageBusy
+          ? 'true'
+          : 'false'
+      );
+
+      /*
+       * PMD_DEFAULT_FLOOR_RENAMEABLE_UI_V4
+       *
+       * Default Floor:
+       *   rename = allowed
+       *   delete = locked
+       */
+      if (manageInput) {
+        manageInput.disabled =
+          manageBusy;
+      }
+
+      if (manageSave) {
+        manageSave.disabled =
+          manageBusy;
+      }
+
+      if (manageDelete) {
+        manageDelete.disabled =
+          manageBusy
+          || manageLocked;
+      }
+    }
+
+    function openManagePanel() {
+      if (
+        !managePanel
+        || manageBusy
+      ) {
+        return;
+      }
+
+      var floor =
+        activeFloorObject();
+
+      if (!floor) return;
+
+      if (
+        document.body
+        && managePanel.parentElement
+          !== document.body
+      ) {
+        document.body.appendChild(
+          managePanel
+        );
+      }
+
+      manageLocked =
+        activeFloorIsMain();
+
+      clearManageError();
+
+      if (manageInput) {
+        manageInput.value =
+          clean(floor.name)
+          || activeName;
+      }
+
+      if (manageLockedNote) {
+        manageLockedNote.hidden =
+          !manageLocked;
+      }
+
+      managePanel.hidden = false;
+
+      document.documentElement
+        .classList.add(
+          'pmd-floor-manage-open'
+        );
+
+      setManageBusy(false);
+
+      if (manageInput) {
+        manageInput.focus();
+        manageInput.select();
+      }
+    }
+
+    function closeManagePanel() {
+      if (
+        !managePanel
+        || manageBusy
+      ) {
+        return;
+      }
+
+      managePanel.hidden = true;
+
+      document.documentElement
+        .classList.remove(
+          'pmd-floor-manage-open'
+        );
+
+      clearManageError();
+    }
+
+    function renameActiveFloor() {
+      if (
+        !managePanel
+        || !manageInput
+        || manageBusy
+        || !config.registry_url
+      ) {
+        return;
+      }
+
+      var name =
+        clean(
+          manageInput.value
+        );
+
+      if (!name) {
+        showManageError(
+          'Floor name is required.'
+        );
+
+        return;
+      }
+
+      clearManageError();
+      setManageBusy(true);
+
+      postJson(
+        config.registry_url,
+        'onPmdFloorRegistryRename',
+        {
+          location_id:
+            Number(
+              config.location_id
+              || 0
+            ),
+
+          floor_id:
+            activeId,
+
+          name:
+            name
+        }
+      ).then(function (payload) {
+        adoptRegistry(
+          payload
+          && payload.registry
+            ? payload.registry
+            : null
+        );
+
+        var floor =
+          payload
+          && payload.floor
+            ? payload.floor
+            : floorById(activeId);
+
+        if (!floor) {
+          throw new Error(
+            'Renamed Floor was not returned.'
+          );
+        }
+
+        activeId =
+          clean(floor.id);
+
+        activeName =
+          canonicalFloorName(
+            floor.name
+          );
+
+        setManageBusy(false);
+        closeManagePanel();
+
+        applyActiveFloor(
+          activeId,
+          {
+            persist: true,
+            refit: false
+          }
+        );
+      }).catch(function (error) {
+        setManageBusy(false);
+
+        showManageError(
+          clean(
+            error
+            && error.message
+          )
+          || 'Floor could not be renamed.'
+        );
+      });
+    }
+
+    function deleteActiveFloor() {
+      if (
+        !managePanel
+        || manageBusy
+        || manageLocked
+        || !config.registry_url
+      ) {
+        return;
+      }
+
+      var confirmation =
+        clean(
+          managePanel.getAttribute(
+            'data-delete-confirm'
+          )
+        )
+        || 'Remove this Floor?';
+
+      if (
+        !window.confirm(
+          confirmation
+        )
+      ) {
+        return;
+      }
+
+      clearManageError();
+      setManageBusy(true);
+
+      postJson(
+        config.registry_url,
+        'onPmdFloorRegistryDelete',
+        {
+          location_id:
+            Number(
+              config.location_id
+              || 0
+            ),
+
+          floor_id:
+            activeId
+        }
+      ).then(function (payload) {
+        adoptRegistry(
+          payload
+          && payload.registry
+            ? payload.registry
+            : null
+        );
+
+        var fallback =
+          payload
+          && payload.floor
+            ? payload.floor
+            : floors.find(
+                function (floor) {
+                  return key(
+                    canonicalFloorName(
+                      floor
+                      && floor.name
+                    )
+                  ) === 'main floor';
+                }
+              );
+
+        if (
+          !fallback
+          && floors.length
+        ) {
+          fallback =
+            floors[0];
+        }
+
+        if (!fallback) {
+          throw new Error(
+            'Main Floor fallback is unavailable.'
+          );
+        }
+
+        activeId =
+          clean(
+            fallback.id
+          );
+
+        activeName =
+          canonicalFloorName(
+            fallback.name
+          );
+
+        setManageBusy(false);
+        closeManagePanel();
+
+        applyActiveFloor(
+          activeId,
+          {
+            persist: true,
+            refit: true
+          }
+        );
+      }).catch(function (error) {
+        setManageBusy(false);
+
+        showManageError(
+          clean(
+            error
+            && error.message
+          )
+          || 'Floor could not be removed.'
+        );
+      });
+    }
+
     window.addEventListener('pmd:floor:table-manager:loaded', function (event) {
       var detail = event && event.detail ? event.detail : {};
       if (detail.root !== root) return;
@@ -783,37 +1366,196 @@
         if (!tableMatchesNotification(table, candidates)) return;
         if (!table.raw || typeof table.raw !== 'object') table.raw = {};
 
-        // PMD_NOTIFICATION_BUSY_RESPECTS_OPERATIONAL_STATUS_R45C
-        // Notification replay is advisory. Explicit persisted physical-table
-        // lifecycle is authoritative and an available/free table must never
-        // be turned red again by an old Received/order notification.
-        var canonicalOperationalStatus = key(
-          table.raw.operational_status ||
-          table.operational_status ||
-          ''
+        // PMD_NOTIFICATION_FRESH_ORDER_OCCUPANCY_V1
+        // pmd:notification:new is emitted only after the notification cursor
+        // advances to a genuinely new notification. A fresh open-order event
+        // is therefore allowed to update the in-memory Floor immediately.
+        // The canonical live snapshot below subsequently confirms/corrects it.
+        matched = true;
+
+        table.raw.open_orders = Math.max(
+          1,
+          Number(table.raw.open_orders || 0)
         );
 
-        if (
-          canonicalOperationalStatus === 'available' ||
-          canonicalOperationalStatus === 'free'
-        ) {
-          return;
-        }
-
-        matched = true;
-        table.raw.open_orders = Math.max(1, Number(table.raw.open_orders || 0));
+        table.raw.operational_status = 'occupied';
         table.raw.status = 'occupied';
-        table.openOrders = Math.max(1, Number(table.openOrders || 0));
-        if (table.baseStatus !== 'attention' && table.baseStatus !== 'cleaning') {
-          table.baseStatus = 'occupied';
-          table.status = 'occupied';
-        }
+
+        table.operational_status = 'occupied';
+        table.openOrders = Math.max(
+          1,
+          Number(table.openOrders || 0)
+        );
+
+        table.baseStatus = 'occupied';
+        table.status = 'occupied';
       });
 
       if (matched) {
         applyActiveFloor(activeId, { persist: false, refit: false });
       }
     });
+
+
+    // PMD_SHARED_FLOOR_LIVE_SNAPSHOT_RECONCILIATION_V1
+    // Notification/event data is only an invalidation signal.
+    // The server-rendered Floor payload remains the current-state authority.
+    function liveSnapshotCandidates(row) {
+      row = row || {};
+      var raw = row.raw && typeof row.raw === 'object'
+        ? row.raw
+        : {};
+
+      return [
+        row.table_id,
+        row.id,
+        row.dbTableId,
+        row.table_no,
+        row.table_number,
+        row.number,
+        row.table_name,
+        row.name,
+        row.label,
+        raw.table_id,
+        raw.id,
+        raw.table_no,
+        raw.table_number,
+        raw.table_name,
+        raw.name
+      ].map(clean).filter(Boolean);
+    }
+
+    function liveSnapshotStatus(row) {
+      row = row || {};
+
+      var raw = row.raw && typeof row.raw === 'object'
+        ? row.raw
+        : {};
+
+      var status = key(
+        row.operational_status ||
+        raw.operational_status ||
+        row.status ||
+        raw.status ||
+        ''
+      );
+
+      if (status === 'free') status = 'available';
+
+      return status;
+    }
+
+    function reconcileLiveFloorRows(rows) {
+      if (!Array.isArray(rows) || !rows.length) {
+        return false;
+      }
+
+      var changed = false;
+
+      allTables.forEach(function (table) {
+        var serverRow = rows.find(function (row) {
+          var candidates = liveSnapshotCandidates(row);
+          return candidates.length
+            && tableMatchesNotification(table, candidates);
+        });
+
+        if (!serverRow) return;
+
+        var status = liveSnapshotStatus(serverRow);
+        if (!status) return;
+
+        if (!table.raw || typeof table.raw !== 'object') {
+          table.raw = {};
+        }
+
+        var raw = table.raw;
+        var serverRaw =
+          serverRow.raw &&
+          typeof serverRow.raw === 'object'
+            ? serverRow.raw
+            : {};
+
+        var operational = key(
+          serverRow.operational_status ||
+          serverRaw.operational_status ||
+          status
+        );
+
+        if (operational === 'free') {
+          operational = 'available';
+        }
+
+        var rawOpenOrders =
+          serverRow.open_orders != null
+            ? serverRow.open_orders
+            : (
+                serverRaw.open_orders != null
+                  ? serverRaw.open_orders
+                  : null
+              );
+
+        var openOrders = Number(rawOpenOrders);
+
+        if (!Number.isFinite(openOrders)) {
+          openOrders =
+            status === 'available'
+              ? 0
+              : Number(
+                  table.openOrders ||
+                  raw.open_orders ||
+                  0
+                );
+        }
+
+        if (
+          key(table.status || '') !== status ||
+          key(
+            table.operational_status ||
+            raw.operational_status ||
+            ''
+          ) !== operational ||
+          Number(table.openOrders || 0) !== openOrders
+        ) {
+          changed = true;
+        }
+
+        raw.operational_status = operational || status;
+        raw.status = status;
+        raw.open_orders = Math.max(0, openOrders);
+
+        table.operational_status = operational || status;
+        table.openOrders = Math.max(0, openOrders);
+        table.baseStatus = status;
+        table.status = status;
+      });
+
+      if (changed) {
+        applyActiveFloor(
+          activeId,
+          {
+            persist: false,
+            refit: false
+          }
+        );
+      }
+
+      return changed;
+    }
+
+    window.addEventListener(
+      'pmd:dashboard:live-data',
+      function (event) {
+        var detail =
+          event &&
+          event.detail
+            ? event.detail
+            : {};
+
+        reconcileLiveFloorRows(
+          detail.floor_tables
+        );
+      }
+    );
 
     // PMD_CASHIER_MANUAL_FREE_FLOOR_RECONCILIATION_R45C
     // Reconcile the existing shared Floor authority immediately after a
@@ -870,7 +1612,184 @@
       }
     });
 
+    // PMD_SHARED_FLOOR_LAYOUT_EDIT_BRIDGE_V2
+    // Owner/Manager visible toolbar -> canonical Floor edit/save engine.
+    function syncLayoutEditButton() {
+      var button =
+        root.querySelector(
+          '[data-pmd-r2-tool="edit"]'
+        );
+
+      if (!button) return;
+
+      var runtime =
+        root.__pmdFloorV1;
+
+      var current =
+        runtime &&
+        typeof runtime.getState === 'function'
+          ? runtime.getState()
+          : null;
+
+      var editing =
+        Boolean(
+          current &&
+          current.editing
+        );
+
+      var label =
+        button.querySelector('span');
+
+      if (
+        !button.dataset.pmdLayoutEditIdleLabel
+      ) {
+        button.dataset.pmdLayoutEditIdleLabel =
+          clean(
+            label
+              ? label.textContent
+              : button.textContent
+          ) || 'Edit layout';
+      }
+
+      var idle =
+        button.dataset.pmdLayoutEditIdleLabel;
+
+      var german =
+        idle.toLowerCase().indexOf(
+          'layout bearbeiten'
+        ) !== -1;
+
+      var text =
+        editing
+          ? (
+              german
+                ? 'Layout speichern'
+                : 'Save layout'
+            )
+          : idle;
+
+      if (label) {
+        label.textContent = text;
+      }
+
+      button.setAttribute(
+        'aria-pressed',
+        editing ? 'true' : 'false'
+      );
+
+      button.setAttribute(
+        'aria-label',
+        text
+      );
+
+      button.title = text;
+
+      button.classList.toggle(
+        'is-active',
+        editing
+      );
+    }
+
+    root.addEventListener(
+      'click',
+      function (event) {
+        var button =
+          event.target.closest(
+            '[data-pmd-r2-tool="edit"]'
+          );
+
+        if (
+          !button ||
+          !root.contains(button)
+        ) {
+          return;
+        }
+
+        var route =
+          String(
+            window.location.pathname || ''
+          ).replace(/\/+$/, '');
+
+        if (
+          route !== '/admin/dashboardlab' &&
+          route !== '/admin/managerlab'
+        ) {
+          return;
+        }
+
+        var runtime =
+          root.__pmdFloorV1;
+
+        var current =
+          runtime &&
+          typeof runtime.getState === 'function'
+            ? runtime.getState()
+            : null;
+
+        if (!current) {
+          console.warn(
+            '[PMD Shared Floor] Floor runtime is not ready for Edit layout.'
+          );
+
+          return;
+        }
+
+        var nativeButton =
+          root.querySelector(
+            current.editing
+              ? '[data-floor-save]'
+              : '[data-floor-edit]'
+          );
+
+        if (
+          !nativeButton ||
+          nativeButton === button
+        ) {
+          console.warn(
+            '[PMD Shared Floor] Canonical Floor edit/save control unavailable.'
+          );
+
+          return;
+        }
+
+        event.preventDefault();
+        event.stopPropagation();
+
+        nativeButton.click();
+
+        syncLayoutEditButton();
+      }
+    );
+
+    window.addEventListener(
+      'pmd:floor:updated',
+      function () {
+        syncLayoutEditButton();
+      }
+    );
+
+    syncLayoutEditButton();
+
     root.addEventListener('click', function (event) {
+      // PMD_FLOOR_MANAGE_CLICK_V2
+      var manageButton =
+        event.target.closest(
+          '[data-pmd-floor-manage]'
+        );
+
+      if (
+        manageButton
+        && root.contains(
+          manageButton
+        )
+      ) {
+        event.preventDefault();
+
+        openManagePanel();
+
+        return;
+      }
+
       var floorButton = event.target.closest('[data-pmd-floor-switch]');
       if (floorButton && root.contains(floorButton)) {
         event.preventDefault();
@@ -903,7 +1822,79 @@
       });
     }
 
-    applyActiveFloor(activeId, { persist: false });
+    // PMD_FLOOR_MANAGE_LISTENERS_V2
+    if (managePanel) {
+      managePanel
+        .querySelectorAll(
+          '[data-pmd-floor-manage-close]'
+        )
+        .forEach(
+          function (button) {
+            button.addEventListener(
+              'click',
+              closeManagePanel
+            );
+          }
+        );
+
+      if (manageSave) {
+        manageSave.addEventListener(
+          'click',
+          renameActiveFloor
+        );
+      }
+
+      if (manageDelete) {
+        manageDelete.addEventListener(
+          'click',
+          deleteActiveFloor
+        );
+      }
+
+      if (manageInput) {
+        manageInput.addEventListener(
+          'keydown',
+          function (event) {
+            if (
+              event.key
+              === 'Enter'
+            ) {
+              event.preventDefault();
+
+              renameActiveFloor();
+            }
+          }
+        );
+      }
+
+      document.addEventListener(
+        'keydown',
+        function (event) {
+          if (
+            event.key
+              === 'Escape'
+            && !managePanel.hidden
+            && !manageBusy
+          ) {
+            closeManagePanel();
+          }
+        }
+      );
+    }
+
+    /*
+     * PMD_ACTIVE_FLOOR_USER_PAGE_COOKIE_SEED_V3
+     *
+     * This also migrates the old location-only first paint into the
+     * new login+page scoped cookie without a network request.
+     */
+    applyActiveFloor(
+      activeId,
+      {
+        persist: true,
+        refit: false
+      }
+    );
 
     root.__pmdSharedMultiFloorV1 = {
       setActiveFloor: function (id) { return applyActiveFloor(id); },
@@ -942,7 +1933,9 @@
           tableFeatureOptions: ['near_window', 'quiet_area', 'accessible'],
           qrDownload: true,
           notificationBusyBridge: true,
-          notificationBusyRespectsOperationalStatus: true,
+          notificationFreshOrderOccupancy: true,
+          notificationBusyRespectsOperationalStatus: false,
+          liveSnapshotReconciliation: true,
           manualCashierFreeBridge: true,
           safeCreatePlacement: true,
           sharedModalContract: true,

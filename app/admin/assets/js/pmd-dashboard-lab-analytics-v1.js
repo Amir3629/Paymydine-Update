@@ -577,28 +577,113 @@
     setBusy('recentTransactions', false);
   }
 
+  // PMD_MANAGER_ALERTS_CLIENT_PARITY_V2
+  // Keep Manager server-first and live-refresh content identical.
   function renderAlerts(payload) {
     var source = payload && payload.alerts;
     var body = bodyFor('alerts');
+
     if (!body) return;
-    if (!source || source.available === false || !source.types) {
+
+    if (
+      !source ||
+      source.available === false ||
+      !source.types
+    ) {
       body.innerHTML = empty(source);
-    } else {
-      var rows = Object.keys(source.types).map(function (key) {
-        var label = key.replace(/_/g, ' ');
-        if (key === 'long_open_tables' && source.long_open_threshold_minutes) {
-          label += ' (> ' + source.long_open_threshold_minutes + ' min)';
-        }
-        return {label: label, value: source.types[key]};
+      setBusy('alerts', false);
+      return;
+    }
+
+    var rows = Object.keys(
+      source.types
+    ).map(function (key) {
+      var label = key.replace(/_/g, ' ');
+
+      if (
+        key === 'long_open_tables' &&
+        source.long_open_threshold_minutes
+      ) {
+        label +=
+          ' (> '
+          + source.long_open_threshold_minutes
+          + ' min)';
+      }
+
+      return {
+        label: label,
+        value: source.types[key]
+      };
+    });
+
+    var managerRoot =
+      root.closest(
+        '[data-pmd-role-dashboard="manager"]'
+      );
+
+    if (managerRoot) {
+      var language = String(
+        document.documentElement.lang || 'en'
+      ).toLowerCase();
+
+      var german =
+        language.indexOf('de') === 0;
+
+      var live =
+        payload &&
+        payload.live_operations &&
+        typeof payload.live_operations === 'object'
+          ? payload.live_operations
+          : {};
+
+      var events =
+        payload &&
+        payload.calendar_events &&
+        typeof payload.calendar_events === 'object'
+          ? payload.calendar_events
+          : {};
+
+      rows.push({
+        label: german
+          ? 'Live-Bestellungen'
+          : 'Live orders',
+
+        value: Number(
+          live.live_order_count || 0
+        )
       });
-      body.innerHTML = list(rows, function (row) {
-        return '<span>' + esc(row.label) + '</span><b>' + esc(row.value == null ? 'Source unavailable' : row.value) + '</b>';
+
+      rows.push({
+        label: german
+          ? 'Bevorstehende Termine'
+          : 'Upcoming events',
+
+        value: Number(
+          events.count || 0
+        )
       });
     }
+
+    body.innerHTML = list(
+      rows,
+      function (row) {
+        return (
+          '<span>'
+          + esc(row.label)
+          + '</span><b>'
+          + esc(
+              row.value == null
+                ? 'Source unavailable'
+                : row.value
+            )
+          + '</b>'
+        );
+      }
+    );
+
     setBusy('alerts', false);
   }
 
-  /* PMD_DASHBOARD_LAB_CONTENT_REFINEMENT_V8 */
   function renderReviews(payload) {
     var source = payload && payload.reviews;
     var body = bodyFor('reviews');
@@ -807,21 +892,65 @@
     }
   }
 
+  // PMD_ANALYTICS_RANGE_COOKIE_V1
+  // Keep visual range preference server-first across refresh.
+  function persistRangeWindow(key, value) {
+    var cookieName = '';
+
+    if (key === 'salesOverTime') {
+      cookieName = 'pmd_dashboard_lab_sales_range';
+    } else if (key === 'salesByHour') {
+      cookieName = 'pmd_dashboard_lab_hour_range';
+    }
+
+    if (!cookieName) return;
+
+    try {
+      document.cookie =
+        cookieName
+        + '='
+        + encodeURIComponent(String(value))
+        + '; path=/admin; max-age=31536000; samesite=lax';
+    } catch (error) {}
+  }
+
   function applyRangeWindow(key, rawValue) {
     var input = rangeInput(key);
     if (!input) return;
-    var value = clampRange(input, rawValue);
 
-    syncRangeRail(key, value);
+    var value = clampRange(
+      input,
+      rawValue
+    );
+
+    syncRangeRail(
+      key,
+      value
+    );
+
+    persistRangeWindow(
+      key,
+      value
+    );
 
     if (key === 'salesOverTime') {
       salesVisible = value;
-      if (cache.last30) renderSales(cache.last30);
+
+      if (cache.last30) {
+        renderSales(
+          cache.last30
+        );
+      }
     }
 
     if (key === 'salesByHour') {
       hourVisible = value;
-      if (cache.last30) renderHour(cache.last30);
+
+      if (cache.last30) {
+        renderHour(
+          cache.last30
+        );
+      }
     }
   }
 

@@ -54,6 +54,156 @@ abstract class PmdCleanWorkspaceControllerV1 extends AdminController
      * The canonical Reservations_model::isCanceled() status-history rule is used
      * so a cancelled reservation never contributes a busy window.
      */
+    /*
+     * PMD_CLEAN_WORKSPACE_USER_PAGE_FLOOR_VIEW_SAVE_V1
+     */
+    public function onSaveFloorViewPreference()
+    {
+        $user =
+            \Admin\Facades\AdminAuth::getUser();
+
+        if (!$user) {
+            return response()->json(
+                [
+                    'ok' => false,
+                    'message' =>
+                        'Unauthenticated.',
+                ],
+                401
+            );
+        }
+
+        if (!$this->pmdUsesFloor()) {
+            return response()->json(
+                [
+                    'ok' => false,
+                    'message' =>
+                        'This workspace has no Floor.',
+                ],
+                422
+            );
+        }
+
+        $floorId =
+            trim(
+                (string)request()->input(
+                    'floor_id'
+                )
+            );
+
+        $mode =
+            trim(
+                (string)request()->input(
+                    'layout_mode'
+                )
+            );
+
+        $zoom =
+            request()->input(
+                'full_floor_zoom'
+            );
+
+        if ($floorId !== 'main-floor') {
+            return response()->json(
+                [
+                    'ok' => false,
+                    'message' =>
+                        'Invalid Floor.',
+                ],
+                422
+            );
+        }
+
+        if (
+            !in_array(
+                $mode,
+                ['full', 'row'],
+                true
+            )
+        ) {
+            return response()->json(
+                [
+                    'ok' => false,
+                    'message' =>
+                        'Invalid Floor layout mode.',
+                ],
+                422
+            );
+        }
+
+        if (
+            !is_numeric($zoom)
+            || (float)$zoom < 0.4
+            || (float)$zoom > 1.6
+        ) {
+            return response()->json(
+                [
+                    'ok' => false,
+                    'message' =>
+                        'Invalid Floor zoom.',
+                ],
+                422
+            );
+        }
+
+        try {
+            $locationId =
+                $this
+                    ->pmdFloorTableManagerLocationId();
+
+            if ($locationId < 1) {
+                return response()->json(
+                    [
+                        'ok' => false,
+                        'message' =>
+                            'Active restaurant location is unavailable.',
+                    ],
+                    409
+                );
+            }
+
+            $view =
+                app(
+                    \Admin\Services\PmdSharedFloorRegistryV1::class
+                )->saveUserPageViewPreference(
+                    $locationId,
+                    $this->pmdWorkspaceKey(),
+                    $mode,
+                    (float)$zoom
+                );
+
+            return response()->json([
+                'ok' => true,
+                'scope' =>
+                    'authenticated-user-page-location',
+                'workspace' =>
+                    $this->pmdWorkspaceKey(),
+                'view' =>
+                    $view,
+            ]);
+        } catch (\Throwable $error) {
+            logger()->warning(
+                'Clean workspace user/page Floor preference save failed',
+                [
+                    'workspace' =>
+                        $this->pmdWorkspaceKey(),
+
+                    'message' =>
+                        $error->getMessage(),
+                ]
+            );
+
+            return response()->json(
+                [
+                    'ok' => false,
+                    'message' =>
+                        'Floor view preference could not be saved.',
+                ],
+                500
+            );
+        }
+    }
+
     protected function pmdFloorReservationBusyWindows(int $locationId): array
     {
         $locationId = max(0, $locationId);
@@ -459,13 +609,32 @@ abstract class PmdCleanWorkspaceControllerV1 extends AdminController
 
         $tableId = max(0, (int)request()->input('table_id', 0));
 
+        // PMD_TABLE_MANAGER_ACTIVE_FLOOR_REQUEST_V2
+        $requestedActiveFloorId =
+            trim(
+                (string)request()->input(
+                    'active_floor_id',
+                    ''
+                )
+            );
+
         $activeFloorName = 'Main Floor';
         try {
             $registryService = app(\Admin\Services\PmdSharedFloorRegistryV1::class);
             $registry = $registryService->snapshot($locationId);
             $activeFloor = $registryService->activeFloor(
                 (array)($registry['floors'] ?? []),
-                (string)request()->cookie((string)($registry['cookie_name'] ?? ''), '')
+                $requestedActiveFloorId !== ''
+                    ? $requestedActiveFloorId
+                    : (string)request()->cookie(
+                        (string)(
+                            $registry[
+                                'cookie_name'
+                            ]
+                            ?? ''
+                        ),
+                        ''
+                    )
             );
             $activeFloorName = trim((string)($activeFloor['name'] ?? '')) ?: 'Main Floor';
         } catch (\Throwable $e) {
@@ -987,6 +1156,222 @@ abstract class PmdCleanWorkspaceControllerV1 extends AdminController
         ]);
     }
 
+    /*
+     * PMD_FLOOR_REGISTRY_RENAME_DELETE_HANDLERS_V2
+     */
+    public function onPmdFloorRegistryRename()
+    {
+        $this->pmdAssertCanManageFloorTables();
+
+        $locationId =
+            $this->pmdFloorTableManagerLocationId();
+
+        $requestedLocationId =
+            max(
+                0,
+                (int)request()->input(
+                    'location_id',
+                    0
+                )
+            );
+
+        if (
+            $requestedLocationId > 0
+            && $locationId > 0
+            && $requestedLocationId
+                !== $locationId
+        ) {
+            return response()->json([
+                'ok' => false,
+                'message' =>
+                    'Active Floor location changed. Refresh and try again.',
+            ], 409);
+        }
+
+        $floorId =
+            trim(
+                (string)request()->input(
+                    'floor_id',
+                    ''
+                )
+            );
+
+        $name =
+            trim(
+                (string)request()->input(
+                    'name',
+                    ''
+                )
+            );
+
+        $nameLength =
+            function_exists('mb_strlen')
+                ? mb_strlen($name, 'UTF-8')
+                : strlen($name);
+
+        if (
+            $floorId === ''
+            || $name === ''
+            || $nameLength > 120
+        ) {
+            return response()->json([
+                'ok' => false,
+                'message' =>
+                    'Please enter a valid Floor name.',
+            ], 422);
+        }
+
+        try {
+            $result =
+                app(
+                    \Admin\Services\PmdSharedFloorRegistryV1::class
+                )->renameFloor(
+                    $locationId,
+                    $floorId,
+                    $name
+                );
+        } catch (\InvalidArgumentException $error) {
+            return response()->json([
+                'ok' => false,
+                'message' =>
+                    $error->getMessage(),
+            ], 422);
+        } catch (\Throwable $error) {
+            logger()->error(
+                'PMD shared Floor rename failed',
+                [
+                    'location_id' =>
+                        $locationId,
+
+                    'message' =>
+                        $error->getMessage(),
+                ]
+            );
+
+            return response()->json([
+                'ok' => false,
+                'message' =>
+                    'Floor could not be renamed.',
+            ], 500);
+        }
+
+        return response()->json([
+            'ok' => true,
+            'message' =>
+                'Floor renamed.',
+
+            'floor' =>
+                $result['floor']
+                ?? null,
+
+            'registry' =>
+                $result['registry']
+                ?? [],
+        ]);
+    }
+
+    public function onPmdFloorRegistryDelete()
+    {
+        $this->pmdAssertCanManageFloorTables();
+
+        $locationId =
+            $this->pmdFloorTableManagerLocationId();
+
+        $requestedLocationId =
+            max(
+                0,
+                (int)request()->input(
+                    'location_id',
+                    0
+                )
+            );
+
+        if (
+            $requestedLocationId > 0
+            && $locationId > 0
+            && $requestedLocationId
+                !== $locationId
+        ) {
+            return response()->json([
+                'ok' => false,
+                'message' =>
+                    'Active Floor location changed. Refresh and try again.',
+            ], 409);
+        }
+
+        $floorId =
+            trim(
+                (string)request()->input(
+                    'floor_id',
+                    ''
+                )
+            );
+
+        if ($floorId === '') {
+            return response()->json([
+                'ok' => false,
+                'message' =>
+                    'Floor identity is required.',
+            ], 422);
+        }
+
+        try {
+            $result =
+                app(
+                    \Admin\Services\PmdSharedFloorRegistryV1::class
+                )->deleteFloor(
+                    $locationId,
+                    $floorId
+                );
+        } catch (\InvalidArgumentException $error) {
+            return response()->json([
+                'ok' => false,
+                'message' =>
+                    $error->getMessage(),
+            ], 422);
+        } catch (\Throwable $error) {
+            logger()->error(
+                'PMD shared Floor delete failed',
+                [
+                    'location_id' =>
+                        $locationId,
+
+                    'message' =>
+                        $error->getMessage(),
+                ]
+            );
+
+            return response()->json([
+                'ok' => false,
+                'message' =>
+                    'Floor could not be removed.',
+            ], 500);
+        }
+
+        return response()->json([
+            'ok' => true,
+
+            'message' =>
+                'Floor removed.',
+
+            'floor' =>
+                $result['floor']
+                ?? null,
+
+            'registry' =>
+                $result['registry']
+                ?? [],
+
+            'moved_to_main' =>
+                (int)(
+                    $result[
+                        'moved_to_main'
+                    ]
+                    ?? 0
+                ),
+        ]);
+    }
+
     public function onPmdFloorRegistrySnapshot()
     {
         $locationId = $this->pmdFloorTableManagerLocationId();
@@ -1045,6 +1430,10 @@ abstract class PmdCleanWorkspaceControllerV1 extends AdminController
 
         // Generic clean-workspace KPI chooser. Zero boot fetch/layout writes.
         $this->addJs('js/pmd-clean-workspace-kpis-v1.js');
+
+        // PMD_CLEAN_WORKSPACE_LIVE_REFRESH_ASSET_V1
+        // Event-driven only. It does not own a periodic poller.
+        $this->addJs('js/pmd-dashboard-live-refresh-v1.js');
 
         // Existing proven Floor interaction runtime. Initial geometry is Blade.
         // PMD_RESERVATIONSLAB_PARSER_SYNC_FLOOR_BOOT_V1
@@ -1106,6 +1495,37 @@ abstract class PmdCleanWorkspaceControllerV1 extends AdminController
             ? $shared->floorBootstrap()
             : [];
 
+        /*
+         * PMD_CLEAN_WORKSPACE_USER_PAGE_FLOOR_VIEW_V1
+         *
+         * Same logged-in person may choose a different Floor view on
+         * Manager, Cashier and Reservations. Different staff users on
+         * the same route also remain independent.
+         */
+        if ($this->pmdUsesFloor()) {
+            try {
+                $floorBootstrap =
+                    app(
+                        \Admin\Services\PmdSharedFloorRegistryV1::class
+                    )->applyUserPageViewPreference(
+                        (int)$shared->locationId(),
+                        $this->pmdWorkspaceKey(),
+                        $floorBootstrap
+                    );
+            } catch (\Throwable $error) {
+                logger()->warning(
+                    'Clean workspace user/page Floor preference read failed',
+                    [
+                        'workspace' =>
+                            $this->pmdWorkspaceKey(),
+
+                        'message' =>
+                            $error->getMessage(),
+                    ]
+                );
+            }
+        }
+
         $pmdSharedFloorLocationId = $this->pmdUsesFloor()
             ? $this->pmdFloorTableManagerLocationId()
             : 0;
@@ -1119,10 +1539,40 @@ abstract class PmdCleanWorkspaceControllerV1 extends AdminController
             ];
 
         $floorRegistryService = app(\Admin\Services\PmdSharedFloorRegistryV1::class);
-        $floorActiveCookieValue = (string)request()->cookie(
-            (string)($floorRegistrySnapshot['cookie_name'] ?? ''),
-            ''
-        );
+
+        // PMD_CLEAN_ACTIVE_FLOOR_USER_PAGE_MIGRATION_V2
+        $floorActiveCookieName =
+            (string)(
+                $floorRegistrySnapshot[
+                    'cookie_name'
+                ]
+                ?? ''
+            );
+
+        $floorActiveCookieValue =
+            $floorActiveCookieName !== ''
+                ? (string)request()->cookie(
+                    $floorActiveCookieName,
+                    ''
+                )
+                : '';
+
+        if (
+            trim($floorActiveCookieValue) === ''
+            && !empty(
+                $floorRegistrySnapshot[
+                    'legacy_cookie_name'
+                ]
+            )
+        ) {
+            $floorActiveCookieValue =
+                (string)request()->cookie(
+                    (string)$floorRegistrySnapshot[
+                        'legacy_cookie_name'
+                    ],
+                    ''
+                );
+        }
         $floorActive = $this->pmdUsesFloor()
             ? $floorRegistryService->activeFloor(
                 (array)($floorRegistrySnapshot['floors'] ?? []),
@@ -1211,6 +1661,47 @@ abstract class PmdCleanWorkspaceControllerV1 extends AdminController
 
         // Dashboard2/Floor data controllers may change AdminMenu context.
         $this->applyMenuContext();
+
+        /*
+         * PMD_CLEAN_WORKSPACE_LIVE_ENDPOINT_V1
+         *
+         * The notification stream is an invalidation signal only.
+         * Re-read canonical workspace services and return current data.
+         */
+        if ((string)request()->query('pmd_live', '') === '1') {
+            $liveExtras = [];
+
+            foreach ([
+                'cashier_orders' => 'pmdCashierCurrentOrders',
+                'cashier_history_mode' => 'pmdCashierHistoryMode',
+                'reservations_schedule' => 'pmdReservationsLabSchedule',
+                'manager_online_staff' => 'pmdManagerOnlineStaff',
+                'role_bundle' => 'pmdRoleDashboardBundle',
+            ] as $payloadKey => $varKey) {
+                if (array_key_exists($varKey, $this->vars)) {
+                    $liveExtras[$payloadKey] = $this->vars[$varKey];
+                }
+            }
+
+            return response()->json([
+                'success' => true,
+                'workspace' => $key,
+                'generated_at' => now()->toIso8601String(),
+                'kpis' => (array)(
+                    $this->vars['pmdCleanWorkspaceKpiCards']
+                    ?? []
+                ),
+                'floor_tables' => array_values(
+                    (array)(
+                        $this->vars[
+                            'pmdCleanWorkspaceFloorDisplayTables'
+                        ]
+                        ?? []
+                    )
+                ),
+                'extras' => $liveExtras,
+            ]);
+        }
 
         return $this->makeView($key.'lab/index');
     }

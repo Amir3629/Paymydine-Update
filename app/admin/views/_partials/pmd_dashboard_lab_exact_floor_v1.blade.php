@@ -127,6 +127,74 @@
         ? $pmdCleanWorkspaceFloorActive
         : $pmdFloorRegistry[0];
     $pmdFloorRegistryCount = count($pmdFloorRegistry);
+    
+    // PMD_EDIT_FLOOR_CUSTOM_EXISTENCE_V5_START
+    /*
+     * Product rule:
+     *
+     * Edit Floor exists only if a NON-DEFAULT Floor exists.
+     *
+     * The default Floor may be renamed, therefore its NAME
+     * must never decide this.
+     *
+     * Stable identity authority = is_default.
+     */
+    $pmdFloorExplicitDefaultFlags = 0;
+    $pmdHasCustomFloor = false;
+
+    foreach (
+        $pmdFloorRegistry
+        as $pmdFloorVisibilityItem
+    ) {
+        if (!is_array($pmdFloorVisibilityItem)) {
+            continue;
+        }
+
+        if (
+            array_key_exists(
+                'is_default',
+                $pmdFloorVisibilityItem
+            )
+        ) {
+            $pmdFloorExplicitDefaultFlags++;
+
+            if (
+                empty(
+                    $pmdFloorVisibilityItem[
+                        'is_default'
+                    ]
+                )
+            ) {
+                $pmdHasCustomFloor = true;
+                break;
+            }
+        }
+    }
+
+    /*
+     * Mixed registry compatibility:
+     * flagged permanent default + unflagged extra Floor
+     * means the extra row is custom.
+     */
+    if (
+        !$pmdHasCustomFloor
+        && $pmdFloorExplicitDefaultFlags > 0
+        && $pmdFloorExplicitDefaultFlags
+            < $pmdFloorRegistryCount
+    ) {
+        $pmdHasCustomFloor = true;
+    }
+
+    /*
+     * Old registry compatibility only.
+     * If zero entries carry the stable flag, fall back to
+     * count > 1.
+     */
+    if ($pmdFloorExplicitDefaultFlags === 0) {
+        $pmdHasCustomFloor =
+            $pmdFloorRegistryCount > 1;
+    }
+    // PMD_EDIT_FLOOR_CUSTOM_EXISTENCE_V5_END
     $pmdShowFloorTabs = $pmdFloorRegistryCount > 1;
     $pmdFloorActiveId = trim((string)($pmdFloorActive['id'] ?? '')) ?: (string)$pmdFloorRegistry[0]['id'];
     $pmdFloorActiveName = trim((string)($pmdFloorActive['name'] ?? '')) ?: 'Main Floor';
@@ -446,6 +514,38 @@
             'select_first' => 'Select one individual table first.',
         ];
 
+    // PMD_FLOOR_MANAGE_TEXT_V2
+    $pmdFloorManageText =
+        $pmdFloorTableManagerLocale === 'de'
+            ? [
+                'button' => 'Floor bearbeiten',
+                'title' => 'Floor bearbeiten',
+                'subtitle' =>
+                    'Diesen Floor umbenennen oder entfernen.',
+                'name' => 'Floor-Name',
+                'save' => 'Namen speichern',
+                'remove' => 'Floor entfernen',
+                'cancel' => 'Abbrechen',
+                'locked' =>
+                    'Dies ist der Standard-Floor. Er kann umbenannt, aber nicht entfernt werden.',
+                'confirm' =>
+                    'Diesen Floor entfernen? Seine Tische werden zu Main Floor verschoben. Keine Tische werden gelöscht.',
+            ]
+            : [
+                'button' => 'Edit floor',
+                'title' => 'Edit floor',
+                'subtitle' =>
+                    'Rename or remove this Floor.',
+                'name' => 'Floor name',
+                'save' => 'Save name',
+                'remove' => 'Remove floor',
+                'cancel' => 'Cancel',
+                'locked' =>
+                    'This is the default Floor. You can rename it, but it cannot be removed.',
+                'confirm' =>
+                    'Remove this Floor? Its tables will move to Main Floor. No tables will be deleted.',
+            ];
+
     $pmdFloorRegistryText = $pmdFloorTableManagerLocale === 'de'
         ? [
             'add_floor' => 'Floor hinzufügen',
@@ -611,10 +711,12 @@
     @endif
     data-order-url="{{ $endpoints['order'] ?? admin_url('waiter-pos/{table}') }}"
     data-floor-view-id="main-floor"
+    data-floor-view-url="{{ request()->url() }}"
     data-floor-view-mode="{{ $floorMode }}"
     data-floor-full-zoom="{{ $floorZoom }}"
-    data-floor-mode-cookie="pmd_dashboard_lab_floor_mode"
-    data-floor-zoom-cookie="pmd_dashboard_lab_floor_zoom"
+    data-floor-mode-cookie=""
+    data-floor-zoom-cookie=""
+    data-pmd-floor-view-preference="user-page-v1"
     data-pmd-floor-boot-source="server"
     data-pmd-floor-feature-locale="{{ $pmdFloorTableManagerLocale }}"
     aria-busy="false"
@@ -663,6 +765,38 @@
                     >
                         <svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12h14"></path></svg>
                         <span>{{ $pmdFloorRegistryText['add_floor'] }}</span>
+                    </button>
+
+                    {{-- PMD_FLOOR_MANAGE_LEFT_SWITCHER_V3 --}}
+                                        <!-- PMD_EDIT_FLOOR_SECOND_FLOOR_VISIBILITY_V4_SERVER -->
+<button
+                        type="button"
+                        class="pmd-shared-floor-switcher__add pmd-shared-floor-switcher__manage"
+                        data-pmd-floor-manage
+                        aria-label="{{ $pmdFloorManageText['button'] }}"
+                        title="{{ $pmdFloorManageText['button'] }}"
+                        data-pmd-floor-manage-custom-visible="{{ $pmdHasCustomFloor ? '1' : '0' }}"
+                        @if(!$pmdHasCustomFloor) hidden @endif
+                        style="display:{{ $pmdHasCustomFloor ? 'inline-flex' : 'none' }}!important;visibility:{{ $pmdHasCustomFloor ? 'visible' : 'hidden' }}!important;pointer-events:{{ $pmdHasCustomFloor ? 'auto' : 'none' }}!important;"
+                    >
+                        <svg
+                            viewBox="0 0 24 24"
+                            aria-hidden="true"
+                            fill="none"
+                            stroke="currentColor"
+                            stroke-width="2"
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                        >
+                            <path d="M3 7l9-4 9 4-9 4-9-4"></path>
+                            <path d="M5 12l7 3 7-3"></path>
+                            <path d="M14 20l5-5"></path>
+                            <path d="M17 14l3 3"></path>
+                        </svg>
+
+                        <span>
+                            {{ $pmdFloorManageText['button'] }}
+                        </span>
                     </button>
                 @endif
             </div>
@@ -874,7 +1008,6 @@
 
         <aside class="pmd-floor-v1__guide" data-floor-guide-card aria-label="Floor guide" hidden>
             <p data-floor-guide-status="available"><i class="is-available"></i>Available</p>
-            <p data-floor-guide-status="range-reservation"><i class="is-range-reservation"></i>Reserved in selected date range</p>
             <p data-floor-guide-status="occupied"><i class="is-occupied"></i>Occupied / open order</p>
         </aside>
     </div>
@@ -900,6 +1033,125 @@
     </aside>
 
     @if($pmdFloorCanManageTables)
+        {{-- PMD_FLOOR_MANAGE_CARD_V2 --}}
+        <div
+            class="pmd-floor-registry-manager"
+            data-pmd-floor-manage-panel
+            data-delete-confirm="{{ $pmdFloorManageText['confirm'] }}"
+            hidden
+            style="position:fixed!important;inset:0!important;z-index:2147483646!important;isolation:isolate!important;opacity:1!important;filter:none!important;-webkit-filter:none!important;"
+        >
+            <button
+                type="button"
+                class="pmd-floor-registry-manager__backdrop"
+                data-pmd-floor-manage-close
+                aria-label="{{ $pmdFloorManageText['cancel'] }}"
+                style="position:fixed!important;inset:0!important;z-index:1!important;width:100vw!important;height:100vh!important;border:0!important;background:rgba(15,35,54,.42)!important;opacity:1!important;filter:none!important;-webkit-filter:none!important;"
+            ></button>
+
+            <section
+                class="pmd-floor-registry-manager__card"
+                role="dialog"
+                aria-modal="true"
+                aria-labelledby="pmd-floor-manage-title-v2"
+                style="position:relative!important;z-index:2!important;background:#fff!important;background-color:#fff!important;opacity:1!important;filter:none!important;-webkit-filter:none!important;backdrop-filter:none!important;-webkit-backdrop-filter:none!important;"
+            >
+                <header
+                    class="pmd-floor-registry-manager__header"
+                >
+                    <div>
+                        <h2 id="pmd-floor-manage-title-v2">
+                            {{ $pmdFloorManageText['title'] }}
+                        </h2>
+
+                        <p>
+                            {{ $pmdFloorManageText['subtitle'] }}
+                        </p>
+                    </div>
+
+                    <button
+                        type="button"
+                        class="pmd-floor-registry-manager__close"
+                        data-pmd-floor-manage-close
+                        aria-label="{{ $pmdFloorManageText['cancel'] }}"
+                    >
+                        <svg
+                            viewBox="0 0 24 24"
+                            aria-hidden="true"
+                            fill="none"
+                            stroke="currentColor"
+                            stroke-width="2"
+                            stroke-linecap="round"
+                        >
+                            <path d="M6 6l12 12"></path>
+                            <path d="M18 6L6 18"></path>
+                        </svg>
+                    </button>
+                </header>
+
+                <div
+                    class="pmd-floor-registry-manager__body"
+                >
+                    <label
+                        class="pmd-floor-registry-manager__field"
+                    >
+                        <span>
+                            {{ $pmdFloorManageText['name'] }}
+                        </span>
+
+                        <input
+                            type="text"
+                            maxlength="120"
+                            autocomplete="off"
+                            data-pmd-floor-manage-name
+                        >
+                    </label>
+
+                    <div
+                        class="pmd-floor-registry-manager__locked"
+                        data-pmd-floor-manage-locked
+                        hidden
+                    >
+                        {{ $pmdFloorManageText['locked'] }}
+                    </div>
+
+                    <div
+                        class="pmd-floor-registry-manager__error"
+                        data-pmd-floor-manage-error
+                        hidden
+                    ></div>
+                </div>
+
+                <footer
+                    class="pmd-floor-registry-manager__footer"
+                >
+                    <button
+                        type="button"
+                        class="pmd-floor-registry-manager__delete"
+                        data-pmd-floor-manage-delete
+                    >
+                        {{ $pmdFloorManageText['remove'] }}
+                    </button>
+
+                    <button
+                        type="button"
+                        class="pmd-floor-registry-manager__cancel"
+                        data-pmd-floor-manage-close
+                    >
+                        {{ $pmdFloorManageText['cancel'] }}
+                    </button>
+
+                    <button
+                        type="button"
+                        class="pmd-floor-registry-manager__save"
+                        data-pmd-floor-manage-save
+                    >
+                        {{ $pmdFloorManageText['save'] }}
+                    </button>
+                </footer>
+            </section>
+        </div>
+
         <div class="pmd-floor-registry-manager" data-pmd-floor-add-panel hidden style="position:fixed!important;inset:0!important;z-index:2147483646!important;isolation:isolate!important;opacity:1!important;filter:none!important;-webkit-filter:none!important;">
             <button type="button" class="pmd-floor-registry-manager__backdrop" data-pmd-floor-add-close aria-label="{{ $pmdFloorRegistryText['cancel'] }}" style="position:fixed!important;inset:0!important;z-index:1!important;width:100vw!important;height:100vh!important;border:0!important;background:rgba(15,35,54,.42)!important;opacity:1!important;filter:none!important;-webkit-filter:none!important;"></button>
             <section class="pmd-floor-registry-manager__card" role="dialog" aria-modal="true" aria-labelledby="pmd-floor-registry-manager-title-v1" style="position:relative!important;z-index:2!important;background:#fff!important;background-color:#fff!important;opacity:1!important;filter:none!important;-webkit-filter:none!important;backdrop-filter:none!important;-webkit-backdrop-filter:none!important;">

@@ -79,6 +79,25 @@ class Managerlab extends PmdCleanWorkspaceControllerV1
         /** @var PmdRoleDashboardDataV1 $dashboard */
         $dashboard = app(PmdRoleDashboardDataV1::class);
 
+        /*
+         * PMD_MANAGER_RESERVATION_CALENDAR_PAYLOAD_V1
+         *
+         * SAME authority as ReservationsLab.
+         * Manager is only another host surface.
+         */
+        try {
+            $this->vars['pmdReservationsLabSchedule'] =
+                app(
+                    \Admin\Services\PmdReservationsLabScheduleV1::class
+                )->payload(
+                    $shared->locationId(),
+                    $locale
+                );
+        } catch (\Throwable $error) {
+            $this->vars['pmdReservationsLabSchedule'] = [];
+        }
+
+
         $bundle = $dashboard->bundle([
             'liveorders' => ['type' => 'liveorders', 'period' => 'today'],
             'alerts' => ['type' => 'alerts', 'period' => 'today'],
@@ -105,7 +124,7 @@ class Managerlab extends PmdCleanWorkspaceControllerV1
         $this->vars['pmdRoleInsightCards'] = [];
         $this->vars['pmdManagerOnlineStaff'] =
             $this->managerOnlineStaffSnapshot($shared->locationId(), $locale);
-        $this->installManagerKpis($bundle, $locale);
+        $this->installManagerKpis($bundle, $locale, $shared);
     }
 
     private function syncVisibleFloorCounts(array $bundle, array $floorBootstrap): array
@@ -156,7 +175,11 @@ class Managerlab extends PmdCleanWorkspaceControllerV1
         return $bundle;
     }
 
-    private function installManagerKpis(array $bundle, string $locale): void
+    private function installManagerKpis(
+        array $bundle,
+        string $locale,
+        PmdCleanWorkspaceSharedV1 $shared
+    ): void
     {
         $reports = is_array($bundle['reports'] ?? null)
             ? $bundle['reports']
@@ -166,6 +189,43 @@ class Managerlab extends PmdCleanWorkspaceControllerV1
         $alerts = is_array($reports['alerts'] ?? null) ? $reports['alerts'] : [];
         $reservations = is_array($reports['reservations'] ?? null) ? $reports['reservations'] : [];
         $de = strtolower($locale) === 'de';
+
+        /*
+         * PMD_MANAGER_KPI_CHOICES_V3_6
+         *
+         * Available tables:
+         * same visible Floor count authority.
+         *
+         * Staff online:
+         * same already-resolved PmdAdminPresenceService snapshot.
+         */
+        $enabledTables = max(
+            0,
+            (int)$this->statValue(
+                $live,
+                'Enabled tables'
+            )
+        );
+
+        $occupiedTables = max(
+            0,
+            (int)$this->statValue(
+                $live,
+                'Occupied tables'
+            )
+        );
+
+        $availableTables = max(
+            0,
+            $enabledTables - $occupiedTables
+        );
+
+        $onlineStaff = is_array(
+            $this->vars['pmdManagerOnlineStaff'] ?? null
+        )
+            ? $this->vars['pmdManagerOnlineStaff']
+            : [];
+
 
         $cards = [
             'live_orders' => $this->roleCard(
@@ -204,6 +264,47 @@ class Managerlab extends PmdCleanWorkspaceControllerV1
                 $reservations,
                 'today'
             ),
+            'available_tables' => $this->roleCard(
+                $de
+                    ? 'Verfügbare Tische'
+                    : 'Available tables',
+                (string)$availableTables,
+                $de
+                    ? 'Freie Tische aus dem aktuell sichtbaren Floor'
+                    : 'Free tables from the currently visible Floor',
+                'table',
+                'green',
+                $live,
+                'current'
+            ),
+
+            'staff_online' => [
+                'title' => $de
+                    ? 'Mitarbeiter online'
+                    : 'Staff online',
+
+                'value' => (string)max(
+                    0,
+                    (int)($onlineStaff['count'] ?? 0)
+                ),
+
+                'description' => $de
+                    ? 'Aktuell angemeldete Mitarbeiter an diesem Standort'
+                    : 'Staff currently signed in at this location',
+
+                'icon' => 'users',
+                'tone' => 'blue',
+                'period' => 'current',
+
+                'connected' =>
+                    ($onlineStaff['connected'] ?? false)
+                    === true,
+
+                'source' => (string)(
+                    $onlineStaff['source']
+                    ?? 'PmdAdminPresenceService'
+                ),
+            ],
         ];
 
         foreach ($cards as $cardKey => &$card) {
@@ -211,9 +312,29 @@ class Managerlab extends PmdCleanWorkspaceControllerV1
         }
         unset($card);
 
-        $this->vars['pmdCleanWorkspaceKpiCards'] = $cards;
-        $this->vars['pmdCleanWorkspaceKpiOrder'] = array_keys($cards);
-        $this->vars['pmdCleanWorkspaceKpiSelection'] = array_keys($cards);
+        $managerKpiOrder = array_keys($cards);
+
+        /*
+         * Six available choices.
+         * Four visible slots remain personalized through the
+         * existing Manager KPI cookie authority.
+         */
+        $managerKpiSelection =
+            $shared->readSelection(
+                'pmd_manager_lab_kpis',
+                $managerKpiOrder,
+                $this->pmdKpiDefaults()
+            );
+
+        $this->vars['pmdCleanWorkspaceKpiCards'] =
+            $cards;
+
+        $this->vars['pmdCleanWorkspaceKpiOrder'] =
+            $managerKpiOrder;
+
+        $this->vars['pmdCleanWorkspaceKpiSelection'] =
+            $managerKpiSelection;
+
         $this->vars['pmdCleanWorkspaceKpiAriaLabel'] = $de ? 'Manager-KPIs' : 'Manager KPIs';
     }
 

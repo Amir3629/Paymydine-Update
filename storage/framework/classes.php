@@ -168,4 +168,10 @@
   'Admin\\Widgets\\Filter' => 'app/admin/widgets/Filter.php',
   'Admin\\Widgets\\SearchBox' => 'app/admin/widgets/SearchBox.php',
   'System\\Classes\\ErrorHandler' => 'app/system/classes/ErrorHandler.php',
+  'Admin\\Controllers\\PmdWaiterTableStateV154' => 'app/admin/controllers/PmdWaiterTableStateV154.php',
+  'Admin\\Controllers\\KitchenDisplay' => 'app/admin/controllers/KitchenDisplay.php',
+  'Admin\\Models\\Order_notes_model' => 'app/admin/models/Order_notes_model.php',
+  'System\\Controllers\\settings' => 'app/system/controllers/Settings.php',
+  'Admin\\Controllers\\PmdWaiterDashboardNewV1' => 'app/admin/controllers/PmdWaiterDashboardNewV1.php',
+  'Admin\\Controllers\\pmdmenu' => 'app/admin/controllers/Pmdmenu.php',
 );

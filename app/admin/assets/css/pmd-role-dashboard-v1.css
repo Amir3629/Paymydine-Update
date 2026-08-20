@@ -195,3 +195,100 @@ html body.pmd-dashboard-lab-page
 }
 
 
+
+
+/* ==========================================================
+   PMD_MANAGER_ALERTS_ROW_PARITY_V1
+
+   Role-specific geometry belongs to the existing role adapter CSS.
+   Manager Sales by hour + Alerts are one visual row and must match.
+
+   No JS geometry.
+   No observer.
+   No delayed correction.
+   ========================================================== */
+
+@media (min-width: 1281px) {
+  html body.pmd-dashboard-lab-page
+  #pmd-dashboard-lab
+  [data-pmd-role-dashboard="manager"]
+  [data-pmd-lab-analytics-widget="salesByHour"],
+  html body.pmd-dashboard-lab-page
+  #pmd-dashboard-lab
+  [data-pmd-role-dashboard="manager"]
+  [data-pmd-lab-analytics-widget="alerts"] {
+    height: 430px !important;
+    min-height: 430px !important;
+    max-height: 430px !important;
+    align-self: stretch !important;
+  }
+}
+
+@media (min-width: 761px) and (max-width: 1280px) {
+  html body.pmd-dashboard-lab-page
+  #pmd-dashboard-lab
+  [data-pmd-role-dashboard="manager"]
+  [data-pmd-lab-analytics-widget="salesByHour"],
+  html body.pmd-dashboard-lab-page
+  #pmd-dashboard-lab
+  [data-pmd-role-dashboard="manager"]
+  [data-pmd-lab-analytics-widget="alerts"] {
+    height: 390px !important;
+    min-height: 390px !important;
+    max-height: 390px !important;
+    align-self: stretch !important;
+  }
+}
+
+html body.pmd-dashboard-lab-page
+#pmd-dashboard-lab
+[data-pmd-role-dashboard="manager"]
+[data-pmd-lab-analytics-widget="alerts"]
+.pmd-dashboard-lab-analytics__body {
+  min-height: 0 !important;
+  overflow-x: hidden !important;
+  overflow-y: auto !important;
+  scrollbar-width: thin;
+}
+
+
+
+/* PMD_MANAGER_ALERTS_PERSISTENT_ROWS_V2
+ *
+ * Manager alert row geometry belongs to the role-layout CSS,
+ * never inside body HTML that live analytics replaces.
+ */
+html body.pmd-dashboard-lab-page
+#pmd-dashboard-lab
+[data-pmd-role-dashboard="manager"]
+[data-pmd-lab-analytics-widget="alerts"]
+[data-pmd-manager-alerts-body-r63]
+> .pmd-dashboard-lab-list {
+  width: 100% !important;
+  margin: 0 !important;
+  padding: 0 !important;
+}
+
+html body.pmd-dashboard-lab-page
+#pmd-dashboard-lab
+[data-pmd-role-dashboard="manager"]
+[data-pmd-lab-analytics-widget="alerts"]
+[data-pmd-manager-alerts-body-r63]
+> .pmd-dashboard-lab-list
+> li {
+  box-sizing: border-box !important;
+  min-height: 48px !important;
+  padding: 11px 0 !important;
+}
+
+html body.pmd-dashboard-lab-page
+#pmd-dashboard-lab
+[data-pmd-role-dashboard="manager"]
+[data-pmd-lab-analytics-widget="alerts"]
+[data-pmd-manager-alerts-body-r63] {
+  min-height: 0 !important;
+  overflow-x: hidden !important;
+  overflow-y: auto !important;
+  scrollbar-width: thin;
+}
+

@@ -3,12 +3,23 @@
     $categories = $pmdMenuManagerCategories ?? collect();
     $combos = $pmdMenuManagerCombos ?? [];
     $canManageCategories = !empty($pmdMenuManagerCanManageCategories);
+    $canDeleteCategories = !empty($pmdMenuManagerCanDeleteCategories);
     $canManageCombos = !empty($pmdMenuManagerCanManageCombos);
     $hasCombos = !empty($pmdMenuManagerHasCombos) || count($combos) > 0;
     $stats = $pmdMenuManagerStats ?? ['total' => 0, 'published' => 0, 'stock_out' => 0, 'foods' => 0, 'combos' => 0];
     $disabledCount = max(0, (int)$stats['total'] - (int)$stats['published']);
     $categoryCount = (is_countable($categories) ? count($categories) : 0) + ($hasCombos ? 1 : 0);
     $totalCatalogueCards = count($cards) + count($combos);
+
+    // PMD_MENU_HEADER_SERVER_COUNT_V2
+    try {
+        $pmdMenuHeaderServerCountV2 =
+            app(
+                \Admin\Services\PmdNotificationCountV1::class
+            )->currentNewCount();
+    } catch (\Throwable $error) {
+        $pmdMenuHeaderServerCountV2 = 0;
+    }
 
     $pmdMenuLocale = strtolower(trim((string)request()->cookie('pmd_admin_locale', app()->getLocale())));
     $pmdMenuLocale = str_starts_with($pmdMenuLocale, 'de') ? 'de' : 'en';
@@ -23,7 +34,7 @@
             'no_results' => 'No menu items match these filters.', 'sort_edit' => 'Edit order', 'sort_done' => 'Done', 'sort_title' => 'Reorder menu cards',
             'sort_saving' => 'Saving order...', 'sort_saved' => 'Order saved', 'sort_failed' => 'Could not save order.', 'sort_food_hint' => 'Drag foods to set the frontend order.',
             'sort_combo_hint' => 'Drag combos to set their order.', 'sort_category_hint' => 'Drag categories to set their frontend order.', 'sort_mode_all' => 'All foods is opened for safe ordering.',
-            'add_category' => 'Add category', 'create_category' => 'Create category', 'category_name' => 'Category name', 'category_name_help' => 'Create one menu category. You can reorder it immediately in Edit order mode.', 'category_name_placeholder' => 'e.g. Lunch', 'save_category' => 'Save category', 'category_created' => 'Category created', 'category_create_error' => 'Could not create category.',
+            'add_category' => 'Add category', 'create_category' => 'Create category', 'category_name' => 'Category name', 'category_name_help' => 'Create one menu category. You can reorder it immediately in Edit order mode.', 'category_name_placeholder' => 'e.g. Lunch', 'save_category' => 'Save category', 'category_created' => 'Category created', 'category_create_error' => 'Could not create category.', 'delete_category' => 'Delete category', 'delete_category_confirm' => 'Delete "{name}" and permanently delete all {count} foods assigned to it, including foods also used in other categories? This cannot be undone.', 'delete_empty_category_confirm' => 'Delete "{name}"? This cannot be undone.', 'category_deleted' => 'Category deleted', 'delete_category_error' => 'Could not delete category.',
             'combo_attrs' => 'Combo attributes inherited from foods', 'all_foods_halal' => 'All foods are Halal', 'all_foods_vegetarian' => 'All foods are vegetarian', 'all_foods_vegan' => 'All foods are vegan',
             'allergen_singular' => 'allergen', 'allergen_plural' => 'allergens', 'combo_foods' => 'Combo foods',
             'menu_item' => 'Menu item', 'close' => 'Close', 'food_image' => 'Food image', 'food_preview' => 'Food preview', 'food_image_help' => 'JPG, PNG or WEBP. The image fills the food card and a new upload becomes the primary image.', 'choose_image' => 'Choose image',
@@ -47,7 +58,7 @@
             'no_results' => 'Keine Menüartikel entsprechen diesen Filtern.', 'sort_edit' => 'Reihenfolge bearbeiten', 'sort_done' => 'Fertig', 'sort_title' => 'Menükarten sortieren',
             'sort_saving' => 'Reihenfolge wird gespeichert...', 'sort_saved' => 'Reihenfolge gespeichert', 'sort_failed' => 'Reihenfolge konnte nicht gespeichert werden.', 'sort_food_hint' => 'Ziehe Speisen, um die Reihenfolge im Gästemenü festzulegen.',
             'sort_combo_hint' => 'Ziehe Combos, um ihre Reihenfolge festzulegen.', 'sort_category_hint' => 'Ziehe Kategorien, um ihre Reihenfolge im Gästemenü festzulegen.', 'sort_mode_all' => 'Für sicheres Sortieren wurde „Alle Speisen“ geöffnet.',
-            'add_category' => 'Kategorie hinzufügen', 'create_category' => 'Kategorie erstellen', 'category_name' => 'Kategoriename', 'category_name_help' => 'Erstelle eine Menükategorie. Im Modus „Reihenfolge bearbeiten“ kannst du sie direkt sortieren.', 'category_name_placeholder' => 'z. B. Mittagessen', 'save_category' => 'Kategorie speichern', 'category_created' => 'Kategorie erstellt', 'category_create_error' => 'Kategorie konnte nicht erstellt werden.',
+            'add_category' => 'Kategorie hinzufügen', 'create_category' => 'Kategorie erstellen', 'category_name' => 'Kategoriename', 'category_name_help' => 'Erstelle eine Menükategorie. Im Modus „Reihenfolge bearbeiten“ kannst du sie direkt sortieren.', 'category_name_placeholder' => 'z. B. Mittagessen', 'save_category' => 'Kategorie speichern', 'category_created' => 'Kategorie erstellt', 'category_create_error' => 'Kategorie konnte nicht erstellt werden.', 'delete_category' => 'Kategorie löschen', 'delete_category_confirm' => '"{name}" löschen und alle {count} zugeordneten Speisen endgültig löschen, auch wenn sie weiteren Kategorien zugeordnet sind? Dies kann nicht rückgängig gemacht werden.', 'delete_empty_category_confirm' => '"{name}" löschen? Dies kann nicht rückgängig gemacht werden.', 'category_deleted' => 'Kategorie gelöscht', 'delete_category_error' => 'Kategorie konnte nicht gelöscht werden.',
             'combo_attrs' => 'Vom Inhalt des Combos übernommene Eigenschaften', 'all_foods_halal' => 'Alle Speisen sind Halal', 'all_foods_vegetarian' => 'Alle Speisen sind vegetarisch', 'all_foods_vegan' => 'Alle Speisen sind vegan',
             'allergen_singular' => 'Allergen', 'allergen_plural' => 'Allergene', 'combo_foods' => 'Combo-Speisen',
             'menu_item' => 'Menüartikel', 'close' => 'Schließen', 'food_image' => 'Speisenbild', 'food_preview' => 'Speisenvorschau', 'food_image_help' => 'JPG, PNG oder WEBP. Das Bild füllt die Speisenkarte; ein neues Bild wird zum Hauptbild.', 'choose_image' => 'Bild auswählen',
@@ -67,61 +78,612 @@
     };
 @endphp
 
+
+{{-- PMD_MENU_NOTIFICATION_SERVER_FIRST_V13 --}}
+@php
+    $pmdMenuNotificationCountV13 = 0;
+
+    try {
+        $pmdMenuNotificationCountV13 =
+            app(
+                \Admin\Services\PmdNotificationCountV1::class
+            )->currentNewCount();
+    } catch (\Throwable $error) {
+        $pmdMenuNotificationCountV13 = 0;
+    }
+@endphp
+
 <div
     id="pmd-menu-manager-main"
     class="pmd-owner-page pmd-menu-manager"
     data-pmd-menu-manager
     data-pmd-combo-builder="0"
     data-pmd-can-manage-combos="{{ $canManageCombos ? '1' : '0' }}"
+    data-pmd-can-delete-categories="{{ $canDeleteCategories ? '1' : '0' }}"
     data-pmd-category-context="all"
 >
-    <header
-        id="pmd-r2-clean-header"
-        class="pmd-owner-header pmd-dashboard-lab__dashboard2-header pmd-menu-manager__topbar"
-        aria-label="{{ $pmdT('menu_header') }}"
-        data-pmd-menu-header-v122
-    >
-        <div class="pmd-owner-header__left">
-            <h1 class="pmd-r2-clean-title">Menu</h1>
-        </div>
+    <!-- PMD_DASHBOARD_HEADER_CLONE_V1_MENU_START -->
+<header
+    id="pmd-r2-clean-header"
+    class="pmd-owner-header pmd-dashboard-lab__dashboard2-header pmd-menu-manager__topbar"
+    aria-label="{{ $pmdT('menu_header') }}"
+    data-pmd-dashboard-header-clone="menu-v1"
+>
+    <div class="pmd-owner-header__left">
+        <h1 class="pmd-r2-clean-title">Menu</h1>
+    </div>
 
-        <div class="pmd-owner-header__actions pmd-r2-clean-actions" data-pmd-menu-header-actions aria-label="{{ $pmdT('menu_actions') }}">
+    <div
+        class="pmd-owner-header__actions pmd-r2-clean-actions"
+        data-pmd-menu-header-actions
+        aria-label="{{ $pmdT('menu_actions') }}"
+    >
+        <button
+            type="button"
+            class="pmd-dashboard-lab__header-action"
+            data-pmd-menu-header-primary
+            data-pmd-menu-create
+            aria-label="{{ $pmdT('create_food') }}"
+            title="{{ $pmdT('create_food') }}"
+        >
+            <svg
+                data-pmd-menu-primary-glyph
+                data-pmd-glyph="create"
+                viewBox="0 0 24 24"
+                aria-hidden="true"
+            >
+                <path d="M12 5v14"></path>
+                <path d="M5 12h14"></path>
+            </svg>
+
+            <span
+                class="pmd-menu-header-action__count"
+                data-pmd-combo-selection-count
+                hidden
+            >0</span>
+        </button>
+
+        @if($canManageCombos)
             <button
                 type="button"
-                class="pmd-dashboard-lab__header-action pmd-menu-header-action pmd-menu-header-action--primary"
-                data-pmd-menu-header-primary
-                data-pmd-menu-create
-                aria-label="{{ $pmdT('create_food') }}"
-                title="{{ $pmdT('create_food') }}"
+                class="pmd-dashboard-lab__header-action"
+                data-pmd-menu-header-secondary
+                data-pmd-combo-build
+                aria-label="{{ $pmdT('create_combo') }}"
+                title="{{ $pmdT('create_combo') }}"
             >
-                <svg class="pmd-menu-header-glyph" data-pmd-menu-primary-glyph data-pmd-glyph="create" viewBox="0 0 24 24" aria-hidden="true">
-                    <path d="M12 5v14"></path><path d="M5 12h14"></path>
-                </svg>
-                <span class="pmd-menu-header-action__count" data-pmd-combo-selection-count hidden>0</span>
-            </button>
-
-            @if($canManageCombos)
-                <button
-                    type="button"
-                    class="pmd-dashboard-lab__header-action pmd-menu-header-action pmd-menu-header-action--secondary"
-                    data-pmd-menu-header-secondary
-                    data-pmd-combo-build
-                    aria-label="{{ $pmdT('create_combo') }}"
-                    title="{{ $pmdT('create_combo') }}"
+                <svg
+                    data-pmd-menu-secondary-glyph
+                    data-pmd-glyph="build"
+                    viewBox="0 0 24 24"
+                    aria-hidden="true"
                 >
-                    <svg class="pmd-menu-header-glyph" data-pmd-menu-secondary-glyph data-pmd-glyph="build" viewBox="0 0 24 24" aria-hidden="true">
-                        <path d="M4 7l8-4 8 4-8 4-8-4z"></path><path d="m4 12 8 4 8-4"></path><path d="m4 17 8 4 8-4"></path><path d="M18 3v6"></path><path d="M15 6h6"></path>
-                    </svg>
-                </button>
-            @endif
+                    <path d="M4 7l8-4 8 4-8 4-8-4z"></path>
+                    <path d="m4 12 8 4 8-4"></path>
+                    <path d="m4 17 8 4 8-4"></path>
+                    <path d="M18 3v6"></path>
+                    <path d="M15 6h6"></path>
+                </svg>
+            </button>
+        @endif
 
-            <span class="pmd-owner-notif-slot pmd-dashboard-lab__notif-slot" data-pmd-menu-notif-slot aria-label="{{ $pmdT('notifications') }}">
-                <span class="pmd-dashboard-lab__notif-fallback" aria-hidden="true">
-                    <svg viewBox="0 0 24 24"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9"></path><path d="M13.73 21a2 2 0 0 1-3.46 0"></path></svg>
-                </span>
+
+            <span
+                data-pmd-main-header-notification-gap-r67=""
+                aria-hidden="true"
+                style="
+                    position:relative!important;
+                    display:block!important;
+                    flex:0 0 10px!important;
+                    width:10px!important;
+                    min-width:10px!important;
+                    max-width:10px!important;
+                    height:46px!important;
+                    min-height:46px!important;
+                    max-height:46px!important;
+                    margin:0!important;
+                    padding:0!important;
+                    border:0!important;
+                    background:transparent!important;
+                    pointer-events:none!important;
+                    overflow:visible!important;
+                "
+            >
+                <span
+                    data-pmd-main-header-notification-divider-r67=""
+                    aria-hidden="true"
+                    style="
+                        position:absolute!important;
+                        top:50%!important;
+                        right:5px!important;
+                        transform:translateY(-50%)!important;
+                        display:block!important;
+                        width:1px!important;
+                        min-width:1px!important;
+                        max-width:1px!important;
+                        height:34px!important;
+                        min-height:34px!important;
+                        max-height:34px!important;
+                        margin:0!important;
+                        padding:0!important;
+                        border:0!important;
+                        background:#cfe0ec!important;
+                        pointer-events:none!important;
+                    
+                        left:auto!important;"
+                ></span>
             </span>
-        </div>
-    </header>
+
+
+        <span
+            class="pmd-owner-notif-slot pmd-dashboard-lab__notif-slot pmd-dashboard-header-clone__notif-slot"
+            data-pmd-menu-notif-slot
+            data-pmd-dashboard-header-clone-notif-slot
+            aria-label="{{ $pmdT('notifications') }}"
+        >
+            <span
+                class="pmd-dashboard-lab__notif-fallback"
+                aria-hidden="true"
+            >
+                <svg viewBox="0 0 24 24">
+                    <path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9"></path>
+                    <path d="M13.73 21a2 2 0 0 1-3.46 0"></path>
+                </svg>
+            
+                    @if($pmdMenuNotificationCountV13 > 0)
+                        <span
+                            class="pmd-header-server-count-v13"
+                            data-pmd-menu-count-v13
+                            aria-hidden="true"
+                        >{{ $pmdMenuNotificationCountV13 }}</span>
+                    @endif
+</span>
+        </span>
+    </div>
+</header>
+
+
+    <script data-pmd-dashboard-header-clone-mount>
+    (function () {
+      'use strict';
+
+      function setImportant(node, property, value) {
+        if (!node) return;
+        node.style.setProperty(
+          property,
+          value,
+          'important'
+        );
+      }
+
+      function bellSvg() {
+        return ''
+          + '<svg viewBox="0 0 24 24" aria-hidden="true">'
+          + '<path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9"></path>'
+          + '<path d="M13.73 21a2 2 0 0 1-3.46 0"></path>'
+          + '</svg>';
+      }
+
+      function normalizeNotification(root) {
+        if (!root) return false;
+
+        var trigger = root.querySelector(
+          '#notifDropdown'
+        );
+
+        if (!trigger) return false;
+
+        root.classList.remove('show');
+
+        Array.prototype.forEach.call(
+          root.querySelectorAll(
+            '.dropdown-menu.show'
+          ),
+          function (menu) {
+            menu.classList.remove('show');
+            menu.style.removeProperty('display');
+          }
+        );
+
+        trigger.classList.remove('show');
+        trigger.setAttribute(
+          'aria-expanded',
+          'false'
+        );
+        trigger.setAttribute(
+          'aria-label',
+          'Notifications'
+        );
+        trigger.setAttribute(
+          'title',
+          'Notifications'
+        );
+
+        Array.prototype.forEach.call(
+          trigger.querySelectorAll(
+            ':scope > i'
+          ),
+          function (node) {
+            node.remove();
+          }
+        );
+
+        var bell = trigger.querySelector(
+          ':scope > #bell-icon'
+        );
+
+        if (!bell) {
+          bell = document.createElement('span');
+          bell.id = 'bell-icon';
+
+          trigger.insertBefore(
+            bell,
+            trigger.firstChild || null
+          );
+        }
+
+        bell.innerHTML = bellSvg();
+
+        var count = trigger.querySelector(
+          '#notification-count'
+        );
+
+        var panel =
+          root.querySelector('#notification-panel')
+          || root.querySelector('.dropdown-menu');
+
+        setImportant(root, 'position', 'relative');
+        setImportant(root, 'display', 'flex');
+        setImportant(root, 'align-items', 'center');
+        setImportant(root, 'justify-content', 'center');
+        setImportant(root, 'box-sizing', 'border-box');
+
+        setImportant(root, 'width', '46px');
+        setImportant(root, 'min-width', '46px');
+        setImportant(root, 'max-width', '46px');
+
+        setImportant(root, 'height', '46px');
+        setImportant(root, 'min-height', '46px');
+        setImportant(root, 'max-height', '46px');
+
+        setImportant(root, 'flex', '0 0 46px');
+
+        /*
+         * Kills the old inline
+         * margin-left:24px!important authority.
+         */
+        setImportant(root, 'margin', '0');
+        setImportant(root, 'margin-left', '0');
+
+        setImportant(root, 'padding', '0');
+        setImportant(root, 'border', '0');
+        setImportant(
+          root,
+          'background',
+          'transparent'
+        );
+        setImportant(root, 'overflow', 'visible');
+        setImportant(root, 'list-style', 'none');
+        setImportant(root, 'transform', 'none');
+
+        setImportant(
+          trigger,
+          'position',
+          'relative'
+        );
+        setImportant(trigger, 'display', 'grid');
+        setImportant(
+          trigger,
+          'place-items',
+          'center'
+        );
+        setImportant(
+          trigger,
+          'box-sizing',
+          'border-box'
+        );
+
+        setImportant(trigger, 'width', '46px');
+        setImportant(
+          trigger,
+          'min-width',
+          '46px'
+        );
+        setImportant(
+          trigger,
+          'max-width',
+          '46px'
+        );
+
+        setImportant(trigger, 'height', '46px');
+        setImportant(
+          trigger,
+          'min-height',
+          '46px'
+        );
+        setImportant(
+          trigger,
+          'max-height',
+          '46px'
+        );
+
+        setImportant(trigger, 'margin', '0');
+        setImportant(trigger, 'padding', '0');
+
+        setImportant(
+          trigger,
+          'border',
+          '1px solid #cfe0ec'
+        );
+        setImportant(
+          trigger,
+          'border-radius',
+          '14px'
+        );
+        setImportant(
+          trigger,
+          'background',
+          '#ffffff'
+        );
+        setImportant(
+          trigger,
+          'color',
+          '#173752'
+        );
+        setImportant(
+          trigger,
+          'box-shadow',
+          '0 3px 10px rgba(23,55,82,.05)'
+        );
+
+        setImportant(
+          trigger,
+          'line-height',
+          '1'
+        );
+        setImportant(
+          trigger,
+          'text-indent',
+          '0'
+        );
+        setImportant(trigger, 'opacity', '1');
+        setImportant(
+          trigger,
+          'visibility',
+          'visible'
+        );
+        setImportant(
+          trigger,
+          'overflow',
+          'visible'
+        );
+        setImportant(
+          trigger,
+          'transform',
+          'none'
+        );
+
+        setImportant(bell, 'position', 'static');
+        setImportant(
+          bell,
+          'display',
+          'inline-flex'
+        );
+        setImportant(
+          bell,
+          'align-items',
+          'center'
+        );
+        setImportant(
+          bell,
+          'justify-content',
+          'center'
+        );
+        setImportant(bell, 'width', '21px');
+        setImportant(bell, 'height', '21px');
+        setImportant(bell, 'margin', '0');
+        setImportant(bell, 'padding', '0');
+        setImportant(bell, 'color', '#173752');
+        setImportant(bell, 'line-height', '1');
+        setImportant(bell, 'transform', 'none');
+        setImportant(
+          bell,
+          'pointer-events',
+          'none'
+        );
+
+        var svg = bell.querySelector('svg');
+
+        if (svg) {
+          setImportant(svg, 'display', 'block');
+          setImportant(svg, 'width', '21px');
+          setImportant(svg, 'height', '21px');
+          setImportant(svg, 'margin', '0');
+          setImportant(svg, 'padding', '0');
+          setImportant(svg, 'fill', 'none');
+          setImportant(
+            svg,
+            'stroke',
+            'currentColor'
+          );
+          setImportant(
+            svg,
+            'stroke-width',
+            '2'
+          );
+          setImportant(
+            svg,
+            'stroke-linecap',
+            'round'
+          );
+          setImportant(
+            svg,
+            'stroke-linejoin',
+            'round'
+          );
+          setImportant(svg, 'transform', 'none');
+        }
+
+        if (count) {
+          setImportant(
+            count,
+            'position',
+            'absolute'
+          );
+          setImportant(count, 'top', '-7px');
+          setImportant(count, 'right', '-8px');
+          setImportant(count, 'left', 'auto');
+          setImportant(count, 'bottom', 'auto');
+          setImportant(count, 'z-index', '8');
+
+          setImportant(
+            count,
+            'min-width',
+            '18px'
+          );
+          setImportant(count, 'height', '18px');
+
+          setImportant(count, 'margin', '0');
+          setImportant(
+            count,
+            'padding',
+            '0 4px'
+          );
+
+          setImportant(
+            count,
+            'border',
+            '2px solid #ffffff'
+          );
+          setImportant(
+            count,
+            'border-radius',
+            '999px'
+          );
+          setImportant(
+            count,
+            'background',
+            '#d83a31'
+          );
+          setImportant(count, 'color', '#fff');
+
+          setImportant(
+            count,
+            'font-size',
+            '9px'
+          );
+          setImportant(
+            count,
+            'font-weight',
+            '800'
+          );
+          setImportant(
+            count,
+            'line-height',
+            '14px'
+          );
+          setImportant(
+            count,
+            'text-align',
+            'center'
+          );
+          setImportant(
+            count,
+            'white-space',
+            'nowrap'
+          );
+          setImportant(
+            count,
+            'transform',
+            'none'
+          );
+        }
+
+        if (panel) {
+          setImportant(
+            panel,
+            'position',
+            'absolute'
+          );
+          setImportant(panel, 'top', '54px');
+          setImportant(panel, 'right', '0');
+          setImportant(panel, 'left', 'auto');
+          setImportant(panel, 'margin', '0');
+          setImportant(
+            panel,
+            'z-index',
+            '10050'
+          );
+          setImportant(
+            panel,
+            'transform',
+            'none'
+          );
+        }
+
+        root.removeAttribute('hidden');
+        root.removeAttribute('aria-hidden');
+
+        root.setAttribute(
+          'data-pmd-dashboard-header-notification',
+          'mounted-v1'
+        );
+
+        return true;
+      }
+
+      function mount() {
+        var header = document.getElementById(
+          'pmd-r2-clean-header'
+        );
+
+        var slot = header
+          ? header.querySelector(
+              '[data-pmd-dashboard-header-clone-notif-slot]'
+            )
+          : null;
+
+        var root = document.getElementById(
+          'notif-root'
+        );
+
+        if (
+          !header
+          || !root
+          || !root.querySelector('#notifDropdown')
+        ) {
+          return false;
+        }
+
+        if (
+          slot
+          && !header.contains(root)
+        ) {
+          slot.replaceWith(root);
+        }
+
+        if (!header.contains(root)) {
+          return false;
+        }
+
+        return normalizeNotification(root);
+      }
+
+      var mounted = mount();
+
+      if (
+        !mounted
+        && document.readyState === 'loading'
+      ) {
+        document.addEventListener(
+          'DOMContentLoaded',
+          mount,
+          { once: true }
+        );
+      }
+    })();
+    </script>
+<!-- PMD_DASHBOARD_HEADER_CLONE_V1_MENU_END -->
 
     <section class="pmd-menu-kpis" aria-label="{{ $pmdT('menu_overview') }}">
         <article class="pmd-menu-kpi" data-pmd-menu-kpi="foods">
@@ -183,13 +745,32 @@
 
         <div class="pmd-menu-manager__categories" aria-label="{{ $pmdT('menu_categories') }}" data-pmd-food-categories>
             <button type="button" class="is-active" data-pmd-category-filter="all" data-pmd-category-fixed>{{ $pmdT('all_foods') }}</button>
+            <!-- PMD_MENU_CATEGORY_DELETE_OWNER_MANAGER_V130 -->
             @foreach($categories as $category)
                 <button
                     type="button"
                     data-pmd-category-filter="{{ (int)$category->category_id }}"
                     data-pmd-category-id="{{ (int)$category->category_id }}"
                     @if($canManageCategories) data-pmd-category-sortable @endif
-                >{{ $category->name }}</button>
+                >
+                    <span class="pmd-menu-manager__category-label">{{ $category->name }}</span>
+
+                    @if($canDeleteCategories)
+                        <span
+                            class="pmd-menu-manager__category-delete-hit"
+                            data-pmd-category-delete="{{ (int)$category->category_id }}"
+                            aria-hidden="true"
+                        >
+                            <svg
+                                viewBox="0 0 24 24"
+                                aria-hidden="true"
+                            >
+                                <path d="M6 6l12 12"></path>
+                                <path d="M18 6 6 18"></path>
+                            </svg>
+                        </span>
+                    @endif
+                </button>
             @endforeach
             @if($hasCombos)
                 <button type="button" data-pmd-category-filter="combos" data-pmd-category-fixed>{{ $pmdT('combos') }}</button>

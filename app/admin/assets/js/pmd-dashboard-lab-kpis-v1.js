@@ -165,7 +165,8 @@
     }
   }
 
-  function applyCard(card, key) {
+  function applyCard(card, key, options) {
+    var opts = options || {};
     var data = cards[key];
     if (!card || !data) return false;
 
@@ -197,7 +198,9 @@
       descriptionNode.textContent = data.description || '';
     }
 
-    persistSelection();
+    if (opts.persist !== false) {
+      persistSelection();
+    }
     syncMenus();
 
     return true;
@@ -269,10 +272,44 @@
     }
   });
 
+
+  // PMD_DASHBOARD_LIVE_KPI_APPLY_V1
+  // Update current KPI content only. User selection and geometry stay intact.
+  function applyLivePayload(payload) {
+    var nextCards =
+      payload &&
+      payload.kpis &&
+      typeof payload.kpis === 'object' &&
+      !Array.isArray(payload.kpis)
+        ? payload.kpis
+        : null;
+
+    if (!nextCards) return false;
+
+    cards = nextCards;
+
+    visibleCards().forEach(function (card) {
+      var key = card.getAttribute(
+        'data-pmd-dashboard2-kpi'
+      ) || '';
+
+      if (!key || !cards[key]) return;
+
+      applyCard(
+        card,
+        key,
+        {persist: false}
+      );
+    });
+
+    return true;
+  }
+
   window.PMDDashboardLabKpisV1 = {
     version: VERSION,
     renderAuthority: 'server-first-paint',
     bootFetches: 0,
+    applyLivePayload: applyLivePayload,
     choose: function (slot, key) {
       var card = section.querySelector(
         '[data-pmd-dashboard-lab-slot="' + String(slot) + '"]'

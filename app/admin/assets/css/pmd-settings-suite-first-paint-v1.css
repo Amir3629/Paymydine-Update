@@ -542,3 +542,734 @@ html body.page.pmd-settings-suite.pmd-clean-workspace-page.pmd-clean-workspace-r
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace !important;
 }
 
+
+/* PMD_SETTINGS_SERVER_HEADER_V11_START */
+
+html.pmd-settings-server-header-v11
+body.page.pmd-settings-center-page
+#pmd-settings-center {
+  width:100%!important;
+  min-width:0!important;
+
+  min-height:100vh!important;
+
+  margin:0!important;
+
+  padding:
+    0 30px 72px
+    !important;
+
+  background:#f8fbfd!important;
+
+  box-sizing:border-box!important;
+
+  opacity:1!important;
+  visibility:visible!important;
+
+  transform:none!important;
+  transition:none!important;
+  animation:none!important;
+}
+
+html.pmd-settings-server-header-v11
+body.page.pmd-settings-center-page
+#pmd-settings-clean-header {
+  position:relative!important;
+  z-index:120!important;
+
+  display:flex!important;
+  align-items:center!important;
+  justify-content:space-between!important;
+
+  width:min(1480px,100%)!important;
+
+  height:64px!important;
+  min-height:64px!important;
+  max-height:64px!important;
+
+  margin:0 auto!important;
+
+  padding:
+    0 2px
+    !important;
+
+  background:transparent!important;
+
+  border:0!important;
+  box-shadow:none!important;
+
+  overflow:visible!important;
+
+  transform:none!important;
+  transition:none!important;
+  animation:none!important;
+}
+
+html.pmd-settings-server-header-v11
+body.page.pmd-settings-center-page
+#pmd-settings-clean-header
+.pmd-settings-clean-title {
+  margin:0!important;
+  padding:0!important;
+
+  color:#17231f!important;
+
+  font-size:22px!important;
+  font-weight:700!important;
+  line-height:1.2!important;
+
+  letter-spacing:-.02em!important;
+
+  white-space:nowrap!important;
+}
+
+html.pmd-settings-server-header-v11
+body.page.pmd-settings-center-page
+#pmd-settings-clean-header
+.pmd-settings-clean-actions {
+  display:flex!important;
+
+  align-items:center!important;
+  justify-content:flex-end!important;
+
+  gap:10px!important;
+
+  height:46px!important;
+  min-height:46px!important;
+  max-height:46px!important;
+
+  margin:
+    0 0 0 auto
+    !important;
+
+  padding:0!important;
+
+  overflow:visible!important;
+
+  transform:none!important;
+  transition:none!important;
+  animation:none!important;
+}
+
+html.pmd-settings-server-header-v11
+body.page.pmd-settings-center-page
+#pmd-settings-clean-header
+.pmd-settings-header-search {
+  position:relative!important;
+
+  display:flex!important;
+  align-items:center!important;
+
+  flex:0 0 46px!important;
+
+  width:46px!important;
+  min-width:46px!important;
+
+  height:46px!important;
+  min-height:46px!important;
+  max-height:46px!important;
+
+  margin:0!important;
+  padding:0!important;
+
+  box-sizing:border-box!important;
+
+  overflow:hidden!important;
+
+  border:
+    1px solid #cfe0ec
+    !important;
+
+  border-radius:14px!important;
+
+  background:#fff!important;
+  color:#173752!important;
+
+  box-shadow:
+    0 3px 10px rgba(23,55,82,.05)
+    !important;
+
+  cursor:pointer!important;
+
+  transform:none!important;
+  transition:none!important;
+  animation:none!important;
+}
+
+html.pmd-settings-server-header-v11
+body.page.pmd-settings-center-page
+#pmd-settings-clean-header
+.pmd-settings-header-search.is-open {
+  width:
+    min(
+      330px,
+      calc(100vw - 190px)
+    )
+    !important;
+
+  flex-basis:
+    min(
+      330px,
+      calc(100vw - 190px)
+    )
+    !important;
+
+  transition:
+    width 220ms cubic-bezier(.2,.8,.2,1),
+    flex-basis 220ms cubic-bezier(.2,.8,.2,1)
+    !important;
+}
+
+html.pmd-settings-server-header-v11
+body.page.pmd-settings-center-page
+#pmd-settings-clean-header
+.pmd-settings-header-search > svg {
+  display:block!important;
+
+  flex:0 0 21px!important;
+
+  width:21px!important;
+  height:21px!important;
+
+  margin:
+    0 12px
+    !important;
+
+  fill:none!important;
+  stroke:currentColor!important;
+  stroke-width:2!important;
+
+  pointer-events:none!important;
+}
+
+html.pmd-settings-server-header-v11
+body.page.pmd-settings-center-page
+#pmd-settings-clean-header
+.pmd-settings-header-search
+.pmd-settings-search {
+  flex:1 1 auto!important;
+
+  width:0!important;
+  min-width:0!important;
+
+  height:44px!important;
+
+  margin:0!important;
+  padding:0!important;
+
+  opacity:0!important;
+  pointer-events:none!important;
+
+  border:0!important;
+  outline:0!important;
+
+  background:transparent!important;
+
+  box-shadow:none!important;
+}
+
+html.pmd-settings-server-header-v11
+body.page.pmd-settings-center-page
+#pmd-settings-clean-header
+.pmd-settings-header-search.is-open
+.pmd-settings-search {
+  width:auto!important;
+
+  padding:
+    0 10px 0 0
+    !important;
+
+  opacity:1!important;
+  pointer-events:auto!important;
+}
+
+html.pmd-settings-server-header-v11
+body.page.pmd-settings-center-page
+#pmd-settings-clean-header
+.pmd-settings-header-search kbd {
+  display:none!important;
+}
+
+html.pmd-settings-server-header-v11
+body.page.pmd-settings-center-page
+#pmd-settings-clean-header
+[data-pmd-settings-header-gap-v11] {
+  position:relative!important;
+
+  display:block!important;
+
+  flex:0 0 10px!important;
+
+  width:10px!important;
+  min-width:10px!important;
+  max-width:10px!important;
+
+  height:46px!important;
+
+  margin:0!important;
+  padding:0!important;
+
+  pointer-events:none!important;
+}
+
+html.pmd-settings-server-header-v11
+body.page.pmd-settings-center-page
+#pmd-settings-clean-header
+[data-pmd-settings-header-divider-v11] {
+  position:absolute!important;
+
+  top:50%!important;
+  right:5px!important;
+  left:auto!important;
+
+  width:1px!important;
+  min-width:1px!important;
+  max-width:1px!important;
+
+  height:34px!important;
+
+  background:#cfe0ec!important;
+
+  transform:
+    translateY(-50%)
+    !important;
+}
+
+html.pmd-settings-server-header-v11
+body.page.pmd-settings-center-page
+#pmd-settings-clean-header
+.pmd-settings-notif-slot-v11,
+
+html.pmd-settings-server-header-v11
+body.page.pmd-settings-center-page
+#pmd-settings-clean-header
+#notif-root,
+
+html.pmd-settings-server-header-v11
+body.page.pmd-settings-center-page
+#pmd-settings-clean-header
+#notifDropdown {
+  box-sizing:border-box!important;
+}
+
+html.pmd-settings-server-header-v11
+body.page.pmd-settings-center-page
+#pmd-settings-clean-header
+.pmd-settings-notif-slot-v11,
+
+html.pmd-settings-server-header-v11
+body.page.pmd-settings-center-page
+#pmd-settings-clean-header
+#notif-root {
+  position:relative!important;
+
+  display:flex!important;
+  align-items:center!important;
+  justify-content:center!important;
+
+  flex:0 0 46px!important;
+
+  width:46px!important;
+  min-width:46px!important;
+  max-width:46px!important;
+
+  height:46px!important;
+  min-height:46px!important;
+  max-height:46px!important;
+
+  margin:0!important;
+  padding:0!important;
+
+  list-style:none!important;
+
+  overflow:visible!important;
+
+  transform:none!important;
+  transition:none!important;
+  animation:none!important;
+}
+
+html.pmd-settings-server-header-v11
+body.page.pmd-settings-center-page
+#pmd-settings-clean-header
+.pmd-settings-notif-slot-v11,
+
+html.pmd-settings-server-header-v11
+body.page.pmd-settings-center-page
+#pmd-settings-clean-header
+#notifDropdown {
+  border:
+    1px solid #cfe0ec
+    !important;
+
+  border-radius:14px!important;
+
+  background:#fff!important;
+  color:#173752!important;
+
+  box-shadow:
+    0 3px 10px rgba(23,55,82,.05)
+    !important;
+}
+
+html.pmd-settings-server-header-v11
+body.page.pmd-settings-center-page
+#pmd-settings-clean-header
+#notifDropdown {
+  position:relative!important;
+
+  display:grid!important;
+  place-items:center!important;
+
+  width:46px!important;
+  min-width:46px!important;
+  max-width:46px!important;
+
+  height:46px!important;
+  min-height:46px!important;
+  max-height:46px!important;
+
+  margin:0!important;
+  padding:0!important;
+
+  overflow:visible!important;
+
+  transform:none!important;
+  transition:none!important;
+  animation:none!important;
+}
+
+html.pmd-settings-server-header-v11
+body.page.pmd-settings-center-page
+#pmd-settings-clean-header
+#notifDropdown::after {
+  display:none!important;
+  content:none!important;
+}
+
+html.pmd-settings-server-header-v11
+body.page.pmd-settings-center-page
+#pmd-settings-clean-header
+#bell-icon,
+
+html.pmd-settings-server-header-v11
+body.page.pmd-settings-center-page
+#pmd-settings-clean-header
+#bell-icon svg {
+  width:21px!important;
+  height:21px!important;
+
+  margin:0!important;
+  padding:0!important;
+
+  transform:none!important;
+}
+
+html.pmd-settings-server-header-v11
+body.page.pmd-settings-center-page
+#pmd-settings-clean-header
+#notification-count,
+
+html.pmd-settings-server-header-v11
+body.page.pmd-settings-center-page
+#pmd-settings-clean-header
+.pmd-settings-notif-count-v11 {
+  position:absolute!important;
+
+  top:-7px!important;
+  right:-8px!important;
+
+  z-index:8!important;
+
+  display:inline-grid!important;
+  place-items:center!important;
+
+  min-width:18px!important;
+  height:18px!important;
+
+  margin:0!important;
+  padding:
+    0 4px
+    !important;
+
+  border:
+    2px solid #fff
+    !important;
+
+  border-radius:999px!important;
+
+  background:#d83a31!important;
+  color:#fff!important;
+
+  font-size:9px!important;
+  font-weight:800!important;
+  line-height:14px!important;
+
+  transform:none!important;
+}
+
+html.pmd-settings-server-header-v11
+body.page.pmd-settings-center-page
+#pmd-settings-clean-header
+#notification-panel,
+
+html.pmd-settings-server-header-v11
+body.page.pmd-settings-center-page
+#pmd-settings-clean-header
+#notif-root
+.dropdown-menu {
+  position:absolute!important;
+
+  top:54px!important;
+  right:0!important;
+  left:auto!important;
+
+  z-index:10050!important;
+
+  margin:0!important;
+
+  transform:none!important;
+}
+
+@media(max-width:820px) {
+  html.pmd-settings-server-header-v11
+  body.page.pmd-settings-center-page
+  #pmd-settings-center {
+    padding:
+      0 10px 40px
+      !important;
+  }
+}
+
+/* PMD_SETTINGS_SERVER_HEADER_V11_END */
+
+
+/*
+ * PMD_SETTINGS_NOTIFICATION_BELL_GEOMETRY_V1_START
+ *
+ * Child geometry of the existing Settings Header.
+ *
+ * Dashboard contract:
+ *   button = 46 x 46
+ *   bell   = 21 x 21
+ *
+ * Badge and dropdown are intentionally untouched.
+ */
+
+html body.page.pmd-settings-suite
+#pmd-settings-clean-header
+#notif-root {
+    position: relative !important;
+
+    display: block !important;
+
+    flex: 0 0 46px !important;
+
+    width: 46px !important;
+    min-width: 46px !important;
+    max-width: 46px !important;
+
+    height: 46px !important;
+    min-height: 46px !important;
+    max-height: 46px !important;
+
+    margin: 0 !important;
+    padding: 0 !important;
+
+    overflow: visible !important;
+}
+
+
+html body.page.pmd-settings-suite
+#pmd-settings-clean-header
+#notif-root
+> a,
+
+html body.page.pmd-settings-suite
+#pmd-settings-clean-header
+#notif-root
+> span
+> a,
+
+html body.page.pmd-settings-suite
+#pmd-settings-clean-header
+#notifDropdown {
+    position: relative !important;
+
+    display: grid !important;
+    place-items: center !important;
+
+    flex: 0 0 46px !important;
+
+    width: 46px !important;
+    min-width: 46px !important;
+    max-width: 46px !important;
+
+    height: 46px !important;
+    min-height: 46px !important;
+    max-height: 46px !important;
+
+    margin: 0 !important;
+    padding: 0 !important;
+
+    border: 1px solid #cfe0ec !important;
+    border-radius: 14px !important;
+
+    background: #fff !important;
+
+    color: #173752 !important;
+
+    font-size: 0 !important;
+    line-height: 1 !important;
+
+    box-shadow:
+        0 3px 10px rgba(23,55,82,.05)
+        !important;
+
+    overflow: visible !important;
+
+    transform: none !important;
+}
+
+
+html body.page.pmd-settings-suite
+#pmd-settings-clean-header
+#notifDropdown::after {
+    display: none !important;
+
+    content: none !important;
+
+    margin: 0 !important;
+
+    border: 0 !important;
+}
+
+
+/* Bell wrapper / icon-font case */
+
+html body.page.pmd-settings-suite
+#pmd-settings-clean-header
+#bell-icon {
+    position: relative !important;
+
+    display: grid !important;
+    place-items: center !important;
+
+    flex: 0 0 21px !important;
+
+    width: 21px !important;
+    min-width: 21px !important;
+    max-width: 21px !important;
+
+    height: 21px !important;
+    min-height: 21px !important;
+    max-height: 21px !important;
+
+    margin: 0 !important;
+    padding: 0 !important;
+
+    color: #173752 !important;
+
+    font-size: 21px !important;
+    line-height: 21px !important;
+
+    background: transparent !important;
+    border: 0 !important;
+
+    overflow: visible !important;
+
+    transform: none !important;
+}
+
+
+/* SVG case */
+
+html body.page.pmd-settings-suite
+#pmd-settings-clean-header
+#bell-icon
+svg,
+
+html body.page.pmd-settings-suite
+#pmd-settings-clean-header
+#notifDropdown
+svg {
+    position: static !important;
+
+    display: block !important;
+
+    flex: 0 0 21px !important;
+
+    width: 21px !important;
+    min-width: 21px !important;
+    max-width: 21px !important;
+
+    height: 21px !important;
+    min-height: 21px !important;
+    max-height: 21px !important;
+
+    margin: 0 !important;
+    padding: 0 !important;
+
+    fill: none !important;
+
+    stroke: currentColor !important;
+    stroke-width: 2 !important;
+    stroke-linecap: round !important;
+    stroke-linejoin: round !important;
+
+    transform: none !important;
+}
+
+
+/* FontAwesome case */
+
+html body.page.pmd-settings-suite
+#pmd-settings-clean-header
+#bell-icon.fa,
+
+html body.page.pmd-settings-suite
+#pmd-settings-clean-header
+#bell-icon.fas,
+
+html body.page.pmd-settings-suite
+#pmd-settings-clean-header
+#bell-icon.far,
+
+html body.page.pmd-settings-suite
+#pmd-settings-clean-header
+#notifDropdown
+.fa-bell,
+
+html body.page.pmd-settings-suite
+#pmd-settings-clean-header
+#notifDropdown
+.fa-bell-o {
+    font-size: 21px !important;
+    line-height: 21px !important;
+
+    width: 21px !important;
+    height: 21px !important;
+
+    margin: 0 !important;
+    padding: 0 !important;
+
+    transform: none !important;
+}
+
+
+/*
+ * If the wrapper already contains the canonical SVG,
+ * suppress a legacy FontAwesome pseudo-glyph underneath it.
+ */
+
+html body.page.pmd-settings-suite
+#pmd-settings-clean-header
+#bell-icon:has(svg)::before {
+    display: none !important;
+    content: none !important;
+}
+
+/*
+ * PMD_SETTINGS_NOTIFICATION_BELL_GEOMETRY_V1_END
+ */
+

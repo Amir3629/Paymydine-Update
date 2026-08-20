@@ -8,7 +8,21 @@
   'use strict';
 
   var route = String(window.location.pathname || '').replace(/\/+$/, '');
-  if (route !== '/admin/reservationslab') return;
+  /*
+   * PMD_RESERVATIONSLAB_MANAGERLAB_SHARED_HOST_V3
+   *
+   * ONE Calendar/Hour runtime.
+   * Hosts:
+   * - ReservationsLab
+   * - DashboardLab
+   * - ManagerLab
+   */
+  if (
+    route !== '/admin/reservationslab'
+    && route !== '/admin/dashboardlab'
+    && route !== '/admin/managerlab'
+    && route !== '/admin/cashierlab'
+  ) return;
 
   var PAGE_ID = 'pmd-dashboard-lab';
   var FLOOR_ID = 'pmd-r2-shared-floor-canvas-v310';
@@ -28,6 +42,228 @@
   var strings = boot.strings || {};
   var locale = String(boot.locale || 'en').toLowerCase() === 'de' ? 'de' : 'en';
   var localeTag = String(boot.locale_tag || (locale === 'de' ? 'de-DE' : 'en-GB'));
+
+  /*
+   * PMD_CALENDAR_LOCALE_CANONICAL_UI_V4_START
+   *
+   * Active locale owns visible Calendar/Hour UI copy.
+   *
+   * Preserve unknown backend/service keys, but do not allow
+   * stale strings from another locale to override UI labels.
+   */
+  var pmdCalendarLocaleStrings = {
+    en: {
+      reservation: 'Reservation',
+      reservations: 'Reservations',
+      reservation_lower: 'reservation',
+      reservations_title: 'Reservations',
+
+      new_reservation: 'New reservation',
+      edit_reservation: 'Edit reservation',
+
+      name: 'Name',
+      phone_optional: 'Phone (optional)',
+      email_optional: 'Email (optional)',
+
+      guests: 'Guests',
+      guest: 'Guest',
+
+      date: 'Reservation date',
+      time: 'Reservation time',
+      duration: 'Duration',
+
+      table_assignment: 'Table assignment',
+      auto_assign: 'Auto assign',
+      choose_tables: 'Choose table(s)',
+      assign_later: 'Assign later',
+
+      tables: 'Tables',
+      table: 'Table',
+      no_table: 'No table',
+
+      check_availability: 'Check availability',
+
+      notes: 'Notes',
+      note: 'Note',
+
+      event: 'Event',
+      events: 'Events',
+
+      calendar: 'Calendar',
+
+      year: 'Year',
+      month: 'Month',
+      all: 'All',
+
+      previous: 'Previous',
+      next: 'Next',
+
+      day_note: 'Day note',
+      write_note: 'Write a note for this day',
+
+      delete: 'Delete',
+      cancel: 'Cancel',
+      close: 'Close',
+
+      save_note: 'Save note',
+      save: 'Save reservation',
+
+      loading: 'Loading reservation…',
+      checking: 'Checking availability…',
+
+      available: 'Available',
+      not_available: 'Not available',
+
+      availability_requirements:
+        'Choose date, time, duration and guests.',
+
+      recommended_tables: 'Recommended tables',
+      no_reservations: 'No reservations',
+
+      booking: 'Reservation',
+      bookings: 'Reservations',
+
+      time_slots: 'Time slots',
+      time_not_set: 'Time not set',
+
+      open: 'Open',
+      scheduled: 'Scheduled',
+
+      load_failed: 'Request failed.',
+
+      save_failed:
+        'The reservation could not be saved.',
+
+      past_slot: 'Past time',
+
+      future_only:
+        'Reservations cannot be created in the past.',
+
+      restaurant_closed: 'Restaurant closed',
+
+      outside_opening_hours:
+        'Outside opening hours'
+    },
+
+    de: {
+      reservation: 'Reservierung',
+      reservations: 'Reservierungen',
+      reservation_lower: 'Reservierung',
+      reservations_title: 'Reservierungen',
+
+      new_reservation: 'Neue Reservierung',
+      edit_reservation: 'Reservierung bearbeiten',
+
+      name: 'Name',
+      phone_optional: 'Telefon (optional)',
+      email_optional: 'E-Mail (optional)',
+
+      guests: 'Gäste',
+      guest: 'Gast',
+
+      date: 'Reservierungsdatum',
+      time: 'Reservierungszeit',
+      duration: 'Dauer',
+
+      table_assignment: 'Tischzuweisung',
+      auto_assign: 'Automatisch zuweisen',
+      choose_tables: 'Tisch(e) auswählen',
+      assign_later: 'Später zuweisen',
+
+      tables: 'Tische',
+      table: 'Tisch',
+      no_table: 'Kein Tisch',
+
+      check_availability: 'Verfügbarkeit prüfen',
+
+      notes: 'Notizen',
+      note: 'Notiz',
+
+      event: 'Ereignis',
+      events: 'Ereignisse',
+
+      calendar: 'Kalender',
+
+      year: 'Jahr',
+      month: 'Monat',
+      all: 'Alle',
+
+      previous: 'Zurück',
+      next: 'Weiter',
+
+      day_note: 'Tagesnotiz',
+
+      write_note:
+        'Notiz für diesen Tag schreiben',
+
+      delete: 'Löschen',
+      cancel: 'Abbrechen',
+      close: 'Schließen',
+
+      save_note: 'Notiz speichern',
+      save: 'Reservierung speichern',
+
+      loading: 'Reservierung wird geladen…',
+      checking: 'Verfügbarkeit wird geprüft…',
+
+      available: 'Verfügbar',
+      not_available: 'Nicht verfügbar',
+
+      availability_requirements:
+        'Datum, Uhrzeit, Dauer und Gäste auswählen.',
+
+      recommended_tables: 'Empfohlene Tische',
+      no_reservations: 'Keine Reservierungen',
+
+      booking: 'Reservierung',
+      bookings: 'Reservierungen',
+
+      time_slots: 'Zeitfenster',
+      time_not_set: 'Keine Uhrzeit',
+
+      open: 'Öffnen',
+      scheduled: 'Geplant',
+
+      load_failed: 'Anfrage fehlgeschlagen.',
+
+      save_failed:
+        'Die Reservierung konnte nicht gespeichert werden.',
+
+      past_slot: 'Vergangene Uhrzeit',
+
+      future_only:
+        'Reservierungen können nicht in der Vergangenheit erstellt werden.',
+
+      restaurant_closed: 'Restaurant geschlossen',
+
+      outside_opening_hours:
+        'Außerhalb der Öffnungszeiten'
+    }
+  };
+
+  if (
+    !strings
+    || typeof strings !== 'object'
+    || Array.isArray(strings)
+  ) {
+    strings = {};
+  }
+
+  var pmdCalendarLocaleOwnedStrings =
+    pmdCalendarLocaleStrings[locale]
+    || pmdCalendarLocaleStrings.en;
+
+  Object.keys(
+    pmdCalendarLocaleOwnedStrings
+  ).forEach(function (key) {
+    strings[key] =
+      pmdCalendarLocaleOwnedStrings[key];
+  });
+
+  /*
+   * PMD_CALENDAR_LOCALE_CANONICAL_UI_V4_END
+   */
+
   var reservations = Array.isArray(boot.reservations) ? boot.reservations.slice() : [];
   var calendarMode = false;
   var selectedDate = null;
@@ -270,9 +506,25 @@
   var monthNames = locale === 'de'
     ? ['Januar', 'Februar', 'März', 'April', 'Mai', 'Juni', 'Juli', 'August', 'September', 'Oktober', 'November', 'Dezember']
     : ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
-  var weekNames = Array.isArray(boot.weekdays) && boot.weekdays.length === 7
-    ? boot.weekdays.slice()
-    : (locale === 'de' ? ['Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa', 'So'] : ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']);
+  var weekNames = locale === 'de'
+    ? [
+        'Mo',
+        'Di',
+        'Mi',
+        'Do',
+        'Fr',
+        'Sa',
+        'So'
+      ]
+    : [
+        'Mon',
+        'Tue',
+        'Wed',
+        'Thu',
+        'Fri',
+        'Sat',
+        'Sun'
+      ];
 
   function text(key, fallback) { return String(strings[key] || fallback || ''); }
   function csrf() { var meta = document.querySelector('meta[name="csrf-token"]'); return meta ? String(meta.content || '') : ''; }
@@ -746,6 +998,8 @@
   }
 
   function bindHeaderCreate() {
+    // PMD_CASHIER_KEEP_NATIVE_HEADER_CREATE_V1
+    if (route === '/admin/cashierlab') return false;
     var button = document.getElementById(HEADER_CREATE_ID);
     if (!button || button.getAttribute('data-pmd-reservationslab-create-bound') === '1') return false;
 

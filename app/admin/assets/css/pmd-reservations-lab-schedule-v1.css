@@ -3110,3 +3110,62 @@ body.pmd-reservations-lab-composer-open {
 .pmd-r2-day-board__column--second > .pmd-r2-timeslot:last-child {
   border-bottom: 0 !important;
 }
+
+/* PMD_CALENDAR_HOST_TOP_SPACING_V3_START */
+/*
+ * Calendar replaces Floor content.
+ *
+ * Exact Floor normally owns:
+ *   margin-top: 68px
+ *
+ * because its toolbar floats 58px above the Floor canvas.
+ *
+ * Calendar has no Floor toolbar, therefore that reservation must
+ * disappear while Calendar mode is active.
+ *
+ * PMD spacing contract:
+ *   desktop = 14px
+ *   mobile  = 10px
+ */
+
+html body.page.pmd-dashboard-lab-page
+#pmd-dashboard-lab.is-calendar-mode
+#pmd-r2-shared-floor-canvas-v310 {
+    margin-top: 14px !important;
+
+    min-height: 0 !important;
+
+    padding-top: 0 !important;
+    padding-bottom: 0 !important;
+}
+
+html body.page.pmd-dashboard-lab-page
+#pmd-dashboard-lab.is-calendar-mode
+#pmd-r2-floor-toolbar-host-v464 {
+    display: none !important;
+    visibility: hidden !important;
+    pointer-events: none !important;
+}
+
+html body.page.pmd-dashboard-lab-page
+#pmd-dashboard-lab.is-calendar-mode
+#pmd-r2-calendar-surface-v160 {
+    margin-top: 0 !important;
+    padding-top: 0 !important;
+}
+
+html body.page.pmd-dashboard-lab-page
+#pmd-dashboard-lab.is-calendar-mode
+#pmd-r2-calendar-surface-v160
+[data-r2-yc-calendar-frame] {
+    margin-top: 0 !important;
+}
+
+@media (max-width: 820px) {
+    html body.page.pmd-dashboard-lab-page
+    #pmd-dashboard-lab.is-calendar-mode
+    #pmd-r2-shared-floor-canvas-v310 {
+        margin-top: 10px !important;
+    }
+}
+/* PMD_CALENDAR_HOST_TOP_SPACING_V3_END */

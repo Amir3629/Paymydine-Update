@@ -277,7 +277,7 @@ html.pmd-sm2-collapsed
 
 html.pmd-sm2-collapsed
 #pmd-sidebar-language {
-    transform: translateX(-5px) !important;
+    transform: none !important;
 }
 
 html.pmd-sm2-collapsed
@@ -295,7 +295,150 @@ html:not(.pmd-sm2-runtime-ready)
     transition: none !important;
     animation: none !important;
 }
+
+/* ============================================================
+   PMD_LANGUAGE_SERVER_GEOMETRY_FINAL_V7
+
+   pmd-language-first-paint-state-v5 already reads the stored
+   sidebar state before this markup is parsed.
+
+   Therefore expanded/collapsed HTML classes are the first-paint
+   geometry authority. Runtime may observe state, but may not
+   reposition or resize this control after paint.
+   ============================================================ */
+
+#pmd-sidebar-language {
+    left: 18px !important;
+    transform: none !important;
+}
+
+html.pmd-sm2-collapsed #pmd-sidebar-language {
+    left: 18px !important;
+    transform: none !important;
+}
+
+html.pmd-sm2-expanded #pmd-sidebar-language {
+    left: 20px !important;
+    transform: none !important;
+}
+
+html.pmd-sm2-collapsed #pmd-language-trigger {
+    width: 52px !important;
+    min-width: 52px !important;
+    max-width: 52px !important;
+
+    padding: 0 !important;
+
+    display: block !important;
+}
+
+html.pmd-sm2-collapsed
+#pmd-language-trigger
+.pmd-language-label {
+    display: none !important;
+}
+
+html.pmd-sm2-expanded #pmd-language-trigger {
+    width: 142px !important;
+    min-width: 142px !important;
+    max-width: 142px !important;
+
+    padding: 0 13px !important;
+
+    display: flex !important;
+    justify-content: flex-start !important;
+
+    gap: 9px !important;
+}
+
+html.pmd-sm2-expanded
+#pmd-language-trigger
+.pmd-language-label {
+    display: block !important;
+}
+
+html.pmd-sm2-expanded
+#pmd-language-trigger
+.pmd-language-icon {
+    position: static !important;
+
+    width: 24px !important;
+    height: 24px !important;
+
+    margin: 0 !important;
+
+    transform: none !important;
+}
+
+html.pmd-sm2-expanded
+#pmd-language-trigger
+.pmd-current-language {
+    position: static !important;
+
+    margin: 0 !important;
+
+    transform: none !important;
+}
+
+/* Runtime class is allowed to exist but has no geometry authority. */
+html.pmd-sm2-collapsed
+#pmd-sidebar-language.is-wide
+#pmd-language-trigger {
+    width: 52px !important;
+    min-width: 52px !important;
+    max-width: 52px !important;
+}
+
+html.pmd-sm2-expanded
+#pmd-sidebar-language:not(.is-wide)
+#pmd-language-trigger {
+    width: 142px !important;
+    min-width: 142px !important;
+    max-width: 142px !important;
+}
+
 </style>
+
+<style id="pmd-language-exact-center-v8">
+/*
+ * PMD_LANGUAGE_EXACT_CENTER_V8
+ *
+ * Canonical desktop Side Menu geometry:
+ *   left gap  = 14px
+ *   collapsed = 72px
+ *   expanded  = 184px
+ *
+ * Language:
+ *   collapsed = 52px -> left = 14 + 10 = 24px
+ *   expanded  = 142px -> left = 14 + 21 = 35px
+ *
+ * No runtime measurement and no post-paint correction.
+ */
+@media (min-width: 821px) {
+    html.pmd-sm2-collapsed
+    #pmd-sidebar-language {
+        left:
+            calc(
+                var(--pmd-sm2-gap, 14px)
+                + 10px
+            ) !important;
+
+        transform: none !important;
+    }
+
+    html.pmd-sm2-expanded
+    #pmd-sidebar-language {
+        left:
+            calc(
+                var(--pmd-sm2-gap, 14px)
+                + 21px
+            ) !important;
+
+        transform: none !important;
+    }
+}
+</style>
+
 <!-- /PMD_LANGUAGE_TRUE_FIRST_PAINT_V5 -->
 
 <div
@@ -303,15 +446,23 @@ html:not(.pmd-sm2-runtime-ready)
     data-endpoint="{{ $pmdLanguageEndpoint }}"
     data-current="{{ $pmdCurrentLocale }}"
     data-next="{{ $pmdNextLocale }}"
+    data-pmd-language-v13
 >
     <button
         type="button"
         id="pmd-language-trigger"
         aria-label="Switch language to {{ strtoupper($pmdNextLocale) }}"
-        title="Switch to {{ strtoupper($pmdNextLocale) }}"
+        title="Switch to {{ $pmdNextLocale === 'de' ? 'Deutsch' : 'English' }}"
     >
         <span
-            class="pmd-language-icon"
+            class="pmd-language-v13__collapsed-code"
+            aria-hidden="true"
+        >
+            {{ strtoupper($pmdNextLocale) }}
+        </span>
+
+        <span
+            class="pmd-language-v13__expanded-icon"
             aria-hidden="true"
         >
             <svg
@@ -324,19 +475,30 @@ html:not(.pmd-sm2-runtime-ready)
                 stroke-linecap="round"
                 stroke-linejoin="round"
             >
-                <circle cx="12" cy="12" r="9"></circle>
-                <path d="M3 12h18"></path>
-                <path d="M12 3a15 15 0 0 1 0 18"></path>
-                <path d="M12 3a15 15 0 0 0 0 18"></path>
+                <circle
+                    cx="12"
+                    cy="12"
+                    r="9"
+                ></circle>
+
+                <path
+                    d="M3 12h18"
+                ></path>
+
+                <path
+                    d="M12 3a15 15 0 0 1 0 18"
+                ></path>
+
+                <path
+                    d="M12 3a15 15 0 0 0 0 18"
+                ></path>
             </svg>
         </span>
 
-        <span class="pmd-language-label">
-            Language
-        </span>
-
-        <span class="pmd-current-language">
-            {{ strtoupper($pmdNextLocale) }}
+        <span
+            class="pmd-language-v13__expanded-label"
+        >
+            {{ $pmdNextLocale === 'de' ? 'Deutsch' : 'English' }}
         </span>
     </button>
 </div>
@@ -549,33 +711,20 @@ html:not(.pmd-sm2-runtime-ready)
         }
 
         function syncWidth() {
-            var sidebar =
-                document.getElementById(
-                    'pmd-side-menu2'
-                );
-
-            if (!sidebar) {
-                return;
-            }
-
-            var rect =
-                sidebar.getBoundingClientRect();
-
-            root.classList.toggle(
-                'is-wide',
-                rect.width > 120
+            /*
+             * Side Menu 2 html classes own state/geometry.
+             *
+             * Remove any stale legacy runtime state only.
+             * NO DOM width measurement.
+             * NO inline left write.
+             */
+            root.classList.remove(
+                'is-wide'
             );
 
-            root.style.left =
-                (
-                    rect.left
-                    + (
-                        rect.width > 120
-                            ? 20
-                            : 18
-                    )
-                )
-                + 'px';
+            root.style.removeProperty(
+                'left'
+            );
         }
 
         syncWidth();
@@ -852,7 +1001,7 @@ html.pmd-sm2-collapsed
 
 html.pmd-sm2-collapsed
 #pmd-sidebar-language {
-    transform: translateX(-5px) !important;
+    transform: none !important;
 }
 
 html.pmd-sm2-collapsed
@@ -908,3 +1057,359 @@ html.pmd-sm2-expanded #pmd-sidebar-language #pmd-language-trigger .pmd-current-l
   transform: none !important;
 }
 </style>
+
+<!-- PMD_LANGUAGE_EXPANDED_LABEL_V13_START -->
+<style id="pmd-language-expanded-label-v13">
+/*
+ * PMD_LANGUAGE_EXPANDED_LABEL_V13
+ *
+ * Consolidated existing V13 authority.
+ *
+ * COLLAPSED:
+ *   DE / EN only
+ *
+ * EXPANDED:
+ *   Globe + Deutsch / English
+ *
+ * The icon and label are explicitly positioned on ONE row,
+ * therefore legacy flex/block rules cannot stack them.
+ */
+
+#pmd-sidebar-language[data-pmd-language-v13] {
+    position: fixed !important;
+
+    left: 24px !important;
+    bottom: 88px !important;
+
+    z-index: 99999 !important;
+
+    width: 52px !important;
+    min-width: 52px !important;
+    max-width: 52px !important;
+
+    height: 46px !important;
+    min-height: 46px !important;
+    max-height: 46px !important;
+
+    margin: 0 !important;
+    padding: 0 !important;
+
+    box-sizing: border-box !important;
+
+    overflow: visible !important;
+
+    transform: none !important;
+}
+
+
+#pmd-sidebar-language[data-pmd-language-v13]
+#pmd-language-trigger {
+    position: relative !important;
+
+    display: block !important;
+
+    width: 52px !important;
+    min-width: 52px !important;
+    max-width: 52px !important;
+
+    height: 46px !important;
+    min-height: 46px !important;
+    max-height: 46px !important;
+
+    margin: 0 !important;
+    padding: 0 !important;
+
+    border: 0 !important;
+    border-radius: 14px !important;
+
+    background:
+        rgba(255,255,255,.11)
+        !important;
+
+    color: #fff !important;
+
+    box-shadow: none !important;
+
+    overflow: visible !important;
+
+    transform: none !important;
+}
+
+
+/* ----------------------------------------------------------
+   Legacy language children must not compete with V13.
+   ---------------------------------------------------------- */
+
+#pmd-sidebar-language[data-pmd-language-v13]
+.pmd-language-label,
+
+#pmd-sidebar-language[data-pmd-language-v13]
+.pmd-current-language {
+    display: none !important;
+}
+
+
+/* ----------------------------------------------------------
+   COLLAPSED CODE
+   ---------------------------------------------------------- */
+
+#pmd-sidebar-language[data-pmd-language-v13]
+.pmd-language-v13__collapsed-code {
+    position: absolute !important;
+
+    inset: 0 !important;
+
+    display: grid !important;
+    place-items: center !important;
+
+    width: 52px !important;
+    height: 46px !important;
+
+    margin: 0 !important;
+    padding: 0 !important;
+
+    color: #fff !important;
+
+    font-family: inherit !important;
+    font-size: 13px !important;
+    font-weight: 800 !important;
+    line-height: 1 !important;
+
+    text-align: center !important;
+
+    opacity: 1 !important;
+    visibility: visible !important;
+}
+
+
+/* Expanded children hidden by default. */
+
+#pmd-sidebar-language[data-pmd-language-v13]
+.pmd-language-v13__expanded-icon,
+
+#pmd-sidebar-language[data-pmd-language-v13]
+.pmd-language-v13__expanded-label {
+    display: none !important;
+
+    opacity: 0 !important;
+    visibility: hidden !important;
+}
+
+
+/* ----------------------------------------------------------
+   EXPANDED ROOT
+   ---------------------------------------------------------- */
+
+html.pmd-sm2-expanded
+#pmd-sidebar-language[data-pmd-language-v13] {
+    left: 24px !important;
+
+    width: 142px !important;
+    min-width: 142px !important;
+    max-width: 142px !important;
+
+    height: 46px !important;
+}
+
+
+html.pmd-sm2-expanded
+#pmd-sidebar-language[data-pmd-language-v13]
+#pmd-language-trigger {
+    width: 142px !important;
+    min-width: 142px !important;
+    max-width: 142px !important;
+
+    height: 46px !important;
+
+    background: transparent !important;
+
+    border-radius: 13px !important;
+}
+
+
+html.pmd-sm2-expanded
+#pmd-sidebar-language[data-pmd-language-v13]
+#pmd-language-trigger:hover {
+    background:
+        rgba(255,255,255,.09)
+        !important;
+}
+
+
+/* Hide DE / EN code while Side Menu is expanded. */
+
+html.pmd-sm2-expanded
+#pmd-sidebar-language[data-pmd-language-v13]
+.pmd-language-v13__collapsed-code {
+    display: none !important;
+
+    opacity: 0 !important;
+    visibility: hidden !important;
+}
+
+
+/* ----------------------------------------------------------
+   EXPANDED ICON
+   X = 10
+   Y = centered inside 46px
+   ---------------------------------------------------------- */
+
+html.pmd-sm2-expanded
+#pmd-sidebar-language[data-pmd-language-v13]
+.pmd-language-v13__expanded-icon {
+    position: absolute !important;
+
+    left: 10px !important;
+    top: 12px !important;
+
+    display: grid !important;
+    place-items: center !important;
+
+    width: 22px !important;
+    min-width: 22px !important;
+    max-width: 22px !important;
+
+    height: 22px !important;
+    min-height: 22px !important;
+    max-height: 22px !important;
+
+    margin: 0 !important;
+    padding: 0 !important;
+
+    color: #fff !important;
+
+    opacity: 1 !important;
+    visibility: visible !important;
+
+    transform: none !important;
+}
+
+
+html.pmd-sm2-expanded
+#pmd-sidebar-language[data-pmd-language-v13]
+.pmd-language-v13__expanded-icon
+svg {
+    display: block !important;
+
+    width: 22px !important;
+    height: 22px !important;
+
+    margin: 0 !important;
+    padding: 0 !important;
+
+    fill: none !important;
+
+    stroke: currentColor !important;
+
+    transform: none !important;
+}
+
+
+/* ----------------------------------------------------------
+   EXPANDED LABEL
+   Starts immediately beside Globe.
+   SAME vertical center.
+   ---------------------------------------------------------- */
+
+html.pmd-sm2-expanded
+#pmd-sidebar-language[data-pmd-language-v13]
+.pmd-language-v13__expanded-label {
+    position: absolute !important;
+
+    left: 42px !important;
+    right: 0 !important;
+
+    top: 0 !important;
+
+    display: flex !important;
+
+    align-items: center !important;
+    justify-content: flex-start !important;
+
+    height: 46px !important;
+    min-height: 46px !important;
+    max-height: 46px !important;
+
+    margin: 0 !important;
+    padding: 0 !important;
+
+    color: #fff !important;
+
+    font-family: inherit !important;
+    font-size: 13px !important;
+    font-weight: 700 !important;
+    line-height: 1 !important;
+
+    text-align: left !important;
+    white-space: nowrap !important;
+
+    opacity: 1 !important;
+    visibility: visible !important;
+
+    transform: none !important;
+}
+
+
+/* ----------------------------------------------------------
+   EXPLICIT COLLAPSED STATE
+   Beats stale legacy states/classes.
+   ---------------------------------------------------------- */
+
+html.pmd-sm2-collapsed
+#pmd-sidebar-language[data-pmd-language-v13] {
+    left: 24px !important;
+
+    width: 52px !important;
+    min-width: 52px !important;
+    max-width: 52px !important;
+
+    height: 46px !important;
+}
+
+
+html.pmd-sm2-collapsed
+#pmd-sidebar-language[data-pmd-language-v13]
+#pmd-language-trigger {
+    width: 52px !important;
+    min-width: 52px !important;
+    max-width: 52px !important;
+
+    height: 46px !important;
+
+    background:
+        rgba(255,255,255,.11)
+        !important;
+}
+
+
+html.pmd-sm2-collapsed
+#pmd-sidebar-language[data-pmd-language-v13]
+.pmd-language-v13__collapsed-code {
+    display: grid !important;
+
+    opacity: 1 !important;
+    visibility: visible !important;
+}
+
+
+html.pmd-sm2-collapsed
+#pmd-sidebar-language[data-pmd-language-v13]
+.pmd-language-v13__expanded-icon,
+
+html.pmd-sm2-collapsed
+#pmd-sidebar-language[data-pmd-language-v13]
+.pmd-language-v13__expanded-label {
+    display: none !important;
+
+    opacity: 0 !important;
+    visibility: hidden !important;
+}
+
+
+@media (max-width: 820px) {
+    #pmd-sidebar-language[data-pmd-language-v13] {
+        bottom: 82px !important;
+    }
+}
+</style>
+<!-- PMD_LANGUAGE_EXPANDED_LABEL_V13_END -->

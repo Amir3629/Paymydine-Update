@@ -4,7 +4,52 @@
     use Admin\Facades\AdminAuth;
     $user = AdminAuth::getUser();
     $orderNotificationsEnabled = SettingsHelper::areOrderNotificationsEnabledForUser($user);
+    // PMD_NOTIFICATION_COUNT_SERVER_SEED_V1
+    try {
+        $pmdNotificationServerCountV1 =
+            app(
+                \Admin\Services\PmdNotificationCountV1::class
+            )->currentNewCount();
+    } catch (\Throwable $error) {
+        $pmdNotificationServerCountV1 = 0;
+    }
+
+    // PMD_LAB_HEADER_SERVER_NOTIFICATION_SOURCE_V1
+    $pmdLabHeaderSurfaceV1 = in_array(
+        '/'.trim((string)request()->path(), '/'),
+        [
+            '/admin/dashboardlab',
+            '/admin/managerlab',
+            '/admin/cashierlab',
+            '/admin/reservationslab',
+            '/admin/accountantlab',
+            '/admin/pmdmenus',
+            '/admin/coupons',
+        ],
+        true
+    );
 @endphp
+
+{{-- PMD_LAB_HEADER_NOTIFICATION_SOURCE_PARENT_SCOPED_V2 --}}
+@if($pmdLabHeaderSurfaceV1)
+<style id="pmd-lab-header-notification-source-parent-scoped-v2">
+/*
+ * The notification source must not flash in the legacy top menu.
+ *
+ * Important:
+ * This hide is PARENT-SCOPED, not inline on #notif-root.
+ * When mountNotification() moves #notif-root into the Lab header,
+ * the selector stops matching immediately and the bell is visible.
+ */
+[data-control="mainmenu"]
+#notif-root[data-pmd-lab-header-notification-source="server-first"] {
+    opacity: 0 !important;
+    visibility: hidden !important;
+    pointer-events: none !important;
+}
+</style>
+@endif
+
 
 <ul
     id="{{ $this->getId() }}"
@@ -16,7 +61,12 @@
         {!! $this->renderItemElement($item) !!}
         @if ($item->itemName === 'settings')
             <!-- Frontend Notifications Bell (positioned after settings gear) -->
-            <li class="nav-item dropdown" id="notif-root" style="position:relative!important;overflow:visible!important;margin-left:clamp(44px,4vw,64px)!important;margin-inline-start:clamp(44px,4vw,64px)!important;padding-left:0!important;padding-inline-start:0!important;" data-pmd-main-header-notification-spacing-v2="" data-pmd-main-header-notification-spacing-r66="">
+            <li class="nav-item dropdown" id="notif-root" style="{{ $pmdLabHeaderSurfaceV1
+                ? 'position:relative!important;overflow:visible!important;margin:0!important;margin-left:0!important;margin-inline-start:0!important;padding-left:0!important;padding-inline-start:0!important;'
+                : 'position:relative!important;overflow:visible!important;margin-left:clamp(44px,4vw,64px)!important;margin-inline-start:clamp(44px,4vw,64px)!important;padding-left:0!important;padding-inline-start:0!important;'
+            }}"
+            data-pmd-lab-header-notification-source="{{ $pmdLabHeaderSurfaceV1 ? 'server-first' : 'generic-admin' }}"
+            {{-- PMD_LAB_HEADER_OLD_NOTIFICATION_MARGIN_REMOVED_V1 --}} data-pmd-main-header-notification-spacing-v2="" data-pmd-main-header-notification-spacing-r66="">
 <span
                 data-pmd-main-header-notification-divider-r66=""
                 aria-hidden="true"
@@ -48,8 +98,26 @@
                  aria-expanded="false" 
                  role="button"
                  aria-label="Notifications">
-                <i class="fa fa-bell" id="bell-icon" style="color: #6c757d;"></i>
-                <span id="notification-count" class="badge badge-danger d-none" style="position: absolute; top: 5px; right: 5px; font-size: 9px; padding: 1px 4px; border-radius: 8px;">0</span>
+                {{-- PMD_LAB_HEADER_SERVER_BELL_SVG_V1 --}}
+                @if($pmdLabHeaderSurfaceV1)
+                    <span id="bell-icon" aria-hidden="true">
+                        <svg
+                            viewBox="0 0 24 24"
+                            aria-hidden="true"
+                            fill="none"
+                            stroke="currentColor"
+                            stroke-width="2"
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                        >
+                            <path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9"></path>
+                            <path d="M13.73 21a2 2 0 0 1-3.46 0"></path>
+                        </svg>
+                    </span>
+                @else
+                    <i class="fa fa-bell" id="bell-icon" style="color: #6c757d;"></i>
+                @endif
+                <span id="notification-count" class="badge badge-danger{{ $pmdNotificationServerCountV1 > 0 ? '' : ' d-none' }}" data-pmd-notification-count-server-first="1" style="position: absolute; top: 5px; right: 5px; font-size: 9px; padding: 1px 4px; border-radius: 8px;">{{ $pmdNotificationServerCountV1 }}</span>
               </a>
               </span>
 

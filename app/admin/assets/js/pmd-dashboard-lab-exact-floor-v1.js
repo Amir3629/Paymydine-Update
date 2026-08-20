@@ -8057,9 +8057,15 @@ function saveLayout() {
       clearErrors();
       setBusy(true);
 
+      // PMD_TABLE_MANAGER_SEND_ACTIVE_FLOOR_V2
       request(root, 'onPmdFloorTableManagerLoad', {
         location_id: locationId,
-        table_id: asInt(tableId, 0)
+        table_id: asInt(tableId, 0),
+
+        active_floor_id:
+          root.getAttribute(
+            'data-pmd-active-floor-id'
+          ) || ''
       }).then(function (payload) {
         applyTable(payload.table || {}, payload.mode || mode);
         setBusy(false);

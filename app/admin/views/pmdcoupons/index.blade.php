@@ -6,6 +6,16 @@
     $pmdCouponLocale = strtolower(trim((string)request()->cookie('pmd_admin_locale', app()->getLocale())));
     $pmdCouponLocale = str_starts_with($pmdCouponLocale, 'de') ? 'de' : 'en';
 
+    // PMD_COUPON_HEADER_SERVER_COUNT_V2
+    try {
+        $pmdCouponHeaderServerCountV2 =
+            app(
+                \Admin\Services\PmdNotificationCountV1::class
+            )->currentNewCount();
+    } catch (\Throwable $error) {
+        $pmdCouponHeaderServerCountV2 = 0;
+    }
+
     $pmdCouponCopy = [
         'en' => [
             'title' => 'Coupons', 'header' => 'Coupon header', 'actions' => 'Coupon actions', 'create' => 'Create coupon / card', 'notifications' => 'Notifications',
@@ -53,20 +63,569 @@
     $statusSearch = static fn(array $item) => $item['is_active'] ? 'active' : 'inactive';
 @endphp
 
+
+{{-- PMD_COUPON_NOTIFICATION_SERVER_FIRST_V13 --}}
+@php
+    $pmdCouponNotificationCountV13 = 0;
+
+    try {
+        $pmdCouponNotificationCountV13 =
+            app(
+                \Admin\Services\PmdNotificationCountV1::class
+            )->currentNewCount();
+    } catch (\Throwable $error) {
+        $pmdCouponNotificationCountV13 = 0;
+    }
+@endphp
+
 <div id="pmd-coupon-manager-main" class="pmd-owner-page pmd-coupon-manager" data-pmd-coupon-manager data-pmd-locale="{{ $pmdCouponLocale }}">
-    <header id="pmd-r2-clean-header" class="pmd-owner-header pmd-dashboard-lab__dashboard2-header pmd-coupon-manager__topbar" aria-label="{{ $pmdT('header') }}">
-        <div class="pmd-owner-header__left">
-            <h1 class="pmd-r2-clean-title">{{ $pmdT('title') }}</h1>
-        </div>
-        <div class="pmd-owner-header__actions pmd-r2-clean-actions" aria-label="{{ $pmdT('actions') }}">
-            <button type="button" class="pmd-dashboard-lab__header-action pmd-coupon-manager__header-action" data-pmd-coupon-create aria-label="{{ $pmdT('create') }}" title="{{ $pmdT('create') }}">
-                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14"></path><path d="M5 12h14"></path></svg>
-            </button>
-            <span class="pmd-owner-notif-slot pmd-dashboard-lab__notif-slot" aria-label="{{ $pmdT('notifications') }}">
-                <span class="pmd-dashboard-lab__notif-fallback" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9"></path><path d="M13.73 21a2 2 0 0 1-3.46 0"></path></svg></span>
+    <!-- PMD_DASHBOARD_HEADER_CLONE_V1_COUPON_START -->
+<header
+    id="pmd-r2-clean-header"
+    class="pmd-owner-header pmd-dashboard-lab__dashboard2-header pmd-coupon-manager__topbar"
+    aria-label="{{ $pmdT('header') }}"
+    data-pmd-dashboard-header-clone="coupon-v1"
+>
+    <div class="pmd-owner-header__left">
+        <h1 class="pmd-r2-clean-title">{{ $pmdT('title') }}</h1>
+    </div>
+
+    <div
+        class="pmd-owner-header__actions pmd-r2-clean-actions"
+        aria-label="{{ $pmdT('actions') }}"
+    >
+        <button
+            type="button"
+            class="pmd-dashboard-lab__header-action"
+            data-pmd-coupon-create
+            aria-label="{{ $pmdT('create') }}"
+            title="{{ $pmdT('create') }}"
+        >
+            <svg
+                viewBox="0 0 24 24"
+                aria-hidden="true"
+            >
+                <path d="M12 5v14"></path>
+                <path d="M5 12h14"></path>
+            </svg>
+        </button>
+
+
+            <span
+                data-pmd-main-header-notification-gap-r67=""
+                aria-hidden="true"
+                style="
+                    position:relative!important;
+                    display:block!important;
+                    flex:0 0 10px!important;
+                    width:10px!important;
+                    min-width:10px!important;
+                    max-width:10px!important;
+                    height:46px!important;
+                    min-height:46px!important;
+                    max-height:46px!important;
+                    margin:0!important;
+                    padding:0!important;
+                    border:0!important;
+                    background:transparent!important;
+                    pointer-events:none!important;
+                    overflow:visible!important;
+                "
+            >
+                <span
+                    data-pmd-main-header-notification-divider-r67=""
+                    aria-hidden="true"
+                    style="
+                        position:absolute!important;
+                        top:50%!important;
+                        right:5px!important;
+                        transform:translateY(-50%)!important;
+                        display:block!important;
+                        width:1px!important;
+                        min-width:1px!important;
+                        max-width:1px!important;
+                        height:34px!important;
+                        min-height:34px!important;
+                        max-height:34px!important;
+                        margin:0!important;
+                        padding:0!important;
+                        border:0!important;
+                        background:#cfe0ec!important;
+                        pointer-events:none!important;
+                    
+                        left:auto!important;"
+                ></span>
             </span>
-        </div>
-    </header>
+
+
+        <span
+            class="pmd-owner-notif-slot pmd-dashboard-lab__notif-slot pmd-dashboard-header-clone__notif-slot"
+            data-pmd-dashboard-header-clone-notif-slot
+            aria-label="{{ $pmdT('notifications') }}"
+        >
+            <span
+                class="pmd-dashboard-lab__notif-fallback"
+                aria-hidden="true"
+            >
+                <svg viewBox="0 0 24 24">
+                    <path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9"></path>
+                    <path d="M13.73 21a2 2 0 0 1-3.46 0"></path>
+                </svg>
+            
+                    @if($pmdCouponNotificationCountV13 > 0)
+                        <span
+                            class="pmd-header-server-count-v13"
+                            data-pmd-coupon-count-v13
+                            aria-hidden="true"
+                        >{{ $pmdCouponNotificationCountV13 }}</span>
+                    @endif
+</span>
+        </span>
+    </div>
+</header>
+
+
+    <script data-pmd-dashboard-header-clone-mount>
+    (function () {
+      'use strict';
+
+      function setImportant(node, property, value) {
+        if (!node) return;
+        node.style.setProperty(
+          property,
+          value,
+          'important'
+        );
+      }
+
+      function bellSvg() {
+        return ''
+          + '<svg viewBox="0 0 24 24" aria-hidden="true">'
+          + '<path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9"></path>'
+          + '<path d="M13.73 21a2 2 0 0 1-3.46 0"></path>'
+          + '</svg>';
+      }
+
+      function normalizeNotification(root) {
+        if (!root) return false;
+
+        var trigger = root.querySelector(
+          '#notifDropdown'
+        );
+
+        if (!trigger) return false;
+
+        root.classList.remove('show');
+
+        Array.prototype.forEach.call(
+          root.querySelectorAll(
+            '.dropdown-menu.show'
+          ),
+          function (menu) {
+            menu.classList.remove('show');
+            menu.style.removeProperty('display');
+          }
+        );
+
+        trigger.classList.remove('show');
+        trigger.setAttribute(
+          'aria-expanded',
+          'false'
+        );
+        trigger.setAttribute(
+          'aria-label',
+          'Notifications'
+        );
+        trigger.setAttribute(
+          'title',
+          'Notifications'
+        );
+
+        Array.prototype.forEach.call(
+          trigger.querySelectorAll(
+            ':scope > i'
+          ),
+          function (node) {
+            node.remove();
+          }
+        );
+
+        var bell = trigger.querySelector(
+          ':scope > #bell-icon'
+        );
+
+        if (!bell) {
+          bell = document.createElement('span');
+          bell.id = 'bell-icon';
+
+          trigger.insertBefore(
+            bell,
+            trigger.firstChild || null
+          );
+        }
+
+        bell.innerHTML = bellSvg();
+
+        var count = trigger.querySelector(
+          '#notification-count'
+        );
+
+        var panel =
+          root.querySelector('#notification-panel')
+          || root.querySelector('.dropdown-menu');
+
+        setImportant(root, 'position', 'relative');
+        setImportant(root, 'display', 'flex');
+        setImportant(root, 'align-items', 'center');
+        setImportant(root, 'justify-content', 'center');
+        setImportant(root, 'box-sizing', 'border-box');
+
+        setImportant(root, 'width', '46px');
+        setImportant(root, 'min-width', '46px');
+        setImportant(root, 'max-width', '46px');
+
+        setImportant(root, 'height', '46px');
+        setImportant(root, 'min-height', '46px');
+        setImportant(root, 'max-height', '46px');
+
+        setImportant(root, 'flex', '0 0 46px');
+
+        /*
+         * Kills the old inline
+         * margin-left:24px!important authority.
+         */
+        setImportant(root, 'margin', '0');
+        setImportant(root, 'margin-left', '0');
+
+        setImportant(root, 'padding', '0');
+        setImportant(root, 'border', '0');
+        setImportant(
+          root,
+          'background',
+          'transparent'
+        );
+        setImportant(root, 'overflow', 'visible');
+        setImportant(root, 'list-style', 'none');
+        setImportant(root, 'transform', 'none');
+
+        setImportant(
+          trigger,
+          'position',
+          'relative'
+        );
+        setImportant(trigger, 'display', 'grid');
+        setImportant(
+          trigger,
+          'place-items',
+          'center'
+        );
+        setImportant(
+          trigger,
+          'box-sizing',
+          'border-box'
+        );
+
+        setImportant(trigger, 'width', '46px');
+        setImportant(
+          trigger,
+          'min-width',
+          '46px'
+        );
+        setImportant(
+          trigger,
+          'max-width',
+          '46px'
+        );
+
+        setImportant(trigger, 'height', '46px');
+        setImportant(
+          trigger,
+          'min-height',
+          '46px'
+        );
+        setImportant(
+          trigger,
+          'max-height',
+          '46px'
+        );
+
+        setImportant(trigger, 'margin', '0');
+        setImportant(trigger, 'padding', '0');
+
+        setImportant(
+          trigger,
+          'border',
+          '1px solid #cfe0ec'
+        );
+        setImportant(
+          trigger,
+          'border-radius',
+          '14px'
+        );
+        setImportant(
+          trigger,
+          'background',
+          '#ffffff'
+        );
+        setImportant(
+          trigger,
+          'color',
+          '#173752'
+        );
+        setImportant(
+          trigger,
+          'box-shadow',
+          '0 3px 10px rgba(23,55,82,.05)'
+        );
+
+        setImportant(
+          trigger,
+          'line-height',
+          '1'
+        );
+        setImportant(
+          trigger,
+          'text-indent',
+          '0'
+        );
+        setImportant(trigger, 'opacity', '1');
+        setImportant(
+          trigger,
+          'visibility',
+          'visible'
+        );
+        setImportant(
+          trigger,
+          'overflow',
+          'visible'
+        );
+        setImportant(
+          trigger,
+          'transform',
+          'none'
+        );
+
+        setImportant(bell, 'position', 'static');
+        setImportant(
+          bell,
+          'display',
+          'inline-flex'
+        );
+        setImportant(
+          bell,
+          'align-items',
+          'center'
+        );
+        setImportant(
+          bell,
+          'justify-content',
+          'center'
+        );
+        setImportant(bell, 'width', '21px');
+        setImportant(bell, 'height', '21px');
+        setImportant(bell, 'margin', '0');
+        setImportant(bell, 'padding', '0');
+        setImportant(bell, 'color', '#173752');
+        setImportant(bell, 'line-height', '1');
+        setImportant(bell, 'transform', 'none');
+        setImportant(
+          bell,
+          'pointer-events',
+          'none'
+        );
+
+        var svg = bell.querySelector('svg');
+
+        if (svg) {
+          setImportant(svg, 'display', 'block');
+          setImportant(svg, 'width', '21px');
+          setImportant(svg, 'height', '21px');
+          setImportant(svg, 'margin', '0');
+          setImportant(svg, 'padding', '0');
+          setImportant(svg, 'fill', 'none');
+          setImportant(
+            svg,
+            'stroke',
+            'currentColor'
+          );
+          setImportant(
+            svg,
+            'stroke-width',
+            '2'
+          );
+          setImportant(
+            svg,
+            'stroke-linecap',
+            'round'
+          );
+          setImportant(
+            svg,
+            'stroke-linejoin',
+            'round'
+          );
+          setImportant(svg, 'transform', 'none');
+        }
+
+        if (count) {
+          setImportant(
+            count,
+            'position',
+            'absolute'
+          );
+          setImportant(count, 'top', '-7px');
+          setImportant(count, 'right', '-8px');
+          setImportant(count, 'left', 'auto');
+          setImportant(count, 'bottom', 'auto');
+          setImportant(count, 'z-index', '8');
+
+          setImportant(
+            count,
+            'min-width',
+            '18px'
+          );
+          setImportant(count, 'height', '18px');
+
+          setImportant(count, 'margin', '0');
+          setImportant(
+            count,
+            'padding',
+            '0 4px'
+          );
+
+          setImportant(
+            count,
+            'border',
+            '2px solid #ffffff'
+          );
+          setImportant(
+            count,
+            'border-radius',
+            '999px'
+          );
+          setImportant(
+            count,
+            'background',
+            '#d83a31'
+          );
+          setImportant(count, 'color', '#fff');
+
+          setImportant(
+            count,
+            'font-size',
+            '9px'
+          );
+          setImportant(
+            count,
+            'font-weight',
+            '800'
+          );
+          setImportant(
+            count,
+            'line-height',
+            '14px'
+          );
+          setImportant(
+            count,
+            'text-align',
+            'center'
+          );
+          setImportant(
+            count,
+            'white-space',
+            'nowrap'
+          );
+          setImportant(
+            count,
+            'transform',
+            'none'
+          );
+        }
+
+        if (panel) {
+          setImportant(
+            panel,
+            'position',
+            'absolute'
+          );
+          setImportant(panel, 'top', '54px');
+          setImportant(panel, 'right', '0');
+          setImportant(panel, 'left', 'auto');
+          setImportant(panel, 'margin', '0');
+          setImportant(
+            panel,
+            'z-index',
+            '10050'
+          );
+          setImportant(
+            panel,
+            'transform',
+            'none'
+          );
+        }
+
+        root.removeAttribute('hidden');
+        root.removeAttribute('aria-hidden');
+
+        root.setAttribute(
+          'data-pmd-dashboard-header-notification',
+          'mounted-v1'
+        );
+
+        return true;
+      }
+
+      function mount() {
+        var header = document.getElementById(
+          'pmd-r2-clean-header'
+        );
+
+        var slot = header
+          ? header.querySelector(
+              '[data-pmd-dashboard-header-clone-notif-slot]'
+            )
+          : null;
+
+        var root = document.getElementById(
+          'notif-root'
+        );
+
+        if (
+          !header
+          || !root
+          || !root.querySelector('#notifDropdown')
+        ) {
+          return false;
+        }
+
+        if (
+          slot
+          && !header.contains(root)
+        ) {
+          slot.replaceWith(root);
+        }
+
+        if (!header.contains(root)) {
+          return false;
+        }
+
+        return normalizeNotification(root);
+      }
+
+      var mounted = mount();
+
+      if (
+        !mounted
+        && document.readyState === 'loading'
+      ) {
+        document.addEventListener(
+          'DOMContentLoaded',
+          mount,
+          { once: true }
+        );
+      }
+    })();
+    </script>
+<!-- PMD_DASHBOARD_HEADER_CLONE_V1_COUPON_END -->
 
     <div data-pmd-coupon-refresh-zone>
     <section class="pmd-coupon-kpis" aria-label="{{ $pmdT('overview') }}">

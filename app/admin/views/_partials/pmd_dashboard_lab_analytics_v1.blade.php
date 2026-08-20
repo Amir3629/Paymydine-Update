@@ -657,6 +657,121 @@
         return trim((string)$title);
     };
 
+    /*
+     * PMD_ANALYTICS_RANGE_SERVER_FIRSTPAINT_V1
+     *
+     * These cookies are written directly by browser JS, just like the
+     * existing chart-mode cookie, so read raw $_COOKIE and clamp safely.
+     */
+    $analyticsRangeCookie = static function (
+        string $name,
+        int $fallback
+    ): int {
+        $raw = rawurldecode(
+            (string)(
+                $_COOKIE[$name]
+                ?? ''
+            )
+        );
+
+        return preg_match(
+            '/^\\d+$/',
+            $raw
+        ) === 1
+            ? (int)$raw
+            : $fallback;
+    };
+
+    $analyticsSalesWindowRows = is_array(
+        $analyticsLast30['sales_over_time']['buckets'] ?? null
+    )
+        ? $analyticsLast30['sales_over_time']['buckets']
+        : [];
+
+    $analyticsSalesWindowCount =
+        count($analyticsSalesWindowRows);
+
+    $analyticsSalesWindowMin =
+        min(
+            5,
+            max(
+                $analyticsSalesWindowCount,
+                1
+            )
+        );
+
+    $analyticsSalesWindowMax =
+        max(
+            $analyticsSalesWindowCount,
+            $analyticsSalesWindowMin
+        );
+
+    $analyticsSalesWindowDefault =
+        max(
+            $analyticsSalesWindowMin,
+            min(
+                19,
+                $analyticsSalesWindowMax
+            )
+        );
+
+    $analyticsSalesWindowValue =
+        max(
+            $analyticsSalesWindowMin,
+            min(
+                $analyticsRangeCookie(
+                    'pmd_dashboard_lab_sales_range',
+                    $analyticsSalesWindowDefault
+                ),
+                $analyticsSalesWindowMax
+            )
+        );
+
+    $analyticsHourWindowRows = is_array(
+        $analyticsLast30['sales_by_hour']['hours'] ?? null
+    )
+        ? $analyticsLast30['sales_by_hour']['hours']
+        : [];
+
+    $analyticsHourWindowCount =
+        count($analyticsHourWindowRows);
+
+    $analyticsHourWindowMin =
+        min(
+            4,
+            max(
+                $analyticsHourWindowCount,
+                1
+            )
+        );
+
+    $analyticsHourWindowMax =
+        max(
+            $analyticsHourWindowCount,
+            $analyticsHourWindowMin
+        );
+
+    $analyticsHourWindowDefault =
+        max(
+            $analyticsHourWindowMin,
+            min(
+                15,
+                $analyticsHourWindowMax
+            )
+        );
+
+    $analyticsHourWindowValue =
+        max(
+            $analyticsHourWindowMin,
+            min(
+                $analyticsRangeCookie(
+                    'pmd_dashboard_lab_hour_range',
+                    $analyticsHourWindowDefault
+                ),
+                $analyticsHourWindowMax
+            )
+        );
+
     $analyticsBodies = [];
 
     if ($analyticsServerReady) {
@@ -676,7 +791,7 @@
                 $salesRows,
                 $analyticsLast30,
                 $analyticsChartMode,
-                min(19, max(count($salesRows), 1)),
+                $analyticsSalesWindowValue,
                 false
             );
         }
@@ -697,7 +812,7 @@
                 $hourRows,
                 $analyticsLast30,
                 'bar',
-                min(15, max(count($hourRows), 1)),
+                $analyticsHourWindowValue,
                 true
             );
         }
@@ -1047,30 +1162,10 @@
         }
     }
 
-    /* PMD_DASHBOARD_LAB_ANALYTICS_REFINEMENT_V6 */
-    $analyticsSalesWindowRows = is_array(
-        $analyticsLast30['sales_over_time']['buckets'] ?? null
-    ) ? $analyticsLast30['sales_over_time']['buckets'] : [];
-
-    $analyticsHourWindowRows = is_array(
-        $analyticsLast30['sales_by_hour']['hours'] ?? null
-    ) ? $analyticsLast30['sales_by_hour']['hours'] : [];
-
-    $analyticsSalesWindowCount = count($analyticsSalesWindowRows);
-    $analyticsSalesWindowMin = min(5, max($analyticsSalesWindowCount, 1));
-    $analyticsSalesWindowMax = max($analyticsSalesWindowCount, $analyticsSalesWindowMin);
-    $analyticsSalesWindowValue = max(
-        $analyticsSalesWindowMin,
-        min(19, $analyticsSalesWindowMax)
-    );
-
-    $analyticsHourWindowCount = count($analyticsHourWindowRows);
-    $analyticsHourWindowMin = min(4, max($analyticsHourWindowCount, 1));
-    $analyticsHourWindowMax = max($analyticsHourWindowCount, $analyticsHourWindowMin);
-    $analyticsHourWindowValue = max(
-        $analyticsHourWindowMin,
-        min(15, $analyticsHourWindowMax)
-    );
+    /*
+     * Range min/max/value were already resolved before server chart HTML.
+     * One authority is shared by the SVG and its visible range control.
+     */
 
     $analyticsBootstrapJson = json_encode(
         $analyticsBootstrap,
@@ -1342,43 +1437,6 @@
                         </li>
                     </ul>
 
-                    <style id="pmd-manager-alerts-fill-r64">
-                        /*
-                         * Seven real rows now use the tall Manager card.
-                         * No artificial blank filler.
-                         */
-                        [data-pmd-role-dashboard="manager"]
-                        [data-pmd-lab-analytics-widget="alerts"]
-                        [data-pmd-manager-alerts-body-r63]
-                        > .pmd-dashboard-lab-list {
-                            width: 100% !important;
-                            margin: 0 !important;
-                            padding: 0 !important;
-                        }
-
-                        [data-pmd-role-dashboard="manager"]
-                        [data-pmd-lab-analytics-widget="alerts"]
-                        [data-pmd-manager-alerts-body-r63]
-                        > .pmd-dashboard-lab-list
-                        > li {
-                            box-sizing: border-box !important;
-                            min-height: 48px !important;
-                            padding: 11px 0 !important;
-                        }
-
-                        [data-pmd-role-dashboard="manager"]
-                        [data-pmd-lab-analytics-widget="alerts"]
-                        .pmd-manager-alerts-watch-r64
-                        > li:first-child {
-                            border-top: 1px solid #edf1ef !important;
-                        }
-
-                        [data-pmd-role-dashboard="manager"]
-                        [data-pmd-lab-analytics-widget="alerts"]
-                        [data-pmd-manager-alerts-body-r63] {
-                            scrollbar-width: thin;
-                        }
-                    </style>
                 @endif
             </div>
         </article>
@@ -1467,46 +1525,5 @@
 
 
 
-{{-- PMD_MANAGER_ALERTS_MATCH_SALES_R67_START --}}
-@if(request()->is('admin/managerlab'))
-<style id="pmd-manager-alerts-match-sales-r67">
-
-@media (min-width: 1281px) {
-    #pmd-dashboard-lab
-    [data-pmd-lab-analytics-widget="salesByHour"],
-
-    #pmd-dashboard-lab
-    [data-pmd-lab-analytics-widget="alerts"] {
-        height: 430px !important;
-        min-height: 430px !important;
-        max-height: 430px !important;
-        align-self: start !important;
-    }
-}
-
-@media (min-width: 761px) and (max-width: 1280px) {
-    #pmd-dashboard-lab
-    [data-pmd-lab-analytics-widget="salesByHour"],
-
-    #pmd-dashboard-lab
-    [data-pmd-lab-analytics-widget="alerts"] {
-        height: 390px !important;
-        min-height: 390px !important;
-        max-height: 390px !important;
-        align-self: start !important;
-    }
-}
-
-#pmd-dashboard-lab
-[data-pmd-lab-analytics-widget="alerts"]
-.pmd-dashboard-lab-analytics__body {
-    min-height: 0 !important;
-    overflow-x: hidden !important;
-    overflow-y: auto !important;
-    scrollbar-width: thin;
-}
-
-</style>
-@endif
-{{-- PMD_MANAGER_ALERTS_MATCH_SALES_R67_END --}}
+{{-- PMD_MANAGER_ALERTS_GEOMETRY_MOVED_TO_ROLE_CSS_V1 --}}
 

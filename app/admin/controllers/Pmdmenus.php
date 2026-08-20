@@ -114,6 +114,75 @@ class Pmdmenus extends AdminController
 
         $user = AdminAuth::getUser();
         $canManageCategories = $user && $user->hasPermission('Admin.Categories');
+
+        // PMD_MENU_CATEGORY_DELETE_OWNER_MANAGER_V130
+        $pmdMenuManagerRole = '';
+
+        try {
+            if ($user) {
+                if (!empty($user->is_super_user)) {
+                    $pmdMenuManagerRole = 'owner';
+                } elseif (!empty($user->staff_id)) {
+                    $pmdMenuManagerRoleRow = DB::table('staffs as s')
+                        ->leftJoin(
+                            'staff_roles as r',
+                            'r.staff_role_id',
+                            '=',
+                            's.staff_role_id'
+                        )
+                        ->where(
+                            's.staff_id',
+                            (int)$user->staff_id
+                        )
+                        ->select(
+                            'r.code as role_code',
+                            'r.name as role_name'
+                        )
+                        ->first();
+
+                    $pmdMenuManagerRoleCode = strtolower(
+                        trim(
+                            (string)(
+                                $pmdMenuManagerRoleRow->role_code
+                                ?? ''
+                            )
+                        )
+                    );
+
+                    $pmdMenuManagerRoleName = strtolower(
+                        trim(
+                            (string)(
+                                $pmdMenuManagerRoleRow->role_name
+                                ?? ''
+                            )
+                        )
+                    );
+
+                    if (
+                        $pmdMenuManagerRoleCode === 'owner'
+                        || $pmdMenuManagerRoleName === 'owner'
+                    ) {
+                        $pmdMenuManagerRole = 'owner';
+                    } elseif (
+                        $pmdMenuManagerRoleCode === 'manager'
+                        || $pmdMenuManagerRoleName === 'manager'
+                    ) {
+                        $pmdMenuManagerRole = 'manager';
+                    }
+                }
+            }
+        } catch (\Throwable $error) {
+            $pmdMenuManagerRole = '';
+        }
+
+        $canDeleteCategories =
+            $canManageCategories
+            && in_array(
+                $pmdMenuManagerRole,
+                ['owner', 'manager'],
+                true
+            );
+
         $canManageCombos = $user && $user->hasPermission('Admin.Combos') && Schema::hasTable('menu_combos') && Schema::hasTable('menu_combo_items');
         $comboCards = [];
         $comboCatalog = [];
@@ -185,6 +254,7 @@ class Pmdmenus extends AdminController
         $this->vars['pmdMenuManagerCombos'] = $comboCards;
         $this->vars['pmdMenuManagerComboCatalog'] = $comboCatalog;
         $this->vars['pmdMenuManagerCanManageCategories'] = (bool)$canManageCategories;
+        $this->vars['pmdMenuManagerCanDeleteCategories'] = (bool)$canDeleteCategories;
         $this->vars['pmdMenuManagerCanManageCombos'] = (bool)$canManageCombos;
         $this->vars['pmdMenuManagerHasCombos'] = $hasCombos;
         $this->vars['pmdMenuManagerStats'] = [

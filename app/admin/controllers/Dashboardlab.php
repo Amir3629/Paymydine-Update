@@ -85,6 +85,9 @@ class Dashboardlab extends AdminController
         // Clean route-scoped Analytics renderer. Dashboard2 remains data-only.
         $this->addJs('js/pmd-dashboard-lab-analytics-v1.js');
 
+        // PMD_DASHBOARD_LIVE_REFRESH_ASSET_V1
+        $this->addJs('js/pmd-dashboard-live-refresh-v1.js');
+
         AdminMenu::setContext('dashboard');
     }
 
@@ -132,6 +135,34 @@ class Dashboardlab extends AdminController
 
         /* PMD_DASHBOARD_LAB_STEP3_EXACT_RESERVATIONS_FLOOR_V1 */
         $floorBootstrap = $this->resolveFloorBootstrap();
+
+        /*
+         * PMD_DASHBOARDLAB_USER_PAGE_FLOOR_VIEW_V1
+         * Server first paint uses the authenticated Owner's Dashboard-only
+         * Floor mode/zoom preference.
+         */
+        try {
+            $pmdFloorViewLocationId =
+                (int)app(PmdRoleDashboardDataV1::class)
+                    ->resolveWorkspaceLocation();
+
+            $floorBootstrap =
+                app(
+                    \Admin\Services\PmdSharedFloorRegistryV1::class
+                )->applyUserPageViewPreference(
+                    $pmdFloorViewLocationId,
+                    'dashboard',
+                    $floorBootstrap
+                );
+        } catch (\Throwable $error) {
+            logger()->warning(
+                'Dashboard Lab user/page Floor preference read failed',
+                [
+                    'message' =>
+                        $error->getMessage(),
+                ]
+            );
+        }
         $this->vars['pmdDashboardLabFloorBootstrap'] = $floorBootstrap;
         $this->vars['pmdDashboardLabFloorDisplayTables'] =
             $floorBootstrap['display_tables'] ?? [];
@@ -139,6 +170,27 @@ class Dashboardlab extends AdminController
             $floorBootstrap['mode'] ?? 'row';
         $this->vars['pmdDashboardLabFloorZoom'] =
             $floorBootstrap['zoom'] ?? 1.0;
+
+        /*
+         * PMD_DASHBOARD_LIVE_ENDPOINT_V1
+         * Event-driven soft-refresh endpoint.
+         * No page HTML, no analytics bootstrap, no layout authority.
+         */
+        if ((string)request()->query('pmd_live', '') === '1') {
+            return response()->json([
+                'success' => true,
+                'workspace' => 'dashboard',
+                'generated_at' => now()->toIso8601String(),
+                'kpis' => $cards,
+                'kpi_payload_version' =>
+                    (string)($payload['version'] ?? 'unknown'),
+                'floor_tables' => array_values(
+                    (array)($floorBootstrap['display_tables'] ?? [])
+                ),
+                'floor_mode' =>
+                    (string)($floorBootstrap['mode'] ?? 'row'),
+            ]);
+        }
 
         /* PMD_SHARED_FLOOR_DASHBOARDLAB_REGISTRY_BRIDGE_V1_3_1
          * DashboardLab includes the same shared Floor Blade but is not a
@@ -152,10 +204,39 @@ class Dashboardlab extends AdminController
                 ->resolveWorkspaceLocation();
             $pmdFloorRegistryService = app(\Admin\Services\PmdSharedFloorRegistryV1::class);
             $pmdFloorRegistrySnapshot = $pmdFloorRegistryService->snapshot($pmdFloorLocationId);
-            $pmdFloorCookieName = (string)($pmdFloorRegistrySnapshot['cookie_name'] ?? '');
-            $pmdFloorRequested = $pmdFloorCookieName !== ''
-                ? (string)request()->cookie($pmdFloorCookieName, '')
-                : '';
+            $pmdFloorCookieName =
+                (string)(
+                    $pmdFloorRegistrySnapshot[
+                        'cookie_name'
+                    ]
+                    ?? ''
+                );
+
+            $pmdFloorRequested =
+                $pmdFloorCookieName !== ''
+                    ? (string)request()->cookie(
+                        $pmdFloorCookieName,
+                        ''
+                    )
+                    : '';
+
+            // PMD_DASHBOARD_ACTIVE_FLOOR_USER_PAGE_MIGRATION_V2
+            if (
+                trim($pmdFloorRequested) === ''
+                && !empty(
+                    $pmdFloorRegistrySnapshot[
+                        'legacy_cookie_name'
+                    ]
+                )
+            ) {
+                $pmdFloorRequested =
+                    (string)request()->cookie(
+                        (string)$pmdFloorRegistrySnapshot[
+                            'legacy_cookie_name'
+                        ],
+                        ''
+                    );
+            }
             $pmdFloorActive = $pmdFloorRegistryService->activeFloor(
                 (array)($pmdFloorRegistrySnapshot['floors'] ?? []),
                 $pmdFloorRequested
@@ -179,6 +260,58 @@ class Dashboardlab extends AdminController
             ]);
         }
 
+
+        /*
+         * PMD_DASHBOARDLAB_RESERVATION_CALENDAR_PAYLOAD_V2
+         *
+         * DashboardLab hosts the SAME ReservationsLab Calendar/Hour runtime.
+         * Only the host route changes; schedule data authority remains
+         * PmdReservationsLabScheduleV1.
+         */
+        try {
+            $pmdDashboardCalendarLocationId = max(
+                0,
+                (int)($this->vars['pmdCleanWorkspaceLocationId'] ?? 0)
+            );
+
+            if ($pmdDashboardCalendarLocationId < 1) {
+                $pmdDashboardCalendarLocationId = max(
+                    0,
+                    (int)app(PmdRoleDashboardDataV1::class)
+                        ->resolveWorkspaceLocation()
+                );
+            }
+
+            $pmdDashboardCalendarLocale =
+                strtolower((string)app()->getLocale());
+
+            $pmdDashboardCalendarLocale =
+                str_starts_with(
+                    $pmdDashboardCalendarLocale,
+                    'de'
+                )
+                    ? 'de'
+                    : 'en';
+
+            $this->vars['pmdReservationsLabSchedule'] =
+                app(
+                    \Admin\Services\PmdReservationsLabScheduleV1::class
+                )->payload(
+                    $pmdDashboardCalendarLocationId,
+                    $pmdDashboardCalendarLocale
+                );
+        } catch (\Throwable $error) {
+            logger()->warning(
+                'Dashboard Lab reservation Calendar payload failed',
+                [
+                    'type' => get_class($error),
+                    'message' => $error->getMessage(),
+                ]
+            );
+
+            $this->vars['pmdReservationsLabSchedule'] = [];
+        }
+
         /* PMD_DASHBOARD_LAB_ANALYTICS_SCROLL_FIRSTPAINT_V2 */
         // Resolve the two initial Analytics periods before Blade is returned.
         // The browser therefore does not wait for an initial Analytics fetch.
@@ -197,6 +330,141 @@ class Dashboardlab extends AdminController
      * Use the existing Dashboard2 aggregate implementation without calling
      * Dashboard2::index() and therefore without rendering Reservations2.
      */
+    /*
+     * PMD_DASHBOARDLAB_USER_PAGE_FLOOR_VIEW_SAVE_V1
+     */
+    public function onSaveFloorViewPreference()
+    {
+        $user =
+            \Admin\Facades\AdminAuth::getUser();
+
+        if (!$user) {
+            return response()->json(
+                [
+                    'ok' => false,
+                    'message' =>
+                        'Unauthenticated.',
+                ],
+                401
+            );
+        }
+
+        $floorId =
+            trim(
+                (string)request()->input(
+                    'floor_id'
+                )
+            );
+
+        $mode =
+            trim(
+                (string)request()->input(
+                    'layout_mode'
+                )
+            );
+
+        $zoom =
+            request()->input(
+                'full_floor_zoom'
+            );
+
+        if ($floorId !== 'main-floor') {
+            return response()->json(
+                [
+                    'ok' => false,
+                    'message' =>
+                        'Invalid Floor.',
+                ],
+                422
+            );
+        }
+
+        if (
+            !in_array(
+                $mode,
+                ['full', 'row'],
+                true
+            )
+        ) {
+            return response()->json(
+                [
+                    'ok' => false,
+                    'message' =>
+                        'Invalid Floor layout mode.',
+                ],
+                422
+            );
+        }
+
+        if (
+            !is_numeric($zoom)
+            || (float)$zoom < 0.4
+            || (float)$zoom > 1.6
+        ) {
+            return response()->json(
+                [
+                    'ok' => false,
+                    'message' =>
+                        'Invalid Floor zoom.',
+                ],
+                422
+            );
+        }
+
+        try {
+            $locationId =
+                (int)app(
+                    PmdRoleDashboardDataV1::class
+                )->resolveWorkspaceLocation();
+
+            if ($locationId < 1) {
+                return response()->json(
+                    [
+                        'ok' => false,
+                        'message' =>
+                            'Active restaurant location is unavailable.',
+                    ],
+                    409
+                );
+            }
+
+            $view =
+                app(
+                    \Admin\Services\PmdSharedFloorRegistryV1::class
+                )->saveUserPageViewPreference(
+                    $locationId,
+                    'dashboard',
+                    $mode,
+                    (float)$zoom
+                );
+
+            return response()->json([
+                'ok' => true,
+                'scope' =>
+                    'authenticated-user-page-location',
+                'view' =>
+                    $view,
+            ]);
+        } catch (\Throwable $error) {
+            logger()->warning(
+                'Dashboard Lab user/page Floor preference save failed',
+                [
+                    'message' =>
+                        $error->getMessage(),
+                ]
+            );
+
+            return response()->json(
+                [
+                    'ok' => false,
+                    'message' =>
+                        'Floor view preference could not be saved.',
+                ],
+                500
+            );
+        }
+    }
+
     private function resolveKpiPayload(): array
     {
         try {

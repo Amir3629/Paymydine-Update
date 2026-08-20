@@ -54,6 +54,7 @@
   var categoryDrag = null;
   var categorySnapshot = [];
   var categorySaving = false;
+  var categoryDeleteBusy = false;
 
   function manager() {
     return document.querySelector('[data-pmd-menu-manager]');
@@ -1005,6 +1006,147 @@
     return values.indexOf(String(category)) !== -1;
   }
 
+  // PMD_MENU_CATEGORY_DELETE_OWNER_MANAGER_V130
+  function canDeleteCategories() {
+    var node = manager();
+    return Boolean(
+      node
+      && node.dataset.pmdCanDeleteCategories === '1'
+    );
+  }
+
+  function categoryFoodCount(categoryId) {
+    var node = manager();
+    if (!node) return 0;
+
+    var wanted = String(categoryId || '');
+
+    return Array.from(
+      node.querySelectorAll(
+        '[data-pmd-menu-card][data-item-type="food"]'
+      )
+    ).filter(function (card) {
+      return cardHasCategory(card, wanted);
+    }).length;
+  }
+
+  async function deleteCategoryById(categoryId, trigger) {
+    if (
+      categoryDeleteBusy
+      || sortMode
+      || isComboBuilder()
+      || !canDeleteCategories()
+    ) {
+      return;
+    }
+
+    categoryId = Number(categoryId || 0);
+    if (!categoryId) return;
+
+    var node = manager();
+    if (!node) return;
+
+    var categoryButton = node.querySelector(
+      '[data-pmd-category-filter="'
+      + String(categoryId)
+      + '"][data-pmd-category-id]'
+    );
+
+    if (!categoryButton) return;
+
+    var label = categoryButton.querySelector(
+      '.pmd-menu-manager__category-label'
+    );
+
+    var name = String(
+      label
+        ? label.textContent
+        : categoryButton.textContent
+    ).trim();
+
+    var foodCount = categoryFoodCount(categoryId);
+
+    var message;
+
+    if (foodCount > 0) {
+      message = tr(
+        'delete_category_confirm',
+        'Delete "{name}" and permanently delete all {count} '
+        + 'foods assigned to it, including foods also used in '
+        + 'other categories? This cannot be undone.'
+      )
+        .replace('{name}', name)
+        .replace('{count}', String(foodCount));
+    } else {
+      message = tr(
+        'delete_empty_category_confirm',
+        'Delete "{name}"? This cannot be undone.'
+      ).replace('{name}', name);
+    }
+
+    if (!window.confirm(message)) return;
+
+    categoryDeleteBusy = true;
+
+    categoryButton.disabled = true;
+
+    if (trigger) {
+      trigger.classList.add('is-busy');
+    }
+
+    try {
+      var formData = new FormData();
+
+      formData.append(
+        'category_id',
+        String(categoryId)
+      );
+
+      await backend(
+        '/admin/menus',
+        'onPmdMenuManagerDeleteCategoryV130',
+        formData
+      );
+
+      filterState.category = 'all';
+
+      await refreshManager('all');
+
+      sortStatus(
+        tr(
+          'category_deleted',
+          'Category deleted'
+        ),
+        'ok'
+      );
+    } catch (error) {
+      window.alert(
+        error && error.message
+          ? error.message
+          : tr(
+              'delete_category_error',
+              'Could not delete category.'
+            )
+      );
+    } finally {
+      categoryDeleteBusy = false;
+
+      if (
+        categoryButton
+        && document.contains(categoryButton)
+      ) {
+        categoryButton.disabled = false;
+      }
+
+      if (
+        trigger
+        && document.contains(trigger)
+      ) {
+        trigger.classList.remove('is-busy');
+      }
+    }
+  }
+
   function applyFilters() {
     var node = manager();
     if (!node) return;
@@ -1508,6 +1650,27 @@
   document.addEventListener('click', function (event) {
     var node = manager();
     if (!node) return;
+
+    var categoryDelete = event.target.closest(
+      '[data-pmd-category-delete]'
+    );
+
+    if (
+      categoryDelete
+      && node.contains(categoryDelete)
+    ) {
+      event.preventDefault();
+      event.stopPropagation();
+
+      deleteCategoryById(
+        categoryDelete.getAttribute(
+          'data-pmd-category-delete'
+        ),
+        categoryDelete
+      );
+
+      return;
+    }
 
     var sortToggle = event.target.closest('[data-pmd-menu-sort-toggle]');
     if (sortToggle && node.contains(sortToggle)) {

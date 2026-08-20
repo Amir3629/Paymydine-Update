@@ -1776,3 +1776,328 @@ html body #pmd-r2-floor-toolbar-v316 [data-pmd-r2-tool="strip"]::after {
 
 
 
+
+
+/* ============================================================
+   PMD_FLOOR_MANAGE_CARD_V2
+   ============================================================ */
+
+html.pmd-floor-manage-open,
+html.pmd-floor-manage-open body {
+  overflow: hidden !important;
+}
+
+.pmd-floor-registry-manager__locked {
+  margin: 12px 0 0 !important;
+  padding: 11px 12px !important;
+
+  border: 1px solid #d6e4ef !important;
+  border-radius: 10px !important;
+
+  background: #f6fafc !important;
+  color: #587087 !important;
+
+  font-size: 13px !important;
+  font-weight: 650 !important;
+  line-height: 1.45 !important;
+}
+
+.pmd-floor-registry-manager__locked[hidden] {
+  display: none !important;
+}
+
+.pmd-floor-registry-manager__delete {
+  margin-right: auto !important;
+
+  min-height: 42px !important;
+  padding: 0 16px !important;
+
+  border: 1px solid #d98d99 !important;
+  border-radius: 11px !important;
+
+  background: #fff !important;
+  color: #a12638 !important;
+
+  font-size: 14px !important;
+  font-weight: 800 !important;
+
+  cursor: pointer !important;
+}
+
+.pmd-floor-registry-manager__delete:hover:not(:disabled) {
+  background: #fff5f6 !important;
+  border-color: #c65d70 !important;
+}
+
+.pmd-floor-registry-manager__delete:disabled,
+.pmd-floor-registry-manager__save:disabled {
+  cursor: not-allowed !important;
+  opacity: .42 !important;
+}
+
+#pmd-r2-shared-floor-canvas-v310
+[data-pmd-floor-manage] svg {
+  display: block !important;
+  width: 18px !important;
+  height: 18px !important;
+}
+
+
+
+/* ============================================================
+   PMD_FLOOR_MANAGE_CARD_V2_BUTTON_POLISH
+
+   Part of existing PMD_FLOOR_MANAGE_CARD_V2 authority.
+
+   Edit Floor only.
+   Add Floor is intentionally untouched.
+
+   Goals:
+   - flat PMD buttons
+   - zero browser/default 3D shadow
+   - clear enabled/disabled states
+   - Main Floor controls look intentionally locked
+   ============================================================ */
+
+[data-pmd-floor-manage-panel]
+.pmd-floor-registry-manager__footer {
+    display: grid !important;
+
+    grid-template-columns:
+        minmax(0, 1fr)
+        auto
+        auto !important;
+
+    align-items: center !important;
+    gap: 10px !important;
+
+    padding:
+        16px
+        22px
+        20px !important;
+
+    border-top:
+        1px solid #e3edf4 !important;
+
+    background: #ffffff !important;
+}
+
+/* ------------------------------------------------------------
+   ALL EDIT-FLOOR FOOTER BUTTONS
+   ------------------------------------------------------------ */
+
+[data-pmd-floor-manage-panel]
+.pmd-floor-registry-manager__footer
+button {
+    appearance: none !important;
+    -webkit-appearance: none !important;
+
+    box-sizing: border-box !important;
+
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+
+    width: auto !important;
+
+    min-height: 44px !important;
+    height: 44px !important;
+    max-height: 44px !important;
+
+    margin: 0 !important;
+    padding: 0 18px !important;
+
+    border-width: 1px !important;
+    border-style: solid !important;
+    border-radius: 12px !important;
+
+    font-size: 14px !important;
+    font-weight: 800 !important;
+    line-height: 1 !important;
+
+    text-decoration: none !important;
+    text-shadow: none !important;
+    white-space: nowrap !important;
+
+    box-shadow: none !important;
+    outline: none !important;
+
+    transform: none !important;
+    filter: none !important;
+
+    cursor: pointer !important;
+
+    transition:
+        background-color 140ms ease,
+        border-color 140ms ease,
+        color 140ms ease !important;
+}
+
+/* ------------------------------------------------------------
+   REMOVE FLOOR
+   ------------------------------------------------------------ */
+
+[data-pmd-floor-manage-panel]
+.pmd-floor-registry-manager__delete {
+    justify-self: start !important;
+
+    margin: 0 !important;
+
+    border-color: #efb8c1 !important;
+
+    background: #fff7f8 !important;
+    color: #ad3045 !important;
+
+    box-shadow: none !important;
+}
+
+[data-pmd-floor-manage-panel]
+.pmd-floor-registry-manager__delete:hover:not(:disabled),
+[data-pmd-floor-manage-panel]
+.pmd-floor-registry-manager__delete:focus-visible:not(:disabled) {
+    border-color: #dc7c8c !important;
+
+    background: #ffedf0 !important;
+    color: #98263a !important;
+
+    box-shadow: none !important;
+}
+
+/* Main Floor / locked state */
+[data-pmd-floor-manage-panel]
+.pmd-floor-registry-manager__delete:disabled {
+    border-color: #d9e3e9 !important;
+
+    background: #f3f6f8 !important;
+    color: #98a5ae !important;
+
+    opacity: 1 !important;
+
+    box-shadow: none !important;
+    text-shadow: none !important;
+
+    cursor: not-allowed !important;
+}
+
+/* ------------------------------------------------------------
+   CANCEL
+   ------------------------------------------------------------ */
+
+[data-pmd-floor-manage-panel]
+.pmd-floor-registry-manager__cancel {
+    border-color: #c8dbe8 !important;
+
+    background: #ffffff !important;
+    color: #294964 !important;
+
+    box-shadow: none !important;
+}
+
+[data-pmd-floor-manage-panel]
+.pmd-floor-registry-manager__cancel:hover,
+[data-pmd-floor-manage-panel]
+.pmd-floor-registry-manager__cancel:focus-visible {
+    border-color: #9fc0d5 !important;
+
+    background: #f5f9fc !important;
+    color: #173b59 !important;
+
+    box-shadow: none !important;
+}
+
+/* ------------------------------------------------------------
+   SAVE NAME
+   ------------------------------------------------------------ */
+
+[data-pmd-floor-manage-panel]
+.pmd-floor-registry-manager__save {
+    min-width: 116px !important;
+
+    border-color: #153b5a !important;
+
+    background: #153b5a !important;
+    color: #ffffff !important;
+
+    box-shadow: none !important;
+}
+
+[data-pmd-floor-manage-panel]
+.pmd-floor-registry-manager__save:hover:not(:disabled),
+[data-pmd-floor-manage-panel]
+.pmd-floor-registry-manager__save:focus-visible:not(:disabled) {
+    border-color: #0f304b !important;
+
+    background: #0f304b !important;
+    color: #ffffff !important;
+
+    box-shadow: none !important;
+}
+
+/* Main Floor / locked state */
+[data-pmd-floor-manage-panel]
+.pmd-floor-registry-manager__save:disabled {
+    border-color: #d8e2e8 !important;
+
+    background: #e8eef2 !important;
+    color: #8d9ba5 !important;
+
+    opacity: 1 !important;
+
+    box-shadow: none !important;
+    text-shadow: none !important;
+
+    cursor: not-allowed !important;
+}
+
+/* ------------------------------------------------------------
+   LOCKED MAIN FLOOR INPUT
+   Make the whole card visually communicate read-only state.
+   ------------------------------------------------------------ */
+
+[data-pmd-floor-manage-panel]
+.pmd-floor-registry-manager__field
+input:disabled {
+    border-color: #d9e4eb !important;
+
+    background: #f7fafc !important;
+    color: #627789 !important;
+
+    opacity: 1 !important;
+
+    box-shadow: none !important;
+
+    cursor: not-allowed !important;
+
+    -webkit-text-fill-color: #627789 !important;
+}
+
+/* ------------------------------------------------------------
+   RESPONSIVE
+   ------------------------------------------------------------ */
+
+@media (max-width: 620px) {
+
+    [data-pmd-floor-manage-panel]
+    .pmd-floor-registry-manager__footer {
+        grid-template-columns:
+            1fr
+            1fr !important;
+    }
+
+    [data-pmd-floor-manage-panel]
+    .pmd-floor-registry-manager__delete {
+        grid-column:
+            1 / -1 !important;
+
+        width: 100% !important;
+    }
+
+    [data-pmd-floor-manage-panel]
+    .pmd-floor-registry-manager__cancel,
+    [data-pmd-floor-manage-panel]
+    .pmd-floor-registry-manager__save {
+        width: 100% !important;
+        min-width: 0 !important;
+    }
+}
+

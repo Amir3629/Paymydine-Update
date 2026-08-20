@@ -7,10 +7,46 @@
     $pmdCleanWorkspaceBelowFloorPartial = $pmdCleanWorkspaceBelowFloorPartial ?? null;
     $pmdCleanWorkspaceReservationsSurface = (($pmdCleanWorkspacePath ?? '') === '/admin/reservationslab');
     $pmdCleanWorkspaceCashierSurface = (($pmdCleanWorkspacePath ?? '') === '/admin/cashierlab');
+
+    /*
+     * PMD_CLEAN_WORKSPACE_MANAGER_CALENDAR_SURFACE_V1
+     *
+     * ReservationsLab + ManagerLab use ONE Calendar/Hour authority.
+     */
+    $pmdCleanWorkspaceManagerCalendarSurface =
+        (($pmdCleanWorkspacePath ?? '') === '/admin/managerlab');
+
+    $pmdCleanWorkspaceCalendarSurface =
+        $pmdCleanWorkspaceReservationsSurface
+        || $pmdCleanWorkspaceManagerCalendarSurface
+        || $pmdCleanWorkspaceCashierSurface;
+
+    /*
+     * PMD_ACCOUNTANT_HEADER_NO_CALENDAR_V1
+     *
+     * Accountant has no Floor/Calendar workspace.
+     * Do not emit the Calendar control at all.
+     */
+    $pmdCleanWorkspaceAccountantSurface =
+        (($pmdCleanWorkspaceKey ?? '') === 'accountant');
+
+    $pmdCleanWorkspaceHeaderCalendarVisible =
+        !$pmdCleanWorkspaceAccountantSurface;
+
+
     // PMD_CLEAN_WORKSPACE_CANONICAL_RESERVATION_COMPOSER_SURFACE_V1
     // Cashier may create a reservation, but it must not become a ReservationsLab
     // Calendar/Hour surface. Only the exact Reservations2 Composer is shared.
     $pmdCleanWorkspaceComposerSurface = $pmdCleanWorkspaceReservationsSurface || $pmdCleanWorkspaceCashierSurface;
+
+    // PMD_CLEAN_WORKSPACE_CALENDAR_COMPOSER_RUNTIME_V1
+    // Manager loads the canonical Composer for Calendar/Hour actions,
+    // but header Create visibility remains controlled by
+    // $pmdCleanWorkspaceComposerSurface.
+    $pmdCleanWorkspaceComposerRuntimeSurface =
+        $pmdCleanWorkspaceComposerSurface
+        || $pmdCleanWorkspaceManagerCalendarSurface;
+
     $pmdCleanWorkspaceDirectFloorSurface = $pmdCleanWorkspaceReservationsSurface || $pmdCleanWorkspaceCashierSurface;
     $pmdCleanWorkspaceAddReservationLabel = strtolower((string)($pmdCleanWorkspaceLocale ?? 'en')) === 'de'
         ? 'Reservierung hinzufügen'
@@ -396,6 +432,94 @@ html body.page.pmd-clean-workspace-page #pmd-dashboard-lab {
     }
     </style>
     {{-- PMD_MAIN_HEADER_NOTIFICATION_GAP_R67_STYLE_END --}}
+    
+    {{-- PMD_HEADER_NOTIFICATION_COUNT_SERVER_SEED_V1 --}}
+    @php
+        try {
+            $pmdHeaderNotificationCountV1 =
+                app(
+                    \Admin\Services\PmdNotificationCountV1::class
+                )->currentNewCount();
+        } catch (\Throwable $error) {
+            $pmdHeaderNotificationCountV1 = 0;
+        }
+    @endphp
+
+    {{-- PMD_HEADER_NOTIFICATION_CRITICAL_FIRSTPAINT_V2 --}}
+    <style id="pmd-header-notification-critical-firstpaint-v2">
+    #pmd-dashboard-lab
+    #pmd-r2-clean-header
+    [data-pmd-main-header-notification-gap-r67] {
+        position: relative !important;
+        display: block !important;
+        visibility: visible !important;
+        opacity: 1 !important;
+
+        flex: 0 0 10px !important;
+        width: 10px !important;
+        min-width: 10px !important;
+        max-width: 10px !important;
+
+        height: 46px !important;
+        min-height: 46px !important;
+        max-height: 46px !important;
+
+        margin: 0 !important;
+        padding: 0 !important;
+        border: 0 !important;
+        background: transparent !important;
+
+        pointer-events: none !important;
+        overflow: visible !important;
+    }
+
+    #pmd-dashboard-lab
+    #pmd-r2-clean-header
+    [data-pmd-main-header-notification-divider-r67] {
+        position: absolute !important;
+        display: block !important;
+        visibility: visible !important;
+        opacity: 1 !important;
+
+        left: 50% !important;
+        right: auto !important;
+        top: 50% !important;
+
+        width: 1px !important;
+        min-width: 1px !important;
+        max-width: 1px !important;
+
+        height: 34px !important;
+        min-height: 34px !important;
+        max-height: 34px !important;
+
+        margin: 0 !important;
+        padding: 0 !important;
+        border: 0 !important;
+
+        background: #cfe0ec !important;
+        transform: translate(-50%, -50%) !important;
+
+        pointer-events: none !important;
+    }
+
+    /*
+     * Once the real notification root is inside our header it must
+     * always be visible. Old source-menu state must never survive.
+     */
+    #pmd-dashboard-lab
+    #pmd-r2-clean-header
+    #notif-root {
+        opacity: 1 !important;
+        visibility: visible !important;
+        pointer-events: auto !important;
+
+        margin: 0 !important;
+        margin-left: 0 !important;
+        margin-inline-start: 0 !important;
+    }
+    </style>
+
     <header id="pmd-r2-clean-header" class="pmd-owner-header pmd-dashboard-lab__dashboard2-header" aria-label="Dashboard header" data-pmd-dashboard-lab-header="dashboard2-v5">
         <div class="pmd-owner-header__left">
             @if($pmdCleanWorkspaceStandaloneChrome)
@@ -442,12 +566,16 @@ html body.page.pmd-clean-workspace-page #pmd-dashboard-lab {
                 </button>
             @endif
 
+            {{-- PMD_ACCOUNTANT_HEADER_NO_CALENDAR_V1_BUTTON --}}
+            @if($pmdCleanWorkspaceHeaderCalendarVisible)
             <a
                 id="pmd-dashboard-lab-calendar-v4"
                 class="pmd-dashboard-lab__header-action"
-                href="{{ admin_url('dashboard2') }}"
+                href="{{ $pmdCleanWorkspaceCalendarSurface ? '#pmd-r2-shared-floor-canvas-v310' : admin_url('dashboard2') }}"
                 aria-label="Open calendar"
                 title="Open calendar"
+            
+                aria-pressed="false"
             >
                 <svg viewBox="0 0 24 24" aria-hidden="true">
                     <rect x="3" y="5" width="18" height="16" rx="2"></rect>
@@ -456,50 +584,16 @@ html body.page.pmd-clean-workspace-page #pmd-dashboard-lab {
                     <path d="M3 11h18"></path>
                 </svg>
             </a>
+            @endif
 
             {{-- PMD_MAIN_HEADER_NOTIFICATION_GAP_R67_NODE_START --}}
             <span
                 data-pmd-main-header-notification-gap-r67=""
                 aria-hidden="true"
-                style="
-                    position:relative!important;
-                    display:block!important;
-                    flex:0 0 40px!important;
-                    width:40px!important;
-                    min-width:40px!important;
-                    max-width:40px!important;
-                    height:46px!important;
-                    min-height:46px!important;
-                    max-height:46px!important;
-                    margin:0!important;
-                    padding:0!important;
-                    border:0!important;
-                    background:transparent!important;
-                    pointer-events:none!important;
-                    overflow:visible!important;
-                "
             >
                 <span
                     data-pmd-main-header-notification-divider-r67=""
                     aria-hidden="true"
-                    style="
-                        position:absolute!important;
-                        top:50%!important;
-                        right:8px!important;
-                        transform:translateY(-50%)!important;
-                        display:block!important;
-                        width:1px!important;
-                        min-width:1px!important;
-                        max-width:1px!important;
-                        height:34px!important;
-                        min-height:34px!important;
-                        max-height:34px!important;
-                        margin:0!important;
-                        padding:0!important;
-                        border:0!important;
-                        background:#cfe0ec!important;
-                        pointer-events:none!important;
-                    "
                 ></span>
             </span>
             {{-- PMD_MAIN_HEADER_NOTIFICATION_GAP_R67_NODE_END --}}
@@ -513,6 +607,34 @@ html body.page.pmd-clean-workspace-page #pmd-dashboard-lab {
                         <path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9"></path>
                         <path d="M13.73 21a2 2 0 0 1-3.46 0"></path>
                     </svg>
+                @if($pmdHeaderNotificationCountV1 > 0)
+                    <span
+                        class="pmd-dashboard-lab__notif-fallback-count"
+                        aria-hidden="true"
+                        style="
+                            position:absolute!important;
+                            top:-7px!important;
+                            right:-8px!important;
+                            left:auto!important;
+                            bottom:auto!important;
+                            z-index:8!important;
+                            min-width:18px!important;
+                            height:18px!important;
+                            margin:0!important;
+                            padding:0 4px!important;
+                            border:2px solid #fff!important;
+                            border-radius:999px!important;
+                            background:#d83a31!important;
+                            color:#fff!important;
+                            font-size:9px!important;
+                            font-weight:800!important;
+                            line-height:14px!important;
+                            text-align:center!important;
+                            white-space:nowrap!important;
+                            box-sizing:border-box!important;
+                        "
+                    >{{ $pmdHeaderNotificationCountV1 }}</span>
+                @endif
                 </span>
             </span>
         </div>
@@ -599,7 +721,10 @@ html body.page.pmd-clean-workspace-page #pmd-dashboard-lab {
           bell.id = 'bell-icon';
           trigger.insertBefore(bell, trigger.firstChild || null);
         }
-        bell.innerHTML = bellSvg();
+        // PMD_LAB_HEADER_SERVER_BELL_NO_REWRITE_V1
+        if (!bell.querySelector('svg')) {
+          bell.innerHTML = bellSvg();
+        }
 
         var count = trigger.querySelector('#notification-count');
         var panel = notificationRoot.querySelector('#notification-panel');
@@ -616,12 +741,22 @@ html body.page.pmd-clean-workspace-page #pmd-dashboard-lab {
         setImportant(notificationRoot, 'min-height', '46px');
         setImportant(notificationRoot, 'max-height', '46px');
         setImportant(notificationRoot, 'flex', '0 0 46px');
+        // PMD_LAB_HEADER_NOTIFICATION_ZERO_MARGIN_V1
         setImportant(notificationRoot, 'margin', '0');
+        setImportant(notificationRoot, 'margin-left', '0');
+        setImportant(notificationRoot, 'margin-inline-start', '0');
         setImportant(notificationRoot, 'padding', '0');
         setImportant(notificationRoot, 'border', '0');
         setImportant(notificationRoot, 'background', 'transparent');
         setImportant(notificationRoot, 'overflow', 'visible');
         setImportant(notificationRoot, 'list-style', 'none');
+
+        // PMD_HEADER_NOTIFICATION_ROOT_VISIBLE_AFTER_MOUNT_V2
+        setImportant(notificationRoot, 'opacity', '1');
+        setImportant(notificationRoot, 'visibility', 'visible');
+        setImportant(notificationRoot, 'pointer-events', 'auto');
+        setImportant(notificationRoot, 'margin-left', '0');
+        setImportant(notificationRoot, 'margin-inline-start', '0');
 
         setImportant(trigger, 'position', 'relative');
         setImportant(trigger, 'display', 'grid');
@@ -938,6 +1073,39 @@ html body.page.pmd-clean-workspace-page #pmd-dashboard-lab {
                 @include($pmdCleanWorkspaceAfterFloorPartial)
             @endif
 
+            @if($pmdCleanWorkspaceManagerCalendarSurface || $pmdCleanWorkspaceCashierSurface)
+                {{-- PMD_MANAGER_CASHIER_CALENDAR_BOOTSTRAP_SHARED_V2 --}}
+                @php
+                    $pmdManagerCalendarCssPath =
+                        base_path(
+                            'app/admin/assets/css/'.
+                            'pmd-reservations-lab-schedule-v1.css'
+                        );
+
+                    $pmdManagerCalendarCssVersion =
+                        is_file($pmdManagerCalendarCssPath)
+                            ? substr(
+                                hash_file(
+                                    'sha256',
+                                    $pmdManagerCalendarCssPath
+                                ),
+                                0,
+                                16
+                            )
+                            : '1';
+                @endphp
+
+                <link
+                    rel="stylesheet"
+                    href="{{ asset('app/admin/assets/css/pmd-reservations-lab-schedule-v1.css') }}?v={{ $pmdManagerCalendarCssVersion }}"
+                >
+
+                @include(
+                    'admin::_partials.pmd_reservations_lab_schedule_v1'
+                )
+            @endif
+
+
             @if($pmdCleanWorkspaceUsesFloor)
                 {{-- PMD_DASHBOARD_LAB_STEP3_EXACT_RESERVATIONS_FLOOR_V1 --}}
                 @include('admin::_partials.pmd_dashboard_lab_exact_floor_v1', [
@@ -1005,7 +1173,7 @@ html body.page.pmd-clean-workspace-page #pmd-dashboard-lab {
                 @endif
             @endif
 
-            @if($pmdCleanWorkspaceComposerSurface)
+            @if($pmdCleanWorkspaceComposerRuntimeSurface)
                 {{-- PMD_CLEAN_WORKSPACE_CANONICAL_RESERVATION_COMPOSER_SURFACE_V1_START
                      ReservationsLab and CashierLab share the literal canonical Reservations2
                      Composer. Cashier does NOT load ReservationsLab Calendar/Hour runtime. --}}
@@ -1110,7 +1278,7 @@ html body.page.pmd-clean-workspace-page #pmd-dashboard-lab {
                     </script>
                 @endif
 
-                @if($pmdCleanWorkspaceReservationsSurface)
+                @if($pmdCleanWorkspaceCalendarSurface)
                     {{-- PMD_RESERVATIONSLAB_SCHEDULE_DIRECT_AUTHORITY_V1_2
                          One schedule runtime owner, loaded directly after the canonical
                          Composer with a content-derived cache key. Reservationslab.php

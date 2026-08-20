@@ -76,6 +76,25 @@ class Cashierlab extends PmdCleanWorkspaceControllerV1
         string $locale,
         array $floorBootstrap
     ): void {
+
+        /*
+         * PMD_CASHIER_RESERVATION_CALENDAR_PAYLOAD_V1
+         *
+         * Cashier hosts the SAME ReservationsLab Calendar/Hour engine.
+         * No second Calendar data source.
+         */
+        try {
+            $this->vars['pmdReservationsLabSchedule'] =
+                app(
+                    \Admin\Services\PmdReservationsLabScheduleV1::class
+                )->payload(
+                    $shared->locationId(),
+                    $locale
+                );
+        } catch (\Throwable $error) {
+            $this->vars['pmdReservationsLabSchedule'] = [];
+        }
+
         $isGerman = strtolower($locale) === 'de';
 
         // PMD_CASHIER_HISTORY_MODE_R46
