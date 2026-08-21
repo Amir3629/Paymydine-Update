@@ -165,6 +165,17 @@ bash "$SRC/deploy/pmd-r36-final-safe-install.sh"
 
 Only after the stage reports `STAGE PASS` should the exact same immutable release be run with `PMD_ACTIVATE=YES`.
 
+## GitHub release-gate evidence
+
+At release-candidate head `dab1ceaf5ebbece3577c4725d945852e68fd6767`, both automated gates passed:
+
+- `R36 Task 2 validation` run `32520737806`: PASS.
+- `R36 Task 3 release gate` run `32520737801`: PASS.
+
+The Task 3 gate includes PHP syntax, deterministic fiscal payload smoke, R36 authority invariants, tenant-aware migration markers, installer syntax/protections, `npm ci`, full V2 `release:audit`, and a full Next.js production build.
+
+A later documentation-only commit may move the branch SHA; re-run/check both gates on the exact deployment SHA before VPS activation.
+
 ## Post-activation evidence
 
 A successful activation prints:
