@@ -8,22 +8,14 @@
 
 body.pmd-menu-manager-page
 [data-pmd-menu-manager][data-pmd-combo-builder="0"]
-[data-pmd-combo-build] {
-    display: none !important;
-}
+[data-pmd-combo-build] { display: none !important; }
 
-/* The existing selection shell reuses this button as Cancel. Keep it visible
- * while Combination/Chef/Bestseller selection mode is active. */
+/* Existing Combination shell uses the same button as Cancel while active. */
 body.pmd-menu-manager-page
 [data-pmd-menu-manager][data-pmd-combo-builder="1"]
-[data-pmd-combo-build] {
-    display: grid !important;
-}
+[data-pmd-combo-build] { display: grid !important; }
 
-/*
- * Smart category navigation intentionally has NO special pill, outline,
- * accent, background or shape. It inherits the exact regular category style.
- */
+/* Smart categories inherit the exact regular category-strip appearance. */
 body.pmd-menu-manager-page .pmd-smart-category-edit-hit {
     display: none;
     align-items: center;
@@ -43,9 +35,7 @@ body.pmd-menu-manager-page .pmd-smart-category-edit-hit {
 body.pmd-menu-manager-page
 [data-pmd-menu-manager][data-pmd-sort-mode]:not([data-pmd-sort-mode="0"])
 [data-pmd-category-id]
-.pmd-smart-category-edit-hit {
-    display: inline-flex;
-}
+.pmd-smart-category-edit-hit { display: inline-flex; }
 
 body.pmd-menu-manager-page .pmd-smart-category-edit-hit svg {
     width: 13px;
@@ -58,9 +48,7 @@ body.pmd-menu-manager-page .pmd-smart-category-edit-hit svg {
 }
 
 .pmd-smart-category-modal[hidden],
-.pmd-smart-add-card[hidden] {
-    display: none !important;
-}
+.pmd-smart-add-card[hidden] { display: none !important; }
 
 .pmd-smart-category-modal {
     position: fixed;
@@ -74,7 +62,7 @@ body.pmd-menu-manager-page .pmd-smart-category-edit-hit svg {
 .pmd-smart-category-modal__backdrop {
     position: absolute;
     inset: 0;
-    background: rgba(20, 39, 55, .34);
+    background: rgba(20,39,55,.34);
     backdrop-filter: blur(8px);
     -webkit-backdrop-filter: blur(8px);
 }
@@ -85,12 +73,12 @@ body.pmd-menu-manager-page .pmd-smart-category-edit-hit svg {
     display: flex;
     flex-direction: column;
     overflow: hidden;
-    border: 1px solid #d9e7ee;
-    background: #fff;
-    box-shadow: 0 28px 80px rgba(27, 55, 74, .22);
     width: min(720px, calc(100vw - 32px));
     max-height: min(760px, calc(100vh - 38px));
+    border: 1px solid #d9e7ee;
     border-radius: 24px;
+    background: #fff;
+    box-shadow: 0 28px 80px rgba(27,55,74,.22);
 }
 
 .pmd-smart-category-modal__header,
@@ -99,7 +87,6 @@ body.pmd-menu-manager-page .pmd-smart-category-edit-hit svg {
     align-items: center;
     gap: 12px;
     padding: 20px 22px;
-    border-color: #e5eef3;
     background: #fff;
 }
 
@@ -158,11 +145,7 @@ body.pmd-menu-manager-page .pmd-smart-category-edit-hit svg {
     background: #f8fbfd;
 }
 
-.pmd-smart-field {
-    display: grid;
-    gap: 8px;
-    margin: 0;
-}
+.pmd-smart-field { display: grid; gap: 8px; margin: 0; }
 
 .pmd-smart-field > span,
 .pmd-smart-section__head strong {
@@ -171,7 +154,9 @@ body.pmd-menu-manager-page .pmd-smart-category-edit-hit svg {
     font-weight: 800;
 }
 
-.pmd-smart-field > small {
+.pmd-smart-field > small,
+.pmd-smart-section__head p,
+.pmd-smart-kind-lock {
     color: #71828e;
     font-size: 12px;
     line-height: 1.45;
@@ -192,7 +177,7 @@ body.pmd-menu-manager-page .pmd-smart-category-edit-hit svg {
 
 .pmd-smart-field input[type="text"]:focus {
     border-color: #8fb8c8;
-    box-shadow: 0 0 0 3px rgba(64, 139, 158, .10);
+    box-shadow: 0 0 0 3px rgba(64,139,158,.10);
 }
 
 .pmd-smart-section {
@@ -203,21 +188,13 @@ body.pmd-menu-manager-page .pmd-smart-category-edit-hit svg {
     background: #fff;
 }
 
-.pmd-smart-section__head {
-    margin-bottom: 14px;
-}
+.pmd-smart-section__head { margin-bottom: 14px; }
+.pmd-smart-section__head p { margin: 5px 0 0; }
 
-.pmd-smart-section__head p {
-    margin: 5px 0 0;
-    color: #728592;
-    font-size: 13px;
-    line-height: 1.45;
-}
-
-/* Type choices are compact radio rows, not large product-card pills. */
+/* Compact radio rows: no squeezed product-card copy. */
 .pmd-smart-kind-grid {
     display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-columns: repeat(2, minmax(0,1fr));
     gap: 10px;
 }
 
@@ -255,25 +232,10 @@ body.pmd-menu-manager-page .pmd-smart-category-edit-hit svg {
     background: #fff;
 }
 
-.pmd-smart-kind.is-active {
-    border-color: #84b4b5;
-    background: #f5fbfa;
-}
-
-.pmd-smart-kind.is-active .pmd-smart-kind__mark {
-    border: 5px solid #18766e;
-}
-
-.pmd-smart-kind:disabled {
-    opacity: .42;
-    cursor: not-allowed;
-}
-
-.pmd-smart-kind-lock {
-    margin: 10px 0 0;
-    color: #758994;
-    font-size: 12px;
-}
+.pmd-smart-kind.is-active { border-color: #84b4b5; background: #f5fbfa; }
+.pmd-smart-kind.is-active .pmd-smart-kind__mark { border: 5px solid #18766e; }
+.pmd-smart-kind:disabled { opacity: .42; cursor: not-allowed; }
+.pmd-smart-kind-lock { margin: 10px 0 0; }
 
 .pmd-smart-status {
     min-height: 18px;
@@ -281,14 +243,8 @@ body.pmd-menu-manager-page .pmd-smart-category-edit-hit svg {
     color: #6b818f;
     font-size: 12px;
 }
-
-.pmd-smart-status.is-error {
-    color: #bb2d3b;
-}
-
-.pmd-smart-status.is-ok {
-    color: #11765f;
-}
+.pmd-smart-status.is-error { color: #bb2d3b; }
+.pmd-smart-status.is-ok { color: #11765f; }
 
 .pmd-smart-btn {
     min-height: 42px;
@@ -300,20 +256,11 @@ body.pmd-menu-manager-page .pmd-smart-category-edit-hit svg {
     font-weight: 800;
     cursor: pointer;
 }
+.pmd-smart-btn--primary { border-color: #0a6d5c; background: #0a6d5c; color: #fff; }
+.pmd-smart-btn:disabled { opacity: .52; cursor: wait; }
 
-.pmd-smart-btn--primary {
-    border-color: #0a6d5c;
-    background: #0a6d5c;
-    color: #fff;
-}
-
-.pmd-smart-btn:disabled {
-    opacity: .52;
-    cursor: wait;
-}
-
-/* First card inside Chef/Bestseller/Combination categories. It is an action
- * tile only and never participates in sortable-card drag authority. */
+/* First card inside a special category. It is not data-pmd-menu-card, so it
+ * never participates in V141 drag/reorder ownership. */
 .pmd-smart-add-card {
     min-width: 0;
     min-height: 250px;
@@ -332,11 +279,7 @@ body.pmd-menu-manager-page .pmd-smart-category-edit-hit svg {
     cursor: pointer;
     box-shadow: none;
 }
-
-.pmd-smart-add-card:hover {
-    border-color: #5e9fa1;
-    background: #f2f9f8;
-}
+.pmd-smart-add-card:hover { border-color: #5e9fa1; background: #f2f9f8; }
 
 .pmd-smart-add-card__plus {
     width: 54px;
@@ -352,46 +295,16 @@ body.pmd-menu-manager-page .pmd-smart-category-edit-hit svg {
 }
 
 .pmd-smart-add-card__copy strong,
-.pmd-smart-add-card__copy small {
-    display: block;
-}
-
-.pmd-smart-add-card__copy strong {
-    color: #173752;
-    font-size: 17px;
-    font-weight: 800;
-}
-
-.pmd-smart-add-card__copy small {
-    margin-top: 5px;
-    color: #718690;
-    font-size: 12px;
-    line-height: 1.4;
-}
+.pmd-smart-add-card__copy small { display: block; }
+.pmd-smart-add-card__copy strong { color: #173752; font-size: 17px; font-weight: 800; }
+.pmd-smart-add-card__copy small { margin-top: 5px; color: #718690; font-size: 12px; line-height: 1.4; }
 
 @media (max-width: 760px) {
-    .pmd-smart-category-modal {
-        padding: 10px;
-    }
-
-    .pmd-smart-category-modal__card {
-        width: calc(100vw - 20px);
-        max-height: calc(100vh - 20px);
-        border-radius: 19px;
-    }
-
+    .pmd-smart-category-modal { padding: 10px; }
+    .pmd-smart-category-modal__card { width: calc(100vw - 20px); max-height: calc(100vh - 20px); border-radius: 19px; }
     .pmd-smart-category-modal__header,
     .pmd-smart-category-modal__footer,
-    .pmd-smart-category-modal__body {
-        padding-left: 15px;
-        padding-right: 15px;
-    }
-
-    .pmd-smart-kind-grid {
-        grid-template-columns: 1fr;
-    }
-
-    .pmd-smart-add-card {
-        min-height: 190px;
-    }
+    .pmd-smart-category-modal__body { padding-left: 15px; padding-right: 15px; }
+    .pmd-smart-kind-grid { grid-template-columns: 1fr; }
+    .pmd-smart-add-card { min-height: 190px; }
 }
