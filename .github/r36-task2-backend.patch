@@ -1,0 +1,374 @@
+diff --git a/app/Services/Financial/BillingGroupService.php b/app/Services/Financial/BillingGroupService.php
+--- a/app/Services/Financial/BillingGroupService.php
++++ b/app/Services/Financial/BillingGroupService.php
+@@
+     public function findOpenSummaryForTable(string $tableId): ?array
+     {
+         if (!self::schemaReady()) return null;
+         $g = DB::table('pmd_billing_groups')->where('table_id', trim($tableId))->where('status','open')->orderByDesc('id')->first();
+         return $g ? DB::transaction(fn() => $this->refresh((int)$g->id)) : null;
+     }
++
++    // PMD_R36_TASK2_PUBLIC_REFRESH
++    // Payment, Free Table and invoice authorities all need the exact same locked
++    // recomputation. Keep one implementation rather than duplicating totals logic.
++    public function refreshGroupById(int $groupId): ?array
++    {
++        if (!self::schemaReady() || $groupId < 1) return null;
++        return DB::transaction(fn() => $this->refresh($groupId));
++    }
+@@
+-        return ['publicId'=>$g->public_id,'tableId'=>$g->table_id,'sessionKey'=>$g->session_key,'mode'=>$g->mode,'status'=>$g->status,'currency'=>$g->currency,'subtotalCents'=>$subtotal,'serviceChargeCents'=>$svc,'serviceChargeTaxCents'=>$svcTax,'serviceChargeTaxAddedCents'=>$svcTaxAdded,'discountCents'=>$discount,'tipCents'=>$tip,'totalCents'=>$total,'paidCents'=>$paid,'remainingCents'=>max(0,$total-$paid),'paymentStatus'=>$status,'fiscalStatus'=>$g->fiscal_status,'vatSnapshot'=>$vat,'orders'=>$orders];
++        return ['publicId'=>$g->public_id,'tableId'=>$g->table_id,'sessionKey'=>$g->session_key,'mode'=>$g->mode,'status'=>$g->status,'currency'=>$g->currency,'subtotalCents'=>$subtotal,'serviceChargeCents'=>$svc,'serviceChargeTaxCents'=>$svcTax,'serviceChargeTaxAddedCents'=>$svcTaxAdded,'discountCents'=>$discount,'tipCents'=>$tip,'totalCents'=>$total,'payableCents'=>max(0,$total+$tip-$discount),'paidCents'=>$paid,'remainingCents'=>max(0,$total-$paid),'paymentStatus'=>$status,'fiscalStatus'=>$g->fiscal_status,'invoiceNumber'=>$g->invoice_number??null,'invoicedAt'=>$g->invoiced_at??null,'vatSnapshot'=>$vat,'orders'=>$orders];
+     }
+diff --git a/app/Services/Financial/BillingGroupPaymentService.php b/app/Services/Financial/BillingGroupPaymentService.php
+--- a/app/Services/Financial/BillingGroupPaymentService.php
++++ b/app/Services/Financial/BillingGroupPaymentService.php
+@@
+     public function status(string $paymentId): ?array {if(!BillingGroupService::schemaReady())return null;$r=DB::table('pmd_billing_group_payments')->where('payment_id',trim($paymentId))->first();return $r?$this->payload($r,false):null;}
++
++    public function cancel(string $paymentId): array
++    {
++        $paymentId=trim($paymentId);if($paymentId==='')throw new InvalidArgumentException('Payment id is required.');
++        return DB::transaction(function()use($paymentId){
++            $p=DB::table('pmd_billing_group_payments')->where('payment_id',$paymentId)->lockForUpdate()->first();if(!$p)throw new RuntimeException('Billing-group payment reservation not found.');
++            if($p->status==='settled'||$p->status==='reconciliation_required'||$p->provider_confirmed_at)throw new RuntimeException('Provider-confirmed payment cannot be cancelled.');
++            if(!in_array($p->status,['reserved','expired','cancelled'],true))throw new RuntimeException('Payment reservation is not cancellable.');
++            if($p->status!=='cancelled')DB::table('pmd_billing_group_payments')->where('id',$p->id)->update(['status'=>'cancelled','reserved_until'=>now(),'updated_at'=>now()]);
++            $fresh=DB::table('pmd_billing_group_payments')->where('id',$p->id)->first();
++            $out=$this->payload($fresh,$p->status==='cancelled');$out['billingGroup']=$this->groups->refreshGroupById((int)$p->billing_group_id);return $out;
++        });
++    }
+ 
+     private function assertLegacySchema(array $base): void {if(!$base)return;if(!Schema::hasTable('order_payment_transactions')||!Schema::hasColumn('order_payment_transactions','idempotency_key')||!Schema::hasTable('order_payment_transaction_items'))throw new RuntimeException('Legacy payment ledger is not ready for R36 mirroring.');$c=Schema::getColumnListing('order_payment_transaction_items');if(!in_array('order_menu_id',$c,true)&&!in_array('order_item_id',$c,true))throw new RuntimeException('Legacy allocation ledger lacks an order-menu link.');}
+diff --git a/app/Services/Financial/BillingGroupInvoiceService.php b/app/Services/Financial/BillingGroupInvoiceService.php
+new file mode 100644
+--- /dev/null
++++ b/app/Services/Financial/BillingGroupInvoiceService.php
+@@
++<?php
++
++namespace App\Services\Financial;
++
++use Illuminate\Support\Facades\DB;
++use RuntimeException;
++
++final class BillingGroupInvoiceService
++{
++    /** @var BillingGroupService */
++    private $groups;
++
++    public function __construct(BillingGroupService $groups) { $this->groups=$groups; }
++
++    public function decorateSummary(array $summary): array
++    {
++        $publicId=trim((string)($summary['publicId']??''));if($publicId==='')return $summary;
++        $g=DB::table('pmd_billing_groups')->where('public_id',$publicId)->first();if(!$g)return $summary;
++        $available=$g->mode==='r36'&&$g->status==='closed'&&$g->payment_status==='paid'&&trim((string)($g->invoice_number??''))!=='';
++        $summary['invoiceAvailable']=$available;
++        $summary['invoiceNumber']=$g->invoice_number??null;
++        $summary['invoicedAt']=$g->invoiced_at??null;
++        $summary['invoiceDownloadToken']=$available?$this->token($g):null;
++        $summary['invoiceDownloadUrl']=$available?$this->url($g):null;
++        return $summary;
++    }
++
++    public function finalizeClosedPaidGroup(int $groupId): array
++    {
++        return DB::transaction(function()use($groupId){
++            $summary=$this->groups->refreshGroupById($groupId);if(!$summary)throw new RuntimeException('Billing group not found.');
++            $g=DB::table('pmd_billing_groups')->where('id',$groupId)->lockForUpdate()->first();if(!$g)throw new RuntimeException('Billing group not found.');
++            if($g->mode!=='r36')return $summary;
++            if($g->payment_status==='reconciliation_required')throw new RuntimeException('Reconciliation must be resolved before final invoice creation.');
++            if($g->status!=='closed'||$g->payment_status!=='paid')throw new RuntimeException('Final invoice requires a closed, fully paid Billing Group.');
++            if(trim((string)($g->invoice_number??''))===''){
++                $number='PMD-'.now()->format('Ymd').'-BG'.str_pad((string)$g->id,6,'0',STR_PAD_LEFT);
++                DB::table('pmd_billing_groups')->where('id',$g->id)->update(['invoice_number'=>$number,'invoiced_at'=>now(),'updated_at'=>now()]);
++            }
++            $fresh=DB::table('pmd_billing_groups')->where('id',$g->id)->first();
++            return $this->decorateSummary($this->groups->refreshGroupById((int)$g->id)??$summary)+['invoiceNumber'=>$fresh->invoice_number,'invoicedAt'=>$fresh->invoiced_at];
++        });
++    }
++
++    public function url($group): string
++    {
++        return '/api/v1/billing-groups/'.rawurlencode((string)$group->public_id).'/invoice?token='.rawurlencode($this->token($group));
++    }
++
++    public function token($group): string
++    {
++        $key=(string)config('app.key','');
++        return hash_hmac('sha256',implode('|',[(string)$group->public_id,(string)$group->table_id,(string)$group->session_key,(string)$group->invoice_number]),$key);
++    }
++
++    public function render(string $publicId,string $token): string
++    {
++        $g=DB::table('pmd_billing_groups')->where('public_id',trim($publicId))->first();if(!$g)throw new RuntimeException('Final Bill not found.');
++        if($g->mode!=='r36'||$g->status!=='closed'||$g->payment_status!=='paid'||trim((string)($g->invoice_number??''))==='')throw new RuntimeException('Final Bill invoice is not available yet.');
++        if(!hash_equals($this->token($g),trim($token)))throw new RuntimeException('Invalid Final Bill invoice token.');
++        $links=DB::table('pmd_billing_group_orders')->where('billing_group_id',$g->id)->orderBy('order_id')->get();
++        $payments=DB::table('pmd_billing_group_payments')->where('billing_group_id',$g->id)->where('status','settled')->orderBy('id')->get();
++        $esc=static fn($v)=>htmlspecialchars((string)$v,ENT_QUOTES|ENT_SUBSTITUTE,'UTF-8');
++        $money=static fn($c)=>number_format(((int)$c)/100,2,'.','').' '.strtoupper((string)$g->currency);
++        $rows='';
++        foreach($links as $link){$orderId=(int)$link->order_id;$items=DB::table('order_menus')->where('order_id',$orderId)->orderBy('order_menu_id')->get();foreach($items as $item){$rows.='<tr><td>#'.$orderId.' · '.$esc($item->name).'</td><td style="text-align:right">'.$esc($item->quantity).'</td><td style="text-align:right">'.$money((int)round(((float)$item->subtotal)*100)).'</td></tr>';}}
++        $paymentRows='';foreach($payments as $p){$paymentRows.='<tr><td>'.$esc(strtoupper((string)$p->method)).'</td><td>'.$esc($p->provider_reference??$p->payment_id).'</td><td style="text-align:right">'.$money((int)$p->payable_cents).'</td></tr>';}
++        $vat=json_decode((string)($g->vat_snapshot??''),true)?:[];$serviceTax=(int)($vat['service_charge_tax_cents']??0);$payable=max(0,(int)$g->total_cents+(int)$g->tip_cents-(int)$g->discount_cents);
++        return '<!doctype html><html><head><meta charset="utf-8"><title>'.$esc($g->invoice_number).'</title><style>body{font-family:Arial,sans-serif;max-width:820px;margin:32px auto;color:#17202a}table{width:100%;border-collapse:collapse;margin:18px 0}td,th{padding:8px;border-bottom:1px solid #ddd;text-align:left}.totals{margin-left:auto;max-width:360px}.muted{color:#667085}</style></head><body><h1>PayMyDine Final Bill</h1><p><strong>Invoice:</strong> '.$esc($g->invoice_number).'<br><strong>Table:</strong> '.$esc($g->table_id).'<br><strong>Visit:</strong> '.$esc($g->session_key).'<br><strong>Date:</strong> '.$esc($g->invoiced_at).'</p><h2>Items</h2><table><thead><tr><th>Order / Item</th><th style="text-align:right">Qty</th><th style="text-align:right">Amount</th></tr></thead><tbody>'.$rows.'</tbody></table><table class="totals"><tr><td>Subtotal</td><td style="text-align:right">'.$money((int)$g->subtotal_cents).'</td></tr><tr><td>Service charge</td><td style="text-align:right">'.$money((int)$g->service_charge_cents).'</td></tr>'.($serviceTax>0?'<tr><td>Service charge VAT</td><td style="text-align:right">'.$money($serviceTax).'</td></tr>':'').((int)$g->discount_cents>0?'<tr><td>Discount</td><td style="text-align:right">-'.$money((int)$g->discount_cents).'</td></tr>':'').((int)$g->tip_cents>0?'<tr><td>Tip</td><td style="text-align:right">'.$money((int)$g->tip_cents).'</td></tr>':'').'<tr><td><strong>Total paid</strong></td><td style="text-align:right"><strong>'.$money($payable).'</strong></td></tr></table><h2>Payments</h2><table><thead><tr><th>Method</th><th>Reference</th><th style="text-align:right">Amount</th></tr></thead><tbody>'.$paymentRows.'</tbody></table><p class="muted">Canonical PayMyDine Billing Group: '.$esc($g->public_id).'</p></body></html>';
++    }
++}
+diff --git a/app/admin/database/migrations/2026_08_21_362000_upgrade_pmd_billing_groups_task2.php b/app/admin/database/migrations/2026_08_21_362000_upgrade_pmd_billing_groups_task2.php
+new file mode 100644
+--- /dev/null
++++ b/app/admin/database/migrations/2026_08_21_362000_upgrade_pmd_billing_groups_task2.php
+@@
++<?php
++
++use Illuminate\Database\Migrations\Migration;
++use Illuminate\Database\Schema\Blueprint;
++use Illuminate\Support\Facades\Schema;
++
++return new class extends Migration
++{
++    public function up(): void
++    {
++        if (!Schema::hasTable('pmd_billing_groups')) return;
++        Schema::table('pmd_billing_groups', function (Blueprint $table): void {
++            if (!Schema::hasColumn('pmd_billing_groups','closed_at')) $table->dateTime('closed_at')->nullable()->after('invoiced_at');
++            if (!Schema::hasColumn('pmd_billing_groups','closed_by')) $table->unsignedBigInteger('closed_by')->nullable()->after('closed_at');
++        });
++    }
++
++    public function down(): void
++    {
++        // Non-destructive: visit/invoice evidence must survive application rollback.
++    }
++};
+diff --git a/app/main/routes/api-v1-billing-groups-r36.php b/app/main/routes/api-v1-billing-groups-r36.php
+--- a/app/main/routes/api-v1-billing-groups-r36.php
++++ b/app/main/routes/api-v1-billing-groups-r36.php
+@@
+ use App\Services\Financial\BillingGroupPaymentService;
+ use App\Services\Financial\BillingGroupService;
++use App\Services\Financial\BillingGroupInvoiceService;
+@@
+-    Route::get('/billing-groups/current', function (Request $request, BillingGroupService $groups) {
++    Route::get('/billing-groups/current', function (Request $request, BillingGroupService $groups, BillingGroupInvoiceService $invoices) {
+@@
+-            return response()->json(['success' => true, 'billingGroup' => $summary]);
++            return response()->json(['success' => true, 'billingGroup' => $invoices->decorateSummary($summary)]);
+@@
+     Route::get('/billing-group-payments/{paymentId}', function (
+@@
+         return response()->json(['success' => true, 'payment' => $state]);
+     });
++
++    Route::post('/billing-group-payments/{paymentId}/cancel', function (
++        string $paymentId,
++        BillingGroupPaymentService $payments
++    ) {
++        try {
++            return response()->json(['success' => true, 'payment' => $payments->cancel($paymentId)]);
++        } catch (\Throwable $e) {
++            return response()->json(['success' => false, 'error' => $e->getMessage()], 409);
++        }
++    });
++
++    Route::get('/billing-groups/{publicId}/invoice', function (
++        string $publicId,
++        Request $request,
++        BillingGroupInvoiceService $invoices
++    ) {
++        try {
++            $html=$invoices->render($publicId,(string)$request->query('token',''));
++            return response($html,200,[
++                'Content-Type'=>'text/html; charset=UTF-8',
++                'Content-Disposition'=>'attachment; filename="paymydine-final-bill.html"',
++                'Cache-Control'=>'private, no-store',
++            ]);
++        } catch (\Throwable $e) {
++            return response()->json(['success'=>false,'error'=>$e->getMessage()],403);
++        }
++    });
+ });
+diff --git a/app/Http/Middleware/PmdBillingGroupSync.php b/app/Http/Middleware/PmdBillingGroupSync.php
+--- a/app/Http/Middleware/PmdBillingGroupSync.php
++++ b/app/Http/Middleware/PmdBillingGroupSync.php
+@@
+ use App\Services\Financial\BillingGroupService;
++use App\Services\Financial\BillingGroupInvoiceService;
+@@
+-            $summary = $this->billingGroups->synchronizeTableSession($tableId, $sessionKey);
++            $summary = $this->billingGroups->synchronizeTableSession($tableId, $sessionKey);
+             if ($summary && method_exists($response, 'setData')) {
+-                $payload['billingGroup'] = $summary;
++                if (($summary['mode'] ?? '') === 'r36') {
++                    $payload = $this->suppressChildInvoices($payload);
++                }
++                $payload['billingGroup'] = app(BillingGroupInvoiceService::class)->decorateSummary($summary);
+                 $response->setData($payload);
+             }
+@@
+         return $response;
+     }
++
++    private function suppressChildInvoices(array $payload): array
++    {
++        foreach (['invoiceAvailable','invoice_available'] as $key) if (array_key_exists($key,$payload)) $payload[$key]=false;
++        foreach (['invoiceDownloadToken','invoice_download_token'] as $key) if (array_key_exists($key,$payload)) $payload[$key]=null;
++        if (isset($payload['orders']) && is_array($payload['orders'])) {
++            foreach ($payload['orders'] as $index=>$order) if (is_array($order)) {
++                foreach (['invoiceAvailable','invoice_available'] as $key) if (array_key_exists($key,$order)) $order[$key]=false;
++                foreach (['invoiceDownloadToken','invoice_download_token'] as $key) if (array_key_exists($key,$order)) $order[$key]=null;
++                $payload['orders'][$index]=$order;
++            }
++        }
++        return $payload;
++    }
+ }
+diff --git a/app/admin/traits/HasInvoice.php b/app/admin/traits/HasInvoice.php
+--- a/app/admin/traits/HasInvoice.php
++++ b/app/admin/traits/HasInvoice.php
+@@
+         static::saved(function (self $model) {
++            if ($model->pmdR36UsesFinalBillInvoice()) return;
+             if ($model->isPaymentProcessed() && !$model->hasInvoice())
+                 $model->generateInvoice();
+         });
+@@
+     public function generateInvoice()
+     {
++        if ($this->pmdR36UsesFinalBillInvoice()) return null;
+         if ($this->hasInvoice())
+             return $this->invoice_number;
+@@
+         return $this->invoice_number;
+     }
++
++    protected function pmdR36UsesFinalBillInvoice(): bool
++    {
++        try {
++            if (!\Illuminate\Support\Facades\Schema::hasTable('pmd_billing_group_orders') || !\Illuminate\Support\Facades\Schema::hasTable('pmd_billing_groups')) return false;
++            $link=\Illuminate\Support\Facades\DB::table('pmd_billing_group_orders')->where('order_id',(int)$this->order_id)->first();if(!$link)return false;
++            return (string)\Illuminate\Support\Facades\DB::table('pmd_billing_groups')->where('id',(int)$link->billing_group_id)->value('mode')==='r36';
++        } catch (\Throwable $ignored) { return false; }
++    }
+ 
+     public function generateInvoicePrefix($invoiceDate = null)
+diff --git a/app/admin/controllers/concerns/PmdWaiterPosTableStateV154Concern.php b/app/admin/controllers/concerns/PmdWaiterPosTableStateV154Concern.php
+--- a/app/admin/controllers/concerns/PmdWaiterPosTableStateV154Concern.php
++++ b/app/admin/controllers/concerns/PmdWaiterPosTableStateV154Concern.php
+@@
+ namespace Admin\Controllers\Concerns;
+ 
++use App\Services\Financial\BillingGroupInvoiceService;
++use App\Services\Financial\BillingGroupService;
+ use Illuminate\Support\Facades\DB;
+@@
+                 if (!$lockedTable) {
+@@
+                 }
++
++                // PMD_R36_FREE_TABLE_FINAL_AUTHORITY
++                // Lock the visit-level financial authority before child-order checks.
++                // A provider capture awaiting reconciliation or any active reservation
++                // must block physical release even if legacy child mirrors look paid.
++                $billingGroupsToClose = [];
++                if (BillingGroupService::schemaReady()) {
++                    $groupCandidates=array_values(array_unique(array_filter([(string)$tableId,$tableNumber],static fn($v)=>trim((string)$v)!=='')));
++                    $groupRows=DB::table('pmd_billing_groups')->where('status','open')->whereIn('table_id',$groupCandidates)->orderBy('id')->lockForUpdate()->get();
++                    foreach($groupRows as $groupRow){
++                        $summary=app(BillingGroupService::class)->refreshGroupById((int)$groupRow->id);
++                        if(!$summary)continue;
++                        if((string)$groupRow->mode==='r36'){
++                            $activeReservation=DB::table('pmd_billing_group_payments')->where('billing_group_id',(int)$groupRow->id)->where('status','reserved')->where(function($q){$q->whereNull('reserved_until')->orWhere('reserved_until','>',now());})->lockForUpdate()->exists();
++                            if(($summary['paymentStatus']??'unpaid')==='reconciliation_required'||$activeReservation){
++                                return ['ok'=>false,'status'=>422,'message'=>$tableLabel.' has a payment that requires completion or reconciliation before the table can be freed.','blocking_billing_group'=>$summary];
++                            }
++                            if(($summary['paymentStatus']??'unpaid')!=='paid'){
++                                return ['ok'=>false,'status'=>422,'message'=>$tableLabel.' Final Bill is not fully paid. Finish payment before setting the table free.','blocking_billing_group'=>$summary];
++                            }
++                        }
++                        $billingGroupsToClose[]=(int)$groupRow->id;
++                    }
++                }
+ 
+                 $orderColumns = Schema::getColumnListing('orders');
+@@
+                 if ($blocking) {
+@@
+                     ];
+                 }
++
++                // Close the financial visit before the QR/table lifecycle boundary.
++                // For R36 this is also the only point where the canonical Final Bill
++                // invoice number becomes immutable and downloadable.
++                foreach($billingGroupsToClose as $billingGroupId){
++                    $group=DB::table('pmd_billing_groups')->where('id',$billingGroupId)->lockForUpdate()->first();if(!$group)continue;
++                    $updates=['status'=>'closed','updated_at'=>now()];
++                    if(Schema::hasColumn('pmd_billing_groups','closed_at'))$updates['closed_at']=now();
++                    if(Schema::hasColumn('pmd_billing_groups','closed_by'))$updates['closed_by']=$this->currentUserId();
++                    DB::table('pmd_billing_groups')->where('id',$billingGroupId)->update($updates);
++                    if((string)$group->mode==='r36')app(BillingGroupInvoiceService::class)->finalizeClosedPaidGroup($billingGroupId);
++                }
+ 
+                 // Explicit staff FREE ends the physical visit. Any stale QR
+diff --git a/app/admin/views/orders/form/order_details.blade.php b/app/admin/views/orders/form/order_details.blade.php
+--- a/app/admin/views/orders/form/order_details.blade.php
++++ b/app/admin/views/orders/form/order_details.blade.php
+@@
+ $pmdSplitTransactions = collect();
+ $pmdSplitItemsByTx = [];
++$pmdBillingGroup = null;
++$pmdBillingGroupPayments = collect();
++$pmdBillingGroupOrders = collect();
++$pmdBillingGroupInvoiceUrl = null;
++
++if (Schema::hasTable('pmd_billing_group_orders') && Schema::hasTable('pmd_billing_groups')) {
++    try {
++        $pmdBillingLink = DB::table('pmd_billing_group_orders')->where('order_id',(int)$formModel->order_id)->first();
++        if ($pmdBillingLink) {
++            $pmdBillingGroup = DB::table('pmd_billing_groups')->where('id',(int)$pmdBillingLink->billing_group_id)->first();
++            if ($pmdBillingGroup) {
++                $pmdBillingGroupOrders = DB::table('pmd_billing_group_orders')->where('billing_group_id',(int)$pmdBillingGroup->id)->orderBy('order_id')->get();
++                if (Schema::hasTable('pmd_billing_group_payments')) $pmdBillingGroupPayments = DB::table('pmd_billing_group_payments')->where('billing_group_id',(int)$pmdBillingGroup->id)->orderBy('id')->get();
++                if ((string)$pmdBillingGroup->mode === 'r36' && (string)$pmdBillingGroup->status === 'closed' && (string)$pmdBillingGroup->payment_status === 'paid' && !empty($pmdBillingGroup->invoice_number)) {
++                    $pmdBillingGroupInvoiceUrl = app(\App\Services\Financial\BillingGroupInvoiceService::class)->url($pmdBillingGroup);
++                }
++            }
++        }
++    } catch (\Throwable $ignored) {}
++}
+@@
+ @endphp
++
++@if ($pmdBillingGroup)
++<tr class="pmd-r36-final-bill-row">
++<td class="text-muted align-top">Final Bill</td>
++<td class="text-right"><div style="text-align:left;border:1px solid #d8dee7;border-radius:8px;padding:10px;">
++    <div><strong>{{ $pmdBillingGroup->invoice_number ?: $pmdBillingGroup->public_id }}</strong> · {{ strtoupper((string)$pmdBillingGroup->payment_status) }} · {{ strtoupper((string)$pmdBillingGroup->fiscal_status) }}</div>
++    <div style="font-size:12px;color:#667085;margin-top:4px;">Table {{ $pmdBillingGroup->table_id }} · Visit {{ $pmdBillingGroup->session_key }} · {{ $pmdBillingGroupOrders->count() }} kitchen round(s)</div>
++    <div style="margin-top:6px;">Subtotal {{ currency_format(((int)$pmdBillingGroup->subtotal_cents)/100) }} · Service {{ currency_format(((int)$pmdBillingGroup->service_charge_cents)/100) }} · Discount -{{ currency_format(((int)$pmdBillingGroup->discount_cents)/100) }} · Tip {{ currency_format(((int)$pmdBillingGroup->tip_cents)/100) }} · <strong>Final {{ currency_format((((int)$pmdBillingGroup->total_cents)+((int)$pmdBillingGroup->tip_cents)-((int)$pmdBillingGroup->discount_cents))/100) }}</strong></div>
++    @foreach ($pmdBillingGroupPayments as $pmdGroupPayment)
++        <div style="font-size:12px;margin-top:4px;">{{ strtoupper((string)$pmdGroupPayment->method) }} · {{ currency_format(((int)$pmdGroupPayment->payable_cents)/100) }} · {{ $pmdGroupPayment->provider_reference ?: $pmdGroupPayment->payment_id }} · {{ strtoupper((string)$pmdGroupPayment->status) }}</div>
++    @endforeach
++    @if ((string)$pmdBillingGroup->payment_status === 'reconciliation_required')<div class="text-danger" style="margin-top:6px;"><strong>Reconciliation required:</strong> {{ $pmdBillingGroup->reconciliation_reason }}</div>@endif
++    @if ($pmdBillingGroupInvoiceUrl)<div style="margin-top:8px;"><a href="{{ $pmdBillingGroupInvoiceUrl }}" target="_blank">Download canonical Final Bill invoice</a></div>@endif
++</div></td>
++</tr>
++@endif
+ 
+ {{-- نمایش سفارشات تقسیم‌شده --}}
+diff --git a/docs/PMD_R36_TASK2_BACKEND.md b/docs/PMD_R36_TASK2_BACKEND.md
+new file mode 100644
+--- /dev/null
++++ b/docs/PMD_R36_TASK2_BACKEND.md
+@@
++# R36 Task 2 backend wiring
++
++- Fixes the Task 1 `refreshGroupById()` runtime gap.
++- Adds cancellable pre-capture Billing Group reservations.
++- Suppresses child-order invoice authority for R36 groups.
++- Staff Free Table now locks/checks the active Billing Group, blocks unpaid/reserved/reconciliation states, closes the visit, and finalizes the canonical Final Bill invoice in the same transaction.
++- Adds a tokenized canonical Final Bill HTML download and Admin Order Details Billing Group ledger panel.
++- Invoice numbering/merchant legal identity/fiscal payload policy remains a Task 3 compliance gate; production deployment remains prohibited until Task 3 passes.
