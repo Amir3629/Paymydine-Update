@@ -15,10 +15,17 @@ final class BillingGroupFreeTableService
     /** @var BillingGroupInvoiceService */
     private $invoices;
 
-    public function __construct(BillingGroupService $groups, BillingGroupInvoiceService $invoices)
-    {
+    /** @var BillingGroupFiscalService */
+    private $fiscal;
+
+    public function __construct(
+        BillingGroupService $groups,
+        BillingGroupInvoiceService $invoices,
+        BillingGroupFiscalService $fiscal
+    ) {
         $this->groups = $groups;
         $this->invoices = $invoices;
+        $this->fiscal = $fiscal;
     }
 
     /** @return int[] */
@@ -102,8 +109,39 @@ final class BillingGroupFreeTableService
             DB::table('pmd_billing_groups')->where('id', $groupId)->update($updates);
 
             if ((string)$group->mode === 'r36') {
+                // Local-only fiscal preparation is intentionally inside the table-free
+                // transaction so the canonical invoice can already know whether TSS
+                // evidence is required. The network SIGN DE call happens after commit.
+                $this->fiscal->prepareClosedGroup($groupId);
                 $this->invoices->finalizeClosedPaidGroup($groupId);
             }
         }
+    }
+
+    /**
+     * Run SIGN DE only after the R45 financial/table transaction committed.
+     * A remote fiscal error never rewinds a captured payment or re-occupies a table;
+     * the durable Final Bill is marked failed/blocked for explicit retry instead.
+     *
+     * @param int[] $groupIds
+     * @return array<int,array<string,mixed>>
+     */
+    public function fiscalizeAfterCommit(array $groupIds): array
+    {
+        $results = [];
+        foreach (array_values(array_unique(array_map('intval', $groupIds))) as $groupId) {
+            if ($groupId < 1) continue;
+            try {
+                $results[$groupId] = $this->fiscal->finalizeClosedGroup($groupId);
+            } catch (\Throwable $e) {
+                report($e);
+                $results[$groupId] = [
+                    'required' => true,
+                    'status' => 'failed',
+                    'error' => $e->getMessage(),
+                ];
+            }
+        }
+        return $results;
     }
 }
