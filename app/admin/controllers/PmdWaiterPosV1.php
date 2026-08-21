@@ -9,6 +9,7 @@ require_once __DIR__.'/concerns/PmdWaiterPosSaveEndpoint.php';
 require_once __DIR__.'/concerns/PmdWaiterPosPaymentBasicEndpoints.php';
 require_once __DIR__.'/concerns/PmdWaiterPosSettleEndpoint.php';
 require_once __DIR__.'/concerns/PmdWaiterPosTerminalEndpoint.php';
+require_once __DIR__.'/concerns/PmdWaiterPosR36PaymentConcern.php';
 require_once __DIR__.'/concerns/PmdWaiterPosBootstrapConcern.php';
 require_once __DIR__.'/concerns/PmdWaiterPosMenuCatalogV26Concern.php';
 require_once __DIR__.'/concerns/PmdWaiterPosNoteHistoryV26Concern.php';
@@ -34,9 +35,24 @@ class PmdWaiterPosV1 extends AdminController
 {
     use \Admin\Controllers\Concerns\PmdWaiterPosRenderEndpoints;
     use \Admin\Controllers\Concerns\PmdWaiterPosSaveEndpoint;
-    use \Admin\Controllers\Concerns\PmdWaiterPosPaymentBasicEndpoints;
-    use \Admin\Controllers\Concerns\PmdWaiterPosSettleEndpoint;
-    use \Admin\Controllers\Concerns\PmdWaiterPosTerminalEndpoint;
+    use \Admin\Controllers\Concerns\PmdWaiterPosPaymentBasicEndpoints,
+        \Admin\Controllers\Concerns\PmdWaiterPosR36PaymentConcern {
+        \Admin\Controllers\Concerns\PmdWaiterPosR36PaymentConcern::paymentSummary insteadof
+            \Admin\Controllers\Concerns\PmdWaiterPosPaymentBasicEndpoints;
+        \Admin\Controllers\Concerns\PmdWaiterPosPaymentBasicEndpoints::paymentSummary as paymentSummaryLegacy;
+    }
+    use \Admin\Controllers\Concerns\PmdWaiterPosSettleEndpoint,
+        \Admin\Controllers\Concerns\PmdWaiterPosR36PaymentConcern {
+        \Admin\Controllers\Concerns\PmdWaiterPosR36PaymentConcern::settlePayment insteadof
+            \Admin\Controllers\Concerns\PmdWaiterPosSettleEndpoint;
+        \Admin\Controllers\Concerns\PmdWaiterPosSettleEndpoint::settlePayment as settlePaymentLegacy;
+    }
+    use \Admin\Controllers\Concerns\PmdWaiterPosTerminalEndpoint,
+        \Admin\Controllers\Concerns\PmdWaiterPosR36PaymentConcern {
+        \Admin\Controllers\Concerns\PmdWaiterPosR36PaymentConcern::terminalPayment insteadof
+            \Admin\Controllers\Concerns\PmdWaiterPosTerminalEndpoint;
+        \Admin\Controllers\Concerns\PmdWaiterPosTerminalEndpoint::terminalPayment as terminalPaymentLegacy;
+    }
     use \Admin\Controllers\Concerns\PmdWaiterPosBootstrapConcern,
         \Admin\Controllers\Concerns\PmdWaiterPosMenuCatalogV26Concern {
         \Admin\Controllers\Concerns\PmdWaiterPosMenuCatalogV26Concern::menuPayload insteadof
