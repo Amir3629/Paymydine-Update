@@ -46,6 +46,8 @@ export type MenuItem = {
   options?: MenuItemOption[]
   prep_time_minutes?: number
   is_chef_recommended?: boolean
+  is_manual_bestseller?: boolean
+  bestseller_override_mode?: 'auto' | 'force_on' | 'force_off'
   is_bestseller?: boolean
   bestseller_source?: 'manual' | 'auto' | null
   popularity_count?: number
@@ -138,6 +140,7 @@ const normalizeApiMenuImagePath = (value: unknown): string => {
 
   return raw
 }
+// PMD_PRESERVE_GALLERY_IMAGES_END
 
 const normalizeApiMenuImageList = (value: unknown): string[] => {
   const arr = Array.isArray(value) ? value : []
@@ -159,38 +162,31 @@ const normalizeApiMenuImageList = (value: unknown): string[] => {
 
   return result
 }
-// PMD_PRESERVE_GALLERY_IMAGES_END
 
 const convertApiMenuItem = (apiItem: ApiMenuItem, categoryName?: string): MenuItem => {
-  // Convert relative image path to full URL (same as logo system)
   let imageUrl = apiItem.image || '/placeholder.svg?width=200&height=200';
-  
-  // Check if image path starts with /api/media/ (relative path)
+
   if (imageUrl && imageUrl.startsWith('/api/media/')) {
-    // Convert to full URL (same as logo system does with toUploadsUrl)
     const baseUrl = EnvironmentConfig.getInstance().backendBaseUrl();
     imageUrl = `${baseUrl}${imageUrl}`;
-    // Result: "http://mimoza.paymydine.com/api/media/6776d2d9145fc496723456.jpg"
   }
-  // If already a full URL (http://...), leave as-is
-  // If empty or default placeholder, leave as-is
 
   const resolvedCategory = categoryName || apiItem.category_name || 'Main Course'
-  
+  const rawOverride = String((apiItem as any).bestseller_override_mode || 'auto')
+  const bestsellerOverrideMode: 'auto' | 'force_on' | 'force_off' =
+    rawOverride === 'force_on' || rawOverride === 'force_off' ? rawOverride : 'auto'
+
   return {
     id: apiItem.id,
     name: apiItem.name,
-    // Don't set nameKey for API items - use direct name instead of translation
     nameKey: undefined,
     description: apiItem.description || '',
-    // Don't set descriptionKey for API items - use direct description instead of translation
     descriptionKey: undefined,
     price: apiItem.price,
-    image: imageUrl,  // Now uses full URL for /api/media/ paths!
+    image: imageUrl,
     images: normalizeApiMenuImageList((apiItem as any).images),
     gallery: normalizeApiMenuImageList((apiItem as any).gallery),
     media: Array.isArray((apiItem as any).media) ? (apiItem as any).media : [],
-    // FIXED: Use API category name directly, no mapping at all
     category: resolvedCategory,
     category_id: apiItem.category_id,
     category_name: apiItem.category_name,
@@ -216,6 +212,8 @@ const convertApiMenuItem = (apiItem: ApiMenuItem, categoryName?: string): MenuIt
     options: apiItem.options || [],
     prep_time_minutes: Number((apiItem as any).prep_time_minutes || 15),
     is_chef_recommended: toBoolean((apiItem as any).is_chef_recommended),
+    is_manual_bestseller: toBoolean((apiItem as any).is_manual_bestseller),
+    bestseller_override_mode: bestsellerOverrideMode,
     is_bestseller: toBoolean((apiItem as any).is_bestseller),
     bestseller_source: (apiItem as any).bestseller_source || null,
     popularity_count: Number((apiItem as any).popularity_count || 0)
@@ -314,7 +312,12 @@ export async function getMenuData(): Promise<{ categories: MenuItem[][], menuIte
       const names = new Set<string>()
       if (item.category) names.add(item.category)
       if (item.is_chef_recommended && chefCategoryName) names.add(chefCategoryName)
-      if (item.is_bestseller && bestsellerCategoryName) names.add(bestsellerCategoryName)
+
+      const isManualBestseller =
+        Boolean(item.is_manual_bestseller)
+        || item.bestseller_override_mode === 'force_on'
+
+      if (isManualBestseller && bestsellerCategoryName) names.add(bestsellerCategoryName)
 
       return {
         ...item,
@@ -366,7 +369,7 @@ export async function getCategories(): Promise<string[]> {
     const apiResponse = await apiClient.getCategories()
     return apiResponse.data.map(cat => cat.name)
   } catch (error) {
-    console.error('Failed to fetch categories from API:', error)
+    console.error('Failed to fetch categories:', error)
     return []
   }
 }
@@ -376,7 +379,7 @@ export async function getMenuItems(categoryId?: number): Promise<MenuItem[]> {
     const apiResponse = await apiClient.getMenuItems(categoryId)
     return apiResponse.data.map(apiItem => convertApiMenuItem(apiItem))
   } catch (error) {
-    console.error('Failed to fetch menu items from API:', error)
+    console.error('Failed to fetch menu items:', error)
     return []
   }
 }
