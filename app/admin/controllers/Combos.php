@@ -58,6 +58,77 @@ class Combos extends AdminController
 
     protected $requiredPermissions = ['Admin.Combos'];
 
+    // PMD_MENU_COMBO_HANDLER_BRIDGE_V1_4
+    // Keep legacy /admin/combos pages protected by Admin.Combos. Only the
+    // three exact same-page Menu Manager AJAX handlers may use the narrower
+    // Owner/Manager + Admin.Menus bridge already exposed by /admin/pmdmenus.
+    private const PMD_MENU_MANAGER_BRIDGE_HANDLERS_V14 = [
+        'onPmdMenuManagerSaveV12',
+        'onPmdMenuManagerDeleteV129',
+        'onPmdMenuManagerSaveOrderV123',
+    ];
+
+    public function remap($action, $params)
+    {
+        $handler = trim((string)request()->header('X-IGNITER-REQUEST-HANDLER', ''));
+
+        if (
+            in_array($handler, self::PMD_MENU_MANAGER_BRIDGE_HANDLERS_V14, true)
+            && $this->canUsePmdMenuManagerComboBridgeV14()
+        ) {
+            $requiredPermissions = $this->requiredPermissions;
+            $this->requiredPermissions = null;
+
+            try {
+                return parent::remap($action, $params);
+            } finally {
+                $this->requiredPermissions = $requiredPermissions;
+            }
+        }
+
+        return parent::remap($action, $params);
+    }
+
+    private function assertPmdMenuManagerComboPermissionV14(): void
+    {
+        if (!$this->canUsePmdMenuManagerComboBridgeV14()) {
+            abort(403);
+        }
+    }
+
+    private function canUsePmdMenuManagerComboBridgeV14(): bool
+    {
+        $user = AdminAuth::getUser();
+
+        if (!$user) {
+            return false;
+        }
+
+        if (!empty($user->is_super_user) || $user->hasPermission('Admin.Combos')) {
+            return true;
+        }
+
+        if (!$user->hasPermission('Admin.Menus') || empty($user->staff_id)) {
+            return false;
+        }
+
+        try {
+            $row = DB::table('staffs as s')
+                ->leftJoin('staff_roles as r', 'r.staff_role_id', '=', 's.staff_role_id')
+                ->where('s.staff_id', (int)$user->staff_id)
+                ->select('r.code as role_code', 'r.name as role_name')
+                ->first();
+
+            $code = strtolower(trim((string)($row->role_code ?? '')));
+            $name = strtolower(trim((string)($row->role_name ?? '')));
+
+            return in_array($code, ['owner', 'manager'], true)
+                || in_array($name, ['owner', 'manager'], true);
+        } catch (\Throwable $error) {
+            return false;
+        }
+    }
+
     public function __construct()
     {
         parent::__construct();
@@ -166,8 +237,7 @@ class Combos extends AdminController
      */
     public function onPmdMenuManagerSaveV12(): JsonResponse
     {
-        $user = AdminAuth::getUser();
-        if (!$user || !$user->hasPermission('Admin.Combos')) abort(403);
+        $this->assertPmdMenuManagerComboPermissionV14();
 
         $validator = Validator::make(request()->all(), [
             'combo_id' => ['nullable', 'integer', 'min:1'],
@@ -289,8 +359,7 @@ class Combos extends AdminController
      */
     public function onPmdMenuManagerDeleteV129(): JsonResponse
     {
-        $user = AdminAuth::getUser();
-        if (!$user || !$user->hasPermission('Admin.Combos')) abort(403);
+        $this->assertPmdMenuManagerComboPermissionV14();
 
         $comboId = (int)post('combo_id');
         if ($comboId < 1) {
@@ -317,10 +386,7 @@ class Combos extends AdminController
 
     public function onPmdMenuManagerSaveOrderV123(): JsonResponse
     {
-        $user = AdminAuth::getUser();
-        if (!$user || !$user->hasPermission('Admin.Menus')) {
-            abort(403);
-        }
+        $this->assertPmdMenuManagerComboPermissionV14();
 
         $ordered = (array)post('ordered_combo_ids', []);
         $ordered = array_values(array_unique(array_filter(array_map('intval', $ordered))));

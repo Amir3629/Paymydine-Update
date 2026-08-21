@@ -746,6 +746,21 @@ class Menus extends AdminController
                 $menu->delete();
             });
         } catch (\Throwable $e) {
+            // PMD_MENU_DELETE_FAILURE_DIAGNOSTIC_V1_6_4
+            //
+            // Keep the browser response safe/generic, but preserve the exact
+            // tenant/database exception server-side so a remaining schema
+            // problem can be diagnosed from one failed request.
+            \Log::error(
+                'PMD_MENU_DELETE_FAILED_V164',
+                [
+                    'menu_id' => $menuId,
+                    'database' => DB::connection()->getDatabaseName(),
+                    'exception' => get_class($e),
+                    'message' => $e->getMessage(),
+                ]
+            );
+
             return response()->json([
                 'ok' => false,
                 'message' => 'Menu item could not be deleted.',

@@ -974,7 +974,7 @@ Route::group([
         return response()->json(['success' => true, 'released' => $released, 'status' => $released ? 'cancelled' : (string)$intent->status]);
     })->withoutMiddleware([\Igniter\Cart\Middleware\Currency::class]);
 
-    Route::post('/orders/pay-existing', function (\Illuminate\Http\Request $request) {
+    Route::post('/orders/pay-existing', function (\Illuminate\Http\Request $request) use ($pmdEnsureSplitIntentR35) {
         \Log::info('PMD_PAY_EXISTING_DEBUG_20260612 incoming', [
             'host' => $request->getHost(),
             'connection' => \Illuminate\Support\Facades\DB::getDefaultConnection(),

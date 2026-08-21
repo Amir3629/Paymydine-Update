@@ -782,6 +782,27 @@
       secondary.setAttribute('aria-label', tr('create_combo', 'Create combo'));
       secondary.setAttribute('title', tr('create_combo', 'Create combo'));
     }
+    // PMD_MENU_HEADER_ACTION_VISIBILITY_AUTHORITY_V1_6_6A
+    // Normal header actions are intentionally hidden.
+    // The nodes remain as internal V129 builder hooks.
+    if (primary) {
+      primary.style.setProperty('display', 'none', 'important');
+      primary.setAttribute('aria-hidden', 'true');
+      primary.setAttribute('tabindex', '-1');
+    }
+
+    if (secondary) {
+      if (builder) {
+        secondary.style.setProperty('display', 'grid', 'important');
+        secondary.removeAttribute('aria-hidden');
+        secondary.removeAttribute('tabindex');
+      } else {
+        secondary.style.setProperty('display', 'none', 'important');
+        secondary.setAttribute('aria-hidden', 'true');
+        secondary.setAttribute('tabindex', '-1');
+      }
+    }
+
   }
 
   function startComboBuilder(trigger) {

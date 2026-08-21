@@ -192,4 +192,5 @@
   'Admin\\Widgets\\Form' => 'app/admin/widgets/Form.php',
   'Admin\\Classes\\FormTabs' => 'app/admin/classes/FormTabs.php',
   'Admin\\Classes\\FormField' => 'app/admin/classes/FormField.php',
+  'Admin\\Controllers\\pmdsmartcategories' => 'app/admin/controllers/Pmdsmartcategories.php',
 );

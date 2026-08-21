@@ -1,0 +1,114 @@
+name: R36 Task 3 release gate
+
+on:
+  push:
+    branches:
+      - r36/final-bill-completion
+  pull_request:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+jobs:
+  validate-r36-task3:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout exact release state
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Git whitespace safety
+        shell: bash
+        run: |
+          set -euo pipefail
+          git diff --check origin/main...HEAD
+
+      - name: PHP syntax and fiscal smoke
+        shell: bash
+        run: |
+          set -euo pipefail
+          files=(
+            app/Http/Middleware/PmdBillingGroupSync.php
+            app/Http/Middleware/TenantDatabaseMiddleware.php
+            app/Services/Financial/BillingGroupFiscalPayloadBuilder.php
+            app/Services/Financial/BillingGroupFiscalService.php
+            app/Services/Financial/BillingGroupFreeTableService.php
+            app/Services/Financial/BillingGroupInvoiceService.php
+            app/Services/Financial/BillingGroupPaymentService.php
+            app/Services/Financial/BillingGroupService.php
+            app/Services/Financial/DeterministicSplit.php
+            app/Services/Financial/ServiceChargeCalculator.php
+            app/admin/Services/Fiskaly/FiskalySignDeService.php
+            app/admin/controllers/PmdWaiterPosV1.php
+            app/admin/controllers/concerns/PmdWaiterPosR36PaymentConcern.php
+            app/admin/controllers/concerns/PmdWaiterPosSaveEndpoint.php
+            app/admin/database/migrations/2026_08_21_360000_create_pmd_billing_groups.php
+            app/admin/database/migrations/2026_08_21_361000_upgrade_pmd_billing_groups_task1.php
+            app/admin/database/migrations/2026_08_21_362000_upgrade_pmd_billing_groups_task2.php
+            app/admin/database/migrations/2026_08_21_363000_upgrade_pmd_billing_groups_task3_fiscal.php
+            app/admin/database/migrations/2026_08_21_364000_ensure_pmd_billing_groups_on_tenants.php
+            app/admin/traits/HasInvoice.php
+            app/main/routes/api-health-media.php
+            app/main/routes/api-v1-billing-groups-r36.php
+            routes/pmd-waiter-pos-v22.php
+            tests/Support/r36-task3-fiscal-smoke.php
+            tests/Unit/FinancialIntegrityR36Test.php
+          )
+          for file in "${files[@]}"; do php -l "$file"; done
+          php tests/Support/r36-task3-fiscal-smoke.php
+
+      - name: R36 Task 3 authority invariants
+        shell: bash
+        run: |
+          set -euo pipefail
+          FRONT=frontend-v2/PayMyDine-Frontend-V2-Integrated-Final-R2-20260815
+          grep -q 'PMD_R36_CHILD_FISKALY_DEFER_GUARD' app/admin/Services/Fiskaly/FiskalySignDeService.php
+          grep -q 'DEFERRED_TO_R36_FINAL_BILL' app/admin/Services/Fiskaly/FiskalySignDeService.php
+          grep -q "'standard_v1'" app/Services/Financial/BillingGroupFiscalPayloadBuilder.php
+          grep -q "'receipt_type' => 'RECEIPT'" app/Services/Financial/BillingGroupFiscalPayloadBuilder.php
+          grep -q 'PMD_R36_SIGN_DE_AFTER_COMMIT' routes/pmd-waiter-pos-v22.php
+          grep -q 'fiscalizeAfterCommit' routes/pmd-waiter-pos-v22.php
+          grep -q 'fiscal_policy_snapshot' app/admin/database/migrations/2026_08_21_363000_upgrade_pmd_billing_groups_task3_fiscal.php
+          grep -q 'ensureActiveTenantConnections' app/admin/database/migrations/2026_08_21_364000_ensure_pmd_billing_groups_on_tenants.php
+          grep -q "where('status', 'active')" app/admin/database/migrations/2026_08_21_364000_ensure_pmd_billing_groups_on_tenants.php
+          grep -q 'pmd_r36_fiscal_policy_confirmed' app/Services/Financial/BillingGroupFiscalService.php
+          grep -q 'pmd_invoice_identity_confirmed' app/Services/Financial/BillingGroupInvoiceService.php
+          grep -q 'invoiceBlockedReason' app/Services/Financial/BillingGroupInvoiceService.php
+          grep -q 'reserveExistingOrderGroupPayment' "$FRONT/src/lib/client-api.ts"
+          grep -q 'billingGroupPaymentId' "$FRONT/app/payment/return/PaymentReturnClient.tsx"
+          grep -q 'PMD_R36_CHILD_SETTLEMENT_GUARD' app/Http/Middleware/TenantDatabaseMiddleware.php
+
+      - name: Installer syntax and release protections
+        shell: bash
+        run: |
+          set -euo pipefail
+          bash -n deploy/pmd-r36-final-safe-install.sh
+          grep -q 'PMD_ACTIVATE' deploy/pmd-r36-final-safe-install.sh
+          grep -q 'PMD_PORT.*3002' deploy/pmd-r36-final-safe-install.sh
+          grep -q 'sudo -u ubuntu -H pm2 restart' deploy/pmd-r36-final-safe-install.sh
+          grep -q 'npm run release:audit' deploy/pmd-r36-final-safe-install.sh
+          grep -q 'npm run build' deploy/pmd-r36-final-safe-install.sh
+          grep -q 'php artisan igniter:up --no-interaction' deploy/pmd-r36-final-safe-install.sh
+          grep -q 'Additive R36 DB migrations/evidence were intentionally retained' deploy/pmd-r36-final-safe-install.sh
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: frontend-v2/PayMyDine-Frontend-V2-Integrated-Final-R2-20260815/package-lock.json
+
+      - name: Install V2 dependencies
+        working-directory: frontend-v2/PayMyDine-Frontend-V2-Integrated-Final-R2-20260815
+        run: npm ci
+
+      - name: Full V2 release audit
+        working-directory: frontend-v2/PayMyDine-Frontend-V2-Integrated-Final-R2-20260815
+        run: npm run release:audit
+
+      - name: V2 production build
+        working-directory: frontend-v2/PayMyDine-Frontend-V2-Integrated-Final-R2-20260815
+        run: npm run build

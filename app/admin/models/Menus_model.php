@@ -60,7 +60,8 @@ class Menus_model extends Model
     public $relation = [
         'hasMany' => [
             'menu_options' => ['Admin\Models\Menu_item_options_model', 'delete' => true],
-            'prices' => ['Admin\Models\Menu_prices_model', 'delete' => true],
+            // PMD_MENU_OPTIONAL_PRICES_DELETE_V1_6_4B
+            'prices' => ['Admin\Models\Menu_prices_model'],
             'menu_images' => ['Admin\Models\Menu_images_model', 'delete' => true],
         ],
         'hasOne' => [
@@ -454,10 +455,55 @@ class Menus_model extends Model
 
     protected function beforeDelete()
     {
-        $this->categories()->detach();
-        $this->mealtimes()->detach();
-        $this->allergens()->detach();
-        $this->locations()->detach();
+        // PMD_MENU_OPTIONAL_PRICES_DELETE_V1_6_4B
+        // Tenant schemas can legitimately omit menu_prices.
+        $priceTable = (new Menu_prices_model)->getTable();
+        $connection = $this->getConnection();
+        $schema = $connection->getSchemaBuilder();
+
+        if ($schema->hasTable($priceTable)) {
+            $connection
+                ->table($priceTable)
+                ->where('menu_id', $this->getKey())
+                ->delete();
+        } else {
+            Log::warning('PMD_MENU_DELETE_OPTIONAL_PRICES_TABLE_MISSING_V164B', [
+                'menu_id' => $this->getKey(),
+                'table' => $priceTable,
+                'database' => $connection->getDatabaseName(),
+            ]);
+        }
+
+        // PMD_MENU_TENANT_SAFE_DELETE_RELATIONS_V1_6_4
+        //
+        // Some older tenant databases can legitimately be missing optional
+        // pivot tables. A missing pivot must not prevent the food itself from
+        // being deleted. When the table exists, preserve the canonical detach
+        // lifecycle exactly.
+        $detachRelations = [
+            'categories' => 'menu_categories',
+            'mealtimes' => 'menu_mealtimes',
+            'allergens' => 'allergenables',
+            'locations' => 'locationables',
+        ];
+
+        foreach ($detachRelations as $relation => $table) {
+            if (!Schema::hasTable($table)) {
+                Log::warning(
+                    'PMD_MENU_DELETE_OPTIONAL_RELATION_TABLE_MISSING_V164',
+                    [
+                        'menu_id' => (int)$this->getKey(),
+                        'relation' => $relation,
+                        'table' => $table,
+                        'database' => $this->getConnection()->getDatabaseName(),
+                    ]
+                );
+
+                continue;
+            }
+
+            $this->{$relation}()->detach();
+        }
     }
 
     //

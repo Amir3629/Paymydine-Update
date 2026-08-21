@@ -32,7 +32,9 @@ class Pmdmenus extends AdminController
         $this->addCss('css/pmd-owner-settings-v1.css');
         $this->addCss('css/pmd-settings-suite-first-paint-v1.css');
         $this->addCss('css/pmd-menu-manager-v129.css');
+        $this->addCss('css/pmd-menu-smart-categories-v1.css');
         $this->addJs('js/pmd-menu-manager-v129.js');
+        $this->addJs('js/pmd-menu-smart-categories-v1.js');
 
         AdminMenu::setContext('menus', 'restaurant');
     }
@@ -112,6 +114,55 @@ class Pmdmenus extends AdminController
             $catalog[(string)$menu->menu_id] = $card;
         }
 
+        // PMD_MENU_ALL_FOODS_CATEGORY_ORDER_V1_6
+        //
+        // All Foods is a view, not a second ordering authority.
+        // Category priority owns the outer grouping; existing menu_priority
+        // owns each category's internal food order. A multi-category food is
+        // rendered once under the first category in current category priority.
+        // Uncategorized foods remain at the end.
+        $pmdOrderedCardsV16 = [];
+        $pmdSeenMenuIdsV16 = [];
+
+        foreach ($categories as $pmdCategoryV16) {
+            $pmdCategoryIdV16 = (int)$pmdCategoryV16->category_id;
+
+            foreach ($cards as $pmdCardV16) {
+                $pmdMenuIdV16 = (int)($pmdCardV16['id'] ?? 0);
+
+                if (
+                    $pmdMenuIdV16 < 1
+                    || isset($pmdSeenMenuIdsV16[$pmdMenuIdV16])
+                    || !in_array(
+                        $pmdCategoryIdV16,
+                        array_map('intval', (array)($pmdCardV16['category_ids'] ?? [])),
+                        true
+                    )
+                ) {
+                    continue;
+                }
+
+                $pmdSeenMenuIdsV16[$pmdMenuIdV16] = true;
+                $pmdOrderedCardsV16[] = $pmdCardV16;
+            }
+        }
+
+        foreach ($cards as $pmdCardV16) {
+            $pmdMenuIdV16 = (int)($pmdCardV16['id'] ?? 0);
+
+            if (
+                $pmdMenuIdV16 < 1
+                || isset($pmdSeenMenuIdsV16[$pmdMenuIdV16])
+            ) {
+                continue;
+            }
+
+            $pmdSeenMenuIdsV16[$pmdMenuIdV16] = true;
+            $pmdOrderedCardsV16[] = $pmdCardV16;
+        }
+
+        $cards = $pmdOrderedCardsV16;
+
         $user = AdminAuth::getUser();
         $canManageCategories = $user && $user->hasPermission('Admin.Categories');
 
@@ -183,7 +234,27 @@ class Pmdmenus extends AdminController
                 true
             );
 
-        $canManageCombos = $user && $user->hasPermission('Admin.Combos') && Schema::hasTable('menu_combos') && Schema::hasTable('menu_combo_items');
+        // PMD_MENU_COMBO_OWNER_MANAGER_BRIDGE_V1
+        // Existing Owner/Manager Menu access must not be blocked by a stale
+        // Admin.Combos role bit. Other roles still require Admin.Combos.
+        $canManageCombos = (bool)(
+            $user
+            && Schema::hasTable('menu_combos')
+            && Schema::hasTable('menu_combo_items')
+            && (
+                !empty($user->is_super_user)
+                || $user->hasPermission('Admin.Combos')
+                || (
+                    $user->hasPermission('Admin.Menus')
+                    && in_array(
+                        $pmdMenuManagerRole,
+                        ['owner', 'manager'],
+                        true
+                    )
+                )
+            )
+        );
+
         $comboCards = [];
         $comboCatalog = [];
 
@@ -267,7 +338,6 @@ class Pmdmenus extends AdminController
 
         return $this->makeView('pmdmenus/index');
     }
-
 
     protected function comboDerivedProfile(array $items, array $catalog): array
     {

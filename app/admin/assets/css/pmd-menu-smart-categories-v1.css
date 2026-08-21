@@ -1,0 +1,840 @@
+/*
+ * PMD Menu Smart Categories V1.3
+ * PMD_MENU_SMART_CATEGORY_CLEAN_UI_AND_SELECTION_V1_3
+ *
+ * Category-first workflow only. Existing Menu Manager card/category drag
+ * geometry and V141.11K native card drag authority remain untouched.
+ */
+
+body.pmd-menu-manager-page
+[data-pmd-menu-manager][data-pmd-combo-builder="0"]
+[data-pmd-combo-build] {
+    display: none !important;
+}
+
+/* Existing Combination shell uses the same button as Cancel while active. */
+body.pmd-menu-manager-page
+[data-pmd-menu-manager][data-pmd-combo-builder="1"]
+[data-pmd-combo-build] {
+    display: grid !important;
+}
+
+/* Smart categories inherit the exact regular category-strip appearance. */
+body.pmd-menu-manager-page .pmd-smart-category-edit-hit {
+    display: none;
+    align-items: center;
+    justify-content: center;
+    width: 22px;
+    height: 22px;
+    margin-left: 5px;
+    border: 0;
+    border-radius: 7px;
+    background: rgba(255,255,255,.72);
+    color: #173752;
+    pointer-events: auto;
+    cursor: pointer;
+    flex: 0 0 22px;
+}
+
+body.pmd-menu-manager-page
+[data-pmd-menu-manager][data-pmd-sort-mode]:not([data-pmd-sort-mode="0"])
+[data-pmd-category-id]
+.pmd-smart-category-edit-hit {
+    display: inline-flex;
+}
+
+body.pmd-menu-manager-page .pmd-smart-category-edit-hit svg {
+    width: 13px;
+    height: 13px;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 1.8;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+}
+
+.pmd-smart-category-modal[hidden],
+.pmd-smart-add-card[hidden] {
+    display: none !important;
+}
+
+.pmd-smart-category-modal {
+    position: fixed;
+    inset: 0;
+    z-index: 12050;
+    display: grid;
+    place-items: center;
+    padding: 24px;
+}
+
+.pmd-smart-category-modal__backdrop {
+    position: absolute;
+    inset: 0;
+    background: rgba(20,39,55,.34);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+}
+
+.pmd-smart-category-modal__card {
+    position: relative;
+    z-index: 1;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    width: min(720px, calc(100vw - 32px));
+    max-height: min(760px, calc(100vh - 38px));
+    border: 1px solid #d9e7ee;
+    border-radius: 24px;
+    background: #fff;
+    box-shadow: 0 28px 80px rgba(27,55,74,.22);
+}
+
+.pmd-smart-category-modal__header,
+.pmd-smart-category-modal__footer {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 20px 22px;
+    background: #fff;
+}
+
+.pmd-smart-category-modal__header {
+    justify-content: space-between;
+    border-bottom: 1px solid #e5eef3;
+}
+
+.pmd-smart-category-modal__footer {
+    justify-content: flex-end;
+    border-top: 1px solid #e5eef3;
+}
+
+.pmd-smart-category-modal__heading > span {
+    display: block;
+    margin-bottom: 4px;
+    color: #6d8291;
+    font-size: 12px;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: .06em;
+}
+
+.pmd-smart-category-modal__heading h2 {
+    margin: 0;
+    color: #102a3a;
+    font-size: 24px;
+    line-height: 1.2;
+}
+
+.pmd-smart-category-modal__close {
+    width: 42px;
+    height: 42px;
+    display: grid;
+    place-items: center;
+    flex: 0 0 42px;
+    border: 1px solid #d7e4eb;
+    border-radius: 13px;
+    background: #fff;
+    color: #173752;
+    cursor: pointer;
+}
+
+.pmd-smart-category-modal__close svg {
+    width: 19px;
+    height: 19px;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 2;
+    stroke-linecap: round;
+}
+
+.pmd-smart-category-modal__body {
+    overflow: auto;
+    padding: 24px;
+    background: #f8fbfd;
+}
+
+.pmd-smart-field {
+    display: grid;
+    gap: 8px;
+    margin: 0;
+}
+
+.pmd-smart-field > span,
+.pmd-smart-section__head strong {
+    color: #263f52;
+    font-size: 14px;
+    font-weight: 800;
+}
+
+.pmd-smart-field > small,
+.pmd-smart-section__head p,
+.pmd-smart-kind-lock {
+    color: #71828e;
+    font-size: 12px;
+    line-height: 1.45;
+}
+
+.pmd-smart-field input[type="text"] {
+    width: 100%;
+    min-height: 48px;
+    box-sizing: border-box;
+    border: 1px solid #cfdee6;
+    border-radius: 13px;
+    background: #fff;
+    padding: 0 14px;
+    color: #173752;
+    outline: none;
+    font: inherit;
+}
+
+.pmd-smart-field input[type="text"]:focus {
+    border-color: #8fb8c8;
+    box-shadow: 0 0 0 3px rgba(64,139,158,.10);
+}
+
+.pmd-smart-section {
+    margin-top: 22px;
+    padding: 18px;
+    border: 1px solid #dfeaf0;
+    border-radius: 18px;
+    background: #fff;
+}
+
+.pmd-smart-section__head {
+    margin-bottom: 14px;
+}
+
+.pmd-smart-section__head p {
+    margin: 5px 0 0;
+}
+
+/*
+ * PMD global admin button helpers are intentionally bypassed here by rendering
+ * the purpose choices as role=button divs. These rules are still heavily
+ * scoped/important so late legacy CSS cannot distort their geometry.
+ */
+body.pmd-menu-manager-page .pmd-smart-kind-grid {
+    display: grid !important;
+    grid-template-columns: repeat(3, minmax(0,1fr)) !important;
+    align-items: stretch !important;
+    gap: 10px !important;
+    width: 100% !important;
+    margin: 0 !important;
+    padding: 0 !important;
+}
+
+body.pmd-menu-manager-page .pmd-smart-kind-grid.is-readonly {
+    grid-template-columns: 1fr !important;
+}
+
+body.pmd-menu-manager-page .pmd-smart-kind,
+body.pmd-menu-manager-page .pmd-smart-kind-readonly {
+    position: relative !important;
+    inset: auto !important;
+    float: none !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: flex-start !important;
+    gap: 10px !important;
+    width: auto !important;
+    min-width: 0 !important;
+    max-width: none !important;
+    min-height: 48px !important;
+    height: auto !important;
+    margin: 0 !important;
+    padding: 10px 12px !important;
+    border: 1px solid #d8e5eb !important;
+    border-radius: 12px !important;
+    background: #fff !important;
+    color: #28465a !important;
+    box-shadow: none !important;
+    text-align: left !important;
+    line-height: 1.2 !important;
+    transform: none !important;
+    translate: none !important;
+    rotate: none !important;
+}
+
+body.pmd-menu-manager-page .pmd-smart-kind {
+    cursor: pointer !important;
+    user-select: none;
+    -webkit-user-select: none;
+}
+
+body.pmd-menu-manager-page .pmd-smart-kind:hover:not(.is-disabled),
+body.pmd-menu-manager-page .pmd-smart-kind:focus-visible:not(.is-disabled) {
+    border-color: #a9c9ca !important;
+    background: #fbfefe !important;
+    outline: none !important;
+    box-shadow: 0 0 0 3px rgba(50,130,130,.08) !important;
+}
+
+body.pmd-menu-manager-page .pmd-smart-kind.is-active {
+    border-color: #84b4b5 !important;
+    background: #f5fbfa !important;
+}
+
+body.pmd-menu-manager-page .pmd-smart-kind.is-disabled {
+    opacity: .42 !important;
+    cursor: not-allowed !important;
+    pointer-events: none !important;
+}
+
+body.pmd-menu-manager-page .pmd-smart-kind__mark {
+    position: static !important;
+    inset: auto !important;
+    display: block !important;
+    width: 16px !important;
+    min-width: 16px !important;
+    max-width: 16px !important;
+    height: 16px !important;
+    min-height: 16px !important;
+    max-height: 16px !important;
+    flex: 0 0 16px !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    border: 1.5px solid #b9cbd4 !important;
+    border-radius: 999px !important;
+    background: #fff !important;
+    box-shadow: none !important;
+    transform: none !important;
+}
+
+body.pmd-menu-manager-page .pmd-smart-kind.is-active .pmd-smart-kind__mark {
+    border: 5px solid #18766e !important;
+}
+
+body.pmd-menu-manager-page .pmd-smart-kind strong,
+body.pmd-menu-manager-page .pmd-smart-kind-readonly strong {
+    position: static !important;
+    inset: auto !important;
+    display: block !important;
+    width: auto !important;
+    min-width: 0 !important;
+    height: auto !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    color: #28465a !important;
+    font-size: 12.5px !important;
+    font-weight: 800 !important;
+    line-height: 1.25 !important;
+    white-space: normal !important;
+    overflow: visible !important;
+    text-overflow: clip !important;
+    transform: none !important;
+}
+
+.pmd-smart-kind-lock {
+    margin: 10px 0 0;
+}
+
+.pmd-smart-status {
+    min-height: 18px;
+    margin-right: auto;
+    color: #6b818f;
+    font-size: 12px;
+}
+
+.pmd-smart-status.is-error {
+    color: #bb2d3b;
+}
+
+.pmd-smart-status.is-ok {
+    color: #11765f;
+}
+
+.pmd-smart-btn {
+    min-height: 42px;
+    border: 1px solid #cfdee6;
+    border-radius: 12px;
+    background: #fff;
+    padding: 0 16px;
+    color: #234359;
+    font-weight: 800;
+    cursor: pointer;
+}
+
+.pmd-smart-btn--primary {
+    border-color: #0a6d5c;
+    background: #0a6d5c;
+    color: #fff;
+}
+
+.pmd-smart-btn:disabled {
+    opacity: .52;
+    cursor: wait;
+}
+
+/*
+ * Context action tile for All Foods, regular categories and smart categories.
+ * It is a div, not a button and not data-pmd-menu-card, so neither global
+ * button fixers nor V141 drag/reorder can own its layout.
+ */
+body.pmd-menu-manager-page .pmd-menu-manager__grid > .pmd-smart-add-card {
+    position: relative !important;
+    inset: auto !important;
+    float: none !important;
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: center !important;
+    justify-content: center !important;
+    gap: 13px !important;
+    align-self: stretch !important;
+    width: auto !important;
+    min-width: 0 !important;
+    max-width: none !important;
+    min-height: 250px !important;
+    height: auto !important;
+    margin: 0 !important;
+    padding: 24px !important;
+    border: 1.5px dashed #9dc4c7 !important;
+    border-radius: 16px !important;
+    background: #f8fcfc !important;
+    color: #174d50 !important;
+    text-align: center !important;
+    cursor: pointer !important;
+    box-shadow: none !important;
+    overflow: hidden !important;
+    transform: none !important;
+    translate: none !important;
+    rotate: none !important;
+}
+
+body.pmd-menu-manager-page .pmd-menu-manager__grid > .pmd-smart-add-card:hover,
+body.pmd-menu-manager-page .pmd-menu-manager__grid > .pmd-smart-add-card:focus-visible {
+    border-color: #5e9fa1 !important;
+    background: #f2f9f8 !important;
+    outline: none !important;
+    box-shadow: 0 0 0 3px rgba(50,130,130,.08) !important;
+}
+
+body.pmd-menu-manager-page .pmd-smart-add-card__plus {
+    position: static !important;
+    inset: auto !important;
+    display: grid !important;
+    place-items: center !important;
+    width: 54px !important;
+    min-width: 54px !important;
+    max-width: 54px !important;
+    height: 54px !important;
+    min-height: 54px !important;
+    max-height: 54px !important;
+    flex: 0 0 54px !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    border: 1px solid #b8d7d7 !important;
+    border-radius: 999px !important;
+    background: #fff !important;
+    color: #174d50 !important;
+    font-size: 32px !important;
+    font-weight: 400 !important;
+    line-height: 1 !important;
+    box-shadow: none !important;
+    transform: none !important;
+}
+
+body.pmd-menu-manager-page .pmd-smart-add-card__copy {
+    position: static !important;
+    inset: auto !important;
+    display: block !important;
+    width: 100% !important;
+    height: auto !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    transform: none !important;
+}
+
+body.pmd-menu-manager-page .pmd-smart-add-card__copy strong,
+body.pmd-menu-manager-page .pmd-smart-add-card__copy small {
+    position: static !important;
+    inset: auto !important;
+    display: block !important;
+    width: auto !important;
+    height: auto !important;
+    padding: 0 !important;
+    transform: none !important;
+}
+
+body.pmd-menu-manager-page .pmd-smart-add-card__copy strong {
+    margin: 0 !important;
+    color: #173752 !important;
+    font-size: 17px !important;
+    font-weight: 800 !important;
+    line-height: 1.3 !important;
+}
+
+body.pmd-menu-manager-page .pmd-smart-add-card__copy small {
+    margin: 5px 0 0 !important;
+    color: #718690 !important;
+    font-size: 12px !important;
+    line-height: 1.4 !important;
+}
+
+@media (max-width: 760px) {
+    .pmd-smart-category-modal {
+        padding: 10px;
+    }
+
+    .pmd-smart-category-modal__card {
+        width: calc(100vw - 20px);
+        max-height: calc(100vh - 20px);
+        border-radius: 19px;
+    }
+
+    .pmd-smart-category-modal__header,
+    .pmd-smart-category-modal__footer,
+    .pmd-smart-category-modal__body {
+        padding-left: 15px;
+        padding-right: 15px;
+    }
+
+    body.pmd-menu-manager-page .pmd-smart-kind-grid {
+        grid-template-columns: 1fr !important;
+    }
+
+    body.pmd-menu-manager-page .pmd-menu-manager__grid > .pmd-smart-add-card {
+        min-height: 190px !important;
+    }
+}
+
+
+/* PMD_MENU_SMART_CONTEXT_ACTION_V1_4 */
+body.pmd-menu-manager-page .pmd-smart-add-card__plus svg {
+    display: block !important;
+    width: 25px !important;
+    height: 25px !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    fill: none !important;
+    stroke: currentColor !important;
+    stroke-width: 2.2 !important;
+    stroke-linecap: round !important;
+    stroke-linejoin: round !important;
+}
+
+body.pmd-menu-manager-page .pmd-menu-manager__grid > .pmd-smart-add-card.is-smart-selection {
+    border-color: #a8cfd0 !important;
+    background: #f8fcfc !important;
+}
+
+body.pmd-menu-manager-page .pmd-menu-manager__grid > .pmd-smart-add-card.is-selection-ready {
+    border-style: solid !important;
+    border-color: #77bda7 !important;
+    background: #f0faf6 !important;
+    color: #0a6d5c !important;
+}
+
+body.pmd-menu-manager-page .pmd-menu-manager__grid > .pmd-smart-add-card.is-selection-ready .pmd-smart-add-card__plus {
+    border-color: #0a745e !important;
+    background: #0a745e !important;
+    color: #ffffff !important;
+    box-shadow: 0 8px 22px rgba(10,116,94,.16) !important;
+}
+
+body.pmd-menu-manager-page .pmd-menu-manager__grid > .pmd-smart-add-card.is-selection-ready .pmd-smart-add-card__copy strong {
+    color: #0a624f !important;
+}
+
+body.pmd-menu-manager-page .pmd-menu-manager__grid > .pmd-smart-add-card[aria-disabled="true"] {
+    cursor: default !important;
+}
+
+body.pmd-menu-manager-page .pmd-menu-manager__grid > .pmd-smart-add-card.is-selection-empty:hover,
+body.pmd-menu-manager-page .pmd-menu-manager__grid > .pmd-smart-add-card.is-selection-empty:focus-visible,
+body.pmd-menu-manager-page .pmd-menu-manager__grid > .pmd-smart-add-card.is-selection-saving:hover,
+body.pmd-menu-manager-page .pmd-menu-manager__grid > .pmd-smart-add-card.is-selection-saving:focus-visible {
+    border-color: #a8cfd0 !important;
+    background: #f8fcfc !important;
+    box-shadow: none !important;
+}
+
+body.pmd-menu-manager-page .pmd-menu-manager__grid > .pmd-smart-add-card.is-selection-saving {
+    opacity: .72 !important;
+}
+
+
+/* PMD_MENU_HIDE_CREATE_COMBO_HEADER_V1_5 */
+/*
+ * Normal page authority is now the first Grid action card:
+ *   - Add new food item
+ *   - Add chef recommendation
+ *   - Add bestseller
+ *   - Add combination
+ *
+ * Keep the proven V129 header controls in the DOM as private programmatic
+ * hooks. They are visually removed from the normal header, so no duplicate
+ * Create Food / Create Combo actions remain.
+ *
+ * While the existing selection shell is active, only the secondary control is
+ * allowed to reappear as V129's Cancel X. Confirm is owned by the first Grid
+ * action card (Add selected / Build combination).
+ */
+body.pmd-menu-manager-page
+[data-pmd-menu-manager][data-pmd-combo-builder="0"]
+[data-pmd-menu-header-primary],
+body.pmd-menu-manager-page
+[data-pmd-menu-manager][data-pmd-combo-builder="0"]
+[data-pmd-menu-header-secondary],
+body.pmd-menu-manager-page
+[data-pmd-menu-manager][data-pmd-combo-builder="1"]
+[data-pmd-menu-header-primary] {
+    display: none !important;
+}
+
+body.pmd-menu-manager-page
+[data-pmd-menu-manager][data-pmd-combo-builder="0"]
+[data-pmd-main-header-notification-gap-r67] {
+    display: none !important;
+}
+
+
+/* PMD_MENU_ALL_FOODS_CATEGORY_ORDER_AND_CATEGORY_MODAL_V1_6 */
+/* Category edit/delete affordances live in the modal, never in the strip. */
+body.pmd-menu-manager-page
+#pmd-menu-manager-main
+[data-pmd-category-delete],
+body.pmd-menu-manager-page
+#pmd-menu-manager-main
+[data-pmd-smart-category-edit] {
+    display: none !important;
+}
+
+body.pmd-menu-manager-page .pmd-smart-btn--danger {
+    border-color: #e7b9b4 !important;
+    background: #fff6f5 !important;
+    color: #a6332a !important;
+}
+
+body.pmd-menu-manager-page .pmd-smart-btn--danger:hover,
+body.pmd-menu-manager-page .pmd-smart-btn--danger:focus-visible {
+    border-color: #d98d84 !important;
+    background: #ffefed !important;
+    color: #8e271f !important;
+    outline: none !important;
+}
+
+/* All Foods Edit = category-order mode. Food cards stay editable/deletable,
+ * but cannot become drag sources or Jiggle targets. */
+body.pmd-menu-manager-page
+#pmd-menu-manager-main[data-pmd-smart-all-foods-edit-lock="1"]
+[data-pmd-menu-card][data-item-type="food"] {
+    cursor: default !important;
+    animation: none !important;
+    rotate: 0deg !important;
+}
+
+body.pmd-menu-manager-page
+#pmd-menu-manager-main[data-pmd-smart-all-foods-edit-lock="1"]
+.pmd-menu-card__edit-delete {
+    display: grid !important;
+    pointer-events: auto !important;
+}
+
+/* Category cards remain the only drag targets in All Foods Edit. A click on
+ * the same card opens Edit Category; native drag remains V129-owned. */
+body.pmd-menu-manager-page
+#pmd-menu-manager-main[data-pmd-sort-mode]:not([data-pmd-sort-mode="0"])
+[data-pmd-category-id] {
+    cursor: grab !important;
+}
+
+body.pmd-menu-manager-page
+#pmd-menu-manager-main[data-pmd-sort-mode]:not([data-pmd-sort-mode="0"])
+[data-pmd-category-id]:active {
+    cursor: grabbing !important;
+}
+
+
+/* PMD_MENU_CATEGORY_EDIT_BADGE_AND_CLEAN_TOOLBAR_V1_6_2 */
+/* The reorder explanation is intentionally removed. */
+body.pmd-menu-manager-page
+#pmd-menu-manager-main
+[data-pmd-menu-sort-status] {
+    display: none !important;
+}
+
+/*
+ * V1.5 already removed the old Create Food / Combo header buttons. Keep that
+ * contract. While Edit is active, also remove the category-create + so the
+ * category strip contains only draggable categories and their edit badges.
+ * Outside Edit mode the category-create + remains available.
+ */
+body.pmd-menu-manager-page
+#pmd-menu-manager-main[data-pmd-sort-mode]:not([data-pmd-sort-mode="0"])
+[data-pmd-category-create] {
+    display: none !important;
+}
+
+/* The pill is still V129's native category drag surface. */
+body.pmd-menu-manager-page
+#pmd-menu-manager-main
+[data-pmd-category-id] {
+    position: relative !important;
+    overflow: visible !important;
+}
+
+body.pmd-menu-manager-page
+#pmd-menu-manager-main
+[data-pmd-smart-category-edit-badge] {
+    display: none !important;
+    position: absolute !important;
+    top: -8px !important;
+    right: -8px !important;
+    width: 27px !important;
+    min-width: 27px !important;
+    max-width: 27px !important;
+    height: 27px !important;
+    min-height: 27px !important;
+    max-height: 27px !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    border: 1px solid #c5dce3 !important;
+    border-radius: 999px !important;
+    background: #ffffff !important;
+    color: #173752 !important;
+    box-shadow: 0 4px 10px rgba(23,55,82,.14) !important;
+    align-items: center !important;
+    justify-content: center !important;
+    box-sizing: border-box !important;
+    cursor: pointer !important;
+    pointer-events: auto !important;
+    z-index: 30 !important;
+    line-height: 1 !important;
+    -webkit-user-drag: none !important;
+    user-select: none !important;
+}
+
+body.pmd-menu-manager-page
+#pmd-menu-manager-main[data-pmd-sort-mode]:not([data-pmd-sort-mode="0"])
+[data-pmd-category-id]
+[data-pmd-smart-category-edit-badge] {
+    display: inline-flex !important;
+}
+
+body.pmd-menu-manager-page
+#pmd-menu-manager-main
+[data-pmd-smart-category-edit-badge]:hover {
+    border-color: #7cbdb5 !important;
+    background: #f2fbf9 !important;
+    color: #087f6b !important;
+}
+
+body.pmd-menu-manager-page
+#pmd-menu-manager-main
+[data-pmd-smart-category-edit-badge] svg {
+    width: 13px !important;
+    height: 13px !important;
+    display: block !important;
+    fill: none !important;
+    stroke: currentColor !important;
+    stroke-width: 2 !important;
+    stroke-linecap: round !important;
+    stroke-linejoin: round !important;
+    pointer-events: none !important;
+}
+
+/*
+ * PMD_MENU_CARD_ACTION_PRIORITY_V1_6_3
+ *
+ * Food-card footer ownership:
+ *   SMALL = Stock in / Stock out
+ *   LARGE = Edit
+ *
+ * DOM order stays unchanged. No JS/backend behavior changes.
+ */
+#pmd-menu-manager-main .pmd-menu-card__actions {
+  grid-template-columns:
+    auto
+    minmax(0, 1fr) !important;
+}
+
+#pmd-menu-manager-main .pmd-menu-card__stock-btn {
+  width: auto !important;
+  min-width: 104px !important;
+  max-width: 124px !important;
+  justify-self: start !important;
+}
+
+#pmd-menu-manager-main .pmd-menu-card__edit-btn {
+  width: 100% !important;
+  min-width: 0 !important;
+  max-width: none !important;
+  justify-self: stretch !important;
+}
+
+/*
+ * PMD_MENU_HEADER_INTERNAL_ACTIONS_HIDDEN_V1_6_3
+ *
+ * These are the real top-header Create Food (+) and
+ * Combo/layers controls.
+ *
+ * Keep them in DOM for the proven V129 internal hooks,
+ * but make them visually absent in NORMAL mode.
+ *
+ * Selection mode is deliberately left to the existing
+ * V1.5/V1.6 ownership so a temporary Cancel control can
+ * still work if the selection shell needs it.
+ */
+#pmd-menu-manager-main[data-pmd-combo-builder="0"]
+  [data-pmd-menu-header-primary],
+#pmd-menu-manager-main[data-pmd-combo-builder="0"]
+  [data-pmd-menu-header-secondary] {
+  display: none !important;
+}
+
+/*
+ * With both old actions gone, there must be no artificial
+ * spacer before the notification bell.
+ */
+#pmd-menu-manager-main[data-pmd-combo-builder="0"]
+  [data-pmd-main-header-notification-gap-r67],
+#pmd-menu-manager-main[data-pmd-combo-builder="0"]
+  [data-pmd-main-header-notification-divider-r67] {
+  display: none !important;
+}
+
+/*
+ * PMD_MENU_REAL_HEADER_HIDE_V1_6_4
+ *
+ * The dashboard header lives OUTSIDE #pmd-menu-manager-main.
+ * Previous descendant selectors therefore could not own these controls.
+ *
+ * Primary/Create Food is always visually hidden.
+ */
+body.pmd-menu-manager-page
+[data-pmd-menu-header-primary] {
+  display: none !important;
+}
+
+/*
+ * Secondary/Combo-layers is hidden during normal menu mode.
+ * It may reappear only while the existing V129 builder shell is active,
+ * where that exact DOM hook is reused as Cancel.
+ */
+body.pmd-menu-manager-page
+[data-pmd-menu-header-secondary] {
+  display: none !important;
+}
+
+body.pmd-menu-manager-page:has(
+  [data-pmd-menu-manager][data-pmd-combo-builder="1"]
+)
+[data-pmd-menu-header-secondary] {
+  display: grid !important;
+}
+
+/*
+ * PMD_MENU_CATEGORY_OLD_MINUS_HIDDEN_V1_6_4
+ *
+ * Old destructive category hit remains in server markup for compatibility,
+ * but it is never a visible/edit authority anymore.
+ * Rename/remove is owned by the category Edit modal.
+ */
+body.pmd-menu-manager-page
+[data-pmd-category-delete],
+body.pmd-menu-manager-page
+.pmd-menu-manager__category-delete-hit {
+  display: none !important;
+  visibility: hidden !important;
+  pointer-events: none !important;
+}
