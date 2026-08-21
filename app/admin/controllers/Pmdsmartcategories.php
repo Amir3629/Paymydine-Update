@@ -13,17 +13,11 @@ use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Validator;
 
 /**
- * PMD Menu Smart Categories V1.
+ * PMD Menu Smart Categories V1.3.
  *
- * Dedicated write/read authority for special menu categories.
- *
- * regular     -> ordinary category record
- * chef        -> category backed by menus.is_chef_recommended
- * bestseller  -> category backed by manual bestseller overrides
- * combos      -> category backed by menu_combos
- *
- * Category ordering and naming continue to use the existing categories table,
- * so the normal Menu Manager category drag authority remains unchanged.
+ * Category rows own visible name/order/type.
+ * Existing menu flags own Chef/Bestseller membership.
+ * Existing menu_combos tables own Combination products.
  */
 class Pmdsmartcategories extends AdminController
 {
@@ -124,6 +118,7 @@ class Pmdsmartcategories extends AdminController
             ],
             'combos' => $combos,
             'can_manage_combos' => $this->canManageCombos(),
+            'version' => 'smart-categories-v1.3',
         ]);
     }
 
@@ -161,7 +156,10 @@ class Pmdsmartcategories extends AdminController
         $menuIds = array_values(array_unique(array_map('intval', (array)($clean['menu_ids'] ?? []))));
 
         if ($kind === 'combos' && !$this->canManageCombos()) {
-            abort(403);
+            return response()->json([
+                'ok' => false,
+                'message' => 'Combination tools are not available for this account.',
+            ], 403);
         }
 
         $sameName = Categories_model::query()
@@ -383,16 +381,68 @@ class Pmdsmartcategories extends AdminController
         }
     }
 
+    /**
+     * PMD_MENU_COMBO_OWNER_MANAGER_BRIDGE_V1
+     *
+     * The Menu workspace is an Owner/Manager operational surface. Some legacy
+     * role records do not carry Admin.Combos even though Owner/Manager already
+     * owns Admin.Menus. Keep the dedicated Admin.Combos permission authoritative
+     * for all other roles, but do not lock Owner/Manager out of the existing
+     * Combo builder because of that stale permission bit.
+     */
     private function canManageCombos(): bool
     {
         $user = AdminAuth::getUser();
 
-        return (bool)(
-            $user
-            && $user->hasPermission('Admin.Combos')
-            && Schema::hasTable('menu_combos')
-            && Schema::hasTable('menu_combo_items')
-        );
+        if (
+            !$user
+            || !Schema::hasTable('menu_combos')
+            || !Schema::hasTable('menu_combo_items')
+        ) {
+            return false;
+        }
+
+        if (!empty($user->is_super_user)) {
+            return true;
+        }
+
+        if ($user->hasPermission('Admin.Combos')) {
+            return true;
+        }
+
+        return $user->hasPermission('Admin.Menus')
+            && $this->isOwnerOrManager($user);
+    }
+
+    private function isOwnerOrManager($user): bool
+    {
+        if (!$user) {
+            return false;
+        }
+
+        if (!empty($user->is_super_user)) {
+            return true;
+        }
+
+        if (empty($user->staff_id)) {
+            return false;
+        }
+
+        try {
+            $row = DB::table('staffs as s')
+                ->leftJoin('staff_roles as r', 'r.staff_role_id', '=', 's.staff_role_id')
+                ->where('s.staff_id', (int)$user->staff_id)
+                ->select('r.code as role_code', 'r.name as role_name')
+                ->first();
+
+            $code = strtolower(trim((string)($row->role_code ?? '')));
+            $name = strtolower(trim((string)($row->role_name ?? '')));
+
+            return in_array($code, ['owner', 'manager'], true)
+                || in_array($name, ['owner', 'manager'], true);
+        } catch (\Throwable $error) {
+            return false;
+        }
     }
 
     private function assertCategoryPermission(): void
@@ -407,38 +457,15 @@ class Pmdsmartcategories extends AdminController
     {
         $user = AdminAuth::getUser();
 
-        if (!$user || !$user->hasPermission('Admin.Menus') || !$user->hasPermission('Admin.Categories')) {
+        if (
+            !$user
+            || !$user->hasPermission('Admin.Menus')
+            || !$user->hasPermission('Admin.Categories')
+        ) {
             abort(403);
         }
 
-        if (!empty($user->is_super_user)) {
-            return;
-        }
-
-        $role = '';
-
-        if (!empty($user->staff_id)) {
-            try {
-                $row = DB::table('staffs as s')
-                    ->leftJoin('staff_roles as r', 'r.staff_role_id', '=', 's.staff_role_id')
-                    ->where('s.staff_id', (int)$user->staff_id)
-                    ->select('r.code as role_code', 'r.name as role_name')
-                    ->first();
-
-                $code = strtolower(trim((string)($row->role_code ?? '')));
-                $name = strtolower(trim((string)($row->role_name ?? '')));
-
-                if ($code === 'owner' || $name === 'owner') {
-                    $role = 'owner';
-                } elseif ($code === 'manager' || $name === 'manager') {
-                    $role = 'manager';
-                }
-            } catch (\Throwable $error) {
-                $role = '';
-            }
-        }
-
-        if (!in_array($role, ['owner', 'manager'], true)) {
+        if (!$this->isOwnerOrManager($user)) {
             abort(403);
         }
     }
