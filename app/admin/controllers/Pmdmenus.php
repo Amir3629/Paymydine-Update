@@ -32,7 +32,9 @@ class Pmdmenus extends AdminController
         $this->addCss('css/pmd-owner-settings-v1.css');
         $this->addCss('css/pmd-settings-suite-first-paint-v1.css');
         $this->addCss('css/pmd-menu-manager-v129.css');
+        $this->addCss('css/pmd-menu-smart-categories-v1.css');
         $this->addJs('js/pmd-menu-manager-v129.js');
+        $this->addJs('js/pmd-menu-smart-categories-v1.js');
 
         AdminMenu::setContext('menus', 'restaurant');
     }
