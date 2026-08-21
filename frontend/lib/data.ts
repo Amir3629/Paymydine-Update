@@ -1,4 +1,4 @@
-import { apiClient, type MenuItem as ApiMenuItem, type Category as ApiCategory } from './api-client'
+import { apiClient, type MenuItem as ApiMenuItem } from './api-client'
 import { EnvironmentConfig } from './environment-config'
 
 // FIXED: Use dynamic category type instead of hardcoded union
@@ -53,7 +53,6 @@ export type MenuItem = {
   popularity_count?: number
 }
 
-
 export type MenuHighlightSettings = {
   chef_section_enabled: boolean
   bestseller_section_enabled: boolean
@@ -103,9 +102,6 @@ export interface MenuItemOptionValue {
   is_default?: boolean
 }
 
-// FIXED: Remove the mapping function - use API categories directly
-// const mapCategoryName = (apiCategoryName: string): MenuItem["category"] => { ... }
-
 const toBoolean = (value: unknown): boolean => value === true || value === 1 || value === '1'
 
 const toNumberOrNull = (value: unknown): number | null => {
@@ -113,8 +109,6 @@ const toNumberOrNull = (value: unknown): number | null => {
   const numberValue = Number(value)
   return Number.isFinite(numberValue) ? numberValue : null
 }
-
-// FIXED: Convert API MenuItem to frontend MenuItem
 
 // PMD_PRESERVE_GALLERY_IMAGES_START
 const normalizeApiMenuImagePath = (value: unknown): string => {
@@ -124,23 +118,17 @@ const normalizeApiMenuImagePath = (value: unknown): string => {
   if (!raw) return ""
 
   if (/^https?:\/\//i.test(raw)) return raw
-
   if (raw.startsWith("/")) return raw
-
   if (raw.startsWith("assets/media/")) return `/${raw}`
-
   if (raw.startsWith("attachments/public/")) return `/assets/media/${raw}`
-
   if (raw.startsWith("uploads/")) return `/assets/media/${raw}`
 
-  // Plain upload filenames from ti_menu_images.
   if (/\.(png|jpe?g|webp|gif|svg)(\?|#)?$/i.test(raw)) {
     return `/assets/media/uploads/${raw}`
   }
 
   return raw
 }
-// PMD_PRESERVE_GALLERY_IMAGES_END
 
 const normalizeApiMenuImageList = (value: unknown): string[] => {
   const arr = Array.isArray(value) ? value : []
@@ -162,13 +150,14 @@ const normalizeApiMenuImageList = (value: unknown): string[] => {
 
   return result
 }
+// PMD_PRESERVE_GALLERY_IMAGES_END
 
 const convertApiMenuItem = (apiItem: ApiMenuItem, categoryName?: string): MenuItem => {
-  let imageUrl = apiItem.image || '/placeholder.svg?width=200&height=200';
+  let imageUrl = apiItem.image || '/placeholder.svg?width=200&height=200'
 
   if (imageUrl && imageUrl.startsWith('/api/media/')) {
-    const baseUrl = EnvironmentConfig.getInstance().backendBaseUrl();
-    imageUrl = `${baseUrl}${imageUrl}`;
+    const baseUrl = EnvironmentConfig.getInstance().backendBaseUrl()
+    imageUrl = `${baseUrl}${imageUrl}`
   }
 
   const resolvedCategory = categoryName || apiItem.category_name || 'Main Course'
@@ -220,7 +209,6 @@ const convertApiMenuItem = (apiItem: ApiMenuItem, categoryName?: string): MenuIt
   }
 }
 
-
 const normalizeMenuHighlightSettings = (value: any): MenuHighlightSettings => {
   const raw = value && typeof value === 'object' ? value : {}
   const firstValue = (keys: string[], fallback: any) => {
@@ -269,6 +257,37 @@ const normalizeMenuHighlightSettings = (value: any): MenuHighlightSettings => {
   }
 }
 
+const mergeApiCategoryRows = (items: MenuItem[]): MenuItem[] => {
+  const byProduct = new Map<string, MenuItem>()
+
+  items.forEach((item) => {
+    const key = `${item.isCombo ? 'combo' : 'food'}:${item.id}`
+    const existing = byProduct.get(key)
+
+    if (!existing) {
+      byProduct.set(key, {
+        ...item,
+        category_names: Array.from(new Set([...(item.category_names || []), item.category].filter(Boolean))),
+      })
+      return
+    }
+
+    const names = new Set<string>([
+      ...(existing.category_names || []),
+      existing.category,
+      ...(item.category_names || []),
+      item.category,
+    ].filter(Boolean) as string[])
+
+    byProduct.set(key, {
+      ...existing,
+      category_names: Array.from(names),
+    })
+  })
+
+  return Array.from(byProduct.values())
+}
+
 // PMD_MENU_SMART_CATEGORIES_V1_FRONTEND
 // Smart categories are persisted as normal categories for name/order, while
 // membership for Chef/Bestseller/Combinations reuses the existing product flags.
@@ -276,13 +295,13 @@ export async function getMenuData(): Promise<{ categories: MenuItem[][], menuIte
   try {
     const menuResponse = await apiClient.getMenu()
 
-    const rawItems = (menuResponse?.data?.items ?? menuResponse?.data ?? []);
-    const safeItems = Array.isArray(rawItems) ? rawItems : [];
-    let menuItems: MenuItem[] = safeItems.map(apiItem =>
-      convertApiMenuItem(apiItem, apiItem.category_name)
-    ) || []
+    const rawItems = (menuResponse?.data?.items ?? menuResponse?.data ?? [])
+    const safeItems = Array.isArray(rawItems) ? rawItems : []
+    let menuItems: MenuItem[] = mergeApiCategoryRows(
+      safeItems.map(apiItem => convertApiMenuItem(apiItem, apiItem.category_name))
+    )
 
-    const catsResp = await apiClient.getCategories();
+    const catsResp = await apiClient.getCategories()
     const categoryDefinitions = (catsResp?.data ?? [])
       .map((category: any) => ({
         id: Number(category.id ?? category.category_id ?? 0),
@@ -309,8 +328,7 @@ export async function getMenuData(): Promise<{ categories: MenuItem[][], menuIte
         }
       }
 
-      const names = new Set<string>()
-      if (item.category) names.add(item.category)
+      const names = new Set<string>(item.category_names || [item.category])
       if (item.is_chef_recommended && chefCategoryName) names.add(chefCategoryName)
 
       const isManualBestseller =
