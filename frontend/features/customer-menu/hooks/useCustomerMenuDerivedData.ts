@@ -13,6 +13,7 @@ type MenuOption = {
 type DerivedMenuItem = {
   price: number
   category?: string
+  category_names?: string[]
   options?: MenuOption[]
   [key: string]: any
 }
@@ -68,16 +69,16 @@ export function useCustomerMenuDerivedData(props: UseCustomerMenuDerivedDataProp
     return price
   }
 
-  // Update filteredItems logic with price adjustment
+  // PMD_MENU_SMART_CATEGORIES_V1_FRONTEND_FILTER
+  // A food can now belong to its normal category plus Chef/Bestseller smart
+  // categories. Combos use the renamed combinations category. Keep the old
+  // single-category fallback for installations that have not migrated yet.
   const filteredItems = useMemo(() => {
-    // Use API data if available, otherwise fallback to CMS store or static data
     const availableItems = apiMenuItems.length ? apiMenuItems : (menuItems.length ? menuItems : menuData);
 
-    // Adjust prices if VAT is included in menu prices
     const itemsWithAdjustedPrices = availableItems.map((item: DerivedMenuItem) => ({
       ...item,
       price: adjustPriceForVAT(item.price),
-      // Also adjust option prices if they exist
       options: item.options?.map((option: MenuOption) => ({
         ...option,
         values: option.values.map((value: MenuOptionValue) => ({
@@ -87,17 +88,20 @@ export function useCustomerMenuDerivedData(props: UseCustomerMenuDerivedDataProp
       }))
     }))
 
-    // Always default to showing all items if no category is selected
     const currentCategory = selectedCategory || "All";
 
-    // If "All" is selected, show all items
     if (currentCategory === "All") {
       return itemsWithAdjustedPrices;
     }
 
-    // Otherwise, filter by selected category
-    return itemsWithAdjustedPrices.filter((item: DerivedMenuItem) => item.category === currentCategory);
-  }, [apiMenuItems, menuItems, selectedCategory, taxSettings.enabled, taxSettings.percentage, taxSettings.menuPrice]);
+    return itemsWithAdjustedPrices.filter((item: DerivedMenuItem) => {
+      const memberships = Array.isArray(item.category_names) && item.category_names.length
+        ? item.category_names
+        : (item.category ? [item.category] : [])
+
+      return memberships.includes(currentCategory)
+    });
+  }, [apiMenuItems, menuItems, menuData, selectedCategory, taxSettings.enabled, taxSettings.percentage, taxSettings.menuPrice]);
 
   const highlightSourceItems = useMemo(() => {
     const availableItems = apiMenuItems.length ? apiMenuItems : (menuItems.length ? menuItems : menuData)
@@ -109,7 +113,7 @@ export function useCustomerMenuDerivedData(props: UseCustomerMenuDerivedDataProp
         values: option.values.map((value: MenuOptionValue) => ({ ...value, price: adjustPriceForVAT(value.price) }))
       }))
     }))
-  }, [apiMenuItems, menuItems, taxSettings.enabled, taxSettings.percentage, taxSettings.menuPrice])
+  }, [apiMenuItems, menuItems, menuData, taxSettings.enabled, taxSettings.percentage, taxSettings.menuPrice])
 
   const chefRecommendationItems = useMemo(() => {
     if (!menuHighlightSettings.chef_section_enabled || menuHighlightSettings.section_placement === 'hidden') return []
