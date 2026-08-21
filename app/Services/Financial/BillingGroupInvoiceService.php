@@ -3,6 +3,7 @@
 namespace App\Services\Financial;
 
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 use RuntimeException;
 
 final class BillingGroupInvoiceService
@@ -23,16 +24,24 @@ final class BillingGroupInvoiceService
         $group = DB::table('pmd_billing_groups')->where('public_id', $publicId)->first();
         if (!$group) return $summary;
 
+        $identity = $this->identity();
+        $fiscalReady = in_array((string)$group->fiscal_status, ['not_required', 'fiscalized'], true);
         $available = (string)$group->mode === 'r36'
             && (string)$group->status === 'closed'
             && (string)$group->payment_status === 'paid'
-            && trim((string)($group->invoice_number ?? '')) !== '';
+            && trim((string)($group->invoice_number ?? '')) !== ''
+            && $fiscalReady
+            && $identity['confirmed'];
 
+        $summary['fiscalStatus'] = (string)$group->fiscal_status;
+        $summary['fiscalError'] = $group->fiscal_error ?? null;
+        $summary['invoiceIdentityReady'] = $identity['confirmed'];
         $summary['invoiceAvailable'] = $available;
         $summary['invoiceNumber'] = $group->invoice_number ?? null;
         $summary['invoicedAt'] = $group->invoiced_at ?? null;
         $summary['invoiceDownloadToken'] = $available ? $this->token($group) : null;
         $summary['invoiceDownloadUrl'] = $available ? $this->url($group) : null;
+        $summary['invoiceBlockedReason'] = $available ? null : $this->blockedReason($group, $identity);
 
         return $summary;
     }
@@ -108,6 +117,14 @@ final class BillingGroupInvoiceService
             || trim((string)($group->invoice_number ?? '')) === '') {
             throw new RuntimeException('Final Bill invoice is not available yet.');
         }
+        if (!in_array((string)$group->fiscal_status, ['not_required', 'fiscalized'], true)) {
+            throw new RuntimeException('Final Bill invoice is waiting for fiscalization or fiscal reconciliation.');
+        }
+
+        $identity = $this->identity();
+        if (!$identity['confirmed']) {
+            throw new RuntimeException('Merchant invoice identity is not confirmed/configured.');
+        }
         if (!hash_equals($this->token($group), trim($token))) {
             throw new RuntimeException('Invalid Final Bill invoice token.');
         }
@@ -149,9 +166,15 @@ final class BillingGroupInvoiceService
         $childTax = (int)($vat['child_tax_cents'] ?? 0);
         $payable = max(0, (int)$group->total_cents + (int)$group->tip_cents - (int)$group->discount_cents);
 
+        $merchant = '<section class="merchant"><strong>'.$escape($identity['legal_name']).'</strong><br>'
+            .nl2br($escape($identity['legal_address']));
+        if ($identity['tax_id'] !== '') $merchant .= '<br><strong>Tax ID / VAT ID:</strong> '.$escape($identity['tax_id']);
+        $merchant .= '</section>';
+
+        $fiscal = $this->fiscalHtml($group, $escape);
         $html = '<!doctype html><html><head><meta charset="utf-8"><title>'.$escape($group->invoice_number).'</title>'
-            .'<style>body{font-family:Arial,sans-serif;max-width:820px;margin:32px auto;color:#17202a}table{width:100%;border-collapse:collapse;margin:18px 0}td,th{padding:8px;border-bottom:1px solid #ddd;text-align:left}.totals{margin-left:auto;max-width:390px}.muted{color:#667085}</style>'
-            .'</head><body><h1>PayMyDine Final Bill</h1><p><strong>Invoice:</strong> '.$escape($group->invoice_number)
+            .'<style>body{font-family:Arial,sans-serif;max-width:820px;margin:32px auto;color:#17202a}table{width:100%;border-collapse:collapse;margin:18px 0}td,th{padding:8px;border-bottom:1px solid #ddd;text-align:left}.totals{margin-left:auto;max-width:390px}.muted{color:#667085}.merchant{margin-bottom:24px}.fiscal{margin-top:28px;padding:14px;border:1px solid #ddd;word-break:break-word}</style>'
+            .'</head><body>'.$merchant.'<h1>PayMyDine Final Bill</h1><p><strong>Invoice:</strong> '.$escape($group->invoice_number)
             .'<br><strong>Table:</strong> '.$escape($group->table_id)
             .'<br><strong>Visit:</strong> '.$escape($group->session_key)
             .'<br><strong>Date:</strong> '.$escape($group->invoiced_at).'</p>'
@@ -164,11 +187,90 @@ final class BillingGroupInvoiceService
             .((int)$group->tip_cents > 0 ? '<tr><td>Tip</td><td style="text-align:right">'.$money((int)$group->tip_cents).'</td></tr>' : '')
             .'<tr><td><strong>Total paid</strong></td><td style="text-align:right"><strong>'.$money($payable).'</strong></td></tr></table>'
             .'<h2>Payments</h2><table><thead><tr><th>Method</th><th>Reference</th><th style="text-align:right">Amount</th></tr></thead><tbody>'.$paymentRows.'</tbody></table>'
+            .$fiscal
             .'<p class="muted">Canonical PayMyDine Billing Group: '.$escape($group->public_id).'</p></body></html>';
 
         return [
             'html' => $html,
             'filename' => preg_replace('/[^A-Za-z0-9._-]+/', '-', (string)$group->invoice_number).'.html',
+        ];
+    }
+
+    private function fiscalHtml($group, callable $escape): string
+    {
+        if ((string)$group->fiscal_status === 'not_required') {
+            return '<section class="fiscal"><strong>Fiscal status:</strong> not required by the configured location integration.</section>';
+        }
+        $receipt = json_decode((string)($group->fiskaly_receipt ?? ''), true) ?: [];
+        $response = is_array($receipt['response'] ?? null) ? $receipt['response'] : [];
+        $signature = is_array($response['signature'] ?? null) ? $response['signature'] : [];
+        $rows = [
+            'Fiscal provider' => $receipt['provider'] ?? 'fiskaly_sign_de_v2',
+            'TSS transaction ID' => $receipt['transaction_id'] ?? $group->fiskaly_transaction_id,
+            'Transaction number' => $response['number'] ?? null,
+            'Start' => $response['time_start'] ?? null,
+            'End' => $response['time_end'] ?? null,
+            'TSS serial' => $response['tss_serial_number'] ?? ($signature['serial_number'] ?? null),
+            'Client serial' => $response['client_serial_number'] ?? null,
+            'Signature counter' => $signature['counter'] ?? null,
+            'Signature algorithm' => $signature['algorithm'] ?? null,
+            'Signature' => $signature['value'] ?? null,
+            'QR code data' => $response['qr_code_data'] ?? null,
+        ];
+        $html = '<section class="fiscal"><h2>Fiscal / TSE evidence</h2>';
+        foreach ($rows as $label => $value) {
+            if ($value === null || trim((string)$value) === '') continue;
+            $html .= '<div><strong>'.$escape($label).':</strong> '.$escape($value).'</div>';
+        }
+        return $html.'</section>';
+    }
+
+    private function blockedReason($group, array $identity): ?string
+    {
+        if ((string)$group->status !== 'closed') return 'Final Bill is not closed yet.';
+        if ((string)$group->payment_status !== 'paid') return 'Final Bill is not fully paid.';
+        if (trim((string)($group->invoice_number ?? '')) === '') return 'Invoice number is not finalized.';
+        if (!in_array((string)$group->fiscal_status, ['not_required', 'fiscalized'], true)) {
+            return 'Fiscal state is '.(string)$group->fiscal_status.'.';
+        }
+        if (!$identity['confirmed']) return 'Merchant invoice identity is not confirmed/configured.';
+        return null;
+    }
+
+    private function identity(): array
+    {
+        $value = function (string $key, string $env = '', string $default = ''): string {
+            try {
+                if (function_exists('setting')) {
+                    $candidate = setting($key, null);
+                    if ($candidate !== null && trim((string)$candidate) !== '') return trim((string)$candidate);
+                }
+                if (Schema::hasTable('settings')) {
+                    $candidate = DB::table('settings')->where('item', $key)->orderByDesc('setting_id')->value('value');
+                    if ($candidate !== null && trim((string)$candidate) !== '') return trim((string)$candidate);
+                }
+            } catch (\Throwable $ignored) {
+            }
+            if ($env !== '') {
+                try {
+                    $candidate = env($env, '');
+                    if (trim((string)$candidate) !== '') return trim((string)$candidate);
+                } catch (\Throwable $ignored) {
+                }
+            }
+            return $default;
+        };
+
+        $confirmed = in_array(strtolower($value('pmd_invoice_identity_confirmed', 'PMD_R36_INVOICE_IDENTITY_CONFIRMED', '0')), ['1', 'true', 'yes', 'on'], true);
+        $legalName = $value('pmd_invoice_legal_name', 'PMD_R36_INVOICE_LEGAL_NAME');
+        $legalAddress = $value('pmd_invoice_legal_address', 'PMD_R36_INVOICE_LEGAL_ADDRESS');
+        $taxId = $value('pmd_invoice_tax_id', 'PMD_R36_INVOICE_TAX_ID');
+
+        return [
+            'confirmed' => $confirmed && $legalName !== '' && $legalAddress !== '' && $taxId !== '',
+            'legal_name' => $legalName,
+            'legal_address' => $legalAddress,
+            'tax_id' => $taxId,
         ];
     }
 }
