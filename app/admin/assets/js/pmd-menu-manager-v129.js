@@ -66,6 +66,8 @@
   var editDeleteBusy = false;
 
   // PMD_MENU_DRAG_SESSION_JIGGLE_FREEZE_V141_11D
+  // PMD_MENU_DROP_WHITE_FLASH_FIX_V141_11E
+  // PMD_MENU_DROP_TRANSFORM_ONLY_V141_11F
   //
   // Idle Edit:
   //   Card Jiggle runs normally.
@@ -79,6 +81,23 @@
   // Category Jiggle is not involved.
   var cardDragJiggleFreezeActiveV14111D = false;
   var cardDragJiggleDragEndedV14111D = false;
+
+  // PMD_MENU_NATIVE_DROP_FINAL_SLOT_V141_11G
+  // PMD_MENU_OVERLAP_SWAP_60_V141_11G
+  // PMD_MENU_SOFT_NATIVE_SETTLE_V141_11H
+  // PMD_MENU_GHOST_EXIT_HANDOFF_V141_11I
+  // PMD_MENU_ZERO_GAP_DRAGEND_HANDOFF_V141_11J
+  // PMD_MENU_RASTER_CONTINUITY_V141_11K
+  //
+  // One stable final-slot paint is held between the native
+  // browser drag ghost and normal Edit-mode Jiggle.
+  var pmdPostDropStableFrameV14111G = false;
+
+  // The Card itself, not the pointer, is the swap authority.
+  var pmdOverlapSwapLockV14111G = null;
+
+  var PMD_OVERLAP_SWAP_RATIO_V14111G = .60;
+  var PMD_OVERLAP_UNLOCK_RATIO_V14111G = .35;
 
   function manager() {
     return document.querySelector('[data-pmd-menu-manager]');
@@ -1418,8 +1437,28 @@
     if (!node) return;
     var index = 0;
     node.querySelectorAll('[data-pmd-menu-card]').forEach(function (card) {
-      var enabled = sortMode && card.classList.contains('is-sortable') && !card.classList.contains('is-dragging') && !card.classList.contains('is-drop-settling');
       var cardIndex = index++;
+
+      /*
+       * PMD_MENU_DROP_TRANSFORM_ONLY_V141_11F
+       *
+       * settleSortCard() owns the landing Card completely.
+       *
+       * Do not remove/reinstall:
+       *   animation
+       *   rotate
+       *   will-change
+       * while the Drop compositor transition is active.
+       */
+      if (
+        card.classList.contains(
+          'is-drop-settling'
+        )
+      ) {
+        return;
+      }
+
+      var enabled = sortMode && card.classList.contains('is-sortable') && !card.classList.contains('is-dragging') && !card.classList.contains('is-drop-settling');
 
       setExplicitJiggle(
         card,
@@ -1507,6 +1546,22 @@
 
     if (!node) {
       return false;
+    }
+
+
+    /*
+     * V141.11G:
+     *
+     * Even after the Card is already in its final DOM slot,
+     * keep Jiggle frozen through one complete stable paint.
+     *
+     * This prevents native-drag -> Jiggle compositor handoff
+     * from happening in the same frame.
+     */
+    if (
+      pmdPostDropStableFrameV14111G
+    ) {
+      return true;
     }
 
 
@@ -1918,7 +1973,22 @@
 
     node.querySelectorAll('[data-pmd-menu-card]').forEach(function (card) {
       var target = sortMode && card.dataset.itemType === sortKind;
-      card.draggable = Boolean(target && !sortBusy);
+
+      /*
+       * V141.11F:
+       * keep the native drag source attribute stable until the
+       * REAL Card has completed its visual Drop.
+       */
+      if (
+        !card.classList.contains(
+          'is-drop-settling'
+        )
+      ) {
+        card.draggable = Boolean(
+          target && !sortBusy
+        );
+      }
+
       card.classList.toggle('is-sortable', Boolean(target));
       card.classList.toggle('is-sort-locked', sortMode && !target);
     });
@@ -2379,7 +2449,21 @@
                * Because it was paused, not removed,
                * there is no animation restart frame.
                */
+              /*
+               * V141.11E:
+               *
+               * V141.11D global drag-session freeze outranks
+               * the older neighbour-local V141.11B resume.
+               */
               if (
+                cardDragJiggleFreezeActiveV14111D
+              ) {
+                element.style.setProperty(
+                  'animation-play-state',
+                  'paused',
+                  'important'
+                );
+              } else if (
                 sortMode
                 && element.classList.contains(
                   'is-sortable'
@@ -2526,134 +2610,51 @@
     }
 
     // PMD_MENU_STABLE_TARGET_DROP_V141_2_HYSTERESIS
+    // PMD_MENU_OVERLAP_SWAP_60_V141_11G
     //
-    // Target Cards are themselves moving with FLIP.
-    // Never let a moving midpoint immediately reverse the
-    // direction that was just accepted.
-    var rect =
-      target.getBoundingClientRect();
+    // V141.2's pointer-center/dead-zone decision is RETIRED.
+    //
+    // The Card rectangle is now the sole swap threshold.
+    //
+    // A target reaches this function only when at least 60%
+    // of the dragged Card is visibly overlapping that target.
+    var draggedRectV14111G =
+      pmdDraggedVisualRectV14111G(
+        source,
+        clientX,
+        clientY
+      );
 
-    var centerX =
-      rect.left
-      + rect.width / 2;
+    if (!draggedRectV14111G) {
+      return false;
+    }
 
-    var centerY =
-      rect.top
-      + rect.height / 2;
 
-    var sameBand =
-      Math.abs(
-        clientY - centerY
-      )
-      < rect.height * .34;
+    var overlapRatioV14111G =
+      pmdCardOverlapRatioV14111G(
+        draggedRectV14111G,
+        target.getBoundingClientRect()
+      );
 
+
+    if (
+      overlapRatioV14111G
+      < PMD_OVERLAP_SWAP_RATIO_V14111G
+    ) {
+      return false;
+    }
+
+
+    /*
+     * Swap in the direction implied by current canonical DOM
+     * order.
+     *
+     * The 35% lock prevents the same target from instantly
+     * swapping back while FLIP is still settling.
+     */
     var sourceBeforeTarget =
       sourceIndex < targetIndex;
 
-    /*
-     * Small dead-zone.
-     *
-     * Enough to prevent ping-pong caused by the target's own
-     * FLIP movement, but small enough to remain responsive.
-     */
-    var deadX =
-      Math.max(
-        12,
-        Math.min(
-          28,
-          rect.width * .10
-        )
-      );
-
-    var deadY =
-      Math.max(
-        10,
-        Math.min(
-          24,
-          rect.height * .08
-        )
-      );
-
-    var after;
-
-    if (sameBand) {
-      if (sourceBeforeTarget) {
-        /*
-         * Moving forward/right.
-         *
-         * Require a deliberate crossing beyond center.
-         */
-        if (
-          clientX
-          <= centerX + deadX
-        ) {
-          return false;
-        }
-
-        after =
-          true;
-      } else {
-        /*
-         * Moving backward/left.
-         */
-        if (
-          clientX
-          >= centerX - deadX
-        ) {
-          return false;
-        }
-
-        after =
-          false;
-      }
-    } else {
-      if (sourceBeforeTarget) {
-        /*
-         * Moving forward/down to another Grid row.
-         */
-        if (
-          clientY
-          <= centerY + deadY
-        ) {
-          return false;
-        }
-
-        after =
-          true;
-      } else {
-        /*
-         * Moving backward/up.
-         */
-        if (
-          clientY
-          >= centerY - deadY
-        ) {
-          return false;
-        }
-
-        after =
-          false;
-      }
-    }
-
-    /*
-     * Already in the requested adjacent position.
-     */
-    if (
-      after
-      && sourceIndex
-        === targetIndex + 1
-    ) {
-      return false;
-    }
-
-    if (
-      !after
-      && sourceIndex
-        === targetIndex - 1
-    ) {
-      return false;
-    }
 
     var beforeRects =
       captureSortRects(
@@ -2662,7 +2663,7 @@
 
     cancelSortFlipAnimations();
 
-    if (after) {
+    if (sourceBeforeTarget) {
       target.after(
         source
       );
@@ -2671,6 +2672,14 @@
         source
       );
     }
+
+
+    /*
+     * Lock this exact target until overlap drops below 35%.
+     */
+    pmdOverlapSwapLockV14111G =
+      target;
+
 
     animateSortFlip(
       beforeRects,
@@ -2715,6 +2724,272 @@
   };
 
 
+
+  /*
+   * ============================================================
+   * V141.11G CARD-OVERLAP SWAP AUTHORITY
+   * ============================================================
+   *
+   * The browser native drag image follows:
+   *
+   *   pointer clientX/clientY
+   *   minus the original grab offset inside the Card.
+   *
+   * Reconstruct that actual visual Card rectangle and compare
+   * it with every visible destination Card.
+   *
+   * 60% of the DRAGGED Card surface overlapping one target
+   * means that target becomes eligible to swap.
+   *
+   * The just-swapped target stays locked until overlap falls
+   * below 35%, preventing immediate reverse/ping-pong while
+   * neighbour FLIP is still visually moving.
+   * ============================================================
+   */
+
+
+  function pmdDraggedVisualRectV14111G(
+    source,
+    clientX,
+    clientY
+  ) {
+    if (
+      !source
+      || !pmdDropGrabV1416.valid
+      || !Number.isFinite(clientX)
+      || !Number.isFinite(clientY)
+    ) {
+      return null;
+    }
+
+
+    var width =
+      Number(
+        source.offsetWidth || 0
+      );
+
+    var height =
+      Number(
+        source.offsetHeight || 0
+      );
+
+
+    if (
+      width <= 0
+      || height <= 0
+    ) {
+      var fallback =
+        source.getBoundingClientRect();
+
+      width =
+        Number(fallback.width || 0);
+
+      height =
+        Number(fallback.height || 0);
+    }
+
+
+    if (
+      width <= 0
+      || height <= 0
+    ) {
+      return null;
+    }
+
+
+    var left =
+      clientX
+      - pmdDropGrabV1416.x;
+
+    var top =
+      clientY
+      - pmdDropGrabV1416.y;
+
+
+    return {
+      left: left,
+      top: top,
+      right: left + width,
+      bottom: top + height,
+      width: width,
+      height: height
+    };
+  }
+
+
+  function pmdCardOverlapRatioV14111G(
+    draggedRect,
+    targetRect
+  ) {
+    if (
+      !draggedRect
+      || !targetRect
+    ) {
+      return 0;
+    }
+
+
+    var overlapWidth =
+      Math.max(
+        0,
+        Math.min(
+          draggedRect.right,
+          targetRect.right
+        )
+        - Math.max(
+          draggedRect.left,
+          targetRect.left
+        )
+      );
+
+    var overlapHeight =
+      Math.max(
+        0,
+        Math.min(
+          draggedRect.bottom,
+          targetRect.bottom
+        )
+        - Math.max(
+          draggedRect.top,
+          targetRect.top
+        )
+      );
+
+
+    if (
+      overlapWidth <= 0
+      || overlapHeight <= 0
+    ) {
+      return 0;
+    }
+
+
+    var draggedArea =
+      draggedRect.width
+      * draggedRect.height;
+
+
+    if (draggedArea <= 0) {
+      return 0;
+    }
+
+
+    return (
+      overlapWidth
+      * overlapHeight
+    ) / draggedArea;
+  }
+
+
+  function pmdFindOverlapTargetV14111G(
+    source,
+    clientX,
+    clientY
+  ) {
+    var draggedRect =
+      pmdDraggedVisualRectV14111G(
+        source,
+        clientX,
+        clientY
+      );
+
+    if (!draggedRect) {
+      return null;
+    }
+
+
+    /*
+     * Unlock the previous target only after the Card has moved
+     * clearly away from it.
+     */
+    if (
+      pmdOverlapSwapLockV14111G
+    ) {
+      if (
+        !pmdOverlapSwapLockV14111G
+          .isConnected
+      ) {
+        pmdOverlapSwapLockV14111G =
+          null;
+      } else {
+        var lockedRatio =
+          pmdCardOverlapRatioV14111G(
+            draggedRect,
+            pmdOverlapSwapLockV14111G
+              .getBoundingClientRect()
+          );
+
+        if (
+          lockedRatio
+          <= PMD_OVERLAP_UNLOCK_RATIO_V14111G
+        ) {
+          pmdOverlapSwapLockV14111G =
+            null;
+        }
+      }
+    }
+
+
+    var bestCard =
+      null;
+
+    var bestRatio =
+      0;
+
+
+    visibleSortTargetCards(
+      sortKind
+    ).forEach(
+      function (candidate) {
+        if (
+          !candidate
+          || candidate === source
+          || candidate.dataset.itemType
+            !== source.dataset.itemType
+        ) {
+          return;
+        }
+
+
+        /*
+         * Do not instantly reverse the swap against the same
+         * target while their FLIP visuals still overlap.
+         */
+        if (
+          candidate
+          === pmdOverlapSwapLockV14111G
+        ) {
+          return;
+        }
+
+
+        var ratio =
+          pmdCardOverlapRatioV14111G(
+            draggedRect,
+            candidate
+              .getBoundingClientRect()
+          );
+
+
+        if (
+          ratio
+          >= PMD_OVERLAP_SWAP_RATIO_V14111G
+          && ratio > bestRatio
+        ) {
+          bestRatio =
+            ratio;
+
+          bestCard =
+            candidate;
+        }
+      }
+    );
+
+
+    return bestCard;
+  }
+
+
   function settleSortCard(
     card,
     fromX,
@@ -2722,37 +2997,41 @@
   ) {
     if (!card) return;
 
-    // PMD_MENU_DROP_SETTLE_V141_1
-    // PMD_MENU_MOTION_POLISH_V141_3_LANDING
-    // PMD_MENU_DROP_HANDOFF_V141_4
-    // PMD_MENU_DROP_SPEED_V141_5
-    // PMD_MENU_REAL_DROP_TRAVEL_V141_6
-    // PMD_MENU_REAL_DROP_TRAVEL_V141_7
-    // PMD_MENU_REAL_DROP_TRAVEL_V141_8
-    // PMD_MENU_DROP_INLINE_PAINT_V141_9
-    //
-    // V141.9:
-    //
-    // Do NOT use Web Animations for the final Card travel.
-    //
-    // The audit proved:
-    //   - release geometry is non-zero
-    //   - 2000ms+ duration is created correctly
-    //
-    // Therefore the final visual authority is now an
-    // inline !important transform + transition on the SAME
-    // REAL Card.
-    //
-    // No clone.
-    // No proxy.
-    // No second drag engine.
+    /*
+     * PMD_MENU_NATIVE_DROP_FINAL_SLOT_V141_11G
+     * PMD_MENU_SOFT_NATIVE_SETTLE_V141_11H
+     * PMD_MENU_GHOST_EXIT_HANDOFF_V141_11I
+     * PMD_MENU_ZERO_GAP_DRAGEND_HANDOFF_V141_11J
+     *
+     * Screenshot-proven J fix:
+     *
+     * I waited until a future rAF to reveal the real Card.
+     * That produced:
+     *
+     *   native ghost disappears
+     *   EMPTY FRAME
+     *   real Card appears
+     *
+     * J reveals the real Card synchronously DURING dragend.
+     *
+     * The browser cannot paint between the end of the native
+     * drag representation and our same-task real Card reveal.
+     *
+     * The Card then settles on the NEXT frame.
+     */
 
-    card.classList.remove(
-      'is-dragging'
-    );
+
+    pmdPostDropStableFrameV14111G =
+      true;
+
 
     card.classList.add(
       'is-drop-settling'
+    );
+
+    card.classList.remove(
+      'is-dragging',
+      'is-drag-over'
     );
 
 
@@ -2769,16 +3048,15 @@
 
     var maxX =
       Math.max(
-        500,
-        window.innerWidth * 1.25
+        480,
+        window.innerWidth * 1.1
       );
 
     var maxY =
       Math.max(
-        500,
-        window.innerHeight * 1.25
+        480,
+        window.innerHeight * 1.1
       );
-
 
     dx =
       Math.max(
@@ -2807,103 +3085,72 @@
 
 
     /*
-     * Preserve V141.8 speed.
-     *
-     * PMD_MENU_DROP_SPEED_V141_10
-     * PMD_MENU_DROP_SPEED_V141_11
-     *
-     * Faster final tuning:
-     * Short move: 360ms
-     * Long move:  up to 520ms
+     * KEEP I'S USER-APPROVED SPEED.
      */
     var duration =
       Math.round(
         Math.max(
-          360,
+          300,
           Math.min(
-            520,
-            360
-              + distance * .18
+            380,
+            300
+              + distance * .16
           )
         )
       );
 
 
-    var startTransform =
-      'translate('
-      + dx
-      + 'px,'
-      + dy
-      + 'px) '
-      + 'scale(.985)';
+    /*
+     * Card must remain the TOP visual while moving through
+     * neighbouring Grid cells.
+     *
+     * V138's z-index:20 disappears when is-dragging is removed.
+     * J explicitly carries that stacking ownership throughout
+     * settle.
+     */
+    /*
+     * PMD_MENU_RASTER_CONTINUITY_V141_11K
+     *
+     * Exact top-layer behavior proven by console test.
+     */
+    card.style.setProperty(
+      'z-index',
+      '9999',
+      'important'
+    );
 
+    card.style.setProperty(
+      'isolation',
+      'isolate',
+      'important'
+    );
 
-    var endTransform =
-      'translate(0px,0px) '
-      + 'scale(1)';
-
-
-    var finished =
-      false;
-
-
-    var clear =
-      function (event) {
-        if (
-          event
-          && event.propertyName
-          && event.propertyName !== 'transform'
-        ) {
-          return;
-        }
-
-        if (finished) return;
-
-        finished =
-          true;
-
-        card.removeEventListener(
-          'transitionend',
-          clear
-        );
-
-        card.removeEventListener(
-          'transitioncancel',
-          clear
-        );
-
-        card.style.removeProperty(
-          'transition'
-        );
-
-        card.style.removeProperty(
-          'transform'
-        );
-
-        card.style.removeProperty(
-          'opacity'
-        );
-
-        card.style.removeProperty(
-          'will-change'
-        );
-
-        card.classList.remove(
-          'is-drop-settling'
-        );
-
-        if (sortMode) {
-          syncExplicitJiggle();
-        }
-      };
+    card.style.setProperty(
+      'pointer-events',
+      'none',
+      'important'
+    );
 
 
     /*
-     * Force the exact release position as the first painted
-     * frame.
-     *
-     * Inline !important intentionally outranks the many
-     * stylesheet-level transform authorities on this page.
+     * Keep Jiggle frozen throughout.
+     */
+    card.style.setProperty(
+      'animation-play-state',
+      'paused',
+      'important'
+    );
+
+    card.style.setProperty(
+      'rotate',
+      '0deg',
+      'important'
+    );
+
+
+    /*
+     * Prepare the REAL Card at the exact native release
+     * position while V140.2 quiet-source still hides children.
      */
     card.style.setProperty(
       'transition',
@@ -2912,74 +3159,359 @@
     );
 
     card.style.setProperty(
-      'transform',
-      startTransform,
-      'important'
-    );
-
-    card.style.setProperty(
-      'opacity',
-      '.88',
+      'translate',
+      dx + 'px ' + dy + 'px',
       'important'
     );
 
     card.style.setProperty(
       'will-change',
-      'transform, opacity',
+      'translate, rotate',
       'important'
     );
 
 
     /*
-     * Establish the release-position frame before starting
-     * the transition.
+     * Resolve geometry invisibly.
      */
     void card.offsetWidth;
 
 
-    requestAnimationFrame(
-      function () {
-        if (!card.isConnected) {
-          clear();
-          return;
+    var finished =
+      false;
+
+    var nativeDragEnded =
+      false;
+
+
+    function prepareZeroPhaseJiggleV14111J() {
+      var node =
+        manager();
+
+      if (
+        !node
+        || !sortMode
+      ) {
+        return;
+      }
+
+
+      var cards =
+        Array.from(
+          node.querySelectorAll(
+            '[data-pmd-menu-card]'
+          )
+        );
+
+      var cardIndex =
+        cards.indexOf(
+          card
+        );
+
+      if (cardIndex < 0) {
+        cardIndex =
+          0;
+      }
+
+
+      var even =
+        cardIndex % 2 === 1;
+
+      var name =
+        even
+          ? 'pmd-menu-v128-jiggle-b'
+          : 'pmd-menu-v128-jiggle-a';
+
+      var seconds =
+        even
+          ? .57
+          : .52;
+
+
+      /*
+       * Start close to the first zero crossing instead of
+       * restarting from +/- .3deg.
+       */
+      var zeroPhaseDelay =
+        -seconds * .132;
+
+
+      card.style.setProperty(
+        'animation',
+        name
+          + ' '
+          + seconds
+          + 's ease-in-out infinite',
+        'important'
+      );
+
+      card.style.setProperty(
+        'animation-delay',
+        zeroPhaseDelay.toFixed(3)
+          + 's',
+        'important'
+      );
+
+      card.style.setProperty(
+        'animation-play-state',
+        'paused',
+        'important'
+      );
+
+      card.style.setProperty(
+        'transform-origin',
+        '50% 50%',
+        'important'
+      );
+
+      card.style.setProperty(
+        'will-change',
+        'rotate, translate',
+        'important'
+      );
+
+      card.style.setProperty(
+        'rotate',
+        '0deg',
+        'important'
+      );
+    }
+
+
+    function finishSoftSettleV14111J() {
+      if (finished) return;
+
+      finished =
+        true;
+
+
+      card.removeEventListener(
+        'transitionend',
+        onSoftSettleEndV14111J
+      );
+
+      card.removeEventListener(
+        'transitioncancel',
+        onSoftSettleEndV14111J
+      );
+
+
+      card.style.setProperty(
+        'translate',
+        '0px 0px',
+        'important'
+      );
+
+      card.style.removeProperty(
+        'transition'
+      );
+
+
+      requestAnimationFrame(
+        function () {
+          if (!card.isConnected) {
+            pmdPostDropStableFrameV14111G =
+              false;
+
+            return;
+          }
+
+
+          card.style.removeProperty(
+            'translate'
+          );
+
+          card.classList.remove(
+            'is-drop-settling'
+          );
+
+
+          /*
+           * The journey is finished now.
+           * Only NOW return the Card to normal Grid stacking.
+           */
+          card.style.removeProperty(
+            'z-index'
+          );
+
+          card.style.removeProperty(
+            'isolation'
+          );
+
+          card.style.removeProperty(
+            'pointer-events'
+          );
+
+
+          prepareZeroPhaseJiggleV14111J();
+
+
+          requestAnimationFrame(
+            function () {
+              pmdPostDropStableFrameV14111G =
+                false;
+
+
+              if (!sortMode) {
+                card.style.removeProperty(
+                  'animation'
+                );
+
+                card.style.removeProperty(
+                  'animation-delay'
+                );
+
+                card.style.removeProperty(
+                  'animation-play-state'
+                );
+
+                card.style.removeProperty(
+                  'rotate'
+                );
+
+                card.style.removeProperty(
+                  'will-change'
+                );
+
+                return;
+              }
+
+
+              queueCardJiggleResumeV14111D();
+            }
+          );
         }
+      );
+    }
 
-        card.addEventListener(
-          'transitionend',
-          clear
+
+    function onSoftSettleEndV14111J(
+      event
+    ) {
+      if (
+        event
+        && event.propertyName
+        && event.propertyName !== 'translate'
+      ) {
+        return;
+      }
+
+      finishSoftSettleV14111J();
+    }
+
+
+    function beginRealCardSettleV14111J() {
+      if (
+        nativeDragEnded
+        || !card.isConnected
+      ) {
+        return;
+      }
+
+
+      nativeDragEnded =
+        true;
+
+
+      /*
+       * ======================================================
+       * ZERO-GAP HANDOFF
+       * ======================================================
+       *
+       * This executes synchronously inside native dragend.
+       *
+       * Do NOT put this reveal inside requestAnimationFrame.
+       */
+      pmdClearNativeSourceV1402(
+        card
+      );
+
+
+      if (
+        pmdNativeSourceV1402 === card
+      ) {
+        pmdNativeSourceV1402 =
+          null;
+      }
+
+
+      /*
+       * Real Card is now visible at the SAME release position
+       * and z-index:80.
+       *
+       * Browser finishes dragend with an already-present visual
+       * underneath the retiring native ghost.
+       */
+      void card.offsetWidth;
+
+
+      if (distance < 1.5) {
+        requestAnimationFrame(
+          finishSoftSettleV14111J
         );
 
-        card.addEventListener(
-          'transitioncancel',
-          clear
-        );
+        return;
+      }
 
 
-        card.style.setProperty(
-          'transition',
-          'transform '
-            + duration
-            + 'ms '
-            + 'cubic-bezier(.24,.52,.32,1), '
-            + 'opacity 500ms ease-out',
-          'important'
-        );
+      /*
+       * Movement begins only on the following paint.
+       */
+      requestAnimationFrame(
+        function () {
+          if (!card.isConnected) {
+            pmdPostDropStableFrameV14111G =
+              false;
+
+            return;
+          }
 
 
-        /*
-         * This is the only final visual move.
-         */
-        card.style.setProperty(
-          'transform',
-          endTransform,
-          'important'
-        );
+          card.addEventListener(
+            'transitionend',
+            onSoftSettleEndV14111J
+          );
 
-        card.style.setProperty(
-          'opacity',
-          '1',
-          'important'
-        );
+          card.addEventListener(
+            'transitioncancel',
+            onSoftSettleEndV14111J
+          );
+
+
+          card.style.setProperty(
+            'transition',
+            'translate '
+              + duration
+              + 'ms '
+              + 'cubic-bezier(.18,.76,.22,1)',
+            'important'
+          );
+
+          card.style.setProperty(
+            'translate',
+            '0px 0px',
+            'important'
+          );
+        }
+      );
+    }
+
+
+    /*
+     * Drop occurs before dragend.
+     *
+     * Register now so dragend itself becomes the visual
+     * ownership handoff point.
+     *
+     * Capture phase means our real Card is revealed before the
+     * later V140.2 bubble-phase cleanup listener executes.
+     */
+    document.addEventListener(
+      'dragend',
+      beginRealCardSettleV14111J,
+      {
+        capture: true,
+        once: true
       }
     );
   }
@@ -3256,6 +3788,10 @@
     }
 
     dragCard = card;
+
+    pmdOverlapSwapLockV14111G =
+      null;
+
     dragSnapshot =
       capturePersistSortOrder(sortKind);
     pendingSortReorder = null;
@@ -3330,25 +3866,30 @@
 
     if (!dragCard) return;
 
+    // PMD_MENU_OVERLAP_SWAP_60_V141_11G
+    //
+    // Do not ask which DOM Card the POINTER is over.
+    //
+    // Ask which Card the dragged CARD itself overlaps >= 60%.
     var target =
-      event.target.closest(
-        '[data-pmd-menu-card].is-sortable'
+      pmdFindOverlapTargetV14111G(
+        dragCard,
+        event.clientX,
+        event.clientY
       );
+
 
     // PMD_MENU_STABLE_TARGET_DROP_V141_2_GRID_DROP
     //
-    // The Grid itself is a legal release surface.
-    // Releasing between Cards commits the current live preview
-    // instead of being treated as a cancelled drag.
+    // The Grid remains a legal Drop surface even when no Card
+    // has reached the 60% swap threshold yet.
     var sortGrid =
       node.querySelector(
         '[data-pmd-menu-grid]'
       );
 
-    if (
-      !target
-      || !node.contains(target)
-    ) {
+
+    if (!target) {
       if (
         sortGrid
         && sortGrid.contains(
@@ -3357,9 +3898,7 @@
       ) {
         event.preventDefault();
 
-        if (
-          event.dataTransfer
-        ) {
+        if (event.dataTransfer) {
           event.dataTransfer.dropEffect =
             'move';
         }
@@ -3368,20 +3907,6 @@
       return;
     }
 
-    if (
-      target === dragCard
-    ) {
-      event.preventDefault();
-
-      if (
-        event.dataTransfer
-      ) {
-        event.dataTransfer.dropEffect =
-          'move';
-      }
-
-      return;
-    }
 
     /*
      * PMD_MENU_LIVE_FLIP_REORDER_V141_DRAGOVER
@@ -3501,6 +4026,9 @@
     pmdDropGrabV1416.valid =
       false;
 
+    pmdOverlapSwapLockV14111G =
+      null;
+
     dragCard =
       null;
 
@@ -3572,6 +4100,9 @@
     // PMD_MENU_REAL_DROP_TRAVEL_V141_6_CANCEL
     pmdDropGrabV1416.valid =
       false;
+
+    pmdOverlapSwapLockV14111G =
+      null;
 
     var endedCard =
       dragCard;
@@ -3741,7 +4272,10 @@
     jiggleUsesIndividualRotateProperty: true,
     webkitEditModeRestartFrame: true,
     cacheBustedAssetAuthority: 'pmd-menu-manager-v128.js',
-    dropSettleAnimation: true,
+    dropSettleAnimation: false,
+    nativeDropFinalSlotV14111G: true,
+    cardOverlapSwapRatioV14111G: 0.60,
+    cardOverlapUnlockRatioV14111G: 0.35,
     serverRenderedEnDeTranslations: true,
     modalPortal: modal.parentElement === document.body,
     oneModalAuthority: true,
@@ -3882,14 +4416,68 @@
   );
 
 
+  /*
+   * PMD_MENU_GHOST_EXIT_HANDOFF_V141_11I
+   *
+   * During a committed Card Drop, settleSortCard() owns the
+   * source reveal.
+   *
+   * Keep that one source quiet through BOTH drop and dragend
+   * so Safari can fully retire its native drag representation
+   * before the real Card is revealed.
+   *
+   * Cancelled drags and all non-settling sources still clear
+   * immediately.
+   */
+  function pmdClearNativeSourcesExceptSettlingV14111I() {
+    var node =
+      manager();
+
+
+    if (!node) {
+      pmdNativeSourceV1402 =
+        null;
+
+      return;
+    }
+
+
+    var retained =
+      null;
+
+
+    node.querySelectorAll(
+      '.is-pmd-drag-source-quiet-v1402'
+    ).forEach(
+      function (card) {
+        if (
+          card.classList.contains(
+            'is-drop-settling'
+          )
+        ) {
+          retained =
+            card;
+
+          return;
+        }
+
+
+        pmdClearNativeSourceV1402(
+          card
+        );
+      }
+    );
+
+
+    pmdNativeSourceV1402 =
+      retained;
+  }
+
+
   document.addEventListener(
     'drop',
     function () {
-      /*
-       * V138 performs the real reorder first.
-       * This only restores source paint.
-       */
-      pmdClearAllNativeSourcesV1402();
+      pmdClearNativeSourcesExceptSettlingV14111I();
     }
   );
 
@@ -3897,9 +4485,10 @@
   document.addEventListener(
     'dragend',
     function () {
-      pmdClearAllNativeSourcesV1402();
+      pmdClearNativeSourcesExceptSettlingV14111I();
     }
   );
+
 
 
 })();

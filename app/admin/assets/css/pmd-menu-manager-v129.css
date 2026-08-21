@@ -3526,8 +3526,16 @@ body.pmd-menu-manager-page
 #pmd-menu-manager-main[data-pmd-sort-mode]:not([data-pmd-sort-mode="0"])
 .pmd-menu-card.is-sortable.is-pmd-drag-source-quiet-v1402
 > * {
+  /*
+   * PMD_MENU_RASTER_CONTINUITY_V141_11K
+   *
+   * Keep children in Safari's paint/raster tree.
+   *
+   * opacity:0 still makes the stationary source invisible.
+   * visibility MUST stay visible.
+   */
   opacity: 0 !important;
-  visibility: hidden !important;
+  visibility: visible !important;
   pointer-events: none !important;
 }
 
@@ -3564,6 +3572,72 @@ body.pmd-menu-manager-page
 body.pmd-menu-manager-page
 .pmd-menu-card__slot-v139 {
   display: none !important;
+}
+
+
+
+
+/*
+ * PMD_MENU_RASTER_CONTINUITY_V141_11K_DROP_REVEAL
+ *
+ * Exact browser-test behavior:
+ *
+ * DROP AFTER PMD:
+ *   child visibility = visible
+ *   child opacity    = 1
+ */
+html
+body.pmd-menu-manager-page
+#pmd-menu-manager-main[data-pmd-sort-mode]:not([data-pmd-sort-mode="0"])
+.pmd-menu-card.is-sortable.is-pmd-drag-source-quiet-v1402.is-drop-settling
+> * {
+  opacity: 1 !important;
+  visibility: visible !important;
+}
+
+
+/*
+ * Keep the content explicitly paintable through the complete
+ * J settle even after the quiet-source class disappears.
+ */
+html
+body.pmd-menu-manager-page
+#pmd-menu-manager-main[data-pmd-sort-mode]:not([data-pmd-sort-mode="0"])
+.pmd-menu-card.is-sortable.is-drop-settling
+> * {
+  visibility: visible !important;
+}
+
+
+/*
+ * Exact compositor protection from the successful console
+ * experiment.
+ */
+html
+body.pmd-menu-manager-page
+#pmd-menu-manager-main
+.pmd-menu-card.is-sortable.is-pmd-drag-source-quiet-v1402
+.pmd-menu-card__media,
+
+html
+body.pmd-menu-manager-page
+#pmd-menu-manager-main
+.pmd-menu-card.is-sortable.is-drop-settling
+.pmd-menu-card__media,
+
+html
+body.pmd-menu-manager-page
+#pmd-menu-manager-main
+.pmd-menu-card.is-sortable.is-pmd-drag-source-quiet-v1402
+img,
+
+html
+body.pmd-menu-manager-page
+#pmd-menu-manager-main
+.pmd-menu-card.is-sortable.is-drop-settling
+img {
+  backface-visibility: hidden !important;
+  -webkit-backface-visibility: hidden !important;
 }
 
 
