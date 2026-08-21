@@ -2,6 +2,7 @@
 
 import { Bell, Car, StickyNote, ReceiptText, ShoppingBag } from 'lucide-react'
 import { useMenuRuntime } from '@/src/runtime/MenuRuntimeContext'
+import toolbarStyles from './ThemeBottomToolBar.module.css'
 
 type ThemeBottomToolBarProps = {
   className: string
@@ -38,9 +39,10 @@ export function ThemeBottomToolBar({ className, primaryClassName = '' }: ThemeBo
 
   return (
     <nav
-      className={className}
+      className={`${className} ${toolbarStyles.mobileBalanced}`}
       data-pmd-unified-bottom-bar="r14"
       data-pmd-toolbar-revision="r17c"
+      data-pmd-mobile-layout="balanced-r36"
       aria-label={labels.service}
     >
       {bootstrap.features.waiterCall && (
