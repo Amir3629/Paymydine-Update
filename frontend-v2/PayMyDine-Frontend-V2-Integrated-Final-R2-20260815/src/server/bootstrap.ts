@@ -4,6 +4,7 @@ import type { CustomerBootstrap } from '@/src/domain/model'
 import { normalizeThemeId, type ThemeId } from '@/src/themes/catalog'
 import { fetchBackendJsonOrNull } from './backend'
 import { createMockBootstrap } from './mock-bootstrap'
+import { applySmartCategories } from './smart-categories'
 import {
   normalizeFeatures,
   normalizeMenu,
@@ -77,6 +78,7 @@ export async function loadCustomerBootstrap(query: BootstrapQuery): Promise<Cust
     settings,
     restaurant,
     menuPayload,
+    categoriesPayload,
     themePayload,
     paymentsPayload,
     tablePayload,
@@ -87,6 +89,7 @@ export async function loadCustomerBootstrap(query: BootstrapQuery): Promise<Cust
     fetchBackendJsonOrNull<any>('/api/v1/settings', requestOptions),
     fetchBackendJsonOrNull<any>('/api/v1/restaurant', requestOptions),
     fetchBackendJsonOrNull<any>('/api/v1/menu', requestOptions),
+    fetchBackendJsonOrNull<any>('/api/v1/categories', requestOptions),
     fetchBackendJsonOrNull<any>('/api/v1/frontend-theme-v2', requestOptions),
     fetchBackendJsonOrNull<any>('/api/v1/payments', requestOptions),
     tableId || tableNo || qr ? fetchBackendJsonOrNull<any>(`/api/v1/table-info${tableLookup}`, requestOptions) : Promise.resolve(null),
@@ -128,7 +131,16 @@ export async function loadCustomerBootstrap(query: BootstrapQuery): Promise<Cust
     || '',
   ).trim()
   if (adminRestaurantName) restaurantInfo.name = adminRestaurantName
-  const menu = normalizeMenu(menuPayload)
+
+  // PMD_MENU_SMART_CATEGORIES_V1_FRONTEND_V2
+  // Live tenant hosts use the V2 runtime on port 3002. Resolve editable smart
+  // category names/order from /api/v1/categories, while preserving the existing
+  // product flags and combo data from the canonical /api/v1/menu payload.
+  const menu = applySmartCategories(
+    normalizeMenu(menuPayload),
+    menuPayload,
+    categoriesPayload,
+  )
   const theme = normalizeTheme(resolvedThemePayload, previewId)
   const table = normalizeTable(tablePayload, { tableId, tableNo, qr })
   const paymentMethods = normalizePayments(paymentsPayload)

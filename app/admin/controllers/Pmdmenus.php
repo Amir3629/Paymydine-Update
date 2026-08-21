@@ -32,7 +32,9 @@ class Pmdmenus extends AdminController
         $this->addCss('css/pmd-owner-settings-v1.css');
         $this->addCss('css/pmd-settings-suite-first-paint-v1.css');
         $this->addCss('css/pmd-menu-manager-v129.css');
+        $this->addCss('css/pmd-menu-smart-categories-v1.css');
         $this->addJs('js/pmd-menu-manager-v129.js');
+        $this->addJs('js/pmd-menu-smart-categories-v1.js');
 
         AdminMenu::setContext('menus', 'restaurant');
     }
@@ -183,7 +185,27 @@ class Pmdmenus extends AdminController
                 true
             );
 
-        $canManageCombos = $user && $user->hasPermission('Admin.Combos') && Schema::hasTable('menu_combos') && Schema::hasTable('menu_combo_items');
+        // PMD_MENU_COMBO_OWNER_MANAGER_BRIDGE_V1
+        // Existing Owner/Manager Menu access must not be blocked by a stale
+        // Admin.Combos role bit. Other roles still require Admin.Combos.
+        $canManageCombos = (bool)(
+            $user
+            && Schema::hasTable('menu_combos')
+            && Schema::hasTable('menu_combo_items')
+            && (
+                !empty($user->is_super_user)
+                || $user->hasPermission('Admin.Combos')
+                || (
+                    $user->hasPermission('Admin.Menus')
+                    && in_array(
+                        $pmdMenuManagerRole,
+                        ['owner', 'manager'],
+                        true
+                    )
+                )
+            )
+        );
+
         $comboCards = [];
         $comboCatalog = [];
 
@@ -267,7 +289,6 @@ class Pmdmenus extends AdminController
 
         return $this->makeView('pmdmenus/index');
     }
-
 
     protected function comboDerivedProfile(array $items, array $catalog): array
     {

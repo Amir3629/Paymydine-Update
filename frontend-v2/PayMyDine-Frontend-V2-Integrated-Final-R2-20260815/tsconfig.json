@@ -14,7 +14,10 @@
     "jsx": "react-jsx",
     "incremental": true,
     "plugins": [{ "name": "next" }],
-    "paths": { "@/*": ["./*"] }
+    "paths": {
+      "@/src/runtime/MenuRuntimeContext": ["./src/runtime/SmartMenuRuntimeContext.tsx"],
+      "@/*": ["./*"]
+    }
   },
   "include": [
     "next-env.d.ts",
