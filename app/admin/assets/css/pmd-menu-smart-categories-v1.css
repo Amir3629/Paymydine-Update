@@ -1,14 +1,29 @@
 /*
- * PMD Menu Smart Categories V1
+ * PMD Menu Smart Categories V1.2
+ * PMD_MENU_SMART_CATEGORY_FIRST_ACTION_V1_2
  *
- * Dedicated UI concern only. Existing Menu Manager card/category drag geometry
- * and V141 native card drag authority remain untouched.
+ * Category-first workflow only. Existing Menu Manager card/category drag
+ * geometry and V141.11K native card drag authority remain untouched.
  */
 
-body.pmd-menu-manager-page [data-pmd-combo-build] {
+body.pmd-menu-manager-page
+[data-pmd-menu-manager][data-pmd-combo-builder="0"]
+[data-pmd-combo-build] {
     display: none !important;
 }
 
+/* The existing selection shell reuses this button as Cancel. Keep it visible
+ * while Combination/Chef/Bestseller selection mode is active. */
+body.pmd-menu-manager-page
+[data-pmd-menu-manager][data-pmd-combo-builder="1"]
+[data-pmd-combo-build] {
+    display: grid !important;
+}
+
+/*
+ * Smart category navigation intentionally has NO special pill, outline,
+ * accent, background or shape. It inherits the exact regular category style.
+ */
 body.pmd-menu-manager-page .pmd-smart-category-edit-hit {
     display: none;
     align-items: center;
@@ -42,24 +57,8 @@ body.pmd-menu-manager-page .pmd-smart-category-edit-hit svg {
     stroke-linejoin: round;
 }
 
-body.pmd-menu-manager-page [data-pmd-smart-kind="chef"] {
-    --pmd-smart-accent: #0f766e;
-}
-
-body.pmd-menu-manager-page [data-pmd-smart-kind="bestseller"] {
-    --pmd-smart-accent: #9a6700;
-}
-
-body.pmd-menu-manager-page [data-pmd-smart-kind="combos"] {
-    --pmd-smart-accent: #6d4cc7;
-}
-
-body.pmd-menu-manager-page
-[data-pmd-category-id][data-pmd-smart-kind]:not([data-pmd-smart-kind="regular"]) {
-    border-color: color-mix(in srgb, var(--pmd-smart-accent) 28%, #d9e5ec) !important;
-}
-
-.pmd-smart-category-modal[hidden] {
+.pmd-smart-category-modal[hidden],
+.pmd-smart-add-card[hidden] {
     display: none !important;
 }
 
@@ -83,15 +82,15 @@ body.pmd-menu-manager-page
 .pmd-smart-category-modal__card {
     position: relative;
     z-index: 1;
-    width: min(760px, calc(100vw - 32px));
-    max-height: min(820px, calc(100vh - 38px));
     display: flex;
     flex-direction: column;
     overflow: hidden;
     border: 1px solid #d9e7ee;
-    border-radius: 24px;
     background: #fff;
     box-shadow: 0 28px 80px rgba(27, 55, 74, .22);
+    width: min(720px, calc(100vw - 32px));
+    max-height: min(760px, calc(100vh - 38px));
+    border-radius: 24px;
 }
 
 .pmd-smart-category-modal__header,
@@ -99,7 +98,7 @@ body.pmd-menu-manager-page
     display: flex;
     align-items: center;
     gap: 12px;
-    padding: 18px 22px;
+    padding: 20px 22px;
     border-color: #e5eef3;
     background: #fff;
 }
@@ -114,38 +113,39 @@ body.pmd-menu-manager-page
     border-top: 1px solid #e5eef3;
 }
 
-.pmd-smart-category-modal__heading span {
+.pmd-smart-category-modal__heading > span {
     display: block;
-    margin-bottom: 3px;
+    margin-bottom: 4px;
     color: #6d8291;
     font-size: 12px;
-    font-weight: 700;
+    font-weight: 800;
     text-transform: uppercase;
     letter-spacing: .06em;
 }
 
 .pmd-smart-category-modal__heading h2 {
     margin: 0;
-    color: #173752;
-    font-size: 22px;
+    color: #102a3a;
+    font-size: 24px;
     line-height: 1.2;
 }
 
 .pmd-smart-category-modal__close {
-    width: 38px;
-    height: 38px;
+    width: 42px;
+    height: 42px;
     display: grid;
     place-items: center;
+    flex: 0 0 42px;
     border: 1px solid #d7e4eb;
-    border-radius: 12px;
+    border-radius: 13px;
     background: #fff;
     color: #173752;
     cursor: pointer;
 }
 
 .pmd-smart-category-modal__close svg {
-    width: 18px;
-    height: 18px;
+    width: 19px;
+    height: 19px;
     fill: none;
     stroke: currentColor;
     stroke-width: 2;
@@ -154,27 +154,32 @@ body.pmd-menu-manager-page
 
 .pmd-smart-category-modal__body {
     overflow: auto;
-    padding: 22px;
+    padding: 24px;
     background: #f8fbfd;
 }
 
 .pmd-smart-field {
     display: grid;
-    gap: 7px;
-    margin-bottom: 20px;
+    gap: 8px;
+    margin: 0;
 }
 
 .pmd-smart-field > span,
 .pmd-smart-section__head strong {
     color: #263f52;
-    font-size: 13px;
+    font-size: 14px;
     font-weight: 800;
 }
 
-.pmd-smart-field input[type="text"],
-.pmd-smart-food-search {
+.pmd-smart-field > small {
+    color: #71828e;
+    font-size: 12px;
+    line-height: 1.45;
+}
+
+.pmd-smart-field input[type="text"] {
     width: 100%;
-    min-height: 46px;
+    min-height: 48px;
     box-sizing: border-box;
     border: 1px solid #cfdee6;
     border-radius: 13px;
@@ -182,16 +187,16 @@ body.pmd-menu-manager-page
     padding: 0 14px;
     color: #173752;
     outline: none;
+    font: inherit;
 }
 
-.pmd-smart-field input[type="text"]:focus,
-.pmd-smart-food-search:focus {
+.pmd-smart-field input[type="text"]:focus {
     border-color: #8fb8c8;
     box-shadow: 0 0 0 3px rgba(64, 139, 158, .10);
 }
 
 .pmd-smart-section {
-    margin-top: 20px;
+    margin-top: 22px;
     padding: 18px;
     border: 1px solid #dfeaf0;
     border-radius: 18px;
@@ -199,168 +204,75 @@ body.pmd-menu-manager-page
 }
 
 .pmd-smart-section__head {
-    margin-bottom: 13px;
+    margin-bottom: 14px;
 }
 
 .pmd-smart-section__head p {
-    margin: 4px 0 0;
+    margin: 5px 0 0;
     color: #728592;
     font-size: 13px;
-    line-height: 1.5;
+    line-height: 1.45;
 }
 
+/* Type choices are compact radio rows, not large product-card pills. */
 .pmd-smart-kind-grid {
     display: grid;
-    grid-template-columns: repeat(4, minmax(0, 1fr));
+    grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 10px;
 }
 
 .pmd-smart-kind {
-    min-height: 76px;
+    min-height: 52px;
     display: flex;
-    flex-direction: column;
-    align-items: flex-start;
-    justify-content: center;
-    gap: 5px;
+    align-items: center;
+    justify-content: flex-start;
+    gap: 11px;
     border: 1px solid #d8e5eb;
-    border-radius: 15px;
+    border-radius: 12px;
     background: #fff;
-    padding: 12px;
+    padding: 10px 13px;
     color: #28465a;
     text-align: left;
     cursor: pointer;
+    box-shadow: none;
 }
 
 .pmd-smart-kind strong {
+    display: block;
+    min-width: 0;
     font-size: 13px;
+    line-height: 1.3;
+    overflow-wrap: anywhere;
 }
 
-.pmd-smart-kind small {
-    color: #82939e;
-    font-size: 11px;
-    line-height: 1.25;
+.pmd-smart-kind__mark {
+    width: 17px;
+    height: 17px;
+    flex: 0 0 17px;
+    box-sizing: border-box;
+    border: 1.5px solid #b9cbd4;
+    border-radius: 50%;
+    background: #fff;
 }
 
 .pmd-smart-kind.is-active {
-    border-color: #63a5a7;
-    background: #eef8f7;
-    box-shadow: inset 0 0 0 1px rgba(15, 118, 110, .16);
+    border-color: #84b4b5;
+    background: #f5fbfa;
+}
+
+.pmd-smart-kind.is-active .pmd-smart-kind__mark {
+    border: 5px solid #18766e;
 }
 
 .pmd-smart-kind:disabled {
-    opacity: .43;
+    opacity: .42;
     cursor: not-allowed;
 }
 
 .pmd-smart-kind-lock {
-    margin-top: 9px;
+    margin: 10px 0 0;
     color: #758994;
     font-size: 12px;
-}
-
-.pmd-smart-food-toolbar {
-    margin-bottom: 12px;
-}
-
-.pmd-smart-food-grid {
-    display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 10px;
-    max-height: 350px;
-    overflow: auto;
-    padding: 2px;
-}
-
-.pmd-smart-food-choice {
-    display: grid;
-    grid-template-columns: 44px minmax(0, 1fr) 24px;
-    align-items: center;
-    gap: 10px;
-    min-height: 58px;
-    border: 1px solid #dfe8ed;
-    border-radius: 14px;
-    background: #fff;
-    padding: 7px 10px 7px 7px;
-    cursor: pointer;
-}
-
-.pmd-smart-food-choice:hover {
-    border-color: #aecbd4;
-}
-
-.pmd-smart-food-choice.is-selected {
-    border-color: #69a9a6;
-    background: #f0f8f7;
-}
-
-.pmd-smart-food-choice__image {
-    width: 44px;
-    height: 44px;
-    overflow: hidden;
-    border-radius: 10px;
-    background: #eef4f5;
-}
-
-.pmd-smart-food-choice__image img {
-    width: 100%;
-    height: 100%;
-    display: block;
-    object-fit: cover;
-}
-
-.pmd-smart-food-choice__image span {
-    width: 100%;
-    height: 100%;
-    display: grid;
-    place-items: center;
-    color: #90a4aa;
-    font-size: 18px;
-}
-
-.pmd-smart-food-choice__copy {
-    min-width: 0;
-}
-
-.pmd-smart-food-choice__copy strong,
-.pmd-smart-food-choice__copy small {
-    display: block;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-}
-
-.pmd-smart-food-choice__copy strong {
-    color: #203b4d;
-    font-size: 13px;
-}
-
-.pmd-smart-food-choice__copy small {
-    margin-top: 3px;
-    color: #82939d;
-    font-size: 11px;
-}
-
-.pmd-smart-food-choice input {
-    width: 17px;
-    height: 17px;
-    accent-color: #18766e;
-}
-
-.pmd-smart-combo-list {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 7px;
-    margin: 12px 0 15px;
-}
-
-.pmd-smart-combo-chip {
-    border: 1px solid #ddd7f0;
-    border-radius: 999px;
-    background: #f7f4ff;
-    padding: 6px 10px;
-    color: #5b4594;
-    font-size: 12px;
-    font-weight: 700;
 }
 
 .pmd-smart-status {
@@ -390,15 +302,9 @@ body.pmd-menu-manager-page
 }
 
 .pmd-smart-btn--primary {
-    border-color: #173752;
-    background: #173752;
+    border-color: #0a6d5c;
+    background: #0a6d5c;
     color: #fff;
-}
-
-.pmd-smart-btn--combo {
-    border-color: #d7cfee;
-    background: #f5f1ff;
-    color: #5d459e;
 }
 
 .pmd-smart-btn:disabled {
@@ -406,10 +312,61 @@ body.pmd-menu-manager-page
     cursor: wait;
 }
 
-.pmd-smart-empty {
-    margin: 12px 0 0;
-    color: #7a8d98;
-    font-size: 13px;
+/* First card inside Chef/Bestseller/Combination categories. It is an action
+ * tile only and never participates in sortable-card drag authority. */
+.pmd-smart-add-card {
+    min-width: 0;
+    min-height: 250px;
+    box-sizing: border-box;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 13px;
+    border: 1.5px dashed #9dc4c7;
+    border-radius: 20px;
+    background: #f8fcfc;
+    padding: 24px;
+    color: #174d50;
+    text-align: center;
+    cursor: pointer;
+    box-shadow: none;
+}
+
+.pmd-smart-add-card:hover {
+    border-color: #5e9fa1;
+    background: #f2f9f8;
+}
+
+.pmd-smart-add-card__plus {
+    width: 54px;
+    height: 54px;
+    display: grid;
+    place-items: center;
+    border: 1px solid #b8d7d7;
+    border-radius: 50%;
+    background: #fff;
+    font-size: 32px;
+    font-weight: 400;
+    line-height: 1;
+}
+
+.pmd-smart-add-card__copy strong,
+.pmd-smart-add-card__copy small {
+    display: block;
+}
+
+.pmd-smart-add-card__copy strong {
+    color: #173752;
+    font-size: 17px;
+    font-weight: 800;
+}
+
+.pmd-smart-add-card__copy small {
+    margin-top: 5px;
+    color: #718690;
+    font-size: 12px;
+    line-height: 1.4;
 }
 
 @media (max-width: 760px) {
@@ -430,8 +387,11 @@ body.pmd-menu-manager-page
         padding-right: 15px;
     }
 
-    .pmd-smart-kind-grid,
-    .pmd-smart-food-grid {
+    .pmd-smart-kind-grid {
         grid-template-columns: 1fr;
+    }
+
+    .pmd-smart-add-card {
+        min-height: 190px;
     }
 }
