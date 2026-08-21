@@ -192,11 +192,7 @@
     (state.categories || []).forEach(function (category) {
       var button = root.querySelector('[data-pmd-category-id="' + String(category.id) + '"]');
       if (!button) return;
-
-      // Kind is data, not styling. Special categories must look exactly like
-      // every regular category in the category strip.
       button.removeAttribute('data-pmd-smart-kind');
-
       if (!button.querySelector('[data-pmd-smart-category-edit]')) {
         var edit = document.createElement('span');
         edit.className = 'pmd-smart-category-edit-hit';
@@ -230,16 +226,11 @@
       + '<footer class="pmd-smart-category-modal__footer"><span class="pmd-smart-status" data-pmd-smart-status aria-live="polite"></span><button type="button" class="pmd-smart-btn" data-pmd-smart-close>' + escapeHtml(t.cancel) + '</button><button type="button" class="pmd-smart-btn pmd-smart-btn--primary" data-pmd-smart-save>' + escapeHtml(t.save) + '</button></footer>'
       + '</section>';
     document.body.appendChild(modal);
-
     modal.addEventListener('click', function (event) {
       var close = event.target.closest('[data-pmd-smart-close]');
       if (close) { event.preventDefault(); closeModal(); return; }
       var kind = event.target.closest('[data-pmd-smart-kind]');
-      if (kind && !kind.disabled) {
-        event.preventDefault();
-        chooseKind(kind.getAttribute('data-pmd-smart-kind') || 'regular');
-        return;
-      }
+      if (kind && !kind.disabled) { event.preventDefault(); chooseKind(kind.getAttribute('data-pmd-smart-kind') || 'regular'); return; }
       var save = event.target.closest('[data-pmd-smart-save]');
       if (save) { event.preventDefault(); saveCategory(); }
     });
@@ -249,18 +240,10 @@
   function renderKinds() {
     var host = ensureModal().querySelector('[data-pmd-smart-kinds]');
     var editing = Boolean(activeCategory && activeCategory.id);
-    var kinds = [
-      ['regular', t.regular],
-      ['chef', t.chef],
-      ['bestseller', t.bestseller],
-      ['combos', t.combos]
-    ];
+    var kinds = [['regular', t.regular], ['chef', t.chef], ['bestseller', t.bestseller], ['combos', t.combos]];
     host.innerHTML = kinds.map(function (entry) {
       var existing = specialByKind(entry[0]);
-      var unavailable =
-        (editing && activeCategory.kind !== entry[0])
-        || (!editing && entry[0] !== 'regular' && existing)
-        || (entry[0] === 'combos' && state && !state.can_manage_combos);
+      var unavailable = (editing && activeCategory.kind !== entry[0]) || (!editing && entry[0] !== 'regular' && existing) || (entry[0] === 'combos' && state && !state.can_manage_combos);
       var label = entry[1];
       if (!editing && entry[0] !== 'regular' && existing) label += ' - ' + t.alreadyExists;
       return '<button type="button" class="pmd-smart-kind ' + (activeKind === entry[0] ? 'is-active' : '') + '" data-pmd-smart-kind="' + entry[0] + '" aria-pressed="' + (activeKind === entry[0] ? 'true' : 'false') + '" ' + (unavailable ? 'disabled' : '') + '><span class="pmd-smart-kind__mark" aria-hidden="true"></span><strong>' + escapeHtml(label) + '</strong></button>';
@@ -343,40 +326,19 @@
     if (activeCategory) data.append('category_id', String(activeCategory.id));
     data.append('name', name);
     data.append('kind', activeKind);
-
-    // Name/type saves do not own membership. Preserve existing Chef/Bestseller
-    // selections so creation/rename can never clear legacy selections.
     preserveSelection(data, activeKind);
-
     setBusy(true);
     setStatus(t.saving);
-    try {
-      await backend('onSave', data);
-      setStatus(t.saved, 'ok');
-      window.location.reload();
-    } catch (error) {
-      setStatus(error && error.message ? error.message : t.saveFailed, 'error');
-      setBusy(false);
-    }
+    try { await backend('onSave', data); setStatus(t.saved, 'ok'); window.location.reload(); }
+    catch (error) { setStatus(error && error.message ? error.message : t.saveFailed, 'error'); setBusy(false); }
   }
 
-  function isSelectionShell() {
-    return root.dataset.pmdComboBuilder === '1';
-  }
-
-  function headerControls() {
-    return {
-      primary: root.querySelector('[data-pmd-menu-header-primary]'),
-      secondary: root.querySelector('[data-pmd-menu-header-secondary]')
-    };
-  }
+  function isSelectionShell() { return root.dataset.pmdComboBuilder === '1'; }
+  function headerControls() { return {primary: root.querySelector('[data-pmd-menu-header-primary]'), secondary: root.querySelector('[data-pmd-menu-header-secondary]')}; }
 
   function moveSelectionShellToAllFoods() {
     var search = root.querySelector('[data-pmd-menu-search]');
-    if (search && search.value) {
-      search.value = '';
-      search.dispatchEvent(new Event('input', {bubbles: true}));
-    }
+    if (search && search.value) { search.value = ''; search.dispatchEvent(new Event('input', {bubbles: true})); }
     var stockAll = root.querySelector('[data-pmd-stock-filter="all"]');
     if (stockAll && !stockAll.classList.contains('is-active')) stockAll.click();
     var allFoods = root.querySelector('[data-pmd-category-filter="all"]');
@@ -407,20 +369,11 @@
     if (smartSelectionBusy || isSelectionShell()) return;
     var controls = headerControls();
     if (!controls.secondary) return;
-
     smartSelectionCategory = category;
     root.dataset.pmdSmartSelectionKind = category.kind;
     root.dataset.pmdSmartSelectionCategory = String(category.id);
-
-    // Start the existing Combination selector while still inside this category;
-    // it remembers the origin for Cancel/restore. Then move to All Foods.
     controls.secondary.click();
-    if (!isSelectionShell()) {
-      smartSelectionCategory = null;
-      root.removeAttribute('data-pmd-smart-selection-kind');
-      root.removeAttribute('data-pmd-smart-selection-category');
-      return;
-    }
+    if (!isSelectionShell()) { smartSelectionCategory = null; root.removeAttribute('data-pmd-smart-selection-kind'); root.removeAttribute('data-pmd-smart-selection-category'); return; }
     moveSelectionShellToAllFoods();
     requestAnimationFrame(preselectSmartFoods);
   }
@@ -438,27 +391,20 @@
     if (!smartSelectionCategory || smartSelectionBusy || !isSelectionShell()) return;
     var category = smartSelectionCategory;
     var controls = headerControls();
-    var ids = Array.from(root.querySelectorAll('[data-pmd-menu-card][data-item-type="food"].is-combo-selected'))
-      .map(function (card) { return Number(card.dataset.menuId || 0); }).filter(Boolean);
-
+    var ids = Array.from(root.querySelectorAll('[data-pmd-menu-card][data-item-type="food"].is-combo-selected')).map(function (card) { return Number(card.dataset.menuId || 0); }).filter(Boolean);
     smartSelectionBusy = true;
     if (controls.primary) controls.primary.disabled = true;
     if (controls.secondary) controls.secondary.disabled = true;
-
     var data = new FormData();
     data.append('category_id', String(category.id));
     data.append('name', category.name);
     data.append('kind', category.kind);
     ids.forEach(function (id) { data.append('menu_ids[]', String(id)); });
-
     try {
       await backend('onSave', data);
       if (!state.selections) state.selections = {};
       state.selections[category.kind] = ids;
       rebuildCardCategoryMembership();
-
-      // Re-enable and invoke the existing Cancel control. It is the canonical
-      // owner of selection-shell cleanup and originating-category restore.
       if (controls.secondary) controls.secondary.disabled = false;
       cleanupSmartSelection(category);
       if (controls.secondary && isSelectionShell()) controls.secondary.click();
@@ -470,11 +416,7 @@
     }
   }
 
-  function cardGrid() {
-    var first = root.querySelector('[data-pmd-menu-card]');
-    return first ? first.parentElement : null;
-  }
-
+  function cardGrid() { var first = root.querySelector('[data-pmd-menu-card]'); return first ? first.parentElement : null; }
   function actionCopy(category) {
     if (!category) return null;
     if (category.kind === 'chef') return {title: t.addChef, help: t.addHelpChef};
@@ -509,10 +451,7 @@
     if (isSelectionShell()) { card.hidden = true; return; }
     var category = categoryById(activeFilterId);
     var content = actionCopy(category);
-    if (!category || !content || (category.kind === 'combos' && !state.can_manage_combos)) {
-      card.hidden = true;
-      return;
-    }
+    if (!category || !content || (category.kind === 'combos' && !state.can_manage_combos)) { card.hidden = true; return; }
     card.querySelector('[data-pmd-smart-add-title]').textContent = content.title;
     card.querySelector('[data-pmd-smart-add-help]').textContent = content.help;
     card.hidden = false;
@@ -529,90 +468,32 @@
     if (!window.confirm(t.deleteConfirm)) return;
     var data = new FormData();
     data.append('category_id', String(category.id));
-    try {
-      busy = true;
-      await backend('onDelete', data);
-      window.location.reload();
-    } catch (error) {
-      busy = false;
-      window.alert(error && error.message ? error.message : t.deleteFailed);
-    }
+    try { busy = true; await backend('onDelete', data); window.location.reload(); }
+    catch (error) { busy = false; window.alert(error && error.message ? error.message : t.deleteFailed); }
   }
 
   function wireEvents() {
-    // Capture first so smart-selection Confirm can override only the persistence
-    // result while the existing Menu Manager remains the selection UI owner.
     document.addEventListener('click', function (event) {
       var primary = event.target.closest('[data-pmd-menu-header-primary]');
-      if (primary && root.contains(primary) && smartSelectionCategory && isSelectionShell()) {
-        event.preventDefault();
-        event.stopImmediatePropagation();
-        saveSmartSelection();
-        return;
-      }
-
+      if (primary && root.contains(primary) && smartSelectionCategory && isSelectionShell()) { event.preventDefault(); event.stopImmediatePropagation(); saveSmartSelection(); return; }
       var secondary = event.target.closest('[data-pmd-menu-header-secondary]');
-      if (secondary && root.contains(secondary) && smartSelectionCategory && isSelectionShell()) {
-        var cancelled = smartSelectionCategory;
-        cleanupSmartSelection(cancelled);
-        // Do not prevent. Existing Menu Manager owns Cancel + category restore.
-        return;
-      }
-
+      if (secondary && root.contains(secondary) && smartSelectionCategory && isSelectionShell()) { var cancelled = smartSelectionCategory; cleanupSmartSelection(cancelled); return; }
       var add = event.target.closest('[data-pmd-category-create]');
-      if (add && root.contains(add) && state) {
-        event.preventDefault();
-        event.stopImmediatePropagation();
-        openModal(null, add);
-        return;
-      }
-
+      if (add && root.contains(add) && state) { event.preventDefault(); event.stopImmediatePropagation(); openModal(null, add); return; }
       var edit = event.target.closest('[data-pmd-smart-category-edit]');
-      if (edit && root.contains(edit) && state) {
-        event.preventDefault();
-        event.stopImmediatePropagation();
-        var editCategory = categoryById(edit.getAttribute('data-pmd-smart-category-edit'));
-        if (editCategory) openModal(editCategory, edit);
-        return;
-      }
-
+      if (edit && root.contains(edit) && state) { event.preventDefault(); event.stopImmediatePropagation(); var editCategory = categoryById(edit.getAttribute('data-pmd-smart-category-edit')); if (editCategory) openModal(editCategory, edit); return; }
       var deleteHit = event.target.closest('[data-pmd-category-delete]');
-      if (deleteHit && root.contains(deleteHit) && state) {
-        var deleteCategory = categoryById(deleteHit.getAttribute('data-pmd-category-delete'));
-        if (deleteCategory && deleteCategory.kind !== 'regular') {
-          event.preventDefault();
-          event.stopImmediatePropagation();
-          deleteSpecial(deleteCategory);
-          return;
-        }
-      }
-
+      if (deleteHit && root.contains(deleteHit) && state) { var deleteCategory = categoryById(deleteHit.getAttribute('data-pmd-category-delete')); if (deleteCategory && deleteCategory.kind !== 'regular') { event.preventDefault(); event.stopImmediatePropagation(); deleteSpecial(deleteCategory); return; } }
       var categoryButton = event.target.closest('[data-pmd-category-id]');
-      if (categoryButton && root.contains(categoryButton) && !event.target.closest('[data-pmd-smart-category-edit]')) {
-        activeFilterId = Number(categoryButton.getAttribute('data-pmd-category-id') || 0) || null;
-        requestAnimationFrame(renderActionCard);
-        return;
-      }
-
+      if (categoryButton && root.contains(categoryButton) && !event.target.closest('[data-pmd-smart-category-edit]')) { activeFilterId = Number(categoryButton.getAttribute('data-pmd-category-id') || 0) || null; requestAnimationFrame(renderActionCard); return; }
       var otherFilter = event.target.closest('[data-pmd-category-filter]');
-      if (otherFilter && root.contains(otherFilter) && !otherFilter.hasAttribute('data-pmd-category-id')) {
-        activeFilterId = null;
-        requestAnimationFrame(renderActionCard);
-      }
+      if (otherFilter && root.contains(otherFilter) && !otherFilter.hasAttribute('data-pmd-category-id')) { activeFilterId = null; requestAnimationFrame(renderActionCard); }
     }, true);
 
     document.addEventListener('keydown', function (event) {
       if (event.key !== 'Escape') return;
-      if (modal && !modal.hidden) {
-        event.preventDefault();
-        closeModal();
-        return;
-      }
-      if (smartSelectionCategory && isSelectionShell()) {
-        var cancelled = smartSelectionCategory;
-        cleanupSmartSelection(cancelled);
-        // Existing Menu Manager receives the same Escape and owns Cancel.
-      }
+      if (modal && !modal.hidden) { event.preventDefault(); closeModal(); return; }
+      if (smartSelectionCategory && isSelectionShell()) { var cancelled = smartSelectionCategory; cleanupSmartSelection(cancelled); }
     }, true);
   }
 
@@ -623,22 +504,13 @@
       state = await backend('onBootstrap', new FormData());
       installCategoryMetadata();
       inferActiveFilter();
-      window.PMDMenuSmartCategoriesV1 = {
-        ready: true,
-        version: '1.2-category-first-all-foods-selection',
-        categories: state.categories || [],
-        selections: state.selections || {},
-        canManageCombos: Boolean(state.can_manage_combos),
-        refresh: load
-      };
+      window.PMDMenuSmartCategoriesV1 = {ready: true, version: '1.2-category-first-all-foods-selection', categories: state.categories || [], selections: state.selections || {}, canManageCombos: Boolean(state.can_manage_combos), refresh: load};
       console.info('[PMD Menu Smart Categories V1.2] Ready', window.PMDMenuSmartCategoriesV1);
     } catch (error) {
       console.error('[PMD Menu Smart Categories V1.2]', error);
       var add = root.querySelector('[data-pmd-category-create]');
       if (add) add.title = (error && error.message) || t.loadFailed;
-    } finally {
-      loading = false;
-    }
+    } finally { loading = false; }
   }
 
   wireEvents();
