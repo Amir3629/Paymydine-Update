@@ -36,19 +36,15 @@ class PmdWaiterPosV1 extends AdminController
     use \Admin\Controllers\Concerns\PmdWaiterPosRenderEndpoints;
     use \Admin\Controllers\Concerns\PmdWaiterPosSaveEndpoint;
     use \Admin\Controllers\Concerns\PmdWaiterPosPaymentBasicEndpoints,
+        \Admin\Controllers\Concerns\PmdWaiterPosSettleEndpoint,
+        \Admin\Controllers\Concerns\PmdWaiterPosTerminalEndpoint,
         \Admin\Controllers\Concerns\PmdWaiterPosR36PaymentConcern {
         \Admin\Controllers\Concerns\PmdWaiterPosR36PaymentConcern::paymentSummary insteadof
             \Admin\Controllers\Concerns\PmdWaiterPosPaymentBasicEndpoints;
         \Admin\Controllers\Concerns\PmdWaiterPosPaymentBasicEndpoints::paymentSummary as paymentSummaryLegacy;
-    }
-    use \Admin\Controllers\Concerns\PmdWaiterPosSettleEndpoint,
-        \Admin\Controllers\Concerns\PmdWaiterPosR36PaymentConcern {
         \Admin\Controllers\Concerns\PmdWaiterPosR36PaymentConcern::settlePayment insteadof
             \Admin\Controllers\Concerns\PmdWaiterPosSettleEndpoint;
         \Admin\Controllers\Concerns\PmdWaiterPosSettleEndpoint::settlePayment as settlePaymentLegacy;
-    }
-    use \Admin\Controllers\Concerns\PmdWaiterPosTerminalEndpoint,
-        \Admin\Controllers\Concerns\PmdWaiterPosR36PaymentConcern {
         \Admin\Controllers\Concerns\PmdWaiterPosR36PaymentConcern::terminalPayment insteadof
             \Admin\Controllers\Concerns\PmdWaiterPosTerminalEndpoint;
         \Admin\Controllers\Concerns\PmdWaiterPosTerminalEndpoint::terminalPayment as terminalPaymentLegacy;
