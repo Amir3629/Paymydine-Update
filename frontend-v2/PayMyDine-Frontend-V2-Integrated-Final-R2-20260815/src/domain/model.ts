@@ -141,6 +141,14 @@ export type TipConfig = {
   presets: number[]
 }
 
+// PMD_SPLIT_PAYMENT_SAFETY_R35
+export type ServiceChargeConfig = {
+  enabled: boolean
+  type: 'percentage' | 'fixed'
+  value: number
+  label: string
+}
+
 export type ThemeConfiguration = {
   id: ThemeId
   version: string
@@ -218,6 +226,7 @@ export type CustomerBootstrap = {
   features: FeatureFlags
   tax: TaxConfig
   tips: TipConfig
+  serviceCharge: ServiceChargeConfig
   table: TableContext
   menu: {
     categories: MenuCategory[]

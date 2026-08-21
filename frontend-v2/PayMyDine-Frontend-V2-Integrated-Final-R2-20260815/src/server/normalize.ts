@@ -13,6 +13,7 @@ import type {
   TaxConfig,
   ThemeConfiguration,
   TipConfig,
+  ServiceChargeConfig,
 } from '@/src/domain/model'
 import { normalizeThemeId } from '@/src/themes/catalog'
 
@@ -353,7 +354,24 @@ export function normalizeFeatures(settingsPayload: unknown, themePayload: unknow
 export function normalizeTax(settingsPayload: unknown): TaxConfig {
   const root = unwrap(settingsPayload)
   const percentage = num(first(root, ['vat_percentage','tax_percentage']))
-  return { enabled: yes(first(root, ['vat_mode','tax_mode']), percentage > 0), percentage, includedInMenuPrice: yes(first(root, ['vat_menu_price','tax_menu_price']), true) }
+  // PMD_SPLIT_PAYMENT_SAFETY_R35: backend contract is 0=included, 1=add at checkout.
+  const addAtCheckout = yes(first(root, ['vat_menu_price','tax_menu_price']), false)
+  return { enabled: yes(first(root, ['vat_mode','tax_mode']), percentage > 0), percentage, includedInMenuPrice: !addAtCheckout }
+}
+
+export function normalizeServiceCharge(settingsPayload: unknown, themePayload?: unknown): ServiceChargeConfig {
+  const settings = unwrap(settingsPayload)
+  const theme = unwrap(themePayload)
+  const root = { ...theme, ...settings }
+  const rawType = str(first(root, ['pmd_service_charge_type','service_charge_type']), 'percentage').toLowerCase()
+  const type: 'percentage' | 'fixed' = rawType === 'fixed' ? 'fixed' : 'percentage'
+  const value = Math.max(0, num(first(root, ['pmd_service_charge_value','service_charge_value'])))
+  return {
+    enabled: yes(first(root, ['pmd_service_charge_enabled','service_charge_enabled']), false) && value > 0,
+    type,
+    value,
+    label: str(first(root, ['pmd_service_charge_label','service_charge_label']), 'Service charge'),
+  }
 }
 
 export function normalizeTips(settingsPayload: unknown): TipConfig {

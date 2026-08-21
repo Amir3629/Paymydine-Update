@@ -1763,6 +1763,10 @@
   }
 
   function animateFlipElements(beforeRects, elements) {
+    // PMD_MENU_MOTION_POLISH_V141_3_FLIP
+    //
+    // Timing polish only.
+    // Reorder / target / persistence authority is unchanged.
     var moved = [];
     elements.forEach(function (element) {
       var before = beforeRects.get(element);
@@ -1785,7 +1789,7 @@
       requestAnimationFrame(function () {
         moved.forEach(function (entry) {
           var element = entry.element;
-          element.style.setProperty('transition', 'translate 230ms cubic-bezier(.16,.78,.22,1)', 'important');
+          element.style.setProperty('transition', 'translate 260ms cubic-bezier(.18,.82,.22,1)', 'important');
           element.style.setProperty('translate', '0px 0px', 'important');
           var cleanup = function (event) {
             if (event && event.propertyName && event.propertyName !== 'translate') return;
@@ -1806,7 +1810,7 @@
       var animation = element.animate([
         {transform: 'translate(' + entry.dx + 'px,' + entry.dy + 'px)'},
         {transform: 'translate(0,0)'}
-      ], {duration: 230, easing: 'cubic-bezier(.16,.78,.22,1)'});
+      ], {duration: 260, easing: 'cubic-bezier(.18,.82,.22,1)'});
       var done = function () { if (sortMode) syncExplicitJiggle(); };
       animation.addEventListener('finish', done, {once: true});
       animation.addEventListener('cancel', done, {once: true});
@@ -1853,28 +1857,584 @@
   }
 
   function animateSortFlip(beforeRects, kind) {
-    animateFlipElements(beforeRects, visibleSortTargetCards(kind));
+    // PMD_MENU_NEIGHBOUR_CONTINUITY_FLIP_V141_12
+    // PMD_MENU_BLINK_FREE_HANDOFF_V141_13R
+    //
+    // CARD FLIP ONLY.
+    //
+    // Important difference from the shared/category FLIP:
+    //
+    // If a neighbour Card is already moving when another
+    // live reorder happens, its BEFORE rect represents its
+    // CURRENT VISUAL position.
+    //
+    // We first remove the previous inline translate without
+    // allowing a paint, measure the new final layout slot,
+    // then rebuild the next FLIP from:
+    //
+    //   current visual position -> new final layout position
+    //
+    // This prevents the neighbour Card from jumping back to
+    // an earlier logical position before continuing.
+    //
+    // Category FLIP continues using animateFlipElements().
+
+    var elements =
+      visibleSortTargetCards(
+        kind
+      );
+
+    if (!elements.length) {
+      return;
+    }
+
+
+    var individualTranslate =
+      !window.CSS
+      || !CSS.supports
+      || CSS.supports(
+        'translate',
+        '1px 1px'
+      );
+
+
+    /*
+     * Keep the existing fallback untouched for browsers
+     * without individual CSS translate support.
+     */
+    if (!individualTranslate) {
+      animateFlipElements(
+        beforeRects,
+        elements
+      );
+
+      return;
+    }
+
+
+    var moved =
+      [];
+
+
+    elements.forEach(
+      function (element) {
+        var before =
+          beforeRects.get(
+            element
+          );
+
+        if (!before) {
+          return;
+        }
+
+
+        /*
+         * A previous neighbour FLIP may still be running.
+         *
+         * Stop it synchronously. Because beforeRects was
+         * already captured before the DOM reorder, we retain
+         * the exact current on-screen pixel position.
+         */
+        var previousCleanup =
+          element
+            .__pmdCardFlipCleanupV14112;
+
+
+        /*
+         * PMD V141.13R
+         *
+         * NEVER clear the currently visible translate before
+         * the replacement FLIP is ready.
+         *
+         * Safari must not see an intermediate zero-translate
+         * compositor frame.
+         */
+
+        var computedStyle =
+          window.getComputedStyle(
+            element
+          );
+
+        var computedTranslate =
+          String(
+            computedStyle.translate
+            || 'none'
+          );
+
+
+        var currentTranslateX =
+          0;
+
+        var currentTranslateY =
+          0;
+
+
+        if (
+          computedTranslate
+          && computedTranslate !== 'none'
+        ) {
+          var translateParts =
+            computedTranslate
+              .trim()
+              .split(/\s+/);
+
+
+          var parsedX =
+            parseFloat(
+              translateParts[0]
+              || '0'
+            );
+
+          var parsedY =
+            parseFloat(
+              translateParts[1]
+              || '0'
+            );
+
+
+          if (
+            Number.isFinite(parsedX)
+          ) {
+            currentTranslateX =
+              parsedX;
+          }
+
+
+          if (
+            Number.isFinite(parsedY)
+          ) {
+            currentTranslateY =
+              parsedY;
+          }
+        }
+
+
+        /*
+         * Remove stale completion listeners ONLY.
+         *
+         * Do not execute previousCleanup(), because that would
+         * visibly tear down the current compositor state.
+         */
+        if (
+          typeof previousCleanup
+          === 'function'
+        ) {
+          element.removeEventListener(
+            'transitionend',
+            previousCleanup
+          );
+
+          element.removeEventListener(
+            'transitioncancel',
+            previousCleanup
+          );
+
+          try {
+            delete element
+              .__pmdCardFlipCleanupV14112;
+          } catch (error) {
+            element
+              .__pmdCardFlipCleanupV14112 =
+              null;
+          }
+        }
+
+
+        /*
+         * Current bounding rect contains the currently painted
+         * individual translate.
+         *
+         * Subtract that visual translate to recover the true
+         * new layout slot WITHOUT clearing anything.
+         */
+        var visualRect =
+          element
+            .getBoundingClientRect();
+
+
+        var finalLeft =
+          visualRect.left
+          - currentTranslateX;
+
+        var finalTop =
+          visualRect.top
+          - currentTranslateY;
+
+
+        var dx =
+          before.left
+          - finalLeft;
+
+        var dy =
+          before.top
+          - finalTop;
+
+
+        if (
+          Math.abs(dx) < .5
+          && Math.abs(dy) < .5
+        ) {
+          return;
+        }
+
+
+        moved.push({
+          element:
+            element,
+
+          dx:
+            dx,
+
+          dy:
+            dy
+        });
+      }
+    );
+
+
+    if (!moved.length) {
+      return;
+    }
+
+
+    /*
+     * First frame:
+     *
+     * Paint each neighbour exactly where the user was
+     * already seeing it immediately before this reorder.
+     */
+    moved.forEach(
+      function (entry) {
+        entry.element.style.setProperty(
+          'transition',
+          'none',
+          'important'
+        );
+
+        entry.element.style.setProperty(
+          'translate',
+          entry.dx
+            + 'px '
+            + entry.dy
+            + 'px',
+          'important'
+        );
+
+        entry.element.style.setProperty(
+          'will-change',
+          'rotate, translate',
+          'important'
+        );
+      }
+    );
+
+
+    /*
+     * Establish continuity frame before animating to zero.
+     */
+    void moved[0]
+      .element
+      .offsetWidth;
+
+
+    requestAnimationFrame(
+      function () {
+        moved.forEach(
+          function (entry) {
+            var element =
+              entry.element;
+
+
+            var cleanup =
+              function (event) {
+                if (
+                  event
+                  && event.propertyName
+                  && event.propertyName
+                    !== 'translate'
+                ) {
+                  return;
+                }
+
+
+                /*
+                 * Ignore a stale transitionend belonging to
+                 * an older FLIP generation.
+                 */
+                if (
+                  element
+                    .__pmdCardFlipCleanupV14112
+                  !== cleanup
+                ) {
+                  return;
+                }
+
+
+                element.removeEventListener(
+                  'transitionend',
+                  cleanup
+                );
+
+                element.removeEventListener(
+                  'transitioncancel',
+                  cleanup
+                );
+
+
+                element.style.removeProperty(
+                  'translate'
+                );
+
+                element.style.removeProperty(
+                  'transition'
+                );
+
+                /*
+                 * PMD V141.13R:
+                 *
+                 * Do NOT remove will-change here.
+                 * Jiggle uses rotate + translate immediately
+                 * after/between FLIPs, so keep one stable
+                 * compositor layer for the Edit session.
+                 */
+
+
+                try {
+                  delete element
+                    .__pmdCardFlipCleanupV14112;
+                } catch (error) {
+                  element
+                    .__pmdCardFlipCleanupV14112 =
+                    null;
+                }
+              };
+
+
+            element
+              .__pmdCardFlipCleanupV14112 =
+              cleanup;
+
+
+            element.addEventListener(
+              'transitionend',
+              cleanup
+            );
+
+            element.addEventListener(
+              'transitioncancel',
+              cleanup
+            );
+
+
+            element.style.setProperty(
+              'transition',
+              'translate 310ms '
+                + 'cubic-bezier(.20,.74,.18,1)',
+              'important'
+            );
+
+
+            element.style.setProperty(
+              'translate',
+              '0px 0px',
+              'important'
+            );
+          }
+        );
+      }
+    );
   }
 
-  function reorderRelativeToTarget(source, target, clientX, clientY) {
-    if (!source || !target || source === target || source.dataset.itemType !== target.dataset.itemType) return false;
-    var cards = visibleSortTargetCards(sortKind);
-    var sourceIndex = cards.indexOf(source);
-    var targetIndex = cards.indexOf(target);
-    if (sourceIndex < 0 || targetIndex < 0) return false;
+  function reorderRelativeToTarget(
+    source,
+    target,
+    clientX,
+    clientY
+  ) {
+    if (
+      !source
+      || !target
+      || source === target
+      || source.dataset.itemType
+        !== target.dataset.itemType
+    ) {
+      return false;
+    }
 
-    var rect = target.getBoundingClientRect();
-    var sameBand = Math.abs(clientY - (rect.top + rect.height / 2)) < rect.height * 0.34;
-    var after = sameBand ? clientX > rect.left + rect.width / 2 : clientY > rect.top + rect.height / 2;
+    var cards =
+      visibleSortTargetCards(
+        sortKind
+      );
 
-    if (after && sourceIndex === targetIndex + 1) return false;
-    if (!after && sourceIndex === targetIndex - 1) return false;
+    var sourceIndex =
+      cards.indexOf(
+        source
+      );
 
-    var beforeRects = captureSortRects(sortKind);
+    var targetIndex =
+      cards.indexOf(
+        target
+      );
+
+    if (
+      sourceIndex < 0
+      || targetIndex < 0
+    ) {
+      return false;
+    }
+
+    // PMD_MENU_STABLE_TARGET_DROP_V141_2_HYSTERESIS
+    //
+    // Target Cards are themselves moving with FLIP.
+    // Never let a moving midpoint immediately reverse the
+    // direction that was just accepted.
+    var rect =
+      target.getBoundingClientRect();
+
+    var centerX =
+      rect.left
+      + rect.width / 2;
+
+    var centerY =
+      rect.top
+      + rect.height / 2;
+
+    var sameBand =
+      Math.abs(
+        clientY - centerY
+      )
+      < rect.height * .34;
+
+    var sourceBeforeTarget =
+      sourceIndex < targetIndex;
+
+    /*
+     * Small dead-zone.
+     *
+     * Enough to prevent ping-pong caused by the target's own
+     * FLIP movement, but small enough to remain responsive.
+     */
+    var deadX =
+      Math.max(
+        12,
+        Math.min(
+          28,
+          rect.width * .10
+        )
+      );
+
+    var deadY =
+      Math.max(
+        10,
+        Math.min(
+          24,
+          rect.height * .08
+        )
+      );
+
+    var after;
+
+    if (sameBand) {
+      if (sourceBeforeTarget) {
+        /*
+         * Moving forward/right.
+         *
+         * Require a deliberate crossing beyond center.
+         */
+        if (
+          clientX
+          <= centerX + deadX
+        ) {
+          return false;
+        }
+
+        after =
+          true;
+      } else {
+        /*
+         * Moving backward/left.
+         */
+        if (
+          clientX
+          >= centerX - deadX
+        ) {
+          return false;
+        }
+
+        after =
+          false;
+      }
+    } else {
+      if (sourceBeforeTarget) {
+        /*
+         * Moving forward/down to another Grid row.
+         */
+        if (
+          clientY
+          <= centerY + deadY
+        ) {
+          return false;
+        }
+
+        after =
+          true;
+      } else {
+        /*
+         * Moving backward/up.
+         */
+        if (
+          clientY
+          >= centerY - deadY
+        ) {
+          return false;
+        }
+
+        after =
+          false;
+      }
+    }
+
+    /*
+     * Already in the requested adjacent position.
+     */
+    if (
+      after
+      && sourceIndex
+        === targetIndex + 1
+    ) {
+      return false;
+    }
+
+    if (
+      !after
+      && sourceIndex
+        === targetIndex - 1
+    ) {
+      return false;
+    }
+
+    var beforeRects =
+      captureSortRects(
+        sortKind
+      );
+
     cancelSortFlipAnimations();
-    if (after) target.after(source);
-    else target.before(source);
-    animateSortFlip(beforeRects, sortKind);
+
+    if (after) {
+      target.after(
+        source
+      );
+    } else {
+      target.before(
+        source
+      );
+    }
+
+    animateSortFlip(
+      beforeRects,
+      sortKind
+    );
+
     return true;
   }
 
@@ -1901,28 +2461,283 @@
     reorderRelativeToTarget(pending.source, pending.target, pending.clientX, pending.clientY);
   }
 
-  function settleSortCard(card) {
+  // PMD_MENU_REAL_DROP_TRAVEL_V141_6_STATE
+  //
+  // Pointer offset inside the native dragged Card.
+  // Used only to make the REAL Card continue from the exact
+  // visual release point into its already-decided final slot.
+  var pmdDropGrabV1416 = {
+    x: 0,
+    y: 0,
+    valid: false
+  };
+
+
+  function settleSortCard(
+    card,
+    fromX,
+    fromY
+  ) {
     if (!card) return;
-    card.classList.remove('is-dragging');
-    card.classList.add('is-drop-settling');
-    if (typeof card.animate !== 'function') {
-      card.classList.remove('is-drop-settling');
-      if (sortMode) syncExplicitJiggle();
-      return;
-    }
-    var animation = card.animate([
-      {transform: 'scale(.965)'},
-      {transform: 'scale(1.012)', offset: .62},
-      {transform: 'scale(1)'}
-    ], {
-      duration: 190,
-      easing: 'cubic-bezier(.2,.8,.2,1)',
-      fill: 'none'
-    });
-    var clear = function () { card.classList.remove('is-drop-settling'); if (sortMode) syncExplicitJiggle(); };
-    animation.addEventListener('finish', clear, {once: true});
-    animation.addEventListener('cancel', clear, {once: true});
+
+    // PMD_MENU_DROP_SETTLE_V141_1
+    // PMD_MENU_MOTION_POLISH_V141_3_LANDING
+    // PMD_MENU_DROP_HANDOFF_V141_4
+    // PMD_MENU_DROP_SPEED_V141_5
+    // PMD_MENU_REAL_DROP_TRAVEL_V141_6
+    // PMD_MENU_REAL_DROP_TRAVEL_V141_7
+    // PMD_MENU_REAL_DROP_TRAVEL_V141_8
+    // PMD_MENU_DROP_INLINE_PAINT_V141_9
+    // PMD_MENU_DROP_BLINK_FIX_V141_13R
+    //
+    // V141.9:
+    //
+    // Do NOT use Web Animations for the final Card travel.
+    //
+    // The audit proved:
+    //   - release geometry is non-zero
+    //   - 2000ms+ duration is created correctly
+    //
+    // Therefore the final visual authority is now an
+    // inline !important transform + transition on the SAME
+    // REAL Card.
+    //
+    // No clone.
+    // No proxy.
+    // No second drag engine.
+
+    card.classList.remove(
+      'is-dragging'
+    );
+
+    card.classList.add(
+      'is-drop-settling'
+    );
+
+
+    var dx =
+      Number.isFinite(fromX)
+        ? fromX
+        : 0;
+
+    var dy =
+      Number.isFinite(fromY)
+        ? fromY
+        : 0;
+
+
+    var maxX =
+      Math.max(
+        500,
+        window.innerWidth * 1.25
+      );
+
+    var maxY =
+      Math.max(
+        500,
+        window.innerHeight * 1.25
+      );
+
+
+    dx =
+      Math.max(
+        -maxX,
+        Math.min(
+          maxX,
+          dx
+        )
+      );
+
+    dy =
+      Math.max(
+        -maxY,
+        Math.min(
+          maxY,
+          dy
+        )
+      );
+
+
+    var distance =
+      Math.sqrt(
+        dx * dx
+        + dy * dy
+      );
+
+
+    /*
+     * Preserve V141.8 speed.
+     *
+     * PMD_MENU_DROP_SPEED_V141_10
+     * PMD_MENU_DROP_SPEED_V141_11
+     *
+     * Faster final tuning:
+     * Short move: 360ms
+     * Long move:  up to 520ms
+     */
+    var duration =
+      Math.round(
+        Math.max(
+          360,
+          Math.min(
+            520,
+            360
+              + distance * .18
+          )
+        )
+      );
+
+
+    var startTransform =
+      'translate('
+      + dx
+      + 'px,'
+      + dy
+      + 'px) '
+      + 'scale(.985)';
+
+
+    var endTransform =
+      'translate(0px,0px) '
+      + 'scale(1)';
+
+
+    var finished =
+      false;
+
+
+    var clear =
+      function (event) {
+        if (
+          event
+          && event.propertyName
+          && event.propertyName !== 'transform'
+        ) {
+          return;
+        }
+
+        if (finished) return;
+
+        finished =
+          true;
+
+        card.removeEventListener(
+          'transitionend',
+          clear
+        );
+
+        card.removeEventListener(
+          'transitioncancel',
+          clear
+        );
+
+        card.style.removeProperty(
+          'transition'
+        );
+
+        card.style.removeProperty(
+          'transform'
+        );
+
+        /*
+         * PMD V141.13R:
+         *
+         * No opacity animation exists anymore.
+         *
+         * Keep the compositor alive across the exact moment
+         * the finished Drop hands back to Edit-mode jiggle.
+         * This prevents the dropped Card itself from flashing.
+         */
+        card.style.setProperty(
+          'will-change',
+          'rotate, translate',
+          'important'
+        );
+
+        card.classList.remove(
+          'is-drop-settling'
+        );
+
+        if (sortMode) {
+          syncExplicitJiggle();
+        }
+      };
+
+
+    /*
+     * Force the exact release position as the first painted
+     * frame.
+     *
+     * Inline !important intentionally outranks the many
+     * stylesheet-level transform authorities on this page.
+     */
+    card.style.setProperty(
+      'transition',
+      'none',
+      'important'
+    );
+
+    card.style.setProperty(
+      'transform',
+      startTransform,
+      'important'
+    );
+
+    card.style.setProperty(
+      'will-change',
+      'transform, rotate, translate',
+      'important'
+    );
+
+
+    /*
+     * Establish the release-position frame before starting
+     * the transition.
+     */
+    void card.offsetWidth;
+
+
+    requestAnimationFrame(
+      function () {
+        if (!card.isConnected) {
+          clear();
+          return;
+        }
+
+        card.addEventListener(
+          'transitionend',
+          clear
+        );
+
+        card.addEventListener(
+          'transitioncancel',
+          clear
+        );
+
+
+        card.style.setProperty(
+          'transition',
+          'transform '
+            + duration
+            + 'ms '
+            + 'cubic-bezier(.24,.52,.32,1)',
+          'important'
+        );
+
+
+        /*
+         * This is the only final visual move.
+         */
+        card.style.setProperty(
+          'transform',
+          endTransform,
+          'important'
+        );
+
+      }
+    );
   }
+
 
   function installNotificationOnce() {
     var node = manager();
@@ -2199,6 +3014,44 @@
       capturePersistSortOrder(sortKind);
     pendingSortReorder = null;
     cancelSortFlipAnimations();
+    // PMD_MENU_REAL_DROP_TRAVEL_V141_6_GRAB
+    //
+    // Capture the exact pointer position INSIDE the Card.
+    //
+    // Safari's native ghost keeps this same grab offset,
+    // allowing the real Card to continue from the same point
+    // on Drop.
+    var pmdGrabRectV1416 =
+      card.getBoundingClientRect();
+
+    pmdDropGrabV1416.x =
+      Math.max(
+        0,
+        Math.min(
+          pmdGrabRectV1416.width,
+          event.clientX
+            - pmdGrabRectV1416.left
+        )
+      );
+
+    pmdDropGrabV1416.y =
+      Math.max(
+        0,
+        Math.min(
+          pmdGrabRectV1416.height,
+          event.clientY
+            - pmdGrabRectV1416.top
+        )
+      );
+
+    pmdDropGrabV1416.valid =
+      Number.isFinite(
+        pmdDropGrabV1416.x
+      )
+      && Number.isFinite(
+        pmdDropGrabV1416.y
+      );
+
     setExplicitJiggle(card, false);
     if (event.dataTransfer) {
       event.dataTransfer.effectAllowed = 'move';
@@ -2236,19 +3089,61 @@
         '[data-pmd-menu-card].is-sortable'
       );
 
+    // PMD_MENU_STABLE_TARGET_DROP_V141_2_GRID_DROP
+    //
+    // The Grid itself is a legal release surface.
+    // Releasing between Cards commits the current live preview
+    // instead of being treated as a cancelled drag.
+    var sortGrid =
+      node.querySelector(
+        '[data-pmd-menu-grid]'
+      );
+
     if (
       !target
       || !node.contains(target)
-      || target === dragCard
     ) {
+      if (
+        sortGrid
+        && sortGrid.contains(
+          event.target
+        )
+      ) {
+        event.preventDefault();
+
+        if (
+          event.dataTransfer
+        ) {
+          event.dataTransfer.dropEffect =
+            'move';
+        }
+      }
+
+      return;
+    }
+
+    if (
+      target === dragCard
+    ) {
+      event.preventDefault();
+
+      if (
+        event.dataTransfer
+      ) {
+        event.dataTransfer.dropEffect =
+          'move';
+      }
+
       return;
     }
 
     /*
-     * Legacy /admin/menus parity:
+     * PMD_MENU_LIVE_FLIP_REORDER_V141_DRAGOVER
      *
-     * dragover only declares a legal drop target.
-     * It does NOT continuously rewrite the DOM.
+     * Reuse the existing V132/V128 FLIP queue.
+     *
+     * The native moving Card remains browser-owned.
+     * Only neighbouring Grid Cards move in the live DOM.
      */
     event.preventDefault();
 
@@ -2256,6 +3151,13 @@
       event.dataTransfer.dropEffect =
         'move';
     }
+
+    queueSortReorder(
+      dragCard,
+      target,
+      event.clientX,
+      event.clientY
+    );
   });
 
   document.addEventListener('drop', function (event) {
@@ -2291,34 +3193,67 @@
       );
 
     /*
-     * No queued live movement should survive into the drop.
+     * PMD_MENU_LIVE_FLIP_REORDER_V141_DROP
+     * PMD_MENU_STABLE_TARGET_DROP_V141_2_COMMIT
+     *
+     * DO NOT calculate a new destination at mouse-up.
+     *
+     * During dragover the live Grid already represents the
+     * user's intended order.
+     *
+     * A new release-time target calculation can reverse the
+     * order because the target Card itself is still finishing
+     * its FLIP animation.
+     *
+     * Therefore:
+     *
+     *   WHAT YOU SEE BEFORE RELEASE
+     *   =
+     *   WHAT GETS SAVED
+     *
+     * Flush only an already queued dragover frame.
      */
-    pendingSortReorder =
-      null;
+    flushQueuedSortReorder();
 
-    if (sortReorderRaf) {
-      cancelAnimationFrame(
-        sortReorderRaf
-      );
+    // PMD_MENU_REAL_DROP_TRAVEL_V141_6_RELEASE
+    //
+    // DOM order is final now.
+    //
+    // Find the transform required to paint the REAL Card at
+    // the same visual position where Safari's native ghost
+    // currently sits under the pointer.
+    var pmdDropFromXV1416 =
+      0;
 
-      sortReorderRaf =
-        0;
-    }
+    var pmdDropFromYV1416 =
+      0;
 
     if (
-      target
-      && node.contains(target)
-      && target !== droppedCard
-      && target.dataset.itemType
-        === droppedCard.dataset.itemType
-    ) {
-      reorderRelativeToTarget(
-        droppedCard,
-        target,
-        event.clientX,
+      pmdDropGrabV1416.valid
+      && Number.isFinite(
+        event.clientX
+      )
+      && Number.isFinite(
         event.clientY
-      );
+      )
+    ) {
+      var pmdFinalRectV1416 =
+        droppedCard
+          .getBoundingClientRect();
+
+      pmdDropFromXV1416 =
+        event.clientX
+        - pmdDropGrabV1416.x
+        - pmdFinalRectV1416.left;
+
+      pmdDropFromYV1416 =
+        event.clientY
+        - pmdDropGrabV1416.y
+        - pmdFinalRectV1416.top;
     }
+
+    pmdDropGrabV1416.valid =
+      false;
 
     dragCard =
       null;
@@ -2328,7 +3263,9 @@
      * No clone/proxy is involved.
      */
     settleSortCard(
-      droppedCard
+      droppedCard,
+      pmdDropFromXV1416,
+      pmdDropFromYV1416
     );
 
     var finalOrder =
@@ -2360,6 +3297,20 @@
 
     if (!dragCard) return;
 
+    /*
+     * PMD_MENU_LIVE_FLIP_REORDER_V141_CANCEL
+     *
+     * A dragend reaching this block means no valid Drop
+     * committed the preview order.
+     *
+     * Restore the original canonical snapshot with the same
+     * FLIP animation used during drag.
+     */
+    var cancelBeforeRects =
+      captureSortRects(
+        sortKind
+      );
+
     pendingSortReorder =
       null;
 
@@ -2372,18 +3323,30 @@
         0;
     }
 
+    // PMD_MENU_REAL_DROP_TRAVEL_V141_6_CANCEL
+    pmdDropGrabV1416.valid =
+      false;
+
     var endedCard =
       dragCard;
 
     dragCard =
       null;
 
-    /*
-     * Legacy parity:
-     *
-     * If browser drag ended without a valid drop,
-     * simply restore the Card.
-     */
+    if (
+      dragSnapshot.length
+    ) {
+      restoreSortOrder(
+        sortKind,
+        dragSnapshot
+      );
+
+      animateSortFlip(
+        cancelBeforeRects,
+        sortKind
+      );
+    }
+
     endedCard.classList.remove(
       'is-dragging',
       'is-drag-over'
@@ -2547,4 +3510,150 @@
   };
 
   console.info('[PMD Menu Manager V1.2.9] Ready', window.PMDMenuManagerV1);
+
+  // PMD_MENU_NATIVE_GHOST_SINGLE_VISUAL_V140_2
+
+  /*
+   * PMD V140.2
+   *
+   * V138 remains sole drag/reorder authority.
+   *
+   * Browser creates the native Card drag representation.
+   * On the first subsequent native drag event, the source
+   * Card contents are hidden while its Grid footprint stays.
+   *
+   * No custom Card drag-image call.
+   * No clone.
+   * No proxy.
+   * No Pointer engine.
+   */
+
+  var pmdNativeSourceV1402 =
+    null;
+
+
+  function pmdClearNativeSourceV1402(
+    card
+  ) {
+    if (!card) return;
+
+    card.classList.remove(
+      'is-pmd-drag-source-quiet-v1402'
+    );
+  }
+
+
+  function pmdClearAllNativeSourcesV1402() {
+    var node =
+      manager();
+
+    if (!node) {
+      pmdNativeSourceV1402 =
+        null;
+
+      return;
+    }
+
+    node.querySelectorAll(
+      '.is-pmd-drag-source-quiet-v1402'
+    ).forEach(
+      function (card) {
+        pmdClearNativeSourceV1402(
+          card
+        );
+      }
+    );
+
+    pmdNativeSourceV1402 =
+      null;
+  }
+
+
+  document.addEventListener(
+    'dragstart',
+    function (event) {
+      if (!sortMode) return;
+
+      var node =
+        manager();
+
+      if (!node) return;
+
+      /*
+       * Category pills retain their existing authority.
+       */
+      if (
+        event.target.closest(
+          '[data-pmd-category-sortable]'
+        )
+      ) {
+        return;
+      }
+
+      var card =
+        event.target.closest(
+          '[data-pmd-menu-card].is-sortable'
+        );
+
+      if (
+        !card
+        || !node.contains(card)
+      ) {
+        return;
+      }
+
+      /*
+       * Do not visually modify Card during dragstart.
+       * Safari first captures its native moving image.
+       */
+      pmdNativeSourceV1402 =
+        card;
+    }
+  );
+
+
+  document.addEventListener(
+    'drag',
+    function () {
+      var card =
+        pmdNativeSourceV1402;
+
+      if (!card) return;
+
+      /*
+       * Native moving representation already exists now.
+       */
+      if (
+        !card.classList.contains(
+          'is-pmd-drag-source-quiet-v1402'
+        )
+      ) {
+        card.classList.add(
+          'is-pmd-drag-source-quiet-v1402'
+        );
+      }
+    }
+  );
+
+
+  document.addEventListener(
+    'drop',
+    function () {
+      /*
+       * V138 performs the real reorder first.
+       * This only restores source paint.
+       */
+      pmdClearAllNativeSourcesV1402();
+    }
+  );
+
+
+  document.addEventListener(
+    'dragend',
+    function () {
+      pmdClearAllNativeSourcesV1402();
+    }
+  );
+
+
 })();

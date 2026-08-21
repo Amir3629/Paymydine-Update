@@ -110,3 +110,10 @@ For an existing `qr_pay_later` table order, V2 settles the existing order throug
 ## Security
 
 Only public values may enter customer bootstrap. Provider secrets, webhook secrets and Admin credentials must stay server-side. The V2 Admin bridge is read-only on GET and only reads the tenant's existing theme/settings values.
+
+
+## Split Payment Safety R35
+
+`POST /api/v1/orders/split-intent` reserves a short-lived server-authoritative split allocation before a provider charge. Equal and percentage splits use a fixed plan base; item and My Items splits reserve exact unpaid quantities. The returned `intent_token` is carried through hosted/PayPal settlement to `/api/v1/orders/pay-existing`, making a provider-confirmed retry idempotent and preventing a second guest from charging the same reserved allocation. Guest Cash is a staff request and is never self-settled by the QR browser.
+
+Service cost settings are stored as `pmd_service_charge_enabled`, `pmd_service_charge_type`, `pmd_service_charge_value`, and `pmd_service_charge_label`. The canonical table-order totals helper writes a `service_charge` order total for new orders only; existing order totals are not recalculated retroactively.

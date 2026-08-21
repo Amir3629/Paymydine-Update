@@ -171,6 +171,19 @@ for (const marker of [
   if (!sharedOverlayCssR34.includes(marker)) failures.push(`RuntimeOverlays shared icon alignment R34: missing ${marker}`)
 }
 
+
+// PMD_SPLIT_PAYMENT_SAFETY_R35
+for (const marker of [
+  'PMD_SPLIT_PAYMENT_SAFETY_R35',
+  'prepareSplitPaymentIntent',
+  'data-pmd-split-safety',
+  'prepareSplitIntent=',
+]) {
+  if (!overlays.includes(marker) && !multiOrderClient.includes(marker) && !multiOrderPaypal.includes(marker)) {
+    failures.push(`R35 split safety: missing ${marker}`)
+  }
+}
+
 const normalizer = fs.readFileSync(path.join(root, 'src/server/normalize.ts'), 'utf8')
 for (const marker of [
   'allergens',

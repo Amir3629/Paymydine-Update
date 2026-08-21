@@ -288,6 +288,11 @@ export async function payExistingOrder(input: {
   payerLabel?: string | null
   paymentReference?: string | null
   providerCode?: string | null
+  paymentIntentToken?: string | null
+  splitMode?: 'mine' | 'equal' | 'items' | 'shares' | null
+  splitPeople?: number | null
+  sharePercent?: number | null
+  guestSessionId?: string | null
 }): Promise<any> {
   return jsonRequest('/api/v1/orders/pay-existing', {
     method: 'POST',
@@ -304,11 +309,81 @@ export async function payExistingOrder(input: {
       coupon_discount: input.couponDiscount,
       selected_items: input.selectedItems || null,
       payer_label: input.payerLabel || null,
+      payment_intent_token: input.paymentIntentToken || null,
+      idempotency_key: input.paymentIntentToken || null,
+      split_mode: input.splitMode || null,
+      split_people: input.splitPeople || null,
+      share_percent: input.sharePercent || null,
+      guest_session_id: input.guestSessionId || null,
+      // PMD_STRIPE_INLINE_PAYMENT_R35B: preserve tenant context for canonical Stripe PI verification.
+      location_id: input.table.locationId || null,
       table_id: input.table.id,
       table_no: input.table.number,
       qr: input.table.qr,
     }),
   })
+}
+
+
+// PMD_SPLIT_PAYMENT_SAFETY_R35
+export type SplitPaymentIntent = {
+  token: string
+  orderId: number
+  splitMode: 'mine' | 'equal' | 'items' | 'shares'
+  principalAmount: number
+  tipAmount: number
+  payableAmount: number
+  selectedItems: Array<{ order_menu_id: number; quantity: number }> | null
+  providerItems: Array<{ id: string; name: string; quantity: number; price: number }>
+  payerLabel: string
+  splitPeople: number | null
+  sharePercent: number | null
+  expiresAt: string | null
+}
+
+export async function prepareSplitPaymentIntent(input: {
+  orderId: number
+  table: TableContext
+  guestSessionId: string
+  splitMode: 'mine' | 'equal' | 'items' | 'shares'
+  splitPeople?: number | null
+  sharePercent?: number | null
+  selectedItems?: Array<{ order_menu_id: number; quantity: number }> | null
+  tipPercent: number
+  paymentMethod: string
+  providerCode?: string | null
+}): Promise<SplitPaymentIntent> {
+  const data = await jsonRequest<any>('/api/v1/orders/split-intent', {
+    method: 'POST',
+    body: JSON.stringify({
+      order_id: input.orderId,
+      table_id: input.table.id,
+      table_no: input.table.number,
+      qr: input.table.qr,
+      guest_session_id: input.guestSessionId,
+      split_mode: input.splitMode,
+      split_people: input.splitPeople || null,
+      share_percent: input.sharePercent || null,
+      selected_items: input.selectedItems || null,
+      tip_percent: input.tipPercent,
+      payment_method: input.paymentMethod,
+      provider: input.providerCode || null,
+    }),
+  })
+  return {
+    token: String(data.intent_token || ''),
+    orderId: Number(data.order_id || input.orderId),
+    splitMode: String(data.split_mode || input.splitMode) as SplitPaymentIntent['splitMode'],
+    principalAmount: Number(data.principal_amount || 0),
+    tipAmount: Number(data.tip_amount || 0),
+    payableAmount: Number(data.payable_amount || 0),
+    selectedItems: Array.isArray(data.selected_items) ? data.selected_items : null,
+    providerItems: Array.isArray(data.provider_items) ? data.provider_items : [],
+    payerLabel: String(data.payer_label || `PMD R35 ${input.splitMode}`),
+    splitPeople: data.split_people == null ? null : Number(data.split_people),
+    sharePercent: data.share_percent == null ? null : Number(data.share_percent),
+    expiresAt: data.expires_at ? String(data.expires_at) : null,
+  }
 }
 
 // PMD_MULTI_ORDER_PAYMENT_R32
@@ -343,6 +418,11 @@ export async function settleExistingOrderGroup(input: {
           couponDiscount: allocation.couponDiscount,
           selectedItems: allocation.selectedItems,
           payerLabel: allocation.payerLabel,
+          paymentIntentToken: allocation.paymentIntentToken || null,
+          splitMode: allocation.splitMode || null,
+          splitPeople: allocation.splitPeople || null,
+          sharePercent: allocation.sharePercent || null,
+          guestSessionId: allocation.guestSessionId || null,
         }))
         settled = true
       } catch (error) {
@@ -393,6 +473,11 @@ export type ExistingOrderPaymentAllocation = {
   couponCode: string | null
   selectedItems: Array<{ order_menu_id: number; quantity: number }> | null
   payerLabel: string | null
+  paymentIntentToken?: string | null
+  splitMode?: 'mine' | 'equal' | 'items' | 'shares' | null
+  splitPeople?: number | null
+  sharePercent?: number | null
+  guestSessionId?: string | null
 }
 
 export type PendingProviderPayment = {
@@ -402,6 +487,7 @@ export type PendingProviderPayment = {
   providerCode: string | null
   orderId: number
   orderAllocations?: ExistingOrderPaymentAllocation[] | null
+  paymentIntentToken?: string | null
   table: TableContext
   returnTo: string
   createdAt: string
@@ -520,7 +606,7 @@ export async function verifyProviderPayment(
       provider_reference: String(pending.providerReference || query.get('provider_reference') || ''),
       merchant_reference: String(pending.merchantReference || query.get('merchant_reference') || ''),
     }
-  } else if (normalized === 'wero') {
+  } else if (normalized === 'wero' || normalized === 'stripe' || normalized === 'card') {
     endpoint = '/api/v1/payments/wero/checkout-status'
     payload = { session_id: String(pending.sessionId || query.get('session_id') || '') }
   }
@@ -567,6 +653,7 @@ export async function verifyProviderPayment(
 export type HostedProviderPaymentInput = {
   orderId: number
   orderAllocations?: ExistingOrderPaymentAllocation[] | null
+  paymentIntentToken?: string | null
   settlementMode?: 'pay-existing' | 'start-finalize'
   table: TableContext
   methodCode: string
@@ -669,6 +756,7 @@ function buildPendingProviderPayment(
     providerCode: input.providerCode || String(data?.provider || data?.provider_code || '') || null,
     orderId: input.orderId,
     orderAllocations: input.orderAllocations || null,
+    paymentIntentToken: input.paymentIntentToken || null,
     table: input.table,
     returnTo,
     createdAt: new Date().toISOString(),
@@ -758,6 +846,7 @@ export async function startHostedProviderPayment(input: HostedProviderPaymentInp
     coupon_discount: input.couponDiscount,
     selected_items: input.selectedItems,
     payer_label: input.payerLabel,
+    payment_intent_token: input.paymentIntentToken || null,
     items: input.items || [],
   }
 

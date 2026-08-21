@@ -187,4 +187,9 @@
   'Admin\\Models\\Menus_specials_model' => 'app/admin/models/Menus_specials_model.php',
   'Admin\\Models\\Menu_prices_model' => 'app/admin/models/Menu_prices_model.php',
   'Admin\\Models\\Stocks_model' => 'app/admin/models/Stocks_model.php',
+  'Admin\\Controllers\\payments' => 'app/admin/controllers/Payments.php',
+  'Admin\\Traits\\FormModelWidget' => 'app/admin/traits/FormModelWidget.php',
+  'Admin\\Widgets\\Form' => 'app/admin/widgets/Form.php',
+  'Admin\\Classes\\FormTabs' => 'app/admin/classes/FormTabs.php',
+  'Admin\\Classes\\FormField' => 'app/admin/classes/FormField.php',
 );

@@ -143,6 +143,7 @@ body,
                             ['key'=>'split_bill_enabled','label'=>'Split bill','desc'=>'Allow supported split-payment flows.'],
                             ['key'=>'tips_enabled','label'=>'Tips','desc'=>'Show tip controls where the payment flow supports them.'],
                             ['key'=>'coupons_enabled','label'=>'Coupons','desc'=>'Allow coupon validation in checkout.'],
+                            ['key'=>'service_charge_enabled','label'=>'Service cost','desc'=>'Add a configured service cost to new QR table orders.'],
                             ['key'=>'social_enabled','label'=>'Social links','desc'=>'Show enabled restaurant social destinations in the menu.'],
                         ];
                     @endphp
@@ -153,6 +154,18 @@ body,
                                 <span class="pmd-switch"><input type="checkbox" name="frontend[{{ $toggle['key'] }}]" value="1" {{ !empty($frontend[$toggle['key']]) ? 'checked' : '' }}><i></i></span>
                             </label>
                         @endforeach
+                    </div>
+                    <div class="pmd-subcard" style="margin-top:16px" data-pmd-service-charge-r35>
+                        <strong>Service cost</strong>
+                        <p style="margin:.35rem 0 .8rem;color:#667085">Applied only to new QR table orders after this setting is saved. Existing orders keep their frozen totals.</p>
+                        <div class="pmd-field-grid">
+                            <label class="pmd-field"><span>Type</span><select name="frontend[service_charge_type]">
+                                <option value="percentage" {{ ($frontend['service_charge_type'] ?? 'percentage') === 'percentage' ? 'selected' : '' }}>Percentage</option>
+                                <option value="fixed" {{ ($frontend['service_charge_type'] ?? 'percentage') === 'fixed' ? 'selected' : '' }}>Fixed amount</option>
+                            </select></label>
+                            <label class="pmd-field"><span>Value</span><input type="number" min="0" step="0.01" name="frontend[service_charge_value]" value="{{ $frontend['service_charge_value'] ?? 0 }}"></label>
+                            <label class="pmd-field"><span>Checkout / invoice label</span><input type="text" maxlength="191" name="frontend[service_charge_label]" value="{{ $frontend['service_charge_label'] ?? 'Service charge' }}"></label>
+                        </div>
                     </div>
                 </div>
             </div>

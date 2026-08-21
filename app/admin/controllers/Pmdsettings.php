@@ -101,6 +101,9 @@ class Pmdsettings extends AdminController
             'featured_social_platform' => ['nullable', 'string', 'in:'.implode(',', $allowedPlatforms)],
             'featured_social_url' => ['nullable', 'url', 'max:500'],
             'kazen_menu_layout' => ['nullable', 'string', 'in:'.implode(',', $allowedLayouts)],
+            'service_charge_type' => ['nullable','string','in:percentage,fixed'],
+            'service_charge_value' => ['nullable','numeric','min:0','max:100000'],
+            'service_charge_label' => ['nullable','string','max:191'],
         ]);
         if ($validator->fails()) {
             throw new ValidationException($validator);
@@ -133,6 +136,11 @@ class Pmdsettings extends AdminController
             'pmd_v2_tips_enabled' => !empty($input['tips_enabled']) ? '1' : '0',
             'pmd_v2_coupons_enabled' => !empty($input['coupons_enabled']) ? '1' : '0',
             'pmd_v2_social_enabled' => !empty($input['social_enabled']) ? '1' : '0',
+            // PMD_SPLIT_PAYMENT_SAFETY_R35
+            'pmd_service_charge_enabled' => !empty($input['service_charge_enabled']) ? '1' : '0',
+            'pmd_service_charge_type' => (string)($clean['service_charge_type'] ?? 'percentage'),
+            'pmd_service_charge_value' => number_format(max(0, (float)($clean['service_charge_value'] ?? 0)), 4, '.', ''),
+            'pmd_service_charge_label' => trim((string)($clean['service_charge_label'] ?? '')) ?: 'Service charge',
             'pmd_kazen_website_enabled' => !empty($input['website_enabled']) ? '1' : '0',
             'pmd_kazen_website_url' => trim((string)($clean['website_url'] ?? '')),
             'pmd_kazen_social_enabled' => !empty($input['featured_social_enabled']) ? '1' : '0',
@@ -184,6 +192,10 @@ class Pmdsettings extends AdminController
             'tips_enabled' => (bool)$value('pmd_v2_tips_enabled', 1),
             'coupons_enabled' => (bool)$value('pmd_v2_coupons_enabled', 1),
             'social_enabled' => (bool)$value('pmd_v2_social_enabled', 1),
+            'service_charge_enabled' => (bool)$value('pmd_service_charge_enabled', 0),
+            'service_charge_type' => (string)$value('pmd_service_charge_type', 'percentage'),
+            'service_charge_value' => (float)$value('pmd_service_charge_value', 0),
+            'service_charge_label' => (string)$value('pmd_service_charge_label', 'Service charge'),
             'website_enabled' => (bool)$value('pmd_kazen_website_enabled', 0),
             'website_url' => (string)$value('pmd_kazen_website_url', ''),
             'featured_social_enabled' => (bool)$value('pmd_kazen_social_enabled', 0),

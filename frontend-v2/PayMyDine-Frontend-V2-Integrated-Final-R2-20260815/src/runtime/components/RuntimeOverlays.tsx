@@ -24,15 +24,17 @@ import {
   Utensils,
   X,
 } from 'lucide-react'
-import type { CartOptionSelection, MenuItem, TableOrderState } from '@/src/domain/model'
+import type { CartOptionSelection, MenuItem, PaymentMethod, TableOrderState } from '@/src/domain/model'
 import type { ExistingOrderPaymentAllocation } from '@/src/lib/client-api'
-import { clearPendingProviderPayment, finalizeExistingOrderPayment, payExistingOrder, startHostedProviderPayment, validateCoupon, downloadPaidInvoice,
+import { callWaiter, clearPendingProviderPayment, finalizeExistingOrderPayment, payExistingOrder, prepareSplitPaymentIntent, startHostedProviderPayment, validateCoupon, downloadPaidInvoice,
   submitReview,
   settleExistingOrderGroup,
+  type SplitPaymentIntent,
 } from '@/src/lib/client-api'
 import { useMenuRuntime } from '@/src/runtime/MenuRuntimeContext'
 import { DietaryBadges } from './SharedPieces'
 import { PayPalButton } from './PayPalButton'
+import { StripeInlinePayment } from './StripeInlinePayment'
 import styles from './RuntimeOverlays.module.css'
 
 function PanelShell({ title, subtitle, modal = false, children, footer }: {
@@ -751,10 +753,41 @@ function SubmittedOrderCard({ order, selected, onSelect, onPay }: {
 
 type SplitMode = 'full' | 'mine' | 'equal' | 'items' | 'shares'
 
+// PMD_STRIPE_WALLET_STATE_R35C
 function paymentMethodKey(method: { code: string; providerCode: string | null }): string {
   return `${method.code}:${method.providerCode || 'default'}`
 }
 
+// PMD_STRIPE_INLINE_PAYMENT_R35B
+// /api/v1/payments remains the primary list. PayPal's public runtime config is
+// a compatibility authority because some older payment-list payloads omit it.
+function useRuntimePaymentChoices(payments: PaymentMethod[]): PaymentMethod[] {
+  const [paypalFallback, setPaypalFallback] = useState<PaymentMethod | null>(null)
+
+  useEffect(() => {
+    let cancelled = false
+    fetch('/api/v1/payments/config-public', { credentials: 'same-origin', headers: { Accept: 'application/json' } })
+      .then((response) => response.json().catch(() => ({})))
+      .then((data) => {
+        if (cancelled) return
+        const enabled = data?.success !== false
+          && Boolean(data?.paypalEnabled)
+          && Boolean(data?.paypalMethodEnabled)
+          && Boolean(String(data?.paypalClientId || '').trim())
+        setPaypalFallback(enabled ? { code: 'paypal', name: 'PayPal', providerCode: 'paypal', enabled: true, priority: 90 } : null)
+      })
+      .catch(() => { if (!cancelled) setPaypalFallback(null) })
+    return () => { cancelled = true }
+  }, [])
+
+  return useMemo(() => {
+    const rows = payments.filter((entry) => entry.enabled !== false)
+    if (!paypalFallback || rows.some((entry) => String(entry.code).toLowerCase() === 'paypal')) return rows
+    return [...rows, paypalFallback].sort((a, b) => Number(a.priority || 0) - Number(b.priority || 0))
+  }, [payments, paypalFallback])
+}
+
+// PMD_SPLIT_PAYMENT_SAFETY_R35
 function PaymentPanel({ order, mode, guestSessionId }: { order: TableOrderState; mode: 'payment' | 'split'; guestSessionId: string }) {
   const { bootstrap, labels, formatCurrency, notify, refreshOrder, isPreview, markOrderPaid, locale } = useMenuRuntime()
   const copy = r27FlowCopy(locale)
@@ -762,13 +795,20 @@ function PaymentPanel({ order, mode, guestSessionId }: { order: TableOrderState;
   const [splitMode, setSplitMode] = useState<SplitMode>(mode === 'payment' ? 'full' : (mineAvailable ? 'mine' : 'equal'))
   const [people, setPeople] = useState(2)
   const [sharePercent, setSharePercent] = useState(50)
-  const [selectedItems, setSelectedItems] = useState<number[]>([])
+  const [itemQuantities, setItemQuantities] = useState<Record<number, number>>({})
   const [methodKey, setMethodKey] = useState(bootstrap.payments[0] ? paymentMethodKey(bootstrap.payments[0]) : '')
   const [tipPercent, setTipPercent] = useState(0)
   const [couponCode, setCouponCode] = useState('')
   const [couponDiscount, setCouponDiscount] = useState(0)
   const [busy, setBusy] = useState(false)
   const [message, setMessage] = useState('')
+  const paymentChoices = useRuntimePaymentChoices(bootstrap.payments)
+
+  useEffect(() => {
+    if (!paymentChoices.some((entry) => paymentMethodKey(entry) === methodKey)) {
+      setMethodKey(paymentChoices[0] ? paymentMethodKey(paymentChoices[0]) : '')
+    }
+  }, [methodKey, paymentChoices])
 
   const mineItemsPayload = useMemo(() => order.items
     .filter((item) => item.orderMenuId && item.guestSessionId === guestSessionId && item.unpaidQuantity > 0)
@@ -777,49 +817,52 @@ function PaymentPanel({ order, mode, guestSessionId }: { order: TableOrderState;
   const selectedItemsPayload = useMemo(() => {
     if (splitMode === 'mine') return mineItemsPayload
     if (splitMode !== 'items') return null
-    return order.items
-      .filter((item) => item.orderMenuId && item.unpaidQuantity > 0 && selectedItems.includes(item.orderMenuId))
-      .map((item) => ({ order_menu_id: item.orderMenuId!, quantity: item.unpaidQuantity ?? item.quantity }))
-  }, [mineItemsPayload, order.items, selectedItems, splitMode])
-
-  const providerItems = useMemo(() => order.items
-    .filter((item) => (item.unpaidQuantity ?? item.quantity) > 0)
-    .map((item) => ({
-      id: String(item.orderMenuId || item.menuId), name: item.name,
-      quantity: item.unpaidQuantity ?? item.quantity, price: item.price,
-    })), [order.items])
+    return order.items.flatMap((item) => {
+      if (!item.orderMenuId || item.unpaidQuantity <= 0) return []
+      const qty = Math.min(item.unpaidQuantity, Math.max(0, Number(itemQuantities[item.orderMenuId] || 0)))
+      return qty > 0 ? [{ order_menu_id: item.orderMenuId, quantity: qty }] : []
+    })
+  }, [itemQuantities, mineItemsPayload, order.items, splitMode])
 
   if (!order.orderId || order.status === 'draft') return <div className={styles.empty}>{copy.selectOrderToPay}</div>
 
   const remaining = Math.max(0, order.totals.remainingAmount ?? order.totals.orderTotal)
-  const itemAmount = order.items
-    .filter((item) => item.orderMenuId && item.unpaidQuantity > 0 && selectedItems.includes(item.orderMenuId))
-    .reduce((sum, item) => sum + item.price * item.unpaidQuantity, 0)
+  const orderedItemSubtotal = Math.max(0.0001, order.items.reduce((sum, item) => sum + Math.max(0, item.subtotal || item.price * item.quantity), 0))
+  const grossRatio = Math.max(0, order.totals.orderTotal / orderedItemSubtotal)
+  const itemAmount = order.items.reduce((sum, item) => {
+    if (!item.orderMenuId) return sum
+    const qty = Math.min(item.unpaidQuantity, Math.max(0, Number(itemQuantities[item.orderMenuId] || 0)))
+    return sum + item.price * qty * grossRatio
+  }, 0)
   const mineAmount = order.items
     .filter((item) => item.guestSessionId === guestSessionId && item.unpaidQuantity > 0)
-    .reduce((sum, item) => sum + item.price * item.unpaidQuantity, 0)
+    .reduce((sum, item) => sum + item.price * item.unpaidQuantity * grossRatio, 0)
   const rawBaseAmount = splitMode === 'equal'
-    ? remaining / Math.max(2, people)
+    ? order.totals.orderTotal / Math.max(2, people)
     : splitMode === 'shares'
-      ? remaining * Math.min(100, Math.max(1, sharePercent)) / 100
+      ? order.totals.orderTotal * Math.min(100, Math.max(1, sharePercent)) / 100
       : splitMode === 'items'
         ? itemAmount
         : splitMode === 'mine'
           ? mineAmount
           : remaining
   const baseAmount = Math.min(remaining, Math.max(0, rawBaseAmount))
-  const afterCoupon = Math.max(0, baseAmount - couponDiscount)
-  const tipAmount = afterCoupon * Math.max(0, tipPercent) / 100
-  const payable = Number((afterCoupon + tipAmount).toFixed(2))
-  const selectedMethod = bootstrap.payments.find((entry) => paymentMethodKey(entry) === methodKey) || null
+  const afterCoupon = Math.max(0, baseAmount - (mode === 'split' ? 0 : couponDiscount))
+  const tipAmountEstimate = afterCoupon * Math.max(0, tipPercent) / 100
+  const payableEstimate = Number((afterCoupon + tipAmountEstimate).toFixed(2))
+  const selectedMethod = paymentChoices.find((entry) => paymentMethodKey(entry) === methodKey) || null
   const settlementMode = String(order.payment || '').toLowerCase() === 'qr_pay_later' ? 'pay-existing' as const : 'start-finalize' as const
-  const selectedProvider = String(selectedMethod?.providerCode || '').trim().toLowerCase().replace(/[\s-]+/g, '_')
+  const selectedCode = String(selectedMethod?.code || '').trim().toLowerCase()
+  const configuredProvider = String(selectedMethod?.providerCode || '').trim().toLowerCase().replace(/[\s-]+/g, '_')
+  const selectedProvider = configuredProvider || (['card', 'apple_pay', 'google_pay'].includes(selectedCode) ? 'stripe' : '')
+  const isStripeInline = Boolean(selectedMethod && settlementMode === 'pay-existing' && selectedProvider === 'stripe' && ['card', 'apple_pay', 'google_pay'].includes(selectedCode))
   const isPayPalInline = Boolean(selectedMethod && settlementMode === 'pay-existing' && (selectedProvider === 'paypal' || (selectedMethod.code.toLowerCase() === 'paypal' && (!selectedProvider || selectedProvider === 'paypal'))))
   const requiresSelectedItems = splitMode === 'items' || splitMode === 'mine'
-  const canStartPayment = Boolean(selectedMethod && payable > 0 && (!requiresSelectedItems || (selectedItemsPayload && selectedItemsPayload.length > 0)))
-  const payerLabel = splitMode === 'full' ? null : `PMD V2 ${splitMode}`
+  const canStartPayment = Boolean(selectedMethod && payableEstimate > 0 && (!requiresSelectedItems || (selectedItemsPayload && selectedItemsPayload.length > 0)))
+  const payerLabel = splitMode === 'full' ? null : `PMD R35 ${splitMode}`
 
   const applyCoupon = async () => {
+    if (mode === 'split') { setMessage('Coupons can be applied when paying the full remaining bill.'); return }
     if (!couponCode.trim()) return
     setBusy(true)
     try {
@@ -832,49 +875,112 @@ function PaymentPanel({ order, mode, guestSessionId }: { order: TableOrderState;
       const result = await validateCoupon(couponCode.trim(), baseAmount)
       setCouponDiscount(Math.min(baseAmount, Math.max(0, result.discount)))
       setMessage(result.message)
-    } catch (error) {
-      setMessage(error instanceof Error ? error.message : labels.error)
-    } finally { setBusy(false) }
+    } catch (error) { setMessage(error instanceof Error ? error.message : labels.error) }
+    finally { setBusy(false) }
   }
 
-  const completePaymentLocally = async () => {
-    markOrderPaid(order.orderId!, payable)
+  const completePaymentLocally = async (amount = payableEstimate) => {
+    if (isPreview) markOrderPaid(order.orderId!, amount)
+    else await refreshOrder()
     notify('success', labels.paid)
     setMessage(labels.success)
-    await refreshOrder()
+  }
+
+  const prepareSplit = async (): Promise<SplitPaymentIntent> => {
+    if (!selectedMethod || !order.orderId) throw new Error(labels.noPaymentMethods)
+    if (splitMode === 'full') throw new Error('Split mode is required.')
+    return prepareSplitPaymentIntent({
+      orderId: order.orderId,
+      table: bootstrap.table,
+      guestSessionId,
+      splitMode,
+      splitPeople: splitMode === 'equal' ? people : null,
+      sharePercent: splitMode === 'shares' ? sharePercent : null,
+      selectedItems: selectedItemsPayload,
+      tipPercent,
+      paymentMethod: selectedMethod.code,
+      providerCode: selectedMethod.providerCode,
+    })
+  }
+
+  const requestCash = async (amount: number) => {
+    await callWaiter(bootstrap.table, `Cash payment requested for order #${order.orderNumber || order.orderId}: ${formatCurrency(amount)}. Please collect and confirm in Staff/Cashier.`)
+    notify('success', 'Cash payment requested')
+    setMessage('Cash payment requested. This screen stays unpaid until a staff member collects and confirms the cash. Refresh Table Orders after staff confirms.')
   }
 
   const pay = async () => {
-    if (payable <= 0 || !order.orderId) return
+    if (payableEstimate <= 0 || !order.orderId) return
     if (!selectedMethod) { setMessage(labels.noPaymentMethods); return }
     if (requiresSelectedItems && !selectedItemsPayload?.length) { setMessage(labels.selectItems); return }
     setBusy(true); setMessage('')
     try {
-      if (isPreview) { markOrderPaid(order.orderId, payable); notify('success', labels.paid); setMessage(labels.success); return }
-      if (selectedMethod.code === 'cash' || selectedMethod.code === 'cod') {
-        await payExistingOrder({
-          orderId: order.orderId, table: bootstrap.table, method: selectedMethod.code, providerCode: selectedMethod.providerCode,
-          amount: payable, tipAmount, couponCode: couponCode.trim() || null, couponDiscount,
-          selectedItems: selectedItemsPayload, payerLabel,
+      if (isPreview) { await completePaymentLocally(); return }
+
+      if (mode === 'split' && splitMode !== 'full') {
+        const intent = await prepareSplit()
+        if (selectedMethod.code === 'cash' || selectedMethod.code === 'cod') {
+          await requestCash(intent.payableAmount)
+          return
+        }
+        const session = guestSessionId || getSafeGuestSession(bootstrap.tenant.id, bootstrap.table.id || bootstrap.table.number || 'delivery')
+        const response = await startHostedProviderPayment({
+          orderId: order.orderId,
+          paymentIntentToken: intent.token,
+          settlementMode: 'pay-existing',
+          table: bootstrap.table,
+          methodCode: selectedMethod.code,
+          providerCode: selectedMethod.providerCode,
+          guestSessionId: session,
+          amount: intent.payableAmount,
+          currency: bootstrap.restaurant.currency,
+          tipAmount: intent.tipAmount,
+          couponCode: null,
+          couponDiscount: 0,
+          selectedItems: intent.selectedItems,
+          payerLabel: intent.payerLabel,
+          items: intent.providerItems,
         })
-        await completePaymentLocally(); return
+        if (response.redirectUrl) { window.location.assign(response.redirectUrl); return }
+        if (response.immediateReference) {
+          await payExistingOrder({
+            orderId: order.orderId, table: bootstrap.table, method: selectedMethod.code,
+            providerCode: selectedMethod.providerCode, paymentReference: response.immediateReference,
+            amount: intent.payableAmount, tipAmount: intent.tipAmount, couponCode: null, couponDiscount: 0,
+            selectedItems: intent.selectedItems, payerLabel: intent.payerLabel,
+            paymentIntentToken: intent.token, splitMode: intent.splitMode,
+            splitPeople: intent.splitPeople, sharePercent: intent.sharePercent, guestSessionId,
+          })
+          clearPendingProviderPayment(response.provider)
+          await completePaymentLocally(intent.payableAmount)
+          return
+        }
+        setMessage(String(response.raw?.message || labels.paymentSessionReady))
+        return
+      }
+
+      // Full remaining payment keeps the established R32/R34 contract, except guest Cash
+      // is now a staff request instead of allowing a guest device to self-settle cash.
+      if (selectedMethod.code === 'cash' || selectedMethod.code === 'cod') {
+        await requestCash(payableEstimate)
+        return
       }
       const session = guestSessionId || getSafeGuestSession(bootstrap.tenant.id, bootstrap.table.id || bootstrap.table.number || 'delivery')
       const response = await startHostedProviderPayment({
         orderId: order.orderId, settlementMode, table: bootstrap.table, methodCode: selectedMethod.code,
-        providerCode: selectedMethod.providerCode, guestSessionId: session, amount: payable,
-        currency: bootstrap.restaurant.currency, tipAmount, couponCode: couponCode.trim() || null,
-        couponDiscount, selectedItems: selectedItemsPayload, payerLabel, items: providerItems,
+        providerCode: selectedMethod.providerCode, guestSessionId: session, amount: payableEstimate,
+        currency: bootstrap.restaurant.currency, tipAmount: tipAmountEstimate, couponCode: couponCode.trim() || null,
+        couponDiscount, selectedItems: selectedItemsPayload, payerLabel, items: order.items
+          .filter((item) => item.unpaidQuantity > 0)
+          .map((item) => ({ id: String(item.orderMenuId || item.menuId), name: item.name, quantity: item.unpaidQuantity, price: item.price * grossRatio })),
       })
       if (response.redirectUrl) { window.location.assign(response.redirectUrl); return }
       if (response.immediateReference) {
         if (settlementMode === 'pay-existing') {
-          await payExistingOrder({
-            orderId: order.orderId, table: bootstrap.table, method: selectedMethod.code,
+          await payExistingOrder({ orderId: order.orderId, table: bootstrap.table, method: selectedMethod.code,
             providerCode: selectedMethod.providerCode, paymentReference: response.immediateReference,
-            amount: payable, tipAmount, couponCode: couponCode.trim() || null, couponDiscount,
-            selectedItems: selectedItemsPayload, payerLabel,
-          })
+            amount: payableEstimate, tipAmount: tipAmountEstimate, couponCode: couponCode.trim() || null,
+            couponDiscount, selectedItems: selectedItemsPayload, payerLabel })
         } else {
           await finalizeExistingOrderPayment({ orderId: order.orderId, paymentReference: response.immediateReference, methodCode: selectedMethod.code, providerCode: selectedMethod.providerCode })
         }
@@ -887,7 +993,7 @@ function PaymentPanel({ order, mode, guestSessionId }: { order: TableOrderState;
   }
 
   return (
-    <div className={styles.stack} data-pmd-payment-order-id={order.orderId}>
+    <div className={styles.stack} data-pmd-payment-order-id={order.orderId} data-pmd-split-safety={mode === 'split' ? 'r35' : undefined}>
       <div className={styles.summary}>
         <div className={styles.summaryRow}><span>#{order.orderNumber || order.orderId}</span><strong>{formatCurrency(order.totals.remainingAmount)}</strong></div>
       </div>
@@ -899,21 +1005,32 @@ function PaymentPanel({ order, mode, guestSessionId }: { order: TableOrderState;
             <button type="button" className={splitMode === 'items' ? styles.selected : ''} onClick={() => setSplitMode('items')}>{labels.itemSplit}</button>
             <button type="button" className={splitMode === 'shares' ? styles.selected : ''} onClick={() => setSplitMode('shares')}>{labels.shareSplit}</button>
           </div>
-          {splitMode === 'equal' && <label className={styles.label}>{labels.people}<input className={styles.input} type="number" min={2} max={10} value={people} onChange={(event) => setPeople(Math.min(10, Math.max(2, Number(event.target.value) || 2)))} /></label>}
+          {splitMode === 'equal' && <label className={styles.label}>{labels.people}<input className={styles.input} type="number" min={2} max={20} value={people} onChange={(event) => setPeople(Math.min(20, Math.max(2, Number(event.target.value) || 2)))} /></label>}
           {splitMode === 'shares' && <label className={styles.label}>%<input className={styles.input} type="number" min={1} max={100} value={sharePercent} onChange={(event) => setSharePercent(Math.min(100, Math.max(1, Number(event.target.value) || 1)))} /></label>}
           {splitMode === 'items' && (
             <div className={styles.checkboxList}>
-              {order.items.filter((item) => item.orderMenuId && item.unpaidQuantity > 0).map((item) => (
-                <label className={styles.checkboxLine} key={item.orderMenuId!}>
-                  <input type="checkbox" checked={selectedItems.includes(item.orderMenuId!)} onChange={() => setSelectedItems((current) => current.includes(item.orderMenuId!) ? current.filter((id) => id !== item.orderMenuId) : [...current, item.orderMenuId!])} />
-                  <span>{item.unpaidQuantity ?? item.quantity} × {item.name}</span><strong>{formatCurrency(item.price * (item.unpaidQuantity ?? item.quantity))}</strong>
-                </label>
-              ))}
+              {order.items.filter((item) => item.orderMenuId && item.unpaidQuantity > 0).map((item) => {
+                const id = item.orderMenuId!
+                const maxQty = item.unpaidQuantity ?? item.quantity
+                const qty = Math.min(maxQty, Math.max(0, Number(itemQuantities[id] || 0)))
+                return (
+                  <div className={`${styles.checkboxLine} ${styles.splitQuantityLine}`} key={id}>
+                    <input type="checkbox" checked={qty > 0} onChange={() => setItemQuantities((current) => ({ ...current, [id]: qty > 0 ? 0 : maxQty }))} />
+                    <span>{maxQty} × {item.name}</span>
+                    <span className={styles.smallQty} aria-label={`${item.name} quantity`}>
+                      <button type="button" disabled={qty <= 0} onClick={() => setItemQuantities((current) => ({ ...current, [id]: Math.max(0, qty - 1) }))}><Minus /></button>
+                      <span>{qty}</span>
+                      <button type="button" disabled={qty >= maxQty} onClick={() => setItemQuantities((current) => ({ ...current, [id]: Math.min(maxQty, qty + 1) }))}><Plus /></button>
+                    </span>
+                    <strong>{formatCurrency(item.price * qty * grossRatio)}</strong>
+                  </div>
+                )
+              })}
             </div>
           )}
         </>
       )}
-      {bootstrap.features.coupons && (
+      {mode !== 'split' && bootstrap.features.coupons && (
         <div className={styles.actionRow}>
           <input className={styles.input} value={couponCode} onChange={(event) => setCouponCode(event.target.value)} placeholder={labels.coupon} />
           <button className={styles.secondary} type="button" onClick={() => void applyCoupon()} disabled={busy}><Tag /> {labels.apply}</button>
@@ -926,17 +1043,17 @@ function PaymentPanel({ order, mode, guestSessionId }: { order: TableOrderState;
           ))}
         </div>
       )}
-      {bootstrap.payments.length > 0 ? (
+      {paymentChoices.length > 0 ? (
         <div className={styles.methodGrid}>
-          {bootstrap.payments.map((entry) => {
+          {paymentChoices.map((entry) => {
             const key = paymentMethodKey(entry)
-            return <button key={key} type="button" className={`${styles.method} ${methodKey === key ? styles.methodSelected : ''}`} onClick={() => setMethodKey(key)}>{entry.code === 'cash' || entry.code === 'cod' ? <Receipt /> : <CreditCard />} {entry.name}</button>
+            return <button key={key} type="button" className={`${styles.method} ${methodKey === key ? styles.methodSelected : ''}`} onClick={() => { setMethodKey(key); setMessage('') }}>{entry.code === 'cash' || entry.code === 'cod' ? <Receipt /> : <CreditCard />} {entry.name}</button>
           })}
         </div>
       ) : <div className={`${styles.statusMessage} ${styles.statusError}`}>{labels.noPaymentMethods}</div>}
       <div className={styles.summary}>
         <div className={styles.summaryRow}><span>{labels.remaining}</span><span>{formatCurrency(remaining)}</span></div>
-        <div className={styles.summaryRow}><span>{labels.total}</span><strong>{formatCurrency(payable)}</strong></div>
+        <div className={styles.summaryRow}><span>{labels.total}</span><strong>{formatCurrency(payableEstimate)}</strong></div>
       </div>
       {isPayPalInline && selectedMethod && canStartPayment ? (
         <PayPalButton
@@ -944,23 +1061,45 @@ function PaymentPanel({ order, mode, guestSessionId }: { order: TableOrderState;
           table={bootstrap.table}
           methodCode={selectedMethod.code}
           providerCode={selectedMethod.providerCode}
-          amount={payable}
+          amount={payableEstimate}
           currency={bootstrap.restaurant.currency}
-          tipAmount={tipAmount}
-          couponCode={couponCode.trim() || null}
-          couponDiscount={couponDiscount}
+          tipAmount={tipAmountEstimate}
+          couponCode={mode === 'split' ? null : couponCode.trim() || null}
+          couponDiscount={mode === 'split' ? 0 : couponDiscount}
           selectedItems={selectedItemsPayload}
           payerLabel={payerLabel}
-          items={providerItems}
-          onSuccess={completePaymentLocally}
+          items={order.items.filter((item) => item.unpaidQuantity > 0).map((item) => ({ id: String(item.orderMenuId || item.menuId), name: item.name, quantity: item.unpaidQuantity, price: item.price * grossRatio }))}
+          prepareSplitIntent={mode === 'split' && splitMode !== 'full' ? prepareSplit : undefined}
+          guestSessionId={guestSessionId}
+          onSuccess={() => completePaymentLocally()}
           onError={setMessage}
+        />
+      ) : isStripeInline && selectedMethod && canStartPayment ? (
+        <StripeInlinePayment
+          key={`r35c-${paymentMethodKey(selectedMethod)}-${order.orderId}`}
+          orderId={order.orderId}
+          table={bootstrap.table}
+          methodCode={selectedMethod.code}
+          providerCode={selectedMethod.providerCode}
+          amount={payableEstimate}
+          currency={bootstrap.restaurant.currency}
+          tipAmount={tipAmountEstimate}
+          couponCode={mode === 'split' ? null : couponCode.trim() || null}
+          couponDiscount={mode === 'split' ? 0 : couponDiscount}
+          selectedItems={selectedItemsPayload}
+          payerLabel={payerLabel}
+          items={order.items.filter((item) => item.unpaidQuantity > 0).map((item) => ({ id: String(item.orderMenuId || item.menuId), name: item.name, quantity: item.unpaidQuantity, price: item.price * grossRatio }))}
+          prepareSplitIntent={mode === 'split' && splitMode !== 'full' ? prepareSplit : undefined}
+          guestSessionId={guestSessionId}
+          locale={locale}
+          onSuccess={(amount) => completePaymentLocally(amount)}
         />
       ) : (
         <button className={styles.primary} type="button" onClick={() => void pay()} disabled={busy || !canStartPayment}>
-          {busy ? <LoaderCircle /> : <CreditCard />} {splitMode === 'items' && !selectedItemsPayload?.length ? labels.selectItems : `${labels.pay} ${formatCurrency(payable)}`}
+          {busy ? <LoaderCircle /> : <CreditCard />} {splitMode === 'items' && !selectedItemsPayload?.length ? labels.selectItems : `${selectedMethod?.code === 'cash' || selectedMethod?.code === 'cod' ? 'Request cash' : labels.pay} ${formatCurrency(payableEstimate)}`}
         </button>
       )}
-      {message && <div className={`${styles.statusMessage} ${message.toLowerCase().includes('error') || message.toLowerCase().includes('require') || message.toLowerCase().includes('failed') ? styles.statusError : styles.statusSuccess}`}>{message}</div>}
+      {message && <div className={`${styles.statusMessage} ${message.toLowerCase().includes('error') || message.toLowerCase().includes('require') || message.toLowerCase().includes('failed') || message.toLowerCase().includes('do not pay') ? styles.statusError : styles.statusSuccess}`}>{message}</div>}
     </div>
   )
 }
@@ -1051,6 +1190,13 @@ function MultiOrderPaymentPanel({ orders, guestSessionId }: { orders: TableOrder
   const [couponDiscount, setCouponDiscount] = useState(0)
   const [busy, setBusy] = useState(false)
   const [message, setMessage] = useState('')
+  const paymentChoices = useRuntimePaymentChoices(bootstrap.payments)
+
+  useEffect(() => {
+    if (!paymentChoices.some((entry) => paymentMethodKey(entry) === methodKey)) {
+      setMethodKey(paymentChoices[0] ? paymentMethodKey(paymentChoices[0]) : '')
+    }
+  }, [methodKey, paymentChoices])
 
   const remaining = Number(payableOrders.reduce((sum, order) => sum + Math.max(0, order.totals.remainingAmount), 0).toFixed(2))
   const afterCoupon = Math.max(0, remaining - couponDiscount)
@@ -1059,8 +1205,11 @@ function MultiOrderPaymentPanel({ orders, guestSessionId }: { orders: TableOrder
   const weights = payableOrders.map((order) => Math.max(0, order.totals.remainingAmount))
   const couponShares = useMemo(() => allocateMoneyByWeight(couponDiscount, weights), [couponDiscount, payableOrders])
   const tipShares = useMemo(() => allocateMoneyByWeight(tipAmount, weights), [tipAmount, payableOrders])
-  const selectedMethod = bootstrap.payments.find((entry) => paymentMethodKey(entry) === methodKey) || null
-  const selectedProvider = String(selectedMethod?.providerCode || '').trim().toLowerCase().replace(/[\s-]+/g, '_')
+  const selectedMethod = paymentChoices.find((entry) => paymentMethodKey(entry) === methodKey) || null
+  const selectedCode = String(selectedMethod?.code || '').trim().toLowerCase()
+  const configuredProvider = String(selectedMethod?.providerCode || '').trim().toLowerCase().replace(/[\s-]+/g, '_')
+  const selectedProvider = configuredProvider || (['card', 'apple_pay', 'google_pay'].includes(selectedCode) ? 'stripe' : '')
+  const isStripeInline = Boolean(selectedMethod && selectedProvider === 'stripe' && ['card', 'apple_pay', 'google_pay'].includes(selectedCode))
   const isPayPalInline = Boolean(selectedMethod && (selectedProvider === 'paypal' || (selectedMethod.code.toLowerCase() === 'paypal' && (!selectedProvider || selectedProvider === 'paypal'))))
   const allPayExisting = payableOrders.length > 1 && payableOrders.every((order) => String(order.payment || '').toLowerCase() === 'qr_pay_later')
 
@@ -1138,13 +1287,8 @@ function MultiOrderPaymentPanel({ orders, guestSessionId }: { orders: TableOrder
       }
 
       if (selectedMethod.code === 'cash' || selectedMethod.code === 'cod') {
-        await settleExistingOrderGroup({
-          allocations: orderAllocations,
-          table: bootstrap.table,
-          method: selectedMethod.code,
-          providerCode: selectedMethod.providerCode,
-        })
-        await completePaymentLocally()
+        await callWaiter(bootstrap.table, `Cash payment requested for ${payableOrders.length} table orders: ${formatCurrency(payable)}. Please collect and confirm in Staff/Cashier.`)
+        setMessage('Cash payment requested. Staff must collect and confirm it; the selected orders are not marked paid yet.')
         return
       }
 
@@ -1220,11 +1364,11 @@ function MultiOrderPaymentPanel({ orders, guestSessionId }: { orders: TableOrder
         </div>
       )}
 
-      {bootstrap.payments.length > 0 ? (
+      {paymentChoices.length > 0 ? (
         <div className={styles.methodGrid}>
-          {bootstrap.payments.map((entry) => {
+          {paymentChoices.map((entry) => {
             const key = paymentMethodKey(entry)
-            return <button key={key} type="button" className={`${styles.method} ${methodKey === key ? styles.methodSelected : ''}`} onClick={() => setMethodKey(key)}>{entry.code === 'cash' || entry.code === 'cod' ? <Receipt /> : <CreditCard />} {entry.name}</button>
+            return <button key={key} type="button" className={`${styles.method} ${methodKey === key ? styles.methodSelected : ''}`} onClick={() => { setMethodKey(key); setMessage('') }}>{entry.code === 'cash' || entry.code === 'cod' ? <Receipt /> : <CreditCard />} {entry.name}</button>
           })}
         </div>
       ) : <div className={`${styles.statusMessage} ${styles.statusError}`}>{labels.noPaymentMethods}</div>}
@@ -1253,6 +1397,26 @@ function MultiOrderPaymentPanel({ orders, guestSessionId }: { orders: TableOrder
           items={providerItems}
           onSuccess={completePaymentLocally}
           onError={setMessage}
+        />
+      ) : isStripeInline && selectedMethod && canStartPayment ? (
+        <StripeInlinePayment
+          key={`r35c-${paymentMethodKey(selectedMethod)}-${primaryOrderId}`}
+          orderId={primaryOrderId}
+          orderAllocations={orderAllocations}
+          table={bootstrap.table}
+          methodCode={selectedMethod.code}
+          providerCode={selectedMethod.providerCode}
+          amount={payable}
+          currency={bootstrap.restaurant.currency}
+          tipAmount={tipAmount}
+          couponCode={couponCode.trim() || null}
+          couponDiscount={couponDiscount}
+          selectedItems={null}
+          payerLabel="PMD V2 multi-order"
+          items={providerItems}
+          guestSessionId={guestSessionId}
+          locale={locale}
+          onSuccess={() => completePaymentLocally()}
         />
       ) : (
         <button className={styles.primary} type="button" onClick={() => void pay()} disabled={busy || !canStartPayment}>

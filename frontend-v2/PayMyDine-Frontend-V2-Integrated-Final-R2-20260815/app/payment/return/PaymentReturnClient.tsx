@@ -100,6 +100,34 @@ export default function PaymentReturnClient() {
             return
           }
 
+          if (reference && pending.paymentIntentToken) {
+            try {
+              await payExistingOrder({
+                orderId: pending.orderId,
+                table: pending.table,
+                method: pending.methodCode,
+                providerCode: pending.providerCode || provider,
+                paymentReference: reference,
+                amount: pending.amount,
+                tipAmount: pending.tipAmount,
+                couponCode: null,
+                couponDiscount: 0,
+                selectedItems: pending.selectedItems,
+                payerLabel: pending.payerLabel,
+                paymentIntentToken: pending.paymentIntentToken,
+                guestSessionId: null,
+              })
+              clearPendingProviderPayment(provider)
+              setState('paid')
+              setMessage('Payment confirmed. Your split payment was recorded successfully.')
+              return
+            } catch (error) {
+              setState('error')
+              setMessage(`The provider confirmed the charge, but PayMyDine could not finish settlement. Do not pay again. ${error instanceof Error ? error.message : ''}`.trim())
+              return
+            }
+          }
+
           if (reference) {
             try {
               if ((pending.settlementMode || 'pay-existing') === 'pay-existing') {

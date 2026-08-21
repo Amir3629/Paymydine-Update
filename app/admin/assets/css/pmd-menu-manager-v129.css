@@ -3484,3 +3484,87 @@ img {
 
 
 /* PMD_MENU_LEGACY_CARD_DRAG_PARITY_V138_END */
+
+/* PMD_MENU_NATIVE_GHOST_SINGLE_VISUAL_V140_2_START */
+
+/*
+ * V140.2:
+ * retain source Grid footprint but remove duplicated content.
+ */
+
+html
+body.pmd-menu-manager-page
+#pmd-menu-manager-main[data-pmd-sort-mode]:not([data-pmd-sort-mode="0"])
+.pmd-menu-card.is-sortable.is-pmd-drag-source-quiet-v1402 {
+  opacity: 1 !important;
+  visibility: visible !important;
+  transform: none !important;
+  translate: none !important;
+  scale: 1 !important;
+  animation: none !important;
+  transition: none !important;
+
+  background:
+    rgba(245, 250, 248, .42)
+    !important;
+
+  border-color:
+    rgba(7, 95, 79, .06)
+    !important;
+
+  box-shadow:
+    none !important;
+}
+
+
+/*
+ * Hide only Card children.
+ * Card itself keeps exact CSS Grid dimensions.
+ */
+html
+body.pmd-menu-manager-page
+#pmd-menu-manager-main[data-pmd-sort-mode]:not([data-pmd-sort-mode="0"])
+.pmd-menu-card.is-sortable.is-pmd-drag-source-quiet-v1402
+> * {
+  opacity: 0 !important;
+  visibility: hidden !important;
+  pointer-events: none !important;
+}
+
+
+html
+body.pmd-menu-manager-page
+#pmd-menu-manager-main
+.pmd-menu-card.is-pmd-drag-source-quiet-v1402::before,
+
+html
+body.pmd-menu-manager-page
+#pmd-menu-manager-main
+.pmd-menu-card.is-pmd-drag-source-quiet-v1402::after {
+  content: none !important;
+  display: none !important;
+}
+
+
+/*
+ * Retired visual artifacts remain forbidden.
+ */
+body.pmd-menu-manager-page
+.pmd-menu-card__native-drag-image-v135,
+
+body.pmd-menu-manager-page
+.pmd-menu-card__landing-v135,
+
+body.pmd-menu-manager-page
+.pmd-menu-card__pointer-proxy-v136,
+
+body.pmd-menu-manager-page
+.pmd-menu-card__compact-preview-v137,
+
+body.pmd-menu-manager-page
+.pmd-menu-card__slot-v139 {
+  display: none !important;
+}
+
+
+/* PMD_MENU_NATIVE_GHOST_SINGLE_VISUAL_V140_2_END */

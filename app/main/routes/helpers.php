@@ -57,26 +57,47 @@ if (!function_exists('pmd_table_order_tax_settings')) {
     }
 }
 
+// PMD_SPLIT_PAYMENT_SAFETY_R35
+if (!function_exists('pmd_table_order_service_charge_settings')) {
+    function pmd_table_order_service_charge_settings(): array
+    {
+        $enabled = (string)setting('pmd_service_charge_enabled', '0') === '1';
+        $type = strtolower(trim((string)setting('pmd_service_charge_type', 'percentage')));
+        if (!in_array($type, ['percentage', 'fixed'], true)) $type = 'percentage';
+        $value = max(0.0, round((float)setting('pmd_service_charge_value', '0'), 4));
+        $label = trim((string)setting('pmd_service_charge_label', 'Service charge')) ?: 'Service charge';
+        return ['enabled' => $enabled && $value > 0, 'type' => $type, 'value' => $value, 'label' => $label];
+    }
+}
+
 if (!function_exists('pmd_table_order_calculate_totals')) {
     function pmd_table_order_calculate_totals(array $items): array
     {
         $subtotal = pmd_table_order_item_subtotal($items);
+        $serviceCfg = pmd_table_order_service_charge_settings();
+        $serviceCharge = 0.0;
+        if ($serviceCfg['enabled']) {
+            $serviceCharge = $serviceCfg['type'] === 'fixed'
+                ? (float)$serviceCfg['value']
+                : round($subtotal * ((float)$serviceCfg['value'] / 100), 4);
+        }
+        $taxableSubtotal = round($subtotal + $serviceCharge, 4);
         $tax = pmd_table_order_tax_settings();
         $taxAmount = 0.0;
-        $total = $subtotal;
+        $total = $taxableSubtotal;
         $taxTitle = null;
         $taxSummable = 0;
 
         if (($tax['enabled'] ?? false) && (float)($tax['percentage'] ?? 0) > 0) {
             $rate = (float)$tax['percentage'];
             if ((string)($tax['menu_price'] ?? '1') === '1') {
-                $taxAmount = round($subtotal * ($rate / 100), 4);
-                $total = round($subtotal + $taxAmount, 4);
+                $taxAmount = round($taxableSubtotal * ($rate / 100), 4);
+                $total = round($taxableSubtotal + $taxAmount, 4);
                 $taxTitle = 'VAT ('.$rate.'%)';
                 $taxSummable = 1;
             } else {
-                $taxAmount = round($subtotal - ($subtotal / (1 + ($rate / 100))), 4);
-                $total = round($subtotal, 4);
+                $taxAmount = round($taxableSubtotal - ($taxableSubtotal / (1 + ($rate / 100))), 4);
+                $total = round($taxableSubtotal, 4);
                 $taxTitle = 'VAT included ('.$rate.'%)';
                 $taxSummable = 0;
             }
@@ -85,12 +106,15 @@ if (!function_exists('pmd_table_order_calculate_totals')) {
         $rows = [
             ['code' => 'subtotal', 'title' => 'Subtotal', 'value' => round($subtotal, 4), 'priority' => 1, 'is_summable' => 1],
         ];
+        if ($serviceCharge > 0) {
+            $rows[] = ['code' => 'service_charge', 'title' => $serviceCfg['label'], 'value' => round($serviceCharge, 4), 'priority' => 2, 'is_summable' => 1];
+        }
         if ($taxTitle !== null) {
-            $rows[] = ['code' => 'tax', 'title' => $taxTitle, 'value' => round($taxAmount, 4), 'priority' => 2, 'is_summable' => $taxSummable];
+            $rows[] = ['code' => 'tax', 'title' => $taxTitle, 'value' => round($taxAmount, 4), 'priority' => 3, 'is_summable' => $taxSummable];
         }
         $rows[] = ['code' => 'total', 'title' => 'Total', 'value' => round($total, 4), 'priority' => 99, 'is_summable' => 0];
 
-        return ['subtotal' => round($subtotal, 4), 'tax' => round($taxAmount, 4), 'total' => round($total, 4), 'rows' => $rows];
+        return ['subtotal' => round($subtotal, 4), 'service_charge' => round($serviceCharge, 4), 'tax' => round($taxAmount, 4), 'total' => round($total, 4), 'rows' => $rows];
     }
 }
 
@@ -124,10 +148,11 @@ if (!function_exists('pmd_table_order_totals_from_order')) {
 
         $subtotal = isset($byCode['subtotal']) ? (float)$byCode['subtotal']['value'] : $fallbackSubtotal;
         $tax = array_sum(array_map(fn($row) => strtolower((string)($row['code'] ?? '')) === 'tax' ? (float)($row['value'] ?? 0) : 0, $rows));
+        $serviceCharge = isset($byCode['service_charge']) ? (float)$byCode['service_charge']['value'] : 0.0;
         $total = isset($byCode['total']) ? (float)$byCode['total']['value'] : (float)$fallbackOrderTotal;
         if ($total <= 0) $total = $fallbackSubtotal;
 
-        return ['subtotal' => round($subtotal, 4), 'tax' => round($tax, 4), 'total' => round($total, 4), 'rows' => $rows];
+        return ['subtotal' => round($subtotal, 4), 'service_charge' => round($serviceCharge, 4), 'tax' => round($tax, 4), 'total' => round($total, 4), 'rows' => $rows];
     }
 }
 
