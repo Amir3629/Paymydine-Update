@@ -40,9 +40,8 @@ const smartKind = (value: unknown, name = ''): SmartKind => {
   }
 
   // PMD_MENU_SMART_CATEGORY_KIND_FALLBACK_V2
-  // Temporary rollout bridge only: if an upstream response still has the old
-  // category shape, default special-category names remain usable. Renamed
-  // categories use the explicit pmd_kind/kind returned by the tenant API.
+  // Rollout bridge only. The canonical menu payload now exposes pmd_kind, but
+  // default names keep old cached payloads usable until every tenant is warm.
   const normalizedName = text(name)
     .toLowerCase()
     .replace(/[’']/g, "'")
@@ -110,6 +109,7 @@ function mergeCategoryRows(
 
   const menuById = new Map<string, Record<string, any>>()
   const menuByName = new Map<string, Record<string, any>>()
+
   for (const row of menuCategoryRows) {
     const id = rowId(row)
     const name = rowName(row)
@@ -120,12 +120,11 @@ function mergeCategoryRows(
   const source = apiCategoryRows.length ? apiCategoryRows : menuCategoryRows
   const merged: Record<string, any>[] = source.map((row) => {
     const fallback = menuById.get(rowId(row)) || menuByName.get(rowName(row)) || {}
+    // Canonical /api/v1/menu data is the fallback specifically so its pmd_kind
+    // survives an older dedicated category endpoint that omits the field.
     return { ...fallback, ...row }
   })
 
-  // The canonical menu response already contains all enabled categories,
-  // including empty real categories. Keep any rows omitted by a temporarily
-  // stale dedicated category endpoint so new categories still reach guests.
   const seenIds = new Set(merged.map(rowId).filter(Boolean))
   const seenNames = new Set(merged.map(rowName).filter(Boolean))
 
@@ -141,11 +140,52 @@ function mergeCategoryRows(
   return merged
 }
 
-// PMD_MENU_SMART_CATEGORIES_V2_FRONTEND_V2
-// Smart categories are real category rows. Editable name/order comes from the
-// tenant category API, while canonical /api/v1/menu categories are retained as
-// fallback. Membership remains owned by existing Chef/manual-Bestseller/Combo
-// product fields; no parallel customer-menu persistence is introduced.
+function sameCategory(item: MenuItem, category: MenuCategory): boolean {
+  return String(item.categoryId || '').toLowerCase() === String(category.id || '').toLowerCase()
+    || item.categoryName.trim().toLowerCase() === category.name.trim().toLowerCase()
+}
+
+function materializeSmartFoodMembership(
+  items: SmartMenuItem[],
+  category: SmartMenuCategory | null,
+  predicate: (item: SmartMenuItem) => boolean,
+): void {
+  if (!category) return
+
+  const alreadyInCategory = new Set(
+    items
+      .filter((item) => sameCategory(item, category))
+      .map((item) => String(item.id)),
+  )
+
+  const sourceById = new Map<string, SmartMenuItem>()
+  for (const item of items) {
+    if (item.pmdIsCombo) continue
+    const id = String(item.id)
+    if (!sourceById.has(id)) sourceById.set(id, item)
+  }
+
+  for (const item of sourceById.values()) {
+    if (!predicate(item)) continue
+    const id = String(item.id)
+    if (alreadyInCategory.has(id)) continue
+
+    items.push({
+      ...item,
+      categoryId: category.id,
+      categoryName: category.name,
+    })
+    alreadyInCategory.add(id)
+  }
+}
+
+// PMD_MENU_SMART_CATEGORIES_V3_FRONTEND_V2
+//
+// Smart categories are real category rows. Product membership stays in the
+// existing Chef/manual-Bestseller/Combo authorities. In addition to the runtime
+// filter adapter, membership is materialized as category-specific item rows so
+// themes that group bootstrap.menu.items directly (for example Kazen) receive
+// the same smart-category semantics without theme-specific patches.
 export function applySmartCategories(
   menu: CustomerBootstrap['menu'],
   menuPayload: unknown,
@@ -219,8 +259,7 @@ export function applySmartCategories(
     .sort((a, b) => a.priority - b.priority || a.name.localeCompare(b.name))
 
   // Raw menu data can contain the same food once per normal category. Resolve
-  // item flags by product identity instead of array position so multi-category
-  // rows cannot corrupt Chef/Bestseller/Combo filtering.
+  // flags by product identity instead of array position.
   const rawByKey = new Map<string, Record<string, any>>()
   for (const raw of rawMenuRows) {
     const isCombo = yes(raw.isCombo ?? raw.is_combo)
@@ -251,6 +290,11 @@ export function applySmartCategories(
       pmdBestsellerOverrideMode: override,
     }
   })
+
+  // Make smart membership visible to every theme, including themes that group
+  // bootstrap.menu.items directly instead of asking visibleItems from runtime.
+  materializeSmartFoodMembership(items, chefCategory, (item) => item.isChefRecommended)
+  materializeSmartFoodMembership(items, bestsellerCategory, (item) => item.pmdIsManualBestseller)
 
   return {
     ...menu,
