@@ -30,7 +30,7 @@ final class BillingGroupPaymentService
             if($old){if((int)$old->billing_group_id!==(int)$g->id)throw new RuntimeException('Idempotency key belongs to another billing group.');return $this->payload($old,true);}
 
             DB::table('pmd_billing_group_payments')->where('billing_group_id',$g->id)->where('status','reserved')->whereNotNull('reserved_until')->where('reserved_until','<=',now())->update(['status'=>'expired','updated_at'=>now()]);
-            $summary=$this->groups->refreshGroupById((int)$g->id); $state=$this->groups->componentState((int)$g->id,true);
+            $summary=$this->groups->summaryForPublicId((string)$g->public_id); $state=$this->groups->componentState((int)$g->id,true);
             if(!$summary)throw new RuntimeException('Billing group could not be refreshed.');
 
             $reservedOrders=[];$reservedService=0;
@@ -82,8 +82,24 @@ final class BillingGroupPaymentService
 
             $cash=array_key_exists('cash_received_cents',$in)?max(0,(int)$in['cash_received_cents']):(array_key_exists('cash_received',$in)?max(0,$this->cents($in['cash_received'])):null);if($cash!==null&&$cash<(int)$p->payable_cents)throw new RuntimeException('Cash received is lower than payable amount.');$change=$cash===null?0:$cash-(int)$p->payable_cents;$evidence=is_array($in['provider_evidence']??null)?$in['provider_evidence']:[];if($ref!=='')$evidence['provider_reference']=$ref;
             DB::table('pmd_billing_group_payments')->where('id',$p->id)->update(['provider_reference'=>$ref!==''?$ref:$p->provider_reference,'status'=>'settled','cash_received_cents'=>$cash,'change_due_cents'=>$change,'provider_evidence'=>$evidence?json_encode($evidence,JSON_UNESCAPED_SLASHES):$p->provider_evidence,'settlement_attempts'=>(int)$p->settlement_attempts+1,'provider_confirmed_at'=>$confirmed?now():$p->provider_confirmed_at,'settled_at'=>now(),'reconciliation_reason'=>null,'updated_at'=>now()]);
-            $fresh=DB::table('pmd_billing_group_payments')->where('id',$p->id)->first();$out=$this->payload($fresh,false);$out['billingGroup']=$this->groups->refreshGroupById((int)$g->id);return $out;
+            $fresh=DB::table('pmd_billing_group_payments')->where('id',$p->id)->first();$out=$this->payload($fresh,false);$out['billingGroup']=$this->groups->summaryForPublicId((string)$g->public_id);return $out;
         });}catch(\Throwable $e){if($confirmed)$this->markReconciliation($paymentId,$e->getMessage(),$in);throw $e;}
+    }
+
+    public function cancel(string $paymentId): array
+    {
+        $paymentId=trim($paymentId);if($paymentId==='')throw new InvalidArgumentException('Payment id is required.');
+        return DB::transaction(function()use($paymentId){
+            $p=DB::table('pmd_billing_group_payments')->where('payment_id',$paymentId)->lockForUpdate()->first();if(!$p)throw new RuntimeException('Billing-group payment reservation not found.');
+            if($p->status==='settled'||$p->status==='reconciliation_required'||$p->provider_confirmed_at)throw new RuntimeException('Provider-confirmed payment cannot be cancelled.');
+            if(!in_array($p->status,['reserved','expired','cancelled'],true))throw new RuntimeException('Payment reservation is not cancellable.');
+            if($p->status!=='cancelled')DB::table('pmd_billing_group_payments')->where('id',$p->id)->update(['status'=>'cancelled','reserved_until'=>now(),'updated_at'=>now()]);
+            $fresh=DB::table('pmd_billing_group_payments')->where('id',$p->id)->first();
+            $group=DB::table('pmd_billing_groups')->where('id',$p->billing_group_id)->first();
+            $out=$this->payload($fresh,$p->status==='cancelled');
+            if($group)$out['billingGroup']=$this->groups->summaryForPublicId((string)$group->public_id);
+            return $out;
+        });
     }
 
     public function status(string $paymentId): ?array {if(!BillingGroupService::schemaReady())return null;$r=DB::table('pmd_billing_group_payments')->where('payment_id',trim($paymentId))->first();return $r?$this->payload($r,false):null;}
