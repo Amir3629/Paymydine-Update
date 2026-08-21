@@ -29,6 +29,19 @@ final class BillingGroupService
             if (Schema::hasTable('pmd_table_order_drafts')) {
                 $ids = DB::table('pmd_table_order_drafts')->where('session_key', trim($sessionKey))
                     ->where('status', 'submitted')->whereNotNull('order_id')->orderBy('order_id')->pluck('order_id');
+                // Preflight the whole visit before normalizing any child. If one
+                // child already has financial activity, preserve the entire visit
+                // as legacy passthrough so no earlier unpaid child is repriced.
+                if ($group->mode === 'r36') {
+                    foreach ($ids as $id) {
+                        $o = DB::table('orders')->where('order_id', (int)$id)->lockForUpdate()->first();
+                        if ($o && $this->hasFinancialActivity((int)$id, $o)) {
+                            DB::table('pmd_billing_groups')->where('id', $group->id)->update(['mode'=>'legacy_passthrough','updated_at'=>now()]);
+                            $group->mode = 'legacy_passthrough';
+                            break;
+                        }
+                    }
+                }
                 foreach ($ids as $id) $this->attach($group, (int)$id, 'qr_round');
             }
             return $this->refresh((int)$group->id);
@@ -109,7 +122,7 @@ final class BillingGroupService
         $existing=DB::table('pmd_billing_group_orders')->where('order_id',$orderId)->lockForUpdate()->first();
         if($existing && (int)$existing->billing_group_id!==(int)$group->id)throw new RuntimeException('Order belongs to another billing group.');
         if(!$this->belongs($o,(string)$group->table_id))throw new RuntimeException('Order/table mismatch.');
-        $activity=$this->cents($o->settled_amount??0)>0 || (Schema::hasTable('order_payment_transactions') && DB::table('order_payment_transactions')->where('order_id',$orderId)->exists());
+        $activity=$this->hasFinancialActivity($orderId,$o);
         if($group->mode==='r36' && $activity){DB::table('pmd_billing_groups')->where('id',$group->id)->update(['mode'=>'legacy_passthrough','updated_at'=>now()]);$group->mode='legacy_passthrough';}
         if($group->mode==='r36' && !$activity)$this->removeChildServiceCharge($orderId);
         $o=DB::table('orders')->where('order_id',$orderId)->first(); $snap=$this->snapshot($orderId,$o,$source);
@@ -122,14 +135,14 @@ final class BillingGroupService
         $g=DB::table('pmd_billing_groups')->where('id',$id)->lockForUpdate()->first(); if(!$g)throw new RuntimeException('Billing group not found.');
         $links=DB::table('pmd_billing_group_orders')->where('billing_group_id',$id)->orderBy('order_id')->get(); $subtotal=$tax=0;$childTotal=0;$orders=[];
         foreach($links as $l){$s=$this->json($l->financial_snapshot);$subtotal+=(int)($s['subtotal_cents']??0);$tax+=(int)($s['tax_cents']??0);$childTotal+=(int)($s['total_cents']??0);$orders[]=['orderId'=>(int)$l->order_id,'source'=>$l->source,'snapshot'=>$s];}
-        $svc=0;$svcTax=0;$t=$this->taxSettings();
-        if($g->mode==='r36'){$cfg=$this->serviceSettings();if($cfg['enabled'])$svc=ServiceChargeCalculator::calculate($subtotal,$cfg['type'],$cfg['value']);if($t['enabled']&&$t['menu_price']==='1')$svcTax=(int)round($svc*$t['percentage']/100);$total=$childTotal+$svc+$svcTax;}else{$total=$childTotal;}
+        $svc=0;$svcTax=0;$svcTaxAdded=0;$t=$this->taxSettings();
+        if($g->mode==='r36'){$cfg=$this->serviceSettings();if($cfg['enabled'])$svc=ServiceChargeCalculator::calculate($subtotal,$cfg['type'],$cfg['value']);if($t['enabled']&&$t['percentage']>0&&$svc>0){if($t['menu_price']==='1'){$svcTax=(int)round($svc*$t['percentage']/100);$svcTaxAdded=$svcTax;}else{$svcTax=(int)round($svc-($svc/(1+$t['percentage']/100)));}}$total=$childTotal+$svc+$svcTaxAdded;}else{$total=$childTotal;}
         $paid=0;foreach($orders as $r){$o=DB::table('orders')->where('order_id',$r['orderId'])->first();if($o)$paid+=min((int)$r['snapshot']['total_cents'],$this->cents($o->settled_amount??0));}
         $paidSvc=0;$discount=0;$tip=0;$recon=false;foreach(DB::table('pmd_billing_group_payments')->where('billing_group_id',$id)->get() as $p){if($p->status==='settled'){$a=$this->json($p->allocation_snapshot);$paidSvc+=(int)($a['service_component_cents']??0);$discount+=(int)$p->discount_cents;$tip+=(int)$p->tip_cents;}if($p->status==='reconciliation_required')$recon=true;}
-        $paid=min($total,$paid+min($svc+$svcTax,$paidSvc));$status=$recon?'reconciliation_required':($total>0&&$paid>=$total?'paid':($paid>0?'partial':'unpaid'));
-        $vat=['version'=>1,'tax_enabled'=>$t['enabled'],'tax_percentage'=>$t['percentage'],'tax_menu_price'=>$t['menu_price'],'child_tax_cents'=>$tax,'service_charge_tax_added_cents'=>$svcTax,'captured_at'=>now()->toIso8601String()];
+        $paid=min($total,$paid+min($svc+$svcTaxAdded,$paidSvc));$status=$recon?'reconciliation_required':($total>0&&$paid>=$total?'paid':($paid>0?'partial':'unpaid'));
+        $vat=['version'=>1,'tax_enabled'=>$t['enabled'],'tax_percentage'=>$t['percentage'],'tax_menu_price'=>$t['menu_price'],'child_tax_cents'=>$tax,'service_charge_tax_cents'=>$svcTax,'service_charge_tax_added_cents'=>$svcTaxAdded,'captured_at'=>now()->toIso8601String()];
         DB::table('pmd_billing_groups')->where('id',$id)->update(['subtotal_cents'=>$subtotal,'service_charge_cents'=>$svc,'discount_cents'=>$discount,'tip_cents'=>$tip,'total_cents'=>$total,'paid_cents'=>$paid,'vat_snapshot'=>json_encode($vat),'payment_status'=>$status,'reconciliation_reason'=>$recon?$g->reconciliation_reason:null,'updated_at'=>now()]);
-        return ['publicId'=>$g->public_id,'tableId'=>$g->table_id,'sessionKey'=>$g->session_key,'mode'=>$g->mode,'status'=>$g->status,'currency'=>$g->currency,'subtotalCents'=>$subtotal,'serviceChargeCents'=>$svc,'serviceChargeTaxAddedCents'=>$svcTax,'discountCents'=>$discount,'tipCents'=>$tip,'totalCents'=>$total,'paidCents'=>$paid,'remainingCents'=>max(0,$total-$paid),'paymentStatus'=>$status,'fiscalStatus'=>$g->fiscal_status,'vatSnapshot'=>$vat,'orders'=>$orders];
+        return ['publicId'=>$g->public_id,'tableId'=>$g->table_id,'sessionKey'=>$g->session_key,'mode'=>$g->mode,'status'=>$g->status,'currency'=>$g->currency,'subtotalCents'=>$subtotal,'serviceChargeCents'=>$svc,'serviceChargeTaxCents'=>$svcTax,'serviceChargeTaxAddedCents'=>$svcTaxAdded,'discountCents'=>$discount,'tipCents'=>$tip,'totalCents'=>$total,'paidCents'=>$paid,'remainingCents'=>max(0,$total-$paid),'paymentStatus'=>$status,'fiscalStatus'=>$g->fiscal_status,'vatSnapshot'=>$vat,'orders'=>$orders];
     }
 
     private function removeChildServiceCharge(int $id): void
@@ -148,6 +161,13 @@ final class BillingGroupService
         foreach(DB::table('order_menus')->where('order_id',$id)->orderBy('order_menu_id')->get() as $r){$line=$this->cents($r->subtotal);$subtotal+=$line;$items[]=['order_menu_id'=>(int)$r->order_menu_id,'menu_id'=>(int)$r->menu_id,'quantity'=>(float)$r->quantity,'unit_price_cents'=>$this->cents($r->price),'line_total_cents'=>$line];}
         if(Schema::hasTable('order_totals'))foreach(DB::table('order_totals')->where('order_id',$id)->get() as $r){$v=$this->cents($r->value);if($r->code==='subtotal')$subtotal=$v;elseif($r->code==='tax')$tax+=$v;elseif($r->code==='service_charge')$svc+=$v;elseif($r->code==='total')$total=$v;}
         return ['version'=>1,'captured_at'=>now()->toIso8601String(),'source'=>$source,'currency'=>$this->currency(),'subtotal_cents'=>$subtotal,'tax_cents'=>$tax,'service_charge_cents'=>$svc,'total_cents'=>$total,'paid_base_cents'=>min($total,$this->cents($o->settled_amount??0)),'items'=>$items];
+    }
+
+    private function hasFinancialActivity(int $orderId,$o): bool
+    {
+        if($this->cents($o->settled_amount??0)>0)return true;
+        $status=strtolower(trim((string)($o->settlement_status??'')));if(in_array($status,['partial','paid','settled'],true))return true;
+        return Schema::hasTable('order_payment_transactions') && DB::table('order_payment_transactions')->where('order_id',$orderId)->exists();
     }
 
     private function waiterSession(string $tableId,int $orderId): string
