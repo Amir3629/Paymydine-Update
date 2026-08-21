@@ -16,6 +16,14 @@ PMD_KEEP_STAGE="${PMD_KEEP_STAGE:-1}"
 
 fail() { echo "R36 INSTALLER REFUSED: $*" >&2; exit 2; }
 log() { printf '[R36] %s\n' "$*"; }
+find_marker() {
+  local marker="$1" root="$2"
+  if command -v rg >/dev/null 2>&1; then
+    rg -q -- "$marker" "$root"
+  else
+    grep -R -q --exclude-dir=.git --exclude-dir=node_modules --exclude-dir=.next -- "$marker" "$root"
+  fi
+}
 
 [[ "$PMD_SERVICE" == "paymydine-frontend-v2" ]] || fail "Refusing non-V2 PM2 service: $PMD_SERVICE"
 [[ "$PMD_PORT" == "3002" ]] || fail "Refusing non-V2 port: $PMD_PORT"
@@ -41,7 +49,7 @@ for marker in \
   PMD_R36_CHILD_SETTLEMENT_GUARD \
   PMD_R36_CHILD_FISKALY_DEFER_GUARD \
   PMD_R36_SIGN_DE_AFTER_COMMIT; do
-  rg -q "$marker" "$PMD_SOURCE" || fail "Missing release protection marker: $marker"
+  find_marker "$marker" "$PMD_SOURCE" || fail "Missing release protection marker: $marker"
 done
 
 v2_source="$PMD_SOURCE/$PMD_V2_REL"
@@ -256,7 +264,7 @@ curl --fail --silent --show-error --output /dev/null "https://$PMD_DOMAIN/previe
 
 # Verify protected source markers survived activation.
 for marker in PMD_R36_CHILD_SETTLEMENT_GUARD PMD_R36_CHILD_FISKALY_DEFER_GUARD PMD_CASHIER_MANUAL_TABLE_FREE_R45; do
-  rg -q "$marker" "$PMD_ROOT" || fail "Post-activation marker missing: $marker"
+  find_marker "$marker" "$PMD_ROOT" || fail "Post-activation marker missing: $marker"
 done
 
 activation_started=0
