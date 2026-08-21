@@ -2,6 +2,7 @@
 
 namespace App\Http\Middleware;
 
+use App\Services\Financial\BillingGroupService;
 use Closure;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -46,6 +47,28 @@ class TenantDatabaseMiddleware
             'tenant_domain' => $tenantInfo->domain ?? null,
             'tenant_db' => $tenantInfo->database ?? null,
         ]);
+
+        // PMD_R36_CHILD_SETTLEMENT_GUARD
+        // A new Final Bill can only settle through its Billing Group payment ID.
+        // Keep /orders/pay-existing available for legacy_passthrough/non-R36 visits.
+        if ($request->isMethod('post')
+            && str_ends_with(trim($request->path(), '/'), 'orders/pay-existing')
+            && BillingGroupService::schemaReady()) {
+            $orderId = (int)$request->input('order_id', 0);
+            if ($orderId > 0) {
+                $link = DB::table('pmd_billing_group_orders')->where('order_id', $orderId)->first();
+                if ($link) {
+                    $group = DB::table('pmd_billing_groups')->where('id', (int)$link->billing_group_id)->first();
+                    if ($group && (string)$group->mode === 'r36') {
+                        return response()->json([
+                            'success' => false,
+                            'error' => 'This order belongs to an R36 Final Bill. Use the Billing Group payment reservation/settlement authority.',
+                            'billing_group_public_id' => (string)$group->public_id,
+                        ], 409);
+                    }
+                }
+            }
+        }
 
         $response = $next($request);
 
