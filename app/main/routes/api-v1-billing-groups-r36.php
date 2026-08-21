@@ -1,12 +1,13 @@
 <?php
 
+use App\Services\Financial\BillingGroupInvoiceService;
 use App\Services\Financial\BillingGroupPaymentService;
 use App\Services\Financial\BillingGroupService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
 Route::middleware([\App\Http\Middleware\TenantDatabaseMiddleware::class])->group(function (): void {
-    Route::get('/billing-groups/current', function (Request $request, BillingGroupService $groups) {
+    Route::get('/billing-groups/current', function (Request $request, BillingGroupService $groups, BillingGroupInvoiceService $invoices) {
         $tableId = trim((string)$request->query('table_id', ''));
         $sessionKey = trim((string)$request->query('session_key', ''));
         if ($tableId === '') {
@@ -23,7 +24,7 @@ Route::middleware([\App\Http\Middleware\TenantDatabaseMiddleware::class])->group
             if (!$summary) {
                 return response()->json(['success' => true, 'billingGroup' => null]);
             }
-            return response()->json(['success' => true, 'billingGroup' => $summary]);
+            return response()->json(['success' => true, 'billingGroup' => $invoices->decorateSummary($summary)]);
         } catch (\Throwable $e) {
             report($e);
             return response()->json(['success' => false, 'error' => $e->getMessage()], 409);
@@ -94,6 +95,17 @@ Route::middleware([\App\Http\Middleware\TenantDatabaseMiddleware::class])->group
         }
     });
 
+    Route::post('/billing-group-payments/{paymentId}/cancel', function (
+        string $paymentId,
+        BillingGroupPaymentService $payments
+    ) {
+        try {
+            return response()->json(['success' => true, 'payment' => $payments->cancel($paymentId)]);
+        } catch (\Throwable $e) {
+            return response()->json(['success' => false, 'error' => $e->getMessage()], 409);
+        }
+    });
+
     Route::get('/billing-group-payments/{paymentId}', function (
         string $paymentId,
         BillingGroupPaymentService $payments
@@ -103,5 +115,23 @@ Route::middleware([\App\Http\Middleware\TenantDatabaseMiddleware::class])->group
             return response()->json(['success' => false, 'error' => 'Payment not found'], 404);
         }
         return response()->json(['success' => true, 'payment' => $state]);
+    });
+
+    Route::get('/billing-groups/{publicId}/invoice', function (
+        string $publicId,
+        Request $request,
+        BillingGroupInvoiceService $invoices
+    ) {
+        try {
+            $document = $invoices->render($publicId, (string)$request->query('token', ''));
+            return response($document['html'], 200, [
+                'Content-Type' => 'text/html; charset=UTF-8',
+                'Content-Disposition' => 'attachment; filename="'.$document['filename'].'"',
+                'Cache-Control' => 'private, no-store',
+                'X-Content-Type-Options' => 'nosniff',
+            ]);
+        } catch (\Throwable $e) {
+            return response()->json(['success' => false, 'error' => $e->getMessage()], 403);
+        }
     });
 });
