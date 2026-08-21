@@ -25,7 +25,11 @@ final class BillingGroupInvoiceService
         if (!$group) return $summary;
 
         $identity = $this->identity();
-        $fiscalReady = in_array((string)$group->fiscal_status, ['not_required', 'fiscalized'], true);
+        // Fiskaly documents that a temporary missing TSS signature does not make
+        // the receipt itself invalid. A remote `failed` state may therefore still
+        // expose the canonical invoice with an explicit TSS-unavailable notice.
+        // `blocked` is different: it represents unresolved merchant/tax policy.
+        $fiscalReady = in_array((string)$group->fiscal_status, ['not_required', 'fiscalized', 'failed'], true);
         $available = (string)$group->mode === 'r36'
             && (string)$group->status === 'closed'
             && (string)$group->payment_status === 'paid'
@@ -117,8 +121,8 @@ final class BillingGroupInvoiceService
             || trim((string)($group->invoice_number ?? '')) === '') {
             throw new RuntimeException('Final Bill invoice is not available yet.');
         }
-        if (!in_array((string)$group->fiscal_status, ['not_required', 'fiscalized'], true)) {
-            throw new RuntimeException('Final Bill invoice is waiting for fiscalization or fiscal reconciliation.');
+        if (!in_array((string)$group->fiscal_status, ['not_required', 'fiscalized', 'failed'], true)) {
+            throw new RuntimeException('Final Bill invoice is waiting for fiscal policy/fiscalization.');
         }
 
         $identity = $this->identity();
@@ -173,7 +177,7 @@ final class BillingGroupInvoiceService
 
         $fiscal = $this->fiscalHtml($group, $escape);
         $html = '<!doctype html><html><head><meta charset="utf-8"><title>'.$escape($group->invoice_number).'</title>'
-            .'<style>body{font-family:Arial,sans-serif;max-width:820px;margin:32px auto;color:#17202a}table{width:100%;border-collapse:collapse;margin:18px 0}td,th{padding:8px;border-bottom:1px solid #ddd;text-align:left}.totals{margin-left:auto;max-width:390px}.muted{color:#667085}.merchant{margin-bottom:24px}.fiscal{margin-top:28px;padding:14px;border:1px solid #ddd;word-break:break-word}</style>'
+            .'<style>body{font-family:Arial,sans-serif;max-width:820px;margin:32px auto;color:#17202a}table{width:100%;border-collapse:collapse;margin:18px 0}td,th{padding:8px;border-bottom:1px solid #ddd;text-align:left}.totals{margin-left:auto;max-width:390px}.muted{color:#667085}.merchant{margin-bottom:24px}.fiscal{margin-top:28px;padding:14px;border:1px solid #ddd;word-break:break-word}.fiscal-warning{border-color:#b54708;background:#fffaeb}</style>'
             .'</head><body>'.$merchant.'<h1>PayMyDine Final Bill</h1><p><strong>Invoice:</strong> '.$escape($group->invoice_number)
             .'<br><strong>Table:</strong> '.$escape($group->table_id)
             .'<br><strong>Visit:</strong> '.$escape($group->session_key)
@@ -201,6 +205,14 @@ final class BillingGroupInvoiceService
         if ((string)$group->fiscal_status === 'not_required') {
             return '<section class="fiscal"><strong>Fiscal status:</strong> not required by the configured location integration.</section>';
         }
+        if ((string)$group->fiscal_status === 'failed') {
+            return '<section class="fiscal fiscal-warning"><h2>Fiscal / TSE evidence</h2>'
+                .'<strong>TSS not available / signing failed.</strong> The sale and payment remain recorded. '
+                .'The fiscal transaction must be retried/reconciled and included in the required fiscal export workflow.'
+                .'<br><strong>TSS transaction ID:</strong> '.$escape($group->fiskaly_transaction_id ?? '')
+                .'<br><strong>Error:</strong> '.$escape($group->fiscal_error ?? 'Unknown signing error').'</section>';
+        }
+
         $receipt = json_decode((string)($group->fiskaly_receipt ?? ''), true) ?: [];
         $response = is_array($receipt['response'] ?? null) ? $receipt['response'] : [];
         $signature = is_array($response['signature'] ?? null) ? $response['signature'] : [];
@@ -213,7 +225,9 @@ final class BillingGroupInvoiceService
             'TSS serial' => $response['tss_serial_number'] ?? ($signature['serial_number'] ?? null),
             'Client serial' => $response['client_serial_number'] ?? null,
             'Signature counter' => $signature['counter'] ?? null,
+            'Signature timestamp' => $signature['timestamp'] ?? null,
             'Signature algorithm' => $signature['algorithm'] ?? null,
+            'Signature public key' => $signature['public_key'] ?? null,
             'Signature' => $signature['value'] ?? null,
             'QR code data' => $response['qr_code_data'] ?? null,
         ];
@@ -230,7 +244,7 @@ final class BillingGroupInvoiceService
         if ((string)$group->status !== 'closed') return 'Final Bill is not closed yet.';
         if ((string)$group->payment_status !== 'paid') return 'Final Bill is not fully paid.';
         if (trim((string)($group->invoice_number ?? '')) === '') return 'Invoice number is not finalized.';
-        if (!in_array((string)$group->fiscal_status, ['not_required', 'fiscalized'], true)) {
+        if (!in_array((string)$group->fiscal_status, ['not_required', 'fiscalized', 'failed'], true)) {
             return 'Fiscal state is '.(string)$group->fiscal_status.'.';
         }
         if (!$identity['confirmed']) return 'Merchant invoice identity is not confirmed/configured.';
