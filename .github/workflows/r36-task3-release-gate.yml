@@ -49,6 +49,7 @@ jobs:
             app/admin/database/migrations/2026_08_21_361000_upgrade_pmd_billing_groups_task1.php
             app/admin/database/migrations/2026_08_21_362000_upgrade_pmd_billing_groups_task2.php
             app/admin/database/migrations/2026_08_21_363000_upgrade_pmd_billing_groups_task3_fiscal.php
+            app/admin/database/migrations/2026_08_21_364000_ensure_pmd_billing_groups_on_tenants.php
             app/admin/traits/HasInvoice.php
             app/main/routes/api-health-media.php
             app/main/routes/api-v1-billing-groups-r36.php
@@ -71,6 +72,8 @@ jobs:
           grep -q 'PMD_R36_SIGN_DE_AFTER_COMMIT' routes/pmd-waiter-pos-v22.php
           grep -q 'fiscalizeAfterCommit' routes/pmd-waiter-pos-v22.php
           grep -q 'fiscal_policy_snapshot' app/admin/database/migrations/2026_08_21_363000_upgrade_pmd_billing_groups_task3_fiscal.php
+          grep -q 'ensureActiveTenantConnections' app/admin/database/migrations/2026_08_21_364000_ensure_pmd_billing_groups_on_tenants.php
+          grep -q "where('status', 'active')" app/admin/database/migrations/2026_08_21_364000_ensure_pmd_billing_groups_on_tenants.php
           grep -q 'pmd_r36_fiscal_policy_confirmed' app/Services/Financial/BillingGroupFiscalService.php
           grep -q 'pmd_invoice_identity_confirmed' app/Services/Financial/BillingGroupInvoiceService.php
           grep -q 'invoiceBlockedReason' app/Services/Financial/BillingGroupInvoiceService.php
@@ -88,6 +91,7 @@ jobs:
           grep -q 'sudo -u ubuntu -H pm2 restart' deploy/pmd-r36-final-safe-install.sh
           grep -q 'npm run release:audit' deploy/pmd-r36-final-safe-install.sh
           grep -q 'npm run build' deploy/pmd-r36-final-safe-install.sh
+          grep -q 'php artisan igniter:up --no-interaction' deploy/pmd-r36-final-safe-install.sh
           grep -q 'Additive R36 DB migrations/evidence were intentionally retained' deploy/pmd-r36-final-safe-install.sh
 
       - name: Setup Node
