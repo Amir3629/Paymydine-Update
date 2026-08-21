@@ -5,25 +5,31 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Schema;
 
 class CategoryController extends Controller
 {
     /**
      * Get all categories (matching old API structure).
-     * PMD smart category kind is exposed when the tenant schema supports it.
+     *
+     * PMD_MENU_SMART_CATEGORY_API_V2
+     * DetectTenant owns tenant resolution for these routes. Use the tenant
+     * connection explicitly so category kind/name/order always come from the
+     * same restaurant database as /api/v1/menu.
      */
     public function index(Request $request)
     {
         try {
-            $hasSmartKind = Schema::hasColumn('categories', 'pmd_kind');
+            $conn = DB::connection('tenant');
+            $schema = $conn->getSchemaBuilder();
+            $hasSmartKind = $schema->hasColumn('categories', 'pmd_kind');
 
-            $categories = DB::table('categories')
+            $categories = $conn->table('categories')
                 ->where('status', 1)
                 ->orderBy('priority')
+                ->orderBy('name')
                 ->get();
 
-            return response()->json([
+            $response = response()->json([
                 'success' => true,
                 'data' => $categories->map(function ($category) use ($hasSmartKind) {
                     $kind = $hasSmartKind
@@ -43,18 +49,21 @@ class CategoryController extends Controller
                         'priority' => $category->priority,
                         'status' => $category->status,
                         'pmd_kind' => $kind,
+                        'kind' => $kind,
                         'created_at' => $category->created_at,
                         'updated_at' => $category->updated_at,
                     ];
-                })
+                })->values(),
+                'pmd_category_api_version' => 'smart-categories-v2',
             ]);
 
+            return $this->noStore($response);
         } catch (\Exception $e) {
-            return response()->json([
+            return $this->noStore(response()->json([
                 'success' => false,
                 'error' => 'Failed to fetch categories',
-                'message' => $e->getMessage()
-            ], 500);
+                'message' => $e->getMessage(),
+            ], 500));
         }
     }
 
@@ -64,18 +73,20 @@ class CategoryController extends Controller
     public function show($categoryId)
     {
         try {
-            $hasSmartKind = Schema::hasColumn('categories', 'pmd_kind');
+            $conn = DB::connection('tenant');
+            $schema = $conn->getSchemaBuilder();
+            $hasSmartKind = $schema->hasColumn('categories', 'pmd_kind');
 
-            $category = DB::table('categories')
+            $category = $conn->table('categories')
                 ->where('category_id', $categoryId)
                 ->where('status', 1)
                 ->first();
 
             if (!$category) {
-                return response()->json([
+                return $this->noStore(response()->json([
                     'success' => false,
-                    'error' => 'Category not found'
-                ], 404);
+                    'error' => 'Category not found',
+                ], 404));
             }
 
             $kind = $hasSmartKind
@@ -86,7 +97,7 @@ class CategoryController extends Controller
                 $kind = 'regular';
             }
 
-            return response()->json([
+            return $this->noStore(response()->json([
                 'success' => true,
                 'data' => [
                     'id' => $category->category_id,
@@ -97,17 +108,27 @@ class CategoryController extends Controller
                     'priority' => $category->priority,
                     'status' => $category->status,
                     'pmd_kind' => $kind,
+                    'kind' => $kind,
                     'created_at' => $category->created_at,
                     'updated_at' => $category->updated_at,
-                ]
-            ]);
-
+                ],
+                'pmd_category_api_version' => 'smart-categories-v2',
+            ]));
         } catch (\Exception $e) {
-            return response()->json([
+            return $this->noStore(response()->json([
                 'success' => false,
                 'error' => 'Failed to fetch category',
-                'message' => $e->getMessage()
-            ], 500);
+                'message' => $e->getMessage(),
+            ], 500));
         }
+    }
+
+    private function noStore($response)
+    {
+        return $response
+            ->header('Cache-Control', 'no-store, no-cache, must-revalidate, max-age=0')
+            ->header('Pragma', 'no-cache')
+            ->header('Expires', '0')
+            ->header('X-PMD-Category-API-Version', 'smart-categories-v2');
     }
 }
