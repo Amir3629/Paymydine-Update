@@ -4,6 +4,7 @@ use App\Services\Financial\BillingGroupInvoiceService;
 use App\Services\Financial\BillingGroupPaymentService;
 use App\Services\Financial\BillingGroupService;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Route;
 
 Route::middleware([\App\Http\Middleware\TenantDatabaseMiddleware::class])->group(function (): void {
@@ -21,6 +22,21 @@ Route::middleware([\App\Http\Middleware\TenantDatabaseMiddleware::class])->group
             $summary = $sessionKey !== ''
                 ? $groups->synchronizeTableSession($tableId, $sessionKey)
                 : $groups->findOpenSummaryForTable($tableId);
+
+            // PMD_R36_CLOSED_FINAL_BILL_DISCOVERY
+            // Once Staff Free closes the physical visit there is intentionally no
+            // open group anymore. The customer still needs the just-finalized invoice,
+            // so a no-session lookup may return the newest closed group for this table.
+            if (!$summary && $sessionKey === '') {
+                $latest = DB::table('pmd_billing_groups')
+                    ->where('table_id', $tableId)
+                    ->orderByDesc('id')
+                    ->first();
+                if ($latest) {
+                    $summary = $groups->summaryForPublicId((string)$latest->public_id);
+                }
+            }
+
             if (!$summary) {
                 return response()->json(['success' => true, 'billingGroup' => null]);
             }
