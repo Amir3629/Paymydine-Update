@@ -16,6 +16,9 @@ export type MenuItem = {
   category: string // FIXED: Changed from hardcoded union to dynamic string
   category_id?: number
   category_name?: string
+  category_names?: string[]
+  isCombo?: boolean
+  comboId?: number | null
   calories?: number | null
   protein?: number | null
   carbs?: number | null
@@ -171,6 +174,8 @@ const convertApiMenuItem = (apiItem: ApiMenuItem, categoryName?: string): MenuIt
   }
   // If already a full URL (http://...), leave as-is
   // If empty or default placeholder, leave as-is
+
+  const resolvedCategory = categoryName || apiItem.category_name || 'Main Course'
   
   return {
     id: apiItem.id,
@@ -186,9 +191,12 @@ const convertApiMenuItem = (apiItem: ApiMenuItem, categoryName?: string): MenuIt
     gallery: normalizeApiMenuImageList((apiItem as any).gallery),
     media: Array.isArray((apiItem as any).media) ? (apiItem as any).media : [],
     // FIXED: Use API category name directly, no mapping at all
-    category: categoryName || apiItem.category_name || 'Main Course',
+    category: resolvedCategory,
     category_id: apiItem.category_id,
     category_name: apiItem.category_name,
+    category_names: [resolvedCategory],
+    isCombo: toBoolean((apiItem as any).isCombo),
+    comboId: (apiItem as any).comboId == null ? null : Number((apiItem as any).comboId),
     calories: toNumberOrNull(apiItem.calories ?? apiItem.nutrition?.calories),
     protein: toNumberOrNull(apiItem.protein ?? apiItem.nutrition?.protein),
     carbs: toNumberOrNull(apiItem.carbs ?? apiItem.nutrition?.carbs),
@@ -263,35 +271,90 @@ const normalizeMenuHighlightSettings = (value: any): MenuHighlightSettings => {
   }
 }
 
-// FIXED: Update getMenuData to return categoryNames from API
+// PMD_MENU_SMART_CATEGORIES_V1_FRONTEND
+// Smart categories are persisted as normal categories for name/order, while
+// membership for Chef/Bestseller/Combinations reuses the existing product flags.
 export async function getMenuData(): Promise<{ categories: MenuItem[][], menuItems: MenuItem[], categoryNames: string[], isFrontendConfigured: boolean, menuHighlightSettings: MenuHighlightSettings, menuCacheVersion: string }> {
   try {
     const menuResponse = await apiClient.getMenu()
-    
-    // Convert API items to frontend format
+
     const rawItems = (menuResponse?.data?.items ?? menuResponse?.data ?? []);
     const safeItems = Array.isArray(rawItems) ? rawItems : [];
-    const menuItems: MenuItem[] = safeItems.map(apiItem => 
+    let menuItems: MenuItem[] = safeItems.map(apiItem =>
       convertApiMenuItem(apiItem, apiItem.category_name)
     ) || []
-    
-    // FIXED: Get category names directly from API response
+
     const catsResp = await apiClient.getCategories();
-    const categoryNames = (catsResp?.data ?? []).map((c: any) => c.category_name ?? c.name).filter(Boolean);
-    
-    // Group items by category
+    const categoryDefinitions = (catsResp?.data ?? [])
+      .map((category: any) => ({
+        id: Number(category.id ?? category.category_id ?? 0),
+        name: String(category.category_name ?? category.name ?? '').trim(),
+        kind: String(category.pmd_kind ?? 'regular').trim().toLowerCase(),
+        priority: Number(category.priority ?? 999999),
+      }))
+      .filter((category: any) => Boolean(category.name))
+
+    const specialName = (kind: string): string | null =>
+      categoryDefinitions.find((category: any) => category.kind === kind)?.name || null
+
+    const chefCategoryName = specialName('chef')
+    const bestsellerCategoryName = specialName('bestseller')
+    const comboCategoryName = specialName('combos')
+
+    menuItems = menuItems.map((item) => {
+      if (item.isCombo && comboCategoryName) {
+        return {
+          ...item,
+          category: comboCategoryName,
+          category_name: comboCategoryName,
+          category_names: [comboCategoryName],
+        }
+      }
+
+      const names = new Set<string>()
+      if (item.category) names.add(item.category)
+      if (item.is_chef_recommended && chefCategoryName) names.add(chefCategoryName)
+      if (item.is_bestseller && bestsellerCategoryName) names.add(bestsellerCategoryName)
+
+      return {
+        ...item,
+        category_names: Array.from(names),
+      }
+    })
+
+    const categoryNames = categoryDefinitions.map((category: any) => category.name)
+
     const categoryGroups: Record<string, MenuItem[]> = {}
     menuItems.forEach(item => {
-      const categoryName = item.category
-      if (!categoryGroups[categoryName]) {
-        categoryGroups[categoryName] = []
-      }
-      categoryGroups[categoryName].push(item)
+      const names = item.category_names?.length ? item.category_names : [item.category]
+      names.filter(Boolean).forEach((categoryName) => {
+        if (!categoryGroups[categoryName]) categoryGroups[categoryName] = []
+        if (!categoryGroups[categoryName].some(existing => existing.id === item.id && Boolean(existing.isCombo) === Boolean(item.isCombo))) {
+          categoryGroups[categoryName].push(item)
+        }
+      })
     })
-    
-    const categories = Object.values(categoryGroups)
-    
-    return { categories, menuItems, categoryNames, isFrontendConfigured: menuResponse?.data?.is_frontend_configured !== false, menuHighlightSettings: normalizeMenuHighlightSettings((menuResponse?.data as any)?.menu_highlight_settings), menuCacheVersion: String((menuResponse?.data as any)?.menu_cache_version || 'default') }
+
+    const categories = categoryNames.map(name => categoryGroups[name] || [])
+
+    const menuHighlightSettings = normalizeMenuHighlightSettings((menuResponse?.data as any)?.menu_highlight_settings)
+
+    // When Chef/Bestseller are promoted to real ordered categories, suppress the
+    // legacy virtual highlight sections to avoid rendering the same foods twice.
+    if (chefCategoryName || bestsellerCategoryName) {
+      menuHighlightSettings.section_placement = 'hidden'
+    }
+    if (chefCategoryName) menuHighlightSettings.chef_label = chefCategoryName
+    if (bestsellerCategoryName) menuHighlightSettings.bestseller_label = bestsellerCategoryName
+
+    return {
+      categories,
+      menuItems,
+      categoryNames,
+      isFrontendConfigured: menuResponse?.data?.is_frontend_configured !== false,
+      menuHighlightSettings,
+      menuCacheVersion: String((menuResponse?.data as any)?.menu_cache_version || 'default')
+    }
   } catch (error) {
     console.error('Failed to fetch menu data from API:', error)
     return { categories: [], menuItems: [], categoryNames: [], isFrontendConfigured: true, menuHighlightSettings: defaultMenuHighlightSettings, menuCacheVersion: 'fallback' }
