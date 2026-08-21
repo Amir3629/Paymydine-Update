@@ -64,7 +64,6 @@ runtime_files=()
 for row in "${changed_rows[@]}"; do
   status="${row%%$'\t'*}"
   rest="${row#*$'\t'}"
-  # Rename rows have old<TAB>new. R36 release intentionally refuses runtime renames.
   if [[ "$status" == R* || "$status" == C* ]]; then
     fail "Runtime release contains rename/copy status $status; review manually before deployment"
   fi
@@ -78,7 +77,6 @@ done
 
 ((${#runtime_files[@]} > 0)) || fail "No deployable runtime files found"
 
-# Reject destructive deletions under runtime authority. R36 is additive and should not need them.
 for row in "${changed_rows[@]}"; do
   status="${row%%$'\t'*}"
   rel="${row#*$'\t'}"
@@ -212,8 +210,10 @@ chmod 700 "$backup/rollback.sh"
 
 activation_started=1
 
-# Copy additive migrations first, migrate live, then activate code that references them.
-log "Activating additive migration files"
+# Copy additive Admin module migrations first, then run the TastyIgniter update
+# manager. The final R36 repair migration applies the complete schema to every
+# active tenant database and fails closed if any active tenant cannot be updated.
+log "Activating additive R36 migration files"
 for rel in "${runtime_files[@]}"; do
   case "$rel" in
     app/admin/database/migrations/2026_08_21_36*.php)
@@ -224,10 +224,10 @@ for rel in "${runtime_files[@]}"; do
   esac
 done
 
-log "Running live Laravel migrations (additive R36 evidence schema)"
+log "Running tenant-aware TastyIgniter schema update"
 (
   cd "$PMD_ROOT"
-  php artisan migrate --force --no-interaction
+  php artisan igniter:up --no-interaction
 )
 
 log "Activating reviewed runtime source files"
@@ -262,7 +262,6 @@ done
 curl --fail --silent --show-error "https://$PMD_DOMAIN/api/health" >/dev/null || fail "Public health failed"
 curl --fail --silent --show-error --output /dev/null "https://$PMD_DOMAIN/preview" || fail "Public V2 preview failed"
 
-# Verify protected source markers survived activation.
 for marker in PMD_R36_CHILD_SETTLEMENT_GUARD PMD_R36_CHILD_FISKALY_DEFER_GUARD PMD_CASHIER_MANUAL_TABLE_FREE_R45; do
   find_marker "$marker" "$PMD_ROOT" || fail "Post-activation marker missing: $marker"
 done
