@@ -16,7 +16,9 @@ const object = (value: unknown): Record<string, any> =>
     : {}
 
 const list = (value: unknown): Record<string, any>[] =>
-  Array.isArray(value) ? value.filter((row) => row && typeof row === 'object') as Record<string, any>[] : []
+  Array.isArray(value)
+    ? value.filter((row) => row && typeof row === 'object') as Record<string, any>[]
+    : []
 
 const text = (value: unknown): string => String(value ?? '').trim()
 
@@ -31,11 +33,40 @@ const yes = (value: unknown): boolean => {
   return ['1', 'true', 'yes', 'on', 'enabled', 'active'].includes(text(value).toLowerCase())
 }
 
-const smartKind = (value: unknown): SmartKind => {
+const smartKind = (value: unknown, name = ''): SmartKind => {
   const normalized = text(value).toLowerCase()
-  return normalized === 'chef' || normalized === 'bestseller' || normalized === 'combos'
-    ? normalized
-    : 'regular'
+  if (normalized === 'chef' || normalized === 'bestseller' || normalized === 'combos') {
+    return normalized
+  }
+
+  // PMD_MENU_SMART_CATEGORY_KIND_FALLBACK_V2
+  // Temporary rollout bridge only: if an upstream response still has the old
+  // category shape, default special-category names remain usable. Renamed
+  // categories use the explicit pmd_kind/kind returned by the tenant API.
+  const normalizedName = text(name)
+    .toLowerCase()
+    .replace(/[’']/g, "'")
+    .replace(/\s+/g, ' ')
+
+  if (
+    normalizedName === "chef's recommendation"
+    || normalizedName === "chef's recommendations"
+    || normalizedName === 'chef recommendation'
+    || normalizedName === 'chef recommendations'
+  ) return 'chef'
+
+  if (normalizedName === 'bestseller' || normalizedName === 'bestsellers') {
+    return 'bestseller'
+  }
+
+  if (
+    normalizedName === 'combination'
+    || normalizedName === 'combinations'
+    || normalizedName === 'combo'
+    || normalizedName === 'combos'
+  ) return 'combos'
+
+  return 'regular'
 }
 
 function responseRows(payload: unknown): Record<string, any>[] {
@@ -56,22 +87,71 @@ function menuRows(payload: unknown): Record<string, any>[] {
   return []
 }
 
+function rowId(row: Record<string, any>): string {
+  return text(row.id ?? row.category_id).toLowerCase()
+}
+
+function rowName(row: Record<string, any>): string {
+  return text(row.name ?? row.category_name).toLowerCase()
+}
+
 function categoryKey(category: { id: unknown; name: unknown }): string {
   const id = text(category.id).toLowerCase()
   const name = text(category.name).toLowerCase()
   return id ? `id:${id}` : `name:${name}`
 }
 
-// PMD_MENU_SMART_CATEGORIES_V1_FRONTEND_V2
-// Frontend V2 is the live tenant runtime on port 3002. Smart categories keep
-// their editable name/priority as real category rows, while item membership is
-// resolved from the existing Chef/Bestseller/Combo product authorities.
+function mergeCategoryRows(
+  menuPayload: unknown,
+  categoriesPayload: unknown,
+): Record<string, any>[] {
+  const menuCategoryRows = responseRows(menuPayload)
+  const apiCategoryRows = responseRows(categoriesPayload)
+
+  const menuById = new Map<string, Record<string, any>>()
+  const menuByName = new Map<string, Record<string, any>>()
+  for (const row of menuCategoryRows) {
+    const id = rowId(row)
+    const name = rowName(row)
+    if (id) menuById.set(id, row)
+    if (name) menuByName.set(name, row)
+  }
+
+  const source = apiCategoryRows.length ? apiCategoryRows : menuCategoryRows
+  const merged: Record<string, any>[] = source.map((row) => {
+    const fallback = menuById.get(rowId(row)) || menuByName.get(rowName(row)) || {}
+    return { ...fallback, ...row }
+  })
+
+  // The canonical menu response already contains all enabled categories,
+  // including empty real categories. Keep any rows omitted by a temporarily
+  // stale dedicated category endpoint so new categories still reach guests.
+  const seenIds = new Set(merged.map(rowId).filter(Boolean))
+  const seenNames = new Set(merged.map(rowName).filter(Boolean))
+
+  for (const row of menuCategoryRows) {
+    const id = rowId(row)
+    const name = rowName(row)
+    if ((id && seenIds.has(id)) || (name && seenNames.has(name))) continue
+    merged.push(row)
+    if (id) seenIds.add(id)
+    if (name) seenNames.add(name)
+  }
+
+  return merged
+}
+
+// PMD_MENU_SMART_CATEGORIES_V2_FRONTEND_V2
+// Smart categories are real category rows. Editable name/order comes from the
+// tenant category API, while canonical /api/v1/menu categories are retained as
+// fallback. Membership remains owned by existing Chef/manual-Bestseller/Combo
+// product fields; no parallel customer-menu persistence is introduced.
 export function applySmartCategories(
   menu: CustomerBootstrap['menu'],
   menuPayload: unknown,
   categoriesPayload: unknown,
 ): CustomerBootstrap['menu'] {
-  const categoryRows = responseRows(categoriesPayload)
+  const categoryRows = mergeCategoryRows(menuPayload, categoriesPayload)
   const rawMenuRows = menuRows(menuPayload)
 
   const currentById = new Map(
@@ -85,6 +165,7 @@ export function applySmartCategories(
     const id = text(row.id ?? row.category_id)
     const name = text(row.name ?? row.category_name) || `Category ${index + 1}`
     const existing = currentById.get(id.toLowerCase()) || currentByName.get(name.toLowerCase())
+    const kindRaw = row.pmd_kind ?? row.pmdKind ?? row.kind ?? row.category_kind
 
     return {
       ...(existing || {
@@ -99,7 +180,7 @@ export function applySmartCategories(
       name,
       description: text(row.description) || existing?.description || '',
       priority: number(row.priority, existing?.priority ?? index + 1),
-      pmdKind: smartKind(row.pmd_kind),
+      pmdKind: smartKind(kindRaw, name),
     }
   })
 
@@ -121,9 +202,8 @@ export function applySmartCategories(
     const id = text(category.id).toLowerCase()
     const name = category.name.trim().toLowerCase()
 
-    // The legacy /api/v1/menu response may still synthesize a fixed "Combos"
-    // category. Once a real editable combos smart category exists, that old
-    // synthetic navigation entry must disappear.
+    // A real editable Combination category replaces only the old synthetic
+    // fixed "Combos" navigation item.
     if (comboCategory && id === 'combos' && name === 'combos') return
 
     const duplicate = smartCategories.some((candidate) =>
@@ -138,9 +218,23 @@ export function applySmartCategories(
   const categories = Array.from(categoryMap.values())
     .sort((a, b) => a.priority - b.priority || a.name.localeCompare(b.name))
 
-  const items: SmartMenuItem[] = menu.items.map((item, index) => {
-    const raw = rawMenuRows[index] || {}
+  // Raw menu data can contain the same food once per normal category. Resolve
+  // item flags by product identity instead of array position so multi-category
+  // rows cannot corrupt Chef/Bestseller/Combo filtering.
+  const rawByKey = new Map<string, Record<string, any>>()
+  for (const raw of rawMenuRows) {
     const isCombo = yes(raw.isCombo ?? raw.is_combo)
+    const id = text(raw.id ?? raw.menu_id ?? raw.combo_id)
+    if (!id) continue
+    const key = `${isCombo ? 'combo' : 'food'}:${id}`
+    if (!rawByKey.has(key)) rawByKey.set(key, raw)
+  }
+
+  const items: SmartMenuItem[] = menu.items.map((item) => {
+    const possibleFood = rawByKey.get(`food:${item.id}`)
+    const possibleCombo = rawByKey.get(`combo:${item.id}`)
+    const raw = possibleCombo || possibleFood || {}
+    const isCombo = Boolean(possibleCombo) || yes(raw.isCombo ?? raw.is_combo)
     const overrideRaw = text(raw.bestseller_override_mode).toLowerCase()
     const override: SmartMenuItem['pmdBestsellerOverrideMode'] =
       overrideRaw === 'force_on' || overrideRaw === 'force_off'
