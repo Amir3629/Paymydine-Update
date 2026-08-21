@@ -2,6 +2,7 @@
 
 namespace App\Http\Middleware;
 
+use App\Services\Financial\BillingGroupInvoiceService;
 use App\Services\Financial\BillingGroupService;
 use Closure;
 use Illuminate\Support\Facades\DB;
@@ -13,9 +14,13 @@ final class PmdBillingGroupSync
     /** @var BillingGroupService */
     private $billingGroups;
 
-    public function __construct(BillingGroupService $billingGroups)
+    /** @var BillingGroupInvoiceService */
+    private $invoices;
+
+    public function __construct(BillingGroupService $billingGroups, BillingGroupInvoiceService $invoices)
     {
         $this->billingGroups = $billingGroups;
+        $this->invoices = $invoices;
     }
 
     public function handle($request, Closure $next)
@@ -84,7 +89,10 @@ final class PmdBillingGroupSync
 
             $summary = $this->billingGroups->synchronizeTableSession($tableId, $sessionKey);
             if ($summary && method_exists($response, 'setData')) {
-                $payload['billingGroup'] = $summary;
+                if (($summary['mode'] ?? '') === 'r36') {
+                    $payload = $this->suppressChildInvoices($payload);
+                }
+                $payload['billingGroup'] = $this->invoices->decorateSummary($summary);
                 $response->setData($payload);
             }
         } catch (\Throwable $e) {
@@ -98,5 +106,30 @@ final class PmdBillingGroupSync
         }
 
         return $response;
+    }
+
+    private function suppressChildInvoices(array $payload): array
+    {
+        foreach (['invoiceAvailable', 'invoice_available'] as $key) {
+            if (array_key_exists($key, $payload)) $payload[$key] = false;
+        }
+        foreach (['invoiceDownloadToken', 'invoice_download_token'] as $key) {
+            if (array_key_exists($key, $payload)) $payload[$key] = null;
+        }
+
+        if (isset($payload['orders']) && is_array($payload['orders'])) {
+            foreach ($payload['orders'] as $index => $order) {
+                if (!is_array($order)) continue;
+                foreach (['invoiceAvailable', 'invoice_available'] as $key) {
+                    if (array_key_exists($key, $order)) $order[$key] = false;
+                }
+                foreach (['invoiceDownloadToken', 'invoice_download_token'] as $key) {
+                    if (array_key_exists($key, $order)) $order[$key] = null;
+                }
+                $payload['orders'][$index] = $order;
+            }
+        }
+
+        return $payload;
     }
 }
