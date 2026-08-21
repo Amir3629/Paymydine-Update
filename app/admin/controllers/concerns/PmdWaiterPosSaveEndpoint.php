@@ -6,6 +6,7 @@ use Admin\Facades\AdminAuth;
 use Admin\Models\Menus_model;
 use Admin\Models\Orders_model;
 use Admin\Models\Payments_model;
+use App\Services\Financial\BillingGroupService;
 use App\Services\TerminalPayments\TerminalPaymentService;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
@@ -35,6 +36,23 @@ trait PmdWaiterPosSaveEndpoint
             $result = DB::transaction(function () use ($table, $payload, $cart, $mode) {
                 $requestedOrderId = (int)($payload['order_id'] ?? 0);
                 $order = $this->resolveWritableOrder($table, $requestedOrderId, true);
+
+                // PMD_R36_GROUP_MUTATION_GUARD
+                // A reserved/settled Billing Group freezes an existing child order.
+                // An automatic waiter flow may open a fresh kitchen round, while an
+                // explicit append to the locked order must fail rather than mutate it.
+                if ($order && BillingGroupService::schemaReady()) {
+                    $billingGroups = app(BillingGroupService::class);
+                    if ($billingGroups->isOrderMutationLocked((int)$order->getKey())) {
+                        if ($requestedOrderId > 0) {
+                            throw ValidationException::withMessages([
+                                'order' => 'This order belongs to a bill whose payment has started. Create a new kitchen round instead of changing it.',
+                            ]);
+                        }
+                        $order = null;
+                    }
+                }
+
                 $isNew = !$order;
 
                 if ($order) {
@@ -97,6 +115,18 @@ trait PmdWaiterPosSaveEndpoint
 
                 $this->recalculateOrder($order);
                 $this->recordWaiterPosNoteHistoryV26($order, $cart, $note, $mode);
+
+                // PMD_R36_WAITER_ORDER_ATTACHMENT
+                // This runs inside the existing waiter order transaction. New and
+                // mutable waiter rounds therefore join the same physical table visit
+                // before the request can commit. If R36 is not migrated, legacy
+                // behavior is unchanged.
+                if (BillingGroupService::schemaReady()) {
+                    app(BillingGroupService::class)->attachWaiterOrder(
+                        (int)$order->getKey(),
+                        (string)$table['id']
+                    );
+                }
 
                 // Order lifecycle, payment lifecycle and table lifecycle are
                 // independent. Creating/appending an order occupies the table;

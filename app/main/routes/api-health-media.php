@@ -115,7 +115,11 @@ Route::group(['prefix' => 'api'], function () {
     })->where('path', '.*');
 
     Route::prefix('v1')
-        ->middleware(['web', \App\Http\Middleware\DetectTenant::class])
+        ->middleware([
+            'web',
+            \App\Http\Middleware\DetectTenant::class,
+            \App\Http\Middleware\PmdBillingGroupSync::class,
+        ])
         ->group(function () {
             require_once __DIR__.'/api-v1-settings.php';
             require_once __DIR__.'/api-v1-menu.php';
@@ -123,7 +127,8 @@ Route::group(['prefix' => 'api'], function () {
             require_once __DIR__.'/api-v1-table-order-support.php';
             require_once __DIR__.'/api-v1-coupon.php';
             require_once __DIR__.'/api-v1-table-order.php';
-require_once __DIR__.'/api-v1-table-order-rounds.php';
+            require_once __DIR__.'/api-v1-table-order-rounds.php';
+            require_once __DIR__.'/api-v1-billing-groups-r36.php';
             require_once __DIR__.'/api-v1-guest-actions.php';
         });
 });
