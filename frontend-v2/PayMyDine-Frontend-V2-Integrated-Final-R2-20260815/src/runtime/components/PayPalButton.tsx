@@ -112,14 +112,61 @@ export function PayPalButton(props: Props) {
       if (paymentId && !captureLockedRef.current && !multiOrderCaptureLockedRef.current) await cancelBillingGroupPayment(paymentId).catch(() => undefined)
     }
 
+    const paymentAllocations = (intent?: SplitPaymentIntent | null): ExistingOrderPaymentAllocation[] => {
+      if (groupedAllocations.length) return groupedAllocations
+      if (props.orderId < 1) return []
+      return [{
+        orderId: props.orderId,
+        amount: intent?.payableAmount ?? props.amount,
+        tipAmount: intent?.tipAmount ?? props.tipAmount,
+        couponDiscount: intent ? 0 : props.couponDiscount,
+        couponCode: intent ? null : props.couponCode,
+        selectedItems: intent?.selectedItems ?? props.selectedItems,
+        payerLabel: intent?.payerLabel ?? props.payerLabel,
+        paymentIntentToken: intent?.token || null,
+        splitMode: intent?.splitMode || null,
+        splitPeople: intent?.splitPeople || null,
+        sharePercent: intent?.sharePercent || null,
+        guestSessionId: props.guestSessionId || null,
+      }]
+    }
+
+    const ensureR36Reservation = async (intent?: SplitPaymentIntent | null): Promise<R36Reservation | null> => {
+      if (r36ReservationRef.current) return r36ReservationRef.current
+      const allocations = paymentAllocations(intent)
+      if (!allocations.length) return null
+      const reservation = await reserveExistingOrderGroupPayment({
+        allocations,
+        table: props.table,
+        method: props.methodCode,
+        providerCode: props.providerCode || 'paypal',
+        idempotencyKey: r36IdempotencyRef.current,
+      })
+      r36ReservationRef.current = reservation
+      if (reservation) {
+        const amount = reservation.payment.payableCents / 100
+        setMessage(`Final Bill: ${amount.toFixed(2)} ${reservation.payment.currency}`)
+      }
+      return reservation
+    }
+
     const buildPaymentData = (intent?: SplitPaymentIntent | null) => {
       const r36 = r36ReservationRef.current
+      const allocations = paymentAllocations(intent)
       return {
         amount: r36?.payment.payableCents ? r36.payment.payableCents / 100 : (intent?.payableAmount ?? props.amount),
-        currency: (r36?.payment.currency || props.currency).toUpperCase(), payment_method: props.methodCode, order_id: isMultiOrder ? undefined : props.orderId,
-        items: intent?.providerItems?.length ? intent.providerItems : props.items, tableNumber: props.table.number || props.table.id, table_id: props.table.id,
-        table_no: props.table.number, qr: props.table.qr, payment_intent_token: intent?.token || null, billing_group_public_id: r36?.group.publicId || null,
-        billing_group_payment_id: r36?.payment.paymentId || null, order_allocations: isMultiOrder ? groupedAllocations : undefined,
+        currency: (r36?.payment.currency || props.currency).toUpperCase(),
+        payment_method: props.methodCode,
+        order_id: (isMultiOrder || r36) ? undefined : props.orderId,
+        items: intent?.providerItems?.length ? intent.providerItems : props.items,
+        tableNumber: props.table.number || props.table.id,
+        table_id: props.table.id,
+        table_no: props.table.number,
+        qr: props.table.qr,
+        payment_intent_token: intent?.token || null,
+        billing_group_public_id: r36?.group.publicId || null,
+        billing_group_payment_id: r36?.payment.paymentId || null,
+        order_allocations: (isMultiOrder || r36) ? allocations : undefined,
       }
     }
 
@@ -141,13 +188,7 @@ export function PayPalButton(props: Props) {
           createOrder: async () => {
             if (captureLockedRef.current || (isMultiOrder && multiOrderCaptureLockedRef.current)) throw new Error('This PayPal payment was already captured. Refresh the order status instead of paying again.')
             if (prepareSplitIntentRef.current && !preparedSplitIntentRef.current) preparedSplitIntentRef.current = await prepareSplitIntentRef.current()
-            if (isMultiOrder && !r36ReservationRef.current) {
-              r36ReservationRef.current = await reserveExistingOrderGroupPayment({ allocations: groupedAllocations, table: props.table, method: props.methodCode, providerCode: props.providerCode || 'paypal', idempotencyKey: r36IdempotencyRef.current })
-              if (r36ReservationRef.current) {
-                const amount = r36ReservationRef.current.payment.payableCents / 100
-                setMessage(`Final Bill: ${amount.toFixed(2)} ${r36ReservationRef.current.payment.currency}`)
-              }
-            }
+            await ensureR36Reservation(preparedSplitIntentRef.current)
             const paymentData = buildPaymentData(preparedSplitIntentRef.current)
             try {
               const data = await requestJson('/api/v1/payments/paypal/create-order', paymentData)
@@ -160,21 +201,34 @@ export function PayPalButton(props: Props) {
             try {
               setStatus('loading'); setMessage('Confirming PayPal payment…')
               const intent = preparedSplitIntentRef.current
+              const allocations = paymentAllocations(intent)
               const paymentData = buildPaymentData(intent)
               const capture = await requestJson('/api/v1/payments/paypal/capture-order', { orderID: data?.orderID || data?.orderId, orderId: data?.orderID || data?.orderId, paymentData })
               const reference = String(capture?.transactionId || capture?.captureID || capture?.orderID || data?.orderID || '')
               if (!reference) throw new Error('PayPal capture reference is missing.')
               captureLockedRef.current = true
               if (isMultiOrder) multiOrderCaptureLockedRef.current = true
-              if (isMultiOrder) {
-                await settleExistingOrderGroup({ allocations: groupedAllocations, table: props.table, method: props.methodCode, providerCode: props.providerCode || 'paypal', paymentReference: reference,
-                  billingGroupPaymentId: r36ReservationRef.current?.payment.paymentId || null, providerEvidence: { provider: 'paypal', capture } })
+
+              if (r36ReservationRef.current) {
+                await settleExistingOrderGroup({
+                  allocations,
+                  table: props.table,
+                  method: props.methodCode,
+                  providerCode: props.providerCode || 'paypal',
+                  paymentReference: reference,
+                  billingGroupPaymentId: r36ReservationRef.current.payment.paymentId,
+                  providerEvidence: { provider: 'paypal', capture },
+                })
+              } else if (isMultiOrder) {
+                await settleExistingOrderGroup({ allocations, table: props.table, method: props.methodCode, providerCode: props.providerCode || 'paypal', paymentReference: reference, providerEvidence: { provider: 'paypal', capture } })
               } else {
-                await payExistingOrder({ orderId: props.orderId, table: props.table, method: props.methodCode, providerCode: props.providerCode || 'paypal', paymentReference: reference,
+                await payExistingOrder({
+                  orderId: props.orderId, table: props.table, method: props.methodCode, providerCode: props.providerCode || 'paypal', paymentReference: reference,
                   amount: intent?.payableAmount ?? props.amount, tipAmount: intent?.tipAmount ?? props.tipAmount, couponCode: intent ? null : props.couponCode,
                   couponDiscount: intent ? 0 : props.couponDiscount, selectedItems: intent?.selectedItems ?? props.selectedItems, payerLabel: intent?.payerLabel ?? props.payerLabel,
                   paymentIntentToken: intent?.token || null, splitMode: intent?.splitMode || null, splitPeople: intent?.splitPeople || null, sharePercent: intent?.sharePercent || null,
-                  guestSessionId: props.guestSessionId || null })
+                  guestSessionId: props.guestSessionId || null,
+                })
               }
               if (cancelled) return
               setStatus('ready'); setMessage('PayPal payment confirmed.'); await onSuccessRef.current()
@@ -197,7 +251,12 @@ export function PayPalButton(props: Props) {
       }
     }
     void mount()
-    return () => { cancelled = true; try { void buttons?.close?.() } catch {}; containerRef.current?.replaceChildren() }
+    return () => {
+      cancelled = true
+      try { void buttons?.close?.() } catch {}
+      containerRef.current?.replaceChildren()
+      if (!captureLockedRef.current) void resetReservation()
+    }
   }, [props.amount, props.couponCode, props.couponDiscount, props.currency, props.items, props.methodCode, props.orderId, props.orderAllocations, props.payerLabel, props.providerCode, props.selectedItems, props.table, props.tipAmount])
 
   return <div className={styles.paypalBox}><div ref={containerRef} aria-label="PayPal checkout" />{message && <p className={status === 'error' ? styles.providerError : styles.providerHint}>{message}</p>}</div>
