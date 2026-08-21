@@ -13,6 +13,7 @@ Task 3 adds the release/fiscal safety layer:
 - Merchant/tax-policy gates before a Final Bill is treated as fiscally configured.
 - Canonical invoice merchant identity gate and TSE evidence output.
 - Staff-only fiscal retry endpoint for closed Final Bills.
+- Tenant-aware repair migration that guarantees the complete R36 schema on every active tenant database.
 - Same-filesystem V2 safe-stage installer, immutable-source checks, backups, health verification, and application rollback.
 - GitHub Actions Task 3 release gate, full V2 `release:audit`, and production build.
 
@@ -102,6 +103,18 @@ The table-free flow is deliberately split:
 
 `failed` means a remote signing attempt failed after the sale/payment was durably recorded. The invoice may still be issued with an explicit TSS failure notice and the Billing Group remains available for staff fiscal retry. The separate DSFinV-K process must account for unsigned/error transactions as required by that integration.
 
+## Tenant database schema authority
+
+`app/admin/database/migrations/2026_08_21_364000_ensure_pmd_billing_groups_on_tenants.php` is a non-destructive repair migration. It:
+
+- ensures the complete R36 Billing Group / order-link / payment schema on the current connection;
+- enumerates every `tenants.status = active` database from the main `mysql` connection;
+- switches the configured `tenant` connection to each active tenant database and applies the same additive repair;
+- fails the update if any active tenant cannot be updated, instead of silently activating a mixed schema fleet;
+- never drops financial/fiscal evidence in `down()`.
+
+The VPS installer therefore uses the application's real TastyIgniter update path, `php artisan igniter:up --no-interaction`, rather than relying on a generic Laravel migration path that may not load Admin module migrations.
+
 ## Safe VPS release
 
 The installer is:
@@ -122,7 +135,7 @@ It is intentionally stage-first.
 - Verifies PM2 owner/service/cwd and port 3002.
 - Does not activate unless `PMD_ACTIVATE=YES` is explicit.
 - Backs up every overwritten runtime file and the previous `.next` build.
-- Runs additive R36 migrations before activating code that requires the new columns.
+- Copies the additive R36 Admin migrations and runs tenant-aware `igniter:up` before activating code that requires the new schema.
 - Restarts only `paymydine-frontend-v2` as the `ubuntu` PM2 owner.
 - Verifies local port 3002 health and public health/preview.
 - Auto-restores application files/build on an activation failure.
