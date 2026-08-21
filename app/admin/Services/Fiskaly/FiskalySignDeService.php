@@ -141,7 +141,6 @@ class FiskalySignDeService
         return $sum;
     }
 
-
     protected function getSettingValue(string $key, $default = null)
     {
         try {
@@ -170,16 +169,16 @@ class FiskalySignDeService
 
         if ($raw === null || $raw === '') {
             try {
-            $row = \Illuminate\Support\Facades\DB::table('settings')
-                ->where('item', 'tax_percentage')
-                ->first();
+                $row = \Illuminate\Support\Facades\DB::table('settings')
+                    ->where('item', 'tax_percentage')
+                    ->first();
 
-            $raw = ($row && $row->value !== null && $row->value !== '') ? $row->value : 0;
-        } catch (\Throwable $e) {
-            $raw = 0;
-        }
+                $raw = ($row && $row->value !== null && $row->value !== '') ? $row->value : 0;
+            } catch (\Throwable $e) {
+                $raw = 0;
+            }
 
-        return number_format((float) $raw, 2, '.', '');
+            return number_format((float)$raw, 2, '.', '');
         }
 
         return number_format((float)$raw, 2, '.', '');
@@ -486,6 +485,49 @@ class FiskalySignDeService
         }
     }
 
+    /**
+     * PMD_R36_CHILD_FISKALY_DEFER_GUARD
+     * R36 kitchen orders are operational records, not canonical fiscal receipts.
+     * The Final Bill Billing Group owns one SIGN DE transaction after Staff Free.
+     */
+    protected function r36FinalBillDeferral(int $orderId): ?array
+    {
+        if ($orderId < 1) return null;
+
+        try {
+            $schema = $this->db()->getSchemaBuilder();
+            if (!$schema->hasTable('pmd_billing_group_orders') || !$schema->hasTable('pmd_billing_groups')) {
+                return null;
+            }
+
+            $link = $this->db()->table('pmd_billing_group_orders')
+                ->where('order_id', $orderId)
+                ->first();
+            if (!$link) return null;
+
+            $group = $this->db()->table('pmd_billing_groups')
+                ->where('id', (int)$link->billing_group_id)
+                ->first();
+            if (!$group || (string)$group->mode !== 'r36') return null;
+
+            return [
+                'state' => 'DEFERRED_TO_R36_FINAL_BILL',
+                'deferred' => true,
+                'order_id' => $orderId,
+                'billing_group_id' => (int)$group->id,
+                'billing_group_public_id' => (string)$group->public_id,
+                'billing_group_status' => (string)$group->status,
+                'billing_group_fiscal_status' => (string)$group->fiscal_status,
+            ];
+        } catch (\Throwable $e) {
+            Log::warning('[Fiskaly] R36 child deferral lookup failed; refusing child fiscalization', [
+                'order_id' => $orderId,
+                'message' => $e->getMessage(),
+            ]);
+            throw new \RuntimeException('R36 fiscal authority could not be resolved safely.', 0, $e);
+        }
+    }
+
     public function finalizeOrder($orderOrId, $locationId = null, $paymentMethod = null, $paymentReference = null)
     {
         try {
@@ -496,6 +538,12 @@ class FiskalySignDeService
             }
 
             $orderId = (int)($order->order_id ?? 0);
+            $r36Deferred = $this->r36FinalBillDeferral($orderId);
+            if ($r36Deferred) {
+                Log::info('[Fiskaly] child order deferred to R36 Final Bill fiscal authority', $r36Deferred);
+                return $r36Deferred;
+            }
+
             $locationId = $locationId ?: (int)($order->location_id ?? 1);
 
             $config = $this->resolveConfig($locationId);
