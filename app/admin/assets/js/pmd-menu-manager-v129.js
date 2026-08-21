@@ -65,6 +65,21 @@
   var sortScopeFoodIds = [];
   var editDeleteBusy = false;
 
+  // PMD_MENU_DRAG_SESSION_JIGGLE_FREEZE_V141_11D
+  //
+  // Idle Edit:
+  //   Card Jiggle runs normally.
+  //
+  // Active Card drag:
+  //   all sortable Card Jiggles are frozen exactly like the
+  //   successful browser console test.
+  //
+  // They remain frozen through neighbour FLIP and final Drop.
+  //
+  // Category Jiggle is not involved.
+  var cardDragJiggleFreezeActiveV14111D = false;
+  var cardDragJiggleDragEndedV14111D = false;
+
   function manager() {
     return document.querySelector('[data-pmd-menu-manager]');
   }
@@ -1404,13 +1419,460 @@
     var index = 0;
     node.querySelectorAll('[data-pmd-menu-card]').forEach(function (card) {
       var enabled = sortMode && card.classList.contains('is-sortable') && !card.classList.contains('is-dragging') && !card.classList.contains('is-drop-settling');
-      setExplicitJiggle(card, enabled, index++);
+      var cardIndex = index++;
+
+      setExplicitJiggle(
+        card,
+        enabled,
+        cardIndex
+      );
+
+      if (
+        enabled
+        && cardDragJiggleFreezeActiveV14111D
+      ) {
+        /*
+         * Same exact values proven in the browser test.
+         *
+         * Any syncSortMode()/syncExplicitJiggle call occurring
+         * during the drag must NOT accidentally restart Card
+         * Jiggle before Drop/FLIP is finished.
+         */
+        card.style.setProperty(
+          'animation-play-state',
+          'paused',
+          'important'
+        );
+
+        card.style.setProperty(
+          'rotate',
+          '0deg',
+          'important'
+        );
+      }
     });
     categorySortButtons().forEach(function (button, categoryIndex) {
       var enabled = sortMode && button.classList.contains('is-category-sortable') && !button.classList.contains('is-category-dragging');
       setExplicitJiggle(button, enabled, categoryIndex + index);
     });
   }
+
+  function freezeCardJigglesForDragV14111D() {
+    var node =
+      manager();
+
+    if (!node) {
+      return;
+    }
+
+
+    cardDragJiggleFreezeActiveV14111D =
+      true;
+
+    cardDragJiggleDragEndedV14111D =
+      false;
+
+
+    /*
+     * Exact successful browser-test behaviour.
+     *
+     * Freeze ALL sortable Cards at once.
+     * Category pills are deliberately excluded.
+     */
+    node
+      .querySelectorAll(
+        '[data-pmd-menu-card].is-sortable'
+      )
+      .forEach(
+        function (card) {
+          card.style.setProperty(
+            'animation-play-state',
+            'paused',
+            'important'
+          );
+
+          card.style.setProperty(
+            'rotate',
+            '0deg',
+            'important'
+          );
+        }
+      );
+  }
+
+
+  function cardMotionStillActiveV14111D() {
+    var node =
+      manager();
+
+    if (!node) {
+      return false;
+    }
+
+
+    /*
+     * Final Drop authority.
+     */
+    if (
+      node.querySelector(
+        '[data-pmd-menu-card].is-drop-settling'
+      )
+    ) {
+      return true;
+    }
+
+
+    /*
+     * V141/V141.11B neighbour FLIP authority.
+     *
+     * During the first inverse frame the transition may still
+     * be "none", but inline translate already exists.
+     *
+     * Keep Jiggle frozen until FLIP cleanup removes it.
+     */
+    return Array
+      .from(
+        node.querySelectorAll(
+          '[data-pmd-menu-card].is-sortable'
+        )
+      )
+      .some(
+        function (card) {
+          var inlineTranslate =
+            String(
+              card.style.getPropertyValue(
+                'translate'
+              )
+              || ''
+            );
+
+          if (inlineTranslate) {
+            return true;
+          }
+
+
+          var inlineTransition =
+            String(
+              card.style.getPropertyValue(
+                'transition'
+              )
+              || ''
+            );
+
+          return (
+            inlineTransition.indexOf(
+              'translate'
+            ) !== -1
+            || inlineTransition.indexOf(
+              'transform'
+            ) !== -1
+          );
+        }
+      );
+  }
+
+
+  function resumeCardJigglesAfterDragV14111D() {
+    if (
+      !cardDragJiggleFreezeActiveV14111D
+      || !cardDragJiggleDragEndedV14111D
+      || cardMotionStillActiveV14111D()
+    ) {
+      return;
+    }
+
+
+    var node =
+      manager();
+
+
+    cardDragJiggleFreezeActiveV14111D =
+      false;
+
+    cardDragJiggleDragEndedV14111D =
+      false;
+
+
+    if (
+      !node
+      || !sortMode
+    ) {
+      return;
+    }
+
+
+    /*
+     * Resume ONLY Card Jiggle.
+     *
+     * Existing neighbour Cards still have their original
+     * inline animation and therefore continue from the paused
+     * phase.
+     *
+     * The dragged Card itself may have had its animation
+     * removed by is-dragging/is-drop-settling, so reinstall
+     * it only when needed.
+     *
+     * Categories are not touched.
+     */
+    var index =
+      0;
+
+
+    node
+      .querySelectorAll(
+        '[data-pmd-menu-card]'
+      )
+      .forEach(
+        function (card) {
+          var cardIndex =
+            index++;
+
+          var enabled =
+            sortMode
+            && card.classList.contains(
+              'is-sortable'
+            )
+            && !card.classList.contains(
+              'is-dragging'
+            )
+            && !card.classList.contains(
+              'is-drop-settling'
+            );
+
+
+          if (!enabled) {
+            setExplicitJiggle(
+              card,
+              false,
+              cardIndex
+            );
+
+            return;
+          }
+
+
+          /*
+           * Remove the browser-test neutral rotate in the SAME
+           * task that resumes the animation, so Safari never
+           * paints an intermediate frame.
+           */
+          card.style.removeProperty(
+            'rotate'
+          );
+
+
+          var inlineAnimation =
+            String(
+              card.style.getPropertyValue(
+                'animation'
+              )
+              || ''
+            );
+
+
+          if (
+            !inlineAnimation
+            || inlineAnimation === 'none'
+          ) {
+            /*
+             * Typically the dragged Card itself.
+             */
+            setExplicitJiggle(
+              card,
+              true,
+              cardIndex
+            );
+
+            return;
+          }
+
+
+          /*
+           * Neighbour Card:
+           * keep its existing animation definition/phase.
+           * Just resume the paused animation.
+           */
+          card.style.setProperty(
+            'animation-play-state',
+            'running',
+            'important'
+          );
+        }
+      );
+  }
+
+
+  function queueCardJiggleResumeV14111D() {
+    requestAnimationFrame(
+      function () {
+        resumeCardJigglesAfterDragV14111D();
+      }
+    );
+  }
+
+
+  /*
+   * Capture phase is intentional:
+   *
+   * Freeze Jiggle BEFORE the existing Card dragstart handler
+   * begins changing Card/FLIP visual state.
+   */
+  document.addEventListener(
+    'dragstart',
+    function (event) {
+      var target =
+        event.target;
+
+      var card =
+        target
+        && target.closest
+          ? target.closest(
+              '[data-pmd-menu-card].is-sortable'
+            )
+          : null;
+
+
+      if (!card) {
+        return;
+      }
+
+
+      var node =
+        manager();
+
+      if (
+        !node
+        || !node.contains(card)
+      ) {
+        return;
+      }
+
+
+      freezeCardJigglesForDragV14111D();
+    },
+    true
+  );
+
+
+  /*
+   * Do NOT resume immediately on dragend.
+   *
+   * The REAL Card can still be completing:
+   *   - neighbour FLIP cleanup
+   *   - V141.11 final transform Drop
+   *
+   * The motion detector below decides when it is safe.
+   */
+  document.addEventListener(
+    'dragend',
+    function () {
+      if (
+        !cardDragJiggleFreezeActiveV14111D
+      ) {
+        return;
+      }
+
+
+      cardDragJiggleDragEndedV14111D =
+        true;
+
+
+      queueCardJiggleResumeV14111D();
+    },
+    true
+  );
+
+
+  /*
+   * Final Drop uses transform.
+   * Neighbour FLIP uses translate.
+   *
+   * Wait for their own existing cleanup, then inspect again on
+   * the next paint frame.
+   */
+  document.addEventListener(
+    'transitionend',
+    function (event) {
+      if (
+        !cardDragJiggleFreezeActiveV14111D
+        || !cardDragJiggleDragEndedV14111D
+      ) {
+        return;
+      }
+
+
+      var target =
+        event.target;
+
+      var card =
+        target
+        && target.closest
+          ? target.closest(
+              '[data-pmd-menu-card]'
+            )
+          : null;
+
+
+      if (!card) {
+        return;
+      }
+
+
+      if (
+        event.propertyName !== 'translate'
+        && event.propertyName !== 'transform'
+      ) {
+        return;
+      }
+
+
+      queueCardJiggleResumeV14111D();
+    },
+    true
+  );
+
+
+  document.addEventListener(
+    'transitioncancel',
+    function (event) {
+      if (
+        !cardDragJiggleFreezeActiveV14111D
+        || !cardDragJiggleDragEndedV14111D
+      ) {
+        return;
+      }
+
+
+      var target =
+        event.target;
+
+      var card =
+        target
+        && target.closest
+          ? target.closest(
+              '[data-pmd-menu-card]'
+            )
+          : null;
+
+
+      if (!card) {
+        return;
+      }
+
+
+      if (
+        event.propertyName !== 'translate'
+        && event.propertyName !== 'transform'
+      ) {
+        return;
+      }
+
+
+      queueCardJiggleResumeV14111D();
+    },
+    true
+  );
+
 
   function startAllEditJigglesNow() {
     var node = manager();
@@ -1782,8 +2244,81 @@
     var individualTranslate = !window.CSS || !CSS.supports || CSS.supports('translate', '1px 1px');
     if (individualTranslate) {
       moved.forEach(function (entry) {
-        entry.element.style.setProperty('transition', 'none', 'important');
-        entry.element.style.setProperty('translate', entry.dx + 'px ' + entry.dy + 'px', 'important');
+        var element = entry.element;
+
+        var isNeighbourCard =
+          Boolean(
+            element.matches
+            && element.matches(
+              '[data-pmd-menu-card].is-sortable'
+            )
+            && !element.classList.contains(
+              'is-dragging'
+            )
+            && !element.classList.contains(
+              'is-drop-settling'
+            )
+          );
+
+
+        entry.__pmdNeighbourCardV14111B =
+          isNeighbourCard;
+
+
+        if (isNeighbourCard) {
+          /*
+           * PMD_MENU_NEIGHBOUR_BLINK_GUARD_V141_11B
+           *
+           * Freeze the Jiggle at its CURRENT frame.
+           *
+           * Do not remove animation.
+           * Do not restart animation.
+           * Do not change opacity.
+           * Do not change transform/rotate.
+           *
+           * This leaves translate FLIP as the only motion
+           * changing during the neighbour displacement.
+           */
+          var generation =
+            Number(
+              element
+                .__pmdNeighbourFlipGenerationV14111B
+              || 0
+            )
+            + 1;
+
+
+          element
+            .__pmdNeighbourFlipGenerationV14111B =
+            generation;
+
+
+          entry.__pmdNeighbourGenerationV14111B =
+            generation;
+
+
+          element.style.setProperty(
+            'animation-play-state',
+            'paused',
+            'important'
+          );
+        }
+
+
+        element.style.setProperty(
+          'transition',
+          'none',
+          'important'
+        );
+
+        element.style.setProperty(
+          'translate',
+          entry.dx
+            + 'px '
+            + entry.dy
+            + 'px',
+          'important'
+        );
       });
       void moved[0].element.offsetWidth;
       requestAnimationFrame(function () {
@@ -1792,12 +2327,104 @@
           element.style.setProperty('transition', 'translate 260ms cubic-bezier(.18,.82,.22,1)', 'important');
           element.style.setProperty('translate', '0px 0px', 'important');
           var cleanup = function (event) {
-            if (event && event.propertyName && event.propertyName !== 'translate') return;
-            element.style.removeProperty('translate');
-            element.style.removeProperty('transition');
-            element.removeEventListener('transitionend', cleanup);
+            if (
+              event
+              && event.propertyName
+              && event.propertyName !== 'translate'
+            ) {
+              return;
+            }
+
+
+            if (
+              entry.__pmdNeighbourCardV14111B
+              && element
+                .__pmdNeighbourFlipGenerationV14111B
+                !== entry
+                  .__pmdNeighbourGenerationV14111B
+            ) {
+              /*
+               * A newer FLIP already owns this Card.
+               * This old listener must not touch it.
+               */
+              element.removeEventListener(
+                'transitionend',
+                cleanup
+              );
+
+              element.removeEventListener(
+                'transitioncancel',
+                cleanup
+              );
+
+              return;
+            }
+
+
+            element.style.removeProperty(
+              'translate'
+            );
+
+            element.style.removeProperty(
+              'transition'
+            );
+
+
+            if (
+              entry.__pmdNeighbourCardV14111B
+            ) {
+              /*
+               * Resume the SAME Jiggle animation.
+               *
+               * Because it was paused, not removed,
+               * there is no animation restart frame.
+               */
+              if (
+                sortMode
+                && element.classList.contains(
+                  'is-sortable'
+                )
+                && !element.classList.contains(
+                  'is-dragging'
+                )
+                && !element.classList.contains(
+                  'is-drop-settling'
+                )
+              ) {
+                element.style.setProperty(
+                  'animation-play-state',
+                  'running',
+                  'important'
+                );
+              } else {
+                element.style.removeProperty(
+                  'animation-play-state'
+                );
+              }
+            }
+
+
+            element.removeEventListener(
+              'transitionend',
+              cleanup
+            );
+
+            element.removeEventListener(
+              'transitioncancel',
+              cleanup
+            );
           };
-          element.addEventListener('transitionend', cleanup);
+
+
+          element.addEventListener(
+            'transitionend',
+            cleanup
+          );
+
+          element.addEventListener(
+            'transitioncancel',
+            cleanup
+          );
         });
       });
       return;
@@ -1857,392 +2484,7 @@
   }
 
   function animateSortFlip(beforeRects, kind) {
-    // PMD_MENU_NEIGHBOUR_CONTINUITY_FLIP_V141_12
-    // PMD_MENU_BLINK_FREE_HANDOFF_V141_13R
-    //
-    // CARD FLIP ONLY.
-    //
-    // Important difference from the shared/category FLIP:
-    //
-    // If a neighbour Card is already moving when another
-    // live reorder happens, its BEFORE rect represents its
-    // CURRENT VISUAL position.
-    //
-    // We first remove the previous inline translate without
-    // allowing a paint, measure the new final layout slot,
-    // then rebuild the next FLIP from:
-    //
-    //   current visual position -> new final layout position
-    //
-    // This prevents the neighbour Card from jumping back to
-    // an earlier logical position before continuing.
-    //
-    // Category FLIP continues using animateFlipElements().
-
-    var elements =
-      visibleSortTargetCards(
-        kind
-      );
-
-    if (!elements.length) {
-      return;
-    }
-
-
-    var individualTranslate =
-      !window.CSS
-      || !CSS.supports
-      || CSS.supports(
-        'translate',
-        '1px 1px'
-      );
-
-
-    /*
-     * Keep the existing fallback untouched for browsers
-     * without individual CSS translate support.
-     */
-    if (!individualTranslate) {
-      animateFlipElements(
-        beforeRects,
-        elements
-      );
-
-      return;
-    }
-
-
-    var moved =
-      [];
-
-
-    elements.forEach(
-      function (element) {
-        var before =
-          beforeRects.get(
-            element
-          );
-
-        if (!before) {
-          return;
-        }
-
-
-        /*
-         * A previous neighbour FLIP may still be running.
-         *
-         * Stop it synchronously. Because beforeRects was
-         * already captured before the DOM reorder, we retain
-         * the exact current on-screen pixel position.
-         */
-        var previousCleanup =
-          element
-            .__pmdCardFlipCleanupV14112;
-
-
-        /*
-         * PMD V141.13R
-         *
-         * NEVER clear the currently visible translate before
-         * the replacement FLIP is ready.
-         *
-         * Safari must not see an intermediate zero-translate
-         * compositor frame.
-         */
-
-        var computedStyle =
-          window.getComputedStyle(
-            element
-          );
-
-        var computedTranslate =
-          String(
-            computedStyle.translate
-            || 'none'
-          );
-
-
-        var currentTranslateX =
-          0;
-
-        var currentTranslateY =
-          0;
-
-
-        if (
-          computedTranslate
-          && computedTranslate !== 'none'
-        ) {
-          var translateParts =
-            computedTranslate
-              .trim()
-              .split(/\s+/);
-
-
-          var parsedX =
-            parseFloat(
-              translateParts[0]
-              || '0'
-            );
-
-          var parsedY =
-            parseFloat(
-              translateParts[1]
-              || '0'
-            );
-
-
-          if (
-            Number.isFinite(parsedX)
-          ) {
-            currentTranslateX =
-              parsedX;
-          }
-
-
-          if (
-            Number.isFinite(parsedY)
-          ) {
-            currentTranslateY =
-              parsedY;
-          }
-        }
-
-
-        /*
-         * Remove stale completion listeners ONLY.
-         *
-         * Do not execute previousCleanup(), because that would
-         * visibly tear down the current compositor state.
-         */
-        if (
-          typeof previousCleanup
-          === 'function'
-        ) {
-          element.removeEventListener(
-            'transitionend',
-            previousCleanup
-          );
-
-          element.removeEventListener(
-            'transitioncancel',
-            previousCleanup
-          );
-
-          try {
-            delete element
-              .__pmdCardFlipCleanupV14112;
-          } catch (error) {
-            element
-              .__pmdCardFlipCleanupV14112 =
-              null;
-          }
-        }
-
-
-        /*
-         * Current bounding rect contains the currently painted
-         * individual translate.
-         *
-         * Subtract that visual translate to recover the true
-         * new layout slot WITHOUT clearing anything.
-         */
-        var visualRect =
-          element
-            .getBoundingClientRect();
-
-
-        var finalLeft =
-          visualRect.left
-          - currentTranslateX;
-
-        var finalTop =
-          visualRect.top
-          - currentTranslateY;
-
-
-        var dx =
-          before.left
-          - finalLeft;
-
-        var dy =
-          before.top
-          - finalTop;
-
-
-        if (
-          Math.abs(dx) < .5
-          && Math.abs(dy) < .5
-        ) {
-          return;
-        }
-
-
-        moved.push({
-          element:
-            element,
-
-          dx:
-            dx,
-
-          dy:
-            dy
-        });
-      }
-    );
-
-
-    if (!moved.length) {
-      return;
-    }
-
-
-    /*
-     * First frame:
-     *
-     * Paint each neighbour exactly where the user was
-     * already seeing it immediately before this reorder.
-     */
-    moved.forEach(
-      function (entry) {
-        entry.element.style.setProperty(
-          'transition',
-          'none',
-          'important'
-        );
-
-        entry.element.style.setProperty(
-          'translate',
-          entry.dx
-            + 'px '
-            + entry.dy
-            + 'px',
-          'important'
-        );
-
-        entry.element.style.setProperty(
-          'will-change',
-          'rotate, translate',
-          'important'
-        );
-      }
-    );
-
-
-    /*
-     * Establish continuity frame before animating to zero.
-     */
-    void moved[0]
-      .element
-      .offsetWidth;
-
-
-    requestAnimationFrame(
-      function () {
-        moved.forEach(
-          function (entry) {
-            var element =
-              entry.element;
-
-
-            var cleanup =
-              function (event) {
-                if (
-                  event
-                  && event.propertyName
-                  && event.propertyName
-                    !== 'translate'
-                ) {
-                  return;
-                }
-
-
-                /*
-                 * Ignore a stale transitionend belonging to
-                 * an older FLIP generation.
-                 */
-                if (
-                  element
-                    .__pmdCardFlipCleanupV14112
-                  !== cleanup
-                ) {
-                  return;
-                }
-
-
-                element.removeEventListener(
-                  'transitionend',
-                  cleanup
-                );
-
-                element.removeEventListener(
-                  'transitioncancel',
-                  cleanup
-                );
-
-
-                element.style.removeProperty(
-                  'translate'
-                );
-
-                element.style.removeProperty(
-                  'transition'
-                );
-
-                /*
-                 * PMD V141.13R:
-                 *
-                 * Do NOT remove will-change here.
-                 * Jiggle uses rotate + translate immediately
-                 * after/between FLIPs, so keep one stable
-                 * compositor layer for the Edit session.
-                 */
-
-
-                try {
-                  delete element
-                    .__pmdCardFlipCleanupV14112;
-                } catch (error) {
-                  element
-                    .__pmdCardFlipCleanupV14112 =
-                    null;
-                }
-              };
-
-
-            element
-              .__pmdCardFlipCleanupV14112 =
-              cleanup;
-
-
-            element.addEventListener(
-              'transitionend',
-              cleanup
-            );
-
-            element.addEventListener(
-              'transitioncancel',
-              cleanup
-            );
-
-
-            element.style.setProperty(
-              'transition',
-              'translate 310ms '
-                + 'cubic-bezier(.20,.74,.18,1)',
-              'important'
-            );
-
-
-            element.style.setProperty(
-              'translate',
-              '0px 0px',
-              'important'
-            );
-          }
-        );
-      }
-    );
+    animateFlipElements(beforeRects, visibleSortTargetCards(kind));
   }
 
   function reorderRelativeToTarget(
@@ -2488,7 +2730,6 @@
     // PMD_MENU_REAL_DROP_TRAVEL_V141_7
     // PMD_MENU_REAL_DROP_TRAVEL_V141_8
     // PMD_MENU_DROP_INLINE_PAINT_V141_9
-    // PMD_MENU_DROP_BLINK_FIX_V141_13R
     //
     // V141.9:
     //
@@ -2639,19 +2880,12 @@
           'transform'
         );
 
-        /*
-         * PMD V141.13R:
-         *
-         * No opacity animation exists anymore.
-         *
-         * Keep the compositor alive across the exact moment
-         * the finished Drop hands back to Edit-mode jiggle.
-         * This prevents the dropped Card itself from flashing.
-         */
-        card.style.setProperty(
-          'will-change',
-          'rotate, translate',
-          'important'
+        card.style.removeProperty(
+          'opacity'
+        );
+
+        card.style.removeProperty(
+          'will-change'
         );
 
         card.classList.remove(
@@ -2684,8 +2918,14 @@
     );
 
     card.style.setProperty(
+      'opacity',
+      '.88',
+      'important'
+    );
+
+    card.style.setProperty(
       'will-change',
-      'transform, rotate, translate',
+      'transform, opacity',
       'important'
     );
 
@@ -2720,7 +2960,8 @@
           'transform '
             + duration
             + 'ms '
-            + 'cubic-bezier(.24,.52,.32,1)',
+            + 'cubic-bezier(.24,.52,.32,1), '
+            + 'opacity 500ms ease-out',
           'important'
         );
 
@@ -2734,6 +2975,11 @@
           'important'
         );
 
+        card.style.setProperty(
+          'opacity',
+          '1',
+          'important'
+        );
       }
     );
   }
