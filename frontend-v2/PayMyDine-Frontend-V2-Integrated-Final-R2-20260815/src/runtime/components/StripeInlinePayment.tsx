@@ -153,10 +153,36 @@ export function StripeInlinePayment(props: Props) {
     const intent = await props.prepareSplitIntent(); preparedIntentRef.current = intent; return intent
   }
 
-  const prepareR36Reservation = async (): Promise<R36Reservation | null> => {
-    if (!isMultiOrder) return null
+  const paymentAllocations = (intent?: SplitPaymentIntent | null): ExistingOrderPaymentAllocation[] => {
+    if (groupedAllocations.length) return groupedAllocations
+    if (props.orderId < 1) return []
+    return [{
+      orderId: props.orderId,
+      amount: intent?.payableAmount ?? props.amount,
+      tipAmount: intent?.tipAmount ?? props.tipAmount,
+      couponDiscount: intent ? 0 : props.couponDiscount,
+      couponCode: intent ? null : props.couponCode,
+      selectedItems: intent?.selectedItems ?? props.selectedItems,
+      payerLabel: intent?.payerLabel ?? props.payerLabel,
+      paymentIntentToken: intent?.token || null,
+      splitMode: intent?.splitMode || null,
+      splitPeople: intent?.splitPeople || null,
+      sharePercent: intent?.sharePercent || null,
+      guestSessionId: props.guestSessionId || null,
+    }]
+  }
+
+  const prepareR36Reservation = async (intent?: SplitPaymentIntent | null): Promise<R36Reservation | null> => {
     if (r36ReservationRef.current) return r36ReservationRef.current
-    const reservation = await reserveExistingOrderGroupPayment({ allocations: groupedAllocations, table: props.table, method: props.methodCode, providerCode: props.providerCode || 'stripe', idempotencyKey: r36IdempotencyRef.current })
+    const allocations = paymentAllocations(intent)
+    if (!allocations.length) return null
+    const reservation = await reserveExistingOrderGroupPayment({
+      allocations,
+      table: props.table,
+      method: props.methodCode,
+      providerCode: props.providerCode || 'stripe',
+      idempotencyKey: r36IdempotencyRef.current,
+    })
     r36ReservationRef.current = reservation
     if (reservation) {
       const amount = reservation.payment.payableCents / 100
@@ -178,14 +204,25 @@ export function StripeInlinePayment(props: Props) {
       customerInfo: { name: cardholderName.trim() || 'Customer' },
       billing_group_public_id: r36?.group.publicId || null,
       billing_group_payment_id: r36?.payment.paymentId || null,
-      order_allocations: isMultiOrder ? groupedAllocations : undefined,
+      order_allocations: r36 ? paymentAllocations(intent) : (isMultiOrder ? groupedAllocations : undefined),
     })
   }
 
   const settle = async (reference: string, intent: SplitPaymentIntent | null, amount: number, providerEvidence?: Record<string, unknown>) => {
-    if (isMultiOrder) {
+    const allocations = paymentAllocations(intent)
+    if (r36ReservationRef.current) {
+      await settleExistingOrderGroup({
+        allocations,
+        table: props.table,
+        method: props.methodCode,
+        providerCode: props.providerCode || 'stripe',
+        paymentReference: reference,
+        billingGroupPaymentId: r36ReservationRef.current.payment.paymentId,
+        providerEvidence: providerEvidence || { provider: 'stripe' },
+      })
+    } else if (isMultiOrder) {
       await settleExistingOrderGroup({ allocations: groupedAllocations, table: props.table, method: props.methodCode, providerCode: props.providerCode || 'stripe', paymentReference: reference,
-        billingGroupPaymentId: r36ReservationRef.current?.payment.paymentId || null, providerEvidence: providerEvidence || { provider: 'stripe' } })
+        providerEvidence: providerEvidence || { provider: 'stripe' } })
     } else {
       await payExistingOrder({ orderId: props.orderId, table: props.table, method: props.methodCode, providerCode: props.providerCode || 'stripe', paymentReference: reference,
         amount, tipAmount: intent?.tipAmount ?? props.tipAmount, couponCode: intent ? null : props.couponCode, couponDiscount: intent ? 0 : props.couponDiscount,
@@ -213,7 +250,7 @@ export function StripeInlinePayment(props: Props) {
     try { walletButtonRef.current?.destroy?.() } catch {}
     walletButtonRef.current = null; walletRequestRef.current = null; mount.replaceChildren()
 
-    const r36 = await prepareR36Reservation()
+    const r36 = await prepareR36Reservation(intent)
     const amount = r36?.payment.payableCents ? r36.payment.payableCents / 100 : (intent?.payableAmount ?? props.amount)
     const currency = r36?.payment.currency || props.currency
     const paymentRequest = stripe.paymentRequest({
@@ -234,7 +271,7 @@ export function StripeInlinePayment(props: Props) {
       setBusy(true); setError(''); setInfo(copy.processing); let completed = false
       try {
         const activeIntent = preparedIntentRef.current || intent
-        const activeReservation = r36ReservationRef.current || await prepareR36Reservation()
+        const activeReservation = r36ReservationRef.current || await prepareR36Reservation(activeIntent)
         const activeAmount = activeReservation?.payment.payableCents ? activeReservation.payment.payableCents / 100 : (activeIntent?.payableAmount ?? props.amount)
         const created = await createStripeIntent(activeAmount, activeIntent)
         if (!created?.clientSecret) throw new Error('Stripe did not return a client secret.')
@@ -271,7 +308,7 @@ export function StripeInlinePayment(props: Props) {
         configRef.current = config; await loadStripeScript(); if (cancelled) return
         const factory = (window as StripeWindow).Stripe; if (!factory) throw new Error('Stripe.js did not initialize.')
         stripeRef.current = factory(config.publishableKey); configuredMethodRef.current = method
-        if (isMultiOrder) await prepareR36Reservation()
+        if (isMultiOrder) await prepareR36Reservation(null)
         if (!cancelled) setReady(true)
       } catch (setupError) { if (!cancelled) reportError(setupError instanceof Error ? setupError.message : 'Stripe payment is unavailable.') }
     }
@@ -306,7 +343,7 @@ export function StripeInlinePayment(props: Props) {
     if (busy || capturedRef.current || !stripeRef.current || !cardRef.current || !cardComplete) return
     setBusy(true); setError(''); setInfo(copy.preparing); let intent: SplitPaymentIntent | null = null
     try {
-      intent = await prepareIntent(); const r36 = await prepareR36Reservation(); const amount = r36?.payment.payableCents ? r36.payment.payableCents / 100 : (intent?.payableAmount ?? props.amount)
+      intent = await prepareIntent(); const r36 = await prepareR36Reservation(intent); const amount = r36?.payment.payableCents ? r36.payment.payableCents / 100 : (intent?.payableAmount ?? props.amount)
       const created = await createStripeIntent(amount, intent); if (!created?.clientSecret) throw new Error('Stripe did not return a client secret.')
       setInfo(copy.processing); const result = await stripeRef.current.confirmCardPayment(created.clientSecret, { payment_method: { card: cardRef.current, billing_details: { name: cardholderName.trim() || 'Customer' } } })
       if (result?.error) throw new Error(String(result.error.message || 'Card payment failed.')); await settleConfirmedStripe(result?.paymentIntent, intent, amount)
@@ -319,7 +356,7 @@ export function StripeInlinePayment(props: Props) {
   const prepareWallet = async () => {
     if (busy || walletPrepared || !ready) return
     setBusy(true); setError(''); setInfo(copy.preparing)
-    try { const intent = await prepareIntent(); await prepareR36Reservation(); setWalletPrepared(true); await mountWallet(intent); setInfo('') }
+    try { const intent = await prepareIntent(); await prepareR36Reservation(intent); setWalletPrepared(true); await mountWallet(intent); setInfo('') }
     catch (prepareError) { await cancelPreparedIntent(); await cancelR36Reservation(); reportError(prepareError instanceof Error ? prepareError.message : 'Wallet payment could not be prepared.') }
     finally { setBusy(false) }
   }
