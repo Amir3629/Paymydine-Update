@@ -115,13 +115,6 @@ class Pmdsmartcategories extends AdminController
                 ->all();
         }
 
-        $user = AdminAuth::getUser();
-        $canManageCombos =
-            $user
-            && $user->hasPermission('Admin.Combos')
-            && Schema::hasTable('menu_combos')
-            && Schema::hasTable('menu_combo_items');
-
         return response()->json([
             'ok' => true,
             'categories' => $categories,
@@ -130,7 +123,7 @@ class Pmdsmartcategories extends AdminController
                 'bestseller' => $bestsellerIds,
             ],
             'combos' => $combos,
-            'can_manage_combos' => (bool)$canManageCombos,
+            'can_manage_combos' => $this->canManageCombos(),
         ]);
     }
 
@@ -138,7 +131,7 @@ class Pmdsmartcategories extends AdminController
     {
         $this->assertCategoryPermission();
 
-        if (!Schema::hasColumn('categories', 'pmd_kind')) {
+        if (!Schema::hasTable('categories') || !Schema::hasColumn('categories', 'pmd_kind')) {
             return response()->json([
                 'ok' => false,
                 'message' => 'Smart category migration has not been applied yet.',
@@ -167,6 +160,22 @@ class Pmdsmartcategories extends AdminController
         $name = trim((string)$clean['name']);
         $menuIds = array_values(array_unique(array_map('intval', (array)($clean['menu_ids'] ?? []))));
 
+        if ($kind === 'combos' && !$this->canManageCombos()) {
+            abort(403);
+        }
+
+        $sameName = Categories_model::query()
+            ->where('name', $name)
+            ->when($categoryId, static fn($query) => $query->where('category_id', '!=', $categoryId))
+            ->exists();
+
+        if ($sameName) {
+            return response()->json([
+                'ok' => false,
+                'message' => 'A category with this name already exists.',
+            ], 422);
+        }
+
         if (in_array($kind, ['chef', 'bestseller'], true)) {
             $validMenuIds = Menus_model::query()
                 ->where('menu_status', 1)
@@ -187,13 +196,13 @@ class Pmdsmartcategories extends AdminController
             }
         }
 
-        $duplicate = DB::table('categories')
+        $duplicateKind = DB::table('categories')
             ->where('pmd_kind', $kind)
             ->when($categoryId, static fn($query) => $query->where('category_id', '!=', $categoryId))
             ->when($kind === 'regular', static fn($query) => $query->whereRaw('1 = 0'))
             ->exists();
 
-        if ($duplicate) {
+        if ($duplicateKind) {
             return response()->json([
                 'ok' => false,
                 'message' => 'This special category already exists. Edit the existing category instead.',
@@ -279,6 +288,7 @@ class Pmdsmartcategories extends AdminController
     public function onDelete(): JsonResponse
     {
         $this->assertCategoryPermission();
+        $this->assertDestructiveCategoryPermission();
 
         $categoryId = (int)request()->input('category_id', 0);
         if ($categoryId < 1) {
@@ -373,10 +383,62 @@ class Pmdsmartcategories extends AdminController
         }
     }
 
+    private function canManageCombos(): bool
+    {
+        $user = AdminAuth::getUser();
+
+        return (bool)(
+            $user
+            && $user->hasPermission('Admin.Combos')
+            && Schema::hasTable('menu_combos')
+            && Schema::hasTable('menu_combo_items')
+        );
+    }
+
     private function assertCategoryPermission(): void
     {
         $user = AdminAuth::getUser();
         if (!$user || !$user->hasPermission('Admin.Categories')) {
+            abort(403);
+        }
+    }
+
+    private function assertDestructiveCategoryPermission(): void
+    {
+        $user = AdminAuth::getUser();
+
+        if (!$user || !$user->hasPermission('Admin.Menus') || !$user->hasPermission('Admin.Categories')) {
+            abort(403);
+        }
+
+        if (!empty($user->is_super_user)) {
+            return;
+        }
+
+        $role = '';
+
+        if (!empty($user->staff_id)) {
+            try {
+                $row = DB::table('staffs as s')
+                    ->leftJoin('staff_roles as r', 'r.staff_role_id', '=', 's.staff_role_id')
+                    ->where('s.staff_id', (int)$user->staff_id)
+                    ->select('r.code as role_code', 'r.name as role_name')
+                    ->first();
+
+                $code = strtolower(trim((string)($row->role_code ?? '')));
+                $name = strtolower(trim((string)($row->role_name ?? '')));
+
+                if ($code === 'owner' || $name === 'owner') {
+                    $role = 'owner';
+                } elseif ($code === 'manager' || $name === 'manager') {
+                    $role = 'manager';
+                }
+            } catch (\Throwable $error) {
+                $role = '';
+            }
+        }
+
+        if (!in_array($role, ['owner', 'manager'], true)) {
             abort(403);
         }
     }
