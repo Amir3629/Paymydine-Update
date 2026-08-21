@@ -67,9 +67,6 @@ class CategoryController extends Controller
         }
     }
 
-    /**
-     * Get category by ID.
-     */
     public function show($categoryId)
     {
         try {
