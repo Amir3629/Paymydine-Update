@@ -103,7 +103,7 @@ final class BillingGroupService
         foreach($links as $l){ $s=$this->json($l->financial_snapshot); $id=(int)$l->order_id; $total=(int)($s['total_cents']??0); $paid=isset($orders[$id])?min($total,$this->cents($orders[$id]->settled_amount??0)):0; $out[$id]=['order_id'=>$id,'total_cents'=>$total,'remaining_cents'=>max(0,$total-$paid)]; }
         $g=DB::table('pmd_billing_groups')->where('id',$groupId)->first(); if(!$g)throw new RuntimeException('Billing group not found.');
         $vat=$this->json($g->vat_snapshot); $svc=(int)$g->service_charge_cents+(int)($vat['service_charge_tax_added_cents']??0); $paidSvc=0;
-        foreach(DB::table('pmd_billing_group_payments')->where('billing_group_id',$groupId)->where('status','settled')->get() as $p){$a=$this->json($p->allocation_snapshot);$paidSvc+=(int)($a['service_component_cents']??0);} 
+        foreach(DB::table('pmd_billing_group_payments')->where('billing_group_id',$groupId)->where('status','settled')->get() as $p){$a=$this->json($p->allocation_snapshot);$paidSvc+=(int)($a['service_component_cents']??0);}
         return ['orders'=>$out,'service_component_remaining_cents'=>max(0,$svc-$paidSvc)];
     }
 
