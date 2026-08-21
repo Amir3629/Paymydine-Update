@@ -109,7 +109,6 @@ if (!function_exists('pmd_menu_highlight_settings_20260607')) {
             'best_seller_label' => $text('best_seller_label'),
         ];
 
-        // Backwards-compatible names consumed by the current frontend.
         return $settings + [
             'chef_section_enabled' => $settings['enable_chef_recommendations_section'],
             'bestseller_section_enabled' => $settings['enable_best_sellers_section'],
@@ -191,186 +190,219 @@ if (!function_exists('pmd_menu_apply_recommendation_20260607')) {
     }
 }
 
-
 if (!function_exists('pmd_menu_highlights_response_20260607')) {
     function pmd_menu_highlights_response_20260607()
     {
-try {
-        // DetectTenant has set default connection to tenant; use it explicitly for menu + combos.
-        $conn = DB::connection('tenant');
-        $p = $conn->getTablePrefix();
-        $nutritionSelect = implode(",
-                                ", array_map(function ($column) use ($conn) {
-            return pmdMenuColumnSelect($conn, 'm', $column);
-        }, ['calories', 'protein', 'carbs', 'fat', 'sugar', 'serving_size']));
-        $recommendationSelect = implode(",
-                                ", [
-            pmd_menu_optional_select_20260607($conn, 'm', 'is_chef_recommended', '0'),
-            pmd_menu_optional_select_20260607($conn, 'm', 'is_manual_bestseller', '0'),
-            pmd_menu_optional_select_20260607($conn, 'm', 'bestseller_override_mode', "'auto'"),
-        ]);
-        $query = "
-            SELECT
-                m.menu_id as id,
-                m.menu_name as name,
-                m.menu_description as description,
-                CAST(m.menu_price AS DECIMAL(10,2)) as price,
-                COALESCE(c.name, 'Main') as category_name,
-                ma.name as image,
-                COALESCE(m.is_halal, 0) as halal,
-                COALESCE(m.is_vegetarian, 0) as vegetarian,
-                COALESCE(m.is_vegan, 0) as vegan,
-                {$nutritionSelect},
-                {$recommendationSelect},
-                (
-                    SELECT GROUP_CONCAT(DISTINCT a.name ORDER BY a.name SEPARATOR '||')
-                    FROM {$p}allergenables aa
-                    INNER JOIN {$p}allergens a ON a.allergen_id = aa.allergen_id
-                    WHERE aa.allergenable_id = m.menu_id
-                        AND aa.allergenable_type IN ('menus', 'Admin\\Models\\Menus_model')
-                        AND a.status = 1
-                ) as allergy_names
-            FROM {$p}menus m
-            LEFT JOIN {$p}menu_categories mc ON m.menu_id = mc.menu_id
-            LEFT JOIN {$p}categories c ON mc.category_id = c.category_id
-            LEFT JOIN {$p}media_attachments ma ON ma.attachment_type = 'menus'
-                AND ma.attachment_id = m.menu_id
-                AND ma.tag = 'thumb'
-            WHERE m.menu_status = 1
-            ORDER BY c.priority ASC, COALESCE(m.menu_priority, 999999) ASC, m.menu_name ASC
-        ";
-
-        $items = $conn->select($query);
-        $stats = pmd_menu_popularity_stats_20260607();
-        $autoIds = array_flip($stats['ids'] ?? []);
-        $counts = $stats['counts'] ?? [];
-
-        foreach ($items as &$item) {
-            $item->price = (float)$item->price;
-            normalizeMenuFoodAttributes($item);
-            normalizeMenuNutrition($item);
-            pmd_menu_apply_recommendation_20260607($item, $autoIds, $counts);
-            $item->image = $item->image ? "/api/media/".$item->image : '/images/pasta.png';
-            $item->isCombo = false;
-            $item->comboId = null;
-            $item->images = pmd_menu_gallery_images_for_id((int)$item->id);
-            $item->gallery = $item->images;
-            $item->media = $item->images;
-            $item->options = getMenuItemOptions($item->id);
-        }
-
-        $combosQuery = "
-            SELECT
-                mc.combo_id as id,
-                mc.combo_name as name,
-                mc.combo_description as description,
-                CAST(mc.combo_price AS DECIMAL(10,2)) as price,
-                'Combos' as category_name,
-                ma.name as image
-            FROM {$p}menu_combos mc
-            LEFT JOIN {$p}media_attachments ma ON ma.attachment_type = 'menu_combos'
-                AND ma.attachment_id = mc.combo_id
-                AND ma.tag = 'thumb'
-            WHERE mc.combo_status = 1
-            ORDER BY mc.combo_priority ASC, mc.combo_name ASC
-        ";
-        // PMD_OPTIONAL_MENU_COMBOS_R29F
-        // Older tenant schemas can legitimately predate menu_combos. Combos are
-        // optional; absence of that table must not make the entire customer menu 500.
-        $combos = [];
         try {
-            if ($conn->getSchemaBuilder()->hasTable('menu_combos')) {
-                $combos = $conn->select($combosQuery);
-            }
-        } catch (\Throwable $e) {
-            \Log::warning('PMD_OPTIONAL_MENU_COMBOS_R29F_SKIPPED', [
-                'message' => $e->getMessage(),
-                'database' => $conn->getDatabaseName(),
+            // DetectTenant has set default connection to tenant; use it explicitly for menu + combos.
+            $conn = DB::connection('tenant');
+            $p = $conn->getTablePrefix();
+            $nutritionSelect = implode(",\n                                ", array_map(function ($column) use ($conn) {
+                return pmdMenuColumnSelect($conn, 'm', $column);
+            }, ['calories', 'protein', 'carbs', 'fat', 'sugar', 'serving_size']));
+            $recommendationSelect = implode(",\n                                ", [
+                pmd_menu_optional_select_20260607($conn, 'm', 'is_chef_recommended', '0'),
+                pmd_menu_optional_select_20260607($conn, 'm', 'is_manual_bestseller', '0'),
+                pmd_menu_optional_select_20260607($conn, 'm', 'bestseller_override_mode', "'auto'"),
             ]);
-            $combos = [];
-        }
-        foreach ($combos as &$combo) {
-            $combo->price = (float)$combo->price;
-            $combo->image = $combo->image ? "/api/media/".$combo->image : '/images/pasta.png';
-            $combo->isCombo = true;
-            $combo->comboId = $combo->id;
-            $combo->options = [];
-            $combo->is_stock_out = false;
-            $combo->available = true;
-            $combo->halal = false;
-            $combo->vegetarian = false;
-            $combo->vegan = false;
-            $combo->allergens = [];
-            $combo->allergy_tags = [];
-            $combo->calories = null;
-            $combo->protein = null;
-            $combo->carbs = null;
-            $combo->fat = null;
-            $combo->sugar = null;
-            $combo->serving_size = null;
-            $combo->nutrition = null;
-            $combo->is_chef_recommended = false;
-            $combo->is_manual_bestseller = false;
-            $combo->bestseller_override_mode = 'auto';
-            $combo->is_bestseller = false;
-            $combo->bestseller_source = null;
-            $combo->popularity_count = 0;
-        }
-        $allItems = array_merge($items, $combos);
 
-        $categories = $conn->select("
-            SELECT category_id as id, name, priority
-            FROM {$p}categories
-            WHERE status = 1
-            ORDER BY priority ASC, name ASC
-        ");
-        if (count($combos) > 0) {
-            $hasCombosCategory = false;
-            foreach ($categories as $cat) {
-                if ($cat->name === 'Combos') { $hasCombosCategory = true; break; }
+            $query = "
+                SELECT
+                    m.menu_id as id,
+                    m.menu_name as name,
+                    m.menu_description as description,
+                    CAST(m.menu_price AS DECIMAL(10,2)) as price,
+                    COALESCE(c.name, 'Main') as category_name,
+                    ma.name as image,
+                    COALESCE(m.is_halal, 0) as halal,
+                    COALESCE(m.is_vegetarian, 0) as vegetarian,
+                    COALESCE(m.is_vegan, 0) as vegan,
+                    {$nutritionSelect},
+                    {$recommendationSelect},
+                    (
+                        SELECT GROUP_CONCAT(DISTINCT a.name ORDER BY a.name SEPARATOR '||')
+                        FROM {$p}allergenables aa
+                        INNER JOIN {$p}allergens a ON a.allergen_id = aa.allergen_id
+                        WHERE aa.allergenable_id = m.menu_id
+                            AND aa.allergenable_type IN ('menus', 'Admin\\Models\\Menus_model')
+                            AND a.status = 1
+                    ) as allergy_names
+                FROM {$p}menus m
+                LEFT JOIN {$p}menu_categories mc ON m.menu_id = mc.menu_id
+                LEFT JOIN {$p}categories c ON mc.category_id = c.category_id
+                LEFT JOIN {$p}media_attachments ma ON ma.attachment_type = 'menus'
+                    AND ma.attachment_id = m.menu_id
+                    AND ma.tag = 'thumb'
+                WHERE m.menu_status = 1
+                ORDER BY c.priority ASC, COALESCE(m.menu_priority, 999999) ASC, m.menu_name ASC
+            ";
+
+            $items = $conn->select($query);
+            $stats = pmd_menu_popularity_stats_20260607();
+            $autoIds = array_flip($stats['ids'] ?? []);
+            $counts = $stats['counts'] ?? [];
+
+            foreach ($items as &$item) {
+                $item->price = (float)$item->price;
+                normalizeMenuFoodAttributes($item);
+                normalizeMenuNutrition($item);
+                pmd_menu_apply_recommendation_20260607($item, $autoIds, $counts);
+                $item->image = $item->image ? "/api/media/".$item->image : '/images/pasta.png';
+                $item->isCombo = false;
+                $item->comboId = null;
+                $item->images = pmd_menu_gallery_images_for_id((int)$item->id);
+                $item->gallery = $item->images;
+                $item->media = $item->images;
+                $item->options = getMenuItemOptions($item->id);
             }
-            if (!$hasCombosCategory) $categories[] = (object)['id' => 'combos', 'name' => 'Combos', 'priority' => 999];
-        }
 
-        $settings = pmd_menu_highlight_settings_20260607($conn);
-        $setupRows = pmd_menu_highlight_setting_rows_20260607($conn, ['site_logo', 'site_name', 'mail_from_address']);
-        $logoValue = trim((string)($setupRows['site_logo'] ?? ''));
-        $siteNameValue = trim((string)($setupRows['site_name'] ?? ''));
-        $mailValue = trim((string)($setupRows['mail_from_address'] ?? ''));
-        $hasCategories = count($categories) > 0;
-        $hasMenuItems = count($allItems) > 0;
-        $hasLogo = $logoValue !== '' && stripos($logoValue, 'default') === false && stripos($logoValue, 'placeholder') === false;
-        $hasCustomSettings = ($siteNameValue !== '' && strcasecmp($siteNameValue, 'PayMyDine') !== 0) || $mailValue !== '';
+            $combosQuery = "
+                SELECT
+                    mc.combo_id as id,
+                    mc.combo_name as name,
+                    mc.combo_description as description,
+                    CAST(mc.combo_price AS DECIMAL(10,2)) as price,
+                    'Combos' as category_name,
+                    ma.name as image
+                FROM {$p}menu_combos mc
+                LEFT JOIN {$p}media_attachments ma ON ma.attachment_type = 'menu_combos'
+                    AND ma.attachment_id = mc.combo_id
+                    AND ma.tag = 'thumb'
+                WHERE mc.combo_status = 1
+                ORDER BY mc.combo_priority ASC, mc.combo_name ASC
+            ";
 
-        return response()->json([
-            'success' => true,
-            'data' => [
-                'items' => $allItems,
-                'categories' => $categories,
-                'is_frontend_configured' => $hasCategories || $hasMenuItems || $hasLogo || $hasCustomSettings,
-                'setup_status' => [
-                    'has_categories' => $hasCategories,
-                    'has_menu_items' => $hasMenuItems,
-                    'has_logo' => $hasLogo,
-                    'has_custom_settings' => $hasCustomSettings,
+            // PMD_OPTIONAL_MENU_COMBOS_R29F
+            $combos = [];
+            try {
+                if ($conn->getSchemaBuilder()->hasTable('menu_combos')) {
+                    $combos = $conn->select($combosQuery);
+                }
+            } catch (\Throwable $e) {
+                \Log::warning('PMD_OPTIONAL_MENU_COMBOS_R29F_SKIPPED', [
+                    'message' => $e->getMessage(),
+                    'database' => $conn->getDatabaseName(),
+                ]);
+                $combos = [];
+            }
+
+            foreach ($combos as &$combo) {
+                $combo->price = (float)$combo->price;
+                $combo->image = $combo->image ? "/api/media/".$combo->image : '/images/pasta.png';
+                $combo->isCombo = true;
+                $combo->comboId = $combo->id;
+                $combo->options = [];
+                $combo->is_stock_out = false;
+                $combo->available = true;
+                $combo->halal = false;
+                $combo->vegetarian = false;
+                $combo->vegan = false;
+                $combo->allergens = [];
+                $combo->allergy_tags = [];
+                $combo->calories = null;
+                $combo->protein = null;
+                $combo->carbs = null;
+                $combo->fat = null;
+                $combo->sugar = null;
+                $combo->serving_size = null;
+                $combo->nutrition = null;
+                $combo->is_chef_recommended = false;
+                $combo->is_manual_bestseller = false;
+                $combo->bestseller_override_mode = 'auto';
+                $combo->is_bestseller = false;
+                $combo->bestseller_source = null;
+                $combo->popularity_count = 0;
+            }
+
+            $allItems = array_merge($items, $combos);
+
+            // PMD_MENU_CATEGORY_KIND_CANONICAL_V3
+            // The active customer /api/v1/menu endpoint is the canonical
+            // category contract on production. Expose pmd_kind here so renamed
+            // smart categories do not depend on a parallel /categories route.
+            $categoryKindSelect = "'regular' as pmd_kind";
+            try {
+                if ($conn->getSchemaBuilder()->hasColumn('categories', 'pmd_kind')) {
+                    $categoryKindSelect = 'pmd_kind';
+                }
+            } catch (\Throwable $e) {
+                $categoryKindSelect = "'regular' as pmd_kind";
+            }
+
+            $categories = $conn->select("
+                SELECT category_id as id, name, priority, {$categoryKindSelect}
+                FROM {$p}categories
+                WHERE status = 1
+                ORDER BY priority ASC, name ASC
+            ");
+
+            foreach ($categories as $category) {
+                $kind = strtolower(trim((string)($category->pmd_kind ?? 'regular')));
+                if (!in_array($kind, ['regular', 'chef', 'bestseller', 'combos'], true)) {
+                    $kind = 'regular';
+                }
+                $category->pmd_kind = $kind;
+                $category->kind = $kind;
+            }
+
+            if (count($combos) > 0) {
+                $hasCombosCategory = false;
+                foreach ($categories as $cat) {
+                    if ($cat->name === 'Combos') {
+                        $hasCombosCategory = true;
+                        break;
+                    }
+                }
+                if (!$hasCombosCategory) {
+                    $categories[] = (object)[
+                        'id' => 'combos',
+                        'name' => 'Combos',
+                        'priority' => 999,
+                        'pmd_kind' => 'combos',
+                        'kind' => 'combos',
+                    ];
+                }
+            }
+
+            $settings = pmd_menu_highlight_settings_20260607($conn);
+            $setupRows = pmd_menu_highlight_setting_rows_20260607($conn, ['site_logo', 'site_name', 'mail_from_address']);
+            $logoValue = trim((string)($setupRows['site_logo'] ?? ''));
+            $siteNameValue = trim((string)($setupRows['site_name'] ?? ''));
+            $mailValue = trim((string)($setupRows['mail_from_address'] ?? ''));
+            $hasCategories = count($categories) > 0;
+            $hasMenuItems = count($allItems) > 0;
+            $hasLogo = $logoValue !== '' && stripos($logoValue, 'default') === false && stripos($logoValue, 'placeholder') === false;
+            $hasCustomSettings = ($siteNameValue !== '' && strcasecmp($siteNameValue, 'PayMyDine') !== 0) || $mailValue !== '';
+
+            return response()->json([
+                'success' => true,
+                'data' => [
+                    'items' => $allItems,
+                    'categories' => $categories,
+                    'is_frontend_configured' => $hasCategories || $hasMenuItems || $hasLogo || $hasCustomSettings,
+                    'setup_status' => [
+                        'has_categories' => $hasCategories,
+                        'has_menu_items' => $hasMenuItems,
+                        'has_logo' => $hasLogo,
+                        'has_custom_settings' => $hasCustomSettings,
+                    ],
+                    'menu_highlight_settings' => $settings,
+                    'menu_cache_version' => pmd_menu_highlight_cache_version_20260607($conn),
+                    'menu_api_version' => 'menu-highlights-v3-smart-categories',
+                    'menu_category_contract' => 'pmd-kind-v1',
                 ],
-                'menu_highlight_settings' => $settings,
-                'menu_cache_version' => pmd_menu_highlight_cache_version_20260607($conn),
-                'menu_api_version' => 'menu-highlights-v2',
-            ],
-        ]);
-    } catch (\Exception $e) {
-        \Log::error('PMD_MENU_HIGHLIGHTS_LEGACY_ROUTE_FAILED', [
-            'message' => $e->getMessage(),
-            'file' => $e->getFile(),
-            'line' => $e->getLine(),
-        ]);
-        return response()->json([
-            'success' => false,
-            'error' => 'Failed to fetch menu',
-            'message' => $e->getMessage(),
-        ], 500);
-    }
-
+            ]);
+        } catch (\Exception $e) {
+            \Log::error('PMD_MENU_HIGHLIGHTS_LEGACY_ROUTE_FAILED', [
+                'message' => $e->getMessage(),
+                'file' => $e->getFile(),
+                'line' => $e->getLine(),
+            ]);
+            return response()->json([
+                'success' => false,
+                'error' => 'Failed to fetch menu',
+                'message' => $e->getMessage(),
+            ], 500);
+        }
     }
 }
