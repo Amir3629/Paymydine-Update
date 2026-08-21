@@ -217,6 +217,12 @@
   function isSelectionShell() { return root.dataset.pmdComboBuilder === '1'; }
   function headerControls() { return {primary: root.querySelector('[data-pmd-menu-header-primary]'), secondary: root.querySelector('[data-pmd-menu-header-secondary]')}; }
 
+  function keepSmartConfirmEnabled() {
+    if (!smartSelectionCategory || !isSelectionShell() || smartSelectionBusy) return;
+    var primary = headerControls().primary;
+    if (primary) primary.disabled = false;
+  }
+
   function moveSelectionShellToAllFoods() {
     var search = root.querySelector('[data-pmd-menu-search]'); if (search && search.value) { search.value = ''; search.dispatchEvent(new Event('input', {bubbles: true})); }
     var stockAll = root.querySelector('[data-pmd-stock-filter="all"]'); if (stockAll && !stockAll.classList.contains('is-active')) stockAll.click();
@@ -231,6 +237,7 @@
     if (!smartSelectionCategory || !isSelectionShell()) return;
     var wanted = new Set(((state.selections || {})[smartSelectionCategory.kind] || []).map(Number));
     root.querySelectorAll('[data-pmd-menu-card][data-item-type="food"]').forEach(function (card) { var id = Number(card.dataset.menuId || 0); if (id && wanted.has(id) && !card.classList.contains('is-combo-selected')) card.click(); });
+    keepSmartConfirmEnabled();
   }
 
   function startSmartSelection(category) {
@@ -238,7 +245,7 @@
     var controls = headerControls(); if (!controls.secondary) return; smartSelectionCategory = category; root.dataset.pmdSmartSelectionKind = category.kind; root.dataset.pmdSmartSelectionCategory = String(category.id);
     controls.secondary.click();
     if (!isSelectionShell()) { smartSelectionCategory = null; root.removeAttribute('data-pmd-smart-selection-kind'); root.removeAttribute('data-pmd-smart-selection-category'); return; }
-    moveSelectionShellToAllFoods(); requestAnimationFrame(preselectSmartFoods);
+    moveSelectionShellToAllFoods(); keepSmartConfirmEnabled(); requestAnimationFrame(preselectSmartFoods);
   }
 
   function cleanupSmartSelection(category) {
@@ -298,6 +305,16 @@
       var categoryButton = event.target.closest('[data-pmd-category-id]'); if (categoryButton && root.contains(categoryButton) && !event.target.closest('[data-pmd-smart-category-edit]')) { activeFilterId = Number(categoryButton.getAttribute('data-pmd-category-id') || 0) || null; requestAnimationFrame(renderActionCard); return; }
       var otherFilter = event.target.closest('[data-pmd-category-filter]'); if (otherFilter && root.contains(otherFilter) && !otherFilter.hasAttribute('data-pmd-category-id')) { activeFilterId = null; requestAnimationFrame(renderActionCard); }
     }, true);
+
+    // The existing Combo shell normally requires two selected foods. Chef and
+    // Bestseller membership legitimately allow zero/one item, so after the
+    // canonical card-selection handler updates its count, keep Confirm enabled
+    // only for this smart-selection mode. No observer/poller is introduced.
+    document.addEventListener('click', function (event) {
+      if (!smartSelectionCategory || !isSelectionShell()) return;
+      var card = event.target.closest('[data-pmd-menu-card][data-item-type="food"]');
+      if (card && root.contains(card)) requestAnimationFrame(keepSmartConfirmEnabled);
+    }, false);
 
     document.addEventListener('keydown', function (event) {
       if (event.key !== 'Escape') return;
