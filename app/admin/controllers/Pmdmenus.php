@@ -185,7 +185,27 @@ class Pmdmenus extends AdminController
                 true
             );
 
-        $canManageCombos = $user && $user->hasPermission('Admin.Combos') && Schema::hasTable('menu_combos') && Schema::hasTable('menu_combo_items');
+        // PMD_MENU_COMBO_OWNER_MANAGER_BRIDGE_V1
+        // Existing Owner/Manager Menu access must not be blocked by a stale
+        // Admin.Combos role bit. Other roles still require Admin.Combos.
+        $canManageCombos = (bool)(
+            $user
+            && Schema::hasTable('menu_combos')
+            && Schema::hasTable('menu_combo_items')
+            && (
+                !empty($user->is_super_user)
+                || $user->hasPermission('Admin.Combos')
+                || (
+                    $user->hasPermission('Admin.Menus')
+                    && in_array(
+                        $pmdMenuManagerRole,
+                        ['owner', 'manager'],
+                        true
+                    )
+                )
+            )
+        );
+
         $comboCards = [];
         $comboCatalog = [];
 
@@ -269,7 +289,6 @@ class Pmdmenus extends AdminController
 
         return $this->makeView('pmdmenus/index');
     }
-
 
     protected function comboDerivedProfile(array $items, array $catalog): array
     {
