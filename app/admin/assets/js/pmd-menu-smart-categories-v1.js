@@ -1,17 +1,25 @@
 (function () {
   'use strict';
 
+  // PMD_MENU_SMART_CATEGORY_FIRST_ACTION_V1_2
+  // Category creation owns only name + type. After creation, Chef/Bestseller
+  // membership and Combination composition reuse the proven All Foods
+  // Combination-selection shell. No second card-selection authority.
+
   var root = document.querySelector('[data-pmd-menu-manager]');
   if (!root) return;
 
   var state = null;
   var loading = false;
+  var busy = false;
   var modal = null;
   var activeCategory = null;
   var activeKind = 'regular';
-  var selectedIds = new Set();
-  var busy = false;
+  var activeFilterId = null;
+  var actionCard = null;
   var lastTrigger = null;
+  var smartSelectionCategory = null;
+  var smartSelectionBusy = false;
 
   var copy = {
     en: {
@@ -21,78 +29,69 @@
       name: 'Category name',
       nameHelp: 'Name the category exactly as guests should see it.',
       type: 'Category type',
-      typeHelp: 'Choose what this category represents. Type is locked after creation.',
+      typeHelp: 'Create the category first. Add foods or combinations from inside the category afterwards.',
       regular: 'Regular',
-      regularHelp: 'Normal menu category',
       chef: "Chef's recommendation",
-      chefHelp: 'Curated food selection',
       bestseller: 'Bestsellers',
-      bestsellerHelp: 'Manual bestseller selection',
       combos: 'Combinations',
-      combosHelp: 'Bundle / combo products',
-      locked: 'Category type is locked after creation. You can still rename and reorder it.',
-      selectFoods: 'Select foods',
-      selectFoodsHelp: 'Choose the foods that belong to this smart category.',
-      search: 'Search foods...',
-      noFoods: 'No matching published foods.',
-      comboTitle: 'Combination foods',
-      comboHelp: 'Combination products use the existing PMD combo builder. Create and edit them from this category.',
-      noCombos: 'No combinations created yet.',
-      createCombo: 'Create combination',
+      locked: 'Category type is locked after creation. Name and order stay editable.',
+      alreadyExists: 'Already created',
+      defaultChef: "Chef's Recommendations",
+      defaultBest: 'Bestsellers',
+      defaultCombos: 'Combinations',
+      addChef: 'Add chef recommendation',
+      addBest: 'Add bestseller',
+      addCombo: 'Add combination',
+      addHelpChef: 'Choose foods from All Foods.',
+      addHelpBest: 'Choose foods from All Foods.',
+      addHelpCombo: 'Build a combination from All Foods.',
       cancel: 'Cancel',
       save: 'Save category',
       saving: 'Saving...',
       saved: 'Saved',
-      deleteConfirm: 'Delete this smart category? Foods and combinations will not be deleted.',
-      deleteFailed: 'Category could not be deleted.',
-      loadFailed: 'Smart category data could not be loaded.',
       saveFailed: 'Category could not be saved.',
-      alreadyExists: 'Already created',
-      defaultChef: "Chef's Recommendations",
-      defaultBest: 'Bestsellers',
-      defaultCombos: 'Combinations'
+      selectionFailed: 'Selection could not be saved.',
+      deleteConfirm: 'Delete this special category? Foods and combinations will not be deleted.',
+      deleteFailed: 'Category could not be deleted.',
+      loadFailed: 'Smart category data could not be loaded.'
     },
     de: {
-      eyebrow: 'Menükategorien',
+      eyebrow: 'Menukategorien',
       createTitle: 'Kategorie erstellen',
       editTitle: 'Kategorie bearbeiten',
       name: 'Kategoriename',
-      nameHelp: 'Der Name wird Gästen genau so angezeigt.',
+      nameHelp: 'Der Name wird Gasten genau so angezeigt.',
       type: 'Kategorietyp',
-      typeHelp: 'Wähle die Funktion der Kategorie. Der Typ ist nach dem Erstellen gesperrt.',
+      typeHelp: 'Erstelle zuerst die Kategorie. Speisen oder Kombinationen fugst du danach direkt in der Kategorie hinzu.',
       regular: 'Normal',
-      regularHelp: 'Normale Menükategorie',
-      chef: 'Empfehlung des Küchenchefs',
-      chefHelp: 'Kuratiere Speisen',
+      chef: 'Empfehlung des Kuchenchefs',
       bestseller: 'Bestseller',
-      bestsellerHelp: 'Manuelle Bestseller-Auswahl',
       combos: 'Kombinationen',
-      combosHelp: 'Bundles / Combo-Produkte',
       locked: 'Der Kategorietyp ist nach dem Erstellen gesperrt. Name und Reihenfolge bleiben bearbeitbar.',
-      selectFoods: 'Speisen auswählen',
-      selectFoodsHelp: 'Wähle die Speisen, die zu dieser Smart-Kategorie gehören.',
-      search: 'Speisen suchen...',
-      noFoods: 'Keine passenden veröffentlichten Speisen.',
-      comboTitle: 'Kombinationen',
-      comboHelp: 'Kombinationen verwenden den bestehenden PMD-Combo-Builder. Erstelle und bearbeite sie aus dieser Kategorie.',
-      noCombos: 'Noch keine Kombination erstellt.',
-      createCombo: 'Kombination erstellen',
+      alreadyExists: 'Bereits erstellt',
+      defaultChef: 'Empfehlungen des Kuchenchefs',
+      defaultBest: 'Bestseller',
+      defaultCombos: 'Kombinationen',
+      addChef: 'Chef-Empfehlung hinzufugen',
+      addBest: 'Bestseller hinzufugen',
+      addCombo: 'Kombination hinzufugen',
+      addHelpChef: 'Speisen aus Alle Speisen auswahlen.',
+      addHelpBest: 'Speisen aus Alle Speisen auswahlen.',
+      addHelpCombo: 'Eine Kombination aus Alle Speisen erstellen.',
       cancel: 'Abbrechen',
       save: 'Kategorie speichern',
       saving: 'Speichern...',
       saved: 'Gespeichert',
-      deleteConfirm: 'Diese Smart-Kategorie löschen? Speisen und Kombinationen werden nicht gelöscht.',
-      deleteFailed: 'Kategorie konnte nicht gelöscht werden.',
-      loadFailed: 'Smart-Kategoriedaten konnten nicht geladen werden.',
       saveFailed: 'Kategorie konnte nicht gespeichert werden.',
-      alreadyExists: 'Bereits erstellt',
-      defaultChef: 'Empfehlungen des Küchenchefs',
-      defaultBest: 'Bestseller',
-      defaultCombos: 'Kombinationen'
+      selectionFailed: 'Auswahl konnte nicht gespeichert werden.',
+      deleteConfirm: 'Diese spezielle Kategorie loschen? Speisen und Kombinationen werden nicht geloscht.',
+      deleteFailed: 'Kategorie konnte nicht geloscht werden.',
+      loadFailed: 'Smart-Kategoriedaten konnten nicht geladen werden.'
     }
   };
 
-  var locale = String(document.cookie.match(/(?:^|; )pmd_admin_locale=([^;]+)/)?.[1] || document.documentElement.lang || 'en').toLowerCase();
+  var localeMatch = document.cookie.match(/(?:^|; )pmd_admin_locale=([^;]+)/);
+  var locale = String((localeMatch && localeMatch[1]) || document.documentElement.lang || 'en').toLowerCase();
   var t = copy[locale.indexOf('de') === 0 ? 'de' : 'en'];
 
   function escapeHtml(value) {
@@ -104,18 +103,17 @@
       .replace(/'/g, '&#039;');
   }
 
-  function csrf(formData) {
-    if (formData.has('_token')) return;
+  function csrf(data) {
+    if (data.has('_token')) return;
     var meta = document.querySelector('meta[name="csrf-token"]');
     var hidden = document.querySelector('input[name="_token"]');
     var token = meta && meta.content ? meta.content : (hidden ? hidden.value : '');
-    if (token) formData.append('_token', token);
+    if (token) data.append('_token', token);
   }
 
-  async function backend(handler, formData) {
-    var data = formData || new FormData();
+  async function backend(handler, data) {
+    data = data || new FormData();
     csrf(data);
-
     var response = await fetch('/admin/pmdsmartcategories', {
       method: 'POST',
       credentials: 'same-origin',
@@ -126,87 +124,63 @@
       },
       body: data
     });
-
     var raw = await response.text();
     var payload = {};
     try { payload = raw ? JSON.parse(raw) : {}; }
-    catch (error) { payload = { message: raw || 'Request failed.' }; }
-
+    catch (error) { payload = {message: raw || 'Request failed.'}; }
     if (!response.ok || payload.ok === false) {
       throw new Error(payload.message || ('Request failed (' + response.status + ')'));
     }
-
     return payload;
   }
 
   function categoryById(id) {
-    if (!state) return null;
-    var number = Number(id || 0);
-    return (state.categories || []).find(function (category) {
-      return Number(category.id) === number;
+    var wanted = Number(id || 0);
+    return state && (state.categories || []).find(function (category) {
+      return Number(category.id) === wanted;
     }) || null;
   }
 
   function specialByKind(kind) {
-    if (!state) return null;
-    return (state.categories || []).find(function (category) {
+    return state && (state.categories || []).find(function (category) {
       return category.kind === kind;
     }) || null;
   }
 
-  function foodCards() {
-    return Array.from(root.querySelectorAll('[data-pmd-menu-card][data-item-type="food"]'))
-      .filter(function (card) { return card.dataset.published === '1'; })
-      .map(function (card) {
-        var image = card.querySelector('.pmd-menu-card__media img');
-        var title = card.querySelector('.pmd-menu-card__title-row h2, h2');
-        var category = card.querySelector('.pmd-menu-card__category');
-        return {
-          id: Number(card.dataset.menuId || 0),
-          name: title ? title.textContent.trim() : ('Food #' + String(card.dataset.menuId || '')),
-          image: image ? image.getAttribute('src') || '' : '',
-          category: category ? category.textContent.trim() : '',
-          card: card
-        };
-      })
-      .filter(function (item) { return item.id > 0; });
+  function preserveSelection(data, kind) {
+    if (kind !== 'chef' && kind !== 'bestseller') return;
+    ((state.selections || {})[kind] || []).forEach(function (id) {
+      data.append('menu_ids[]', String(id));
+    });
   }
 
   function rebuildCardCategoryMembership() {
     if (!state) return;
-
     var chef = specialByKind('chef');
     var bestseller = specialByKind('bestseller');
-    var combo = specialByKind('combos');
-    var chefSet = new Set((state.selections && state.selections.chef || []).map(Number));
-    var bestSet = new Set((state.selections && state.selections.bestseller || []).map(Number));
+    var combos = specialByKind('combos');
+    var chefIds = new Set(((state.selections || {}).chef || []).map(Number));
+    var bestIds = new Set(((state.selections || {}).bestseller || []).map(Number));
 
     root.querySelectorAll('[data-pmd-menu-card][data-item-type="food"]').forEach(function (card) {
       if (!card.dataset.pmdSmartBaseCategoryIds) {
         card.dataset.pmdSmartBaseCategoryIds = card.getAttribute('data-category-ids') || '';
       }
-
       var ids = String(card.dataset.pmdSmartBaseCategoryIds || '')
-        .split(',')
-        .map(function (value) { return value.trim(); })
-        .filter(Boolean);
-
+        .split(',').map(function (value) { return value.trim(); }).filter(Boolean);
       var menuId = Number(card.dataset.menuId || 0);
-      if (chef && chefSet.has(menuId)) ids.push(String(chef.id));
-      if (bestseller && bestSet.has(menuId)) ids.push(String(bestseller.id));
-
+      if (chef && chefIds.has(menuId)) ids.push(String(chef.id));
+      if (bestseller && bestIds.has(menuId)) ids.push(String(bestseller.id));
       card.setAttribute('data-category-ids', Array.from(new Set(ids)).join(','));
     });
 
     var syntheticCombo = root.querySelector('[data-pmd-category-filter="combos"][data-pmd-category-fixed]');
-
-    if (combo) {
+    if (combos) {
       if (syntheticCombo) syntheticCombo.hidden = true;
-
       root.querySelectorAll('[data-pmd-menu-card][data-item-type="combo"]').forEach(function (card) {
-        card.setAttribute('data-category-ids', String(combo.id));
+        card.setAttribute('data-category-ids', String(combos.id));
         var badge = card.querySelector('.pmd-menu-card__category');
-        if (badge) badge.textContent = combo.name;
+        if (badge) badge.textContent = combos.name;
       });
     } else if (syntheticCombo) {
       syntheticCombo.hidden = false;
@@ -215,12 +189,13 @@
 
   function installCategoryMetadata() {
     if (!state) return;
-
     (state.categories || []).forEach(function (category) {
       var button = root.querySelector('[data-pmd-category-id="' + String(category.id) + '"]');
       if (!button) return;
 
-      button.setAttribute('data-pmd-smart-kind', category.kind || 'regular');
+      // Kind is data, not styling. Special categories must look exactly like
+      // every regular category in the category strip.
+      button.removeAttribute('data-pmd-smart-kind');
 
       if (!button.querySelector('[data-pmd-smart-category-edit]')) {
         var edit = document.createElement('span');
@@ -232,13 +207,11 @@
         button.appendChild(edit);
       }
     });
-
     rebuildCardCategoryMembership();
   }
 
   function ensureModal() {
     if (modal) return modal;
-
     modal = document.createElement('div');
     modal.className = 'pmd-smart-category-modal';
     modal.hidden = true;
@@ -246,80 +219,30 @@
     modal.innerHTML = ''
       + '<div class="pmd-smart-category-modal__backdrop" data-pmd-smart-close></div>'
       + '<section class="pmd-smart-category-modal__card" role="dialog" aria-modal="true" aria-labelledby="pmd-smart-category-title">'
-      + '  <header class="pmd-smart-category-modal__header">'
-      + '    <div class="pmd-smart-category-modal__heading"><span>' + escapeHtml(t.eyebrow) + '</span><h2 id="pmd-smart-category-title"></h2></div>'
-      + '    <button type="button" class="pmd-smart-category-modal__close" data-pmd-smart-close aria-label="Close"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6 6 18"></path></svg></button>'
-      + '  </header>'
-      + '  <div class="pmd-smart-category-modal__body">'
-      + '    <label class="pmd-smart-field"><span>' + escapeHtml(t.name) + '</span><input type="text" maxlength="128" minlength="2" required data-pmd-smart-name><small>' + escapeHtml(t.nameHelp) + '</small></label>'
-      + '    <section class="pmd-smart-section">'
-      + '      <div class="pmd-smart-section__head"><strong>' + escapeHtml(t.type) + '</strong><p>' + escapeHtml(t.typeHelp) + '</p></div>'
-      + '      <div class="pmd-smart-kind-grid" data-pmd-smart-kinds></div>'
-      + '      <p class="pmd-smart-kind-lock" data-pmd-smart-kind-lock hidden>' + escapeHtml(t.locked) + '</p>'
-      + '    </section>'
-      + '    <section class="pmd-smart-section" data-pmd-smart-food-section hidden>'
-      + '      <div class="pmd-smart-section__head"><strong>' + escapeHtml(t.selectFoods) + '</strong><p>' + escapeHtml(t.selectFoodsHelp) + '</p></div>'
-      + '      <div class="pmd-smart-food-toolbar"><input class="pmd-smart-food-search" type="search" autocomplete="off" placeholder="' + escapeHtml(t.search) + '" data-pmd-smart-food-search></div>'
-      + '      <div class="pmd-smart-food-grid" data-pmd-smart-food-grid></div>'
-      + '    </section>'
-      + '    <section class="pmd-smart-section" data-pmd-smart-combo-section hidden>'
-      + '      <div class="pmd-smart-section__head"><strong>' + escapeHtml(t.comboTitle) + '</strong><p>' + escapeHtml(t.comboHelp) + '</p></div>'
-      + '      <div class="pmd-smart-combo-list" data-pmd-smart-combo-list></div>'
-      + '      <button type="button" class="pmd-smart-btn pmd-smart-btn--combo" data-pmd-smart-create-combo>' + escapeHtml(t.createCombo) + '</button>'
-      + '    </section>'
-      + '  </div>'
-      + '  <footer class="pmd-smart-category-modal__footer">'
-      + '    <span class="pmd-smart-status" data-pmd-smart-status aria-live="polite"></span>'
-      + '    <button type="button" class="pmd-smart-btn" data-pmd-smart-close>' + escapeHtml(t.cancel) + '</button>'
-      + '    <button type="button" class="pmd-smart-btn pmd-smart-btn--primary" data-pmd-smart-save>' + escapeHtml(t.save) + '</button>'
-      + '  </footer>'
+      + '<header class="pmd-smart-category-modal__header">'
+      + '<div class="pmd-smart-category-modal__heading"><span>' + escapeHtml(t.eyebrow) + '</span><h2 id="pmd-smart-category-title"></h2></div>'
+      + '<button type="button" class="pmd-smart-category-modal__close" data-pmd-smart-close aria-label="Close"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6 6 18"></path></svg></button>'
+      + '</header>'
+      + '<div class="pmd-smart-category-modal__body">'
+      + '<label class="pmd-smart-field"><span>' + escapeHtml(t.name) + '</span><input type="text" maxlength="128" minlength="2" required data-pmd-smart-name><small>' + escapeHtml(t.nameHelp) + '</small></label>'
+      + '<section class="pmd-smart-section"><div class="pmd-smart-section__head"><strong>' + escapeHtml(t.type) + '</strong><p>' + escapeHtml(t.typeHelp) + '</p></div><div class="pmd-smart-kind-grid" data-pmd-smart-kinds></div><p class="pmd-smart-kind-lock" data-pmd-smart-kind-lock hidden>' + escapeHtml(t.locked) + '</p></section>'
+      + '</div>'
+      + '<footer class="pmd-smart-category-modal__footer"><span class="pmd-smart-status" data-pmd-smart-status aria-live="polite"></span><button type="button" class="pmd-smart-btn" data-pmd-smart-close>' + escapeHtml(t.cancel) + '</button><button type="button" class="pmd-smart-btn pmd-smart-btn--primary" data-pmd-smart-save>' + escapeHtml(t.save) + '</button></footer>'
       + '</section>';
-
     document.body.appendChild(modal);
 
     modal.addEventListener('click', function (event) {
       var close = event.target.closest('[data-pmd-smart-close]');
-      if (close) {
+      if (close) { event.preventDefault(); closeModal(); return; }
+      var kind = event.target.closest('[data-pmd-smart-kind]');
+      if (kind && !kind.disabled) {
         event.preventDefault();
-        closeModal();
+        chooseKind(kind.getAttribute('data-pmd-smart-kind') || 'regular');
         return;
       }
-
-      var kindButton = event.target.closest('[data-pmd-smart-kind]');
-      if (kindButton && !kindButton.disabled) {
-        event.preventDefault();
-        chooseKind(kindButton.getAttribute('data-pmd-smart-kind') || 'regular');
-        return;
-      }
-
       var save = event.target.closest('[data-pmd-smart-save]');
-      if (save) {
-        event.preventDefault();
-        saveCategory(false);
-        return;
-      }
-
-      var createCombo = event.target.closest('[data-pmd-smart-create-combo]');
-      if (createCombo) {
-        event.preventDefault();
-        saveCategory(true);
-      }
+      if (save) { event.preventDefault(); saveCategory(); }
     });
-
-    modal.addEventListener('input', function (event) {
-      if (!event.target.matches('[data-pmd-smart-food-search]')) return;
-      renderFoods(event.target.value || '');
-    });
-
-    modal.addEventListener('change', function (event) {
-      if (!event.target.matches('[data-pmd-smart-food-choice]')) return;
-      var id = Number(event.target.value || 0);
-      if (event.target.checked) selectedIds.add(id);
-      else selectedIds.delete(id);
-      var label = event.target.closest('.pmd-smart-food-choice');
-      if (label) label.classList.toggle('is-selected', event.target.checked);
-    });
-
     return modal;
   }
 
@@ -327,93 +250,37 @@
     var host = ensureModal().querySelector('[data-pmd-smart-kinds]');
     var editing = Boolean(activeCategory && activeCategory.id);
     var kinds = [
-      ['regular', t.regular, t.regularHelp],
-      ['chef', t.chef, t.chefHelp],
-      ['bestseller', t.bestseller, t.bestsellerHelp],
-      ['combos', t.combos, t.combosHelp]
+      ['regular', t.regular],
+      ['chef', t.chef],
+      ['bestseller', t.bestseller],
+      ['combos', t.combos]
     ];
-
     host.innerHTML = kinds.map(function (entry) {
       var existing = specialByKind(entry[0]);
       var unavailable =
         (editing && activeCategory.kind !== entry[0])
         || (!editing && entry[0] !== 'regular' && existing)
         || (entry[0] === 'combos' && state && !state.can_manage_combos);
-      var helper = (!editing && entry[0] !== 'regular' && existing) ? t.alreadyExists : entry[2];
-
-      return '<button type="button" class="pmd-smart-kind ' + (activeKind === entry[0] ? 'is-active' : '') + '" data-pmd-smart-kind="' + entry[0] + '" ' + (unavailable ? 'disabled' : '') + '><strong>' + escapeHtml(entry[1]) + '</strong><small>' + escapeHtml(helper) + '</small></button>';
+      var label = entry[1];
+      if (!editing && entry[0] !== 'regular' && existing) label += ' - ' + t.alreadyExists;
+      return '<button type="button" class="pmd-smart-kind ' + (activeKind === entry[0] ? 'is-active' : '') + '" data-pmd-smart-kind="' + entry[0] + '" aria-pressed="' + (activeKind === entry[0] ? 'true' : 'false') + '" ' + (unavailable ? 'disabled' : '') + '><span class="pmd-smart-kind__mark" aria-hidden="true"></span><strong>' + escapeHtml(label) + '</strong></button>';
     }).join('');
-
     var lock = modal.querySelector('[data-pmd-smart-kind-lock]');
-    lock.hidden = !editing;
-  }
-
-  function renderFoods(search) {
-    var host = ensureModal().querySelector('[data-pmd-smart-food-grid]');
-    var term = String(search || '').trim().toLowerCase();
-    var items = foodCards().filter(function (item) {
-      return !term || (item.name + ' ' + item.category).toLowerCase().indexOf(term) !== -1;
-    });
-
-    if (!items.length) {
-      host.innerHTML = '<p class="pmd-smart-empty">' + escapeHtml(t.noFoods) + '</p>';
-      return;
-    }
-
-    host.innerHTML = items.map(function (item) {
-      var checked = selectedIds.has(item.id);
-      var image = item.image
-        ? '<img src="' + escapeHtml(item.image) + '" alt="">'
-        : '<span>◇</span>';
-
-      return '<label class="pmd-smart-food-choice ' + (checked ? 'is-selected' : '') + '">'
-        + '<span class="pmd-smart-food-choice__image">' + image + '</span>'
-        + '<span class="pmd-smart-food-choice__copy"><strong>' + escapeHtml(item.name) + '</strong><small>' + escapeHtml(item.category || '') + '</small></span>'
-        + '<input type="checkbox" value="' + String(item.id) + '" data-pmd-smart-food-choice ' + (checked ? 'checked' : '') + '>'
-        + '</label>';
-    }).join('');
-  }
-
-  function renderCombos() {
-    var host = ensureModal().querySelector('[data-pmd-smart-combo-list]');
-    var combos = state && state.combos || [];
-    host.innerHTML = combos.length
-      ? combos.map(function (combo) { return '<span class="pmd-smart-combo-chip">' + escapeHtml(combo.name) + '</span>'; }).join('')
-      : '<p class="pmd-smart-empty">' + escapeHtml(t.noCombos) + '</p>';
+    if (lock) lock.hidden = !editing;
   }
 
   function chooseKind(kind) {
     activeKind = ['regular', 'chef', 'bestseller', 'combos'].indexOf(kind) !== -1 ? kind : 'regular';
     renderKinds();
-
-    var foodSection = modal.querySelector('[data-pmd-smart-food-section]');
-    var comboSection = modal.querySelector('[data-pmd-smart-combo-section]');
-    foodSection.hidden = !(activeKind === 'chef' || activeKind === 'bestseller');
-    comboSection.hidden = activeKind !== 'combos';
-
-    if (activeKind === 'chef' || activeKind === 'bestseller') {
-      selectedIds = new Set(((state.selections || {})[activeKind] || []).map(Number));
-      var search = modal.querySelector('[data-pmd-smart-food-search]');
-      if (search) search.value = '';
-      renderFoods('');
-    } else {
-      selectedIds = new Set();
-    }
-
-    if (activeKind === 'combos') renderCombos();
-
-    if (!activeCategory) {
-      var input = modal.querySelector('[data-pmd-smart-name]');
-      var current = input.value.trim();
-      var defaults = [t.defaultChef, t.defaultBest, t.defaultCombos, '', t.createTitle];
-      var canReplace = current === '' || defaults.indexOf(current) !== -1;
-      if (canReplace) {
-        if (activeKind === 'chef') input.value = t.defaultChef;
-        else if (activeKind === 'bestseller') input.value = t.defaultBest;
-        else if (activeKind === 'combos') input.value = t.defaultCombos;
-        else input.value = '';
-      }
-    }
+    if (activeCategory) return;
+    var input = modal.querySelector('[data-pmd-smart-name]');
+    var current = input.value.trim();
+    var defaults = ['', t.defaultChef, t.defaultBest, t.defaultCombos];
+    if (defaults.indexOf(current) === -1) return;
+    if (activeKind === 'chef') input.value = t.defaultChef;
+    else if (activeKind === 'bestseller') input.value = t.defaultBest;
+    else if (activeKind === 'combos') input.value = t.defaultCombos;
+    else input.value = '';
   }
 
   function setStatus(message, type) {
@@ -428,106 +295,240 @@
   function setBusy(next) {
     busy = Boolean(next);
     if (!modal) return;
-    modal.querySelectorAll('button, input').forEach(function (node) {
-      if (node.matches('[data-pmd-smart-close]')) node.disabled = busy;
-    });
+    var name = modal.querySelector('[data-pmd-smart-name]');
+    if (name) name.disabled = busy;
+    modal.querySelectorAll('[data-pmd-smart-close]').forEach(function (node) { node.disabled = busy; });
+    if (busy) modal.querySelectorAll('[data-pmd-smart-kind]').forEach(function (node) { node.disabled = true; });
+    else renderKinds();
     var save = modal.querySelector('[data-pmd-smart-save]');
-    if (save) {
-      save.disabled = busy;
-      save.textContent = busy ? t.saving : t.save;
-    }
+    if (save) { save.disabled = busy; save.textContent = busy ? t.saving : t.save; }
   }
 
   function openModal(category, trigger) {
     if (!state) return;
     ensureModal();
-    lastTrigger = trigger || null;
     activeCategory = category || null;
     activeKind = category ? category.kind : 'regular';
-
-    var title = modal.querySelector('#pmd-smart-category-title');
-    var name = modal.querySelector('[data-pmd-smart-name]');
-    title.textContent = category ? t.editTitle : t.createTitle;
-    name.value = category ? category.name : '';
+    lastTrigger = trigger || null;
+    modal.querySelector('#pmd-smart-category-title').textContent = category ? t.editTitle : t.createTitle;
+    modal.querySelector('[data-pmd-smart-name]').value = category ? category.name : '';
     setStatus('');
-    chooseKind(activeKind);
     renderKinds();
-
     modal.hidden = false;
     modal.setAttribute('aria-hidden', 'false');
     document.documentElement.classList.add('pmd-menu-manager-modal-open');
     document.body.style.overflow = 'hidden';
-    requestAnimationFrame(function () { name.focus(); });
+    requestAnimationFrame(function () { modal.querySelector('[data-pmd-smart-name]').focus(); });
   }
 
   function closeModal() {
-    if (!modal || modal.hidden) return;
+    if (!modal || modal.hidden || busy) return;
     modal.hidden = true;
     modal.setAttribute('aria-hidden', 'true');
     document.documentElement.classList.remove('pmd-menu-manager-modal-open');
     document.body.style.removeProperty('overflow');
     activeCategory = null;
     activeKind = 'regular';
-    selectedIds = new Set();
     setStatus('');
     if (lastTrigger && typeof lastTrigger.focus === 'function') lastTrigger.focus();
     lastTrigger = null;
   }
 
-  function currentUrlWithComboOpen() {
-    var url = new URL(window.location.href);
-    url.searchParams.delete('pmd_mode');
-    url.searchParams.delete('pmd_id');
-    url.searchParams.set('pmd_smart_combo_create', '1');
-    return url.toString();
-  }
-
-  async function saveCategory(openComboAfter) {
+  async function saveCategory() {
     if (busy || !state) return;
-
-    var nameInput = ensureModal().querySelector('[data-pmd-smart-name]');
-    var name = nameInput.value.trim();
-    if (name.length < 2) {
-      nameInput.focus();
-      return;
-    }
-
+    var input = ensureModal().querySelector('[data-pmd-smart-name]');
+    var name = input.value.trim();
+    if (name.length < 2) { input.focus(); return; }
     var data = new FormData();
     if (activeCategory) data.append('category_id', String(activeCategory.id));
     data.append('name', name);
     data.append('kind', activeKind);
 
-    if (activeKind === 'chef' || activeKind === 'bestseller') {
-      Array.from(selectedIds).forEach(function (id) {
-        data.append('menu_ids[]', String(id));
-      });
-    }
+    // Name/type saves do not own membership. Preserve existing Chef/Bestseller
+    // selections so creation/rename can never clear legacy selections.
+    preserveSelection(data, activeKind);
 
     setBusy(true);
     setStatus(t.saving);
-
     try {
       await backend('onSave', data);
       setStatus(t.saved, 'ok');
-
-      if (openComboAfter && activeKind === 'combos') {
-        window.location.assign(currentUrlWithComboOpen());
-      } else {
-        window.location.reload();
-      }
+      window.location.reload();
     } catch (error) {
       setStatus(error && error.message ? error.message : t.saveFailed, 'error');
       setBusy(false);
     }
   }
 
-  async function deleteSpecial(category) {
-    if (!category || category.kind === 'regular' || busy) return;
-    if (!window.confirm(t.deleteConfirm)) return;
+  function isSelectionShell() {
+    return root.dataset.pmdComboBuilder === '1';
+  }
+
+  function headerControls() {
+    return {
+      primary: root.querySelector('[data-pmd-menu-header-primary]'),
+      secondary: root.querySelector('[data-pmd-menu-header-secondary]')
+    };
+  }
+
+  function moveSelectionShellToAllFoods() {
+    var search = root.querySelector('[data-pmd-menu-search]');
+    if (search && search.value) {
+      search.value = '';
+      search.dispatchEvent(new Event('input', {bubbles: true}));
+    }
+    var stockAll = root.querySelector('[data-pmd-stock-filter="all"]');
+    if (stockAll && !stockAll.classList.contains('is-active')) stockAll.click();
+    var allFoods = root.querySelector('[data-pmd-category-filter="all"]');
+    if (allFoods) allFoods.click();
+    activeFilterId = null;
+    renderActionCard();
+  }
+
+  function startCombinationFromCategory() {
+    if (isSelectionShell()) return;
+    var controls = headerControls();
+    if (!controls.secondary) return;
+    controls.secondary.click();
+    if (isSelectionShell()) moveSelectionShellToAllFoods();
+  }
+
+  function preselectSmartFoods() {
+    if (!smartSelectionCategory || !isSelectionShell()) return;
+    var wanted = new Set(((state.selections || {})[smartSelectionCategory.kind] || []).map(Number));
+    root.querySelectorAll('[data-pmd-menu-card][data-item-type="food"]').forEach(function (card) {
+      var id = Number(card.dataset.menuId || 0);
+      if (id && wanted.has(id) && !card.classList.contains('is-combo-selected')) card.click();
+    });
+  }
+
+  function startSmartSelection(category) {
+    if (!category || (category.kind !== 'chef' && category.kind !== 'bestseller')) return;
+    if (smartSelectionBusy || isSelectionShell()) return;
+    var controls = headerControls();
+    if (!controls.secondary) return;
+
+    smartSelectionCategory = category;
+    root.dataset.pmdSmartSelectionKind = category.kind;
+    root.dataset.pmdSmartSelectionCategory = String(category.id);
+
+    // Start the existing Combination selector while still inside this category;
+    // it remembers the origin for Cancel/restore. Then move to All Foods.
+    controls.secondary.click();
+    if (!isSelectionShell()) {
+      smartSelectionCategory = null;
+      root.removeAttribute('data-pmd-smart-selection-kind');
+      root.removeAttribute('data-pmd-smart-selection-category');
+      return;
+    }
+    moveSelectionShellToAllFoods();
+    requestAnimationFrame(preselectSmartFoods);
+  }
+
+  function cleanupSmartSelection(category) {
+    smartSelectionCategory = null;
+    smartSelectionBusy = false;
+    root.removeAttribute('data-pmd-smart-selection-kind');
+    root.removeAttribute('data-pmd-smart-selection-category');
+    activeFilterId = category ? Number(category.id) : null;
+    requestAnimationFrame(renderActionCard);
+  }
+
+  async function saveSmartSelection() {
+    if (!smartSelectionCategory || smartSelectionBusy || !isSelectionShell()) return;
+    var category = smartSelectionCategory;
+    var controls = headerControls();
+    var ids = Array.from(root.querySelectorAll('[data-pmd-menu-card][data-item-type="food"].is-combo-selected'))
+      .map(function (card) { return Number(card.dataset.menuId || 0); }).filter(Boolean);
+
+    smartSelectionBusy = true;
+    if (controls.primary) controls.primary.disabled = true;
+    if (controls.secondary) controls.secondary.disabled = true;
 
     var data = new FormData();
     data.append('category_id', String(category.id));
+    data.append('name', category.name);
+    data.append('kind', category.kind);
+    ids.forEach(function (id) { data.append('menu_ids[]', String(id)); });
 
+    try {
+      await backend('onSave', data);
+      if (!state.selections) state.selections = {};
+      state.selections[category.kind] = ids;
+      rebuildCardCategoryMembership();
+
+      // Re-enable and invoke the existing Cancel control. It is the canonical
+      // owner of selection-shell cleanup and originating-category restore.
+      if (controls.secondary) controls.secondary.disabled = false;
+      cleanupSmartSelection(category);
+      if (controls.secondary && isSelectionShell()) controls.secondary.click();
+    } catch (error) {
+      smartSelectionBusy = false;
+      if (controls.primary) controls.primary.disabled = false;
+      if (controls.secondary) controls.secondary.disabled = false;
+      window.alert(error && error.message ? error.message : t.selectionFailed);
+    }
+  }
+
+  function cardGrid() {
+    var first = root.querySelector('[data-pmd-menu-card]');
+    return first ? first.parentElement : null;
+  }
+
+  function actionCopy(category) {
+    if (!category) return null;
+    if (category.kind === 'chef') return {title: t.addChef, help: t.addHelpChef};
+    if (category.kind === 'bestseller') return {title: t.addBest, help: t.addHelpBest};
+    if (category.kind === 'combos') return {title: t.addCombo, help: t.addHelpCombo};
+    return null;
+  }
+
+  function ensureActionCard() {
+    if (actionCard && actionCard.isConnected) return actionCard;
+    var grid = cardGrid();
+    if (!grid) return null;
+    actionCard = document.createElement('button');
+    actionCard.type = 'button';
+    actionCard.className = 'pmd-smart-add-card';
+    actionCard.hidden = true;
+    actionCard.innerHTML = '<span class="pmd-smart-add-card__plus" aria-hidden="true">+</span><span class="pmd-smart-add-card__copy"><strong data-pmd-smart-add-title></strong><small data-pmd-smart-add-help></small></span>';
+    grid.insertBefore(actionCard, grid.firstChild || null);
+    actionCard.addEventListener('click', function (event) {
+      event.preventDefault();
+      var category = categoryById(activeFilterId);
+      if (!category) return;
+      if (category.kind === 'chef' || category.kind === 'bestseller') startSmartSelection(category);
+      else if (category.kind === 'combos') startCombinationFromCategory();
+    });
+    return actionCard;
+  }
+
+  function renderActionCard() {
+    var card = ensureActionCard();
+    if (!card) return;
+    if (isSelectionShell()) { card.hidden = true; return; }
+    var category = categoryById(activeFilterId);
+    var content = actionCopy(category);
+    if (!category || !content || (category.kind === 'combos' && !state.can_manage_combos)) {
+      card.hidden = true;
+      return;
+    }
+    card.querySelector('[data-pmd-smart-add-title]').textContent = content.title;
+    card.querySelector('[data-pmd-smart-add-help]').textContent = content.help;
+    card.hidden = false;
+  }
+
+  function inferActiveFilter() {
+    var active = root.querySelector('[data-pmd-category-id].is-active');
+    activeFilterId = active ? Number(active.getAttribute('data-pmd-category-id') || 0) : null;
+    renderActionCard();
+  }
+
+  async function deleteSpecial(category) {
+    if (!category || category.kind === 'regular' || busy) return;
+    if (!window.confirm(t.deleteConfirm)) return;
+    var data = new FormData();
+    data.append('category_id', String(category.id));
     try {
       busy = true;
       await backend('onDelete', data);
@@ -538,19 +539,26 @@
     }
   }
 
-  function openExistingComboBuilderIfRequested() {
-    var url = new URL(window.location.href);
-    if (url.searchParams.get('pmd_smart_combo_create') !== '1') return;
-
-    url.searchParams.delete('pmd_smart_combo_create');
-    history.replaceState(null, '', url.pathname + (url.search ? url.search : '') + url.hash);
-
-    var comboButton = root.querySelector('[data-pmd-combo-build]');
-    if (comboButton) comboButton.click();
-  }
-
   function wireEvents() {
+    // Capture first so smart-selection Confirm can override only the persistence
+    // result while the existing Menu Manager remains the selection UI owner.
     document.addEventListener('click', function (event) {
+      var primary = event.target.closest('[data-pmd-menu-header-primary]');
+      if (primary && root.contains(primary) && smartSelectionCategory && isSelectionShell()) {
+        event.preventDefault();
+        event.stopImmediatePropagation();
+        saveSmartSelection();
+        return;
+      }
+
+      var secondary = event.target.closest('[data-pmd-menu-header-secondary]');
+      if (secondary && root.contains(secondary) && smartSelectionCategory && isSelectionShell()) {
+        var cancelled = smartSelectionCategory;
+        cleanupSmartSelection(cancelled);
+        // Do not prevent. Existing Menu Manager owns Cancel + category restore.
+        return;
+      }
+
       var add = event.target.closest('[data-pmd-category-create]');
       if (add && root.contains(add) && state) {
         event.preventDefault();
@@ -563,50 +571,69 @@
       if (edit && root.contains(edit) && state) {
         event.preventDefault();
         event.stopImmediatePropagation();
-        var category = categoryById(edit.getAttribute('data-pmd-smart-category-edit'));
-        if (category) openModal(category, edit);
+        var editCategory = categoryById(edit.getAttribute('data-pmd-smart-category-edit'));
+        if (editCategory) openModal(editCategory, edit);
         return;
       }
 
       var deleteHit = event.target.closest('[data-pmd-category-delete]');
       if (deleteHit && root.contains(deleteHit) && state) {
-        var categoryToDelete = categoryById(deleteHit.getAttribute('data-pmd-category-delete'));
-        if (categoryToDelete && categoryToDelete.kind !== 'regular') {
+        var deleteCategory = categoryById(deleteHit.getAttribute('data-pmd-category-delete'));
+        if (deleteCategory && deleteCategory.kind !== 'regular') {
           event.preventDefault();
           event.stopImmediatePropagation();
-          deleteSpecial(categoryToDelete);
+          deleteSpecial(deleteCategory);
+          return;
         }
+      }
+
+      var categoryButton = event.target.closest('[data-pmd-category-id]');
+      if (categoryButton && root.contains(categoryButton) && !event.target.closest('[data-pmd-smart-category-edit]')) {
+        activeFilterId = Number(categoryButton.getAttribute('data-pmd-category-id') || 0) || null;
+        requestAnimationFrame(renderActionCard);
+        return;
+      }
+
+      var otherFilter = event.target.closest('[data-pmd-category-filter]');
+      if (otherFilter && root.contains(otherFilter) && !otherFilter.hasAttribute('data-pmd-category-id')) {
+        activeFilterId = null;
+        requestAnimationFrame(renderActionCard);
       }
     }, true);
 
     document.addEventListener('keydown', function (event) {
-      if (event.key === 'Escape' && modal && !modal.hidden) {
+      if (event.key !== 'Escape') return;
+      if (modal && !modal.hidden) {
         event.preventDefault();
         closeModal();
+        return;
       }
-    });
+      if (smartSelectionCategory && isSelectionShell()) {
+        var cancelled = smartSelectionCategory;
+        cleanupSmartSelection(cancelled);
+        // Existing Menu Manager receives the same Escape and owns Cancel.
+      }
+    }, true);
   }
 
   async function load() {
     if (loading) return;
     loading = true;
-
     try {
       state = await backend('onBootstrap', new FormData());
       installCategoryMetadata();
-      openExistingComboBuilderIfRequested();
-
+      inferActiveFilter();
       window.PMDMenuSmartCategoriesV1 = {
         ready: true,
+        version: '1.2-category-first-all-foods-selection',
         categories: state.categories || [],
         selections: state.selections || {},
         canManageCombos: Boolean(state.can_manage_combos),
         refresh: load
       };
-
-      console.info('[PMD Menu Smart Categories V1] Ready', window.PMDMenuSmartCategoriesV1);
+      console.info('[PMD Menu Smart Categories V1.2] Ready', window.PMDMenuSmartCategoriesV1);
     } catch (error) {
-      console.error('[PMD Menu Smart Categories V1]', error);
+      console.error('[PMD Menu Smart Categories V1.2]', error);
       var add = root.querySelector('[data-pmd-category-create]');
       if (add) add.title = (error && error.message) || t.loadFailed;
     } finally {
