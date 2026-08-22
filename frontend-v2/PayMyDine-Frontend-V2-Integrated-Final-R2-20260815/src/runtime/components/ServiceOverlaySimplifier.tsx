@@ -1,8 +1,8 @@
 'use client'
 
-// PMD_SIMPLE_SERVICE_OVERLAYS_R40
+// PMD_SIMPLE_SERVICE_OVERLAYS_R41
 // Shared presentation authority for all ten themes. Service request behavior stays
-// in RuntimeOverlays; this only removes duplicated chrome from waiter/note dialogs.
+// in RuntimeOverlays; this only removes duplicated/empty chrome from waiter/note dialogs.
 import { useMenuRuntime } from '@/src/runtime/MenuRuntimeContext'
 import styles from './RuntimeOverlays.module.css'
 
@@ -13,8 +13,25 @@ export function ServiceOverlaySimplifier() {
 
   const waiterRules = serviceMode === 'waiter'
     ? `
-.${styles.scroll} > .${styles.stack} > .${styles.orderCard} {
+.${styles.header} {
+  min-height: 0 !important;
+  justify-content: flex-end !important;
+  border-bottom: 0 !important;
+  padding: .75rem .85rem 0 !important;
+}
+.${styles.header} > div {
   display: none !important;
+}
+.${styles.header} .${styles.close} {
+  width: 2.35rem !important;
+  height: 2.35rem !important;
+}
+.${styles.scroll} {
+  display: none !important;
+}
+.${styles.footerActions} {
+  border-top: 0 !important;
+  padding: .8rem 1rem 1rem !important;
 }
 `
     : ''
@@ -43,7 +60,7 @@ export function ServiceOverlaySimplifier() {
     : ''
 
   return (
-    <style data-pmd-simple-service-overlays="r40">{`
+    <style data-pmd-simple-service-overlays="r41">{`
 .${styles.header} p {
   display: none !important;
 }
