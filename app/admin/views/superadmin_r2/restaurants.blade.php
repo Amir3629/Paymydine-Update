@@ -1,11 +1,9 @@
 @extends('admin::superadmin_r2.layout')
 @section('title','Restaurants')
-@section('page_title','Restaurants')
-@section('page_subtitle','Create, review and manage PayMyDine tenants')
 
 @push('head')
 <style>
-    .pmd-tenant-hero{display:flex;align-items:center;justify-content:space-between;gap:16px;margin:6px 0 16px}
+    .pmd-tenant-hero{display:flex;align-items:center;justify-content:space-between;gap:16px;margin:0 0 16px}
     .pmd-tenant-hero h2{font-size:28px;margin:0 0 5px}.pmd-tenant-hero p{margin:0;color:var(--muted);font-size:13px}
     .pmd-registry-card{padding:16px}
     .pmd-registry-toolbar{display:flex;align-items:flex-end;justify-content:space-between;gap:14px;margin-bottom:12px}
@@ -18,6 +16,9 @@
     .tenant-actions{display:flex;align-items:center;gap:7px;flex-wrap:wrap;min-width:230px}
     .tenant-actions form{margin:0}.tenant-status-form{display:flex;align-items:center;gap:6px}
     .tenant-status-form select{min-height:36px;border:1px solid #dfe9e5;border-radius:10px;padding:7px 9px;background:#fff;color:var(--ink)}
+    .pmd-pagination{display:flex;align-items:center;justify-content:space-between;gap:14px;margin-top:14px;flex-wrap:wrap}
+    .pmd-page-summary{font-size:11px;color:var(--muted);font-weight:700}
+    .pmd-page-links{display:flex;align-items:center;gap:6px;flex-wrap:wrap}.pmd-page-link{min-width:36px;height:36px;padding:0 11px;display:inline-flex;align-items:center;justify-content:center;border:1px solid var(--line);border-radius:10px;background:#fff;color:#36534b;font-size:11px;font-weight:800}.pmd-page-link:hover{background:#eef5f2}.pmd-page-link.active{border-color:#123d32;background:#123d32;color:#fff}.pmd-page-link.disabled{opacity:.45;pointer-events:none}
     .pmd-modal[hidden]{display:none!important}
     .pmd-modal{position:fixed;inset:0;z-index:13050;display:grid;place-items:center;padding:22px;background:rgba(4,20,17,.32);backdrop-filter:blur(7px)}
     .pmd-modal-card{width:min(720px,calc(100vw - 32px));max-height:min(88vh,840px);overflow:auto;background:#fff;border:1px solid var(--line);border-radius:22px;box-shadow:0 24px 70px rgba(5,32,27,.2)}
@@ -29,7 +30,7 @@
     body.pmd-modal-open{overflow:hidden}
     @media(max-width:980px){.pmd-registry-toolbar{align-items:flex-start;flex-direction:column}.pmd-registry-toolbar .filters{justify-content:flex-start}}
     @media(max-width:820px){.pmd-tenant-hero{align-items:flex-start}.pmd-modal{padding:10px}.pmd-modal-card{width:100%;max-height:94vh;border-radius:20px}.pmd-modal-body .field-grid{grid-template-columns:1fr}.pmd-modal-body .field.full{grid-column:auto}}
-    @media(max-width:560px){.pmd-tenant-hero{flex-direction:column}.pmd-tenant-hero .btn{width:100%}.pmd-registry-toolbar .filters{width:100%}.pmd-registry-toolbar .filters input{flex:1;min-width:160px}}
+    @media(max-width:560px){.pmd-tenant-hero{flex-direction:column}.pmd-tenant-hero .btn{width:100%}.pmd-registry-toolbar .filters{width:100%}.pmd-registry-toolbar .filters input{flex:1;min-width:160px}.pmd-pagination{align-items:flex-start;flex-direction:column}}
 </style>
 @endpush
 
@@ -47,7 +48,7 @@
         <div class="card-head">
             <div>
                 <h3>Restaurant registry</h3>
-                <p>Search by name, domain, database or email.</p>
+                <p>Search by name, domain, database or email. Maximum 20 restaurants per page.</p>
             </div>
         </div>
         <form class="filters" method="GET" action="/superadmin/new">
@@ -120,7 +121,21 @@
             </tbody>
         </table>
     </div>
-    <div style="margin-top:12px">{{ $tenants->links() }}</div>
+
+    @if($tenants->total() > 0)
+        <div class="pmd-pagination">
+            <div class="pmd-page-summary">Showing {{ $tenants->firstItem() }}–{{ $tenants->lastItem() }} of {{ $tenants->total() }} restaurants</div>
+            @if($tenants->lastPage() > 1)
+                <nav class="pmd-page-links" aria-label="Restaurant pages">
+                    <a class="pmd-page-link {{ $tenants->onFirstPage() ? 'disabled' : '' }}" href="{{ $tenants->previousPageUrl() ?: '#' }}">Previous</a>
+                    @for($page = 1; $page <= $tenants->lastPage(); $page++)
+                        <a class="pmd-page-link {{ $page === $tenants->currentPage() ? 'active' : '' }}" href="{{ $tenants->url($page) }}" @if($page === $tenants->currentPage()) aria-current="page" @endif>{{ $page }}</a>
+                    @endfor
+                    <a class="pmd-page-link {{ $tenants->hasMorePages() ? '' : 'disabled' }}" href="{{ $tenants->nextPageUrl() ?: '#' }}">Next</a>
+                </nav>
+            @endif
+        </div>
+    @endif
 </div>
 
 <div class="pmd-modal" data-pmd-create-modal hidden aria-hidden="true">
