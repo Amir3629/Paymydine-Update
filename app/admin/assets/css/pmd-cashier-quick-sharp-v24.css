@@ -1,0 +1,114 @@
+/* ==========================================================
+   PMD CASHIER QUICK SHARP / TOUCH AUTHORITY V2.4
+   Mobile Cashier only. Real Waiter and tablet/desktop are unchanged.
+   ========================================================== */
+@media (max-width: 767px) {
+  html.pmd-cashier-quick-v24 [data-pmd-cql-v22-pos-header] {
+    z-index: 2147483500 !important;
+  }
+
+  html.pmd-cashier-quick-v24 [data-pmd-cql-v22-pos-header] > div {
+    gap: 6px !important;
+  }
+
+  html.pmd-cashier-quick-v24 [data-pmd-cql-v22-pos-header] button {
+    border-radius: 0 !important;
+    box-shadow: none !important;
+    min-height: 42px !important;
+    font-weight: 900 !important;
+    touch-action: manipulation !important;
+    pointer-events: auto !important;
+  }
+
+  html.pmd-cashier-quick-v24 [data-cql-v22-note] {
+    background: #f5c542 !important;
+    border-color: #b88700 !important;
+    color: #1c2430 !important;
+  }
+
+  html.pmd-cashier-quick-v24 [data-cql-v22-pos-pay] {
+    background: #0b9f68 !important;
+    border-color: #06744c !important;
+    color: #ffffff !important;
+  }
+
+  html.pmd-cashier-quick-v24 [data-cql-v22-free] {
+    background: #1677c8 !important;
+    border-color: #0d5592 !important;
+    color: #ffffff !important;
+  }
+
+  html.pmd-cashier-quick-v24 [data-cql-v22-back] {
+    background: #c93445 !important;
+    border-color: #922332 !important;
+    color: #ffffff !important;
+  }
+
+  /* Payment must own its complete touch surface. */
+  html.pmd-cashier-quick-v24 [data-pos-payment-modal] {
+    z-index: 2147483400 !important;
+    pointer-events: auto !important;
+    touch-action: pan-y !important;
+  }
+
+  html.pmd-cashier-quick-v24 [data-pos-payment-modal].is-show,
+  html.pmd-cashier-quick-v24 [data-pos-payment-modal].is-show .pmd-pos-payment-dialog,
+  html.pmd-cashier-quick-v24 [data-pos-payment-modal].is-show button,
+  html.pmd-cashier-quick-v24 [data-pos-payment-modal].is-show input,
+  html.pmd-cashier-quick-v24 [data-pos-payment-modal].is-show select,
+  html.pmd-cashier-quick-v24 [data-pos-payment-modal].is-show textarea,
+  html.pmd-cashier-quick-v24 [data-pos-payment-modal].is-show label {
+    pointer-events: auto !important;
+  }
+
+  /* The sticky View order bar must never cover or steal touches from Payment. */
+  html.pmd-cashier-quick-payment-open-v24 [data-pos-mobile-cart],
+  html.pmd-cashier-quick-payment-open-v24 .pmd-pos-mobile-cart-bar {
+    visibility: hidden !important;
+    opacity: 0 !important;
+    pointer-events: none !important;
+  }
+
+  /* User-requested sharp geometry: no rounded payment frames or controls. */
+  html.pmd-cashier-quick-v24 :is(
+    .pmd-pos-payment-dialog,
+    .pmd-pos-balance-card,
+    .pmd-pos-payment-card,
+    .pmd-pos-payment-block,
+    .pmd-pos-payment-history,
+    .pmd-pos-payment-history-empty,
+    .pmd-pos-split-equal,
+    .pmd-pos-split-items,
+    .pmd-pos-split-item,
+    .pmd-pos-custom-row,
+    .pmd-pos-pay-totals,
+    .pmd-pos-method,
+    .pmd-pos-payment-input,
+    .pmd-pos-payment-dialog button,
+    .pmd-pos-payment-dialog input,
+    .pmd-pos-payment-dialog select,
+    .pmd-v22-payment-coverage,
+    .pmd-v22-payment-summary,
+    .pmd-v22-pay-full,
+    .pmd-v22-split-methods,
+    .pmd-v22-split-methods button,
+    .pmd-v211-payment-warning,
+    .pmd-v211-payment-error
+  ) {
+    border-radius: 0 !important;
+    box-shadow: none !important;
+  }
+
+  html.pmd-cashier-quick-v24 [data-pos-payment-modal] button:not(:disabled),
+  html.pmd-cashier-quick-v24 [data-pos-payment-modal] label,
+  html.pmd-cashier-quick-v24 [data-pos-payment-modal] input:not(:disabled),
+  html.pmd-cashier-quick-v24 [data-pos-payment-modal] select:not(:disabled) {
+    touch-action: manipulation !important;
+  }
+
+  html.pmd-cashier-quick-v24 [data-split-mode].is-active,
+  html.pmd-cashier-quick-v24 [data-payment-method].is-active {
+    outline: 3px solid #173752 !important;
+    outline-offset: -3px !important;
+  }
+}

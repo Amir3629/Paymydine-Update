@@ -1,5 +1,21 @@
 /* PMD Settings Center V4 — Dashboard2/Reservations2 mother-kit shell */
 
+/*
+ * PMD_SETTINGS_FIRST_PAINT_CARD_PRUNE_V2
+ *
+ * These Settings pages remain routable. Only their mother-page entries are
+ * removed. This stylesheet is linked from <head>, so the unwanted cards never
+ * receive a visible first paint while the deferred JS cleanup is still loading.
+ */
+#pmd-settings-center #pmd-settings-brand,
+#pmd-settings-center #pmd-settings-advanced,
+#pmd-settings-center [data-pmd-settings-card][href$="/admin/pmdbrand"],
+#pmd-settings-center [data-pmd-settings-card][href$="/admin/pmdadvanced"],
+#pmd-settings-center [data-pmd-settings-card][href$="/admin/pmdcustomer"] {
+  display: none !important;
+  visibility: hidden !important;
+}
+
 html.pmd-settings-center-v2,
 html.pmd-settings-center-v2 body {
   background: #f8fbfd !important;

@@ -6,6 +6,82 @@
 
   if (!menu) return;
 
+  /* PMD_DEFAULT_ROLE_SIDE_MENU_V1_START */
+  var roleDashboardLink =
+    menu.querySelector('[data-pmd-dashboard-route]');
+
+  var roleDashboardRoute =
+    roleDashboardLink
+      ? String(
+          roleDashboardLink.getAttribute(
+            'data-pmd-dashboard-route'
+          ) || ''
+        ).replace(/^\/+|\/+$/g, '')
+      : '';
+
+  /* Manager keeps the full operational menu, but Settings is not a Manager
+     workspace. Server authorization independently rejects the URL. */
+  if (roleDashboardRoute === 'managerlab') {
+    Array.prototype.slice.call(
+      menu.querySelectorAll('a[href]')
+    ).forEach(function (link) {
+      var path = '';
+      try {
+        path = new URL(
+          link.href,
+          window.location.origin
+        ).pathname;
+      } catch (error) {
+        path = link.getAttribute('href') || '';
+      }
+
+      if (/\/admin\/pmdsettings\/?$/.test(path)) {
+        (link.closest('li') || link).remove();
+      }
+    });
+  }
+
+  /* A station-specific KDS role gets no side menu at all. Owner/Manager KDS
+     pages still keep their normal menu because their dashboard route differs. */
+  if (
+    roleDashboardRoute.indexOf(
+      'kitchendisplay/'
+    ) === 0
+  ) {
+    document.documentElement.classList.add(
+      'pmd-sm2-role-standalone'
+    );
+
+    document.documentElement.classList.remove(
+      'pmd-side-menu2-global-page',
+      'pmd-sm2-expanded',
+      'pmd-sm2-collapsed'
+    );
+
+    var reset =
+      document.createElement('style');
+
+    reset.id =
+      'pmd-kds-role-standalone-layout';
+
+    reset.textContent =
+      'html.pmd-sm2-role-standalone #pmd-side-menu2{display:none!important}'
+      + 'html.pmd-sm2-role-standalone .page-wrapper{left:0!important;margin-left:0!important;width:100%!important;max-width:100%!important}'
+      + 'html.pmd-sm2-role-standalone .page-content{margin-left:0!important;padding-left:0!important;width:100%!important;max-width:100%!important}';
+
+    document.head.appendChild(reset);
+
+    menu.hidden = true;
+    menu.style.setProperty(
+      'display',
+      'none',
+      'important'
+    );
+
+    return;
+  }
+  /* PMD_DEFAULT_ROLE_SIDE_MENU_V1_END */
+
   if (window.PMDSideMenu2GlobalV3) {
     window.PMDSideMenu2GlobalV3.refresh();
     return;

@@ -3,10 +3,11 @@
 namespace Admin\Services;
 
 /**
- * PMD_ROLE_LANDING_SERVICE_V1
+ * PMD_ROLE_LANDING_SERVICE_V2
  *
  * One server-side authority for PMD admin landing workspaces.
  * It only chooses a destination; target controllers keep their own permissions.
+ * V2 adds one exact KDS landing per station role code.
  */
 class PmdRoleLandingService
 {
@@ -59,6 +60,12 @@ class PmdRoleLandingService
             if ($role) {
                 $code = strtolower(trim((string)($role->code ?? '')));
                 $name = strtolower(trim((string)($role->name ?? '')));
+
+                if (str_starts_with($code, PmdDefaultStaffRoleService::KDS_PREFIX)) {
+                    $slug = trim(substr($code, strlen(PmdDefaultStaffRoleService::KDS_PREFIX)));
+                    if ($slug !== '')
+                        return 'kitchendisplay/'.$slug;
+                }
 
                 if ($code !== '' && isset(self::ROLE_MAP[$code]))
                     return self::ROLE_MAP[$code];

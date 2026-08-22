@@ -32,6 +32,18 @@
       "name": "pmd-admin-cards-css"
     },
     {
+      "path": "css/pmd-clean-workspace-header-spacing-v1.css",
+      "name": "pmd-clean-workspace-header-spacing-v1-css"
+    },
+    {
+      "path": "css/pmd-cashier-quick-sharp-v24.css",
+      "name": "pmd-cashier-quick-sharp-v24-css"
+    },
+    {
+      "path": "css/pmd-settings-simplify-v25.css",
+      "name": "pmd-settings-simplify-v25-css"
+    },
+    {
       "path": "css/pmd-waiter-pos-shadow-host-v25.css",
       "name": "pmd-waiter-pos-shadow-host-v25-css"
     },
@@ -64,6 +76,14 @@
     {
       "path": "js/admin.js",
       "name": "admin-js"
+    },
+    {
+      "path": "js/pmd-cashier-quick-interaction-v24.js",
+      "name": "pmd-cashier-quick-interaction-v24-js"
+    },
+    {
+      "path": "js/pmd-settings-simplify-v25.js",
+      "name": "pmd-settings-simplify-v25-js"
     },
     {
       "path": "js/pmd-waiter-pos-dashboard-shadow-bridge-v24.js",

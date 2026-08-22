@@ -4,6 +4,43 @@
   var root = document.querySelector('[data-pmd-settings-center]');
   if (!root) return;
 
+  /* PMD_SETTINGS_DEFERRED_CARD_PRUNE_V1_START */
+  /*
+   * These pages remain fully routable for later use; only their mother-page
+   * cards are intentionally removed. Run before the stable reveal so no card
+   * flashes on refresh.
+   */
+  [
+    '/admin/pmdadvanced',
+    '/admin/pmdbrand',
+    '/admin/pmdcustomer'
+  ].forEach(function (path) {
+    Array.prototype.slice.call(
+      root.querySelectorAll('[data-pmd-settings-card]')
+    ).forEach(function (card) {
+      var href = '';
+      try {
+        href = new URL(
+          card.getAttribute('href') || '',
+          window.location.origin
+        ).pathname;
+      } catch (error) {
+        href = card.getAttribute('href') || '';
+      }
+
+      if (href === path) card.remove();
+    });
+  });
+
+  Array.prototype.slice.call(
+    root.querySelectorAll('[data-pmd-settings-section]')
+  ).forEach(function (section) {
+    if (!section.querySelector('[data-pmd-settings-card]')) {
+      section.remove();
+    }
+  });
+  /* PMD_SETTINGS_DEFERRED_CARD_PRUNE_V1_END */
+
   /*
    * PMD_SETTINGS_STABLE_RENDER_V7
    *

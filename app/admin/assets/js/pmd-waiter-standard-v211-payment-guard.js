@@ -6,10 +6,119 @@
   var pageRoot = document.querySelector('[data-pmd-waiter-v2-root]');
   if (!pageRoot) return;
 
+  var route = String(window.location.pathname || '').replace(/\/+$/, '');
+  var isCashierQuick = route === '/admin/cashierlab';
+
+  /*
+   * PMD CASHIER QUICK MOBILE PERFORMANCE GUARD V2.3
+   *
+   * Cashier Quick reuses the proven Waiter POS engine, but it does not use
+   * the legacy Waiter launcher/lifecycle/service-inbox UI. Those older layers
+   * otherwise keep several pollers and MutationObservers alive behind the
+   * Quick launcher. Disable only those launcher authorities on /cashierlab.
+   * The canonical POS/payment engine and the lifecycle-safe payment guard stay.
+   */
+  if (isCashierQuick) {
+    window.PMDWaiterV241SafeLifecycle = true;
+    window.PMDWaiterV263 = true;
+    window.PMDWaiterV271 = {
+      disabledInCashierQuick: true,
+      events: [],
+      dashboard: null
+    };
+    window.PMDWaiterV274 = {
+      disabledInCashierQuick: true
+    };
+
+    function stopLegacyV21BackgroundWork() {
+      var layer = window.PMDWaiterStandardV21;
+      if (layer && typeof layer.destroy === 'function') {
+        try { layer.destroy(); } catch (error) {}
+      }
+    }
+
+    // V2.1 is loaded immediately before this file. Keep its one-time visual
+    // enhancement when a POS opens, then disconnect its observers/poller.
+    stopLegacyV21BackgroundWork();
+
+    window.addEventListener('pmd:waiter-standard-v2-opened', function () {
+      window.requestAnimationFrame(function () {
+        window.requestAnimationFrame(stopLegacyV21BackgroundWork);
+      });
+    });
+
+    window.addEventListener('pmd:waiter-pos-order-updated', function () {
+      // V2.1 schedules follow-up work at 80ms and 250ms. Disconnect after both
+      // callbacks so repeated order edits cannot leave observers running.
+      window.setTimeout(stopLegacyV21BackgroundWork, 120);
+      window.setTimeout(stopLegacyV21BackgroundWork, 320);
+    });
+
+    /*
+     * iOS/Safari requires focus to remain inside the original user gesture.
+     * The previous Quick header waited 50ms before focusing the note textarea,
+     * which can suppress the keyboard. Handle the Quick Note button in capture
+     * phase, open the canonical mobile cart, then focus synchronously.
+     */
+    document.addEventListener('click', function (event) {
+      var target = event.target && event.target.nodeType === 1
+        ? event.target
+        : null;
+      var noteButton = target && target.closest('[data-cql-v22-note]');
+      if (!noteButton) return;
+
+      var posHost = document.querySelector('[data-v2-pos-host]');
+      var orderBar = posHost && posHost.querySelector('[data-pos-mobile-cart]');
+      var note = posHost && posHost.querySelector('[data-pos-table-note]');
+
+      if (!note) return;
+
+      event.preventDefault();
+      event.stopPropagation();
+      event.stopImmediatePropagation();
+
+      if (orderBar) orderBar.click();
+
+      try {
+        note.scrollIntoView({block: 'center', behavior: 'auto'});
+      } catch (error) {}
+
+      try {
+        note.focus({preventScroll: true});
+      } catch (error) {
+        note.focus();
+      }
+
+      if (typeof note.setSelectionRange === 'function') {
+        try {
+          var end = String(note.value || '').length;
+          note.setSelectionRange(end, end);
+        } catch (error) {}
+      }
+    }, true);
+
+    window.PMDCashierQuickPerformanceV23 = {
+      version: '2.3.1',
+      legacyV21BackgroundStopped: true,
+      waiterLifecycleSkipped: true,
+      waiterAreaWatcherSkipped: true,
+      waiterServiceInboxSkipped: true,
+      waiterServiceRendererSkipped: true,
+      paymentGuardLifecycleBound: true,
+      canonicalPaymentEnginePreserved: Boolean(window.PMDWaiterPOSPaymentV2)
+    };
+
+    console.info(
+      '[PMD] Cashier Quick mobile performance guard V2.3 active',
+      window.PMDCashierQuickPerformanceV23
+    );
+  }
+
   var installations = new WeakMap();
   var debugState = {
-    version: 'pmd-waiter-payment-stable-v2.1.1',
+    version: 'pmd-waiter-payment-stable-v2.1.2',
     installed: 0,
+    cleaned: 0,
     preventedAutoCloses: 0,
     retries: 0,
     degradedSummaries: 0,
@@ -142,8 +251,29 @@
       applying: false,
       deadline: 0,
       timer: null,
-      observer: null
+      observer: null,
+      cleaned: false
     };
+
+    function cleanup() {
+      if (controller.cleaned) return;
+      controller.cleaned = true;
+
+      if (controller.timer) {
+        clearInterval(controller.timer);
+        controller.timer = null;
+      }
+
+      if (controller.observer) {
+        controller.observer.disconnect();
+        controller.observer = null;
+      }
+
+      installations.delete(posRoot);
+      debugState.cleaned += 1;
+    }
+
+    controller.cleanup = cleanup;
 
     function beginOpen() {
       controller.opening = true;
@@ -164,7 +294,7 @@
     }, true);
 
     controller.observer = new MutationObserver(function () {
-      if (controller.applying) return;
+      if (controller.applying || controller.cleaned) return;
 
       var payment = pos.state && pos.state.payment;
       var shown = modal.classList.contains('is-show');
@@ -188,8 +318,10 @@
           modal.setAttribute('aria-hidden', 'false');
 
           requestAnimationFrame(function () {
-            ensureErrorPanel(posRoot, modal, pos, controller);
-            controller.applying = false;
+            if (!controller.cleaned) {
+              ensureErrorPanel(posRoot, modal, pos, controller);
+              controller.applying = false;
+            }
           });
         }
       }
@@ -203,6 +335,11 @@
     });
 
     controller.timer = setInterval(function () {
+      if (controller.cleaned || !posRoot.isConnected) {
+        cleanup();
+        return;
+      }
+
       var payment = pos.state && pos.state.payment;
       var shown = modal.classList.contains('is-show');
       debugState.modalOpen = shown;
@@ -215,6 +352,17 @@
         controller.opening = false;
       }
     }, 250);
+
+    // The dashboard destroys the canonical POS instance whenever a table is
+    // closed/replaced. Tie this guard's observer/timer to that same lifecycle.
+    if (typeof pos.destroy === 'function' && !pos.__pmdV211DestroyWrapped) {
+      var canonicalDestroy = pos.destroy;
+      pos.destroy = function () {
+        cleanup();
+        return canonicalDestroy.apply(pos, arguments);
+      };
+      pos.__pmdV211DestroyWrapped = true;
+    }
 
     installations.set(posRoot, controller);
     debugState.installed += 1;
@@ -235,6 +383,7 @@
         version: debugState.version,
         active: true,
         installed: debugState.installed,
+        cleaned: debugState.cleaned,
         preventedAutoCloses: debugState.preventedAutoCloses,
         retries: debugState.retries,
         degradedSummaries: debugState.degradedSummaries,
@@ -247,5 +396,5 @@
     }
   };
 
-  console.info('[PMD] Waiter payment stable V2.1.1 no-auto-close guard active');
+  console.info('[PMD] Waiter payment stable V2.1.2 lifecycle-safe guard active');
 })();
