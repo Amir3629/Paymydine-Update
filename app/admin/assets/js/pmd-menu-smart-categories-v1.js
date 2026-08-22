@@ -6,6 +6,7 @@
   // PMD_MENU_HEADER_ACTION_CARD_AUTHORITY_V1_5
   // PMD_MENU_ALL_FOODS_CATEGORY_ORDER_AND_CATEGORY_MODAL_V1_6
   // PMD_MENU_CATEGORY_EDIT_BADGE_AND_CLEAN_TOOLBAR_V1_6_2
+  // PMD_MENU_SERVER_FIRST_ACTION_CARD_V1_6_7
   //
   // Category creation owns only name + optional special purpose.
   // A normal category is the implicit default, so there is no Regular button.
@@ -855,16 +856,22 @@
     var grid = cardGrid();
     if (!grid) return null;
 
-    actionCard = document.createElement('div');
-    actionCard.className = 'pmd-smart-add-card';
-    actionCard.hidden = true;
-    actionCard.setAttribute('role', 'button');
-    actionCard.setAttribute('tabindex', '0');
-    actionCard.innerHTML = ''
-      + '<span class="pmd-smart-add-card__plus" data-pmd-smart-add-icon aria-hidden="true">+</span>'
-      + '<span class="pmd-smart-add-card__copy"><strong data-pmd-smart-add-title></strong><small data-pmd-smart-add-help></small></span>';
+    actionCard = grid.querySelector('[data-pmd-smart-server-action-card]');
 
-    grid.insertBefore(actionCard, grid.firstChild || null);
+    if (actionCard) {
+      actionCard.removeAttribute('data-pmd-smart-server-action-card');
+    } else {
+      actionCard = document.createElement('div');
+      actionCard.className = 'pmd-smart-add-card';
+      actionCard.hidden = true;
+      actionCard.setAttribute('role', 'button');
+      actionCard.setAttribute('tabindex', '0');
+      actionCard.innerHTML = ''
+        + '<span class="pmd-smart-add-card__plus" data-pmd-smart-add-icon aria-hidden="true">+</span>'
+        + '<span class="pmd-smart-add-card__copy"><strong data-pmd-smart-add-title></strong><small data-pmd-smart-add-help></small></span>';
+
+      grid.insertBefore(actionCard, grid.firstChild || null);
+    }
 
     function activate() {
       if (smartSelectionCategory && isSelectionShell()) {
@@ -1209,14 +1216,14 @@
 
       window.PMDMenuSmartCategoriesV1 = {
         ready: true,
-        version: '1.6.2-edit-badge-clean-toolbar-authority',
+        version: '1.6.7-server-first-action-card-authority',
         categories: state.categories || [],
         selections: state.selections || {},
         canManageCombos: Boolean(state.can_manage_combos),
         refresh: load
       };
 
-      console.info('[PMD Menu Smart Categories V1.6.2] Ready', window.PMDMenuSmartCategoriesV1);
+      console.info('[PMD Menu Smart Categories V1.6.7] Ready', window.PMDMenuSmartCategoriesV1);
     } catch (error) {
       console.error('[PMD Menu Smart Categories V1.3]', error);
       var add = root.querySelector('[data-pmd-category-create]');

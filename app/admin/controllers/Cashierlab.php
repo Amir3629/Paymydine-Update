@@ -46,6 +46,403 @@ class Cashierlab extends PmdCleanWorkspaceControllerV1
         $this->addJs('js/pmd-cashier-lab-order-center.js');
     }
 
+    /*
+     * PMD_CASHIER_SAME_ROUTE_WAITER_QUICK_V2
+     *
+     * Mobile Cashier uses the existing waiter_dashboard_new surface without
+     * changing route ownership. The query flag is only an internal render
+     * switch; the host shim immediately restores the visible URL to
+     * /admin/cashierlab.
+     */
+    public function index()
+    {
+        if (
+            (string)request()->query(
+                'pmd_cashier_quick',
+                ''
+            ) === '1'
+        ) {
+            $html = view()->file(
+                base_path(
+                    'app/admin/views/waiter_dashboard_new.blade.php'
+                ),
+                [
+                    'dataUrl' =>
+                        '/admin/pmd-waiter-dashboard-v9-tenant-data',
+
+                    'overlayUrl' =>
+                        '/admin/pmd-waiter-pos-v1/overlay/{table}',
+
+                    'standaloneUrl' =>
+                        '/admin/waiter-pos/{table}',
+
+                    'floorOperationsUrl' =>
+                        '/admin/dashboardwaiter',
+                ]
+            )->render();
+
+            /* PMD_CASHIER_QUICK_CANONICAL_FLOOR_V2_1_DATA_START */
+            $quickShared = app(PmdCleanWorkspaceSharedV1::class);
+
+            $quickLocationId = max(
+                0,
+                (int)$quickShared->locationId()
+            );
+
+            if ($quickLocationId < 1) {
+                $quickLocationId =
+                    $this->pmdFloorTableManagerLocationId();
+            }
+
+            $quickFloorBootstrap =
+                $quickShared->floorBootstrap();
+
+            $quickRegistry =
+                $this->pmdSharedFloorRegistrySnapshot(
+                    $quickLocationId
+                );
+
+            $quickRegistryService = app(
+                \Admin\Services\PmdSharedFloorRegistryV1::class
+            );
+
+            $quickCookieName = trim(
+                (string)(
+                    $quickRegistry['cookie_name']
+                    ?? ''
+                )
+            );
+
+            $quickCookieValue =
+                $quickCookieName !== ''
+                    ? (string)request()->cookie(
+                        $quickCookieName,
+                        ''
+                    )
+                    : '';
+
+            if (
+                trim($quickCookieValue) === ''
+                && !empty(
+                    $quickRegistry['legacy_cookie_name']
+                )
+            ) {
+                $quickCookieValue =
+                    (string)request()->cookie(
+                        (string)$quickRegistry[
+                            'legacy_cookie_name'
+                        ],
+                        ''
+                    );
+            }
+
+            $quickFloors = array_values(
+                (array)(
+                    $quickRegistry['floors']
+                    ?? []
+                )
+            );
+
+            $quickActiveFloor =
+                $quickRegistryService->activeFloor(
+                    $quickFloors,
+                    $quickCookieValue
+                );
+
+            $quickFloorData =
+                is_array(
+                    $quickFloorBootstrap['data']
+                    ?? null
+                )
+                    ? $quickFloorBootstrap['data']
+                    : [];
+
+            $quickTables = [];
+
+            if (
+                is_array(
+                    $quickFloorData['tables']
+                    ?? null
+                )
+            ) {
+                $quickTables = array_values(
+                    $quickFloorData['tables']
+                );
+            } elseif (
+                is_array(
+                    $quickFloorData['sections'][
+                        'floor_plan'
+                    ]['tables']
+                    ?? null
+                )
+            ) {
+                $quickTables = array_values(
+                    $quickFloorData['sections'][
+                        'floor_plan'
+                    ]['tables']
+                );
+            } elseif (
+                is_array(
+                    $quickFloorBootstrap[
+                        'display_tables'
+                    ]
+                    ?? null
+                )
+            ) {
+                $quickTables = array_values(
+                    $quickFloorBootstrap[
+                        'display_tables'
+                    ]
+                );
+            }
+
+            $quickCanonicalPayload = [
+                'version' => '2.1.0',
+                'source' =>
+                    'cashier-canonical-shared-floor',
+                'location_id' =>
+                    $quickLocationId,
+                'cookie_name' =>
+                    $quickCookieName,
+                'floors' =>
+                    $quickFloors,
+                'active_floor' =>
+                    $quickActiveFloor,
+                'table_floor_map' =>
+                    (array)(
+                        $quickRegistry[
+                            'table_floor_map'
+                        ]
+                        ?? []
+                    ),
+                'tables' =>
+                    $quickTables,
+            ];
+
+            $quickCanonicalJson = json_encode(
+                $quickCanonicalPayload,
+                JSON_UNESCAPED_SLASHES
+                | JSON_UNESCAPED_UNICODE
+                | JSON_HEX_TAG
+                | JSON_HEX_AMP
+                | JSON_HEX_APOS
+                | JSON_HEX_QUOT
+            );
+
+            if (!is_string($quickCanonicalJson)) {
+                logger()->error(
+                    'PMD Cashier Quick V2.1 canonical payload encode failed',
+                    [
+                        'location_id' =>
+                            $quickLocationId,
+                    ]
+                );
+
+                abort(
+                    500,
+                    'Cashier Quick Floor data could not be rendered.'
+                );
+            }
+            /* PMD_CASHIER_QUICK_CANONICAL_FLOOR_V2_1_DATA_END */
+
+            $hostShim = <<<'HTML'
+<script id="pmd-cashier-waiter-host-v2">
+(function () {
+  'use strict';
+
+  var mobile = window.matchMedia
+    ? window.matchMedia('(max-width: 767px)')
+    : null;
+
+  try {
+    if (window.history && window.history.replaceState) {
+      window.history.replaceState(
+        {pmdCashierQuick: true},
+        '',
+        '/admin/cashierlab'
+      );
+    }
+  } catch (error) {}
+
+  function returnToCashierOnWideScreen(event) {
+    if (event && event.matches) return;
+    window.location.replace('/admin/cashierlab');
+  }
+
+  if (mobile) {
+    if (!mobile.matches) {
+      returnToCashierOnWideScreen();
+      return;
+    }
+
+    if (typeof mobile.addEventListener === 'function') {
+      mobile.addEventListener(
+        'change',
+        returnToCashierOnWideScreen
+      );
+    } else if (typeof mobile.addListener === 'function') {
+      mobile.addListener(
+        returnToCashierOnWideScreen
+      );
+    }
+  }
+
+  document.addEventListener(
+    'click',
+    function (event) {
+      var node =
+        event.target
+        && typeof event.target.closest === 'function'
+          ? event.target.closest('.pmd-pos-v292-back')
+          : null;
+
+      if (!node) return;
+
+      event.preventDefault();
+      event.stopImmediatePropagation();
+
+      if (
+        window.PMDWaiterStandardV2
+        && typeof window.PMDWaiterStandardV2.closeTable === 'function'
+      ) {
+        window.PMDWaiterStandardV2.closeTable();
+        return;
+      }
+
+      window.location.replace(
+        '/admin/cashierlab?pmd_cashier_quick=1'
+      );
+    },
+    true
+  );
+
+  window.PMDCashierWaiterHostV2 = {
+    version: '2.0.0',
+    route: '/admin/cashierlab',
+    source: 'existing-dashboardwaiternew',
+    inspect: function () {
+      return {
+        route: window.location.pathname,
+        mobile: mobile ? mobile.matches : null,
+        waiterLauncher:
+          !!document.querySelector('[data-pmd-waiter-v2-root]'),
+        waiterRuntime:
+          !!window.PMDWaiterStandardV2,
+        waiterPOS:
+          !!window.PMDWaiterPOSApp
+      };
+    }
+  };
+
+  console.info(
+    '[PMD] Cashier same-route Waiter Quick V2 host ready'
+  );
+})();
+</script>
+HTML;
+
+            $replaceCount = 0;
+
+            $html = str_replace(
+                '</head>',
+                $hostShim."\n</head>",
+                $html,
+                $replaceCount
+            );
+
+            if ($replaceCount !== 1) {
+                logger()->error(
+                    'PMD Cashier same-route Waiter host injection failed',
+                    [
+                        'replace_count' => $replaceCount,
+                    ]
+                );
+
+                abort(
+                    500,
+                    'Cashier Quick host could not be rendered.'
+                );
+            }
+
+            /* PMD_CASHIER_QUICK_CANONICAL_FLOOR_V2_1_ASSETS_START */
+            $quickHeadAssets =
+                '<link rel="stylesheet" '
+                .'href="/app/admin/assets/css/'
+                .'pmd-cashier-waiter-launcher-v21.css'
+                .'?v=b0e2243bf6a2">';
+
+            $quickHeadCount = 0;
+
+            $html = str_replace(
+                '</head>',
+                $quickHeadAssets."\n</head>",
+                $html,
+                $quickHeadCount
+            );
+
+            if ($quickHeadCount !== 1) {
+                logger()->error(
+                    'PMD Cashier Quick V2.1 head injection failed',
+                    [
+                        'replace_count' =>
+                            $quickHeadCount,
+                    ]
+                );
+
+                abort(
+                    500,
+                    'Cashier Quick assets could not be rendered.'
+                );
+            }
+
+            $quickBodyAssets =
+                '<script type="application/json" '
+                .'id="pmd-cashier-quick-canonical-bootstrap-v21">'
+                .$quickCanonicalJson
+                .'</script>'
+                ."\n"
+                .'<script src="/app/admin/assets/js/'
+                .'pmd-cashier-waiter-launcher-v21.js'
+                .'?v=8fc698842828"></script>';
+
+            $quickBodyCount = 0;
+
+            $html = str_replace(
+                '</body>',
+                $quickBodyAssets."\n</body>",
+                $html,
+                $quickBodyCount
+            );
+
+            if ($quickBodyCount !== 1) {
+                logger()->error(
+                    'PMD Cashier Quick V2.1 body injection failed',
+                    [
+                        'replace_count' =>
+                            $quickBodyCount,
+                    ]
+                );
+
+                abort(
+                    500,
+                    'Cashier Quick launcher could not be rendered.'
+                );
+            }
+            /* PMD_CASHIER_QUICK_CANONICAL_FLOOR_V2_1_ASSETS_END */
+
+            return response(
+                $html,
+                200,
+                [
+                    'Cache-Control' =>
+                        'no-store, no-cache, must-revalidate',
+                ]
+            );
+        }
+
+        return parent::index();
+    }
+
     protected function pmdWorkspaceKey(): string
     {
         return 'cashier';

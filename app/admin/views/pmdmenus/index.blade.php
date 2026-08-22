@@ -123,6 +123,9 @@
             class="pmd-dashboard-lab__header-action"
             data-pmd-menu-header-primary
             data-pmd-menu-create
+            style="display:none!important"
+            aria-hidden="true"
+            tabindex="-1"
             aria-label="{{ $pmdT('create_food') }}"
             title="{{ $pmdT('create_food') }}"
         >
@@ -149,6 +152,9 @@
                 class="pmd-dashboard-lab__header-action"
                 data-pmd-menu-header-secondary
                 data-pmd-combo-build
+                style="display:none!important"
+                aria-hidden="true"
+                tabindex="-1"
                 aria-label="{{ $pmdT('create_combo') }}"
                 title="{{ $pmdT('create_combo') }}"
             >
@@ -785,7 +791,34 @@
             @endif
         </div>
 
+        {{-- PMD_MENU_SERVER_FIRST_ACTION_CARD_V1_6_7 --}}
+        @php
+            $pmdServerAddFoodTitle = $pmdMenuLocale === 'de'
+                ? 'Neue Speise hinzufugen'
+                : 'Add new food item';
+            $pmdServerAddFoodHelp = $pmdMenuLocale === 'de'
+                ? 'Erstelle eine neue Speise.'
+                : 'Create a new food item.';
+        @endphp
+
         <div class="pmd-menu-manager__grid" data-pmd-menu-grid>
+            <div
+                class="pmd-smart-add-card"
+                data-pmd-smart-server-action-card
+                role="button"
+                tabindex="0"
+            >
+                <span
+                    class="pmd-smart-add-card__plus"
+                    data-pmd-smart-add-icon
+                    aria-hidden="true"
+                >+</span>
+                <span class="pmd-smart-add-card__copy">
+                    <strong data-pmd-smart-add-title>{{ $pmdServerAddFoodTitle }}</strong>
+                    <small data-pmd-smart-add-help>{{ $pmdServerAddFoodHelp }}</small>
+                </span>
+            </div>
+
             @foreach($cards as $item)
                 @php
                     $searchText = mb_strtolower(trim($item['name'].' '.$item['description'].' '.implode(' ', $item['category_names'] ?? []).' '.implode(' ', $item['allergen_names'] ?? [])));
@@ -968,12 +1001,7 @@
                 </article>
             @endforeach
 
-            @if($totalCatalogueCards === 0)
-                <div class="pmd-menu-manager__empty" data-pmd-menu-empty>
-                    <div class="pmd-menu-manager__empty-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 4h14v16H5z"></path><path d="M8 8h8M8 12h8M8 16h5"></path></svg></div>
-                    <h2>{{ $pmdT('no_foods_yet') }}</h2><p>{{ $pmdT('create_first_food') }}</p><button type="button" data-pmd-menu-create>{{ $pmdT('create_food') }}</button>
-                </div>
-            @endif
+            {{-- V1.6.7: legacy empty-state CTA removed; the first Add card is the only create-food CTA. --}}
         </div>
 
         <div class="pmd-menu-manager__no-results" data-pmd-menu-no-results hidden>{{ $pmdT('no_results') }}</div>
