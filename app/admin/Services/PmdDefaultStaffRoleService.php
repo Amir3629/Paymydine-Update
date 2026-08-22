@@ -7,7 +7,7 @@ use Admin\Models\Staff_roles_model;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 
-/** PMD_DEFAULT_STAFF_ROLES_V3 */
+/** PMD_DEFAULT_STAFF_ROLES_V4 */
 class PmdDefaultStaffRoleService
 {
     public const OWNER = 'pmd-owner';
@@ -191,8 +191,10 @@ class PmdDefaultStaffRoleService
     }
 
     /**
-     * Server-side route boundary for managed roles. Users_model calls this
-     * before legacy permission matching, so direct URL entry is denied too.
+     * Server-side route boundary for managed PMD roles.
+     *
+     * This list deliberately contains the transport endpoints needed by the
+     * canonical workspace runtimes. It does not grant legacy admin pages.
      */
     public function mayOpenPath(string $code, string $path): bool
     {
@@ -201,10 +203,15 @@ class PmdDefaultStaffRoleService
         if (!$this->isManagedCode($code)) return true;
         if ($code === self::OWNER) return true;
 
-        // Auth and the retired native dashboard are transport/redirect routes,
-        // not product workspaces. Let them finish role routing normally.
+        // Authentication and shared browser transport are infrastructure, not
+        // product workspaces. Every managed role needs them to render safely.
         if (in_array($path, ['admin', 'admin/dashboard', 'admin/login', 'admin/logout'], true)) {
             return true;
+        }
+        foreach (['admin/_assets', 'admin/_pmd', 'admin/notifications-api'] as $transportPrefix) {
+            if ($path === $transportPrefix || str_starts_with($path, $transportPrefix.'/')) {
+                return true;
+            }
         }
 
         $is = function (string $route) use ($path): bool {
@@ -213,15 +220,50 @@ class PmdDefaultStaffRoleService
 
         if ($code === self::MANAGER) {
             if ($is('dashboardlab')) return false;
-            foreach (['pmdsettings','pmdadvanced','pmdbrand','pmdcustomer','pmdteam','pmddevices','pmdfinance'] as $route) {
+
+            // Manager has full operational access but no Settings surface,
+            // including canonical child CRUD routes hosted by Settings.
+            foreach ([
+                'pmdsettings',
+                'pmdadvanced',
+                'pmdbrand',
+                'pmdcustomer',
+                'pmdteam',
+                'pmddevices',
+                'pmdfinance',
+                'pmdmenu',
+                'posdevices',
+                'terminal_devices',
+                'terminaldevices',
+                'kds_stations',
+                'cash_drawers',
+                'biometric_devices',
+                'biometricdevices',
+                'pos_configs',
+                'languages',
+                'currencies',
+                'settings',
+            ] as $route) {
                 if ($is($route)) return false;
             }
             return true;
         }
 
         if ($code === self::CASHIER || $code === self::WAITER) {
-            return $is('cashierlab') || $is('pmd-waiter-pos-v1') || $is('pmd-waiter-pos-v22');
+            if (
+                $is('cashierlab')
+                || $is('pmd-waiter-pos-v1')
+                || $is('pmd-waiter-pos-v22')
+                || $is('pmd-waiter-table-states-v154')
+            ) {
+                return true;
+            }
+
+            // The Cashier/Waiter shell reads these canonical waiter payloads.
+            // They are supporting endpoints, never separate admin pages.
+            return str_starts_with($path, 'admin/pmd-waiter-dashboard-');
         }
+
         if ($code === self::ACCOUNTANT) return $is('accountantlab');
         if ($code === self::RESERVATIONS) return $is('reservationslab');
 
@@ -238,19 +280,22 @@ class PmdDefaultStaffRoleService
     {
         if (!Schema::hasTable('kds_stations')) return [];
         try {
-            $query = DB::table('kds_stations');
-            $columns = Schema::getColumnListing('kds_stations');
-            if (in_array('is_active', $columns, true)) $query->where('is_active', 1);
-            elseif (in_array('status', $columns, true)) $query->where('status', 1);
-
-            return $query->orderBy('name')->get()->map(function ($row) {
-                $name = trim((string)($row->name ?? 'KDS'));
-                $slug = trim((string)($row->slug ?? ''));
-                if ($slug === '') {
-                    $slug = strtolower(trim(preg_replace('/[^a-z0-9]+/i', '-', $name), '-'));
-                }
-                return ['name' => $name ?: 'KDS', 'slug' => $slug];
-            })->filter(fn($row) => $row['slug'] !== '')->values()->all();
+            // KDS no longer has a product-level active/inactive switch. Every
+            // configured station receives exactly one locked station role.
+            return DB::table('kds_stations')
+                ->orderBy('name')
+                ->get()
+                ->map(function ($row) {
+                    $name = trim((string)($row->name ?? 'KDS'));
+                    $slug = trim((string)($row->slug ?? ''));
+                    if ($slug === '') {
+                        $slug = strtolower(trim(preg_replace('/[^a-z0-9]+/i', '-', $name), '-'));
+                    }
+                    return ['name' => $name ?: 'KDS', 'slug' => $slug];
+                })
+                ->filter(fn($row) => $row['slug'] !== '')
+                ->values()
+                ->all();
         } catch (\Throwable $error) {
             return [];
         }

@@ -32,6 +32,10 @@
       "name": "pmd-admin-cards-css"
     },
     {
+      "path": "css/pmd-r43-settings-team-quick.css",
+      "name": "pmd-r43-settings-team-quick-css"
+    },
+    {
       "path": "css/pmd-clean-workspace-header-spacing-v1.css",
       "name": "pmd-clean-workspace-header-spacing-v1-css"
     },
@@ -68,6 +72,10 @@
     {
       "path": "js/admin.js",
       "name": "admin-js"
+    },
+    {
+      "path": "js/pmd-cashier-quick-v24-final.js",
+      "name": "pmd-cashier-quick-v24-final-js"
     },
     {
       "path": "js/pmd-waiter-pos-dashboard-shadow-bridge-v24.js",
