@@ -1,0 +1,13 @@
+/* PMD_CASHIER_QUICK_V22_LIGHT_GUEST_COUNT_R43 */
+@media (max-width: 767px) {
+  /*
+   * Final authority for the center Guests count cell in Cashier Quick.
+   * It must stay visibly light even when older POS CSS paints the stepper dark.
+   */
+  [data-v2-pos-host] [data-pmd-pos-root] .pmd-pos-stepper [data-pos-guests] {
+    background: #ffffff !important;
+    color: #17231f !important;
+    border: 1px solid #d7e2de !important;
+    box-shadow: none !important;
+  }
+}
