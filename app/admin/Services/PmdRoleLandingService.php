@@ -60,6 +60,18 @@ class PmdRoleLandingService
                 $code = strtolower(trim((string)($role->code ?? '')));
                 $name = strtolower(trim((string)($role->name ?? '')));
 
+                // R43: KDS lands directly on the station selected in the Role
+                // field instead of briefly visiting a dashboard first.
+                if (in_array($code, ['kds', 'kitchen', 'kitchen_display'], true)
+                    || in_array($name, ['kds', 'kitchen', 'kitchen display'], true)) {
+                    $station = app(PmdFixedRoleAuthorityV1::class)->stationForStaff($staff);
+                    if ($station && trim((string)$station->slug) !== '') {
+                        return 'kitchendisplay/'.trim((string)$station->slug, '/');
+                    }
+
+                    return null;
+                }
+
                 if ($code !== '' && isset(self::ROLE_MAP[$code]))
                     return self::ROLE_MAP[$code];
 
