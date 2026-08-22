@@ -75,14 +75,31 @@ class SuperAdminR2Controller extends AdminController
             'name'=>'required|string|max:191','domain'=>'required|string|max:191','database'=>'required|string|max:64','email'=>'required|email|max:191','phone'=>'required|string|max:40','start'=>'required|date','end'=>'required|date|after_or_equal:start','type'=>'required|string|max:100','country'=>'required|string|max:100','description'=>'nullable|string|max:1000',
         ]);
         if ($validator->fails()) return redirect('/superadmin/new')->withErrors($validator)->withInput();
+
         $data = $validator->validated();
-        $domain = strtolower(trim($data['domain']));
+        $domain = $this->normalizeTenantDomainInput((string)$data['domain']);
         $database = trim(str_replace([' ','-'], '_', $data['database']));
-        if (DB::connection('mysql')->table('tenants')->where('domain', $domain)->exists()) return redirect('/superadmin/new')->withErrors(['domain'=>'This domain already exists.'])->withInput();
-        if (DB::connection('mysql')->table('tenants')->where('database', $database)->exists()) return redirect('/superadmin/new')->withErrors(['database'=>'This database name is already registered.'])->withInput();
-        $data['domain']=$domain; $data['database']=$database;
+
+        if (!$this->isAllowedTenantDomain($domain)) {
+            return redirect('/superadmin/new')
+                ->withErrors(['domain'=>'Enter a PayMyDine tenant name such as "restaurant" or "restaurant.paymydine.com".'])
+                ->withInput();
+        }
+
+        if (DB::connection('mysql')->table('tenants')->where('domain', $domain)->exists()) {
+            return redirect('/superadmin/new')->withErrors(['domain'=>'This domain already exists.'])->withInput();
+        }
+        if (DB::connection('mysql')->table('tenants')->where('database', $database)->exists()) {
+            return redirect('/superadmin/new')->withErrors(['database'=>'This database name is already registered.'])->withInput();
+        }
+
+        $data['domain']=$domain;
+        $data['database']=$database;
         $result = $lifecycle->create($data);
-        return redirect('/superadmin/new')->with($result['ok'] ? 'success' : 'warning', $result['message']);
+
+        $response = redirect('/superadmin/new')->with($result['ok'] ? 'success' : 'warning', $result['message']);
+        if (!$result['ok']) $response->withInput();
+        return $response;
     }
 
     public function edit($id)
@@ -191,6 +208,33 @@ class SuperAdminR2Controller extends AdminController
         try { $locationRequests=DB::connection('mysql')->table('location_requests')->orderByDesc('id')->paginate($perPage); }
         catch (\Throwable $e) { $locationRequests=new \Illuminate\Pagination\LengthAwarePaginator([],0,$perPage,1); }
         return $this->html('admin::superadmin_r2.location_requests', compact('locationRequests'));
+    }
+
+    private function normalizeTenantDomainInput(string $input): string
+    {
+        $domain = strtolower(trim($input));
+        if ($domain === '') return '';
+
+        if (preg_match('#^[a-z][a-z0-9+.-]*://#i', $domain)) {
+            $host = parse_url($domain, PHP_URL_HOST);
+            $domain = is_string($host) ? strtolower(trim($host)) : '';
+        } else {
+            $domain = preg_replace('#[/?#].*$#', '', $domain) ?? '';
+            $domain = preg_replace('/:\d+$/', '', $domain) ?? '';
+        }
+
+        $domain = rtrim(trim($domain), '.');
+        if ($domain !== '' && !str_contains($domain, '.')) {
+            $domain .= '.paymydine.com';
+        }
+
+        return $domain;
+    }
+
+    private function isAllowedTenantDomain(string $domain): bool
+    {
+        return (bool)preg_match('/^[a-z0-9-]+\.paymydine\.com$/', $domain)
+            && !in_array($domain, ['www.paymydine.com'], true);
     }
 
     private function activationReadiness($tenant): array
