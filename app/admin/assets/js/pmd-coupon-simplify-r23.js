@@ -8,17 +8,19 @@
 (function () {
     'use strict';
 
-    var path = String(window.location.pathname || '').replace(/\/+$/, '');
-    if (path !== '/admin/coupons') return;
-
-    var root = document.querySelector('[data-pmd-coupon-manager]');
-    if (!root) return;
-
     var allowed = {
         coupon: true,
         gift_card: true,
         voucher: true
     };
+
+    var observer = null;
+    var observedRoot = null;
+    var queued = false;
+
+    function isCouponPage() {
+        return String(window.location.pathname || '').replace(/\/+$/, '') === '/admin/coupons';
+    }
 
     function localeCopy() {
         var cookie = document.cookie.match(/(?:^|; )pmd_admin_locale=([^;]+)/);
@@ -37,11 +39,9 @@
         };
     }
 
-    function removeRetiredTypeUi(scope) {
-        scope = scope || root;
-
+    function removeRetiredTypeUi(root) {
         Array.prototype.forEach.call(
-            scope.querySelectorAll('[data-pmd-type-filter]'),
+            root.querySelectorAll('[data-pmd-type-filter]'),
             function (node) {
                 var type = node.getAttribute('data-pmd-type-filter');
                 if (type === 'all' || !allowed[type]) node.remove();
@@ -49,7 +49,7 @@
         );
 
         Array.prototype.forEach.call(
-            scope.querySelectorAll('[data-pmd-card-type]'),
+            document.querySelectorAll('[data-pmd-card-type]'),
             function (node) {
                 var type = node.getAttribute('data-pmd-card-type');
                 if (!allowed[type]) node.remove();
@@ -57,7 +57,7 @@
         );
 
         Array.prototype.forEach.call(
-            scope.querySelectorAll('[data-pmd-coupon-card]'),
+            root.querySelectorAll('[data-pmd-coupon-card]'),
             function (node) {
                 var type = node.getAttribute('data-card-type');
                 if (!allowed[type]) node.remove();
@@ -65,13 +65,13 @@
         );
     }
 
-    function openExistingCreate() {
+    function openExistingCreate(root) {
         var trigger = root.querySelector('[data-pmd-coupon-create]');
         if (!trigger) return;
         trigger.click();
     }
 
-    function buildActionCard() {
+    function buildActionCard(root) {
         var copy = localeCopy();
         var card = document.createElement('div');
 
@@ -102,17 +102,22 @@
         card.appendChild(plus);
         card.appendChild(body);
 
-        card.addEventListener('click', openExistingCreate, false);
+        card.addEventListener('click', function () {
+            openExistingCreate(root);
+        }, false);
+
         card.addEventListener('keydown', function (event) {
             if (event.key !== 'Enter' && event.key !== ' ') return;
             event.preventDefault();
-            openExistingCreate();
+            openExistingCreate(root);
         }, false);
 
         return card;
     }
 
-    function installGridCard() {
+    function installGridCard(root) {
+        if (!root || !document.documentElement.contains(root)) return false;
+
         var grid = root.querySelector('[data-pmd-coupon-grid]');
         if (!grid) return false;
 
@@ -120,7 +125,7 @@
 
         var existing = grid.querySelector('[data-pmd-coupon-smart-add-r23]');
         if (!existing) {
-            grid.insertBefore(buildActionCard(), grid.firstChild);
+            grid.insertBefore(buildActionCard(root), grid.firstChild);
         } else if (existing !== grid.firstElementChild) {
             grid.insertBefore(existing, grid.firstChild);
         }
@@ -129,30 +134,49 @@
         return true;
     }
 
-    installGridCard();
+    function observe(root) {
+        if (observedRoot === root && observer) return;
 
-    /* Existing coupon save/status actions replace only the refresh zone. Keep a
-     * tiny observer on the Coupon root so the smart card is restored after that
-     * exact replacement. It does no polling, no layout reads and no data work. */
-    var queued = false;
-    var observer = new MutationObserver(function () {
-        if (queued) return;
-        queued = true;
+        if (observer) observer.disconnect();
+        observedRoot = root;
 
-        window.requestAnimationFrame(function () {
-            queued = false;
-            installGridCard();
+        observer = new MutationObserver(function () {
+            if (queued) return;
+            queued = true;
+
+            window.requestAnimationFrame(function () {
+                queued = false;
+                installGridCard(observedRoot);
+            });
         });
-    });
 
-    observer.observe(root, {
-        childList: true,
-        subtree: true
-    });
+        observer.observe(root, {
+            childList: true,
+            subtree: true
+        });
+    }
 
-    window.PMDCouponSimplifyR23 = {
-        version: '23.0.0',
-        install: installGridCard,
-        allowedTypes: ['coupon', 'gift_card', 'voucher']
-    };
+    function boot() {
+        if (!isCouponPage()) return;
+
+        var root = document.querySelector('[data-pmd-coupon-manager]');
+        if (!root) return;
+
+        installGridCard(root);
+        observe(root);
+
+        window.PMDCouponSimplifyR23 = {
+            version: '23.0.1',
+            install: function () { return installGridCard(root); },
+            allowedTypes: ['coupon', 'gift_card', 'voucher']
+        };
+    }
+
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', boot, { once: true });
+    } else {
+        boot();
+    }
+
+    document.addEventListener('pageContentLoaded', boot, false);
 })();
