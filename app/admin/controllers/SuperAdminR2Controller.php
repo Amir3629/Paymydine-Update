@@ -106,7 +106,21 @@ class SuperAdminR2Controller extends AdminController
     public function status(Request $request)
     {
         $request->validate(['id'=>'required|integer','status'=>'required|in:active,disabled']);
-        DB::connection('mysql')->table('tenants')->where('id',(int)$request->input('id'))->update(['status'=>$request->input('status'),'updated_at'=>now()]);
+        $tenant = DB::connection('mysql')->table('tenants')->where('id',(int)$request->input('id'))->first();
+        if (!$tenant) return redirect('/superadmin/new')->withErrors(['tenant'=>'Restaurant not found.']);
+
+        $target = (string)$request->input('status');
+        if ($target === 'active') {
+            $readiness = $this->activationReadiness($tenant);
+            if (!$readiness['ok']) {
+                DB::connection('mysql')->table('tenants')->where('id',$tenant->id)->update(['status'=>'disabled','updated_at'=>now()]);
+                return redirect('/superadmin/new')->with('warning',
+                    'Cannot activate '.$tenant->name.' yet: '.implode('; ', $readiness['issues']).'. Use Tenant Health → Retry provisioning.'
+                );
+            }
+        }
+
+        DB::connection('mysql')->table('tenants')->where('id',$tenant->id)->update(['status'=>$target,'updated_at'=>now()]);
         return redirect('/superadmin/new')->with('success','Restaurant status updated.');
     }
 
@@ -115,9 +129,20 @@ class SuperAdminR2Controller extends AdminController
         $request->validate(['id'=>'required|integer']);
         $tenant = DB::connection('mysql')->table('tenants')->where('id',(int)$request->input('id'))->first();
         if (!$tenant) return redirect('/superadmin/health')->withErrors(['tenant'=>'Tenant not found.']);
+
+        DB::connection('mysql')->table('tenants')->where('id',$tenant->id)->update(['status'=>'disabled','updated_at'=>now()]);
         $result = $provisioner->provision((string)$tenant->domain);
-        DB::connection('mysql')->table('tenants')->where('id',$tenant->id)->update(['status'=>$result['ok']?'active':'disabled','updated_at'=>now()]);
-        if ($result['ok']) return redirect('/superadmin/health')->with('success','Domain and TLS provisioning completed for '.$tenant->name.'.');
+
+        if ($result['ok']) {
+            $tenant = DB::connection('mysql')->table('tenants')->where('id',$tenant->id)->first();
+            $readiness = $this->activationReadiness($tenant);
+            if ($readiness['ok']) {
+                DB::connection('mysql')->table('tenants')->where('id',$tenant->id)->update(['status'=>'active','updated_at'=>now()]);
+                return redirect('/superadmin/health')->with('success','Domain and TLS provisioning completed for '.$tenant->name.'.');
+            }
+            return redirect('/superadmin/health')->with('warning','Provisioning command completed, but health verification is not ready yet: '.implode('; ', $readiness['issues']).'.');
+        }
+
         return redirect('/superadmin/health')->with('warning','Provisioning is still incomplete for '.$tenant->name.': '.$result['message']);
     }
 
@@ -126,8 +151,23 @@ class SuperAdminR2Controller extends AdminController
         $tenants = DB::connection('mysql')->table('tenants')->orderBy('name')->get();
         $schemas = collect(DB::connection('mysql')->select('SELECT SCHEMA_NAME FROM INFORMATION_SCHEMA.SCHEMATA'))->mapWithKeys(fn($row)=>[(string)$row->SCHEMA_NAME=>true]);
         $rows = $tenants->map(function ($tenant) use ($schemas) {
-            $domain = strtolower((string)$tenant->domain); $resolved=gethostbyname($domain); $dnsOk=$resolved!==$domain; $certPath='/etc/letsencrypt/live/'.$domain.'/fullchain.pem';
-            return (object)['tenant'=>$tenant,'db_ok'=>$schemas->has((string)$tenant->database),'dns_ok'=>$dnsOk,'resolved_ip'=>$dnsOk?$resolved:null,'tls_ok'=>is_file($certPath),'expired'=>!empty($tenant->end)&&\Carbon\Carbon::parse($tenant->end)->isPast()];
+            $domain = strtolower((string)$tenant->domain);
+            $resolved = gethostbyname($domain);
+            $dnsOk = $resolved !== $domain;
+            $tls = $this->inspectTls($domain);
+            $expired = !empty($tenant->end) && \Carbon\Carbon::parse($tenant->end)->isPast();
+            $dbOk = $schemas->has((string)$tenant->database);
+            return (object)[
+                'tenant'=>$tenant,
+                'db_ok'=>$dbOk,
+                'dns_ok'=>$dnsOk,
+                'resolved_ip'=>$dnsOk?$resolved:null,
+                'tls_ok'=>$tls['ok'],
+                'tls_name'=>$tls['name'],
+                'tls_expires'=>$tls['expires'],
+                'expired'=>$expired,
+                'ready'=>$dbOk && $dnsOk && $tls['ok'] && !$expired,
+            ];
         });
         return $this->html('admin::superadmin_r2.health', compact('rows'));
     }
@@ -151,6 +191,83 @@ class SuperAdminR2Controller extends AdminController
         try { $locationRequests=DB::connection('mysql')->table('location_requests')->orderByDesc('id')->paginate($perPage); }
         catch (\Throwable $e) { $locationRequests=new \Illuminate\Pagination\LengthAwarePaginator([],0,$perPage,1); }
         return $this->html('admin::superadmin_r2.location_requests', compact('locationRequests'));
+    }
+
+    private function activationReadiness($tenant): array
+    {
+        $issues = [];
+        $database = trim((string)($tenant->database ?? ''));
+        $domain = strtolower(trim((string)($tenant->domain ?? '')));
+
+        $dbOk = $database !== '' && (bool)DB::connection('mysql')->selectOne(
+            'SELECT SCHEMA_NAME FROM INFORMATION_SCHEMA.SCHEMATA WHERE SCHEMA_NAME = ?', [$database]
+        );
+        if (!$dbOk) $issues[] = 'tenant database is missing';
+
+        $resolved = $domain !== '' ? gethostbyname($domain) : '';
+        $dnsOk = $domain !== '' && $resolved !== $domain;
+        if (!$dnsOk) $issues[] = 'DNS is not resolving';
+
+        $tls = $domain !== '' ? $this->inspectTls($domain) : ['ok'=>false];
+        if (empty($tls['ok'])) $issues[] = 'TLS certificate does not match '.$domain;
+
+        $expired = !empty($tenant->end) && \Carbon\Carbon::parse($tenant->end)->isPast();
+        if ($expired) $issues[] = 'subscription end date has passed';
+
+        return ['ok'=>count($issues) === 0, 'issues'=>$issues];
+    }
+
+    private function inspectTls(string $domain): array
+    {
+        $result = ['ok'=>false,'name'=>null,'expires'=>null];
+        if (!preg_match('/^[a-z0-9-]+\.paymydine\.com$/', $domain)) return $result;
+
+        $context = stream_context_create(['ssl'=>[
+            'capture_peer_cert'=>true,
+            'verify_peer'=>false,
+            'verify_peer_name'=>false,
+            'SNI_enabled'=>true,
+            'peer_name'=>$domain,
+        ]]);
+
+        $errno = 0; $errstr = '';
+        $socket = @stream_socket_client('ssl://'.$domain.':443', $errno, $errstr, 3, STREAM_CLIENT_CONNECT, $context);
+        if (!$socket) return $result;
+
+        $params = stream_context_get_params($socket);
+        fclose($socket);
+        $cert = $params['options']['ssl']['peer_certificate'] ?? null;
+        if (!$cert || !function_exists('openssl_x509_parse')) return $result;
+
+        $parsed = @openssl_x509_parse($cert);
+        if (!is_array($parsed)) return $result;
+
+        $san = (string)($parsed['extensions']['subjectAltName'] ?? '');
+        $names = [];
+        foreach (explode(',', $san) as $entry) {
+            $entry = trim($entry);
+            if (str_starts_with($entry, 'DNS:')) $names[] = strtolower(substr($entry, 4));
+        }
+
+        $matches = false;
+        foreach ($names as $name) {
+            if ($name === $domain) { $matches = true; break; }
+            if (str_starts_with($name, '*.')) {
+                $suffix = substr($name, 1);
+                if (str_ends_with($domain, $suffix) && substr_count($domain, '.') === substr_count($name, '.')) { $matches = true; break; }
+            }
+        }
+
+        $validFrom = (int)($parsed['validFrom_time_t'] ?? 0);
+        $validTo = (int)($parsed['validTo_time_t'] ?? 0);
+        $validNow = ($validFrom === 0 || $validFrom <= time()) && ($validTo === 0 || $validTo > time());
+        $subjectName = $names[0] ?? (string)($parsed['subject']['CN'] ?? '');
+
+        return [
+            'ok'=>$matches && $validNow,
+            'name'=>$subjectName !== '' ? $subjectName : null,
+            'expires'=>$validTo > 0 ? date('Y-m-d H:i:s', $validTo) : null,
+        ];
     }
 
     private function html(string $view, array $data=[]): SymfonyResponse
