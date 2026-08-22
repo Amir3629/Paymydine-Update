@@ -99,6 +99,8 @@ export function ReviewShareEnhancer() {
   }, [])
 
   useEffect(() => {
+    const timers = new Set<number>()
+
     const locateSuccessfulReview = () => {
       const cards = Array.from(document.querySelectorAll<HTMLElement>('[data-pmd-paid-order-review="r30"]'))
       const successful = cards.find((card) => {
@@ -108,16 +110,38 @@ export function ReviewShareEnhancer() {
       setReviewCard((current) => current === successful ? current : successful)
     }
 
-    locateSuccessfulReview()
-    const observer = new MutationObserver(locateSuccessfulReview)
-    observer.observe(document.body, {
-      subtree: true,
-      childList: true,
-      attributes: true,
-      attributeFilter: ['disabled'],
-    })
+    const scheduleChecks = (delays: number[]) => {
+      for (const delay of delays) {
+        const timer = window.setTimeout(() => {
+          timers.delete(timer)
+          locateSuccessfulReview()
+        }, delay)
+        timers.add(timer)
+      }
+    }
 
-    return () => observer.disconnect()
+    const handleClick = (event: MouseEvent) => {
+      const target = event.target instanceof Element ? event.target : null
+      const reviewInteraction = Boolean(target?.closest('[data-pmd-paid-order-review="r30"]'))
+      scheduleChecks(reviewInteraction
+        ? [0, 200, 500, 1000, 2000, 4000, 8000, 15000, 30000]
+        : [0, 120])
+    }
+
+    const handleReturn = () => scheduleChecks([0, 250])
+
+    document.addEventListener('click', handleClick, true)
+    window.addEventListener('focus', handleReturn)
+    window.addEventListener('pageshow', handleReturn)
+    scheduleChecks([0, 120])
+
+    return () => {
+      document.removeEventListener('click', handleClick, true)
+      window.removeEventListener('focus', handleReturn)
+      window.removeEventListener('pageshow', handleReturn)
+      for (const timer of timers) window.clearTimeout(timer)
+      timers.clear()
+    }
   }, [])
 
   const prompt = useMemo(() => {
