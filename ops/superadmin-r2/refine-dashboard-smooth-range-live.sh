@@ -2,7 +2,7 @@
 set -euo pipefail
 
 ROOT="/var/www/paymydine"
-PAYLOAD_REF="1803166bf8dd90dd576ba59840dbcea87ba26fdc"
+PAYLOAD_REF="17deb7ad16f879579ee1f00d927d01b19c743b90"
 RAW_BASE="https://raw.githubusercontent.com/Amir3629/Paymydine-Update/${PAYLOAD_REF}"
 TS="$(date +%Y%m%d-%H%M%S)"
 BACKUP="$ROOT/storage/pmd-superadmin-dashboard-smooth-range-$TS"
