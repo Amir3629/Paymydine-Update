@@ -1,0 +1,67 @@
+/* PMD_DEVICES_SETTINGS_PRUNE_R12
+ * Presentation-only cleanup for /admin/pmddevices.
+ *
+ * IMPORTANT:
+ * - POS records/providers/configuration are NOT deleted.
+ * - Biometric records/routes are NOT deleted.
+ * - Existing controller data, endpoints and inline modal functionality stay intact
+ *   so these capabilities can be exposed from a dedicated page later.
+ */
+
+/* ---------------------------------------------------------
+   Devices settings: owner-facing sections intentionally moved
+   out of this page. Hide from the first CSS paint.
+   --------------------------------------------------------- */
+html body #pmd-devices-page #pos-devices,
+html body #pmd-devices-page #biometric,
+html body #pmd-devices-page #device-configuration {
+  display: none !important;
+  visibility: hidden !important;
+}
+
+/* Defensive: if a legacy fragment is injected elsewhere in this page,
+ * its POS / biometric launch controls must still stay out of Settings. */
+html body #pmd-devices-page [data-pmd-device-open^="pos:"],
+html body #pmd-devices-page [data-pmd-device-open^="biometric:"],
+html body #pmd-devices-page [data-pmd-device-open^="integrations:"] {
+  display: none !important;
+  visibility: hidden !important;
+}
+
+/* ---------------------------------------------------------
+   Hardware overview: remove the POS count as well, leaving only
+   the hardware that still belongs on this Settings page.
+   --------------------------------------------------------- */
+html body #pmd-devices-page #hardware-overview
+.pmd-owner-stats .pmd-owner-stat:first-child {
+  display: none !important;
+  visibility: hidden !important;
+}
+
+html body #pmd-devices-page #hardware-overview .pmd-owner-stats {
+  grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+}
+
+/* Keep the overview copy simple and avoid mentioning capabilities
+ * intentionally moved to another future page. */
+html body #pmd-devices-page #hardware-overview
+.pmd-owner-card__title p {
+  font-size: 0 !important;
+  line-height: 1.45 !important;
+}
+
+html body #pmd-devices-page #hardware-overview
+.pmd-owner-card__title p::after {
+  content: "Payment terminals, kitchen displays and cash drawers." !important;
+  display: inline !important;
+  color: inherit !important;
+  font-size: 12.5px !important;
+  line-height: 1.45 !important;
+  font-weight: 400 !important;
+}
+
+@media (max-width: 760px) {
+  html body #pmd-devices-page #hardware-overview .pmd-owner-stats {
+    grid-template-columns: 1fr !important;
+  }
+}
