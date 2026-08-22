@@ -25,6 +25,7 @@ cleanup() {
 
 rollback() {
   rc=$?
+
   if [[ "$RESTORE" -eq 1 ]]; then
     echo
     echo "!!! ROOT-DOMAIN MOVE FAILED - RESTORING BACKUPS !!!"
@@ -33,6 +34,7 @@ rollback() {
       if [[ "$rel" == "ops/superadmin-r2/pmd-tenant-provision" ]]; then
         continue
       fi
+
       if [[ -f "$BACKUP/app/$rel" ]]; then
         sudo -n mkdir -p "$ROOT/$(dirname "$rel")"
         sudo -n cp -a "$BACKUP/app/$rel" "$ROOT/$rel" || true
@@ -51,6 +53,7 @@ rollback() {
     fi
 
     sudo -n nginx -t >/dev/null 2>&1 && sudo -n systemctl reload nginx >/dev/null 2>&1 || true
+
     if systemctl is-active --quiet php8.3-fpm 2>/dev/null; then
       sudo -n systemctl reload php8.3-fpm >/dev/null 2>&1 || true
     fi
@@ -58,6 +61,7 @@ rollback() {
     echo "Rollback completed."
     echo "Backup: $BACKUP"
   fi
+
   cleanup
   exit "$rc"
 }
@@ -74,8 +78,6 @@ echo " Payload: $PAYLOAD_REF"
 echo "============================================================"
 
 echo
-echo() { :; }
-
 echo "1) Checking required privileges/tools..."
 sudo -n true
 command -v curl >/dev/null
@@ -112,6 +114,7 @@ do
     mkdir -p "$BACKUP/app/$(dirname "$rel")"
     sudo -n cp -a "$ROOT/$rel" "$BACKUP/app/$rel"
   fi
+
   sudo -n install -D -o root -g root -m 0644 "$TMP/$rel" "$ROOT/$rel"
   echo "OK   $rel"
 done
@@ -119,7 +122,10 @@ done
 if sudo -n test -f /usr/local/sbin/pmd-tenant-provision; then
   sudo -n cp -a /usr/local/sbin/pmd-tenant-provision "$BACKUP/pmd-tenant-provision"
 fi
-sudo -n install -o root -g root -m 0755 "$TMP/ops/superadmin-r2/pmd-tenant-provision" /usr/local/sbin/pmd-tenant-provision
+
+sudo -n install -o root -g root -m 0755 \
+  "$TMP/ops/superadmin-r2/pmd-tenant-provision" \
+  /usr/local/sbin/pmd-tenant-provision
 
 RESTORE=1
 
@@ -144,59 +150,74 @@ def matching_brace(text: str, open_index: int) -> int:
     double = False
     comment = False
     escape = False
+
     for i in range(open_index, len(text)):
         ch = text[i]
+
         if comment:
             if ch == '\n':
                 comment = False
             continue
+
         if escape:
             escape = False
             continue
+
         if ch == '\\' and (single or double):
             escape = True
             continue
+
         if ch == '#' and not single and not double:
             comment = True
             continue
+
         if ch == "'" and not double:
             single = not single
             continue
+
         if ch == '"' and not single:
             double = not double
             continue
+
         if single or double:
             continue
+
         if ch == '{':
             depth += 1
         elif ch == '}':
             depth -= 1
             if depth == 0:
                 return i
+
     raise RuntimeError('unbalanced nginx braces')
 
 
 def blocks(text: str):
-    out = []
+    result = []
     pos = 0
     rx = re.compile(r'\bserver\s*\{')
+
     while True:
-        m = rx.search(text, pos)
-        if not m:
+        match = rx.search(text, pos)
+        if not match:
             break
-        open_i = text.find('{', m.start(), m.end())
-        close_i = matching_brace(text, open_i)
-        out.append((m.start(), close_i + 1, text[m.start():close_i + 1]))
-        pos = close_i + 1
-    return out
+
+        open_index = text.find('{', match.start(), match.end())
+        close_index = matching_brace(text, open_index)
+        result.append((match.start(), close_index + 1, text[match.start():close_index + 1]))
+        pos = close_index + 1
+
+    return result
 
 
 def names(block: str):
     clean = re.sub(r'(?m)#.*$', '', block)
-    found = []
+    result = []
+
     for match in re.finditer(r'\bserver_name\s+([^;]+);', clean):
-        found.extend(x.strip().lower() for x in match.group(1).split())
-    return found
+        result.extend(item.strip().lower() for item in match.group(1).split())
+
+    return result
 
 
 def is_ssl(block: str):
@@ -212,9 +233,19 @@ def remove_superadmin_locations(block: str) -> str:
         r'(?ms)^\s*location\s*=\s*/superadmin/?\s*\{.*?^\s*\}\s*',
         r'(?ms)^\s*location\s+\^~\s+/superadmin/\s*\{.*?^\s*\}\s*',
     ]
+
     for pattern in patterns:
         block = re.sub(pattern, '\n', block)
+
     return block
+
+
+def remove_admin_asset_location(block: str) -> str:
+    return re.sub(
+        r'(?ms)^\s*location\s+\^~\s+/app/admin/assets/\s*\{.*?^\s*\}\s*',
+        '\n',
+        block,
+    )
 
 
 def strip_marker(block: str, start_marker: str, end_marker: str) -> str:
@@ -226,10 +257,12 @@ def strip_marker(block: str, start_marker: str, end_marker: str) -> str:
 
 
 def insert_before_close(block: str, snippet: str) -> str:
-    idx = block.rfind('}')
-    if idx < 0:
+    index = block.rfind('}')
+    if index < 0:
         raise RuntimeError('server block missing close brace')
-    return block[:idx].rstrip() + '\n\n' + snippet.rstrip() + '\n' + block[idx:]
+
+    return block[:index].rstrip() + '\n\n' + snippet.rstrip() + '\n' + block[index:]
+
 
 active_sources = []
 for item in sorted(enabled.iterdir()):
@@ -237,19 +270,23 @@ for item in sorted(enabled.iterdir()):
         real = item.resolve(strict=True)
     except FileNotFoundError:
         continue
+
     if real.is_file() and real not in active_sources:
         active_sources.append(real)
 
 main_candidates = []
 for path in active_sources:
     text = path.read_text()
+
     for start, end, block in blocks(text):
         ns = names(block)
         if is_ssl(block) and 'paymydine.com' in ns:
             main_candidates.append((path, start, end))
 
 if len(main_candidates) != 1:
-    raise SystemExit(f'Expected exactly one active HTTPS paymydine.com server block, found {len(main_candidates)}')
+    raise SystemExit(
+        f'Expected exactly one active HTTPS paymydine.com server block, found {len(main_candidates)}'
+    )
 
 main_path = main_candidates[0][0]
 modified = {}
@@ -262,11 +299,18 @@ for path in active_sources:
     for start, end, block in blocks(original):
         if not is_ssl(block):
             continue
+
         ns = names(block)
 
         if path == main_path and 'paymydine.com' in ns:
-            block = strip_marker(block, '# PMD_SUPERADMIN_ROOT_DOMAIN_R2_START', '# PMD_SUPERADMIN_ROOT_DOMAIN_R2_END')
+            block = strip_marker(
+                block,
+                '# PMD_SUPERADMIN_ROOT_DOMAIN_R2_START',
+                '# PMD_SUPERADMIN_ROOT_DOMAIN_R2_END',
+            )
             block = remove_superadmin_locations(block)
+            block = remove_admin_asset_location(block)
+
             snippet = r'''    # PMD_SUPERADMIN_ROOT_DOMAIN_R2_START
     # Landing page keeps owning /. Only the central control-plane namespace
     # and the Admin assets required by that namespace are routed to Laravel.
@@ -298,14 +342,20 @@ for path in active_sources:
         try_files $uri =404;
     }
     # PMD_SUPERADMIN_ROOT_DOMAIN_R2_END'''
+
             block = insert_before_close(block, snippet)
             replacements.append((start, end, block))
             continue
 
-        tenant_names = [n for n in ns if re.fullmatch(r'[a-z0-9-]+\.paymydine\.com', n)]
-        tenant_names = [n for n in tenant_names if n != 'www.paymydine.com']
+        tenant_names = [
+            name for name in ns
+            if re.fullmatch(r'[a-z0-9-]+\.paymydine\.com', name)
+        ]
+        tenant_names = [name for name in tenant_names if name != 'www.paymydine.com']
+
         if tenant_names:
             block = remove_superadmin_locations(block)
+
             snippet = r'''    # PMD_SUPERADMIN_TENANT_REDIRECT_R2_START
     # Tenant hosts never execute the Super Admin control plane.
     location = /superadmin {
@@ -316,14 +366,17 @@ for path in active_sources:
         return 307 https://paymydine.com$request_uri;
     }
     # PMD_SUPERADMIN_TENANT_REDIRECT_R2_END'''
+
             block = insert_before_close(block, snippet)
             replacements.append((start, end, block))
             tenant_blocks += 1
 
     if replacements:
         text = original
+
         for start, end, replacement in reversed(replacements):
             text = text[:start] + replacement + text[end:]
+
         modified[path] = text
 
 if tenant_blocks == 0:
@@ -332,9 +385,12 @@ if tenant_blocks == 0:
 for path, text in modified.items():
     safe_name = str(path).strip('/').replace('/', '__')
     saved = nginx_backup / safe_name
+
     shutil.copy2(path, saved)
-    with manifest.open('a') as fh:
-        fh.write(f'{path}\t{saved}\n')
+
+    with manifest.open('a') as handle:
+        handle.write(f'{path}\t{saved}\n')
+
     path.write_text(text)
     print(f'PATCHED {path}')
 
@@ -346,13 +402,14 @@ echo
 echo "6) Validating application + Nginx before reload..."
 php -l "$ROOT/app/Http/Middleware/SuperAdminCanonicalHost.php"
 php -l "$ROOT/routes/pmd-superadmin-r2.php"
-grep -Fq 'https://paymydine.com/superadmin/settings/save' "$ROOT/app/admin/views/superadmin_r2/settings.blade.php"
-grep -Fq 'PMD_SUPERADMIN_ROOT_DOMAIN_R2_START' "$(cut -f1 "$NGINX_MANIFEST" | head -1)" || true
+grep -Fq 'https://paymydine.com/superadmin/settings/save' \
+  "$ROOT/app/admin/views/superadmin_r2/settings.blade.php"
 sudo -n nginx -t
 
 echo
 echo "7) Graceful reload..."
 sudo -n systemctl reload nginx
+
 if systemctl is-active --quiet php8.3-fpm; then
   sudo -n systemctl reload php8.3-fpm
 fi
@@ -361,36 +418,68 @@ echo
 echo "8) Runtime verification..."
 
 echo "===== Landing page must still work ====="
-curl -skS --resolve paymydine.com:443:127.0.0.1 -D - -o /dev/null https://paymydine.com/ \
-  | grep -Ei '^(HTTP/|content-type:|location:)' | head -10 || true
+curl -skS \
+  --resolve paymydine.com:443:127.0.0.1 \
+  -D - \
+  -o /dev/null \
+  https://paymydine.com/ \
+  | grep -Ei '^(HTTP/|content-type:|location:)' \
+  | head -10 || true
 
 echo
 echo "===== Central Super Admin root ====="
-curl -skS --resolve paymydine.com:443:127.0.0.1 -D - -o /dev/null https://paymydine.com/superadmin \
+curl -skS \
+  --resolve paymydine.com:443:127.0.0.1 \
+  -D - \
+  -o /dev/null \
+  https://paymydine.com/superadmin \
   | grep -Ei '^(HTTP/|location:|content-type:)' || true
 
 echo
 echo "===== Central Super Admin login ====="
 LOGIN_BODY="$TMP/login.html"
-curl -skS --resolve paymydine.com:443:127.0.0.1 -D "$TMP/login.headers" -o "$LOGIN_BODY" https://paymydine.com/superadmin/login
-cat "$TMP/login.headers" | grep -Ei '^(HTTP/|location:|content-type:)' || true
-grep -E 'Super Admin Login \| PayMyDine|pmd-login-logo\.svg|superadmin-username' "$LOGIN_BODY" | head -10 || true
+curl -skS \
+  --resolve paymydine.com:443:127.0.0.1 \
+  -D "$TMP/login.headers" \
+  -o "$LOGIN_BODY" \
+  https://paymydine.com/superadmin/login
+
+cat "$TMP/login.headers" \
+  | grep -Ei '^(HTTP/|location:|content-type:)' || true
+
+grep -E \
+  'Super Admin Login \| PayMyDine|pmd-login-logo\.svg|superadmin-username' \
+  "$LOGIN_BODY" \
+  | head -10 || true
 
 echo
 echo "===== Central Admin asset ====="
-curl -skS --resolve paymydine.com:443:127.0.0.1 -D - -o /dev/null https://paymydine.com/app/admin/assets/images/pmd-login-logo.svg \
+curl -skS \
+  --resolve paymydine.com:443:127.0.0.1 \
+  -D - \
+  -o /dev/null \
+  https://paymydine.com/app/admin/assets/images/pmd-login-logo.svg \
   | grep -Ei '^(HTTP/|content-type:)' || true
 
 echo
 echo "===== Stale legacy Settings URI bridge ====="
-curl -skS --resolve paymydine.com:443:127.0.0.1 -X POST -D - -o /dev/null https://paymydine.com/superadmin/settings/update \
+curl -skS \
+  --resolve paymydine.com:443:127.0.0.1 \
+  -X POST \
+  -D - \
+  -o /dev/null \
+  https://paymydine.com/superadmin/settings/update \
   | grep -Ei '^(HTTP/|location:)' || true
 
 echo
 echo "===== Tenant Super Admin redirect ====="
 for host in test.paymydine.com mimoza.paymydine.com; do
   echo "--- $host ---"
-  curl -skS --resolve "$host:443:127.0.0.1" -D - -o /dev/null "https://$host/superadmin/settings" \
+  curl -skS \
+    --resolve "$host:443:127.0.0.1" \
+    -D - \
+    -o /dev/null \
+    "https://$host/superadmin/settings" \
     | grep -Ei '^(HTTP/|location:)' || true
 done
 
