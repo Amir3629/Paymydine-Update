@@ -203,12 +203,12 @@ class PmdDefaultStaffRoleService
         if (!$this->isManagedCode($code)) return true;
         if ($code === self::OWNER) return true;
 
-        // Authentication and asset/locale transport are infrastructure, not
+        // Authentication and shared browser transport are infrastructure, not
         // product workspaces. Every managed role needs them to render safely.
         if (in_array($path, ['admin', 'admin/dashboard', 'admin/login', 'admin/logout'], true)) {
             return true;
         }
-        foreach (['admin/_assets', 'admin/_pmd'] as $transportPrefix) {
+        foreach (['admin/_assets', 'admin/_pmd', 'admin/notifications-api'] as $transportPrefix) {
             if ($path === $transportPrefix || str_starts_with($path, $transportPrefix.'/')) {
                 return true;
             }
