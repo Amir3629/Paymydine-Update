@@ -45,6 +45,7 @@ trap cleanup EXIT
 [[ -f "$SOURCE_VHOST" ]] || fail "canonical test tenant vhost missing"
 command -v nginx >/dev/null 2>&1 || fail "nginx missing"
 command -v certbot >/dev/null 2>&1 || fail "certbot missing"
+command -v openssl >/dev/null 2>&1 || fail "openssl missing"
 
 if [[ -f "$TARGET_VHOST" ]]; then
   cp -a "$TARGET_VHOST" "$OLD_TARGET"
@@ -54,9 +55,6 @@ if [[ -L "$ENABLED_VHOST" ]]; then
   HAD_LINK=1
 fi
 
-# A brand-new hostname may not yet have an exact HTTP vhost. Install a minimal
-# HTTP-only authority first so Let's Encrypt webroot challenges are guaranteed
-# to hit the PayMyDine document root instead of an unrelated default server.
 cat > "$TEMP_HTTP" <<EOF
 # PMD_SUPERADMIN_R2_TEMP_ACME ${DOMAIN}
 server {
@@ -81,7 +79,6 @@ ln -sfn "$TARGET_VHOST" "$ENABLED_VHOST"
 nginx -t
 systemctl reload nginx
 
-# Wildcard DNS exists, but TLS is currently per tenant.
 if [[ ! -s "/etc/letsencrypt/live/${DOMAIN}/fullchain.pem" ]]; then
   certbot certonly \
     --webroot \
@@ -96,8 +93,8 @@ fi
 [[ -s "/etc/letsencrypt/live/${DOMAIN}/fullchain.pem" ]] || fail "certificate was not created"
 [[ -s "/etc/letsencrypt/live/${DOMAIN}/privkey.pem" ]] || fail "private key was not created"
 
-# Clone the known-good test tenant vhost after TLS exists. This preserves all
-# PHP/Laravel/Next routing authorities that have already been audited on test.
+# Clone the audited test tenant vhost so PHP/Laravel/Next authorities remain
+# identical across tenants. Replace only the hostname/certificate authority.
 sed "s/test\.paymydine\.com/${DOMAIN}/g" "$SOURCE_VHOST" > "$FINAL_VHOST"
 
 grep -q "server_name ${DOMAIN};" "$FINAL_VHOST" || fail "generated vhost server_name validation failed"
@@ -109,6 +106,40 @@ install -o root -g root -m 0644 "$FINAL_VHOST" "$TARGET_VHOST"
 ln -sfn "$TARGET_VHOST" "$ENABLED_VHOST"
 nginx -t
 systemctl reload nginx
+
+# Do not report READY merely because Certbot wrote a certificate. Nginx must
+# actually select THIS tenant server block and present THIS hostname on SNI.
+# A graceful reload can briefly leave old workers accepting connections, so
+# verify with bounded retries before activating the tenant.
+verify_presented_certificate() {
+  local attempt cert_text
+  for attempt in $(seq 1 15); do
+    cert_text="$(
+      echo | openssl s_client \
+        -connect 127.0.0.1:443 \
+        -servername "$DOMAIN" \
+        2>/dev/null \
+      | openssl x509 -noout -subject -ext subjectAltName 2>/dev/null \
+      || true
+    )"
+
+    if grep -Fq "DNS:${DOMAIN}" <<<"$cert_text"; then
+      echo "TLS_SNI_READY ${DOMAIN} attempt=${attempt}"
+      return 0
+    fi
+
+    sleep 1
+  done
+
+  echo "Presented certificate after reload:" >&2
+  echo "$cert_text" >&2
+  return 1
+}
+
+# Confirm the effective Nginx configuration has the exact hostname and then
+# confirm the runtime listener uses its matching certificate.
+nginx -T 2>/dev/null | grep -Fq "server_name ${DOMAIN};" || fail "effective nginx config does not contain exact tenant server_name"
+verify_presented_certificate || fail "nginx is not presenting the ${DOMAIN} certificate on SNI"
 
 COMMITTED=1
 echo "READY ${DOMAIN}"
