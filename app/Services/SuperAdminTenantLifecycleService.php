@@ -37,6 +37,9 @@ class SuperAdminTenantLifecycleService
         }
 
         try {
+            // Keep the legacy-compatible registry status disabled until every
+            // provisioning stage succeeds. This avoids relying on an unknown
+            // enum/string schema accepting a new "provisioning" value.
             DB::connection('mysql')->table('tenants')->insert([
                 'name' => $data['name'],
                 'domain' => $domain,
@@ -48,13 +51,15 @@ class SuperAdminTenantLifecycleService
                 'type' => $data['type'],
                 'country' => $data['country'],
                 'description' => $data['description'] ?? null,
-                'status' => 'provisioning',
+                'status' => 'disabled',
                 'created_at' => now(),
                 'updated_at' => now(),
             ]);
             $insertedTenant = true;
 
-            DB::connection('mysql')->statement('CREATE DATABASE '.$this->quoteIdentifier($database).' CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci');
+            DB::connection('mysql')->statement(
+                'CREATE DATABASE '.$this->quoteIdentifier($database).' CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci'
+            );
             $createdDatabase = true;
 
             $this->cloneTemplateDatabase(self::TEMPLATE_DB, $database);
@@ -62,10 +67,12 @@ class SuperAdminTenantLifecycleService
 
             $provision = app(SuperAdminTenantDomainProvisioner::class)->provision($domain);
 
+            $this->restoreCentralConnection($centralDatabase);
+
             DB::connection('mysql')->table('tenants')
                 ->where('database', $database)
                 ->update([
-                    'status' => $provision['ok'] ? 'active' : 'provisioning',
+                    'status' => $provision['ok'] ? 'active' : 'disabled',
                     'updated_at' => now(),
                 ]);
 
@@ -74,7 +81,7 @@ class SuperAdminTenantLifecycleService
                 'stage' => $provision['ok'] ? 'ready' : 'domain',
                 'message' => $provision['ok']
                     ? 'Restaurant created and provisioned successfully.'
-                    : 'Restaurant data and database are ready, but domain/TLS provisioning is pending: '.$provision['message'],
+                    : 'Restaurant data and database are ready, but the tenant remains disabled until domain/TLS provisioning succeeds: '.$provision['message'],
                 'database' => $database,
                 'domain' => $domain,
                 'provisioning' => $provision,
@@ -86,9 +93,16 @@ class SuperAdminTenantLifecycleService
                 'error' => $e->getMessage(),
             ]);
 
+            // Always restore the central DB before touching the central tenant
+            // registry during rollback. cloneTemplateDatabase intentionally uses
+            // USE <tenant>, so the current PDO database may no longer be central.
+            $this->restoreCentralConnection($centralDatabase);
+
             if ($createdDatabase) {
                 try {
-                    DB::connection('mysql')->statement('DROP DATABASE IF EXISTS '.$this->quoteIdentifier($database));
+                    DB::connection('mysql')->statement(
+                        'DROP DATABASE IF EXISTS '.$this->quoteIdentifier($database)
+                    );
                 } catch (\Throwable $rollbackError) {
                     Log::error('pmd_superadmin_r2_database_rollback_failed', [
                         'database' => $database,
@@ -96,6 +110,8 @@ class SuperAdminTenantLifecycleService
                     ]);
                 }
             }
+
+            $this->restoreCentralConnection($centralDatabase);
 
             if ($insertedTenant) {
                 try {
@@ -114,9 +130,7 @@ class SuperAdminTenantLifecycleService
                 'message' => 'Tenant creation failed before completion. Partial database/registry state was rolled back where possible.',
             ];
         } finally {
-            Config::set('database.connections.mysql.database', $centralDatabase);
-            DB::purge('mysql');
-            DB::reconnect('mysql');
+            $this->restoreCentralConnection($centralDatabase);
         }
     }
 
@@ -199,10 +213,15 @@ class SuperAdminTenantLifecycleService
                 ]);
             }
         } finally {
-            Config::set('database.connections.mysql.database', $centralDatabase);
-            DB::purge('mysql');
-            DB::reconnect('mysql');
+            $this->restoreCentralConnection($centralDatabase);
         }
+    }
+
+    private function restoreCentralConnection(string $centralDatabase): void
+    {
+        Config::set('database.connections.mysql.database', $centralDatabase);
+        DB::purge('mysql');
+        DB::reconnect('mysql');
     }
 
     private function schemaExists(string $schema): bool
