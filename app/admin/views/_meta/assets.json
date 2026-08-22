@@ -122,6 +122,10 @@
       "name": "admin-js"
     },
     {
+      "path": "js/pmd-admin-favicon-final-r21.js",
+      "name": "pmd-admin-favicon-final-r21-js"
+    },
+    {
       "path": "js/pmd-waiter-pos-dashboard-shadow-bridge-v24.js",
       "name": "pmd-waiter-pos-dashboard-shadow-bridge-v24-js"
     },
