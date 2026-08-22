@@ -116,8 +116,12 @@
       "name": "pmd-history-stable-r20-css"
     },
     {
-      "path": "css/pmd-coupon-simplify-r23.css",
-      "name": "pmd-coupon-simplify-r23-css"
+      "path": "css/pmd-coupon-stable-r24.css",
+      "name": "pmd-coupon-stable-r24-css"
+    },
+    {
+      "path": "css/pmd-general-staff-note-r24.css",
+      "name": "pmd-general-staff-note-r24-css"
     }
   ],
   "script": [
@@ -130,8 +134,12 @@
       "name": "pmd-admin-favicon-final-r21-js"
     },
     {
-      "path": "js/pmd-coupon-simplify-r23.js",
-      "name": "pmd-coupon-simplify-r23-js"
+      "path": "js/pmd-coupon-stable-r24.js",
+      "name": "pmd-coupon-stable-r24-js"
+    },
+    {
+      "path": "js/pmd-general-staff-note-r24.js",
+      "name": "pmd-general-staff-note-r24-js"
     },
     {
       "path": "js/pmd-waiter-pos-dashboard-shadow-bridge-v24.js",
