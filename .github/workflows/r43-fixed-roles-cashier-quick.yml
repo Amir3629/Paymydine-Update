@@ -17,6 +17,7 @@ jobs:
       - name: PHP syntax
         run: |
           php -l app/admin/Services/PmdFixedRoleAuthorityV1.php
+          php -l app/admin/Services/PmdFixedRoleRuntimeV1.php
           php -l app/admin/Services/PmdFixedRolePresentationV1.php
           php -l app/admin/Services/PmdCashierQuickV22Bridge.php
           php -l app/admin/controllers/Pmdteam.php
@@ -31,6 +32,7 @@ jobs:
         run: |
           set -e
           FILE=app/admin/Services/PmdFixedRoleAuthorityV1.php
+          RUNTIME=app/admin/Services/PmdFixedRoleRuntimeV1.php
           for ROLE in owner manager cashier waiter kds accountant reservations; do
             grep -q "'$ROLE' =>" "$FILE"
           done
@@ -39,6 +41,8 @@ jobs:
           grep -q "admin/accountantlab" "$FILE"
           grep -q "admin/reservationslab" "$FILE"
           grep -q "admin/kitchendisplay/" "$FILE"
+          grep -q "Server -> Waiter" "$RUNTIME"
+          grep -q "super_user = \$code === 'owner'" "$RUNTIME"
 
       - name: Settings cards removed only from Settings landing
         run: |
