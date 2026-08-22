@@ -19,22 +19,15 @@ use Illuminate\Support\Str;
  */
 class PmdTenantProductBaselineR1
 {
-    public const VERSION = '1.0.0';
+    public const VERSION = '1.0.1';
 
-    /**
-     * Repair the database currently selected as Laravel's default connection.
-     *
-     * @param array<int,string> $scopes payments|kds|pos|orders
-     */
     public function repairCurrentTenant(array $scopes = []): array
     {
         $scopes = $this->normalizeScopes($scopes);
-        $database = $this->currentDatabaseName();
-
         $report = [
             'ok' => true,
             'version' => self::VERSION,
-            'database' => $database,
+            'database' => $this->currentDatabaseName(),
             'scopes' => $scopes,
             'steps' => [],
             'warnings' => [],
@@ -44,12 +37,10 @@ class PmdTenantProductBaselineR1
             $this->step($report, 'payment_catalog', fn () => $this->ensurePaymentCatalog());
             $this->step($report, 'payment_runtime', fn () => $this->ensurePaymentRuntime());
         }
-
         if (in_array('kds', $scopes, true)) {
             $this->step($report, 'order_notes', fn () => $this->ensureOrderNotes());
             $this->step($report, 'kds_stations', fn () => $this->ensureKdsStations());
         }
-
         if (in_array('pos', $scopes, true)) {
             $this->step($report, 'cash_drawers', fn () => $this->ensureCashDrawers());
             $this->step($report, 'pos_hardware_commands', fn () => $this->ensurePosHardwareCommands());
@@ -57,7 +48,6 @@ class PmdTenantProductBaselineR1
             $this->step($report, 'terminal_devices', fn () => $this->ensureTerminalDevices());
             $this->step($report, 'sumup_pos_config', fn () => $this->ensureSumupPosConfigFields());
         }
-
         if (in_array('orders', $scopes, true)) {
             $this->step($report, 'order_settlement', fn () => $this->ensureOrderSettlementFields());
             $this->step($report, 'order_guest_count', fn () => $this->ensureGuestCount());
@@ -65,16 +55,9 @@ class PmdTenantProductBaselineR1
         }
 
         $report['ok'] = count($report['warnings']) === 0;
-
         return $report;
     }
 
-    /**
-     * Repair a tenant record from the landlord tenants table, temporarily
-     * switching the dedicated tenant connection and restoring it afterwards.
-     *
-     * @param object|array<string,mixed> $tenant
-     */
     public function repairTenantRecord($tenant, array $scopes = []): array
     {
         $value = static function ($row, string $key, $default = null) {
@@ -84,26 +67,16 @@ class PmdTenantProductBaselineR1
         };
 
         $database = trim((string)$value($tenant, 'database', ''));
-        if ($database === '') {
-            throw new \InvalidArgumentException('Tenant database is required.');
-        }
+        if ($database === '') throw new \InvalidArgumentException('Tenant database is required.');
 
         $originalDefault = DB::getDefaultConnection();
         $originalTenantConfig = (array)Config::get('database.connections.tenant', []);
         $tenantConfig = $originalTenantConfig;
-
         $tenantConfig['database'] = $database;
 
-        foreach ([
-            'host' => 'db_host',
-            'port' => 'db_port',
-            'username' => 'db_user',
-            'password' => 'db_pass',
-        ] as $configKey => $tenantKey) {
+        foreach (['host' => 'db_host', 'port' => 'db_port', 'username' => 'db_user', 'password' => 'db_pass'] as $configKey => $tenantKey) {
             $candidate = $value($tenant, $tenantKey);
-            if ($candidate !== null && $candidate !== '') {
-                $tenantConfig[$configKey] = $candidate;
-            }
+            if ($candidate !== null && $candidate !== '') $tenantConfig[$configKey] = $candidate;
         }
 
         try {
@@ -111,14 +84,9 @@ class PmdTenantProductBaselineR1
             DB::purge('tenant');
             DB::reconnect('tenant');
             DB::setDefaultConnection('tenant');
-
             return $this->repairCurrentTenant($scopes);
         } finally {
-            try {
-                DB::purge('tenant');
-            } catch (\Throwable $ignored) {
-            }
-
+            try { DB::purge('tenant'); } catch (\Throwable $ignored) {}
             Config::set('database.connections.tenant', $originalTenantConfig);
             DB::setDefaultConnection($originalDefault);
         }
@@ -128,30 +96,17 @@ class PmdTenantProductBaselineR1
     {
         $allowed = ['payments', 'kds', 'pos', 'orders'];
         if (!$scopes) return $allowed;
-
-        $scopes = array_values(array_unique(array_map(
-            static fn ($scope) => strtolower(trim((string)$scope)),
-            $scopes
-        )));
-
+        $scopes = array_values(array_unique(array_map(static fn ($scope) => strtolower(trim((string)$scope)), $scopes)));
         return array_values(array_intersect($allowed, $scopes));
     }
 
     protected function step(array &$report, string $name, callable $callback): void
     {
         try {
-            $result = $callback();
-            $report['steps'][$name] = [
-                'ok' => true,
-                'result' => $result,
-            ];
+            $report['steps'][$name] = ['ok' => true, 'result' => $callback()];
         } catch (\Throwable $error) {
             $report['warnings'][] = $name.': '.$error->getMessage();
-            $report['steps'][$name] = [
-                'ok' => false,
-                'error' => $error->getMessage(),
-            ];
-
+            $report['steps'][$name] = ['ok' => false, 'error' => $error->getMessage()];
             Log::warning('PMD tenant baseline step failed', [
                 'database' => $report['database'] ?? null,
                 'step' => $name,
@@ -162,11 +117,8 @@ class PmdTenantProductBaselineR1
 
     protected function currentDatabaseName(): ?string
     {
-        try {
-            return trim((string)DB::connection()->getDatabaseName()) ?: null;
-        } catch (\Throwable $error) {
-            return null;
-        }
+        try { return trim((string)DB::connection()->getDatabaseName()) ?: null; }
+        catch (\Throwable $error) { return null; }
     }
 
     protected function schema()
@@ -180,18 +132,14 @@ class PmdTenantProductBaselineR1
         $connection = $model->getConnection();
         $schema = $connection->getSchemaBuilder();
         $table = $model->getTable();
-
-        if (!$schema->hasTable($table)) {
-            return ['skipped' => true, 'reason' => 'payment table missing', 'table' => $table];
-        }
+        if (!$schema->hasTable($table)) throw new \RuntimeException('Payment catalog base table is missing: '.$table);
 
         $columns = $schema->getColumnListing($table);
         if (!in_array('code', $columns, true) || !in_array('name', $columns, true)) {
-            return ['skipped' => true, 'reason' => 'payment table lacks code/name', 'table' => $table];
+            throw new \RuntimeException('Payment catalog table lacks required code/name columns: '.$table);
         }
 
         $created = [];
-
         $methods = [
             'card' => ['name' => 'Card', 'priority' => 10, 'provider_code' => 'stripe'],
             'apple_pay' => ['name' => 'Apple Pay', 'priority' => 20, 'provider_code' => 'stripe'],
@@ -199,15 +147,9 @@ class PmdTenantProductBaselineR1
             'wero' => ['name' => 'Wero', 'priority' => 40, 'provider_code' => 'worldline'],
             'paypal' => ['name' => 'PayPal', 'priority' => 50, 'provider_code' => 'paypal'],
         ];
-
-        $hasCashAlias = $connection->table($table)
-            ->whereIn('code', ['cash', 'cod'])
-            ->exists();
-
-        if (!$hasCashAlias) {
+        if (!$connection->table($table)->whereIn('code', ['cash', 'cod'])->exists()) {
             $methods['cod'] = ['name' => 'Cash', 'priority' => 60, 'provider_code' => null];
         }
-
         $providers = [
             'stripe' => ['name' => 'Stripe', 'priority' => 110, 'supported_methods' => ['card', 'apple_pay', 'google_pay']],
             'paypal' => ['name' => 'PayPal', 'priority' => 120, 'supported_methods' => ['paypal']],
@@ -219,50 +161,21 @@ class PmdTenantProductBaselineR1
 
         foreach ($methods as $code => $cfg) {
             if ($connection->table($table)->where('code', $code)->exists()) continue;
-
-            $connection->table($table)->insert($this->paymentInsertPayload(
-                $columns,
-                $code,
-                $cfg['name'],
-                (int)$cfg['priority'],
-                $cfg['provider_code'],
-                ['provider_code' => $cfg['provider_code'], 'kind' => 'method']
-            ));
+            $connection->table($table)->insert($this->paymentInsertPayload($columns, $code, $cfg['name'], (int)$cfg['priority'], $cfg['provider_code'], ['provider_code' => $cfg['provider_code'], 'kind' => 'method']));
             $created[] = $code;
         }
-
         foreach ($providers as $code => $cfg) {
             if ($connection->table($table)->where('code', $code)->exists()) continue;
-
-            $connection->table($table)->insert($this->paymentInsertPayload(
-                $columns,
-                $code,
-                $cfg['name'],
-                (int)$cfg['priority'],
-                null,
-                ['supported_methods' => array_values($cfg['supported_methods']), 'kind' => 'provider']
-            ));
+            $connection->table($table)->insert($this->paymentInsertPayload($columns, $code, $cfg['name'], (int)$cfg['priority'], null, ['supported_methods' => array_values($cfg['supported_methods']), 'kind' => 'provider']));
             $created[] = $code;
         }
 
-        return [
-            'table' => $table,
-            'created' => $created,
-            'created_count' => count($created),
-            'new_rows_enabled' => false,
-        ];
+        return ['table' => $table, 'created' => $created, 'created_count' => count($created), 'new_rows_enabled' => false];
     }
 
-    protected function paymentInsertPayload(
-        array $columns,
-        string $code,
-        string $name,
-        int $priority,
-        ?string $providerCode,
-        array $meta
-    ): array {
+    protected function paymentInsertPayload(array $columns, string $code, string $name, int $priority, ?string $providerCode, array $meta): array
+    {
         $payload = ['code' => $code, 'name' => $name];
-
         if (in_array('status', $columns, true)) $payload['status'] = 0;
         if (in_array('is_default', $columns, true)) $payload['is_default'] = 0;
         if (in_array('priority', $columns, true)) $payload['priority'] = $priority;
@@ -270,17 +183,14 @@ class PmdTenantProductBaselineR1
         if (in_array('provider_code', $columns, true)) $payload['provider_code'] = $providerCode;
         if (in_array('description', $columns, true)) $payload['description'] = $name.' configuration';
         if (in_array('class_name', $columns, true)) $payload['class_name'] = '';
-
         $encoded = json_encode($meta, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) ?: '{}';
         if (in_array('meta', $columns, true)) $payload['meta'] = $encoded;
         if (in_array('data', $columns, true)) $payload['data'] = $encoded;
-
         $now = now();
         if (in_array('created_at', $columns, true)) $payload['created_at'] = $now;
         if (in_array('updated_at', $columns, true)) $payload['updated_at'] = $now;
         if (in_array('date_added', $columns, true)) $payload['date_added'] = $now;
         if (in_array('date_updated', $columns, true)) $payload['date_updated'] = $now;
-
         return $payload;
     }
 
@@ -288,7 +198,6 @@ class PmdTenantProductBaselineR1
     {
         $schema = $this->schema();
         if ($schema->hasTable('order_notes')) return ['created' => false];
-
         $schema->create('order_notes', function (Blueprint $table): void {
             $table->increments('note_id');
             $table->unsignedBigInteger('order_id');
@@ -299,7 +208,6 @@ class PmdTenantProductBaselineR1
             $table->index(['order_id', 'status']);
             $table->index('created_at');
         });
-
         return ['created' => true];
     }
 
@@ -307,7 +215,6 @@ class PmdTenantProductBaselineR1
     {
         $schema = $this->schema();
         $created = false;
-
         if (!$schema->hasTable('kds_stations')) {
             $schema->create('kds_stations', function (Blueprint $table): void {
                 $table->bigIncrements('station_id');
@@ -340,14 +247,7 @@ class PmdTenantProductBaselineR1
         }
 
         $columns = $schema->getColumnListing('kds_stations');
-        $missing = array_values(array_diff([
-            'slug', 'category_ids', 'status_ids', 'can_change_status',
-            'notification_sound', 'refresh_interval', 'theme_color', 'priority',
-            'station_type', 'sound_enabled', 'display_density', 'show_reservations',
-            'reservation_window_minutes', 'ready_pickup_timeout_minutes',
-            'auto_hide_completed_minutes', 'order_limit', 'sort_order',
-        ], $columns));
-
+        $missing = array_values(array_diff(['slug', 'category_ids', 'status_ids', 'can_change_status', 'notification_sound', 'refresh_interval', 'theme_color', 'priority', 'station_type', 'sound_enabled', 'display_density', 'show_reservations', 'reservation_window_minutes', 'ready_pickup_timeout_minutes', 'auto_hide_completed_minutes', 'order_limit', 'sort_order'], $columns));
         if ($missing) {
             $schema->table('kds_stations', function (Blueprint $table) use ($missing): void {
                 if (in_array('slug', $missing, true)) $table->string('slug', 191)->nullable();
@@ -369,9 +269,7 @@ class PmdTenantProductBaselineR1
                 if (in_array('sort_order', $missing, true)) $table->integer('sort_order')->default(0);
             });
         }
-
         $this->backfillKdsSlugs();
-
         return ['created' => $created, 'columns_added' => $missing];
     }
 
@@ -379,21 +277,13 @@ class PmdTenantProductBaselineR1
     {
         $schema = $this->schema();
         if (!$schema->hasTable('kds_stations') || !$schema->hasColumn('kds_stations', 'slug')) return;
-
         $rows = DB::table('kds_stations')->select('station_id', 'name', 'slug')->get();
         foreach ($rows as $row) {
             if (trim((string)($row->slug ?? '')) !== '') continue;
-
             $base = Str::slug((string)($row->name ?? 'station')) ?: 'station';
             $slug = $base;
             $counter = 1;
-            while (DB::table('kds_stations')
-                ->where('slug', $slug)
-                ->where('station_id', '!=', $row->station_id)
-                ->exists()) {
-                $slug = $base.'-'.$counter++;
-            }
-
+            while (DB::table('kds_stations')->where('slug', $slug)->where('station_id', '!=', $row->station_id)->exists()) $slug = $base.'-'.$counter++;
             DB::table('kds_stations')->where('station_id', $row->station_id)->update(['slug' => $slug]);
         }
     }
@@ -402,7 +292,6 @@ class PmdTenantProductBaselineR1
     {
         $schema = $this->schema();
         $created = [];
-
         if (!$schema->hasTable('cash_drawers')) {
             $schema->create('cash_drawers', function (Blueprint $table): void {
                 $table->bigIncrements('drawer_id');
@@ -433,7 +322,6 @@ class PmdTenantProductBaselineR1
             });
             $created[] = 'cash_drawers';
         }
-
         if (!$schema->hasTable('cash_drawer_logs')) {
             $schema->create('cash_drawer_logs', function (Blueprint $table): void {
                 $table->bigIncrements('log_id');
@@ -454,7 +342,6 @@ class PmdTenantProductBaselineR1
             });
             $created[] = 'cash_drawer_logs';
         }
-
         return ['created' => $created];
     }
 
@@ -462,7 +349,6 @@ class PmdTenantProductBaselineR1
     {
         $schema = $this->schema();
         if ($schema->hasTable('pos_hardware_commands')) return ['created' => false];
-
         $schema->create('pos_hardware_commands', function (Blueprint $table): void {
             $table->bigIncrements('id');
             $table->unsignedBigInteger('drawer_id')->nullable();
@@ -480,45 +366,31 @@ class PmdTenantProductBaselineR1
             $table->index(['status', 'pos_device_id']);
             $table->index('queued_at');
         });
-
         return ['created' => true];
     }
 
     protected function ensurePosDeviceFields(): array
     {
         $schema = $this->schema();
+        if (!$schema->hasTable('pos_devices')) throw new \RuntimeException('POS device base table is missing; stale tenant template requires repair.');
         $added = [];
-
-        if ($schema->hasTable('pos_devices')) {
-            $columns = $schema->getColumnListing('pos_devices');
-            $missing = array_values(array_diff([
-                'is_local_terminal', 'device_code', 'pairing_token', 'device_status',
-                'last_seen_at', 'capabilities', 'platform_info',
-            ], $columns));
-
-            if ($missing) {
-                $schema->table('pos_devices', function (Blueprint $table) use ($missing): void {
-                    if (in_array('is_local_terminal', $missing, true)) $table->boolean('is_local_terminal')->default(false);
-                    if (in_array('device_code', $missing, true)) $table->string('device_code', 100)->nullable();
-                    if (in_array('pairing_token', $missing, true)) $table->string('pairing_token', 191)->nullable();
-                    if (in_array('device_status', $missing, true)) $table->string('device_status', 20)->nullable();
-                    if (in_array('last_seen_at', $missing, true)) $table->timestamp('last_seen_at')->nullable();
-                    if (in_array('capabilities', $missing, true)) $table->text('capabilities')->nullable();
-                    if (in_array('platform_info', $missing, true)) $table->text('platform_info')->nullable();
-                });
-                $added = array_merge($added, array_map(fn ($c) => 'pos_devices.'.$c, $missing));
-            }
-        } else {
-            $added[] = 'WARN:pos_devices base table missing';
+        $columns = $schema->getColumnListing('pos_devices');
+        $missing = array_values(array_diff(['is_local_terminal', 'device_code', 'pairing_token', 'device_status', 'last_seen_at', 'capabilities', 'platform_info'], $columns));
+        if ($missing) {
+            $schema->table('pos_devices', function (Blueprint $table) use ($missing): void {
+                if (in_array('is_local_terminal', $missing, true)) $table->boolean('is_local_terminal')->default(false);
+                if (in_array('device_code', $missing, true)) $table->string('device_code', 100)->nullable();
+                if (in_array('pairing_token', $missing, true)) $table->string('pairing_token', 191)->nullable();
+                if (in_array('device_status', $missing, true)) $table->string('device_status', 20)->nullable();
+                if (in_array('last_seen_at', $missing, true)) $table->timestamp('last_seen_at')->nullable();
+                if (in_array('capabilities', $missing, true)) $table->text('capabilities')->nullable();
+                if (in_array('platform_info', $missing, true)) $table->text('platform_info')->nullable();
+            });
+            $added = array_merge($added, array_map(fn ($c) => 'pos_devices.'.$c, $missing));
         }
-
         if ($schema->hasTable('cash_drawers')) {
             $columns = $schema->getColumnListing('cash_drawers');
-            $missing = array_values(array_diff([
-                'local_pos_device_id', 'local_mapping_invalid',
-                'last_command_status', 'last_command_message',
-            ], $columns));
-
+            $missing = array_values(array_diff(['local_pos_device_id', 'local_mapping_invalid', 'last_command_status', 'last_command_message'], $columns));
             if ($missing) {
                 $schema->table('cash_drawers', function (Blueprint $table) use ($missing): void {
                     if (in_array('local_pos_device_id', $missing, true)) $table->unsignedBigInteger('local_pos_device_id')->nullable();
@@ -529,7 +401,6 @@ class PmdTenantProductBaselineR1
                 $added = array_merge($added, array_map(fn ($c) => 'cash_drawers.'.$c, $missing));
             }
         }
-
         return ['added' => $added];
     }
 
@@ -537,7 +408,6 @@ class PmdTenantProductBaselineR1
     {
         $schema = $this->schema();
         if ($schema->hasTable('terminal_devices')) return ['created' => false];
-
         $schema->create('terminal_devices', function (Blueprint $table): void {
             $table->bigIncrements('terminal_device_id');
             $table->string('provider_code', 50)->index();
@@ -551,7 +421,6 @@ class PmdTenantProductBaselineR1
             $table->boolean('is_active')->default(true);
             $table->timestamps();
         });
-
         return ['created' => true];
     }
 
@@ -559,13 +428,8 @@ class PmdTenantProductBaselineR1
     {
         $schema = $this->schema();
         if (!$schema->hasTable('pos_configs')) return ['skipped' => true, 'reason' => 'pos_configs missing'];
-
         $columns = $schema->getColumnListing('pos_configs');
-        $missing = array_values(array_diff([
-            'sumup_affiliate_key', 'sumup_reader_id', 'sumup_pairing_code',
-            'sumup_pairing_state', 'sumup_reader_label',
-        ], $columns));
-
+        $missing = array_values(array_diff(['sumup_affiliate_key', 'sumup_reader_id', 'sumup_pairing_code', 'sumup_pairing_state', 'sumup_reader_label'], $columns));
         if ($missing) {
             $schema->table('pos_configs', function (Blueprint $table) use ($missing): void {
                 if (in_array('sumup_affiliate_key', $missing, true)) $table->string('sumup_affiliate_key', 191)->nullable();
@@ -575,7 +439,6 @@ class PmdTenantProductBaselineR1
                 if (in_array('sumup_reader_label', $missing, true)) $table->string('sumup_reader_label', 191)->nullable();
             });
         }
-
         return ['columns_added' => $missing];
     }
 
@@ -584,7 +447,6 @@ class PmdTenantProductBaselineR1
         $schema = $this->schema();
         $created = [];
         $added = [];
-
         if (!$schema->hasTable('order_payment_transactions')) {
             $schema->create('order_payment_transactions', function (Blueprint $table): void {
                 $table->bigIncrements('id');
@@ -602,7 +464,6 @@ class PmdTenantProductBaselineR1
             });
             $created[] = 'order_payment_transactions';
         }
-
         if (!$schema->hasTable('order_payment_transaction_items')) {
             $schema->create('order_payment_transaction_items', function (Blueprint $table): void {
                 $table->bigIncrements('id');
@@ -619,22 +480,17 @@ class PmdTenantProductBaselineR1
             $created[] = 'order_payment_transaction_items';
         } else {
             $columns = $schema->getColumnListing('order_payment_transaction_items');
-            $missing = array_values(array_diff(['order_menu_id', 'menu_id'], $columns));
-            if ($missing) {
-                $schema->table('order_payment_transaction_items', function (Blueprint $table) use ($missing): void {
-                    if (in_array('order_menu_id', $missing, true)) $table->unsignedBigInteger('order_menu_id')->nullable();
-                    if (in_array('menu_id', $missing, true)) $table->unsignedBigInteger('menu_id')->nullable();
+            $missingItems = array_values(array_diff(['order_menu_id', 'menu_id'], $columns));
+            if ($missingItems) {
+                $schema->table('order_payment_transaction_items', function (Blueprint $table) use ($missingItems): void {
+                    if (in_array('order_menu_id', $missingItems, true)) $table->unsignedBigInteger('order_menu_id')->nullable();
+                    if (in_array('menu_id', $missingItems, true)) $table->unsignedBigInteger('menu_id')->nullable();
                 });
-                $added = array_merge($added, array_map(fn ($c) => 'order_payment_transaction_items.'.$c, $missing));
+                $added = array_merge($added, array_map(fn ($c) => 'order_payment_transaction_items.'.$c, $missingItems));
             }
         }
-
         $columns = $schema->getColumnListing('order_payment_transactions');
-        $missing = array_values(array_diff([
-            'tip_amount', 'coupon_discount', 'coupon_code', 'provider_code',
-            'created_by', 'notes', 'cash_received', 'change_due', 'idempotency_key',
-        ], $columns));
-
+        $missing = array_values(array_diff(['tip_amount', 'coupon_discount', 'coupon_code', 'provider_code', 'created_by', 'notes', 'cash_received', 'change_due', 'idempotency_key'], $columns));
         if ($missing) {
             $schema->table('order_payment_transactions', function (Blueprint $table) use ($missing): void {
                 if (in_array('tip_amount', $missing, true)) $table->decimal('tip_amount', 15, 4)->default(0);
@@ -649,7 +505,6 @@ class PmdTenantProductBaselineR1
             });
             $added = array_merge($added, array_map(fn ($c) => 'order_payment_transactions.'.$c, $missing));
         }
-
         if (!$schema->hasTable('payment_attempts')) {
             $schema->create('payment_attempts', function (Blueprint $table): void {
                 $table->bigIncrements('id');
@@ -667,7 +522,6 @@ class PmdTenantProductBaselineR1
             });
             $created[] = 'payment_attempts';
         }
-
         return ['created' => $created, 'columns_added' => $added];
     }
 
@@ -675,13 +529,8 @@ class PmdTenantProductBaselineR1
     {
         $schema = $this->schema();
         if (!$schema->hasTable('orders')) return ['skipped' => true, 'reason' => 'orders missing'];
-
         $columns = $schema->getColumnListing('orders');
-        $missing = array_values(array_diff([
-            'settlement_status', 'settled_amount', 'settlement_method',
-            'settlement_reference', 'settled_at',
-        ], $columns));
-
+        $missing = array_values(array_diff(['settlement_status', 'settled_amount', 'settlement_method', 'settlement_reference', 'settled_at'], $columns));
         if ($missing) {
             $schema->table('orders', function (Blueprint $table) use ($missing): void {
                 if (in_array('settlement_status', $missing, true)) $table->string('settlement_status', 20)->default('unpaid');
@@ -691,21 +540,14 @@ class PmdTenantProductBaselineR1
                 if (in_array('settled_at', $missing, true)) $table->dateTime('settled_at')->nullable();
             });
         }
-
         return ['columns_added' => $missing];
     }
 
     protected function ensureGuestCount(): array
     {
         $schema = $this->schema();
-        if (!$schema->hasTable('orders') || $schema->hasColumn('orders', 'guest_count')) {
-            return ['created' => false];
-        }
-
-        $schema->table('orders', function (Blueprint $table): void {
-            $table->unsignedTinyInteger('guest_count')->nullable();
-        });
-
+        if (!$schema->hasTable('orders') || $schema->hasColumn('orders', 'guest_count')) return ['created' => false];
+        $schema->table('orders', function (Blueprint $table): void { $table->unsignedTinyInteger('guest_count')->nullable(); });
         return ['created' => true];
     }
 
@@ -714,15 +556,9 @@ class PmdTenantProductBaselineR1
         $schema = $this->schema();
         $added = [];
         $created = [];
-
         if ($schema->hasTable('tables')) {
             $columns = $schema->getColumnListing('tables');
-            $missing = array_values(array_diff([
-                'operational_status',
-                'operational_status_updated_at',
-                'operational_status_updated_by',
-            ], $columns));
-
+            $missing = array_values(array_diff(['operational_status', 'operational_status_updated_at', 'operational_status_updated_by'], $columns));
             if ($missing) {
                 $schema->table('tables', function (Blueprint $table) use ($missing): void {
                     if (in_array('operational_status', $missing, true)) $table->string('operational_status', 32)->default('available');
@@ -732,7 +568,6 @@ class PmdTenantProductBaselineR1
                 $added = array_merge($added, array_map(fn ($c) => 'tables.'.$c, $missing));
             }
         }
-
         if (!$schema->hasTable('pmd_table_status_history')) {
             $schema->create('pmd_table_status_history', function (Blueprint $table): void {
                 $table->bigIncrements('id');
@@ -748,7 +583,6 @@ class PmdTenantProductBaselineR1
             });
             $created[] = 'pmd_table_status_history';
         }
-
         return ['created' => $created, 'columns_added' => $added];
     }
 }
