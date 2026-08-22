@@ -2,14 +2,7 @@
 
 namespace Admin\Controllers\Concerns;
 
-use Admin\Facades\AdminAuth;
-use Admin\Models\Menus_model;
-use Admin\Models\Orders_model;
-use Admin\Models\Payments_model;
 use App\Services\TerminalPayments\TerminalPaymentService;
-use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Schema;
-use Illuminate\Validation\ValidationException;
 
 trait PmdWaiterPosTerminalEndpoint
 {
@@ -31,15 +24,16 @@ trait PmdWaiterPosTerminalEndpoint
         }
 
         $provider = strtolower(trim((string)($payload['provider_code'] ?? '')));
-        if (!in_array($provider, ['worldline', 'vr_payment'], true)) {
+        if (!in_array($provider, ['sumup', 'worldline', 'vr_payment'], true)) {
             return response()->json([
                 'ok' => false,
-                'message' => 'Choose a configured Worldline or VR Payment terminal provider.',
+                'message' => 'Choose a configured SumUp, Worldline or VR Payment terminal provider.',
             ], 422);
         }
 
+        $terminalId = trim((string)($payload['terminal_device_id'] ?? $payload['terminal_id'] ?? '')) ?: null;
         $service = $service ?: app(TerminalPaymentService::class);
-        $result = $service->createAttempt((int)$order->getKey(), $provider, trim((string)($payload['terminal_id'] ?? '')) ?: null);
+        $result = $service->createAttempt((int)$order->getKey(), $provider, $terminalId);
 
         return response()->json([
             'ok' => (bool)($result['success'] ?? false),
@@ -50,5 +44,4 @@ trait PmdWaiterPosTerminalEndpoint
             'fake_success_disabled' => true,
         ], !empty($result['success']) ? 200 : 422);
     }
-
 }
