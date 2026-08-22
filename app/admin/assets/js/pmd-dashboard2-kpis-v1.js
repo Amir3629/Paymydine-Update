@@ -1926,6 +1926,73 @@
 })();
 
 /* ============================================================
+   PMD Dashboard2 No-Cards Final Audit V1.0.0
+   Read-only DOM evidence; card prevention lives in the canonical renderer.
+   ============================================================ */
+(function () {
+  'use strict';
+
+  function visible(node) {
+    if (!node) return false;
+    var style = window.getComputedStyle(node);
+    var rect = node.getBoundingClientRect();
+    return style.display !== 'none' &&
+      style.visibility !== 'hidden' &&
+      rect.width > 0 && rect.height > 0;
+  }
+
+  function visibleCount(selector) {
+    return Array.prototype.filter.call(
+      document.querySelectorAll(selector),
+      visible
+    ).length;
+  }
+
+  function audit() {
+    var toolbar = document.getElementById(
+      'pmd-dashboard2-floor-toolbar-proxy-v350'
+    );
+
+    return {
+      version: '1.0.0',
+      route: window.location.pathname.replace(/\/+$/, ''),
+      reservationSectionExists: Boolean(document.getElementById(
+        'pmd-r2-reservation-cards-v320'
+      )),
+      reservationGridExists: Boolean(document.getElementById(
+        'pmd-r2-reservation-grid-v320'
+      )),
+      visibleReservationCardsBelowView: visibleCount(
+        '#pmd-r2-reservation-cards-v320 [data-r2-reservation-id], ' +
+        '#pmd-r2-reservation-cards-v320 .pmd-r2-add-waiter-card, ' +
+        '#pmd-r2-reservation-cards-v320 .pmd-r2-simple-add-card-v460'
+      ),
+      calendarDetailCardsBelowView: visibleCount('.pmd-r2-yc-detail-card'),
+      hourCardsBelowView: visibleCount(
+        '#pmd-r2-reservation-cards-v320 [data-reservation], ' +
+        '#pmd-r2-reservation-cards-v320 [data-reservation-card]'
+      ),
+      floorExists: Boolean(document.getElementById(
+        'pmd-r2-shared-floor-canvas-v310'
+      )),
+      toolbarExists: Boolean(toolbar),
+      toolbarButtons: toolbar ? toolbar.querySelectorAll('button').length : 0,
+      kpiCards: document.querySelectorAll(
+        '[data-pmd-dashboard2-kpi]'
+      ).length,
+      pushNotificationScriptPresent: Boolean(document.querySelector(
+        'script[src*="push-notifications.js"]'
+      ))
+    };
+  }
+
+  window.PMDDashboard2NoCardsFinal = {
+    version: '1.0.0',
+    audit: audit
+  };
+})();
+
+/* ============================================================
    PMD Dashboard2 Toolbar + Performance Authority V3.6.0
    One toolbar build only. No observers, no intervals, no repeated
    rebuild loops and no legacy V3.5.0/V3.5.1/V3.5.2 runtimes.
