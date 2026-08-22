@@ -3,6 +3,8 @@
 namespace Admin\Controllers;
 
 use Admin\Facades\AdminMenu;
+use Admin\Services\PmdDefaultStaffRoleService;
+use Igniter\Flame\Exception\ApplicationException;
 
 class StaffRoles extends \Admin\Classes\AdminController
 {
@@ -52,7 +54,43 @@ class StaffRoles extends \Admin\Classes\AdminController
     public function __construct()
     {
         parent::__construct();
-
         AdminMenu::setContext('staffs', 'system');
+    }
+
+    public function listExtendQuery($query)
+    {
+        $this->excludeManagedDefaultRoles($query);
+    }
+
+    public function formExtendQuery($query)
+    {
+        $this->excludeManagedDefaultRoles($query);
+    }
+
+    public function formBeforeSave($model)
+    {
+        $code = strtolower(trim((string)($model->code ?? post('StaffRole.code', ''))));
+        if (app(PmdDefaultStaffRoleService::class)->isManagedCode($code)) {
+            throw new ApplicationException(
+                'This role is a locked PayMyDine default and cannot be created or edited here.'
+            );
+        }
+    }
+
+    protected function excludeManagedDefaultRoles($query): void
+    {
+        $query->where(function ($outer) {
+            $outer->whereNull('code')
+                ->orWhere(function ($inner) {
+                    $inner->whereNotIn('code', [
+                        PmdDefaultStaffRoleService::OWNER,
+                        PmdDefaultStaffRoleService::MANAGER,
+                        PmdDefaultStaffRoleService::CASHIER,
+                        PmdDefaultStaffRoleService::WAITER,
+                        PmdDefaultStaffRoleService::ACCOUNTANT,
+                        PmdDefaultStaffRoleService::RESERVATIONS,
+                    ])->where('code', 'not like', PmdDefaultStaffRoleService::KDS_PREFIX.'%');
+                });
+        });
     }
 }

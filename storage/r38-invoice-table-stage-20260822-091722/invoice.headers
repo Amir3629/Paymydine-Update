@@ -1,0 +1,17 @@
+HTTP/1.1 200 OK
+Server: nginx/1.24.0 (Ubuntu)
+Content-Type: text/html; charset=UTF-8
+Transfer-Encoding: chunked
+Connection: keep-alive
+Content-Disposition: inline
+Cache-Control: max-age=0, no-store, private
+Pragma: no-cache
+Referrer-Policy: no-referrer
+X-Content-Type-Options: nosniff
+X-Frame-Options: SAMEORIGIN
+X-PMD-Invoice-Authority: admin::orders.customer_invoice
+X-PMD-Invoice-Presentation: r38
+Date: Sat, 22 Aug 2026 09:18:01 GMT
+Vary: Origin
+Set-Cookie: paymydine_session=eyJpdiI6IjlCMmFKWTNyVGhjWmt6ZXRhbUVHZnc9PSIsInZhbHVlIjoiNHdkVFNhVDBBNzhUeWVycERxb1lHUlVtL3dhTTVXZFd6M0x6UytVRWdUbVFVUm5SUjlXOGR0SmFKM2VoS1pnSGdaWHFnenNCVXdUSlhML0FIdWlVWWtOclZCQ3paV1VzUVVtZno1L2x6U2lvZ21XTEVBeFZzaEZTVUhyeVUxemMiLCJtYWMiOiI5YjBiYTBjNjViYTI2NjM2NjExMzVhNjk2OTExZDdhODQwZTMwZDZjZTc5MmYzMWQwMGU4YzNhZTI3MGM4YjVmIiwidGFnIjoiIn0%3D; expires=Sat, 22-Aug-2026 11:18:01 GMT; Max-Age=7200; path=/; domain=.paymydine.com; secure; httponly; samesite=lax
+

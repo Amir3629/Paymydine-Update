@@ -1,0 +1,11 @@
+HTTP/1.1 200 OK
+Server: nginx/1.24.0 (Ubuntu)
+Content-Type: image/png
+Content-Length: 1966120
+Connection: keep-alive
+Cache-Control: max-age=31536000, public
+X-Content-Type-Options: nosniff
+Date: Sat, 22 Aug 2026 09:18:01 GMT
+Vary: Origin
+Set-Cookie: paymydine_session=eyJpdiI6IjZlSGRVeTFqTkwzdzZxRDBLVUIwbVE9PSIsInZhbHVlIjoiVEpGWmpaclR3dnRVS1ZwUmhYd3FzckNCakRrRHRJYU12WW1VZ3BXeFdyWExTQytycHE2dnBaKzZqdm5YYTBBdWR1ZE0xVGk4TTlTZFZzZ2paRFFRSzNXblJScVFuVmozUTU4bjRwOG5CcERxbCtNUnFTQ0JyeUdPQVRoRXdyK0kiLCJtYWMiOiI5ODM3Yzc1YjdlYjJjMmRlZjNkOWFlMzc0OTJkMGUwMDFmYmM5ZTU5MGFlZWE5YmNmNTFhYzA0NDM1NDk5OTJkIiwidGFnIjoiIn0%3D; expires=Sat, 22-Aug-2026 11:18:01 GMT; Max-Age=7200; path=/; domain=.paymydine.com; secure; httponly; samesite=lax
+

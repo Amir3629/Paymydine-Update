@@ -724,3 +724,361 @@
     window.PMDCashierQuickLauncherV21.inspect()
   );
 })();
+
+/* ==========================================================
+   PMD CASHIER QUICK V2.2 — ADDITIVE CURRENT CHECKS WORKFLOW
+   No second order/payment backend. No poller. No MutationObserver.
+   ========================================================== */
+(function () {
+  'use strict';
+
+  var launcher = document.getElementById('pmd-cashier-quick-launcher-v21');
+  var bootNode = document.getElementById('pmd-cashier-quick-canonical-bootstrap-v21');
+  if (!launcher || !bootNode || window.PMDCashierQuickV22) return;
+
+  var boot = {};
+  try { boot = JSON.parse(bootNode.textContent || '{}'); }
+  catch (error) { console.error('[PMD Cashier Quick V2.2] bootstrap failed', error); return; }
+
+  function clean(value) { return String(value == null ? '' : value).replace(/\s+/g, ' ').trim(); }
+  function numeric(value) { var parsed = Number(value); return Number.isFinite(parsed) ? parsed : 0; }
+  function positiveId(value) { var parsed = Number(value); return Number.isFinite(parsed) && parsed > 0 ? parsed : 0; }
+  function money(value) { return '€' + Math.max(0, numeric(value)).toFixed(2); }
+  function escapeHtml(value) {
+    return String(value == null ? '' : value).replace(/[&<>"']/g, function (character) {
+      return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[character];
+    });
+  }
+  function csrf() {
+    var meta = document.querySelector('meta[name="csrf-token"]');
+    return meta ? clean(meta.content) : '';
+  }
+
+  var currentTable = null;
+  var currentChecks = [];
+  var pendingOrder = null;
+
+  var checksLayer = document.createElement('div');
+  checksLayer.className = 'pmd-cql-v22__checks';
+  checksLayer.hidden = true;
+  checksLayer.setAttribute('aria-hidden', 'true');
+  checksLayer.innerHTML = [
+    '<section class="pmd-cql-v22__checks-card">',
+      '<header>',
+        '<div><small>CURRENT CHECKS</small><h2 data-cql-v22-title>Table</h2></div>',
+        '<button type="button" data-cql-v22-close aria-label="Close">×</button>',
+      '</header>',
+      '<div data-cql-checks-body></div>',
+    '</section>'
+  ].join('');
+  document.body.appendChild(checksLayer);
+
+  var checksBody = checksLayer.querySelector('[data-cql-checks-body]');
+  var checksTitle = checksLayer.querySelector('[data-cql-v22-title]');
+
+  function closeChecks() {
+    checksLayer.hidden = true;
+    checksLayer.setAttribute('aria-hidden', 'true');
+  }
+
+  function checkStatus(order) {
+    var total = Math.max(0, numeric(order.total));
+    var paid = Math.max(0, numeric(order.settled_amount));
+    var due = Math.max(0, total - paid);
+    var raw = clean(order.settlement_status).toLowerCase();
+    var label = due <= .009
+      ? 'Paid'
+      : (paid > .009 || raw.indexOf('partial') !== -1 ? 'Part paid' : 'Unpaid');
+    return {total:total, paid:paid, due:due, label:label};
+  }
+
+  function renderChecks() {
+    if (!currentTable) return;
+    checksTitle.textContent = currentTable.name;
+
+    if (!currentChecks.length) {
+      checksBody.innerHTML = '<div class="pmd-cql-v22__no-checks"><strong>No open checks</strong><span>This table currently has no open order.</span></div>';
+      return;
+    }
+
+    checksBody.innerHTML = currentChecks.map(function (order) {
+      var state = checkStatus(order);
+      var items = Array.isArray(order.items) ? order.items : [];
+      var itemHtml = items.length
+        ? '<ul>' + items.slice(0, 8).map(function (item) {
+            return '<li>' + escapeHtml(numeric(item.quantity || 1)) + '× ' + escapeHtml(item.name || 'Item') + '</li>';
+          }).join('') + '</ul>'
+        : '';
+      var note = clean(order.comment)
+        ? '<p class="pmd-cql-v22__note"><b>Note:</b> ' + escapeHtml(order.comment) + '</p>'
+        : '';
+      var stateClass = state.label === 'Paid'
+        ? 'is-paid'
+        : (state.label === 'Part paid' ? 'is-part-paid' : 'is-unpaid');
+
+      return [
+        '<article class="pmd-cql-v22__check">',
+          '<div class="pmd-cql-v22__check-head">',
+            '<strong>Order #', escapeHtml(order.order_id), '</strong>',
+            '<span class="', stateClass, '">', escapeHtml(state.label), '</span>',
+          '</div>',
+          '<div class="pmd-cql-v22__money">',
+            '<span>Total<b>', money(state.total), '</b></span>',
+            '<span>Paid<b>', money(state.paid), '</b></span>',
+            '<span>Due<b>', money(state.due), '</b></span>',
+          '</div>',
+          itemHtml,
+          note,
+          '<div class="pmd-cql-v22__actions">',
+            '<button type="button" data-cql-v22-open="', escapeHtml(order.order_id), '">Open / edit</button>',
+            '<button type="button" data-cql-v22-pay="', escapeHtml(order.order_id), '" ', state.due <= .009 ? 'disabled' : '', '>Pay ', money(state.due), '</button>',
+          '</div>',
+        '</article>'
+      ].join('');
+    }).join('');
+  }
+
+  async function loadChecks(tableId) {
+    var response = await fetch(
+      '/admin/pmd-waiter-pos-v1/data/' + encodeURIComponent(String(tableId)) + '?_=' + Date.now(),
+      {
+        credentials: 'same-origin',
+        cache: 'no-store',
+        headers: {'Accept':'application/json','X-Requested-With':'XMLHttpRequest'}
+      }
+    );
+    var payload = await response.json().catch(function () { return {}; });
+    if (!response.ok || payload.ok === false) {
+      throw new Error(payload.message || ('Could not load checks (' + response.status + ')'));
+    }
+    return Array.isArray(payload.open_orders) ? payload.open_orders : [];
+  }
+
+  async function showChecks(tableButton) {
+    var tableId = positiveId(tableButton.getAttribute('data-cql-table'));
+    if (!tableId) return;
+
+    var nameNode = tableButton.querySelector('.pmd-cql-v21__table-copy strong');
+    currentTable = {
+      id: tableId,
+      name: clean(nameNode && nameNode.textContent) || ('Table ' + tableId)
+    };
+    currentChecks = [];
+    checksTitle.textContent = currentTable.name;
+    checksBody.innerHTML = '<div class="pmd-cql-v22__loading">Loading current checks…</div>';
+    checksLayer.hidden = false;
+    checksLayer.setAttribute('aria-hidden', 'false');
+
+    try {
+      currentChecks = await loadChecks(tableId);
+      renderChecks();
+    } catch (error) {
+      checksBody.innerHTML = '<div class="pmd-cql-v22__error">' + escapeHtml(error.message || 'Could not load checks.') + '</div>';
+    }
+  }
+
+  function patchPosMount() {
+    var app = window.PMDWaiterPOSApp;
+    if (!app || typeof app.mount !== 'function' || app.__pmdCashierQuickV22) return Boolean(app && app.__pmdCashierQuickV22);
+
+    var canonicalMount = app.mount;
+    app.mount = function (root, posBoot, options) {
+      if (pendingOrder && posBoot) {
+        var bootTableId = positiveId(posBoot.table && (posBoot.table.id || posBoot.table.table_id));
+        if (bootTableId === pendingOrder.tableId) {
+          var wanted = pendingOrder.orderId;
+          var orders = Array.isArray(posBoot.open_orders) ? posBoot.open_orders : [];
+          if (orders.some(function (order) { return Number(order.order_id) === wanted; })) {
+            posBoot.active_order_id = wanted;
+          }
+        }
+      }
+
+      var instance = canonicalMount.call(app, root, posBoot, options);
+      if (pendingOrder && instance) {
+        var shouldPay = pendingOrder.pay;
+        pendingOrder = null;
+        if (shouldPay && typeof instance.openPayment === 'function') {
+          window.requestAnimationFrame(function () { instance.openPayment(); });
+        }
+      }
+      return instance;
+    };
+    app.__pmdCashierQuickV22 = true;
+    return true;
+  }
+
+  function openExactOrder(orderId, pay) {
+    if (!currentTable || !window.PMDWaiterStandardV2 || typeof window.PMDWaiterStandardV2.openTable !== 'function') return;
+    if (!patchPosMount()) {
+      console.error('[PMD Cashier Quick V2.2] Existing POS mount authority is unavailable.');
+      return;
+    }
+
+    pendingOrder = {
+      tableId: currentTable.id,
+      orderId: positiveId(orderId),
+      pay: Boolean(pay)
+    };
+    closeChecks();
+    window.PMDWaiterStandardV2.openTable(String(currentTable.id));
+  }
+
+  async function freeTable(tableId, label) {
+    if (!window.confirm(
+      'Set ' + (label || 'this table') + ' as FREE?\n\n' +
+      'The server will refuse while any check is unpaid or part-paid.'
+    )) return;
+
+    var response = await fetch(
+      '/admin/pmd-waiter-pos-v22/tables/' + encodeURIComponent(String(tableId)) + '/free',
+      {
+        method: 'POST',
+        credentials: 'same-origin',
+        cache: 'no-store',
+        headers: {
+          'Accept': 'application/json',
+          'X-Requested-With': 'XMLHttpRequest',
+          'X-CSRF-TOKEN': csrf()
+        }
+      }
+    );
+    var payload = await response.json().catch(function () { return {}; });
+    if (!response.ok || payload.ok === false) {
+      throw new Error(payload.message || payload.error || ('Could not set table free (' + response.status + ')'));
+    }
+    var status = clean(payload && payload.table && payload.table.operational_status).toLowerCase();
+    if (status !== 'available' && status !== 'free') {
+      throw new Error('Table release was not confirmed by the server.');
+    }
+    window.location.reload();
+  }
+
+  function removePosHeader() {
+    var old = document.querySelector('[data-pmd-cql-v22-pos-header]');
+    if (old) old.remove();
+  }
+
+  function installPosHeader(detail) {
+    removePosHeader();
+    if (!currentTable || !currentChecks.length) return;
+
+    var pos = detail && detail.pos;
+    var tableId = positiveId(detail && detail.tableId) || currentTable.id;
+    var header = document.createElement('div');
+    header.className = 'pmd-cql-v22__pos-header';
+    header.setAttribute('data-pmd-cql-v22-pos-header', '1');
+    header.innerHTML = [
+      '<strong>', escapeHtml(currentTable.name), '</strong>',
+      '<div>',
+        '<button type="button" data-cql-v22-note>Note</button>',
+        '<button type="button" data-cql-v22-pos-pay>Pay</button>',
+        '<button type="button" data-cql-v22-free>Free table</button>',
+        '<button type="button" data-cql-v22-back>× Back</button>',
+      '</div>'
+    ].join('');
+    document.body.appendChild(header);
+
+    header.addEventListener('click', function (event) {
+      if (event.target.closest('[data-cql-v22-back]')) {
+        removePosHeader();
+        if (window.PMDWaiterStandardV2 && typeof window.PMDWaiterStandardV2.closeTable === 'function') {
+          window.PMDWaiterStandardV2.closeTable();
+        }
+        return;
+      }
+
+      if (event.target.closest('[data-cql-v22-pos-pay]')) {
+        if (pos && typeof pos.openPayment === 'function') pos.openPayment();
+        return;
+      }
+
+      if (event.target.closest('[data-cql-v22-note]')) {
+        var orderBar = document.querySelector('[data-pos-mobile-cart]');
+        if (orderBar) orderBar.click();
+        window.setTimeout(function () {
+          var note = document.querySelector('[data-pos-table-note]');
+          if (note) note.focus();
+        }, 50);
+        return;
+      }
+
+      if (event.target.closest('[data-cql-v22-free]')) {
+        freeTable(tableId, currentTable.name).catch(function (error) {
+          window.alert(error.message || 'Could not set table free.');
+        });
+      }
+    });
+  }
+
+  checksLayer.addEventListener('click', function (event) {
+    if (event.target === checksLayer || event.target.closest('[data-cql-v22-close]')) {
+      closeChecks();
+      return;
+    }
+
+    var openButton = event.target.closest('[data-cql-v22-open]');
+    if (openButton) {
+      openExactOrder(openButton.getAttribute('data-cql-v22-open'), false);
+      return;
+    }
+
+    var payButton = event.target.closest('[data-cql-v22-pay]');
+    if (payButton && !payButton.disabled) {
+      openExactOrder(payButton.getAttribute('data-cql-v22-pay'), true);
+    }
+  });
+
+  // Capture before V2.1's launcher bubble listener. Free/non-open tables keep
+  // the accepted V2.1 behavior unchanged; only occupied tables are diverted.
+  window.addEventListener('click', function (event) {
+    var target = event.target && event.target.nodeType === 1 ? event.target : null;
+    var tableButton = target && target.closest('[data-cql-table]');
+    if (!tableButton || !launcher.contains(tableButton) || !tableButton.classList.contains('is-open')) return;
+
+    event.preventDefault();
+    event.stopPropagation();
+    event.stopImmediatePropagation();
+    showChecks(tableButton);
+  }, true);
+
+  window.addEventListener('pmd:waiter-standard-v2-opened', function (event) {
+    window.requestAnimationFrame(function () {
+      installPosHeader(event.detail || {});
+    });
+  });
+
+  window.addEventListener('popstate', removePosHeader);
+
+  var baseInspect = window.PMDCashierQuickLauncherV21 && window.PMDCashierQuickLauncherV21.inspect;
+  if (window.PMDCashierQuickLauncherV21) {
+    window.PMDCashierQuickLauncherV21.version = '2.2.0';
+    window.PMDCashierQuickLauncherV21.inspect = function () {
+      var base = typeof baseInspect === 'function' ? baseInspect() : {};
+      base.version = '2.2.0';
+      base.currentChecks = currentChecks.length;
+      base.posMountBridgeReady = Boolean(
+        window.PMDWaiterPOSApp &&
+        (window.PMDWaiterPOSApp.__pmdCashierQuickV22 || typeof window.PMDWaiterPOSApp.mount === 'function')
+      );
+      base.occupiedChecksFirst = true;
+      return base;
+    };
+  }
+
+  window.PMDCashierQuickV22 = {
+    version: '2.2.0',
+    showChecks: function (tableId) {
+      var button = launcher.querySelector('[data-cql-table="' + CSS.escape(String(tableId)) + '"]');
+      if (button) showChecks(button);
+    },
+    closeChecks: closeChecks
+  };
+
+  console.info(
+    '[PMD] Cashier Quick V2.2 additive workflow ready',
+    window.PMDCashierQuickLauncherV21 && window.PMDCashierQuickLauncherV21.inspect
+      ? window.PMDCashierQuickLauncherV21.inspect()
+      : {version:'2.2.0'}
+  );
+})();

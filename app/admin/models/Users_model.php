@@ -3,6 +3,7 @@
 namespace Admin\Models;
 
 use Admin\Classes\PermissionManager;
+use Admin\Services\PmdDefaultStaffRoleService;
 use Carbon\Carbon;
 use Igniter\Flame\Auth\Models\User as AuthUserModel;
 use Igniter\Flame\Database\Traits\Purgeable;
@@ -130,6 +131,30 @@ class Users_model extends AuthUserModel
         // Bail out if the staff is a super user
         if ($this->isSuperUser())
             return true;
+
+        /* PMD_DEFAULT_ROLE_ROUTE_BOUNDARY_V1_START */
+        /*
+         * Default PMD roles keep only the legacy permission bits required by
+         * their canonical workspace/controller. Those bits must never become
+         * a way to browse another admin route directly.
+         */
+        try {
+            $roleService = app(PmdDefaultStaffRoleService::class);
+            $roleCode = $roleService->roleCodeForUser($this);
+
+            if (
+                $roleService->isManagedCode($roleCode)
+                && !$roleService->mayOpenPath(
+                    $roleCode,
+                    request()->path()
+                )
+            ) {
+                return false;
+            }
+        } catch (\Throwable $error) {
+            // Custom/unmanaged roles retain the legacy permission behavior.
+        }
+        /* PMD_DEFAULT_ROLE_ROUTE_BOUNDARY_V1_END */
 
         $staffPermissions = $this->getPermissions();
 

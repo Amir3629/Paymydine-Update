@@ -32,6 +32,10 @@
       "name": "pmd-admin-cards-css"
     },
     {
+      "path": "css/pmd-clean-workspace-header-spacing-v1.css",
+      "name": "pmd-clean-workspace-header-spacing-v1-css"
+    },
+    {
       "path": "css/pmd-waiter-pos-shadow-host-v25.css",
       "name": "pmd-waiter-pos-shadow-host-v25-css"
     },
