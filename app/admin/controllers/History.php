@@ -26,18 +26,16 @@ class History extends AdminController
     {
         parent::__construct();
 
-        /* PMD_HISTORY_SHELL_R17
-         * History is a clean PayMyDine owner surface, not a legacy absolute
-         * admin page. Declare the flow/static shell on the server so the global
-         * exact-layout runtime sees it before it initializes. The dedicated
-         * R17 head CSS also removes legacy cream and global fade/slide effects
-         * before the first visible paint.
+        /* PMD_HISTORY_SHELL_R18
+         * History joins the stable PayMyDine normal-flow shell from the server.
+         * The final History-specific background/motion/list-control authority is
+         * inline in history/index.blade.php so tenant vhost asset routing cannot
+         * redirect or replace it with the public Next.js site.
          */
         $this->bodyClass = trim(
             ($this->bodyClass ?? '')
-            .' pmd-settings-suite pmd-history-shell-r17'
+            .' pmd-settings-suite pmd-history-shell-r18'
         );
-        $this->addCss('css/pmd-history-shell-r17.css');
 
         AdminMenu::setContext('history', 'sales');
     }
