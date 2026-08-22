@@ -178,15 +178,17 @@ use Illuminate\Support\Facades\DB;
             $html
         );
 
-        // Table orders use a synthetic customer_name="Table Customer". It adds no
-        // useful receipt information because Context already identifies the table.
-        $cleaned = preg_replace(
-            '#<div class="row">\s*<span>Customer</span>\s*<span>.*?</span>\s*</div>#is',
-            '',
-            $html,
-            1
-        );
-        if (is_string($cleaned)) $html = $cleaned;
+        // Only remove the synthetic table-service identity. Preserve the Customer
+        // row for genuine named customers on non-table invoices.
+        if (strtolower(trim((string)($order->customer_name ?? ''))) === 'table customer') {
+            $cleaned = preg_replace(
+                '#<div class="row">\s*<span>Customer</span>\s*<span>Table Customer</span>\s*</div>#is',
+                '',
+                $html,
+                1
+            );
+            if (is_string($cleaned)) $html = $cleaned;
+        }
 
         $printRequested = in_array(
             strtolower(trim((string)$request->query('print', '0'))),
