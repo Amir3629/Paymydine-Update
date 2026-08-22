@@ -90,6 +90,10 @@
     {
       "path": "css/pmd-settings-polish-r8.css",
       "name": "pmd-settings-polish-r8-css"
+    },
+    {
+      "path": "css/pmd-settings-polish-r9.css",
+      "name": "pmd-settings-polish-r9-css"
     }
   ],
   "script": [
@@ -134,8 +138,8 @@
       "name": "pmd-settings-polish-r4-js"
     },
     {
-      "path": "js/pmd-settings-stable-r8.js",
-      "name": "pmd-settings-stable-r8-js"
+      "path": "js/pmd-settings-stable-r9.js",
+      "name": "pmd-settings-stable-r9-js"
     }
   ]
 }
