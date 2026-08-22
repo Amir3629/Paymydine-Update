@@ -4,42 +4,59 @@
   var root = document.querySelector('[data-pmd-settings-center]');
   if (!root) return;
 
+  /* PMD_SETTINGS_DEFERRED_CARD_PRUNE_V1_START */
   /*
-   * PMD_SETTINGS_STABLE_RENDER_V8
-   *
-   * Settings landing intentionally no longer advertises Advanced settings,
-   * Brand & communication or Customer accounts. Their controllers/routes are
-   * retained; only the landing cards are removed before the stable reveal.
+   * These pages remain fully routable for later use; only their mother-page
+   * cards are intentionally removed. Run before the stable reveal so no card
+   * flashes on refresh.
    */
-  function pruneDeferredCards() {
-    var deferredRoutes = [
-      '/admin/pmdadvanced',
-      '/admin/pmdbrand',
-      '/admin/pmdcustomer'
-    ];
-
+  [
+    '/admin/pmdadvanced',
+    '/admin/pmdbrand',
+    '/admin/pmdcustomer'
+  ].forEach(function (path) {
     Array.prototype.slice.call(
       root.querySelectorAll('[data-pmd-settings-card]')
     ).forEach(function (card) {
       var href = '';
       try {
-        href = new URL(card.getAttribute('href') || '', window.location.origin).pathname;
+        href = new URL(
+          card.getAttribute('href') || '',
+          window.location.origin
+        ).pathname;
       } catch (error) {
         href = card.getAttribute('href') || '';
       }
-      if (deferredRoutes.indexOf(href) !== -1) card.remove();
-    });
 
-    Array.prototype.slice.call(
-      root.querySelectorAll('[data-pmd-settings-section]')
-    ).forEach(function (group) {
-      if (!group.querySelector('[data-pmd-settings-card]')) group.remove();
+      if (href === path) card.remove();
     });
-  }
+  });
 
-  pruneDeferredCards();
+  Array.prototype.slice.call(
+    root.querySelectorAll('[data-pmd-settings-section]')
+  ).forEach(function (section) {
+    if (!section.querySelector('[data-pmd-settings-card]')) {
+      section.remove();
+    }
+  });
+  /* PMD_SETTINGS_DEFERRED_CARD_PRUNE_V1_END */
+
+  /*
+   * PMD_SETTINGS_STABLE_RENDER_V7
+   *
+   * Single visual authority for /admin/pmdsettings:
+   * - legacy navbar is removed before reveal
+   * - clean mother-kit header is built while page content is hidden
+   * - search is moved into the header before first visible paint
+   * - notification is preserved and moved into the same header
+   * - final UI is revealed only after two animation frames
+   */
 
   function installRouteStyle() {
+    /*
+     * Settings Header geometry is server/static CSS authority.
+     * Runtime must not inject another 42px Header stylesheet.
+     */
     return;
   }
 
@@ -63,13 +80,29 @@
   }
 
   function installCleanHeader() {
-    var header = document.getElementById('pmd-settings-clean-header');
-    if (!header) return null;
+    /*
+     * Server Header already exists.
+     * Runtime may USE it, but must never remove/rebuild it.
+     */
+    var header =
+      document.getElementById(
+        'pmd-settings-clean-header'
+      );
+
+    if (!header) {
+      return null;
+    }
 
     return (
-      header.querySelector('.pmd-settings-clean-actions')
-      || header.querySelector('[data-pmd-settings-header-actions-v11]')
-      || header.querySelector('[data-pmd-settings-header-actions]')
+      header.querySelector(
+        '.pmd-settings-clean-actions'
+      )
+      || header.querySelector(
+        '[data-pmd-settings-header-actions-v11]'
+      )
+      || header.querySelector(
+        '[data-pmd-settings-header-actions]'
+      )
     );
   }
 
@@ -82,7 +115,10 @@
   if (actions && searchWrap) {
     searchWrap.classList.add('pmd-settings-header-search');
     if (searchWrap.parentNode !== actions) {
-      actions.insertBefore(searchWrap, actions.firstChild);
+      actions.insertBefore(
+        searchWrap,
+        actions.firstChild
+      );
     }
     hardResetSearchInput(search);
 
@@ -181,7 +217,9 @@
     groups.forEach(function (group) {
       var visible = Array.prototype.some.call(
         group.querySelectorAll('[data-pmd-settings-card]'),
-        function (card) { return !card.hidden; }
+        function (card) {
+          return !card.hidden;
+        }
       );
 
       var groupMatch = !query || searchable(group).indexOf(query) !== -1;
@@ -205,12 +243,16 @@
     });
 
     if (empty) {
-      var visibleModule = modules.some(function (module) { return !module.hidden; });
+      var visibleModule = modules.some(function (module) {
+        return !module.hidden;
+      });
       empty.hidden = visibleCards > 0 || visibleModule || !query;
     }
   }
 
-  if (search) search.addEventListener('input', applySearch);
+  if (search) {
+    search.addEventListener('input', applySearch);
+  }
 
   document.addEventListener('keydown', function (event) {
     if (
@@ -240,18 +282,23 @@
     if (window.PMDSettingsRevealFallback) {
       window.clearTimeout(window.PMDSettingsRevealFallback);
     }
+
     document.documentElement.classList.remove('pmd-settings-v7-booting');
     document.documentElement.classList.add('pmd-settings-v7-ready');
   }
 
+  /*
+   * V7: reveal synchronously after final DOM ownership is established.
+   * Browser does not get a paint opportunity between placeholder removal
+   * and installation of the real clean header.
+   */
   revealStablePage();
 
   window.PMDSettingsStableRenderV7 = {
-    version: '8.0.0',
+    version: '7.0.0',
     background: '#f8fbfd',
     searchInHeader: Boolean(searchWrap && actions && searchWrap.parentNode === actions),
     notificationInHeader: Boolean(document.querySelector('#pmd-settings-clean-header #notif-root')),
-    deferredCardsRemoved: true,
     flashGuard: true
   };
 })();
