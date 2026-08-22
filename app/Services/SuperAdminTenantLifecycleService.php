@@ -6,11 +6,70 @@ use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Schema;
+use Illuminate\Support\Str;
 use System\Models\Themes_model;
 
 class SuperAdminTenantLifecycleService
 {
     private const TEMPLATE_DB = 'newtenantdb';
+
+    /*
+     * The template is an application/runtime baseline, NOT sample restaurant data.
+     * These logical tables must start empty for every new tenant. Keeping this
+     * list here also makes the rule explicit and testable instead of relying on
+     * whatever data happens to exist in newtenantdb on a given day.
+     */
+    private const EMPTY_ON_NEW_TENANT = [
+        // Orders, receipts and payment history
+        'orders',
+        'order_menus',
+        'order_menu_options',
+        'order_totals',
+        'order_notes',
+        'payment_logs',
+        'order_payment_transactions',
+        'order_payment_transaction_items',
+        'fiskaly_transactions',
+        'status_history',
+        'assignable_logs',
+
+        // Reservations / floor / service activity
+        'reservations',
+        'reservation_tables',
+        'tables',
+        'table_notes',
+        'waiter_calls',
+        'valet_requests',
+
+        // Menu/catalog content
+        'menus',
+        'menu_categories',
+        'menu_mealtimes',
+        'menus_specials',
+        'menu_images',
+        'menu_prices',
+        'menu_item_options',
+        'menu_item_option_values',
+        'menu_options',
+        'menu_option_values',
+        'categories',
+        'mealtimes',
+        'allergens',
+        'allergenables',
+        'stocks',
+        'stock_history',
+
+        // Promotions / gift-card activity
+        'igniter_coupons',
+        'coupons_history',
+        'gift_card_transactions',
+
+        // Guest/customer/demo activity
+        'customers',
+        'addresses',
+        'reviews',
+        'notifications',
+    ];
 
     public function create(array $data): array
     {
@@ -37,9 +96,6 @@ class SuperAdminTenantLifecycleService
         }
 
         try {
-            // Keep the legacy-compatible registry status disabled until every
-            // provisioning stage succeeds. This avoids relying on an unknown
-            // enum/string schema accepting a new "provisioning" value.
             DB::connection('mysql')->table('tenants')->insert([
                 'name' => $data['name'],
                 'domain' => $domain,
@@ -63,7 +119,7 @@ class SuperAdminTenantLifecycleService
             $createdDatabase = true;
 
             $this->cloneTemplateDatabase(self::TEMPLATE_DB, $database);
-            $this->finalizeTenantDatabase($database, $centralDatabase);
+            $this->finalizeTenantDatabase($database, $centralDatabase, $data);
 
             $provision = app(SuperAdminTenantDomainProvisioner::class)->provision($domain);
 
@@ -80,8 +136,8 @@ class SuperAdminTenantLifecycleService
                 'ok' => (bool)$provision['ok'],
                 'stage' => $provision['ok'] ? 'ready' : 'domain',
                 'message' => $provision['ok']
-                    ? 'Restaurant created and provisioned successfully.'
-                    : 'Restaurant data and database are ready, but the tenant remains disabled until domain/TLS provisioning succeeds: '.$provision['message'],
+                    ? 'Restaurant created with a clean tenant database and provisioned successfully.'
+                    : 'Restaurant database is clean and ready, but the tenant remains disabled until domain/TLS provisioning succeeds: '.$provision['message'],
                 'database' => $database,
                 'domain' => $domain,
                 'provisioning' => $provision,
@@ -93,9 +149,6 @@ class SuperAdminTenantLifecycleService
                 'error' => $e->getMessage(),
             ]);
 
-            // Always restore the central DB before touching the central tenant
-            // registry during rollback. cloneTemplateDatabase intentionally uses
-            // USE <tenant>, so the current PDO database may no longer be central.
             $this->restoreCentralConnection($centralDatabase);
 
             if ($createdDatabase) {
@@ -140,9 +193,7 @@ class SuperAdminTenantLifecycleService
 
         foreach ($tables as $table) {
             $tableName = array_values((array)$table)[0] ?? null;
-            if (!$tableName) {
-                continue;
-            }
+            if (!$tableName) continue;
 
             $create = DB::connection('mysql')->select(
                 'SHOW CREATE TABLE '.$this->quoteIdentifier($source).'.'.$this->quoteIdentifier($tableName)
@@ -155,6 +206,12 @@ class SuperAdminTenantLifecycleService
             $createSql = $create[0]->{'Create Table'};
             DB::connection('mysql')->statement('USE '.$this->quoteIdentifier($target));
             DB::connection('mysql')->statement($createSql);
+
+            // Never clone tenant-specific/demo rows. The schema is still cloned
+            // so every product capability exists, but business content starts at 0.
+            if ($this->mustStartEmpty($tableName)) {
+                continue;
+            }
 
             $rowCount = (int)(DB::connection('mysql')->selectOne(
                 'SELECT COUNT(*) AS aggregate FROM '.$this->quoteIdentifier($source).'.'.$this->quoteIdentifier($tableName)
@@ -169,39 +226,20 @@ class SuperAdminTenantLifecycleService
         }
     }
 
-    private function finalizeTenantDatabase(string $database, string $centralDatabase): void
+    private function finalizeTenantDatabase(string $database, string $centralDatabase, array $data): void
     {
         try {
             Config::set('database.connections.mysql.database', $database);
             DB::purge('mysql');
             DB::reconnect('mysql');
 
-            if (Schema::connection('mysql')->hasTable('tables')) {
-                $existing = DB::connection('mysql')->table('tables')->where('table_name', 'Cashier')->first();
-                if (!$existing) {
-                    $cashierId = DB::connection('mysql')->table('tables')->insertGetId([
-                        'table_name' => 'Cashier',
-                        'min_capacity' => 1,
-                        'max_capacity' => 1,
-                        'table_status' => 1,
-                        'extra_capacity' => 0,
-                        'is_joinable' => 0,
-                        'priority' => 999,
-                        'qr_code' => 'cashier',
-                        'created_at' => now(),
-                        'updated_at' => now(),
-                    ]);
+            // Defense in depth: even if the template changes or an old copy path
+            // reappears, visible restaurant/business data is removed before READY.
+            $this->sanitizeTenantBusinessData();
+            $this->applyTenantIdentity($data);
 
-                    if (Schema::connection('mysql')->hasTable('locationables')) {
-                        DB::connection('mysql')->table('locationables')->insert([
-                            'location_id' => 1,
-                            'locationable_id' => $cashierId,
-                            'locationable_type' => 'tables',
-                            'options' => null,
-                        ]);
-                    }
-                }
-            }
+            // Intentionally DO NOT create a default Cashier/floor table. A new
+            // restaurant must start with zero floor tables and create its own.
 
             try {
                 Themes_model::syncAll();
@@ -215,6 +253,70 @@ class SuperAdminTenantLifecycleService
         } finally {
             $this->restoreCentralConnection($centralDatabase);
         }
+    }
+
+    private function sanitizeTenantBusinessData(): void
+    {
+        DB::connection('mysql')->statement('SET FOREIGN_KEY_CHECKS=0');
+
+        try {
+            foreach (self::EMPTY_ON_NEW_TENANT as $table) {
+                if (!Schema::connection('mysql')->hasTable($table)) continue;
+                DB::connection('mysql')->table($table)->truncate();
+            }
+
+            // locationables also contains staff/location baseline links, so do
+            // not truncate it. Remove only links belonging to content we emptied.
+            if (Schema::connection('mysql')->hasTable('locationables')) {
+                DB::connection('mysql')->table('locationables')
+                    ->whereIn('locationable_type', [
+                        'tables', 'menus', 'categories', 'coupons', 'igniter_coupons',
+                        'menu_options', 'allergens',
+                    ])
+                    ->delete();
+            }
+        } finally {
+            DB::connection('mysql')->statement('SET FOREIGN_KEY_CHECKS=1');
+        }
+    }
+
+    private function applyTenantIdentity(array $data): void
+    {
+        $domain = strtolower(trim((string)($data['domain'] ?? '')));
+        $name = trim((string)($data['name'] ?? ''));
+        $domainLabel = $domain !== '' ? explode('.', $domain)[0] : '';
+        $displayName = $name !== '' ? $name : ($domainLabel !== '' ? $domainLabel : 'PayMyDine');
+
+        if (Schema::connection('mysql')->hasTable('settings')) {
+            $settings = DB::connection('mysql')->table('settings');
+            if ($settings->where('item', 'site_name')->exists()) {
+                $settings->where('item', 'site_name')->update(['value' => $displayName]);
+            }
+        }
+
+        if (
+            Schema::connection('mysql')->hasTable('locations')
+            && Schema::connection('mysql')->hasColumn('locations', 'location_name')
+        ) {
+            $location = DB::connection('mysql')->table('locations')->orderBy('location_id')->first();
+            if ($location) {
+                $update = ['location_name' => $displayName];
+                if (Schema::connection('mysql')->hasColumn('locations', 'permalink_slug')) {
+                    $update['permalink_slug'] = Str::slug($domainLabel !== '' ? $domainLabel : $displayName);
+                }
+                DB::connection('mysql')->table('locations')->where('location_id', $location->location_id)->update($update);
+            }
+        }
+    }
+
+    private function mustStartEmpty(string $physicalTable): bool
+    {
+        $prefix = (string)Config::get('database.connections.mysql.prefix', '');
+        $logical = ($prefix !== '' && str_starts_with($physicalTable, $prefix))
+            ? substr($physicalTable, strlen($prefix))
+            : $physicalTable;
+
+        return in_array($logical, self::EMPTY_ON_NEW_TENANT, true);
     }
 
     private function restoreCentralConnection(string $centralDatabase): void
