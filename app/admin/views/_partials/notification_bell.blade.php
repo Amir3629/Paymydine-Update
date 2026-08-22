@@ -1,5 +1,5 @@
 
-<li class="nav-item dropdown" id="notif-root" style="position:relative!important;overflow:visible!important;margin-left:clamp(44px,4vw,64px)!important;margin-inline-start:clamp(44px,4vw,64px)!important;padding-left:0!important;padding-inline-start:0!important;" data-pmd-main-header-notification-spacing-v2="" data-pmd-main-header-notification-spacing-r66="">
+<li class="nav-item dropdown" id="notif-root" style="position:relative!important;overflow:visible!important;margin-left:clamp(44px,4vw,64px)!important;margin-inline-start:clamp(44px,4vw,64px)!important;padding-left:0!important;padding-inline-start:0!important;" data-pmd-main-header-notification-spacing-v2="" data-pmd-main-header-notification-spacing-r66="" data-pmd-no-translate>
 <span
                 data-pmd-main-header-notification-divider-r66=""
                 aria-hidden="true"
@@ -37,7 +37,7 @@
     <div class="d-flex align-items-center justify-content-between px-3 py-2 border-bottom">
       <strong>Notifications</strong>
       <a id="notif-history-link" class="btn btn-light btn-sm" href="{{ url('/admin/history') }}">
-        {{ __('History') }}
+        History
       </a>
     </div>
 
