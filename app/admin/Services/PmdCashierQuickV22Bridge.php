@@ -35,8 +35,10 @@ class PmdCashierQuickV22Bridge
             'app/admin/assets/css/pmd-cashier-quick-v22.css',
             'app/admin/assets/css/pmd-cashier-quick-v22-addbar.css',
         ];
-        $jsRelative = 'app/admin/assets/js/pmd-cashier-quick-v22.js';
-        $jsPath = base_path($jsRelative);
+        $jsFiles = [
+            'app/admin/assets/js/pmd-cashier-quick-v22-exact-order-guard.js',
+            'app/admin/assets/js/pmd-cashier-quick-v22.js',
+        ];
 
         foreach ($cssFiles as $cssRelative) {
             if (!is_file(base_path($cssRelative))) {
@@ -45,9 +47,11 @@ class PmdCashierQuickV22Bridge
             }
         }
 
-        if (!is_file($jsPath)) {
-            logger()->warning('PMD Cashier Quick V2.2 JS asset is missing.');
-            return $response;
+        foreach ($jsFiles as $jsRelative) {
+            if (!is_file(base_path($jsRelative))) {
+                logger()->warning('PMD Cashier Quick V2.2 JS asset is missing.', ['file' => $jsRelative]);
+                return $response;
+            }
         }
 
         $head = '';
@@ -57,9 +61,12 @@ class PmdCashierQuickV22Bridge
                 .$cssRelative.'?v='.$cssVersion.'">'."\n";
         }
 
-        $jsVersion = substr(hash_file('sha256', $jsPath), 0, 16);
-        $body = '<script data-pmd-cashier-quick-v22-assets="r43" src="/'
-            .$jsRelative.'?v='.$jsVersion.'"></script>';
+        $body = '';
+        foreach ($jsFiles as $jsRelative) {
+            $jsVersion = substr(hash_file('sha256', base_path($jsRelative)), 0, 16);
+            $body .= '<script data-pmd-cashier-quick-v22-assets="r43" src="/'
+                .$jsRelative.'?v='.$jsVersion.'"></script>'."\n";
+        }
 
         $headCount = 0;
         $html = str_replace('</head>', rtrim($head)."\n</head>", $html, $headCount);
@@ -69,7 +76,7 @@ class PmdCashierQuickV22Bridge
         }
 
         $bodyCount = 0;
-        $html = str_replace('</body>', $body."\n</body>", $html, $bodyCount);
+        $html = str_replace('</body>', rtrim($body)."\n</body>", $html, $bodyCount);
         if ($bodyCount !== 1) {
             logger()->warning('PMD Cashier Quick V2.2 JS injection skipped.', ['count' => $bodyCount]);
             return $response;
