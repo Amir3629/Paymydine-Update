@@ -2,7 +2,44 @@
 
 use App\Services\TerminalPayments\TerminalPaymentService;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Config;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Route;
+
+/*
+|--------------------------------------------------------------------------
+| SumUp Cloud callback
+|--------------------------------------------------------------------------
+| Public endpoint: SumUp cannot carry an admin session or CSRF token.
+| The tenant is resolved from the callback Host and the payment status is
+| verified server-to-server with SumUp before any order is marked paid.
+*/
+Route::post('/terminal-payments/sumup/callback/{attemptId}', function (Request $request, $attemptId) {
+    $host = strtolower(trim((string)$request->getHost()));
+
+    try {
+        $central = DB::connection('mysql');
+        $tenant = $central->table('tenants')->where('domain', $host)->first();
+        if (!$tenant || empty($tenant->database)) {
+            return response()->json(['ok' => false, 'message' => 'Tenant not found.'], 404);
+        }
+
+        $base = config('database.connections.mysql');
+        $base['database'] = (string)$tenant->database;
+        Config::set('database.connections.sumup_callback_runtime', $base);
+        DB::purge('sumup_callback_runtime');
+        DB::reconnect('sumup_callback_runtime');
+        DB::setDefaultConnection('sumup_callback_runtime');
+
+        $service = app(TerminalPaymentService::class);
+        $result = $service->handleSumupCallback((int)$attemptId, (array)$request->all());
+
+        return response()->json(['ok' => true, 'result' => $result]);
+    } catch (\Throwable $e) {
+        report($e);
+        return response()->json(['ok' => false, 'message' => 'Callback processing failed.'], 500);
+    }
+})->name('pmd.sumup.terminal.callback');
 
 Route::middleware(['web'])->prefix(config('system.adminUri', 'admin'))->group(function () {
     Route::post('/orders/terminal-payment-attempt', function (Request $request, TerminalPaymentService $service) {
@@ -15,9 +52,29 @@ Route::middleware(['web'])->prefix(config('system.adminUri', 'admin'))->group(fu
             'order_id' => ['required', 'integer', 'min:1'],
             'provider_code' => ['required', 'string', 'max:50'],
             'terminal_id' => ['nullable', 'string', 'max:120'],
+            'terminal_device_id' => ['nullable', 'integer', 'min:1'],
         ]);
 
-        return response()->json($service->createAttempt((int)$data['order_id'], (string)$data['provider_code'], $data['terminal_id'] ?? null));
+        $terminal = isset($data['terminal_device_id'])
+            ? (string)$data['terminal_device_id']
+            : ($data['terminal_id'] ?? null);
+
+        return response()->json(
+            $service->createAttempt(
+                (int)$data['order_id'],
+                (string)$data['provider_code'],
+                $terminal
+            )
+        );
+    });
+
+    Route::post('/terminal-payments/attempts/{attemptId}/refresh', function ($attemptId, TerminalPaymentService $service) {
+        $user = \Admin\Facades\AdminAuth::getUser();
+        if (!$user || !$user->hasPermission('Admin.Payments')) {
+            abort(403, 'Payment permission required.');
+        }
+
+        return response()->json($service->refreshAttempt((int)$attemptId));
     });
 
     Route::get('/orders/{orderId}/terminal-payment-attempts', function ($orderId) {
@@ -28,7 +85,7 @@ Route::middleware(['web'])->prefix(config('system.adminUri', 'admin'))->group(fu
         if (!\Illuminate\Support\Facades\Schema::hasTable('payment_attempts')) {
             return response()->json(['success' => true, 'attempts' => []]);
         }
-        $attempts = \Illuminate\Support\Facades\DB::table('payment_attempts')
+        $attempts = DB::table('payment_attempts')
             ->where('order_id', (int)$orderId)
             ->orderByDesc('id')
             ->limit(20)
