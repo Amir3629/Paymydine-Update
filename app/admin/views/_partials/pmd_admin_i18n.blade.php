@@ -52,7 +52,7 @@
         'app/admin/assets/js/pmd-floor-toolbar-authority-v1.js'
     );
 
-    /* PMD_ADMIN_FAVICON_HEAD_AUTHORITY_V2
+    /* PMD_ADMIN_FAVICON_HEAD_AUTHORITY_V3
      * This partial is in the common Admin <head>, including clean Lab pages.
      * Use the exact PMD favicon that is already correct on PmdSettings and
      * version it from the real file mtime so old tab icons cannot survive a
@@ -64,7 +64,7 @@
 
     $pmdAdminFaviconVersion = is_file($pmdAdminFaviconPath)
         ? (string)filemtime($pmdAdminFaviconPath)
-        : 'pmd-admin-v2';
+        : 'pmd-admin-v3';
 
     $pmdCatalogueVersion = is_file($pmdCataloguePath)
         ? (string)filemtime($pmdCataloguePath)
@@ -123,15 +123,18 @@
 @endphp
 
 <link
-    id="pmd-admin-favicon-authority-v2"
+    id="pmd-admin-favicon-authority-v3"
     rel="icon"
     type="image/svg+xml"
-    href="/app/admin/assets/images/favicon.svg?v={{ $pmdAdminFaviconVersion }}"
+    sizes="any"
+    href="/app/admin/assets/images/favicon.svg?v={{ $pmdAdminFaviconVersion }}-pmd-admin-v3"
 >
 <link
+    id="pmd-admin-shortcut-favicon-authority-v3"
     rel="shortcut icon"
-    type="image/x-icon"
-    href="/favicon.ico?v={{ $pmdAdminFaviconVersion }}"
+    type="image/svg+xml"
+    sizes="any"
+    href="/app/admin/assets/images/favicon.svg?v={{ $pmdAdminFaviconVersion }}-pmd-admin-v3"
 >
 
 <!-- PMD_ADMIN_ROBOTO_FIRST_PAINT_V2 -->
@@ -200,20 +203,21 @@
 })();
 </script>
 
-{{-- PMD_ADMIN_TITLE_AUTHORITY_V1
-     Core Admin layout still appends setting('site_name') to Template titles.
-     That setting may be the restaurant/site identity or the old TastyIgniter
-     default; neither is the PMD product identity for browser tabs. Keep public
-     restaurant/site naming untouched and normalize only the Admin document
-     title to "<page> - PayMyDine". Smooth transitions emit pageContentLoaded,
-     so the same authority is re-applied after AJAX navigation without polling
-     or a MutationObserver. --}}
-<script id="pmd-admin-title-authority-v1">
+{{-- PMD_ADMIN_TITLE_AUTHORITY_V2
+     The shared Admin layout writes its <title> after this partial. The previous
+     V1 waited for DOMContentLoaded, allowing the legacy/site title (including
+     TastyIgniter) to be visible in the browser tab during first paint. V2 seeds
+     the server-known page title immediately, removes the later duplicate title
+     as the parser adds it, and keeps the existing smooth-navigation fallback.
+     Public restaurant/site naming remains untouched. --}}
+<script id="pmd-admin-title-authority-v2">
 (function () {
     'use strict';
 
     var BRAND = 'PayMyDine';
     var LEGACY_SITE_NAME = @json((string)setting('site_name'));
+    var INITIAL_PAGE_TITLE = @json(trim((string)\Admin\Facades\Template::getTitle()));
+    var titleObserver = null;
 
     function escapeRegExp(value) {
         return String(value || '').replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
@@ -248,39 +252,90 @@
     }
 
     function apply() {
-        var next = normalize(document.title);
+        var next = normalize(document.title || INITIAL_PAGE_TITLE);
         if (document.title !== next) {
             document.title = next;
         }
         return next;
     }
 
-    window.PMDAdminTitleAuthorityV1 = {
-        version: '1.0.0',
+    function seedFirstPaintTitle() {
+        var head = document.head || document.getElementsByTagName('head')[0];
+        if (!head) return apply();
+
+        var titles = head.getElementsByTagName('title');
+        var primary = titles.length ? titles[0] : null;
+
+        if (!primary) {
+            primary = document.createElement('title');
+            primary.setAttribute('data-pmd-admin-title-authority', 'v2');
+            primary.textContent = normalize(INITIAL_PAGE_TITLE);
+            head.insertBefore(primary, head.firstChild || null);
+        } else {
+            primary.textContent = normalize(primary.textContent || INITIAL_PAGE_TITLE);
+        }
+
+        // default.blade.php emits its legacy <title> after this partial. Keep
+        // the seeded PMD title as the sole browser-title authority.
+        for (var i = titles.length - 1; i > 0; i -= 1) {
+            titles[i].parentNode.removeChild(titles[i]);
+        }
+
+        return apply();
+    }
+
+    function stopFirstPaintGuard() {
+        seedFirstPaintTitle();
+        if (titleObserver) {
+            titleObserver.disconnect();
+            titleObserver = null;
+        }
+    }
+
+    seedFirstPaintTitle();
+
+    if (window.MutationObserver && document.head) {
+        titleObserver = new MutationObserver(seedFirstPaintTitle);
+        titleObserver.observe(document.head, {
+            childList: true
+        });
+    }
+
+    window.PMDAdminTitleAuthorityV2 = {
+        version: '2.0.0',
         brand: BRAND,
         legacySiteName: LEGACY_SITE_NAME,
+        initialPageTitle: INITIAL_PAGE_TITLE,
         normalize: normalize,
-        apply: apply,
+        apply: seedFirstPaintTitle,
         audit: function () {
+            var titleCount = document.head
+                ? document.head.getElementsByTagName('title').length
+                : 0;
             return {
-                version: '1.0.0',
+                version: '2.0.0',
                 brand: BRAND,
                 legacySiteName: LEGACY_SITE_NAME,
+                initialPageTitle: INITIAL_PAGE_TITLE,
                 title: document.title,
-                normalized: normalize(document.title),
-                ok: document.title === normalize(document.title)
+                titleCount: titleCount,
+                normalized: normalize(document.title || INITIAL_PAGE_TITLE),
+                ok: titleCount === 1 && document.title === normalize(document.title || INITIAL_PAGE_TITLE)
             };
         }
     };
 
+    // Compatibility alias for any console/QA snippets written against V1.
+    window.PMDAdminTitleAuthorityV1 = window.PMDAdminTitleAuthorityV2;
+
     if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', apply, { once: true });
+        document.addEventListener('DOMContentLoaded', stopFirstPaintGuard, { once: true });
     } else {
-        apply();
+        stopFirstPaintGuard();
     }
 
-    document.addEventListener('pageContentLoaded', apply, false);
-    window.addEventListener('pageshow', apply, false);
+    document.addEventListener('pageContentLoaded', seedFirstPaintTitle, false);
+    window.addEventListener('pageshow', seedFirstPaintTitle, false);
 })();
 </script>
 
