@@ -162,6 +162,8 @@ class PmdFixedRoleAuthorityV1
                 return;
             }
 
+            // Remove only these three cards from the Settings landing page.
+            // Their controllers/routes remain intentionally available to Owner.
             $blocked = ['pmdadvanced', 'pmdbrand', 'pmdcustomer'];
             $groups = [];
 
@@ -212,75 +214,84 @@ class PmdFixedRoleAuthorityV1
             return $this->deny($request, '/admin/pmdteam', 'Built-in PayMyDine roles cannot be edited.');
         }
 
+        $code = $this->roleCodeForUser($user);
+        $isFixed = $code && isset(self::DEFINITIONS[$code]);
+
+        if ($isFixed) {
+            // Product role is the authority, not an old/stale super_user bit.
+            // Owner becomes super-user in-memory for the request so existing
+            // super-user-only Admin checks really do mean full Owner access.
+            $user->super_user = $code === 'owner';
+
+            if ($code === 'owner') {
+                return null;
+            }
+
+            if ($this->alwaysAllowed($path)) {
+                return null;
+            }
+
+            if ($code === 'manager') {
+                if ($this->isOwnerDashboard($path) || $this->isSettingsRoute($path)) {
+                    return $this->deny($request, '/admin/managerlab', 'Manager access does not include Owner Dashboard or Settings.');
+                }
+
+                if ($path === 'admin') {
+                    return redirect('/admin/managerlab');
+                }
+
+                return null;
+            }
+
+            if ($code === 'cashier' || $code === 'waiter') {
+                if ($this->isCashierRuntimeRoute($path)) {
+                    return null;
+                }
+
+                return $this->deny($request, '/admin/cashierlab', 'This account is restricted to CashierLab.');
+            }
+
+            if ($code === 'accountant') {
+                if ($path === 'admin/accountantlab' || str_starts_with($path, 'admin/accountantlab/')) {
+                    return null;
+                }
+
+                return $this->deny($request, '/admin/accountantlab', 'This account is restricted to Accountant.');
+            }
+
+            if ($code === 'reservations') {
+                if ($path === 'admin/reservationslab' || str_starts_with($path, 'admin/reservationslab/')) {
+                    return null;
+                }
+
+                return $this->deny($request, '/admin/reservationslab', 'This account is restricted to Reservations.');
+            }
+
+            if ($code === 'kds') {
+                $station = $this->stationForStaff($user->staff);
+                if (!$station) {
+                    return response('No KDS station is assigned to this account.', 403);
+                }
+
+                $allowedPath = 'admin/kitchendisplay/'.trim((string)$station->slug, '/');
+                if ($path === $allowedPath) {
+                    return null;
+                }
+
+                return $this->deny(
+                    $request,
+                    '/'.$allowedPath,
+                    'This KDS account is restricted to its assigned station.'
+                );
+            }
+
+            return null;
+        }
+
+        // Preserve historical custom-role/super-user behavior outside the seven
+        // product-owned roles.
         if (method_exists($user, 'isSuperUser') && $user->isSuperUser()) {
             return null;
-        }
-
-        $code = $this->roleCodeForUser($user);
-        if (!$code || !isset(self::DEFINITIONS[$code])) {
-            return null;
-        }
-
-        if ($code === 'owner') {
-            return null;
-        }
-
-        if ($this->alwaysAllowed($path)) {
-            return null;
-        }
-
-        if ($code === 'manager') {
-            if ($this->isOwnerDashboard($path) || $this->isSettingsRoute($path)) {
-                return $this->deny($request, '/admin/managerlab', 'Manager access does not include Owner Dashboard or Settings.');
-            }
-
-            if ($path === 'admin') {
-                return redirect('/admin/managerlab');
-            }
-
-            return null;
-        }
-
-        if ($code === 'cashier' || $code === 'waiter') {
-            if ($this->isCashierRuntimeRoute($path)) {
-                return null;
-            }
-
-            return $this->deny($request, '/admin/cashierlab', 'This account is restricted to CashierLab.');
-        }
-
-        if ($code === 'accountant') {
-            if ($path === 'admin/accountantlab' || str_starts_with($path, 'admin/accountantlab/')) {
-                return null;
-            }
-
-            return $this->deny($request, '/admin/accountantlab', 'This account is restricted to Accountant.');
-        }
-
-        if ($code === 'reservations') {
-            if ($path === 'admin/reservationslab' || str_starts_with($path, 'admin/reservationslab/')) {
-                return null;
-            }
-
-            return $this->deny($request, '/admin/reservationslab', 'This account is restricted to Reservations.');
-        }
-
-        if ($code === 'kds') {
-            $station = $this->stationForStaff($user->staff);
-            if (!$station) {
-                return response('No KDS station is assigned to this account.', 403);
-            }
-
-            $allowedPath = 'admin/kitchendisplay/'.trim((string)$station->slug, '/');
-            if ($path === $allowedPath) {
-                return null;
-            }
-
-            return $this->deny(
-                $request,
-                '/'.$allowedPath,
-                'This KDS account is restricted to its assigned station.'
-            );
         }
 
         return null;
@@ -443,6 +454,15 @@ class PmdFixedRoleAuthorityV1
             'admin/staff_groups',
             'admin/settings',
             'admin/system_settings',
+            // Device CRUD screens are part of the consolidated Settings suite.
+            'admin/posdevices',
+            'admin/terminal_devices',
+            'admin/terminaldevices',
+            'admin/kds_stations',
+            'admin/cash_drawers',
+            'admin/biometric_devices',
+            'admin/biometricdevices',
+            'admin/pos_configs',
         ] as $prefix) {
             if ($path === $prefix || str_starts_with($path, $prefix.'/')) {
                 return true;
