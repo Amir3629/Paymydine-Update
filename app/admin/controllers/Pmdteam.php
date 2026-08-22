@@ -4,6 +4,7 @@ namespace Admin\Controllers;
 
 use Admin\Classes\AdminController;
 use Admin\Facades\AdminAuth;
+use Admin\Facades\AdminLocation;
 use Admin\Facades\AdminMenu;
 use Admin\Facades\Template;
 use Admin\Models\Staffs_model;
@@ -13,7 +14,7 @@ use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\ValidationException;
 
 /**
- * PMD Team & Access V2
+ * PMD Team & Access V3
  *
  * Product roles are managed/locked by PmdDefaultStaffRoleService. The Team
  * page intentionally exposes only Role, Name, Username and Password for staff.
@@ -45,14 +46,12 @@ class Pmdteam extends AdminController
         $roleService = app(PmdDefaultStaffRoleService::class);
         $managedRoles = collect($roleService->ensure())->keyBy('staff_role_id');
 
-        $staffQuery = Staffs_model::with(['role', 'user'])
-            ->orderBy('staff_name');
-
-        if (!AdminAuth::isSuperUser()) {
-            $staffQuery->whereNotSuperUser();
-        }
-
-        $staff = $staffQuery->get();
+        // The built-in super user is an installation authority, not a Team
+        // member that may be edited/demoted from this simplified surface.
+        $staff = Staffs_model::with(['role', 'user'])
+            ->whereNotSuperUser()
+            ->orderBy('staff_name')
+            ->get();
 
         $this->vars['pmdTeam'] = [
             'staff' => $staff,
@@ -74,7 +73,9 @@ class Pmdteam extends AdminController
 
         $staffId = max(0, (int)post('staff_id', 0));
         $member = $staffId > 0
-            ? Staffs_model::with(['role', 'user'])->findOrFail($staffId)
+            ? Staffs_model::with(['role', 'user'])
+                ->whereNotSuperUser()
+                ->findOrFail($staffId)
             : new Staffs_model();
 
         $userId = $member->exists && $member->user
@@ -106,20 +107,21 @@ class Pmdteam extends AdminController
         ];
 
         $validator = Validator::make($input, $rules);
-        if ($validator->fails()) {
-            throw new ValidationException($validator);
-        }
+        if ($validator->fails()) throw new ValidationException($validator);
 
-        DB::transaction(function () use ($member, $input, $staffId) {
+        $locationId = $this->currentLocationId();
+
+        DB::transaction(function () use ($member, $input, $staffId, $locationId) {
             $member->staff_name = $input['staff_name'];
             $member->staff_role_id = $input['staff_role_id'];
             $member->staff_status = 1;
             $member->sale_permission = 1;
             $member->biometric_enabled = 0;
             $member->card_id = null;
+            if ($locationId > 0) $member->staff_location_id = $locationId;
 
-            // The legacy schema requires a staff_email value for several mail/avatar
-            // helpers. It is generated internally and is never requested in Team UI.
+            // Legacy mail/avatar helpers expect a staff_email value. Team does
+            // not ask for it; this internal non-delivery address is technical.
             if (!$member->staff_email || !$staffId) {
                 $member->staff_email = $this->technicalStaffEmail($input['username']);
             }
@@ -130,26 +132,42 @@ class Pmdteam extends AdminController
                 'send_invite' => false,
                 'activate' => true,
             ];
-            if ($input['password'] !== '') {
-                $user['password'] = $input['password'];
-            }
+            if ($input['password'] !== '') $user['password'] = $input['password'];
 
             $member->user = $user;
             $member->save();
 
-            // Product decision: simple Team staff do not require group assignment.
-            // Existing legacy/custom staff groups are not deleted globally.
-            if ($member->relationLoaded('groups') || method_exists($member, 'groups')) {
-                try {
-                    $member->groups()->sync([]);
-                } catch (\Throwable $error) {
-                }
+            // Location is implicit from the restaurant currently being managed,
+            // not another staff-form choice. This keeps login location access valid.
+            if ($locationId > 0) {
+                $member->addStaffLocations([$locationId]);
             }
+
+            // Product decision: simplified Team staff have no group assignment.
+            $member->addStaffGroups([]);
         });
 
         flash()->success($staffId ? 'Staff member updated.' : 'Staff member added.');
-
         return ['ok' => true];
+    }
+
+    private function currentLocationId(): int
+    {
+        try {
+            $location = AdminLocation::current();
+            if ($location && (int)$location->location_id > 0) {
+                return (int)$location->location_id;
+            }
+        } catch (\Throwable $error) {
+        }
+
+        try {
+            $id = (int)AdminLocation::getSession('id');
+            if ($id > 0) return $id;
+        } catch (\Throwable $error) {
+        }
+
+        return max(0, (int)params('default_location_id'));
     }
 
     private function technicalStaffEmail(string $username): string
