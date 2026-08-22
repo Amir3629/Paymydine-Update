@@ -98,6 +98,10 @@
     {
       "path": "css/pmd-settings-polish-r10.css",
       "name": "pmd-settings-polish-r10-css"
+    },
+    {
+      "path": "css/pmd-settings-polish-r11.css",
+      "name": "pmd-settings-polish-r11-css"
     }
   ],
   "script": [
