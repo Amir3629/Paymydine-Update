@@ -2,8 +2,8 @@
 @section('title','Settings')
 @push('head')
 <style>
-    .pmd-settings-shell{max-width:1120px}.pmd-settings-card{padding:24px}.pmd-settings-card .field-grid{gap:16px}.pmd-settings-actions{grid-column:1/-1;display:flex;justify-content:flex-end;padding-top:4px}.pmd-settings-actions .btn{min-width:150px}
-    @media(max-width:820px){.pmd-settings-shell{max-width:none}.pmd-settings-actions{grid-column:auto}.pmd-settings-actions .btn{width:100%}}
+    .pmd-settings-shell{width:100%;max-width:none}.pmd-settings-card{width:100%;padding:28px}.pmd-settings-card .field-grid{gap:18px}.pmd-settings-card .field label{font-size:14px}.pmd-settings-card .field input{min-height:54px;font-size:16px}.pmd-settings-actions{grid-column:1/-1;display:flex;justify-content:flex-end;padding-top:8px}.pmd-settings-actions .btn{min-width:180px;min-height:48px;font-size:15px}
+    @media(max-width:820px){.pmd-settings-card{padding:20px}.pmd-settings-actions{grid-column:auto}.pmd-settings-actions .btn{width:100%}}
 </style>
 @endpush
 @section('content')
