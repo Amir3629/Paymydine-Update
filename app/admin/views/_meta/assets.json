@@ -110,6 +110,10 @@
     {
       "path": "css/pmd-finance-frontend-cleanup-r13.css",
       "name": "pmd-finance-frontend-cleanup-r13-css"
+    },
+    {
+      "path": "css/pmd-history-stable-r20.css",
+      "name": "pmd-history-stable-r20-css"
     }
   ],
   "script": [
