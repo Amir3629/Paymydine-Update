@@ -11,13 +11,17 @@
     .pmd-kpi-value{margin-top:13px;font-size:36px;line-height:1;font-weight:850;letter-spacing:-.035em}.pmd-kpi-hint{margin-top:8px;color:var(--muted);font-size:14px}
     .pmd-kpi.total{--kpi-soft:#edf8f4;--kpi-accent:#11765a}.pmd-kpi.active{--kpi-soft:#ecfdf3;--kpi-accent:#067647}.pmd-kpi.disabled{--kpi-soft:#fff4ed;--kpi-accent:#b54708}.pmd-kpi.expired{--kpi-soft:#fff1f0;--kpi-accent:#b42318}
 
-    .pmd-chart-card{padding:22px;margin-bottom:16px}.pmd-chart-card .card-head{margin-bottom:16px;align-items:flex-end}.pmd-chart-card .card-head h3{font-size:20px}
+    .pmd-analytics-grid{display:grid;grid-template-columns:minmax(0,1.65fr) minmax(300px,.85fr);gap:16px;align-items:stretch;margin-bottom:16px}
+    .pmd-chart-card,.pmd-country-card{padding:22px;margin:0}.pmd-chart-card .card-head{margin-bottom:16px;align-items:flex-end}.pmd-chart-card .card-head h3,.pmd-country-card h3{font-size:20px}
     .pmd-chart-toolbar{display:flex;align-items:flex-end;justify-content:flex-end;gap:9px;flex-wrap:wrap}.pmd-chart-range-field{display:grid;gap:5px}.pmd-chart-range-field span{font-size:11px;font-weight:850;letter-spacing:.05em;text-transform:uppercase;color:#6a7f77}.pmd-chart-range-field input{height:40px;border:1px solid #d8e5e0;border-radius:10px;background:#fff;padding:0 10px;color:var(--ink);font-size:13px}.pmd-chart-toolbar .btn{min-height:40px;padding:8px 14px;font-size:13px}
-    .pmd-line-shell{border-top:1px solid #edf2f0;padding-top:12px;overflow-x:auto}.pmd-line-canvas{min-width:680px}.pmd-line-chart{display:block;width:100%;height:190px;overflow:visible}.pmd-line-grid{stroke:#e9f0ed;stroke-width:1}.pmd-line-base{stroke:#dce7e3;stroke-width:1.1}.pmd-line-path{fill:none;stroke:#0b9b74;stroke-width:3;stroke-linecap:round;stroke-linejoin:round}.pmd-line-dot{fill:#0b9b74;stroke:#fff;stroke-width:1.8}
-    .pmd-line-labels{display:grid;gap:8px;margin-top:2px}.pmd-line-label{text-align:center;color:#6a7f77;font-size:12px;font-weight:750;min-width:62px}.pmd-line-label strong{display:block;color:#17372f;font-size:13px;margin-bottom:2px}
+    .pmd-line-shell{border-top:1px solid #edf2f0;padding-top:12px;overflow-x:auto}.pmd-line-canvas{min-width:620px}.pmd-line-chart{display:block;width:100%;height:180px;overflow:visible}.pmd-line-grid{stroke:#e9f0ed;stroke-width:1}.pmd-line-base{stroke:#dce7e3;stroke-width:1.1}.pmd-line-path{fill:none;stroke:#0b9b74;stroke-width:3;stroke-linecap:round;stroke-linejoin:round}.pmd-line-dot{fill:#0b9b74;stroke:#fff;stroke-width:1.8}
+    .pmd-line-labels{display:grid;gap:8px;margin-top:2px}.pmd-line-label{text-align:center;color:#6a7f77;font-size:12px;font-weight:750;min-width:58px}.pmd-line-label strong{display:block;color:#17372f;font-size:13px;margin-bottom:2px}
+
+    .pmd-country-card{display:flex;flex-direction:column}.pmd-country-head{display:flex;align-items:flex-end;justify-content:space-between;gap:12px;margin-bottom:16px}.pmd-country-total{font-size:13px;font-weight:800;color:#6a7f77}.pmd-country-list{display:grid;gap:15px;margin-top:4px}.pmd-country-row{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px 12px;align-items:center}.pmd-country-name{font-size:14px;font-weight:800;color:#17372f;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.pmd-country-count{font-size:13px;font-weight:850;color:#17372f}.pmd-country-track{grid-column:1/-1;height:12px;border-radius:999px;background:#edf3f0;overflow:hidden}.pmd-country-fill{height:100%;width:var(--pmd-country-width);min-width:8px;border-radius:999px;background:linear-gradient(90deg,#17b889,#087d60)}.pmd-country-empty{display:grid;place-items:center;min-height:180px;color:#7b8d87;font-size:14px;text-align:center}
     .pmd-latest-card .table-wrap{border-radius:15px}
-    @media(max-width:1100px){.pmd-kpis{grid-template-columns:repeat(2,minmax(0,1fr))}.pmd-chart-card .card-head{align-items:flex-start;flex-direction:column}.pmd-chart-toolbar{justify-content:flex-start}}
-    @media(max-width:700px){.pmd-kpis{display:flex;overflow:auto;padding-bottom:3px}.pmd-kpi{min-width:210px}.pmd-line-chart{height:170px}.pmd-chart-toolbar{width:100%}.pmd-chart-range-field{flex:1;min-width:145px}.pmd-chart-range-field input{width:100%}}
+
+    @media(max-width:1100px){.pmd-kpis{grid-template-columns:repeat(2,minmax(0,1fr))}.pmd-analytics-grid{grid-template-columns:1fr}.pmd-chart-card .card-head{align-items:flex-start;flex-direction:column}.pmd-chart-toolbar{justify-content:flex-start}}
+    @media(max-width:700px){.pmd-kpis{display:flex;overflow:auto;padding-bottom:3px}.pmd-kpi{min-width:210px}.pmd-line-chart{height:165px}.pmd-line-canvas{min-width:600px}.pmd-chart-toolbar{width:100%}.pmd-chart-range-field{flex:1;min-width:145px}.pmd-chart-range-field input{width:100%}}
 </style>
 @endpush
 
@@ -49,7 +53,7 @@
     $plotLeft = 36;
     $plotRight = 684;
     $plotTop = 34;
-    $plotBottom = 158;
+    $plotBottom = 150;
     $plotWidth = $plotRight - $plotLeft;
     $plotHeight = $plotBottom - $plotTop;
     $step = $pointCount > 1 ? $plotWidth / ($pointCount - 1) : 0;
@@ -78,36 +82,60 @@
     }
 @endphp
 
-<div class="card pmd-chart-card">
-    <div class="card-head">
-        <div><h3>Restaurant registrations</h3></div>
-        <form class="pmd-chart-toolbar" method="GET" action="/superadmin/index">
-            <label class="pmd-chart-range-field"><span>From</span><input type="date" name="from" value="{{ $chartRange['from'] }}"></label>
-            <label class="pmd-chart-range-field"><span>To</span><input type="date" name="to" value="{{ $chartRange['to'] }}"></label>
-            <button class="btn btn-primary" type="submit">Apply</button>
-            <a class="btn btn-soft" href="/superadmin/index">Reset</a>
-        </form>
-    </div>
-    <div class="pmd-line-shell">
-        <div class="pmd-line-canvas">
-            <svg class="pmd-line-chart" viewBox="0 0 720 190" role="img" aria-label="Restaurant registrations from {{ $chartRange['from'] }} to {{ $chartRange['to'] }}" preserveAspectRatio="none">
-                <line class="pmd-line-grid" x1="36" y1="34" x2="684" y2="34"/>
-                <line class="pmd-line-grid" x1="36" y1="75" x2="684" y2="75"/>
-                <line class="pmd-line-grid" x1="36" y1="116" x2="684" y2="116"/>
-                <line class="pmd-line-base" x1="36" y1="158" x2="684" y2="158"/>
-                @if(count($points) > 1)
-                    <path class="pmd-line-path" d="{{ $smoothPath }}"/>
-                @endif
-                @foreach($points as $point)
-                    <circle class="pmd-line-dot" cx="{{ $point['x'] }}" cy="{{ $point['y'] }}" r="3"/>
-                @endforeach
-            </svg>
-            <div class="pmd-line-labels" style="grid-template-columns:repeat({{ max(1,$growthRows->count()) }},minmax(62px,1fr))">
-                @foreach($growthRows as $point)
-                    <div class="pmd-line-label" title="{{ $point['label_long'] }}"><strong>{{ $point['value'] }}</strong>{{ $point['label'] }}</div>
-                @endforeach
+<div class="pmd-analytics-grid">
+    <div class="card pmd-chart-card">
+        <div class="card-head">
+            <div><h3>Restaurant registrations</h3></div>
+            <form class="pmd-chart-toolbar" method="GET" action="/superadmin/index">
+                <label class="pmd-chart-range-field"><span>From</span><input type="date" name="from" value="{{ $chartRange['from'] }}"></label>
+                <label class="pmd-chart-range-field"><span>To</span><input type="date" name="to" value="{{ $chartRange['to'] }}"></label>
+                <button class="btn btn-primary" type="submit">Apply</button>
+                <a class="btn btn-soft" href="/superadmin/index">Reset</a>
+            </form>
+        </div>
+        <div class="pmd-line-shell">
+            <div class="pmd-line-canvas">
+                <svg class="pmd-line-chart" viewBox="0 0 720 180" role="img" aria-label="Restaurant registrations from {{ $chartRange['from'] }} to {{ $chartRange['to'] }}" preserveAspectRatio="none">
+                    <line class="pmd-line-grid" x1="36" y1="34" x2="684" y2="34"/>
+                    <line class="pmd-line-grid" x1="36" y1="73" x2="684" y2="73"/>
+                    <line class="pmd-line-grid" x1="36" y1="112" x2="684" y2="112"/>
+                    <line class="pmd-line-base" x1="36" y1="150" x2="684" y2="150"/>
+                    @if(count($points) > 1)
+                        <path class="pmd-line-path" d="{{ $smoothPath }}"/>
+                    @endif
+                    @foreach($points as $point)
+                        <circle class="pmd-line-dot" cx="{{ $point['x'] }}" cy="{{ $point['y'] }}" r="3"/>
+                    @endforeach
+                </svg>
+                <div class="pmd-line-labels" style="grid-template-columns:repeat({{ max(1,$growthRows->count()) }},minmax(58px,1fr))">
+                    @foreach($growthRows as $point)
+                        <div class="pmd-line-label" title="{{ $point['label_long'] }}"><strong>{{ $point['value'] }}</strong>{{ $point['label'] }}</div>
+                    @endforeach
+                </div>
             </div>
         </div>
+    </div>
+
+    <div class="card pmd-country-card">
+        <div class="pmd-country-head">
+            <h3>Restaurants by country</h3>
+            @if($countryTotal > 0)<span class="pmd-country-total">{{ $countryTotal }} total</span>@endif
+        </div>
+        @if($countryMix->isNotEmpty())
+            <div class="pmd-country-list">
+                @foreach($countryMix as $row)
+                    <div class="pmd-country-row">
+                        <span class="pmd-country-name" title="{{ $row['label'] }}">{{ $row['label'] }}</span>
+                        <span class="pmd-country-count">{{ $row['value'] }}</span>
+                        <div class="pmd-country-track" aria-label="{{ $row['label'] }} {{ $row['value'] }} restaurants">
+                            <div class="pmd-country-fill" style="--pmd-country-width:{{ max(0, min(100, $row['percent'])) }}%"></div>
+                        </div>
+                    </div>
+                @endforeach
+            </div>
+        @else
+            <div class="pmd-country-empty">Country data will appear here as restaurants are registered.</div>
+        @endif
     </div>
 </div>
 
