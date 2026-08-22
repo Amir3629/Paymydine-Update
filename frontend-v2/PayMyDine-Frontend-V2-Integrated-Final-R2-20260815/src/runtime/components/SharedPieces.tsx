@@ -1,7 +1,6 @@
 'use client'
 
 import {
-  ChevronDown,
   ExternalLink,
   Facebook,
   Globe2,
@@ -37,31 +36,38 @@ export function RestaurantLogo({ showName = true }: { showName?: boolean }) {
   )
 }
 
+// PMD_HEADER_LANGUAGE_ICON_ONLY_R39
+// The native select remains the interaction/accessibility authority, but the
+// persistent header chrome is icon-only across all ten themes.
 export function LanguageSelect() {
   const { bootstrap, locale, setLocale, labels } = useMenuRuntime()
   if (bootstrap.locales.enabledLocales.length < 2) return null
   return (
-    <label className={styles.selectWrap} aria-label={labels.language}>
-      <select className={styles.select} value={locale} onChange={(event) => setLocale(event.target.value)}>
+    <label
+      className={styles.selectWrap}
+      aria-label={labels.language}
+      title={labels.language}
+      data-pmd-header-language="r39"
+    >
+      <Globe2 className={styles.languageIcon} aria-hidden="true" />
+      <select
+        className={styles.select}
+        value={locale}
+        onChange={(event) => setLocale(event.target.value)}
+        aria-label={labels.language}
+      >
         {bootstrap.locales.enabledLocales.map((code) => <option key={code} value={code}>{code.toUpperCase()}</option>)}
       </select>
-      <ChevronDown className={styles.selectIcon} aria-hidden="true" />
     </label>
   )
 }
 
 
-// PMD_HEADER_VALET_R31
-// One shared header entry point for all ten themes. It reuses the existing
-// ServiceSheet valet mode and requestValet backend flow; no second modal or
-// business authority is introduced.
+// PMD_HEADER_VALET_ICON_ONLY_R39
+// One shared icon-only header entry point for all ten themes. The accessible
+// label/title remains present while the visible Parkservice text is removed.
 export function HeaderValetButton() {
   const { bootstrap, labels, openService, notify } = useMenuRuntime()
-  // PMD_HEADER_VALET_ALWAYS_VISIBLE_R31C
-  // Header Valet is a product-required entry point. Some legacy tenant settings
-  // explicitly report features.valet=false even though the canonical guest Valet
-  // backend is available. Keep the header action visible; table validity still
-  // gates submission and the existing bottom toolbar keeps its legacy flag.
 
   const hasTable = Boolean(
     bootstrap.table.valid &&
@@ -83,11 +89,10 @@ export function HeaderValetButton() {
       aria-disabled={!hasTable}
       aria-label={labels.valet}
       title={labels.valet}
-      data-pmd-header-valet="r31"
+      data-pmd-header-valet="r39"
       onClick={openValet}
     >
       <Car aria-hidden="true" />
-      <span className={styles.headerValetLabel}>{labels.valet}</span>
     </button>
   )
 }
