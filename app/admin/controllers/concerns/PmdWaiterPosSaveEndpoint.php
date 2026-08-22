@@ -72,8 +72,23 @@ trait PmdWaiterPosSaveEndpoint
                     }
                 }
 
+                /*
+                 * PMD_GUEST_KPI_COMPATIBILITY_V27
+                 *
+                 * Quick POS owns the new guest_count column. Dashboard2 keeps
+                 * compatibility with older tenants and chooses guest_num first
+                 * when that legacy column still exists. Keep both real stored
+                 * columns synchronized so Guests Served reads the same cover
+                 * count regardless of which compatible column is selected.
+                 */
+                $guestCount = max(1, min(99, (int)($payload['guest_count'] ?? 1)));
+
                 if (Schema::hasColumn('orders', 'guest_count')) {
-                    $order->guest_count = max(1, min(99, (int)($payload['guest_count'] ?? 1)));
+                    $order->guest_count = $guestCount;
+                }
+
+                if (Schema::hasColumn('orders', 'guest_num')) {
+                    $order->guest_num = $guestCount;
                 }
 
                 if (Schema::hasColumn('orders', 'payment') && trim((string)$order->payment) === '') {
@@ -119,12 +134,13 @@ trait PmdWaiterPosSaveEndpoint
 
                 return [
                     'ok' => true,
-                    'version' => 'pmd-waiter-pos-v2.6',
+                    'version' => 'pmd-waiter-pos-v2.7',
                     'mode' => $mode,
                     'created' => $isNew,
                     'order_id' => (int)$order->getKey(),
                     'order_total' => (float)($order->order_total ?? 0),
                     'total_items' => (int)($order->total_items ?? 0),
+                    'guest_count' => $guestCount,
                     'updated_at' => (string)($order->updated_at ?? ''),
                     'message' => $mode === 'send'
                         ? 'Order sent to the kitchen.'
@@ -137,7 +153,7 @@ trait PmdWaiterPosSaveEndpoint
         } catch (ValidationException $e) {
             return response()->json([
                 'ok' => false,
-                'version' => 'pmd-waiter-pos-v2.6',
+                'version' => 'pmd-waiter-pos-v2.7',
                 'message' => collect($e->errors())->flatten()->first() ?: 'The order could not be saved.',
                 'errors' => $e->errors(),
             ], 422);
@@ -145,7 +161,7 @@ trait PmdWaiterPosSaveEndpoint
             report($e);
             return response()->json([
                 'ok' => false,
-                'version' => 'pmd-waiter-pos-v2.6',
+                'version' => 'pmd-waiter-pos-v2.7',
                 'message' => 'The order could not be saved. '.$e->getMessage(),
             ], 500);
         }
