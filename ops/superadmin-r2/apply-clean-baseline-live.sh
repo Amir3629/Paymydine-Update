@@ -2,7 +2,7 @@
 set -euo pipefail
 
 ROOT="/var/www/paymydine"
-PAYLOAD_REF="70b942e8d8be2fef8e042c5f456a8a41dce0f433"
+PAYLOAD_REF="1b8f20cbd512645e19763014bb41976a74d1a02c"
 RAW="https://raw.githubusercontent.com/Amir3629/Paymydine-Update/${PAYLOAD_REF}"
 DOMAIN="${1:-kult.paymydine.com}"
 TS="$(date +%Y%m%d-%H%M%S)"
@@ -161,4 +161,4 @@ echo "============================================================"
 echo "Code backup: $BACKUP"
 echo "Tenant DB backup path is printed by step 8."
 echo "No git pull/reset/checkout was performed."
-echo "Future tenants now start without tables/orders/coupons/menu/categories/customer demo data."
+echo "Future tenants now start without tables/orders/coupons/menu/categories/customer/session/payment demo data."
