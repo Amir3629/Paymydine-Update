@@ -64,10 +64,42 @@ class SuperAdminR2DashboardController extends AdminController
             'to' => $rangeTo->toDateString(),
         ];
 
+        $countryCounts = $restaurants
+            ->filter(fn($restaurant) => strtolower((string)$restaurant->status) !== 'removed')
+            ->map(function ($restaurant) {
+                $country = trim((string)($restaurant->country ?? ''));
+                return $country !== '' ? $country : null;
+            })
+            ->filter()
+            ->countBy()
+            ->sortDesc();
+
+        $countryTotal = (int)$countryCounts->sum();
+        $topCountryCounts = $countryCounts->take(5);
+        $otherCountryCount = max(0, $countryTotal - (int)$topCountryCounts->sum());
+
+        $countryMix = $topCountryCounts
+            ->map(function ($count, $country) use ($countryTotal) {
+                return [
+                    'label' => (string)$country,
+                    'value' => (int)$count,
+                    'percent' => $countryTotal > 0 ? round(((int)$count / $countryTotal) * 100, 1) : 0,
+                ];
+            })
+            ->values();
+
+        if ($otherCountryCount > 0) {
+            $countryMix->push([
+                'label' => 'Other',
+                'value' => $otherCountryCount,
+                'percent' => $countryTotal > 0 ? round(($otherCountryCount / $countryTotal) * 100, 1) : 0,
+            ]);
+        }
+
         $latest = $restaurants->take(8);
 
         return $this->html('admin::superadmin_r2.dashboard', compact(
-            'stats', 'growth', 'growthMax', 'chartRange', 'latest'
+            'stats', 'growth', 'growthMax', 'chartRange', 'countryMix', 'countryTotal', 'latest'
         ));
     }
 
