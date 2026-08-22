@@ -29,6 +29,9 @@ Route::middleware('web')
                 ->name('pmd.superadmin.restaurants');
             Route::post('/superadmin/new/store', [SuperAdminR2Controller::class, 'store'])
                 ->name('pmd.superadmin.store');
+            Route::get('/superadmin/tenants/{id}/edit', [SuperAdminR2Controller::class, 'edit'])
+                ->whereNumber('id')
+                ->name('pmd.superadmin.tenants.edit');
             Route::post('/superadmin/tenants/update', [SuperAdminR2Controller::class, 'update'])
                 ->name('pmd.superadmin.tenants.update');
             Route::post('/superadmin/tenants/status', [SuperAdminR2Controller::class, 'status'])
