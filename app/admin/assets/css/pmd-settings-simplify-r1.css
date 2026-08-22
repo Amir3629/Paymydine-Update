@@ -9,6 +9,16 @@
   display: none !important;
 }
 
+/* First-paint removal for owner-facing fields requested out of the UI. */
+#pmd-settings-center a[data-pmd-settings-card][href*="/admin/pmdmenu"],
+#pmd-restaurant-profile .pmd-profile-field:has(input[name="profile[email]"]),
+#pmd-restaurant-profile .pmd-profile-field:has(input[name="profile[telephone]"]),
+#pmd-restaurant-profile .pmd-profile-form > .pmd-profile-section:nth-of-type(2),
+#pmd-frontend-settings .pmd-frontend-form > .pmd-frontend-section:not(:first-of-type),
+#pmd-frontend-settings .pmd-frontend-advanced {
+  display: none !important;
+}
+
 /* Restaurant logo removal: one obvious, clickable control. */
 #pmd-restaurant-profile .pmd-profile-logo-remove-r20 {
   display: inline-flex !important;
