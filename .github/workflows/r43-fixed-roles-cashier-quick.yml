@@ -23,7 +23,9 @@ jobs:
           php -l app/admin/middleware/LogUserLastSeen.php
 
       - name: Quick JavaScript syntax
-        run: node --check app/admin/assets/js/pmd-cashier-quick-v22.js
+        run: |
+          node --check app/admin/assets/js/pmd-cashier-quick-v22-exact-order-guard.js
+          node --check app/admin/assets/js/pmd-cashier-quick-v22.js
 
       - name: Fixed role contract
         run: |
@@ -67,6 +69,7 @@ jobs:
         run: |
           set -e
           JS=app/admin/assets/js/pmd-cashier-quick-v22.js
+          GUARD=app/admin/assets/js/pmd-cashier-quick-v22-exact-order-guard.js
           grep -q 'Current checks' "$JS"
           grep -q 'Open / edit' "$JS"
           grep -q 'data-cq22-pay' "$JS"
@@ -75,8 +78,10 @@ jobs:
           grep -q 'data-cq22-pos-pay' "$JS"
           grep -q 'data-pos-modal-add' "$JS"
           grep -q 'pmd-waiter-pos-v22/tables/' "$JS"
-          ! grep -Eq 'setInterval[[:space:]]*\(' "$JS"
-          ! grep -Eq 'new[[:space:]]+MutationObserver[[:space:]]*\(' "$JS"
+          grep -q 'activeOrderId = pending.orderId' "$GUARD"
+          grep -q 'pmd:waiter-standard-v2-opened' "$GUARD"
+          ! grep -Eq 'setInterval[[:space:]]*\(' "$JS" "$GUARD"
+          ! grep -Eq 'new[[:space:]]+MutationObserver[[:space:]]*\(' "$JS" "$GUARD"
 
       - name: Core Cashier authorities remain present
         run: |
