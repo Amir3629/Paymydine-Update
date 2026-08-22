@@ -15,15 +15,18 @@ use Illuminate\Support\Str;
 /**
  * PMD_FIXED_ROLE_AUTHORITY_R43
  *
- * Product-level authority for the seven built-in restaurant roles. Permissions
- * keep the existing controller/POS checks working, while the route gate keeps
- * operational accounts inside their single intended workspace.
+ * Product authority for the seven restaurant roles. The fixed role defines
+ * permissions and route scope; operational accounts are kept inside their
+ * intended workspace by a server-side gate, not by browser-only hiding.
  *
- * Unknown/custom roles retain legacy behaviour. This deliberately avoids
- * silently re-scoping restaurants that already use their own custom roles.
+ * KDS is still one logical fixed role. The concrete station is selected in the
+ * Role field on Team & access and stored as staff-id -> station-id settings data,
+ * so staff Name/Username never doubles as a hidden KDS assignment field.
  */
 class PmdFixedRoleAuthorityV1
 {
+    private const KDS_STAFF_SETTING_PREFIX = 'pmd_kds_staff_station_';
+
     private const DEFINITIONS = [
         'owner' => [
             'name' => 'Owner',
@@ -51,7 +54,7 @@ class PmdFixedRoleAuthorityV1
         ],
         'kds' => [
             'name' => 'KDS',
-            'description' => 'One assigned kitchen-display station only.',
+            'description' => 'One explicitly selected kitchen-display station only.',
             'landing' => '/admin/kitchendisplay',
             'permissions' => ['Admin.KitchenDisplay'],
         ],
@@ -84,6 +87,9 @@ class PmdFixedRoleAuthorityV1
         ));
     }
 
+    /**
+     * Create/update the seven canonical role rows and return them keyed by code.
+     */
     public function ensureDefaultRoles()
     {
         $allPermissions = $this->allPermissionMap();
@@ -131,8 +137,9 @@ class PmdFixedRoleAuthorityV1
             return null;
         }
 
-        $code = $this->roleCodeFromModel($role);
-        return isset(self::DEFINITIONS[$code]) ? $role : null;
+        return isset(self::DEFINITIONS[$this->roleCodeFromModel($role)])
+            ? $role
+            : null;
     }
 
     public function roleCodeForUser($user): ?string
@@ -144,6 +151,79 @@ class PmdFixedRoleAuthorityV1
         return $this->roleCodeFromModel($user->staff->role);
     }
 
+    public function roleCodeForRole($role): string
+    {
+        return $this->roleCodeFromModel($role);
+    }
+
+    /**
+     * Stations available to the active restaurant/location.
+     */
+    public function kdsStations()
+    {
+        if (!Schema::hasTable('kds_stations')) {
+            return collect();
+        }
+
+        $query = Kds_stations_model::query();
+        $locationId = $this->currentLocationId();
+
+        if ($locationId > 0 && Schema::hasColumn('kds_stations', 'location_id')) {
+            $query->where(function ($builder) use ($locationId) {
+                $builder->where('location_id', $locationId)
+                    ->orWhereNull('location_id')
+                    ->orWhere('location_id', 0);
+            });
+        }
+
+        return $query->orderBy('name')->get();
+    }
+
+    /**
+     * Persist an explicit KDS assignment. Passing null/0 clears the assignment.
+     */
+    public function setKdsStationForStaff($staff, ?int $stationId): void
+    {
+        $staffId = (int)($staff->staff_id ?? 0);
+        if ($staffId < 1) {
+            throw new \RuntimeException('Staff record is unavailable for KDS assignment.');
+        }
+
+        $key = self::KDS_STAFF_SETTING_PREFIX.$staffId;
+        $stationId = max(0, (int)$stationId);
+
+        if ($stationId > 0) {
+            $station = $this->kdsStations()->first(function ($candidate) use ($stationId) {
+                return (int)($candidate->station_id ?? $candidate->getKey()) === $stationId;
+            });
+
+            if (!$station) {
+                throw new \RuntimeException('The selected KDS station is unavailable for this restaurant.');
+            }
+        }
+
+        setting()->set([$key => $stationId > 0 ? (string)$stationId : '']);
+        setting()->save();
+    }
+
+    public function assignedKdsStationId($staff): int
+    {
+        $staffId = (int)($staff->staff_id ?? 0);
+        if ($staffId < 1) {
+            return 0;
+        }
+
+        try {
+            return max(0, (int)setting(self::KDS_STAFF_SETTING_PREFIX.$staffId, 0));
+        } catch (\Throwable $ignored) {
+            return 0;
+        }
+    }
+
+    /**
+     * Settings landing only: remove exactly the three requested cards. Their
+     * controllers/routes remain untouched and therefore available to Owner.
+     */
     public function installSettingsCardFilter(): void
     {
         if (self::$viewFilterInstalled) {
@@ -162,8 +242,6 @@ class PmdFixedRoleAuthorityV1
                 return;
             }
 
-            // Remove only these three cards from the Settings landing page.
-            // Their controllers/routes remain intentionally available to Owner.
             $blocked = ['pmdadvanced', 'pmdbrand', 'pmdcustomer'];
             $groups = [];
 
@@ -217,108 +295,132 @@ class PmdFixedRoleAuthorityV1
         $code = $this->roleCodeForUser($user);
         $isFixed = $code && isset(self::DEFINITIONS[$code]);
 
-        if ($isFixed) {
-            // Product role is the authority, not an old/stale super_user bit.
-            // Owner becomes super-user in-memory for the request so existing
-            // super-user-only Admin checks really do mean full Owner access.
-            $user->super_user = $code === 'owner';
+        if (!$isFixed) {
+            // Preserve historical custom-role/super-user behavior outside the
+            // seven product-owned roles.
+            return null;
+        }
 
-            if ($code === 'owner') {
-                return null;
-            }
+        // Product role outranks any stale super_user bit in the database.
+        $user->super_user = $code === 'owner';
 
-            if ($this->alwaysAllowed($path)) {
-                return null;
-            }
+        if ($code === 'owner') {
+            return null;
+        }
 
-            if ($code === 'manager') {
-                if ($this->isOwnerDashboard($path) || $this->isSettingsRoute($path)) {
-                    return $this->deny($request, '/admin/managerlab', 'Manager access does not include Owner Dashboard or Settings.');
-                }
+        if ($this->alwaysAllowed($path)) {
+            return null;
+        }
 
-                if ($path === 'admin') {
-                    return redirect('/admin/managerlab');
-                }
-
-                return null;
-            }
-
-            if ($code === 'cashier' || $code === 'waiter') {
-                if ($this->isCashierRuntimeRoute($path)) {
-                    return null;
-                }
-
-                return $this->deny($request, '/admin/cashierlab', 'This account is restricted to CashierLab.');
-            }
-
-            if ($code === 'accountant') {
-                if ($path === 'admin/accountantlab' || str_starts_with($path, 'admin/accountantlab/')) {
-                    return null;
-                }
-
-                return $this->deny($request, '/admin/accountantlab', 'This account is restricted to Accountant.');
-            }
-
-            if ($code === 'reservations') {
-                if ($path === 'admin/reservationslab' || str_starts_with($path, 'admin/reservationslab/')) {
-                    return null;
-                }
-
-                return $this->deny($request, '/admin/reservationslab', 'This account is restricted to Reservations.');
-            }
-
-            if ($code === 'kds') {
-                $station = $this->stationForStaff($user->staff);
-                if (!$station) {
-                    return response('No KDS station is assigned to this account.', 403);
-                }
-
-                $allowedPath = 'admin/kitchendisplay/'.trim((string)$station->slug, '/');
-                if ($path === $allowedPath) {
-                    return null;
-                }
-
+        if ($code === 'manager') {
+            if ($this->isOwnerDashboard($path) || $this->isSettingsRoute($path)) {
                 return $this->deny(
                     $request,
-                    '/'.$allowedPath,
-                    'This KDS account is restricted to its assigned station.'
+                    '/admin/managerlab',
+                    'Manager access does not include Owner Dashboard or Settings.'
                 );
+            }
+
+            if ($path === 'admin') {
+                return redirect('/admin/managerlab');
             }
 
             return null;
         }
 
-        // Preserve historical custom-role/super-user behavior outside the seven
-        // product-owned roles.
-        if (method_exists($user, 'isSuperUser') && $user->isSuperUser()) {
-            return null;
+        if ($code === 'cashier' || $code === 'waiter') {
+            if ($this->isCashierRuntimeRoute($path)) {
+                return null;
+            }
+
+            return $this->deny(
+                $request,
+                '/admin/cashierlab',
+                'This account is restricted to CashierLab.'
+            );
+        }
+
+        if ($code === 'accountant') {
+            if ($path === 'admin/accountantlab' || str_starts_with($path, 'admin/accountantlab/')) {
+                return null;
+            }
+
+            return $this->deny(
+                $request,
+                '/admin/accountantlab',
+                'This account is restricted to Accountant.'
+            );
+        }
+
+        if ($code === 'reservations') {
+            if ($path === 'admin/reservationslab' || str_starts_with($path, 'admin/reservationslab/')) {
+                return null;
+            }
+
+            return $this->deny(
+                $request,
+                '/admin/reservationslab',
+                'This account is restricted to Reservations.'
+            );
+        }
+
+        if ($code === 'kds') {
+            $station = $this->stationForStaff($user->staff);
+            if (!$station) {
+                return response('No KDS station is assigned to this account.', 403);
+            }
+
+            $allowedPath = 'admin/kitchendisplay/'.trim((string)$station->slug, '/');
+            if ($path === $allowedPath) {
+                return null;
+            }
+
+            return $this->deny(
+                $request,
+                '/'.$allowedPath,
+                'This KDS account is restricted to its assigned station.'
+            );
         }
 
         return null;
     }
 
+    /**
+     * Resolve KDS assignment. Explicit staff-id mapping is authoritative.
+     * Name/username matching remains only as a backwards-compatible fallback
+     * for KDS accounts created before R43.
+     */
     public function stationForStaff($staff)
     {
-        if (!$staff || !Schema::hasTable('kds_stations')) {
+        if (!$staff) {
             return null;
         }
 
-        $query = Kds_stations_model::query();
-        $locationId = $this->currentLocationId();
-
-        if ($locationId > 0 && Schema::hasColumn('kds_stations', 'location_id')) {
-            $query->where(function ($builder) use ($locationId) {
-                $builder->where('location_id', $locationId)
-                    ->orWhereNull('location_id')
-                    ->orWhere('location_id', 0);
-            });
+        $stations = $this->kdsStations();
+        if (!$stations->count()) {
+            return null;
         }
 
-        $stations = $query->orderBy('name')->get();
+        $mappedId = $this->assignedKdsStationId($staff);
+        if ($mappedId > 0) {
+            $mapped = $stations->first(function ($station) use ($mappedId) {
+                return (int)($station->station_id ?? $station->getKey()) === $mappedId;
+            });
+
+            if ($mapped) {
+                return $mapped;
+            }
+
+            // An explicit mapping existed but its station disappeared. Fail
+            // closed instead of silently moving the account to another screen.
+            return null;
+        }
+
         if ($stations->count() === 1) {
             return $stations->first();
         }
 
+        // Legacy fallback only. New Team & access saves always write mapping.
         $tokens = array_values(array_unique(array_filter([
             strtolower(trim((string)($staff->staff_name ?? ''))),
             strtolower(trim((string)optional($staff->user)->username)),
@@ -454,7 +556,6 @@ class PmdFixedRoleAuthorityV1
             'admin/staff_groups',
             'admin/settings',
             'admin/system_settings',
-            // Device CRUD screens are part of the consolidated Settings suite.
             'admin/posdevices',
             'admin/terminal_devices',
             'admin/terminaldevices',
