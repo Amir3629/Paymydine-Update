@@ -36,8 +36,28 @@ class SumupTerminalProvider implements TerminalPaymentProviderInterface
         $currency = strtoupper((string)($attempt['currency'] ?? 'EUR'));
 
         if ($amountMinor <= 0) {
-            return ['ok' => false, 'message' => 'SumUp terminal amount must be greater than zero.'];
+            return ['ok' => false, 'status' => 'failed', 'message' => 'SumUp terminal amount must be greater than zero.'];
         }
+
+        // SumUp requires an Affiliate Key for card-present / Cloud API payments.
+        // Keep the key tenant/provider-specific when present, while the app ID can
+        // be configured once for the PayMyDine integration in the server env.
+        $affiliateKey = trim((string)($config['affiliate_key'] ?? env('SUMUP_AFFILIATE_KEY', '')));
+        $affiliateAppId = trim((string)($config['affiliate_app_id'] ?? env('SUMUP_AFFILIATE_APP_ID', '')));
+
+        if ($affiliateKey === '' || $affiliateAppId === '') {
+            return [
+                'ok' => false,
+                'status' => 'failed',
+                'message' => 'SumUp Cloud API requires an Affiliate Key and matching App ID. Configure SUMUP_AFFILIATE_APP_ID and an affiliate key before charging a reader.',
+            ];
+        }
+
+        $foreignTransactionId = sprintf(
+            'pmd-%d-%d',
+            (int)($attempt['order_id'] ?? 0),
+            (int)($attempt['id'] ?? 0)
+        );
 
         $payload = [
             'total_amount' => [
@@ -45,15 +65,16 @@ class SumupTerminalProvider implements TerminalPaymentProviderInterface
                 'minor_unit' => 2,
                 'value' => $amountMinor,
             ],
+            'affiliate' => [
+                'app_id' => $affiliateAppId,
+                'foreign_transaction_id' => $foreignTransactionId,
+                'key' => $affiliateKey,
+            ],
             'description' => 'PayMyDine order #'.(int)($attempt['order_id'] ?? 0),
         ];
 
         if (!empty($config['return_url'])) {
             $payload['return_url'] = (string)$config['return_url'];
-        }
-
-        if (!empty($config['affiliate_key'])) {
-            $payload['affiliate'] = ['app_id' => (string)$config['affiliate_key']];
         }
 
         try {
@@ -92,6 +113,7 @@ class SumupTerminalProvider implements TerminalPaymentProviderInterface
                 'provider_reference' => $checkoutId,
                 'client_transaction_id' => $data['client_transaction_id'] ?? null,
                 'checkout_id' => $data['checkout_id'] ?? $checkoutId,
+                'foreign_transaction_id' => $foreignTransactionId,
                 'message' => 'Payment sent to SumUp terminal. Waiting for the customer.',
                 'response' => $json,
             ];
