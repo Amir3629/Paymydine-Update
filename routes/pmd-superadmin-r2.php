@@ -1,6 +1,7 @@
 <?php
 
 use Admin\Controllers\SuperAdminR2Controller;
+use App\Http\Middleware\SuperAdminTenantIdentityBaseline;
 use Igniter\Flame\Foundation\Http\Middleware\TenantDatabaseMiddleware;
 use Illuminate\Support\Facades\Route;
 
@@ -28,6 +29,7 @@ Route::middleware('web')
             Route::get('/superadmin/new', [SuperAdminR2Controller::class, 'restaurants'])
                 ->name('pmd.superadmin.restaurants');
             Route::post('/superadmin/new/store', [SuperAdminR2Controller::class, 'store'])
+                ->middleware(SuperAdminTenantIdentityBaseline::class)
                 ->name('pmd.superadmin.store');
             Route::get('/superadmin/tenants/{id}/edit', [SuperAdminR2Controller::class, 'edit'])
                 ->whereNumber('id')
