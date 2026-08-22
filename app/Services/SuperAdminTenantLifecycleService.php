@@ -12,6 +12,7 @@ use System\Models\Themes_model;
 class SuperAdminTenantLifecycleService
 {
     private const TEMPLATE_DB = 'newtenantdb';
+    private const DEFAULT_LOGO_PATH = '/brand/paymydine-logo.svg';
 
     /*
      * The template is an application/runtime baseline, NOT sample restaurant data.
@@ -101,9 +102,15 @@ class SuperAdminTenantLifecycleService
             return ['ok' => false, 'stage' => 'template', 'message' => 'Template database newtenantdb is not available.'];
         }
 
+        $domainLabel = explode('.', $domain)[0] ?? '';
+        $displayName = $domainLabel !== '' ? $domainLabel : 'PayMyDine';
+        $data['name'] = $displayName;
+        $data['domain'] = $domain;
+        $data['database'] = $database;
+
         try {
             DB::connection('mysql')->table('tenants')->insert([
-                'name' => $data['name'],
+                'name' => $displayName,
                 'domain' => $domain,
                 'database' => $database,
                 'email' => $data['email'],
@@ -134,6 +141,7 @@ class SuperAdminTenantLifecycleService
             DB::connection('mysql')->table('tenants')
                 ->where('database', $database)
                 ->update([
+                    'name' => $displayName,
                     'status' => $provision['ok'] ? 'active' : 'disabled',
                     'updated_at' => now(),
                 ]);
@@ -142,7 +150,7 @@ class SuperAdminTenantLifecycleService
                 'ok' => (bool)$provision['ok'],
                 'stage' => $provision['ok'] ? 'ready' : 'domain',
                 'message' => $provision['ok']
-                    ? 'Restaurant created with a clean tenant database and provisioned successfully.'
+                    ? 'Restaurant created with a clean tenant database, canonical PayMyDine identity and successful provisioning.'
                     : 'Restaurant database is clean and ready, but the tenant remains disabled until domain/TLS provisioning succeeds: '.$provision['message'],
                 'database' => $database,
                 'domain' => $domain,
@@ -242,7 +250,6 @@ class SuperAdminTenantLifecycleService
             // Defense in depth: even if the template changes or an old copy path
             // reappears, visible restaurant/business data is removed before READY.
             $this->sanitizeTenantBusinessData();
-            $this->applyTenantIdentity($data);
 
             // Intentionally DO NOT create a default Cashier/floor table. A new
             // restaurant must start with zero floor tables and create its own.
@@ -256,6 +263,10 @@ class SuperAdminTenantLifecycleService
                     'error' => $themeError->getMessage(),
                 ]);
             }
+
+            // Identity is deliberately LAST. Theme/template activation must never
+            // be able to restore TastyIgniter/sample branding after this point.
+            $this->applyTenantIdentity($data);
         } finally {
             $this->restoreCentralConnection($centralDatabase);
         }
@@ -289,14 +300,34 @@ class SuperAdminTenantLifecycleService
     private function applyTenantIdentity(array $data): void
     {
         $domain = strtolower(trim((string)($data['domain'] ?? '')));
-        $name = trim((string)($data['name'] ?? ''));
-        $domainLabel = $domain !== '' ? explode('.', $domain)[0] : '';
-        $displayName = $name !== '' ? $name : ($domainLabel !== '' ? $domainLabel : 'PayMyDine');
+        $domainLabel = $domain !== '' ? (explode('.', $domain)[0] ?? '') : '';
+        $displayName = $domainLabel !== '' ? $domainLabel : 'PayMyDine';
+        $logoUrl = $domain !== '' ? 'https://'.$domain.self::DEFAULT_LOGO_PATH : self::DEFAULT_LOGO_PATH;
+
+        // Keep framework settings and the physical tenant settings table aligned.
+        // This runs after theme activation so template branding cannot win later.
+        try {
+            setting()->set([
+                'site_name' => $displayName,
+                'site_logo' => $logoUrl,
+            ]);
+            setting()->save();
+        } catch (\Throwable $settingsError) {
+            Log::warning('pmd_superadmin_r2_identity_setting_manager_warning', [
+                'domain' => $domain,
+                'error' => $settingsError->getMessage(),
+            ]);
+        }
 
         if (Schema::connection('mysql')->hasTable('settings')) {
-            $settings = DB::connection('mysql')->table('settings');
-            if ($settings->where('item', 'site_name')->exists()) {
-                $settings->where('item', 'site_name')->update(['value' => $displayName]);
+            foreach ([
+                'site_name' => $displayName,
+                'site_logo' => $logoUrl,
+            ] as $item => $value) {
+                DB::connection('mysql')->table('settings')->updateOrInsert(
+                    ['item' => $item],
+                    ['value' => $value]
+                );
             }
         }
 
@@ -312,6 +343,13 @@ class SuperAdminTenantLifecycleService
                 }
                 DB::connection('mysql')->table('locations')->where('location_id', $location->location_id)->update($update);
             }
+        }
+
+        $siteName = (string)(DB::connection('mysql')->table('settings')->where('item', 'site_name')->value('value') ?? '');
+        $siteLogo = (string)(DB::connection('mysql')->table('settings')->where('item', 'site_logo')->value('value') ?? '');
+
+        if ($siteName !== $displayName || $siteLogo !== $logoUrl) {
+            throw new \RuntimeException('Canonical tenant identity verification failed.');
         }
     }
 
