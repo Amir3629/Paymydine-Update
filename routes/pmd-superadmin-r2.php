@@ -1,6 +1,7 @@
 <?php
 
 use Admin\Controllers\SuperAdminR2Controller;
+use App\Http\Middleware\SuperAdminAuth;
 use App\Http\Middleware\SuperAdminCanonicalHost;
 use Igniter\Flame\Foundation\Http\Middleware\TenantDatabaseMiddleware;
 use Illuminate\Http\Request;
@@ -78,7 +79,7 @@ Route::middleware(['web', SuperAdminCanonicalHost::class])
         Route::post('/superadmin/sign', [SuperAdminR2Controller::class, 'sign'])
             ->name('pmd.superadmin.sign');
 
-        Route::middleware('superadmin.auth')->group(function () {
+        Route::middleware(SuperAdminAuth::class)->group(function () {
             Route::get('/superadmin/index', [SuperAdminR2Controller::class, 'dashboard'])
                 ->name('pmd.superadmin.dashboard');
             Route::get('/superadmin/new', [SuperAdminR2Controller::class, 'restaurants'])
