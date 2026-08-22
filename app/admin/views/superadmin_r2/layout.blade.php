@@ -18,7 +18,6 @@
     })();
     </script>
 
-    {{-- Exact Side Menu 2 visual/runtime authority used by the normal Admin panel. --}}
     <link rel="stylesheet" href="/app/admin/assets/css/pmd-side-menu2-v1.css?v=20260822-superadmin-r2">
 
     <style>
@@ -33,7 +32,6 @@
         html,body{margin:0;min-height:100%;background:var(--bg);font-family:Inter,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;color:var(--ink)}
         body{overflow-x:hidden}a{text-decoration:none;color:inherit}button,input,select,textarea{font:inherit}
 
-        /* Exact outer geometry + color authority from the current Admin Side Menu 2. */
         #pmd-side-menu2{
             position:fixed!important;left:14px!important;top:14px!important;bottom:14px!important;height:auto!important;
             z-index:12000!important;display:flex!important;flex-direction:column!important;overflow:hidden!important;
@@ -50,11 +48,8 @@
         html.pmd-sm2-expanded .pmd-main{margin-left:var(--pmd-content-expanded)}
         html.pmd-sm2-runtime-ready .pmd-main{transition:margin-left 220ms cubic-bezier(.22,.75,.24,1)!important}
 
-        .topbar{height:64px;background:#fff;border:1px solid var(--line);border-radius:18px;display:flex;align-items:center;justify-content:space-between;padding:0 18px;box-shadow:0 8px 24px rgba(18,61,50,.05);position:sticky;top:14px;z-index:20}
+        .topbar{height:64px;background:#fff;border:1px solid var(--line);border-radius:18px;display:flex;align-items:center;padding:0 18px;box-shadow:0 8px 24px rgba(18,61,50,.05);position:sticky;top:14px;z-index:20}
         .top-left h1{font-size:19px;margin:0}.top-left p{margin:4px 0 0;color:var(--muted);font-size:12px}
-        .user-pill{display:flex;align-items:center;gap:10px;background:#f4f8f6;border:1px solid var(--line);border-radius:999px;padding:7px 11px}
-        .avatar{width:30px;height:30px;border-radius:50%;display:grid;place-items:center;background:var(--green);color:#fff;font-weight:800;font-size:11px}
-        .user-pill strong{font-size:12px}.user-pill small{display:block;color:var(--muted);font-size:10px}
 
         .content{padding-top:14px}.hero{display:flex;justify-content:space-between;gap:20px;align-items:flex-end;margin:6px 0 16px}
         .hero h2{font-size:28px;margin:0 0 5px}.hero p{margin:0;color:var(--muted);font-size:13px}
@@ -95,7 +90,7 @@
             html.pmd-sm2-mobile-open #pmd-side-menu2-backdrop{opacity:1!important;pointer-events:auto!important;background:rgba(5,18,16,.28)!important;backdrop-filter:blur(7px)!important}
             .topbar{top:10px}.stats{grid-template-columns:repeat(2,1fr)}.grid2{grid-template-columns:1fr}.mobile-menu{display:grid}.hero{align-items:flex-start;flex-direction:column}.field-grid{grid-template-columns:1fr}.field.full{grid-column:auto}
         }
-        @media(max-width:560px){.stats{display:flex;overflow:auto}.stat{min-width:165px}.top-left p{display:none}.user-pill .user-copy{display:none}}
+        @media(max-width:560px){.stats{display:flex;overflow:auto}.stat{min-width:165px}.top-left p{display:none}}
     </style>
     @stack('head')
 </head>
@@ -110,7 +105,6 @@
             </button>
             <div class="top-left"><h1>@yield('page_title','Super Admin')</h1><p>@yield('page_subtitle','PayMyDine platform control plane')</p></div>
         </div>
-        <div class="user-pill"><div class="avatar">SA</div><div class="user-copy"><strong>{{ session('superadmin_username','Super Admin') }}</strong><small>Platform administrator</small></div></div>
     </header>
 
     <section class="content">
