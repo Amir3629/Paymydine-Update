@@ -16,7 +16,7 @@
    * the legacy Waiter launcher/lifecycle/service-inbox UI. Those older layers
    * otherwise keep several pollers and MutationObservers alive behind the
    * Quick launcher. Disable only those launcher authorities on /cashierlab.
-   * The canonical POS/payment engine remains loaded and unchanged.
+   * The canonical POS/payment engine and the lifecycle-safe payment guard stay.
    */
   if (isCashierQuick) {
     window.PMDWaiterV241SafeLifecycle = true;
@@ -98,13 +98,13 @@
     }, true);
 
     window.PMDCashierQuickPerformanceV23 = {
-      version: '2.3.0',
+      version: '2.3.1',
       legacyV21BackgroundStopped: true,
       waiterLifecycleSkipped: true,
       waiterAreaWatcherSkipped: true,
       waiterServiceInboxSkipped: true,
       waiterServiceRendererSkipped: true,
-      paymentGuardSkipped: true,
+      paymentGuardLifecycleBound: true,
       canonicalPaymentEnginePreserved: Boolean(window.PMDWaiterPOSPaymentV2)
     };
 
@@ -112,7 +112,6 @@
       '[PMD] Cashier Quick mobile performance guard V2.3 active',
       window.PMDCashierQuickPerformanceV23
     );
-    return;
   }
 
   var installations = new WeakMap();
