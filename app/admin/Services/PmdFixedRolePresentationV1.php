@@ -9,7 +9,7 @@ use Illuminate\Http\Request;
  * PMD_FIXED_ROLE_PRESENTATION_R43
  *
  * Route access is enforced separately by PmdFixedRoleAuthorityV1. This only
- * removes Manager-forbidden navigation from the server-rendered first paint.
+ * removes navigation that the current fixed role must never see, at first paint.
  */
 class PmdFixedRolePresentationV1
 {
@@ -30,17 +30,18 @@ class PmdFixedRolePresentationV1
         }
 
         $authority = app(PmdFixedRoleAuthorityV1::class);
-        if ($authority->roleCodeForUser($user) !== 'manager') {
-            return $response;
-        }
-
+        $roleCode = $authority->roleCodeForUser($user);
         $html = (string)$response->getContent();
-        if ($html === '' || str_contains($html, 'data-pmd-manager-nav-r43')) {
+
+        if ($html === '' || str_contains($html, 'data-pmd-fixed-role-presentation-r43')) {
             return $response;
         }
 
-        $style = <<<'HTML'
-<style data-pmd-manager-nav-r43>
+        $style = '';
+
+        if ($roleCode === 'manager') {
+            $style = <<<'HTML'
+<style data-pmd-fixed-role-presentation-r43>
   a[href$="/admin/pmdsettings"],
   a[href*="/admin/pmdsettings/"],
   a[href$="/admin/dashboardlab"],
@@ -50,6 +51,30 @@ class PmdFixedRolePresentationV1
   }
 </style>
 HTML;
+        } elseif (in_array($roleCode, ['cashier', 'waiter', 'kds', 'accountant', 'reservations'], true)) {
+            $style = <<<'HTML'
+<style data-pmd-fixed-role-presentation-r43>
+  #pmd-side-menu2 {
+    display: none !important;
+    visibility: hidden !important;
+    pointer-events: none !important;
+  }
+
+  html.pmd-side-menu2-global-page .page-wrapper,
+  html.pmd-side-menu2-global-page.pmd-sm2-collapsed .page-wrapper,
+  html.pmd-side-menu2-global-page.pmd-sm2-expanded .page-wrapper {
+    left: 0 !important;
+    margin-left: 0 !important;
+    width: 100% !important;
+    max-width: none !important;
+  }
+</style>
+HTML;
+        }
+
+        if ($style === '') {
+            return $response;
+        }
 
         $count = 0;
         $html = str_replace('</head>', $style."\n</head>", $html, $count);
