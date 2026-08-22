@@ -2,7 +2,7 @@
  * UI-only authority for /admin/coupons.
  * - Header plus stays hidden by CSS.
  * - Only Coupon / Gift card / Voucher remain owner-visible.
- * - Existing Credit/Comp records and backend support are untouched.
+ * - Existing Credit/Comp DOM, records and backend support stay intact.
  * - Smart add card reuses the existing create modal authority.
  */
 (function () {
@@ -17,6 +17,7 @@
     var observer = null;
     var observedRoot = null;
     var queued = false;
+    var filterToggleBound = false;
 
     function isCouponPage() {
         return String(window.location.pathname || '').replace(/\/+$/, '') === '/admin/coupons';
@@ -37,32 +38,6 @@
             title: 'Add new coupon / card',
             help: 'Create a coupon, gift card or voucher.'
         };
-    }
-
-    function removeRetiredTypeUi(root) {
-        Array.prototype.forEach.call(
-            root.querySelectorAll('[data-pmd-type-filter]'),
-            function (node) {
-                var type = node.getAttribute('data-pmd-type-filter');
-                if (type === 'all' || !allowed[type]) node.remove();
-            }
-        );
-
-        Array.prototype.forEach.call(
-            document.querySelectorAll('[data-pmd-card-type]'),
-            function (node) {
-                var type = node.getAttribute('data-pmd-card-type');
-                if (!allowed[type]) node.remove();
-            }
-        );
-
-        Array.prototype.forEach.call(
-            root.querySelectorAll('[data-pmd-coupon-card]'),
-            function (node) {
-                var type = node.getAttribute('data-card-type');
-                if (!allowed[type]) node.remove();
-            }
-        );
     }
 
     function openExistingCreate(root) {
@@ -121,8 +96,6 @@
         var grid = root.querySelector('[data-pmd-coupon-grid]');
         if (!grid) return false;
 
-        removeRetiredTypeUi(root);
-
         var existing = grid.querySelector('[data-pmd-coupon-smart-add-r23]');
         if (!existing) {
             grid.insertBefore(buildActionCard(root), grid.firstChild);
@@ -132,6 +105,26 @@
 
         grid.setAttribute('data-pmd-coupon-smart-ready-r23', '1');
         return true;
+    }
+
+    function bindFilterReset(root) {
+        if (filterToggleBound) return;
+        filterToggleBound = true;
+
+        root.addEventListener('click', function (event) {
+            var button = event.target.closest('[data-pmd-type-filter]');
+            if (!button || !root.contains(button)) return;
+
+            var type = button.getAttribute('data-pmd-type-filter');
+            if (!allowed[type] || !button.classList.contains('is-active')) return;
+
+            var all = root.querySelector('[data-pmd-type-filter="all"]');
+            if (!all) return;
+
+            event.preventDefault();
+            event.stopImmediatePropagation();
+            all.click();
+        }, true);
     }
 
     function observe(root) {
@@ -163,10 +156,11 @@
         if (!root) return;
 
         installGridCard(root);
+        bindFilterReset(root);
         observe(root);
 
         window.PMDCouponSimplifyR23 = {
-            version: '23.0.1',
+            version: '23.0.2',
             install: function () { return installGridCard(root); },
             allowedTypes: ['coupon', 'gift_card', 'voucher']
         };
