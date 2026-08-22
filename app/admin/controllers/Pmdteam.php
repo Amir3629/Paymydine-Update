@@ -30,6 +30,7 @@ class Pmdteam extends AdminController
 
         $this->addCss('css/pmd-team-v1.css');
         $this->addCss('css/pmd-team-notification-v1.css');
+        $this->addCss('css/pmd-team-r43-role-authority.css');
         $this->addCss('css/pmd-settings-suite-first-paint-v1.css');
         $this->addCss('css/pmd-settings-inline-detail-v1.css');
         $this->addJs('js/pmd-settings-inline-detail-v1.js');
