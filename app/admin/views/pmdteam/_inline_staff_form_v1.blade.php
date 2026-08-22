@@ -2,7 +2,8 @@
     $mode = $mode ?? 'create';
     $member = $member ?? null;
     $isEdit = $mode === 'edit' && $member;
-    $roles = $roles ?? collect();
+    $roleOptions = $roleOptions ?? [];
+    $selectedRoleValue = (string)($selectedRoleValue ?? '');
     $title = $isEdit ? 'Edit staff member' : 'Add staff member';
     $username = $isEdit ? (string)optional($member->user)->username : '';
 @endphp
@@ -21,21 +22,24 @@
     <section class="pmd-inline-section">
         <div class="pmd-inline-section__head">
             <h3>{{ $isEdit ? 'Staff member' : 'Add staff member' }}</h3>
-            <p>Choose who this person is, then create their login.</p>
+            <p>Choose the role, then create the login. KDS stations appear directly as KDS role choices.</p>
         </div>
 
         <div class="pmd-inline-grid">
             <div class="pmd-inline-field pmd-inline-field--full">
                 <label>Role</label>
-                <select name="staff[role_id]" required autofocus>
+                <select name="staff[role]" required autofocus>
                     <option value="">Choose role</option>
-                    @foreach($roles as $code => $role)
+                    @foreach($roleOptions as $option)
                         <option
-                            value="{{ $role->staff_role_id }}"
-                            {{ $isEdit && (string)$member->staff_role_id === (string)$role->staff_role_id ? 'selected' : '' }}
-                        >{{ $role->name }}</option>
+                            value="{{ $option['value'] }}"
+                            {{ $selectedRoleValue === (string)$option['value'] ? 'selected' : '' }}
+                        >{{ $option['label'] }}</option>
                     @endforeach
                 </select>
+                @if(!collect($roleOptions)->contains(fn ($option) => str_starts_with((string)($option['value'] ?? ''), 'kds:')))
+                    <small>No KDS station is configured yet, so KDS is not offered as a staff role.</small>
+                @endif
             </div>
 
             <div class="pmd-inline-field pmd-inline-field--full">
