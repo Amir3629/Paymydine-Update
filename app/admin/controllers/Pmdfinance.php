@@ -73,7 +73,7 @@ class Pmdfinance extends AdminController
 
         $validator = Validator::make($input, [
             'tax_percentage' => ['nullable', 'numeric', 'min:0', 'max:100'],
-            'tax_menu_price' => ['nullable', 'integer', 'in:0,1'],
+            'tax_menu_price' => ['nullable', 'integer', 'in:1'],
             'invoice_customer_template' => ['nullable', 'in:classic,modern,minimal'],
             'invoice_customer_footer_text' => ['nullable', 'string', 'max:500'],
             'invoice_prefix_preset' => ['nullable', 'string', 'max:40'],
@@ -102,7 +102,9 @@ class Pmdfinance extends AdminController
         $values = [
             'tax_mode' => !empty($input['tax_mode']) ? 1 : 0,
             'tax_percentage' => (float)($clean['tax_percentage'] ?? 0),
-            'tax_menu_price' => (int)($clean['tax_menu_price'] ?? 0),
+            // PMD_FIXED_VAT_ADD_POLICY_R37
+            // Menu prices are always net; VAT is added once to the order total.
+            'tax_menu_price' => 1,
             'tax_delivery_charge' => !empty($input['tax_delivery_charge']) ? 1 : 0,
             'invoice_logo' => trim((string)($clean['invoice_logo'] ?? '')),
             'invoice_customer_template' => (string)($clean['invoice_customer_template'] ?? 'classic'),
@@ -228,6 +230,7 @@ class Pmdfinance extends AdminController
      */
     protected function persistFinanceSettingsDirect(array $values): void
     {
+        // PMD_FINANCE_QUERY_BUILDER_RESET_R37C
         $connection = $this->financeSettingsConnection();
 
         if (!Schema::connection($connection)->hasTable('settings')) {
@@ -242,36 +245,60 @@ class Pmdfinance extends AdminController
             throw new \RuntimeException('Tenant settings table columns are not recognized.');
         }
 
-        $table = DB::connection($connection)->table('settings');
+        $writeValues = $values;
+        $writeValues['tax_enabled'] = (int)($values['tax_mode'] ?? 0);
+        $hasSort = in_array('sort', $columns, true);
 
-        foreach ($values as $key => $value) {
+        foreach ($writeValues as $key => $value) {
+            $identity = [$keyColumn => $key];
+            if ($hasSort) $identity['sort'] = 'config';
+
             $payload = [$valueColumn => (string)$value];
             if (in_array('serialized', $columns, true)) $payload['serialized'] = 0;
             if (in_array('updated_at', $columns, true)) $payload['updated_at'] = now();
 
-            $exists = $table->where($keyColumn, $key)->exists();
+            $exists = DB::connection($connection)
+                ->table('settings')
+                ->where($identity)
+                ->exists();
+
             if ($exists) {
-                $table->where($keyColumn, $key)->update($payload);
+                DB::connection($connection)
+                    ->table('settings')
+                    ->where($identity)
+                    ->update($payload);
                 continue;
             }
 
-            $insert = array_merge([$keyColumn => $key], $payload);
+            $insert = array_merge($identity, $payload);
             if (in_array('created_at', $columns, true)) $insert['created_at'] = now();
-            $table->insert($insert);
+            DB::connection($connection)->table('settings')->insert($insert);
         }
 
-        $taxKeys = ['tax_mode', 'tax_percentage', 'tax_menu_price', 'tax_delivery_charge'];
-        $stored = $table->whereIn($keyColumn, $taxKeys)->get([$keyColumn, $valueColumn]);
+        $expected = [
+            'tax_mode' => (string)($values['tax_mode'] ?? 0),
+            'tax_enabled' => (string)($values['tax_mode'] ?? 0),
+            'tax_percentage' => (string)($values['tax_percentage'] ?? 0),
+            'tax_menu_price' => '1',
+            'tax_delivery_charge' => (string)($values['tax_delivery_charge'] ?? 0),
+        ];
+
+        $verifyQuery = DB::connection($connection)
+            ->table('settings')
+            ->whereIn($keyColumn, array_keys($expected));
+        if ($hasSort) $verifyQuery->where('sort', 'config');
+
+        $stored = $verifyQuery->get([$keyColumn, $valueColumn]);
         $storedMap = [];
         foreach ($stored as $row) {
             $storedMap[(string)$row->{$keyColumn}] = (string)$row->{$valueColumn};
         }
 
-        foreach ($taxKeys as $key) {
-            if (!array_key_exists($key, $values) || !array_key_exists($key, $storedMap)) {
+        foreach ($expected as $key => $expectedValue) {
+            if (!array_key_exists($key, $storedMap)) {
                 throw new \RuntimeException('Tax settings persistence verification failed for '.$key.'.');
             }
-            if ((string)$storedMap[$key] !== (string)$values[$key]) {
+            if ((string)$storedMap[$key] !== $expectedValue) {
                 throw new \RuntimeException('Tax settings persistence verification mismatch for '.$key.'.');
             }
         }
@@ -282,7 +309,7 @@ class Pmdfinance extends AdminController
         $keys = [
             'tax_mode' => 0,
             'tax_percentage' => 0,
-            'tax_menu_price' => 0,
+            'tax_menu_price' => 1,
             'tax_delivery_charge' => 0,
             'invoice_logo' => '',
             'invoice_customer_template' => 'classic',
@@ -312,13 +339,19 @@ class Pmdfinance extends AdminController
                 $valueColumn = in_array('value', $columns, true) ? 'value' : (in_array('data', $columns, true) ? 'data' : null);
 
                 if ($keyColumn && $valueColumn) {
-                    $rows = DB::connection($connection)
-                        ->table('settings')
-                        ->whereIn($keyColumn, array_keys($keys))
+                    $wanted = array_values(array_unique(array_merge(array_keys($keys), ['tax_enabled'])));
+                    $query = DB::connection($connection)->table('settings');
+                    if (in_array('sort', $columns, true)) $query->where('sort', 'config');
+
+                    $rows = $query
+                        ->whereIn($keyColumn, $wanted)
                         ->get([$keyColumn, $valueColumn]);
 
                     foreach ($rows as $row) {
                         $direct[(string)$row->{$keyColumn}] = $row->{$valueColumn};
+                    }
+                    if (!array_key_exists('tax_mode', $direct) && array_key_exists('tax_enabled', $direct)) {
+                        $direct['tax_mode'] = $direct['tax_enabled'];
                     }
                 }
             }
@@ -338,6 +371,9 @@ class Pmdfinance extends AdminController
                 $keys[$key] = $fallback;
             }
         }
+
+        // PMD_FIXED_VAT_ADD_POLICY_R37
+        $keys['tax_menu_price'] = 1;
 
         return $keys;
     }
