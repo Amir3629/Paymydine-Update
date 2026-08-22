@@ -6,12 +6,34 @@ namespace Admin\Services;
  * PMD_ROLE_LANDING_SERVICE_V2
  *
  * One server-side authority for PMD admin landing workspaces.
- * Default role routing delegates to PmdDefaultStaffRoleService, including
- * per-station KDS roles. Legacy role names and known test accounts remain as
- * compatibility fallbacks.
+ * It only chooses a destination; target controllers keep their own permissions.
+ * V2 adds one exact KDS landing per station role code.
  */
 class PmdRoleLandingService
 {
+    private const ROLE_MAP = [
+        'pmd-owner' => 'dashboardlab',
+        'owner' => 'dashboardlab',
+
+        'pmd-manager' => 'managerlab',
+        'manager' => 'managerlab',
+
+        'pmd-cashier' => 'cashierlab',
+        'cashier' => 'cashierlab',
+
+        // PMD product decision: Waiter and Cashier share the Cashier workspace.
+        'pmd-waiter' => 'cashierlab',
+        'waiter' => 'cashierlab',
+
+        'pmd-accountant' => 'accountantlab',
+        'accountant' => 'accountantlab',
+
+        'pmd-reservation' => 'reservationslab',
+        'pmd-reservations' => 'reservationslab',
+        'reservation' => 'reservationslab',
+        'reservations' => 'reservationslab',
+    ];
+
     private const USERNAME_FALLBACK_MAP = [
         'mehdiowner' => 'dashboardlab',
         'mehdimanager' => 'managerlab',
@@ -23,29 +45,40 @@ class PmdRoleLandingService
 
     public function routeFor($user): ?string
     {
-        if (!$user) return null;
+        if (!$user)
+            return null;
 
-        if (method_exists($user, 'isSuperUser') && $user->isSuperUser()) {
+        // The native /admin/dashboard is retired. Super users land in the
+        // owner workspace instead of rendering the legacy native dashboard.
+        if (method_exists($user, 'isSuperUser') && $user->isSuperUser())
             return 'dashboardlab';
-        }
 
         try {
-            $service = app(PmdDefaultStaffRoleService::class);
-            $code = $service->roleCodeForUser($user);
-            $route = $service->routeForRoleCode($code);
-            if ($route) return $route;
+            $staff = $user->staff;
+            $role = $staff ? $staff->role : null;
 
-            $role = optional($user->staff)->role;
             if ($role) {
-                $route = $service->routeForRoleCode(
-                    strtolower(trim((string)($role->name ?? '')))
-                );
-                if ($route) return $route;
+                $code = strtolower(trim((string)($role->code ?? '')));
+                $name = strtolower(trim((string)($role->name ?? '')));
+
+                if (str_starts_with($code, PmdDefaultStaffRoleService::KDS_PREFIX)) {
+                    $slug = trim(substr($code, strlen(PmdDefaultStaffRoleService::KDS_PREFIX)));
+                    if ($slug !== '')
+                        return 'kitchendisplay/'.$slug;
+                }
+
+                if ($code !== '' && isset(self::ROLE_MAP[$code]))
+                    return self::ROLE_MAP[$code];
+
+                if ($name !== '' && isset(self::ROLE_MAP[$name]))
+                    return self::ROLE_MAP[$name];
             }
         } catch (\Throwable $error) {
+            // Fall through to the known test-account map, then null.
         }
 
         $username = strtolower(trim((string)($user->username ?? '')));
+
         return self::USERNAME_FALLBACK_MAP[$username] ?? null;
     }
 }
