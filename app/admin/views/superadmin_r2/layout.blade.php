@@ -43,15 +43,12 @@
         html.pmd-sm2-expanded #pmd-side-menu2{width:184px!important}
         html.pmd-sm2-runtime-ready #pmd-side-menu2{transition:width 220ms cubic-bezier(.22,.75,.24,1)!important}
 
-        .pmd-main{min-height:100vh;padding:14px 14px 28px;transition:none}
+        .pmd-main{min-height:100vh;padding:24px 14px 28px;transition:none}
         html.pmd-sm2-collapsed .pmd-main{margin-left:var(--pmd-content-collapsed)}
         html.pmd-sm2-expanded .pmd-main{margin-left:var(--pmd-content-expanded)}
         html.pmd-sm2-runtime-ready .pmd-main{transition:margin-left 220ms cubic-bezier(.22,.75,.24,1)!important}
 
-        .topbar{height:64px;background:#fff;border:1px solid var(--line);border-radius:18px;display:flex;align-items:center;padding:0 18px;box-shadow:0 8px 24px rgba(18,61,50,.05);position:sticky;top:14px;z-index:20}
-        .top-left h1{font-size:19px;margin:0}.top-left p{margin:4px 0 0;color:var(--muted);font-size:12px}
-
-        .content{padding-top:14px}.hero{display:flex;justify-content:space-between;gap:20px;align-items:flex-end;margin:6px 0 16px}
+        .content{padding-top:0}.hero{display:flex;justify-content:space-between;gap:20px;align-items:flex-end;margin:0 0 16px}
         .hero h2{font-size:28px;margin:0 0 5px}.hero p{margin:0;color:var(--muted);font-size:13px}
         .btn{border:0;border-radius:12px;padding:10px 14px;font-weight:800;font-size:12px;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;gap:7px}
         .btn-primary{background:#123d32;color:#fff}.btn-primary:hover{background:#0b2f2a}
@@ -76,10 +73,11 @@
         .flash{padding:12px 14px;border-radius:12px;margin-bottom:14px;font-size:12px;font-weight:700}.flash.success{background:#ecfdf3;color:#067647;border:1px solid #abefc6}.flash.warning{background:#fff7ed;color:#b54708;border:1px solid #fed7aa}.flash.error{background:#fff1f0;color:#b42318;border:1px solid #fecdca}
         .filters{display:flex;gap:8px;flex-wrap:wrap}.filters input,.filters select{border:1px solid var(--line);border-radius:10px;padding:9px 10px;background:#fff;font-size:12px}.empty{text-align:center;padding:30px;color:var(--muted);font-size:12px}
         .health-dot{width:8px;height:8px;border-radius:50%;display:inline-block;background:#98a2b3}.health-dot.ok{background:#12b76a}.health-dot.bad{background:#f04438}
-        .mobile-menu{display:none;border:0;width:42px;height:42px;border-radius:12px;background:#eef5f2;color:#17372f;place-items:center;cursor:pointer}.mobile-menu svg{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round}
+        .mobile-menu{display:none;border:1px solid var(--line);width:44px;height:44px;border-radius:13px;background:#fff;color:#17372f;place-items:center;cursor:pointer;box-shadow:0 8px 24px rgba(18,61,50,.10)}
+        .mobile-menu svg{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round}
 
         @media(max-width:820px){
-            .pmd-main,html.pmd-sm2-collapsed .pmd-main,html.pmd-sm2-expanded .pmd-main{margin-left:0!important;padding:10px!important}
+            .pmd-main,html.pmd-sm2-collapsed .pmd-main,html.pmd-sm2-expanded .pmd-main{margin-left:0!important;padding:68px 10px 18px!important}
             #pmd-side-menu2,html.pmd-sm2-collapsed #pmd-side-menu2,html.pmd-sm2-expanded #pmd-side-menu2{
                 left:14px!important;top:14px!important;bottom:14px!important;width:220px!important;min-width:220px!important;max-width:220px!important;
                 height:auto!important;border-radius:24px!important;transform:translate3d(-260px,0,0)!important;pointer-events:none!important;
@@ -88,25 +86,20 @@
             html.pmd-sm2-mobile-open #pmd-side-menu2{transform:translate3d(0,0,0)!important;pointer-events:auto!important}
             #pmd-side-menu2-backdrop{display:block!important;position:fixed!important;inset:0!important;z-index:11999!important;opacity:0!important;pointer-events:none!important;background:rgba(5,18,16,0)!important;backdrop-filter:blur(0)!important;transition:opacity 320ms ease,background-color 320ms ease,backdrop-filter 320ms ease!important}
             html.pmd-sm2-mobile-open #pmd-side-menu2-backdrop{opacity:1!important;pointer-events:auto!important;background:rgba(5,18,16,.28)!important;backdrop-filter:blur(7px)!important}
-            .topbar{top:10px}.stats{grid-template-columns:repeat(2,1fr)}.grid2{grid-template-columns:1fr}.mobile-menu{display:grid}.hero{align-items:flex-start;flex-direction:column}.field-grid{grid-template-columns:1fr}.field.full{grid-column:auto}
+            .mobile-menu{display:grid;position:fixed;right:12px;top:12px;z-index:12020}.stats{grid-template-columns:repeat(2,1fr)}.grid2{grid-template-columns:1fr}.hero{align-items:flex-start;flex-direction:column}.field-grid{grid-template-columns:1fr}.field.full{grid-column:auto}
         }
-        @media(max-width:560px){.stats{display:flex;overflow:auto}.stat{min-width:165px}.top-left p{display:none}}
+        @media(max-width:560px){.stats{display:flex;overflow:auto}.stat{min-width:165px}}
     </style>
     @stack('head')
 </head>
 <body>
 @include('admin::superadmin_r2.side_menu')
 
-<main class="pmd-main">
-    <header class="topbar">
-        <div style="display:flex;align-items:center;gap:10px">
-            <button class="mobile-menu" type="button" data-pmd-super-mobile-menu aria-label="Open navigation" aria-expanded="false">
-                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h16"/></svg>
-            </button>
-            <div class="top-left"><h1>@yield('page_title','Super Admin')</h1><p>@yield('page_subtitle','PayMyDine platform control plane')</p></div>
-        </div>
-    </header>
+<button class="mobile-menu" type="button" data-pmd-super-mobile-menu aria-label="Open navigation" aria-expanded="false">
+    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h16"/></svg>
+</button>
 
+<main class="pmd-main">
     <section class="content">
         @if(session('success'))<div class="flash success">{{ session('success') }}</div>@endif
         @if(session('warning'))<div class="flash warning">{{ session('warning') }}</div>@endif
