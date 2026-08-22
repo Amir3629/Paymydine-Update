@@ -106,6 +106,10 @@
     {
       "path": "css/pmd-devices-settings-prune-r12.css",
       "name": "pmd-devices-settings-prune-r12-css"
+    },
+    {
+      "path": "css/pmd-finance-frontend-cleanup-r13.css",
+      "name": "pmd-finance-frontend-cleanup-r13-css"
     }
   ],
   "script": [
