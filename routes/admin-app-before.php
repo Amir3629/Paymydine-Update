@@ -2,8 +2,9 @@
 
 // PMD_DASHBOARD_KPI_REPAIR_ROUTE_V1
 // Keep the long-lived Admin route file byte-for-byte in the base include and
-// add only this focused authenticated Admin endpoint here.
+// add only focused PMD runtime endpoints/guards here.
 require_once __DIR__.'/admin-app-before-r1-base.php';
+require_once __DIR__.'/pmd-tenant-runtime-guard-r1.php';
 
 App::before(function () {
     Route::group([
