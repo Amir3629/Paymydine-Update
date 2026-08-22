@@ -3,7 +3,6 @@
 namespace Admin\Controllers;
 
 use Admin\Classes\AdminController;
-use Admin\Facades\AdminAuth;
 use Admin\Facades\AdminLocation;
 use Admin\Facades\AdminMenu;
 use Admin\Facades\Template;
@@ -154,20 +153,12 @@ class Pmdteam extends AdminController
     private function currentLocationId(): int
     {
         try {
-            $location = AdminLocation::current();
-            if ($location && (int)$location->location_id > 0) {
-                return (int)$location->location_id;
-            }
-        } catch (\Throwable $error) {
-        }
-
-        try {
-            $id = (int)AdminLocation::getSession('id');
+            $id = (int)AdminLocation::getId();
             if ($id > 0) return $id;
         } catch (\Throwable $error) {
         }
 
-        return max(0, (int)params('default_location_id'));
+        return 0;
     }
 
     private function technicalStaffEmail(string $username): string
