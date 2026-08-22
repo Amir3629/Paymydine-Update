@@ -20,6 +20,7 @@ jobs:
           php -l app/admin/Services/PmdFixedRoleRuntimeV1.php
           php -l app/admin/Services/PmdFixedRolePresentationV1.php
           php -l app/admin/Services/PmdCashierQuickV22Bridge.php
+          php -l app/admin/Services/PmdRoleLandingService.php
           php -l app/admin/controllers/Pmdteam.php
           php -l app/admin/middleware/LogUserLastSeen.php
 
@@ -44,6 +45,22 @@ jobs:
           grep -q "Server -> Waiter" "$RUNTIME"
           grep -q "super_user = \$code === 'owner'" "$RUNTIME"
 
+      - name: KDS role station contract
+        run: |
+          set -e
+          AUTH=app/admin/Services/PmdFixedRoleAuthorityV1.php
+          TEAM=app/admin/controllers/Pmdteam.php
+          FORM=app/admin/views/pmdteam/_inline_staff_form_v1.blade.php
+          LANDING=app/admin/Services/PmdRoleLandingService.php
+          grep -q "pmd_kds_staff_station_" "$AUTH"
+          grep -q "setKdsStationForStaff" "$AUTH"
+          grep -q "assignedKdsStationId" "$AUTH"
+          grep -q "KDS — " "$TEAM"
+          grep -q "kds:" "$TEAM"
+          grep -q "staff\[role\]" "$FORM"
+          grep -q "kitchendisplay/" "$LANDING"
+          ! grep -q "station name or station slug as the staff Name or Username" app/admin/views/pmdteam/_inline_staff_form_v1.blade.php
+
       - name: Settings cards removed only from Settings landing
         run: |
           set -e
@@ -59,7 +76,7 @@ jobs:
         run: |
           set -e
           FILE=app/admin/views/pmdteam/_inline_staff_form_v1.blade.php
-          grep -q 'staff\[role_id\]' "$FILE"
+          grep -q 'staff\[role\]' "$FILE"
           grep -q 'staff\[name\]' "$FILE"
           grep -q 'staff\[username\]' "$FILE"
           grep -q 'staff\[password\]' "$FILE"
@@ -74,6 +91,8 @@ jobs:
           set -e
           JS=app/admin/assets/js/pmd-cashier-quick-v22.js
           GUARD=app/admin/assets/js/pmd-cashier-quick-v22-exact-order-guard.js
+          LIGHT=app/admin/assets/css/pmd-cashier-quick-v22-light-guests.css
+          BRIDGE=app/admin/Services/PmdCashierQuickV22Bridge.php
           grep -q 'Current checks' "$JS"
           grep -q 'Open / edit' "$JS"
           grep -q 'data-cq22-pay' "$JS"
@@ -84,6 +103,9 @@ jobs:
           grep -q 'pmd-waiter-pos-v22/tables/' "$JS"
           grep -q 'activeOrderId = pending.orderId' "$GUARD"
           grep -q 'pmd:waiter-standard-v2-opened' "$GUARD"
+          grep -q 'background: #ffffff' "$LIGHT"
+          grep -q 'color: #17231f' "$LIGHT"
+          grep -q 'pmd-cashier-quick-v22-light-guests.css' "$BRIDGE"
           ! grep -Eq 'setInterval[[:space:]]*\(' "$JS" "$GUARD"
           ! grep -Eq 'new[[:space:]]+MutationObserver[[:space:]]*\(' "$JS" "$GUARD"
 
