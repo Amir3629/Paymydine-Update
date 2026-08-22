@@ -86,6 +86,10 @@
     {
       "path": "css/pmd-settings-polish-r7.css",
       "name": "pmd-settings-polish-r7-css"
+    },
+    {
+      "path": "css/pmd-settings-polish-r8.css",
+      "name": "pmd-settings-polish-r8-css"
     }
   ],
   "script": [
@@ -126,20 +130,12 @@
       "name": "pmd-dashboard-kpi-repair-v1-js"
     },
     {
-      "path": "js/pmd-settings-simplify-r1.js",
-      "name": "pmd-settings-simplify-r1-js"
-    },
-    {
-      "path": "js/pmd-settings-polish-r2.js",
-      "name": "pmd-settings-polish-r2-js"
-    },
-    {
-      "path": "js/pmd-settings-polish-r3.js",
-      "name": "pmd-settings-polish-r3-js"
-    },
-    {
       "path": "js/pmd-settings-polish-r4.js",
       "name": "pmd-settings-polish-r4-js"
+    },
+    {
+      "path": "js/pmd-settings-stable-r8.js",
+      "name": "pmd-settings-stable-r8-js"
     }
   ]
 }
