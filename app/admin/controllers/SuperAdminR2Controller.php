@@ -3,6 +3,7 @@
 namespace Admin\Controllers;
 
 use Admin\Classes\AdminController;
+use App\Services\SuperAdminTenantDomainProvisioner;
 use App\Services\SuperAdminTenantLifecycleService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -183,6 +184,35 @@ class SuperAdminR2Controller extends AdminController
             ]);
 
         return redirect('/superadmin/new')->with('success', 'Restaurant status updated.');
+    }
+
+    public function provision(Request $request, SuperAdminTenantDomainProvisioner $provisioner)
+    {
+        $request->validate(['id' => 'required|integer']);
+
+        $tenant = DB::connection('mysql')->table('tenants')
+            ->where('id', (int)$request->input('id'))
+            ->first();
+
+        if (!$tenant) {
+            return redirect('/superadmin/health')->withErrors(['tenant' => 'Tenant not found.']);
+        }
+
+        $result = $provisioner->provision((string)$tenant->domain);
+
+        if ($result['ok']) {
+            DB::connection('mysql')->table('tenants')
+                ->where('id', $tenant->id)
+                ->update(['status' => 'active', 'updated_at' => now()]);
+
+            return redirect('/superadmin/health')->with('success', 'Domain and TLS provisioning completed for '.$tenant->name.'.');
+        }
+
+        DB::connection('mysql')->table('tenants')
+            ->where('id', $tenant->id)
+            ->update(['status' => 'disabled', 'updated_at' => now()]);
+
+        return redirect('/superadmin/health')->with('warning', 'Provisioning is still incomplete for '.$tenant->name.': '.$result['message']);
     }
 
     public function health()
