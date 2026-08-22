@@ -1,0 +1,42 @@
+/* PMD_CASHIER_QUICK_V22_ADD_SELECTED_BAR_R43 */
+@media (max-width: 767px) {
+  body:has([data-v2-pos-host] [data-pos-modifier-modal].is-show)
+  [data-v2-pos-host] [data-pos-mobile-cart] > * {
+    display: none !important;
+  }
+
+  body:has([data-v2-pos-host] [data-pos-modifier-modal].is-show)
+  [data-v2-pos-host] [data-pos-mobile-cart] {
+    z-index: 1700 !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    gap: 8px !important;
+    background: #bd3d3d !important;
+    color: #fff !important;
+    font-weight: 850 !important;
+  }
+
+  body:has([data-v2-pos-host] [data-pos-modifier-modal].is-show)
+  [data-v2-pos-host] [data-pos-mobile-cart]::before {
+    content: 'Add selected';
+    display: inline-block;
+    color: #fff;
+    font-size: 14px;
+    font-weight: 850;
+  }
+
+  body:has([data-v2-pos-host] [data-pos-modifier-modal].is-show)
+  [data-v2-pos-host] [data-pos-mobile-cart]::after {
+    content: '+';
+    display: inline-grid;
+    width: 22px;
+    height: 22px;
+    place-items: center;
+    border: 1px solid rgba(255,255,255,.55);
+    border-radius: 999px;
+    color: #fff;
+    font-size: 16px;
+    line-height: 1;
+  }
+}
