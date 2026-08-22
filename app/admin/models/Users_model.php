@@ -17,10 +17,17 @@ class Users_model extends AuthUserModel
     use Purgeable;
     use SendsMailTemplate;
 
+    /**
+     * @var string The database table name
+     */
     protected $table = 'users';
+
     protected $primaryKey = 'user_id';
+
     protected $fillable = ['username', 'super_user'];
+
     protected $appends = ['staff_name'];
+
     protected $hidden = ['password'];
 
     protected $casts = [
@@ -40,12 +47,16 @@ class Users_model extends AuthUserModel
     ];
 
     protected $with = ['staff'];
+
     protected $purgeable = ['password_confirm', 'send_invite'];
 
     protected function afterCreate()
     {
         $this->restorePurgedValues();
-        if ($this->send_invite) $this->sendInvite();
+
+        if ($this->send_invite) {
+            $this->sendInvite();
+        }
     }
 
     protected function sendInvite()
@@ -55,9 +66,11 @@ class Users_model extends AuthUserModel
                 $this->reset_code = $inviteCode = $this->generateResetCode();
                 $this->reset_time = now();
                 $this->save();
+
                 return ['invite_code' => $inviteCode];
             }
         });
+
         $this->mailSend('admin::_mail.invite');
     }
 
@@ -76,7 +89,9 @@ class Users_model extends AuthUserModel
 
     public function getStaffNameAttribute()
     {
-        if (!$staff = $this->staff) return null;
+        if (!$staff = $this->staff)
+            return null;
+
         return $staff->staff_name;
     }
 
@@ -85,11 +100,15 @@ class Users_model extends AuthUserModel
         return $this->super_user == 1;
     }
 
+    /**
+     * Reset a staff password,
+     */
     public function resetPassword()
     {
         $this->reset_code = $resetCode = $this->generateResetCode();
         $this->reset_time = Carbon::now();
         $this->save();
+
         return $resetCode;
     }
 
@@ -109,38 +128,42 @@ class Users_model extends AuthUserModel
 
     public function hasPermission($permissions, $checkAll = true)
     {
-        if ($this->isSuperUser()) return true;
+        // Bail out if the staff is a super user
+        if ($this->isSuperUser())
+            return true;
 
+        /* PMD_DEFAULT_ROLE_ROUTE_BOUNDARY_V1_START */
         /*
-         * PMD_DEFAULT_ROLE_ROUTE_BOUNDARY_V1
-         *
-         * Default PMD roles deliberately keep the minimum legacy permission
-         * bits required by their canonical workspace/controller. Those bits
-         * must never become a way to browse another admin route directly.
-         * Apply the product-role route boundary before matching permission bits.
+         * Default PMD roles keep only the legacy permission bits required by
+         * their canonical workspace/controller. Those bits must never become
+         * a way to browse another admin route directly.
          */
         try {
             $roleService = app(PmdDefaultStaffRoleService::class);
             $roleCode = $roleService->roleCodeForUser($this);
+
             if (
                 $roleService->isManagedCode($roleCode)
-                && !$roleService->mayOpenPath($roleCode, request()->path())
+                && !$roleService->mayOpenPath(
+                    $roleCode,
+                    request()->path()
+                )
             ) {
                 return false;
             }
         } catch (\Throwable $error) {
-            // Preserve legacy permission behavior for custom/unmanaged roles if
-            // role resolution is unavailable for any reason.
+            // Custom/unmanaged roles retain the legacy permission behavior.
         }
+        /* PMD_DEFAULT_ROLE_ROUTE_BOUNDARY_V1_END */
 
         $staffPermissions = $this->getPermissions();
-        if (!is_array($permissions)) $permissions = [$permissions];
+
+        if (!is_array($permissions))
+            $permissions = [$permissions];
 
         if (PermissionManager::instance()->checkPermission(
-            $staffPermissions,
-            $permissions,
-            $checkAll
-        )) return true;
+            $staffPermissions, $permissions, $checkAll)
+        ) return true;
 
         return false;
     }
@@ -148,8 +171,12 @@ class Users_model extends AuthUserModel
     public function getPermissions()
     {
         $role = $this->staff->role;
+
         $permissions = [];
-        if ($role && is_array($role->permissions)) $permissions = $role->permissions;
+        if ($role && is_array($role->permissions)) {
+            $permissions = $role->permissions;
+        }
+
         return $permissions;
     }
 
@@ -166,12 +193,15 @@ class Users_model extends AuthUserModel
 
     public function mailGetRecipients($type)
     {
-        return [[$this->staff->staff_email, $this->staff_name]];
+        return [
+            [$this->staff->staff_email, $this->staff_name],
+        ];
     }
 
     public function mailGetData()
     {
         $model = $this->fresh();
+
         return array_merge($model->toArray(), [
             'staff' => $model,
             'staff_name' => $model->staff_name,
