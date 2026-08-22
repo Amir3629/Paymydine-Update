@@ -102,6 +102,10 @@
     {
       "path": "css/pmd-settings-polish-r11.css",
       "name": "pmd-settings-polish-r11-css"
+    },
+    {
+      "path": "css/pmd-devices-settings-prune-r12.css",
+      "name": "pmd-devices-settings-prune-r12-css"
     }
   ],
   "script": [
