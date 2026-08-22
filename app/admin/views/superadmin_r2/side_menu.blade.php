@@ -31,7 +31,7 @@
 
         <a class="pmd-sm2__item {{ $pmdSuperActive(['superadmin/health']) ? 'is-active' : '' }}" href="/superadmin/health">
             <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 13h4l2-6 4 12 2-6h4"/></svg>
-            <span class="pmd-sm2__label">Tenant Health</span>
+            <span class="pmd-sm2__label">Restaurant Health</span>
         </a>
 
         <a class="pmd-sm2__item {{ $pmdSuperActive(['superadmin/location-requests']) ? 'is-active' : '' }}" href="/superadmin/location-requests">
