@@ -114,6 +114,53 @@ if ($pmdHasSplitTables) {
     }
 }
 
+// PMD_R36_ADMIN_FINAL_BILL_PANEL
+// The child order remains a kitchen/operational record. When R36 is active,
+// show the visit-level Final Bill and its canonical payment evidence next to it.
+$pmdBillingGroup = null;
+$pmdBillingGroupOrders = collect();
+$pmdBillingGroupPayments = collect();
+$pmdBillingGroupInvoiceUrl = null;
+if (Schema::hasTable('pmd_billing_group_orders') && Schema::hasTable('pmd_billing_groups')) {
+    try {
+        $pmdBillingLink = DB::table('pmd_billing_group_orders')
+            ->where('order_id', (int)$formModel->order_id)
+            ->first();
+        if ($pmdBillingLink) {
+            $pmdBillingGroup = DB::table('pmd_billing_groups')
+                ->where('id', (int)$pmdBillingLink->billing_group_id)
+                ->first();
+            if ($pmdBillingGroup) {
+                $pmdBillingGroupOrders = DB::table('pmd_billing_group_orders')
+                    ->where('billing_group_id', (int)$pmdBillingGroup->id)
+                    ->orderBy('order_id')
+                    ->get();
+                if (Schema::hasTable('pmd_billing_group_payments')) {
+                    $pmdBillingGroupPayments = DB::table('pmd_billing_group_payments')
+                        ->where('billing_group_id', (int)$pmdBillingGroup->id)
+                        ->orderBy('id')
+                        ->get();
+                }
+                if ((string)($pmdBillingGroup->mode ?? '') === 'r36'
+                    && (string)($pmdBillingGroup->status ?? '') === 'closed'
+                    && (string)($pmdBillingGroup->payment_status ?? '') === 'paid'
+                    && trim((string)($pmdBillingGroup->invoice_number ?? '')) !== '') {
+                    $pmdBillingGroupInvoiceUrl = app(\App\Services\Financial\BillingGroupInvoiceService::class)
+                        ->url($pmdBillingGroup);
+                }
+            }
+        }
+    } catch (\Throwable $pmdBillingPanelError) {
+        \Log::warning('PMD R36 Final Bill admin panel skipped', [
+            'order_id' => (int)($formModel->order_id ?? 0),
+            'message' => $pmdBillingPanelError->getMessage(),
+        ]);
+        $pmdBillingGroup = null;
+        $pmdBillingGroupOrders = collect();
+        $pmdBillingGroupPayments = collect();
+    }
+}
+
 // Canonical totals from persisted order_totals/order_total
 $totals = collect($formModel->getOrderTotals() ?? []);
 $subtotal = (float) optional($totals->firstWhere('code', 'subtotal'))->value;
@@ -137,6 +184,59 @@ if ($pmdPaidTransactionTotal > 0 && strtolower((string)($formModel->settlement_s
     $finalTotal = $pmdPaidTransactionTotal;
 }
 @endphp
+
+@if ($pmdBillingGroup)
+<tr class="pmd-r36-final-bill-row" data-pmd-r36-final-bill-admin="1">
+<td class="text-muted align-top">Final Bill</td>
+<td class="text-right">
+<div style="text-align:left;border:1px solid #d8dee7;border-radius:8px;padding:10px;">
+    <div>
+        <strong>{{ $pmdBillingGroup->invoice_number ?: $pmdBillingGroup->public_id }}</strong>
+        · {{ strtoupper((string)$pmdBillingGroup->payment_status) }}
+        · {{ strtoupper((string)$pmdBillingGroup->fiscal_status) }}
+    </div>
+    <div style="font-size:12px;color:#667085;margin-top:4px;">
+        Table {{ $pmdBillingGroup->table_id }} · Visit {{ $pmdBillingGroup->session_key }}
+        · {{ $pmdBillingGroupOrders->count() }} kitchen round(s)
+        · {{ strtoupper((string)$pmdBillingGroup->mode) }}
+    </div>
+    <div style="margin-top:6px;">
+        Subtotal {{ currency_format(((int)$pmdBillingGroup->subtotal_cents)/100) }}
+        · Service {{ currency_format(((int)$pmdBillingGroup->service_charge_cents)/100) }}
+        · Discount -{{ currency_format(((int)$pmdBillingGroup->discount_cents)/100) }}
+        · Tip {{ currency_format(((int)$pmdBillingGroup->tip_cents)/100) }}
+        · <strong>Final {{ currency_format((((int)$pmdBillingGroup->total_cents)+((int)$pmdBillingGroup->tip_cents)-((int)$pmdBillingGroup->discount_cents))/100) }}</strong>
+    </div>
+    @if ($pmdBillingGroupPayments->count() > 0)
+        <div style="margin-top:8px;font-size:12px;"><strong>Billing Group payments</strong></div>
+        @foreach ($pmdBillingGroupPayments as $pmdGroupPayment)
+            @php
+                $pmdGroupPayableCents = property_exists($pmdGroupPayment, 'payable_cents')
+                    ? (int)$pmdGroupPayment->payable_cents
+                    : max(0, (int)$pmdGroupPayment->principal_cents + (int)$pmdGroupPayment->tip_cents - (int)$pmdGroupPayment->discount_cents);
+            @endphp
+            <div style="font-size:12px;margin-top:3px;">
+                {{ strtoupper((string)$pmdGroupPayment->method) }}
+                · {{ currency_format($pmdGroupPayableCents/100) }}
+                · {{ $pmdGroupPayment->provider_reference ?: $pmdGroupPayment->payment_id }}
+                · {{ strtoupper((string)$pmdGroupPayment->status) }}
+            </div>
+        @endforeach
+    @endif
+    @if ((string)$pmdBillingGroup->payment_status === 'reconciliation_required')
+        <div class="text-danger" style="margin-top:8px;">
+            <strong>Reconciliation required:</strong> {{ $pmdBillingGroup->reconciliation_reason }}
+        </div>
+    @endif
+    @if ($pmdBillingGroupInvoiceUrl)
+        <div style="margin-top:8px;">
+            <a href="{{ $pmdBillingGroupInvoiceUrl }}" target="_blank" rel="noopener">Download canonical Final Bill invoice</a>
+        </div>
+    @endif
+</div>
+</td>
+</tr>
+@endif
 
 {{-- نمایش سفارشات تقسیم‌شده --}}
 @if ($pmdHasSplitTables && $pmdSplitTransactions->count() > 0)

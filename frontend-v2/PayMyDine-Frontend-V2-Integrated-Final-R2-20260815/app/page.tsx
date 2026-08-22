@@ -1,4 +1,5 @@
 import { MenuRuntimeProvider } from '@/src/runtime/MenuRuntimeContext'
+import { FinalBillInvoiceNotice } from '@/src/runtime/components/FinalBillInvoiceNotice'
 import { loadCustomerBootstrap } from '@/src/server/bootstrap'
 import { getPageContext } from '@/src/server/page-context'
 import { ThemeRenderer } from '@/src/themes/ThemeRenderer'
@@ -18,6 +19,7 @@ export default async function CustomerMenuPage({ searchParams }: PageProps) {
   return (
     <MenuRuntimeProvider bootstrap={bootstrap}>
       <ThemeRenderer themeId={bootstrap.theme.id} />
+      <FinalBillInvoiceNotice />
     </MenuRuntimeProvider>
   )
 }

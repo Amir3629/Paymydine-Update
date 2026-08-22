@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { CheckCircle2, Clock, LoaderCircle, RotateCcw, XCircle } from 'lucide-react'
 import {
+  cancelBillingGroupPayment,
   clearPendingProviderPayment,
   fetchTableOrder,
   finalizeExistingOrderPayment,
@@ -54,7 +55,7 @@ export default function PaymentReturnClient() {
 
       if (!provider || !pending) {
         setState('pending')
-        setMessage('The provider return was received, but no local payment reference was found. Return to the menu and refresh the table order status.')
+        setMessage('The provider return was received, but no local routing reference was found. Return to the menu and refresh the table order status. Do not repeat a charge that may already have been approved.')
         return
       }
 
@@ -63,6 +64,9 @@ export default function PaymentReturnClient() {
         if (cancelled) return
 
         if (verification.cancelled) {
+          if (pending.billingGroupPaymentId) {
+            await cancelBillingGroupPayment(pending.billingGroupPaymentId).catch(() => undefined)
+          }
           clearPendingProviderPayment(provider)
           setState('cancelled')
           setMessage('The payment was cancelled or expired. No new charge was confirmed.')
@@ -80,23 +84,26 @@ export default function PaymentReturnClient() {
             pending.hostedCheckoutId ||
             null
 
-          // PMD_MULTI_ORDER_PAYMENT_R32
+          // PMD_R36_PAYMENT_RETURN_AUTHORITY
+          // localStorage is only a routing cache. The Billing Group payment ID is
+          // revalidated and settled by the tenant backend under its DB locks.
           const groupedAllocations = (pending.orderAllocations || []).filter((entry) => entry.orderId > 0 && entry.amount > 0)
           if (reference && groupedAllocations.length > 1) {
-            // Group settlement must fail loudly. Unlike the legacy singular reconcile
-            // fallback below, a partially settled group is retried safely through the
-            // backend's per-order already-paid guards and must never be reported as
-            // fully paid until every selected order has settled.
             await settleExistingOrderGroup({
               allocations: groupedAllocations,
               table: pending.table,
               method: pending.methodCode,
               providerCode: pending.providerCode || provider,
               paymentReference: reference,
+              billingGroupPaymentId: pending.billingGroupPaymentId || null,
+              providerEvidence: {
+                provider,
+                returnVerification: verification.raw || null,
+              },
             })
             clearPendingProviderPayment(provider)
             setState('paid')
-            setMessage(`Payment confirmed. ${groupedAllocations.length} selected table orders have been updated.`)
+            setMessage('Payment confirmed. The Final Bill was settled atomically for the selected table orders.')
             return
           }
 
@@ -153,8 +160,8 @@ export default function PaymentReturnClient() {
                 })
               }
             } catch {
-              // Some provider status routes persist settlement themselves. The shared
-              // table-order response below remains the final source of truth.
+              // Singular legacy providers may persist settlement in their status route.
+              // The shared table response below remains the final legacy source of truth.
             }
           }
 
@@ -170,7 +177,7 @@ export default function PaymentReturnClient() {
           }
 
           setState('pending')
-          setMessage('The provider confirmed the payment, but the table settlement is still synchronizing. Return to the menu and refresh in a moment.')
+          setMessage('The provider confirmed the payment, but the table settlement is still synchronizing. Return to the menu and refresh in a moment. Do not pay again.')
           return
         }
 
@@ -179,7 +186,7 @@ export default function PaymentReturnClient() {
       } catch (error) {
         if (cancelled) return
         setState('error')
-        setMessage(error instanceof Error ? error.message : 'Payment verification failed.')
+        setMessage(error instanceof Error ? `The provider return could not be reconciled safely. Do not pay again. ${error.message}` : 'Payment verification failed. Do not pay again until the order status is refreshed.')
       }
     }
 

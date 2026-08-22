@@ -36,7 +36,7 @@ for (const themeId of themeIds) {
   for (const marker of required) {
     if (!content.includes(marker)) failures.push(`${themeId}: missing ${marker}`)
   }
- }
+}
 
 // PMD_SHARED_TOOLBAR_FEATURE_AUDIT_R28D
 // Shared runtime owns behavior; each of the ten themes only renders the shared toolbar.
@@ -105,26 +105,65 @@ for (const marker of ['export async function submitReview', "'/api/v1/reviews'"]
 for (const marker of ['submitReview', 'data-pmd-paid-order-review="r30"', 'PaidOrderReviewCard']) {
   if (!overlays.includes(marker)) failures.push(`RuntimeOverlays review: missing ${marker}`)
 }
-// PMD_MULTI_ORDER_PAYMENT_R32
+
+// PMD_MULTI_ORDER_PAYMENT_R32 / PMD_R36_GROUP_PAYMENT_AUTHORITY
+// R32's child-order loop remains only as a legacy compatibility fallback. New R36
+// single- and multi-order payments must reserve and settle the server Billing Group.
 const multiOrderClient = fs.readFileSync(path.join(root, 'src/lib/client-api.ts'), 'utf8')
 const multiOrderReturn = fs.readFileSync(path.join(root, 'app/payment/return/PaymentReturnClient.tsx'), 'utf8')
 const multiOrderPaypal = fs.readFileSync(path.join(root, 'src/runtime/components/PayPalButton.tsx'), 'utf8')
+const multiOrderStripe = fs.readFileSync(path.join(root, 'src/runtime/components/StripeInlinePayment.tsx'), 'utf8')
 const multiOrderCss = fs.readFileSync(path.join(root, 'src/runtime/components/RuntimeOverlays.module.css'), 'utf8')
 for (const marker of ['MultiOrderPaymentPanel', 'data-pmd-multi-order-picker="r32"', 'data-pmd-multi-order-payment="r32"', 'orderAllocations']) {
   if (!overlays.includes(marker)) failures.push(`RuntimeOverlays multi-order: missing ${marker}`)
 }
-for (const marker of ['ExistingOrderPaymentAllocation', 'settleExistingOrderGroup', 'couponCode: allocation.couponCode', 'attempt < 3', 'orderAllocations', 'isMultiOrder', 'order_id: isMultiOrder ? undefined : input.orderId']) {
-  if (!multiOrderClient.includes(marker)) failures.push(`client-api multi-order: missing ${marker}`)
+for (const marker of [
+  'ExistingOrderPaymentAllocation',
+  'reserveExistingOrderGroupPayment',
+  'settleBillingGroupPayment',
+  'settleExistingOrderGroup',
+  'billingGroupPaymentId',
+  'Final Bill payment reservation is missing',
+  'couponCode: allocation.couponCode',
+  'attempt < 3',
+  'orderAllocations',
+]) {
+  if (!multiOrderClient.includes(marker)) failures.push(`client-api R36 group payment: missing ${marker}`)
 }
-for (const marker of ['settleExistingOrderGroup', 'pending.orderAllocations', 'Group settlement must fail loudly', 'selected table orders have been updated']) {
-  if (!multiOrderReturn.includes(marker)) failures.push(`PaymentReturnClient multi-order: missing ${marker}`)
+for (const marker of [
+  'PMD_R36_PAYMENT_RETURN_AUTHORITY',
+  'settleExistingOrderGroup',
+  'pending.orderAllocations',
+  'pending.billingGroupPaymentId',
+  'Final Bill was settled atomically',
+  'Do not pay again',
+]) {
+  if (!multiOrderReturn.includes(marker)) failures.push(`PaymentReturnClient R36 group payment: missing ${marker}`)
 }
-for (const marker of ['settleExistingOrderGroup', 'orderAllocations', 'multiOrderCaptureLockedRef', 'Do not pay again', 'isMultiOrder ? undefined : props.orderId']) {
-  if (!multiOrderPaypal.includes(marker)) failures.push(`PayPalButton multi-order: missing ${marker}`)
+for (const marker of [
+  'reserveExistingOrderGroupPayment',
+  'settleExistingOrderGroup',
+  'orderAllocations',
+  'r36ReservationRef',
+  'billing_group_payment_id',
+  'Do not pay again',
+]) {
+  if (!multiOrderPaypal.includes(marker)) failures.push(`PayPalButton R36 group payment: missing ${marker}`)
+}
+for (const marker of [
+  'reserveExistingOrderGroupPayment',
+  'settleExistingOrderGroup',
+  'orderAllocations',
+  'r36ReservationRef',
+  'billing_group_payment_id',
+  'Do not pay again',
+]) {
+  if (!multiOrderStripe.includes(marker)) failures.push(`StripeInlinePayment R36 group payment: missing ${marker}`)
 }
 for (const marker of ['PMD_MULTI_ORDER_PAYMENT_R32', '.multiOrderSelectionSummary', '.multiOrderList', 'data-pmd-multi-order-picker="r32"']) {
   if (!multiOrderCss.includes(marker)) failures.push(`RuntimeOverlays CSS multi-order: missing ${marker}`)
 }
+
 // PMD_DIRECT_KITCHEN_SEND_R33B
 const directOrderRuntime = fs.readFileSync(path.join(root, 'src/runtime/MenuRuntimeContext.tsx'), 'utf8')
 for (const marker of [
@@ -170,7 +209,6 @@ for (const marker of [
 ]) {
   if (!sharedOverlayCssR34.includes(marker)) failures.push(`RuntimeOverlays shared icon alignment R34: missing ${marker}`)
 }
-
 
 // PMD_SPLIT_PAYMENT_SAFETY_R35
 for (const marker of [

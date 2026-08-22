@@ -13,6 +13,7 @@ trait HasInvoice
         });
 
         static::saved(function (self $model) {
+            if ($model->pmdR36UsesFinalBillInvoice()) return;
             if ($model->isPaymentProcessed() && !$model->hasInvoice())
                 $model->generateInvoice();
         });
@@ -41,6 +42,7 @@ trait HasInvoice
 
     public function generateInvoice()
     {
+        if ($this->pmdR36UsesFinalBillInvoice()) return null;
         if ($this->hasInvoice())
             return $this->invoice_number;
 
@@ -57,6 +59,26 @@ trait HasInvoice
         ]);
 
         return $this->invoice_number;
+    }
+
+    protected function pmdR36UsesFinalBillInvoice(): bool
+    {
+        try {
+            if (!\Illuminate\Support\Facades\Schema::hasTable('pmd_billing_group_orders')
+                || !\Illuminate\Support\Facades\Schema::hasTable('pmd_billing_groups')) {
+                return false;
+            }
+            $link = \Illuminate\Support\Facades\DB::table('pmd_billing_group_orders')
+                ->where('order_id', (int)$this->order_id)
+                ->first();
+            if (!$link) return false;
+
+            return (string)\Illuminate\Support\Facades\DB::table('pmd_billing_groups')
+                ->where('id', (int)$link->billing_group_id)
+                ->value('mode') === 'r36';
+        } catch (\Throwable $ignored) {
+            return false;
+        }
     }
 
     public function generateInvoicePrefix($invoiceDate = null)

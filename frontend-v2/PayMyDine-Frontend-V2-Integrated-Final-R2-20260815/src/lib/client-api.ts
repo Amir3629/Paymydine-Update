@@ -294,6 +294,26 @@ export async function payExistingOrder(input: {
   sharePercent?: number | null
   guestSessionId?: string | null
 }): Promise<any> {
+  // Hosted provider flows store only routing metadata in localStorage; the server
+  // Billing Group payment remains canonical. If a captured hosted payment reaches
+  // an older call site that still invokes payExistingOrder(), route it to the
+  // atomic R36 settlement instead of touching one child order.
+  if (typeof window !== 'undefined' && input.paymentReference) {
+    const pending = findPendingProviderPayment(input.providerCode || '')?.pending
+    const pendingCoversOrder = pending && (
+      pending.orderId === input.orderId
+      || (pending.orderAllocations || []).some((entry) => entry.orderId === input.orderId)
+    )
+    if (pendingCoversOrder && pending?.billingGroupPaymentId) {
+      return settleBillingGroupPayment({
+        paymentId: pending.billingGroupPaymentId,
+        providerReference: input.paymentReference,
+        providerConfirmed: true,
+        providerEvidence: { provider: input.providerCode || pending.providerCode || pending.provider },
+      })
+    }
+  }
+
   return jsonRequest('/api/v1/orders/pay-existing', {
     method: 'POST',
     body: JSON.stringify({
@@ -386,19 +406,197 @@ export async function prepareSplitPaymentIntent(input: {
   }
 }
 
-// PMD_MULTI_ORDER_PAYMENT_R32
-// One provider charge can settle several submitted QR table orders. The backend
-// remains authoritative per order: each allocation is sent through the existing
-// /orders/pay-existing endpoint and therefore keeps all table/order guards.
+// PMD_MULTI_ORDER_PAYMENT_R32 / PMD_R36_GROUP_PAYMENT_AUTHORITY
+export type ExistingOrderPaymentAllocation = {
+  orderId: number
+  amount: number
+  tipAmount: number
+  couponDiscount: number
+  couponCode: string | null
+  selectedItems: Array<{ order_menu_id: number; quantity: number }> | null
+  payerLabel: string | null
+  paymentIntentToken?: string | null
+  splitMode?: 'mine' | 'equal' | 'items' | 'shares' | null
+  splitPeople?: number | null
+  sharePercent?: number | null
+  guestSessionId?: string | null
+}
+
+export type BillingGroupSummary = {
+  publicId: string
+  tableId: string
+  sessionKey: string
+  mode: 'r36' | 'legacy_passthrough' | string
+  status: string
+  currency: string
+  subtotalCents: number
+  serviceChargeCents: number
+  serviceChargeTaxCents?: number
+  serviceChargeTaxAddedCents?: number
+  discountCents: number
+  tipCents: number
+  totalCents: number
+  paidCents: number
+  remainingCents: number
+  paymentStatus: string
+  fiscalStatus: string
+  invoiceAvailable?: boolean
+  invoiceNumber?: string | null
+  invoiceDownloadToken?: string | null
+  invoiceDownloadUrl?: string | null
+  orders: Array<{ orderId: number; source?: string; snapshot?: Record<string, unknown> }>
+}
+
+export type BillingGroupPaymentReservation = {
+  paymentId: string
+  duplicate: boolean
+  status: string
+  method: string
+  provider: string | null
+  providerReference: string | null
+  principalCents: number
+  tipCents: number
+  discountCents: number
+  payableCents: number
+  currency: string
+  payerLabel: string | null
+  allocation: Record<string, unknown>
+  reservedUntil: string | null
+  settledAt: string | null
+  reconciliationRequired: boolean
+  reconciliationReason: string | null
+}
+
+export async function fetchCurrentBillingGroup(table: TableContext, sessionKey = ''): Promise<BillingGroupSummary | null> {
+  const params = tableParams(table)
+  if (sessionKey) params.set('session_key', sessionKey)
+  const data = await jsonRequest<any>(`/api/v1/billing-groups/current?${params.toString()}`)
+  return data?.billingGroup ? data.billingGroup as BillingGroupSummary : null
+}
+
+function allocationBaseCents(entry: ExistingOrderPaymentAllocation): number {
+  return Math.max(0, Math.round((Number(entry.amount || 0) - Number(entry.tipAmount || 0) + Number(entry.couponDiscount || 0)) * 100))
+}
+
+function createR36IdempotencyKey(prefix: string): string {
+  const random = typeof crypto !== 'undefined' && 'randomUUID' in crypto
+    ? crypto.randomUUID()
+    : `${Date.now()}-${Math.random().toString(36).slice(2)}`
+  return `r36:${prefix}:${random}`.slice(0, 190)
+}
+
+export async function reserveExistingOrderGroupPayment(input: {
+  allocations: ExistingOrderPaymentAllocation[]
+  table: TableContext
+  method: string
+  providerCode?: string | null
+  idempotencyKey?: string | null
+}): Promise<{ group: BillingGroupSummary; payment: BillingGroupPaymentReservation } | null> {
+  const allocations = input.allocations.filter((entry) => entry.orderId > 0 && allocationBaseCents(entry) > 0)
+  if (allocations.length < 1) return null
+
+  const group = await fetchCurrentBillingGroup(input.table)
+  if (!group || group.mode !== 'r36') return null
+  if (group.paymentStatus === 'reconciliation_required') {
+    throw new Error('This Final Bill requires payment reconciliation before another charge can start.')
+  }
+
+  const baseCents = allocations.map((entry) => ({
+    order_id: entry.orderId,
+    base_cents: allocationBaseCents(entry),
+    selected_items: entry.selectedItems || null,
+  }))
+  const selectedBase = baseCents.reduce((sum, entry) => sum + entry.base_cents, 0)
+  const serviceTotal = Math.max(0, Number(group.serviceChargeCents || 0) + Number(group.serviceChargeTaxAddedCents || 0))
+  const serviceComponent = Math.abs(Number(group.remainingCents || 0) - selectedBase - serviceTotal) <= 1
+    ? serviceTotal
+    : 0
+  const tipCents = allocations.reduce((sum, entry) => sum + Math.max(0, Math.round(Number(entry.tipAmount || 0) * 100)), 0)
+  const discountCents = allocations.reduce((sum, entry) => sum + Math.max(0, Math.round(Number(entry.couponDiscount || 0) * 100)), 0)
+  const couponCodes = Array.from(new Set(allocations.map((entry) => String(entry.couponCode || '').trim()).filter(Boolean)))
+  const payerLabels = Array.from(new Set(allocations.map((entry) => String(entry.payerLabel || '').trim()).filter(Boolean)))
+
+  const data = await jsonRequest<any>(`/api/v1/billing-groups/${encodeURIComponent(group.publicId)}/payments/reserve`, {
+    method: 'POST',
+    body: JSON.stringify({
+      table_id: group.tableId || input.table.id || input.table.number,
+      idempotency_key: input.idempotencyKey || createR36IdempotencyKey(input.providerCode || input.method || 'group'),
+      method: input.method,
+      provider: input.providerCode || null,
+      principal_cents: selectedBase + serviceComponent,
+      service_component_cents: serviceComponent,
+      tip_cents: tipCents,
+      discount_cents: discountCents,
+      allocations: baseCents,
+      payer_label: payerLabels.length === 1 ? payerLabels[0] : 'PayMyDine Final Bill',
+      coupon_code: couponCodes.length === 1 ? couponCodes[0] : null,
+    }),
+  })
+
+  const payment = data?.payment as BillingGroupPaymentReservation | undefined
+  if (!payment?.paymentId || payment.status !== 'reserved') {
+    throw new Error('Final Bill payment reservation was not created.')
+  }
+  return { group, payment }
+}
+
+export async function cancelBillingGroupPayment(paymentId: string): Promise<void> {
+  if (!paymentId) return
+  await jsonRequest(`/api/v1/billing-group-payments/${encodeURIComponent(paymentId)}/cancel`, { method: 'POST', body: '{}' })
+}
+
+export async function settleBillingGroupPayment(input: {
+  paymentId: string
+  providerReference?: string | null
+  providerConfirmed?: boolean
+  providerEvidence?: Record<string, unknown> | null
+}): Promise<any> {
+  return jsonRequest(`/api/v1/billing-group-payments/${encodeURIComponent(input.paymentId)}/settle`, {
+    method: 'POST',
+    body: JSON.stringify({
+      provider_reference: input.providerReference || null,
+      provider_confirmed: Boolean(input.providerConfirmed || input.providerReference),
+      provider_evidence: input.providerEvidence || null,
+    }),
+  })
+}
+
+// New R36 visits must have a server-side reservation before provider capture.
+// Legacy visits deliberately keep the R32 per-order loop for backward compatibility.
 export async function settleExistingOrderGroup(input: {
   allocations: ExistingOrderPaymentAllocation[]
   table: TableContext
   method: string
   providerCode?: string | null
   paymentReference?: string | null
+  billingGroupPaymentId?: string | null
+  providerEvidence?: Record<string, unknown> | null
 }): Promise<any[]> {
   const allocations = input.allocations.filter((entry) => entry.orderId > 0 && entry.amount > 0)
-  if (allocations.length < 2) throw new Error('At least two payable orders are required for grouped settlement.')
+  if (allocations.length < 1) throw new Error('At least one payable order is required for Final Bill settlement.')
+
+  let paymentId = String(input.billingGroupPaymentId || '')
+  if (!paymentId && typeof window !== 'undefined') {
+    const pending = findPendingProviderPayment(input.providerCode || '')
+    paymentId = String(pending?.pending.billingGroupPaymentId || '')
+  }
+
+  // A concrete Billing Group payment ID is itself the authority. Never fall back
+  // to child-order loops merely because a table/group discovery request failed.
+  if (paymentId) {
+    const result = await settleBillingGroupPayment({
+      paymentId,
+      providerReference: input.paymentReference || null,
+      providerConfirmed: Boolean(input.paymentReference),
+      providerEvidence: input.providerEvidence || null,
+    })
+    return [result]
+  }
+
+  const group = await fetchCurrentBillingGroup(input.table).catch(() => null)
+  if (group?.mode === 'r36') {
+    throw new Error('Final Bill payment reservation is missing. Do not charge or retry this payment until it is reconciled.')
+  }
 
   const results: any[] = []
   for (const allocation of allocations) {
@@ -464,22 +662,6 @@ export async function fetchOrderStatus(orderId: number): Promise<any> {
   return jsonRequest(`/api/v1/order-status?order_id=${encodeURIComponent(String(orderId))}`)
 }
 
-// PMD_MULTI_ORDER_PAYMENT_R32
-export type ExistingOrderPaymentAllocation = {
-  orderId: number
-  amount: number
-  tipAmount: number
-  couponDiscount: number
-  couponCode: string | null
-  selectedItems: Array<{ order_menu_id: number; quantity: number }> | null
-  payerLabel: string | null
-  paymentIntentToken?: string | null
-  splitMode?: 'mine' | 'equal' | 'items' | 'shares' | null
-  splitPeople?: number | null
-  sharePercent?: number | null
-  guestSessionId?: string | null
-}
-
 export type PendingProviderPayment = {
   provider: string
   settlementMode: 'pay-existing' | 'start-finalize'
@@ -488,6 +670,9 @@ export type PendingProviderPayment = {
   orderId: number
   orderAllocations?: ExistingOrderPaymentAllocation[] | null
   paymentIntentToken?: string | null
+  billingGroupPublicId?: string | null
+  billingGroupPaymentId?: string | null
+  billingGroupServiceCents?: number | null
   table: TableContext
   returnTo: string
   createdAt: string
@@ -674,6 +859,7 @@ export type HostedProviderPaymentResult = {
   provider: string
   redirectUrl: string | null
   immediateReference: string | null
+  billingGroupPaymentId?: string | null
   raw: any
 }
 
@@ -748,6 +934,9 @@ function buildPendingProviderPayment(
   input: HostedProviderPaymentInput,
   data: any,
   returnTo: string,
+  amount: number,
+  reservation: { group: BillingGroupSummary; payment: BillingGroupPaymentReservation } | null,
+  paymentAllocations: ExistingOrderPaymentAllocation[],
 ): PendingProviderPayment {
   return {
     provider,
@@ -755,8 +944,13 @@ function buildPendingProviderPayment(
     methodCode: input.methodCode,
     providerCode: input.providerCode || String(data?.provider || data?.provider_code || '') || null,
     orderId: input.orderId,
-    orderAllocations: input.orderAllocations || null,
+    orderAllocations: paymentAllocations.length ? paymentAllocations : null,
     paymentIntentToken: input.paymentIntentToken || null,
+    billingGroupPublicId: reservation?.group.publicId || null,
+    billingGroupPaymentId: reservation?.payment.paymentId || null,
+    billingGroupServiceCents: reservation
+      ? Math.max(0, reservation.payment.principalCents - paymentAllocations.reduce((sum, entry) => sum + allocationBaseCents(entry), 0))
+      : null,
     table: input.table,
     returnTo,
     createdAt: new Date().toISOString(),
@@ -768,8 +962,8 @@ function buildPendingProviderPayment(
     transactionId: data?.transaction_id ? String(data.transaction_id) : null,
     providerReference: data?.provider_reference ? String(data.provider_reference) : null,
     merchantReference,
-    amount: input.amount,
-    currency: input.currency,
+    amount,
+    currency: reservation?.payment.currency || input.currency,
     tipAmount: input.tipAmount,
     couponCode: input.couponCode,
     couponDiscount: input.couponDiscount,
@@ -790,23 +984,62 @@ export async function startHostedProviderPayment(input: HostedProviderPaymentInp
   if (typeof window === 'undefined') throw new Error('Hosted payment must start in the browser.')
 
   const requestedProvider = normalizeProviderCode(input.methodCode, input.providerCode)
-  const groupedAllocations = (input.orderAllocations || []).filter((entry) => entry.orderId > 0 && entry.amount > 0)
-  const isMultiOrder = groupedAllocations.length > 1
+  const settlementMode = input.settlementMode || 'pay-existing'
+  const explicitAllocations = (input.orderAllocations || []).filter((entry) => entry.orderId > 0 && entry.amount > 0)
+  const paymentAllocations: ExistingOrderPaymentAllocation[] = explicitAllocations.length
+    ? explicitAllocations
+    : settlementMode === 'pay-existing' && input.orderId > 0
+      ? [{
+          orderId: input.orderId,
+          amount: input.amount,
+          tipAmount: input.tipAmount,
+          couponDiscount: input.couponDiscount,
+          couponCode: input.couponCode,
+          selectedItems: input.selectedItems,
+          payerLabel: input.payerLabel,
+          paymentIntentToken: input.paymentIntentToken || null,
+          guestSessionId: input.guestSessionId || null,
+        }]
+      : []
+  const isMultiOrder = paymentAllocations.length > 1
   const returnTo = `${window.location.pathname}${window.location.search}`
   const merchantReference = `PMD-V2-${isMultiOrder ? 'MULTI-' : ''}${input.orderId}-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`
   const primaryReturnProvider = providerReturnCode(input.methodCode, requestedProvider)
   const returnUrl = `${window.location.origin}/payment/return?payment_return_provider=${encodeURIComponent(primaryReturnProvider)}&return_to=${encodeURIComponent(returnTo)}`
   const cancelUrl = window.location.href
 
+  let reservation: { group: BillingGroupSummary; payment: BillingGroupPaymentReservation } | null = null
+  if (paymentAllocations.length > 0) {
+    reservation = await reserveExistingOrderGroupPayment({
+      allocations: paymentAllocations,
+      table: input.table,
+      method: input.methodCode,
+      providerCode: input.providerCode || requestedProvider,
+      idempotencyKey: `r36:hosted:${merchantReference}`,
+    })
+  }
+  const providerAmount = reservation ? reservation.payment.payableCents / 100 : input.amount
+  if (reservation && Math.abs(providerAmount - input.amount) >= 0.01) {
+    const serviceCents = Math.max(0, reservation.payment.principalCents - paymentAllocations.reduce((sum, entry) => sum + allocationBaseCents(entry), 0))
+    const accepted = window.confirm(
+      `Final Bill total is ${providerAmount.toFixed(2)} ${reservation.payment.currency}`
+      + (serviceCents > 0 ? `, including ${(serviceCents / 100).toFixed(2)} ${reservation.payment.currency} service charge.` : '.')
+      + ' Continue to payment?',
+    )
+    if (!accepted) {
+      await cancelBillingGroupPayment(reservation.payment.paymentId).catch(() => undefined)
+      throw new Error('Payment cancelled before provider charge.')
+    }
+  }
+
   // QR table orders use the canonical pay-existing settlement endpoint after the
   // provider confirms payment. Calling /orders/start-payment for qr_pay_later
   // orders is intentionally skipped because the current Laravel route rejects it.
-  const settlementMode = input.settlementMode || 'pay-existing'
-  const orderStart = isMultiOrder
+  const orderStart = (isMultiOrder || reservation)
     ? {
         success: true,
-        amount: input.amount,
-        currency: input.currency,
+        amount: providerAmount,
+        currency: reservation?.payment.currency || input.currency,
         provider: requestedProvider,
       }
     : settlementMode === 'start-finalize'
@@ -828,13 +1061,16 @@ export async function startHostedProviderPayment(input: HostedProviderPaymentInp
         }
 
   const sessionPayload: Record<string, unknown> = {
-    amount: Number(orderStart?.amount || input.amount),
+    amount: Number(orderStart?.amount || providerAmount),
     currency: String(orderStart?.currency || input.currency || 'EUR').toUpperCase(),
     return_url: returnUrl,
     cancel_url: cancelUrl,
     customer_email: String(input.customerEmail || ''),
     merchant_reference: merchantReference,
     order_id: isMultiOrder ? undefined : input.orderId,
+    order_allocations: (isMultiOrder || reservation) ? paymentAllocations : undefined,
+    billing_group_public_id: reservation?.group.publicId || null,
+    billing_group_payment_id: reservation?.payment.paymentId || null,
     payment_method: input.methodCode,
     provider: input.providerCode || requestedProvider,
     guest_session_id: input.guestSessionId,
@@ -857,25 +1093,34 @@ export async function startHostedProviderPayment(input: HostedProviderPaymentInp
   } catch (error) {
     // Preserve the established PayMyDine fallback: Worldline Wero may fall back to the
     // generic Wero session route when tenant entitlement/configuration is unavailable.
-    if (String(input.methodCode).toLowerCase() !== 'wero' || requestedProvider !== 'worldline') throw error
+    if (String(input.methodCode).toLowerCase() !== 'wero' || requestedProvider !== 'worldline') {
+      if (reservation) await cancelBillingGroupPayment(reservation.payment.paymentId).catch(() => undefined)
+      throw error
+    }
     const fallbackProvider = 'wero'
     const fallbackReturnUrl = `${window.location.origin}/payment/return?payment_return_provider=${fallbackProvider}&return_to=${encodeURIComponent(returnTo)}`
-    data = await createHostedSession('/api/v1/payments/wero/create-session', {
-      ...sessionPayload,
-      return_url: fallbackReturnUrl,
-      fallback_method: 'ideal',
-      fallback_from_worldline: true,
-    })
+    try {
+      data = await createHostedSession('/api/v1/payments/wero/create-session', {
+        ...sessionPayload,
+        return_url: fallbackReturnUrl,
+        fallback_method: 'ideal',
+        fallback_from_worldline: true,
+      })
+    } catch (fallbackError) {
+      if (reservation) await cancelBillingGroupPayment(reservation.payment.paymentId).catch(() => undefined)
+      throw fallbackError
+    }
   }
 
   const provider = pendingProviderFromResponse(input.methodCode, requestedProvider, data)
-  const pending = buildPendingProviderPayment(provider, merchantReference, input, data, returnTo)
+  const pending = buildPendingProviderPayment(provider, merchantReference, input, data, returnTo, providerAmount, reservation, paymentAllocations)
   savePendingProviderPayment(pending)
 
   return {
     provider,
     redirectUrl: providerRedirect(data),
     immediateReference: providerReference(data),
+    billingGroupPaymentId: reservation?.payment.paymentId || null,
     raw: data,
   }
 }
