@@ -5,21 +5,13 @@
     document.documentElement.classList.add('pmd-history-flow-r16');
 
     if (document.body) {
-        /*
-         * The global admin exact-layout runtime already has a proven normal-flow
-         * contract for Settings. Mark History as the same static/flow shell
-         * before that runtime initializes, so it never applies the legacy
-         * absolute animated wrapper to this page.
-         */
         document.body.classList.add('pmd-settings-suite');
     }
 })();
 </script>
 
 <style id="pmd-history-first-paint-r16">
-/* PMD_HISTORY_FIRST_PAINT_R16
- * Match the final normal-flow geometry before external styles/runtime execute.
- */
+/* PMD_HISTORY_FIRST_PAINT_R16 */
 html.pmd-history-flow-r16,
 html.pmd-history-flow-r16 body {
     height: auto !important;
@@ -125,6 +117,100 @@ html.pmd-history-flow-r16 .page-title-section {
 
 <link rel="stylesheet" href="/app/admin/assets/css/pmd-history-stable-r15.css?v=20260822_1">
 <link rel="stylesheet" href="/app/admin/assets/css/pmd-history-flow-r16.css?v=20260822_1">
+
+<style id="pmd-history-final-r18">
+/* PMD_HISTORY_FINAL_R18
+ * Self-contained final authority. It intentionally lives in the History HTML,
+ * after optional external History styles, because some tenant vhosts route an
+ * unknown /app/admin/assets request to the public Next.js application.
+ */
+html,
+html body.page.pmd-history-shell-r18,
+html body.page.pmd-history-shell-r18 .page,
+html body.page.pmd-history-shell-r18 .page-wrapper,
+html body.page.pmd-history-shell-r18 .page-content,
+html body.page.pmd-history-shell-r18 .content-wrapper,
+html body.page.pmd-history-shell-r18 .content,
+html body.page.pmd-history-shell-r18 .main-content,
+html body.page.pmd-history-shell-r18 .app-container,
+html body.page.pmd-history-shell-r18 .layout,
+html body.page.pmd-history-shell-r18 .layout-wrapper,
+html body.page.pmd-history-shell-r18 .nk-wrap,
+html body.page.pmd-history-shell-r18 .nk-content,
+html body.page.pmd-history-shell-r18 .nk-content-inner,
+html body.page.pmd-history-shell-r18 .nk-content-body,
+html body.page.pmd-history-shell-r18 .nk-content-wrap,
+html body.page.pmd-history-shell-r18 .container,
+html body.page.pmd-history-shell-r18 .container-fluid,
+html body.page.pmd-history-shell-r18 #pmd-history-page {
+    background-color: #f8fbfd !important;
+    background-image: none !important;
+    opacity: 1 !important;
+    visibility: visible !important;
+    transform: none !important;
+    translate: none !important;
+    animation: none !important;
+    transition: none !important;
+    will-change: auto !important;
+}
+
+html body.page.pmd-history-shell-r18 {
+    --pmd-bg: #f8fbfd !important;
+    --pmd-bg-soft: #f8fbfd !important;
+    --pmd-surface: #ffffff !important;
+    --pmd-surface-warm: #ffffff !important;
+    min-height: 100vh !important;
+    height: auto !important;
+    max-height: none !important;
+    overflow-x: hidden !important;
+    overflow-y: auto !important;
+    scroll-behavior: auto !important;
+}
+
+html body.page.pmd-history-shell-r18 .page-wrapper {
+    position: relative !important;
+    top: 0 !important;
+    bottom: auto !important;
+    height: auto !important;
+    min-height: 100vh !important;
+    max-height: none !important;
+    overflow-x: hidden !important;
+    overflow-y: visible !important;
+}
+
+html body.page.pmd-history-shell-r18 .page-content,
+html body.page.pmd-history-shell-r18 .content-wrapper,
+html body.page.pmd-history-shell-r18 .nk-content,
+html body.page.pmd-history-shell-r18 .nk-content-inner,
+html body.page.pmd-history-shell-r18 .nk-content-body,
+html body.page.pmd-history-shell-r18 .nk-content-wrap {
+    height: auto !important;
+    max-height: none !important;
+    overflow-y: visible !important;
+}
+
+/* History does not expose generic ListController Filter/List Setup controls. */
+#pmd-history-page .pmd-history-list th.list-setup,
+#pmd-history-page .pmd-history-list td.list-setup,
+#pmd-history-page .pmd-history-list [data-toggle="list-filter"],
+#pmd-history-page .pmd-history-list [data-bs-target$="-setup-modal"] {
+    display: none !important;
+    visibility: hidden !important;
+    width: 0 !important;
+    min-width: 0 !important;
+    max-width: 0 !important;
+    height: 0 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    border: 0 !important;
+    overflow: hidden !important;
+    pointer-events: none !important;
+}
+
+#pmd-history-page .pmd-history-list .list-filter {
+    display: none !important;
+}
+</style>
 
 <div id="pmd-history-page" class="pmd-owner-page pmd-history-page" data-pmd-history-page>
     <header class="pmd-owner-header pmd-history-header">
