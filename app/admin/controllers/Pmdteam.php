@@ -145,6 +145,8 @@ class Pmdteam extends AdminController
                     throw new \RuntimeException('Staff member was not found.');
                 }
 
+                $isNew = !$member->exists;
+
                 $member->staff_name = $name;
                 $member->staff_role_id = (int)$role->staff_role_id;
                 $member->staff_status = 1;
@@ -157,14 +159,8 @@ class Pmdteam extends AdminController
                     $member->staff_email = strtolower($username).'@staff.invalid';
                 }
 
-                if (!$member->exists) {
+                if ($isNew) {
                     $member->language_id = null;
-                    if (isset($member->biometric_enabled)) {
-                        $member->biometric_enabled = 0;
-                    }
-                    if (isset($member->card_id)) {
-                        $member->card_id = null;
-                    }
                 }
 
                 $user = [
@@ -182,8 +178,10 @@ class Pmdteam extends AdminController
                 $member->save();
                 $member->addStaffGroups([]);
 
+                // New staff need the current restaurant location. Existing
+                // staff keep any multi-location assignments they already had.
                 $locationId = $this->currentLocationIdR43();
-                if ($locationId > 0) {
+                if ($locationId > 0 && ($isNew || $member->locations()->count() < 1)) {
                     $member->addStaffLocations([$locationId]);
                 }
 
