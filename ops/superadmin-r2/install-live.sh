@@ -7,19 +7,12 @@ RAW="https://raw.githubusercontent.com/Amir3629/Paymydine-Update/${REF}"
 TS="$(date +%Y%m%d-%H%M%S)"
 BACKUP="$ROOT/storage/pmd-superadmin-r2/$TS"
 TMP="$(mktemp -d)"
-trap 'rm -rf "$TMP"' EXIT
+RESTORE_NEEDED=1
 
 say(){ printf '\n== %s ==\n' "$*"; }
 fail(){ echo "ERROR: $*" >&2; exit 1; }
 
-[[ -d "$ROOT" ]] || fail "PayMyDine root not found"
-command -v curl >/dev/null || fail "curl missing"
-command -v php >/dev/null || fail "php missing"
-command -v python3 >/dev/null || fail "python3 missing"
-
-mkdir -p "$BACKUP"
-
-FILES=(
+APP_FILES=(
   "routes/pmd-superadmin-r2.php"
   "app/admin/controllers/SuperAdminR2Controller.php"
   "app/Services/SuperAdminTenantLifecycleService.php"
@@ -32,8 +25,57 @@ FILES=(
   "app/admin/views/superadmin_r2/health.blade.php"
   "app/admin/views/superadmin_r2/settings.blade.php"
   "app/admin/views/superadmin_r2/location_requests.blade.php"
-  "ops/superadmin-r2/pmd-tenant-provision"
 )
+
+cleanup_tmp(){ rm -rf "$TMP"; }
+
+rollback(){
+  local rc=$?
+  if [[ "$RESTORE_NEEDED" -eq 1 && -d "$BACKUP" ]]; then
+    echo
+    echo "!!! R2 INSTALL FAILED - RESTORING BACKUP !!!"
+
+    [[ -f "$BACKUP/routes.php" ]] && cp -a "$BACKUP/routes.php" "$ROOT/app/admin/routes.php"
+    [[ -f "$BACKUP/next-proxy.php" ]] && cp -a "$BACKUP/next-proxy.php" "$ROOT/app/main/routes/next-proxy.php"
+    [[ -f "$BACKUP/test.paymydine.com.conf" ]] && sudo cp -a "$BACKUP/test.paymydine.com.conf" /etc/nginx/sites-available/test.paymydine.com.conf
+
+    if [[ -f "$BACKUP/pmd-tenant-provision.sudoers" ]]; then
+      sudo cp -a "$BACKUP/pmd-tenant-provision.sudoers" /etc/sudoers.d/pmd-tenant-provision
+    else
+      sudo rm -f /etc/sudoers.d/pmd-tenant-provision
+    fi
+
+    if [[ -f "$BACKUP/pmd-tenant-provision.helper" ]]; then
+      sudo cp -a "$BACKUP/pmd-tenant-provision.helper" /usr/local/sbin/pmd-tenant-provision
+    else
+      sudo rm -f /usr/local/sbin/pmd-tenant-provision
+    fi
+
+    for rel in "${APP_FILES[@]}"; do
+      if [[ -f "$BACKUP/files/$rel" ]]; then
+        install -D -m 0644 "$BACKUP/files/$rel" "$ROOT/$rel"
+      else
+        rm -f "$ROOT/$rel"
+      fi
+    done
+
+    sudo nginx -t >/dev/null 2>&1 && sudo systemctl reload nginx >/dev/null 2>&1 || true
+    echo "Rollback completed. Backup: $BACKUP"
+  fi
+  cleanup_tmp
+  exit "$rc"
+}
+trap rollback ERR INT TERM
+trap cleanup_tmp EXIT
+
+[[ -d "$ROOT" ]] || fail "PayMyDine root not found"
+command -v curl >/dev/null || fail "curl missing"
+command -v php >/dev/null || fail "php missing"
+command -v python3 >/dev/null || fail "python3 missing"
+
+mkdir -p "$BACKUP/files"
+
+FILES=("${APP_FILES[@]}" "ops/superadmin-r2/pmd-tenant-provision")
 
 say "Downloading immutable R2 payload $REF"
 for rel in "${FILES[@]}"; do
@@ -41,9 +83,21 @@ for rel in "${FILES[@]}"; do
   curl -fsSL "$RAW/$rel" -o "$TMP/$rel"
 done
 
-say "Backing up live route authorities"
-for rel in app/admin/routes.php app/main/routes/next-proxy.php; do
-  cp -a "$ROOT/$rel" "$BACKUP/$(basename "$rel")"
+say "Pre-validating downloaded PHP and helper"
+php -l "$TMP/routes/pmd-superadmin-r2.php"
+php -l "$TMP/app/admin/controllers/SuperAdminR2Controller.php"
+php -l "$TMP/app/Services/SuperAdminTenantLifecycleService.php"
+php -l "$TMP/app/Services/SuperAdminTenantDomainProvisioner.php"
+bash -n "$TMP/ops/superadmin-r2/pmd-tenant-provision"
+
+say "Backing up live authorities and any previous R2 files"
+cp -a "$ROOT/app/admin/routes.php" "$BACKUP/routes.php"
+cp -a "$ROOT/app/main/routes/next-proxy.php" "$BACKUP/next-proxy.php"
+for rel in "${APP_FILES[@]}"; do
+  if [[ -f "$ROOT/$rel" ]]; then
+    mkdir -p "$BACKUP/files/$(dirname "$rel")"
+    cp -a "$ROOT/$rel" "$BACKUP/files/$rel"
+  fi
 done
 if [[ -f /etc/nginx/sites-available/test.paymydine.com.conf ]]; then
   sudo cp -a /etc/nginx/sites-available/test.paymydine.com.conf "$BACKUP/test.paymydine.com.conf"
@@ -56,19 +110,12 @@ if [[ -f /usr/local/sbin/pmd-tenant-provision ]]; then
 fi
 
 say "Installing isolated R2 application files"
-for rel in "${FILES[@]}"; do
-  [[ "$rel" == "ops/superadmin-r2/pmd-tenant-provision" ]] && continue
+for rel in "${APP_FILES[@]}"; do
   install -D -m 0644 "$TMP/$rel" "$ROOT/$rel"
 done
 
 say "Installing privileged provisioning helper"
-# 0755 lets PHP verify that the helper is executable. Privileged operations still
-# require the narrow sudoers rule below; the file remains root-owned and immutable
-# to the web worker.
-sudo install -o root -g root -m 0755 \
-  "$TMP/ops/superadmin-r2/pmd-tenant-provision" \
-  /usr/local/sbin/pmd-tenant-provision
-
+sudo install -o root -g root -m 0755 "$TMP/ops/superadmin-r2/pmd-tenant-provision" /usr/local/sbin/pmd-tenant-provision
 sudo tee /etc/sudoers.d/pmd-tenant-provision >/dev/null <<'SUDOERS'
 # PayMyDine Super Admin R2 - only this validated root-owned helper may run as root.
 www-data ALL=(root) NOPASSWD: /usr/local/sbin/pmd-tenant-provision *
@@ -81,7 +128,7 @@ python3 <<'PY'
 from pathlib import Path
 p=Path('/var/www/paymydine/app/admin/routes.php')
 s=p.read_text()
-mark="// PMD_SUPERADMIN_R2_ROUTE_LOADER"
+mark='// PMD_SUPERADMIN_R2_ROUTE_LOADER'
 line="\n\n// PMD_SUPERADMIN_R2_ROUTE_LOADER\nrequire_once base_path('routes/pmd-superadmin-r2.php');\n"
 if mark not in s:
     p.write_text(s.rstrip()+line)
@@ -129,23 +176,27 @@ else:
 PY
 fi
 
-say "PHP syntax validation"
+say "Final PHP syntax validation"
 php -l "$ROOT/routes/pmd-superadmin-r2.php"
 php -l "$ROOT/app/admin/controllers/SuperAdminR2Controller.php"
 php -l "$ROOT/app/Services/SuperAdminTenantLifecycleService.php"
 php -l "$ROOT/app/Services/SuperAdminTenantDomainProvisioner.php"
 php -l "$ROOT/app/admin/routes.php"
 php -l "$ROOT/app/main/routes/next-proxy.php"
+bash -n /usr/local/sbin/pmd-tenant-provision
 
-say "Provisioning helper validation"
+say "Provisioning helper permission validation"
 sudo -u www-data test -x /usr/local/sbin/pmd-tenant-provision
-sudo -u www-data sudo -n -l /usr/local/sbin/pmd-tenant-provision pmd-invalid.paymydine.com >/dev/null
+sudo -u www-data sudo -n -l >/dev/null
 
 say "Nginx validation"
 sudo nginx -t
 
 say "Reloading Nginx after successful validation"
 sudo systemctl reload nginx
+
+RESTORE_NEEDED=0
+trap - ERR INT TERM
 
 say "R2 installed"
 echo "Payload commit: $REF"
