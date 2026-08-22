@@ -66,7 +66,7 @@ class SuperAdminTenantIdentityBaseline
             $host = parse_url($domain, PHP_URL_HOST);
             $domain = is_string($host) ? strtolower(trim($host)) : '';
         } else {
-            $domain = preg_replace('#[/?#].*$#', '', $domain) ?? '';
+            $domain = preg_replace('~[/?#].*$~', '', $domain) ?? '';
             $domain = preg_replace('/:\d+$/', '', $domain) ?? '';
         }
 
