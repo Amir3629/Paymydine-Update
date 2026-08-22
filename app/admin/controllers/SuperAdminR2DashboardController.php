@@ -35,8 +35,11 @@ class SuperAdminR2DashboardController extends AdminController
         $growth = collect();
 
         while ($monthCursor->lte($lastMonth)) {
-            $bucketStart = $monthCursor->copy()->startOfMonth()->max($rangeFrom);
-            $bucketEnd = $monthCursor->copy()->endOfMonth()->min($rangeTo);
+            $bucketStart = $monthCursor->copy()->startOfMonth();
+            $bucketEnd = $monthCursor->copy()->endOfMonth();
+            if ($bucketStart->lt($rangeFrom)) $bucketStart = $rangeFrom->copy();
+            if ($bucketEnd->gt($rangeTo)) $bucketEnd = $rangeTo->copy();
+
             $value = $restaurants->filter(function ($restaurant) use ($bucketStart, $bucketEnd) {
                 if (empty($restaurant->created_at)) return false;
                 try {
