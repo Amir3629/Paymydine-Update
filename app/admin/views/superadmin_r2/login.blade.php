@@ -9,9 +9,9 @@
 *{box-sizing:border-box}
 html,body{margin:0;min-height:100%;background:#f8fbfd}
 body{min-height:100vh;display:grid;place-items:center;padding:24px;font-family:Inter,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;color:#16312a}
-.login-card{width:min(420px,100%);background:#fff;border:1px solid #dfe9e5;border-radius:24px;padding:34px 30px 30px;box-shadow:0 18px 50px rgba(18,61,50,.09)}
-.logo{display:flex;justify-content:center;align-items:center;margin:0 auto 30px}
-.logo img{display:block;width:min(220px,72%);height:auto;max-height:72px;object-fit:contain}
+.login-card{width:min(500px,100%);background:#fff;border:1px solid #dfe9e5;border-radius:24px;padding:38px 34px 32px;box-shadow:0 18px 50px rgba(18,61,50,.09)}
+.logo{display:flex;justify-content:center;align-items:center;margin:0 auto 34px;width:100%}
+.logo img{display:block;width:min(360px,94%);height:auto;max-height:126px;object-fit:contain}
 .field{display:grid;gap:7px;margin-bottom:15px}
 .field label{font-size:12px;font-weight:800;color:#29463e}
 .field input{width:100%;border:1px solid #d8e5e0;border-radius:12px;background:#fff;padding:13px 14px;color:#16312a;outline:none;font:inherit}
@@ -19,7 +19,7 @@ body{min-height:100vh;display:grid;place-items:center;padding:24px;font-family:I
 .btn{width:100%;border:0;background:#123d32;color:#fff;border-radius:12px;padding:13px 16px;font-weight:800;cursor:pointer;margin-top:4px}
 .btn:hover{background:#0b2f2a}
 .error{background:#fff1f0;border:1px solid #fecdca;color:#b42318;border-radius:12px;padding:10px 12px;margin-bottom:14px;font-size:12px;font-weight:700}
-@media(max-width:520px){body{padding:14px}.login-card{padding:28px 20px 22px;border-radius:20px}.logo{margin-bottom:24px}.logo img{width:min(200px,76%)}}
+@media(max-width:520px){body{padding:14px}.login-card{padding:30px 20px 24px;border-radius:20px}.logo{margin-bottom:28px}.logo img{width:min(310px,94%);max-height:108px}}
 </style>
 </head>
 <body>
