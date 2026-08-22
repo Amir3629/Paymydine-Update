@@ -61,7 +61,9 @@ class SuperAdminR2Controller extends AdminController
         $stats = [
             'total' => $tenants->count(),
             'active' => $tenants->where('status', 'active')->count(),
-            'provisioning' => $tenants->where('status', 'provisioning')->count(),
+            'needs_setup' => $tenants->filter(function ($tenant) {
+                return strtolower((string)$tenant->status) !== 'active';
+            })->count(),
             'expired' => $tenants->filter(function ($tenant) use ($now) {
                 return !empty($tenant->end) && \Carbon\Carbon::parse($tenant->end)->lt($now);
             })->count(),
@@ -170,7 +172,7 @@ class SuperAdminR2Controller extends AdminController
     {
         $request->validate([
             'id' => 'required|integer',
-            'status' => 'required|in:active,disabled,provisioning',
+            'status' => 'required|in:active,disabled',
         ]);
 
         DB::connection('mysql')->table('tenants')
