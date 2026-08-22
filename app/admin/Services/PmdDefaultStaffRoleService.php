@@ -7,13 +7,7 @@ use Admin\Models\Staff_roles_model;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 
-/**
- * PMD_DEFAULT_STAFF_ROLES_V1
- *
- * Canonical, non-editable product roles used by Team & access.
- * Existing custom roles are never deleted. Team simply stops exposing role
- * creation/editing and assigns staff from this managed set.
- */
+/** PMD_DEFAULT_STAFF_ROLES_V2 */
 class PmdDefaultStaffRoleService
 {
     public const OWNER = 'pmd-owner';
@@ -30,37 +24,26 @@ class PmdDefaultStaffRoleService
     private const PMD_ACCOUNTANT_WORKSPACE = 'PMD.Workspace.Accountant';
     private const PMD_RESERVATIONS_WORKSPACE = 'PMD.Workspace.Reservations';
     private const PMD_KDS_WORKSPACE = 'PMD.Workspace.KDS';
-    private const PMD_POS_PAYMENTS = 'PMD.POS.Payments';
 
     public function ensure(): array
     {
-        $definitions = $this->definitions();
         $roles = [];
-
-        foreach ($definitions as $definition) {
-            $role = Staff_roles_model::query()
-                ->where('code', $definition['code'])
-                ->first();
-
+        foreach ($this->definitions() as $definition) {
+            $role = Staff_roles_model::query()->where('code', $definition['code'])->first();
             if (!$role) {
                 $role = Staff_roles_model::query()
                     ->whereRaw('LOWER(name) = ?', [strtolower($definition['name'])])
                     ->first();
             }
-
-            if (!$role) {
-                $role = new Staff_roles_model();
-            }
+            if (!$role) $role = new Staff_roles_model();
 
             $role->name = $definition['name'];
             $role->code = $definition['code'];
             $role->description = $definition['description'];
             $role->permissions = $definition['permissions'];
             $role->save();
-
             $roles[] = $role;
         }
-
         return $roles;
     }
 
@@ -75,24 +58,17 @@ class PmdDefaultStaffRoleService
         } catch (\Throwable $error) {
         }
 
-        $ownerPermissions = $allPermissions + [
+        $workspacePermissions = [
             self::PMD_OWNER_WORKSPACE => 1,
             self::PMD_MANAGER_WORKSPACE => 1,
             self::PMD_CASHIER_WORKSPACE => 1,
             self::PMD_ACCOUNTANT_WORKSPACE => 1,
             self::PMD_RESERVATIONS_WORKSPACE => 1,
             self::PMD_KDS_WORKSPACE => 1,
-            self::PMD_POS_PAYMENTS => 1,
         ];
 
-        $managerPermissions = $allPermissions + [
-            self::PMD_MANAGER_WORKSPACE => 1,
-            self::PMD_CASHIER_WORKSPACE => 1,
-            self::PMD_ACCOUNTANT_WORKSPACE => 1,
-            self::PMD_RESERVATIONS_WORKSPACE => 1,
-            self::PMD_KDS_WORKSPACE => 1,
-            self::PMD_POS_PAYMENTS => 1,
-        ];
+        $ownerPermissions = $allPermissions + $workspacePermissions;
+        $managerPermissions = $allPermissions + array_diff_key($workspacePermissions, [self::PMD_OWNER_WORKSPACE => true]);
 
         $definitions = [
             [
@@ -113,7 +89,7 @@ class PmdDefaultStaffRoleService
                 'description' => 'Cashier workspace only. No side menu.',
                 'permissions' => [
                     self::PMD_CASHIER_WORKSPACE => 1,
-                    self::PMD_POS_PAYMENTS => 1,
+                    'Admin.Payments' => 1,
                 ],
             ],
             [
@@ -122,16 +98,14 @@ class PmdDefaultStaffRoleService
                 'description' => 'Cashier mobile Quick Mode only. No side menu.',
                 'permissions' => [
                     self::PMD_CASHIER_WORKSPACE => 1,
-                    self::PMD_POS_PAYMENTS => 1,
+                    'Admin.Payments' => 1,
                 ],
             ],
             [
                 'code' => self::ACCOUNTANT,
                 'name' => 'Accountant',
                 'description' => 'Accountant workspace only. No side menu.',
-                'permissions' => [
-                    self::PMD_ACCOUNTANT_WORKSPACE => 1,
-                ],
+                'permissions' => [self::PMD_ACCOUNTANT_WORKSPACE => 1],
             ],
             [
                 'code' => self::RESERVATIONS,
@@ -155,30 +129,26 @@ class PmdDefaultStaffRoleService
                 ],
             ];
         }
-
         return $definitions;
+    }
+
+    public function isManagedCode(string $code): bool
+    {
+        $code = strtolower(trim($code));
+        return in_array($code, [self::OWNER,self::MANAGER,self::CASHIER,self::WAITER,self::ACCOUNTANT,self::RESERVATIONS], true)
+            || str_starts_with($code, self::KDS_PREFIX);
     }
 
     public function isManagedRole($role): bool
     {
-        $code = strtolower(trim((string)($role->code ?? '')));
-        return in_array($code, [
-            self::OWNER,
-            self::MANAGER,
-            self::CASHIER,
-            self::WAITER,
-            self::ACCOUNTANT,
-            self::RESERVATIONS,
-        ], true) || str_starts_with($code, self::KDS_PREFIX);
+        return $this->isManagedCode((string)($role->code ?? ''));
     }
 
     public function roleCodeForUser($user): string
     {
         if (!$user) return '';
         try {
-            if (method_exists($user, 'isSuperUser') && $user->isSuperUser()) {
-                return self::OWNER;
-            }
+            if (method_exists($user, 'isSuperUser') && $user->isSuperUser()) return self::OWNER;
             return strtolower(trim((string)optional(optional($user->staff)->role)->code));
         } catch (\Throwable $error) {
             return '';
@@ -189,44 +159,61 @@ class PmdDefaultStaffRoleService
     {
         $code = strtolower(trim($code));
         $map = [
-            self::OWNER => 'dashboardlab',
-            'owner' => 'dashboardlab',
-            self::MANAGER => 'managerlab',
-            'manager' => 'managerlab',
-            self::CASHIER => 'cashierlab',
-            'cashier' => 'cashierlab',
-            self::WAITER => 'cashierlab',
-            'waiter' => 'cashierlab',
-            self::ACCOUNTANT => 'accountantlab',
-            'accountant' => 'accountantlab',
-            self::RESERVATIONS => 'reservationslab',
-            'reservation' => 'reservationslab',
-            'reservations' => 'reservationslab',
+            self::OWNER => 'dashboardlab', 'owner' => 'dashboardlab',
+            self::MANAGER => 'managerlab', 'manager' => 'managerlab',
+            self::CASHIER => 'cashierlab', 'cashier' => 'cashierlab',
+            self::WAITER => 'cashierlab', 'waiter' => 'cashierlab',
+            self::ACCOUNTANT => 'accountantlab', 'accountant' => 'accountantlab',
+            self::RESERVATIONS => 'reservationslab', 'reservation' => 'reservationslab', 'reservations' => 'reservationslab',
         ];
-
         if (isset($map[$code])) return $map[$code];
         if (str_starts_with($code, self::KDS_PREFIX)) {
             $slug = trim(substr($code, strlen(self::KDS_PREFIX)));
             return $slug !== '' ? 'kitchendisplay/'.$slug : 'kitchendisplay';
         }
-
         return null;
     }
 
-    public function managerMayOpen(string $path): bool
+    /**
+     * Server-side route boundary for managed roles. This is evaluated inside
+     * Users_model::hasPermission so direct URL entry is denied as well as menu use.
+     */
+    public function mayOpenPath(string $code, string $path): bool
     {
+        $code = strtolower(trim($code));
         $path = trim(strtolower($path), '/');
-        if ($path === 'admin/dashboardlab' || str_starts_with($path, 'admin/dashboardlab/')) return false;
-        foreach (['pmdsettings','pmdadvanced','pmdbrand','pmdcustomer','pmdteam','pmddevices','pmdfinance'] as $route) {
-            if ($path === 'admin/'.$route || str_starts_with($path, 'admin/'.$route.'/')) return false;
+        if (!$this->isManagedCode($code)) return true;
+        if ($code === self::OWNER) return true;
+
+        $is = function (string $route) use ($path): bool {
+            return $path === 'admin/'.$route || str_starts_with($path, 'admin/'.$route.'/');
+        };
+
+        if ($code === self::MANAGER) {
+            if ($is('dashboardlab')) return false;
+            foreach (['pmdsettings','pmdadvanced','pmdbrand','pmdcustomer','pmdteam','pmddevices','pmdfinance'] as $route) {
+                if ($is($route)) return false;
+            }
+            return true;
         }
-        return true;
+
+        if ($code === self::CASHIER || $code === self::WAITER) {
+            return $is('cashierlab') || $is('pmd-waiter-pos-v1') || $is('pmd-waiter-pos-v22');
+        }
+        if ($code === self::ACCOUNTANT) return $is('accountantlab');
+        if ($code === self::RESERVATIONS) return $is('reservationslab');
+
+        if (str_starts_with($code, self::KDS_PREFIX)) {
+            $slug = trim(substr($code, strlen(self::KDS_PREFIX)));
+            return $path === 'admin/kitchendisplay/'.$slug || str_starts_with($path, 'admin/kitchendisplay/'.$slug.'/');
+        }
+
+        return false;
     }
 
     private function kdsStations(): array
     {
         if (!Schema::hasTable('kds_stations')) return [];
-
         try {
             $query = DB::table('kds_stations');
             $columns = Schema::getColumnListing('kds_stations');
@@ -236,9 +223,7 @@ class PmdDefaultStaffRoleService
             return $query->orderBy('name')->get()->map(function ($row) {
                 $name = trim((string)($row->name ?? 'KDS'));
                 $slug = trim((string)($row->slug ?? ''));
-                if ($slug === '') {
-                    $slug = strtolower(trim(preg_replace('/[^a-z0-9]+/i', '-', $name), '-'));
-                }
+                if ($slug === '') $slug = strtolower(trim(preg_replace('/[^a-z0-9]+/i', '-', $name), '-'));
                 return ['name' => $name ?: 'KDS', 'slug' => $slug];
             })->filter(fn($row) => $row['slug'] !== '')->values()->all();
         } catch (\Throwable $error) {
