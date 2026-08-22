@@ -10,23 +10,32 @@ use Illuminate\Support\Facades\Route;
 |--------------------------------------------------------------------------
 | SumUp Cloud callback
 |--------------------------------------------------------------------------
-| Public endpoint: SumUp cannot carry an admin session or CSRF token.
-| The tenant is resolved from the callback Host and the payment status is
-| verified server-to-server with SumUp before any order is marked paid.
+| Capture the central database while routes are booting, before tenant request
+| middleware can switch a connection to a tenant database.
 */
-Route::post('/terminal-payments/sumup/callback/{attemptId}', function (Request $request, $attemptId) {
+$__pmdTerminalCentralDatabase = (string)config('database.connections.mysql.database');
+
+Route::post('/terminal-payments/sumup/callback/{attemptId}', function (Request $request, $attemptId) use ($__pmdTerminalCentralDatabase) {
     $host = strtolower(trim((string)$request->getHost()));
 
     try {
-        $central = DB::connection('mysql');
+        $base = (array)config('database.connections.mysql');
+
+        $centralConfig = $base;
+        $centralConfig['database'] = $__pmdTerminalCentralDatabase;
+        Config::set('database.connections.sumup_central_runtime', $centralConfig);
+        DB::purge('sumup_central_runtime');
+        DB::reconnect('sumup_central_runtime');
+
+        $central = DB::connection('sumup_central_runtime');
         $tenant = $central->table('tenants')->where('domain', $host)->first();
         if (!$tenant || empty($tenant->database)) {
             return response()->json(['ok' => false, 'message' => 'Tenant not found.'], 404);
         }
 
-        $base = config('database.connections.mysql');
-        $base['database'] = (string)$tenant->database;
-        Config::set('database.connections.sumup_callback_runtime', $base);
+        $tenantConfig = $base;
+        $tenantConfig['database'] = (string)$tenant->database;
+        Config::set('database.connections.sumup_callback_runtime', $tenantConfig);
         DB::purge('sumup_callback_runtime');
         DB::reconnect('sumup_callback_runtime');
         DB::setDefaultConnection('sumup_callback_runtime');
