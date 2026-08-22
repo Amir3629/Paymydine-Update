@@ -17,9 +17,8 @@ fail() { echo "ERROR: $*" >&2; exit 1; }
 command -v nginx >/dev/null 2>&1 || fail "nginx missing"
 command -v certbot >/dev/null 2>&1 || fail "certbot missing"
 
-# Wildcard DNS already resolves tenant names to the VPS. Obtain the certificate
-# before enabling the cloned TLS vhost, because the cloned config references the
-# final certificate path.
+# Wildcard DNS resolves tenant names to this VPS, but TLS is currently issued
+# per tenant. Obtain the certificate before enabling the cloned TLS vhost.
 if [[ ! -s "/etc/letsencrypt/live/${DOMAIN}/fullchain.pem" ]]; then
   certbot certonly \
     --webroot \
@@ -34,10 +33,12 @@ fi
 TMP="$(mktemp)"
 trap 'rm -f "$TMP"' EXIT
 
-sed "s/test\.paymydine\.com/${DOMAIN//./\\.}/g" "$SOURCE_VHOST" > "$TMP"
+sed "s/test\.paymydine\.com/${DOMAIN}/g" "$SOURCE_VHOST" > "$TMP"
 
-# Undo escaped replacement artifacts if sed replacement had to quote dots.
-sed -i "s/${DOMAIN//./\\.}/${DOMAIN}/g" "$TMP"
+# A cloned tenant vhost must keep the PHP/Laravel authorities that the canonical
+# test tenant uses while changing only the host/certificate identity.
+grep -q "server_name ${DOMAIN};" "$TMP" || fail "generated vhost server_name validation failed"
+grep -q "/etc/letsencrypt/live/${DOMAIN}/fullchain.pem" "$TMP" || fail "generated certificate path validation failed"
 
 install -o root -g root -m 0644 "$TMP" "$TARGET_VHOST"
 ln -sfn "$TARGET_VHOST" "$ENABLED_VHOST"
