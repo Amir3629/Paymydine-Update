@@ -92,13 +92,23 @@ class LogUserLastSeen
 
         $response = $next($request);
 
+        /* PMD_FIXED_ROLE_PRESENTATION_R43 */
+        try {
+            $response = app(\Admin\Services\PmdFixedRolePresentationV1::class)
+                ->decorate($request, $response);
+        } catch (\Throwable $error) {
+            logger()->warning('PMD fixed role presentation failed', [
+                'message' => $error->getMessage(),
+            ]);
+        }
+
         /*
          * PMD_CASHIER_QUICK_V22_RESPONSE_BRIDGE_R43
          * Only the accepted V2.1 mobile Cashier host receives these two
          * presentation/workflow assets. Normal desktop CashierLab is untouched.
          */
         try {
-            return app(\Admin\Services\PmdCashierQuickV22Bridge::class)
+            $response = app(\Admin\Services\PmdCashierQuickV22Bridge::class)
                 ->decorate($request, $response);
         } catch (\Throwable $error) {
             logger()->warning('PMD Cashier Quick V2.2 response decoration failed', [
