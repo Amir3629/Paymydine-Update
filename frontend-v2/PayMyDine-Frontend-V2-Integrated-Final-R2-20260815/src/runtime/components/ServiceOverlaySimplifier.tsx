@@ -1,15 +1,32 @@
 'use client'
 
-// PMD_SIMPLE_SERVICE_OVERLAYS_R41
+// PMD_SIMPLE_SERVICE_OVERLAYS_R42
 // Shared presentation authority for all ten themes. Service request behavior stays
-// in RuntimeOverlays; this only removes duplicated/empty chrome from waiter/note dialogs.
+// in RuntimeOverlays; this removes duplicated chrome while preserving real request feedback.
 import { useMenuRuntime } from '@/src/runtime/MenuRuntimeContext'
 import styles from './RuntimeOverlays.module.css'
 
+function waiterSuccessCopy(locale: string): string {
+  const lang = String(locale || 'en').toLowerCase().split('-')[0]
+  if (lang === 'de') return 'Kellner wurde benachrichtigt. Bitte warten Sie einen Moment.'
+  if (lang === 'fa') return 'گارسون مطلع شد. لطفاً کمی منتظر بمانید.'
+  if (lang === 'tr') return 'Garson bilgilendirildi. Lütfen kısa bir süre bekleyin.'
+  if (lang === 'ja') return 'スタッフに通知しました。しばらくお待ちください。'
+  return 'A waiter has been notified. Please wait a moment.'
+}
+
+function cssString(value: string): string {
+  return JSON.stringify(value)
+}
+
 export function ServiceOverlaySimplifier() {
-  const { overlay, serviceMode } = useMenuRuntime()
+  const { overlay, serviceMode, requestStatus, locale } = useMenuRuntime()
 
   if (overlay !== 'service') return null
+
+  const waiterStatusVisible = serviceMode === 'waiter'
+    && requestStatus.kind === 'waiter'
+    && (requestStatus.state === 'success' || requestStatus.state === 'error')
 
   const waiterRules = serviceMode === 'waiter'
     ? `
@@ -27,11 +44,36 @@ export function ServiceOverlaySimplifier() {
   height: 2.35rem !important;
 }
 .${styles.scroll} {
+  ${waiterStatusVisible ? 'display: block !important;' : 'display: none !important;'}
+  overflow: visible !important;
+  padding: .55rem 1rem .1rem !important;
+}
+.${styles.scroll} > .${styles.stack} > .${styles.orderCard} {
   display: none !important;
+}
+.${styles.scroll} > .${styles.stack} {
+  gap: .45rem !important;
+}
+.${styles.scroll} .${styles.statusMessage} {
+  margin: 0 !important;
+  border-radius: .8rem !important;
+  padding: .7rem .85rem !important;
+  font-size: .78rem !important;
+  line-height: 1.35 !important;
+  text-align: center !important;
+}
+.${styles.scroll} .${styles.statusSuccess} {
+  font-size: 0 !important;
+}
+.${styles.scroll} .${styles.statusSuccess}::after {
+  content: ${cssString(waiterSuccessCopy(locale))};
+  font-size: .78rem !important;
+  font-weight: 650;
+  line-height: 1.35;
 }
 .${styles.footerActions} {
   border-top: 0 !important;
-  padding: .8rem 1rem 1rem !important;
+  padding: .65rem 1rem 1rem !important;
 }
 `
     : ''
@@ -60,7 +102,7 @@ export function ServiceOverlaySimplifier() {
     : ''
 
   return (
-    <style data-pmd-simple-service-overlays="r41">{`
+    <style data-pmd-simple-service-overlays="r42">{`
 .${styles.header} p {
   display: none !important;
 }
