@@ -34,6 +34,8 @@ class PmdCashierQuickV22Bridge
         $cssFiles = [
             'app/admin/assets/css/pmd-cashier-quick-v22.css',
             'app/admin/assets/css/pmd-cashier-quick-v22-addbar.css',
+            // Final override: Guests center count must be white/light on phone.
+            'app/admin/assets/css/pmd-cashier-quick-v22-light-guests.css',
         ];
         $jsFiles = [
             'app/admin/assets/js/pmd-cashier-quick-v22-exact-order-guard.js',
