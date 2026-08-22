@@ -1,0 +1,552 @@
+/* PMD_SETTINGS_POLISH_R10
+ * Final Settings landing + Customer menu theme visual authority.
+ *
+ * Goals:
+ * - remove repetitive group titles above Settings cards
+ * - keep PayMyDine card same geometry as the other cards, with a larger name
+ * - make Customer menu theme use the same Settings-family header/card language
+ * - remove legacy blue action/selection authority
+ * - show a real hero image for every V2 menu theme
+ */
+
+/* =========================================================
+   SETTINGS LANDING — CARDS ONLY, NO REPEATED GROUP HEADINGS
+   ========================================================= */
+html body #pmd-settings-center .pmd-settings-group__head {
+  display: none !important;
+  visibility: hidden !important;
+  height: 0 !important;
+  min-height: 0 !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  overflow: hidden !important;
+}
+
+html body #pmd-settings-center .pmd-settings-group {
+  gap: 0 !important;
+  margin-top: 0 !important;
+  padding-top: 0 !important;
+}
+
+/* The PayMyDine tile stays the same height as the other cards; only its name
+ * gets more visual weight. R9 still owns its one-logo / dark-green surface. */
+html body #pmd-settings-center #pmd-settings-brand
+.pmd-settings-card__title-row strong::after {
+  font-size: 18px !important;
+  line-height: 1.2 !important;
+  font-weight: 800 !important;
+  letter-spacing: -.02em !important;
+}
+
+/* =========================================================
+   CUSTOMER MENU THEME — FIRST-PAINT SETTINGS-FAMILY SHELL
+   ========================================================= */
+html body #pmd-frontend-settings {
+  width: 100% !important;
+  min-width: 0 !important;
+  min-height: 100vh !important;
+  margin: 0 !important;
+  padding: 0 30px 56px !important;
+  background: #f8fbfd !important;
+  color: #17231f !important;
+  box-sizing: border-box !important;
+}
+
+html body #pmd-frontend-settings .pmd-frontend-header {
+  position: relative !important;
+  inset: auto !important;
+  z-index: 10 !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  gap: 20px !important;
+  width: 100% !important;
+  min-width: 0 !important;
+  height: 64px !important;
+  min-height: 64px !important;
+  max-height: 64px !important;
+  margin: 0 0 18px !important;
+  padding: 0 2px !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  transform: none !important;
+  transition: none !important;
+  animation: none !important;
+}
+
+html body #pmd-frontend-settings .pmd-frontend-header__left,
+html body #pmd-frontend-settings .pmd-frontend-header__actions {
+  display: flex !important;
+  align-items: center !important;
+  gap: 10px !important;
+  min-width: 0 !important;
+}
+
+/* Keep the visual copy final from first paint even though older runtime code
+ * still normalizes the underlying text for compatibility. */
+html body #pmd-frontend-settings .pmd-frontend-header h1 {
+  margin: 0 !important;
+  padding: 0 !important;
+  font-size: 0 !important;
+  line-height: 1.15 !important;
+  color: #17231f !important;
+}
+
+html body #pmd-frontend-settings .pmd-frontend-header h1::after {
+  content: "Customer menu theme" !important;
+  display: inline !important;
+  color: #17231f !important;
+  font-size: 22px !important;
+  line-height: 1.15 !important;
+  font-weight: 760 !important;
+  letter-spacing: -.02em !important;
+}
+
+html body #pmd-frontend-settings .pmd-frontend-header__left p {
+  margin: 4px 0 0 !important;
+  font-size: 0 !important;
+  line-height: 1.4 !important;
+  color: #718078 !important;
+}
+
+html body #pmd-frontend-settings .pmd-frontend-header__left p::after {
+  content: "Choose the look of your digital menu." !important;
+  display: inline !important;
+  color: #718078 !important;
+  font-size: 13px !important;
+  line-height: 1.4 !important;
+  font-weight: 500 !important;
+}
+
+html body #pmd-frontend-settings .pmd-frontend-icon-button,
+html body #pmd-frontend-settings .pmd-frontend-save-icon {
+  display: grid !important;
+  place-items: center !important;
+  width: 46px !important;
+  min-width: 46px !important;
+  max-width: 46px !important;
+  height: 46px !important;
+  min-height: 46px !important;
+  max-height: 46px !important;
+  flex: 0 0 46px !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  border: 1px solid #cfe0ec !important;
+  border-radius: 14px !important;
+  background: #fff !important;
+  color: #173752 !important;
+  box-shadow: 0 3px 10px rgba(23,55,82,.05) !important;
+  transform: none !important;
+  transition: none !important;
+  animation: none !important;
+  -webkit-appearance: none !important;
+  appearance: none !important;
+}
+
+html body #pmd-frontend-settings .pmd-frontend-save-icon {
+  color: #075f4f !important;
+  border-color: #c7ddd6 !important;
+}
+
+html body #pmd-frontend-settings .pmd-frontend-icon-button:hover,
+html body #pmd-frontend-settings .pmd-frontend-save-icon:hover,
+html body #pmd-frontend-settings .pmd-frontend-icon-button:focus-visible,
+html body #pmd-frontend-settings .pmd-frontend-save-icon:focus-visible {
+  background: #f7fbf9 !important;
+  border-color: #aacfc2 !important;
+  color: #075f4f !important;
+  outline: none !important;
+}
+
+html body #pmd-frontend-settings .pmd-frontend-secondary-button {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  height: 46px !important;
+  min-height: 46px !important;
+  padding: 0 16px !important;
+  margin: 0 !important;
+  border: 1px solid #cfe0ec !important;
+  border-radius: 14px !important;
+  background: #fff !important;
+  color: #213b32 !important;
+  box-shadow: 0 3px 10px rgba(23,55,82,.04) !important;
+  font-size: 13px !important;
+  font-weight: 700 !important;
+  text-decoration: none !important;
+  transition: none !important;
+}
+
+html body #pmd-frontend-settings .pmd-frontend-secondary-button:hover,
+html body #pmd-frontend-settings .pmd-frontend-secondary-button:focus-visible {
+  border-color: #aacfc2 !important;
+  background: #f7fbf9 !important;
+  color: #075f4f !important;
+  outline: none !important;
+}
+
+/* The page is theme-only. Keep compatibility fields in the form so their
+ * stored values continue to submit unchanged, but never paint them. */
+html body #pmd-frontend-settings
+.pmd-frontend-form > .pmd-frontend-section:not(:first-of-type),
+html body #pmd-frontend-settings .pmd-frontend-advanced,
+html body #pmd-frontend-settings .pmd-frontend-bottom-save {
+  display: none !important;
+  visibility: hidden !important;
+}
+
+html body #pmd-frontend-settings .pmd-frontend-form {
+  width: 100% !important;
+  max-width: none !important;
+  min-width: 0 !important;
+  margin: 0 !important;
+  padding: 0 !important;
+}
+
+html body #pmd-frontend-settings .pmd-frontend-section {
+  width: 100% !important;
+  margin: 0 !important;
+  padding: 0 !important;
+}
+
+html body #pmd-frontend-settings .pmd-frontend-card {
+  width: 100% !important;
+  margin: 0 !important;
+  border: 1px solid #d5e3de !important;
+  border-radius: 20px !important;
+  background: #fff !important;
+  box-shadow: 0 12px 30px rgba(26, 57, 47, .055) !important;
+  overflow: hidden !important;
+}
+
+html body #pmd-frontend-settings .pmd-frontend-card__header {
+  display: flex !important;
+  align-items: center !important;
+  gap: 14px !important;
+  min-height: 82px !important;
+  padding: 17px 20px !important;
+  border-bottom: 1px solid #e4ece8 !important;
+  background: linear-gradient(90deg, #eef8f4 0%, #f9fcfb 20%, #fff 48%) !important;
+}
+
+html body #pmd-frontend-settings .pmd-frontend-section-icon {
+  display: grid !important;
+  place-items: center !important;
+  width: 44px !important;
+  min-width: 44px !important;
+  max-width: 44px !important;
+  height: 44px !important;
+  min-height: 44px !important;
+  max-height: 44px !important;
+  flex: 0 0 44px !important;
+  border: 1px solid #9ed2c0 !important;
+  border-radius: 14px !important;
+  background: #e8f7f1 !important;
+  color: #08745f !important;
+}
+
+html body #pmd-frontend-settings .pmd-frontend-section-icon svg {
+  width: 21px !important;
+  height: 21px !important;
+  fill: none !important;
+  stroke: currentColor !important;
+  stroke-width: 1.9 !important;
+}
+
+html body #pmd-frontend-settings .pmd-frontend-card__header h2 {
+  margin: 0 0 4px !important;
+  color: #17231f !important;
+  font-size: 19px !important;
+  line-height: 1.2 !important;
+  font-weight: 760 !important;
+  letter-spacing: -.015em !important;
+}
+
+html body #pmd-frontend-settings
+.pmd-frontend-form > .pmd-frontend-section:first-of-type
+.pmd-frontend-card__header p {
+  margin: 0 !important;
+  font-size: 0 !important;
+  line-height: 1.45 !important;
+  color: #718078 !important;
+}
+
+html body #pmd-frontend-settings
+.pmd-frontend-form > .pmd-frontend-section:first-of-type
+.pmd-frontend-card__header p::after {
+  content: "Choose a theme for your digital menu." !important;
+  display: inline !important;
+  color: #718078 !important;
+  font-size: 13px !important;
+  line-height: 1.45 !important;
+  font-weight: 500 !important;
+}
+
+html body #pmd-frontend-settings .pmd-frontend-card__body {
+  padding: 20px !important;
+  background: #fff !important;
+}
+
+/* =========================================================
+   THEME CARDS — REAL V2 HERO IMAGES, NO BLUE AUTHORITY
+   ========================================================= */
+html body #pmd-frontend-settings .pmd-theme-grid {
+  display: grid !important;
+  grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  gap: 14px !important;
+}
+
+html body #pmd-frontend-settings .pmd-theme-option {
+  position: relative !important;
+  display: grid !important;
+  grid-template-columns: 176px minmax(0, 1fr) 28px !important;
+  align-items: center !important;
+  gap: 16px !important;
+  min-height: 124px !important;
+  margin: 0 !important;
+  padding: 11px !important;
+  border: 1px solid #d9e5e0 !important;
+  border-radius: 16px !important;
+  background: #fff !important;
+  box-shadow: none !important;
+  cursor: pointer !important;
+  overflow: hidden !important;
+  transform: none !important;
+  transition: none !important;
+}
+
+html body #pmd-frontend-settings .pmd-theme-option:hover {
+  border-color: #a9c7bc !important;
+  background: #fbfdfc !important;
+  box-shadow: 0 7px 20px rgba(19, 74, 58, .055) !important;
+  transform: none !important;
+}
+
+html body #pmd-frontend-settings .pmd-theme-option.is-selected {
+  border-color: #08745f !important;
+  background: #fbfefc !important;
+  box-shadow:
+    0 0 0 2px rgba(8, 116, 95, .09),
+    0 8px 22px rgba(19, 74, 58, .06) !important;
+}
+
+html body #pmd-frontend-settings .pmd-theme-option input[type="radio"] {
+  position: absolute !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
+}
+
+html body #pmd-frontend-settings .pmd-theme-option__preview {
+  position: relative !important;
+  display: block !important;
+  width: 176px !important;
+  min-width: 176px !important;
+  max-width: 176px !important;
+  height: 100px !important;
+  min-height: 100px !important;
+  max-height: 100px !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  border: 1px solid rgba(14, 50, 39, .10) !important;
+  border-radius: 12px !important;
+  background-color: #edf3f0 !important;
+  background-repeat: no-repeat !important;
+  background-position: center !important;
+  background-size: cover !important;
+  overflow: hidden !important;
+  box-shadow: inset 0 0 0 1px rgba(255,255,255,.18) !important;
+}
+
+html body #pmd-frontend-settings
+.pmd-theme-option input[value="noir_editorial"] + .pmd-theme-option__preview {
+  background-image: url('/app/admin/assets/images/theme-previews/noir-editorial-hero.webp') !important;
+}
+html body #pmd-frontend-settings
+.pmd-theme-option input[value="verdant_modern"] + .pmd-theme-option__preview {
+  background-image: url('/app/admin/assets/images/theme-previews/verdant-modern-hero.webp') !important;
+}
+html body #pmd-frontend-settings
+.pmd-theme-option input[value="lumiere_fine_dining"] + .pmd-theme-option__preview {
+  background-image: url('/app/admin/assets/images/theme-previews/lumiere-fine-dining-hero.webp') !important;
+}
+html body #pmd-frontend-settings
+.pmd-theme-option input[value="kazen_japanese"] + .pmd-theme-option__preview {
+  background-image: url('/app/admin/assets/images/theme-previews/kazen-japanese-hero.webp') !important;
+}
+html body #pmd-frontend-settings
+.pmd-theme-option input[value="azzurra_coastal"] + .pmd-theme-option__preview {
+  background-image: url('/app/admin/assets/images/theme-previews/azzurra-coastal-hero.webp') !important;
+}
+html body #pmd-frontend-settings
+.pmd-theme-option input[value="neon_cocktail_bar"] + .pmd-theme-option__preview {
+  background-image: url('/app/admin/assets/images/theme-previews/neon-cocktail-bar-hero.webp') !important;
+}
+html body #pmd-frontend-settings
+.pmd-theme-option input[value="art_deco_speakeasy"] + .pmd-theme-option__preview {
+  background-image: url('/app/admin/assets/images/theme-previews/art-deco-speakeasy-hero.webp') !important;
+}
+html body #pmd-frontend-settings
+.pmd-theme-option input[value="shahrazad_persian"] + .pmd-theme-option__preview {
+  background-image: url('/app/admin/assets/images/theme-previews/shahrazad-persian-hero.webp') !important;
+}
+html body #pmd-frontend-settings
+.pmd-theme-option input[value="anatolia_turkish"] + .pmd-theme-option__preview {
+  background-image: url('/app/admin/assets/images/theme-previews/anatolia-turkish-hero.webp') !important;
+}
+html body #pmd-frontend-settings
+.pmd-theme-option input[value="ember_steakhouse"] + .pmd-theme-option__preview {
+  background-image: url('/app/admin/assets/images/theme-previews/ember-steakhouse-hero.webp') !important;
+}
+
+html body #pmd-frontend-settings .pmd-theme-option__mock {
+  display: none !important;
+  visibility: hidden !important;
+}
+
+html body #pmd-frontend-settings .pmd-theme-option__swatches {
+  position: absolute !important;
+  left: 10px !important;
+  bottom: 9px !important;
+  z-index: 2 !important;
+  display: flex !important;
+  width: 74px !important;
+  height: 7px !important;
+  border: 1px solid rgba(255,255,255,.72) !important;
+  border-radius: 99px !important;
+  overflow: hidden !important;
+  box-shadow: 0 2px 7px rgba(0,0,0,.16) !important;
+}
+
+html body #pmd-frontend-settings .pmd-theme-option__swatches i {
+  display: block !important;
+  flex: 1 1 0 !important;
+  height: 100% !important;
+  background: var(--swatch) !important;
+}
+
+html body #pmd-frontend-settings .pmd-theme-option__copy {
+  min-width: 0 !important;
+  padding: 0 !important;
+}
+
+html body #pmd-frontend-settings .pmd-theme-option__copy strong {
+  display: block !important;
+  color: #17231f !important;
+  font-size: 14px !important;
+  line-height: 1.3 !important;
+  font-weight: 760 !important;
+}
+
+html body #pmd-frontend-settings .pmd-theme-option__copy small {
+  display: block !important;
+  margin-top: 5px !important;
+  color: #728078 !important;
+  font-size: 12px !important;
+  line-height: 1.35 !important;
+  font-weight: 550 !important;
+}
+
+html body #pmd-frontend-settings .pmd-theme-option__check {
+  display: grid !important;
+  place-items: center !important;
+  width: 26px !important;
+  min-width: 26px !important;
+  max-width: 26px !important;
+  height: 26px !important;
+  min-height: 26px !important;
+  max-height: 26px !important;
+  border: 1px solid #d8e4df !important;
+  border-radius: 50% !important;
+  background: #f0f5f2 !important;
+  color: #8aa198 !important;
+}
+
+html body #pmd-frontend-settings .pmd-theme-option.is-selected
+.pmd-theme-option__check {
+  border-color: #08745f !important;
+  background: #08745f !important;
+  color: #fff !important;
+  box-shadow: none !important;
+}
+
+html body #pmd-frontend-settings .pmd-theme-option__check svg {
+  width: 15px !important;
+  height: 15px !important;
+  fill: none !important;
+  stroke: currentColor !important;
+  stroke-width: 2.5 !important;
+  stroke-linecap: round !important;
+  stroke-linejoin: round !important;
+}
+
+/* Remove every remaining legacy blue focus/selection surface inside the
+ * visible theme-only page. */
+html body #pmd-frontend-settings input:focus,
+html body #pmd-frontend-settings select:focus,
+html body #pmd-frontend-settings button:focus-visible,
+html body #pmd-frontend-settings a:focus-visible,
+html body #pmd-frontend-settings label:focus-within {
+  outline-color: #08745f !important;
+}
+
+@media (max-width: 1100px) {
+  html body #pmd-frontend-settings .pmd-theme-option {
+    grid-template-columns: 150px minmax(0, 1fr) 28px !important;
+  }
+
+  html body #pmd-frontend-settings .pmd-theme-option__preview {
+    width: 150px !important;
+    min-width: 150px !important;
+    max-width: 150px !important;
+  }
+}
+
+@media (max-width: 900px) {
+  html body #pmd-frontend-settings {
+    padding: 0 14px 42px !important;
+  }
+
+  html body #pmd-frontend-settings .pmd-theme-grid {
+    grid-template-columns: 1fr !important;
+  }
+
+  html body #pmd-frontend-settings .pmd-frontend-secondary-button {
+    display: none !important;
+  }
+}
+
+@media (max-width: 560px) {
+  html body #pmd-frontend-settings .pmd-frontend-header h1::after {
+    font-size: 18px !important;
+  }
+
+  html body #pmd-frontend-settings .pmd-frontend-header__left p {
+    display: none !important;
+  }
+
+  html body #pmd-frontend-settings .pmd-frontend-card__header,
+  html body #pmd-frontend-settings .pmd-frontend-card__body {
+    padding-left: 14px !important;
+    padding-right: 14px !important;
+  }
+
+  html body #pmd-frontend-settings .pmd-theme-option {
+    grid-template-columns: 104px minmax(0, 1fr) 26px !important;
+    gap: 10px !important;
+    min-height: 96px !important;
+    padding: 9px !important;
+  }
+
+  html body #pmd-frontend-settings .pmd-theme-option__preview {
+    width: 104px !important;
+    min-width: 104px !important;
+    max-width: 104px !important;
+    height: 76px !important;
+    min-height: 76px !important;
+    max-height: 76px !important;
+  }
+}

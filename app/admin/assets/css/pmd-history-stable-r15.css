@@ -1,0 +1,730 @@
+/* PMD_HISTORY_STABLE_R15
+ * Stable PayMyDine History UI.
+ * Presentation only: History ListController/model/data stay untouched.
+ */
+
+/* ---------------------------------------------------------
+   STABLE PAGE / SCROLL CONTRACT
+   --------------------------------------------------------- */
+html,
+body {
+    background: #f8fbfd !important;
+}
+
+html {
+    height: auto !important;
+    min-height: 100% !important;
+    max-height: none !important;
+    overflow-x: hidden !important;
+    overflow-y: auto !important;
+    scroll-behavior: auto !important;
+}
+
+body {
+    height: auto !important;
+    min-height: 100vh !important;
+    max-height: none !important;
+    overflow-x: hidden !important;
+    overflow-y: visible !important;
+}
+
+body .page-wrapper,
+body .page-content,
+body .content-wrapper,
+body .container-fluid {
+    position: relative !important;
+    top: auto !important;
+    right: auto !important;
+    bottom: auto !important;
+    left: auto !important;
+    height: auto !important;
+    min-height: 0 !important;
+    max-height: none !important;
+    overflow-y: visible !important;
+    transform: none !important;
+    translate: none !important;
+    animation: none !important;
+    transition: none !important;
+    will-change: auto !important;
+}
+
+body .page-wrapper {
+    min-height: 100vh !important;
+    overflow-x: hidden !important;
+}
+
+body .page-content,
+body .content-wrapper,
+body .container-fluid {
+    width: 100% !important;
+    max-width: none !important;
+    margin-top: 0 !important;
+    margin-bottom: 0 !important;
+    padding-left: 0 !important;
+    padding-right: 0 !important;
+    overflow-x: hidden !important;
+}
+
+.navbar-top,
+.navbar-fixed-top {
+    display: none !important;
+    visibility: hidden !important;
+    height: 0 !important;
+    min-height: 0 !important;
+    max-height: 0 !important;
+    overflow: hidden !important;
+}
+
+#pmd-side-menu2,
+#pmd-side-menu2 *,
+body .page-wrapper {
+    animation: none !important;
+    transition: none !important;
+}
+
+@media (min-width: 821px) {
+    body .page-wrapper {
+        margin-left: 86px !important;
+        margin-right: 0 !important;
+        width: calc(100vw - 86px) !important;
+    }
+}
+
+@media (max-width: 820px) {
+    body .page-wrapper {
+        margin-left: 0 !important;
+        width: 100% !important;
+    }
+}
+
+/* ---------------------------------------------------------
+   PAGE
+   --------------------------------------------------------- */
+#pmd-history-page {
+    box-sizing: border-box !important;
+    position: relative !important;
+    width: 100% !important;
+    min-width: 0 !important;
+    min-height: 100vh !important;
+    margin: 0 !important;
+    padding: 0 30px 54px !important;
+    background: #f8fbfd !important;
+    color: #17231f !important;
+    opacity: 1 !important;
+    visibility: visible !important;
+    transform: none !important;
+    animation: none !important;
+    transition: none !important;
+}
+
+/* ---------------------------------------------------------
+   HEADER
+   --------------------------------------------------------- */
+#pmd-history-page .pmd-history-header {
+    box-sizing: border-box !important;
+    position: relative !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+    gap: 20px !important;
+    width: 100% !important;
+    height: 82px !important;
+    min-height: 82px !important;
+    margin: 0 0 18px !important;
+    padding: 0 !important;
+    border: 0 !important;
+    background: transparent !important;
+    box-shadow: none !important;
+    transform: none !important;
+    animation: none !important;
+    transition: none !important;
+}
+
+#pmd-history-page .pmd-owner-header__left,
+#pmd-history-page .pmd-owner-header__actions {
+    display: flex !important;
+    align-items: center !important;
+    gap: 10px !important;
+    min-width: 0 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+}
+
+#pmd-history-page .pmd-owner-header__actions {
+    margin-left: auto !important;
+}
+
+#pmd-history-page .pmd-history-header h1 {
+    margin: 0 !important;
+    padding: 0 !important;
+    color: #17231f !important;
+    font-size: 22px !important;
+    line-height: 1.15 !important;
+    font-weight: 780 !important;
+    letter-spacing: -.02em !important;
+}
+
+#pmd-history-page .pmd-owner-header-button {
+    box-sizing: border-box !important;
+    display: grid !important;
+    place-items: center !important;
+    width: 46px !important;
+    min-width: 46px !important;
+    max-width: 46px !important;
+    height: 46px !important;
+    min-height: 46px !important;
+    max-height: 46px !important;
+    flex: 0 0 46px !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    border: 1px solid #cfe0ec !important;
+    border-radius: 14px !important;
+    background: #fff !important;
+    color: #173752 !important;
+    box-shadow: 0 3px 10px rgba(23,55,82,.05) !important;
+    text-decoration: none !important;
+    cursor: pointer !important;
+    appearance: none !important;
+    transform: none !important;
+    animation: none !important;
+    transition: none !important;
+}
+
+#pmd-history-page .pmd-owner-header-button:hover,
+#pmd-history-page .pmd-owner-header-button:focus-visible {
+    border-color: #abcfc2 !important;
+    background: #f7fbf9 !important;
+    color: #075f4f !important;
+    outline: none !important;
+}
+
+#pmd-history-page .pmd-owner-header-button > svg {
+    display: block !important;
+    width: 21px !important;
+    height: 21px !important;
+    margin: auto !important;
+    padding: 0 !important;
+    fill: none !important;
+    stroke: currentColor !important;
+    stroke-width: 2 !important;
+    stroke-linecap: round !important;
+    stroke-linejoin: round !important;
+    opacity: 1 !important;
+    visibility: visible !important;
+}
+
+/* ---------------------------------------------------------
+   CARD
+   --------------------------------------------------------- */
+#pmd-history-page .pmd-history-shell {
+    width: 100% !important;
+    min-width: 0 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+}
+
+#pmd-history-page .pmd-history-card {
+    width: 100% !important;
+    min-width: 0 !important;
+    margin: 0 !important;
+    border: 1px solid #d5e3de !important;
+    border-radius: 20px !important;
+    background: #fff !important;
+    box-shadow: 0 12px 30px rgba(26,57,47,.055) !important;
+    overflow: hidden !important;
+}
+
+#pmd-history-page .pmd-history-card__header {
+    display: flex !important;
+    align-items: center !important;
+    gap: 14px !important;
+    min-height: 84px !important;
+    padding: 18px 20px !important;
+    border-bottom: 1px solid #e4ece8 !important;
+    background: linear-gradient(90deg,#eef8f4 0%,#f9fcfb 22%,#fff 52%) !important;
+}
+
+#pmd-history-page .pmd-history-card__icon {
+    box-sizing: border-box !important;
+    display: grid !important;
+    place-items: center !important;
+    width: 46px !important;
+    min-width: 46px !important;
+    height: 46px !important;
+    border: 1px solid #9ed2c0 !important;
+    border-radius: 14px !important;
+    background: #e8f7f1 !important;
+    color: #08745f !important;
+}
+
+#pmd-history-page .pmd-history-card__icon > svg {
+    display: block !important;
+    width: 22px !important;
+    height: 22px !important;
+    fill: none !important;
+    stroke: currentColor !important;
+    stroke-width: 1.9 !important;
+    stroke-linecap: round !important;
+    stroke-linejoin: round !important;
+    opacity: 1 !important;
+    visibility: visible !important;
+}
+
+#pmd-history-page .pmd-history-card__title h2 {
+    margin: 0 0 4px !important;
+    color: #17231f !important;
+    font-size: 19px !important;
+    line-height: 1.2 !important;
+    font-weight: 780 !important;
+    letter-spacing: -.015em !important;
+}
+
+#pmd-history-page .pmd-history-card__title p {
+    margin: 0 !important;
+    color: #718078 !important;
+    font-size: 13px !important;
+    line-height: 1.45 !important;
+    font-weight: 500 !important;
+}
+
+#pmd-history-page .pmd-history-card__body,
+#pmd-history-page .history-page-content,
+#pmd-history-page .pmd-history-list {
+    width: 100% !important;
+    min-width: 0 !important;
+    height: auto !important;
+    max-height: none !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    background: #fff !important;
+    overflow: visible !important;
+}
+
+/* ---------------------------------------------------------
+   LEGACY LIST -> CLEAN HISTORY SURFACE
+   --------------------------------------------------------- */
+#pmd-history-page .pmd-history-list .list-title,
+#pmd-history-page .pmd-history-list .list-header > h4,
+#pmd-history-page .pmd-history-list .list-header > h3 {
+    display: none !important;
+}
+
+#pmd-history-page .pmd-history-list :is(.list-toolbar,.toolbar-action,.list-filter,.filter-widget) {
+    box-sizing: border-box !important;
+    margin: 0 !important;
+    border: 0 !important;
+    background: transparent !important;
+    box-shadow: none !important;
+}
+
+#pmd-history-page .pmd-history-list :is(.list-toolbar,.toolbar-action) {
+    display: flex !important;
+    align-items: center !important;
+    flex-wrap: wrap !important;
+    gap: 10px !important;
+    min-height: 64px !important;
+    padding: 10px 16px !important;
+    border-bottom: 1px solid #e8efec !important;
+}
+
+#pmd-history-page .pmd-history-list :is(.list-filter,.filter-widget) {
+    padding: 10px 16px !important;
+    border-bottom: 1px solid #edf2ef !important;
+}
+
+#pmd-history-page .pmd-history-list :is(input[type="text"],input[type="search"],input[type="date"],select,.form-control) {
+    min-height: 42px !important;
+    border: 1px solid #d7e3df !important;
+    border-radius: 12px !important;
+    background: #fff !important;
+    color: #1c2e28 !important;
+    box-shadow: 0 2px 7px rgba(26,57,47,.025) !important;
+    font-size: 13px !important;
+    outline: none !important;
+}
+
+#pmd-history-page .list-table {
+    width: 100% !important;
+    min-width: 0 !important;
+    margin: 0 !important;
+    border: 0 !important;
+    background: #fff !important;
+    overflow-x: auto !important;
+    overflow-y: visible !important;
+    box-shadow: none !important;
+    -webkit-overflow-scrolling: touch;
+}
+
+#pmd-history-page .list-table table {
+    width: 100% !important;
+    min-width: 880px !important;
+    margin: 0 !important;
+    border: 0 !important;
+    border-collapse: separate !important;
+    border-spacing: 0 !important;
+    background: #fff !important;
+}
+
+#pmd-history-page .list-table thead tr:not(.bulk-actions) th {
+    padding: 12px 15px !important;
+    border-top: 0 !important;
+    border-right: 0 !important;
+    border-bottom: 1px solid #dfe9e5 !important;
+    background: #f5f9f7 !important;
+    color: #496159 !important;
+    font-size: 11px !important;
+    line-height: 1.25 !important;
+    font-weight: 780 !important;
+    letter-spacing: .035em !important;
+    text-transform: uppercase !important;
+    vertical-align: middle !important;
+    white-space: nowrap !important;
+}
+
+#pmd-history-page .list-table tbody td {
+    padding: 15px !important;
+    border-top: 0 !important;
+    border-right: 0 !important;
+    border-bottom: 1px solid #edf2ef !important;
+    background: #fff !important;
+    color: #263a33 !important;
+    font-size: 13px !important;
+    line-height: 1.45 !important;
+    vertical-align: middle !important;
+}
+
+#pmd-history-page .list-table tbody tr:hover td {
+    background: #fbfdfc !important;
+}
+
+#pmd-history-page .list-table .col-created {
+    width: 165px !important;
+    color: #6a7a74 !important;
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap !important;
+}
+
+#pmd-history-page .list-table .col-type {
+    width: 150px !important;
+    color: #08745f !important;
+    font-weight: 760 !important;
+}
+
+#pmd-history-page .list-table .col-table {
+    width: 145px !important;
+    color: #344a42 !important;
+    font-weight: 680 !important;
+}
+
+#pmd-history-page .list-table .col-details {
+    min-width: 300px !important;
+    max-width: 620px !important;
+}
+
+#pmd-history-page .list-table .col-status {
+    width: 130px !important;
+    color: #075f4f !important;
+    font-weight: 780 !important;
+    white-space: nowrap !important;
+}
+
+#pmd-history-page .list-table input[type="checkbox"] {
+    width: 17px !important;
+    height: 17px !important;
+    accent-color: #08745f !important;
+    cursor: pointer !important;
+}
+
+/* FontAwesome is not an authority on this page. */
+#pmd-history-page .sort-col > i.fa,
+#pmd-history-page th.list-setup button > i.fa {
+    display: none !important;
+}
+
+#pmd-history-page .sort-col {
+    display: inline-flex !important;
+    align-items: center !important;
+    gap: 7px !important;
+    color: inherit !important;
+    text-decoration: none !important;
+}
+
+#pmd-history-page .sort-col::after {
+    content: "" !important;
+    display: block !important;
+    width: 6px !important;
+    height: 6px !important;
+    flex: 0 0 6px !important;
+    border-right: 1.5px solid #789087 !important;
+    border-bottom: 1.5px solid #789087 !important;
+    transform: rotate(45deg) !important;
+    opacity: .9 !important;
+}
+
+#pmd-history-page th.list-setup {
+    width: 54px !important;
+    min-width: 54px !important;
+    padding: 7px 8px !important;
+    text-align: center !important;
+}
+
+#pmd-history-page th.list-setup button {
+    box-sizing: border-box !important;
+    position: relative !important;
+    display: inline-grid !important;
+    place-items: center !important;
+    width: 38px !important;
+    min-width: 38px !important;
+    height: 38px !important;
+    min-height: 38px !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    border: 1px solid #d4e2dd !important;
+    border-radius: 11px !important;
+    background-color: #fff !important;
+    background-position: center !important;
+    background-repeat: no-repeat !important;
+    background-size: 18px 18px !important;
+    box-shadow: none !important;
+    cursor: pointer !important;
+}
+
+#pmd-history-page th.list-setup button[data-toggle="list-filter"] {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='%23173552' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M4 5h16l-6 7v5l-4 2v-7L4 5z'/%3E%3C/svg%3E") !important;
+}
+
+#pmd-history-page th.list-setup button[data-bs-toggle="modal"] {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='%23173552' stroke-width='2' stroke-linecap='round'%3E%3Cpath d='M4 7h10M18 7h2M4 17h2M10 17h10M14 4v6M8 14v6'/%3E%3C/svg%3E") !important;
+}
+
+#pmd-history-page th.list-setup button:hover {
+    border-color: #a9cdbf !important;
+    background-color: #f6fbf8 !important;
+}
+
+/* bulk actions stay inside the table; never fixed */
+#pmd-history-page tr.bulk-actions:not(.hide),
+#pmd-history-page tr.bulk-actions:not(.hide) td,
+#pmd-history-page tr.bulk-actions:not(.hide) .bulk-actions-cell {
+    position: static !important;
+    inset: auto !important;
+    height: auto !important;
+    overflow: visible !important;
+    transform: none !important;
+}
+
+#pmd-history-page tr.bulk-actions:not(.hide) td {
+    padding: 9px 14px !important;
+    border: 0 !important;
+    border-bottom: 1px solid #f1d9d9 !important;
+    background: #fff9f9 !important;
+    pointer-events: auto !important;
+}
+
+#pmd-history-page tr.bulk-actions:not(.hide) .bulk-actions-cell > div:first-child {
+    display: flex !important;
+    align-items: center !important;
+    flex-wrap: wrap !important;
+    gap: 9px !important;
+    margin: 0 !important;
+    padding: 0 !important;
+}
+
+#pmd-history-page tr.bulk-actions:not(.hide) [data-control="bulk-action"] {
+    min-height: 36px !important;
+    padding: 0 13px !important;
+    border: 1px solid #efb9b9 !important;
+    border-radius: 9px !important;
+    background: #fff !important;
+    color: #a72d2d !important;
+    font-size: 12px !important;
+    font-weight: 780 !important;
+    text-decoration: none !important;
+}
+
+/* ---------------------------------------------------------
+   DETAILS / PAGINATION
+   --------------------------------------------------------- */
+#pmd-history-page .pmd-history-details-cell {
+    display: flex !important;
+    align-items: flex-start !important;
+    gap: 10px !important;
+    min-width: 0 !important;
+}
+
+#pmd-history-page .pmd-history-details-preview {
+    min-width: 0 !important;
+    color: #30453e !important;
+    overflow-wrap: anywhere !important;
+}
+
+#pmd-history-page .pmd-history-see-more {
+    flex: 0 0 auto !important;
+    margin: -2px 0 0 !important;
+    padding: 3px 8px !important;
+    border: 1px solid #c9ded6 !important;
+    border-radius: 8px !important;
+    background: #f6fbf8 !important;
+    color: #08745f !important;
+    font-size: 11px !important;
+    line-height: 1.3 !important;
+    font-weight: 760 !important;
+    cursor: pointer !important;
+}
+
+#pmd-history-page .pagination {
+    display: flex !important;
+    justify-content: center !important;
+    align-items: center !important;
+    flex-wrap: wrap !important;
+    gap: 6px !important;
+    margin: 0 !important;
+    padding: 16px !important;
+    border-top: 1px solid #edf2ef !important;
+    background: #fff !important;
+}
+
+#pmd-history-page .pagination :is(.page-link,a,span) {
+    display: grid !important;
+    place-items: center !important;
+    min-width: 36px !important;
+    height: 36px !important;
+    padding: 0 10px !important;
+    border: 1px solid #d7e3df !important;
+    border-radius: 9px !important;
+    background: #fff !important;
+    color: #496159 !important;
+    font-size: 12px !important;
+    font-weight: 700 !important;
+    text-decoration: none !important;
+}
+
+#pmd-history-page .pagination .active :is(.page-link,span),
+#pmd-history-page .pagination :is(.page-link,a).active {
+    border-color: #08745f !important;
+    background: #08745f !important;
+    color: #fff !important;
+}
+
+/* ---------------------------------------------------------
+   MODAL
+   --------------------------------------------------------- */
+.pmd-history-modal[hidden] {
+    display: none !important;
+}
+
+.pmd-history-modal {
+    position: fixed !important;
+    inset: 0 !important;
+    z-index: 2000 !important;
+    display: grid !important;
+    place-items: center !important;
+    padding: 24px !important;
+    background: rgba(6,23,19,.48) !important;
+    backdrop-filter: blur(4px);
+}
+
+.pmd-history-modal__dialog {
+    width: min(720px,100%) !important;
+    max-height: min(680px,calc(100vh - 48px)) !important;
+    border: 1px solid #cfe0da !important;
+    border-radius: 18px !important;
+    background: #fff !important;
+    box-shadow: 0 28px 80px rgba(5,32,25,.22) !important;
+    overflow: hidden !important;
+}
+
+.pmd-history-modal__header {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+    gap: 16px !important;
+    min-height: 70px !important;
+    padding: 14px 16px 14px 20px !important;
+    border-bottom: 1px solid #dfe9e5 !important;
+    background: linear-gradient(90deg,#08271f 0%,#0b3a2e 100%) !important;
+}
+
+.pmd-history-modal__header h3 {
+    margin: 0 !important;
+    color: #fff !important;
+    font-size: 16px !important;
+    font-weight: 760 !important;
+}
+
+.pmd-history-modal__close {
+    display: grid !important;
+    place-items: center !important;
+    width: 38px !important;
+    height: 38px !important;
+    padding: 0 !important;
+    border: 1px solid rgba(255,255,255,.2) !important;
+    border-radius: 10px !important;
+    background: rgba(255,255,255,.08) !important;
+    color: #fff !important;
+    cursor: pointer !important;
+}
+
+.pmd-history-modal__close svg {
+    display: block !important;
+    width: 18px !important;
+    height: 18px !important;
+    fill: none !important;
+    stroke: currentColor !important;
+    stroke-width: 2 !important;
+    stroke-linecap: round !important;
+    opacity: 1 !important;
+}
+
+.pmd-history-modal__body {
+    max-height: calc(100vh - 160px) !important;
+    padding: 22px !important;
+    overflow: auto !important;
+    background: #fff !important;
+}
+
+.pmd-history-modal__text {
+    margin: 0 !important;
+    padding: 0 !important;
+    border: 0 !important;
+    background: transparent !important;
+    color: #2b4038 !important;
+    font: inherit !important;
+    font-size: 14px !important;
+    line-height: 1.65 !important;
+    white-space: pre-wrap !important;
+    overflow-wrap: anywhere !important;
+}
+
+body.pmd-history-modal-open {
+    overflow-y: hidden !important;
+}
+
+body:not(.pmd-history-modal-open) {
+    overflow-y: visible !important;
+}
+
+@media (max-width: 900px) {
+    #pmd-history-page {
+        padding: 0 16px 42px !important;
+    }
+
+    #pmd-history-page .pmd-history-card {
+        border-radius: 16px !important;
+    }
+}
+
+@media (max-width: 560px) {
+    #pmd-history-page {
+        padding-left: 12px !important;
+        padding-right: 12px !important;
+    }
+
+    #pmd-history-page .pmd-history-card__title p {
+        display: none !important;
+    }
+
+    .pmd-history-modal {
+        padding: 12px !important;
+    }
+}

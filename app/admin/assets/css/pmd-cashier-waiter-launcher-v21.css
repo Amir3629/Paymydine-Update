@@ -1,768 +1,101 @@
+@import url("/app/admin/assets/css/pmd-cashier-waiter-launcher-v21-base.css?v=20260822-r1");
+
+/* ==========================================================
+   PMD CASHIER QUICK V2.4 — PAYMENT HIT-TEST + SHARP UI AUTHORITY
+   Base V2.1/V2.2 rules are imported above unchanged.
+   ========================================================== */
 @media (max-width: 767px) {
-  html,
-  body.pmd-cashier-waiter-host-v21 {
-    width: 100% !important;
-    min-width: 0 !important;
-    min-height: 100% !important;
-    margin: 0 !important;
-    padding: 0 !important;
-    overflow-x: hidden !important;
-    background: #f3f8fb !important;
+  body.pmd-cashier-waiter-host-v21 [data-v2-pos-layer]:not([hidden]) {
+    pointer-events: auto !important;
   }
 
-  body.pmd-cashier-waiter-host-v21 *,
-  body.pmd-cashier-waiter-host-v21 *::before,
-  body.pmd-cashier-waiter-host-v21 *::after {
-    box-sizing: border-box !important;
+  body.pmd-cashier-waiter-host-v21 [data-v2-pos-host],
+  body.pmd-cashier-waiter-host-v21 [data-pmd-pos-root] {
+    pointer-events: auto !important;
   }
 
-  body.pmd-cashier-waiter-host-v21
-  #pmd-waiter-standard-v2 {
-    width: 100% !important;
-    min-width: 0 !important;
-    min-height: 100dvh !important;
-    margin: 0 !important;
-    padding: 0 !important;
-    background: #f3f8fb !important;
-  }
-
-  /*
-   * Cashier-host authority: the legacy waiter launcher is kept mounted only
-   * because its proven POS runtime owns openTable()/closeTable(). Its visible
-   * launcher, zero-shift skeleton and legacy side rails are not Cashier UI.
-   */
-  body.pmd-cashier-waiter-host-v21
-  #pmd-waiter-standard-v2
-  > .pmd-v2-launcher,
-  body.pmd-cashier-waiter-host-v21:not(.pmd-waiter-v2-pos-open)
-  .v257-operations-rail,
-  body.pmd-cashier-waiter-host-v21:not(.pmd-waiter-v2-pos-open)
-  .pmd-v257-operations-rail,
-  body.pmd-cashier-waiter-host-v21:not(.pmd-waiter-v2-pos-open)
-  .pmd-v279-right-rail,
-  body.pmd-cashier-waiter-host-v21:not(.pmd-waiter-v2-pos-open)
-  .pmd-v280-right-rail,
-  body.pmd-cashier-waiter-host-v21:not(.pmd-waiter-v2-pos-open)
-  .pmd-v265-logout {
+  body.pmd-cashier-waiter-host-v21 [data-v2-pos-loading].is-hidden,
+  body.pmd-cashier-waiter-host-v21 [data-v2-pos-loading][hidden] {
     display: none !important;
-    visibility: hidden !important;
     pointer-events: none !important;
   }
 
-  body.pmd-cashier-waiter-host-v21.pmd-waiter-v2-pos-open
-  #pmd-cashier-quick-launcher-v21 {
-    display: none !important;
-  }
-
-  body.pmd-cashier-waiter-host-v21
-  #pmd-cashier-quick-launcher-v21 {
-    display: block !important;
-    width: 100% !important;
-    max-width: 680px !important;
-    min-height: 100dvh !important;
-    margin: 0 auto !important;
-    padding: max(14px, env(safe-area-inset-top)) 14px
-      max(24px, env(safe-area-inset-bottom)) !important;
-    color: #17334a !important;
-    background: #f3f8fb !important;
-    font-family: inherit !important;
-  }
-
-  body.pmd-cashier-waiter-host-v21
-  #pmd-cashier-quick-launcher-v21 button,
-  body.pmd-cashier-waiter-host-v21
-  #pmd-cashier-quick-launcher-v21 input {
-    font: inherit !important;
-    -webkit-appearance: none !important;
-    appearance: none !important;
-  }
-
-  .pmd-cql-v21__head {
+  /* Payment owns the hit-test stack while it is open. */
+  body.pmd-cashier-waiter-host-v21 .pmd-pos-payment-modal.is-show {
     display: flex !important;
-    align-items: center !important;
-    justify-content: space-between !important;
-    gap: 14px !important;
-    margin: 0 0 14px !important;
-  }
-
-  .pmd-cql-v21__head > div {
-    min-width: 0 !important;
-  }
-
-  .pmd-cql-v21__head small {
-    display: block !important;
-    margin: 0 0 2px !important;
-    color: #6d8496 !important;
-    font-size: 11px !important;
-    font-weight: 800 !important;
-    letter-spacing: .09em !important;
-  }
-
-  .pmd-cql-v21__head h1 {
-    margin: 0 !important;
-    color: #0e283c !important;
-    font-size: clamp(28px, 8vw, 36px) !important;
-    line-height: 1.02 !important;
-    font-weight: 850 !important;
-    letter-spacing: -.035em !important;
-  }
-
-  .pmd-cql-v21__head p {
-    margin: 5px 0 0 !important;
-    color: #72899a !important;
-    font-size: 13px !important;
-    font-weight: 700 !important;
-  }
-
-  .pmd-cql-v21__head [data-cql-refresh] {
-    display: grid !important;
-    place-items: center !important;
-    flex: 0 0 48px !important;
-    width: 48px !important;
-    min-width: 48px !important;
-    max-width: 48px !important;
-    height: 48px !important;
-    min-height: 48px !important;
-    max-height: 48px !important;
-    margin: 0 !important;
-    padding: 0 !important;
-    border: 1px solid #c9dce7 !important;
-    border-radius: 16px !important;
-    color: #173f5b !important;
-    background: #ffffff !important;
-    box-shadow: 0 8px 22px rgba(29, 61, 82, .05) !important;
-    cursor: pointer !important;
-  }
-
-  .pmd-cql-v21__head [data-cql-refresh] span {
-    font-size: 28px !important;
-    line-height: 1 !important;
-  }
-
-  .pmd-cql-v21__summary {
-    display: grid !important;
-    grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
-    gap: 9px !important;
-    margin: 0 0 13px !important;
-  }
-
-  .pmd-cql-v21__summary article {
-    min-width: 0 !important;
-    padding: 12px 12px 11px !important;
-    border: 1px solid #d0e0e9 !important;
-    border-radius: 17px !important;
-    background: #ffffff !important;
-    box-shadow: 0 6px 18px rgba(29, 61, 82, .035) !important;
-  }
-
-  .pmd-cql-v21__summary span {
-    display: block !important;
-    overflow: hidden !important;
-    color: #72889a !important;
-    font-size: 11px !important;
-    font-weight: 750 !important;
-    white-space: nowrap !important;
-    text-overflow: ellipsis !important;
-  }
-
-  .pmd-cql-v21__summary strong {
-    display: block !important;
-    overflow: hidden !important;
-    margin-top: 5px !important;
-    color: #0e5d4e !important;
-    font-size: clamp(20px, 6vw, 27px) !important;
-    line-height: 1 !important;
-    font-weight: 850 !important;
-    white-space: nowrap !important;
-    text-overflow: ellipsis !important;
-  }
-
-  .pmd-cql-v21__floors {
-    display: flex !important;
-    width: 100% !important;
-    gap: 8px !important;
-    margin: 0 0 12px !important;
-    padding: 4px !important;
-    overflow-x: auto !important;
-    overflow-y: hidden !important;
-    border: 1px solid #d0e0e9 !important;
-    border-radius: 17px !important;
-    background: #eaf2f6 !important;
-    scrollbar-width: none !important;
-  }
-
-  .pmd-cql-v21__floors::-webkit-scrollbar {
-    display: none !important;
-  }
-
-  .pmd-cql-v21__floors[hidden] {
-    display: none !important;
-  }
-
-  .pmd-cql-v21__floors button {
-    display: inline-flex !important;
-    align-items: center !important;
-    justify-content: center !important;
-    flex: 0 0 auto !important;
-    min-height: 42px !important;
-    gap: 8px !important;
-    margin: 0 !important;
-    padding: 0 14px !important;
-    border: 0 !important;
-    border-radius: 13px !important;
-    color: #5b7384 !important;
-    background: transparent !important;
-    box-shadow: none !important;
-    font-size: 13px !important;
-    font-weight: 800 !important;
-    white-space: nowrap !important;
-    cursor: pointer !important;
-  }
-
-  .pmd-cql-v21__floors button b {
-    display: inline-grid !important;
-    place-items: center !important;
-    min-width: 23px !important;
-    height: 23px !important;
-    padding: 0 6px !important;
-    border-radius: 999px !important;
-    color: #587183 !important;
-    background: rgba(255, 255, 255, .72) !important;
-    font-size: 11px !important;
-  }
-
-  .pmd-cql-v21__floors button.is-active {
-    color: #076653 !important;
-    background: #ffffff !important;
-    box-shadow: 0 6px 16px rgba(29, 61, 82, .07) !important;
-  }
-
-  .pmd-cql-v21__floors button.is-active b {
-    color: #ffffff !important;
-    background: #0f7a65 !important;
-  }
-
-  .pmd-cql-v21__search {
-    display: grid !important;
-    grid-template-columns: 36px minmax(0, 1fr) !important;
-    align-items: center !important;
-    width: 100% !important;
-    height: 50px !important;
-    margin: 0 0 13px !important;
-    padding: 0 12px !important;
-    border: 1px solid #d0e0e9 !important;
-    border-radius: 17px !important;
-    background: #ffffff !important;
-    box-shadow: 0 6px 18px rgba(29, 61, 82, .035) !important;
-  }
-
-  .pmd-cql-v21__search > span {
-    color: #6d8496 !important;
-    font-size: 25px !important;
-    line-height: 1 !important;
-  }
-
-  .pmd-cql-v21__search input {
-    width: 100% !important;
-    min-width: 0 !important;
-    height: 46px !important;
-    margin: 0 !important;
-    padding: 0 !important;
-    border: 0 !important;
-    outline: 0 !important;
-    color: #17334a !important;
-    background: transparent !important;
-    box-shadow: none !important;
-    font-size: 16px !important;
-    font-weight: 650 !important;
-  }
-
-  .pmd-cql-v21__search input::placeholder {
-    color: #9aaab6 !important;
+    visibility: visible !important;
     opacity: 1 !important;
+    pointer-events: auto !important;
+    z-index: 2147483500 !important;
   }
 
-  .pmd-cql-v21__meta {
-    display: flex !important;
-    align-items: baseline !important;
-    justify-content: space-between !important;
-    gap: 12px !important;
-    margin: 0 3px 9px !important;
+  body.pmd-cashier-waiter-host-v21 .pmd-pos-payment-modal.is-show,
+  body.pmd-cashier-waiter-host-v21 .pmd-pos-payment-modal.is-show *,
+  body.pmd-cashier-waiter-host-v21 .pmd-pos-payment-dialog,
+  body.pmd-cashier-waiter-host-v21 .pmd-pos-payment-dialog button,
+  body.pmd-cashier-waiter-host-v21 .pmd-pos-payment-dialog input,
+  body.pmd-cashier-waiter-host-v21 .pmd-pos-payment-dialog select,
+  body.pmd-cashier-waiter-host-v21 .pmd-pos-payment-dialog textarea,
+  body.pmd-cashier-waiter-host-v21 [data-split-mode],
+  body.pmd-cashier-waiter-host-v21 [data-pos-method],
+  body.pmd-cashier-waiter-host-v21 [data-pos-equal-minus],
+  body.pmd-cashier-waiter-host-v21 [data-pos-equal-plus],
+  body.pmd-cashier-waiter-host-v21 [data-tip-percent],
+  body.pmd-cashier-waiter-host-v21 [data-pos-pay-button],
+  body.pmd-cashier-waiter-host-v21 [data-pos-coupon-apply],
+  body.pmd-cashier-waiter-host-v21 [data-pos-payment-close],
+  body.pmd-cashier-waiter-host-v21 .pmd-cql-v22__pos-header,
+  body.pmd-cashier-waiter-host-v21 .pmd-cql-v22__pos-header button {
+    pointer-events: auto !important;
+    touch-action: manipulation !important;
   }
 
-  .pmd-cql-v21__meta strong {
-    overflow: hidden !important;
-    color: #17334a !important;
-    font-size: 15px !important;
-    font-weight: 850 !important;
-    white-space: nowrap !important;
-    text-overflow: ellipsis !important;
+  /* Sharp Cashier Quick geometry: payment controls and the four command keys. */
+  body.pmd-cashier-waiter-host-v21 .pmd-cql-v22__pos-header,
+  body.pmd-cashier-waiter-host-v21 .pmd-cql-v22__pos-header button,
+  body.pmd-cashier-waiter-host-v21 .pmd-cql-v22__checks-card,
+  body.pmd-cashier-waiter-host-v21 .pmd-cql-v22__checks-card button,
+  body.pmd-cashier-waiter-host-v21 .pmd-cql-v22__check,
+  body.pmd-cashier-waiter-host-v21 .pmd-cql-v22__money span,
+  body.pmd-cashier-waiter-host-v21 .pmd-cql-v22__note,
+  body.pmd-cashier-waiter-host-v21 .pmd-pos-payment-dialog,
+  body.pmd-cashier-waiter-host-v21 .pmd-pos-payment-head,
+  body.pmd-cashier-waiter-host-v21 .pmd-pos-payment-block,
+  body.pmd-cashier-waiter-host-v21 .pmd-pos-payment-summary,
+  body.pmd-cashier-waiter-host-v21 .pmd-pos-payment-balance,
+  body.pmd-cashier-waiter-host-v21 .pmd-pos-split-tabs,
+  body.pmd-cashier-waiter-host-v21 .pmd-pos-split-tabs button,
+  body.pmd-cashier-waiter-host-v21 .pmd-pos-method-grid button,
+  body.pmd-cashier-waiter-host-v21 .pmd-pos-tip-buttons button,
+  body.pmd-cashier-waiter-host-v21 .pmd-pos-payment-input,
+  body.pmd-cashier-waiter-host-v21 .pmd-pos-pay-button,
+  body.pmd-cashier-waiter-host-v21 .pmd-pos-payment-secondary,
+  body.pmd-cashier-waiter-host-v21 .pmd-pos-coupon-row button {
+    border-radius: 0 !important;
   }
 
-  .pmd-cql-v21__meta span {
-    flex: 0 0 auto !important;
-    color: #7a8f9f !important;
-    font-size: 12px !important;
-    font-weight: 700 !important;
+  /* V2.2 emits data-cql-v22-*; old styling targeted the obsolete V2.1 names. */
+  body.pmd-cashier-waiter-host-v21 .pmd-cql-v22__pos-header button[data-cql-v22-note] {
+    border-color: #b7791f !important;
+    background: #f59e0b !important;
+    color: #111827 !important;
   }
 
-  .pmd-cql-v21__grid {
-    display: grid !important;
-    grid-template-columns: 1fr !important;
-    width: 100% !important;
-    gap: 9px !important;
-  }
-
-  .pmd-cql-v21__table {
-    position: relative !important;
-    display: grid !important;
-    grid-template-columns: 12px minmax(0, 1fr) auto 18px !important;
-    align-items: center !important;
-    width: 100% !important;
-    min-width: 0 !important;
-    min-height: 78px !important;
-    gap: 10px !important;
-    margin: 0 !important;
-    padding: 14px 15px !important;
-    overflow: hidden !important;
-    border: 1px solid #cbdde7 !important;
-    border-radius: 20px !important;
-    color: #17334a !important;
-    text-align: left !important;
-    background: #ffffff !important;
-    box-shadow: 0 7px 20px rgba(29, 61, 82, .035) !important;
-    cursor: pointer !important;
-  }
-
-  .pmd-cql-v21__dot {
-    display: block !important;
-    width: 10px !important;
-    height: 10px !important;
-    border-radius: 999px !important;
-    background: #2ebd92 !important;
-    box-shadow: 0 0 0 5px rgba(46, 189, 146, .12) !important;
-  }
-
-  .pmd-cql-v21__table-copy {
-    display: block !important;
-    min-width: 0 !important;
-  }
-
-  .pmd-cql-v21__table-copy strong,
-  .pmd-cql-v21__table-copy small {
-    display: block !important;
-    overflow: hidden !important;
-    white-space: nowrap !important;
-    text-overflow: ellipsis !important;
-  }
-
-  .pmd-cql-v21__table-copy strong {
-    color: #12324a !important;
-    font-size: 18px !important;
-    line-height: 1.15 !important;
-    font-weight: 850 !important;
-  }
-
-  .pmd-cql-v21__table-copy small {
-    margin-top: 5px !important;
-    color: #738797 !important;
-    font-size: 12px !important;
-    line-height: 1.2 !important;
-    font-weight: 650 !important;
-  }
-
-  .pmd-cql-v21__state {
-    display: inline-flex !important;
-    align-items: center !important;
-    justify-content: center !important;
-    min-height: 28px !important;
-    padding: 0 10px !important;
-    border-radius: 999px !important;
-    color: #116653 !important;
-    background: #e7f7f1 !important;
-    font-size: 11px !important;
-    font-weight: 850 !important;
-    white-space: nowrap !important;
-  }
-
-  .pmd-cql-v21__arrow {
-    color: #87a0af !important;
-    font-size: 30px !important;
-    line-height: 1 !important;
-    font-weight: 300 !important;
-  }
-
-  .pmd-cql-v21__table.is-open .pmd-cql-v21__dot {
-    background: #2d7fc6 !important;
-    box-shadow: 0 0 0 5px rgba(45, 127, 198, .12) !important;
-  }
-
-  .pmd-cql-v21__table.is-open .pmd-cql-v21__state {
-    color: #24618d !important;
-    background: #eaf4fb !important;
-  }
-
-  .pmd-cql-v21__table.is-ready .pmd-cql-v21__dot {
-    background: #8b63d7 !important;
-    box-shadow: 0 0 0 5px rgba(139, 99, 215, .12) !important;
-  }
-
-  .pmd-cql-v21__table.is-ready .pmd-cql-v21__state {
-    color: #6943a5 !important;
-    background: #f0eafd !important;
-  }
-
-  .pmd-cql-v21__table.is-reserved .pmd-cql-v21__dot {
-    background: #6b70c9 !important;
-    box-shadow: 0 0 0 5px rgba(107, 112, 201, .12) !important;
-  }
-
-  .pmd-cql-v21__table.is-reserved .pmd-cql-v21__state {
-    color: #5357a5 !important;
-    background: #efeffb !important;
-  }
-
-  .pmd-cql-v21__table.is-cleaning .pmd-cql-v21__dot,
-  .pmd-cql-v21__table.is-call .pmd-cql-v21__dot {
-    background: #e89a38 !important;
-    box-shadow: 0 0 0 5px rgba(232, 154, 56, .13) !important;
-  }
-
-  .pmd-cql-v21__table.is-cleaning .pmd-cql-v21__state,
-  .pmd-cql-v21__table.is-call .pmd-cql-v21__state {
-    color: #9b5f1f !important;
-    background: #fff3e3 !important;
-  }
-
-  .pmd-cql-v21__empty {
-    display: grid !important;
-    place-items: center !important;
-    min-height: 190px !important;
-    margin-top: 8px !important;
-    padding: 24px !important;
-    border: 1px dashed #bed4df !important;
-    border-radius: 20px !important;
-    color: #718696 !important;
-    text-align: center !important;
-    background: rgba(255, 255, 255, .62) !important;
-  }
-
-  .pmd-cql-v21__empty[hidden] {
-    display: none !important;
-  }
-
-  .pmd-cql-v21__empty strong {
-    color: #17334a !important;
-    font-size: 17px !important;
-    font-weight: 850 !important;
-  }
-
-  .pmd-cql-v21__empty span {
-    display: block !important;
-    margin-top: 6px !important;
-    font-size: 13px !important;
-  }
-
-  @media (max-width: 360px) {
-    body.pmd-cashier-waiter-host-v21
-    #pmd-cashier-quick-launcher-v21 {
-      padding-left: 10px !important;
-      padding-right: 10px !important;
-    }
-
-    .pmd-cql-v21__summary {
-      gap: 6px !important;
-    }
-
-    .pmd-cql-v21__summary article {
-      padding-left: 9px !important;
-      padding-right: 9px !important;
-    }
-
-    .pmd-cql-v21__table {
-      grid-template-columns: 10px minmax(0, 1fr) 16px !important;
-    }
-
-    .pmd-cql-v21__state {
-      display: none !important;
-    }
-  }
-}
-
-@media (min-width: 768px) {
-  #pmd-cashier-quick-launcher-v21 {
-    display: none !important;
-  }
-}
-
-/* ==========================================================
-   PMD CASHIER QUICK V2.2 — ADDITIVE PHONE-ONLY WORKFLOW
-   Accepted V2.1 geometry above remains byte-structurally intact.
-   ========================================================== */
-@media (max-width: 767px) {
-  .pmd-cql-v21__table.is-open .pmd-cql-v21__dot {
-    background: #e5484d !important;
-    box-shadow: 0 0 0 5px rgba(229, 72, 77, .12) !important;
-  }
-
-  .pmd-cql-v21__table.is-open .pmd-cql-v21__state {
-    color: #b72e35 !important;
-    background: #fff0f1 !important;
-  }
-
-  .pmd-cql-v22__checks {
-    position: fixed !important;
-    inset: 0 !important;
-    z-index: 2147483200 !important;
-    display: flex !important;
-    align-items: flex-end !important;
-    background: rgba(13,31,43,.45) !important;
-    backdrop-filter: blur(5px) !important;
-  }
-
-  .pmd-cql-v22__checks[hidden] { display: none !important; }
-
-  .pmd-cql-v22__checks-card {
-    width: 100% !important;
-    max-height: 88dvh !important;
-    display: flex !important;
-    flex-direction: column !important;
-    overflow: hidden !important;
-    border-radius: 22px 22px 0 0 !important;
-    background: #f6fafc !important;
-    box-shadow: 0 -16px 44px rgba(8,30,45,.22) !important;
-  }
-
-  .pmd-cql-v22__checks-card > header {
-    display: flex !important;
-    align-items: center !important;
-    justify-content: space-between !important;
-    gap: 12px !important;
-    padding: 16px !important;
-    border-bottom: 1px solid #dbe6ed !important;
-    background: #fff !important;
-  }
-
-  .pmd-cql-v22__checks-card > header small {
-    display: block !important;
-    color: #7d8f9b !important;
-    font-size: 9px !important;
-    font-weight: 800 !important;
-    letter-spacing: .12em !important;
-  }
-
-  .pmd-cql-v22__checks-card > header h2 {
-    margin: 3px 0 0 !important;
-    font-size: 19px !important;
-  }
-
-  .pmd-cql-v22__checks-card > header button {
-    width: 38px !important;
-    height: 38px !important;
-    border: 1px solid #d5e2e9 !important;
-    border-radius: 11px !important;
-    background: #fff !important;
-    font-size: 20px !important;
-  }
-
-  .pmd-cql-v22__checks-card > [data-cql-checks-body] {
-    min-height: 120px !important;
-    overflow: auto !important;
-    padding: 12px !important;
-  }
-
-  .pmd-cql-v22__checks-card > footer {
-    padding: 10px 12px calc(10px + env(safe-area-inset-bottom)) !important;
-    border-top: 1px solid #dbe6ed !important;
-    background: #fff !important;
-  }
-
-  .pmd-cql-v22__checks-card > footer button {
-    width: 100% !important;
-    height: 46px !important;
-    border: 0 !important;
-    border-radius: 12px !important;
-    background: #173f59 !important;
-    color: #fff !important;
-    font-size: 12px !important;
-    font-weight: 800 !important;
-  }
-
-  .pmd-cql-v22__check {
-    margin-bottom: 10px !important;
-    padding: 13px !important;
-    border: 1px solid #dbe6ed !important;
-    border-radius: 14px !important;
-    background: #fff !important;
-  }
-
-  .pmd-cql-v22__check-head,
-  .pmd-cql-v22__actions {
-    display: flex !important;
-    align-items: center !important;
-    justify-content: space-between !important;
-    gap: 8px !important;
-  }
-
-  .pmd-cql-v22__check-head span {
-    padding: 4px 7px !important;
-    border-radius: 999px !important;
-    background: #fff2f2 !important;
-    color: #b93239 !important;
-    font-size: 9px !important;
-    font-weight: 800 !important;
-  }
-
-  .pmd-cql-v22__check-head span.is-paid {
-    background: #edf8f2 !important;
-    color: #17704f !important;
-  }
-
-  .pmd-cql-v22__check-head span.is-part-paid {
-    background: #fff7e7 !important;
-    color: #9c6812 !important;
-  }
-
-  .pmd-cql-v22__money {
-    display: grid !important;
-    grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
-    gap: 7px !important;
-    margin-top: 10px !important;
-  }
-
-  .pmd-cql-v22__money span {
-    padding: 8px !important;
-    border-radius: 10px !important;
-    background: #f4f8fa !important;
-    color: #748794 !important;
-    font-size: 9px !important;
-  }
-
-  .pmd-cql-v22__money b {
-    display: block !important;
-    margin-top: 3px !important;
-    color: #173752 !important;
-    font-size: 12px !important;
-  }
-
-  .pmd-cql-v22__check ul {
-    margin: 10px 0 0 !important;
-    padding: 0 0 0 18px !important;
-    color: #4e6573 !important;
-    font-size: 10px !important;
-    line-height: 1.55 !important;
-  }
-
-  .pmd-cql-v22__note {
-    margin: 9px 0 0 !important;
-    padding: 8px 9px !important;
-    border-radius: 9px !important;
-    background: #f6f2ff !important;
-    color: #5c4c79 !important;
-    font-size: 10px !important;
-  }
-
-  .pmd-cql-v22__actions { margin-top: 11px !important; }
-  .pmd-cql-v22__actions button {
-    flex: 1 1 0 !important;
-    height: 40px !important;
-    border: 1px solid #bfcfd9 !important;
-    border-radius: 10px !important;
-    background: #fff !important;
-    color: #173f59 !important;
-    font-size: 10px !important;
-    font-weight: 800 !important;
-  }
-  .pmd-cql-v22__actions button:last-child {
-    border-color: #173f59 !important;
-    background: #173f59 !important;
+  body.pmd-cashier-waiter-host-v21 .pmd-cql-v22__pos-header button[data-cql-v22-pos-pay] {
+    border-color: #0369a1 !important;
+    background: #0284c7 !important;
     color: #fff !important;
   }
-  .pmd-cql-v22__actions button:disabled { opacity: .45 !important; }
-  .pmd-cql-v22__loading,.pmd-cql-v22__error,.pmd-cql-v22__no-checks {
-    padding: 28px 14px !important;
-    text-align: center !important;
-    color: #687d8a !important;
-    font-size: 11px !important;
-  }
 
-  .pmd-cql-v22__pos-header {
-    position: fixed !important;
-    top: 0 !important;
-    left: 0 !important;
-    right: 0 !important;
-    z-index: 2147483100 !important;
-    display: flex !important;
-    flex-direction: column !important;
-    gap: 7px !important;
-    padding: 8px 10px !important;
-    border-bottom: 1px solid #d3e0e8 !important;
-    background: rgba(255,255,255,.98) !important;
-    box-shadow: 0 4px 18px rgba(15,40,56,.10) !important;
-  }
-
-  .pmd-cql-v22__pos-header > strong { font-size: 11px !important; color: #173752 !important; }
-  .pmd-cql-v22__pos-header > div {
-    display: grid !important;
-    grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
-    gap: 6px !important;
-  }
-  .pmd-cql-v22__pos-header button {
-    min-width: 0 !important;
-    height: 36px !important;
-    padding: 0 6px !important;
-    border: 1px solid #cad9e2 !important;
-    border-radius: 9px !important;
-    background: #fff !important;
-    color: #24485f !important;
-    font-size: 9px !important;
-    font-weight: 800 !important;
-  }
-  .pmd-cql-v22__pos-header button[data-cql-pos-pay] {
-    border-color: #173f59 !important;
-    background: #173f59 !important;
+  body.pmd-cashier-waiter-host-v21 .pmd-cql-v22__pos-header button[data-cql-v22-free] {
+    border-color: #15803d !important;
+    background: #16a34a !important;
     color: #fff !important;
   }
-  .pmd-cql-v22__pos-header button[data-cql-pos-free] { color: #a2363a !important; }
-  body.pmd-waiter-v2-pos-open [data-v2-pos-host] { padding-top: 82px !important; }
 
-  [data-pos-modifier-modal].is-show { z-index: 2147483300 !important; padding-bottom: 0 !important; }
-  [data-pos-modifier-modal].is-show .pmd-pos-modal-card {
-    max-height: calc(100dvh - 18px) !important;
-    margin-bottom: 8px !important;
-    display: flex !important;
-    flex-direction: column !important;
-  }
-  [data-pos-modifier-modal].is-show .pmd-pos-modal-body { min-height: 0 !important; overflow: auto !important; }
-  [data-pos-modifier-modal].is-show .pmd-pos-modal-foot {
-    position: sticky !important;
-    bottom: 0 !important;
-    z-index: 3 !important;
-    flex: 0 0 auto !important;
-    padding-bottom: calc(12px + env(safe-area-inset-bottom)) !important;
-    background: #fff !important;
-  }
-  [data-pos-modifier-modal].is-show [data-pos-modal-add] {
-    min-height: 48px !important;
-    position: relative !important;
-    z-index: 4 !important;
-  }
-
-  .pmd-pos-stepper [data-pos-guests] {
-    display: flex !important;
-    align-items: center !important;
-    justify-content: center !important;
-    min-width: 42px !important;
-    background: #fff !important;
-    color: #173752 !important;
-    border-top: 1px solid #d6e2e9 !important;
-    border-bottom: 1px solid #d6e2e9 !important;
-  }
-}
-
-@media (min-width: 768px) {
-  .pmd-cql-v22__checks,
-  .pmd-cql-v22__pos-header {
-    display: none !important;
+  body.pmd-cashier-waiter-host-v21 .pmd-cql-v22__pos-header button[data-cql-v22-back] {
+    border-color: #991b1b !important;
+    background: #dc2626 !important;
+    color: #fff !important;
   }
 }
