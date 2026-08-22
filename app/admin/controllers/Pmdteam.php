@@ -53,11 +53,22 @@ class Pmdteam extends AdminController
         }
 
         $staff = $staffQuery->get();
+        $roleOptions = $this->roleOptionsR43($authority, $fixedRoles);
+        $roleSelections = [];
+
+        foreach ($staff as $member) {
+            $roleSelections[(int)$member->staff_id] = $this->roleSelectionForStaffR43(
+                $authority,
+                $member
+            );
+        }
 
         $this->vars['pmdTeam'] = [
             'staff' => $staff,
             'roles' => $fixedRoles,
             'definitions' => $authority->definitions(),
+            'role_options' => $roleOptions,
+            'role_selections' => $roleSelections,
             'stats' => [
                 'total' => $staff->count(),
                 'active' => $staff->where('staff_status', true)->count(),
@@ -72,7 +83,8 @@ class Pmdteam extends AdminController
     {
         $input = (array)post('staff', []);
         $staffId = max(0, (int)($input['id'] ?? 0));
-        $roleId = max(0, (int)($input['role_id'] ?? 0));
+        $roleSelection = trim((string)($input['role'] ?? ''));
+        [$roleId, $stationId] = $this->parseRoleSelectionR43($roleSelection);
         $name = trim((string)($input['name'] ?? ''));
         $username = trim((string)($input['username'] ?? ''));
         $password = (string)($input['password'] ?? '');
@@ -98,9 +110,22 @@ class Pmdteam extends AdminController
         $authority = app(PmdFixedRoleAuthorityV1::class);
         $fixedRoles = $authority->ensureDefaultRoles();
         $role = $authority->roleById($roleId);
+        $roleCode = $role ? $authority->roleCodeForRole($role) : '';
 
         if (!$role || !$fixedRoles->contains(fn ($candidate) => (int)$candidate->staff_role_id === $roleId)) {
             $errors[] = 'Choose one of the built-in PayMyDine roles.';
+        }
+
+        if ($roleCode === 'kds') {
+            $station = $authority->kdsStations()->first(function ($candidate) use ($stationId) {
+                return (int)($candidate->station_id ?? $candidate->getKey()) === $stationId;
+            });
+
+            if ($stationId < 1 || !$station) {
+                $errors[] = 'Choose the KDS station from the Role field.';
+            }
+        } elseif ($stationId > 0) {
+            $errors[] = 'KDS station selection is only valid for the KDS role.';
         }
 
         $duplicateName = Staffs_model::query()
@@ -133,6 +158,8 @@ class Pmdteam extends AdminController
                 $authority,
                 $staffId,
                 $role,
+                $roleCode,
+                $stationId,
                 $name,
                 $username,
                 $password
@@ -185,15 +212,17 @@ class Pmdteam extends AdminController
                     $member->addStaffLocations([$locationId]);
                 }
 
+                // KDS assignment is an explicit part of the Role selection.
+                // Switching away from KDS clears any old station mapping.
+                $authority->setKdsStationForStaff(
+                    $member,
+                    $roleCode === 'kds' ? $stationId : null
+                );
+
                 $fresh = Staffs_model::with(['role', 'user'])->find($member->staff_id);
-                $roleCode = $fresh && $fresh->role
-                    ? strtolower(trim((string)($fresh->role->code ?? $fresh->role->name)))
-                    : '';
 
                 if ($roleCode === 'kds' && !$authority->stationForStaff($fresh)) {
-                    throw new \RuntimeException(
-                        'KDS could not be assigned. If this restaurant has multiple KDS stations, use the station name or station slug as the staff Name or Username.'
-                    );
+                    throw new \RuntimeException('The selected KDS station could not be assigned.');
                 }
 
                 return $fresh;
@@ -215,6 +244,75 @@ class Pmdteam extends AdminController
             'message' => $staffId > 0 ? 'Staff member updated.' : 'Staff member added.',
             'staff_id' => (int)$saved->staff_id,
         ]);
+    }
+
+    private function roleOptionsR43(PmdFixedRoleAuthorityV1 $authority, $fixedRoles): array
+    {
+        $options = [];
+
+        foreach ($fixedRoles as $code => $role) {
+            $roleId = (int)$role->staff_role_id;
+
+            if ($code !== 'kds') {
+                $options[] = [
+                    'value' => 'role:'.$roleId,
+                    'label' => (string)$role->name,
+                    'role_id' => $roleId,
+                    'station_id' => 0,
+                ];
+                continue;
+            }
+
+            foreach ($authority->kdsStations() as $station) {
+                $stationId = (int)($station->station_id ?? $station->getKey());
+                if ($stationId < 1) {
+                    continue;
+                }
+
+                $options[] = [
+                    'value' => 'kds:'.$roleId.':'.$stationId,
+                    'label' => 'KDS — '.trim((string)$station->name),
+                    'role_id' => $roleId,
+                    'station_id' => $stationId,
+                ];
+            }
+        }
+
+        return $options;
+    }
+
+    private function roleSelectionForStaffR43(PmdFixedRoleAuthorityV1 $authority, $member): string
+    {
+        if (!$member || !$member->role) {
+            return '';
+        }
+
+        $roleId = (int)$member->staff_role_id;
+        $roleCode = $authority->roleCodeForRole($member->role);
+
+        if ($roleCode !== 'kds') {
+            return $roleId > 0 ? 'role:'.$roleId : '';
+        }
+
+        $station = $authority->stationForStaff($member);
+        $stationId = $station ? (int)($station->station_id ?? $station->getKey()) : 0;
+
+        return $roleId > 0 && $stationId > 0
+            ? 'kds:'.$roleId.':'.$stationId
+            : '';
+    }
+
+    private function parseRoleSelectionR43(string $selection): array
+    {
+        if (preg_match('/^role:(\d+)$/', $selection, $match)) {
+            return [(int)$match[1], 0];
+        }
+
+        if (preg_match('/^kds:(\d+):(\d+)$/', $selection, $match)) {
+            return [(int)$match[1], (int)$match[2]];
+        }
+
+        return [0, 0];
     }
 
     private function currentLocationIdR43(): int
