@@ -1,4 +1,5 @@
 import { MenuRuntimeProvider } from '@/src/runtime/MenuRuntimeContext'
+import { ServiceOverlaySimplifier } from '@/src/runtime/components/ServiceOverlaySimplifier'
 import { ThemeTableBadge } from '@/src/runtime/components/ThemeTableBadge'
 import { loadCustomerBootstrap } from '@/src/server/bootstrap'
 import { getPageContext } from '@/src/server/page-context'
@@ -21,6 +22,7 @@ export default async function TableMenuPage({ params, searchParams }: PageProps)
     <MenuRuntimeProvider bootstrap={bootstrap}>
       <ThemeRenderer themeId={bootstrap.theme.id} />
       <ThemeTableBadge />
+      <ServiceOverlaySimplifier />
     </MenuRuntimeProvider>
   )
 }
