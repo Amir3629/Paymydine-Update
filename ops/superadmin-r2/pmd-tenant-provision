@@ -125,7 +125,7 @@ if pos < 0:
     raise SystemExit('admin authority not found in generated tenant vhost')
 
 # Put the central redirect immediately before Admin authority for readability.
-redirect = '''    # PMD_SUPERADMIN_CENTRAL_REDIRECT_R2\n    location = /superadmin {\n        return 307 https://paymydine.com/superadmin;\n    }\n\n    location ^~ /superadmin/ {\n        return 307 https://paymydine.com$request_uri;\n    }\n\n'''
+redirect = '''    # PMD_SUPERADMIN_CENTRAL_REDIRECT_R2\n    location = /superadmin {\n        auth_request off;\n        return 307 https://paymydine.com/superadmin;\n    }\n\n    location ^~ /superadmin/ {\n        auth_request off;\n        return 307 https://paymydine.com$request_uri;\n    }\n\n'''
 text = text[:pos] + redirect + text[pos:]
 path.write_text(text)
 PY
@@ -135,6 +135,7 @@ grep -q "/etc/letsencrypt/live/${DOMAIN}/fullchain.pem" "$FINAL_VHOST" || fail "
 grep -q "location \^~ /admin/" "$FINAL_VHOST" || fail "generated vhost lost admin authority"
 grep -q "PMD_SUPERADMIN_CENTRAL_REDIRECT_R2" "$FINAL_VHOST" || fail "generated vhost lost central superadmin redirect"
 grep -Fq 'return 307 https://paymydine.com$request_uri;' "$FINAL_VHOST" || fail "generated vhost superadmin redirect is invalid"
+grep -q "PMD_TENANT_ACCESS_GATE_R2" "$FINAL_VHOST" || fail "canonical test vhost is missing the tenant availability gate"
 
 install -o root -g root -m 0644 "$FINAL_VHOST" "$TARGET_VHOST"
 ln -sfn "$TARGET_VHOST" "$ENABLED_VHOST"
