@@ -1,5 +1,6 @@
 import { notFound } from 'next/navigation'
 import { MenuRuntimeProvider } from '@/src/runtime/MenuRuntimeContext'
+import { ThemeTableBadge } from '@/src/runtime/components/ThemeTableBadge'
 import { loadCustomerBootstrap } from '@/src/server/bootstrap'
 import { getPageContext } from '@/src/server/page-context'
 import { isThemeId } from '@/src/themes/catalog'
@@ -23,6 +24,7 @@ export default async function ThemePreviewPage({ params, searchParams }: PagePro
   return (
     <MenuRuntimeProvider bootstrap={bootstrap}>
       <ThemeRenderer themeId={bootstrap.theme.id} />
+      <ThemeTableBadge />
     </MenuRuntimeProvider>
   )
 }
