@@ -156,8 +156,8 @@ $pdo=new PDO("mysql:host={$host};port={$port};dbname={$db};charset=utf8mb4",$use
 $logicalTables=[
     'orders','order_menus','order_menu_options','order_totals','order_notes','payment_logs',
     'order_payment_transactions','order_payment_transaction_items','fiskaly_transactions','status_history','assignable_logs',
-    'pmd_billing_groups','pmd_billing_group_orders','pmd_billing_group_payments',
-    'reservations','reservation_tables','tables','table_notes','waiter_calls','valet_requests',
+    'pmd_table_order_drafts','pmd_billing_groups','pmd_billing_group_orders','pmd_billing_group_payments','pmd_admin_presence_sessions',
+    'reservations','reservation_tables','pmd_reservation_preferences','tables','table_notes','waiter_calls','valet_requests',
     'menus','menu_categories','menu_mealtimes','menus_specials','menu_images','menu_prices',
     'menu_item_options','menu_item_option_values','menu_options','menu_option_values',
     'categories','mealtimes','allergens','allergenables','stocks','stock_history',
@@ -222,7 +222,10 @@ if (isset($available[$locations])) {
     }
 }
 
-$mustBeZero=['tables','menus','categories','igniter_coupons','orders','reservations','customers','order_payment_transactions'];
+$mustBeZero=[
+    'tables','menus','categories','igniter_coupons','orders','reservations','customers',
+    'order_payment_transactions','pmd_table_order_drafts','pmd_billing_groups'
+];
 $failed=[];
 foreach ($mustBeZero as $logical) {
     $physical=$prefix.$logical;
