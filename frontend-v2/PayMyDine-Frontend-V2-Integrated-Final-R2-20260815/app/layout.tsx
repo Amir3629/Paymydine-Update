@@ -3,6 +3,7 @@ import { cookies } from 'next/headers'
 import type { ReactNode } from 'react'
 import { isRtlLocale, localeBase } from '@/src/lib/i18n'
 import { ReviewShareEnhancer } from '@/src/runtime/components/ReviewShareEnhancer'
+import { VatSummaryEnhancer } from '@/src/runtime/components/VatSummaryEnhancer'
 import './globals.css'
 
 export const metadata: Metadata = {
@@ -26,7 +27,7 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
 
   return (
     <html lang={locale} dir={direction}>
-      <body>{children}<ReviewShareEnhancer /></body>
+      <body>{children}<ReviewShareEnhancer /><VatSummaryEnhancer /></body>
     </html>
   )
 }
