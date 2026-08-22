@@ -31,26 +31,38 @@ class PmdCashierQuickV22Bridge
             return $response;
         }
 
-        $cssRelative = 'app/admin/assets/css/pmd-cashier-quick-v22.css';
+        $cssFiles = [
+            'app/admin/assets/css/pmd-cashier-quick-v22.css',
+            'app/admin/assets/css/pmd-cashier-quick-v22-addbar.css',
+        ];
         $jsRelative = 'app/admin/assets/js/pmd-cashier-quick-v22.js';
-        $cssPath = base_path($cssRelative);
         $jsPath = base_path($jsRelative);
 
-        if (!is_file($cssPath) || !is_file($jsPath)) {
-            logger()->warning('PMD Cashier Quick V2.2 bridge assets are missing.');
+        foreach ($cssFiles as $cssRelative) {
+            if (!is_file(base_path($cssRelative))) {
+                logger()->warning('PMD Cashier Quick V2.2 CSS asset is missing.', ['file' => $cssRelative]);
+                return $response;
+            }
+        }
+
+        if (!is_file($jsPath)) {
+            logger()->warning('PMD Cashier Quick V2.2 JS asset is missing.');
             return $response;
         }
 
-        $cssVersion = substr(hash_file('sha256', $cssPath), 0, 16);
-        $jsVersion = substr(hash_file('sha256', $jsPath), 0, 16);
+        $head = '';
+        foreach ($cssFiles as $cssRelative) {
+            $cssVersion = substr(hash_file('sha256', base_path($cssRelative)), 0, 16);
+            $head .= '<link data-pmd-cashier-quick-v22-assets="r43" rel="stylesheet" href="/'
+                .$cssRelative.'?v='.$cssVersion.'">'."\n";
+        }
 
-        $head = '<link data-pmd-cashier-quick-v22-assets="r43" rel="stylesheet" href="/'
-            .$cssRelative.'?v='.$cssVersion.'">';
+        $jsVersion = substr(hash_file('sha256', $jsPath), 0, 16);
         $body = '<script data-pmd-cashier-quick-v22-assets="r43" src="/'
             .$jsRelative.'?v='.$jsVersion.'"></script>';
 
         $headCount = 0;
-        $html = str_replace('</head>', $head."\n</head>", $html, $headCount);
+        $html = str_replace('</head>', rtrim($head)."\n</head>", $html, $headCount);
         if ($headCount !== 1) {
             logger()->warning('PMD Cashier Quick V2.2 CSS injection skipped.', ['count' => $headCount]);
             return $response;
@@ -64,7 +76,7 @@ class PmdCashierQuickV22Bridge
         }
 
         $response->setContent($html);
-        if (method_exists($response, 'headers')) {
+        if (isset($response->headers)) {
             $response->headers->set('Cache-Control', 'no-store, no-cache, must-revalidate');
         }
 
