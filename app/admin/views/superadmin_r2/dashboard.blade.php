@@ -11,16 +11,16 @@
     .pmd-kpi-value{margin-top:13px;font-size:36px;line-height:1;font-weight:850;letter-spacing:-.035em}.pmd-kpi-hint{margin-top:8px;color:var(--muted);font-size:14px}
     .pmd-kpi.total{--kpi-soft:#edf8f4;--kpi-accent:#11765a}.pmd-kpi.active{--kpi-soft:#ecfdf3;--kpi-accent:#067647}.pmd-kpi.disabled{--kpi-soft:#fff4ed;--kpi-accent:#b54708}.pmd-kpi.expired{--kpi-soft:#fff1f0;--kpi-accent:#b42318}
 
-    .pmd-chart-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px;margin-bottom:16px}
+    .pmd-chart-grid{display:grid;grid-template-columns:minmax(0,1.2fr) minmax(420px,.8fr);gap:16px;margin-bottom:16px}
     .pmd-chart-card{min-height:390px;padding:22px}.pmd-chart-card .card-head{margin-bottom:18px}.pmd-chart-card .card-head h3{font-size:20px}
     .pmd-line-shell{border-top:1px solid #edf2f0;padding-top:14px}.pmd-line-chart{display:block;width:100%;height:245px;overflow:visible}.pmd-line-grid{stroke:#e8efec;stroke-width:1}.pmd-line-base{stroke:#d9e6e1;stroke-width:1.2}.pmd-line-path{fill:none;stroke:#0b9b74;stroke-width:4;stroke-linecap:round;stroke-linejoin:round}.pmd-line-dot{fill:#fff;stroke:#0b9b74;stroke-width:3}
     .pmd-line-labels{display:grid;grid-template-columns:repeat(6,1fr);gap:8px;margin-top:4px}.pmd-line-label{text-align:center;color:#6a7f77;font-size:13px;font-weight:750}.pmd-line-label strong{display:block;color:#17372f;font-size:14px;margin-bottom:3px}
-    .pmd-status-body{display:grid;grid-template-columns:minmax(220px,.9fr) minmax(220px,1.1fr);align-items:center;gap:24px;min-height:285px;padding:4px 4px 0}
-    .pmd-donut-wrap{display:grid;place-items:center}.pmd-donut{position:relative;width:224px;height:224px;border-radius:50%;background:conic-gradient(#19b67d 0 var(--active-deg),#f29a64 var(--active-deg) calc(var(--active-deg) + var(--disabled-deg)),#e45151 calc(var(--active-deg) + var(--disabled-deg)) calc(var(--active-deg) + var(--disabled-deg) + var(--removed-deg)),#e9efec 0)}.pmd-donut:after{content:"";position:absolute;inset:38px;border-radius:50%;background:#fff;border:1px solid #edf2f0}.pmd-donut-center{position:absolute;z-index:2;inset:0;display:grid;place-content:center;text-align:center}.pmd-donut-center strong{font-size:38px;line-height:1}.pmd-donut-center span{margin-top:7px;font-size:12px;color:var(--muted);font-weight:800;text-transform:uppercase;letter-spacing:.05em}
-    .pmd-status-list{display:grid;gap:12px}.pmd-status-row{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:14px 15px;border-radius:14px;background:#f7faf9;font-size:15px}.pmd-status-key{display:flex;align-items:center;gap:10px;font-weight:800}.pmd-status-dot{width:10px;height:10px;border-radius:50%}.pmd-status-dot.active{background:#19b67d}.pmd-status-dot.disabled{background:#f29a64}.pmd-status-dot.removed{background:#e45151}.pmd-status-row strong{font-size:18px}
+
+    .pmd-renewal-list{display:grid;gap:16px;padding-top:4px}.pmd-renewal-row{display:grid;grid-template-columns:minmax(118px,.7fr) minmax(180px,1.3fr) auto;align-items:center;gap:14px}.pmd-renewal-name{min-width:0}.pmd-renewal-name strong{display:block;font-size:15px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.pmd-renewal-name span{display:block;margin-top:4px;color:var(--muted);font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.pmd-renewal-track{height:14px;border-radius:999px;background:#edf4f1;overflow:hidden}.pmd-renewal-fill{height:100%;min-width:10px;border-radius:999px;background:linear-gradient(90deg,#18a77e,#0b745a)}.pmd-renewal-meta{text-align:right;white-space:nowrap}.pmd-renewal-meta strong{display:block;font-size:15px}.pmd-renewal-meta span{display:block;margin-top:3px;color:var(--muted);font-size:12px}.pmd-renewal-empty{display:grid;place-items:center;min-height:260px;border:1px dashed #d9e6e1;border-radius:16px;color:var(--muted);font-size:15px}
+
     .pmd-latest-card .table-wrap{border-radius:15px}
     @media(max-width:1100px){.pmd-kpis{grid-template-columns:repeat(2,minmax(0,1fr))}.pmd-chart-grid{grid-template-columns:1fr}}
-    @media(max-width:700px){.pmd-kpis{display:flex;overflow:auto;padding-bottom:3px}.pmd-kpi{min-width:210px}.pmd-status-body{grid-template-columns:1fr}.pmd-donut{width:205px;height:205px}.pmd-line-chart{height:210px}.pmd-line-label{font-size:11px}}
+    @media(max-width:700px){.pmd-kpis{display:flex;overflow:auto;padding-bottom:3px}.pmd-kpi{min-width:210px}.pmd-line-chart{height:210px}.pmd-line-label{font-size:11px}.pmd-renewal-row{grid-template-columns:1fr auto}.pmd-renewal-track{grid-column:1/-1;grid-row:2}.pmd-renewal-meta{grid-column:2;grid-row:1}}
 </style>
 @endpush
 
@@ -56,6 +56,20 @@
         $chartPoints[] = round($x, 1).','.round($y, 1);
     }
     $chartPolyline = implode(' ', $chartPoints);
+
+    $renewals = collect($latest)->filter(function ($tenant) {
+        if (empty($tenant->end) || strtolower((string)$tenant->status) === 'removed') return false;
+        try { return \Carbon\Carbon::parse($tenant->end)->endOfDay()->gte(now()); }
+        catch (\Throwable $e) { return false; }
+    })->sortBy(function ($tenant) {
+        try { return \Carbon\Carbon::parse($tenant->end)->timestamp; }
+        catch (\Throwable $e) { return PHP_INT_MAX; }
+    })->take(6)->values();
+
+    $renewalMaxDays = max(1, (int)($renewals->map(function ($tenant) {
+        try { return now()->startOfDay()->diffInDays(\Carbon\Carbon::parse($tenant->end)->startOfDay()); }
+        catch (\Throwable $e) { return 0; }
+    })->max() ?? 1));
 @endphp
 
 <div class="pmd-chart-grid">
@@ -87,19 +101,30 @@
     </div>
 
     <div class="card pmd-chart-card">
-        <div class="card-head"><div><h3>Tenant status</h3></div></div>
-        <div class="pmd-status-body">
-            <div class="pmd-donut-wrap">
-                <div class="pmd-donut" style="--active-deg:{{ $statusMix['active_deg'] }}deg;--disabled-deg:{{ $statusMix['disabled_deg'] }}deg;--removed-deg:{{ $statusMix['removed_deg'] }}deg">
-                    <div class="pmd-donut-center"><strong>{{ $stats['total'] }}</strong><span>Total tenants</span></div>
-                </div>
+        <div class="card-head"><div><h3>Upcoming renewals</h3><p>Next subscription end dates requiring attention.</p></div></div>
+        @if($renewals->isEmpty())
+            <div class="pmd-renewal-empty">No upcoming renewals.</div>
+        @else
+            <div class="pmd-renewal-list">
+                @foreach($renewals as $tenant)
+                    @php
+                        try {
+                            $renewalDate = \Carbon\Carbon::parse($tenant->end)->startOfDay();
+                            $daysLeft = now()->startOfDay()->diffInDays($renewalDate);
+                            $renewalWidth = max(12, min(100, (int)round(($daysLeft / $renewalMaxDays) * 100)));
+                        } catch (\Throwable $e) {
+                            $daysLeft = 0;
+                            $renewalWidth = 12;
+                        }
+                    @endphp
+                    <div class="pmd-renewal-row">
+                        <div class="pmd-renewal-name"><strong>{{ $tenant->name }}</strong><span>{{ $tenant->domain }}</span></div>
+                        <div class="pmd-renewal-track" aria-hidden="true"><div class="pmd-renewal-fill" style="width:{{ $renewalWidth }}%"></div></div>
+                        <div class="pmd-renewal-meta"><strong>{{ $tenant->end }}</strong><span>{{ $daysLeft }} days</span></div>
+                    </div>
+                @endforeach
             </div>
-            <div class="pmd-status-list">
-                <div class="pmd-status-row"><span class="pmd-status-key"><span class="pmd-status-dot active"></span>Active</span><strong>{{ $stats['active'] }}</strong></div>
-                <div class="pmd-status-row"><span class="pmd-status-key"><span class="pmd-status-dot disabled"></span>Disabled</span><strong>{{ $stats['disabled'] }}</strong></div>
-                <div class="pmd-status-row"><span class="pmd-status-key"><span class="pmd-status-dot removed"></span>Removed</span><strong>{{ $stats['removed'] }}</strong></div>
-            </div>
-        </div>
+        @endif
     </div>
 </div>
 
