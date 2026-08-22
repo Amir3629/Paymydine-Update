@@ -20,7 +20,7 @@ class SuperAdminTenantLifecycleService
      * whatever data happens to exist in newtenantdb on a given day.
      */
     private const EMPTY_ON_NEW_TENANT = [
-        // Orders, receipts and payment history
+        // Orders, receipts, shared-table sessions and payment history
         'orders',
         'order_menus',
         'order_menu_options',
@@ -32,10 +32,16 @@ class SuperAdminTenantLifecycleService
         'fiskaly_transactions',
         'status_history',
         'assignable_logs',
+        'pmd_table_order_drafts',
+        'pmd_billing_groups',
+        'pmd_billing_group_orders',
+        'pmd_billing_group_payments',
+        'pmd_admin_presence_sessions',
 
         // Reservations / floor / service activity
         'reservations',
         'reservation_tables',
+        'pmd_reservation_preferences',
         'tables',
         'table_notes',
         'waiter_calls',
