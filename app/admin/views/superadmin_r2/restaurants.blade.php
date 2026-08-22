@@ -22,12 +22,17 @@
     .pmd-modal-card{width:min(760px,calc(100vw - 32px));max-height:min(90vh,860px);overflow:auto;background:#fff;border:1px solid var(--line);border-radius:22px;box-shadow:0 24px 70px rgba(5,32,27,.2)}
     .pmd-modal-head{position:sticky;top:0;z-index:2;display:flex;align-items:center;justify-content:space-between;gap:16px;padding:20px 22px;background:#fff;border-bottom:1px solid #edf2f0}
     .pmd-modal-head h3{margin:0;font-size:22px}.pmd-modal-close{display:grid;place-items:center;flex:0 0 42px;width:42px;height:42px;border:1px solid var(--line);border-radius:12px;background:#fff;color:var(--ink);cursor:pointer;font-size:24px;line-height:1}
-    .pmd-modal-body{padding:22px}.pmd-modal-body .field-grid{gap:15px 16px}.pmd-modal-body .field textarea{min-height:105px}
+    .pmd-modal-body{padding:22px}.pmd-modal-body .field-grid{gap:15px 16px;align-items:start}.pmd-modal-body .field{align-content:start}.pmd-modal-body .field input,.pmd-modal-body .field select{height:50px;min-height:50px}.pmd-modal-body .field textarea{min-height:105px}
+    .pmd-domain-control{width:100%;height:50px;display:flex;align-items:center;overflow:hidden;border:1px solid #d8e5e0;border-radius:12px;background:#fff;transition:border-color .15s ease,box-shadow .15s ease}
+    .pmd-domain-control:focus-within{border-color:#67a391;box-shadow:0 0 0 3px rgba(44,111,89,.10)}
+    .pmd-domain-control input{flex:1 1 auto;min-width:0;width:auto!important;height:48px!important;min-height:48px!important;border:0!important;border-radius:0!important;padding:11px 4px 11px 13px!important;box-shadow:none!important;outline:0!important;background:transparent!important}
+    .pmd-domain-control input:focus{border:0!important;box-shadow:none!important}
+    .pmd-domain-suffix{flex:0 0 auto;padding:0 13px 0 3px;color:#526961;font-size:14px;font-weight:800;white-space:nowrap;user-select:none}
     .pmd-modal-actions{display:flex;justify-content:flex-end;gap:10px;margin-top:18px;padding-top:17px;border-top:1px solid #edf2f0}.pmd-modal-actions .btn{min-width:132px}
     body.pmd-modal-open{overflow:hidden}
     @media(max-width:1000px){.pmd-registry-toolbar{align-items:flex-start;flex-direction:column}.pmd-registry-toolbar .filters{justify-content:flex-start}.tenant-actions{min-width:300px}}
     @media(max-width:820px){.pmd-tenant-hero{align-items:flex-start}.pmd-modal{padding:10px}.pmd-modal-card{width:100%;max-height:94vh;border-radius:20px}.pmd-modal-body .field-grid{grid-template-columns:1fr}.pmd-modal-body .field.full{grid-column:auto}}
-    @media(max-width:560px){.pmd-tenant-hero{flex-direction:column}.pmd-tenant-hero .btn{width:100%}.pmd-registry-toolbar .filters{width:100%}.pmd-registry-toolbar .filters input{flex:1;min-width:160px}.pmd-pagination{align-items:flex-start;flex-direction:column}}
+    @media(max-width:560px){.pmd-tenant-hero{flex-direction:column}.pmd-tenant-hero .btn{width:100%}.pmd-registry-toolbar .filters{width:100%}.pmd-registry-toolbar .filters input{flex:1;min-width:160px}.pmd-pagination{align-items:flex-start;flex-direction:column}.pmd-domain-suffix{font-size:13px;padding-right:10px}}
 </style>
 @endpush
 
@@ -114,10 +119,17 @@
             <form method="POST" action="/superadmin/new/store" data-pmd-create-form>
                 @csrf
                 <input type="hidden" name="database" value="{{ old('database') }}" data-pmd-database>
+                <input type="hidden" name="domain" value="{{ old('domain') }}" data-pmd-domain>
                 <input type="hidden" name="type" value="{{ old('type','People') }}">
                 <div class="field-grid">
                     <div class="field"><label>Restaurant name</label><input name="name" value="{{ old('name') }}" required data-pmd-restaurant-name></div>
-                    <div class="field"><label>Tenant subdomain</label><input name="domain" value="{{ old('domain') }}" placeholder="restaurant" autocomplete="off" required><span class="sub">Use <strong>restaurant</strong> or <strong>restaurant.paymydine.com</strong>.</span></div>
+                    <div class="field">
+                        <label>Tenant subdomain</label>
+                        <div class="pmd-domain-control">
+                            <input type="text" value="{{ preg_replace('/\.paymydine\.com$/i', '', old('domain','')) }}" placeholder="restaurant" autocomplete="off" autocapitalize="none" spellcheck="false" required data-pmd-domain-slug aria-label="Tenant subdomain">
+                            <span class="pmd-domain-suffix">.paymydine.com</span>
+                        </div>
+                    </div>
                     <div class="field"><label>Email</label><input type="email" name="email" value="{{ old('email') }}" required></div>
                     <div class="field"><label>Phone</label><input name="phone" value="{{ old('phone') }}" required></div>
                     <div class="field"><label>Country</label><input name="country" value="{{ old('country','Germany') }}" required></div>
@@ -140,14 +152,22 @@
     var form=modal.querySelector('[data-pmd-create-form]');
     var nameInput=modal.querySelector('[data-pmd-restaurant-name]');
     var databaseInput=modal.querySelector('[data-pmd-database]');
+    var domainInput=modal.querySelector('[data-pmd-domain]');
+    var domainSlugInput=modal.querySelector('[data-pmd-domain-slug]');
     function databaseFromName(value){return String(value||'').trim().replace(/[^A-Za-z0-9_]+/g,'_').replace(/^_+|_+$/g,'').slice(0,64)}
+    function domainFromSlug(value){
+        return String(value||'').trim().toLowerCase().replace(/^https?:\/\//,'').replace(/\/.*$/,'').replace(/\.paymydine\.com$/,'').replace(/[^a-z0-9-]+/g,'-').replace(/-+/g,'-').replace(/^-+|-+$/g,'').slice(0,63)
+    }
     function syncDatabase(){if(nameInput&&databaseInput)databaseInput.value=databaseFromName(nameInput.value)}
+    function syncDomain(){if(!domainSlugInput||!domainInput)return;var slug=domainFromSlug(domainSlugInput.value);domainSlugInput.value=slug;domainInput.value=slug?slug+'.paymydine.com':''}
     function openModal(){modal.hidden=false;modal.setAttribute('aria-hidden','false');document.body.classList.add('pmd-modal-open');setTimeout(function(){if(nameInput)nameInput.focus();},0)}
     function closeModal(){modal.hidden=true;modal.setAttribute('aria-hidden','true');document.body.classList.remove('pmd-modal-open')}
     if(nameInput)nameInput.addEventListener('input',syncDatabase);
-    if(form)form.addEventListener('submit',syncDatabase);
+    if(domainSlugInput){domainSlugInput.addEventListener('input',syncDomain);domainSlugInput.addEventListener('blur',syncDomain)}
+    if(form)form.addEventListener('submit',function(){syncDatabase();syncDomain()});
     document.addEventListener('click',function(e){if(e.target.closest('[data-pmd-open-create]')){e.preventDefault();openModal();return}if(e.target.closest('[data-pmd-close-create]')){e.preventDefault();closeModal();return}if(e.target===modal)closeModal()});
     document.addEventListener('keydown',function(e){if(e.key==='Escape'&&!modal.hidden)closeModal()});
+    syncDomain();
     @if(old('domain') || old('email')) openModal(); @endif
 })();
 </script>
