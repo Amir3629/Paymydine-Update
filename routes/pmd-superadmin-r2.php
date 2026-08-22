@@ -33,6 +33,8 @@ Route::middleware('web')
                 ->name('pmd.superadmin.tenants.update');
             Route::post('/superadmin/tenants/status', [SuperAdminR2Controller::class, 'status'])
                 ->name('pmd.superadmin.tenants.status');
+            Route::post('/superadmin/tenants/provision', [SuperAdminR2Controller::class, 'provision'])
+                ->name('pmd.superadmin.tenants.provision');
             Route::get('/superadmin/health', [SuperAdminR2Controller::class, 'health'])
                 ->name('pmd.superadmin.health');
             Route::get('/superadmin/settings', [SuperAdminR2Controller::class, 'settings'])
