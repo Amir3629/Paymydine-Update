@@ -1,196 +1,90 @@
 <!DOCTYPE html>
-<html lang="en" class="js">
+<html lang="en">
 <head>
-    <base href="../../../">
     <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
     <title>Super Admin Login | PayMyDine</title>
     <link rel="shortcut icon" href="/app/admin/assets/images/pmd-brand-mark.svg?v=pmd-exact-sidebar-logo-20260818-v2">
-    <link rel="stylesheet" href="{{ asset('app/admin/assets/css/dashboard.css') }}?ver={{ time() }}">
-    <link id="skin-default" rel="stylesheet" href="./assets/css/theme.css?ver=3.2.3">
-    <link rel="stylesheet" href="{{ asset('app/admin/assets/css/pmd-login-fouc-v58.css') }}?v={{ time() }}">
     <style>
         :root{
-            --pmd-login-bg:#FAF9F4;
-            --pmd-login-surface:#FFFFFF;
-            --pmd-login-border:#E8E2D8;
-            --pmd-login-text:#0D1B1E;
-            --pmd-login-muted:#6B7280;
-            --pmd-login-jade:#062F2A;
-            --pmd-login-jade-dark:#021F1C;
-            --pmd-login-gold:#C89B4A;
-            --pmd-login-danger:#B42318;
-            --pmd-login-shadow:0 8px 24px rgba(6,47,42,.06);
+            --pmd-auth-ink:#314763;
+            --pmd-auth-muted:#6d87aa;
+            --pmd-auth-line:#cfd7e2;
+            --pmd-auth-panel:#3f5875;
+            --pmd-auth-panel-dark:#314a68;
+            --pmd-auth-focus:#92a9c4;
         }
-        html,body.pg-auth,.nk-body.pg-auth,.nk-app-root,.nk-main,.nk-wrap,.nk-content,.nk-split{
-            min-height:100%;
-            background:var(--pmd-login-bg)!important;
-            color:var(--pmd-login-text)!important;
-        }
-        body.pg-auth{font-family:Inter,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
-        .nk-split-page{
-            min-height:100vh;
-            display:flex!important;
-            align-items:center!important;
-            justify-content:center!important;
-            padding:18px 16px!important;
-        }
-        .nk-auth-container,.nk-split-content.nk-auth-container{
-            width:min(100%,540px)!important;
-            max-width:540px!important;
-            min-height:auto!important;
-            margin:0 auto!important;
-            padding:30px 34px 34px!important;
-            border:1px solid var(--pmd-login-border)!important;
-            border-radius:24px!important;
-            background:var(--pmd-login-surface)!important;
-            box-shadow:var(--pmd-login-shadow)!important;
-        }
-        .nk-auth-body{
-            width:100%!important;
-            max-width:100%!important;
-            margin:0!important;
-            display:flex!important;
-            flex-direction:column!important;
-            align-items:center!important;
-        }
-        .brand-logo,.brand-logo.pb-5{
-            width:100%!important;
-            height:150px!important;
-            min-height:150px!important;
-            max-height:150px!important;
-            display:flex!important;
-            align-items:center!important;
-            justify-content:center!important;
-            overflow:visible!important;
-            padding:0!important;
-            margin:0 auto 6px!important;
-            text-align:center!important;
-        }
-        .brand-logo .logo-link{
-            width:360px!important;
-            height:150px!important;
-            max-width:100%!important;
-            display:flex!important;
-            align-items:center!important;
-            justify-content:center!important;
-            overflow:visible!important;
-            padding:0!important;
-            margin:0 auto!important;
-            background:transparent!important;
-            border:0!important;
-            box-shadow:none!important;
-        }
-        .brand-logo .pmd-login-main-logo,
-        .brand-logo img.pmd-login-main-logo{
-            display:block!important;
-            width:260px!important;
-            max-width:260px!important;
-            height:auto!important;
-            max-height:120px!important;
-            object-fit:contain!important;
-            object-position:center center!important;
-            margin:0 auto!important;
-            position:static!important;
-            transform:scale(2.35)!important;
-            transform-origin:center center!important;
-        }
-        .nk-auth-body form{width:min(100%,430px)!important;margin:0 auto!important}
-        .form-group{margin-bottom:18px!important}
-        .form-label{color:var(--pmd-login-muted)!important;font-weight:700!important}
-        .form-control,.form-control-lg{
-            min-height:48px!important;
-            border:1px solid var(--pmd-login-border)!important;
-            border-radius:14px!important;
-            background:var(--pmd-login-surface)!important;
-            color:var(--pmd-login-text)!important;
-            box-shadow:none!important;
-        }
-        .form-control:focus,.form-control-lg:focus{
-            border-color:var(--pmd-login-gold)!important;
-            box-shadow:0 0 0 .18rem rgba(200,155,74,.18)!important;
-        }
-        .btn.btn-primary,.btn.btn-primary:focus{
-            width:100%!important;
-            min-height:48px!important;
-            border:1px solid var(--pmd-login-jade)!important;
-            border-radius:14px!important;
-            background:var(--pmd-login-jade)!important;
-            color:#fff!important;
-            font-weight:800!important;
-            box-shadow:0 8px 22px rgba(6,47,42,.16)!important;
-        }
-        .btn.btn-primary:hover,.btn.btn-primary:active{
-            border-color:var(--pmd-login-jade-dark)!important;
-            background:var(--pmd-login-jade-dark)!important;
-        }
-        .pmd-superadmin-error{
-            width:min(100%,430px);
-            margin:0 auto 18px;
-            padding:11px 13px;
-            border:1px solid #FECACA;
-            border-radius:12px;
-            color:var(--pmd-login-danger);
-            background:#FFF7F7;
-            font-weight:700;
-            font-size:13px;
-        }
-        .bg-abstract,.nk-split-stretch.bg-abstract{display:none!important}
-        @media(max-width:575.98px){
-            .nk-split-page{padding:14px 12px!important}
-            .nk-auth-container,.nk-split-content.nk-auth-container{width:min(100%,94vw)!important;padding:26px 20px 30px!important;border-radius:22px!important}
-            .brand-logo,.brand-logo.pb-5{height:135px!important;min-height:135px!important;max-height:135px!important}
-            .brand-logo .logo-link{width:310px!important;height:135px!important}
-            .brand-logo .pmd-login-main-logo,.brand-logo img.pmd-login-main-logo{width:225px!important;max-width:225px!important;max-height:105px!important;transform:scale(2.15)!important}
-        }
+        *{box-sizing:border-box}
+        html,body{margin:0;min-height:100%;font-family:Inter,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;background:#fff;color:var(--pmd-auth-ink)}
+        .pmd-auth-shell{min-height:100vh;display:grid;grid-template-columns:1fr 1fr;background:#fff}
+        .pmd-auth-left{display:flex;align-items:center;justify-content:center;background:#fff;padding:40px}
+        .pmd-auth-right{background:linear-gradient(135deg,var(--pmd-auth-panel-dark),var(--pmd-auth-panel))}
+        .pmd-auth-form{width:min(445px,100%)}
+        .pmd-auth-form h1{margin:0 0 8px;font-size:25px;line-height:1.15;font-weight:750;letter-spacing:-.02em;color:var(--pmd-auth-ink)}
+        .pmd-auth-form .lead{margin:0 0 62px;color:var(--pmd-auth-muted);font-size:16px;line-height:1.45}
+        .pmd-auth-field{margin-bottom:24px}
+        .pmd-auth-field label{display:block;margin-bottom:11px;font-size:14px;font-weight:750;color:var(--pmd-auth-ink)}
+        .pmd-auth-control{position:relative}
+        .pmd-auth-control input{width:100%;height:54px;border:2px solid var(--pmd-auth-line);border-radius:14px;background:#fff;padding:0 48px 0 16px;font-size:16px;color:#243b57;outline:0;box-shadow:0 3px 10px rgba(49,71,99,.08);transition:border-color .14s ease,box-shadow .14s ease}
+        .pmd-auth-control input::placeholder{color:#6f89ac;opacity:1}
+        .pmd-auth-control input:focus{border-color:var(--pmd-auth-focus);box-shadow:0 0 0 4px rgba(103,132,168,.12),0 3px 10px rgba(49,71,99,.08)}
+        .pmd-pass-toggle{position:absolute;right:10px;top:50%;transform:translateY(-50%);width:34px;height:34px;border:0;background:transparent;color:#6983a7;display:grid;place-items:center;cursor:pointer;border-radius:8px}
+        .pmd-pass-toggle:hover{background:#f3f6fa}.pmd-pass-toggle svg{width:19px;height:19px;fill:none;stroke:currentColor;stroke-width:1.8}
+        .pmd-auth-submit{width:100%;height:56px;margin-top:6px;border:0;border-radius:14px;background:#354f6c;color:#fff;font-size:17px;font-weight:800;cursor:pointer;box-shadow:0 8px 18px rgba(49,71,99,.18);transition:background .14s ease,transform .14s ease}
+        .pmd-auth-submit:hover{background:#2f4865}.pmd-auth-submit:active{transform:translateY(1px)}
+        .pmd-auth-error{margin:0 0 22px;padding:11px 13px;border:1px solid #f0c3c0;border-radius:11px;background:#fff6f5;color:#a53229;font-size:13px;font-weight:700}
+        @media(max-width:900px){.pmd-auth-shell{grid-template-columns:1fr}.pmd-auth-right{display:none}.pmd-auth-left{min-height:100vh;padding:28px 20px}.pmd-auth-form .lead{margin-bottom:42px}}
     </style>
 </head>
-<body class="nk-body bg-white npc-general pg-auth">
-<div class="nk-app-root">
-    <div class="nk-main">
-        <div class="nk-wrap nk-wrap-nosidebar">
-            <div class="nk-content">
-                <div class="nk-split nk-split-page nk-split-md">
-                    <div class="nk-split-content nk-block-area nk-block-area-column nk-auth-container bg-white">
-                        <div class="nk-block nk-block-middle nk-auth-body">
-                            <div class="brand-logo pb-5">
-                                <span class="logo-link">
-                                    <img class="logo-img pmd-login-main-logo" src="/app/admin/assets/images/pmd-login-logo.svg?v=1786106529" alt="PayMyDine">
-                                </span>
-                            </div>
+<body>
+<div class="pmd-auth-shell">
+    <main class="pmd-auth-left">
+        <div class="pmd-auth-form">
+            <h1>Sign-In</h1>
+            <p class="lead">Access using your User Name and passcode.</p>
 
-                            @if($errors->any())
-                                <div class="pmd-superadmin-error">{{ $errors->first() }}</div>
-                            @endif
+            @if($errors->any())
+                <div class="pmd-auth-error">{{ $errors->first() }}</div>
+            @endif
 
-                            <form method="POST" action="/superadmin/sign">
-                                @csrf
-                                <div class="form-group">
-                                    <div class="form-label-group">
-                                        <label class="form-label" for="superadmin-username">Username</label>
-                                    </div>
-                                    <div class="form-control-wrap">
-                                        <input type="text" name="username" class="form-control form-control-lg" id="superadmin-username" autocomplete="username" required autofocus>
-                                    </div>
-                                </div>
-                                <div class="form-group">
-                                    <div class="form-label-group">
-                                        <label class="form-label" for="superadmin-password">Password</label>
-                                    </div>
-                                    <div class="form-control-wrap">
-                                        <input type="password" name="password" class="form-control form-control-lg" id="superadmin-password" autocomplete="current-password" required>
-                                    </div>
-                                </div>
-                                <div class="form-group mb-0">
-                                    <button type="submit" class="btn btn-lg btn-primary btn-block">Sign in</button>
-                                </div>
-                            </form>
-                        </div>
+            <form method="POST" action="/superadmin/sign">
+                @csrf
+                <div class="pmd-auth-field">
+                    <label for="superadmin-username">Username</label>
+                    <div class="pmd-auth-control">
+                        <input type="text" name="username" id="superadmin-username" autocomplete="username" placeholder="Enter your email address or username" required autofocus>
                     </div>
                 </div>
-            </div>
+
+                <div class="pmd-auth-field">
+                    <label for="superadmin-password">Passcode</label>
+                    <div class="pmd-auth-control">
+                        <input type="password" name="password" id="superadmin-password" autocomplete="current-password" placeholder="Enter your passcode" required>
+                        <button class="pmd-pass-toggle" type="button" data-pmd-password-toggle aria-label="Show passcode" aria-pressed="false">
+                            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M2.5 12s3.5-5 9.5-5 9.5 5 9.5 5-3.5 5-9.5 5-9.5-5-9.5-5Z"/><circle cx="12" cy="12" r="2.5"/></svg>
+                        </button>
+                    </div>
+                </div>
+
+                <button class="pmd-auth-submit" type="submit">Sign in</button>
+            </form>
         </div>
-    </div>
+    </main>
+    <aside class="pmd-auth-right" aria-hidden="true"></aside>
 </div>
+<script>
+(function(){
+    var button=document.querySelector('[data-pmd-password-toggle]');
+    var input=document.getElementById('superadmin-password');
+    if(!button||!input)return;
+    button.addEventListener('click',function(){
+        var show=input.type==='password';
+        input.type=show?'text':'password';
+        button.setAttribute('aria-pressed',show?'true':'false');
+        button.setAttribute('aria-label',show?'Hide passcode':'Show passcode');
+        input.focus();
+    });
+})();
+</script>
 </body>
 </html>
