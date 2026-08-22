@@ -114,6 +114,10 @@
     {
       "path": "css/pmd-history-stable-r20.css",
       "name": "pmd-history-stable-r20-css"
+    },
+    {
+      "path": "css/pmd-coupon-simplify-r23.css",
+      "name": "pmd-coupon-simplify-r23-css"
     }
   ],
   "script": [
@@ -124,6 +128,10 @@
     {
       "path": "js/pmd-admin-favicon-final-r21.js",
       "name": "pmd-admin-favicon-final-r21-js"
+    },
+    {
+      "path": "js/pmd-coupon-simplify-r23.js",
+      "name": "pmd-coupon-simplify-r23-js"
     },
     {
       "path": "js/pmd-waiter-pos-dashboard-shadow-bridge-v24.js",
