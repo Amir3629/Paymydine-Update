@@ -1,86 +1,105 @@
-<style id="pmd-history-first-paint-r15">
-/* Critical first-paint geometry. Keep this inline so History never shifts after refresh. */
-html,
-body {
-    background: #f8fbfd !important;
-}
+<script id="pmd-history-flow-authority-r16">
+(function () {
+    'use strict';
 
-html {
+    document.documentElement.classList.add('pmd-history-flow-r16');
+
+    if (document.body) {
+        /*
+         * The global admin exact-layout runtime already has a proven normal-flow
+         * contract for Settings. Mark History as the same static/flow shell
+         * before that runtime initializes, so it never applies the legacy
+         * absolute animated wrapper to this page.
+         */
+        document.body.classList.add('pmd-settings-suite');
+    }
+})();
+</script>
+
+<style id="pmd-history-first-paint-r16">
+/* PMD_HISTORY_FIRST_PAINT_R16
+ * Match the final normal-flow geometry before external styles/runtime execute.
+ */
+html.pmd-history-flow-r16,
+html.pmd-history-flow-r16 body {
     height: auto !important;
     min-height: 100% !important;
     max-height: none !important;
+    margin-top: 0 !important;
+    padding-top: 0 !important;
     overflow-x: hidden !important;
     overflow-y: auto !important;
-    scroll-behavior: auto !important;
+    background: #f8fbfd !important;
 }
 
-body {
+html.pmd-history-flow-r16 body {
+    position: relative !important;
+    min-height: 100vh !important;
+}
+
+html.pmd-history-flow-r16 body .page-wrapper {
+    position: relative !important;
+    top: 0 !important;
+    right: auto !important;
+    bottom: auto !important;
+    left: 0 !important;
     height: auto !important;
     min-height: 100vh !important;
     max-height: none !important;
     overflow-x: hidden !important;
     overflow-y: visible !important;
+    transform: none !important;
+    transition: none !important;
 }
 
-.navbar-top,
-.navbar-fixed-top {
+html.pmd-history-flow-r16 body .page-content,
+html.pmd-history-flow-r16 body .content-wrapper,
+html.pmd-history-flow-r16 body .container-fluid {
+    position: relative !important;
+    top: 0 !important;
+    left: 0 !important;
+    width: 100% !important;
+    height: auto !important;
+    max-height: none !important;
+    margin: 0 !important;
+    padding-left: 0 !important;
+    padding-right: 0 !important;
+    overflow-x: hidden !important;
+    overflow-y: visible !important;
+    transform: none !important;
+    transition: none !important;
+}
+
+@media (min-width: 821px) {
+    html.pmd-history-flow-r16.pmd-sm2-collapsed body .page-wrapper {
+        margin-left: 86px !important;
+        width: calc(100vw - 86px) !important;
+    }
+
+    html.pmd-history-flow-r16.pmd-sm2-expanded body .page-wrapper {
+        margin-left: 198px !important;
+        width: calc(100vw - 198px) !important;
+    }
+}
+
+@media (max-width: 820px) {
+    html.pmd-history-flow-r16 body .page-wrapper {
+        margin-left: 0 !important;
+        width: 100% !important;
+    }
+}
+
+html.pmd-history-flow-r16 .navbar-top,
+html.pmd-history-flow-r16 .navbar-fixed-top,
+html.pmd-history-flow-r16 .page-title-section {
     display: none !important;
     visibility: hidden !important;
     height: 0 !important;
     min-height: 0 !important;
     max-height: 0 !important;
-    overflow: hidden !important;
-}
-
-body .page-wrapper,
-body .page-content,
-body .content-wrapper,
-body .container-fluid,
-#pmd-side-menu2,
-#pmd-side-menu2 * {
-    animation: none !important;
-    transition: none !important;
-}
-
-body .page-wrapper,
-body .page-content,
-body .content-wrapper,
-body .container-fluid {
-    height: auto !important;
-    max-height: none !important;
-    overflow-y: visible !important;
-    transform: none !important;
-}
-
-body .page-wrapper {
-    min-height: 100vh !important;
-    overflow-x: hidden !important;
-}
-
-body .page-content,
-body .content-wrapper,
-body .container-fluid {
-    width: 100% !important;
-    max-width: none !important;
     margin: 0 !important;
-    padding-left: 0 !important;
-    padding-right: 0 !important;
-    overflow-x: hidden !important;
-}
-
-@media (min-width: 821px) {
-    body .page-wrapper {
-        margin-left: 86px !important;
-        margin-right: 0 !important;
-        width: calc(100vw - 86px) !important;
-    }
-}
-
-@media (max-width: 820px) {
-    body .page-wrapper {
-        margin-left: 0 !important;
-        width: 100% !important;
-    }
+    padding: 0 !important;
+    overflow: hidden !important;
 }
 
 #pmd-history-page {
@@ -97,59 +116,6 @@ body .container-fluid {
     transition: none !important;
 }
 
-#pmd-history-page .pmd-history-header {
-    display: flex !important;
-    align-items: center !important;
-    justify-content: space-between !important;
-    gap: 20px !important;
-    width: 100% !important;
-    height: 82px !important;
-    min-height: 82px !important;
-    margin: 0 0 18px !important;
-    padding: 0 !important;
-    background: transparent !important;
-}
-
-#pmd-history-page .pmd-owner-header__left,
-#pmd-history-page .pmd-owner-header__actions {
-    display: flex !important;
-    align-items: center !important;
-    gap: 10px !important;
-}
-
-#pmd-history-page .pmd-owner-header__actions {
-    margin-left: auto !important;
-}
-
-#pmd-history-page .pmd-owner-header-button {
-    box-sizing: border-box !important;
-    display: grid !important;
-    place-items: center !important;
-    width: 46px !important;
-    min-width: 46px !important;
-    height: 46px !important;
-    min-height: 46px !important;
-    padding: 0 !important;
-    border: 1px solid #cfe0ec !important;
-    border-radius: 14px !important;
-    background: #fff !important;
-    color: #173752 !important;
-    text-decoration: none !important;
-}
-
-#pmd-history-page .pmd-owner-header-button > svg {
-    display: block !important;
-    width: 21px !important;
-    height: 21px !important;
-    fill: none !important;
-    stroke: currentColor !important;
-    stroke-width: 2 !important;
-    stroke-linecap: round !important;
-    stroke-linejoin: round !important;
-    opacity: 1 !important;
-    visibility: visible !important;
-}
-
 @media (max-width: 900px) {
     #pmd-history-page {
         padding: 0 16px 42px !important;
@@ -158,6 +124,7 @@ body .container-fluid {
 </style>
 
 <link rel="stylesheet" href="/app/admin/assets/css/pmd-history-stable-r15.css?v=20260822_1">
+<link rel="stylesheet" href="/app/admin/assets/css/pmd-history-flow-r16.css?v=20260822_1">
 
 <div id="pmd-history-page" class="pmd-owner-page pmd-history-page" data-pmd-history-page>
     <header class="pmd-owner-header pmd-history-header">
