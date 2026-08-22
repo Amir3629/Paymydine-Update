@@ -1,0 +1,6 @@
+/* PMD_TEAM_R43_ROLE_AUTHORITY */
+/* The old KDS name/username assignment hint is obsolete. KDS station is now
+   chosen directly in the Role field (KDS — <station>). */
+#pmd-team-access .pmd-team-footnote {
+  display: none !important;
+}

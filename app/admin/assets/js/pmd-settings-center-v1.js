@@ -141,6 +141,49 @@
     };
   }
 
+  /*
+   * PMD_SETTINGS_DEFERRED_PAGES_R43
+   *
+   * Keep these existing pages and their routes intact, but remove only their
+   * entry cards from the consolidated Settings landing page for now.
+   */
+  var deferredSettingsPaths = [
+    '/admin/pmdadvanced',
+    '/admin/pmdbrand',
+    '/admin/pmdcustomer'
+  ];
+
+  Array.prototype.slice.call(
+    root.querySelectorAll('[data-pmd-settings-card]')
+  ).forEach(function (card) {
+    var link = card.matches('a[href]')
+      ? card
+      : card.querySelector('a[href]');
+
+    if (!link) return;
+
+    var path = '';
+    try {
+      path = new URL(link.getAttribute('href'), window.location.origin).pathname;
+    } catch (error) {
+      path = String(link.getAttribute('href') || '').split('?')[0].split('#')[0];
+    }
+
+    path = path.replace(/\/+$/, '') || '/';
+
+    if (deferredSettingsPaths.indexOf(path) !== -1) {
+      card.remove();
+    }
+  });
+
+  Array.prototype.slice.call(
+    root.querySelectorAll('[data-pmd-settings-section]')
+  ).forEach(function (section) {
+    if (!section.querySelector('[data-pmd-settings-card]')) {
+      section.remove();
+    }
+  });
+
   var cards = Array.prototype.slice.call(
     root.querySelectorAll('[data-pmd-settings-card]')
   );
@@ -258,10 +301,11 @@
   revealStablePage();
 
   window.PMDSettingsStableRenderV7 = {
-    version: '7.0.0',
+    version: '7.0.0-r43',
     background: '#f8fbfd',
     searchInHeader: Boolean(searchWrap && actions && searchWrap.parentNode === actions),
     notificationInHeader: Boolean(document.querySelector('#pmd-settings-clean-header #notif-root')),
+    deferredSettingsPaths: deferredSettingsPaths.slice(),
     flashGuard: true
   };
 })();

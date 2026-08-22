@@ -1,0 +1,118 @@
+name: R43 fixed roles and Cashier Quick gate
+
+on:
+  push:
+    branches:
+      - r43/fixed-roles-settings-cashier-quick
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: PHP syntax
+        run: |
+          php -l app/admin/Services/PmdFixedRoleAuthorityV1.php
+          php -l app/admin/Services/PmdFixedRoleRuntimeV1.php
+          php -l app/admin/Services/PmdFixedRolePresentationV1.php
+          php -l app/admin/Services/PmdCashierQuickV22Bridge.php
+          php -l app/admin/Services/PmdRoleLandingService.php
+          php -l app/admin/controllers/Pmdteam.php
+          php -l app/admin/middleware/LogUserLastSeen.php
+
+      - name: Quick JavaScript syntax
+        run: |
+          node --check app/admin/assets/js/pmd-cashier-quick-v22-exact-order-guard.js
+          node --check app/admin/assets/js/pmd-cashier-quick-v22.js
+
+      - name: Fixed role contract
+        run: |
+          set -e
+          FILE=app/admin/Services/PmdFixedRoleAuthorityV1.php
+          RUNTIME=app/admin/Services/PmdFixedRoleRuntimeV1.php
+          for ROLE in owner manager cashier waiter kds accountant reservations; do
+            grep -q "'$ROLE' =>" "$FILE"
+          done
+          grep -q "Admin.Payments" "$FILE"
+          grep -q "admin/cashierlab" "$FILE"
+          grep -q "admin/accountantlab" "$FILE"
+          grep -q "admin/reservationslab" "$FILE"
+          grep -q "admin/kitchendisplay/" "$FILE"
+          grep -q "Server -> Waiter" "$RUNTIME"
+          grep -q "super_user = \$code === 'owner'" "$RUNTIME"
+
+      - name: KDS role station contract
+        run: |
+          set -e
+          AUTH=app/admin/Services/PmdFixedRoleAuthorityV1.php
+          TEAM=app/admin/controllers/Pmdteam.php
+          FORM=app/admin/views/pmdteam/_inline_staff_form_v1.blade.php
+          LANDING=app/admin/Services/PmdRoleLandingService.php
+          grep -q "pmd_kds_staff_station_" "$AUTH"
+          grep -q "setKdsStationForStaff" "$AUTH"
+          grep -q "assignedKdsStationId" "$AUTH"
+          grep -q "KDS — " "$TEAM"
+          grep -q "kds:" "$TEAM"
+          grep -q "staff\[role\]" "$FORM"
+          grep -q "kitchendisplay/" "$LANDING"
+          ! grep -q "station name or station slug as the staff Name or Username" app/admin/views/pmdteam/_inline_staff_form_v1.blade.php
+
+      - name: Settings cards removed only from Settings landing
+        run: |
+          set -e
+          FILE=app/admin/Services/PmdFixedRoleAuthorityV1.php
+          grep -q "pmdadvanced" "$FILE"
+          grep -q "pmdbrand" "$FILE"
+          grep -q "pmdcustomer" "$FILE"
+          test -f app/admin/controllers/Pmdadvanced.php
+          test -f app/admin/controllers/Pmdbrand.php
+          test -f app/admin/controllers/Pmdcustomer.php
+
+      - name: Simple staff form contract
+        run: |
+          set -e
+          FILE=app/admin/views/pmdteam/_inline_staff_form_v1.blade.php
+          grep -q 'staff\[role\]' "$FILE"
+          grep -q 'staff\[name\]' "$FILE"
+          grep -q 'staff\[username\]' "$FILE"
+          grep -q 'staff\[password\]' "$FILE"
+          ! grep -q 'staff_email' "$FILE"
+          ! grep -q 'language_id' "$FILE"
+          ! grep -q 'groups\[\]' "$FILE"
+          ! grep -q 'card_id' "$FILE"
+          ! grep -q 'biometric_enabled' "$FILE"
+
+      - name: Quick Mode authority contract
+        run: |
+          set -e
+          JS=app/admin/assets/js/pmd-cashier-quick-v22.js
+          GUARD=app/admin/assets/js/pmd-cashier-quick-v22-exact-order-guard.js
+          LIGHT=app/admin/assets/css/pmd-cashier-quick-v22-light-guests.css
+          BRIDGE=app/admin/Services/PmdCashierQuickV22Bridge.php
+          grep -q 'Current checks' "$JS"
+          grep -q 'Open / edit' "$JS"
+          grep -q 'data-cq22-pay' "$JS"
+          grep -q 'data-cq22-pos-free' "$JS"
+          grep -q 'data-cq22-pos-note' "$JS"
+          grep -q 'data-cq22-pos-pay' "$JS"
+          grep -q 'data-pos-modal-add' "$JS"
+          grep -q 'pmd-waiter-pos-v22/tables/' "$JS"
+          grep -q 'activeOrderId = pending.orderId' "$GUARD"
+          grep -q 'pmd:waiter-standard-v2-opened' "$GUARD"
+          grep -q 'background: #ffffff' "$LIGHT"
+          grep -q 'color: #17231f' "$LIGHT"
+          grep -q 'pmd-cashier-quick-v22-light-guests.css' "$BRIDGE"
+          ! grep -Eq 'setInterval[[:space:]]*\(' "$JS" "$GUARD"
+          ! grep -Eq 'new[[:space:]]+MutationObserver[[:space:]]*\(' "$JS" "$GUARD"
+
+      - name: Core Cashier authorities remain present
+        run: |
+          test -f app/admin/controllers/Cashierlab.php
+          test -f app/admin/views/cashierlab/index.blade.php
+          test -f app/admin/assets/js/pmd-waiter-pos-v1.js
+          test -f app/admin/assets/js/pmd-waiter-pos-payment-v2.js
+          test -f app/admin/assets/js/pmd-cashier-r45-actions.js
