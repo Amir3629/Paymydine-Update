@@ -7,6 +7,7 @@ SOURCE_VHOST="/etc/nginx/sites-available/test.paymydine.com.conf"
 TARGET_VHOST="/etc/nginx/sites-available/${DOMAIN}.conf"
 ENABLED_VHOST="/etc/nginx/sites-enabled/${DOMAIN}.conf"
 EMAIL="admin@paymydine.com"
+SUPERADMIN_ORIGIN="https://paymydine.com"
 TMP_DIR="$(mktemp -d)"
 TEMP_HTTP="$TMP_DIR/http.conf"
 FINAL_VHOST="$TMP_DIR/final.conf"
@@ -46,6 +47,7 @@ trap cleanup EXIT
 command -v nginx >/dev/null 2>&1 || fail "nginx missing"
 command -v certbot >/dev/null 2>&1 || fail "certbot missing"
 command -v openssl >/dev/null 2>&1 || fail "openssl missing"
+command -v python3 >/dev/null 2>&1 || fail "python3 missing"
 
 if [[ -f "$TARGET_VHOST" ]]; then
   cp -a "$TARGET_VHOST" "$OLD_TARGET"
@@ -97,10 +99,42 @@ fi
 # identical across tenants. Replace only the hostname/certificate authority.
 sed "s/test\.paymydine\.com/${DOMAIN}/g" "$SOURCE_VHOST" > "$FINAL_VHOST"
 
+# Super Admin is a central control plane. No tenant vhost may execute it.
+# Remove any inherited local /superadmin locations and replace them with a
+# method-preserving redirect to paymydine.com. 307 also keeps stale POST forms
+# safe during the R2 transition.
+python3 - "$FINAL_VHOST" <<'PY'
+from pathlib import Path
+import re
+import sys
+
+path = Path(sys.argv[1])
+text = path.read_text()
+
+patterns = [
+    r'(?ms)^\s*# PMD_SUPERADMIN_RECOVERY_R1\s*\n\s*location\s*=\s*/superadmin\s*\{.*?^\s*\}\s*',
+    r'(?ms)^\s*location\s*=\s*/superadmin\s*\{.*?^\s*\}\s*',
+    r'(?ms)^\s*location\s+\^~\s+/superadmin/\s*\{.*?^\s*\}\s*',
+]
+for pattern in patterns:
+    text = re.sub(pattern, '\n', text)
+
+needle = '    location ^~ /admin/ {'
+pos = text.find(needle)
+if pos < 0:
+    raise SystemExit('admin authority not found in generated tenant vhost')
+
+# Put the central redirect immediately before Admin authority for readability.
+redirect = '''    # PMD_SUPERADMIN_CENTRAL_REDIRECT_R2\n    location = /superadmin {\n        return 307 https://paymydine.com/superadmin;\n    }\n\n    location ^~ /superadmin/ {\n        return 307 https://paymydine.com$request_uri;\n    }\n\n'''
+text = text[:pos] + redirect + text[pos:]
+path.write_text(text)
+PY
+
 grep -q "server_name ${DOMAIN};" "$FINAL_VHOST" || fail "generated vhost server_name validation failed"
 grep -q "/etc/letsencrypt/live/${DOMAIN}/fullchain.pem" "$FINAL_VHOST" || fail "generated certificate path validation failed"
 grep -q "location \^~ /admin/" "$FINAL_VHOST" || fail "generated vhost lost admin authority"
-grep -q "location \^~ /superadmin/" "$FINAL_VHOST" || fail "generated vhost lost superadmin authority"
+grep -q "PMD_SUPERADMIN_CENTRAL_REDIRECT_R2" "$FINAL_VHOST" || fail "generated vhost lost central superadmin redirect"
+grep -Fq 'return 307 https://paymydine.com$request_uri;' "$FINAL_VHOST" || fail "generated vhost superadmin redirect is invalid"
 
 install -o root -g root -m 0644 "$FINAL_VHOST" "$TARGET_VHOST"
 ln -sfn "$TARGET_VHOST" "$ENABLED_VHOST"
