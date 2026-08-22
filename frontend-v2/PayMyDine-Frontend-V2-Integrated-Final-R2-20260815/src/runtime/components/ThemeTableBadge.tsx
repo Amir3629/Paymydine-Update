@@ -9,21 +9,19 @@ function normalizedText(value: string | null | undefined): string {
   return String(value || '').replace(/\s+/g, ' ').trim().toLowerCase()
 }
 
-function findHeroHost(root: HTMLElement): HTMLElement {
-  const candidates = Array.from(root.querySelectorAll<HTMLElement>('section, div'))
-  const namedHero = candidates.find((element) => /hero/i.test(String(element.className || '')))
-  if (namedHero) return namedHero
-
-  const visualSection = Array.from(root.querySelectorAll<HTMLElement>('section')).find((section) => (
-    Boolean(section.querySelector('img'))
-  ))
-  return visualSection || root
+function findHeaderHost(root: HTMLElement): HTMLElement {
+  const headers = Array.from(root.querySelectorAll<HTMLElement>('header'))
+  const visibleHeader = headers.find((header) => {
+    const rect = header.getBoundingClientRect()
+    return rect.width > 20 && rect.height > 20
+  })
+  return visibleHeader || headers[0] || root
 }
 
-/* PMD_THEME_TABLE_BADGE_R38
- * One shared table-number authority for all ten V2 themes. The badge is portaled
- * into each theme's hero and inherits that theme's PMD color variables, so the
- * table context stays visually prominent without duplicating ten implementations.
+/* PMD_THEME_TABLE_BADGE_R39
+ * One shared table-number authority for all ten V2 themes. The table context now
+ * lives in the theme header rather than on top of hero photography. It stays
+ * intentionally compact and inherits each theme's PMD tokens.
  */
 export function ThemeTableBadge() {
   const { tableDisplay, labels } = useMenuRuntime()
@@ -38,27 +36,27 @@ export function ThemeTableBadge() {
     const root = document.querySelector<HTMLElement>('main[data-theme-id]')
     if (!root) return
 
-    const nextHost = findHeroHost(root)
-    nextHost.dataset.pmdTableBadgeHost = 'r38'
+    const nextHost = findHeaderHost(root)
+    nextHost.dataset.pmdTableBadgeHost = 'r39'
 
     const expected = normalizedText(`${labels.table} ${tableDisplay}`)
     const originals = Array.from(root.querySelectorAll<HTMLElement>('span, div')).filter((element) => {
-      if (element.dataset.pmdTableBadge === 'r38') return false
+      if (element.dataset.pmdTableBadge === 'r39') return false
       return normalizedText(element.textContent) === expected
     })
 
     originals.forEach((element) => {
-      element.dataset.pmdTableBadgeOriginal = 'r38'
+      element.dataset.pmdTableBadgeOriginal = 'r39'
     })
 
     setHost(nextHost)
 
     return () => {
-      if (nextHost.dataset.pmdTableBadgeHost === 'r38') {
+      if (nextHost.dataset.pmdTableBadgeHost === 'r39') {
         delete nextHost.dataset.pmdTableBadgeHost
       }
       originals.forEach((element) => {
-        if (element.dataset.pmdTableBadgeOriginal === 'r38') {
+        if (element.dataset.pmdTableBadgeOriginal === 'r39') {
           delete element.dataset.pmdTableBadgeOriginal
         }
       })
@@ -70,7 +68,7 @@ export function ThemeTableBadge() {
   return createPortal(
     <div
       className={styles.badge}
-      data-pmd-table-badge="r38"
+      data-pmd-table-badge="r39"
       aria-label={`${labels.table} ${tableDisplay}`}
     >
       <span>{labels.table}</span>
