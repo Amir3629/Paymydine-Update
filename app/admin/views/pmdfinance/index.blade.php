@@ -66,9 +66,10 @@
                         <div class="pmd-owner-panel">
                             <h3>VAT & tax</h3>
                             <div class="pmd-owner-setting-row"><div class="pmd-owner-setting-copy"><strong>Enable tax calculation</strong><small>Apply the restaurant tax configuration to orders.</small></div><label class="pmd-owner-switch"><input type="checkbox" name="finance[tax_mode]" value="1" {{ $checked($settings['tax_mode'] ?? 0) ? 'checked' : '' }}><span></span></label></div>
+                            <input type="hidden" name="finance[tax_menu_price]" value="1">
                             <div class="pmd-owner-form-grid">
                                 <div class="pmd-owner-field"><label>Tax percentage</label><input type="number" step="0.01" min="0" max="100" name="finance[tax_percentage]" value="{{ $settings['tax_percentage'] ?? 0 }}"></div>
-                                <div class="pmd-owner-field"><label>Menu prices</label><select name="finance[tax_menu_price]"><option value="0" {{ (int)($settings['tax_menu_price'] ?? 0) === 0 ? 'selected' : '' }}>Prices include tax</option><option value="1" {{ (int)($settings['tax_menu_price'] ?? 0) === 1 ? 'selected' : '' }}>Add tax to menu prices</option></select></div>
+                                <div class="pmd-owner-field"><label>VAT handling</label><input type="text" value="Added at checkout and shown separately" readonly aria-readonly="true"><small>Menu prices stay net. VAT is added to the order total and shown as a separate line before payment.</small></div>
                             </div>
                             <div class="pmd-owner-setting-row"><div class="pmd-owner-setting-copy"><strong>Tax delivery charge</strong><small>Also apply tax to delivery charges.</small></div><label class="pmd-owner-switch"><input type="checkbox" name="finance[tax_delivery_charge]" value="1" {{ $checked($settings['tax_delivery_charge'] ?? 0) ? 'checked' : '' }}><span></span></label></div>
                         </div>
