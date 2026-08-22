@@ -4,7 +4,6 @@ import type { ReactNode } from 'react'
 import { isRtlLocale, localeBase } from '@/src/lib/i18n'
 import { ReviewShareEnhancer } from '@/src/runtime/components/ReviewShareEnhancer'
 import { VatSummaryEnhancer } from '@/src/runtime/components/VatSummaryEnhancer'
-import { ServiceOverlaySimplifier } from '@/src/runtime/components/ServiceOverlaySimplifier'
 import './globals.css'
 
 export const metadata: Metadata = {
@@ -28,7 +27,7 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
 
   return (
     <html lang={locale} dir={direction}>
-      <body>{children}<ReviewShareEnhancer /><VatSummaryEnhancer /><ServiceOverlaySimplifier /></body>
+      <body>{children}<ReviewShareEnhancer /><VatSummaryEnhancer /></body>
     </html>
   )
 }
