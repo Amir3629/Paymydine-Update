@@ -49,10 +49,12 @@ class LogUserLastSeen
             try {
                 if (resolve('admin.auth')->check()) {
                     $roleAuthority = app(\Admin\Services\PmdFixedRoleAuthorityV1::class);
+                    $roleRuntime = app(\Admin\Services\PmdFixedRoleRuntimeV1::class);
                     $roleAuthority->installSettingsCardFilter();
 
                     $adminUser = resolve('admin.auth')->getUser();
-                    $roleCode = $roleAuthority->roleCodeForUser($adminUser);
+                    $roleCode = $roleRuntime->apply($adminUser, $roleAuthority);
+
                     if ($roleCode && array_key_exists($roleCode, $roleAuthority->definitions())) {
                         $database = (string)config(
                             'database.connections.'.config('database.default').'.database',
@@ -67,12 +69,12 @@ class LogUserLastSeen
                             return true;
                         });
 
-                        // The role relation was read to identify the account.
-                        // Refresh it on the first synchronization request so the
-                        // downstream AdminController permission check sees the
-                        // new canonical permission map immediately.
                         if ($didSync && $adminUser && $adminUser->staff) {
                             $adminUser->staff->load('role');
+                            // Re-apply after refreshing the role relation. This is
+                            // also what makes legacy aliases such as Server work
+                            // as the canonical Waiter role without rewriting them.
+                            $roleRuntime->apply($adminUser, $roleAuthority);
                         }
                     }
 
