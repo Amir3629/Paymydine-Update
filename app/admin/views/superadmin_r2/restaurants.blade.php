@@ -76,11 +76,11 @@
                                 <a class="btn btn-soft" href="/superadmin/tenants/{{ $tenant->id }}/edit">Edit</a>
                                 <form class="tenant-status-form" method="POST" action="/superadmin/tenants/status">
                                     @csrf<input type="hidden" name="id" value="{{ $tenant->id }}">
-                                    <select name="status" aria-label="Tenant status"><option value="active" {{ $tenant->status==='active'?'selected':'' }}>Active</option><option value="disabled" {{ $tenant->status==='disabled'?'selected':'' }}>Disabled</option></select>
+                                    <select name="status" aria-label="Restaurant status"><option value="active" {{ $tenant->status==='active'?'selected':'' }}>Active</option><option value="disabled" {{ $tenant->status==='disabled'?'selected':'' }}>Disabled</option></select>
                                     <button class="btn btn-soft" type="submit">Save</button>
                                 </form>
                                 @if($tenant->status==='disabled')
-                                    <form method="POST" action="/superadmin/tenants/remove" onsubmit="return confirm('Remove {{ addslashes($tenant->name) }} from service? The tenant stays offline and its database is retained for recovery.')">@csrf<input type="hidden" name="id" value="{{ $tenant->id }}"><button class="btn btn-danger" type="submit">Remove</button></form>
+                                    <form method="POST" action="/superadmin/tenants/remove" onsubmit="return confirm('Remove {{ addslashes($tenant->name) }} from service? The restaurant stays offline and its database is retained for recovery.')">@csrf<input type="hidden" name="id" value="{{ $tenant->id }}"><button class="btn btn-danger" type="submit">Remove</button></form>
                                 @endif
                             @endif
                         </div>
@@ -124,9 +124,9 @@
                 <div class="field-grid">
                     <div class="field"><label>Restaurant name</label><input name="name" value="{{ old('name') }}" required data-pmd-restaurant-name></div>
                     <div class="field">
-                        <label>Tenant subdomain</label>
+                        <label>Restaurant subdomain</label>
                         <div class="pmd-domain-control">
-                            <input type="text" value="{{ preg_replace('/\.paymydine\.com$/i', '', old('domain','')) }}" placeholder="restaurant" autocomplete="off" autocapitalize="none" spellcheck="false" required data-pmd-domain-slug aria-label="Tenant subdomain">
+                            <input type="text" value="{{ preg_replace('/\.paymydine\.com$/i', '', old('domain','')) }}" placeholder="restaurant" autocomplete="off" autocapitalize="none" spellcheck="false" required data-pmd-domain-slug aria-label="Restaurant subdomain">
                             <span class="pmd-domain-suffix">.paymydine.com</span>
                         </div>
                     </div>
