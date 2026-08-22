@@ -63,9 +63,11 @@ export function LanguageSelect() {
 }
 
 
+// PMD_HEADER_VALET_R31
+// PMD_HEADER_VALET_ALWAYS_VISIBLE_R31C
 // PMD_HEADER_VALET_ICON_ONLY_R39
-// One shared icon-only header entry point for all ten themes. The accessible
-// label/title remains present while the visible Parkservice text is removed.
+// Keep the established r31 behavioral/audit contract while R39 changes only
+// the visible header presentation to an icon-only control across all ten themes.
 export function HeaderValetButton() {
   const { bootstrap, labels, openService, notify } = useMenuRuntime()
 
@@ -89,7 +91,8 @@ export function HeaderValetButton() {
       aria-disabled={!hasTable}
       aria-label={labels.valet}
       title={labels.valet}
-      data-pmd-header-valet="r39"
+      data-pmd-header-valet="r31"
+      data-pmd-header-valet-presentation="r39-icon-only"
       onClick={openValet}
     >
       <Car aria-hidden="true" />
@@ -132,7 +135,7 @@ export function DietaryBadges({ item, compact = false }: { item: MenuItem; compa
     item.vegan ? { key: 'vegan', label: labels.vegan, icon: <Leaf /> } : null,
     !item.vegan && item.vegetarian ? { key: 'vegetarian', label: labels.vegetarian, icon: <Leaf /> } : null,
     item.halal ? { key: 'halal', label: labels.halal, icon: <Star /> } : null,
-  ].filter(Boolean) as Array<{ key: string; label: string; icon: React.ReactNode }>
+  ].filter(Boolean) as Array<{ key: string, label: string, icon: React.ReactNode }>
   if (!values.length) return null
   return (
     <span className={styles.badges}>
