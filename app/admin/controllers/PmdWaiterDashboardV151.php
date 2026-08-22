@@ -3,6 +3,7 @@
 namespace Admin\Controllers;
 
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 
 /**
  * Waiter Dashboard V151
@@ -37,11 +38,19 @@ class PmdWaiterDashboardV151 extends PmdWaiterDashboardV150
     protected function v9CompatiblePayload(): array
     {
         $base = $this->payload(false);
-        $tables = array_values((array)($base['tables'] ?? []));
+        $tables = $this->attachOperationalStatusesV152(
+            array_values((array)($base['tables'] ?? []))
+        );
         $orders = array_values((array)($base['orders'] ?? []));
 
+        // PMD_MANUAL_TABLE_LIFECYCLE_R46
+        // Payment and the physical table lifecycle are independent. A settled
+        // order is allowed to disappear from open_orders, but the table stays
+        // busy until Waiter/Cashier explicitly changes operational_status.
         $busy = count(array_filter($tables, function ($table) {
-            return (int)($table['open_orders'] ?? 0) > 0;
+            $operational = strtolower(trim((string)($table['operational_status'] ?? '')));
+            return (int)($table['open_orders'] ?? 0) > 0
+                || in_array($operational, ['occupied', 'cleaning', 'reserved'], true);
         }));
 
         $pendingTotal = array_sum(array_map(function ($order) {
@@ -126,6 +135,53 @@ class PmdWaiterDashboardV151 extends PmdWaiterDashboardV150
                 'tables_count' => $totalTables,
             ],
         ]);
+    }
+
+    /**
+     * PMD_MANUAL_TABLE_LIFECYCLE_R46
+     *
+     * V149 predates the explicit tables.operational_status contract, so its
+     * table payload can look free immediately after the last bill is paid.
+     * Enrich the V9-compatible payload from the tenant table authority without
+     * changing order/payment state.
+     */
+    protected function attachOperationalStatusesV152(array $tables): array
+    {
+        if (!$tables || !Schema::hasTable('tables') || !Schema::hasColumn('tables', 'operational_status')) {
+            return $tables;
+        }
+
+        $columns = Schema::getColumnListing('tables');
+        $primary = in_array('table_id', $columns, true)
+            ? 'table_id'
+            : (in_array('id', $columns, true) ? 'id' : null);
+        if (!$primary) return $tables;
+
+        $ids = array_values(array_unique(array_filter(array_map(
+            static fn ($table) => (int)($table['table_id'] ?? $table['id'] ?? 0),
+            $tables
+        ))));
+        if (!$ids) return $tables;
+
+        $statusById = DB::table('tables')
+            ->whereIn($primary, $ids)
+            ->pluck('operational_status', $primary)
+            ->mapWithKeys(static function ($status, $id) {
+                $value = strtolower(trim((string)$status));
+                if ($value === 'free') $value = 'available';
+                return [(int)$id => $value];
+            })
+            ->all();
+
+        foreach ($tables as &$table) {
+            $id = (int)($table['table_id'] ?? $table['id'] ?? 0);
+            if (!$id || !array_key_exists($id, $statusById)) continue;
+            $table['operational_status'] = $statusById[$id];
+            $table['table_operational_status'] = $statusById[$id];
+        }
+        unset($table);
+
+        return $tables;
     }
 
     protected function currentDatabaseName(): ?string
