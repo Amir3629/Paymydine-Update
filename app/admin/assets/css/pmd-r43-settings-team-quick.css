@@ -1,0 +1,52 @@
+/* PMD_R43_SETTINGS_TEAM_QUICK_FINAL
+ * Small first-paint fixes only. No page/controller authority is duplicated.
+ */
+
+/* /admin/pmdsettings: keep the underlying pages/routes, remove only their cards. */
+#pmd-settings-center #pmd-settings-brand,
+#pmd-settings-center #pmd-settings-advanced,
+#pmd-settings-center a.pmd-settings-card[href$="/admin/pmdcustomer"] {
+  display: none !important;
+  visibility: hidden !important;
+  pointer-events: none !important;
+}
+
+/* Manager keeps Side Menu 2 but Settings is intentionally not part of the
+ * Manager product surface. The middleware independently enforces this server-side.
+ */
+#pmd-side-menu2:has([data-pmd-dashboard-route="managerlab"])
+  a[href$="/admin/pmdsettings"] {
+  display: none !important;
+  visibility: hidden !important;
+  pointer-events: none !important;
+}
+
+@media (max-width: 767px) {
+  /* Every table that actually has an open check is an occupied/Besetzt table.
+   * V2.4 marks this from the same canonical bootstrap used by Quick V2.1.
+   */
+  body.pmd-cashier-waiter-host-v21
+  #pmd-cashier-quick-launcher-v21
+  .pmd-cql-v21__table.is-open
+  .pmd-cql-v21__dot,
+  body.pmd-cashier-waiter-host-v21
+  #pmd-cashier-quick-launcher-v21
+  .pmd-cql-v21__table[data-pmd-r43-occupied="1"]
+  .pmd-cql-v21__dot {
+    background: #dc3545 !important;
+    box-shadow: 0 0 0 5px rgba(220, 53, 69, .13) !important;
+  }
+
+  /* Match the real V2.2 data attributes. The earlier selectors omitted the
+   * v22 segment, so Pay/Free did not receive their intended emphasis.
+   */
+  .pmd-cql-v22__pos-header button[data-cql-v22-pos-pay] {
+    border-color: #173f59 !important;
+    background: #173f59 !important;
+    color: #fff !important;
+  }
+
+  .pmd-cql-v22__pos-header button[data-cql-v22-free] {
+    color: #a2363a !important;
+  }
+}
