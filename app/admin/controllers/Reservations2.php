@@ -547,7 +547,7 @@ class Reservations2 extends Reservations
         try {
             LocationOption::query()->updateOrCreate([
                 'location_id' => (int)$location->location_id,
-                'item' => self::FLOOR_VIEW_OPTION,
+                'item' => $this->floorViewOptionKey($user),
             ], [
                 'value' => $value,
             ]);
@@ -578,10 +578,25 @@ class Reservations2 extends Reservations
                 return $default;
             }
 
+            $user = AdminAuth::getUser();
+
+            if (!$user) {
+                return $default;
+            }
+
             $record = LocationOption::findRecord(
-                self::FLOOR_VIEW_OPTION,
+                $this->floorViewOptionKey($user),
                 $location
             );
+
+            // Preserve the existing location preference as a migration
+            // fallback until this user saves a personalized preference.
+            if (!$record) {
+                $record = LocationOption::findRecord(
+                    self::FLOOR_VIEW_OPTION,
+                    $location
+                );
+            }
 
             if (!$record || !is_array($record->value)) {
                 return $default;
@@ -621,6 +636,13 @@ class Reservations2 extends Reservations
             'layout_mode' => 'full',
             'full_floor_zoom' => 1.0,
         ];
+    }
+
+    protected function floorViewOptionKey($user): string
+    {
+        $userId = (int)($user->user_id ?? $user->getKey());
+
+        return self::FLOOR_VIEW_OPTION.'_user_'.$userId;
     }
 
     protected function resolveFloorViewLocation($user = null)
