@@ -52,11 +52,10 @@
         'app/admin/assets/js/pmd-floor-toolbar-authority-v1.js'
     );
 
-    /* PMD_ADMIN_FAVICON_HEAD_AUTHORITY_V2
+    /* PMD_ADMIN_FAVICON_HEAD_AUTHORITY_V3
      * This partial is in the common Admin <head>, including clean Lab pages.
-     * Use the exact PMD favicon that is already correct on PmdSettings and
-     * version it from the real file mtime so old tab icons cannot survive a
-     * favicon asset replacement under a stale URL.
+     * Expose one favicon authority only. The old /favicon.ico declaration was
+     * a competing icon source and could win from browser cache on some routes.
      */
     $pmdAdminFaviconPath = base_path(
         'app/admin/assets/images/favicon.svg'
@@ -64,7 +63,7 @@
 
     $pmdAdminFaviconVersion = is_file($pmdAdminFaviconPath)
         ? (string)filemtime($pmdAdminFaviconPath)
-        : 'pmd-admin-v2';
+        : 'pmd-admin-v3';
 
     $pmdCatalogueVersion = is_file($pmdCataloguePath)
         ? (string)filemtime($pmdCataloguePath)
@@ -123,15 +122,10 @@
 @endphp
 
 <link
-    id="pmd-admin-favicon-authority-v2"
+    id="pmd-admin-favicon-authority-v3"
     rel="icon"
     type="image/svg+xml"
     href="/app/admin/assets/images/favicon.svg?v={{ $pmdAdminFaviconVersion }}"
->
-<link
-    rel="shortcut icon"
-    type="image/x-icon"
-    href="/favicon.ico?v={{ $pmdAdminFaviconVersion }}"
 >
 
 <!-- PMD_ADMIN_ROBOTO_FIRST_PAINT_V2 -->
@@ -200,20 +194,20 @@
 })();
 </script>
 
-{{-- PMD_ADMIN_TITLE_AUTHORITY_V1
-     Core Admin layout still appends setting('site_name') to Template titles.
-     That setting may be the restaurant/site identity or the old TastyIgniter
-     default; neither is the PMD product identity for browser tabs. Keep public
-     restaurant/site naming untouched and normalize only the Admin document
-     title to "<page> - PayMyDine". Smooth transitions emit pageContentLoaded,
-     so the same authority is re-applied after AJAX navigation without polling
-     or a MutationObserver. --}}
-<script id="pmd-admin-title-authority-v1">
+{{-- PMD_ADMIN_TITLE_AUTHORITY_V2
+     The common Admin branding partial is parsed before the layout's <title>.
+     The old authority waited for DOMContentLoaded, which allowed the legacy
+     TastyIgniter/site title to appear in the browser tab for a visible moment.
+     Observe the head while the parser creates <title>, normalize it immediately
+     to "<page> - PayMyDine", then keep the existing AJAX/pageshow safety net.
+     Public restaurant/site naming remains untouched. --}}
+<script id="pmd-admin-title-authority-v2">
 (function () {
     'use strict';
 
     var BRAND = 'PayMyDine';
     var LEGACY_SITE_NAME = @json((string)setting('site_name'));
+    var firstPaintObserver = null;
 
     function escapeRegExp(value) {
         return String(value || '').replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
@@ -248,22 +242,53 @@
     }
 
     function apply() {
-        var next = normalize(document.title);
+        var titleNode = document.querySelector('head > title, title');
+        if (!titleNode) return '';
+
+        var next = normalize(titleNode.textContent || document.title);
+        if (titleNode.textContent !== next) {
+            titleNode.textContent = next;
+        }
         if (document.title !== next) {
             document.title = next;
         }
         return next;
     }
 
+    function stopFirstPaintObserver() {
+        if (!firstPaintObserver) return;
+        firstPaintObserver.disconnect();
+        firstPaintObserver = null;
+    }
+
+    function startFirstPaintObserver() {
+        if (!window.MutationObserver || firstPaintObserver) return;
+
+        var root = document.head || document.documentElement;
+        if (!root) return;
+
+        firstPaintObserver = new MutationObserver(function () {
+            if (!document.querySelector('head > title, title')) return;
+            apply();
+            stopFirstPaintObserver();
+        });
+
+        firstPaintObserver.observe(root, {
+            childList: true,
+            subtree: true,
+            characterData: true
+        });
+    }
+
     window.PMDAdminTitleAuthorityV1 = {
-        version: '1.0.0',
+        version: '2.0.0',
         brand: BRAND,
         legacySiteName: LEGACY_SITE_NAME,
         normalize: normalize,
         apply: apply,
         audit: function () {
             return {
-                version: '1.0.0',
+                version: '2.0.0',
                 brand: BRAND,
                 legacySiteName: LEGACY_SITE_NAME,
                 title: document.title,
@@ -273,11 +298,19 @@
         }
     };
 
-    if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', apply, { once: true });
-    } else {
+    // This partial is intentionally before <title>; arm the observer now so
+    // the parser-generated legacy title is corrected before first paint.
+    startFirstPaintObserver();
+
+    if (document.querySelector('head > title, title')) {
         apply();
+        stopFirstPaintObserver();
     }
+
+    document.addEventListener('DOMContentLoaded', function () {
+        apply();
+        stopFirstPaintObserver();
+    }, { once: true });
 
     document.addEventListener('pageContentLoaded', apply, false);
     window.addEventListener('pageshow', apply, false);
