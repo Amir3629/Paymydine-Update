@@ -8,6 +8,7 @@ use App\Services\SuperAdminTenantLifecycleService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Session;
 use Illuminate\Support\Facades\Validator;
 use Symfony\Component\HttpFoundation\Response as SymfonyResponse;
@@ -71,10 +72,7 @@ class SuperAdminR2Controller extends AdminController
                 }
             })->count();
 
-            return [
-                'label' => $monthStart->format('M'),
-                'value' => $value,
-            ];
+            return ['label' => $monthStart->format('M'), 'value' => $value];
         });
 
         $growthMax = max(1, (int)$growth->max('value'));
@@ -96,7 +94,10 @@ class SuperAdminR2Controller extends AdminController
         $query = DB::connection('mysql')->table('tenants')->orderByDesc('id');
         if ($search !== '') {
             $query->where(function ($q) use ($search) {
-                $q->where('name','like','%'.$search.'%')->orWhere('domain','like','%'.$search.'%')->orWhere('database','like','%'.$search.'%')->orWhere('email','like','%'.$search.'%');
+                $q->where('name','like','%'.$search.'%')
+                    ->orWhere('domain','like','%'.$search.'%')
+                    ->orWhere('database','like','%'.$search.'%')
+                    ->orWhere('email','like','%'.$search.'%');
             });
         }
         if ($status !== '') $query->where('status', $status);
@@ -106,35 +107,57 @@ class SuperAdminR2Controller extends AdminController
 
     public function store(Request $request, SuperAdminTenantLifecycleService $lifecycle)
     {
-        $validator = Validator::make($request->all(), [
-            'name'=>'required|string|max:191','domain'=>'required|string|max:191','database'=>'required|string|max:64','email'=>'required|email|max:191','phone'=>'required|string|max:40','start'=>'required|date','end'=>'required|date|after_or_equal:start','type'=>'required|string|max:100','country'=>'required|string|max:100','description'=>'nullable|string|max:1000',
-        ]);
-        if ($validator->fails()) return redirect('/superadmin/new')->withErrors($validator)->withInput();
+        try {
+            $validator = Validator::make($request->all(), [
+                'name'=>'required|string|max:191',
+                'domain'=>'required|string|max:191',
+                'database'=>'required|string|max:64',
+                'email'=>'required|email|max:191',
+                'phone'=>'required|string|max:40',
+                'start'=>'required|date',
+                'end'=>'required|date|after_or_equal:start',
+                'type'=>'required|string|max:100',
+                'country'=>'required|string|max:100',
+                'description'=>'nullable|string|max:1000',
+            ]);
+            if ($validator->fails()) return redirect('/superadmin/new')->withErrors($validator)->withInput();
 
-        $data = $validator->validated();
-        $domain = $this->normalizeTenantDomainInput((string)$data['domain']);
-        $database = trim(str_replace([' ','-'], '_', $data['database']));
+            $data = $validator->validated();
+            $domain = $this->normalizeTenantDomainInput((string)$data['domain']);
+            $database = trim(str_replace([' ','-'], '_', $data['database']));
 
-        if (!$this->isAllowedTenantDomain($domain)) {
+            if (!$this->isAllowedTenantDomain($domain)) {
+                return redirect('/superadmin/new')
+                    ->withErrors(['domain'=>'Enter a PayMyDine restaurant name such as "restaurant" or "restaurant.paymydine.com".'])
+                    ->withInput();
+            }
+
+            if (DB::connection('mysql')->table('tenants')->where('domain', $domain)->exists()) {
+                return redirect('/superadmin/new')->withErrors(['domain'=>'This restaurant domain already exists.'])->withInput();
+            }
+            if (DB::connection('mysql')->table('tenants')->where('database', $database)->exists()) {
+                return redirect('/superadmin/new')->withErrors(['database'=>'A restaurant with this internal database name already exists.'])->withInput();
+            }
+
+            $data['domain']=$domain;
+            $data['database']=$database;
+            $result = $lifecycle->create($data);
+
+            $response = redirect('/superadmin/new')->with($result['ok'] ? 'success' : 'warning', $result['message']);
+            if (!$result['ok']) $response->withInput();
+            return $response;
+        } catch (\Throwable $e) {
+            Log::error('pmd_superadmin_r2_store_http_failed', [
+                'domain' => (string)$request->input('domain', ''),
+                'name' => (string)$request->input('name', ''),
+                'error' => $e->getMessage(),
+                'exception' => get_class($e),
+            ]);
+
             return redirect('/superadmin/new')
-                ->withErrors(['domain'=>'Enter a PayMyDine tenant name such as "restaurant" or "restaurant.paymydine.com".'])
+                ->with('warning', 'Restaurant creation could not be completed. Nothing was intentionally activated. Please retry; if it repeats, check Restaurant Health.')
                 ->withInput();
         }
-
-        if (DB::connection('mysql')->table('tenants')->where('domain', $domain)->exists()) {
-            return redirect('/superadmin/new')->withErrors(['domain'=>'This domain already exists.'])->withInput();
-        }
-        if (DB::connection('mysql')->table('tenants')->where('database', $database)->exists()) {
-            return redirect('/superadmin/new')->withErrors(['database'=>'This database name is already registered.'])->withInput();
-        }
-
-        $data['domain']=$domain;
-        $data['database']=$database;
-        $result = $lifecycle->create($data);
-
-        $response = redirect('/superadmin/new')->with($result['ok'] ? 'success' : 'warning', $result['message']);
-        if (!$result['ok']) $response->withInput();
-        return $response;
     }
 
     public function edit($id)
@@ -150,7 +173,10 @@ class SuperAdminR2Controller extends AdminController
             'id'=>'required|integer','name'=>'required|string|max:191','email'=>'required|email|max:191','phone'=>'required|string|max:40','start'=>'required|date','end'=>'required|date|after_or_equal:start','type'=>'required|string|max:100','country'=>'required|string|max:100','description'=>'nullable|string|max:1000',
         ]);
         if ($validator->fails()) return redirect('/superadmin/new')->withErrors($validator);
-        $data = $validator->validated(); $id=(int)$data['id']; unset($data['id']); $data['updated_at']=now();
+        $data = $validator->validated();
+        $id=(int)$data['id'];
+        unset($data['id']);
+        $data['updated_at']=now();
         DB::connection('mysql')->table('tenants')->where('id',$id)->update($data);
         return redirect('/superadmin/new')->with('success','Restaurant updated.');
     }
@@ -167,7 +193,7 @@ class SuperAdminR2Controller extends AdminController
             if (!$readiness['ok']) {
                 DB::connection('mysql')->table('tenants')->where('id',$tenant->id)->update(['status'=>'disabled','updated_at'=>now()]);
                 return redirect('/superadmin/new')->with('warning',
-                    'Cannot activate '.$tenant->name.' yet: '.implode('; ', $readiness['issues']).'. Use Tenant Health → Retry provisioning.'
+                    'Cannot activate '.$tenant->name.' yet: '.implode('; ', $readiness['issues']).'. Use Restaurant Health → Retry provisioning.'
                 );
             }
         }
@@ -180,7 +206,7 @@ class SuperAdminR2Controller extends AdminController
     {
         $request->validate(['id'=>'required|integer']);
         $tenant = DB::connection('mysql')->table('tenants')->where('id',(int)$request->input('id'))->first();
-        if (!$tenant) return redirect('/superadmin/health')->withErrors(['tenant'=>'Tenant not found.']);
+        if (!$tenant) return redirect('/superadmin/health')->withErrors(['tenant'=>'Restaurant not found.']);
 
         DB::connection('mysql')->table('tenants')->where('id',$tenant->id)->update(['status'=>'disabled','updated_at'=>now()]);
         $result = $provisioner->provision((string)$tenant->domain);
@@ -201,14 +227,17 @@ class SuperAdminR2Controller extends AdminController
     public function health()
     {
         $tenants = DB::connection('mysql')->table('tenants')->orderBy('name')->get();
-        $schemas = collect(DB::connection('mysql')->select('SELECT SCHEMA_NAME FROM INFORMATION_SCHEMA.SCHEMATA'))->mapWithKeys(fn($row)=>[(string)$row->SCHEMA_NAME=>true]);
+        $schemas = collect(DB::connection('mysql')->select('SELECT SCHEMA_NAME FROM INFORMATION_SCHEMA.SCHEMATA'))
+            ->mapWithKeys(fn($row)=>[(string)$row->SCHEMA_NAME=>true]);
+
         $rows = $tenants->map(function ($tenant) use ($schemas) {
             $domain = strtolower((string)$tenant->domain);
-            $resolved = gethostbyname($domain);
-            $dnsOk = $resolved !== $domain;
-            $tls = $this->inspectTls($domain);
+            $resolved = $domain !== '' ? gethostbyname($domain) : '';
+            $dnsOk = $domain !== '' && $resolved !== $domain;
+            $tls = $dnsOk ? $this->inspectTls($domain) : ['ok'=>false,'name'=>null,'expires'=>null];
             $expired = !empty($tenant->end) && \Carbon\Carbon::parse($tenant->end)->isPast();
             $dbOk = $schemas->has((string)$tenant->database);
+
             return (object)[
                 'tenant'=>$tenant,
                 'db_ok'=>$dbOk,
@@ -221,6 +250,7 @@ class SuperAdminR2Controller extends AdminController
                 'ready'=>$dbOk && $dnsOk && $tls['ok'] && !$expired,
             ];
         });
+
         return $this->html('admin::superadmin_r2.health', compact('rows'));
     }
 
@@ -233,15 +263,23 @@ class SuperAdminR2Controller extends AdminController
     public function updateSettings(Request $request)
     {
         $request->validate(['company_name'=>'required|string|max:191','company_website'=>'required|string|max:191','email'=>'required|email|max:191']);
-        DB::connection('mysql')->table('superadmin')->limit(1)->update(['company_name'=>$request->input('company_name'),'company_website'=>$request->input('company_website'),'email'=>$request->input('email'),'updated_at'=>now()]);
+        DB::connection('mysql')->table('superadmin')->limit(1)->update([
+            'company_name'=>$request->input('company_name'),
+            'company_website'=>$request->input('company_website'),
+            'email'=>$request->input('email'),
+            'updated_at'=>now(),
+        ]);
         return redirect('/superadmin/settings')->with('success','Settings updated.');
     }
 
     public function locationRequests(Request $request)
     {
         $perPage=15;
-        try { $locationRequests=DB::connection('mysql')->table('location_requests')->orderByDesc('id')->paginate($perPage); }
-        catch (\Throwable $e) { $locationRequests=new \Illuminate\Pagination\LengthAwarePaginator([],0,$perPage,1); }
+        try {
+            $locationRequests=DB::connection('mysql')->table('location_requests')->orderByDesc('id')->paginate($perPage);
+        } catch (\Throwable $e) {
+            $locationRequests=new \Illuminate\Pagination\LengthAwarePaginator([],0,$perPage,1);
+        }
         return $this->html('admin::superadmin_r2.location_requests', compact('locationRequests'));
     }
 
@@ -281,13 +319,13 @@ class SuperAdminR2Controller extends AdminController
         $dbOk = $database !== '' && (bool)DB::connection('mysql')->selectOne(
             'SELECT SCHEMA_NAME FROM INFORMATION_SCHEMA.SCHEMATA WHERE SCHEMA_NAME = ?', [$database]
         );
-        if (!$dbOk) $issues[] = 'tenant database is missing';
+        if (!$dbOk) $issues[] = 'restaurant database is missing';
 
         $resolved = $domain !== '' ? gethostbyname($domain) : '';
         $dnsOk = $domain !== '' && $resolved !== $domain;
         if (!$dnsOk) $issues[] = 'DNS is not resolving';
 
-        $tls = $domain !== '' ? $this->inspectTls($domain) : ['ok'=>false];
+        $tls = $domain !== '' && $dnsOk ? $this->inspectTls($domain) : ['ok'=>false];
         if (empty($tls['ok'])) $issues[] = 'TLS certificate does not match '.$domain;
 
         $expired = !empty($tenant->end) && \Carbon\Carbon::parse($tenant->end)->isPast();
@@ -309,8 +347,11 @@ class SuperAdminR2Controller extends AdminController
             'peer_name'=>$domain,
         ]]);
 
-        $errno = 0; $errstr = '';
-        $socket = @stream_socket_client('ssl://'.$domain.':443', $errno, $errstr, 3, STREAM_CLIENT_CONNECT, $context);
+        // Health runs on the same VPS as Nginx. Connect locally and use SNI for
+        // the restaurant hostname instead of making a slow external TLS round trip.
+        $errno = 0;
+        $errstr = '';
+        $socket = @stream_socket_client('ssl://127.0.0.1:443', $errno, $errstr, 0.8, STREAM_CLIENT_CONNECT, $context);
         if (!$socket) return $result;
 
         $params = stream_context_get_params($socket);
@@ -333,7 +374,10 @@ class SuperAdminR2Controller extends AdminController
             if ($name === $domain) { $matches = true; break; }
             if (str_starts_with($name, '*.')) {
                 $suffix = substr($name, 1);
-                if (str_ends_with($domain, $suffix) && substr_count($domain, '.') === substr_count($name, '.')) { $matches = true; break; }
+                if (str_ends_with($domain, $suffix) && substr_count($domain, '.') === substr_count($name, '.')) {
+                    $matches = true;
+                    break;
+                }
             }
         }
 
@@ -351,6 +395,10 @@ class SuperAdminR2Controller extends AdminController
 
     private function html(string $view, array $data=[]): SymfonyResponse
     {
-        return new SymfonyResponse(view($view,$data)->render(),200,['Content-Type'=>'text/html; charset=UTF-8','Cache-Control'=>'no-store, no-cache, must-revalidate, max-age=0']);
+        return new SymfonyResponse(
+            view($view,$data)->render(),
+            200,
+            ['Content-Type'=>'text/html; charset=UTF-8','Cache-Control'=>'no-store, no-cache, must-revalidate, max-age=0']
+        );
     }
 }
