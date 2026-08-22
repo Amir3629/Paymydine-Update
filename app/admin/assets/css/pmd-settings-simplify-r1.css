@@ -3,6 +3,12 @@
  * Hidden legacy fields keep their stored values; this file changes presentation only.
  */
 
+#pmd-settings-center [hidden],
+#pmd-restaurant-profile [hidden],
+#pmd-frontend-settings [hidden] {
+  display: none !important;
+}
+
 /* Restaurant logo removal: one obvious, clickable control. */
 #pmd-restaurant-profile .pmd-profile-logo-remove-r20 {
   display: inline-flex !important;
