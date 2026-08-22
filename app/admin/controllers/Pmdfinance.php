@@ -150,7 +150,7 @@ class Pmdfinance extends AdminController
         return [
             'stripe' => array_merge($mode, [
                 'test_publishable_key' => ['label' => 'Test Publishable Key'],
-                'live_publishable_key' => ['label' => 'Live Public Key'],
+                'live_publishable_key' => ['label' => 'Live Publishable Key'],
                 'test_secret_key' => ['label' => 'Test Secret Key', 'secret' => true],
                 'live_secret_key' => ['label' => 'Live Secret Key', 'secret' => true],
                 'currency' => ['label' => 'Currency', 'default' => 'EUR'],
