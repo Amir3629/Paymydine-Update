@@ -82,6 +82,10 @@
     {
       "path": "css/pmd-settings-polish-r5.css",
       "name": "pmd-settings-polish-r5-css"
+    },
+    {
+      "path": "css/pmd-settings-polish-r7.css",
+      "name": "pmd-settings-polish-r7-css"
     }
   ],
   "script": [
