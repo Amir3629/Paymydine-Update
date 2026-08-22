@@ -12,8 +12,6 @@ trait PmdWaiterPosTerminalProvidersConcern
     {
         $providers = [];
 
-        // SumUp terminals are hardware records. Only active readers with a real
-        // reader_id are offered to the waiter POS.
         if (Schema::hasTable('terminal_devices')) {
             try {
                 $sumup = DB::table('terminal_devices')
@@ -30,15 +28,16 @@ trait PmdWaiterPosTerminalProvidersConcern
                         'provider_code' => 'sumup',
                         'terminal_device_id' => (int)$terminal->terminal_device_id,
                         'reader_id' => (string)$terminal->reader_id,
-                        'name' => $label !== '' ? 'SumUp · '.$label : 'SumUp terminal',
+                        'name' => $label !== '' ? $label : 'SumUp terminal',
+                        'terminal_status' => strtolower(trim((string)($terminal->terminal_status ?? 'unknown'))),
+                        'pairing_state' => strtolower(trim((string)($terminal->pairing_state ?? 'unknown'))),
+                        'environment' => Schema::hasColumn('terminal_devices', 'environment') ? (string)($terminal->environment ?? '') : '',
                     ];
                 }
             } catch (\Throwable $ignored) {
             }
         }
 
-        // Keep the existing provider-level terminal entries for future certified
-        // Worldline / VR implementations.
         try {
             $legacy = Payments_model::query()
                 ->where('status', 1)
@@ -53,6 +52,9 @@ trait PmdWaiterPosTerminalProvidersConcern
                     'terminal_device_id' => null,
                     'reader_id' => null,
                     'name' => (string)($row->name ?: strtoupper(str_replace('_', ' ', $code))),
+                    'terminal_status' => 'unknown',
+                    'pairing_state' => 'unknown',
+                    'environment' => '',
                 ];
             }
         } catch (\Throwable $ignored) {
