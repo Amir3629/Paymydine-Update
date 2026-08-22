@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from 'next'
 import { cookies } from 'next/headers'
 import type { ReactNode } from 'react'
 import { isRtlLocale, localeBase } from '@/src/lib/i18n'
+import { ReviewShareEnhancer } from '@/src/runtime/components/ReviewShareEnhancer'
 import './globals.css'
 
 export const metadata: Metadata = {
@@ -25,7 +26,7 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
 
   return (
     <html lang={locale} dir={direction}>
-      <body>{children}</body>
+      <body>{children}<ReviewShareEnhancer /></body>
     </html>
   )
 }
