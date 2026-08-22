@@ -27,15 +27,19 @@ class PmdTenantRuntimeGuardR1
     public function handle($request, Closure $next)
     {
         $path = trim((string)$request->path(), '/');
+        $tenantReady = $this->tenantContextReady();
 
-        if ($path === 'admin/pmdfinance') {
+        if ($tenantReady && $path === 'admin/pmdfinance') {
             $this->ensureFinanceCatalog();
         }
 
         if (
-            str_starts_with($path, 'admin/kitchendisplay')
-            || str_starts_with($path, 'admin/kds_stations')
-            || str_starts_with($path, 'admin/pmddevices')
+            $tenantReady
+            && (
+                str_starts_with($path, 'admin/kitchendisplay')
+                || str_starts_with($path, 'admin/kds_stations')
+                || str_starts_with($path, 'admin/pmddevices')
+            )
         ) {
             $this->prepareKdsTenantRuntime();
         }
@@ -47,6 +51,17 @@ class PmdTenantRuntimeGuardR1
         }
 
         return $response;
+    }
+
+    protected function tenantContextReady(): bool
+    {
+        try {
+            return app()->bound('tenant')
+                && DB::getDefaultConnection() === 'tenant'
+                && trim((string)DB::connection('tenant')->getDatabaseName()) !== '';
+        } catch (\Throwable $error) {
+            return false;
+        }
     }
 
     protected function applyStandaloneAdminFavicon($response): void
@@ -80,11 +95,11 @@ class PmdTenantRuntimeGuardR1
         }
 
         $response->setContent($updated);
-        if (method_exists($response, 'headers')) {
-            try {
+        try {
+            if (isset($response->headers)) {
                 $response->headers->remove('Content-Length');
-            } catch (\Throwable $ignored) {
             }
+        } catch (\Throwable $ignored) {
         }
     }
 
