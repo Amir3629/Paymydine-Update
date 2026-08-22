@@ -1,0 +1,48 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+DOMAIN="${1:-}"
+ROOT="/var/www/paymydine"
+SOURCE_VHOST="/etc/nginx/sites-available/test.paymydine.com.conf"
+TARGET_VHOST="/etc/nginx/sites-available/${DOMAIN}.conf"
+ENABLED_VHOST="/etc/nginx/sites-enabled/${DOMAIN}.conf"
+EMAIL="admin@paymydine.com"
+
+fail() { echo "ERROR: $*" >&2; exit 1; }
+
+[[ "$DOMAIN" =~ ^[a-z0-9-]+\.paymydine\.com$ ]] || fail "invalid tenant domain"
+[[ "$DOMAIN" != "www.paymydine.com" ]] || fail "reserved domain"
+[[ -d "$ROOT" ]] || fail "application root missing"
+[[ -f "$SOURCE_VHOST" ]] || fail "canonical test tenant vhost missing"
+command -v nginx >/dev/null 2>&1 || fail "nginx missing"
+command -v certbot >/dev/null 2>&1 || fail "certbot missing"
+
+# Wildcard DNS already resolves tenant names to the VPS. Obtain the certificate
+# before enabling the cloned TLS vhost, because the cloned config references the
+# final certificate path.
+if [[ ! -s "/etc/letsencrypt/live/${DOMAIN}/fullchain.pem" ]]; then
+  certbot certonly \
+    --webroot \
+    -w "$ROOT" \
+    -d "$DOMAIN" \
+    --non-interactive \
+    --agree-tos \
+    --email "$EMAIL" \
+    --keep-until-expiring
+fi
+
+TMP="$(mktemp)"
+trap 'rm -f "$TMP"' EXIT
+
+sed "s/test\.paymydine\.com/${DOMAIN//./\\.}/g" "$SOURCE_VHOST" > "$TMP"
+
+# Undo escaped replacement artifacts if sed replacement had to quote dots.
+sed -i "s/${DOMAIN//./\\.}/${DOMAIN}/g" "$TMP"
+
+install -o root -g root -m 0644 "$TMP" "$TARGET_VHOST"
+ln -sfn "$TARGET_VHOST" "$ENABLED_VHOST"
+
+nginx -t
+systemctl reload nginx
+
+echo "READY ${DOMAIN}"
