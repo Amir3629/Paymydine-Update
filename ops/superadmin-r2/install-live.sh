@@ -2,8 +2,8 @@
 set -euo pipefail
 
 ROOT="/var/www/paymydine"
-BRANCH="feature/superadmin-r2-control-plane"
-RAW="https://raw.githubusercontent.com/Amir3629/Paymydine-Update/${BRANCH}"
+REF="42ba748a9f90bede13a50930c24d59007d726c50"
+RAW="https://raw.githubusercontent.com/Amir3629/Paymydine-Update/${REF}"
 TS="$(date +%Y%m%d-%H%M%S)"
 BACKUP="$ROOT/storage/pmd-superadmin-r2/$TS"
 TMP="$(mktemp -d)"
@@ -28,13 +28,14 @@ FILES=(
   "app/admin/views/superadmin_r2/login.blade.php"
   "app/admin/views/superadmin_r2/dashboard.blade.php"
   "app/admin/views/superadmin_r2/restaurants.blade.php"
+  "app/admin/views/superadmin_r2/edit.blade.php"
   "app/admin/views/superadmin_r2/health.blade.php"
   "app/admin/views/superadmin_r2/settings.blade.php"
   "app/admin/views/superadmin_r2/location_requests.blade.php"
   "ops/superadmin-r2/pmd-tenant-provision"
 )
 
-say "Downloading staged R2 files"
+say "Downloading immutable R2 payload $REF"
 for rel in "${FILES[@]}"; do
   mkdir -p "$TMP/$(dirname "$rel")"
   curl -fsSL "$RAW/$rel" -o "$TMP/$rel"
@@ -47,6 +48,12 @@ done
 if [[ -f /etc/nginx/sites-available/test.paymydine.com.conf ]]; then
   sudo cp -a /etc/nginx/sites-available/test.paymydine.com.conf "$BACKUP/test.paymydine.com.conf"
 fi
+if [[ -f /etc/sudoers.d/pmd-tenant-provision ]]; then
+  sudo cp -a /etc/sudoers.d/pmd-tenant-provision "$BACKUP/pmd-tenant-provision.sudoers"
+fi
+if [[ -f /usr/local/sbin/pmd-tenant-provision ]]; then
+  sudo cp -a /usr/local/sbin/pmd-tenant-provision "$BACKUP/pmd-tenant-provision.helper"
+fi
 
 say "Installing isolated R2 application files"
 for rel in "${FILES[@]}"; do
@@ -55,7 +62,10 @@ for rel in "${FILES[@]}"; do
 done
 
 say "Installing privileged provisioning helper"
-sudo install -o root -g root -m 0750 \
+# 0755 lets PHP verify that the helper is executable. Privileged operations still
+# require the narrow sudoers rule below; the file remains root-owned and immutable
+# to the web worker.
+sudo install -o root -g root -m 0755 \
   "$TMP/ops/superadmin-r2/pmd-tenant-provision" \
   /usr/local/sbin/pmd-tenant-provision
 
@@ -127,6 +137,10 @@ php -l "$ROOT/app/Services/SuperAdminTenantDomainProvisioner.php"
 php -l "$ROOT/app/admin/routes.php"
 php -l "$ROOT/app/main/routes/next-proxy.php"
 
+say "Provisioning helper validation"
+sudo -u www-data test -x /usr/local/sbin/pmd-tenant-provision
+sudo -u www-data sudo -n -l /usr/local/sbin/pmd-tenant-provision pmd-invalid.paymydine.com >/dev/null
+
 say "Nginx validation"
 sudo nginx -t
 
@@ -134,6 +148,7 @@ say "Reloading Nginx after successful validation"
 sudo systemctl reload nginx
 
 say "R2 installed"
+echo "Payload commit: $REF"
 echo "Backup: $BACKUP"
 echo "Open: https://test.paymydine.com/superadmin"
 echo "No git checkout/reset/pull was performed."
