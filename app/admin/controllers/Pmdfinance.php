@@ -122,8 +122,13 @@ class Pmdfinance extends AdminController
         ];
 
         DB::transaction(function () use ($values, $input, $clean) {
+            // PMD_FINANCE_SETTINGS_TENANT_AUTHORITY_R37
+            // Keep the framework settings manager populated for compatibility,
+            // but make the current tenant settings table the durable authority.
+            // The owner page and the public VAT API must read the same rows.
             setting()->set($values);
             setting()->save();
+            $this->persistFinanceSettingsDirect($values);
             $this->saveFiskaly($input, $clean);
         });
 
@@ -145,7 +150,7 @@ class Pmdfinance extends AdminController
         return [
             'stripe' => array_merge($mode, [
                 'test_publishable_key' => ['label' => 'Test Publishable Key'],
-                'live_publishable_key' => ['label' => 'Live Publishable Key'],
+                'live_publishable_key' => ['label' => 'Live Public Key'],
                 'test_secret_key' => ['label' => 'Test Secret Key', 'secret' => true],
                 'live_secret_key' => ['label' => 'Live Secret Key', 'secret' => true],
                 'currency' => ['label' => 'Currency', 'default' => 'EUR'],
@@ -210,6 +215,68 @@ class Pmdfinance extends AdminController
         ];
     }
 
+    protected function financeSettingsConnection(): string
+    {
+        return app()->bound('tenant') ? 'tenant' : DB::getDefaultConnection();
+    }
+
+    /**
+     * PMD_FINANCE_SETTINGS_TENANT_AUTHORITY_R37
+     * Persist the owner-facing finance values into the same tenant settings
+     * rows consumed by /api/v1/vat-settings. This avoids the stale/global
+     * settings-manager path that can look saved until the page is refreshed.
+     */
+    protected function persistFinanceSettingsDirect(array $values): void
+    {
+        $connection = $this->financeSettingsConnection();
+
+        if (!Schema::connection($connection)->hasTable('settings')) {
+            throw new \RuntimeException('Tenant settings table not found.');
+        }
+
+        $columns = Schema::connection($connection)->getColumnListing('settings');
+        $keyColumn = in_array('item', $columns, true) ? 'item' : (in_array('key', $columns, true) ? 'key' : null);
+        $valueColumn = in_array('value', $columns, true) ? 'value' : (in_array('data', $columns, true) ? 'data' : null);
+
+        if (!$keyColumn || !$valueColumn) {
+            throw new \RuntimeException('Tenant settings table columns are not recognized.');
+        }
+
+        $table = DB::connection($connection)->table('settings');
+
+        foreach ($values as $key => $value) {
+            $payload = [$valueColumn => (string)$value];
+            if (in_array('serialized', $columns, true)) $payload['serialized'] = 0;
+            if (in_array('updated_at', $columns, true)) $payload['updated_at'] = now();
+
+            $exists = $table->where($keyColumn, $key)->exists();
+            if ($exists) {
+                $table->where($keyColumn, $key)->update($payload);
+                continue;
+            }
+
+            $insert = array_merge([$keyColumn => $key], $payload);
+            if (in_array('created_at', $columns, true)) $insert['created_at'] = now();
+            $table->insert($insert);
+        }
+
+        $taxKeys = ['tax_mode', 'tax_percentage', 'tax_menu_price', 'tax_delivery_charge'];
+        $stored = $table->whereIn($keyColumn, $taxKeys)->get([$keyColumn, $valueColumn]);
+        $storedMap = [];
+        foreach ($stored as $row) {
+            $storedMap[(string)$row->{$keyColumn}] = (string)$row->{$valueColumn};
+        }
+
+        foreach ($taxKeys as $key) {
+            if (!array_key_exists($key, $values) || !array_key_exists($key, $storedMap)) {
+                throw new \RuntimeException('Tax settings persistence verification failed for '.$key.'.');
+            }
+            if ((string)$storedMap[$key] !== (string)$values[$key]) {
+                throw new \RuntimeException('Tax settings persistence verification mismatch for '.$key.'.');
+            }
+        }
+    }
+
     protected function financeSettings(): array
     {
         $keys = [
@@ -234,7 +301,37 @@ class Pmdfinance extends AdminController
             'invoice_print_hint' => '',
         ];
 
+        // Read from the current tenant DB first, exactly like the public VAT API.
+        // setting() remains only a compatibility fallback for missing rows.
+        $direct = [];
+        try {
+            $connection = $this->financeSettingsConnection();
+            if (Schema::connection($connection)->hasTable('settings')) {
+                $columns = Schema::connection($connection)->getColumnListing('settings');
+                $keyColumn = in_array('item', $columns, true) ? 'item' : (in_array('key', $columns, true) ? 'key' : null);
+                $valueColumn = in_array('value', $columns, true) ? 'value' : (in_array('data', $columns, true) ? 'data' : null);
+
+                if ($keyColumn && $valueColumn) {
+                    $rows = DB::connection($connection)
+                        ->table('settings')
+                        ->whereIn($keyColumn, array_keys($keys))
+                        ->get([$keyColumn, $valueColumn]);
+
+                    foreach ($rows as $row) {
+                        $direct[(string)$row->{$keyColumn}] = $row->{$valueColumn};
+                    }
+                }
+            }
+        } catch (\Throwable $error) {
+            logger()->warning('PMD finance direct settings load failed', ['message' => $error->getMessage()]);
+        }
+
         foreach ($keys as $key => $fallback) {
+            if (array_key_exists($key, $direct)) {
+                $keys[$key] = $direct[$key];
+                continue;
+            }
+
             try {
                 $keys[$key] = setting($key, $fallback);
             } catch (\Throwable $error) {
