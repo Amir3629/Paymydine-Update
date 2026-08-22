@@ -115,16 +115,19 @@ class Pmdteam extends AdminController
             $member->staff_role_id = $input['staff_role_id'];
             $member->staff_status = 1;
             $member->sale_permission = 1;
-            $member->biometric_enabled = 0;
-            $member->card_id = null;
-            if ($locationId > 0) $member->staff_location_id = $locationId;
 
-            // Legacy mail/avatar helpers expect a staff_email value. Team does
-            // not ask for it; this internal non-delivery address is technical.
+            // staff_location_id was removed from the canonical schema years ago.
+            // Location access is owned exclusively by the polymorphic locations
+            // relation below; do not write legacy/optional hardware columns here.
             if (!$member->staff_email || !$staffId) {
                 $member->staff_email = $this->technicalStaffEmail($input['username']);
             }
 
+            $member->save();
+
+            // Use the model's canonical user helper instead of relying on a
+            // purged nested attribute. It preserves the existing password when
+            // editing and hashes/activates new credentials through Users_model.
             $user = [
                 'username' => $input['username'],
                 'super_user' => false,
@@ -132,9 +135,7 @@ class Pmdteam extends AdminController
                 'activate' => true,
             ];
             if ($input['password'] !== '') $user['password'] = $input['password'];
-
-            $member->user = $user;
-            $member->save();
+            $member->addStaffUser($user);
 
             // Location is implicit from the restaurant currently being managed,
             // not another staff-form choice. This keeps login location access valid.
