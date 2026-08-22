@@ -5,7 +5,6 @@ namespace Admin\Middleware;
 use Carbon\Carbon;
 use Closure;
 use Illuminate\Support\Facades\App;
-use Illuminate\Support\Facades\Cache;
 
 class LogUserLastSeen
 {
@@ -16,7 +15,7 @@ class LogUserLastSeen
                 if (App::hasDatabase() && resolve($authService)->check()) {
                     $cacheKey = 'is-online-'.str_replace('.', '-', $authService).'-user-'.resolve($authService)->getId();
                     $expireAt = Carbon::now()->addMinutes(2);
-                    Cache::remember($cacheKey, $expireAt, function () use ($authService) {
+                    cache()->remember($cacheKey, $expireAt, function () use ($authService) {
                         return resolve($authService)->user()->updateLastSeen(Carbon::now());
                     });
                 }
@@ -39,8 +38,49 @@ class LogUserLastSeen
                     'message' => $error->getMessage(),
                 ]);
             }
+
+            /*
+             * PMD_FIXED_ROLE_AUTHORITY_R43
+             *
+             * This middleware is already the shared authenticated Admin web
+             * boundary, so fixed operational roles are enforced server-side
+             * here rather than by hiding navigation in the browser.
+             */
+            try {
+                if (resolve('admin.auth')->check()) {
+                    $roleAuthority = app(\Admin\Services\PmdFixedRoleAuthorityV1::class);
+                    $roleAuthority->installSettingsCardFilter();
+
+                    if ($blocked = $roleAuthority->gate($request)) {
+                        return $blocked;
+                    }
+                }
+            } catch (\Throwable $error) {
+                logger()->error('PMD fixed role authority failed closed', [
+                    'message' => $error->getMessage(),
+                    'path' => $request->path(),
+                ]);
+
+                return response('Staff access authority is temporarily unavailable.', 503);
+            }
         }
 
-        return $next($request);
+        $response = $next($request);
+
+        /*
+         * PMD_CASHIER_QUICK_V22_RESPONSE_BRIDGE_R43
+         * Only the accepted V2.1 mobile Cashier host receives these two
+         * presentation/workflow assets. Normal desktop CashierLab is untouched.
+         */
+        try {
+            return app(\Admin\Services\PmdCashierQuickV22Bridge::class)
+                ->decorate($request, $response);
+        } catch (\Throwable $error) {
+            logger()->warning('PMD Cashier Quick V2.2 response decoration failed', [
+                'message' => $error->getMessage(),
+            ]);
+        }
+
+        return $response;
     }
 }
