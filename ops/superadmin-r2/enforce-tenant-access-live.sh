@@ -8,6 +8,7 @@ TS="$(date +%Y%m%d-%H%M%S)"
 BACKUP="$ROOT/storage/pmd-tenant-access-r2-$TS"
 TMP="$(mktemp -d)"
 MANIFEST="$BACKUP/nginx-manifest.tsv"
+STATUS_TSV="$TMP/tenant-status.tsv"
 RESTORE=0
 
 FILES=(
@@ -74,7 +75,39 @@ test -S /run/php/php8.3-fpm.sock
 echo "PASS"
 
 echo
-echo "2) Downloading immutable application payload..."
+echo "2) Reading current tenant status authority - READ ONLY..."
+PMD_ROOT="$ROOT" php <<'PHP' > "$STATUS_TSV"
+<?php
+$root = getenv('PMD_ROOT') ?: '/var/www/paymydine';
+$env = [];
+foreach (file($root.'/.env', FILE_IGNORE_NEW_LINES) ?: [] as $line) {
+    $line = trim($line);
+    if ($line === '' || str_starts_with($line, '#') || !str_contains($line, '=')) continue;
+    [$k,$v] = explode('=', $line, 2);
+    $env[trim($k)] = trim(trim($v), "\"'");
+}
+$host = $env['DB_HOST'] ?? '127.0.0.1';
+$port = $env['DB_PORT'] ?? '3306';
+$db = $env['DB_DATABASE'] ?? 'paymydine';
+$user = $env['DB_USERNAME'] ?? '';
+$pass = $env['DB_PASSWORD'] ?? '';
+$prefix = $env['DB_PREFIX'] ?? 'ti_';
+$pdo = new PDO("mysql:host={$host};port={$port};dbname={$db};charset=utf8mb4", $user, $pass, [PDO::ATTR_ERRMODE=>PDO::ERRMODE_EXCEPTION]);
+$table = str_replace('`','``',$prefix.'tenants');
+$stmt = $pdo->query("SELECT domain,status FROM `{$table}` ORDER BY id DESC");
+foreach ($stmt->fetchAll(PDO::FETCH_ASSOC) as $row) {
+    $domain = strtolower(trim((string)$row['domain']));
+    $status = strtolower(trim((string)$row['status']));
+    if (preg_match('/^[a-z0-9-]+\\.paymydine\\.com$/', $domain)) echo $domain."\t".$status."\n";
+}
+PHP
+cat "$STATUS_TSV"
+
+ACTIVE_HOST="$(awk -F '\t' '$2=="active"{print $1; exit}' "$STATUS_TSV")"
+BLOCKED_HOST="$(awk -F '\t' '$2!="active"{print $1; exit}' "$STATUS_TSV")"
+
+echo
+echo "3) Downloading immutable application payload..."
 for rel in "${FILES[@]}"; do
   mkdir -p "$TMP/$(dirname "$rel")"
   echo "GET  $rel"
@@ -82,7 +115,7 @@ for rel in "${FILES[@]}"; do
 done
 
 echo
-echo "3) Pre-validating..."
+echo "4) Pre-validating..."
 php -l "$TMP/routes/pmd-superadmin-r2.php"
 bash -n "$TMP/ops/superadmin-r2/pmd-tenant-provision"
 grep -Fq '/superadmin/tenants/remove' "$TMP/routes/pmd-superadmin-r2.php"
@@ -91,7 +124,7 @@ grep -Fq '>Remove<' "$TMP/app/admin/views/superadmin_r2/restaurants.blade.php"
 echo "PASS"
 
 echo
-echo "4) Backing up current application files..."
+echo "5) Backing up current application files..."
 for rel in "routes/pmd-superadmin-r2.php" "app/admin/views/superadmin_r2/restaurants.blade.php"; do
   if sudo -n test -f "$ROOT/$rel"; then
     mkdir -p "$BACKUP/$(dirname "$rel")"
@@ -109,7 +142,7 @@ sudo -n install -o root -g root -m 0755 "$TMP/ops/superadmin-r2/pmd-tenant-provi
 RESTORE=1
 
 echo
-echo "5) Patching every active HTTPS tenant vhost..."
+echo "6) Patching every active HTTPS tenant vhost..."
 PMD_BACKUP="$BACKUP" sudo -n -E python3 <<'PY'
 from pathlib import Path
 import os
@@ -226,7 +259,6 @@ for path in sources:
         if not tenant_names:
             continue
 
-        # paymydine.com itself is not a tenant because the regex requires a subdomain.
         block = strip_marker(block, '# PMD_TENANT_ACCESS_GATE_R2_START', '# PMD_TENANT_ACCESS_GATE_R2_END')
         block = remove_superadmin_redirects(block)
 
@@ -290,56 +322,70 @@ print(f'TENANT_SSL_BLOCKS {patched_blocks}')
 PY
 
 echo
-echo "6) Final validation before reload..."
+echo "7) Final validation before reload..."
 php -l "$ROOT/routes/pmd-superadmin-r2.php"
 bash -n /usr/local/sbin/pmd-tenant-provision
 sudo -n nginx -t
 
 echo
-echo "7) Graceful reload..."
+echo "8) Graceful reload..."
 sudo -n systemctl reload nginx
 if systemctl is-active --quiet php8.3-fpm; then
   sudo -n systemctl reload php8.3-fpm
 fi
 
-echo
-echo "8) Verifying central gate directly through Laravel..."
-for host in mimoza.paymydine.com test.paymydine.com asd.paymydine.com; do
-  echo "--- $host ---"
-  curl -skS \
-    --resolve paymydine.com:443:127.0.0.1 \
-    -H 'X-PMD-Tenant-Access-Internal: 1' \
-    -H "X-PMD-Tenant-Host: $host" \
-    -D - -o /dev/null \
-    https://paymydine.com/__pmd/tenant-access \
-    | grep -Ei '^(HTTP/|X-PMD-Tenant-Gate:)' || true
-done
+request_headers() {
+  local host="$1"
+  local path="$2"
+  curl -skS --resolve "$host:443:127.0.0.1" -D - -o /dev/null "https://$host$path"
+}
 
 echo
-echo "9) Runtime tenant access behavior..."
-for host in mimoza.paymydine.com test.paymydine.com asd.paymydine.com; do
-  echo "--- https://$host/ ---"
-  curl -skS --resolve "$host:443:127.0.0.1" -D - -o /dev/null "https://$host/" \
-    | grep -Ei '^(HTTP/|location:|x-pmd-)' | head -12 || true
-  echo "--- https://$host/admin/login ---"
-  curl -skS --resolve "$host:443:127.0.0.1" -D - -o /dev/null "https://$host/admin/login" \
-    | grep -Ei '^(HTTP/|location:|x-pmd-)' | head -12 || true
-done
+echo "9) Runtime verification - this step is FAIL-CLOSED..."
+if [[ -n "$ACTIVE_HOST" ]]; then
+  echo "===== ACTIVE: $ACTIVE_HOST ====="
+  ACTIVE_HEADERS="$(request_headers "$ACTIVE_HOST" '/')"
+  printf '%s\n' "$ACTIVE_HEADERS" | grep -Ei '^(HTTP/|location:|x-pmd-)' | head -12 || true
+  if printf '%s\n' "$ACTIVE_HEADERS" | grep -Eqi '^HTTP/[^ ]+ 5[0-9][0-9]'; then
+    echo "FAIL: active tenant returned 5xx"
+    exit 1
+  fi
+  if printf '%s\n' "$ACTIVE_HEADERS" | grep -Eqi '^Location: https://paymydine\.com/?\r?$'; then
+    echo "FAIL: active tenant was incorrectly blocked"
+    exit 1
+  fi
+else
+  echo "No active tenant exists; active-path verification skipped."
+fi
+
+if [[ -n "$BLOCKED_HOST" ]]; then
+  echo "===== BLOCKED: $BLOCKED_HOST ====="
+  BLOCKED_HEADERS="$(request_headers "$BLOCKED_HOST" '/')"
+  printf '%s\n' "$BLOCKED_HEADERS" | grep -Ei '^(HTTP/|location:|x-pmd-)' | head -12 || true
+  printf '%s\n' "$BLOCKED_HEADERS" | grep -Eqi '^HTTP/[^ ]+ 302' || { echo "FAIL: blocked tenant did not return 302"; exit 1; }
+  printf '%s\n' "$BLOCKED_HEADERS" | grep -Eqi '^Location: https://paymydine\.com/?\r?$' || { echo "FAIL: blocked tenant did not redirect to PayMyDine"; exit 1; }
+
+  BLOCKED_ADMIN_HEADERS="$(request_headers "$BLOCKED_HOST" '/admin/login')"
+  printf '%s\n' "$BLOCKED_ADMIN_HEADERS" | grep -Eqi '^HTTP/[^ ]+ 302' || { echo "FAIL: blocked tenant Admin is still reachable"; exit 1; }
+  printf '%s\n' "$BLOCKED_ADMIN_HEADERS" | grep -Eqi '^Location: https://paymydine\.com/?\r?$' || { echo "FAIL: blocked tenant Admin did not redirect to PayMyDine"; exit 1; }
+
+  SUPER_HEADERS="$(request_headers "$BLOCKED_HOST" '/superadmin')"
+  printf '%s\n' "$SUPER_HEADERS" | grep -Eqi '^HTTP/[^ ]+ 307' || { echo "FAIL: tenant Super Admin redirect is not 307"; exit 1; }
+  printf '%s\n' "$SUPER_HEADERS" | grep -Eqi '^Location: https://paymydine\.com/superadmin\r?$' || { echo "FAIL: tenant Super Admin did not redirect to central control plane"; exit 1; }
+else
+  echo "No disabled/removed tenant exists; blocked-path verification skipped."
+fi
 
 echo
-echo "10) Super Admin must bypass tenant disable gate..."
-for host in test.paymydine.com mimoza.paymydine.com; do
-  echo "--- $host/superadmin ---"
-  curl -skS --resolve "$host:443:127.0.0.1" -D - -o /dev/null "https://$host/superadmin" \
-    | grep -Ei '^(HTTP/|location:)' || true
-done
+echo "10) Nginx gate evidence..."
+sudo -n nginx -T 2>/dev/null | grep -n -m 5 'PMD_TENANT_ACCESS_GATE_R2' || { echo "FAIL: tenant gate marker missing from effective Nginx"; exit 1; }
 
 echo
 echo "11) Remove/Restore UI evidence..."
 grep -oE '/superadmin/tenants/(remove|restore)' "$ROOT/app/admin/views/superadmin_r2/restaurants.blade.php" | sort -u
 
 echo
-echo "12) Root-domain canonical observation (read only)..."
+echo "12) Root-domain canonical observation - READ ONLY..."
 curl -skS --resolve paymydine.com:443:127.0.0.1 -D - -o /dev/null https://paymydine.com/superadmin \
   | grep -Ei '^(HTTP/|location:)' || true
 
@@ -352,9 +398,10 @@ echo " TENANT ACCESS ENFORCEMENT READY"
 echo "============================================================"
 echo "Backup: $BACKUP"
 echo
-echo "Expected behavior:"
+echo "Behavior now:"
 echo " - active tenant: serves normally"
 echo " - disabled/removed/missing registered vhost: redirects to https://paymydine.com/"
+echo " - /admin on disabled/removed tenant: also redirects to landing"
 echo " - /superadmin on any tenant: redirects to https://paymydine.com/superadmin"
 echo " - Remove is reversible and does NOT drop tenant databases"
 echo
