@@ -70,6 +70,10 @@
     {
       "path": "css/pmd-settings-polish-r2.css",
       "name": "pmd-settings-polish-r2-css"
+    },
+    {
+      "path": "css/pmd-settings-polish-r3.css",
+      "name": "pmd-settings-polish-r3-css"
     }
   ],
   "script": [
@@ -116,6 +120,10 @@
     {
       "path": "js/pmd-settings-polish-r2.js",
       "name": "pmd-settings-polish-r2-js"
+    },
+    {
+      "path": "js/pmd-settings-polish-r3.js",
+      "name": "pmd-settings-polish-r3-js"
     }
   ]
 }
