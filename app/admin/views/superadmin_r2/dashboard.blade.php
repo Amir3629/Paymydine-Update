@@ -11,12 +11,13 @@
     .pmd-kpi-value{margin-top:13px;font-size:36px;line-height:1;font-weight:850;letter-spacing:-.035em}.pmd-kpi-hint{margin-top:8px;color:var(--muted);font-size:14px}
     .pmd-kpi.total{--kpi-soft:#edf8f4;--kpi-accent:#11765a}.pmd-kpi.active{--kpi-soft:#ecfdf3;--kpi-accent:#067647}.pmd-kpi.disabled{--kpi-soft:#fff4ed;--kpi-accent:#b54708}.pmd-kpi.expired{--kpi-soft:#fff1f0;--kpi-accent:#b42318}
 
-    .pmd-chart-card{min-height:390px;padding:22px;margin-bottom:16px}.pmd-chart-card .card-head{margin-bottom:18px}.pmd-chart-card .card-head h3{font-size:20px}
-    .pmd-line-shell{border-top:1px solid #edf2f0;padding-top:14px}.pmd-line-chart{display:block;width:100%;height:245px;overflow:visible}.pmd-line-grid{stroke:#e8efec;stroke-width:1}.pmd-line-base{stroke:#d9e6e1;stroke-width:1.2}.pmd-line-path{fill:none;stroke:#0b9b74;stroke-width:4;stroke-linecap:round;stroke-linejoin:round}.pmd-line-dot{fill:#fff;stroke:#0b9b74;stroke-width:3}
-    .pmd-line-labels{display:grid;grid-template-columns:repeat(6,1fr);gap:8px;margin-top:4px}.pmd-line-label{text-align:center;color:#6a7f77;font-size:13px;font-weight:750}.pmd-line-label strong{display:block;color:#17372f;font-size:14px;margin-bottom:3px}
+    .pmd-chart-card{padding:22px;margin-bottom:16px}.pmd-chart-card .card-head{margin-bottom:16px;align-items:flex-end}.pmd-chart-card .card-head h3{font-size:20px}
+    .pmd-chart-toolbar{display:flex;align-items:flex-end;justify-content:flex-end;gap:9px;flex-wrap:wrap}.pmd-chart-range-field{display:grid;gap:5px}.pmd-chart-range-field span{font-size:11px;font-weight:850;letter-spacing:.05em;text-transform:uppercase;color:#6a7f77}.pmd-chart-range-field input{height:40px;border:1px solid #d8e5e0;border-radius:10px;background:#fff;padding:0 10px;color:var(--ink);font-size:13px}.pmd-chart-toolbar .btn{min-height:40px;padding:8px 14px;font-size:13px}
+    .pmd-line-shell{border-top:1px solid #edf2f0;padding-top:12px;overflow-x:auto}.pmd-line-canvas{min-width:680px}.pmd-line-chart{display:block;width:100%;height:190px;overflow:visible}.pmd-line-grid{stroke:#e9f0ed;stroke-width:1}.pmd-line-base{stroke:#dce7e3;stroke-width:1.1}.pmd-line-path{fill:none;stroke:#0b9b74;stroke-width:3;stroke-linecap:round;stroke-linejoin:round}.pmd-line-dot{fill:#0b9b74;stroke:#fff;stroke-width:1.8}
+    .pmd-line-labels{display:grid;gap:8px;margin-top:2px}.pmd-line-label{text-align:center;color:#6a7f77;font-size:12px;font-weight:750;min-width:62px}.pmd-line-label strong{display:block;color:#17372f;font-size:13px;margin-bottom:2px}
     .pmd-latest-card .table-wrap{border-radius:15px}
-    @media(max-width:1100px){.pmd-kpis{grid-template-columns:repeat(2,minmax(0,1fr))}}
-    @media(max-width:700px){.pmd-kpis{display:flex;overflow:auto;padding-bottom:3px}.pmd-kpi{min-width:210px}.pmd-line-chart{height:210px}.pmd-line-label{font-size:11px}}
+    @media(max-width:1100px){.pmd-kpis{grid-template-columns:repeat(2,minmax(0,1fr))}.pmd-chart-card .card-head{align-items:flex-start;flex-direction:column}.pmd-chart-toolbar{justify-content:flex-start}}
+    @media(max-width:700px){.pmd-kpis{display:flex;overflow:auto;padding-bottom:3px}.pmd-kpi{min-width:210px}.pmd-line-chart{height:170px}.pmd-chart-toolbar{width:100%}.pmd-chart-range-field{flex:1;min-width:145px}.pmd-chart-range-field input{width:100%}}
 </style>
 @endpush
 
@@ -44,39 +45,68 @@
 
 @php
     $growthRows = collect($growth)->values();
-    $growthCount = max(1, $growthRows->count() - 1);
-    $chartPoints = [];
+    $pointCount = max(1, $growthRows->count());
+    $plotLeft = 36;
+    $plotRight = 684;
+    $plotTop = 34;
+    $plotBottom = 158;
+    $plotWidth = $plotRight - $plotLeft;
+    $plotHeight = $plotBottom - $plotTop;
+    $step = $pointCount > 1 ? $plotWidth / ($pointCount - 1) : 0;
+    $points = [];
+
     foreach ($growthRows as $index => $point) {
-        $x = 42 + ($index * (516 / $growthCount));
-        $y = 185 - (((int)$point['value'] / max(1, (int)$growthMax)) * 125);
-        $chartPoints[] = round($x, 1).','.round($y, 1);
+        $x = $pointCount > 1 ? $plotLeft + ($index * $step) : ($plotLeft + $plotRight) / 2;
+        $y = $plotBottom - (((int)$point['value'] / max(1, (int)$growthMax)) * $plotHeight);
+        $points[] = ['x' => round($x, 2), 'y' => round($y, 2)];
     }
-    $chartPolyline = implode(' ', $chartPoints);
+
+    $smoothPath = '';
+    if (count($points) > 0) {
+        $smoothPath = 'M '.$points[0]['x'].' '.$points[0]['y'];
+        for ($i = 0; $i < count($points) - 1; $i++) {
+            $p0 = $points[max(0, $i - 1)];
+            $p1 = $points[$i];
+            $p2 = $points[$i + 1];
+            $p3 = $points[min(count($points) - 1, $i + 2)];
+            $c1x = $p1['x'] + (($p2['x'] - $p0['x']) / 8);
+            $c1y = $p1['y'] + (($p2['y'] - $p0['y']) / 8);
+            $c2x = $p2['x'] - (($p3['x'] - $p1['x']) / 8);
+            $c2y = $p2['y'] - (($p3['y'] - $p1['y']) / 8);
+            $smoothPath .= ' C '.round($c1x,2).' '.round($c1y,2).' '.round($c2x,2).' '.round($c2y,2).' '.$p2['x'].' '.$p2['y'];
+        }
+    }
 @endphp
 
 <div class="card pmd-chart-card">
-    <div class="card-head"><div><h3>Restaurant registrations</h3></div></div>
+    <div class="card-head">
+        <div><h3>Restaurant registrations</h3></div>
+        <form class="pmd-chart-toolbar" method="GET" action="/superadmin/index">
+            <label class="pmd-chart-range-field"><span>From</span><input type="date" name="from" value="{{ $chartRange['from'] }}"></label>
+            <label class="pmd-chart-range-field"><span>To</span><input type="date" name="to" value="{{ $chartRange['to'] }}"></label>
+            <button class="btn btn-primary" type="submit">Apply</button>
+            <a class="btn btn-soft" href="/superadmin/index">Reset</a>
+        </form>
+    </div>
     <div class="pmd-line-shell">
-        <svg class="pmd-line-chart" viewBox="0 0 600 220" role="img" aria-label="Restaurant registrations over the last six months" preserveAspectRatio="none">
-            <line class="pmd-line-grid" x1="42" y1="60" x2="558" y2="60"/>
-            <line class="pmd-line-grid" x1="42" y1="102" x2="558" y2="102"/>
-            <line class="pmd-line-grid" x1="42" y1="144" x2="558" y2="144"/>
-            <line class="pmd-line-base" x1="42" y1="185" x2="558" y2="185"/>
-            @if($growthRows->count() > 1)
-                <polyline class="pmd-line-path" points="{{ $chartPolyline }}"/>
-            @endif
-            @foreach($growthRows as $index => $point)
-                @php
-                    $x = 42 + ($index * (516 / $growthCount));
-                    $y = 185 - (((int)$point['value'] / max(1, (int)$growthMax)) * 125);
-                @endphp
-                <circle class="pmd-line-dot" cx="{{ round($x,1) }}" cy="{{ round($y,1) }}" r="5"/>
-            @endforeach
-        </svg>
-        <div class="pmd-line-labels">
-            @foreach($growthRows as $point)
-                <div class="pmd-line-label"><strong>{{ $point['value'] }}</strong>{{ $point['label'] }}</div>
-            @endforeach
+        <div class="pmd-line-canvas">
+            <svg class="pmd-line-chart" viewBox="0 0 720 190" role="img" aria-label="Restaurant registrations from {{ $chartRange['from'] }} to {{ $chartRange['to'] }}" preserveAspectRatio="none">
+                <line class="pmd-line-grid" x1="36" y1="34" x2="684" y2="34"/>
+                <line class="pmd-line-grid" x1="36" y1="75" x2="684" y2="75"/>
+                <line class="pmd-line-grid" x1="36" y1="116" x2="684" y2="116"/>
+                <line class="pmd-line-base" x1="36" y1="158" x2="684" y2="158"/>
+                @if(count($points) > 1)
+                    <path class="pmd-line-path" d="{{ $smoothPath }}"/>
+                @endif
+                @foreach($points as $point)
+                    <circle class="pmd-line-dot" cx="{{ $point['x'] }}" cy="{{ $point['y'] }}" r="3"/>
+                @endforeach
+            </svg>
+            <div class="pmd-line-labels" style="grid-template-columns:repeat({{ max(1,$growthRows->count()) }},minmax(62px,1fr))">
+                @foreach($growthRows as $point)
+                    <div class="pmd-line-label" title="{{ $point['label_long'] }}"><strong>{{ $point['value'] }}</strong>{{ $point['label'] }}</div>
+                @endforeach
+            </div>
         </div>
     </div>
 </div>
