@@ -44,14 +44,49 @@ class SuperAdminR2Controller extends AdminController
     {
         $tenants = DB::connection('mysql')->table('tenants')->orderByDesc('id')->get();
         $now = now()->startOfDay();
+
         $stats = [
             'total' => $tenants->count(),
-            'active' => $tenants->where('status', 'active')->count(),
-            'needs_setup' => $tenants->filter(fn($tenant) => strtolower((string)$tenant->status) !== 'active')->count(),
-            'expired' => $tenants->filter(fn($tenant) => !empty($tenant->end) && \Carbon\Carbon::parse($tenant->end)->lt($now))->count(),
+            'active' => $tenants->filter(fn($tenant) => strtolower((string)$tenant->status) === 'active')->count(),
+            'disabled' => $tenants->filter(fn($tenant) => strtolower((string)$tenant->status) === 'disabled')->count(),
+            'removed' => $tenants->filter(fn($tenant) => strtolower((string)$tenant->status) === 'removed')->count(),
+            'expired' => $tenants->filter(function ($tenant) use ($now) {
+                if (empty($tenant->end)) return false;
+                try { return \Carbon\Carbon::parse($tenant->end)->lt($now); }
+                catch (\Throwable $e) { return false; }
+            })->count(),
         ];
+
+        $chartStart = now()->startOfMonth()->subMonths(5);
+        $growth = collect(range(0, 5))->map(function ($offset) use ($tenants, $chartStart) {
+            $monthStart = $chartStart->copy()->addMonths($offset)->startOfMonth();
+            $monthEnd = $monthStart->copy()->endOfMonth();
+            $value = $tenants->filter(function ($tenant) use ($monthStart, $monthEnd) {
+                if (empty($tenant->created_at)) return false;
+                try {
+                    $created = \Carbon\Carbon::parse($tenant->created_at);
+                    return $created->gte($monthStart) && $created->lte($monthEnd);
+                } catch (\Throwable $e) {
+                    return false;
+                }
+            })->count();
+
+            return [
+                'label' => $monthStart->format('M'),
+                'value' => $value,
+            ];
+        });
+
+        $growthMax = max(1, (int)$growth->max('value'));
+        $statusBase = max(1, (int)$stats['total']);
+        $statusMix = [
+            'active_deg' => round(($stats['active'] / $statusBase) * 360, 2),
+            'disabled_deg' => round(($stats['disabled'] / $statusBase) * 360, 2),
+            'removed_deg' => round(($stats['removed'] / $statusBase) * 360, 2),
+        ];
+
         $latest = $tenants->take(8);
-        return $this->html('admin::superadmin_r2.dashboard', compact('stats','latest'));
+        return $this->html('admin::superadmin_r2.dashboard', compact('stats','growth','growthMax','statusMix','latest'));
     }
 
     public function restaurants(Request $request)
@@ -65,7 +100,7 @@ class SuperAdminR2Controller extends AdminController
             });
         }
         if ($status !== '') $query->where('status', $status);
-        $tenants = $query->paginate(15)->appends($request->query());
+        $tenants = $query->paginate(20)->appends($request->query());
         return $this->html('admin::superadmin_r2.restaurants', compact('tenants','search','status'));
     }
 
