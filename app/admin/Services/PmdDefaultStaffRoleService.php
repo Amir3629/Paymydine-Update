@@ -7,7 +7,7 @@ use Admin\Models\Staff_roles_model;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 
-/** PMD_DEFAULT_STAFF_ROLES_V2 */
+/** PMD_DEFAULT_STAFF_ROLES_V3 */
 class PmdDefaultStaffRoleService
 {
     public const OWNER = 'pmd-owner';
@@ -68,7 +68,10 @@ class PmdDefaultStaffRoleService
         ];
 
         $ownerPermissions = $allPermissions + $workspacePermissions;
-        $managerPermissions = $allPermissions + array_diff_key($workspacePermissions, [self::PMD_OWNER_WORKSPACE => true]);
+        $managerPermissions = $allPermissions + array_diff_key(
+            $workspacePermissions,
+            [self::PMD_OWNER_WORKSPACE => true]
+        );
 
         $definitions = [
             [
@@ -89,6 +92,8 @@ class PmdDefaultStaffRoleService
                 'description' => 'Cashier workspace only. No side menu.',
                 'permissions' => [
                     self::PMD_CASHIER_WORKSPACE => 1,
+                    'Admin.Dashboard' => 1,
+                    'Admin.Orders' => 1,
                     'Admin.Payments' => 1,
                 ],
             ],
@@ -98,6 +103,8 @@ class PmdDefaultStaffRoleService
                 'description' => 'Cashier mobile Quick Mode only. No side menu.',
                 'permissions' => [
                     self::PMD_CASHIER_WORKSPACE => 1,
+                    'Admin.Dashboard' => 1,
+                    'Admin.Orders' => 1,
                     'Admin.Payments' => 1,
                 ],
             ],
@@ -105,7 +112,10 @@ class PmdDefaultStaffRoleService
                 'code' => self::ACCOUNTANT,
                 'name' => 'Accountant',
                 'description' => 'Accountant workspace only. No side menu.',
-                'permissions' => [self::PMD_ACCOUNTANT_WORKSPACE => 1],
+                'permissions' => [
+                    self::PMD_ACCOUNTANT_WORKSPACE => 1,
+                    'Admin.Dashboard' => 1,
+                ],
             ],
             [
                 'code' => self::RESERVATIONS,
@@ -135,8 +145,14 @@ class PmdDefaultStaffRoleService
     public function isManagedCode(string $code): bool
     {
         $code = strtolower(trim($code));
-        return in_array($code, [self::OWNER,self::MANAGER,self::CASHIER,self::WAITER,self::ACCOUNTANT,self::RESERVATIONS], true)
-            || str_starts_with($code, self::KDS_PREFIX);
+        return in_array($code, [
+            self::OWNER,
+            self::MANAGER,
+            self::CASHIER,
+            self::WAITER,
+            self::ACCOUNTANT,
+            self::RESERVATIONS,
+        ], true) || str_starts_with($code, self::KDS_PREFIX);
     }
 
     public function isManagedRole($role): bool
@@ -175,8 +191,8 @@ class PmdDefaultStaffRoleService
     }
 
     /**
-     * Server-side route boundary for managed roles. This is evaluated inside
-     * Users_model::hasPermission so direct URL entry is denied as well as menu use.
+     * Server-side route boundary for managed roles. Users_model calls this
+     * before legacy permission matching, so direct URL entry is denied too.
      */
     public function mayOpenPath(string $code, string $path): bool
     {
@@ -184,6 +200,12 @@ class PmdDefaultStaffRoleService
         $path = trim(strtolower($path), '/');
         if (!$this->isManagedCode($code)) return true;
         if ($code === self::OWNER) return true;
+
+        // Auth and the retired native dashboard are transport/redirect routes,
+        // not product workspaces. Let them finish role routing normally.
+        if (in_array($path, ['admin', 'admin/dashboard', 'admin/login', 'admin/logout'], true)) {
+            return true;
+        }
 
         $is = function (string $route) use ($path): bool {
             return $path === 'admin/'.$route || str_starts_with($path, 'admin/'.$route.'/');
@@ -205,7 +227,8 @@ class PmdDefaultStaffRoleService
 
         if (str_starts_with($code, self::KDS_PREFIX)) {
             $slug = trim(substr($code, strlen(self::KDS_PREFIX)));
-            return $path === 'admin/kitchendisplay/'.$slug || str_starts_with($path, 'admin/kitchendisplay/'.$slug.'/');
+            return $path === 'admin/kitchendisplay/'.$slug
+                || str_starts_with($path, 'admin/kitchendisplay/'.$slug.'/');
         }
 
         return false;
@@ -223,7 +246,9 @@ class PmdDefaultStaffRoleService
             return $query->orderBy('name')->get()->map(function ($row) {
                 $name = trim((string)($row->name ?? 'KDS'));
                 $slug = trim((string)($row->slug ?? ''));
-                if ($slug === '') $slug = strtolower(trim(preg_replace('/[^a-z0-9]+/i', '-', $name), '-'));
+                if ($slug === '') {
+                    $slug = strtolower(trim(preg_replace('/[^a-z0-9]+/i', '-', $name), '-'));
+                }
                 return ['name' => $name ?: 'KDS', 'slug' => $slug];
             })->filter(fn($row) => $row['slug'] !== '')->values()->all();
         } catch (\Throwable $error) {
