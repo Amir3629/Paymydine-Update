@@ -1,23 +1,68 @@
 @php
-$details = is_array($record->details) ? $record->details : ['preview' => $record->details, 'is_truncated' => false];
+    $details = is_array($record->details)
+        ? $record->details
+        : [
+            'preview' => $record->details,
+            'full' => $record->details,
+            'is_truncated' => false,
+            'metadata' => [],
+        ];
+
+    $modalId = 'pmd-history-details-'.$record->id;
+    $type = $details['metadata']['type'] ?? 'Activity';
+    $table = $details['metadata']['table'] ?? '';
 @endphp
-<div class="details-cell">
-  <div class="details-preview">{{ $details['preview'] }}</div>
-  @if(!empty($details['is_truncated']))
-  <button type="button" class="btn btn-link btn-sm see-more-btn" onclick="event.preventDefault(); event.stopPropagation(); var modal = document.getElementById('detailsModal{{ $record->id }}'); modal.classList.add('show'); modal.style.display='block'; document.body.classList.add('modal-open'); var backdrop = document.createElement('div'); backdrop.className = 'modal-backdrop fade show'; backdrop.id = 'backdrop{{ $record->id }}'; backdrop.onclick = function() { modal.classList.remove('show'); modal.style.display='none'; document.body.classList.remove('modal-open'); backdrop.remove(); }; document.body.appendChild(backdrop); return false;">See more</button>
-  @endif
+
+<div class="pmd-history-details-cell">
+    <div class="pmd-history-details-preview">
+        {{ $details['preview'] ?? '' }}
+    </div>
+
+    @if(!empty($details['is_truncated']))
+        <button
+            type="button"
+            class="pmd-history-see-more"
+            data-pmd-history-open="{{ $modalId }}"
+            aria-haspopup="dialog"
+        >
+            View
+        </button>
+    @endif
 </div>
 
-<div class="modal fade" id="detailsModal{{ $record->id }}" tabindex="-1" onclick="if(event.target === this) { this.classList.remove('show'); this.style.display='none'; document.body.classList.remove('modal-open'); var backdrop = document.getElementById('backdrop{{ $record->id }}'); if(backdrop) backdrop.remove(); }" style="background: rgba(0,0,0,0.5) !important;">
-  <div class="modal-dialog modal-xl" style="max-width: 90% !important; margin: 1.75rem auto !important;">
-    <div class="modal-content" style="background: white !important; border: none !important;">
-      <div class="modal-header" style="background: #202938 !important; background-color: #202938 !important; color: #ffffff !important; border-bottom: none !important; padding: 1rem 1.5rem !important;">
-        <h5 class="modal-title" style="color: #ffffff !important;">{{ ucfirst($details['metadata']['type'] ?? 'Notification') }} — {{ $details['metadata']['table'] ?? 'N/A' }}</h5>
-        <button type="button" class="btn-close btn-close-white" style="filter: invert(1) brightness(2) !important;" onclick="var modal = document.getElementById('detailsModal{{ $record->id }}'); modal.classList.remove('show'); modal.style.display='none'; document.body.classList.remove('modal-open'); var backdrop = document.getElementById('backdrop{{ $record->id }}'); if(backdrop) backdrop.remove();"></button>
-      </div>
-      <div class="modal-body" style="padding: 2rem; font-size: 1rem; line-height: 1.6;">
-        <pre class="details-full-text" style="white-space: pre-wrap; word-wrap: break-word; font-family: inherit; background: none; border: none; padding: 0; margin: 0;">{{ $details['full'] }}</pre>
-      </div>
+@if(!empty($details['is_truncated']))
+    <div
+        id="{{ $modalId }}"
+        class="pmd-history-modal"
+        data-pmd-history-modal
+        hidden
+    >
+        <div
+            class="pmd-history-modal__dialog"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="{{ $modalId }}-title"
+        >
+            <div class="pmd-history-modal__header">
+                <h3 id="{{ $modalId }}-title">
+                    {{ $type }}{{ $table ? ' · '.$table : '' }}
+                </h3>
+
+                <button
+                    type="button"
+                    class="pmd-history-modal__close"
+                    data-pmd-history-close
+                    aria-label="Close"
+                >
+                    <svg viewBox="0 0 24 24" aria-hidden="true">
+                        <path d="M6 6l12 12M18 6 6 18"></path>
+                    </svg>
+                </button>
+            </div>
+
+            <div class="pmd-history-modal__body">
+                <pre class="pmd-history-modal__text">{{ $details['full'] ?? $details['preview'] ?? '' }}</pre>
+            </div>
+        </div>
     </div>
-  </div>
-</div>
+@endif
