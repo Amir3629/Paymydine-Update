@@ -1,4 +1,5 @@
 import { MenuRuntimeProvider } from '@/src/runtime/MenuRuntimeContext'
+import { ThemeTableBadge } from '@/src/runtime/components/ThemeTableBadge'
 import { loadCustomerBootstrap } from '@/src/server/bootstrap'
 import { getPageContext } from '@/src/server/page-context'
 import { ThemeRenderer } from '@/src/themes/ThemeRenderer'
@@ -19,6 +20,7 @@ export default async function TableMenuPage({ params, searchParams }: PageProps)
   return (
     <MenuRuntimeProvider bootstrap={bootstrap}>
       <ThemeRenderer themeId={bootstrap.theme.id} />
+      <ThemeTableBadge />
     </MenuRuntimeProvider>
   )
 }
