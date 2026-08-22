@@ -51,6 +51,31 @@ class LogUserLastSeen
                     $roleAuthority = app(\Admin\Services\PmdFixedRoleAuthorityV1::class);
                     $roleAuthority->installSettingsCardFilter();
 
+                    $adminUser = resolve('admin.auth')->getUser();
+                    $roleCode = $roleAuthority->roleCodeForUser($adminUser);
+                    if ($roleCode && array_key_exists($roleCode, $roleAuthority->definitions())) {
+                        $database = (string)config(
+                            'database.connections.'.config('database.default').'.database',
+                            'default'
+                        );
+                        $syncKey = 'pmd-fixed-role-r43-'.sha1($database);
+                        $didSync = false;
+
+                        cache()->remember($syncKey, Carbon::now()->addDay(), function () use ($roleAuthority, &$didSync) {
+                            $roleAuthority->ensureDefaultRoles();
+                            $didSync = true;
+                            return true;
+                        });
+
+                        // The role relation was read to identify the account.
+                        // Refresh it on the first synchronization request so the
+                        // downstream AdminController permission check sees the
+                        // new canonical permission map immediately.
+                        if ($didSync && $adminUser && $adminUser->staff) {
+                            $adminUser->staff->load('role');
+                        }
+                    }
+
                     if ($blocked = $roleAuthority->gate($request)) {
                         return $blocked;
                     }
