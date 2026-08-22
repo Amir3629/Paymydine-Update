@@ -79,7 +79,18 @@ html body #pmd-settings-center #pmd-settings-brand .pmd-settings-card__title-row
   min-width: 0 !important;
 }
 
+/* Force final name from FIRST PAINT even if the server-side legacy item still
+ * says Brand & communication before the stable Settings runtime normalizes it. */
 html body #pmd-settings-center #pmd-settings-brand .pmd-settings-card__title-row strong {
+  color: #fff !important;
+  font-size: 0 !important;
+  line-height: 1.2 !important;
+  font-weight: 780 !important;
+  letter-spacing: -.015em !important;
+}
+
+html body #pmd-settings-center #pmd-settings-brand .pmd-settings-card__title-row strong::after {
+  content: "PayMyDine" !important;
   color: #fff !important;
   font-size: 17px !important;
   line-height: 1.2 !important;
