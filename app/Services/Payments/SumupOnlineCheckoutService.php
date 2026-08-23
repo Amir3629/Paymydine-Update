@@ -73,8 +73,17 @@ class SumupOnlineCheckoutService
             throw new RuntimeException('SumUp did not return a checkout ID.');
         }
 
-        $methods = $this->availablePaymentMethods($config, $checkoutId);
         $wallets = $this->walletSettings((string)$config['environment']);
+        $methods = $this->availablePaymentMethods($config, $checkoutId);
+        if (!($wallets['google_pay']['configured'] ?? false)) {
+            $methods = array_values(array_filter(
+                $methods,
+                static fn (string $method): bool => $method !== 'google_pay'
+            ));
+        }
+        if ($methods === []) {
+            $methods = ['card'];
+        }
 
         Log::channel('sumup')->info('SUMUP_WIDGET_CHECKOUT_CREATED', [
             'checkout_id' => $checkoutId,
