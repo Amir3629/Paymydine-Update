@@ -3,6 +3,7 @@
 namespace App\Services\Payments;
 
 use Admin\Models\Payments_model;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 
 class SumupPaymentRuntimeBridge
@@ -18,7 +19,7 @@ class SumupPaymentRuntimeBridge
             return null;
         }
 
-        $active = \DB::table('terminal_provider_configs')
+        $active = DB::table('terminal_provider_configs')
             ->where('provider_code', 'sumup')
             ->where('is_active', 1)
             ->where('connection_status', 'connected')
@@ -28,7 +29,7 @@ class SumupPaymentRuntimeBridge
             return strtolower((string)$active);
         }
 
-        $fallback = \DB::table('terminal_provider_configs')
+        $fallback = DB::table('terminal_provider_configs')
             ->where('provider_code', 'sumup')
             ->where('connection_status', 'connected')
             ->orderByRaw("CASE WHEN environment = 'production' THEN 0 ELSE 1 END")
