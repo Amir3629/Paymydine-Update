@@ -9,7 +9,7 @@ use App\Services\Payments\ProviderConnectionService;
 
 class PaymentProviders extends AdminController
 {
-    protected $requiredPermissions = 'Admin.Payments';
+    protected $requiredPermissions = 'Site.Settings';
 
     public function index()
     {
