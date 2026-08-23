@@ -29,6 +29,7 @@
     .pmd-domain-control input:focus{border:0!important;box-shadow:none!important}
     .pmd-domain-suffix{flex:0 0 auto;padding:0 13px 0 3px;color:#526961;font-size:14px;font-weight:800;white-space:nowrap;user-select:none}
     .pmd-modal-actions{display:flex;justify-content:flex-end;gap:10px;margin-top:18px;padding-top:17px;border-top:1px solid #edf2f0}.pmd-modal-actions .btn{min-width:132px}
+    .pmd-edit-domain{display:flex;align-items:center;height:50px;padding:0 14px;border:1px solid #e0ebe7;border-radius:12px;background:#f7faf9;color:#667a73;font-size:14px;font-weight:700}
     body.pmd-modal-open{overflow:hidden}
     @media(max-width:1000px){.pmd-registry-toolbar{align-items:flex-start;flex-direction:column}.pmd-registry-toolbar .filters{justify-content:flex-start}.tenant-actions{min-width:300px}}
     @media(max-width:820px){.pmd-tenant-hero{align-items:flex-start}.pmd-modal{padding:10px}.pmd-modal-card{width:100%;max-height:94vh;border-radius:20px}.pmd-modal-body .field-grid{grid-template-columns:1fr}.pmd-modal-body .field.full{grid-column:auto}}
@@ -73,7 +74,21 @@
                             @if($tenant->status==='removed')
                                 <form method="POST" action="/superadmin/tenants/restore">@csrf<input type="hidden" name="id" value="{{ $tenant->id }}"><button class="btn btn-soft" type="submit">Restore</button></form>
                             @else
-                                <a class="btn btn-soft" href="/superadmin/tenants/{{ $tenant->id }}/edit">Edit</a>
+                                <button
+                                    class="btn btn-soft"
+                                    type="button"
+                                    data-pmd-open-edit
+                                    data-id="{{ $tenant->id }}"
+                                    data-name="{{ $tenant->name }}"
+                                    data-domain="{{ $tenant->domain }}"
+                                    data-email="{{ $tenant->email }}"
+                                    data-phone="{{ $tenant->phone }}"
+                                    data-country="{{ $tenant->country }}"
+                                    data-start="{{ $tenant->start }}"
+                                    data-end="{{ $tenant->end }}"
+                                    data-type="{{ $tenant->type ?: 'People' }}"
+                                    data-description="{{ $tenant->description }}"
+                                >Edit</button>
                                 <form class="tenant-status-form" method="POST" action="/superadmin/tenants/status">
                                     @csrf<input type="hidden" name="id" value="{{ $tenant->id }}">
                                     <select name="status" aria-label="Restaurant status"><option value="active" {{ $tenant->status==='active'?'selected':'' }}>Active</option><option value="disabled" {{ $tenant->status==='disabled'?'selected':'' }}>Disabled</option></select>
@@ -118,26 +133,55 @@
         <div class="pmd-modal-body">
             <form method="POST" action="/superadmin/new/store" data-pmd-create-form>
                 @csrf
+                <input type="hidden" name="_pmd_form" value="create">
                 <input type="hidden" name="database" value="{{ old('database') }}" data-pmd-database>
                 <input type="hidden" name="domain" value="{{ old('domain') }}" data-pmd-domain>
                 <input type="hidden" name="type" value="{{ old('type','People') }}">
                 <div class="field-grid">
-                    <div class="field"><label>Restaurant name</label><input name="name" value="{{ old('name') }}" required data-pmd-restaurant-name></div>
+                    <div class="field"><label>Restaurant name</label><input name="name" value="{{ old('_pmd_form') === 'create' ? old('name') : '' }}" required data-pmd-restaurant-name></div>
                     <div class="field">
                         <label>Restaurant subdomain</label>
                         <div class="pmd-domain-control">
-                            <input type="text" value="{{ preg_replace('/\.paymydine\.com$/i', '', old('domain','')) }}" placeholder="restaurant" autocomplete="off" autocapitalize="none" spellcheck="false" required data-pmd-domain-slug aria-label="Restaurant subdomain">
+                            <input type="text" value="{{ old('_pmd_form') === 'create' ? preg_replace('/\.paymydine\.com$/i', '', old('domain','')) : '' }}" placeholder="restaurant" autocomplete="off" autocapitalize="none" spellcheck="false" required data-pmd-domain-slug aria-label="Restaurant subdomain">
                             <span class="pmd-domain-suffix">.paymydine.com</span>
                         </div>
                     </div>
-                    <div class="field"><label>Email</label><input type="email" name="email" value="{{ old('email') }}" required></div>
-                    <div class="field"><label>Phone</label><input name="phone" value="{{ old('phone') }}" required></div>
-                    <div class="field"><label>Country</label><input name="country" value="{{ old('country','Germany') }}" required></div>
-                    <div class="field"><label>Start date</label><input type="date" name="start" value="{{ old('start',now()->toDateString()) }}" required></div>
-                    <div class="field"><label>End date</label><input type="date" name="end" value="{{ old('end',now()->addYear()->toDateString()) }}" required></div>
-                    <div class="field full"><label>Description</label><textarea name="description">{{ old('description') }}</textarea></div>
+                    <div class="field"><label>Email</label><input type="email" name="email" value="{{ old('_pmd_form') === 'create' ? old('email') : '' }}" required></div>
+                    <div class="field"><label>Phone</label><input name="phone" value="{{ old('_pmd_form') === 'create' ? old('phone') : '' }}" required></div>
+                    <div class="field"><label>Country</label><input name="country" value="{{ old('_pmd_form') === 'create' ? old('country','Germany') : 'Germany' }}" required></div>
+                    <div class="field"><label>Start date</label><input type="date" name="start" value="{{ old('_pmd_form') === 'create' ? old('start',now()->toDateString()) : now()->toDateString() }}" required></div>
+                    <div class="field"><label>End date</label><input type="date" name="end" value="{{ old('_pmd_form') === 'create' ? old('end',now()->addYear()->toDateString()) : now()->addYear()->toDateString() }}" required></div>
+                    <div class="field full"><label>Description</label><textarea name="description">{{ old('_pmd_form') === 'create' ? old('description') : '' }}</textarea></div>
                 </div>
                 <div class="pmd-modal-actions"><button class="btn btn-soft" type="button" data-pmd-close-create>Cancel</button><button class="btn btn-primary" type="submit">Create restaurant</button></div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<div class="pmd-modal" data-pmd-edit-modal hidden aria-hidden="true">
+    <div class="pmd-modal-card" role="dialog" aria-modal="true" aria-labelledby="pmd-edit-title">
+        <div class="pmd-modal-head">
+            <h3 id="pmd-edit-title">Edit restaurant</h3>
+            <button class="pmd-modal-close" type="button" data-pmd-close-edit aria-label="Close">×</button>
+        </div>
+        <div class="pmd-modal-body">
+            <form method="POST" action="/superadmin/tenants/update" data-pmd-edit-form>
+                @csrf
+                <input type="hidden" name="_pmd_form" value="edit">
+                <input type="hidden" name="id" data-pmd-edit-id>
+                <input type="hidden" name="type" value="People" data-pmd-edit-type>
+                <div class="field-grid">
+                    <div class="field"><label>Restaurant name</label><input name="name" required data-pmd-edit-name></div>
+                    <div class="field"><label>Domain</label><div class="pmd-edit-domain" data-pmd-edit-domain></div></div>
+                    <div class="field"><label>Email</label><input type="email" name="email" required data-pmd-edit-email></div>
+                    <div class="field"><label>Phone</label><input name="phone" required data-pmd-edit-phone></div>
+                    <div class="field"><label>Country</label><input name="country" required data-pmd-edit-country></div>
+                    <div class="field"><label>Start date</label><input type="date" name="start" required data-pmd-edit-start></div>
+                    <div class="field"><label>End date</label><input type="date" name="end" required data-pmd-edit-end></div>
+                    <div class="field full"><label>Description</label><textarea name="description" data-pmd-edit-description></textarea></div>
+                </div>
+                <div class="pmd-modal-actions"><button class="btn btn-soft" type="button" data-pmd-close-edit>Cancel</button><button class="btn btn-primary" type="submit">Save restaurant</button></div>
             </form>
         </div>
     </div>
@@ -147,28 +191,71 @@
 @push('scripts')
 <script>
 (function(){
-    var modal=document.querySelector('[data-pmd-create-modal]');
-    if(!modal)return;
-    var form=modal.querySelector('[data-pmd-create-form]');
-    var nameInput=modal.querySelector('[data-pmd-restaurant-name]');
-    var databaseInput=modal.querySelector('[data-pmd-database]');
-    var domainInput=modal.querySelector('[data-pmd-domain]');
-    var domainSlugInput=modal.querySelector('[data-pmd-domain-slug]');
+    var createModal=document.querySelector('[data-pmd-create-modal]');
+    var editModal=document.querySelector('[data-pmd-edit-modal]');
+    var createForm=createModal&&createModal.querySelector('[data-pmd-create-form]');
+    var nameInput=createModal&&createModal.querySelector('[data-pmd-restaurant-name]');
+    var databaseInput=createModal&&createModal.querySelector('[data-pmd-database]');
+    var domainInput=createModal&&createModal.querySelector('[data-pmd-domain]');
+    var domainSlugInput=createModal&&createModal.querySelector('[data-pmd-domain-slug]');
+    var editForm=editModal&&editModal.querySelector('[data-pmd-edit-form]');
+
     function databaseFromName(value){return String(value||'').trim().replace(/[^A-Za-z0-9_]+/g,'_').replace(/^_+|_+$/g,'').slice(0,64)}
-    function domainFromSlug(value){
-        return String(value||'').trim().toLowerCase().replace(/^https?:\/\//,'').replace(/\/.*$/,'').replace(/\.paymydine\.com$/,'').replace(/[^a-z0-9-]+/g,'-').replace(/-+/g,'-').replace(/^-+|-+$/g,'').slice(0,63)
-    }
+    function domainFromSlug(value){return String(value||'').trim().toLowerCase().replace(/^https?:\/\//,'').replace(/\/.*$/,'').replace(/\.paymydine\.com$/,'').replace(/[^a-z0-9-]+/g,'-').replace(/-+/g,'-').replace(/^-+|-+$/g,'').slice(0,63)}
     function syncDatabase(){if(nameInput&&databaseInput)databaseInput.value=databaseFromName(nameInput.value)}
     function syncDomain(){if(!domainSlugInput||!domainInput)return;var slug=domainFromSlug(domainSlugInput.value);domainSlugInput.value=slug;domainInput.value=slug?slug+'.paymydine.com':''}
-    function openModal(){modal.hidden=false;modal.setAttribute('aria-hidden','false');document.body.classList.add('pmd-modal-open');setTimeout(function(){if(nameInput)nameInput.focus();},0)}
-    function closeModal(){modal.hidden=true;modal.setAttribute('aria-hidden','true');document.body.classList.remove('pmd-modal-open')}
+    function setBodyLock(){document.body.classList.toggle('pmd-modal-open',!!document.querySelector('.pmd-modal:not([hidden])'))}
+    function openModal(modal,focusTarget){if(!modal)return;modal.hidden=false;modal.setAttribute('aria-hidden','false');setBodyLock();setTimeout(function(){if(focusTarget)focusTarget.focus();},0)}
+    function closeModal(modal){if(!modal)return;modal.hidden=true;modal.setAttribute('aria-hidden','true');setBodyLock()}
+    function editField(selector){return editModal?editModal.querySelector(selector):null}
+    function fillEdit(data){
+        var map={
+            '[data-pmd-edit-id]':'id','[data-pmd-edit-name]':'name','[data-pmd-edit-email]':'email','[data-pmd-edit-phone]':'phone','[data-pmd-edit-country]':'country','[data-pmd-edit-start]':'start','[data-pmd-edit-end]':'end','[data-pmd-edit-type]':'type','[data-pmd-edit-description]':'description'
+        };
+        Object.keys(map).forEach(function(selector){var el=editField(selector);if(el)el.value=data[map[selector]]||''});
+        var domain=editField('[data-pmd-edit-domain]');if(domain)domain.textContent=data.domain||'';
+        var title=editModal&&editModal.querySelector('#pmd-edit-title');if(title)title.textContent=data.name?'Edit '+data.name:'Edit restaurant';
+    }
+
     if(nameInput)nameInput.addEventListener('input',syncDatabase);
     if(domainSlugInput){domainSlugInput.addEventListener('input',syncDomain);domainSlugInput.addEventListener('blur',syncDomain)}
-    if(form)form.addEventListener('submit',function(){syncDatabase();syncDomain()});
-    document.addEventListener('click',function(e){if(e.target.closest('[data-pmd-open-create]')){e.preventDefault();openModal();return}if(e.target.closest('[data-pmd-close-create]')){e.preventDefault();closeModal();return}if(e.target===modal)closeModal()});
-    document.addEventListener('keydown',function(e){if(e.key==='Escape'&&!modal.hidden)closeModal()});
+    if(createForm)createForm.addEventListener('submit',function(){syncDatabase();syncDomain()});
+
+    document.addEventListener('click',function(e){
+        var createOpen=e.target.closest('[data-pmd-open-create]');
+        if(createOpen){e.preventDefault();openModal(createModal,nameInput);return}
+        if(e.target.closest('[data-pmd-close-create]')){e.preventDefault();closeModal(createModal);return}
+        var editOpen=e.target.closest('[data-pmd-open-edit]');
+        if(editOpen){
+            e.preventDefault();
+            fillEdit({id:editOpen.dataset.id,name:editOpen.dataset.name,domain:editOpen.dataset.domain,email:editOpen.dataset.email,phone:editOpen.dataset.phone,country:editOpen.dataset.country,start:editOpen.dataset.start,end:editOpen.dataset.end,type:editOpen.dataset.type,description:editOpen.dataset.description});
+            openModal(editModal,editField('[data-pmd-edit-name]'));
+            return;
+        }
+        if(e.target.closest('[data-pmd-close-edit]')){e.preventDefault();closeModal(editModal);return}
+        if(e.target===createModal)closeModal(createModal);
+        if(e.target===editModal)closeModal(editModal);
+    });
+    document.addEventListener('keydown',function(e){if(e.key!=='Escape')return;if(createModal&&!createModal.hidden)closeModal(createModal);if(editModal&&!editModal.hidden)closeModal(editModal)});
     syncDomain();
-    @if(old('domain') || old('email')) openModal(); @endif
+
+    @if(old('_pmd_form') === 'create')
+        openModal(createModal,nameInput);
+    @elseif(old('_pmd_form') === 'edit')
+        fillEdit(@json([
+            'id' => old('id'),
+            'name' => old('name'),
+            'domain' => old('domain'),
+            'email' => old('email'),
+            'phone' => old('phone'),
+            'country' => old('country'),
+            'start' => old('start'),
+            'end' => old('end'),
+            'type' => old('type','People'),
+            'description' => old('description'),
+        ]));
+        openModal(editModal,editField('[data-pmd-edit-name]'));
+    @endif
 })();
 </script>
 @endpush
