@@ -90,18 +90,27 @@ class SumupTerminalSettings extends \Admin\Classes\AdminController
     public function pairReader(Request $request, SumupTenantConnectionService $service)
     {
         $this->assertOwnerAccess();
-        $data = $request->validate([
-            'environment' => ['required', 'in:test,production'],
-            'pairing_code' => ['required', 'string', 'regex:/^[A-Za-z0-9]{8,9}$/'],
-            'label' => ['required', 'string', 'min:2', 'max:191'],
-        ]);
 
         try {
+            // Terminal names are optional in the owner UI. A sensible default
+            // keeps pairing one-step and avoids leaking a validation failure as
+            // a generic server error in TastyIgniter's admin request pipeline.
+            $request->merge([
+                'label' => trim((string)$request->input('label', '')) ?: 'SumUp terminal',
+            ]);
+
+            $data = $request->validate([
+                'environment' => ['required', 'in:test,production'],
+                'pairing_code' => ['required', 'string', 'regex:/^[A-Za-z0-9]{8,9}$/'],
+                'label' => ['required', 'string', 'min:2', 'max:191'],
+            ]);
+
             $result = $service->pairReader(
                 (string)$data['environment'],
                 (string)$data['pairing_code'],
                 (string)$data['label']
             );
+
             return response()->json($result);
         } catch (\Throwable $e) {
             return $this->failure($e);
