@@ -20,8 +20,9 @@
  * - a hidden All Foods preference stays absent in Edit mode too;
  * - initial page state opens the first real category, never All Foods when a
  *   real category exists;
- * - category strip + grid remain paint-gated until Smart Categories hydration
- *   and that first-category filter are complete, preventing the old 0.1s flash;
+ * - first paint waits only for synchronous V129 readiness, never for the Smart
+ *   Categories network bootstrap;
+ * - the server-first Add Food card remains usable during Smart Categories boot;
  * - selection shells (Chef/Bestseller/Combination) keep all real categories
  *   visible so staff can filter the available foods while selecting.
  */
@@ -40,7 +41,8 @@
     var rootObserver = null;
     var nativeReplaceWith = Element.prototype.replaceWith;
     var firstPaintReleased = false;
-    var firstPaintStartedAt = Date.now();
+    var managerWaitStartedAt = Date.now();
+    var earlyActionBridgeInstalled = false;
 
     function currentRoot() {
         return document.querySelector('[data-pmd-menu-manager]');
@@ -98,9 +100,6 @@
 
         if (visible) return;
 
-        // Removing the virtual All Foods category means it is absent from the
-        // strip everywhere, including Edit. Restore stays available from the
-        // Create Category flow. Guard every write so our observer never loops.
         if (!allFoods.hidden) allFoods.hidden = true;
         if (allFoods.getAttribute('aria-hidden') !== 'true') {
             allFoods.setAttribute('aria-hidden', 'true');
@@ -160,8 +159,8 @@
         );
 
         if (!first.classList.contains('is-active')) {
-            // V129 owns filtering. A real click through its existing handler is
-            // safer than creating a second filter implementation here.
+            // V129 remains the only filtering authority. Use its real category
+            // click handler instead of reimplementing filter semantics here.
             first.click();
         }
 
@@ -171,6 +170,131 @@
         );
 
         return categoryId || 'all';
+    }
+
+    function activeRealCategory(node) {
+        node = node || currentRoot();
+        if (!node) return null;
+
+        return node.querySelector(
+            '.pmd-menu-manager__categories '
+            + '[data-pmd-category-id].is-active'
+        );
+    }
+
+    function currentLocaleIsGerman() {
+        var match = document.cookie.match(
+            /(?:^|; )pmd_admin_locale=([^;]+)/
+        );
+        var locale = String(
+            (match && match[1])
+            || document.documentElement.lang
+            || 'en'
+        ).toLowerCase();
+        return locale.indexOf('de') === 0;
+    }
+
+    function syncServerActionCardCopy(node) {
+        node = node || currentRoot();
+        if (!node || node.dataset.pmdComboBuilder === '1') return;
+
+        var card = node.querySelector(
+            '[data-pmd-smart-server-action-card], .pmd-smart-add-card'
+        );
+        if (!card) return;
+
+        var title = card.querySelector('[data-pmd-smart-add-title]');
+        var help = card.querySelector('[data-pmd-smart-add-help]');
+        var category = activeRealCategory(node);
+        var categoryLabel = category
+            ? String(category.textContent || '').trim()
+            : '';
+        var de = currentLocaleIsGerman();
+
+        if (title) {
+            title.textContent = de
+                ? 'Neue Speise hinzufugen'
+                : 'Add new food item';
+        }
+
+        if (help) {
+            if (categoryLabel) {
+                help.textContent = de
+                    ? 'Erstelle eine neue Speise in ' + categoryLabel + '.'
+                    : 'Create a new food item in ' + categoryLabel + '.';
+            } else {
+                help.textContent = de
+                    ? 'Erstelle eine neue Speise.'
+                    : 'Create a new food item.';
+            }
+        }
+    }
+
+    function preselectActiveCategoryInFoodModal(node) {
+        node = node || currentRoot();
+        if (!node) return;
+
+        var category = activeRealCategory(node);
+        if (!category) return;
+
+        var id = String(
+            category.getAttribute('data-pmd-category-id') || ''
+        );
+        if (!id) return;
+
+        requestAnimationFrame(function () {
+            var modal = document.querySelector('[data-pmd-menu-modal]');
+            var choice = modal && modal.querySelector(
+                '[data-pmd-menu-category-choice][value="'
+                + id
+                + '"]'
+            );
+            if (choice) choice.checked = true;
+        });
+    }
+
+    function installEarlyActionCardBridge() {
+        if (earlyActionBridgeInstalled) return;
+        earlyActionBridgeInstalled = true;
+
+        function activate(event) {
+            var node = currentRoot();
+            if (!node || node.dataset.pmdComboBuilder === '1') return;
+
+            // Once Smart Categories is ready, its normal action-card authority
+            // owns the click. This bridge exists only for the bootstrap window.
+            if (
+                window.PMDMenuSmartCategoriesV1
+                && window.PMDMenuSmartCategoriesV1.ready
+            ) {
+                return;
+            }
+
+            var card = event.target.closest('.pmd-smart-add-card');
+            if (!card || !node.contains(card)) return;
+
+            if (
+                event.type === 'keydown'
+                && event.key !== 'Enter'
+                && event.key !== ' '
+            ) {
+                return;
+            }
+
+            var primary = node.querySelector(
+                '[data-pmd-menu-header-primary][data-pmd-menu-create]'
+            );
+            if (!primary) return;
+
+            event.preventDefault();
+            event.stopImmediatePropagation();
+
+            primary.click();
+            preselectActiveCategoryInFoodModal(node);
+        }
+
+        document.addEventListener('click', activate, true);
+        document.addEventListener('keydown', activate, true);
     }
 
     function syncSelectionCategoryStrip(node) {
@@ -185,10 +309,6 @@
             host.style.removeProperty('visibility');
         }
 
-        // Pmdmenus only renders enabled real categories here. Keep every one of
-        // them available as a food filter during Chef/Bestseller/Combination
-        // selection. The deliberately-hidden virtual All Foods preference is
-        // handled separately above and is never forced back into the strip.
         node.querySelectorAll(
             '.pmd-menu-manager__categories [data-pmd-category-id]'
         ).forEach(function (button) {
@@ -216,10 +336,9 @@
         var node = currentRoot();
         if (!node || node !== initialRoot) return;
 
-        // The initial catalogue must always open on the first existing real
-        // category. All Foods remains available as a user-selectable filter.
         if (node.dataset.pmdComboBuilder !== '1') {
             selectInitialCategory(node);
+            syncServerActionCardCopy(node);
         }
 
         stabilize(node);
@@ -233,25 +352,28 @@
         firstPaintReleased = true;
     }
 
-    function waitForHydratedFirstPaint() {
+    function waitForManagerFirstPaint() {
         function check() {
             if (firstPaintReleased || reloadPending) return;
 
-            var smart = window.PMDMenuSmartCategoriesV1;
-            if (smart && smart.ready) {
-                // One frame lets all click/document handlers finish updating
-                // the action card and card filtering before they become visible.
+            var managerReady = Boolean(
+                window.PMDMenuManagerV1
+                && window.PMDMenuManagerV1.ready
+            );
+
+            if (managerReady) {
                 selectInitialCategory(currentRoot());
+                syncServerActionCardCopy(currentRoot());
                 requestAnimationFrame(function () {
-                    releaseFirstPaint('smart-ready');
+                    releaseFirstPaint('manager-ready');
                 });
                 return;
             }
 
-            if (Date.now() - firstPaintStartedAt >= 1800) {
-                // Never leave the catalogue invisible if the smart-category
-                // bootstrap endpoint fails. V129 can still filter real categories.
-                releaseFirstPaint('smart-timeout-fallback');
+            // V129 is synchronous. This fallback is only for an unexpected
+            // asset failure and never waits for a network bootstrap endpoint.
+            if (Date.now() - managerWaitStartedAt >= 400) {
+                releaseFirstPaint('manager-timeout-fallback');
                 return;
             }
 
@@ -275,9 +397,6 @@
                 && replacement.matches
                 && replacement.matches('[data-pmd-menu-manager]')
             ) {
-                // Do not paint server-first legacy markup into the current live
-                // session while newer authorities still reference this root.
-                // A clean reload is the single safe refresh boundary.
                 requestCleanReload('root-replace');
                 return;
             }
@@ -302,7 +421,9 @@
         if (rootObserver) rootObserver.disconnect();
         rootObserver = new MutationObserver(function () {
             queueMicrotask(function () {
-                stabilize(currentRoot());
+                var node = currentRoot();
+                stabilize(node);
+                syncServerActionCardCopy(node);
             });
         });
         rootObserver.observe(root, {
@@ -336,12 +457,13 @@
     }
 
     installRootReplacementGuard();
+    installEarlyActionCardBridge();
     stabilize(root);
     observeRuntime();
-    waitForHydratedFirstPaint();
+    waitForManagerFirstPaint();
 
     window.PMDMenuRuntimeStabilityV1 = {
-        version: '1.1.0',
+        version: '1.2.0',
         stabilize: function () {
             stabilize(currentRoot());
         },
@@ -360,6 +482,15 @@
             return {
                 sameRoot: liveRoot === initialRoot,
                 reloadPending: reloadPending,
+                managerReady: Boolean(
+                    window.PMDMenuManagerV1
+                    && window.PMDMenuManagerV1.ready
+                ),
+                smartReady: Boolean(
+                    window.PMDMenuSmartCategoriesV1
+                    && window.PMDMenuSmartCategoriesV1.ready
+                ),
+                earlyActionBridge: earlyActionBridgeInstalled,
                 firstPaintReady: Boolean(
                     liveRoot
                     && liveRoot.getAttribute(
@@ -408,7 +539,7 @@
     };
 
     console.info(
-        '[PMD Menu Runtime Stability V1.1] Ready',
+        '[PMD Menu Runtime Stability V1.2] Ready',
         window.PMDMenuRuntimeStabilityV1.inspect()
     );
 })();
