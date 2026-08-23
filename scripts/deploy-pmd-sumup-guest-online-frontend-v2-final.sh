@@ -61,8 +61,6 @@ for f in "${FRONTEND_FILES[@]}"; do
     echo "ERROR: remote frontend file missing: $remote_path"
     exit 3
   }
-  mkdir -p "$STAGE/frontend/$f"
-  rmdir "$STAGE/frontend/$f" 2>/dev/null || true
   mkdir -p "$STAGE/frontend/$(dirname "$f")"
   git show "$REMOTE:$remote_path" > "$STAGE/frontend/$f"
   echo "STAGED: $remote_path"
@@ -249,7 +247,7 @@ php -l "$ROOT/app/main/routes/sumup.php"
 echo
 echo "========== INSTALL FRONTEND V2 SOURCE =========="
 for f in "${FRONTEND_FILES[@]}"; do
-  sudo mkdir -p "$FRONT_ROOT/$(dirname "$f")"
+  sudo install -d -o ubuntu -g ubuntu "$FRONT_ROOT/$(dirname "$f")"
   sudo install -o ubuntu -g ubuntu -m 0644 "$STAGE/frontend/$f" "$FRONT_ROOT/$f"
   echo "INSTALLED_FRONTEND_V2: $f"
 done
@@ -309,7 +307,8 @@ echo "FRONTEND_CWD_AFTER=$FRONT_CWD_AFTER"
 }
 
 echo
-echo "========== HTTP SMOKE =========="nHTTP_CODE="$(curl -L -sS -o /dev/null -w '%{http_code}' "$BASE_URL/?pmd_sumup_guest_v2=$STAMP" || true)"
+echo "========== HTTP SMOKE =========="
+HTTP_CODE="$(curl -L -sS -o /dev/null -w '%{http_code}' "$BASE_URL/?pmd_sumup_guest_v2=$STAMP" || true)"
 echo "FRONTEND_HTTP=$HTTP_CODE"
 if [ "$HTTP_CODE" != "200" ] && [ "$HTTP_CODE" != "301" ] && [ "$HTTP_CODE" != "302" ]; then
   echo "ERROR: $BASE_URL did not return a healthy HTTP response"
