@@ -182,6 +182,10 @@
       "name": "pmd-menu-scoped-food-remove-v1-js"
     },
     {
+      "path": "js/pmd-menu-runtime-stability-v1.js",
+      "name": "pmd-menu-runtime-stability-v1-js"
+    },
+    {
       "path": "js/pmd-waiter-pos-dashboard-shadow-bridge-v24.js",
       "name": "pmd-waiter-pos-dashboard-shadow-bridge-v24-js"
     },
