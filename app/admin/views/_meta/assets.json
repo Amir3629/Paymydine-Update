@@ -138,6 +138,14 @@
     {
       "path": "css/pmd-payment-provider-catalogue-v1.css",
       "name": "pmd-payment-provider-catalogue-v1-css"
+    },
+    {
+      "path": "css/pmd-menu-all-foods-r27.css",
+      "name": "pmd-menu-all-foods-r27-css"
+    },
+    {
+      "path": "css/pmd-menu-all-foods-r28.css",
+      "name": "pmd-menu-all-foods-r28-css"
     }
   ],
   "script": [
@@ -156,6 +164,18 @@
     {
       "path": "js/pmd-general-staff-note-r24.js",
       "name": "pmd-general-staff-note-r24-js"
+    },
+    {
+      "path": "js/pmd-menu-category-guard-r26.js",
+      "name": "pmd-menu-category-guard-r26-js"
+    },
+    {
+      "path": "js/pmd-menu-all-foods-r27.js",
+      "name": "pmd-menu-all-foods-r27-js"
+    },
+    {
+      "path": "js/pmd-menu-all-foods-r28.js",
+      "name": "pmd-menu-all-foods-r28-js"
     },
     {
       "path": "js/pmd-waiter-pos-dashboard-shadow-bridge-v24.js",
@@ -208,10 +228,6 @@
     {
       "path": "js/pmd-payment-provider-catalogue-v1.js",
       "name": "pmd-payment-provider-catalogue-v1-js"
-    },
-    {
-      "path": "js/pmd-payment-providers-settings-link-v1.js",
-      "name": "pmd-payment-providers-settings-link-v1-js"
     }
   ]
 }
