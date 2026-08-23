@@ -93,7 +93,15 @@ export async function startHostedRedirectCheckoutFlow({
       const providerCode = selectedMethod.code === "wero"
         ? (selectedProviderCodeForCheckout === "worldline" ? "worldline" : (selectedProviderCodeForCheckout === "vr_payment" ? "vr_payment" : "stripe"))
         : (selectedProviderCodeForCheckout || "unknown")
-      const providerReturnCode = providerCode === "worldline" ? "worldline" : (providerCode === "vr_payment" ? "vr_payment" : "wero")
+      const providerReturnCode = providerCode === "worldline"
+        ? "worldline"
+        : providerCode === "vr_payment"
+          ? "vr_payment"
+          : providerCode === "sumup"
+            ? "sumup"
+            : providerCode === "square"
+              ? "square"
+              : "wero"
       const merchantReference = `PMD-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`
       const returnUrl =
         typeof window !== "undefined"
@@ -258,6 +266,8 @@ export async function startHostedRedirectCheckoutFlow({
         if (providerCode === "sumup" && json?.checkout_id) {
           localStorage.setItem("pmd_sumup_pending_checkout", JSON.stringify({
             checkout_id: String(json.checkout_id),
+            method_code: selectedMethod.code,
+            provider_code: providerCode,
             created_at: Date.now(),
           }))
         }
