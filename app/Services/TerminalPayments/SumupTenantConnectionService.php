@@ -159,6 +159,10 @@ class SumupTenantConnectionService
                     'updated_at' => now(),
                 ]);
 
+            // Keep the old payment-method catalogue aware that SumUp is available,
+            // but never duplicate the encrypted API key into the legacy payment row.
+            $this->syncRuntimeProviderAvailability($environment, $merchant);
+
             if (!$this->hasActiveEnvironment()) {
                 $this->activateEnvironment($environment);
             }
@@ -217,6 +221,8 @@ class SumupTenantConnectionService
             }
         });
 
+        $this->syncRuntimeProviderAvailability($environment, (string)($row->merchant_code ?? ''));
+
         return $this->state();
     }
 
@@ -234,7 +240,7 @@ class SumupTenantConnectionService
             throw new \InvalidArgumentException('Enter the 8 or 9 character pairing code shown on the Solo.');
         }
         if ($label === '') {
-            throw new \InvalidArgumentException('Give the terminal a simple name, for example Front Desk or Bar.');
+            $label = 'SumUp terminal';
         }
 
         $merchant = trim((string)$config['merchant_code']);
@@ -650,6 +656,47 @@ class SumupTenantConnectionService
                 ->where('environment', $environment)
                 ->where('is_active', 1)
                 ->exists();
+    }
+
+    private function syncRuntimeProviderAvailability(string $environment, string $merchantCode): void
+    {
+        try {
+            if (!Schema::hasTable('payments') || !class_exists(\Admin\Models\Payments_model::class)) {
+                return;
+            }
+
+            $payment = \Admin\Models\Payments_model::query()
+                ->whereRaw('LOWER(code) = ?', [self::PROVIDER])
+                ->orderByDesc('payment_id')
+                ->first();
+
+            if (!$payment) {
+                return;
+            }
+
+            $config = method_exists($payment, 'getConfigData')
+                ? (array)$payment->getConfigData()
+                : (is_array($payment->data ?? null) ? (array)$payment->data : []);
+
+            // Compatibility metadata only. The API key remains encrypted solely in
+            // terminal_provider_configs and is never copied into Payments_model.
+            $config['connection_status'] = 'connected';
+            $config['transaction_mode'] = $environment === 'production' ? 'live' : 'test';
+            $config['id_application'] = strtoupper(trim($merchantCode));
+            $config['url'] = self::API_URL;
+            $config['connection_authority'] = 'terminal_provider_configs';
+
+            if (method_exists($payment, 'setConfigData')) {
+                $payment->setConfigData($config);
+            } else {
+                $payment->data = $config;
+            }
+
+            $payment->status = 1;
+            $payment->save();
+        } catch (\Throwable $e) {
+            report($e);
+        }
     }
 
     private function markConnectionError(string $environment, string $message): void
