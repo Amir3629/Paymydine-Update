@@ -1,0 +1,21 @@
+# Payment Provider Architecture Rollout
+
+- [x] Shared provider capability vocabulary
+- [x] Generic tenant provider connection reader
+- [x] Generic provider state endpoint foundation
+- [x] Owner-facing provider catalogue foundation
+- [x] Wire provider routes through the live terminal/payment route loader
+- [x] Wire provider catalogue assets into admin assets
+- [x] Add Payment Providers entry to the owner Settings page
+- [x] Move SumUp credentials from Devices UI to Payments > Providers UI
+- [x] Keep Devices UI pairing/testing/removal only
+- [x] Route payment-method records through their assigned provider record
+- [x] Preserve backward compatibility for legacy direct Stripe/PayPal/Square payment codes
+- [ ] Add generic Stripe connection adapter and runtime capability discovery
+- [ ] Add Stripe Terminal device adapter
+- [ ] Add generic Square connection adapter and terminal adapter
+- [ ] Add VR Payment connection + online/terminal adapter
+- [ ] Add Worldline connection/terminal adapter to the common interface
+- [ ] Add provider-backed Wero checkout routing
+- [ ] Add runtime merchant/country/environment capability discovery before enabling methods
+- [ ] Add OAuth/self-service connect flows where provider APIs support them

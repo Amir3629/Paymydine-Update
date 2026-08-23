@@ -4,7 +4,9 @@ namespace Admin\Controllers;
 
 use Admin\Facades\AdminMenu;
 use Admin\Models\Payments_model;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Schema;
 
 class TerminalDevices extends \Admin\Classes\AdminController
 {
@@ -50,19 +52,11 @@ class TerminalDevices extends \Admin\Classes\AdminController
     public function __construct()
     {
         parent::__construct();
-        AdminMenu::setContext('terminal_devices', 'system');
-
-        /* PMD_DEVICE_BACKEND_ONLY_V4
-         * Browser GET pages live under /admin/pmddevices/*. This controller
-         * remains only the canonical action/model/service authority.
-         */
         AdminMenu::setContext('settings', 'system');
     }
 
-    /* PMD_DEVICE_SETTINGS_SUITE_V1_TERMINAL_ACTIONS */
     public function index()
     {
-        /* PMD_DEVICE_LEGACY_UI_REDIRECT_V4_TERMINALS_INDEX */
         if (request()->isMethod('get') && !request()->ajax()) {
             return redirect(admin_url('pmddevices/terminals'));
         }
@@ -73,7 +67,6 @@ class TerminalDevices extends \Admin\Classes\AdminController
 
     public function create()
     {
-        /* PMD_DEVICE_LEGACY_UI_REDIRECT_V4_TERMINALS_CREATE */
         if (request()->isMethod('get') && !request()->ajax()) {
             return redirect(admin_url('pmddevices/terminals/create'));
         }
@@ -84,7 +77,6 @@ class TerminalDevices extends \Admin\Classes\AdminController
 
     public function edit($context = null, $recordId = null)
     {
-        /* PMD_DEVICE_LEGACY_UI_REDIRECT_V4_TERMINALS_EDIT */
         if (request()->isMethod('get') && !request()->ajax()) {
             return redirect(admin_url('pmddevices/terminals/edit/'.(int)basename(request()->path())));
         }
@@ -106,8 +98,8 @@ class TerminalDevices extends \Admin\Classes\AdminController
         $form->addFields([
             'terminal_setup_guide' => [
                 'type' => 'section',
-                'label' => 'Terminal Setup Guide',
-                'comment' => 'Use this page for card-present reader setup. Online checkout credentials stay in Payments > Providers > SumUp. Recommended flow: 1) Configure SumUp provider, 2) Discover readers, 3) Select reader_id, 4) Test terminal connection, 5) Mark active reader.',
+                'label' => 'SumUp Terminal Setup',
+                'comment' => 'Simple setup: keep your SumUp merchant credentials, discover the readers already connected to that account, copy/select the Reader ID, test it, then mark the terminal active.',
             ],
             'status_snapshot' => [
                 'label' => 'Readiness Snapshot',
@@ -121,44 +113,38 @@ class TerminalDevices extends \Admin\Classes\AdminController
 
     public function onDiscoverReaders()
     {
-        $provider = Payments_model::query()->where('code', 'sumup')->first();
-        $data = is_array(optional($provider)->data) ? (array)$provider->data : [];
-        $token = trim((string)($data['access_token'] ?? ''));
-        $baseUrl = rtrim((string)($data['url'] ?? 'https://api.sumup.com'), '/');
-
-        if (!$provider || !$provider->status || $token === '') {
-            return response()->json([
-                'success' => false,
-                'error' => 'SumUp provider is not ready. Configure and enable Payments > Providers > SumUp first.',
-            ], 422);
+        $config = $this->sumupConfig();
+        if (!$config['ready']) {
+            return response()->json(['success' => false, 'error' => $config['message']], 422);
         }
 
-        $merchantCode = trim((string)($data['id_application'] ?? ''));
+        $merchantCode = $this->resolveMerchantCode($config);
         if ($merchantCode === '') {
-            $merchantResponse = Http::withToken($token)->acceptJson()->get($baseUrl.'/v0.1/me');
-            $merchantCode = (string)(($merchantResponse->json()['merchant_code'] ?? '') ?: '');
+            return response()->json(['success' => false, 'error' => 'SumUp merchant code could not be resolved.'], 422);
         }
 
-        $resp = Http::withToken($token)
+        $resp = Http::withToken($config['access_token'])
             ->acceptJson()
-            ->get($baseUrl.'/v0.1/me/readers', array_filter(['merchant_code' => $merchantCode ?: null]));
+            ->timeout(20)
+            ->get($config['url'].'/v0.1/merchants/'.rawurlencode($merchantCode).'/readers');
 
         if (!$resp->ok()) {
             return response()->json([
                 'success' => false,
-                'error' => 'Unable to list SumUp readers',
+                'error' => 'Unable to list SumUp readers. Ensure the token has readers.read permission.',
+                'status' => $resp->status(),
                 'details' => $resp->json(),
             ], 502);
         }
 
         $body = (array)$resp->json();
-        $items = (array)($body['items'] ?? $body['readers'] ?? $body);
+        $items = array_values((array)($body['items'] ?? $body['readers'] ?? []));
 
         return response()->json([
             'success' => true,
             'provider' => 'sumup',
-            'merchant_code' => $merchantCode ?: null,
-            'readers' => array_values($items),
+            'merchant_code' => $merchantCode,
+            'readers' => $items,
         ]);
     }
 
@@ -169,57 +155,68 @@ class TerminalDevices extends \Admin\Classes\AdminController
         $readerId = trim((string)$model->reader_id);
 
         if ($providerCode !== 'sumup') {
-            return response()->json(['success' => false, 'error' => 'Only SumUp is supported currently'], 422);
+            return response()->json(['success' => false, 'error' => 'Only SumUp is supported currently.'], 422);
         }
-
         if ($readerId === '') {
-            return response()->json(['success' => false, 'error' => 'Reader ID is required for terminal readiness test'], 422);
+            return response()->json(['success' => false, 'error' => 'Reader ID is required.'], 422);
         }
 
-        $provider = Payments_model::query()->where('code', 'sumup')->first();
-        $data = is_array(optional($provider)->data) ? (array)$provider->data : [];
-        $token = trim((string)($data['access_token'] ?? ''));
-        $baseUrl = rtrim((string)($data['url'] ?? 'https://api.sumup.com'), '/');
-
-        if (!$provider || !$provider->status || $token === '') {
-            return response()->json(['success' => false, 'error' => 'SumUp provider is not ready'], 422);
+        $config = $this->sumupConfig();
+        if (!$config['ready']) {
+            return response()->json(['success' => false, 'error' => $config['message']], 422);
         }
 
-        $resp = Http::withToken($token)
-            ->acceptJson()
-            ->get($baseUrl.'/v0.1/me/readers');
-
-        if (!$resp->ok()) {
-            return response()->json(['success' => false, 'error' => 'Failed to contact SumUp readers endpoint', 'details' => $resp->json()], 502);
+        $merchantCode = $this->resolveMerchantCode($config);
+        if ($merchantCode === '') {
+            return response()->json(['success' => false, 'error' => 'SumUp merchant code could not be resolved.'], 422);
         }
 
-        $items = (array)(($resp->json()['items'] ?? $resp->json()['readers'] ?? $resp->json()) ?: []);
-        $matched = collect($items)->first(function ($item) use ($readerId) {
-            return strtolower((string)($item['id'] ?? $item['reader_id'] ?? '')) === strtolower($readerId);
-        });
+        $base = $config['url'].'/v0.1/merchants/'.rawurlencode($merchantCode).'/readers/'.rawurlencode($readerId);
+        $readerResp = Http::withToken($config['access_token'])->acceptJson()->timeout(20)->get($base);
+        if (!$readerResp->ok()) {
+            return response()->json([
+                'success' => false,
+                'error' => 'SumUp reader was not found for this merchant.',
+                'status' => $readerResp->status(),
+                'details' => $readerResp->json(),
+            ], 404);
+        }
+
+        $statusResp = Http::withToken($config['access_token'])->acceptJson()->timeout(20)->get($base.'/status');
+        $statusJson = $statusResp->ok() ? (array)$statusResp->json() : [];
+        $reader = (array)$readerResp->json();
+        $readerData = (array)($reader['data'] ?? $reader);
+        $statusData = (array)($statusJson['data'] ?? $statusJson);
+
+        $model->terminal_status = (string)($statusData['device_status'] ?? $statusData['status'] ?? $readerData['status'] ?? 'online');
+        $model->pairing_state = strtolower((string)($readerData['status'] ?? 'paired')) === 'processing' ? 'unpaired' : 'paired';
+        if (empty($model->reader_label)) {
+            $model->reader_label = (string)($readerData['name'] ?? 'SumUp Reader');
+        }
+        $model->metadata = array_merge((array)$model->metadata, [
+            'last_tested_at' => now()->toIso8601String(),
+            'sumup_reader' => $readerData,
+            'sumup_status' => $statusData,
+        ]);
+        $model->save();
 
         $status = $this->buildStatusSnapshot('sumup', $readerId, (bool)$model->is_active);
 
         return response()->json([
-            'success' => (bool)$matched,
+            'success' => true,
             'provider' => 'sumup',
             'reader_id' => $readerId,
-            'reader_found' => (bool)$matched,
-            'reader' => $matched ?: null,
+            'reader_found' => true,
+            'reader' => $readerData,
+            'reader_status' => $statusData,
             'status' => $status,
-        ], $matched ? 200 : 404);
+        ]);
     }
 
     protected function buildStatusSnapshot(?string $providerCode, string $readerId, bool $isActive): array
     {
-        $providerReady = false;
-
-        if (strtolower((string)$providerCode) === 'sumup') {
-            $provider = Payments_model::query()->where('code', 'sumup')->first();
-            $data = is_array(optional($provider)->data) ? (array)$provider->data : [];
-            $providerReady = (bool)optional($provider)->status && trim((string)($data['access_token'] ?? '')) !== '';
-        }
-
+        $config = strtolower((string)$providerCode) === 'sumup' ? $this->sumupConfig() : ['ready' => false];
+        $providerReady = (bool)($config['ready'] ?? false);
         $terminalReady = $providerReady && trim($readerId) !== '';
 
         return [
@@ -228,5 +225,83 @@ class TerminalDevices extends \Admin\Classes\AdminController
             'card_online_ready' => $providerReady ? 'yes' : 'no',
             'card_present_ready' => ($terminalReady && $isActive) ? 'yes' : 'no',
         ];
+    }
+
+    private function sumupConfig(): array
+    {
+        $data = [];
+
+        try {
+            if (Schema::hasTable('payment_methods') || Schema::hasTable('payments')) {
+                $provider = Payments_model::query()->where('code', 'sumup')->where('status', 1)->first();
+                if ($provider && method_exists($provider, 'getConfigData')) {
+                    $data = (array)$provider->getConfigData();
+                }
+            }
+        } catch (\Throwable $ignored) {
+        }
+
+        // Older tenants, including the current Mimoza schema, may still keep
+        // SumUp credentials in pos_configs. Reuse them instead of making the
+        // restaurant configure the same merchant twice.
+        if (empty($data['access_token']) && Schema::hasTable('pos_configs') && Schema::hasTable('pos_devices')) {
+            try {
+                $legacy = DB::table('pos_configs as pc')
+                    ->join('pos_devices as pd', 'pd.device_id', '=', 'pc.device_id')
+                    ->whereRaw('LOWER(pd.code) = ?', ['sumup'])
+                    ->orderByDesc('pc.config_id')
+                    ->select('pc.*')
+                    ->first();
+
+                if ($legacy) {
+                    $data = array_merge([
+                        'url' => (string)($legacy->url ?? 'https://api.sumup.com'),
+                        'access_token' => (string)($legacy->access_token ?? ''),
+                        'id_application' => (string)($legacy->id_application ?? ''),
+                        'affiliate_key' => (string)($legacy->sumup_affiliate_key ?? ''),
+                    ], $data);
+                }
+            } catch (\Throwable $ignored) {
+            }
+        }
+
+        $token = trim((string)($data['access_token'] ?? ''));
+        $url = rtrim((string)($data['url'] ?? 'https://api.sumup.com'), '/');
+        $merchantCode = trim((string)($data['merchant_code'] ?? $data['id_application'] ?? ''));
+
+        return [
+            'ready' => $token !== '',
+            'message' => $token !== '' ? 'SumUp credentials ready.' : 'SumUp access token is missing.',
+            'access_token' => $token,
+            'url' => $url,
+            'merchant_code' => $merchantCode,
+            'affiliate_key' => trim((string)($data['affiliate_key'] ?? '')),
+        ];
+    }
+
+    private function resolveMerchantCode(array $config): string
+    {
+        $merchantCode = trim((string)($config['merchant_code'] ?? ''));
+        if ($merchantCode !== '') {
+            return $merchantCode;
+        }
+
+        try {
+            $resp = Http::withToken($config['access_token'])
+                ->acceptJson()
+                ->timeout(20)
+                ->get($config['url'].'/v0.1/me');
+            if (!$resp->ok()) {
+                return '';
+            }
+            $json = (array)$resp->json();
+            return trim((string)(
+                $json['merchant_profile']['merchant_code']
+                ?? $json['merchant_code']
+                ?? ''
+            ));
+        } catch (\Throwable $ignored) {
+            return '';
+        }
     }
 }
