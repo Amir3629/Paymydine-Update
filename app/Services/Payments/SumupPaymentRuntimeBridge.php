@@ -139,6 +139,8 @@ class SumupPaymentRuntimeBridge
 
             if ($selectedProvider === '' || $selectedProvider === 'sumup') {
                 $card->provider_code = 'sumup';
+                $card->name = 'Card / Wallet';
+                $card->description = 'Secure card or wallet payment';
                 $card->status = 1;
                 $cardMapped = true;
             } else {
