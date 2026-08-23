@@ -94,15 +94,27 @@
             provider_code: code,
             label: code,
             capabilities: [],
-            payment_methods: []
+            payment_methods: [],
+            implemented_capabilities: [],
+            implemented_payment_methods: []
         };
     }
 
-    function chips(values, formatter) {
-        if (!values || !values.length) return '<span class="pmd-provider-muted">None advertised yet</span>';
+    function chips(values, formatter, emptyLabel) {
+        if (!values || !values.length) {
+            return '<span class="pmd-provider-muted">' + esc(emptyLabel || 'None yet') + '</span>';
+        }
+
         return '<div class="pmd-provider-card__chips">' + values.map(function (value) {
             return '<span>' + esc(formatter(value)) + '</span>';
         }).join('') + '</div>';
+    }
+
+    function difference(all, ready) {
+        ready = ready || [];
+        return (all || []).filter(function (value) {
+            return ready.indexOf(value) === -1;
+        });
     }
 
     function sumupSnapshot() {
@@ -143,6 +155,27 @@
             (readonly ? 'readonly' : '') + ' autocomplete="off"></label>';
     }
 
+    function readinessSections(provider) {
+        var readyCapabilities = provider.implemented_capabilities || [];
+        var readyMethods = provider.implemented_payment_methods || [];
+        var futureCapabilities = difference(provider.capabilities || [], readyCapabilities);
+        var futureMethods = difference(provider.payment_methods || [], readyMethods);
+
+        return [
+            '<div class="pmd-provider-card__section pmd-provider-card__section--ready">',
+                '<strong>Ready in PayMyDine now</strong>',
+                chips(readyCapabilities, capabilityLabel, 'Connection adapter not completed yet'),
+                chips(readyMethods, methodLabel, 'No payment method enabled yet'),
+            '</div>',
+            (futureCapabilities.length || futureMethods.length)
+                ? '<details class="pmd-provider-roadmap"><summary>More supported by this provider</summary><div>' +
+                    chips(futureCapabilities, capabilityLabel, '') +
+                    chips(futureMethods, methodLabel, '') +
+                  '</div><small>These stay disabled until PayMyDine verifies the merchant, country, environment and completes the matching adapter.</small></details>'
+                : ''
+        ].join('');
+    }
+
     function renderSumup() {
         var provider = providerDefinition('sumup');
         var snapshot = sumupSnapshot();
@@ -155,7 +188,7 @@
                 '<header class="pmd-provider-card__header">',
                     '<div>',
                         '<h4>SumUp</h4>',
-                        '<p>Connect this restaurant\'s own SumUp account once. The same connection is then used for supported payments and Solo terminals.</p>',
+                        '<p>Connect this restaurant\'s own SumUp account once. The same connection is reused for the SumUp features that are enabled in PayMyDine.</p>',
                     '</div>',
                     '<span class="pmd-provider-card__status ' + (connected ? 'is-connected' : '') + '">' + esc(sumupStatus(snapshot)) + '</span>',
                 '</header>',
@@ -184,34 +217,28 @@
                     '</div>',
                     snapshot.last_error ? '<p class="pmd-provider-error">' + esc(snapshot.last_error) + '</p>' : '',
                 '</div>',
-                '<div class="pmd-provider-card__section">',
-                    '<strong>Platform capabilities</strong>',
-                    chips(provider.catalogue_capabilities || provider.capabilities || [], capabilityLabel),
-                '</div>',
-                '<div class="pmd-provider-card__section">',
-                    '<strong>Payment methods</strong>',
-                    chips(provider.catalogue_payment_methods || provider.payment_methods || [], methodLabel),
-                '</div>',
+                readinessSections(provider),
             '</article>'
         ].join('');
     }
 
     function renderGenericProvider(provider) {
         var label = provider.label || provider.provider_code;
-        var capabilities = provider.catalogue_capabilities || provider.capabilities || [];
-        var methods = provider.catalogue_payment_methods || provider.payment_methods || [];
+        var hasReadyFlow = (provider.implemented_capabilities || []).length > 0 ||
+            (provider.implemented_payment_methods || []).length > 0;
 
         return [
             '<article class="pmd-provider-card" id="provider-' + esc(provider.provider_code) + '">',
                 '<header class="pmd-provider-card__header">',
                     '<div>',
                         '<h4>' + esc(label) + '</h4>',
-                        '<p>Provider adapter foundation is available. Account-specific connection flow is the next implementation step.</p>',
+                        '<p>' + (hasReadyFlow
+                            ? 'PayMyDine already has part of this provider flow. The common self-service connection adapter is being unified next.'
+                            : 'The common provider adapter is the next implementation step before this provider can be enabled for restaurants.') + '</p>',
                     '</div>',
-                    '<span class="pmd-provider-card__status">Next</span>',
+                    '<span class="pmd-provider-card__status">' + (hasReadyFlow ? 'Partly ready' : 'Next') + '</span>',
                 '</header>',
-                '<div class="pmd-provider-card__section"><strong>Platform capabilities</strong>' + chips(capabilities, capabilityLabel) + '</div>',
-                '<div class="pmd-provider-card__section"><strong>Payment methods</strong>' + chips(methods, methodLabel) + '</div>',
+                readinessSections(provider),
                 '<footer class="pmd-provider-card__footer">',
                     '<a class="btn btn-outline-secondary" href="/admin/payments?mode=providers">Open existing provider settings</a>',
                 '</footer>',
@@ -232,7 +259,7 @@
                     '<div>',
                         '<p class="pmd-provider-catalogue__eyebrow">PAYMENTS</p>',
                         '<h3>Payment providers</h3>',
-                        '<p>Each restaurant connects its own accounts here. Payment methods and terminal devices then use those connections instead of asking for credentials again.</p>',
+                        '<p>Each restaurant connects its own accounts here. Payment methods and terminal devices reuse those connections instead of asking for credentials again.</p>',
                     '</div>',
                     '<a class="btn btn-outline-secondary" href="/admin/payments">Payment methods</a>',
                 '</div>',
@@ -267,11 +294,6 @@
             busy = false;
             render();
         }
-    }
-
-    async function reloadSumup() {
-        var payload = await request('/admin/payment-providers/sumup/state');
-        sumup = payload.state;
     }
 
     async function saveSumup() {
