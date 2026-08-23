@@ -98,7 +98,7 @@
         '</div>',
         '<div class="pmd-sumup-pair">',
           '<label><span>Pairing code</span><input data-sumup-pair-code maxlength="9" placeholder="XXXXXXXXX" autocomplete="off"></label>',
-          '<label><span>Terminal name</span><input data-sumup-pair-label maxlength="191" placeholder="Front Desk, Bar, Terrace…" autocomplete="off"></label>',
+          '<label><span>Terminal name (optional)</span><input data-sumup-pair-label maxlength="191" placeholder="Front Desk, Bar, Terrace…" autocomplete="off"></label>',
           '<button type="button" class="is-primary" data-sumup-pair ' + (state.busy ? 'disabled' : '') + '>Pair terminal</button>',
         '</div>',
       '</section>'
@@ -253,7 +253,7 @@
         body:JSON.stringify({
           environment:state.environment,
           pairing_code:code ? String(code.value || '').trim().toUpperCase() : '',
-          label:label ? String(label.value || '').trim() : ''
+          label:(label ? String(label.value || '').trim() : '') || 'SumUp terminal'
         })
       });
 
