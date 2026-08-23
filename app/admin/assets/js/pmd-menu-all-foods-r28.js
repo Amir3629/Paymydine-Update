@@ -85,9 +85,24 @@
         return root.querySelector('[data-pmd-all-foods-manage-r27]');
     }
 
+    function keepAllFoodsHostInteractive() {
+        /*
+         * V129 locks every data-pmd-category-fixed button with disabled=true
+         * while category Edit mode is active. That is correct for a fixed
+         * drag target, but a disabled button also suppresses pointer events for
+         * the R28 pencil child in Safari. All Foods is already non-draggable;
+         * keep the host enabled so only its explicit pencil remains actionable.
+         * V129's sort-mode click branch still prevents category filtering.
+         */
+        allButton.draggable = false;
+        if (allButton.disabled) allButton.disabled = false;
+    }
+
     function ensureEditBadge() {
         var badge = q('[data-pmd-all-foods-edit-badge-r28]', allButton);
         var pref = currentPreference();
+
+        keepAllFoodsHostInteractive();
 
         if (!badge) {
             badge = document.createElement('span');
@@ -388,7 +403,8 @@
         attributeFilter: [
             'data-pmd-all-foods-visible-r27',
             'class',
-            'hidden'
+            'hidden',
+            'disabled'
         ],
         childList: true
     });
