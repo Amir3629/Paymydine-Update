@@ -288,7 +288,15 @@
     });
 
     rebuildCardCategoryMembership();
-    requestAnimationFrame(reorderAllFoodsCardsByCategoryOrder);
+
+    /*
+     * PMD_MENU_NO_BOOTSTRAP_CARD_REINSERT_V1
+     *
+     * Pmdmenus.php already renders canonical All Foods order server-side.
+     * Re-inserting every Food card after async Smart bootstrap caused the
+     * visible refresh flicker. Runtime reorder remains available for actual
+     * user-driven category/order changes, but boot never rewrites the grid.
+     */
   }
 
   function ensureModal() {
@@ -1216,14 +1224,14 @@
 
       window.PMDMenuSmartCategoriesV1 = {
         ready: true,
-        version: '1.6.7-server-first-action-card-authority',
+        version: '1.6.8-no-bootstrap-reinsert',
         categories: state.categories || [],
         selections: state.selections || {},
         canManageCombos: Boolean(state.can_manage_combos),
         refresh: load
       };
 
-      console.info('[PMD Menu Smart Categories V1.6.7] Ready', window.PMDMenuSmartCategoriesV1);
+      console.info('[PMD Menu Smart Categories V1.6.8] Ready', window.PMDMenuSmartCategoriesV1);
     } catch (error) {
       console.error('[PMD Menu Smart Categories V1.3]', error);
       var add = root.querySelector('[data-pmd-category-create]');

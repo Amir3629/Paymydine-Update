@@ -1,20 +1,20 @@
 'use client'
 
 import type { CSSProperties } from 'react'
-import { Bell, Car, Crown, Menu, Search, ShoppingBag, Sparkles } from 'lucide-react'
+import { Bell, Car, Crown, Menu, Search, ShoppingBag } from 'lucide-react'
 import { useMenuRuntime } from '@/src/runtime/MenuRuntimeContext'
-import { CategoryGlyph, DietaryBadges, LanguageSelect, PlatformFooter, QuickAddButton, RestaurantLogo, SocialLinks, HeaderValetButton } from '@/src/runtime/components/SharedPieces'
+import { DietaryBadges, LanguageSelect, PlatformFooter, QuickAddButton, RestaurantLogo, SocialLinks, HeaderValetButton } from '@/src/runtime/components/SharedPieces'
 import { RuntimeOverlays } from '@/src/runtime/components/RuntimeOverlays'
 import { ThemeBottomToolBar } from '@/src/runtime/components/ThemeBottomToolBar'
 import styles from './ShahrazadPersian.module.css'
 
 export default function ShahrazadPersian() {
   const {
-    bootstrap, labels, tableDisplay, categories, selectedCategory, setSelectedCategory, visibleItems,
+    bootstrap, labels, categories, selectedCategory, setSelectedCategory, visibleItems,
     search, setSearch, openItem, cartSubtotal,
     activeOrder, formatCurrency, direction,
   } = useMenuRuntime()
-  const hero = bootstrap.restaurant.heroImageUrl || '/theme-heroes/shahrazad-persian-hero.webp'
+  const hero = '/theme-heroes/shahrazad-persian-cultural-test.png' // PMD CULTURAL HERO TEST
   const rootStyle = {
     background: '#1b090b', color: '#f9e7bd', minHeight: '100dvh', colorScheme: 'dark',
     '--pmd-accent': '#d9ad55', '--pmd-accentText': '#28100f', '--pmd-surface': '#311113', '--pmd-soft': '#45181a',
@@ -23,22 +23,20 @@ export default function ShahrazadPersian() {
 
   return (
     <main className={styles.root} style={rootStyle} dir={direction} data-theme-id="shahrazad_persian">
-      <div className={styles.archTop} />
       <header className={styles.header}>
         
-        <div className={styles.brand}><Crown /><RestaurantLogo /><span>Persian Fine Dining</span></div>
+        <div className={styles.brand}><Crown /><RestaurantLogo /></div>
         <div className={styles.headerRight}><HeaderValetButton /><LanguageSelect /></div>
       </header>
 
-      <section className={styles.hero}>
+      <section className={styles.hero} data-pmd-theme-hero="true">
         <img className={styles.heroBackground} src={hero} alt="" width={1672} height={941} loading="eager" />
         <div className={styles.heroVeil} />
-        <span className={styles.archLeft} /><span className={styles.archRight} />
-        <Sparkles />
-        <h1>{bootstrap.restaurant.name}</h1>
-        <h2>Persian Fine Dining</h2>
-        <p>{bootstrap.restaurant.description || 'A taste of Persia. A legacy of hospitality.'}</p>
-        {tableDisplay && <small>{labels.table} {tableDisplay}</small>}
+        <div className={styles.heroCopy}>
+          <span>{labels.welcomeTo}</span>
+          <h1>{bootstrap.restaurant.name}</h1>
+          <p>{labels.browseOrderEnjoy}</p>
+        </div>
       </section>
 
       
@@ -46,8 +44,8 @@ export default function ShahrazadPersian() {
       <section className={styles.menuFrame}>
         <label className={styles.search}><Search /><input value={search} onChange={(event) => setSearch(event.target.value)} placeholder={labels.search} /></label>
         <nav className={styles.categories}>
-          <button className={selectedCategory === 'all' ? styles.active : ''} type="button" onClick={() => setSelectedCategory('all')}><CategoryGlyph name="all" size={28} /><span>{labels.all}</span></button>
-          {categories.map((category) => <button key={category.id} className={selectedCategory === category.id ? styles.active : ''} type="button" onClick={() => setSelectedCategory(category.id)}><CategoryGlyph name={category.name} size={28} /><span>{category.name}</span></button>)}
+          <button className={selectedCategory === 'all' ? styles.active : ''} type="button" onClick={() => setSelectedCategory('all')}>{labels.all}</button>
+          {categories.map((category) => <button key={category.id} className={selectedCategory === category.id ? styles.active : ''} type="button" onClick={() => setSelectedCategory(category.id)}>{category.name}</button>)}
         </nav>
 
         <div className={styles.title}><i /><span>Our signature dishes</span><i /></div>

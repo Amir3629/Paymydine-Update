@@ -199,7 +199,7 @@ if (!function_exists('pmd_menu_highlights_response_20260607')) {
             $p = $conn->getTablePrefix();
             $nutritionSelect = implode(",\n                                ", array_map(function ($column) use ($conn) {
                 return pmdMenuColumnSelect($conn, 'm', $column);
-            }, ['calories', 'protein', 'carbs', 'fat', 'sugar', 'serving_size']));
+            }, ['calories', 'protein', 'carbs', 'fat', 'sugar', 'serving_size', 'prep_time_minutes']));
             $recommendationSelect = implode(",\n                                ", [
                 pmd_menu_optional_select_20260607($conn, 'm', 'is_chef_recommended', '0'),
                 pmd_menu_optional_select_20260607($conn, 'm', 'is_manual_bestseller', '0'),

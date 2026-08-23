@@ -10,7 +10,7 @@ import styles from './KazenJapanese.module.css'
 
 export default function KazenJapanese() {
   const {
-    bootstrap, labels, tableDisplay, categories, search, setSearch, openItem, cartSubtotal, activeOrder, formatCurrency, direction,
+    bootstrap, labels, categories, search, setSearch, openItem, cartSubtotal, activeOrder, formatCurrency, direction,
   } = useMenuRuntime()
   const [openCategory, setOpenCategory] = useState(categories[0]?.id || '')
   const rootStyle = {
@@ -28,7 +28,7 @@ export default function KazenJapanese() {
   return (
     <main className={styles.root} style={rootStyle} dir={direction} data-theme-id="kazen_japanese">
       <header className={styles.header}>
-        <div className={styles.brand}><RestaurantLogo /><small>Japanese Cuisine</small></div>
+        <div className={styles.brand}><RestaurantLogo /></div>
         <div className={styles.headerActions}>
           <HeaderValetButton /><LanguageSelect />
           
@@ -36,14 +36,13 @@ export default function KazenJapanese() {
         </div>
       </header>
 
-      <section className={styles.hero}>
+      <section className={styles.hero} data-pmd-theme-hero="true">
         {hero && <img src={hero} alt="" width={1200} height={720} />}
-        <div className={styles.heroWash} />
         <div className={styles.heroCopy}>
-          <span>Purity.</span><span>Season.</span><span>Intention.</span>
-          <i>風 然</i>
+          <span className={styles.heroWelcome}>{labels.welcomeTo}</span>
+          <h1>{bootstrap.restaurant.name}</h1>
+          <p>{labels.browseOrderEnjoy}</p>
         </div>
-        {tableDisplay && <span className={styles.table}>{labels.table} {tableDisplay}</span>}
       </section>
 
       <div className={styles.content}>

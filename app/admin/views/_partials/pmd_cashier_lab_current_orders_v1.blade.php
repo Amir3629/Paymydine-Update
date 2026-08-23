@@ -8,15 +8,9 @@
     $pmdCashierIsGerman = strtolower((string)($pmdCleanWorkspaceLocale ?? app()->getLocale())) === 'de';
     $pmdCashierAddReservation = $pmdCashierIsGerman ? 'Reservierung hinzufügen' : 'Add reservation';
     $pmdCashierAddOrder = $pmdCashierIsGerman ? 'Neue Bestellung' : 'New order';
-    $pmdCashierNoOrdersCard = $pmdCashierIsGerman ? 'Keine Bestellungen' : 'No Orders';
 
     // PMD_CASHIER_HISTORY_UI_R46
     $pmdCashierHistoryMode = !empty($pmdCashierHistoryMode);
-    if ($pmdCashierHistoryMode) {
-        $pmdCashierNoOrdersCard = $pmdCashierIsGerman
-            ? 'Keine Verlaufsbestellungen'
-            : 'No History Orders';
-    }
     $pmdCashierRangeQuery = [
         'pmd_from' => (string)($range['from'] ?? ''),
         'pmd_to' => (string)($range['to'] ?? ''),
@@ -97,11 +91,9 @@
         </a>
         @endif
 
-        @if($count === 0)
-            <article class="pmd-ops-inline-empty-card" data-pmd-cashier-empty-card="1">
-                <strong>{{ $pmdCashierNoOrdersCard }}</strong>
-            </article>
-        @endif
+        {{-- Deliberately no "No Orders" card. The 0 Orders count and the New
+             order action already communicate the empty state without adding
+             another visual tile to the Cashier grid. --}}
 
         @foreach($orders as $order)
                 {{-- PMD_CASHIER_ORDER_CARD_TABLE_HINT_R42 --}}

@@ -32,7 +32,7 @@ import { callWaiter, clearPendingProviderPayment, finalizeExistingOrderPayment, 
   type SplitPaymentIntent,
 } from '@/src/lib/client-api'
 import { useMenuRuntime } from '@/src/runtime/MenuRuntimeContext'
-import { DietaryBadges } from './SharedPieces'
+import { FoodDetails } from './FoodDetails'
 import { PayPalButton } from './PayPalButton'
 import { StripeInlinePayment } from './StripeInlinePayment'
 import styles from './RuntimeOverlays.module.css'
@@ -126,13 +126,7 @@ function ItemDialog({ item }: { item: MenuItem }) {
         {item.imageUrl && <img className={styles.heroImage} src={item.imageUrl} alt={item.name} width={960} height={600} />}
         <div className={styles.itemTitleRow}><h3>{item.name}</h3><span className={styles.price}>{formatCurrency(item.price)}</span></div>
         <p className={styles.description}>{item.description}</p>
-        <DietaryBadges item={item} />
-        {(item.allergens.length > 0 || item.nutrition) && (
-          <div className={styles.metaGrid}>
-            {item.allergens.length > 0 && <div className={styles.metaCard}><strong>{labels.allergens}</strong><span>{item.allergens.join(', ')}</span></div>}
-            {item.nutrition && <div className={styles.metaCard}><strong>{labels.nutrition}</strong><span>{item.nutrition.calories != null ? `${item.nutrition.calories} kcal` : '—'}{item.nutrition.servingSize ? ` · ${item.nutrition.servingSize}` : ''}</span></div>}
-          </div>
-        )}
+        <FoodDetails item={item} />
         {item.options.map((group) => (
           <fieldset className={styles.optionGroup} key={group.id}>
             <legend>{group.name}{group.required ? ' *' : ''}</legend>

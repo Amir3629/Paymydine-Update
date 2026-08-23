@@ -1,7 +1,7 @@
 'use client'
 
 import type { CSSProperties } from 'react'
-import { Bell, Car, MapPin, Search, ShoppingBag, Utensils } from 'lucide-react'
+import { Bell, Car, Search, ShoppingBag, Utensils } from 'lucide-react'
 import { useMenuRuntime } from '@/src/runtime/MenuRuntimeContext'
 import { DietaryBadges, LanguageSelect, PlatformFooter, QuickAddButton, RestaurantLogo, SocialLinks, HeaderValetButton } from '@/src/runtime/components/SharedPieces'
 import { RuntimeOverlays } from '@/src/runtime/components/RuntimeOverlays'
@@ -10,10 +10,11 @@ import styles from './VerdantModern.module.css'
 
 export default function VerdantModern() {
   const {
-    bootstrap, labels, tableDisplay, categories, selectedCategory, setSelectedCategory, visibleItems,
+    bootstrap, labels, categories, selectedCategory, setSelectedCategory, visibleItems,
     featuredItems, search, setSearch, openItem, activeOrder, cartSubtotal, formatCurrency, direction,
   } = useMenuRuntime()
-  const hero = bootstrap.restaurant.heroImageUrl || '/theme-heroes/verdant-modern-hero.webp'
+  const fallbackHero = '/theme-heroes/verdant-modern-hero.webp'
+  const hero = bootstrap.restaurant.heroImageUrl || fallbackHero
   const rootStyle = {
     background: '#03100c', color: '#f3fff9', minHeight: '100dvh', colorScheme: 'dark',
     '--pmd-accent': '#32d596', '--pmd-accentText': '#03110d', '--pmd-surface': '#0d1b17',
@@ -29,20 +30,19 @@ export default function VerdantModern() {
         <header className={styles.header}>
           <RestaurantLogo />
           <div className={styles.headerTools}>
-            {tableDisplay && <span className={styles.pill}><MapPin />{labels.table} {tableDisplay}</span>}
             <HeaderValetButton /><LanguageSelect />
             
           </div>
         </header>
 
-        <section className={styles.hero}>
+        <section className={styles.hero} data-pmd-theme-hero="true">
           <div className={styles.heroCopy}>
-            <span>Welcome to {bootstrap.restaurant.name}</span>
-            <h1>Modern dining<br />made <em>effortless.</em></h1>
-            <p>{bootstrap.restaurant.description || 'Browse the menu, order from your table, and pay whenever you are ready.'}</p>
+            <span>{labels.welcomeTo}</span>
+            <h1>{bootstrap.restaurant.name}</h1>
+            <p>{labels.browseOrderEnjoy}</p>
             
           </div>
-          <div className={styles.heroImage}>{hero && <img src={hero} alt="" width={500} height={500} />}</div>
+          <div className={styles.heroImage}>{hero && <img src={hero} alt="" width={500} height={500} onError={(event) => { if (!event.currentTarget.src.endsWith(fallbackHero)) event.currentTarget.src = fallbackHero }} />}</div>
         </section>
 
         <label className={styles.search}><Search /><input value={search} onChange={(event) => setSearch(event.target.value)} placeholder={labels.search} /></label>

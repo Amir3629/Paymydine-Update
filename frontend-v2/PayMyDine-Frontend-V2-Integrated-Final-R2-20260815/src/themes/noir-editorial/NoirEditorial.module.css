@@ -25,7 +25,7 @@
 .hero { display: grid; grid-template-columns: minmax(0,1.1fr) minmax(18rem,.9fr); min-height: min(70rem, calc(100dvh - 5.4rem)); border-bottom: 1px solid rgba(255,255,255,.12); }
 .heroCopy { display: flex; flex-direction: column; justify-content: center; padding: clamp(2.5rem, 7vw, 7rem) clamp(1.25rem, 6vw, 6rem); }
 .eyebrow { font-size: .67rem; font-weight: 760; letter-spacing: .34em; text-transform: uppercase; color: #aaa8a0; }
-.hero h1 { margin: 1.3rem 0; max-width: 10ch; font-family: Didot, 'Bodoni 72', Georgia, serif; font-size: clamp(4.2rem, 11vw, 10.5rem); font-weight: 400; line-height: .73; letter-spacing: -.06em; text-transform: uppercase; }
+.hero h1 { margin: 1rem 0; max-width: 12ch; font-family: Didot, 'Bodoni 72', Georgia, serif; font-size: clamp(3rem, 8vw, 7rem); font-weight: 400; line-height: .88; letter-spacing: -.045em; }
 .hero h1 em { font-weight: 400; color: #f4f3ef; }
 .hero p { max-width: 34rem; margin: 0; color: #aaa8a0; font-size: clamp(.9rem, 1.5vw, 1.05rem); line-height: 1.7; }
 .heroActions { display: flex; flex-wrap: wrap; gap: .65rem; margin-top: 2rem; }
@@ -37,7 +37,7 @@
 .ghostAction svg { width: 1rem; }
 .heroVisual { position: relative; min-height: 36rem; overflow: hidden; background: #0c0c0c; }
 .heroVisual::after { content: ''; position: absolute; inset: 0; background: linear-gradient(90deg, #050505 0%, transparent 35%), linear-gradient(0deg, #050505 0%, transparent 28%); pointer-events: none; }
-.heroVisual img { width: 100%; height: 100%; object-fit: cover; filter: grayscale(1) contrast(1.15) brightness(.58); }
+.heroVisual img { width: 100%; height: 100%; object-fit: cover; filter: saturate(.92) contrast(1.08) brightness(.72); }
 .heroMark { position: absolute; z-index: 2; right: 2rem; bottom: 2rem; font-family: Georgia, serif; font-size: 4rem; font-weight: 300; }
 .discovery { padding: 3.2rem clamp(1rem, 5vw, 5rem) 1.4rem; }
 .discoveryHead { display: flex; align-items: end; justify-content: space-between; gap: 1.5rem; }
@@ -108,8 +108,9 @@
 @media (max-width: 680px) {
   .header { min-height: 4.7rem; padding: .75rem; }
   .hero { width: 100%; min-height: 0; grid-template-columns: 1fr; }
-  .heroCopy { min-height: 25rem; padding: 2.25rem 1rem; }
-  .heroVisual { min-height: 18rem; }
+  .heroCopy { min-height: 20rem; padding: 1.8rem .95rem; }
+  .heroVisual { min-height: 14rem; }
+  .heroVisual img { object-position: center 32%; }
   .hero h1 { font-size: clamp(3.2rem, 20vw, 4.8rem); }
   .discovery, .items { width: 100%; padding-left: .75rem; padding-right: .75rem; }
   .itemCopy { padding: 1.5rem .35rem 2rem; }
@@ -129,3 +130,9 @@
 
 /* PMD_STABLE_BOTTOM_ACTIONS_R17C */
 .dock button[aria-disabled="true"]{opacity:.52;filter:saturate(.55)}
+
+/* PMD HERO MOBILE R45 TARGETED OVERRIDES */
+@media (max-width: 680px) {
+  .heroVisual img { object-position: center 20%; }
+}
+/* PMD HERO MOBILE R45 TARGETED OVERRIDES END */

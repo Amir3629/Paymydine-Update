@@ -48,6 +48,36 @@ const first = (source: Record<string, any>, keys: string[], fallback: unknown = 
   return fallback
 }
 
+const nullableNumber = (value: unknown): number | null => {
+  if (value === undefined || value === null || String(value).trim() === '') return null
+  const out = Number(value)
+  return Number.isFinite(out) ? out : null
+}
+
+function nutritionFrom(source: Record<string, any>): MenuItem['nutrition'] {
+  const nested = object(source.nutrition)
+  const nutrition = {
+    calories: nullableNumber(first(source, ['calories'], first(nested, ['calories']))),
+    protein: nullableNumber(first(source, ['protein'], first(nested, ['protein']))),
+    carbs: nullableNumber(first(source, ['carbs','carbohydrates'], first(nested, ['carbs','carbohydrates']))),
+    fat: nullableNumber(first(source, ['fat'], first(nested, ['fat']))),
+    sugar: nullableNumber(first(source, ['sugar'], first(nested, ['sugar']))),
+    servingSize: str(first(source, ['serving_size','servingSize'], first(nested, ['serving_size','servingSize']))) || null,
+    disclaimer: str(first(nested, ['disclaimer'])) || null,
+  }
+
+  const hasNutrition =
+    nutrition.calories !== null ||
+    nutrition.protein !== null ||
+    nutrition.carbs !== null ||
+    nutrition.fat !== null ||
+    nutrition.sugar !== null ||
+    Boolean(nutrition.servingSize) ||
+    Boolean(nutrition.disclaimer)
+
+  return hasNutrition ? nutrition : null
+}
+
 // PMD_LEGACY_MEDIA_CONTRACT_R10
 // The existing PayMyDine backend already owns menu media under /api/media/*.
 // Keep that proven contract instead of inventing a second media authority.
@@ -210,15 +240,7 @@ export function normalizeMenu(payload: unknown): CustomerBootstrap['menu'] {
       available: source.available === undefined ? !yes(source.is_stock_out) : yes(source.available, true),
       stockQty: source.stock_qty == null ? null : num(source.stock_qty),
       prepTimeMinutes: source.prep_time_minutes == null ? null : num(source.prep_time_minutes),
-      nutrition: {
-        calories: source.calories == null ? null : num(source.calories),
-        protein: source.protein == null ? null : num(source.protein),
-        carbs: source.carbs == null ? null : num(source.carbs),
-        fat: source.fat == null ? null : num(source.fat),
-        sugar: source.sugar == null ? null : num(source.sugar),
-        servingSize: str(first(source, ['serving_size','servingSize'])) || null,
-        disclaimer: str(object(source.nutrition).disclaimer) || null,
-      },
+      nutrition: nutritionFrom(source),
       options: optionGroups(source.options),
       isChefRecommended: yes(first(source, ['is_chef_recommended','is_recommended','is_featured'])),
       isBestseller: yes(first(source, ['is_bestseller','is_manual_bestseller'])),

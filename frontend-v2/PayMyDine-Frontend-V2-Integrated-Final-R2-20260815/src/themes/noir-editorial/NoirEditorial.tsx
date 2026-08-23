@@ -10,7 +10,7 @@ import styles from './NoirEditorial.module.css'
 
 export default function NoirEditorial() {
   const {
-    bootstrap, labels, tableDisplay, categories, selectedCategory, setSelectedCategory,
+    bootstrap, labels, categories, selectedCategory, setSelectedCategory,
     visibleItems, featuredItems, search, setSearch, openItem, activeOrder, formatCurrency, direction,
   } = useMenuRuntime()
   const hero = bootstrap.restaurant.heroImageUrl || '/theme-heroes/noir-editorial-hero.webp'
@@ -31,23 +31,20 @@ export default function NoirEditorial() {
       <header className={styles.header}>
         <RestaurantLogo />
         <div className={styles.headerActions}>
-          {tableDisplay && <span className={styles.table}>{labels.table} {tableDisplay}</span>}
           <HeaderValetButton /><LanguageSelect />
           
           
         </div>
       </header>
 
-      <section className={styles.hero}>
+      <section className={styles.hero} data-pmd-theme-hero="true">
         <div className={styles.heroCopy}>
-          <span className={styles.eyebrow}>A culinary experience beyond the expected.</span>
-          <h1>Taste<br />the<br /><em>unseen</em></h1>
-          <p>{bootstrap.restaurant.description || 'Seasonal menus, precise hospitality and a table designed around you.'}</p>
-          
+          <span className={styles.eyebrow}>{labels.welcomeTo}</span>
+          <h1>{bootstrap.restaurant.name}</h1>
+          <p>{labels.browseOrderEnjoy}</p>
         </div>
         <div className={styles.heroVisual}>
           {hero && <img src={hero} alt="" width={900} height={1200} />}
-          <span className={styles.heroMark}>X</span>
         </div>
       </section>
 

@@ -3,14 +3,14 @@
 import type { CSSProperties } from 'react'
 import { Bell, Car, ChevronRight, Menu, Search, ShoppingBag } from 'lucide-react'
 import { useMenuRuntime } from '@/src/runtime/MenuRuntimeContext'
-import { CategoryGlyph, DietaryBadges, LanguageSelect, PlatformFooter, QuickAddButton, RestaurantLogo, SocialLinks, HeaderValetButton } from '@/src/runtime/components/SharedPieces'
+import { DietaryBadges, LanguageSelect, PlatformFooter, QuickAddButton, RestaurantLogo, SocialLinks, HeaderValetButton } from '@/src/runtime/components/SharedPieces'
 import { RuntimeOverlays } from '@/src/runtime/components/RuntimeOverlays'
 import { ThemeBottomToolBar } from '@/src/runtime/components/ThemeBottomToolBar'
 import styles from './LumiereFineDining.module.css'
 
 export default function LumiereFineDining() {
   const {
-    bootstrap, labels, tableDisplay, categories, selectedCategory, setSelectedCategory, visibleItems,
+    bootstrap, labels, categories, selectedCategory, setSelectedCategory, visibleItems,
     featuredItems, search, setSearch, openItem, activeOrder, cartSubtotal, formatCurrency, direction,
   } = useMenuRuntime()
   const hero = bootstrap.restaurant.heroImageUrl || '/theme-heroes/lumiere-fine-dining-hero.webp'
@@ -32,13 +32,11 @@ export default function LumiereFineDining() {
           </div>
         </header>
 
-        <section className={styles.hero}>
+        <section className={styles.hero} data-pmd-theme-hero="true">
           <div className={styles.heroCopy}>
-            <span className={styles.monogram}>L</span>
-            <h1>Modern Cuisine.<br />Timeless Moments.</h1>
-            <span className={styles.ornament}>◇</span>
-            <p>{bootstrap.restaurant.description || 'Crafted with seasonal ingredients and care.'}</p>
-            {tableDisplay && <small>{labels.table} {tableDisplay}</small>}
+            <span className={styles.welcome}>{labels.welcomeTo}</span>
+            <h1>{bootstrap.restaurant.name}</h1>
+            <p>{labels.browseOrderEnjoy}</p>
           </div>
           <div className={styles.heroVisual}>{hero && <img src={hero} alt="" width={900} height={680} />}</div>
         </section>
@@ -48,8 +46,8 @@ export default function LumiereFineDining() {
         <label className={styles.search}><Search /><input value={search} onChange={(event) => setSearch(event.target.value)} placeholder={labels.search} /></label>
 
         <nav className={styles.categories} aria-label="Categories">
-          <button className={selectedCategory === 'all' ? styles.active : ''} type="button" onClick={() => setSelectedCategory('all')}><span><CategoryGlyph name="all" size={28} /></span><small>{labels.all}</small></button>
-          {categories.map((category) => <button key={category.id} className={selectedCategory === category.id ? styles.active : ''} type="button" onClick={() => setSelectedCategory(category.id)}><span><CategoryGlyph name={category.name} size={28} /></span><small>{category.name}</small></button>)}
+          <button className={selectedCategory === 'all' ? styles.active : ''} type="button" onClick={() => setSelectedCategory('all')}>{labels.all}</button>
+          {categories.map((category) => <button key={category.id} className={selectedCategory === category.id ? styles.active : ''} type="button" onClick={() => setSelectedCategory(category.id)}>{category.name}</button>)}
         </nav>
 
         <section className={styles.menuSection}>

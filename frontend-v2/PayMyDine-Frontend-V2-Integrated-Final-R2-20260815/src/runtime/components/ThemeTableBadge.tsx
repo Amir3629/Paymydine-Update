@@ -5,23 +5,14 @@ import { createPortal } from 'react-dom'
 import { useMenuRuntime } from '@/src/runtime/MenuRuntimeContext'
 import styles from './ThemeTableBadge.module.css'
 
-function normalizedText(value: string | null | undefined): string {
-  return String(value || '').replace(/\s+/g, ' ').trim().toLowerCase()
+function findHeroHost(root: HTMLElement): HTMLElement | null {
+  return root.querySelector<HTMLElement>('[data-pmd-theme-hero="true"]')
 }
 
-function findHeaderHost(root: HTMLElement): HTMLElement {
-  const headers = Array.from(root.querySelectorAll<HTMLElement>('header'))
-  const visibleHeader = headers.find((header) => {
-    const rect = header.getBoundingClientRect()
-    return rect.width > 20 && rect.height > 20
-  })
-  return visibleHeader || headers[0] || root
-}
-
-/* PMD_THEME_TABLE_BADGE_R39
- * One shared table-number authority for all ten V2 themes. The table context now
- * lives in the theme header rather than on top of hero photography. It stays
- * intentionally compact and inherits each theme's PMD tokens.
+/* PMD_THEME_HERO_TABLE_BADGE
+ * One shared table-number authority for all ten V2 themes. The table context
+ * belongs at the top-center of the hero so it never competes with the restaurant
+ * name or the valet/language controls in the header.
  */
 export function ThemeTableBadge() {
   const { tableDisplay, labels } = useMenuRuntime()
@@ -36,39 +27,28 @@ export function ThemeTableBadge() {
     const root = document.querySelector<HTMLElement>('main[data-theme-id]')
     if (!root) return
 
-    const nextHost = findHeaderHost(root)
-    nextHost.dataset.pmdTableBadgeHost = 'r39'
+    const nextHost = findHeroHost(root)
+    if (!nextHost) {
+      setHost(null)
+      return
+    }
 
-    const expected = normalizedText(`${labels.table} ${tableDisplay}`)
-    const originals = Array.from(root.querySelectorAll<HTMLElement>('span, div')).filter((element) => {
-      if (element.dataset.pmdTableBadge === 'r39') return false
-      return normalizedText(element.textContent) === expected
-    })
-
-    originals.forEach((element) => {
-      element.dataset.pmdTableBadgeOriginal = 'r39'
-    })
-
+    nextHost.dataset.pmdTableBadgeHost = 'hero'
     setHost(nextHost)
 
     return () => {
-      if (nextHost.dataset.pmdTableBadgeHost === 'r39') {
+      if (nextHost.dataset.pmdTableBadgeHost === 'hero') {
         delete nextHost.dataset.pmdTableBadgeHost
       }
-      originals.forEach((element) => {
-        if (element.dataset.pmdTableBadgeOriginal === 'r39') {
-          delete element.dataset.pmdTableBadgeOriginal
-        }
-      })
     }
-  }, [labels.table, tableDisplay])
+  }, [tableDisplay])
 
   if (!host || !tableDisplay) return null
 
   return createPortal(
     <div
       className={styles.badge}
-      data-pmd-table-badge="r39"
+      data-pmd-table-badge="hero"
       aria-label={`${labels.table} ${tableDisplay}`}
     >
       <span>{labels.table}</span>

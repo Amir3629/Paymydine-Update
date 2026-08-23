@@ -1,7 +1,7 @@
 'use client'
 
 import type { CSSProperties } from 'react'
-import { Beef, Bell, Car, ChevronRight, Flame, Menu, Search, ShoppingBag, Sparkles } from 'lucide-react'
+import { Beef, Bell, Car, ChevronRight, Menu, Search, ShoppingBag } from 'lucide-react'
 import { useMenuRuntime } from '@/src/runtime/MenuRuntimeContext'
 import { DietaryBadges, LanguageSelect, PlatformFooter, QuickAddButton, RestaurantLogo, SocialLinks, HeaderValetButton } from '@/src/runtime/components/SharedPieces'
 import { RuntimeOverlays } from '@/src/runtime/components/RuntimeOverlays'
@@ -10,7 +10,7 @@ import styles from './EmberSteakhouse.module.css'
 
 export default function EmberSteakhouse() {
   const {
-    bootstrap, labels, tableDisplay, categories, selectedCategory, setSelectedCategory, visibleItems,
+    bootstrap, labels, categories, selectedCategory, setSelectedCategory, visibleItems,
     featuredItems, search, setSearch, openItem, cartSubtotal, activeOrder, formatCurrency, direction,
   } = useMenuRuntime()
   const hero = bootstrap.restaurant.heroImageUrl || '/theme-heroes/ember-steakhouse-hero.webp'
@@ -25,23 +25,18 @@ export default function EmberSteakhouse() {
       <div className={styles.smoke} aria-hidden="true" />
       <header className={styles.header}>
         
-        <div className={styles.brand}><RestaurantLogo /><small>Wood · fire · prime cuts</small></div>
+        <div className={styles.brand}><RestaurantLogo /></div>
         <div className={styles.headerTools}><HeaderValetButton /><LanguageSelect /></div>
       </header>
 
-      <section className={styles.hero}>
+      <section className={styles.hero} data-pmd-theme-hero="true">
         {hero && <img src={hero} alt="" width={1400} height={900} />}
         <div className={styles.heroShade} />
         <div className={styles.heroCopy}>
-          <span><Flame />Live fire dining</span>
+          <span>{labels.welcomeTo}</span>
           <h1>{bootstrap.restaurant.name}</h1>
-          <p>{bootstrap.restaurant.description || 'Prime cuts, ember-roasted vegetables and the patience of a real charcoal fire.'}</p>
-          <div className={styles.heroMeta}>
-            {tableDisplay && <small>{labels.table} {tableDisplay}</small>}
-            <small>Open flame · dry aged · seasonal sides</small>
-          </div>
+          <p>{labels.browseOrderEnjoy}</p>
         </div>
-        <div className={styles.temperature}><Sparkles /><strong>900°</strong><small>charcoal hearth</small></div>
       </section>
 
       

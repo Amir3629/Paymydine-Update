@@ -129,12 +129,31 @@ export function SocialLinks({ links }: { links?: SocialLink[] }) {
   )
 }
 
+function HalalBadgeIcon() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M15.8 4.2a7.8 7.8 0 1 0 4 11.6 6.6 6.6 0 1 1-4-11.6Z" />
+      <path d="m18.3 4.2.55 1.15 1.25.18-.9.88.21 1.24-1.11-.58-1.11.58.21-1.24-.9-.88 1.25-.18.55-1.15Z" />
+    </svg>
+  )
+}
+
+function VeganBadgeIcon() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M12 20V10" />
+      <path d="M12 13c-4.2 0-6.8-2.2-7.5-6.4 4.4-.3 7 1.7 7.5 5.9" />
+      <path d="M12 10c.5-3.8 3.1-5.8 7.3-5.6-.5 4.2-3 6.5-7.3 6.6" />
+    </svg>
+  )
+}
+
 export function DietaryBadges({ item, compact = false }: { item: MenuItem; compact?: boolean }) {
   const { labels } = useMenuRuntime()
   const values = [
-    item.vegan ? { key: 'vegan', label: labels.vegan, icon: <Leaf /> } : null,
-    !item.vegan && item.vegetarian ? { key: 'vegetarian', label: labels.vegetarian, icon: <Leaf /> } : null,
-    item.halal ? { key: 'halal', label: labels.halal, icon: <Star /> } : null,
+    item.halal ? { key: 'halal', label: labels.halal, icon: <HalalBadgeIcon /> } : null,
+    item.vegetarian ? { key: 'vegetarian', label: labels.vegetarian, icon: <Leaf /> } : null,
+    item.vegan ? { key: 'vegan', label: labels.vegan, icon: <VeganBadgeIcon /> } : null,
   ].filter(Boolean) as Array<{ key: string; label: string; icon: React.ReactNode }>
   if (!values.length) return null
   return (

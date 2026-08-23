@@ -78,7 +78,7 @@ export function usePaymentReturnVerification({
         provider === "worldline"
           ? "/api/v1/payments/worldline/checkout-status"
           : provider === "sumup"
-            ? "/api/v1/payments/sumup/checkout-status"
+            ? "/api/v1/payments/sumup/self-service-status"
             : provider === "square"
               ? "/api/v1/payments/square/checkout-status"
               : provider === "vr_payment"
@@ -108,6 +108,7 @@ export function usePaymentReturnVerification({
             (verificationPayload as any)?.session_id ||
               (verificationPayload as any)?.transaction_id ||
               (verificationPayload as any)?.provider_reference ||
+              (verificationPayload as any)?.checkout_id ||
               ""
           )
 

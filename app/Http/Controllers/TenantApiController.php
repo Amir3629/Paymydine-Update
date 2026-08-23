@@ -221,7 +221,7 @@ class TenantApiController extends Controller
     {
         return array_map(function ($column) use ($table) {
             return $this->optionalMenuColumnExpression($column, $column, $table);
-        }, ['calories', 'protein', 'carbs', 'fat', 'sugar', 'serving_size']);
+        }, ['calories', 'protein', 'carbs', 'fat', 'sugar', 'serving_size', 'prep_time_minutes']);
     }
 
     /**

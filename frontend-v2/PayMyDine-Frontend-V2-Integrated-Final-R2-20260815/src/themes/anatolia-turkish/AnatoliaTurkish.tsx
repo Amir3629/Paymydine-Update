@@ -1,19 +1,19 @@
 'use client'
 
 import type { CSSProperties } from 'react'
-import { Bell, Car, ChevronRight, Flame, Menu, Search, ShoppingBag, UtensilsCrossed } from 'lucide-react'
+import { Bell, Car, ChevronRight, Menu, Search, ShoppingBag, UtensilsCrossed } from 'lucide-react'
 import { useMenuRuntime } from '@/src/runtime/MenuRuntimeContext'
-import { CategoryGlyph, DietaryBadges, LanguageSelect, PlatformFooter, QuickAddButton, RestaurantLogo, SocialLinks, HeaderValetButton } from '@/src/runtime/components/SharedPieces'
+import { DietaryBadges, LanguageSelect, PlatformFooter, QuickAddButton, RestaurantLogo, SocialLinks, HeaderValetButton } from '@/src/runtime/components/SharedPieces'
 import { RuntimeOverlays } from '@/src/runtime/components/RuntimeOverlays'
 import { ThemeBottomToolBar } from '@/src/runtime/components/ThemeBottomToolBar'
 import styles from './AnatoliaTurkish.module.css'
 
 export default function AnatoliaTurkish() {
   const {
-    bootstrap, labels, tableDisplay, categories, selectedCategory, setSelectedCategory, visibleItems,
+    bootstrap, labels, categories, selectedCategory, setSelectedCategory, visibleItems,
     featuredItems, search, setSearch, openItem, cartSubtotal, activeOrder, formatCurrency, direction,
   } = useMenuRuntime()
-  const hero = bootstrap.restaurant.heroImageUrl || '/theme-heroes/anatolia-turkish-hero.webp'
+  const hero = '/theme-heroes/anatolia-turkish-cultural-test.png' // PMD CULTURAL HERO TEST
   const rootStyle = {
     background: '#f4ead9', color: '#34251f', minHeight: '100dvh', colorScheme: 'light',
     '--pmd-accent': '#bd5b3f', '--pmd-accentText': '#fff9ef', '--pmd-surface': '#fff9ef', '--pmd-soft': '#f3e8d6',
@@ -26,23 +26,21 @@ export default function AnatoliaTurkish() {
       <div className={styles.shell}>
         <header className={styles.header}>
           
-          <div className={styles.brand}><RestaurantLogo /><small>Anatolian kitchen · fire & hospitality</small></div>
+          <div className={styles.brand}><RestaurantLogo /></div>
           <div className={styles.headerTools}>
             <HeaderValetButton /><LanguageSelect />
             
           </div>
         </header>
 
-        <section className={styles.hero}>
+        <section className={styles.hero} data-pmd-theme-hero="true">
           <div className={styles.heroCopy}>
-            <span className={styles.kicker}>Sofraya hoş geldiniz</span>
+            <span className={styles.kicker}>{labels.welcomeTo}</span>
             <h1>{bootstrap.restaurant.name}</h1>
-            <p>{bootstrap.restaurant.description || 'Anatolian recipes, charcoal fire and a table made for sharing.'}</p>
-            {tableDisplay && <small>{labels.table} {tableDisplay}</small>}
+            <p>{labels.browseOrderEnjoy}</p>
           </div>
           <div className={styles.heroImage}>
             {hero && <img src={hero} alt="" width={900} height={680} />}
-            <span className={styles.sunSeal}><Flame />Ocakbaşı</span>
           </div>
         </section>
 
@@ -51,10 +49,10 @@ export default function AnatoliaTurkish() {
         <label className={styles.search}><Search /><input value={search} onChange={(event) => setSearch(event.target.value)} placeholder={labels.search} /></label>
 
         <nav className={styles.categories} aria-label="Categories">
-          <button className={selectedCategory === 'all' ? styles.active : ''} type="button" onClick={() => setSelectedCategory('all')}><CategoryGlyph name="all" size={28} /><span>{labels.all}</span></button>
+          <button className={selectedCategory === 'all' ? styles.active : ''} type="button" onClick={() => setSelectedCategory('all')}>{labels.all}</button>
           {categories.map((category) => (
             <button key={category.id} className={selectedCategory === category.id ? styles.active : ''} type="button" onClick={() => setSelectedCategory(category.id)}>
-              <CategoryGlyph name={category.name} size={28} /><span>{category.name}</span>
+              {category.name}
             </button>
           ))}
         </nav>

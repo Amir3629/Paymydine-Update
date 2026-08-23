@@ -9,21 +9,24 @@
 
   module.install = function (ctx) {
     var api = originalInstall(ctx);
+    var originalOpenPayment = api.openPayment;
     var originalRender = api.renderPayment;
     var originalBind = api.bindPayment;
     var root = ctx.root;
     var state = ctx.state;
 
-    function isSecureHandoff() {
-      return String(state.payment.method || '').indexOf('online:') === 0;
-    }
-
     function isDirectTerminal() {
       return state.payment.method === 'direct_terminal';
     }
 
-    function normalizeProviderOnlyFlow() {
-      if (!isSecureHandoff() && !isDirectTerminal()) return;
+    function normalizeStaffFlow() {
+      if (state.payment.method !== 'cash' && state.payment.method !== 'direct_terminal') {
+        state.payment.method = 'cash';
+        state.payment.providerCode = null;
+        state.payment.terminalDeviceId = null;
+        state.payment.terminalAttemptId = null;
+      }
+
       state.payment.splitMode = 'full';
       state.payment.customAmount = '';
       state.payment.itemQuantities = {};
@@ -31,54 +34,185 @@
       state.payment.customTip = '';
       state.payment.coupon = null;
       state.payment.couponCode = '';
+      state.payment.payerLabel = '';
+      state.payment.reference = '';
+      state.payment.externalConfirmed = false;
     }
 
-    function setHidden(selector, hidden) {
+    function forceHidden(element, hidden) {
+      if (!element) return;
+      element.hidden = !!hidden;
+      if (hidden) {
+        element.style.setProperty('display', 'none', 'important');
+      } else {
+        element.style.removeProperty('display');
+      }
+    }
+
+    function blockFor(selector) {
+      var element = root.querySelector(selector);
+      return element ? (element.closest('.pmd-pos-payment-block') || element) : null;
+    }
+
+    function setBlockHidden(selector, hidden) {
+      forceHidden(blockFor(selector), hidden);
+    }
+
+    function hideClosestLabel(selector) {
       var element = root.querySelector(selector);
       if (!element) return;
-      var block = element.closest('.pmd-pos-payment-block') || element;
-      block.hidden = !!hidden;
+      forceHidden(element.closest('label'), true);
     }
 
-    function applyPolicyUI() {
-      var providerOnly = isSecureHandoff() || isDirectTerminal();
-      setHidden('[data-pos-split-tabs]', providerOnly);
-      setHidden('[data-pos-tip-buttons]', providerOnly);
-      var collectionFields = root.querySelector('[data-pos-collection-fields]');
-      if (collectionFields) collectionFields.hidden = providerOnly;
+    function simplifyMethodHeading() {
+      var grid = root.querySelector('[data-pos-methods]');
+      var block = grid ? grid.closest('.pmd-pos-payment-block') : null;
+      if (!block) return;
+      var title = block.querySelector('.pmd-pos-payment-block-title b');
+      var note = block.querySelector('.pmd-pos-payment-block-title span');
+      if (title) title.textContent = 'How will they pay?';
+      forceHidden(note, true);
+    }
 
-      var onlineBox = root.querySelector('[data-pos-online-box]');
-      if (onlineBox && isSecureHandoff() && !onlineBox.hidden) {
-        onlineBox.innerHTML = '<b>Secure customer checkout</b><br>This button opens the existing PayMyDine customer payment flow for the same table and order. Card data, wallet approval, online split selection, coupon and tip stay inside the configured provider checkout and are never collected by the waiter POS.';
+    function simplifyMethods() {
+      var grid = root.querySelector('[data-pos-methods]');
+      if (!grid) return;
+
+      var visible = 0;
+      grid.querySelectorAll('[data-payment-method]').forEach(function (button) {
+        var key = String(button.getAttribute('data-payment-method') || '');
+        var allowed = key === 'cash' || key === 'direct_terminal';
+        forceHidden(button, !allowed);
+        if (!allowed) return;
+
+        visible += 1;
+        var title = button.querySelector('b');
+        var note = button.querySelector('small');
+
+        if (key === 'cash') {
+          if (title) title.textContent = 'Cash';
+          if (note) note.textContent = 'Cash payment';
+        } else {
+          if (title) title.textContent = 'Terminal';
+          if (note) note.textContent = 'Pay on a connected terminal';
+        }
+      });
+
+      grid.dataset.pmdSimpleMethodCount = String(visible);
+      simplifyMethodHeading();
+    }
+
+    function selectedTerminalButton() {
+      return root.querySelector('[data-terminal-provider].is-active');
+    }
+
+    function simplifyTerminal() {
+      var terminalBox = root.querySelector('[data-pos-terminal-box]');
+      if (!terminalBox || !isDirectTerminal() || terminalBox.hidden) return;
+
+      var legacyNote = terminalBox.querySelector('[data-pmd-terminal-policy-note]');
+      if (legacyNote) legacyNote.remove();
+
+      var buttons = Array.prototype.slice.call(
+        terminalBox.querySelectorAll('[data-terminal-provider]')
+      );
+
+      var title = terminalBox.querySelector('.pmd-pos-terminal-title b');
+      var subtitle = terminalBox.querySelector('.pmd-pos-terminal-title span');
+      if (title) title.textContent = buttons.length > 1 ? 'Choose terminal' : 'Terminal';
+      if (subtitle && buttons.length <= 1 && subtitle.textContent === 'Ready') {
+        subtitle.textContent = '';
       }
 
-      var terminalBox = root.querySelector('[data-pos-terminal-box]');
-      if (terminalBox && isDirectTerminal() && !terminalBox.hidden) {
-        var note = terminalBox.querySelector('[data-pmd-terminal-policy-note]');
-        if (!note) {
-          note = document.createElement('div');
-          note.dataset.pmdTerminalPolicyNote = '1';
-          note.style.marginTop = '8px';
-          note.style.fontWeight = '800';
-          note.textContent = 'Connected-terminal requests use the full remaining order balance. The order is not marked paid until provider confirmation is recorded.';
-          terminalBox.appendChild(note);
+      buttons.forEach(function (button) {
+        if (button.classList.contains('is-offline')) button.disabled = true;
+      });
+
+      var selected = selectedTerminalButton();
+      var offline = !!(selected && selected.classList.contains('is-offline'));
+      var payButton = root.querySelector('[data-pos-pay-button]');
+
+      if (payButton && offline) {
+        payButton.disabled = true;
+        payButton.textContent = 'Terminal offline';
+      }
+
+      var existing = terminalBox.querySelector('[data-pmd-simple-terminal-status]');
+      if (existing) existing.remove();
+
+      if (selected && offline) {
+        var status = document.createElement('div');
+        status.dataset.pmdSimpleTerminalStatus = '1';
+        status.className = 'pmd-pos-terminal-simple-status is-offline';
+        status.textContent = 'This terminal is offline. Turn it on or choose another terminal.';
+        terminalBox.appendChild(status);
+      }
+    }
+
+    function applySimpleStaffUI() {
+      // Staff checkout is intentionally simple: full remaining balance,
+      // Cash or Terminal only. Guest checkout keeps its own online methods.
+      setBlockHidden('[data-pos-split-tabs]', true);
+      setBlockHidden('[data-pos-tip-buttons]', true);
+
+      hideClosestLabel('[data-pos-payer-label]');
+      forceHidden(root.querySelector('[data-pos-reference-field]'), true);
+      forceHidden(root.querySelector('[data-pos-external-confirm-row]'), true);
+
+      var collection = root.querySelector('[data-pos-collection-fields]');
+      forceHidden(collection, isDirectTerminal());
+
+      var cashField = root.querySelector('[data-pos-cash-field]');
+      forceHidden(cashField, state.payment.method !== 'cash');
+
+      forceHidden(root.querySelector('[data-pos-online-box]'), true);
+      forceHidden(root.querySelector('[data-pos-copy-link]'), true);
+      forceHidden(root.querySelector('.pmd-pos-payment-safety'), true);
+
+      simplifyMethods();
+      simplifyTerminal();
+    }
+
+    // V3 intentionally opens the modal before it fetches the fresh settlement
+    // summary. On a fast screen that creates one visible frame of unrendered
+    // payment markup. Keep the modal invisible until the first authoritative
+    // summary/render cycle has completed, then reveal it on the next paint.
+    api.openPayment = async function () {
+      var modal = root.querySelector('[data-pos-payment-modal]');
+      if (modal) modal.classList.add('pmd-payment-is-preparing');
+
+      try {
+        return await originalOpenPayment();
+      } finally {
+        if (modal) {
+          window.requestAnimationFrame(function () {
+            modal.classList.remove('pmd-payment-is-preparing');
+          });
         }
       }
-    }
+    };
 
     api.renderPayment = function () {
-      normalizeProviderOnlyFlow();
+      normalizeStaffFlow();
       originalRender();
-      applyPolicyUI();
+      applySimpleStaffUI();
     };
 
     api.bindPayment = function () {
       originalBind();
+
       root.addEventListener('click', function (event) {
-        var target = event.target && event.target.closest ? event.target.closest('[data-payment-method]') : null;
-        if (!target) return;
-        setTimeout(function () {
-          normalizeProviderOnlyFlow();
+        var method = event.target && event.target.closest
+          ? event.target.closest('[data-payment-method]')
+          : null;
+        var terminal = event.target && event.target.closest
+          ? event.target.closest('[data-terminal-provider]')
+          : null;
+
+        if (!method && !terminal) return;
+
+        window.setTimeout(function () {
+          normalizeStaffFlow();
           api.renderPayment();
         }, 0);
       });

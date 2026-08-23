@@ -10,7 +10,7 @@ import styles from './ArtDecoSpeakeasy.module.css'
 
 export default function ArtDecoSpeakeasy() {
   const {
-    bootstrap, labels, tableDisplay, categories, selectedCategory, setSelectedCategory, visibleItems,
+    bootstrap, labels, categories, selectedCategory, setSelectedCategory, visibleItems,
     search, setSearch, openItem, cartSubtotal,
     activeOrder, formatCurrency, direction,
   } = useMenuRuntime()
@@ -26,21 +26,20 @@ export default function ArtDecoSpeakeasy() {
       <div className={styles.outerFrame}>
         <header className={styles.header}>
           
-          <div className={styles.brand}><Crown /><RestaurantLogo /><span>Fine spirits · late evenings</span></div>
+          <div className={styles.brand}><Crown /><RestaurantLogo /></div>
           <div className={styles.headerActions}><HeaderValetButton /><LanguageSelect /></div>
         </header>
 
-        <section className={styles.hero}>
+        <section className={styles.hero} data-pmd-theme-hero="true">
           <img className={styles.heroBackground} src={hero} alt="" width={1672} height={941} loading="eager" />
           <div className={styles.heroVeil} />
           <span className={styles.cornerA} /><span className={styles.cornerB} />
           <Sparkles className={styles.sparkle} />
           <div className={styles.heroCopy}>
-            <small>Tonight at</small>
+            <small>{labels.welcomeTo}</small>
             <h1>{bootstrap.restaurant.name}</h1>
             <div className={styles.divider}><i /><b>◆</b><i /></div>
-            <p>{bootstrap.restaurant.description || "Let's misbehave — rare spirits, beautiful plates and live hospitality."}</p>
-            {tableDisplay && <span>{labels.table} {tableDisplay}</span>}
+            <p>{labels.browseOrderEnjoy}</p>
           </div>
           
         </section>

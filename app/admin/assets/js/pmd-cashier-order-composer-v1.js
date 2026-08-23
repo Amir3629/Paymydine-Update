@@ -248,36 +248,82 @@
     });
   }
 
+  // PMD_CASHIER_PAYMENT_V3_AUTHORITY_FINAL
+  // Cashier owns the shell, while the canonical staff payment engine is V3.
+  // Never instantiate the legacy V2 engine here: it exposes provider/customer
+  // methods that do not belong in the waiter/cashier payment surface.
   async function ensurePaymentAssets() {
     if (state.paymentAssetsPromise) return state.paymentAssetsPromise;
 
     state.paymentAssetsPromise = (async function () {
-      // Only the canonical Payment Center styling/module is reused.
-      // No PMDWaiterPOSApp and no SimpleV27.
-      injectStyle(
-        '/app/admin/assets/css/pmd-waiter-pos-v1.css?v=r41',
+      function hasStyle(path) {
+        return Array.prototype.slice.call(document.querySelectorAll('link[href]')).some(function (link) {
+          return String(link.href || '').indexOf(path) !== -1;
+        });
+      }
+
+      function ensureStyle(path, key) {
+        if (hasStyle(path)) return;
+        injectStyle(path, key);
+      }
+
+      function loadFreshScript(path, cacheKey) {
+        return new Promise(function (resolve, reject) {
+          var script = document.createElement('script');
+          script.src = path + '?v=' + encodeURIComponent(cacheKey);
+          script.async = false;
+          script.onload = resolve;
+          script.onerror = function () {
+            reject(new Error('Could not load ' + path));
+          };
+          document.head.appendChild(script);
+        });
+      }
+
+      ensureStyle(
+        '/app/admin/assets/css/pmd-waiter-pos-v1.css',
         'data-pmd-coc-payment-style'
       );
-
-      await injectScript(
-        '/app/admin/assets/js/pmd-waiter-pos-payment-v2.js',
-        'PMDWaiterPOSPaymentV2'
+      ensureStyle(
+        '/app/admin/assets/css/pmd-cashier-payment-clean-v1.css',
+        'data-pmd-coc-payment-clean-style'
+      );
+      ensureStyle(
+        '/app/admin/assets/css/pmd-payment-simple-v1.css',
+        'data-pmd-coc-payment-simple-style'
       );
 
+      // The Cashier must install V3 itself if global asset ordering has not
+      // established it yet. An old PMDWaiterPOSPaymentV2 global is NOT enough.
       if (
-        window.PMDWaiterPOSPaymentV2 &&
-        !window.PMDWaiterPOSPaymentV2.__pmdPolicyWrapped
+        !window.PMDWaiterPOSPaymentV2 ||
+        window.PMDWaiterPOSPaymentV2.__pmdV3 !== true
       ) {
-        await injectScript(
-          '/app/admin/assets/js/pmd-waiter-pos-payment-policy-v2.js'
+        await loadFreshScript(
+          '/app/admin/assets/js/pmd-waiter-pos-payment-v3.js',
+          'cashier-payment-v3-final'
         );
       }
 
       if (
         !window.PMDWaiterPOSPaymentV2 ||
+        window.PMDWaiterPOSPaymentV2.__pmdV3 !== true ||
         typeof window.PMDWaiterPOSPaymentV2.install !== 'function'
       ) {
-        throw new Error('Canonical Payment Center is unavailable.');
+        throw new Error('Canonical staff Payment V3 is unavailable.');
+      }
+
+      // If a policy tag executed earlier against an old module, execute the
+      // same canonical policy once more against the now-authoritative V3.
+      if (!window.PMDWaiterPOSPaymentV2.__pmdPolicyWrapped) {
+        await loadFreshScript(
+          '/app/admin/assets/js/pmd-waiter-pos-payment-policy-v2.js',
+          'cashier-payment-policy-final'
+        );
+      }
+
+      if (!window.PMDWaiterPOSPaymentV2.__pmdPolicyWrapped) {
+        throw new Error('Canonical staff payment policy is unavailable.');
       }
     })();
 

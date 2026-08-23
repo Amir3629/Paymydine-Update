@@ -10,7 +10,7 @@ import styles from './NeonCocktailBar.module.css'
 
 export default function NeonCocktailBar() {
   const {
-    bootstrap, labels, tableDisplay, categories, selectedCategory, setSelectedCategory, visibleItems,
+    bootstrap, labels, categories, selectedCategory, setSelectedCategory, visibleItems,
     featuredItems, search, setSearch, openItem, cartSubtotal, activeOrder, formatCurrency, direction,
   } = useMenuRuntime()
   const hero = bootstrap.restaurant.heroImageUrl || '/theme-heroes/neon-cocktail-bar-hero.webp'
@@ -25,18 +25,17 @@ export default function NeonCocktailBar() {
       <div className={styles.noise} />
       <header className={styles.header}>
         
-        <div className={styles.brand}><RestaurantLogo /><span>Berlin · after dark</span></div>
+        <div className={styles.brand}><RestaurantLogo /></div>
         <div className={styles.headerTools}><HeaderValetButton /><LanguageSelect /></div>
       </header>
 
-      <section className={styles.hero}>
+      <section className={styles.hero} data-pmd-theme-hero="true">
         {hero && <img src={hero} alt="" width={1200} height={720} />}
         <div className={styles.heroShade} />
         <div className={styles.heroCopy}>
-          <span>Welcome to</span>
+          <span>{labels.welcomeTo}</span>
           <h1>{bootstrap.restaurant.name}</h1>
-          <p>{bootstrap.restaurant.description || 'Good drinks. Great music. Bad decisions.'}</p>
-          {tableDisplay && <small>{labels.table} {tableDisplay}</small>}
+          <p>{labels.browseOrderEnjoy}</p>
         </div>
         <Zap className={styles.zap} />
       </section>

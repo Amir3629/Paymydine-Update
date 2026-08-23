@@ -66,6 +66,8 @@ export type UiLabels = {
   paymentSessionReady: string
   scanTableQr: string
   browseOnly: string
+  welcomeTo: string
+  browseOrderEnjoy: string
 }
 
 const en: UiLabels = {
@@ -82,6 +84,7 @@ const en: UiLabels = {
   success: 'Done', error: 'Something went wrong', poweredBy: 'Powered by PayMyDine', estimatedReady: 'Estimated ready', minutes: 'min',
   noPaymentMethods: 'No payment methods are currently enabled for this restaurant.', paymentSessionReady: 'Payment session created.',
   scanTableQr: 'Scan your table QR to place an order.', browseOnly: 'You can browse the menu here. Ordering starts from a valid table QR.',
+  welcomeTo: 'Welcome to', browseOrderEnjoy: 'Browse · Order · Enjoy',
 }
 
 const de: UiLabels = {
@@ -99,6 +102,7 @@ const de: UiLabels = {
   remaining: 'Offen', paid: 'Bezahlt', pending: 'Offen', service: 'Service', added: 'Hinzugefügt', success: 'Erledigt',
   estimatedReady: 'Voraussichtlich fertig', minutes: 'Min.', noPaymentMethods: 'Für dieses Restaurant sind derzeit keine Zahlungsmethoden aktiviert.', paymentSessionReady: 'Zahlungssitzung erstellt.',
   scanTableQr: 'Scannen Sie den QR-Code Ihres Tisches, um zu bestellen.', browseOnly: 'Hier können Sie die Speisekarte ansehen. Bestellungen starten über einen gültigen Tisch-QR-Code.',
+  welcomeTo: 'Willkommen bei', browseOrderEnjoy: 'Entdecken · Bestellen · Genießen',
 }
 
 const fa: UiLabels = {
@@ -116,6 +120,7 @@ const fa: UiLabels = {
   paid: 'پرداخت‌شده', pending: 'در انتظار', service: 'خدمات', added: 'اضافه شد', success: 'انجام شد', error: 'خطایی رخ داد',
   estimatedReady: 'زمان تقریبی آماده‌شدن', minutes: 'دقیقه', noPaymentMethods: 'در حال حاضر روش پرداختی برای این رستوران فعال نیست.', paymentSessionReady: 'جلسه پرداخت ایجاد شد.',
   scanTableQr: 'برای ثبت سفارش، QR میز خود را اسکن کنید.', browseOnly: 'اینجا می‌توانید منو را ببینید. سفارش فقط از QR معتبر میز شروع می‌شود.',
+  welcomeTo: 'خوش آمدید به', browseOrderEnjoy: 'ببینید · سفارش دهید · لذت ببرید',
 }
 
 const tr: UiLabels = {
@@ -133,6 +138,7 @@ const tr: UiLabels = {
   paid: 'Ödendi', pending: 'Bekliyor', service: 'Hizmet', added: 'Eklendi', success: 'Tamamlandı',
   estimatedReady: 'Tahmini hazır olma', minutes: 'dk', noPaymentMethods: 'Bu restoran için şu anda ödeme yöntemi etkin değil.', paymentSessionReady: 'Ödeme oturumu oluşturuldu.',
   scanTableQr: 'Sipariş vermek için masanızın QR kodunu tarayın.', browseOnly: 'Menüyü burada inceleyebilirsiniz. Sipariş geçerli masa QR kodundan başlar.',
+  welcomeTo: 'Hoş geldiniz', browseOrderEnjoy: 'Keşfet · Sipariş ver · Keyfini çıkar',
 }
 
 const ja: UiLabels = {
@@ -148,6 +154,7 @@ const ja: UiLabels = {
   continueMenu: 'メニューに戻る', total: '合計', remaining: '残額', paid: '支払済み', pending: '保留中', service: 'サービス', added: '追加しました', success: '完了',
   estimatedReady: '完成予定', minutes: '分', noPaymentMethods: '現在このレストランで利用できる支払い方法はありません。', paymentSessionReady: '支払いセッションを作成しました。',
   scanTableQr: '注文するにはテーブルのQRコードを読み取ってください。', browseOnly: 'ここではメニューを閲覧できます。注文は有効なテーブルQRから開始します。',
+  welcomeTo: 'ようこそ', browseOrderEnjoy: '選ぶ · 注文する · 楽しむ',
 }
 
 const dictionaries: Record<string, UiLabels> = { en, de, fa, tr, ja }

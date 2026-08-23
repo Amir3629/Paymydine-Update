@@ -195,13 +195,107 @@
         return withServerFood || buttons[0] || null;
     }
 
+    function visibleAllFoodsButton(node) {
+        node = node || currentRoot();
+        if (!node) return null;
+
+        var allFoods = node.querySelector(
+            '[data-pmd-category-filter="all"]'
+            + '[data-pmd-category-fixed]'
+        );
+
+        if (!allFoods) return null;
+
+        var preferenceVisible = allFoods.getAttribute(
+            'data-pmd-all-foods-visible-r27'
+        ) !== '0';
+
+        if (
+            !preferenceVisible
+            || allFoods.hidden
+            || allFoods.getAttribute('aria-hidden') === 'true'
+        ) {
+            return null;
+        }
+
+        return allFoods;
+    }
+
+    function enforceVisibleAllFoods(node) {
+        node = node || currentRoot();
+        if (!node) return false;
+
+        var allFoods = visibleAllFoodsButton(node);
+        if (!allFoods) return false;
+
+        node.setAttribute(
+            'data-pmd-menu-initial-category-v1',
+            'all'
+        );
+
+        var active = node.querySelector(
+            '.pmd-menu-manager__categories '
+            + '[data-pmd-category-filter].is-active'
+        );
+
+        if (active !== allFoods) {
+            var managerReady = Boolean(
+                window.PMDMenuManagerV1
+                && window.PMDMenuManagerV1.ready
+            );
+
+            if (managerReady) {
+                /*
+                 * V129 owns filterState + card visibility.
+                 * Once it is ready, use its existing click authority so
+                 * DOM active state and actual food filtering cannot diverge.
+                 */
+                allFoods.click();
+            } else {
+                /*
+                 * Before V129 is ready only normalize first-paint classes.
+                 * Server markup already represents the All Foods dataset.
+                 */
+                node.querySelectorAll(
+                    '.pmd-menu-manager__categories '
+                    + '[data-pmd-category-filter]'
+                ).forEach(function (button) {
+                    button.classList.toggle(
+                        'is-active',
+                        button === allFoods
+                    );
+                });
+            }
+        }
+
+        return true;
+    }
+
     function selectInitialCategory(node) {
         node = node || currentRoot();
         if (!node) return null;
 
+        /*
+         * Product contract:
+         * visible All Foods is first in the strip and is the default view.
+         * Do not allow a later bootstrap authority to replace it with the
+         * first regular/smart category.
+         */
+        if (enforceVisibleAllFoods(node)) {
+            return 'all';
+        }
+
         var existing = node.getAttribute(
             'data-pmd-menu-initial-category-v1'
         );
+
+        if (existing === 'all') {
+            node.removeAttribute(
+                'data-pmd-menu-initial-category-v1'
+            );
+            existing = '';
+        }
+
         if (existing) return existing;
 
         var first = firstRegularCategory(node);
@@ -219,7 +313,6 @@
         );
 
         if (!first.classList.contains('is-active')) {
-            // V129 is still the only card-filtering authority.
             first.click();
         }
 
@@ -521,7 +614,7 @@
 
     window.PMDMenuRuntimeStability = {
         ready: true,
-        version: '1.3.0-canonical',
+        version: '1.3.1-canonical-allfoods',
         stabilize: function () {
             stabilize(currentRoot());
         },

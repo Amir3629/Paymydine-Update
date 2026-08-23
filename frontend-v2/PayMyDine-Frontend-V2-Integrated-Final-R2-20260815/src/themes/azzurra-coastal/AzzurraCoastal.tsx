@@ -1,16 +1,16 @@
 'use client'
 
 import type { CSSProperties } from 'react'
-import { Bell, Car, MapPin, Menu, Search, ShoppingBag, Waves } from 'lucide-react'
+import { Bell, Car, MapPin, Menu, Search, ShoppingBag } from 'lucide-react'
 import { useMenuRuntime } from '@/src/runtime/MenuRuntimeContext'
-import { CategoryGlyph, DietaryBadges, LanguageSelect, PlatformFooter, QuickAddButton, RestaurantLogo, SocialLinks, HeaderValetButton } from '@/src/runtime/components/SharedPieces'
+import { DietaryBadges, LanguageSelect, PlatformFooter, QuickAddButton, RestaurantLogo, SocialLinks, HeaderValetButton } from '@/src/runtime/components/SharedPieces'
 import { RuntimeOverlays } from '@/src/runtime/components/RuntimeOverlays'
 import { ThemeBottomToolBar } from '@/src/runtime/components/ThemeBottomToolBar'
 import styles from './AzzurraCoastal.module.css'
 
 export default function AzzurraCoastal() {
   const {
-    bootstrap, labels, tableDisplay, categories, selectedCategory, setSelectedCategory, visibleItems,
+    bootstrap, labels, categories, selectedCategory, setSelectedCategory, visibleItems,
     featuredItems, search, setSearch, openItem, cartSubtotal, activeOrder, formatCurrency, direction,
   } = useMenuRuntime()
   const hero = bootstrap.restaurant.heroImageUrl || '/theme-heroes/azzurra-coastal-hero.webp'
@@ -26,22 +26,20 @@ export default function AzzurraCoastal() {
         <header className={styles.header}>
           <RestaurantLogo />
           <div className={styles.headerTools}>
-            {tableDisplay && <span className={styles.table}><MapPin />{labels.table} {tableDisplay}</span>}
             <HeaderValetButton /><LanguageSelect />
             
           </div>
         </header>
 
-        <section className={styles.hero}>
+        <section className={styles.hero} data-pmd-theme-hero="true">
           {hero && <img src={hero} alt="" width={1200} height={700} />}
           <div className={styles.waveOne} />
           <div className={styles.waveTwo} />
           <div className={styles.heroCopy}>
-            <span>Taste the coast</span>
+            <span>{labels.welcomeTo}</span>
             <h1>{bootstrap.restaurant.name}</h1>
-            <p>{bootstrap.restaurant.description || 'Fresh ingredients. Mediterranean soul.'}</p>
+            <p>{labels.browseOrderEnjoy}</p>
           </div>
-          <span className={styles.seal}><Waves />Sea breeze<br />good company</span>
         </section>
 
         
@@ -49,8 +47,8 @@ export default function AzzurraCoastal() {
         <label className={styles.search}><Search /><input value={search} onChange={(event) => setSearch(event.target.value)} placeholder={labels.search} /></label>
 
         <nav className={styles.categories}>
-          <button className={selectedCategory === 'all' ? styles.active : ''} type="button" onClick={() => setSelectedCategory('all')}><CategoryGlyph name="all" size={32} /><span>{labels.all}</span></button>
-          {categories.map((category) => <button key={category.id} className={selectedCategory === category.id ? styles.active : ''} type="button" onClick={() => setSelectedCategory(category.id)}><CategoryGlyph name={category.name} size={32} /><span>{category.name}</span></button>)}
+          <button className={selectedCategory === 'all' ? styles.active : ''} type="button" onClick={() => setSelectedCategory('all')}>{labels.all}</button>
+          {categories.map((category) => <button key={category.id} className={selectedCategory === category.id ? styles.active : ''} type="button" onClick={() => setSelectedCategory(category.id)}>{category.name}</button>)}
         </nav>
 
         <section className={styles.menuGrid}>

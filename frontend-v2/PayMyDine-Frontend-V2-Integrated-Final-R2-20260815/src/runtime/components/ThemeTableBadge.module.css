@@ -1,27 +1,23 @@
-:global([data-pmd-table-badge-host="r39"]) {
+:global([data-pmd-table-badge-host="hero"]) {
   position: relative !important;
-}
-
-:global([data-pmd-table-badge-original="r39"]) {
-  display: none !important;
 }
 
 .badge {
   position: absolute;
-  top: 50%;
+  top: clamp(.65rem, 2vw, 1rem);
   left: 50%;
-  z-index: 32;
-  transform: translate(-50%, -50%);
+  z-index: 50;
+  transform: translateX(-50%);
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  min-height: 28px;
-  padding: 4px 9px;
-  border: 1px solid color-mix(in srgb, var(--pmd-line, currentColor) 75%, transparent);
+  min-height: 30px;
+  padding: 5px 10px;
+  border: 1px solid color-mix(in srgb, var(--pmd-line, currentColor) 78%, transparent);
   border-radius: 999px;
   background: color-mix(in srgb, var(--pmd-control, var(--pmd-surface, #fff)) 94%, transparent);
   color: var(--pmd-text, currentColor);
-  box-shadow: 0 2px 9px rgba(0, 0, 0, .08);
+  box-shadow: 0 3px 12px rgba(0, 0, 0, .1);
   backdrop-filter: blur(10px);
   -webkit-backdrop-filter: blur(10px);
   pointer-events: none;
@@ -34,28 +30,24 @@
   font-weight: 700;
   letter-spacing: .08em;
   text-transform: uppercase;
-  opacity: .58;
+  opacity: .6;
 }
 
 .badge strong {
   font-size: 13px;
-  font-weight: 700;
+  font-weight: 750;
   letter-spacing: .01em;
   font-variant-numeric: tabular-nums;
 }
 
 @media (max-width: 640px) {
   .badge {
-    min-height: 26px;
+    top: .6rem;
+    min-height: 28px;
     gap: 5px;
-    padding: 4px 8px;
+    padding: 4px 9px;
   }
 
-  .badge span {
-    font-size: 8px;
-  }
-
-  .badge strong {
-    font-size: 12px;
-  }
+  .badge span { font-size: 8px; }
+  .badge strong { font-size: 12px; }
 }
