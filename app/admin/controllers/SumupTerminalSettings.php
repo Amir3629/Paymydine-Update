@@ -2,6 +2,7 @@
 
 namespace Admin\Controllers;
 
+use App\Services\Payments\SumupPaymentRuntimeBridge;
 use App\Services\TerminalPayments\SumupTenantConnectionService;
 use Illuminate\Http\Request;
 
@@ -19,8 +20,11 @@ class SumupTerminalSettings extends \Admin\Classes\AdminController
         ]);
     }
 
-    public function saveConnection(Request $request, SumupTenantConnectionService $service)
-    {
+    public function saveConnection(
+        Request $request,
+        SumupTenantConnectionService $service,
+        SumupPaymentRuntimeBridge $runtimeBridge
+    ) {
         $this->assertOwnerAccess();
 
         $data = $request->validate([
@@ -39,6 +43,7 @@ class SumupTerminalSettings extends \Admin\Classes\AdminController
             );
 
             $result = $service->testConnection((string)$data['environment']);
+            $runtimeBridge->syncCatalogue((string)$data['environment']);
 
             return response()->json([
                 'success' => true,
@@ -50,8 +55,11 @@ class SumupTerminalSettings extends \Admin\Classes\AdminController
         }
     }
 
-    public function testConnection(Request $request, SumupTenantConnectionService $service)
-    {
+    public function testConnection(
+        Request $request,
+        SumupTenantConnectionService $service,
+        SumupPaymentRuntimeBridge $runtimeBridge
+    ) {
         $this->assertOwnerAccess();
         $data = $request->validate([
             'environment' => ['required', 'in:test,production'],
@@ -59,6 +67,8 @@ class SumupTerminalSettings extends \Admin\Classes\AdminController
 
         try {
             $result = $service->testConnection((string)$data['environment']);
+            $runtimeBridge->syncCatalogue((string)$data['environment']);
+
             return response()->json([
                 'success' => true,
                 'message' => $result['message'] ?? 'Connected to SumUp.',
@@ -69,18 +79,24 @@ class SumupTerminalSettings extends \Admin\Classes\AdminController
         }
     }
 
-    public function activateEnvironment(Request $request, SumupTenantConnectionService $service)
-    {
+    public function activateEnvironment(
+        Request $request,
+        SumupTenantConnectionService $service,
+        SumupPaymentRuntimeBridge $runtimeBridge
+    ) {
         $this->assertOwnerAccess();
         $data = $request->validate([
             'environment' => ['required', 'in:test,production'],
         ]);
 
         try {
+            $state = $service->activateEnvironment((string)$data['environment']);
+            $runtimeBridge->syncCatalogue((string)$data['environment']);
+
             return response()->json([
                 'success' => true,
                 'message' => ucfirst((string)$data['environment']).' SumUp is now used for payments.',
-                'state' => $service->activateEnvironment((string)$data['environment']),
+                'state' => $state,
             ]);
         } catch (\Throwable $e) {
             return $this->failure($e);
