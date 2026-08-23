@@ -121,11 +121,13 @@ export async function startHostedRedirectCheckoutFlow({
       }
       const checkoutEndpoint = providerCode === "vr_payment"
         ? (vrEndpointByMethod[selectedMethod.code] || "/api/v1/payments/vr-payment/card/create-session")
-        : selectedMethod.code === "wero"
-          ? (selectedProviderCodeForCheckout === "worldline"
-            ? "/api/v1/payments/worldline/wero/create-session"
-            : "/api/v1/payments/wero/create-session")
-          : "/api/v1/payments/card/create-session"
+        : providerCode === "sumup"
+          ? "/api/v1/payments/sumup/self-service-checkout"
+          : selectedMethod.code === "wero"
+            ? (selectedProviderCodeForCheckout === "worldline"
+              ? "/api/v1/payments/worldline/wero/create-session"
+              : "/api/v1/payments/wero/create-session")
+            : "/api/v1/payments/card/create-session"
       console.info("[PMD_CHECKOUT_FLOW_TRACE]", {
         selected_method: selectedMethod.code,
         backend_selected_provider: providerCode,
@@ -143,6 +145,7 @@ export async function startHostedRedirectCheckoutFlow({
           customer_email: paymentFormData.email || "",
           merchant_reference: merchantReference,
           order_id: existingSubmittedOrderId ? Number(existingSubmittedOrderId) : undefined,
+          description: "PayMyDine order",
           items: itemsToPay.map((item: any) => ({
             id: String(item.item.id),
             name: item.item.name,
@@ -176,7 +179,8 @@ export async function startHostedRedirectCheckoutFlow({
           "worldline_session_unavailable",
         ].includes(resolvedErrorCode)
         const fallbackAllowed = Boolean(json?.allow_fallback) || fallbackAllowedByCode
-        const normalizedErrorMessage = json?.error
+        const normalizedErrorMessage = json?.message
+          || json?.error
           || (rawBody && rawBody.length < 1000 ? rawBody : "")
           || `${providerLabel} checkout failed with HTTP ${res.status}`
 
