@@ -49,9 +49,49 @@ Route::group([
         try {
             $payload = $request->validate([
                 'checkout_id' => ['required', 'string', 'max:191'],
+                'order_id' => ['nullable', 'integer', 'min:1'],
+                'amount' => ['nullable', 'numeric', 'min:0.01'],
+                'currency' => ['nullable', 'string', 'size:3'],
             ]);
 
-            return response()->json($service->status((string)$payload['checkout_id']));
+            $status = $service->status((string)$payload['checkout_id']);
+
+            if (!empty($payload['order_id'])) {
+                $expectedPrefix = 'PMD-ORD-'.(int)$payload['order_id'].'-';
+                $reference = (string)($status['checkout_reference'] ?? '');
+                if ($reference === '' || strpos($reference, $expectedPrefix) !== 0) {
+                    return response()->json([
+                        'success' => false,
+                        'provider' => 'sumup',
+                        'integration_mode' => 'payment_widget',
+                        'message' => 'SumUp checkout does not belong to this order.',
+                    ], 409);
+                }
+            }
+
+            if (isset($payload['amount']) && $status['amount'] !== null) {
+                if (abs((float)$status['amount'] - round((float)$payload['amount'], 2)) > 0.009) {
+                    return response()->json([
+                        'success' => false,
+                        'provider' => 'sumup',
+                        'integration_mode' => 'payment_widget',
+                        'message' => 'SumUp checkout amount does not match this payment.',
+                    ], 409);
+                }
+            }
+
+            if (!empty($payload['currency']) && !empty($status['currency'])) {
+                if (strtoupper((string)$status['currency']) !== strtoupper((string)$payload['currency'])) {
+                    return response()->json([
+                        'success' => false,
+                        'provider' => 'sumup',
+                        'integration_mode' => 'payment_widget',
+                        'message' => 'SumUp checkout currency does not match this payment.',
+                    ], 409);
+                }
+            }
+
+            return response()->json($status);
         } catch (\Illuminate\Validation\ValidationException $e) {
             throw $e;
         } catch (\Throwable $e) {
