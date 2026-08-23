@@ -15,17 +15,13 @@ trap cleanup EXIT
 echo "============================================================"
 echo " PMD SUPER ADMIN - INLINE EDIT BLADE JSON HOTFIX"
 echo "============================================================"
-
 echo
-echo(){ :; }
 
 echo "1) Checking file and sudo..."
 sudo -n true
 test -f "$FILE"
 echo "PASS"
-
 echo
-echo(){ :; }
 
 echo "2) Confirming the known Laravel 8 Blade failure pattern..."
 if ! grep -Fq 'fillEdit(@json([' "$FILE"; then
@@ -34,16 +30,12 @@ if ! grep -Fq 'fillEdit(@json([' "$FILE"; then
     exit 1
 fi
 echo "PASS"
-
 echo
-echo(){ :; }
 
 echo "3) Backing up current production view..."
 sudo -n cp -a "$FILE" "$BACKUP"
 echo "Backup: $BACKUP"
-
 echo
-echo(){ :; }
 
 echo "4) Building patched view..."
 python3 - "$FILE" "$TMP" <<'PY'
@@ -98,9 +90,7 @@ if grep -Fq 'fillEdit(@json([' "$TMP"; then
     exit 1
 fi
 echo "PASS"
-
 echo
-echo(){ :; }
 
 echo "5) Blade compile smoke test BEFORE install..."
 cd "$ROOT"
@@ -113,16 +103,12 @@ $compiler = $app->make("blade.compiler");
 $compiler->compileString(file_get_contents($argv[1]));
 echo "BLADE_COMPILE_PASS\n";
 ' "$TMP"
-
 echo
-echo(){ :; }
 
 echo "6) Installing patched view..."
 sudo -n install -o root -g root -m 0644 "$TMP" "$FILE"
 echo "PASS"
-
 echo
-echo(){ :; }
 
 echo "7) Clearing compiled Blade views and reloading PHP-FPM..."
 php artisan view:clear >/dev/null
@@ -130,9 +116,7 @@ if systemctl is-active --quiet php8.3-fpm 2>/dev/null; then
     sudo -n systemctl reload php8.3-fpm
 fi
 echo "PASS"
-
 echo
-echo(){ :; }
 
 echo "8) Final fingerprints..."
 grep -Fq 'data-pmd-edit-modal' "$FILE"
@@ -142,9 +126,7 @@ if grep -Fq 'fillEdit(@json([' "$FILE"; then
     exit 1
 fi
 echo "PASS"
-
 echo
-echo(){ :; }
 
 echo "============================================================"
 echo " INLINE EDIT BLADE JSON HOTFIX COMPLETE"
