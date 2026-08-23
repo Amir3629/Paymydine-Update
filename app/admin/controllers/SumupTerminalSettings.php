@@ -3,6 +3,7 @@
 namespace Admin\Controllers;
 
 use App\Services\Payments\SumupPaymentRuntimeBridge;
+use App\Services\TerminalPayments\SumupMerchantEnvironmentGuard;
 use App\Services\TerminalPayments\SumupTenantConnectionService;
 use Illuminate\Http\Request;
 
@@ -23,6 +24,7 @@ class SumupTerminalSettings extends \Admin\Classes\AdminController
     public function saveConnection(
         Request $request,
         SumupTenantConnectionService $service,
+        SumupMerchantEnvironmentGuard $environmentGuard,
         SumupPaymentRuntimeBridge $runtimeBridge
     ) {
         $this->assertOwnerAccess();
@@ -35,19 +37,26 @@ class SumupTerminalSettings extends \Admin\Classes\AdminController
         ]);
 
         try {
+            $environment = (string)$data['environment'];
+
             $service->saveConnection(
-                (string)$data['environment'],
+                $environment,
                 $data['api_key'] ?? null,
                 $data['affiliate_key'] ?? null,
                 $data['merchant_code'] ?? null
             );
 
-            $result = $service->testConnection((string)$data['environment']);
-            $runtimeBridge->syncCatalogue((string)$data['environment']);
+            $result = $service->testConnection($environment);
+            $merchant = $environmentGuard->assertEnvironment($environment);
+            $runtimeBridge->syncCatalogue($environment);
 
             return response()->json([
                 'success' => true,
-                'message' => $result['message'] ?? 'Connected to SumUp.',
+                'message' => $environment === 'test'
+                    ? 'Connected to SumUp Sandbox.'
+                    : 'Connected to SumUp production merchant.',
+                'merchant' => $merchant,
+                'connection' => $result,
                 'state' => $service->state(),
             ]);
         } catch (\Throwable $e) {
@@ -58,6 +67,7 @@ class SumupTerminalSettings extends \Admin\Classes\AdminController
     public function testConnection(
         Request $request,
         SumupTenantConnectionService $service,
+        SumupMerchantEnvironmentGuard $environmentGuard,
         SumupPaymentRuntimeBridge $runtimeBridge
     ) {
         $this->assertOwnerAccess();
@@ -66,12 +76,18 @@ class SumupTerminalSettings extends \Admin\Classes\AdminController
         ]);
 
         try {
-            $result = $service->testConnection((string)$data['environment']);
-            $runtimeBridge->syncCatalogue((string)$data['environment']);
+            $environment = (string)$data['environment'];
+            $result = $service->testConnection($environment);
+            $merchant = $environmentGuard->assertEnvironment($environment);
+            $runtimeBridge->syncCatalogue($environment);
 
             return response()->json([
                 'success' => true,
-                'message' => $result['message'] ?? 'Connected to SumUp.',
+                'message' => $environment === 'test'
+                    ? 'SumUp Sandbox connection verified.'
+                    : 'SumUp production connection verified.',
+                'merchant' => $merchant,
+                'connection' => $result,
                 'state' => $service->state(),
             ]);
         } catch (\Throwable $e) {
@@ -82,6 +98,7 @@ class SumupTerminalSettings extends \Admin\Classes\AdminController
     public function activateEnvironment(
         Request $request,
         SumupTenantConnectionService $service,
+        SumupMerchantEnvironmentGuard $environmentGuard,
         SumupPaymentRuntimeBridge $runtimeBridge
     ) {
         $this->assertOwnerAccess();
@@ -90,12 +107,14 @@ class SumupTerminalSettings extends \Admin\Classes\AdminController
         ]);
 
         try {
-            $state = $service->activateEnvironment((string)$data['environment']);
-            $runtimeBridge->syncCatalogue((string)$data['environment']);
+            $environment = (string)$data['environment'];
+            $environmentGuard->assertEnvironment($environment);
+            $state = $service->activateEnvironment($environment);
+            $runtimeBridge->syncCatalogue($environment);
 
             return response()->json([
                 'success' => true,
-                'message' => ucfirst((string)$data['environment']).' SumUp is now used for payments.',
+                'message' => ucfirst($environment).' SumUp is now used for payments.',
                 'state' => $state,
             ]);
         } catch (\Throwable $e) {
@@ -108,9 +127,6 @@ class SumupTerminalSettings extends \Admin\Classes\AdminController
         $this->assertOwnerAccess();
 
         try {
-            // Terminal names are optional in the owner UI. A sensible default
-            // keeps pairing one-step and avoids leaking a validation failure as
-            // a generic server error in TastyIgniter's admin request pipeline.
             $request->merge([
                 'label' => trim((string)$request->input('label', '')) ?: 'SumUp terminal',
             ]);
