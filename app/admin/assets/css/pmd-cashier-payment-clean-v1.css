@@ -3,6 +3,8 @@
 .pmd-pos-app [hidden]{display:none!important}
 
 .pmd-coc .pmd-pos-payment-modal{background:rgba(16,35,49,.42)!important;backdrop-filter:blur(8px)!important}
+/* Prevent the one-frame flash of raw payment markup while V3 fetches the fresh settlement summary. */
+.pmd-coc .pmd-pos-payment-modal.pmd-payment-is-preparing{visibility:hidden!important;opacity:0!important;pointer-events:none!important;transition:none!important}
 .pmd-coc .pmd-pos-payment-dialog{width:min(820px,calc(100vw - 34px))!important;height:auto!important;max-height:min(86dvh,690px)!important;border:1px solid #d6e3ea!important;border-radius:22px!important;background:#f8fbfc!important;box-shadow:0 30px 80px rgba(13,38,55,.20)!important}
 .pmd-coc .pmd-pos-payment-head{min-height:74px!important;padding:14px 18px!important;background:#fff!important;color:#102d40!important;border-bottom:1px solid #dce7ed!important}
 .pmd-coc .pmd-pos-payment-head h2{margin:1px 0 0!important;font-size:21px!important;color:#102d40!important}
