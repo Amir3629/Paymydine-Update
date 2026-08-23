@@ -23,6 +23,8 @@
  * - first paint waits only for synchronous V129 readiness, never for the Smart
  *   Categories network bootstrap;
  * - the server-first Add Food card remains usable during Smart Categories boot;
+ * - the temporary boot bridge relinquishes ownership as soon as Smart
+ *   Categories is ready;
  * - selection shells (Chef/Bestseller/Combination) keep all real categories
  *   visible so staff can filter the available foods while selecting.
  */
@@ -46,6 +48,13 @@
 
     function currentRoot() {
         return document.querySelector('[data-pmd-menu-manager]');
+    }
+
+    function isSmartReady() {
+        return Boolean(
+            window.PMDMenuSmartCategoriesV1
+            && window.PMDMenuSmartCategoriesV1.ready
+        );
     }
 
     function requestCleanReload(reason) {
@@ -198,6 +207,10 @@
         node = node || currentRoot();
         if (!node || node.dataset.pmdComboBuilder === '1') return;
 
+        // Smart Categories becomes the sole action-card copy/behavior owner
+        // after its bootstrap completes. Never overwrite special-category copy.
+        if (isSmartReady()) return;
+
         var card = node.querySelector(
             '[data-pmd-smart-server-action-card], .pmd-smart-add-card'
         );
@@ -210,23 +223,26 @@
             ? String(category.textContent || '').trim()
             : '';
         var de = currentLocaleIsGerman();
-
-        if (title) {
-            title.textContent = de
-                ? 'Neue Speise hinzufugen'
-                : 'Add new food item';
-        }
-
-        if (help) {
-            if (categoryLabel) {
-                help.textContent = de
+        var nextTitle = de
+            ? 'Neue Speise hinzufugen'
+            : 'Add new food item';
+        var nextHelp = categoryLabel
+            ? (
+                de
                     ? 'Erstelle eine neue Speise in ' + categoryLabel + '.'
-                    : 'Create a new food item in ' + categoryLabel + '.';
-            } else {
-                help.textContent = de
+                    : 'Create a new food item in ' + categoryLabel + '.'
+            )
+            : (
+                de
                     ? 'Erstelle eine neue Speise.'
-                    : 'Create a new food item.';
-            }
+                    : 'Create a new food item.'
+            );
+
+        if (title && title.textContent !== nextTitle) {
+            title.textContent = nextTitle;
+        }
+        if (help && help.textContent !== nextHelp) {
+            help.textContent = nextHelp;
         }
     }
 
@@ -261,14 +277,9 @@
             var node = currentRoot();
             if (!node || node.dataset.pmdComboBuilder === '1') return;
 
-            // Once Smart Categories is ready, its normal action-card authority
-            // owns the click. This bridge exists only for the bootstrap window.
-            if (
-                window.PMDMenuSmartCategoriesV1
-                && window.PMDMenuSmartCategoriesV1.ready
-            ) {
-                return;
-            }
+            // As soon as Smart Categories is ready, do nothing here and let its
+            // established action-card handler receive the event normally.
+            if (isSmartReady()) return;
 
             var card = event.target.closest('.pmd-smart-add-card');
             if (!card || !node.contains(card)) return;
@@ -463,7 +474,7 @@
     waitForManagerFirstPaint();
 
     window.PMDMenuRuntimeStabilityV1 = {
-        version: '1.2.0',
+        version: '1.2.1',
         stabilize: function () {
             stabilize(currentRoot());
         },
@@ -486,10 +497,7 @@
                     window.PMDMenuManagerV1
                     && window.PMDMenuManagerV1.ready
                 ),
-                smartReady: Boolean(
-                    window.PMDMenuSmartCategoriesV1
-                    && window.PMDMenuSmartCategoriesV1.ready
-                ),
+                smartReady: isSmartReady(),
                 earlyActionBridge: earlyActionBridgeInstalled,
                 firstPaintReady: Boolean(
                     liveRoot
@@ -539,7 +547,7 @@
     };
 
     console.info(
-        '[PMD Menu Runtime Stability V1.2] Ready',
+        '[PMD Menu Runtime Stability V1.2.1] Ready',
         window.PMDMenuRuntimeStabilityV1.inspect()
     );
 })();
