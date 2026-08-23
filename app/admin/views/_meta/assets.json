@@ -178,6 +178,10 @@
       "name": "pmd-menu-all-foods-r28-js"
     },
     {
+      "path": "js/pmd-menu-scoped-food-remove-v1.js",
+      "name": "pmd-menu-scoped-food-remove-v1-js"
+    },
+    {
       "path": "js/pmd-waiter-pos-dashboard-shadow-bridge-v24.js",
       "name": "pmd-waiter-pos-dashboard-shadow-bridge-v24-js"
     },
