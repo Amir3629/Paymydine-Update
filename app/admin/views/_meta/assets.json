@@ -27,6 +27,7 @@
     {"path": "js/admin.js", "name": "admin-js"},
     {"path": "js/pmd-waiter-pos-payment-v3.js", "name": "pmd-waiter-pos-payment-v3-js"},
     {"path": "js/pmd-payment-provider-catalogue-v1.js", "name": "pmd-payment-provider-catalogue-v1-js"},
+    {"path": "js/pmd-payment-providers-settings-link-v1.js", "name": "pmd-payment-providers-settings-link-v1-js"},
     {"path": "js/pmd-sumup-self-service-v1.js", "name": "pmd-sumup-self-service-v1-js"},
     {"path": "js/pmd-waiter-pos-dashboard-shadow-bridge-v24.js", "name": "pmd-waiter-pos-dashboard-shadow-bridge-v24-js"},
     {"path": "js/pmd-waiter-pos-dashboard-direct-guard-v23.js", "name": "pmd-waiter-pos-dashboard-direct-guard-v23-js"},
