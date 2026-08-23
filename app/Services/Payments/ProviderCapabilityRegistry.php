@@ -42,13 +42,20 @@ final class ProviderCapabilityRegistry
                     self::CAPABILITY_TERMINAL_PAYMENTS,
                     self::CAPABILITY_REFUNDS,
                     self::CAPABILITY_PAYMENT_LINKS,
+                    self::CAPABILITY_WEBHOOKS,
                     self::CAPABILITY_OAUTH,
                 ],
+                // PayMyDine exposes one simple Card / Wallet choice. The
+                // SumUp Hosted Checkout page is the source of truth for which
+                // wallet/card methods are available for that merchant and
+                // checkout (for example Apple Pay or Google Pay).
                 'payment_methods' => [
                     self::METHOD_CARD,
                 ],
                 'implemented_capabilities' => [
+                    self::CAPABILITY_ONLINE_PAYMENTS,
                     self::CAPABILITY_TERMINAL_PAYMENTS,
+                    self::CAPABILITY_WEBHOOKS,
                 ],
                 'implemented_payment_methods' => [
                     self::METHOD_CARD,
