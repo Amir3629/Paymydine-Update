@@ -48,14 +48,15 @@ for f in "${FILES[@]}"; do
 done
 
 echo
-echo "========== PREFLIGHT SYNTAX =========="n
+echo "========== PREFLIGHT SYNTAX =========="
 php -l "$STAGE/app/admin/controllers/SumupReaderPairing.php"
 php -l "$STAGE/routes/terminal-payments.php"
 node --check "$STAGE/app/admin/assets/js/pmd-sumup-self-service-v1.js"
 node --check "$STAGE/app/admin/assets/js/pmd-waiter-pos-payment-policy-v2.js"
 
 echo
-echo "========== PREFLIGHT PRODUCT CONTRACT =========="ngrep -Fq "SumupReaderPairing::class, 'pair'" "$STAGE/routes/terminal-payments.php"
+echo "========== PREFLIGHT PRODUCT CONTRACT =========="
+grep -Fq "SumupReaderPairing::class, 'pair'" "$STAGE/routes/terminal-payments.php"
 grep -Fq "SumupReaderPairing::class, 'sync'" "$STAGE/routes/terminal-payments.php"
 grep -Fq "Cashiers and Waiters can choose between these terminals" "$STAGE/app/admin/assets/js/pmd-sumup-self-service-v1.js"
 grep -Fq "readers/sync" "$STAGE/app/admin/assets/js/pmd-sumup-self-service-v1.js"
@@ -69,7 +70,7 @@ grep -Fq "pairing code is no longer active" "$STAGE/app/admin/controllers/SumupR
 echo "PRODUCT_CONTRACT=OK"
 
 echo
-echo "========== BACKUP LIVE TARGETS =========="n
+echo "========== BACKUP LIVE TARGETS =========="
 for f in "${FILES[@]}"; do
   if [ -e "$ROOT/$f" ]; then
     echo "$f" >> "$STAGE/existed.txt"
@@ -104,7 +105,7 @@ trap 'rc=$?; if [ "$INSTALL_STARTED" = "1" ] && [ "$rc" != "0" ]; then rollback 
 INSTALL_STARTED=1
 
 echo
-echo "========== INSTALL CANONICAL FILES =========="n
+echo "========== INSTALL CANONICAL FILES =========="
 for f in "${FILES[@]}"; do
   sudo mkdir -p "$ROOT/$(dirname "$f")"
   sudo install -m 0644 "$STAGE/$f" "$ROOT/$f"
@@ -112,7 +113,7 @@ for f in "${FILES[@]}"; do
 done
 
 echo
-echo "========== LIVE STATIC VALIDATION =========="n
+echo "========== LIVE STATIC VALIDATION =========="
 php -l "$ROOT/app/admin/controllers/SumupReaderPairing.php"
 php -l "$ROOT/routes/terminal-payments.php"
 node --check "$ROOT/app/admin/assets/js/pmd-sumup-self-service-v1.js"
@@ -124,7 +125,7 @@ grep -Fq "pmd-payment-is-preparing" "$ROOT/app/admin/assets/js/pmd-waiter-pos-pa
 echo "LIVE_STATIC=OK"
 
 echo
-echo "========== CLEAR SERVER CACHE =========="n
+echo "========== CLEAR SERVER CACHE =========="
 cd "$ROOT"
 if sudo -u www-data php artisan optimize:clear; then
   echo "LARAVEL_CACHE_CLEAR=www-data"
@@ -134,7 +135,7 @@ else
 fi
 
 echo
-echo "========== NGINX-SERVED ASSET CHECK =========="n
+echo "========== NGINX-SERVED ASSET CHECK =========="
 AUDIT_TS="$(date +%s)"
 check_asset() {
   local path="$1"
