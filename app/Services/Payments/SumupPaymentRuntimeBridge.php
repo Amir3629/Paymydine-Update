@@ -70,7 +70,9 @@ class SumupPaymentRuntimeBridge
 
     /**
      * Keep only non-secret compatibility/catalogue state in Payments_model.
-     * Existing explicit mappings to another provider are never overwritten.
+     * A real, configured alternate Card provider is preserved. A stale default
+     * provider row with no credentials does not block a restaurant that just
+     * connected SumUp from using SumUp for guest Card / Wallet checkout.
      */
     public function syncCatalogue(string $environment): array
     {
@@ -120,9 +122,11 @@ class SumupPaymentRuntimeBridge
         $card = Payments_model::query()->where('code', 'card')->first();
         $cardMapped = false;
         $cardOwnerPreserved = false;
+        $previousCardProvider = null;
 
         if ($card) {
             $selectedProvider = strtolower(trim((string)($card->provider_code ?? '')));
+            $previousCardProvider = $selectedProvider !== '' ? $selectedProvider : null;
             $cardConfig = method_exists($card, 'getConfigData')
                 ? $card->getConfigData()
                 : [];
@@ -137,7 +141,11 @@ class SumupPaymentRuntimeBridge
             }
             $cardConfig['supported_providers'] = $supported;
 
-            if ($selectedProvider === '' || $selectedProvider === 'sumup') {
+            $realAlternateProvider = $selectedProvider !== ''
+                && $selectedProvider !== 'sumup'
+                && $this->providerAppearsConfigured($selectedProvider);
+
+            if (!$realAlternateProvider) {
                 $card->provider_code = 'sumup';
                 $card->name = 'Card / Wallet';
                 $card->description = 'Secure card or wallet payment';
@@ -158,8 +166,64 @@ class SumupPaymentRuntimeBridge
             'environment' => $environment,
             'provider_enabled' => true,
             'card_mapped_to_sumup' => $cardMapped,
+            'previous_card_provider' => $previousCardProvider,
             'existing_card_provider_preserved' => $cardOwnerPreserved,
             'secret_persisted_to_legacy_table' => false,
         ];
+    }
+
+    protected function providerAppearsConfigured(string $providerCode): bool
+    {
+        $providerCode = strtolower(trim($providerCode));
+        if ($providerCode === '') {
+            return false;
+        }
+
+        if (Schema::hasTable('terminal_provider_configs')) {
+            $generic = DB::table('terminal_provider_configs')
+                ->where('provider_code', $providerCode)
+                ->where('connection_status', 'connected')
+                ->where(function ($query): void {
+                    $query->whereNotNull('access_token_encrypted')
+                        ->orWhereNotNull('merchant_code');
+                })
+                ->exists();
+
+            if ($generic) {
+                return true;
+            }
+        }
+
+        $row = Payments_model::query()->where('code', $providerCode)->first();
+        if (!$row || !(bool)($row->status ?? false)) {
+            return false;
+        }
+
+        $config = method_exists($row, 'getConfigData')
+            ? $row->getConfigData()
+            : (array)($row->data ?? []);
+
+        $credentialKeys = [
+            'access_token',
+            'test_access_token',
+            'live_access_token',
+            'secret_key',
+            'test_secret_key',
+            'live_secret_key',
+            'client_secret',
+            'test_client_secret',
+            'live_client_secret',
+            'secret_api_key',
+            'api_key',
+            'auth_key',
+        ];
+
+        foreach ($credentialKeys as $key) {
+            if (trim((string)($config[$key] ?? '')) !== '') {
+                return true;
+            }
+        }
+
+        return false;
     }
 }
