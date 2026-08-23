@@ -47,7 +47,10 @@
     var json = await response.json().catch(function () { return {}; });
 
     if (!response.ok || json.success === false) {
-      throw new Error(String(json.message || json.error || ('HTTP ' + response.status)));
+      var error = new Error(String(json.message || json.error || ('HTTP ' + response.status)));
+      error.status = response.status;
+      error.payload = json;
+      throw error;
     }
 
     return json;
@@ -87,17 +90,27 @@
     return 'Not connected';
   }
 
+  function environmentLabel(snapshot) {
+    var name = state.environment === 'production' ? 'Production' : 'Test';
+    var merchant = String(snapshot && snapshot.merchant_code ? snapshot.merchant_code : '').trim();
+    return name + ' environment' + (merchant ? ' · Merchant ' + merchant : '');
+  }
+
+  function normalizePairingCode(value) {
+    return String(value || '').toUpperCase().replace(/[^A-Z0-9]/g, '');
+  }
+
   function pairPanel() {
     return [
-      '<section class="pmd-sumup-panel" data-pmd-sumup-pair-section>',
+      '<section class="pmd-sumup-panel pmd-sumup-pair-panel" data-pmd-sumup-pair-section>',
         '<div class="pmd-sumup-panel-head">',
           '<div>',
             '<b>Add terminal</b>',
-            '<span>Open Cloud API on the terminal and enter its temporary pairing code. PayMyDine stores the real Reader ID automatically.</span>',
+            '<span>Enter the temporary Cloud API pairing code shown on the Solo.</span>',
           '</div>',
         '</div>',
         '<div class="pmd-sumup-pair">',
-          '<label><span>Pairing code</span><input data-sumup-pair-code maxlength="9" placeholder="XXXXXXXXX" autocomplete="off"></label>',
+          '<label><span>Pairing code</span><input data-sumup-pair-code maxlength="18" placeholder="XXXXXXXXX" autocomplete="off" autocapitalize="characters" spellcheck="false"></label>',
           '<label><span>Terminal name (optional)</span><input data-sumup-pair-label maxlength="191" placeholder="Front Desk, Bar, Terrace…" autocomplete="off"></label>',
           '<button type="button" class="is-primary" data-sumup-pair ' + (state.busy ? 'disabled' : '') + '>Pair terminal</button>',
         '</div>',
@@ -127,9 +140,9 @@
 
   function terminalList(terminals) {
     return [
-      '<section class="pmd-sumup-panel">',
+      '<section class="pmd-sumup-panel pmd-sumup-terminal-list-panel">',
         '<div class="pmd-sumup-panel-head">',
-          '<div><b>Terminals</b><span>Cashiers can choose between these terminals when more than one is available.</span></div>',
+          '<div><b>Terminals</b><span>Cashiers and Waiters can choose between these terminals when more than one is available.</span></div>',
         '</div>',
         terminals.length
           ? '<div class="pmd-sumup-terminals">' + terminals.map(terminalRow).join('') + '</div>'
@@ -138,37 +151,17 @@
     ].join('');
   }
 
-  function connectionPanel(snapshot) {
-    var connected = snapshot.connection_status === 'connected';
-    var environmentLabel = state.environment === 'production' ? 'Production' : 'Test';
-
-    if (!connected) {
-      return [
-        '<section class="pmd-sumup-panel is-muted">',
-          '<div class="pmd-sumup-panel-head">',
-            '<div>',
-              '<b>Connect SumUp first</b>',
-              '<span>Provider credentials belong in Payments & finance. Devices only manages terminal hardware.</span>',
-            '</div>',
-          '</div>',
-          '<div class="pmd-sumup-actions">',
-            '<a class="is-primary" href="/admin/pmdfinance#payment-providers">Manage SumUp connection</a>',
-          '</div>',
-        '</section>'
-      ].join('');
-    }
-
+  function disconnectedPanel() {
     return [
-      '<section class="pmd-sumup-panel pmd-sumup-connection-summary">',
+      '<section class="pmd-sumup-panel is-muted">',
         '<div class="pmd-sumup-panel-head">',
           '<div>',
-            '<b>SumUp connection</b>',
-            '<span>' + esc(environmentLabel) + ' environment · Merchant ' + esc(snapshot.merchant_code || 'connected') + '</span>',
+            '<b>Connect SumUp first</b>',
+            '<span>Provider credentials are managed under Payments & finance.</span>',
           '</div>',
-          '<em>Ready</em>',
         '</div>',
         '<div class="pmd-sumup-actions">',
-          '<a href="/admin/pmdfinance#payment-providers">Manage provider connection</a>',
+          '<a class="is-primary" href="/admin/pmdfinance#payment-providers">Manage SumUp connection</a>',
         '</div>',
       '</section>'
     ].join('');
@@ -193,12 +186,12 @@
         '<div>',
           '<span class="pmd-sumup-kicker">PAYMENT TERMINALS</span>',
           '<h2>SumUp terminals</h2>',
-          '<p>Pair and test this restaurant’s terminal devices here. Account credentials are managed once under Payments & finance.</p>',
+          '<span class="pmd-sumup-head-meta">' + esc(environmentLabel(cfg)) + '</span>',
         '</div>',
         '<div class="pmd-sumup-state ' + (connected ? 'is-good' : '') + '"><span></span>' + esc(statusLabel(cfg)) + '</div>',
       '</div>',
       state.message ? '<div class="pmd-sumup-message ' + (state.error ? 'is-error' : 'is-success') + '">' + esc(state.message) + '</div>' : '',
-      connectionPanel(cfg),
+      connected ? '' : disconnectedPanel(),
       connected ? pairPanel() : '',
       connected ? terminalList(terminals) : ''
     ].join('');
@@ -223,13 +216,20 @@
     });
   }
 
+  function setBusyControls(disabled) {
+    if (!state.root) return;
+    state.root.querySelectorAll('[data-sumup-pair],[data-sumup-terminal-test],[data-sumup-terminal-remove]').forEach(function (button) {
+      button.disabled = !!disabled;
+    });
+  }
+
   async function act(fn) {
     if (state.busy) return;
 
     state.busy = true;
     state.message = '';
     state.error = false;
-    render();
+    setBusyControls(true);
 
     try {
       await fn();
@@ -243,8 +243,19 @@
   }
 
   async function pairTerminal() {
-    var code = state.root.querySelector('[data-sumup-pair-code]');
-    var label = state.root.querySelector('[data-sumup-pair-label]');
+    var codeInput = state.root.querySelector('[data-sumup-pair-code]');
+    var labelInput = state.root.querySelector('[data-sumup-pair-label]');
+    var pairingCode = normalizePairingCode(codeInput ? codeInput.value : '');
+    var terminalLabel = labelInput ? String(labelInput.value || '').trim() : '';
+
+    if (!/^[A-Z0-9]{8,9}$/.test(pairingCode)) {
+      state.message = 'Enter the 8 or 9 character pairing code shown on the Solo.';
+      state.error = true;
+      render();
+      var nextInput = state.root.querySelector('[data-sumup-pair-code]');
+      if (nextInput) nextInput.focus();
+      return;
+    }
 
     await act(async function () {
       var json = await request('/admin/pmddevices/sumup/readers/pair', {
@@ -252,8 +263,8 @@
         headers:jsonHeaders(),
         body:JSON.stringify({
           environment:state.environment,
-          pairing_code:code ? String(code.value || '').trim().toUpperCase() : '',
-          label:(label ? String(label.value || '').trim() : '') || 'SumUp terminal'
+          pairing_code:pairingCode,
+          label:terminalLabel || 'SumUp terminal'
         })
       });
 
@@ -290,10 +301,29 @@
     });
   }
 
+  async function reconcileConnectedReaders() {
+    var cfg = current();
+    if (!cfg || cfg.connection_status !== 'connected') return;
+
+    try {
+      var json = await request('/admin/pmddevices/sumup/readers/sync', {
+        method:'POST',
+        headers:jsonHeaders(),
+        body:JSON.stringify({environment:state.environment})
+      });
+      if (json && json.state) state.data = json.state;
+    } catch (error) {
+      // Keep the page usable with its last local projection. A later Pair/Test
+      // action will surface the provider error with actionable detail.
+    }
+  }
+
   async function load() {
     try {
       var json = await request('/admin/pmddevices/sumup/state');
       state.data = json.state;
+      state.environment = chooseEnvironment();
+      await reconcileConnectedReaders();
       state.environment = chooseEnvironment();
       render();
     } catch (error) {
