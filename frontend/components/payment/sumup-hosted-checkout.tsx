@@ -82,6 +82,9 @@ export default function SumUpHostedCheckout(props: Props) {
           stage: "redirect",
           checkout_id: checkoutId || null,
           has_redirect_url: true,
+          available_payment_methods: Array.isArray(json?.available_payment_methods)
+            ? json.available_payment_methods
+            : [],
         })
         window.location.href = redirectUrl
       } catch (e: any) {
@@ -101,8 +104,8 @@ export default function SumUpHostedCheckout(props: Props) {
       className={`w-full rounded-xl border p-3 ${props.className ?? ""}`}
       style={{ borderColor: "var(--theme-border)", background: "rgba(255,255,255,0.04)" }}
     >
-      <div className="text-sm font-semibold">Secure card payment</div>
-      <div className="text-xs opacity-80">Redirecting to secure SumUp checkout…</div>
+      <div className="text-sm font-semibold">Secure card or wallet payment</div>
+      <div className="text-xs opacity-80">Redirecting to SumUp, where eligible card and wallet options are shown securely…</div>
       {loading && <div className="text-xs mt-2 opacity-70">Preparing secure checkout…</div>}
       {error ? (
         <div className="mt-2 rounded-lg px-3 py-2 text-sm" style={{ background: "rgba(255,0,0,0.08)", color: "#ff6b6b" }}>
