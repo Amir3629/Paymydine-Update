@@ -86,7 +86,9 @@
         }
     }
 
-    $countryPalette = ['#0b9b74','#35b992','#78cdb5','#f2a15f','#e57466','#718c84'];
+    // Intentionally high-contrast: each country should be visually distinct,
+    // not another shade of PayMyDine green.
+    $countryPalette = ['#00A76F','#2563EB','#F59E0B','#E11D48','#7C3AED','#06B6D4'];
     $countryStops = [];
     $countryCursor = 0.0;
     foreach ($countryMix as $index => $row) {
