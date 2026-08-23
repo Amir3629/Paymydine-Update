@@ -2,6 +2,39 @@
  * Final UI parity for the virtual All Foods category on /admin/pmdmenus.
  */
 
+/*
+ * PMD_MENU_FIRST_PAINT_STABILITY_V1
+ *
+ * Categories and the catalogue grid are laid out immediately but are not
+ * painted until Runtime Stability V1 has finished Smart Categories hydration
+ * and selected the first real category. visibility keeps geometry reserved,
+ * preventing the old All Foods / legacy-control flash without a page jump.
+ */
+body.pmd-menu-manager-page
+#pmd-menu-manager-main:not([data-pmd-menu-runtime-ready-v1="1"])
+.pmd-menu-manager__categories,
+body.pmd-menu-manager-page
+#pmd-menu-manager-main:not([data-pmd-menu-runtime-ready-v1="1"])
+.pmd-menu-manager__grid {
+    visibility: hidden !important;
+}
+
+/*
+ * Server markup still contains the pre-modal category minus for compatibility.
+ * Never allow it to paint, even for one frame before Smart Categories removes
+ * it. Runtime Stability V1 removes the node after boot.
+ */
+body.pmd-menu-manager-page
+#pmd-menu-manager-main
+[data-pmd-category-delete],
+body.pmd-menu-manager-page
+#pmd-menu-manager-main
+.pmd-menu-manager__category-delete-hit {
+    visibility: hidden !important;
+    opacity: 0 !important;
+    pointer-events: none !important;
+}
+
 /* The old R27 standalone pencil remains only as a hidden JS compatibility hook. */
 body.pmd-menu-manager-page .pmd-all-foods-manage-r27 {
     display: none !important;
@@ -116,20 +149,18 @@ body.pmd-menu-manager-page
 }
 
 /*
- * Menu Header: remove the legacy notification separator/gap completely.
- * The notification bell remains untouched.
+ * Menu Header: the old divider has inline !important display/background rules,
+ * so display:none in a stylesheet cannot beat it. visibility/opacity are not
+ * set inline and therefore guarantee that the line never paints. Runtime
+ * Stability V1 removes both the divider and its spacer node entirely.
  */
 body.pmd-menu-manager-page
 [data-pmd-main-header-notification-gap-r67],
 body.pmd-menu-manager-page
 [data-pmd-main-header-notification-divider-r67] {
-    display: none !important;
-    width: 0 !important;
-    min-width: 0 !important;
-    max-width: 0 !important;
-    margin: 0 !important;
-    padding: 0 !important;
-    border: 0 !important;
+    visibility: hidden !important;
+    opacity: 0 !important;
+    pointer-events: none !important;
 }
 
 @media (max-width: 980px) {
