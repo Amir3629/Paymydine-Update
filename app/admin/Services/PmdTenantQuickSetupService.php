@@ -6,7 +6,6 @@ use Admin\Facades\AdminLocation;
 use Admin\Models\Allergens_model;
 use Admin\Models\Categories_model;
 use Admin\Models\Menus_model;
-use Admin\Models\Staff_roles_model;
 use Admin\Models\Staffs_model;
 use Admin\Models\Tables_model;
 use App\Services\PmdTenantMenuBaselineR25;
@@ -23,7 +22,7 @@ use Illuminate\Support\Str;
  */
 class PmdTenantQuickSetupService
 {
-    public const VERSION = '1.0.0';
+    public const VERSION = '1.0.1';
 
     public function restaurantTypes(): array
     {
@@ -93,6 +92,20 @@ class PmdTenantQuickSetupService
             throw new \RuntimeException('Active restaurant location is unavailable.');
         }
 
+        /*
+         * Menu baseline may add missing schema columns. MySQL DDL implicitly
+         * commits, so baseline repair must run BEFORE the restaurant-data
+         * transaction instead of pretending DDL is part of the atomic write.
+         */
+        $baseline = app(PmdTenantMenuBaselineR25::class)->repairCurrentTenant();
+        if (empty($baseline['ok'])) {
+            throw new \RuntimeException('Tenant Menu baseline is not ready for Quick Setup.');
+        }
+
+        if ($kdsStations && !Schema::hasTable('kds_stations')) {
+            throw new \RuntimeException('Tenant KDS baseline is missing the kds_stations table.');
+        }
+
         $result = DB::transaction(function () use (
             $type,
             $types,
@@ -102,9 +115,6 @@ class PmdTenantQuickSetupService
             $starterMenu,
             $locationId
         ) {
-            // Ensure all current tenant Menu fields exist before optional seeding.
-            app(PmdTenantMenuBaselineR25::class)->repairCurrentTenant();
-
             $allergens = $this->ensureReferenceAllergens();
             $floorResult = $this->ensureFloorsAndTables($locationId, $floors);
             $kdsResult = $this->ensureKdsStations($locationId, $kdsStations);
@@ -214,7 +224,9 @@ class PmdTenantQuickSetupService
 
     protected function ensureReferenceAllergens(): array
     {
-        if (!Schema::hasTable('allergens')) return [];
+        if (!Schema::hasTable('allergens')) {
+            throw new \RuntimeException('Tenant allergen baseline is missing the allergens table.');
+        }
 
         $definitions = [
             'Gluten' => 'Cereals containing gluten, including wheat, rye, barley and oats.',
@@ -252,6 +264,10 @@ class PmdTenantQuickSetupService
 
     protected function ensureFloorsAndTables(int $locationId, array $floors): array
     {
+        if (!Schema::hasTable('tables')) {
+            throw new \RuntimeException('Tenant Table baseline is missing the tables table.');
+        }
+
         $registry = app(PmdSharedFloorRegistryV1::class);
         $snapshot = $registry->snapshot($locationId);
         $defaultId = $registry->defaultFloorId();
@@ -260,7 +276,7 @@ class PmdTenantQuickSetupService
 
         // Preserve real pre-existing guest tables. Quick Setup never duplicates them.
         $existingGuestTables = Tables_model::query()
-            ->whereNotIn(DB::raw('LOWER(TRIM(table_name))'), ['cashier', 'delivery'])
+            ->whereRaw("LOWER(TRIM(COALESCE(table_name, ''))) NOT IN ('cashier','delivery','')")
             ->count();
 
         if ($existingGuestTables > 0) {
@@ -343,8 +359,9 @@ class PmdTenantQuickSetupService
 
     protected function ensureKdsStations(int $locationId, array $names): array
     {
-        if (!$names || !Schema::hasTable('kds_stations')) {
-            return ['created' => 0, 'stations' => []];
+        if (!$names) return ['created' => 0, 'stations' => []];
+        if (!Schema::hasTable('kds_stations')) {
+            throw new \RuntimeException('Tenant KDS baseline is missing the kds_stations table.');
         }
 
         $columns = Schema::getColumnListing('kds_stations');
