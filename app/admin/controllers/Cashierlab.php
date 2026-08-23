@@ -365,11 +365,20 @@ HTML;
             }
 
             /* PMD_CASHIER_QUICK_CANONICAL_FLOOR_V2_1_ASSETS_START */
+            /* PMD_CASHIER_QUICK_FAVICON_R21 */
             $quickHeadAssets =
-                '<link rel="stylesheet" '
+                '<link rel="icon" type="image/svg+xml" '
+                .'href="/app/admin/assets/images/'
+                .'pmd-favicon-final-20260822.svg?v=20260822-r21">'
+                ."\n"
+                .'<link rel="shortcut icon" type="image/svg+xml" '
+                .'href="/app/admin/assets/images/'
+                .'pmd-favicon-final-20260822.svg?v=20260822-r21">'
+                ."\n"
+                .'<link rel="stylesheet" '
                 .'href="/app/admin/assets/css/'
                 .'pmd-cashier-waiter-launcher-v21.css'
-                .'?v=b0e2243bf6a2">';
+                .'?v=20260822-pr165-r2">';
 
             $quickHeadCount = 0;
 

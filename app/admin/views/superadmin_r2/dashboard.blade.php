@@ -17,16 +17,16 @@
     .pmd-line-shell{border-top:1px solid #edf2f0;padding-top:12px;overflow-x:auto}.pmd-line-canvas{min-width:620px}.pmd-line-chart{display:block;width:100%;height:180px;overflow:visible}.pmd-line-grid{stroke:#e9f0ed;stroke-width:1}.pmd-line-base{stroke:#dce7e3;stroke-width:1.1}.pmd-line-path{fill:none;stroke:#0b9b74;stroke-width:3;stroke-linecap:round;stroke-linejoin:round}.pmd-line-dot{fill:#0b9b74;stroke:#fff;stroke-width:1.8}
     .pmd-line-labels{display:grid;gap:8px;margin-top:2px}.pmd-line-label{text-align:center;color:#6a7f77;font-size:12px;font-weight:750;min-width:58px}.pmd-line-label strong{display:block;color:#17372f;font-size:13px;margin-bottom:2px}
 
-    .pmd-country-card{display:flex;flex-direction:column}.pmd-country-head{display:flex;align-items:flex-end;justify-content:space-between;gap:12px;margin-bottom:14px}.pmd-country-total{font-size:13px;font-weight:800;color:#6a7f77}
-    .pmd-country-body{display:grid;grid-template-columns:210px minmax(0,1fr);gap:16px;align-items:center;min-height:246px;flex:1}
-    .pmd-country-donut-wrap{display:grid;place-items:center}.pmd-country-donut{position:relative;width:210px;aspect-ratio:1;border-radius:50%;background:conic-gradient(var(--pmd-country-segments));box-shadow:inset 0 0 0 1px rgba(16,70,56,.05)}
-    .pmd-country-donut-hole{position:absolute;inset:43px;border-radius:50%;background:#fff;display:flex;flex-direction:column;align-items:center;justify-content:center;box-shadow:0 0 0 1px #eef3f1}
-    .pmd-country-donut-value{font-size:38px;line-height:1;font-weight:900;letter-spacing:-.04em;color:#17372f}.pmd-country-donut-label{margin-top:7px;font-size:10px;font-weight:850;letter-spacing:.06em;text-transform:uppercase;color:#75877f;text-align:center}
-    .pmd-country-legend{display:grid;gap:11px}.pmd-country-legend-row{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:9px;align-items:center;padding:8px 0;border-bottom:1px solid #eef3f1}.pmd-country-legend-row:last-child{border-bottom:0}.pmd-country-dot{width:10px;height:10px;border-radius:50%;background:var(--pmd-country-color)}.pmd-country-name{font-size:14px;font-weight:800;color:#17372f;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.pmd-country-meta{font-size:12px;font-weight:800;color:#72847d;white-space:nowrap}.pmd-country-empty{display:grid;place-items:center;min-height:246px;color:#7b8d87;font-size:14px;text-align:center}
+    .pmd-country-card{display:flex;flex-direction:column}.pmd-country-head{display:flex;align-items:flex-end;justify-content:space-between;gap:12px;margin-bottom:16px}.pmd-country-total{font-size:13px;font-weight:800;color:#6a7f77}
+    .pmd-country-body{display:grid;grid-template-columns:156px minmax(0,1fr);gap:22px;align-items:center;min-height:218px;flex:1}
+    .pmd-country-donut-wrap{display:grid;place-items:center}.pmd-country-donut{position:relative;width:156px;aspect-ratio:1;border-radius:50%;background:conic-gradient(var(--pmd-country-segments));box-shadow:inset 0 0 0 1px rgba(16,70,56,.05)}
+    .pmd-country-donut-hole{position:absolute;inset:31px;border-radius:50%;background:#fff;display:flex;flex-direction:column;align-items:center;justify-content:center;box-shadow:0 0 0 1px #eef3f1}
+    .pmd-country-donut-value{font-size:31px;line-height:1;font-weight:900;letter-spacing:-.04em;color:#17372f}.pmd-country-donut-label{margin-top:7px;font-size:10px;font-weight:850;letter-spacing:.06em;text-transform:uppercase;color:#75877f;text-align:center}
+    .pmd-country-legend{display:grid;gap:11px}.pmd-country-legend-row{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:9px;align-items:center;padding:8px 0;border-bottom:1px solid #eef3f1}.pmd-country-legend-row:last-child{border-bottom:0}.pmd-country-dot{width:10px;height:10px;border-radius:50%;background:var(--pmd-country-color)}.pmd-country-name{font-size:14px;font-weight:800;color:#17372f;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.pmd-country-meta{font-size:12px;font-weight:800;color:#72847d;white-space:nowrap}.pmd-country-empty{display:grid;place-items:center;min-height:218px;color:#7b8d87;font-size:14px;text-align:center}
     .pmd-latest-card .table-wrap{border-radius:15px}
 
-    @media(max-width:1100px){.pmd-kpis{grid-template-columns:repeat(2,minmax(0,1fr))}.pmd-analytics-grid{grid-template-columns:1fr}.pmd-chart-card .card-head{align-items:flex-start;flex-direction:column}.pmd-chart-toolbar{justify-content:flex-start}.pmd-country-body{grid-template-columns:210px minmax(0,1fr)}}
-    @media(max-width:700px){.pmd-kpis{display:flex;overflow:auto;padding-bottom:3px}.pmd-kpi{min-width:210px}.pmd-line-chart{height:165px}.pmd-line-canvas{min-width:600px}.pmd-chart-toolbar{width:100%}.pmd-chart-range-field{flex:1;min-width:145px}.pmd-chart-range-field input{width:100%}.pmd-country-body{grid-template-columns:1fr}.pmd-country-donut{width:180px}.pmd-country-donut-hole{inset:37px}.pmd-country-donut-value{font-size:34px}.pmd-country-legend{width:100%}}
+    @media(max-width:1100px){.pmd-kpis{grid-template-columns:repeat(2,minmax(0,1fr))}.pmd-analytics-grid{grid-template-columns:1fr}.pmd-chart-card .card-head{align-items:flex-start;flex-direction:column}.pmd-chart-toolbar{justify-content:flex-start}.pmd-country-body{grid-template-columns:170px minmax(0,1fr)}}
+    @media(max-width:700px){.pmd-kpis{display:flex;overflow:auto;padding-bottom:3px}.pmd-kpi{min-width:210px}.pmd-line-chart{height:165px}.pmd-line-canvas{min-width:600px}.pmd-chart-toolbar{width:100%}.pmd-chart-range-field{flex:1;min-width:145px}.pmd-chart-range-field input{width:100%}.pmd-country-body{grid-template-columns:1fr}.pmd-country-donut{width:150px}.pmd-country-legend{width:100%}}
 </style>
 @endpush
 
@@ -86,7 +86,9 @@
         }
     }
 
-    $countryPalette = ['#0b9b74','#35b992','#78cdb5','#f2a15f','#e57466','#718c84'];
+    // Intentionally high-contrast: each country should be visually distinct,
+    // not another shade of PayMyDine green.
+    $countryPalette = ['#00A76F','#2563EB','#F59E0B','#E11D48','#7C3AED','#06B6D4'];
     $countryStops = [];
     $countryCursor = 0.0;
     foreach ($countryMix as $index => $row) {

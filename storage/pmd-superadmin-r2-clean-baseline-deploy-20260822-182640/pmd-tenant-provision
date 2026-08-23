@@ -1,0 +1,114 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+DOMAIN="${1:-}"
+ROOT="/var/www/paymydine"
+SOURCE_VHOST="/etc/nginx/sites-available/test.paymydine.com.conf"
+TARGET_VHOST="/etc/nginx/sites-available/${DOMAIN}.conf"
+ENABLED_VHOST="/etc/nginx/sites-enabled/${DOMAIN}.conf"
+EMAIL="admin@paymydine.com"
+TMP_DIR="$(mktemp -d)"
+TEMP_HTTP="$TMP_DIR/http.conf"
+FINAL_VHOST="$TMP_DIR/final.conf"
+OLD_TARGET="$TMP_DIR/old-target.conf"
+HAD_TARGET=0
+HAD_LINK=0
+COMMITTED=0
+
+fail() { echo "ERROR: $*" >&2; exit 1; }
+
+cleanup() {
+  local rc=$?
+  if [[ "$COMMITTED" -ne 1 ]]; then
+    if [[ "$HAD_TARGET" -eq 1 ]]; then
+      install -o root -g root -m 0644 "$OLD_TARGET" "$TARGET_VHOST" || true
+    else
+      rm -f "$TARGET_VHOST" || true
+    fi
+
+    if [[ "$HAD_LINK" -eq 1 ]]; then
+      ln -sfn "$TARGET_VHOST" "$ENABLED_VHOST" || true
+    else
+      rm -f "$ENABLED_VHOST" || true
+    fi
+
+    nginx -t >/dev/null 2>&1 && systemctl reload nginx >/dev/null 2>&1 || true
+  fi
+  rm -rf "$TMP_DIR"
+  exit "$rc"
+}
+trap cleanup EXIT
+
+[[ "$DOMAIN" =~ ^[a-z0-9-]+\.paymydine\.com$ ]] || fail "invalid tenant domain"
+[[ "$DOMAIN" != "www.paymydine.com" ]] || fail "reserved domain"
+[[ -d "$ROOT" ]] || fail "application root missing"
+[[ -f "$SOURCE_VHOST" ]] || fail "canonical test tenant vhost missing"
+command -v nginx >/dev/null 2>&1 || fail "nginx missing"
+command -v certbot >/dev/null 2>&1 || fail "certbot missing"
+
+if [[ -f "$TARGET_VHOST" ]]; then
+  cp -a "$TARGET_VHOST" "$OLD_TARGET"
+  HAD_TARGET=1
+fi
+if [[ -L "$ENABLED_VHOST" ]]; then
+  HAD_LINK=1
+fi
+
+# A brand-new hostname may not yet have an exact HTTP vhost. Install a minimal
+# HTTP-only authority first so Let's Encrypt webroot challenges are guaranteed
+# to hit the PayMyDine document root instead of an unrelated default server.
+cat > "$TEMP_HTTP" <<EOF
+# PMD_SUPERADMIN_R2_TEMP_ACME ${DOMAIN}
+server {
+    listen 80;
+    listen [::]:80;
+    server_name ${DOMAIN};
+    root ${ROOT};
+
+    location ^~ /.well-known/acme-challenge/ {
+        root ${ROOT};
+        try_files \$uri =404;
+    }
+
+    location / {
+        return 302 https://\$host\$request_uri;
+    }
+}
+EOF
+
+install -o root -g root -m 0644 "$TEMP_HTTP" "$TARGET_VHOST"
+ln -sfn "$TARGET_VHOST" "$ENABLED_VHOST"
+nginx -t
+systemctl reload nginx
+
+# Wildcard DNS exists, but TLS is currently per tenant.
+if [[ ! -s "/etc/letsencrypt/live/${DOMAIN}/fullchain.pem" ]]; then
+  certbot certonly \
+    --webroot \
+    -w "$ROOT" \
+    -d "$DOMAIN" \
+    --non-interactive \
+    --agree-tos \
+    --email "$EMAIL" \
+    --keep-until-expiring
+fi
+
+[[ -s "/etc/letsencrypt/live/${DOMAIN}/fullchain.pem" ]] || fail "certificate was not created"
+[[ -s "/etc/letsencrypt/live/${DOMAIN}/privkey.pem" ]] || fail "private key was not created"
+
+# Clone the known-good test tenant vhost after TLS exists. This preserves all
+# PHP/Laravel/Next routing authorities that have already been audited on test.
+sed "s/test\.paymydine\.com/${DOMAIN}/g" "$SOURCE_VHOST" > "$FINAL_VHOST"
+
+grep -q "server_name ${DOMAIN};" "$FINAL_VHOST" || fail "generated vhost server_name validation failed"
+grep -q "/etc/letsencrypt/live/${DOMAIN}/fullchain.pem" "$FINAL_VHOST" || fail "generated certificate path validation failed"
+grep -q "location \^~ /admin/" "$FINAL_VHOST" || fail "generated vhost lost admin authority"
+grep -q "location \^~ /superadmin/" "$FINAL_VHOST" || fail "generated vhost lost superadmin authority"
+
+install -o root -g root -m 0644 "$FINAL_VHOST" "$TARGET_VHOST"
+ln -sfn "$TARGET_VHOST" "$ENABLED_VHOST"
+nginx -t
+systemctl reload nginx
+
+COMMITTED=1
+echo "READY ${DOMAIN}"

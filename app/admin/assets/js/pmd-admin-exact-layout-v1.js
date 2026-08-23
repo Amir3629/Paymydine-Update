@@ -17,7 +17,8 @@
       '/admin/pmddevices',
       '/admin/pmdfinance',
       '/admin/pmdbrand',
-      '/admin/pmdadvanced'
+      '/admin/pmdadvanced',
+      '/admin/history'
     ].indexOf(normalizedPath) !== -1;
 
   var excluded =

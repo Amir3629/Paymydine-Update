@@ -3808,3 +3808,13 @@ require_once base_path('routes/pmd-waiter-final-v2.php');
 // PMD_WAITER_WORKSTATION_V3_ROUTE_LOADER_START
 require_once base_path('routes/pmd-waiter-workstation-v3.php');
 // PMD_WAITER_WORKSTATION_V3_ROUTE_LOADER_END
+
+// PMD_TENANT_RUNTIME_GUARD_R1_LOADER
+if (file_exists(base_path('routes/pmd-tenant-runtime-guard-r1.php'))) {
+    require_once base_path('routes/pmd-tenant-runtime-guard-r1.php');
+}
+// PMD_TENANT_RUNTIME_GUARD_R1_LOADER_END
+
+// PMD_SUPERADMIN_R2_ROUTE_LOADER
+require_once base_path('routes/pmd-superadmin-r2.php');
+

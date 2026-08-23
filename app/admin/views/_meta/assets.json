@@ -1,6 +1,6 @@
 {
   "doctype": "html5",
-  "favicon": "/app/admin/assets/images/favicon.svg",
+  "favicon": "/app/admin/assets/images/pmd-favicon-final-20260822.svg",
   "meta": [
     {
       "name": "Content-type",
@@ -62,12 +62,100 @@
     {
       "path": "css/pmd-waiter-floor-edit-v160.css",
       "name": "pmd-waiter-floor-edit-v160-css"
+    },
+    {
+      "path": "css/pmd-settings-simplify-r1.css",
+      "name": "pmd-settings-simplify-r1-css"
+    },
+    {
+      "path": "css/pmd-settings-polish-r2.css",
+      "name": "pmd-settings-polish-r2-css"
+    },
+    {
+      "path": "css/pmd-settings-polish-r3.css",
+      "name": "pmd-settings-polish-r3-css"
+    },
+    {
+      "path": "css/pmd-settings-polish-r4.css",
+      "name": "pmd-settings-polish-r4-css"
+    },
+    {
+      "path": "css/pmd-settings-polish-r5.css",
+      "name": "pmd-settings-polish-r5-css"
+    },
+    {
+      "path": "css/pmd-settings-polish-r7.css",
+      "name": "pmd-settings-polish-r7-css"
+    },
+    {
+      "path": "css/pmd-settings-polish-r8.css",
+      "name": "pmd-settings-polish-r8-css"
+    },
+    {
+      "path": "css/pmd-settings-polish-r9.css",
+      "name": "pmd-settings-polish-r9-css"
+    },
+    {
+      "path": "css/pmd-settings-polish-r10.css",
+      "name": "pmd-settings-polish-r10-css"
+    },
+    {
+      "path": "css/pmd-settings-polish-r11.css",
+      "name": "pmd-settings-polish-r11-css"
+    },
+    {
+      "path": "css/pmd-devices-settings-prune-r12.css",
+      "name": "pmd-devices-settings-prune-r12-css"
+    },
+    {
+      "path": "css/pmd-finance-frontend-cleanup-r13.css",
+      "name": "pmd-finance-frontend-cleanup-r13-css"
+    },
+    {
+      "path": "css/pmd-history-stable-r20.css",
+      "name": "pmd-history-stable-r20-css"
+    },
+    {
+      "path": "css/pmd-coupon-stable-r24.css",
+      "name": "pmd-coupon-stable-r24-css"
+    },
+    {
+      "path": "css/pmd-general-staff-note-r24.css",
+      "name": "pmd-general-staff-note-r24-css"
+    },
+    {
+      "path": "css/pmd-sumup-self-service-v1.css",
+      "name": "pmd-sumup-self-service-v1-css"
+    },
+    {
+      "path": "css/pmd-cashier-order-clean-v1.css",
+      "name": "pmd-cashier-order-clean-v1-css"
+    },
+    {
+      "path": "css/pmd-cashier-payment-clean-v1.css",
+      "name": "pmd-cashier-payment-clean-v1-css"
+    },
+    {
+      "path": "css/pmd-payment-provider-catalogue-v1.css",
+      "name": "pmd-payment-provider-catalogue-v1-css"
     }
   ],
   "script": [
     {
       "path": "js/admin.js",
       "name": "admin-js"
+    },
+    {
+      "path": "js/pmd-admin-favicon-final-r21.js",
+      "name": "pmd-admin-favicon-final-r21-js"
+    },
+    {
+      "path": "js/pmd-coupon-stable-r24.js",
+      "name": "pmd-coupon-stable-r24-js"
+    },
+    {
+      "path": "js/pmd-general-staff-note-r24.js",
+      "name": "pmd-general-staff-note-r24-js"
     },
     {
       "path": "js/pmd-waiter-pos-dashboard-shadow-bridge-v24.js",
@@ -96,6 +184,34 @@
     {
       "path": "js/pmd-waiter-floor-edit-v160.js",
       "name": "pmd-waiter-floor-edit-v160-js"
+    },
+    {
+      "path": "js/pmd-dashboard-kpi-repair-v1.js",
+      "name": "pmd-dashboard-kpi-repair-v1-js"
+    },
+    {
+      "path": "js/pmd-settings-polish-r4.js",
+      "name": "pmd-settings-polish-r4-js"
+    },
+    {
+      "path": "js/pmd-settings-stable-r9.js",
+      "name": "pmd-settings-stable-r9-js"
+    },
+    {
+      "path": "js/pmd-waiter-pos-payment-v3.js",
+      "name": "pmd-waiter-pos-payment-v3-js"
+    },
+    {
+      "path": "js/pmd-sumup-self-service-v1.js",
+      "name": "pmd-sumup-self-service-v1-js"
+    },
+    {
+      "path": "js/pmd-payment-provider-catalogue-v1.js",
+      "name": "pmd-payment-provider-catalogue-v1-js"
+    },
+    {
+      "path": "js/pmd-payment-providers-settings-link-v1.js",
+      "name": "pmd-payment-providers-settings-link-v1-js"
     }
   ]
 }

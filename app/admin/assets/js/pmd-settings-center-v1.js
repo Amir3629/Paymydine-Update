@@ -12,7 +12,6 @@
    */
   [
     '/admin/pmdadvanced',
-    '/admin/pmdbrand',
     '/admin/pmdcustomer'
   ].forEach(function (path) {
     Array.prototype.slice.call(

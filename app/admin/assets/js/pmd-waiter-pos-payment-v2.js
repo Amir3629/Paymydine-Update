@@ -25,6 +25,143 @@
     function paymentCouponUrl() { return replaceOrderToken(state.settings.payment_coupon_url, state.activeOrderId); }
     function terminalPaymentUrl() { return replaceOrderToken(state.settings.terminal_payment_url, state.activeOrderId); }
 
+    function terminalAttemptRefreshUrl(attemptId) {
+      return '/admin/terminal-payments/attempts/'
+        + encodeURIComponent(String(attemptId))
+        + '/refresh';
+    }
+
+    function terminalAttemptsUrl() {
+      return '/admin/orders/'
+        + encodeURIComponent(String(state.activeOrderId))
+        + '/terminal-payment-attempts';
+    }
+
+    function wait(ms) {
+      return new Promise(function (resolve) {
+        setTimeout(resolve, ms);
+      });
+    }
+
+    async function refreshTerminalAttempt(attemptId) {
+      return fetchJson(terminalAttemptRefreshUrl(attemptId), {
+        method: 'POST',
+        headers: {
+          'Accept': 'application/json',
+          'Content-Type': 'application/json',
+          'X-Requested-With': 'XMLHttpRequest',
+          'X-CSRF-TOKEN': (($('meta[name="csrf-token"]', document) || {}).content || ''),
+        },
+        body: JSON.stringify({}),
+      });
+    }
+
+    async function latestTerminalAttemptId() {
+      var json = await fetchJson(
+        terminalAttemptsUrl() + '?_=' + Date.now()
+      );
+
+      var attempts = json.attempts || [];
+
+      if (!attempts.length) return null;
+
+      return Number(attempts[0].id) || null;
+    }
+
+    async function finishTerminalStatus(result, silent) {
+      var status = String(
+        result && result.status ? result.status : ''
+      ).toLowerCase();
+
+      if (status === 'paid') {
+        await loadPaymentSummary(true);
+        await refreshData(true);
+
+        toast('Terminal payment confirmed');
+        showSuccess('Payment approved by SumUp.');
+
+        setTimeout(function () {
+          closePayment();
+        }, 1200);
+
+        return true;
+      }
+
+      if (
+        status === 'failed' ||
+        status === 'cancelled' ||
+        status === 'reconciliation_required'
+      ) {
+        await loadPaymentSummary(true);
+
+        toast(
+          (result && result.message)
+            ? result.message
+            : 'Terminal payment failed.',
+          true
+        );
+
+        return true;
+      }
+
+      if (!silent) {
+        toast('Terminal payment is still processing.');
+      }
+
+      return false;
+    }
+
+    async function pollTerminalPayment(attemptId) {
+      state.payment.terminalAttemptId = Number(attemptId);
+
+      for (var i = 0; i < 45; i++) {
+        await wait(2000);
+
+        var result = await refreshTerminalAttempt(attemptId);
+
+        if (await finishTerminalStatus(result, true)) {
+          return result;
+        }
+      }
+
+      await loadPaymentSummary(true);
+
+      toast(
+        'Payment is still processing. Use Refresh payment status.',
+        true
+      );
+
+      return null;
+    }
+
+    async function refreshTerminalPaymentStatus() {
+      try {
+        var attemptId = state.payment.terminalAttemptId;
+
+        if (!attemptId) {
+          attemptId = await latestTerminalAttemptId();
+        }
+
+        if (!attemptId) {
+          await loadPaymentSummary(false);
+          return;
+        }
+
+        state.payment.terminalAttemptId = attemptId;
+
+        var result = await refreshTerminalAttempt(attemptId);
+
+        if (!(await finishTerminalStatus(result, false))) {
+          await loadPaymentSummary(true);
+        }
+      } catch (error) {
+        toast(
+          error.message || 'Could not refresh terminal payment.',
+          true
+        );
+      }
+    }
+
     function resetPaymentState() {
       state.payment.loading = false;
       state.payment.submitting = false;
@@ -34,6 +171,8 @@
       state.payment.itemQuantities = {};
       state.payment.method = 'cash';
       state.payment.providerCode = null;
+      state.payment.terminalDeviceId = null;
+      state.payment.terminalAttemptId = null;
       state.payment.tipPercent = 0;
       state.payment.customTip = '';
       state.payment.coupon = null;
@@ -218,6 +357,7 @@
         button.onclick = function () {
           state.payment.method = button.dataset.paymentMethod;
           state.payment.providerCode = button.dataset.provider || null;
+          state.payment.terminalDeviceId = null;
           state.payment.idempotencyKey = uid('pay');
           renderPayment();
         };
@@ -232,12 +372,32 @@
         terminalBox.hidden = state.payment.method !== 'direct_terminal';
         if (state.payment.method === 'direct_terminal') {
           var providers = summary.terminal_providers || [];
-          if (!state.payment.providerCode && providers.length) state.payment.providerCode = providers[0].provider_code;
+          if (providers.length && (!state.payment.providerCode || !state.payment.terminalDeviceId)) {
+            state.payment.providerCode = providers[0].provider_code;
+            state.payment.terminalDeviceId = providers[0].terminal_device_id || null;
+          }
+
           terminalBox.innerHTML = '<b>Connected terminal</b><br>Only real provider responses are accepted. Split, coupon and tip are disabled for this direct full-balance request.<div class="pmd-pos-terminal-provider-row">' + providers.map(function (provider) {
-            return '<button type="button" data-terminal-provider="' + esc(provider.provider_code) + '" class="' + (state.payment.providerCode === provider.provider_code ? 'is-active' : '') + '">' + esc(provider.name) + '</button>';
+            var providerId = provider.terminal_device_id || '';
+            var active = state.payment.providerCode === provider.provider_code
+              && String(state.payment.terminalDeviceId || '') === String(providerId);
+
+            return '<button type="button"'
+              + ' data-terminal-provider="' + esc(provider.provider_code) + '"'
+              + ' data-terminal-device-id="' + esc(providerId) + '"'
+              + ' class="' + (active ? 'is-active' : '') + '">'
+              + esc(provider.name)
+              + '</button>';
           }).join('') + '</div>';
+
           $$('[data-terminal-provider]', terminalBox).forEach(function (button) {
-            button.onclick = function () { state.payment.providerCode = button.dataset.terminalProvider; renderMethods(); };
+            button.onclick = function () {
+              state.payment.providerCode = button.dataset.terminalProvider;
+              state.payment.terminalDeviceId = button.dataset.terminalDeviceId
+                ? Number(button.dataset.terminalDeviceId)
+                : null;
+              renderMethods();
+            };
           });
         }
       }
@@ -490,10 +650,26 @@
             'X-Requested-With': 'XMLHttpRequest',
             'X-CSRF-TOKEN': (($('meta[name="csrf-token"]', document) || {}).content || ''),
           },
-          body: JSON.stringify({provider_code: state.payment.providerCode}),
+          body: JSON.stringify({
+            provider_code: state.payment.providerCode,
+            terminal_device_id: state.payment.terminalDeviceId || null
+          }),
         });
-        toast(json.message || 'Terminal request sent');
-        await loadPaymentSummary(true);
+        state.payment.terminalAttemptId =
+          Number(json.attempt_id) || null;
+
+        toast(
+          json.message ||
+          'Payment sent to terminal. Waiting for approval.'
+        );
+
+        if (state.payment.terminalAttemptId) {
+          await pollTerminalPayment(
+            state.payment.terminalAttemptId
+          );
+        } else {
+          await loadPaymentSummary(true);
+        }
       } catch (error) {
         toast(error.message || 'Terminal payment was not sent.', true);
       } finally {
@@ -541,7 +717,7 @@
       var copy = $('[data-pos-copy-link]');
       if (copy) copy.onclick = copyPaymentLink;
       var refresh = $('[data-pos-refresh-payment]');
-      if (refresh) refresh.onclick = function () { loadPaymentSummary(false); };
+      if (refresh) refresh.onclick = refreshTerminalPaymentStatus;
     }
 
       return {

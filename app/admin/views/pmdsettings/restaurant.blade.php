@@ -88,7 +88,7 @@ document.documentElement.classList.add('pmd-restaurant-profile-booting');
                     </div>
                     <div>
                         <h2>Restaurant details</h2>
-                        <p>The core information used across PayMyDine.</p>
+                        <p>Shown on your digital menu.</p>
                     </div>
                 </div>
 
@@ -97,8 +97,6 @@ document.documentElement.classList.add('pmd-restaurant-profile-booting');
                         <label class="pmd-profile-field pmd-profile-field--wide">
                             <span>Restaurant name</span>
                             <input type="text" name="profile[name]" value="{{ $pmdProfile['name'] ?? '' }}" maxlength="191" required>
-                        
-                            <small class="pmd-profile-customer-menu-note-r19">Customer menu name — saved once here and used by all 10 QR-menu themes.</small>
                         </label>
 
                         {{-- PMD_RESTAURANT_IDENTITY_UNIFIED_R19 --}}
@@ -112,12 +110,11 @@ document.documentElement.classList.add('pmd-restaurant-profile-booting');
                                         name="pmd_restaurant_logo"
                                         accept="image/png,image/jpeg,image/webp"
                                     >
-                                    <small class="pmd-profile-logo-help-r19">PNG, JPG or WEBP · max 5 MB. This is the same logo used by all 10 customer-menu themes.</small>
-                                    <small class="pmd-profile-logo-authority-r21">Saved logo must resolve through <code>/api/media/</code>. Broken legacy references are never restored.</small>
+                                    <small class="pmd-profile-logo-help-r19">PNG, JPG or WEBP · max 5 MB.</small>
                                     {{-- PMD_RESTAURANT_LOGO_REMOVE_R20 --}}
                                     <label class="pmd-profile-logo-remove-r20">
                                         <input type="checkbox" name="profile[remove_logo]" value="1">
-                                        <span>Remove the current restaurant logo</span>
+                                        <span>Remove logo</span>
                                     </label>
                                     @if(!empty($pmdProfile['site_logo']))
                                         <small class="pmd-profile-logo-source-r20">Current backend value: {{ $pmdProfile['site_logo'] }}</small>
@@ -262,7 +259,7 @@ document.documentElement.classList.add('pmd-restaurant-profile-booting');
                     </div>
                     <div>
                         <h2>Website & social links</h2>
-                        <p>Public links reused across the guest-facing experience.</p>
+                        <p>Shown to guests on your digital menu.</p>
                     </div>
                 </div>
 

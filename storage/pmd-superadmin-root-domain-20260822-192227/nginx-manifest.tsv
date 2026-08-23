@@ -1,0 +1,6 @@
+/etc/nginx/sites-available/asd.paymydine.com.conf	/var/www/paymydine/storage/pmd-superadmin-root-domain-20260822-192227/nginx/etc__nginx__sites-available__asd.paymydine.com.conf
+/etc/nginx/sites-available/kult.paymydine.com.conf	/var/www/paymydine/storage/pmd-superadmin-root-domain-20260822-192227/nginx/etc__nginx__sites-available__kult.paymydine.com.conf
+/etc/nginx/sites-available/milano.paymydine.com.conf	/var/www/paymydine/storage/pmd-superadmin-root-domain-20260822-192227/nginx/etc__nginx__sites-available__milano.paymydine.com.conf
+/etc/nginx/sites-available/paymydine	/var/www/paymydine/storage/pmd-superadmin-root-domain-20260822-192227/nginx/etc__nginx__sites-available__paymydine
+/etc/nginx/sites-available/persian.paymydine.com.conf	/var/www/paymydine/storage/pmd-superadmin-root-domain-20260822-192227/nginx/etc__nginx__sites-available__persian.paymydine.com.conf
+/etc/nginx/sites-available/test.paymydine.com.conf	/var/www/paymydine/storage/pmd-superadmin-root-domain-20260822-192227/nginx/etc__nginx__sites-available__test.paymydine.com.conf

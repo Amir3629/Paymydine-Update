@@ -127,7 +127,7 @@ class Assets
             if (function_exists('request')) {
                 $request = request();
                 if ($request && ($request->is('admin') || $request->is('admin/*'))) {
-                    $faviconPath = base_path('app/admin/assets/images/favicon.svg');
+                    $faviconPath = base_path('app/admin/assets/images/pmd-favicon-final-20260822.svg');
                     $faviconVersion = is_file($faviconPath)
                         ? (string)filemtime($faviconPath)
                         : 'pmd-admin-v2';
@@ -135,7 +135,7 @@ class Assets
                     $attributes = [
                         'rel' => 'icon',
                         'type' => 'image/svg+xml',
-                        'href' => asset('app/admin/assets/images/favicon.svg').'?v='.$faviconVersion,
+                        'href' => asset('app/admin/assets/images/pmd-favicon-final-20260822.svg').'?v='.$faviconVersion,
                     ];
                     return '<link'.Html::attributes($attributes).'>'.PHP_EOL;
                 }

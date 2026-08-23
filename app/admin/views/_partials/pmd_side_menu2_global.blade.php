@@ -82,6 +82,7 @@
             'admin/pmdfinance',
             'admin/pmdbrand',
             'admin/pmdadvanced',
+            'admin/history',
         ], true);
 
     /* PMD_DEVICE_SETTINGS_SUITE_V2_ROUTE_AUTHORITY
@@ -730,7 +731,7 @@
 ></script>
 
 <script
-    src="/app/admin/assets/js/pmd-admin-exact-layout-v1.js?v=20260810-settings-flow-scroll-v7"
+    src="/app/admin/assets/js/pmd-admin-exact-layout-v1.js?v=20260822-history-r20"
     defer
 ></script>
 @endif

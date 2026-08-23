@@ -54,23 +54,19 @@ class ServiceProvider extends AppServiceProvider
         $this->registerActivityTypes();
         $this->registerMailTemplates();
         $this->registerSchedule();
-        Route::middleware('web')
-        ->withoutMiddleware([\Igniter\Flame\Foundation\Http\Middleware\TenantDatabaseMiddleware::class])
-        ->group(function () {
-            Route::get('/superadmin/new', [SuperAdminController::class, 'showNewPage'])->name('superadmin.new');
-            Route::post('/superadmin/sign', [SuperAdminController::class, 'sign']);
-            Route::get('/superadmin/signout', [SuperAdminController::class, 'signOut']);
-            Route::get('/superadmin/settings', [SuperAdminController::class, 'settings'])->name('superadmin.settings');
-            Route::get('/superadmin/index', [SuperAdminController::class, 'showIndex'])->name('superadmin.index');
-            Route::get('/superadmin/location-requests', [SuperAdminController::class, 'locationRequests'])->name('superadmin.location-requests');
+        // PMD_SUPERADMIN_RECOVERY_R1_START
+        // RETIRED_BY_PMD_SUPERADMIN_R2
+        //
+        // R1 previously registered legacy SuperAdminController routes here.
+        // That block was registered after app/admin/routes.php and therefore
+        // shadowed the new Super Admin R2 routes, including keeping the old
+        // 423 tenant-creation lock alive.
+        //
+        // R2 is now the single Super Admin URI authority and is loaded from:
+        // routes/pmd-superadmin-r2.php
+        //
+        // PMD_SUPERADMIN_RECOVERY_R1_END
 
-            // PMD Super Admin tenant create route: keep in same working web route layer as Super Admin pages.
-            Route::post('/superadmin/new/store', [SuperAdminController::class, 'store'])->name('superadmin.store.scoped');
-            Route::get('/superadmin/new/store', function () {
-                return redirect('/superadmin/new');
-            });
-
-        });
         if ($this->app->runningInAdmin()) {
             $this->registerSystemSettings();
             $this->registerFiskalySettingsBridge();

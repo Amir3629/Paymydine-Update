@@ -398,6 +398,7 @@ App::before(function () {
     ->withoutMiddleware([\Igniter\Flame\Foundation\Http\Middleware\TenantDatabaseMiddleware::class]);
 
     Route::post('/superadmin/settings/update', [SuperAdminController::class, 'updateSettings'])->name('superadmin.update')
+    ->middleware('superadmin.auth')
     ->withoutMiddleware([\Igniter\Flame\Foundation\Http\Middleware\TenantDatabaseMiddleware::class]);
 
     // Backward-compatible alias
@@ -6040,3 +6041,18 @@ return response()->json([
 
 
 }); // Close App::before function
+
+// PMD_DASHBOARD_KPI_REPAIR_ROUTE_V1_PROD
+App::before(function () {
+    Route::group([
+        'middleware' => ['web'],
+        'prefix' => config('system.adminUri', 'admin'),
+    ], function () {
+        Route::get(
+            'pmd-dashboard-kpi-repair-v1-data',
+            [\Admin\Controllers\PmdDashboardKpiRepairV1::class, 'data']
+        )->name('pmd.dashboard.kpi.repair.v1.prod');
+    });
+});
+// PMD_DASHBOARD_KPI_REPAIR_ROUTE_V1_PROD_END
+

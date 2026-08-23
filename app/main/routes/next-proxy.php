@@ -230,6 +230,7 @@ $active = params('default_themes.main', config('system.defaultTheme'));
                 // Exclusions to keep backend working
                 $exclusions = [
                     '/admin',
+                    '/superadmin',
                     config('system.assetsCombinerUri', '/_assets'),
                     '/api',
                     '/api-server.php',

@@ -1,0 +1,154 @@
+<?php
+
+namespace Admin\Controllers;
+
+use App\Services\TerminalPayments\SumupTenantConnectionService;
+use Illuminate\Http\Request;
+
+class SumupTerminalSettings extends \Admin\Classes\AdminController
+{
+    protected $requiredPermissions = 'Site.Settings';
+
+    public function state(SumupTenantConnectionService $service)
+    {
+        $this->assertOwnerAccess();
+
+        return response()->json([
+            'success' => true,
+            'state' => $service->state(),
+        ]);
+    }
+
+    public function saveConnection(Request $request, SumupTenantConnectionService $service)
+    {
+        $this->assertOwnerAccess();
+
+        $data = $request->validate([
+            'environment' => ['required', 'in:test,production'],
+            'api_key' => ['nullable', 'string', 'max:4096'],
+            'affiliate_key' => ['nullable', 'string', 'max:4096'],
+            'merchant_code' => ['nullable', 'string', 'max:191'],
+        ]);
+
+        try {
+            $service->saveConnection(
+                (string)$data['environment'],
+                $data['api_key'] ?? null,
+                $data['affiliate_key'] ?? null,
+                $data['merchant_code'] ?? null
+            );
+
+            $result = $service->testConnection((string)$data['environment']);
+
+            return response()->json([
+                'success' => true,
+                'message' => $result['message'] ?? 'Connected to SumUp.',
+                'state' => $service->state(),
+            ]);
+        } catch (\Throwable $e) {
+            return $this->failure($e);
+        }
+    }
+
+    public function testConnection(Request $request, SumupTenantConnectionService $service)
+    {
+        $this->assertOwnerAccess();
+        $data = $request->validate([
+            'environment' => ['required', 'in:test,production'],
+        ]);
+
+        try {
+            $result = $service->testConnection((string)$data['environment']);
+            return response()->json([
+                'success' => true,
+                'message' => $result['message'] ?? 'Connected to SumUp.',
+                'state' => $service->state(),
+            ]);
+        } catch (\Throwable $e) {
+            return $this->failure($e);
+        }
+    }
+
+    public function activateEnvironment(Request $request, SumupTenantConnectionService $service)
+    {
+        $this->assertOwnerAccess();
+        $data = $request->validate([
+            'environment' => ['required', 'in:test,production'],
+        ]);
+
+        try {
+            return response()->json([
+                'success' => true,
+                'message' => ucfirst((string)$data['environment']).' SumUp is now used for payments.',
+                'state' => $service->activateEnvironment((string)$data['environment']),
+            ]);
+        } catch (\Throwable $e) {
+            return $this->failure($e);
+        }
+    }
+
+    public function pairReader(Request $request, SumupTenantConnectionService $service)
+    {
+        $this->assertOwnerAccess();
+        $data = $request->validate([
+            'environment' => ['required', 'in:test,production'],
+            'pairing_code' => ['required', 'string', 'regex:/^[A-Za-z0-9]{8,9}$/'],
+            'label' => ['required', 'string', 'min:2', 'max:191'],
+        ]);
+
+        try {
+            $result = $service->pairReader(
+                (string)$data['environment'],
+                (string)$data['pairing_code'],
+                (string)$data['label']
+            );
+            return response()->json($result);
+        } catch (\Throwable $e) {
+            return $this->failure($e);
+        }
+    }
+
+    public function testReader($terminalId, SumupTenantConnectionService $service)
+    {
+        $this->assertOwnerAccess();
+
+        try {
+            return response()->json($service->testReader((int)$terminalId));
+        } catch (\Throwable $e) {
+            return $this->failure($e);
+        }
+    }
+
+    public function removeReader($terminalId, SumupTenantConnectionService $service)
+    {
+        $this->assertOwnerAccess();
+
+        try {
+            return response()->json($service->removeReader((int)$terminalId));
+        } catch (\Throwable $e) {
+            return $this->failure($e);
+        }
+    }
+
+    private function assertOwnerAccess(): void
+    {
+        $user = \Admin\Facades\AdminAuth::getUser();
+        if (!$user) {
+            abort(401, 'Authentication required.');
+        }
+
+        if (!$user->hasPermission('Site.Settings') && !$user->hasPermission('Admin.Pos')) {
+            abort(403, 'Settings permission required.');
+        }
+    }
+
+    private function failure(\Throwable $e)
+    {
+        report($e);
+
+        return response()->json([
+            'success' => false,
+            'message' => $e->getMessage() ?: 'SumUp request failed.',
+        ], 422);
+    }
+}

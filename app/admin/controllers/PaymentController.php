@@ -1,4 +1,4 @@
-<?php 
+<?php
 
 namespace Admin\Controllers;
 
@@ -13,25 +13,30 @@ class PaymentController extends Controller
     public function createSession(Request $request, PaymentOrchestrator $orchestrator)
     {
         $request->validate([
-            'order_id'      => ['required', 'integer'],
-            'payment_code'  => ['required', 'string'], // stripe, paypal, square
-            'success_url'   => ['required', 'url'],
-            'cancel_url'    => ['required', 'url'],
+            'order_id' => ['required', 'integer'],
+            // Business payment method, for example card, paypal or wero.
+            // Legacy direct provider codes (stripe/paypal/square) remain
+            // accepted by PaymentOrchestrator during migration.
+            'payment_code' => ['required', 'string'],
+            'success_url' => ['required', 'url'],
+            'cancel_url' => ['required', 'url'],
 
-            // Square extras (só usa se payment_code=square)
             'square.order_type' => ['nullable', 'string'],
-            'square.order_fee'  => ['nullable', 'numeric'],
+            'square.order_fee' => ['nullable', 'numeric'],
         ]);
 
         $order = Orders_model::findOrFail($request->order_id);
-
-        // Guarda o método escolhido no pedido (se isso fizer sentido no seu fluxo)
         $order->payment = $request->payment_code;
         $order->save();
 
-        $payment = Payments_model::where('code', $request->payment_code)->firstOrFail();
-        $payment->applyGatewayClass();
+        $paymentMethod = Payments_model::where('code', $request->payment_code)
+            ->firstOrFail();
+        $paymentMethod->applyGatewayClass();
 
-        return $orchestrator->createSession($order, $payment, $request);
+        return $orchestrator->createSession(
+            $order,
+            $paymentMethod,
+            $request
+        );
     }
 }
