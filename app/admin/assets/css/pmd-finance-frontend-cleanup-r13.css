@@ -1,0 +1,83 @@
+/* PMD_FINANCE_FRONTEND_CLEANUP_R13
+ * Final UI-only cleanup:
+ * - one visible Customer menu theme title, regardless of legacy h1/pseudo rewrites
+ * - hide invoice identity, receipt layout and print automation from Finance UI
+ *   while leaving their form controls intact so stored values continue to submit
+ */
+
+/* =========================================================
+   FRONTEND SETTINGS — EXACTLY ONE PAGE TITLE
+   ========================================================= */
+html body #pmd-frontend-settings .pmd-frontend-header__left > div {
+  position: relative !important;
+  min-width: 0 !important;
+}
+
+/* Hide the legacy h1 itself and every pseudo authority attached to it. */
+html body #pmd-frontend-settings .pmd-frontend-header h1,
+html body #pmd-frontend-settings .pmd-frontend-header h1::before,
+html body #pmd-frontend-settings .pmd-frontend-header h1::after {
+  display: none !important;
+  visibility: hidden !important;
+  content: none !important;
+}
+
+/* One final visible title owned by the wrapper, not by legacy h1 runtime. */
+html body #pmd-frontend-settings .pmd-frontend-header__left > div::before {
+  content: "Customer menu theme" !important;
+  display: block !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  color: #17231f !important;
+  font-size: 22px !important;
+  line-height: 1.15 !important;
+  font-weight: 760 !important;
+  letter-spacing: -.02em !important;
+  white-space: nowrap !important;
+}
+
+/* =========================================================
+   FINANCE — KEEP DATA/FUNCTIONALITY, REMOVE THESE CONTROLS
+   FROM THE SETTINGS PAGE FOR NOW
+   ========================================================= */
+
+/* Invoice identity & numbering panel. */
+html body #pmd-finance-page #tax-invoicing
+.pmd-owner-card__body > .pmd-owner-grid:first-child
+> .pmd-owner-panel:nth-child(2) {
+  display: none !important;
+  visibility: hidden !important;
+}
+
+/* Divider before Receipt layout / Print automation. */
+html body #pmd-finance-page #tax-invoicing
+.pmd-owner-card__body > .pmd-owner-divider {
+  display: none !important;
+  visibility: hidden !important;
+}
+
+/* Entire Receipt layout + Print automation row. */
+html body #pmd-finance-page #tax-invoicing
+.pmd-owner-card__body > .pmd-owner-divider + .pmd-owner-grid {
+  display: none !important;
+  visibility: hidden !important;
+}
+
+/* With only VAT visible, let it use the full card width. */
+html body #pmd-finance-page #tax-invoicing
+.pmd-owner-card__body > .pmd-owner-grid:first-child {
+  grid-template-columns: minmax(0, 1fr) !important;
+}
+
+html body #pmd-finance-page #tax-invoicing
+.pmd-owner-card__body > .pmd-owner-grid:first-child
+> .pmd-owner-panel:first-child {
+  width: 100% !important;
+  max-width: none !important;
+}
+
+@media (max-width: 760px) {
+  html body #pmd-frontend-settings .pmd-frontend-header__left > div::before {
+    font-size: 19px !important;
+  }
+}

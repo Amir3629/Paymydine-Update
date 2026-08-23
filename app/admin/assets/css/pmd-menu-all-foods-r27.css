@@ -1,0 +1,83 @@
+/* PMD_MENU_ALL_FOODS_PREFERENCE_R27
+ * Presentation only for the virtual All Foods preference.
+ * Existing Smart Categories modal remains the visual authority.
+ */
+body.pmd-menu-manager-page .pmd-all-foods-manage-r27 {
+    display: none;
+    place-items: center;
+    width: 34px;
+    min-width: 34px;
+    height: 34px;
+    margin-left: -8px;
+    padding: 0;
+    border: 1px solid #cfe0e6;
+    border-radius: 999px;
+    background: #fff;
+    color: #315266;
+    box-shadow: none;
+    cursor: pointer;
+    flex: 0 0 34px;
+}
+
+body.pmd-menu-manager-page
+[data-pmd-menu-manager][data-pmd-sort-mode]:not([data-pmd-sort-mode="0"])
+.pmd-all-foods-manage-r27:not([hidden]) {
+    display: grid;
+}
+
+body.pmd-menu-manager-page .pmd-all-foods-manage-r27:hover,
+body.pmd-menu-manager-page .pmd-all-foods-manage-r27:focus-visible {
+    border-color: #99bdc1;
+    background: #f7fbfb;
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(50,130,130,.08);
+}
+
+body.pmd-menu-manager-page .pmd-all-foods-manage-r27 svg {
+    width: 15px;
+    height: 15px;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 1.8;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+}
+
+body.pmd-menu-manager-page
+[data-pmd-category-filter="all"].is-pmd-all-foods-hidden-r27 {
+    border-style: dashed !important;
+    background: #f6f9fa !important;
+    color: #748793 !important;
+    opacity: .78;
+}
+
+body.pmd-menu-manager-page
+[data-pmd-category-filter="all"].is-pmd-all-foods-hidden-r27.is-active {
+    box-shadow: none !important;
+}
+
+body.pmd-menu-manager-page .pmd-all-foods-modal-r27__note {
+    margin-bottom: 0;
+}
+
+body.pmd-menu-manager-page .pmd-all-foods-modal-r27 .pmd-smart-btn--danger {
+    border-color: #d95d59 !important;
+    background: #fff !important;
+    color: #b3261e !important;
+}
+
+body.pmd-menu-manager-page .pmd-all-foods-modal-r27 .pmd-smart-btn--danger:hover,
+body.pmd-menu-manager-page .pmd-all-foods-modal-r27 .pmd-smart-btn--danger:focus-visible {
+    background: #fff7f6 !important;
+    border-color: #c5423b !important;
+    outline: none;
+}
+
+@media (max-width: 720px) {
+    body.pmd-menu-manager-page .pmd-all-foods-manage-r27 {
+        width: 32px;
+        min-width: 32px;
+        height: 32px;
+        flex-basis: 32px;
+    }
+}

@@ -1,3 +1,28 @@
+{{-- PMD_CASHIER_FAVICON_R21 --}}
+<script id="pmd-cashier-favicon-r21">
+(function () {
+  'use strict';
+
+  var href = '/app/admin/assets/images/pmd-favicon-final-20260822.svg?v=20260822-r21';
+  var head = document.head;
+  if (!head) return;
+
+  var links = head.querySelectorAll('link[rel~="icon"]');
+  if (!links.length) {
+    var link = document.createElement('link');
+    link.rel = 'icon';
+    link.type = 'image/svg+xml';
+    link.href = href;
+    head.appendChild(link);
+  } else {
+    Array.prototype.forEach.call(links, function (link) {
+      link.type = 'image/svg+xml';
+      link.href = href;
+    });
+  }
+})();
+</script>
+
 {{-- PMD_CASHIER_SAME_ROUTE_WAITER_QUICK_V2 --}}
 <style id="pmd-cashier-same-route-waiter-critical-v2">
 @media (max-width: 767px) {
