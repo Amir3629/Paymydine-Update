@@ -3,7 +3,6 @@
 namespace Admin\Controllers;
 
 use Admin\Classes\AdminController;
-use Admin\Facades\Template;
 use App\Services\Payments\ProviderCapabilityRegistry;
 use App\Services\Payments\ProviderConnectionService;
 
@@ -11,13 +10,13 @@ class PaymentProviders extends AdminController
 {
     protected $requiredPermissions = 'Site.Settings';
 
+    /**
+     * The owner-facing provider UI lives inside Payments & finance.
+     * Keep this route as a compatibility redirect for old bookmarks.
+     */
     public function index()
     {
-        Template::setTitle('Payment providers');
-        Template::setHeading('Payment providers');
-        $this->bodyClass = trim(($this->bodyClass ?? '').' pmd-payment-providers-page');
-
-        return $this->makeView('paymentproviders/index');
+        return redirect(admin_url('pmdfinance').'#payment-providers');
     }
 
     public function state(
