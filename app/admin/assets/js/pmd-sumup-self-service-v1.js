@@ -14,7 +14,7 @@
 
   function esc(value) {
     return String(value == null ? '' : value).replace(/[&<>"']/g, function (char) {
-      return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[char];
+      return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot',"'":'&#039;'}[char];
     });
   }
 
@@ -312,9 +312,14 @@
         body:JSON.stringify({environment:state.environment})
       });
       if (json && json.state) state.data = json.state;
+      state.message = '';
+      state.error = false;
     } catch (error) {
-      // Keep the page usable with its last local projection. A later Pair/Test
-      // action will surface the provider error with actionable detail.
+      // Environment/auth problems are product configuration problems, not
+      // transient reader noise. Surface them immediately so the restaurant
+      // does not waste fresh five-minute pairing codes on the wrong merchant.
+      state.message = error && error.message ? error.message : 'Could not verify the SumUp terminal environment.';
+      state.error = true;
     }
   }
 
