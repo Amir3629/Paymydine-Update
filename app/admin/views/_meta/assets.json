@@ -122,6 +122,10 @@
     {
       "path": "css/pmd-general-staff-note-r24.css",
       "name": "pmd-general-staff-note-r24-css"
+    },
+    {
+      "path": "css/pmd-menu-category-r25.css",
+      "name": "pmd-menu-category-r25-css"
     }
   ],
   "script": [
@@ -140,6 +144,10 @@
     {
       "path": "js/pmd-general-staff-note-r24.js",
       "name": "pmd-general-staff-note-r24-js"
+    },
+    {
+      "path": "js/pmd-menu-category-r25.js",
+      "name": "pmd-menu-category-r25-js"
     },
     {
       "path": "js/pmd-waiter-pos-dashboard-shadow-bridge-v24.js",
