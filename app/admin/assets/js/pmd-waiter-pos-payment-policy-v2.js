@@ -38,21 +38,39 @@
       state.payment.externalConfirmed = false;
     }
 
+    function forceHidden(element, hidden) {
+      if (!element) return;
+      element.hidden = !!hidden;
+      if (hidden) {
+        element.style.setProperty('display', 'none', 'important');
+      } else {
+        element.style.removeProperty('display');
+      }
+    }
+
     function blockFor(selector) {
       var element = root.querySelector(selector);
       return element ? (element.closest('.pmd-pos-payment-block') || element) : null;
     }
 
     function setBlockHidden(selector, hidden) {
-      var block = blockFor(selector);
-      if (block) block.hidden = !!hidden;
+      forceHidden(blockFor(selector), hidden);
     }
 
     function hideClosestLabel(selector) {
       var element = root.querySelector(selector);
       if (!element) return;
-      var label = element.closest('label');
-      if (label) label.hidden = true;
+      forceHidden(element.closest('label'), true);
+    }
+
+    function simplifyMethodHeading() {
+      var grid = root.querySelector('[data-pos-methods]');
+      var block = grid ? grid.closest('.pmd-pos-payment-block') : null;
+      if (!block) return;
+      var title = block.querySelector('.pmd-pos-payment-block-title b');
+      var note = block.querySelector('.pmd-pos-payment-block-title span');
+      if (title) title.textContent = 'How will they pay?';
+      forceHidden(note, true);
     }
 
     function simplifyMethods() {
@@ -63,7 +81,7 @@
       grid.querySelectorAll('[data-payment-method]').forEach(function (button) {
         var key = String(button.getAttribute('data-payment-method') || '');
         var allowed = key === 'cash' || key === 'direct_terminal';
-        button.hidden = !allowed;
+        forceHidden(button, !allowed);
         if (!allowed) return;
 
         visible += 1;
@@ -80,6 +98,7 @@
       });
 
       grid.dataset.pmdSimpleMethodCount = String(visible);
+      simplifyMethodHeading();
     }
 
     function selectedTerminalButton() {
@@ -100,7 +119,13 @@
       var title = terminalBox.querySelector('.pmd-pos-terminal-title b');
       var subtitle = terminalBox.querySelector('.pmd-pos-terminal-title span');
       if (title) title.textContent = buttons.length > 1 ? 'Choose terminal' : 'Terminal';
-      if (subtitle) subtitle.textContent = buttons.length > 1 ? 'Select a device' : '';
+      if (subtitle && buttons.length <= 1 && subtitle.textContent === 'Ready') {
+        subtitle.textContent = '';
+      }
+
+      buttons.forEach(function (button) {
+        if (button.classList.contains('is-offline')) button.disabled = true;
+      });
 
       var selected = selectedTerminalButton();
       var offline = !!(selected && selected.classList.contains('is-offline'));
@@ -124,31 +149,24 @@
     }
 
     function applySimpleStaffUI() {
-      // Staff checkout is intentionally simple: full balance, no waiter-side
-      // split/tip/coupon controls. Guest checkout keeps its own online options.
+      // Staff checkout is intentionally simple: full remaining balance,
+      // Cash or Terminal only. Guest checkout keeps its own online methods.
       setBlockHidden('[data-pos-split-tabs]', true);
       setBlockHidden('[data-pos-tip-buttons]', true);
 
       hideClosestLabel('[data-pos-payer-label]');
-      var ref = root.querySelector('[data-pos-reference-field]');
-      if (ref) ref.hidden = true;
-      var confirm = root.querySelector('[data-pos-external-confirm-row]');
-      if (confirm) confirm.hidden = true;
+      forceHidden(root.querySelector('[data-pos-reference-field]'), true);
+      forceHidden(root.querySelector('[data-pos-external-confirm-row]'), true);
 
       var collection = root.querySelector('[data-pos-collection-fields]');
-      if (collection) collection.hidden = isDirectTerminal();
+      forceHidden(collection, isDirectTerminal());
 
       var cashField = root.querySelector('[data-pos-cash-field]');
-      if (cashField) cashField.hidden = state.payment.method !== 'cash';
+      forceHidden(cashField, state.payment.method !== 'cash');
 
-      var onlineBox = root.querySelector('[data-pos-online-box]');
-      if (onlineBox) onlineBox.hidden = true;
-
-      var copyLink = root.querySelector('[data-pos-copy-link]');
-      if (copyLink) copyLink.hidden = true;
-
-      var safety = root.querySelector('.pmd-pos-payment-safety');
-      if (safety) safety.hidden = true;
+      forceHidden(root.querySelector('[data-pos-online-box]'), true);
+      forceHidden(root.querySelector('[data-pos-copy-link]'), true);
+      forceHidden(root.querySelector('.pmd-pos-payment-safety'), true);
 
       simplifyMethods();
       simplifyTerminal();
