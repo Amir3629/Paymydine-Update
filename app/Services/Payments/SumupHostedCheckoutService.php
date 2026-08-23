@@ -4,6 +4,7 @@ namespace App\Services\Payments;
 
 use App\Services\TerminalPayments\SumupTenantConnectionService;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Log;
 use RuntimeException;
 
 class SumupHostedCheckoutService
@@ -70,6 +71,21 @@ class SumupHostedCheckoutService
             throw new RuntimeException('SumUp did not return a hosted checkout URL.');
         }
 
+        // Hosted Checkout is the owner of wallet presentation. Discovering the
+        // checkout-specific allow-list is diagnostic only: it proves which
+        // methods SumUp says are eligible without duplicating Apple Pay / Google
+        // Pay as separate PayMyDine methods or blocking a valid checkout if the
+        // optional discovery request is unavailable.
+        $availablePaymentMethods = $this->availablePaymentMethods($config, $checkoutId, $amount, $currency);
+
+        Log::channel('sumup')->info('SUMUP_HOSTED_CHECKOUT_CREATED', [
+            'environment' => (string)($config['environment'] ?? ''),
+            'merchant_code' => (string)$config['merchant_code'],
+            'checkout_id' => $checkoutId,
+            'checkout_reference' => $reference,
+            'available_payment_methods' => $availablePaymentMethods,
+        ]);
+
         return [
             'success' => true,
             'provider' => 'sumup',
@@ -79,6 +95,8 @@ class SumupHostedCheckoutService
             'redirect_url' => $redirectUrl,
             'hosted_checkout_url' => $redirectUrl,
             'status' => strtolower(trim((string)($body['status'] ?? 'pending'))) ?: 'pending',
+            'available_payment_methods' => $availablePaymentMethods,
+            'wallets_presented_by' => 'sumup_hosted_checkout',
         ];
     }
 
@@ -143,6 +161,62 @@ class SumupHostedCheckoutService
         }
 
         return $config;
+    }
+
+    protected function availablePaymentMethods(array $config, string $checkoutId, float $amount, string $currency): array
+    {
+        $baseUrl = rtrim((string)$config['url'], '/');
+        $token = (string)$config['access_token'];
+        $methods = [];
+
+        // Prefer the checkout-scoped endpoint because eligibility can depend on
+        // the concrete checkout. Fall back to the merchant-scoped endpoint used
+        // by newer SumUp API docs if the checkout endpoint is unavailable.
+        $response = Http::withToken($token)
+            ->acceptJson()
+            ->timeout(12)
+            ->get($baseUrl.'/v0.1/checkouts/'.rawurlencode($checkoutId).'/payment-methods');
+
+        if (!$response->successful()) {
+            $response = Http::withToken($token)
+                ->acceptJson()
+                ->timeout(12)
+                ->get(
+                    $baseUrl.'/v0.1/merchants/'.rawurlencode((string)$config['merchant_code']).'/payment-methods',
+                    ['amount' => $amount, 'currency' => $currency]
+                );
+        }
+
+        if (!$response->successful()) {
+            Log::channel('sumup')->warning('SUMUP_PAYMENT_METHOD_DISCOVERY_UNAVAILABLE', [
+                'checkout_id' => $checkoutId,
+                'status' => $response->status(),
+                'body' => mb_substr((string)$response->body(), 0, 800),
+            ]);
+            return [];
+        }
+
+        $json = (array)$response->json();
+        $items = $json['items'] ?? $json['available_payment_methods'] ?? [];
+        if (!is_array($items)) {
+            return [];
+        }
+
+        foreach ($items as $item) {
+            if (is_string($item)) {
+                $id = strtolower(trim($item));
+            } elseif (is_array($item)) {
+                $id = strtolower(trim((string)($item['id'] ?? $item['code'] ?? '')));
+            } else {
+                $id = '';
+            }
+
+            if ($id !== '' && !in_array($id, $methods, true)) {
+                $methods[] = $id;
+            }
+        }
+
+        return $methods;
     }
 
     protected function checkoutUrl(array $body): string
@@ -210,7 +284,13 @@ class SumupHostedCheckoutService
             }
         }
 
-        $message = trim((string)($body['message'] ?? $body['error'] ?? ''));
-        return $message !== '' ? $message : $fallback;
+        foreach (['detail', 'message', 'error', 'title'] as $key) {
+            $message = trim((string)($body[$key] ?? ''));
+            if ($message !== '') {
+                return $message;
+            }
+        }
+
+        return $fallback;
     }
 }
