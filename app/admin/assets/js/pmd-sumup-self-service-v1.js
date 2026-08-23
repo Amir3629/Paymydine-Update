@@ -148,11 +148,11 @@
           '<div class="pmd-sumup-panel-head">',
             '<div>',
               '<b>Connect SumUp first</b>',
-              '<span>Provider credentials belong in Payments. Devices only manages terminal hardware.</span>',
+              '<span>Provider credentials belong in Payments & finance. Devices only manages terminal hardware.</span>',
             '</div>',
           '</div>',
           '<div class="pmd-sumup-actions">',
-            '<a class="is-primary" href="/admin/payment-providers#provider-sumup">Manage SumUp connection</a>',
+            '<a class="is-primary" href="/admin/pmdfinance#payment-providers">Manage SumUp connection</a>',
           '</div>',
         '</section>'
       ].join('');
@@ -168,7 +168,7 @@
           '<em>Ready</em>',
         '</div>',
         '<div class="pmd-sumup-actions">',
-          '<a href="/admin/payment-providers#provider-sumup">Manage provider connection</a>',
+          '<a href="/admin/pmdfinance#payment-providers">Manage provider connection</a>',
         '</div>',
       '</section>'
     ].join('');
@@ -193,7 +193,7 @@
         '<div>',
           '<span class="pmd-sumup-kicker">PAYMENT TERMINALS</span>',
           '<h2>SumUp terminals</h2>',
-          '<p>Pair and test this restaurant’s terminal devices here. Account credentials are managed once under Payments.</p>',
+          '<p>Pair and test this restaurant’s terminal devices here. Account credentials are managed once under Payments & finance.</p>',
         '</div>',
         '<div class="pmd-sumup-state ' + (connected ? 'is-good' : '') + '"><span></span>' + esc(statusLabel(cfg)) + '</div>',
       '</div>',
@@ -314,7 +314,7 @@
       return;
     }
 
-    window.location.href = '/admin/payment-providers#provider-sumup';
+    window.location.href = '/admin/pmdfinance#payment-providers';
   }
 
   function guardLegacyTerminalEditor(event) {
