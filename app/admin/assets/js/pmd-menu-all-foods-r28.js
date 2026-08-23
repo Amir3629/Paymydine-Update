@@ -98,11 +98,23 @@
         if (allButton.disabled) allButton.disabled = false;
     }
 
+    function normalizeAllFoodsLabel(pref) {
+        var labelNode = q('[data-pmd-all-foods-label-r27]', allButton);
+        if (!labelNode || !pref) return;
+
+        // Hidden state is already expressed by visibility + styling. Do not add
+        // a second textual "· Hidden" suffix to the category name.
+        if (String(labelNode.textContent || '').trim() !== pref.label) {
+            labelNode.textContent = pref.label;
+        }
+    }
+
     function ensureEditBadge() {
         var badge = q('[data-pmd-all-foods-edit-badge-r28]', allButton);
         var pref = currentPreference();
 
         keepAllFoodsHostInteractive();
+        normalizeAllFoodsLabel(pref);
 
         if (!badge) {
             badge = document.createElement('span');
