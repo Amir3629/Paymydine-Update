@@ -25,6 +25,8 @@
 .pmd-provider-primary:disabled,.pmd-provider-secondary:disabled{cursor:wait;opacity:.6}
 .pmd-provider-fallback{display:grid;gap:8px}
 .pmd-provider-fallback .pmd-owner-list-row{margin:0}
+/* The payment-provider section does not need the decorative owner-card icon. It was visible as a grey square through the modal backdrop. */
+#payment-providers>.pmd-owner-card>.pmd-owner-card__header>.pmd-owner-card__icon{display:none!important}
 
 .pmd-provider-modal{position:fixed;z-index:2147483000;inset:0;display:flex;align-items:center;justify-content:center;padding:24px}
 .pmd-provider-modal__backdrop{position:absolute;inset:0;width:100%;height:100%;border:0;background:rgba(13,35,48,.48);backdrop-filter:blur(7px);cursor:default}
