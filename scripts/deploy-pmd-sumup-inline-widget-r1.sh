@@ -29,6 +29,7 @@ FRONT_REMOTE_FILES=(
 
 PATCH_RUNTIME="scripts/patch-pmd-v2-sumup-inline-widget-r1.py"
 PATCH_LEGACY="scripts/patch-pmd-sumup-legacy-card-runtime-r1.py"
+PATCH_FINANCE="scripts/patch-pmd-finance-provider-first-r1.py"
 
 cd "$ROOT"
 mkdir -p "$STAGE"
@@ -72,7 +73,7 @@ echo "FRONTEND_ROOT=$FRONT_ROOT"
 
 echo
 echo "========== STAGE REMOTE FILES =========="
-for f in "${BACKEND_REMOTE_FILES[@]}" "$PATCH_RUNTIME" "$PATCH_LEGACY"; do
+for f in "${BACKEND_REMOTE_FILES[@]}" "$PATCH_RUNTIME" "$PATCH_LEGACY" "$PATCH_FINANCE"; do
   git cat-file -e "$REMOTE:$f" || { echo "ERROR: remote file missing: $f"; exit 8; }
   mkdir -p "$STAGE/$(dirname "$f")"
   git show "$REMOTE:$f" > "$STAGE/$f"
@@ -93,7 +94,7 @@ php -l "$STAGE/app/main/routes_sumup_self_service.php"
 php -l "$STAGE/app/admin/controllers/SumupTerminalSettings.php"
 php -l "$STAGE/app/Services/Payments/ProviderCapabilityRegistry.php"
 node --check "$STAGE/app/admin/assets/js/pmd-sumup-inline-wallet-settings-v1.js"
-python3 -m py_compile "$STAGE/$PATCH_RUNTIME" "$STAGE/$PATCH_LEGACY"
+python3 -m py_compile "$STAGE/$PATCH_RUNTIME" "$STAGE/$PATCH_LEGACY" "$STAGE/$PATCH_FINANCE"
 grep -Fq '/payments/sumup/widget/create-checkout' "$STAGE/app/main/routes_sumup_self_service.php"
 grep -Fq 'terminal_provider_configs' "$STAGE/app/Services/Payments/SumupOnlineCheckoutService.php"
 grep -Fq 'SumUpCard' "$STAGE/frontend-source/src/runtime/components/SumupInlinePayment.tsx"
@@ -111,6 +112,22 @@ if grep -Fq "SumUp credentials are incomplete" "$STAGE/routes/admin-app-before.p
   echo "ERROR: stale SumUp legacy credential error still present"
   exit 10
 fi
+
+echo
+echo "========== STAGE FINANCE PROVIDER-FIRST VIEW =========="
+mkdir -p "$STAGE/app/admin/views/pmdfinance"
+cp "$ROOT/app/admin/views/pmdfinance/index.blade.php" "$STAGE/app/admin/views/pmdfinance/index.blade.php"
+python3 "$STAGE/$PATCH_FINANCE" "$STAGE/app/admin/views/pmdfinance/index.blade.php"
+python3 - "$STAGE/app/admin/views/pmdfinance/index.blade.php" <<'PY'
+from pathlib import Path
+import sys
+text=Path(sys.argv[1]).read_text()
+p=text.find('id="payment-providers"')
+m=text.find('id="payment-methods"')
+if p < 0 or m < 0 or p >= m:
+    raise SystemExit('ERROR: provider section is not before method section after staging')
+print('PMDFINANCE_PROVIDER_FIRST=OK')
+PY
 
 echo
 echo "========== ISOLATED FRONTEND V2 BUILD =========="
@@ -139,7 +156,7 @@ echo "FRONTEND_BUILD=OK"
 
 echo
 echo "========== BACKUP =========="
-for f in "${BACKEND_REMOTE_FILES[@]}" "routes/admin-app-before.php" "app/admin/views/_meta/assets.json"; do
+for f in "${BACKEND_REMOTE_FILES[@]}" "routes/admin-app-before.php" "app/admin/views/_meta/assets.json" "app/admin/views/pmdfinance/index.blade.php"; do
   if [ -e "$ROOT/$f" ]; then
     sudo mkdir -p "$BACKUP/backend/$(dirname "$f")"
     sudo cp -a "$ROOT/$f" "$BACKUP/backend/$f"
@@ -186,7 +203,9 @@ for f in "app/Services/Payments/SumupOnlineCheckoutService.php" "app/main/routes
   echo "INSTALLED: $f"
 done
 sudo install -m 0644 "$STAGE/routes/admin-app-before.php" "$ROOT/routes/admin-app-before.php"
+sudo install -m 0644 "$STAGE/app/admin/views/pmdfinance/index.blade.php" "$ROOT/app/admin/views/pmdfinance/index.blade.php"
 echo "INSTALLED: routes/admin-app-before.php (canonical credential bridge)"
+echo "INSTALLED: app/admin/views/pmdfinance/index.blade.php (providers first)"
 
 php -l "$ROOT/app/Services/Payments/SumupOnlineCheckoutService.php"
 php -l "$ROOT/app/main/routes_sumup_self_service.php"
