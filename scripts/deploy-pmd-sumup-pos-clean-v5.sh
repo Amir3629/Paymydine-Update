@@ -51,7 +51,8 @@ for f in "${FILES[@]}"; do
 done
 
 echo
-echo "========== SAFETY CHECK =========="nif grep -RniE 'mimoza\.paymydine\.com|database[^A-Za-z0-9_]+mimoza' \
+echo "========== SAFETY CHECK =========="
+if grep -RniE 'mimoza\.paymydine\.com|database[^A-Za-z0-9_]+mimoza' \
   app/admin/assets/js/pmd-waiter-pos-payment-policy-v2.js \
   app/admin/assets/css/pmd-payment-simple-v1.css \
   >/tmp/pmd_sumup_pos_clean_v5_hardcode.txt 2>/dev/null; then
