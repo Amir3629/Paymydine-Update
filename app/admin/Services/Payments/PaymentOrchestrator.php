@@ -19,30 +19,36 @@ class PaymentOrchestrator
 
     public function createSession(
         Orders_model $order,
-        Payments_model $payment,
+        Payments_model $paymentMethod,
         Request $request
     ): JsonResponse {
-        $methodCode = strtolower(trim((string)$payment->code));
-        $providerCode = $this->resolveProviderCode($payment);
+        $methodCode = strtolower(trim((string)$paymentMethod->code));
+        $providerCode = $this->resolveProviderCode($paymentMethod);
+        $provider = $this->resolveProviderRecord($providerCode, $paymentMethod);
+
+        // Keep the business payment method available to provider drivers even
+        // though the provider record is what owns credentials/configuration.
+        $request->attributes->set('pmd_payment_method_code', $methodCode);
+        $request->attributes->set('pmd_payment_provider_code', $providerCode);
 
         return match ($providerCode) {
-            'stripe' => $this->stripe->createSession($order, $payment, $request),
-            'paypal' => $this->paypal->createSession($order, $payment, $request),
-            'square' => $this->square->createSession($order, $payment, $request),
+            'stripe' => $this->stripe->createSession($order, $provider, $request),
+            'paypal' => $this->paypal->createSession($order, $provider, $request),
+            'square' => $this->square->createSession($order, $provider, $request),
             default => throw new InvalidArgumentException(
                 "Payment method '{$methodCode}' is assigned to provider '{$providerCode}', but that provider does not have an online checkout driver yet."
             ),
         };
     }
 
-    protected function resolveProviderCode(Payments_model $payment): string
+    protected function resolveProviderCode(Payments_model $paymentMethod): string
     {
-        $methodCode = strtolower(trim((string)$payment->code));
-        $providerCode = strtolower(trim((string)($payment->provider_code ?? '')));
+        $methodCode = strtolower(trim((string)$paymentMethod->code));
+        $providerCode = strtolower(trim((string)($paymentMethod->provider_code ?? '')));
 
         if ($providerCode === '') {
-            $config = method_exists($payment, 'getConfigData')
-                ? (array)$payment->getConfigData()
+            $config = method_exists($paymentMethod, 'getConfigData')
+                ? (array)$paymentMethod->getConfigData()
                 : [];
 
             $providerCode = strtolower(trim((string)($config['provider_code'] ?? '')));
@@ -68,5 +74,35 @@ class PaymentOrchestrator
         }
 
         return $providerCode;
+    }
+
+    protected function resolveProviderRecord(
+        string $providerCode,
+        Payments_model $paymentMethod
+    ): Payments_model {
+        if (strtolower((string)$paymentMethod->code) === $providerCode) {
+            $paymentMethod->applyGatewayClass();
+            return $paymentMethod;
+        }
+
+        $provider = Payments_model::query()
+            ->where('code', $providerCode)
+            ->first();
+
+        if (!$provider) {
+            throw new InvalidArgumentException(
+                "Provider '{$providerCode}' is assigned but its connection record does not exist."
+            );
+        }
+
+        if ((int)$provider->status !== 1) {
+            throw new InvalidArgumentException(
+                "Provider '{$providerCode}' is assigned but disabled for this restaurant."
+            );
+        }
+
+        $provider->applyGatewayClass();
+
+        return $provider;
     }
 }
