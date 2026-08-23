@@ -81,6 +81,29 @@
         };
     }
 
+    function lockVisibleAllFoodsAsInitialCategory() {
+        var pref = currentPreference();
+        if (!pref.visible) return;
+
+        /*
+         * Server Blade already renders All Foods first + active and V129 starts
+         * with filterState.category = "all". Keep those two server-first truths
+         * aligned. The canonical runtime must not replace that correct initial
+         * state by clicking the next regular category after first paint.
+         */
+        root.setAttribute('data-pmd-menu-initial-category-v1', 'all');
+        root.setAttribute(
+            'data-pmd-menu-runtime-ready-reason-v1',
+            'all-foods-server-first'
+        );
+
+        root.querySelectorAll(
+            '.pmd-menu-manager__categories [data-pmd-category-filter]'
+        ).forEach(function (button) {
+            button.classList.toggle('is-active', button === allButton);
+        });
+    }
+
     function r27ManageButton() {
         return root.querySelector('[data-pmd-all-foods-manage-r27]');
     }
@@ -402,6 +425,7 @@
         openR27Editor();
     }, true);
 
+    lockVisibleAllFoodsAsInitialCategory();
     ensureEditBadge();
 
     allButtonObserver = new MutationObserver(function () {
