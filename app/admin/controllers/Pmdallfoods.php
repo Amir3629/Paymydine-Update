@@ -128,9 +128,10 @@ class Pmdallfoods extends AdminController
 
     private function preference(): array
     {
-        $label = trim((string)$this->readSetting(self::LABEL_KEY, 'All foods'));
+        $defaultLabel = $this->defaultLabel();
+        $label = trim((string)$this->readSetting(self::LABEL_KEY, $defaultLabel));
         if ($label === '') {
-            $label = 'All foods';
+            $label = $defaultLabel;
         }
 
         $visibleRaw = (string)$this->readSetting(self::VISIBLE_KEY, '1');
@@ -139,6 +140,18 @@ class Pmdallfoods extends AdminController
             'label' => $label,
             'visible' => !in_array(strtolower(trim($visibleRaw)), ['0', 'false', 'off', 'no'], true),
         ];
+    }
+
+    private function defaultLabel(): string
+    {
+        $locale = strtolower(trim((string)request()->cookie(
+            'pmd_admin_locale',
+            app()->getLocale()
+        )));
+
+        return str_starts_with($locale, 'de')
+            ? 'Alle Speisen'
+            : 'All foods';
     }
 
     private function readSetting(string $key, $default = null)
