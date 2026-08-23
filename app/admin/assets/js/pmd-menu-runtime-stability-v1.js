@@ -80,17 +80,23 @@
 
         // Removing the virtual All Foods category means it is absent from the
         // strip everywhere, including Edit. Restore stays available from the
-        // Create Category flow.
-        allFoods.hidden = true;
-        allFoods.setAttribute('aria-hidden', 'true');
-        allFoods.classList.remove('is-active');
+        // Create Category flow. Guard every write so our observer never loops.
+        if (!allFoods.hidden) allFoods.hidden = true;
+        if (allFoods.getAttribute('aria-hidden') !== 'true') {
+            allFoods.setAttribute('aria-hidden', 'true');
+        }
+        if (allFoods.classList.contains('is-active')) {
+            allFoods.classList.remove('is-active');
+        }
 
         var badge = allFoods.querySelector(
             '[data-pmd-all-foods-edit-badge-r28]'
         );
         if (badge) {
-            badge.setAttribute('aria-hidden', 'true');
-            badge.tabIndex = -1;
+            if (badge.getAttribute('aria-hidden') !== 'true') {
+                badge.setAttribute('aria-hidden', 'true');
+            }
+            if (badge.tabIndex !== -1) badge.tabIndex = -1;
         }
     }
 
@@ -100,7 +106,7 @@
 
         var host = node.querySelector('.pmd-menu-manager__categories');
         if (host) {
-            host.hidden = false;
+            if (host.hidden) host.hidden = false;
             host.removeAttribute('aria-hidden');
             host.style.removeProperty('display');
             host.style.removeProperty('visibility');
@@ -113,7 +119,7 @@
         node.querySelectorAll(
             '.pmd-menu-manager__categories [data-pmd-category-id]'
         ).forEach(function (button) {
-            button.hidden = false;
+            if (button.hidden) button.hidden = false;
             button.removeAttribute('aria-hidden');
             button.style.removeProperty('display');
             button.style.removeProperty('visibility');
@@ -178,7 +184,9 @@
             attributes: true,
             attributeFilter: [
                 'data-pmd-sort-mode',
-                'data-pmd-combo-builder'
+                'data-pmd-combo-builder',
+                'data-pmd-all-foods-visible-r27',
+                'hidden'
             ],
             childList: true,
             subtree: true
@@ -207,7 +215,7 @@
     observeRuntime();
 
     window.PMDMenuRuntimeStabilityV1 = {
-        version: '1.0.0',
+        version: '1.0.1',
         stabilize: function () {
             stabilize(currentRoot());
         },
