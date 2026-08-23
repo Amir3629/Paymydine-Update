@@ -17,6 +17,18 @@ body.pmd-menu-manager-page
     overflow: visible !important;
 }
 
+/*
+ * V129 marks every fixed category as sort-locked and fades it to 48% in Edit.
+ * All Foods is intentionally fixed, but it is still a real visible control with
+ * its own edit pencil, so do not make it look disabled merely because it cannot
+ * be dragged.
+ */
+body.pmd-menu-manager-page
+#pmd-menu-manager-main[data-pmd-sort-mode]:not([data-pmd-sort-mode="0"])
+[data-pmd-category-filter="all"][data-pmd-category-fixed].is-category-sort-locked:not(.is-pmd-all-foods-hidden-r27) {
+    opacity: 1 !important;
+}
+
 body.pmd-menu-manager-page
 #pmd-menu-manager-main
 [data-pmd-all-foods-edit-badge-r28] {
