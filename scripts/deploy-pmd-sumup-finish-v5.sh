@@ -173,7 +173,8 @@ fi
 sudo mv "$NEW_NEXT" "$FRONT_ROOT/.next"
 
 echo
-echo "========== CLEAR CACHE + RESTART =========="ncd "$ROOT"
+echo "========== CLEAR CACHE + RESTART =========="
+cd "$ROOT"
 php artisan optimize:clear || true
 sudo -u ubuntu -H pm2 restart "$FRONT_SERVICE" --update-env
 sleep 2
@@ -192,7 +193,8 @@ echo "FRONTEND_STATUS=$PM2_STATUS"
 [ "$PM2_STATUS" = "online" ] || { echo "ERROR: frontend process is not online"; exit 6; }
 
 echo
-echo "========== RUNTIME CODE CHECK =========="ngrep -q "self-service-checkout" app/main/routes_sumup_self_service.php
+echo "========== RUNTIME CODE CHECK =========="
+grep -q "self-service-checkout" app/main/routes_sumup_self_service.php
 grep -q "self-service-checkout" frontend/features/customer-menu/checkout/paymentModalHostedCheckout.ts
 grep -q "name: 'Terminal'" app/admin/assets/js/pmd-waiter-pos-payment-v3.js
 grep -q "name: 'Cash'" app/admin/assets/js/pmd-waiter-pos-payment-v3.js
