@@ -3,9 +3,26 @@
  */
 
 /*
+ * PMD_MENU_MANAGER_READY_PAINT_GATE
+ *
+ * Hide only the mutable category/grid surface until synchronous V129 has
+ * selected the initial regular food category. Runtime Stability releases this
+ * after manager readiness; it never waits for Smart Categories/network.
+ * visibility preserves geometry, so there is no card/page jump.
+ */
+body.pmd-menu-manager-page
+#pmd-menu-manager-main:not([data-pmd-menu-runtime-ready-v1="1"])
+.pmd-menu-manager__categories,
+body.pmd-menu-manager-page
+#pmd-menu-manager-main:not([data-pmd-menu-runtime-ready-v1="1"])
+.pmd-menu-manager__grid {
+    visibility: hidden !important;
+}
+
+/*
  * Server markup still contains the pre-modal category minus for compatibility.
  * Never allow it to paint, even for one frame before Smart Categories removes
- * it. Runtime Stability V1 removes the node after boot.
+ * it. Runtime Stability removes the node after boot.
  */
 body.pmd-menu-manager-page
 #pmd-menu-manager-main
@@ -131,12 +148,7 @@ body.pmd-menu-manager-page
     pointer-events: none !important;
 }
 
-/*
- * Menu Header: the old divider has inline !important display/background rules,
- * so display:none in a stylesheet cannot beat it. visibility/opacity are not
- * set inline and therefore guarantee that the line never paints. Runtime
- * Stability V1 removes both the divider and its spacer node entirely.
- */
+/* Header separator must never paint; runtime removes the nodes entirely. */
 body.pmd-menu-manager-page
 [data-pmd-main-header-notification-gap-r67],
 body.pmd-menu-manager-page
