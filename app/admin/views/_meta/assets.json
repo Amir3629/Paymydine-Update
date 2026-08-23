@@ -126,6 +126,10 @@
     {
       "path": "css/pmd-menu-all-foods-r27.css",
       "name": "pmd-menu-all-foods-r27-css"
+    },
+    {
+      "path": "css/pmd-menu-all-foods-r28.css",
+      "name": "pmd-menu-all-foods-r28-css"
     }
   ],
   "script": [
@@ -152,6 +156,10 @@
     {
       "path": "js/pmd-menu-all-foods-r27.js",
       "name": "pmd-menu-all-foods-r27-js"
+    },
+    {
+      "path": "js/pmd-menu-all-foods-r28.js",
+      "name": "pmd-menu-all-foods-r28-js"
     },
     {
       "path": "js/pmd-waiter-pos-dashboard-shadow-bridge-v24.js",
