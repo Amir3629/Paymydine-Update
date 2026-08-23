@@ -1,6 +1,7 @@
 /* PMD_MENU_RUNTIME_STABILITY_V1
  *
- * One owner for /admin/pmdmenus runtime continuity after mutations.
+ * One owner for /admin/pmdmenus runtime continuity after mutations and first
+ * paint stabilization.
  *
  * V129 refreshManager() replaces the whole [data-pmd-menu-manager] root after
  * create/edit/delete. Page-specific authorities (All Foods R27/R28 and Smart
@@ -15,7 +16,12 @@
  *   reload immediately instead of leaving mixed old/new authorities alive;
  * - quarantine legacy category minus/delete hits; category remove belongs to
  *   the current category editor modal;
+ * - remove the legacy notification divider/spacer from the live header;
  * - a hidden All Foods preference stays absent in Edit mode too;
+ * - initial page state opens the first real category, never All Foods when a
+ *   real category exists;
+ * - category strip + grid remain paint-gated until Smart Categories hydration
+ *   and that first-category filter are complete, preventing the old 0.1s flash;
  * - selection shells (Chef/Bestseller/Combination) keep all real categories
  *   visible so staff can filter the available foods while selecting.
  */
@@ -33,6 +39,8 @@
     var bodyObserver = null;
     var rootObserver = null;
     var nativeReplaceWith = Element.prototype.replaceWith;
+    var firstPaintReleased = false;
+    var firstPaintStartedAt = Date.now();
 
     function currentRoot() {
         return document.querySelector('[data-pmd-menu-manager]');
@@ -58,6 +66,18 @@
 
         node.querySelectorAll(
             '[data-pmd-category-delete], .pmd-menu-manager__category-delete-hit'
+        ).forEach(function (control) {
+            control.remove();
+        });
+    }
+
+    function removeLegacyHeaderSeparator(scope) {
+        var node = scope || currentRoot();
+        if (!node) return;
+
+        node.querySelectorAll(
+            '[data-pmd-main-header-notification-gap-r67], '
+            + '[data-pmd-main-header-notification-divider-r67]'
         ).forEach(function (control) {
             control.remove();
         });
@@ -100,6 +120,59 @@
         }
     }
 
+    function firstRealCategory(node) {
+        node = node || currentRoot();
+        if (!node) return null;
+
+        return Array.prototype.find.call(
+            node.querySelectorAll(
+                '.pmd-menu-manager__categories [data-pmd-category-id]'
+            ),
+            function (button) {
+                return !button.hidden
+                    && button.getAttribute('aria-hidden') !== 'true'
+                    && !button.disabled;
+            }
+        ) || null;
+    }
+
+    function selectInitialCategory(node) {
+        node = node || currentRoot();
+        if (!node) return null;
+
+        var existing = node.getAttribute(
+            'data-pmd-menu-initial-category-v1'
+        );
+        if (existing) return existing;
+
+        var first = firstRealCategory(node);
+
+        if (!first) {
+            node.setAttribute(
+                'data-pmd-menu-initial-category-v1',
+                'all'
+            );
+            return 'all';
+        }
+
+        var categoryId = String(
+            first.getAttribute('data-pmd-category-id') || ''
+        );
+
+        if (!first.classList.contains('is-active')) {
+            // V129 owns filtering. A real click through its existing handler is
+            // safer than creating a second filter implementation here.
+            first.click();
+        }
+
+        node.setAttribute(
+            'data-pmd-menu-initial-category-v1',
+            categoryId || 'all'
+        );
+
+        return categoryId || 'all';
+    }
+
     function syncSelectionCategoryStrip(node) {
         node = node || currentRoot();
         if (!node || node.dataset.pmdComboBuilder !== '1') return;
@@ -132,8 +205,60 @@
         node = node || currentRoot();
         if (!node) return;
         quarantineLegacyCategoryControls(node);
+        removeLegacyHeaderSeparator(node);
         syncAllFoodsVisibility(node);
         syncSelectionCategoryStrip(node);
+    }
+
+    function releaseFirstPaint(reason) {
+        if (firstPaintReleased) return;
+
+        var node = currentRoot();
+        if (!node || node !== initialRoot) return;
+
+        // The initial catalogue must always open on the first existing real
+        // category. All Foods remains available as a user-selectable filter.
+        if (node.dataset.pmdComboBuilder !== '1') {
+            selectInitialCategory(node);
+        }
+
+        stabilize(node);
+
+        node.setAttribute('data-pmd-menu-runtime-ready-v1', '1');
+        node.setAttribute(
+            'data-pmd-menu-runtime-ready-reason-v1',
+            String(reason || 'ready')
+        );
+
+        firstPaintReleased = true;
+    }
+
+    function waitForHydratedFirstPaint() {
+        function check() {
+            if (firstPaintReleased || reloadPending) return;
+
+            var smart = window.PMDMenuSmartCategoriesV1;
+            if (smart && smart.ready) {
+                // One frame lets all click/document handlers finish updating
+                // the action card and card filtering before they become visible.
+                selectInitialCategory(currentRoot());
+                requestAnimationFrame(function () {
+                    releaseFirstPaint('smart-ready');
+                });
+                return;
+            }
+
+            if (Date.now() - firstPaintStartedAt >= 1800) {
+                // Never leave the catalogue invisible if the smart-category
+                // bootstrap endpoint fails. V129 can still filter real categories.
+                releaseFirstPaint('smart-timeout-fallback');
+                return;
+            }
+
+            requestAnimationFrame(check);
+        }
+
+        requestAnimationFrame(check);
     }
 
     function installRootReplacementGuard() {
@@ -213,21 +338,42 @@
     installRootReplacementGuard();
     stabilize(root);
     observeRuntime();
+    waitForHydratedFirstPaint();
 
     window.PMDMenuRuntimeStabilityV1 = {
-        version: '1.0.1',
+        version: '1.1.0',
         stabilize: function () {
             stabilize(currentRoot());
+        },
+        releaseFirstPaint: function () {
+            releaseFirstPaint('manual');
         },
         inspect: function () {
             var liveRoot = currentRoot();
             var allFoods = liveRoot && liveRoot.querySelector(
                 '[data-pmd-category-filter="all"][data-pmd-category-fixed]'
             );
+            var activeCategory = liveRoot && liveRoot.querySelector(
+                '.pmd-menu-manager__categories [data-pmd-category-filter].is-active'
+            );
 
             return {
                 sameRoot: liveRoot === initialRoot,
                 reloadPending: reloadPending,
+                firstPaintReady: Boolean(
+                    liveRoot
+                    && liveRoot.getAttribute(
+                        'data-pmd-menu-runtime-ready-v1'
+                    ) === '1'
+                ),
+                initialCategory: liveRoot
+                    ? liveRoot.getAttribute(
+                        'data-pmd-menu-initial-category-v1'
+                    )
+                    : null,
+                activeCategory: activeCategory
+                    ? activeCategory.getAttribute('data-pmd-category-filter')
+                    : null,
                 editMode: liveRoot
                     ? String(liveRoot.getAttribute('data-pmd-sort-mode') || '0')
                     : null,
@@ -243,6 +389,12 @@
                         '[data-pmd-category-delete], .pmd-menu-manager__category-delete-hit'
                     ).length
                     : null,
+                legacyHeaderSeparators: liveRoot
+                    ? liveRoot.querySelectorAll(
+                        '[data-pmd-main-header-notification-gap-r67], '
+                        + '[data-pmd-main-header-notification-divider-r67]'
+                    ).length
+                    : null,
                 visibleRealCategories: liveRoot
                     ? Array.prototype.filter.call(
                         liveRoot.querySelectorAll('[data-pmd-category-id]'),
@@ -256,7 +408,7 @@
     };
 
     console.info(
-        '[PMD Menu Runtime Stability V1] Ready',
+        '[PMD Menu Runtime Stability V1.1] Ready',
         window.PMDMenuRuntimeStabilityV1.inspect()
     );
 })();
