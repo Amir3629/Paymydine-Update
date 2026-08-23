@@ -3,23 +3,6 @@
  */
 
 /*
- * PMD_MENU_FIRST_PAINT_STABILITY_V1
- *
- * Categories and the catalogue grid are laid out immediately but are not
- * painted until Runtime Stability V1 has finished Smart Categories hydration
- * and selected the first real category. visibility keeps geometry reserved,
- * preventing the old All Foods / legacy-control flash without a page jump.
- */
-body.pmd-menu-manager-page
-#pmd-menu-manager-main:not([data-pmd-menu-runtime-ready-v1="1"])
-.pmd-menu-manager__categories,
-body.pmd-menu-manager-page
-#pmd-menu-manager-main:not([data-pmd-menu-runtime-ready-v1="1"])
-.pmd-menu-manager__grid {
-    visibility: hidden !important;
-}
-
-/*
  * Server markup still contains the pre-modal category minus for compatibility.
  * Never allow it to paint, even for one frame before Smart Categories removes
  * it. Runtime Stability V1 removes the node after boot.
