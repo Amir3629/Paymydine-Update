@@ -8,6 +8,13 @@ use App\Services\Payments\ProviderConnectionService;
 
 class PaymentProviders extends AdminController
 {
+    protected $requiredPermissions = 'Admin.Payments';
+
+    public function index()
+    {
+        return view('admin::paymentproviders.index');
+    }
+
     public function state(
         ProviderCapabilityRegistry $registry,
         ProviderConnectionService $connections
