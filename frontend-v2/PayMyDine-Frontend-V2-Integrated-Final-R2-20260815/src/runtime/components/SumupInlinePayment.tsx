@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { CreditCard, LoaderCircle, ShieldCheck } from 'lucide-react'
+import { CreditCard, LoaderCircle } from 'lucide-react'
 import type { TableContext } from '@/src/domain/model'
 import {
   payExistingOrder,
@@ -388,7 +388,7 @@ export function SumupInlinePayment(props: Props) {
 
   return (
     <section className={styles.stripeInlineBox} data-pmd-sumup-inline-widget="r1">
-      <div className={styles.stripeSecureTitle}><ShieldCheck aria-hidden="true" /> {copy.secure}</div>
+      <div className={styles.stripeSecureTitle}><CreditCard aria-hidden="true" /> {copy.secure}</div>
       <div className={styles.stripeHint}>{methodSummary || copy.methods}</div>
       <div className={styles.stripeCardFrame}>
         <div id={mountIdRef.current} data-pmd-sumup-widget-mount="1" />
