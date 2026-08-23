@@ -30,6 +30,7 @@ FRONT_REMOTE_FILES=(
 PATCH_RUNTIME="scripts/patch-pmd-v2-sumup-inline-widget-r1.py"
 PATCH_LEGACY="scripts/patch-pmd-sumup-legacy-card-runtime-r1.py"
 PATCH_FINANCE="scripts/patch-pmd-finance-provider-first-r1.py"
+PATCH_VERIFY="scripts/patch-pmd-sumup-widget-verification-r1.py"
 
 cd "$ROOT"
 mkdir -p "$STAGE"
@@ -73,7 +74,7 @@ echo "FRONTEND_ROOT=$FRONT_ROOT"
 
 echo
 echo "========== STAGE REMOTE FILES =========="
-for f in "${BACKEND_REMOTE_FILES[@]}" "$PATCH_RUNTIME" "$PATCH_LEGACY" "$PATCH_FINANCE"; do
+for f in "${BACKEND_REMOTE_FILES[@]}" "$PATCH_RUNTIME" "$PATCH_LEGACY" "$PATCH_FINANCE" "$PATCH_VERIFY"; do
   git cat-file -e "$REMOTE:$f" || { echo "ERROR: remote file missing: $f"; exit 8; }
   mkdir -p "$STAGE/$(dirname "$f")"
   git show "$REMOTE:$f" > "$STAGE/$f"
@@ -94,7 +95,7 @@ php -l "$STAGE/app/main/routes_sumup_self_service.php"
 php -l "$STAGE/app/admin/controllers/SumupTerminalSettings.php"
 php -l "$STAGE/app/Services/Payments/ProviderCapabilityRegistry.php"
 node --check "$STAGE/app/admin/assets/js/pmd-sumup-inline-wallet-settings-v1.js"
-python3 -m py_compile "$STAGE/$PATCH_RUNTIME" "$STAGE/$PATCH_LEGACY" "$STAGE/$PATCH_FINANCE"
+python3 -m py_compile "$STAGE/$PATCH_RUNTIME" "$STAGE/$PATCH_LEGACY" "$STAGE/$PATCH_FINANCE" "$STAGE/$PATCH_VERIFY"
 grep -Fq '/payments/sumup/widget/create-checkout' "$STAGE/app/main/routes_sumup_self_service.php"
 grep -Fq 'terminal_provider_configs' "$STAGE/app/Services/Payments/SumupOnlineCheckoutService.php"
 grep -Fq 'SumUpCard' "$STAGE/frontend-source/src/runtime/components/SumupInlinePayment.tsx"
@@ -138,9 +139,11 @@ for f in "${FRONT_REMOTE_FILES[@]}"; do
   mkdir -p "$FRONT_STAGE/$(dirname "$f")"
   cp "$STAGE/frontend-source/$f" "$FRONT_STAGE/$f"
 done
+python3 "$STAGE/$PATCH_VERIFY" "$FRONT_STAGE/src/runtime/components/SumupInlinePayment.tsx"
 python3 "$STAGE/$PATCH_RUNTIME" "$FRONT_STAGE/src/runtime/components/RuntimeOverlays.tsx"
 grep -Fq "SumupInlinePayment" "$FRONT_STAGE/src/runtime/components/RuntimeOverlays.tsx"
 grep -Fq "selectedProvider === 'sumup'" "$FRONT_STAGE/src/runtime/components/RuntimeOverlays.tsx"
+grep -Fq "order_id: props.orderId, amount" "$FRONT_STAGE/src/runtime/components/SumupInlinePayment.tsx"
 
 sudo -u ubuntu -H env FRONT_STAGE="$FRONT_STAGE" bash -c '
   set -e
