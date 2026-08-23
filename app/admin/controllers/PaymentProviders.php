@@ -3,6 +3,7 @@
 namespace Admin\Controllers;
 
 use Admin\Classes\AdminController;
+use Admin\Facades\Template;
 use App\Services\Payments\ProviderCapabilityRegistry;
 use App\Services\Payments\ProviderConnectionService;
 
@@ -12,7 +13,11 @@ class PaymentProviders extends AdminController
 
     public function index()
     {
-        return view('admin::paymentproviders.index');
+        Template::setTitle('Payment providers');
+        Template::setHeading('Payment providers');
+        $this->bodyClass = trim(($this->bodyClass ?? '').' pmd-payment-providers-page');
+
+        return $this->makeView('paymentproviders/index');
     }
 
     public function state(
