@@ -2,6 +2,7 @@
 
 namespace App\Http\Middleware;
 
+use App\Services\PmdTenantMenuBaselineR25;
 use App\Services\PmdTenantProductBaselineR1;
 use Closure;
 use Illuminate\Support\Facades\Cache;
@@ -9,14 +10,15 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 
 /**
- * PMD_TENANT_RUNTIME_GUARD_R2
+ * PMD_TENANT_RUNTIME_GUARD_R25
  *
  * Runtime bridge for tenant consistency:
  * - keeps the standalone Cashier favicon authoritative;
- * - runs the centralized product baseline on Finance/KDS/Devices when tenant
- *   context is available;
+ * - runs centralized Finance/KDS/Devices product baseline work;
+ * - runs the Menu baseline before Menu/Category/Combo routes;
+ * - requires every Menu food save to own at least one real regular category;
  * - finalizes newly-created Super Admin tenants after the legacy newtenantdb
- *   clone so stale template snapshots cannot omit newer product schema/defaults.
+ *   clone so stale template snapshots cannot omit current product schema.
  */
 class PmdTenantRuntimeGuardR1
 {
@@ -41,6 +43,21 @@ class PmdTenantRuntimeGuardR1
             $this->runBaseline(['kds', 'pos', 'payments', 'orders']);
         }
 
+        if ($tenantReady && $this->isMenuProductPath($path)) {
+            $this->runMenuBaseline();
+        }
+
+        if (
+            $tenantReady
+            && $path === 'admin/menus'
+            && $request->isMethod('post')
+            && $this->requestHandler($request) === 'onPmdMenuManagerSaveV1'
+        ) {
+            if ($invalid = $this->validateFoodCategoryMembership($request)) {
+                return $invalid;
+            }
+        }
+
         $response = $next($request);
 
         if ($path === 'admin/cashierlab') {
@@ -49,12 +66,115 @@ class PmdTenantRuntimeGuardR1
 
         // The existing SuperAdminController clones a static newtenantdb
         // snapshot. Finalize the successful DB after that clone so every new
-        // tenant receives current KDS/POS/payment/table baseline capabilities.
+        // tenant receives both infrastructure and current Menu capabilities.
         if ($request->isMethod('post') && $path === 'superadmin/new/store') {
             $this->finalizeCreatedTenant($request, $response);
         }
 
         return $response;
+    }
+
+    protected function isMenuProductPath(string $path): bool
+    {
+        return in_array($path, [
+            'admin/pmdmenus',
+            'admin/pmdsmartcategories',
+            'admin/menus',
+            'admin/combos',
+        ], true);
+    }
+
+    protected function requestHandler($request): string
+    {
+        return trim((string)(
+            $request->header('X-IGNITER-REQUEST-HANDLER')
+            ?: $request->input('_handler', '')
+        ));
+    }
+
+    protected function validateFoodCategoryMembership($request)
+    {
+        $categoryIds = array_values(array_unique(array_filter(array_map(
+            static fn ($value): int => (int)$value,
+            (array)$request->input('category_ids', [])
+        ), static fn (int $value): bool => $value > 0)));
+
+        if (!$categoryIds) {
+            $legacyCategoryId = (int)$request->input('category_id', 0);
+            if ($legacyCategoryId > 0) {
+                $categoryIds = [$legacyCategoryId];
+            }
+        }
+
+        if (!$categoryIds) {
+            return response()->json([
+                'ok' => false,
+                'message' => 'Choose at least one menu category before saving this food.',
+                'errors' => [
+                    'category_ids' => ['A menu category is required.'],
+                ],
+            ], 422);
+        }
+
+        try {
+            $schema = DB::connection()->getSchemaBuilder();
+
+            if (!$schema->hasTable('categories')) {
+                return response()->json([
+                    'ok' => false,
+                    'message' => 'Menu categories are not ready on this restaurant yet.',
+                ], 422);
+            }
+
+            $query = DB::table('categories')
+                ->whereIn('category_id', $categoryIds);
+
+            if ($schema->hasColumn('categories', 'status')) {
+                $query->where('status', 1);
+            }
+
+            // All Foods is not a stored category. Chef/Bestseller/Combination
+            // categories are smart views and must not own normal food membership.
+            if ($schema->hasColumn('categories', 'pmd_kind')) {
+                $query->where(function ($builder) {
+                    $builder
+                        ->where('pmd_kind', 'regular')
+                        ->orWhereNull('pmd_kind')
+                        ->orWhere('pmd_kind', '');
+                });
+            }
+
+            $validIds = $query
+                ->pluck('category_id')
+                ->map(static fn ($id): int => (int)$id)
+                ->all();
+
+            sort($validIds);
+            $expectedIds = $categoryIds;
+            sort($expectedIds);
+
+            if ($validIds !== $expectedIds) {
+                return response()->json([
+                    'ok' => false,
+                    'message' => 'Choose at least one active menu category. All Foods is only a view.',
+                    'errors' => [
+                        'category_ids' => ['One or more selected categories cannot own food items.'],
+                    ],
+                ], 422);
+            }
+        } catch (\Throwable $error) {
+            Log::warning('PMD Menu category validation failed', [
+                'host' => request()->getHost(),
+                'message' => $error->getMessage(),
+            ]);
+
+            return response()->json([
+                'ok' => false,
+                'message' => 'Menu categories could not be validated. Please try again.',
+            ], 422);
+        }
+
+        return null;
     }
 
     protected function runBaseline(array $scopes): void
@@ -77,6 +197,26 @@ class PmdTenantRuntimeGuardR1
         }
     }
 
+    protected function runMenuBaseline(): void
+    {
+        try {
+            $report = app(PmdTenantMenuBaselineR25::class)
+                ->repairCurrentTenant();
+
+            if (!($report['ok'] ?? false)) {
+                Log::warning('PMD tenant Menu baseline completed with warnings', [
+                    'database' => $report['database'] ?? null,
+                    'warnings' => $report['warnings'] ?? [],
+                ]);
+            }
+        } catch (\Throwable $error) {
+            Log::error('PMD tenant Menu baseline failed', [
+                'host' => request()->getHost(),
+                'message' => $error->getMessage(),
+            ]);
+        }
+    }
+
     protected function finalizeCreatedTenant($request, $response): void
     {
         $database = trim((string)$request->input('database', ''));
@@ -90,19 +230,43 @@ class PmdTenantRuntimeGuardR1
 
             if (!$tenant) return;
 
-            $report = app(PmdTenantProductBaselineR1::class)
-                ->repairTenantRecord($tenant);
+            try {
+                $report = app(PmdTenantProductBaselineR1::class)
+                    ->repairTenantRecord($tenant);
 
-            Log::info('PMD new tenant product baseline finalized', [
-                'database' => $database,
-                'ok' => $report['ok'] ?? false,
-                'warnings' => $report['warnings'] ?? [],
-                'version' => $report['version'] ?? null,
-            ]);
+                Log::info('PMD new tenant product baseline finalized', [
+                    'database' => $database,
+                    'ok' => $report['ok'] ?? false,
+                    'warnings' => $report['warnings'] ?? [],
+                    'version' => $report['version'] ?? null,
+                ]);
+            } catch (\Throwable $error) {
+                Log::error('PMD new tenant product baseline finalize failed', [
+                    'database' => $database,
+                    'message' => $error->getMessage(),
+                ]);
+            }
+
+            try {
+                $menuReport = app(PmdTenantMenuBaselineR25::class)
+                    ->repairTenantRecord($tenant);
+
+                Log::info('PMD new tenant Menu baseline finalized', [
+                    'database' => $database,
+                    'ok' => $menuReport['ok'] ?? false,
+                    'warnings' => $menuReport['warnings'] ?? [],
+                    'version' => $menuReport['version'] ?? null,
+                ]);
+            } catch (\Throwable $error) {
+                Log::error('PMD new tenant Menu baseline finalize failed', [
+                    'database' => $database,
+                    'message' => $error->getMessage(),
+                ]);
+            }
         } catch (\Throwable $error) {
             // Tenant creation response must not be replaced by a baseline
-            // diagnostic. Log it; the same baseline is safely re-runnable.
-            Log::error('PMD new tenant product baseline finalize failed', [
+            // diagnostic. Both baselines are safely re-runnable.
+            Log::error('PMD new tenant baseline lookup failed', [
                 'database' => $database,
                 'message' => $error->getMessage(),
             ]);
