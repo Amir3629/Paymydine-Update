@@ -4,12 +4,18 @@
 - [x] Generic tenant provider connection reader
 - [x] Generic provider state endpoint foundation
 - [x] Owner-facing provider catalogue foundation
-- [ ] Wire provider routes into admin route loader
-- [ ] Wire provider catalogue assets into admin assets
-- [ ] Add Providers entry to Payments settings navigation
-- [ ] Move SumUp credentials from Devices UI to Providers UI
-- [ ] Keep Devices UI pairing-only
-- [ ] Add Stripe provider adapter
-- [ ] Add Square provider adapter
-- [ ] Add VR Payment provider adapter
-- [ ] Add payment-method routing (including Wero)
+- [x] Wire provider routes through the live terminal/payment route loader
+- [x] Wire provider catalogue assets into admin assets
+- [x] Add Payment Providers entry to the owner Settings page
+- [x] Move SumUp credentials from Devices UI to Payments > Providers UI
+- [x] Keep Devices UI pairing/testing/removal only
+- [x] Route payment-method records through their assigned provider record
+- [x] Preserve backward compatibility for legacy direct Stripe/PayPal/Square payment codes
+- [ ] Add generic Stripe connection adapter and runtime capability discovery
+- [ ] Add Stripe Terminal device adapter
+- [ ] Add generic Square connection adapter and terminal adapter
+- [ ] Add VR Payment connection + online/terminal adapter
+- [ ] Add Worldline connection/terminal adapter to the common interface
+- [ ] Add provider-backed Wero checkout routing
+- [ ] Add runtime merchant/country/environment capability discovery before enabling methods
+- [ ] Add OAuth/self-service connect flows where provider APIs support them
