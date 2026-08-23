@@ -45,6 +45,18 @@ Route::post('/'.trim((string)config('system.adminUri', 'admin'), '/').'/terminal
     ->name('pmd.sumup.terminal.callback');
 
 Route::middleware(['web'])->prefix(config('system.adminUri', 'admin'))->group(function () {
+    Route::get('/payment-providers', [\Admin\Controllers\PaymentProviders::class, 'index'])
+        ->name('pmd.payment-providers.index');
+    Route::get('/payment-providers/state', [\Admin\Controllers\PaymentProviders::class, 'state'])
+        ->name('pmd.payment-providers.state');
+
+    // Provider-connection aliases. Devices should only pair/manage hardware;
+    // provider credentials live under Payments > Providers.
+    Route::get('/payment-providers/sumup/state', [\Admin\Controllers\SumupTerminalSettings::class, 'state']);
+    Route::post('/payment-providers/sumup/connection', [\Admin\Controllers\SumupTerminalSettings::class, 'saveConnection']);
+    Route::post('/payment-providers/sumup/connection/test', [\Admin\Controllers\SumupTerminalSettings::class, 'testConnection']);
+    Route::post('/payment-providers/sumup/environment', [\Admin\Controllers\SumupTerminalSettings::class, 'activateEnvironment']);
+
     Route::post('/orders/terminal-payment-attempt', function (Request $request, TerminalPaymentService $service) {
         $user = \Admin\Facades\AdminAuth::getUser();
         if (!$user || !$user->hasPermission('Admin.Payments')) abort(403, 'Payment permission required.');
@@ -72,6 +84,7 @@ Route::middleware(['web'])->prefix(config('system.adminUri', 'admin'))->group(fu
         return response()->json(['success' => true, 'attempts' => $attempts]);
     })->where('orderId', '[0-9]+');
 
+    // Compatibility routes kept while the Devices page migrates to pairing-only.
     Route::get('/pmddevices/sumup/state', [\Admin\Controllers\SumupTerminalSettings::class, 'state']);
     Route::post('/pmddevices/sumup/connection', [\Admin\Controllers\SumupTerminalSettings::class, 'saveConnection']);
     Route::post('/pmddevices/sumup/connection/test', [\Admin\Controllers\SumupTerminalSettings::class, 'testConnection']);
