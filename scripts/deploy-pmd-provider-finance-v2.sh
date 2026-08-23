@@ -44,7 +44,6 @@ REMOVE_FILES=(
 
 backup_file() {
   local file="$1"
-
   if [ -e "$ROOT/$file" ]; then
     sudo mkdir -p "$BACKUP/files/$(dirname "$file")"
     sudo cp -a "$ROOT/$file" "$BACKUP/files/$file"
@@ -139,9 +138,7 @@ data = json.loads(path.read_text())
 style_rows = data.setdefault('style', [])
 script_rows = data.setdefault('script', [])
 
-obsolete_scripts = {
-    'js/pmd-payment-providers-settings-link-v1.js',
-}
+obsolete_scripts = {'js/pmd-payment-providers-settings-link-v1.js'}
 script_rows[:] = [
     row for row in script_rows
     if not isinstance(row, dict) or str(row.get('path', '')) not in obsolete_scripts
@@ -200,6 +197,7 @@ cat > "$STAGE/verify_all_tenants.php" <<'PHP'
 
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 
 $root = getenv('PMD_ROOT') ?: '/var/www/paymydine';
 $domainFile = getenv('PMD_DOMAIN_FILE');
@@ -235,31 +233,36 @@ foreach ($tenants as $tenant) {
     $name = trim((string)($tenant->name ?? 'tenant'));
     $domain = strtolower(trim((string)$tenant->domain));
     $database = trim((string)$tenant->database);
-
-    if ($domain === '' || $database === '') {
-        continue;
-    }
+    if ($domain === '' || $database === '') continue;
 
     $cfg = $base;
     $cfg['database'] = $database;
     Config::set('database.connections.pmd_provider_tenant_v2', $cfg);
     DB::purge('pmd_provider_tenant_v2');
     DB::reconnect('pmd_provider_tenant_v2');
-    DB::setDefaultConnection('pmd_provider_tenant_v2');
 
     try {
-        $actual = DB::connection()->getDatabaseName();
+        $connection = DB::connection('pmd_provider_tenant_v2');
+        $actual = $connection->getDatabaseName();
         if (strcasecmp((string)$actual, $database) !== 0) {
             throw new RuntimeException("database mismatch: expected {$database}, got {$actual}");
         }
 
-        $providerState = app(App\Services\Payments\ProviderConnectionService::class)->state('sumup');
-        $sumup = app(App\Services\TerminalPayments\SumupTenantConnectionService::class)->state();
-
-        $schemaReady = (bool)($providerState['schema_ready'] ?? false);
-        if (!$schemaReady) {
-            throw new RuntimeException('provider schema is not ready');
+        $schema = Schema::connection('pmd_provider_tenant_v2');
+        if (!$schema->hasTable('terminal_provider_configs')) {
+            throw new RuntimeException('terminal_provider_configs table is missing');
         }
+
+        $providerRows = $connection->table('terminal_provider_configs')
+            ->whereRaw('LOWER(provider_code) = ?', ['sumup'])
+            ->get();
+
+        $active = $providerRows->first(function ($row) {
+            return !empty($row->is_active);
+        });
+
+        $hasTerminals = $schema->hasTable('terminal_devices');
+        $terminalHasEnvironment = $hasTerminals && $schema->hasColumn('terminal_devices', 'environment');
 
         $checked++;
         $domains[] = $domain;
@@ -268,18 +271,31 @@ foreach ($tenants as $tenant) {
             .' DOMAIN='.$domain
             .' DB='.$actual
             .' PROVIDER_SCHEMA=YES'
-            .' SUMUP_ACTIVE_ENV='.($sumup['active_environment'] ?? 'NONE')
+            .' SUMUP_ACTIVE_ENV='.($active->environment ?? 'NONE')
             .PHP_EOL;
 
         foreach (['test', 'production'] as $env) {
-            $snapshot = (array)($sumup['environments'][$env] ?? []);
-            $configured = !empty($snapshot['configured']) ? 'YES' : 'NO';
-            $connected = (($snapshot['connection_status'] ?? '') === 'connected') ? 'YES' : 'NO';
-            $terminals = count((array)($snapshot['terminals'] ?? []));
+            $row = $providerRows->first(function ($item) use ($env) {
+                return strtolower((string)($item->environment ?? '')) === $env;
+            });
+
+            $configured = $row && !empty($row->access_token_encrypted) ? 'YES' : 'NO';
+            $connected = $row && strtolower((string)($row->connection_status ?? '')) === 'connected' ? 'YES' : 'NO';
+            $terminalCount = 0;
+
+            if ($hasTerminals) {
+                $query = $connection->table('terminal_devices')
+                    ->whereRaw('LOWER(provider_code) = ?', ['sumup']);
+                if ($terminalHasEnvironment) {
+                    $query->whereRaw('LOWER(COALESCE(environment, ?)) = ?', ['test', $env]);
+                }
+                $terminalCount = $query->count();
+            }
+
             echo '  '.strtoupper($env)
                 .' configured='.$configured
                 .' connected='.$connected
-                .' terminals='.$terminals
+                .' terminals='.$terminalCount
                 .PHP_EOL;
         }
     } catch (Throwable $e) {
@@ -294,8 +310,6 @@ foreach ($tenants as $tenant) {
     }
 }
 
-DB::setDefaultConnection('pmd_provider_central_v2');
-
 if ($domainFile) {
     file_put_contents($domainFile, implode(PHP_EOL, array_values(array_unique($domains))).PHP_EOL);
 }
@@ -303,15 +317,14 @@ if ($domainFile) {
 echo 'TENANTS_CHECKED='.$checked.PHP_EOL;
 echo 'TENANTS_FAILED='.$failed.PHP_EOL;
 
-if ($checked === 0 || $failed > 0) {
-    exit(1);
-}
+if ($checked === 0 || $failed > 0) exit(1);
 PHP
 
 PMD_ROOT="$ROOT" PMD_DOMAIN_FILE="$DOMAIN_FILE" php "$STAGE/verify_all_tenants.php"
 
 echo
-echo "========== HTTP CHECK ALL TENANT DOMAINS =========="n
+echo "========== HTTP CHECK ALL TENANT DOMAINS =========="
+
 check_route() {
   local url="$1"
   local label="$2"
