@@ -112,9 +112,18 @@
     }
 
     function openR27Editor() {
+        if (!editMode()) return false;
+
+        var api = window.PMDMenuAllFoodsR27;
+        if (api && typeof api.open === 'function') {
+            return api.open() !== false;
+        }
+
         var compatibilityButton = r27ManageButton();
-        if (!compatibilityButton || !editMode()) return;
+        if (!compatibilityButton) return false;
+
         compatibilityButton.click();
+        return true;
     }
 
     function csrf(data) {
