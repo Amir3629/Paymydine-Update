@@ -89,7 +89,13 @@ Route::middleware(['web'])->prefix(config('system.adminUri', 'admin'))->group(fu
     Route::post('/pmddevices/sumup/connection', [\Admin\Controllers\SumupTerminalSettings::class, 'saveConnection']);
     Route::post('/pmddevices/sumup/connection/test', [\Admin\Controllers\SumupTerminalSettings::class, 'testConnection']);
     Route::post('/pmddevices/sumup/environment', [\Admin\Controllers\SumupTerminalSettings::class, 'activateEnvironment']);
-    Route::post('/pmddevices/sumup/readers/pair', [\Admin\Controllers\SumupTerminalSettings::class, 'pairReader']);
+
+    // Canonical reader hardware authority. It normalizes copied pairing codes,
+    // reconciles readers that already exist at SumUp, and preserves provider
+    // error semantics instead of collapsing every failure into a generic 422.
+    Route::post('/pmddevices/sumup/readers/sync', [\Admin\Controllers\SumupReaderPairing::class, 'sync']);
+    Route::post('/pmddevices/sumup/readers/pair', [\Admin\Controllers\SumupReaderPairing::class, 'pair']);
+
     Route::post('/pmddevices/sumup/readers/{terminalId}/test', [\Admin\Controllers\SumupTerminalSettings::class, 'testReader'])->where('terminalId', '[0-9]+');
     Route::delete('/pmddevices/sumup/readers/{terminalId}', [\Admin\Controllers\SumupTerminalSettings::class, 'removeReader'])->where('terminalId', '[0-9]+');
 });
