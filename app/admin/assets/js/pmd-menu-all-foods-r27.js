@@ -236,7 +236,7 @@
             + '    <span class="pmd-smart-status" data-pmd-all-foods-status-r27 aria-live="polite"></span>'
             + '    <button type="button" class="pmd-smart-btn pmd-smart-btn--danger" data-pmd-all-foods-remove-r27></button>'
             + '    <button type="button" class="pmd-smart-btn pmd-smart-btn--primary" data-pmd-all-foods-restore-r27 hidden></button>'
-            + '    <button type="button" class="pmd-smart-btn" data-pmd-all-foods-close-r27></button>'
+            + '    <button type="button" class="pmd-smart-btn pmd-all-foods-cancel-r27" data-pmd-all-foods-close-r27></button>'
             + '    <button type="button" class="pmd-smart-btn pmd-smart-btn--primary" data-pmd-all-foods-save-r27></button>'
             + '  </footer>'
             + '</section>';
@@ -249,7 +249,7 @@
         q('[data-pmd-all-foods-view-help-r27]', modal).textContent = copy.viewHelp;
         q('[data-pmd-all-foods-remove-r27]', modal).textContent = copy.remove;
         q('[data-pmd-all-foods-restore-r27]', modal).textContent = copy.restore;
-        q('[data-pmd-all-foods-close-r27]:not(.pmd-smart-category-modal__close)', modal).textContent = copy.cancel;
+        q('.pmd-all-foods-cancel-r27', modal).textContent = copy.cancel;
         q('[data-pmd-all-foods-save-r27]', modal).textContent = copy.save;
 
         modal.addEventListener('click', function (event) {
