@@ -18,6 +18,7 @@
     {"path": "css/pmd-waiter-table-state-v154.css", "name": "pmd-waiter-table-state-v154-css"},
     {"path": "css/pmd-waiter-floor-ux-v155.css", "name": "pmd-waiter-floor-ux-v155-css"},
     {"path": "css/pmd-waiter-floor-edit-v160.css", "name": "pmd-waiter-floor-edit-v160-css"},
+    {"path": "css/pmd-payment-provider-catalogue-v1.css", "name": "pmd-payment-provider-catalogue-v1-css"},
     {"path": "css/pmd-sumup-self-service-v1.css", "name": "pmd-sumup-self-service-v1-css"},
     {"path": "css/pmd-cashier-order-clean-v1.css", "name": "pmd-cashier-order-clean-v1-css"},
     {"path": "css/pmd-cashier-payment-clean-v1.css", "name": "pmd-cashier-payment-clean-v1-css"}
@@ -25,6 +26,7 @@
   "script": [
     {"path": "js/admin.js", "name": "admin-js"},
     {"path": "js/pmd-waiter-pos-payment-v3.js", "name": "pmd-waiter-pos-payment-v3-js"},
+    {"path": "js/pmd-payment-provider-catalogue-v1.js", "name": "pmd-payment-provider-catalogue-v1-js"},
     {"path": "js/pmd-sumup-self-service-v1.js", "name": "pmd-sumup-self-service-v1-js"},
     {"path": "js/pmd-waiter-pos-dashboard-shadow-bridge-v24.js", "name": "pmd-waiter-pos-dashboard-shadow-bridge-v24-js"},
     {"path": "js/pmd-waiter-pos-dashboard-direct-guard-v23.js", "name": "pmd-waiter-pos-dashboard-direct-guard-v23-js"},
