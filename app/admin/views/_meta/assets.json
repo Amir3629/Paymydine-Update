@@ -122,6 +122,10 @@
     {
       "path": "css/pmd-general-staff-note-r24.css",
       "name": "pmd-general-staff-note-r24-css"
+    },
+    {
+      "path": "css/pmd-menu-all-foods-r27.css",
+      "name": "pmd-menu-all-foods-r27-css"
     }
   ],
   "script": [
@@ -144,6 +148,10 @@
     {
       "path": "js/pmd-menu-category-guard-r26.js",
       "name": "pmd-menu-category-guard-r26-js"
+    },
+    {
+      "path": "js/pmd-menu-all-foods-r27.js",
+      "name": "pmd-menu-all-foods-r27-js"
     },
     {
       "path": "js/pmd-waiter-pos-dashboard-shadow-bridge-v24.js",
