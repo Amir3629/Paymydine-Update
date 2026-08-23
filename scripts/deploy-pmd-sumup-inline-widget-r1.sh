@@ -25,6 +25,8 @@ BACKEND_REMOTE_FILES=(
 FRONT_REMOTE_BASE="frontend-v2/PayMyDine-Frontend-V2-Integrated-Final-R2-20260815"
 FRONT_REMOTE_FILES=(
   "src/runtime/components/SumupInlinePayment.tsx"
+  "src/runtime/components/ThemeTableBadge.tsx"
+  "src/runtime/components/ThemeTableBadge.module.css"
 )
 
 PATCH_RUNTIME="scripts/patch-pmd-v2-sumup-inline-widget-r1.py"
@@ -101,6 +103,13 @@ grep -Fq 'terminal_provider_configs' "$STAGE/app/Services/Payments/SumupOnlineCh
 grep -Fq 'SumUpCard' "$STAGE/frontend-source/src/runtime/components/SumupInlinePayment.tsx"
 grep -Fq 'googlePay' "$STAGE/frontend-source/src/runtime/components/SumupInlinePayment.tsx"
 grep -Fq "['card', 'apple_pay', 'google_pay']" "$STAGE/app/Services/Payments/SumupOnlineCheckoutService.php"
+grep -Fq 'classList.add(styles.host)' "$STAGE/frontend-source/src/runtime/components/ThemeTableBadge.tsx"
+grep -Fq '.host {' "$STAGE/frontend-source/src/runtime/components/ThemeTableBadge.module.css"
+if grep -Fq ':global([data-pmd-table-badge-host' "$STAGE/frontend-source/src/runtime/components/ThemeTableBadge.module.css"; then
+  echo "ERROR: invalid pure CSS-module global ThemeTableBadge selector still present"
+  exit 10
+fi
+echo "NEXT16_CSS_MODULE_PREFLIGHT=OK"
 echo "SOURCE_PREFLIGHT=OK"
 
 echo
@@ -111,7 +120,7 @@ python3 "$STAGE/$PATCH_LEGACY" "$STAGE/routes/admin-app-before.php"
 php -l "$STAGE/routes/admin-app-before.php"
 if grep -Fq "SumUp credentials are incomplete" "$STAGE/routes/admin-app-before.php"; then
   echo "ERROR: stale SumUp legacy credential error still present"
-  exit 10
+  exit 11
 fi
 
 echo
@@ -144,16 +153,21 @@ python3 "$STAGE/$PATCH_RUNTIME" "$FRONT_STAGE/src/runtime/components/RuntimeOver
 grep -Fq "SumupInlinePayment" "$FRONT_STAGE/src/runtime/components/RuntimeOverlays.tsx"
 grep -Fq "selectedProvider === 'sumup'" "$FRONT_STAGE/src/runtime/components/RuntimeOverlays.tsx"
 grep -Fq "order_id: props.orderId, amount" "$FRONT_STAGE/src/runtime/components/SumupInlinePayment.tsx"
+grep -Fq 'classList.add(styles.host)' "$FRONT_STAGE/src/runtime/components/ThemeTableBadge.tsx"
+if grep -Fq ':global([data-pmd-table-badge-host' "$FRONT_STAGE/src/runtime/components/ThemeTableBadge.module.css"; then
+  echo "ERROR: invalid ThemeTableBadge CSS selector reached frontend staging"
+  exit 12
+fi
 
 sudo -u ubuntu -H env FRONT_STAGE="$FRONT_STAGE" bash -c '
   set -e
   cd "$FRONT_STAGE"
   npm run build -- --webpack
 '
-[ -d "$FRONT_STAGE/.next" ] || { echo "ERROR: frontend-v2 build produced no .next"; exit 11; }
+[ -d "$FRONT_STAGE/.next" ] || { echo "ERROR: frontend-v2 build produced no .next"; exit 13; }
 if ! grep -Rsl --binary-files=text '/api/v1/payments/sumup/widget/create-checkout' "$FRONT_STAGE/.next" >/dev/null 2>&1; then
   echo "ERROR: compiled frontend does not contain SumUp widget endpoint"
-  exit 12
+  exit 14
 fi
 echo "FRONTEND_BUILD=OK"
 
@@ -165,7 +179,7 @@ for f in "${BACKEND_REMOTE_FILES[@]}" "routes/admin-app-before.php" "app/admin/v
     sudo cp -a "$ROOT/$f" "$BACKUP/backend/$f"
   fi
 done
-for f in "src/runtime/components/RuntimeOverlays.tsx" "src/runtime/components/SumupInlinePayment.tsx"; do
+for f in "src/runtime/components/RuntimeOverlays.tsx" "${FRONT_REMOTE_FILES[@]}"; do
   if [ -e "$FRONT_ROOT/$f" ]; then
     sudo mkdir -p "$BACKUP/frontend/$(dirname "$f")"
     sudo cp -a "$FRONT_ROOT/$f" "$BACKUP/frontend/$f"
@@ -241,7 +255,11 @@ grep -Fq 'pmd-sumup-inline-wallet-settings-v1.js' "$ROOT/app/admin/views/_meta/a
 echo
 echo "========== INSTALL FRONTEND V2 SOURCE + BUILD =========="
 sudo install -o ubuntu -g ubuntu -m 0644 "$FRONT_STAGE/src/runtime/components/RuntimeOverlays.tsx" "$FRONT_ROOT/src/runtime/components/RuntimeOverlays.tsx"
-sudo install -o ubuntu -g ubuntu -m 0644 "$FRONT_STAGE/src/runtime/components/SumupInlinePayment.tsx" "$FRONT_ROOT/src/runtime/components/SumupInlinePayment.tsx"
+for f in "${FRONT_REMOTE_FILES[@]}"; do
+  sudo mkdir -p "$FRONT_ROOT/$(dirname "$f")"
+  sudo install -o ubuntu -g ubuntu -m 0644 "$FRONT_STAGE/$f" "$FRONT_ROOT/$f"
+  echo "INSTALLED_FRONTEND_SOURCE: $f"
+done
 sudo rm -rf "$FRONT_ROOT/.next"
 sudo mv "$FRONT_STAGE/.next" "$FRONT_ROOT/.next"
 sudo chown -R ubuntu:ubuntu "$FRONT_ROOT/.next"
@@ -249,6 +267,11 @@ FRONT_ACTIVATED=1
 
 grep -Fq "SumupInlinePayment" "$FRONT_ROOT/src/runtime/components/RuntimeOverlays.tsx"
 grep -Fq '/api/v1/payments/sumup/widget/create-checkout' "$FRONT_ROOT/src/runtime/components/SumupInlinePayment.tsx"
+grep -Fq 'classList.add(styles.host)' "$FRONT_ROOT/src/runtime/components/ThemeTableBadge.tsx"
+if grep -Fq ':global([data-pmd-table-badge-host' "$FRONT_ROOT/src/runtime/components/ThemeTableBadge.module.css"; then
+  echo "ERROR: invalid ThemeTableBadge CSS selector installed"
+  exit 15
+fi
 
 echo
 echo "========== CLEAR CACHE + ROUTE CHECK =========="
@@ -277,8 +300,8 @@ for row in rows:
 ')"
 echo "FRONTEND_STATUS_AFTER=$STATUS_AFTER"
 echo "FRONTEND_CWD_AFTER=$CWD_AFTER"
-[ "$STATUS_AFTER" = "online" ] || { echo "ERROR: frontend-v2 not online"; exit 13; }
-[ "$CWD_AFTER" = "$FRONT_ROOT" ] || { echo "ERROR: frontend-v2 cwd changed"; exit 14; }
+[ "$STATUS_AFTER" = "online" ] || { echo "ERROR: frontend-v2 not online"; exit 16; }
+[ "$CWD_AFTER" = "$FRONT_ROOT" ] || { echo "ERROR: frontend-v2 cwd changed"; exit 17; }
 
 echo
 echo "========== HTTP SMOKE =========="
@@ -286,8 +309,8 @@ FRONT_CODE="$(curl -L -sS -o /dev/null -w '%{http_code}' "$FRONT_URL/?pmd_sumup_
 ADMIN_CODE="$(curl -L -sS -o /dev/null -w '%{http_code}' "$ADMIN_URL?pmd_sumup_inline_r1=$STAMP" || true)"
 echo "FRONTEND_HTTP=$FRONT_CODE"
 echo "ADMIN_HTTP=$ADMIN_CODE"
-case "$FRONT_CODE" in 200|301|302) ;; *) echo "ERROR: frontend HTTP smoke failed"; exit 15;; esac
-case "$ADMIN_CODE" in 200|301|302|403) ;; *) echo "ERROR: admin HTTP smoke failed"; exit 16;; esac
+case "$FRONT_CODE" in 200|301|302) ;; *) echo "ERROR: frontend HTTP smoke failed"; exit 18;; esac
+case "$ADMIN_CODE" in 200|301|302|403) ;; *) echo "ERROR: admin HTTP smoke failed"; exit 19;; esac
 
 INSTALL_STARTED=0
 trap - EXIT
@@ -307,6 +330,7 @@ echo "WERO_SUMUP=no_current_public_method"
 echo "SECRET_SOURCE=terminal_provider_configs"
 echo "LEGACY_CREATE_SESSION_BRIDGE=enabled"
 echo "PMDFINANCE_ORDER=providers_then_methods"
+echo "NEXT16_CSS_MODULE_COMPAT=ThemeTableBadge_local_host_class"
 echo "FRONTEND_SERVICE=$FRONT_SERVICE"
 echo "OTHER_PM2_SERVICES=untouched"
 echo "DATABASE_MIGRATIONS=none"
