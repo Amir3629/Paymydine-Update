@@ -21,7 +21,8 @@
     {"path": "css/pmd-payment-provider-catalogue-v1.css", "name": "pmd-payment-provider-catalogue-v1-css"},
     {"path": "css/pmd-sumup-self-service-v1.css", "name": "pmd-sumup-self-service-v1-css"},
     {"path": "css/pmd-cashier-order-clean-v1.css", "name": "pmd-cashier-order-clean-v1-css"},
-    {"path": "css/pmd-cashier-payment-clean-v1.css", "name": "pmd-cashier-payment-clean-v1-css"}
+    {"path": "css/pmd-cashier-payment-clean-v1.css", "name": "pmd-cashier-payment-clean-v1-css"},
+    {"path": "css/pmd-payment-simple-v1.css", "name": "pmd-payment-simple-v1-css"}
   ],
   "script": [
     {"path": "js/admin.js", "name": "admin-js"},
