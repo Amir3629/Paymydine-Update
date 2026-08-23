@@ -435,10 +435,43 @@
         observer.observe(root, {attributes: true, attributeFilter: ['data-pmd-sort-mode']});
     }
 
+    function installPublicApi() {
+        window.PMDMenuAllFoodsR27 = {
+            version: '27.1.0',
+            open: function () {
+                if (!editMode()) return false;
+                openModal();
+                return true;
+            },
+            close: function () {
+                if (busy) return false;
+                closeModal();
+                return true;
+            },
+            hide: function () {
+                return hidePreference();
+            },
+            restore: function () {
+                return restorePreference();
+            },
+            inspect: function () {
+                return {
+                    loaded: loaded,
+                    busy: busy,
+                    editMode: editMode(),
+                    label: preference.label,
+                    visible: Boolean(preference.visible),
+                    modalOpen: Boolean(modal && !modal.hidden)
+                };
+            }
+        };
+    }
+
     readCache();
     ensureLabelNode();
     ensureManageButton();
     render();
     observeEditMode();
+    installPublicApi();
     loadPreference();
 })();
