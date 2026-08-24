@@ -1,0 +1,50 @@
+name: Build PayMyDine Cashier Windows
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - feature/cashier-desktop-app-v1-clean
+    paths:
+      - 'apps/cashier-desktop/**'
+      - '.github/workflows/cashier-desktop-windows.yml'
+  pull_request:
+    branches:
+      - main
+    paths:
+      - 'apps/cashier-desktop/**'
+      - '.github/workflows/cashier-desktop-windows.yml'
+
+jobs:
+  build-windows:
+    runs-on: windows-latest
+    timeout-minutes: 30
+
+    defaults:
+      run:
+        working-directory: apps/cashier-desktop
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Syntax check
+        run: npm run check
+
+      - name: Build Windows installer
+        run: npm run dist:win
+
+      - name: Upload installer
+        uses: actions/upload-artifact@v4
+        with:
+          name: PayMyDine-Cashier-Windows
+          path: apps/cashier-desktop/dist/PayMyDine-Cashier-Setup-*.exe
+          if-no-files-found: error
