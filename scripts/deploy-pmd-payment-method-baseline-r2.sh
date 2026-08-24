@@ -112,7 +112,8 @@ echo "TENANTS_WITH_WARNINGS={$warnings}".PHP_EOL;
 PHP
 
 echo
-echo "========== FINAL VERIFY =========="nphp -r '
+echo "========== FINAL VERIFY =========="
+php -r '
 require "vendor/autoload.php";
 $app = require "bootstrap/app.php";
 $kernel = $app->make(Illuminate\Contracts\Console\Kernel::class);
