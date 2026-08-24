@@ -6,8 +6,8 @@
 |--------------------------------------------------------------------------
 | Resolve the tenant from the request host using the central `mysql`
 | connection, then inspect media ownership through a dedicated temporary
-| connection. This helper NEVER changes database.default and does not require
-| DetectTenant/TenantDatabaseMiddleware on legacy media routes.
+| connection. This helper never changes the application's default DB
+| connection and does not require tenant middleware on legacy media routes.
 |--------------------------------------------------------------------------
 */
 
