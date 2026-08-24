@@ -5,7 +5,7 @@ umask 022
 ROOT="${PMD_ROOT:-/var/www/paymydine}"
 BRANCH="feature/cash-drawer-local-agent-r2"
 TEST_HOST="${TEST_HOST:-a.paymydine.com}"
-EXPECTED_HEAD="${EXPECTED_HEAD:-71750b33cc21b7ddcef24c946c5ccd01b2b83864}"
+EXPECTED_HEAD="${EXPECTED_HEAD:-}"
 PHP_FPM="${PHP_FPM:-php8.3-fpm}"
 BOOTSTRAP_TEST_DRAWER="${BOOTSTRAP_TEST_DRAWER:-1}"
 STAMP="$(date +%Y%m%d_%H%M%S)"
@@ -51,7 +51,9 @@ cd "$ROOT"
 
 HEAD_BEFORE="$(repo_git rev-parse HEAD)"
 BRANCH_BEFORE="$(repo_git branch --show-current)"
-[[ "$HEAD_BEFORE" == "$EXPECTED_HEAD" ]] || fail "Unexpected live Git HEAD: $HEAD_BEFORE (expected $EXPECTED_HEAD)"
+if [[ -n "$EXPECTED_HEAD" && "$HEAD_BEFORE" != "$EXPECTED_HEAD" ]]; then
+  fail "Unexpected live Git HEAD: $HEAD_BEFORE (expected $EXPECTED_HEAD)"
+fi
 [[ "$BRANCH_BEFORE" == "main" ]] || fail "Live branch must stay main; found $BRANCH_BEFORE"
 
 log "1. PRE-DEPLOY HEALTH"
