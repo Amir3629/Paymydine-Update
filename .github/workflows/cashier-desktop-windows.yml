@@ -8,6 +8,12 @@ on:
     paths:
       - 'apps/cashier-desktop/**'
       - '.github/workflows/cashier-desktop-windows.yml'
+  pull_request:
+    branches:
+      - main
+    paths:
+      - 'apps/cashier-desktop/**'
+      - '.github/workflows/cashier-desktop-windows.yml'
 
 jobs:
   build-windows:
