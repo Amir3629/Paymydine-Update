@@ -31,6 +31,7 @@ def patch_cash_drawers():
         "/api/pmd-pos-agent/agent.js",
         "/api/v1/pmd-pos-agent/agent.js",
     )
+
     if 'PMD_CASH_DRAWER_AGENT_V1_NGINX_AUTHORITY_R21' not in s:
         marker = "    // PMD_CASH_DRAWER_AGENT_V1_NGINX_AUTHORITY_R21\n"
         anchors = [
@@ -43,6 +44,27 @@ def patch_cash_drawers():
                 break
         else:
             raise SystemExit('CashDrawers class anchor missing: neither AdminController nor Controller signature found')
+
+    # TastyIgniter admin action URLs are snake_case in the existing Devices UI,
+    # while this controller historically exposed camelCase methods. Keep both
+    # names so /cash_drawers/windows_connector/{id} returns the .bat download
+    # instead of an X_IGNITER_REDIRECT JSON response.
+    if 'PMD_CASH_DRAWER_SNAKE_ACTION_ALIASES_R22' not in s:
+        anchor = "    public function windowsConnector($recordId)\n"
+        aliases = '''    // PMD_CASH_DRAWER_SNAKE_ACTION_ALIASES_R22
+    public function windows_connector($recordId)
+    {
+        return $this->windowsConnector($recordId);
+    }
+
+    public function windows_connector_agent($recordId)
+    {
+        return $this->windowsConnectorAgent($recordId);
+    }
+
+'''
+        s = replace_once(s, anchor, aliases + anchor, 'cash drawer snake_case action aliases')
+
     write(p, s)
 
 
