@@ -1,0 +1,96 @@
+name: Build PayMyDine Cashier macOS
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - feature/cashier-desktop-app-mac-v1
+    paths:
+      - 'apps/cashier-desktop/**'
+      - '.github/workflows/cashier-desktop-macos.yml'
+  pull_request:
+    branches:
+      - main
+    paths:
+      - 'apps/cashier-desktop/**'
+      - '.github/workflows/cashier-desktop-macos.yml'
+
+jobs:
+  build-macos:
+    strategy:
+      fail-fast: false
+      matrix:
+        arch: [x64, arm64]
+    runs-on: macos-14
+    timeout-minutes: 35
+    permissions:
+      contents: read
+
+    steps:
+      - name: Download Cashier app files through GitHub API
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PMD_REPOSITORY: ${{ github.repository }}
+          PMD_REF: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: |
+          set -euo pipefail
+          root="$PWD/apps/cashier-desktop"
+          mkdir -p "$root/src"
+
+          files=(
+            package.json
+            README.md
+            src/main.js
+            src/preload.js
+            src/hardware.js
+            src/setup.html
+            src/setup.js
+            src/hardware.html
+            src/hardware-page.js
+            src/offline.html
+            src/offline.js
+          )
+
+          for relative in "${files[@]}"; do
+            destination="$root/$relative"
+            mkdir -p "$(dirname "$destination")"
+            api="https://api.github.com/repos/$PMD_REPOSITORY/contents/apps/cashier-desktop/$relative?ref=$PMD_REF"
+            curl -fsSL \
+              -H "Authorization: Bearer $GH_TOKEN" \
+              -H "Accept: application/vnd.github+json" \
+              -H "X-GitHub-Api-Version: 2022-11-28" \
+              -H "User-Agent: PayMyDine-Cashier-macOS-Build" \
+              "$api" \
+              | python3 -c 'import sys,json,base64; d=json.load(sys.stdin); sys.stdout.buffer.write(base64.b64decode(d["content"]))' \
+              > "$destination"
+            echo "Downloaded $relative"
+          done
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Install dependencies
+        working-directory: apps/cashier-desktop
+        run: npm install
+
+      - name: Syntax check
+        working-directory: apps/cashier-desktop
+        run: npm run check
+
+      - name: Build macOS app
+        working-directory: apps/cashier-desktop
+        env:
+          CSC_IDENTITY_AUTO_DISCOVERY: 'false'
+        run: npm run dist:mac -- --${{ matrix.arch }}
+
+      - name: Upload macOS app
+        uses: actions/upload-artifact@v4
+        with:
+          name: PayMyDine-Cashier-macOS-${{ matrix.arch }}
+          path: |
+            apps/cashier-desktop/dist/PayMyDine-Cashier-1.0.0-mac-${{ matrix.arch }}.dmg
+            apps/cashier-desktop/dist/PayMyDine-Cashier-1.0.0-mac-${{ matrix.arch }}.zip
+          if-no-files-found: error
