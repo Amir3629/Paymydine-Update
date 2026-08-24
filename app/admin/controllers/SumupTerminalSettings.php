@@ -2,6 +2,7 @@
 
 namespace Admin\Controllers;
 
+use App\Services\Payments\SumupOnlineCheckoutService;
 use App\Services\Payments\SumupPaymentRuntimeBridge;
 use App\Services\TerminalPayments\SumupMerchantEnvironmentGuard;
 use App\Services\TerminalPayments\SumupTenantConnectionService;
@@ -11,13 +12,15 @@ class SumupTerminalSettings extends \Admin\Classes\AdminController
 {
     protected $requiredPermissions = 'Site.Settings';
 
-    public function state(SumupTenantConnectionService $service)
-    {
+    public function state(
+        SumupTenantConnectionService $service,
+        SumupOnlineCheckoutService $online
+    ) {
         $this->assertOwnerAccess();
 
         return response()->json([
             'success' => true,
-            'state' => $service->state(),
+            'state' => $online->stateWithWallets($service->state()),
         ]);
     }
 
@@ -25,7 +28,8 @@ class SumupTerminalSettings extends \Admin\Classes\AdminController
         Request $request,
         SumupTenantConnectionService $service,
         SumupMerchantEnvironmentGuard $environmentGuard,
-        SumupPaymentRuntimeBridge $runtimeBridge
+        SumupPaymentRuntimeBridge $runtimeBridge,
+        SumupOnlineCheckoutService $online
     ) {
         $this->assertOwnerAccess();
 
@@ -34,6 +38,8 @@ class SumupTerminalSettings extends \Admin\Classes\AdminController
             'api_key' => ['nullable', 'string', 'max:4096'],
             'affiliate_key' => ['nullable', 'string', 'max:4096'],
             'merchant_code' => ['nullable', 'string', 'max:191'],
+            'google_pay_merchant_id' => ['nullable', 'string', 'max:191'],
+            'google_pay_merchant_name' => ['nullable', 'string', 'max:191'],
         ]);
 
         try {
@@ -46,6 +52,20 @@ class SumupTerminalSettings extends \Admin\Classes\AdminController
                 $data['merchant_code'] ?? null
             );
 
+            // Google Pay merchant metadata is public browser configuration,
+            // not a SumUp secret. It stays tenant-scoped beside the provider
+            // connection metadata and is only exposed back through widget config.
+            if (
+                array_key_exists('google_pay_merchant_id', $data)
+                || array_key_exists('google_pay_merchant_name', $data)
+            ) {
+                $online->saveWalletSettings(
+                    $environment,
+                    $data['google_pay_merchant_id'] ?? null,
+                    $data['google_pay_merchant_name'] ?? null
+                );
+            }
+
             $result = $service->testConnection($environment);
             $merchant = $environmentGuard->assertEnvironment($environment);
             $runtimeBridge->syncCatalogue($environment);
@@ -57,7 +77,7 @@ class SumupTerminalSettings extends \Admin\Classes\AdminController
                     : 'Connected to SumUp production merchant.',
                 'merchant' => $merchant,
                 'connection' => $result,
-                'state' => $service->state(),
+                'state' => $online->stateWithWallets($service->state()),
             ]);
         } catch (\Throwable $e) {
             return $this->failure($e);
@@ -68,7 +88,8 @@ class SumupTerminalSettings extends \Admin\Classes\AdminController
         Request $request,
         SumupTenantConnectionService $service,
         SumupMerchantEnvironmentGuard $environmentGuard,
-        SumupPaymentRuntimeBridge $runtimeBridge
+        SumupPaymentRuntimeBridge $runtimeBridge,
+        SumupOnlineCheckoutService $online
     ) {
         $this->assertOwnerAccess();
         $data = $request->validate([
@@ -88,7 +109,7 @@ class SumupTerminalSettings extends \Admin\Classes\AdminController
                     : 'SumUp production connection verified.',
                 'merchant' => $merchant,
                 'connection' => $result,
-                'state' => $service->state(),
+                'state' => $online->stateWithWallets($service->state()),
             ]);
         } catch (\Throwable $e) {
             return $this->failure($e);
@@ -99,7 +120,8 @@ class SumupTerminalSettings extends \Admin\Classes\AdminController
         Request $request,
         SumupTenantConnectionService $service,
         SumupMerchantEnvironmentGuard $environmentGuard,
-        SumupPaymentRuntimeBridge $runtimeBridge
+        SumupPaymentRuntimeBridge $runtimeBridge,
+        SumupOnlineCheckoutService $online
     ) {
         $this->assertOwnerAccess();
         $data = $request->validate([
@@ -115,7 +137,7 @@ class SumupTerminalSettings extends \Admin\Classes\AdminController
             return response()->json([
                 'success' => true,
                 'message' => ucfirst($environment).' SumUp is now used for payments.',
-                'state' => $state,
+                'state' => $online->stateWithWallets($state),
             ]);
         } catch (\Throwable $e) {
             return $this->failure($e);
