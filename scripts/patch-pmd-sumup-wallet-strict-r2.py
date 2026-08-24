@@ -64,8 +64,8 @@ replace_once(
 
 replace_once(
     routes_rel,
-    "                'merchant_reference' => ['nullable', 'string', 'max:191'],\n                'items' => ['nullable', 'array'],",
-    "                'merchant_reference' => ['nullable', 'string', 'max:191'],\n                'payment_method' => ['nullable', 'string', 'in:card,apple_pay,google_pay'],\n                'items' => ['nullable', 'array'],",
+    "                'return_url' => ['required', 'url', 'max:1200'],\n                'merchant_reference' => ['nullable', 'string', 'max:191'],\n                'items' => ['nullable', 'array'],",
+    "                'return_url' => ['required', 'url', 'max:1200'],\n                'merchant_reference' => ['nullable', 'string', 'max:191'],\n                'payment_method' => ['nullable', 'string', 'in:card,apple_pay,google_pay'],\n                'items' => ['nullable', 'array'],",
     'ROUTE_PAYMENT_METHOD_VALIDATION',
 )
 
