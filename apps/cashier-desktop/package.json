@@ -1,13 +1,14 @@
 {
   "name": "paymydine-cashier-desktop",
-  "version": "0.1.0",
+  "version": "1.0.0",
   "private": true,
-  "description": "PayMyDine Windows cashier desktop shell",
+  "description": "PayMyDine Windows cashier desktop app with local printer and cash drawer support",
   "main": "src/main.js",
   "scripts": {
-    "dev": "node scripts/sync-agent.js && electron .",
-    "dist:win": "node scripts/sync-agent.js && electron-builder --win nsis",
-    "check": "node --check src/main.js && node --check src/preload.js && node --check src/setup.js && node --check scripts/sync-agent.js"
+    "dev": "electron .",
+    "start": "electron .",
+    "check": "node --check src/main.js && node --check src/preload.js && node --check src/setup.js && node --check src/hardware.js && node --check src/hardware-page.js && node --check src/offline.js",
+    "dist:win": "electron-builder --win nsis"
   },
   "devDependencies": {
     "electron": "43.4.1",
@@ -17,9 +18,11 @@
     "appId": "com.paymydine.cashier",
     "productName": "PayMyDine Cashier",
     "asar": true,
+    "directories": {
+      "output": "dist"
+    },
     "files": [
       "src/**/*",
-      "resources/**/*",
       "package.json"
     ],
     "win": {
@@ -31,7 +34,8 @@
       "oneClick": false,
       "allowToChangeInstallationDirectory": true,
       "createDesktopShortcut": true,
-      "createStartMenuShortcut": true
+      "createStartMenuShortcut": true,
+      "shortcutName": "PayMyDine Cashier"
     },
     "artifactName": "PayMyDine-Cashier-Setup-${version}.${ext}"
   }
