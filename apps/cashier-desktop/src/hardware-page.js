@@ -6,6 +6,7 @@ const autoOpen = document.getElementById('auto-open');
 const drawerCommand = document.getElementById('drawer-command');
 const statusNode = document.getElementById('status');
 const buttons = Array.from(document.querySelectorAll('button'));
+const platformName = window.PayMyDineDesktop.platform === 'darwin' ? 'macOS' : 'Windows';
 let printers = [];
 
 function setBusy(busy) {
@@ -28,19 +29,19 @@ function renderPrinterMeta() {
     printerMeta.textContent = '';
     return;
   }
-  const details = [row.driver, row.port, row.default ? 'Windows default' : '', row.offline ? 'Offline' : 'Online'].filter(Boolean);
+  const details = [row.driver, row.port, row.default ? `${platformName} default` : '', row.offline ? 'Offline' : 'Online'].filter(Boolean);
   printerMeta.textContent = details.join(' · ');
 }
 
 async function loadPrinters(preferred) {
   setBusy(true);
-  setStatus('Reading Windows printers…');
+  setStatus(`Reading ${platformName} printers…`);
   try {
     printers = await window.PayMyDineDesktop.listPrinters();
     printer.innerHTML = '';
     if (!printers.length) {
-      printer.innerHTML = '<option value="">No Windows printers found</option>';
-      setStatus('No Windows printer was found. Install the receipt-printer driver in Windows first.', 'error');
+      printer.innerHTML = `<option value="">No ${platformName} printers found</option>`;
+      setStatus(`No printer was found. Install/add the receipt printer in ${platformName} first.`, 'error');
       return;
     }
 
@@ -56,10 +57,10 @@ async function loadPrinters(preferred) {
       : ((printers.find((row) => row.default && !row.offline) || printers.find((row) => !row.offline) || printers[0]).name);
     printer.value = wanted;
     renderPrinterMeta();
-    setStatus(`${printers.length} printer(s) found.`, 'ok');
+    setStatus(`${printers.length} printer(s) found on ${platformName}.`, 'ok');
   } catch (error) {
     printer.innerHTML = '<option value="">Could not read printers</option>';
-    setStatus(error.message || 'Could not read Windows printers.', 'error');
+    setStatus(error.message || `Could not read ${platformName} printers.`, 'error');
   } finally {
     setBusy(false);
   }
