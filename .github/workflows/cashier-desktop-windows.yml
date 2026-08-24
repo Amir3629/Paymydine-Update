@@ -25,8 +25,13 @@ jobs:
         working-directory: apps/cashier-desktop
 
     steps:
-      - name: Checkout
+      - name: Checkout Cashier app only
         uses: actions/checkout@v4
+        with:
+          sparse-checkout: |
+            apps/cashier-desktop
+          sparse-checkout-cone-mode: true
+          fetch-depth: 1
 
       - name: Setup Node
         uses: actions/setup-node@v4
