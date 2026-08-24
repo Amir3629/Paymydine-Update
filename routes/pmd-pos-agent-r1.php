@@ -1,6 +1,6 @@
 <?php
 
-use Admin\Controllers\Api\PosAgentController;
+use Admin\Controllers\Api\PosAgentR1Controller;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -45,8 +45,8 @@ Route::prefix('pmd-pos-agent')->middleware(['cors'])->group(function () {
     });
 
     Route::middleware(['detect.tenant'])->group(function () {
-        Route::post('pair', [PosAgentController::class, 'pair']);
-        Route::get('pull', [PosAgentController::class, 'pull']);
-        Route::post('ack/{id}', [PosAgentController::class, 'ack']);
+        Route::post('pair', [PosAgentR1Controller::class, 'pair']);
+        Route::get('pull', [PosAgentR1Controller::class, 'pull']);
+        Route::post('ack/{id}', [PosAgentR1Controller::class, 'ack']);
     });
 });
