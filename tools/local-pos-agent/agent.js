@@ -8,7 +8,7 @@ const net = require('net');
 const os = require('os');
 const { execFileSync } = require('child_process');
 
-const VERSION = '1.0.0';
+const VERSION = '1.0.1';
 const ROOT = __dirname;
 const ENV_PATH = path.join(ROOT, '.env');
 const STATE_PATH = path.join(ROOT, 'state.json');
@@ -35,7 +35,6 @@ loadDotEnv(ENV_PATH);
 
 const cfg = {
   backendBase: String(process.env.BACKEND_BASE_URL || '').replace(/\/+$/, ''),
-  bootstrapToken: String(process.env.POS_AGENT_TOKEN || '').trim(),
   pairingToken: String(process.env.POS_PAIRING_TOKEN || '').trim(),
   deviceCode: String(process.env.POS_DEVICE_CODE || '').trim(),
   displayName: String(process.env.POS_DISPLAY_NAME || os.hostname() || 'PayMyDine POS').trim(),
@@ -134,32 +133,31 @@ function requestJson(method, urlString, token, body, extraHeaders) {
   });
 }
 
-function scrubBootstrapSecrets() {
+function scrubPairingSecret() {
   if (!fs.existsSync(ENV_PATH)) return;
   try {
     const lines = fs.readFileSync(ENV_PATH, 'utf8').split(/\r?\n/).map((line) => {
-      if (/^POS_AGENT_TOKEN=/.test(line)) return 'POS_AGENT_TOKEN=';
       if (/^POS_PAIRING_TOKEN=/.test(line)) return 'POS_PAIRING_TOKEN=';
+      if (/^POS_AGENT_TOKEN=/.test(line)) return 'POS_AGENT_TOKEN=';
       return line;
     });
     fs.writeFileSync(ENV_PATH, lines.join(os.EOL), { encoding: 'utf8', mode: 0o600 });
-    cfg.bootstrapToken = '';
     cfg.pairingToken = '';
   } catch (error) {
-    console.error('[PMD] Could not scrub bootstrap secrets:', error.message);
+    console.error('[PMD] Could not scrub pairing secret:', error.message);
   }
 }
 
 async function ensurePaired() {
   if (state.deviceToken) return;
-  if (!cfg.bootstrapToken || !cfg.pairingToken) {
+  if (!cfg.pairingToken) {
     throw new Error('Agent is not paired. Re-download the PayMyDine connector from Devices & Hardware.');
   }
 
   const result = await requestJson(
     'POST',
     cfg.backendBase + '/api/pos-agent/pair',
-    cfg.bootstrapToken,
+    '',
     {
       pairing_token: cfg.pairingToken,
       device_code: cfg.deviceCode,
@@ -183,7 +181,7 @@ async function ensurePaired() {
   state.pairedAt = new Date().toISOString();
   state.lastError = null;
   saveState();
-  scrubBootstrapSecrets();
+  scrubPairingSecret();
   console.log('[PMD] POS paired:', cfg.deviceCode);
 }
 
@@ -555,7 +553,14 @@ function startLocalApi() {
   server.listen(cfg.localApiPort, cfg.localApiHost, () => {
     console.log('[PMD] Local API listening on http://' + cfg.localApiHost + ':' + cfg.localApiPort);
   });
-  server.on('error', (error) => console.error('[PMD] Local API error:', error.message));
+  server.on('error', (error) => {
+    if (error && error.code === 'EADDRINUSE') {
+      console.error('[PMD] Another PayMyDine Local POS Agent is already running.');
+      process.exit(0);
+      return;
+    }
+    console.error('[PMD] Local API error:', error.message);
+  });
 }
 
 async function main() {
@@ -573,9 +578,6 @@ async function main() {
       state.lastError = error.message || String(error);
       saveState();
       console.error('[PMD] Poll error:', state.lastError);
-      if (error.statusCode === 401 && state.deviceToken) {
-        console.error('[PMD] Device credential rejected. Re-download and run the connector to pair again.');
-      }
     }
     await sleep(cfg.pollMs);
   }
