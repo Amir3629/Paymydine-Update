@@ -5,6 +5,7 @@ ROOT="${PMD_ROOT:-/var/www/paymydine}"
 BRANCH="fix/tenant-media-isolation-r1"
 BASE="deploy/pmd-tenant-media-isolation-r1.sh"
 TMP="/tmp/pmd-tenant-media-isolation-r1-final.sh"
+CLEAN_TENANT_DOMAIN="${CLEAN_TENANT_DOMAIN:-}"
 
 cd "$ROOT"
 
@@ -66,4 +67,4 @@ grep -n 'TENANT MEDIA R1 STANDALONE ROLLBACK' "$TMP"
 
 echo
 echo "== DEPLOY =="
-sudo -E bash "$TMP"
+sudo env CLEAN_TENANT_DOMAIN="$CLEAN_TENANT_DOMAIN" bash "$TMP"
