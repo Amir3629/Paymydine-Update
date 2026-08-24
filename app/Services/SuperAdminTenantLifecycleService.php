@@ -54,6 +54,8 @@ class SuperAdminTenantLifecycleService
         'menu_mealtimes',
         'menus_specials',
         'menu_images',
+        // PMD_NEW_TENANT_MEDIA_EMPTY_R3
+        'media_attachments',
         'menu_prices',
         'menu_item_options',
         'menu_item_option_values',

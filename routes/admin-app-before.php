@@ -1927,12 +1927,22 @@ Route::group([
             }
 
             if ($providerCode === 'sumup') {
+                // PMD_SUMUP_CANONICAL_RUNTIME_R1: legacy clients may still hit
+                // the generic card route, but SumUp secrets now live encrypted
+                // in terminal_provider_configs. Merge them into the legacy
+                // runtime shape without persisting a second copy.
+                $paymentData = app(\App\Services\Payments\SumupPaymentRuntimeBridge::class)->runtimeData($paymentData);
                 $token = (string)($paymentData['access_token'] ?? '');
                 $baseUrl = rtrim((string)($paymentData['url'] ?? 'https://api.sumup.com'), '/');
-                $merchantCode = trim((string)($paymentData['id_application'] ?? ''));
-                $merchantCodeSource = 'configured';
+                $merchantCode = trim((string)($paymentData['id_application'] ?? $paymentData['merchant_code'] ?? ''));
+                $merchantCodeSource = (string)($paymentData['pmd_secret_source'] ?? 'configured');
                 if ($token === '') {
-                    return response()->json(['success' => false, 'error' => 'SumUp credentials are incomplete'], 503);
+                    return response()->json([
+                        'success' => false,
+                        'provider' => 'sumup',
+                        'error' => 'sumup_not_connected',
+                        'message' => 'Connect and activate SumUp in Payments & finance first.',
+                    ], 422);
                 }
                 try {
                     $startedAt = microtime(true);
@@ -2806,11 +2816,19 @@ Route::group([
 
         $payment = \Admin\Models\Payments_model::query()->where('code', 'sumup')->first();
         $data = is_array(optional($payment)->data) ? (array)$payment->data : [];
+        // PMD_SUMUP_CANONICAL_STATUS_RUNTIME_R1: status/verification must use
+        // the same canonical encrypted tenant connection as checkout creation.
+        $data = app(\App\Services\Payments\SumupPaymentRuntimeBridge::class)->runtimeData($data);
         $token = (string)($data['access_token'] ?? '');
         $baseUrl = rtrim((string)($data['url'] ?? 'https://api.sumup.com'), '/');
 
         if ($token === '') {
-            return response()->json(['success' => false, 'provider' => 'sumup', 'error' => 'SumUp credentials are incomplete'], 503);
+            return response()->json([
+                'success' => false,
+                'provider' => 'sumup',
+                'error' => 'sumup_not_connected',
+                'message' => 'Connect and activate SumUp in Payments & finance first.',
+            ], 422);
         }
 
         try {

@@ -45,12 +45,15 @@ final class ProviderCapabilityRegistry
                     self::CAPABILITY_WEBHOOKS,
                     self::CAPABILITY_OAUTH,
                 ],
-                // PayMyDine exposes one simple Card / Wallet choice. The
-                // SumUp Hosted Checkout page is the source of truth for which
-                // wallet/card methods are available for that merchant and
-                // checkout (for example Apple Pay or Google Pay).
+                // Card / Wallet can expose Card + eligible wallets together.
+                // The standalone Apple Pay and Google Pay rows can also route to
+                // this same embedded widget and filter it to that wallet only.
+                // Wero is intentionally not advertised because it is not in
+                // SumUp's current public online-payment method list.
                 'payment_methods' => [
                     self::METHOD_CARD,
+                    self::METHOD_APPLE_PAY,
+                    self::METHOD_GOOGLE_PAY,
                 ],
                 'implemented_capabilities' => [
                     self::CAPABILITY_ONLINE_PAYMENTS,
@@ -59,6 +62,8 @@ final class ProviderCapabilityRegistry
                 ],
                 'implemented_payment_methods' => [
                     self::METHOD_CARD,
+                    self::METHOD_APPLE_PAY,
+                    self::METHOD_GOOGLE_PAY,
                 ],
             ],
             'stripe' => [

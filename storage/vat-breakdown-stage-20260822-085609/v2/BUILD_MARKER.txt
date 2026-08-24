@@ -1,5 +1,0 @@
-PayMyDine Frontend V2 Integrated Final R2
-version=1.1.1-staging.20260815-integrated-r2
-theme_backend_endpoint=/api/v1/frontend-theme-v2
-port=3002
-production_port_untouched=3001

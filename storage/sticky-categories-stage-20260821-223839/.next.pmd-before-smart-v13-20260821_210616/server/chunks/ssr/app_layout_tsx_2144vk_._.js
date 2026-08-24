@@ -1,3 +1,0 @@
-module.exports=[33290,a=>{"use strict";var b=a.i(7997),c=a.i(5246);async function d({children:a}){let e=await (0,c.cookies)(),f=String(e.get("pmd_locale")?.value||"en").trim().toLowerCase().split("-")[0]||"en",g=["fa","ar","he","ur"].includes(f.toLowerCase())?"rtl":"ltr";return(0,b.jsx)("html",{lang:f,dir:g,children:(0,b.jsx)("body",{children:a})})}a.s(["default",0,d,"metadata",0,{title:"PayMyDine Menu",description:"Restaurant menu, table ordering, service requests and payments powered by PayMyDine.",applicationName:"PayMyDine",robots:{index:!0,follow:!0}},"viewport",0,{width:"device-width",initialScale:1,viewportFit:"cover",themeColor:"#0b0f0e"}],33290)},70864,function(a){a.n(a.i(33290))}];
-
-//# sourceMappingURL=app_layout_tsx_2144vk_._.js.map

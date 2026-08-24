@@ -408,3 +408,45 @@
 .stripeInlineBox > .primary svg { width: 1rem; height: 1rem; flex: 0 0 auto; }
 .stripeSpin { animation: pmdStripeSpinR35b .85s linear infinite; }
 @keyframes pmdStripeSpinR35b { to { transform: rotate(360deg); } }
+
+
+/* PMD_SUMUP_WIDGET_THEME_R1
+   SumUp officially exposes data-sumup-id hooks for custom styling. Keep the
+   provider-owned form, validation and wallet buttons intact while matching the
+   active PayMyDine theme surface, text, line and control colors. */
+.sumupInlineBox { color: var(--pmd-text, inherit); }
+.sumupCardFrame {
+  overflow: hidden;
+  padding: .65rem;
+  background: color-mix(in srgb, var(--pmd-surface, #fff) 92%, transparent);
+}
+.sumupInlineBox :global([data-sumup-id="widget__container"]) {
+  width: 100% !important;
+  max-width: none !important;
+  margin: 0 !important;
+  border: 0 !important;
+  border-radius: .9rem !important;
+  background: var(--pmd-surface, #fff) !important;
+  color: var(--pmd-text, #161616) !important;
+  box-shadow: none !important;
+  font-family: inherit !important;
+}
+.sumupInlineBox :global([data-sumup-id="widget__container"]) input {
+  border-color: var(--pmd-line, rgba(0,0,0,.16)) !important;
+  border-radius: .78rem !important;
+  background: var(--pmd-control, transparent) !important;
+  color: var(--pmd-text, #161616) !important;
+  font-family: inherit !important;
+}
+.sumupInlineBox :global([data-sumup-id="widget__container"]) label,
+.sumupInlineBox :global([data-sumup-id="widget__container"]) h1,
+.sumupInlineBox :global([data-sumup-id="widget__container"]) h2,
+.sumupInlineBox :global([data-sumup-id="widget__container"]) h3,
+.sumupInlineBox :global([data-sumup-id="widget__container"]) p,
+.sumupInlineBox :global([data-sumup-id="widget__container"]) span {
+  color: inherit !important;
+  font-family: inherit !important;
+}
+.sumupInlineBox :global([data-sumup-id="widget__container"]) a {
+  color: var(--pmd-accent, currentColor) !important;
+}

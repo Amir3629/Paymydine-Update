@@ -51,8 +51,8 @@ class Payments_model extends Model
 
     protected const METHOD_PROVIDER_MATRIX = [
         'card' => ['stripe', 'worldline', 'sumup', 'vr_payment'],
-        'apple_pay' => ['stripe', 'vr_payment'],
-        'google_pay' => ['stripe', 'vr_payment'],
+        'apple_pay' => ['stripe', 'sumup', 'vr_payment'],
+        'google_pay' => ['stripe', 'sumup', 'vr_payment'],
         'wero' => ['worldline', 'vr_payment'],
         'paypal' => ['paypal', 'stripe', 'vr_payment'],
         'cod' => [],

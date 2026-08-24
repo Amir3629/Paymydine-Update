@@ -1,3 +1,0 @@
-module.exports=[98457,a=>{"use strict";a.s(["default",()=>b]);let b=(0,a.i(11857).registerClientReference)(function(){throw Error("Attempted to call the default export of [project]/src/themes/shahrazad-persian/ShahrazadPersian.tsx from the server, but it's on the client. It's not possible to invoke a client function from the server, it can only be rendered as a Component or passed to props of a Client Component.")},"[project]/src/themes/shahrazad-persian/ShahrazadPersian.tsx","default")},86685,a=>{"use strict";var b=a.i(98457);a.n(b)}];
-
-//# sourceMappingURL=src_themes_shahrazad-persian_ShahrazadPersian_tsx_1-ardom._.js.map

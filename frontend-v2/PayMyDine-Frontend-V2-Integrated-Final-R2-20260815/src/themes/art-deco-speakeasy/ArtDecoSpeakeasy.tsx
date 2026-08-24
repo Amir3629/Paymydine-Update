@@ -3,6 +3,7 @@
 import type { CSSProperties } from 'react'
 import { Bell, Car, Crown, Menu, Search, ShoppingBag, Sparkles } from 'lucide-react'
 import { useMenuRuntime } from '@/src/runtime/MenuRuntimeContext'
+import { ResponsiveRestaurantName } from '@/src/runtime/components/ResponsiveRestaurantName'
 import { DietaryBadges, LanguageSelect, PlatformFooter, QuickAddButton, RestaurantLogo, SocialLinks, HeaderValetButton } from '@/src/runtime/components/SharedPieces'
 import { RuntimeOverlays } from '@/src/runtime/components/RuntimeOverlays'
 import { ThemeBottomToolBar } from '@/src/runtime/components/ThemeBottomToolBar'
@@ -26,7 +27,7 @@ export default function ArtDecoSpeakeasy() {
       <div className={styles.outerFrame}>
         <header className={styles.header}>
           
-          <div className={styles.brand}><Crown /><RestaurantLogo /></div>
+          <div className={styles.brand}><Crown /><RestaurantLogo showName={false} /></div>
           <div className={styles.headerActions}><HeaderValetButton /><LanguageSelect /></div>
         </header>
 
@@ -37,7 +38,7 @@ export default function ArtDecoSpeakeasy() {
           <Sparkles className={styles.sparkle} />
           <div className={styles.heroCopy}>
             <small>{labels.welcomeTo}</small>
-            <h1>{bootstrap.restaurant.name}</h1>
+            <ResponsiveRestaurantName />
             <div className={styles.divider}><i /><b>◆</b><i /></div>
             <p>{labels.browseOrderEnjoy}</p>
           </div>

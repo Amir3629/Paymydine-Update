@@ -2,6 +2,7 @@
 
 namespace Admin\Controllers;
 
+use App\Services\Payments\SumupOnlineCheckoutService;
 use App\Services\Payments\SumupPaymentRuntimeBridge;
 use App\Services\TerminalPayments\SumupMerchantEnvironmentGuard;
 use App\Services\TerminalPayments\SumupTenantConnectionService;
@@ -11,13 +12,15 @@ class SumupTerminalSettings extends \Admin\Classes\AdminController
 {
     protected $requiredPermissions = 'Site.Settings';
 
-    public function state(SumupTenantConnectionService $service)
-    {
+    public function state(
+        SumupTenantConnectionService $service,
+        SumupOnlineCheckoutService $online
+    ) {
         $this->assertOwnerAccess();
 
         return response()->json([
             'success' => true,
-            'state' => $service->state(),
+            'state' => $online->stateWithWallets($service->state()),
         ]);
     }
 
@@ -25,7 +28,8 @@ class SumupTerminalSettings extends \Admin\Classes\AdminController
         Request $request,
         SumupTenantConnectionService $service,
         SumupMerchantEnvironmentGuard $environmentGuard,
-        SumupPaymentRuntimeBridge $runtimeBridge
+        SumupPaymentRuntimeBridge $runtimeBridge,
+        SumupOnlineCheckoutService $online
     ) {
         $this->assertOwnerAccess();
 
@@ -34,6 +38,9 @@ class SumupTerminalSettings extends \Admin\Classes\AdminController
             'api_key' => ['nullable', 'string', 'max:4096'],
             'affiliate_key' => ['nullable', 'string', 'max:4096'],
             'merchant_code' => ['nullable', 'string', 'max:191'],
+            'google_pay_merchant_id' => ['nullable', 'string', 'max:191'],
+            'google_pay_merchant_name' => ['nullable', 'string', 'max:191'],
+            'sumup_wallet_public_key' => ['nullable', 'string', 'max:512'],
         ]);
 
         try {
@@ -46,6 +53,22 @@ class SumupTerminalSettings extends \Admin\Classes\AdminController
                 $data['merchant_code'] ?? null
             );
 
+            // Google Pay merchant metadata is public browser configuration,
+            // not a SumUp secret. It stays tenant-scoped beside the provider
+            // connection metadata and is only exposed back through widget config.
+            if (
+                array_key_exists('google_pay_merchant_id', $data)
+                || array_key_exists('google_pay_merchant_name', $data)
+                || array_key_exists('sumup_wallet_public_key', $data)
+            ) {
+                $online->saveWalletSettings(
+                    $environment,
+                    $data['google_pay_merchant_id'] ?? null,
+                    $data['google_pay_merchant_name'] ?? null,
+                    array_key_exists('sumup_wallet_public_key', $data) ? $data['sumup_wallet_public_key'] : null
+                );
+            }
+
             $result = $service->testConnection($environment);
             $merchant = $environmentGuard->assertEnvironment($environment);
             $runtimeBridge->syncCatalogue($environment);
@@ -57,7 +80,7 @@ class SumupTerminalSettings extends \Admin\Classes\AdminController
                     : 'Connected to SumUp production merchant.',
                 'merchant' => $merchant,
                 'connection' => $result,
-                'state' => $service->state(),
+                'state' => $online->stateWithWallets($service->state()),
             ]);
         } catch (\Throwable $e) {
             return $this->failure($e);
@@ -68,7 +91,8 @@ class SumupTerminalSettings extends \Admin\Classes\AdminController
         Request $request,
         SumupTenantConnectionService $service,
         SumupMerchantEnvironmentGuard $environmentGuard,
-        SumupPaymentRuntimeBridge $runtimeBridge
+        SumupPaymentRuntimeBridge $runtimeBridge,
+        SumupOnlineCheckoutService $online
     ) {
         $this->assertOwnerAccess();
         $data = $request->validate([
@@ -88,7 +112,7 @@ class SumupTerminalSettings extends \Admin\Classes\AdminController
                     : 'SumUp production connection verified.',
                 'merchant' => $merchant,
                 'connection' => $result,
-                'state' => $service->state(),
+                'state' => $online->stateWithWallets($service->state()),
             ]);
         } catch (\Throwable $e) {
             return $this->failure($e);
@@ -99,7 +123,8 @@ class SumupTerminalSettings extends \Admin\Classes\AdminController
         Request $request,
         SumupTenantConnectionService $service,
         SumupMerchantEnvironmentGuard $environmentGuard,
-        SumupPaymentRuntimeBridge $runtimeBridge
+        SumupPaymentRuntimeBridge $runtimeBridge,
+        SumupOnlineCheckoutService $online
     ) {
         $this->assertOwnerAccess();
         $data = $request->validate([
@@ -115,11 +140,87 @@ class SumupTerminalSettings extends \Admin\Classes\AdminController
             return response()->json([
                 'success' => true,
                 'message' => ucfirst($environment).' SumUp is now used for payments.',
-                'state' => $state,
+                'state' => $online->stateWithWallets($state),
             ]);
         } catch (\Throwable $e) {
             return $this->failure($e);
         }
+    }
+
+    public function saveApplePayDomainFile(Request $request)
+    {
+        $this->assertOwnerAccess();
+
+        $data = $request->validate([
+            'environment' => ['required', 'in:test,production'],
+            'association_file_base64' => ['required', 'string', 'max:262144'],
+        ]);
+
+        try {
+            $domain = $this->resolveTenantDomain($request);
+            $raw = base64_decode((string)$data['association_file_base64'], true);
+            if ($raw === false) {
+                throw new \RuntimeException('The Apple Pay verification file could not be decoded.');
+            }
+
+            $bytes = strlen($raw);
+            if ($bytes < 64 || $bytes > 131072) {
+                throw new \RuntimeException('The Apple Pay verification file size is invalid.');
+            }
+
+            $sample = strtolower(substr(ltrim($raw), 0, 1024));
+            if (strpos($sample, '<html') !== false || strpos($sample, '<!doctype') !== false) {
+                throw new \RuntimeException('This looks like a web page, not the Apple Pay verification file downloaded from SumUp.');
+            }
+
+            $dir = storage_path('app/pmd-wallets/apple-pay');
+            if (!is_dir($dir) && !mkdir($dir, 0755, true) && !is_dir($dir)) {
+                throw new \RuntimeException('Could not create the Apple Pay verification directory.');
+            }
+
+            $target = $dir.DIRECTORY_SEPARATOR.$domain.'.bin';
+            $temp = $target.'.tmp-'.bin2hex(random_bytes(6));
+            if (file_put_contents($temp, $raw, LOCK_EX) !== $bytes) {
+                @unlink($temp);
+                throw new \RuntimeException('Could not store the Apple Pay verification file.');
+            }
+            @chmod($temp, 0644);
+            if (!@rename($temp, $target)) {
+                @unlink($temp);
+                throw new \RuntimeException('Could not activate the Apple Pay verification file.');
+            }
+            @chmod($target, 0644);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Apple Pay verification file hosted by PayMyDine.',
+                'environment' => (string)$data['environment'],
+                'domain' => $domain,
+                'path' => '/.well-known/apple-developer-merchantid-domain-association',
+                'sha256' => hash('sha256', $raw),
+                'bytes' => $bytes,
+            ]);
+        } catch (\Throwable $e) {
+            return $this->failure($e);
+        }
+    }
+
+    private function resolveTenantDomain(Request $request): string
+    {
+        $tenant = app()->bound('tenant') ? app('tenant') : null;
+        $domain = strtolower(trim((string)($tenant->domain ?? $request->getHost())));
+        $domain = preg_replace('/:\\d+$/', '', $domain);
+
+        if (
+            !$domain
+            || strlen($domain) > 253
+            || strpos($domain, '..') !== false
+            || !preg_match('/^[a-z0-9](?:[a-z0-9.-]*[a-z0-9])?$/', $domain)
+        ) {
+            throw new \RuntimeException('Could not resolve a safe tenant domain for Apple Pay.');
+        }
+
+        return $domain;
     }
 
     public function pairReader(Request $request, SumupTenantConnectionService $service)

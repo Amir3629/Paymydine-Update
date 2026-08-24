@@ -3,6 +3,7 @@
 import { useMemo, useState, type CSSProperties } from 'react'
 import { Bell, Car, ChevronDown, Menu, Search, ShoppingBag } from 'lucide-react'
 import { useMenuRuntime } from '@/src/runtime/MenuRuntimeContext'
+import { ResponsiveRestaurantName } from '@/src/runtime/components/ResponsiveRestaurantName'
 import { DietaryBadges, LanguageSelect, PlatformFooter, QuickAddButton, RestaurantLogo, SocialLinks, HeaderValetButton } from '@/src/runtime/components/SharedPieces'
 import { RuntimeOverlays } from '@/src/runtime/components/RuntimeOverlays'
 import { ThemeBottomToolBar } from '@/src/runtime/components/ThemeBottomToolBar'
@@ -28,7 +29,7 @@ export default function KazenJapanese() {
   return (
     <main className={styles.root} style={rootStyle} dir={direction} data-theme-id="kazen_japanese">
       <header className={styles.header}>
-        <div className={styles.brand}><RestaurantLogo /></div>
+        <div className={styles.brand}><RestaurantLogo showName={false} /></div>
         <div className={styles.headerActions}>
           <HeaderValetButton /><LanguageSelect />
           
@@ -40,7 +41,7 @@ export default function KazenJapanese() {
         {hero && <img src={hero} alt="" width={1200} height={720} />}
         <div className={styles.heroCopy}>
           <span className={styles.heroWelcome}>{labels.welcomeTo}</span>
-          <h1>{bootstrap.restaurant.name}</h1>
+          <ResponsiveRestaurantName />
           <p>{labels.browseOrderEnjoy}</p>
         </div>
       </section>

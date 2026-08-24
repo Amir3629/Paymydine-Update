@@ -190,6 +190,100 @@ if (!function_exists('pmd_menu_apply_recommendation_20260607')) {
     }
 }
 
+// PMD_FOOD_REAL_IMAGE_AUTHORITY_R32
+if (!function_exists('pmd_menu_real_image_sources_r32')) {
+    function pmd_menu_real_image_sources_r32($conn, array $menuIds): array
+    {
+        $menuIds = array_values(array_unique(array_filter(array_map('intval', $menuIds))));
+        $out = ['gallery' => [], 'attachments' => []];
+        if (!$menuIds) return $out;
+
+        try {
+            $schema = $conn->getSchemaBuilder();
+
+            if ($schema->hasTable('menu_images')) {
+                $cols = $schema->getColumnListing('menu_images');
+                $q = $conn->table('menu_images')
+                    ->whereIn('menu_id', $menuIds)
+                    ->whereNotNull('image_path');
+                $q->orderBy('menu_id');
+                if (in_array('sort_order', $cols, true)) $q->orderBy('sort_order');
+                if (in_array('id', $cols, true)) $q->orderBy('id');
+
+                foreach ($q->get(['menu_id', 'image_path']) as $row) {
+                    $url = function_exists('pmd_menu_gallery_image_url')
+                        ? pmd_menu_gallery_image_url($row->image_path ?? '')
+                        : null;
+                    $id = (int)($row->menu_id ?? 0);
+                    if ($id > 0 && is_string($url) && trim($url) !== '') {
+                        if (!isset($out['gallery'][$id])) $out['gallery'][$id] = [];
+                        if (!in_array($url, $out['gallery'][$id], true)) {
+                            $out['gallery'][$id][] = $url;
+                        }
+                    }
+                }
+            }
+
+            if ($schema->hasTable('media_attachments')) {
+                $cols = $schema->getColumnListing('media_attachments');
+                $idCol = in_array('attachment_id', $cols, true) ? 'attachment_id' : null;
+                $typeCol = in_array('attachment_type', $cols, true) ? 'attachment_type' : null;
+                $tagCol = in_array('tag', $cols, true) ? 'tag' : null;
+                $nameCol = null;
+                foreach (['name', 'disk_name', 'file_name', 'path'] as $candidate) {
+                    if (in_array($candidate, $cols, true)) {
+                        $nameCol = $candidate;
+                        break;
+                    }
+                }
+
+                if ($idCol && $nameCol) {
+                    $q = $conn->table('media_attachments')->whereIn($idCol, $menuIds);
+                    if ($typeCol) {
+                        $q->whereIn($typeCol, ['menus', 'Admin\\Models\\Menus_model']);
+                    }
+                    if ($tagCol) $q->where($tagCol, 'thumb');
+                    $q->orderBy($idCol);
+                    if (in_array('id', $cols, true)) $q->orderByDesc('id');
+
+                    foreach ($q->get([$idCol, $nameCol]) as $row) {
+                        $id = (int)($row->{$idCol} ?? 0);
+                        $raw = trim((string)($row->{$nameCol} ?? ''));
+                        if ($id < 1 || $raw === '' || isset($out['attachments'][$id])) continue;
+
+                        if (preg_match('#^https?://#i', $raw)) {
+                            $url = $raw;
+                        } else {
+                            $clean = ltrim(str_replace('\\', '/', $raw), '/');
+                            foreach (['assets/media/attachments/public/', 'attachments/public/'] as $prefix) {
+                                if (strpos($clean, $prefix) === 0) {
+                                    $clean = substr($clean, strlen($prefix));
+                                    break;
+                                }
+                            }
+                            if (strpos($clean, 'api/media/') === 0) {
+                                $url = '/'.$clean;
+                            } else {
+                                $url = '/api/media/'.$clean;
+                            }
+                        }
+                        $out['attachments'][$id] = $url;
+                    }
+                }
+            }
+        } catch (\Throwable $e) {
+            try {
+                \Log::warning('PMD_FOOD_REAL_IMAGE_AUTHORITY_R32_READ_FAILED', [
+                    'message' => $e->getMessage(),
+                    'database' => method_exists($conn, 'getDatabaseName') ? $conn->getDatabaseName() : null,
+                ]);
+            } catch (\Throwable $ignored) {}
+        }
+
+        return $out;
+    }
+}
+
 if (!function_exists('pmd_menu_highlights_response_20260607')) {
     function pmd_menu_highlights_response_20260607()
     {
@@ -238,6 +332,7 @@ if (!function_exists('pmd_menu_highlights_response_20260607')) {
             ";
 
             $items = $conn->select($query);
+            $pmdRealImagesR32 = pmd_menu_real_image_sources_r32($conn, array_map(static fn($row) => (int)($row->id ?? 0), $items));
             $stats = pmd_menu_popularity_stats_20260607();
             $autoIds = array_flip($stats['ids'] ?? []);
             $counts = $stats['counts'] ?? [];
@@ -247,10 +342,24 @@ if (!function_exists('pmd_menu_highlights_response_20260607')) {
                 normalizeMenuFoodAttributes($item);
                 normalizeMenuNutrition($item);
                 pmd_menu_apply_recommendation_20260607($item, $autoIds, $counts);
-                $item->image = $item->image ? "/api/media/".$item->image : '/images/pasta.png';
+                // PMD_FOOD_PLACEHOLDER_BRAND_R3
+                // PMD_FOOD_REAL_IMAGE_AUTHORITY_R32
+                // Real selected image wins. The PMD glass logo is a true no-photo fallback only.
+                $pmdMenuIdR32 = (int)$item->id;
+                $item->images = $pmdRealImagesR32['gallery'][$pmdMenuIdR32] ?? [];
+                $pmdSelectedImageR32 = trim((string)($item->images[0] ?? ''));
+                $pmdAttachmentImageR32 = trim((string)($pmdRealImagesR32['attachments'][$pmdMenuIdR32] ?? ''));
+                if ($pmdSelectedImageR32 !== '') {
+                    $item->image = $pmdSelectedImageR32;
+                } elseif ($pmdAttachmentImageR32 !== '') {
+                    $item->image = $pmdAttachmentImageR32;
+                } elseif (!empty($item->image)) {
+                    $item->image = "/api/media/".ltrim((string)$item->image, '/');
+                } else {
+                    $item->image = '/brand/paymydine-logo.svg';
+                }
                 $item->isCombo = false;
                 $item->comboId = null;
-                $item->images = pmd_menu_gallery_images_for_id((int)$item->id);
                 $item->gallery = $item->images;
                 $item->media = $item->images;
                 $item->options = getMenuItemOptions($item->id);
@@ -288,7 +397,7 @@ if (!function_exists('pmd_menu_highlights_response_20260607')) {
 
             foreach ($combos as &$combo) {
                 $combo->price = (float)$combo->price;
-                $combo->image = $combo->image ? "/api/media/".$combo->image : '/images/pasta.png';
+                $combo->image = $combo->image ? "/api/media/".$combo->image : '/brand/paymydine-logo.svg';
                 $combo->isCombo = true;
                 $combo->comboId = $combo->id;
                 $combo->options = [];

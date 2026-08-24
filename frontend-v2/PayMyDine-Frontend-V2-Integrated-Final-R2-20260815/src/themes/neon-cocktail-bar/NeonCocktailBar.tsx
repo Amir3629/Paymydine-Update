@@ -3,6 +3,7 @@
 import type { CSSProperties } from 'react'
 import { Bell, Car, Menu, Search, ShoppingCart, Sparkles, Zap } from 'lucide-react'
 import { useMenuRuntime } from '@/src/runtime/MenuRuntimeContext'
+import { ResponsiveRestaurantName } from '@/src/runtime/components/ResponsiveRestaurantName'
 import { DietaryBadges, LanguageSelect, PlatformFooter, QuickAddButton, RestaurantLogo, SocialLinks, HeaderValetButton } from '@/src/runtime/components/SharedPieces'
 import { RuntimeOverlays } from '@/src/runtime/components/RuntimeOverlays'
 import { ThemeBottomToolBar } from '@/src/runtime/components/ThemeBottomToolBar'
@@ -25,7 +26,7 @@ export default function NeonCocktailBar() {
       <div className={styles.noise} />
       <header className={styles.header}>
         
-        <div className={styles.brand}><RestaurantLogo /></div>
+        <div className={styles.brand}><RestaurantLogo showName={false} /></div>
         <div className={styles.headerTools}><HeaderValetButton /><LanguageSelect /></div>
       </header>
 
@@ -34,7 +35,7 @@ export default function NeonCocktailBar() {
         <div className={styles.heroShade} />
         <div className={styles.heroCopy}>
           <span>{labels.welcomeTo}</span>
-          <h1>{bootstrap.restaurant.name}</h1>
+          <ResponsiveRestaurantName />
           <p>{labels.browseOrderEnjoy}</p>
         </div>
         <Zap className={styles.zap} />

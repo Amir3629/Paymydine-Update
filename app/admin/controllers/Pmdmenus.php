@@ -69,7 +69,9 @@ class Pmdmenus extends AdminController
                 ->get(['allergen_id', 'name']);
         }
 
-        $legacyImageIndex = $this->legacyPmdNewImageIndex();
+        // PMD_FOOD_IMAGE_NO_LEGACY_AUTOMATCH_R3
+        // New Foods never inherit/guess images from shared legacy bytes.
+        $legacyImageIndex = [];
         $cards = [];
         $catalog = [];
 

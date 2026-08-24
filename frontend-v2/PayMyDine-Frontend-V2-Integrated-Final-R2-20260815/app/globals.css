@@ -60,3 +60,35 @@ select:focus-visible {
     transition-duration: 0.01ms !important;
   }
 }
+
+
+/* PMD_FOOD_PLACEHOLDER_GLASS_R3
+ * Brand-safe no-photo treatment across all V2 menu themes.
+ * The actual restaurant/header logo is intentionally unaffected.
+ */
+[data-pmd-menu-card="true"] img[src*="/brand/paymydine-logo.svg"],
+img[data-pmd-food-placeholder="true"] {
+  object-fit: contain !important;
+  object-position: center !important;
+  padding: clamp(28px, 10%, 72px) !important;
+  background:
+    radial-gradient(circle at 32% 22%, rgba(255, 255, 255, 0.24), transparent 48%),
+    linear-gradient(145deg, rgba(255, 255, 255, 0.13), rgba(127, 127, 127, 0.06)) !important;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.22),
+    0 12px 30px rgba(0, 0, 0, 0.14) !important;
+  filter:
+    grayscale(1)
+    saturate(0)
+    contrast(0.82)
+    opacity(0.48)
+    drop-shadow(0 8px 14px rgba(0, 0, 0, 0.18)) !important;
+  -webkit-backdrop-filter: blur(14px) saturate(0.72);
+  backdrop-filter: blur(14px) saturate(0.72);
+}
+
+[data-pmd-menu-card="true"]:has(> * > img[src*="/brand/paymydine-logo.svg"]),
+[data-pmd-menu-card="true"]:has(img[src*="/brand/paymydine-logo.svg"]) {
+  isolation: isolate;
+}

@@ -1,5 +1,7 @@
 <?php
 
+require_once __DIR__.'/pmd-tenant-media-owner-r3.php';
+
 /*
 |--------------------------------------------------------------------------
 | PMD_MAIN_API_HEALTH_MEDIA_AND_V1_LOADER_FIX_20260606
@@ -19,6 +21,8 @@ Route::group(['prefix' => 'api'], function () {
     });
 
     Route::get('/media/{path}', function ($path) {
+        // PMD_MEDIA_OWNERSHIP_GATE_R3
+        if (!pmd_media_owned_by_request_tenant_r3($path)) abort(404);
         /*
          * PMD_API_MEDIA_CLEAN_STREAM_V1
          *
@@ -99,15 +103,6 @@ Route::group(['prefix' => 'api'], function () {
             return $streamFile(
                 $mediaPath,
                 $mimeType
-            );
-        }
-
-        $fallbackPath = public_path('images/pasta.png');
-
-        if (file_exists($fallbackPath)) {
-            return $streamFile(
-                $fallbackPath,
-                'image/png'
             );
         }
 

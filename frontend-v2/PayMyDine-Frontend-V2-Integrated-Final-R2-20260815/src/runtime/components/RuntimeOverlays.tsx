@@ -35,6 +35,7 @@ import { useMenuRuntime } from '@/src/runtime/MenuRuntimeContext'
 import { FoodDetails } from './FoodDetails'
 import { PayPalButton } from './PayPalButton'
 import { StripeInlinePayment } from './StripeInlinePayment'
+import { SumupInlinePayment } from './SumupInlinePayment'
 import styles from './RuntimeOverlays.module.css'
 
 function PanelShell({ title, subtitle, modal = false, children, footer }: {
@@ -123,7 +124,8 @@ function ItemDialog({ item }: { item: MenuItem }) {
       }
     >
       <div className={styles.itemTop}>
-        {item.imageUrl && <img className={styles.heroImage} src={item.imageUrl} alt={item.name} width={960} height={600} />}
+        {/* PMD_FOOD_PLACEHOLDER_DATA_R3 */}
+        {item.imageUrl && <img className={styles.heroImage} data-pmd-food-placeholder={item.imageUrl.includes('/brand/paymydine-logo.svg') ? 'true' : undefined} src={item.imageUrl} alt={item.name} width={960} height={600} />}
         <div className={styles.itemTitleRow}><h3>{item.name}</h3><span className={styles.price}>{formatCurrency(item.price)}</span></div>
         <p className={styles.description}>{item.description}</p>
         <FoodDetails item={item} />
@@ -258,7 +260,7 @@ function CartSheet() {
         <div>
           {cart.map((line) => (
             <article className={styles.cartLine} key={line.key}>
-              {line.item.imageUrl ? <img src={line.item.imageUrl} alt="" width={96} height={96} /> : <span />}
+              {line.item.imageUrl ? <img data-pmd-food-placeholder={line.item.imageUrl.includes('/brand/paymydine-logo.svg') ? 'true' : undefined} src={line.item.imageUrl} alt="" width={96} height={96} /> : <span />}
               <div>
                 <h3>{line.item.name}</h3>
                 {line.selectedOptions.length > 0 && <p>{line.selectedOptions.map((option) => option.valueName).join(', ')}</p>}
@@ -850,6 +852,7 @@ function PaymentPanel({ order, mode, guestSessionId }: { order: TableOrderState;
   const configuredProvider = String(selectedMethod?.providerCode || '').trim().toLowerCase().replace(/[\s-]+/g, '_')
   const selectedProvider = configuredProvider || (['card', 'apple_pay', 'google_pay'].includes(selectedCode) ? 'stripe' : '')
   const isStripeInline = Boolean(selectedMethod && settlementMode === 'pay-existing' && selectedProvider === 'stripe' && ['card', 'apple_pay', 'google_pay'].includes(selectedCode))
+  const isSumupInline = Boolean(selectedMethod && settlementMode === 'pay-existing' && selectedProvider === 'sumup' && ['card', 'apple_pay', 'google_pay'].includes(selectedCode))
   const isPayPalInline = Boolean(selectedMethod && settlementMode === 'pay-existing' && (selectedProvider === 'paypal' || (selectedMethod.code.toLowerCase() === 'paypal' && (!selectedProvider || selectedProvider === 'paypal'))))
   const requiresSelectedItems = splitMode === 'items' || splitMode === 'mine'
   const canStartPayment = Boolean(selectedMethod && payableEstimate > 0 && (!requiresSelectedItems || (selectedItemsPayload && selectedItemsPayload.length > 0)))
@@ -900,7 +903,7 @@ function PaymentPanel({ order, mode, guestSessionId }: { order: TableOrderState;
   const requestCash = async (amount: number) => {
     await callWaiter(bootstrap.table, `Cash payment requested for order #${order.orderNumber || order.orderId}: ${formatCurrency(amount)}. Please collect and confirm in Staff/Cashier.`)
     notify('success', 'Cash payment requested')
-    setMessage('Cash payment requested. This screen stays unpaid until a staff member collects and confirms the cash. Refresh Table Orders after staff confirms.')
+    setMessage('A staff member will come to your table to collect the cash.')
   }
 
   const pay = async () => {
@@ -1068,6 +1071,27 @@ function PaymentPanel({ order, mode, guestSessionId }: { order: TableOrderState;
           onSuccess={() => completePaymentLocally()}
           onError={setMessage}
         />
+      ) : isSumupInline && selectedMethod && canStartPayment ? (
+        <SumupInlinePayment
+          key={`sumup-r1-${paymentMethodKey(selectedMethod)}-${order.orderId}`}
+          orderId={order.orderId}
+          table={bootstrap.table}
+          methodCode={selectedMethod.code}
+          providerCode={selectedMethod.providerCode}
+          amount={payableEstimate}
+          currency={bootstrap.restaurant.currency}
+          tipAmount={tipAmountEstimate}
+          couponCode={mode === 'split' ? null : couponCode.trim() || null}
+          couponDiscount={mode === 'split' ? 0 : couponDiscount}
+          selectedItems={selectedItemsPayload}
+          payerLabel={payerLabel}
+          items={order.items.filter((item) => item.unpaidQuantity > 0).map((item) => ({ id: String(item.orderMenuId || item.menuId), name: item.name, quantity: item.unpaidQuantity, price: item.price * grossRatio }))}
+          prepareSplitIntent={mode === 'split' && splitMode !== 'full' ? prepareSplit : undefined}
+          guestSessionId={guestSessionId}
+          locale={locale}
+          onSuccess={(amount) => completePaymentLocally(amount)}
+          onError={setMessage}
+        />
       ) : isStripeInline && selectedMethod && canStartPayment ? (
         <StripeInlinePayment
           key={`r35c-${paymentMethodKey(selectedMethod)}-${order.orderId}`}
@@ -1204,6 +1228,7 @@ function MultiOrderPaymentPanel({ orders, guestSessionId }: { orders: TableOrder
   const configuredProvider = String(selectedMethod?.providerCode || '').trim().toLowerCase().replace(/[\s-]+/g, '_')
   const selectedProvider = configuredProvider || (['card', 'apple_pay', 'google_pay'].includes(selectedCode) ? 'stripe' : '')
   const isStripeInline = Boolean(selectedMethod && selectedProvider === 'stripe' && ['card', 'apple_pay', 'google_pay'].includes(selectedCode))
+  const isSumupInline = Boolean(selectedMethod && selectedProvider === 'sumup' && ['card', 'apple_pay', 'google_pay'].includes(selectedCode))
   const isPayPalInline = Boolean(selectedMethod && (selectedProvider === 'paypal' || (selectedMethod.code.toLowerCase() === 'paypal' && (!selectedProvider || selectedProvider === 'paypal'))))
   const allPayExisting = payableOrders.length > 1 && payableOrders.every((order) => String(order.payment || '').toLowerCase() === 'qr_pay_later')
 
@@ -1390,6 +1415,27 @@ function MultiOrderPaymentPanel({ orders, guestSessionId }: { orders: TableOrder
           payerLabel="PMD V2 multi-order"
           items={providerItems}
           onSuccess={completePaymentLocally}
+          onError={setMessage}
+        />
+      ) : isSumupInline && selectedMethod && canStartPayment ? (
+        <SumupInlinePayment
+          key={`sumup-r1-${paymentMethodKey(selectedMethod)}-${primaryOrderId}`}
+          orderId={primaryOrderId}
+          orderAllocations={orderAllocations}
+          table={bootstrap.table}
+          methodCode={selectedMethod.code}
+          providerCode={selectedMethod.providerCode}
+          amount={payable}
+          currency={bootstrap.restaurant.currency}
+          tipAmount={tipAmount}
+          couponCode={couponCode.trim() || null}
+          couponDiscount={couponDiscount}
+          selectedItems={null}
+          payerLabel="PMD V2 multi-order"
+          items={providerItems}
+          guestSessionId={guestSessionId}
+          locale={locale}
+          onSuccess={() => completePaymentLocally()}
           onError={setMessage}
         />
       ) : isStripeInline && selectedMethod && canStartPayment ? (

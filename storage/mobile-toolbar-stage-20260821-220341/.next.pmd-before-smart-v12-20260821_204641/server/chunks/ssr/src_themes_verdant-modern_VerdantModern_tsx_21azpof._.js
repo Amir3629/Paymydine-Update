@@ -1,3 +1,0 @@
-module.exports=[2073,a=>{"use strict";a.s(["default",()=>b]);let b=(0,a.i(11857).registerClientReference)(function(){throw Error("Attempted to call the default export of [project]/src/themes/verdant-modern/VerdantModern.tsx from the server, but it's on the client. It's not possible to invoke a client function from the server, it can only be rendered as a Component or passed to props of a Client Component.")},"[project]/src/themes/verdant-modern/VerdantModern.tsx","default")},73434,a=>{"use strict";var b=a.i(2073);a.n(b)}];
-
-//# sourceMappingURL=src_themes_verdant-modern_VerdantModern_tsx_21azpof._.js.map

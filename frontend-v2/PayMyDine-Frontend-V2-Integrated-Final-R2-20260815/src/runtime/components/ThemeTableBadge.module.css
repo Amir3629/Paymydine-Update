@@ -1,4 +1,4 @@
-:global([data-pmd-table-badge-host="hero"]) {
+.host {
   position: relative !important;
 }
 

@@ -3,6 +3,7 @@
 import type { CSSProperties } from 'react'
 import { Bell, Car, MapPin, Menu, Search, ShoppingBag } from 'lucide-react'
 import { useMenuRuntime } from '@/src/runtime/MenuRuntimeContext'
+import { ResponsiveRestaurantName } from '@/src/runtime/components/ResponsiveRestaurantName'
 import { DietaryBadges, LanguageSelect, PlatformFooter, QuickAddButton, RestaurantLogo, SocialLinks, HeaderValetButton } from '@/src/runtime/components/SharedPieces'
 import { RuntimeOverlays } from '@/src/runtime/components/RuntimeOverlays'
 import { ThemeBottomToolBar } from '@/src/runtime/components/ThemeBottomToolBar'
@@ -24,7 +25,7 @@ export default function AzzurraCoastal() {
     <main className={styles.root} style={rootStyle} dir={direction} data-theme-id="azzurra_coastal">
       <div className={styles.shell}>
         <header className={styles.header}>
-          <RestaurantLogo />
+          <RestaurantLogo showName={false} />
           <div className={styles.headerTools}>
             <HeaderValetButton /><LanguageSelect />
             
@@ -37,7 +38,7 @@ export default function AzzurraCoastal() {
           <div className={styles.waveTwo} />
           <div className={styles.heroCopy}>
             <span>{labels.welcomeTo}</span>
-            <h1>{bootstrap.restaurant.name}</h1>
+            <ResponsiveRestaurantName />
             <p>{labels.browseOrderEnjoy}</p>
           </div>
         </section>

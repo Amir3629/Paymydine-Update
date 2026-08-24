@@ -23,31 +23,8 @@
     </header>
 
     <form id="pmd-finance-form" data-pmd-owner-form data-request="onSaveFinance" data-request-flash data-request-validate>
-        <section class="pmd-owner-section" id="payment-methods">
-            <div class="pmd-owner-card" data-accent="orange">
-                <div class="pmd-owner-card__header">
-                    <div class="pmd-owner-card__icon"><svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="2"></rect><path d="M3 10h18M7 15h2"></path></svg></div>
-                    <div class="pmd-owner-card__title"><h2>Payment methods</h2><p>Guest-facing payment choices and the provider powering each method.</p></div>
-                    <div class="pmd-owner-card__actions"><span class="pmd-owner-meta">Edit here — no detail-page navigation</span></div>
-                </div>
-                <div class="pmd-owner-card__body">
-                    <div class="pmd-owner-list">
-                        @forelse($methods as $method)
-                            <div class="pmd-owner-list-row">
-                                <div><strong>{{ $method->name ?: ucfirst(str_replace('_',' ',(string)$method->code)) }}</strong><small>{{ $method->description ?: strtoupper((string)$method->code) }}</small></div>
-                                <div class="pmd-owner-meta">Provider: {{ $method->provider_code ?: '—' }}</div>
-                                <div class="pmd-owner-status {{ !empty($method->status) ? 'is-active' : '' }}">{{ !empty($method->status) ? 'Enabled' : 'Disabled' }}</div>
-                                <button type="button" class="pmd-owner-action" data-pmd-inline-open="finance:method:{{ $method->code }}">Edit</button>
-                            </div>
-                        @empty
-                            <div class="pmd-owner-empty">No payment methods are available yet.</div>
-                        @endforelse
-                    </div>
-                </div>
-            </div>
-        </section>
-
-        <section class="pmd-owner-section" id="payment-providers">
+                {{-- PMD_FINANCE_PROVIDER_FIRST_R1: provider connection precedes guest method mapping. --}}
+<section class="pmd-owner-section" id="payment-providers">
             <div class="pmd-owner-card" data-accent="orange">
                 <div class="pmd-owner-card__header">
                     <div class="pmd-owner-card__icon"><svg viewBox="0 0 24 24"><rect x="4" y="3" width="16" height="18" rx="3"></rect><path d="M8 8h8M8 12h5M8 16h3"></path></svg></div>
@@ -75,6 +52,30 @@
                                 <div class="pmd-owner-empty">No payment providers are available yet.</div>
                             @endforelse
                         </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section class="pmd-owner-section" id="payment-methods">
+            <div class="pmd-owner-card" data-accent="orange">
+                <div class="pmd-owner-card__header">
+                    <div class="pmd-owner-card__icon"><svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="2"></rect><path d="M3 10h18M7 15h2"></path></svg></div>
+                    <div class="pmd-owner-card__title"><h2>Payment methods</h2><p>Guest-facing payment choices and the provider powering each method.</p></div>
+                    <div class="pmd-owner-card__actions"><span class="pmd-owner-meta">Edit here — no detail-page navigation</span></div>
+                </div>
+                <div class="pmd-owner-card__body">
+                    <div class="pmd-owner-list">
+                        @forelse($methods as $method)
+                            <div class="pmd-owner-list-row">
+                                <div><strong>{{ $method->name ?: ucfirst(str_replace('_',' ',(string)$method->code)) }}</strong><small>{{ $method->description ?: strtoupper((string)$method->code) }}</small></div>
+                                <div class="pmd-owner-meta">Provider: {{ $method->provider_code ?: '—' }}</div>
+                                <div class="pmd-owner-status {{ !empty($method->status) ? 'is-active' : '' }}">{{ !empty($method->status) ? 'Enabled' : 'Disabled' }}</div>
+                                <button type="button" class="pmd-owner-action" data-pmd-inline-open="finance:method:{{ $method->code }}">Edit</button>
+                            </div>
+                        @empty
+                            <div class="pmd-owner-empty">No payment methods are available yet.</div>
+                        @endforelse
                     </div>
                 </div>
             </div>

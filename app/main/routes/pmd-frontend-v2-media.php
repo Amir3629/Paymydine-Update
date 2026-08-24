@@ -1,5 +1,7 @@
 <?php
 
+require_once __DIR__.'/pmd-tenant-media-owner-r3.php';
+
 /*
 |--------------------------------------------------------------------------
 | PayMyDine Frontend V2 media authority R9
@@ -15,6 +17,8 @@ if (!defined('PMD_FRONTEND_V2_MEDIA_ROUTE_R9')) {
     define('PMD_FRONTEND_V2_MEDIA_ROUTE_R9', true);
 
     \Illuminate\Support\Facades\Route::match(['GET', 'HEAD'], '/api/v1/frontend-media-v2/{path}', function ($path) {
+        // PMD_FRONTEND_MEDIA_OWNERSHIP_GATE_R3
+        if (!pmd_media_owned_by_request_tenant_r3($path)) abort(404);
         $raw = rawurldecode(explode('?', (string)$path)[0]);
         $raw = str_replace('\\', '/', $raw);
         $raw = preg_replace('#^/+#', '', $raw);

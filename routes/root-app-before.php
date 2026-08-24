@@ -373,12 +373,16 @@ Route::get('/superadmin/signout', [SuperAdminController::class, 'signOut'])
         })->withoutMiddleware([\Igniter\Flame\Foundation\Http\Middleware\TenantDatabaseMiddleware::class]);
         });
 
+// PMD_ROOT_MEDIA_OWNERSHIP_GATE_R3
+require_once base_path('app/main/routes/pmd-tenant-media-owner-r3.php');
+
 /*
  * Menu/food images: ensure /api/media/{path} is always registered (production may not load app/main/routes.php).
  * Same logic as app/main/routes.php so GET /api/media/693/397/25b/69339725b3dde927159940.png returns the file.
  */
 Route::group(['prefix' => 'api', 'middleware' => [\App\Http\Middleware\CorsMiddleware::class]], function () {
     Route::get('/media/{path}', function ($path) {
+        if (!pmd_media_owned_by_request_tenant_r3($path)) abort(404);
         $path = explode('?', $path)[0];
         $filename = basename($path);
         $pathWithoutExt = pathinfo($filename, PATHINFO_FILENAME);

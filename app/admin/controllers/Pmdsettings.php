@@ -64,6 +64,10 @@ class Pmdsettings extends AdminController
 
         $locationId = $this->currentLocationId();
 
+        // PMD_RESTAURANT_IDENTITY_AUTHORITY_R25
+        // Repair generic/template branding before rendering the owner profile.
+        $this->resolvedRestaurantIdentityR25(true);
+
         $this->vars['pmdProfile'] = $this->restaurantProfilePayload($locationId);
         $this->vars['pmdProfileHours'] = $this->openingHours($locationId);
         $this->vars['pmdProfileLocationId'] = $locationId;
@@ -114,7 +118,7 @@ class Pmdsettings extends AdminController
             return strtolower(trim((string)$value));
         }, (array)($clean['languages'] ?? [])))));
         if (!$languages) {
-            $defaultLanguage = strtolower(trim((string)setting('default_language', 'en')));
+            $defaultLanguage = strtolower(trim((string)$this->restaurantSettingValueR24('default_language', 'en')));
             $languages = [$defaultLanguage ?: 'en'];
         }
 
@@ -150,9 +154,12 @@ class Pmdsettings extends AdminController
         ];
 
         DB::transaction(function () use ($payload) {
-            setting()->set($payload);
-            setting()->save();
+            // PMD_THEME_IDENTITY_ISOLATION_R25
+            // Never call the broad Settings manager here: an in-process stale
+            // cache could re-persist site_name/site_logo while saving a theme.
+            $this->persistSettingsDirectR25($payload);
             $this->persistFrontendThemePayload($payload);
+            $this->resolvedRestaurantIdentityR25(true);
         });
 
         flash()->success('Customer menu settings saved.');
@@ -165,12 +172,9 @@ class Pmdsettings extends AdminController
     {
         $data = $this->readFrontendThemePayload();
         $value = function (string $key, $fallback = '') use ($data) {
-            // PMD Settings is authoritative. Theme-table data is compatibility fallback only.
-            try {
-                $settingValue = setting($key, null);
-                if ($settingValue !== null && $settingValue !== '') return $settingValue;
-            } catch (\Throwable $error) {
-            }
+            // PMD_THEME_SETTINGS_DIRECT_DB_R25
+            $settingValue = $this->restaurantSettingValueR24($key, null);
+            if ($settingValue !== null && $settingValue !== '') return $settingValue;
             if (array_key_exists($key, $data) && $data[$key] !== null && $data[$key] !== '') {
                 return $data[$key];
             }
@@ -179,7 +183,7 @@ class Pmdsettings extends AdminController
 
         $theme = (string)$value('pmd_v2_theme_id', '');
         if ($theme === '') $theme = (string)$value('theme_configuration', 'kazen_japanese');
-        $languageRaw = (string)$value('pmd_v2_enabled_languages', (string)setting('default_language', 'en').',en');
+        $languageRaw = (string)$value('pmd_v2_enabled_languages', (string)$this->restaurantSettingValueR24('default_language', 'en').',en');
         $languages = array_values(array_unique(array_filter(array_map('trim', explode(',', strtolower($languageRaw))))));
 
         return [
@@ -331,8 +335,11 @@ class Pmdsettings extends AdminController
             $settings['site_logo'] = '/api/media/'.$filename;
         }
 
-        setting()->set($settings);
-        setting()->save();
+        $settings['pmd_restaurant_identity_name'] = $siteName;
+        if (isset($settings['site_logo'])) {
+            $settings['pmd_restaurant_identity_logo'] = $settings['site_logo'];
+        }
+        $this->persistSettingsDirectR25($settings);
 
         flash()->success('Restaurant identity saved.');
         return [
@@ -426,6 +433,123 @@ class Pmdsettings extends AdminController
         }
     }
 
+    /* PMD_RESTAURANT_IDENTITY_AUTHORITY_R25 */
+    protected function persistSettingsDirectR25(array $values): void
+    {
+        if (!Schema::hasTable('settings')) {
+            throw new \RuntimeException('Tenant settings table is unavailable.');
+        }
+
+        $columns = Schema::getColumnListing('settings');
+        foreach ($values as $item => $value) {
+            $item = trim((string)$item);
+            if ($item === '') continue;
+
+            $query = DB::table('settings')->where('item', $item);
+            $write = ['value' => (string)$value];
+            if (in_array('updated_at', $columns, true)) $write['updated_at'] = now();
+
+            if ($query->exists()) {
+                $query->update($write);
+                continue;
+            }
+
+            $insert = ['item' => $item, 'value' => (string)$value];
+            if (in_array('sort', $columns, true)) $insert['sort'] = 'config';
+            if (in_array('serialized', $columns, true)) $insert['serialized'] = 0;
+            if (in_array('created_at', $columns, true)) $insert['created_at'] = now();
+            if (in_array('updated_at', $columns, true)) $insert['updated_at'] = now();
+            DB::table('settings')->insert($insert);
+        }
+    }
+
+    protected function tenantIdentityHostR25(): string
+    {
+        $host = strtolower(trim((string)request()->getHost()));
+        return preg_match('/^[a-z0-9-]+\.paymydine\.com$/', $host) ? $host : '';
+    }
+
+    protected function defaultRestaurantNameR25(): string
+    {
+        $host = $this->tenantIdentityHostR25();
+        if ($host !== '') {
+            $label = explode('.', $host)[0] ?? '';
+            if ($label !== '') return $label;
+        }
+        return 'PayMyDine';
+    }
+
+    protected function defaultRestaurantLogoR25(): string
+    {
+        $host = $this->tenantIdentityHostR25();
+        return $host !== ''
+            ? 'https://'.$host.'/brand/paymydine-logo.svg'
+            : '/brand/paymydine-logo.svg';
+    }
+
+    protected function isGenericRestaurantNameR25(string $name): bool
+    {
+        $name = strtolower(trim((string)preg_replace('/\s+/u', ' ', $name)));
+        return $name === '' || in_array($name, [
+            'tastyigniter',
+            'tasty igniter',
+            'default',
+            'paymydine restaurant',
+        ], true);
+    }
+
+    protected function isStaleRestaurantLogoR25(string $logo): bool
+    {
+        $logo = trim($logo);
+        if ($logo === '') return true;
+        $path = parse_url($logo, PHP_URL_PATH) ?: $logo;
+        $base = strtolower(basename(str_replace('\\', '/', $path)));
+        return in_array($base, [
+            'gemini_generated_image_kzcmghkzcmghkzcm-removebg-preview.png',
+            'images.png', 'image.png', 'images.jpg', 'image.jpg',
+            'images.jpeg', 'image.jpeg', 'placeholder.svg', 'no-image.png',
+        ], true);
+    }
+
+    protected function resolvedRestaurantIdentityR25(bool $persist = false): array
+    {
+        $dedicatedName = trim((string)$this->restaurantSettingValueR24('pmd_restaurant_identity_name', ''));
+        $legacyName = trim((string)$this->restaurantSettingValueR24('site_name', ''));
+        $locationName = '';
+        try {
+            $locationName = trim((string)(DB::table('locations')->orderBy('location_id')->value('location_name') ?? ''));
+        } catch (\Throwable $error) {
+        }
+
+        $name = '';
+        foreach ([$dedicatedName, $legacyName, $locationName] as $candidate) {
+            if (!$this->isGenericRestaurantNameR25((string)$candidate)) {
+                $name = trim((string)$candidate);
+                break;
+            }
+        }
+        if ($name === '') $name = $this->defaultRestaurantNameR25();
+
+        $dedicatedLogo = trim((string)$this->restaurantSettingValueR24('pmd_restaurant_identity_logo', ''));
+        $legacyLogo = trim((string)$this->restaurantSettingValueR24('site_logo', ''));
+        $logo = !$this->isStaleRestaurantLogoR25($dedicatedLogo)
+            ? $dedicatedLogo
+            : (!$this->isStaleRestaurantLogoR25($legacyLogo)
+                ? $legacyLogo
+                : $this->defaultRestaurantLogoR25());
+
+        if ($persist) {
+            $this->persistSettingsDirectR25([
+                'pmd_restaurant_identity_name' => $name,
+                'pmd_restaurant_identity_logo' => $logo,
+                'site_name' => $name,
+                'site_logo' => $logo,
+            ]);
+        }
+
+        return ['name' => $name, 'logo' => $logo];
+    }
+
     /* PMD_RESTAURANT_LOGO_AUTHORITY_R20 */
     protected function restaurantLogoPreviewR20(string $value): string
     {
@@ -452,12 +576,15 @@ class Pmdsettings extends AdminController
             return trim($uploadedLogo);
         }
         if ($removeLogo) {
-            return '';
+            return $this->defaultRestaurantLogoR25();
         }
 
-        $current = trim((string)$this->restaurantSettingValueR24('site_logo', ''));
+        $current = trim((string)$this->restaurantSettingValueR24('pmd_restaurant_identity_logo', ''));
         if ($current === '') {
-            return '';
+            $current = trim((string)$this->restaurantSettingValueR24('site_logo', ''));
+        }
+        if ($current === '') {
+            return $this->defaultRestaurantLogoR25();
         }
 
         $path = parse_url($current, PHP_URL_PATH) ?: $current;
@@ -465,12 +592,12 @@ class Pmdsettings extends AdminController
 
         // The proven stale Mimoza logo must never be re-persisted by a cached settings object.
         if ($base === 'Gemini_Generated_Image_kzcmghkzcmghkzcm-removebg-preview.png') {
-            return '';
+            return $this->defaultRestaurantLogoR25();
         }
 
         $resolvedPath = $this->restaurantLogoLocalPathR22($current);
         if ($resolvedPath === null || !$this->restaurantLogoIsValidFileR22($resolvedPath)) {
-            return '';
+            return $this->defaultRestaurantLogoR25();
         }
 
         return $current;
@@ -534,11 +661,13 @@ class Pmdsettings extends AdminController
                 'pmd_social_trustpilot_url' => trim((string)($clean['trustpilot_url'] ?? '')),
             ];
 
-            // R21: always write an explicit, sanitized site_logo so a stale cached value cannot come back.
+            // PMD_RESTAURANT_IDENTITY_PERSIST_R25
+            // Owner identity is written to dedicated keys and mirrored to legacy
+            // site_* keys. No broad Settings-manager flush is allowed here.
             $settings['site_logo'] = $resolvedLogo;
-
-            setting()->set($settings);
-            setting()->save();
+            $settings['pmd_restaurant_identity_name'] = trim((string)$clean['name']);
+            $settings['pmd_restaurant_identity_logo'] = $resolvedLogo;
+            $this->persistSettingsDirectR25($settings);
 
             DB::table('locations')
                 ->where('location_id', $locationId)
@@ -622,9 +751,10 @@ class Pmdsettings extends AdminController
         $value = function (string $key, $fallback = '') {
             return $this->restaurantSettingValueR24($key, $fallback);
         };
+        $identity = $this->resolvedRestaurantIdentityR25(true);
 
         return [
-            'name' => (string)($value('site_name') ?: ($location->location_name ?? '')),
+            'name' => (string)$identity['name'],
             'email' => (string)($value('site_email') ?: ($location->location_email ?? '')),
             'telephone' => (string)($location->location_telephone ?? ''),
             'address_1' => (string)($location->location_address_1 ?? ''),
@@ -640,7 +770,7 @@ class Pmdsettings extends AdminController
             'google_url' => (string)$value('pmd_social_google_url', ''),
             'trustpilot_enabled' => (bool)$value('pmd_social_trustpilot_enabled', 0),
             'trustpilot_url' => (string)$value('pmd_social_trustpilot_url', ''),
-            'site_logo' => (string)($siteLogoR24 = $value('site_logo', '')),
+            'site_logo' => (string)($siteLogoR24 = $identity['logo']),
             'site_logo_preview' => $this->restaurantLogoPreviewR20((string)$siteLogoR24),
         ];
     }

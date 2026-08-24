@@ -378,6 +378,17 @@ class Payments extends \Admin\Classes\AdminController
             $data['provider_code'] = $providerCode;
             $model->setConfigData($data);
             $model->provider_code = $providerCode;
+
+            // PMD_METHOD_PROVIDER_IS_ENABLEMENT_R1
+            // The compact owner editor has only Name + Provider. For provider-
+            // backed methods, choosing a provider offers the method; choosing
+            // Not offered disables it. Cash methods keep their own status.
+            if (!in_array((string)$model->code, ['cod', 'cash'], true)) {
+                $model->status = $providerCode ? 1 : 0;
+                if (!$providerCode) {
+                    $model->is_default = 0;
+                }
+            }
         }
 
         $isProviderRecord = in_array((string)$model->code, self::PROVIDER_CODES, true)
@@ -487,6 +498,16 @@ class Payments extends \Admin\Classes\AdminController
 
         if ((int)$postedDefault === 1) {
             $model->status = 1;
+        }
+
+        // PMD_METHOD_PROVIDER_IS_ENABLEMENT_R1_FINAL
+        // A stale hidden default flag must never re-enable a provider-backed
+        // method after the owner selected Not offered.
+        if (in_array((string)$model->code, self::METHOD_CODES, true)
+            && !in_array((string)$model->code, ['cod', 'cash'], true)
+            && !strlen((string)$model->provider_code)) {
+            $model->status = 0;
+            $model->is_default = 0;
         }
 
         \Log::info('PMD_PAYMENTS_FORM_READY_TO_SAVE', [
@@ -684,7 +705,7 @@ class Payments extends \Admin\Classes\AdminController
             ['code' => 'stripe', 'name' => 'Stripe', 'supported_methods' => ['card', 'apple_pay', 'google_pay']],
             ['code' => 'paypal', 'name' => 'PayPal', 'supported_methods' => ['paypal']],
             ['code' => 'worldline', 'name' => 'Worldline', 'supported_methods' => ['card', 'wero']],
-            ['code' => 'sumup', 'name' => 'SumUp', 'supported_methods' => ['card']],
+            ['code' => 'sumup', 'name' => 'SumUp', 'supported_methods' => ['card', 'apple_pay', 'google_pay']],
             ['code' => 'square', 'name' => 'Square', 'supported_methods' => ['card']],
             ['code' => 'vr_payment', 'name' => 'VR Payment', 'supported_methods' => ['card', 'apple_pay', 'google_pay', 'paypal', 'wero']],
         ];
@@ -739,8 +760,16 @@ class Payments extends \Admin\Classes\AdminController
             return;
         }
 
+        // PMD_METHOD_PROVIDER_NOT_OFFERED_R1
+        // A blank provider is an explicit owner choice: do not offer this
+        // provider-backed method to guests. Compatibility is validated only
+        // when a provider is actually selected.
+        if (!$providerCode) {
+            return;
+        }
+
         $compatible = array_keys($this->getCompatibleProviders($methodCode));
-        if (!$providerCode || !in_array($providerCode, $compatible, true)) {
+        if (!in_array($providerCode, $compatible, true)) {
             throw new ApplicationException("Provider '{$providerCode}' is not compatible with '{$methodCode}'.");
         }
     }

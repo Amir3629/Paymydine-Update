@@ -244,6 +244,10 @@
     {
       "path": "js/pmd-payment-provider-catalogue-v1.js",
       "name": "pmd-payment-provider-catalogue-v1-js"
+    },
+    {
+      "path": "js/pmd-sumup-inline-wallet-settings-v1.js",
+      "name": "pmd-sumup-inline-wallet-settings-v1-js"
     }
   ]
 }

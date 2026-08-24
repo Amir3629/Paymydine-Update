@@ -3,6 +3,7 @@
 import type { CSSProperties } from 'react'
 import { Bell, Car, Menu, ReceiptText, Search, ShoppingBag } from 'lucide-react'
 import { useMenuRuntime } from '@/src/runtime/MenuRuntimeContext'
+import { ResponsiveRestaurantName } from '@/src/runtime/components/ResponsiveRestaurantName'
 import { DietaryBadges, LanguageSelect, PlatformFooter, QuickAddButton, RestaurantLogo, SocialLinks, HeaderValetButton } from '@/src/runtime/components/SharedPieces'
 import { RuntimeOverlays } from '@/src/runtime/components/RuntimeOverlays'
 import { ThemeBottomToolBar } from '@/src/runtime/components/ThemeBottomToolBar'
@@ -29,7 +30,7 @@ export default function NoirEditorial() {
   return (
     <main className={styles.root} style={rootStyle} dir={direction} data-theme-id="noir_editorial">
       <header className={styles.header}>
-        <RestaurantLogo />
+        <RestaurantLogo showName={false} />
         <div className={styles.headerActions}>
           <HeaderValetButton /><LanguageSelect />
           
@@ -40,7 +41,7 @@ export default function NoirEditorial() {
       <section className={styles.hero} data-pmd-theme-hero="true">
         <div className={styles.heroCopy}>
           <span className={styles.eyebrow}>{labels.welcomeTo}</span>
-          <h1>{bootstrap.restaurant.name}</h1>
+          <ResponsiveRestaurantName />
           <p>{labels.browseOrderEnjoy}</p>
         </div>
         <div className={styles.heroVisual}>

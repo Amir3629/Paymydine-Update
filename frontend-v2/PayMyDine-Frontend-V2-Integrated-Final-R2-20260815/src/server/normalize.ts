@@ -130,11 +130,11 @@ function asset(value: unknown): string | null {
     clean = clean.slice('assets/media/attachments/public/'.length)
   }
 
-  // PMD_MISSING_MENU_IMAGE_R11
-  // The backend's generic /images/pasta.png placeholder is not guaranteed to
-  // exist in every tenant. Missing photos render the theme's native no-image
-  // state instead of a broken browser image.
-  if (clean === 'images/pasta.png') return null
+  // PMD_FOOD_BRAND_PLACEHOLDER_R3
+  // Missing Food photos use the local PayMyDine brand asset. The backend now
+  // emits /brand/paymydine-logo.svg; keep the old pasta sentinel compatible.
+  if (clean === 'images/pasta.png') return '/brand/paymydine-logo.svg'
+  if (clean.startsWith('brand/')) return `/${encodePath(clean)}`
   if (clean.startsWith('images/')) {
     const relative = encodePath(clean.slice('images/'.length))
     return relative ? `/api/media/${relative}` : null
@@ -281,7 +281,8 @@ export function normalizeRestaurant(settingsPayload: unknown, restaurantPayload:
     id: str(first(restaurant, ['id','restaurant_id']), 'restaurant'),
     name: str(first(settings, ['site_name','business_name','restaurant_name']), str(first(restaurant, ['name']), 'PayMyDine Restaurant')),
     description: str(first(restaurant, ['description']), str(first(settings, ['restaurant_description','site_description']))).replace(/<[^>]*>/g, ' ').replace(/&nbsp;/gi, ' ').replace(/\s+/g, ' ').trim(),
-    logoUrl: asset(first(settings, ['site_logo_url','logo_url','site_logo','logo'])),
+    // PMD_RESTAURANT_DEFAULT_LOGO_R25
+    logoUrl: asset(first(settings, ['pmd_restaurant_identity_logo','site_logo_url','logo_url','site_logo','logo'])) || '/brand/paymydine-logo.svg',
     faviconUrl: asset(first(settings, ['favicon_logo_url','favicon_logo'])),
     heroImageUrl: asset(first(settings, ['pmd_hero_image_url','hero_image_url','hero_image'])),
     phone: str(first(restaurant, ['phone','telephone']), str(first(settings, ['phone','telephone']))) || null,

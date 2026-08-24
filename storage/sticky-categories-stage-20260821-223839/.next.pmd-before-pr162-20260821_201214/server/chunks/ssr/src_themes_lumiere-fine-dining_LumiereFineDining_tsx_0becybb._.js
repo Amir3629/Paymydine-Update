@@ -1,3 +1,0 @@
-module.exports=[44004,a=>{"use strict";a.s(["default",()=>b]);let b=(0,a.i(11857).registerClientReference)(function(){throw Error("Attempted to call the default export of [project]/src/themes/lumiere-fine-dining/LumiereFineDining.tsx from the server, but it's on the client. It's not possible to invoke a client function from the server, it can only be rendered as a Component or passed to props of a Client Component.")},"[project]/src/themes/lumiere-fine-dining/LumiereFineDining.tsx","default")},22096,a=>{"use strict";var b=a.i(44004);a.n(b)}];
-
-//# sourceMappingURL=src_themes_lumiere-fine-dining_LumiereFineDining_tsx_0becybb._.js.map

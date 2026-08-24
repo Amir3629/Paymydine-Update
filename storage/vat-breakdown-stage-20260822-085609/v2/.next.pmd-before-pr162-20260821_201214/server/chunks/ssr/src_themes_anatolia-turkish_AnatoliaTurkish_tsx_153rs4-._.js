@@ -1,3 +1,0 @@
-module.exports=[27428,a=>{"use strict";a.s(["default",()=>b]);let b=(0,a.i(11857).registerClientReference)(function(){throw Error("Attempted to call the default export of [project]/src/themes/anatolia-turkish/AnatoliaTurkish.tsx from the server, but it's on the client. It's not possible to invoke a client function from the server, it can only be rendered as a Component or passed to props of a Client Component.")},"[project]/src/themes/anatolia-turkish/AnatoliaTurkish.tsx","default")},7757,a=>{"use strict";var b=a.i(27428);a.n(b)}];
-
-//# sourceMappingURL=src_themes_anatolia-turkish_AnatoliaTurkish_tsx_153rs4-._.js.map

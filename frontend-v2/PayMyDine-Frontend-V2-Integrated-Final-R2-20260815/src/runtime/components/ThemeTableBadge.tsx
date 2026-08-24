@@ -34,12 +34,14 @@ export function ThemeTableBadge() {
     }
 
     nextHost.dataset.pmdTableBadgeHost = 'hero'
+    nextHost.classList.add(styles.host)
     setHost(nextHost)
 
     return () => {
       if (nextHost.dataset.pmdTableBadgeHost === 'hero') {
         delete nextHost.dataset.pmdTableBadgeHost
       }
+      nextHost.classList.remove(styles.host)
     }
   }, [tableDisplay])
 

@@ -64,11 +64,10 @@ app/admin/services/
 frontend/Paymydine-Update/
 
 # Storage backups / staging
-storage/pmd-backups/
-storage/pmd-v2-backups/
-storage/deploy-backups/
+storage/*-backups/
+storage/*-stage-*/
+storage/*-staging/
 storage/backups/
-storage/pmd-v2-staging/
 storage/app/project_root_archive/
 storage/app/r2o_*/
 

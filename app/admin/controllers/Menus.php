@@ -250,9 +250,19 @@ class Menus extends AdminController
                 $menu->addMenuCategories($categoryIds);
                 $menu->addMenuAllergens($allergenIds);
 
-                if ($uploadedRelative && Schema::hasTable('menu_images')) {
-                    DB::table('menu_images')->where('menu_id', $menu->menu_id)->increment('sort_order', 1);
-                    DB::table('menu_images')->insert([
+                // PMD_FOOD_UPLOAD_PERSISTENCE_R32
+                if ($uploadedRelative) {
+                    $pmdMenuConnectionR32 = $menu->getConnection();
+                    $pmdMenuSchemaR32 = $pmdMenuConnectionR32->getSchemaBuilder();
+                    if (!$pmdMenuSchemaR32->hasTable('menu_images')) {
+                        throw new \RuntimeException('Menu image storage is unavailable for this restaurant.');
+                    }
+
+                    $pmdMenuConnectionR32->table('menu_images')
+                        ->where('menu_id', (int)$menu->menu_id)
+                        ->increment('sort_order', 1);
+
+                    $pmdMenuConnectionR32->table('menu_images')->insert([
                         'menu_id' => (int)$menu->menu_id,
                         'image_path' => $uploadedRelative,
                         'sort_order' => 1,

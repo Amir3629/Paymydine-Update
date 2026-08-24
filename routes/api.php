@@ -1,5 +1,8 @@
 <?php
 
+// PMD_API_MEDIA_OWNERSHIP_GATE_R3
+require_once base_path('app/main/routes/pmd-tenant-media-owner-r3.php');
+
 use Illuminate\Support\Facades\DB;
 
 use Illuminate\Http\Request;
@@ -9,6 +12,62 @@ use App\Http\Controllers\Api\OrderController;
 use App\Http\Controllers\Api\TableController;
 use App\Http\Controllers\Api\CategoryController;
 use App\Http\Controllers\Api\ReviewController;
+
+/* PMD_PUBLIC_RESTAURANT_IDENTITY_R25 */
+if (!function_exists('pmd_public_restaurant_identity_r25')) {
+    function pmd_public_restaurant_identity_r25($settings): array
+    {
+        $read = function (string $key) use ($settings): string {
+            if (isset($settings[$key]) && isset($settings[$key]->value)) {
+                return trim((string)$settings[$key]->value);
+            }
+            return '';
+        };
+
+        $generic = function (string $name): bool {
+            $name = strtolower(trim((string)preg_replace('/\s+/u', ' ', $name)));
+            return $name === '' || in_array($name, [
+                'tastyigniter', 'tasty igniter', 'default', 'paymydine restaurant',
+            ], true);
+        };
+
+        $host = strtolower(trim((string)request()->getHost()));
+        $domainName = 'PayMyDine';
+        if (preg_match('/^([a-z0-9-]+)\.paymydine\.com$/', $host, $match)) {
+            $domainName = $match[1];
+        }
+
+        $locationName = '';
+        try {
+            $locationName = trim((string)(\Illuminate\Support\Facades\DB::table('locations')
+                ->orderBy('location_id')->value('location_name') ?? ''));
+        } catch (\Throwable $error) {
+        }
+
+        $name = '';
+        foreach ([$read('pmd_restaurant_identity_name'), $read('site_name'), $locationName] as $candidate) {
+            if (!$generic($candidate)) {
+                $name = $candidate;
+                break;
+            }
+        }
+        if ($name === '') $name = $domainName;
+
+        $logo = $read('pmd_restaurant_identity_logo') ?: $read('site_logo');
+        $path = parse_url($logo, PHP_URL_PATH) ?: $logo;
+        $base = strtolower(basename(str_replace('\\', '/', (string)$path)));
+        if ($logo === '' || in_array($base, [
+            'gemini_generated_image_kzcmghkzcmghkzcm-removebg-preview.png',
+            'images.png', 'image.png', 'placeholder.svg', 'no-image.png',
+        ], true)) {
+            $logo = preg_match('/^[a-z0-9-]+\.paymydine\.com$/', $host)
+                ? 'https://'.$host.'/brand/paymydine-logo.svg'
+                : '/brand/paymydine-logo.svg';
+        }
+
+        return ['name' => $name, 'logo' => $logo];
+    }
+}
 
 /*
 |--------------------------------------------------------------------------
@@ -36,6 +95,8 @@ Route::middleware(['cors'])->group(function () {
 
     // Image serving endpoint (matching old API structure)
     Route::get('/images', function (Request $request) {
+        $pmdRequestedMediaR3 = (string)$request->get('file', '');
+        if (!pmd_media_owned_by_request_tenant_r3($pmdRequestedMediaR3)) abort(404);
         $requested = (string) $request->get('file', '');
 
         if ($requested === '') {
@@ -145,6 +206,7 @@ Route::middleware(['cors'])->group(function () {
     });
     // Media serving route for images
     Route::get('/media/{path}', function ($path) {
+        if (!pmd_media_owned_by_request_tenant_r3($path)) abort(404);
         // Remove any query parameters
         $path = explode('?', $path)[0];
         $filename = basename($path);
@@ -255,10 +317,11 @@ Route::middleware(['cors'])->group(function () {
         // 1) settings-wrapped: return same settings but wrapped
         Route::get('/settings-wrapped', function () {
             $settings = \Illuminate\Support\Facades\DB::table('settings')->get()->keyBy('item');
+            $identity = pmd_public_restaurant_identity_r25($settings);
 
             $payload = [
-                'site_name'         => $settings['site_name']->value ?? 'PayMyDine',
-                'site_logo'         => $settings['site_logo']->value ?? '',
+                'site_name'         => $identity['name'],
+                'site_logo'         => $identity['logo'],
                 'favicon_logo'      => $settings['favicon_logo']->value ?? ($settings['site_logo']->value ?? ''),
                 'default_currency'  => $settings['default_currency']->value ?? ($settings['default_currency_id']->value ?? 'USD'),
                 'default_language'  => $settings['default_language']->value ?? 'en',
@@ -310,10 +373,13 @@ Route::middleware(['cors'])->group(function () {
         // Restaurant info endpoint
         Route::get('/restaurant', function (Request $request) {
             $restaurant = \Illuminate\Support\Facades\DB::table('locations')->first();
+            $settings = \Illuminate\Support\Facades\DB::table('settings')->get()->keyBy('item');
+            $identity = pmd_public_restaurant_identity_r25($settings);
 
             return response()->json([
                 'id' => 1,
-                'name' => $restaurant->location_name ?? 'PayMyDine',
+                'name' => $identity['name'],
+                'logo' => $identity['logo'],
                 'description' => $restaurant->description ?? '',
                 'address' => $restaurant->location_address_1 ?? '',
                 'phone' => $restaurant->location_telephone ?? '',
@@ -330,10 +396,13 @@ Route::middleware(['cors'])->group(function () {
         // Settings endpoint
         Route::get('/settings', function () {
             $settings = \Illuminate\Support\Facades\DB::table('settings')->get()->keyBy('item');
+            $identity = pmd_public_restaurant_identity_r25($settings);
 
             return response()->json([
-                'site_name' => $settings['site_name']->value ?? 'PayMyDine',
-                'site_logo' => $settings['site_logo']->value ?? '',
+                'site_name' => $identity['name'],
+                'site_logo' => $identity['logo'],
+                'pmd_restaurant_identity_name' => $identity['name'],
+                'pmd_restaurant_identity_logo' => $identity['logo'],
                 'default_currency' => $settings['default_currency']->value ?? 'USD',
                 'default_language' => $settings['default_language']->value ?? 'en',
                 'order_prefix' => $settings['invoice_prefix']->value ?? '#',

@@ -169,7 +169,6 @@ export function FoodDetails({ item }: { item: MenuItem }) {
               </div>
             ))}
           </div>
-          {nutrition?.disclaimer && <p className={styles.disclaimer}>{nutrition.disclaimer}</p>}
         </section>
       )}
     </div>

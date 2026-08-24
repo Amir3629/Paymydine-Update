@@ -123,14 +123,23 @@ export async function loadCustomerBootstrap(query: BootstrapQuery): Promise<Cust
   // PMD_RESTAURANT_NAME_AUTHORITY_R18
   // /admin/pmdsettings/restaurant saves site_name; make that setting the final
   // customer-menu display-name authority, with location name only as fallback.
-  const adminRestaurantName = String(
-    settings?.site_name
-    || settings?.data?.site_name
-    || restaurant?.name
-    || restaurant?.data?.name
-    || '',
-  ).trim()
-  if (adminRestaurantName) restaurantInfo.name = adminRestaurantName
+  // PMD_RESTAURANT_IDENTITY_GUARD_R25
+  // Legacy/template branding is never allowed to beat a tenant identity.
+  const isGenericRestaurantName = (value: unknown) => {
+    const clean = String(value || '').trim().replace(/\s+/g, ' ').toLowerCase()
+    return !clean || ['tastyigniter', 'tasty igniter', 'default', 'paymydine restaurant'].includes(clean)
+  }
+  const nameCandidates = [
+    settings?.pmd_restaurant_identity_name,
+    settings?.data?.pmd_restaurant_identity_name,
+    settings?.site_name,
+    settings?.data?.site_name,
+    restaurant?.name,
+    restaurant?.data?.name,
+  ].map((value) => String(value || '').trim())
+  const hostLabel = host.split('.')[0] || 'PayMyDine'
+  const adminRestaurantName = nameCandidates.find((value) => !isGenericRestaurantName(value)) || hostLabel
+  restaurantInfo.name = adminRestaurantName
 
   // PMD_MENU_SMART_CATEGORIES_V1_FRONTEND_V2
   // Live tenant hosts use the V2 runtime on port 3002. Resolve editable smart

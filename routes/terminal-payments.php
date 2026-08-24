@@ -56,6 +56,7 @@ Route::middleware(['web'])->prefix(config('system.adminUri', 'admin'))->group(fu
     Route::post('/payment-providers/sumup/connection', [\Admin\Controllers\SumupTerminalSettings::class, 'saveConnection']);
     Route::post('/payment-providers/sumup/connection/test', [\Admin\Controllers\SumupTerminalSettings::class, 'testConnection']);
     Route::post('/payment-providers/sumup/environment', [\Admin\Controllers\SumupTerminalSettings::class, 'activateEnvironment']);
+    Route::post('/payment-providers/sumup/apple-pay-domain-file', [\Admin\Controllers\SumupTerminalSettings::class, 'saveApplePayDomainFile']);
 
     Route::post('/orders/terminal-payment-attempt', function (Request $request, TerminalPaymentService $service) {
         $user = \Admin\Facades\AdminAuth::getUser();
