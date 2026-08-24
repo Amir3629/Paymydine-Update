@@ -58,14 +58,15 @@ def patch_route_authorities():
 def patch_cash_drawers():
     p, s = read('app/admin/controllers/CashDrawers.php')
 
-    # The Agent package is downloaded through the authenticated Admin action.
-    # BACKEND_BASE_URL remains the tenant origin, not /admin.
+    # The Windows installer must not depend on an authenticated browser/Admin
+    # session. The generic Agent package is served by the direct tenant PHP
+    # gateway and contains no pairing/device secret by itself.
     old_urls = [
         "$agentUrl = $adminBase.'/api/v1/pmd-pos-agent/agent.js';",
         "$agentUrl = $adminBase.'/api/pmd-pos-agent/agent.js';",
         "$agentUrl = $adminBase.'/cash_drawers/windows_connector_agent/'.$drawer->drawer_id;",
     ]
-    replacement = "$agentUrl = $adminBase.'/'.trim((string)config('system.adminUri', 'admin'), '/').'/cash_drawers/windows_connector_agent/'.$drawer->drawer_id; // PMD_CASH_DRAWER_DIRECT_AGENT_DOWNLOAD_R27"
+    replacement = "$agentUrl = $adminBase.'/pmd-pos-agent.php?action=agent'; // PMD_CASH_DRAWER_DIRECT_AGENT_DOWNLOAD_R27"
     if replacement not in s:
         matches = [old for old in old_urls if old in s]
         if len(matches) != 1:
@@ -73,21 +74,21 @@ def patch_cash_drawers():
         s = s.replace(matches[0], replacement, 1)
 
     # Retire the old route-authority marker: the public machine bridge is now
-    # the direct root PHP gateway, while package download stays authenticated.
+    # the direct root PHP gateway.
     s = s.replace(
         '    // PMD_CASH_DRAWER_AGENT_V1_NGINX_AUTHORITY_R23\n',
         '    // PMD_CASH_DRAWER_DIRECT_GATEWAY_R27\n',
         1,
     )
 
+    # Keep the legacy authenticated action compatible for manual/debug use,
+    # but make its served Agent use the same direct gateway transport.
     if 'PMD_CASH_DRAWER_AGENT_SOURCE_GATEWAY_R27' not in s:
         old = """        return response(file_get_contents($agentPath), 200, [
             'Content-Type' => 'application/javascript',
         ]);
 """
         new = r'''        // PMD_CASH_DRAWER_AGENT_SOURCE_GATEWAY_R27
-        // Keep the checked-in Agent generic. Only the authenticated download
-        // rewrites its cloud transport to the direct tenant-safe PHP bridge.
         $agentSource = file_get_contents($agentPath);
         $agentSource = str_replace(
             "cfg.backendBase + '/api/pos-agent/pair'",
