@@ -8,6 +8,12 @@ BASE_SCRIPT="/tmp/pmd-cash-drawer-local-agent-r2-2-base.sh"
 [[ -d "$ROOT/.git" ]] || { echo "PayMyDine repo not found: $ROOT" >&2; exit 1; }
 
 sudo -u ubuntu git -C "$ROOT" fetch origin "$BRANCH"
+
+sudo -u ubuntu git -C "$ROOT" show \
+  FETCH_HEAD:deploy/pmd-cash-drawer-local-agent-r2-1-patch.py \
+  | grep -q 'PMD_CASH_DRAWER_SNAKE_ACTION_ALIASES_R22' \
+  || { echo "R2.2 corrected patcher marker missing" >&2; exit 1; }
+
 sudo -u ubuntu git -C "$ROOT" show FETCH_HEAD:deploy/pmd-cash-drawer-local-agent-r2-1.sh > "$BASE_SCRIPT"
 
 # Reuse the reviewed R2.1 deployer but force it to fetch the R2.2 branch that
@@ -24,7 +30,7 @@ bash -n "$BASE_SCRIPT"
 
 echo "============================================================"
 echo "PMD CASH DRAWER + LOCAL POS AGENT R2.2"
-echo "AdminController anchor repair + tenant-safe Agent API"
+echo "AdminController anchor + connector download action repair"
 echo "============================================================"
 
 exec bash "$BASE_SCRIPT"
