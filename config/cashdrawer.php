@@ -12,8 +12,10 @@ return [
     ),
 
     /*
-     * Bootstrap secret used only to pair a newly installed Local POS Agent.
-     * Normal pull/ack traffic uses a per-device token issued during pairing.
+     * Legacy bootstrap token is kept only for backward compatibility with old
+     * connector experiments. R1 pairing does NOT distribute or require this
+     * shared secret: each POS uses its own random, one-time pairing token and
+     * receives a per-device credential after successful pairing.
      */
     'agent_token' => trim((string)env('POS_AGENT_TOKEN', '')),
 
