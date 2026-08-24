@@ -4,16 +4,14 @@ use Admin\Controllers\Api\PosAgentR1Controller;
 use Illuminate\Support\Facades\Route;
 
 /*
- * PMD_LOCAL_POS_AGENT_R2_1
+ * PMD_LOCAL_POS_AGENT_ADMIN_AUTHORITY_R24
  *
- * routes/api.php is already mounted below /api. Tenant Nginx intentionally
- * sends /api/v1/* to Laravel, while other /api/* paths may be owned by the
- * Next frontend. Keep the hardware bridge inside /api/v1 so every tenant uses
- * the existing Laravel authority without a new Nginx exception.
+ * This file is loaded from app/admin/routes.php, which is an explicit route
+ * authority booted by Admin\ServiceProvider. Nginx already sends /api/v1/* to
+ * Laravel, so register the complete public URI here instead of relying on the
+ * separate routes/api.php loader.
  */
-Route::prefix('v1/pmd-pos-agent')->middleware(['cors'])->group(function () {
-    // Agent code contains no restaurant secret. Installer secrets are supplied
-    // separately by the authenticated Devices & Hardware download action.
+Route::prefix('api/v1/pmd-pos-agent')->middleware(['cors'])->group(function () {
     Route::get('agent.js', function () {
         $path = base_path('tools/local-pos-agent/agent.js');
         if (!is_file($path)) {
@@ -34,14 +32,12 @@ Route::prefix('v1/pmd-pos-agent')->middleware(['cors'])->group(function () {
             ],
             $content
         );
-        // The old ACK path appends /ack after the command id. Dedicated R2.1
-        // API already places the command id after /ack/, so remove that suffix.
         $content = str_replace(" + '/ack'", '', $content);
 
         return response($content, 200, [
             'Content-Type' => 'application/javascript; charset=UTF-8',
             'Cache-Control' => 'no-store, max-age=0',
-            'X-PMD-Local-Agent' => 'R2.1',
+            'X-PMD-Local-Agent' => 'R2.4',
         ]);
     });
 
