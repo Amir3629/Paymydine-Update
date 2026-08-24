@@ -22,6 +22,7 @@ PHP_TARGETS=(
   "app/Services/Payments/ProviderCapabilityRegistry.php"
 )
 FRONT_TARGETS=(
+  "src/runtime/components/RuntimeOverlays.tsx"
   "src/runtime/components/SumupInlinePayment.tsx"
   "src/runtime/components/RuntimeOverlays.module.css"
 )
@@ -104,9 +105,13 @@ if grep -Eq '>Priority<|>Description<|>Enabled<|>Default method<' "$STAGE/$FORM"
   echo "ERROR: compact payment form still exposes legacy fields"
   exit 8
 fi
+grep -Fq "selectedProvider === 'sumup' && ['card', 'apple_pay', 'google_pay'].includes(selectedCode)" "$STAGE/frontend-v2/src/runtime/components/RuntimeOverlays.tsx"
+COUNT_SUMUP_RUNTIME="$(grep -Fc "selectedProvider === 'sumup' && ['card', 'apple_pay', 'google_pay'].includes(selectedCode)" "$STAGE/frontend-v2/src/runtime/components/RuntimeOverlays.tsx")"
+[ "$COUNT_SUMUP_RUNTIME" -ge 2 ] || { echo "ERROR: both SumUp runtime predicates were not upgraded"; exit 9; }
 grep -Fq 'function requestedSumupMethods' "$STAGE/frontend-v2/src/runtime/components/SumupInlinePayment.tsx"
 grep -Fq 'styles.sumupInlineBox' "$STAGE/frontend-v2/src/runtime/components/SumupInlinePayment.tsx"
 grep -Fq 'PMD_SUMUP_WIDGET_THEME_R1' "$STAGE/frontend-v2/src/runtime/components/RuntimeOverlays.module.css"
+echo "SUMUP_RUNTIME_PREDICATES=$COUNT_SUMUP_RUNTIME"
 echo "STATIC_PREFLIGHT=OK"
 
 echo
@@ -123,10 +128,10 @@ sudo -u ubuntu -H env FRONT_STAGE="$FRONT_STAGE" bash -c '
   cd "$FRONT_STAGE"
   npm run build -- --webpack
 '
-[ -d "$FRONT_STAGE/.next" ] || { echo "ERROR: frontend build produced no .next"; exit 9; }
+[ -d "$FRONT_STAGE/.next" ] || { echo "ERROR: frontend build produced no .next"; exit 10; }
 if ! grep -Rsl --binary-files=text 'is not available for this SumUp checkout' "$FRONT_STAGE/.next" >/dev/null 2>&1; then
   echo "ERROR: compiled frontend missing standalone SumUp wallet routing"
-  exit 10
+  exit 11
 fi
 echo "FRONTEND_BUILD=OK"
 
@@ -207,7 +212,7 @@ for row in rows:
         print(str(row.get("pm2_env", {}).get("status", "")))
         break
 ')"
-[ "$STATUS" = "online" ] || { echo "ERROR: frontend status=$STATUS"; exit 11; }
+[ "$STATUS" = "online" ] || { echo "ERROR: frontend status=$STATUS"; exit 12; }
 echo "FRONTEND_STATUS=$STATUS"
 
 echo
@@ -216,8 +221,8 @@ FRONT_HTTP="$(curl -ksS -o /dev/null -w '%{http_code}' "$FRONT_URL" || true)"
 ADMIN_HTTP="$(curl -ksS -o /dev/null -w '%{http_code}' "$ADMIN_URL" || true)"
 echo "FRONTEND_HTTP=$FRONT_HTTP"
 echo "ADMIN_HTTP=$ADMIN_HTTP"
-[ "$FRONT_HTTP" = "200" ] || { echo "ERROR: frontend smoke failed"; exit 12; }
-[ "$ADMIN_HTTP" = "200" ] || { echo "ERROR: admin smoke failed"; exit 13; }
+[ "$FRONT_HTTP" = "200" ] || { echo "ERROR: frontend smoke failed"; exit 13; }
+[ "$ADMIN_HTTP" = "200" ] || { echo "ERROR: admin smoke failed"; exit 14; }
 
 trap - EXIT
 
@@ -227,10 +232,11 @@ echo "============================================================"
 echo "PAYMENT_METHOD_EDITOR=Name_readonly+Provider_only"
 echo "PROVIDER_BLANK=Not_offered"
 echo "SUMUP_CARD=enabled"
-echo "SUMUP_APPLE_PAY=assignable_when_eligible"
-echo "SUMUP_GOOGLE_PAY=assignable_when_eligible"
+echo "SUMUP_APPLE_PAY=assignable_and_routed_inline"
+echo "SUMUP_GOOGLE_PAY=assignable_and_routed_inline"
 echo "SUMUP_WERO=not_supported"
 echo "SUMUP_WIDGET_THEME=PayMyDine_theme_variables"
+echo "SUMUP_RUNTIME=card+apple_pay+google_pay"
 echo "FRONTEND_SERVICE=$FRONT_SERVICE"
 echo "DATABASE_MIGRATIONS=none"
 echo "BACKUP=$BACKUP"
