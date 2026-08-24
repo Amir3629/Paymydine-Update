@@ -19,83 +19,58 @@ class CashDrawerService
     }
 
     /**
-     * Open cash drawer
-     * @param int|Cash_drawers_model $drawer Drawer ID or model instance
-     * @param array $data Additional data (order_id, location_id, trigger_method)
-     * @return array ['success' => bool, 'message' => string]
+     * Open cash drawer.
+     * A paired restaurant drawer is ALWAYS executed by the Local POS Agent.
+     * The cloud VPS must never fall through to a USB/Windows/COM driver for
+     * hardware that physically lives in the restaurant.
      */
     public static function openDrawer($drawer, array $data = []): array
     {
         try {
-            // Get drawer model
             if (is_numeric($drawer)) {
                 $drawer = Cash_drawers_model::find($drawer);
             }
 
             if (!$drawer || !$drawer instanceof Cash_drawers_model) {
-                return [
-                    'success' => false,
-                    'message' => 'Cash drawer not found',
-                ];
+                return ['success' => false, 'message' => 'Cash drawer not found'];
             }
 
-            // Check if drawer is enabled
             if (!$drawer->status) {
-                return [
-                    'success' => false,
-                    'message' => 'Cash drawer is disabled',
-                ];
+                return ['success' => false, 'message' => 'Cash drawer is disabled'];
             }
 
-            // Local POS agent execution path (physical hardware on in-store POS terminal) - primary path
             if (self::shouldUseLocalAgent($drawer)) {
                 $queued = LocalPosHardwareCommandService::queueOpenDrawer($drawer, $data);
-                if ($queued['success']) {
-                    self::logEvent($drawer, 'queued', array_merge($data, [
-                        'success' => true,
-                        'response_data' => ['command_id' => $queued['command_id'] ?? null],
-                    ]));
-                    return $queued;
-                }
+                self::logEvent($drawer, !empty($queued['success']) ? 'queued' : 'queue_error', array_merge($data, [
+                    'success' => !empty($queued['success']),
+                    'error_message' => !empty($queued['success']) ? null : ($queued['message'] ?? 'Unable to queue local drawer command'),
+                    'response_data' => [
+                        'queued' => $queued['queued'] ?? false,
+                        'duplicate' => $queued['duplicate'] ?? false,
+                        'command_id' => $queued['command_id'] ?? null,
+                    ],
+                ]));
 
-                // If local queue fails, keep direct-driver fallback only when explicitly allowed.
-                if (config('cashdrawer.local_agent_enabled', false)) {
-                    return $queued;
-                }
+                return $queued;
             }
 
-            // Create driver
             $driver = CashDrawerDriverFactory::createDriver($drawer);
-
             if (!$driver) {
-                $error = 'Failed to create driver for drawer: ' . $drawer->name;
-                self::logEvent($drawer, 'error', array_merge($data, [
-                    'error_message' => $error,
-                ]));
-                return [
-                    'success' => false,
-                    'message' => $error,
-                ];
+                $error = 'Failed to create driver for drawer: '.$drawer->name;
+                self::logEvent($drawer, 'error', array_merge($data, ['error_message' => $error]));
+                return ['success' => false, 'message' => $error];
             }
 
-            // Connect and open
             if (!$driver->connect()) {
-                $error = 'Failed to connect: ' . ($driver->getLastError() ?? 'Unknown error');
-                self::logEvent($drawer, 'error', array_merge($data, [
-                    'error_message' => $error,
-                ]));
+                $error = 'Failed to connect: '.($driver->getLastError() ?? 'Unknown error');
+                self::logEvent($drawer, 'error', array_merge($data, ['error_message' => $error]));
                 $driver->disconnect();
-                return [
-                    'success' => false,
-                    'message' => $error,
-                ];
+                return ['success' => false, 'message' => $error];
             }
 
-            // Open drawer
             $opened = $driver->open();
             $driver->disconnect();
 
-            // Log event
             self::logEvent($drawer, $opened ? 'open' : 'error', array_merge($data, [
                 'success' => $opened,
                 'error_message' => $opened ? null : ($driver->getLastError() ?? 'Failed to open drawer'),
@@ -103,50 +78,32 @@ class CashDrawerService
 
             return [
                 'success' => $opened,
-                'message' => $opened 
-                    ? 'Cash drawer opened successfully' 
-                    : ('Failed to open drawer: ' . ($driver->getLastError() ?? 'Unknown error')),
+                'message' => $opened
+                    ? 'Cash drawer opened successfully'
+                    : ('Failed to open drawer: '.($driver->getLastError() ?? 'Unknown error')),
             ];
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             Log::error('Cash Drawer Service: Exception opening drawer', [
                 'drawer' => is_object($drawer) ? $drawer->drawer_id : $drawer,
                 'error' => $e->getMessage(),
                 'trace' => $e->getTraceAsString(),
             ]);
 
-            return [
-                'success' => false,
-                'message' => 'Exception: ' . $e->getMessage(),
-            ];
+            return ['success' => false, 'message' => 'Exception: '.$e->getMessage()];
         }
     }
 
-    /**
-     * Open drawer for location (uses default drawer)
-     * @param int $locationId
-     * @param array $data Additional data
-     * @return array
-     */
     public static function openDrawerForLocation(int $locationId, array $data = []): array
     {
         $drawer = Cash_drawers_model::getDefaultDrawer($locationId);
-
         if (!$drawer) {
-            return [
-                'success' => false,
-                'message' => 'No cash drawer configured for this location',
-            ];
+            return ['success' => false, 'message' => 'No cash drawer configured for this location'];
         }
 
         $data['location_id'] = $locationId;
         return self::openDrawer($drawer, $data);
     }
 
-    /**
-     * Test drawer connection
-     * @param int|Cash_drawers_model $drawer
-     * @return array
-     */
     public static function testDrawer($drawer, array $data = []): array
     {
         try {
@@ -155,10 +112,7 @@ class CashDrawerService
             }
 
             if (!$drawer || !$drawer instanceof Cash_drawers_model) {
-                return [
-                    'success' => false,
-                    'message' => 'Cash drawer not found',
-                ];
+                return ['success' => false, 'message' => 'Cash drawer not found'];
             }
 
             if (self::shouldUseLocalAgent($drawer)) {
@@ -181,29 +135,16 @@ class CashDrawerService
             }
 
             $result = CashDrawerDriverFactory::testDriver($drawer);
-
-            // Log test event
             self::logEvent($drawer, 'test', [
                 'success' => $result['success'],
                 'error_message' => $result['success'] ? null : $result['message'],
             ]);
-
             return $result;
-        } catch (\Exception $e) {
-            return [
-                'success' => false,
-                'message' => 'Exception: ' . $e->getMessage(),
-            ];
+        } catch (\Throwable $e) {
+            return ['success' => false, 'message' => 'Exception: '.$e->getMessage()];
         }
     }
 
-    /**
-     * Log drawer event
-     * @param Cash_drawers_model $drawer
-     * @param string $action
-     * @param array $data
-     * @return Cash_drawer_logs_model
-     */
     protected static function logEvent(Cash_drawers_model $drawer, string $action, array $data = []): Cash_drawer_logs_model
     {
         return Cash_drawer_logs_model::logEvent($drawer->drawer_id, $action, [
@@ -216,11 +157,6 @@ class CashDrawerService
         ]);
     }
 
-    /**
-     * Get drawer status
-     * @param int|Cash_drawers_model $drawer
-     * @return array
-     */
     public static function getDrawerStatus($drawer): array
     {
         try {
@@ -229,10 +165,7 @@ class CashDrawerService
             }
 
             if (!$drawer || !$drawer instanceof Cash_drawers_model) {
-                return [
-                    'success' => false,
-                    'message' => 'Cash drawer not found',
-                ];
+                return ['success' => false, 'message' => 'Cash drawer not found'];
             }
 
             if (self::shouldUseLocalAgent($drawer)) {
@@ -260,10 +193,7 @@ class CashDrawerService
 
             $driver = CashDrawerDriverFactory::createDriver($drawer);
             if (!$driver) {
-                return [
-                    'success' => false,
-                    'message' => 'Failed to create driver',
-                ];
+                return ['success' => false, 'message' => 'Failed to create driver'];
             }
 
             $connected = $driver->connect();
@@ -276,11 +206,8 @@ class CashDrawerService
                 'is_open' => $isOpen,
                 'status' => $drawer->status ? 'enabled' : 'disabled',
             ];
-        } catch (\Exception $e) {
-            return [
-                'success' => false,
-                'message' => 'Exception: ' . $e->getMessage(),
-            ];
+        } catch (\Throwable $e) {
+            return ['success' => false, 'message' => 'Exception: '.$e->getMessage()];
         }
     }
 }
