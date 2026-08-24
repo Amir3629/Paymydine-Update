@@ -121,6 +121,22 @@ if old_methods in front:
 elif 'const requestedMethods = requestedSumupMethods(props.methodCode)' not in front:
     raise SystemExit('ERROR: frontend strict method filter anchor missing')
 
+# Status verification is bound to this exact PMD order, amount and currency.
+old_status = "last = await requestJson('/api/v1/payments/sumup/widget/status', { checkout_id: checkoutId })"
+new_status = """last = await requestJson('/api/v1/payments/sumup/widget/status', {
+        checkout_id: checkoutId,
+        order_id: props.orderId,
+        amount,
+        currency: String(props.currency || 'EUR').toUpperCase(),
+      })"""
+if new_status not in front:
+    if old_status not in front:
+        raise SystemExit('ERROR: frontend status verification anchor missing')
+    front = front.replace(old_status, new_status, 1)
+    print('FRONTEND_STATUS_BINDING=PATCHED')
+else:
+    print('FRONTEND_STATUS_BINDING=ALREADY_PATCHED')
+
 # Make the UI visibly prove which PMD method is being rendered.
 if 'data-pmd-sumup-method={props.methodCode}' not in front:
     front = front.replace(
@@ -168,6 +184,8 @@ for rel, needle in [
     (front_rel, 'payment_method: props.methodCode'),
     (front_rel, 'const requestedMethods = requestedSumupMethods(props.methodCode)'),
     (front_rel, 'data-pmd-sumup-method={props.methodCode}'),
+    (front_rel, 'order_id: props.orderId'),
+    (front_rel, "currency: String(props.currency || 'EUR').toUpperCase()"),
 ]:
     _, text = read(rel)
     if needle not in text:
