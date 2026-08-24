@@ -27,6 +27,24 @@ function runPowerShell(args, timeout = 15000) {
   }).trim();
 }
 
+function retireLegacyConnector() {
+  if (process.platform !== 'win32') return { ok: true, skipped: true };
+  const script = [
+    "$ErrorActionPreference='SilentlyContinue'",
+    "Stop-ScheduledTask -TaskName 'PayMyDineLocalPosAgent' -ErrorAction SilentlyContinue",
+    "Unregister-ScheduledTask -TaskName 'PayMyDineLocalPosAgent' -Confirm:$false -ErrorAction SilentlyContinue",
+    "$p=@(Get-CimInstance Win32_Process -Filter \"Name='node.exe'\" | Where-Object { $_.CommandLine -like '*PayMyDine\\LocalPosAgent\\agent.js*' })",
+    "$p | ForEach-Object { Stop-Process -Id $_.ProcessId -Force -ErrorAction SilentlyContinue }",
+    "Write-Output ('RETIRED=' + $p.Count)",
+  ].join(';');
+  try {
+    return { ok: true, output: runPowerShell(['-Command', script], 10000) };
+  } catch (error) {
+    // Migration is best-effort. The desktop hardware path must still start.
+    return { ok: false, message: error.message };
+  }
+}
+
 function listPrinters() {
   const script = [
     "$ErrorActionPreference='Stop'",
@@ -176,9 +194,15 @@ async function diagnoseDrawer(baseDir, printerName) {
   return { ok: attempts.some((row) => row.ok), attempts };
 }
 
+// The desktop app becomes the single local hardware owner. Retire the old
+// scheduled Connector so a cash sale can never be acted on by two processes.
+const legacyConnectorRetirement = retireLegacyConnector();
+
 module.exports = {
   DEFAULT_DRAWER_COMMAND,
   DRAWER_COMMANDS,
+  legacyConnectorRetirement,
+  retireLegacyConnector,
   listPrinters,
   resolvePrinterName,
   testPrint,
