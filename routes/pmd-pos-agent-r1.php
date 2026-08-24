@@ -4,13 +4,13 @@ use Admin\Controllers\Api\PosAgentR1Controller;
 use Illuminate\Support\Facades\Route;
 
 /*
- * PMD_LOCAL_POS_AGENT_SYSTEM_AUTHORITY_R25
+ * PMD_LOCAL_POS_AGENT_API_AUTHORITY_R26
  *
- * This file is loaded from System\ServiceProvider, which is autoloaded for
- * every Laravel request. Nginx already sends /api/v1/* to Laravel, so the
- * complete public hardware-bridge URI is registered here.
+ * routes/api.php is already loaded by Laravel under the public /api prefix.
+ * Therefore this file must only add v1/pmd-pos-agent, producing the final
+ * public endpoints /api/v1/pmd-pos-agent/* exactly once.
  */
-Route::prefix('api/v1/pmd-pos-agent')->middleware(['cors'])->group(function () {
+Route::prefix('v1/pmd-pos-agent')->middleware(['cors'])->group(function () {
     Route::get('agent.js', function () {
         $path = base_path('tools/local-pos-agent/agent.js');
         if (!is_file($path)) {
@@ -36,7 +36,7 @@ Route::prefix('api/v1/pmd-pos-agent')->middleware(['cors'])->group(function () {
         return response($content, 200, [
             'Content-Type' => 'application/javascript; charset=UTF-8',
             'Cache-Control' => 'no-store, max-age=0',
-            'X-PMD-Local-Agent' => 'R2.5',
+            'X-PMD-Local-Agent' => 'R2.6',
         ]);
     });
 
