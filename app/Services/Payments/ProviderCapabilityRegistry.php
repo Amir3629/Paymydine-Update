@@ -23,14 +23,9 @@ final class ProviderCapabilityRegistry
     public const METHOD_CASH_APP = 'cash_app';
 
     /**
-     * Two levels are intentionally kept separate:
-     *
-     * - capabilities/payment_methods: provider product catalogue that an
-     *   adapter may expose after merchant/country/environment discovery.
-     * - implemented_*: flows PayMyDine can route end-to-end today.
-     *
-     * The UI must never enable a catalogue item merely because it appears in
-     * this file. Runtime discovery and implemented_* are the safety gates.
+     * Catalogue capability and implemented runtime capability are deliberately
+     * separate. A method can only be offered when both this implemented matrix
+     * and the tenant/provider runtime readiness checks pass.
      */
     public function definitions(): array
     {
@@ -45,14 +40,10 @@ final class ProviderCapabilityRegistry
                     self::CAPABILITY_WEBHOOKS,
                     self::CAPABILITY_OAUTH,
                 ],
-                // PayMyDine exposes one simple Card / Wallet choice. The
-                // embedded SumUp Payment Widget renders Card and, when the
-                // merchant/checkout/browser is eligible, Apple Pay and Google
-                // Pay inside the same PayMyDine checkout. Current public SumUp
-                // online-payment methods do not advertise Wero, so Wero stays
-                // with providers whose implemented flow explicitly supports it.
                 'payment_methods' => [
                     self::METHOD_CARD,
+                    self::METHOD_APPLE_PAY,
+                    self::METHOD_GOOGLE_PAY,
                 ],
                 'implemented_capabilities' => [
                     self::CAPABILITY_ONLINE_PAYMENTS,
@@ -61,6 +52,8 @@ final class ProviderCapabilityRegistry
                 ],
                 'implemented_payment_methods' => [
                     self::METHOD_CARD,
+                    self::METHOD_APPLE_PAY,
+                    self::METHOD_GOOGLE_PAY,
                 ],
             ],
             'stripe' => [
@@ -88,6 +81,8 @@ final class ProviderCapabilityRegistry
                 ],
                 'implemented_payment_methods' => [
                     self::METHOD_CARD,
+                    self::METHOD_APPLE_PAY,
+                    self::METHOD_GOOGLE_PAY,
                 ],
             ],
             'square' => [
@@ -125,10 +120,23 @@ final class ProviderCapabilityRegistry
                 ],
                 'payment_methods' => [
                     self::METHOD_CARD,
+                    self::METHOD_APPLE_PAY,
+                    self::METHOD_GOOGLE_PAY,
                     self::METHOD_WERO,
+                    self::METHOD_PAYPAL,
                 ],
-                'implemented_capabilities' => [],
-                'implemented_payment_methods' => [],
+                'implemented_capabilities' => [
+                    self::CAPABILITY_ONLINE_PAYMENTS,
+                    self::CAPABILITY_TERMINAL_PAYMENTS,
+                    self::CAPABILITY_WEBHOOKS,
+                ],
+                'implemented_payment_methods' => [
+                    self::METHOD_CARD,
+                    self::METHOD_APPLE_PAY,
+                    self::METHOD_GOOGLE_PAY,
+                    self::METHOD_WERO,
+                    self::METHOD_PAYPAL,
+                ],
             ],
             'worldline' => [
                 'label' => 'Worldline',
@@ -181,37 +189,21 @@ final class ProviderCapabilityRegistry
 
     public function supportsCapability(string $providerCode, string $capability): bool
     {
-        return in_array(
-            $capability,
-            $this->provider($providerCode)['capabilities'] ?? [],
-            true
-        );
+        return in_array($capability, $this->provider($providerCode)['capabilities'] ?? [], true);
     }
 
     public function supportsPaymentMethod(string $providerCode, string $method): bool
     {
-        return in_array(
-            $method,
-            $this->provider($providerCode)['payment_methods'] ?? [],
-            true
-        );
+        return in_array($method, $this->provider($providerCode)['payment_methods'] ?? [], true);
     }
 
     public function implementsCapability(string $providerCode, string $capability): bool
     {
-        return in_array(
-            $capability,
-            $this->provider($providerCode)['implemented_capabilities'] ?? [],
-            true
-        );
+        return in_array($capability, $this->provider($providerCode)['implemented_capabilities'] ?? [], true);
     }
 
     public function implementsPaymentMethod(string $providerCode, string $method): bool
     {
-        return in_array(
-            $method,
-            $this->provider($providerCode)['implemented_payment_methods'] ?? [],
-            true
-        );
+        return in_array($method, $this->provider($providerCode)['implemented_payment_methods'] ?? [], true);
     }
 }
