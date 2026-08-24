@@ -177,7 +177,7 @@ if 'styles.sumupInlineBox' not in sumup or 'styles.sumupCardFrame' not in sumup:
 sumup_path.write_text(sumup)
 print('SUMUP_STANDALONE_WALLET_FILTER=PATCHED')
 
-# 4) Theme-aware SumUp styling. Every global selector is scoped under a local
+# 4) Theme-aware SumUp styling. Every global hook is nested under a local
 # CSS-module class so Next 16 pure-selector validation remains satisfied.
 css_rel = 'frontend-v2/src/runtime/components/RuntimeOverlays.module.css'
 css_path, css = read(css_rel)
@@ -206,23 +206,23 @@ if marker not in css:
   box-shadow: none !important;
   font-family: inherit !important;
 }
-.sumupInlineBox :global([data-sumup-id="widget__container"] input) {
+.sumupInlineBox :global([data-sumup-id="widget__container"]) input {
   border-color: var(--pmd-line, rgba(0,0,0,.16)) !important;
   border-radius: .78rem !important;
   background: var(--pmd-control, transparent) !important;
   color: var(--pmd-text, #161616) !important;
   font-family: inherit !important;
 }
-.sumupInlineBox :global([data-sumup-id="widget__container"] label),
-.sumupInlineBox :global([data-sumup-id="widget__container"] h1),
-.sumupInlineBox :global([data-sumup-id="widget__container"] h2),
-.sumupInlineBox :global([data-sumup-id="widget__container"] h3),
-.sumupInlineBox :global([data-sumup-id="widget__container"] p),
-.sumupInlineBox :global([data-sumup-id="widget__container"] span) {
+.sumupInlineBox :global([data-sumup-id="widget__container"]) label,
+.sumupInlineBox :global([data-sumup-id="widget__container"]) h1,
+.sumupInlineBox :global([data-sumup-id="widget__container"]) h2,
+.sumupInlineBox :global([data-sumup-id="widget__container"]) h3,
+.sumupInlineBox :global([data-sumup-id="widget__container"]) p,
+.sumupInlineBox :global([data-sumup-id="widget__container"]) span {
   color: inherit !important;
   font-family: inherit !important;
 }
-.sumupInlineBox :global([data-sumup-id="widget__container"] a) {
+.sumupInlineBox :global([data-sumup-id="widget__container"]) a {
   color: var(--pmd-accent, currentColor) !important;
 }
 '''
