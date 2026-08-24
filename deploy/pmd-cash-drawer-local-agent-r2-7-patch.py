@@ -65,7 +65,7 @@ def patch_cash_drawers():
         "$agentUrl = $adminBase.'/api/pmd-pos-agent/agent.js';",
         "$agentUrl = $adminBase.'/cash_drawers/windows_connector_agent/'.$drawer->drawer_id;",
     ]
-    replacement = "$agentUrl = admin_url('cash_drawers/windows_connector_agent/'.$drawer->drawer_id); // PMD_CASH_DRAWER_DIRECT_AGENT_DOWNLOAD_R27"
+    replacement = "$agentUrl = $adminBase.'/'.trim((string)config('system.adminUri', 'admin'), '/').'/cash_drawers/windows_connector_agent/'.$drawer->drawer_id; // PMD_CASH_DRAWER_DIRECT_AGENT_DOWNLOAD_R27"
     if replacement not in s:
         matches = [old for old in old_urls if old in s]
         if len(matches) != 1:
