@@ -129,6 +129,22 @@ def patch_cash_drawers():
         1,
     )
 
+    # A re-download is an intentional clean re-pair. Stop only the old PMD
+    # Node process (not unrelated Node apps) and remove stale state.json before
+    # the new Agent starts. This avoids an old process keeping port 17877.
+    marker = 'PMD_CASH_DRAWER_WINDOWS_CLEAN_REINSTALL_R27'
+    if marker not in s:
+        anchor = '        return "@echo off\\r\\n"\n'
+        if anchor not in s:
+            raise SystemExit('R2.7 Windows connector return anchor missing')
+        block = r'''        return "@echo off\r\n"
+            ."rem PMD_CASH_DRAWER_WINDOWS_CLEAN_REINSTALL_R27\r\n"
+            ."schtasks /end /tn \"PayMyDineLocalPosAgent\" >nul 2>&1\r\n"
+            ."powershell -NoProfile -Command \"Get-CimInstance Win32_Process -Filter \\\"Name='node.exe'\\\" ^| Where-Object { \$_.CommandLine -like '*PayMyDine*LocalPosAgent*agent.js*' } ^| ForEach-Object { Stop-Process -Id \$_.ProcessId -Force -ErrorAction SilentlyContinue }\" >nul 2>&1\r\n"
+            ."if exist \"%ProgramData%\\PayMyDine\\LocalPosAgent\\state.json\" del /f /q \"%ProgramData%\\PayMyDine\\LocalPosAgent\\state.json\" >nul 2>&1\r\n"
+'''
+        s = s.replace(anchor, block, 1)
+
     p.write_text(s)
 
 
