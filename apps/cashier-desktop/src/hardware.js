@@ -50,12 +50,8 @@ function listPrinters() {
 
 function resolvePrinterName(requested) {
   const explicit = String(requested || '').trim();
+  if (explicit) return explicit;
   const printers = listPrinters().filter((row) => !row.offline);
-  if (explicit) {
-    const match = printers.find((row) => row.name === explicit);
-    if (!match) throw new Error(`Windows printer not found: ${explicit}`);
-    return match.name;
-  }
   const preferred = printers.find((row) => row.default) || (printers.length === 1 ? printers[0] : null);
   if (!preferred) throw new Error('Select a receipt printer in PayMyDine Cashier hardware setup.');
   return preferred.name;
