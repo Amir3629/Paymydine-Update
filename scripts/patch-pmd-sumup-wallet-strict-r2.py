@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 from pathlib import Path
+import re
 import sys
 
 if len(sys.argv) != 2:
@@ -122,25 +123,42 @@ elif 'const requestedMethods = requestedSumupMethods(props.methodCode)' not in f
     raise SystemExit('ERROR: frontend strict method filter anchor missing')
 
 # Status verification is bound to this exact PMD order, amount and currency.
-old_status = "last = await requestJson('/api/v1/payments/sumup/widget/status', { checkout_id: checkoutId })"
-new_status = """last = await requestJson('/api/v1/payments/sumup/widget/status', {
+# Older R1 deployments already added the same security binding in a compact
+# one-line object. Accept that form as canonical instead of failing on whitespace.
+status_call_re = re.compile(
+    r"last\s*=\s*await\s+requestJson\(\s*['\"]\/api\/v1\/payments\/sumup\/widget\/status['\"]\s*,\s*\{(?P<body>.*?)\}\s*\)",
+    re.DOTALL,
+)
+status_matches = list(status_call_re.finditer(front))
+if len(status_matches) != 1:
+    raise SystemExit(f'ERROR: expected exactly one frontend status verification call, found {len(status_matches)}')
+status_match = status_matches[0]
+status_body = status_match.group('body')
+status_required = (
+    re.search(r'\bcheckout_id\s*:\s*checkoutId\b', status_body),
+    re.search(r'\border_id\s*:\s*props\.orderId\b', status_body),
+    re.search(r'(?:^|,)\s*amount\s*(?:,|$)', status_body),
+    re.search(r"\bcurrency\s*:\s*String\(props\.currency\s*\|\|\s*['\"]EUR['\"]\)\.toUpperCase\(\)", status_body),
+)
+if all(status_required):
+    print('FRONTEND_STATUS_BINDING=ALREADY_PATCHED')
+else:
+    canonical_status = """last = await requestJson('/api/v1/payments/sumup/widget/status', {
         checkout_id: checkoutId,
         order_id: props.orderId,
         amount,
         currency: String(props.currency || 'EUR').toUpperCase(),
       })"""
-if new_status not in front:
-    if old_status not in front:
-        raise SystemExit('ERROR: frontend status verification anchor missing')
-    front = front.replace(old_status, new_status, 1)
+    front = front[:status_match.start()] + canonical_status + front[status_match.end():]
     print('FRONTEND_STATUS_BINDING=PATCHED')
-else:
-    print('FRONTEND_STATUS_BINDING=ALREADY_PATCHED')
 
 # Make the UI visibly prove which PMD method is being rendered.
 if 'data-pmd-sumup-method={props.methodCode}' not in front:
+    old_marker = 'data-pmd-sumup-inline-widget="r1"'
+    if old_marker not in front:
+        raise SystemExit('ERROR: frontend SumUp widget marker missing')
     front = front.replace(
-        'data-pmd-sumup-inline-widget="r1"',
+        old_marker,
         'data-pmd-sumup-inline-widget="r1" data-pmd-sumup-method={props.methodCode}',
         1,
     )
@@ -158,7 +176,10 @@ if 'const requestedMethodTitle =' not in front:
     if anchor not in front:
         raise SystemExit('ERROR: frontend requested method title anchor missing')
     front = front.replace(anchor, replacement, 1)
-    front = front.replace('{copy.secure}</div>', '{requestedMethodTitle}</div>', 1)
+    secure_title = '{copy.secure}</div>'
+    if secure_title not in front:
+        raise SystemExit('ERROR: frontend secure title render anchor missing')
+    front = front.replace(secure_title, '{requestedMethodTitle}</div>', 1)
 
 front_path.write_text(front)
 print('FRONTEND_STRICT_WALLET_METHOD=PATCHED')
@@ -174,7 +195,12 @@ if old_note in wallet_js:
 elif new_note in wallet_js:
     print('OWNER_WALLET_NOTE=ALREADY_PATCHED')
 else:
-    raise SystemExit('ERROR: wallet owner note anchor missing')
+    # R3 may already have replaced this sentence with the upload-managed wording.
+    r3_note = "Apple Pay: download the verification file from SumUp once, upload it here, then register this exact tenant domain in SumUp. PayMyDine hosts the public .well-known URL automatically. Google Pay production still requires Google web approval and a Google Merchant ID. Wero is not a SumUp online method."
+    if r3_note in wallet_js:
+        print('OWNER_WALLET_NOTE=R3_ALREADY_PATCHED')
+    else:
+        raise SystemExit('ERROR: wallet owner note anchor missing')
 
 # Final contract checks.
 for rel, needle in [
