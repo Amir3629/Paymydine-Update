@@ -116,7 +116,23 @@ elif new_registry in registry:
 else:
     raise SystemExit('ERROR: SumUp registry block not recognized')
 
-# 3) Widget: Card/Wallet shows all eligible methods; standalone wallet rows
+# 3) Runtime routing: all three SumUp online methods must enter the embedded
+# widget. The component itself filters standalone wallet rows to that wallet.
+runtime_rel = 'frontend-v2/src/runtime/components/RuntimeOverlays.tsx'
+runtime_path, runtime = read(runtime_rel)
+old_predicate = "selectedProvider === 'sumup' && selectedCode === 'card'"
+new_predicate = "selectedProvider === 'sumup' && ['card', 'apple_pay', 'google_pay'].includes(selectedCode)"
+count = runtime.count(old_predicate)
+if count:
+    runtime = runtime.replace(old_predicate, new_predicate)
+    runtime_path.write_text(runtime)
+    print(f'RUNTIME_SUMUP_WALLET_PREDICATES_PATCHED={count}')
+elif runtime.count(new_predicate) >= 2:
+    print('RUNTIME_SUMUP_WALLET_PREDICATES=ALREADY_PATCHED')
+else:
+    raise SystemExit('ERROR: SumUp runtime predicates not recognized')
+
+# 4) Widget: Card/Wallet shows all eligible methods; standalone wallet rows
 # filter the SumUp widget to exactly that wallet.
 sumup_rel = 'frontend-v2/src/runtime/components/SumupInlinePayment.tsx'
 sumup_path, sumup = read(sumup_rel)
@@ -177,7 +193,7 @@ if 'styles.sumupInlineBox' not in sumup or 'styles.sumupCardFrame' not in sumup:
 sumup_path.write_text(sumup)
 print('SUMUP_STANDALONE_WALLET_FILTER=PATCHED')
 
-# 4) Theme-aware SumUp styling. Every global hook is nested under a local
+# 5) Theme-aware SumUp styling. Every global hook is nested under a local
 # CSS-module class so Next 16 pure-selector validation remains satisfied.
 css_rel = 'frontend-v2/src/runtime/components/RuntimeOverlays.module.css'
 css_path, css = read(css_rel)
