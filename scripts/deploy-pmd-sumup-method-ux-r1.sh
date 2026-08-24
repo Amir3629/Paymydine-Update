@@ -95,6 +95,7 @@ php -l "$STAGE/app/Services/Payments/ProviderCapabilityRegistry.php"
 grep -Fq "'apple_pay' => ['stripe', 'sumup', 'vr_payment']" "$STAGE/app/admin/models/Payments_model.php"
 grep -Fq "'google_pay' => ['stripe', 'sumup', 'vr_payment']" "$STAGE/app/admin/models/Payments_model.php"
 grep -Fq 'PMD_METHOD_PROVIDER_IS_ENABLEMENT_R1' "$STAGE/app/admin/controllers/Payments.php"
+grep -Fq 'PMD_METHOD_PROVIDER_NOT_OFFERED_R1' "$STAGE/app/admin/controllers/Payments.php"
 grep -Fq 'self::METHOD_APPLE_PAY' "$STAGE/app/Services/Payments/ProviderCapabilityRegistry.php"
 grep -Fq 'self::METHOD_GOOGLE_PAY' "$STAGE/app/Services/Payments/ProviderCapabilityRegistry.php"
 grep -Fq 'Not offered' "$STAGE/$FORM"
@@ -123,7 +124,7 @@ sudo -u ubuntu -H env FRONT_STAGE="$FRONT_STAGE" bash -c '
   npm run build -- --webpack
 '
 [ -d "$FRONT_STAGE/.next" ] || { echo "ERROR: frontend build produced no .next"; exit 9; }
-if ! grep -Rsl --binary-files=text 'requestedSumupMethods' "$FRONT_STAGE/.next" >/dev/null 2>&1; then
+if ! grep -Rsl --binary-files=text 'is not available for this SumUp checkout' "$FRONT_STAGE/.next" >/dev/null 2>&1; then
   echo "ERROR: compiled frontend missing standalone SumUp wallet routing"
   exit 10
 fi
