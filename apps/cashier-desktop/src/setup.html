@@ -13,23 +13,28 @@
     h1 { margin: 18px 0 8px; font-size: 25px; }
     p { margin: 0 0 22px; line-height: 1.55; color: #5b7185; }
     label { display: block; font-weight: 700; margin-bottom: 8px; }
-    input { width: 100%; height: 48px; border: 1px solid #cfdde7; border-radius: 12px; padding: 0 14px; font-size: 16px; outline: none; }
+    .domain { display: flex; align-items: stretch; }
+    input { min-width: 0; flex: 1; height: 48px; border: 1px solid #cfdde7; border-right: 0; border-radius: 12px 0 0 12px; padding: 0 14px; font-size: 16px; outline: none; }
     input:focus { border-color: #4c779b; box-shadow: 0 0 0 3px rgba(76,119,155,.12); }
+    .suffix { display: grid; place-items: center; padding: 0 13px; border: 1px solid #cfdde7; border-radius: 0 12px 12px 0; background: #f5f8fa; color: #657d90; font-size: 14px; white-space: nowrap; }
     button { width: 100%; height: 48px; margin-top: 16px; border: 0; border-radius: 12px; background: #163a5f; color: #fff; font-size: 16px; font-weight: 800; cursor: pointer; }
-    .hint { margin-top: 12px; font-size: 13px; color: #7890a4; }
+    .hint { margin-top: 12px; font-size: 13px; color: #7890a4; line-height: 1.45; }
     .error { min-height: 20px; margin-top: 12px; color: #b42318; font-size: 14px; }
   </style>
 </head>
 <body>
   <main class="card">
     <div class="mark">PMD</div>
-    <h1>Set up PayMyDine Cashier</h1>
-    <p>Enter this restaurant's PayMyDine address. You only do this once on this POS computer.</p>
+    <h1>Set up this Cashier POS</h1>
+    <p>Choose the restaurant once. Then you sign in with the normal PayMyDine username and password.</p>
     <form id="setup-form">
-      <label for="tenant">Restaurant address</label>
-      <input id="tenant" autocomplete="off" placeholder="a.paymydine.com" required>
-      <button type="submit">Continue to Cashier</button>
-      <div class="hint">Example: mimoza.paymydine.com</div>
+      <label for="tenant">Restaurant code</label>
+      <div class="domain">
+        <input id="tenant" autocomplete="off" autocapitalize="none" spellcheck="false" placeholder="a" required>
+        <span class="suffix">.paymydine.com</span>
+      </div>
+      <button type="submit">Continue</button>
+      <div class="hint">Examples: <b>a</b>, <b>mimoza</b>, <b>tomo</b>. You can change the restaurant later from the PayMyDine menu.</div>
       <div class="error" id="error" role="alert"></div>
     </form>
   </main>
