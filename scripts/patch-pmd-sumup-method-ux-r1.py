@@ -54,6 +54,13 @@ replace_once(
 
 replace_once(
     'app/admin/controllers/Payments.php',
+    "        $compatible = array_keys($this->getCompatibleProviders($methodCode));\n        if (!$providerCode || !in_array($providerCode, $compatible, true)) {\n            throw new ApplicationException(\"Provider '{$providerCode}' is not compatible with '{$methodCode}'.\");\n        }",
+    "        // PMD_METHOD_PROVIDER_NOT_OFFERED_R1\n        // A blank provider is an explicit owner choice: do not offer this\n        // provider-backed method to guests. Compatibility is validated only\n        // when a provider is actually selected.\n        if (!$providerCode) {\n            return;\n        }\n\n        $compatible = array_keys($this->getCompatibleProviders($methodCode));\n        if (!in_array($providerCode, $compatible, true)) {\n            throw new ApplicationException(\"Provider '{$providerCode}' is not compatible with '{$methodCode}'.\");\n        }",
+    'METHOD_PROVIDER_NOT_OFFERED_VALIDATION',
+)
+
+replace_once(
+    'app/admin/controllers/Payments.php',
     "        if ((int)$postedDefault === 1) {\n            $model->status = 1;\n        }",
     "        if ((int)$postedDefault === 1) {\n            $model->status = 1;\n        }\n\n        // PMD_METHOD_PROVIDER_IS_ENABLEMENT_R1_FINAL\n        // A stale hidden default flag must never re-enable a provider-backed\n        // method after the owner selected Not offered.\n        if (in_array((string)$model->code, self::METHOD_CODES, true)\n            && !in_array((string)$model->code, ['cod', 'cash'], true)\n            && !strlen((string)$model->provider_code)) {\n            $model->status = 0;\n            $model->is_default = 0;\n        }",
     'METHOD_PROVIDER_ENABLEMENT_FINAL',
