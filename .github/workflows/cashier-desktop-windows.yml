@@ -19,19 +19,56 @@ jobs:
   build-windows:
     runs-on: windows-latest
     timeout-minutes: 30
-
-    defaults:
-      run:
-        working-directory: apps/cashier-desktop
+    permissions:
+      contents: read
 
     steps:
-      - name: Checkout Cashier app only
-        uses: actions/checkout@v4
-        with:
-          sparse-checkout: |
-            apps/cashier-desktop
-          sparse-checkout-cone-mode: true
-          fetch-depth: 1
+      - name: Download Cashier app files through GitHub API
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PMD_REPOSITORY: ${{ github.repository }}
+          PMD_REF: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $root = Join-Path $PWD 'apps/cashier-desktop'
+          New-Item -ItemType Directory -Force -Path (Join-Path $root 'src') | Out-Null
+
+          $files = @(
+            'package.json',
+            'README.md',
+            'src/main.js',
+            'src/preload.js',
+            'src/hardware.js',
+            'src/setup.html',
+            'src/setup.js',
+            'src/hardware.html',
+            'src/hardware-page.js',
+            'src/offline.html',
+            'src/offline.js'
+          )
+
+          $headers = @{
+            Authorization = "Bearer $env:GH_TOKEN"
+            Accept = 'application/vnd.github+json'
+            'X-GitHub-Api-Version' = '2022-11-28'
+            'User-Agent' = 'PayMyDine-Cashier-Build'
+          }
+
+          foreach ($relative in $files) {
+            $encodedPath = ($relative -split '/' | ForEach-Object { [uri]::EscapeDataString($_) }) -join '/'
+            $uri = "https://api.github.com/repos/$env:PMD_REPOSITORY/contents/apps/cashier-desktop/$encodedPath`?ref=$env:PMD_REF"
+            $item = Invoke-RestMethod -Headers $headers -Uri $uri -Method Get
+            if ($item.encoding -ne 'base64' -or [string]::IsNullOrWhiteSpace($item.content)) {
+              throw "Unexpected GitHub response for $relative"
+            }
+            $destination = Join-Path $root ($relative -replace '/', [IO.Path]::DirectorySeparatorChar)
+            $directory = Split-Path -Parent $destination
+            New-Item -ItemType Directory -Force -Path $directory | Out-Null
+            $bytes = [Convert]::FromBase64String(($item.content -replace '\s', ''))
+            [IO.File]::WriteAllBytes($destination, $bytes)
+            Write-Host "Downloaded $relative"
+          }
 
       - name: Setup Node
         uses: actions/setup-node@v4
@@ -39,12 +76,15 @@ jobs:
           node-version: '20'
 
       - name: Install dependencies
+        working-directory: apps/cashier-desktop
         run: npm install
 
       - name: Syntax check
+        working-directory: apps/cashier-desktop
         run: npm run check
 
       - name: Build Windows installer
+        working-directory: apps/cashier-desktop
         run: npm run dist:win
 
       - name: Upload installer
