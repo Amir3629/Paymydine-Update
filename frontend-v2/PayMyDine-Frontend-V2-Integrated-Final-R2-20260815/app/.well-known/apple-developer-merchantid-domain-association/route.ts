@@ -1,17 +1,52 @@
-import { gunzipSync } from 'node:zlib'
+import { readFile } from 'node:fs/promises'
+import path from 'node:path'
+import type { NextRequest } from 'next/server'
 
-const ASSOCIATION_GZIP_BASE64 = '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'
-const ASSOCIATION_BODY = gunzipSync(Buffer.from(ASSOCIATION_GZIP_BASE64, 'base64'))
+const PMD_ROOT = process.env.PMD_LARAVEL_ROOT || '/var/www/paymydine'
+const APPLE_PAY_DIR = path.join(PMD_ROOT, 'storage', 'app', 'pmd-wallets', 'apple-pay')
 
-export const dynamic = 'force-static'
+export const dynamic = 'force-dynamic'
 
-export async function GET() {
-  return new Response(ASSOCIATION_BODY, {
-    status: 200,
-    headers: {
-      'Content-Type': 'text/plain; charset=utf-8',
-      'Cache-Control': 'public, max-age=300',
-      'X-PMD-Wallet-Authority': 'apple-pay-domain-platform-r1',
-    },
-  })
+function requestHost(request: NextRequest): string {
+  const forwarded = String(request.headers.get('x-forwarded-host') || '').split(',')[0].trim()
+  const raw = forwarded || String(request.headers.get('host') || '').trim()
+  return raw.replace(/:\d+$/, '').toLowerCase()
+}
+
+function safeHost(host: string): boolean {
+  return host.length > 0
+    && host.length <= 253
+    && !host.includes('..')
+    && /^[a-z0-9](?:[a-z0-9.-]*[a-z0-9])?$/.test(host)
+}
+
+export async function GET(request: NextRequest) {
+  const host = requestHost(request)
+  if (!safeHost(host)) {
+    return new Response('Not found', { status: 404 })
+  }
+
+  try {
+    const association = await readFile(path.join(APPLE_PAY_DIR, `${host}.bin`))
+    if (association.length < 64 || association.length > 128 * 1024) {
+      return new Response('Not found', { status: 404 })
+    }
+
+    return new Response(association, {
+      status: 200,
+      headers: {
+        'Content-Type': 'text/plain',
+        'Cache-Control': 'public, max-age=300',
+        'X-PMD-Wallet-Authority': 'apple-pay-domain-managed-r3',
+      },
+    })
+  } catch {
+    return new Response('Apple Pay domain file is not configured for this tenant.', {
+      status: 404,
+      headers: {
+        'Cache-Control': 'no-store',
+        'X-PMD-Wallet-Authority': 'apple-pay-domain-managed-r3',
+      },
+    })
+  }
 }
