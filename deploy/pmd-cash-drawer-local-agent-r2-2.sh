@@ -16,21 +16,31 @@ sudo -u ubuntu git -C "$ROOT" show \
 
 sudo -u ubuntu git -C "$ROOT" show FETCH_HEAD:deploy/pmd-cash-drawer-local-agent-r2-1.sh > "$BASE_SCRIPT"
 
-# Reuse the reviewed R2.1 deployer but force it to fetch the R2.2 branch that
-# contains the corrected AdminController-aware patcher. Labels/query keys are
-# updated only for clear production logs; behavior remains the same.
+# Reuse the reviewed R2.1 deployer but force it to fetch the R2.2 branch.
+# IMPORTANT: keep uppercase R21 source-authority marker names unchanged.
+# The R2.2 patcher intentionally writes those existing canonical markers and
+# the verifier must check the same names. Only human-facing version labels and
+# temporary/cache query keys are rewritten here.
 sed -i \
   -e 's#feature/cash-drawer-local-agent-r2-1#feature/cash-drawer-local-agent-r2-2#g' \
   -e 's/R2\.1/R2.2/g' \
   -e 's/r21/r22/g' \
-  -e 's/R21/R22/g' \
   "$BASE_SCRIPT"
 
 bash -n "$BASE_SCRIPT"
 
+# Guard specifically against the regression that caused the previous refusal.
+grep -q "PMD_CASHIER_RECEIPT_TENANT_AUTHORITY_R21" "$BASE_SCRIPT" \
+  || { echo "R2.2 verifier marker regression detected" >&2; exit 1; }
+if grep -q "PMD_CASHIER_RECEIPT_TENANT_AUTHORITY_R22" "$BASE_SCRIPT"; then
+  echo "R2.2 invalid rewritten source marker detected" >&2
+  exit 1
+fi
+
 echo "============================================================"
 echo "PMD CASH DRAWER + LOCAL POS AGENT R2.2"
 echo "AdminController anchor + connector download action repair"
+echo "Receipt marker verifier regression repaired"
 echo "============================================================"
 
 exec bash "$BASE_SCRIPT"
