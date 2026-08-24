@@ -2,6 +2,7 @@
 
 const fs = require('fs');
 const path = require('path');
+const os = require('os');
 const { execFileSync } = require('child_process');
 
 const DEFAULT_DRAWER_COMMAND = '27,112,0,60,120';
@@ -12,23 +13,30 @@ const DRAWER_COMMANDS = [
   '16,20,1,0,5',
 ];
 
-function ensureWindows() {
-  if (process.platform !== 'win32') throw new Error('Local POS hardware is supported on Windows only.');
+function ensureSupportedPlatform() {
+  if (!['win32', 'darwin'].includes(process.platform)) {
+    throw new Error('Local POS hardware is supported on Windows and macOS.');
+  }
 }
 
-function runPowerShell(args, timeout = 15000) {
-  ensureWindows();
-  return execFileSync('powershell.exe', [
-    '-NoProfile', '-NonInteractive', '-ExecutionPolicy', 'Bypass', ...args,
-  ], {
+function runCommand(command, args, timeout = 15000) {
+  ensureSupportedPlatform();
+  return execFileSync(command, args || [], {
     encoding: 'utf8',
     windowsHide: true,
     timeout,
   }).trim();
 }
 
+function runPowerShell(args, timeout = 15000) {
+  if (process.platform !== 'win32') throw new Error('PowerShell printing is Windows-only.');
+  return runCommand('powershell.exe', [
+    '-NoProfile', '-NonInteractive', '-ExecutionPolicy', 'Bypass', ...args,
+  ], timeout);
+}
+
 function retireLegacyConnector() {
-  if (process.platform !== 'win32') return { ok: true, skipped: true };
+  if (process.platform !== 'win32') return { ok: true, skipped: true, platform: process.platform };
   const script = [
     "$ErrorActionPreference='SilentlyContinue'",
     "Stop-ScheduledTask -TaskName 'PayMyDineLocalPosAgent' -ErrorAction SilentlyContinue",
@@ -40,12 +48,11 @@ function retireLegacyConnector() {
   try {
     return { ok: true, output: runPowerShell(['-Command', script], 10000) };
   } catch (error) {
-    // Migration is best-effort. The desktop hardware path must still start.
     return { ok: false, message: error.message };
   }
 }
 
-function listPrinters() {
+function listPrintersWindows() {
   const script = [
     "$ErrorActionPreference='Stop'",
     "$rows=@(Get-CimInstance Win32_Printer | Select-Object Name,DriverName,PortName,Default,Network,WorkOffline,PrinterStatus)",
@@ -63,7 +70,57 @@ function listPrinters() {
     network: Boolean(row.Network),
     offline: Boolean(row.WorkOffline),
     status: row.PrinterStatus,
+    platform: 'windows',
   })).filter((row) => row.name);
+}
+
+function safeCommand(command, args) {
+  try {
+    return runCommand(command, args, 10000);
+  } catch (_) {
+    return '';
+  }
+}
+
+function listPrintersMac() {
+  const printerOutput = safeCommand('/usr/bin/lpstat', ['-p']);
+  const defaultOutput = safeCommand('/usr/bin/lpstat', ['-d']);
+  const deviceOutput = safeCommand('/usr/bin/lpstat', ['-v']);
+
+  const defaultMatch = defaultOutput.match(/system default destination:\s*(.+)$/im);
+  const defaultName = defaultMatch ? defaultMatch[1].trim() : '';
+
+  const devices = {};
+  deviceOutput.split(/\r?\n/).forEach((line) => {
+    const match = line.match(/^device for\s+(.+?):\s*(.+)$/i);
+    if (match) devices[match[1].trim()] = match[2].trim();
+  });
+
+  const rows = [];
+  printerOutput.split(/\r?\n/).forEach((line) => {
+    const match = line.match(/^printer\s+(.+?)\s+(?:is\s+|disabled\s+)/i);
+    if (!match) return;
+    const name = match[1].trim();
+    if (!name || rows.some((row) => row.name === name)) return;
+    const uri = devices[name] || '';
+    rows.push({
+      name,
+      driver: 'macOS CUPS',
+      port: uri,
+      default: name === defaultName,
+      network: /^(ipp|ipps|lpd|socket|smb):/i.test(uri),
+      offline: /\bdisabled\b/i.test(line),
+      status: /\bidle\b/i.test(line) ? 'idle' : line.replace(/^printer\s+\S+\s*/i, '').trim(),
+      platform: 'macOS',
+    });
+  });
+
+  return rows;
+}
+
+function listPrinters() {
+  ensureSupportedPlatform();
+  return process.platform === 'darwin' ? listPrintersMac() : listPrintersWindows();
 }
 
 function resolvePrinterName(requested) {
@@ -79,7 +136,7 @@ function rawScriptPath(baseDir) {
   return path.join(baseDir, 'pmd-raw-printer.ps1');
 }
 
-function ensureRawScript(baseDir) {
+function ensureWindowsRawScript(baseDir) {
   fs.mkdirSync(baseDir, { recursive: true });
   const target = rawScriptPath(baseDir);
   if (fs.existsSync(target)) return target;
@@ -144,14 +201,37 @@ Write-Output "OK"
   return target;
 }
 
-function sendRaw(baseDir, printerName, bytes) {
-  const targetPrinter = resolvePrinterName(printerName);
-  const ps1 = ensureRawScript(baseDir);
+function sendRawWindows(baseDir, printerName, bytes) {
+  const ps1 = ensureWindowsRawScript(baseDir);
   runPowerShell([
     '-File', ps1,
-    '-PrinterName', targetPrinter,
+    '-PrinterName', printerName,
     '-BytesBase64', Buffer.from(bytes).toString('base64'),
   ]);
+}
+
+function sendRawMac(baseDir, printerName, bytes) {
+  fs.mkdirSync(baseDir, { recursive: true });
+  const tempFile = path.join(
+    baseDir || os.tmpdir(),
+    `pmd-raw-${process.pid}-${Date.now()}-${Math.random().toString(16).slice(2)}.bin`,
+  );
+  fs.writeFileSync(tempFile, Buffer.from(bytes));
+  try {
+    runCommand('/usr/bin/lp', ['-d', printerName, '-o', 'raw', tempFile], 15000);
+  } finally {
+    try { fs.unlinkSync(tempFile); } catch (_) {}
+  }
+}
+
+function sendRaw(baseDir, printerName, bytes) {
+  ensureSupportedPlatform();
+  const targetPrinter = resolvePrinterName(printerName);
+  if (process.platform === 'darwin') {
+    sendRawMac(baseDir, targetPrinter, bytes);
+  } else {
+    sendRawWindows(baseDir, targetPrinter, bytes);
+  }
   return targetPrinter;
 }
 
@@ -167,7 +247,7 @@ function parseDrawerCommand(command) {
 function testPrint(baseDir, printerName) {
   const text = ['PayMyDine Cashier', 'Printer connection OK', new Date().toLocaleString(), '', ''].join('\r\n');
   const selected = sendRaw(baseDir, printerName, Buffer.from(text, 'ascii'));
-  return { ok: true, printerName: selected };
+  return { ok: true, printerName: selected, platform: process.platform };
 }
 
 function openDrawer(baseDir, printerName, command) {
@@ -178,6 +258,7 @@ function openDrawer(baseDir, printerName, command) {
     printerName: selected,
     command: String(command || DEFAULT_DRAWER_COMMAND),
     bytes: Array.from(bytes),
+    platform: process.platform,
   };
 }
 
@@ -191,11 +272,9 @@ async function diagnoseDrawer(baseDir, printerName) {
     }
     await new Promise((resolve) => setTimeout(resolve, 450));
   }
-  return { ok: attempts.some((row) => row.ok), attempts };
+  return { ok: attempts.some((row) => row.ok), attempts, platform: process.platform };
 }
 
-// The desktop app becomes the single local hardware owner. Retire the old
-// scheduled Connector so a cash sale can never be acted on by two processes.
 const legacyConnectorRetirement = retireLegacyConnector();
 
 module.exports = {
