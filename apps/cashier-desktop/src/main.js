@@ -7,6 +7,7 @@ const hardware = require('./hardware');
 
 const CASHIER_PATH = '/admin/cashierlab';
 const SETTLE_PATH = /^\/admin\/pmd-waiter-pos-v1\/payment-settle\/(\d+)\/?$/;
+const RECEIPT_PATH = /^\/admin\/orders\/split-receipt\/\d+\/?$/;
 const MAX_HANDLED_KEYS = 100;
 
 let mainWindow = null;
@@ -52,12 +53,7 @@ function saveSettings(next) {
 function normalizeTenant(value) {
   let tenant = String(value || '').trim().toLowerCase();
   tenant = tenant.replace(/^https?:\/\//, '').replace(/\/+$/, '');
-
-  // The simple setup asks for the restaurant code, e.g. "a" or "mimoza".
-  if (/^[a-z0-9][a-z0-9-]*$/.test(tenant)) {
-    tenant = `${tenant}.paymydine.com`;
-  }
-
+  if (/^[a-z0-9][a-z0-9-]*$/.test(tenant)) tenant = `${tenant}.paymydine.com`;
   if (!/^[a-z0-9][a-z0-9-]*\.paymydine\.com$/.test(tenant)) {
     throw new Error('Enter the restaurant code, for example: a or mimoza');
   }
@@ -153,7 +149,6 @@ function createSetupWindow() {
     setupWindow.focus();
     return;
   }
-
   setupWindow = new BrowserWindow(secureWindowOptions({
     width: 560,
     height: 520,
@@ -162,7 +157,6 @@ function createSetupWindow() {
     resizable: false,
     autoHideMenuBar: true,
   }));
-
   setupWindow.loadFile(path.join(__dirname, 'setup.html'));
   setupWindow.once('ready-to-show', () => setupWindow.show());
   setupWindow.on('closed', () => { setupWindow = null; });
@@ -174,12 +168,10 @@ function createHardwareWindow() {
     createSetupWindow();
     return;
   }
-
   if (hardwareWindow && !hardwareWindow.isDestroyed()) {
     hardwareWindow.focus();
     return;
   }
-
   hardwareWindow = new BrowserWindow(secureWindowOptions({
     width: 650,
     height: 690,
@@ -189,7 +181,6 @@ function createHardwareWindow() {
     autoHideMenuBar: true,
     parent: mainWindow && !mainWindow.isDestroyed() ? mainWindow : undefined,
   }));
-
   hardwareWindow.loadFile(path.join(__dirname, 'hardware.html'));
   hardwareWindow.once('ready-to-show', () => hardwareWindow.show());
   hardwareWindow.on('closed', () => { hardwareWindow = null; });
@@ -204,27 +195,33 @@ function createCashierWindow() {
 
   const tenant = normalizeTenant(settings.tenant);
   installCashSettlementWatcher(tenant);
-
-  mainWindow = new BrowserWindow(secureWindowOptions({
-    width: 1440,
-    height: 900,
-  }));
+  mainWindow = new BrowserWindow(secureWindowOptions({ width: 1440, height: 900 }));
 
   mainWindow.webContents.setWindowOpenHandler(({ url }) => {
-    if (isAllowedRemoteUrl(url, tenant)) return { action: 'allow' };
+    if (isAllowedRemoteUrl(url, tenant)) {
+      try {
+        const parsed = new URL(url);
+        if (RECEIPT_PATH.test(parsed.pathname) && readSettings().printerName) {
+          printRemoteUrl(url)
+            .then((result) => sendHardwareEvent({ type: 'receipt-printed', result }))
+            .catch((error) => sendHardwareEvent({ type: 'receipt-print-error', message: error.message }));
+          return { action: 'deny' };
+        }
+      } catch (_) {}
+      return { action: 'allow' };
+    }
     shell.openExternal(url).catch(() => {});
     return { action: 'deny' };
   });
 
   mainWindow.webContents.on('will-navigate', (event, url) => {
-    if (!isAllowedRemoteUrl(url, tenant)) {
-      event.preventDefault();
-      shell.openExternal(url).catch(() => {});
-    }
+    if (isAllowedRemoteUrl(url, tenant) || isTrustedLocalPage(url)) return;
+    event.preventDefault();
+    shell.openExternal(url).catch(() => {});
   });
 
   mainWindow.webContents.on('did-fail-load', (_event, errorCode, errorDescription, validatedUrl, isMainFrame) => {
-    if (!isMainFrame || errorCode === -3) return;
+    if (!isMainFrame || errorCode === -3 || isTrustedLocalPage(validatedUrl)) return;
     console.error('[PMD Desktop] Cashier load failed:', errorCode, errorDescription, validatedUrl);
     mainWindow.loadFile(path.join(__dirname, 'offline.html')).catch(() => {});
   });
@@ -234,17 +231,13 @@ function createCashierWindow() {
   mainWindow.on('closed', () => { mainWindow = null; });
 
   if (!settings.printerName) {
-    mainWindow.webContents.once('did-finish-load', () => {
-      setTimeout(() => createHardwareWindow(), 700);
-    });
+    mainWindow.webContents.once('did-finish-load', () => setTimeout(() => createHardwareWindow(), 700));
   }
 }
 
 function parseUploadJson(uploadData) {
   try {
-    const chunks = (uploadData || [])
-      .filter((row) => row && row.bytes)
-      .map((row) => Buffer.from(row.bytes));
+    const chunks = (uploadData || []).filter((row) => row && row.bytes).map((row) => Buffer.from(row.bytes));
     if (!chunks.length) return null;
     return JSON.parse(Buffer.concat(chunks).toString('utf8'));
   } catch (_) {
@@ -253,12 +246,8 @@ function parseUploadJson(uploadData) {
 }
 
 function sendHardwareEvent(payload) {
-  if (mainWindow && !mainWindow.isDestroyed()) {
-    mainWindow.webContents.send('pmd:hardware-event', payload);
-  }
-  if (hardwareWindow && !hardwareWindow.isDestroyed()) {
-    hardwareWindow.webContents.send('pmd:hardware-event', payload);
-  }
+  if (mainWindow && !mainWindow.isDestroyed()) mainWindow.webContents.send('pmd:hardware-event', payload);
+  if (hardwareWindow && !hardwareWindow.isDestroyed()) hardwareWindow.webContents.send('pmd:hardware-event', payload);
 }
 
 function handledCashKey(key) {
@@ -274,15 +263,9 @@ function rememberCashKey(key) {
 
 function handleSuccessfulCashSettlement(meta) {
   const settings = readSettings();
-  if (settings.autoOpenCash === false) return;
-  if (!meta || !meta.key || handledCashKey(meta.key)) return;
-
+  if (settings.autoOpenCash === false || !meta || !meta.key || handledCashKey(meta.key)) return;
   try {
-    const result = hardware.openDrawer(
-      hardwareDataDir(),
-      settings.printerName,
-      settings.drawerCommand || hardware.DEFAULT_DRAWER_COMMAND,
-    );
+    const result = hardware.openDrawer(hardwareDataDir(), settings.printerName, settings.drawerCommand || hardware.DEFAULT_DRAWER_COMMAND);
     rememberCashKey(meta.key);
     sendHardwareEvent({ type: 'cash-drawer-opened', orderId: meta.orderId, result });
   } catch (error) {
@@ -316,14 +299,10 @@ function installCashSettlementWatcher(tenant) {
     const pending = pendingCashRequests.get(details.id);
     if (!pending) return;
     pendingCashRequests.delete(details.id);
-    if (details.statusCode >= 200 && details.statusCode < 300) {
-      handleSuccessfulCashSettlement(pending);
-    }
+    if (details.statusCode >= 200 && details.statusCode < 300) handleSuccessfulCashSettlement(pending);
   });
 
-  ses.webRequest.onErrorOccurred(filter, (details) => {
-    pendingCashRequests.delete(details.id);
-  });
+  ses.webRequest.onErrorOccurred(filter, (details) => pendingCashRequests.delete(details.id));
 }
 
 async function printRemoteUrl(rawUrl) {
@@ -351,10 +330,7 @@ async function printRemoteUrl(rawUrl) {
       if (error) reject(error); else resolve(result);
     };
 
-    printWindow.webContents.on('did-fail-load', (_event, code, description) => {
-      finish(new Error(`Receipt page failed to load (${code}: ${description})`));
-    });
-
+    printWindow.webContents.on('did-fail-load', (_event, code, description) => finish(new Error(`Receipt page failed to load (${code}: ${description})`)));
     printWindow.webContents.once('did-finish-load', () => {
       setTimeout(() => {
         printWindow.webContents.print({
@@ -368,7 +344,6 @@ async function printRemoteUrl(rawUrl) {
         });
       }, 350);
     });
-
     printWindow.loadURL(rawUrl).catch((error) => finish(error));
   });
 }
@@ -414,15 +389,10 @@ ipcMain.handle('pmd:save-hardware', (event, values) => {
   const printerName = String(values && values.printerName || '').trim();
   if (printerName) hardware.resolvePrinterName(printerName);
   const drawerCommand = String(values && values.drawerCommand || hardware.DEFAULT_DRAWER_COMMAND).trim();
-  // Validate without sending a command.
   drawerCommand.split(',').map((part) => Number(part.trim())).forEach((value) => {
     if (!Number.isInteger(value) || value < 0 || value > 255) throw new Error('Invalid drawer command.');
   });
-  return saveSettings({
-    printerName,
-    drawerCommand,
-    autoOpenCash: values && values.autoOpenCash !== false,
-  });
+  return saveSettings({ printerName, drawerCommand, autoOpenCash: values && values.autoOpenCash !== false });
 });
 
 ipcMain.handle('pmd:test-print', (event, printerName) => {
@@ -472,17 +442,14 @@ if (!gotLock) {
   app.quit();
 } else {
   app.on('second-instance', () => focusCashier());
-
   app.whenReady().then(() => {
     Menu.setApplicationMenu(buildMenu());
     session.defaultSession.setPermissionRequestHandler((_webContents, _permission, callback) => callback(false));
     createCashierWindow();
   });
-
   app.on('activate', () => {
     if (!mainWindow && !setupWindow) createCashierWindow();
   });
-
   app.on('window-all-closed', () => {
     if (process.platform !== 'darwin') app.quit();
   });
