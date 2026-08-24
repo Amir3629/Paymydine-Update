@@ -17,6 +17,8 @@ use Symfony\Component\HttpFoundation\Response as SymfonyResponse;
  *
  * Security contract:
  * - tenant context is resolved from the request Host by DetectTenant
+ * - the Agent package contains no tenant secret and is served only for a
+ *   recognized tenant host
  * - pair uses the one-time POS pairing token
  * - pull/ack use the per-device bearer token
  * - no tenant database name or secret is returned by the health endpoint
@@ -64,6 +66,48 @@ try {
                     'ok' => true,
                     'bridge' => 'PayMyDine Local POS R2.7',
                 ], 200);
+            }
+
+            if ($action === 'agent') {
+                if ($method !== 'GET') {
+                    return $methodNotAllowed('GET');
+                }
+
+                $agentPath = __DIR__.'/tools/local-pos-agent/agent.js';
+                if (!is_file($agentPath)) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'Local POS Agent package is unavailable',
+                    ], 404);
+                }
+
+                $source = (string)file_get_contents($agentPath);
+                $source = str_replace(
+                    "cfg.backendBase + '/api/pos-agent/pair'",
+                    "cfg.backendBase + '/pmd-pos-agent.php?action=pair'",
+                    $source
+                );
+                $source = str_replace(
+                    "cfg.backendBase + '/api/pos-agent/commands/pull?device_code='",
+                    "cfg.backendBase + '/pmd-pos-agent.php?action=pull&device_code='",
+                    $source
+                );
+                $source = str_replace(
+                    "cfg.backendBase + '/api/pos-agent/commands/' + encodeURIComponent(String(commandId)) + '/ack'",
+                    "cfg.backendBase + '/pmd-pos-agent.php?action=ack&id=' + encodeURIComponent(String(commandId))",
+                    $source
+                );
+                $source = str_replace(
+                    "if (token) headers.Authorization = 'Bearer ' + token;",
+                    "if (token) { headers.Authorization = 'Bearer ' + token; headers['X-PMD-Device-Token'] = token; }",
+                    $source
+                );
+
+                return response($source, 200, [
+                    'Content-Type' => 'application/javascript; charset=UTF-8',
+                    'Cache-Control' => 'no-store, max-age=0',
+                    'X-PMD-Local-Agent' => 'R2.7-direct-gateway',
+                ]);
             }
 
             /** @var PosAgentR1Controller $controller */
