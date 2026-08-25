@@ -80,33 +80,55 @@ def patch_service(path: Path) -> None:
 
 def patch_payments(path: Path) -> None:
     text = path.read_text(encoding="utf-8")
-    if MARKER_PAYMENTS not in text:
+    if MARKER_PAYMENTS in text:
+        path.write_text(text, encoding="utf-8")
+        return
+
+    runtime_block = r'''            // PMD_VR_METHOD_RUNTIME_ENABLEMENT_R1_3
+            // Provider assignment is the enablement authority. VR Payment has
+            // one extra gate: the method must be discovered as active in the
+            // merchant Space before it is offered to guests.
+            if (!in_array((string)$model->code, ['cod', 'cash'], true)) {
+                if ($providerCode === null) {
+                    $model->status = 0;
+                    $model->is_default = 0;
+                } elseif ($providerCode === 'vr_payment') {
+                    try {
+                        $model->status = (new \Admin\Classes\VRPaymentGatewayService())
+                            ->isMethodReady((string)$model->code) ? 1 : 0;
+                    } catch (\Throwable $error) {
+                        \Log::warning('PMD_VR_METHOD_RUNTIME_ENABLEMENT_FAILED', [
+                            'method' => (string)$model->code,
+                            'message' => $error->getMessage(),
+                        ]);
+                        $model->status = 0;
+                    }
+                    if (!$model->status) $model->is_default = 0;
+                } else {
+                    $model->status = 1;
+                }
+            }
+'''
+
+    legacy_block = r'''            // PMD_METHOD_PROVIDER_IS_ENABLEMENT_R1
+            // The compact owner editor has only Name + Provider. For provider-
+            // backed methods, choosing a provider offers the method; choosing
+            // Not offered disables it. Cash methods keep their own status.
+            if (!in_array((string)$model->code, ['cod', 'cash'], true)) {
+                $model->status = $providerCode ? 1 : 0;
+                if (!$providerCode) {
+                    $model->is_default = 0;
+                }
+            }
+'''
+
+    if legacy_block in text:
+        text = text.replace(legacy_block, runtime_block, 1)
+    else:
         anchor = "            $model->provider_code = $providerCode;\n"
         if anchor not in text:
             fail("Payments.php provider assignment anchor not found")
-
-        insert = r'''            // PMD_VR_METHOD_RUNTIME_ENABLEMENT_R1_3
-            // Provider assignment is the enablement authority. For VR Payment,
-            // runtime discovery is an additional gate so unavailable wallets are
-            // never exposed to guests.
-            if ($providerCode === null) {
-                $model->status = 0;
-            } elseif ($providerCode === 'vr_payment') {
-                try {
-                    $model->status = (new \Admin\Classes\VRPaymentGatewayService())
-                        ->isMethodReady((string)$model->code) ? 1 : 0;
-                } catch (\Throwable $error) {
-                    \Log::warning('PMD_VR_METHOD_RUNTIME_ENABLEMENT_FAILED', [
-                        'method' => (string)$model->code,
-                        'message' => $error->getMessage(),
-                    ]);
-                    $model->status = 0;
-                }
-            } else {
-                $model->status = 1;
-            }
-'''
-        text = text.replace(anchor, anchor + insert, 1)
+        text = text.replace(anchor, anchor + runtime_block, 1)
 
     path.write_text(text, encoding="utf-8")
 
