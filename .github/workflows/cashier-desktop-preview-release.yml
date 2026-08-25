@@ -33,6 +33,7 @@ jobs:
             'src/main.js',
             'src/preload.js',
             'src/hardware.js',
+            'src/receipt.js',
             'src/setup.html',
             'src/setup.js',
             'src/hardware.html',
@@ -76,7 +77,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: pmd-release-windows
-          path: apps/cashier-desktop/dist/PayMyDine-Cashier-Setup-1.0.1.exe
+          path: apps/cashier-desktop/dist/PayMyDine-Cashier-Setup-1.0.2.exe
           if-no-files-found: error
 
   build-macos:
@@ -98,7 +99,7 @@ jobs:
           root="$PWD/apps/cashier-desktop"
           mkdir -p "$root/src"
           files=(
-            package.json README.md src/main.js src/preload.js src/hardware.js
+            package.json README.md src/main.js src/preload.js src/hardware.js src/receipt.js
             src/setup.html src/setup.js src/hardware.html src/hardware-page.js
             src/offline.html src/offline.js
           )
@@ -139,7 +140,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: pmd-release-macos-${{ matrix.arch }}
-          path: apps/cashier-desktop/dist/PayMyDine-Cashier-1.0.1-mac-${{ matrix.arch }}.dmg
+          path: apps/cashier-desktop/dist/PayMyDine-Cashier-1.0.2-mac-${{ matrix.arch }}.dmg
           if-no-files-found: error
 
   publish-preview:
@@ -165,7 +166,7 @@ jobs:
           tag='pmd-cashier-v1-preview'
           if gh release view "$tag" --repo "$GH_REPO" >/dev/null 2>&1; then
             gh release upload "$tag" release/* --clobber --repo "$GH_REPO"
-            gh release edit "$tag" --target "$GITHUB_SHA" --prerelease --title 'PayMyDine Cashier V1 Preview' --notes 'Universal PayMyDine Cashier preview for Windows, Apple Silicon Macs, and Intel Macs. Includes local printer discovery and cash-drawer control. Physical POS validation is required before production rollout.' --repo "$GH_REPO"
+            gh release edit "$tag" --target "$GITHUB_SHA" --prerelease --title 'PayMyDine Cashier V1 Preview' --notes 'Universal PayMyDine Cashier preview for Windows, Apple Silicon Macs, and Intel Macs. V1.0.2 adds native receipt printing for Windows Generic / Text Only thermal queues using ESC/POS raster output. Includes local printer discovery and cash-drawer control. Physical POS validation is required before production rollout.' --repo "$GH_REPO"
           else
-            gh release create "$tag" release/* --target "$GITHUB_SHA" --prerelease --title 'PayMyDine Cashier V1 Preview' --notes 'Universal PayMyDine Cashier preview for Windows, Apple Silicon Macs, and Intel Macs. Includes local printer discovery and cash-drawer control. Physical POS validation is required before production rollout.' --repo "$GH_REPO"
+            gh release create "$tag" release/* --target "$GITHUB_SHA" --prerelease --title 'PayMyDine Cashier V1 Preview' --notes 'Universal PayMyDine Cashier preview for Windows, Apple Silicon Macs, and Intel Macs. V1.0.2 adds native receipt printing for Windows Generic / Text Only thermal queues using ESC/POS raster output. Includes local printer discovery and cash-drawer control. Physical POS validation is required before production rollout.' --repo "$GH_REPO"
           fi

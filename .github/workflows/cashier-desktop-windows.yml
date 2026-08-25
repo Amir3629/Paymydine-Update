@@ -40,6 +40,7 @@ jobs:
             'src/main.js',
             'src/preload.js',
             'src/hardware.js',
+            'src/receipt.js',
             'src/setup.html',
             'src/setup.js',
             'src/hardware.html',

@@ -16,6 +16,7 @@ contextBridge.exposeInMainWorld('PayMyDineDesktop', Object.freeze({
   testDrawer: (options) => ipcRenderer.invoke('pmd:test-drawer', options || {}),
   diagnoseDrawer: (printerName) => ipcRenderer.invoke('pmd:diagnose-drawer', printerName),
   printUrl: (url) => ipcRenderer.invoke('pmd:print-url', url),
+  printReceiptUrl: (url) => ipcRenderer.invoke('pmd:print-receipt-url', url),
   openHardwareSetup: () => ipcRenderer.invoke('pmd:open-hardware'),
   retryCashier: () => ipcRenderer.invoke('pmd:retry-cashier'),
 

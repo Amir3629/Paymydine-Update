@@ -44,6 +44,7 @@ jobs:
             src/main.js
             src/preload.js
             src/hardware.js
+            src/receipt.js
             src/setup.html
             src/setup.js
             src/hardware.html
@@ -91,6 +92,6 @@ jobs:
         with:
           name: PayMyDine-Cashier-macOS-${{ matrix.arch }}
           path: |
-            apps/cashier-desktop/dist/PayMyDine-Cashier-1.0.0-mac-${{ matrix.arch }}.dmg
-            apps/cashier-desktop/dist/PayMyDine-Cashier-1.0.0-mac-${{ matrix.arch }}.zip
+            apps/cashier-desktop/dist/PayMyDine-Cashier-1.0.2-mac-${{ matrix.arch }}.dmg
+            apps/cashier-desktop/dist/PayMyDine-Cashier-1.0.2-mac-${{ matrix.arch }}.zip
           if-no-files-found: error

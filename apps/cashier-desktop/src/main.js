@@ -4,6 +4,7 @@ const { app, BrowserWindow, ipcMain, shell, session, Menu } = require('electron'
 const fs = require('fs');
 const path = require('path');
 const hardware = require('./hardware');
+const receipt = require('./receipt');
 
 const CASHIER_PATH = '/admin/cashierlab';
 const SETTLE_PATH = /^\/admin\/pmd-waiter-pos-v1\/payment-settle\/(\d+)\/?$/;
@@ -202,7 +203,7 @@ function createCashierWindow() {
       try {
         const parsed = new URL(url);
         if (RECEIPT_PATH.test(parsed.pathname) && readSettings().printerName) {
-          printRemoteUrl(url)
+          printReceiptRemoteUrl(url)
             .then((result) => sendHardwareEvent({ type: 'receipt-printed', result }))
             .catch((error) => sendHardwareEvent({ type: 'receipt-print-error', message: error.message }));
           return { action: 'deny' };
@@ -305,6 +306,64 @@ function installCashSettlementWatcher(tenant) {
   ses.webRequest.onErrorOccurred(filter, (details) => pendingCashRequests.delete(details.id));
 }
 
+function findConfiguredPrinter(printerName) {
+  const wanted = String(printerName || '').trim().toLowerCase();
+  if (!wanted) return null;
+  try {
+    return hardware.listPrinters().find((row) => String(row && row.name || '').trim().toLowerCase() === wanted) || null;
+  } catch (_) {
+    return null;
+  }
+}
+
+async function waitForReceiptAssets(webContents) {
+  await webContents.executeJavaScript(`new Promise(function(resolve){
+    var images = Array.prototype.slice.call(document.images || []);
+    if (!images.length) return resolve(true);
+    var pending = images.filter(function(img){ return !img.complete; });
+    if (!pending.length) return resolve(true);
+    var left = pending.length;
+    function done(){ left -= 1; if (left <= 0) resolve(true); }
+    pending.forEach(function(img){ img.addEventListener('load', done, {once:true}); img.addEventListener('error', done, {once:true}); });
+    setTimeout(function(){ resolve(true); }, 1800);
+  })`, true);
+}
+
+async function captureReceiptImage(printWindow) {
+  await waitForReceiptAssets(printWindow.webContents);
+
+  const measure = async () => printWindow.webContents.executeJavaScript(`(function(){
+    var el = document.querySelector('.receipt') || document.querySelector('[data-pmd-receipt]') || document.body;
+    document.documentElement.style.background = '#fff';
+    document.body.style.background = '#fff';
+    if (el && el.style) {
+      el.style.boxShadow = 'none';
+    }
+    var r = el.getBoundingClientRect();
+    return {
+      x: Math.max(0, Math.floor(r.left + window.scrollX)),
+      y: Math.max(0, Math.floor(r.top + window.scrollY)),
+      width: Math.max(1, Math.ceil(r.width)),
+      height: Math.max(1, Math.ceil(r.height))
+    };
+  })()`, true);
+
+  let box = await measure();
+  printWindow.setContentSize(
+    Math.max(360, Math.min(1400, box.width + 32)),
+    Math.max(300, Math.min(8000, box.height + 32)),
+  );
+  await new Promise((resolve) => setTimeout(resolve, 90));
+  box = await measure();
+
+  return printWindow.webContents.capturePage({
+    x: box.x,
+    y: box.y,
+    width: box.width,
+    height: box.height,
+  });
+}
+
 async function printRemoteUrl(rawUrl) {
   const settings = readSettings();
   const tenant = normalizeTenant(settings.tenant);
@@ -340,9 +399,63 @@ async function printRemoteUrl(rawUrl) {
           margins: { marginType: 'none' },
         }, (success, failureReason) => {
           if (!success) return finish(new Error(failureReason || 'Receipt printing failed.'));
-          finish(null, { ok: true, printerName: settings.printerName });
+          finish(null, { ok: true, printerName: settings.printerName, mode: 'system-driver' });
         });
       }, 350);
+    });
+    printWindow.loadURL(rawUrl).catch((error) => finish(error));
+  });
+}
+
+async function printReceiptRemoteUrl(rawUrl) {
+  const settings = readSettings();
+  const tenant = normalizeTenant(settings.tenant);
+  if (!isAllowedRemoteUrl(rawUrl, tenant)) throw new Error('Only this restaurant can be printed from the Cashier app.');
+  if (!settings.printerName) throw new Error('Choose a receipt printer first.');
+
+  const printerInfo = findConfiguredPrinter(settings.printerName);
+  if (!receipt.shouldUseRawRaster(printerInfo)) {
+    return printRemoteUrl(rawUrl);
+  }
+
+  return new Promise((resolve, reject) => {
+    const printWindow = new BrowserWindow({
+      width: 420,
+      height: 1200,
+      show: false,
+      backgroundColor: '#ffffff',
+      webPreferences: {
+        contextIsolation: true,
+        nodeIntegration: false,
+        sandbox: true,
+        session: session.defaultSession,
+      },
+    });
+
+    let finished = false;
+    const finish = (error, result) => {
+      if (finished) return;
+      finished = true;
+      if (!printWindow.isDestroyed()) printWindow.close();
+      if (error) reject(error); else resolve(result);
+    };
+
+    printWindow.webContents.on('did-fail-load', (_event, code, description) => finish(new Error(`Receipt page failed to load (${code}: ${description})`)));
+    printWindow.webContents.once('did-finish-load', () => {
+      setTimeout(async () => {
+        try {
+          const image = await captureReceiptImage(printWindow);
+          const result = receipt.printNativeImage(
+            hardware,
+            hardwareDataDir(),
+            settings.printerName,
+            image,
+          );
+          finish(null, result);
+        } catch (error) {
+          finish(error);
+        }
+      }, 300);
     });
     printWindow.loadURL(rawUrl).catch((error) => finish(error));
   });
@@ -420,6 +533,11 @@ ipcMain.handle('pmd:diagnose-drawer', (event, printerName) => {
 ipcMain.handle('pmd:print-url', (event, rawUrl) => {
   assertTrustedSender(event, false);
   return printRemoteUrl(String(rawUrl || ''));
+});
+
+ipcMain.handle('pmd:print-receipt-url', (event, rawUrl) => {
+  assertTrustedSender(event, false);
+  return printReceiptRemoteUrl(String(rawUrl || ''));
 });
 
 ipcMain.handle('pmd:open-hardware', (event) => {
