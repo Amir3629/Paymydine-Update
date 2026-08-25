@@ -1,0 +1,171 @@
+name: Publish PayMyDine Cashier Preview
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - feature/cashier-desktop-universal-v1
+    paths:
+      - 'apps/cashier-desktop/**'
+      - '.github/workflows/cashier-desktop-preview-release.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  build-windows:
+    runs-on: windows-latest
+    timeout-minutes: 35
+    steps:
+      - name: Download Cashier app files through GitHub API
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PMD_REPOSITORY: ${{ github.repository }}
+          PMD_REF: ${{ github.sha }}
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $root = Join-Path $PWD 'apps/cashier-desktop'
+          New-Item -ItemType Directory -Force -Path (Join-Path $root 'src') | Out-Null
+          $files = @(
+            'package.json',
+            'README.md',
+            'src/main.js',
+            'src/preload.js',
+            'src/hardware.js',
+            'src/setup.html',
+            'src/setup.js',
+            'src/hardware.html',
+            'src/hardware-page.js',
+            'src/offline.html',
+            'src/offline.js'
+          )
+          $headers = @{
+            Authorization = "Bearer $env:GH_TOKEN"
+            Accept = 'application/vnd.github+json'
+            'X-GitHub-Api-Version' = '2022-11-28'
+            'User-Agent' = 'PayMyDine-Cashier-Preview-Build'
+          }
+          foreach ($relative in $files) {
+            $encodedPath = ($relative -split '/' | ForEach-Object { [uri]::EscapeDataString($_) }) -join '/'
+            $uri = "https://api.github.com/repos/$env:PMD_REPOSITORY/contents/apps/cashier-desktop/$encodedPath`?ref=$env:PMD_REF"
+            $item = Invoke-RestMethod -Headers $headers -Uri $uri -Method Get
+            $destination = Join-Path $root ($relative -replace '/', [IO.Path]::DirectorySeparatorChar)
+            New-Item -ItemType Directory -Force -Path (Split-Path -Parent $destination) | Out-Null
+            [IO.File]::WriteAllBytes($destination, [Convert]::FromBase64String(($item.content -replace '\s', '')))
+          }
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Install dependencies
+        working-directory: apps/cashier-desktop
+        run: npm install
+
+      - name: Syntax check
+        working-directory: apps/cashier-desktop
+        run: npm run check
+
+      - name: Build Windows installer
+        working-directory: apps/cashier-desktop
+        run: npm run dist:win
+
+      - name: Upload Windows release file
+        uses: actions/upload-artifact@v4
+        with:
+          name: pmd-release-windows
+          path: apps/cashier-desktop/dist/PayMyDine-Cashier-Setup-1.0.1.exe
+          if-no-files-found: error
+
+  build-macos:
+    strategy:
+      fail-fast: false
+      matrix:
+        arch: [arm64, x64]
+    runs-on: macos-14
+    timeout-minutes: 40
+    steps:
+      - name: Download Cashier app files through GitHub API
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PMD_REPOSITORY: ${{ github.repository }}
+          PMD_REF: ${{ github.sha }}
+        run: |
+          set -euo pipefail
+          root="$PWD/apps/cashier-desktop"
+          mkdir -p "$root/src"
+          files=(
+            package.json README.md src/main.js src/preload.js src/hardware.js
+            src/setup.html src/setup.js src/hardware.html src/hardware-page.js
+            src/offline.html src/offline.js
+          )
+          for relative in "${files[@]}"; do
+            destination="$root/$relative"
+            mkdir -p "$(dirname "$destination")"
+            api="https://api.github.com/repos/$PMD_REPOSITORY/contents/apps/cashier-desktop/$relative?ref=$PMD_REF"
+            curl -fsSL \
+              -H "Authorization: Bearer $GH_TOKEN" \
+              -H "Accept: application/vnd.github+json" \
+              -H "X-GitHub-Api-Version: 2022-11-28" \
+              -H "User-Agent: PayMyDine-Cashier-Preview-Build" \
+              "$api" \
+              | python3 -c 'import sys,json,base64; d=json.load(sys.stdin); sys.stdout.buffer.write(base64.b64decode(d["content"]))' \
+              > "$destination"
+          done
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Install dependencies
+        working-directory: apps/cashier-desktop
+        run: npm install
+
+      - name: Syntax check
+        working-directory: apps/cashier-desktop
+        run: npm run check
+
+      - name: Build macOS DMG
+        working-directory: apps/cashier-desktop
+        env:
+          CSC_IDENTITY_AUTO_DISCOVERY: 'false'
+        run: npm run dist:mac -- --${{ matrix.arch }}
+
+      - name: Upload macOS release file
+        uses: actions/upload-artifact@v4
+        with:
+          name: pmd-release-macos-${{ matrix.arch }}
+          path: apps/cashier-desktop/dist/PayMyDine-Cashier-1.0.1-mac-${{ matrix.arch }}.dmg
+          if-no-files-found: error
+
+  publish-preview:
+    needs: [build-windows, build-macos]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Download release files
+        uses: actions/download-artifact@v4
+        with:
+          pattern: pmd-release-*
+          path: release
+          merge-multiple: true
+
+      - name: Publish stable preview URLs
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          set -euo pipefail
+          tag='pmd-cashier-v1-preview'
+          if gh release view "$tag" --repo "$GH_REPO" >/dev/null 2>&1; then
+            gh release upload "$tag" release/* --clobber --repo "$GH_REPO"
+            gh release edit "$tag" --target "$GITHUB_SHA" --prerelease --title 'PayMyDine Cashier V1 Preview' --notes 'Universal PayMyDine Cashier preview for Windows, Apple Silicon Macs, and Intel Macs. Includes local printer discovery and cash-drawer control. Physical POS validation is required before production rollout.' --repo "$GH_REPO"
+          else
+            gh release create "$tag" release/* --target "$GITHUB_SHA" --prerelease --title 'PayMyDine Cashier V1 Preview' --notes 'Universal PayMyDine Cashier preview for Windows, Apple Silicon Macs, and Intel Macs. Includes local printer discovery and cash-drawer control. Physical POS validation is required before production rollout.' --repo "$GH_REPO"
+          fi
