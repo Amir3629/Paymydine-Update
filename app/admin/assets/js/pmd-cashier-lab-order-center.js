@@ -1,6 +1,8 @@
 (function () {
   'use strict';
 
+  // PMD_CASHIER_ORDER_CENTER_UI_R50
+
   // PMD_CASHIER_ORDER_CENTER_R37C
   // Operational/payment separation + inline documents.
 
@@ -83,7 +85,6 @@
     shell.setAttribute('aria-hidden', 'true');
 
     shell.innerHTML = [
-      '<button type="button" class="pmd-cashier-order-center__backdrop" data-pmd-r37-close tabindex="-1" aria-label="Close order details"></button>',
       '<section class="pmd-cashier-order-center__dialog" role="dialog" aria-modal="true" aria-labelledby="pmd-cashier-r37-title">',
         '<header class="pmd-cashier-order-center__header">',
           '<div class="pmd-cashier-order-center__identity">',
@@ -1799,7 +1800,6 @@
       host.className = 'pmd-cashier-pos-overlay';
 
       host.innerHTML = [
-        '<button type="button" class="pmd-cashier-pos-overlay__backdrop" data-pmd-r37-pos-close aria-label="Close POS"></button>',
         '<div class="pmd-cashier-pos-overlay__panel" data-pmd-r37-pos-panel></div>'
       ].join('');
 

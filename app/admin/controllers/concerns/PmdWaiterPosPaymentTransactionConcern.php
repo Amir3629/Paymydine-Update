@@ -92,7 +92,8 @@ trait PmdWaiterPosPaymentTransactionConcern
             'edit' => '/admin/orders/edit/'.$orderId,
             'dashboard' => '/admin/dashboardwaiter',
             'payment' => '/admin/payments?order_id='.$orderId,
-            'invoice' => '/admin/orders/invoice/'.$orderId,
+            // PMD_CANONICAL_CASHIER_INVOICE_URL_R49
+            'invoice' => '/admin/pmd-cashier-order-center/invoice/'.$orderId,
         ];
     }
 

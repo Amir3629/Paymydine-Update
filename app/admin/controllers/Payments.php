@@ -899,17 +899,21 @@ class Payments extends \Admin\Classes\AdminController
                 'terminal_id' => ['label' => 'Terminal Device ID', 'type' => 'text', 'span' => 'right', 'comment' => 'Required for terminal/POS payments. Does not enable fake charges; certified terminal API mapping is still required.'],
                 'terminal_environment' => ['label' => 'Terminal Environment', 'type' => 'select', 'span' => 'left', 'default' => 'test', 'options' => ['test' => 'Test / Sandbox', 'live' => 'Live / Production']],
             ],
+            // PMD_VR_PAYMENT_ADMIN_R1
             'vr_payment' => [
+                'vr_setup_guide' => [
+                    'type' => 'section',
+                    'label' => 'VR Payment Gateway + Cloud Till',
+                    'comment' => 'Create an Application User in VR Payment, then enter the Space ID, Application User ID and Authentication Key. Test Connection performs a real API v2.0 audit, discovers active payment methods (including Wero/wallets when enabled in the Space), and syncs physical Cloud Till terminals automatically.',
+                ],
                 'mode' => ['label' => 'Mode', 'type' => 'select', 'span' => 'left', 'default' => 'test', 'options' => ['test' => 'Test / Sandbox', 'live' => 'Live / Production']],
-                'api_base_url' => ['label' => 'API Base URL', 'type' => 'text', 'span' => 'left', 'comment' => 'Base URL for VR Payment API (no trailing slash required).'],
-                'space_id' => ['label' => 'Space ID', 'type' => 'text', 'span' => 'right'],
-                'user_id' => ['label' => 'User ID', 'type' => 'text', 'span' => 'left'],
-                'auth_key' => ['label' => 'Auth Key', 'type' => 'text', 'span' => 'right', 'comment' => 'Saved value is shown; replace to update.'],
-                'webhook_signing_key' => ['label' => 'Webhook Signing Key', 'type' => 'text', 'span' => 'left', 'comment' => 'Saved value is shown; replace to update.'],
-                'preferred_integration_mode' => ['label' => 'Preferred Integration', 'type' => 'select', 'span' => 'right', 'default' => 'payment_page', 'options' => ['payment_page' => 'Hosted Payment Page']],
-                'api_endpoint' => ['label' => 'Terminal API Endpoint', 'type' => 'text', 'span' => 'left', 'comment' => 'VR Payment / VR Bank terminal API base URL when provided.'],
-                'merchant_id' => ['label' => 'Terminal Merchant ID', 'type' => 'text', 'span' => 'right'],
-                'terminal_id' => ['label' => 'Terminal Device ID', 'type' => 'text', 'span' => 'left', 'comment' => 'Required for terminal/POS payments. Does not enable fake charges; certified terminal API mapping is still required.'],
+                'api_base_url' => ['label' => 'Gateway Base URL', 'type' => 'text', 'span' => 'right', 'default' => 'https://gateway.vr-payment.de', 'comment' => 'Normally https://gateway.vr-payment.de. Do not append /api/v2.0.'],
+                'space_id' => ['label' => 'Space ID', 'type' => 'text', 'span' => 'left', 'comment' => 'Numeric VR Payment Space ID.'],
+                'user_id' => ['label' => 'Application User ID', 'type' => 'text', 'span' => 'right', 'comment' => 'Numeric Application User ID from Account → Users → Application Users.'],
+                'auth_key' => ['label' => 'Authentication Key', 'type' => 'password', 'span' => 'left', 'comment' => 'Base64 authentication key shown when the VR Payment Application User key is created. Leave blank to keep the saved key.'],
+                'currency' => ['label' => 'Currency', 'type' => 'text', 'span' => 'right', 'default' => 'EUR', 'comment' => 'Default transaction currency.'],
+                'preferred_integration_mode' => ['label' => 'Guest Checkout', 'type' => 'select', 'span' => 'left', 'default' => 'payment_page', 'options' => ['payment_page' => 'VR Payment Page']],
+                'language' => ['label' => 'Terminal Language', 'type' => 'text', 'span' => 'right', 'default' => 'de-DE', 'comment' => 'Used by Cloud Till terminal transactions.'],
             ],
         ];
 
@@ -985,7 +989,7 @@ class Payments extends \Admin\Classes\AdminController
             'square' => ['test_access_token', 'live_access_token'],
             'sumup' => ['access_token'],
             'worldline' => ['secret_api_key', 'webhook_secret'],
-            'vr_payment' => ['auth_key', 'webhook_signing_key'],
+            'vr_payment' => ['auth_key'],
         ][$providerCode] ?? [];
     }
 
@@ -1096,8 +1100,16 @@ class Payments extends \Admin\Classes\AdminController
             $diagnostics = app(\Admin\Classes\WorldlineHostedCheckoutService::class)->getConfigForDiagnostics();
             $result = ['success' => true, 'message' => 'Worldline configuration resolved from active tenant POS mapping.', 'environment' => $diagnostics['environment'] ?? 'unknown'];
         } elseif ($code === 'vr_payment') {
-            $diagnostics = app(\Admin\Classes\VRPaymentGatewayService::class)->getConfigForDiagnostics();
-            $result = ['success' => (bool)($diagnostics['provider_enabled'] ?? false), 'message' => 'VR Payment diagnostics resolved.', 'diagnostics' => $diagnostics];
+            $probe = app(\Admin\Classes\VRPaymentGatewayService::class)->probeConnectivity();
+            $result = [
+                'success' => (bool)($probe['ok'] ?? false),
+                'message' => (string)($probe['message'] ?? $probe['error'] ?? 'VR Payment connection test completed.'),
+                'connected' => (bool)($probe['connected'] ?? false),
+                'space_id' => $probe['space_id'] ?? null,
+                'available_method_codes' => $probe['available_method_codes'] ?? [],
+                'terminal_count' => $probe['terminal_count'] ?? 0,
+                'terminal_sync' => $probe['terminal_sync'] ?? null,
+            ];
         }
 
         if (request()->ajax()) {

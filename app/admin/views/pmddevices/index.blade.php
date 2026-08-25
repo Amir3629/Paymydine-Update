@@ -45,6 +45,43 @@
         </div>
     </section>
 
+    {-- PMD_CASHIER_DESKTOP_DOWNLOADS_R1 --}
+    <section class="pmd-owner-section" id="cashier-desktop-app">
+        <div class="pmd-owner-card" data-accent="cyan">
+            <div class="pmd-owner-card__header">
+                <div class="pmd-owner-card__icon">
+                    <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="18" height="13" rx="2"></rect><path d="M8 21h8M12 17v4"></path></svg>
+                </div>
+                <div class="pmd-owner-card__title">
+                    <h2>PayMyDine Cashier desktop app</h2>
+                    <p>Install one Cashier app on the main POS. Staff on other devices can keep using the normal browser.</p>
+                </div>
+            </div>
+            <div class="pmd-owner-card__body">
+                <div class="pmd-owner-list">
+                    <div class="pmd-owner-list-row">
+                        <div><strong>Windows 10 / 11</strong><small>Local Windows printer discovery, receipt printing and cash-drawer control. No separate Connector.</small></div>
+                        <div class="pmd-owner-meta">V1.0.1 Preview</div>
+                        <a class="pmd-owner-action" href="https://github.com/Amir3629/Paymydine-Update/releases/download/pmd-cashier-v1-preview/PayMyDine-Cashier-Setup-1.0.1.exe" target="_blank" rel="noopener noreferrer">Download Windows</a>
+                    </div>
+                    <div class="pmd-owner-list-row">
+                        <div><strong>Mac — Apple Silicon</strong><small>For M1, M2, M3 and M4 Macs. Uses macOS CUPS for the local receipt printer and drawer.</small></div>
+                        <div class="pmd-owner-meta">Recommended for modern Macs</div>
+                        <a class="pmd-owner-action" href="https://github.com/Amir3629/Paymydine-Update/releases/download/pmd-cashier-v1-preview/PayMyDine-Cashier-1.0.1-mac-arm64.dmg" target="_blank" rel="noopener noreferrer">Download Mac</a>
+                    </div>
+                    <div class="pmd-owner-list-row">
+                        <div><strong>Mac — Intel</strong><small>For older Intel-based Macs.</small></div>
+                        <div class="pmd-owner-meta">Intel x64</div>
+                        <a class="pmd-owner-action" href="https://github.com/Amir3629/Paymydine-Update/releases/download/pmd-cashier-v1-preview/PayMyDine-Cashier-1.0.1-mac-x64.dmg" target="_blank" rel="noopener noreferrer">Download Intel Mac</a>
+                    </div>
+                </div>
+                <div class="pmd-owner-empty" style="margin-top:12px;">
+                    One installer works for every restaurant. On first launch, enter the restaurant code, then use the normal PayMyDine login.
+                </div>
+            </div>
+        </div>
+    </section>
+
     <section class="pmd-owner-section" id="pos-devices">
         <div class="pmd-owner-card" data-accent="cyan">
             <div class="pmd-owner-card__header">

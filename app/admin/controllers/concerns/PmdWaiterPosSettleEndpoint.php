@@ -7,6 +7,7 @@ use Admin\Models\Menus_model;
 use Admin\Models\Orders_model;
 use Admin\Models\Payments_model;
 use App\Services\TerminalPayments\TerminalPaymentService;
+use Admin\Services\CashDrawerService\CashDrawerSettlementBridge;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Validation\ValidationException;
@@ -191,6 +192,18 @@ trait PmdWaiterPosSettleEndpoint
                 $order->save();
 
                 $order->refresh();
+
+                // PMD_CASH_DRAWER_SETTLEMENT_R1
+                // Hardware failure never rolls back a valid payment. The
+                // bridge only queues a short-lived deduplicated cash command.
+                $cashDrawerResult = CashDrawerSettlementBridge::enqueueAfterSettlement(
+                    $order,
+                    (int)$transactionId,
+                    $method,
+                    $payload,
+                    $idempotencyKey
+                );
+
                 $freshSummary = $this->buildPaymentSummary($order, true);
 
                 return [
@@ -206,6 +219,7 @@ trait PmdWaiterPosSettleEndpoint
                     'change_due' => $changeDue,
                     'settlement_status' => $newStatus,
                     'remaining_amount' => $newRemaining,
+                    'cash_drawer' => $cashDrawerResult,
                 ];
             });
 
@@ -238,6 +252,7 @@ trait PmdWaiterPosSettleEndpoint
                 'change_due' => $result['change_due'],
                 'settlement_status' => $result['settlement_status'],
                 'remaining_amount' => $result['remaining_amount'],
+                'cash_drawer' => $result['cash_drawer'] ?? null,
                 'summary' => $result['summary'],
                 'table_release' => $tableRelease,
             ]);

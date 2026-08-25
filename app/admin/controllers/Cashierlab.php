@@ -37,12 +37,14 @@ class Cashierlab extends PmdCleanWorkspaceControllerV1
         // Cashier-native create/edit composer binds before legacy R37.
         // It owns New Order / Open Order / Add Items / Payment entry points.
         $this->addCss('css/pmd-cashier-order-composer-v1.css');
-        $this->addJs('js/pmd-cashier-order-composer-v1.js');
+        $this->addJs('js/pmd-cashier-order-composer-r51.js');
         // PMD_CASHIER_R45_ACTION_AUTHORITY
         // New filename intentionally bypasses any stale R37/R44 browser cache.
         $this->addJs('js/pmd-cashier-r45-actions.js');
 
         $this->addCss('css/pmd-cashier-lab-order-center.css');
+        // PMD_CASHIER_VISUAL_AUTHORITY_R51
+        $this->addCss('css/pmd-cashier-ui-r51.css');
         $this->addJs('js/pmd-cashier-lab-order-center.js');
     }
 
@@ -54,6 +56,7 @@ class Cashierlab extends PmdCleanWorkspaceControllerV1
      * switch; the host shim immediately restores the visible URL to
      * /admin/cashierlab.
      */
+    // PMD_CASHIER_QUICK_RESTORED_R48
     public function index()
     {
         if (

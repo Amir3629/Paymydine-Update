@@ -231,6 +231,7 @@ export function normalizeMenu(payload: unknown): CustomerBootstrap['menu'] {
       price: num(first(source, ['price','menu_price','combo_price'])),
       categoryId,
       categoryName,
+      isCombo: yes(first(source, ['isCombo','is_combo'])),
       imageUrl: images[0] || null,
       gallery: images,
       allergens: allergens.filter((value, idx, all) => all.indexOf(value) === idx),

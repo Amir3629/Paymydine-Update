@@ -2,6 +2,9 @@
   'use strict';
 
   // PMD_WAITER_POS_RICH_MENU_R40
+  // PMD_WAITER_QUICK_PRIMARY_R47
+  // PMD_WAITER_QUICK_INVOICE_R48
+  // PMD_QUICK_STALE_ORDER_AND_INVOICE_R49
   // Rich food catalog shared by Cashier + Waiter ordering.
 
   if (window.PMDWaiterPOSApp) return;
@@ -41,6 +44,10 @@
     var toastTimer = null;
     var successTimer = null;
 
+    function isQuickModeHost() {
+      return !!window.PMDCashierWaiterHostV2;
+    }
+
     function $(selector, parent) { return (parent || root).querySelector(selector); }
     function $$(selector, parent) { return Array.prototype.slice.call((parent || root).querySelectorAll(selector)); }
 
@@ -54,6 +61,8 @@
       categories: Array.isArray(boot && boot.categories) ? boot.categories : [],
       openOrders: Array.isArray(boot && boot.open_orders) ? boot.open_orders : [],
       activeOrderId: (boot && boot.active_order_id) || null,
+      invoiceReady: false,
+      invoiceOrderId: null,
       settings: (boot && boot.settings) || {},
       warnings: (boot && boot.warnings) || {},
       category: 'all',
@@ -92,6 +101,49 @@
 
     function money(value) {
       return (state.settings.currency || '€') + roundMoney(value).toFixed(2);
+    }
+
+    function paymentSummaryIsPaid() {
+      var summary =
+        state.payment &&
+        state.payment.summary;
+
+      var settlement =
+        summary &&
+        summary.settlement;
+
+      if (!settlement) {
+        return false;
+      }
+
+      var status = String(
+        (
+          summary.order &&
+          summary.order.settlement_status
+        ) ||
+        settlement.status ||
+        settlement.settlement_status ||
+        ''
+      ).toLowerCase();
+
+      if (status === 'paid') {
+        return true;
+      }
+
+      var total = toNumber(
+        settlement.order_total,
+        0
+      );
+
+      var remaining = toNumber(
+        settlement.remaining_amount,
+        total
+      );
+
+      return (
+        total > 0 &&
+        remaining <= 0.005
+      );
     }
 
     function activeOrder() {
@@ -767,17 +819,90 @@
 
       var send = $('[data-pos-send]');
       var hold = $('[data-pos-hold]');
-      if (send) send.disabled = !state.cart.length || state.submitting;
-      if (hold) hold.disabled = !state.cart.length || state.submitting;
+      var paymentButton = $('[data-pos-payment]');
+      var hasOrder = !!state.activeOrderId;
+      var quickMode = isQuickModeHost();
+
+      if (quickMode) {
+        if (hold) {
+          hold.hidden = true;
+          hold.disabled = true;
+        }
+
+        if (paymentButton) {
+          paymentButton.hidden = true;
+          paymentButton.disabled = true;
+        }
+
+        if (send) {
+          var readyForInvoice =
+            !state.cart.length &&
+            state.invoiceReady &&
+            !!state.invoiceOrderId;
+
+          var readyToPay =
+            !readyForInvoice &&
+            !state.cart.length &&
+            hasOrder;
+
+          send.textContent =
+            readyForInvoice
+              ? 'Invoice'
+              : (
+                  readyToPay
+                    ? 'Pay'
+                    : 'Send to kitchen'
+                );
+
+          send.disabled =
+            state.submitting ||
+            (
+              !state.cart.length &&
+              !hasOrder &&
+              !readyForInvoice
+            );
+
+          send.classList.toggle(
+            'is-payment',
+            readyToPay
+          );
+
+          send.classList.toggle(
+            'is-invoice',
+            readyForInvoice
+          );
+        }
+      } else {
+        if (hold) {
+          hold.hidden = false;
+          hold.disabled =
+            !state.cart.length ||
+            state.submitting;
+        }
+
+        if (send) {
+          send.disabled =
+            !state.cart.length ||
+            state.submitting;
+        }
+
+        if (paymentButton) {
+          paymentButton.hidden = false;
+          paymentButton.disabled =
+            !hasOrder ||
+            state.cart.length > 0;
+        }
+      }
+
       var guests = $('[data-pos-guests]');
       if (guests) guests.textContent = state.guestCount;
+
       var note = $('[data-pos-table-note]');
       if (note && note.value !== state.note) note.value = state.note;
 
-      var hasOrder = !!state.activeOrderId;
-      ['[data-pos-edit-order]','[data-pos-payment]','[data-pos-print]'].forEach(function (selector) {
+      ['[data-pos-edit-order]','[data-pos-print]'].forEach(function (selector) {
         var button = $(selector);
-        if (button) button.disabled = !hasOrder || (selector === '[data-pos-payment]' && state.cart.length > 0);
+        if (button) button.disabled = !hasOrder;
       });
       renderExistingOrder();
     }
@@ -1512,10 +1637,68 @@
         state.permissions = json.permissions || state.permissions;
         state.menu = Array.isArray(json.menu_items) ? json.menu_items : state.menu;
         state.categories = Array.isArray(json.categories) ? json.categories : state.categories;
-        state.openOrders = Array.isArray(json.open_orders) ? json.open_orders : [];
-        state.activeOrderId = json.active_order_id || state.activeOrderId;
-        state.settings = Object.assign({}, state.settings, json.settings || {});
-        state.warnings = json.warnings || state.warnings;
+        var previousActiveOrderId =
+          state.activeOrderId;
+
+        state.openOrders =
+          Array.isArray(json.open_orders)
+            ? json.open_orders
+            : [];
+
+        if (
+          Object.prototype.hasOwnProperty.call(
+            json,
+            'active_order_id'
+          )
+        ) {
+          var nextActiveOrderId =
+            Number(
+              json.active_order_id || 0
+            );
+
+          state.activeOrderId =
+            nextActiveOrderId > 0
+              ? nextActiveOrderId
+              : null;
+        }
+
+        state.settings =
+          Object.assign(
+            {},
+            state.settings,
+            json.settings || {}
+          );
+
+        state.warnings =
+          json.warnings ||
+          state.warnings;
+
+        if (
+          state.payment &&
+          state.payment.summary &&
+          paymentSummaryIsPaid()
+        ) {
+          var paidSummaryOrderId =
+            Number(
+              state.payment.summary.order &&
+              state.payment.summary.order.order_id
+              || 0
+            );
+
+          state.invoiceReady = true;
+
+          state.invoiceOrderId =
+            paidSummaryOrderId ||
+            Number(previousActiveOrderId || 0) ||
+            state.invoiceOrderId ||
+            null;
+        } else if (state.activeOrderId) {
+          state.invoiceReady = false;
+          state.invoiceOrderId = null;
+        } else if (!state.invoiceReady) {
+          state.invoiceOrderId = null;
+        }
+
         renderAll();
         if (!silent) toast('Order and menu refreshed');
       } catch (error) {
@@ -1559,6 +1742,8 @@
           }),
         });
         state.activeOrderId = json.order_id;
+        state.invoiceReady = false;
+        state.invoiceOrderId = null;
         state.cart = [];
         state.note = '';
         clearDraft();
@@ -1602,9 +1787,28 @@
       if (!state.activeOrderId) return toast('No active order yet.', true);
       location.href = '/admin/orders/edit/' + encodeURIComponent(state.activeOrderId);
     }
-    function openPrint() {
-      if (!state.activeOrderId) return toast('No active order yet.', true);
-      window.open('/admin/orders/invoice/' + encodeURIComponent(state.activeOrderId), '_blank', 'noopener');
+    function openPrint(orderId) {
+      var invoiceId =
+        Number(
+          orderId ||
+          state.invoiceOrderId ||
+          state.activeOrderId ||
+          0
+        );
+
+      if (!invoiceId) {
+        return toast(
+          'No invoice is available yet.',
+          true
+        );
+      }
+
+      window.open(
+        '/admin/pmd-cashier-order-center/invoice/' +
+        encodeURIComponent(invoiceId),
+        '_blank',
+        'noopener'
+      );
     }
 
     /* -------------------- Payment center -------------------- */
@@ -1646,8 +1850,41 @@
       if (minus) minus.onclick = function () { state.guestCount = Math.max(1, state.guestCount - 1); saveDraft(); renderCart(); };
       var hold = $('[data-pos-hold]');
       var send = $('[data-pos-send]');
-      if (hold) hold.onclick = function () { submit('hold'); };
-      if (send) send.onclick = function () { submit('send'); };
+      if (hold) {
+        hold.onclick = function () {
+          if (!isQuickModeHost()) {
+            submit('hold');
+          }
+        };
+      }
+
+      if (send) {
+        send.onclick = function () {
+          if (
+            isQuickModeHost() &&
+            !state.cart.length &&
+            (
+              state.activeOrderId ||
+              state.invoiceOrderId
+            )
+          ) {
+            if (
+              state.invoiceReady &&
+              state.invoiceOrderId
+            ) {
+              openPrint(
+                state.invoiceOrderId
+              );
+            } else if (state.activeOrderId) {
+              openPayment();
+            }
+
+            return;
+          }
+
+          submit('send');
+        };
+      }
       var mobile = $('[data-pos-mobile-cart]');
       var closeCartButton = $('[data-pos-close-cart]');
       if (mobile) mobile.onclick = openCart;

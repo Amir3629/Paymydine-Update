@@ -45,6 +45,123 @@
     statusNode.classList.toggle('is-error', type === 'error');
   }
 
+  /* PMD_CASH_DRAWER_SIMPLE_SETUP_R2
+     The browser talks only to the loopback connector for discovery/status.
+     Drawer actions still go through authenticated PayMyDine backend commands. */
+  function drawerSetupForm(form) {
+    return form && form.getAttribute('data-pmd-device-kind') === 'drawers'
+      ? form.querySelector('[data-pmd-drawer-quick-setup]')
+      : null;
+  }
+
+  function drawerLocalStatus(form, text, state) {
+    var setup = drawerSetupForm(form);
+    var node = setup && setup.querySelector('[data-pmd-local-status]');
+    if (!node) return;
+    node.textContent = text || '';
+    node.setAttribute('data-state', state || 'unknown');
+  }
+
+  async function localConnectorGet(path, timeoutMs) {
+    var controller = typeof AbortController !== 'undefined' ? new AbortController() : null;
+    var timer = controller ? setTimeout(function () { controller.abort(); }, timeoutMs || 1800) : null;
+    try {
+      var response = await fetch('http://127.0.0.1:17877' + path + (path.indexOf('?') >= 0 ? '&' : '?') + '_=' + Date.now(), {
+        method: 'GET',
+        cache: 'no-store',
+        mode: 'cors',
+        signal: controller ? controller.signal : undefined,
+        headers: {'Accept': 'application/json'}
+      });
+      var data = await response.json().catch(function () { return {}; });
+      if (!response.ok || !data || data.ok === false) {
+        throw new Error((data && data.message) || ('Connector HTTP ' + response.status));
+      }
+      return data;
+    } finally {
+      if (timer) clearTimeout(timer);
+    }
+  }
+
+  function syncDrawerPrinterInputs(form) {
+    var setup = drawerSetupForm(form);
+    if (!setup) return;
+    var select = setup.querySelector('[data-pmd-local-printer-select]');
+    var nameInput = setup.querySelector('[data-pmd-local-printer-name]');
+    var targetInput = setup.querySelector('[data-pmd-local-printer-target]');
+    var value = select ? String(select.value || '').trim() : '';
+    if (nameInput) nameInput.value = value;
+    if (targetInput) targetInput.value = value;
+  }
+
+  async function checkDrawerConnector(form, quiet) {
+    try {
+      var health = await localConnectorGet('/health', 1600);
+      if (health.paired) {
+        drawerLocalStatus(form, 'Connected on this PC' + (health.display_name ? ' - ' + health.display_name : '') + '.', 'online');
+      } else {
+        drawerLocalStatus(form, 'Connector is running but not paired. Download the connector again.', 'warning');
+      }
+      return health;
+    } catch (error) {
+      drawerLocalStatus(form, 'Not connected on this PC. Download and run the PayMyDine connector once.', 'offline');
+      if (!quiet) setStatus('Connector not detected on this PC.', 'error');
+      return null;
+    }
+  }
+
+  async function loadDrawerPrinters(form) {
+    var setup = drawerSetupForm(form);
+    var select = setup && setup.querySelector('[data-pmd-local-printer-select]');
+    if (!select) return;
+    setStatus('Finding printers...');
+    var data;
+    try {
+      data = await localConnectorGet('/printers', 5000);
+    } catch (error) {
+      drawerLocalStatus(form, 'Connector is not available. Install it first, then try again.', 'offline');
+      setStatus(error && error.message ? error.message : 'Could not read printers.', 'error');
+      return;
+    }
+
+    var saved = String(setup.getAttribute('data-saved-printer') || '').trim();
+    var printers = Array.isArray(data.printers) ? data.printers.filter(function (printer) {
+      return printer && printer.name && !printer.offline;
+    }) : [];
+    select.replaceChildren();
+    if (!printers.length) {
+      var empty = document.createElement('option');
+      empty.value = '';
+      empty.textContent = 'No available Windows printers found';
+      select.appendChild(empty);
+      syncDrawerPrinterInputs(form);
+      setStatus('No available printer was found.', 'error');
+      return;
+    }
+
+    printers.forEach(function (printer) {
+      var option = document.createElement('option');
+      option.value = String(printer.name);
+      option.textContent = String(printer.name) + (printer.default ? ' (Default)' : '') + (printer.port ? ' - ' + printer.port : '');
+      select.appendChild(option);
+    });
+
+    var preferred = printers.find(function (printer) { return saved && String(printer.name) === saved; })
+      || printers.find(function (printer) { return printer.default; })
+      || printers[0];
+    select.value = preferred ? String(preferred.name) : '';
+    syncDrawerPrinterInputs(form);
+    drawerLocalStatus(form, 'Connected. Printer list loaded from this PC.', 'online');
+    setStatus('Printers found. Choose the receipt printer, then click Use this printer.', 'ok');
+  }
+
+  function initDrawerSimpleSetup(form) {
+    var setup = drawerSetupForm(form);
+    if (!setup) return;
+    syncDrawerPrinterInputs(form);
+    setTimeout(function () { checkDrawerConnector(form, true); }, 50);
+  }
+
   function templateFor(key) {
     return document.querySelector('#pmd-device-modal-templates template[data-pmd-device-template="' + CSS.escape(key) + '"]');
   }
@@ -78,6 +195,7 @@
     if (deleteButton) deleteButton.hidden = mode !== 'edit';
     setStatus('');
     setBusy(false);
+    initDrawerSimpleSetup(form);
 
     modal.hidden = false;
     modal.setAttribute('aria-hidden', 'false');
@@ -226,7 +344,16 @@
       }
 
       showResult(data.raw && Object.keys(data).length === 1 ? data.raw : data);
-      setStatus('Done', 'ok');
+      if (kind === 'drawers' && handler === 'onApplyLocalPrinter') {
+        drawerLocalStatus(form, 'Printer saved for this POS.', 'online');
+        setStatus('Printer saved.', 'ok');
+      } else if (kind === 'drawers' && handler === 'onTestPrintLocal') {
+        setStatus('Test print sent.', 'ok');
+      } else if (kind === 'drawers' && (handler === 'onTestConnection' || handler === 'onOpenDrawer')) {
+        setStatus('Drawer test sent.', 'ok');
+      } else {
+        setStatus('Done', 'ok');
+      }
     } catch (error) {
       var message = error && error.message ? error.message : 'Request failed';
       setStatus(message, 'error');
@@ -237,6 +364,25 @@
   }
 
   document.addEventListener('click', function (event) {
+    var localCheck = event.target.closest('[data-pmd-local-check]');
+    if (localCheck && modal.contains(localCheck)) {
+      event.preventDefault();
+      checkDrawerConnector(currentForm(), false);
+      return;
+    }
+
+    var localPrinters = event.target.closest('[data-pmd-local-printers]');
+    if (localPrinters && modal.contains(localPrinters)) {
+      event.preventDefault();
+      loadDrawerPrinters(currentForm());
+      return;
+    }
+
+    var connectorDownload = event.target.closest('[data-pmd-connector-download]');
+    if (connectorDownload && modal.contains(connectorDownload)) {
+      drawerLocalStatus(currentForm(), 'Download started. Run the file on this PC, then click Check connection.', 'installing');
+    }
+
     var opener = event.target.closest('[data-pmd-device-open]');
     if (opener) {
       event.preventDefault();
@@ -254,6 +400,12 @@
     if (action && modal.contains(action)) {
       event.preventDefault();
       requestBackend(action.getAttribute('data-pmd-device-action'), action, false);
+    }
+  });
+
+  modal.addEventListener('change', function (event) {
+    if (event.target && event.target.matches('[data-pmd-local-printer-select]')) {
+      syncDrawerPrinterInputs(currentForm());
     }
   });
 
@@ -302,7 +454,7 @@
 
   window.PMDDeviceSettingsV6 = {
     ready: true,
-    version: '6.0.0',
+    version: '6.1.0-r2',
     singlePage: true,
     childPagesRendered: false,
     inlineModal: true,

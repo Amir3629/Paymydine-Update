@@ -1,3 +1,8 @@
+// PMD_CASHIER_COMPOSER_CACHE_FRESH_R51
+// PMD_CASHIER_R51_RAIL_DELIVERY_R52
+// PMD_CASHIER_R54_TOUCH_PAYMENT
+// PMD_CASHIER_R55A_STABLE_UI
+// PMD_CASHIER_R56B_PAYMENT_RAIL
 (function () {
   'use strict';
 
@@ -14,6 +19,8 @@
 
   if (window.PMDCashierOrderComposerV1) return;
 
+  var PMD_MENU_FALLBACK_IMAGE = '/brand/paymydine-logo.svg';
+
   var state = {
     shell: null,
     open: false,
@@ -28,6 +35,9 @@
     activeOrderId: null,
     desiredOrderId: null,
     existingOrder: null,
+    deliveryMode: false,
+    deliveryLocationId: null,
+    railView: 'new',
     invoiceReady: false,
     search: '',
     category: 'all',
@@ -213,23 +223,28 @@
     toast(message || 'Done');
   }
 
+  function clearCashierBusy() {
+    if (!state.shell) return;
+
+    state.shell.classList.remove(
+      'is-coc-initial-loading',
+      'is-coc-silent-loading'
+    );
+  }
+
   function setBusy(message) {
     state.loading = true;
 
-    var body = rootQuery('[data-coc-main]');
-    if (!body) return;
-
-    body.innerHTML = [
-      '<div class="pmd-coc-loading">',
-        '<span class="pmd-coc-spinner" aria-hidden="true"></span>',
-        '<strong>', esc(message || 'Loading menu…'), '</strong>',
-        '<small>Reading the live table, menu and order authority</small>',
-      '</div>'
-    ].join('');
+    if (state.shell) {
+      state.shell.classList.add(
+        'is-coc-silent-loading'
+      );
+    }
   }
 
   function setError(error) {
     state.loading = false;
+    clearCashierBusy();
     state.lastError = error;
 
     var body = rootQuery('[data-coc-main]');
@@ -342,6 +357,30 @@
         'data-pmd-coc-payment-simple-style'
       );
 
+      // PMD_CASHIER_PAYMENT_FRESH_R56B
+      //
+      // Cashier must not reuse a stale V3 object left by
+      // an earlier global asset.
+      if (
+        !window.PMDWaiterPOSPaymentV2 ||
+        window.PMDWaiterPOSPaymentV2.__pmdCashierR56B !== true
+      ) {
+        window.__PMDCashierForcePaymentV3R56B = true;
+
+        try {
+          await loadFreshScript(
+            '/app/admin/assets/js/pmd-waiter-pos-payment-v3.js',
+            'cashier-payment-v3-r56b-20260825'
+          );
+        } finally {
+          try {
+            delete window.__PMDCashierForcePaymentV3R56B;
+          } catch (_) {
+            window.__PMDCashierForcePaymentV3R56B = false;
+          }
+        }
+      }
+
       // The Cashier must install V3 itself if global asset ordering has not
       // established it yet. An old PMDWaiterPOSPaymentV2 global is NOT enough.
       if (
@@ -367,7 +406,7 @@
       if (!window.PMDWaiterPOSPaymentV2.__pmdPolicyWrapped) {
         await loadFreshScript(
           '/app/admin/assets/js/pmd-waiter-pos-payment-policy-v2.js',
-          'cashier-payment-policy-final'
+          'cashier-payment-policy-r56b-20260825'
         );
       }
 
@@ -386,7 +425,7 @@
           '<header class="pmd-pos-payment-head">',
             '<div>',
               '<span class="pmd-pos-payment-eyebrow">PAYMENT CENTER</span>',
-              '<h2 id="pmd-coc-payment-title">Settle order</h2>',
+              '<h2 id="pmd-coc-payment-title">Pay</h2>',
               '<p data-pos-payment-subtitle></p>',
             '</div>',
             '<button type="button" class="pmd-pos-payment-close" data-pos-payment-close aria-label="Close payment">×</button>',
@@ -440,7 +479,37 @@
                 '<div class="pmd-pos-payment-fields">',
                   '<label><span>Payer / guest label</span><input type="text" class="pmd-pos-payment-input" data-pos-payer-label placeholder="Guest 1, Anna, Seat 2…"></label>',
                   '<label data-pos-reference-field hidden><span>Terminal approval / receipt reference</span><input type="text" class="pmd-pos-payment-input" data-pos-payment-reference placeholder="Required for external terminal"></label>',
-                  '<label data-pos-cash-field><span>Cash received</span><input type="number" min="0" step="0.01" class="pmd-pos-payment-input" data-pos-cash-received></label>',
+                  '<div class="pmd-cashier-cash-field" data-pos-cash-field>',
+                    '<div class="pmd-cashier-cash-title">Cash received</div>',
+
+                    '<input type="text" inputmode="decimal" autocomplete="off" class="pmd-pos-payment-input pmd-cashier-cash-input" data-pos-cash-received>',
+
+                    '<div class="pmd-cashier-keypad" data-cash-keypad>',
+                      '<button type="button" data-cash-key="1">1</button>',
+                      '<button type="button" data-cash-key="2">2</button>',
+                      '<button type="button" data-cash-key="3">3</button>',
+
+                      '<button type="button" data-cash-key="4">4</button>',
+                      '<button type="button" data-cash-key="5">5</button>',
+                      '<button type="button" data-cash-key="6">6</button>',
+
+                      '<button type="button" data-cash-key="7">7</button>',
+                      '<button type="button" data-cash-key="8">8</button>',
+                      '<button type="button" data-cash-key="9">9</button>',
+
+                      '<button type="button" data-cash-action="decimal">.</button>',
+                      '<button type="button" data-cash-key="0">0</button>',
+                      '<button type="button" data-cash-action="backspace" aria-label="Backspace">⌫</button>',
+                    '</div>',
+
+                    '<div class="pmd-cashier-tenders">',
+                      '<button type="button" data-cash-action="exact">Exact</button>',
+                      '<button type="button" data-cash-tender="5">€5</button>',
+                      '<button type="button" data-cash-tender="10">€10</button>',
+                      '<button type="button" data-cash-tender="20">€20</button>',
+                      '<button type="button" data-cash-tender="50">€50</button>',
+                    '</div>',
+                  '</div>',
                 '</div>',
                 '<label class="pmd-pos-confirm-row" data-pos-external-confirm-row hidden><input type="checkbox" data-pos-external-confirm> I confirm the external terminal approved this exact amount.</label>',
               '</div>',
@@ -450,7 +519,7 @@
               '<h3>Payment summary</h3>',
               '<div data-pos-payment-totals></div>',
               '<div class="pmd-pos-change-box" data-pos-change-box hidden></div>',
-              '<button type="button" class="pmd-pos-pay-button" data-pos-pay-button>Record payment</button>',
+              '<button type="button" class="pmd-pos-pay-button" data-pos-pay-button>Pay</button>',
               '<button type="button" class="pmd-pos-payment-secondary" data-pos-copy-link>Copy customer payment link</button>',
               '<button type="button" class="pmd-pos-payment-secondary" data-pos-refresh-payment>Refresh payment status</button>',
               '<p class="pmd-pos-payment-safety">Online and direct-terminal payments are never marked successful without provider confirmation.</p>',
@@ -494,7 +563,6 @@
             '<select data-coc-table-select></select>',
           '</label>',
           '<div class="pmd-coc__order-context" data-coc-order-context></div>',
-          '<button type="button" class="pmd-coc__refresh" data-coc-refresh>Refresh</button>',
         '</div>',
 
         '<div class="pmd-coc__main" data-coc-main></div>',
@@ -502,7 +570,7 @@
         '<footer class="pmd-coc__footer">',
           '<div class="pmd-coc__footer-right">',
             '<button type="button" class="pmd-coc__secondary" data-coc-close>Close</button>',
-            '<button type="button" class="pmd-coc__send pmd-coc__primary" data-coc-primary disabled>Send to kitchen</button>',
+            '<button type="button" class="pmd-coc__send pmd-coc__primary" data-coc-primary disabled>Confirm</button>',
           '</div>',
         '</footer>',
       '</section>',
@@ -555,7 +623,15 @@
         event.preventDefault();
 
         if (state.table) {
-          loadTable(state.table, state.activeOrderId, false);
+          loadTable(
+            state.table,
+            state.activeOrderId,
+            false
+          );
+        } else if (state.deliveryMode) {
+          loadDelivery(
+            state.activeOrderId || null
+          );
         }
 
         return;
@@ -604,25 +680,33 @@
 
     if (tableSelect) {
       tableSelect.addEventListener('change', function () {
-        var id = Number(tableSelect.value || 0);
+        var id = Number(
+          tableSelect.value || 0
+        );
+
         var table = state.tables.find(function (row) {
           return Number(row.id) === id;
         });
 
+        state.mode = 'create';
+        state.desiredOrderId = null;
+        state.activeOrderId = null;
+        state.existingOrder = null;
+        state.cart = [];
+        state.note = '';
+        state.invoiceReady = false;
+        state.railView = 'new';
+
         if (!table) {
-          state.table = null;
-          state.activeOrderId = null;
-          state.existingOrder = null;
-          renderChooseTable();
+          loadDelivery(null);
           return;
         }
 
-        state.mode = 'create';
-        state.desiredOrderId = null;
-        state.cart = [];
-        state.note = '';
-
-        loadTable(table, null, false);
+        loadTable(
+          table,
+          null,
+          false
+        );
       });
     }
 
@@ -805,7 +889,7 @@
     });
 
     select.innerHTML = [
-      '<option value="">Select table…</option>'
+      '<option value="">Delivery / no table</option>'
     ].concat(
       state.tables.map(function (table) {
         return [
@@ -826,6 +910,12 @@
 
   function openShell() {
     ensureShell();
+
+    if (state.shell.hidden) {
+      state.shell.classList.add(
+        'is-coc-initial-loading'
+      );
+    }
 
     state.shell.hidden = false;
     state.open = true;
@@ -851,6 +941,7 @@
 
     closeProduct();
 
+    clearCashierBusy();
     state.shell.hidden = true;
     state.open = false;
     state.cart = [];
@@ -949,57 +1040,225 @@
     return true;
   }
 
-  async function loadTable(table, desiredOrderId, fallbackToDetails) {
-    state.table = table;
-    state.invoiceReady = false;
+  async function loadDelivery(desiredOrderId) {
+    state.table = null;
+    state.deliveryMode = true;
     state.loading = true;
     state.lastError = null;
 
-    renderTableOptions(table && table.id);
+    if (!desiredOrderId) {
+      state.activeOrderId = null;
+      state.existingOrder = null;
+      state.openOrders = [];
+      state.invoiceReady = false;
+      state.railView = 'new';
+    }
+
+    renderTableOptions();
+
+    setBusy('Loading delivery menu…');
+
+    try {
+      if (!state.tables.length) {
+        state.tables = collectFloorTables();
+      }
+
+      var sourceTable =
+        state.tables.length
+          ? state.tables[0]
+          : null;
+
+      if (!sourceTable) {
+        throw new Error(
+          'No active location menu source is available.'
+        );
+      }
+
+      var key =
+        tableRouteKey(sourceTable);
+
+      if (!key) {
+        throw new Error(
+          'Delivery menu source has no canonical location reference.'
+        );
+      }
+
+      /*
+       * We read menu/catalogue/location from an existing physical
+       * table endpoint, but deliberately discard its table/order state.
+       * No fake table is ever written to the Delivery order.
+       */
+      var boot = await fetchJson(
+        '/admin/pmd-waiter-pos-v1/data/' +
+        encodeURIComponent(key) +
+        '?_=' +
+        Date.now()
+      );
+
+      state.boot = boot || {};
+
+      state.settings = Object.assign(
+        {},
+        state.boot.settings || {},
+        {
+          save_url:
+            '/admin/pmd-waiter-pos-v1/save-delivery',
+
+          /*
+           * Delivery has no physical table data endpoint.
+           * refreshData() below owns its refresh through payment summary.
+           */
+          data_url: ''
+        }
+      );
+
+      state.menu =
+        Array.isArray(state.boot.menu_items)
+          ? state.boot.menu_items
+          : [];
+
+      state.categories =
+        Array.isArray(state.boot.categories)
+          ? state.boot.categories
+          : [];
+
+      state.openOrders = [];
+      state.existingOrder = null;
+
+      state.deliveryLocationId = Number(
+        (
+          state.boot.table &&
+          state.boot.table.location_id
+        ) ||
+        sourceTable.location_id ||
+        (
+          sourceTable.raw &&
+          sourceTable.raw.location_id
+        ) ||
+        0
+      );
+
+      state.activeOrderId =
+        Number(desiredOrderId || 0) ||
+        null;
+
+      state.desiredOrderId =
+        state.activeOrderId;
+
+      state.mode =
+        state.activeOrderId
+          ? 'edit'
+          : 'create';
+
+      state.guestCount =
+        Math.max(
+          1,
+          num(state.guestCount, 1)
+        );
+
+      state.category = 'all';
+      state.search = '';
+      state.loading = false;
+
+      await setupPaymentModule();
+
+      renderTableOptions();
+
+      if (state.activeOrderId) {
+        await refreshDeliveryOrder(
+          true,
+          state.activeOrderId
+        );
+      } else {
+        renderComposer();
+      }
+
+      return true;
+    } catch (error) {
+      setError(error);
+      return false;
+    }
+  }
+
+  async function loadTable(table, desiredOrderId, fallbackToDetails) {
+    state.table = table;
+    state.deliveryMode = false;
+    state.deliveryLocationId = null;
+    state.loading = true;
+    state.lastError = null;
+    state.invoiceReady = false;
+    state.railView = 'new';
+
+    renderTableOptions(
+      table && table.id
+    );
 
     setBusy(
       'Loading ' +
-      (table && table.name ? table.name : 'table') +
+      (
+        table && table.name
+          ? table.name
+          : 'table'
+      ) +
       '…'
     );
 
     try {
-      var key = tableRouteKey(table);
+      var key =
+        tableRouteKey(table);
 
       if (!key) {
-        throw new Error('This table has no canonical database table reference.');
+        throw new Error(
+          'This table has no canonical database table reference.'
+        );
       }
 
-      // Native Cashier Composer consumes JSON only. It never injects
-      // waiter_pos_shell.blade.php and never mounts PMDWaiterPOSApp.
       var boot = await fetchJson(
         '/admin/pmd-waiter-pos-v1/data/' +
         encodeURIComponent(key) +
-        '?_=' + Date.now()
+        '?_=' +
+        Date.now()
       );
 
       if (boot.table) {
-        state.table = normalizeTable(boot.table);
+        state.table =
+          normalizeTable(boot.table);
       }
 
-      var editable = applyBootstrap(boot, desiredOrderId);
+      var editable =
+        applyBootstrap(
+          boot,
+          desiredOrderId
+        );
 
-      if (!editable && desiredOrderId) {
+      if (
+        !editable &&
+        desiredOrderId
+      ) {
         if (
           fallbackToDetails !== false &&
           window.PMDCashierOrderCenter &&
-          typeof window.PMDCashierOrderCenter.open === 'function'
+          typeof window.PMDCashierOrderCenter.open ===
+            'function'
         ) {
-          var id = Number(desiredOrderId);
+          var id =
+            Number(desiredOrderId);
+
           state.cart = [];
+
           closeComposer(true);
-          window.PMDCashierOrderCenter.open(id);
+
+          window.PMDCashierOrderCenter.open(
+            id
+          );
+
           return false;
         }
 
         throw new Error(
-          'Order #' + desiredOrderId +
-          ' is no longer structurally editable. Paid or closed checks stay available in Cashier details.'
+          'Order #' +
+          desiredOrderId +
+          ' is no longer structurally editable.'
         );
       }
 
@@ -1010,15 +1269,27 @@
       if (
         state.activeOrderId &&
         state.paymentApi &&
-        typeof state.paymentApi.loadPaymentSummary === 'function'
+        typeof state.paymentApi.loadPaymentSummary ===
+          'function'
       ) {
-        await state.paymentApi.loadPaymentSummary(true);
+        await state.paymentApi.loadPaymentSummary(
+          true
+        );
 
-        state.invoiceReady =
-          paymentSummaryIsPaid();
+        if (
+          typeof paymentSummaryIsPaid ===
+          'function'
+        ) {
+          state.invoiceReady =
+            paymentSummaryIsPaid();
+        }
       }
 
-      renderTableOptions(state.table && state.table.id);
+      renderTableOptions(
+        state.table &&
+        state.table.id
+      );
+
       renderComposer();
 
       return true;
@@ -1029,34 +1300,8 @@
   }
 
   function renderChooseTable() {
-    state.loading = false;
-
-    var title = rootQuery('[data-coc-title]');
-    var subtitle = rootQuery('[data-coc-subtitle]');
-    var context = rootQuery('[data-coc-order-context]');
-    var body = rootQuery('[data-coc-main]');
-
-    if (title) title.textContent = 'New order';
-    if (subtitle) {
-      subtitle.textContent =
-        'Select a table from the Floor or choose one above.';
-    }
-    if (context) {
-      context.innerHTML =
-        '<strong>New check</strong>';
-    }
-
-    if (!body) return;
-
-    body.innerHTML = [
-      '<div class="pmd-coc-choose">',
-        '<div class="pmd-coc-choose__icon">＋</div>',
-        '<h3>Choose a table</h3>',
-        '<p>Select a table from the Floor first, or choose one from the Table field above.</p>',
-      '</div>'
-    ].join('');
-
-    updateFooter();
+    clearCashierBusy();
+    return loadDelivery(null);
   }
 
   function foodBadges(item) {
@@ -1107,41 +1352,80 @@
     });
   }
 
+  function syncRailTableSelect() {
+    var source =
+      rootQuery('[data-coc-table-select]');
+
+    var rail =
+      rootQuery('[data-coc-table-select-rail]');
+
+    if (!source || !rail) {
+      return;
+    }
+
+    rail.innerHTML =
+      source.innerHTML;
+
+    rail.value =
+      source.value;
+
+    rail.onchange = function () {
+      source.value =
+        rail.value;
+
+      source.dispatchEvent(
+        new Event(
+          'change',
+          {
+            bubbles: true
+          }
+        )
+      );
+    };
+  }
+
   function renderComposer() {
-    var title = rootQuery('[data-coc-title]');
-    var subtitle = rootQuery('[data-coc-subtitle]');
-    var context = rootQuery('[data-coc-order-context]');
-    var body = rootQuery('[data-coc-main]');
+    clearCashierBusy();
+    var title =
+      rootQuery('[data-coc-title]');
+
+    var subtitle =
+      rootQuery('[data-coc-subtitle]');
+
+    var context =
+      rootQuery('[data-coc-order-context]');
+
+    var body =
+      rootQuery('[data-coc-main]');
 
     if (!body) return;
 
-    var order = currentOrder();
-    var createOnExisting = state.mode === 'create' && order;
-
     if (title) {
       title.textContent =
-        state.mode === 'edit'
-          ? ('Edit Order #' + state.activeOrderId)
+        state.activeOrderId
+          ? (
+              'Order #' +
+              state.activeOrderId
+            )
           : (
-              createOnExisting
-                ? ('Add items · Order #' + state.activeOrderId)
+              state.deliveryMode
+                ? 'Delivery'
                 : 'New order'
             );
     }
 
     if (subtitle) {
-      subtitle.textContent = state.activeOrderId
-        ? 'Add items to this check or continue to payment.'
-        : 'Select menu items and send them to the kitchen.';
+      subtitle.textContent = '';
+      subtitle.hidden = true;
     }
 
+    /*
+     * Order number already exists in the Composer title.
+     * Never repeat OPEN CHECK / NEW CHECK here.
+     */
     if (context) {
-      context.innerHTML = state.activeOrderId
-        ? [
-            '<span>OPEN CHECK</span>',
-            '<strong>#', esc(state.activeOrderId), '</strong>'
-          ].join('')
-        : '<strong>New check</strong>';
+      context.innerHTML = '';
+      context.hidden = true;
     }
 
     body.innerHTML = [
@@ -1152,55 +1436,94 @@
             '<input type="search" data-coc-search placeholder="Search food, drink, category, vegan, allergen…" autocomplete="off">',
           '</label>',
         '</div>',
+
         '<div class="pmd-coc__warning" data-coc-warning hidden></div>',
         '<nav class="pmd-coc__categories" data-coc-categories></nav>',
         '<div class="pmd-coc__menu" data-coc-menu></div>',
       '</section>',
 
       '<aside class="pmd-coc__cart">',
-        '<div class="pmd-coc__cart-head">',
-          '<div>',
-            '<span>CURRENT ORDER</span>',
-            '<h3>', state.activeOrderId ? ('Order #' + esc(state.activeOrderId)) : 'New check', '</h3>',
-          '</div>',
+
+        /*
+         * No CURRENT ORDER / Order # duplicate.
+         * Only guest controls belong in this header.
+         */
+        '<div class="pmd-coc__cart-head pmd-coc__cart-head--simple">',
+          '<label class="pmd-coc__rail-table">',
+            '<small>Table</small>',
+            '<select data-coc-table-select-rail></select>',
+          '</label>',
+
           '<div class="pmd-coc__guest">',
             '<button type="button" data-coc-guest-minus>−</button>',
-            '<span><small>Guests</small><b data-coc-guests>', esc(state.guestCount), '</b></span>',
+            '<span>',
+              '<small>Guests</small>',
+              '<b data-coc-guests>',
+                esc(state.guestCount),
+              '</b>',
+            '</span>',
             '<button type="button" data-coc-guest-plus>+</button>',
           '</div>',
         '</div>',
 
-        '<div data-coc-existing></div>',
+        /*
+         * Existing/sent items and unsent items no longer occupy
+         * two permanent vertical sections.
+         */
+        '<div class="pmd-coc__rail-switch" role="tablist" aria-label="Order items">',
+          '<button type="button" data-coc-rail-view="new" role="tab">',
+            '<span>New items</span>',
+            '<b data-coc-new-count>0</b>',
+          '</button>',
 
-        '<section class="pmd-coc__new">',
-          '<div class="pmd-coc__section-title">',
-            '<strong>New items</strong>',
-            '<span>Not saved yet</span>',
-          '</div>',
+          '<button type="button" data-coc-rail-view="sent" role="tab">',
+            '<span>Sent items</span>',
+            '<b data-coc-sent-count>0</b>',
+          '</button>',
+        '</div>',
+
+        '<section class="pmd-coc__rail-pane" data-coc-rail-pane="new">',
           '<div data-coc-cart></div>',
         '</section>',
 
+        '<section class="pmd-coc__rail-pane is-sent" data-coc-rail-pane="sent" hidden>',
+          '<div data-coc-existing></div>',
+        '</section>',
+
         '<label class="pmd-coc__note">',
-          '<span>Order / kitchen note</span>',
-          '<textarea data-coc-note maxlength="1000" placeholder="Kitchen, service, allergy or table note…"></textarea>',
+          '<span>Note</span>',
+          '<textarea data-coc-note maxlength="1000" placeholder="Add note…"></textarea>',
         '</label>',
 
+        /*
+         * New/unsent value stays separate from the payable
+         * current bill until Send to kitchen succeeds.
+         */
         '<div class="pmd-coc__totals">',
-          '<div><span>New items</span><b data-coc-new-total>€0.00</b></div>',
-          '<div data-coc-existing-total-row hidden><span>Existing order</span><b data-coc-existing-total>€0.00</b></div>',
-          '<div class="is-grand"><span>Order total</span><b data-coc-total>€0.00</b></div>',
+          '<div data-coc-new-total-row hidden>',
+            '<span>Pending</span>',
+            '<b data-coc-new-total>€0.00</b>',
+          '</div>',
+
+          '<div class="is-grand">',
+            '<span data-coc-total-label>Pending total</span>',
+            '<b data-coc-total>€0.00</b>',
+          '</div>',
         '</div>',
       '</aside>'
     ].join('');
 
     bindComposerBody();
+    syncRailTableSelect();
     renderCategories();
     renderMenu();
     renderExisting();
     renderCart();
     updateFooter();
 
-    var warning = rootQuery('[data-coc-warning]');
+    var warning =
+      rootQuery('[data-coc-warning]');
+
     var hidden = num(
       state.boot &&
       state.boot.warnings &&
@@ -1208,11 +1531,20 @@
       0
     );
 
-    if (warning && hidden > 0) {
+    if (
+      warning &&
+      hidden > 0
+    ) {
       warning.hidden = false;
+
       warning.textContent =
-        hidden + ' zero-price menu ' +
-        (hidden === 1 ? 'item is' : 'items are') +
+        hidden +
+        ' zero-price menu ' +
+        (
+          hidden === 1
+            ? 'item is'
+            : 'items are'
+        ) +
         ' hidden until a valid price is configured.';
     }
   }
@@ -1294,6 +1626,17 @@
 
     var items = filteredMenu();
 
+    items.forEach(function (item) {
+      if (
+        !String(
+          item.image || ''
+        ).trim()
+      ) {
+        item.image =
+          PMD_MENU_FALLBACK_IMAGE;
+      }
+    });
+
     if (!items.length) {
       container.innerHTML = [
         '<div class="pmd-coc-empty">',
@@ -1372,8 +1715,37 @@
 
     rootQueryAll('[data-coc-food-image]', container).forEach(function (img) {
       img.onerror = function () {
+        if (
+          String(
+            img.getAttribute('src') || ''
+          ).indexOf(
+            PMD_MENU_FALLBACK_IMAGE
+          ) === -1
+        ) {
+          img.src =
+            PMD_MENU_FALLBACK_IMAGE;
+
+          img.classList.add(
+            'is-pmd-logo-fallback'
+          );
+
+          return;
+        }
+
         img.style.display = 'none';
       };
+
+      if (
+        String(
+          img.getAttribute('src') || ''
+        ).indexOf(
+          PMD_MENU_FALLBACK_IMAGE
+        ) !== -1
+      ) {
+        img.classList.add(
+          'is-pmd-logo-fallback'
+        );
+      }
     });
 
     rootQueryAll('[data-coc-food]', container).forEach(function (card) {
@@ -1407,46 +1779,86 @@
   }
 
   function renderExisting() {
-    var box = rootQuery('[data-coc-existing]');
+    var box =
+      rootQuery('[data-coc-existing]');
+
     if (!box) return;
 
-    var order = currentOrder();
+    var order =
+      currentOrder();
 
     if (!order) {
       box.innerHTML = [
-        '<div class="pmd-coc-existing is-new">',
-          '<strong>New check</strong>',
-          '<span>Saving the first item will create the order for this table.</span>',
+        '<div class="pmd-coc-cart-empty">',
+          '<div>',
+            '<strong>No sent items yet</strong>',
+            '<span>Send new items to the kitchen first.</span>',
+          '</div>',
         '</div>'
       ].join('');
+
       return;
     }
 
-    var items = Array.isArray(order.items) ? order.items : [];
+    var items =
+      Array.isArray(order.items)
+        ? order.items
+        : [];
 
     box.innerHTML = [
-      '<div class="pmd-coc-existing">',
-        '<div class="pmd-coc__section-title">',
-          '<strong>Already on Order #', esc(order.order_id), '</strong>',
-          '<span>', esc(order.status_name || order.settlement_status || 'Open'), '</span>',
-        '</div>',
+      '<div class="pmd-coc-existing pmd-coc-existing--simple">',
 
         items.length
-          ? '<div class="pmd-coc-existing__items">' +
+          ? (
+              '<div class="pmd-coc-existing__items">' +
+
               items.map(function (item) {
                 return [
                   '<div>',
-                    '<span class="pmd-coc-existing__qty">', esc(item.quantity), '×</span>',
-                    '<span class="pmd-coc-existing__name">',
-                      '<b>', esc(item.name || 'Item'), '</b>',
-                      visibleOrderComment(item.comment) ? '<small>' + esc(visibleOrderComment(item.comment)) + '</small>' : '',
+                    '<span class="pmd-coc-existing__qty">',
+                      esc(item.quantity),
+                      '×',
                     '</span>',
-                    '<strong>', money(item.subtotal || 0), '</strong>',
+
+                    '<span class="pmd-coc-existing__name">',
+                      '<b>',
+                        esc(item.name || 'Item'),
+                      '</b>',
+
+                      visibleOrderComment(
+                        item.comment
+                      )
+                        ? (
+                            '<small>' +
+                            esc(
+                              visibleOrderComment(
+                                item.comment
+                              )
+                            ) +
+                            '</small>'
+                          )
+                        : '',
+                    '</span>',
+
+                    '<strong>',
+                      money(
+                        item.subtotal ||
+                        item.line_subtotal ||
+                        0
+                      ),
+                    '</strong>',
                   '</div>'
                 ].join('');
               }).join('') +
-            '</div>'
-          : '<p class="pmd-coc-existing__empty">Existing items are saved already. Add more from the menu.</p>',
+
+              '</div>'
+            )
+          : (
+              '<p class="pmd-coc-existing__empty">' +
+              'No sent items yet.' +
+              '</p>'
+            ),
+
       '</div>'
     ].join('');
   }
@@ -1488,6 +1900,8 @@
       });
     }
 
+    state.railView = 'new';
+
     renderCart();
     updateFooter();
     toast(item.name + ' added');
@@ -1518,8 +1932,64 @@
       : 0;
   }
 
+  function applyRailView() {
+    var hasSent =
+      !!state.activeOrderId;
+
+    if (
+      !hasSent &&
+      state.railView === 'sent'
+    ) {
+      state.railView = 'new';
+    }
+
+    if (
+      state.railView !== 'sent' &&
+      state.railView !== 'new'
+    ) {
+      state.railView = 'new';
+    }
+
+    rootQueryAll(
+      '[data-coc-rail-view]'
+    ).forEach(function (button) {
+      var view =
+        button.getAttribute(
+          'data-coc-rail-view'
+        );
+
+      if (view === 'sent') {
+        button.hidden = !hasSent;
+      }
+
+      var active =
+        view === state.railView;
+
+      button.classList.toggle(
+        'is-active',
+        active
+      );
+
+      button.setAttribute(
+        'aria-selected',
+        active ? 'true' : 'false'
+      );
+    });
+
+    rootQueryAll(
+      '[data-coc-rail-pane]'
+    ).forEach(function (pane) {
+      pane.hidden =
+        pane.getAttribute(
+          'data-coc-rail-pane'
+        ) !== state.railView;
+    });
+  }
+
   function renderCart() {
-    var box = rootQuery('[data-coc-cart]');
+    var box =
+      rootQuery('[data-coc-cart]');
+
     if (!box) return;
 
     if (!state.cart.length) {
@@ -1532,46 +2002,105 @@
         '</div>'
       ].join('');
     } else {
-      box.innerHTML = state.cart.map(function (row, index) {
-        var options = (row.options || []).map(function (option) {
-          return option.name +
-            (num(option.price, 0) ? (' +' + money(option.price)) : '');
-        }).join(' · ');
+      box.innerHTML =
+        state.cart.map(
+          function (row, index) {
+            var options =
+              (row.options || [])
+                .map(function (option) {
+                  return (
+                    option.name +
+                    (
+                      num(option.price, 0)
+                        ? (
+                            ' +' +
+                            money(option.price)
+                          )
+                        : ''
+                    )
+                  );
+                })
+                .join(' · ');
 
-        return [
-          '<article class="pmd-coc-line">',
-            '<div class="pmd-coc-line__top">',
-              '<div>',
-                '<strong>', esc(row.name), '</strong>',
-                options ? '<small>' + esc(options) + '</small>' : '',
-                row.comment
-                  ? '<small class="is-note">' + esc(row.comment) + '</small>'
-                  : '',
-              '</div>',
-              '<b>', money(lineTotal(row)), '</b>',
-            '</div>',
+            return [
+              '<article class="pmd-coc-line">',
 
-            '<div class="pmd-coc-line__actions">',
-              '<div>',
-                '<button type="button" data-coc-dec="', index, '">−</button>',
-                '<b>', esc(row.quantity), '</b>',
-                '<button type="button" data-coc-inc="', index, '">+</button>',
-              '</div>',
+                '<div class="pmd-coc-line__top">',
+                  '<div>',
+                    '<strong>',
+                      esc(row.name),
+                    '</strong>',
 
-              '<button type="button" class="pmd-coc-line__remove" data-coc-remove="', index, '">Remove</button>',
-            '</div>',
-          '</article>'
-        ].join('');
-      }).join('');
+                    options
+                      ? (
+                          '<small>' +
+                          esc(options) +
+                          '</small>'
+                        )
+                      : '',
+
+                    row.comment
+                      ? (
+                          '<small class="is-note">' +
+                          esc(row.comment) +
+                          '</small>'
+                        )
+                      : '',
+                  '</div>',
+
+                  '<b>',
+                    money(
+                      lineTotal(row)
+                    ),
+                  '</b>',
+                '</div>',
+
+                '<div class="pmd-coc-line__actions">',
+                  '<div>',
+                    '<button type="button" data-coc-dec="',
+                      index,
+                    '">−</button>',
+
+                    '<b>',
+                      esc(row.quantity),
+                    '</b>',
+
+                    '<button type="button" data-coc-inc="',
+                      index,
+                    '">+</button>',
+                  '</div>',
+
+                  '<button type="button" class="pmd-coc-line__remove" data-coc-remove="',
+                    index,
+                  '">Remove</button>',
+                '</div>',
+
+              '</article>'
+            ].join('');
+          }
+        ).join('');
     }
 
-    rootQueryAll('[data-coc-inc]', box).forEach(function (button) {
+    rootQueryAll(
+      '[data-coc-inc]',
+      box
+    ).forEach(function (button) {
       button.onclick = function () {
-        var index = Number(button.getAttribute('data-coc-inc'));
+        var index =
+          Number(
+            button.getAttribute(
+              'data-coc-inc'
+            )
+          );
 
         if (state.cart[index]) {
           state.cart[index].quantity =
-            Math.min(99, state.cart[index].quantity + 1);
+            Math.min(
+              99,
+              state.cart[index].quantity + 1
+            );
+
+          state.railView = 'new';
 
           renderCart();
           updateFooter();
@@ -1579,52 +2108,251 @@
       };
     });
 
-    rootQueryAll('[data-coc-dec]', box).forEach(function (button) {
+    rootQueryAll(
+      '[data-coc-dec]',
+      box
+    ).forEach(function (button) {
       button.onclick = function () {
-        var index = Number(button.getAttribute('data-coc-dec'));
-        var row = state.cart[index];
+        var index =
+          Number(
+            button.getAttribute(
+              'data-coc-dec'
+            )
+          );
+
+        var row =
+          state.cart[index];
 
         if (!row) return;
 
         row.quantity -= 1;
 
         if (row.quantity <= 0) {
-          state.cart.splice(index, 1);
+          state.cart.splice(
+            index,
+            1
+          );
         }
+
+        state.railView = 'new';
 
         renderCart();
         updateFooter();
       };
     });
 
-    rootQueryAll('[data-coc-remove]', box).forEach(function (button) {
+    rootQueryAll(
+      '[data-coc-remove]',
+      box
+    ).forEach(function (button) {
       button.onclick = function () {
         state.cart.splice(
-          Number(button.getAttribute('data-coc-remove')),
+          Number(
+            button.getAttribute(
+              'data-coc-remove'
+            )
+          ),
           1
         );
 
+        state.railView = 'new';
+
         renderCart();
         updateFooter();
       };
     });
 
-    var newTotal = cartTotal();
-    var oldTotal = existingTotal();
+    var order =
+      currentOrder();
 
-    var newEl = rootQuery('[data-coc-new-total]');
-    var existingEl = rootQuery('[data-coc-existing-total]');
-    var existingRow = rootQuery('[data-coc-existing-total-row]');
-    var totalEl = rootQuery('[data-coc-total]');
+    var sentItems =
+      order &&
+      Array.isArray(order.items)
+        ? order.items
+        : [];
 
-    if (newEl) newEl.textContent = money(newTotal);
-    if (existingEl) existingEl.textContent = money(oldTotal);
-    if (existingRow) existingRow.hidden = !state.activeOrderId;
-    if (totalEl) totalEl.textContent = money(oldTotal + newTotal);
+    var newCount =
+      state.cart.reduce(
+        function (sum, row) {
+          return (
+            sum +
+            num(row.quantity, 0)
+          );
+        },
+        0
+      );
+
+    var sentCount =
+      sentItems.reduce(
+        function (sum, row) {
+          return (
+            sum +
+            num(row.quantity, 0)
+          );
+        },
+        0
+      );
+
+    var newCountEl =
+      rootQuery(
+        '[data-coc-new-count]'
+      );
+
+    var sentCountEl =
+      rootQuery(
+        '[data-coc-sent-count]'
+      );
+
+    if (newCountEl) {
+      newCountEl.textContent =
+        String(newCount);
+    }
+
+    if (sentCountEl) {
+      sentCountEl.textContent =
+        String(sentCount);
+    }
+
+    var newTotal =
+      cartTotal();
+
+    var oldTotal =
+      existingTotal();
+
+    var newEl =
+      rootQuery(
+        '[data-coc-new-total]'
+      );
+
+    var newRow =
+      rootQuery(
+        '[data-coc-new-total-row]'
+      );
+
+    var totalEl =
+      rootQuery(
+        '[data-coc-total]'
+      );
+
+    var totalLabel =
+      rootQuery(
+        '[data-coc-total-label]'
+      );
+
+    /*
+     * Existing payable bill never includes unsent items.
+     * After Send succeeds, backend recalculation moves them
+     * into existingTotal() naturally.
+     */
+    if (newEl) {
+      newEl.textContent =
+        money(newTotal);
+    }
+
+    if (newRow) {
+      newRow.hidden =
+        !state.activeOrderId ||
+        newTotal <= 0.0001;
+    }
+
+    if (totalLabel) {
+      totalLabel.textContent =
+        state.activeOrderId
+          ? 'Current bill'
+          : (
+              state.deliveryMode
+                ? 'Delivery total'
+                : 'Pending total'
+            );
+    }
+
+    if (totalEl) {
+      totalEl.textContent =
+        money(
+          state.activeOrderId
+            ? oldTotal
+            : newTotal
+        );
+    }
+
+    rootQueryAll(
+      '[data-coc-rail-view]'
+    ).forEach(function (button) {
+      button.onclick = function () {
+        state.railView =
+          button.getAttribute(
+            'data-coc-rail-view'
+          ) || 'new';
+
+        applyRailView();
+      };
+    });
+
+    applyRailView();
   }
 
+  
+  // PMD_CASHIER_R57_RAIL_ACTIONS
+  // PMD_CASHIER_R59_STABLE_RAIL
+  function mountRailActions() {
+    var root = document.getElementById(
+      'pmd-cashier-order-composer-v1'
+    );
+
+    if (!root) return;
+
+    // PMD_CASHIER_R59B_PERSISTENT_ACTIONS
+    var footer = root.querySelector(
+      '.pmd-coc__footer'
+    );
+
+    if (!footer) return;
+
+    var actions = root.querySelector(
+      '.pmd-coc__footer-right'
+    );
+
+    /*
+     * R59/R59A may already have moved the real action node
+     * into a re-rendered region.
+     *
+     * Put that exact node back into the persistent footer.
+     */
+    if (actions) {
+      if (actions.parentNode !== footer) {
+        footer.appendChild(actions);
+      }
+    } else {
+      /*
+       * Recovery path for a composer that lost the action
+       * node during a previous main/cart re-render.
+       *
+       * Click handling is delegated from the shell, so these
+       * canonical data attributes use the existing handlers.
+       */
+      footer.innerHTML = [
+        '<div class="pmd-coc__footer-right">',
+          '<button type="button" class="pmd-coc__secondary" data-coc-close>Close</button>',
+          '<button type="button" class="pmd-coc__send pmd-coc__primary" data-coc-primary disabled>Confirm</button>',
+        '</div>'
+      ].join('');
+
+      actions = footer.querySelector(
+        '.pmd-coc__footer-right'
+      );
+    }
+
+    footer.hidden = false;
+    footer.removeAttribute(
+      'aria-hidden'
+    );
+  }
+
+
   function updateFooter() {
-    var primary = rootQuery('[data-coc-primary]');
+    mountRailActions();
+    var primary =
+      rootQuery('[data-coc-primary]');
 
     var hasCart =
       state.cart.length > 0;
@@ -1640,7 +2368,9 @@
       hasOrder &&
       state.invoiceReady
     ) {
-      primary.textContent = 'Invoice';
+      primary.textContent =
+        'Invoice';
+
       primary.disabled = false;
 
       primary.classList.remove(
@@ -1657,12 +2387,15 @@
     if (hasCart) {
       primary.textContent =
         state.submitting
-          ? 'Sending…'
-          : 'Send to kitchen';
+          ? 'Confirming…'
+          : 'Confirm';
 
       primary.disabled =
         state.submitting ||
-        !state.table;
+        (
+          !state.table &&
+          !state.deliveryMode
+        );
 
       primary.classList.remove(
         'is-pay',
@@ -1673,8 +2406,11 @@
     }
 
     if (hasOrder) {
-      primary.textContent = 'Pay';
-      primary.disabled = state.submitting;
+      primary.textContent =
+        'Pay';
+
+      primary.disabled =
+        state.submitting;
 
       primary.classList.remove(
         'is-invoice'
@@ -1688,7 +2424,7 @@
     }
 
     primary.textContent =
-      'Send to kitchen';
+      'Confirm';
 
     primary.disabled = true;
 
@@ -1851,7 +2587,6 @@
         '<label class="pmd-coc-product__note">',
           '<span>',
             '<b>Item note</b>',
-            '<small>Kitchen, allergy, doneness or service note</small>',
           '</span>',
           '<textarea data-coc-product-note maxlength="500" placeholder="Optional note…"></textarea>',
         '</label>',
@@ -1869,8 +2604,37 @@
 
     if (img) {
       img.onerror = function () {
+        if (
+          String(
+            img.getAttribute('src') || ''
+          ).indexOf(
+            PMD_MENU_FALLBACK_IMAGE
+          ) === -1
+        ) {
+          img.src =
+            PMD_MENU_FALLBACK_IMAGE;
+
+          img.classList.add(
+            'is-pmd-logo-fallback'
+          );
+
+          return;
+        }
+
         img.style.display = 'none';
       };
+
+      if (
+        String(
+          img.getAttribute('src') || ''
+        ).indexOf(
+          PMD_MENU_FALLBACK_IMAGE
+        ) !== -1
+      ) {
+        img.classList.add(
+          'is-pmd-logo-fallback'
+        );
+      }
     }
 
     var minus = rootQuery('[data-coc-product-minus]', body);
@@ -2017,186 +2781,517 @@
 
   async function saveOrder(mode) {
     if (
-      !state.table ||
       !state.cart.length ||
-      state.submitting
+      state.submitting ||
+      (
+        !state.table &&
+        !state.deliveryMode
+      )
     ) {
       return;
     }
 
-    var saveUrl = state.settings.save_url;
+    var wasDelivery =
+      !!state.deliveryMode;
+
+    var saveUrl =
+      wasDelivery
+        ? '/admin/pmd-waiter-pos-v1/save-delivery'
+        : state.settings.save_url;
 
     if (!saveUrl) {
-      toast('Canonical save endpoint is unavailable.', true);
+      toast(
+        'Canonical save endpoint is unavailable.',
+        true
+      );
+
       return;
     }
 
     state.submitting = true;
     updateFooter();
 
-    var hold = rootQuery('[data-coc-submit="hold"]');
-    var send = rootQuery('[data-coc-submit="send"]');
-
-    if (hold) {
-      hold.textContent =
-        mode === 'hold'
-          ? 'Saving…'
-          : 'Save / Hold';
-    }
-
-    if (send) {
-      send.textContent =
-        mode === 'send'
-          ? 'Sending…'
-          : 'Send to kitchen';
-    }
-
-    var order = currentOrder();
+    var order =
+      currentOrder();
 
     try {
-      var json = await fetchJson(saveUrl, {
-        method: 'POST',
-        headers: {
-          'Accept': 'application/json',
-          'Content-Type': 'application/json',
-          'X-Requested-With': 'XMLHttpRequest',
-          'X-CSRF-TOKEN': csrf()
-        },
-        body: JSON.stringify({
-          mode: mode,
-          order_id: state.activeOrderId,
-          expected_updated_at: order ? order.updated_at : null,
-          guest_count: state.guestCount,
-          note: state.note,
-          items: state.cart.map(function (row) {
-            return {
-              menu_id: row.menu_id,
-              quantity: row.quantity,
-              comment: row.comment || '',
-              options: (row.options || []).map(function (option) {
-                return option.id;
-              })
-            };
-          })
-        })
-      });
+      var json =
+        await fetchJson(
+          saveUrl,
+          {
+            method: 'POST',
+
+            headers: {
+              'Accept':
+                'application/json',
+
+              'Content-Type':
+                'application/json',
+
+              'X-Requested-With':
+                'XMLHttpRequest',
+
+              'X-CSRF-TOKEN':
+                csrf()
+            },
+
+            body: JSON.stringify({
+              mode: mode,
+
+              order_type:
+                wasDelivery
+                  ? 'delivery'
+                  : 'table',
+
+              location_id:
+                wasDelivery
+                  ? Number(
+                      state.deliveryLocationId ||
+                      (
+                        state.boot &&
+                        state.boot.table &&
+                        state.boot.table.location_id
+                      ) ||
+                      0
+                    )
+                  : Number(
+                      state.table &&
+                      state.table.location_id ||
+                      0
+                    ),
+
+              order_id:
+                state.activeOrderId,
+
+              expected_updated_at:
+                order
+                  ? order.updated_at
+                  : null,
+
+              guest_count:
+                state.guestCount,
+
+              note:
+                state.note,
+
+              items:
+                state.cart.map(
+                  function (row) {
+                    return {
+                      menu_id:
+                        row.menu_id,
+
+                      quantity:
+                        row.quantity,
+
+                      comment:
+                        row.comment || '',
+
+                      options:
+                        (row.options || [])
+                          .map(
+                            function (option) {
+                              return option.id;
+                            }
+                          )
+                    };
+                  }
+                )
+            })
+          }
+        );
 
       state.activeOrderId =
-        Number(json.order_id || state.activeOrderId || 0) || null;
+        Number(
+          json.order_id ||
+          state.activeOrderId ||
+          0
+        ) ||
+        null;
 
-      state.desiredOrderId = state.activeOrderId;
+      state.desiredOrderId =
+        state.activeOrderId;
+
       state.mode = 'edit';
+      state.invoiceReady = false;
+      state.railView = 'sent';
+
       state.cart = [];
       state.note = '';
 
       toast(
-        (json.message || 'Order saved') +
+        json.message ||
         (
-          state.activeOrderId
-            ? (' · #' + state.activeOrderId)
-            : ''
+          wasDelivery
+            ? 'Delivery order sent to the kitchen.'
+            : 'Order sent to the kitchen.'
         )
       );
 
       window.dispatchEvent(
         new CustomEvent(
           'pmd:waiter-pos-order-updated',
-          {detail: json}
+          {
+            detail: json
+          }
         )
       );
 
       window.dispatchEvent(
         new CustomEvent(
           'pmd:cashier-order-updated',
-          {detail: json}
+          {
+            detail: json
+          }
         )
       );
 
-      await refreshCashierOrdersSection(state.activeOrderId);
-
-      if (state.table) {
-        await loadTable(
-          state.table,
-          state.activeOrderId,
-          false
+      if (wasDelivery) {
+        /*
+         * The saved Delivery has no table endpoint.
+         * Reload its canonical order/payment state by order id.
+         */
+        await refreshDeliveryOrder(
+          true,
+          state.activeOrderId
         );
+      } else {
+        await refreshCashierOrdersSection(
+          state.activeOrderId
+        );
+
+        if (state.table) {
+          await loadTable(
+            state.table,
+            state.activeOrderId,
+            false
+          );
+
+          state.railView = 'sent';
+
+          if (state.open) {
+            renderComposer();
+          }
+        }
       }
     } catch (error) {
       toast(
-        error.message || 'Could not save order.',
+        error.message ||
+        'Could not save order.',
         true
       );
     } finally {
       state.submitting = false;
-
-      if (hold) hold.textContent = 'Save / Hold';
-      if (send) send.textContent = 'Send to kitchen';
-
       updateFooter();
     }
   }
 
-  async function refreshData(silent) {
-    if (!state.settings.data_url) return;
-
-    try {
-      var boot = await fetchJson(
-        state.settings.data_url +
-        '?_=' +
-        Date.now()
+  async function refreshDeliveryOrder(
+    silent,
+    orderId
+  ) {
+    var id =
+      Number(
+        orderId ||
+        state.activeOrderId ||
+        0
       );
 
-      var desired = state.activeOrderId;
-
-      state.boot = boot || {};
-      state.settings = state.boot.settings || state.settings;
-      state.menu = Array.isArray(state.boot.menu_items)
-        ? state.boot.menu_items
-        : state.menu;
-      state.categories = Array.isArray(state.boot.categories)
-        ? state.boot.categories
-        : state.categories;
-      state.openOrders = Array.isArray(state.boot.open_orders)
-        ? state.boot.open_orders
-        : [];
-
-      if (boot.table) {
-        state.table = normalizeTable(boot.table);
+    if (!id) {
+      if (state.open) {
+        renderComposer();
       }
 
-      var desiredRow = desired
-        ? state.openOrders.find(function (row) {
-            return Number(row.order_id) === Number(desired);
-          })
-        : null;
+      return;
+    }
+
+    try {
+      var template =
+        state.settings.payment_summary_url ||
+        '/admin/pmd-waiter-pos-v1/payment-summary/{order}';
+
+      var summary =
+        await fetchJson(
+          replaceOrderToken(
+            template,
+            id
+          ) +
+          '?_=' +
+          Date.now()
+        );
+
+      state.payment.summary =
+        summary;
+
+      var settlement =
+        summary.settlement || {};
+
+      var orderData =
+        summary.order || {};
+
+      var items =
+        Array.isArray(summary.items)
+          ? summary.items.map(
+              function (item) {
+                return {
+                  order_menu_id:
+                    Number(
+                      item.order_menu_id ||
+                      0
+                    ),
+
+                  menu_id:
+                    Number(
+                      item.menu_id ||
+                      0
+                    ),
+
+                  name:
+                    item.name ||
+                    'Item',
+
+                  quantity:
+                    num(
+                      item.quantity,
+                      0
+                    ),
+
+                  subtotal:
+                    num(
+                      item.line_subtotal,
+                      0
+                    ),
+
+                  comment:
+                    item.comment ||
+                    ''
+                };
+              }
+            )
+          : [];
+
+      state.existingOrder = {
+        order_id: id,
+
+        total:
+          num(
+            settlement.order_total,
+            0
+          ),
+
+        order_total:
+          num(
+            settlement.order_total,
+            0
+          ),
+
+        settlement_status:
+          String(
+            settlement.status ||
+            'unpaid'
+          ),
+
+        updated_at:
+          String(
+            orderData.updated_at ||
+            ''
+          ),
+
+        comment:
+          String(
+            orderData.comment ||
+            ''
+          ),
+
+        guest_count:
+          state.guestCount,
+
+        items:
+          items
+      };
+
+      state.openOrders = [
+        state.existingOrder
+      ];
+
+      state.activeOrderId = id;
+      state.desiredOrderId = id;
+      state.mode = 'edit';
+      state.deliveryMode = true;
+
+      if (
+        typeof paymentSummaryIsPaid ===
+        'function'
+      ) {
+        state.invoiceReady =
+          paymentSummaryIsPaid();
+      } else {
+        state.invoiceReady =
+          String(
+            settlement.status ||
+            ''
+          ).toLowerCase() === 'paid' ||
+          (
+            num(
+              settlement.order_total,
+              0
+            ) > 0 &&
+            num(
+              settlement.remaining_amount,
+              0
+            ) <= 0.005
+          );
+      }
+
+      if (!silent) {
+        toast(
+          'Delivery order refreshed'
+        );
+      }
+
+      if (state.open) {
+        renderComposer();
+      }
+
+      await refreshCashierOrdersSection(
+        id
+      );
+    } catch (error) {
+      if (!silent) {
+        toast(
+          error.message ||
+          'Delivery refresh failed.',
+          true
+        );
+      }
+
+      throw error;
+    }
+  }
+
+  async function refreshData(silent) {
+    if (state.deliveryMode) {
+      await refreshDeliveryOrder(
+        silent,
+        state.activeOrderId
+      );
+
+      return;
+    }
+
+    if (!state.settings.data_url) {
+      return;
+    }
+
+    try {
+      var boot =
+        await fetchJson(
+          state.settings.data_url +
+          '?_=' +
+          Date.now()
+        );
+
+      var desired =
+        state.activeOrderId;
+
+      state.boot =
+        boot || {};
+
+      state.settings =
+        state.boot.settings ||
+        state.settings;
+
+      state.menu =
+        Array.isArray(
+          state.boot.menu_items
+        )
+          ? state.boot.menu_items
+          : state.menu;
+
+      state.categories =
+        Array.isArray(
+          state.boot.categories
+        )
+          ? state.boot.categories
+          : state.categories;
+
+      state.openOrders =
+        Array.isArray(
+          state.boot.open_orders
+        )
+          ? state.boot.open_orders
+          : [];
+
+      if (boot.table) {
+        state.table =
+          normalizeTable(
+            boot.table
+          );
+      }
+
+      var desiredRow =
+        desired
+          ? state.openOrders.find(
+              function (row) {
+                return (
+                  Number(
+                    row.order_id
+                  ) ===
+                  Number(desired)
+                );
+              }
+            )
+          : null;
 
       if (desiredRow) {
-        state.activeOrderId = Number(desired);
-        state.existingOrder = desiredRow;
+        state.activeOrderId =
+          Number(desired);
+
+        state.existingOrder =
+          desiredRow;
       } else if (!state.payment.open) {
         var active =
-          state.openOrders.find(function (row) {
-            return Number(row.order_id) === Number(boot.active_order_id || 0);
-          }) ||
+          state.openOrders.find(
+            function (row) {
+              return (
+                Number(
+                  row.order_id
+                ) ===
+                Number(
+                  boot.active_order_id ||
+                  0
+                )
+              );
+            }
+          ) ||
           state.openOrders[0] ||
           null;
 
         state.activeOrderId =
-          active ? Number(active.order_id) : null;
+          active
+            ? Number(
+                active.order_id
+              )
+            : null;
 
-        state.existingOrder = active;
+        state.existingOrder =
+          active;
       }
 
       if (
         state.payment &&
-        state.payment.summary
+        state.payment.summary &&
+        typeof paymentSummaryIsPaid ===
+          'function'
       ) {
         state.invoiceReady =
           paymentSummaryIsPaid();
       }
 
       if (!silent) {
-        toast('Order and menu refreshed');
+        toast(
+          'Order and menu refreshed'
+        );
       }
 
       if (state.open) {
@@ -2207,11 +3302,286 @@
     } catch (error) {
       if (!silent) {
         toast(
-          error.message || 'Refresh failed.',
+          error.message ||
+          'Refresh failed.',
           true
         );
       }
     }
+  }
+
+  function cashierCashPayable() {
+    var summary =
+      state.payment &&
+      state.payment.summary
+        ? state.payment.summary
+        : {};
+
+    var settlement =
+      summary.settlement || {};
+
+    var base =
+      num(
+        settlement.remaining_amount,
+        0
+      );
+
+    var tip = 0;
+
+    if (
+      state.payment.tipPercent ===
+      'custom'
+    ) {
+      tip =
+        Math.max(
+          0,
+          roundMoney(
+            state.payment.customTip
+          )
+        );
+    } else {
+      tip =
+        roundMoney(
+          base *
+          (
+            num(
+              state.payment.tipPercent,
+              0
+            ) /
+            100
+          )
+        );
+    }
+
+    var discount =
+      state.payment.coupon
+        ? num(
+            state.payment.coupon.discount,
+            0
+          )
+        : 0;
+
+    return roundMoney(
+      Math.max(
+        0,
+        base + tip - discount
+      )
+    );
+  }
+
+  function bindCashKeypad(root) {
+    var pad =
+      root.querySelector(
+        '[data-cash-keypad]'
+      );
+
+    var cash =
+      root.querySelector(
+        '[data-pos-cash-received]'
+      );
+
+    if (
+      !pad ||
+      !cash ||
+      pad.dataset.pmdBound === '1'
+    ) {
+      return;
+    }
+
+    pad.dataset.pmdBound = '1';
+
+    function sessionReady() {
+      var current =
+        String(
+          state.payment.idempotencyKey ||
+          ''
+        );
+
+      if (
+        pad.dataset.pmdSession !==
+        current
+      ) {
+        pad.dataset.pmdSession =
+          current;
+
+        pad.dataset.pmdEdited =
+          '0';
+      }
+    }
+
+    function write(value) {
+      cash.value =
+        String(value);
+
+      cash.dispatchEvent(
+        new Event(
+          'input',
+          {
+            bubbles: true
+          }
+        )
+      );
+    }
+
+    function beginEdit() {
+      sessionReady();
+
+      if (
+        pad.dataset.pmdEdited !== '1'
+      ) {
+        pad.dataset.pmdEdited = '1';
+        return '';
+      }
+
+      return String(
+        cash.value || ''
+      );
+    }
+
+    root.addEventListener(
+      'click',
+      function (event) {
+        var button =
+          event.target &&
+          event.target.closest
+            ? event.target.closest(
+                '[data-cash-key], ' +
+                '[data-cash-action], ' +
+                '[data-cash-tender]'
+              )
+            : null;
+
+        if (
+          !button ||
+          !root.contains(button)
+        ) {
+          return;
+        }
+
+        if (
+          button.hasAttribute(
+            'data-cash-key'
+          )
+        ) {
+          var value =
+            beginEdit();
+
+          var digit =
+            button.getAttribute(
+              'data-cash-key'
+            );
+
+          if (
+            value === '0' &&
+            digit !== '0' &&
+            value.indexOf('.') === -1
+          ) {
+            value = '';
+          }
+
+          write(
+            value + digit
+          );
+
+          return;
+        }
+
+        var action =
+          button.getAttribute(
+            'data-cash-action'
+          );
+
+        if (action) {
+          sessionReady();
+
+          if (action === 'exact') {
+            pad.dataset.pmdEdited =
+              '1';
+
+            write(
+              cashierCashPayable()
+                .toFixed(2)
+            );
+
+            return;
+          }
+
+          if (action === 'decimal') {
+            var value =
+              beginEdit();
+
+            if (
+              value.indexOf('.') === -1
+            ) {
+              write(
+                value === ''
+                  ? '0.'
+                  : value + '.'
+              );
+            }
+
+            return;
+          }
+
+          if (
+            action === 'backspace'
+          ) {
+            var current =
+              beginEdit();
+
+            write(
+              current.slice(
+                0,
+                -1
+              )
+            );
+
+            return;
+          }
+        }
+
+        if (
+          button.hasAttribute(
+            'data-cash-tender'
+          )
+        ) {
+          sessionReady();
+
+          pad.dataset.pmdEdited =
+            '1';
+
+          var step =
+            Math.max(
+              1,
+              num(
+                button.getAttribute(
+                  'data-cash-tender'
+                ),
+                1
+              )
+            );
+
+          var payable =
+            cashierCashPayable();
+
+          var tender =
+            Math.ceil(
+              (
+                payable -
+                0.000001
+              ) /
+              step
+            ) *
+            step;
+
+          write(
+            roundMoney(
+              tender
+            ).toFixed(2)
+          );
+        }
+      }
+    );
   }
 
   async function setupPaymentModule() {
@@ -2225,6 +3595,8 @@
       window.PMDWaiterPOSPaymentV2.install({
         root: root,
         state: state,
+        pmdCashier: true,
+        pmdCashierAdjustments: true,
 
         $: function (selector, parent) {
           return (parent || root).querySelector(selector);
@@ -2245,11 +3617,14 @@
         fetchJson: fetchJson,
         toast: toast,
         showSuccess: showSuccess,
-        closeCart: function () {},
+        closeCart: function () {
+          closeComposer(true);
+        },
         refreshData: refreshData
       });
 
     state.paymentApi.bindPayment();
+    bindCashKeypad(root);
 
     return state.paymentApi;
   }
@@ -2636,7 +4011,7 @@
     }
   }
 
-  async function openCreate(hintedTable) {
+  async function openCreate() {
     state.mode = 'create';
     state.desiredOrderId = null;
     state.activeOrderId = null;
@@ -2644,32 +4019,22 @@
     state.cart = [];
     state.note = '';
     state.table = null;
+    state.deliveryMode = false;
+    state.deliveryLocationId = null;
+    state.invoiceReady = false;
+    state.railView = 'new';
 
     openShell();
 
-    state.tables = collectFloorTables();
-
-    var hinted = hintedTable
-      ? normalizeTable(hintedTable)
-      : null;
-
-    if (
-      hinted &&
-      hinted.id &&
-      !state.tables.some(function (row) {
-        return Number(row.id) === Number(hinted.id);
-      })
-    ) {
-      state.tables.push(hinted);
-    }
+    state.tables =
+      collectFloorTables();
 
     var selected =
-      hinted && hinted.id
-        ? hinted
-        : selectedFloorTable();
+      selectedFloorTable();
 
     renderTableOptions(
-      selected && selected.id
+      selected &&
+      selected.id
     );
 
     if (selected) {
@@ -2680,8 +4045,13 @@
       );
     }
 
-    renderChooseTable();
-    return true;
+    /*
+     * Empty Table selection is a real Delivery order,
+     * not a disabled Composer.
+     */
+    return await loadDelivery(
+      null
+    );
   }
 
   function isCashierPath() {
@@ -3052,7 +4422,7 @@
   };
 
   console.info(
-    '[PMD] Cashier Order Composer R43 ready',
+    '[PMD] Cashier Order Composer R54 touch/payment ready',
     {
       version:
         window.PMDCashierOrderComposerV1.version,
@@ -3062,3 +4432,4 @@
     }
   );
 })();
+

@@ -8,9 +8,9 @@
 .hero { position: relative; min-height: 31rem; overflow: hidden; }
 .hero > img { width: 100%; height: 31rem; object-fit: cover; filter: none; }
 .heroCopy { position: absolute; z-index: 2; left: clamp(1.4rem,7vw,6rem); top: 50%; display: grid; max-width: min(34rem, calc(100% - 2.8rem)); gap: .65rem; transform: translateY(-50%); font-family: Georgia, serif; text-shadow: 0 1px 14px rgba(245,241,235,.92); }
-.heroWelcome { color: #7f3d3b; font-family: Arial, sans-serif; font-size: .7rem; font-weight: 800; letter-spacing: .16em; text-transform: uppercase; }
-.heroCopy h1 { margin: 0; font-size: clamp(2.8rem, 8vw, 6rem); font-weight: 500; line-height: .95; letter-spacing: -.035em; }
-.heroCopy p { margin: .2rem 0 0; color: #514c45; font-family: Arial, sans-serif; font-size: .88rem; font-weight: 650; letter-spacing: .04em; }
+.heroWelcome { color: #fffdf8; font-family: Arial, sans-serif; font-size: .7rem; font-weight: 800; letter-spacing: .16em; text-transform: uppercase; }
+.heroCopy h1 { margin: 0; color: #fffdf8; font-size: clamp(2.8rem, 8vw, 6rem); font-weight: 500; line-height: .95; letter-spacing: -.035em; }
+.heroCopy p { margin: .2rem 0 0; color: #fffdf8; font-family: Arial, sans-serif; font-size: .88rem; font-weight: 750; letter-spacing: .04em; }
 .table { position: absolute; right: clamp(1rem,5vw,4rem); bottom: 1rem; border-left: 2px solid #b5413f; padding: .5rem 0 .5rem 1rem; font-size: .7rem; letter-spacing: .15em; text-transform: uppercase; }
 .content { width: min(100%, 62rem); margin: 0 auto; padding: 2.5rem clamp(1rem,4vw,3rem) 8rem; }
 .call { display: grid; grid-template-columns: 2.5rem minmax(0,1fr) auto; min-height: 5rem; align-items: center; gap: 1rem; border: 1px solid rgba(181,65,63,.55); padding: .8rem 1.2rem; color: #9c3f3d; text-decoration: none; font-family: Georgia, serif; font-size: 1.05rem; letter-spacing: .18em; text-transform: uppercase; }
@@ -91,12 +91,3 @@
 /* PMD_STABLE_BOTTOM_ACTIONS_R17C */
 .dock button[aria-disabled="true"]{opacity:.52;filter:saturate(.55)}
 
-/* PMD HERO MOBILE R45 TARGETED OVERRIDES */
-@media (max-width: 680px) {
-  .heroCopy {
-    text-shadow: 0 2px 9px rgba(0,0,0,.92), 0 0 24px rgba(0,0,0,.68);
-  }
-  .heroWelcome, .heroCopy h1, .heroCopy p { color: #fffdf8; }
-  .heroCopy p { font-weight: 750; }
-}
-/* PMD HERO MOBILE R45 TARGETED OVERRIDES END */

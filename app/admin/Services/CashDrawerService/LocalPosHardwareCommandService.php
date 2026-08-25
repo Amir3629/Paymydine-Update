@@ -32,15 +32,13 @@ class LocalPosHardwareCommandService
 
     public static function queueDiagnoseDrawer(Cash_drawers_model $drawer, array $meta = []): array
     {
-        $defaultCandidates = [
-            '27,112,0,25,250',
-            '27,112,0,60,120',
-            '27,112,1,60,120',
-            '16,20,1,0,5',
-        ];
-
         if (empty($meta['candidate_commands']) || !is_array($meta['candidate_commands'])) {
-            $meta['candidate_commands'] = $defaultCandidates;
+            $meta['candidate_commands'] = [
+                '27,112,0,25,250',
+                '27,112,0,60,120',
+                '27,112,1,60,120',
+                '16,20,1,0,5',
+            ];
         }
 
         return self::queueCommand($drawer, 'diagnose_drawer', $meta);
@@ -53,8 +51,15 @@ class LocalPosHardwareCommandService
 
     protected static function queueCommand(Cash_drawers_model $drawer, string $commandType, array $meta = []): array
     {
-        $targetDeviceId = $drawer->local_pos_device_id ?: $drawer->pos_device_id;
-        if (empty($targetDeviceId)) {
+        if (!Schema::hasTable('pos_devices')) {
+            return [
+                'success' => false,
+                'message' => 'Local POS device table is missing. Run the PayMyDine hardware foundation update.',
+            ];
+        }
+
+        $targetDeviceId = (int)($drawer->local_pos_device_id ?: $drawer->pos_device_id);
+        if ($targetDeviceId < 1) {
             return [
                 'success' => false,
                 'message' => 'No local POS terminal is paired with this cash drawer.',
@@ -67,6 +72,39 @@ class LocalPosHardwareCommandService
                 'success' => false,
                 'message' => 'Selected POS device is not a local POS terminal.',
             ];
+        }
+
+        if (method_exists($device, 'isOnline') && !$device->isOnline()) {
+            return [
+                'success' => false,
+                'message' => 'The PayMyDine hardware connector is offline on the selected POS terminal.',
+            ];
+        }
+
+        if (!Schema::hasTable('pos_hardware_commands')) {
+            Log::error('Cash Drawer: pos_hardware_commands table is missing on current tenant connection', [
+                'drawer_id' => $drawer->drawer_id,
+                'pos_device_id' => $targetDeviceId,
+            ]);
+
+            return [
+                'success' => false,
+                'message' => 'Local hardware queue table is missing. Run the PayMyDine hardware foundation update.',
+            ];
+        }
+
+        $dedupeKey = trim((string)($meta['dedupe_key'] ?? ''));
+        if ($dedupeKey !== '' && Schema::hasColumn('pos_hardware_commands', 'dedupe_key')) {
+            $existing = DB::table('pos_hardware_commands')->where('dedupe_key', $dedupeKey)->first();
+            if ($existing) {
+                return [
+                    'success' => true,
+                    'queued' => true,
+                    'duplicate' => true,
+                    'command_id' => (int)$existing->id,
+                    'message' => 'Command was already queued.',
+                ];
+            }
         }
 
         $printerDevice = null;
@@ -83,7 +121,7 @@ class LocalPosHardwareCommandService
             $printerName === ''
             && $printerDevice
             && !empty($printerDevice->name)
-            && (int)$printerDevice->device_id !== (int)$targetDeviceId
+            && (int)$printerDevice->device_id !== $targetDeviceId
         ) {
             $printerName = $printerDevice->name;
         }
@@ -107,31 +145,45 @@ class LocalPosHardwareCommandService
             'candidate_commands' => $meta['candidate_commands'] ?? null,
         ];
 
-        if (!Schema::hasTable('pos_hardware_commands')) {
-            Log::error('Cash Drawer: pos_hardware_commands table is missing on current tenant connection', [
-                'drawer_id' => $drawer->drawer_id,
-                'pos_device_id' => $targetDeviceId,
-            ]);
+        $defaultExpiry = max(15, (int)config('cashdrawer.command_expiry_seconds', 120));
+        $expiresIn = max(5, (int)($meta['expires_in_seconds'] ?? $defaultExpiry));
+        $now = now();
 
-            return [
-                'success' => false,
-                'message' => 'Local hardware queue table is missing. Please run tenant migrations.',
-            ];
+        $row = [
+            'drawer_id' => $drawer->drawer_id,
+            'pos_device_id' => $targetDeviceId,
+            'location_id' => $drawer->location_id,
+            'command_type' => $commandType,
+            'payload' => json_encode($payload, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE),
+            'status' => 'pending',
+            'queued_at' => $now,
+            'created_at' => $now,
+            'updated_at' => $now,
+        ];
+
+        if (Schema::hasColumn('pos_hardware_commands', 'dedupe_key')) {
+            $row['dedupe_key'] = $dedupeKey !== '' ? $dedupeKey : null;
+        }
+        if (Schema::hasColumn('pos_hardware_commands', 'expires_at')) {
+            $row['expires_at'] = $now->copy()->addSeconds($expiresIn);
         }
 
         try {
-            $commandId = DB::table('pos_hardware_commands')->insertGetId([
-                'drawer_id' => $drawer->drawer_id,
-                'pos_device_id' => $targetDeviceId,
-                'location_id' => $drawer->location_id,
-                'command_type' => $commandType,
-                'payload' => json_encode($payload),
-                'status' => 'pending',
-                'queued_at' => now(),
-                'created_at' => now(),
-                'updated_at' => now(),
-            ]);
+            $commandId = DB::table('pos_hardware_commands')->insertGetId($row);
         } catch (\Throwable $e) {
+            if ($dedupeKey !== '' && Schema::hasColumn('pos_hardware_commands', 'dedupe_key')) {
+                $existing = DB::table('pos_hardware_commands')->where('dedupe_key', $dedupeKey)->first();
+                if ($existing) {
+                    return [
+                        'success' => true,
+                        'queued' => true,
+                        'duplicate' => true,
+                        'command_id' => (int)$existing->id,
+                        'message' => 'Command was already queued.',
+                    ];
+                }
+            }
+
             Log::error('Cash Drawer: Failed writing to pos_hardware_commands table', [
                 'drawer_id' => $drawer->drawer_id,
                 'pos_device_id' => $targetDeviceId,
@@ -149,12 +201,14 @@ class LocalPosHardwareCommandService
             'drawer_id' => $drawer->drawer_id,
             'pos_device_id' => $targetDeviceId,
             'command_type' => $commandType,
+            'dedupe_key' => $dedupeKey !== '' ? $dedupeKey : null,
             'target' => $payload['resolved_target'],
         ]);
 
         return [
             'success' => true,
             'queued' => true,
+            'duplicate' => false,
             'command_id' => $commandId,
             'message' => 'Command queued for local POS agent',
         ];

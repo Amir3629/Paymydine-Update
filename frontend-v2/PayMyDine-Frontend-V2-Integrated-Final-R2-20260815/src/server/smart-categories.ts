@@ -270,10 +270,8 @@ export function applySmartCategories(
   }
 
   const items: SmartMenuItem[] = menu.items.map((item) => {
-    const possibleFood = rawByKey.get(`food:${item.id}`)
-    const possibleCombo = rawByKey.get(`combo:${item.id}`)
-    const raw = possibleCombo || possibleFood || {}
-    const isCombo = Boolean(possibleCombo) || yes(raw.isCombo ?? raw.is_combo)
+    const isCombo = item.isCombo === true
+    const raw = rawByKey.get(`${isCombo ? 'combo' : 'food'}:${item.id}`) || {}
     const overrideRaw = text(raw.bestseller_override_mode).toLowerCase()
     const override: SmartMenuItem['pmdBestsellerOverrideMode'] =
       overrideRaw === 'force_on' || overrideRaw === 'force_off'

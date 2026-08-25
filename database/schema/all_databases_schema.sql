@@ -1,5 +1,5 @@
 -- PayMyDine schema-only dump
--- Generated UTC: Mon Aug 24 10:01:49 UTC 2026
+-- Generated UTC: Tue Aug 25 17:01:51 UTC 2026
 -- Source server: vps-252f1bc4
 -- DATA ROWS ARE NOT INCLUDED
 
@@ -3249,7 +3249,7 @@ CREATE TABLE `ti_tenants` (
   PRIMARY KEY (`id`),
   UNIQUE KEY `unique_domain` (`domain`(191)),
   UNIQUE KEY `unique_database` (`database`(191))
-) ENGINE=MyISAM AUTO_INCREMENT=45 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=MyISAM AUTO_INCREMENT=53 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -3615,7 +3615,7 @@ CREATE TABLE `ti_working_hours` (
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2026-08-24 10:01:50
+-- Dump completed on 2026-08-25 17:01:51
 
 -- ==================================================
 -- DATABASE: mimoza
@@ -4123,6 +4123,11 @@ CREATE TABLE `ti_cash_drawer_logs` (
   `response_data` text DEFAULT NULL COMMENT 'JSON response from drawer device',
   `created_at` timestamp NULL DEFAULT NULL,
   `updated_at` timestamp NULL DEFAULT NULL,
+  `staff_id` bigint(20) unsigned DEFAULT NULL,
+  `status` varchar(50) DEFAULT NULL,
+  `message` text DEFAULT NULL,
+  `request_payload` text DEFAULT NULL,
+  `response_payload` text DEFAULT NULL,
   PRIMARY KEY (`log_id`),
   KEY `idx_drawer_id` (`drawer_id`),
   KEY `idx_order_id` (`order_id`),
@@ -5604,7 +5609,7 @@ CREATE TABLE `ti_notifications` (
   KEY `idx_status_created` (`status`,`created_at` DESC),
   KEY `idx_type` (`type`),
   KEY `idx_table_id` (`table_id`)
-) ENGINE=InnoDB AUTO_INCREMENT=1941 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=1942 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -5650,7 +5655,7 @@ CREATE TABLE `ti_order_menus` (
   `combo_items_description` text DEFAULT NULL COMMENT 'Description of combo items',
   PRIMARY KEY (`order_menu_id`),
   KEY `idx_combo_id` (`combo_id`)
-) ENGINE=InnoDB AUTO_INCREMENT=9 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=10 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -5750,7 +5755,7 @@ CREATE TABLE `ti_order_totals` (
   `priority` tinyint(1) NOT NULL DEFAULT 0,
   `is_summable` tinyint(1) NOT NULL DEFAULT 0,
   PRIMARY KEY (`order_total_id`)
-) ENGINE=InnoDB AUTO_INCREMENT=13 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=15 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -5813,7 +5818,7 @@ CREATE TABLE `ti_orders` (
   KEY `idx_orders_fiskaly_status` (`fiskaly_status`),
   KEY `idx_orders_fiskaly_transaction_id_ref` (`fiskaly_transaction_id_ref`),
   KEY `ti_orders_settlement_status_index` (`settlement_status`)
-) ENGINE=InnoDB AUTO_INCREMENT=7 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=8 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -5974,7 +5979,7 @@ CREATE TABLE `ti_pmd_admin_presence_sessions` (
   KEY `ti_pmd_admin_presence_sessions_last_seen_at_index` (`last_seen_at`),
   KEY `ti_pmd_admin_presence_sessions_expires_at_index` (`expires_at`),
   KEY `ti_pmd_admin_presence_sessions_logout_at_index` (`logout_at`)
-) ENGINE=InnoDB AUTO_INCREMENT=101 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=105 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -6077,7 +6082,7 @@ CREATE TABLE `ti_pmd_table_order_drafts` (
   KEY `ti_pmd_table_order_drafts_status_index` (`status`),
   KEY `ti_pmd_table_order_drafts_order_id_index` (`order_id`),
   KEY `ti_pmd_table_order_drafts_session_key_index` (`session_key`)
-) ENGINE=InnoDB AUTO_INCREMENT=797 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=798 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -6216,6 +6221,8 @@ CREATE TABLE `ti_pos_devices` (
   `device_status` varchar(50) NOT NULL DEFAULT 'offline',
   `capabilities` text DEFAULT NULL,
   `platform_info` text DEFAULT NULL,
+  `agent_token_hash` varchar(64) DEFAULT NULL,
+  `agent_token_issued_at` timestamp NULL DEFAULT NULL,
   PRIMARY KEY (`device_id`)
 ) ENGINE=InnoDB AUTO_INCREMENT=12 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
@@ -6241,7 +6248,10 @@ CREATE TABLE `ti_pos_hardware_commands` (
   `acknowledged_at` timestamp NULL DEFAULT NULL,
   `created_at` timestamp NULL DEFAULT NULL,
   `updated_at` timestamp NULL DEFAULT NULL,
+  `dedupe_key` varchar(191) DEFAULT NULL,
+  `expires_at` timestamp NULL DEFAULT NULL,
   PRIMARY KEY (`id`),
+  UNIQUE KEY `phc_dedupe_unique` (`dedupe_key`),
   KEY `ti_pos_hardware_commands_status_idx` (`status`),
   KEY `ti_pos_hardware_commands_pos_device_id_idx` (`pos_device_id`),
   KEY `ti_pos_hardware_commands_drawer_id_idx` (`drawer_id`),
@@ -7043,11 +7053,15 @@ CREATE TABLE `ti_terminal_devices` (
   `created_at` timestamp NULL DEFAULT NULL,
   `updated_at` timestamp NULL DEFAULT NULL,
   `environment` varchar(20) DEFAULT NULL,
+  `provider_terminal_id` bigint(20) unsigned DEFAULT NULL,
+  `serial_number` varchar(191) DEFAULT NULL,
+  `last_seen_at` timestamp NULL DEFAULT NULL,
   PRIMARY KEY (`terminal_device_id`),
   KEY `ti_terminal_devices_provider_code_index` (`provider_code`),
   KEY `ti_terminal_devices_location_id_index` (`location_id`),
   KEY `ti_terminal_devices_reader_id_index` (`reader_id`),
-  KEY `ti_terminal_devices_environment_index` (`environment`)
+  KEY `ti_terminal_devices_environment_index` (`environment`),
+  KEY `ti_terminal_devices_provider_terminal_id_index` (`provider_terminal_id`)
 ) ENGINE=InnoDB AUTO_INCREMENT=3 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
@@ -7271,7 +7285,7 @@ CREATE TABLE `ti_working_hours` (
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2026-08-24 10:01:50
+-- Dump completed on 2026-08-25 17:01:52
 
 -- ==================================================
 -- DATABASE: rosana
@@ -7601,6 +7615,11 @@ CREATE TABLE `ti_cash_drawer_logs` (
   `response_data` text DEFAULT NULL COMMENT 'JSON response from drawer device',
   `created_at` timestamp NULL DEFAULT NULL,
   `updated_at` timestamp NULL DEFAULT NULL,
+  `staff_id` bigint(20) unsigned DEFAULT NULL,
+  `status` varchar(50) DEFAULT NULL,
+  `message` text DEFAULT NULL,
+  `request_payload` text DEFAULT NULL,
+  `response_payload` text DEFAULT NULL,
   PRIMARY KEY (`log_id`),
   KEY `idx_drawer_id` (`drawer_id`),
   KEY `idx_order_id` (`order_id`),
@@ -7644,6 +7663,9 @@ CREATE TABLE `ti_cash_drawers` (
   `local_mapping_invalid` tinyint(1) NOT NULL DEFAULT 0,
   `last_command_status` varchar(20) DEFAULT NULL,
   `last_command_message` text DEFAULT NULL,
+  `setup_state` varchar(30) DEFAULT NULL,
+  `setup_message` text DEFAULT NULL,
+  `setup_completed_at` timestamp NULL DEFAULT NULL,
   PRIMARY KEY (`drawer_id`),
   KEY `idx_location_id` (`location_id`),
   KEY `idx_pos_device_id` (`pos_device_id`),
@@ -9274,6 +9296,8 @@ CREATE TABLE `ti_pos_devices` (
   `last_seen_at` timestamp NULL DEFAULT NULL,
   `capabilities` text DEFAULT NULL,
   `platform_info` text DEFAULT NULL,
+  `agent_token_hash` varchar(64) DEFAULT NULL,
+  `agent_token_issued_at` timestamp NULL DEFAULT NULL,
   PRIMARY KEY (`device_id`)
 ) ENGINE=InnoDB AUTO_INCREMENT=8 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
@@ -9300,7 +9324,10 @@ CREATE TABLE `ti_pos_hardware_commands` (
   `completed_at` timestamp NULL DEFAULT NULL,
   `created_at` timestamp NULL DEFAULT NULL,
   `updated_at` timestamp NULL DEFAULT NULL,
+  `dedupe_key` varchar(191) DEFAULT NULL,
+  `expires_at` timestamp NULL DEFAULT NULL,
   PRIMARY KEY (`id`),
+  UNIQUE KEY `phc_dedupe_unique` (`dedupe_key`),
   KEY `ti_pos_hardware_commands_status_pos_device_id_index` (`status`,`pos_device_id`),
   KEY `ti_pos_hardware_commands_queued_at_index` (`queued_at`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
@@ -9651,11 +9678,15 @@ CREATE TABLE `ti_terminal_devices` (
   `created_at` timestamp NULL DEFAULT NULL,
   `updated_at` timestamp NULL DEFAULT NULL,
   `environment` varchar(20) DEFAULT NULL,
+  `provider_terminal_id` bigint(20) unsigned DEFAULT NULL,
+  `serial_number` varchar(191) DEFAULT NULL,
+  `last_seen_at` timestamp NULL DEFAULT NULL,
   PRIMARY KEY (`terminal_device_id`),
   KEY `ti_terminal_devices_provider_code_index` (`provider_code`),
   KEY `ti_terminal_devices_location_id_index` (`location_id`),
   KEY `ti_terminal_devices_reader_id_index` (`reader_id`),
-  KEY `ti_terminal_devices_environment_index` (`environment`)
+  KEY `ti_terminal_devices_environment_index` (`environment`),
+  KEY `ti_terminal_devices_provider_terminal_id_index` (`provider_terminal_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
@@ -9855,7 +9886,7 @@ CREATE TABLE `ti_working_hours` (
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2026-08-24 10:01:51
+-- Dump completed on 2026-08-25 17:01:52
 -- WARNING: Database 'persian' not found or not accessible.
 
 -- ==================================================
@@ -11878,4 +11909,4 @@ CREATE TABLE `ti_working_hours` (
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2026-08-24 10:01:51
+-- Dump completed on 2026-08-25 17:01:52

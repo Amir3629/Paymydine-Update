@@ -1797,8 +1797,9 @@ body.pmd-coc-open {
 
 /* Clean Cashier styling for the canonical Payment Center. */
 .pmd-coc .pmd-pos-payment-dialog {
-  width: min(1240px, calc(100vw - 44px)) !important;
-  max-height: calc(100dvh - 44px) !important;
+  width: min(900px, calc(100vw - 32px)) !important;
+  height: auto !important;
+  max-height: min(82dvh, 620px) !important;
   border: 1px solid #cfdfe8 !important;
   border-radius: 22px !important;
   background: #f7fafc !important;
@@ -1806,8 +1807,8 @@ body.pmd-coc-open {
 }
 
 .pmd-coc .pmd-pos-payment-head {
-  min-height: 92px !important;
-  padding: 18px 22px !important;
+  min-height: 68px !important;
+  padding: 12px 16px !important;
   border-bottom: 1px solid #d8e5ec !important;
   background: #fff !important;
   color: #12384f !important;
@@ -1826,12 +1827,12 @@ body.pmd-coc-open {
 }
 
 .pmd-coc .pmd-pos-payment-close {
-  width: 48px !important;
-  min-width: 48px !important;
-  max-width: 48px !important;
-  height: 48px !important;
-  min-height: 48px !important;
-  max-height: 48px !important;
+  width: 40px !important;
+  min-width: 40px !important;
+  max-width: 40px !important;
+  height: 40px !important;
+  min-height: 40px !important;
+  max-height: 40px !important;
   padding: 0 !important;
   border: 1px solid #cadce7 !important;
   border-radius: 14px !important;
@@ -1850,9 +1851,9 @@ body.pmd-coc-open {
   min-width: 0 !important;
   max-width: none !important;
   height: auto !important;
-  min-height: 72px !important;
+  min-height: 58px !important;
   max-height: none !important;
-  padding: 11px 13px !important;
+  padding: 10px 12px !important;
   white-space: normal !important;
   overflow: hidden !important;
   text-align: left !important;
@@ -1881,6 +1882,184 @@ body.pmd-coc-open {
   position: static !important;
   max-height: none !important;
 }
+
+
+/* CASHIER_PAYMENT_COMPACT_OWNER_FIX
+ * Cashier-only presentation.
+ * No payment state, provider, terminal, settlement or API behaviour here.
+ */
+
+@media (min-width: 821px) {
+  #pmd-cashier-order-composer-v1.pmd-coc .pmd-pos-payment-body {
+    grid-template-columns: minmax(0, 1fr) 210px !important;
+    gap: 10px !important;
+    padding: 10px !important;
+  }
+
+  #pmd-cashier-order-composer-v1.pmd-coc .pmd-pos-payment-main {
+    gap: 8px !important;
+  }
+
+  #pmd-cashier-order-composer-v1.pmd-coc .pmd-pos-balance-hero {
+    min-height: 56px !important;
+    padding: 10px 12px !important;
+    border-radius: 11px !important;
+  }
+
+  #pmd-cashier-order-composer-v1.pmd-coc .pmd-pos-balance-hero > b {
+    font-size: 23px !important;
+  }
+
+  #pmd-cashier-order-composer-v1.pmd-coc .pmd-pos-payment-block {
+    padding: 10px !important;
+    border-radius: 12px !important;
+  }
+
+  #pmd-cashier-order-composer-v1.pmd-coc .pmd-pos-method {
+    min-height: 58px !important;
+    padding: 10px 12px !important;
+    border-radius: 11px !important;
+  }
+
+  #pmd-cashier-order-composer-v1.pmd-coc .pmd-pos-terminal-box {
+    margin-top: 7px !important;
+    padding: 9px !important;
+    border-radius: 11px !important;
+    background: #f7fbfa !important;
+  }
+
+  #pmd-cashier-order-composer-v1.pmd-coc .pmd-pos-terminal-provider-row {
+    display: grid !important;
+    grid-template-columns: 1fr !important;
+    gap: 6px !important;
+    margin-top: 7px !important;
+  }
+
+  #pmd-cashier-order-composer-v1.pmd-coc
+  .pmd-pos-terminal-provider-row button {
+    display: flex !important;
+    flex-direction: row !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+
+    width: 100% !important;
+    min-width: 0 !important;
+    max-width: none !important;
+
+    height: auto !important;
+    min-height: 42px !important;
+    max-height: none !important;
+
+    gap: 10px !important;
+    padding: 7px 9px !important;
+
+    border-radius: 9px !important;
+    text-align: left !important;
+  }
+
+  #pmd-cashier-order-composer-v1.pmd-coc
+  .pmd-pos-payment-summary {
+    padding: 10px !important;
+    border-radius: 12px !important;
+  }
+
+  #pmd-cashier-order-composer-v1.pmd-coc
+  .pmd-pos-payment-secondary {
+    min-height: 34px !important;
+    margin-top: 6px !important;
+  }
+}
+
+/* Online is a small status badge, never a giant dot. */
+#pmd-cashier-order-composer-v1.pmd-coc
+.pmd-pos-terminal-provider-row button > small {
+  display: inline-flex !important;
+  flex: 0 0 auto !important;
+  align-items: center !important;
+  justify-content: center !important;
+
+  width: auto !important;
+  min-width: 0 !important;
+  max-width: none !important;
+
+  height: auto !important;
+  min-height: 0 !important;
+  max-height: none !important;
+
+  margin: 0 !important;
+  padding: 4px 7px !important;
+  gap: 0 !important;
+
+  border: 0 !important;
+  border-radius: 999px !important;
+
+  background: #e7f6f0 !important;
+  color: #08765f !important;
+
+  font-size: 9px !important;
+  font-weight: 850 !important;
+  line-height: 1 !important;
+  white-space: nowrap !important;
+}
+
+/* Kill the green 44x44 status bubble even if a global admin normalizer
+ * tries to size the inner <i> like a control. */
+#pmd-cashier-order-composer-v1.pmd-coc
+.pmd-pos-terminal-provider-row button > small > i {
+  display: none !important;
+
+  position: static !important;
+
+  width: 0 !important;
+  min-width: 0 !important;
+  max-width: 0 !important;
+
+  height: 0 !important;
+  min-height: 0 !important;
+  max-height: 0 !important;
+
+  flex: 0 0 0 !important;
+
+  margin: 0 !important;
+  padding: 0 !important;
+
+  border: 0 !important;
+  box-shadow: none !important;
+}
+
+/* Green primary action always has readable white text. */
+#pmd-cashier-order-composer-v1.pmd-coc
+.pmd-pos-pay-button {
+  min-height: 42px !important;
+  margin-top: 8px !important;
+
+  border-radius: 10px !important;
+
+  background: #0c7a62 !important;
+  color: #ffffff !important;
+
+  font-size: 12px !important;
+  font-weight: 900 !important;
+
+  box-shadow: none !important;
+}
+
+#pmd-cashier-order-composer-v1.pmd-coc
+.pmd-pos-pay-button:hover,
+#pmd-cashier-order-composer-v1.pmd-coc
+.pmd-pos-pay-button:focus {
+  background: #096b56 !important;
+  color: #ffffff !important;
+}
+
+#pmd-cashier-order-composer-v1.pmd-coc
+.pmd-pos-pay-button:disabled {
+  background: #dfe8e5 !important;
+  color: #71817c !important;
+  opacity: 1 !important;
+}
+
+/* CASHIER_PAYMENT_COMPACT_OWNER_FIX END */
 
 @media (max-width: 1180px) {
   .pmd-coc .pmd-coc__main {
@@ -2023,3 +2202,171 @@ body.pmd-coc-open {
       repeat(auto-fill, minmax(205px, 1fr)) !important;
   }
 }
+
+
+/* =========================================================
+   PMD_CASHIER_COMPOSER_PRIMARY_R47
+
+   One compact Cashier Order Composer authority.
+   No payment/business logic in this block.
+   ========================================================= */
+
+@media (min-width: 981px) {
+  #pmd-cashier-order-composer-v1.pmd-coc .pmd-coc__dialog,
+  .pmd-coc .pmd-coc__dialog {
+    width: min(1240px, calc(100vw - 64px)) !important;
+    height: min(760px, calc(100dvh - 64px)) !important;
+    min-height: 0 !important;
+    border-radius: 20px !important;
+  }
+
+  #pmd-cashier-order-composer-v1.pmd-coc .pmd-coc__head,
+  .pmd-coc .pmd-coc__head {
+    min-height: 72px !important;
+    padding: 11px 18px !important;
+  }
+
+  .pmd-coc .pmd-coc__head h2 {
+    font-size: 22px !important;
+  }
+
+  .pmd-coc .pmd-coc__head p {
+    margin-top: 4px !important;
+    font-size: 11px !important;
+  }
+
+  .pmd-coc .pmd-coc__close {
+    width: 42px !important;
+    min-width: 42px !important;
+    max-width: 42px !important;
+    height: 42px !important;
+    min-height: 42px !important;
+    max-height: 42px !important;
+    flex-basis: 42px !important;
+    border-radius: 12px !important;
+  }
+
+  .pmd-coc .pmd-coc__tablebar {
+    min-height: 54px !important;
+    padding: 7px 18px !important;
+    gap: 9px !important;
+  }
+
+  .pmd-coc .pmd-coc__tablebar label {
+    min-width: 280px !important;
+    max-width: 390px !important;
+  }
+
+  .pmd-coc .pmd-coc__tablebar select {
+    height: 38px !important;
+  }
+
+  .pmd-coc .pmd-coc__order-context {
+    min-height: 38px !important;
+    padding: 5px 10px !important;
+  }
+
+  .pmd-coc .pmd-coc__refresh {
+    min-height: 38px !important;
+  }
+
+  .pmd-coc .pmd-coc__main {
+    grid-template-columns: minmax(0, 1fr) 330px !important;
+    gap: 11px !important;
+    padding: 11px !important;
+  }
+
+  .pmd-coc .pmd-coc__cart {
+    padding: 12px !important;
+  }
+
+  .pmd-coc .pmd-coc__footer {
+    min-height: 60px !important;
+    padding: 8px 16px !important;
+    justify-content: flex-end !important;
+  }
+}
+
+/* Kill inherited/native select arrows and draw one stable chevron. */
+.pmd-coc .pmd-coc__tablebar select {
+  -webkit-appearance: none !important;
+  appearance: none !important;
+  padding-right: 38px !important;
+
+  background-color: #fff !important;
+  background-image:
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%231d465e' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m7 10 5 5 5-5'/%3E%3C/svg%3E") !important;
+  background-repeat: no-repeat !important;
+  background-position: right 11px center !important;
+  background-size: 16px 16px !important;
+}
+
+.pmd-coc .pmd-coc__footer-left,
+.pmd-coc [data-coc-details],
+.pmd-coc [data-coc-payment],
+.pmd-coc [data-coc-submit="hold"] {
+  display: none !important;
+}
+
+.pmd-coc .pmd-coc__footer-right {
+  width: auto !important;
+  margin-left: auto !important;
+  justify-content: flex-end !important;
+}
+
+.pmd-coc .pmd-coc__primary {
+  min-width: 178px !important;
+  min-height: 44px !important;
+  padding: 0 20px !important;
+}
+
+.pmd-coc .pmd-coc__primary.is-pay {
+  border-color: #08765f !important;
+  background: #08765f !important;
+  color: #fff !important;
+}
+
+@media (max-width: 980px) {
+  .pmd-coc .pmd-coc__footer {
+    flex-direction: row !important;
+    justify-content: flex-end !important;
+  }
+
+  .pmd-coc .pmd-coc__footer-right {
+    width: 100% !important;
+    display: grid !important;
+    grid-template-columns: minmax(90px, .35fr) minmax(160px, 1fr) !important;
+  }
+
+  .pmd-coc .pmd-coc__primary {
+    width: 100% !important;
+  }
+}
+
+/* PMD_CASHIER_COMPOSER_PRIMARY_R47 END */
+
+
+/* =========================================================
+   PMD_CASHIER_BACKDROP_INVOICE_R48
+   ========================================================= */
+
+/*
+ * The full-screen backdrop is no longer part of the Composer DOM.
+ * Keep this rule as a cache-safety fallback for an older cached JS file.
+ */
+.pmd-coc > .pmd-coc__backdrop {
+  display: none !important;
+  background: transparent !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+
+/* Invoice is now the final state of the same primary action. */
+.pmd-coc .pmd-coc__primary.is-invoice {
+  border-color: #08765f !important;
+  background: #08765f !important;
+  color: #fff !important;
+}
+
+/* PMD_CASHIER_BACKDROP_INVOICE_R48 END */
+

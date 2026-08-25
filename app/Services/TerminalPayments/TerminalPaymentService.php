@@ -20,6 +20,19 @@ class TerminalPaymentService
             $config['reader_id']=(string)$terminal->reader_id;$config['terminal_device_id']=(int)$terminal->terminal_device_id;
             $config['affiliate_key']=trim((string)($terminal->affiliate_key??''))?:($config['affiliate_key']??null);$config['return_url']=$this->sumupReturnUrl();$terminalId=(string)$terminal->reader_id;
         }
+        // PMD_VR_TERMINAL_ROUTING_R1
+        if($providerCode==='vr_payment'){
+            $terminal=$this->resolveVrPaymentTerminal($terminalId);
+            if(!$terminal) return ['success'=>false,'error'=>'No active VR Payment terminal is synced. Test the VR Payment connection first.'];
+            $providerTerminalId=Schema::hasColumn('terminal_devices','provider_terminal_id')?(string)($terminal->provider_terminal_id??''):'';
+            if($providerTerminalId===''&&ctype_digit((string)($terminal->reader_id??'')))$providerTerminalId=(string)$terminal->reader_id;
+            if($providerTerminalId==='')return ['success'=>false,'error'=>'Selected VR Payment terminal has no provider terminal ID. Re-test the provider connection.'];
+            $config['terminal_id']=$providerTerminalId;
+            $config['provider_terminal_id']=$providerTerminalId;
+            $config['terminal_device_id']=(int)$terminal->terminal_device_id;
+            $config['reader_id']=(string)$terminal->reader_id;
+            $terminalId=(string)$terminal->reader_id;
+        }
         $validation=$provider->validateConfiguration($config);if(!($validation['ok']??false)) return ['success'=>false,'error'=>$validation['message']??'Provider is not configured.'];
         $amount=(float)($order->order_total??$order->total??0);if($amount<=0)return ['success'=>false,'error'=>'Order total must be greater than zero.'];
         $currency=(string)($config['currency']??'EUR');
@@ -30,6 +43,8 @@ class TerminalPaymentService
         $attempt=(array)DB::table('payment_attempts')->where('id',$id)->first();$result=$provider->createPayment($attempt,$config);$status=($result['ok']??false)?($result['status']??'sent_to_terminal'):'failed';
         DB::table('payment_attempts')->where('id',$id)->update($this->filterColumns('payment_attempts',['status'=>$status,'provider_reference'=>$result['provider_reference']??null,'response_payload'=>json_encode($this->redact($result)),'error_message'=>($result['ok']??false)?null:($result['message']??'Terminal payment failed.'),'updated_at'=>now()]));
         Log::info(($result['ok']??false)?'PMD_TERMINAL_PAYMENT_SENT':'PMD_TERMINAL_PAYMENT_FAILED',['attempt_id'=>$id,'provider_code'=>$providerCode,'status'=>$status]);
+        // PMD_TERMINAL_IMMEDIATE_SETTLEMENT_R1
+        if($status==='paid')$this->settleSuccessfulAttempt($id,$result);
         return ['success'=>(bool)($result['ok']??false),'attempt_id'=>$id,'status'=>$status,'message'=>$result['message']??null];
     }
 
@@ -37,9 +52,19 @@ class TerminalPaymentService
     {
         if(!Schema::hasTable('payment_attempts'))return ['success'=>false,'error'=>'payment_attempts table is missing.'];
         $attempt=(array)(DB::table('payment_attempts')->where('id',$attemptId)->first()?:[]);if(!$attempt)return ['success'=>false,'error'=>'Payment attempt not found.'];
-        if(($attempt['status']??'')==='paid')return ['success'=>true,'attempt_id'=>$attemptId,'status'=>'paid','message'=>'Payment already confirmed.'];
+        if(($attempt['status']??'')==='paid'){ $this->settleSuccessfulAttempt($attemptId,[]); return ['success'=>true,'attempt_id'=>$attemptId,'status'=>'paid','message'=>'Payment already confirmed.']; }
         $providerCode=strtolower((string)($attempt['provider_code']??''));$provider=$this->provider($providerCode);$config=$this->providerConfig($providerCode);
         if($providerCode==='sumup'){$terminal=$this->resolveSumupTerminal((string)($attempt['terminal_id']??''));if(!$terminal)return ['success'=>false,'error'=>'SumUp terminal for this attempt was not found.'];$config['reader_id']=(string)$terminal->reader_id;$config['terminal_device_id']=(int)$terminal->terminal_device_id;$config['affiliate_key']=trim((string)($terminal->affiliate_key??''))?:($config['affiliate_key']??null);}
+        if($providerCode==='vr_payment'){
+            $terminal=$this->resolveVrPaymentTerminal((string)($attempt['terminal_id']??''));
+            if(!$terminal)return ['success'=>false,'error'=>'VR Payment terminal for this attempt was not found.'];
+            $providerTerminalId=Schema::hasColumn('terminal_devices','provider_terminal_id')?(string)($terminal->provider_terminal_id??''):'';
+            if($providerTerminalId===''&&ctype_digit((string)($terminal->reader_id??'')))$providerTerminalId=(string)$terminal->reader_id;
+            $config['terminal_id']=$providerTerminalId;
+            $config['provider_terminal_id']=$providerTerminalId;
+            $config['terminal_device_id']=(int)$terminal->terminal_device_id;
+            $config['reader_id']=(string)$terminal->reader_id;
+        }
         $result=$provider->checkStatus($attempt,$config);$status=(string)($result['status']??($attempt['status']??'pending'));
         DB::table('payment_attempts')->where('id',$attemptId)->update($this->filterColumns('payment_attempts',['status'=>$status,'response_payload'=>json_encode($this->redact($result)),'error_message'=>($result['ok']??false)?null:($result['message']??null),'updated_at'=>now()]));
         if($status==='paid')$this->settleSuccessfulAttempt($attemptId,$result);
@@ -87,6 +112,21 @@ class TerminalPaymentService
         if($terminalId!=='')$query->where(function($q)use($terminalId){if(ctype_digit($terminalId))$q->orWhere('terminal_device_id',(int)$terminalId);$q->orWhere('reader_id',$terminalId);});return $query->orderBy('terminal_device_id')->first();
     }
 
+    private function resolveVrPaymentTerminal(?string $terminalId=null)
+    {
+        if(!Schema::hasTable('terminal_devices'))return null;
+        $query=DB::table('terminal_devices')->whereRaw('LOWER(provider_code) = ?',['vr_payment'])->where('is_active',1)->whereNotNull('reader_id')->where('reader_id','!=','');
+        $terminalId=trim((string)$terminalId);
+        if($terminalId!=='')$query->where(function($q)use($terminalId){
+            if(ctype_digit($terminalId)){
+                $q->orWhere('terminal_device_id',(int)$terminalId);
+                if(Schema::hasColumn('terminal_devices','provider_terminal_id'))$q->orWhere('provider_terminal_id',(int)$terminalId);
+            }
+            $q->orWhere('reader_id',$terminalId);
+        });
+        return $query->orderBy('terminal_device_id')->first();
+    }
+
     private function sumupReturnUrl(?int $attemptId=null):string
     {
         $base=request()->getSchemeAndHttpHost();$adminUri=trim((string)config('system.adminUri','admin'),'/');$path='/'.$adminUri.'/terminal-payments/sumup/callback';if($attemptId)$path.='/'.$attemptId;return rtrim($base,'/').$path;
@@ -98,9 +138,9 @@ class TerminalPaymentService
             $attempt=DB::table('payment_attempts')->where('id',$attemptId)->lockForUpdate()->first();if(!$attempt)throw new \RuntimeException('Payment attempt not found during settlement.');$order=DB::table('orders')->where('order_id',(int)$attempt->order_id)->lockForUpdate()->first();if(!$order)throw new \RuntimeException('Order not found during terminal settlement.');
             $orderTotal=round((float)($order->order_total??$attempt->amount??0),4);$alreadySettled=round((float)($order->settled_amount??0),4);$settlementStatus=strtolower((string)($order->settlement_status??''));
             if($settlementStatus==='paid'||($orderTotal>0&&$alreadySettled>=$orderTotal-.0001)){DB::table('payment_attempts')->where('id',$attemptId)->update($this->filterColumns('payment_attempts',['status'=>'paid','updated_at'=>now()]));return;}
-            if($alreadySettled>.0001){DB::table('payment_attempts')->where('id',$attemptId)->update($this->filterColumns('payment_attempts',['status'=>'reconciliation_required','error_message'=>'SumUp approved the terminal charge after another partial payment was recorded. Manual reconciliation required.','updated_at'=>now()]));Log::error('PMD_TERMINAL_RECONCILIATION_REQUIRED',['attempt_id'=>$attemptId,'order_id'=>(int)$attempt->order_id]);return;}
+            if($alreadySettled>.0001){DB::table('payment_attempts')->where('id',$attemptId)->update($this->filterColumns('payment_attempts',['status'=>'reconciliation_required','error_message'=>'The terminal provider approved the charge after another partial payment was recorded. Manual reconciliation required.','updated_at'=>now()]));Log::error('PMD_TERMINAL_RECONCILIATION_REQUIRED',['attempt_id'=>$attemptId,'order_id'=>(int)$attempt->order_id]);return;}
             $reference=(string)($attempt->provider_reference??'');$transactionId=null;
-            if(Schema::hasTable('order_payment_transactions')){$idempotencyKey='terminal-attempt-'.$attemptId;if(Schema::hasColumn('order_payment_transactions','idempotency_key')){$existing=DB::table('order_payment_transactions')->where('idempotency_key',$idempotencyKey)->first();if($existing)$transactionId=(int)$existing->id;}if(!$transactionId){$transactionId=(int)DB::table('order_payment_transactions')->insertGetId($this->filterColumns('order_payment_transactions',['order_id'=>(int)$attempt->order_id,'payment_method'=>'direct_terminal','payment_reference'=>$reference?:null,'amount'=>(float)$attempt->amount,'settlement_status'=>'paid','provider_code'=>(string)$attempt->provider_code,'paid_at'=>now(),'idempotency_key'=>$idempotencyKey,'notes'=>'Confirmed by SumUp Cloud terminal.','created_at'=>now(),'updated_at'=>now()]));}$this->allocateAllOrderItems($transactionId,(int)$attempt->order_id);}
+            if(Schema::hasTable('order_payment_transactions')){$idempotencyKey='terminal-attempt-'.$attemptId;if(Schema::hasColumn('order_payment_transactions','idempotency_key')){$existing=DB::table('order_payment_transactions')->where('idempotency_key',$idempotencyKey)->first();if($existing)$transactionId=(int)$existing->id;}if(!$transactionId){$transactionId=(int)DB::table('order_payment_transactions')->insertGetId($this->filterColumns('order_payment_transactions',['order_id'=>(int)$attempt->order_id,'payment_method'=>'direct_terminal','payment_reference'=>$reference?:null,'amount'=>(float)$attempt->amount,'settlement_status'=>'paid','provider_code'=>(string)$attempt->provider_code,'paid_at'=>now(),'idempotency_key'=>$idempotencyKey,'notes'=>'Confirmed by terminal provider.','created_at'=>now(),'updated_at'=>now()]));}$this->allocateAllOrderItems($transactionId,(int)$attempt->order_id);}
             $orderUpdate=$this->filterColumns('orders',['settled_amount'=>$orderTotal,'settlement_status'=>'paid','settlement_method'=>'direct_terminal','settlement_reference'=>$reference?:null,'settled_at'=>now(),'processed'=>1,'updated_at'=>now()]);if($orderUpdate)DB::table('orders')->where('order_id',(int)$attempt->order_id)->update($orderUpdate);
             DB::table('payment_attempts')->where('id',$attemptId)->update($this->filterColumns('payment_attempts',['status'=>'paid','response_payload'=>json_encode($this->redact($providerResult)),'error_message'=>null,'updated_at'=>now()]));Log::info('PMD_TERMINAL_PAYMENT_SETTLED',['attempt_id'=>$attemptId,'order_id'=>(int)$attempt->order_id,'provider_code'=>(string)$attempt->provider_code,'transaction_id'=>$transactionId,'amount'=>(float)$attempt->amount]);
         });

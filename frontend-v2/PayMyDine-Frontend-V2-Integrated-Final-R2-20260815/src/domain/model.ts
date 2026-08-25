@@ -80,6 +80,7 @@ export type MenuItem = {
   price: number
   categoryId: string | null
   categoryName: string
+  isCombo?: boolean
   imageUrl: string | null
   gallery: string[]
   allergens: string[]

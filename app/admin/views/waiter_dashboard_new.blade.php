@@ -57,6 +57,8 @@ document.documentElement.classList.add('pmd-v283-booting');
 <link rel="stylesheet" href="/app/admin/assets/css/pmd-waiter-pos-v286-dashboard-rebuild.css?v=288">
 <link rel="stylesheet" href="/app/admin/assets/css/pmd-waiter-pos-v290-final-layout.css?v=297-20260717">
 
+    {{-- PMD_WAITER_PAYMENT_V3_QUICK_R47 --}}
+    <link rel="stylesheet" href="{{ asset('app/admin/assets/css/pmd-payment-simple-v1.css') }}?v=staff-v3-r47-20260824">
 </head>
 <body class="pmd-waiter-new-page pmd-waiter-standard-v2-page pmd-waiter-standard-v21-page pmd-waiter-standard-v211-page pmd-waiter-standard-v221-page pmd-waiter-standard-v22-page pmd-waiter-standard-v23-page">
 
@@ -161,14 +163,15 @@ document.documentElement.classList.add('pmd-v283-booting');
 
     <div class="pmd-v2-toast" data-v2-toast role="status" aria-live="polite"></div>
 </div>
-<script src="{{ asset('app/admin/assets/js/pmd-waiter-pos-payment-v2.js') }}?v=new2"></script>
-<script src="{{ asset('app/admin/assets/js/pmd-waiter-pos-v1.js') }}?v=new2"></script>
+<script src="{{ asset('app/admin/assets/js/pmd-waiter-pos-payment-v3.js') }}?v=new2"></script>
+<script src="{{ asset('app/admin/assets/js/pmd-waiter-pos-payment-policy-v2.js') }}?v=staff-v3-r47-20260824"></script>
+<script src="{{ asset('app/admin/assets/js/pmd-waiter-pos-v1.js') }}?v=quick-r49-20260824"></script>
 <script src="/app/admin/assets/js/pmd-waiter-pos-v286-dashboard-rebuild.js?v=288"></script>
 <script src="/app/admin/assets/js/pmd-waiter-pos-v290-final-layout.js?v=291"></script>
 <script src="{{ asset('app/admin/assets/js/pmd-waiter-dashboard-new-v1.js') }}?v=295-20260717"></script>
 <script src="{{ asset('app/admin/assets/js/pmd-waiter-standard-v21.js') }}?v=new2"></script>
 <script src="{{ asset('app/admin/assets/js/pmd-waiter-standard-v211-payment-guard.js') }}?v=new2"></script>
-<script src="{{ asset('app/admin/assets/js/pmd-waiter-standard-v22.js') }}?v=new2"></script>
+<script src="{{ asset('app/admin/assets/js/pmd-waiter-standard-v22.js') }}?v=quick-r49-20260824"></script>
 <script src="{{ asset('app/admin/assets/js/pmd-waiter-standard-v221-theme.js') }}?v=new2"></script>
 <script src="{{ asset('app/admin/assets/js/pmd-waiter-standard-v23-operational-polish.js') }}?v=new2"></script>
 <script src="{{ asset('app/admin/assets/js/pmd-waiter-standard-v23-owner-filters.js') }}?v=new2"></script>
@@ -303,6 +306,8 @@ document.documentElement.classList.add('pmd-v283-booting');
     <link rel="stylesheet" href="/app/admin/assets/css/pmd-waiter-pos-v290-final-layout.css?v=297-20260717">
 
     <link rel="stylesheet" href="{{ asset('app/admin/assets/css/pmd-waiter-zero-shift-v1.css') }}?v=20260810-v4-20260810_000543">
+    {{-- PMD_WAITER_PAYMENT_V3_QUICK_R47 --}}
+    <link rel="stylesheet" href="{{ asset('app/admin/assets/css/pmd-payment-simple-v1.css') }}?v=staff-v3-r47-20260824">
 </head>
 <body class="pmd-waiter-new-page pmd-waiter-standard-v2-page pmd-waiter-standard-v21-page pmd-waiter-standard-v211-page pmd-waiter-standard-v221-page pmd-waiter-standard-v22-page pmd-waiter-standard-v23-page">
 <div
@@ -408,12 +413,13 @@ document.documentElement.classList.add('pmd-v283-booting');
 </div>
 
 {{-- Only the isolated stable POS engine and versioned waiter layers are loaded. --}}
-<script src="{{ asset('app/admin/assets/js/pmd-waiter-pos-payment-v2.js') }}?v=2"></script>
-<script src="{{ asset('app/admin/assets/js/pmd-waiter-pos-v1.js') }}?v=2"></script>
+<script src="{{ asset('app/admin/assets/js/pmd-waiter-pos-payment-v3.js') }}?v=2"></script>
+<script src="{{ asset('app/admin/assets/js/pmd-waiter-pos-payment-policy-v2.js') }}?v=staff-v3-r47-20260824"></script>
+<script src="{{ asset('app/admin/assets/js/pmd-waiter-pos-v1.js') }}?v=quick-r49-20260824"></script>
 <script src="{{ asset('app/admin/assets/js/pmd-waiter-dashboard-new-v1.js') }}?v=295-20260717"></script>
 <script src="{{ asset('app/admin/assets/js/pmd-waiter-standard-v21.js') }}?v=21"></script>
 <script src="{{ asset('app/admin/assets/js/pmd-waiter-standard-v211-payment-guard.js') }}?v=211"></script>
-<script src="{{ asset('app/admin/assets/js/pmd-waiter-standard-v22.js') }}?v=22"></script>
+<script src="{{ asset('app/admin/assets/js/pmd-waiter-standard-v22.js') }}?v=quick-r49-20260824"></script>
 <script src="{{ asset('app/admin/assets/js/pmd-waiter-standard-v221-theme.js') }}?v=221"></script>
 <script src="{{ asset('app/admin/assets/js/pmd-waiter-standard-v23-operational-polish.js') }}?v=23-20260716_120010"></script>
 <script src="{{ asset('app/admin/assets/js/pmd-waiter-standard-v23-owner-filters.js') }}?v=231-20260716_123909"></script>

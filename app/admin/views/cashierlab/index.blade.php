@@ -30,6 +30,7 @@
 })();
 </script>
 
+{{-- PMD_CASHIER_QUICK_RESTORED_R48 --}}
 {{-- PMD_CASHIER_SAME_ROUTE_WAITER_QUICK_V2 --}}
 <style id="pmd-cashier-same-route-waiter-critical-v2">
 @media (max-width: 767px) {

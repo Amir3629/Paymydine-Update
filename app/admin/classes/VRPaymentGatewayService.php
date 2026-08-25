@@ -3,518 +3,504 @@
 namespace Admin\Classes;
 
 use Admin\Models\Payments_model;
-use Illuminate\Support\Facades\Http;
+use App\Services\Payments\VrPaymentApiClient;
+use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Schema;
 
+/**
+ * PMD_VR_PAYMENT_ONLINE_R1
+ *
+ * VR Payment online authority for PayMyDine.
+ * Uses the official REST API v2.0 contract through VrPaymentApiClient.
+ * Payment Page is the first-class guest flow; provider method availability is
+ * discovered from the tenant's VR Payment Space and never guessed from marketing
+ * capability alone.
+ */
 class VRPaymentGatewayService
 {
     protected const SUPPORTED_METHODS = ['card', 'apple_pay', 'google_pay', 'paypal', 'wero'];
-    protected const MAC_VERSION = '1';
 
     public function getConfig(): array
     {
         $row = Payments_model::query()->where('code', 'vr_payment')->first();
-        $raw = is_array(optional($row)->data) ? (array)$row->data : [];
+        $raw = $row && method_exists($row, 'getConfigData')
+            ? (array)$row->getConfigData()
+            : (is_array(optional($row)->data) ? (array)$row->data : []);
 
-        $providerStatusEnabled = isset($row->status) ? $this->toBool($row->status) : null;
-        $config = [
-            'enabled' => $providerStatusEnabled !== null ? $providerStatusEnabled : $this->toBool($raw['enabled'] ?? null),
-            'mode' => in_array((string)($raw['mode'] ?? ''), ['test', 'live'], true) ? (string)$raw['mode'] : 'test',
-            'api_base_url' => rtrim((string)($raw['api_base_url'] ?? ''), '/'),
+        return [
+            'enabled' => $row ? (bool)$row->status : false,
+            'mode' => in_array(strtolower((string)($raw['mode'] ?? 'test')), ['test', 'live'], true)
+                ? strtolower((string)($raw['mode'] ?? 'test'))
+                : 'test',
+            'api_base_url' => rtrim((string)($raw['api_base_url'] ?? 'https://gateway.vr-payment.de'), '/'),
             'space_id' => trim((string)($raw['space_id'] ?? '')),
-            'user_id' => trim((string)($raw['user_id'] ?? '')),
-            'auth_key' => trim((string)($raw['auth_key'] ?? '')),
-            'webhook_signing_key' => trim((string)($raw['webhook_signing_key'] ?? '')),
-            'preferred_integration_mode' => (string)($raw['preferred_integration_mode'] ?? 'payment_page'),
+            'user_id' => trim((string)($raw['user_id'] ?? $raw['application_user_id'] ?? '')),
+            'auth_key' => trim((string)($raw['auth_key'] ?? $raw['authentication_key'] ?? '')),
+            'preferred_integration_mode' => 'payment_page',
+            'currency' => strtoupper(trim((string)($raw['currency'] ?? 'EUR'))) ?: 'EUR',
+            'terminal_id' => trim((string)($raw['terminal_id'] ?? '')),
+            'language' => trim((string)($raw['language'] ?? 'de-DE')) ?: 'de-DE',
         ];
-
-        return $config;
     }
 
     public function getConfigForDiagnostics(): array
     {
         $config = $this->getConfig();
-        $credentialsPresent = $this->requiredCredentialsPresent($config);
-
-        $readiness = [
+        $base = [
             'provider_enabled' => (bool)$config['enabled'],
             'mode' => $config['mode'],
-            'integration_mode_valid' => $config['preferred_integration_mode'] === 'payment_page',
-            'credentials_present' => $credentialsPresent,
+            'integration_mode_valid' => true,
+            'credentials_present' => $this->requiredCredentialsPresent($config),
             'config_presence' => [
                 'api_base_url' => $config['api_base_url'] !== '',
                 'space_id' => $config['space_id'] !== '',
                 'user_id' => $config['user_id'] !== '',
                 'auth_key' => $config['auth_key'] !== '',
-                'webhook_signing_key' => $config['webhook_signing_key'] !== '',
             ],
         ];
 
-        foreach (self::SUPPORTED_METHODS as $method) {
-            $readiness[$method.'_ready'] = $this->isMethodReady($method, $config);
-            $readiness[$method.'_enabled'] = true;
+        if (!$base['provider_enabled'] || !$base['credentials_present']) {
+            foreach (self::SUPPORTED_METHODS as $method) {
+                $base[$method.'_ready'] = false;
+                $base[$method.'_enabled'] = false;
+            }
+            $base['any_ready'] = false;
+            $base['terminal_ready'] = false;
+            $base['terminal_count'] = 0;
+            return $base;
         }
 
-        $readiness['any_ready'] =
-            $readiness['card_ready']
-            || $readiness['apple_pay_ready']
-            || $readiness['google_pay_ready']
-            || $readiness['paypal_ready']
-            || $readiness['wero_ready'];
+        $audit = $this->readinessAudit($config);
+        foreach (self::SUPPORTED_METHODS as $method) {
+            $base[$method.'_ready'] = (bool)($audit[$method.'_ready'] ?? false);
+            $base[$method.'_enabled'] = (bool)($audit[$method.'_ready'] ?? false);
+        }
+        $base['any_ready'] = (bool)($audit['card_ready'] ?? false)
+            || (bool)($audit['apple_pay_ready'] ?? false)
+            || (bool)($audit['google_pay_ready'] ?? false)
+            || (bool)($audit['paypal_ready'] ?? false)
+            || (bool)($audit['wero_ready'] ?? false);
+        $base['connected'] = (bool)($audit['connected'] ?? false);
+        $base['available_method_codes'] = $audit['available_method_codes'] ?? [];
+        $base['terminal_ready'] = (bool)($audit['terminals_api_ok'] ?? false) && (int)($audit['terminal_count'] ?? 0) > 0;
+        $base['terminal_count'] = (int)($audit['terminal_count'] ?? 0);
+        $base['terminals_api_ok'] = (bool)($audit['terminals_api_ok'] ?? false);
 
-        return $readiness;
+        return $base;
     }
 
     public function isMethodReady(string $methodCode, ?array $config = null): bool
     {
         $method = strtolower(trim($methodCode));
-        $cfg = $config ?: $this->getConfig();
-        if (!in_array($method, self::SUPPORTED_METHODS, true)) {
-            return false;
-        }
+        if (!in_array($method, self::SUPPORTED_METHODS, true)) return false;
 
-        if (!$this->toBool($cfg['enabled'] ?? false)) {
-            return false;
-        }
+        $config = $config ?: $this->getConfig();
+        if (!(bool)($config['enabled'] ?? false) || !$this->requiredCredentialsPresent($config)) return false;
 
-        if (($cfg['preferred_integration_mode'] ?? '') !== 'payment_page') {
-            return false;
-        }
-
-        if (!$this->requiredCredentialsPresent($cfg)) {
-            return false;
-        }
-
-        return true;
-    }
-
-    public function createRedirectSession(array $payload): array
-    {
-        $method = strtolower(trim((string)($payload['method'] ?? '')));
-        $config = $this->getConfig();
-        $merchantReference = $this->resolveMerchantReference((string)($payload['merchant_reference'] ?? ''), $method);
-
-        if (!$this->toBool($config['enabled'] ?? false)) {
-            return $this->businessError('vr_payment_provider_not_ready', 'VR Payment provider is not enabled.');
-        }
-
-        if (($config['preferred_integration_mode'] ?? '') !== 'payment_page') {
-            return $this->businessError('vr_payment_configuration_invalid', 'VR Payment integration mode must be payment_page.');
-        }
-
-        if (!$this->requiredCredentialsPresent($config)) {
-            return $this->businessError('vr_payment_configuration_invalid', 'VR Payment credentials are incomplete.');
-        }
-
-        if (!$this->isMethodReady($method, $config)) {
-            return $this->businessError('vr_payment_wallet_not_enabled', 'Selected wallet is not enabled for VR Payment.');
-        }
-
-        try {
-            $spaceId = (int)$config['space_id'];
-            $gatewayBase = $this->resolveGatewayBaseUrl($config['api_base_url'] ?? '');
-            $transactionPath = '/api/transaction/create?spaceId='.$spaceId;
-            $requestPayload = $this->buildTransactionCreatePayload($method, $payload, $merchantReference);
-            $response = $this->signedGatewayRequest('POST', $gatewayBase, $transactionPath, $config, $requestPayload);
-
-            if (!$response->ok()) {
-                $httpFailure = $this->normalizeHttpFailure($response->status(), (string)$response->body());
-                PaymentLogger::warning('VR_PAYMENT_CREATE_SESSION_HTTP_FAILURE', [
-                    'provider' => 'vr_payment',
-                    'payment_method' => $method,
-                    'request_meta' => ['endpoint' => $gatewayBase.$transactionPath, 'merchant_reference' => $merchantReference],
-                    'response_meta' => ['status' => $response->status(), 'body' => $response->body()],
-                ]);
-
-                return $this->businessError(
-                    (string)$httpFailure['error_code'],
-                    (string)$httpFailure['error'],
-                    [
-                        'status' => $response->status(),
-                        'error_category' => $httpFailure['error_category'] ?? 'provider_http',
-                        'merchant_reference' => $merchantReference,
-                        'provider_response' => $httpFailure['provider_response'] ?? null,
-                    ]
-                );
-            }
-
-            $body = (array)$response->json();
-            $transactionId = (string)($body['id'] ?? $body['transaction_id'] ?? '');
-            if ($transactionId === '') {
-                return $this->businessError('vr_payment_transaction_create_failed', 'VR Payment transaction creation did not return an id.');
-            }
-
-            $paymentPagePath = '/api/transaction-payment-page/payment-page-url?spaceId='.$spaceId.'&id='.$transactionId;
-            $pageResponse = $this->signedGatewayRequest('GET', $gatewayBase, $paymentPagePath, $config);
-            if (!$pageResponse->ok()) {
-                $httpFailure = $this->normalizeHttpFailure($pageResponse->status(), (string)$pageResponse->body());
-                return $this->businessError(
-                    (string)$httpFailure['error_code'],
-                    (string)$httpFailure['error'],
-                    [
-                        'status' => $pageResponse->status(),
-                        'error_category' => $httpFailure['error_category'] ?? 'provider_http',
-                        'merchant_reference' => $merchantReference,
-                        'provider_response' => $httpFailure['provider_response'] ?? null,
-                    ]
-                );
-            }
-
-            $pageBody = (array)$pageResponse->json();
-            $redirectUrl = (string)($pageBody['url'] ?? $pageBody['paymentPageUrl'] ?? $pageBody['redirect_url'] ?? '');
-            if ($redirectUrl === '') {
-                return $this->businessError('vr_payment_redirect_missing', 'VR Payment did not return a redirect URL.');
-            }
-
-            return [
-                'success' => true,
-                'provider' => 'vr_payment',
-                'method' => $method,
-                'redirect_url' => $redirectUrl,
-                'merchant_reference' => $merchantReference,
-                'session_id' => $transactionId,
-                'transaction_id' => $transactionId,
-                'provider_reference' => $transactionId,
-                'status' => $this->normalizePaymentStatus((string)($body['state'] ?? 'pending')),
-            ];
-        } catch (\Throwable $e) {
-            $normalized = $this->normalizeProviderException($e);
-            PaymentLogger::exception('VR_PAYMENT_CREATE_SESSION_EXCEPTION', $e, [
-                'provider' => 'vr_payment',
-                'payment_method' => $method,
-                'error_category' => $normalized['error_category'] ?? null,
-            ]);
-
-            return $this->businessError(
-                (string)($normalized['error_code'] ?? 'vr_payment_checkout_create_failed'),
-                (string)($normalized['error'] ?? 'Unable to create VR Payment checkout session.'),
-                [
-                    'error_category' => $normalized['error_category'] ?? 'provider_exception',
-                    'details' => $normalized,
-                    'merchant_reference' => $merchantReference,
-                ]
-            );
-        }
-    }
-
-    public function fetchPaymentStatus(array $context): array
-    {
-        $config = $this->getConfig();
-        if (!$this->toBool($config['enabled'] ?? false) || !$this->requiredCredentialsPresent($config)) {
-            return $this->businessError('vr_payment_provider_not_ready', 'VR Payment provider is not ready.');
-        }
-
-        $sessionId = trim((string)($context['session_id'] ?? ''));
-        $transactionId = trim((string)($context['transaction_id'] ?? ''));
-        $providerReference = trim((string)($context['provider_reference'] ?? ''));
-
-        if ($sessionId === '' && $transactionId === '' && $providerReference === '') {
-            return $this->businessError('vr_payment_status_lookup_failed', 'No VR Payment reference was provided.');
-        }
-
-        try {
-            $spaceId = (int)$config['space_id'];
-            $gatewayBase = $this->resolveGatewayBaseUrl($config['api_base_url'] ?? '');
-            $resolvedTransactionId = $transactionId !== '' ? $transactionId : ($providerReference !== '' ? $providerReference : $sessionId);
-            $statusPath = '/api/transaction/read?spaceId='.$spaceId.'&id='.urlencode($resolvedTransactionId);
-            $response = $this->signedGatewayRequest('GET', $gatewayBase, $statusPath, $config);
-
-            if (!$response->ok()) {
-                return $this->businessError('vr_payment_status_lookup_failed', 'Unable to verify VR Payment status.', [
-                    'provider_http_status' => $response->status(),
-                ]);
-            }
-
-            $body = (array)$response->json();
-            $normalized = $this->normalizePaymentStatus((string)($body['state'] ?? $body['status'] ?? $body['payment_status'] ?? 'unknown'));
-            $resolvedId = (string)($body['id'] ?? $resolvedTransactionId);
-
-            return [
-                'success' => true,
-                'provider' => 'vr_payment',
-                'status' => $normalized,
-                'is_paid' => in_array($normalized, ['authorized', 'completed'], true),
-                'session_id' => $resolvedId,
-                'transaction_id' => $resolvedId,
-                'provider_reference' => $resolvedId,
-                'raw_status' => $body['state'] ?? $body['status'] ?? $body['payment_status'] ?? null,
-            ];
-        } catch (\Throwable $e) {
-            $normalized = $this->normalizeProviderException($e);
-            return $this->businessError('vr_payment_status_lookup_failed', 'Unable to verify VR Payment status.', [
-                'error_category' => $normalized['error_category'] ?? 'provider_exception',
-                'details' => $normalized,
-            ]);
-        }
-    }
-
-    public function verifyWebhookSignature(string $rawBody, ?string $signatureHeader, ?string $timestampHeader = null): bool
-    {
-        $config = $this->getConfig();
-        $key = (string)($config['webhook_signing_key'] ?? '');
-        if ($key === '' || $signatureHeader === null || trim($signatureHeader) === '') {
-            return false;
-        }
-
-        $signature = trim($signatureHeader);
-        $signature = preg_replace('/^sha256=/i', '', $signature) ?: $signature;
-        $expectedRaw = hash_hmac('sha256', $rawBody, $key);
-        if (hash_equals($expectedRaw, $signature)) {
-            return true;
-        }
-
-        if ($timestampHeader !== null && trim($timestampHeader) !== '') {
-            $expectedWithTimestamp = hash_hmac('sha256', trim($timestampHeader).'.'.$rawBody, $key);
-            if (hash_equals($expectedWithTimestamp, $signature)) {
-                return true;
-            }
-        }
-
-        return false;
-    }
-
-    public function normalizeProviderException(\Throwable $e): array
-    {
-        $message = (string)$e->getMessage();
-        $lowerMessage = strtolower($message);
-        $category = 'provider_exception';
-        $errorCode = 'vr_payment_checkout_create_failed';
-        $error = 'Unable to create VR Payment checkout session.';
-
-        if (str_contains($lowerMessage, 'timed out') || str_contains($lowerMessage, 'timeout')) {
-            $category = 'connectivity_timeout';
-            $errorCode = 'vr_payment_connectivity_timeout';
-            $error = 'Connection to VR Payment timed out.';
-        } elseif (str_contains($lowerMessage, 'could not resolve host') || str_contains($lowerMessage, 'name or service not known') || str_contains($lowerMessage, 'getaddrinfo')) {
-            $category = 'connectivity_dns';
-            $errorCode = 'vr_payment_dns_failure';
-            $error = 'Unable to resolve VR Payment host.';
-        } elseif (str_contains($lowerMessage, 'connection refused')) {
-            $category = 'connectivity_refused';
-            $errorCode = 'vr_payment_connection_refused';
-            $error = 'Connection to VR Payment was refused.';
-        } elseif (str_contains($lowerMessage, 'ssl') || str_contains($lowerMessage, 'tls') || str_contains($lowerMessage, 'certificate')) {
-            $category = 'connectivity_tls';
-            $errorCode = 'vr_payment_tls_failure';
-            $error = 'TLS/SSL handshake with VR Payment failed.';
-        }
-
-        return [
-            'class' => get_class($e),
-            'message' => $message,
-            'code' => method_exists($e, 'getCode') ? $e->getCode() : null,
-            'error_category' => $category,
-            'error_code' => $errorCode,
-            'error' => $error,
-        ];
+        $audit = $this->readinessAudit($config);
+        return (bool)($audit[$method.'_ready'] ?? false);
     }
 
     public function probeConnectivity(): array
     {
         $config = $this->getConfig();
-        $baseUrl = trim((string)($config['api_base_url'] ?? ''));
-        if ($baseUrl === '') {
+        if (!(bool)($config['enabled'] ?? false)) {
             return [
                 'ok' => false,
+                'connected' => false,
                 'error_category' => 'configuration',
-                'error_code' => 'vr_payment_base_url_missing',
-                'error' => 'VR Payment API base URL is missing.',
+                'error_code' => 'vr_payment_provider_disabled',
+                'error' => 'VR Payment provider is disabled.',
             ];
         }
 
-        $parts = parse_url($baseUrl);
-        $host = (string)($parts['host'] ?? '');
-        $scheme = strtolower((string)($parts['scheme'] ?? 'https'));
-        $port = (int)($parts['port'] ?? ($scheme === 'https' ? 443 : 80));
-        if ($host === '') {
+        $client = new VrPaymentApiClient($config);
+        $audit = $client->connectionAudit();
+        if (!($audit['ok'] ?? false)) {
             return [
                 'ok' => false,
-                'error_category' => 'configuration',
-                'error_code' => 'vr_payment_base_url_invalid',
-                'error' => 'VR Payment API base URL is invalid.',
-                'base_url' => $baseUrl,
+                'connected' => false,
+                'error_category' => 'provider_api',
+                'error_code' => 'vr_payment_connection_failed',
+                'error' => $audit['message'] ?? 'VR Payment API connection failed.',
+                'provider_http_status' => $audit['api']['status'] ?? null,
             ];
         }
 
-        $resolvedIp = gethostbyname($host);
-        if ($resolvedIp === $host) {
-            return [
-                'ok' => false,
-                'error_category' => 'connectivity_dns',
-                'error_code' => 'vr_payment_dns_failure',
-                'error' => 'Unable to resolve VR Payment host.',
-                'host' => $host,
-                'port' => $port,
-            ];
-        }
+        $sync = $this->syncTerminalDevices($audit['terminals'] ?? [], $config);
+        $this->forgetReadinessCache($config);
 
-        $errno = 0;
-        $errstr = '';
-        $protocol = $scheme === 'https' ? 'ssl' : 'tcp';
-        $socket = @stream_socket_client("{$protocol}://{$host}:{$port}", $errno, $errstr, 3);
-        if (!$socket) {
-            $normalized = $this->normalizeProviderException(new \RuntimeException($errstr !== '' ? $errstr : 'Socket connection failed.'));
-            return [
-                'ok' => false,
-                'error_category' => $normalized['error_category'] ?? 'connectivity',
-                'error_code' => $normalized['error_code'] ?? 'vr_payment_connectivity_failed',
-                'error' => $normalized['error'] ?? 'Unable to reach VR Payment host.',
-                'host' => $host,
-                'port' => $port,
-                'resolved_ip' => $resolvedIp,
-                'socket_errno' => $errno,
-                'socket_error' => $errstr,
-            ];
-        }
-
-        fclose($socket);
         return [
             'ok' => true,
-            'host' => $host,
-            'port' => $port,
-            'resolved_ip' => $resolvedIp,
+            'connected' => true,
+            'message' => 'VR Payment Space connected. Payment methods and terminals were discovered.',
+            'space_id' => $audit['space_id'] ?? null,
+            'available_method_codes' => $audit['available_method_codes'] ?? [],
+            'card_ready' => (bool)($audit['card_ready'] ?? false),
+            'apple_pay_ready' => (bool)($audit['apple_pay_ready'] ?? false),
+            'google_pay_ready' => (bool)($audit['google_pay_ready'] ?? false),
+            'paypal_ready' => (bool)($audit['paypal_ready'] ?? false),
+            'wero_ready' => (bool)($audit['wero_ready'] ?? false),
+            'terminal_count' => (int)($audit['terminal_count'] ?? 0),
+            'terminal_sync' => $sync,
         ];
     }
 
-    public function normalizePaymentStatus(string $providerStatus): string
+    public function createRedirectSession(array $payload): array
     {
-        $status = strtolower(trim($providerStatus));
-        return match ($status) {
-            'pending', 'created', 'processing' => 'pending',
-            'authorized', 'authorised' => 'authorized',
-            'paid', 'captured', 'completed', 'succeeded', 'success' => 'completed',
-            'failed', 'error', 'declined' => 'failed',
-            'cancelled', 'canceled' => 'cancelled',
-            'expired', 'timeout' => 'expired',
-            default => 'unknown',
-        };
+        $method = strtolower(trim((string)($payload['method'] ?? 'card')));
+        if (!in_array($method, self::SUPPORTED_METHODS, true)) {
+            return $this->businessError('vr_payment_method_not_supported', 'This payment method is not supported by the VR Payment integration.');
+        }
+
+        $config = $this->getConfig();
+        if (!(bool)($config['enabled'] ?? false)) {
+            return $this->businessError('vr_payment_provider_not_ready', 'VR Payment provider is not enabled.');
+        }
+        if (!$this->requiredCredentialsPresent($config)) {
+            return $this->businessError('vr_payment_configuration_invalid', 'VR Payment Space ID, Application User ID or Authentication Key is missing.');
+        }
+
+        $audit = $this->readinessAudit($config);
+        if (!($audit[$method.'_ready'] ?? false)) {
+            return $this->businessError(
+                'vr_payment_method_not_available',
+                strtoupper(str_replace('_', ' ', $method)).' is not active in this VR Payment Space.'
+            );
+        }
+
+        $amount = round((float)($payload['amount'] ?? 0), 2);
+        if ($amount <= 0) {
+            return $this->businessError('vr_payment_invalid_amount', 'Payment amount must be greater than zero.');
+        }
+
+        $currency = strtoupper(trim((string)($payload['currency'] ?? $config['currency'] ?? 'EUR'))) ?: 'EUR';
+        $merchantReference = $this->resolveMerchantReference((string)($payload['merchant_reference'] ?? ''), $method);
+        $returnUrl = trim((string)($payload['return_url'] ?? ''));
+        $cancelUrl = trim((string)($payload['cancel_url'] ?? $returnUrl));
+
+        // PMD_VR_PAYMENT_TRANSACTION_METHOD_GATE_R1
+        // The tenant-level catalogue is only a preflight. The authoritative
+        // method gate is fetched for the concrete transaction below, because
+        // VR Payment can apply transaction-specific connector conditions.
+        $transactionPayload = [
+            'currency' => $currency,
+            'language' => $this->normalizeLanguage((string)($payload['language'] ?? $config['language'] ?? 'de-DE')),
+            'lineItems' => [[
+                'amountIncludingTax' => number_format($amount, 2, '.', ''),
+                'name' => trim((string)($payload['description'] ?? 'PayMyDine order')) ?: 'PayMyDine order',
+                'quantity' => '1',
+                'shippingRequired' => false,
+                'sku' => 'pmd-order',
+                'type' => 'PRODUCT',
+                'uniqueId' => $merchantReference,
+            ]],
+            'merchantReference' => $merchantReference,
+            'autoConfirmationEnabled' => true,
+            'metaData' => [
+                'pmd_method' => $method,
+                'pmd_order_id' => isset($payload['order_id']) ? (string)(int)$payload['order_id'] : '',
+            ],
+        ];
+        if ($returnUrl !== '') $transactionPayload['successUrl'] = $returnUrl;
+        if ($cancelUrl !== '') $transactionPayload['failedUrl'] = $cancelUrl;
+
+        $client = new VrPaymentApiClient($config);
+        $created = $client->createTransaction($transactionPayload);
+        if (!($created['ok'] ?? false) || !is_array($created['data'] ?? null)) {
+            return $this->businessError(
+                'vr_payment_transaction_create_failed',
+                $created['message'] ?? 'VR Payment transaction creation failed.',
+                ['provider_http_status' => $created['status'] ?? null]
+            );
+        }
+
+        $transaction = (array)$created['data'];
+        $transactionId = (int)($transaction['id'] ?? 0);
+        if ($transactionId <= 0) {
+            return $this->businessError('vr_payment_transaction_create_failed', 'VR Payment did not return a transaction ID.');
+        }
+
+        $possible = $client->availablePaymentMethodConfigurations($transactionId, 'payment_page');
+        if (!($possible['ok'] ?? false)) {
+            return $this->businessError(
+                'vr_payment_method_discovery_failed',
+                $possible['message'] ?? 'VR Payment could not list payment methods for this transaction.',
+                ['provider_http_status' => $possible['status'] ?? null, 'transaction_id' => $transactionId]
+            );
+        }
+        $possibleRows = $client->normalizeMethodConfigurations((array)($possible['data'] ?? []));
+        $allowedIds = [];
+        foreach ($possibleRows as $row) {
+            if (($row['pmd_method_code'] ?? null) === $method && !empty($row['id']) && ($row['active'] ?? true)) {
+                $allowedIds[] = (int)$row['id'];
+            }
+        }
+        $allowedIds = array_values(array_unique(array_filter($allowedIds)));
+        if (!$allowedIds) {
+            return $this->businessError(
+                'vr_payment_method_not_available_for_transaction',
+                strtoupper(str_replace('_', ' ', $method)).' is not available for this VR Payment transaction.',
+                ['transaction_id' => $transactionId]
+            );
+        }
+
+        $version = (int)($transaction['version'] ?? 0);
+        $updatePayload = [
+            'id' => $transactionId,
+            'version' => $version,
+            'allowedPaymentMethodConfigurations' => array_map(
+                static fn (int $id): array => ['id' => $id],
+                $allowedIds
+            ),
+        ];
+        $updated = $client->updateTransaction($transactionId, $updatePayload);
+        if (!($updated['ok'] ?? false)) {
+            return $this->businessError(
+                'vr_payment_method_restriction_failed',
+                $updated['message'] ?? 'VR Payment could not restrict the transaction to the selected payment method.',
+                ['provider_http_status' => $updated['status'] ?? null, 'transaction_id' => $transactionId]
+            );
+        }
+        if (is_array($updated['data'] ?? null)) $transaction = (array)$updated['data'];
+
+        $page = $client->paymentPageUrl($transactionId);
+        if (!($page['ok'] ?? false)) {
+            return $this->businessError(
+                'vr_payment_redirect_missing',
+                $page['message'] ?? 'VR Payment did not return a Payment Page URL.',
+                ['provider_http_status' => $page['status'] ?? null, 'transaction_id' => $transactionId]
+            );
+        }
+
+        $redirectUrl = $this->extractStringResult($page['data'] ?? null);
+        if ($redirectUrl === '') {
+            return $this->businessError('vr_payment_redirect_missing', 'VR Payment Payment Page URL is empty.');
+        }
+
+        $status = $client->normalizeTransactionStatus($transaction);
+        PaymentLogger::info('VR_PAYMENT_SESSION_CREATED', [
+            'provider' => 'vr_payment',
+            'payment_method' => $method,
+            'transaction_id' => $transactionId,
+            'merchant_reference' => $merchantReference,
+            'amount' => $amount,
+            'currency' => $currency,
+            'allowed_payment_method_configurations' => $allowedIds,
+        ]);
+
+        return [
+            'success' => true,
+            'provider' => 'vr_payment',
+            'method' => $method,
+            'redirect_url' => $redirectUrl,
+            'merchant_reference' => $merchantReference,
+            'session_id' => (string)$transactionId,
+            'transaction_id' => (string)$transactionId,
+            'provider_reference' => (string)$transactionId,
+            'status' => $status,
+            'raw_status' => $transaction['state'] ?? null,
+        ];
+    }
+
+    public function fetchPaymentStatus(array $context): array
+    {
+        $config = $this->getConfig();
+        if (!(bool)($config['enabled'] ?? false) || !$this->requiredCredentialsPresent($config)) {
+            return $this->businessError('vr_payment_provider_not_ready', 'VR Payment provider is not ready.');
+        }
+
+        $reference = trim((string)(
+            $context['transaction_id']
+            ?? $context['provider_reference']
+            ?? $context['session_id']
+            ?? ''
+        ));
+        if ($reference === '' || !ctype_digit($reference)) {
+            return $this->businessError('vr_payment_status_lookup_failed', 'A valid VR Payment transaction ID is required.');
+        }
+
+        $client = new VrPaymentApiClient($config);
+        $response = $client->readTransaction((int)$reference);
+        if (!($response['ok'] ?? false) || !is_array($response['data'] ?? null)) {
+            return $this->businessError(
+                'vr_payment_status_lookup_failed',
+                $response['message'] ?? 'Unable to read VR Payment transaction status.',
+                ['provider_http_status' => $response['status'] ?? null]
+            );
+        }
+
+        $transaction = (array)$response['data'];
+        $status = $client->normalizeTransactionStatus($transaction);
+        $id = (string)($transaction['id'] ?? $reference);
+        $rawState = strtoupper((string)($transaction['state'] ?? ''));
+
+        return [
+            'success' => true,
+            'provider' => 'vr_payment',
+            'status' => $status,
+            'is_paid' => $status === 'paid',
+            'session_id' => $id,
+            'transaction_id' => $id,
+            'provider_reference' => $id,
+            'merchant_reference' => $transaction['merchantReference'] ?? null,
+            'raw_status' => $rawState,
+            'amount' => $transaction['authorizationAmount'] ?? null,
+            'currency' => $transaction['currency'] ?? null,
+        ];
+    }
+
+    public function verifyWebhookSignature(string $rawBody, ?string $signatureHeader, ?string $timestampHeader = null): bool
+    {
+        $client = new VrPaymentApiClient($this->getConfig());
+        $result = $client->verifyWebhookSignature($rawBody, $signatureHeader);
+        if (!($result['ok'] ?? false)) {
+            Log::warning('VR_PAYMENT_WEBHOOK_SIGNATURE_INVALID', [
+                'message' => $result['message'] ?? 'Unknown signature failure',
+                'key_id' => $result['key_id'] ?? null,
+            ]);
+            return false;
+        }
+        return true;
+    }
+
+    public function verifyWebhookSignatureDetailed(string $rawBody, ?string $signatureHeader): array
+    {
+        return (new VrPaymentApiClient($this->getConfig()))->verifyWebhookSignature($rawBody, $signatureHeader);
+    }
+
+    public function syncTerminalDevices(?array $terminals = null, ?array $config = null): array
+    {
+        if (!Schema::hasTable('terminal_devices')) {
+            return ['ok' => false, 'message' => 'terminal_devices table is missing.', 'synced' => 0];
+        }
+
+        $config = $config ?: $this->getConfig();
+        if ($terminals === null) {
+            $api = new VrPaymentApiClient($config);
+            $response = $api->terminals();
+            if (!($response['ok'] ?? false)) {
+                return ['ok' => false, 'message' => $response['message'] ?? 'Unable to list VR Payment terminals.', 'synced' => 0];
+            }
+            $terminals = $api->normalizeTerminals((array)($response['data'] ?? []));
+        }
+
+        $columns = Schema::getColumnListing('terminal_devices');
+        $synced = 0;
+        $seenReaderIds = [];
+
+        foreach ($terminals as $terminal) {
+            if (!is_array($terminal)) continue;
+            $providerId = (int)($terminal['id'] ?? 0);
+            if ($providerId <= 0) continue;
+            $readerId = trim((string)($terminal['identifier'] ?? '')) ?: (string)$providerId;
+            $seenReaderIds[] = $readerId;
+
+            $payload = [
+                'provider_code' => 'vr_payment',
+                'reader_id' => $readerId,
+                'reader_label' => (string)($terminal['name'] ?? 'VR Payment terminal'),
+                'terminal_status' => ($terminal['online'] ?? false) ? 'online' : (string)($terminal['state'] ?? 'unknown'),
+                'pairing_state' => (string)($terminal['state'] ?? 'unknown'),
+                'environment' => (string)($config['mode'] ?? 'test'),
+                'is_active' => 1,
+                'serial_number' => $terminal['serial_number'] ?? null,
+                'provider_terminal_id' => $providerId,
+                'updated_at' => now(),
+            ];
+            $payload = array_intersect_key($payload, array_flip($columns));
+
+            $query = DB::table('terminal_devices')->whereRaw('LOWER(provider_code) = ?', ['vr_payment']);
+            if (in_array('provider_terminal_id', $columns, true)) {
+                $query->where('provider_terminal_id', $providerId);
+            } else {
+                $query->where('reader_id', $readerId);
+            }
+            $existing = $query->first();
+
+            if ($existing) {
+                DB::table('terminal_devices')
+                    ->where('terminal_device_id', (int)$existing->terminal_device_id)
+                    ->update($payload);
+            } else {
+                if (in_array('created_at', $columns, true)) $payload['created_at'] = now();
+                DB::table('terminal_devices')->insert($payload);
+            }
+            $synced++;
+        }
+
+        if ($seenReaderIds && in_array('reader_id', $columns, true) && in_array('is_active', $columns, true)) {
+            DB::table('terminal_devices')
+                ->whereRaw('LOWER(provider_code) = ?', ['vr_payment'])
+                ->whereNotIn('reader_id', $seenReaderIds)
+                ->update(array_intersect_key([
+                    'is_active' => 0,
+                    'terminal_status' => 'unavailable',
+                    'updated_at' => now(),
+                ], array_flip($columns)));
+        }
+
+        return ['ok' => true, 'synced' => $synced];
+    }
+
+    public function normalizeProviderException(\Throwable $e): array
+    {
+        $message = (string)$e->getMessage();
+        $lower = strtolower($message);
+        $category = 'provider_exception';
+        if (str_contains($lower, 'timeout') || str_contains($lower, 'timed out')) $category = 'connectivity_timeout';
+        elseif (str_contains($lower, 'resolve host') || str_contains($lower, 'getaddrinfo')) $category = 'connectivity_dns';
+        elseif (str_contains($lower, 'ssl') || str_contains($lower, 'tls') || str_contains($lower, 'certificate')) $category = 'connectivity_tls';
+
+        return [
+            'class' => get_class($e),
+            'message' => $message,
+            'code' => $e->getCode(),
+            'error_category' => $category,
+            'error_code' => 'vr_payment_provider_exception',
+            'error' => 'VR Payment request failed.',
+        ];
+    }
+
+    protected function readinessAudit(array $config): array
+    {
+        $key = 'pmd:vr:readiness:'.sha1(
+            (string)DB::connection()->getDatabaseName().'|'.
+            (string)($config['mode'] ?? '').'|'.
+            (string)($config['space_id'] ?? '').'|'.
+            (string)($config['user_id'] ?? '')
+        );
+
+        return Cache::remember($key, now()->addSeconds(45), function () use ($config) {
+            return (new VrPaymentApiClient($config))->connectionAudit();
+        });
+    }
+
+    protected function forgetReadinessCache(array $config): void
+    {
+        $key = 'pmd:vr:readiness:'.sha1(
+            (string)DB::connection()->getDatabaseName().'|'.
+            (string)($config['mode'] ?? '').'|'.
+            (string)($config['space_id'] ?? '').'|'.
+            (string)($config['user_id'] ?? '')
+        );
+        Cache::forget($key);
     }
 
     protected function requiredCredentialsPresent(array $config): bool
     {
-        return ($config['api_base_url'] ?? '') !== ''
-            && ($config['space_id'] ?? '') !== ''
-            && ($config['user_id'] ?? '') !== ''
-            && ($config['auth_key'] ?? '') !== '';
+        return trim((string)($config['space_id'] ?? '')) !== ''
+            && trim((string)($config['user_id'] ?? '')) !== ''
+            && trim((string)($config['auth_key'] ?? '')) !== '';
     }
 
-    protected function buildTransactionCreatePayload(string $method, array $payload, string $merchantReference): array
+    protected function resolveMerchantReference(string $requested, string $method): string
     {
-        $amountMajor = (float)($payload['amount'] ?? 0);
-        $amountMajor = $amountMajor > 0 ? $amountMajor : 0.01;
-        $currency = strtoupper((string)($payload['currency'] ?? 'EUR'));
-        $returnUrl = (string)($payload['return_url'] ?? '');
-        $cancelUrl = (string)($payload['cancel_url'] ?? $returnUrl);
-
-        $lineItems = [];
-        foreach ((array)($payload['items'] ?? []) as $item) {
-            if (!is_array($item)) {
-                continue;
-            }
-            $qty = max(1, (int)($item['quantity'] ?? 1));
-            $price = (float)($item['price'] ?? 0);
-            if ($price <= 0) {
-                continue;
-            }
-            $lineItems[] = [
-                'name' => (string)($item['name'] ?? 'Paymydine item'),
-                'quantity' => $qty,
-                'type' => 'PRODUCT',
-                'amountIncludingTax' => round($price * $qty, 2),
-                'sku' => (string)($item['id'] ?? ('item-'.(count($lineItems) + 1))),
-                'uniqueId' => (string)($item['id'] ?? ('item-'.(count($lineItems) + 1))),
-            ];
-        }
-        if (empty($lineItems)) {
-            $lineItems[] = [
-                'name' => 'Paymydine order',
-                'quantity' => 1,
-                'type' => 'PRODUCT',
-                'amountIncludingTax' => round($amountMajor, 2),
-                'sku' => 'order',
-                'uniqueId' => 'order',
-            ];
-        }
-
-        return [
-            'currency' => $currency,
-            'lineItems' => $lineItems,
-            'autoConfirmationEnabled' => true,
-            'merchantReference' => $merchantReference,
-            'successUrl' => $returnUrl,
-            'failedUrl' => $cancelUrl,
-            'language' => (string)($payload['locale'] ?? 'en-US'),
-            'customerEmailAddress' => (string)($payload['customer_email'] ?? ''),
-            'metaData' => [
-                'payment_method' => $method,
-                'merchant_reference' => $merchantReference,
-            ],
-        ];
-    }
-
-    protected function resolveGatewayBaseUrl(string $apiBaseUrl): string
-    {
-        $candidate = rtrim(trim($apiBaseUrl), '/');
-        if ($candidate === '') {
-            return 'https://gateway.vr-payment.de';
-        }
-
-        $parts = parse_url($candidate);
-        $host = strtolower((string)($parts['host'] ?? ''));
-        if ($host === '' || str_contains($host, 'asia.vrpy.de')) {
-            return 'https://gateway.vr-payment.de';
-        }
-
-        return ($parts['scheme'] ?? 'https').'://'.$host;
-    }
-
-    protected function signedGatewayRequest(string $method, string $baseUrl, string $pathWithQuery, array $config, ?array $body = null)
-    {
-        $upperMethod = strtoupper($method);
-        $timestamp = (string)time();
-        $decodedSecret = base64_decode((string)$config['auth_key'], true);
-        if ($decodedSecret === false) {
-            throw new \RuntimeException('VR Payment auth_key must be Base64-encoded application user key.');
-        }
-
-        $signaturePayload = self::MAC_VERSION.'|'.(string)$config['user_id'].'|'.$timestamp.'|'.$upperMethod.'|'.$pathWithQuery;
-        $macValue = base64_encode(hash_hmac('sha512', $signaturePayload, $decodedSecret, true));
-        $url = rtrim($baseUrl, '/').$pathWithQuery;
-
-        $request = Http::withHeaders([
-            'Accept' => 'application/json',
-            'X-Mac-Version' => self::MAC_VERSION,
-            'X-Mac-Userid' => (string)$config['user_id'],
-            'X-Mac-Timestamp' => $timestamp,
-            'X-Mac-Value' => $macValue,
-        ])->timeout(20);
-
-        if ($upperMethod === 'GET') {
-            return $request->get($url);
-        }
-
-        return $request->withHeaders([
-            'Content-Type' => 'application/json;charset=utf-8',
-        ])->send($upperMethod, $url, [
-            'json' => $body ?? [],
-        ]);
-    }
-
-    protected function toBool($value): bool
-    {
-        if (is_bool($value)) {
-            return $value;
-        }
-        if (is_int($value) || is_float($value)) {
-            return ((int)$value) === 1;
-        }
-        $v = strtolower(trim((string)$value));
-        if (in_array($v, ['1', 'true', 'yes', 'on'], true)) {
-            return true;
-        }
-        if (in_array($v, ['0', 'false', 'no', 'off', ''], true)) {
-            return false;
-        }
-        return !empty($value);
+        $requested = preg_replace('/[^A-Za-z0-9._-]+/', '-', trim($requested)) ?: '';
+        if ($requested !== '') return substr($requested, 0, 100);
+        return substr('PMD-'.strtoupper($method).'-'.date('YmdHis').'-'.bin2hex(random_bytes(4)), 0, 100);
     }
 
     protected function businessError(string $code, string $message, array $extra = []): array
@@ -524,65 +510,26 @@ class VRPaymentGatewayService
             'provider' => 'vr_payment',
             'error_code' => $code,
             'error' => $message,
-            'business_error' => true,
+            'message' => $message,
+            'allow_fallback' => false,
         ], $extra);
     }
 
-    protected function resolveMerchantReference(string $merchantReference, string $method): string
+    protected function extractStringResult($data): string
     {
-        $trimmed = trim($merchantReference);
-        if ($trimmed !== '') {
-            return $trimmed;
+        if (is_string($data)) return trim($data, " \t\n\r\0\x0B\"");
+        if (is_array($data)) {
+            foreach (['url', 'paymentPageUrl', 'redirect_url', 'value'] as $key) {
+                if (isset($data[$key]) && is_scalar($data[$key])) return trim((string)$data[$key]);
+            }
         }
-
-        return sprintf(
-            'PMD-VR-%s-%s-%s',
-            strtoupper($method ?: 'METHOD'),
-            date('YmdHis'),
-            substr(bin2hex(random_bytes(6)), 0, 12)
-        );
+        return '';
     }
 
-    protected function normalizeHttpFailure(int $status, string $body): array
+    protected function normalizeLanguage(string $language): string
     {
-        $lower = strtolower($body);
-        $payload = [
-            'error_category' => 'provider_http',
-            'error_code' => 'vr_payment_checkout_create_failed',
-            'error' => 'Unable to start VR Payment checkout.',
-            'provider_response' => mb_substr($body, 0, 1000),
-        ];
-
-        if ($status === 401 || $status === 403) {
-            $payload['error_category'] = 'authentication';
-            $payload['error_code'] = 'vr_payment_auth_failed';
-            $payload['error'] = 'VR Payment credentials were rejected.';
-            return $payload;
-        }
-        if ($status === 400 || $status === 422) {
-            $payload['error_category'] = 'validation';
-            $payload['error_code'] = 'vr_payment_request_invalid';
-            $payload['error'] = 'VR Payment rejected the request payload.';
-            if (str_contains($lower, 'method') && str_contains($lower, 'not')) {
-                $payload['error_category'] = 'method_unsupported';
-                $payload['error_code'] = 'vr_payment_method_unsupported';
-                $payload['error'] = 'Selected method is not supported by VR Payment configuration.';
-            }
-            return $payload;
-        }
-        if ($status === 404) {
-            $payload['error_category'] = 'configuration';
-            $payload['error_code'] = 'vr_payment_endpoint_not_found';
-            $payload['error'] = 'VR Payment endpoint was not found. Check API base URL.';
-            return $payload;
-        }
-        if ($status >= 500) {
-            $payload['error_category'] = 'provider_unavailable';
-            $payload['error_code'] = 'vr_payment_provider_unavailable';
-            $payload['error'] = 'VR Payment is temporarily unavailable.';
-            return $payload;
-        }
-
-        return $payload;
+        $language = trim($language);
+        if ($language === '') return 'de-DE';
+        return str_replace('_', '-', $language);
     }
 }

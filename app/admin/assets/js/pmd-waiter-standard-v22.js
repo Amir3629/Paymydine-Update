@@ -1,5 +1,8 @@
 (function () {
   'use strict';
+
+  // PMD_V22_PAYMENT_OWNERSHIP_DISABLED_R47
+  // V22 keeps check operations only. Payment belongs to canonical V3.
   if (window.PMDWaiterStandardV22) return;
 
   var activePos = null;
@@ -356,6 +359,13 @@
   }
 
   function patchPaymentCoverage(modal) {
+    if (
+      window.PMDWaiterPOSPaymentV2 &&
+      window.PMDWaiterPOSPaymentV2.__pmdV3 === true
+    ) {
+      return;
+    }
+
     if (!modal || applyingPayment || modal.getAttribute('aria-hidden') === 'true') return;
     var tabs = $('[data-pos-split-tabs]', modal);
     var panel = $('[data-pos-split-panel]', modal);
@@ -518,6 +528,18 @@
   }
 
   function observePayment() {
+    if (
+      window.PMDWaiterPOSPaymentV2 &&
+      window.PMDWaiterPOSPaymentV2.__pmdV3 === true
+    ) {
+      if (paymentObserver) {
+        paymentObserver.disconnect();
+        paymentObserver = null;
+      }
+
+      return;
+    }
+
     if (!activeRoot || !window.MutationObserver) return;
     var modal = $('[data-pos-payment-modal]');
     if (!modal) return;

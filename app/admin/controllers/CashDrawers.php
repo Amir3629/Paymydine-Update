@@ -19,6 +19,7 @@ use Illuminate\Support\Facades\DB;
  */
 class CashDrawers extends AdminController
 {
+    // PMD_CASH_DRAWER_DIRECT_GATEWAY_R27
     public $implement = [
         'Admin\Actions\ListController',
         'Admin\Actions\FormController',
@@ -359,6 +360,21 @@ class CashDrawers extends AdminController
      */
     public function formAfterSave($model)
     {
+        // PMD_CASH_DRAWER_SIMPLE_DEFAULTS_R2
+        // Product default is a printer-driven drawer. Advanced modes remain
+        // available, but a normal owner never has to configure them.
+        if (empty($model->connection_type)) {
+            $model->connection_type = 'rj11_printer';
+        }
+        if (empty($model->esc_pos_command)) {
+            $model->esc_pos_command = '27,112,0,60,120';
+        }
+        if ($model->test_on_save) {
+            $model->test_on_save = false;
+        }
+        if ($model->isDirty()) {
+            $model->save();
+        }
         if ($model->test_on_save && $this->action == 'create') {
             if (config('cashdrawer.local_agent_enabled')) {
                 $availability = $this->validateLocalDeviceAvailability($model);
@@ -515,6 +531,17 @@ class CashDrawers extends AdminController
         return $this->refresh();
     }
 
+    // PMD_CASH_DRAWER_SNAKE_ACTION_ALIASES_R23
+    public function windows_connector($recordId)
+    {
+        return $this->windowsConnector($recordId);
+    }
+
+    public function windows_connector_agent($recordId)
+    {
+        return $this->windowsConnectorAgent($recordId);
+    }
+
     public function windowsConnector($recordId)
     {
         $drawer = Cash_drawers_model::find($recordId);
@@ -522,10 +549,11 @@ class CashDrawers extends AdminController
             abort(404, 'Cash drawer not found');
         }
 
-        $device = $drawer->localPosDevice;
-        if (!$device) {
-            abort(400, 'No local POS terminal paired');
+        // PMD_CASH_DRAWER_SIMPLE_CONNECTOR_R2
+        if (!$this->hasLocalHardwareColumns()) {
+            abort(409, 'Local hardware setup is not available yet for this tenant.');
         }
+        $device = $this->ensureLocalPosDeviceForDrawer($drawer);
 
         if (!$device->pairing_token) {
             $device->pairing_token = bin2hex(random_bytes(16));
@@ -554,19 +582,96 @@ class CashDrawers extends AdminController
             abort(404, 'Agent package not found');
         }
 
-        return response(file_get_contents($agentPath), 200, [
+        // PMD_CASH_DRAWER_AGENT_SOURCE_GATEWAY_R27
+        $agentSource = file_get_contents($agentPath);
+        $agentSource = str_replace(
+            "cfg.backendBase + '/api/pos-agent/pair'",
+            "cfg.backendBase + '/pmd-pos-agent.php?action=pair'",
+            $agentSource
+        );
+        $agentSource = str_replace(
+            "cfg.backendBase + '/api/pos-agent/commands/pull?device_code='",
+            "cfg.backendBase + '/pmd-pos-agent.php?action=pull&device_code='",
+            $agentSource
+        );
+        $agentSource = str_replace(
+            "cfg.backendBase + '/api/pos-agent/commands/' + encodeURIComponent(String(commandId)) + '/ack'",
+            "cfg.backendBase + '/pmd-pos-agent.php?action=ack&id=' + encodeURIComponent(String(commandId))",
+            $agentSource
+        );
+        $agentSource = str_replace(
+            "if (token) headers.Authorization = 'Bearer ' + token;",
+            "if (token) { headers.Authorization = 'Bearer ' + token; headers['X-PMD-Device-Token'] = token; }",
+            $agentSource
+        );
+
+        return response($agentSource, 200, [
             'Content-Type' => 'application/javascript',
+            'Cache-Control' => 'no-store, max-age=0',
+            'X-PMD-Local-Agent' => 'R2.7-direct-gateway',
         ]);
+    }
+
+    /**
+     * PMD_CASH_DRAWER_LOCAL_POS_OWNER_R2
+     * One owner for local workstation creation/mapping. Downloading the
+     * connector is enough to prepare the drawer; owners never choose a POS id.
+     */
+    protected function ensureLocalPosDeviceForDrawer($drawer)
+    {
+        $device = $drawer->localPosDevice;
+        if (!$device) {
+            $device = Pos_devices_model::create([
+                'name' => ($drawer->name ?: 'Cashier').' POS',
+                'code' => 'local-pos-drawer-'.$drawer->drawer_id,
+                'device_type' => 'local_terminal',
+                'description' => 'PayMyDine local hardware workstation for drawer '.$drawer->drawer_id,
+                'is_local_terminal' => true,
+                'pairing_token' => bin2hex(random_bytes(24)),
+                'device_status' => 'offline',
+                'capabilities' => ['cash_drawer' => true, 'printer' => true],
+            ]);
+        } else {
+            if (!$device->pairing_token) {
+                $device->pairing_token = bin2hex(random_bytes(24));
+            }
+            $device->is_local_terminal = true;
+            if (empty($device->device_type)) {
+                $device->device_type = 'local_terminal';
+            }
+            $device->save();
+        }
+
+        if (Schema::hasColumn('pos_devices', 'device_code') && empty($device->device_code)) {
+            $device->device_code = 'PMD-POS-'.$device->device_id;
+            $device->save();
+        }
+
+        $drawer->local_pos_device_id = $device->device_id;
+        $drawer->local_mapping_invalid = false;
+        if (empty($drawer->connection_type)) {
+            $drawer->connection_type = 'rj11_printer';
+        }
+        $drawer->status = true;
+        $drawer->auto_open_on_cash = true;
+        $drawer->test_on_save = false;
+        $drawer->save();
+
+        return $device;
     }
 
     protected function buildWindowsConnectorScript($drawer, $device): string
     {
-        $adminBase = rtrim(url(admin_url('/')), '/');
-        $token = config('cashdrawer.agent_token');
+        $adminBase = rtrim(request()->getSchemeAndHttpHost(), '/');
+        $token = ''; // PMD_R2_PER_DEVICE_PAIRING_ONLY
         $deviceCode = $device->device_code ?: ('POS-'.$device->device_id.'-'.substr(md5($drawer->drawer_id.'-'.time()), 0, 6));
-        $agentUrl = $adminBase.'/cash_drawers/windows_connector_agent/'.$drawer->drawer_id;
+        $agentUrl = $adminBase.'/pmd-pos-agent.php?action=agent'; // PMD_CASH_DRAWER_DIRECT_AGENT_DOWNLOAD_R27
 
         return "@echo off\r\n"
+            ."rem PMD_CASH_DRAWER_WINDOWS_CLEAN_REINSTALL_R27\r\n"
+            ."schtasks /end /tn \"PayMyDineLocalPosAgent\" >nul 2>&1\r\n"
+            ."powershell -NoProfile -Command \"Get-CimInstance Win32_Process -Filter \\\"Name='node.exe'\\\" | Where-Object { \$_.CommandLine -like '*PayMyDine*LocalPosAgent*agent.js*' } | ForEach-Object { Stop-Process -Id \$_.ProcessId -Force -ErrorAction SilentlyContinue }\" >nul 2>&1\r\n"
+            ."if exist \"%ProgramData%\\PayMyDine\\LocalPosAgent\\state.json\" del /f /q \"%ProgramData%\\PayMyDine\\LocalPosAgent\\state.json\" >nul 2>&1\r\n"
             ."setlocal\r\n"
             ."set PMD_DIR=%ProgramData%\\PayMyDine\\LocalPosAgent\r\n"
             ."set NODE_VERSION=v20.19.0\r\n"

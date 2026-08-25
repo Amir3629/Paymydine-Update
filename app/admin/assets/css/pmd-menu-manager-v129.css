@@ -3642,3 +3642,84 @@ img {
 
 
 /* PMD_MENU_NATIVE_GHOST_SINGLE_VISUAL_V140_2_END */
+
+/* PMD_MENU_LOGO_FALLBACK_R54_START */
+
+body.pmd-menu-manager-page
+img[src*="/brand/paymydine-logo.svg"] {
+  object-fit: contain !important;
+
+  padding: 24px !important;
+
+  background:
+    linear-gradient(
+      145deg,
+      rgba(255,255,255,.92),
+      rgba(217,233,239,.88)
+    ) !important;
+
+  filter:
+    drop-shadow(
+      0 8px 18px
+      rgba(5,58,50,.08)
+    ) !important;
+}
+
+/* PMD_MENU_LOGO_FALLBACK_R54_END */
+
+/* PMD_MENU_GLASS_R55A_START */
+
+body.pmd-menu-manager-page
+img[src*="/brand/paymydine-logo.svg"] {
+  object-fit: contain !important;
+  object-position: center !important;
+
+  padding:
+    clamp(
+      28px,
+      10%,
+      72px
+    ) !important;
+
+  background:
+    radial-gradient(
+      circle at 32% 22%,
+      rgba(255,255,255,.24),
+      transparent 48%
+    ),
+    linear-gradient(
+      145deg,
+      rgba(255,255,255,.13),
+      rgba(127,127,127,.06)
+    ) !important;
+
+  border:
+    1px solid
+    rgba(255,255,255,.16) !important;
+
+  box-shadow:
+    inset 0 1px 0
+      rgba(255,255,255,.22),
+    0 12px 30px
+      rgba(0,0,0,.14) !important;
+
+  filter:
+    grayscale(1)
+    saturate(0)
+    contrast(.82)
+    opacity(.48)
+    drop-shadow(
+      0 8px 14px
+      rgba(0,0,0,.18)
+    ) !important;
+
+  -webkit-backdrop-filter:
+    blur(14px)
+    saturate(.72) !important;
+
+  backdrop-filter:
+    blur(14px)
+    saturate(.72) !important;
+}
+
+/* PMD_MENU_GLASS_R55A_END */

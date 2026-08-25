@@ -1,6 +1,11 @@
 (function () {
   'use strict';
 
+  // PMD_PAYMENT_POLICY_CASHIER_R55A
+  // PMD_PAYMENT_POLICY_CASHIER_R56B
+
+  // PMD_CASHIER_PAYMENT_R54
+
   var module = window.PMDWaiterPOSPaymentV2;
   if (!module || typeof module.install !== 'function' || module.__pmdPolicyWrapped) return;
 
@@ -15,25 +20,24 @@
     var root = ctx.root;
     var state = ctx.state;
 
+    var cashierMode =
+      ctx.pmdCashier === true;
+
+    var cashierAdjustments =
+      cashierMode &&
+      ctx.pmdCashierAdjustments === true;
+
     function isDirectTerminal() {
       return state.payment.method === 'direct_terminal';
     }
 
     function normalizeStaffFlow() {
-      if (state.payment.method !== 'cash' && state.payment.method !== 'direct_terminal') {
-        state.payment.method = 'cash';
-        state.payment.providerCode = null;
-        state.payment.terminalDeviceId = null;
-        state.payment.terminalAttemptId = null;
+      if (!cashierAdjustments) {
+        state.payment.tipPercent = 0;
+        state.payment.customTip = '';
+        state.payment.coupon = null;
+        state.payment.couponCode = '';
       }
-
-      state.payment.splitMode = 'full';
-      state.payment.customAmount = '';
-      state.payment.itemQuantities = {};
-      state.payment.tipPercent = 0;
-      state.payment.customTip = '';
-      state.payment.coupon = null;
-      state.payment.couponCode = '';
       state.payment.payerLabel = '';
       state.payment.reference = '';
       state.payment.externalConfirmed = false;
@@ -70,7 +74,13 @@
       if (!block) return;
       var title = block.querySelector('.pmd-pos-payment-block-title b');
       var note = block.querySelector('.pmd-pos-payment-block-title span');
-      if (title) title.textContent = 'How will they pay?';
+      if (title) {
+        title.textContent =
+          cashierMode
+            ? 'Payment method'
+            : 'How will they pay?';
+      }
+
       forceHidden(note, true);
     }
 
@@ -96,10 +106,169 @@
           if (title) title.textContent = 'Terminal';
           if (note) note.textContent = 'Pay on a connected terminal';
         }
+
+        if (cashierMode) {
+          forceHidden(note, true);
+
+          button.classList.add(
+            'pmd-cashier-method'
+          );
+
+          var icon =
+            button.querySelector(
+              '.pmd-cashier-method-icon'
+            );
+
+          if (!icon) {
+            icon =
+              document.createElement(
+                'span'
+              );
+
+            icon.className =
+              'pmd-cashier-method-icon';
+
+            icon.setAttribute(
+              'aria-hidden',
+              'true'
+            );
+
+            icon.textContent =
+              key === 'cash'
+                ? '€'
+                : '▣';
+
+            button.insertBefore(
+              icon,
+              title || button.firstChild
+            );
+          }
+        }
       });
 
       grid.dataset.pmdSimpleMethodCount = String(visible);
       simplifyMethodHeading();
+    }
+
+    function simplifyCashierPresentation() {
+      if (!cashierMode) return;
+
+      var eyebrow =
+        root.querySelector(
+          '.pmd-pos-payment-eyebrow'
+        );
+
+      forceHidden(
+        eyebrow,
+        true
+      );
+
+      var subtitle =
+        root.querySelector(
+          '[data-pos-payment-subtitle]'
+        );
+
+      forceHidden(
+        subtitle,
+        true
+      );
+
+      var title =
+        root.querySelector(
+          '#pmd-coc-payment-title'
+        );
+
+      var summary =
+        state.payment.summary || {};
+
+      var order =
+        summary.order || {};
+
+      if (title) {
+        title.textContent =
+          order.order_id
+            ? (
+                'Order #' +
+                order.order_id
+              )
+            : 'Pay';
+      }
+
+      var balance =
+        root.querySelector(
+          '[data-pos-payment-balance]'
+        );
+
+      if (balance) {
+        var label =
+          balance.querySelector(
+            '.pmd-pos-balance-hero > span'
+          );
+
+        var detail =
+          balance.querySelector(
+            '.pmd-pos-balance-hero > small'
+          );
+
+        if (label) {
+          label.textContent =
+            'Total';
+        }
+
+        forceHidden(
+          detail,
+          true
+        );
+      }
+
+      root
+        .querySelectorAll(
+          '.pmd-pos-payment-block-title span'
+        )
+        .forEach(function (note) {
+          forceHidden(
+            note,
+            true
+          );
+        });
+
+      forceHidden(
+        root.querySelector(
+          '.pmd-pos-payment-summary > h3'
+        ),
+        true
+      );
+
+      forceHidden(
+        root.querySelector(
+          '.pmd-pos-payment-history-wrap'
+        ),
+        true
+      );
+
+      var payButton =
+        root.querySelector(
+          '[data-pos-pay-button]'
+        );
+
+      if (payButton) {
+        var current =
+          String(
+            payButton.textContent || ''
+          );
+
+        if (
+          current !==
+            'Terminal offline' &&
+          current !==
+            'No terminal online' &&
+          current !==
+            'Checking terminal…'
+        ) {
+          payButton.textContent =
+            'Pay';
+        }
+      }
     }
 
     function selectedTerminalButton() {
@@ -153,7 +322,13 @@
       // Staff checkout is intentionally simple: full remaining balance,
       // Cash or Terminal only. Guest checkout keeps its own online methods.
       setBlockHidden('[data-pos-split-tabs]', true);
-      setBlockHidden('[data-pos-tip-buttons]', true);
+      setBlockHidden(
+        '[data-pos-tip-buttons]',
+        !(
+          cashierAdjustments &&
+          !isDirectTerminal()
+        )
+      );
 
       hideClosestLabel('[data-pos-payer-label]');
       forceHidden(root.querySelector('[data-pos-reference-field]'), true);
@@ -169,8 +344,17 @@
       forceHidden(root.querySelector('[data-pos-copy-link]'), true);
       forceHidden(root.querySelector('.pmd-pos-payment-safety'), true);
 
+      // PMD_CASHIER_ADJUSTMENTS_VISIBLE_R56B
+      if (cashierAdjustments) {
+        forceHidden(
+          root.querySelector('.pmd-pos-adjustments'),
+          false
+        );
+      }
+
       simplifyMethods();
       simplifyTerminal();
+      simplifyCashierPresentation();
     }
 
     // V3 intentionally opens the modal before it fetches the fresh settlement

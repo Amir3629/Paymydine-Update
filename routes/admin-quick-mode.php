@@ -25,6 +25,12 @@ Route::middleware(['web'])->group(function () {
     Route::post('/admin/pmd-waiter-pos-v1/save/{tableId}', [\Admin\Controllers\PmdWaiterPosV1::class, 'save'])
         ->where('tableId', '[0-9]+');
 
+    // PMD_CASHIER_DELIVERY_SAVE_ROUTE_R52
+    Route::post(
+        '/admin/pmd-waiter-pos-v1/save-delivery',
+        [\Admin\Controllers\PmdWaiterPosV1::class, 'saveDelivery']
+    );
+
     Route::get('/admin/pmd-waiter-pos-v1/payment-summary/{orderId}', [\Admin\Controllers\PmdWaiterPosV1::class, 'paymentSummary'])
         ->where('orderId', '[0-9]+');
     Route::post('/admin/pmd-waiter-pos-v1/payment-coupon/{orderId}', [\Admin\Controllers\PmdWaiterPosV1::class, 'validatePaymentCoupon'])

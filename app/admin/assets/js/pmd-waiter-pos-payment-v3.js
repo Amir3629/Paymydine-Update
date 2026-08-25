@@ -1,12 +1,26 @@
 (function () {
   'use strict';
 
-  if (window.PMDWaiterPOSPaymentV2 && window.PMDWaiterPOSPaymentV2.__pmdV3) return;
+  // PMD_PAYMENT_V3_CASHIER_R55A
+  // PMD_PAYMENT_V3_CASHIER_R56B
+
+  if (
+    window.PMDWaiterPOSPaymentV2 &&
+    window.PMDWaiterPOSPaymentV2.__pmdV3 &&
+    !window.__PMDCashierForcePaymentV3R56B
+  ) return;
 
   window.PMDWaiterPOSPaymentV2 = {
     __pmdV3: true,
+    __pmdCashierR56B: true,
     install: function (ctx) {
       var state = ctx.state;
+
+      var cashierMode = !!(
+        ctx.pmdCashierAdjustments ||
+        ctx.pmdCashier
+      );
+
       var $ = ctx.$;
       var $$ = ctx.$$;
       var esc = ctx.esc;
@@ -19,6 +33,15 @@
       var toast = ctx.toast;
       var showSuccess = ctx.showSuccess;
       var refreshData = ctx.refreshData;
+      var cashierCheckout = !!(
+        state.settings &&
+        state.settings.pmdCashierAdjustments
+      );
+
+      var closeCart =
+        typeof ctx.closeCart === 'function'
+          ? ctx.closeCart
+          : function () {};
 
       function paymentSummaryUrl() { return replaceOrderToken(state.settings.payment_summary_url, state.activeOrderId); }
       function paymentSettleUrl() { return replaceOrderToken(state.settings.payment_settle_url, state.activeOrderId); }
@@ -35,6 +58,41 @@
           'X-Requested-With': 'XMLHttpRequest',
           'X-CSRF-TOKEN': (($('meta[name="csrf-token"]', document) || {}).content || '')
         };
+      }
+
+      // PMD_CASHIER_LOCAL_POS_IDENTITY_R1
+      var pmdLocalPosIdentityPromise = null;
+      async function resolveLocalPosIdentity() {
+        var cachedCode = '';
+        try { cachedCode = String(window.localStorage.getItem('pmd_local_pos_device_code') || ''); } catch (e) {}
+        if (pmdLocalPosIdentityPromise) return pmdLocalPosIdentityPromise;
+
+        pmdLocalPosIdentityPromise = (async function () {
+          var controller = typeof AbortController !== 'undefined' ? new AbortController() : null;
+          var timer = controller ? setTimeout(function () { controller.abort(); }, 900) : null;
+          try {
+            var response = await fetch('http://127.0.0.1:17877/identity?_=' + Date.now(), {
+              method: 'GET', cache: 'no-store', mode: 'cors',
+              signal: controller ? controller.signal : undefined,
+              headers: {'Accept': 'application/json'}
+            });
+            if (!response.ok) throw new Error('Local POS identity HTTP ' + response.status);
+            var identity = await response.json();
+            if (identity && identity.paired && identity.device_code) {
+              try { window.localStorage.setItem('pmd_local_pos_device_code', String(identity.device_code)); } catch (e) {}
+              return identity;
+            }
+          } catch (e) {
+            // Connector may not be installed. A single unambiguous drawer can
+            // still be selected server-side; multiple drawers fail closed.
+          } finally {
+            if (timer) clearTimeout(timer);
+          }
+          return cachedCode ? {device_code: cachedCode, cached: true} : null;
+        })();
+
+        try { return await pmdLocalPosIdentityPromise; }
+        finally { pmdLocalPosIdentityPromise = null; }
       }
 
       function resetPaymentState() {
@@ -66,10 +124,32 @@
         resetPaymentState();
         var modal = $('[data-pos-payment-modal]');
         if (!modal) return;
+
+        if (cashierMode) {
+          modal.classList.add(
+            'pmd-payment-is-preparing'
+          );
+        }
+
         modal.classList.add('is-show');
-        modal.setAttribute('aria-hidden', 'false');
+        modal.setAttribute(
+          'aria-hidden',
+          'false'
+        );
+
         state.payment.open = true;
+
         await loadPaymentSummary(true);
+
+        if (cashierMode) {
+          window.requestAnimationFrame(
+            function () {
+              modal.classList.remove(
+                'pmd-payment-is-preparing'
+              );
+            }
+          );
+        }
       }
 
       function closePayment() {
@@ -213,8 +293,48 @@
           return;
         }
         var settlement = summary.settlement || {};
-        container.innerHTML = '<div class="pmd-pos-balance-card is-remaining pmd-pos-balance-hero"><span>Amount due</span><b>' + money(settlement.remaining_amount) + '</b><small>Order total ' + money(settlement.order_total) + ' · Paid ' + money(settlement.settled_amount) + '</small></div>';
-        if (subtitle) subtitle.textContent = 'Order #' + summary.order.order_id + ' · ' + (summary.table ? summary.table.name : 'Table order');
+
+        if (cashierMode) {
+          container.innerHTML =
+            '<div class="pmd-pos-balance-card is-remaining pmd-pos-balance-hero">' +
+              '<span>Order #' +
+                esc(summary.order.order_id) +
+              '</span>' +
+              '<b>' +
+                money(paymentPayable()) +
+              '</b>' +
+            '</div>';
+
+          if (subtitle) {
+            subtitle.textContent = '';
+            subtitle.hidden = true;
+          }
+        } else {
+          container.innerHTML =
+            '<div class="pmd-pos-balance-card is-remaining pmd-pos-balance-hero">' +
+              '<span>Amount due</span>' +
+              '<b>' +
+                money(settlement.remaining_amount) +
+              '</b>' +
+              '<small>Order total ' +
+                money(settlement.order_total) +
+                ' · Paid ' +
+                money(settlement.settled_amount) +
+              '</small>' +
+            '</div>';
+
+          if (subtitle) {
+            subtitle.textContent =
+              'Order #' +
+              summary.order.order_id +
+              ' · ' +
+              (
+                summary.table
+                  ? summary.table.name
+                  : 'Table order'
+              );
+          }
+        }
       }
 
       function renderSplitPanel() {
@@ -287,10 +407,15 @@
             state.payment.idempotencyKey = uid('pay');
             if (state.payment.method === 'direct_terminal') {
               state.payment.splitMode = 'full';
-              state.payment.tipPercent = 0;
-              state.payment.customTip = '';
-              state.payment.coupon = null;
-              state.payment.couponCode = '';
+
+              if (!cashierMode) {
+                if (!cashierCheckout) {
+                  state.payment.tipPercent = 0;
+                  state.payment.customTip = '';
+                  state.payment.coupon = null;
+                  state.payment.couponCode = '';
+                }
+              }
             }
             renderPayment();
             if (state.payment.method === 'direct_terminal') refreshDirectTerminalStatuses();
@@ -389,7 +514,9 @@
 
         if (payButton) {
           var chosen = selectedTerminal();
-          if (direct) {
+          if (cashierMode) {
+            payButton.textContent = 'Pay';
+          } else if (direct) {
             if (state.payment.terminalStatusRefreshing) payButton.textContent = 'Checking terminal…';
             else if (!chosen) payButton.textContent = 'No terminal online';
             else payButton.textContent = 'Charge ' + money(payable);
@@ -443,6 +570,14 @@
       async function applyCoupon() {
         var input = $('[data-pos-coupon-code]');
         var result = $('[data-pos-coupon-result]');
+
+        if (result) {
+          result.classList.remove(
+            'is-error',
+            'is-success'
+          );
+        }
+
         var code = String(input ? input.value : '').trim().toUpperCase();
         state.payment.couponCode = code;
         state.payment.coupon = null;
@@ -459,8 +594,28 @@
           });
           state.payment.coupon = json;
           renderPayment();
+
+          if (result) {
+            result.classList.remove(
+              'is-error'
+            );
+            result.classList.add(
+              'is-success'
+            );
+          }
         } catch (error) {
-          if (result) result.textContent = error.message || 'Coupon is invalid.';
+          if (result) {
+            result.textContent =
+              error.message ||
+              'Coupon is invalid.';
+
+            result.classList.remove(
+              'is-success'
+            );
+            result.classList.add(
+              'is-error'
+            );
+          }
         }
       }
 
@@ -503,12 +658,16 @@
         renderPaymentTotals();
         var summary = state.payment.summary;
         try {
+          var localPosIdentity = state.payment.method === 'cash'
+            ? await resolveLocalPosIdentity()
+            : null;
           var json = await fetchJson(paymentSettleUrl(), {
             method: 'POST',
             headers: jsonHeaders(),
             body: JSON.stringify({
               idempotency_key: state.payment.idempotencyKey,
               payment_method: state.payment.method,
+              pos_device_code: localPosIdentity && localPosIdentity.device_code ? String(localPosIdentity.device_code) : null,
               provider_code: state.payment.method === 'external_terminal' ? 'external_terminal' : null,
               split_mode: state.payment.splitMode,
               amount: paymentBaseAmount(),
@@ -527,9 +686,19 @@
           state.payment.idempotencyKey = uid('pay');
           renderPayment();
           toast(json.message || 'Payment recorded');
+          if (json.cash_drawer && json.cash_drawer.ok === false && !json.cash_drawer.skipped) {
+            toast(json.cash_drawer.message || 'Payment recorded, but the cash drawer did not open.', true);
+          }
           showSuccess(json.message || 'Payment recorded.');
           await refreshData(true);
-          if (json.settlement_status === 'paid') setTimeout(closePayment, 900);
+          if (json.settlement_status === 'paid') {
+            if (cashierCheckout) {
+              closePayment();
+              window.setTimeout(closeCart, 0);
+            } else {
+              setTimeout(closePayment, 900);
+            }
+          }
         } catch (error) {
           toast(error.message || 'Payment failed.', true);
           if (error.status === 409 || error.status === 422) await loadPaymentSummary(true);
@@ -604,7 +773,13 @@
           await refreshData(true);
           toast('Payment approved.');
           showSuccess('Payment approved.');
-          setTimeout(closePayment, 850);
+          if (cashierCheckout) {
+            closePayment();
+            window.setTimeout(closeCart, 0);
+          } else {
+            setTimeout(closePayment, 850);
+          }
+
           return true;
         }
         if (status === 'failed' || status === 'cancelled' || status === 'reconciliation_required') {

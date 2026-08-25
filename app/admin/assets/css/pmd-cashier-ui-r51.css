@@ -1,0 +1,4428 @@
+
+/* ==========================================================
+   PMD_CASHIER_VISUAL_AUTHORITY_R51
+   Single final Cashier visual owner.
+   No business/order/payment data logic.
+   ========================================================== */
+
+#pmd-cashier-order-composer-v1.pmd-coc {
+  --pmd-r51-green: #053a32;
+  --pmd-r51-green-hover: #032e28;
+  --pmd-r51-ink: #102f42;
+  --pmd-r51-muted: #647d8f;
+  --pmd-r51-line: #d3e1e8;
+
+  isolation: isolate !important;
+  font-family: Roboto, Arial, sans-serif !important;
+}
+
+/* ---------- Smooth modal background ---------- */
+
+body #pmd-cashier-order-composer-v1.pmd-coc.pmd-coc::before {
+  content: "" !important;
+  position: absolute !important;
+  inset: 0 !important;
+  z-index: 0 !important;
+  pointer-events: none !important;
+  background: rgba(5, 20, 22, .26) !important;
+  backdrop-filter: blur(12px) saturate(.94) !important;
+  -webkit-backdrop-filter: blur(12px) saturate(.94) !important;
+}
+
+body #pmd-cashier-order-composer-v1.pmd-coc.pmd-coc
+> .pmd-coc__backdrop,
+body #pmd-cashier-order-composer-v1.pmd-coc.pmd-coc
+.pmd-coc-product__backdrop {
+  display: none !important;
+}
+
+/* Stop cosmetic blinking. */
+body #pmd-cashier-order-composer-v1,
+body #pmd-cashier-order-composer-v1 *,
+body .pmd-cashier-order-center,
+body .pmd-cashier-order-center * {
+  animation-duration: 0s !important;
+  transition-duration: 0s !important;
+}
+
+
+/* ==========================================================
+   ORDER COMPOSER
+   ========================================================== */
+
+body #pmd-cashier-order-composer-v1.pmd-coc.pmd-coc
+section.pmd-coc__dialog[role="dialog"] {
+  position: relative !important;
+  z-index: 1 !important;
+
+  width: min(1120px, calc(100vw - 44px)) !important;
+  height: min(720px, calc(100dvh - 44px)) !important;
+  min-height: 0 !important;
+  max-height: calc(100dvh - 44px) !important;
+
+  border: 1px solid var(--pmd-r51-line) !important;
+  border-radius: 19px !important;
+  background: #f8fbfc !important;
+
+  box-shadow:
+    0 28px 72px rgba(8, 28, 38, .22) !important;
+}
+
+body #pmd-cashier-order-composer-v1.pmd-coc.pmd-coc
+.pmd-coc__head {
+  min-height: 78px !important;
+  padding: 13px 18px !important;
+  background: #fff !important;
+}
+
+body #pmd-cashier-order-composer-v1.pmd-coc.pmd-coc
+.pmd-coc__eyebrow {
+  margin-bottom: 4px !important;
+  font-size: 11px !important;
+  line-height: 1.2 !important;
+}
+
+body #pmd-cashier-order-composer-v1.pmd-coc.pmd-coc
+.pmd-coc__head h2[data-coc-title] {
+  margin: 0 !important;
+  color: #0d252f !important;
+  font-size: 24px !important;
+  line-height: 1.12 !important;
+  font-weight: 900 !important;
+}
+
+body #pmd-cashier-order-composer-v1.pmd-coc.pmd-coc
+.pmd-coc__head p {
+  margin-top: 5px !important;
+  font-size: 13.5px !important;
+  line-height: 1.35 !important;
+}
+
+body #pmd-cashier-order-composer-v1.pmd-coc.pmd-coc
+button.pmd-coc__close[data-coc-close] {
+  display: grid !important;
+  place-items: center !important;
+
+  width: 44px !important;
+  height: 44px !important;
+  min-width: 44px !important;
+  min-height: 44px !important;
+
+  padding: 0 !important;
+  margin: 0 !important;
+
+  border-radius: 13px !important;
+
+  font-family: Arial, sans-serif !important;
+  font-size: 25px !important;
+  line-height: 1 !important;
+  text-align: center !important;
+}
+
+body #pmd-cashier-order-composer-v1.pmd-coc.pmd-coc
+.pmd-coc__tablebar {
+  min-height: 62px !important;
+  padding: 8px 18px !important;
+  gap: 10px !important;
+}
+
+body #pmd-cashier-order-composer-v1.pmd-coc.pmd-coc
+.pmd-coc__tablebar label {
+  min-width: 260px !important;
+  max-width: 330px !important;
+}
+
+body #pmd-cashier-order-composer-v1.pmd-coc.pmd-coc
+.pmd-coc__tablebar label > span {
+  font-size: 10.5px !important;
+}
+
+body #pmd-cashier-order-composer-v1.pmd-coc.pmd-coc
+select[data-coc-table-select] {
+  width: 100% !important;
+  height: 44px !important;
+  min-height: 44px !important;
+
+  padding: 0 38px 0 13px !important;
+
+  border-radius: 12px !important;
+
+  color: var(--pmd-r51-ink) !important;
+  font-size: 14px !important;
+  line-height: 44px !important;
+  font-weight: 800 !important;
+}
+
+/* Order number already exists in the title.
+   Do not repeat OPEN CHECK beside the table selector. */
+body #pmd-cashier-order-composer-v1.pmd-coc.pmd-coc
+.pmd-coc__order-context {
+  display: none !important;
+}
+
+body #pmd-cashier-order-composer-v1.pmd-coc.pmd-coc
+button.pmd-coc__refresh {
+  min-height: 44px !important;
+  height: 44px !important;
+  margin-left: 0 !important;
+  padding: 0 16px !important;
+
+  border-radius: 12px !important;
+
+  font-size: 13px !important;
+}
+
+body #pmd-cashier-order-composer-v1.pmd-coc.pmd-coc
+.pmd-coc__main {
+  min-height: 0 !important;
+
+  grid-template-columns:
+    minmax(0, 1fr)
+    minmax(290px, 310px) !important;
+
+  gap: 11px !important;
+  padding: 11px !important;
+}
+
+body #pmd-cashier-order-composer-v1.pmd-coc.pmd-coc
+.pmd-coc__catalog,
+body #pmd-cashier-order-composer-v1.pmd-coc.pmd-coc
+.pmd-coc__cart {
+  border-radius: 15px !important;
+}
+
+body #pmd-cashier-order-composer-v1.pmd-coc.pmd-coc
+.pmd-coc__search {
+  height: 45px !important;
+}
+
+body #pmd-cashier-order-composer-v1.pmd-coc.pmd-coc
+.pmd-coc__search input {
+  font-size: 14px !important;
+}
+
+body #pmd-cashier-order-composer-v1.pmd-coc.pmd-coc
+.pmd-coc__categories button {
+  min-height: 36px !important;
+  padding: 0 13px !important;
+  font-size: 12px !important;
+}
+
+body #pmd-cashier-order-composer-v1.pmd-coc.pmd-coc
+.pmd-coc__categories button.is-active {
+  border-color: var(--pmd-r51-green) !important;
+  background: var(--pmd-r51-green) !important;
+  color: #fff !important;
+}
+
+body #pmd-cashier-order-composer-v1.pmd-coc.pmd-coc
+.pmd-coc__menu {
+  grid-template-columns:
+    repeat(auto-fill, minmax(190px, 1fr)) !important;
+
+  gap: 10px !important;
+}
+
+body #pmd-cashier-order-composer-v1.pmd-coc.pmd-coc
+.pmd-coc-food {
+  min-height: 265px !important;
+  grid-template-rows:
+    122px minmax(0, 1fr) !important;
+
+  border-radius: 15px !important;
+}
+
+body #pmd-cashier-order-composer-v1.pmd-coc.pmd-coc
+.pmd-coc-food__category {
+  font-size: 10px !important;
+}
+
+body #pmd-cashier-order-composer-v1.pmd-coc.pmd-coc
+.pmd-coc-food__body > strong {
+  font-size: 15.5px !important;
+}
+
+body #pmd-cashier-order-composer-v1.pmd-coc.pmd-coc
+.pmd-coc-food__body > p {
+  font-size: 11.5px !important;
+}
+
+body #pmd-cashier-order-composer-v1.pmd-coc.pmd-coc
+.pmd-coc-food__facts span {
+  font-size: 10.5px !important;
+}
+
+body #pmd-cashier-order-composer-v1.pmd-coc.pmd-coc
+.pmd-coc-food__foot b {
+  color: var(--pmd-r51-green) !important;
+  font-size: 16px !important;
+}
+
+
+/* ---------- Right order rail ---------- */
+
+body #pmd-cashier-order-composer-v1.pmd-coc.pmd-coc
+.pmd-coc__cart {
+  padding: 12px !important;
+}
+
+body #pmd-cashier-order-composer-v1.pmd-coc.pmd-coc
+.pmd-coc__cart-head h3 {
+  font-size: 18px !important;
+}
+
+body #pmd-cashier-order-composer-v1.pmd-coc.pmd-coc
+.pmd-coc__cart-head > div:first-child > span,
+body #pmd-cashier-order-composer-v1.pmd-coc.pmd-coc
+.pmd-coc__section-title span {
+  font-size: 10px !important;
+}
+
+body #pmd-cashier-order-composer-v1.pmd-coc.pmd-coc
+.pmd-coc__section-title strong {
+  font-size: 12px !important;
+}
+
+body #pmd-cashier-order-composer-v1.pmd-coc.pmd-coc
+.pmd-coc__guest {
+  gap: 7px !important;
+}
+
+body #pmd-cashier-order-composer-v1.pmd-coc.pmd-coc
+.pmd-coc__guest > button[data-coc-guest-minus],
+body #pmd-cashier-order-composer-v1.pmd-coc.pmd-coc
+.pmd-coc__guest > button[data-coc-guest-plus],
+body #pmd-cashier-order-composer-v1.pmd-coc.pmd-coc
+.pmd-coc-product__qty button {
+  display: grid !important;
+  place-items: center !important;
+
+  width: 38px !important;
+  height: 38px !important;
+  min-width: 38px !important;
+  min-height: 38px !important;
+
+  padding: 0 !important;
+  margin: 0 !important;
+
+  border-radius: 10px !important;
+
+  font-family: Arial, sans-serif !important;
+  font-size: 19px !important;
+  line-height: 1 !important;
+  text-align: center !important;
+}
+
+body #pmd-cashier-order-composer-v1.pmd-coc.pmd-coc
+.pmd-coc__guest small {
+  font-size: 10px !important;
+}
+
+body #pmd-cashier-order-composer-v1.pmd-coc.pmd-coc
+.pmd-coc__guest b {
+  font-size: 16px !important;
+}
+
+body #pmd-cashier-order-composer-v1.pmd-coc.pmd-coc
+.pmd-coc-existing__name b,
+body #pmd-cashier-order-composer-v1.pmd-coc.pmd-coc
+.pmd-coc-existing__qty,
+body #pmd-cashier-order-composer-v1.pmd-coc.pmd-coc
+.pmd-coc-existing__items > div > strong {
+  font-size: 12px !important;
+}
+
+body #pmd-cashier-order-composer-v1.pmd-coc.pmd-coc
+.pmd-coc-existing__name small {
+  font-size: 10.5px !important;
+}
+
+body #pmd-cashier-order-composer-v1.pmd-coc.pmd-coc
+.pmd-coc-cart-empty strong {
+  font-size: 12px !important;
+}
+
+body #pmd-cashier-order-composer-v1.pmd-coc.pmd-coc
+.pmd-coc-cart-empty span {
+  font-size: 10.5px !important;
+}
+
+body #pmd-cashier-order-composer-v1.pmd-coc.pmd-coc
+.pmd-coc-line__top strong {
+  font-size: 12.5px !important;
+}
+
+body #pmd-cashier-order-composer-v1.pmd-coc.pmd-coc
+.pmd-coc-line__top small {
+  font-size: 10.5px !important;
+}
+
+body #pmd-cashier-order-composer-v1.pmd-coc.pmd-coc
+.pmd-coc__note > span {
+  font-size: 11px !important;
+}
+
+body #pmd-cashier-order-composer-v1.pmd-coc.pmd-coc
+.pmd-coc__note textarea {
+  min-height: 56px !important;
+  max-height: 78px !important;
+  font-size: 11.5px !important;
+}
+
+body #pmd-cashier-order-composer-v1.pmd-coc.pmd-coc
+.pmd-coc__totals > div {
+  font-size: 11px !important;
+}
+
+body #pmd-cashier-order-composer-v1.pmd-coc.pmd-coc
+.pmd-coc__totals > div b {
+  font-size: 12px !important;
+}
+
+body #pmd-cashier-order-composer-v1.pmd-coc.pmd-coc
+.pmd-coc__totals > div.is-grand span {
+  font-size: 13px !important;
+}
+
+body #pmd-cashier-order-composer-v1.pmd-coc.pmd-coc
+.pmd-coc__totals > div.is-grand b {
+  color: var(--pmd-r51-green) !important;
+  font-size: 18px !important;
+}
+
+
+/* ---------- Footer ---------- */
+
+body #pmd-cashier-order-composer-v1.pmd-coc.pmd-coc
+.pmd-coc__footer {
+  min-height: 62px !important;
+  padding: 8px 15px !important;
+}
+
+body #pmd-cashier-order-composer-v1.pmd-coc.pmd-coc
+.pmd-coc__footer button {
+  min-height: 44px !important;
+  padding: 0 17px !important;
+
+  border-radius: 11px !important;
+
+  font-size: 13px !important;
+  line-height: 1 !important;
+}
+
+body #pmd-cashier-order-composer-v1.pmd-coc.pmd-coc
+.pmd-coc__send,
+body #pmd-cashier-order-composer-v1.pmd-coc.pmd-coc
+[data-coc-primary] {
+  border-color: var(--pmd-r51-green) !important;
+  background: var(--pmd-r51-green) !important;
+  color: #fff !important;
+  box-shadow: none !important;
+}
+
+body #pmd-cashier-order-composer-v1.pmd-coc.pmd-coc
+.pmd-coc__send:hover,
+body #pmd-cashier-order-composer-v1.pmd-coc.pmd-coc
+[data-coc-primary]:hover {
+  border-color: var(--pmd-r51-green-hover) !important;
+  background: var(--pmd-r51-green-hover) !important;
+}
+
+
+/* ==========================================================
+   FOOD DETAILS
+   ========================================================== */
+
+body #pmd-cashier-order-composer-v1.pmd-coc.pmd-coc
+.pmd-coc-product {
+  isolation: isolate !important;
+  background: transparent !important;
+}
+
+body #pmd-cashier-order-composer-v1.pmd-coc.pmd-coc
+.pmd-coc-product::before {
+  content: "" !important;
+  position: absolute !important;
+  inset: 0 !important;
+  z-index: 0 !important;
+  pointer-events: none !important;
+
+  background: rgba(5, 20, 22, .25) !important;
+
+  backdrop-filter: blur(10px) !important;
+  -webkit-backdrop-filter: blur(10px) !important;
+}
+
+body #pmd-cashier-order-composer-v1.pmd-coc.pmd-coc
+.pmd-coc-product .pmd-coc-product__dialog {
+  position: relative !important;
+  z-index: 1 !important;
+
+  width: min(680px, calc(100vw - 36px)) !important;
+  max-height: min(720px, calc(100dvh - 36px)) !important;
+
+  border-radius: 18px !important;
+
+  box-shadow:
+    0 25px 68px rgba(8, 28, 38, .23) !important;
+}
+
+body #pmd-cashier-order-composer-v1.pmd-coc.pmd-coc
+.pmd-coc-product__head {
+  padding: 13px 15px !important;
+}
+
+body #pmd-cashier-order-composer-v1.pmd-coc.pmd-coc
+.pmd-coc-product__head h3 {
+  font-size: 21px !important;
+}
+
+body #pmd-cashier-order-composer-v1.pmd-coc.pmd-coc
+.pmd-coc-product__head button[data-coc-product-close] {
+  display: grid !important;
+  place-items: center !important;
+
+  width: 42px !important;
+  height: 42px !important;
+  min-width: 42px !important;
+  min-height: 42px !important;
+
+  padding: 0 !important;
+
+  font-family: Arial, sans-serif !important;
+  font-size: 23px !important;
+  line-height: 1 !important;
+}
+
+body #pmd-cashier-order-composer-v1.pmd-coc.pmd-coc
+.pmd-coc-product__body {
+  padding: 14px !important;
+}
+
+body #pmd-cashier-order-composer-v1.pmd-coc.pmd-coc
+.pmd-coc-product__intro h4 {
+  font-size: 24px !important;
+}
+
+body #pmd-cashier-order-composer-v1.pmd-coc.pmd-coc
+.pmd-coc-product__intro p {
+  font-size: 12.5px !important;
+}
+
+body #pmd-cashier-order-composer-v1.pmd-coc.pmd-coc
+.pmd-coc-product__qty > div:first-child b,
+body #pmd-cashier-order-composer-v1.pmd-coc.pmd-coc
+.pmd-coc-product__note b {
+  font-size: 12px !important;
+}
+
+body #pmd-cashier-order-composer-v1.pmd-coc.pmd-coc
+.pmd-coc-product__note small {
+  font-size: 10.5px !important;
+}
+
+body #pmd-cashier-order-composer-v1.pmd-coc.pmd-coc
+.pmd-coc-product__foot button {
+  min-height: 44px !important;
+  padding: 0 16px !important;
+  border-radius: 11px !important;
+  font-size: 13px !important;
+}
+
+body #pmd-cashier-order-composer-v1.pmd-coc.pmd-coc
+.pmd-coc-product__foot [data-coc-product-add] {
+  border-color: var(--pmd-r51-green) !important;
+  background: var(--pmd-r51-green) !important;
+  color: #fff !important;
+}
+
+
+/* ==========================================================
+   PAYMENT CENTER
+   NARROW + VERTICAL
+   ========================================================== */
+
+body #pmd-cashier-order-composer-v1.pmd-coc.pmd-coc
+.pmd-pos-payment-modal {
+  background: rgba(5, 20, 22, .29) !important;
+
+  backdrop-filter: blur(12px) saturate(.94) !important;
+  -webkit-backdrop-filter: blur(12px) saturate(.94) !important;
+}
+
+body #pmd-cashier-order-composer-v1.pmd-coc.pmd-coc
+.pmd-pos-payment-modal .pmd-pos-payment-dialog {
+  width: min(560px, calc(100vw - 28px)) !important;
+
+  height: auto !important;
+  min-height: 0 !important;
+  max-height: min(84dvh, 700px) !important;
+
+  border: 1px solid var(--pmd-r51-line) !important;
+  border-radius: 18px !important;
+  background: #f8fbfc !important;
+
+  box-shadow:
+    0 26px 68px rgba(8, 28, 38, .24) !important;
+}
+
+body #pmd-cashier-order-composer-v1.pmd-coc.pmd-coc
+.pmd-pos-payment-head {
+  min-height: 66px !important;
+  padding: 11px 14px !important;
+}
+
+body #pmd-cashier-order-composer-v1.pmd-coc.pmd-coc
+.pmd-pos-payment-head h2 {
+  font-size: 21px !important;
+}
+
+body #pmd-cashier-order-composer-v1.pmd-coc.pmd-coc
+.pmd-pos-payment-head p {
+  font-size: 11px !important;
+}
+
+body #pmd-cashier-order-composer-v1.pmd-coc.pmd-coc
+.pmd-pos-payment-eyebrow {
+  font-size: 9px !important;
+}
+
+body #pmd-cashier-order-composer-v1.pmd-coc.pmd-coc
+button.pmd-pos-payment-close {
+  display: grid !important;
+  place-items: center !important;
+
+  width: 42px !important;
+  height: 42px !important;
+  min-width: 42px !important;
+  min-height: 42px !important;
+
+  padding: 0 !important;
+
+  font-family: Arial, sans-serif !important;
+  font-size: 23px !important;
+  line-height: 1 !important;
+}
+
+body #pmd-cashier-order-composer-v1.pmd-coc.pmd-coc
+.pmd-pos-payment-modal .pmd-pos-payment-body {
+  display: grid !important;
+
+  grid-template-columns: 1fr !important;
+
+  gap: 9px !important;
+  padding: 10px !important;
+
+  overflow: auto !important;
+}
+
+body #pmd-cashier-order-composer-v1.pmd-coc.pmd-coc
+.pmd-pos-payment-main {
+  gap: 8px !important;
+  padding: 0 !important;
+}
+
+body #pmd-cashier-order-composer-v1.pmd-coc.pmd-coc
+.pmd-pos-balance-hero {
+  min-height: 60px !important;
+  padding: 10px 13px !important;
+  border-radius: 12px !important;
+}
+
+body #pmd-cashier-order-composer-v1.pmd-coc.pmd-coc
+.pmd-pos-balance-hero > span {
+  font-size: 10px !important;
+}
+
+body #pmd-cashier-order-composer-v1.pmd-coc.pmd-coc
+.pmd-pos-balance-hero > b {
+  font-size: 26px !important;
+}
+
+body #pmd-cashier-order-composer-v1.pmd-coc.pmd-coc
+.pmd-pos-balance-hero > small {
+  font-size: 10px !important;
+}
+
+body #pmd-cashier-order-composer-v1.pmd-coc.pmd-coc
+.pmd-pos-payment-block {
+  padding: 10px !important;
+  border-radius: 12px !important;
+}
+
+body #pmd-cashier-order-composer-v1.pmd-coc.pmd-coc
+.pmd-pos-payment-block-title b {
+  font-size: 13.5px !important;
+}
+
+body #pmd-cashier-order-composer-v1.pmd-coc.pmd-coc
+.pmd-pos-method-grid {
+  grid-template-columns:
+    repeat(2, minmax(0, 1fr)) !important;
+
+  gap: 8px !important;
+}
+
+body #pmd-cashier-order-composer-v1.pmd-coc.pmd-coc
+.pmd-pos-method {
+  min-height: 60px !important;
+  padding: 9px 11px !important;
+  border-radius: 11px !important;
+}
+
+body #pmd-cashier-order-composer-v1.pmd-coc.pmd-coc
+.pmd-pos-method b {
+  font-size: 14.5px !important;
+}
+
+body #pmd-cashier-order-composer-v1.pmd-coc.pmd-coc
+.pmd-pos-method small {
+  margin-top: 3px !important;
+  font-size: 10.5px !important;
+}
+
+body #pmd-cashier-order-composer-v1.pmd-coc.pmd-coc
+[data-pos-cash-field] > span {
+  font-size: 11px !important;
+}
+
+body #pmd-cashier-order-composer-v1.pmd-coc.pmd-coc
+[data-pos-cash-received] {
+  min-height: 44px !important;
+  font-size: 15px !important;
+}
+
+body #pmd-cashier-order-composer-v1.pmd-coc.pmd-coc
+.pmd-pos-payment-summary {
+  width: 100% !important;
+  margin: 0 !important;
+  padding: 10px !important;
+
+  border-radius: 12px !important;
+  background: #fff !important;
+}
+
+body #pmd-cashier-order-composer-v1.pmd-coc.pmd-coc
+button.pmd-pos-pay-button {
+  width: 100% !important;
+
+  min-height: 46px !important;
+  height: auto !important;
+
+  margin-top: 7px !important;
+  padding: 0 14px !important;
+
+  border: 1px solid var(--pmd-r51-green) !important;
+  border-radius: 11px !important;
+
+  background: var(--pmd-r51-green) !important;
+  background-image: none !important;
+
+  color: #fff !important;
+
+  box-shadow: none !important;
+
+  font-size: 13px !important;
+  line-height: 1 !important;
+}
+
+body #pmd-cashier-order-composer-v1.pmd-coc.pmd-coc
+button.pmd-pos-pay-button:hover {
+  border-color: var(--pmd-r51-green-hover) !important;
+  background: var(--pmd-r51-green-hover) !important;
+  background-image: none !important;
+}
+
+
+/* ==========================================================
+   PAID / ORDER CENTER
+   Same shell family as Composer
+   ========================================================== */
+
+body .pmd-cashier-order-center.pmd-cashier-order-center {
+  isolation: isolate !important;
+  font-family: Roboto, Arial, sans-serif !important;
+}
+
+body .pmd-cashier-order-center.pmd-cashier-order-center::before {
+  content: "" !important;
+  position: absolute !important;
+  inset: 0 !important;
+  z-index: 0 !important;
+  pointer-events: none !important;
+
+  background: rgba(5, 20, 22, .26) !important;
+
+  backdrop-filter: blur(12px) saturate(.94) !important;
+  -webkit-backdrop-filter: blur(12px) saturate(.94) !important;
+}
+
+body .pmd-cashier-order-center
+.pmd-cashier-order-center__backdrop {
+  display: none !important;
+}
+
+body .pmd-cashier-order-center.pmd-cashier-order-center
+.pmd-cashier-order-center__dialog {
+  position: relative !important;
+  z-index: 1 !important;
+
+  width: min(1120px, calc(100vw - 44px)) !important;
+  max-height: min(720px, calc(100dvh - 44px)) !important;
+
+  border: 1px solid #d3e1e8 !important;
+  border-radius: 19px !important;
+  background: #f8fbfc !important;
+
+  box-shadow:
+    0 28px 72px rgba(8, 28, 38, .22) !important;
+}
+
+body .pmd-cashier-order-center.pmd-cashier-order-center
+.pmd-cashier-order-center__header {
+  min-height: 78px !important;
+  padding: 13px 18px !important;
+}
+
+body .pmd-cashier-order-center.pmd-cashier-order-center
+.pmd-cashier-order-center__identity h2 {
+  font-size: 24px !important;
+}
+
+body .pmd-cashier-order-center.pmd-cashier-order-center
+.pmd-cashier-order-center__identity p {
+  font-size: 13.5px !important;
+}
+
+body .pmd-cashier-order-center.pmd-cashier-order-center
+button.pmd-cashier-order-center__close {
+  display: grid !important;
+  place-items: center !important;
+
+  width: 44px !important;
+  height: 44px !important;
+  min-width: 44px !important;
+  min-height: 44px !important;
+
+  padding: 0 !important;
+
+  font-family: Arial, sans-serif !important;
+  font-size: 25px !important;
+  line-height: 1 !important;
+}
+
+body .pmd-cashier-order-center.pmd-cashier-order-center
+.pmd-cashier-order-center__body {
+  padding: 15px 18px 17px !important;
+}
+
+body .pmd-cashier-order-center.pmd-cashier-order-center
+.pmd-cashier-order-center__pill {
+  font-size: 12.5px !important;
+}
+
+body .pmd-cashier-order-center.pmd-cashier-order-center
+.pmd-cashier-order-center__money span {
+  font-size: 11.5px !important;
+}
+
+body .pmd-cashier-order-center.pmd-cashier-order-center
+.pmd-cashier-order-center__money strong {
+  font-size: 21px !important;
+}
+
+body .pmd-cashier-order-center.pmd-cashier-order-center
+.pmd-cashier-order-center__section-head strong {
+  font-size: 16.5px !important;
+}
+
+body .pmd-cashier-order-center.pmd-cashier-order-center
+.pmd-cashier-order-center__item-name,
+body .pmd-cashier-order-center.pmd-cashier-order-center
+.pmd-cashier-order-center__item-price {
+  font-size: 14.5px !important;
+}
+
+body .pmd-cashier-order-center.pmd-cashier-order-center
+.pmd-cashier-order-center__footer {
+  min-height: 62px !important;
+  padding: 8px 18px !important;
+}
+
+body .pmd-cashier-order-center.pmd-cashier-order-center
+.pmd-cashier-order-center__action {
+  min-height: 44px !important;
+  padding: 0 16px !important;
+  border-radius: 11px !important;
+  font-size: 13px !important;
+}
+
+body .pmd-cashier-order-center.pmd-cashier-order-center
+.pmd-cashier-order-center__action.is-primary {
+  border-color: #053a32 !important;
+  background: #053a32 !important;
+  color: #fff !important;
+  box-shadow: none !important;
+}
+
+
+/* ==========================================================
+   DATE RANGE - ALWAYS ABOVE ORDER CARDS
+   ========================================================== */
+
+body #pmd-dashboard-lab .pmd-ops-section {
+  overflow: visible !important;
+}
+
+body #pmd-dashboard-lab .pmd-ops-section__header {
+  position: relative !important;
+  z-index: 100500 !important;
+  overflow: visible !important;
+}
+
+body #pmd-dashboard-lab .pmd-ops-section__tools {
+  position: relative !important;
+  z-index: 100501 !important;
+  overflow: visible !important;
+}
+
+body #pmd-dashboard-lab details.pmd-ops-range {
+  position: relative !important;
+  z-index: 100502 !important;
+  overflow: visible !important;
+}
+
+body #pmd-dashboard-lab details.pmd-ops-range[open] {
+  z-index: 100900 !important;
+}
+
+body #pmd-dashboard-lab
+details.pmd-ops-range[open]
+.pmd-ops-range__panel {
+  position: absolute !important;
+  z-index: 100901 !important;
+
+  isolation: isolate !important;
+
+  box-shadow:
+    0 26px 65px rgba(11, 32, 43, .22) !important;
+}
+
+body #pmd-dashboard-lab
+.pmd-ops-range__form button {
+  border-color: #053a32 !important;
+  background: #053a32 !important;
+  color: #fff !important;
+}
+
+
+/* ==========================================================
+   SMALLER SCREENS
+   ========================================================== */
+
+@media (max-width: 900px) {
+  body #pmd-cashier-order-composer-v1.pmd-coc.pmd-coc
+  section.pmd-coc__dialog[role="dialog"] {
+    width: calc(100vw - 18px) !important;
+    height: calc(100dvh - 18px) !important;
+    max-height: calc(100dvh - 18px) !important;
+  }
+
+  body #pmd-cashier-order-composer-v1.pmd-coc.pmd-coc
+  .pmd-coc__main {
+    grid-template-columns: 1fr !important;
+    overflow: auto !important;
+  }
+
+  body .pmd-cashier-order-center.pmd-cashier-order-center
+  .pmd-cashier-order-center__dialog {
+    width: calc(100vw - 18px) !important;
+    max-height: calc(100dvh - 18px) !important;
+  }
+}
+
+@media (max-width: 600px) {
+  body #pmd-cashier-order-composer-v1.pmd-coc.pmd-coc
+  .pmd-pos-payment-modal .pmd-pos-payment-dialog {
+    width: calc(100vw - 16px) !important;
+    max-height: calc(100dvh - 16px) !important;
+  }
+
+  body #pmd-cashier-order-composer-v1.pmd-coc.pmd-coc
+  .pmd-pos-method-grid {
+    grid-template-columns: 1fr !important;
+  }
+}
+
+/* PMD_CASHIER_R51_SCREENSHOT_POLISH_START */
+
+/* =========================================================
+   1. RIGHT CART: STRICT NORMAL FLOW
+   Prevent New items / Kitchen note / totals from overlapping.
+   ========================================================= */
+
+body #pmd-cashier-order-composer-v1.pmd-coc
+.pmd-coc__cart {
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: stretch !important;
+  overflow-x: hidden !important;
+  overflow-y: auto !important;
+}
+
+body #pmd-cashier-order-composer-v1.pmd-coc
+.pmd-coc__cart > * {
+  min-width: 0 !important;
+  flex: 0 0 auto !important;
+}
+
+body #pmd-cashier-order-composer-v1.pmd-coc
+[data-coc-existing],
+
+body #pmd-cashier-order-composer-v1.pmd-coc
+.pmd-coc__new,
+
+body #pmd-cashier-order-composer-v1.pmd-coc
+.pmd-coc__note,
+
+body #pmd-cashier-order-composer-v1.pmd-coc
+.pmd-coc__totals {
+  position: relative !important;
+  inset: auto !important;
+  top: auto !important;
+  right: auto !important;
+  bottom: auto !important;
+  left: auto !important;
+  transform: none !important;
+}
+
+body #pmd-cashier-order-composer-v1.pmd-coc
+.pmd-coc__new {
+  margin: 14px 0 0 !important;
+  padding: 0 !important;
+}
+
+body #pmd-cashier-order-composer-v1.pmd-coc
+.pmd-coc__section-title {
+  min-height: 24px !important;
+  margin: 0 0 8px !important;
+
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+
+  line-height: 1.2 !important;
+}
+
+body #pmd-cashier-order-composer-v1.pmd-coc
+.pmd-coc__section-title strong {
+  font-size: 12px !important;
+  line-height: 1.2 !important;
+}
+
+body #pmd-cashier-order-composer-v1.pmd-coc
+.pmd-coc__section-title span {
+  font-size: 10px !important;
+  line-height: 1.2 !important;
+}
+
+body #pmd-cashier-order-composer-v1.pmd-coc
+.pmd-coc__note {
+  clear: both !important;
+
+  margin: 18px 0 0 !important;
+  padding: 0 !important;
+
+  display: grid !important;
+  grid-template-columns: 1fr !important;
+  gap: 7px !important;
+}
+
+body #pmd-cashier-order-composer-v1.pmd-coc
+.pmd-coc__note > span {
+  position: static !important;
+  display: block !important;
+
+  margin: 0 !important;
+  padding: 0 !important;
+
+  font-size: 11px !important;
+  line-height: 1.25 !important;
+}
+
+body #pmd-cashier-order-composer-v1.pmd-coc
+.pmd-coc__note textarea {
+  position: static !important;
+
+  min-height: 64px !important;
+  max-height: 90px !important;
+
+  margin: 0 !important;
+
+  font-size: 11.5px !important;
+  line-height: 1.4 !important;
+}
+
+body #pmd-cashier-order-composer-v1.pmd-coc
+.pmd-coc__totals {
+  margin-top: 14px !important;
+  padding-top: 11px !important;
+}
+
+
+/* =========================================================
+   2. PAYMENT: SMALLER, CLEANER VERTICAL CARD
+   ========================================================= */
+
+body #pmd-cashier-order-composer-v1.pmd-coc
+.pmd-pos-payment-modal
+.pmd-pos-payment-dialog {
+  width: min(520px, calc(100vw - 28px)) !important;
+
+  height: auto !important;
+  min-height: 0 !important;
+  max-height: min(86dvh, 660px) !important;
+
+  border-radius: 17px !important;
+}
+
+
+/* Header */
+
+body #pmd-cashier-order-composer-v1.pmd-coc
+.pmd-pos-payment-head {
+  min-height: 60px !important;
+  padding: 10px 13px !important;
+}
+
+body #pmd-cashier-order-composer-v1.pmd-coc
+.pmd-pos-payment-head h2 {
+  font-size: 20px !important;
+  line-height: 1.1 !important;
+}
+
+body #pmd-cashier-order-composer-v1.pmd-coc
+.pmd-pos-payment-head p {
+  margin-top: 3px !important;
+  font-size: 10.5px !important;
+}
+
+
+/* Body */
+
+body #pmd-cashier-order-composer-v1.pmd-coc
+.pmd-pos-payment-modal
+.pmd-pos-payment-body {
+  grid-template-columns: 1fr !important;
+
+  gap: 8px !important;
+  padding: 9px !important;
+}
+
+
+/* Amount due */
+
+body #pmd-cashier-order-composer-v1.pmd-coc
+.pmd-pos-balance-hero {
+  min-height: 54px !important;
+
+  padding: 9px 12px !important;
+
+  border-radius: 11px !important;
+}
+
+body #pmd-cashier-order-composer-v1.pmd-coc
+.pmd-pos-balance-hero > b {
+  font-size: 24px !important;
+  line-height: 1 !important;
+}
+
+body #pmd-cashier-order-composer-v1.pmd-coc
+.pmd-pos-balance-hero > span,
+
+body #pmd-cashier-order-composer-v1.pmd-coc
+.pmd-pos-balance-hero > small {
+  font-size: 10px !important;
+}
+
+
+/* Generic blocks */
+
+body #pmd-cashier-order-composer-v1.pmd-coc
+.pmd-pos-payment-block {
+  padding: 9px !important;
+
+  border-radius: 11px !important;
+}
+
+body #pmd-cashier-order-composer-v1.pmd-coc
+.pmd-pos-payment-block-title {
+  margin-bottom: 7px !important;
+}
+
+body #pmd-cashier-order-composer-v1.pmd-coc
+.pmd-pos-payment-block-title b {
+  font-size: 13px !important;
+}
+
+
+/* Payment methods:
+   2 configured methods = two columns.
+   Only Cash = Cash fills the full line. */
+
+body #pmd-cashier-order-composer-v1.pmd-coc
+.pmd-pos-method-grid {
+  grid-template-columns:
+    repeat(2, minmax(0, 1fr)) !important;
+
+  gap: 7px !important;
+}
+
+body #pmd-cashier-order-composer-v1.pmd-coc
+.pmd-pos-method-grid > .pmd-pos-method:only-child {
+  grid-column: 1 / -1 !important;
+}
+
+body #pmd-cashier-order-composer-v1.pmd-coc
+.pmd-pos-method {
+  min-height: 54px !important;
+
+  padding: 8px 10px !important;
+
+  border-radius: 10px !important;
+}
+
+body #pmd-cashier-order-composer-v1.pmd-coc
+.pmd-pos-method b {
+  font-size: 14px !important;
+}
+
+body #pmd-cashier-order-composer-v1.pmd-coc
+.pmd-pos-method small {
+  margin-top: 2px !important;
+
+  font-size: 10.5px !important;
+}
+
+
+/* Cash received:
+   don't waste the right half of the card. */
+
+body #pmd-cashier-order-composer-v1.pmd-coc
+.pmd-pos-payment-fields {
+  grid-template-columns: 1fr !important;
+  gap: 7px !important;
+}
+
+body #pmd-cashier-order-composer-v1.pmd-coc
+[data-pos-cash-field] {
+  width: 100% !important;
+  max-width: none !important;
+
+  grid-column: 1 / -1 !important;
+}
+
+body #pmd-cashier-order-composer-v1.pmd-coc
+[data-pos-cash-received] {
+  width: 100% !important;
+  max-width: none !important;
+
+  min-height: 42px !important;
+
+  padding: 0 12px !important;
+
+  font-size: 14px !important;
+}
+
+
+/* Summary */
+
+body #pmd-cashier-order-composer-v1.pmd-coc
+.pmd-pos-payment-summary {
+  width: 100% !important;
+
+  margin: 0 !important;
+  padding: 9px !important;
+
+  display: grid !important;
+  gap: 8px !important;
+
+  border-radius: 11px !important;
+}
+
+body #pmd-cashier-order-composer-v1.pmd-coc
+.pmd-pos-change-box {
+  min-height: 36px !important;
+
+  margin: 0 !important;
+  padding: 7px 10px !important;
+
+  display: grid !important;
+  place-items: center !important;
+}
+
+body #pmd-cashier-order-composer-v1.pmd-coc
+button.pmd-pos-pay-button {
+  min-height: 44px !important;
+
+  margin: 0 !important;
+  padding: 0 13px !important;
+
+  border-radius: 10px !important;
+
+  background: #053a32 !important;
+  background-image: none !important;
+
+  font-size: 13px !important;
+}
+
+body #pmd-cashier-order-composer-v1.pmd-coc
+button.pmd-pos-pay-button:hover {
+  background: #032e28 !important;
+}
+
+
+/* Keep the close icon geometrically centered. */
+
+body #pmd-cashier-order-composer-v1.pmd-coc
+button.pmd-pos-payment-close {
+  display: grid !important;
+  place-items: center !important;
+
+  width: 40px !important;
+  height: 40px !important;
+  min-width: 40px !important;
+  min-height: 40px !important;
+
+  padding: 0 !important;
+
+  line-height: 1 !important;
+}
+
+
+/* Small screens */
+
+@media (max-width: 600px) {
+  body #pmd-cashier-order-composer-v1.pmd-coc
+  .pmd-pos-payment-modal
+  .pmd-pos-payment-dialog {
+    width: calc(100vw - 16px) !important;
+    max-height: calc(100dvh - 16px) !important;
+  }
+
+  body #pmd-cashier-order-composer-v1.pmd-coc
+  .pmd-pos-method-grid {
+    grid-template-columns: 1fr !important;
+  }
+}
+
+/* PMD_CASHIER_R51_RAIL_DELIVERY_R52_START */
+
+/* Simplified right rail: guests only in header. */
+body #pmd-cashier-order-composer-v1.pmd-coc
+.pmd-coc__cart-head--simple {
+  min-height: 50px !important;
+  padding-bottom: 10px !important;
+
+  justify-content: flex-end !important;
+}
+
+body #pmd-cashier-order-composer-v1.pmd-coc
+.pmd-coc__cart-head--simple
+.pmd-coc__guest {
+  margin-left: auto !important;
+}
+
+
+/* New / Sent switcher */
+body #pmd-cashier-order-composer-v1.pmd-coc
+.pmd-coc__rail-switch {
+  width: 100% !important;
+
+  margin-top: 10px !important;
+  padding: 4px !important;
+
+  display: flex !important;
+  gap: 4px !important;
+
+  border: 1px solid #d6e3e9 !important;
+  border-radius: 12px !important;
+
+  background: #f1f6f7 !important;
+}
+
+body #pmd-cashier-order-composer-v1.pmd-coc
+.pmd-coc__rail-switch button {
+  flex: 1 1 0 !important;
+
+  min-width: 0 !important;
+  min-height: 36px !important;
+  height: 36px !important;
+
+  padding: 0 10px !important;
+
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 7px !important;
+
+  border: 0 !important;
+  border-radius: 9px !important;
+
+  background: transparent !important;
+
+  color: #526d7c !important;
+
+  font-size: 11.5px !important;
+  line-height: 1 !important;
+  font-weight: 850 !important;
+}
+
+body #pmd-cashier-order-composer-v1.pmd-coc
+.pmd-coc__rail-switch button.is-active {
+  background: #053a32 !important;
+  color: #fff !important;
+}
+
+body #pmd-cashier-order-composer-v1.pmd-coc
+.pmd-coc__rail-switch button[hidden] {
+  display: none !important;
+}
+
+body #pmd-cashier-order-composer-v1.pmd-coc
+.pmd-coc__rail-switch button b {
+  min-width: 20px !important;
+  height: 20px !important;
+
+  padding: 0 6px !important;
+
+  display: inline-grid !important;
+  place-items: center !important;
+
+  border-radius: 999px !important;
+
+  background: rgba(16, 47, 66, .09) !important;
+
+  font-size: 10px !important;
+  line-height: 1 !important;
+}
+
+body #pmd-cashier-order-composer-v1.pmd-coc
+.pmd-coc__rail-switch button.is-active b {
+  background: rgba(255,255,255,.16) !important;
+  color: #fff !important;
+}
+
+
+/* Only one item section is visible at a time. */
+body #pmd-cashier-order-composer-v1.pmd-coc
+.pmd-coc__rail-pane {
+  width: 100% !important;
+
+  margin-top: 10px !important;
+
+  position: relative !important;
+
+  flex: 0 0 auto !important;
+}
+
+body #pmd-cashier-order-composer-v1.pmd-coc
+.pmd-coc__rail-pane[hidden] {
+  display: none !important;
+}
+
+
+/* Sent items no longer need a second card header/status. */
+body #pmd-cashier-order-composer-v1.pmd-coc
+.pmd-coc-existing--simple {
+  margin: 0 !important;
+  padding: 0 !important;
+
+  border: 0 !important;
+  border-radius: 0 !important;
+
+  background: transparent !important;
+}
+
+body #pmd-cashier-order-composer-v1.pmd-coc
+.pmd-coc-existing--simple
+.pmd-coc-existing__items {
+  display: grid !important;
+  gap: 7px !important;
+}
+
+body #pmd-cashier-order-composer-v1.pmd-coc
+.pmd-coc-existing--simple
+.pmd-coc-existing__items > div {
+  min-height: 48px !important;
+  padding: 9px 10px !important;
+
+  border: 1px solid #d9e5ea !important;
+  border-radius: 11px !important;
+
+  background: #f9fbfc !important;
+}
+
+
+/* New item cards remain in normal document flow. */
+body #pmd-cashier-order-composer-v1.pmd-coc
+.pmd-coc__rail-pane
+.pmd-coc-line {
+  position: relative !important;
+
+  width: 100% !important;
+
+  margin: 0 0 8px !important;
+
+  transform: none !important;
+}
+
+
+/* User-facing wording is now simply Note. */
+body #pmd-cashier-order-composer-v1.pmd-coc
+.pmd-coc__note {
+  margin-top: 14px !important;
+}
+
+
+/* Pending items stay financially separate until Send succeeds. */
+body #pmd-cashier-order-composer-v1.pmd-coc
+.pmd-coc__totals {
+  margin-top: 14px !important;
+}
+
+body #pmd-cashier-order-composer-v1.pmd-coc
+[data-coc-new-total-row][hidden] {
+  display: none !important;
+}
+
+body #pmd-cashier-order-composer-v1.pmd-coc
+[data-coc-new-total-row] {
+  padding-bottom: 8px !important;
+}
+
+
+/* Delivery choice looks like a normal first-class order mode. */
+body #pmd-cashier-order-composer-v1.pmd-coc
+select[data-coc-table-select] option:first-child {
+  font-weight: 800 !important;
+}
+
+
+/* PMD_CASHIER_R51_RAIL_DELIVERY_R52_END */
+
+/* PMD_CASHIER_R51_SCREENSHOT_POLISH_END */
+
+/* PMD_CASHIER_R54_TOUCH_PAYMENT_START */
+
+/* =========================================================
+   COMPOSER HEADER / REMOVE OLD TABLE BAR
+   ========================================================= */
+
+body #pmd-cashier-order-composer-v1.pmd-coc
+.pmd-coc__tablebar {
+  display: none !important;
+}
+
+body #pmd-cashier-order-composer-v1.pmd-coc
+.pmd-coc__head {
+  min-height: 64px !important;
+  padding: 14px 20px !important;
+}
+
+body #pmd-cashier-order-composer-v1.pmd-coc
+.pmd-coc__head [data-coc-subtitle],
+body #pmd-cashier-order-composer-v1.pmd-coc
+.pmd-coc__head .pmd-coc__eyebrow {
+  display: none !important;
+}
+
+body #pmd-cashier-order-composer-v1.pmd-coc
+.pmd-coc__head h2,
+body #pmd-cashier-order-composer-v1.pmd-coc
+[data-coc-title] {
+  margin: 0 !important;
+
+  font-size: 25px !important;
+  line-height: 1.08 !important;
+  letter-spacing: -0.025em !important;
+}
+
+
+/* =========================================================
+   TABLE + GUESTS ON ONE ROW
+   ========================================================= */
+
+body #pmd-cashier-order-composer-v1.pmd-coc
+.pmd-coc__cart-head--simple {
+  width: 100% !important;
+
+  min-height: 54px !important;
+
+  padding: 0 0 12px !important;
+
+  display: grid !important;
+  grid-template-columns:
+    minmax(0, 1fr)
+    auto !important;
+
+  align-items: end !important;
+  gap: 12px !important;
+}
+
+body #pmd-cashier-order-composer-v1.pmd-coc
+.pmd-coc__rail-table {
+  min-width: 0 !important;
+
+  margin: 0 !important;
+
+  display: grid !important;
+  gap: 5px !important;
+}
+
+body #pmd-cashier-order-composer-v1.pmd-coc
+.pmd-coc__rail-table small {
+  margin: 0 !important;
+
+  color: #667f8e !important;
+
+  font-size: 10px !important;
+  font-weight: 850 !important;
+  line-height: 1 !important;
+
+  text-transform: uppercase !important;
+  letter-spacing: .06em !important;
+}
+
+body #pmd-cashier-order-composer-v1.pmd-coc
+[data-coc-table-select-rail] {
+  width: 100% !important;
+  min-width: 0 !important;
+  height: 42px !important;
+
+  margin: 0 !important;
+  padding:
+    0
+    38px
+    0
+    12px !important;
+
+  border: 1px solid #ccdde5 !important;
+  border-radius: 10px !important;
+
+  background-color: #fff !important;
+
+  color: #12354b !important;
+
+  font-size: 12px !important;
+  font-weight: 800 !important;
+}
+
+body #pmd-cashier-order-composer-v1.pmd-coc
+.pmd-coc__guest {
+  margin: 0 !important;
+
+  display: grid !important;
+  grid-template-columns:
+    38px
+    auto
+    38px !important;
+
+  align-items: center !important;
+  gap: 8px !important;
+}
+
+body #pmd-cashier-order-composer-v1.pmd-coc
+.pmd-coc__guest > button {
+  display: grid !important;
+  place-items: center !important;
+
+  width: 38px !important;
+  height: 38px !important;
+  min-width: 38px !important;
+  min-height: 38px !important;
+
+  margin: 0 !important;
+  padding: 0 !important;
+
+  line-height: 1 !important;
+  text-align: center !important;
+}
+
+
+/* =========================================================
+   SEARCH = ONE FRAME ONLY
+   ========================================================= */
+
+body #pmd-cashier-order-composer-v1.pmd-coc
+.pmd-coc__search {
+  min-height: 54px !important;
+
+  padding: 0 13px !important;
+
+  display: flex !important;
+  align-items: center !important;
+  gap: 10px !important;
+
+  border: 1px solid #cbdde5 !important;
+  border-radius: 12px !important;
+
+  background: #fff !important;
+  box-shadow: none !important;
+}
+
+body #pmd-cashier-order-composer-v1.pmd-coc
+.pmd-coc__search input {
+  min-height: 50px !important;
+
+  margin: 0 !important;
+  padding: 0 !important;
+
+  border: 0 !important;
+  outline: 0 !important;
+
+  background: transparent !important;
+  box-shadow: none !important;
+}
+
+
+/* =========================================================
+   RIGHT RAIL COMPACT
+   ========================================================= */
+
+body #pmd-cashier-order-composer-v1.pmd-coc
+.pmd-coc__body {
+  align-items: start !important;
+}
+
+body #pmd-cashier-order-composer-v1.pmd-coc
+.pmd-coc__cart {
+  align-self: start !important;
+
+  min-height: 0 !important;
+  height: auto !important;
+
+  padding: 13px !important;
+
+  gap: 12px !important;
+}
+
+body #pmd-cashier-order-composer-v1.pmd-coc
+.pmd-coc__rail-switch {
+  margin: 0 !important;
+}
+
+body #pmd-cashier-order-composer-v1.pmd-coc
+.pmd-coc__rail-switch button {
+  height: 40px !important;
+  min-height: 40px !important;
+
+  padding: 0 10px !important;
+
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+}
+
+body #pmd-cashier-order-composer-v1.pmd-coc
+.pmd-coc__rail-pane {
+  margin-top: 0 !important;
+}
+
+body #pmd-cashier-order-composer-v1.pmd-coc
+.pmd-coc__note {
+  margin-top: 2px !important;
+  gap: 6px !important;
+}
+
+body #pmd-cashier-order-composer-v1.pmd-coc
+.pmd-coc__note textarea {
+  min-height: 60px !important;
+  max-height: 82px !important;
+
+  padding: 10px 11px !important;
+}
+
+body #pmd-cashier-order-composer-v1.pmd-coc
+.pmd-coc__totals {
+  margin-top: 0 !important;
+  padding-top: 9px !important;
+}
+
+
+/* =========================================================
+   ALL +/- ICONS EXACTLY CENTERED
+   ========================================================= */
+
+body #pmd-cashier-order-composer-v1.pmd-coc
+[data-coc-inc],
+body #pmd-cashier-order-composer-v1.pmd-coc
+[data-coc-dec],
+body #pmd-cashier-order-composer-v1.pmd-coc
+.pmd-coc-product__qty button,
+body #pmd-cashier-order-composer-v1.pmd-coc
+[data-coc-guest-minus],
+body #pmd-cashier-order-composer-v1.pmd-coc
+[data-coc-guest-plus] {
+  display: grid !important;
+  place-items: center !important;
+
+  padding: 0 !important;
+
+  text-align: center !important;
+  line-height: 1 !important;
+
+  text-indent: 0 !important;
+}
+
+
+/* =========================================================
+   FOOD DETAILS - SMALLER CASHIER CARD
+   ========================================================= */
+
+body #pmd-cashier-order-composer-v1.pmd-coc
+.pmd-coc-product__dialog {
+  width:
+    min(
+      700px,
+      calc(100vw - 28px)
+    ) !important;
+
+  height: auto !important;
+
+  max-height:
+    min(
+      82dvh,
+      720px
+    ) !important;
+
+  border-radius: 17px !important;
+}
+
+body #pmd-cashier-order-composer-v1.pmd-coc
+.pmd-coc-product__head {
+  min-height: 58px !important;
+
+  padding: 11px 15px !important;
+}
+
+body #pmd-cashier-order-composer-v1.pmd-coc
+.pmd-coc-product__body {
+  padding: 14px !important;
+
+  gap: 12px !important;
+}
+
+body #pmd-cashier-order-composer-v1.pmd-coc
+.pmd-coc-product__hero {
+  grid-template-columns:
+    170px
+    minmax(0, 1fr) !important;
+
+  align-items: center !important;
+  gap: 16px !important;
+
+  min-height: 0 !important;
+}
+
+body #pmd-cashier-order-composer-v1.pmd-coc
+.pmd-coc-product__image {
+  width: 170px !important;
+  height: 170px !important;
+
+  min-height: 170px !important;
+}
+
+body #pmd-cashier-order-composer-v1.pmd-coc
+.pmd-coc-product__prep {
+  min-height: 0 !important;
+
+  padding: 10px 12px !important;
+}
+
+body #pmd-cashier-order-composer-v1.pmd-coc
+.pmd-coc-product__composer {
+  padding: 12px !important;
+
+  gap: 10px !important;
+}
+
+body #pmd-cashier-order-composer-v1.pmd-coc
+.pmd-coc-product__note small {
+  display: none !important;
+}
+
+body #pmd-cashier-order-composer-v1.pmd-coc
+.pmd-coc-product__note textarea {
+  min-height: 64px !important;
+}
+
+body #pmd-cashier-order-composer-v1.pmd-coc
+.pmd-coc-product__foot {
+  min-height: 58px !important;
+
+  padding: 9px 14px !important;
+}
+
+
+/* =========================================================
+   PAYMYDINE LOGO FALLBACK
+   ========================================================= */
+
+body #pmd-cashier-order-composer-v1.pmd-coc
+.pmd-coc-food__media
+img.is-pmd-logo-fallback,
+
+body #pmd-cashier-order-composer-v1.pmd-coc
+.pmd-coc-food__media
+img[src*="/brand/paymydine-logo.svg"],
+
+body #pmd-cashier-order-composer-v1.pmd-coc
+.pmd-coc-product__image
+img.is-pmd-logo-fallback,
+
+body #pmd-cashier-order-composer-v1.pmd-coc
+.pmd-coc-product__image
+img[src*="/brand/paymydine-logo.svg"] {
+  width: 100% !important;
+  height: 100% !important;
+
+  padding: 28px !important;
+
+  object-fit: contain !important;
+
+  background:
+    linear-gradient(
+      145deg,
+      rgba(255,255,255,.88),
+      rgba(218,233,239,.88)
+    ) !important;
+
+  filter:
+    drop-shadow(
+      0 8px 18px
+      rgba(6,48,43,.08)
+    ) !important;
+}
+
+
+/* =========================================================
+   PAYMENT: VERTICAL TOUCH CASHIER
+   ========================================================= */
+
+body #pmd-cashier-order-composer-v1.pmd-coc
+.pmd-pos-payment-dialog {
+  width:
+    min(
+      620px,
+      calc(100vw - 24px)
+    ) !important;
+
+  height: auto !important;
+
+  max-height:
+    min(
+      92dvh,
+      850px
+    ) !important;
+
+  overflow: auto !important;
+
+  border-radius: 18px !important;
+}
+
+
+/* Payment header = Order # only */
+
+body #pmd-cashier-order-composer-v1.pmd-coc
+.pmd-pos-payment-head {
+  min-height: 62px !important;
+
+  padding: 11px 14px !important;
+}
+
+body #pmd-cashier-order-composer-v1.pmd-coc
+.pmd-pos-payment-eyebrow,
+
+body #pmd-cashier-order-composer-v1.pmd-coc
+[data-pos-payment-subtitle] {
+  display: none !important;
+}
+
+body #pmd-cashier-order-composer-v1.pmd-coc
+.pmd-pos-payment-head h2 {
+  margin: 0 !important;
+
+  font-size: 23px !important;
+  line-height: 1.05 !important;
+}
+
+
+/* Body single-column */
+
+body #pmd-cashier-order-composer-v1.pmd-coc
+.pmd-pos-payment-body {
+  grid-template-columns: 1fr !important;
+
+  gap: 8px !important;
+
+  padding: 9px !important;
+}
+
+body #pmd-cashier-order-composer-v1.pmd-coc
+.pmd-pos-payment-main {
+  display: grid !important;
+
+  gap: 8px !important;
+}
+
+
+/* Only total amount, no repeated sentence */
+
+body #pmd-cashier-order-composer-v1.pmd-coc
+.pmd-pos-balance-hero {
+  min-height: 64px !important;
+
+  padding: 10px 13px !important;
+
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+
+  border-radius: 12px !important;
+}
+
+body #pmd-cashier-order-composer-v1.pmd-coc
+.pmd-pos-balance-hero > span {
+  font-size: 13px !important;
+  font-weight: 850 !important;
+}
+
+body #pmd-cashier-order-composer-v1.pmd-coc
+.pmd-pos-balance-hero > b {
+  font-size: 31px !important;
+  line-height: 1 !important;
+}
+
+body #pmd-cashier-order-composer-v1.pmd-coc
+.pmd-pos-balance-hero > small {
+  display: none !important;
+}
+
+
+/* Generic compact payment blocks */
+
+body #pmd-cashier-order-composer-v1.pmd-coc
+.pmd-pos-payment-block {
+  padding: 10px !important;
+
+  border-radius: 12px !important;
+}
+
+body #pmd-cashier-order-composer-v1.pmd-coc
+.pmd-pos-payment-block-title {
+  margin: 0 0 7px !important;
+}
+
+body #pmd-cashier-order-composer-v1.pmd-coc
+.pmd-pos-payment-block-title b {
+  font-size: 13px !important;
+}
+
+body #pmd-cashier-order-composer-v1.pmd-coc
+.pmd-pos-payment-block-title span {
+  display: none !important;
+}
+
+
+/* Cash / Terminal: touch centered */
+
+body #pmd-cashier-order-composer-v1.pmd-coc
+.pmd-pos-method-grid {
+  grid-template-columns:
+    repeat(
+      2,
+      minmax(0, 1fr)
+    ) !important;
+
+  gap: 8px !important;
+}
+
+body #pmd-cashier-order-composer-v1.pmd-coc
+.pmd-pos-method.pmd-cashier-method {
+  min-height: 76px !important;
+
+  padding: 8px !important;
+
+  display: flex !important;
+  flex-direction: column !important;
+
+  align-items: center !important;
+  justify-content: center !important;
+
+  gap: 6px !important;
+
+  text-align: center !important;
+
+  border-radius: 11px !important;
+}
+
+body #pmd-cashier-order-composer-v1.pmd-coc
+.pmd-pos-method.pmd-cashier-method b {
+  font-size: 15px !important;
+  line-height: 1 !important;
+}
+
+body #pmd-cashier-order-composer-v1.pmd-coc
+.pmd-pos-method.pmd-cashier-method small {
+  display: none !important;
+}
+
+body #pmd-cashier-order-composer-v1.pmd-coc
+.pmd-cashier-method-icon {
+  width: 30px !important;
+  height: 30px !important;
+
+  display: grid !important;
+  place-items: center !important;
+
+  border-radius: 9px !important;
+
+  background:
+    rgba(
+      5,
+      58,
+      50,
+      .09
+    ) !important;
+
+  font-size: 18px !important;
+  font-weight: 900 !important;
+  line-height: 1 !important;
+}
+
+body #pmd-cashier-order-composer-v1.pmd-coc
+.pmd-pos-method.is-active
+.pmd-cashier-method-icon {
+  background:
+    rgba(
+      5,
+      58,
+      50,
+      .15
+    ) !important;
+}
+
+
+/* Tip + Coupon canonical V3 block */
+
+body #pmd-cashier-order-composer-v1.pmd-coc
+.pmd-pos-adjustments:not([hidden]) {
+  display: grid !important;
+
+  grid-template-columns:
+    1fr
+    1fr !important;
+
+  gap: 10px !important;
+}
+
+body #pmd-cashier-order-composer-v1.pmd-coc
+.pmd-pos-tip-buttons {
+  display: grid !important;
+
+  grid-template-columns:
+    repeat(
+      4,
+      minmax(0, 1fr)
+    ) !important;
+
+  gap: 5px !important;
+}
+
+body #pmd-cashier-order-composer-v1.pmd-coc
+.pmd-pos-tip-buttons button,
+
+body #pmd-cashier-order-composer-v1.pmd-coc
+[data-pos-coupon-apply] {
+  min-height: 38px !important;
+  height: 38px !important;
+
+  padding: 0 8px !important;
+
+  border-radius: 9px !important;
+
+  font-size: 11px !important;
+  font-weight: 850 !important;
+}
+
+body #pmd-cashier-order-composer-v1.pmd-coc
+.pmd-pos-coupon-row {
+  display: grid !important;
+
+  grid-template-columns:
+    minmax(0, 1fr)
+    auto !important;
+
+  gap: 6px !important;
+}
+
+
+/* Cash keypad */
+
+body #pmd-cashier-order-composer-v1.pmd-coc
+.pmd-cashier-cash-field {
+  width: 100% !important;
+
+  display: grid !important;
+
+  gap: 8px !important;
+}
+
+body #pmd-cashier-order-composer-v1.pmd-coc
+.pmd-cashier-cash-title {
+  color: #5f7887 !important;
+
+  font-size: 12px !important;
+  font-weight: 850 !important;
+}
+
+body #pmd-cashier-order-composer-v1.pmd-coc
+.pmd-cashier-cash-input {
+  width: 100% !important;
+  height: 54px !important;
+
+  padding: 0 14px !important;
+
+  border: 1px solid #ccdde5 !important;
+  border-radius: 11px !important;
+
+  font-size: 22px !important;
+  font-weight: 900 !important;
+
+  text-align: center !important;
+}
+
+body #pmd-cashier-order-composer-v1.pmd-coc
+.pmd-cashier-keypad {
+  display: grid !important;
+
+  grid-template-columns:
+    repeat(
+      3,
+      minmax(0, 1fr)
+    ) !important;
+
+  gap: 6px !important;
+}
+
+body #pmd-cashier-order-composer-v1.pmd-coc
+.pmd-cashier-keypad button {
+  min-height: 52px !important;
+  height: 52px !important;
+
+  margin: 0 !important;
+  padding: 0 !important;
+
+  display: grid !important;
+  place-items: center !important;
+
+  border: 1px solid #cadce4 !important;
+  border-radius: 10px !important;
+
+  background: #fff !important;
+
+  color: #12354b !important;
+
+  font-size: 18px !important;
+  font-weight: 900 !important;
+  line-height: 1 !important;
+}
+
+body #pmd-cashier-order-composer-v1.pmd-coc
+.pmd-cashier-keypad button:active {
+  transform: scale(.97) !important;
+
+  background: #eef6f5 !important;
+}
+
+body #pmd-cashier-order-composer-v1.pmd-coc
+.pmd-cashier-tenders {
+  display: grid !important;
+
+  grid-template-columns:
+    repeat(
+      5,
+      minmax(0, 1fr)
+    ) !important;
+
+  gap: 5px !important;
+}
+
+body #pmd-cashier-order-composer-v1.pmd-coc
+.pmd-cashier-tenders button {
+  min-height: 40px !important;
+  height: 40px !important;
+
+  margin: 0 !important;
+  padding: 0 6px !important;
+
+  display: grid !important;
+  place-items: center !important;
+
+  border-radius: 9px !important;
+
+  font-size: 11px !important;
+  font-weight: 900 !important;
+}
+
+
+/* Payment result / change */
+
+body #pmd-cashier-order-composer-v1.pmd-coc
+.pmd-pos-payment-summary {
+  margin: 0 !important;
+
+  padding: 10px !important;
+
+  display: grid !important;
+
+  gap: 8px !important;
+
+  border-radius: 12px !important;
+}
+
+body #pmd-cashier-order-composer-v1.pmd-coc
+.pmd-pos-payment-summary > h3,
+
+body #pmd-cashier-order-composer-v1.pmd-coc
+.pmd-pos-payment-history-wrap {
+  display: none !important;
+}
+
+body #pmd-cashier-order-composer-v1.pmd-coc
+.pmd-pos-pay-total-row.is-grand {
+  min-height: 46px !important;
+
+  font-size: 14px !important;
+}
+
+body #pmd-cashier-order-composer-v1.pmd-coc
+.pmd-pos-pay-total-row.is-grand strong {
+  font-size: 22px !important;
+}
+
+body #pmd-cashier-order-composer-v1.pmd-coc
+.pmd-pos-change-box {
+  min-height: 42px !important;
+
+  margin: 0 !important;
+
+  display: grid !important;
+  place-items: center !important;
+
+  font-size: 15px !important;
+  font-weight: 900 !important;
+}
+
+
+/* The main action is simply Pay */
+
+body #pmd-cashier-order-composer-v1.pmd-coc
+.pmd-pos-pay-button {
+  min-height: 52px !important;
+  height: 52px !important;
+
+  margin: 0 !important;
+
+  border-radius: 11px !important;
+
+  background: #053a32 !important;
+  background-image: none !important;
+
+  color: #fff !important;
+
+  font-size: 15px !important;
+  font-weight: 900 !important;
+}
+
+
+/* Mobile / narrow displays */
+
+@media (max-width: 680px) {
+  body #pmd-cashier-order-composer-v1.pmd-coc
+  .pmd-pos-adjustments:not([hidden]) {
+    grid-template-columns: 1fr !important;
+  }
+
+  body #pmd-cashier-order-composer-v1.pmd-coc
+  .pmd-coc__cart-head--simple {
+    grid-template-columns:
+      minmax(0, 1fr)
+      auto !important;
+  }
+
+  body #pmd-cashier-order-composer-v1.pmd-coc
+  .pmd-coc-product__hero {
+    grid-template-columns: 1fr !important;
+  }
+
+  body #pmd-cashier-order-composer-v1.pmd-coc
+  .pmd-coc-product__image {
+    width: 150px !important;
+    height: 150px !important;
+
+    margin: 0 auto !important;
+  }
+}
+
+/* PMD_CASHIER_R54_TOUCH_PAYMENT_END */
+
+/* PMD_CASHIER_R55A_STABLE_UI_START */
+
+/* ---------------------------------------------------------
+   Composer: zero visible loading flash.
+   --------------------------------------------------------- */
+
+body #pmd-cashier-order-composer-v1.pmd-coc.is-coc-initial-loading
+.pmd-coc__dialog {
+  visibility: hidden !important;
+}
+
+body #pmd-cashier-order-composer-v1.pmd-coc.is-coc-silent-loading
+.pmd-coc__body {
+  pointer-events: none !important;
+}
+
+
+/* ---------------------------------------------------------
+   Safari/native double selector arrow cleanup.
+   --------------------------------------------------------- */
+
+body #pmd-cashier-order-composer-v1.pmd-coc
+[data-coc-table-select-rail] {
+  -webkit-appearance: none !important;
+  appearance: none !important;
+
+  padding-right: 36px !important;
+
+  background-color: #fff !important;
+
+  background-image:
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 16 16'%3E%3Cpath d='M4 6l4 4 4-4' fill='none' stroke='%2312354b' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") !important;
+
+  background-repeat: no-repeat !important;
+  background-position: right 11px center !important;
+  background-size: 15px 15px !important;
+}
+
+
+/* ---------------------------------------------------------
+   Current bill: exactly one separator.
+   --------------------------------------------------------- */
+
+body #pmd-cashier-order-composer-v1.pmd-coc
+.pmd-coc__note {
+  border-bottom: 0 !important;
+  box-shadow: none !important;
+}
+
+body #pmd-cashier-order-composer-v1.pmd-coc
+.pmd-coc__totals {
+  border-top: 0 !important;
+  box-shadow: none !important;
+}
+
+body #pmd-cashier-order-composer-v1.pmd-coc
+.pmd-coc__totals::before,
+
+body #pmd-cashier-order-composer-v1.pmd-coc
+.pmd-coc__totals::after {
+  content: none !important;
+  display: none !important;
+}
+
+body #pmd-cashier-order-composer-v1.pmd-coc
+.pmd-coc__totals > * {
+  border-top: 0 !important;
+  border-bottom: 0 !important;
+}
+
+body #pmd-cashier-order-composer-v1.pmd-coc
+.pmd-coc__totals > :last-child {
+  border-top:
+    1px solid
+    #d5e3ea !important;
+
+  padding-top: 12px !important;
+}
+
+
+/* ---------------------------------------------------------
+   Exact frontend glass placeholder treatment.
+   --------------------------------------------------------- */
+
+body #pmd-cashier-order-composer-v1.pmd-coc
+img[src*="/brand/paymydine-logo.svg"],
+
+body #pmd-cashier-order-composer-v1.pmd-coc
+img.is-pmd-logo-fallback {
+  object-fit: contain !important;
+  object-position: center !important;
+
+  padding:
+    clamp(
+      28px,
+      10%,
+      72px
+    ) !important;
+
+  background:
+    radial-gradient(
+      circle at 32% 22%,
+      rgba(255,255,255,.24),
+      transparent 48%
+    ),
+    linear-gradient(
+      145deg,
+      rgba(255,255,255,.13),
+      rgba(127,127,127,.06)
+    ) !important;
+
+  border:
+    1px solid
+    rgba(255,255,255,.16) !important;
+
+  box-shadow:
+    inset 0 1px 0
+      rgba(255,255,255,.22),
+    0 12px 30px
+      rgba(0,0,0,.14) !important;
+
+  filter:
+    grayscale(1)
+    saturate(0)
+    contrast(.82)
+    opacity(.48)
+    drop-shadow(
+      0 8px 14px
+      rgba(0,0,0,.18)
+    ) !important;
+
+  -webkit-backdrop-filter:
+    blur(14px)
+    saturate(.72) !important;
+
+  backdrop-filter:
+    blur(14px)
+    saturate(.72) !important;
+}
+
+
+/* ---------------------------------------------------------
+   Payment first paint.
+   --------------------------------------------------------- */
+
+body #pmd-cashier-order-composer-v1.pmd-coc
+.pmd-pos-payment-modal.pmd-payment-is-preparing
+.pmd-pos-payment-dialog {
+  visibility: hidden !important;
+}
+
+
+/* ---------------------------------------------------------
+   Cashier payment: remove sentences/headings.
+   --------------------------------------------------------- */
+
+body #pmd-cashier-order-composer-v1.pmd-coc
+.pmd-pos-payment-eyebrow,
+
+body #pmd-cashier-order-composer-v1.pmd-coc
+[data-pos-payment-subtitle],
+
+body #pmd-cashier-order-composer-v1.pmd-coc
+.pmd-pos-payment-block:has([data-pos-methods])
+.pmd-pos-payment-block-title,
+
+body #pmd-cashier-order-composer-v1.pmd-coc
+.pmd-pos-payment-block:has([data-pos-split-tabs]),
+
+body #pmd-cashier-order-composer-v1.pmd-coc
+[data-pos-copy-link],
+
+body #pmd-cashier-order-composer-v1.pmd-coc
+[data-pos-refresh-payment],
+
+body #pmd-cashier-order-composer-v1.pmd-coc
+.pmd-pos-payment-safety,
+
+body #pmd-cashier-order-composer-v1.pmd-coc
+.pmd-pos-payment-history-wrap,
+
+body #pmd-cashier-order-composer-v1.pmd-coc
+.pmd-pos-payment-summary > h3,
+
+body #pmd-cashier-order-composer-v1.pmd-coc
+label:has([data-pos-payer-label]),
+
+body #pmd-cashier-order-composer-v1.pmd-coc
+[data-pos-reference-field],
+
+body #pmd-cashier-order-composer-v1.pmd-coc
+[data-pos-external-confirm-row] {
+  display: none !important;
+}
+
+
+/* ---------------------------------------------------------
+   Header.
+   --------------------------------------------------------- */
+
+body #pmd-cashier-order-composer-v1.pmd-coc
+.pmd-pos-payment-head {
+  min-height: 58px !important;
+
+  padding:
+    10px
+    14px !important;
+}
+
+body #pmd-cashier-order-composer-v1.pmd-coc
+.pmd-pos-payment-head h2 {
+  margin: 0 !important;
+
+  font-size: 22px !important;
+  line-height: 1 !important;
+}
+
+
+/* ---------------------------------------------------------
+   Order number + final payable amount.
+   --------------------------------------------------------- */
+
+body #pmd-cashier-order-composer-v1.pmd-coc
+.pmd-pos-balance-hero {
+  min-height: 66px !important;
+
+  padding:
+    10px
+    14px !important;
+
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+}
+
+body #pmd-cashier-order-composer-v1.pmd-coc
+.pmd-pos-balance-hero > span {
+  color: #567281 !important;
+
+  font-size: 15px !important;
+  font-weight: 850 !important;
+
+  text-transform: none !important;
+  letter-spacing: 0 !important;
+}
+
+body #pmd-cashier-order-composer-v1.pmd-coc
+.pmd-pos-balance-hero > b {
+  font-size: 30px !important;
+  line-height: 1 !important;
+}
+
+
+/* ---------------------------------------------------------
+   Cash / Terminal = centered touch buttons.
+   --------------------------------------------------------- */
+
+body #pmd-cashier-order-composer-v1.pmd-coc
+[data-pos-methods] {
+  display: grid !important;
+
+  grid-template-columns:
+    repeat(
+      2,
+      minmax(0, 1fr)
+    ) !important;
+
+  gap: 9px !important;
+}
+
+body #pmd-cashier-order-composer-v1.pmd-coc
+[data-pos-methods]
+[data-payment-method] {
+  min-height: 74px !important;
+
+  margin: 0 !important;
+  padding: 9px !important;
+
+  display: flex !important;
+  flex-direction: column !important;
+
+  align-items: center !important;
+  justify-content: center !important;
+
+  gap: 6px !important;
+
+  border:
+    1px solid
+    #c9dbe4 !important;
+
+  border-radius: 12px !important;
+
+  background: #fff !important;
+  background-image: none !important;
+
+  box-shadow: none !important;
+  text-shadow: none !important;
+  transform: none !important;
+
+  color: #12354b !important;
+
+  text-align: center !important;
+}
+
+body #pmd-cashier-order-composer-v1.pmd-coc
+[data-pos-methods]
+[data-payment-method].is-active {
+  border-color: #087968 !important;
+
+  background: #eef8f5 !important;
+
+  box-shadow:
+    inset 0 0 0 1px
+    #087968 !important;
+}
+
+body #pmd-cashier-order-composer-v1.pmd-coc
+[data-pos-methods]
+[data-payment-method] b {
+  font-size: 16px !important;
+  font-weight: 900 !important;
+}
+
+body #pmd-cashier-order-composer-v1.pmd-coc
+[data-pos-methods]
+[data-payment-method] small {
+  display: none !important;
+}
+
+
+/* Cash icon */
+
+body #pmd-cashier-order-composer-v1.pmd-coc
+[data-payment-method="cash"]::before {
+  content: "€";
+
+  width: 28px !important;
+  height: 28px !important;
+
+  display: grid !important;
+  place-items: center !important;
+
+  border-radius: 8px !important;
+
+  background:
+    rgba(8,121,104,.10) !important;
+
+  color: #087968 !important;
+
+  font-size: 18px !important;
+  font-weight: 900 !important;
+}
+
+
+/* Terminal icon */
+
+body #pmd-cashier-order-composer-v1.pmd-coc
+[data-payment-method="direct_terminal"]::before {
+  content: "";
+
+  width: 28px !important;
+  height: 19px !important;
+
+  border:
+    2px solid
+    #087968 !important;
+
+  border-radius: 5px !important;
+
+  background:
+    linear-gradient(
+      to bottom,
+      transparent 0 5px,
+      rgba(8,121,104,.16) 5px 9px,
+      transparent 9px
+    ) !important;
+}
+
+
+/* ---------------------------------------------------------
+   Tip + Coupon stay in the same place.
+   Terminal cannot submit them, so keep visible but disabled.
+   --------------------------------------------------------- */
+
+body #pmd-cashier-order-composer-v1.pmd-coc
+.pmd-pos-adjustments {
+  display: grid !important;
+
+  grid-template-columns:
+    1fr
+    1fr !important;
+
+  gap: 10px !important;
+
+  opacity: 1 !important;
+}
+
+body #pmd-cashier-order-composer-v1.pmd-coc
+.pmd-pos-payment-modal.is-direct-terminal
+.pmd-pos-adjustments {
+  display: grid !important;
+
+  opacity: .52 !important;
+  pointer-events: none !important;
+}
+
+body #pmd-cashier-order-composer-v1.pmd-coc
+.pmd-pos-tip-buttons button,
+
+body #pmd-cashier-order-composer-v1.pmd-coc
+[data-pos-coupon-apply] {
+  margin: 0 !important;
+
+  border:
+    1px solid
+    #c9dbe4 !important;
+
+  border-radius: 10px !important;
+
+  background: #fff !important;
+  background-image: none !important;
+
+  box-shadow: none !important;
+  text-shadow: none !important;
+  transform: none !important;
+
+  color: #12354b !important;
+
+  font-weight: 850 !important;
+}
+
+body #pmd-cashier-order-composer-v1.pmd-coc
+.pmd-pos-tip-buttons button.is-active {
+  border-color: #075f52 !important;
+
+  background: #075f52 !important;
+
+  color: #fff !important;
+}
+
+body #pmd-cashier-order-composer-v1.pmd-coc
+[data-pos-coupon-apply] {
+  background: #075f52 !important;
+  border-color: #075f52 !important;
+  color: #fff !important;
+}
+
+
+/* Invalid coupon MUST be red and readable. */
+
+body #pmd-cashier-order-composer-v1.pmd-coc
+.pmd-pos-coupon-result {
+  min-height: 20px !important;
+
+  margin-top: 6px !important;
+
+  font-size: 15px !important;
+  font-weight: 900 !important;
+  line-height: 1.25 !important;
+}
+
+body #pmd-cashier-order-composer-v1.pmd-coc
+.pmd-pos-coupon-result.is-error {
+  color: #b42318 !important;
+}
+
+body #pmd-cashier-order-composer-v1.pmd-coc
+.pmd-pos-coupon-result.is-success {
+  color: #087443 !important;
+}
+
+
+/* ---------------------------------------------------------
+   Cash touch keypad.
+   Remove global grey button/shadow contamination.
+   --------------------------------------------------------- */
+
+body #pmd-cashier-order-composer-v1.pmd-coc
+.pmd-cashier-keypad button,
+
+body #pmd-cashier-order-composer-v1.pmd-coc
+.pmd-cashier-tenders button {
+  -webkit-appearance: none !important;
+  appearance: none !important;
+
+  margin: 0 !important;
+  padding: 0 !important;
+
+  border:
+    1px solid
+    #c8dbe4 !important;
+
+  background: #fff !important;
+  background-image: none !important;
+
+  box-shadow: none !important;
+  text-shadow: none !important;
+  transform: none !important;
+
+  color: #12354b !important;
+}
+
+body #pmd-cashier-order-composer-v1.pmd-coc
+.pmd-cashier-keypad button {
+  height: 48px !important;
+  min-height: 48px !important;
+
+  display: grid !important;
+  place-items: center !important;
+
+  border-radius: 10px !important;
+
+  font-size: 18px !important;
+  font-weight: 900 !important;
+  line-height: 1 !important;
+}
+
+body #pmd-cashier-order-composer-v1.pmd-coc
+.pmd-cashier-keypad button:active {
+  background: #eef8f5 !important;
+  border-color: #087968 !important;
+}
+
+body #pmd-cashier-order-composer-v1.pmd-coc
+.pmd-cashier-tenders {
+  gap: 7px !important;
+}
+
+body #pmd-cashier-order-composer-v1.pmd-coc
+.pmd-cashier-tenders button {
+  height: 38px !important;
+  min-height: 38px !important;
+
+  display: grid !important;
+  place-items: center !important;
+
+  border-radius: 9px !important;
+
+  font-size: 12px !important;
+  font-weight: 900 !important;
+}
+
+body #pmd-cashier-order-composer-v1.pmd-coc
+.pmd-cashier-tenders button:first-child {
+  border-color: #9acbc2 !important;
+  background: #eef8f5 !important;
+  color: #075f52 !important;
+}
+
+
+/* ---------------------------------------------------------
+   Summary NEVER floats over keypad.
+   --------------------------------------------------------- */
+
+body #pmd-cashier-order-composer-v1.pmd-coc
+.pmd-pos-payment-summary {
+  position: static !important;
+
+  inset: auto !important;
+
+  margin: 0 !important;
+
+  box-shadow: none !important;
+}
+
+
+/* Payable is already in hero.
+   Bottom only needs Change + Pay. */
+
+body #pmd-cashier-order-composer-v1.pmd-coc
+[data-pos-payment-totals] {
+  display: none !important;
+}
+
+body #pmd-cashier-order-composer-v1.pmd-coc
+.pmd-pos-change-box {
+  min-height: 42px !important;
+
+  margin: 0 !important;
+
+  display: grid !important;
+  place-items: center !important;
+
+  border-radius: 10px !important;
+
+  font-size: 15px !important;
+  font-weight: 900 !important;
+}
+
+body #pmd-cashier-order-composer-v1.pmd-coc
+.pmd-pos-change-box[hidden] {
+  display: none !important;
+}
+
+body #pmd-cashier-order-composer-v1.pmd-coc
+.pmd-pos-pay-button {
+  height: 52px !important;
+  min-height: 52px !important;
+
+  margin: 0 !important;
+
+  border: 0 !important;
+  border-radius: 11px !important;
+
+  background: #064d43 !important;
+  background-image: none !important;
+
+  box-shadow: none !important;
+  text-shadow: none !important;
+  transform: none !important;
+
+  color: #fff !important;
+
+  font-size: 15px !important;
+  font-weight: 900 !important;
+}
+
+
+/* compact payment spacing */
+
+body #pmd-cashier-order-composer-v1.pmd-coc
+.pmd-pos-payment-body {
+  gap: 8px !important;
+  padding: 9px !important;
+}
+
+body #pmd-cashier-order-composer-v1.pmd-coc
+.pmd-pos-payment-main {
+  gap: 8px !important;
+}
+
+body #pmd-cashier-order-composer-v1.pmd-coc
+.pmd-pos-payment-block {
+  padding: 10px !important;
+  border-radius: 12px !important;
+}
+
+
+@media (max-width: 680px) {
+  body #pmd-cashier-order-composer-v1.pmd-coc
+  .pmd-pos-adjustments {
+    grid-template-columns:
+      1fr !important;
+  }
+}
+
+/* PMD_CASHIER_R55A_STABLE_UI_END */
+
+/* PMD_CASHIER_R56B_PAYMENT_RAIL_START */
+
+
+/* ---------------------------------------------------------
+   ORDER COMPOSER: recover the footer space
+   --------------------------------------------------------- */
+
+body #pmd-cashier-order-composer-v1.pmd-coc
+.pmd-coc__dialog {
+  grid-template-rows:
+    auto
+    minmax(0, 1fr) !important;
+
+  position: relative !important;
+}
+
+
+body #pmd-cashier-order-composer-v1.pmd-coc
+.pmd-coc__footer {
+  position: absolute !important;
+
+  right: 14px !important;
+  bottom: 14px !important;
+  left: auto !important;
+
+  width:
+    clamp(
+      300px,
+      25.5%,
+      370px
+    ) !important;
+
+  min-height: 0 !important;
+  height: auto !important;
+
+  padding: 0 !important;
+  margin: 0 !important;
+
+  border: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+
+  z-index: 18 !important;
+
+  pointer-events: none !important;
+}
+
+
+body #pmd-cashier-order-composer-v1.pmd-coc
+.pmd-coc__footer-right {
+  width: 100% !important;
+
+  display: grid !important;
+
+  grid-template-columns:
+    92px
+    minmax(0, 1fr) !important;
+
+  gap: 8px !important;
+
+  pointer-events: auto !important;
+}
+
+
+body #pmd-cashier-order-composer-v1.pmd-coc
+.pmd-coc__footer-right > button {
+  width: 100% !important;
+
+  height: 44px !important;
+  min-height: 44px !important;
+
+  margin: 0 !important;
+  padding: 0 12px !important;
+
+  display: grid !important;
+  place-items: center !important;
+
+  line-height: 1 !important;
+}
+
+
+/*
+ * Buttons visually belong to the bottom of the right card.
+ * Only reserve their own height, not a whole footer row.
+ */
+body #pmd-cashier-order-composer-v1.pmd-coc
+.pmd-coc__cart {
+  padding-bottom: 70px !important;
+}
+
+
+/* ---------------------------------------------------------
+   CASH PAYMENT: taller viewport, compact contents
+   --------------------------------------------------------- */
+
+body #pmd-cashier-order-composer-v1.pmd-coc
+.pmd-pos-payment-dialog {
+  width:
+    min(
+      760px,
+      calc(100vw - 16px)
+    ) !important;
+
+  height: auto !important;
+
+  max-height:
+    calc(100dvh - 12px) !important;
+
+  overflow-x: hidden !important;
+  overflow-y: auto !important;
+
+  border-radius: 18px !important;
+}
+
+
+/*
+ * Cash mode uses almost all available screen height.
+ * Terminal remains naturally shorter.
+ */
+body #pmd-cashier-order-composer-v1.pmd-coc
+.pmd-pos-payment-modal:not(.is-direct-terminal)
+.pmd-pos-payment-dialog {
+  min-height:
+    min(
+      760px,
+      calc(100dvh - 12px)
+    ) !important;
+}
+
+
+body #pmd-cashier-order-composer-v1.pmd-coc
+.pmd-pos-payment-body {
+  display: block !important;
+
+  grid-template-columns: none !important;
+
+  max-height: none !important;
+
+  padding: 8px !important;
+
+  overflow: visible !important;
+}
+
+
+body #pmd-cashier-order-composer-v1.pmd-coc
+.pmd-pos-payment-main {
+  display: flex !important;
+
+  flex-direction: column !important;
+
+  gap: 7px !important;
+}
+
+
+/* Header */
+
+body #pmd-cashier-order-composer-v1.pmd-coc
+.pmd-pos-payment-head {
+  min-height: 52px !important;
+
+  padding:
+    8px
+    12px !important;
+}
+
+
+body #pmd-cashier-order-composer-v1.pmd-coc
+.pmd-pos-payment-head h2 {
+  font-size: 21px !important;
+}
+
+
+/* Amount */
+
+body #pmd-cashier-order-composer-v1.pmd-coc
+.pmd-pos-balance-hero {
+  min-height: 56px !important;
+
+  padding:
+    8px
+    12px !important;
+}
+
+
+body #pmd-cashier-order-composer-v1.pmd-coc
+.pmd-pos-balance-hero > b {
+  font-size: 27px !important;
+}
+
+
+/* Common cards */
+
+body #pmd-cashier-order-composer-v1.pmd-coc
+.pmd-pos-payment-block {
+  padding: 8px !important;
+
+  border-radius: 11px !important;
+}
+
+
+/* Cash / Terminal */
+
+body #pmd-cashier-order-composer-v1.pmd-coc
+[data-pos-methods] {
+  gap: 7px !important;
+}
+
+
+body #pmd-cashier-order-composer-v1.pmd-coc
+[data-pos-methods]
+[data-payment-method] {
+  min-height: 62px !important;
+
+  padding: 7px !important;
+
+  gap: 3px !important;
+}
+
+
+/* Tip / Coupon remain mounted during Terminal */
+
+body #pmd-cashier-order-composer-v1.pmd-coc
+.pmd-pos-adjustments {
+  display: grid !important;
+
+  min-height: 0 !important;
+
+  gap: 7px !important;
+}
+
+
+body #pmd-cashier-order-composer-v1.pmd-coc
+.pmd-pos-payment-modal.is-direct-terminal
+.pmd-pos-adjustments {
+  display: grid !important;
+
+  visibility: visible !important;
+
+  opacity: .68 !important;
+
+  /*
+   * Canonical direct-terminal settlement currently does
+   * not submit cashier Tip/Coupon.
+   * Preserve them, but do not allow a misleading change.
+   */
+  pointer-events: none !important;
+}
+
+
+body #pmd-cashier-order-composer-v1.pmd-coc
+.pmd-pos-tip-buttons {
+  gap: 5px !important;
+}
+
+
+body #pmd-cashier-order-composer-v1.pmd-coc
+.pmd-pos-tip-buttons button {
+  height: 35px !important;
+  min-height: 35px !important;
+
+  padding: 0 9px !important;
+}
+
+
+body #pmd-cashier-order-composer-v1.pmd-coc
+[data-pos-coupon-code],
+
+body #pmd-cashier-order-composer-v1.pmd-coc
+[data-pos-coupon-apply] {
+  height: 38px !important;
+  min-height: 38px !important;
+}
+
+
+/* Cash value */
+
+body #pmd-cashier-order-composer-v1.pmd-coc
+[data-pos-cash-received] {
+  height: 42px !important;
+  min-height: 42px !important;
+
+  padding: 0 12px !important;
+
+  text-align: center !important;
+}
+
+
+/* ---------------------------------------------------------
+   TOUCH KEYPAD
+   --------------------------------------------------------- */
+
+body #pmd-cashier-order-composer-v1.pmd-coc
+.pmd-cashier-keypad {
+  gap: 5px !important;
+}
+
+
+body #pmd-cashier-order-composer-v1.pmd-coc
+.pmd-cashier-keypad button {
+  height: 41px !important;
+  min-height: 41px !important;
+
+  padding: 0 !important;
+
+  border-radius: 9px !important;
+
+  font-size: 17px !important;
+
+  display: grid !important;
+  place-items: center !important;
+
+  line-height: 1 !important;
+}
+
+
+body #pmd-cashier-order-composer-v1.pmd-coc
+.pmd-cashier-tenders {
+  gap: 5px !important;
+
+  margin-top: 5px !important;
+}
+
+
+body #pmd-cashier-order-composer-v1.pmd-coc
+.pmd-cashier-tenders button {
+  height: 32px !important;
+  min-height: 32px !important;
+
+  padding: 0 8px !important;
+
+  border:
+    1px solid
+    #c8dbe4 !important;
+
+  border-radius: 8px !important;
+
+  background: #fff !important;
+
+  color: #12354b !important;
+
+  box-shadow: none !important;
+
+  display: grid !important;
+  place-items: center !important;
+
+  line-height: 1 !important;
+}
+
+
+/* ---------------------------------------------------------
+   SUMMARY MUST NEVER COVER KEYPAD
+   --------------------------------------------------------- */
+
+body #pmd-cashier-order-composer-v1.pmd-coc
+.pmd-pos-payment-summary {
+  position: static !important;
+
+  inset: auto !important;
+
+  width: 100% !important;
+
+  margin:
+    7px
+    0
+    0 !important;
+
+  padding: 8px !important;
+
+  box-shadow: none !important;
+}
+
+
+body #pmd-cashier-order-composer-v1.pmd-coc
+.pmd-pos-change-box {
+  min-height: 38px !important;
+
+  font-size: 14px !important;
+}
+
+
+body #pmd-cashier-order-composer-v1.pmd-coc
+.pmd-pos-pay-button {
+  height: 46px !important;
+  min-height: 46px !important;
+
+  margin-top: 7px !important;
+
+  font-size: 15px !important;
+}
+
+
+/* ---------------------------------------------------------
+   MOBILE: keep normal document-flow footer
+   --------------------------------------------------------- */
+
+@media (max-width: 900px) {
+
+  body #pmd-cashier-order-composer-v1.pmd-coc
+  .pmd-coc__dialog {
+    grid-template-rows:
+      auto
+      minmax(0, 1fr)
+      auto !important;
+  }
+
+
+  body #pmd-cashier-order-composer-v1.pmd-coc
+  .pmd-coc__footer {
+    position: static !important;
+
+    width: auto !important;
+
+    padding:
+      8px
+      12px !important;
+
+    border-top:
+      1px solid
+      #d6e4eb !important;
+
+    background: #fff !important;
+
+    pointer-events: auto !important;
+  }
+
+
+  body #pmd-cashier-order-composer-v1.pmd-coc
+  .pmd-coc__cart {
+    padding-bottom: 12px !important;
+  }
+
+
+  body #pmd-cashier-order-composer-v1.pmd-coc
+  .pmd-pos-payment-dialog {
+    width:
+      calc(100vw - 10px) !important;
+
+    min-height: 0 !important;
+
+    max-height:
+      calc(100dvh - 10px) !important;
+  }
+
+}
+
+/* PMD_CASHIER_R56B_PAYMENT_RAIL_END */
+
+/* PMD_CASHIER_R59_STABLE_RAIL_START */
+
+/* =========================================================
+   CASHIER COMPOSER
+   One stable desktop grid.
+   Catalog and order rail always occupy the same height.
+   ========================================================= */
+
+@media (min-width: 901px) {
+
+  body #pmd-cashier-order-composer-v1.pmd-coc
+  .pmd-coc__dialog {
+    height:
+      min(
+        860px,
+        calc(100dvh - 32px)
+      ) !important;
+
+    max-height:
+      calc(100dvh - 32px) !important;
+
+    min-height: 640px !important;
+
+    display: grid !important;
+
+    grid-template-rows:
+      auto
+      minmax(0, 1fr) !important;
+
+    overflow: hidden !important;
+  }
+
+
+  /* Old top table row is no longer an owner. */
+  body #pmd-cashier-order-composer-v1.pmd-coc
+  .pmd-coc__tablebar {
+    display: none !important;
+  }
+
+
+  /* Footer node remains in DOM only for existing event ownership. */
+  body #pmd-cashier-order-composer-v1.pmd-coc
+  .pmd-coc__footer {
+    display: none !important;
+    width: 0 !important;
+    height: 0 !important;
+    min-height: 0 !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    border: 0 !important;
+  }
+
+
+  body #pmd-cashier-order-composer-v1.pmd-coc
+  .pmd-coc__main {
+    width: 100% !important;
+    height: 100% !important;
+    min-height: 0 !important;
+    max-height: none !important;
+
+    display: grid !important;
+
+    grid-template-columns:
+      minmax(0, 1fr)
+      minmax(320px, 360px) !important;
+
+    align-items: stretch !important;
+
+    gap: 14px !important;
+    padding: 14px !important;
+
+    overflow: hidden !important;
+  }
+
+
+  body #pmd-cashier-order-composer-v1.pmd-coc
+  .pmd-coc__catalog,
+
+  body #pmd-cashier-order-composer-v1.pmd-coc
+  .pmd-coc__cart {
+    height: 100% !important;
+    min-height: 0 !important;
+    max-height: none !important;
+
+    align-self: stretch !important;
+  }
+
+
+  /* =======================================================
+     LEFT MENU
+     It fills the modal. Products scroll inside it.
+     ======================================================= */
+
+  body #pmd-cashier-order-composer-v1.pmd-coc
+  .pmd-coc__catalog {
+    overflow: hidden !important;
+  }
+
+
+  body #pmd-cashier-order-composer-v1.pmd-coc
+  .pmd-coc__menu {
+    min-height: 0 !important;
+    height: 100% !important;
+
+    overflow-x: hidden !important;
+    overflow-y: auto !important;
+
+    align-content: start !important;
+
+    padding-bottom: 26px !important;
+
+    scroll-padding-bottom: 26px !important;
+
+    overscroll-behavior: contain !important;
+  }
+
+
+  /*
+   * Product cards may grow enough for two-line names.
+   * A card can scroll out of view, but its own title must
+   * never be clipped by the card body.
+   */
+  body #pmd-cashier-order-composer-v1.pmd-coc
+  .pmd-coc-food {
+    min-height: 300px !important;
+    height: auto !important;
+  }
+
+
+  body #pmd-cashier-order-composer-v1.pmd-coc
+  .pmd-coc-food__body {
+    min-width: 0 !important;
+    min-height: 0 !important;
+  }
+
+
+  body #pmd-cashier-order-composer-v1.pmd-coc
+  .pmd-coc-food__body > strong {
+    display: -webkit-box !important;
+
+    -webkit-box-orient: vertical !important;
+    -webkit-line-clamp: 2 !important;
+
+    white-space: normal !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+
+    max-height: 2.7em !important;
+
+    padding-top: 1px !important;
+
+    font-size: 15px !important;
+    line-height: 1.3 !important;
+  }
+
+
+  /* =======================================================
+     RIGHT ORDER RAIL
+     Fixed height regardless of number of order lines.
+     More items = internal scroll, never rail growth.
+     ======================================================= */
+
+  body #pmd-cashier-order-composer-v1.pmd-coc
+  .pmd-coc__cart {
+    display: flex !important;
+    flex-direction: column !important;
+
+    overflow-x: hidden !important;
+    overflow-y: auto !important;
+
+    padding: 12px !important;
+
+    overscroll-behavior: contain !important;
+
+    scrollbar-gutter: stable !important;
+  }
+
+
+  body #pmd-cashier-order-composer-v1.pmd-coc
+  .pmd-coc__cart > * {
+    flex: 0 0 auto !important;
+    min-width: 0 !important;
+  }
+
+
+  /*
+   * Existing real action node stays attached to all existing
+   * listeners, but always sits at the visual bottom.
+   */
+  body #pmd-cashier-order-composer-v1.pmd-coc
+  .pmd-coc__cart >
+  .pmd-coc__footer-right {
+    position: sticky !important;
+
+    left: auto !important;
+    right: auto !important;
+    bottom: 0 !important;
+
+    width: 100% !important;
+    max-width: none !important;
+
+    margin-top: auto !important;
+    margin-bottom: 0 !important;
+
+    padding:
+      12px
+      0
+      0 !important;
+
+    display: grid !important;
+
+    grid-template-columns:
+      92px
+      minmax(0, 1fr) !important;
+
+    gap: 8px !important;
+
+    border-top:
+      1px solid #d7e4ec !important;
+
+    background:
+      linear-gradient(
+        to bottom,
+        rgba(255,255,255,.96),
+        #fff 14px,
+        #fff
+      ) !important;
+
+    z-index: 20 !important;
+  }
+
+
+  body #pmd-cashier-order-composer-v1.pmd-coc
+  .pmd-coc__cart >
+  .pmd-coc__footer-right >
+  button {
+    display: flex !important;
+
+    align-items: center !important;
+    justify-content: center !important;
+
+    visibility: visible !important;
+
+    width: 100% !important;
+    height: 44px !important;
+    min-height: 44px !important;
+
+    margin: 0 !important;
+    padding: 0 10px !important;
+
+    border-radius: 11px !important;
+
+    font-size: 12px !important;
+    line-height: 1 !important;
+    font-weight: 850 !important;
+  }
+
+
+  body #pmd-cashier-order-composer-v1.pmd-coc
+  .pmd-coc__cart >
+  .pmd-coc__footer-right >
+  .pmd-coc__primary:not(:disabled) {
+    opacity: 1 !important;
+
+    background: #003f37 !important;
+    background-color: #003f37 !important;
+
+    border-color: #003f37 !important;
+
+    color: #fff !important;
+  }
+
+
+  body #pmd-cashier-order-composer-v1.pmd-coc
+  .pmd-coc__cart >
+  .pmd-coc__footer-right >
+  .pmd-coc__primary:disabled {
+    display: flex !important;
+    visibility: visible !important;
+
+    opacity: 1 !important;
+
+    background: #9db0ad !important;
+    background-color: #9db0ad !important;
+
+    border-color: #9db0ad !important;
+
+    color: #fff !important;
+  }
+
+}
+
+
+/* =========================================================
+   PAYMENT METHODS
+   Exactly one visual icon per method.
+   Cash must remain visible when there is no terminal provider.
+   ========================================================= */
+
+body #pmd-cashier-order-composer-v1.pmd-coc
+.pmd-pos-method-grid {
+  display: grid !important;
+
+  grid-template-columns:
+    repeat(
+      2,
+      minmax(0, 1fr)
+    ) !important;
+
+  align-items: stretch !important;
+
+  gap: 12px !important;
+
+  min-height: 0 !important;
+}
+
+
+body #pmd-cashier-order-composer-v1.pmd-coc
+.pmd-pos-method-grid >
+[data-payment-method] {
+  display: flex !important;
+
+  flex-direction: column !important;
+
+  align-items: center !important;
+  justify-content: center !important;
+
+  visibility: visible !important;
+  opacity: 1 !important;
+
+  width: 100% !important;
+  min-width: 0 !important;
+
+  min-height: 88px !important;
+
+  gap: 8px !important;
+
+  padding: 12px !important;
+
+  text-align: center !important;
+}
+
+
+/*
+ * No terminal configured:
+ * Cash is the only child and fills the whole method row.
+ */
+body #pmd-cashier-order-composer-v1.pmd-coc
+.pmd-pos-method-grid >
+[data-payment-method]:only-child {
+  display: flex !important;
+
+  grid-column:
+    1 / -1 !important;
+
+  width: 100% !important;
+  max-width: none !important;
+}
+
+
+/* Old text descriptions are not needed for cashier. */
+body #pmd-cashier-order-composer-v1.pmd-coc
+[data-payment-method] small {
+  display: none !important;
+}
+
+
+/* Remove all old duplicate icon layers first. */
+body #pmd-cashier-order-composer-v1.pmd-coc
+[data-payment-method]::after {
+  content: none !important;
+  display: none !important;
+}
+
+
+/* One Cash icon only. */
+body #pmd-cashier-order-composer-v1.pmd-coc
+[data-payment-method="cash"]::before {
+  content: "€" !important;
+
+  width: 36px !important;
+  height: 36px !important;
+
+  display: grid !important;
+  place-items: center !important;
+
+  margin: 0 !important;
+
+  border: 0 !important;
+  border-radius: 10px !important;
+
+  background: #e3f2ee !important;
+
+  color: #087a66 !important;
+
+  font-size: 22px !important;
+  line-height: 1 !important;
+  font-weight: 950 !important;
+
+  box-shadow: none !important;
+}
+
+
+/* One Terminal icon only. */
+body #pmd-cashier-order-composer-v1.pmd-coc
+[data-payment-method="direct_terminal"]::before {
+  content: "" !important;
+
+  width: 38px !important;
+  height: 26px !important;
+
+  display: block !important;
+
+  margin: 0 !important;
+
+  border:
+    3px solid #087a66 !important;
+
+  border-radius: 6px !important;
+
+  background:
+    linear-gradient(
+      to bottom,
+      #fff 0,
+      #fff 63%,
+      #dcebe7 63%,
+      #dcebe7 100%
+    ) !important;
+
+  box-shadow: none !important;
+}
+
+
+body #pmd-cashier-order-composer-v1.pmd-coc
+[data-payment-method] b {
+  display: block !important;
+
+  margin: 0 !important;
+
+  color: #12354b !important;
+
+  font-size: 16px !important;
+  line-height: 1.1 !important;
+  font-weight: 900 !important;
+
+  text-align: center !important;
+}
+
+
+/* =========================================================
+   SMALL / TABLET
+   Let the existing responsive flow own stacking.
+   ========================================================= */
+
+@media (max-width: 900px) {
+
+  body #pmd-cashier-order-composer-v1.pmd-coc
+  .pmd-pos-method-grid {
+    grid-template-columns:
+      1fr !important;
+  }
+
+
+  body #pmd-cashier-order-composer-v1.pmd-coc
+  .pmd-pos-method-grid >
+  [data-payment-method] {
+    min-height: 76px !important;
+  }
+
+}
+
+/* PMD_CASHIER_R59B_PERSISTENT_ACTIONS_FIX_START */
+
+
+/* =========================================================
+   DESKTOP GEOMETRY
+   ========================================================= */
+
+@media (min-width: 901px) {
+
+  body #pmd-cashier-order-composer-v1.pmd-coc
+  .pmd-coc__dialog {
+    --pmd-coc-r59b-rail:
+      clamp(
+        320px,
+        25vw,
+        360px
+      );
+
+    /*
+     * Header / hidden tablebar / main / empty footer track.
+     * Footer itself is placed over row 3 below.
+     */
+    grid-template-rows:
+      auto
+      0
+      minmax(0, 1fr)
+      0 !important;
+  }
+
+
+  body #pmd-cashier-order-composer-v1.pmd-coc
+  .pmd-coc__tablebar {
+    display: none !important;
+  }
+
+
+  body #pmd-cashier-order-composer-v1.pmd-coc
+  .pmd-coc__main {
+    grid-row: 3 !important;
+
+    min-height: 0 !important;
+
+    grid-template-columns:
+      minmax(0, 1fr)
+      var(
+        --pmd-coc-r59b-rail
+      ) !important;
+
+    overflow: hidden !important;
+  }
+
+
+  /* =======================================================
+     LEFT MENU
+     Menu scrolls; cards remain equal-sized.
+     ======================================================= */
+
+  body #pmd-cashier-order-composer-v1.pmd-coc
+  .pmd-coc__catalog {
+    height: 100% !important;
+    min-height: 0 !important;
+
+    overflow: hidden !important;
+
+    grid-template-rows:
+      auto
+      auto
+      auto
+      minmax(0, 1fr) !important;
+  }
+
+
+  body #pmd-cashier-order-composer-v1.pmd-coc
+  .pmd-coc__menu {
+    height: auto !important;
+    min-height: 0 !important;
+    max-height: none !important;
+
+    overflow-x: hidden !important;
+    overflow-y: auto !important;
+
+    align-content: start !important;
+    align-items: stretch !important;
+
+    /*
+     * Every product row has exactly one card height.
+     * Different descriptions/images can no longer change it.
+     */
+    grid-auto-rows:
+      320px !important;
+
+    padding-bottom: 30px !important;
+    scroll-padding-bottom: 30px !important;
+
+    overscroll-behavior:
+      contain !important;
+  }
+
+
+  body #pmd-cashier-order-composer-v1.pmd-coc
+  .pmd-coc-food {
+    width: 100% !important;
+
+    height: 320px !important;
+    min-height: 320px !important;
+    max-height: 320px !important;
+
+    align-self: stretch !important;
+
+    grid-template-rows:
+      136px
+      minmax(0, 1fr) !important;
+
+    overflow: hidden !important;
+  }
+
+
+  body #pmd-cashier-order-composer-v1.pmd-coc
+  .pmd-coc-food__media {
+    height: 136px !important;
+    min-height: 136px !important;
+    max-height: 136px !important;
+  }
+
+
+  body #pmd-cashier-order-composer-v1.pmd-coc
+  .pmd-coc-food__body {
+    min-width: 0 !important;
+    min-height: 0 !important;
+
+    padding: 12px !important;
+
+    display: flex !important;
+    flex-direction: column !important;
+
+    overflow: hidden !important;
+  }
+
+
+  /*
+   * Food title may use two lines, but may never be sliced
+   * through the middle of a line.
+   */
+  body #pmd-cashier-order-composer-v1.pmd-coc
+  .pmd-coc-food__body > strong {
+    display: -webkit-box !important;
+
+    min-height: 36px !important;
+    max-height: 36px !important;
+
+    margin: 0 !important;
+    padding: 0 !important;
+
+    overflow: hidden !important;
+
+    line-height: 18px !important;
+
+    -webkit-line-clamp: 2 !important;
+    -webkit-box-orient: vertical !important;
+
+    overflow-wrap: anywhere !important;
+  }
+
+
+  body #pmd-cashier-order-composer-v1.pmd-coc
+  .pmd-coc-food__foot {
+    margin-top: auto !important;
+  }
+
+
+  /* =======================================================
+     RIGHT RAIL
+     It scrolls independently.
+     Reserve only enough room INSIDE the rail for actions.
+     ======================================================= */
+
+  body #pmd-cashier-order-composer-v1.pmd-coc
+  .pmd-coc__cart {
+    min-height: 0 !important;
+    height: 100% !important;
+
+    overflow-x: hidden !important;
+    overflow-y: auto !important;
+
+    padding-bottom: 84px !important;
+
+    scroll-padding-bottom:
+      84px !important;
+
+    overscroll-behavior:
+      contain !important;
+  }
+
+
+  /* =======================================================
+     PERSISTENT FOOTER
+     Same grid row as main.
+     Right-aligned to the order rail.
+     It is NOT inside main/cart DOM anymore.
+     ======================================================= */
+
+  body #pmd-cashier-order-composer-v1.pmd-coc
+  .pmd-coc__footer {
+    display: block !important;
+
+    grid-row: 3 !important;
+
+    align-self: end !important;
+    justify-self: end !important;
+
+    width:
+      calc(
+        var(
+          --pmd-coc-r59b-rail
+        )
+        - 28px
+      ) !important;
+
+    height: auto !important;
+    min-height: 0 !important;
+
+    margin:
+      0
+      28px
+      28px
+      0 !important;
+
+    padding: 0 !important;
+
+    border: 0 !important;
+
+    background:
+      transparent !important;
+
+    box-shadow:
+      none !important;
+
+    overflow: visible !important;
+
+    z-index: 80 !important;
+
+    pointer-events: none !important;
+  }
+
+
+  body #pmd-cashier-order-composer-v1.pmd-coc
+  .pmd-coc__footer >
+  .pmd-coc__footer-right {
+    position: static !important;
+    inset: auto !important;
+
+    width: 100% !important;
+    max-width: none !important;
+
+    margin: 0 !important;
+
+    padding:
+      10px
+      0
+      0 !important;
+
+    display: grid !important;
+
+    grid-template-columns:
+      92px
+      minmax(0, 1fr) !important;
+
+    gap: 8px !important;
+
+    border-top:
+      1px solid
+      #d7e4ec !important;
+
+    background:
+      rgba(
+        255,
+        255,
+        255,
+        .98
+      ) !important;
+
+    box-shadow:
+      0
+      -10px
+      18px
+      rgba(
+        255,
+        255,
+        255,
+        .96
+      ) !important;
+
+    pointer-events:
+      auto !important;
+  }
+
+
+  body #pmd-cashier-order-composer-v1.pmd-coc
+  .pmd-coc__footer
+  .pmd-coc__footer-right >
+  button {
+    width: 100% !important;
+
+    height: 46px !important;
+    min-height: 46px !important;
+
+    margin: 0 !important;
+    padding: 0 10px !important;
+
+    display: flex !important;
+
+    align-items: center !important;
+    justify-content: center !important;
+
+    visibility: visible !important;
+    opacity: 1 !important;
+
+    border-radius:
+      11px !important;
+
+    font-size:
+      12px !important;
+
+    line-height: 1 !important;
+    font-weight: 850 !important;
+  }
+
+
+  body #pmd-cashier-order-composer-v1.pmd-coc
+  .pmd-coc__footer
+  .pmd-coc__primary:not(:disabled) {
+    background:
+      #003f37 !important;
+
+    background-color:
+      #003f37 !important;
+
+    border-color:
+      #003f37 !important;
+
+    color:
+      #fff !important;
+  }
+
+
+  body #pmd-cashier-order-composer-v1.pmd-coc
+  .pmd-coc__footer
+  .pmd-coc__primary:disabled {
+    background:
+      #9db0ad !important;
+
+    background-color:
+      #9db0ad !important;
+
+    border-color:
+      #9db0ad !important;
+
+    color:
+      #fff !important;
+  }
+
+}
+
+
+/* =========================================================
+   MOBILE
+   Persistent footer remains its real fourth dialog row.
+   ========================================================= */
+
+@media (max-width: 900px) {
+
+  body #pmd-cashier-order-composer-v1.pmd-coc
+  .pmd-coc__dialog {
+    grid-template-rows:
+      auto
+      0
+      minmax(0, 1fr)
+      auto !important;
+  }
+
+
+  body #pmd-cashier-order-composer-v1.pmd-coc
+  .pmd-coc__footer {
+    display: block !important;
+
+    position: static !important;
+
+    grid-row: 4 !important;
+
+    width: auto !important;
+    height: auto !important;
+
+    margin: 0 !important;
+
+    padding:
+      10px
+      12px
+      12px !important;
+
+    border-top:
+      1px solid
+      #d7e4ec !important;
+
+    background:
+      #fff !important;
+
+    pointer-events:
+      auto !important;
+  }
+
+
+  body #pmd-cashier-order-composer-v1.pmd-coc
+  .pmd-coc__footer-right {
+    width: 100% !important;
+
+    display: grid !important;
+
+    grid-template-columns:
+      88px
+      minmax(0, 1fr) !important;
+
+    gap: 8px !important;
+  }
+
+}
+
+
+/* PMD_CASHIER_R59B_PERSISTENT_ACTIONS_FIX_END */
+
+/* PMD_CASHIER_R59_STABLE_RAIL_END */
+
+/* PMD_CASHIER_R59D_MODAL_OWNER_START */
+
+/*
+ * Hidden means REALLY hidden.
+ * Prevent any old layout rule from leaving the persistent
+ * Close / Confirm / Pay controls floating on the page.
+ */
+body #pmd-cashier-order-composer-v1.pmd-coc[hidden] {
+    display: none !important;
+}
+
+body #pmd-cashier-order-composer-v1.pmd-coc[hidden] .pmd-coc__footer,
+body #pmd-cashier-order-composer-v1.pmd-coc[hidden] .pmd-coc__footer-right {
+    display: none !important;
+}
+
+
+/*
+ * IMPORTANT:
+ * :has() must be written as ONE selector token.
+ * No newline between ":" and "has".
+ */
+body #pmd-cashier-order-composer-v1.pmd-coc:has(.pmd-pos-payment-modal.is-show) .pmd-coc__footer,
+body #pmd-cashier-order-composer-v1.pmd-coc:has(.pmd-pos-payment-modal[aria-hidden="false"]) .pmd-coc__footer {
+    visibility: hidden !important;
+    opacity: 0 !important;
+    pointer-events: none !important;
+}
+
+
+/*
+ * Food Details owns the screen while open.
+ */
+body #pmd-cashier-order-composer-v1.pmd-coc:has(.pmd-coc-product:not([hidden])) .pmd-coc__footer {
+    visibility: hidden !important;
+    opacity: 0 !important;
+    pointer-events: none !important;
+}
+
+
+/*
+ * No flash / fade when ownership changes.
+ */
+body #pmd-cashier-order-composer-v1.pmd-coc .pmd-coc__footer,
+body #pmd-cashier-order-composer-v1.pmd-coc .pmd-coc__footer-right {
+    transition: none !important;
+    animation: none !important;
+}
+
+
+/* PMD_CASHIER_R59D_MODAL_OWNER_END */

@@ -86,6 +86,16 @@ class Pmdmenus extends AdminController
             $allergenNames = $menuAllergens->pluck('name')->map(static fn($name) => (string)$name)->values()->all();
             $image = $this->menuImageUrl($menu, $legacyImageIndex);
 
+            // PMD_MENU_LOGO_FALLBACK_R54
+            if (
+                trim(
+                    (string)$image
+                ) === ''
+            ) {
+                $image =
+                    '/brand/paymydine-logo.svg';
+            }
+
             $card = [
                 'id' => (int)$menu->menu_id,
                 'name' => (string)$menu->menu_name,

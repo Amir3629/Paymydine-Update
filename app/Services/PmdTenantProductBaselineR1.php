@@ -19,7 +19,7 @@ use Illuminate\Support\Str;
  */
 class PmdTenantProductBaselineR1
 {
-    public const VERSION = '1.0.1';
+    public const VERSION = '1.2.0';
 
     public function repairCurrentTenant(array $scopes = []): array
     {
@@ -42,10 +42,13 @@ class PmdTenantProductBaselineR1
             $this->step($report, 'kds_stations', fn () => $this->ensureKdsStations());
         }
         if (in_array('pos', $scopes, true)) {
+            // PMD_CASH_DRAWER_FOUNDATION_R1
+            $this->step($report, 'cash_drawer_local_agent_foundation', fn () => (new PmdCashDrawerFoundationR1())->repairCurrentTenant(false));
             $this->step($report, 'cash_drawers', fn () => $this->ensureCashDrawers());
             $this->step($report, 'pos_hardware_commands', fn () => $this->ensurePosHardwareCommands());
             $this->step($report, 'pos_device_fields', fn () => $this->ensurePosDeviceFields());
             $this->step($report, 'terminal_devices', fn () => $this->ensureTerminalDevices());
+            $this->step($report, 'vr_terminal_device_fields', fn () => $this->ensureVrTerminalDeviceFields());
             $this->step($report, 'sumup_pos_config', fn () => $this->ensureSumupPosConfigFields());
         }
         if (in_array('orders', $scopes, true)) {
@@ -141,11 +144,11 @@ class PmdTenantProductBaselineR1
 
         $created = [];
         $methods = [
-            'card' => ['name' => 'Card', 'priority' => 10, 'provider_code' => 'stripe'],
-            'apple_pay' => ['name' => 'Apple Pay', 'priority' => 20, 'provider_code' => 'stripe'],
-            'google_pay' => ['name' => 'Google Pay', 'priority' => 30, 'provider_code' => 'stripe'],
-            'wero' => ['name' => 'Wero', 'priority' => 40, 'provider_code' => 'worldline'],
-            'paypal' => ['name' => 'PayPal', 'priority' => 50, 'provider_code' => 'paypal'],
+            'card' => ['name' => 'Card', 'priority' => 10, 'provider_code' => null],
+            'apple_pay' => ['name' => 'Apple Pay', 'priority' => 20, 'provider_code' => null],
+            'google_pay' => ['name' => 'Google Pay', 'priority' => 30, 'provider_code' => null],
+            'wero' => ['name' => 'Wero', 'priority' => 40, 'provider_code' => null],
+            'paypal' => ['name' => 'PayPal', 'priority' => 50, 'provider_code' => null],
         ];
         if (!$connection->table($table)->whereIn('code', ['cash', 'cod'])->exists()) {
             $methods['cod'] = ['name' => 'Cash', 'priority' => 60, 'provider_code' => null];
@@ -154,7 +157,7 @@ class PmdTenantProductBaselineR1
             'stripe' => ['name' => 'Stripe', 'priority' => 110, 'supported_methods' => ['card', 'apple_pay', 'google_pay']],
             'paypal' => ['name' => 'PayPal', 'priority' => 120, 'supported_methods' => ['paypal']],
             'worldline' => ['name' => 'Worldline', 'priority' => 130, 'supported_methods' => ['card', 'wero']],
-            'sumup' => ['name' => 'SumUp', 'priority' => 140, 'supported_methods' => ['card']],
+            'sumup' => ['name' => 'SumUp', 'priority' => 140, 'supported_methods' => ['card', 'apple_pay', 'google_pay']],
             'square' => ['name' => 'Square', 'priority' => 150, 'supported_methods' => ['card']],
             'vr_payment' => ['name' => 'VR Payment', 'priority' => 160, 'supported_methods' => ['card', 'apple_pay', 'google_pay', 'paypal', 'wero']],
         ];
@@ -170,7 +173,118 @@ class PmdTenantProductBaselineR1
             $created[] = $code;
         }
 
-        return ['table' => $table, 'created' => $created, 'created_count' => count($created), 'new_rows_enabled' => false];
+        // PMD_PAYMENT_METHOD_BASELINE_R2
+        // Durable invariant for every tenant:
+        // - freshly-created methods start as Not offered (provider=null, status=0);
+        // - old baseline default mappings are removed while still disabled;
+        // - an explicit non-default provider assignment may self-heal to enabled,
+        //   but only when that provider record is enabled and PMD implements the
+        //   method end-to-end. Unsupported flows are never auto-enabled.
+        $legacySeedProviders = [
+            'card' => 'stripe',
+            'apple_pay' => 'stripe',
+            'google_pay' => 'stripe',
+            'wero' => 'worldline',
+            'paypal' => 'paypal',
+        ];
+        $reconciled = [];
+        $registry = app(\App\Services\Payments\ProviderCapabilityRegistry::class);
+
+        foreach (array_keys($legacySeedProviders) as $code) {
+            $row = $connection->table($table)->where('code', $code)->first();
+            if (!$row) continue;
+
+            $jsonColumn = in_array('meta', $columns, true)
+                ? 'meta'
+                : (in_array('data', $columns, true) ? 'data' : null);
+            $payload = [];
+            if ($jsonColumn && isset($row->{$jsonColumn})) {
+                $raw = $row->{$jsonColumn};
+                if (is_array($raw)) {
+                    $payload = $raw;
+                } elseif (is_string($raw) && trim($raw) !== '') {
+                    $decoded = json_decode($raw, true);
+                    if (is_array($decoded)) $payload = $decoded;
+                }
+            }
+
+            $providerCode = '';
+            if (in_array('provider_code', $columns, true)) {
+                $providerCode = trim((string)($row->provider_code ?? ''));
+            }
+            if ($providerCode === '') {
+                $providerCode = trim((string)($payload['provider_code'] ?? ''));
+            }
+
+            $status = (int)($row->status ?? 0);
+
+            // A provider-backed method without a provider must never remain enabled.
+            if ($providerCode === '') {
+                if ($status !== 0 && in_array('status', $columns, true)) {
+                    $update = ['status' => 0];
+                    if (in_array('updated_at', $columns, true)) $update['updated_at'] = now();
+                    if (in_array('date_updated', $columns, true)) $update['date_updated'] = now();
+                    $connection->table($table)->where('code', $code)->update($update);
+                    $reconciled[] = ['code' => $code, 'action' => 'disabled_without_provider'];
+                }
+                continue;
+            }
+
+            // Rows created by the old baseline could say provider=stripe/paypal/worldline
+            // while status=0. That was never a real owner choice. Convert those rows
+            // back to the honest Not offered state instead of silently enabling them.
+            if ($status === 0 && $providerCode === ($legacySeedProviders[$code] ?? null)) {
+                $update = [];
+                if (in_array('provider_code', $columns, true)) $update['provider_code'] = null;
+                if ($jsonColumn) {
+                    unset($payload['provider_code']);
+                    $update[$jsonColumn] = json_encode(
+                        $payload,
+                        JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES
+                    ) ?: '{}';
+                }
+                if (in_array('updated_at', $columns, true)) $update['updated_at'] = now();
+                if (in_array('date_updated', $columns, true)) $update['date_updated'] = now();
+                if ($update) {
+                    $connection->table($table)->where('code', $code)->update($update);
+                }
+                $reconciled[] = [
+                    'code' => $code,
+                    'action' => 'cleared_legacy_default_provider',
+                    'provider' => $providerCode,
+                ];
+                continue;
+            }
+
+            if ($status !== 0) continue;
+            if (!$registry->implementsPaymentMethod($providerCode, $code)) continue;
+
+            $providerRow = $connection->table($table)
+                ->where('code', $providerCode)
+                ->first();
+            if (!$providerRow || (int)($providerRow->status ?? 0) !== 1) continue;
+
+            if (in_array('status', $columns, true)) {
+                $update = ['status' => 1];
+                if (in_array('updated_at', $columns, true)) $update['updated_at'] = now();
+                if (in_array('date_updated', $columns, true)) $update['date_updated'] = now();
+                $connection->table($table)->where('code', $code)->update($update);
+                $reconciled[] = [
+                    'code' => $code,
+                    'action' => 'enabled_explicit_connected_provider',
+                    'provider' => $providerCode,
+                ];
+            }
+        }
+
+        return [
+            'table' => $table,
+            'created' => $created,
+            'created_count' => count($created),
+            'new_rows_enabled' => false,
+            'payment_method_invariant' => 'provider-selection-controls-offering',
+            'reconciled' => $reconciled,
+        ];
     }
 
     protected function paymentInsertPayload(array $columns, string $code, string $name, int $priority, ?string $providerCode, array $meta): array
@@ -422,6 +536,24 @@ class PmdTenantProductBaselineR1
             $table->timestamps();
         });
         return ['created' => true];
+    }
+
+    // PMD_VR_TERMINAL_SCHEMA_R1
+    protected function ensureVrTerminalDeviceFields(): array
+    {
+        $schema = $this->schema();
+        if (!$schema->hasTable('terminal_devices')) return ['skipped' => true, 'reason' => 'terminal_devices missing'];
+        $columns = $schema->getColumnListing('terminal_devices');
+        $missing = array_values(array_diff(['provider_terminal_id', 'serial_number', 'environment', 'last_seen_at'], $columns));
+        if ($missing) {
+            $schema->table('terminal_devices', function (Blueprint $table) use ($missing): void {
+                if (in_array('provider_terminal_id', $missing, true)) $table->unsignedBigInteger('provider_terminal_id')->nullable()->index();
+                if (in_array('serial_number', $missing, true)) $table->string('serial_number', 191)->nullable();
+                if (in_array('environment', $missing, true)) $table->string('environment', 20)->nullable()->index();
+                if (in_array('last_seen_at', $missing, true)) $table->timestamp('last_seen_at')->nullable();
+            });
+        }
+        return ['columns_added' => $missing];
     }
 
     protected function ensureSumupPosConfigFields(): array
