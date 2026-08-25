@@ -21,8 +21,9 @@ trap 'rm -f "$TMP"' EXIT
 
 php <<'PHP' > "$TMP"
 <?php
-require __DIR__.'/vendor/autoload.php';
-$app = require __DIR__.'/bootstrap/app.php';
+$root = getcwd();
+require $root.'/vendor/autoload.php';
+$app = require $root.'/bootstrap/app.php';
 $kernel = $app->make(Illuminate\Contracts\Console\Kernel::class);
 $kernel->bootstrap();
 
