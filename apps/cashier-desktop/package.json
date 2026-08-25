@@ -1,8 +1,8 @@
 {
   "name": "paymydine-cashier-desktop",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "private": true,
-  "description": "PayMyDine cashier desktop app with local printer and cash drawer support for Windows and macOS",
+  "description": "PayMyDine universal cashier desktop app with local printer and cash drawer support for Windows and macOS",
   "main": "src/main.js",
   "scripts": {
     "dev": "electron .",
