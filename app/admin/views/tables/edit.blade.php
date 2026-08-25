@@ -1,3 +1,5 @@
+<link rel="stylesheet" href="/app/admin/assets/css/pmd-table-qr-template-studio-v1.css?v=20260825_1">
+
 <div class="row-fluid">
     {!! form_open([
         'id'     => 'edit-form',
@@ -6,7 +8,7 @@
     ]) !!}
     {!! $this->renderForm() !!}
     {!! form_close() !!}
-    <div class="ms-qr" style="margin-left:2rem;">
+    <div class="ms-qr">
     <?php 
     use Illuminate\Support\Facades\DB;
     $request_uri = $_SERVER['REQUEST_URI']; 
@@ -82,36 +84,77 @@
             'qr'       => $qr_code->qr_code ?? $table_data->qr_code ?? null,
             'table'    => $tableNumber,
         ]);
-$qr_code_url = 'https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=' . urlencode($qr_redirect_url);
+
+        // PMD_TABLE_QR_GENERATOR_AUTHORITY_UNCHANGED_V1
+        // Keep the existing QR provider and payload exactly as-is. The template
+        // studio below only changes how the already-generated QR is presented/downloaded.
+        $qr_code_url = 'https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=' . urlencode($qr_redirect_url);
 
         $qr_code_image = file_get_contents($qr_code_url);
         $base64_qr_code = base64_encode($qr_code_image);
-        echo '<img id="qr-code" src="data:image/png;base64,' . $base64_qr_code . '" alt="QR Code" />';
-        echo '<br />';
-        echo '<a href="data:image/png;base64,' . $base64_qr_code . '" download="qr-code.png">';
-        echo '<button>Download QR Code</button>';
-        echo '</a>';
+        $qrDataUri = 'data:image/png;base64,' . $base64_qr_code;
+
+        // PMD_TABLE_QR_TEMPLATE_STUDIO_V1
+        // Read-only restaurant identity. No setting, table or QR data is written here.
+        $settingValue = static function (string $key) {
+            try {
+                return DB::table('settings')->where('item', $key)->value('value');
+            } catch (\Throwable $error) {
+                return null;
+            }
+        };
+
+        $restaurantName = trim((string)($settingValue('pmd_restaurant_identity_name') ?: $settingValue('site_name') ?: ''));
+        if ($restaurantName === '') {
+            try {
+                $restaurantName = trim((string)(DB::table('locations')->where('location_id', $location_id)->value('location_name') ?: ''));
+            } catch (\Throwable $error) {
+                $restaurantName = '';
+            }
+        }
+        if ($restaurantName === '') {
+            $restaurantName = ucfirst((string)(explode('.', request()->getHost())[0] ?? 'Restaurant'));
+        }
+
+        $restaurantLogo = trim((string)($settingValue('pmd_restaurant_identity_logo') ?: $settingValue('site_logo') ?: ''));
+        if ($restaurantLogo === '') {
+            $restaurantLogo = '/brand/paymydine-logo.svg';
+        } elseif (!preg_match('#^https?://#i', $restaurantLogo)) {
+            $logoPath = '/'.ltrim(str_replace('\\', '/', (string)(parse_url($restaurantLogo, PHP_URL_PATH) ?: $restaurantLogo)), '/');
+            if (str_starts_with($logoPath, '/api/media/') || str_starts_with($logoPath, '/assets/media/') || str_starts_with($logoPath, '/brand/')) {
+                $restaurantLogo = $logoPath;
+            } elseif (str_starts_with($logoPath, '/uploads/')) {
+                $restaurantLogo = '/assets/media'.$logoPath;
+            } else {
+                $restaurantLogo = '/api/media/'.basename($logoPath);
+            }
+        }
+
+        $tableDisplayName = trim((string)($table_data->table_name ?? ''));
+        if ($tableDisplayName === '') {
+            $tableDisplayName = 'Table '.$tableNumber;
+        }
+
+        echo '<div class="pmd-table-qr-studio-v1"'
+            .' data-pmd-qr-template-studio-v1="1"'
+            .' data-pmd-qr-src="'.e($qrDataUri).'"'
+            .' data-pmd-restaurant-name="'.e($restaurantName).'"'
+            .' data-pmd-restaurant-logo="'.e($restaurantLogo).'"'
+            .' data-pmd-table-name="'.e($tableDisplayName).'">';
+        echo '<div class="pmd-table-qr-studio-v1__preview">';
+        echo '<img id="qr-code" src="'.e($qrDataUri).'" alt="QR Code for '.e($tableDisplayName).'" />';
+        echo '</div>';
+        echo '<div class="pmd-table-qr-studio-v1__actions">';
+        echo '<strong>'.e($tableDisplayName).' QR code</strong>';
+        echo '<span>Choose from 10 branded restaurant templates before downloading.</span>';
+        echo '<button type="button" class="pmd-table-qr-studio-v1__button" data-pmd-qr-template-open-v1>Choose design &amp; download</button>';
+        echo '</div>';
+        echo '</div>';
     } 
     ?>
 </div>
-<style>
-    .ms-qr{
-        display: flex;
-        align-items:end;
-    }
-    .ms-qr button{
-        background: #364a63;
-        color: #ffffff;
-        padding: 10px 12px;
-        border: 2px solid #364a63;
-        margin-left: 1rem;
-        border-radius: 6px;
-        font-weight: 600;
-    }
-</style>
    </div>
 
 </div>
 
-
-
+<script src="/app/admin/assets/js/pmd-table-qr-template-studio-v1.js?v=20260825_1" defer></script>
