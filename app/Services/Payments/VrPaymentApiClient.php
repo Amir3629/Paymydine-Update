@@ -78,7 +78,7 @@ class VrPaymentApiClient
             return [
                 'ok' => false,
                 'connected' => false,
-                'message' => 'VR Payment credentials could not access the configured Space.',
+                'message' => (string)($methods['message'] ?? 'VR Payment credentials could not access the configured Space.'),
                 'api' => $this->safeResult($methods),
             ];
         }
@@ -117,9 +117,11 @@ class VrPaymentApiClient
 
     public function paymentMethodConfigurations(): array
     {
+        // PMD_VR_PAYMENT_METHOD_SEARCH_R1_2
+        // VR discovery needs no sorting. Omit `order` so the Gateway
+        // cannot reject an unsupported ordering expression.
         return $this->request('GET', '/api/v2.0/payment/method-configurations/search', [
             'limit' => 100,
-            'order' => 'id ASC',
             'expand' => 'paymentMethod',
         ]);
     }

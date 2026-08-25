@@ -1121,17 +1121,28 @@
             yes(raw.needs_waiter) ||
             yes(raw.call_waiter);
 
+          // PMD_FLOOR_R60T_PHYSICAL_STATUS_OWNER
+          var operationalStatus =
+            clean(
+              raw.operational_status ||
+              raw.table_operational_status ||
+              ''
+            ).toLowerCase();
+
           var cleaning =
+            operationalStatus === 'cleaning' ||
             rawStatus === 'cleaning' ||
             yes(raw.cleaning_required) ||
             yes(raw.needs_cleaning);
 
           var reserved =
+            operationalStatus === 'reserved' ||
             rawStatus === 'reserved' ||
             yes(raw.reserved) ||
             yes(raw.is_reserved);
 
           var occupied =
+            operationalStatus === 'occupied' ||
             rawStatus === 'occupied' ||
             linked.length > 0 ||
             number(

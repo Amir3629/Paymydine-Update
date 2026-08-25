@@ -1,6 +1,8 @@
 (function () {
   'use strict';
 
+  // PMD_PAYMENT_V3_R60A_CLEAN_BASE
+
   // PMD_PAYMENT_V3_CASHIER_R55A
   // PMD_PAYMENT_V3_CASHIER_R56B
 
@@ -297,9 +299,8 @@
         if (cashierMode) {
           container.innerHTML =
             '<div class="pmd-pos-balance-card is-remaining pmd-pos-balance-hero">' +
-              '<span>Order #' +
-                esc(summary.order.order_id) +
-              '</span>' +
+              // PMD_PAYMENT_V3_R60E_STABLE_BALANCE
+              '<span>Total</span>' +
               '<b>' +
                 money(paymentPayable()) +
               '</b>' +
@@ -436,16 +437,32 @@
             }
 
             var onlineCount = providers.filter(terminalIsOnline).length;
-            var subtitle = state.payment.terminalStatusRefreshing
-              ? 'Checking terminals…'
-              : (onlineCount ? (providers.length > 1 ? 'Choose where the customer pays' : 'Ready') : 'No terminal online');
+            // PMD_PAYMENT_V3_R60E_STABLE_TERMINAL_STATUS
+            //
+            // Refresh terminal health without replacing the
+            // visible UI with an intermediate loading frame.
+            var subtitle =
+              onlineCount
+                ? (
+                    providers.length > 1
+                      ? 'Choose where the customer pays'
+                      : 'Ready'
+                  )
+                : 'No terminal online';
+
+            terminalBox.setAttribute(
+              'aria-busy',
+              state.payment.terminalStatusRefreshing
+                ? 'true'
+                : 'false'
+            );
 
             terminalBox.innerHTML = '<div class="pmd-pos-terminal-title"><b>' + (providers.length > 1 ? 'Choose terminal' : 'Terminal') + '</b><span>' + esc(subtitle) + '</span></div><div class="pmd-pos-terminal-provider-row">' + providers.map(function (provider) {
               var id = provider.terminal_device_id || '';
               var status = String(provider.terminal_status || 'unknown').toLowerCase();
               var isOnline = status === 'online';
               var active = state.payment.providerCode === provider.provider_code && String(state.payment.terminalDeviceId || '') === String(id);
-              return '<button type="button" data-terminal-provider="' + esc(provider.provider_code) + '" data-terminal-device-id="' + esc(id) + '" class="' + (active ? 'is-active ' : '') + (isOnline ? 'is-online' : 'is-offline') + '" ' + (!isOnline || state.payment.terminalStatusRefreshing ? 'disabled' : '') + '><span>' + esc(provider.name || 'Terminal') + '</span><small><i></i>' + esc(isOnline ? 'Online' : status) + '</small></button>';
+              return '<button type="button" data-terminal-provider="' + esc(provider.provider_code) + '" data-terminal-device-id="' + esc(id) + '" class="' + (active ? 'is-active ' : '') + (isOnline ? 'is-online' : 'is-offline') + '" ' + (!isOnline ? 'disabled' : '') + '><span>' + esc(provider.name || 'Terminal') + '</span><small><i></i>' + esc(isOnline ? 'Online' : status) + '</small></button>';
             }).join('') + '</div>';
 
             $$('[data-terminal-provider]', terminalBox).forEach(function (button) {
@@ -867,3 +884,4 @@
     }
   };
 })();
+

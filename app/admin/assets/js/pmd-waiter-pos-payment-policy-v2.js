@@ -395,10 +395,13 @@
 
         if (!method && !terminal) return;
 
-        window.setTimeout(function () {
-          normalizeStaffFlow();
-          api.renderPayment();
-        }, 0);
+        // PMD_PAYMENT_POLICY_R60E_STABLE_SWITCH
+        //
+        // V3 has already rendered during the button onclick.
+        // Apply presentation to that DOM synchronously.
+        // Do NOT create an additional zero-delay render frame.
+        normalizeStaffFlow();
+        applySimpleStaffUI();
       });
     };
 

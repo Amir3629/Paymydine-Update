@@ -824,3 +824,18 @@ body.pmd-cashier-order-center-open {
   }
 }
 
+
+
+/* PMD_CASHIER_R60S_HIDE_MUTATION_NOTICE_START */
+
+/*
+ * Server-side financial mutation protection remains active.
+ * This only removes the redundant read-only explanation from
+ * the Cashier Order Center.
+ */
+.pmd-cashier-order-center
+.pmd-cashier-order-center__mutation-lock {
+    display: none !important;
+}
+
+/* PMD_CASHIER_R60S_HIDE_MUTATION_NOTICE_END */

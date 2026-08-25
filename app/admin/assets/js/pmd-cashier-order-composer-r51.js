@@ -6,6 +6,8 @@
 (function () {
   'use strict';
 
+  // PMD_CASHIER_R60A_CLEAN_RAIL_OWNER
+
   // PMD_CASHIER_UI_R50
 
   // PMD_CASHIER_ORDER_COMPOSER_R41
@@ -348,13 +350,10 @@
         '/app/admin/assets/css/pmd-waiter-pos-v1.css',
         'data-pmd-coc-payment-style'
       );
+      // PMD_CASHIER_R60D_PAYMENT_CSS_OWNER
       ensureStyle(
-        '/app/admin/assets/css/pmd-cashier-payment-clean-v1.css',
+        '/app/admin/assets/css/pmd-cashier-payment-clean-v1.css?v=20260825-r60d',
         'data-pmd-coc-payment-clean-style'
-      );
-      ensureStyle(
-        '/app/admin/assets/css/pmd-payment-simple-v1.css',
-        'data-pmd-coc-payment-simple-style'
       );
 
       // PMD_CASHIER_PAYMENT_FRESH_R56B
@@ -370,7 +369,7 @@
         try {
           await loadFreshScript(
             '/app/admin/assets/js/pmd-waiter-pos-payment-v3.js',
-            'cashier-payment-v3-r56b-20260825'
+            'cashier-payment-v3-r60e-20260825'
           );
         } finally {
           try {
@@ -389,7 +388,7 @@
       ) {
         await loadFreshScript(
           '/app/admin/assets/js/pmd-waiter-pos-payment-v3.js',
-          'cashier-payment-v3-final'
+          'cashier-payment-v3-r60e-final'
         );
       }
 
@@ -406,7 +405,7 @@
       if (!window.PMDWaiterPOSPaymentV2.__pmdPolicyWrapped) {
         await loadFreshScript(
           '/app/admin/assets/js/pmd-waiter-pos-payment-policy-v2.js',
-          'cashier-payment-policy-r56b-20260825'
+          'cashier-payment-policy-r60e-20260825'
         );
       }
 
@@ -566,13 +565,6 @@
         '</div>',
 
         '<div class="pmd-coc__main" data-coc-main></div>',
-
-        '<footer class="pmd-coc__footer">',
-          '<div class="pmd-coc__footer-right">',
-            '<button type="button" class="pmd-coc__secondary" data-coc-close>Close</button>',
-            '<button type="button" class="pmd-coc__send pmd-coc__primary" data-coc-primary disabled>Confirm</button>',
-          '</div>',
-        '</footer>',
       '</section>',
 
       '<div class="pmd-coc-product" data-coc-product-modal hidden>',
@@ -601,6 +593,28 @@
     state.shell = shell;
 
     shell.addEventListener('click', function (event) {
+      // PMD_CASHIER_R60H_CANCEL_ACTION
+      var secondaryAction =
+        event.target.closest(
+          '[data-coc-secondary-action]'
+        );
+
+      if (secondaryAction) {
+        event.preventDefault();
+
+        if (
+          secondaryAction.getAttribute(
+            'data-coc-cancel-enabled'
+          ) === '1'
+        ) {
+          cancelActiveOrder();
+        } else {
+          closeComposer();
+        }
+
+        return;
+      }
+
       if (event.target.closest('[data-coc-close]')) {
         event.preventDefault();
         closeComposer();
@@ -908,13 +922,67 @@
     }
   }
 
-  function openShell() {
+  // PMD_CASHIER_R60I_FAST_OPEN
+  function prewarmComposerShell() {
+    if (
+      state.shell ||
+      !document.body
+    ) {
+      return;
+    }
+
+    try {
+      ensureShell();
+    } catch (error) {
+      console.warn(
+        '[PMD R60I] Composer prewarm skipped',
+        error
+      );
+    }
+  }
+
+
+  function scheduleComposerPrewarm() {
+    if (state.shell) {
+      return;
+    }
+
+    if (
+      typeof window.requestIdleCallback ===
+      'function'
+    ) {
+      window.requestIdleCallback(
+        function () {
+          prewarmComposerShell();
+        },
+        {
+          timeout: 700
+        }
+      );
+
+      return;
+    }
+
+    window.setTimeout(
+      prewarmComposerShell,
+      220
+    );
+  }
+
+
+  function openShell(immediate) {
     ensureShell();
 
     if (state.shell.hidden) {
-      state.shell.classList.add(
-        'is-coc-initial-loading'
-      );
+      if (immediate) {
+        state.shell.classList.remove(
+          'is-coc-initial-loading'
+        );
+      } else {
+        state.shell.classList.add(
+          'is-coc-initial-loading'
+        );
+      }
     }
 
     state.shell.hidden = false;
@@ -951,6 +1019,139 @@
     document.documentElement.classList.remove('pmd-coc-open');
     document.body.classList.remove('pmd-coc-open');
   }
+
+  // PMD_CASHIER_R60F_TABLE_HINT_OWNER
+  function tableHintForOrderId(orderId) {
+    var id = Number(
+      orderId || 0
+    );
+
+    if (!id) {
+      return null;
+    }
+
+    var orders =
+      Array.isArray(
+        state.openOrders
+      )
+        ? state.openOrders
+        : [];
+
+    var row =
+      orders.find(
+        function (candidate) {
+          return (
+            Number(
+              candidate &&
+              candidate.order_id
+            ) === id
+          );
+        }
+      ) || null;
+
+    if (
+      !row &&
+      state.existingOrder &&
+      Number(
+        state.existingOrder.order_id
+      ) === id
+    ) {
+      row =
+        state.existingOrder;
+    }
+
+    if (!row) {
+      return null;
+    }
+
+    /*
+     * Prefer an explicitly nested table object when
+     * the bootstrap/open-order payload already has one.
+     */
+    if (
+      row.table &&
+      typeof row.table === 'object'
+    ) {
+      var nested =
+        normalizeTable(
+          row.table
+        );
+
+      if (
+        nested &&
+        (
+          nested.id ||
+          nested.number
+        )
+      ) {
+        return nested;
+      }
+    }
+
+    var raw =
+      row.raw &&
+      typeof row.raw === 'object'
+        ? row.raw
+        : {};
+
+    /*
+     * Only consume fields that explicitly identify a TABLE.
+     *
+     * Do not pass the complete order object into
+     * normalizeTable(), because row.id could be an order id.
+     */
+    var tableId =
+      Number(
+        row.table_id ||
+        row.tableId ||
+        row.db_table_id ||
+        row.table_db_id ||
+        raw.table_id ||
+        0
+      );
+
+    var tableNumber =
+      String(
+        row.table_number ||
+        row.table_no ||
+        row.tableNumber ||
+        raw.table_number ||
+        raw.table_no ||
+        ''
+      ).trim();
+
+    var tableName =
+      String(
+        row.table_name ||
+        row.table_label ||
+        row.tableName ||
+        raw.table_name ||
+        ''
+      ).trim();
+
+    if (
+      !tableId &&
+      !tableNumber
+    ) {
+      /*
+       * Delivery/no-table orders correctly fall through
+       * to resolveTableForOrder() in openEdit().
+       */
+      return null;
+    }
+
+    return normalizeTable({
+      table_id: tableId,
+      table_number: tableNumber,
+      table_name: tableName,
+      raw: {
+        table_id: tableId,
+        table_number: tableNumber,
+        table_name: tableName
+      }
+    });
+  }
+
 
   // PMD_CASHIER_CANONICAL_TABLE_ROUTE_R44
   // /admin/pmd-waiter-pos-v1/data/{table} resolves by the physical DB table id.
@@ -1040,7 +1241,7 @@
     return true;
   }
 
-  async function loadDelivery(desiredOrderId) {
+  async function loadDelivery(desiredOrderId, preloaded) {
     state.table = null;
     state.deliveryMode = true;
     state.loading = true;
@@ -1088,12 +1289,14 @@
        * table endpoint, but deliberately discard its table/order state.
        * No fake table is ever written to the Delivery order.
        */
-      var boot = await fetchJson(
-        '/admin/pmd-waiter-pos-v1/data/' +
-        encodeURIComponent(key) +
-        '?_=' +
-        Date.now()
-      );
+      var boot =
+        preloaded &&
+        preloaded.boot
+          ? preloaded.boot
+          : await r60kPrefetchDeliveryBoot(
+              sourceTable,
+              key
+            );
 
       state.boot = boot || {};
 
@@ -1160,17 +1363,56 @@
       state.search = '';
       state.loading = false;
 
-      await setupPaymentModule();
-
       renderTableOptions();
 
       if (state.activeOrderId) {
+        /*
+         * PMD_CASHIER_R60K_DELIVERY_PARALLEL_OPEN
+         *
+         * Payment Summary is enough to render the existing
+         * Delivery safely. Payment UI installation itself can
+         * continue in the background.
+         */
+        setupPaymentModule()
+          .catch(
+            function (error) {
+              console.warn(
+                '[PMD R60K] Payment preload deferred',
+                error
+              );
+            }
+          );
+
         await refreshDeliveryOrder(
           true,
-          state.activeOrderId
+          state.activeOrderId,
+          (
+            preloaded &&
+            preloaded.summary
+          )
+            ? preloaded.summary
+            : null,
+          !!(
+            preloaded &&
+            preloaded.skipCashierRefresh
+          )
         );
       } else {
+        /*
+         * PMD_CASHIER_R60I_FAST_NEW_DELIVERY
+         *
+         * Ordering is ready now. Do not make the visible
+         * Composer wait for payment-module initialization.
+         */
         renderComposer();
+
+        setupPaymentModule()
+          .catch(function (error) {
+            console.warn(
+              '[PMD R60I] Payment preload deferred',
+              error
+            );
+          });
       }
 
       return true;
@@ -1180,7 +1422,7 @@
     }
   }
 
-  async function loadTable(table, desiredOrderId, fallbackToDetails) {
+  async function loadTable(table, desiredOrderId, fallbackToDetails, preloaded) {
     state.table = table;
     state.deliveryMode = false;
     state.deliveryLocationId = null;
@@ -1213,12 +1455,13 @@
         );
       }
 
-      var boot = await fetchJson(
-        '/admin/pmd-waiter-pos-v1/data/' +
-        encodeURIComponent(key) +
-        '?_=' +
-        Date.now()
-      );
+      var boot =
+        preloaded &&
+        preloaded.bootPromise
+          ? await preloaded.bootPromise
+          : await r60kPrefetchTableBoot(
+              table
+            );
 
       if (boot.table) {
         state.table =
@@ -1264,17 +1507,55 @@
 
       state.loading = false;
 
-      await setupPaymentModule();
+      renderTableOptions(
+        state.table &&
+        state.table.id
+      );
 
-      if (
-        state.activeOrderId &&
-        state.paymentApi &&
-        typeof state.paymentApi.loadPaymentSummary ===
-          'function'
-      ) {
-        await state.paymentApi.loadPaymentSummary(
-          true
-        );
+      /*
+       * PMD_CASHIER_R60I_FAST_NEW_TABLE
+       *
+       * A new bill has no payment history yet.
+       * Paint the Composer immediately and warm payment
+       * support after the ordering UI is already usable.
+       */
+      if (!state.activeOrderId) {
+        renderComposer();
+
+        setupPaymentModule()
+          .catch(function (error) {
+            console.warn(
+              '[PMD R60I] Payment preload deferred',
+              error
+            );
+          });
+
+        return true;
+      }
+
+      /*
+       * PMD_CASHIER_R60K_TABLE_PARALLEL_OPEN
+       *
+       * Table bootstrap and Payment Summary began together.
+       * Composer only needs the canonical summary object for
+       * Pay/Invoice/Cancel state.
+       *
+       * Payment modal itself refreshes the summary again when
+       * the user actually opens Payment.
+       */
+      try {
+        var openSummary =
+          await (
+            preloaded &&
+            preloaded.summaryPromise
+              ? preloaded.summaryPromise
+              : r60kPrefetchPaymentSummary(
+                  state.activeOrderId
+                )
+          );
+
+        state.payment.summary =
+          openSummary;
 
         if (
           typeof paymentSummaryIsPaid ===
@@ -1283,14 +1564,49 @@
           state.invoiceReady =
             paymentSummaryIsPaid();
         }
+
+      } catch (summaryError) {
+        /*
+         * Compatibility fallback only.
+         * If the direct summary request failed, preserve the
+         * previous Payment V3 loading authority.
+         */
+        await setupPaymentModule();
+
+        if (
+          state.paymentApi &&
+          typeof state.paymentApi.loadPaymentSummary ===
+            'function'
+        ) {
+          await state.paymentApi.loadPaymentSummary(
+            true
+          );
+
+          if (
+            typeof paymentSummaryIsPaid ===
+              'function'
+          ) {
+            state.invoiceReady =
+              paymentSummaryIsPaid();
+          }
+        }
       }
 
-      renderTableOptions(
-        state.table &&
-        state.table.id
-      );
-
       renderComposer();
+
+      /*
+       * Payment UI installation must never delay the visible
+       * Order Composer.
+       */
+      setupPaymentModule()
+        .catch(
+          function (error) {
+            console.warn(
+              '[PMD R60K] Payment preload deferred',
+              error
+            );
+          }
+        );
 
       return true;
     } catch (error) {
@@ -1509,6 +1825,10 @@
             '<span data-coc-total-label>Pending total</span>',
             '<b data-coc-total>€0.00</b>',
           '</div>',
+        '</div>',
+        '<div class="pmd-coc__rail-actions">',
+          '<button type="button" class="pmd-coc__secondary" data-coc-secondary-action data-coc-cancel-enabled="0">Close</button>',
+          '<button type="button" class="pmd-coc__send pmd-coc__primary" data-coc-primary disabled>Confirm</button>',
         '</div>',
       '</aside>'
     ].join('');
@@ -2292,65 +2612,451 @@
   }
 
   
-  // PMD_CASHIER_R57_RAIL_ACTIONS
-  // PMD_CASHIER_R59_STABLE_RAIL
-  function mountRailActions() {
-    var root = document.getElementById(
-      'pmd-cashier-order-composer-v1'
+  // PMD_CASHIER_R60A_ACTION_OWNER
+  // PMD_CASHIER_R60H_CANCEL_HELPERS
+  function paymentSummaryHasFinancialActivity() {
+    var summary =
+      state.payment &&
+      state.payment.summary
+        ? state.payment.summary
+        : null;
+
+    if (!summary) {
+      return false;
+    }
+
+    var summaryOrderId =
+      num(
+        summary.order &&
+        summary.order.order_id,
+        0
+      );
+
+    if (
+      summaryOrderId > 0 &&
+      Number(summaryOrderId) !==
+        Number(state.activeOrderId || 0)
+    ) {
+      return false;
+    }
+
+    var settlement =
+      summary.settlement || {};
+
+    var status =
+      String(
+        settlement.status ||
+        settlement.settlement_status ||
+        (
+          summary.order &&
+          summary.order.settlement_status
+        ) ||
+        ''
+      ).toLowerCase();
+
+    var settled =
+      num(
+        settlement.settled_amount,
+        0
+      );
+
+    var transactions =
+      Array.isArray(
+        summary.transactions
+      )
+        ? summary.transactions
+        : [];
+
+    return (
+      settled > 0.0001 ||
+      [
+        'partial',
+        'paid',
+        'settled',
+        'refunded'
+      ].indexOf(status) !== -1 ||
+      transactions.length > 0
     );
+  }
 
-    if (!root) return;
 
-    // PMD_CASHIER_R59B_PERSISTENT_ACTIONS
-    var footer = root.querySelector(
-      '.pmd-coc__footer'
+  function canCancelActiveOrder() {
+    return (
+      !!state.activeOrderId &&
+      !state.invoiceReady &&
+      !paymentSummaryHasFinancialActivity()
     );
+  }
 
-    if (!footer) return;
 
-    var actions = root.querySelector(
-      '.pmd-coc__footer-right'
+  // PMD_CASHIER_R60R_CANCEL_REASON_PICKER
+  function chooseCancellationReasonR60R(
+    orderId
+  ) {
+    return new Promise(
+      function (resolve) {
+        var shell =
+          state.shell;
+
+        if (!shell) {
+          resolve(null);
+          return;
+        }
+
+        var previous =
+          shell.querySelector(
+            '[data-coc-cancel-reason-picker]'
+          );
+
+        if (previous) {
+          previous.remove();
+        }
+
+        var reasons = [
+          'Customer requested cancellation',
+          'Customer did not show up',
+          'Delay',
+          'Order entered by mistake',
+          'Duplicate order',
+          'Item unavailable',
+          'Delivery / address issue',
+          'Kitchen issue'
+        ];
+
+        var picker =
+          document.createElement(
+            'div'
+          );
+
+        picker.className =
+          'pmd-coc-cancel-picker';
+
+        picker.setAttribute(
+          'data-coc-cancel-reason-picker',
+          '1'
+        );
+
+        picker.innerHTML = [
+          '<section class="pmd-coc-cancel-picker__dialog" ',
+            'role="dialog" aria-modal="true">',
+            '<header class="pmd-coc-cancel-picker__head">',
+              '<div>',
+                '<span>CANCEL ORDER</span>',
+                '<h3>Choose a reason</h3>',
+                '<p>Order #',
+                  esc(orderId),
+                '</p>',
+              '</div>',
+              '<button type="button" ',
+                'data-coc-cancel-picker-close ',
+                'aria-label="Close">×</button>',
+            '</header>',
+
+            '<div class="pmd-coc-cancel-picker__body">',
+              reasons.map(
+                function (reason) {
+                  return [
+                    '<button type="button" ',
+                      'data-coc-cancel-reason="',
+                      esc(reason),
+                      '">',
+                      esc(reason),
+                    '</button>'
+                  ].join('');
+                }
+              ).join(''),
+            '</div>',
+
+            '<footer class="pmd-coc-cancel-picker__foot">',
+              '<button type="button" ',
+                'data-coc-cancel-picker-close>',
+                'Back',
+              '</button>',
+
+              '<button type="button" ',
+                'class="is-danger" ',
+                'data-coc-cancel-picker-confirm ',
+                'disabled>',
+                'Cancel order',
+              '</button>',
+            '</footer>',
+          '</section>'
+        ].join('');
+
+        shell.appendChild(
+          picker
+        );
+
+        var selected = '';
+        var finished = false;
+
+        var confirm =
+          picker.querySelector(
+            '[data-coc-cancel-picker-confirm]'
+          );
+
+
+        function finish(value) {
+          if (finished) {
+            return;
+          }
+
+          finished = true;
+
+          document.removeEventListener(
+            'keydown',
+            onKey,
+            true
+          );
+
+          picker.remove();
+
+          resolve(
+            value || null
+          );
+        }
+
+
+        function onKey(event) {
+          if (
+            event.key === 'Escape'
+          ) {
+            event.preventDefault();
+            finish(null);
+          }
+        }
+
+
+        picker.addEventListener(
+          'click',
+          function (event) {
+            var close =
+              event.target.closest(
+                '[data-coc-cancel-picker-close]'
+              );
+
+            if (close) {
+              event.preventDefault();
+              finish(null);
+              return;
+            }
+
+            var option =
+              event.target.closest(
+                '[data-coc-cancel-reason]'
+              );
+
+            if (option) {
+              event.preventDefault();
+
+              selected =
+                String(
+                  option.getAttribute(
+                    'data-coc-cancel-reason'
+                  ) || ''
+                );
+
+              picker
+                .querySelectorAll(
+                  '[data-coc-cancel-reason]'
+                )
+                .forEach(
+                  function (row) {
+                    row.classList.toggle(
+                      'is-selected',
+                      row === option
+                    );
+                  }
+                );
+
+              if (confirm) {
+                confirm.disabled =
+                  !selected;
+              }
+
+              return;
+            }
+
+            if (
+              event.target.closest(
+                '[data-coc-cancel-picker-confirm]'
+              )
+            ) {
+              event.preventDefault();
+
+              if (!selected) {
+                return;
+              }
+
+              finish(
+                selected
+              );
+            }
+          }
+        );
+
+        document.addEventListener(
+          'keydown',
+          onKey,
+          true
+        );
+      }
+    );
+  }
+
+
+  async function cancelActiveOrder() {
+    var orderId =
+      Number(
+        state.activeOrderId || 0
+      );
+
+    if (
+      !orderId ||
+      state.submitting
+    ) {
+      return;
+    }
+
+    var reason =
+      await chooseCancellationReasonR60R(
+        orderId
+      );
+
+    if (!reason) {
+      return;
+    }
+
+    state.submitting = true;
+    updateFooter();
+
+    try {
+      var result =
+        await fetchJson(
+          '/admin/pmd-waiter-pos-v22/operations/'
+          + encodeURIComponent(
+              String(orderId)
+            )
+          + '/void-order',
+          {
+            method: 'POST',
+            headers: {
+              'Content-Type':
+                'application/json'
+            },
+            body: JSON.stringify({
+              reason: reason
+            })
+          }
+        );
+
+      window.dispatchEvent(
+        new CustomEvent(
+          'pmd:cashier-order-cancelled',
+          {
+            detail: {
+              order_id: orderId,
+              reason: reason,
+              response: result
+            }
+          }
+        )
+      );
+
+      state.activeOrderId = null;
+      state.desiredOrderId = null;
+      state.existingOrder = null;
+      state.cart = [];
+      state.invoiceReady = false;
+
+      try {
+        await refreshCashierOrdersSection(
+          null
+        );
+      } catch (refreshError) {
+        console.warn(
+          '[PMD R60R] Order list refresh failed',
+          refreshError
+        );
+      }
+
+      closeComposer(true);
+
+    } catch (error) {
+      toast(
+        error && error.message
+          ? error.message
+          : 'Order could not be cancelled.',
+        true
+      );
+
+    } finally {
+      state.submitting = false;
+
+      if (
+        state.shell &&
+        !state.shell.hidden
+      ) {
+        updateFooter();
+      }
+    }
+  }
+
+  function syncExistingOrderSecondaryR60L() {
+    var secondary =
+      rootQuery(
+        '[data-coc-secondary-action]'
+      );
+
+    if (!secondary) {
+      return;
+    }
+
+    var hasOrder =
+      !!state.activeOrderId;
+
+    secondary.classList.toggle(
+      'is-cancel-order-action',
+      hasOrder
     );
 
     /*
-     * R59/R59A may already have moved the real action node
-     * into a re-rendered region.
-     *
-     * Put that exact node back into the persistent footer.
+     * New unsaved order keeps the existing secondary behavior.
+     * Existing order never wastes the rail on a second Close
+     * control because the modal already has the top-right X.
      */
-    if (actions) {
-      if (actions.parentNode !== footer) {
-        footer.appendChild(actions);
-      }
-    } else {
-      /*
-       * Recovery path for a composer that lost the action
-       * node during a previous main/cart re-render.
-       *
-       * Click handling is delegated from the shell, so these
-       * canonical data attributes use the existing handlers.
-       */
-      footer.innerHTML = [
-        '<div class="pmd-coc__footer-right">',
-          '<button type="button" class="pmd-coc__secondary" data-coc-close>Close</button>',
-          '<button type="button" class="pmd-coc__send pmd-coc__primary" data-coc-primary disabled>Confirm</button>',
-        '</div>'
-      ].join('');
-
-      actions = footer.querySelector(
-        '.pmd-coc__footer-right'
-      );
+    if (!hasOrder) {
+      return;
     }
 
-    footer.hidden = false;
-    footer.removeAttribute(
-      'aria-hidden'
+    var cancelEnabled =
+      secondary.getAttribute(
+        'data-coc-cancel-enabled'
+      ) === '1';
+
+    secondary.textContent =
+      'Cancel order';
+
+    secondary.disabled =
+      !cancelEnabled;
+
+    secondary.setAttribute(
+      'aria-disabled',
+      cancelEnabled
+        ? 'false'
+        : 'true'
+    );
+
+    secondary.setAttribute(
+      'title',
+      cancelEnabled
+        ? 'Cancel order'
+        : 'This order cannot be cancelled in its current settlement state.'
     );
   }
 
 
   function updateFooter() {
-    mountRailActions();
     var primary =
       rootQuery('[data-coc-primary]');
 
@@ -2359,6 +3065,48 @@
 
     var hasOrder =
       !!state.activeOrderId;
+
+    /*
+     * PMD_CASHIER_R60L_EXISTING_CANCEL_SYNC
+     *
+     * Let the existing R60H logic finish first, then only
+     * normalize the final secondary-button presentation.
+     */
+    Promise.resolve().then(
+      syncExistingOrderSecondaryR60L
+    );
+
+    // PMD_CASHIER_R60H_SECONDARY_STATE
+    var secondary =
+      rootQuery(
+        '[data-coc-secondary-action]'
+      );
+
+    var canCancel =
+      hasOrder &&
+      canCancelActiveOrder();
+
+    if (secondary) {
+      secondary.textContent =
+        canCancel
+          ? 'Cancel order'
+          : 'Close';
+
+      secondary.setAttribute(
+        'data-coc-cancel-enabled',
+        canCancel
+          ? '1'
+          : '0'
+      );
+
+      secondary.classList.toggle(
+        'is-cancel-order',
+        canCancel
+      );
+
+      secondary.disabled =
+        !!state.submitting;
+    }
 
     if (!primary) {
       return;
@@ -2988,7 +3736,9 @@
 
   async function refreshDeliveryOrder(
     silent,
-    orderId
+    orderId,
+    preloadedSummary,
+    skipCashierRefresh
   ) {
     var id =
       Number(
@@ -3011,13 +3761,9 @@
         '/admin/pmd-waiter-pos-v1/payment-summary/{order}';
 
       var summary =
-        await fetchJson(
-          replaceOrderToken(
-            template,
-            id
-          ) +
-          '?_=' +
-          Date.now()
+        preloadedSummary ||
+        await r60kPrefetchPaymentSummary(
+          id
         );
 
       state.payment.summary =
@@ -3153,9 +3899,11 @@
         renderComposer();
       }
 
-      await refreshCashierOrdersSection(
-        id
-      );
+      if (!skipCashierRefresh) {
+        await refreshCashierOrdersSection(
+          id
+        );
+      }
     } catch (error) {
       if (!silent) {
         toast(
@@ -3733,6 +4481,16 @@
     }
 
     tagHeaderCreate();
+
+    // PMD_CASHIER_R60L_FREE_TOOLBAR_REFRESH_BRIDGE
+    if (
+      window.PMDCashierR45Actions &&
+      typeof window.PMDCashierR45Actions
+        .syncFreeTableToolbar === 'function'
+    ) {
+      window.PMDCashierR45Actions
+        .syncFreeTableToolbar();
+    }
   }
 
   function cashierRefreshUrl(attempt) {
@@ -3907,6 +4665,402 @@
     );
   }
 
+  // PMD_CASHIER_R60K_FAST_EXISTING_ORDER
+  var r60kPaymentSummaryCache =
+    Object.create(null);
+
+  var r60kTableBootCache =
+    Object.create(null);
+
+  var r60kDeliveryBootCache =
+    null;
+
+
+  function r60kCachedPromise(
+    cache,
+    key,
+    ttl,
+    factory
+  ) {
+    var now =
+      Date.now();
+
+    var current =
+      cache[key];
+
+    if (
+      current &&
+      current.promise &&
+      (
+        now -
+        current.createdAt
+      ) <= ttl
+    ) {
+      return current.promise;
+    }
+
+    var promise =
+      Promise.resolve()
+        .then(factory);
+
+    cache[key] = {
+      createdAt:
+        now,
+
+      promise:
+        promise
+    };
+
+    promise.catch(
+      function () {
+        if (
+          cache[key] &&
+          cache[key].promise ===
+            promise
+        ) {
+          delete cache[key];
+        }
+      }
+    );
+
+    return promise;
+  }
+
+
+  function r60kPrefetchPaymentSummary(
+    orderId
+  ) {
+    var id =
+      Number(
+        orderId || 0
+      );
+
+    if (!id) {
+      return Promise.reject(
+        new Error(
+          'Order id is unavailable.'
+        )
+      );
+    }
+
+    /*
+     * Financial state must remain fresh.
+     * This cache exists mainly for the short
+     * hover -> click window.
+     */
+    return r60kCachedPromise(
+      r60kPaymentSummaryCache,
+      String(id),
+      1200,
+      function () {
+        return fetchJson(
+          '/admin/pmd-waiter-pos-v1/payment-summary/' +
+          encodeURIComponent(
+            id
+          ) +
+          '?_=' +
+          Date.now()
+        );
+      }
+    );
+  }
+
+
+  function r60kPrefetchTableBoot(
+    table
+  ) {
+    var key =
+      tableRouteKey(
+        table
+      );
+
+    if (!key) {
+      return Promise.reject(
+        new Error(
+          'Table data source is unavailable.'
+        )
+      );
+    }
+
+    /*
+     * Table bootstrap includes live order state.
+     * Keep this cache intentionally very short.
+     */
+    return r60kCachedPromise(
+      r60kTableBootCache,
+      String(key),
+      1200,
+      function () {
+        return fetchJson(
+          '/admin/pmd-waiter-pos-v1/data/' +
+          encodeURIComponent(
+            key
+          ) +
+          '?_=' +
+          Date.now()
+        );
+      }
+    );
+  }
+
+
+  function r60kPrefetchDeliveryBoot(
+    preferredTable,
+    preferredKey
+  ) {
+    var now =
+      Date.now();
+
+    /*
+     * Delivery uses this response only as its menu/catalogue
+     * and location source. It deliberately discards the
+     * physical table's order state.
+     */
+    if (
+      r60kDeliveryBootCache &&
+      r60kDeliveryBootCache.promise &&
+      (
+        now -
+        r60kDeliveryBootCache.createdAt
+      ) <= 30000
+    ) {
+      return r60kDeliveryBootCache.promise;
+    }
+
+    var table =
+      preferredTable ||
+      (
+        collectFloorTables()[0] ||
+        null
+      );
+
+    var key =
+      preferredKey ||
+      tableRouteKey(
+        table
+      );
+
+    if (!table || !key) {
+      return Promise.reject(
+        new Error(
+          'Delivery menu source is not ready.'
+        )
+      );
+    }
+
+    var promise =
+      fetchJson(
+        '/admin/pmd-waiter-pos-v1/data/' +
+        encodeURIComponent(
+          key
+        ) +
+        '?_=' +
+        Date.now()
+      );
+
+    r60kDeliveryBootCache = {
+      createdAt:
+        now,
+
+      promise:
+        promise
+    };
+
+    promise.catch(
+      function () {
+        if (
+          r60kDeliveryBootCache &&
+          r60kDeliveryBootCache.promise ===
+            promise
+        ) {
+          r60kDeliveryBootCache =
+            null;
+        }
+      }
+    );
+
+    return promise;
+  }
+
+
+  // PMD_CASHIER_R60S_TABLE_FROM_ORDER_CARD
+  function tableFromOrderCard(card) {
+    if (!card) {
+      return null;
+    }
+
+    var tableId = Number(
+      card.getAttribute(
+        'data-pmd-cashier-table-id'
+      ) || 0
+    );
+
+    var tableNumber = String(
+      card.getAttribute(
+        'data-pmd-cashier-table-number'
+      ) || ''
+    ).trim();
+
+    var tableLabel = String(
+      card.getAttribute(
+        'data-pmd-cashier-table-label'
+      ) || ''
+    ).trim();
+
+    if (
+      tableId < 1 &&
+      tableNumber === ''
+    ) {
+      return null;
+    }
+
+    return {
+      id:
+        tableId > 0
+          ? tableId
+          : tableNumber,
+
+      table_id:
+        tableId > 0
+          ? tableId
+          : null,
+
+      number:
+        tableNumber ||
+        String(tableId),
+
+      name:
+        tableLabel ||
+        (
+          'Table ' +
+          (
+            tableNumber ||
+            String(tableId)
+          )
+        ),
+
+      raw: {
+        table_id:
+          tableId > 0
+            ? tableId
+            : null,
+
+        table_no:
+          tableNumber,
+
+        table_name:
+          tableLabel
+      }
+    };
+  }
+
+
+  function r60kWarmOrderCard(
+    card
+  ) {
+    if (!card) {
+      return;
+    }
+
+    var orderId =
+      Number(
+        card.getAttribute(
+          'data-pmd-cashier-order'
+        ) || 0
+      );
+
+    if (!orderId) {
+      return;
+    }
+
+    /*
+     * Start canonical Payment Summary before the user
+     * reaches the Open order button.
+     */
+    r60kPrefetchPaymentSummary(
+      orderId
+    ).catch(
+      function () {}
+    );
+
+    var table =
+      tableFromOrderCard(
+        card
+      );
+
+    if (
+      table &&
+      (
+        table.id ||
+        table.number
+      )
+    ) {
+      r60kPrefetchTableBoot(
+        table
+      ).catch(
+        function () {}
+      );
+
+      return;
+    }
+
+    /*
+     * table_id=0 is only a prefetch hint.
+     * Payment Summary still confirms Delivery/no-table
+     * before we enter Delivery mode.
+     */
+    r60kPrefetchDeliveryBoot()
+      .catch(
+        function () {}
+      );
+  }
+
+
+  function r60kScheduleDeliveryWarmup() {
+    var run =
+      function () {
+        r60kPrefetchDeliveryBoot()
+          .catch(
+            function () {
+              /*
+               * Floor can mount slightly after Cashier JS.
+               * One bounded retry only.
+               */
+              window.setTimeout(
+                function () {
+                  r60kPrefetchDeliveryBoot()
+                    .catch(
+                      function () {}
+                    );
+                },
+                650
+              );
+            }
+          );
+      };
+
+    if (
+      typeof window.requestIdleCallback ===
+      'function'
+    ) {
+      window.requestIdleCallback(
+        run,
+        {
+          timeout:
+            900
+        }
+      );
+
+      return;
+    }
+
+    window.setTimeout(
+      run,
+      350
+    );
+  }
+
+
   async function resolveTableForOrder(orderId) {
     var results = await Promise.allSettled([
       fetchJson(
@@ -3916,11 +5070,8 @@
         Date.now()
       ),
 
-      fetchJson(
-        '/admin/pmd-waiter-pos-v1/payment-summary/' +
-        encodeURIComponent(orderId) +
-        '?_=' +
-        Date.now()
+      r60kPrefetchPaymentSummary(
+        orderId
       )
     ]);
 
@@ -3940,11 +5091,38 @@
       null;
 
     if (!table) {
-      throw (
+      // PMD_CASHIER_R60J_RESOLUTION_REUSE
+      var resolutionError =
         results[0].reason ||
         results[1].reason ||
-        new Error('The order has no resolvable table.')
-      );
+        new Error(
+          'The order has no resolvable table.'
+        );
+
+      if (
+        !resolutionError ||
+        typeof resolutionError !== 'object'
+      ) {
+        resolutionError =
+          new Error(
+            String(
+              resolutionError ||
+              'The order has no resolvable table.'
+            )
+          );
+      }
+
+      /*
+       * R60G can now confirm Delivery/no-table from the
+       * payment summary already fetched above.
+       */
+      resolutionError.pmdPaymentSummary =
+        payment;
+
+      resolutionError.pmdOperationsSummary =
+        operations;
+
+      throw resolutionError;
     }
 
     var normalized = normalizeTable(table);
@@ -3958,10 +5136,102 @@
     return normalized;
   }
 
-  async function openEdit(orderId, hintedTable) {
-    orderId = Number(orderId || 0);
+  // PMD_CASHIER_R60J_INSTANT_OPEN_ORDER
+  function primeOpenOrderShell(orderId) {
+    ensureShell();
+    clearCashierBusy();
 
-    if (!orderId) return false;
+    var title =
+      rootQuery(
+        '[data-coc-title]'
+      );
+
+    var subtitle =
+      rootQuery(
+        '[data-coc-subtitle]'
+      );
+
+    var context =
+      rootQuery(
+        '[data-coc-order-context]'
+      );
+
+    var body =
+      rootQuery(
+        '[data-coc-main]'
+      );
+
+    if (title) {
+      title.textContent =
+        'Order #' +
+        String(
+          Number(orderId || 0)
+        );
+    }
+
+    if (subtitle) {
+      subtitle.textContent = '';
+      subtitle.hidden = true;
+    }
+
+    if (context) {
+      context.innerHTML = '';
+      context.hidden = true;
+    }
+
+    if (body) {
+      /*
+       * PMD_CASHIER_R60K_NO_LOADING_NOTICE
+       *
+       * Data prefetch starts before/with the click.
+       * Do not display a large fake waiting message.
+       */
+      body.innerHTML =
+        '<div class="pmd-coc-open-loading" aria-hidden="true"></div>';
+    }
+  }
+
+
+  function waitForComposerFirstPaint() {
+    return new Promise(
+      function (resolve) {
+        if (
+          typeof window.requestAnimationFrame !==
+          'function'
+        ) {
+          window.setTimeout(
+            resolve,
+            0
+          );
+
+          return;
+        }
+
+        /*
+         * Two frames guarantee that the prepared Composer
+         * reaches the screen before table/network work starts.
+         */
+        window.requestAnimationFrame(
+          function () {
+            window.requestAnimationFrame(
+              resolve
+            );
+          }
+        );
+      }
+    );
+  }
+
+
+  async function openEdit(orderId, hintedTable) {
+    orderId =
+      Number(
+        orderId || 0
+      );
+
+    if (!orderId) {
+      return false;
+    }
 
     state.mode = 'edit';
     state.desiredOrderId = orderId;
@@ -3969,42 +5239,281 @@
     state.cart = [];
     state.note = '';
 
-    openShell();
+    /*
+     * Never inherit financial presentation from the
+     * previously opened order.
+     */
+    state.invoiceReady = false;
 
-    state.tables = collectFloorTables();
+    if (
+      state.payment
+    ) {
+      state.payment.summary =
+        null;
+    }
+
+    /*
+     * PMD_CASHIER_R60K_PARALLEL_OPEN
+     *
+     * Start canonical order classification immediately.
+     * A prior card hover may already have completed it.
+     */
+    var summaryPromise =
+      r60kPrefetchPaymentSummary(
+        orderId
+      );
+
+    /*
+     * Delivery catalogue is location-level data and may
+     * already be warm from idle prefetch.
+     */
+    var deliveryBootPromise =
+      r60kPrefetchDeliveryBoot()
+        .catch(
+          function () {
+            return null;
+          }
+        );
+
+    /*
+     * Keep the persistent Composer shell behavior from R60J,
+     * but do not wait two animation frames before starting
+     * real work.
+     */
+    primeOpenOrderShell(
+      orderId
+    );
+
+    openShell(true);
+
+    setBusy(
+      'Loading Order #' +
+      orderId +
+      '…'
+    );
+
+    state.tables = [];
     renderTableOptions();
 
-    setBusy('Loading Order #' + orderId + '…');
-
     try {
-      var table = hintedTable
-        ? normalizeTable(hintedTable)
-        : null;
+      var table =
+        hintedTable
+          ? normalizeTable(
+              hintedTable
+            )
+          : null;
 
-      if (!table || (!table.id && !table.number)) {
-        table = tableHintForOrderId(orderId);
+      if (
+        !table ||
+        (
+          !table.id &&
+          !table.number
+        )
+      ) {
+        table =
+          tableHintForOrderId(
+            orderId
+          );
       }
 
-      if (!table || (!table.id && !table.number)) {
-        table = await resolveTableForOrder(orderId);
+      /*
+       * Payment Summary already carries canonical table data.
+       * Prefer it over an additional Operations round-trip
+       * whenever the order card did not provide a table hint.
+       */
+      if (
+        !table ||
+        (
+          !table.id &&
+          !table.number
+        )
+      ) {
+        var directSummary =
+          null;
+
+        try {
+          directSummary =
+            await summaryPromise;
+        } catch (_) {
+          directSummary =
+            null;
+        }
+
+        var summaryMatches =
+          !!(
+            directSummary &&
+            directSummary.order &&
+            Number(
+              directSummary.order.order_id ||
+              0
+            ) === orderId
+          );
+
+        if (
+          summaryMatches &&
+          directSummary.table
+        ) {
+          table =
+            normalizeTable(
+              directSummary.table
+            );
+        } else if (
+          summaryMatches &&
+          !directSummary.table
+        ) {
+          /*
+           * Canonical Payment Summary has explicitly
+           * confirmed Delivery/no-table.
+           */
+          var deliveryBoot =
+            await deliveryBootPromise;
+
+          return await loadDelivery(
+            orderId,
+            {
+              summary:
+                directSummary,
+
+              boot:
+                deliveryBoot,
+
+              /*
+               * Opening an already-visible Current card does
+               * not need a full Cashier HTML section reload.
+               */
+              skipCashierRefresh:
+                true
+            }
+          );
+        }
+      }
+
+      /*
+       * Compatibility fallback:
+       * Operations + Payment Summary resolver remains intact
+       * for old/incomplete payloads.
+       */
+      if (
+        !table ||
+        (
+          !table.id &&
+          !table.number
+        )
+      ) {
+        try {
+          table =
+            await resolveTableForOrder(
+              orderId
+            );
+
+        } catch (tableError) {
+          /*
+           * PMD_CASHIER_R60G_DELIVERY_OPEN_ORDER
+           * PMD_CASHIER_R60K_FALLBACK_REUSE
+           */
+          var noTableSummary =
+            tableError &&
+            tableError.pmdPaymentSummary
+              ? tableError.pmdPaymentSummary
+              : null;
+
+          if (!noTableSummary) {
+            try {
+              noTableSummary =
+                await summaryPromise;
+            } catch (_) {
+              noTableSummary =
+                null;
+            }
+          }
+
+          var confirmedNoTableOrder =
+            !!(
+              noTableSummary &&
+              noTableSummary.order &&
+              Number(
+                noTableSummary.order.order_id ||
+                0
+              ) === orderId &&
+              !noTableSummary.table
+            );
+
+          if (
+            confirmedNoTableOrder
+          ) {
+            return await loadDelivery(
+              orderId,
+              {
+                summary:
+                  noTableSummary,
+
+                boot:
+                  await deliveryBootPromise,
+
+                skipCashierRefresh:
+                  true
+              }
+            );
+          }
+
+          throw tableError;
+        }
+      }
+
+      if (
+        !table ||
+        (
+          !table.id &&
+          !table.number
+        )
+      ) {
+        throw new Error(
+          'The order table could not be resolved.'
+        );
       }
 
       if (
         table.id &&
-        !state.tables.some(function (row) {
-          return Number(row.id) === Number(table.id);
-        })
+        !state.tables.some(
+          function (row) {
+            return (
+              Number(row.id) ===
+              Number(table.id)
+            );
+          }
+        )
       ) {
-        state.tables.push(table);
+        state.tables.push(
+          table
+        );
       }
 
-      renderTableOptions(table.id);
+      renderTableOptions(
+        table.id
+      );
+
+      /*
+       * Table bootstrap and financial summary now run
+       * concurrently instead of serially.
+       */
+      var tableBootPromise =
+        r60kPrefetchTableBoot(
+          table
+        );
 
       return await loadTable(
         table,
         orderId,
-        true
+        true,
+        {
+          bootPromise:
+            tableBootPromise,
+
+          summaryPromise:
+            summaryPromise
+        }
       );
+
     } catch (error) {
       setError(error);
       return false;
@@ -4175,6 +5684,53 @@
       close.click();
     }
   }
+
+  // PMD_CASHIER_R60K_CARD_PREFETCH
+  function r60kWarmFromEvent(
+    event
+  ) {
+    if (!isCashierPath()) {
+      return;
+    }
+
+    var target =
+      event &&
+      event.target &&
+      event.target.closest
+        ? event.target.closest(
+            '#pmd-cashier-current-orders-v2 ' +
+            '[data-pmd-cashier-order]'
+          )
+        : null;
+
+    if (!target) {
+      return;
+    }
+
+    r60kWarmOrderCard(
+      target
+    );
+  }
+
+
+  document.addEventListener(
+    'pointerover',
+    r60kWarmFromEvent,
+    true
+  );
+
+  document.addEventListener(
+    'pointerdown',
+    r60kWarmFromEvent,
+    true
+  );
+
+  document.addEventListener(
+    'focusin',
+    r60kWarmFromEvent,
+    true
+  );
+
 
   document.addEventListener(
     'click',
@@ -4361,17 +5917,50 @@
     }
   );
 
-  var observer = new MutationObserver(function () {
-    tagHeaderCreate();
-  });
+  // PMD_CASHIER_R60I_HEADER_OBSERVER_SCOPE
+  var headerCreateObserver = null;
 
-  observer.observe(
-    document.documentElement,
-    {
-      childList: true,
-      subtree: true
+  function installHeaderCreateObserver() {
+    if (
+      typeof MutationObserver !==
+      'function'
+    ) {
+      return;
     }
-  );
+
+    var header =
+      document.querySelector(
+        '#pmd-r2-clean-header, ' +
+        '[data-pmd-clean-header], ' +
+        'header'
+      );
+
+    if (!header) {
+      return;
+    }
+
+    if (headerCreateObserver) {
+      try {
+        headerCreateObserver.disconnect();
+      } catch (error) {
+      }
+    }
+
+    headerCreateObserver =
+      new MutationObserver(
+        function () {
+          tagHeaderCreate();
+        }
+      );
+
+    headerCreateObserver.observe(
+      header,
+      {
+        childList: true,
+        subtree: true
+      }
+    );
+  }
 
   window.addEventListener(
     'popstate',
@@ -4384,6 +5973,22 @@
   );
 
   tagHeaderCreate();
+
+  installHeaderCreateObserver();
+
+  /*
+   * Build the hidden DOM when the browser is idle so the
+   * first New Order click only has to reveal it.
+   */
+  scheduleComposerPrewarm();
+
+  /*
+   * PMD_CASHIER_R60K_IDLE_MENU_WARM
+   *
+   * One bounded background request prepares the Delivery
+   * catalogue before the first Delivery Open order click.
+   */
+  r60kScheduleDeliveryWarmup();
 
   startCashierLiveSync();
 
@@ -4422,7 +6027,7 @@
   };
 
   console.info(
-    '[PMD] Cashier Order Composer R54 touch/payment ready',
+    '[PMD] Cashier Order Composer R60A clean rail ready',
     {
       version:
         window.PMDCashierOrderComposerV1.version,

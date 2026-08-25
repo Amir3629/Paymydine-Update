@@ -3473,13 +3473,9 @@ body #pmd-cashier-order-composer-v1.pmd-coc
 
 /* PMD_CASHIER_R56B_PAYMENT_RAIL_END */
 
-/* PMD_CASHIER_R59_STABLE_RAIL_START */
 
-/* =========================================================
-   CASHIER COMPOSER
-   One stable desktop grid.
-   Catalog and order rail always occupy the same height.
-   ========================================================= */
+
+/* PMD_CASHIER_R60A_CLEAN_RAIL_OWNER_START */
 
 @media (min-width: 901px) {
 
@@ -3494,772 +3490,389 @@ body #pmd-cashier-order-composer-v1.pmd-coc
     max-height:
       calc(100dvh - 32px) !important;
 
-    min-height: 640px !important;
+    min-height:
+      640px !important;
 
-    display: grid !important;
+    display:
+      grid !important;
 
     grid-template-rows:
       auto
       minmax(0, 1fr) !important;
 
-    overflow: hidden !important;
+    overflow:
+      hidden !important;
   }
 
 
-  /* Old top table row is no longer an owner. */
   body #pmd-cashier-order-composer-v1.pmd-coc
-  .pmd-coc__tablebar {
-    display: none !important;
-  }
+  .pmd-coc__tablebar,
 
-
-  /* Footer node remains in DOM only for existing event ownership. */
   body #pmd-cashier-order-composer-v1.pmd-coc
   .pmd-coc__footer {
-    display: none !important;
-    width: 0 !important;
-    height: 0 !important;
-    min-height: 0 !important;
-    padding: 0 !important;
-    margin: 0 !important;
-    border: 0 !important;
+    display:
+      none !important;
   }
 
 
   body #pmd-cashier-order-composer-v1.pmd-coc
   .pmd-coc__main {
-    width: 100% !important;
-    height: 100% !important;
-    min-height: 0 !important;
-    max-height: none !important;
+    width:
+      100% !important;
 
-    display: grid !important;
+    height:
+      100% !important;
+
+    min-height:
+      0 !important;
+
+    display:
+      grid !important;
 
     grid-template-columns:
       minmax(0, 1fr)
-      minmax(320px, 360px) !important;
+      clamp(
+        330px,
+        25vw,
+        380px
+      ) !important;
 
-    align-items: stretch !important;
-
-    gap: 14px !important;
-    padding: 14px !important;
-
-    overflow: hidden !important;
-  }
-
-
-  body #pmd-cashier-order-composer-v1.pmd-coc
-  .pmd-coc__catalog,
-
-  body #pmd-cashier-order-composer-v1.pmd-coc
-  .pmd-coc__cart {
-    height: 100% !important;
-    min-height: 0 !important;
-    max-height: none !important;
-
-    align-self: stretch !important;
-  }
-
-
-  /* =======================================================
-     LEFT MENU
-     It fills the modal. Products scroll inside it.
-     ======================================================= */
-
-  body #pmd-cashier-order-composer-v1.pmd-coc
-  .pmd-coc__catalog {
-    overflow: hidden !important;
-  }
-
-
-  body #pmd-cashier-order-composer-v1.pmd-coc
-  .pmd-coc__menu {
-    min-height: 0 !important;
-    height: 100% !important;
-
-    overflow-x: hidden !important;
-    overflow-y: auto !important;
-
-    align-content: start !important;
-
-    padding-bottom: 26px !important;
-
-    scroll-padding-bottom: 26px !important;
-
-    overscroll-behavior: contain !important;
-  }
-
-
-  /*
-   * Product cards may grow enough for two-line names.
-   * A card can scroll out of view, but its own title must
-   * never be clipped by the card body.
-   */
-  body #pmd-cashier-order-composer-v1.pmd-coc
-  .pmd-coc-food {
-    min-height: 300px !important;
-    height: auto !important;
-  }
-
-
-  body #pmd-cashier-order-composer-v1.pmd-coc
-  .pmd-coc-food__body {
-    min-width: 0 !important;
-    min-height: 0 !important;
-  }
-
-
-  body #pmd-cashier-order-composer-v1.pmd-coc
-  .pmd-coc-food__body > strong {
-    display: -webkit-box !important;
-
-    -webkit-box-orient: vertical !important;
-    -webkit-line-clamp: 2 !important;
-
-    white-space: normal !important;
-    overflow: hidden !important;
-    text-overflow: ellipsis !important;
-
-    max-height: 2.7em !important;
-
-    padding-top: 1px !important;
-
-    font-size: 15px !important;
-    line-height: 1.3 !important;
-  }
-
-
-  /* =======================================================
-     RIGHT ORDER RAIL
-     Fixed height regardless of number of order lines.
-     More items = internal scroll, never rail growth.
-     ======================================================= */
-
-  body #pmd-cashier-order-composer-v1.pmd-coc
-  .pmd-coc__cart {
-    display: flex !important;
-    flex-direction: column !important;
-
-    overflow-x: hidden !important;
-    overflow-y: auto !important;
-
-    padding: 12px !important;
-
-    overscroll-behavior: contain !important;
-
-    scrollbar-gutter: stable !important;
-  }
-
-
-  body #pmd-cashier-order-composer-v1.pmd-coc
-  .pmd-coc__cart > * {
-    flex: 0 0 auto !important;
-    min-width: 0 !important;
-  }
-
-
-  /*
-   * Existing real action node stays attached to all existing
-   * listeners, but always sits at the visual bottom.
-   */
-  body #pmd-cashier-order-composer-v1.pmd-coc
-  .pmd-coc__cart >
-  .pmd-coc__footer-right {
-    position: sticky !important;
-
-    left: auto !important;
-    right: auto !important;
-    bottom: 0 !important;
-
-    width: 100% !important;
-    max-width: none !important;
-
-    margin-top: auto !important;
-    margin-bottom: 0 !important;
+    gap:
+      14px !important;
 
     padding:
-      12px
-      0
-      0 !important;
+      14px !important;
 
-    display: grid !important;
+    align-items:
+      stretch !important;
 
-    grid-template-columns:
-      92px
-      minmax(0, 1fr) !important;
-
-    gap: 8px !important;
-
-    border-top:
-      1px solid #d7e4ec !important;
-
-    background:
-      linear-gradient(
-        to bottom,
-        rgba(255,255,255,.96),
-        #fff 14px,
-        #fff
-      ) !important;
-
-    z-index: 20 !important;
+    overflow:
+      hidden !important;
   }
 
 
-  body #pmd-cashier-order-composer-v1.pmd-coc
-  .pmd-coc__cart >
-  .pmd-coc__footer-right >
-  button {
-    display: flex !important;
-
-    align-items: center !important;
-    justify-content: center !important;
-
-    visibility: visible !important;
-
-    width: 100% !important;
-    height: 44px !important;
-    min-height: 44px !important;
-
-    margin: 0 !important;
-    padding: 0 10px !important;
-
-    border-radius: 11px !important;
-
-    font-size: 12px !important;
-    line-height: 1 !important;
-    font-weight: 850 !important;
-  }
-
-
-  body #pmd-cashier-order-composer-v1.pmd-coc
-  .pmd-coc__cart >
-  .pmd-coc__footer-right >
-  .pmd-coc__primary:not(:disabled) {
-    opacity: 1 !important;
-
-    background: #003f37 !important;
-    background-color: #003f37 !important;
-
-    border-color: #003f37 !important;
-
-    color: #fff !important;
-  }
-
-
-  body #pmd-cashier-order-composer-v1.pmd-coc
-  .pmd-coc__cart >
-  .pmd-coc__footer-right >
-  .pmd-coc__primary:disabled {
-    display: flex !important;
-    visibility: visible !important;
-
-    opacity: 1 !important;
-
-    background: #9db0ad !important;
-    background-color: #9db0ad !important;
-
-    border-color: #9db0ad !important;
-
-    color: #fff !important;
-  }
-
-}
-
-
-/* =========================================================
-   PAYMENT METHODS
-   Exactly one visual icon per method.
-   Cash must remain visible when there is no terminal provider.
-   ========================================================= */
-
-body #pmd-cashier-order-composer-v1.pmd-coc
-.pmd-pos-method-grid {
-  display: grid !important;
-
-  grid-template-columns:
-    repeat(
-      2,
-      minmax(0, 1fr)
-    ) !important;
-
-  align-items: stretch !important;
-
-  gap: 12px !important;
-
-  min-height: 0 !important;
-}
-
-
-body #pmd-cashier-order-composer-v1.pmd-coc
-.pmd-pos-method-grid >
-[data-payment-method] {
-  display: flex !important;
-
-  flex-direction: column !important;
-
-  align-items: center !important;
-  justify-content: center !important;
-
-  visibility: visible !important;
-  opacity: 1 !important;
-
-  width: 100% !important;
-  min-width: 0 !important;
-
-  min-height: 88px !important;
-
-  gap: 8px !important;
-
-  padding: 12px !important;
-
-  text-align: center !important;
-}
-
-
-/*
- * No terminal configured:
- * Cash is the only child and fills the whole method row.
- */
-body #pmd-cashier-order-composer-v1.pmd-coc
-.pmd-pos-method-grid >
-[data-payment-method]:only-child {
-  display: flex !important;
-
-  grid-column:
-    1 / -1 !important;
-
-  width: 100% !important;
-  max-width: none !important;
-}
-
-
-/* Old text descriptions are not needed for cashier. */
-body #pmd-cashier-order-composer-v1.pmd-coc
-[data-payment-method] small {
-  display: none !important;
-}
-
-
-/* Remove all old duplicate icon layers first. */
-body #pmd-cashier-order-composer-v1.pmd-coc
-[data-payment-method]::after {
-  content: none !important;
-  display: none !important;
-}
-
-
-/* One Cash icon only. */
-body #pmd-cashier-order-composer-v1.pmd-coc
-[data-payment-method="cash"]::before {
-  content: "€" !important;
-
-  width: 36px !important;
-  height: 36px !important;
-
-  display: grid !important;
-  place-items: center !important;
-
-  margin: 0 !important;
-
-  border: 0 !important;
-  border-radius: 10px !important;
-
-  background: #e3f2ee !important;
-
-  color: #087a66 !important;
-
-  font-size: 22px !important;
-  line-height: 1 !important;
-  font-weight: 950 !important;
-
-  box-shadow: none !important;
-}
-
-
-/* One Terminal icon only. */
-body #pmd-cashier-order-composer-v1.pmd-coc
-[data-payment-method="direct_terminal"]::before {
-  content: "" !important;
-
-  width: 38px !important;
-  height: 26px !important;
-
-  display: block !important;
-
-  margin: 0 !important;
-
-  border:
-    3px solid #087a66 !important;
-
-  border-radius: 6px !important;
-
-  background:
-    linear-gradient(
-      to bottom,
-      #fff 0,
-      #fff 63%,
-      #dcebe7 63%,
-      #dcebe7 100%
-    ) !important;
-
-  box-shadow: none !important;
-}
-
-
-body #pmd-cashier-order-composer-v1.pmd-coc
-[data-payment-method] b {
-  display: block !important;
-
-  margin: 0 !important;
-
-  color: #12354b !important;
-
-  font-size: 16px !important;
-  line-height: 1.1 !important;
-  font-weight: 900 !important;
-
-  text-align: center !important;
-}
-
-
-/* =========================================================
-   SMALL / TABLET
-   Let the existing responsive flow own stacking.
-   ========================================================= */
-
-@media (max-width: 900px) {
-
-  body #pmd-cashier-order-composer-v1.pmd-coc
-  .pmd-pos-method-grid {
-    grid-template-columns:
-      1fr !important;
-  }
-
-
-  body #pmd-cashier-order-composer-v1.pmd-coc
-  .pmd-pos-method-grid >
-  [data-payment-method] {
-    min-height: 76px !important;
-  }
-
-}
-
-/* PMD_CASHIER_R59B_PERSISTENT_ACTIONS_FIX_START */
-
-
-/* =========================================================
-   DESKTOP GEOMETRY
-   ========================================================= */
-
-@media (min-width: 901px) {
-
-  body #pmd-cashier-order-composer-v1.pmd-coc
-  .pmd-coc__dialog {
-    --pmd-coc-r59b-rail:
-      clamp(
-        320px,
-        25vw,
-        360px
-      );
-
-    /*
-     * Header / hidden tablebar / main / empty footer track.
-     * Footer itself is placed over row 3 below.
-     */
-    grid-template-rows:
-      auto
-      0
-      minmax(0, 1fr)
-      0 !important;
-  }
-
-
-  body #pmd-cashier-order-composer-v1.pmd-coc
-  .pmd-coc__tablebar {
-    display: none !important;
-  }
-
-
-  body #pmd-cashier-order-composer-v1.pmd-coc
-  .pmd-coc__main {
-    grid-row: 3 !important;
-
-    min-height: 0 !important;
-
-    grid-template-columns:
-      minmax(0, 1fr)
-      var(
-        --pmd-coc-r59b-rail
-      ) !important;
-
-    overflow: hidden !important;
-  }
-
-
-  /* =======================================================
+  /* ==========================
      LEFT MENU
-     Menu scrolls; cards remain equal-sized.
-     ======================================================= */
+     ========================== */
 
   body #pmd-cashier-order-composer-v1.pmd-coc
   .pmd-coc__catalog {
-    height: 100% !important;
-    min-height: 0 !important;
+    height:
+      100% !important;
 
-    overflow: hidden !important;
+    min-height:
+      0 !important;
+
+    display:
+      grid !important;
 
     grid-template-rows:
       auto
       auto
       auto
       minmax(0, 1fr) !important;
+
+    overflow:
+      hidden !important;
   }
 
 
   body #pmd-cashier-order-composer-v1.pmd-coc
   .pmd-coc__menu {
-    height: auto !important;
-    min-height: 0 !important;
-    max-height: none !important;
+    height:
+      100% !important;
 
-    overflow-x: hidden !important;
-    overflow-y: auto !important;
+    min-height:
+      0 !important;
 
-    align-content: start !important;
-    align-items: stretch !important;
+    overflow-x:
+      hidden !important;
 
-    /*
-     * Every product row has exactly one card height.
-     * Different descriptions/images can no longer change it.
-     */
+    overflow-y:
+      auto !important;
+
+    align-content:
+      start !important;
+
+    align-items:
+      stretch !important;
+
     grid-auto-rows:
-      320px !important;
+      310px !important;
 
-    padding-bottom: 30px !important;
-    scroll-padding-bottom: 30px !important;
+    padding-bottom:
+      18px !important;
 
-    overscroll-behavior:
-      contain !important;
+    scroll-padding-bottom:
+      18px !important;
+
+    scrollbar-gutter:
+      stable !important;
   }
 
 
   body #pmd-cashier-order-composer-v1.pmd-coc
   .pmd-coc-food {
-    width: 100% !important;
+    width:
+      100% !important;
 
-    height: 320px !important;
-    min-height: 320px !important;
-    max-height: 320px !important;
+    height:
+      310px !important;
 
-    align-self: stretch !important;
+    min-height:
+      310px !important;
+
+    max-height:
+      310px !important;
+
+    display:
+      grid !important;
 
     grid-template-rows:
-      136px
+      132px
       minmax(0, 1fr) !important;
 
-    overflow: hidden !important;
+    overflow:
+      hidden !important;
   }
 
 
   body #pmd-cashier-order-composer-v1.pmd-coc
   .pmd-coc-food__media {
-    height: 136px !important;
-    min-height: 136px !important;
-    max-height: 136px !important;
+    height:
+      132px !important;
+
+    min-height:
+      132px !important;
+
+    max-height:
+      132px !important;
+
+    overflow:
+      hidden !important;
   }
 
 
   body #pmd-cashier-order-composer-v1.pmd-coc
   .pmd-coc-food__body {
-    min-width: 0 !important;
-    min-height: 0 !important;
+    min-width:
+      0 !important;
 
-    padding: 12px !important;
+    min-height:
+      0 !important;
 
-    display: flex !important;
-    flex-direction: column !important;
+    padding:
+      12px !important;
 
-    overflow: hidden !important;
+    display:
+      flex !important;
+
+    flex-direction:
+      column !important;
+
+    overflow:
+      hidden !important;
   }
 
 
-  /*
-   * Food title may use two lines, but may never be sliced
-   * through the middle of a line.
-   */
   body #pmd-cashier-order-composer-v1.pmd-coc
   .pmd-coc-food__body > strong {
-    display: -webkit-box !important;
+    display:
+      -webkit-box !important;
 
-    min-height: 36px !important;
-    max-height: 36px !important;
+    -webkit-box-orient:
+      vertical !important;
 
-    margin: 0 !important;
-    padding: 0 !important;
+    -webkit-line-clamp:
+      2 !important;
 
-    overflow: hidden !important;
+    min-height:
+      2.6em !important;
 
-    line-height: 18px !important;
+    max-height:
+      2.6em !important;
 
-    -webkit-line-clamp: 2 !important;
-    -webkit-box-orient: vertical !important;
+    padding:
+      1px 0 2px !important;
 
-    overflow-wrap: anywhere !important;
+    line-height:
+      1.25 !important;
+
+    white-space:
+      normal !important;
+
+    overflow:
+      hidden !important;
+
+    overflow-wrap:
+      anywhere !important;
+
+    text-overflow:
+      ellipsis !important;
   }
 
 
   body #pmd-cashier-order-composer-v1.pmd-coc
   .pmd-coc-food__foot {
-    margin-top: auto !important;
+    margin-top:
+      auto !important;
   }
 
 
-  /* =======================================================
-     RIGHT RAIL
-     It scrolls independently.
-     Reserve only enough room INSIDE the rail for actions.
-     ======================================================= */
+  /* ==========================
+     RIGHT ORDER RAIL
+     ========================== */
 
   body #pmd-cashier-order-composer-v1.pmd-coc
   .pmd-coc__cart {
-    min-height: 0 !important;
-    height: 100% !important;
+    height:
+      100% !important;
 
-    overflow-x: hidden !important;
-    overflow-y: auto !important;
+    min-height:
+      0 !important;
 
-    padding-bottom: 84px !important;
+    padding:
+      12px !important;
 
-    scroll-padding-bottom:
-      84px !important;
+    display:
+      flex !important;
+
+    flex-direction:
+      column !important;
+
+    overflow:
+      hidden !important;
+  }
+
+
+  body #pmd-cashier-order-composer-v1.pmd-coc
+  .pmd-coc__cart-head,
+
+  body #pmd-cashier-order-composer-v1.pmd-coc
+  .pmd-coc__rail-switch,
+
+  body #pmd-cashier-order-composer-v1.pmd-coc
+  .pmd-coc__note,
+
+  body #pmd-cashier-order-composer-v1.pmd-coc
+  .pmd-coc__totals,
+
+  body #pmd-cashier-order-composer-v1.pmd-coc
+  .pmd-coc__rail-actions {
+    flex:
+      0 0 auto !important;
+
+    min-width:
+      0 !important;
+  }
+
+
+  /*
+   * Only the item pane scrolls.
+   * Note / total / buttons stay fixed.
+   */
+  body #pmd-cashier-order-composer-v1.pmd-coc
+  .pmd-coc__rail-pane:not([hidden]) {
+    display:
+      block !important;
+
+    flex:
+      1 1 auto !important;
+
+    min-height:
+      0 !important;
+
+    overflow-x:
+      hidden !important;
+
+    overflow-y:
+      auto !important;
+
+    scrollbar-gutter:
+      stable !important;
 
     overscroll-behavior:
       contain !important;
   }
 
 
-  /* =======================================================
-     PERSISTENT FOOTER
-     Same grid row as main.
-     Right-aligned to the order rail.
-     It is NOT inside main/cart DOM anymore.
-     ======================================================= */
-
   body #pmd-cashier-order-composer-v1.pmd-coc
-  .pmd-coc__footer {
-    display: block !important;
-
-    grid-row: 3 !important;
-
-    align-self: end !important;
-    justify-self: end !important;
-
-    width:
-      calc(
-        var(
-          --pmd-coc-r59b-rail
-        )
-        - 28px
-      ) !important;
-
-    height: auto !important;
-    min-height: 0 !important;
-
-    margin:
-      0
-      28px
-      28px
-      0 !important;
-
-    padding: 0 !important;
-
-    border: 0 !important;
-
-    background:
-      transparent !important;
-
-    box-shadow:
+  .pmd-coc__rail-pane[hidden] {
+    display:
       none !important;
-
-    overflow: visible !important;
-
-    z-index: 80 !important;
-
-    pointer-events: none !important;
   }
 
 
+  /* ==========================
+     ACTIONS
+     Real children of right rail.
+     ========================== */
+
   body #pmd-cashier-order-composer-v1.pmd-coc
-  .pmd-coc__footer >
-  .pmd-coc__footer-right {
-    position: static !important;
-    inset: auto !important;
+  .pmd-coc__rail-actions {
+    width:
+      100% !important;
 
-    width: 100% !important;
-    max-width: none !important;
-
-    margin: 0 !important;
+    margin:
+      10px 0 0 !important;
 
     padding:
-      10px
-      0
-      0 !important;
+      10px 0 0 !important;
 
-    display: grid !important;
+    display:
+      grid !important;
 
     grid-template-columns:
       92px
       minmax(0, 1fr) !important;
 
-    gap: 8px !important;
+    gap:
+      8px !important;
 
     border-top:
       1px solid
       #d7e4ec !important;
 
     background:
-      rgba(
-        255,
-        255,
-        255,
-        .98
-      ) !important;
+      #fff !important;
 
-    box-shadow:
-      0
-      -10px
-      18px
-      rgba(
-        255,
-        255,
-        255,
-        .96
-      ) !important;
+    position:
+      static !important;
 
-    pointer-events:
+    inset:
+      auto !important;
+
+    z-index:
       auto !important;
   }
 
 
   body #pmd-cashier-order-composer-v1.pmd-coc
-  .pmd-coc__footer
-  .pmd-coc__footer-right >
+  .pmd-coc__rail-actions >
   button {
-    width: 100% !important;
+    width:
+      100% !important;
 
-    height: 46px !important;
-    min-height: 46px !important;
+    height:
+      46px !important;
 
-    margin: 0 !important;
-    padding: 0 10px !important;
+    min-height:
+      46px !important;
 
-    display: flex !important;
+    margin:
+      0 !important;
 
-    align-items: center !important;
-    justify-content: center !important;
+    padding:
+      0 10px !important;
 
-    visibility: visible !important;
-    opacity: 1 !important;
+    display:
+      flex !important;
+
+    align-items:
+      center !important;
+
+    justify-content:
+      center !important;
 
     border-radius:
       11px !important;
@@ -4267,18 +3880,21 @@ body #pmd-cashier-order-composer-v1.pmd-coc
     font-size:
       12px !important;
 
-    line-height: 1 !important;
-    font-weight: 850 !important;
+    line-height:
+      1 !important;
+
+    font-weight:
+      850 !important;
   }
 
 
   body #pmd-cashier-order-composer-v1.pmd-coc
-  .pmd-coc__footer
+  .pmd-coc__rail-actions >
   .pmd-coc__primary:not(:disabled) {
-    background:
-      #003f37 !important;
+    opacity:
+      1 !important;
 
-    background-color:
+    background:
       #003f37 !important;
 
     border-color:
@@ -4290,12 +3906,12 @@ body #pmd-cashier-order-composer-v1.pmd-coc
 
 
   body #pmd-cashier-order-composer-v1.pmd-coc
-  .pmd-coc__footer
+  .pmd-coc__rail-actions >
   .pmd-coc__primary:disabled {
-    background:
-      #9db0ad !important;
+    opacity:
+      1 !important;
 
-    background-color:
+    background:
       #9db0ad !important;
 
     border-color:
@@ -4304,125 +3920,1019 @@ body #pmd-cashier-order-composer-v1.pmd-coc
     color:
       #fff !important;
   }
-
 }
 
 
-/* =========================================================
-   MOBILE
-   Persistent footer remains its real fourth dialog row.
-   ========================================================= */
-
+/* MOBILE */
 @media (max-width: 900px) {
 
   body #pmd-cashier-order-composer-v1.pmd-coc
-  .pmd-coc__dialog {
-    grid-template-rows:
-      auto
-      0
-      minmax(0, 1fr)
-      auto !important;
-  }
-
-
-  body #pmd-cashier-order-composer-v1.pmd-coc
   .pmd-coc__footer {
-    display: block !important;
-
-    position: static !important;
-
-    grid-row: 4 !important;
-
-    width: auto !important;
-    height: auto !important;
-
-    margin: 0 !important;
-
-    padding:
-      10px
-      12px
-      12px !important;
-
-    border-top:
-      1px solid
-      #d7e4ec !important;
-
-    background:
-      #fff !important;
-
-    pointer-events:
-      auto !important;
+    display:
+      none !important;
   }
 
 
   body #pmd-cashier-order-composer-v1.pmd-coc
-  .pmd-coc__footer-right {
-    width: 100% !important;
+  .pmd-coc__rail-actions {
+    width:
+      100% !important;
 
-    display: grid !important;
+    margin-top:
+      10px !important;
+
+    padding-top:
+      10px !important;
+
+    display:
+      grid !important;
 
     grid-template-columns:
       88px
       minmax(0, 1fr) !important;
 
-    gap: 8px !important;
+    gap:
+      8px !important;
   }
-
 }
 
 
-/* PMD_CASHIER_R59B_PERSISTENT_ACTIONS_FIX_END */
+/* PMD_CASHIER_R60A_CLEAN_RAIL_OWNER_END */
 
-/* PMD_CASHIER_R59_STABLE_RAIL_END */
+/* PMD_CASHIER_R60C_STATIC_VISUAL_OWNER_START */
 
-/* PMD_CASHIER_R59D_MODAL_OWNER_START */
 
-/*
- * Hidden means REALLY hidden.
- * Prevent any old layout rule from leaving the persistent
- * Close / Confirm / Pay controls floating on the page.
- */
-body #pmd-cashier-order-composer-v1.pmd-coc[hidden] {
+/* =========================================================
+   FOOD DETAILS MODAL SAFETY
+   ========================================================= */
+
+body #pmd-cashier-order-composer-v1.pmd-coc
+.pmd-coc-product:not([hidden]) {
+    visibility: visible !important;
+    opacity: 1 !important;
+    pointer-events: auto !important;
+}
+
+
+body #pmd-cashier-order-composer-v1.pmd-coc
+.pmd-coc-product:not([hidden])
+.pmd-coc-product__dialog {
+    visibility: visible !important;
+    opacity: 1 !important;
+
+    z-index: 2 !important;
+}
+
+
+/* =========================================================
+   CASH / TERMINAL ICON
+   Policy owns ONE real .pmd-cashier-method-icon.
+   Kill all method pseudo-icon authorities.
+   ========================================================= */
+
+body #pmd-cashier-order-composer-v1.pmd-coc
+.pmd-pos-method.pmd-cashier-method[
+    data-payment-method="cash"
+]::before,
+
+body #pmd-cashier-order-composer-v1.pmd-coc
+.pmd-pos-method.pmd-cashier-method[
+    data-payment-method="cash"
+]::after,
+
+body #pmd-cashier-order-composer-v1.pmd-coc
+.pmd-pos-method.pmd-cashier-method[
+    data-payment-method="direct_terminal"
+]::before,
+
+body #pmd-cashier-order-composer-v1.pmd-coc
+.pmd-pos-method.pmd-cashier-method[
+    data-payment-method="direct_terminal"
+]::after {
+    content: none !important;
+
     display: none !important;
 }
 
-body #pmd-cashier-order-composer-v1.pmd-coc[hidden] .pmd-coc__footer,
-body #pmd-cashier-order-composer-v1.pmd-coc[hidden] .pmd-coc__footer-right {
-    display: none !important;
+
+/* One canonical DOM icon. */
+body #pmd-cashier-order-composer-v1.pmd-coc
+.pmd-pos-method.pmd-cashier-method
+.pmd-cashier-method-icon {
+    width: 36px !important;
+    height: 36px !important;
+
+    min-width: 36px !important;
+    min-height: 36px !important;
+
+    margin: 0 !important;
+    padding: 0 !important;
+
+    display: grid !important;
+
+    place-items: center !important;
+
+    border-radius: 10px !important;
+
+    background:
+        #e5f1ee !important;
+
+    color:
+        #087a66 !important;
+
+    box-shadow:
+        none !important;
+
+    font-family:
+        Arial,
+        sans-serif !important;
+
+    font-size:
+        22px !important;
+
+    line-height:
+        1 !important;
+
+    font-weight:
+        900 !important;
+}
+
+
+/* Terminal should not look like a second Cash badge. */
+body #pmd-cashier-order-composer-v1.pmd-coc
+.pmd-pos-method.pmd-cashier-method[
+    data-payment-method="direct_terminal"
+]
+.pmd-cashier-method-icon {
+    background:
+        #eef5f3 !important;
+
+    font-size:
+        21px !important;
+}
+
+
+/* PMD_CASHIER_R60D_PAYMENT_GEOMETRY_DELEGATED */
+/* =========================================================
+   PRODUCT CARD MEDIA
+   Actual images fill the entire media frame.
+   ========================================================= */
+
+body #pmd-cashier-order-composer-v1.pmd-coc
+.pmd-coc-food__media {
+    position: relative !important;
+
+    display: flex !important;
+
+    align-items: center !important;
+    justify-content: center !important;
+
+    overflow: hidden !important;
+
+    background:
+        linear-gradient(
+            145deg,
+            #edf4f7,
+            #e5eef2
+        ) !important;
+}
+
+
+/* REAL FOOD IMAGE */
+body #pmd-cashier-order-composer-v1.pmd-coc
+.pmd-coc-food__media >
+img:not(.is-pmd-logo-fallback) {
+    width: 100% !important;
+    height: 100% !important;
+
+    min-width: 100% !important;
+    min-height: 100% !important;
+
+    max-width: none !important;
+    max-height: none !important;
+
+    margin: 0 !important;
+    padding: 0 !important;
+
+    display: block !important;
+
+    object-fit: cover !important;
+
+    object-position:
+        center
+        center !important;
+
+    border-radius: 0 !important;
+}
+
+
+/* =========================================================
+   NO IMAGE = EXISTING PMD LOGO, GLASS / MONOCHROME
+   No new asset and no coloured logo treatment.
+   ========================================================= */
+
+body #pmd-cashier-order-composer-v1.pmd-coc
+.pmd-coc-food__media >
+img.is-pmd-logo-fallback {
+    width: 58% !important;
+    height: 58% !important;
+
+    min-width: 0 !important;
+    min-height: 0 !important;
+
+    max-width: 180px !important;
+    max-height: 112px !important;
+
+    margin: auto !important;
+
+    padding: 14px !important;
+
+    display: block !important;
+
+    object-fit: contain !important;
+
+    object-position:
+        center
+        center !important;
+
+    border:
+        1px solid
+        rgba(
+            255,
+            255,
+            255,
+            .72
+        ) !important;
+
+    border-radius:
+        22px !important;
+
+    background:
+        linear-gradient(
+            145deg,
+            rgba(
+                255,
+                255,
+                255,
+                .58
+            ),
+            rgba(
+                222,
+                234,
+                238,
+                .34
+            )
+        ) !important;
+
+    box-shadow:
+        inset
+        0
+        1px
+        0
+        rgba(
+            255,
+            255,
+            255,
+            .88
+        ),
+        0
+        12px
+        30px
+        rgba(
+            26,
+            56,
+            68,
+            .08
+        ) !important;
+
+    opacity: .34 !important;
+
+    filter:
+        grayscale(1)
+        saturate(0)
+        contrast(.72)
+        brightness(.94) !important;
+
+    backdrop-filter:
+        blur(12px) !important;
+
+    -webkit-backdrop-filter:
+        blur(12px) !important;
+}
+
+
+/* Narrow Payment modal */
+@media (max-width: 760px) {
+
+    body #pmd-cashier-order-composer-v1.pmd-coc
+    .pmd-pos-adjustments:not([hidden]) {
+        grid-template-columns:
+            1fr !important;
+    }
+}
+
+
+/* PMD_CASHIER_R60F_CARD_MEDIA_FIX_START */
+
+/*
+ * Restore canonical vertical food-card geometry.
+ *
+ * Some earlier Cashier overrides can leave a stale
+ * grid-template-columns value behind, which makes the media
+ * occupy only the first small column.
+ */
+
+body #pmd-cashier-order-composer-v1.pmd-coc
+.pmd-coc-food {
+    grid-template-columns:
+        minmax(0, 1fr) !important;
+
+    grid-template-rows:
+        148px
+        minmax(0, 1fr) !important;
+
+    grid-auto-flow:
+        row !important;
 }
 
 
 /*
- * IMPORTANT:
- * :has() must be written as ONE selector token.
- * No newline between ":" and "has".
+ * Media owns the FULL first row.
  */
-body #pmd-cashier-order-composer-v1.pmd-coc:has(.pmd-pos-payment-modal.is-show) .pmd-coc__footer,
-body #pmd-cashier-order-composer-v1.pmd-coc:has(.pmd-pos-payment-modal[aria-hidden="false"]) .pmd-coc__footer {
-    visibility: hidden !important;
-    opacity: 0 !important;
-    pointer-events: none !important;
+
+body #pmd-cashier-order-composer-v1.pmd-coc
+.pmd-coc-food__media {
+    position:
+        relative !important;
+
+    grid-column:
+        1 / -1 !important;
+
+    grid-row:
+        1 !important;
+
+    justify-self:
+        stretch !important;
+
+    align-self:
+        stretch !important;
+
+    width:
+        100% !important;
+
+    min-width:
+        100% !important;
+
+    max-width:
+        100% !important;
+
+    height:
+        148px !important;
+
+    min-height:
+        148px !important;
+
+    max-height:
+        148px !important;
+
+    margin:
+        0 !important;
+
+    padding:
+        0 !important;
+
+    overflow:
+        hidden !important;
 }
 
 
 /*
- * Food Details owns the screen while open.
+ * Body always owns the complete second row.
  */
-body #pmd-cashier-order-composer-v1.pmd-coc:has(.pmd-coc-product:not([hidden])) .pmd-coc__footer {
-    visibility: hidden !important;
-    opacity: 0 !important;
-    pointer-events: none !important;
+
+body #pmd-cashier-order-composer-v1.pmd-coc
+.pmd-coc-food__body {
+    grid-column:
+        1 / -1 !important;
+
+    grid-row:
+        2 !important;
+
+    width:
+        100% !important;
+
+    min-width:
+        0 !important;
 }
 
 
 /*
- * No flash / fade when ownership changes.
+ * REAL FOOD IMAGE
+ *
+ * The Composer markup already gives this image
+ * data-coc-food-image.
  */
-body #pmd-cashier-order-composer-v1.pmd-coc .pmd-coc__footer,
-body #pmd-cashier-order-composer-v1.pmd-coc .pmd-coc__footer-right {
-    transition: none !important;
-    animation: none !important;
+
+body #pmd-cashier-order-composer-v1.pmd-coc
+.pmd-coc-food__media >
+img[data-coc-food-image]:not(.is-pmd-logo-fallback) {
+    position:
+        absolute !important;
+
+    inset:
+        0 !important;
+
+    width:
+        100% !important;
+
+    height:
+        100% !important;
+
+    min-width:
+        100% !important;
+
+    min-height:
+        100% !important;
+
+    max-width:
+        none !important;
+
+    max-height:
+        none !important;
+
+    margin:
+        0 !important;
+
+    padding:
+        0 !important;
+
+    display:
+        block !important;
+
+    object-fit:
+        cover !important;
+
+    object-position:
+        center center !important;
+
+    border:
+        0 !important;
+
+    border-radius:
+        0 !important;
+
+    transform:
+        none !important;
+
+    opacity:
+        1 !important;
+
+    filter:
+        none !important;
 }
 
 
-/* PMD_CASHIER_R59D_MODAL_OWNER_END */
+/*
+ * EXISTING PMD FALLBACK LOGO
+ *
+ * Keep the real /brand/paymydine-logo.svg,
+ * but present it as monochrome frosted glass rather than
+ * the coloured brand artwork.
+ */
+
+body #pmd-cashier-order-composer-v1.pmd-coc
+.pmd-coc-food__media >
+img[data-coc-food-image].is-pmd-logo-fallback,
+
+body #pmd-cashier-order-composer-v1.pmd-coc
+.pmd-coc-food__media >
+img[data-coc-food-image][src*="/brand/paymydine-logo.svg"] {
+    position:
+        absolute !important;
+
+    left:
+        50% !important;
+
+    top:
+        50% !important;
+
+    right:
+        auto !important;
+
+    bottom:
+        auto !important;
+
+    width:
+        58% !important;
+
+    height:
+        68% !important;
+
+    min-width:
+        0 !important;
+
+    min-height:
+        0 !important;
+
+    max-width:
+        190px !important;
+
+    max-height:
+        108px !important;
+
+    margin:
+        0 !important;
+
+    padding:
+        13px !important;
+
+    object-fit:
+        contain !important;
+
+    object-position:
+        center center !important;
+
+    transform:
+        translate(
+            -50%,
+            -50%
+        ) !important;
+
+    border:
+        1px solid
+        rgba(
+            255,
+            255,
+            255,
+            .72
+        ) !important;
+
+    border-radius:
+        22px !important;
+
+    background:
+        linear-gradient(
+            145deg,
+            rgba(
+                255,
+                255,
+                255,
+                .58
+            ),
+            rgba(
+                220,
+                232,
+                237,
+                .32
+            )
+        ) !important;
+
+    box-shadow:
+        inset
+        0
+        1px
+        0
+        rgba(
+            255,
+            255,
+            255,
+            .92
+        ),
+        0
+        12px
+        30px
+        rgba(
+            19,
+            52,
+            65,
+            .08
+        ) !important;
+
+    opacity:
+        .30 !important;
+
+    filter:
+        grayscale(1)
+        saturate(0)
+        contrast(.72)
+        brightness(.96) !important;
+
+    backdrop-filter:
+        blur(12px) !important;
+
+    -webkit-backdrop-filter:
+        blur(12px) !important;
+}
+
+
+/* PMD_CASHIER_R60F_CARD_MEDIA_FIX_END */
+
+/* PMD_CASHIER_R60C_STATIC_VISUAL_OWNER_END */
+
+
+/* PMD_CASHIER_R60H_CANCEL_ACTION_START */
+
+body #pmd-cashier-order-composer-v1.pmd-coc
+.pmd-coc__rail-actions >
+.pmd-coc__secondary.is-cancel-order {
+    border-color:
+        #e7aaa5 !important;
+
+    background:
+        #fff5f4 !important;
+
+    color:
+        #b42318 !important;
+
+    font-weight:
+        900 !important;
+}
+
+
+body #pmd-cashier-order-composer-v1.pmd-coc
+.pmd-coc__rail-actions >
+.pmd-coc__secondary.is-cancel-order:not(:disabled):hover {
+    border-color:
+        #d77e76 !important;
+
+    background:
+        #ffebe9 !important;
+
+    color:
+        #9f1c13 !important;
+}
+
+
+/* PMD_CASHIER_R60H_CANCEL_ACTION_END */
+
+
+/* PMD_CASHIER_R60J_FAST_OPEN_VISUAL_START */
+
+/*
+ * Existing Open Order is visible immediately.
+ * This placeholder exists only until canonical order data is
+ * ready; renderComposer() replaces it normally.
+ */
+
+body #pmd-cashier-order-composer-v1.pmd-coc
+.pmd-coc-open-loading {
+    grid-column:
+        1 / -1 !important;
+
+    width:
+        100% !important;
+
+    height:
+        100% !important;
+
+    min-height:
+        360px !important;
+
+    display:
+        grid !important;
+
+    place-items:
+        center !important;
+
+    padding:
+        30px !important;
+
+    text-align:
+        center !important;
+
+    color:
+        #647d8f !important;
+}
+
+
+body #pmd-cashier-order-composer-v1.pmd-coc
+.pmd-coc-open-loading > div {
+    display:
+        grid !important;
+
+    gap:
+        6px !important;
+}
+
+
+body #pmd-cashier-order-composer-v1.pmd-coc
+.pmd-coc-open-loading strong {
+    color:
+        #102f42 !important;
+
+    font-size:
+        16px !important;
+
+    font-weight:
+        900 !important;
+}
+
+
+body #pmd-cashier-order-composer-v1.pmd-coc
+.pmd-coc-open-loading span {
+    color:
+        #647d8f !important;
+
+    font-size:
+        12px !important;
+
+    font-weight:
+        600 !important;
+}
+
+
+/* PMD_CASHIER_R60J_FAST_OPEN_VISUAL_END */
+
+/* PMD_CASHIER_R60L_GLASS_LOGO_CANCEL_START */
+
+/*
+ * Same brand-safe no-photo treatment as the customer-facing
+ * digital menu. The actual restaurant/admin logo is untouched.
+ */
+body #pmd-cashier-order-composer-v1.pmd-coc
+.pmd-coc-food__media
+img.is-pmd-logo-fallback,
+
+body #pmd-cashier-order-composer-v1.pmd-coc
+.pmd-coc-food__media
+img[src*="/brand/paymydine-logo.svg"],
+
+body #pmd-cashier-order-composer-v1.pmd-coc
+.pmd-coc-product__image
+img.is-pmd-logo-fallback,
+
+body #pmd-cashier-order-composer-v1.pmd-coc
+.pmd-coc-product__image
+img[src*="/brand/paymydine-logo.svg"] {
+    object-fit:
+        contain !important;
+
+    object-position:
+        center !important;
+
+    padding:
+        clamp(24px, 10%, 58px) !important;
+
+    background:
+        radial-gradient(
+            circle at 32% 22%,
+            rgba(255,255,255,.24),
+            transparent 48%
+        ),
+        linear-gradient(
+            145deg,
+            rgba(255,255,255,.13),
+            rgba(127,127,127,.06)
+        ) !important;
+
+    border:
+        1px solid
+        rgba(255,255,255,.16) !important;
+
+    box-shadow:
+        inset 0 1px 0
+        rgba(255,255,255,.22),
+        0 12px 30px
+        rgba(0,0,0,.14) !important;
+
+    filter:
+        grayscale(1)
+        saturate(0)
+        contrast(.82)
+        opacity(.48)
+        drop-shadow(
+            0 8px 14px
+            rgba(0,0,0,.18)
+        ) !important;
+
+    -webkit-backdrop-filter:
+        blur(14px)
+        saturate(.72) !important;
+
+    backdrop-filter:
+        blur(14px)
+        saturate(.72) !important;
+}
+
+
+/*
+ * Existing order secondary action is Cancel.
+ * Top-right X remains the modal close authority.
+ */
+body #pmd-cashier-order-composer-v1.pmd-coc
+button[data-coc-secondary-action]
+.is-cancel-order-action {
+    color:
+        #a93631 !important;
+}
+
+
+/*
+ * Selector above is intentionally duplicated below in the
+ * direct-element form because the button itself owns the class.
+ */
+body #pmd-cashier-order-composer-v1.pmd-coc
+button[data-coc-secondary-action].is-cancel-order-action {
+    border-color:
+        #e4aaa6 !important;
+
+    background:
+        #fff6f5 !important;
+
+    background-color:
+        #fff6f5 !important;
+
+    color:
+        #a93631 !important;
+
+    box-shadow:
+        none !important;
+}
+
+
+body #pmd-cashier-order-composer-v1.pmd-coc
+button[data-coc-secondary-action]
+.is-cancel-order-action:not(:disabled),
+
+body #pmd-cashier-order-composer-v1.pmd-coc
+button[data-coc-secondary-action].is-cancel-order-action:not(:disabled) {
+    cursor:
+        pointer !important;
+}
+
+
+body #pmd-cashier-order-composer-v1.pmd-coc
+button[data-coc-secondary-action].is-cancel-order-action:not(:disabled):hover {
+    border-color:
+        #d88984 !important;
+
+    background:
+        #fff0ef !important;
+
+    color:
+        #8f2c28 !important;
+}
+
+
+body #pmd-cashier-order-composer-v1.pmd-coc
+button[data-coc-secondary-action].is-cancel-order-action:disabled {
+    opacity:
+        .48 !important;
+
+    cursor:
+        not-allowed !important;
+
+    border-color:
+        #e8c9c7 !important;
+
+    background:
+        #fff9f8 !important;
+
+    color:
+        #a96d68 !important;
+}
+
+/* PMD_CASHIER_R60L_GLASS_LOGO_CANCEL_END */
+
+
+
+/* PMD_CASHIER_R60R_CANCEL_PICKER_UI_START */
+
+body #pmd-cashier-order-composer-v1
+.pmd-coc-cancel-picker {
+    position: fixed !important;
+    inset: 0 !important;
+    z-index: 2147483000 !important;
+    display: grid !important;
+    place-items: center !important;
+    padding: 20px !important;
+    background: rgba(16,35,44,.34) !important;
+    backdrop-filter: blur(9px) !important;
+}
+
+body #pmd-cashier-order-composer-v1
+.pmd-coc-cancel-picker__dialog {
+    width: min(600px, calc(100vw - 32px)) !important;
+    border: 1px solid #d6e3ea !important;
+    border-radius: 22px !important;
+    background: #fff !important;
+    box-shadow: 0 28px 80px rgba(9,31,40,.30) !important;
+    overflow: hidden !important;
+}
+
+body #pmd-cashier-order-composer-v1
+.pmd-coc-cancel-picker__head {
+    display: flex !important;
+    align-items: flex-start !important;
+    justify-content: space-between !important;
+    gap: 16px !important;
+    padding: 20px !important;
+    border-bottom: 1px solid #dce7ed !important;
+}
+
+body #pmd-cashier-order-composer-v1
+.pmd-coc-cancel-picker__head span {
+    color: #b42318 !important;
+    font-size: 11px !important;
+    font-weight: 900 !important;
+    letter-spacing: .08em !important;
+}
+
+body #pmd-cashier-order-composer-v1
+.pmd-coc-cancel-picker__head h3 {
+    margin: 4px 0 0 !important;
+    color: #15384b !important;
+    font-size: 22px !important;
+    font-weight: 900 !important;
+}
+
+body #pmd-cashier-order-composer-v1
+.pmd-coc-cancel-picker__head p {
+    margin: 4px 0 0 !important;
+    color: #758b99 !important;
+    font-size: 12px !important;
+    font-weight: 700 !important;
+}
+
+body #pmd-cashier-order-composer-v1
+.pmd-coc-cancel-picker__head > button {
+    width: 44px !important;
+    height: 44px !important;
+    border: 1px solid #ccdde7 !important;
+    border-radius: 13px !important;
+    background: #fff !important;
+    color: #183b4e !important;
+    font-size: 24px !important;
+}
+
+body #pmd-cashier-order-composer-v1
+.pmd-coc-cancel-picker__body {
+    display: grid !important;
+    grid-template-columns: repeat(2,minmax(0,1fr)) !important;
+    gap: 10px !important;
+    padding: 20px !important;
+}
+
+body #pmd-cashier-order-composer-v1
+.pmd-coc-cancel-picker__body > button {
+    min-height: 60px !important;
+    padding: 12px 14px !important;
+    border: 1px solid #d2e1e9 !important;
+    border-radius: 14px !important;
+    background: #f9fbfc !important;
+    color: #193c50 !important;
+    text-align: left !important;
+    font-size: 13px !important;
+    font-weight: 850 !important;
+}
+
+body #pmd-cashier-order-composer-v1
+.pmd-coc-cancel-picker__body > button.is-selected {
+    border-color: #d05b53 !important;
+    background: #fff0ee !important;
+    color: #9c2119 !important;
+    box-shadow:
+        inset 0 0 0 1px #d05b53 !important;
+}
+
+body #pmd-cashier-order-composer-v1
+.pmd-coc-cancel-picker__foot {
+    display: grid !important;
+    grid-template-columns: 120px minmax(0,1fr) !important;
+    gap: 10px !important;
+    padding: 16px 20px 20px !important;
+    border-top: 1px solid #dce7ed !important;
+}
+
+body #pmd-cashier-order-composer-v1
+.pmd-coc-cancel-picker__foot > button {
+    min-height: 48px !important;
+    border-radius: 13px !important;
+    font-size: 13px !important;
+    font-weight: 900 !important;
+}
+
+body #pmd-cashier-order-composer-v1
+.pmd-coc-cancel-picker__foot
+.is-danger {
+    border-color: #b42318 !important;
+    background: #b42318 !important;
+    color: #fff !important;
+}
+
+body #pmd-cashier-order-composer-v1
+.pmd-coc-cancel-picker__foot
+.is-danger:disabled {
+    border-color: #e1bab6 !important;
+    background: #d9adaa !important;
+    cursor: default !important;
+}
+
+@media (max-width: 620px) {
+    body #pmd-cashier-order-composer-v1
+    .pmd-coc-cancel-picker__body {
+        grid-template-columns: 1fr !important;
+    }
+}
+
+/* PMD_CASHIER_R60R_CANCEL_PICKER_UI_END */

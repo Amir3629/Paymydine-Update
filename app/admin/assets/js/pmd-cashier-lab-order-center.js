@@ -1882,8 +1882,37 @@
     state.payment = null;
     state.operations = null;
 
-    openShell();
-    loadDetails();
+    // PMD_CASHIER_R60S_PRELOAD_BEFORE_REVEAL
+    var requestedOrderId = id;
+    var shell = ensureShell();
+
+    /*
+     * Keep the modal hidden while renderLoading() and the two
+     * live requests run. renderDetails()/renderError() can safely
+     * build the final DOM off-screen.
+     */
+    shell.hidden = true;
+    shell.setAttribute(
+      'aria-hidden',
+      'true'
+    );
+
+    Promise.resolve(
+      loadDetails()
+    ).then(function () {
+      /*
+       * Ignore a stale response if another order was requested
+       * before this one finished.
+       */
+      if (
+        Number(state.orderId) !==
+        Number(requestedOrderId)
+      ) {
+        return;
+      }
+
+      openShell();
+    });
   }
 
   document.addEventListener(

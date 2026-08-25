@@ -22,6 +22,202 @@
     return closest(node, '[data-pmd-cashier-order]');
   }
 
+  // PMD_CASHIER_R60L_FREE_TABLE_TOOLBAR
+  function selectedFloorTableR60L() {
+    var floor =
+      window.PMDFloorMapV1;
+
+    var instances =
+      floor &&
+      Array.isArray(floor.instances)
+        ? floor.instances
+        : [];
+
+    for (
+      var index = 0;
+      index < instances.length;
+      index += 1
+    ) {
+      var instance =
+        instances[index];
+
+      if (
+        !instance ||
+        typeof instance.getState !==
+          'function'
+      ) {
+        continue;
+      }
+
+      var floorState =
+        instance.getState() || {};
+
+      var selectedId =
+        String(
+          floorState.selectedDisplayId ||
+          ''
+        );
+
+      if (!selectedId) {
+        continue;
+      }
+
+      var displayTables =
+        Array.isArray(
+          floorState.displayTables
+        )
+          ? floorState.displayTables
+          : [];
+
+      var selected =
+        displayTables.find(
+          function (row) {
+            return (
+              row &&
+              String(row.id) ===
+                selectedId
+            );
+          }
+        ) || null;
+
+      if (selected) {
+        return selected;
+      }
+    }
+
+    return null;
+  }
+
+
+  function syncFreeTableToolbar() {
+    var button =
+      document.querySelector(
+        '#pmd-cashier-current-orders-v2 ' +
+        '[data-pmd-cashier-table-free-toolbar]'
+      );
+
+    if (!button) {
+      return;
+    }
+
+    var selected =
+      selectedFloorTableR60L();
+
+    var raw =
+      selected &&
+      selected.raw &&
+      typeof selected.raw === 'object'
+        ? selected.raw
+        : {};
+
+    var canonicalId =
+      Number(
+        (
+          selected &&
+          selected.dbTableId
+        ) ||
+        raw.table_id ||
+        0
+      );
+
+    var status =
+      String(
+        selected &&
+        selected.status ||
+        ''
+      ).toLowerCase();
+
+    var merged =
+      !!(
+        selected &&
+        (
+          selected.isMergedView ||
+          (
+            Array.isArray(
+              selected.memberIds
+            ) &&
+            selected.memberIds.length > 1
+          )
+        )
+      );
+
+    /*
+     * User workflow:
+     * select a RED occupied physical table -> Free table activates.
+     *
+     * The backend still performs the final unpaid/part-paid safety
+     * validation when the button is pressed.
+     */
+    var ready =
+      !!selected &&
+      !merged &&
+      status === 'occupied' &&
+      canonicalId > 0;
+
+    var label =
+      String(
+        (
+          selected &&
+          selected.name
+        ) ||
+        (
+          selected &&
+          selected.number
+            ? 'Table ' +
+              selected.number
+            : ''
+        )
+      ).trim();
+
+    button.disabled =
+      !ready;
+
+    button.classList.toggle(
+      'is-ready',
+      ready
+    );
+
+    button.setAttribute(
+      'aria-disabled',
+      ready
+        ? 'false'
+        : 'true'
+    );
+
+    button.setAttribute(
+      'data-pmd-cashier-table-free',
+      ready
+        ? String(canonicalId)
+        : '0'
+    );
+
+    button.setAttribute(
+      'data-pmd-cashier-table-label',
+      ready
+        ? label
+        : ''
+    );
+
+    button.setAttribute(
+      'title',
+      ready
+        ? (
+            'Set ' +
+            (
+              label ||
+              'selected table'
+            ) +
+            ' free'
+          )
+        : (
+            merged
+              ? 'Merged tables cannot be released with one Free table action.'
+              : 'Select a red occupied table first.'
+          )
+    );
+  }
+
+
   function openOrder(link) {
     var card = cardFor(link);
     var orderId = Number(
@@ -30,6 +226,51 @@
 
     if (!orderId) {
       if (link.href) window.location.href = link.href;
+      return;
+    }
+
+    // PMD_CASHIER_R60S_PAID_TABLE_DIRECT_CENTER
+    var directTableId = Number(
+      (
+        card &&
+        card.getAttribute(
+          'data-pmd-cashier-table-id'
+        )
+      ) || 0
+    );
+
+    var fullyPaid =
+      !!card &&
+      (
+        String(
+          card.getAttribute(
+            'data-pmd-cashier-order-paid'
+          ) || '0'
+        ) === '1'
+        ||
+        !!card.querySelector(
+          '.is-paid-label'
+        )
+      );
+
+    /*
+     * Paid physical-table orders are read-only.
+     *
+     * Do not paint Composer and then fall back to Order Center.
+     * That two-surface handoff is the visible table-order blink.
+     *
+     * Delivery remains on its existing path.
+     */
+    if (
+      directTableId > 0 &&
+      fullyPaid &&
+      window.PMDCashierOrderCenter &&
+      typeof window.PMDCashierOrderCenter.open ===
+        'function'
+    ) {
+      window.PMDCashierOrderCenter.open(
+        orderId
+      );
       return;
     }
 
@@ -150,6 +391,19 @@
   }
 
   window.addEventListener('click', function (event) {
+    var floorTable =
+      closest(
+        event.target,
+        '[data-pmd-floor] [data-floor-table]'
+      );
+
+    if (floorTable) {
+      window.setTimeout(
+        syncFreeTableToolbar,
+        0
+      );
+    }
+
     var openLink = closest(
       event.target,
       '#pmd-cashier-current-orders-v2 a[data-pmd-cashier-open-composer="1"]'
@@ -175,10 +429,351 @@
   }, true);
 
   window.PMDCashierR45Actions = {
-    version: '45.1.0',
+    version: '45.2.0-r60l',
     openOrder: openOrder,
-    freeTable: freeTable
+    freeTable: freeTable,
+    syncFreeTableToolbar:
+      syncFreeTableToolbar
   };
+
+  window.addEventListener(
+    'pageshow',
+    function () {
+      window.setTimeout(
+        syncFreeTableToolbar,
+        0
+      );
+    }
+  );
+
+  window.addEventListener(
+    'pmd:floor:updated',
+    function () {
+      window.setTimeout(
+        syncFreeTableToolbar,
+        0
+      );
+    }
+  );
+
+  window.addEventListener(
+    'pmd:floor:context',
+    function () {
+      window.setTimeout(
+        syncFreeTableToolbar,
+        0
+      );
+    }
+  );
+
+  window.setTimeout(
+    syncFreeTableToolbar,
+    0
+  );
 
   console.info('[PMD] Cashier R45 action authority ready');
 })();
+
+
+/* PMD_CASHIER_R60T_FREE_TABLE_SELECTION_START */
+(function () {
+  'use strict';
+
+  function floorRoot() {
+    return document.getElementById(
+      'pmd-r2-shared-floor-canvas-v310'
+    );
+  }
+
+  function floorState() {
+    var root = floorRoot();
+
+    var api =
+      root &&
+      root.__pmdFloorV1;
+
+    if (
+      !api ||
+      typeof api.getState !== 'function'
+    ) {
+      return null;
+    }
+
+    return api.getState();
+  }
+
+  function selectedFloorTable() {
+    var state = floorState();
+
+    if (
+      !state ||
+      state.selectedDisplayId == null
+    ) {
+      return null;
+    }
+
+    var selected =
+      String(
+        state.selectedDisplayId
+      );
+
+    var tables =
+      Array.isArray(state.tables)
+        ? state.tables
+        : [];
+
+    return tables.find(
+      function (table) {
+        return (
+          table &&
+          String(table.id) === selected
+        );
+      }
+    ) || null;
+  }
+
+  function canonicalTableId(table) {
+    if (!table) {
+      return 0;
+    }
+
+    var raw =
+      table.raw || {};
+
+    return Number(
+      table.dbTableId ||
+      table.tableId ||
+      table.table_id ||
+      raw.table_id ||
+      raw.id ||
+      0
+    );
+  }
+
+  function tableIsOccupied(table) {
+    if (!table) {
+      return false;
+    }
+
+    var raw =
+      table.raw || {};
+
+    var operational =
+      String(
+        raw.operational_status ||
+        raw.table_operational_status ||
+        table.operational_status ||
+        table.table_operational_status ||
+        ''
+      )
+        .trim()
+        .toLowerCase();
+
+    var presentation =
+      String(
+        table.status ||
+        raw.status ||
+        raw.latest_order_status ||
+        ''
+      )
+        .trim()
+        .toLowerCase();
+
+    var openOrders =
+      Number(
+        table.openOrders ||
+        table.open_orders ||
+        raw.open_orders ||
+        0
+      );
+
+    /*
+     * A red/occupied table may expose the toolbar action.
+     *
+     * Financial eligibility is still validated by the existing
+     * markTableFreeV45 backend. This UI never bypasses that guard.
+     */
+    return (
+      operational === 'occupied' ||
+      presentation === 'occupied' ||
+      openOrders > 0
+    );
+  }
+
+  function tableLabel(table, tableId) {
+    if (!table) {
+      return '';
+    }
+
+    return String(
+      table.name ||
+      table.label ||
+      (
+        'Table ' +
+        String(
+          table.number ||
+          tableId
+        )
+      )
+    ).trim();
+  }
+
+  function syncFreeTableToolbar() {
+    var control =
+      document.querySelector(
+        '[data-pmd-cashier-table-free-toolbar="1"]'
+      );
+
+    if (!control) {
+      return;
+    }
+
+    var table =
+      selectedFloorTable();
+
+    var tableId =
+      canonicalTableId(table);
+
+    var occupied =
+      tableIsOccupied(table);
+
+    var enabled =
+      !!table &&
+      tableId > 0 &&
+      occupied;
+
+    control.disabled =
+      !enabled;
+
+    control.setAttribute(
+      'aria-disabled',
+      enabled
+        ? 'false'
+        : 'true'
+    );
+
+    control.setAttribute(
+      'data-pmd-cashier-table-free',
+      enabled
+        ? String(tableId)
+        : '0'
+    );
+
+    var label =
+      tableLabel(
+        table,
+        tableId
+      );
+
+    if (enabled && label) {
+      control.setAttribute(
+        'data-pmd-cashier-table-label',
+        label
+      );
+
+      control.title =
+        'Set ' +
+        label +
+        ' free';
+    } else {
+      control.removeAttribute(
+        'data-pmd-cashier-table-label'
+      );
+
+      control.title =
+        'Select an occupied table first';
+    }
+  }
+
+  function queueToolbarSync() {
+    if (
+      typeof window.requestAnimationFrame ===
+      'function'
+    ) {
+      window.requestAnimationFrame(
+        syncFreeTableToolbar
+      );
+
+      return;
+    }
+
+    window.setTimeout(
+      syncFreeTableToolbar,
+      0
+    );
+  }
+
+  /*
+   * Floor owns table selection.
+   *
+   * We listen in capture phase only so another Floor handler
+   * cannot hide the event from Cashier. The actual read happens
+   * on the next frame AFTER Floor has updated selectedDisplayId.
+   */
+  window.addEventListener(
+    'click',
+    function (event) {
+      var target =
+        event.target &&
+        typeof event.target.closest ===
+          'function'
+          ? event.target.closest(
+              '#pmd-r2-shared-floor-canvas-v310 '
+              + '[data-floor-table]'
+            )
+          : null;
+
+      if (!target) {
+        return;
+      }
+
+      queueToolbarSync();
+    },
+    true
+  );
+
+  /*
+   * Floor switching clears selection.
+   */
+  window.addEventListener(
+    'pmd:floor:changed',
+    queueToolbarSync
+  );
+
+  /*
+   * Explicit successful Free Table may refresh/reload.
+   * If it does not, immediately resync the toolbar state.
+   */
+  window.addEventListener(
+    'pmd:cashier-table-freed',
+    queueToolbarSync
+  );
+
+  if (
+    document.readyState ===
+    'loading'
+  ) {
+    document.addEventListener(
+      'DOMContentLoaded',
+      queueToolbarSync,
+      {
+        once: true
+      }
+    );
+  } else {
+    queueToolbarSync();
+  }
+
+  window.PMDCashierFreeTableR60T = {
+    sync:
+      syncFreeTableToolbar,
+
+    selected:
+      selectedFloorTable
+  };
+
+  console.info(
+    '[PMD] Cashier R60T physical Free Table selection ready'
+  );
+})();
+/* PMD_CASHIER_R60T_FREE_TABLE_SELECTION_END */

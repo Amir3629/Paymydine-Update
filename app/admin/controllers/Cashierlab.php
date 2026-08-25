@@ -29,7 +29,13 @@ class Cashierlab extends PmdCleanWorkspaceControllerV1
     public function __construct()
     {
         parent::__construct();
-        $this->addCss('css/pmd-cashier-lab-orders-v1.css');
+        // PMD_CASHIER_R60M2_RELATIVE_ASSET_REPAIR
+        $this->addCss(
+            '//'.request()->getHost()
+            .'/app/admin/assets/css/'
+            .'pmd-cashier-lab-orders-v1.css'
+            .'?v=20260825-r60p'
+        );
         // PMD_CASHIER_ORDER_CENTER_R37A
         // UI-only Cashier order detail authority.
         // Ordering/payment business logic remains owned by Waiter POS.
@@ -37,15 +43,40 @@ class Cashierlab extends PmdCleanWorkspaceControllerV1
         // Cashier-native create/edit composer binds before legacy R37.
         // It owns New Order / Open Order / Add Items / Payment entry points.
         $this->addCss('css/pmd-cashier-order-composer-v1.css');
-        $this->addJs('js/pmd-cashier-order-composer-r51.js');
+        $this->addJs(
+            '//'.request()->getHost()
+            .'/app/admin/assets/js/'
+            .'pmd-cashier-order-composer-r51.js'
+            .'?v=20260825-r60s'
+        );
         // PMD_CASHIER_R45_ACTION_AUTHORITY
         // New filename intentionally bypasses any stale R37/R44 browser cache.
-        $this->addJs('js/pmd-cashier-r45-actions.js');
+        $this->addJs(
+            '//'.request()->getHost()
+            .'/app/admin/assets/js/'
+            .'pmd-cashier-r45-actions.js'
+            .'?v=20260826-r60t'
+        );
 
-        $this->addCss('css/pmd-cashier-lab-order-center.css');
+        $this->addCss(
+            '//'.request()->getHost()
+            .'/app/admin/assets/css/'
+            .'pmd-cashier-lab-order-center.css'
+            .'?v=20260825-r60s'
+        );
         // PMD_CASHIER_VISUAL_AUTHORITY_R51
-        $this->addCss('css/pmd-cashier-ui-r51.css');
-        $this->addJs('js/pmd-cashier-lab-order-center.js');
+        $this->addCss(
+            '//'.request()->getHost()
+            .'/app/admin/assets/css/'
+            .'pmd-cashier-ui-r51.css'
+            .'?v=20260825-r60r'
+        );
+        $this->addJs(
+            '//'.request()->getHost()
+            .'/app/admin/assets/js/'
+            .'pmd-cashier-lab-order-center.js'
+            .'?v=20260825-r60s'
+        );
     }
 
     /*
@@ -690,7 +721,119 @@ HTML;
 
                     $isReleasedVisit = isset($releasedOrderIds[$orderId]);
 
-                    if ($historyMode ? !$isReleasedVisit : $isReleasedVisit) {
+                    /*
+                     * PMD_CASHIER_R60H_HISTORY_BOUNDARY
+                     *
+                     * Physical table visits still end through the explicit
+                     * cashier_table_free operation.
+                     *
+                     * Delivery has no physical table lifecycle, therefore
+                     * successful settlement/closure is its visit boundary.
+                     *
+                     * Cancelled orders are always historical.
+                     */
+                    $pmdHistoryStatus = strtolower(
+                        trim(
+                            (string)$this->resolvedOrderStatus(
+                                $row,
+                                $statusColumn,
+                                $statusMap
+                            )
+                        )
+                    );
+
+                    $pmdHistorySettlement = strtolower(
+                        trim(
+                            (string)(
+                                $row['settlement_status']
+                                ?? ''
+                            )
+                        )
+                    );
+
+                    $pmdHistoryPayment = strtolower(
+                        trim(
+                            (string)(
+                                $paymentColumn
+                                    ? ($row[$paymentColumn] ?? '')
+                                    : ''
+                            )
+                        )
+                    );
+
+                    $pmdHistoryTotal = (float)(
+                        $totalColumn
+                            ? ($row[$totalColumn] ?? 0)
+                            : 0
+                    );
+
+                    $pmdHistorySettled = max(
+                        0,
+                        (float)(
+                            $row['settled_amount']
+                            ?? 0
+                        )
+                    );
+
+                    $pmdHistoryPaid =
+                        in_array(
+                            $pmdHistorySettlement,
+                            ['paid', 'settled'],
+                            true
+                        )
+                        || preg_match(
+                            '/paid|settled|bezahlt/i',
+                            $pmdHistoryPayment
+                        )
+                        || (
+                            $pmdHistoryTotal > 0
+                            && $pmdHistorySettled
+                                >= ($pmdHistoryTotal - 0.009)
+                        );
+
+                    $pmdHistoryCancelled =
+                        (bool)preg_match(
+                            '/cancel|void/i',
+                            $pmdHistoryStatus
+                        );
+
+                    $pmdHistoryClosed =
+                        (bool)preg_match(
+                            '/closed|complete|completed|finished/i',
+                            $pmdHistoryStatus
+                        );
+
+                    $pmdOrderType = strtolower(
+                        trim(
+                            (string)(
+                                $row['order_type']
+                                ?? ''
+                            )
+                        )
+                    );
+
+                    $pmdIsDelivery =
+                        $pmdOrderType === strtolower(
+                            (string)\Admin\Models\Orders_model::DELIVERY
+                        );
+
+                    $pmdDeliveryEnded =
+                        $pmdIsDelivery
+                        && (
+                            $pmdHistoryPaid
+                            || $pmdHistoryClosed
+                        );
+
+                    $pmdHistoryEnded =
+                        $isReleasedVisit
+                        || $pmdHistoryCancelled
+                        || $pmdDeliveryEnded;
+
+                    if (
+                        $historyMode
+                            ? !$pmdHistoryEnded
+                            : $pmdHistoryEnded
+                    ) {
                         continue;
                     }
 
@@ -904,6 +1047,7 @@ HTML;
                 'status_served' => 'Serviert',
                 'status_paid' => 'Bezahlt',
                 'status_closed' => 'Geschlossen',
+                'status_cancelled' => 'Storniert',
                 'status_problem' => 'Problem',
                 'date_range' => 'Datumsbereich',
                 'today' => 'Heute',
@@ -942,6 +1086,7 @@ HTML;
                 'status_served' => 'Served',
                 'status_paid' => 'Paid',
                 'status_closed' => 'Closed',
+                'status_cancelled' => 'Canceled',
                 'status_problem' => 'Problem',
                 'date_range' => 'Date range',
                 'today' => 'Today',
@@ -1055,7 +1200,10 @@ HTML;
 
             // PMD_CASHIER_OPERATIONAL_STATUS_R37C
             // Payment lifecycle must never replace kitchen/order lifecycle.
-            if (preg_match('/cancel|failed|declin|reject|void/', $statusRaw)) {
+            // PMD_CASHIER_R60H_CANCEL_STATUS_LABEL
+            if (preg_match('/cancel|void/', $statusRaw)) {
+                $statusKey = 'cancelled';
+            } elseif (preg_match('/failed|declin|reject/', $statusRaw)) {
                 $statusKey = 'problem';
             } elseif ($isClosed) {
                 $statusKey = 'closed';

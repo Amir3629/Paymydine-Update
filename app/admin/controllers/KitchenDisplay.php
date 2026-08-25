@@ -374,16 +374,54 @@ class KitchenDisplay extends AdminController
     /** PMD v82 cached kitchen status IDs, used by initial render and refresh. */
     protected function pmdKitchenStatusIdsV82()
     {
-        return $this->pmdKdsFastCacheRememberV82('pmd_kds_visible_status_ids_v12', 30, function () {
-            // V1.2: Ready/Delivery means kitchen handoff is complete, so the
-            // ticket leaves the active KDS wall. Undo can safely restore the
-            // previous Received/Preparation status through status history.
-            $kitchenStatusNames = ['Received', 'Preparation'];
-            return Statuses_model::whereIn('status_name', $kitchenStatusNames)
-                ->where('status_for', 'order')
-                ->pluck('status_id')
-                ->toArray();
-        });
+        // PMD_KDS_R60H_CANCELED_VISIBLE
+        //
+        // Active workflow:
+        //   Received / Preparation
+        //
+        // Canceled remains visible as an explicit terminal
+        // kitchen state instead of silently disappearing.
+        return $this->pmdKdsFastCacheRememberV82(
+            'pmd_kds_visible_status_ids_r60h',
+            30,
+            function () {
+                return Statuses_model::where(
+                    'status_for',
+                    'order'
+                )
+                    ->get()
+                    ->filter(
+                        function ($status) {
+                            $name =
+                                strtolower(
+                                    trim(
+                                        (string)(
+                                            $status->status_name
+                                            ?? ''
+                                        )
+                                    )
+                                );
+
+                            return in_array(
+                                $name,
+                                [
+                                    'received',
+                                    'preparation',
+                                    'canceled',
+                                    'cancelled',
+                                    'void',
+                                ],
+                                true
+                            );
+                        }
+                    )
+                    ->pluck(
+                        'status_id'
+                    )
+                    ->values()
+                    ->all();
+            }
+        );
     }
 
     protected function pmdKdsStationLocationIdV134()

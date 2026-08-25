@@ -25,8 +25,9 @@
 .pmd-coc .pmd-pos-balance-hero small{color:#788d9b!important;font-size:8.5px!important;font-weight:700!important}
 
 /* Keep advanced settlement logic available in the backend, but remove it from the normal staff surface. */
-.pmd-coc .pmd-pos-payment-block:has([data-pos-split-tabs]),
-.pmd-coc .pmd-pos-adjustments{display:none!important}
+.pmd-coc .pmd-pos-payment-block:has([data-pos-split-tabs]){
+  display:none!important
+}
 
 .pmd-coc .pmd-pos-payment-block{padding:12px!important;border-radius:14px!important;box-shadow:none!important;background:#fff!important}
 .pmd-coc .pmd-pos-payment-block-title{margin-bottom:7px!important}
@@ -92,3 +93,565 @@
   .pmd-coc .pmd-pos-balance-hero{grid-template-columns:1fr auto!important}
 }
 
+/* PMD_CASHIER_PAYMENT_R60D_OWNER_START */
+
+/*
+ * CASHIER PAYMENT VISUAL OWNER
+ *
+ * Policy JS owns visibility and settlement behavior.
+ * This file owns geometry only.
+ */
+
+
+/* ---------------------------------------------------------
+   Payment body = one vertical operational flow.
+   --------------------------------------------------------- */
+
+.pmd-coc
+.pmd-pos-payment-body {
+    display: block !important;
+
+    grid-template-columns:
+        none !important;
+
+    max-height:
+        none !important;
+
+    padding:
+        10px !important;
+
+    overflow-x:
+        hidden !important;
+
+    overflow-y:
+        visible !important;
+}
+
+
+.pmd-coc
+.pmd-pos-payment-main {
+    width:
+        100% !important;
+
+    min-width:
+        0 !important;
+
+    display:
+        flex !important;
+
+    flex-direction:
+        column !important;
+
+    gap:
+        12px !important;
+}
+
+
+/* ---------------------------------------------------------
+   Tip + Coupon:
+   normal flow; nothing may float into Cash Received.
+   --------------------------------------------------------- */
+
+.pmd-coc
+.pmd-pos-adjustments:not([hidden]) {
+    position:
+        relative !important;
+
+    inset:
+        auto !important;
+
+    width:
+        100% !important;
+
+    height:
+        auto !important;
+
+    min-height:
+        0 !important;
+
+    max-height:
+        none !important;
+
+    margin:
+        0 !important;
+
+    padding:
+        14px !important;
+
+    display:
+        grid !important;
+
+    grid-template-columns:
+        repeat(
+            2,
+            minmax(0, 1fr)
+        ) !important;
+
+    gap:
+        16px !important;
+
+    align-items:
+        start !important;
+
+    overflow:
+        visible !important;
+
+    transform:
+        none !important;
+}
+
+
+.pmd-coc
+.pmd-pos-adjustments:not([hidden])
+> div {
+    position:
+        static !important;
+
+    inset:
+        auto !important;
+
+    min-width:
+        0 !important;
+
+    width:
+        auto !important;
+
+    height:
+        auto !important;
+
+    min-height:
+        0 !important;
+
+    margin:
+        0 !important;
+
+    display:
+        grid !important;
+
+    grid-template-rows:
+        auto
+        auto
+        auto !important;
+
+    align-content:
+        start !important;
+
+    gap:
+        8px !important;
+
+    overflow:
+        visible !important;
+
+    transform:
+        none !important;
+}
+
+
+/* Headings belong to their own column. */
+
+.pmd-coc
+.pmd-pos-adjustments
+.pmd-pos-payment-block-title {
+    position:
+        static !important;
+
+    width:
+        100% !important;
+
+    min-height:
+        22px !important;
+
+    margin:
+        0 !important;
+
+    padding:
+        0 !important;
+
+    display:
+        flex !important;
+
+    align-items:
+        center !important;
+
+    justify-content:
+        flex-start !important;
+}
+
+
+.pmd-coc
+.pmd-pos-adjustments
+.pmd-pos-payment-block-title
+b {
+    margin:
+        0 !important;
+
+    font-size:
+        15px !important;
+
+    line-height:
+        1.2 !important;
+
+    font-weight:
+        900 !important;
+}
+
+
+/* Existing helper sentences remain hidden in Cashier. */
+
+.pmd-coc
+.pmd-pos-adjustments
+.pmd-pos-payment-block-title
+span {
+    display:
+        none !important;
+}
+
+
+/* ---------------------------------------------------------
+   Tip: four equal touch targets.
+   --------------------------------------------------------- */
+
+.pmd-coc
+.pmd-pos-tip-buttons {
+    position:
+        static !important;
+
+    width:
+        100% !important;
+
+    min-width:
+        0 !important;
+
+    margin:
+        0 !important;
+
+    display:
+        grid !important;
+
+    grid-template-columns:
+        repeat(
+            4,
+            minmax(0, 1fr)
+        ) !important;
+
+    gap:
+        8px !important;
+
+    transform:
+        none !important;
+}
+
+
+.pmd-coc
+.pmd-pos-tip-buttons
+button {
+    position:
+        static !important;
+
+    inset:
+        auto !important;
+
+    width:
+        100% !important;
+
+    min-width:
+        0 !important;
+
+    height:
+        44px !important;
+
+    min-height:
+        44px !important;
+
+    margin:
+        0 !important;
+
+    padding:
+        0 8px !important;
+
+    display:
+        flex !important;
+
+    align-items:
+        center !important;
+
+    justify-content:
+        center !important;
+
+    white-space:
+        nowrap !important;
+
+    transform:
+        none !important;
+}
+
+
+/* Custom Tip input occupies the same Tip column. */
+
+.pmd-coc
+[data-pos-custom-tip]:not([hidden]) {
+    position:
+        static !important;
+
+    width:
+        100% !important;
+
+    min-width:
+        0 !important;
+
+    height:
+        44px !important;
+
+    min-height:
+        44px !important;
+
+    margin:
+        0 !important;
+}
+
+
+/* ---------------------------------------------------------
+   Coupon: input and Apply have separate columns.
+   --------------------------------------------------------- */
+
+.pmd-coc
+.pmd-pos-coupon-row {
+    position:
+        static !important;
+
+    width:
+        100% !important;
+
+    min-width:
+        0 !important;
+
+    margin:
+        0 !important;
+
+    display:
+        grid !important;
+
+    grid-template-columns:
+        minmax(0, 1fr)
+        82px !important;
+
+    gap:
+        8px !important;
+
+    align-items:
+        stretch !important;
+
+    transform:
+        none !important;
+}
+
+
+.pmd-coc
+[data-pos-coupon-code] {
+    position:
+        static !important;
+
+    width:
+        100% !important;
+
+    min-width:
+        0 !important;
+
+    height:
+        44px !important;
+
+    min-height:
+        44px !important;
+
+    margin:
+        0 !important;
+
+    transform:
+        none !important;
+}
+
+
+.pmd-coc
+[data-pos-coupon-apply] {
+    position:
+        static !important;
+
+    inset:
+        auto !important;
+
+    width:
+        82px !important;
+
+    min-width:
+        82px !important;
+
+    height:
+        44px !important;
+
+    min-height:
+        44px !important;
+
+    margin:
+        0 !important;
+
+    padding:
+        0 10px !important;
+
+    display:
+        flex !important;
+
+    align-items:
+        center !important;
+
+    justify-content:
+        center !important;
+
+    transform:
+        none !important;
+}
+
+
+.pmd-coc
+.pmd-pos-coupon-result {
+    position:
+        static !important;
+
+    min-height:
+        0 !important;
+
+    margin:
+        0 !important;
+}
+
+
+/* ---------------------------------------------------------
+   Collection is the NEXT block, always below adjustments.
+   --------------------------------------------------------- */
+
+.pmd-coc
+[data-pos-collection-fields] {
+    position:
+        relative !important;
+
+    inset:
+        auto !important;
+
+    z-index:
+        auto !important;
+
+    width:
+        100% !important;
+
+    height:
+        auto !important;
+
+    min-height:
+        0 !important;
+
+    margin:
+        0 !important;
+
+    padding:
+        12px !important;
+
+    clear:
+        both !important;
+
+    transform:
+        none !important;
+}
+
+
+.pmd-coc
+[data-pos-collection-fields]
+.pmd-pos-payment-fields {
+    position:
+        static !important;
+
+    width:
+        100% !important;
+
+    display:
+        block !important;
+}
+
+
+.pmd-coc
+[data-pos-cash-field] {
+    position:
+        static !important;
+
+    width:
+        100% !important;
+
+    max-width:
+        none !important;
+
+    margin:
+        0 !important;
+}
+
+
+.pmd-coc
+[data-pos-cash-received] {
+    position:
+        static !important;
+
+    width:
+        100% !important;
+
+    height:
+        48px !important;
+
+    min-height:
+        48px !important;
+
+    margin:
+        6px
+        0
+        0 !important;
+
+    text-align:
+        center !important;
+
+    transform:
+        none !important;
+}
+
+
+/* ---------------------------------------------------------
+   Terminal:
+   adjustments remain in their stable location but disabled,
+   matching the current policy.
+   --------------------------------------------------------- */
+
+.pmd-coc
+.pmd-pos-payment-modal.is-direct-terminal
+.pmd-pos-adjustments:not([hidden]) {
+    display:
+        grid !important;
+
+    opacity:
+        .62 !important;
+
+    pointer-events:
+        none !important;
+}
+
+
+/* ---------------------------------------------------------
+   Narrow screen.
+   --------------------------------------------------------- */
+
+@media (max-width: 680px) {
+
+    .pmd-coc
+    .pmd-pos-adjustments:not([hidden]) {
+        grid-template-columns:
+            1fr !important;
+    }
+
+}
+
+
+/* PMD_CASHIER_PAYMENT_R60D_OWNER_END */

@@ -139,7 +139,7 @@ trait PmdWaiterPosOperationsSummaryV12Concern
                 'move_items' => false,
                 'item_service' => false,
                 'void_item' => (bool)$itemMutation['allowed'],
-                'void_order' => false,
+                'void_order' => (bool)$itemMutation['allowed'],
                 'reopen' => false,
                 'print_links' => true,
             ],
@@ -621,7 +621,457 @@ trait PmdWaiterPosOperationsSummaryV12Concern
         }
     }
 
-    public function voidOrderV22($orderId) { return $this->operationsUnavailableV12('void-order', $orderId); }
+    // PMD_CASHIER_R60H_CANCEL_ORDER_OWNER
+    // PMD_CASHIER_R60R_CANCEL_DB_OWNER
+    public function voidOrderV22($orderId)
+    {
+        $payload =
+            $this->requestPayload();
+
+        $reason = trim(
+            (string)(
+                $payload['reason']
+                ?? ''
+            )
+        );
+
+        if ($reason === '') {
+            return response()->json([
+                'ok' => false,
+                'message' =>
+                    'Choose a cancellation reason.',
+            ], 422);
+        }
+
+        $reason =
+            function_exists('mb_substr')
+                ? mb_substr(
+                    $reason,
+                    0,
+                    190
+                )
+                : substr(
+                    $reason,
+                    0,
+                    190
+                );
+
+        try {
+            $result = DB::transaction(
+                function () use (
+                    $orderId,
+                    $payload,
+                    $reason
+                ) {
+                    $order =
+                        \Admin\Models\Orders_model::query()
+                            ->where(
+                                'order_id',
+                                (int)$orderId
+                            )
+                            ->lockForUpdate()
+                            ->first();
+
+                    if (!$order) {
+                        throw
+                            \Illuminate\Validation\ValidationException::withMessages([
+                                'order' =>
+                                    'Order not found.',
+                            ]);
+                    }
+
+                    /*
+                     * Preserve the existing financial safety rule:
+                     * once payment has started, this order cannot be
+                     * structurally cancelled through this action.
+                     */
+                    $this->pmdR39AssertItemMutationAllowed(
+                        $order,
+                        $payload,
+                        false
+                    );
+
+                    $id =
+                        (int)$order->getKey();
+
+                    $orderColumns =
+                        Schema::getColumnListing(
+                            'orders'
+                        );
+
+                    if (
+                        !in_array(
+                            'status_id',
+                            $orderColumns,
+                            true
+                        )
+                    ) {
+                        throw
+                            \Illuminate\Validation\ValidationException::withMessages([
+                                'status' =>
+                                    'Order status storage is unavailable.',
+                            ]);
+                    }
+
+                    /*
+                     * Resolve ONLY an Order cancellation/void status.
+                     * Never guess a numeric status id.
+                     */
+                    $cancelStatusId = null;
+
+                    if (
+                        Schema::hasTable(
+                            'statuses'
+                        )
+                    ) {
+                        $statusColumns =
+                            Schema::getColumnListing(
+                                'statuses'
+                            );
+
+                        $statusIdColumn =
+                            in_array(
+                                'status_id',
+                                $statusColumns,
+                                true
+                            )
+                                ? 'status_id'
+                                : (
+                                    in_array(
+                                        'id',
+                                        $statusColumns,
+                                        true
+                                    )
+                                        ? 'id'
+                                        : null
+                                );
+
+                        $statusNameColumn =
+                            in_array(
+                                'status_name',
+                                $statusColumns,
+                                true
+                            )
+                                ? 'status_name'
+                                : (
+                                    in_array(
+                                        'name',
+                                        $statusColumns,
+                                        true
+                                    )
+                                        ? 'name'
+                                        : null
+                                );
+
+                        if (
+                            $statusIdColumn &&
+                            $statusNameColumn
+                        ) {
+                            $base =
+                                DB::table(
+                                    'statuses'
+                                );
+
+                            if (
+                                in_array(
+                                    'status_for',
+                                    $statusColumns,
+                                    true
+                                )
+                            ) {
+                                $base->where(
+                                    'status_for',
+                                    'order'
+                                );
+                            }
+
+                            foreach (
+                                [
+                                    'cancelled',
+                                    'canceled',
+                                    'void',
+                                ]
+                                as $wanted
+                            ) {
+                                $candidate =
+                                    (clone $base)
+                                        ->whereRaw(
+                                            'LOWER('
+                                            .$statusNameColumn
+                                            .') = ?',
+                                            [$wanted]
+                                        )
+                                        ->value(
+                                            $statusIdColumn
+                                        );
+
+                                if (
+                                    (int)$candidate > 0
+                                ) {
+                                    $cancelStatusId =
+                                        (int)$candidate;
+                                    break;
+                                }
+                            }
+
+                            if (
+                                !$cancelStatusId
+                            ) {
+                                foreach (
+                                    [
+                                        'cancel',
+                                        'void',
+                                    ]
+                                    as $wanted
+                                ) {
+                                    $candidate =
+                                        (clone $base)
+                                            ->whereRaw(
+                                                'LOWER('
+                                                .$statusNameColumn
+                                                .') LIKE ?',
+                                                [
+                                                    '%'
+                                                    .$wanted
+                                                    .'%',
+                                                ]
+                                            )
+                                            ->value(
+                                                $statusIdColumn
+                                            );
+
+                                    if (
+                                        (int)$candidate > 0
+                                    ) {
+                                        $cancelStatusId =
+                                            (int)$candidate;
+                                        break;
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+                    if (
+                        !$cancelStatusId
+                    ) {
+                        throw
+                            \Illuminate\Validation\ValidationException::withMessages([
+                                'status' =>
+                                    'No Cancelled/Void order status is configured.',
+                            ]);
+                    }
+
+                    $updates = [
+                        'status_id' =>
+                            $cancelStatusId,
+                    ];
+
+                    if (
+                        in_array(
+                            'processed',
+                            $orderColumns,
+                            true
+                        )
+                    ) {
+                        $updates['processed'] = 1;
+                    }
+
+                    /*
+                     * Reason is durable in the order itself.
+                     * History / KDS can read the same audit value.
+                     */
+                    if (
+                        in_array(
+                            'comment',
+                            $orderColumns,
+                            true
+                        )
+                    ) {
+                        $existing =
+                            trim(
+                                (string)(
+                                    $order->comment
+                                    ?? ''
+                                )
+                            );
+
+                        $audit =
+                            '[CANCELLED] '
+                            .$reason;
+
+                        $updates['comment'] =
+                            trim(
+                                $existing === ''
+                                    ? $audit
+                                    : (
+                                        $existing
+                                        ."\n"
+                                        .$audit
+                                    )
+                            );
+                    }
+
+                    /*
+                     * Query Builder update deliberately avoids
+                     * re-serializing the Orders_model date/time casts.
+                     */
+                    if (
+                        in_array(
+                            'updated_at',
+                            $orderColumns,
+                            true
+                        )
+                    ) {
+                        $updates['updated_at'] =
+                            date(
+                                'Y-m-d H:i:s'
+                            );
+                    }
+
+                    DB::table(
+                        'orders'
+                    )
+                        ->where(
+                            'order_id',
+                            $id
+                        )
+                        ->update(
+                            $updates
+                        );
+
+                    /*
+                     * Separate operational audit.
+                     */
+                    if (
+                        Schema::hasTable(
+                            'pmd_waiter_pos_operation_logs'
+                        )
+                    ) {
+                        $columns =
+                            Schema::getColumnListing(
+                                'pmd_waiter_pos_operation_logs'
+                            );
+
+                        $actorId = null;
+
+                        if (
+                            method_exists(
+                                $this,
+                                'currentUserId'
+                            )
+                        ) {
+                            try {
+                                $actorId =
+                                    $this->currentUserId();
+                            } catch (
+                                \Throwable $ignored
+                            ) {
+                                $actorId = null;
+                            }
+                        }
+
+                        $log = [
+                            'order_id' => $id,
+                            'action' =>
+                                'cancel_order',
+                            'payload' =>
+                                json_encode(
+                                    [
+                                        'reason' =>
+                                            $reason,
+                                        'status_id' =>
+                                            $cancelStatusId,
+                                    ],
+                                    JSON_UNESCAPED_UNICODE
+                                    | JSON_UNESCAPED_SLASHES
+                                ),
+                            'actor_id' =>
+                                $actorId,
+                            'created_at' =>
+                                date(
+                                    'Y-m-d H:i:s'
+                                ),
+                            'updated_at' =>
+                                date(
+                                    'Y-m-d H:i:s'
+                                ),
+                        ];
+
+                        $log =
+                            array_intersect_key(
+                                $log,
+                                array_flip(
+                                    $columns
+                                )
+                            );
+
+                        if (
+                            isset(
+                                $log['order_id'],
+                                $log['action']
+                            )
+                        ) {
+                            DB::table(
+                                'pmd_waiter_pos_operation_logs'
+                            )->insert(
+                                $log
+                            );
+                        }
+                    }
+
+                    /*
+                     * IMPORTANT:
+                     * Cancellation does NOT free the physical table.
+                     * Cashier/Waiter must explicitly Set table free.
+                     */
+                    return [
+                        'ok' => true,
+                        'message' =>
+                            'Order cancelled.',
+                        'order_id' =>
+                            $id,
+                        'status_id' =>
+                            $cancelStatusId,
+                        'reason' =>
+                            $reason,
+                    ];
+                }
+            );
+
+            return response()->json(
+                $result
+            );
+
+        } catch (
+            \Illuminate\Validation\ValidationException $e
+        ) {
+            return response()->json([
+                'ok' => false,
+                'message' =>
+                    collect(
+                        $e->errors()
+                    )
+                        ->flatten()
+                        ->first()
+                    ?: 'Order could not be cancelled.',
+                'errors' =>
+                    $e->errors(),
+            ], 422);
+
+        } catch (\Throwable $e) {
+            report($e);
+
+            return response()->json([
+                'ok' => false,
+                'message' =>
+                    'Order could not be cancelled. '
+                    .$e->getMessage(),
+            ], 500);
+        }
+    }
+
+
     public function reopenOrderV22($orderId) { return $this->operationsUnavailableV12('reopen', $orderId); }
 
     public function printLinksV22($orderId)
@@ -656,6 +1106,49 @@ trait PmdWaiterPosOperationsSummaryV12Concern
             )
         );
 
+        // PMD_CASHIER_R60H_OPERATIONAL_MUTATION_LOCK
+        $operationalStatusName =
+            '';
+
+        if (
+            Schema::hasTable(
+                'statuses'
+            )
+            && !empty(
+                $order->status_id
+            )
+        ) {
+            try {
+                $operationalStatusName =
+                    strtolower(
+                        trim(
+                            (string)(
+                                DB::table('statuses')
+                                    ->where(
+                                        'status_id',
+                                        (int)$order->status_id
+                                    )
+                                    ->value(
+                                        'status_name'
+                                    )
+                                ?: ''
+                            )
+                        )
+                    );
+            } catch (
+                \Throwable $ignored
+            ) {
+                $operationalStatusName =
+                    '';
+            }
+        }
+
+        $operationalLocked =
+            (bool)preg_match(
+                '/cancel|void|closed|complete|completed/',
+                $operationalStatusName
+            );
+
         $hasTransaction = false;
 
         if (
@@ -684,7 +1177,8 @@ trait PmdWaiterPosOperationsSummaryV12Concern
         ];
 
         $locked =
-            $settledAmount > 0.0001
+            $operationalLocked
+            || $settledAmount > 0.0001
             || in_array(
                 $settlementStatus,
                 $lockedStatuses,
@@ -695,7 +1189,11 @@ trait PmdWaiterPosOperationsSummaryV12Concern
         $reason = '';
 
         if ($locked) {
-            if ($hasTransaction) {
+            if ($operationalLocked) {
+                $reason =
+                    'This order is cancelled or closed. '
+                    .'Order items are locked.';
+            } elseif ($hasTransaction) {
                 $reason =
                     'Payment history already exists. '
                     .'Order items are locked.';

@@ -710,6 +710,48 @@
             *, *::before, *::after { animation-duration: .001ms !important; animation-iteration-count: 1 !important; transition-duration: .001ms !important; }
         }
     </style>
+
+    <style id="pmd-kds-r60h-cancel-style">
+        /* PMD_KDS_R60H_CANCEL_STYLE */
+
+        .order-card.status-cancelled,
+        .order-card.status-canceled,
+        .order-card.status-void {
+            border-left-color:
+                var(--pmd-kds-danger) !important;
+        }
+
+        .order-status-buttons.is-cancelled {
+            grid-template-columns:
+                minmax(0, 1fr) !important;
+        }
+
+        .status-btn.status-cancelled,
+        .status-btn.status-canceled,
+        .status-btn.status-void {
+            width:
+                100% !important;
+
+            border-color:
+                var(--pmd-kds-danger) !important;
+
+            background:
+                var(--pmd-kds-danger) !important;
+
+            color:
+                #fff !important;
+
+            box-shadow:
+                none !important;
+
+            cursor:
+                default !important;
+
+            opacity:
+                1 !important;
+        }
+    </style>
+
 </head>
 <body data-pmd-kds-display="v1">
 <div class="kds-container">
@@ -768,11 +810,29 @@
                     $elapsedMinutes = $order['created_at']->diffInMinutes(now());
                     $timerClass = $elapsedMinutes > 15 ? 'is-late' : ($elapsedMinutes > 5 ? 'is-warning' : '');
                     $rawStatusName = strtolower(trim((string)($order['status_name'] ?? '')));
-                    $workflowClass = str_contains($rawStatusName, 'preparation') || str_contains($rawStatusName, 'preparing')
-                        ? 'status-preparing'
-                        : (str_contains($rawStatusName, 'delivery') || str_contains($rawStatusName, 'ready')
-                            ? 'status-ready'
-                            : (str_contains($rawStatusName, 'received') ? 'status-received' : 'status-unknown'));
+
+                    // PMD_KDS_R60H_CANCELLED_CARD
+                    $pmdCancelledStatus =
+                        str_contains($rawStatusName, 'cancel')
+                        || str_contains($rawStatusName, 'void');
+
+                    $workflowClass = $pmdCancelledStatus
+                        ? 'status-cancelled'
+                        : (
+                            str_contains($rawStatusName, 'preparation')
+                            || str_contains($rawStatusName, 'preparing')
+                                ? 'status-preparing'
+                                : (
+                                    str_contains($rawStatusName, 'delivery')
+                                    || str_contains($rawStatusName, 'ready')
+                                        ? 'status-ready'
+                                        : (
+                                            str_contains($rawStatusName, 'received')
+                                                ? 'status-received'
+                                                : 'status-unknown'
+                                        )
+                                )
+                        );
                 @endphp
                 <article class="order-card {{ $workflowClass }}" data-order-id="{{ $order['order_id'] }}" data-status-id="{{ (int)$order['status_id'] }}" data-status-name="{{ $order['status_name'] }}">
                     <div class="order-header">
@@ -824,22 +884,31 @@
                     @endif
 
                     @if($canChangeStatus ?? true)
-                        <div class="order-status-buttons">
-                            @foreach($statuses as $status)
-                                @php
-                                    $statusName = (string)$status['status_name'];
-                                    $statusClass = strtolower(preg_replace('/[^a-z0-9]+/i', '-', $statusName));
-                                    $isCurrentStatus = (int)$status['status_id'] === (int)$order['status_id'];
-                                @endphp
+                        <div class="order-status-buttons {{ $pmdCancelledStatus ? 'is-cancelled' : '' }}">
+                            @if($pmdCancelledStatus)
                                 <button
                                     type="button"
-                                    class="status-btn status-{{ trim($statusClass, '-') }} {{ $isCurrentStatus ? 'is-current' : '' }}"
-                                    data-kds-status-button
-                                    data-order-id="{{ $order['order_id'] }}"
-                                    data-status-id="{{ $status['status_id'] }}"
-                                    data-status-name="{{ $statusName }}"
-                                    @if($isCurrentStatus) disabled aria-current="true" @endif>{{ $statusName }}</button>
-                            @endforeach
+                                    class="status-btn status-cancelled is-current"
+                                    disabled
+                                    aria-current="true"
+                                >Canceled</button>
+                            @else
+                                @foreach($statuses as $status)
+                                    @php
+                                        $statusName = (string)$status['status_name'];
+                                        $statusClass = strtolower(preg_replace('/[^a-z0-9]+/i', '-', $statusName));
+                                        $isCurrentStatus = (int)$status['status_id'] === (int)$order['status_id'];
+                                    @endphp
+                                    <button
+                                        type="button"
+                                        class="status-btn status-{{ trim($statusClass, '-') }} {{ $isCurrentStatus ? 'is-current' : '' }}"
+                                        data-kds-status-button
+                                        data-order-id="{{ $order['order_id'] }}"
+                                        data-status-id="{{ $status['status_id'] }}"
+                                        data-status-name="{{ $statusName }}"
+                                        @if($isCurrentStatus) disabled aria-current="true" @endif>{{ $statusName }}</button>
+                                @endforeach
+                            @endif
                         </div>
                     @endif
                 </article>
@@ -1090,8 +1159,23 @@
         return Number.isFinite(parsed) ? Math.floor(parsed / 1000) : Math.floor(Date.now() / 1000);
     }
 
+    // PMD_KDS_R60H_DYNAMIC_CANCEL
+    function isCancelledStatusV1(statusName) {
+        const raw =
+            String(
+                statusName || ''
+            ).toLowerCase();
+
+        return (
+            raw.includes('cancel')
+            || raw.includes('void')
+        );
+    }
+
     function getWorkflowClassV12(statusName) {
         const raw = String(statusName || '').toLowerCase();
+
+        if (isCancelledStatusV1(raw)) return 'status-cancelled';
         if (raw.includes('preparation') || raw.includes('preparing')) return 'status-preparing';
         if (raw.includes('delivery') || raw.includes('ready')) return 'status-ready';
         if (raw.includes('received')) return 'status-received';
@@ -1148,13 +1232,39 @@
         }).join('');
 
         const notes = (Array.isArray(order.notes) ? order.notes : []).map(note => `<div class="order-note">${escapeHtmlV1(note.note)}</div>`).join('');
-        const buttons = canChangeStatus && Array.isArray(statuses) ? statuses.map(status => statusButtonHtmlV1(status, order)).join('') : '';
+        const cancelled =
+            isCancelledStatusV1(
+                order.status_name
+            );
+
+        const buttons =
+            cancelled
+                ? '<button type="button" class="status-btn status-cancelled is-current" disabled aria-current="true">Canceled</button>'
+                : (
+                    canChangeStatus
+                    && Array.isArray(statuses)
+                        ? statuses
+                            .map(
+                                status =>
+                                    statusButtonHtmlV1(
+                                        status,
+                                        order
+                                    )
+                            )
+                            .join('')
+                        : ''
+                );
+
+        const buttonsClass =
+            cancelled
+                ? 'order-status-buttons is-cancelled'
+                : 'order-status-buttons';
 
         return `<article class="order-card ${getWorkflowClassV12(order.status_name)}" data-order-id="${Number(order.order_id || 0)}" data-status-id="${Number(order.status_id || 0)}" data-status-name="${escapeHtmlV1(order.status_name || '')}">
             <div class="order-header"><div><div class="order-number">#${Number(order.order_id || 0)}</div><div class="order-table">${escapeHtmlV1(order.order_type_name)}</div></div><div class="order-time"><span class="order-time-label">Time elapsed</span><span class="order-elapsed ${getTimerClassV12(order.created_at)}" data-created="${created}">${formatElapsedV1(created)}</span></div></div>
             <div class="order-items">${itemsHtml}</div>
             ${notes ? `<div class="order-notes"><div class="order-notes-title">Order note</div>${notes}</div>` : ''}
-            ${buttons ? `<div class="order-status-buttons">${buttons}</div>` : ''}
+            ${buttons ? `<div class="${buttonsClass}">${buttons}</div>` : ''}
         </article>`;
     }
 

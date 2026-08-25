@@ -797,3 +797,220 @@
   }
 }
 
+/* PMD_CASHIER_R60L_FREE_TABLE_TOOLBAR_START */
+
+#pmd-dashboard-lab
+#pmd-cashier-current-orders-v2
+.pmd-ops-section__tools
+> button.pmd-ops-free-table-toolbar {
+    -webkit-appearance: none !important;
+    appearance: none !important;
+    box-sizing: border-box !important;
+
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+
+    width: auto !important;
+    min-width: 0 !important;
+    max-width: none !important;
+
+    height: 46px !important;
+    min-height: 46px !important;
+    max-height: 46px !important;
+
+    margin: 0 !important;
+    padding: 0 14px !important;
+    gap: 8px !important;
+
+    border:
+        1px solid #cfe0ec !important;
+
+    border-radius:
+        14px !important;
+
+    background:
+        #fff !important;
+
+    color:
+        #8193a0 !important;
+
+    box-shadow:
+        0 3px 10px
+        rgba(23, 55, 82, .05) !important;
+
+    font-family:
+        inherit !important;
+
+    font-size:
+        13px !important;
+
+    font-weight:
+        850 !important;
+
+    line-height:
+        1 !important;
+
+    white-space:
+        nowrap !important;
+
+    cursor:
+        not-allowed !important;
+
+    opacity:
+        .62 !important;
+}
+
+
+#pmd-dashboard-lab
+#pmd-cashier-current-orders-v2
+.pmd-ops-section__tools
+> button.pmd-ops-free-table-toolbar.is-ready {
+    border-color:
+        #e6aaa6 !important;
+
+    background:
+        #fff6f5 !important;
+
+    color:
+        #a93631 !important;
+
+    opacity:
+        1 !important;
+
+    cursor:
+        pointer !important;
+
+    box-shadow:
+        0 3px 10px
+        rgba(151, 54, 49, .08) !important;
+}
+
+
+#pmd-dashboard-lab
+#pmd-cashier-current-orders-v2
+.pmd-ops-section__tools
+> button.pmd-ops-free-table-toolbar.is-ready:hover {
+    border-color:
+        #d88984 !important;
+
+    background:
+        #fff0ef !important;
+
+    color:
+        #8f2c28 !important;
+}
+
+
+#pmd-dashboard-lab
+#pmd-cashier-current-orders-v2
+.pmd-ops-section__tools
+> button.pmd-ops-free-table-toolbar svg {
+    display:
+        block !important;
+
+    width:
+        20px !important;
+
+    min-width:
+        20px !important;
+
+    max-width:
+        20px !important;
+
+    height:
+        20px !important;
+
+    min-height:
+        20px !important;
+
+    max-height:
+        20px !important;
+
+    flex:
+        0 0 20px !important;
+
+    margin:
+        0 !important;
+}
+
+
+@media (max-width: 620px) {
+    #pmd-dashboard-lab
+    #pmd-cashier-current-orders-v2
+    .pmd-ops-section__tools
+    > button.pmd-ops-free-table-toolbar {
+        width:
+            46px !important;
+
+        min-width:
+            46px !important;
+
+        max-width:
+            46px !important;
+
+        padding:
+            0 !important;
+    }
+
+    #pmd-dashboard-lab
+    #pmd-cashier-current-orders-v2
+    .pmd-ops-section__tools
+    > button.pmd-ops-free-table-toolbar
+    span {
+        display:
+            none !important;
+    }
+}
+
+/* PMD_CASHIER_R60L_FREE_TABLE_TOOLBAR_END */
+
+
+
+/* PMD_CASHIER_R60P_PAID_STATE_START */
+
+#pmd-cashier-current-orders-v2
+.pmd-ops-card__paid-state {
+    display: flex !important;
+    flex-direction: column !important;
+    justify-content: center !important;
+}
+
+#pmd-cashier-current-orders-v2
+.pmd-ops-card__paid-state dt {
+    height: 14px !important;
+    color: transparent !important;
+    pointer-events: none !important;
+    user-select: none !important;
+}
+
+#pmd-cashier-current-orders-v2
+.pmd-ops-card__paid-state
+.is-paid-label {
+    color: #078a51 !important;
+    font-size: 14px !important;
+    line-height: 1.1 !important;
+    font-weight: 950 !important;
+    letter-spacing: .035em !important;
+}
+
+/* PMD_CASHIER_R60P_PAID_STATE_END */
+
+
+/* PMD_CASHIER_R60P_FREE_TOOLBAR_VISUAL_START */
+
+#pmd-cashier-current-orders-v2
+[data-pmd-cashier-table-free-toolbar="1"].is-ready {
+    opacity: 1 !important;
+    cursor: pointer !important;
+    border-color: #9dcfba !important;
+    background: #f0faf5 !important;
+    color: #176b4b !important;
+}
+
+#pmd-cashier-current-orders-v2
+[data-pmd-cashier-table-free-toolbar="1"]:disabled {
+    cursor: default !important;
+}
+
+/* PMD_CASHIER_R60P_FREE_TOOLBAR_VISUAL_END */

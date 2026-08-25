@@ -45,6 +45,40 @@
                 'pmdOpsRange' => $range,
             ])
 
+            {{-- PMD_CASHIER_R60L_FREE_TABLE_TOOLBAR
+                 One canonical table-release action for the Floor selection.
+                 The R45 action authority owns the existing backend call. --}}
+            @if(!$pmdCashierHistoryMode)
+                <button
+                    type="button"
+                    class="pmd-ops-free-table-toolbar"
+                    data-pmd-cashier-table-free-toolbar="1"
+                    data-pmd-cashier-table-free="0"
+                    data-pmd-cashier-table-label=""
+                    aria-disabled="true"
+                    disabled
+                    title="Select a red occupied table first."
+                >
+                    <svg
+                        viewBox="0 0 24 24"
+                        aria-hidden="true"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="2"
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                    >
+                        <rect x="3" y="5" width="18" height="14" rx="3"></rect>
+                        <path d="M3 10h18"></path>
+                        <path d="M8 5v14"></path>
+                    </svg>
+
+                    <span>
+                        {{ $text['free_table'] ?? ($pmdCashierIsGerman ? 'Tisch freigeben' : 'Free table') }}
+                    </span>
+                </button>
+            @endif
+
             {{-- PMD_CASHIER_HISTORY_INLINE_R47
                  Same-page mode toggle. The shared operational async authority
                  replaces only this orders section; the Dashboard/Floor stays mounted. --}}
@@ -100,6 +134,7 @@
                 <article
                     class="pmd-ops-card"
                     data-pmd-cashier-order="{{ $order['id'] }}"
+                    data-pmd-cashier-order-paid="{{ !empty($order['is_paid']) ? '1' : '0' }}"
                     data-pmd-cashier-table-id="{{ $order['table_id'] ?? 0 }}"
                     data-pmd-cashier-table-number="{{ $order['table_number'] ?? '' }}"
                     data-pmd-cashier-table-label="{{ $order['table_label'] ?? $order['table'] ?? '' }}"
@@ -138,14 +173,26 @@
                             <dt>{{ $text['total'] ?? 'Total' }}</dt>
                             <dd>{{ $order['total'] }}</dd>
                         </div>
+                    
                         <div>
                             <dt>{{ $text['paid'] ?? 'Paid' }}</dt>
                             <dd>{{ $order['paid'] }}</dd>
                         </div>
-                        <div>
-                            <dt>{{ $text['due'] ?? 'Due' }}</dt>
-                            <dd class="is-due">{{ $order['due'] }}</dd>
-                        </div>
+                    
+                        {{-- PMD_CASHIER_R60Q2_PAID_CARD_OWNER --}}
+                        @if(!empty($order['is_paid']))
+                            <div class="pmd-ops-card__paid-state">
+                                <dt aria-hidden="true">&nbsp;</dt>
+                                <dd class="is-paid-label">
+                                    {{ $text['paid'] ?? 'Paid' }}
+                                </dd>
+                            </div>
+                        @else
+                            <div>
+                                <dt>{{ $text['due'] ?? 'Due' }}</dt>
+                                <dd class="is-due">{{ $order['due'] }}</dd>
+                            </div>
+                        @endif
                     </dl>
 
                     <footer class="pmd-ops-card__footer" style="gap:8px;flex-wrap:wrap;">
@@ -157,20 +204,7 @@
                             {{ $text['open_order'] ?? 'Open order' }}
                         </a>
 
-                        {{-- PMD_CASHIER_MANUAL_FREE_BUTTON_R45
-                             Payment NEVER changes table occupancy. The staff action is
-                             rendered only for a fully-paid card; the endpoint still
-                             re-checks every check on the physical table before release. --}}
-                        @if(!$pmdCashierHistoryMode && !empty($order['is_paid']) && (int)($order['table_id'] ?? 0) > 0)
-                            <button
-                                type="button"
-                                data-pmd-cashier-table-free="{{ (int)$order['table_id'] }}"
-                                data-pmd-cashier-table-label="{{ $order['table'] }}"
-                                style="border-color:#b9dcca;background:#f1faf6;color:#246b4b;"
-                            >
-                                {{ $text['free_table'] ?? 'Set table free' }}
-                            </button>
-                        @endif
+
                     </footer>
                 </article>
         @endforeach
