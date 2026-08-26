@@ -119,7 +119,7 @@ function assertPrinterAvailable(printerName) {
   const row = listPrinters().find((item) => String(item && item.name || '').trim().toLowerCase() === wanted);
   const state = printerAvailability(row);
   if (!state.available) {
-    throw new Error(`Printer "${target}" is not physically available (${state.reason}). Connect/enable the printer or use Virtual PDF mode.`);
+    throw new Error('Printer "' + target + '" is not physically available (' + state.reason + '). Connect/enable the printer or use Virtual PDF mode.');
   }
   return row;
 }
@@ -258,7 +258,7 @@ function patchHardwarePage() {
     setStatus('Sending test print to the operating-system queue…');
     const result = await window.PayMyDineDesktop.testPrint(selectedPrinter() || savedPrinterName);
     setStatus(
-      `Print job accepted by ${platformName}.\\nPrinter: ${result.printerName || selectedPrinter()}\\nStatus: ${result.status || 'available'}\\n\\nIMPORTANT: this confirms queue delivery only. Check the printer for real paper output.`,
+      'Print job accepted by ' + platformName + '.\\nPrinter: ' + (result.printerName || selectedPrinter()) + '\\nStatus: ' + (result.status || 'available') + '\\n\\nIMPORTANT: this confirms queue delivery only. Check the printer for real paper output.',
       '',
     );
   } catch (error) {
@@ -284,9 +284,9 @@ function patchHardwarePage() {
     });
     const confirmed = window.confirm('Did the physical cash drawer actually open? Click OK only if you saw it open.');
     if (confirmed) {
-      setStatus(`Cash drawer physically confirmed by you.\\nPrinter: ${result.printerName || selectedPrinter()}\\nCommand: ${result.command || drawerCommand.value}`, 'ok');
+      setStatus('Cash drawer physically confirmed by you.\\nPrinter: ' + (result.printerName || selectedPrinter()) + '\\nCommand: ' + (result.command || drawerCommand.value), 'ok');
     } else {
-      setStatus(`Drawer command was accepted by ${platformName}, but physical opening is NOT confirmed.\\nThis is not a successful hardware test until the drawer really opens.`, 'error');
+      setStatus('Drawer command was accepted by ' + platformName + ', but physical opening is NOT confirmed.\\nThis is not a successful hardware test until the drawer really opens.', 'error');
     }
   } catch (error) {
     setStatus(error.message || 'Cash drawer test failed.', 'error');
@@ -308,9 +308,9 @@ function patchHardwarePage() {
     const result = await window.PayMyDineDesktop.diagnoseDrawer(selectedPrinter() || savedPrinterName);
     const confirmed = window.confirm('Did any of the test pulses physically open the cash drawer?');
     if (confirmed) {
-      setStatus(`Drawer compatibility physically confirmed by you.\\nCommands sent: ${result.commandsSent || 0}`, 'ok');
+      setStatus('Drawer compatibility physically confirmed by you.\\nCommands sent: ' + (result.commandsSent || 0), 'ok');
     } else {
-      setStatus(`Compatibility commands were sent, but no physical opening was confirmed.\\nCommands sent: ${result.commandsSent || 0}`, 'error');
+      setStatus('Compatibility commands were sent, but no physical opening was confirmed.\\nCommands sent: ' + (result.commandsSent || 0), 'error');
     }
   } catch (error) {
     setStatus(error.message || 'Drawer compatibility test failed.', 'error');
