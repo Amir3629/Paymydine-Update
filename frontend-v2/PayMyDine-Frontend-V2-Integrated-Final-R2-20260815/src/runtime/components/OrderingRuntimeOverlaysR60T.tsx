@@ -94,6 +94,46 @@ export function RuntimeOverlays() {
         [data-pmd-ordering-flow="r60t"] article[data-pmd-order-id] > :last-child > button {
           width: 100%;
         }
+
+        /* Compact self-order payment composition. The payment implementation stays untouched. */
+        [data-pmd-ordering-flow="r60t"] [data-pmd-payment-order-id] {
+          gap: 0.55rem;
+        }
+        [data-pmd-ordering-flow="r60t"] [data-pmd-payment-order-id] > div:has(> div > button:nth-child(4)) {
+          gap: 0.45rem;
+        }
+        [data-pmd-ordering-flow="r60t"] [data-pmd-payment-order-id] > div:has(> div > button:nth-child(4)) > div:first-child {
+          grid-template-columns: repeat(4, minmax(0, 1fr));
+          gap: 0.4rem;
+        }
+        [data-pmd-ordering-flow="r60t"] [data-pmd-payment-order-id] > div:has(> div > button:nth-child(4)) > label {
+          gap: 0.25rem;
+        }
+        [data-pmd-ordering-flow="r60t"] [data-pmd-payment-order-id] > div:has(> input):has(> button) {
+          gap: 0.5rem;
+        }
+        [data-pmd-ordering-flow="r60t"] [data-pmd-payment-order-id] > div:has(> button:nth-child(3) > svg) {
+          gap: 0.45rem;
+        }
+        [data-pmd-ordering-flow="r60t"] [data-pmd-payment-order-id] > div:has(> button:nth-child(3) > svg) > button {
+          min-width: 0;
+          padding-inline: 0.65rem;
+        }
+        [data-pmd-ordering-flow="r60t"] [data-pmd-payment-order-id] > :first-child,
+        [data-pmd-ordering-flow="r60t"] [data-pmd-payment-order-id] > :nth-last-child(2) {
+          padding-block: 0.75rem;
+        }
+        @media (min-width: 421px) {
+          [data-pmd-ordering-flow="r60t"] [data-pmd-payment-order-id] > div:has(> button:nth-child(3) > svg) {
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+          }
+        }
+        @media (max-width: 420px) {
+          [data-pmd-ordering-flow="r60t"] [data-pmd-payment-order-id] > div:has(> div > button:nth-child(4)) > div:first-child {
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+          }
+        }
+
         [data-pmd-ordering-flow="r60t"] [data-pmd-multi-order-picker="r32"],
         [data-pmd-ordering-flow="r60t"] [data-pmd-multi-order-selection="r32"],
         [data-pmd-ordering-flow="r60t"] [data-pmd-multi-order-payment="r32"],
