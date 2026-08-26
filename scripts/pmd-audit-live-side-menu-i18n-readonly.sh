@@ -20,7 +20,7 @@ if ! git rev-parse --verify "$BRANCH_REF" >/dev/null 2>&1; then
 fi
 
 echo "============================================================"
-echo " PMD SIDE MENU I18N LIVE READ-ONLY AUDIT"
+echo " PMD SIDE MENU I18N LIVE READ-ONLY AUDIT V2"
 echo "============================================================"
 echo "ROOT=$ROOT"
 echo "FILE=$FILE"
@@ -28,18 +28,23 @@ echo "OUTPUT=$OUTPUT"
 
 git rev-parse HEAD > "$OUTPUT/head.txt"
 git branch --show-current > "$OUTPUT/branch.txt"
+git status --porcelain -- "$FILE" > "$OUTPUT/git-status.txt" || true
 
 sha256sum "$FILE" | tee "$OUTPUT/live.sha256"
 
-git show "HEAD:$FILE" > "$OUTPUT/head-version.blade.php"
+HEAD_TRACKED=0
+if git cat-file -e "HEAD:$FILE" 2>/dev/null; then
+  HEAD_TRACKED=1
+  git show "HEAD:$FILE" > "$OUTPUT/head-version.blade.php"
+  sha256sum "$OUTPUT/head-version.blade.php" | tee "$OUTPUT/head-version.sha256"
+  git diff --no-index -- "$OUTPUT/head-version.blade.php" "$FILE" \
+    > "$OUTPUT/live-vs-head.diff" || true
+else
+  : > "$OUTPUT/live-vs-head.diff"
+fi
+
 git show "$BRANCH_REF:$FILE" > "$OUTPUT/branch-version.blade.php"
-
-sha256sum "$OUTPUT/head-version.blade.php" | tee "$OUTPUT/head-version.sha256"
 sha256sum "$OUTPUT/branch-version.blade.php" | tee "$OUTPUT/branch-version.sha256"
-
-git diff --no-index -- "$OUTPUT/head-version.blade.php" "$FILE" \
-  > "$OUTPUT/live-vs-head.diff" || true
-
 git diff --no-index -- "$OUTPUT/branch-version.blade.php" "$FILE" \
   > "$OUTPUT/live-vs-platform-branch.diff" || true
 
@@ -52,12 +57,21 @@ else
   printf 'file\tline\tkind\tconfidence\ttext\n' > "$OUTPUT/side-menu-candidates.tsv"
 fi
 
+LIVE_SHA="$(awk '{print $1}' "$OUTPUT/live.sha256")"
+BRANCH_SHA="$(awk '{print $1}' "$OUTPUT/branch-version.sha256")"
+HEAD_SHA="UNTRACKED"
+if [ "$HEAD_TRACKED" -eq 1 ]; then
+  HEAD_SHA="$(awk '{print $1}' "$OUTPUT/head-version.sha256")"
+fi
+
 {
   echo "HEAD=$(cat "$OUTPUT/head.txt")"
   echo "BRANCH=$(cat "$OUTPUT/branch.txt")"
-  echo "LIVE_SHA=$(awk '{print $1}' "$OUTPUT/live.sha256")"
-  echo "HEAD_FILE_SHA=$(awk '{print $1}' "$OUTPUT/head-version.sha256")"
-  echo "PLATFORM_BRANCH_FILE_SHA=$(awk '{print $1}' "$OUTPUT/branch-version.sha256")"
+  echo "GIT_STATUS=$(tr '\n' ' ' < "$OUTPUT/git-status.txt")"
+  echo "HEAD_TRACKED=$HEAD_TRACKED"
+  echo "LIVE_SHA=$LIVE_SHA"
+  echo "HEAD_FILE_SHA=$HEAD_SHA"
+  echo "PLATFORM_BRANCH_FILE_SHA=$BRANCH_SHA"
   echo "LIVE_VS_HEAD_DIFF_LINES=$(wc -l < "$OUTPUT/live-vs-head.diff")"
   echo "LIVE_VS_PLATFORM_BRANCH_DIFF_LINES=$(wc -l < "$OUTPUT/live-vs-platform-branch.diff")"
   echo "SIDE_MENU_CANDIDATES=$(( $(wc -l < "$OUTPUT/side-menu-candidates.tsv") - 1 ))"
