@@ -36,7 +36,9 @@ export function RuntimeOverlays() {
 
     const selected = runtime.selectedOrder as any
     const isSelfOrder = selected?.orderOrigin === 'guest_self'
+    const hasSharedStaffOrder = runtime.tableOrders.some((order: any) => order?.orderOrigin === 'staff_shared')
     root.setAttribute('data-pmd-r60t-self-order', isSelfOrder ? 'true' : 'false')
+    root.setAttribute('data-pmd-r60t-has-staff-shared', hasSharedStaffOrder ? 'true' : 'false')
 
     const tabBar = root.firstElementChild as HTMLElement | null
     const tabButtons = tabBar ? Array.from(tabBar.querySelectorAll<HTMLButtonElement>(':scope > button')) : []
@@ -51,7 +53,6 @@ export function RuntimeOverlays() {
     if (
       isSelfOrder
       && Number(selected?.orderId || 0) > 0
-      && Number(selected?.totals?.remainingAmount || 0) > 0
       && runtime.overlay === 'checkout'
       && autoOpenedPaymentFor.current !== Number(selected.orderId)
       && paymentTab
@@ -61,7 +62,7 @@ export function RuntimeOverlays() {
     }
 
     if (!isSelfOrder) autoOpenedPaymentFor.current = null
-  }, [runtime.locale, runtime.orderLoading, runtime.overlay, runtime.selectedOrder])
+  }, [runtime.locale, runtime.orderLoading, runtime.overlay, runtime.selectedOrder, runtime.tableOrders])
 
   return (
     <>
@@ -83,6 +84,9 @@ export function RuntimeOverlays() {
           font-size: 0.82rem;
         }
         [data-pmd-ordering-flow="r60t"][data-pmd-r60t-self-order="true"] > :first-child > button:nth-child(3) {
+          display: none;
+        }
+        [data-pmd-ordering-flow="r60t"][data-pmd-r60t-has-staff-shared="false"] > :first-child {
           display: none;
         }
         [data-pmd-ordering-flow="r60t"] article[data-pmd-order-id] > :last-child {
