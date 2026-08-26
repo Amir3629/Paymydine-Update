@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useRef } from 'react'
+import { useLayoutEffect, useRef } from 'react'
 import { RuntimeOverlays as BaseRuntimeOverlays } from './RuntimeOverlays'
 import { useMenuRuntime } from '@/src/runtime/MenuRuntimeContext'
 
@@ -20,8 +20,16 @@ function copyFor(locale: string) {
 export function RuntimeOverlays() {
   const runtime = useMenuRuntime()
   const autoOpenedPaymentFor = useRef<number | null>(null)
+  const selected = runtime.selectedOrder as any
+  const selectedSelfOrderId = runtime.overlay === 'checkout' && selected?.orderOrigin === 'guest_self'
+    ? Number(selected?.orderId || 0)
+    : 0
+  // Checkout owns a local selectedPaymentOrderIds state that is initialized only
+  // when it mounts. Remounting the base overlay exactly once when a self-order id
+  // becomes authoritative ensures that state starts with the actual QR order.
+  const overlayKey = selectedSelfOrderId > 0 ? `r60t-self-${selectedSelfOrderId}` : 'r60t-base'
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     const copy = copyFor(runtime.locale)
     document.querySelectorAll<HTMLElement>('[data-pmd-direct-kitchen-send="r33b"]').forEach((button) => {
       const label = runtime.orderLoading ? copy.preparing : copy.payPlace
@@ -34,8 +42,8 @@ export function RuntimeOverlays() {
     if (!root) return
     root.setAttribute('data-pmd-ordering-flow', 'r60t')
 
-    const selected = runtime.selectedOrder as any
-    const isSelfOrder = selected?.orderOrigin === 'guest_self'
+    const currentSelected = runtime.selectedOrder as any
+    const isSelfOrder = currentSelected?.orderOrigin === 'guest_self'
     const hasSharedStaffOrder = runtime.tableOrders.some((order: any) => order?.orderOrigin === 'staff_shared')
     root.setAttribute('data-pmd-r60t-self-order', isSelfOrder ? 'true' : 'false')
     root.setAttribute('data-pmd-r60t-has-staff-shared', hasSharedStaffOrder ? 'true' : 'false')
@@ -52,17 +60,17 @@ export function RuntimeOverlays() {
 
     if (
       isSelfOrder
-      && Number(selected?.orderId || 0) > 0
+      && Number(currentSelected?.orderId || 0) > 0
       && runtime.overlay === 'checkout'
-      && autoOpenedPaymentFor.current !== Number(selected.orderId)
+      && autoOpenedPaymentFor.current !== Number(currentSelected.orderId)
       && paymentTab
     ) {
-      autoOpenedPaymentFor.current = Number(selected.orderId)
+      autoOpenedPaymentFor.current = Number(currentSelected.orderId)
       paymentTab.click()
     }
 
     if (!isSelfOrder) autoOpenedPaymentFor.current = null
-  }, [runtime.locale, runtime.orderLoading, runtime.overlay, runtime.selectedOrder, runtime.tableOrders])
+  }, [overlayKey, runtime.locale, runtime.orderLoading, runtime.overlay, runtime.selectedOrder, runtime.tableOrders])
 
   return (
     <>
@@ -145,7 +153,7 @@ export function RuntimeOverlays() {
           display: none;
         }
       `}</style>
-      <BaseRuntimeOverlays />
+      <BaseRuntimeOverlays key={overlayKey} />
     </>
   )
 }
