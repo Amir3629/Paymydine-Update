@@ -89,18 +89,33 @@ echo "admin=$ADMIN_CODE root=$ROOT_CODE settings=$SETTINGS_CODE"
 log "2. FETCH REVIEWED V1.0.8 BRANCH WITHOUT MOVING LIVE HEAD"
 git fetch origin "$BRANCH" || refuse "git fetch failed"
 SOURCE_SHA="$(git rev-parse FETCH_HEAD)"
-BUILD_SOURCE_SHA="$(git log -1 --format=%H FETCH_HEAD -- apps/cashier-desktop "$WORKFLOW")"
+APP_TREE_SHA="$(git rev-parse FETCH_HEAD:apps/cashier-desktop 2>/dev/null || true)"
+WORKFLOW_BLOB_SHA="$(git rev-parse "FETCH_HEAD:$WORKFLOW" 2>/dev/null || true)"
 echo "SOURCE_SHA=$SOURCE_SHA"
-echo "BUILD_SOURCE_SHA=$BUILD_SOURCE_SHA"
-[[ -n "$BUILD_SOURCE_SHA" ]] || refuse "could not determine latest V1.0.8 app build source"
+echo "APP_TREE_SHA=$APP_TREE_SHA"
+echo "WORKFLOW_BLOB_SHA=$WORKFLOW_BLOB_SHA"
+[[ -n "$APP_TREE_SHA" ]] || refuse "V1.0.8 app tree missing from reviewed branch"
+[[ -n "$WORKFLOW_BLOB_SHA" ]] || refuse "V1.0.8 workflow missing from reviewed branch"
 
-log "3. REQUIRE RELEASE FROM LATEST V1.0.8 BUILD SOURCE"
+log "3. REQUIRE RELEASE BUILT FROM THE SAME V1.0.8 APP + WORKFLOW"
 RELEASE_TARGET="$(curl -fsSL --max-time 30 "https://api.github.com/repos/$REPO/releases/tags/$TAG" \
   | python3 -c 'import json,sys; print(json.load(sys.stdin).get("target_commitish", ""))' \
   || true)"
 echo "RELEASE_TARGET=$RELEASE_TARGET"
 [[ -n "$RELEASE_TARGET" ]] || refuse "release metadata unavailable"
-[[ "$RELEASE_TARGET" == "$BUILD_SOURCE_SHA" ]] || refuse "V1.0.8 release is not built from latest app/workflow source yet"
+
+# The release target may include deploy/docs-only commits after the app build.
+# Compare the actual app tree and workflow blob instead of requiring an exact
+# commit SHA match. This still refuses stale binaries if app/build logic differs.
+if ! git cat-file -e "$RELEASE_TARGET^{commit}" 2>/dev/null; then
+  git fetch origin "$RELEASE_TARGET" >/dev/null 2>&1 || true
+fi
+RELEASE_APP_TREE_SHA="$(git rev-parse "$RELEASE_TARGET:apps/cashier-desktop" 2>/dev/null || true)"
+RELEASE_WORKFLOW_BLOB_SHA="$(git rev-parse "$RELEASE_TARGET:$WORKFLOW" 2>/dev/null || true)"
+echo "RELEASE_APP_TREE_SHA=$RELEASE_APP_TREE_SHA"
+echo "RELEASE_WORKFLOW_BLOB_SHA=$RELEASE_WORKFLOW_BLOB_SHA"
+[[ "$RELEASE_APP_TREE_SHA" == "$APP_TREE_SHA" ]] || refuse "V1.0.8 release app tree is stale"
+[[ "$RELEASE_WORKFLOW_BLOB_SHA" == "$WORKFLOW_BLOB_SHA" ]] || refuse "V1.0.8 release workflow contract is stale"
 
 asset_ok "PayMyDine-Cashier-Setup-1.0.8.exe" || refuse "Windows V1.0.8 asset is not ready"
 asset_ok "PayMyDine-Cashier-1.0.8-mac-arm64.dmg" || refuse "Mac Apple Silicon V1.0.8 asset is not ready"
@@ -131,6 +146,7 @@ grep -q 'PMD_DESKTOP_STANDALONE_PRINT_BRIDGE_V108' "$STAGE/$ASSET" || refuse "de
 grep -q 'PayMyDine-Cashier-Setup-1.0.8.exe' "$STAGE/$SETTINGS" || refuse "Windows V1.0.8 settings link missing"
 grep -q 'PayMyDine-Cashier-1.0.8-mac-arm64.dmg' "$STAGE/$SETTINGS" || refuse "Apple Silicon V1.0.8 settings link missing"
 grep -q 'PayMyDine-Cashier-1.0.8-mac-x64.dmg' "$STAGE/$SETTINGS" || refuse "Intel V1.0.8 settings link missing"
+! grep -q 'PayMyDine-Cashier-Setup-1.0.7.exe' "$STAGE/$SETTINGS" || refuse "stale Windows V1.0.7 link remains"
 
 log "5. BACKUP + ACTIVATE PRINT AUTHORITIES"
 BACKUP="$PMD_ROOT/storage/app/pmd-backups/cashier-v108-print-$(date +%Y%m%d-%H%M%S)"
