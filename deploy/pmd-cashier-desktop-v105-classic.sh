@@ -15,6 +15,7 @@ BRANCH_BEFORE="$(git branch --show-current)"
 STAGE="$(mktemp -d /tmp/pmd-cashier-v105-stage.XXXXXX)"
 BACKUP=""
 ACTIVATED=0
+SOURCE_SHA=""
 
 cleanup() { rm -rf "$STAGE"; }
 trap cleanup EXIT
@@ -53,7 +54,7 @@ asset_ok() {
   [[ "${result%%|*}" == "200" ]]
 }
 
-log "PMD CASHIER DESKTOP V1.0.5 - CLASSIC MAC PACKAGE + OFFICIAL BRAND"
+log "PMD CASHIER DESKTOP V1.0.5 - TAHOE NATIVE ICON + BRANDED DOWNLOAD CARD"
 echo "HEAD:   $HEAD_BEFORE"
 echo "BRANCH: $BRANCH_BEFORE"
 
@@ -64,13 +65,22 @@ echo "admin=$ADMIN_CODE root=$ROOT_CODE"
 [[ "$ADMIN_CODE" =~ ^[23] ]] || refuse "admin pre-health is not 2xx/3xx"
 [[ "$ROOT_CODE" =~ ^[23] ]] || refuse "root pre-health is not 2xx/3xx"
 
-log "2. REQUIRE ALL V1.0.5 RELEASE ASSETS"
+log "2. FETCH REVIEWED BRANCH WITHOUT MOVING LIVE HEAD"
+git fetch origin "$BRANCH" || refuse "git fetch failed"
+SOURCE_SHA="$(git rev-parse FETCH_HEAD)"
+echo "SOURCE_SHA=$SOURCE_SHA"
+
+log "3. REQUIRE RELEASE FROM THIS EXACT SOURCE"
+RELEASE_TARGET="$(curl -fsSL --max-time 30 "https://api.github.com/repos/$REPO/releases/tags/$TAG" \
+  | python3 -c 'import json,sys; print(json.load(sys.stdin).get("target_commitish", ""))' \
+  || true)"
+echo "RELEASE_TARGET=$RELEASE_TARGET"
+[[ -n "$RELEASE_TARGET" ]] || refuse "release metadata unavailable"
+[[ "$RELEASE_TARGET" == "$SOURCE_SHA" ]] || refuse "release is not built from latest reviewed V1.0.5 source yet"
+
 asset_ok "PayMyDine-Cashier-Setup-1.0.5.exe" || refuse "Windows V1.0.5 release asset is not ready"
 asset_ok "PayMyDine-Cashier-1.0.5-mac-arm64.dmg" || refuse "Mac Apple Silicon V1.0.5 release asset is not ready"
 asset_ok "PayMyDine-Cashier-1.0.5-mac-x64.dmg" || refuse "Mac Intel V1.0.5 release asset is not ready"
-
-log "3. FETCH REVIEWED BRANCH WITHOUT MOVING LIVE HEAD"
-git fetch origin "$BRANCH" || refuse "git fetch failed"
 
 mkdir -p "$STAGE/$(dirname "$VIEW")" "$STAGE/deploy"
 cp -p "$PMD_ROOT/$VIEW" "$STAGE/$VIEW" || refuse "could not stage live Devices view"
@@ -80,7 +90,9 @@ log "4. PATCH LIVE-AUTHORITY DOWNLOAD UI"
 python3 -m py_compile "$STAGE/$PATCH" || refuse "patcher syntax failed"
 python3 "$STAGE/$PATCH" "$STAGE" || refuse "download UI patch failed"
 php -l "$STAGE/$VIEW" || refuse "staged Devices view PHP syntax failed"
-grep -q 'PMD_CASHIER_DESKTOP_DOWNLOADS_V105_CLASSIC' "$STAGE/$VIEW" || refuse "V1.0.5 classic marker missing"
+grep -q 'PMD_CASHIER_DESKTOP_DOWNLOADS_V105_CLASSIC' "$STAGE/$VIEW" || refuse "V1.0.5 marker missing"
+grep -q 'PMD_CASHIER_DESKTOP_V105_CARD_LOGO_R2' "$STAGE/$VIEW" || refuse "download-card logo marker missing"
+grep -q '/brand/paymydine-logo.svg' "$STAGE/$VIEW" || refuse "PayMyDine download-card logo path missing"
 grep -q 'PayMyDine-Cashier-Setup-1.0.5.exe' "$STAGE/$VIEW" || refuse "Windows V1.0.5 link missing"
 grep -q 'PayMyDine-Cashier-1.0.5-mac-arm64.dmg' "$STAGE/$VIEW" || refuse "Mac arm64 V1.0.5 link missing"
 grep -q 'PayMyDine-Cashier-1.0.5-mac-x64.dmg' "$STAGE/$VIEW" || refuse "Mac x64 V1.0.5 link missing"
@@ -113,7 +125,7 @@ echo "BRANCH_AFTER=$BRANCH_AFTER"
 [[ "$LIVE_SHA" == "$STAGE_SHA" ]] || refuse "live view bytes differ from staged view"
 [[ "$HEAD_AFTER" == "$HEAD_BEFORE" ]] || refuse "live Git HEAD moved"
 [[ "$BRANCH_AFTER" == "$BRANCH_BEFORE" ]] || refuse "live Git branch changed"
-grep -q 'PMD_CASHIER_DESKTOP_DOWNLOADS_V105_CLASSIC' "$PMD_ROOT/$VIEW" || refuse "live V1.0.5 marker missing"
+grep -q 'PMD_CASHIER_DESKTOP_V105_CARD_LOGO_R2' "$PMD_ROOT/$VIEW" || refuse "live download-card logo marker missing"
 
 ADMIN_AFTER="$(curl -k -sS -o /dev/null -w '%{http_code}' "https://$TEST_HOST/admin" || true)"
 ROOT_AFTER="$(curl -k -sS -o /dev/null -w '%{http_code}' "https://$TEST_HOST/" || true)"
@@ -121,14 +133,16 @@ echo "POST admin=$ADMIN_AFTER root=$ROOT_AFTER"
 [[ "$ADMIN_AFTER" =~ ^[23] ]] || refuse "admin post-health is not 2xx/3xx"
 [[ "$ROOT_AFTER" =~ ^[23] ]] || refuse "root post-health is not 2xx/3xx"
 
-log "PMD CASHIER DESKTOP V1.0.5 CLASSIC DOWNLOADS DEPLOYED"
+log "PMD CASHIER DESKTOP V1.0.5 NATIVE ICON + CARD BRAND DEPLOYED"
 echo "FILES_CHANGED=1_VIEW_ONLY"
 echo "DESKTOP_APP_VERSION=1.0.5"
-echo "MAC_PACKAGING=CLASSIC_UNSIGNED_KNOWN_GOOD_PATH"
-echo "OFFICIAL_PAYMYDINE_ICON=YES"
+echo "MAC_ICON_FORMAT=ICON_COMPOSER_ASSETS_CAR"
+echo "MAC_ICON_BACKGROUND=#FFFFFF"
+echo "TAHOE_GRAY_FALLBACK_REMOVED=YES"
+echo "DOWNLOAD_CARD_PAYMYDINE_LOGO=YES"
 echo "VIRTUAL_PDF_MODE=YES"
 echo "PHYSICAL_PRINTING_CHANGED_ON_SERVER=NO"
 echo "PAYMENT_BACKEND_CHANGED=NO"
 echo "DB_CHANGES=NO"
 echo "LIVE_GIT_HEAD_MOVED=NO"
-echo "Next: download V1.0.5 arm64 on M-series Mac and test Virtual PDF."
+echo "Next: hard-refresh Devices, confirm PayMyDine logo on the download card, download V1.0.5 arm64 and replace the old Mac app."
