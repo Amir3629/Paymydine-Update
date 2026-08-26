@@ -99,26 +99,13 @@ export function useMenuRuntime(): ReturnType<typeof useBaseMenuRuntime> {
     }
   }, [base.bootstrap.table, flowGuestSessionId, isR60tActive])
 
+  // Reuse the base runtime's single shared 3-second order polling cycle. The base
+  // state receives a fresh tableOrders array on every successful poll, so this
+  // effect refreshes the private R60T projection without introducing another timer.
   useEffect(() => {
     if (!isR60tActive || !flowGuestSessionId) return
-    let cancelled = false
-    const run = async () => {
-      if (cancelled || document.visibilityState === 'hidden') return
-      await refreshFlow()
-    }
-    void run()
-    const timer = window.setInterval(run, 3000)
-    const onFocus = () => void run()
-    const onVisibility = () => { if (document.visibilityState === 'visible') void run() }
-    window.addEventListener('focus', onFocus)
-    document.addEventListener('visibilitychange', onVisibility)
-    return () => {
-      cancelled = true
-      window.clearInterval(timer)
-      window.removeEventListener('focus', onFocus)
-      document.removeEventListener('visibilitychange', onVisibility)
-    }
-  }, [flowGuestSessionId, isR60tActive, refreshFlow])
+    void refreshFlow()
+  }, [base.tableOrders, flowGuestSessionId, isR60tActive, refreshFlow])
 
   const confirmPersonalItems = useCallback(async () => {
     if (!isR60tActive) return base.confirmPersonalItems()
