@@ -1,15 +1,16 @@
 {
   "name": "paymydine-cashier-desktop",
-  "version": "1.0.3",
+  "version": "1.0.4",
   "private": true,
-  "description": "PayMyDine universal cashier desktop app with local printer and cash drawer support for Windows and macOS",
+  "description": "PayMyDine universal cashier desktop app with physical printer, cash drawer and Virtual PDF print-debug support for Windows and macOS",
   "main": "src/main.js",
   "scripts": {
-    "dev": "electron .",
-    "start": "electron .",
-    "check": "node --check src/main.js && node --check src/preload.js && node --check src/setup.js && node --check src/hardware.js && node --check src/receipt.js && node --check src/hardware-page.js && node --check src/offline.js",
-    "dist:win": "electron-builder --win nsis",
-    "dist:mac": "electron-builder --mac dmg zip"
+    "patch:v104": "node scripts/apply-v104.js",
+    "dev": "npm run patch:v104 && electron .",
+    "start": "npm run patch:v104 && electron .",
+    "check": "npm run patch:v104 && node --check src/main.js && node --check src/preload.js && node --check src/setup.js && node --check src/hardware.js && node --check src/receipt.js && node --check src/hardware-page.js && node --check src/offline.js",
+    "dist:win": "npm run patch:v104 && electron-builder --win nsis",
+    "dist:mac": "npm run patch:v104 && electron-builder --mac dmg zip"
   },
   "devDependencies": {
     "electron": "43.4.1",
@@ -27,16 +28,11 @@
       "package.json"
     ],
     "win": {
-      "target": [
-        "nsis"
-      ],
+      "target": ["nsis"],
       "artifactName": "PayMyDine-Cashier-Setup-${version}.${ext}"
     },
     "mac": {
-      "target": [
-        "dmg",
-        "zip"
-      ],
+      "target": ["dmg", "zip"],
       "category": "public.app-category.business",
       "artifactName": "PayMyDine-Cashier-${version}-mac-${arch}.${ext}"
     },
