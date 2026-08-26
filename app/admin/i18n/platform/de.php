@@ -27,6 +27,21 @@ return [
     'shared.view_order' => 'Bestellung anzeigen',
     'shared.waiter' => 'Kellner',
 
+    'nav.admin_navigation' => 'Admin-Navigation',
+    'nav.expand_menu' => 'Menü erweitern',
+    'nav.dashboard' => 'Dashboard',
+    'nav.manager' => 'Manager',
+    'nav.accountant' => 'Buchhaltung',
+    'nav.orders' => 'Bestellungen',
+    'nav.reservations' => 'Reservierungen',
+    'nav.coupons_gifts' => 'Gutscheine & Geschenke',
+    'nav.menu' => 'Menü',
+    'nav.settings' => 'Einstellungen',
+    'nav.account_actions' => 'Kontoaktionen',
+    'nav.logout' => 'Abmelden',
+    'nav.open_navigation' => 'Navigation öffnen',
+    'nav.close_navigation' => 'Navigation schließen',
+
     'waiter.dashboard.title' => 'Kellner-POS',
 
     'waiter.payment.by_items' => 'Nach Artikeln',
